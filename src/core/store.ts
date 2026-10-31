@@ -17,6 +17,7 @@ import {
   type RunEvent,
   type RunEventData,
   type RunStatus,
+  type SearchHit,
   type Task,
   type TaskStatus,
 } from "./types.js";
@@ -116,6 +117,19 @@ const MIGRATIONS = [
 ];
 
 type Row = Record<string, SQLInputValue>;
+
+/** キーワードの前後を切り出す（前 40 文字・後ろ 80 文字程度） */
+export function snippetAround(text: string, keyword: string): { snippet: string; match_start: number; match_end: number } {
+  const flat = text.replace(/\s+/g, " ");
+  const index = flat.toLowerCase().indexOf(keyword.toLowerCase());
+  if (index < 0) return { snippet: flat.slice(0, 120), match_start: 0, match_end: 0 };
+  const start = Math.max(0, index - 40);
+  const end = Math.min(flat.length, index + keyword.length + 80);
+  const prefix = start > 0 ? "…" : "";
+  const snippet = `${prefix}${flat.slice(start, end)}${end < flat.length ? "…" : ""}`;
+  const matchStart = prefix.length + index - start;
+  return { snippet, match_start: matchStart, match_end: matchStart + keyword.length };
+}
 
 /** DB の行（write_scopes は JSON 文字列）をアプリの型に変換する */
 function toProject(row: unknown): Project {
@@ -506,6 +520,35 @@ export class Store {
       created_at: string;
     }[];
     return rows.map((r) => ({ ...r, data: JSON.parse(r.data) }));
+  }
+
+  /**
+   * チャットのやり取り（自分の発言と AI の返答）をキーワードで検索する。新しい順。
+   * 大文字・小文字は区別しない（ASCII のみ。SQLite の LIKE の仕様）。
+   */
+  searchEvents(query: string, filter: { projectId?: number; runId?: number; limit?: number } = {}): SearchHit[] {
+    const keyword = query.trim();
+    if (!keyword) return [];
+    const where = ["e.type IN ('user', 'text')", "json_extract(e.data, '$.text') LIKE $pattern ESCAPE '\\'"];
+    const params: Row = { pattern: `%${keyword.replace(/[\\%_]/g, (c) => `\\${c}`)}%` };
+    if (filter.projectId !== undefined) {
+      where.push("r.project_id = $project_id");
+      params.project_id = filter.projectId;
+    }
+    if (filter.runId !== undefined) {
+      where.push("e.run_id = $run_id");
+      params.run_id = filter.runId;
+    }
+    const rows = this.db
+      .prepare(
+        `SELECT e.id AS event_id, e.run_id, r.project_id, r.title AS run_title, r.phase, e.type,
+                json_extract(e.data, '$.text') AS text, e.created_at
+         FROM run_events e JOIN runs r ON r.id = e.run_id
+         WHERE ${where.join(" AND ")}
+         ORDER BY e.id DESC LIMIT ${Math.min(filter.limit ?? 50, 200)}`,
+      )
+      .all(params) as (Omit<SearchHit, "snippet" | "match_start" | "match_end"> & { text: string })[];
+    return rows.map(({ text, ...row }) => ({ ...row, ...snippetAround(text, keyword) }));
   }
 
   /** 起動時の復旧: 前回終了時に動いていた実行を中断扱いにする */

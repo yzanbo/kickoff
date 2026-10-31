@@ -13,7 +13,7 @@ import { useServerEvent } from "../events";
 import { href } from "../router";
 
 /** エージェントとのチャット（1 つの実行） */
-export function RunPage({ projectId, runId }: { projectId: number; runId: number }) {
+export function RunPage({ projectId, runId, focus }: { projectId: number; runId: number; focus?: number }) {
   const [run, setRun] = useState<Run>();
   const [project, setProject] = useState<Project>();
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -55,7 +55,7 @@ export function RunPage({ projectId, runId }: { projectId: number; runId: number
 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
-  return <RunView run={run} project={project} events={events} approvals={approvals} live={live} />;
+  return <RunView run={run} project={project} events={events} approvals={approvals} live={live} focus={focus} />;
 }
 
 function RunView({
@@ -64,12 +64,14 @@ function RunView({
   events,
   approvals,
   live,
+  focus,
 }: {
   run: Run;
   project?: Project;
   events: RunEvent[];
   approvals: Approval[];
   live: string;
+  focus?: number;
 }) {
   const options = useRunOptions({
     model: run.model,
@@ -84,11 +86,23 @@ function RunView({
   const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
   const waiting = approvals.length > 0;
 
+  // 検索結果から開いたときは、その発言までスクロールして一瞬強調する
+  useEffect(() => {
+    if (!focus) return;
+    const target = document.getElementById(`ev-${focus}`);
+    if (!target) return;
+    stickToBottom.current = false;
+    target.scrollIntoView({ block: "center" });
+    target.classList.remove("flash");
+    void target.offsetWidth; // アニメーションをやり直すため
+    target.classList.add("flash");
+  }, [focus, items.length]);
+
   // 一番下を見ているときだけ、新しい発言に合わせてスクロールする
   useEffect(() => {
     const el = timelineRef.current;
-    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
-  }, [items.length, approvals.length, live]);
+    if (el && stickToBottom.current && !focus) el.scrollTop = el.scrollHeight;
+  }, [items.length, approvals.length, live, focus]);
 
   return (
     <div className="run-page">
@@ -316,7 +330,7 @@ function EventItem({ event }: { event: RunEvent }) {
     case "user": {
       const attachments = (data.attachments as Attachment[] | undefined) ?? [];
       return (
-        <div className="bubble user">
+        <div className="bubble user" id={`ev-${event.id}`}>
           {attachments.length > 0 && (
             <div className="bubble-attachments">
               {attachments.map((a) => (
@@ -330,7 +344,7 @@ function EventItem({ event }: { event: RunEvent }) {
     }
     case "text":
       return (
-        <div className={`assistant ${data.sub ? "sub" : ""}`}>
+        <div className={`assistant ${data.sub ? "sub" : ""}`} id={`ev-${event.id}`}>
           <Markdown>{String(data.text)}</Markdown>
         </div>
       );

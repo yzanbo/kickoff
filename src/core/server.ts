@@ -308,6 +308,18 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json(run, 201);
   });
 
+  // チャットのやり取りのキーワード検索（⌘F）
+  app.get("/api/search", (c) => {
+    const num = (v: string | undefined) => (v ? Number(v) : undefined);
+    return c.json(
+      store.searchEvents(c.req.query("q") ?? "", {
+        projectId: num(c.req.query("project_id")),
+        runId: num(c.req.query("run_id")),
+        limit: num(c.req.query("limit")),
+      }),
+    );
+  });
+
   // 全プロジェクトのチャット（⌘K の検索・移動用）
   app.get("/api/runs", (c) => c.json(store.listRuns({ limit: Math.min(Number(c.req.query("limit") ?? 300), 1000) })));
 

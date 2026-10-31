@@ -10,6 +10,7 @@ import type {
   Run,
   RunEvent,
   RunOptions,
+  SearchHit,
   Task,
   BusEvent,
   GitHubStatus,
@@ -103,6 +104,12 @@ export const api = {
   // 実行（エージェントとの会話）
   runs: (projectId: number) => request<Run[]>("GET", `/api/projects/${projectId}/runs`),
   allRuns: () => request<Run[]>("GET", "/api/runs?limit=300"),
+  search: (q: string, scope: { projectId?: number; runId?: number } = {}) => {
+    const params = new URLSearchParams({ q });
+    if (scope.projectId !== undefined) params.set("project_id", String(scope.projectId));
+    if (scope.runId !== undefined) params.set("run_id", String(scope.runId));
+    return request<SearchHit[]>("GET", `/api/search?${params}`);
+  },
   startRun: (
     projectId: number,
     input: { phase: Phase; prompt: string; task_id?: number; options: RunOptions; attachments?: Attachment[] },
