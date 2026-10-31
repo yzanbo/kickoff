@@ -238,10 +238,138 @@ kbd {
 }
 
 .sidebar-section {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ==== プロジェクトのワークスペース（横スライドで切り替え） ==== */
+
+.workspaces {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workspace-viewport {
   flex: 1;
   min-height: 0;
-  padding: 8px;
+  overflow: hidden;
+  /* 縦スクロールはページ側で、横の操作はスワイプとして受け取る */
+  touch-action: pan-y;
+}
+
+.workspace-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.workspace-track.dragging {
+  transition: none;
+}
+
+.workspace-page {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: 4px 8px 8px;
   overflow-y: auto;
+}
+
+.workspace-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  padding: 4px 4px 4px 8px;
+  border-radius: 6px;
+}
+
+.workspace-head:hover,
+.workspace-head.active {
+  background: var(--bg-hover);
+}
+
+.workspace-name {
+  flex: 1;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.workspace-page .nav-chat {
+  padding-left: 10px;
+}
+
+.workspace-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px 8px;
+  border-top: 1px solid var(--border);
+}
+
+.workspace-dot {
+  --ws-hue: 20;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: hsl(var(--ws-hue) 60% 72%);
+  background: hsl(var(--ws-hue) 35% 22%);
+  cursor: pointer;
+  opacity: 0.7;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+:root[data-theme="light"] .workspace-dot {
+  color: hsl(var(--ws-hue) 55% 32%);
+  background: hsl(var(--ws-hue) 55% 90%);
+}
+
+.workspace-dot:hover {
+  opacity: 1;
+}
+
+.workspace-dot.active {
+  border-color: hsl(var(--ws-hue) 60% 60%);
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.workspace-dot.add {
+  color: var(--muted);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+}
+
+.workspace-dot-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--bg-sidebar);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.workspace-empty {
+  padding: 8px;
 }
 
 .sidebar-label-row {

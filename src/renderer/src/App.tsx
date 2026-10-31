@@ -98,20 +98,8 @@ export function App() {
             <kbd>⌘K</kbd>
           </button>
         </div>
-        <nav className="sidebar-section">
-          <div className="sidebar-label-row">
-            <span className="sidebar-label">プロジェクト</span>
-            <button className="icon-button" title="新しいプロジェクト" aria-label="新しいプロジェクト" onClick={() => setCreating(true)}>
-              <Plus size={15} />
-            </button>
-          </div>
-          {projects.length === 0 ? (
-            <button className="sidebar-new" onClick={() => setCreating(true)}>
-              <Plus size={14} /> 新しいプロジェクト
-            </button>
-          ) : (
-            <ProjectNav projects={projects} approvals={approvals} route={route} />
-          )}
+        <nav className="sidebar-section" aria-label="プロジェクトとチャット">
+          <ProjectNav projects={projects} approvals={approvals} route={route} onNewProject={() => setCreating(true)} />
         </nav>
         <div className="sidebar-footer">
           <a className={`nav-item ${route.name === "settings" ? "active" : ""}`} href={href({ name: "settings" })}>
