@@ -1,0 +1,13 @@
+appId: dev.zanbo.kickoff
+productName: Kickoff
+directories:
+  output: dist
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  # Agent SDK が起動する Claude Code のネイティブバイナリは asar の外に置く必要がある
+  - node_modules/@anthropic-ai/claude-agent-sdk-*/**
+mac:
+  target: dmg
+  category: public.app-category.developer-tools
