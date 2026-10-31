@@ -55,7 +55,8 @@ test("実行するとイベントが記録され、続きのメッセージは�
   assert.equal(store.getRun(run.id)?.session_id, "s1");
   assert.equal(provider.calls[0].model, "sonnet");
   assert.equal(provider.calls[0].effort, "low");
-  assert.equal(store.getSettings().claudeModel, "sonnet");
+  // チャット欄の指定はそのチャットだけに効き、設定の既定は変わらない
+  assert.equal(store.getSettings().claudeModel, "opus");
 
   runner.send(run.id, "続き", { permission_mode: "plan" });
   await until(() => store.getRun(run.id)?.num_turns === 2);
@@ -65,6 +66,15 @@ test("実行するとイベントが記録され、続きのメッセージは�
     store.listEvents(run.id).map((e) => e.type),
     ["user", "init", "text", "result", "user", "init", "text", "result"],
   );
+});
+
+test("チャット欄で指定がなければ設定の既定（モデル・深さ・権限・ファストモード）を使う", async () => {
+  const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
+  store.updateSettings({ claudeModel: "fable", defaultEffort: "high", defaultPermission: "auto", defaultFastMode: true });
+  const run = runner.start({ projectId: project.id, phase: "requirements", prompt: "x" });
+  await until(() => store.getRun(run.id)?.status === "completed");
+  const call = provider.calls[0];
+  assert.deepEqual([call.model, call.effort, call.permissionMode, call.fastMode], ["fable", "high", "auto", true]);
 });
 
 test("承認待ちの間は waiting になり、回答するとエージェントに結果が渡る", async () => {

@@ -20,63 +20,49 @@ function loadModels() {
   return modelsPromise;
 }
 
-const STORAGE_KEY = "kickoff:run-options";
-
-interface StoredOptions {
-  effort: EffortLevel | null;
-  permission_mode: PermissionChoice;
-}
-
-function loadStored(): StoredOptions {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Partial<StoredOptions>;
-    return { effort: raw.effort ?? null, permission_mode: raw.permission_mode ?? "phase" };
-  } catch {
-    return { effort: null, permission_mode: "phase" };
-  }
-}
-
 /**
- * チャット欄で選ぶモデル・推論の深さ・権限モード。
- * モデルは最後に選んだものがサーバーに記録され、深さと権限モードはこの端末に記録される。
- * initial を渡すと（既存の会話を開いたとき）その会話の設定から始める。
+ * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
+ * 新しいチャットは設定画面の既定から始まり、ここでの変更はそのチャットだけに効く。
+ * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始める。
  */
 export function useRunOptions(initial?: RunOptions) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
-  const stored = loadStored();
-  const [effort, setEffort] = useState<EffortLevel | null>(initial ? (initial.effort ?? null) : stored.effort);
-  const [permission, setPermission] = useState<PermissionChoice>(
-    initial?.permission_mode ?? stored.permission_mode,
-  );
+  const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
+  const [permission, setPermission] = useState<PermissionChoice>(initial?.permission_mode ?? "phase");
+  const [fastMode, setFastMode] = useState<boolean>(Boolean(initial?.fast_mode));
 
   useEffect(() => {
     void loadModels().then(setModels);
-    if (!initial?.model) void api.settings().then((s) => setModel((m) => m ?? s.claudeModel));
+    if (!initial) {
+      void api.settings().then((s) => {
+        setModel((m) => m ?? s.claudeModel);
+        setEffort(s.defaultEffort);
+        setPermission(s.defaultPermission);
+        setFastMode(s.defaultFastMode);
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ effort, permission_mode: permission }));
-  }, [effort, permission]);
-
   const current = models.find((m) => m.value === model);
-  // 選んだモデルが対応していない深さ・Auto mode は外す
+  // 選んだモデルが対応していない深さ・Auto mode・ファストモードは外す
   useEffect(() => {
     if (!current) return;
     if (effort && !current.efforts.includes(effort)) setEffort(null);
     if (permission === "auto" && !current.supportsAutoMode) setPermission("phase");
-  }, [current, effort, permission]);
+    if (fastMode && !current.supportsFastMode) setFastMode(false);
+  }, [current, effort, permission, fastMode]);
 
-  const options: RunOptions = { model, effort, permission_mode: permission };
-  return { models, current, model, setModel, effort, setEffort, permission, setPermission, options };
+  const options: RunOptions = { model, effort, permission_mode: permission, fast_mode: fastMode };
+  return { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode, options };
 }
 
 export type RunOptionsState = ReturnType<typeof useRunOptions>;
 
 /** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード） */
 export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; disabled?: boolean }) {
-  const { models, current, model, setModel, effort, setEffort, permission, setPermission } = state;
+  const { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode } = state;
   const efforts = current?.efforts ?? (Object.keys(EFFORT_LABELS) as EffortLevel[]);
 
   return (
@@ -125,6 +111,19 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
           ))}
         </select>
       </label>
+
+      {(!current || current.supportsFastMode) && (
+        <button
+          type="button"
+          className={`fast-toggle ${fastMode ? "on" : ""}`}
+          aria-pressed={fastMode}
+          disabled={disabled}
+          title={fastMode ? "ファストモード: オン（追加の使用枠から消費）" : "ファストモード: オフ"}
+          onClick={() => setFastMode(!fastMode)}
+        >
+          ⚡{fastMode && <span className="fast-label">Fast</span>}
+        </button>
+      )}
     </div>
   );
 }
