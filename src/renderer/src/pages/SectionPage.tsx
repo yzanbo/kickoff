@@ -12,13 +12,11 @@ import {
 } from "../../../core/types";
 import { api } from "../api";
 import { ApprovalCard } from "../components/ApprovalCard";
-import { Composer } from "../components/Composer";
 import { Markdown } from "../components/Markdown";
-import { useRunOptions } from "../components/RunOptionsBar";
 import { TaskList } from "../components/TaskList";
 import { useServerEvent } from "../events";
-import { href, navigate } from "../router";
-import { SECTION_ARTIFACTS, SECTION_DESCRIPTIONS, SECTION_PLACEHOLDERS, SECTION_TASKS } from "../sections";
+import { href } from "../router";
+import { SECTION_ARTIFACTS, SECTION_DESCRIPTIONS, SECTION_TASKS } from "../sections";
 import { RUN_STATUS_LABELS } from "./RunPage";
 
 interface SectionData {
@@ -33,7 +31,6 @@ interface SectionData {
 export function SectionPage({ projectId, section }: { projectId: number; section: Phase }) {
   const [data, setData] = useState<SectionData>();
   const [error, setError] = useState<string>();
-  const options = useRunOptions();
 
   const load = useCallback(async () => {
     try {
@@ -96,20 +93,9 @@ export function SectionPage({ projectId, section }: { projectId: number; section
       </header>
 
       <section className="section">
-        <Composer
-          options={options}
-          placeholder={`新しいチャット — ${SECTION_PLACEHOLDERS[section]}（⌘+Enter で送信）`}
-          initialText={
-            // 最初の要件定義のチャットは、プロジェクト作成時のアイデアから始められるようにする
-            section === "requirements" && sectionRuns.length === 0 && project.description.trim()
-              ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${project.description.trim()}`
-              : undefined
-          }
-          onSend={async (prompt) => {
-            const run = await api.startRun(project.id, { phase: section, prompt, options: options.options });
-            navigate({ name: "run", projectId: project.id, runId: run.id });
-          }}
-        />
+        <a className="btn btn-primary" href={href({ name: "newChat", projectId: project.id, section })}>
+          ＋ 新しいチャット
+        </a>
       </section>
 
       {sectionApprovals.length > 0 && (

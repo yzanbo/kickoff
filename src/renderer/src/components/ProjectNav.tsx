@@ -24,7 +24,7 @@ export function ProjectNav({ projects, approvals, route }: { projects: ProjectSu
   const [expanded, setExpanded] = useState<string[]>(loadExpanded);
   const [runs, setRuns] = useState<Record<number, Run[]>>({});
   const activeProject = routeProjectId(route);
-  const activeSection = route.name === "section" ? route.section : undefined;
+  const activeSection = route.name === "section" || route.name === "newChat" ? route.section : undefined;
   const activeRunId = route.name === "run" ? route.runId : undefined;
 
   // 開いている画面のプロジェクトとセクションは自動で展開する
@@ -123,7 +123,8 @@ function SectionNode({
   onToggle: () => void;
   route: Route;
 }) {
-  const selected = route.name === "section" && route.projectId === projectId && route.section === section;
+  const selected =
+    (route.name === "section" || route.name === "newChat") && route.projectId === projectId && route.section === section;
   const waiting = runs.some((r) => approvals.some((a) => a.run_id === r.id));
   const working = runs.filter((r) => r.status === "running" || r.status === "queued").length;
 
@@ -142,7 +143,7 @@ function SectionNode({
           className="icon-button tree-add"
           title={`${PHASE_LABELS[section]}の新しいチャット`}
           aria-label={`${PHASE_LABELS[section]}の新しいチャット`}
-          onClick={() => navigate({ name: "section", projectId, section })}
+          onClick={() => navigate({ name: "newChat", projectId, section })}
         >
           ＋
         </button>
