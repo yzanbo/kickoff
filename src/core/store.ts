@@ -109,9 +109,23 @@ const MIGRATIONS = [
   // v3: チャット欄で選ぶ推論の深さと権限モード
   `ALTER TABLE runs ADD COLUMN effort TEXT;
    ALTER TABLE runs ADD COLUMN permission_mode TEXT NOT NULL DEFAULT 'phase';`,
+  // v4: セクションごとの書き込みできるフォルダ（JSON）
+  "ALTER TABLE projects ADD COLUMN write_scopes TEXT NOT NULL DEFAULT '{}'",
 ];
 
 type Row = Record<string, SQLInputValue>;
+
+/** DB の行（write_scopes は JSON 文字列）をアプリの型に変換する */
+function toProject(row: unknown): Project {
+  const r = row as Omit<Project, "write_scopes"> & { write_scopes: string };
+  let write_scopes: Project["write_scopes"] = {};
+  try {
+    write_scopes = JSON.parse(r.write_scopes || "{}");
+  } catch {
+    // 壊れた値は既定に戻す
+  }
+  return { ...r, write_scopes };
+}
 
 export interface NewProject {
   name: string;
@@ -216,7 +230,7 @@ export class Store {
   // ---- プロジェクト ----
 
   listProjects(): ProjectSummary[] {
-    const projects = this.db.prepare("SELECT * FROM projects ORDER BY updated_at DESC").all() as unknown as Project[];
+    const projects = this.db.prepare("SELECT * FROM projects ORDER BY updated_at DESC").all().map(toProject);
     const counts = this.db
       .prepare("SELECT project_id, phase, status, COUNT(*) AS n FROM tasks GROUP BY project_id, phase, status")
       .all() as { project_id: number; phase: Phase; status: TaskStatus; n: number }[];
@@ -246,11 +260,13 @@ export class Store {
   }
 
   findProjectByPath(repoPath: string): Project | undefined {
-    return this.db.prepare("SELECT * FROM projects WHERE repo_path = ?").get(repoPath) as unknown as Project | undefined;
+    const row = this.db.prepare("SELECT * FROM projects WHERE repo_path = ?").get(repoPath);
+    return row ? toProject(row) : undefined;
   }
 
   getProject(id: number): Project | undefined {
-    return this.db.prepare("SELECT * FROM projects WHERE id = ?").get(id) as unknown as Project | undefined;
+    const row = this.db.prepare("SELECT * FROM projects WHERE id = ?").get(id);
+    return row ? toProject(row) : undefined;
   }
 
   createProject(input: NewProject): Project {
@@ -275,9 +291,13 @@ export class Store {
 
   updateProject(
     id: number,
-    patch: Partial<Omit<NewProject, "auto_commit">> & { auto_commit?: boolean },
+    patch: Partial<Omit<NewProject, "auto_commit">> & { auto_commit?: boolean; write_scopes?: Project["write_scopes"] },
   ): Project {
-    const row: Row = { ...patch, auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0 } as Row;
+    const row: Row = {
+      ...patch,
+      auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0,
+      write_scopes: patch.write_scopes === undefined ? undefined : JSON.stringify(patch.write_scopes),
+    } as Row;
     this.updateRow("projects", id, row, [
       "name",
       "description",
@@ -286,6 +306,7 @@ export class Store {
       "test_command",
       "deploy_instructions",
       "auto_commit",
+      "write_scopes",
     ]);
     const project = this.getProject(id)!;
     this.onChange({ type: "project", project });

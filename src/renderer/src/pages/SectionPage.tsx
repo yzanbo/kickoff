@@ -90,6 +90,13 @@ export function SectionPage({ projectId, section }: { projectId: number; section
         </a>
         <h1>{PHASE_LABELS[section]}</h1>
         <p className="muted">{SECTION_DESCRIPTIONS[section]}</p>
+        {(section === "requirements" || section === "schedule") && (
+          <p className="muted small scope-note">
+            書き込みできるフォルダ:{" "}
+            {(project.write_scopes?.[section] ?? ["docs"]).map((f) => (f === "." ? "リポジトリ全体" : `${f}/`)).join("、") || "なし"}
+            （<a href={href({ name: "project", id: project.id })}>プロジェクト設定で変更</a>）
+          </p>
+        )}
       </header>
 
       <section className="section">

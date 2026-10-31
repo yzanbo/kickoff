@@ -84,6 +84,8 @@ export const api = {
   importProject: (input: ImportProjectInput) => request<Project>("POST", "/api/projects/import", input),
   inspectWorkspace: (path: string) =>
     request<WorkspaceInspection>("GET", `/api/workspace/inspect?path=${encodeURIComponent(path)}`),
+  updateProject: (id: number, patch: Partial<Pick<Project, "name" | "description" | "write_scopes">>) =>
+    request<Project>("PATCH", `/api/projects/${id}`, patch),
   deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),
   models: (provider: ProviderId) => request<ModelOption[]>("GET", `/api/providers/${provider}/models`),
 

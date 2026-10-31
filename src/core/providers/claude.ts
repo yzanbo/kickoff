@@ -7,6 +7,8 @@ import {
   query,
   tool,
   type CanUseTool,
+  type HookCallbackMatcher,
+  type HookEvent,
   type PermissionMode,
   type Query,
   type SDKControlGetUsageResponse,
@@ -15,6 +17,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { KICKOFF_SERVER_NAME, type KickoffTool } from "../kickoffTools.js";
+import { evaluateScopedToolUse } from "../scope.js";
 import type { PhasePolicy } from "../phases.js";
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type UsageWindow } from "../types.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
@@ -48,6 +51,36 @@ function agentEnv(): Record<string, string | undefined> {
     delete env.ANTHROPIC_AUTH_TOKEN;
   }
   return env;
+}
+
+/**
+ * 書き込み範囲の制限をフック（PreToolUse）で強制する。フックは権限モードや許可ルールより先に
+ * 毎回呼ばれるので、Auto mode やユーザー設定の許可ルールがあっても範囲外には書き込めない。
+ */
+function scopeHooks(params: ProviderRunParams): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
+  const scope = params.policy.writeScope;
+  if (!scope) return undefined;
+  return {
+    PreToolUse: [
+      {
+        hooks: [
+          async (input) => {
+            if (input.hook_event_name !== "PreToolUse") return {};
+            const toolInput = (input.tool_input ?? {}) as Record<string, unknown>;
+            const result = evaluateScopedToolUse(params.cwd, scope, input.tool_name, toolInput);
+            if (result.decision === "pass") return {};
+            return {
+              hookSpecificOutput: {
+                hookEventName: "PreToolUse",
+                permissionDecision: result.decision,
+                permissionDecisionReason: result.reason,
+              },
+            };
+          },
+        ],
+      },
+    ],
+  };
 }
 
 /** チャット欄で選んだ権限モード。"phase" ならフェーズのポリシーから決める */
@@ -234,6 +267,7 @@ export class ClaudeProvider implements AgentProvider {
           abortController,
           env: agentEnv(),
           pathToClaudeCodeExecutable: this.executable,
+          hooks: scopeHooks(params),
         },
       });
 

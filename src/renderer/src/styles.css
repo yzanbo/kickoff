@@ -609,7 +609,13 @@ select:focus {
 
 .input-row {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.input-row .btn {
+  flex: none;
+  white-space: nowrap;
 }
 
 textarea {
@@ -1056,6 +1062,71 @@ a.btn {
 
 .new-chat-hint p {
   margin: 4px 0;
+}
+
+.subheading {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.scope-note {
+  margin: 4px 0 0;
+  -webkit-app-region: no-drag;
+}
+
+.scope-editor {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.scope-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+}
+
+.scope-label {
+  padding-top: 4px;
+  font-weight: 500;
+}
+
+.scope-body {
+  display: grid;
+  gap: 8px;
+}
+
+.scope-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: var(--bg-elev);
+}
+
+.chip-remove {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.chip-remove:hover {
+  color: var(--text);
+  background: var(--bg-hover);
 }
 
 /* ---- Markdown ---- */

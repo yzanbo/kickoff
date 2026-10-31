@@ -140,17 +140,25 @@ export class Runner {
       store.updateRun(runId, { status: "running" });
       if (task && (task.status === "todo" || task.status === "blocked")) store.updateTask(task.id, { status: "in_progress" });
 
+      const policy = phasePolicy(run.phase, project);
       const result = await provider.run(
         {
           cwd: task?.worktree_path || project.repo_path,
           prompt,
           systemPrompt: buildSystemPrompt(project, run.phase, task),
-          policy: phasePolicy(run.phase, project),
+          policy,
           resumeSessionId: run.session_id,
           model: run.model,
           effort: run.effort,
           permissionMode: run.permission_mode,
-          tools: createKickoffTools({ store, projectId: project.id, runId, taskId: task?.id ?? null, phase: run.phase }),
+          tools: createKickoffTools({
+            store,
+            projectId: project.id,
+            runId,
+            taskId: task?.id ?? null,
+            phase: run.phase,
+            writeScope: policy.writeScope,
+          }),
         },
         {
           emit: (event) => {

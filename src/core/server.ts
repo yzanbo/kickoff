@@ -24,6 +24,7 @@ import {
   type ProviderId,
 } from "./types.js";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "./workspace.js";
+import { normalizeScope } from "./scope.js";
 
 export interface ServerDeps {
   store: Store;
@@ -119,6 +120,12 @@ const projectPatchSchema = z
     test_command: z.string().max(500),
     deploy_instructions: z.string().max(10_000),
     auto_commit: z.boolean(),
+    write_scopes: z
+      .object({
+        requirements: z.array(z.string().max(500)).max(20),
+        schedule: z.array(z.string().max(500)).max(20),
+      })
+      .partial(),
   })
   .partial();
 
@@ -206,7 +213,20 @@ export function createApp(deps: ServerDeps): Hono {
 
   app.patch("/api/projects/:id", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    return c.json(store.updateProject(project.id, projectPatchSchema.parse(await c.req.json())));
+    const patch = projectPatchSchema.parse(await c.req.json());
+    if (patch.write_scopes) {
+      // フォルダはリポジトリからの相対パスに揃え、外を指すものは拒否する
+      const merged = { ...project.write_scopes };
+      for (const [section, folders] of Object.entries(patch.write_scopes) as [keyof typeof merged, string[]][]) {
+        try {
+          merged[section] = [...new Set(folders.map((f) => normalizeScope(project.repo_path, f)))];
+        } catch (e) {
+          throw new HttpError(400, (e as Error).message);
+        }
+      }
+      patch.write_scopes = merged;
+    }
+    return c.json(store.updateProject(project.id, patch));
   });
 
   // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない
