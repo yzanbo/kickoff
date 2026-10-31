@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import type {
   AppSettings,
+  Approval,
+  ApprovalDecision,
+  Artifact,
+  ModelOption,
+  ProviderId,
+  Run,
+  RunEvent,
+  RunOptions,
+  Task,
   BusEvent,
   GitHubStatus,
   PlanUsage,
@@ -16,6 +25,20 @@ export interface NewProjectInput {
   idea: string;
   parent_dir: string;
   folder_name: string;
+}
+
+export interface TaskInput {
+  phase: Phase;
+  title: string;
+  description: string;
+  acceptance_criteria: string;
+  priority: number;
+}
+
+export interface RunDetail {
+  run: Run;
+  events: RunEvent[];
+  approvals: Approval[];
 }
 
 export interface ImportProjectInput {
@@ -63,6 +86,37 @@ export const api = {
   inspectWorkspace: (path: string) =>
     request<WorkspaceInspection>("GET", `/api/workspace/inspect?path=${encodeURIComponent(path)}`),
   deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),
+  models: (provider: ProviderId) => request<ModelOption[]>("GET", `/api/providers/${provider}/models`),
+
+  // 要件定義の進行
+  startRequirements: (projectId: number, options: RunOptions) =>
+    request<Run>("POST", `/api/projects/${projectId}/requirements/start`, { options }),
+  confirmRequirements: (projectId: number, options: RunOptions) =>
+    request<Run>("POST", `/api/projects/${projectId}/requirements/confirm`, { options }),
+  reopenRequirements: (projectId: number) => request<Project>("POST", `/api/projects/${projectId}/requirements/reopen`),
+  advance: (projectId: number) => request<Project>("POST", `/api/projects/${projectId}/advance`),
+
+  // タスク
+  tasks: (projectId: number) => request<Task[]>("GET", `/api/projects/${projectId}/tasks`),
+  createTask: (projectId: number, input: TaskInput) => request<Task>("POST", `/api/projects/${projectId}/tasks`, input),
+  updateTask: (id: number, patch: Partial<TaskInput & { status: Task["status"] }>) =>
+    request<Task>("PATCH", `/api/tasks/${id}`, patch),
+  deleteTask: (id: number) => request<{ ok: true }>("DELETE", `/api/tasks/${id}`),
+
+  // 成果物
+  artifacts: (projectId: number) => request<Artifact[]>("GET", `/api/projects/${projectId}/artifacts`),
+
+  // 実行（エージェントとの会話）
+  runs: (projectId: number) => request<Run[]>("GET", `/api/projects/${projectId}/runs`),
+  run: (id: number) => request<RunDetail>("GET", `/api/runs/${id}`),
+  sendMessage: (runId: number, text: string, options: RunOptions) =>
+    request<Run>("POST", `/api/runs/${runId}/messages`, { text, options }),
+  cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
+
+  // 承認依頼・質問
+  approvals: () => request<Approval[]>("GET", "/api/approvals"),
+  resolveApproval: (id: string, decision: ApprovalDecision) =>
+    request<{ ok: true }>("POST", `/api/approvals/${id}`, decision),
 };
 
 export type ConnectionState = "connecting" | "open" | "closed";
@@ -74,17 +128,32 @@ export function useServerEvents(onEvent: (event: BusEvent) => void): ConnectionS
   handler.current = onEvent;
 
   useEffect(() => {
-    const source = new EventSource("/api/events");
-    source.onopen = () => setState("open");
-    source.onerror = () => setState(source.readyState === EventSource.CLOSED ? "closed" : "connecting");
-    source.onmessage = (e) => {
-      try {
-        handler.current(JSON.parse(e.data) as BusEvent);
-      } catch {
-        // 不正なイベントは無視
-      }
+    let source: EventSource | undefined;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    let closed = false;
+    const connect = () => {
+      source = new EventSource("/api/events");
+      source.onopen = () => setState("open");
+      source.onerror = () => {
+        if (source?.readyState !== EventSource.CLOSED) return setState("connecting");
+        // 自動再接続されない切断（認証エラーなど）は、こちらで張り直す
+        setState("closed");
+        if (!closed) retry = setTimeout(connect, 5000);
+      };
+      source.onmessage = (e) => {
+        try {
+          handler.current(JSON.parse(e.data) as BusEvent);
+        } catch {
+          // 不正なイベントは無視
+        }
+      };
     };
-    return () => source.close();
+    connect();
+    return () => {
+      closed = true;
+      clearTimeout(retry);
+      source?.close();
+    };
   }, []);
 
   return state;

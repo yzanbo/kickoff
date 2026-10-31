@@ -1,11 +1,14 @@
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import {
   DEFAULT_SETTINGS,
+  PHASES,
   TASK_STATUSES,
   type AppSettings,
   type Artifact,
   type ArtifactKind,
   type BusEvent,
+  type EffortLevel,
+  type PermissionChoice,
   type Phase,
   type Project,
   type ProjectSummary,
@@ -99,7 +102,14 @@ CREATE INDEX IF NOT EXISTS idx_artifacts_project ON artifacts(project_id);
 `;
 
 /** MIGRATIONS[n] でバージョン n → n+1 に上げる */
-const MIGRATIONS = [SCHEMA];
+const MIGRATIONS = [
+  SCHEMA,
+  // v2: 要件定義書の確定（1 段目のゲート）
+  "ALTER TABLE projects ADD COLUMN requirements_confirmed_at TEXT",
+  // v3: チャット欄で選ぶ推論の深さと権限モード
+  `ALTER TABLE runs ADD COLUMN effort TEXT;
+   ALTER TABLE runs ADD COLUMN permission_mode TEXT NOT NULL DEFAULT 'phase';`,
+];
 
 type Row = Record<string, SQLInputValue>;
 
@@ -133,6 +143,8 @@ export interface NewRun {
   title: string;
   status: RunStatus;
   model: string | null;
+  effort?: EffortLevel | null;
+  permission_mode?: PermissionChoice;
 }
 
 export interface NewArtifact {
@@ -207,8 +219,8 @@ export class Store {
   listProjects(): ProjectSummary[] {
     const projects = this.db.prepare("SELECT * FROM projects ORDER BY updated_at DESC").all() as unknown as Project[];
     const counts = this.db
-      .prepare("SELECT project_id, status, COUNT(*) AS n FROM tasks GROUP BY project_id, status")
-      .all() as { project_id: number; status: TaskStatus; n: number }[];
+      .prepare("SELECT project_id, phase, status, COUNT(*) AS n FROM tasks GROUP BY project_id, phase, status")
+      .all() as { project_id: number; phase: Phase; status: TaskStatus; n: number }[];
     const runs = this.db
       .prepare(
         `SELECT project_id, SUM(cost_usd) AS cost,
@@ -219,9 +231,18 @@ export class Store {
 
     return projects.map((p) => {
       const task_counts = Object.fromEntries(TASK_STATUSES.map((s) => [s, 0])) as Record<TaskStatus, number>;
-      for (const c of counts) if (c.project_id === p.id) task_counts[c.status] = c.n;
+      const phase_task_counts = Object.fromEntries(PHASES.map((ph) => [ph, { total: 0, done: 0 }])) as Record<
+        Phase,
+        { total: number; done: number }
+      >;
+      for (const c of counts) {
+        if (c.project_id !== p.id) continue;
+        task_counts[c.status] += c.n;
+        phase_task_counts[c.phase].total += c.n;
+        if (c.status === "done") phase_task_counts[c.phase].done += c.n;
+      }
       const r = runs.find((x) => x.project_id === p.id);
-      return { ...p, task_counts, total_cost_usd: r?.cost ?? 0, active_runs: r?.active ?? 0 };
+      return { ...p, task_counts, phase_task_counts, total_cost_usd: r?.cost ?? 0, active_runs: r?.active ?? 0 };
     });
   }
 
@@ -256,7 +277,11 @@ export class Store {
 
   updateProject(
     id: number,
-    patch: Partial<Omit<NewProject, "auto_commit">> & { auto_commit?: boolean; current_phase?: Phase },
+    patch: Partial<Omit<NewProject, "auto_commit">> & {
+      auto_commit?: boolean;
+      current_phase?: Phase;
+      requirements_confirmed_at?: string | null;
+    },
   ): Project {
     const row: Row = { ...patch, auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0 } as Row;
     this.updateRow("projects", id, row, [
@@ -265,6 +290,7 @@ export class Store {
       "repo_path",
       "provider",
       "current_phase",
+      "requirements_confirmed_at",
       "test_command",
       "deploy_instructions",
       "auto_commit",
@@ -389,9 +415,20 @@ export class Store {
   createRun(input: NewRun): Run {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(input.project_id, input.task_id, input.phase, input.provider, input.title, input.status, input.model);
+      .run(
+        input.project_id,
+        input.task_id,
+        input.phase,
+        input.provider,
+        input.title,
+        input.status,
+        input.model,
+        input.effort ?? null,
+        input.permission_mode ?? "phase",
+      );
     const run = this.getRun(Number(lastInsertRowid))!;
     this.touchProject(run.project_id);
     this.onChange({ type: "run", run });
@@ -400,9 +437,21 @@ export class Store {
 
   updateRun(
     id: number,
-    patch: Partial<Pick<Run, "status" | "session_id" | "model" | "cost_usd" | "num_turns" | "result" | "error">>,
+    patch: Partial<
+      Pick<Run, "status" | "session_id" | "model" | "effort" | "permission_mode" | "cost_usd" | "num_turns" | "result" | "error">
+    >,
   ): Run {
-    this.updateRow("runs", id, patch as Row, ["status", "session_id", "model", "cost_usd", "num_turns", "result", "error"]);
+    this.updateRow("runs", id, patch as Row, [
+      "status",
+      "session_id",
+      "model",
+      "effort",
+      "permission_mode",
+      "cost_usd",
+      "num_turns",
+      "result",
+      "error",
+    ]);
     const run = this.getRun(id)!;
     this.onChange({ type: "run", run });
     return run;

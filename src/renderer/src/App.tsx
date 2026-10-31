@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { PHASE_LABELS, type BusEvent, type ProjectSummary } from "../../core/types";
+import type { Approval, BusEvent, ProjectSummary } from "../../core/types";
 import { api, useServerEvents } from "./api";
 import { NewProjectDialog } from "./components/NewProjectDialog";
+import { ProjectNav } from "./components/ProjectNav";
+import { publishServerEvent } from "./events";
 import { UsageMeter } from "./components/UsageMeter";
 import { HomePage } from "./pages/HomePage";
 import { ProjectPage } from "./pages/ProjectPage";
+import { RunPage } from "./pages/RunPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { href, navigate, useRoute } from "./router";
 import { FIVE_HOUR_IDLE, usePlanUsage } from "./usage";
@@ -13,7 +16,7 @@ export function App() {
   const route = useRoute();
   const planUsage = usePlanUsage();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [projectsVersion, setProjectsVersion] = useState(0);
+  const [approvals, setApprovals] = useState<Approval[]>([]);
   const [creating, setCreating] = useState(false);
   const [projectsDir, setProjectsDir] = useState("~/Documents");
 
@@ -24,10 +27,12 @@ export function App() {
   useEffect(() => {
     loadProjects();
     api.settings().then((s) => setProjectsDir(s.projectsDir)).catch(() => {});
+    api.approvals().then(setApprovals).catch(() => {});
   }, [loadProjects]);
 
   const connection = useServerEvents((event: BusEvent) => {
     planUsage.onEvent(event);
+    publishServerEvent(event);
     switch (event.type) {
       case "project":
       case "project_deleted":
@@ -35,7 +40,12 @@ export function App() {
       case "task_deleted":
       case "run":
         loadProjects();
-        setProjectsVersion((v) => v + 1);
+        break;
+      case "approval":
+        setApprovals((prev) => [...prev, event.approval]);
+        break;
+      case "approval_resolved":
+        setApprovals((prev) => prev.filter((a) => a.id !== event.id));
         break;
       case "settings":
         setProjectsDir(event.settings.projectsDir);
@@ -64,22 +74,7 @@ export function App() {
               ＋ 新しいプロジェクト
             </button>
           ) : (
-            <ul className="project-list">
-              {projects.map((p) => (
-                <li key={p.id}>
-                  <a
-                    className={`project-item ${route.name === "project" && route.id === p.id ? "active" : ""}`}
-                    href={href({ name: "project", id: p.id })}
-                  >
-                    <span className="project-name">{p.name}</span>
-                    <span className="project-meta">
-                      {PHASE_LABELS[p.current_phase]}
-                      {p.active_runs > 0 && <span className="pill">実行中 {p.active_runs}</span>}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <ProjectNav projects={projects} approvals={approvals} route={route} />
           )}
         </nav>
         {usage?.available && (
@@ -100,8 +95,12 @@ export function App() {
       <main className="main">
         {route.name === "settings" ? (
           <SettingsPage />
+        ) : route.name === "run" ? (
+          <RunPage projectId={route.projectId} runId={route.runId} />
+        ) : route.name === "phase" ? (
+          <ProjectPage id={route.projectId} phase={route.phase} />
         ) : route.name === "project" ? (
-          <ProjectPage id={route.id} version={projectsVersion} />
+          <ProjectPage id={route.id} />
         ) : (
           <HomePage planUsage={planUsage} projects={projects} onNewProject={() => setCreating(true)} />
         )}

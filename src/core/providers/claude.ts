@@ -7,6 +7,8 @@ import {
   query,
   tool,
   type CanUseTool,
+  type PermissionMode,
+  type Query,
   type SDKControlGetUsageResponse,
   type SDKMessage,
   type SDKResultMessage,
@@ -14,7 +16,7 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 import { KICKOFF_SERVER_NAME, type KickoffTool } from "../kickoffTools.js";
 import type { PhasePolicy } from "../phases.js";
-import type { PlanUsage, ProviderStatus, UsageWindow } from "../types.js";
+import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type UsageWindow } from "../types.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -46,6 +48,12 @@ function agentEnv(): Record<string, string | undefined> {
     delete env.ANTHROPIC_AUTH_TOKEN;
   }
   return env;
+}
+
+/** チャット欄で選んだ権限モード。"phase" ならフェーズのポリシーから決める */
+export function resolvePermissionMode(params: Pick<ProviderRunParams, "permissionMode" | "policy">): PermissionMode {
+  if (params.permissionMode !== "phase") return params.permissionMode;
+  return params.policy.autoEdit ? "acceptEdits" : "default";
 }
 
 /** フェーズのポリシーを Claude Code の権限ルールに変換する */
@@ -97,6 +105,32 @@ export class ClaudeProvider implements AgentProvider {
    * 注意: SDK 側で EXPERIMENTAL 扱いの API。形が変わったら normalizeUsage を直す。
    */
   async usage(): Promise<PlanUsage> {
+    return this.withIdleSession(async (q) =>
+      normalizeUsage(await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true })),
+    );
+  }
+
+  /** Claude Code が提示するモデルの一覧（"default" は実体のモデルと重複するので除く） */
+  async models(): Promise<ModelOption[]> {
+    return this.withIdleSession(async (q) => {
+      const models = await q.supportedModels();
+      return models
+        .filter((m) => m.value !== "default")
+        .map((m) => ({
+          value: m.value,
+          label: m.displayName,
+          description: m.description,
+          efforts: (m.supportedEffortLevels ?? []).filter((e): e is EffortLevel => EFFORT_LEVELS.includes(e)),
+          supportsAutoMode: Boolean(m.supportsAutoMode),
+        }));
+    });
+  }
+
+  /**
+   * メッセージを送らないセッションを一瞬開いて、制御用の API だけを呼ぶ。
+   * モデルへのリクエストは発生しないので、使用枠を消費しない。
+   */
+  private async withIdleSession<T>(fn: (q: Query) => Promise<T>): Promise<T> {
     let release!: () => void;
     const idle = new Promise<void>((resolve) => (release = resolve));
     async function* noMessages(): AsyncGenerator<SDKUserMessage> {
@@ -107,8 +141,7 @@ export class ClaudeProvider implements AgentProvider {
       options: { env: agentEnv(), settingSources: [], pathToClaudeCodeExecutable: this.executable },
     });
     try {
-      const res = await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true });
-      return normalizeUsage(res);
+      return await fn(q);
     } finally {
       release();
       q.close();
@@ -189,11 +222,11 @@ export class ClaudeProvider implements AgentProvider {
         options: {
           cwd: params.cwd,
           model: params.model || undefined,
-          effort: params.policy.effort,
+          effort: params.effort ?? params.policy.effort,
           systemPrompt: { type: "preset", preset: "claude_code", append: params.systemPrompt },
           // ユーザーの ~/.claude（CLAUDE.md・スキル等）とリポジトリの設定を Claude Code と同様に読み込む
           settingSources: ["user", "project", "local"],
-          permissionMode: params.policy.autoEdit ? "acceptEdits" : "default",
+          permissionMode: resolvePermissionMode(params),
           allowedTools: toAllowedTools(params.policy, params.tools),
           mcpServers: { [KICKOFF_SERVER_NAME]: mcp },
           canUseTool,

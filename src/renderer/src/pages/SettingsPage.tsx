@@ -24,7 +24,6 @@ export function SettingsPage() {
     try {
       const saved = await api.updateSettings({
         maxConcurrentRuns: draft.maxConcurrentRuns,
-        claudeModel: draft.claudeModel.trim(),
         ntfyUrl: draft.ntfyUrl.trim(),
       });
       settings.setData(saved);
@@ -99,17 +98,9 @@ export function SettingsPage() {
                 value={draft.maxConcurrentRuns}
                 onChange={(e) => setDraft({ ...draft, maxConcurrentRuns: Number(e.target.value) })}
               />
-              <span className="field-help">多いほど速く進みますが、プランの使用枠を早く消費します。</span>
-            </label>
-            <label className="field">
-              <span className="field-label">Claude のモデル</span>
-              <input
-                type="text"
-                value={draft.claudeModel}
-                placeholder="空欄なら Claude Code の既定"
-                onChange={(e) => setDraft({ ...draft, claudeModel: e.target.value })}
-              />
-              <span className="field-help">例: claude-opus-5-5 / claude-sonnet-5-5</span>
+              <span className="field-help">
+                多いほど速く進みますが、プランの使用枠を早く消費します。モデル・推論の深さ・権限モードはチャット欄で選びます。
+              </span>
             </label>
           </div>
 

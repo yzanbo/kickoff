@@ -26,6 +26,8 @@ test("タスクの集計がプロジェクト一覧に反映される", () => {
   const [summary] = store.listProjects();
   assert.equal(summary.task_counts.todo, 1);
   assert.equal(summary.task_counts.pr_open, 1);
+  assert.deepEqual(summary.phase_task_counts.implementation, { total: 2, done: 0 });
+  assert.deepEqual(summary.phase_task_counts.testing, { total: 0, done: 0 });
   assert.equal(store.getTask(b.id)?.branch, "kickoff/task-2");
 });
 

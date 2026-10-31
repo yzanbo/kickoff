@@ -1,6 +1,16 @@
 import type { KickoffTool } from "../kickoffTools.js";
 import type { PhasePolicy } from "../phases.js";
-import type { ApprovalDecision, ApprovalKind, PlanUsage, ProviderId, ProviderStatus, RunEventData } from "../types.js";
+import type {
+  ApprovalDecision,
+  ApprovalKind,
+  EffortLevel,
+  ModelOption,
+  PermissionChoice,
+  PlanUsage,
+  ProviderId,
+  ProviderStatus,
+  RunEventData,
+} from "../types.js";
 
 /**
  * エージェント実行基盤の抽象化。
@@ -16,6 +26,8 @@ export interface AgentProvider {
   status(): Promise<ProviderStatus>;
   /** サブスクリプションの使用枠（対応していないプロバイダーは未実装でよい） */
   usage?(): Promise<PlanUsage>;
+  /** チャット欄で選べるモデルの一覧 */
+  models?(): Promise<ModelOption[]>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
   run(params: ProviderRunParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderRunResult>;
 }
@@ -29,6 +41,10 @@ export interface ProviderRunParams {
   /** 続きの会話の場合、前回のセッション ID */
   resumeSessionId: string | null;
   model: string | null;
+  /** 推論の深さ（null ならフェーズのポリシーに従う） */
+  effort: EffortLevel | null;
+  /** 権限モード（"phase" ならフェーズのポリシーに従う） */
+  permissionMode: PermissionChoice;
   tools: KickoffTool[];
 }
 
