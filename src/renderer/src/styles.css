@@ -62,7 +62,69 @@ h2 {
 .layout {
   display: grid;
   grid-template-columns: 240px 1fr;
+  grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
+}
+
+/* ---- フッター（接続状態と使用枠） ---- */
+
+.app-footer {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 16px;
+  height: 28px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  background: var(--bg-elev);
+}
+
+.footer-usage {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 100%;
+  padding: 0 6px;
+  color: var(--text);
+}
+
+.footer-usage:hover {
+  background: var(--bg-hover);
+}
+
+.meter.meter-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meter.meter-inline .meter-label {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.meter.meter-inline .meter-track {
+  display: block;
+  width: 72px;
+  height: 6px;
+}
+
+.meter.meter-inline .meter-fill {
+  display: block;
+}
+
+.meter.meter-inline .meter-value {
+  min-width: 2.5em;
+  font-weight: 600;
+}
+
+.meter.meter-inline.meter-idle .meter-value {
+  font-weight: 400;
+}
+
+.meter.meter-inline .meter-status {
+  font-size: 11px;
 }
 
 /* ---- サイドバー ---- */
@@ -987,8 +1049,8 @@ textarea {
 
 .run-page {
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  height: 100vh;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
   max-width: 920px;
 }
 
@@ -1691,17 +1753,7 @@ a.btn {
   font-size: 11px;
 }
 
-.sidebar-usage {
-  display: grid;
-  gap: 10px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  color: var(--text);
-}
 
-.sidebar-usage:hover {
-  background: var(--bg-hover);
-}
 
 .usage-grid {
   display: grid;
@@ -1722,7 +1774,7 @@ a.btn {
 @media (max-width: 720px) {
   .layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     height: auto;
     min-height: 100vh;
   }
@@ -1740,8 +1792,14 @@ a.btn {
     padding: 20px 16px 48px;
   }
 
-  .sidebar-usage {
-    grid-template-columns: 1fr 1fr;
+  .app-footer {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .meter.meter-inline .meter-track {
+    width: 40px;
   }
 
   .run-page {
