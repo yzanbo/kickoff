@@ -255,6 +255,7 @@ export class ClaudeProvider implements AgentProvider {
         prompt: params.prompt,
         options: {
           cwd: params.cwd,
+          additionalDirectories: params.additionalDirectories,
           model: params.model || undefined,
           effort: params.effort ?? params.policy.effort,
           systemPrompt: { type: "preset", preset: "claude_code", append: params.systemPrompt },

@@ -45,8 +45,8 @@ export function NewChatPage({ projectId, section }: { projectId: number; section
             autoFocus
             initialText={isFirstRequirements && idea ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${idea}` : undefined}
             placeholder="メッセージを入力（⌘+Enter で送信）"
-            onSend={async (prompt) => {
-              const run = await api.startRun(projectId, { phase: section, prompt, options: options.options });
+            onSend={async (prompt, attachments) => {
+              const run = await api.startRun(projectId, { phase: section, prompt, options: options.options, attachments });
               navigate({ name: "run", projectId, runId: run.id }, { replace: true });
             }}
           />

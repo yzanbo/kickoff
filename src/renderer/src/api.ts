@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type {
   AppSettings,
+  Attachment,
   Approval,
   ApprovalDecision,
   Artifact,
@@ -101,11 +102,26 @@ export const api = {
 
   // 実行（エージェントとの会話）
   runs: (projectId: number) => request<Run[]>("GET", `/api/projects/${projectId}/runs`),
-  startRun: (projectId: number, input: { phase: Phase; prompt: string; task_id?: number; options: RunOptions }) =>
-    request<Run>("POST", `/api/projects/${projectId}/runs`, input),
+  startRun: (
+    projectId: number,
+    input: { phase: Phase; prompt: string; task_id?: number; options: RunOptions; attachments?: Attachment[] },
+  ) => request<Run>("POST", `/api/projects/${projectId}/runs`, input),
   run: (id: number) => request<RunDetail>("GET", `/api/runs/${id}`),
-  sendMessage: (runId: number, text: string, options: RunOptions) =>
-    request<Run>("POST", `/api/runs/${runId}/messages`, { text, options }),
+  sendMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
+    request<Run>("POST", `/api/runs/${runId}/messages`, { text, options, attachments }),
+
+  /** 添付ファイルをアップロードする */
+  upload: async (file: File): Promise<Attachment> => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/uploads", { method: "POST", body: form, credentials: "same-origin" });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
+    }
+    const [saved] = (await res.json()) as Attachment[];
+    return saved;
+  },
   renameRun: (runId: number, title: string) => request<Run>("PATCH", `/api/runs/${runId}`, { title }),
   cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
 
@@ -176,4 +192,9 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[] = []) {
   }, [...deps, nonce]);
 
   return { data, setData, error, loading, reload: () => setNonce((n) => n + 1) };
+}
+
+/** 添付ファイルを画面で開く・表示するための URL */
+export function attachmentUrl(a: Attachment): string {
+  return `/api/uploads/${a.id}?mime=${encodeURIComponent(a.mime)}`;
 }

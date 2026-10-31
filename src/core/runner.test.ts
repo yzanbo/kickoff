@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 import { ApprovalCenter } from "./approvals.js";
 import { Bus } from "./bus.js";
@@ -6,6 +9,7 @@ import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunRe
 import { Runner } from "./runner.js";
 import { Store } from "./store.js";
 import type { ProviderId } from "./types.js";
+import { UploadStore } from "./uploads.js";
 import type { UsageMonitor } from "./usage.js";
 
 type Script = (params: ProviderRunParams, cb: ProviderCallbacks, signal: AbortSignal) => Promise<ProviderRunResult>;
@@ -26,13 +30,19 @@ class FakeProvider implements AgentProvider {
   }
 }
 
-function setup(script: Script) {
+function setup(script: Script, uploads?: UploadStore) {
   const bus = new Bus();
   const store = new Store(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
   const provider = new FakeProvider(script);
   const usage = { refresh: async () => ({}) } as unknown as UsageMonitor;
-  const runner = new Runner({ store, approvals, providers: { claude: provider, codex: provider } as Record<ProviderId, AgentProvider>, usage });
+  const runner = new Runner({
+    store,
+    approvals,
+    providers: { claude: provider, codex: provider } as Record<ProviderId, AgentProvider>,
+    usage,
+    uploads,
+  });
   const project = store.createProject({ name: "p", repo_path: "/tmp", provider: "claude" });
   return { store, approvals, runner, provider, project };
 }
@@ -50,7 +60,7 @@ test("実行するとイベントが記録され、続きのメッセージは�
     return { status: "completed", sessionId: "s1", result: "ok", costUsd: 0.01, turns: 1 };
   });
 
-  const run = runner.start({ projectId: project.id, phase: "requirements", prompt: "こんにちは", options: { model: "sonnet", effort: "low" } });
+  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "こんにちは", options: { model: "sonnet", effort: "low" } });
   await until(() => store.getRun(run.id)?.status === "completed");
   assert.equal(store.getRun(run.id)?.session_id, "s1");
   assert.equal(provider.calls[0].model, "sonnet");
@@ -58,7 +68,7 @@ test("実行するとイベントが記録され、続きのメッセージは�
   // チャット欄の指定はそのチャットだけに効き、設定の既定は変わらない
   assert.equal(store.getSettings().claudeModel, "opus");
 
-  runner.send(run.id, "続き", { permission_mode: "plan" });
+  await runner.send(run.id, "続き", { permission_mode: "plan" });
   await until(() => store.getRun(run.id)?.num_turns === 2);
   assert.equal(provider.calls[1].resumeSessionId, "s1");
   assert.equal(provider.calls[1].permissionMode, "plan");
@@ -71,10 +81,22 @@ test("実行するとイベントが記録され、続きのメッセージは�
 test("チャット欄で指定がなければ設定の既定（モデル・深さ・権限・ファストモード）を使う", async () => {
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
   store.updateSettings({ claudeModel: "fable", defaultEffort: "high", defaultPermission: "auto", defaultFastMode: true });
-  const run = runner.start({ projectId: project.id, phase: "requirements", prompt: "x" });
+  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "x" });
   await until(() => store.getRun(run.id)?.status === "completed");
   const call = provider.calls[0];
   assert.deepEqual([call.model, call.effort, call.permissionMode, call.fastMode], ["fable", "high", "auto", true]);
+});
+
+test("添付ファイルはパスがメッセージに書き添えられ、会話には添付として記録される", async () => {
+  const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-run-up-"));
+  const uploads = new UploadStore(uploadsDir);
+  const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }), uploads);
+  const attachment = await uploads.save({ name: "spec.md", type: "text/markdown", bytes: new TextEncoder().encode("# 仕様") });
+  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "読んで", attachments: [attachment] });
+  await until(() => store.getRun(run.id)?.status === "completed");
+  assert.match(provider.calls[0].prompt, /spec\.md（text\/markdown/);
+  assert.deepEqual(provider.calls[0].additionalDirectories, [uploadsDir]);
+  assert.deepEqual(store.listEvents(run.id)[0].data, { text: "読んで", attachments: [attachment] });
 });
 
 test("承認待ちの間は waiting になり、回答するとエージェントに結果が渡る", async () => {
@@ -84,7 +106,7 @@ test("承認待ちの間は waiting になり、回答するとエージェン�
     return { status: "completed", sessionId: "s" };
   });
 
-  const run = runner.start({ projectId: project.id, phase: "requirements", prompt: "q" });
+  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "q" });
   await until(() => store.getRun(run.id)?.status === "waiting");
   const [pending] = approvals.list({ runId: run.id });
   assert.ok(approvals.resolve(pending.id, { action: "answer", answers: { 何を作る: "Todo" } }));
@@ -100,8 +122,8 @@ test("同時実行数の上限を超えた分は待機し、中断すると承�
   });
   store.updateSettings({ maxConcurrentRuns: 1 });
 
-  const a = runner.start({ projectId: project.id, phase: "requirements", prompt: "a" });
-  const b = runner.start({ projectId: project.id, phase: "requirements", prompt: "b" });
+  const a = await runner.start({ projectId: project.id, phase: "requirements", prompt: "a" });
+  const b = await runner.start({ projectId: project.id, phase: "requirements", prompt: "b" });
   await until(() => store.getRun(a.id)?.status === "waiting");
   assert.equal(store.getRun(b.id)?.status, "queued");
 
@@ -119,6 +141,6 @@ test("同時実行数の上限を超えた分は待機し、中断すると承�
 test("タスクの実行で AI が状態を更新しなかった場合、成功ならレビュー待ちにする", async () => {
   const { store, runner, project } = setup(async () => ({ status: "completed", sessionId: null }));
   const task = store.createTask({ project_id: project.id, phase: "implementation", title: "t" });
-  runner.start({ projectId: project.id, phase: "implementation", taskId: task.id, prompt: "go" });
+  await runner.start({ projectId: project.id, phase: "implementation", taskId: task.id, prompt: "go" });
   await until(() => store.getTask(task.id)?.status === "review");
 });

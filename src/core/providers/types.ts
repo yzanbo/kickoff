@@ -47,6 +47,8 @@ export interface ProviderRunParams {
   permissionMode: PermissionChoice;
   /** ファストモード（対応していないモデル・プランでは通常の速度になる） */
   fastMode: boolean;
+  /** 作業フォルダ以外に読み取りを許すフォルダ（添付ファイルの保存先など） */
+  additionalDirectories: string[];
   tools: KickoffTool[];
 }
 

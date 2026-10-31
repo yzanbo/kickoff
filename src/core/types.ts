@@ -157,8 +157,16 @@ export interface Run {
   updated_at: string;
 }
 
+/** チャットの添付ファイル */
+export interface Attachment {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+}
+
 export type RunEventData =
-  | { type: "user"; text: string }
+  | { type: "user"; text: string; attachments?: Attachment[] }
   | { type: "init"; model?: string; session_id: string; permission_mode?: string }
   | { type: "text"; text: string; sub?: boolean }
   | { type: "thinking"; text: string }
