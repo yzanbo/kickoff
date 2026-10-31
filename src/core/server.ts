@@ -10,6 +10,7 @@ import type { Bus } from "./bus.js";
 import { githubStatus } from "./github.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
+import type { UsageMonitor } from "./usage.js";
 import { PROVIDER_IDS, type ProviderId } from "./types.js";
 
 export interface ServerDeps {
@@ -17,6 +18,7 @@ export interface ServerDeps {
   bus: Bus;
   token: string;
   providers: Record<ProviderId, AgentProvider>;
+  usage: UsageMonitor;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
   staticDir?: string;
 }
@@ -36,7 +38,7 @@ const settingsSchema = z
  * 認証はトークン（Cookie または Authorization: Bearer）。
  */
 export function createApp(deps: ServerDeps): Hono {
-  const { store, bus, token, providers } = deps;
+  const { store, bus, token, providers, usage } = deps;
   const app = new Hono();
 
   // スマホなどのペアリング: QR の URL に含めたトークンを Cookie に移してから画面へ
@@ -69,6 +71,10 @@ export function createApp(deps: ServerDeps): Hono {
     c.json(await Promise.all(PROVIDER_IDS.map((id) => providers[id].status()))),
   );
   app.get("/api/github", async (c) => c.json(await githubStatus()));
+
+  // ---- プランの使用枠（5 時間・週） ----
+  app.get("/api/usage", async (c) => c.json(await usage.get()));
+  app.post("/api/usage/refresh", async (c) => c.json(await usage.refresh(true)));
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>

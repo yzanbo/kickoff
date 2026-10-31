@@ -7,12 +7,14 @@ import {
   query,
   tool,
   type CanUseTool,
+  type SDKControlGetUsageResponse,
   type SDKMessage,
   type SDKResultMessage,
+  type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { KICKOFF_SERVER_NAME, type KickoffTool } from "../kickoffTools.js";
 import type { PhasePolicy } from "../phases.js";
-import type { ProviderStatus } from "../types.js";
+import type { PlanUsage, ProviderStatus, UsageWindow } from "../types.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -86,6 +88,30 @@ export class ClaudeProvider implements AgentProvider {
       };
     } catch (e) {
       return { ...base, installed: true, loggedIn: false, detail: `ログイン状態を取得できませんでした: ${errorMessage(e)}` };
+    }
+  }
+
+  /**
+   * /usage と同じプランの使用枠を取得する。メッセージを送らないセッションを一瞬開くだけなので、
+   * モデルへのリクエストは発生しない（使用枠を消費しない）。
+   * 注意: SDK 側で EXPERIMENTAL 扱いの API。形が変わったら normalizeUsage を直す。
+   */
+  async usage(): Promise<PlanUsage> {
+    let release!: () => void;
+    const idle = new Promise<void>((resolve) => (release = resolve));
+    async function* noMessages(): AsyncGenerator<SDKUserMessage> {
+      await idle;
+    }
+    const q = query({
+      prompt: noMessages(),
+      options: { env: agentEnv(), settingSources: [], pathToClaudeCodeExecutable: this.executable },
+    });
+    try {
+      const res = await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true });
+      return normalizeUsage(res);
+    } finally {
+      release();
+      q.close();
     }
   }
 
@@ -253,6 +279,27 @@ export class ClaudeProvider implements AgentProvider {
         return undefined;
     }
   }
+}
+
+type RawWindow = { utilization: number | null; resets_at: string | null } | null | undefined;
+
+/** SDK の /usage 応答を Kickoff の形に変換する */
+export function normalizeUsage(res: SDKControlGetUsageResponse): PlanUsage {
+  const limits = res.rate_limits;
+  const win = (key: string, label: string, raw: RawWindow): UsageWindow => ({
+    key,
+    label,
+    utilization: raw?.utilization ?? null,
+    resets_at: raw?.resets_at ?? null,
+  });
+  return {
+    available: res.rate_limits_available && limits !== null,
+    plan: res.subscription_type,
+    five_hour: win("five_hour", "5時間", limits?.five_hour),
+    seven_day: win("seven_day", "週", limits?.seven_day),
+    model_weekly: (limits?.model_scoped ?? []).map((m) => win(`model:${m.display_name}`, `週（${m.display_name}）`, m)),
+    fetched_at: new Date().toISOString(),
+  };
 }
 
 const ERROR_LABELS: Record<string, string> = {

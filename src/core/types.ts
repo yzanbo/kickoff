@@ -200,6 +200,27 @@ export interface ProviderStatus {
   detail: string;
 }
 
+/** サブスクリプションの使用枠（5 時間・週など）の 1 区分 */
+export interface UsageWindow {
+  key: string;
+  label: string;
+  /** 使用率 0〜100。枠が始まっていなければ null */
+  utilization: number | null;
+  resets_at: string | null;
+}
+
+export interface PlanUsage {
+  /** プランの使用枠が取得できたか（API キー利用時などは false） */
+  available: boolean;
+  plan: string | null;
+  five_hour: UsageWindow;
+  seven_day: UsageWindow;
+  /** モデル別の週枠（例: Fable） */
+  model_weekly: UsageWindow[];
+  fetched_at: string;
+  error?: string;
+}
+
 export interface GitHubStatus {
   installed: boolean;
   loggedIn: boolean;
@@ -225,4 +246,5 @@ export type BusEvent =
   | { type: "approval"; approval: Approval }
   | { type: "approval_resolved"; id: string; run_id: number }
   | { type: "autopilot"; project_id: number; phase: Phase; enabled: boolean }
-  | { type: "settings"; settings: AppSettings };
+  | { type: "settings"; settings: AppSettings }
+  | { type: "usage"; usage: PlanUsage };

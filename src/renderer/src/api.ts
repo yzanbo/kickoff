@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { AppSettings, BusEvent, GitHubStatus, ProviderStatus } from "../../core/types";
+import type { AppSettings, BusEvent, GitHubStatus, PlanUsage, ProviderStatus } from "../../core/types";
 
 export class ApiError extends Error {
   constructor(
@@ -29,6 +29,8 @@ export const api = {
   updateSettings: (patch: Partial<AppSettings>) => request<AppSettings>("PUT", "/api/settings", patch),
   providers: () => request<ProviderStatus[]>("GET", "/api/providers"),
   github: () => request<GitHubStatus>("GET", "/api/github"),
+  usage: () => request<PlanUsage>("GET", "/api/usage"),
+  refreshUsage: () => request<PlanUsage>("POST", "/api/usage/refresh"),
 };
 
 export type ConnectionState = "connecting" | "open" | "closed";
