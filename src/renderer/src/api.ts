@@ -6,7 +6,9 @@ import type {
   PlanUsage,
   Project,
   ProjectSummary,
+  Phase,
   ProviderStatus,
+  WorkspaceInspection,
 } from "../../core/types";
 
 export interface NewProjectInput {
@@ -14,6 +16,14 @@ export interface NewProjectInput {
   idea: string;
   parent_dir: string;
   folder_name: string;
+}
+
+export interface ImportProjectInput {
+  path: string;
+  name: string;
+  description: string;
+  start_phase: Phase;
+  init_git: boolean;
 }
 
 export class ApiError extends Error {
@@ -49,6 +59,9 @@ export const api = {
   projects: () => request<ProjectSummary[]>("GET", "/api/projects"),
   project: (id: number) => request<Project>("GET", `/api/projects/${id}`),
   createProject: (input: NewProjectInput) => request<Project>("POST", "/api/projects", input),
+  importProject: (input: ImportProjectInput) => request<Project>("POST", "/api/projects/import", input),
+  inspectWorkspace: (path: string) =>
+    request<WorkspaceInspection>("GET", `/api/workspace/inspect?path=${encodeURIComponent(path)}`),
   deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),
 };
 

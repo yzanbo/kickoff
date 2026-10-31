@@ -3,6 +3,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import type { WorkspaceInspection } from "./types.js";
+
+export type { WorkspaceInspection };
 
 const execFileAsync = promisify(execFile);
 
@@ -62,5 +65,70 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
     const detail = e instanceof Error ? e.message : String(e);
     throw new Error(`git リポジトリの初期化に失敗しました: ${detail}`);
   }
-  return repo;
+  // 取り込み時の重複チェックと揃えるため、実体のパスで登録する
+  return fs.realpath(repo);
+}
+
+export async function inspectWorkspace(rawPath: string): Promise<WorkspaceInspection> {
+  const target = path.resolve(expandHome(rawPath.trim()));
+  const result: WorkspaceInspection = {
+    path: target,
+    exists: false,
+    isDirectory: false,
+    isGit: false,
+    gitRoot: null,
+    hasCommits: false,
+    branch: null,
+    remoteUrl: null,
+    dirty: false,
+    suggestedName: path.basename(target),
+  };
+  const stat = await fs.stat(target).catch(() => null);
+  if (!stat) return result;
+  result.exists = true;
+  result.isDirectory = stat.isDirectory();
+  if (!result.isDirectory) return result;
+  // macOS の /tmp → /private/tmp などのシンボリックリンクを解決し、git のルートと比較できるようにする
+  result.path = await fs.realpath(target);
+
+  const root = await git(target, ["rev-parse", "--show-toplevel"]).catch(() => null);
+  if (!root) return result;
+  result.isGit = true;
+  result.gitRoot = await fs.realpath(root).catch(() => root);
+  result.hasCommits = Boolean(await git(target, ["rev-parse", "--verify", "HEAD"]).catch(() => null));
+  result.branch = (await git(target, ["branch", "--show-current"]).catch(() => "")) || null;
+  result.remoteUrl = (await git(target, ["remote", "get-url", "origin"]).catch(() => "")) || null;
+  result.dirty = Boolean(await git(target, ["status", "--porcelain"]).catch(() => ""));
+  return result;
+}
+
+/**
+ * 既存のフォルダを取り込めるようにする。
+ * worktree を作るにはコミットが必要なため、git 未管理・コミットなしの場合は
+ * initGit（ユーザーの同意）があるときだけ初期化して最初のコミットを作る。
+ */
+export async function prepareImportedWorkspace(rawPath: string, initGit: boolean): Promise<string> {
+  const info = await inspectWorkspace(rawPath);
+  if (!info.exists || !info.isDirectory) throw new Error(`フォルダが見つかりません: ${info.path}`);
+  const real = info.path;
+  if (info.isGit && info.gitRoot !== real) {
+    throw new Error(`このフォルダは git リポジトリの一部です。ルートのフォルダを指定してください: ${info.gitRoot}`);
+  }
+  if (info.isGit && info.hasCommits) return real;
+
+  if (!initGit) {
+    throw new Error(
+      info.isGit
+        ? "コミットがまだありません。最初のコミットを作成することに同意してください"
+        : "git で管理されていません。git リポジトリとして初期化することに同意してください",
+    );
+  }
+  try {
+    if (!info.isGit) await git(real, ["init", "-b", "main"]);
+    await git(real, ["add", "-A"]);
+    await git(real, ["commit", "--allow-empty", "-m", "chore: Kickoff に取り込み"]);
+  } catch (e) {
+    throw new Error(`git の初期化に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  return real;
 }

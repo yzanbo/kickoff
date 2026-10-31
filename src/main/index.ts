@@ -89,10 +89,10 @@ function createWindow(url: string) {
 }
 
 function registerIpc() {
-  ipcMain.handle("kickoff:pick-folder", async () => {
+  ipcMain.handle("kickoff:pick-folder", async (_e, title?: string) => {
     const result = await dialog.showOpenDialog({
       properties: ["openDirectory", "createDirectory"],
-      title: "保存先のフォルダを選択",
+      title: typeof title === "string" ? title : "フォルダを選択",
     });
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });

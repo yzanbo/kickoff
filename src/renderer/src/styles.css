@@ -579,6 +579,94 @@ textarea {
   resize: vertical;
 }
 
+.dialog-form {
+  display: grid;
+  gap: 16px;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--bg-hover);
+}
+
+.segmented button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  font: inherit;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.segmented button.active {
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+}
+
+.inspection {
+  display: grid;
+  gap: 4px;
+  margin: -4px 0 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  list-style: none;
+  background: var(--bg-hover);
+}
+
+.inspection li {
+  display: flex;
+  gap: 8px;
+}
+
+.inspection-icon {
+  flex: none;
+  width: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.inspection-ok .inspection-icon {
+  color: var(--ok);
+}
+
+.inspection-warn .inspection-icon {
+  color: #d29922;
+}
+
+.inspection-ng .inspection-icon {
+  color: var(--ng);
+}
+
+.inspection-info .inspection-icon {
+  color: var(--muted);
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.check input {
+  margin-top: 4px;
+}
+
+.check > span {
+  display: grid;
+  gap: 2px;
+}
+
+.link-button.accent {
+  color: var(--accent);
+}
+
 /* ---- 使用枠メーター ---- */
 
 .meter {
