@@ -87,16 +87,26 @@ function RunView({
   return (
     <div className="run-page">
       <header className="run-header">
-        <a className="muted small" href={href({ name: "project", id: projectId })}>
-          ← プロジェクトに戻る
+        <a className="muted small" href={href({ name: "section", projectId, section: run.phase })}>
+          ← {PHASE_LABELS[run.phase]}
         </a>
         <div className="run-title-row">
-          <h1>{run.title || "会話"}</h1>
+          <h1>{run.title || "チャット"}</h1>
+          <button
+            className="icon-button"
+            title="名前を変更"
+            aria-label="名前を変更"
+            onClick={async () => {
+              const title = prompt("チャットの名前", run.title)?.trim();
+              if (title && title !== run.title) await api.renameRun(run.id, title);
+            }}
+          >
+            ✎
+          </button>
           <span className={`status-chip status-${run.status}`}>{RUN_STATUS_LABELS[run.status]}</span>
         </div>
         <div className="muted small">
-          {PHASE_LABELS[run.phase]}
-          {run.num_turns > 0 && ` ・ ${run.num_turns} ターン`}
+          {run.num_turns > 0 && `${run.num_turns} ターン`}
           {run.cost_usd > 0 && ` ・ API 換算 $${run.cost_usd.toFixed(2)}`}
         </div>
       </header>

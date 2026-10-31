@@ -4,14 +4,16 @@ import { RunOptionsBar, type RunOptionsState } from "./RunOptionsBar";
 interface Props {
   options: RunOptionsState;
   placeholder?: string;
+  /** 入力欄にあらかじめ入れておく文 */
+  initialText?: string;
   busy?: boolean;
   onSend: (text: string) => Promise<void>;
   onStop?: () => void;
 }
 
 /** チャットの入力欄（⌘+Enter で送信） */
-export function Composer({ options, placeholder, busy, onSend, onStop }: Props) {
-  const [text, setText] = useState("");
+export function Composer({ options, placeholder, initialText, busy, onSend, onStop }: Props) {
+  const [text, setText] = useState(initialText ?? "");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
 

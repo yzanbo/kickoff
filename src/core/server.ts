@@ -12,7 +12,6 @@ import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
 import type { UsageMonitor } from "./usage.js";
 import type { ApprovalCenter } from "./approvals.js";
-import { DECOMPOSITION_PROMPT, requirementsKickoffPrompt } from "./phases.js";
 import type { Runner } from "./runner.js";
 import {
   EFFORT_LEVELS,
@@ -61,7 +60,6 @@ const importProjectSchema = z.object({
   path: z.string().trim().min(1),
   name: z.string().trim().min(1).max(100),
   description: z.string().max(10_000).default(""),
-  start_phase: z.enum(PHASES).default("requirements"),
   init_git: z.boolean().default(false),
   provider: z.enum(PROVIDER_IDS).optional(),
 });
@@ -101,7 +99,6 @@ const runInputSchema = z.object({
   options: runOptionsSchema,
 });
 
-const startInputSchema = z.object({ options: runOptionsSchema }).default({ options: {} });
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
   z.object({ action: z.literal("allow") }),
@@ -201,7 +198,6 @@ export function createApp(deps: ServerDeps): Hono {
       description: input.description,
       repo_path: repoPath,
       provider: input.provider ?? store.getSettings().defaultProvider,
-      current_phase: input.start_phase,
     });
     return c.json(project, 201);
   });
@@ -218,50 +214,6 @@ export function createApp(deps: ServerDeps): Hono {
     const project = requireProject(store, c.req.param("id"));
     store.deleteProject(project.id);
     return c.json({ ok: true });
-  });
-
-  // ---- 要件定義の進行（ゲート） ----
-  app.post("/api/projects/:id/requirements/start", async (c) => {
-    const project = requireProject(store, c.req.param("id"));
-    const { options } = startInputSchema.parse(await c.req.json().catch(() => ({})));
-    const run = runner.start({
-      projectId: project.id,
-      phase: "requirements",
-      prompt: requirementsKickoffPrompt(project),
-      title: "要件定義",
-      options,
-    });
-    return c.json(run, 201);
-  });
-
-  // 1 段目: 要件定義書を確定し、AI にタスク分解を依頼する
-  app.post("/api/projects/:id/requirements/confirm", async (c) => {
-    const project = requireProject(store, c.req.param("id"));
-    const { options } = startInputSchema.parse(await c.req.json().catch(() => ({})));
-    if (store.listArtifacts(project.id, { kind: "requirements" }).length === 0) {
-      throw new HttpError(409, "要件定義書がまだありません。AI と要件定義を進めてください");
-    }
-    store.updateProject(project.id, { requirements_confirmed_at: new Date().toISOString() });
-    const run = runner.start({ projectId: project.id, phase: "requirements", prompt: DECOMPOSITION_PROMPT, title: "タスク分解", options });
-    return c.json(run, 201);
-  });
-
-  // 要件定義書を見直すために確定を取り消す
-  app.post("/api/projects/:id/requirements/reopen", (c) => {
-    const project = requireProject(store, c.req.param("id"));
-    if (project.current_phase !== "requirements") throw new HttpError(409, "要件定義フェーズではありません");
-    return c.json(store.updateProject(project.id, { requirements_confirmed_at: null }));
-  });
-
-  // 2 段目: タスクを承認して実装フェーズへ進む
-  app.post("/api/projects/:id/advance", (c) => {
-    const project = requireProject(store, c.req.param("id"));
-    if (project.current_phase !== "requirements") throw new HttpError(409, "要件定義フェーズではありません");
-    if (!project.requirements_confirmed_at) throw new HttpError(409, "先に要件定義書を確定してください");
-    if (store.listTasks(project.id, { phase: "implementation" }).length === 0) {
-      throw new HttpError(409, "実装フェーズのタスクがありません");
-    }
-    return c.json(store.updateProject(project.id, { current_phase: "implementation" }));
   });
 
   // ---- タスク ----
@@ -294,7 +246,7 @@ export function createApp(deps: ServerDeps): Hono {
 
   // ---- 実行（エージェントとの会話） ----
   app.get("/api/projects/:id/runs", (c) =>
-    c.json(store.listRuns({ projectId: requireProject(store, c.req.param("id")).id, limit: 50 })),
+    c.json(store.listRuns({ projectId: requireProject(store, c.req.param("id")).id, limit: 300 })),
   );
 
   app.post("/api/projects/:id/runs", async (c) => {
@@ -309,6 +261,13 @@ export function createApp(deps: ServerDeps): Hono {
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
     return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }) });
+  });
+
+  // チャットの名前を変える
+  app.patch("/api/runs/:id", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { title } = z.object({ title: z.string().trim().min(1).max(100) }).parse(await c.req.json());
+    return c.json(store.updateRun(run.id, { title }));
   });
 
   app.post("/api/runs/:id/messages", async (c) => {

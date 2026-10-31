@@ -45,7 +45,6 @@ export interface ImportProjectInput {
   path: string;
   name: string;
   description: string;
-  start_phase: Phase;
   init_git: boolean;
 }
 
@@ -88,14 +87,6 @@ export const api = {
   deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),
   models: (provider: ProviderId) => request<ModelOption[]>("GET", `/api/providers/${provider}/models`),
 
-  // 要件定義の進行
-  startRequirements: (projectId: number, options: RunOptions) =>
-    request<Run>("POST", `/api/projects/${projectId}/requirements/start`, { options }),
-  confirmRequirements: (projectId: number, options: RunOptions) =>
-    request<Run>("POST", `/api/projects/${projectId}/requirements/confirm`, { options }),
-  reopenRequirements: (projectId: number) => request<Project>("POST", `/api/projects/${projectId}/requirements/reopen`),
-  advance: (projectId: number) => request<Project>("POST", `/api/projects/${projectId}/advance`),
-
   // タスク
   tasks: (projectId: number) => request<Task[]>("GET", `/api/projects/${projectId}/tasks`),
   createTask: (projectId: number, input: TaskInput) => request<Task>("POST", `/api/projects/${projectId}/tasks`, input),
@@ -108,9 +99,12 @@ export const api = {
 
   // 実行（エージェントとの会話）
   runs: (projectId: number) => request<Run[]>("GET", `/api/projects/${projectId}/runs`),
+  startRun: (projectId: number, input: { phase: Phase; prompt: string; task_id?: number; options: RunOptions }) =>
+    request<Run>("POST", `/api/projects/${projectId}/runs`, input),
   run: (id: number) => request<RunDetail>("GET", `/api/runs/${id}`),
   sendMessage: (runId: number, text: string, options: RunOptions) =>
     request<Run>("POST", `/api/runs/${runId}/messages`, { text, options }),
+  renameRun: (runId: number, title: string) => request<Run>("PATCH", `/api/runs/${runId}`, { title }),
   cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
 
   // 承認依頼・質問
