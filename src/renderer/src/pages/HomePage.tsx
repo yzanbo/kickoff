@@ -1,8 +1,10 @@
 import { api, useAsync } from "../api";
 import { StatusCard } from "../components/StatusCard";
+import { UsagePanel } from "../components/UsagePanel";
 import { href } from "../router";
+import type { usePlanUsage } from "../usage";
 
-export function HomePage() {
+export function HomePage({ planUsage }: { planUsage: ReturnType<typeof usePlanUsage> }) {
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
@@ -13,6 +15,8 @@ export function HomePage() {
         <h1>ようこそ</h1>
         <p className="muted">アイデアからデプロイまで、AI と一緒に進めるための作業場です。</p>
       </header>
+
+      <UsagePanel planUsage={planUsage} />
 
       <section className="section">
         <h2>準備状況</h2>

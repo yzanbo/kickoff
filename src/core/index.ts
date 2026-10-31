@@ -6,6 +6,7 @@ import { Bus } from "./bus.js";
 import { createProviders } from "./providers/index.js";
 import { createApp } from "./server.js";
 import { Store } from "./store.js";
+import { UsageMonitor } from "./usage.js";
 
 export interface CoreOptions {
   dataDir: string;
@@ -34,13 +35,16 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
 
   const token = loadOrCreateToken(opts.dataDir);
   const providers = createProviders();
-  const app = createApp({ store, bus, token, providers, staticDir: opts.staticDir });
+  // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
+  const usage = new UsageMonitor(providers.claude, bus);
+  const app = createApp({ store, bus, token, providers, usage, staticDir: opts.staticDir });
 
   const host = opts.host ?? "127.0.0.1";
   const server = await new Promise<ServerType>((resolve, reject) => {
     const s = serve({ fetch: app.fetch, port: opts.port, hostname: host }, () => resolve(s));
     s.once("error", reject);
   });
+  usage.start();
 
   return {
     port: opts.port,
@@ -50,6 +54,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     bus,
     close: () =>
       new Promise<void>((resolve) => {
+        usage.stop();
         server.close(() => {
           store.close();
           resolve();
