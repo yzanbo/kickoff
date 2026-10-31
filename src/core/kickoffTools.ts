@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { isPathInScope } from "./scope.js";
 import type { Store } from "./store.js";
 import { ARTIFACT_KINDS, PHASES, TASK_STATUSES, type Phase } from "./types.js";
 
@@ -23,6 +24,8 @@ export interface KickoffToolContext {
   runId: number;
   taskId: number | null;
   phase: Phase;
+  /** 書き込みできるフォルダ（指定があれば export_path もこの中に限る） */
+  writeScope?: string[];
 }
 
 export const KICKOFF_SERVER_NAME = "kickoff";
@@ -148,7 +151,15 @@ export function createKickoffTools(ctx: KickoffToolContext): KickoffTool[] {
         const project = store.getProject(projectId)!;
         let filePath = "";
         if (args.export_path) {
-          filePath = await exportToRepo(project.repo_path, args.export_path as string, args.content as string);
+          const exportPath = args.export_path as string;
+          if (ctx.writeScope && !isPathInScope(project.repo_path, ctx.writeScope, exportPath)) {
+            throw new Error(
+              ctx.writeScope.length
+                ? `export_path は ${ctx.writeScope.map((s) => `${s}/`).join("、")} の中にしてください`
+                : "このセクションでは export_path を指定できません",
+            );
+          }
+          filePath = await exportToRepo(project.repo_path, exportPath, args.content as string);
         }
         const artifact = store.createArtifact({
           project_id: projectId,

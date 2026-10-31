@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PHASE_LABELS, PHASES, type Approval, type Project, type Run, type Task } from "../../../core/types";
 import { api } from "../api";
 import { ApprovalCard } from "../components/ApprovalCard";
+import { WriteScopeEditor } from "../components/WriteScopeEditor";
 import { useServerEvent } from "../events";
 import { href, navigate } from "../router";
 import { SECTION_DESCRIPTIONS } from "../sections";
@@ -114,6 +115,15 @@ export function ProjectPage({ id }: { id: number }) {
           <p className="prewrap">{project.description}</p>
         </section>
       )}
+
+      <section className="section" id="settings">
+        <h2>プロジェクト設定</h2>
+        <h3 className="subheading">書き込みできるフォルダ</h3>
+        <p className="muted small">
+          要件定義とスケジュールのチャットで、AI がファイルを書き込めるフォルダです。ここ以外への書き込みと、読み取り以外のコマンドは、権限モードに関係なく拒否されます。
+        </p>
+        <WriteScopeEditor project={project} />
+      </section>
 
       <section className="section danger-zone">
         <button

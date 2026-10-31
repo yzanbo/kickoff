@@ -94,9 +94,16 @@ export interface Project {
   test_command: string;
   deploy_instructions: string;
   auto_commit: number; // SQLite の真偽値（0 / 1）
+  /** セクションごとの書き込みできるフォルダ（リポジトリからの相対パス。未指定なら既定の docs） */
+  write_scopes: WriteScopes;
   created_at: string;
   updated_at: string;
 }
+
+/** 書き込み範囲を制限するセクション */
+export const SCOPED_SECTIONS = ["requirements", "schedule"] as const;
+export type ScopedSection = (typeof SCOPED_SECTIONS)[number];
+export type WriteScopes = Partial<Record<ScopedSection, string[]>>;
 
 export interface ProjectSummary extends Project {
   task_counts: Record<TaskStatus, number>;

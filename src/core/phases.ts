@@ -1,3 +1,4 @@
+import { DEFAULT_WRITE_SCOPE } from "./scope.js";
 import { PHASE_LABELS, type Phase, type Project, type Task } from "./types.js";
 
 /**
@@ -14,6 +15,16 @@ export interface PhasePolicy {
   web: boolean;
   /** 推論の深さ */
   effort: "low" | "medium" | "high" | "xhigh" | "max";
+  /**
+   * 書き込みできるフォルダ（cwd からの相対パス）。指定があると、権限モードに関係なく
+   * 範囲外への書き込みと読み取り以外のシェルコマンドを必ず拒否する。
+   */
+  writeScope?: string[];
+}
+
+/** プロジェクトに設定された書き込みできるフォルダ（未設定なら docs） */
+export function writeScopeOf(project: Project, section: "requirements" | "schedule"): string[] {
+  return project.write_scopes[section] ?? DEFAULT_WRITE_SCOPE;
 }
 
 const GIT_READ = ["git status", "git diff", "git log", "git show", "git branch"];
@@ -42,9 +53,9 @@ export function phasePolicy(phase: Phase, project: Project): PhasePolicy {
 
   switch (phase) {
     case "requirements":
-      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: true, effort: "high" };
+      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: true, effort: "high", writeScope: writeScopeOf(project, phase) };
     case "schedule":
-      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: false, effort: "medium" };
+      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: false, effort: "medium", writeScope: writeScopeOf(project, phase) };
     case "implementation":
       return {
         phase,
@@ -70,7 +81,7 @@ const PHASE_INSTRUCTIONS: Record<Phase, string> = {
 ユーザーとチャットしながら、作るものを明確にして要件定義書にまとめます。
 
 - 判断が分かれる点や、推測で埋めると手戻りが大きい点は AskUserQuestion でユーザーに確認してください。一度に聞くのは重要なものから数問にとどめ、自明な点まで聞く必要はありません。
-- 要件定義書は mcp__kickoff__save_artifact（kind: "requirements", export_path: "docs/requirements.md"）で保存します。既存の要件定義書があれば先に読み、変更点を反映した全文で保存し直してください。
+- 要件定義書は mcp__kickoff__save_artifact（kind: "requirements", export_path: 書き込みできるフォルダ内の requirements.md。例: "docs/requirements.md"）で保存します。既存の要件定義書があれば先に読み、変更点を反映した全文で保存し直してください。
 - 構成の目安: 背景と目的 / 利用者 / スコープ（やること・やらないこと）/ 機能要件 / 非機能要件 / 技術スタック（選定理由つき）/ デプロイ先・リリース方法 / 受け入れ基準 / 未決事項。
 - 技術スタックとデプロイ先は、要件に合わせて提案し、ユーザーの同意を得てから要件定義書に書いてください。
 - ユーザーにタスク分解を頼まれたら、mcp__kickoff__create_task でタスクを起票します。1 タスクは 1 回のエージェント実行で完了できる粒度にし、内容・受け入れ基準を具体的に書いてください。コードや雛形がまだなければ最初のタスクを「雛形の作成」にします。実装だけでなく、テスト・デプロイのタスクも起票してください。起票前に mcp__kickoff__list_tasks で重複を確認します。
@@ -82,7 +93,7 @@ const PHASE_INSTRUCTIONS: Record<Phase, string> = {
 - 要件定義書（mcp__kickoff__list_artifacts / get_artifact、または docs/requirements.md）とタスク（mcp__kickoff__list_tasks）を読んで、現状を把握してから提案してください。
 - 使える時間（1 日・1 週間あたり）や締め切りなど、予定を立てるのに必要な情報が分からなければ AskUserQuestion で確認してください。
 - タスクごとの所要時間の目安、依存関係、マイルストーン（例: 動く最小版・公開）と予定日を提案します。
-- まとまったら mcp__kickoff__save_artifact（kind: "schedule", export_path: "docs/schedule.md"）で保存します。既存のスケジュールがあれば先に読み、進み具合を反映して更新してください。
+- まとまったら mcp__kickoff__save_artifact（kind: "schedule", export_path: 書き込みできるフォルダ内の schedule.md。例: "docs/schedule.md"）で保存します。既存のスケジュールがあれば先に読み、進み具合を反映して更新してください。
 - タスクの優先度を変えたほうがよい場合は、理由を説明してから mcp__kickoff__update_task で変更します（ステータスは変えません）。
 - このセクションではプロダクトコードを変更しません。`,
 
@@ -135,6 +146,15 @@ export function buildSystemPrompt(project: Project, phase: Phase, task: Task | n
   if (phase === "implementation" && project.auto_commit) {
     lines.push(
       `- コミット: リポジトリが git 管理されていれば、タスク完了時に変更をコミットしてください（メッセージ例: "[Kickoff #<タスクID>] <要約>"）。`,
+    );
+  }
+
+  if (phase === "requirements" || phase === "schedule") {
+    const scope = writeScopeOf(project, phase);
+    lines.push(
+      scope.length
+        ? `- 書き込みできるフォルダ: ${scope.map((s) => `${s}/`).join("、")}（それ以外への書き込みと、読み取り以外のシェルコマンドは拒否されます。成果物の export_path もこの中にしてください）`
+        : `- このセクションではファイルを書き込めません（成果物は export_path なしで保存してください）`,
     );
   }
 
