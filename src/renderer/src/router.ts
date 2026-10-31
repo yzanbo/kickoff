@@ -6,6 +6,7 @@ export type Route =
   | { name: "settings" }
   | { name: "project"; id: number }
   | { name: "section"; projectId: number; section: Phase }
+  | { name: "newChat"; projectId: number; section: Phase }
   | { name: "run"; projectId: number; runId: number };
 
 function parse(hash: string): Route {
@@ -13,6 +14,10 @@ function parse(hash: string): Route {
   if (path === "/settings") return { name: "settings" };
   const run = path.match(/^\/projects\/(\d+)\/runs\/(\d+)$/);
   if (run) return { name: "run", projectId: Number(run[1]), runId: Number(run[2]) };
+  const newChat = path.match(/^\/projects\/(\d+)\/sections\/([a-z]+)\/new$/);
+  if (newChat && (PHASES as readonly string[]).includes(newChat[2])) {
+    return { name: "newChat", projectId: Number(newChat[1]), section: newChat[2] as Phase };
+  }
   const section = path.match(/^\/projects\/(\d+)\/sections\/([a-z]+)$/);
   if (section && (PHASES as readonly string[]).includes(section[2])) {
     return { name: "section", projectId: Number(section[1]), section: section[2] as Phase };
@@ -41,6 +46,8 @@ export function href(route: Route): string {
       return `#/projects/${route.id}`;
     case "section":
       return `#/projects/${route.projectId}/sections/${route.section}`;
+    case "newChat":
+      return `#/projects/${route.projectId}/sections/${route.section}/new`;
     case "run":
       return `#/projects/${route.projectId}/runs/${route.runId}`;
     default:
@@ -48,13 +55,19 @@ export function href(route: Route): string {
   }
 }
 
-export function navigate(route: Route) {
-  location.hash = href(route);
+export function navigate(route: Route, options: { replace?: boolean } = {}) {
+  if (options.replace) {
+    // 履歴に残さず置き換える（新しいチャット画面 → 作成されたチャットへ移るとき）
+    history.replaceState(null, "", href(route));
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  } else {
+    location.hash = href(route);
+  }
 }
 
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示用） */
 export function routeProjectId(route: Route): number | undefined {
   if (route.name === "project") return route.id;
-  if (route.name === "section" || route.name === "run") return route.projectId;
+  if (route.name === "section" || route.name === "newChat" || route.name === "run") return route.projectId;
   return undefined;
 }

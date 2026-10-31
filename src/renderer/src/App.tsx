@@ -7,6 +7,7 @@ import { publishServerEvent } from "./events";
 import { UsageMeter } from "./components/UsageMeter";
 import { HomePage } from "./pages/HomePage";
 import { ProjectPage } from "./pages/ProjectPage";
+import { NewChatPage } from "./pages/NewChatPage";
 import { RunPage } from "./pages/RunPage";
 import { SectionPage } from "./pages/SectionPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -98,6 +99,8 @@ export function App() {
           <SettingsPage />
         ) : route.name === "run" ? (
           <RunPage projectId={route.projectId} runId={route.runId} />
+        ) : route.name === "newChat" ? (
+          <NewChatPage projectId={route.projectId} section={route.section} />
         ) : route.name === "section" ? (
           <SectionPage projectId={route.projectId} section={route.section} />
         ) : route.name === "project" ? (

@@ -6,13 +6,14 @@ interface Props {
   placeholder?: string;
   /** 入力欄にあらかじめ入れておく文 */
   initialText?: string;
+  autoFocus?: boolean;
   busy?: boolean;
   onSend: (text: string) => Promise<void>;
   onStop?: () => void;
 }
 
 /** チャットの入力欄（⌘+Enter で送信） */
-export function Composer({ options, placeholder, initialText, busy, onSend, onStop }: Props) {
+export function Composer({ options, placeholder, initialText, autoFocus, busy, onSend, onStop }: Props) {
   const [text, setText] = useState(initialText ?? "");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
@@ -44,6 +45,7 @@ export function Composer({ options, placeholder, initialText, busy, onSend, onSt
       <textarea
         rows={3}
         value={text}
+        autoFocus={autoFocus}
         placeholder={placeholder ?? (busy ? "エージェントが作業中です…" : "メッセージを入力（⌘+Enter で送信）")}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKeyDown}

@@ -456,7 +456,7 @@ select:focus {
   height: 22px;
   margin-right: 4px;
   font-size: 13px;
-  opacity: 0;
+  opacity: 0.45;
 }
 
 .section-row:hover .tree-add,
@@ -1035,6 +1035,27 @@ textarea {
 
 .event-result.error {
   color: var(--ng);
+}
+
+a.btn {
+  display: inline-block;
+}
+
+.new-chat-hint {
+  margin: auto;
+  max-width: 480px;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.new-chat-title {
+  margin-bottom: 4px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.new-chat-hint p {
+  margin: 4px 0;
 }
 
 /* ---- Markdown ---- */
