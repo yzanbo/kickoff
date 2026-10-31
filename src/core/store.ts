@@ -108,6 +108,7 @@ export interface NewProject {
   description?: string;
   repo_path: string;
   provider: ProviderId;
+  current_phase?: Phase;
   test_command?: string;
   deploy_instructions?: string;
   auto_commit?: boolean;
@@ -224,6 +225,10 @@ export class Store {
     });
   }
 
+  findProjectByPath(repoPath: string): Project | undefined {
+    return this.db.prepare("SELECT * FROM projects WHERE repo_path = ?").get(repoPath) as unknown as Project | undefined;
+  }
+
   getProject(id: number): Project | undefined {
     return this.db.prepare("SELECT * FROM projects WHERE id = ?").get(id) as unknown as Project | undefined;
   }
@@ -231,14 +236,15 @@ export class Store {
   createProject(input: NewProject): Project {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO projects (name, description, repo_path, provider, test_command, deploy_instructions, auto_commit)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO projects (name, description, repo_path, provider, current_phase, test_command, deploy_instructions, auto_commit)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.name,
         input.description ?? "",
         input.repo_path,
         input.provider,
+        input.current_phase ?? "requirements",
         input.test_command ?? "",
         input.deploy_instructions ?? "",
         input.auto_commit === false ? 0 : 1,

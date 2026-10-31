@@ -11,8 +11,8 @@ import { githubStatus } from "./github.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
 import type { UsageMonitor } from "./usage.js";
-import { PROVIDER_IDS, type ProviderId } from "./types.js";
-import { createWorkspace } from "./workspace.js";
+import { PHASES, PROVIDER_IDS, type ProviderId } from "./types.js";
+import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "./workspace.js";
 
 export interface ServerDeps {
   store: Store;
@@ -40,6 +40,15 @@ const newProjectSchema = z.object({
   idea: z.string().max(10_000).default(""),
   parent_dir: z.string().trim().min(1),
   folder_name: z.string().trim().min(1).max(100),
+  provider: z.enum(PROVIDER_IDS).optional(),
+});
+
+const importProjectSchema = z.object({
+  path: z.string().trim().min(1),
+  name: z.string().trim().min(1).max(100),
+  description: z.string().max(10_000).default(""),
+  start_phase: z.enum(PHASES).default("requirements"),
+  init_git: z.boolean().default(false),
   provider: z.enum(PROVIDER_IDS).optional(),
 });
 
@@ -108,6 +117,30 @@ export function createApp(deps: ServerDeps): Hono {
       provider: input.provider ?? store.getSettings().defaultProvider,
     });
     store.updateSettings({ projectsDir: input.parent_dir });
+    return c.json(project, 201);
+  });
+
+  // 既存フォルダの点検（取り込みダイアログでの事前表示用）
+  app.get("/api/workspace/inspect", async (c) => {
+    const info = await inspectWorkspace(c.req.query("path") ?? "");
+    const registered = info.gitRoot ? store.findProjectByPath(info.gitRoot) : store.findProjectByPath(info.path);
+    return c.json({ ...info, registered_project_id: registered?.id ?? null });
+  });
+
+  app.post("/api/projects/import", async (c) => {
+    const input = importProjectSchema.parse(await c.req.json());
+    const repoPath = await prepareImportedWorkspace(input.path, input.init_git).catch((e: Error) => {
+      throw new HttpError(400, e.message);
+    });
+    const existing = store.findProjectByPath(repoPath);
+    if (existing) throw new HttpError(409, `このフォルダは「${existing.name}」として登録済みです`);
+    const project = store.createProject({
+      name: input.name,
+      description: input.description,
+      repo_path: repoPath,
+      provider: input.provider ?? store.getSettings().defaultProvider,
+      current_phase: input.start_phase,
+    });
     return c.json(project, 201);
   });
 

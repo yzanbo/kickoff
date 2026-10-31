@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { createWorkspace, toFolderName } from "./workspace.js";
+import { createWorkspace, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "./workspace.js";
 
 test("フォルダ名は安全な文字だけにする", () => {
   assert.equal(toFolderName("My Todo App"), "my-todo-app");
@@ -16,7 +16,7 @@ test("新規プロジェクトのフォルダを git リポジトリとして初
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-ws-"));
   const repo = await createWorkspace({ parentDir: parent, folderName: "todo", name: "Todo", idea: "やることを管理したい" });
 
-  assert.equal(repo, path.join(parent, "todo"));
+  assert.equal(repo, fs.realpathSync(path.join(parent, "todo")));
   assert.match(fs.readFileSync(path.join(repo, "README.md"), "utf8"), /やることを管理したい/);
   const branch = execFileSync("git", ["branch", "--show-current"], { cwd: repo, encoding: "utf8" }).trim();
   assert.equal(branch, "main");
@@ -29,4 +29,46 @@ test("空でない既存フォルダには作らない", async () => {
   fs.mkdirSync(path.join(parent, "taken"));
   fs.writeFileSync(path.join(parent, "taken", "x.txt"), "x");
   await assert.rejects(createWorkspace({ parentDir: parent, folderName: "taken", name: "x", idea: "" }), /空ではありません/);
+});
+
+function tmpDir() {
+  return fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-imp-")));
+}
+
+test("git 未管理のフォルダは同意がなければ取り込まず、同意すれば初期化して既存ファイルをコミットする", async () => {
+  const dir = tmpDir();
+  fs.writeFileSync(path.join(dir, "index.html"), "<h1>hi</h1>");
+
+  const before = await inspectWorkspace(dir);
+  assert.equal(before.isGit, false);
+  await assert.rejects(prepareImportedWorkspace(dir, false), /同意/);
+
+  assert.equal(await prepareImportedWorkspace(dir, true), dir);
+  const after = await inspectWorkspace(dir);
+  assert.equal(after.isGit, true);
+  assert.equal(after.hasCommits, true);
+  assert.equal(after.dirty, false);
+});
+
+test("コミット済みのリポジトリはそのまま取り込み、サブフォルダは拒否する", async () => {
+  const dir = tmpDir();
+  execFileSync("git", ["init", "-b", "main"], { cwd: dir });
+  fs.mkdirSync(path.join(dir, "src"));
+  fs.writeFileSync(path.join(dir, "src", "a.ts"), "export {}");
+  execFileSync("git", ["add", "-A"], { cwd: dir });
+  execFileSync("git", ["commit", "-m", "init"], { cwd: dir });
+  fs.writeFileSync(path.join(dir, "wip.txt"), "作業中");
+
+  // シンボリックリンク経由（/tmp → /private/tmp）でもルートとして認識する
+  const viaLink = path.join(os.tmpdir(), path.relative(fs.realpathSync(os.tmpdir()), dir));
+  const info = await inspectWorkspace(viaLink);
+  assert.equal(info.gitRoot, info.path);
+  assert.equal(info.dirty, true);
+  assert.equal(info.branch, "main");
+  assert.equal(await prepareImportedWorkspace(dir, false), dir);
+  // 未コミットの変更には手を付けない
+  assert.equal(fs.existsSync(path.join(dir, "wip.txt")), true);
+  assert.equal((await inspectWorkspace(dir)).dirty, true);
+
+  await assert.rejects(prepareImportedWorkspace(path.join(dir, "src"), true), /ルート/);
 });

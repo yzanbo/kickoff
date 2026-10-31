@@ -231,6 +231,21 @@ export interface GitHubStatus {
   detail: string;
 }
 
+/** 既存フォルダの点検結果（取り込みダイアログ用） */
+export interface WorkspaceInspection {
+  path: string;
+  exists: boolean;
+  isDirectory: boolean;
+  isGit: boolean;
+  gitRoot: string | null;
+  hasCommits: boolean;
+  branch: string | null;
+  remoteUrl: string | null;
+  dirty: boolean;
+  suggestedName: string;
+  registered_project_id?: number | null;
+}
+
 export interface PairingInfo {
   enabled: boolean;
   urls: string[];

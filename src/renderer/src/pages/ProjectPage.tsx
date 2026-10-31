@@ -33,7 +33,7 @@ export function ProjectPage({ id, version }: { id: number; version: number }) {
       </section>
 
       <section className="section">
-        <h2>アイデア</h2>
+        <h2>概要・アイデア</h2>
         {project.description.trim() ? (
           <p className="prewrap">{project.description}</p>
         ) : (
