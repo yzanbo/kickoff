@@ -1,3 +1,4 @@
+import { Brain, Shield, Sparkle, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   EFFORT_LABELS,
@@ -68,7 +69,7 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
   return (
     <div className="run-options">
       <label className="pill-select" title={current?.description ?? "モデル"}>
-        <span aria-hidden>✳</span>
+        <Sparkle size={14} aria-hidden />
         <select aria-label="モデル" value={model ?? ""} disabled={disabled} onChange={(e) => setModel(e.target.value || null)}>
           {models.length === 0 && <option value={model ?? ""}>{model ?? "読み込み中…"}</option>}
           {models.map((m) => (
@@ -80,14 +81,14 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
       </label>
 
       <label className="pill-select" title="推論の深さ">
-        <span aria-hidden>◎</span>
+        <Brain size={14} aria-hidden />
         <select
           aria-label="推論の深さ"
           value={effort ?? ""}
           disabled={disabled}
           onChange={(e) => setEffort((e.target.value || null) as EffortLevel | null)}
         >
-          <option value="">既定の深さ</option>
+          <option value="">既定</option>
           {efforts.map((level) => (
             <option key={level} value={level}>
               {EFFORT_LABELS[level]}
@@ -97,7 +98,7 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
       </label>
 
       <label className="pill-select" title="権限モード">
-        <span aria-hidden>⛨</span>
+        <Shield size={14} aria-hidden />
         <select
           aria-label="権限モード"
           value={permission}
@@ -121,7 +122,8 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
           title={fastMode ? "ファストモード: オン（追加の使用枠から消費）" : "ファストモード: オフ"}
           onClick={() => setFastMode(!fastMode)}
         >
-          ⚡{fastMode && <span className="fast-label">Fast</span>}
+          <Zap size={14} fill={fastMode ? "currentColor" : "none"} />
+          {fastMode && <span className="fast-label">Fast</span>}
         </button>
       )}
     </div>

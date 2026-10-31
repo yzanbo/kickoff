@@ -270,6 +270,7 @@ export class ClaudeProvider implements AgentProvider {
           env: agentEnv(),
           pathToClaudeCodeExecutable: this.executable,
           hooks: scopeHooks(params),
+          includePartialMessages: true,
           ...(params.fastMode ? { settings: { fastMode: true } } : {}),
         },
       });
@@ -353,9 +354,41 @@ export class ClaudeProvider implements AgentProvider {
         return undefined;
       }
 
+      case "stream_event":
+        // メインのエージェントの文章だけを流す（サブエージェントの途中経過は出さない）
+        if (
+          msg.parent_tool_use_id === null &&
+          msg.event.type === "content_block_delta" &&
+          msg.event.delta.type === "text_delta"
+        ) {
+          cb.stream?.(msg.event.delta.text);
+        }
+        return undefined;
+
       default:
         return undefined;
     }
+  }
+
+  /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */
+  async title(text: string): Promise<string> {
+    const q = query({
+      prompt: `次の依頼内容に、20 文字以内の日本語のタイトルを付けてください。タイトルだけを出力し、記号や引用符は付けないでください。\n\n---\n${text.slice(0, 2000)}`,
+      options: {
+        model: "haiku",
+        effort: "low",
+        maxTurns: 1,
+        tools: [],
+        settingSources: [],
+        env: agentEnv(),
+        pathToClaudeCodeExecutable: this.executable,
+      },
+    });
+    let result = "";
+    for await (const msg of q) {
+      if (msg.type === "result" && msg.subtype === "success") result = msg.result;
+    }
+    return result.trim().replace(/^["'「『]|["'」』]$/g, "").split("\n")[0].slice(0, 40);
   }
 }
 

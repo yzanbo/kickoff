@@ -1,4 +1,5 @@
 import type { ApprovalCenter } from "./approvals.js";
+import type { Bus } from "./bus.js";
 import { createKickoffTools } from "./kickoffTools.js";
 import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import type { AgentProvider } from "./providers/index.js";
@@ -38,6 +39,7 @@ export class Runner {
       providers: Record<ProviderId, AgentProvider>;
       usage: UsageMonitor;
       uploads?: UploadStore;
+      bus?: Bus;
     },
   ) {}
 
@@ -67,6 +69,7 @@ export class Runner {
     });
     const attachments = input.attachments ?? [];
     store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}) });
+    if (!input.title) void this.autoTitle(run.id, input.prompt || attachments.map((a) => a.name).join("、"));
     this.enqueue({ runId: run.id, prompt: await this.promptWithAttachments(input.prompt, attachments) });
     return store.getRun(run.id)!;
   }
@@ -89,6 +92,20 @@ export class Runner {
     });
     this.enqueue({ runId: run.id, prompt: await this.promptWithAttachments(text, attachments) });
     return store.getRun(run.id)!;
+  }
+
+  /** チャット名を AI に付けてもらう（ユーザーが名前を変えていなければ置き換える） */
+  private async autoTitle(runId: number, text: string) {
+    const run = this.deps.store.getRun(runId);
+    const provider = run ? this.deps.providers[run.provider] : undefined;
+    if (!run || !provider?.title || !text.trim()) return;
+    try {
+      const title = await provider.title(text);
+      const latest = this.deps.store.getRun(runId);
+      if (title && latest && latest.title === run.title) this.deps.store.updateRun(runId, { title });
+    } catch {
+      // 付けられなくても困らない（最初の発言のまま）
+    }
   }
 
   /** 添付ファイルのパスをメッセージに書き添える（エージェントは Read ツールで読む） */
@@ -172,6 +189,9 @@ export class Runner {
           }),
         },
         {
+          stream: (text) => {
+            this.deps.bus?.publish({ type: "run_delta", project_id: project.id, run_id: runId, text });
+          },
           emit: (event) => {
             if (event.type === "init" && event.session_id !== store.getRun(runId)?.session_id) {
               store.updateRun(runId, { session_id: event.session_id });

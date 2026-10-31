@@ -43,7 +43,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const usage = new UsageMonitor(providers.claude, bus);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
-  const runner = new Runner({ store, approvals, providers, usage, uploads });
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus });
   const app = createApp({ store, bus, token, providers, usage, runner, approvals, uploads, staticDir: opts.staticDir });
 
   const host = opts.host ?? "127.0.0.1";

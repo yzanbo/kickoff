@@ -10,11 +10,13 @@ import {
 } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { StatusCard } from "../components/StatusCard";
+import { useTheme, type Theme } from "../theme";
 
 export function SettingsPage() {
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const settings = useAsync(api.settings);
+  const [theme, setTheme] = useTheme();
   const models = useAsync(() => api.models("claude"));
   const [draft, setDraft] = useState<AppSettings>();
   const [saving, setSaving] = useState(false);
@@ -54,6 +56,17 @@ export function SettingsPage() {
       <header className="page-header">
         <h1>設定</h1>
       </header>
+
+      <section className="section">
+        <h2>表示</h2>
+        <div className="segmented theme-switch" role="radiogroup" aria-label="テーマ">
+          {(["dark", "light", "system"] as Theme[]).map((t) => (
+            <button key={t} role="radio" aria-checked={theme === t} className={theme === t ? "active" : ""} onClick={() => setTheme(t)}>
+              {{ dark: "ダーク", light: "ライト", system: "システムに合わせる" }[t]}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="section">
         <div className="section-head">

@@ -308,6 +308,9 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json(run, 201);
   });
 
+  // 全プロジェクトのチャット（⌘K の検索・移動用）
+  app.get("/api/runs", (c) => c.json(store.listRuns({ limit: Math.min(Number(c.req.query("limit") ?? 300), 1000) })));
+
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
     return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }) });

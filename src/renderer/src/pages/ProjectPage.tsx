@@ -1,30 +1,58 @@
+import { FolderOpen, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { PHASE_LABELS, PHASES, type Approval, type Project, type Run, type Task } from "../../../core/types";
+import {
+  ARTIFACT_KIND_LABELS,
+  PHASES,
+  type Approval,
+  type Artifact,
+  type Phase,
+  type Project,
+  type Run,
+  type Task,
+} from "../../../core/types";
 import { api } from "../api";
+import { Markdown } from "../components/Markdown";
+import { RunList } from "../components/RunList";
+import { BUSY_STATUSES } from "../components/RunStatus";
+import { SectionBadge } from "../components/SectionBadge";
+import { TaskList } from "../components/TaskList";
 import { WriteScopeEditor } from "../components/WriteScopeEditor";
 import { useServerEvent } from "../events";
-import { href, navigate } from "../router";
-import { SECTION_DESCRIPTIONS } from "../sections";
-import { RunList } from "./SectionPage";
+import { href, navigate, type ProjectTab } from "../router";
+import { REPORT_KINDS, SECTION_META } from "../sections";
 
 interface ProjectData {
   project: Project;
   tasks: Task[];
+  artifacts: Artifact[];
   runs: Run[];
   approvals: Approval[];
 }
 
-const BUSY = ["queued", "running", "waiting"];
+const TAB_LABELS: Record<ProjectTab, string> = {
+  chats: "チャット",
+  requirements: "要件定義書",
+  schedule: "スケジュール",
+  tasks: "タスク",
+  reports: "レポート",
+  settings: "設定",
+};
 
-/** プロジェクトの全体画面: 回答待ち・作業中のチャットと、セクションごとの状況 */
-export function ProjectPage({ id }: { id: number }) {
+/** プロジェクト画面: チャット一覧と、決まったこと（要件定義書・スケジュール・タスク・レポート）をタブで */
+export function ProjectPage({ id, tab }: { id: number; tab: ProjectTab }) {
   const [data, setData] = useState<ProjectData>();
   const [error, setError] = useState<string>();
 
   const load = useCallback(async () => {
     try {
-      const [project, tasks, runs, approvals] = await Promise.all([api.project(id), api.tasks(id), api.runs(id), api.approvals()]);
-      setData({ project, tasks, runs, approvals: approvals.filter((a) => a.project_id === id) });
+      const [project, tasks, artifacts, runs, approvals] = await Promise.all([
+        api.project(id),
+        api.tasks(id),
+        api.artifacts(id),
+        api.runs(id),
+        api.approvals(),
+      ]);
+      setData({ project, tasks, artifacts, runs, approvals: approvals.filter((a) => a.project_id === id) });
       setError(undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -41,6 +69,7 @@ export function ProjectPage({ id }: { id: number }) {
       (e.type === "project" && e.project.id === id) ||
       (e.type === "task" && e.task.project_id === id) ||
       (e.type === "task_deleted" && e.project_id === id) ||
+      (e.type === "artifact" && e.artifact.project_id === id) ||
       (e.type === "run" && e.run.project_id === id) ||
       (e.type === "approval" && e.approval.project_id === id) ||
       e.type === "approval_resolved";
@@ -49,81 +78,157 @@ export function ProjectPage({ id }: { id: number }) {
 
   if (error && !data) return <div className="page error">{error}</div>;
   if (!data) return <div className="page muted">読み込み中…</div>;
-  const { project, tasks, runs, approvals } = data;
-  // 全体画面にはチャットの中身を出さず、チャットへのリンクだけを並べる
-  const waitingRuns = runs.filter((r) => approvals.some((a) => a.run_id === r.id));
-  const workingRuns = runs.filter((r) => BUSY.includes(r.status) && !waitingRuns.includes(r));
+  const { project, tasks, artifacts, runs, approvals } = data;
+  const waiting = runs.filter((r) => approvals.some((a) => a.run_id === r.id)).length;
+  const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <h1>{project.name}</h1>
-        <p className="muted small path-line">
-          {window.kickoff ? (
-            <button className="link-button" onClick={() => void window.kickoff?.openPath(project.repo_path)}>
-              {project.repo_path}
-            </button>
-          ) : (
-            project.repo_path
-          )}
-        </p>
+    <div className="page page-wide">
+      <header className="page-header project-header">
+        <div className="project-title-row">
+          <h1>{project.name}</h1>
+          <div className="project-stats">
+            {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
+            {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
+          </div>
+          <span className="spacer" />
+          <a className="btn btn-primary" href={href({ name: "newChat", projectId: project.id })}>
+            <Plus size={15} /> 新しいチャット
+          </a>
+        </div>
+        <button
+          className="path-button"
+          disabled={!window.kickoff}
+          title={window.kickoff ? "Finder で開く" : undefined}
+          onClick={() => void window.kickoff?.openPath(project.repo_path)}
+        >
+          <FolderOpen size={13} /> {project.repo_path}
+        </button>
+        <nav className="tabs" role="tablist">
+          {(Object.keys(TAB_LABELS) as ProjectTab[]).map((t) => (
+            <a
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              className={`tab ${tab === t ? "active" : ""}`}
+              href={href({ name: "project", id: project.id, tab: t })}
+            >
+              {TAB_LABELS[t]}
+              {t === "tasks" && tasks.length > 0 && <span className="tab-count">{tasks.length}</span>}
+              {t === "chats" && runs.length > 0 && <span className="tab-count">{runs.length}</span>}
+            </a>
+          ))}
+        </nav>
       </header>
 
-      {waitingRuns.length > 0 && (
+      {tab === "chats" && <ChatsTab project={project} runs={runs} approvals={approvals} />}
+      {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
+      {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
+      {tab === "tasks" && (
         <section className="section">
-          <h2>回答待ちのチャット</h2>
-          <RunList projectId={project.id} runs={waitingRuns} approvals={approvals} showSection />
+          <TaskList projectId={project.id} tasks={tasks} phases={PHASES.filter((p) => p !== "schedule")} />
         </section>
       )}
+      {tab === "reports" && <ReportsTab artifacts={artifacts} />}
+      {tab === "settings" && <SettingsTab project={project} />}
+    </div>
+  );
+}
 
-      {workingRuns.length > 0 && (
-        <section className="section">
-          <h2>作業中のチャット</h2>
-          <RunList projectId={project.id} runs={workingRuns} approvals={approvals} showSection />
-        </section>
+function ChatsTab({ project, runs, approvals }: { project: Project; runs: Run[]; approvals: Approval[] }) {
+  const [filter, setFilter] = useState<Phase | "all">("all");
+  const visible = filter === "all" ? runs : runs.filter((r) => r.phase === filter);
+  return (
+    <section className="section">
+      <div className="filter-chips" role="group" aria-label="セクションで絞り込み">
+        <button className={`filter-chip ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
+          すべて <span className="chip-count">{runs.length}</span>
+        </button>
+        {PHASES.map((p) => {
+          const Icon = SECTION_META[p].icon;
+          return (
+            <button key={p} className={`filter-chip ${filter === p ? "active" : ""}`} onClick={() => setFilter(p)}>
+              <Icon size={13} className={`sec-icon sec-${p}`} aria-hidden /> {SECTION_META[p].label}
+              <span className="chip-count">{runs.filter((r) => r.phase === p).length}</span>
+            </button>
+          );
+        })}
+      </div>
+      <RunList projectId={project.id} runs={visible} approvals={approvals} />
+      {filter !== "all" && (
+        <a className="btn new-in-section" href={href({ name: "newChat", projectId: project.id, section: filter })}>
+          <Plus size={14} /> {SECTION_META[filter].label}のチャットを始める
+        </a>
       )}
+    </section>
+  );
+}
 
+function DocTab({ project, kind, artifacts }: { project: Project; kind: "requirements" | "schedule"; artifacts: Artifact[] }) {
+  const doc = artifacts.find((a) => a.kind === kind);
+  return (
+    <section className="section">
+      <div className="doc-toolbar">
+        <SectionBadge section={kind} />
+        {doc && (
+          <span className="muted small">
+            {doc.file_path && `${doc.file_path} ・ `}
+            {new Date(doc.created_at).toLocaleString("ja-JP")} 更新
+          </span>
+        )}
+        <span className="spacer" />
+        <a className="btn" href={href({ name: "newChat", projectId: project.id, section: kind })}>
+          <Plus size={14} /> {doc ? "チャットで見直す" : "チャットで作る"}
+        </a>
+      </div>
+      {doc ? (
+        <article className="doc-card">
+          <Markdown>{doc.content}</Markdown>
+        </article>
+      ) : (
+        <div className="empty">まだありません。{SECTION_META[kind].label}のチャットで AI と話すと、ここにまとまります。</div>
+      )}
+    </section>
+  );
+}
+
+function ReportsTab({ artifacts }: { artifacts: Artifact[] }) {
+  const reports = artifacts.filter((a) => REPORT_KINDS.includes(a.kind));
+  if (reports.length === 0) return <div className="empty">テストレポートやデプロイログはまだありません。</div>;
+  return (
+    <section className="section">
+      {reports.map((a) => (
+        <details key={a.id} className="report">
+          <summary>
+            <span className="badge">{ARTIFACT_KIND_LABELS[a.kind]}</span>
+            <span className="report-title">{a.title}</span>
+            <span className="muted small">{new Date(a.created_at).toLocaleString("ja-JP")}</span>
+          </summary>
+          <div className="doc-card">
+            <Markdown>{a.content}</Markdown>
+          </div>
+        </details>
+      ))}
+    </section>
+  );
+}
+
+function SettingsTab({ project }: { project: Project }) {
+  return (
+    <>
       <section className="section">
-        <h2>セクション</h2>
-        <div className="section-cards">
-          {PHASES.map((section) => {
-            const sectionRuns = runs.filter((r) => r.phase === section);
-            const sectionTasks = tasks.filter((t) => t.phase === section);
-            const done = sectionTasks.filter((t) => t.status === "done").length;
-            return (
-              <a key={section} className="section-card" href={href({ name: "section", projectId: project.id, section })}>
-                <div className="section-card-title">{PHASE_LABELS[section]}</div>
-                <div className="muted small">{SECTION_DESCRIPTIONS[section]}</div>
-                <div className="section-card-stats small">
-                  <span>チャット {sectionRuns.length}</span>
-                  {sectionTasks.length > 0 && (
-                    <span>
-                      タスク {done}/{sectionTasks.length}
-                    </span>
-                  )}
-                </div>
-              </a>
-            );
-          })}
-        </div>
+        <h2>書き込みできるフォルダ</h2>
+        <p className="muted small">
+          要件定義・スケジュールのチャットで AI が書き込めるフォルダです。ここ以外への書き込みと読み取り以外のコマンドは、権限モードに関係なく拒否されます。
+        </p>
+        <WriteScopeEditor project={project} />
       </section>
-
       {project.description.trim() && (
         <section className="section">
           <h2>概要・アイデア</h2>
           <p className="prewrap">{project.description}</p>
         </section>
       )}
-
-      <section className="section" id="settings">
-        <h2>プロジェクト設定</h2>
-        <h3 className="subheading">書き込みできるフォルダ</h3>
-        <p className="muted small">
-          要件定義とスケジュールのチャットで、AI がファイルを書き込めるフォルダです。ここ以外への書き込みと、読み取り以外のコマンドは、権限モードに関係なく拒否されます。
-        </p>
-        <WriteScopeEditor project={project} />
-      </section>
-
       <section className="section danger-zone">
         <button
           className="btn"
@@ -136,6 +241,6 @@ export function ProjectPage({ id }: { id: number }) {
           Kickoff から外す
         </button>
       </section>
-    </div>
+    </>
   );
 }

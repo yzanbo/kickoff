@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
+import { ArrowUp, Paperclip, Square } from "lucide-react";
+import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { Attachment } from "../../../core/types";
 import { api } from "../api";
 import { AttachmentChip } from "./AttachmentChip";
@@ -11,6 +12,8 @@ interface Props {
   initialText?: string;
   autoFocus?: boolean;
   busy?: boolean;
+  /** モデル選択の前に置く追加の選択（新しいチャットのセクションなど） */
+  leading?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
   onStop?: () => void;
 }
@@ -24,7 +27,7 @@ interface PendingFile {
 }
 
 /** チャットの入力欄（⌘+Enter で送信。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付） */
-export function Composer({ options, placeholder, initialText, autoFocus, busy, onSend, onStop }: Props) {
+export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, onSend, onStop }: Props) {
   const [text, setText] = useState(initialText ?? "");
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [sending, setSending] = useState(false);
@@ -148,7 +151,7 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, o
             aria-label="ファイルを添付"
             onClick={() => inputRef.current?.click()}
           >
-            📎
+            <Paperclip size={16} />
           </button>
           <input
             ref={inputRef}
@@ -160,15 +163,16 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, o
               e.target.value = "";
             }}
           />
+          {leading}
           <RunOptionsBar state={options} />
         </div>
         {busy && onStop ? (
           <button className="send-button stop" title="中断" aria-label="中断" onClick={onStop}>
-            ■
+            <Square size={12} fill="currentColor" />
           </button>
         ) : (
           <button className="send-button" title="送信（⌘+Enter）" aria-label="送信" disabled={!canSend} onClick={() => void send()}>
-            ↑
+            <ArrowUp size={17} strokeWidth={2.5} />
           </button>
         )}
       </div>

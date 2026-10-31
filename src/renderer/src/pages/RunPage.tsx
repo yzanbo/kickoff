@@ -1,36 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { PHASE_LABELS, type Approval, type Attachment, type Run, type RunEvent, type RunStatus } from "../../../core/types";
+import { ChevronRight, Pencil, Wrench } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { Approval, Attachment, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
 import { ApprovalCard, describeToolInput } from "../components/ApprovalCard";
 import { AttachmentChip } from "../components/AttachmentChip";
 import { Composer } from "../components/Composer";
 import { Markdown } from "../components/Markdown";
 import { useRunOptions } from "../components/RunOptionsBar";
+import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
+import { SectionBadge } from "../components/SectionBadge";
 import { useServerEvent } from "../events";
 import { href } from "../router";
 
-export const RUN_STATUS_LABELS: Record<RunStatus, string> = {
-  queued: "待機中",
-  running: "作業中",
-  waiting: "回答待ち",
-  completed: "完了",
-  failed: "失敗",
-  cancelled: "中断",
-};
-
-const BUSY: RunStatus[] = ["queued", "running", "waiting"];
-
-/** エージェントとの会話（1 つの実行） */
+/** エージェントとのチャット（1 つの実行） */
 export function RunPage({ projectId, runId }: { projectId: number; runId: number }) {
   const [run, setRun] = useState<Run>();
+  const [project, setProject] = useState<Project>();
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
+  // 生成中の返答（確定すると text イベントとして届くので、そこで消す）
+  const [live, setLive] = useState("");
   const [error, setError] = useState<string>();
-  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setRun(undefined);
     setEvents([]);
+    setLive("");
     api
       .run(runId)
       .then((d) => {
@@ -39,13 +34,18 @@ export function RunPage({ projectId, runId }: { projectId: number; runId: number
         setApprovals(d.approvals);
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
-  }, [runId]);
+    api.project(projectId).then(setProject).catch(() => {});
+  }, [runId, projectId]);
 
   useServerEvent((e) => {
-    if (e.type === "run_event" && e.event.run_id === runId) {
+    if (e.type === "run_delta" && e.run_id === runId) {
+      setLive((prev) => prev + e.text);
+    } else if (e.type === "run_event" && e.event.run_id === runId) {
       setEvents((prev) => (prev.some((x) => x.id === e.event.id) ? prev : [...prev, e.event]));
+      if (e.event.type !== "user") setLive("");
     } else if (e.type === "run" && e.run.id === runId) {
       setRun(e.run);
+      if (!BUSY_STATUSES.includes(e.run.status)) setLive("");
     } else if (e.type === "approval" && e.approval.run_id === runId) {
       setApprovals((prev) => [...prev, e.approval]);
     } else if (e.type === "approval_resolved" && e.run_id === runId) {
@@ -53,46 +53,49 @@ export function RunPage({ projectId, runId }: { projectId: number; runId: number
     }
   });
 
-  // 新しい発言が来たら下までスクロールする
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [events.length, approvals.length]);
-
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
-
-  return <RunView run={run} events={events} approvals={approvals} projectId={projectId} bottomRef={bottomRef} />;
+  return <RunView run={run} project={project} events={events} approvals={approvals} live={live} />;
 }
 
 function RunView({
   run,
+  project,
   events,
   approvals,
-  projectId,
-  bottomRef,
+  live,
 }: {
   run: Run;
+  project?: Project;
   events: RunEvent[];
   approvals: Approval[];
-  projectId: number;
-  bottomRef: React.RefObject<HTMLDivElement | null>;
+  live: string;
 }) {
-  const options = useRunOptions({ model: run.model, effort: run.effort, permission_mode: run.permission_mode });
-  const busy = BUSY.includes(run.status);
-  const results = useMemo(() => {
-    const map = new Map<string, RunEvent>();
-    for (const e of events) if (e.type === "tool_result") map.set((e.data as { tool_use_id: string }).tool_use_id, e);
-    return map;
-  }, [events]);
+  const options = useRunOptions({
+    model: run.model,
+    effort: run.effort,
+    permission_mode: run.permission_mode,
+    fast_mode: Boolean(run.fast_mode),
+  });
+  const busy = BUSY_STATUSES.includes(run.status);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const stickToBottom = useRef(true);
+  const items = useMemo(() => groupEvents(events), [events]);
+  const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
+  const waiting = approvals.length > 0;
+
+  // 一番下を見ているときだけ、新しい発言に合わせてスクロールする
+  useEffect(() => {
+    const el = timelineRef.current;
+    if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
+  }, [items.length, approvals.length, live]);
 
   return (
     <div className="run-page">
       <header className="run-header">
-        <a className="muted small" href={href({ name: "section", projectId, section: run.phase })}>
-          ← {PHASE_LABELS[run.phase]}
-        </a>
         <div className="run-title-row">
-          <h1>{run.title || "チャット"}</h1>
+          <SectionBadge section={run.phase} />
+          <h1 title={run.title}>{run.title || "チャット"}</h1>
           <button
             className="icon-button"
             title="名前を変更"
@@ -102,36 +105,67 @@ function RunView({
               if (title && title !== run.title) await api.renameRun(run.id, title);
             }}
           >
-            ✎
+            <Pencil size={13} />
           </button>
-          <span className={`status-chip status-${run.status}`}>{RUN_STATUS_LABELS[run.status]}</span>
+          <span className="spacer" />
+          <span className={`run-state state-${waiting ? "waiting" : run.status}`}>
+            <RunStatusIcon run={run} waiting={waiting} />
+            {RUN_STATUS_LABELS[waiting ? "waiting" : run.status]}
+          </span>
         </div>
-        <div className="muted small">
-          {run.num_turns > 0 && `${run.num_turns} ターン`}
-          {run.cost_usd > 0 && ` ・ API 換算 $${run.cost_usd.toFixed(2)}`}
+        <div className="run-sub muted small">
+          {project && <a href={href({ name: "project", id: project.id, tab: "chats" })}>{project.name}</a>}
+          {run.num_turns > 0 && <span>{run.num_turns} ターン</span>}
+          {run.cost_usd > 0 && (
+            <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${run.cost_usd.toFixed(2)}</span>
+          )}
         </div>
       </header>
 
-      <div className="timeline">
-        {events.map((e) => (
-          <EventItem key={e.id} event={e} result={e.type === "tool_use" ? results.get((e.data as { id: string }).id) : undefined} />
-        ))}
-        {approvals.map((a) => (
-          <ApprovalCard key={a.id} approval={a} />
-        ))}
-        {busy && approvals.length === 0 && (
-          <div className="working">
-            <span className="spinner" aria-hidden /> {run.status === "queued" ? "順番を待っています…" : "作業中…"}
-          </div>
-        )}
-        <div ref={bottomRef} />
+      <div
+        className="timeline"
+        ref={timelineRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        }}
+      >
+        <div className="timeline-inner">
+          {items.map((item, i) =>
+            item.kind === "tools" ? (
+              <ToolGroup key={item.key} tools={item.tools} rel={rel} active={busy && i === items.length - 1} />
+            ) : (
+              <EventItem key={item.key} event={item.event} />
+            ),
+          )}
+          {live && (
+            <div className="assistant live">
+              <Markdown>{live}</Markdown>
+            </div>
+          )}
+          {approvals.map((a) => (
+            <ApprovalCard key={a.id} approval={a} />
+          ))}
+          {busy && !waiting && !live && (
+            <div className="working">
+              <span className="dots" aria-hidden>
+                <span />
+                <span />
+                <span />
+              </span>
+              {run.status === "queued" ? "順番を待っています" : "考えています"}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="run-composer">
         <Composer
           options={options}
           busy={busy}
+          placeholder={busy ? "エージェントが作業中です…" : "続けて指示する（⌘+Enter で送信）"}
           onSend={async (text, attachments) => {
+            stickToBottom.current = true;
             await api.sendMessage(run.id, text, options.options, attachments);
           }}
           onStop={() => void api.cancelRun(run.id)}
@@ -141,7 +175,142 @@ function RunView({
   );
 }
 
-function EventItem({ event, result }: { event: RunEvent; result?: RunEvent }) {
+// ---- タイムラインの組み立て ----
+
+interface ToolCall {
+  use: RunEvent;
+  result?: RunEvent;
+}
+
+type TimelineItem = { kind: "event"; key: string; event: RunEvent } | { kind: "tools"; key: string; tools: ToolCall[] };
+
+/** 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる） */
+function groupEvents(events: RunEvent[]): TimelineItem[] {
+  const items: TimelineItem[] = [];
+  const byId = new Map<string, ToolCall>();
+  for (const e of events) {
+    if (e.type === "tool_use") {
+      const call: ToolCall = { use: e };
+      byId.set((e.data as { id: string }).id, call);
+      const last = items[items.length - 1];
+      if (last?.kind === "tools") last.tools.push(call);
+      else items.push({ kind: "tools", key: `t${e.id}`, tools: [call] });
+    } else if (e.type === "tool_result") {
+      const call = byId.get((e.data as { tool_use_id: string }).tool_use_id);
+      if (call) call.result = e;
+    } else if (e.type === "init" || e.type === "approval" || e.type === "thinking") {
+      // 表示しない（thinking は既定で中身が空）
+    } else {
+      items.push({ kind: "event", key: `e${e.id}`, event: e });
+    }
+  }
+  return items;
+}
+
+const TOOL_LABELS: Record<string, string> = {
+  Read: "読む",
+  Write: "作成",
+  Edit: "編集",
+  MultiEdit: "編集",
+  NotebookEdit: "編集",
+  Bash: "コマンド",
+  Grep: "検索",
+  Glob: "ファイル検索",
+  WebSearch: "Web 検索",
+  WebFetch: "Web 取得",
+  TodoWrite: "ToDo",
+  AskUserQuestion: "質問",
+  Agent: "サブエージェント",
+  Task: "サブエージェント",
+  ToolSearch: "ツール検索",
+};
+
+function toolLabel(name: string): string {
+  if (name.startsWith("mcp__kickoff__")) return "Kickoff";
+  return TOOL_LABELS[name] ?? name;
+}
+
+/** 表示用にリポジトリの絶対パスを相対パスにする */
+function relativize(text: string, repo: string): string {
+  return text.split(`${repo}/`).join("").split(repo).join(".");
+}
+
+/** ツールのまとまり（閉じた状態では「読む ×2・編集」のように要約する） */
+function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
+  const counts = new Map<string, number>();
+  for (const t of tools) {
+    const label = toolLabel((t.use.data as { name: string }).name);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  const summary = [...counts].map(([label, n]) => (n > 1 ? `${label} ×${n}` : label)).join("・");
+  const failed = tools.filter((t) => (t.result?.data as { is_error?: boolean } | undefined)?.is_error).length;
+  const last = tools[tools.length - 1];
+  const lastData = last.use.data as { name: string; input?: Record<string, unknown> };
+
+  return (
+    <details className={`tool-group ${failed ? "has-error" : ""}`}>
+      <summary>
+        <ChevronRight size={14} className="tool-chevron" />
+        <Wrench size={13} className="muted" />
+        <span className="tool-summary">{summary}</span>
+        {active && !last.result ? (
+          <span className="tool-current">{rel(describeToolInput(lastData.name, lastData.input ?? {}))}</span>
+        ) : (
+          failed > 0 && <span className="tool-failed">{failed} 件失敗</span>
+        )}
+      </summary>
+      <div className="tool-calls">
+        {tools.map((t) => (
+          <ToolItem key={t.use.id} call={t} rel={rel} />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string }) {
+  const { name, input = {} } = call.use.data as { name: string; input?: Record<string, unknown> };
+  const r = call.result?.data as { content?: string; is_error?: boolean } | undefined;
+  let detail: ReactNode = null;
+  if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
+    detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
+  } else if (name === "Write" && typeof input.content === "string") {
+    detail = <Diff before="" after={input.content} maxLines={40} />;
+  }
+  return (
+    <details className={`tool-call ${r?.is_error ? "error" : ""}`}>
+      <summary>
+        <span className="tool-name">{toolLabel(name)}</span>
+        <span className="tool-arg">{rel(describeToolInput(name, input))}</span>
+        {!call.result && <span className="spinner small" aria-label="実行中" />}
+      </summary>
+      {detail}
+      {r?.content && (r.is_error || !detail) && <pre className={`tool-output ${r.is_error ? "error" : ""}`}>{rel(r.content)}</pre>}
+    </details>
+  );
+}
+
+/** 編集内容の表示（削除した行を赤、追加した行を緑で） */
+function Diff({ before, after, maxLines = 200 }: { before: string; after: string; maxLines?: number }) {
+  const lines = [
+    ...(before ? before.split("\n").map((l) => ["-", l] as const) : []),
+    ...after.split("\n").map((l) => ["+", l] as const),
+  ];
+  const shown = lines.slice(0, maxLines);
+  return (
+    <pre className="diff">
+      {shown.map(([sign, line], i) => (
+        <span key={i} className={sign === "+" ? "diff-add" : "diff-del"}>
+          {sign} {line}
+          {"\n"}
+        </span>
+      ))}
+      {lines.length > shown.length && <span className="muted">… ほか {lines.length - shown.length} 行</span>}
+    </pre>
+  );
+}
+
+function EventItem({ event }: { event: RunEvent }) {
   const data = event.data as Record<string, unknown>;
   switch (event.type) {
     case "user": {
@@ -161,57 +330,31 @@ function EventItem({ event, result }: { event: RunEvent; result?: RunEvent }) {
     }
     case "text":
       return (
-        <div className={`bubble assistant ${data.sub ? "sub" : ""}`}>
+        <div className={`assistant ${data.sub ? "sub" : ""}`}>
           <Markdown>{String(data.text)}</Markdown>
         </div>
       );
-    case "thinking":
-      return (
-        <details className="thinking">
-          <summary>考えた内容</summary>
-          <div className="prewrap small">{String(data.text)}</div>
-        </details>
-      );
-    case "tool_use":
-      return <ToolItem name={String(data.name)} input={(data.input ?? {}) as Record<string, unknown>} result={result} />;
     case "approval_resolved":
       return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
     case "result":
+      if (data.status === "completed") return null;
       return (
-        <div className={`event-result ${data.status === "completed" ? "" : "error"}`}>
-          {data.status === "completed" ? "✓ 完了" : data.status === "cancelled" ? "■ 中断しました" : `✕ 失敗: ${String(data.text ?? "")}`}
+        <div className={`event-note ${data.status === "failed" ? "error" : ""}`}>
+          {data.status === "cancelled" ? "中断しました" : `失敗しました: ${String(data.text ?? "")}`}
         </div>
       );
     case "error":
-      return <div className="event-result error">✕ {String(data.message)}</div>;
+      return <div className="event-note error">{String(data.message)}</div>;
     case "notice":
       return <div className="event-note">{String(data.message)}</div>;
     default:
-      // init・approval・tool_result は他の表示に含める
       return null;
   }
 }
 
 const RESOLVED_LABELS: Record<string, string> = {
-  allow: "✓ 許可しました",
-  allow_always: "✓ 常に許可しました",
-  deny: "✕ 拒否しました",
-  answer: "✓ 質問に回答しました",
+  allow: "許可しました",
+  allow_always: "常に許可しました",
+  deny: "拒否しました",
+  answer: "質問に回答しました",
 };
-
-/** ツールの実行（1 行で表示し、開くと入力と結果が見える） */
-function ToolItem({ name, input, result }: { name: string; input: Record<string, unknown>; result?: RunEvent }) {
-  const r = result?.data as { content?: string; is_error?: boolean } | undefined;
-  const label = name.replace(/^mcp__kickoff__/, "Kickoff: ");
-  return (
-    <details className={`tool ${r?.is_error ? "tool-error" : ""}`}>
-      <summary>
-        <span className="tool-name">{label}</span>
-        <span className="tool-arg">{describeToolInput(name, input)}</span>
-        {!result && <span className="spinner small" aria-label="実行中" />}
-      </summary>
-      <pre className="tool-detail">{JSON.stringify(input, null, 2)}</pre>
-      {r?.content && <pre className="tool-detail">{r.content}</pre>}
-    </details>
-  );
-}
