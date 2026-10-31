@@ -1,5 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import type { AppSettings, BusEvent, GitHubStatus, PlanUsage, ProviderStatus } from "../../core/types";
+import type {
+  AppSettings,
+  BusEvent,
+  GitHubStatus,
+  PlanUsage,
+  Project,
+  ProjectSummary,
+  ProviderStatus,
+} from "../../core/types";
+
+export interface NewProjectInput {
+  name: string;
+  idea: string;
+  parent_dir: string;
+  folder_name: string;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -31,6 +46,10 @@ export const api = {
   github: () => request<GitHubStatus>("GET", "/api/github"),
   usage: () => request<PlanUsage>("GET", "/api/usage"),
   refreshUsage: () => request<PlanUsage>("POST", "/api/usage/refresh"),
+  projects: () => request<ProjectSummary[]>("GET", "/api/projects"),
+  project: (id: number) => request<Project>("GET", `/api/projects/${id}`),
+  createProject: (input: NewProjectInput) => request<Project>("POST", "/api/projects", input),
+  deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),
 };
 
 export type ConnectionState = "connecting" | "open" | "closed";

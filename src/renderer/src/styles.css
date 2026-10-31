@@ -331,6 +331,254 @@ select:focus {
   background: color-mix(in srgb, var(--accent) 85%, black);
 }
 
+/* ---- プロジェクト一覧（サイドバー） ---- */
+
+.sidebar-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 4px;
+}
+
+.icon-button {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.sidebar-new {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-new:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.project-list {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-item {
+  display: grid;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--text);
+}
+
+.project-item:hover,
+.project-item.active {
+  background: var(--bg-hover);
+}
+
+.project-name {
+  overflow: hidden;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.project-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pill {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+/* ---- プロジェクト画面 ---- */
+
+.path-line {
+  margin: 4px 0 0;
+  -webkit-app-region: no-drag;
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.stepper {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: var(--muted);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+}
+
+.step-index {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-hover);
+}
+
+.step-current {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.step-current .step-index {
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+.step-done .step-index {
+  color: var(--accent-text);
+  background: var(--ok);
+}
+
+.next-card {
+  margin-bottom: 32px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.next-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.next-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.next-card p {
+  margin: 4px 0 0;
+}
+
+.prewrap {
+  white-space: pre-wrap;
+}
+
+.danger-zone {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.project-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.project-card {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.project-card:hover {
+  border-color: var(--accent);
+}
+
+.project-card-name {
+  font-weight: 600;
+}
+
+/* ---- ダイアログ ---- */
+
+.dialog {
+  width: min(560px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.dialog::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.dialog-body {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.dialog-body h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+textarea {
+  resize: vertical;
+}
+
 /* ---- 使用枠メーター ---- */
 
 .meter {
@@ -465,5 +713,13 @@ select:focus {
 
   .sidebar-usage {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .stepper {
+    flex-wrap: wrap;
+  }
+
+  .step {
+    flex: 1 1 40%;
   }
 }
