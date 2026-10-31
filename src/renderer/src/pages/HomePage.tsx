@@ -1,4 +1,5 @@
-import type { ProjectSummary } from "../../../core/types";
+import { FolderGit2, Plus } from "lucide-react";
+import type { Approval, ProjectSummary } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { StatusCard } from "../components/StatusCard";
 import { UsagePanel } from "../components/UsagePanel";
@@ -8,65 +9,68 @@ import type { usePlanUsage } from "../usage";
 interface Props {
   planUsage: ReturnType<typeof usePlanUsage>;
   projects: ProjectSummary[];
+  approvals: Approval[];
   onNewProject: () => void;
 }
 
-export function HomePage({ planUsage, projects, onNewProject }: Props) {
+/** ホーム: プロジェクト一覧・使用状況・準備状況 */
+export function HomePage({ planUsage, projects, approvals, onNewProject }: Props) {
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
+  const notReady = (!providers.loading && !claude?.loggedIn) || (!github.loading && !github.data?.loggedIn);
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <h1>ようこそ</h1>
-        <p className="muted">アイデアからデプロイまで、AI と一緒に進めるための作業場です。</p>
+    <div className="page page-wide">
+      <header className="page-header home-header">
+        <h1>プロジェクト</h1>
+        <span className="spacer" />
+        <button className="btn btn-primary" onClick={onNewProject}>
+          <Plus size={15} /> 新しいプロジェクト
+        </button>
       </header>
 
-      <section className="section">
-        <div className="section-head">
-          <h2>プロジェクト</h2>
+      {projects.length === 0 ? (
+        <div className="empty empty-hero">
+          <FolderGit2 size={28} />
+          <p>アイデアから始めましょう。新しいフォルダを作るか、既存のフォルダを取り込めます。</p>
           <button className="btn btn-primary" onClick={onNewProject}>
-            ＋ 新しいプロジェクト
+            <Plus size={15} /> 新しいプロジェクト
           </button>
         </div>
-        {projects.length === 0 ? (
-          <div className="empty">まだプロジェクトがありません。アイデアから始めましょう。</div>
-        ) : (
-          <div className="project-cards">
-            {projects.map((p) => (
-              <a key={p.id} className="project-card" href={href({ name: "project", id: p.id })}>
+      ) : (
+        <div className="project-cards">
+          {projects.map((p) => {
+            const waiting = approvals.filter((a) => a.project_id === p.id).length;
+            const tasks = Object.values(p.task_counts).reduce((a, b) => a + b, 0);
+            return (
+              <a key={p.id} className="project-card" href={href({ name: "project", id: p.id, tab: "chats" })}>
                 <div className="project-card-name">{p.name}</div>
-                <div className="muted small">
-                  {p.active_runs > 0 ? `作業中のチャット ${p.active_runs}` : `タスク ${Object.values(p.task_counts).reduce((a, b) => a + b, 0)} 件`}
+                <div className="project-card-desc muted small">{p.description.split("\n")[0] || p.repo_path}</div>
+                <div className="project-card-stats small">
+                  {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
+                  {p.active_runs - waiting > 0 && <span className="stat stat-working">作業中 {p.active_runs - waiting}</span>}
+                  <span className="muted">
+                    タスク {p.task_counts.done}/{tasks}
+                  </span>
                 </div>
               </a>
-            ))}
-          </div>
-        )}
-      </section>
+            );
+          })}
+        </div>
+      )}
 
       <UsagePanel planUsage={planUsage} />
 
-      <section className="section">
-        <h2>準備状況</h2>
-        <div className="status-grid">
-          <StatusCard
-            title="Claude Code"
-            ok={providers.loading ? undefined : Boolean(claude?.loggedIn)}
-            detail={providers.error ?? claude?.detail ?? "確認中…"}
-          />
-          <StatusCard
-            title="GitHub CLI（gh）"
-            ok={github.loading ? undefined : Boolean(github.data?.loggedIn)}
-            detail={github.error ?? github.data?.detail ?? "確認中…"}
-          />
-        </div>
-        <p className="muted small">
-          詳細は <a href={href({ name: "settings" })}>設定</a> で確認できます。
-        </p>
-      </section>
-
+      {notReady && (
+        <section className="section">
+          <h2>準備が必要です</h2>
+          <div className="status-grid">
+            <StatusCard title="Claude Code" ok={providers.loading ? undefined : Boolean(claude?.loggedIn)} detail={providers.error ?? claude?.detail ?? "確認中…"} />
+            <StatusCard title="GitHub CLI（gh）" ok={github.loading ? undefined : Boolean(github.data?.loggedIn)} detail={github.error ?? github.data?.detail ?? "確認中…"} />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

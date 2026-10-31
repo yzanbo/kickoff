@@ -9,6 +9,7 @@ import {
   type TaskStatus,
 } from "../../../core/types";
 import { api, type TaskInput } from "../api";
+import { SectionBadge } from "./SectionBadge";
 
 const PRIORITY_LABELS: Record<number, string> = { 1: "高", 2: "中", 3: "低" };
 
@@ -23,8 +24,8 @@ export function TaskList({ projectId, tasks, phases = PHASES }: { projectId: num
         return (
           <div key={phase} className="task-group">
             <div className="task-group-head">
-              <span>
-                {PHASE_LABELS[phase]} <span className="muted small">{items.length}</span>
+              <span className="task-group-title">
+                <SectionBadge section={phase} /> <span className="muted small">{items.length}</span>
               </span>
               <button className="icon-button" title="タスクを追加" aria-label={`${PHASE_LABELS[phase]}にタスクを追加`} onClick={() => setAdding(phase)}>
                 ＋

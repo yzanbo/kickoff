@@ -1,18 +1,22 @@
+import { Plus, Search, Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Approval, BusEvent, ProjectSummary } from "../../core/types";
 import { api, useServerEvents } from "./api";
+import { CommandPalette } from "./components/CommandPalette";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { ProjectNav } from "./components/ProjectNav";
-import { publishServerEvent } from "./events";
 import { UsageMeter } from "./components/UsageMeter";
+import { publishServerEvent } from "./events";
 import { HomePage } from "./pages/HomePage";
-import { ProjectPage } from "./pages/ProjectPage";
 import { NewChatPage } from "./pages/NewChatPage";
+import { ProjectPage } from "./pages/ProjectPage";
 import { RunPage } from "./pages/RunPage";
-import { SectionPage } from "./pages/SectionPage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { href, navigate, useRoute } from "./router";
+import { href, navigate, routeProjectId, useRoute } from "./router";
+import { applyTheme, loadTheme } from "./theme";
 import { FIVE_HOUR_IDLE, usePlanUsage } from "./usage";
+
+applyTheme(loadTheme());
 
 export function App() {
   const route = useRoute();
@@ -20,6 +24,7 @@ export function App() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [creating, setCreating] = useState(false);
+  const [palette, setPalette] = useState(false);
   const [projectsDir, setProjectsDir] = useState("~/Documents");
 
   const loadProjects = useCallback(() => {
@@ -54,6 +59,25 @@ export function App() {
         break;
     }
   });
+
+  // ショートカット: ⌘K 検索・移動 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      if (e.key === "k") {
+        e.preventDefault();
+        setPalette(true);
+      } else if (e.key === "n") {
+        e.preventDefault();
+        const projectId = routeProjectId(route);
+        if (projectId !== undefined) navigate({ name: "newChat", projectId });
+        else setCreating(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [route]);
+
   const { usage } = planUsage;
 
   return (
@@ -63,17 +87,22 @@ export function App() {
           <a className="brand" href={href({ name: "home" })}>
             Kickoff
           </a>
+          <button className="search-button" onClick={() => setPalette(true)} title="検索（⌘K）">
+            <Search size={14} />
+            <span>検索</span>
+            <kbd>⌘K</kbd>
+          </button>
         </div>
         <nav className="sidebar-section">
           <div className="sidebar-label-row">
             <span className="sidebar-label">プロジェクト</span>
             <button className="icon-button" title="新しいプロジェクト" aria-label="新しいプロジェクト" onClick={() => setCreating(true)}>
-              ＋
+              <Plus size={15} />
             </button>
           </div>
           {projects.length === 0 ? (
             <button className="sidebar-new" onClick={() => setCreating(true)}>
-              ＋ 新しいプロジェクト
+              <Plus size={14} /> 新しいプロジェクト
             </button>
           ) : (
             <ProjectNav projects={projects} approvals={approvals} route={route} />
@@ -81,7 +110,7 @@ export function App() {
         </nav>
         <div className="sidebar-footer">
           <a className={`nav-item ${route.name === "settings" ? "active" : ""}`} href={href({ name: "settings" })}>
-            設定
+            <Settings size={15} /> 設定
           </a>
         </div>
       </aside>
@@ -89,15 +118,13 @@ export function App() {
         {route.name === "settings" ? (
           <SettingsPage />
         ) : route.name === "run" ? (
-          <RunPage projectId={route.projectId} runId={route.runId} />
+          <RunPage key={route.runId} projectId={route.projectId} runId={route.runId} />
         ) : route.name === "newChat" ? (
-          <NewChatPage projectId={route.projectId} section={route.section} />
-        ) : route.name === "section" ? (
-          <SectionPage projectId={route.projectId} section={route.section} />
+          <NewChatPage key={`${route.projectId}:${route.section ?? ""}`} projectId={route.projectId} section={route.section} />
         ) : route.name === "project" ? (
-          <ProjectPage id={route.id} />
+          <ProjectPage id={route.id} tab={route.tab} />
         ) : (
-          <HomePage planUsage={planUsage} projects={projects} onNewProject={() => setCreating(true)} />
+          <HomePage planUsage={planUsage} projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
         )}
       </main>
       <footer className="app-footer">
@@ -121,10 +148,11 @@ export function App() {
           onCreated={(project) => {
             setCreating(false);
             loadProjects();
-            navigate({ name: "project", id: project.id });
+            navigate({ name: "newChat", projectId: project.id, section: "requirements" });
           }}
         />
       )}
+      {palette && <CommandPalette projects={projects} onClose={() => setPalette(false)} />}
     </div>
   );
 }

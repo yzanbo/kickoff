@@ -102,6 +102,7 @@ export const api = {
 
   // 実行（エージェントとの会話）
   runs: (projectId: number) => request<Run[]>("GET", `/api/projects/${projectId}/runs`),
+  allRuns: () => request<Run[]>("GET", "/api/runs?limit=300"),
   startRun: (
     projectId: number,
     input: { phase: Phase; prompt: string; task_id?: number; options: RunOptions; attachments?: Attachment[] },

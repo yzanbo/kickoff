@@ -1,29 +1,39 @@
 import { useEffect, useState } from "react";
 import { PHASES, type Phase } from "../../core/types";
 
+export const PROJECT_TABS = ["chats", "requirements", "schedule", "tasks", "reports", "settings"] as const;
+export type ProjectTab = (typeof PROJECT_TABS)[number];
+
 export type Route =
   | { name: "home" }
   | { name: "settings" }
-  | { name: "project"; id: number }
-  | { name: "section"; projectId: number; section: Phase }
-  | { name: "newChat"; projectId: number; section: Phase }
+  | { name: "project"; id: number; tab: ProjectTab }
+  | { name: "newChat"; projectId: number; section?: Phase }
   | { name: "run"; projectId: number; runId: number };
 
 function parse(hash: string): Route {
-  const path = hash.replace(/^#/, "") || "/";
+  const [path, query = ""] = (hash.replace(/^#/, "") || "/").split("?");
+  const params = new URLSearchParams(query);
   if (path === "/settings") return { name: "settings" };
+
   const run = path.match(/^\/projects\/(\d+)\/runs\/(\d+)$/);
   if (run) return { name: "run", projectId: Number(run[1]), runId: Number(run[2]) };
-  const newChat = path.match(/^\/projects\/(\d+)\/sections\/([a-z]+)\/new$/);
-  if (newChat && (PHASES as readonly string[]).includes(newChat[2])) {
-    return { name: "newChat", projectId: Number(newChat[1]), section: newChat[2] as Phase };
+
+  const newChat = path.match(/^\/projects\/(\d+)\/new$/);
+  if (newChat) {
+    const section = params.get("section");
+    return {
+      name: "newChat",
+      projectId: Number(newChat[1]),
+      section: section && (PHASES as readonly string[]).includes(section) ? (section as Phase) : undefined,
+    };
   }
-  const section = path.match(/^\/projects\/(\d+)\/sections\/([a-z]+)$/);
-  if (section && (PHASES as readonly string[]).includes(section[2])) {
-    return { name: "section", projectId: Number(section[1]), section: section[2] as Phase };
+
+  const project = path.match(/^\/projects\/(\d+)(?:\/([a-z]+))?$/);
+  if (project) {
+    const tab = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "chats";
+    return { name: "project", id: Number(project[1]), tab };
   }
-  const project = path.match(/^\/projects\/(\d+)$/);
-  if (project) return { name: "project", id: Number(project[1]) };
   return { name: "home" };
 }
 
@@ -43,11 +53,9 @@ export function href(route: Route): string {
     case "settings":
       return "#/settings";
     case "project":
-      return `#/projects/${route.id}`;
-    case "section":
-      return `#/projects/${route.projectId}/sections/${route.section}`;
+      return route.tab === "chats" ? `#/projects/${route.id}` : `#/projects/${route.id}/${route.tab}`;
     case "newChat":
-      return `#/projects/${route.projectId}/sections/${route.section}/new`;
+      return `#/projects/${route.projectId}/new${route.section ? `?section=${route.section}` : ""}`;
     case "run":
       return `#/projects/${route.projectId}/runs/${route.runId}`;
     default:
@@ -65,9 +73,9 @@ export function navigate(route: Route, options: { replace?: boolean } = {}) {
   }
 }
 
-/** 画面がどのプロジェクトに属するか（サイドバーの強調表示用） */
+/** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */
 export function routeProjectId(route: Route): number | undefined {
   if (route.name === "project") return route.id;
-  if (route.name === "section" || route.name === "newChat" || route.name === "run") return route.projectId;
+  if (route.name === "newChat" || route.name === "run") return route.projectId;
   return undefined;
 }

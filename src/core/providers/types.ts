@@ -28,6 +28,8 @@ export interface AgentProvider {
   usage?(): Promise<PlanUsage>;
   /** チャット欄で選べるモデルの一覧 */
   models?(): Promise<ModelOption[]>;
+  /** 最初のメッセージから短いチャット名を作る */
+  title?(text: string): Promise<string>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
   run(params: ProviderRunParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderRunResult>;
 }
@@ -66,6 +68,8 @@ export type AgentEvent = Exclude<RunEventData, { type: "user" | "approval" | "ap
 
 export interface ProviderCallbacks {
   emit(event: AgentEvent): void;
+  /** 返答の文字を生成されたそばから渡す（画面のストリーミング表示用。保存しない） */
+  stream?(text: string): void;
   requestApproval(request: ApprovalRequest, signal: AbortSignal): Promise<ApprovalDecision>;
 }
 

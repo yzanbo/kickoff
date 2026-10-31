@@ -42,9 +42,10 @@ function setup(script: Script, uploads?: UploadStore) {
     providers: { claude: provider, codex: provider } as Record<ProviderId, AgentProvider>,
     usage,
     uploads,
+    bus,
   });
   const project = store.createProject({ name: "p", repo_path: "/tmp", provider: "claude" });
-  return { store, approvals, runner, provider, project };
+  return { store, approvals, runner, provider, project, bus };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 10));
@@ -97,6 +98,27 @@ test("添付ファイルはパスがメッセージに書き添えられ、会�
   assert.match(provider.calls[0].prompt, /spec\.md（text\/markdown/);
   assert.deepEqual(provider.calls[0].additionalDirectories, [uploadsDir]);
   assert.deepEqual(store.listEvents(run.id)[0].data, { text: "読んで", attachments: [attachment] });
+});
+
+test("返答の途中経過は配信だけされ、チャット名は AI が付ける（ユーザーが変えていなければ）", async () => {
+  const { store, runner, provider, project, bus } = setup(async (_p, cb) => {
+    cb.stream?.("こん");
+    cb.stream?.("にちは");
+    cb.emit({ type: "text", text: "こんにちは" });
+    return { status: "completed", sessionId: "s" };
+  });
+  (provider as unknown as { title: (t: string) => Promise<string> }).title = async () => "挨拶";
+  const deltas: string[] = [];
+  bus.subscribe((e) => e.type === "run_delta" && deltas.push(e.text));
+
+  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "とても長い依頼文" });
+  await until(() => store.getRun(run.id)?.status === "completed" && store.getRun(run.id)?.title === "挨拶");
+  assert.deepEqual(deltas, ["こん", "にちは"]);
+  // 途中経過は保存しない
+  assert.deepEqual(
+    store.listEvents(run.id).map((e) => e.type),
+    ["user", "text", "result"],
+  );
 });
 
 test("承認待ちの間は waiting になり、回答するとエージェントに結果が渡る", async () => {

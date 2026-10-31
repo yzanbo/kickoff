@@ -337,6 +337,8 @@ export type BusEvent =
   | { type: "task_deleted"; id: number; project_id: number }
   | { type: "run"; run: Run }
   | { type: "run_event"; project_id: number; event: RunEvent }
+  /** AI の返答の途中経過（保存しない。確定した文は run_event の text で届く） */
+  | { type: "run_delta"; project_id: number; run_id: number; text: string }
   | { type: "artifact"; artifact: Artifact }
   | { type: "approval"; approval: Approval }
   | { type: "approval_resolved"; id: string; run_id: number }
