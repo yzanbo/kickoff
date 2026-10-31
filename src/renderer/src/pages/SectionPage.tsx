@@ -11,7 +11,6 @@ import {
   type Task,
 } from "../../../core/types";
 import { api } from "../api";
-import { ApprovalCard } from "../components/ApprovalCard";
 import { Markdown } from "../components/Markdown";
 import { TaskList } from "../components/TaskList";
 import { useServerEvent } from "../events";
@@ -70,7 +69,6 @@ export function SectionPage({ projectId, section }: { projectId: number; section
 
   const { project, tasks, artifacts, runs, approvals } = data;
   const sectionRuns = runs.filter((r) => r.phase === section);
-  const sectionApprovals = approvals.filter((a) => sectionRuns.some((r) => r.id === a.run_id));
   // 成果物は種類ごとに最新のものだけを表示する
   const latestArtifacts = SECTION_ARTIFACTS[section]
     .map((kind) => artifacts.find((a) => a.kind === kind))
@@ -105,14 +103,6 @@ export function SectionPage({ projectId, section }: { projectId: number; section
         </a>
       </section>
 
-      {sectionApprovals.length > 0 && (
-        <section className="section">
-          {sectionApprovals.map((a) => (
-            <ApprovalCard key={a.id} approval={a} />
-          ))}
-        </section>
-      )}
-
       {sectionRuns.length > 0 && (
         <section className="section">
           <h2>チャット</h2>
@@ -134,7 +124,18 @@ export function SectionPage({ projectId, section }: { projectId: number; section
   );
 }
 
-export function RunList({ projectId, runs, approvals }: { projectId: number; runs: Run[]; approvals: Approval[] }) {
+export function RunList({
+  projectId,
+  runs,
+  approvals,
+  showSection,
+}: {
+  projectId: number;
+  runs: Run[];
+  approvals: Approval[];
+  /** どのセクションのチャットかを表示する（全体画面用） */
+  showSection?: boolean;
+}) {
   return (
     <ul className="run-list">
       {runs.map((r) => {
@@ -143,6 +144,7 @@ export function RunList({ projectId, runs, approvals }: { projectId: number; run
           <li key={r.id}>
             <a className="run-item" href={href({ name: "run", projectId, runId: r.id })}>
               <span className="run-item-title">{r.title || "チャット"}</span>
+              {showSection && <span className="badge">{PHASE_LABELS[r.phase]}</span>}
               <span className="muted small">{new Date(r.updated_at).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
               <span className={`status-chip status-${waiting ? "waiting" : r.status}`}>
                 {waiting ? "回答待ち" : RUN_STATUS_LABELS[r.status]}
