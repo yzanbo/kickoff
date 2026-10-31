@@ -9,7 +9,8 @@ export type Route =
   | { name: "settings" }
   | { name: "project"; id: number; tab: ProjectTab }
   | { name: "newChat"; projectId: number; section?: Phase }
-  | { name: "run"; projectId: number; runId: number };
+  /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
+  | { name: "run"; projectId: number; runId: number; focus?: number };
 
 function parse(hash: string): Route {
   const [path, query = ""] = (hash.replace(/^#/, "") || "/").split("?");
@@ -17,7 +18,10 @@ function parse(hash: string): Route {
   if (path === "/settings") return { name: "settings" };
 
   const run = path.match(/^\/projects\/(\d+)\/runs\/(\d+)$/);
-  if (run) return { name: "run", projectId: Number(run[1]), runId: Number(run[2]) };
+  if (run) {
+    const focus = Number(params.get("event"));
+    return { name: "run", projectId: Number(run[1]), runId: Number(run[2]), ...(focus ? { focus } : {}) };
+  }
 
   const newChat = path.match(/^\/projects\/(\d+)\/new$/);
   if (newChat) {
@@ -57,7 +61,7 @@ export function href(route: Route): string {
     case "newChat":
       return `#/projects/${route.projectId}/new${route.section ? `?section=${route.section}` : ""}`;
     case "run":
-      return `#/projects/${route.projectId}/runs/${route.runId}`;
+      return `#/projects/${route.projectId}/runs/${route.runId}${route.focus ? `?event=${route.focus}` : ""}`;
     default:
       return "#/";
   }

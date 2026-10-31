@@ -5,6 +5,7 @@ import { api, useServerEvents } from "./api";
 import { CommandPalette } from "./components/CommandPalette";
 import { NewProjectDialog } from "./components/NewProjectDialog";
 import { ProjectNav } from "./components/ProjectNav";
+import { SearchPanel } from "./components/SearchPanel";
 import { UsageMeter } from "./components/UsageMeter";
 import { publishServerEvent } from "./events";
 import { HomePage } from "./pages/HomePage";
@@ -25,6 +26,7 @@ export function App() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [creating, setCreating] = useState(false);
   const [palette, setPalette] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [projectsDir, setProjectsDir] = useState("~/Documents");
 
   const loadProjects = useCallback(() => {
@@ -60,13 +62,16 @@ export function App() {
     }
   });
 
-  // ショートカット: ⌘K 検索・移動 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト）
+  // ショートカット: ⌘K 検索・移動 / ⌘F やり取りの検索 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
       if (e.key === "k") {
         e.preventDefault();
         setPalette(true);
+      } else if (e.key === "f") {
+        e.preventDefault();
+        setSearching(true);
       } else if (e.key === "n") {
         e.preventDefault();
         const projectId = routeProjectId(route);
@@ -118,7 +123,7 @@ export function App() {
         {route.name === "settings" ? (
           <SettingsPage />
         ) : route.name === "run" ? (
-          <RunPage key={route.runId} projectId={route.projectId} runId={route.runId} />
+          <RunPage key={route.runId} projectId={route.projectId} runId={route.runId} focus={route.focus} />
         ) : route.name === "newChat" ? (
           <NewChatPage key={`${route.projectId}:${route.section ?? ""}`} projectId={route.projectId} section={route.section} />
         ) : route.name === "project" ? (
@@ -153,6 +158,13 @@ export function App() {
         />
       )}
       {palette && <CommandPalette projects={projects} onClose={() => setPalette(false)} />}
+      {searching && (
+        <SearchPanel
+          runId={route.name === "run" ? route.runId : undefined}
+          projectId={routeProjectId(route)}
+          onClose={() => setSearching(false)}
+        />
+      )}
     </div>
   );
 }

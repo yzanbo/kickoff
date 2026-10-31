@@ -84,3 +84,34 @@ test("プロジェクトを削除するとタスクも消える", () => {
   store.deleteProject(project.id);
   assert.equal(store.listTasks(project.id).length, 0);
 });
+
+test("チャットのやり取りをキーワードで検索できる（範囲の絞り込み・記号のエスケープ）", () => {
+  const { store, project } = setup();
+  const other = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
+  const mk = (projectId: number, title: string) =>
+    store.createRun({ project_id: projectId, task_id: null, phase: "requirements", provider: "claude", title, status: "completed", model: null });
+  const a = mk(project.id, "ログインの相談");
+  const b = mk(other.id, "別プロジェクト");
+  store.addEvent(a.id, { type: "user", text: "ログイン方式は OAuth にしたい" });
+  store.addEvent(a.id, { type: "text", text: "OAuth なら GitHub ログインが手軽です。100% 対応できます。" });
+  store.addEvent(a.id, { type: "tool_use", id: "t", name: "Read", input: { file_path: "oauth.md" } });
+  store.addEvent(b.id, { type: "user", text: "oauth の話" });
+
+  const all = store.searchEvents("oauth");
+  assert.equal(all.length, 3);
+  assert.equal(all[0].run_title, "別プロジェクト");
+
+  const inProject = store.searchEvents("OAuth", { projectId: project.id });
+  assert.deepEqual(
+    inProject.map((h) => h.type),
+    ["text", "user"],
+  );
+  const hit = inProject[0];
+  assert.equal(hit.snippet.slice(hit.match_start, hit.match_end), "OAuth");
+
+  // % や _ はワイルドカードではなく文字として探す
+  assert.equal(store.searchEvents("100%").length, 1);
+  assert.equal(store.searchEvents("%").length, 1);
+  assert.equal(store.searchEvents("", {}).length, 0);
+  assert.equal(store.searchEvents("ログイン", { runId: b.id }).length, 0);
+});

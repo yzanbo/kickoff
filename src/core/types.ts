@@ -157,6 +157,22 @@ export interface Run {
   updated_at: string;
 }
 
+/** チャットのやり取りの検索結果（1 件 = 1 つの発言） */
+export interface SearchHit {
+  event_id: number;
+  run_id: number;
+  project_id: number;
+  run_title: string;
+  phase: Phase;
+  /** user: 自分の発言 / text: AI の返答 */
+  type: "user" | "text";
+  /** キーワードの前後を切り出した文（match_start〜match_end がキーワード） */
+  snippet: string;
+  match_start: number;
+  match_end: number;
+  created_at: string;
+}
+
 /** チャットの添付ファイル */
 export interface Attachment {
   id: string;
