@@ -1,0 +1,70 @@
+import { randomUUID } from "node:crypto";
+import type { Bus } from "./bus.js";
+import type { ApprovalRequest } from "./providers/types.js";
+import type { Approval, ApprovalDecision } from "./types.js";
+
+interface Pending {
+  approval: Approval;
+  resolve: (decision: ApprovalDecision) => void;
+}
+
+/**
+ * エージェントからの承認依頼・質問を保持し、ユーザー（デスクトップ・スマホ）の回答を待つ。
+ * 回答されるまでエージェントは止まって待つ。
+ */
+export class ApprovalCenter {
+  private readonly pending = new Map<string, Pending>();
+
+  constructor(private readonly bus: Bus) {}
+
+  list(filter: { projectId?: number; runId?: number } = {}): Approval[] {
+    return [...this.pending.values()]
+      .map((p) => p.approval)
+      .filter((a) => (filter.projectId === undefined || a.project_id === filter.projectId) && (filter.runId === undefined || a.run_id === filter.runId));
+  }
+
+  request(
+    context: { runId: number; projectId: number; taskId: number | null },
+    req: ApprovalRequest,
+    signal: AbortSignal,
+  ): { approval: Approval; decision: Promise<ApprovalDecision> } {
+    const approval: Approval = {
+      id: randomUUID(),
+      run_id: context.runId,
+      project_id: context.projectId,
+      task_id: context.taskId,
+      kind: req.kind,
+      tool_name: req.toolName,
+      input: req.input,
+      title: req.title,
+      description: req.description,
+      can_remember: req.canRemember,
+      created_at: new Date().toISOString(),
+    };
+    const decision = new Promise<ApprovalDecision>((resolve) => {
+      this.pending.set(approval.id, { approval, resolve });
+      // 実行が中断されたら、回答を待たずに拒否として返す
+      signal.addEventListener(
+        "abort",
+        () => this.settle(approval.id, { action: "deny", message: "実行が中断されました" }),
+        { once: true },
+      );
+    });
+    this.bus.publish({ type: "approval", approval });
+    return { approval, decision };
+  }
+
+  /** ユーザーの回答を反映する。存在しない（回答済み・中断済み）なら false */
+  resolve(id: string, decision: ApprovalDecision): boolean {
+    return this.settle(id, decision);
+  }
+
+  private settle(id: string, decision: ApprovalDecision): boolean {
+    const p = this.pending.get(id);
+    if (!p) return false;
+    this.pending.delete(id);
+    p.resolve(decision);
+    this.bus.publish({ type: "approval_resolved", id, run_id: p.approval.run_id });
+    return true;
+  }
+}

@@ -31,4 +31,4 @@ export function usePlanUsage() {
   return { usage, onEvent, refresh, refreshing };
 }
 
-export const FIVE_HOUR_IDLE = "次に使い始めた時点から 5 時間の枠が始まります";
+export const FIVE_HOUR_IDLE = "Claude から 5 時間枠の情報が返っていません（枠が始まっていないか、今のプランに適用されていません）";

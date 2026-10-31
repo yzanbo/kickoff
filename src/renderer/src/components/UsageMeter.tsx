@@ -45,7 +45,7 @@ export function UsageMeter({ window: w, compact, idleText }: Props) {
   const percent = Math.min(100, Math.max(0, w.utilization ?? 0));
   const reset = formatReset(w.resets_at);
   const status = w.utilization !== null && w.utilization >= 100 ? "⛔ 上限に到達" : SEVERITY_LABELS[severity];
-  const valueText = w.utilization === null ? "未使用" : `${Math.round(w.utilization)}%`;
+  const valueText = w.utilization === null ? "情報なし" : `${Math.round(w.utilization)}%`;
   const detail = w.utilization === null ? idleText : reset;
 
   return (

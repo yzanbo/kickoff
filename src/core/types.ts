@@ -37,6 +37,48 @@ export const ARTIFACT_KIND_LABELS: Record<ArtifactKind, string> = {
 export const PROVIDER_IDS = ["claude", "codex"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
+export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
+export type EffortLevel = (typeof EFFORT_LEVELS)[number];
+
+export const EFFORT_LABELS: Record<EffortLevel, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  xhigh: "Extra high",
+  max: "Max",
+};
+
+/**
+ * 権限モード。"phase" はフェーズごとの既定（要件定義は読み取り中心、実装は編集を自動承認 など）。
+ * それ以外は Claude Code の permissionMode と同じ意味。
+ */
+export const PERMISSION_CHOICES = ["phase", "default", "acceptEdits", "auto", "plan"] as const;
+export type PermissionChoice = (typeof PERMISSION_CHOICES)[number];
+
+export const PERMISSION_LABELS: Record<PermissionChoice, string> = {
+  phase: "フェーズ既定",
+  default: "毎回確認",
+  acceptEdits: "編集を自動承認",
+  auto: "Auto mode",
+  plan: "計画のみ",
+};
+
+/** チャット欄で選べるモデル */
+export interface ModelOption {
+  value: string;
+  label: string;
+  description: string;
+  efforts: EffortLevel[];
+  supportsAutoMode: boolean;
+}
+
+/** 実行ごとに選べるオプション（チャット欄の選択） */
+export interface RunOptions {
+  model?: string | null;
+  effort?: EffortLevel | null;
+  permission_mode?: PermissionChoice | null;
+}
+
 export type RunStatus = "queued" | "running" | "waiting" | "completed" | "failed" | "cancelled";
 
 export interface Project {
@@ -47,6 +89,8 @@ export interface Project {
   provider: ProviderId;
   /** プロジェクトの現在地（人がゲートを確定すると次へ進む） */
   current_phase: Phase;
+  /** 要件定義書を確定した日時（未確定なら null）。確定後に AI がタスクを分解する */
+  requirements_confirmed_at: string | null;
   test_command: string;
   deploy_instructions: string;
   auto_commit: number; // SQLite の真偽値（0 / 1）
@@ -56,6 +100,8 @@ export interface Project {
 
 export interface ProjectSummary extends Project {
   task_counts: Record<TaskStatus, number>;
+  /** フェーズごとのタスク数（done は完了したもの） */
+  phase_task_counts: Record<Phase, { total: number; done: number }>;
   total_cost_usd: number;
   active_runs: number;
 }
@@ -89,6 +135,9 @@ export interface Run {
   status: RunStatus;
   session_id: string | null;
   model: string | null;
+  /** 推論の深さ（null ならフェーズ既定） */
+  effort: EffortLevel | null;
+  permission_mode: PermissionChoice;
   cost_usd: number;
   num_turns: number;
   result: string | null;
@@ -173,7 +222,7 @@ export interface AppSettings {
   maxConcurrentRuns: number;
   /** 新規プロジェクトの既定プロバイダー */
   defaultProvider: ProviderId;
-  /** Claude のモデル（空なら CLI の既定） */
+  /** 最後にチャット欄で選んだ Claude のモデル（次回の既定） */
   claudeModel: string;
   /** スマホなど他端末からのアクセスを許可（LAN に公開） */
   remoteEnabled: boolean;
@@ -186,7 +235,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   maxConcurrentRuns: 2,
   defaultProvider: "claude",
-  claudeModel: "claude-opus-5-5",
+  claudeModel: "opus",
   remoteEnabled: false,
   ntfyUrl: "",
   projectsDir: "~/Documents",

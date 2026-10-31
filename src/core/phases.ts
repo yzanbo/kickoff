@@ -65,13 +65,13 @@ export function phasePolicy(phase: Phase, project: Project): PhasePolicy {
 
 const PHASE_INSTRUCTIONS: Record<Phase, string> = {
   requirements: `## あなたの役割: 要件定義
-ユーザーのアイデアと既存のコード・資料を読み、実装に着手できる要件定義書を作ります。
+ユーザーのアイデアと既存のコード・資料をもとに、ユーザーと対話しながら要件定義書を作ります。
 
-- 判断が分かれる点や、推測で埋めると手戻りが大きい点は AskUserQuestion でユーザーに確認してください。自明な点まで聞く必要はありません。
-- 要件定義書は mcp__kickoff__save_artifact（kind: "requirements", export_path: "docs/requirements.md"）で保存します。構成の目安: 背景と目的 / スコープ（やること・やらないこと）/ 機能要件 / 非機能要件 / 受け入れ基準 / 未決事項。
-- 要件が固まったら、mcp__kickoff__create_task で実装フェーズのタスクを起票します。1 タスクは 1 回のエージェント実行で完了できる粒度にし、受け入れ基準を必ず書いてください。受け入れ基準を検証するテストフェーズのタスクも起票します。
-- 起票前に mcp__kickoff__list_tasks で既存タスクを確認し、重複を避けてください。
-- このフェーズではプロダクトコードを変更しません。`,
+- 判断が分かれる点や、推測で埋めると手戻りが大きい点は AskUserQuestion でユーザーに確認してください。一度に聞くのは重要なものから数問にとどめ、自明な点まで聞く必要はありません。
+- 要件定義書は mcp__kickoff__save_artifact（kind: "requirements", export_path: "docs/requirements.md"）で保存します。内容が変わったら同じ方法で保存し直してください。
+- 構成の目安: 背景と目的 / 利用者 / スコープ（やること・やらないこと）/ 機能要件 / 非機能要件 / 技術スタック（選定理由つき）/ デプロイ先・リリース方法 / 受け入れ基準 / 未決事項。
+- 技術スタックとデプロイ先は、要件に合わせて提案し、ユーザーの同意を得てから要件定義書に書いてください。
+- このフェーズではタスクの起票とプロダクトコードの変更はしません。要件定義書がまとまったら、Kickoff の画面で「要件定義書を確定」するようユーザーに伝えてください。確定後に、タスク分解を別途依頼します。`,
 
   implementation: `## あなたの役割: 実装
 割り当てられたタスクを実装します。
@@ -98,6 +98,28 @@ const PHASE_INSTRUCTIONS: Record<Phase, string> = {
 - 結果は mcp__kickoff__save_artifact（kind: "deploy_log"）で保存します。実行したコマンド、デプロイ先 URL、確認結果、ロールバック方法を含めてください。
 - 最後に担当タスクを mcp__kickoff__update_task で更新します。`,
 };
+
+const DECOMPOSITION_INSTRUCTIONS = `## あなたの役割: タスク分解
+ユーザーが確定した要件定義書（docs/requirements.md、または mcp__kickoff__list_artifacts の kind: "requirements" の最新）をもとに、タスクを起票します。
+
+- 実装フェーズのタスクを mcp__kickoff__create_task で起票します。1 タスクは 1 回のエージェント実行で完了できる粒度にし、内容・関連ファイル・受け入れ基準を具体的に書いてください。
+- まだコードがない（または雛形がない）場合は、最初のタスクを「雛形の作成」（要件定義書の技術スタックでプロジェクトを初期化し、起動とテストが通る状態にする）にしてください。
+- 優先度（1: 高 / 2: 中 / 3: 低）は依存関係と重要度で決めます。先に必要なものほど高くしてください。
+- 受け入れ基準を検証するテストフェーズのタスクと、要件定義書のデプロイ方法に沿ったデプロイフェーズのタスクも起票します。
+- 起票前に mcp__kickoff__list_tasks で既存タスクを確認し、重複を避けてください。
+- 要件定義書の変更とプロダクトコードの変更はしません。
+- 最後に、起票したタスクの一覧と、実装を進める順番の考え方を短くまとめてください。`;
+
+/** 要件定義を始めるときの最初のメッセージ */
+export function requirementsKickoffPrompt(project: Project): string {
+  const idea = project.description.trim();
+  return idea
+    ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${idea}`
+    : "このプロジェクトの要件定義を一緒に進めてください。まずリポジトリの内容を確認し、何を作るかを私に質問してください。";
+}
+
+/** 要件定義書の確定後に、タスク分解を依頼するメッセージ */
+export const DECOMPOSITION_PROMPT = "確定した要件定義書をもとに、タスクを起票してください。";
 
 /** プロバイダーのシステムプロンプトに追記するプロジェクト文脈 */
 export function buildSystemPrompt(project: Project, phase: Phase, task: Task | null): string {
@@ -131,7 +153,9 @@ export function buildSystemPrompt(project: Project, phase: Phase, task: Task | n
     if (task.acceptance_criteria.trim()) lines.push(`- 受け入れ基準:\n${indent(task.acceptance_criteria.trim())}`);
   }
 
-  lines.push(``, PHASE_INSTRUCTIONS[phase]);
+  const instructions =
+    phase === "requirements" && project.requirements_confirmed_at ? DECOMPOSITION_INSTRUCTIONS : PHASE_INSTRUCTIONS[phase];
+  lines.push(``, instructions);
   return lines.join("\n");
 }
 

@@ -11,7 +11,19 @@ import { githubStatus } from "./github.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
 import type { UsageMonitor } from "./usage.js";
-import { PHASES, PROVIDER_IDS, type ProviderId } from "./types.js";
+import type { ApprovalCenter } from "./approvals.js";
+import { DECOMPOSITION_PROMPT, requirementsKickoffPrompt } from "./phases.js";
+import type { Runner } from "./runner.js";
+import {
+  EFFORT_LEVELS,
+  PERMISSION_CHOICES,
+  PHASES,
+  PROVIDER_IDS,
+  TASK_STATUSES,
+  type ApprovalDecision,
+  type ModelOption,
+  type ProviderId,
+} from "./types.js";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "./workspace.js";
 
 export interface ServerDeps {
@@ -20,6 +32,8 @@ export interface ServerDeps {
   token: string;
   providers: Record<ProviderId, AgentProvider>;
   usage: UsageMonitor;
+  runner: Runner;
+  approvals: ApprovalCenter;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
   staticDir?: string;
 }
@@ -52,6 +66,54 @@ const importProjectSchema = z.object({
   provider: z.enum(PROVIDER_IDS).optional(),
 });
 
+const taskInputSchema = z.object({
+  phase: z.enum(PHASES),
+  title: z.string().trim().min(1).max(200),
+  description: z.string().max(20_000).default(""),
+  acceptance_criteria: z.string().max(20_000).default(""),
+  priority: z.number().int().min(1).max(3).default(2),
+});
+
+const taskPatchSchema = z
+  .object({
+    phase: z.enum(PHASES),
+    title: z.string().trim().min(1).max(200),
+    description: z.string().max(20_000),
+    acceptance_criteria: z.string().max(20_000),
+    priority: z.number().int().min(1).max(3),
+    status: z.enum(TASK_STATUSES),
+  })
+  .partial();
+
+const runOptionsSchema = z
+  .object({
+    model: z.string().max(100).nullable(),
+    effort: z.enum(EFFORT_LEVELS).nullable(),
+    permission_mode: z.enum(PERMISSION_CHOICES).nullable(),
+  })
+  .partial()
+  .default({});
+
+const runInputSchema = z.object({
+  phase: z.enum(PHASES),
+  task_id: z.number().int().optional(),
+  prompt: z.string().trim().min(1).max(50_000),
+  options: runOptionsSchema,
+});
+
+const startInputSchema = z.object({ options: runOptionsSchema }).default({ options: {} });
+
+const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("allow") }),
+  z.object({ action: z.literal("allow_always") }),
+  z.object({ action: z.literal("deny"), message: z.string().max(5000).optional() }),
+  z.object({
+    action: z.literal("answer"),
+    answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
+    response: z.string().max(5000).optional(),
+  }),
+]);
+
 const projectPatchSchema = z
   .object({
     name: z.string().trim().min(1).max(100),
@@ -68,7 +130,7 @@ const projectPatchSchema = z
  * 認証はトークン（Cookie または Authorization: Bearer）。
  */
 export function createApp(deps: ServerDeps): Hono {
-  const { store, bus, token, providers, usage } = deps;
+  const { store, bus, token, providers, usage, runner, approvals } = deps;
   const app = new Hono();
 
   // スマホなどのペアリング: QR の URL に含めたトークンを Cookie に移してから画面へ
@@ -158,11 +220,143 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json({ ok: true });
   });
 
+  // ---- 要件定義の進行（ゲート） ----
+  app.post("/api/projects/:id/requirements/start", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { options } = startInputSchema.parse(await c.req.json().catch(() => ({})));
+    const run = runner.start({
+      projectId: project.id,
+      phase: "requirements",
+      prompt: requirementsKickoffPrompt(project),
+      title: "要件定義",
+      options,
+    });
+    return c.json(run, 201);
+  });
+
+  // 1 段目: 要件定義書を確定し、AI にタスク分解を依頼する
+  app.post("/api/projects/:id/requirements/confirm", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { options } = startInputSchema.parse(await c.req.json().catch(() => ({})));
+    if (store.listArtifacts(project.id, { kind: "requirements" }).length === 0) {
+      throw new HttpError(409, "要件定義書がまだありません。AI と要件定義を進めてください");
+    }
+    store.updateProject(project.id, { requirements_confirmed_at: new Date().toISOString() });
+    const run = runner.start({ projectId: project.id, phase: "requirements", prompt: DECOMPOSITION_PROMPT, title: "タスク分解", options });
+    return c.json(run, 201);
+  });
+
+  // 要件定義書を見直すために確定を取り消す
+  app.post("/api/projects/:id/requirements/reopen", (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    if (project.current_phase !== "requirements") throw new HttpError(409, "要件定義フェーズではありません");
+    return c.json(store.updateProject(project.id, { requirements_confirmed_at: null }));
+  });
+
+  // 2 段目: タスクを承認して実装フェーズへ進む
+  app.post("/api/projects/:id/advance", (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    if (project.current_phase !== "requirements") throw new HttpError(409, "要件定義フェーズではありません");
+    if (!project.requirements_confirmed_at) throw new HttpError(409, "先に要件定義書を確定してください");
+    if (store.listTasks(project.id, { phase: "implementation" }).length === 0) {
+      throw new HttpError(409, "実装フェーズのタスクがありません");
+    }
+    return c.json(store.updateProject(project.id, { current_phase: "implementation" }));
+  });
+
+  // ---- タスク ----
+  app.get("/api/projects/:id/tasks", (c) => c.json(store.listTasks(requireProject(store, c.req.param("id")).id)));
+
+  app.post("/api/projects/:id/tasks", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const input = taskInputSchema.parse(await c.req.json());
+    return c.json(store.createTask({ ...input, project_id: project.id, created_by: "user" }), 201);
+  });
+
+  app.patch("/api/tasks/:id", async (c) => {
+    const task = requireTask(store, c.req.param("id"));
+    return c.json(store.updateTask(task.id, taskPatchSchema.parse(await c.req.json())));
+  });
+
+  app.delete("/api/tasks/:id", (c) => {
+    const task = requireTask(store, c.req.param("id"));
+    store.deleteTask(task.id);
+    return c.json({ ok: true });
+  });
+
+  // ---- 成果物 ----
+  app.get("/api/projects/:id/artifacts", (c) => c.json(store.listArtifacts(requireProject(store, c.req.param("id")).id)));
+  app.get("/api/artifacts/:id", (c) => {
+    const artifact = store.getArtifact(Number(c.req.param("id")));
+    if (!artifact) throw new HttpError(404, "成果物が見つかりません");
+    return c.json(artifact);
+  });
+
+  // ---- 実行（エージェントとの会話） ----
+  app.get("/api/projects/:id/runs", (c) =>
+    c.json(store.listRuns({ projectId: requireProject(store, c.req.param("id")).id, limit: 50 })),
+  );
+
+  app.post("/api/projects/:id/runs", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const input = runInputSchema.parse(await c.req.json());
+    return c.json(
+      runner.start({ projectId: project.id, phase: input.phase, taskId: input.task_id, prompt: input.prompt, options: input.options }),
+      201,
+    );
+  });
+
+  app.get("/api/runs/:id", (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }) });
+  });
+
+  app.post("/api/runs/:id/messages", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { text, options } = z
+      .object({ text: z.string().trim().min(1).max(50_000), options: runOptionsSchema })
+      .parse(await c.req.json());
+    try {
+      return c.json(runner.send(run.id, text, options));
+    } catch (e) {
+      throw new HttpError(409, (e as Error).message);
+    }
+  });
+
+  app.post("/api/runs/:id/cancel", (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    runner.cancel(run.id);
+    return c.json({ ok: true });
+  });
+
+  // ---- 承認依頼・AI からの質問 ----
+  app.get("/api/approvals", (c) => {
+    const projectId = c.req.query("project_id");
+    return c.json(approvals.list({ projectId: projectId ? Number(projectId) : undefined }));
+  });
+
+  app.post("/api/approvals/:id", async (c) => {
+    const decision = decisionSchema.parse(await c.req.json());
+    if (!approvals.resolve(c.req.param("id"), decision)) throw new HttpError(404, "この依頼はすでに回答済みか、中断されています");
+    return c.json({ ok: true });
+  });
+
   // ---- 外部 CLI の状態 ----
   app.get("/api/providers", async (c) =>
     c.json(await Promise.all(PROVIDER_IDS.map((id) => providers[id].status()))),
   );
   app.get("/api/github", async (c) => c.json(await githubStatus()));
+
+  // チャット欄のモデル一覧（取得に 1 秒ほどかかるのでキャッシュする）
+  const modelCache = new Map<ProviderId, { at: number; models: ModelOption[] }>();
+  app.get("/api/providers/:id/models", async (c) => {
+    const id = z.enum(PROVIDER_IDS).parse(c.req.param("id"));
+    const cached = modelCache.get(id);
+    if (cached && Date.now() - cached.at < 60 * 60_000) return c.json(cached.models);
+    const models = (await providers[id].models?.()) ?? [];
+    if (models.length > 0) modelCache.set(id, { at: Date.now(), models });
+    return c.json(models);
+  });
 
   // ---- プランの使用枠（5 時間・週） ----
   app.get("/api/usage", async (c) => c.json(await usage.get()));
@@ -206,6 +400,18 @@ function requireProject(store: Store, idParam: string) {
   const project = store.getProject(Number(idParam));
   if (!project) throw new HttpError(404, "プロジェクトが見つかりません");
   return project;
+}
+
+function requireTask(store: Store, idParam: string) {
+  const task = store.getTask(Number(idParam));
+  if (!task) throw new HttpError(404, "タスクが見つかりません");
+  return task;
+}
+
+function requireRun(store: Store, idParam: string) {
+  const run = store.getRun(Number(idParam));
+  if (!run) throw new HttpError(404, "実行が見つかりません");
+  return run;
 }
 
 function setAuthCookie(c: Context, token: string) {
