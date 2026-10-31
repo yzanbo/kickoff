@@ -12,7 +12,6 @@ function setup() {
 
 test("プロジェクトを作成すると既定値が入り、変更が通知される", () => {
   const { project, events } = setup();
-  assert.equal(project.current_phase, "requirements");
   assert.equal(project.auto_commit, 1);
   assert.equal(events.at(-1)?.type, "project");
 });

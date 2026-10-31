@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { PHASE_LABELS, PHASES, type Phase, type Project, type WorkspaceInspection } from "../../../core/types";
+import type { Project, WorkspaceInspection } from "../../../core/types";
 import { api } from "../api";
 import { href } from "../router";
 
@@ -158,7 +158,6 @@ function ImportForm({ onCancel, onCreated }: FormProps) {
   const [name, setName] = useState("");
   const [nameEdited, setNameEdited] = useState(false);
   const [description, setDescription] = useState("");
-  const [startPhase, setStartPhase] = useState<Phase>("requirements");
   const [initGit, setInitGit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
@@ -208,7 +207,6 @@ function ImportForm({ onCancel, onCreated }: FormProps) {
           path: inspection.path,
           name,
           description,
-          start_phase: startPhase,
           init_git: initGit,
         }),
       );
@@ -267,17 +265,6 @@ function ImportForm({ onCancel, onCreated }: FormProps) {
         />
       </label>
 
-      <label className="field">
-        <span className="field-label">開始フェーズ</span>
-        <select value={startPhase} onChange={(e) => setStartPhase(e.target.value as Phase)}>
-          {PHASES.map((p) => (
-            <option key={p} value={p}>
-              {PHASE_LABELS[p]}
-            </option>
-          ))}
-        </select>
-        <span className="field-help">開発途中のプロジェクトなら、今の段階から始められます。</span>
-      </label>
 
       {error && <p className="error">{error}</p>}
 

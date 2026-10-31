@@ -1,4 +1,4 @@
-import { PHASE_LABELS, type ProjectSummary } from "../../../core/types";
+import type { ProjectSummary } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { StatusCard } from "../components/StatusCard";
 import { UsagePanel } from "../components/UsagePanel";
@@ -37,7 +37,9 @@ export function HomePage({ planUsage, projects, onNewProject }: Props) {
             {projects.map((p) => (
               <a key={p.id} className="project-card" href={href({ name: "project", id: p.id })}>
                 <div className="project-card-name">{p.name}</div>
-                <div className="muted small">{PHASE_LABELS[p.current_phase]}</div>
+                <div className="muted small">
+                  {p.active_runs > 0 ? `作業中のチャット ${p.active_runs}` : `タスク ${Object.values(p.task_counts).reduce((a, b) => a + b, 0)} 件`}
+                </div>
               </a>
             ))}
           </div>

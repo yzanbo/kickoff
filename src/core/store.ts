@@ -118,7 +118,6 @@ export interface NewProject {
   description?: string;
   repo_path: string;
   provider: ProviderId;
-  current_phase?: Phase;
   test_command?: string;
   deploy_instructions?: string;
   auto_commit?: boolean;
@@ -257,15 +256,14 @@ export class Store {
   createProject(input: NewProject): Project {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO projects (name, description, repo_path, provider, current_phase, test_command, deploy_instructions, auto_commit)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO projects (name, description, repo_path, provider, test_command, deploy_instructions, auto_commit)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.name,
         input.description ?? "",
         input.repo_path,
         input.provider,
-        input.current_phase ?? "requirements",
         input.test_command ?? "",
         input.deploy_instructions ?? "",
         input.auto_commit === false ? 0 : 1,
@@ -277,11 +275,7 @@ export class Store {
 
   updateProject(
     id: number,
-    patch: Partial<Omit<NewProject, "auto_commit">> & {
-      auto_commit?: boolean;
-      current_phase?: Phase;
-      requirements_confirmed_at?: string | null;
-    },
+    patch: Partial<Omit<NewProject, "auto_commit">> & { auto_commit?: boolean },
   ): Project {
     const row: Row = { ...patch, auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0 } as Row;
     this.updateRow("projects", id, row, [
@@ -289,8 +283,6 @@ export class Store {
       "description",
       "repo_path",
       "provider",
-      "current_phase",
-      "requirements_confirmed_at",
       "test_command",
       "deploy_instructions",
       "auto_commit",
@@ -438,10 +430,14 @@ export class Store {
   updateRun(
     id: number,
     patch: Partial<
-      Pick<Run, "status" | "session_id" | "model" | "effort" | "permission_mode" | "cost_usd" | "num_turns" | "result" | "error">
+      Pick<
+        Run,
+        "title" | "status" | "session_id" | "model" | "effort" | "permission_mode" | "cost_usd" | "num_turns" | "result" | "error"
+      >
     >,
   ): Run {
     this.updateRow("runs", id, patch as Row, [
+      "title",
       "status",
       "session_id",
       "model",

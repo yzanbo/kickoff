@@ -1,11 +1,14 @@
 // コア・UI・将来のモバイルアプリで共有するドメイン型
 // （このファイルは型と定数のみ。Node 依存を持ち込まないこと）
 
-export const PHASES = ["requirements", "implementation", "testing", "deployment"] as const;
+// 開発のセクション（サイドバーでプロジェクトの下に並び、それぞれにチャットがぶら下がる）。
+// 順番の決まった工程ではなく、どのセクションでもいつでもチャットできる。
+export const PHASES = ["requirements", "schedule", "implementation", "testing", "deployment"] as const;
 export type Phase = (typeof PHASES)[number];
 
 export const PHASE_LABELS: Record<Phase, string> = {
   requirements: "要件定義",
+  schedule: "スケジュール",
   implementation: "実装",
   testing: "テスト",
   deployment: "デプロイ",
@@ -23,11 +26,12 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   blocked: "ブロック",
 };
 
-export const ARTIFACT_KINDS = ["requirements", "design", "test_report", "deploy_log", "note"] as const;
+export const ARTIFACT_KINDS = ["requirements", "schedule", "design", "test_report", "deploy_log", "note"] as const;
 export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
 
 export const ARTIFACT_KIND_LABELS: Record<ArtifactKind, string> = {
   requirements: "要件定義書",
+  schedule: "スケジュール",
   design: "設計メモ",
   test_report: "テストレポート",
   deploy_log: "デプロイログ",
@@ -49,14 +53,14 @@ export const EFFORT_LABELS: Record<EffortLevel, string> = {
 };
 
 /**
- * 権限モード。"phase" はフェーズごとの既定（要件定義は読み取り中心、実装は編集を自動承認 など）。
+ * 権限モード。"phase" はセクションごとの既定（要件定義は読み取り中心、実装は編集を自動承認 など）。
  * それ以外は Claude Code の permissionMode と同じ意味。
  */
 export const PERMISSION_CHOICES = ["phase", "default", "acceptEdits", "auto", "plan"] as const;
 export type PermissionChoice = (typeof PERMISSION_CHOICES)[number];
 
 export const PERMISSION_LABELS: Record<PermissionChoice, string> = {
-  phase: "フェーズ既定",
+  phase: "セクション既定",
   default: "毎回確認",
   acceptEdits: "編集を自動承認",
   auto: "Auto mode",
@@ -87,10 +91,6 @@ export interface Project {
   description: string;
   repo_path: string;
   provider: ProviderId;
-  /** プロジェクトの現在地（人がゲートを確定すると次へ進む） */
-  current_phase: Phase;
-  /** 要件定義書を確定した日時（未確定なら null）。確定後に AI がタスクを分解する */
-  requirements_confirmed_at: string | null;
   test_command: string;
   deploy_instructions: string;
   auto_commit: number; // SQLite の真偽値（0 / 1）

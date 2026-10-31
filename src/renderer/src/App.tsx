@@ -8,6 +8,7 @@ import { UsageMeter } from "./components/UsageMeter";
 import { HomePage } from "./pages/HomePage";
 import { ProjectPage } from "./pages/ProjectPage";
 import { RunPage } from "./pages/RunPage";
+import { SectionPage } from "./pages/SectionPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { href, navigate, useRoute } from "./router";
 import { FIVE_HOUR_IDLE, usePlanUsage } from "./usage";
@@ -97,8 +98,8 @@ export function App() {
           <SettingsPage />
         ) : route.name === "run" ? (
           <RunPage projectId={route.projectId} runId={route.runId} />
-        ) : route.name === "phase" ? (
-          <ProjectPage id={route.projectId} phase={route.phase} />
+        ) : route.name === "section" ? (
+          <SectionPage projectId={route.projectId} section={route.section} />
         ) : route.name === "project" ? (
           <ProjectPage id={route.id} />
         ) : (
