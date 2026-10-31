@@ -32,11 +32,15 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   // 1 回のスワイプの状態。committed: すでに切り替えた（残りの慣性のイベントは無視する）
-  const gesture = useRef<{ total: number; timer?: ReturnType<typeof setTimeout>; active: boolean; committed: boolean }>({
-    total: 0,
-    active: false,
-    committed: false,
-  });
+  const gesture = useRef<{
+    total: number;
+    timer?: ReturnType<typeof setTimeout>;
+    active: boolean;
+    committed: boolean;
+    committedAt: number;
+    /** 直前のイベントの移動量（慣性は小さくなっていくので、急に大きくなれば新しいスワイプ） */
+    lastAbs: number;
+  }>({ total: 0, active: false, committed: false, committedAt: 0, lastAbs: 0 });
 
   const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
   const current = ordered[index];
@@ -144,11 +148,21 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
       g.active = false;
       g.committed = false;
     }, GESTURE_END_MS);
-    // 切り替えたあとに届く慣性のイベントは無視する（遅れて二重に動かないように）
-    if (g.committed) return;
+    const abs = Math.abs(e.deltaX);
+    if (g.committed) {
+      // 切り替えたあとに届く慣性のイベントは無視する（遅れて二重に動かないように）。
+      // ただし移動量が急に大きくなったら、続けて行った次のスワイプとして受け付ける
+      const isNewSwipe = performance.now() - g.committedAt > 100 && abs > Math.max(6, g.lastAbs * 1.6);
+      g.lastAbs = abs;
+      if (!isNewSwipe) return;
+      g.committed = false;
+      g.total = 0;
+    }
+    g.lastAbs = abs;
     g.total += e.deltaX;
     if (commitIfFar(g.total)) {
       g.committed = true;
+      g.committedAt = performance.now();
       return;
     }
     place(resist(Math.max(-width(), Math.min(width(), g.total))));
