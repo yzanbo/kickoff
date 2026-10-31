@@ -12,6 +12,7 @@ import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
 import type { UsageMonitor } from "./usage.js";
 import { PROVIDER_IDS, type ProviderId } from "./types.js";
+import { createWorkspace } from "./workspace.js";
 
 export interface ServerDeps {
   store: Store;
@@ -30,6 +31,26 @@ const settingsSchema = z
     claudeModel: z.string().max(100),
     remoteEnabled: z.boolean(),
     ntfyUrl: z.union([z.literal(""), z.url()]),
+    projectsDir: z.string().min(1).max(500),
+  })
+  .partial();
+
+const newProjectSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  idea: z.string().max(10_000).default(""),
+  parent_dir: z.string().trim().min(1),
+  folder_name: z.string().trim().min(1).max(100),
+  provider: z.enum(PROVIDER_IDS).optional(),
+});
+
+const projectPatchSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100),
+    description: z.string().max(10_000),
+    provider: z.enum(PROVIDER_IDS),
+    test_command: z.string().max(500),
+    deploy_instructions: z.string().max(10_000),
+    auto_commit: z.boolean(),
   })
   .partial();
 
@@ -55,6 +76,7 @@ export function createApp(deps: ServerDeps): Hono {
   });
 
   app.onError((err, c) => {
+    if (err instanceof HttpError) return c.json({ error: err.message }, err.status);
     if (err instanceof z.ZodError) return c.json({ error: "入力が正しくありません", issues: err.issues }, 400);
     console.error("[api]", err);
     return c.json({ error: err.message }, 500);
@@ -65,6 +87,43 @@ export function createApp(deps: ServerDeps): Hono {
   // ---- 設定 ----
   app.get("/api/settings", (c) => c.json(store.getSettings()));
   app.put("/api/settings", async (c) => c.json(store.updateSettings(settingsSchema.parse(await c.req.json()))));
+
+  // ---- プロジェクト ----
+  app.get("/api/projects", (c) => c.json(store.listProjects()));
+
+  app.post("/api/projects", async (c) => {
+    const input = newProjectSchema.parse(await c.req.json());
+    const repoPath = await createWorkspace({
+      parentDir: input.parent_dir,
+      folderName: input.folder_name,
+      name: input.name,
+      idea: input.idea,
+    }).catch((e: Error) => {
+      throw new HttpError(400, e.message);
+    });
+    const project = store.createProject({
+      name: input.name,
+      description: input.idea,
+      repo_path: repoPath,
+      provider: input.provider ?? store.getSettings().defaultProvider,
+    });
+    store.updateSettings({ projectsDir: input.parent_dir });
+    return c.json(project, 201);
+  });
+
+  app.get("/api/projects/:id", (c) => c.json(requireProject(store, c.req.param("id"))));
+
+  app.patch("/api/projects/:id", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    return c.json(store.updateProject(project.id, projectPatchSchema.parse(await c.req.json())));
+  });
+
+  // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない
+  app.delete("/api/projects/:id", (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    store.deleteProject(project.id);
+    return c.json({ ok: true });
+  });
 
   // ---- 外部 CLI の状態 ----
   app.get("/api/providers", async (c) =>
@@ -99,6 +158,21 @@ export function createApp(deps: ServerDeps): Hono {
   }
 
   return app;
+}
+
+class HttpError extends Error {
+  constructor(
+    readonly status: 400 | 404 | 409,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+function requireProject(store: Store, idParam: string) {
+  const project = store.getProject(Number(idParam));
+  if (!project) throw new HttpError(404, "プロジェクトが見つかりません");
+  return project;
 }
 
 function setAuthCookie(c: Context, token: string) {

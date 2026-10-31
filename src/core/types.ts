@@ -179,6 +179,8 @@ export interface AppSettings {
   remoteEnabled: boolean;
   /** ntfy のトピック URL（空なら通知しない） */
   ntfyUrl: string;
+  /** 新規プロジェクトの保存先（前回使ったフォルダ） */
+  projectsDir: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -187,6 +189,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   claudeModel: "claude-opus-5-5",
   remoteEnabled: false,
   ntfyUrl: "",
+  projectsDir: "~/Documents",
 };
 
 export interface ProviderStatus {
