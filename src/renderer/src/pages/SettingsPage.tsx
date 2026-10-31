@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import type { AppSettings } from "../../../core/types";
+import {
+  EFFORT_LABELS,
+  EFFORT_LEVELS,
+  PERMISSION_CHOICES,
+  PERMISSION_LABELS,
+  type AppSettings,
+  type EffortLevel,
+  type PermissionChoice,
+} from "../../../core/types";
 import { api, useAsync } from "../api";
 import { StatusCard } from "../components/StatusCard";
 
@@ -7,6 +15,7 @@ export function SettingsPage() {
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const settings = useAsync(api.settings);
+  const models = useAsync(() => api.models("claude"));
   const [draft, setDraft] = useState<AppSettings>();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string }>();
@@ -15,6 +24,7 @@ export function SettingsPage() {
     if (settings.data) setDraft(settings.data);
   }, [settings.data]);
 
+  const currentModel = models.data?.find((m) => m.value === draft?.claudeModel);
   const dirty = draft && settings.data && JSON.stringify(draft) !== JSON.stringify(settings.data);
 
   async function save() {
@@ -25,6 +35,10 @@ export function SettingsPage() {
       const saved = await api.updateSettings({
         maxConcurrentRuns: draft.maxConcurrentRuns,
         ntfyUrl: draft.ntfyUrl.trim(),
+        claudeModel: draft.claudeModel,
+        defaultEffort: draft.defaultEffort,
+        defaultPermission: draft.defaultPermission,
+        defaultFastMode: draft.defaultFastMode,
       });
       settings.setData(saved);
       setMessage({ kind: "ok", text: "保存しました" });
@@ -87,6 +101,67 @@ export function SettingsPage() {
 
       {draft && (
         <section className="section">
+          <h2>AI の既定</h2>
+          <p className="muted small">新しいチャットはこの設定から始まります。チャット欄で変えた内容は、そのチャットだけに効きます。</p>
+          <div className="form">
+            <label className="field">
+              <span className="field-label">モデル</span>
+              <select value={draft.claudeModel} onChange={(e) => setDraft({ ...draft, claudeModel: e.target.value })}>
+                {!models.data?.some((m) => m.value === draft.claudeModel) && <option value={draft.claudeModel}>{draft.claudeModel}</option>}
+                {models.data?.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label} — {m.description}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span className="field-label">推論の深さ（effort）</span>
+              <select
+                value={draft.defaultEffort ?? ""}
+                onChange={(e) => setDraft({ ...draft, defaultEffort: (e.target.value || null) as EffortLevel | null })}
+              >
+                <option value="">セクション既定（要件定義・実装は High など）</option>
+                {(currentModel?.efforts ?? EFFORT_LEVELS).map((level) => (
+                  <option key={level} value={level}>
+                    {EFFORT_LABELS[level]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span className="field-label">権限モード</span>
+              <select
+                value={draft.defaultPermission}
+                onChange={(e) => setDraft({ ...draft, defaultPermission: e.target.value as PermissionChoice })}
+              >
+                {PERMISSION_CHOICES.filter((p) => p !== "auto" || !currentModel || currentModel.supportsAutoMode).map((p) => (
+                  <option key={p} value={p}>
+                    {PERMISSION_LABELS[p]}
+                  </option>
+                ))}
+              </select>
+              <span className="field-help">
+                要件定義・スケジュールの「書き込みできるフォルダ」の制限は、どのモードでも必ず効きます。
+              </span>
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={draft.defaultFastMode}
+                disabled={currentModel ? !currentModel.supportsFastMode : false}
+                onChange={(e) => setDraft({ ...draft, defaultFastMode: e.target.checked })}
+              />
+              <span>
+                ファストモードを使う
+                <span className="field-help">
+                  応答が速くなる代わりに、Claude のプランの追加の使用枠（extra usage）から消費されます。追加の使用枠が無効な場合は通常の速度で動き、チャットに理由が表示されます。
+                  {currentModel && !currentModel.supportsFastMode && "（このモデルは対応していません）"}
+                </span>
+              </span>
+            </label>
+          </div>
+
           <h2>エージェントの実行</h2>
           <div className="form">
             <label className="field">
@@ -99,7 +174,7 @@ export function SettingsPage() {
                 onChange={(e) => setDraft({ ...draft, maxConcurrentRuns: Number(e.target.value) })}
               />
               <span className="field-help">
-                多いほど速く進みますが、プランの使用枠を早く消費します。モデル・推論の深さ・権限モードはチャット欄で選びます。
+                多いほど速く進みますが、プランの使用枠を早く消費します。
               </span>
             </label>
           </div>

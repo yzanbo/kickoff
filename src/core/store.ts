@@ -111,6 +111,8 @@ const MIGRATIONS = [
    ALTER TABLE runs ADD COLUMN permission_mode TEXT NOT NULL DEFAULT 'phase';`,
   // v4: セクションごとの書き込みできるフォルダ（JSON）
   "ALTER TABLE projects ADD COLUMN write_scopes TEXT NOT NULL DEFAULT '{}'",
+  // v5: ファストモード
+  "ALTER TABLE runs ADD COLUMN fast_mode INTEGER NOT NULL DEFAULT 0",
 ];
 
 type Row = Record<string, SQLInputValue>;
@@ -158,6 +160,7 @@ export interface NewRun {
   model: string | null;
   effort?: EffortLevel | null;
   permission_mode?: PermissionChoice;
+  fast_mode?: boolean;
 }
 
 export interface NewArtifact {
@@ -428,8 +431,8 @@ export class Store {
   createRun(input: NewRun): Run {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.project_id,
@@ -441,6 +444,7 @@ export class Store {
         input.model,
         input.effort ?? null,
         input.permission_mode ?? "phase",
+        input.fast_mode ? 1 : 0,
       );
     const run = this.getRun(Number(lastInsertRowid))!;
     this.touchProject(run.project_id);
@@ -453,11 +457,12 @@ export class Store {
     patch: Partial<
       Pick<
         Run,
-        "title" | "status" | "session_id" | "model" | "effort" | "permission_mode" | "cost_usd" | "num_turns" | "result" | "error"
+        "title" | "status" | "session_id" | "model" | "effort" | "permission_mode" | "fast_mode" | "cost_usd" | "num_turns" | "result" | "error"
       >
     >,
   ): Run {
     this.updateRow("runs", id, patch as Row, [
+      "fast_mode",
       "title",
       "status",
       "session_id",

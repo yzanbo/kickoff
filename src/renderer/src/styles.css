@@ -822,6 +822,35 @@ textarea {
   outline: none;
 }
 
+.fast-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.fast-toggle:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.fast-toggle.on {
+  color: #b7791f;
+  background: color-mix(in srgb, #fab219 18%, transparent);
+}
+
+.fast-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .send-button {
   display: grid;
   flex: none;

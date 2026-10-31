@@ -74,6 +74,7 @@ export interface ModelOption {
   description: string;
   efforts: EffortLevel[];
   supportsAutoMode: boolean;
+  supportsFastMode: boolean;
 }
 
 /** 実行ごとに選べるオプション（チャット欄の選択） */
@@ -81,6 +82,7 @@ export interface RunOptions {
   model?: string | null;
   effort?: EffortLevel | null;
   permission_mode?: PermissionChoice | null;
+  fast_mode?: boolean | null;
 }
 
 export type RunStatus = "queued" | "running" | "waiting" | "completed" | "failed" | "cancelled";
@@ -145,6 +147,8 @@ export interface Run {
   /** 推論の深さ（null ならフェーズ既定） */
   effort: EffortLevel | null;
   permission_mode: PermissionChoice;
+  /** ファストモードを指定したか（SQLite の真偽値 0 / 1） */
+  fast_mode: number;
   cost_usd: number;
   num_turns: number;
   result: string | null;
@@ -229,8 +233,14 @@ export interface AppSettings {
   maxConcurrentRuns: number;
   /** 新規プロジェクトの既定プロバイダー */
   defaultProvider: ProviderId;
-  /** 最後にチャット欄で選んだ Claude のモデル（次回の既定） */
+  /** 新しいチャットの既定のモデル（Claude） */
   claudeModel: string;
+  /** 新しいチャットの既定の推論の深さ（null ならセクション既定） */
+  defaultEffort: EffortLevel | null;
+  /** 新しいチャットの既定の権限モード */
+  defaultPermission: PermissionChoice;
+  /** 新しいチャットで既定でファストモードを使うか */
+  defaultFastMode: boolean;
   /** スマホなど他端末からのアクセスを許可（LAN に公開） */
   remoteEnabled: boolean;
   /** ntfy のトピック URL（空なら通知しない） */
@@ -243,6 +253,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   maxConcurrentRuns: 2,
   defaultProvider: "claude",
   claudeModel: "opus",
+  defaultEffort: null,
+  defaultPermission: "phase",
+  defaultFastMode: false,
   remoteEnabled: false,
   ntfyUrl: "",
   projectsDir: "~/Documents",

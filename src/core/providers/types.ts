@@ -45,6 +45,8 @@ export interface ProviderRunParams {
   effort: EffortLevel | null;
   /** 権限モード（"phase" ならフェーズのポリシーに従う） */
   permissionMode: PermissionChoice;
+  /** ファストモード（対応していないモデル・プランでは通常の速度になる） */
+  fastMode: boolean;
   tools: KickoffTool[];
 }
 

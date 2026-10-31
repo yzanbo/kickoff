@@ -47,6 +47,7 @@ export class Runner {
     if (!providers[project.provider].implemented) throw new Error(`${providers[project.provider].label} はまだ使えません`);
 
     const settings = store.getSettings();
+    // チャット欄で指定がなければ、設定の既定を使う
     const options = input.options ?? {};
     const model = options.model ?? (project.provider === "claude" ? settings.claudeModel || null : null);
     const run = store.createRun({
@@ -57,10 +58,10 @@ export class Runner {
       title: input.title ?? task?.title ?? firstLine(input.prompt),
       status: "queued",
       model,
-      effort: options.effort ?? null,
-      permission_mode: options.permission_mode ?? "phase",
+      effort: options.effort === undefined ? settings.defaultEffort : options.effort,
+      permission_mode: options.permission_mode ?? settings.defaultPermission,
+      fast_mode: options.fast_mode ?? settings.defaultFastMode,
     });
-    this.rememberModel(project.provider, options.model);
     store.addEvent(run.id, { type: "user", text: input.prompt });
     this.enqueue({ runId: run.id, prompt: input.prompt });
     return store.getRun(run.id)!;
@@ -80,8 +81,8 @@ export class Runner {
       model: options.model === undefined ? undefined : options.model,
       effort: options.effort === undefined ? undefined : options.effort,
       permission_mode: options.permission_mode ?? undefined,
+      fast_mode: options.fast_mode === undefined || options.fast_mode === null ? undefined : options.fast_mode ? 1 : 0,
     });
-    this.rememberModel(run.provider, options.model);
     this.enqueue({ runId: run.id, prompt: text });
     return store.getRun(run.id)!;
   }
@@ -104,13 +105,6 @@ export class Runner {
   shutdown() {
     this.queue.length = 0;
     for (const controller of this.active.values()) controller.abort();
-  }
-
-  /** 最後に選んだモデルを次回の既定にする */
-  private rememberModel(provider: ProviderId, model: string | null | undefined) {
-    if (provider === "claude" && model && model !== this.deps.store.getSettings().claudeModel) {
-      this.deps.store.updateSettings({ claudeModel: model });
-    }
   }
 
   private enqueue(item: QueueItem) {
@@ -151,6 +145,7 @@ export class Runner {
           model: run.model,
           effort: run.effort,
           permissionMode: run.permission_mode,
+          fastMode: Boolean(run.fast_mode),
           tools: createKickoffTools({
             store,
             projectId: project.id,

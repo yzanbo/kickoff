@@ -155,6 +155,7 @@ export class ClaudeProvider implements AgentProvider {
           description: m.description,
           efforts: (m.supportedEffortLevels ?? []).filter((e): e is EffortLevel => EFFORT_LEVELS.includes(e)),
           supportsAutoMode: Boolean(m.supportsAutoMode),
+          supportsFastMode: Boolean(m.supportsFastMode),
         }));
     });
   }
@@ -268,6 +269,7 @@ export class ClaudeProvider implements AgentProvider {
           env: agentEnv(),
           pathToClaudeCodeExecutable: this.executable,
           hooks: scopeHooks(params),
+          ...(params.fastMode ? { settings: { fastMode: true } } : {}),
         },
       });
 
@@ -285,6 +287,14 @@ export class ClaudeProvider implements AgentProvider {
 
     if (signal.aborted) return { status: "cancelled", sessionId };
     if (!final) return { status: "failed", sessionId, error: "エージェントが結果を返さずに終了しました" };
+
+    // ファストモードを指定したのに使われなかった場合は、理由をチャットに残す
+    if (params.fastMode && final.fast_mode_state !== "on" && final.fast_mode_disabled_reason) {
+      cb.emit({
+        type: "notice",
+        message: `ファストモードは使われませんでした（${FAST_MODE_REASONS[final.fast_mode_disabled_reason] ?? final.fast_mode_disabled_reason}）`,
+      });
+    }
 
     const common = { sessionId: final.session_id ?? sessionId, costUsd: final.total_cost_usd, turns: final.num_turns };
     if (final.subtype === "success" && !final.is_error) {
@@ -368,6 +378,16 @@ export function normalizeUsage(res: SDKControlGetUsageResponse): PlanUsage {
     fetched_at: new Date().toISOString(),
   };
 }
+
+const FAST_MODE_REASONS: Record<string, string> = {
+  extra_usage_disabled: "追加の使用枠（extra usage）が無効です",
+  model_not_allowed: "このモデルはファストモードに対応していません",
+  free: "現在のプランでは使えません",
+  preference: "設定で無効になっています",
+  not_first_party: "このプロバイダーでは使えません",
+  disabled_by_env: "環境変数で無効になっています",
+  network_error: "状態を確認できませんでした",
+};
 
 const ERROR_LABELS: Record<string, string> = {
   error_max_turns: "最大ターン数に達しました",

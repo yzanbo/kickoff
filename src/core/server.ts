@@ -42,10 +42,13 @@ const settingsSchema = z
   .object({
     maxConcurrentRuns: z.number().int().min(1).max(8),
     defaultProvider: z.enum(PROVIDER_IDS),
-    claudeModel: z.string().max(100),
     remoteEnabled: z.boolean(),
     ntfyUrl: z.union([z.literal(""), z.url()]),
     projectsDir: z.string().min(1).max(500),
+    claudeModel: z.string().min(1).max(100),
+    defaultEffort: z.enum(EFFORT_LEVELS).nullable(),
+    defaultPermission: z.enum(PERMISSION_CHOICES),
+    defaultFastMode: z.boolean(),
   })
   .partial();
 
@@ -89,6 +92,7 @@ const runOptionsSchema = z
     model: z.string().max(100).nullable(),
     effort: z.enum(EFFORT_LEVELS).nullable(),
     permission_mode: z.enum(PERMISSION_CHOICES).nullable(),
+    fast_mode: z.boolean().nullable(),
   })
   .partial()
   .default({});
