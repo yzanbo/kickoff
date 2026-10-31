@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { Approval, ProjectSummary, Run } from "../../../core/types";
 import { api } from "../api";
 import { useServerEvent } from "../events";
@@ -9,7 +9,9 @@ import { RunStatusIcon } from "./RunStatus";
 
 const CURRENT_KEY = "kickoff:current-project";
 /** 横スワイプで隣へ移るのに必要な移動量（ページ幅に対する割合） */
-const SWIPE_RATIO = 0.22;
+const SWIPE_RATIO = 0.18;
+/** この時間ホイールのイベントが途切れたら、1 回のジェスチャー（慣性を含む）が終わったとみなす */
+const GESTURE_END_MS = 180;
 
 interface Props {
   projects: ProjectSummary[];
@@ -27,12 +29,33 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   const ordered = [...projects].sort((a, b) => a.id - b.id);
   const [currentId, setCurrentId] = useState<number | undefined>(() => Number(localStorage.getItem(CURRENT_KEY)) || undefined);
   const [runs, setRuns] = useState<Record<number, Run[]>>({});
-  const [drag, setDrag] = useState(0);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const gesture = useRef<{ total: number; timer?: ReturnType<typeof setTimeout>; locked: boolean }>({ total: 0, locked: false });
+  // 1 回のスワイプの状態。committed: すでに切り替えた（残りの慣性のイベントは無視する）
+  const gesture = useRef<{ total: number; timer?: ReturnType<typeof setTimeout>; active: boolean; committed: boolean }>({
+    total: 0,
+    active: false,
+    committed: false,
+  });
 
   const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
   const current = ordered[index];
+
+  /**
+   * スライド位置を要素に直接反映する（指に追従させる間は React の再描画を挟まない）。
+   * offset は指で動かしている量（px）。0 ならアニメーションで index の位置へ戻る。
+   */
+  const place = useCallback(
+    (offset: number) => {
+      const track = trackRef.current;
+      if (!track) return;
+      track.classList.toggle("dragging", offset !== 0);
+      track.style.transform = `translateX(calc(${-index * 100}% - ${offset}px))`;
+    },
+    [index],
+  );
+
+  useLayoutEffect(() => place(0), [place]);
 
   // 開いた画面のプロジェクトにサイドバーも合わせる
   const routeProject = routeProjectId(route);
@@ -86,28 +109,49 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     return () => window.removeEventListener("keydown", onKey);
   }, [go, index]);
 
-  /** スワイプの終わり: 十分動いていれば隣へ、そうでなければ元に戻す */
-  const finish = (total: number) => {
-    const width = trackRef.current?.clientWidth ?? 260;
-    if (total > width * SWIPE_RATIO) go(index + 1);
-    else if (total < -width * SWIPE_RATIO) go(index - 1);
-    setDrag(0);
+  const width = () => viewportRef.current?.clientWidth ?? 260;
+  /** 端のプロジェクトより先へは、少しだけ動いて戻る（ゴムのような抵抗） */
+  const resist = (offset: number) => {
+    const atStart = index === 0 && offset < 0;
+    const atEnd = index === ordered.length - 1 && offset > 0;
+    return atStart || atEnd ? offset / 4 : offset;
+  };
+
+  /** 移動量がしきい値を超えたら、その場で隣へ切り替える */
+  const commitIfFar = (total: number): boolean => {
+    const threshold = width() * SWIPE_RATIO;
+    if (total > threshold && index < ordered.length - 1) {
+      go(index + 1);
+      return true;
+    }
+    if (total < -threshold && index > 0) {
+      go(index - 1);
+      return true;
+    }
+    return false;
   };
 
   // トラックパッドの 2 本指スワイプ（横方向のホイール）
   function onWheel(e: WheelEvent<HTMLDivElement>) {
     const g = gesture.current;
-    if (!g.locked && Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; // 縦スクロールはそのまま
-    g.locked = true;
-    g.total += e.deltaX;
-    const width = trackRef.current?.clientWidth ?? 260;
-    setDrag(Math.max(-width, Math.min(width, g.total)));
+    if (!g.active && Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; // 縦スクロールはそのまま
+    g.active = true;
     clearTimeout(g.timer);
     g.timer = setTimeout(() => {
-      finish(g.total);
+      // ジェスチャーの終わり: 切り替えていなければ元の位置へ戻す
+      if (!g.committed) place(0);
       g.total = 0;
-      g.locked = false;
-    }, 140);
+      g.active = false;
+      g.committed = false;
+    }, GESTURE_END_MS);
+    // 切り替えたあとに届く慣性のイベントは無視する（遅れて二重に動かないように）
+    if (g.committed) return;
+    g.total += e.deltaX;
+    if (commitIfFar(g.total)) {
+      g.committed = true;
+      return;
+    }
+    place(resist(Math.max(-width(), Math.min(width(), g.total))));
   }
 
   // スマホなどのタッチ・ドラッグ
@@ -122,12 +166,12 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     const dx = p.x - e.clientX;
     const dy = p.y - e.clientY;
     if (p.horizontal === undefined && Math.hypot(dx, dy) > 8) p.horizontal = Math.abs(dx) > Math.abs(dy);
-    if (p.horizontal) setDrag(dx);
+    if (p.horizontal) place(resist(dx));
   }
   function onPointerUp(e: PointerEvent<HTMLDivElement>) {
     const p = pointer.current;
     if (!p || p.id !== e.pointerId) return;
-    if (p.horizontal) finish(p.x - e.clientX);
+    if (p.horizontal && !commitIfFar(p.x - e.clientX)) place(0);
     pointer.current = null;
   }
 
@@ -145,20 +189,17 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     <div className="workspaces">
       <div
         className="workspace-viewport"
-        ref={trackRef}
+        ref={viewportRef}
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={() => {
           pointer.current = null;
-          setDrag(0);
+          place(0);
         }}
       >
-        <div
-          className={`workspace-track ${drag ? "dragging" : ""}`}
-          style={{ transform: `translateX(calc(${-index * 100}% - ${drag}px))` }}
-        >
+        <div className="workspace-track" ref={trackRef}>
           {ordered.map((p, i) => (
             <WorkspacePage
               key={p.id}
@@ -203,7 +244,8 @@ function initialOf(name: string): string {
   return Array.from(name.trim())[0]?.toUpperCase() ?? "?";
 }
 
-function WorkspacePage({
+// プロジェクトを切り替えても、中身の変わらないページは描き直さない
+const WorkspacePage = memo(function WorkspacePage({
   project,
   runs,
   approvals,
@@ -267,4 +309,4 @@ function WorkspacePage({
       </ul>
     </section>
   );
-}
+});
