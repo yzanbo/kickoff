@@ -79,19 +79,10 @@ export function App() {
             <ProjectNav projects={projects} approvals={approvals} route={route} />
           )}
         </nav>
-        {usage?.available && (
-          <a className="sidebar-usage" href={href({ name: "home" })} title="使用状況の詳細">
-            <UsageMeter window={usage.five_hour} compact idleText={FIVE_HOUR_IDLE} />
-            <UsageMeter window={usage.seven_day} compact />
-          </a>
-        )}
         <div className="sidebar-footer">
           <a className={`nav-item ${route.name === "settings" ? "active" : ""}`} href={href({ name: "settings" })}>
             設定
           </a>
-          <span className={`conn conn-${connection}`} title={CONNECTION_LABELS[connection]}>
-            {CONNECTION_LABELS[connection]}
-          </span>
         </div>
       </aside>
       <main className="main">
@@ -109,6 +100,20 @@ export function App() {
           <HomePage planUsage={planUsage} projects={projects} onNewProject={() => setCreating(true)} />
         )}
       </main>
+      <footer className="app-footer">
+        <span className={`conn conn-${connection}`} title="サーバーとの接続">
+          {CONNECTION_LABELS[connection]}
+        </span>
+        <span className="spacer" />
+        {usage?.available ? (
+          <a className="footer-usage" href={href({ name: "home" })} title="使用状況の詳細">
+            <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
+            <UsageMeter window={usage.seven_day} inline />
+          </a>
+        ) : (
+          usage && <span className="muted">使用状況を取得できません</span>
+        )}
+      </footer>
       {creating && (
         <NewProjectDialog
           defaultParentDir={projectsDir}
