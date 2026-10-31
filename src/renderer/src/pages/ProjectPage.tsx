@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { PHASE_LABELS, PHASES, type Approval, type Project, type Run, type Task } from "../../../core/types";
 import { api } from "../api";
-import { ApprovalCard } from "../components/ApprovalCard";
 import { WriteScopeEditor } from "../components/WriteScopeEditor";
 import { useServerEvent } from "../events";
 import { href, navigate } from "../router";
@@ -51,7 +50,9 @@ export function ProjectPage({ id }: { id: number }) {
   if (error && !data) return <div className="page error">{error}</div>;
   if (!data) return <div className="page muted">読み込み中…</div>;
   const { project, tasks, runs, approvals } = data;
-  const activeRuns = runs.filter((r) => BUSY.includes(r.status));
+  // 全体画面にはチャットの中身を出さず、チャットへのリンクだけを並べる
+  const waitingRuns = runs.filter((r) => approvals.some((a) => a.run_id === r.id));
+  const workingRuns = runs.filter((r) => BUSY.includes(r.status) && !waitingRuns.includes(r));
 
   return (
     <div className="page">
@@ -68,19 +69,17 @@ export function ProjectPage({ id }: { id: number }) {
         </p>
       </header>
 
-      {approvals.length > 0 && (
+      {waitingRuns.length > 0 && (
         <section className="section">
-          <h2>回答待ち</h2>
-          {approvals.map((a) => (
-            <ApprovalCard key={a.id} approval={a} />
-          ))}
+          <h2>回答待ちのチャット</h2>
+          <RunList projectId={project.id} runs={waitingRuns} approvals={approvals} showSection />
         </section>
       )}
 
-      {activeRuns.length > 0 && (
+      {workingRuns.length > 0 && (
         <section className="section">
           <h2>作業中のチャット</h2>
-          <RunList projectId={project.id} runs={activeRuns} approvals={approvals} />
+          <RunList projectId={project.id} runs={workingRuns} approvals={approvals} showSection />
         </section>
       )}
 
