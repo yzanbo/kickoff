@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PHASE_LABELS, type Approval, type Run, type RunEvent, type RunStatus } from "../../../core/types";
+import { PHASE_LABELS, type Approval, type Attachment, type Run, type RunEvent, type RunStatus } from "../../../core/types";
 import { api } from "../api";
 import { ApprovalCard, describeToolInput } from "../components/ApprovalCard";
+import { AttachmentChip } from "../components/AttachmentChip";
 import { Composer } from "../components/Composer";
 import { Markdown } from "../components/Markdown";
 import { useRunOptions } from "../components/RunOptionsBar";
@@ -130,8 +131,8 @@ function RunView({
         <Composer
           options={options}
           busy={busy}
-          onSend={async (text) => {
-            await api.sendMessage(run.id, text, options.options);
+          onSend={async (text, attachments) => {
+            await api.sendMessage(run.id, text, options.options, attachments);
           }}
           onStop={() => void api.cancelRun(run.id)}
         />
@@ -143,8 +144,21 @@ function RunView({
 function EventItem({ event, result }: { event: RunEvent; result?: RunEvent }) {
   const data = event.data as Record<string, unknown>;
   switch (event.type) {
-    case "user":
-      return <div className="bubble user">{String(data.text)}</div>;
+    case "user": {
+      const attachments = (data.attachments as Attachment[] | undefined) ?? [];
+      return (
+        <div className="bubble user">
+          {attachments.length > 0 && (
+            <div className="bubble-attachments">
+              {attachments.map((a) => (
+                <AttachmentChip key={a.id} attachment={a} />
+              ))}
+            </div>
+          )}
+          {String(data.text ?? "")}
+        </div>
+      );
+    }
     case "text":
       return (
         <div className={`bubble assistant ${data.sub ? "sub" : ""}`}>

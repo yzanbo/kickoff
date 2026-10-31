@@ -13,6 +13,7 @@ import type { Store } from "./store.js";
 import type { UsageMonitor } from "./usage.js";
 import type { ApprovalCenter } from "./approvals.js";
 import type { Runner } from "./runner.js";
+import type { UploadStore } from "./uploads.js";
 import {
   EFFORT_LEVELS,
   PERMISSION_CHOICES,
@@ -34,6 +35,7 @@ export interface ServerDeps {
   usage: UsageMonitor;
   runner: Runner;
   approvals: ApprovalCenter;
+  uploads: UploadStore;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
   staticDir?: string;
 }
@@ -97,12 +99,31 @@ const runOptionsSchema = z
   .partial()
   .default({});
 
-const runInputSchema = z.object({
-  phase: z.enum(PHASES),
-  task_id: z.number().int().optional(),
-  prompt: z.string().trim().min(1).max(50_000),
-  options: runOptionsSchema,
+const attachmentSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().max(300),
+  mime: z.string().max(200),
+  size: z.number().int().nonnegative(),
 });
+
+// 本文が空でも、添付があれば送れる
+const runInputSchema = z
+  .object({
+    phase: z.enum(PHASES),
+    task_id: z.number().int().optional(),
+    prompt: z.string().trim().max(50_000).default(""),
+    options: runOptionsSchema,
+    attachments: z.array(attachmentSchema).max(20).default([]),
+  })
+  .refine((v) => v.prompt || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
+
+const messageInputSchema = z
+  .object({
+    text: z.string().trim().max(50_000).default(""),
+    options: runOptionsSchema,
+    attachments: z.array(attachmentSchema).max(20).default([]),
+  })
+  .refine((v) => v.text || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
 
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
@@ -138,7 +159,7 @@ const projectPatchSchema = z
  * 認証はトークン（Cookie または Authorization: Bearer）。
  */
 export function createApp(deps: ServerDeps): Hono {
-  const { store, bus, token, providers, usage, runner, approvals } = deps;
+  const { store, bus, token, providers, usage, runner, approvals, uploads } = deps;
   const app = new Hono();
 
   // スマホなどのペアリング: QR の URL に含めたトークンを Cookie に移してから画面へ
@@ -276,10 +297,15 @@ export function createApp(deps: ServerDeps): Hono {
   app.post("/api/projects/:id/runs", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const input = runInputSchema.parse(await c.req.json());
-    return c.json(
-      runner.start({ projectId: project.id, phase: input.phase, taskId: input.task_id, prompt: input.prompt, options: input.options }),
-      201,
-    );
+    const run = await runner.start({
+      projectId: project.id,
+      phase: input.phase,
+      taskId: input.task_id,
+      prompt: input.prompt,
+      options: input.options,
+      attachments: input.attachments,
+    });
+    return c.json(run, 201);
   });
 
   app.get("/api/runs/:id", (c) => {
@@ -296,11 +322,9 @@ export function createApp(deps: ServerDeps): Hono {
 
   app.post("/api/runs/:id/messages", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    const { text, options } = z
-      .object({ text: z.string().trim().min(1).max(50_000), options: runOptionsSchema })
-      .parse(await c.req.json());
+    const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
     try {
-      return c.json(runner.send(run.id, text, options));
+      return c.json(await runner.send(run.id, text, options, attachments));
     } catch (e) {
       throw new HttpError(409, (e as Error).message);
     }
@@ -310,6 +334,37 @@ export function createApp(deps: ServerDeps): Hono {
     const run = requireRun(store, c.req.param("id"));
     runner.cancel(run.id);
     return c.json({ ok: true });
+  });
+
+  // ---- 添付ファイル ----
+  app.post("/api/uploads", async (c) => {
+    const body = await c.req.parseBody({ all: true });
+    const files = [body.file].flat().filter((f): f is File => f instanceof File);
+    if (files.length === 0) throw new HttpError(400, "ファイルがありません");
+    const saved = [];
+    for (const file of files) {
+      try {
+        saved.push(await uploads.save({ name: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) }));
+      } catch (e) {
+        throw new HttpError(400, (e as Error).message);
+      }
+    }
+    return c.json(saved, 201);
+  });
+
+  // 画面での表示用（画像のサムネイルなど）
+  app.get("/api/uploads/:id", async (c) => {
+    const file = await uploads.resolve(c.req.param("id"));
+    if (!file) throw new HttpError(404, "ファイルが見つかりません");
+    const data = await fs.promises.readFile(file.path);
+    const mime = c.req.query("mime") ?? "application/octet-stream";
+    // 画像と PDF 以外はダウンロードさせる（スクリプトを画面の権限で開かせない）
+    const inline = /^image\/(png|jpeg|gif|webp)$|^application\/pdf$/.test(mime);
+    return c.body(data, 200, {
+      "content-type": inline ? mime : "application/octet-stream",
+      "content-disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+      "x-content-type-options": "nosniff",
+    });
   });
 
   // ---- 承認依頼・AI からの質問 ----

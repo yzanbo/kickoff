@@ -3,8 +3,9 @@ import { createKickoffTools } from "./kickoffTools.js";
 import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
-import type { Phase, ProviderId, Run, RunOptions } from "./types.js";
+import type { Attachment, Phase, ProviderId, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
+import { withAttachmentNote, type UploadStore } from "./uploads.js";
 
 export interface StartRunInput {
   projectId: number;
@@ -13,6 +14,7 @@ export interface StartRunInput {
   prompt: string;
   title?: string;
   options?: RunOptions;
+  attachments?: Attachment[];
 }
 
 interface QueueItem {
@@ -35,10 +37,11 @@ export class Runner {
       approvals: ApprovalCenter;
       providers: Record<ProviderId, AgentProvider>;
       usage: UsageMonitor;
+      uploads?: UploadStore;
     },
   ) {}
 
-  start(input: StartRunInput): Run {
+  async start(input: StartRunInput): Promise<Run> {
     const { store, providers } = this.deps;
     const project = store.getProject(input.projectId);
     if (!project) throw new Error("プロジェクトが見つかりません");
@@ -62,18 +65,19 @@ export class Runner {
       permission_mode: options.permission_mode ?? settings.defaultPermission,
       fast_mode: options.fast_mode ?? settings.defaultFastMode,
     });
-    store.addEvent(run.id, { type: "user", text: input.prompt });
-    this.enqueue({ runId: run.id, prompt: input.prompt });
+    const attachments = input.attachments ?? [];
+    store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}) });
+    this.enqueue({ runId: run.id, prompt: await this.promptWithAttachments(input.prompt, attachments) });
     return store.getRun(run.id)!;
   }
 
   /** 終了した会話に追加の指示を送り、続きから再開する */
-  send(runId: number, text: string, options: RunOptions = {}): Run {
+  async send(runId: number, text: string, options: RunOptions = {}, attachments: Attachment[] = []): Promise<Run> {
     const { store } = this.deps;
     const run = store.getRun(runId);
     if (!run) throw new Error("実行が見つかりません");
     if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから送ってください");
-    store.addEvent(run.id, { type: "user", text });
+    store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}) });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
     store.updateRun(run.id, {
       status: "queued",
@@ -83,8 +87,19 @@ export class Runner {
       permission_mode: options.permission_mode ?? undefined,
       fast_mode: options.fast_mode === undefined || options.fast_mode === null ? undefined : options.fast_mode ? 1 : 0,
     });
-    this.enqueue({ runId: run.id, prompt: text });
+    this.enqueue({ runId: run.id, prompt: await this.promptWithAttachments(text, attachments) });
     return store.getRun(run.id)!;
+  }
+
+  /** 添付ファイルのパスをメッセージに書き添える（エージェントは Read ツールで読む） */
+  private async promptWithAttachments(text: string, attachments: Attachment[]): Promise<string> {
+    if (attachments.length === 0 || !this.deps.uploads) return text;
+    const files = [];
+    for (const attachment of attachments) {
+      const resolved = await this.deps.uploads.resolve(attachment.id);
+      if (resolved) files.push({ path: resolved.path, attachment });
+    }
+    return withAttachmentNote(text, files);
   }
 
   cancel(runId: number) {
@@ -146,6 +161,7 @@ export class Runner {
           effort: run.effort,
           permissionMode: run.permission_mode,
           fastMode: Boolean(run.fast_mode),
+          additionalDirectories: this.deps.uploads ? [this.deps.uploads.dir] : [],
           tools: createKickoffTools({
             store,
             projectId: project.id,

@@ -9,6 +9,7 @@ import { Store } from "./store.js";
 import { UsageMonitor } from "./usage.js";
 import { ApprovalCenter } from "./approvals.js";
 import { Runner } from "./runner.js";
+import { UploadStore } from "./uploads.js";
 
 export interface CoreOptions {
   dataDir: string;
@@ -41,8 +42,9 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
   const usage = new UsageMonitor(providers.claude, bus);
   const approvals = new ApprovalCenter(bus);
-  const runner = new Runner({ store, approvals, providers, usage });
-  const app = createApp({ store, bus, token, providers, usage, runner, approvals, staticDir: opts.staticDir });
+  const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
+  const runner = new Runner({ store, approvals, providers, usage, uploads });
+  const app = createApp({ store, bus, token, providers, usage, runner, approvals, uploads, staticDir: opts.staticDir });
 
   const host = opts.host ?? "127.0.0.1";
   const server = await new Promise<ServerType>((resolve, reject) => {
