@@ -10,6 +10,7 @@ import {
 } from "../../../core/types";
 import { api, type TaskInput } from "../api";
 import { SectionBadge } from "./SectionBadge";
+import { confirmDialog } from "../dialogs";
 
 const PRIORITY_LABELS: Record<number, string> = { 1: "高", 2: "中", 3: "低" };
 
@@ -69,7 +70,8 @@ function TaskRow({ task }: { task: Task }) {
           setEditing(false);
         }}
         onDelete={async () => {
-          if (confirm(`タスク「${task.title}」を削除しますか？`)) await api.deleteTask(task.id);
+          const ok = await confirmDialog({ title: `タスク「${task.title}」を削除しますか？`, confirmLabel: "削除", danger: true });
+          if (ok) await api.deleteTask(task.id);
         }}
       />
     );

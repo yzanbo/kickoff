@@ -14,6 +14,7 @@ import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/R
 import { SectionBadge } from "../components/SectionBadge";
 import { useServerEvent } from "../events";
 import { href } from "../router";
+import { promptDialog } from "../dialogs";
 
 interface RunPageProps {
   projectId: number;
@@ -141,7 +142,7 @@ function RunView({
             title="名前を変更"
             aria-label="名前を変更"
             onClick={async () => {
-              const title = prompt("チャットの名前", run.title)?.trim();
+              const title = await promptDialog({ title: "チャットの名前を変更", initial: run.title, confirmLabel: "変更" });
               if (title && title !== run.title) await api.renameRun(run.id, title);
             }}
           >

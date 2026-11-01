@@ -12,6 +12,7 @@ import { BoardSearch, CardMenu, CardSnippet, STATE_TONE } from "./KanbanBoard";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
 import { DraftCard, useSidePanel } from "./SidePanel";
+import { confirmDialog } from "../dialogs";
 
 interface Props {
   projectId: number;
@@ -91,12 +92,20 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
     }
   };
 
-  const removeGroup = (group: RunGroup) => {
-    if (!confirm(`グループ「${group.name}」を削除しますか？\n中のチャットは消えず、グループなしに戻ります。`)) return;
+  const removeGroup = async (group: RunGroup) => {
+    if (
+      !(await confirmDialog({
+        title: `グループ「${group.name}」を削除しますか？`,
+        message: "中のチャットは消えず、グループなしに戻ります。",
+        confirmLabel: "削除",
+        danger: true,
+      }))
+    )
+      return;
     void guard(() => api.deleteGroup(group.id));
   };
   // グループの「…」メニュー（右クリックでも開く）
-  const groupMenu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: removeGroup });
+  const groupMenu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g) });
 
   /** 列をドロップ先にする。チャットはその列のグループへ、グループの列はその位置へ並べ替える */
   const reorder = useGroupReorder(

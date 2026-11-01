@@ -31,6 +31,7 @@ import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState } from "../../../core/types";
 import { relativeTime } from "./RunList";
 import { StatusSlot } from "./StatusSlot";
+import { confirmDialog } from "../dialogs";
 
 const CURRENT_KEY = "kickoff:current-project";
 const LAYOUT_KEY = "kickoff:sidebar-layout";
@@ -466,7 +467,13 @@ const WorkspacePage = memo(function WorkspacePage({
     setCreating(true);
   };
   const removeGroup = async (group: RunGroup) => {
-    if (!confirm(`グループ「${group.name}」を削除しますか？\n中のチャットは消えず、グループなしに戻ります。`)) return;
+    const ok = await confirmDialog({
+      title: `グループ「${group.name}」を削除しますか？`,
+      message: "中のチャットは消えず、グループなしに戻ります。",
+      confirmLabel: "削除",
+      danger: true,
+    });
+    if (!ok) return;
     await api.deleteGroup(group.id);
   };
   // グループの「…」メニュー（右クリックでも開く）

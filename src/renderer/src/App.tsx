@@ -17,6 +17,7 @@ import { href, openNewChat, routeProjectId, useRoute } from "./router";
 import { applyTheme, loadTheme } from "./theme";
 import { useRunNotifications } from "./notifications";
 import { FIVE_HOUR_IDLE, planLabel, PlanUsageContext, usePlanUsage } from "./usage";
+import { DialogHost } from "./dialogs";
 
 applyTheme(loadTheme());
 
@@ -264,6 +265,7 @@ export function App() {
           <PanelLeftOpen size={14} strokeWidth={1.75} />
         </button>
       )}
+      <DialogHost />
       {connOpen && <ConnectionPopover state={connection} since={connectedSince} onClose={closeConn} />}
       {usageOpen && (
         <UsagePopover planUsage={planUsage} plan={usage?.plan ? planLabel(usage.plan) : null} onClose={closeUsage} />

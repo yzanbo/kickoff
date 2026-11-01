@@ -32,6 +32,7 @@ import { projectHue } from "../projectColor";
 import { ProjectChip } from "./ProjectChip";
 import { SectionBadge } from "./SectionBadge";
 import { DraftCard, useSidePanel } from "./SidePanel";
+import { confirmDialog, promptDialog } from "../dialogs";
 
 type ViewMode = "board" | "list";
 
@@ -469,7 +470,6 @@ export function CardMenu({
   onError: (m: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     const close = (e: Event) => {
@@ -505,10 +505,10 @@ export function CardMenu({
       </button>
       <button
         role="menuitem"
-        onClick={() => {
-          const title = prompt("チャットの名前", run.title)?.trim();
+        onClick={async () => {
+          onClose();
+          const title = await promptDialog({ title: "チャットの名前を変更", initial: run.title, confirmLabel: "変更" });
           if (title && title !== run.title) void act(() => api.renameRun(run.id, title));
-          else onClose();
         }}
       >
         <Pencil size={14} /> 名前を変更
@@ -516,15 +516,22 @@ export function CardMenu({
       <button role="menuitem" onClick={() => void act(() => api.archiveRun(run.id))}>
         <Archive size={14} /> アーカイブ
       </button>
-      {confirmDelete ? (
-        <button role="menuitem" className="danger" onClick={() => void act(() => api.deleteRun(run.id))}>
-          <Trash2 size={14} /> 本当に削除する
-        </button>
-      ) : (
-        <button role="menuitem" className="danger" onClick={() => setConfirmDelete(true)}>
-          <Trash2 size={14} /> 削除…
-        </button>
-      )}
+      <button
+        role="menuitem"
+        className="danger"
+        onClick={async () => {
+          onClose();
+          const ok = await confirmDialog({
+            title: `チャット「${run.title || "無題のチャット"}」を削除しますか？`,
+            message: "会話の記録も消えます。残しておきたいときはアーカイブを使ってください。",
+            confirmLabel: "削除",
+            danger: true,
+          });
+          if (ok) void act(() => api.deleteRun(run.id));
+        }}
+      >
+        <Trash2 size={14} /> 削除…
+      </button>
     </div>
   );
 }

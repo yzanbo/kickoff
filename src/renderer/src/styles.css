@@ -2066,6 +2066,51 @@ select:focus {
   color: var(--text);
 }
 
+/* アプリ全体の確認・入力のダイアログ（OS 標準の confirm / prompt の代わり） */
+.dialog.app-dialog {
+  width: min(420px, calc(100vw - 32px));
+  animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+.app-dialog-body {
+  display: grid;
+  gap: 12px;
+  padding: 20px 20px 16px;
+}
+
+.app-dialog-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.app-dialog-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.app-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.app-dialog-actions .btn {
+  min-width: 84px;
+  justify-content: center;
+}
+
 .dialog::backdrop,
 .palette::backdrop {
   background: rgb(0 0 0 / 50%);
@@ -4506,13 +4551,17 @@ mark {
   flex: none;
 }
 
-/* 新しいチャットの＋は、カンバンの列と同じく右端にいつも出す */
+/* カンバンの列と同じく、件数は名前のすぐ横、＋と「…」は右端に寄せる */
 .group-column-head .column-title {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.group-column-head .group-add-chat {
+  margin-left: auto;
 }
 
 
@@ -5307,7 +5356,8 @@ mark {
 .list-group {
   position: relative;
   margin-bottom: 12px;
-  padding: 0 6px 6px;
+  /* 強調表示（枠と背景）のときに見出しが枠にくっつかないよう、いつも内側に余白をとる */
+  padding: 6px 8px 8px;
   border: 1px solid transparent;
   border-radius: var(--radius);
 }
@@ -5481,4 +5531,18 @@ mark {
 
 ::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in srgb, var(--text) 36%, transparent);
+}
+
+/* ==== ボタンのピントの枠（全体） ====
+ * マウスで押したときは出さず、キーボード（Tab）で移ったときだけ、アクセントの色の細い枠を出す */
+button:focus,
+a:focus {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-bright) 70%, transparent);
+  outline-offset: 2px;
 }
