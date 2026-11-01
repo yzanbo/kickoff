@@ -212,6 +212,10 @@ export function App() {
           <a className="footer-usage" href={href({ name: "settings" })} title="使用状況の詳細">
             <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
             <UsageMeter window={usage.seven_day} inline />
+            {/* モデル別の週枠（Fable など）。フッターでは短く「Fable」と表示する */}
+            {usage.model_weekly.map((w) => (
+              <UsageMeter key={w.key} window={{ ...w, label: w.label.replace(/^週（(.+)）$/, "$1") }} inline />
+            ))}
           </a>
         ) : (
           usage && <span className="muted">使用状況を取得できません</span>
