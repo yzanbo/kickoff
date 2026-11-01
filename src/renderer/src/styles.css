@@ -189,16 +189,21 @@ kbd {
 
 /* 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置） */
 .titlebar-toggle {
+  /*
+   * 信号機ボタン（1 つの枠 14×16px・丸は直径 12px・20px 間隔。左上 14px,14px から並ぶので
+   * 中心の高さは約 22px、右端は約 68px）と同じ行・同じ高さ・同じくらいの大きさにする
+   */
   position: absolute;
-  top: 10px;
-  left: 78px;
+  top: 12px;
+  left: 76px;
   z-index: 30;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 5px;
   color: var(--muted);
   background: transparent;
   cursor: pointer;
