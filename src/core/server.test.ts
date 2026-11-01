@@ -28,7 +28,10 @@ class FakeProvider implements AgentProvider {
   async status() {
     return { id: this.id, label: this.label, implemented: true, installed: true, loggedIn: true, detail: "" };
   }
-  async run(): Promise<ProviderRunResult> {
+  /** 最後に動かした作業フォルダ（チャットの作業場所の確かめに使う） */
+  lastCwd = "";
+  async run(params: { cwd: string }): Promise<ProviderRunResult> {
+    this.lastCwd = params.cwd;
     return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
   }
 }
@@ -57,7 +60,7 @@ function setup() {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, runner, project, call };
+  return { app, store, runner, project, call, provider };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 10));
@@ -406,4 +409,40 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(removed.length, 1);
   assert.equal(fs.existsSync(wt.path), false);
   fs.rmSync(path.dirname(wt.path), { recursive: true, force: true });
+});
+
+test("チャットの作業場所: 新しいワークツリーを作って、その中でエージェントを動かす。Git の操作も作業場所ごと", async () => {
+  const { call, project, store, provider } = setup();
+  const repo = project.repo_path;
+  const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo });
+  git("init", "-q", "-b", "main");
+  fs.writeFileSync(path.join(repo, "a.txt"), "a\n");
+  git("add", ".");
+  git("commit", "-q", "-m", "init");
+
+  // 本体（指定なし）
+  const main = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "本体で" })).body;
+  assert.equal(main.worktree_path, "");
+  await until(() => store.getRun(main.id)?.status === "completed");
+  assert.equal(provider.lastCwd, repo);
+
+  // 新しいワークツリー
+  const created = await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "並行で", new_worktree_branch: "feat/a" });
+  assert.equal(created.status, 201);
+  const worktree = created.body.worktree_path;
+  assert.ok(worktree.endsWith(path.join(`${path.basename(fs.realpathSync(repo))}-worktrees`, "feat-a")));
+  await until(() => store.getRun(created.body.id)?.status === "completed");
+  assert.equal(provider.lastCwd, worktree);
+
+  // いまあるワークツリーを選ぶ・知らないフォルダは断る
+  assert.equal((await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "同じ所", worktree_path: worktree })).body.worktree_path, worktree);
+  assert.equal((await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "x", worktree_path: "/tmp" })).status, 400);
+
+  // Git の操作は ?worktree= のワークツリーで行う
+  fs.writeFileSync(path.join(worktree, "b.txt"), "b\n");
+  const q = `?worktree=${encodeURIComponent(worktree)}`;
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status${q}`)).body.unstaged, [{ path: "b.txt", kind: "U" }]);
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body.unstaged, []);
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/status?worktree=${encodeURIComponent("/tmp")}`)).status, 400);
+  fs.rmSync(path.dirname(worktree), { recursive: true, force: true });
 });

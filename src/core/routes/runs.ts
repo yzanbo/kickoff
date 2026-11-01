@@ -1,3 +1,5 @@
+import { errorMessage } from "../errors.js";
+import { addWorktree, listWorktrees, worktreePathFor } from "../git.js";
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
@@ -31,6 +33,9 @@ const runInputSchema = z
     attachments: z.array(attachmentSchema).max(20).default([]),
     stage: z.enum(BOARD_STAGES).optional(),
     group_id: z.number().int().optional(),
+    // 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体）
+    worktree_path: z.string().max(2000).optional(),
+    new_worktree_branch: z.string().trim().min(1).max(200).optional(),
   })
   .refine((v) => v.prompt || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
 
@@ -57,6 +62,7 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     if (input.group_id !== undefined && requireGroup(store, String(input.group_id)).project_id !== project.id) {
       throw new HttpError(400, "ほかのプロジェクトのグループには入れられません");
     }
+    const worktreePath = await resolveWorktree(project.repo_path, input.worktree_path, input.new_worktree_branch);
     const run = await runner.start({
       projectId: project.id,
       phase: input.phase,
@@ -66,6 +72,7 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
       attachments: input.attachments,
       stage: input.stage,
       groupId: input.group_id,
+      worktreePath,
     });
     return c.json(run, 201);
   });
@@ -165,4 +172,24 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     runner.cancel(run.id);
     return c.json({ ok: true });
   });
+}
+
+/**
+ * チャットの作業場所を決める。新しいブランチ名があればワークツリーを作り、フォルダの指定があれば
+ * このプロジェクトのワークツリーか確かめる（本体・知らないフォルダは本体＝空にする）
+ */
+async function resolveWorktree(repo: string, worktreePath?: string, newBranch?: string): Promise<string> {
+  try {
+    if (newBranch) {
+      const target = await worktreePathFor(repo, newBranch);
+      await addWorktree(repo, newBranch);
+      return target;
+    }
+    if (!worktreePath) return "";
+    const found = (await listWorktrees(repo)).find((w) => w.path === worktreePath);
+    if (!found) throw new Error("このプロジェクトのワークツリーではありません");
+    return found.main ? "" : found.path;
+  } catch (e) {
+    throw new HttpError(400, errorMessage(e));
+  }
 }

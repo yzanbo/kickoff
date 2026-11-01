@@ -214,6 +214,8 @@ export interface Run {
   archived_at: string | null;
   /** 自分で作ったグループ（null ならグループなし） */
   group_id: number | null;
+  /** 作業場所（git のワークツリーのフォルダ。空ならプロジェクトのフォルダ＝本体） */
+  worktree_path: string;
   /** 最後の応答の時点でコンテキストに入っていたトークン数と、その上限（まだ応答がなければ null） */
   context_tokens: number | null;
   context_window: number | null;

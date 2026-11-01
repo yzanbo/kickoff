@@ -23,6 +23,8 @@ export interface StartRunInput {
   stage?: BoardStage;
   /** 自分で作ったグループ（グループの＋から始めたとき） */
   groupId?: number;
+  /** 作業場所（ワークツリーのフォルダ。省略なら本体） */
+  worktreePath?: string;
 }
 
 interface QueueItem {
@@ -77,6 +79,7 @@ export class Runner {
       fast_mode: options.fast_mode ?? defaults.fastMode,
       stage: input.stage ?? project.defaults.stage ?? null,
       group_id: input.groupId ?? null,
+      worktree_path: input.worktreePath ?? "",
     });
     const attachments = input.attachments ?? [];
     store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}) });
@@ -202,7 +205,8 @@ export class Runner {
       const policy = phasePolicy(run.phase, project);
       const result = await provider.run(
         {
-          cwd: task?.worktree_path || project.repo_path,
+          // 作業場所: チャットのワークツリー → タスクのワークツリー → プロジェクトのフォルダ（本体）
+          cwd: run.worktree_path || task?.worktree_path || project.repo_path,
           prompt,
           systemPrompt: buildSystemPrompt(project, run.phase, task),
           policy,

@@ -1,4 +1,4 @@
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
 import { commitStaged, discardPaths, FileConflictError, addWorktree, gitCommitDetail, gitCommitDiff, gitLog, gitRefs, listWorktrees, removeWorktree, worktreePathFor, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
@@ -13,20 +13,32 @@ const diffQuerySchema = z.object({
 
 /** プロジェクトのフォルダの Git の変更とファイル（ソース管理・エクスプローラー・検索・ファイルの編集） */
 export function gitRoutes(app: Hono, { store }: ServerDeps) {
-  app.get("/api/projects/:id/git/status", async (c) => c.json(await gitStatus(requireProject(store, c.req.param("id")).repo_path)));
+  /**
+   * 操作するフォルダ（?worktree= があれば、このプロジェクトのそのワークツリー。なければ本体）。
+   * エディタタブで作業場所を切り替えたときに使う
+   */
+  const workdir = async (c: Context, project = requireProject(store, c.req.param("id") ?? "")): Promise<string> => {
+    const worktree = c.req.query("worktree");
+    if (!worktree) return project.repo_path;
+    const found = (await listWorktrees(project.repo_path)).find((w) => w.path === worktree);
+    if (!found) throw new HttpError(400, "このプロジェクトのワークツリーではありません");
+    return found.path;
+  };
+
+  app.get("/api/projects/:id/git/status", async (c) => c.json(await gitStatus(await workdir(c))));
 
   app.get("/api/projects/:id/git/diff", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const query = diffQuerySchema.parse({ path: c.req.query("path"), old: c.req.query("old"), staged: c.req.query("staged") });
     try {
-      return c.json(await gitDiff(project.repo_path, query.path, query.staged === "1", query.old));
+      return c.json(await gitDiff(await workdir(c, project), query.path, query.staged === "1", query.old));
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
   });
 
   app.get("/api/projects/:id/files", async (c) => {
-    const files = await listProjectFiles(requireProject(store, c.req.param("id")).repo_path);
+    const files = await listProjectFiles(await workdir(c));
     if (!files) throw new HttpError(400, "このプロジェクトのフォルダは、Git で管理されていません");
     return c.json(files);
   });
@@ -35,7 +47,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const project = requireProject(store, c.req.param("id"));
     const { path } = z.object({ path: z.string().min(1).max(1000) }).parse({ path: c.req.query("path") });
     try {
-      return c.json(await readProjectFile(project.repo_path, path));
+      return c.json(await readProjectFile(await workdir(c, project), path));
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
@@ -48,7 +60,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
       .object({ q: z.string().max(1000).default(""), case: flag, word: flag, regex: flag })
       .parse({ q: c.req.query("q"), case: c.req.query("case"), word: c.req.query("word"), regex: c.req.query("regex") });
     try {
-      return c.json(await searchProject(project.repo_path, { query: query.q, caseSensitive: query.case, wholeWord: query.word, regex: query.regex }));
+      return c.json(await searchProject(await workdir(c, project), { query: query.q, caseSensitive: query.case, wholeWord: query.word, regex: query.regex }));
     } catch {
       throw new HttpError(400, query.regex ? "正規表現の書き方が正しくありません" : "検索できませんでした");
     }
@@ -61,7 +73,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
       .object({ path: z.string().min(1).max(1000), content: z.string().max(5_000_000), base_hash: z.string().max(100).nullable() })
       .parse(await c.req.json());
     try {
-      return c.json(await writeProjectFile(project.repo_path, body.path, body.content, body.base_hash));
+      return c.json(await writeProjectFile(await workdir(c, project), body.path, body.content, body.base_hash));
     } catch (e) {
       throw new HttpError(e instanceof FileConflictError ? 409 : 400, errorMessage(e));
     }
@@ -75,11 +87,11 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
       const project = requireProject(store, c.req.param("id"));
       const { paths } = pathsSchema.parse(await c.req.json());
       try {
-        await action(project.repo_path, paths);
+        await action(await workdir(c, project), paths);
       } catch (e) {
         throw new HttpError(400, errorMessage(e));
       }
-      return c.json(await gitStatus(project.repo_path));
+      return c.json(await gitStatus(await workdir(c, project)));
     });
   }
 
@@ -88,38 +100,38 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const project = requireProject(store, c.req.param("id"));
     const { message } = z.object({ message: z.string().max(10_000) }).parse(await c.req.json());
     try {
-      await commitStaged(project.repo_path, message);
+      await commitStaged(await workdir(c, project), message);
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
-    return c.json(await gitStatus(project.repo_path));
+    return c.json(await gitStatus(await workdir(c, project)));
   });
 
   app.post("/api/projects/:id/git/push", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     try {
-      await pushBranch(project.repo_path);
+      await pushBranch(await workdir(c, project));
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
-    return c.json(await gitStatus(project.repo_path));
+    return c.json(await gitStatus(await workdir(c, project)));
   });
 
   // 履歴（読むだけ）
-  app.get("/api/projects/:id/git/refs", async (c) => c.json(await gitRefs(requireProject(store, c.req.param("id")).repo_path)));
+  app.get("/api/projects/:id/git/refs", async (c) => c.json(await gitRefs(await workdir(c))));
 
   app.get("/api/projects/:id/git/log", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const { skip, limit } = z
       .object({ skip: z.coerce.number().int().min(0).default(0), limit: z.coerce.number().int().min(1).max(1000).default(200) })
       .parse({ skip: c.req.query("skip"), limit: c.req.query("limit") });
-    return c.json(await gitLog(project.repo_path, skip, limit));
+    return c.json(await gitLog(await workdir(c, project), skip, limit));
   });
 
   app.get("/api/projects/:id/git/commits/:hash", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     try {
-      return c.json(await gitCommitDetail(project.repo_path, c.req.param("hash")));
+      return c.json(await gitCommitDetail(await workdir(c, project), c.req.param("hash")));
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
@@ -129,7 +141,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const project = requireProject(store, c.req.param("id"));
     const query = z.object({ path: z.string().min(1).max(1000), old: z.string().min(1).max(1000).optional() }).parse({ path: c.req.query("path"), old: c.req.query("old") });
     try {
-      return c.json(await gitCommitDiff(project.repo_path, c.req.param("hash"), query.path, query.old));
+      return c.json(await gitCommitDiff(await workdir(c, project), c.req.param("hash"), query.path, query.old));
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
