@@ -1,4 +1,4 @@
-import { Folder, FolderPlus, Globe, List, Pencil, Plus, SquareKanban, Trash2 } from "lucide-react";
+import { Folder, FolderPlus, Globe, List, Plus, SquareKanban } from "lucide-react";
 import { useEffect, useState, type DragEvent } from "react";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, type Approval, type Run, type RunGroup } from "../../../core/types";
@@ -6,6 +6,7 @@ import { api } from "../api";
 import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
 import { useChatSearch } from "../chatSearch";
 import { REOPEN_EVENT, type ReopenRoute } from "../router";
+import { useGroupMenu } from "./GroupMenu";
 import { InlineName } from "./InlineName";
 import { BoardSearch, CardMenu, CardSnippet, STATE_TONE } from "./KanbanBoard";
 import { relativeTime } from "./RunList";
@@ -94,6 +95,8 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
     if (!confirm(`グループ「${group.name}」を削除しますか？\n中のチャットは消えず、グループなしに戻ります。`)) return;
     void guard(() => api.deleteGroup(group.id));
   };
+  // グループの「…」メニュー（右クリックでも開く）
+  const groupMenu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: removeGroup });
 
   /** 列をドロップ先にする。チャットはその列のグループへ、グループの列はその位置へ並べ替える */
   const reorder = useGroupReorder(
@@ -203,7 +206,8 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
       <header
         className="column-head group-column-head"
         draggable={renaming !== group.id}
-        title="ドラッグでグループを並べ替える"
+        title="ドラッグでグループを並べ替える（右クリックでメニュー）"
+        onContextMenu={(e) => groupMenu.openFor(group, e)}
         {...reorder.handle(group.id)}
       >
         <Folder size={13} className="muted" aria-hidden />
@@ -225,12 +229,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
         {renaming !== group.id && (
           <>
             <span className="column-count">{count}</span>
-            <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
-              <Pencil size={13} />
-            </button>
-            <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => removeGroup(group)}>
-              <Trash2 size={13} />
-            </button>
+            {groupMenu.button(group)}
             <button
               className="icon-button group-add-chat"
               title={`「${group.name}」に新しいチャット`}
@@ -336,6 +335,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
         {panel.renderPanel()}
       </div>
 
+      {groupMenu.menu}
       {menu && <CardMenu {...menu} onOpenPanel={panel.open} onClose={() => setMenu(null)} onError={setError} />}
     </div>
   );
