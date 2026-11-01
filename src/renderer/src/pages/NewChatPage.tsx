@@ -9,10 +9,10 @@ import { SECTION_META } from "../sections";
 
 /** 新しいチャット（最初のメッセージを送るとチャットが作られ、その画面に移る） */
 export function NewChatPage({ projectId, section: initialSection, stage }: { projectId: number; section?: Phase; stage?: BoardStage }) {
-  const options = useRunOptions();
+  const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
+  const options = useRunOptions(undefined, section);
   const project = useAsync(() => api.project(projectId), [projectId]);
   const runs = useAsync(() => api.runs(projectId), [projectId]);
-  const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
 
   // セクションの指定がなければ、チャットがまだないプロジェクトは要件定義から、それ以外は直近のチャットと同じセクションで始める
   useEffect(() => {
