@@ -42,6 +42,9 @@ const TAB_LABELS: Record<ProjectTab, string> = {
 };
 
 /** プロジェクト画面: チャット一覧と、決まったこと（要件定義書・スケジュール・タスク・レポート）をタブで */
+/** プロジェクトごとの直前のデータ（プロジェクトを切り替えたときに、すぐ出すため） */
+const projectCache = new Map<number, ProjectData>();
+
 export function ProjectPage({
   id,
   tab,
@@ -57,7 +60,8 @@ export function ProjectPage({
   /** グループのタブで目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlightGroup?: number;
 }) {
-  const [data, setData] = useState<ProjectData>();
+  // 一度開いたプロジェクトは、切り替えたときにすぐ出す（裏で読み直す。「読み込み中」を挟んでちらつかないように）
+  const [data, setData] = useState<ProjectData | undefined>(() => projectCache.get(id));
   const [error, setError] = useState<string>();
   const [editing, setEditing] = useState(false);
 
@@ -71,7 +75,9 @@ export function ProjectPage({
         api.groups(id),
         api.approvals(),
       ]);
-      setData({ project, tasks, artifacts, runs, groups, approvals: approvals.filter((a) => a.project_id === id) });
+      const next = { project, tasks, artifacts, runs, groups, approvals: approvals.filter((a) => a.project_id === id) };
+      projectCache.set(id, next);
+      setData(next);
       setError(undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -79,9 +85,11 @@ export function ProjectPage({
   }, [id]);
 
   useEffect(() => {
-    setData(undefined);
+    // 覚えていればそれを出す。初めてのプロジェクトは、読み終わるまで前の画面を薄くして残す
+    const cached = projectCache.get(id);
+    if (cached) setData(cached);
     void load();
-  }, [load]);
+  }, [id, load]);
 
   useServerEvent((e) => {
     const related =
@@ -98,14 +106,18 @@ export function ProjectPage({
     if (related) void load();
   });
 
-  if (error && !data) return <div className="page error">{error}</div>;
-  if (!data) return <div className="page muted">読み込み中…</div>;
-  const { project, tasks, artifacts, runs, groups, approvals } = data;
+  // 切り替えた直後も、覚えている内容があれば最初の描画から使う（前のプロジェクトが一瞬映らないように）
+  const shown = data?.project.id === id ? data : (projectCache.get(id) ?? data);
+  if (error && !shown) return <div className="page error">{error}</div>;
+  if (!shown) return <div className="page muted">読み込み中…</div>;
+  const { project, tasks, artifacts, runs, groups, approvals } = shown;
+  // 別のプロジェクトを読み込んでいる途中（前の画面を薄くして出しておく）
+  const stale = project.id !== id;
   const waiting = runs.filter((r) => approvals.some((a) => a.run_id === r.id)).length;
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (
-    <div className={`page page-wide ${tab === "board" || tab === "groups" ? "page-board" : ""}`}>
+    <div className={`page page-wide ${tab === "board" || tab === "groups" ? "page-board" : ""} ${stale ? "is-stale" : ""}`}>
       <header className="page-header project-header">
         <div className="project-title-row">
           <h1>{project.name}</h1>

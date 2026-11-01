@@ -66,11 +66,26 @@ interface Props {
  * チャットのカンバン。列（未着手・対応中・レビュー・完了）はあなたが動かす進み具合で、
  * カードの点はエージェント自身の状態（回答待ち・作業中・確認待ちなど）。
  */
+/** ボードごとの直前のチャット（プロジェクトを切り替えたときに、すぐ出すため） */
+const runsCache = new Map<string, Run[]>();
+
 const PROJECT_FILTER_KEY = "kickoff:board-project-filter";
 
 export function KanbanBoard({ projectId, projects, approvals, title, focus }: Props) {
-  const [runs, setRuns] = useState<Run[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  // 一度開いたボードのチャットは覚えておき、切り替えたときにすぐ出す（裏で読み直す）
+  const cacheKey = String(projectId ?? "all");
+  const [state, setState] = useState(() => ({ key: cacheKey, runs: runsCache.get(cacheKey) ?? [], loaded: runsCache.has(cacheKey) }));
+  // 切り替えた直後（まだ前のボードの状態のとき）も、覚えている内容を最初の描画から使う
+  const current = state.key === cacheKey ? state : { key: cacheKey, runs: runsCache.get(cacheKey) ?? [], loaded: runsCache.has(cacheKey) };
+  const runs = current.runs;
+  const loaded = current.loaded;
+  const setRuns = (update: Run[] | ((prev: Run[]) => Run[])) =>
+    setState((prev) => {
+      const base = prev.key === cacheKey ? prev.runs : (runsCache.get(cacheKey) ?? []);
+      const next = typeof update === "function" ? update(base) : update;
+      runsCache.set(cacheKey, next);
+      return { key: cacheKey, runs: next, loaded: true };
+    });
   const [view, setView] = useState<ViewMode>(() => (localStorage.getItem("kickoff:board-view") === "list" ? "list" : "board"));
   const [section, setSection] = useState<Phase | "all">("all");
   // 全プロジェクトのボードでの、プロジェクトの絞り込み（選んだものは覚えておく）
@@ -92,9 +107,9 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
 
   useEffect(() => {
     let alive = true;
-    setLoaded(false);
+    setState({ key: cacheKey, runs: runsCache.get(cacheKey) ?? [], loaded: runsCache.has(cacheKey) });
     (projectId === undefined ? api.allRuns() : api.runs(projectId))
-      .then((list) => alive && (setRuns(list), setLoaded(true)))
+      .then((list) => alive && setRuns(list))
       .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
     // 経過時間の表示を進める
     const timer = setInterval(() => setTick((t) => t + 1), 30_000);
