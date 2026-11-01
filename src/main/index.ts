@@ -3,6 +3,17 @@ import { app, BrowserWindow, dialog, ipcMain, session, shell } from "electron";
 import { AUTH_COOKIE } from "../core/auth.js";
 import { startCore, type Core } from "../core/index.js";
 import { loadLoginShellPath } from "../core/shellEnv.js";
+import {
+  KNOWN_EXTENSIONS,
+  addExtensionFolder,
+  hardenWebviews,
+  importFromChrome,
+  installFromWebStore,
+  listExtensions,
+  loadSavedExtensions,
+  openInChrome,
+  removeExtension,
+} from "./browser.js";
 
 // ビルド後の out/main を基準にする
 const outDir = path.join(import.meta.dirname, "..");
@@ -15,6 +26,14 @@ app.setName("Kickoff");
 app.setPath("userData", path.join(app.getPath("appData"), "Kickoff"));
 
 let core: Core | undefined;
+
+// 開発時の動作確認用: KICKOFF_REMOTE_DEBUG=<port> のときだけ、外部から画面を操作できるようにする
+if (process.env.KICKOFF_REMOTE_DEBUG && !app.isPackaged) {
+  app.commandLine.appendSwitch("remote-debugging-port", process.env.KICKOFF_REMOTE_DEBUG);
+}
+
+// 埋め込みブラウザの安全設定は、ウィンドウを作る前に登録しておく
+hardenWebviews();
 let mainWindow: BrowserWindow | undefined;
 
 if (!app.requestSingleInstanceLock()) {
@@ -54,6 +73,8 @@ if (!app.requestSingleInstanceLock()) {
 
     registerIpc();
     createWindow(uiUrl);
+    // 埋め込みブラウザの拡張機能（React DevTools など）を読み込む
+    void loadSavedExtensions().then((errors) => errors.forEach((e) => console.warn("[browser] 拡張機能を読み込めません:", e)));
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow(uiUrl);
@@ -75,6 +96,8 @@ function createWindow(url: string) {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      // 開発中のアプリのプレビュー・ドキュメント閲覧用の埋め込みブラウザ
+      webviewTag: true,
     },
   });
   // 外部リンク（PR の URL など）は既定のブラウザで開く
@@ -96,6 +119,21 @@ function registerIpc() {
     });
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });
+  ipcMain.handle("kickoff:open-in-chrome", (_e, url: string) => openInChrome(String(url)));
+  ipcMain.handle("kickoff:browser-extensions", () => listExtensions());
+  ipcMain.handle("kickoff:browser-extension-install", (_e, key: string) => {
+    if (!(key in KNOWN_EXTENSIONS)) throw new Error("未対応の拡張機能です");
+    return installFromWebStore(key as keyof typeof KNOWN_EXTENSIONS);
+  });
+  ipcMain.handle("kickoff:browser-extension-import", (_e, key: string) => {
+    if (!(key in KNOWN_EXTENSIONS)) throw new Error("未対応の拡張機能です");
+    return importFromChrome(key as keyof typeof KNOWN_EXTENSIONS);
+  });
+  ipcMain.handle("kickoff:browser-extension-add-folder", async () => {
+    const result = await dialog.showOpenDialog({ properties: ["openDirectory"], title: "展開済みの拡張機能のフォルダを選択" });
+    return result.canceled || !result.filePaths[0] ? listExtensions() : addExtensionFolder(result.filePaths[0]);
+  });
+  ipcMain.handle("kickoff:browser-extension-remove", (_e, extPath: string) => removeExtension(String(extPath)));
   ipcMain.handle("kickoff:open-path", async (_e, target: string) => {
     if (typeof target === "string" && path.isAbsolute(target)) await shell.openPath(target);
   });

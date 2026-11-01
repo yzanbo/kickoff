@@ -1,4 +1,4 @@
-import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, Plus, SquareKanban, Trash2, X } from "lucide-react";
+import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, Plus, SquareKanban, Trash2, X, Globe } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -27,10 +27,27 @@ import { useServerEvent } from "../events";
 import { navigate } from "../router";
 import { SECTION_META } from "../sections";
 import { RunPage } from "../pages/RunPage";
+import { normalizeUrl } from "../url";
+import { BrowserPane } from "./BrowserPane";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
 
 type ViewMode = "board" | "list";
+
+/** 右側のパネルのタブ（チャット、またはブラウザ） */
+type PanelTab =
+  | { key: string; kind: "chat"; id: number; projectId: number }
+  | { key: string; kind: "browser"; url: string; title: string };
+
+const chatKey = (id: number) => `chat:${id}`;
+
+function hostOf(url: string): string {
+  try {
+    return new URL(normalizeUrl(url)).host || url;
+  } catch {
+    return url;
+  }
+}
 
 const PANEL_WIDTH_KEY = "kickoff:panel-width";
 const DEFAULT_PANEL_WIDTH = 560;
@@ -75,8 +92,8 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
   const [over, setOver] = useState<BoardStage | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
   // 右側のパネルで開いているチャット（タブ）。パネルを閉じてもタブは残し、次に開いたときに戻す
-  const [tabs, setTabs] = useState<{ id: number; projectId: number }[]>([]);
-  const [activeTab, setActiveTab] = useState<number | null>(null);
+  const [tabs, setTabs] = useState<PanelTab[]>([]);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelWidth, setPanelWidth] = useState(() => Number(localStorage.getItem(PANEL_WIDTH_KEY)) || DEFAULT_PANEL_WIDTH);
   const [resizing, setResizing] = useState(false);
@@ -168,18 +185,29 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
 
   /** カードをクリック: 右側のパネルにタブで開く（開いていればそのタブへ）。カンバンはその分狭くなる */
   const open = (run: Run) => {
-    setTabs((prev) => (prev.some((t) => t.id === run.id) ? prev : [...prev, { id: run.id, projectId: run.project_id }]));
-    setActiveTab(run.id);
+    const key = chatKey(run.id);
+    setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "chat", id: run.id, projectId: run.project_id }]));
+    setActiveTab(key);
+    setPanelOpen(true);
+  };
+
+  /** ブラウザのタブを開く（前回このボードで見ていた URL から） */
+  const urlKey = `kickoff:browser-url:${projectId ?? "all"}`;
+  const openBrowser = () => {
+    const key = `browser:${Date.now()}`;
+    const url = localStorage.getItem(urlKey) || "localhost:3000";
+    setTabs((prev) => [...prev, { key, kind: "browser", url, title: "" }]);
+    setActiveTab(key);
     setPanelOpen(true);
   };
   const closePanel = () => setPanelOpen(false);
 
   /** タブを閉じる。表示中のタブなら隣のタブへ、最後のタブならパネルも閉じる */
-  const closeTab = (id: number) => {
+  const closeTab = (key: string) => {
     setTabs((prev) => {
-      const index = prev.findIndex((t) => t.id === id);
-      const next = prev.filter((t) => t.id !== id);
-      if (activeTab === id) setActiveTab(next[Math.min(index, next.length - 1)]?.id ?? null);
+      const index = prev.findIndex((t) => t.key === key);
+      const next = prev.filter((t) => t.key !== key);
+      if (activeTab === key) setActiveTab(next[Math.min(index, next.length - 1)]?.key ?? null);
       if (next.length === 0) setPanelOpen(false);
       return next;
     });
@@ -187,8 +215,8 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
 
   // 削除・アーカイブされたチャットのタブは閉じる
   useEffect(() => {
-    const gone = tabs.filter((t) => !runs.some((r) => r.id === t.id));
-    if (loaded && gone.length > 0) gone.forEach((t) => closeTab(t.id));
+    const gone = tabs.filter((t) => t.kind === "chat" && !runs.some((r) => r.id === t.id));
+    if (loaded && gone.length > 0) gone.forEach((t) => closeTab(t.key));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runs, loaded]);
 
@@ -282,6 +310,9 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
             </option>
           ))}
         </select>
+        <button className="btn btn-sm" onClick={openBrowser} title="開発中のアプリやドキュメントを右側で開く">
+          <Globe size={13} /> ブラウザ
+        </button>
         <button className="btn btn-sm" onClick={() => newChat("todo")} disabled={projectId === undefined && projects.length === 0}>
           <Plus size={13} /> 新規
         </button>
@@ -323,7 +354,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                   {list.map(({ run, state }) => (
                     <article
                       key={run.id}
-                      className={`board-card ${dragId === run.id ? "dragging" : ""} ${panelOpen && activeTab === run.id ? "selected" : ""} ${tabs.some((t) => t.id === run.id) ? "in-tab" : ""}`}
+                      className={`board-card ${dragId === run.id ? "dragging" : ""} ${panelOpen && activeTab === chatKey(run.id) ? "selected" : ""} ${tabs.some((t) => t.key === chatKey(run.id)) ? "in-tab" : ""}`}
                       {...cardProps(run)}
                     >
                       <span className="card-title">{run.title || "無題のチャット"}</span>
@@ -364,7 +395,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                 {list.map(({ run, state }) => (
                   <div
                     key={run.id}
-                    className={`list-row ${dragId === run.id ? "dragging" : ""} ${panelOpen && activeTab === run.id ? "selected" : ""} ${tabs.some((t) => t.id === run.id) ? "in-tab" : ""}`}
+                    className={`list-row ${dragId === run.id ? "dragging" : ""} ${panelOpen && activeTab === chatKey(run.id) ? "selected" : ""} ${tabs.some((t) => t.key === chatKey(run.id)) ? "in-tab" : ""}`}
                     {...cardProps(run)}
                   >
                     <div className="list-main">
@@ -399,26 +430,41 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
         />
         <div className="panel-tabs" role="tablist">
           {tabs.map((t) => {
-            const run = runs.find((r) => r.id === t.id);
-            const Icon = run ? SECTION_META[run.phase].icon : null;
+            const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
+            const Icon = t.kind === "browser" ? Globe : run ? SECTION_META[run.phase].icon : null;
+            const label = t.kind === "browser" ? t.title || hostOf(t.url) : run?.title || "チャット";
             return (
-              <div key={t.id} className={`panel-tab ${activeTab === t.id ? "active" : ""}`} role="tab" aria-selected={activeTab === t.id}>
-                <button className="panel-tab-label" onClick={() => setActiveTab(t.id)} title={run?.title}>
-                  {Icon && run && <Icon size={12} className={`sec-icon sec-${run.phase}`} aria-hidden />}
-                  <span>{run?.title || "チャット"}</span>
+              <div key={t.key} className={`panel-tab ${activeTab === t.key ? "active" : ""}`} role="tab" aria-selected={activeTab === t.key}>
+                <button className="panel-tab-label" onClick={() => setActiveTab(t.key)} title={t.kind === "browser" ? t.url : run?.title}>
+                  {Icon && <Icon size={12} className={run ? `sec-icon sec-${run.phase}` : "muted"} aria-hidden />}
+                  <span>{label}</span>
                 </button>
-                <button className="panel-tab-close" aria-label={`${run?.title ?? "チャット"} のタブを閉じる`} onClick={() => closeTab(t.id)}>
+                <button className="panel-tab-close" aria-label={`${label} のタブを閉じる`} onClick={() => closeTab(t.key)}>
                   <X size={12} />
                 </button>
               </div>
             );
           })}
+          <button className="panel-tab-add" title="ブラウザのタブを開く" aria-label="ブラウザのタブを開く" onClick={openBrowser}>
+            <Plus size={12} />
+            <Globe size={12} />
+          </button>
         </div>
         <div className="panel-content">
           {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
           {tabs.map((t) => (
-            <div key={t.id} className="panel-tab-page" hidden={activeTab !== t.id}>
-              <RunPage projectId={t.projectId} runId={t.id} variant="panel" onClose={closePanel} />
+            <div key={t.key} className="panel-tab-page" hidden={activeTab !== t.key}>
+              {t.kind === "chat" ? (
+                <RunPage projectId={t.projectId} runId={t.id} variant="panel" onClose={closePanel} />
+              ) : (
+                <BrowserPane
+                  url={t.url}
+                  onChange={({ url, title }) => {
+                    localStorage.setItem(urlKey, url);
+                    setTabs((prev) => prev.map((x) => (x.key === t.key && x.kind === "browser" ? { ...x, title } : x)));
+                  }}
+                />
+              )}
             </div>
           ))}
         </div>
