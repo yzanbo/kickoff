@@ -17,6 +17,7 @@
 - 汎用の hooks は `hooks/`。小さな共有の補助は直下のモジュール（`cx.ts` `errors.ts` `time.ts` `format.ts` `chatTitle.ts` `cachedLoader.ts` `models.ts` `usage.ts` `groups.ts` など）。
 - 大きな部品は「状態と操作の hook（`useXxx`）」と「表示の部品」に分ける（例: `useSidePanel` ＋ `SidePanel` / `PanelToggle` / `DraftCards`、`useSidebar` ＋ `Sidebar`）。要素に渡す props の束も hook から返してよい（`panel.body`、`sidebar.layout`）。
 - 画面（ルート）を増やす前に、ダイアログや右のパネルで足りないか考える（設定は左下の歯車・⌘, から開くダイアログ）。
+- チャットに付いている情報（サブエージェントなど）は、チャット欄のすぐ上のピルの列（`.composer-chips`）に並べる。
 
 ### コア（`src/core`）
 
@@ -45,6 +46,8 @@
 | CLI の状態カード | `StatusCard` / `GitHubStatusCard`。カードとその並びは `.card` / `.card-grid` |
 | サイドバーのグループの開閉 | `GroupToggle`。開閉の矢印は `Chevron` |
 | ボードのカードの操作 | `runCardProps`（クリック・Enter で開く / 右クリックでメニュー / ドラッグ） |
+| 画像を大きく見る | `ImageViewer`（アプリの中で開く。外のブラウザには Kickoff のログインがないので、添付を外で開かない。画像以外の添付はアプリの中でダウンロード） |
+| ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 
 ## hooks と補助関数
 

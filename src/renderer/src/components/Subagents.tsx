@@ -54,6 +54,7 @@ export function SubagentChip({
   const visible = entries.filter((s) => !archived.has(s.key)).reverse();
   const hidden = entries.filter((s) => archived.has(s.key)).reverse();
   const running = visible.filter((s) => s.status === "running").length;
+  const failed = visible.filter((s) => s.status === "failed").length;
   const finished = visible.filter((s) => s.status !== "running");
 
   const archive = (keys: string[]) => saveArchived(new Set([...archived, ...keys]));
@@ -123,7 +124,9 @@ export function SubagentChip({
             <ClaudeMark size={13} />
           </span>
         )}
-        サブエージェント {visible.length} 件{running > 0 && <span className="chip-running">（実行中 {running}）</span>}
+        {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
+        {running > 0 && <span className="chip-running"> · {running} 件実行中</span>}
+        {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {open && (

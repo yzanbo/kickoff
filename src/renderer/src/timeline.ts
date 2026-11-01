@@ -53,6 +53,45 @@ const TOOL_LABELS: Record<string, string> = {
   ToolSearch: "ツール検索",
 };
 
+const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
+const SEARCH_TOOLS = new Set(["Grep", "Glob", "WebSearch"]);
+
+/**
+ * ツールのまとまりで何をしたかを 1 文にする（「2個のファイルを編集 および 3個のコマンドを実行」）。
+ * 編集・読み取りはファイルの数、それ以外は回数で数える
+ */
+export function summarizeTools(tools: ToolCall[]): string {
+  const edited = new Set<string>();
+  const read = new Set<string>();
+  let commands = 0;
+  let searches = 0;
+  let subagents = 0;
+  let kickoff = 0;
+  let others = 0;
+  for (const t of tools) {
+    const { name, input = {} } = t.use.data as { name: string; input?: Record<string, unknown> };
+    const file = String(input.file_path ?? input.notebook_path ?? t.use.id);
+    if (EDIT_TOOLS.has(name)) edited.add(file);
+    else if (name === "Read") read.add(file);
+    else if (name === "Bash") commands += 1;
+    else if (SEARCH_TOOLS.has(name)) searches += 1;
+    else if (name === "Agent" || name === "Task") subagents += 1;
+    else if (name.startsWith("mcp__kickoff__")) kickoff += 1;
+    else others += 1;
+  }
+  const parts = [
+    edited.size > 0 && `${edited.size}個のファイルを編集`,
+    commands > 0 && `${commands}個のコマンドを実行`,
+    read.size > 0 && `${read.size}個のファイルを読み取り`,
+    searches > 0 && `${searches}回検索`,
+    subagents > 0 && `サブエージェントを${subagents}件起動`,
+    kickoff > 0 && `Kickoff を${kickoff}回使用`,
+    others > 0 && `その他のツールを${others}回使用`,
+  ].filter((part): part is string => Boolean(part));
+  if (parts.length <= 1) return parts[0] ?? "";
+  return `${parts.slice(0, -1).join("、")} および ${parts[parts.length - 1]}`;
+}
+
 /** ツールの表示名（Kickoff のツールはまとめて「Kickoff」） */
 export function toolLabel(name: string): string {
   if (name.startsWith("mcp__kickoff__")) return "Kickoff";

@@ -1,5 +1,7 @@
 import type { Attachment } from "../../../core/types";
+import { useState } from "react";
 import { attachmentUrl } from "../api";
+import { ImageViewer } from "./ImageViewer";
 
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -9,7 +11,10 @@ export function formatBytes(n: number): string {
 
 const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
 
-/** 添付ファイルの表示（画像はサムネイル、それ以外はファイル名とサイズ） */
+/**
+ * 添付ファイルの表示（画像はサムネイル、それ以外はファイル名とサイズ）。
+ * 画像は押すとアプリの中で大きく表示し、送ったファイルはアプリの中でダウンロードする（外のブラウザは使わない）
+ */
 export function AttachmentChip({
   attachment,
   previewUrl,
@@ -21,6 +26,7 @@ export function AttachmentChip({
   uploading?: boolean;
   onRemove?: () => void;
 }) {
+  const [viewing, setViewing] = useState(false);
   const isImage = PREVIEWABLE.test(attachment.mime);
   const src = previewUrl ?? (attachment.id ? attachmentUrl(attachment as Attachment) : undefined);
   const body = (
@@ -34,8 +40,12 @@ export function AttachmentChip({
   );
   return (
     <span className={`attachment ${uploading ? "uploading" : ""}`}>
-      {attachment.id && !onRemove ? (
-        <a className="attachment-link" href={attachmentUrl(attachment as Attachment)} target="_blank" rel="noreferrer">
+      {isImage && src ? (
+        <button type="button" className="attachment-link attachment-open" title="大きく表示" aria-label={`${attachment.name} を大きく表示`} onClick={() => setViewing(true)}>
+          {body}
+        </button>
+      ) : attachment.id && !onRemove ? (
+        <a className="attachment-link" href={attachmentUrl(attachment as Attachment)} download={attachment.name}>
           {body}
         </a>
       ) : (
@@ -46,6 +56,7 @@ export function AttachmentChip({
           ×
         </button>
       )}
+      {viewing && src && <ImageViewer src={src} name={attachment.name} onClose={() => setViewing(false)} />}
     </span>
   );
 }
