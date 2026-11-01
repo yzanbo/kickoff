@@ -218,7 +218,7 @@ function RunView({
           <TimelineItems items={items} rel={rel} active={busy} />
           {live && (
             <div className="assistant live">
-              <Markdown>{live}</Markdown>
+              <Markdown streaming>{live}</Markdown>
             </div>
           )}
           {approvals.map((a) => (

@@ -3569,12 +3569,23 @@ mark {
   white-space: nowrap;
 }
 
-.image-viewer img {
+.image-viewer img,
+.mermaid-fullscreen {
   max-width: 100%;
   max-height: calc(100vh - 110px);
   border-radius: var(--radius);
-  object-fit: contain;
   box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
+}
+
+.image-viewer img {
+  object-fit: contain;
+}
+
+/* Mermaid の図の全画面（図の大きさに合わせた枠。画面に収まらない図はスクロールする） */
+.mermaid-fullscreen {
+  padding: 24px;
+  overflow: auto;
+  background: var(--bg-sidebar);
 }
 
 .attachment-thumb,
@@ -3893,7 +3904,8 @@ mark {
   background: var(--bg-hover);
 }
 
-.markdown pre {
+.markdown pre,
+.mermaid-diagram {
   padding: 12px 14px;
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -3903,6 +3915,34 @@ mark {
 
 .markdown pre code {
   padding: 0;
+  background: none;
+}
+
+/* Mermaid の図（コードの欄と同じ枠） */
+.mermaid-diagram {
+  margin: 1em 0;
+}
+
+/* 返答の生成中・描いている間の枠 */
+.mermaid-placeholder {
+  min-height: 96px;
+  background: linear-gradient(90deg, var(--bg-sidebar) 0%, var(--bg-hover) 50%, var(--bg-sidebar) 100%) 0 0 / 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* 図の上の行のボタン（右寄せ） */
+.mermaid-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin: -6px -8px 6px 0;
+}
+
+/* ソースを表示しているとき（図の枠の中に、そのまま出す） */
+.markdown .mermaid-source {
+  margin: 0;
+  padding: 0;
+  border: none;
   background: none;
 }
 
