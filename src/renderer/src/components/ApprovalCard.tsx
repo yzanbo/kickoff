@@ -26,6 +26,10 @@ function useResolve(id: string) {
 /** ツールの入力を人が読める 1 行にする */
 export function describeToolInput(toolName: string, input: Record<string, unknown>): string {
   if (toolName === "Bash" && typeof input.command === "string") return input.command;
+  // サブエージェントは、依頼の概要と種類だけ（依頼の全文は「中身を見る」で見られる）
+  if ((toolName === "Agent" || toolName === "Task") && typeof input.description === "string") {
+    return typeof input.subagent_type === "string" ? `${input.description}（${input.subagent_type}）` : input.description;
+  }
   if (typeof input.file_path === "string") return input.file_path;
   if (typeof input.url === "string") return input.url;
   if (typeof input.query === "string") return input.query;
