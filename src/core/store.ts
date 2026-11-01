@@ -16,6 +16,7 @@ import {
   type ProviderId,
   type Run,
   type RunEvent,
+  type RunGroup,
   type RunEventData,
   type RunStatus,
   type SearchHit,
@@ -119,6 +120,17 @@ const MIGRATIONS = [
   `ALTER TABLE runs ADD COLUMN stage TEXT;
    ALTER TABLE runs ADD COLUMN attention INTEGER NOT NULL DEFAULT 0;
    ALTER TABLE runs ADD COLUMN archived_at TEXT;`,
+  // v7: 自分で作るチャットのグループ
+  `CREATE TABLE run_groups (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+     name TEXT NOT NULL,
+     position INTEGER NOT NULL DEFAULT 0,
+     created_at TEXT NOT NULL DEFAULT (${NOW}),
+     updated_at TEXT NOT NULL DEFAULT (${NOW})
+   );
+   CREATE INDEX idx_run_groups_project ON run_groups(project_id);
+   ALTER TABLE runs ADD COLUMN group_id INTEGER REFERENCES run_groups(id) ON DELETE SET NULL;`,
 ];
 
 type Row = Record<string, SQLInputValue>;
@@ -452,6 +464,62 @@ export class Store {
     if (!run) return;
     this.db.prepare("DELETE FROM runs WHERE id = ?").run(id);
     this.onChange({ type: "run_deleted", id, project_id: run.project_id });
+  }
+
+  /** チャットをグループへ移す（null でグループから外す）。並び順が変わらないよう更新日時は進めない */
+  setRunGroup(id: number, groupId: number | null): Run {
+    this.db.prepare("UPDATE runs SET group_id = ? WHERE id = ?").run(groupId, id);
+    const run = this.getRun(id)!;
+    this.onChange({ type: "run", run });
+    return run;
+  }
+
+  // ---- チャットのグループ ----
+
+  listGroups(projectId: number): RunGroup[] {
+    return this.db.prepare("SELECT * FROM run_groups WHERE project_id = ? ORDER BY position, id").all(projectId) as unknown as RunGroup[];
+  }
+
+  getGroup(id: number): RunGroup | undefined {
+    return this.db.prepare("SELECT * FROM run_groups WHERE id = ?").get(id) as unknown as RunGroup | undefined;
+  }
+
+  createGroup(projectId: number, name: string): RunGroup {
+    const { next } = this.db
+      .prepare("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM run_groups WHERE project_id = ?")
+      .get(projectId) as { next: number };
+    const { lastInsertRowid } = this.db
+      .prepare("INSERT INTO run_groups (project_id, name, position) VALUES (?, ?, ?)")
+      .run(projectId, name, next);
+    const group = this.getGroup(Number(lastInsertRowid))!;
+    this.onChange({ type: "group", group });
+    return group;
+  }
+
+  renameGroup(id: number, name: string): RunGroup {
+    this.updateRow("run_groups", id, { name }, ["name"]);
+    const group = this.getGroup(id)!;
+    this.onChange({ type: "group", group });
+    return group;
+  }
+
+  /** ids の順に並べ直す（ほかのプロジェクトのグループは無視する） */
+  reorderGroups(projectId: number, ids: number[]): RunGroup[] {
+    const stmt = this.db.prepare("UPDATE run_groups SET position = ? WHERE id = ? AND project_id = ?");
+    ids.forEach((id, i) => stmt.run(i, id, projectId));
+    const groups = this.listGroups(projectId);
+    for (const group of groups) this.onChange({ type: "group", group });
+    return groups;
+  }
+
+  /** グループを消す。中のチャットは消さず、グループなしに戻す */
+  deleteGroup(id: number) {
+    const group = this.getGroup(id);
+    if (!group) return;
+    const members = this.db.prepare("SELECT id FROM runs WHERE group_id = ?").all(id) as { id: number }[];
+    this.db.prepare("DELETE FROM run_groups WHERE id = ?").run(id);
+    for (const { id: runId } of members) this.onChange({ type: "run", run: this.getRun(runId)! });
+    this.onChange({ type: "group_deleted", id, project_id: group.project_id });
   }
 
   getRun(id: number): Run | undefined {

@@ -1,7 +1,9 @@
-import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, ListTree, Plus, Search, X } from "lucide-react";
+import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, Folder, FolderPlus, ListTree, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
-import type { Approval, ProjectSummary, Run, SearchHit } from "../../../core/types";
+import type { Approval, ProjectSummary, Run, RunGroup, SearchHit } from "../../../core/types";
 import { api } from "../api";
+import { droppedRunId, isRunDrag, startRunDrag } from "../groups";
+import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
 import { href, navigate, routeProjectId, type Route } from "../router";
 import { SECTION_META } from "../sections";
@@ -34,6 +36,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   const ordered = [...projects].sort((a, b) => a.id - b.id);
   const [currentId, setCurrentId] = useState<number | undefined>(() => Number(localStorage.getItem(CURRENT_KEY)) || undefined);
   const [runs, setRuns] = useState<Record<number, Run[]>>({});
+  const [groups, setGroups] = useState<Record<number, RunGroup[]>>({});
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   // 1 回のスワイプの状態。committed: すでに切り替えた（残りの慣性のイベントは無視する）
@@ -84,11 +87,27 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     for (const p of ordered) {
       if (runs[p.id]) continue;
       void api.runs(p.id).then((list) => setRuns((prev) => ({ ...prev, [p.id]: list })));
+      void api.groups(p.id).then((list) => setGroups((prev) => ({ ...prev, [p.id]: list })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids]);
 
   useServerEvent((e) => {
+    if (e.type === "group") {
+      setGroups((prev) => {
+        const list = [e.group, ...(prev[e.group.project_id] ?? []).filter((g) => g.id !== e.group.id)];
+        return { ...prev, [e.group.project_id]: list.sort((a, b) => a.position - b.position || a.id - b.id) };
+      });
+      return;
+    }
+    if (e.type === "group_deleted") {
+      setGroups((prev) => ({ ...prev, [e.project_id]: (prev[e.project_id] ?? []).filter((g) => g.id !== e.id) }));
+      return;
+    }
+    if (e.type === "run_deleted") {
+      setRuns((prev) => ({ ...prev, [e.project_id]: (prev[e.project_id] ?? []).filter((r) => r.id !== e.id) }));
+      return;
+    }
     if (e.type !== "run") return;
     setRuns((prev) => {
       const list = prev[e.run.project_id] ?? [];
@@ -231,6 +250,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
               key={p.id}
               project={p}
               runs={runs[p.id] ?? []}
+              groups={groups[p.id] ?? NO_GROUPS}
               approvals={approvals}
               route={route}
               hidden={i !== index}
@@ -270,6 +290,8 @@ function initialOf(name: string): string {
   return Array.from(name.trim())[0]?.toUpperCase() ?? "?";
 }
 
+const NO_GROUPS: RunGroup[] = [];
+
 type Grouping = "recent" | "status";
 const GROUPING_KEY = "kickoff:sidebar-grouping";
 
@@ -297,12 +319,14 @@ function Highlight({ hit }: { hit: SearchHit }) {
 const WorkspacePage = memo(function WorkspacePage({
   project,
   runs,
+  groups,
   approvals,
   route,
   hidden,
 }: {
   project: ProjectSummary;
   runs: Run[];
+  groups: RunGroup[];
   approvals: Approval[];
   route: Route;
   hidden: boolean;
@@ -348,6 +372,51 @@ const WorkspacePage = memo(function WorkspacePage({
   const titleMatches = (run: Run) => run.title.toLowerCase().includes(keyword.toLowerCase());
   const rows = keyword ? allRows.filter(({ run }) => titleMatches(run) || contentHits.has(run.id)) : allRows;
 
+  // 自分で作ったグループ
+  const [creating, setCreating] = useState(false);
+  const [renaming, setRenaming] = useState<number>();
+  /** ドラッグ中のチャットを重ねている先（グループの ID / "none" はグループなし） */
+  const [dropOver, setDropOver] = useState<number | "none">();
+  // グループの開閉（グループごとに記憶。グループはあとから読み込まれるので、その都度 localStorage を見る）
+  const [closedOverride, setClosedOverride] = useState<Record<number, boolean>>({});
+  const isGroupClosed = (id: number) => closedOverride[id] ?? localStorage.getItem(`kickoff:group-closed:${id}`) === "1";
+  const toggleGroup = (id: number) => {
+    const closed = !isGroupClosed(id);
+    localStorage.setItem(`kickoff:group-closed:${id}`, closed ? "1" : "0");
+    setClosedOverride((prev) => ({ ...prev, [id]: closed }));
+  };
+  const startCreate = () => {
+    if (collapsed) toggleCollapsed();
+    setCreating(true);
+  };
+  const removeGroup = async (group: RunGroup) => {
+    if (!confirm(`グループ「${group.name}」を削除しますか？\n中のチャットは消えず、グループなしに戻ります。`)) return;
+    await api.deleteGroup(group.id);
+  };
+  /** チャットをドロップできる場所にする（groupId が null ならグループから外す） */
+  const dropTarget = (groupId: number | null) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!isRunDrag(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setDropOver(groupId ?? "none");
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropOver(undefined);
+    },
+    onDrop: (e: React.DragEvent) => {
+      setDropOver(undefined);
+      const runId = droppedRunId(e);
+      const run = runs.find((r) => r.id === runId);
+      if (!run || run.group_id === groupId) return;
+      e.preventDefault();
+      void api.setRunGroup(run.id, groupId);
+    },
+  });
+  const groupIds = new Set(groups.map((g) => g.id));
+  const groupedRows = (id: number) => rows.filter(({ run }) => run.group_id === id);
+  const ungroupedRows = rows.filter(({ run }) => run.group_id === null || !groupIds.has(run.group_id));
+
   const toggleGrouping = () => {
     const next = grouping === "recent" ? "status" : "recent";
     localStorage.setItem(GROUPING_KEY, next);
@@ -364,6 +433,8 @@ const WorkspacePage = memo(function WorkspacePage({
           className={`chat-row ${active ? "active" : ""} ${state === "needs_input" || state === "attention" ? "is-unread" : ""}`}
           href={href({ name: "run", projectId: project.id, runId: run.id })}
           title={`${meta.label}: ${run.title}（${AGENT_STATE_LABELS[state]}）`}
+          draggable
+          onDragStart={(e) => startRunDrag(e, run.id)}
         >
           <StatusSlot state={state} />
           <span className="chat-row-body">
@@ -419,6 +490,9 @@ const WorkspacePage = memo(function WorkspacePage({
             {grouping === "recent" ? <ListTree size={14} /> : <Clock size={14} />}
           </button>
         )}
+        <button className="icon-button" title="グループを作成" aria-label={`${project.name} にグループを作成`} onClick={startCreate}>
+          <FolderPlus size={14} />
+        </button>
         <button
           className="icon-button"
           title="新しいチャット（⌘N）"
@@ -447,15 +521,86 @@ const WorkspacePage = memo(function WorkspacePage({
         </div>
       )}
       {!collapsed && keyword && rows.length === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
+      {!collapsed && creating && (
+        <div className="custom-group-head editing">
+          <Folder size={13} aria-hidden />
+          <InlineName
+            placeholder="グループ名（例: コードレビュー）"
+            onSubmit={(name) => {
+              setCreating(false);
+              void api.createGroup(project.id, name);
+            }}
+            onCancel={() => setCreating(false)}
+          />
+        </div>
+      )}
+      {!collapsed &&
+        groups.map((group) => {
+          const members = groupedRows(group.id);
+          // 検索中は、一致するチャットがないグループを隠す
+          if (keyword && members.length === 0) return null;
+          const closed = isGroupClosed(group.id) && !keyword;
+          return (
+            <div key={group.id} className={`custom-group ${dropOver === group.id ? "drop-target" : ""}`} {...dropTarget(group.id)}>
+              <div className="custom-group-head">
+                <button
+                  className="custom-group-toggle"
+                  aria-expanded={!closed}
+                  title={closed ? "開く" : "閉じる"}
+                  onClick={() => toggleGroup(group.id)}
+                >
+                  {closed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                  <Folder size={13} aria-hidden />
+                </button>
+                {renaming === group.id ? (
+                  <InlineName
+                    initial={group.name}
+                    onSubmit={(name) => {
+                      setRenaming(undefined);
+                      void api.renameGroup(group.id, name);
+                    }}
+                    onCancel={() => setRenaming(undefined)}
+                  />
+                ) : (
+                  <span className="custom-group-name" onDoubleClick={() => setRenaming(group.id)} title="ダブルクリックで名前を変更">
+                    {group.name}
+                  </span>
+                )}
+                <span className="custom-group-count">{members.length}</span>
+                <span className="custom-group-actions">
+                  <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
+                    <Pencil size={12} />
+                  </button>
+                  <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => void removeGroup(group)}>
+                    <Trash2 size={12} />
+                  </button>
+                </span>
+              </div>
+              {!closed &&
+                (members.length === 0 ? (
+                  <p className="custom-group-empty">チャットをここへドラッグ</p>
+                ) : (
+                  <ul className="chat-rows custom-group-rows">{members.map(renderRow)}</ul>
+                ))}
+            </div>
+          );
+        })}
+      {!collapsed && groups.length > 0 && ungroupedRows.length > 0 && (
+        <div className={`custom-group-head ungrouped ${dropOver === "none" ? "drop-target" : ""}`} {...dropTarget(null)}>
+          グループなし
+        </div>
+      )}
       {collapsed || (keyword && rows.length === 0) ? null : rows.length === 0 ? (
         <a className="chat-row ghost" href={href({ name: "newChat", projectId: project.id })}>
           <Plus size={13} /> 最初のチャットを始める
         </a>
-      ) : grouping === "recent" ? (
-        <ul className="chat-rows">{rows.map(renderRow)}</ul>
+      ) : ungroupedRows.length === 0 ? null : grouping === "recent" ? (
+        <ul className="chat-rows" {...(groups.length > 0 ? dropTarget(null) : {})}>
+          {ungroupedRows.map(renderRow)}
+        </ul>
       ) : (
         AGENT_STATES.map((state) => {
-          const group = rows.filter((r) => r.state === state);
+          const group = ungroupedRows.filter((r) => r.state === state);
           if (group.length === 0) return null;
           const Icon = GROUP_ICONS[state];
           return (

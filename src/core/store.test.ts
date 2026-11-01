@@ -115,3 +115,32 @@ test("チャットのやり取りをキーワードで検索できる（範囲�
   assert.equal(store.searchEvents("", {}).length, 0);
   assert.equal(store.searchEvents("ログイン", { runId: b.id }).length, 0);
 });
+
+test("グループ: 作成順に並び、並べ替え・削除するとチャットはグループなしに戻る", () => {
+  const { store, project, events } = setup();
+  const a = store.createGroup(project.id, "コードレビュー");
+  const b = store.createGroup(project.id, "調査");
+  assert.deepEqual(store.listGroups(project.id).map((g) => g.name), ["コードレビュー", "調査"]);
+
+  const run = store.createRun({
+    project_id: project.id,
+    task_id: null,
+    phase: "implementation",
+    provider: "claude",
+    title: "レビュー依頼",
+    status: "completed",
+    model: null,
+  });
+  const before = store.getRun(run.id)!.updated_at;
+  assert.equal(store.setRunGroup(run.id, a.id).group_id, a.id);
+  // グループへ移しても、新しい順の並びは変わらない
+  assert.equal(store.getRun(run.id)!.updated_at, before);
+
+  store.reorderGroups(project.id, [b.id, a.id]);
+  assert.deepEqual(store.listGroups(project.id).map((g) => g.name), ["調査", "コードレビュー"]);
+
+  events.length = 0;
+  store.deleteGroup(a.id);
+  assert.equal(store.getRun(run.id)!.group_id, null);
+  assert.deepEqual(events.map((e) => e.type), ["run", "group_deleted"]);
+});

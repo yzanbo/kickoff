@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BOARD_STAGES, PHASES, type BoardStage, type Phase } from "../../core/types";
 
-export const PROJECT_TABS = ["board", "requirements", "schedule", "tasks", "reports", "settings"] as const;
+export const PROJECT_TABS = ["board", "groups", "requirements", "schedule", "tasks", "reports", "settings"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 export type Route =

@@ -331,14 +331,52 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }) });
   });
 
-  // チャットの名前・カンバンの列を変える
+  // チャットの名前・カンバンの列・グループを変える
   app.patch("/api/runs/:id", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    const patch = z
-      .object({ title: z.string().trim().min(1).max(100), stage: z.enum(BOARD_STAGES).nullable() })
+    const { group_id, ...patch } = z
+      .object({
+        title: z.string().trim().min(1).max(100),
+        stage: z.enum(BOARD_STAGES).nullable(),
+        group_id: z.number().int().nullable(),
+      })
       .partial()
       .parse(await c.req.json());
-    return c.json(store.updateRun(run.id, patch));
+    if (group_id !== undefined) {
+      if (group_id !== null && requireGroup(store, String(group_id)).project_id !== run.project_id) {
+        throw new HttpError(400, "ほかのプロジェクトのグループには入れられません");
+      }
+      store.setRunGroup(run.id, group_id);
+    }
+    return c.json(Object.keys(patch).length ? store.updateRun(run.id, patch) : store.getRun(run.id));
+  });
+
+  // ---- チャットのグループ ----
+  app.get("/api/projects/:id/groups", (c) => c.json(store.listGroups(requireProject(store, c.req.param("id")).id)));
+
+  app.post("/api/projects/:id/groups", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { name } = z.object({ name: z.string().trim().min(1).max(60) }).parse(await c.req.json());
+    return c.json(store.createGroup(project.id, name), 201);
+  });
+
+  app.put("/api/projects/:id/groups/order", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { ids } = z.object({ ids: z.array(z.number().int()) }).parse(await c.req.json());
+    return c.json(store.reorderGroups(project.id, ids));
+  });
+
+  app.patch("/api/groups/:id", async (c) => {
+    const group = requireGroup(store, c.req.param("id"));
+    const { name } = z.object({ name: z.string().trim().min(1).max(60) }).parse(await c.req.json());
+    return c.json(store.renameGroup(group.id, name));
+  });
+
+  // グループだけを消す（中のチャットはグループなしに戻る）
+  app.delete("/api/groups/:id", (c) => {
+    const group = requireGroup(store, c.req.param("id"));
+    store.deleteGroup(group.id);
+    return c.json({ ok: true });
   });
 
   // チャットを開いて確認した（確認待ちを消す）
@@ -487,6 +525,12 @@ function requireTask(store: Store, idParam: string) {
   const task = store.getTask(Number(idParam));
   if (!task) throw new HttpError(404, "タスクが見つかりません");
   return task;
+}
+
+function requireGroup(store: Store, idParam: string) {
+  const group = store.getGroup(Number(idParam));
+  if (!group) throw new HttpError(404, "グループが見つかりません");
+  return group;
 }
 
 function requireRun(store: Store, idParam: string) {
