@@ -4,6 +4,7 @@ import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { useServerEvent } from "../../events";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { useGitTarget } from "./worktreeContext";
 
 /** 変更のタブを開いている間に取り直す間隔（エディタなど、Kickoff の外での変更にも追いつくため） */
 const POLL_MS = 5000;
@@ -12,10 +13,12 @@ const RUN_DELAY_MS = 1500;
 
 /**
  * プロジェクトのフォルダの Git の状態。開いたとき・ウィンドウに戻ってきたとき・このプロジェクトのチャットが動いたときに取り直す。
- * active（変更のタブを開いている）の間は、一定の間隔でも取り直す。count はタブのバッジに出す変更のあるファイルの数
+ * active（変更のタブを開いている）の間は、一定の間隔でも取り直す。count はタブのバッジに出す変更のあるファイルの数。
+ * worktree は作業場所（ワークツリーのフォルダ。省略なら本体）
  */
-export function useGitStatus(projectId: number, active: boolean) {
-  const [status, setStatus] = useState<{ projectId: number; value: GitStatus }>();
+export function useGitStatus(projectId: number, active: boolean, worktree?: string) {
+  const { target, key } = useGitTarget(projectId, worktree);
+  const [status, setStatus] = useState<{ key: string; value: GitStatus }>();
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
   // 取り直すたびに増やす（差分も取り直すため）。古い応答で上書きしないためにも使う
@@ -26,9 +29,9 @@ export function useGitStatus(projectId: number, active: boolean) {
     const request = ++latest.current;
     setLoading(true);
     try {
-      const value = await api.gitStatus(projectId);
+      const value = await api.gitStatus(target);
       if (request !== latest.current) return;
-      setStatus({ projectId, value });
+      setStatus({ key, value });
       setVersion((v) => v + 1);
       setError(undefined);
     } catch (e) {
@@ -36,7 +39,8 @@ export function useGitStatus(projectId: number, active: boolean) {
     } finally {
       if (request === latest.current) setLoading(false);
     }
-  }, [projectId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
   useEffect(() => {
     void refresh();
@@ -62,16 +66,16 @@ export function useGitStatus(projectId: number, active: boolean) {
   const apply = async (request: Promise<GitStatus>) => {
     const value = await request;
     latest.current++;
-    setStatus({ projectId, value });
+    setStatus({ key, value });
     setVersion((v) => v + 1);
   };
   /** ステージ・ステージの取り消し・元に戻す */
-  const act = (action: "stage" | "unstage" | "discard", paths: string[]) => apply(api.gitAction(projectId, action, paths));
-  const commit = (message: string) => apply(api.gitCommit(projectId, message));
-  const push = () => apply(api.gitPush(projectId));
+  const act = (action: "stage" | "unstage" | "discard", paths: string[]) => apply(api.gitAction(target, action, paths));
+  const commit = (message: string) => apply(api.gitCommit(target, message));
+  const push = () => apply(api.gitPush(target));
 
   // 別のプロジェクトに切り替えた直後は、前のプロジェクトの状態を出さない
-  const value = status?.projectId === projectId ? status.value : undefined;
+  const value = status?.key === key ? status.value : undefined;
   const count = value?.repo ? value.staged.length + value.unstaged.length + value.conflicts.length : 0;
   return { status: value, error, loading, version, refresh, act, commit, push, count };
 }

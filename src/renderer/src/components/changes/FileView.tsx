@@ -8,6 +8,7 @@ import { errorMessage } from "../../errors";
 import { useHighlight } from "../../hooks/useHighlight";
 import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
+import { useGitTarget } from "./worktreeContext";
 
 // 編集の部品（Monaco）は大きいので、「編集」を押したときに初めて読み込む
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -35,7 +36,9 @@ interface Props {
  * 保存の前に、開いたあとでほかで（エージェントなどが）変えていないか確かめ、変わっていれば上書きするか聞く
  */
 export function FileView({ projectId, repoPath, path, line, changed = false, initialEditing = false, version, onSaved, onDirtyChange }: Props) {
-  const key = `${projectId}:${path}`;
+  // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
+  const { target, key: at, worktree } = useGitTarget(projectId);
+  const key = `${at}:${path}`;
   const [state, setState] = useState<{ key: string; file?: FileContent; error?: string }>();
   const [reload, setReload] = useState(0);
   // 編集: 開いたとき（保存したとき）の中身と指紋。null なら見るだけ
@@ -49,7 +52,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
 
   useEffect(() => {
     let alive = true;
-    api.projectFile(projectId, path).then(
+    api.projectFile(target, path).then(
       (file) => alive && setState({ key, file }),
       (e: unknown) => alive && setState({ key, error: errorMessage(e) }),
     );
@@ -80,7 +83,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
     setSaving(true);
     setMessage(undefined);
     try {
-      const { hash } = await api.saveProjectFile(projectId, path, content, force ? null : base.hash);
+      const { hash } = await api.saveProjectFile(target, path, content, force ? null : base.hash);
       setBase({ content, hash });
       setMessage({ text: "保存しました" });
       onSaved?.();
@@ -142,7 +145,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
         </span>
         <span className="spacer" />
         {window.kickoff && (
-          <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void window.kickoff?.openInVSCode(`${repoPath}/${path}`, line)}>
+          <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void window.kickoff?.openInVSCode(`${worktree ?? repoPath}/${path}`, line)}>
             <ExternalLink size={13} aria-hidden /> VS Code で開く
           </button>
         )}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProjectSearchQuery, ProjectSearchResult } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
+import { useGitTarget } from "./worktreeContext";
 
 /** 打つのが止まってから探すまでの時間 */
 const DEBOUNCE_MS = 300;
@@ -10,6 +11,7 @@ type SearchOption = "caseSensitive" | "wholeWord" | "regex";
 
 /** プロジェクトのファイルの中を探す（VS Code の検索と同じく、打つと探し直す。表示を切り替えても残す） */
 export function useProjectSearch(projectId: number) {
+  const { target, key } = useGitTarget(projectId);
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<Record<SearchOption, boolean>>({ caseSensitive: false, wholeWord: false, regex: false });
   const [result, setResult] = useState<{ query: ProjectSearchQuery; value: ProjectSearchResult }>();
@@ -22,7 +24,7 @@ export function useProjectSearch(projectId: number) {
       const request = ++latest.current;
       setLoading(true);
       try {
-        const value = await api.searchProject(projectId, search);
+        const value = await api.searchProject(target, search);
         if (request !== latest.current) return;
         setResult({ query: search, value });
         setError(undefined);
@@ -32,7 +34,8 @@ export function useProjectSearch(projectId: number) {
         if (request === latest.current) setLoading(false);
       }
     },
-    [projectId],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [key],
   );
 
   const current: ProjectSearchQuery = { query, ...options };

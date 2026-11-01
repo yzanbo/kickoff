@@ -14,6 +14,7 @@ import { CHANGE_LABELS, DiffView } from "./DiffView";
 import { FileIcon } from "./FileIcon";
 import { FileTree } from "./FileTree";
 import { buildTree, folderPaths, kindMaps } from "./treeModel";
+import { useGitTarget } from "./worktreeContext";
 
 type CommitTab = "commit" | "changes";
 const TREE_KEY = "kickoff:commit-files-tree";
@@ -24,6 +25,7 @@ const FILES_WIDTH_KEY = "kickoff:commit-files-width";
  * 変更: 左に変わったファイル（木・一覧）、右に選んだファイルの差分。初めは 1 つ目のファイルの差分を出す
  */
 export function CommitView({ projectId, commit }: { projectId: number; commit: GitCommit }) {
+  const { target, key: at } = useGitTarget(projectId);
   const [state, setState] = useState<{ hash: string; detail?: GitCommitDetail; error?: string }>();
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
@@ -35,7 +37,7 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
   useEffect(() => {
     let alive = true;
     setFile(undefined);
-    api.gitCommitDetail(projectId, commit.hash).then(
+    api.gitCommitDetail(target, commit.hash).then(
       (detail) => {
         if (!alive) return;
         setState({ hash: commit.hash, detail });
@@ -46,7 +48,8 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
     return () => {
       alive = false;
     };
-  }, [projectId, commit.hash]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [at, commit.hash]);
 
   const detail = state?.hash === commit.hash ? state.detail : undefined;
   const files = useMemo(() => detail?.files ?? [], [detail]);

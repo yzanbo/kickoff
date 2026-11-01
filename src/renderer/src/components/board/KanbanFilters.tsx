@@ -18,6 +18,9 @@ export function KanbanFilters({
   onSection,
   archive,
   onArchive,
+  worktrees,
+  worktree,
+  onWorktree,
 }: {
   /** プロジェクトで絞り込めるとき（全プロジェクトのボードで 2 つ以上あるとき）だけ渡す */
   projects?: ProjectSummary[];
@@ -27,6 +30,11 @@ export function KanbanFilters({
   onSection: (value: Phase | "all") => void;
   archive: ArchiveFilter;
   onArchive: (value: ArchiveFilter) => void;
+  /** チャットの作業場所（ワークツリーのフォルダ）。ワークツリーで作業しているチャットがあるときだけ、絞り込みを出す */
+  worktrees: string[];
+  /** "all" はすべて、"" は本体 */
+  worktree: string;
+  onWorktree: (value: string) => void;
 }) {
   return (
     <>
@@ -69,6 +77,22 @@ export function KanbanFilters({
         <option value="active">未アーカイブ</option>
         <option value="archived">アーカイブ済み</option>
       </select>
+      {worktrees.length > 0 && (
+        <select
+          className={cx("board-filter", worktree !== "all" && "filtered")}
+          aria-label="作業場所で絞り込み"
+          value={worktree}
+          onChange={(e) => onWorktree(e.target.value)}
+        >
+          <option value="all">すべての作業場所</option>
+          <option value="">本体</option>
+          {worktrees.map((path) => (
+            <option key={path} value={path}>
+              {path.split("/").pop()}
+            </option>
+          ))}
+        </select>
+      )}
     </>
   );
 }

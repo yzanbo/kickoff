@@ -11,6 +11,7 @@ import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
 import { Segmented } from "../Segmented";
 import { parseDiff, toSplitRows, type DiffLine } from "./parseDiff";
+import { useGitTarget } from "./worktreeContext";
 
 type DiffLayout = "split" | "unified";
 const LAYOUT_KEY = "kickoff:diff-layout";
@@ -49,12 +50,13 @@ export function DiffView({
   commit?: string;
 }) {
   const [layout, setLayout] = useStoredChoice<DiffLayout>(LAYOUT_KEY, ["split", "unified"], "split");
-  const key = `${projectId}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
+  const { target, key: at } = useGitTarget(projectId);
+  const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
   const [state, setState] = useState<{ key: string; diff?: GitDiff; error?: string }>();
 
   useEffect(() => {
     let alive = true;
-    (commit ? api.gitCommitDiff(projectId, commit, file) : api.gitDiff(projectId, file, staged)).then(
+    (commit ? api.gitCommitDiff(target, commit, file) : api.gitDiff(target, file, staged)).then(
       (diff) => alive && setState({ key, diff }),
       (e: unknown) => alive && setState({ key, error: errorMessage(e) }),
     );

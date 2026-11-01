@@ -6411,3 +6411,42 @@ a:focus-visible,
   flex: 1;
   min-width: 0;
 }
+
+/* エディタタブの上の行（作業場所の切り替え）。ワークツリーが本体だけなら中が空なので隠す */
+.changes-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.changes-bar:empty {
+  display: none;
+}
+
+/* チャットの作業場所（ワークツリー）の印（チャットの見出し・ボードのカード） */
+.worktree-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 160px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--info) 45%, transparent);
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--info);
+}
+
+.worktree-chip svg {
+  flex: none;
+}
+
+/* 注意の文（同じ作業場所で、ほかのチャットが作業中など） */
+.warn-text {
+  color: var(--warn);
+}
