@@ -196,7 +196,7 @@ function RunView({
         <Composer
           options={options}
           busy={busy}
-          placeholder={busy ? "エージェントが作業中です…" : "続けて指示する（⌘+Enter で送信）"}
+          placeholder={busy ? "エージェントが作業中です…" : "続けて指示する（Enter で送信、Shift+Enter で改行）"}
           onSend={async (text, attachments) => {
             stickToBottom.current = true;
             await api.sendMessage(run.id, text, options.options, attachments);

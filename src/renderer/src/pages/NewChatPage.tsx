@@ -57,7 +57,7 @@ export function NewChatPage({ projectId, section: initialSection, stage }: { pro
             autoFocus
             leading={<SectionPicker value={section} onChange={setSection} />}
             initialText={isFirst && idea ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${idea}` : undefined}
-            placeholder={`${SECTION_META[section].placeholder}（⌘+Enter で送信）`}
+            placeholder={`${SECTION_META[section].placeholder}（Enter で送信、Shift+Enter で改行）`}
             onSend={async (prompt, attachments) => {
               const run = await api.startRun(projectId, { phase: section, prompt, options: options.options, attachments, stage });
               navigate({ name: "run", projectId, runId: run.id }, { replace: true });
