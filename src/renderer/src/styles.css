@@ -3073,6 +3073,73 @@ mark {
   background: var(--bg-hover);
 }
 
+.subagent-row.archived {
+  opacity: 0.55;
+}
+
+.subagent-row-action {
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+  opacity: 0;
+}
+
+.subagent-row:hover .subagent-row-action,
+.subagent-row:focus-within .subagent-row-action,
+.subagent-row.archived .subagent-row-action {
+  opacity: 1;
+}
+
+/* 一覧の上: 完了したものをまとめてアーカイブ */
+.subagent-archive-all {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 2px solid var(--accent);
+  border-radius: var(--radius) var(--radius) 0 0;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.subagent-archive-all:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.subagent-archive-all:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.subagent-archived-toggle {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: none;
+  border-top: 1px solid var(--border);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.subagent-archived-toggle:hover {
+  color: var(--text);
+}
+
+.subagent-empty {
+  margin: 8px 12px;
+}
+
 .subagent-icon {
   display: grid;
   flex: none;
