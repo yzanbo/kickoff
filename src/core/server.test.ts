@@ -338,4 +338,17 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal((await search("h.llo")).total, 0);
   assert.equal((await call("GET", `/api/projects/${project.id}/search?q=${encodeURIComponent("(")}&regex=1`)).status, 400);
   assert.deepEqual(await search(""), { files: [], total: 0, truncated: false });
+
+  // ステージ・ステージの取り消し・元に戻す（未追跡のファイルは消す）
+  const post = (action: string, paths: string[]) => call("POST", `/api/projects/${project.id}/git/${action}`, { paths });
+  const kinds = (list: { path: string; kind: string }[]) => list.map((f) => `${f.kind} ${f.path}`);
+  let st = (await post("stage", ["a.txt", "c.txt"])).body;
+  assert.ok(kinds(st.staged).includes("M a.txt") && kinds(st.staged).includes("A c.txt"));
+  st = (await post("unstage", ["a.txt", "c.txt"])).body;
+  assert.ok(!kinds(st.staged).includes("M a.txt") && kinds(st.unstaged).includes("U c.txt"));
+  st = (await post("discard", ["a.txt", "c.txt"])).body;
+  assert.equal(fs.readFileSync(path.join(repo, "a.txt"), "utf8"), "one\n");
+  assert.equal(fs.existsSync(path.join(repo, "c.txt")), false);
+  assert.ok(!kinds(st.unstaged).some((k) => k.endsWith(" a.txt") || k.endsWith(" c.txt")));
+  assert.equal((await post("discard", ["../outside.txt"])).status, 400);
 });

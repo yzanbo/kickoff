@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { FileConflictError, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, writeProjectFile } from "../git.js";
+import { discardPaths, FileConflictError, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
 import type { ServerDeps } from "../server.js";
 import { HttpError, requireProject } from "./http.js";
 
@@ -66,4 +66,20 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
       throw new HttpError(e instanceof FileConflictError ? 409 : 400, errorMessage(e));
     }
   });
+
+  // ステージ・ステージの取り消し・変更を捨てる（元に戻す）。終わったら新しい状態を返す
+  const pathsSchema = z.object({ paths: z.array(z.string().min(1).max(1000)).min(1).max(5000) });
+  const actions = { stage: stagePaths, unstage: unstagePaths, discard: discardPaths } as const;
+  for (const [name, action] of Object.entries(actions)) {
+    app.post(`/api/projects/:id/git/${name}`, async (c) => {
+      const project = requireProject(store, c.req.param("id"));
+      const { paths } = pathsSchema.parse(await c.req.json());
+      try {
+        await action(project.repo_path, paths);
+      } catch (e) {
+        throw new HttpError(400, errorMessage(e));
+      }
+      return c.json(await gitStatus(project.repo_path));
+    });
+  }
 }
