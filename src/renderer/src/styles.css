@@ -4364,12 +4364,17 @@ mark {
   min-width: 0;
 }
 
-/* 表示の切り替え・アーカイブ・パネルの開閉は、いつも並べて折り返さない */
-.board-tools-end {
+/* 道具の概念ごとのまとまり（探す・絞り込む / 表示 / 作る・開く / パネル）。まとまりの中は折り返さず、間に区切り線を入れる */
+.board-tool-group {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+.board-tool-group + .board-tool-group {
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
 }
 
 .board-tools {

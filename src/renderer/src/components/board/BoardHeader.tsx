@@ -14,33 +14,32 @@ interface Props {
   count: number;
   query: string;
   onQuery: (query: string) => void;
-  /** 検索欄の後ろ・「ブラウザ」の前（絞り込みなど） */
+  /** 探す・絞り込むのまとまりで、検索欄の後ろに置くもの（プロジェクト・セクション・アーカイブの表示） */
   filters?: ReactNode;
-  /** 「ブラウザ」の後ろ（新規など） */
+  /** 作る・開くのまとまりで、「ブラウザ」の前に置くもの（新規・グループを作成） */
   actions?: ReactNode;
   view: BoardView;
   onView: (view: BoardView) => void;
-  /** 「ボード／リスト」とパネルの開閉の間（アーカイブの表示など） */
-  extra?: ReactNode;
   panel: SidePanelController;
 }
 
-/** ボード（カンバン・グループ）の見出し: 名前・件数・検索・絞り込み・操作・表示の切り替え・パネルの開閉 */
-export function BoardHeader({ icon, title, count, query, onQuery, filters, actions, view, onView, extra, panel }: Props) {
+/**
+ * ボード（全プロジェクトのカンバン・プロジェクトのカンバン・グループ）の見出し。名前と件数の右に、道具を概念ごとにまとめて並べる:
+ * 探す・絞り込む（検索・絞り込み・アーカイブの表示） / 表示（ボード・リスト） / 作る・開く（新規・ブラウザ。右のパネルに新しいタブを開く） / パネルの開閉
+ */
+export function BoardHeader({ icon, title, count, query, onQuery, filters, actions, view, onView, panel }: Props) {
   return (
     <div className="board-header">
       {icon}
       <span className="board-title">{title}</span>
       <span className="muted small">{count} 件</span>
-      {/* 操作のまとまり（狭いときは、まとめて次の行の右側へ） */}
+      {/* 道具のまとまり（狭いときは、まとまりごと次の行の右側へ） */}
       <div className="board-tools">
-        <BoardSearch query={query} onChange={onQuery} />
-        {filters}
-        <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
-          <Globe size={13} /> <span className="btn-label">ブラウザ</span>
-        </button>
-        {actions}
-        <div className="board-tools-end">
+        <div className="board-tool-group" role="group" aria-label="探す・絞り込む">
+          <BoardSearch query={query} onChange={onQuery} />
+          {filters}
+        </div>
+        <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
             label="表示の切り替え"
@@ -51,7 +50,14 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, actio
               { value: "list", label: "リスト", icon: List },
             ]}
           />
-          {extra}
+        </div>
+        <div className="board-tool-group" role="group" aria-label="作る・開く">
+          {actions}
+          <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
+            <Globe size={13} /> <span className="btn-label">ブラウザ</span>
+          </button>
+        </div>
+        <div className="board-tool-group">
           <PanelToggle panel={panel} />
         </div>
       </div>

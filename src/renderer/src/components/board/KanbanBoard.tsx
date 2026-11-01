@@ -176,13 +176,23 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         query={query}
         onQuery={setQuery}
         filters={
-          <KanbanFilters
-            projects={allProjects && projects.length > 1 ? projects : undefined}
-            projectFilter={activeProjectFilter}
-            onProjectFilter={setProjectFilter}
-            section={section}
-            onSection={setSection}
-          />
+          <>
+            <KanbanFilters
+              projects={allProjects && projects.length > 1 ? projects : undefined}
+              projectFilter={activeProjectFilter}
+              onProjectFilter={setProjectFilter}
+              section={section}
+              onSection={setSection}
+            />
+            <IconButton
+              icon={Archive}
+              label={showArchived ? "アーカイブしたチャットを隠す" : "アーカイブしたチャットも表示する"}
+              size={15}
+              className={cx("archived-toggle", showArchived && "active")}
+              aria-pressed={showArchived}
+              onClick={() => setShowArchived(!showArchived)}
+            />
+          </>
         }
         actions={
           <button className="btn btn-sm" onClick={() => newChat()} disabled={allProjects && projects.length === 0}>
@@ -191,16 +201,6 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         }
         view={view}
         onView={setView}
-        extra={
-          <IconButton
-            icon={Archive}
-            label={showArchived ? "アーカイブしたチャットを隠す" : "アーカイブしたチャットも表示する"}
-            size={15}
-            className={cx("archived-toggle", showArchived && "active")}
-            aria-pressed={showArchived}
-            onClick={() => setShowArchived(!showArchived)}
-          />
-        }
         panel={panel}
       />
       <ErrorText message={error} className="board-error" />
