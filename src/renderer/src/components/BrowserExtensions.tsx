@@ -1,6 +1,8 @@
 import { Download, FolderOpen, Puzzle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { BrowserExtensionInfo } from "../../../preload/index";
+import type { ResultText } from "../hooks/useSave";
+import { ResultMessage } from "./SaveActions";
 
 const SOURCE_LABELS: Record<BrowserExtensionInfo["source"], string> = {
   webstore: "ウェブストアから取得",
@@ -13,7 +15,7 @@ export function BrowserExtensions() {
   const api = window.kickoff?.browserExtensions;
   const [list, setList] = useState<BrowserExtensionInfo[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string }>();
+  const [message, setMessage] = useState<ResultText>();
 
   useEffect(() => {
     void api?.list().then(setList);
@@ -75,7 +77,7 @@ export function BrowserExtensions() {
           <FolderOpen size={14} /> フォルダを指定…
         </button>
       </div>
-      {message && <p className={`small ${message.kind === "ok" ? "success" : "error"}`}>{message.text}</p>}
+      <ResultMessage result={message} as="p" className="small" />
     </div>
   );
 }

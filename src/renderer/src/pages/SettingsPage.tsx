@@ -10,8 +10,9 @@ import {
 } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { BrowserExtensions } from "../components/BrowserExtensions";
+import { SaveActions } from "../components/SaveActions";
 import { StatusCard } from "../components/StatusCard";
-import { errorMessage } from "../errors";
+import { useSave } from "../hooks/useSave";
 import { groupModels, modelDisplayName } from "../models";
 import { UsagePanel } from "../components/UsagePanel";
 import type { usePlanUsage } from "../usage";
@@ -24,8 +25,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
   const [theme, setTheme] = useTheme();
   const models = useAsync(() => api.models("claude"));
   const [draft, setDraft] = useState<AppSettings>();
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string }>();
+  const save = useSave();
 
   useEffect(() => {
     if (settings.data) setDraft(settings.data);
@@ -34,28 +34,19 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
   const currentModel = models.data?.find((m) => m.value === draft?.claudeModel);
   const dirty = draft && settings.data && JSON.stringify(draft) !== JSON.stringify(settings.data);
 
-  async function save() {
-    if (!draft) return;
-    setSaving(true);
-    setMessage(undefined);
-    try {
-      const saved = await api.updateSettings({
-        maxConcurrentRuns: draft.maxConcurrentRuns,
-        ntfyUrl: draft.ntfyUrl.trim(),
-        desktopNotifications: draft.desktopNotifications,
-        claudeModel: draft.claudeModel,
-        defaultEffort: draft.defaultEffort,
-        defaultPermission: draft.defaultPermission,
-        defaultFastMode: draft.defaultFastMode,
-      });
-      settings.setData(saved);
-      setMessage({ kind: "ok", text: "保存しました" });
-    } catch (e) {
-      setMessage({ kind: "error", text: errorMessage(e) });
-    } finally {
-      setSaving(false);
-    }
-  }
+  /** 設定を保存し、画面の元の値も保存した内容にする */
+  const saveSettings = async (next: AppSettings) => {
+    const saved = await api.updateSettings({
+      maxConcurrentRuns: next.maxConcurrentRuns,
+      ntfyUrl: next.ntfyUrl.trim(),
+      desktopNotifications: next.desktopNotifications,
+      claudeModel: next.claudeModel,
+      defaultEffort: next.defaultEffort,
+      defaultPermission: next.defaultPermission,
+      defaultFastMode: next.defaultFastMode,
+    });
+    settings.setData(saved);
+  };
 
   return (
     <div className="page">
@@ -231,12 +222,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
             </label>
           </div>
 
-          <div className="form-actions">
-            <button className="btn btn-primary" disabled={!dirty || saving} onClick={() => void save()}>
-              {saving ? "保存中…" : "保存"}
-            </button>
-            {message && <span className={message.kind === "ok" ? "success" : "error"}>{message.text}</span>}
-          </div>
+          <SaveActions save={save} disabled={!dirty} onSave={() => saveSettings(draft)} />
         </section>
       )}
 

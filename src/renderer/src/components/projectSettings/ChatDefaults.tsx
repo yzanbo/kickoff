@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { BOARD_STAGE_LABELS, BOARD_STAGES, PHASES, type BoardStage, type Phase, type Project, type ProjectDefaults } from "../../../../core/types";
 import { api } from "../../api";
 import { SECTION_META } from "../../sections";
-import { useSave } from "./useSave";
+import { useSave } from "../../hooks/useSave";
+import { SaveActions } from "../SaveActions";
 
 export function ChatDefaults({ project }: { project: Project }) {
   const [section, setSection] = useState<Phase | "">(project.defaults.section ?? "");
@@ -52,12 +53,7 @@ export function ChatDefaults({ project }: { project: Project }) {
           </select>
           <span className="field-help">カンバンの列の＋から作ったチャットは、その列に置かれます。</span>
         </label>
-        <div className="form-actions">
-          <button className="btn btn-primary" disabled={!dirty || save.saving} onClick={() => void save.run(submit)}>
-            {save.saving ? "保存中…" : "保存"}
-          </button>
-          {save.message && <span className={save.message.kind === "ok" ? "success" : "error"}>{save.message.text}</span>}
-        </div>
+        <SaveActions save={save} disabled={!dirty} onSave={submit} />
       </div>
     </section>
   );
