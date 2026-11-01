@@ -455,6 +455,8 @@ export function normalizeUsage(res: SDKControlGetUsageResponse): PlanUsage {
     resets_at: raw?.resets_at ?? null,
   });
   return {
+    provider: "claude",
+    provider_label: "Claude",
     available: res.rate_limits_available && limits !== null,
     plan: res.subscription_type,
     five_hour: win("five_hour", "5時間", limits?.five_hour),

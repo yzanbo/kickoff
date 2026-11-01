@@ -4416,6 +4416,12 @@ mark {
   color: var(--ng);
 }
 
+.meter-inline .meter-reset {
+  font-size: 11px;
+  color: var(--extra-muted);
+  white-space: nowrap;
+}
+
 .plan-chip {
   padding: 0 7px;
   border: 1px solid var(--border-strong);

@@ -50,7 +50,7 @@ export class UsageMonitor {
     } catch (e) {
       // 取得に失敗しても直前の値は残し、エラーだけ添える
       const message = e instanceof Error ? e.message : String(e);
-      usage = this.current ? { ...this.current, error: message } : emptyUsage(message);
+      usage = this.current ? { ...this.current, error: message } : emptyUsage(this.provider, message);
     }
     this.current = usage;
     this.bus.publish({ type: "usage", usage });
@@ -58,8 +58,10 @@ export class UsageMonitor {
   }
 }
 
-function emptyUsage(error: string): PlanUsage {
+function emptyUsage(provider: AgentProvider, error: string): PlanUsage {
   return {
+    provider: provider.id,
+    provider_label: provider.label.replace(/ Code$/, ""),
     available: false,
     plan: null,
     five_hour: { key: "five_hour", label: "5時間", utilization: null, resets_at: null },

@@ -1,4 +1,5 @@
 import type { UsageWindow } from "../../../core/types";
+import { resetInShort } from "../usage";
 
 type Severity = "idle" | "normal" | "warning" | "critical";
 
@@ -49,6 +50,7 @@ export function UsageMeter({ window: w, compact, inline, idleText }: Props) {
   const status = w.utilization !== null && w.utilization >= 100 ? "⛔ 上限に到達" : SEVERITY_LABELS[severity];
   const valueText = w.utilization === null ? "情報なし" : `${Math.round(w.utilization)}%`;
   const detail = w.utilization === null ? idleText : reset;
+  const resetShort = resetInShort(w.resets_at);
 
   if (inline) {
     return (
@@ -66,6 +68,12 @@ export function UsageMeter({ window: w, compact, inline, idleText }: Props) {
           <span className="meter-fill" style={{ width: `${percent}%` }} />
         </span>
         <span className="meter-value">{valueText}</span>
+        {/* リセットまでの残り（フッターでは短く） */}
+        {w.utilization !== null && resetShort && (
+          <span className="meter-reset" aria-label={`${resetShort}にリセット`}>
+            ↻{resetShort}
+          </span>
+        )}
         {status && <span className="meter-status">{status}</span>}
       </span>
     );
