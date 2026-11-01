@@ -1,15 +1,14 @@
-import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch, List, ListTree, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import type { GitFileChange } from "../../../../core/types";
-import { cx } from "../../cx";
 import { confirmDialog } from "../../dialogs";
-import { useStoredChoice } from "../../hooks/useStoredState";
-import { Chevron } from "../Chevron";
+import { useActionError } from "../../hooks/useActionError";
+import { useStoredChoice, useStoredFlag } from "../../hooks/useStoredState";
 import { ErrorText } from "../ErrorText";
 import { IconButton, RefreshButton } from "../IconButton";
 import { Segmented } from "../Segmented";
-import { CHANGE_LABELS, DiffView } from "./DiffView";
-import { FileIcon } from "./FileIcon";
+import { ChangeGroup, type GitAction } from "./ChangeGroup";
+import { DiffView } from "./DiffView";
 import { FileTree } from "./FileTree";
 import { FileView } from "./FileView";
 import { SearchView } from "./SearchView";
@@ -33,6 +32,7 @@ interface Selection {
 
 type ChangesView = "files" | "search" | "changes";
 const VIEW_KEY = "kickoff:changes-view";
+const TREE_KEY = "kickoff:changes-tree";
 
 /**
  * プロジェクトの「変更」タブ（VS Code と同じく、左端で表示を切り替える）。
@@ -61,6 +61,9 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
   const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
   const search = useProjectSearch(projectId);
+  // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
+  const [changesTree, setChangesTree] = useStoredFlag(TREE_KEY);
+  const actionError = useActionError();
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
@@ -78,6 +81,13 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
     const staged = selected.staged !== false ? find(groups.staged, selected.path) : undefined;
     return staged && { file: staged, staged: true };
   })();
+  // 「ステージされている変更」「変更」に渡すもの
+  const groupProps = {
+    tree: changesTree,
+    selected,
+    onSelect: (next: Selection) => void setSelected(next),
+    onAction: (action: GitAction, paths: string[]) => void actionError.guard(() => git.act(action, paths)),
+  };
   // ファイルの中身の表示・編集に渡すもの
   const fileViewProps = (path: string) => ({
     projectId,
@@ -157,17 +167,22 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
                 </span>
               )}
               <span className="spacer" />
+              <IconButton
+                icon={changesTree ? List : ListTree}
+                label={changesTree ? "一覧で表示" : "ツリーで表示"}
+                onClick={() => setChangesTree(!changesTree)}
+              />
               <RefreshButton label="変更を取り直す" busy={git.loading} onClick={() => void git.refresh()} />
             </header>
-            <ErrorText message={git.error} />
+            <ErrorText message={git.error ?? actionError.error} />
             {empty ? (
               <p className="muted small changes-empty">変更はありません。</p>
             ) : (
               <>
                 {groups.staged.length > 0 && (
-                  <ChangeGroup title="ステージされている変更" files={groups.staged} staged selected={selected} onSelect={(next) => void setSelected(next)} />
+                  <ChangeGroup title="ステージされている変更" files={groups.staged} staged {...groupProps} />
                 )}
-                <ChangeGroup title="変更" files={groups.unstaged} staged={false} selected={selected} onSelect={(next) => void setSelected(next)} />
+                <ChangeGroup title="変更" files={groups.unstaged} staged={false} {...groupProps} />
               </>
             )}
           </>
@@ -199,58 +214,5 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
         )}
       </div>
     </div>
-  );
-}
-
-/** 「ステージされている変更」「変更」のまとまり（見出しで開閉。数をバッジで出す） */
-function ChangeGroup({
-  title,
-  files,
-  staged,
-  selected,
-  onSelect,
-}: {
-  title: string;
-  files: GitFileChange[];
-  staged: boolean;
-  selected?: Selection;
-  onSelect: (selection: Selection) => void;
-}) {
-  const [open, setOpen] = useState(true);
-  return (
-    <section className="change-group">
-      <button className="change-group-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <Chevron open={open} />
-        <span className="change-group-title">{title}</span>
-        <span className="change-count" aria-label={`${files.length} 件`}>
-          {files.length}
-        </span>
-      </button>
-      {open && (
-        <ul className="change-files">
-          {files.map((file) => {
-            const slash = file.path.lastIndexOf("/");
-            const isSelected = selected?.staged === staged && selected.path === file.path;
-            return (
-              <li key={file.path}>
-                <button
-                  className={cx("change-file", isSelected && "selected")}
-                  aria-current={isSelected || undefined}
-                  title={`${file.path}（${CHANGE_LABELS[file.kind]}）`}
-                  onClick={() => onSelect({ path: file.path, staged })}
-                >
-                  <FileIcon name={file.path.slice(slash + 1)} />
-                  <span className={cx("change-name", file.kind === "D" && "deleted")}>{file.path.slice(slash + 1)}</span>
-                  {slash > 0 && <span className="change-dir">{file.path.slice(0, slash)}</span>}
-                  <span className="change-kind" data-kind={file.kind} aria-label={CHANGE_LABELS[file.kind]}>
-                    {file.kind}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
   );
 }
