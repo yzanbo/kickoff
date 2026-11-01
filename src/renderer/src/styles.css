@@ -187,13 +187,13 @@ kbd {
 .resizing-sidebar .sidebar-resizer,
 .panel-resizer:hover,
 .board-body.resizing .panel-resizer,
-.changes-resizer:hover,
-.changes.resizing .changes-resizer {
+.pane-resizer:hover,
+.resizing > .pane-resizer {
   background: var(--info);
 }
 
-/* 「エディタ」タブの左の一覧の幅を変えるつまみ（一覧と差分の境目。線の上に重ねる） */
-.changes-resizer {
+/* 左右の欄の境目のつまみ（エディタの一覧と差分・履歴のファイルと差分。線の上に重ねる） */
+.pane-resizer {
   position: relative;
   z-index: 2;
   flex: none;
@@ -203,7 +203,8 @@ kbd {
 }
 
 /* ドラッグ中は、文字を選んだり差分の側が反応したりしないようにする */
-.changes.resizing {
+.changes.resizing,
+.commit-changes.resizing {
   cursor: col-resize;
   user-select: none;
 }
@@ -6390,7 +6391,6 @@ a:focus-visible,
 
 .commit-files {
   flex: none;
-  width: 260px;
   overflow-y: auto;
   border-right: 1px solid var(--border);
 }

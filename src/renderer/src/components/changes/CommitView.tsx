@@ -4,6 +4,7 @@ import type { GitCommit, GitCommitDetail, GitFileChange } from "../../../../core
 import { api } from "../../api";
 import { cx } from "../../cx";
 import { errorMessage } from "../../errors";
+import { useDragWidth } from "../../hooks/useDragWidth";
 import { useStoredFlag } from "../../hooks/useStoredState";
 import { formatDayTime } from "../../time";
 import { ErrorText } from "../ErrorText";
@@ -16,6 +17,7 @@ import { buildTree, folderPaths, kindMaps } from "./treeModel";
 
 type CommitTab = "commit" | "changes";
 const TREE_KEY = "kickoff:commit-files-tree";
+const FILES_WIDTH_KEY = "kickoff:commit-files-width";
 
 /**
  * 履歴で選んだコミットの詳細（Fork と同じ: 1 行の見出しと「コミット」「変更」のタブ）。
@@ -27,6 +29,8 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
   const [tab, setTab] = useState<CommitTab>("changes");
   // 変わったファイルを木で出すか（初めは木。Fork と同じ）
   const [list, setList] = useStoredFlag(TREE_KEY);
+  // 左のファイルの一覧の幅（境目をドラッグで変える。ダブルクリックで元に戻す）
+  const filesPane = useDragWidth({ storageKey: FILES_WIDTH_KEY, initial: 260, min: 160 });
 
   useEffect(() => {
     let alive = true;
@@ -105,8 +109,8 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
           </dl>
         </section>
       ) : (
-        <div className="commit-changes">
-          <aside className="commit-files">
+        <div className={cx("commit-changes", filesPane.resizing && "resizing")}>
+          <aside ref={filesPane.paneRef} className="commit-files" style={{ width: filesPane.width }}>
             <div className="commit-files-head">
               <span className="muted small">{detail ? `${files.length} 個のファイル` : "読み込み中…"}</span>
               <span className="spacer" />
@@ -154,6 +158,7 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
               />
             )}
           </aside>
+          <div className="pane-resizer" aria-label="ファイルの一覧の幅を変える" {...filesPane.handle} />
           {file ? (
             <DiffView projectId={projectId} file={file} staged={false} version={0} commit={commit.hash} />
           ) : (
