@@ -106,11 +106,10 @@ test("設定・プロジェクト・タスク・成果物の API", async () => {
   assert.deepEqual(refs.body.references, [{ path: project.repo_path, kind: "folder" }]);
 
   const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });
+  // 一覧は更新順。サイドバーの並び順は position で持つ
   assert.deepEqual((await call("PUT", "/api/projects/order", { ids: [other.id, project.id] })).body, { ok: true });
-  assert.deepEqual(
-    (await call("GET", "/api/projects")).body.map((p: { id: number }) => p.id),
-    [other.id, project.id],
-  );
+  const positions = new Map((await call("GET", "/api/projects")).body.map((p: { id: number; position: number }) => [p.id, p.position]));
+  assert.deepEqual([positions.get(other.id), positions.get(project.id)], [1, 2]);
   assert.deepEqual((await call("DELETE", `/api/projects/${other.id}`)).body, { ok: true });
   assert.equal(store.getProject(other.id), undefined);
 
