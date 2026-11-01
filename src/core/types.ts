@@ -443,6 +443,8 @@ export type GitStatus =
       repo: true;
       /** いまのブランチ（コミット前・ブランチから外れているときは null） */
       branch: string | null;
+      /** 追いかけているリモートのブランチ（例: origin/main。まだなければ null） */
+      upstream: string | null;
       ahead: number;
       behind: number;
       /** ステージされている変更 */

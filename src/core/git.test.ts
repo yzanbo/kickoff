@@ -18,6 +18,7 @@ test("git status（porcelain v1 -z）を、ステージ済み・未ステージ�
   ].join("\0");
   const status = parseGitStatus(raw);
   assert.equal(status.branch, "main");
+  assert.equal(status.upstream, "origin/main");
   assert.equal(status.ahead, 2);
   assert.equal(status.behind, 1);
   assert.deepEqual(status.staged, [
@@ -39,4 +40,5 @@ test("コミット前・ブランチから外れているときのブランチ�
   assert.equal(parseGitStatus("## No commits yet on main\0").branch, "main");
   assert.equal(parseGitStatus("## HEAD (no branch)\0").branch, null);
   assert.equal(parseGitStatus("## feature/x\0").branch, "feature/x");
+  assert.equal(parseGitStatus("## feature/x\0").upstream, null);
 });

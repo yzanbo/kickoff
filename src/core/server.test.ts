@@ -351,4 +351,18 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(fs.existsSync(path.join(repo, "c.txt")), false);
   assert.ok(!kinds(st.unstaged).some((k) => k.endsWith(" a.txt") || k.endsWith(" c.txt")));
   assert.equal((await post("discard", ["../outside.txt"])).status, 400);
+
+  // コミット・プッシュ（プッシュ先は手元に作った空のリポジトリ）
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/commit`, { message: " " })).status, 400);
+  await post("stage", ["b.txt"]);
+  st = (await call("POST", `/api/projects/${project.id}/git/commit`, { message: "b を直す" })).body;
+  assert.deepEqual(st.staged, []);
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/push`)).status, 400);
+  const remote = tempDir();
+  execFileSync("git", ["init", "-q", "--bare", "-b", "main", remote]);
+  git("remote", "add", "origin", remote);
+  st = (await call("POST", `/api/projects/${project.id}/git/push`)).body;
+  assert.equal(st.upstream, "origin/main");
+  assert.equal(st.ahead, 0);
+  assert.match(execFileSync("git", ["log", "--oneline", "-1"], { cwd: remote }).toString(), /b を直す/);
 });

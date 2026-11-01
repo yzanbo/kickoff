@@ -18,14 +18,22 @@ const MAX_FILE_BYTES = 1_000_000;
  * git を実行して標準出力をそのまま返す。okCodes の終了コードは失敗にしない
  * （git diff --no-index は差があると 1 で終わる）
  */
-export async function gitOutput(cwd: string, args: string[], okCodes: number[] = []): Promise<string> {
+export async function gitOutput(cwd: string, args: string[], okCodes: number[] = [], timeout = 30_000): Promise<string> {
   try {
-    const { stdout } = await execFileAsync("git", args, { cwd, timeout: 30_000, maxBuffer: 20 * 1024 * 1024 });
+    // パスワードなどを聞かれても答えられないので、待たずに失敗させる
+    const { stdout } = await execFileAsync("git", args, {
+      cwd,
+      timeout,
+      maxBuffer: 20 * 1024 * 1024,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+    });
     return stdout;
   } catch (e) {
-    const err = e as { code?: unknown; stdout?: unknown };
+    const err = e as { code?: unknown; stdout?: unknown; stderr?: unknown };
     if (typeof err.code === "number" && okCodes.includes(err.code) && typeof err.stdout === "string") return err.stdout;
-    throw e;
+    // git の説明（stderr）があれば、それを失敗の文にする
+    const detail = typeof err.stderr === "string" ? err.stderr.trim() : "";
+    throw detail ? new Error(detail) : e;
   }
 }
 
@@ -35,21 +43,22 @@ const kindOf = (code: string): GitChangeKind => (KINDS.has(code as GitChangeKind
 const CONFLICTS = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
 
 /** `## main...origin/main [ahead 1, behind 2]` からブランチと進み・遅れを読む */
-function parseBranch(line: string): { branch: string | null; ahead: number; behind: number } {
+function parseBranch(line: string): { branch: string | null; upstream: string | null; ahead: number; behind: number } {
   const text = line.replace(/^## /, "");
   const ahead = Number(/ahead (\d+)/.exec(text)?.[1] ?? 0);
   const behind = Number(/behind (\d+)/.exec(text)?.[1] ?? 0);
   // コミットがまだないとき: "No commits yet on main"（古い git は "Initial commit on main"）
   const initial = /^(?:No commits yet|Initial commit) on (.+)$/.exec(text);
-  if (initial) return { branch: initial[1], ahead, behind };
-  if (text.startsWith("HEAD (no branch)")) return { branch: null, ahead, behind };
-  return { branch: text.split(/\.\.\.| /)[0] || null, ahead, behind };
+  if (initial) return { branch: initial[1], upstream: null, ahead, behind };
+  if (text.startsWith("HEAD (no branch)")) return { branch: null, upstream: null, ahead, behind };
+  const upstream = /\.\.\.(\S+)/.exec(text)?.[1] ?? null;
+  return { branch: text.split(/\.\.\.| /)[0] || null, upstream, ahead, behind };
 }
 
 /** `git status --porcelain=v1 -z --branch` の出力を読む */
 export function parseGitStatus(raw: string): Extract<GitStatus, { repo: true }> {
   const records = raw.split("\0");
-  const status: Extract<GitStatus, { repo: true }> = { repo: true, branch: null, ahead: 0, behind: 0, staged: [], unstaged: [], conflicts: [] };
+  const status: Extract<GitStatus, { repo: true }> = { repo: true, branch: null, upstream: null, ahead: 0, behind: 0, staged: [], unstaged: [], conflicts: [] };
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
     if (!record) continue;
@@ -245,4 +254,26 @@ export async function discardPaths(repo: string, paths: string[]): Promise<void>
   const tracked = paths.filter((p) => !untracked.has(p));
   if (untracked.size > 0) await gitOutput(repo, ["clean", "-f", "-q", "--", ...untracked]);
   if (tracked.length > 0) await gitOutput(repo, ["restore", "--worktree", "--", ...tracked]);
+}
+
+/** ステージした変更をコミットする（メッセージは必須。ステージしたものがなければ失敗する） */
+export async function commitStaged(repo: string, message: string): Promise<void> {
+  if (!message.trim()) throw new Error("コミットのメッセージを入れてください");
+  await gitOutput(repo, ["commit", "-q", "-m", message]);
+}
+
+/**
+ * いまのブランチをプッシュする。追いかけているリモートのブランチがなければ、origin に同じ名前で公開する
+ * （VS Code の「ブランチの発行」と同じ）。認証は利用者の git の設定（SSH・キーチェーン）に任せる
+ */
+export async function pushBranch(repo: string): Promise<void> {
+  const status = await gitStatus(repo);
+  if (!status.repo || !status.branch) throw new Error("プッシュするブランチがありません");
+  if (status.upstream) {
+    await gitOutput(repo, ["push", "-q"], [], 120_000);
+    return;
+  }
+  const remotes = (await gitOutput(repo, ["remote"])).split("\n").filter(Boolean);
+  if (!remotes.includes("origin")) throw new Error("プッシュ先のリモート（origin）がありません");
+  await gitOutput(repo, ["push", "-q", "-u", "origin", status.branch], [], 120_000);
 }

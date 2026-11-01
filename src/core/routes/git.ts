@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { discardPaths, FileConflictError, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
+import { commitStaged, discardPaths, FileConflictError, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
 import type { ServerDeps } from "../server.js";
 import { HttpError, requireProject } from "./http.js";
 
@@ -82,4 +82,26 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
       return c.json(await gitStatus(project.repo_path));
     });
   }
+
+  // コミット・プッシュ（終わったら新しい状態を返す）
+  app.post("/api/projects/:id/git/commit", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { message } = z.object({ message: z.string().max(10_000) }).parse(await c.req.json());
+    try {
+      await commitStaged(project.repo_path, message);
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+    return c.json(await gitStatus(project.repo_path));
+  });
+
+  app.post("/api/projects/:id/git/push", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    try {
+      await pushBranch(project.repo_path);
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+    return c.json(await gitStatus(project.repo_path));
+  });
 }
