@@ -177,6 +177,8 @@ export const api = {
   /** ステージ・ステージの取り消し・変更を元に戻す（終わったあとの状態を返す） */
   gitAction: (projectId: number, action: "stage" | "unstage" | "discard", paths: string[]) =>
     request<GitStatus>("POST", `/api/projects/${projectId}/git/${action}`, { paths }),
+  gitCommit: (projectId: number, message: string) => request<GitStatus>("POST", `/api/projects/${projectId}/git/commit`, { message }),
+  gitPush: (projectId: number) => request<GitStatus>("POST", `/api/projects/${projectId}/git/push`),
   projectFiles: (projectId: number) => request<ProjectFiles>("GET", `/api/projects/${projectId}/files`),
   /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
   saveProjectFile: (projectId: number, path: string, content: string, baseHash: string | null) =>

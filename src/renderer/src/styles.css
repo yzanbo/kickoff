@@ -6039,3 +6039,22 @@ a:focus-visible,
 .row-actions:focus-within {
   display: flex;
 }
+
+/* 「変更」の上のコミットの欄（VS Code と同じく、メッセージ・コミット・プッシュを縦に並べる） */
+.commit-box {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 6px;
+}
+
+.commit-box .commit-message {
+  min-height: 52px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.commit-button {
+  justify-content: center;
+  width: 100%;
+}

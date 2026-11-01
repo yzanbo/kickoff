@@ -58,7 +58,7 @@ function parseBranch(line: string): { branch: string | null; upstream: string | 
 /** `git status --porcelain=v1 -z --branch` の出力を読む */
 export function parseGitStatus(raw: string): Extract<GitStatus, { repo: true }> {
   const records = raw.split("\0");
-  const status: Extract<GitStatus, { repo: true }> = { repo: true, branch: null, upstream: null, ahead: 0, behind: 0, staged: [], unstaged: [], conflicts: [] };
+  const status: Extract<GitStatus, { repo: true }> = { repo: true, branch: null, upstream: null, hasOrigin: false, ahead: 0, behind: 0, staged: [], unstaged: [], conflicts: [] };
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
     if (!record) continue;
@@ -89,7 +89,11 @@ export async function gitStatus(repo: string): Promise<GitStatus> {
     () => false,
   );
   if (!inside) return { repo: false };
-  return parseGitStatus(await gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"]));
+  const [raw, remotes] = await Promise.all([
+    gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"]),
+    gitOutput(repo, ["remote"]),
+  ]);
+  return { ...parseGitStatus(raw), hasOrigin: remotes.split("\n").includes("origin") };
 }
 
 /** リポジトリの中のパスか（外のファイルを読ませない）。リポジトリの中の絶対パスを返す */
@@ -273,7 +277,6 @@ export async function pushBranch(repo: string): Promise<void> {
     await gitOutput(repo, ["push", "-q"], [], 120_000);
     return;
   }
-  const remotes = (await gitOutput(repo, ["remote"])).split("\n").filter(Boolean);
-  if (!remotes.includes("origin")) throw new Error("プッシュ先のリモート（origin）がありません");
+  if (!status.hasOrigin) throw new Error("プッシュ先のリモート（origin）がありません");
   await gitOutput(repo, ["push", "-q", "-u", "origin", status.branch], [], 120_000);
 }

@@ -10,6 +10,7 @@ import { ErrorText } from "../ErrorText";
 import { IconButton, RefreshButton } from "../IconButton";
 import { Segmented } from "../Segmented";
 import { ChangeGroup, type GitAction } from "./ChangeGroup";
+import { CommitBox } from "./CommitBox";
 import { DiffView } from "./DiffView";
 import { FileTree } from "./FileTree";
 import { FileView } from "./FileView";
@@ -209,6 +210,7 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
               <RefreshButton label="変更を取り直す" busy={git.loading} onClick={() => void git.refresh()} />
             </header>
             <ErrorText message={git.error ?? actionError.error} />
+            <CommitBox status={status} git={git} guard={actionError.guard} />
             {empty ? (
               <p className="muted small changes-empty">変更はありません。</p>
             ) : (

@@ -58,18 +58,22 @@ export function useGitStatus(projectId: number, active: boolean) {
   });
   useEffect(() => () => clearTimeout(runTimer.current), []);
 
-  /** ステージ・ステージの取り消し・元に戻す。終わったあとの状態をそのまま出す（取り直しを待たない） */
-  const act = async (action: "stage" | "unstage" | "discard", paths: string[]) => {
-    const value = await api.gitAction(projectId, action, paths);
+  /** 操作のあとの状態をそのまま出す（取り直しを待たない） */
+  const apply = async (request: Promise<GitStatus>) => {
+    const value = await request;
     latest.current++;
     setStatus({ projectId, value });
     setVersion((v) => v + 1);
   };
+  /** ステージ・ステージの取り消し・元に戻す */
+  const act = (action: "stage" | "unstage" | "discard", paths: string[]) => apply(api.gitAction(projectId, action, paths));
+  const commit = (message: string) => apply(api.gitCommit(projectId, message));
+  const push = () => apply(api.gitPush(projectId));
 
   // 別のプロジェクトに切り替えた直後は、前のプロジェクトの状態を出さない
   const value = status?.projectId === projectId ? status.value : undefined;
   const count = value?.repo ? value.staged.length + value.unstaged.length + value.conflicts.length : 0;
-  return { status: value, error, loading, version, refresh, act, count };
+  return { status: value, error, loading, version, refresh, act, commit, push, count };
 }
 
 export type GitStatusController = ReturnType<typeof useGitStatus>;
