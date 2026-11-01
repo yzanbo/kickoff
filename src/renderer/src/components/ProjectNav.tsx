@@ -1,7 +1,8 @@
 import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, Folder, FolderPlus, ListTree, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
-import type { Approval, ProjectSummary, Run, RunGroup, SearchHit } from "../../../core/types";
+import type { Approval, ProjectSummary, Run, RunGroup } from "../../../core/types";
 import { api } from "../api";
+import { Highlight, useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, startRunDrag } from "../groups";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
@@ -304,17 +305,6 @@ const GROUP_ICONS: Record<AgentState, typeof CircleAlert> = {
   done: CircleCheck,
 };
 
-/** 検索で一致した部分を強調して表示する */
-function Highlight({ hit }: { hit: SearchHit }) {
-  return (
-    <>
-      {hit.snippet.slice(0, hit.match_start)}
-      <mark>{hit.snippet.slice(hit.match_start, hit.match_end)}</mark>
-      {hit.snippet.slice(hit.match_end)}
-    </>
-  );
-}
-
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 const WorkspacePage = memo(function WorkspacePage({
   project,
@@ -343,34 +333,10 @@ const WorkspacePage = memo(function WorkspacePage({
   const isActive = route.name === "project" && route.id === project.id;
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
-  const [contentHits, setContentHits] = useState<Map<number, SearchHit>>(new Map());
-  const keyword = query.trim();
-  useEffect(() => {
-    if (!keyword) {
-      setContentHits(new Map());
-      return;
-    }
-    let alive = true;
-    const timer = setTimeout(() => {
-      api
-        .search(keyword, { projectId: project.id })
-        .then((hits) => {
-          if (!alive) return;
-          const map = new Map<number, SearchHit>();
-          for (const h of hits) if (!map.has(h.run_id)) map.set(h.run_id, h);
-          setContentHits(map);
-        })
-        .catch(() => {});
-    }, 200);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [keyword, project.id]);
+  const { keyword, matches, snippetFor } = useChatSearch(query, project.id);
 
   const allRows = runs.map((run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) }));
-  const titleMatches = (run: Run) => run.title.toLowerCase().includes(keyword.toLowerCase());
-  const rows = keyword ? allRows.filter(({ run }) => titleMatches(run) || contentHits.has(run.id)) : allRows;
+  const rows = allRows.filter(({ run }) => matches(run));
 
   // 自分で作ったグループ
   const [creating, setCreating] = useState(false);
@@ -427,6 +393,7 @@ const WorkspacePage = memo(function WorkspacePage({
     const meta = SECTION_META[run.phase];
     const Icon = meta.icon;
     const active = route.name === "run" && route.runId === run.id;
+    const snippet = snippetFor(run);
     return (
       <li key={run.id}>
         <a
@@ -442,10 +409,10 @@ const WorkspacePage = memo(function WorkspacePage({
               <span className="chat-row-title">{run.title || "チャット"}</span>
               <span className="chat-row-time">{relativeTime(run.updated_at)}</span>
             </span>
-            {keyword && !titleMatches(run) && contentHits.has(run.id) ? (
+            {snippet ? (
               // 中身だけが一致したときは、一致した部分を見せる
               <span className="chat-row-snippet">
-                <Highlight hit={contentHits.get(run.id)!} />
+                <Highlight hit={snippet} />
               </span>
             ) : (
               <span className="chat-row-meta">

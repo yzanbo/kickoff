@@ -1,4 +1,4 @@
-import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, PanelRightClose, PanelRightOpen, Plus, SquareKanban, Trash2, X, Globe } from "lucide-react";
+import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, Plus, Search, SquareKanban, Trash2, Globe, X } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -7,7 +7,6 @@ import {
   type DragEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { agentStateOf, stageOf } from "../../../core/board";
 import {
@@ -21,37 +20,18 @@ import {
   type Phase,
   type ProjectSummary,
   type Run,
+  type SearchHit,
 } from "../../../core/types";
 import { api } from "../api";
+import { Highlight, useChatSearch } from "../chatSearch";
 import { useServerEvent } from "../events";
 import { navigate } from "../router";
 import { SECTION_META } from "../sections";
-import { RunPage } from "../pages/RunPage";
-import { normalizeUrl } from "../url";
-import { BrowserPane } from "./BrowserPane";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
+import { useSidePanel } from "./SidePanel";
 
 type ViewMode = "board" | "list";
-
-/** 右側のパネルのタブ（チャット、またはブラウザ） */
-type PanelTab =
-  | { key: string; kind: "chat"; id: number; projectId: number }
-  | { key: string; kind: "browser"; url: string; title: string };
-
-const chatKey = (id: number) => `chat:${id}`;
-
-function hostOf(url: string): string {
-  try {
-    return new URL(normalizeUrl(url)).host || url;
-  } catch {
-    return url;
-  }
-}
-
-const PANEL_WIDTH_KEY = "kickoff:panel-width";
-const DEFAULT_PANEL_WIDTH = 560;
-const MIN_PANEL_WIDTH = 360;
 
 /** 列の色（状態の点の色を流用。完了は控えめ） */
 const STAGE_TONE: Record<BoardStage, string> = {
@@ -86,16 +66,12 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<ViewMode>(() => (localStorage.getItem("kickoff:board-view") === "list" ? "list" : "board"));
   const [section, setSection] = useState<Phase | "all">("all");
+  // カンバン内の検索（チャット名とやり取りの中身）
+  const [query, setQuery] = useState("");
+  const search = useChatSearch(query, projectId);
   const [dragId, setDragId] = useState<number | null>(null);
   const [over, setOver] = useState<BoardStage | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
-  // 右側のパネルで開いているチャット（タブ）。パネルを閉じてもタブは残し、次に開いたときに戻す
-  const [tabs, setTabs] = useState<PanelTab[]>([]);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [panelWidth, setPanelWidth] = useState(() => Number(localStorage.getItem(PANEL_WIDTH_KEY)) || DEFAULT_PANEL_WIDTH);
-  const [resizing, setResizing] = useState(false);
-  const bodyRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
   const [, setTick] = useState(0);
 
@@ -126,6 +102,10 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     }
   });
 
+  // 右側から出てくるパネル（チャット・ブラウザのタブ）
+  const panel = useSidePanel({ runs, loaded, scope: String(projectId ?? "all"), holdEsc: menu !== null });
+  const open = panel.open;
+
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name ?? "";
   const pendingFor = (run: Run) => approvals.filter((a) => a.run_id === run.id).length;
 
@@ -133,12 +113,13 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     const map = new Map<BoardStage, { run: Run; state: AgentState }[]>(BOARD_STAGES.map((s) => [s, []]));
     for (const run of runs) {
       if (section !== "all" && run.phase !== section) continue;
+      if (!search.matches(run)) continue;
       const state = agentStateOf(run, approvals.some((a) => a.run_id === run.id));
       map.get(stageOf(run, state))?.push({ run, state });
     }
     for (const list of map.values()) list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
     return map;
-  }, [runs, approvals, section]);
+  }, [runs, approvals, section, search]);
 
   async function move(run: Run, stage: BoardStage) {
     // 先に画面へ反映し、失敗したら戻す
@@ -180,86 +161,6 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
       setOver(null);
     },
   });
-
-  /** カードをクリック: 右側のパネルにタブで開く（開いていればそのタブへ）。カンバンはその分狭くなる */
-  const open = (run: Run) => {
-    const key = chatKey(run.id);
-    setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "chat", id: run.id, projectId: run.project_id }]));
-    setActiveTab(key);
-    setPanelOpen(true);
-  };
-
-  /** ブラウザのタブを開く（前回このボードで見ていた URL から） */
-  const urlKey = `kickoff:browser-url:${projectId ?? "all"}`;
-  const openBrowser = () => {
-    const key = `browser:${Date.now()}`;
-    const url = localStorage.getItem(urlKey) || "localhost:3000";
-    setTabs((prev) => [...prev, { key, kind: "browser", url, title: "" }]);
-    setActiveTab(key);
-    setPanelOpen(true);
-  };
-  const closePanel = () => setPanelOpen(false);
-  /** 閉じているときは、右端に細い帯を残して、そこから開き直せるようにする */
-  const rail = !panelOpen;
-  const reopen = (key?: string) => {
-    if (key) setActiveTab(key);
-    setPanelOpen(true);
-  };
-
-  /** タブを閉じる。表示中のタブなら隣のタブへ、最後のタブならパネルも閉じる */
-  const closeTab = (key: string) => {
-    setTabs((prev) => {
-      const index = prev.findIndex((t) => t.key === key);
-      const next = prev.filter((t) => t.key !== key);
-      if (activeTab === key) setActiveTab(next[Math.min(index, next.length - 1)]?.key ?? null);
-      if (next.length === 0) setPanelOpen(false);
-      return next;
-    });
-  };
-
-  // 削除・アーカイブされたチャットのタブは閉じる
-  useEffect(() => {
-    const gone = tabs.filter((t) => t.kind === "chat" && !runs.some((r) => r.id === t.id));
-    if (loaded && gone.length > 0) gone.forEach((t) => closeTab(t.key));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runs, loaded]);
-
-  /** パネルの左端をドラッグして幅を変える（カンバンを覆うところまで広げられる） */
-  const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const body = bodyRef.current;
-    if (!body) return;
-    const handle = e.currentTarget;
-    handle.setPointerCapture(e.pointerId);
-    setResizing(true);
-    const right = body.getBoundingClientRect().right;
-    const max = body.clientWidth;
-    let width = panelWidth;
-    const onMove = (ev: PointerEvent) => {
-      width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(max, right - ev.clientX)));
-      body.style.setProperty("--panel-w", `${width}px`);
-    };
-    const onUp = () => {
-      handle.removeEventListener("pointermove", onMove);
-      handle.removeEventListener("pointerup", onUp);
-      setResizing(false);
-      setPanelWidth(width);
-      localStorage.setItem(PANEL_WIDTH_KEY, String(width));
-    };
-    handle.addEventListener("pointermove", onMove);
-    handle.addEventListener("pointerup", onUp);
-  };
-
-  // Esc でパネルを閉じる（メニューが開いていればメニューを優先）
-  useEffect(() => {
-    if (!panelOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !menu && !document.querySelector("dialog[open]")) closePanel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panelOpen, menu]);
 
   /**
    * カード（リストの行も同じ）の操作をカード全体でそろえる:
@@ -306,6 +207,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
         <span className="board-title">{title}</span>
         <span className="muted small">{total} 件</span>
         <span className="spacer" />
+        <BoardSearch query={query} onChange={setQuery} />
         <select className="board-filter" aria-label="セクションで絞り込み" value={section} onChange={(e) => setSection(e.target.value as Phase | "all")}>
           <option value="all">すべてのセクション</option>
           {PHASES.map((p) => (
@@ -314,7 +216,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
             </option>
           ))}
         </select>
-        <button className="btn btn-sm" onClick={openBrowser} title="開発中のアプリやドキュメントを右側で開く">
+        <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
           <Globe size={13} /> ブラウザ
         </button>
         <button className="btn btn-sm" onClick={() => newChat("todo")} disabled={projectId === undefined && projects.length === 0}>
@@ -331,11 +233,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
       </div>
       {error && <p className="error small board-error">{error}</p>}
 
-      <div
-        ref={bodyRef}
-        className={`board-body ${panelOpen ? "with-panel" : rail ? "with-rail" : ""} ${resizing ? "resizing" : ""}`}
-        style={{ "--panel-w": `${panelWidth}px` } as React.CSSProperties}
-      >
+      <div {...panel.body}>
       <div className="board-main">
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
@@ -358,10 +256,11 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                   {list.map(({ run, state }) => (
                     <article
                       key={run.id}
-                      className={`board-card ${dragId === run.id ? "dragging" : ""} ${panelOpen && activeTab === chatKey(run.id) ? "selected" : ""} ${tabs.some((t) => t.key === chatKey(run.id)) ? "in-tab" : ""}`}
+                      className={`board-card ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
                       {...cardProps(run)}
                     >
                       <span className="card-title">{run.title || "無題のチャット"}</span>
+                      <CardSnippet hit={search.snippetFor(run)} />
                       <div className="card-labels">
                         {projectId === undefined && <span className="label-chip">{projectName(run.project_id)}</span>}
                         <SectionBadge section={run.phase} short />
@@ -399,11 +298,12 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                 {list.map(({ run, state }) => (
                   <div
                     key={run.id}
-                    className={`list-row ${dragId === run.id ? "dragging" : ""} ${panelOpen && activeTab === chatKey(run.id) ? "selected" : ""} ${tabs.some((t) => t.key === chatKey(run.id)) ? "in-tab" : ""}`}
+                    className={`list-row ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
                     {...cardProps(run)}
                   >
                     <div className="list-main">
                       <span className="card-title one-line">{run.title || "無題のチャット"}</span>
+                      <CardSnippet hit={search.snippetFor(run)} />
                       <span className="list-meta">
                         {projectId === undefined && <span className="label-chip">{projectName(run.project_id)}</span>}
                         <SectionBadge section={run.phase} short />
@@ -423,96 +323,50 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
       )}
 
       </div>
-      <aside className={`board-panel ${rail ? "rail" : ""}`} >
-        {rail && (
-          <div className="panel-rail">
-            <button className="panel-rail-button" title="パネルを開く" aria-label="パネルを開く" onClick={() => reopen()}>
-              <PanelRightOpen size={15} />
-            </button>
-            {tabs.map((t) => {
-              const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
-              const Icon = t.kind === "browser" ? Globe : run ? SECTION_META[run.phase].icon : null;
-              const label = t.kind === "browser" ? t.title || hostOf(t.url) : run?.title || "チャット";
-              return (
-                <button
-                  key={t.key}
-                  className={`panel-rail-button ${activeTab === t.key ? "active" : ""}`}
-                  title={label}
-                  aria-label={`${label} を開く`}
-                  onClick={() => reopen(t.key)}
-                >
-                  {Icon && <Icon size={14} className={run ? `sec-icon sec-${run.phase}` : undefined} aria-hidden />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div
-          inert={!panelOpen}
-          className="panel-resizer"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="パネルの幅を変える"
-          title="ドラッグで幅を変える"
-          onPointerDown={startResize}
-        />
-        <div className="panel-tabs" role="tablist" inert={!panelOpen}>
-          {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-          <button className="panel-collapse" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={closePanel}>
-            <PanelRightClose size={15} />
-          </button>
-          {tabs.map((t) => {
-            const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
-            const Icon = t.kind === "browser" ? Globe : run ? SECTION_META[run.phase].icon : null;
-            const label = t.kind === "browser" ? t.title || hostOf(t.url) : run?.title || "チャット";
-            return (
-              <div key={t.key} className={`panel-tab ${activeTab === t.key ? "active" : ""}`} role="tab" aria-selected={activeTab === t.key}>
-                <button className="panel-tab-label" onClick={() => setActiveTab(t.key)} title={t.kind === "browser" ? t.url : run?.title}>
-                  {Icon && <Icon size={12} className={run ? `sec-icon sec-${run.phase}` : "muted"} aria-hidden />}
-                  <span>{label}</span>
-                </button>
-                <button className="panel-tab-close" aria-label={`${label} のタブを閉じる`} onClick={() => closeTab(t.key)}>
-                  <X size={12} />
-                </button>
-              </div>
-            );
-          })}
-          <button className="panel-tab-add" title="ブラウザのタブを開く" aria-label="ブラウザのタブを開く" onClick={openBrowser}>
-            <Plus size={12} />
-            <Globe size={12} />
-          </button>
-        </div>
-        <div className="panel-content" inert={!panelOpen}>
-          {tabs.length === 0 && (
-            <div className="panel-empty">
-              <p className="muted small">カードを押すと、ここにチャットが開きます。</p>
-              <button className="btn" onClick={openBrowser}>
-                <Globe size={14} /> ブラウザを開く
-              </button>
-            </div>
-          )}
-          {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
-          {tabs.map((t) => (
-            <div key={t.key} className="panel-tab-page" hidden={activeTab !== t.key}>
-              {t.kind === "chat" ? (
-                <RunPage projectId={t.projectId} runId={t.id} variant="panel" onClose={closePanel} />
-              ) : (
-                <BrowserPane
-                  url={t.url}
-                  onChange={({ url, title }) => {
-                    localStorage.setItem(urlKey, url);
-                    setTabs((prev) => prev.map((x) => (x.key === t.key && x.kind === "browser" ? { ...x, title } : x)));
-                  }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </aside>
+      {panel.renderPanel()}
       </div>
 
       {menu && <CardMenu {...menu} onOpenPanel={open} onClose={() => setMenu(null)} onError={setError} />}
     </div>
+  );
+}
+
+/** ボードの見出しの検索欄（Esc で消す） */
+export function BoardSearch({ query, onChange }: { query: string; onChange: (q: string) => void }) {
+  return (
+    <div className="chat-search board-search">
+      <Search size={13} className="muted" aria-hidden />
+      <input
+        type="text"
+        value={query}
+        placeholder="チャットを検索"
+        aria-label="このボードのチャットを検索"
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && query) {
+            // パネルを閉じる Esc より先に、検索語を消す
+            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
+            onChange("");
+          }
+        }}
+      />
+      {query && (
+        <button className="chat-search-clear" aria-label="検索を解除" onClick={() => onChange("")}>
+          <X size={12} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** 中身だけが検索に一致したカードに、一致した部分を出す */
+export function CardSnippet({ hit }: { hit: SearchHit | undefined }) {
+  if (!hit) return null;
+  return (
+    <span className="card-snippet">
+      <Highlight hit={hit} />
+    </span>
   );
 }
 
@@ -527,7 +381,7 @@ function ArrowButton({ to, dir, onMove }: { to: BoardStage | null; dir: "prev" |
 }
 
 /** カードの右クリックメニュー: 開く・名前を変更・アーカイブ・削除 */
-function CardMenu({
+export function CardMenu({
   x,
   y,
   run,

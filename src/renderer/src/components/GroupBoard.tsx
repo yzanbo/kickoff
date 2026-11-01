@@ -1,14 +1,15 @@
-import { Folder, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { Folder, FolderPlus, Globe, Pencil, Trash2 } from "lucide-react";
 import { useState, type DragEvent } from "react";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, type Approval, type Run, type RunGroup } from "../../../core/types";
 import { api } from "../api";
 import { droppedRunId, isRunDrag, startRunDrag } from "../groups";
-import { navigate } from "../router";
+import { useChatSearch } from "../chatSearch";
 import { InlineName } from "./InlineName";
-import { STATE_TONE } from "./KanbanBoard";
+import { BoardSearch, CardMenu, CardSnippet, STATE_TONE } from "./KanbanBoard";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
+import { useSidePanel } from "./SidePanel";
 
 /** グループの列をドラッグで並べ替えるときのデータの種類 */
 const GROUP_DRAG_TYPE = "application/x-kickoff-group";
@@ -31,10 +32,18 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
   /** ドラッグ中のものを重ねている列（グループの ID / "none" はグループなし） */
   const [over, setOver] = useState<number | "none">();
   const [error, setError] = useState<string>();
+  const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
+  const [query, setQuery] = useState("");
+  const search = useChatSearch(query, projectId);
+  // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
+  const panel = useSidePanel({ runs, loaded: true, scope: String(projectId), holdEsc: menu !== null });
 
   const groupIds = new Set(groups.map((g) => g.id));
   const membersOf = (groupId: number | null) =>
-    runs.filter((r) => (groupId === null ? r.group_id === null || !groupIds.has(r.group_id) : r.group_id === groupId));
+    runs
+      .filter((r) => (groupId === null ? r.group_id === null || !groupIds.has(r.group_id) : r.group_id === groupId))
+      .filter(search.matches)
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 
   const guard = async (action: () => Promise<unknown>) => {
     try {
@@ -83,19 +92,30 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
     return (
       <article
         key={run.id}
-        className={`board-card ${dragRun === run.id ? "dragging" : ""}`}
+        className={`board-card ${dragRun === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
         draggable
+        role="button"
         tabIndex={0}
-        title="クリックで開く・ドラッグでグループを移す"
+        aria-label={`チャット「${run.title || "無題のチャット"}」を開く（ドラッグでグループを移す）`}
         onDragStart={(e) => {
           startRunDrag(e, run.id);
           setDragRun(run.id);
         }}
         onDragEnd={() => setDragRun(undefined)}
-        onClick={() => navigate({ name: "run", projectId, runId: run.id })}
-        onKeyDown={(e) => e.key === "Enter" && navigate({ name: "run", projectId, runId: run.id })}
+        onClick={() => panel.open(run)}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+            e.preventDefault();
+            panel.open(run);
+          }
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY, run });
+        }}
       >
         <span className="card-title">{run.title || "無題のチャット"}</span>
+        <CardSnippet hit={search.snippetFor(run)} />
         <div className="card-labels">
           <SectionBadge section={run.phase} short />
         </div>
@@ -117,12 +137,18 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
         <span className="board-title">グループ</span>
         <span className="muted small">{groups.length} 件</span>
         <span className="spacer" />
+        <BoardSearch query={query} onChange={setQuery} />
+        <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
+          <Globe size={13} /> ブラウザ
+        </button>
         <button className="btn btn-sm" onClick={() => setCreating(true)}>
           <FolderPlus size={13} /> グループを作成
         </button>
       </div>
       {error && <p className="error small board-error">{error}</p>}
 
+      <div {...panel.body}>
+      <div className="board-main">
       <div className="board-columns">
         <section className={`board-column ungrouped ${over === "none" ? "drop-target" : ""}`} {...dropProps(null)}>
           <header className="column-head">
@@ -199,6 +225,11 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
           )}
         </section>
       </div>
+      </div>
+      {panel.renderPanel()}
+      </div>
+
+      {menu && <CardMenu {...menu} onOpenPanel={panel.open} onClose={() => setMenu(null)} onError={setError} />}
     </div>
   );
 }

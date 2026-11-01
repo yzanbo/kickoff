@@ -508,6 +508,28 @@ kbd {
   background: var(--bg-hover);
 }
 
+/* カンバンの見出しの検索欄 */
+.chat-search.board-search {
+  width: 200px;
+  margin: 0;
+}
+
+.card-snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card-snippet mark {
+  border-radius: 2px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
 .chat-search-empty {
   margin: 4px 8px;
   font-size: 12px;
