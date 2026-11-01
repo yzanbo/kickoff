@@ -3572,17 +3572,18 @@ mark {
   background: var(--bg-elev);
 }
 
-/* タブが多くて横にスクロールしても、右端に残す */
+/* タブが多くて横にスクロールしても、左端に残す */
 .panel-collapse {
   position: sticky;
-  right: 0;
+  left: 0;
+  z-index: 1;
   display: inline-flex;
   flex: none;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 26px;
-  margin: 2px 0 0 auto;
+  margin: 2px 4px 0 0;
   border: none;
   border-radius: var(--radius-sm);
   color: var(--muted);
