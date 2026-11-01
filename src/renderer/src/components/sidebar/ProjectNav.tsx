@@ -6,6 +6,7 @@ import { PROJECT_DRAG_TYPE, useReorder } from "../../groups";
 import { useStoredChoice, useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { initialOf, projectHue } from "../../projectColor";
+import { sidebarOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
 import { IconButton } from "../IconButton";
 import { Segmented } from "../Segmented";
@@ -33,7 +34,7 @@ interface Props {
  */
 export function ProjectNav({ projects, approvals, route, onNewProject }: Props) {
   // サイドバーでの並び順（ドラッグで並べ替えた順。同じなら作成順）
-  const ordered = [...projects].sort((a, b) => a.position - b.position || a.id - b.id);
+  const ordered = sidebarOrder(projects);
   const reorder = useReorder(
     ordered.map((p) => p.id),
     (ids) => void api.reorderProjects(ids),
