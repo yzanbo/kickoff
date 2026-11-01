@@ -9,6 +9,7 @@ import { ContextMeter } from "../components/ContextMeter";
 import { CloseButton, IconButton } from "../components/IconButton";
 import { InlineName } from "../components/InlineName";
 import { Markdown } from "../components/Markdown";
+import { ProjectChip } from "../components/ProjectChip";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
@@ -197,7 +198,12 @@ function RunView({
           </span>
         </div>
         <div className="run-sub muted small">
-          {project && <a href={href({ name: "project", id: project.id, tab: "board" })}>{project.name}</a>}
+          {/* どのプロジェクトのチャットかが一目でわかるよう、サイドバーと同じ色のバッジにする（押すとそのプロジェクトのカンバン） */}
+          {project && (
+            <a className="run-project" href={href({ name: "project", id: project.id, tab: "board" })}>
+              <ProjectChip id={project.id} name={project.name} />
+            </a>
+          )}
           {run.num_turns > 0 && <span>{run.num_turns} ターン</span>}
           {run.cost_usd > 0 && (
             <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${run.cost_usd.toFixed(2)}</span>
