@@ -1,6 +1,7 @@
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import type { RunGroup } from "../../../core/types";
+import { IconButton } from "./IconButton";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /**
@@ -18,15 +19,14 @@ export function useGroupMenu({ onRename, onDelete }: { onRename: (group: RunGrou
 
   /** 見出しに置く「…」ボタン */
   const button = (group: RunGroup) => (
-    <button
-      className="icon-button group-menu-button"
+    <IconButton
+      icon={MoreHorizontal}
+      label={`${group.name} のメニュー`}
       title="メニュー（名前を変更・削除）"
-      aria-label={`${group.name} のメニュー`}
+      className="group-menu-button"
       aria-haspopup="menu"
       onClick={(e) => openFor(group, e)}
-    >
-      <MoreHorizontal size={14} />
-    </button>
+    />
   );
 
   const menu = open && (

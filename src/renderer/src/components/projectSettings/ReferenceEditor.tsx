@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Project, ProjectReference } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
+import { IconButton } from "../IconButton";
 
 /** パスの最後の名前と、その親フォルダ（一覧で「名前」と「場所」を分けて見せる） */
 function splitPath(p: string): { name: string; dir: string } {
@@ -67,19 +68,20 @@ export function ReferenceEditor({ project }: { project: Project }) {
                   <span className="reference-dir">{dir}</span>
                 </span>
                 {window.kickoff && (
-                  <button className="icon-button" title="Finder で開く" aria-label={`${name} を Finder で開く`} onClick={() => void window.kickoff?.openPath(r.path)}>
-                    <FolderOpen size={14} />
-                  </button>
+                  <IconButton
+                    icon={FolderOpen}
+                    label={`${name} を Finder で開く`}
+                    title="Finder で開く"
+                    onClick={() => void window.kickoff?.openPath(r.path)}
+                  />
                 )}
-                <button
-                  className="icon-button"
+                <IconButton
+                  icon={X}
+                  label={`${name} を参照資料から外す`}
                   title="参照資料から外す"
-                  aria-label={`${name} を参照資料から外す`}
                   disabled={saving}
                   onClick={() => void save(refs.filter((x) => x.path !== r.path))}
-                >
-                  <X size={14} />
-                </button>
+                />
               </li>
             );
           })}

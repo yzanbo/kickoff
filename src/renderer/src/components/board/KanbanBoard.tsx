@@ -11,6 +11,7 @@ import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
 import { CardMenu } from "../CardMenu";
+import { IconButton } from "../IconButton";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { useSidePanel } from "../sidePanel/useSidePanel";
@@ -155,9 +156,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
       <span className="dot" style={{ background: STAGE_TONE[stage] }} />
       <span className="column-title">{BOARD_STAGE_LABELS[stage]}</span>
       <span className="column-count">{count}</span>
-      <button className="icon-button" title={plusTitle} aria-label={`${BOARD_STAGE_LABELS[stage]}に新しいチャット`} onClick={() => newChat(stage)}>
-        <Plus size={14} />
-      </button>
+      <IconButton icon={Plus} label={`${BOARD_STAGE_LABELS[stage]}に新しいチャット`} title={plusTitle} onClick={() => newChat(stage)} />
     </header>
   );
   // 列の＋から始めて、まだ送っていない新しいチャット（その列に下書きとして出す）
@@ -188,15 +187,14 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         view={view}
         onView={setView}
         extra={
-          <button
-            className={cx("icon-button archived-toggle", showArchived && "active")}
-            title={showArchived ? "アーカイブしたチャットを隠す" : "アーカイブしたチャットも表示する"}
-            aria-label={showArchived ? "アーカイブしたチャットを隠す" : "アーカイブしたチャットも表示する"}
+          <IconButton
+            icon={Archive}
+            label={showArchived ? "アーカイブしたチャットを隠す" : "アーカイブしたチャットも表示する"}
+            size={15}
+            className={cx("archived-toggle", showArchived && "active")}
             aria-pressed={showArchived}
             onClick={() => setShowArchived(!showArchived)}
-          >
-            <Archive size={15} />
-          </button>
+          />
         }
         panel={panel}
       />

@@ -1,6 +1,6 @@
-import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { Project } from "../../../core/types";
+import { CloseButton } from "./IconButton";
 import { ProjectSettings } from "./projectSettings/ProjectSettings";
 
 /** プロジェクト名の横の「編集」から開く、プロジェクトの設定（画面は移らない） */
@@ -24,9 +24,7 @@ export function ProjectEditDialog({ project, onClose }: { project: Project; onCl
     >
       <header className="project-edit-head">
         <h2>プロジェクトを編集</h2>
-        <button className="icon-button" title="閉じる（Esc）" aria-label="閉じる" onClick={() => ref.current?.close()}>
-          <X size={16} />
-        </button>
+        <CloseButton title="閉じる（Esc）" size={16} onClick={() => ref.current?.close()} />
       </header>
       <div className="project-edit-body">
         <ProjectSettings project={project} />

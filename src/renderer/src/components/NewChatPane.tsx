@@ -1,9 +1,10 @@
-import { Folder, X } from "lucide-react";
+import { Folder } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BOARD_STAGE_LABELS, type BoardStage, type Phase, type ProjectSummary, type Run } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { SECTION_META } from "../sections";
 import { Composer } from "./Composer";
+import { CloseButton } from "./IconButton";
 import { useRunOptions } from "./RunOptionsBar";
 import { SectionPicker } from "./SectionPicker";
 
@@ -65,9 +66,7 @@ export function NewChatPane({
     <div className="run-page run-panel new-chat">
       <header className="run-header">
         <div className="run-title-row">
-          <button className="icon-button" title="閉じる（Esc）" aria-label="パネルを閉じる" onClick={onClose}>
-            <X size={15} />
-          </button>
+          <CloseButton label="パネルを閉じる" title="閉じる（Esc）" size={15} onClick={onClose} />
           <h1>新しいチャット</h1>
         </div>
         <div className="run-sub muted small">

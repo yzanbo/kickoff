@@ -1,5 +1,6 @@
 import { Check, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { IconButton } from "./IconButton";
 
 interface Props {
   initial?: string;
@@ -51,12 +52,17 @@ export function InlineName({ initial = "", placeholder, className, onSubmit, onC
       }}
       onBlur={() => finish(true)}
     />
-    <button type="button" className="icon-button inline-name-ok" title="決定（Enter）" aria-label="決定" onMouseDown={keepFocus} onClick={() => finish(true)}>
-      <Check size={13} />
-    </button>
-    <button type="button" className="icon-button" title="取り消し（Esc）" aria-label="取り消し" onMouseDown={keepFocus} onClick={() => finish(false)}>
-      <X size={13} />
-    </button>
+    <IconButton
+      icon={Check}
+      label="決定"
+      title="決定（Enter）"
+      size={13}
+      className="inline-name-ok"
+      type="button"
+      onMouseDown={keepFocus}
+      onClick={() => finish(true)}
+    />
+    <IconButton icon={X} label="取り消し" title="取り消し（Esc）" size={13} type="button" onMouseDown={keepFocus} onClick={() => finish(false)} />
     </span>
   );
 }

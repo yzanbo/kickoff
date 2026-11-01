@@ -8,6 +8,7 @@ import { useStoredState } from "../hooks/useStoredState";
 import { modelDisplayName } from "../models";
 import { collectSubagents, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "../subagents";
 import { ClaudeMark } from "./ClaudeMark";
+import { IconButton } from "./IconButton";
 
 /** チャットのサブエージェントの一覧（途中経過はサーバーからのイベントで受け取る） */
 export function useSubagents(runId: number, events: RunEvent[], busy: boolean): SubagentEntry[] {
@@ -90,26 +91,24 @@ export function SubagentChip({
           </span>
         </span>
         {isArchived ? (
-          <button
-            type="button"
-            className="icon-button subagent-row-action"
+          <IconButton
+            icon={ArchiveRestore}
+            label={`${s.description} を一覧に戻す`}
             title="一覧に戻す"
-            aria-label={`${s.description} を一覧に戻す`}
+            className="subagent-row-action"
+            type="button"
             onClick={(e) => (e.stopPropagation(), restore(s.key))}
-          >
-            <ArchiveRestore size={14} />
-          </button>
+          />
         ) : (
           s.status !== "running" && (
-            <button
-              type="button"
-              className="icon-button subagent-row-action"
+            <IconButton
+              icon={Archive}
+              label={`${s.description} をアーカイブ`}
               title="アーカイブ"
-              aria-label={`${s.description} をアーカイブ`}
+              className="subagent-row-action"
+              type="button"
               onClick={(e) => (e.stopPropagation(), archive([s.key]))}
-            >
-              <Archive size={14} />
-            </button>
+            />
           )
         )}
       </div>

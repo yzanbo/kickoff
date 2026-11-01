@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { BrowserExtensionInfo } from "../../../preload/index";
 import { errorMessage } from "../errors";
 import type { ResultText } from "../hooks/useSave";
+import { IconButton } from "./IconButton";
 import { ResultMessage } from "./SaveActions";
 
 const SOURCE_LABELS: Record<BrowserExtensionInfo["source"], string> = {
@@ -56,9 +57,14 @@ export function BrowserExtensions() {
                 {e.name} <span className="muted small">{e.version}</span>
               </span>
               <span className="badge">{SOURCE_LABELS[e.source]}</span>
-              <button className="icon-button" aria-label={`${e.name} を外す`} title="外す" disabled={busy !== null} onClick={() => void run("remove", () => api.remove(e.path), `${e.name} を外しました`)}>
-                <Trash2 size={13} />
-              </button>
+              <IconButton
+                icon={Trash2}
+                label={`${e.name} を外す`}
+                title="外す"
+                size={13}
+                disabled={busy !== null}
+                onClick={() => void run("remove", () => api.remove(e.path), `${e.name} を外しました`)}
+              />
             </li>
           ))}
         </ul>

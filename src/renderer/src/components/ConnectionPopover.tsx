@@ -1,11 +1,11 @@
-import { RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { errorMessage } from "../errors";
-import { useDismiss } from "../hooks/useDismiss";
 import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../core/types";
 import { api, type ConnectionState } from "../api";
+import { errorMessage } from "../errors";
+import { useDismiss } from "../hooks/useDismiss";
 import { href } from "../router";
 import { accountLine } from "../usage";
+import { CloseButton, RefreshButton } from "./IconButton";
 
 interface Props {
   state: ConnectionState;
@@ -63,12 +63,8 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
     <div ref={ref} className="usage-popover connection-popover" role="dialog" aria-label="接続の詳細">
       <div className="usage-popover-head">
         <span className="usage-popover-title">接続の詳細</span>
-        <button className="icon-button" title="再確認" aria-label="接続を再確認" disabled={loading} onClick={() => void load()}>
-          <RefreshCw size={13} className={loading ? "spin" : ""} />
-        </button>
-        <button className="icon-button" title="閉じる（Esc）" aria-label="閉じる" onClick={onClose}>
-          <X size={14} />
-        </button>
+        <RefreshButton label="接続を再確認" title="再確認" size={13} busy={loading} onClick={() => void load()} />
+        <CloseButton title="閉じる（Esc）" onClick={onClose} />
       </div>
 
       <section className="conn-section">

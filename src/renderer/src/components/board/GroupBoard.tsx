@@ -11,6 +11,7 @@ import { useStoredChoice } from "../../hooks/useStoredState";
 import type { ReopenRoute } from "../../router";
 import { CardMenu } from "../CardMenu";
 import { useGroupMenu } from "../GroupMenu";
+import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
@@ -108,9 +109,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
           <span className="column-title muted">グループなし</span>
           <span className="column-count">{count}</span>
           <span className="spacer" />
-          <button className="icon-button" title="新しいチャット" aria-label="グループなしで新しいチャット" onClick={() => panel.openNew({ projectId })}>
-            <Plus size={14} />
-          </button>
+          <IconButton icon={Plus} label="グループなしで新しいチャット" title="新しいチャット" onClick={() => panel.openNew({ projectId })} />
         </header>
       );
     }
@@ -141,14 +140,13 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
         {renaming !== group.id && (
           <>
             <span className="column-count">{count}</span>
-            <button
-              className="icon-button group-add-chat"
+            <IconButton
+              icon={Plus}
+              label={`${group.name} に新しいチャット`}
               title={`「${group.name}」に新しいチャット`}
-              aria-label={`${group.name} に新しいチャット`}
+              className="group-add-chat"
               onClick={() => panel.openNew({ projectId, group: group.id })}
-            >
-              <Plus size={14} />
-            </button>
+            />
             {groupMenu.button(group)}
           </>
         )}
