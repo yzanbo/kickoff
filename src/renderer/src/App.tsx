@@ -7,6 +7,7 @@ import { NewProjectDialog } from "./components/NewProjectDialog";
 import { ProjectNav } from "./components/ProjectNav";
 import { SearchPanel } from "./components/SearchPanel";
 import { UsageMeter } from "./components/UsageMeter";
+import { UsagePopover } from "./components/UsagePopover";
 import { publishServerEvent } from "./events";
 import { HomePage } from "./pages/HomePage";
 import { NewChatPage } from "./pages/NewChatPage";
@@ -26,6 +27,9 @@ export function App() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [creating, setCreating] = useState(false);
   const [palette, setPalette] = useState(false);
+  // フッターの使用状況の詳細（右下に出すだけで、画面は移らない）
+  const [usageOpen, setUsageOpen] = useState(false);
+  const closeUsage = useCallback(() => setUsageOpen(false), []);
   // サイドバーの開閉（⌘B）。状態は覚えておく
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem("kickoff:sidebar") !== "closed");
   // サイドバーの幅（右端をドラッグで変更、ダブルクリックで既定に戻す）
@@ -209,14 +213,19 @@ export function App() {
           </span>
         )}
         {usage?.available ? (
-          <a className="footer-usage" href={href({ name: "settings" })} title="使用状況の詳細">
+          <button
+            className={`footer-usage ${usageOpen ? "active" : ""}`}
+            title="使用状況の詳細"
+            aria-expanded={usageOpen}
+            onClick={() => setUsageOpen((o) => !o)}
+          >
             <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
             <UsageMeter window={usage.seven_day} inline />
             {/* モデル別の週枠（Fable など）。フッターでは短く「Fable」と表示する */}
             {usage.model_weekly.map((w) => (
               <UsageMeter key={w.key} window={{ ...w, label: w.label.replace(/^週（(.+)）$/, "$1") }} inline />
             ))}
-          </a>
+          </button>
         ) : (
           usage && <span className="muted">使用状況を取得できません</span>
         )}
@@ -231,6 +240,9 @@ export function App() {
             navigate({ name: "newChat", projectId: project.id, section: "requirements" });
           }}
         />
+      )}
+      {usageOpen && (
+        <UsagePopover planUsage={planUsage} plan={usage?.plan ? planLabel(usage.plan) : null} onClose={closeUsage} />
       )}
       {palette && <CommandPalette projects={projects} onClose={() => setPalette(false)} />}
       {searching && (

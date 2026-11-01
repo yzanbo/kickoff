@@ -2925,11 +2925,65 @@ mark {
   gap: 18px;
   height: 100%;
   padding: 0 6px;
+  border: none;
+  font: inherit;
   color: var(--text);
+  background: transparent;
+  cursor: pointer;
 }
 
-.footer-usage:hover {
+.footer-usage:hover,
+.footer-usage.active {
   background: var(--bg-hover);
+}
+
+/* 右下からふわっと出る使用状況の詳細 */
+.usage-popover {
+  position: fixed;
+  right: 12px;
+  bottom: 36px;
+  z-index: 60;
+  width: 320px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  transform-origin: bottom right;
+  animation: popover-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.usage-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.usage-popover-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.usage-popover-body {
+  display: grid;
+  gap: 14px;
+}
+
+.usage-popover-foot {
+  margin: 0;
+}
+
+.icon-button .spin {
+  animation: spin 0.9s linear infinite;
 }
 
 /* ==== スマホ（縦 1 列） ==== */
