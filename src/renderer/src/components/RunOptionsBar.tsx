@@ -12,6 +12,7 @@ import {
 } from "../../../core/types";
 import { api } from "../api";
 import { groupModels, modelDisplayName } from "../models";
+import { ClaudeMark } from "./ClaudeMark";
 import { OptionMenu } from "./OptionMenu";
 import { effectiveEffort, effectivePermission, resolveRunDefaults } from "../../../core/sectionDefaults";
 
@@ -89,17 +90,6 @@ const PERMISSION_HINTS: Partial<Record<PermissionChoice, string>> = {
   plan: "計画を立てるだけで、ファイルは変更しない",
 };
 
-/** Claude のマーク（モデルの選択のアイコン） */
-export function ClaudeMark({ size = 14 }: { size?: number }) {
-  const rays = Array.from({ length: 12 }, (_, i) => (i * 360) / 12);
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
-      {rays.map((deg, i) => (
-        <rect key={deg} x="11" y={i % 2 ? 3.5 : 2} width="2" height={i % 2 ? 8.5 : 10} rx="1" fill="currentColor" transform={`rotate(${deg} 12 12)`} />
-      ))}
-    </svg>
-  );
-}
 
 /** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード / ファストモード） */
 export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; disabled?: boolean }) {

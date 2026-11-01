@@ -24,7 +24,7 @@ import { groupModels, modelDisplayName } from "../models";
 import { navigate } from "../router";
 import { SECTION_META } from "../sections";
 import { planLabel } from "../usage";
-import { ClaudeMark } from "./RunOptionsBar";
+import { ClaudeMark } from "./ClaudeMark";
 import { ReferenceEditor } from "./ReferenceEditor";
 import { WriteScopeEditor } from "./WriteScopeEditor";
 import { confirmDialog } from "../dialogs";

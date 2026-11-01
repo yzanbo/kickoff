@@ -1,7 +1,7 @@
 import { Folder, Inbox, SquarePen } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import type { RunGroup } from "../../../core/types";
+import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /**
  * 新しいチャットをどこに作るかを選ぶメニュー（グループがあるプロジェクトの＋を押したとき）。
@@ -22,45 +22,28 @@ export function GroupPickMenu({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
+  // 開いたら先頭にピントを置き、↑↓ で項目を移る
   useEffect(() => {
     ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
-    const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) onClose();
-    };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopImmediatePropagation();
-        onClose();
-      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        // ↑↓ で項目を移る
-        e.preventDefault();
-        const items = [...(ref.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
-        const i = items.indexOf(document.activeElement as HTMLButtonElement);
-        items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
-      }
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      e.preventDefault();
+      const items = [...(ref.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
+      const i = items.indexOf(document.activeElement as HTMLButtonElement);
+      items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
     };
-    window.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey, true);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey, true);
-    };
-  }, [onClose]);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
 
   const pick = (group: number | undefined) => {
     onClose();
     onPick(group);
   };
+  const at = clampToViewport(x, y, 230, 60 + groups.length * 34);
 
-  // サイドバーの横スライド（transform）の中だと位置がずれるので、body の直下に出す
-  return createPortal(
-    <div
-      ref={ref}
-      className="menu group-pick-menu"
-      style={{ left: Math.min(x, window.innerWidth - 230), top: Math.min(y, window.innerHeight - 60 - groups.length * 34) }}
-      role="menu"
-      aria-label="新しいチャットの作成先"
-    >
+  return (
+    <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label="新しいチャットの作成先" menuRef={ref} onClose={onClose}>
       <div className="menu-label">
         <SquarePen size={12} aria-hidden /> 新しいチャットの作成先
       </div>
@@ -72,7 +55,6 @@ export function GroupPickMenu({
       <button role="menuitem" className="muted-item" onClick={() => pick(undefined)}>
         <Inbox size={14} /> グループなし
       </button>
-    </div>,
-    document.body,
+    </PopupMenu>
   );
 }

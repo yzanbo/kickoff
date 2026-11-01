@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Approval, ApprovalDecision, Question } from "../../../core/types";
 import { api } from "../api";
+import { isSubagentTool } from "../subagents";
 
 /** ツール実行の承認依頼、または AI からの質問（AskUserQuestion） */
 export function ApprovalCard({ approval }: { approval: Approval }) {
@@ -27,7 +28,7 @@ function useResolve(id: string) {
 export function describeToolInput(toolName: string, input: Record<string, unknown>): string {
   if (toolName === "Bash" && typeof input.command === "string") return input.command;
   // サブエージェントは、依頼の概要と種類だけ（依頼の全文は「中身を見る」で見られる）
-  if ((toolName === "Agent" || toolName === "Task") && typeof input.description === "string") {
+  if (isSubagentTool(toolName) && typeof input.description === "string") {
     return typeof input.subagent_type === "string" ? `${input.description}（${input.subagent_type}）` : input.description;
   }
   if (typeof input.file_path === "string") return input.file_path;

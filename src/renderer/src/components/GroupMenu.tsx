@@ -1,7 +1,7 @@
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { createPortal } from "react-dom";
+import { useState, type MouseEvent } from "react";
 import type { RunGroup } from "../../../core/types";
+import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /**
  * グループの「…」メニュー（名前を変更・削除）。ホバーで表示が変わらないよう、「…」ボタンはいつも出しておき、
@@ -9,31 +9,11 @@ import type { RunGroup } from "../../../core/types";
  */
 export function useGroupMenu({ onRename, onDelete }: { onRename: (group: RunGroup) => void; onDelete: (group: RunGroup) => void }) {
   const [open, setOpen] = useState<{ group: RunGroup; x: number; y: number } | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: globalThis.MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopImmediatePropagation();
-        setOpen(null);
-      }
-    };
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey, true);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey, true);
-    };
-  }, [open]);
 
   const openFor = (group: RunGroup, e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setOpen({ group, x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 110) });
+    setOpen({ group, ...clampToViewport(e.clientX, e.clientY, 200, 110) });
   };
 
   /** 見出しに置く「…」ボタン */
@@ -49,20 +29,16 @@ export function useGroupMenu({ onRename, onDelete }: { onRename: (group: RunGrou
     </button>
   );
 
-  // サイドバーの横スライド（transform）の中だと位置がずれるので、body の直下に出す
-  const menu =
-    open &&
-    createPortal(
-    <div ref={ref} className="menu" style={{ left: open.x, top: open.y }} role="menu">
+  const menu = open && (
+    <PopupMenu x={open.x} y={open.y} onClose={() => setOpen(null)}>
       <button role="menuitem" onClick={() => (setOpen(null), onRename(open.group))}>
         <Pencil size={14} /> 名前を変更
       </button>
       <button role="menuitem" className="danger" onClick={() => (setOpen(null), onDelete(open.group))}>
         <Trash2 size={14} /> グループを削除
       </button>
-    </div>,
-    document.body,
-    );
+    </PopupMenu>
+  );
 
   return { button, menu, openFor };
 }

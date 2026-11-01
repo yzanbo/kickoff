@@ -23,7 +23,7 @@ import { useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, PROJECT_DRAG_TYPE, startRunDrag, useGroupReorder, useReorder } from "../groups";
 import { initialOf, projectHue } from "../projectColor";
 import { useGroupMenu } from "./GroupMenu";
-import { CardMenu } from "./KanbanBoard";
+import { CardMenu } from "./CardMenu";
 import { GroupPickMenu } from "./GroupPickMenu";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
@@ -31,7 +31,7 @@ import { href, navigate, openNewChat, openRun, routeProjectId, type Route } from
 import { SECTION_META } from "../sections";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState } from "../../../core/types";
-import { relativeTime } from "./RunList";
+import { relativeTime } from "../time";
 import { StatusSlot } from "./StatusSlot";
 import { alertDialog, confirmDialog } from "../dialogs";
 

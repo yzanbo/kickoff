@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SearchHit } from "../../../core/types";
 import { api } from "../api";
 import { openRun } from "../router";
-import { relativeTime } from "./RunList";
+import { relativeTime } from "../time";
 import { SectionBadge } from "./SectionBadge";
 
 export type SearchScope = "run" | "project" | "all";

@@ -1,5 +1,5 @@
 import type { UsageWindow } from "../../../core/types";
-import { resetInShort } from "../usage";
+import { formatReset, resetInShort } from "../time";
 
 type Severity = "idle" | "normal" | "warning" | "critical";
 
@@ -17,21 +17,6 @@ const SEVERITY_LABELS: Record<Severity, string | null> = {
   warning: "⚠ 残りわずか",
   critical: "⛔ 上限間近",
 };
-
-/** リセットまでの表示（5 時間枠は残り時間、週枠は日時） */
-export function formatReset(resetsAt: string | null, now = Date.now()): string | null {
-  if (!resetsAt) return null;
-  const at = new Date(resetsAt);
-  const diffMin = Math.max(0, Math.round((at.getTime() - now) / 60_000));
-  if (diffMin < 24 * 60) {
-    const h = Math.floor(diffMin / 60);
-    const m = diffMin % 60;
-    return `あと ${h > 0 ? `${h}時間` : ""}${m}分でリセット`;
-  }
-  const date = at.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric", weekday: "short" });
-  const time = at.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
-  return `${date} ${time} にリセット`;
-}
 
 interface Props {
   window: UsageWindow;

@@ -13,8 +13,8 @@ import {
 } from "../../../core/types";
 import { api } from "../api";
 import { Markdown } from "../components/Markdown";
-import { GroupBoard } from "../components/GroupBoard";
-import { KanbanBoard } from "../components/KanbanBoard";
+import { GroupBoard } from "../components/board/GroupBoard";
+import { KanbanBoard } from "../components/board/KanbanBoard";
 import { BUSY_STATUSES } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";

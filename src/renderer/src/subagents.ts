@@ -18,6 +18,11 @@ export interface SubagentEntry {
 
 const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
 
+/** サブエージェントを起動するツール（Task / Agent）か */
+export function isSubagentTool(name: string): boolean {
+  return SUBAGENT_TOOLS.has(name);
+}
+
 /**
  * チャットのサブエージェントの一覧を組み立てる。保存されたイベント（Task / Agent の呼び出しと結果、開始・終了の通知）と、
  * 画面にだけ届く途中経過（progress: トークン数・直近のツール）を合わせる。busy でなければ、終わっていないものは中断とみなす
@@ -27,7 +32,7 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
   for (const e of events) {
     if (e.type === "tool_use") {
       const d = e.data as { id: string; name: string; input?: { description?: string; subagent_type?: string; model?: string } };
-      if (!SUBAGENT_TOOLS.has(d.name)) continue;
+      if (!isSubagentTool(d.name)) continue;
       map.set(d.id, {
         key: d.id,
         description: d.input?.description ?? "サブエージェント",

@@ -2,8 +2,11 @@ import { RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ProviderStatus, Run, UsageWindow } from "../../../core/types";
 import { api } from "../api";
-import { planLabel, resetIn, useSharedPlanUsage } from "../usage";
-import { ClaudeMark } from "./RunOptionsBar";
+import { resetIn } from "../time";
+import { planLabel, useSharedPlanUsage } from "../usage";
+import { useDismiss } from "../hooks/useDismiss";
+import { formatTokens } from "../format";
+import { ClaudeMark } from "./ClaudeMark";
 
 // ログイン中のアカウントは、アプリ全体で 1 回だけ取得する
 let providersPromise: Promise<ProviderStatus[]> | undefined;
@@ -15,13 +18,6 @@ function loadProviders() {
   return providersPromise;
 }
 
-/** 246000 → "246k"、1000000 → "1m" */
-export function formatTokens(n: number): string {
-  if (n < 1000) return String(n);
-  if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
-  const m = n / 1_000_000;
-  return `${Number.isInteger(m) ? m : m.toFixed(1)}m`;
-}
 
 /** 使用率の色（70% から注意、90% から警告） */
 const tone = (pct: number) => (pct >= 90 ? "danger" : pct >= 70 ? "warn" : "ok");
@@ -46,30 +42,12 @@ export function ContextMeter({ run }: { run: Run }) {
     if (open) void loadProviders().then((list) => setAccount(list.find((p) => p.id === "claude")?.account));
   }, [open]);
 
-  // 固定しているときは、外側のクリック・Esc で閉じる
-  useEffect(() => {
-    if (!pinned) return;
-    const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) close();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopImmediatePropagation();
-        close();
-      }
-    };
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey, true);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey, true);
-    };
-  }, [pinned]);
-
   const close = () => {
     setPinned(false);
     setOpen(false);
   };
+  // 固定しているときは、外側のクリック・Esc で閉じる
+  useDismiss(ref, close, { enabled: pinned });
   const show = () => {
     clearTimeout(hideTimer.current);
     setOpen(true);

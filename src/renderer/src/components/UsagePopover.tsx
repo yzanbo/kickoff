@@ -1,5 +1,6 @@
 import { RefreshCw, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
+import { useDismiss } from "../hooks/useDismiss";
 import { FIVE_HOUR_IDLE, type usePlanUsage } from "../usage";
 import { UsageMeter } from "./UsageMeter";
 
@@ -15,19 +16,7 @@ export function UsagePopover({ planUsage, plan, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   // 外側のクリック・Esc で閉じる（フッターのボタン自体はそちらで開閉する）
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!ref.current?.contains(target) && !target.closest(".footer-usage")) onClose();
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [onClose]);
+  useDismiss(ref, onClose, { ignore: ".footer-usage", escape: "pass" });
 
   return (
     <div ref={ref} className="usage-popover" role="dialog" aria-label="使用状況の詳細">
