@@ -1007,12 +1007,66 @@ input[type="text"].inline-name {
 }
 
 .workspace-switcher {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  padding: 10px 8px 8px;
+  padding: 10px 56px 8px;
   border-top: 1px solid var(--border);
+}
+
+.workspace-switcher.stack {
+  justify-content: flex-start;
+  padding: 8px 56px 8px 8px;
+}
+
+/* 縦並び: すべてのプロジェクトを上から順に並べ、まとめてスクロールする */
+.workspace-stack {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 8px;
+  overflow-y: auto;
+}
+
+.workspace-stack .workspace-page {
+  padding-bottom: 4px;
+  overflow: visible;
+}
+
+/* 横スライド / 縦並びの切り替え（下の行の右端） */
+.sidebar-layout-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  transform: translateY(-50%);
+}
+
+.sidebar-layout-toggle button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  color: var(--extra-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-layout-toggle button:hover {
+  color: var(--text);
+}
+
+.sidebar-layout-toggle button.active {
+  color: var(--text);
+  background: var(--bg-active);
 }
 
 .workspace-dot {
