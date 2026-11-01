@@ -9,12 +9,15 @@ export function ProjectEditDialog({ project, onClose }: { project: Project; onCl
 
   useEffect(() => {
     ref.current?.showModal();
+    // 開いた直後に ✕ ボタンへピントが当たって枠が出ないよう、ダイアログ自体にピントを置く
+    ref.current?.focus();
   }, []);
 
   return (
     <dialog
       ref={ref}
       className="dialog project-edit-dialog"
+      tabIndex={-1}
       onClose={onClose}
       // 外側（背景）を押したら閉じる
       onClick={(e) => e.target === e.currentTarget && ref.current?.close()}

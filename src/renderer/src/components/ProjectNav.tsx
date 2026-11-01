@@ -269,7 +269,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
               role="tab"
               aria-selected={i === index}
               className={`workspace-dot ${i === index ? "active" : ""}`}
-              style={{ "--ws-hue": `${(p.id * 67) % 360}` } as React.CSSProperties}
+              style={{ "--ws-hue": `${projectHue(p.id)}` } as React.CSSProperties}
               title={`${p.name}${i < 9 ? `（⌃${i + 1}）` : ""}`}
               onClick={() => go(i)}
             >
@@ -284,6 +284,11 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
       </div>
     </div>
   );
+}
+
+/** プロジェクトの色相（下の切り替えアイコンと、見出しで同じ色を使う） */
+function projectHue(id: number): number {
+  return (id * 67) % 360;
 }
 
 /** プロジェクト名の頭文字（アイコン用） */
@@ -443,7 +448,13 @@ const WorkspacePage = memo(function WorkspacePage({
   };
 
   return (
-    <section className="workspace-page" aria-hidden={hidden} inert={hidden}>
+    <section
+      className="workspace-page"
+      aria-hidden={hidden}
+      inert={hidden}
+      style={{ "--ws-hue": `${projectHue(project.id)}` } as React.CSSProperties}
+    >
+      {/* どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする */}
       <div className={`workspace-head ${isActive ? "active" : ""}`}>
         {/* 左のボタン: チャット一覧の開閉 / 名前: プロジェクトのカンバンを表示 */}
         <button
@@ -455,8 +466,14 @@ const WorkspacePage = memo(function WorkspacePage({
         >
           {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
         </button>
-        <a className="workspace-name" href={href({ name: "project", id: project.id, tab: "board" })} title={`${project.name} のカンバンを開く`}>
-          {project.name}
+        <a className="workspace-title" href={href({ name: "project", id: project.id, tab: "board" })} title={`${project.name} のカンバンを開く`}>
+          <span className="workspace-avatar" aria-hidden>
+            {initialOf(project.name)}
+          </span>
+          <span className="workspace-title-text">
+            <span className="workspace-name">{project.name}</span>
+            <span className="workspace-sub">{runs.length} チャット</span>
+          </span>
         </a>
         {waitingCount > 0 && (
           <span className="count-badge" title="回答待ちのチャット" aria-label={`回答待ち ${waitingCount} 件`}>
@@ -558,23 +575,28 @@ const WorkspacePage = memo(function WorkspacePage({
                     {group.name}
                   </span>
                 )}
-                <span className="custom-group-count">{members.length}</span>
-                <span className="custom-group-actions">
-                  <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
-                    <Pencil size={12} />
-                  </button>
-                  <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => void removeGroup(group)}>
-                    <Trash2 size={12} />
-                  </button>
-                </span>
-                <button
-                  className="icon-button custom-group-add"
-                  title={`「${group.name}」に新しいチャット`}
-                  aria-label={`${group.name} に新しいチャット`}
-                  onClick={() => navigate({ name: "newChat", projectId: project.id, group: group.id })}
-                >
-                  <Plus size={13} />
-                </button>
+                {/* 名前の編集中は、ほかの操作を隠す（鉛筆を押し直して編集が始まり直さないように） */}
+                {renaming !== group.id && (
+                  <>
+                    <span className="custom-group-count">{members.length}</span>
+                    <span className="custom-group-actions">
+                      <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
+                        <Pencil size={12} />
+                      </button>
+                      <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => void removeGroup(group)}>
+                        <Trash2 size={12} />
+                      </button>
+                    </span>
+                    <button
+                      className="icon-button custom-group-add"
+                      title={`「${group.name}」に新しいチャット`}
+                      aria-label={`${group.name} に新しいチャット`}
+                      onClick={() => navigate({ name: "newChat", projectId: project.id, group: group.id })}
+                    >
+                      <Plus size={13} />
+                    </button>
+                  </>
+                )}
               </div>
               {!closed &&
                 (members.length === 0 ? (

@@ -39,7 +39,7 @@ function setup(script: Script, uploads?: UploadStore) {
   const runner = new Runner({
     store,
     approvals,
-    providers: { claude: provider, codex: provider } as Record<ProviderId, AgentProvider>,
+    providers: { claude: provider, codex: provider, gemini: provider } as Record<ProviderId, AgentProvider>,
     usage,
     uploads,
     bus,

@@ -748,6 +748,24 @@ kbd {
   color: var(--muted);
 }
 
+.inline-name-wrap {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inline-name-wrap .icon-button {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.inline-name-ok {
+  color: var(--accent-bright);
+}
+
 input[type="text"].inline-name {
   flex: 1;
   min-width: 0;
@@ -820,15 +838,70 @@ input[type="text"].inline-name {
 .workspace-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
-  padding: 4px 4px 4px 8px;
-  border-radius: 6px;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 6px 4px 6px 4px;
+  border: 1px solid hsl(var(--ws-hue, 150) 30% 24%);
+  border-radius: 10px;
+  background: hsl(var(--ws-hue, 150) 25% 13%);
 }
 
 .workspace-head:hover,
 .workspace-head.active {
-  background: var(--bg-hover);
+  border-color: hsl(var(--ws-hue, 150) 40% 34%);
+  background: hsl(var(--ws-hue, 150) 28% 16%);
+}
+
+:root[data-theme="light"] .workspace-head {
+  border-color: hsl(var(--ws-hue, 150) 40% 82%);
+  background: hsl(var(--ws-hue, 150) 50% 96%);
+}
+
+:root[data-theme="light"] .workspace-head:hover,
+:root[data-theme="light"] .workspace-head.active {
+  border-color: hsl(var(--ws-hue, 150) 45% 70%);
+  background: hsl(var(--ws-hue, 150) 55% 93%);
+}
+
+.workspace-title {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text);
+}
+
+.workspace-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(var(--ws-hue, 150) 60% 75%);
+  background: hsl(var(--ws-hue, 150) 35% 24%);
+}
+
+:root[data-theme="light"] .workspace-avatar {
+  color: hsl(var(--ws-hue, 150) 55% 32%);
+  background: hsl(var(--ws-hue, 150) 50% 86%);
+}
+
+.workspace-title-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.workspace-sub {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .workspace-chevron {
@@ -870,7 +943,6 @@ input[type="text"].inline-name {
 }
 
 .workspace-name {
-  flex: 1;
   overflow: hidden;
   font-size: 15px;
   font-weight: 700;
@@ -1472,9 +1544,14 @@ select:focus {
 
 /* プロジェクトの編集（設定タブと同じ内容を、画面を移らずに） */
 .dialog.project-edit-dialog {
-  width: min(680px, calc(100vw - 32px));
-  max-height: min(85vh, 900px);
+  width: min(1040px, calc(100vw - 48px));
+  height: min(86vh, 820px);
+  max-height: none;
   overflow: hidden;
+}
+
+.project-edit-dialog:focus {
+  outline: none;
 }
 
 .project-edit-dialog[open] {
@@ -1497,10 +1574,201 @@ select:focus {
 }
 
 .project-edit-body {
+  display: flex;
   flex: 1;
   min-height: 0;
-  padding: 4px 24px 24px;
+}
+
+/* プロジェクトの設定: 左の項目一覧と、右の内容 */
+.project-settings {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  width: 100%;
+  min-height: 0;
+}
+
+.project-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 10px;
+  border-right: 1px solid var(--border);
+}
+
+.project-settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.project-settings-tab:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.project-settings-tab.active {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+.project-settings-tab.danger {
+  margin-top: auto;
+}
+
+.project-settings-tab.danger.active,
+.project-settings-tab.danger:hover {
+  color: var(--ng);
+}
+
+.project-settings-content {
+  min-width: 0;
+  padding: 8px 32px 32px;
   overflow-y: auto;
+}
+
+.project-settings-content .form {
+  max-width: 560px;
+}
+
+/* 設定タブ（ページ）では、項目一覧を上に固定する */
+.page .project-settings {
+  min-height: 480px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.page .project-settings-content {
+  overflow: visible;
+}
+
+/* 使う AI のカード */
+.provider-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+
+.provider-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--bg);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.provider-card:hover:not(:disabled) {
+  border-color: var(--extra-muted);
+}
+
+.provider-card.selected {
+  border-color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+}
+
+.provider-card:disabled {
+  cursor: default;
+}
+
+.provider-card:disabled .provider-icon,
+.provider-card:disabled .provider-name {
+  opacity: 0.6;
+}
+
+.provider-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.provider-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+}
+
+.provider-claude {
+  color: #d97757;
+}
+
+.provider-codex {
+  color: var(--text);
+}
+
+.provider-gemini {
+  color: #5c9bf6;
+}
+
+.provider-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.provider-check {
+  color: var(--accent-bright);
+}
+
+.provider-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.provider-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--extra-muted);
+}
+
+.provider-state.tone-ok .provider-dot {
+  background: var(--ok);
+}
+
+.provider-state.tone-ng .provider-dot {
+  background: var(--ng);
+}
+
+.provider-state.tone-pending .provider-dot {
+  background: var(--warn);
+}
+
+.provider-account {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-defaults h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
 }
 
 .project-edit-button {

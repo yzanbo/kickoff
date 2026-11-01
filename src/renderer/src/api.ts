@@ -92,7 +92,9 @@ export const api = {
     request<WorkspaceInspection>("GET", `/api/workspace/inspect?path=${encodeURIComponent(path)}`),
   updateProject: (
     id: number,
-    patch: Partial<Pick<Project, "name" | "description" | "test_command" | "deploy_instructions" | "write_scopes" | "defaults">>,
+    patch: Partial<
+      Pick<Project, "name" | "description" | "provider" | "test_command" | "deploy_instructions" | "write_scopes" | "defaults">
+    >,
   ) =>
     request<Project>("PATCH", `/api/projects/${id}`, patch),
   deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),
