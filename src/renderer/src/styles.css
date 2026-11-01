@@ -3342,7 +3342,8 @@ mark {
 }
 
 .board-body.with-panel {
-  grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 560px), calc(100% - 260px));
+  /* パネルはカンバンを覆うところまで広げられる（間隔の分だけ引く） */
+  grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 560px), calc(100% - 12px));
   gap: 12px;
 }
 
