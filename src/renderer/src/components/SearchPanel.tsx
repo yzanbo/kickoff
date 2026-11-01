@@ -17,7 +17,7 @@ interface Props {
 
 const SCOPE_LABELS: Record<SearchScope, string> = { run: "このチャット", project: "このプロジェクト", all: "すべて" };
 
-/** ⌘F: チャットのやり取りをキーワードで検索し、該当する発言へ移動する */
+/** ⌘⇧F: チャットのやり取りをキーワードで全文検索し、該当する発言へ移動する */
 export function SearchPanel({ runId, projectId, onClose }: Props) {
   const scopes: SearchScope[] = [...(runId ? ["run" as const] : []), ...(projectId ? ["project" as const] : []), "all"];
   const [scope, setScope] = useState<SearchScope>(scopes[0]);
