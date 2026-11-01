@@ -2095,6 +2095,25 @@ mark {
   outline: none;
 }
 
+.model-select {
+  position: relative;
+  padding-right: 8px;
+}
+
+.model-name {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* 選択肢はファミリーごとの一覧で開き、閉じているときは上の名前を見せる */
+.model-select select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .section-pill {
   color: var(--sec);
   background: color-mix(in srgb, var(--sec) 12%, transparent);
