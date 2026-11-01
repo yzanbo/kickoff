@@ -34,8 +34,9 @@ export function layoutGraph(commits: { hash: string; parents: string[] }[]): { r
 
   for (const commit of commits) {
     let col = lanes.indexOf(commit.hash);
-    if (col < 0) {
-      // どの線も待っていない（ブランチの先頭）: 空いている列に置く
+    // どの線も待っていない（ブランチの先頭）: 空いている列に置き、上には線を引かない（つながる子のコミットがない）
+    const head = col < 0;
+    if (head) {
       col = freeSlot();
       lanes[col] = commit.hash;
       colors[col] = nextColor++;
@@ -44,7 +45,8 @@ export function layoutGraph(commits: { hash: string; parents: string[] }[]): { r
     // 上半分: この点に集まる線と、そのまま通り過ぎる線
     const top: GraphEdge[] = [];
     lanes.forEach((hash, i) => {
-      if (hash !== null) top.push({ from: i, to: hash === commit.hash ? col : i, color: colors[i] });
+      if (hash === null || (head && i === col)) return;
+      top.push({ from: i, to: hash === commit.hash ? col : i, color: colors[i] });
     });
     const before = lanes.slice();
     for (let i = 0; i < lanes.length; i++) if (i !== col && lanes[i] === commit.hash) lanes[i] = null;
