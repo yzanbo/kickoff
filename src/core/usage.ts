@@ -1,4 +1,5 @@
 import type { Bus } from "./bus.js";
+import { errorMessage } from "./errors.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { PlanUsage } from "./types.js";
 
@@ -49,7 +50,7 @@ export class UsageMonitor {
       usage = await this.provider.usage();
     } catch (e) {
       // 取得に失敗しても直前の値は残し、エラーだけ添える
-      const message = e instanceof Error ? e.message : String(e);
+      const message = errorMessage(e);
       usage = this.current ? { ...this.current, error: message } : emptyUsage(this.provider, message);
     }
     this.current = usage;

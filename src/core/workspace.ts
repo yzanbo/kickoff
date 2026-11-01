@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { errorMessage } from "./errors.js";
 import type { WorkspaceInspection } from "./types.js";
 
 export type { WorkspaceInspection };
@@ -62,7 +63,7 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
   } catch (e) {
     // 途中で失敗したら、作ったフォルダを片付けてから伝える
     if (!existing) await fs.rm(repo, { recursive: true, force: true });
-    const detail = e instanceof Error ? e.message : String(e);
+    const detail = errorMessage(e);
     throw new Error(`git リポジトリの初期化に失敗しました: ${detail}`);
   }
   // 取り込み時の重複チェックと揃えるため、実体のパスで登録する
@@ -128,7 +129,7 @@ export async function prepareImportedWorkspace(rawPath: string, initGit: boolean
     await git(real, ["add", "-A"]);
     await git(real, ["commit", "--allow-empty", "-m", "chore: Kickoff に取り込み"]);
   } catch (e) {
-    throw new Error(`git の初期化に失敗しました: ${e instanceof Error ? e.message : String(e)}`);
+    throw new Error(`git の初期化に失敗しました: ${errorMessage(e)}`);
   }
   return real;
 }

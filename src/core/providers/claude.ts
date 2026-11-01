@@ -1,110 +1,24 @@
 import { execFile } from "node:child_process";
-import { createRequire } from "node:module";
-import path from "node:path";
 import { promisify } from "node:util";
 import {
   createSdkMcpServer,
   query,
   tool,
   type CanUseTool,
-  type HookCallbackMatcher,
-  type HookEvent,
-  type PermissionMode,
   type Query,
-  type SDKControlGetUsageResponse,
-  type SDKMessage,
   type SDKResultMessage,
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
-import { KICKOFF_SERVER_NAME, type KickoffTool } from "../kickoffTools.js";
-import { evaluateReferenceWrite, evaluateScopedToolUse } from "../scope.js";
-import type { PhasePolicy } from "../phases.js";
-import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type UsageWindow } from "../types.js";
+import { errorMessage } from "../errors.js";
+import { KICKOFF_SERVER_NAME } from "../kickoffTools.js";
+import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus } from "../types.js";
+import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
+import { emitSdkMessage } from "./claudeMessages.js";
+import { resolvePermissionMode, scopeHooks, toAllowedTools } from "./claudePolicy.js";
+import { normalizeUsage } from "./claudeUsage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
 
 const execFileAsync = promisify(execFile);
-const TOOL_RESULT_LIMIT = 4000;
-
-/**
- * Agent SDK に同梱される Claude Code のネイティブバイナリを解決する。
- * パッケージ後の Electron では asar の外（app.asar.unpacked）に展開されている必要がある。
- */
-export function resolveClaudeExecutable(): string | undefined {
-  try {
-    const require = createRequire(import.meta.url);
-    const pkg = require.resolve(`@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}/package.json`);
-    const bin = path.join(path.dirname(pkg), process.platform === "win32" ? "claude.exe" : "claude");
-    return bin.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`);
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Claude のプラン（claude.ai ログイン）で動かすため、API キーの環境変数は子プロセスに渡さない。
- * KICKOFF_ALLOW_API_KEY=1 のときだけ API キー認証を許可する。
- */
-function agentEnv(): Record<string, string | undefined> {
-  const env: Record<string, string | undefined> = { ...process.env, CLAUDE_AGENT_SDK_CLIENT_APP: "kickoff/0.1.0" };
-  if (process.env.KICKOFF_ALLOW_API_KEY !== "1") {
-    delete env.ANTHROPIC_API_KEY;
-    delete env.ANTHROPIC_AUTH_TOKEN;
-  }
-  return env;
-}
-
-/**
- * 書き込み範囲の制限をフック（PreToolUse）で強制する。フックは権限モードや許可ルールより先に
- * 毎回呼ばれるので、Auto mode やユーザー設定の許可ルールがあっても範囲外には書き込めない。
- */
-function scopeHooks(params: ProviderRunParams): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
-  const scope = params.policy.writeScope;
-  const readOnly = params.readOnlyPaths ?? [];
-  if (!scope && readOnly.length === 0) return undefined;
-  return {
-    PreToolUse: [
-      {
-        hooks: [
-          async (input) => {
-            if (input.hook_event_name !== "PreToolUse") return {};
-            const toolInput = (input.tool_input ?? {}) as Record<string, unknown>;
-            // 参照資料への書き込みは、どのセクションでも止める。そのあとで、セクションの書き込み範囲を判定する
-            const ref = evaluateReferenceWrite(params.cwd, readOnly, input.tool_name, toolInput);
-            const result = ref.decision !== "pass" || !scope ? ref : evaluateScopedToolUse(params.cwd, scope, input.tool_name, toolInput);
-            if (result.decision === "pass") return {};
-            return {
-              hookSpecificOutput: {
-                hookEventName: "PreToolUse",
-                permissionDecision: result.decision,
-                permissionDecisionReason: result.reason,
-              },
-            };
-          },
-        ],
-      },
-    ],
-  };
-}
-
-/** チャット欄で選んだ権限モード。"phase" ならフェーズのポリシーから決める */
-export function resolvePermissionMode(params: Pick<ProviderRunParams, "permissionMode" | "policy">): PermissionMode {
-  if (params.permissionMode !== "phase") return params.permissionMode;
-  return params.policy.autoEdit ? "acceptEdits" : "default";
-}
-
-/** フェーズのポリシーを Claude Code の権限ルールに変換する */
-export function toAllowedTools(policy: PhasePolicy, tools: KickoffTool[]): string[] {
-  return [
-    "Read",
-    "Glob",
-    "Grep",
-    "TodoWrite",
-    ...(policy.web ? ["WebSearch", "WebFetch"] : []),
-    ...(policy.autoEdit ? ["Edit", "Write", "NotebookEdit"] : []),
-    ...policy.allowedCommands.map((cmd) => `Bash(${cmd}:*)`),
-    ...tools.map((t) => `mcp__${KICKOFF_SERVER_NAME}__${t.name}`),
-  ];
-}
 
 export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;
@@ -281,7 +195,7 @@ export class ClaudeProvider implements AgentProvider {
       });
 
       for await (const msg of q) {
-        const sid = this.handleMessage(msg, cb);
+        const sid = emitSdkMessage(msg, cb);
         if (sid) sessionId = sid;
         if (msg.type === "result") final = msg;
         if (msg.type === "assistant" && msg.parent_tool_use_id === null) {
@@ -322,105 +236,6 @@ export class ClaudeProvider implements AgentProvider {
     return { ...common, status: "failed", error };
   }
 
-  /** SDK のメッセージを Kickoff のイベントに変換する。init のときはセッション ID を返す */
-  private handleMessage(msg: SDKMessage, cb: ProviderCallbacks): string | undefined {
-    switch (msg.type) {
-      case "system":
-        if (msg.subtype === "init") {
-          cb.emit({ type: "init", session_id: msg.session_id, model: msg.model, permission_mode: msg.permissionMode });
-          return msg.session_id;
-        }
-        // サブエージェント: 開始と終了は記録し、途中経過（トークン数・直近のツール）は画面にだけ流す
-        if (msg.subtype === "task_started") {
-          cb.emit({
-            type: "subagent",
-            task_id: msg.task_id,
-            tool_use_id: msg.tool_use_id,
-            description: msg.description,
-            subagent_type: msg.subagent_type,
-            status: "running",
-          });
-        } else if (msg.subtype === "task_progress") {
-          cb.subagentProgress?.({
-            task_id: msg.task_id,
-            tool_use_id: msg.tool_use_id,
-            description: msg.description,
-            subagent_type: msg.subagent_type,
-            status: "running",
-            tokens: msg.usage.total_tokens,
-            tool_uses: msg.usage.tool_uses,
-            duration_ms: msg.usage.duration_ms,
-            last_tool: msg.last_tool_name,
-          });
-        } else if (msg.subtype === "task_notification") {
-          cb.emit({
-            type: "subagent",
-            task_id: msg.task_id,
-            tool_use_id: msg.tool_use_id,
-            description: "",
-            status: msg.status,
-            tokens: msg.usage?.total_tokens,
-            tool_uses: msg.usage?.tool_uses,
-            duration_ms: msg.usage?.duration_ms,
-            summary: msg.summary,
-          });
-        }
-        return undefined;
-
-      case "assistant": {
-        // サブエージェントの発言は、どのサブエージェントのものかを残す（画面でその中身を見られるように）
-        const parent = msg.parent_tool_use_id ?? undefined;
-        const sub = parent ? { sub: true, parent } : {};
-        for (const block of msg.message.content) {
-          if (block.type === "text" && block.text.trim()) {
-            cb.emit({ type: "text", text: block.text, ...sub });
-          } else if (block.type === "tool_use") {
-            cb.emit({ type: "tool_use", id: block.id, name: block.name, input: block.input, ...sub });
-          } else if (block.type === "thinking" && block.thinking.trim()) {
-            cb.emit({ type: "thinking", text: block.thinking });
-          }
-        }
-        return undefined;
-      }
-
-      case "user": {
-        const content = msg.message.content;
-        if (typeof content === "string") return undefined;
-        for (const block of content) {
-          if (block.type !== "tool_result") continue;
-          const text =
-            typeof block.content === "string"
-              ? block.content
-              : (block.content ?? [])
-                  .map((c) => (c.type === "text" ? c.text : `[${c.type}]`))
-                  .join("\n");
-          cb.emit({
-            type: "tool_result",
-            tool_use_id: block.tool_use_id,
-            content: text.length > TOOL_RESULT_LIMIT ? `${text.slice(0, TOOL_RESULT_LIMIT)}\n…（省略）` : text,
-            is_error: Boolean(block.is_error),
-            ...(msg.parent_tool_use_id ? { parent: msg.parent_tool_use_id } : {}),
-          });
-        }
-        return undefined;
-      }
-
-      case "stream_event":
-        // メインのエージェントの文章だけを流す（サブエージェントの途中経過は出さない）
-        if (
-          msg.parent_tool_use_id === null &&
-          msg.event.type === "content_block_delta" &&
-          msg.event.delta.type === "text_delta"
-        ) {
-          cb.stream?.(msg.event.delta.text);
-        }
-        return undefined;
-
-      default:
-        return undefined;
-    }
-  }
-
   /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */
   async title(text: string): Promise<string> {
     const q = query({
@@ -443,30 +258,6 @@ export class ClaudeProvider implements AgentProvider {
   }
 }
 
-type RawWindow = { utilization: number | null; resets_at: string | null } | null | undefined;
-
-/** SDK の /usage 応答を Kickoff の形に変換する */
-export function normalizeUsage(res: SDKControlGetUsageResponse): PlanUsage {
-  const limits = res.rate_limits;
-  const win = (key: string, label: string, raw: RawWindow): UsageWindow => ({
-    key,
-    label,
-    utilization: raw?.utilization ?? null,
-    resets_at: raw?.resets_at ?? null,
-  });
-  return {
-    provider: "claude",
-    provider_label: "Claude",
-    available: res.rate_limits_available && limits !== null,
-    plan: res.subscription_type,
-    five_hour: win("five_hour", "5時間", limits?.five_hour),
-    seven_day: win("seven_day", "週", limits?.seven_day),
-    model_weekly: (limits?.model_scoped ?? []).map((m) => win(`model:${m.display_name}`, `週（${m.display_name}）`, m)),
-    extra_usage: limits?.extra_usage ? { enabled: limits.extra_usage.is_enabled, utilization: limits.extra_usage.utilization } : null,
-    fetched_at: new Date().toISOString(),
-  };
-}
-
 const FAST_MODE_REASONS: Record<string, string> = {
   extra_usage_disabled: "追加の使用枠（extra usage）が無効です",
   model_not_allowed: "このモデルはファストモードに対応していません",
@@ -482,7 +273,3 @@ const ERROR_LABELS: Record<string, string> = {
   error_max_budget_usd: "予算上限に達しました",
   error_during_execution: "実行中にエラーが発生しました",
 };
-
-function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}

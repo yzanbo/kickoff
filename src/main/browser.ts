@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { app, session, shell, type Session, type WebContents } from "electron";
+import { errorMessage } from "../core/errors.js";
 import { unpackCrx } from "./crx.js";
 
 const execFileAsync = promisify(execFile);
@@ -68,7 +69,7 @@ export async function loadSavedExtensions(): Promise<string[]> {
     try {
       await browserSession().extensions.loadExtension(dir, { allowFileAccess: true });
     } catch (e) {
-      errors.push(`${dir}: ${e instanceof Error ? e.message : String(e)}`);
+      errors.push(`${dir}: ${errorMessage(e)}`);
     }
   }
   return errors;

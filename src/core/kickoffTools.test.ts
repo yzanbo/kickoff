@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { createKickoffTools, exportToRepo } from "./kickoffTools.js";
 import { phasePolicy } from "./phases.js";
-import { toAllowedTools } from "./providers/claude.js";
+import { toAllowedTools } from "./providers/claudePolicy.js";
 import { Store } from "./store.js";
 
 function tmpRepo() {
