@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { EFFORT_LABELS, EFFORT_LEVELS, PERMISSION_CHOICES, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice, type Project, type ProjectDefaults } from "../../../../core/types";
+import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice, type Project, type ProjectDefaults } from "../../../../core/types";
 import { api, useAsync } from "../../api";
-import { groupModels, modelDisplayName } from "../../models";
 import { useSave } from "../../hooks/useSave";
+import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../../models";
 import { SaveActions } from "../SaveActions";
 
 /** 「アプリの設定に従う」を表す select の値 */
@@ -61,7 +61,7 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
           >
             <option value={INHERIT}>アプリの設定に従う（{appEffort}）</option>
             <option value="">セクションに合わせる</option>
-            {(currentModel?.efforts ?? EFFORT_LEVELS).map((level) => (
+            {effortsFor(currentModel).map((level) => (
               <option key={level} value={level}>
                 {EFFORT_LABELS[level]}
               </option>
@@ -72,7 +72,7 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
           <span className="field-label">権限モード</span>
           <select value={draft.permission ?? INHERIT} onChange={(e) => set("permission", e.target.value as PermissionChoice | typeof INHERIT)}>
             <option value={INHERIT}>アプリの設定に従う（{appPermission}）</option>
-            {PERMISSION_CHOICES.filter((p) => p !== "auto" || !currentModel || currentModel.supportsAutoMode).map((p) => (
+            {permissionChoices(currentModel).map((p) => (
               <option key={p} value={p}>
                 {p === "phase" ? "セクションに合わせる" : PERMISSION_LABELS[p]}
               </option>

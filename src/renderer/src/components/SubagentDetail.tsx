@@ -2,10 +2,11 @@ import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { RunEvent } from "../../../core/types";
 import { cx } from "../cx";
+import { formatTokens } from "../format";
 import { startHorizontalDrag } from "../hooks/dragResize";
 import { useDismiss } from "../hooks/useDismiss";
 import { useStoredNumber } from "../hooks/useStoredState";
-import { cleanSubagentReport, type SubagentEntry } from "../subagents";
+import { cleanSubagentReport, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "../subagents";
 import { groupEvents } from "../timeline";
 import { Markdown } from "./Markdown";
 import { TimelineItems, Working } from "./Timeline";
@@ -13,7 +14,6 @@ import { TimelineItems, Working } from "./Timeline";
 const WIDTH_KEY = "kickoff:subagent-width";
 const MIN_WIDTH = 320;
 
-const STATUS_LABELS: Record<SubagentEntry["status"], string> = { running: "実行中", completed: "完了", failed: "失敗", stopped: "中断" };
 
 /**
  * サブエージェントの中身（親からの依頼・発言・ツールの実行・親への報告）。
@@ -76,7 +76,7 @@ export function SubagentDetail({
     if (el && entry.status === "running") el.scrollTop = el.scrollHeight;
   }, [items.length, entry.status]);
 
-  const meta = [entry.subagentType ?? "general-purpose", entry.tokens !== undefined ? `${Math.round(entry.tokens / 100) / 10}k tokens` : null, STATUS_LABELS[entry.status]];
+  const meta = [entry.subagentType ?? "general-purpose", entry.tokens !== undefined ? `${formatTokens(entry.tokens)} tokens` : null, SUBAGENT_STATUS_LABELS[entry.status]];
 
   return (
     <>

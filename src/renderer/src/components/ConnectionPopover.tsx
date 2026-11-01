@@ -5,7 +5,7 @@ import { useDismiss } from "../hooks/useDismiss";
 import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../core/types";
 import { api, type ConnectionState } from "../api";
 import { href } from "../router";
-import { planLabel } from "../usage";
+import { accountLine } from "../usage";
 
 interface Props {
   state: ConnectionState;
@@ -111,7 +111,7 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
         <ToolRow
           name="Claude Code"
           ok={claude ? claude.installed && claude.loggedIn : undefined}
-          detail={claude ? [claude.account, claude.plan && `${planLabel(claude.plan)} プラン`].filter(Boolean).join(" ・ ") || claude.detail : "確認中…"}
+          detail={claude ? accountLine(claude) || claude.detail : "確認中…"}
         />
         {[codex, gemini].map(
           (p) =>

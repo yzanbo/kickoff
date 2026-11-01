@@ -4,6 +4,7 @@ import { agentStateOf } from "../../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState, type Approval, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
+import { chatTitle } from "../../chatTitle";
 import { alertDialog } from "../../dialogs";
 import { confirmDeleteGroup, startRunDrag, useGroupDrop } from "../../groups";
 import { useStoredChoice, useStoredFlag } from "../../hooks/useStoredState";
@@ -133,7 +134,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           <StatusSlot state={state} />
           <span className="chat-row-body">
             <span className="chat-row-line">
-              <span className="chat-row-title">{run.title || "チャット"}</span>
+              <span className="chat-row-title">{chatTitle(run.title)}</span>
               <span className="chat-row-time">{relativeTime(run.updated_at)}</span>
             </span>
             <span className="chat-row-meta">

@@ -1,5 +1,5 @@
-import type { usePlanUsage } from "../usage";
-import { FIVE_HOUR_IDLE } from "../usage";
+import { formatClock } from "../time";
+import { FIVE_HOUR_IDLE, type usePlanUsage } from "../usage";
 import { UsageMeter } from "./UsageMeter";
 
 interface Props {
@@ -40,7 +40,7 @@ export function UsagePanel({ planUsage }: Props) {
             ))}
           </div>
           <p className="muted small">
-            {new Date(usage.fetched_at).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })} 時点
+            {formatClock(usage.fetched_at)} 時点
             （5 分ごとに自動更新）
             {usage.error && <span className="error">・最新の取得に失敗: {usage.error}</span>}
           </p>

@@ -1,4 +1,5 @@
 import type { Run } from "../../core/types";
+import { chatTitle } from "./chatTitle";
 
 /**
  * チャットを名前で絞り込む（ボード・サイドバーの検索欄。⌘F）。
@@ -8,7 +9,7 @@ export function useChatSearch(query: string) {
   const keyword = query.trim();
   const lower = keyword.toLowerCase();
   /** 検索語がなければすべて一致 */
-  const matches = (run: Run) => !keyword || (run.title || "無題のチャット").toLowerCase().includes(lower);
+  const matches = (run: Run) => !keyword || chatTitle(run.title).toLowerCase().includes(lower);
   return { keyword, matches };
 }
 

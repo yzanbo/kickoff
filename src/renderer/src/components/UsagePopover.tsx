@@ -1,6 +1,7 @@
 import { RefreshCw, X } from "lucide-react";
 import { useRef } from "react";
 import { useDismiss } from "../hooks/useDismiss";
+import { formatClock } from "../time";
 import { FIVE_HOUR_IDLE, planName, type usePlanUsage } from "../usage";
 import { UsageMeter } from "./UsageMeter";
 
@@ -41,7 +42,7 @@ export function UsagePopover({ planUsage, onClose }: Props) {
             <UsageMeter key={w.key} window={w} />
           ))}
           <p className="muted small usage-popover-foot">
-            {new Date(usage.fetched_at).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })} 時点（5 分ごとに自動更新）
+            {formatClock(usage.fetched_at)} 時点（5 分ごとに自動更新）
             {usage.error && <span className="error"> ・最新の取得に失敗: {usage.error}</span>}
           </p>
         </div>

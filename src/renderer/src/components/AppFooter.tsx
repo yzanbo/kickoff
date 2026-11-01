@@ -1,6 +1,6 @@
 import type { PlanUsage } from "../../../core/types";
 import type { ConnectionState } from "../api";
-import { FIVE_HOUR_IDLE, planName } from "../usage";
+import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../usage";
 import { CONNECTION_LABELS } from "./ConnectionPopover";
 import { UsageMeter } from "./UsageMeter";
 
@@ -32,7 +32,7 @@ export function AppFooter({ connection, connOpen, onConnClick, usage, usageOpen,
           <UsageMeter window={usage.seven_day} inline />
           {/* モデル別の週枠（Fable など）。フッターでは短く「Fable」と表示する */}
           {usage.model_weekly.map((w) => (
-            <UsageMeter key={w.key} window={{ ...w, label: w.label.replace(/^週（(.+)）$/, "$1") }} inline />
+            <UsageMeter key={w.key} window={{ ...w, label: weeklyModel(w.label) ?? w.label }} inline />
           ))}
         </button>
       ) : (

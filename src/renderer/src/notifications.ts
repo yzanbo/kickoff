@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { ProjectSummary, Run, RunStatus } from "../../core/types";
+import { chatTitle } from "./chatTitle";
 import { useServerEvent } from "./events";
 import { openRun, type Route } from "./router";
 
@@ -37,7 +38,7 @@ export function useRunNotifications({ enabled, projects, route }: { enabled: boo
       last.current.set(run.id, run.status);
       if (!prev || !BUSY.includes(prev) || BUSY.includes(run.status)) return;
       const project = state.current.projects.find((p) => p.id === run.project_id)?.name ?? "";
-      const name = run.title || "チャット";
+      const name = chatTitle(run.title);
       if (run.status === "completed") notify(run, `✓ 完了: ${name}`, `${project} ・ AI の作業が終わりました`);
       else if (run.status === "failed") notify(run, `✕ 失敗: ${name}`, `${project} ・ ${run.error?.slice(0, 120) ?? "エラーで止まりました"}`);
     } else if (e.type === "approval") {

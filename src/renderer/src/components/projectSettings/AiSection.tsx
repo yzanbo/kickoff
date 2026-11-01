@@ -1,9 +1,9 @@
 import { Check, Sparkles, SquareTerminal } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { PROVIDER_IDS, type AppSettings, type Project, type ProviderId, type ProviderStatus } from "../../../../core/types";
 import { api, useAsync } from "../../api";
-import { errorMessage } from "../../errors";
-import { planLabel } from "../../usage";
+import { useActionError } from "../../hooks/useActionError";
+import { accountLine } from "../../usage";
 import { ClaudeMark } from "../ClaudeMark";
 import { AiDefaults } from "./AiDefaults";
 
@@ -17,15 +17,8 @@ const PROVIDER_META: Record<ProviderId, { icon: ReactNode; cli: string }> = {
 /** AI: どの AI を使うか（カード）と、その AI の既定 */
 export function AiSection({ project, app }: { project: Project; app: AppSettings | undefined }) {
   const providers = useAsync(api.providers);
-  const [error, setError] = useState<string>();
-  const choose = async (id: ProviderId) => {
-    try {
-      await api.updateProject(project.id, { provider: id });
-      setError(undefined);
-    } catch (e) {
-      setError(errorMessage(e));
-    }
-  };
+  const { error, guard } = useActionError();
+  const choose = (id: ProviderId) => guard(() => api.updateProject(project.id, { provider: id }));
 
   return (
     <section className="section">
@@ -95,7 +88,7 @@ export function ProviderCard({
         {state.text}
       </span>
       {ready && (status.account || status.plan) && (
-        <span className="provider-account muted">{[status.account, status.plan && `${planLabel(status.plan)} プラン`].filter(Boolean).join(" ・ ")}</span>
+        <span className="provider-account muted">{accountLine(status)}</span>
       )}
     </button>
   );
