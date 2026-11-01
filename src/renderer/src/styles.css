@@ -1830,17 +1830,6 @@ select:focus {
   max-width: 560px;
 }
 
-/* 設定タブ（ページ）では、項目一覧を上に固定する */
-.page .project-settings {
-  min-height: 480px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-}
-
-.page .project-settings-content {
-  overflow: visible;
-}
-
 /* 参照資料 */
 .reference-editor {
   display: grid;
