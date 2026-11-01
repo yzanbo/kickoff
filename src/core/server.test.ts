@@ -192,6 +192,12 @@ test("チャット・グループの API", async () => {
   assert.equal((await call("PATCH", `/api/runs/${runId}`, { group_id: group.body.id })).body.group_id, group.body.id);
 
   assert.equal((await call("POST", `/api/runs/${runId}/seen`)).body.attention, 0);
+  // 未読にする・既読にする: 印だけを変え、最後に動いた時刻（並び順）は変えない
+  const updatedAt = store.getRun(runId)?.updated_at;
+  assert.equal((await call("POST", `/api/runs/${runId}/unseen`)).body.attention, 1);
+  assert.equal(store.getRun(runId)?.updated_at, updatedAt);
+  assert.equal((await call("POST", `/api/runs/${runId}/seen`)).body.attention, 0);
+  assert.equal(store.getRun(runId)?.updated_at, updatedAt);
   assert.ok((await call("POST", `/api/runs/${runId}/archive`)).body.archived_at);
   assert.equal((await call("GET", `/api/projects/${project.id}/runs`)).body.length, 0);
   assert.equal((await call("GET", `/api/projects/${project.id}/runs?archived=1`)).body.length, 1);

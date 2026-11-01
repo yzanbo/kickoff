@@ -96,6 +96,7 @@ export function SidePanel({ panel }: { panel: SidePanelController }) {
                 projectId={t.projectId}
                 runId={t.id}
                 focus={t.focus}
+                visible={panelOpen && activeTab === t.key}
                 onClose={panel.close}
                 onRunChange={(run) =>
                   panel.updateTab(t.key, (x) => (x.kind === "chat" && (x.title !== run.title || x.phase !== run.phase) ? { ...x, title: run.title, phase: run.phase } : x))

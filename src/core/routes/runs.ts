@@ -115,7 +115,13 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
   // チャットを開いて確認した（確認待ちを消す）
   app.post("/api/runs/:id/seen", (c) => {
     const run = requireRun(store, c.req.param("id"));
-    return c.json(run.attention ? store.updateRun(run.id, { attention: 0 }) : run);
+    return c.json(run.attention ? store.setRunAttention(run.id, false) : run);
+  });
+
+  // 未読にする（確認待ちに戻す。次に開くまで残る）
+  app.post("/api/runs/:id/unseen", (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    return c.json(run.attention ? run : store.setRunAttention(run.id, true));
   });
 
   // アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す

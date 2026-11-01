@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, PanelRight, Pencil, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Mail, MailOpen, PanelRight, Pencil, Trash2 } from "lucide-react";
 import type { Run } from "../../../core/types";
 import { api } from "../api";
 import { chatTitle } from "../chatTitle";
@@ -34,7 +34,7 @@ export function CardMenu({
       onClose();
     }
   };
-  const at = clampToViewport(x, y, 220, 220);
+  const at = clampToViewport(x, y, 220, 260);
 
   return (
     <PopupMenu x={at.x} y={at.y} escape="pass" onClose={onClose}>
@@ -44,6 +44,16 @@ export function CardMenu({
       <button role="menuitem" onClick={() => (onClose(), onRename(run))}>
         <Pencil size={14} /> 名前を変更
       </button>
+      {/* 未読 = 確認待ちの印（サイドバーで太字になる。次に開くまで残る） */}
+      {run.attention ? (
+        <button role="menuitem" onClick={() => void act(() => api.markSeen(run.id))}>
+          <MailOpen size={14} /> 既読にする
+        </button>
+      ) : (
+        <button role="menuitem" onClick={() => void act(() => api.markUnseen(run.id))}>
+          <Mail size={14} /> 未読にする
+        </button>
+      )}
       {run.archived_at ? (
         <button role="menuitem" onClick={() => void act(() => api.archiveRun(run.id, false))}>
           <ArchiveRestore size={14} /> アーカイブから戻す
