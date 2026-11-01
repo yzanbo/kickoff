@@ -4679,6 +4679,12 @@ mark {
 }
 
 /* 全プロジェクトのカンバン: カードのプロジェクトのバッジと、左端の色の線（サイドバーと同じ色） */
+/* 絞り込み中のセレクトは、絞り込んでいることがわかるようにする */
+.board-filter.filtered {
+  border-color: var(--accent-bright);
+  color: var(--text);
+}
+
 .project-chip {
   display: inline-flex;
   align-items: center;
