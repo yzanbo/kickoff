@@ -8,17 +8,33 @@ import { navigate, type ProjectTab } from "../router";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /**
- * プロジェクトの見出しの名前。押すとほかのプロジェクトを選べ、いまのタブ（ボード・グループなど）のまま切り替わる。
- * プロジェクトが 1 つだけなら、名前だけ出す
+ * プロジェクトの見出しの名前。サイドバーと同じプロジェクトの色のカード（頭文字と名前）にして、どのプロジェクトかを色でもわかるようにする。
+ * 押すとほかのプロジェクトを選べ、いまのタブ（ボード・グループなど）のまま切り替わる。プロジェクトが 1 つだけなら押せない
  */
 export function ProjectSwitcher({ project, projects, tab }: { project: { id: number; name: string }; projects: ProjectSummary[]; tab: ProjectTab }) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
-  if (projects.length <= 1) return <>{project.name}</>;
+  const hue = { "--ws-hue": `${projectHue(project.id)}` } as CSSProperties;
+  const identity = (
+    <>
+      <span className="workspace-avatar" aria-hidden>
+        {initialOf(project.name)}
+      </span>
+      <span className="project-switch-name">{project.name}</span>
+    </>
+  );
+  if (projects.length <= 1) {
+    return (
+      <span className="project-switch" style={hue}>
+        {identity}
+      </span>
+    );
+  }
   const ordered = sidebarOrder(projects);
   return (
     <>
       <button
         className="project-switch"
+        style={hue}
         title="プロジェクトを切り替える"
         aria-haspopup="menu"
         aria-expanded={at !== null}
@@ -29,7 +45,7 @@ export function ProjectSwitcher({ project, projects, tab }: { project: { id: num
           setAt(clampToViewport(r.left, r.bottom + 4, 260, 16 + ordered.length * 34));
         }}
       >
-        <span className="project-switch-name">{project.name}</span>
+        {identity}
         <ChevronDown size={16} aria-hidden />
       </button>
       {at && (
