@@ -10,6 +10,7 @@ import type {
   ProviderId,
   Run,
   RunEvent,
+  RunGroup,
   RunOptions,
   SearchHit,
   Task,
@@ -136,6 +137,12 @@ export const api = {
   markSeen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/seen`),
   archiveRun: (runId: number, archived = true) => request<Run>("POST", `/api/runs/${runId}/archive`, { archived }),
   deleteRun: (runId: number) => request<{ ok: true }>("DELETE", `/api/runs/${runId}`),
+  setRunGroup: (runId: number, groupId: number | null) => request<Run>("PATCH", `/api/runs/${runId}`, { group_id: groupId }),
+  groups: (projectId: number) => request<RunGroup[]>("GET", `/api/projects/${projectId}/groups`),
+  createGroup: (projectId: number, name: string) => request<RunGroup>("POST", `/api/projects/${projectId}/groups`, { name }),
+  renameGroup: (groupId: number, name: string) => request<RunGroup>("PATCH", `/api/groups/${groupId}`, { name }),
+  reorderGroups: (projectId: number, ids: number[]) => request<RunGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
+  deleteGroup: (groupId: number) => request<{ ok: true }>("DELETE", `/api/groups/${groupId}`),
   cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
 
   // 承認依頼・質問

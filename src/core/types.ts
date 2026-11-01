@@ -185,6 +185,19 @@ export interface Run {
   attention: number;
   /** アーカイブした日時（null なら一覧に出す） */
   archived_at: string | null;
+  /** 自分で作ったグループ（null ならグループなし） */
+  group_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** チャットを自分でまとめるグループ（プロジェクトごと） */
+export interface RunGroup {
+  id: number;
+  project_id: number;
+  name: string;
+  /** 並び順（小さいほど上・左） */
+  position: number;
   created_at: string;
   updated_at: string;
 }
@@ -385,6 +398,8 @@ export type BusEvent =
   | { type: "task_deleted"; id: number; project_id: number }
   | { type: "run"; run: Run }
   | { type: "run_deleted"; id: number; project_id: number }
+  | { type: "group"; group: RunGroup }
+  | { type: "group_deleted"; id: number; project_id: number }
   | { type: "run_event"; project_id: number; event: RunEvent }
   /** AI の返答の途中経過（保存しない。確定した文は run_event の text で届く） */
   | { type: "run_delta"; project_id: number; run_id: number; text: string }

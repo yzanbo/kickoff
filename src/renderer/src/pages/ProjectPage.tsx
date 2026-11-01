@@ -8,10 +8,12 @@ import {
   type Project,
   type ProjectSummary,
   type Run,
+  type RunGroup,
   type Task,
 } from "../../../core/types";
 import { api } from "../api";
 import { Markdown } from "../components/Markdown";
+import { GroupBoard } from "../components/GroupBoard";
 import { KanbanBoard } from "../components/KanbanBoard";
 import { BUSY_STATUSES } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
@@ -26,11 +28,13 @@ interface ProjectData {
   tasks: Task[];
   artifacts: Artifact[];
   runs: Run[];
+  groups: RunGroup[];
   approvals: Approval[];
 }
 
 const TAB_LABELS: Record<ProjectTab, string> = {
   board: "ボード",
+  groups: "グループ",
   requirements: "要件定義書",
   schedule: "スケジュール",
   tasks: "タスク",
@@ -45,14 +49,15 @@ export function ProjectPage({ id, tab, projects }: { id: number; tab: ProjectTab
 
   const load = useCallback(async () => {
     try {
-      const [project, tasks, artifacts, runs, approvals] = await Promise.all([
+      const [project, tasks, artifacts, runs, groups, approvals] = await Promise.all([
         api.project(id),
         api.tasks(id),
         api.artifacts(id),
         api.runs(id),
+        api.groups(id),
         api.approvals(),
       ]);
-      setData({ project, tasks, artifacts, runs, approvals: approvals.filter((a) => a.project_id === id) });
+      setData({ project, tasks, artifacts, runs, groups, approvals: approvals.filter((a) => a.project_id === id) });
       setError(undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -71,6 +76,9 @@ export function ProjectPage({ id, tab, projects }: { id: number; tab: ProjectTab
       (e.type === "task_deleted" && e.project_id === id) ||
       (e.type === "artifact" && e.artifact.project_id === id) ||
       (e.type === "run" && e.run.project_id === id) ||
+      (e.type === "run_deleted" && e.project_id === id) ||
+      (e.type === "group" && e.group.project_id === id) ||
+      (e.type === "group_deleted" && e.project_id === id) ||
       (e.type === "approval" && e.approval.project_id === id) ||
       e.type === "approval_resolved";
     if (related) void load();
@@ -78,12 +86,12 @@ export function ProjectPage({ id, tab, projects }: { id: number; tab: ProjectTab
 
   if (error && !data) return <div className="page error">{error}</div>;
   if (!data) return <div className="page muted">読み込み中…</div>;
-  const { project, tasks, artifacts, runs, approvals } = data;
+  const { project, tasks, artifacts, runs, groups, approvals } = data;
   const waiting = runs.filter((r) => approvals.some((a) => a.run_id === r.id)).length;
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (
-    <div className={`page page-wide ${tab === "board" ? "page-board" : ""}`}>
+    <div className={`page page-wide ${tab === "board" || tab === "groups" ? "page-board" : ""}`}>
       <header className="page-header project-header">
         <div className="project-title-row">
           <h1>{project.name}</h1>
@@ -116,12 +124,14 @@ export function ProjectPage({ id, tab, projects }: { id: number; tab: ProjectTab
               {TAB_LABELS[t]}
               {t === "tasks" && tasks.length > 0 && <span className="tab-count">{tasks.length}</span>}
               {t === "board" && runs.length > 0 && <span className="tab-count">{runs.length}</span>}
+              {t === "groups" && groups.length > 0 && <span className="tab-count">{groups.length}</span>}
             </a>
           ))}
         </nav>
       </header>
 
       {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" />}
+      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
       {tab === "tasks" && (
