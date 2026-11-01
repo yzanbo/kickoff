@@ -543,6 +543,17 @@ export interface GitCommitDetail extends GitCommit {
   files: GitFileChange[];
 }
 
+/** ブランチ・リモート・タグ・stash（履歴の左の一覧。Fork と同じ） */
+export interface GitRefs {
+  /** 手元のブランチ（current: いまのブランチ。ahead・behind は追いかけているリモートとの差） */
+  branches: { name: string; hash: string; current: boolean; upstream: string | null; ahead: number; behind: number }[];
+  /** リモートごとのブランチ（name は "origin/main" の形） */
+  remotes: { name: string; branches: { name: string; hash: string }[] }[];
+  tags: { name: string; hash: string }[];
+  /** stash（ref は "stash@{0}" の形） */
+  stashes: { ref: string; hash: string; message: string }[];
+}
+
 /** Kickoff サーバー（コア）の状態（画面の左下の接続の詳細） */
 export interface ServerStatus {
   version: string;
