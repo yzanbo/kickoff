@@ -19,13 +19,15 @@ interface Props {
   approvals: Approval[];
   /** サイドバーのグループの＋から来たとき: そのグループで新しいチャットを始める */
   focus?: ReopenRoute;
+  /** サイドバーのグループ名から来たとき: そのグループを表示して、背景を少しハイライトする */
+  highlight?: number;
 }
 
 /**
  * 自分で作ったグループを管理するボード。列 = グループ、カード = チャット。
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
-export function GroupBoard({ projectId, runs, groups, approvals, focus }: Props) {
+export function GroupBoard({ projectId, runs, groups, approvals, focus, highlight }: Props) {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const [dragRun, setDragRun] = useState<number>();
@@ -62,6 +64,15 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus }: Props)
       .map((d) => (
         <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onOpen={() => panel.showTab(d.key)} onDelete={() => panel.closeTab(d.key)} />
       ));
+
+  // 目立たせるグループが見えるところまでスクロールする
+  useEffect(() => {
+    if (highlight === undefined) return;
+    const timer = setTimeout(() => {
+      document.querySelector(`[data-group-id="${highlight}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [highlight, view]);
 
   const groupIds = new Set(groups.map((g) => g.id));
   const membersOf = (groupId: number | null) =>
@@ -254,7 +265,8 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus }: Props)
 
   const sections: (RunGroup | null)[] = [null, ...groups];
   const keyOf = (g: RunGroup | null) => g?.id ?? "none";
-  const sectionClass = (g: RunGroup | null) => `${over === (g?.id ?? "none") ? "drop-target" : ""} ${g ? reorder.classFor(g.id) : "ungrouped"}`;
+  const sectionClass = (g: RunGroup | null) =>
+    `${over === (g?.id ?? "none") ? "drop-target" : ""} ${g ? reorder.classFor(g.id) : "ungrouped"} ${g && g.id === highlight ? "highlighted" : ""}`;
   const emptyText = (g: RunGroup | null) => (g ? "チャットをここへドラッグ" : "なし");
 
   return (
@@ -292,7 +304,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus }: Props)
               {sections.map((g) => {
                 const members = membersOf(g?.id ?? null);
                 return (
-                  <section key={keyOf(g)} className={`board-column ${sectionClass(g)}`} {...dropProps(g?.id ?? null)}>
+                  <section key={keyOf(g)} className={`board-column ${sectionClass(g)}`} data-group-id={g?.id} {...dropProps(g?.id ?? null)}>
                     {renderHead(g, members.length)}
                     <div className="column-cards">
                       {draftsOf(g?.id ?? null)}
@@ -309,7 +321,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus }: Props)
               {sections.map((g) => {
                 const members = membersOf(g?.id ?? null);
                 return (
-                  <section key={keyOf(g)} className={`list-group ${sectionClass(g)}`} {...dropProps(g?.id ?? null)}>
+                  <section key={keyOf(g)} className={`list-group ${sectionClass(g)}`} data-group-id={g?.id} {...dropProps(g?.id ?? null)}>
                     {renderHead(g, members.length)}
                     {draftsOf(g?.id ?? null)}
                     {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}

@@ -49,12 +49,15 @@ export function ProjectPage({
   tab,
   projects,
   focus,
+  highlightGroup,
 }: {
   id: number;
   tab: ProjectTab;
   projects: ProjectSummary[];
   /** カンバンの右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
+  /** グループのタブで目立たせるグループ（サイドバーのグループ名から来たとき） */
+  highlightGroup?: number;
 }) {
   const [data, setData] = useState<ProjectData>();
   const [error, setError] = useState<string>();
@@ -147,7 +150,7 @@ export function ProjectPage({
       </header>
 
       {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" focus={focus} />}
-      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} focus={focus} />}
+      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} focus={focus} highlight={highlightGroup} />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
       {tab === "tasks" && (
