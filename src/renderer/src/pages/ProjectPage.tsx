@@ -19,7 +19,6 @@ import { BUSY_STATUSES } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";
 import { ProjectEditDialog } from "../components/ProjectEditDialog";
-import { ProjectSettings } from "../components/ProjectSettings";
 import { useServerEvent } from "../events";
 import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
 import { REPORT_KINDS, SECTION_META } from "../sections";
@@ -40,7 +39,6 @@ const TAB_LABELS: Record<ProjectTab, string> = {
   schedule: "スケジュール",
   tasks: "タスク",
   reports: "レポート",
-  settings: "設定",
 };
 
 /** プロジェクト画面: チャット一覧と、決まったこと（要件定義書・スケジュール・タスク・レポート）をタブで */
@@ -155,7 +153,6 @@ export function ProjectPage({
         </section>
       )}
       {tab === "reports" && <ReportsTab artifacts={artifacts} />}
-      {tab === "settings" && <ProjectSettings project={project} />}
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
     </div>
   );

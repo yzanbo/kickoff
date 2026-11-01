@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import type { Project } from "../../../core/types";
 import { ProjectSettings } from "./ProjectSettings";
 
-/** プロジェクト名の横の「編集」から開く、プロジェクトの設定（設定タブと同じ内容。画面は移らない） */
+/** プロジェクト名の横の「編集」から開く、プロジェクトの設定（画面は移らない） */
 export function ProjectEditDialog({ project, onClose }: { project: Project; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
 

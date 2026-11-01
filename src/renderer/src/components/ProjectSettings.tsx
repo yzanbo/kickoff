@@ -65,7 +65,7 @@ const SECTIONS: { key: SectionKey; label: string; icon: typeof Bot }[] = [
 ];
 
 /**
- * プロジェクトの設定（設定タブと「編集」ダイアログで共通）。
+ * プロジェクトの設定（プロジェクト名の横の「編集」から開くダイアログの中身）。
  * 左の一覧で項目を切り替える: 基本情報・AI・新しいチャットの既定・書き込みできるフォルダ・削除
  */
 export function ProjectSettings({ project }: { project: Project }) {
