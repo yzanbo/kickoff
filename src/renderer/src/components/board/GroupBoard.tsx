@@ -1,5 +1,5 @@
 import { Folder, FolderPlus, Plus } from "lucide-react";
-import { useEffect, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import { agentStateOf } from "../../../../core/board";
 import type { Approval, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
@@ -16,7 +16,8 @@ import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
-import { RunCardContent, RunRowContent, runTitle } from "./RunCard";
+import { RunCardContent, RunRowContent } from "./RunCard";
+import { runCardProps } from "./runCardProps";
 import { useBoardFocus } from "./useBoardFocus";
 
 const VIEW_KEY = "kickoff:group-view";
@@ -85,28 +86,17 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
   });
 
   /** カード・リストの行で共通: クリックで右側に開く、ドラッグでグループを移す、右クリックでメニュー */
-  const cardProps = (run: Run) => ({
-    draggable: true,
-    role: "button",
-    tabIndex: 0,
-    "aria-label": `チャット「${runTitle(run)}」を開く（ドラッグでグループを移す）`,
-    onDragStart: (e: DragEvent) => {
-      startRunDrag(e, run.id);
-      setDragRun(run.id);
-    },
-    onDragEnd: () => setDragRun(undefined),
-    onClick: () => panel.open(run),
-    onKeyDown: (e: KeyboardEvent) => {
-      if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
-        e.preventDefault();
-        panel.open(run);
-      }
-    },
-    onContextMenu: (e: MouseEvent) => {
-      e.preventDefault();
-      setMenu({ x: e.clientX, y: e.clientY, run });
-    },
-  });
+  const cardProps = (run: Run) =>
+    runCardProps(run, {
+      dragHint: "ドラッグでグループを移す",
+      onOpen: () => panel.open(run),
+      onMenu: (at) => setMenu({ ...at, run }),
+      onDragStart: (e) => {
+        startRunDrag(e, run.id);
+        setDragRun(run.id);
+      },
+      onDragEnd: () => setDragRun(undefined),
+    });
   const cardClass = (run: Run) => cx(dragRun === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
   const stateOf = (run: Run) => agentStateOf(run, approvals.some((a) => a.run_id === run.id));
 

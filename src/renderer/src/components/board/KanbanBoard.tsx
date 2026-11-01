@@ -1,17 +1,7 @@
 import { Archive, ChevronLeft, ChevronRight, Plus, SquareKanban } from "lucide-react";
-import { useMemo, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { agentStateOf, stageOf } from "../../../../core/board";
-import {
-  BOARD_STAGE_LABELS,
-  BOARD_STAGES,
-  PHASES,
-  type AgentState,
-  type Approval,
-  type BoardStage,
-  type Phase,
-  type ProjectSummary,
-  type Run,
-} from "../../../../core/types";
+import { BOARD_STAGE_LABELS, BOARD_STAGES, type AgentState, type Approval, type BoardStage, type Phase, type ProjectSummary, type Run } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
@@ -20,16 +10,18 @@ import { useStoredChoice, useStoredFlag, useStoredState } from "../../hooks/useS
 import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
-import { SECTION_META } from "../../sections";
 import { CardMenu } from "../CardMenu";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
-import { RunCardContent, RunRowContent, runTitle } from "./RunCard";
+import { KanbanFilters } from "./KanbanFilters";
+import { RunCardContent, RunRowContent } from "./RunCard";
+import { runCardProps } from "./runCardProps";
 import { STAGE_TONE } from "./tones";
 import { useBoardFocus } from "./useBoardFocus";
 import { useBoardRuns } from "./useBoardRuns";
+import { useStageDrag } from "./useStageDrag";
 
 const VIEW_KEY = "kickoff:board-view";
 const SHOW_ARCHIVED_KEY = "kickoff:show-archived";
@@ -68,8 +60,6 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const activeProjectFilter = allProjects && projectFilter !== "all" && projects.some((p) => p.id === projectFilter) ? projectFilter : "all";
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
-  const [dragId, setDragId] = useState<number | null>(null);
-  const [over, setOver] = useState<BoardStage | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
 
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）
@@ -136,60 +126,23 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     panel.openNew({ projectId: target, stage, section: section === "all" ? undefined : section });
   }
 
-  const dropProps = (stage: BoardStage) => ({
-    onDragOver: (e: DragEvent) => {
-      if (dragId === null) return;
-      e.preventDefault();
-      if (over !== stage) setOver(stage);
-    },
-    onDragLeave: (e: DragEvent<HTMLElement>) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver((o) => (o === stage ? null : o));
-    },
-    onDrop: (e: DragEvent) => {
-      e.preventDefault();
-      const run = runs.find((r) => r.id === dragId);
-      if (run && stageOf(run, agentStateOf(run, pendingFor(run) > 0)) !== stage) void move(run, stage);
-      setDragId(null);
-      setOver(null);
-    },
+  // カードを別の列へドラッグして移す
+  const drag = useStageDrag(runs, (run, stage) => {
+    if (stageOf(run, agentStateOf(run, pendingFor(run) > 0)) !== stage) void move(run, stage);
   });
 
-  /**
-   * カード（リストの行も同じ）の操作をカード全体でそろえる:
-   * ドラッグ = 列の移動 / クリック = チャットを開く / 右クリック = メニュー。
-   * 中の矢印ボタンだけは列の移動ボタンとして働く。
-   */
   const cardProps = (run: Run) => ({
-    role: "button",
-    tabIndex: 0,
-    "aria-label": `チャット「${runTitle(run)}」を開く（ドラッグで列を移動）`,
-    draggable: true,
+    ...runCardProps(run, {
+      dragHint: "ドラッグで列を移動",
+      onOpen: () => open(run),
+      onMenu: (at) => setMenu({ ...at, run }),
+      onDragStart: (e) => drag.start(e, run),
+      onDragEnd: drag.end,
+    }),
     style: allProjects ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as CSSProperties) : undefined,
-    onDragStart: (e: DragEvent) => {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", String(run.id));
-      setDragId(run.id);
-    },
-    onDragEnd: () => {
-      setDragId(null);
-      setOver(null);
-    },
-    onClick: (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest("button")) open(run);
-    },
-    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
-      if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
-        e.preventDefault();
-        open(run);
-      }
-    },
-    onContextMenu: (e: MouseEvent) => {
-      e.preventDefault();
-      setMenu({ x: e.clientX, y: e.clientY, run });
-    },
   });
   const cardClass = (run: Run) =>
-    cx(run.archived_at && "archived", allProjects && "with-project", dragId === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
+    cx(run.archived_at && "archived", allProjects && "with-project", drag.dragId === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
   const arrows = (run: Run, stage: BoardStage) => (
     <>
       <ArrowButton to={neighbour(stage, -1)} dir="prev" onMove={(to) => void move(run, to)} />
@@ -219,31 +172,13 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         query={query}
         onQuery={setQuery}
         filters={
-          <>
-            {allProjects && projects.length > 1 && (
-              <select
-                className={cx("board-filter", activeProjectFilter !== "all" && "filtered")}
-                aria-label="プロジェクトで絞り込み"
-                value={activeProjectFilter}
-                onChange={(e) => setProjectFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
-              >
-                <option value="all">すべてのプロジェクト</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <select className="board-filter" aria-label="セクションで絞り込み" value={section} onChange={(e) => setSection(e.target.value as Phase | "all")}>
-              <option value="all">すべてのセクション</option>
-              {PHASES.map((p) => (
-                <option key={p} value={p}>
-                  {SECTION_META[p].label}
-                </option>
-              ))}
-            </select>
-          </>
+          <KanbanFilters
+            projects={allProjects && projects.length > 1 ? projects : undefined}
+            projectFilter={activeProjectFilter}
+            onProjectFilter={setProjectFilter}
+            section={section}
+            onSection={setSection}
+          />
         }
         actions={
           <button className="btn btn-sm" onClick={() => newChat()} disabled={allProjects && projects.length === 0}>
@@ -276,7 +211,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
               {BOARD_STAGES.map((stage) => {
                 const list = grouped.get(stage) ?? [];
                 return (
-                  <section key={stage} className={cx("board-column", over === stage && "drop-target")} {...dropProps(stage)}>
+                  <section key={stage} className={cx("board-column", drag.over === stage && "drop-target")} {...drag.dropProps(stage)}>
                     {stageHead(stage, list.length, `${BOARD_STAGE_LABELS[stage]}に新しいチャット`)}
                     <div className="column-cards">
                       {drafts(stage)}
@@ -302,7 +237,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
               {BOARD_STAGES.map((stage) => {
                 const list = grouped.get(stage) ?? [];
                 return (
-                  <section key={stage} className={cx("list-group", over === stage && "drop-target")} {...dropProps(stage)}>
+                  <section key={stage} className={cx("list-group", drag.over === stage && "drop-target")} {...drag.dropProps(stage)}>
                     {stageHead(stage, list.length)}
                     {drafts(stage)}
                     {list.length === 0 && <p className="column-empty">なし</p>}
