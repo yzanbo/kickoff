@@ -1,11 +1,14 @@
-import { Plus } from "lucide-react";
+import { CircleAlert, CircleCheck, CircleDot, CircleX, Clock, ListTree, Plus } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { Approval, ProjectSummary, Run } from "../../../core/types";
 import { api } from "../api";
 import { useServerEvent } from "../events";
 import { href, navigate, routeProjectId, type Route } from "../router";
 import { SECTION_META } from "../sections";
-import { RunStatusIcon } from "./RunStatus";
+import { agentStateOf } from "../../../core/board";
+import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState } from "../../../core/types";
+import { relativeTime } from "./RunList";
+import { StatusSlot } from "./StatusSlot";
 
 const CURRENT_KEY = "kickoff:current-project";
 /** 横スワイプで隣へ移るのに必要な移動量（ページ幅に対する割合） */
@@ -258,6 +261,18 @@ function initialOf(name: string): string {
   return Array.from(name.trim())[0]?.toUpperCase() ?? "?";
 }
 
+type Grouping = "recent" | "status";
+const GROUPING_KEY = "kickoff:sidebar-grouping";
+
+/** ステータスでまとめるときの見出しのアイコン */
+const GROUP_ICONS: Record<AgentState, typeof CircleAlert> = {
+  needs_input: CircleAlert,
+  failed: CircleX,
+  attention: CircleCheck,
+  running: CircleDot,
+  done: CircleCheck,
+};
+
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 const WorkspacePage = memo(function WorkspacePage({
   project,
@@ -272,8 +287,44 @@ const WorkspacePage = memo(function WorkspacePage({
   route: Route;
   hidden: boolean;
 }) {
+  const [grouping, setGrouping] = useState<Grouping>(() => (localStorage.getItem(GROUPING_KEY) === "status" ? "status" : "recent"));
   const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
   const isActive = route.name === "project" && route.id === project.id;
+  const rows = runs.map((run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) }));
+
+  const toggleGrouping = () => {
+    const next = grouping === "recent" ? "status" : "recent";
+    localStorage.setItem(GROUPING_KEY, next);
+    setGrouping(next);
+  };
+
+  const renderRow = ({ run, state }: { run: Run; state: AgentState }) => {
+    const meta = SECTION_META[run.phase];
+    const Icon = meta.icon;
+    const active = route.name === "run" && route.runId === run.id;
+    return (
+      <li key={run.id}>
+        <a
+          className={`chat-row ${active ? "active" : ""} ${state === "needs_input" || state === "attention" ? "is-unread" : ""}`}
+          href={href({ name: "run", projectId: project.id, runId: run.id })}
+          title={`${meta.label}: ${run.title}（${AGENT_STATE_LABELS[state]}）`}
+        >
+          <StatusSlot state={state} />
+          <span className="chat-row-body">
+            <span className="chat-row-line">
+              <span className="chat-row-title">{run.title || "チャット"}</span>
+              <span className="chat-row-time">{relativeTime(run.updated_at)}</span>
+            </span>
+            <span className="chat-row-meta">
+              <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
+              {meta.label}
+            </span>
+          </span>
+        </a>
+      </li>
+    );
+  };
+
   return (
     <section className="workspace-page" aria-hidden={hidden} inert={hidden}>
       <div className={`workspace-head ${isActive ? "active" : ""}`}>
@@ -287,6 +338,14 @@ const WorkspacePage = memo(function WorkspacePage({
         )}
         <button
           className="icon-button"
+          title={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
+          aria-label={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
+          onClick={toggleGrouping}
+        >
+          {grouping === "recent" ? <ListTree size={14} /> : <Clock size={14} />}
+        </button>
+        <button
+          className="icon-button"
           title="新しいチャット（⌘N）"
           aria-label={`${project.name} の新しいチャット`}
           onClick={() => navigate({ name: "newChat", projectId: project.id })}
@@ -294,33 +353,28 @@ const WorkspacePage = memo(function WorkspacePage({
           <Plus size={15} />
         </button>
       </div>
-      <ul className="nav-chats">
-        {runs.length === 0 && (
-          <li>
-            <a className="nav-chat empty-chat" href={href({ name: "newChat", projectId: project.id })}>
-              ＋ 最初のチャットを始める
-            </a>
-          </li>
-        )}
-        {runs.map((r) => {
-          const Icon = SECTION_META[r.phase].icon;
-          const waiting = approvals.some((a) => a.run_id === r.id);
-          const active = route.name === "run" && route.runId === r.id;
+      {rows.length === 0 ? (
+        <a className="chat-row ghost" href={href({ name: "newChat", projectId: project.id })}>
+          <Plus size={13} /> 最初のチャットを始める
+        </a>
+      ) : grouping === "recent" ? (
+        <ul className="chat-rows">{rows.map(renderRow)}</ul>
+      ) : (
+        AGENT_STATES.map((state) => {
+          const group = rows.filter((r) => r.state === state);
+          if (group.length === 0) return null;
+          const Icon = GROUP_ICONS[state];
           return (
-            <li key={r.id}>
-              <a
-                className={`nav-chat ${active ? "active" : ""} ${waiting ? "is-waiting" : ""}`}
-                href={href({ name: "run", projectId: project.id, runId: r.id })}
-                title={`${SECTION_META[r.phase].label}: ${r.title}`}
-              >
-                <Icon className={`sec-icon sec-${r.phase}`} size={13} aria-label={SECTION_META[r.phase].label} />
-                <span className="nav-chat-title">{r.title || "チャット"}</span>
-                {(waiting || r.status !== "completed") && <RunStatusIcon run={r} waiting={waiting} />}
-              </a>
-            </li>
+            <div key={state} className="status-group">
+              <div className={`status-group-head state-${state}`}>
+                <Icon size={14} />
+                {AGENT_STATE_LABELS[state]}
+              </div>
+              <ul className="chat-rows">{group.map(renderRow)}</ul>
+            </div>
           );
-        })}
-      </ul>
+        })
+      )}
     </section>
   );
 });

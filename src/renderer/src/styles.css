@@ -262,6 +262,197 @@ kbd {
   min-height: 0;
 }
 
+/* 上部のメニュー行（新規・履歴・検索の並び） */
+
+.nav-rows {
+  display: grid;
+  gap: 1px;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--row-tight);
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-row:hover,
+.nav-row.active {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.nav-row kbd {
+  margin-left: auto;
+}
+
+/* チャットの行（2 行・先頭に状態の印） */
+
+.chat-rows {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: var(--row);
+  padding: 6px 8px 6px 4px;
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+.chat-row:hover {
+  background: var(--bg-elev);
+}
+
+.chat-row.active {
+  background: var(--bg-hover);
+}
+
+.chat-row.ghost {
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.chat-row-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.chat-row-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  /* 長いタイトルを省略表示にして、経過時間を常に見せる */
+  min-width: 0;
+}
+
+.chat-row-title {
+  flex: 1;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.76;
+}
+
+.chat-row:hover .chat-row-title,
+.chat-row.active .chat-row-title,
+.chat-row.is-unread .chat-row-title {
+  opacity: 1;
+}
+
+.chat-row.is-unread .chat-row-title {
+  font-weight: 600;
+}
+
+.chat-row-time {
+  flex: none;
+  font-size: 11px;
+  color: var(--extra-muted);
+}
+
+.chat-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.status-slot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 20px;
+}
+
+.status-dot-mark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.state-attention .status-dot-mark {
+  background: var(--dot-attention);
+}
+
+.state-failed .status-dot-mark {
+  width: 8px;
+  height: 8px;
+  background: var(--dot-failed);
+}
+
+.state-done .status-dot-mark {
+  background: var(--extra-muted);
+  opacity: 0.3;
+}
+
+.status-slot.state-needs_input {
+  color: var(--dot-needs-input);
+}
+
+.status-ring {
+  width: 11px;
+  height: 11px;
+  border: 2px solid color-mix(in srgb, var(--dot-running) 25%, transparent);
+  border-top-color: var(--dot-running);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.status-group {
+  margin-bottom: 6px;
+}
+
+.status-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--row-tight);
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.status-group-head.state-needs_input svg {
+  color: var(--dot-needs-input);
+}
+
+.status-group-head.state-failed svg {
+  color: var(--dot-failed);
+}
+
+.status-group-head.state-attention svg {
+  color: var(--dot-attention);
+}
+
+.status-group-head.state-running svg {
+  color: var(--dot-running);
+}
+
 /* ==== プロジェクトのワークスペース（横スライドで切り替え） ==== */
 
 .workspaces {
@@ -1452,7 +1643,8 @@ mark {
 }
 
 .run-header {
-  padding: 30px 32px 10px;
+  /* macOS の信号機ボタンの高さ分を上に空け、見出し自体は 36px */
+  padding: 22px 16px 0;
   border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
 }
@@ -1465,23 +1657,23 @@ mark {
 .run-title-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: 820px;
-  margin: 0 auto;
+  gap: 8px;
+  height: 36px;
 }
 
 .run-title-row h1 {
   overflow: hidden;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .run-sub {
   display: flex;
-  gap: 12px;
-  max-width: 820px;
-  margin: 2px auto 0;
+  gap: 10px;
+  margin: -8px 0 6px;
+  padding-left: 2px;
 }
 
 .run-sub a {
@@ -1513,24 +1705,27 @@ mark {
 .timeline-inner {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
   max-width: 820px;
   margin: 0 auto;
-  padding: 24px 32px;
+  padding: 20px 16px 24px;
+  font-size: 15px;
 }
 
 .run-composer {
-  max-width: 884px;
+  max-width: 852px;
   width: 100%;
   margin: 0 auto;
-  padding: 8px 32px 20px;
+  padding: 4px 16px 16px;
 }
 
 .bubble.user {
   align-self: flex-end;
   max-width: 80%;
-  padding: 10px 14px;
-  border-radius: 16px 16px 4px 16px;
+  margin: 12px 0 4px;
+  padding: 12px 16px;
+  /* 右上だけ角を立てる */
+  border-radius: 16px 2px 16px 16px;
   white-space: pre-wrap;
   background: var(--bg-active);
 }
@@ -1543,7 +1738,8 @@ mark {
 }
 
 .assistant {
-  line-height: 1.75;
+  padding: 8px 0;
+  line-height: 1.7;
 }
 
 .assistant.sub {
@@ -1632,18 +1828,36 @@ mark {
 .tool-group > summary {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   width: fit-content;
   max-width: 100%;
-  padding: 4px 10px 4px 6px;
-  border-radius: 6px;
-  font-size: 13px;
+  min-height: 30px;
+  padding: 3px 10px 3px 4px;
+  border-radius: var(--radius);
+  font-size: 14px;
   color: var(--muted);
 }
 
-.tool-group > summary:hover {
+.tool-group > summary:hover,
+.tool-group[open] > summary {
   color: var(--text);
-  background: var(--bg-hover);
+  background: var(--bg-elev);
+}
+
+/* 実行中のツールは、文字の上を光が流れる */
+.tool-group.active .tool-summary,
+.tool-group.active .tool-current {
+  color: transparent;
+  background: linear-gradient(90deg, var(--muted) 0%, var(--text) 50%, var(--muted) 100%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .tool-chevron {
@@ -1674,9 +1888,11 @@ mark {
 .tool-calls {
   display: grid;
   gap: 4px;
-  margin: 4px 0 4px 20px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border);
+  margin: 4px 0 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
 }
 
 .tool-call {
@@ -1770,10 +1986,9 @@ mark {
 
 .composer {
   position: relative;
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
   background: var(--bg-elev);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 12%);
 }
 
 .composer:focus-within {
@@ -1787,8 +2002,9 @@ mark {
 
 .composer textarea {
   display: block;
-  min-height: 64px;
-  padding: 14px 16px 4px;
+  min-height: 60px;
+  padding: 16px 16px 4px;
+  font-size: 15px;
   border: none;
   border-radius: 16px 16px 0 0;
   background: transparent;
@@ -1804,7 +2020,7 @@ mark {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 8px 8px;
+  padding: 4px 12px 12px;
 }
 
 .composer-tools,
@@ -1845,16 +2061,18 @@ mark {
 }
 
 .attach-button {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
 }
 
 .pill-select {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 2px 2px 8px;
-  border-radius: 8px;
+  height: 28px;
+  padding: 0 2px 0 8px;
+  border-radius: var(--radius-sm);
   color: var(--muted);
 }
 
@@ -1924,8 +2142,8 @@ mark {
   display: grid;
   flex: none;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border: none;
   border-radius: 50%;
   color: #fff;
