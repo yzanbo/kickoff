@@ -15,7 +15,8 @@ export interface NewChatTarget {
 
 /** 右側のパネルのタブ（チャット・新しいチャット・ブラウザ） */
 export type PanelTab =
-  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number }
+  /** title・phase: タブに出すチャットの名前とセクション（開いたとき・チャットの画面が読み込んだときに入れる） */
+  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; phase?: Phase }
   /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる） */
   | ({ key: string; kind: "new"; groupName?: string } & NewChatTarget)
   | { key: string; kind: "browser"; url: string; title: string };
@@ -65,9 +66,9 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
    * 右側のパネルにタブで開く（開いていればそのタブへ）。ボードはその分狭くなる。
    * focus は検索結果から開いたときに、スクロールして強調する発言
    */
-  const open = (run: Pick<Run, "id" | "project_id">, focus?: number) => {
+  const open = (run: Pick<Run, "id" | "project_id"> & Partial<Pick<Run, "title" | "phase">>, focus?: number) => {
     const key = chatKey(run.id);
-    const tab: PanelTab = { key, kind: "chat", id: run.id, projectId: run.project_id, focus };
+    const tab: PanelTab = { key, kind: "chat", id: run.id, projectId: run.project_id, focus, title: run.title, phase: run.phase };
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev.map((t) => (t.key === key && focus ? tab : t)) : [...prev, tab]));
     show(key);
   };
@@ -95,7 +96,7 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
 
   /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える */
   const replaceWithChat = (key: string, run: Run) => {
-    const chat: PanelTab = { key: chatKey(run.id), kind: "chat", id: run.id, projectId: run.project_id };
+    const chat: PanelTab = { key: chatKey(run.id), kind: "chat", id: run.id, projectId: run.project_id, title: run.title, phase: run.phase };
     updateTab(key, () => chat);
     setActiveTab(chat.key);
     onCreated?.(run);

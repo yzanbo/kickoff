@@ -1,9 +1,8 @@
-import { Globe, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, X } from "lucide-react";
+import { Globe, Maximize2, MessageSquare, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, X, type LucideIcon } from "lucide-react";
 import type { Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
 import { RunPage } from "../../pages/RunPage";
-import { SECTION_META } from "../../sections";
 import { normalizeUrl } from "../../url";
 import { BrowserPane } from "../BrowserPane";
 import { NewChatPane } from "../NewChatPane";
@@ -17,21 +16,18 @@ function hostOf(url: string): string {
   }
 }
 
-/** タブに出す名前とアイコン */
-function tabLabel(t: PanelTab, runs: Run[]) {
-  const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
-  const Icon = t.kind === "browser" ? Globe : t.kind === "new" ? SquarePen : run ? SECTION_META[run.phase].icon : null;
-  const label =
-    t.kind === "browser"
-      ? t.title || (t.url ? hostOf(t.url) : "新しいタブ")
-      : t.kind === "new"
-        ? t.groupName
-          ? `新しいチャット · ${t.groupName}`
-          : "新しいチャット"
-        : run
-          ? chatTitle(run.title)
-          : "チャット";
-  return { run, Icon, label };
+/**
+ * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し（セクションの色）、
+ * ブラウザは地球儀、新しいチャットはペンにする
+ */
+function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
+  if (t.kind === "browser") return { Icon: Globe, label: t.title || (t.url ? hostOf(t.url) : "新しいタブ") };
+  if (t.kind === "new") return { Icon: SquarePen, label: t.groupName ? `新しいチャット · ${t.groupName}` : "新しいチャット" };
+  // ボードの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
+  const run = runs.find((r) => r.id === t.id);
+  const title = run?.title ?? t.title;
+  const phase = run?.phase ?? t.phase;
+  return { Icon: MessageSquare, iconClass: phase ? `sec-icon sec-${phase}` : "muted", label: title === undefined ? "チャット" : chatTitle(title) };
 }
 
 /** ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く） */
@@ -65,11 +61,11 @@ export function SidePanel({ panel }: { panel: SidePanelController }) {
           </button>
         </div>
         {tabs.map((t) => {
-          const { run, Icon, label } = tabLabel(t, panel.runs);
+          const { Icon, iconClass, label } = tabLabel(t, panel.runs);
           return (
             <div key={t.key} className={cx("panel-tab", activeTab === t.key && "active")} role="tab" aria-selected={activeTab === t.key}>
-              <button className="panel-tab-label" onClick={() => panel.showTab(t.key)} title={t.kind === "browser" ? t.url : run?.title}>
-                {Icon && <Icon size={12} className={run ? `sec-icon sec-${run.phase}` : "muted"} aria-hidden />}
+              <button className="panel-tab-label" onClick={() => panel.showTab(t.key)} title={t.kind === "browser" ? t.url : label}>
+                <Icon size={12} className={iconClass} aria-hidden />
                 <span>{label}</span>
               </button>
               <button className="panel-tab-close" aria-label={`${label} のタブを閉じる`} onClick={() => panel.closeTab(t.key)}>
@@ -96,7 +92,15 @@ export function SidePanel({ panel }: { panel: SidePanelController }) {
         {tabs.map((t) => (
           <div key={t.key} className="panel-tab-page" hidden={activeTab !== t.key}>
             {t.kind === "chat" ? (
-              <RunPage projectId={t.projectId} runId={t.id} focus={t.focus} onClose={panel.close} />
+              <RunPage
+                projectId={t.projectId}
+                runId={t.id}
+                focus={t.focus}
+                onClose={panel.close}
+                onRunChange={(run) =>
+                  panel.updateTab(t.key, (x) => (x.kind === "chat" && (x.title !== run.title || x.phase !== run.phase) ? { ...x, title: run.title, phase: run.phase } : x))
+                }
+              />
             ) : t.kind === "new" ? (
               <NewChatPane
                 projectId={t.projectId}

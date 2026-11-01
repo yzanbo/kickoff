@@ -6,6 +6,7 @@ import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
 import { confirmDeleteGroup, useGroupDrop } from "../../groups";
+import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
 import { navigate, openNewChat, openRun, type Route } from "../../router";
@@ -100,6 +101,8 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   const toggleGrouping = () => setGrouping(grouping === "recent" ? "status" : "recent");
 
+  // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
+  const rename = useRunRename((m) => void alertDialog("名前を変更できませんでした", m));
   const renderRow = ({ run, state }: { run: Run; state: AgentState }) => (
     <ChatRow
       key={run.id}
@@ -107,6 +110,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       state={state}
       active={route.name === "run" && route.runId === run.id}
       onMenu={(at) => setRowMenu({ ...at, run })}
+      rename={rename.editorFor(run)}
     />
   );
 
@@ -266,6 +270,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         <CardMenu
           {...rowMenu}
           onOpenPanel={(run) => openRun(run.project_id, run.id)}
+          onRename={rename.start}
           onClose={() => setRowMenu(null)}
           onError={(m) => void alertDialog("操作できませんでした", m)}
         />

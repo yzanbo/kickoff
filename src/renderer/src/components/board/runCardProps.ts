@@ -15,6 +15,7 @@ export function runCardProps(
     onMenu,
     onDragStart,
     onDragEnd,
+    editing = false,
   }: {
     /** 読み上げる説明の「（ドラッグで…）」の部分 */
     dragHint: string;
@@ -22,13 +23,15 @@ export function runCardProps(
     onMenu: (at: { x: number; y: number }) => void;
     onDragStart: (e: DragEvent) => void;
     onDragEnd: () => void;
+    /** 名前をその場で変えている途中（ドラッグしない） */
+    editing?: boolean;
   },
 ) {
   return {
     role: "button",
     tabIndex: 0,
     "aria-label": `チャット「${chatTitle(run.title)}」を開く（${dragHint}）`,
-    draggable: true,
+    draggable: !editing,
     onDragStart,
     onDragEnd,
     onClick: (e: MouseEvent) => {

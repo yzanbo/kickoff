@@ -2,9 +2,11 @@ import { AGENT_STATE_LABELS, type AgentState, type Run } from "../../../../core/
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
 import { startRunDrag } from "../../groups";
+import type { RunTitleEditor } from "../../hooks/useRunRename";
 import { href, openRun } from "../../router";
 import { SECTION_META } from "../../sections";
 import { relativeTime } from "../../time";
+import { ChatTitleInput } from "../ChatTitleInput";
 import { StatusSlot } from "../StatusSlot";
 
 /** サイドバーのチャットの行（押すと右のパネルで開く・ドラッグでグループへ移す・右クリックでメニュー） */
@@ -13,14 +15,30 @@ export function ChatRow({
   state,
   active,
   onMenu,
+  rename,
 }: {
   run: Run;
   state: AgentState;
   active: boolean;
   onMenu: (at: { x: number; y: number }) => void;
+  /** 名前をその場で変えている途中のとき */
+  rename?: RunTitleEditor;
 }) {
   const meta = SECTION_META[run.phase];
   const Icon = meta.icon;
+  if (rename) {
+    // 押しても開かず、ドラッグもしない（入力欄の文字を選べるように）
+    return (
+      <li>
+        <div className={cx("chat-row", "renaming", active && "active")}>
+          <StatusSlot state={state} />
+          <span className="chat-row-body">
+            <ChatTitleInput run={run} editor={rename} />
+          </span>
+        </div>
+      </li>
+    );
+  }
   return (
     <li>
       <a

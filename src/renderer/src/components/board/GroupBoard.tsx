@@ -7,6 +7,7 @@ import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
 import { confirmDeleteGroup, startRunDrag, useGroupDrop } from "../../groups";
 import { useActionError } from "../../hooks/useActionError";
+import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import type { ReopenRoute } from "../../router";
 import { CardMenu } from "../CardMenu";
@@ -44,6 +45,8 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
   const [renaming, setRenaming] = useState<number>();
   const [dragRun, setDragRun] = useState<number>();
   const { error, setError, guard } = useActionError();
+  // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
+  const rename = useRunRename(setError);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
@@ -98,6 +101,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
         setDragRun(run.id);
       },
       onDragEnd: () => setDragRun(undefined),
+      editing: Boolean(rename.editorFor(run)),
     });
   const cardClass = (run: Run) => cx(dragRun === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
   const stateOf = (run: Run) => agentStateOf(run, approvals.some((a) => a.run_id === run.id));
@@ -223,7 +227,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
                       {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
                       {members.map((run) => (
                         <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
-                          <RunCardContent run={run} state={stateOf(run)} />
+                          <RunCardContent run={run} state={stateOf(run)} rename={rename.editorFor(run)} />
                         </article>
                       ))}
                     </div>
@@ -244,7 +248,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
                     {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
                     {members.map((run) => (
                       <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
-                        <RunRowContent run={run} state={stateOf(run)} />
+                        <RunRowContent run={run} state={stateOf(run)} rename={rename.editorFor(run)} />
                       </div>
                     ))}
                   </section>
@@ -258,7 +262,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
       </div>
 
       {groupMenu.menu}
-      {menu && <CardMenu {...menu} onOpenPanel={panel.open} onClose={() => setMenu(null)} onError={setError} />}
+      {menu && <CardMenu {...menu} onOpenPanel={panel.open} onRename={rename.start} onClose={() => setMenu(null)} onError={setError} />}
     </div>
   );
 }
