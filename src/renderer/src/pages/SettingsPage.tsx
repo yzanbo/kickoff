@@ -10,6 +10,7 @@ import {
 } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { StatusCard } from "../components/StatusCard";
+import { groupModels, modelDisplayName } from "../models";
 import { UsagePanel } from "../components/UsagePanel";
 import type { usePlanUsage } from "../usage";
 import { useTheme, type Theme } from "../theme";
@@ -122,13 +123,17 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
           <p className="muted small">新しいチャットはこの設定から始まります。チャット欄で変えた内容は、そのチャットだけに効きます。</p>
           <div className="form">
             <label className="field">
-              <span className="field-label">モデル</span>
+              <span className="field-label">モデル（{modelDisplayName(models.data ?? [], draft.claudeModel)}）</span>
               <select value={draft.claudeModel} onChange={(e) => setDraft({ ...draft, claudeModel: e.target.value })}>
                 {!models.data?.some((m) => m.value === draft.claudeModel) && <option value={draft.claudeModel}>{draft.claudeModel}</option>}
-                {models.data?.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label} — {m.description}
-                  </option>
+                {groupModels(models.data ?? []).map((g) => (
+                  <optgroup key={g.family} label={g.family}>
+                    {g.items.map((i) => (
+                      <option key={i.value} value={i.value}>
+                        {i.version} — {i.description}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </label>

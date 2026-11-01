@@ -10,6 +10,7 @@ import {
   type RunOptions,
 } from "../../../core/types";
 import { api } from "../api";
+import { groupModels, modelDisplayName } from "../models";
 
 // モデル一覧はアプリ全体で 1 回だけ取得する
 let modelsPromise: Promise<ModelOption[]> | undefined;
@@ -68,14 +69,20 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
 
   return (
     <div className="run-options">
-      <label className="pill-select" title={current?.description ?? "モデル"}>
+      <label className="pill-select model-select" title={current?.description ?? "モデル"}>
         <Sparkle size={14} aria-hidden />
+        {/* 閉じているときは「Opus 5.5」、開くとファミリーごとのバージョン一覧 */}
+        <span className="model-name">{modelDisplayName(models, model)}</span>
         <select aria-label="モデル" value={model ?? ""} disabled={disabled} onChange={(e) => setModel(e.target.value || null)}>
           {models.length === 0 && <option value={model ?? ""}>{model ?? "読み込み中…"}</option>}
-          {models.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
+          {groupModels(models).map((g) => (
+            <optgroup key={g.family} label={g.family}>
+              {g.items.map((i) => (
+                <option key={i.value} value={i.value}>
+                  {i.version}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </label>
