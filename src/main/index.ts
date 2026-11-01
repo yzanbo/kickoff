@@ -114,6 +114,13 @@ function createWindow(url: string) {
 }
 
 function registerIpc() {
+  // 通知を押したとき: Kickoff を前面に出す
+  ipcMain.handle("kickoff:focus-window", () => {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    app.focus({ steal: true });
+  });
   ipcMain.handle("kickoff:pick-folder", async (_e, title?: string) => {
     const result = await dialog.showOpenDialog({
       properties: ["openDirectory", "createDirectory"],

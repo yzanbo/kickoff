@@ -352,6 +352,8 @@ export interface AppSettings {
   remoteEnabled: boolean;
   /** ntfy のトピック URL（空なら通知しない） */
   ntfyUrl: string;
+  /** チャットの完了・失敗・回答待ちを Mac の通知で知らせる */
+  desktopNotifications: boolean;
   /** 新規プロジェクトの保存先（前回使ったフォルダ） */
   projectsDir: string;
 }
@@ -365,6 +367,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultFastMode: false,
   remoteEnabled: false,
   ntfyUrl: "",
+  desktopNotifications: true,
   projectsDir: "~/Documents",
 };
 

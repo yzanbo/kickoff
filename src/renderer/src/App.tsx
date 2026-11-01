@@ -15,6 +15,7 @@ import { ProjectPage } from "./pages/ProjectPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { href, openNewChat, routeProjectId, useRoute } from "./router";
 import { applyTheme, loadTheme } from "./theme";
+import { useRunNotifications } from "./notifications";
 import { FIVE_HOUR_IDLE, planLabel, PlanUsageContext, usePlanUsage } from "./usage";
 
 applyTheme(loadTheme());
@@ -81,12 +82,23 @@ export function App() {
 
   useEffect(() => {
     loadProjects();
-    api.settings().then((s) => setProjectsDir(s.projectsDir)).catch(() => {});
+    api
+      .settings()
+      .then((s) => {
+        setProjectsDir(s.projectsDir);
+        setNotifyEnabled(s.desktopNotifications);
+      })
+      .catch(() => {});
     api.approvals().then(setApprovals).catch(() => {});
   }, [loadProjects]);
 
+  // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）
+  const [notifyEnabled, setNotifyEnabled] = useState(true);
+  useRunNotifications({ enabled: notifyEnabled, projects, route });
+
   const { state: connection, since: connectedSince } = useServerEvents((event: BusEvent) => {
     planUsage.onEvent(event);
+    if (event.type === "settings") setNotifyEnabled(event.settings.desktopNotifications);
     publishServerEvent(event);
     switch (event.type) {
       case "project":
