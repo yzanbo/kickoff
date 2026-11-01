@@ -1,4 +1,4 @@
-import { Plus, Search, Settings } from "lucide-react";
+import { Search, Settings, SquareKanban, SquarePen } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Approval, BusEvent, ProjectSummary } from "../../core/types";
 import { api, useServerEvents } from "./api";
@@ -74,9 +74,7 @@ export function App() {
         setSearching(true);
       } else if (e.key === "n") {
         e.preventDefault();
-        const projectId = routeProjectId(route);
-        if (projectId !== undefined) navigate({ name: "newChat", projectId });
-        else setCreating(true);
+        startNewChat();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -85,6 +83,13 @@ export function App() {
 
   const { usage } = planUsage;
 
+  /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める */
+  function startNewChat() {
+    const projectId = routeProjectId(route) ?? (Number(localStorage.getItem("kickoff:current-project")) || projects[0]?.id);
+    if (projectId) navigate({ name: "newChat", projectId });
+    else setCreating(true);
+  }
+
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -92,10 +97,16 @@ export function App() {
           <a className="brand" href={href({ name: "home" })}>
             Kickoff
           </a>
-          <button className="search-button" onClick={() => setPalette(true)} title="検索（⌘K）">
-            <Search size={14} />
-            <span>検索</span>
-            <kbd>⌘K</kbd>
+        </div>
+        <div className="nav-rows">
+          <button className="nav-row" onClick={startNewChat} title="新しいチャット（⌘N）">
+            <SquarePen size={15} /> 新しいチャット <kbd>⌘N</kbd>
+          </button>
+          <a className={`nav-row ${route.name === "home" ? "active" : ""}`} href={href({ name: "home" })}>
+            <SquareKanban size={15} /> カンバン
+          </a>
+          <button className="nav-row" onClick={() => setPalette(true)}>
+            <Search size={15} /> 検索 <kbd>⌘K</kbd>
           </button>
         </div>
         <nav className="sidebar-section" aria-label="プロジェクトとチャット">

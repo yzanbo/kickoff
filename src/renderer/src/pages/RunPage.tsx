@@ -267,7 +267,7 @@ function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string)
   const lastData = last.use.data as { name: string; input?: Record<string, unknown> };
 
   return (
-    <details className={`tool-group ${failed ? "has-error" : ""}`}>
+    <details className={`tool-group ${failed ? "has-error" : ""} ${active && !last.result ? "active" : ""}`}>
       <summary>
         <ChevronRight size={14} className="tool-chevron" />
         <Wrench size={13} className="muted" />
