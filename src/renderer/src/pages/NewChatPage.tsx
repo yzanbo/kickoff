@@ -11,15 +11,16 @@ import { SECTION_META } from "../sections";
 /** 新しいチャット（最初のメッセージを送るとチャットが作られ、その画面に移る） */
 export function NewChatPage({ projectId, section: initialSection, stage }: { projectId: number; section?: Phase; stage?: BoardStage }) {
   const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
-  const options = useRunOptions(undefined, section);
+  const options = useRunOptions(undefined, section, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
   const runs = useAsync(() => api.runs(projectId), [projectId]);
 
-  // セクションの指定がなければ、チャットがまだないプロジェクトは要件定義から、それ以外は直近のチャットと同じセクションで始める
+  // セクションの指定がなければ、プロジェクトの既定 → 直近のチャットと同じ → 要件定義の順に決める
   useEffect(() => {
     if (initialSection) setSection(initialSection);
+    else if (project.data?.defaults.section) setSection(project.data.defaults.section);
     else if (runs.data?.[0]) setSection(runs.data[0].phase);
-  }, [initialSection, runs.data]);
+  }, [initialSection, runs.data, project.data]);
 
   const idea = project.data?.description.trim();
   const isFirst = runs.data && runs.data.length === 0;
@@ -43,7 +44,9 @@ export function NewChatPage({ projectId, section: initialSection, stage }: { pro
           <p className="muted">
             {SECTION_META[section].label} — {SECTION_META[section].description}
           </p>
-          {stage && <p className="muted small">カンバンの「{BOARD_STAGE_LABELS[stage]}」に追加されます</p>}
+          {(stage ?? project.data?.defaults.stage) && (
+            <p className="muted small">カンバンの「{BOARD_STAGE_LABELS[(stage ?? project.data?.defaults.stage)!]}」に追加されます</p>
+          )}
         </div>
       </div>
       <div className="run-composer">

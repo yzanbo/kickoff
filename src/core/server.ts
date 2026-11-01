@@ -153,6 +153,18 @@ const projectPatchSchema = z
         schedule: z.array(z.string().max(500)).max(20),
       })
       .partial(),
+    // 送った内容で置き換える（書いていない項目はアプリ全体の設定に従う）
+    defaults: z
+      .object({
+        model: z.string().min(1).max(100),
+        effort: z.enum(EFFORT_LEVELS).nullable(),
+        permission: z.enum(PERMISSION_CHOICES),
+        fastMode: z.boolean(),
+        section: z.enum(PHASES),
+        stage: z.enum(BOARD_STAGES),
+      })
+      .partial()
+      .strict(),
   })
   .partial();
 

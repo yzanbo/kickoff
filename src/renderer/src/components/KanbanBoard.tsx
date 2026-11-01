@@ -134,8 +134,8 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
 
   const neighbour = (stage: BoardStage, step: -1 | 1): BoardStage | null => BOARD_STAGES[BOARD_STAGES.indexOf(stage) + step] ?? null;
 
-  /** 列の＋: その列に置く新しいチャット（全体ボードでは、最近のプロジェクトで始める） */
-  function newChat(stage: BoardStage) {
+  /** 列の＋: その列に置く新しいチャット。見出しの「新規」は列を決めない（プロジェクトの既定に従う）。全体ボードでは最近のプロジェクトで始める */
+  function newChat(stage?: BoardStage) {
     const target = projectId ?? projects[0]?.id;
     if (target === undefined) return;
     navigate({ name: "newChat", projectId: target, stage, section: section === "all" ? undefined : section });
@@ -219,7 +219,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
         <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
           <Globe size={13} /> ブラウザ
         </button>
-        <button className="btn btn-sm" onClick={() => newChat("todo")} disabled={projectId === undefined && projects.length === 0}>
+        <button className="btn btn-sm" onClick={() => newChat()} disabled={projectId === undefined && projects.length === 0}>
           <Plus size={13} /> 新規
         </button>
         <div className="view-toggle" role="group" aria-label="表示の切り替え">

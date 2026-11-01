@@ -131,6 +131,8 @@ const MIGRATIONS = [
    );
    CREATE INDEX idx_run_groups_project ON run_groups(project_id);
    ALTER TABLE runs ADD COLUMN group_id INTEGER REFERENCES run_groups(id) ON DELETE SET NULL;`,
+  // v8: プロジェクトごとの既定（JSON）
+  "ALTER TABLE projects ADD COLUMN defaults TEXT NOT NULL DEFAULT '{}'",
 ];
 
 type Row = Record<string, SQLInputValue>;
@@ -148,16 +150,20 @@ export function snippetAround(text: string, keyword: string): { snippet: string;
   return { snippet, match_start: matchStart, match_end: matchStart + keyword.length };
 }
 
-/** DB の行（write_scopes は JSON 文字列）をアプリの型に変換する */
+/** DB の行（write_scopes・defaults は JSON 文字列）をアプリの型に変換する */
 function toProject(row: unknown): Project {
-  const r = row as Omit<Project, "write_scopes"> & { write_scopes: string };
-  let write_scopes: Project["write_scopes"] = {};
+  const r = row as Omit<Project, "write_scopes" | "defaults"> & { write_scopes: string; defaults: string };
+  return { ...r, write_scopes: parseJson(r.write_scopes), defaults: parseJson(r.defaults) };
+}
+
+/** 壊れた値は空（既定）に戻す */
+function parseJson<T extends object>(text: string | null | undefined): T {
   try {
-    write_scopes = JSON.parse(r.write_scopes || "{}");
+    const value = JSON.parse(text || "{}");
+    return value && typeof value === "object" ? value : ({} as T);
   } catch {
-    // 壊れた値は既定に戻す
+    return {} as T;
   }
-  return { ...r, write_scopes };
 }
 
 export interface NewProject {
@@ -326,12 +332,17 @@ export class Store {
 
   updateProject(
     id: number,
-    patch: Partial<Omit<NewProject, "auto_commit">> & { auto_commit?: boolean; write_scopes?: Project["write_scopes"] },
+    patch: Partial<Omit<NewProject, "auto_commit">> & {
+      auto_commit?: boolean;
+      write_scopes?: Project["write_scopes"];
+      defaults?: Project["defaults"];
+    },
   ): Project {
     const row: Row = {
       ...patch,
       auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0,
       write_scopes: patch.write_scopes === undefined ? undefined : JSON.stringify(patch.write_scopes),
+      defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
     } as Row;
     this.updateRow("projects", id, row, [
       "name",
@@ -342,6 +353,7 @@ export class Store {
       "deploy_instructions",
       "auto_commit",
       "write_scopes",
+      "defaults",
     ]);
     const project = this.getProject(id)!;
     this.onChange({ type: "project", project });
