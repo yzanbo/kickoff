@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen, Search, Settings, SquareKanban, SquarePen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Search, SquareKanban, SquarePen } from "lucide-react";
 import type { Approval, ProjectSummary } from "../../../../core/types";
 import { href, type Route } from "../../router";
 import { ProjectNav } from "./ProjectNav";
@@ -47,11 +47,6 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
       <nav className="sidebar-section" aria-label="プロジェクトとチャット">
         <ProjectNav projects={projects} approvals={approvals} route={route} onNewProject={onNewProject} />
       </nav>
-      <div className="sidebar-footer">
-        <a className={`nav-row ${route.name === "settings" ? "active" : ""}`} href={href({ name: "settings" })}>
-          <Settings size={15} /> 設定
-        </a>
-      </div>
     </aside>
   );
 }

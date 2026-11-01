@@ -7,7 +7,6 @@ export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 export type Route =
   | { name: "home" }
-  | { name: "settings" }
   /** group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき） */
   | { name: "project"; id: number; tab: ProjectTab; group?: number }
   | { name: "newChat"; projectId: number; section?: Phase; stage?: BoardStage; group?: number }
@@ -17,7 +16,6 @@ export type Route =
 function parse(hash: string): Route {
   const [path, query = ""] = (hash.replace(/^#/, "") || "/").split("?");
   const params = new URLSearchParams(query);
-  if (path === "/settings") return { name: "settings" };
 
   const run = path.match(/^\/projects\/(\d+)\/runs\/(\d+)$/);
   if (run) {
@@ -61,8 +59,6 @@ export function useRoute(): Route {
 
 export function href(route: Route): string {
   switch (route.name) {
-    case "settings":
-      return "#/settings";
     case "project":
       return route.tab === "board"
         ? `#/projects/${route.id}`

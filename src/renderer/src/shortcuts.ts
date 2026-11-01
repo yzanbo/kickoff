@@ -5,11 +5,13 @@ interface Actions {
   openPalette: () => void;
   openContentSearch: () => void;
   newChat: () => void;
+  openSettings: () => void;
 }
 
 /**
  * アプリ全体のショートカット: ⌘B サイドバーの開閉 / ⌘K 検索・移動 / ⌘F チャットを名前で探す /
- * ⌘⇧F チャットの中の文言を全文検索 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト）
+ * ⌘⇧F チャットの中の文言を全文検索 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト） /
+ * ⌘, 設定（Mac の環境設定と同じ）
  */
 export function useAppShortcuts(actions: Actions) {
   useWindowEvent("keydown", (e) => {
@@ -39,6 +41,9 @@ export function useAppShortcuts(actions: Actions) {
     } else if (e.key === "n") {
       e.preventDefault();
       actions.newChat();
+    } else if (e.key === ",") {
+      e.preventDefault();
+      actions.openSettings();
     }
   });
 }

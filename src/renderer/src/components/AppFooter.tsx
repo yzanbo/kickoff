@@ -1,10 +1,13 @@
+import { Settings } from "lucide-react";
 import type { PlanUsage } from "../../../core/types";
 import type { ConnectionState } from "../api";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../usage";
 import { CONNECTION_LABELS } from "./ConnectionPopover";
+import { IconButton } from "./IconButton";
 import { UsageMeter } from "./UsageMeter";
 
 interface Props {
+  onOpenSettings: () => void;
   connection: ConnectionState;
   connOpen: boolean;
   onConnClick: () => void;
@@ -13,10 +16,12 @@ interface Props {
   onUsageClick: () => void;
 }
 
-/** 下の帯（左: サーバーとの接続 / 右: 契約プランと使用状況）。押すと詳細を出す */
-export function AppFooter({ connection, connOpen, onConnClick, usage, usageOpen, onUsageClick }: Props) {
+/** 下の帯（左: 設定とサーバーとの接続 / 右: 契約プランと使用状況）。接続と使用状況は押すと詳細を出す */
+export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick }: Props) {
   return (
     <footer className="app-footer">
+      {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
+      <IconButton icon={Settings} label="設定" title="設定（⌘,）" className="footer-settings" onClick={onOpenSettings} />
       <button className={`conn conn-${connection} ${connOpen ? "active" : ""}`} title="接続の詳細" aria-expanded={connOpen} onClick={onConnClick}>
         {CONNECTION_LABELS[connection]}
       </button>

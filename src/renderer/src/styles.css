@@ -1170,11 +1170,6 @@ input[type="text"].inline-name {
   background: var(--bg-hover);
 }
 
-.sidebar-footer {
-  padding: 8px;
-  border-top: 1px solid var(--border);
-}
-
 .icon-button {
   display: inline-grid;
   place-items: center;
@@ -1530,24 +1525,24 @@ select:focus {
   width: min(560px, calc(100vw - 32px));
 }
 
-/* プロジェクトの編集（設定タブと同じ内容を、画面を移らずに） */
-.dialog.project-edit-dialog {
+/* 左に項目の一覧・右に内容のダイアログ（アプリの設定・プロジェクトの編集） */
+.dialog.tabbed-dialog {
   width: min(1040px, calc(100vw - 48px));
   height: min(86vh, 820px);
   max-height: none;
   overflow: hidden;
 }
 
-.project-edit-dialog:focus {
+.tabbed-dialog:focus {
   outline: none;
 }
 
-.project-edit-dialog[open] {
+.tabbed-dialog[open] {
   display: flex;
   flex-direction: column;
 }
 
-.project-edit-head {
+.tabbed-dialog-head {
   display: flex;
   flex: none;
   align-items: center;
@@ -1556,26 +1551,19 @@ select:focus {
   border-bottom: 1px solid var(--border);
 }
 
-.project-edit-head h2 {
+.tabbed-dialog-head h2 {
   margin: 0;
   font-size: 17px;
 }
 
-.project-edit-body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
-
-/* プロジェクトの設定: 左の項目一覧と、右の内容 */
-.project-settings {
+.tabbed-dialog-body {
   display: grid;
+  flex: 1;
   grid-template-columns: 210px minmax(0, 1fr);
-  width: 100%;
   min-height: 0;
 }
 
-.project-settings-nav {
+.tabbed-dialog-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1583,7 +1571,7 @@ select:focus {
   border-right: 1px solid var(--border);
 }
 
-.project-settings-tab {
+.tabbed-dialog-tab {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1599,32 +1587,32 @@ select:focus {
   cursor: pointer;
 }
 
-.project-settings-tab:hover {
+.tabbed-dialog-tab:hover {
   color: var(--text);
   background: var(--bg-hover);
 }
 
-.project-settings-tab.active {
+.tabbed-dialog-tab.active {
   color: var(--text);
   background: var(--bg-active);
 }
 
-.project-settings-tab.danger {
+.tabbed-dialog-tab.danger {
   margin-top: auto;
 }
 
-.project-settings-tab.danger.active,
-.project-settings-tab.danger:hover {
+.tabbed-dialog-tab.danger.active,
+.tabbed-dialog-tab.danger:hover {
   color: var(--ng);
 }
 
-.project-settings-content {
+.tabbed-dialog-content {
   min-width: 0;
   padding: 8px 32px 32px;
   overflow-y: auto;
 }
 
-.project-settings-content .form {
+.tabbed-dialog-content .form {
   max-width: 560px;
 }
 
@@ -3949,6 +3937,14 @@ mark {
   background: var(--bg-sidebar);
 }
 
+/* 左下の設定（歯車だけ）。フッターの高さに収まる大きさにする */
+.footer-settings {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-left: -6px;
+}
+
 .conn {
   height: 100%;
   margin-left: -6px;
@@ -4032,6 +4028,7 @@ mark {
   padding-top: 8px;
   border-top: 1px solid var(--border);
   width: 100%;
+  text-align: left;
   color: var(--muted);
 }
 

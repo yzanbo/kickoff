@@ -1,0 +1,79 @@
+import type { EffortLevel, PermissionChoice } from "../../../../core/types";
+import { api, useAsync } from "../../api";
+import { modelDisplayName } from "../../models";
+import { EffortOptions, ModelOptions, PermissionOptions } from "../AiOptions";
+import { Field } from "../Field";
+import { SaveActions } from "../SaveActions";
+import { useSettingsDraft } from "./useSettingsDraft";
+
+/** 設定: 新しいチャットの AI の既定（モデル・推論の深さ・権限モード・ファストモード）と、同時に実行するエージェント数 */
+export function AiDefaultsSettings() {
+  const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
+  const models = useAsync(() => api.models("claude"));
+  if (!draft) return null;
+  const currentModel = models.data?.find((m) => m.value === draft.claudeModel);
+  return (
+    <section className="section">
+      <h2>AI の既定</h2>
+      <p className="muted small">新しいチャットはこの設定から始まります。チャット欄で変えた内容は、そのチャットだけに効きます。</p>
+      <div className="form">
+        <Field label={`モデル（${modelDisplayName(models.data ?? [], draft.claudeModel)}）`}>
+          <select value={draft.claudeModel} onChange={(e) => setDraft({ ...draft, claudeModel: e.target.value })}>
+            <ModelOptions models={models.data ?? []} value={draft.claudeModel} />
+          </select>
+        </Field>
+        <Field label="推論の深さ（effort）">
+          <select
+            value={draft.defaultEffort ?? ""}
+            onChange={(e) => setDraft({ ...draft, defaultEffort: (e.target.value || null) as EffortLevel | null })}
+          >
+            <option value="">セクションに合わせる（要件定義・実装・テスト: High / スケジュール・デプロイ: Medium）</option>
+            <EffortOptions model={currentModel} />
+          </select>
+        </Field>
+        <Field label="権限モード" help="要件定義・スケジュールの「書き込みできるフォルダ」の制限は、どのモードでも必ず効きます。">
+          <select value={draft.defaultPermission} onChange={(e) => setDraft({ ...draft, defaultPermission: e.target.value as PermissionChoice })}>
+            <PermissionOptions model={currentModel} phaseLabel="セクションに合わせる（実装・テスト: 編集を自動承認 / それ以外: 毎回確認）" />
+          </select>
+        </Field>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={draft.defaultFastMode}
+            disabled={currentModel ? !currentModel.supportsFastMode : false}
+            onChange={(e) => setDraft({ ...draft, defaultFastMode: e.target.checked })}
+          />
+          <span>
+            ファストモードを使う
+            <span className="field-help">
+              応答が速くなる代わりに、Claude のプランの追加の使用枠（extra usage）から消費されます。追加の使用枠が無効な場合は通常の速度で動き、チャットに理由が表示されます。
+              {currentModel && !currentModel.supportsFastMode && "（このモデルは対応していません）"}
+            </span>
+          </span>
+        </label>
+        <Field label="同時に実行するエージェント数" help="多いほど速く進みますが、プランの使用枠を早く消費します。">
+          <input
+            type="number"
+            min={1}
+            max={8}
+            value={draft.maxConcurrentRuns}
+            onChange={(e) => setDraft({ ...draft, maxConcurrentRuns: Number(e.target.value) })}
+          />
+        </Field>
+      </div>
+      <SaveActions
+        save={save}
+        disabled={!dirty}
+        onSave={() =>
+          saveFields({
+            claudeModel: draft.claudeModel,
+            defaultEffort: draft.defaultEffort,
+            defaultPermission: draft.defaultPermission,
+            defaultFastMode: draft.defaultFastMode,
+            maxConcurrentRuns: draft.maxConcurrentRuns,
+          })
+        }
+      />
+    </section>
+  );
+}
