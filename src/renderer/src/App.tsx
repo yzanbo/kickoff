@@ -109,15 +109,20 @@ export function App() {
       </aside>
       <main className="main">
         {route.name === "settings" ? (
-          <SettingsPage />
+          <SettingsPage planUsage={planUsage} />
         ) : route.name === "run" ? (
           <RunPage key={route.runId} projectId={route.projectId} runId={route.runId} focus={route.focus} />
         ) : route.name === "newChat" ? (
-          <NewChatPage key={`${route.projectId}:${route.section ?? ""}`} projectId={route.projectId} section={route.section} />
+          <NewChatPage
+            key={`${route.projectId}:${route.section ?? ""}:${route.stage ?? ""}`}
+            projectId={route.projectId}
+            section={route.section}
+            stage={route.stage}
+          />
         ) : route.name === "project" ? (
-          <ProjectPage id={route.id} tab={route.tab} />
+          <ProjectPage id={route.id} tab={route.tab} projects={projects} />
         ) : (
-          <HomePage planUsage={planUsage} projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
+          <HomePage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
         )}
       </main>
       <footer className="app-footer">
@@ -126,7 +131,7 @@ export function App() {
         </span>
         <span className="spacer" />
         {usage?.available ? (
-          <a className="footer-usage" href={href({ name: "home" })} title="使用状況の詳細">
+          <a className="footer-usage" href={href({ name: "settings" })} title="使用状況の詳細">
             <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
             <UsageMeter window={usage.seven_day} inline />
           </a>

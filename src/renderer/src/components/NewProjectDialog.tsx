@@ -300,7 +300,7 @@ function InspectionPanel({
       kind: "ng",
       text: (
         <>
-          このフォルダはすでに登録されています（<a href={href({ name: "project", id: info.registered_project_id, tab: "chats" })}>開く</a>）
+          このフォルダはすでに登録されています（<a href={href({ name: "project", id: info.registered_project_id, tab: "board" })}>開く</a>）
         </>
       ),
     });

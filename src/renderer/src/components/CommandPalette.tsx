@@ -40,7 +40,7 @@ export function CommandPalette({ projects, onClose }: { projects: ProjectSummary
         label: p.name,
         hint: "プロジェクト",
         icon: <FolderGit2 size={15} />,
-        route: { name: "project", id: p.id, tab: "chats" } as Route,
+        route: { name: "project", id: p.id, tab: "board" } as Route,
       })),
       ...runs.map((r) => {
         const Icon = SECTION_META[r.phase].icon;

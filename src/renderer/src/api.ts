@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type {
   AppSettings,
+  BoardStage,
   Attachment,
   Approval,
   ApprovalDecision,
@@ -112,7 +113,7 @@ export const api = {
   },
   startRun: (
     projectId: number,
-    input: { phase: Phase; prompt: string; task_id?: number; options: RunOptions; attachments?: Attachment[] },
+    input: { phase: Phase; prompt: string; task_id?: number; options: RunOptions; attachments?: Attachment[]; stage?: BoardStage },
   ) => request<Run>("POST", `/api/projects/${projectId}/runs`, input),
   run: (id: number) => request<RunDetail>("GET", `/api/runs/${id}`),
   sendMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
@@ -131,6 +132,10 @@ export const api = {
     return saved;
   },
   renameRun: (runId: number, title: string) => request<Run>("PATCH", `/api/runs/${runId}`, { title }),
+  moveRun: (runId: number, stage: BoardStage) => request<Run>("PATCH", `/api/runs/${runId}`, { stage }),
+  markSeen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/seen`),
+  archiveRun: (runId: number, archived = true) => request<Run>("POST", `/api/runs/${runId}/archive`, { archived }),
+  deleteRun: (runId: number) => request<{ ok: true }>("DELETE", `/api/runs/${runId}`),
   cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
 
   // 承認依頼・質問

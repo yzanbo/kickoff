@@ -277,7 +277,7 @@ const WorkspacePage = memo(function WorkspacePage({
   return (
     <section className="workspace-page" aria-hidden={hidden} inert={hidden}>
       <div className={`workspace-head ${isActive ? "active" : ""}`}>
-        <a className="workspace-name" href={href({ name: "project", id: project.id, tab: "chats" })} title={project.repo_path}>
+        <a className="workspace-name" href={href({ name: "project", id: project.id, tab: "board" })} title={project.repo_path}>
           {project.name}
         </a>
         {waitingCount > 0 && (

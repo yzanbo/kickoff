@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { PHASES, type Phase } from "../../core/types";
+import { BOARD_STAGES, PHASES, type BoardStage, type Phase } from "../../core/types";
 
-export const PROJECT_TABS = ["chats", "requirements", "schedule", "tasks", "reports", "settings"] as const;
+export const PROJECT_TABS = ["board", "requirements", "schedule", "tasks", "reports", "settings"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 export type Route =
   | { name: "home" }
   | { name: "settings" }
   | { name: "project"; id: number; tab: ProjectTab }
-  | { name: "newChat"; projectId: number; section?: Phase }
+  | { name: "newChat"; projectId: number; section?: Phase; stage?: BoardStage }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "run"; projectId: number; runId: number; focus?: number };
 
@@ -26,16 +26,18 @@ function parse(hash: string): Route {
   const newChat = path.match(/^\/projects\/(\d+)\/new$/);
   if (newChat) {
     const section = params.get("section");
+    const stage = params.get("stage");
     return {
       name: "newChat",
       projectId: Number(newChat[1]),
       section: section && (PHASES as readonly string[]).includes(section) ? (section as Phase) : undefined,
+      stage: stage && (BOARD_STAGES as readonly string[]).includes(stage) ? (stage as BoardStage) : undefined,
     };
   }
 
   const project = path.match(/^\/projects\/(\d+)(?:\/([a-z]+))?$/);
   if (project) {
-    const tab = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "chats";
+    const tab = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "board";
     return { name: "project", id: Number(project[1]), tab };
   }
   return { name: "home" };
@@ -57,9 +59,13 @@ export function href(route: Route): string {
     case "settings":
       return "#/settings";
     case "project":
-      return route.tab === "chats" ? `#/projects/${route.id}` : `#/projects/${route.id}/${route.tab}`;
-    case "newChat":
-      return `#/projects/${route.projectId}/new${route.section ? `?section=${route.section}` : ""}`;
+      return route.tab === "board" ? `#/projects/${route.id}` : `#/projects/${route.id}/${route.tab}`;
+    case "newChat": {
+      const q = new URLSearchParams();
+      if (route.section) q.set("section", route.section);
+      if (route.stage) q.set("stage", route.stage);
+      return `#/projects/${route.projectId}/new${q.size ? `?${q}` : ""}`;
+    }
     case "run":
       return `#/projects/${route.projectId}/runs/${route.runId}${route.focus ? `?event=${route.focus}` : ""}`;
     default:
