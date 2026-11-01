@@ -103,7 +103,7 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
           aria-label="URL"
           value={address}
           spellCheck={false}
-          placeholder="localhost:3000 や URL を入力"
+          placeholder="URL を入力、または Google で検索"
           onChange={(e) => setAddress(e.target.value)}
           onFocus={(e) => e.target.select()}
         />
