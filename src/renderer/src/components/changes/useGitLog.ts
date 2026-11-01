@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { GitCommit } from "../../../../core/types";
+import type { GitCommit, GitRefs } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { layoutGraph } from "./commitGraph";
@@ -12,11 +12,17 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
   const [state, setState] = useState<{ projectId: number; commits: GitCommit[]; more: boolean; error?: string }>();
   const [loadingMore, setLoadingMore] = useState(false);
   const [reload, setReload] = useState(0);
+  // ブランチ・リモート・タグ・stash（左の一覧）
+  const [refs, setRefs] = useState<{ projectId: number; value: GitRefs }>();
   const loaded = state?.projectId === projectId ? state.commits.length : 0;
 
   useEffect(() => {
     if (!active) return;
     let alive = true;
+    api.gitRefs(projectId).then(
+      (value) => alive && setRefs((prev) => (prev?.projectId === projectId && JSON.stringify(prev.value) === JSON.stringify(value) ? prev : { projectId, value })),
+      () => undefined,
+    );
     // 読み込んだところまで（初めは 1 ページ）を読み直す
     api.gitLog(projectId).then(
       (log) =>
@@ -44,7 +50,7 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
 
   const current = state?.projectId === projectId ? state : undefined;
   const graph = useMemo(() => layoutGraph(current?.commits ?? []), [current?.commits]);
-  return { commits: current?.commits, more: Boolean(current?.more), error: current?.error, graph, loadMore, loadingMore, refresh: () => setReload((n) => n + 1) };
+  return { refs: refs?.projectId === projectId ? refs.value : undefined, commits: current?.commits, more: Boolean(current?.more), error: current?.error, graph, loadMore, loadingMore, refresh: () => setReload((n) => n + 1) };
 }
 
 /** 描き直しが要るかを比べるための、コミットとその印 */

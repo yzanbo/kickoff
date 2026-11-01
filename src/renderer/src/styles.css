@@ -6104,32 +6104,6 @@ a:focus-visible,
   stroke-width: 2;
 }
 
-.history-text {
-  display: flex;
-  flex: 1;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
-}
-
-.history-subject {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.history-meta {
-  flex: none;
-  max-width: 45%;
-  overflow: hidden;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--extra-muted);
-}
-
 /* ブランチ・タグの印（いまのブランチは目立たせる） */
 .ref-badge {
   display: inline-block;
@@ -6183,11 +6157,10 @@ a:focus-visible,
 }
 
 .commit-meta {
-  flex: none;
-  max-height: 45%;
+  flex: 1;
+  min-height: 0;
   padding: 12px 14px 6px;
   overflow-y: auto;
-  border-bottom: 1px solid var(--border);
 }
 
 .commit-subject {
@@ -6218,10 +6191,206 @@ a:focus-visible,
   margin: 0;
 }
 
+/* 履歴の表の列（件名・作者・コミットの番号・日時。Fork と同じ） */
+.history-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-author,
+.history-hash,
+.history-date {
+  flex: none;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.history-author {
+  width: 130px;
+}
+
+.history-hash {
+  width: 64px;
+  font-family: var(--mono);
+}
+
+.history-date {
+  width: 118px;
+}
+
+/* 履歴の右側（上にコミットの表、下に詳細。境目はドラッグで動かせる） */
+.history-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.history-main.resizing {
+  cursor: row-resize;
+  user-select: none;
+}
+
+.history-table {
+  flex: none;
+  min-height: 0;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-resizer {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  height: 5px;
+  margin: -3px 0 -2px;
+  cursor: row-resize;
+}
+
+.history-resizer:hover,
+.history-main.resizing .history-resizer {
+  background: var(--info);
+}
+
+.history-detail {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 履歴の左の一覧（すべてのコミット・ブランチ・リモート・タグ・stash） */
+.ref-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ref-all:hover {
+  background: var(--bg-hover);
+}
+
+.ref-items {
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+}
+
+.ref-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 10px 3px 22px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ref-item:hover {
+  background: var(--bg-hover);
+}
+
+/* いまのブランチ（Fork と同じく、地の色で目立たせる） */
+.ref-item.current {
+  font-weight: 600;
+  background: var(--bg-active);
+}
+
+.ref-item svg,
+.ref-remote-name svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.ref-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-note {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ref-remote-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 22px;
+  font-size: 13px;
+}
+
+/* コミットの詳細の 1 行の見出し（作者・番号・日時・件名・タブ） */
+.commit-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.commit-author {
+  flex: none;
+  font-weight: 600;
+}
+
+.commit-line-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 「変更」のタブ: 左に変わったファイル、右に差分 */
+.commit-changes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.commit-files {
+  flex: none;
+  width: 260px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+
 .commit-files-head {
-  margin: 4px 0 2px;
+  display: flex;
+  align-items: center;
+  padding: 4px 6px 4px 10px;
 }
 
 .commit-files .change-file {
-  padding-left: 4px;
+  padding-left: 10px;
 }

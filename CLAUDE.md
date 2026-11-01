@@ -54,7 +54,7 @@
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |
 | ボードの見出し | `BoardHeader`。道具は概念ごとのまとまりに入れる（左: 表示 → 探す・絞り込む / 右: 作る・開く → パネルの開閉） |
-| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）・「検索」（`SearchView` ＋ `useProjectSearch`、印は `searchPattern` / `splitMatches`）・「履歴」（`HistoryView` ＋ `useGitLog`。ブランチの線は `layoutGraph`（`commitGraph.ts`）、選んだコミットは `CommitView`、コミットの差分は `DiffView` の `commit`）・「変更」（`ChangeGroup`。一覧と木を切り替え、行にマウスを乗せるとステージ・ステージの取り消し・元に戻すのボタン。元に戻すは確かめてから。上にコミットの欄 `CommitBox`（ステージしたものがなければ、すべてステージするか確かめる。進んでいればプッシュ、未公開ならブランチを公開）。操作は `useGitStatus` の `act` / `commit` / `push`）を切り替える。行の右の操作は `.row-actions`（FileTree の `actions`）。フォルダ・ファイルのアイコンは `FileIcon`（VS Code の Material Icon Theme。対応表は使うときだけ読み込む）。差分は `DiffView`（左右に並べる・1 列）、ファイルの中身は `FileView`。編集は `CodeEditor`（Monaco。「編集」を押したときだけ読み込む。入口は言語サービスを除いた `monacoEditor.ts`）で、保存は開いたときの指紋（`hash`）と比べ、ほかで変わっていれば上書きするか聞く。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
+| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）・「検索」（`SearchView` ＋ `useProjectSearch`、印は `searchPattern` / `splitMatches`）・「履歴」（Fork と同じ形: 左にブランチなどの `HistorySidebar`、右上にコミットの表 `CommitTable`、右下に詳細 `CommitView`。`HistoryMain` が上下に分け、境目はドラッグで動かせる。読み込みは `useGitLog`、ブランチの線は `layoutGraph`（`commitGraph.ts`）、コミットの差分は `DiffView` の `commit`。日時は `formatDayTime`）・「変更」（`ChangeGroup`。一覧と木を切り替え、行にマウスを乗せるとステージ・ステージの取り消し・元に戻すのボタン。元に戻すは確かめてから。上にコミットの欄 `CommitBox`（ステージしたものがなければ、すべてステージするか確かめる。進んでいればプッシュ、未公開ならブランチを公開）。操作は `useGitStatus` の `act` / `commit` / `push`）を切り替える。行の右の操作は `.row-actions`（FileTree の `actions`）。フォルダ・ファイルのアイコンは `FileIcon`（VS Code の Material Icon Theme。対応表は使うときだけ読み込む）。差分は `DiffView`（左右に並べる・1 列）、ファイルの中身は `FileView`。編集は `CodeEditor`（Monaco。「編集」を押したときだけ読み込む。入口は言語サービスを除いた `monacoEditor.ts`）で、保存は開いたときの指紋（`hash`）と比べ、ほかで変わっていれば上書きするか聞く。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
 
 ## hooks と補助関数
 
@@ -62,7 +62,7 @@
 - いま画面に出ているテーマ（ダーク・ライト）: `useAppliedTheme`（`<html data-theme>` の変化で描き直す）。
 - localStorage: `useStoredState` / `useStoredFlag` / `useStoredChoice` / `useStoredNumber` / `useStoredFlagMap`（部品から直接読み書きしない）。選択肢を増やすときも、今までの値はそのままの意味で読めるようにする（例: アーカイブの絞り込みは `"1"` / `"0"` のまま、`"archived"` を足した）。`useStoredFlagMap` の `set` は参照が変わらないので、memo した部品に渡せる。
 - 右側のパネル（`useSidePanel`）の開閉と開いているタブは、`memoryKey` でボードごとに覚える（タブやプロジェクトを切り替えて戻っても元どおり）。
-- 操作の失敗の表示: `useActionError`。時間とともに変わる表示: `useTicker`。つまみで幅を変える: `startHorizontalDrag`。アプリ全体で 1 回だけ取得: `cachedLoader`。
+- 操作の失敗の表示: `useActionError`。時間とともに変わる表示: `useTicker`。つまみで幅・高さを変える: `startHorizontalDrag` / `startVerticalDrag`。アプリ全体で 1 回だけ取得: `cachedLoader`。
 - 例外の文: `errorMessage`（`e instanceof Error ? e.message : String(e)` を書かない）。class 名の組み立て: `cx`。
 - チャット名: `chatTitle`。時刻: `relativeTime` / `resetIn` / `formatClock`（`time.ts`）。トークン数: `formatTokens`。
 - 使用枠: `planName` / `accountLine` / `usageLevel` / `weeklyModel` / `usageUnavailableText`（`usage.ts`）。モデルごとの選択肢: `effortsFor` / `permissionChoices` / `groupModels`（`models.ts`）。
