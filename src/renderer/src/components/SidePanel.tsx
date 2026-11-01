@@ -84,11 +84,9 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
    * 同じ指定のまだ送っていないタブがあれば、それを表示する
    */
   const openNew = (target: NewChatTarget) => {
-    const same = (t: PanelTab) =>
-      t.kind === "new" && t.projectId === target.projectId && t.section === target.section && t.stage === target.stage && t.group === target.group;
-    const existing = tabs.find(same);
-    const key = existing?.key ?? `new:${Date.now()}`;
-    if (!existing) setTabs((prev) => [...prev, { key, kind: "new", ...target }]);
+    // 指定ごとに決まったキーにして、続けて呼ばれても（開発時の二重実行でも）1 つにまとめる
+    const key = `new:${target.projectId}:${target.section ?? ""}:${target.stage ?? ""}:${target.group ?? ""}`;
+    setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "new", ...target }]));
     setActiveTab(key);
     setPanelOpen(true);
   };
@@ -296,6 +294,11 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
     open,
     openNew,
     openBrowser,
+    /** 送る前の新しいチャットのタブ（ボードの列・グループに下書きとして出す） */
+    drafts: tabs.flatMap((t) => (t.kind === "new" ? [{ key: t.key, target: { projectId: t.projectId, section: t.section, stage: t.stage, group: t.group } }] : [])),
+    /** タブを表示する（下書きを押したとき） */
+    showTab: reopen,
+    isShowingTab: (key: string) => panelOpen && activeTab === key,
     /** パネルの表示中のタブがこのチャットか（カードを選択中として見せる） */
     isShowing: (runId: number) => panelOpen && activeTab === chatKey(runId),
     /** このチャットをタブで開いているか */
@@ -309,4 +312,14 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
     },
     renderPanel,
   };
+}
+
+/** 送る前の新しいチャット（パネルで入力中）の下書き。押すとそのタブを表示する */
+export function DraftCard({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className={`draft-card ${active ? "selected" : ""}`} onClick={onClick} title="右側で入力中の新しいチャット">
+      <SquarePen size={14} aria-hidden />
+      新しいチャット（入力中）
+    </button>
+  );
 }

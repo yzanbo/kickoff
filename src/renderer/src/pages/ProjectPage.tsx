@@ -147,7 +147,7 @@ export function ProjectPage({
       </header>
 
       {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" focus={focus} />}
-      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} />}
+      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} focus={focus} />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
       {tab === "tasks" && (

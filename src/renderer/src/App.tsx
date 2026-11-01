@@ -194,7 +194,8 @@ export function App() {
           // チャット・新しいチャットはプロジェクトのカンバンの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
           <ProjectPage
             id={route.name === "project" ? route.id : route.projectId}
-            tab={route.name === "project" ? route.tab : "board"}
+            // サイドバーのグループの＋から来たときは、グループのタブで始める
+            tab={route.name === "project" ? route.tab : route.name === "newChat" && route.group ? "groups" : "board"}
             projects={projects}
             focus={route.name === "project" ? undefined : route}
           />

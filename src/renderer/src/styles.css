@@ -4656,10 +4656,64 @@ mark {
 }
 
 .list-group {
+  position: relative;
   margin-bottom: 12px;
   padding: 0 6px 6px;
   border: 1px solid transparent;
   border-radius: var(--radius);
+}
+
+/* グループのリスト表示: 並べ替えの線（上下）と、作成ボタンの行 */
+.list-group.group-dragging {
+  opacity: 0.35;
+}
+
+.list-group.drop-before::before,
+.list-group.drop-after::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  left: 6px;
+  z-index: 2;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+}
+
+.list-group.drop-before::before {
+  top: -7px;
+}
+
+.list-group.drop-after::after {
+  bottom: -7px;
+}
+
+.list-group.group-add-row {
+  padding: 4px 6px;
+  border: 1px dashed var(--border-strong);
+}
+
+/* 送る前の新しいチャット（パネルで入力中）を、その列・グループに下書きとして出す */
+.draft-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px dashed var(--accent-bright);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  cursor: pointer;
+}
+
+.draft-card:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .list-row {
