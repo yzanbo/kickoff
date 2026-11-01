@@ -3347,7 +3347,19 @@ mark {
   gap: 12px;
 }
 
-/* タブを残して閉じたときの、右端の細い帯 */
+/* パネルを開いたが、タブがひとつもないとき */
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+}
+
+/* 閉じたときの、右端の細い帯 */
 .board-body.with-rail {
   grid-template-columns: minmax(0, 1fr) 36px;
   gap: 8px;

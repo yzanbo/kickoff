@@ -199,8 +199,8 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     setPanelOpen(true);
   };
   const closePanel = () => setPanelOpen(false);
-  /** タブを残したまま閉じたときは、右端に細い帯を残して、そこから開き直せるようにする */
-  const rail = !panelOpen && tabs.length > 0;
+  /** 閉じているときは、右端に細い帯を残して、そこから開き直せるようにする */
+  const rail = !panelOpen;
   const reopen = (key?: string) => {
     if (key) setActiveTab(key);
     setPanelOpen(true);
@@ -423,7 +423,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
       )}
 
       </div>
-      <aside className={`board-panel ${rail ? "rail" : ""}`} aria-hidden={!panelOpen && !rail} inert={!panelOpen && !rail}>
+      <aside className={`board-panel ${rail ? "rail" : ""}`} >
         {rail && (
           <div className="panel-rail">
             <button className="panel-rail-button" title="パネルを開く" aria-label="パネルを開く" onClick={() => reopen()}>
@@ -483,6 +483,14 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
           </button>
         </div>
         <div className="panel-content" inert={!panelOpen}>
+          {tabs.length === 0 && (
+            <div className="panel-empty">
+              <p className="muted small">カードを押すと、ここにチャットが開きます。</p>
+              <button className="btn" onClick={openBrowser}>
+                <Globe size={14} /> ブラウザを開く
+              </button>
+            </div>
+          )}
           {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
           {tabs.map((t) => (
             <div key={t.key} className="panel-tab-page" hidden={activeTab !== t.key}>
