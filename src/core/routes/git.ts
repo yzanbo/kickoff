@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { commitStaged, discardPaths, FileConflictError, gitCommitDetail, gitCommitDiff, gitLog, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
+import { commitStaged, discardPaths, FileConflictError, gitCommitDetail, gitCommitDiff, gitLog, gitRefs, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
 import type { ServerDeps } from "../server.js";
 import { HttpError, requireProject } from "./http.js";
 
@@ -106,6 +106,8 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
   });
 
   // 履歴（読むだけ）
+  app.get("/api/projects/:id/git/refs", async (c) => c.json(await gitRefs(requireProject(store, c.req.param("id")).repo_path)));
+
   app.get("/api/projects/:id/git/log", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const { skip, limit } = z

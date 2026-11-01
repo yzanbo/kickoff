@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { FileContent, GitChangeKind, GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitStatus, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
+import type { FileContent, GitChangeKind, GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitStatus, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -356,4 +356,46 @@ export async function gitCommitDiff(repo: string, hash: string, file: string, ol
   const binary = /^Binary files .* differ$/m.test(diff) || diff.includes("GIT binary patch");
   const truncated = diff.length > MAX_DIFF_CHARS;
   return { diff: truncated ? diff.slice(0, MAX_DIFF_CHARS) : diff, binary, truncated };
+}
+
+/** ブランチ・リモート・タグ・stash（履歴の左の一覧） */
+export async function gitRefs(repo: string): Promise<GitRefs> {
+  const refs: GitRefs = { branches: [], remotes: [], tags: [], stashes: [] };
+  const out = await gitOutput(repo, [
+    "for-each-ref",
+    "--format=%(refname)%00%(objectname)%00%(*objectname)%00%(upstream:short)%00%(upstream:track)%00%(HEAD)",
+    "refs/heads",
+    "refs/remotes",
+    "refs/tags",
+  ]);
+  for (const line of out.split("\n").filter(Boolean)) {
+    const [ref, object, peeled, upstream, track, head] = line.split("\0");
+    // 注釈つきのタグは、指しているコミットを使う
+    const hash = peeled || object;
+    if (ref.startsWith("refs/heads/")) {
+      refs.branches.push({
+        name: ref.slice(11),
+        hash,
+        current: head === "*",
+        upstream: upstream || null,
+        ahead: Number(/ahead (\d+)/.exec(track)?.[1] ?? 0),
+        behind: Number(/behind (\d+)/.exec(track)?.[1] ?? 0),
+      });
+    } else if (ref.startsWith("refs/remotes/")) {
+      const name = ref.slice(13);
+      if (name.endsWith("/HEAD")) continue;
+      const remote = name.slice(0, name.indexOf("/"));
+      let group = refs.remotes.find((r) => r.name === remote);
+      if (!group) refs.remotes.push((group = { name: remote, branches: [] }));
+      group.branches.push({ name, hash });
+    } else if (ref.startsWith("refs/tags/")) {
+      refs.tags.push({ name: ref.slice(10), hash });
+    }
+  }
+  const stashes = await gitOutput(repo, ["stash", "list", "--format=%gd%x00%H%x00%s"]).catch(() => "");
+  for (const line of stashes.split("\n").filter(Boolean)) {
+    const [ref, hash, message] = line.split("\0");
+    refs.stashes.push({ ref, hash, message });
+  }
+  return refs;
 }
