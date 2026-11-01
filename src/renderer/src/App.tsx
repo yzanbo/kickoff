@@ -11,10 +11,9 @@ import { ConnectionPopover, CONNECTION_LABELS } from "./components/ConnectionPop
 import { UsagePopover } from "./components/UsagePopover";
 import { publishServerEvent } from "./events";
 import { HomePage } from "./pages/HomePage";
-import { NewChatPage } from "./pages/NewChatPage";
 import { ProjectPage } from "./pages/ProjectPage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { href, navigate, routeProjectId, useRoute } from "./router";
+import { href, openNewChat, routeProjectId, useRoute } from "./router";
 import { applyTheme, loadTheme } from "./theme";
 import { FIVE_HOUR_IDLE, planLabel, PlanUsageContext, usePlanUsage } from "./usage";
 
@@ -136,7 +135,7 @@ export function App() {
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める */
   function startNewChat() {
     const projectId = routeProjectId(route) ?? (Number(localStorage.getItem("kickoff:current-project")) || projects[0]?.id);
-    if (projectId) navigate({ name: "newChat", projectId });
+    if (projectId) openNewChat(projectId);
     else setCreating(true);
   }
 
@@ -191,21 +190,13 @@ export function App() {
       <main className="main">
         {route.name === "settings" ? (
           <SettingsPage planUsage={planUsage} />
-        ) : route.name === "newChat" ? (
-          <NewChatPage
-            key={`${route.projectId}:${route.section ?? ""}:${route.stage ?? ""}:${route.group ?? ""}`}
-            projectId={route.projectId}
-            section={route.section}
-            stage={route.stage}
-            group={route.group}
-          />
-        ) : route.name === "project" || route.name === "run" ? (
-          // チャットはプロジェクトのカンバンの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
+        ) : route.name === "project" || route.name === "run" || route.name === "newChat" ? (
+          // チャット・新しいチャットはプロジェクトのカンバンの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
           <ProjectPage
-            id={route.name === "run" ? route.projectId : route.id}
-            tab={route.name === "run" ? "board" : route.tab}
+            id={route.name === "project" ? route.id : route.projectId}
+            tab={route.name === "project" ? route.tab : "board"}
             projects={projects}
-            focusRun={route.name === "run" ? { runId: route.runId, focus: route.focus } : undefined}
+            focus={route.name === "project" ? undefined : route}
           />
         ) : (
           <HomePage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
@@ -251,7 +242,7 @@ export function App() {
           onCreated={(project) => {
             setCreating(false);
             loadProjects();
-            navigate({ name: "newChat", projectId: project.id, section: "requirements" });
+            openNewChat(project.id, { section: "requirements" });
           }}
         />
       )}

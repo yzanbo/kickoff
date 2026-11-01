@@ -5,7 +5,6 @@ import { AGENT_STATE_LABELS, type Approval, type Run, type RunGroup } from "../.
 import { api } from "../api";
 import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
 import { useChatSearch } from "../chatSearch";
-import { navigate } from "../router";
 import { InlineName } from "./InlineName";
 import { BoardSearch, CardMenu, CardSnippet, STATE_TONE } from "./KanbanBoard";
 import { relativeTime } from "./RunList";
@@ -152,7 +151,7 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
             <span className="column-title muted">グループなし</span>
             <span className="column-count">{ungrouped.length}</span>
             <span className="spacer" />
-            <button className="icon-button" title="新しいチャット" aria-label="グループなしで新しいチャット" onClick={() => navigate({ name: "newChat", projectId })}>
+            <button className="icon-button" title="新しいチャット" aria-label="グループなしで新しいチャット" onClick={() => panel.openNew({ projectId })}>
               <Plus size={14} />
             </button>
           </header>
@@ -204,7 +203,7 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
                       className="icon-button group-add-chat"
                       title={`「${group.name}」に新しいチャット`}
                       aria-label={`${group.name} に新しいチャット`}
-                      onClick={() => navigate({ name: "newChat", projectId, group: group.id })}
+                      onClick={() => panel.openNew({ projectId, group: group.id })}
                     >
                       <Plus size={14} />
                     </button>

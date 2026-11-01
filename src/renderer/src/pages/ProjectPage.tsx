@@ -21,7 +21,7 @@ import { TaskList } from "../components/TaskList";
 import { ProjectEditDialog } from "../components/ProjectEditDialog";
 import { ProjectSettings } from "../components/ProjectSettings";
 import { useServerEvent } from "../events";
-import { href, type ProjectTab } from "../router";
+import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
 import { REPORT_KINDS, SECTION_META } from "../sections";
 
 interface ProjectData {
@@ -48,13 +48,13 @@ export function ProjectPage({
   id,
   tab,
   projects,
-  focusRun,
+  focus,
 }: {
   id: number;
   tab: ProjectTab;
   projects: ProjectSummary[];
-  /** カンバンの右側のパネルで開くチャット（サイドバー・検索などから開いたとき） */
-  focusRun?: { runId: number; focus?: number };
+  /** カンバンの右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
+  focus?: ReopenRoute;
 }) {
   const [data, setData] = useState<ProjectData>();
   const [error, setError] = useState<string>();
@@ -116,9 +116,9 @@ export function ProjectPage({
             {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
           </div>
           <span className="spacer" />
-          <a className="btn btn-primary" href={href({ name: "newChat", projectId: project.id })}>
+          <button className="btn btn-primary" onClick={() => openNewChat(project.id)}>
             <Plus size={15} /> 新しいチャット
-          </a>
+          </button>
         </div>
         <button
           className="path-button"
@@ -146,7 +146,7 @@ export function ProjectPage({
         </nav>
       </header>
 
-      {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" focusRun={focusRun} />}
+      {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" focus={focus} />}
       {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
@@ -175,9 +175,9 @@ function DocTab({ project, kind, artifacts }: { project: Project; kind: "require
           </span>
         )}
         <span className="spacer" />
-        <a className="btn" href={href({ name: "newChat", projectId: project.id, section: kind })}>
+        <button className="btn" onClick={() => openNewChat(project.id, { section: kind })}>
           <Plus size={14} /> {doc ? "チャットで見直す" : "チャットで作る"}
-        </a>
+        </button>
       </div>
       {doc ? (
         <article className="doc-card">
