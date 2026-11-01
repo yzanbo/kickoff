@@ -144,3 +144,10 @@ test("グループ: 作成順に並び、並べ替え・削除するとチャッ
   assert.equal(store.getRun(run.id)!.group_id, null);
   assert.deepEqual(events.map((e) => e.type), ["run", "group_deleted"]);
 });
+
+test("プロジェクトの既定は JSON で保存され、壊れていなければそのまま読める", () => {
+  const { store, project } = setup();
+  assert.deepEqual(project.defaults, {});
+  const updated = store.updateProject(project.id, { defaults: { model: "haiku", effort: null, stage: "todo" } });
+  assert.deepEqual(updated.defaults, { model: "haiku", effort: null, stage: "todo" });
+});

@@ -12,7 +12,7 @@ import {
 } from "../../../core/types";
 import { api } from "../api";
 import { groupModels, modelDisplayName } from "../models";
-import { effectiveEffort, effectivePermission } from "../../../core/sectionDefaults";
+import { effectiveEffort, effectivePermission, resolveRunDefaults } from "../../../core/sectionDefaults";
 
 // モデル一覧はアプリ全体で 1 回だけ取得する
 let modelsPromise: Promise<ModelOption[]> | undefined;
@@ -26,10 +26,10 @@ function loadModels() {
 
 /**
  * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
- * 新しいチャットは設定画面の既定から始まり、ここでの変更はそのチャットだけに効く。
+ * 新しいチャットはプロジェクトの既定（なければ設定画面の既定）から始まり、ここでの変更はそのチャットだけに効く。
  * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始める。
  */
-export function useRunOptions(initial: RunOptions | undefined, section: Phase) {
+export function useRunOptions(initial: RunOptions | undefined, section: Phase, projectId?: number) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
@@ -39,11 +39,12 @@ export function useRunOptions(initial: RunOptions | undefined, section: Phase) {
   useEffect(() => {
     void loadModels().then(setModels);
     if (!initial) {
-      void api.settings().then((s) => {
-        setModel((m) => m ?? s.claudeModel);
-        setEffort(s.defaultEffort);
-        setPermission(s.defaultPermission);
-        setFastMode(s.defaultFastMode);
+      void Promise.all([api.settings(), projectId === undefined ? undefined : api.project(projectId)]).then(([s, project]) => {
+        const d = resolveRunDefaults(s, project?.defaults);
+        setModel((m) => m ?? d.model);
+        setEffort(d.effort);
+        setPermission(d.permission);
+        setFastMode(d.fastMode);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

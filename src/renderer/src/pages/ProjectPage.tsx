@@ -18,9 +18,9 @@ import { KanbanBoard } from "../components/KanbanBoard";
 import { BUSY_STATUSES } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";
-import { WriteScopeEditor } from "../components/WriteScopeEditor";
+import { ProjectSettings } from "../components/ProjectSettings";
 import { useServerEvent } from "../events";
-import { href, navigate, type ProjectTab } from "../router";
+import { href, type ProjectTab } from "../router";
 import { REPORT_KINDS, SECTION_META } from "../sections";
 
 interface ProjectData {
@@ -140,7 +140,7 @@ export function ProjectPage({ id, tab, projects }: { id: number; tab: ProjectTab
         </section>
       )}
       {tab === "reports" && <ReportsTab artifacts={artifacts} />}
-      {tab === "settings" && <SettingsTab project={project} />}
+      {tab === "settings" && <ProjectSettings project={project} />}
     </div>
   );
 }
@@ -191,37 +191,5 @@ function ReportsTab({ artifacts }: { artifacts: Artifact[] }) {
         </details>
       ))}
     </section>
-  );
-}
-
-function SettingsTab({ project }: { project: Project }) {
-  return (
-    <>
-      <section className="section">
-        <h2>書き込みできるフォルダ</h2>
-        <p className="muted small">
-          要件定義・スケジュールのチャットで AI が書き込めるフォルダです。ここ以外への書き込みと読み取り以外のコマンドは、権限モードに関係なく拒否されます。
-        </p>
-        <WriteScopeEditor project={project} />
-      </section>
-      {project.description.trim() && (
-        <section className="section">
-          <h2>概要・アイデア</h2>
-          <p className="prewrap">{project.description}</p>
-        </section>
-      )}
-      <section className="section danger-zone">
-        <button
-          className="btn"
-          onClick={async () => {
-            if (!confirm(`「${project.name}」を Kickoff から外しますか？\nフォルダとリポジトリは削除されません。`)) return;
-            await api.deleteProject(project.id);
-            navigate({ name: "home" });
-          }}
-        >
-          Kickoff から外す
-        </button>
-      </section>
-    </>
   );
 }

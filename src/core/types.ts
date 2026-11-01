@@ -124,8 +124,25 @@ export interface Project {
   auto_commit: number; // SQLite の真偽値（0 / 1）
   /** セクションごとの書き込みできるフォルダ（リポジトリからの相対パス。未指定なら既定の docs） */
   write_scopes: WriteScopes;
+  /** このプロジェクトの既定（書いていない項目はアプリ全体の設定に従う） */
+  defaults: ProjectDefaults;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * プロジェクトごとの既定。キーがなければアプリ全体の設定に従う。
+ * effort の null は「セクションに合わせる」、permission の "phase" も同じ意味。
+ */
+export interface ProjectDefaults {
+  model?: string;
+  effort?: EffortLevel | null;
+  permission?: PermissionChoice;
+  fastMode?: boolean;
+  /** 新しいチャットのセクション（なければ直近のチャットと同じ） */
+  section?: Phase;
+  /** 新しいチャットを置くカンバンの列（なければ状態から決める） */
+  stage?: BoardStage;
 }
 
 /** 書き込み範囲を制限するセクション */

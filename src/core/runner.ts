@@ -2,6 +2,7 @@ import type { ApprovalCenter } from "./approvals.js";
 import type { Bus } from "./bus.js";
 import { createKickoffTools } from "./kickoffTools.js";
 import { buildSystemPrompt, phasePolicy } from "./phases.js";
+import { resolveRunDefaults } from "./sectionDefaults.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
 import type { Attachment, BoardStage, Phase, ProviderId, Run, RunOptions } from "./types.js";
@@ -53,10 +54,10 @@ export class Runner {
     if (input.taskId && (!task || task.project_id !== project.id)) throw new Error("タスクが見つかりません");
     if (!providers[project.provider].implemented) throw new Error(`${providers[project.provider].label} はまだ使えません`);
 
-    const settings = store.getSettings();
-    // チャット欄で指定がなければ、設定の既定を使う
+    // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
+    const defaults = resolveRunDefaults(store.getSettings(), project.defaults);
     const options = input.options ?? {};
-    const model = options.model ?? (project.provider === "claude" ? settings.claudeModel || null : null);
+    const model = options.model ?? (project.provider === "claude" ? defaults.model || null : null);
     const run = store.createRun({
       project_id: project.id,
       task_id: task?.id ?? null,
@@ -65,10 +66,10 @@ export class Runner {
       title: input.title ?? task?.title ?? firstLine(input.prompt),
       status: "queued",
       model,
-      effort: options.effort === undefined ? settings.defaultEffort : options.effort,
-      permission_mode: options.permission_mode ?? settings.defaultPermission,
-      fast_mode: options.fast_mode ?? settings.defaultFastMode,
-      stage: input.stage ?? null,
+      effort: options.effort === undefined ? defaults.effort : options.effort,
+      permission_mode: options.permission_mode ?? defaults.permission,
+      fast_mode: options.fast_mode ?? defaults.fastMode,
+      stage: input.stage ?? project.defaults.stage ?? null,
     });
     const attachments = input.attachments ?? [];
     store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}) });
