@@ -1,5 +1,6 @@
 import { RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useDismiss } from "../hooks/useDismiss";
 import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../core/types";
 import { api, type ConnectionState } from "../api";
 import { href } from "../router";
@@ -51,19 +52,7 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
   }, [load, state]);
 
   // 外側のクリック・Esc で閉じる（左下の表示自体はそちらで開閉する）
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!ref.current?.contains(target) && !target.closest(".conn")) onClose();
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [onClose]);
+  useDismiss(ref, onClose, { ignore: ".conn", escape: "pass" });
 
   const claude = providers?.find((p) => p.id === "claude");
   const codex = providers?.find((p) => p.id === "codex");

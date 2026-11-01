@@ -1,10 +1,12 @@
 import { Archive, ArchiveRestore, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useDismiss } from "../hooks/useDismiss";
+import { useStoredState } from "../hooks/useStoredState";
 import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Run, type RunEvent, type SubagentInfo } from "../../../core/types";
 import { useServerEvent } from "../events";
 import { modelDisplayName } from "../models";
-import { ClaudeMark } from "./RunOptionsBar";
-import { formatTokens } from "./ContextMeter";
+import { ClaudeMark } from "./ClaudeMark";
+import { formatTokens } from "../format";
 import { collectSubagents, type SubagentEntry } from "../subagents";
 
 /** チャットのサブエージェントの一覧（途中経過はサーバーからのイベントで受け取る） */
@@ -45,32 +47,12 @@ export function SubagentChip({
   const [showArchived, setShowArchived] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
-  const archiveKey = `kickoff:subagents-archived:${run.id}`;
-  const [archived, setArchived] = useState<Set<string>>(() => new Set(JSON.parse(localStorage.getItem(archiveKey) ?? "[]") as string[]));
-  useEffect(() => setArchived(new Set(JSON.parse(localStorage.getItem(archiveKey) ?? "[]") as string[])), [archiveKey]);
-  const saveArchived = (next: Set<string>) => {
-    localStorage.setItem(archiveKey, JSON.stringify([...next]));
-    setArchived(next);
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopImmediatePropagation();
-        setOpen(false);
-      }
-    };
-    window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey, true);
-    return () => {
-      window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey, true);
-    };
-  }, [open]);
+  const [archived, saveArchived] = useStoredState(
+    `kickoff:subagents-archived:${run.id}`,
+    (raw) => new Set(JSON.parse(raw ?? "[]") as string[]),
+    (keys) => JSON.stringify([...keys]),
+  );
+  useDismiss(ref, () => setOpen(false), { enabled: open });
 
   if (entries.length === 0) return null;
   // 新しいものを上に

@@ -41,19 +41,4 @@ export function planLabel(plan: string): string {
   return known[plan.toLowerCase()] ?? plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
-/** リセットまでの残りを短く（"3日後" / "5時間後" / "12分後"） */
-export function resetInShort(resetsAt: string | null, now = Date.now()): string | null {
-  if (!resetsAt) return null;
-  const min = Math.max(0, Math.round((new Date(resetsAt).getTime() - now) / 60_000));
-  if (min >= 24 * 60) return `${Math.round(min / (24 * 60))}日後`;
-  if (min >= 60) return `${Math.round(min / 60)}時間後`;
-  return `${min}分後`;
-}
-
-/** リセットまでの残り（"3日後にリセット" / "5時間後にリセット" / "12分後にリセット"） */
-export function resetIn(resetsAt: string | null, now = Date.now()): string | null {
-  const short = resetInShort(resetsAt, now);
-  return short && `${short}にリセット`;
-}
-
 export const FIVE_HOUR_IDLE = "Claude から 5 時間枠の情報が返っていません（枠が始まっていないか、今のプランに適用されていません）";

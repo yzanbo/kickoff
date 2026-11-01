@@ -1,5 +1,6 @@
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useDismiss } from "../hooks/useDismiss";
 
 export interface OptionItem<T extends string> {
   value: T;
@@ -39,16 +40,14 @@ export function OptionMenu<T extends string>({ value, display, icon, groups, ari
   const items = groups.flatMap((g) => g.items).filter((i) => !i.disabled);
   const selected = groups.flatMap((g) => g.items).find((i) => i.value === value);
 
+  // 外側のクリックで閉じる（Esc は一覧にピントがあるときに onKeyDown で閉じる）
+  useDismiss(ref, () => setOpen(false), { enabled: open, escape: "none" });
+
   useEffect(() => {
     if (!open) return;
     setCursor(value);
-    const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener("mousedown", onDown);
     // 選んでいる項目が見えるところまでスクロールする
     ref.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-    return () => window.removeEventListener("mousedown", onDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 

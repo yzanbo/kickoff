@@ -1,4 +1,6 @@
 import { useState, type DragEvent } from "react";
+import type { Run, RunGroup } from "../../core/types";
+import { confirmDialog } from "./dialogs";
 
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
 export const RUN_DRAG_TYPE = "application/x-kickoff-run";
@@ -97,4 +99,61 @@ export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dr
 /** グループの並べ替え（サイドバーとグループのボード） */
 export function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
   return useReorder(ids, onReorder, GROUP_DRAG_TYPE);
+}
+
+/** グループの削除を確かめる（中のチャットは消えず、グループなしに戻る） */
+export function confirmDeleteGroup(group: RunGroup): Promise<boolean> {
+  return confirmDialog({
+    title: `グループ「${group.name}」を削除しますか？`,
+    message: "中のチャットは消えず、グループなしに戻ります。",
+    confirmLabel: "削除",
+    danger: true,
+  });
+}
+
+/**
+ * グループ（とグループなし）をドロップ先にする（サイドバーとグループのボードで共通）。
+ * チャットはそのグループへ移し（groupId が null ならグループから外す）、グループの見出しはその位置へ並べ替える
+ */
+export function useGroupDrop({
+  groups,
+  runs,
+  onReorder,
+  onMoveRun,
+}: {
+  groups: RunGroup[];
+  runs: Run[];
+  onReorder: (ids: number[]) => void;
+  onMoveRun: (run: Run, groupId: number | null) => void;
+}) {
+  const reorder = useGroupReorder(
+    groups.map((g) => g.id),
+    onReorder,
+  );
+  /** ドラッグ中のチャットを重ねている先（グループの ID / "none" はグループなし） */
+  const [over, setOver] = useState<number | "none">();
+
+  const dropProps = (groupId: number | null) => ({
+    onDragOver: (e: DragEvent) => {
+      if (reorder.over(e, groupId)) return;
+      if (!isRunDrag(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setOver(groupId ?? "none");
+    },
+    onDragLeave: (e: DragEvent) => {
+      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      setOver(undefined);
+      reorder.leave(groupId);
+    },
+    onDrop: (e: DragEvent) => {
+      setOver(undefined);
+      if (reorder.drop(e, groupId)) return;
+      e.preventDefault();
+      const run = runs.find((r) => r.id === droppedRunId(e));
+      if (run && run.group_id !== groupId) onMoveRun(run, groupId);
+    },
+  });
+
+  return { reorder, over, dropProps };
 }

@@ -1,30 +1,33 @@
-import { Archive, ArchiveRestore, ChevronRight, Pencil, Wrench, X } from "lucide-react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Approval, Attachment, Project, Run, RunEvent } from "../../../core/types";
+import { Archive, ArchiveRestore, Pencil, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Approval, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
-import { ApprovalCard, describeToolInput } from "../components/ApprovalCard";
-import { AttachmentChip } from "../components/AttachmentChip";
+import { ApprovalCard } from "../components/ApprovalCard";
 import { Composer } from "../components/Composer";
-import { Markdown } from "../components/Markdown";
 import { ContextMeter } from "../components/ContextMeter";
-import { SubagentChip, useSubagents } from "../components/Subagents";
-import { cleanSubagentReport, type SubagentEntry } from "../subagents";
+import { Markdown } from "../components/Markdown";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
+import { SubagentDetail } from "../components/SubagentDetail";
+import { SubagentChip, useSubagents } from "../components/Subagents";
+import { OpenSubagentContext, TimelineItems, Working } from "../components/Timeline";
+import { alertDialog, promptDialog } from "../dialogs";
+import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
 import { href } from "../router";
-import { alertDialog, promptDialog } from "../dialogs";
+import { groupEvents, relativize } from "../timeline";
 
 interface RunPageProps {
   projectId: number;
   runId: number;
+  /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   focus?: number;
-  /** panel: カンバンの右側に出すパネルとして表示する（閉じる・全画面で開くボタンつき） */
+  /** パネルを閉じる */
   onClose: () => void;
 }
 
-/** エージェントとのチャット（全画面、またはカンバン横のパネル） */
+/** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPage({ projectId, runId, focus, onClose }: RunPageProps) {
   const [run, setRun] = useState<Run>();
   const [project, setProject] = useState<Project>();
@@ -45,7 +48,7 @@ export function RunPage({ projectId, runId, focus, onClose }: RunPageProps) {
         setEvents(d.events);
         setApprovals(d.approvals);
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+      .catch((e: unknown) => setError(errorMessage(e)));
     api.project(projectId).then(setProject).catch(() => {});
   }, [runId, projectId]);
 
@@ -157,7 +160,7 @@ function RunView({
               try {
                 await api.archiveRun(run.id, !run.archived_at);
               } catch (e) {
-                await alertDialog("アーカイブできませんでした", e instanceof Error ? e.message : String(e));
+                await alertDialog("アーカイブできませんでした", errorMessage(e));
               }
             }}
           >
@@ -188,13 +191,7 @@ function RunView({
         }}
       >
         <div className="timeline-inner">
-          {items.map((item, i) =>
-            item.kind === "tools" ? (
-              <ToolGroup key={item.key} tools={item.tools} rel={rel} active={busy && i === items.length - 1} />
-            ) : (
-              <EventItem key={item.key} event={item.event} />
-            ),
-          )}
+          <TimelineItems items={items} rel={rel} active={busy} />
           {live && (
             <div className="assistant live">
               <Markdown>{live}</Markdown>
@@ -203,16 +200,7 @@ function RunView({
           {approvals.map((a) => (
             <ApprovalCard key={a.id} approval={a} />
           ))}
-          {busy && !waiting && !live && (
-            <div className="working">
-              <span className="dots" aria-hidden>
-                <span />
-                <span />
-                <span />
-              </span>
-              {run.status === "queued" ? "順番を待っています" : "考えています"}
-            </div>
-          )}
+          {busy && !waiting && !live && <Working>{run.status === "queued" ? "順番を待っています" : "考えています"}</Working>}
         </div>
       </div>
 
@@ -237,366 +225,3 @@ function RunView({
     </OpenSubagentContext.Provider>
   );
 }
-
-/** タイムラインの Task / Agent の呼び出しから、そのサブエージェントの中身を開く */
-const OpenSubagentContext = createContext<(toolUseId: string) => void>(() => {});
-
-const SUBAGENT_WIDTH_KEY = "kickoff:subagent-width";
-
-const SUB_STATUS_LABELS: Record<SubagentEntry["status"], string> = { running: "実行中", completed: "完了", failed: "失敗", stopped: "中断" };
-
-/**
- * サブエージェントの中身（そのサブエージェントの発言とツールの実行）。チャットの上に重ねて表示し、実行中は追記されていく
- */
-function SubagentDetail({
-  entry,
-  events,
-  rel,
-  busy,
-  onClose,
-}: {
-  entry: SubagentEntry;
-  events: RunEvent[];
-  rel: (s: string) => string;
-  busy: boolean;
-  onClose: () => void;
-}) {
-  const items = useMemo(() => groupEvents(events, entry.key), [events, entry.key]);
-  const call = events.find((e) => e.type === "tool_use" && (e.data as { id: string }).id === entry.key);
-  const prompt = (call?.data as { input?: { prompt?: string } } | undefined)?.input?.prompt;
-  const result = events.find(
-    (e) => e.type === "tool_result" && (e.data as { tool_use_id: string; parent?: string }).tool_use_id === entry.key && !(e.data as { parent?: string }).parent,
-  );
-  const rawResult = (result?.data as { content?: string } | undefined)?.content;
-  const resultText = rawResult ? cleanSubagentReport(rawResult) : undefined;
-  const bodyRef = useRef<HTMLDivElement>(null);
-  // 引き出しの幅（左端をドラッグして変える。チャットのパネルいっぱいまで広げられる）
-  const [width, setWidth] = useState(() => Number(localStorage.getItem(SUBAGENT_WIDTH_KEY)) || 560);
-  const [resizing, setResizing] = useState(false);
-  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const drawer = e.currentTarget.parentElement;
-    const panel = drawer?.parentElement;
-    if (!drawer || !panel) return;
-    const handle = e.currentTarget;
-    handle.setPointerCapture(e.pointerId);
-    setResizing(true);
-    const right = panel.getBoundingClientRect().right;
-    const max = panel.clientWidth;
-    let next = drawer.getBoundingClientRect().width;
-    const onMove = (ev: PointerEvent) => {
-      next = Math.round(Math.max(320, Math.min(max, right - ev.clientX)));
-      drawer.style.width = `${next}px`;
-    };
-    const onUp = () => {
-      handle.removeEventListener("pointermove", onMove);
-      handle.removeEventListener("pointerup", onUp);
-      setResizing(false);
-      setWidth(next);
-      localStorage.setItem(SUBAGENT_WIDTH_KEY, String(next));
-    };
-    handle.addEventListener("pointermove", onMove);
-    handle.addEventListener("pointerup", onUp);
-  };
-
-  // Esc で閉じる（パネルを閉じる Esc より先に）
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopImmediatePropagation();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [onClose]);
-
-  // 実行中は、新しい動きに合わせて下までスクロールする
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (el && entry.status === "running") el.scrollTop = el.scrollHeight;
-  }, [items.length, entry.status]);
-
-  return (
-    <>
-    {/* 後ろのチャットは少し暗くして残す（押すと閉じる） */}
-    <div className="subagent-backdrop" onClick={onClose} />
-    <div
-      className={`subagent-detail ${resizing ? "resizing" : ""}`}
-      style={{ width: `min(${width}px, 100%)` }}
-      role="dialog"
-      aria-label={`サブエージェント: ${entry.description}`}
-    >
-      <div
-        className="panel-resizer"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="引き出しの幅を変える"
-        title="ドラッグで幅を変える"
-        onPointerDown={startResize}
-      />
-      <header className="subagent-detail-head">
-        <div className="subagent-detail-title">
-          <span className="subagent-detail-name">{entry.description}</span>
-          <span className="muted small">
-            {[entry.subagentType ?? "general-purpose", entry.tokens !== undefined ? `${Math.round(entry.tokens / 100) / 10}k tokens` : null, SUB_STATUS_LABELS[entry.status]]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-        </div>
-        <button className="icon-button subagent-detail-close" title="閉じる（Esc）" aria-label="閉じる" onClick={onClose}>
-          <X size={15} />
-        </button>
-      </header>
-      <div className="subagent-detail-body timeline" ref={bodyRef}>
-        <div className="timeline-inner">
-          {prompt && (
-            <div className="bubble user subagent-prompt">
-              <div className="subagent-label">親のエージェントからの依頼</div>
-              <Markdown>{prompt}</Markdown>
-            </div>
-          )}
-          {items.length === 0 && (
-            <p className="muted small">
-              {entry.status === "running" ? "まだ動きがありません…" : "このサブエージェントの中身は記録されていません（以前のチャットでは残っていません）"}
-            </p>
-          )}
-          {items.map((item, i) =>
-            item.kind === "tools" ? (
-              <ToolGroup key={item.key} tools={item.tools} rel={rel} active={busy && entry.status === "running" && i === items.length - 1} />
-            ) : (
-              <EventItem key={item.key} event={item.event} />
-            ),
-          )}
-          {resultText && (
-            <div className="subagent-result">
-              <div className="subagent-label">親のエージェントへの報告</div>
-              <Markdown>{resultText}</Markdown>
-            </div>
-          )}
-          {entry.status === "running" && (
-            <div className="working">
-              <span className="dots" aria-hidden>
-                <span />
-                <span />
-                <span />
-              </span>
-              {entry.lastTool ? `${entry.lastTool} を実行中` : "作業中"}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-    </>
-  );
-}
-
-// ---- タイムラインの組み立て ----
-
-interface ToolCall {
-  use: RunEvent;
-  result?: RunEvent;
-}
-
-type TimelineItem = { kind: "event"; key: string; event: RunEvent } | { kind: "tools"; key: string; tools: ToolCall[] };
-
-/**
- * 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる）。
- * parent を渡すとそのサブエージェントの中身だけ、渡さなければ親のエージェントの分だけを並べる
- */
-function groupEvents(events: RunEvent[], parent?: string): TimelineItem[] {
-  const items: TimelineItem[] = [];
-  const byId = new Map<string, ToolCall>();
-  for (const e of events) {
-    if (((e.data as { parent?: string }).parent ?? undefined) !== parent) continue;
-    if (e.type === "tool_use") {
-      const call: ToolCall = { use: e };
-      byId.set((e.data as { id: string }).id, call);
-      const last = items[items.length - 1];
-      if (last?.kind === "tools") last.tools.push(call);
-      else items.push({ kind: "tools", key: `t${e.id}`, tools: [call] });
-    } else if (e.type === "tool_result") {
-      const call = byId.get((e.data as { tool_use_id: string }).tool_use_id);
-      if (call) call.result = e;
-    } else if (e.type === "init" || e.type === "approval" || e.type === "thinking" || e.type === "subagent") {
-      // 表示しない（thinking は既定で中身が空。サブエージェントはチャット欄の下の一覧で見せる）
-    } else {
-      items.push({ kind: "event", key: `e${e.id}`, event: e });
-    }
-  }
-  return items;
-}
-
-const TOOL_LABELS: Record<string, string> = {
-  Read: "読む",
-  Write: "作成",
-  Edit: "編集",
-  MultiEdit: "編集",
-  NotebookEdit: "編集",
-  Bash: "コマンド",
-  Grep: "検索",
-  Glob: "ファイル検索",
-  WebSearch: "Web 検索",
-  WebFetch: "Web 取得",
-  TodoWrite: "ToDo",
-  AskUserQuestion: "質問",
-  Agent: "サブエージェント",
-  Task: "サブエージェント",
-  ToolSearch: "ツール検索",
-};
-
-function toolLabel(name: string): string {
-  if (name.startsWith("mcp__kickoff__")) return "Kickoff";
-  return TOOL_LABELS[name] ?? name;
-}
-
-/** 表示用にリポジトリの絶対パスを相対パスにする */
-function relativize(text: string, repo: string): string {
-  return text.split(`${repo}/`).join("").split(repo).join(".");
-}
-
-/** ツールのまとまり（閉じた状態では「読む ×2・編集」のように要約する） */
-function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
-  const counts = new Map<string, number>();
-  for (const t of tools) {
-    const label = toolLabel((t.use.data as { name: string }).name);
-    counts.set(label, (counts.get(label) ?? 0) + 1);
-  }
-  const summary = [...counts].map(([label, n]) => (n > 1 ? `${label} ×${n}` : label)).join("・");
-  const failed = tools.filter((t) => (t.result?.data as { is_error?: boolean } | undefined)?.is_error).length;
-  const last = tools[tools.length - 1];
-  const lastData = last.use.data as { name: string; input?: Record<string, unknown> };
-
-  return (
-    <details
-      className={`tool-group ${failed ? "has-error" : ""} ${active && !last.result ? "active" : ""}`}
-      // サブエージェントの一覧から、その呼び出しを含むまとまりへ移れるようにする
-      data-tool-ids={tools.map((t) => t.use.id).join(" ")}
-    >
-      <summary>
-        <ChevronRight size={14} className="tool-chevron" />
-        <Wrench size={13} className="muted" />
-        <span className="tool-summary">{summary}</span>
-        {active && !last.result ? (
-          <span className="tool-current">{rel(describeToolInput(lastData.name, lastData.input ?? {}))}</span>
-        ) : (
-          failed > 0 && <span className="tool-failed">{failed} 件失敗</span>
-        )}
-      </summary>
-      <div className="tool-calls">
-        {tools.map((t) => (
-          <ToolItem key={t.use.id} call={t} rel={rel} />
-        ))}
-      </div>
-    </details>
-  );
-}
-
-function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string }) {
-  const { id, name, input = {} } = call.use.data as { id: string; name: string; input?: Record<string, unknown> };
-  const openSubagent = useContext(OpenSubagentContext);
-  const r = call.result?.data as { content?: string; is_error?: boolean } | undefined;
-  let detail: ReactNode = null;
-  if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
-    detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
-  } else if (name === "Write" && typeof input.content === "string") {
-    detail = <Diff before="" after={input.content} maxLines={40} />;
-  }
-  return (
-    <details className={`tool-call ${r?.is_error ? "error" : ""}`}>
-      <summary>
-        <span className="tool-name">{toolLabel(name)}</span>
-        <span className="tool-arg">{rel(describeToolInput(name, input))}</span>
-        {!call.result && <span className="spinner small" aria-label="実行中" />}
-        {(name === "Agent" || name === "Task") && (
-          <button
-            type="button"
-            className="tool-open-sub"
-            onClick={(e) => {
-              e.preventDefault();
-              openSubagent(id);
-            }}
-          >
-            中身を見る
-          </button>
-        )}
-      </summary>
-      {detail}
-      {r?.content && (r.is_error || !detail) && (
-        <pre className={`tool-output ${r.is_error ? "error" : ""}`}>
-          {/* サブエージェントの結果は、Claude Code の前置きを外して報告の本文だけを見せる */}
-          {rel(name === "Agent" || name === "Task" ? cleanSubagentReport(r.content) : r.content)}
-        </pre>
-      )}
-    </details>
-  );
-}
-
-/** 編集内容の表示（削除した行を赤、追加した行を緑で） */
-function Diff({ before, after, maxLines = 200 }: { before: string; after: string; maxLines?: number }) {
-  const lines = [
-    ...(before ? before.split("\n").map((l) => ["-", l] as const) : []),
-    ...after.split("\n").map((l) => ["+", l] as const),
-  ];
-  const shown = lines.slice(0, maxLines);
-  return (
-    <pre className="diff">
-      {shown.map(([sign, line], i) => (
-        <span key={i} className={sign === "+" ? "diff-add" : "diff-del"}>
-          {sign} {line}
-          {"\n"}
-        </span>
-      ))}
-      {lines.length > shown.length && <span className="muted">… ほか {lines.length - shown.length} 行</span>}
-    </pre>
-  );
-}
-
-function EventItem({ event }: { event: RunEvent }) {
-  const data = event.data as Record<string, unknown>;
-  switch (event.type) {
-    case "user": {
-      const attachments = (data.attachments as Attachment[] | undefined) ?? [];
-      return (
-        <div className="bubble user" id={`ev-${event.id}`}>
-          {attachments.length > 0 && (
-            <div className="bubble-attachments">
-              {attachments.map((a) => (
-                <AttachmentChip key={a.id} attachment={a} />
-              ))}
-            </div>
-          )}
-          {String(data.text ?? "")}
-        </div>
-      );
-    }
-    case "text":
-      return (
-        <div className={`assistant ${data.sub ? "sub" : ""}`} id={`ev-${event.id}`}>
-          <Markdown>{String(data.text)}</Markdown>
-        </div>
-      );
-    case "approval_resolved":
-      return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
-    case "result":
-      if (data.status === "completed") return null;
-      return (
-        <div className={`event-note ${data.status === "failed" ? "error" : ""}`}>
-          {data.status === "cancelled" ? "中断しました" : `失敗しました: ${String(data.text ?? "")}`}
-        </div>
-      );
-    case "error":
-      return <div className="event-note error">{String(data.message)}</div>;
-    case "notice":
-      return <div className="event-note">{String(data.message)}</div>;
-    default:
-      return null;
-  }
-}
-
-const RESOLVED_LABELS: Record<string, string> = {
-  allow: "許可しました",
-  allow_always: "常に許可しました",
-  deny: "拒否しました",
-  answer: "質問に回答しました",
-};
