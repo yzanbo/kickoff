@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type Theme = "dark" | "light" | "system";
 const KEY = "kickoff:theme";
@@ -26,4 +26,20 @@ export function useTheme() {
     return () => mq.removeEventListener("change", onChange);
   }, [theme]);
   return [theme, setTheme] as const;
+}
+
+/** いま画面に出ているテーマ（「システムに合わせる」も、ダーク・ライトのどちらかにしたもの） */
+export type AppliedTheme = "dark" | "light";
+
+const readAppliedTheme = (): AppliedTheme => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
+
+function subscribeAppliedTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => observer.disconnect();
+}
+
+/** いま画面に出ているテーマ。<html data-theme> が変わると描き直す（図の配色を合わせるときなど） */
+export function useAppliedTheme(): AppliedTheme {
+  return useSyncExternalStore(subscribeAppliedTheme, readAppliedTheme);
 }
