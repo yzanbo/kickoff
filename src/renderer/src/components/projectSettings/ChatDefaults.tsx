@@ -1,0 +1,64 @@
+import { useEffect, useState } from "react";
+import { BOARD_STAGE_LABELS, BOARD_STAGES, PHASES, type BoardStage, type Phase, type Project, type ProjectDefaults } from "../../../../core/types";
+import { api } from "../../api";
+import { SECTION_META } from "../../sections";
+import { useSave } from "./useSave";
+
+export function ChatDefaults({ project }: { project: Project }) {
+  const [section, setSection] = useState<Phase | "">(project.defaults.section ?? "");
+  const [stage, setStage] = useState<BoardStage | "">(project.defaults.stage ?? "");
+  const save = useSave();
+  useEffect(() => {
+    setSection(project.defaults.section ?? "");
+    setStage(project.defaults.stage ?? "");
+  }, [project.defaults]);
+  const dirty = section !== (project.defaults.section ?? "") || stage !== (project.defaults.stage ?? "");
+
+  const submit = () => {
+    // ほかの既定（AI の既定）は残したまま、この 2 つだけ置き換える
+    const next: ProjectDefaults = { ...project.defaults };
+    if (section) next.section = section;
+    else delete next.section;
+    if (stage) next.stage = stage;
+    else delete next.stage;
+    return api.updateProject(project.id, { defaults: next });
+  };
+
+  return (
+    <section className="section">
+      <h2>新しいチャットの既定</h2>
+      <div className="form">
+        <label className="field">
+          <span className="field-label">セクション</span>
+          <select value={section} onChange={(e) => setSection(e.target.value as Phase | "")}>
+            <option value="">直近のチャットと同じ（はじめは要件定義）</option>
+            {PHASES.map((p) => (
+              <option key={p} value={p}>
+                {SECTION_META[p].label}
+              </option>
+            ))}
+          </select>
+          <span className="field-help">新しいチャットの画面で、最初に選ばれているセクションです。</span>
+        </label>
+        <label className="field">
+          <span className="field-label">カンバンの列</span>
+          <select value={stage} onChange={(e) => setStage(e.target.value as BoardStage | "")}>
+            <option value="">状態に合わせる（作業中は対応中、確認待ちはレビュー）</option>
+            {BOARD_STAGES.map((s) => (
+              <option key={s} value={s}>
+                {BOARD_STAGE_LABELS[s]}
+              </option>
+            ))}
+          </select>
+          <span className="field-help">カンバンの列の＋から作ったチャットは、その列に置かれます。</span>
+        </label>
+        <div className="form-actions">
+          <button className="btn btn-primary" disabled={!dirty || save.saving} onClick={() => void save.run(submit)}>
+            {save.saving ? "保存中…" : "保存"}
+          </button>
+          {save.message && <span className={save.message.kind === "ok" ? "success" : "error"}>{save.message.text}</span>}
+        </div>
+      </div>
+    </section>
+  );
+}

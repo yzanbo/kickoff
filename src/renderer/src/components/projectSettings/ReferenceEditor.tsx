@@ -1,8 +1,8 @@
 import { FileText, Folder, FolderOpen, Plus, X } from "lucide-react";
 import { useState } from "react";
-import type { Project, ProjectReference } from "../../../core/types";
-import { api } from "../api";
-import { errorMessage } from "../errors";
+import type { Project, ProjectReference } from "../../../../core/types";
+import { api } from "../../api";
+import { errorMessage } from "../../errors";
 
 /** パスの最後の名前と、その親フォルダ（一覧で「名前」と「場所」を分けて見せる） */
 function splitPath(p: string): { name: string; dir: string } {

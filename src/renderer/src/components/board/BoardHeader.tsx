@@ -1,7 +1,8 @@
 import { Globe, List, Search, SquareKanban, TextSearch, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
-import { PanelToggle, type SidePanelController } from "../SidePanel";
+import { PanelToggle } from "../sidePanel/SidePanel";
+import type { SidePanelController } from "../sidePanel/useSidePanel";
 
 export type BoardView = "board" | "list";
 

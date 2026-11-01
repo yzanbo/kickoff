@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { Project } from "../../../core/types";
-import { ProjectSettings } from "./ProjectSettings";
+import { ProjectSettings } from "./projectSettings/ProjectSettings";
 
 /** プロジェクト名の横の「編集」から開く、プロジェクトの設定（画面は移らない） */
 export function ProjectEditDialog({ project, onClose }: { project: Project; onClose: () => void }) {
