@@ -3120,21 +3120,46 @@ mark {
   position: relative;
 }
 
-.subagent-detail {
+/* 右からふわっと出る引き出し。後ろのチャットは少し暗くして残す */
+.subagent-backdrop {
   position: absolute;
   inset: 0;
+  z-index: 19;
+  background: rgb(0 0 0 / 28%);
+  animation: subagent-fade 0.2s ease-out;
+}
+
+.subagent-detail {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
   z-index: 20;
   display: flex;
   flex-direction: column;
+  width: min(560px, 88%);
+  border-left: 1px solid var(--border-strong);
   background: var(--bg);
-  animation: subagent-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: -16px 0 40px rgb(0 0 0 / 30%);
+  animation: subagent-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @keyframes subagent-in {
   from {
-    opacity: 0;
-    transform: translateX(16px);
+    opacity: 0.4;
+    transform: translateX(100%);
   }
+}
+
+@keyframes subagent-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.subagent-detail-close {
+  flex: none;
+  margin-left: auto;
 }
 
 .subagent-detail-head {
