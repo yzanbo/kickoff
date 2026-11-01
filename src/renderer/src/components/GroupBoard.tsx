@@ -3,7 +3,7 @@ import { useState, type DragEvent } from "react";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, type Approval, type Run, type RunGroup } from "../../../core/types";
 import { api } from "../api";
-import { droppedGroupId, droppedRunId, isGroupDrag, isRunDrag, reorderIds, startGroupDrag, startRunDrag } from "../groups";
+import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
 import { useChatSearch } from "../chatSearch";
 import { navigate } from "../router";
 import { InlineName } from "./InlineName";
@@ -58,26 +58,27 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
   };
 
   /** 列をドロップ先にする。チャットはその列のグループへ、グループの列はその位置へ並べ替える */
+  const reorder = useGroupReorder(
+    groups.map((g) => g.id),
+    (ids) => void guard(() => api.reorderGroups(projectId, ids)),
+  );
   const dropProps = (groupId: number | null) => ({
     onDragOver: (e: DragEvent) => {
-      if (!isRunDrag(e) && !(isGroupDrag(e) && groupId !== null)) return;
+      if (reorder.over(e, groupId)) return;
+      if (!isRunDrag(e)) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       setOver(groupId ?? "none");
     },
     onDragLeave: (e: DragEvent) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(undefined);
+      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      setOver(undefined);
+      reorder.leave(groupId);
     },
     onDrop: (e: DragEvent) => {
-      e.preventDefault();
       setOver(undefined);
-      const movedGroup = droppedGroupId(e);
-      if (movedGroup) {
-        const ids = groups.map((g) => g.id);
-        const next = groupId === null ? ids : reorderIds(ids, movedGroup, groupId);
-        if (next !== ids) void guard(() => api.reorderGroups(projectId, next));
-        return;
-      }
+      if (reorder.drop(e, groupId)) return;
+      e.preventDefault();
       const run = runs.find((r) => r.id === droppedRunId(e));
       if (run && run.group_id !== groupId) void guard(() => api.setRunGroup(run.id, groupId));
     },
@@ -164,12 +165,16 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
         {groups.map((group) => {
           const members = membersOf(group.id);
           return (
-            <section key={group.id} className={`board-column ${over === group.id ? "drop-target" : ""}`} {...dropProps(group.id)}>
+            <section
+              key={group.id}
+              className={`board-column ${over === group.id ? "drop-target" : ""} ${reorder.classFor(group.id)}`}
+              {...dropProps(group.id)}
+            >
               <header
                 className="column-head group-column-head"
                 draggable={renaming !== group.id}
                 title="ドラッグでグループを並べ替える"
-                onDragStart={(e) => startGroupDrag(e, group.id)}
+                {...reorder.handle(group.id)}
               >
                 <Folder size={13} className="muted" aria-hidden />
                 {renaming === group.id ? (

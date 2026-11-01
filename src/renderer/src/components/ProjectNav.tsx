@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type P
 import type { Approval, ProjectSummary, Run, RunGroup } from "../../../core/types";
 import { api } from "../api";
 import { Highlight, useChatSearch } from "../chatSearch";
-import { droppedGroupId, droppedRunId, isGroupDrag, isRunDrag, reorderIds, startGroupDrag, startRunDrag } from "../groups";
+import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
 import { href, navigate, openRun, routeProjectId, type Route } from "../router";
@@ -363,26 +363,26 @@ const WorkspacePage = memo(function WorkspacePage({
    * ドロップできる場所にする。チャットはそのグループへ（groupId が null ならグループから外す）、
    * グループの見出しは、その位置へ並べ替える
    */
+  const reorder = useGroupReorder(
+    groups.map((g) => g.id),
+    (ids) => void api.reorderGroups(project.id, ids),
+  );
   const dropTarget = (groupId: number | null) => ({
     onDragOver: (e: React.DragEvent) => {
-      if (!isRunDrag(e) && !(isGroupDrag(e) && groupId !== null)) return;
+      if (reorder.over(e, groupId)) return;
+      if (!isRunDrag(e)) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       setDropOver(groupId ?? "none");
     },
     onDragLeave: (e: React.DragEvent) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropOver(undefined);
+      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      setDropOver(undefined);
+      reorder.leave(groupId);
     },
     onDrop: (e: React.DragEvent) => {
       setDropOver(undefined);
-      const movedGroup = droppedGroupId(e);
-      if (movedGroup) {
-        e.preventDefault();
-        const ids = groups.map((g) => g.id);
-        const next = groupId === null ? ids : reorderIds(ids, movedGroup, groupId);
-        if (next !== ids) void api.reorderGroups(project.id, next);
-        return;
-      }
+      if (reorder.drop(e, groupId)) return;
       const runId = droppedRunId(e);
       const run = runs.find((r) => r.id === runId);
       if (!run || run.group_id === groupId) return;
@@ -524,12 +524,16 @@ const WorkspacePage = memo(function WorkspacePage({
           if (keyword && members.length === 0) return null;
           const closed = isGroupClosed(group.id) && !keyword;
           return (
-            <div key={group.id} className={`custom-group ${dropOver === group.id ? "drop-target" : ""}`} {...dropTarget(group.id)}>
+            <div
+              key={group.id}
+              className={`custom-group ${dropOver === group.id ? "drop-target" : ""} ${reorder.classFor(group.id)}`}
+              {...dropTarget(group.id)}
+            >
               <div
                 className="custom-group-head"
                 draggable={renaming !== group.id}
                 title="ドラッグでグループを並べ替える"
-                onDragStart={(e) => startGroupDrag(e, group.id)}
+                {...reorder.handle(group.id)}
               >
                 <button
                   className="custom-group-toggle"

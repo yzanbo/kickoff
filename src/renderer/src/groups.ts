@@ -1,4 +1,4 @@
-import type { DragEvent } from "react";
+import { useState, type DragEvent } from "react";
 
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
 export const RUN_DRAG_TYPE = "application/x-kickoff-run";
@@ -47,4 +47,61 @@ export function reorderIds(ids: number[], moved: number, target: number): number
 export function droppedRunId(e: DragEvent): number | undefined {
   const id = Number(e.dataTransfer.getData(RUN_DRAG_TYPE));
   return Number.isInteger(id) && id > 0 ? id : undefined;
+}
+
+/**
+ * グループのドラッグでの並べ替え（サイドバーとグループのボードで共通）。
+ * 動かしているグループを薄くし、入る位置に線を出す（下へ動かすときは相手の後ろ、上へは前）。
+ */
+export function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
+  const [dragging, setDragging] = useState<number>();
+  const [target, setTarget] = useState<{ id: number; side: "before" | "after" }>();
+  const end = () => {
+    setDragging(undefined);
+    setTarget(undefined);
+  };
+
+  return {
+    /** グループの見出し（つかむところ）に付ける */
+    handle: (id: number) => ({
+      onDragStart: (e: DragEvent) => {
+        startGroupDrag(e, id);
+        setDragging(id);
+      },
+      onDragEnd: end,
+    }),
+    /** dragover。グループのドラッグでなければ false（チャットのドロップなど、ほかの処理に任せる） */
+    over: (e: DragEvent, id: number | null): boolean => {
+      if (!isGroupDrag(e)) return false;
+      const from = dragging === undefined ? -1 : ids.indexOf(dragging);
+      const to = id === null ? -1 : ids.indexOf(id);
+      if (from < 0 || to < 0 || from === to) {
+        setTarget(undefined);
+        return true;
+      }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      const side = from < to ? "after" : "before";
+      if (target?.id !== id || target.side !== side) setTarget({ id: id!, side });
+      return true;
+    },
+    /** dragleave（要素の外へ出たとき） */
+    leave: (id: number | null) => {
+      if (id !== null && target?.id === id) setTarget(undefined);
+    },
+    /** drop。グループのドロップでなければ false */
+    drop: (e: DragEvent, id: number | null): boolean => {
+      const moved = droppedGroupId(e);
+      if (!moved) return false;
+      e.preventDefault();
+      end();
+      if (id !== null) {
+        const next = reorderIds(ids, moved, id);
+        if (next !== ids) onReorder(next);
+      }
+      return true;
+    },
+    /** グループ（列）に付けるクラス: 動かしている途中 / 入る位置の線 */
+    classFor: (id: number) => `${dragging === id ? "group-dragging" : ""} ${target?.id === id ? `drop-${target.side}` : ""}`,
+  };
 }

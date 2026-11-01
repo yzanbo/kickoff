@@ -592,7 +592,66 @@ kbd {
 
 /* 自分で作ったグループ（サイドバー） */
 .custom-group {
+  position: relative;
   border-radius: var(--radius);
+  transition: opacity 0.15s;
+}
+
+/* グループの並べ替え: 動かしているグループは薄く、入る位置に線を出す */
+.custom-group.group-dragging,
+.board-column.group-dragging {
+  opacity: 0.35;
+}
+
+.custom-group.drop-before::before,
+.custom-group.drop-after::after,
+.board-column.drop-before::before,
+.board-column.drop-after::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+  animation: drop-line-in 0.12s ease-out;
+}
+
+.custom-group.drop-before::before,
+.custom-group.drop-after::after {
+  left: 6px;
+  right: 6px;
+  height: 2px;
+}
+
+.custom-group.drop-before::before {
+  top: -2px;
+}
+
+.custom-group.drop-after::after {
+  bottom: -2px;
+}
+
+.board-column.drop-before::before,
+.board-column.drop-after::after {
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+}
+
+.board-column.drop-before::before {
+  left: -7px;
+}
+
+.board-column.drop-after::after {
+  right: -7px;
+}
+
+@keyframes drop-line-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
 }
 
 .custom-group.drop-target,
@@ -3649,6 +3708,7 @@ mark {
 }
 
 .board-column {
+  position: relative;
   display: flex;
   flex: 1 1 0;
   flex-direction: column;
