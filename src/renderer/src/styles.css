@@ -3071,6 +3071,91 @@ mark {
   color: var(--accent-bright);
 }
 
+/* サブエージェントの中身（チャットの上に重ねる） */
+.run-panel {
+  position: relative;
+}
+
+.subagent-detail {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  animation: subagent-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes subagent-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+.subagent-detail-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.subagent-detail-title {
+  display: grid;
+  min-width: 0;
+}
+
+.subagent-detail-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-detail-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.subagent-label {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.subagent-prompt {
+  align-self: stretch;
+  max-width: none;
+}
+
+.subagent-result {
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+}
+
+.tool-open-sub {
+  flex: none;
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.tool-open-sub:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
 /* 一覧から移ったツールのまとまりを、少しのあいだ強調する */
 .tool-group.flash {
   outline: 2px solid var(--accent-bright);

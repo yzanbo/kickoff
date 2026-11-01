@@ -28,9 +28,19 @@ const STATUS_LABELS: Record<SubagentInfo["status"], string> = {
 };
 
 /**
- * チャット欄の下の「サブエージェント N 件」。押すと一覧が開き、行を押すとタイムラインのその呼び出しへ移る
+ * チャット欄の下の「サブエージェント N 件」。押すと一覧が開き、行を押すとそのサブエージェントの中身を開く
  */
-export function SubagentChip({ entries, run, models }: { entries: SubagentEntry[]; run: Run; models: ModelOption[] }) {
+export function SubagentChip({
+  entries,
+  run,
+  models,
+  onOpen,
+}: {
+  entries: SubagentEntry[];
+  run: Run;
+  models: ModelOption[];
+  onOpen: (entry: SubagentEntry) => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -58,16 +68,6 @@ export function SubagentChip({ entries, run, models }: { entries: SubagentEntry[
   // 新しいものを上に
   const list = [...entries].reverse();
 
-  const jump = (s: SubagentEntry) => {
-    if (s.toolUseEventId === undefined) return;
-    const el = document.querySelector<HTMLElement>(`[data-tool-ids~="${s.toolUseEventId}"]`);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    if (el instanceof HTMLDetailsElement) el.open = true;
-    el.classList.add("flash");
-    setTimeout(() => el.classList.remove("flash"), 1200);
-    setOpen(false);
-  };
 
   return (
     <div ref={ref} className="subagent-chip-wrap">
@@ -90,7 +90,7 @@ export function SubagentChip({ entries, run, models }: { entries: SubagentEntry[
               s.tokens !== undefined ? `${formatTokens(s.tokens)} tokens` : null,
             ].filter(Boolean);
             return (
-              <button key={s.key} type="button" className={`subagent-row status-${s.status}`} onClick={() => jump(s)}>
+              <button key={s.key} type="button" className={`subagent-row status-${s.status}`} onClick={() => (onOpen(s), setOpen(false))}>
                 <span className={`subagent-icon ${s.status === "running" ? "spinning" : ""}`}>
                   <ClaudeMark size={16} />
                 </span>

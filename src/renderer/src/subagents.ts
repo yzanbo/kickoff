@@ -63,3 +63,18 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
   // エージェントが止まっているのに終わっていないものは、中断されたとみなす
   return [...map.values()].map((s) => (!busy && s.status === "running" ? { ...s, status: "stopped" } : s));
 }
+
+/**
+ * Task / Agent ツールの結果から、サブエージェントの報告の本文だけを取り出す。
+ * 結果には Claude Code が付ける前置き（使ったツールの一覧や「The report follows:」までの注意書き）と、行頭の字下げが入っている
+ */
+export function cleanSubagentReport(text: string): string {
+  const marker = "The report follows:";
+  const at = text.indexOf(marker);
+  const body = at >= 0 ? text.slice(at + marker.length) : text.replace(/<tools-used-before-summary>[\s\S]*?<\/tools-used-before-summary>/g, "");
+  return body
+    .split("\n")
+    .map((line) => line.replace(/^ {2}/, ""))
+    .join("\n")
+    .trim();
+}

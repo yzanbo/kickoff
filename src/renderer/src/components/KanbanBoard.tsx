@@ -123,7 +123,9 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const draftsOf = (stage: BoardStage) =>
     panel.drafts
       .filter((d) => d.target.stage === stage)
-      .map((d) => <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onClick={() => panel.showTab(d.key)} />);
+      .map((d) => (
+        <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onOpen={() => panel.showTab(d.key)} onDelete={() => panel.closeTab(d.key)} />
+      ));
 
   // サイドバー・検索などから開いたチャット・新しいチャットを、パネルで開く
   const openFocus = (target: ReopenRoute) => {
