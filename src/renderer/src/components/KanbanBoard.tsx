@@ -1,4 +1,4 @@
-import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, Plus, Search, SquareKanban, Trash2, Globe, X } from "lucide-react";
+import { Archive, ChevronLeft, ChevronRight, List, Pencil, PanelRight, Plus, Search, SquareKanban, Trash2, Globe, X } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -25,7 +25,7 @@ import {
 import { api } from "../api";
 import { Highlight, useChatSearch } from "../chatSearch";
 import { useServerEvent } from "../events";
-import { navigate } from "../router";
+import { navigate, openRun, OPEN_RUN_EVENT, type OpenRunDetail } from "../router";
 import { SECTION_META } from "../sections";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
@@ -55,13 +55,15 @@ interface Props {
   projects: ProjectSummary[];
   approvals: Approval[];
   title: string;
+  /** 右側のパネルで開くチャット（サイドバー・検索などから開いたとき） */
+  focusRun?: { runId: number; focus?: number };
 }
 
 /**
  * チャットのカンバン。列（未着手・対応中・レビュー・完了）はあなたが動かす進み具合で、
  * カードの点はエージェント自身の状態（回答待ち・作業中・確認待ちなど）。
  */
-export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
+export function KanbanBoard({ projectId, projects, approvals, title, focusRun }: Props) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<ViewMode>(() => (localStorage.getItem("kickoff:board-view") === "list" ? "list" : "board"));
@@ -104,7 +106,26 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
 
   // 右側から出てくるパネル（チャット・ブラウザのタブ）
   const panel = useSidePanel({ runs, loaded, scope: String(projectId ?? "all"), holdEsc: menu !== null });
-  const open = panel.open;
+  /** カードから開く。プロジェクトのボードでは URL もそのチャットにする（サイドバーで強調され、戻る・進むで行き来できる） */
+  const open = (run: Run) => {
+    panel.open(run);
+    if (projectId !== undefined) openRun(run.project_id, run.id, undefined, { replace: true });
+  };
+
+  // サイドバー・検索などから開いたチャットを、パネルで開く
+  useEffect(() => {
+    if (focusRun && projectId !== undefined) panel.open({ id: focusRun.runId, project_id: projectId }, focusRun.focus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRun?.runId, focusRun?.focus, projectId]);
+  useEffect(() => {
+    if (projectId === undefined) return;
+    const onOpen = (e: Event) => {
+      const { runId, focus } = (e as CustomEvent<OpenRunDetail>).detail;
+      panel.open({ id: runId, project_id: projectId }, focus);
+    };
+    window.addEventListener(OPEN_RUN_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_RUN_EVENT, onOpen);
+  });
 
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name ?? "";
   const pendingFor = (run: Run) => approvals.filter((a) => a.run_id === run.id).length;
@@ -430,9 +451,6 @@ export function CardMenu({
     <div ref={ref} className="menu" style={{ left, top }} role="menu">
       <button role="menuitem" onClick={() => (onOpenPanel(run), onClose())}>
         <PanelRight size={14} /> 開く
-      </button>
-      <button role="menuitem" onClick={() => (navigate({ name: "run", projectId: run.project_id, runId: run.id }), onClose())}>
-        <Maximize2 size={14} /> 全画面で開く
       </button>
       <button
         role="menuitem"

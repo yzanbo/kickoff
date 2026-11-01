@@ -83,6 +83,23 @@ export function navigate(route: Route, options: { replace?: boolean } = {}) {
   }
 }
 
+/** 同じチャットをもう一度開いたとき（URL が変わらないとき）に、パネルを開き直させるイベント */
+export const OPEN_RUN_EVENT = "kickoff:open-run";
+export type OpenRunDetail = { runId: number; focus?: number };
+
+/**
+ * チャットを開く: プロジェクトのカンバンへ移り、右側のパネルで開く（チャット単体の画面はない）。
+ * 同じチャットを開き直したときは URL が変わらないので、イベントでパネルに知らせる。
+ */
+export function openRun(projectId: number, runId: number, focus?: number, options: { replace?: boolean } = {}) {
+  const route: Route = { name: "run", projectId, runId, ...(focus ? { focus } : {}) };
+  if (location.hash === href(route)) {
+    window.dispatchEvent(new CustomEvent<OpenRunDetail>(OPEN_RUN_EVENT, { detail: { runId, focus } }));
+  } else {
+    navigate(route, options);
+  }
+}
+
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */
 export function routeProjectId(route: Route): number | undefined {
   if (route.name === "project") return route.id;

@@ -43,7 +43,18 @@ const TAB_LABELS: Record<ProjectTab, string> = {
 };
 
 /** プロジェクト画面: チャット一覧と、決まったこと（要件定義書・スケジュール・タスク・レポート）をタブで */
-export function ProjectPage({ id, tab, projects }: { id: number; tab: ProjectTab; projects: ProjectSummary[] }) {
+export function ProjectPage({
+  id,
+  tab,
+  projects,
+  focusRun,
+}: {
+  id: number;
+  tab: ProjectTab;
+  projects: ProjectSummary[];
+  /** カンバンの右側のパネルで開くチャット（サイドバー・検索などから開いたとき） */
+  focusRun?: { runId: number; focus?: number };
+}) {
   const [data, setData] = useState<ProjectData>();
   const [error, setError] = useState<string>();
 
@@ -130,7 +141,7 @@ export function ProjectPage({ id, tab, projects }: { id: number; tab: ProjectTab
         </nav>
       </header>
 
-      {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" />}
+      {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" focusRun={focusRun} />}
       {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}

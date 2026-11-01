@@ -12,7 +12,6 @@ import { publishServerEvent } from "./events";
 import { HomePage } from "./pages/HomePage";
 import { NewChatPage } from "./pages/NewChatPage";
 import { ProjectPage } from "./pages/ProjectPage";
-import { RunPage } from "./pages/RunPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { href, navigate, routeProjectId, useRoute } from "./router";
 import { applyTheme, loadTheme } from "./theme";
@@ -187,8 +186,6 @@ export function App() {
       <main className="main">
         {route.name === "settings" ? (
           <SettingsPage planUsage={planUsage} />
-        ) : route.name === "run" ? (
-          <RunPage key={route.runId} projectId={route.projectId} runId={route.runId} focus={route.focus} />
         ) : route.name === "newChat" ? (
           <NewChatPage
             key={`${route.projectId}:${route.section ?? ""}:${route.stage ?? ""}`}
@@ -196,8 +193,14 @@ export function App() {
             section={route.section}
             stage={route.stage}
           />
-        ) : route.name === "project" ? (
-          <ProjectPage id={route.id} tab={route.tab} projects={projects} />
+        ) : route.name === "project" || route.name === "run" ? (
+          // チャットはプロジェクトのカンバンの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
+          <ProjectPage
+            id={route.name === "run" ? route.projectId : route.id}
+            tab={route.name === "run" ? "board" : route.tab}
+            projects={projects}
+            focusRun={route.name === "run" ? { runId: route.runId, focus: route.focus } : undefined}
+          />
         ) : (
           <HomePage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
         )}

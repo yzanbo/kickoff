@@ -8,7 +8,7 @@ import { BrowserPane } from "./BrowserPane";
 
 /** 右側のパネルのタブ（チャット、またはブラウザ） */
 type PanelTab =
-  | { key: string; kind: "chat"; id: number; projectId: number }
+  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number }
   | { key: string; kind: "browser"; url: string; title: string };
 
 const chatKey = (id: number) => `chat:${id}`;
@@ -48,10 +48,14 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
   const [resizing, setResizing] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  /** カードをクリック: 右側のパネルにタブで開く（開いていればそのタブへ）。ボードはその分狭くなる */
-  const open = (run: Run) => {
+  /**
+   * 右側のパネルにタブで開く（開いていればそのタブへ）。ボードはその分狭くなる。
+   * focus は検索結果から開いたときに、スクロールして強調する発言
+   */
+  const open = (run: Pick<Run, "id" | "project_id">, focus?: number) => {
     const key = chatKey(run.id);
-    setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "chat", id: run.id, projectId: run.project_id }]));
+    const tab: PanelTab = { key, kind: "chat", id: run.id, projectId: run.project_id, focus };
+    setTabs((prev) => (prev.some((t) => t.key === key) ? prev.map((t) => (t.key === key && focus ? tab : t)) : [...prev, tab]));
     setActiveTab(key);
     setPanelOpen(true);
   };
@@ -204,7 +208,7 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
         {tabs.map((t) => (
           <div key={t.key} className="panel-tab-page" hidden={activeTab !== t.key}>
             {t.kind === "chat" ? (
-              <RunPage projectId={t.projectId} runId={t.id} variant="panel" onClose={close} />
+              <RunPage projectId={t.projectId} runId={t.id} focus={t.focus} onClose={close} />
             ) : (
               <BrowserPane
                 url={t.url}

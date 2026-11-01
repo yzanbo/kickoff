@@ -225,7 +225,7 @@ kbd {
   padding-left: 76px;
 }
 
-.sidebar-collapsed .run-header .run-title-row {
+.sidebar-collapsed .main > .run-page > .run-header .run-title-row {
   padding-left: 96px;
 }
 
