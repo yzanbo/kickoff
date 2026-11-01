@@ -9,11 +9,24 @@ import { navigate } from "../router";
 import { SECTION_META } from "../sections";
 
 /** 新しいチャット（最初のメッセージを送るとチャットが作られ、その画面に移る） */
-export function NewChatPage({ projectId, section: initialSection, stage }: { projectId: number; section?: Phase; stage?: BoardStage }) {
+export function NewChatPage({
+  projectId,
+  section: initialSection,
+  stage,
+  group,
+}: {
+  projectId: number;
+  section?: Phase;
+  stage?: BoardStage;
+  /** グループの＋から始めたときのグループ */
+  group?: number;
+}) {
   const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
   const options = useRunOptions(undefined, section, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
   const runs = useAsync(() => api.runs(projectId), [projectId]);
+  const groups = useAsync(() => api.groups(projectId), [projectId]);
+  const groupName = groups.data?.find((g) => g.id === group)?.name;
 
   // セクションの指定がなければ、プロジェクトの既定 → 直近のチャットと同じ → 要件定義の順に決める
   useEffect(() => {
@@ -47,6 +60,7 @@ export function NewChatPage({ projectId, section: initialSection, stage }: { pro
           {(stage ?? project.data?.defaults.stage) && (
             <p className="muted small">カンバンの「{BOARD_STAGE_LABELS[(stage ?? project.data?.defaults.stage)!]}」に追加されます</p>
           )}
+          {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
         </div>
       </div>
       <div className="run-composer">
@@ -59,7 +73,7 @@ export function NewChatPage({ projectId, section: initialSection, stage }: { pro
             initialText={isFirst && idea ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${idea}` : undefined}
             placeholder={`${SECTION_META[section].placeholder}（Enter で送信、Shift+Enter で改行）`}
             onSend={async (prompt, attachments) => {
-              const run = await api.startRun(projectId, { phase: section, prompt, options: options.options, attachments, stage });
+              const run = await api.startRun(projectId, { phase: section, prompt, options: options.options, attachments, stage, group_id: group });
               navigate({ name: "run", projectId, runId: run.id }, { replace: true });
             }}
           />

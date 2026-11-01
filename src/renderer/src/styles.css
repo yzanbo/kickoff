@@ -672,6 +672,12 @@ kbd {
   display: none;
 }
 
+.custom-group-add {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
 .custom-group-rows {
   padding-left: 10px;
 }
@@ -3508,13 +3514,26 @@ mark {
   cursor: grab;
 }
 
-.group-column-head .icon-button {
+.group-column-head .icon-button:not(.group-add-chat) {
   display: none;
 }
 
 .group-column-head:hover .icon-button,
 .group-column-head:focus-within .icon-button {
   display: inline-flex;
+}
+
+.group-column-head .column-count {
+  flex: none;
+}
+
+/* 新しいチャットの＋は、カンバンの列と同じく右端にいつも出す */
+.group-column-head .column-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .group-column-head:hover .column-count {

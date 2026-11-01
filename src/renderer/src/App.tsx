@@ -193,10 +193,11 @@ export function App() {
           <SettingsPage planUsage={planUsage} />
         ) : route.name === "newChat" ? (
           <NewChatPage
-            key={`${route.projectId}:${route.section ?? ""}:${route.stage ?? ""}`}
+            key={`${route.projectId}:${route.section ?? ""}:${route.stage ?? ""}:${route.group ?? ""}`}
             projectId={route.projectId}
             section={route.section}
             stage={route.stage}
+            group={route.group}
           />
         ) : route.name === "project" || route.name === "run" ? (
           // チャットはプロジェクトのカンバンの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）

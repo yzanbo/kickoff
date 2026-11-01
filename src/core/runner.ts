@@ -19,6 +19,8 @@ export interface StartRunInput {
   attachments?: Attachment[];
   /** カンバンの列（列の＋から始めたとき） */
   stage?: BoardStage;
+  /** 自分で作ったグループ（グループの＋から始めたとき） */
+  groupId?: number;
 }
 
 interface QueueItem {
@@ -70,6 +72,7 @@ export class Runner {
       permission_mode: options.permission_mode ?? defaults.permission,
       fast_mode: options.fast_mode ?? defaults.fastMode,
       stage: input.stage ?? project.defaults.stage ?? null,
+      group_id: input.groupId ?? null,
     });
     const attachments = input.attachments ?? [];
     store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}) });
