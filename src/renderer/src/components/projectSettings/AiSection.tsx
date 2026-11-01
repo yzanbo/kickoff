@@ -5,6 +5,7 @@ import { api, useAsync } from "../../api";
 import { useActionError } from "../../hooks/useActionError";
 import { accountLine } from "../../usage";
 import { ClaudeMark } from "../ClaudeMark";
+import { ErrorText } from "../ErrorText";
 import { StatusDot, type StatusTone } from "../StatusDot";
 import { AiDefaults } from "./AiDefaults";
 
@@ -36,7 +37,7 @@ export function AiSection({ project, app }: { project: Project; app: AppSettings
           />
         ))}
       </div>
-      {error && <p className="error small">{error}</p>}
+      <ErrorText message={error} />
       {project.provider === "claude" ? (
         <AiDefaults project={project} app={app} />
       ) : (

@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Project, ProjectReference } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
+import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
 
 /** パスの最後の名前と、その親フォルダ（一覧で「名前」と「場所」を分けて見せる） */
@@ -113,7 +114,7 @@ export function ReferenceEditor({ project }: { project: Project }) {
           </button>
         </form>
       </div>
-      {error && <p className="error small">{error}</p>}
+      <ErrorText message={error} />
     </div>
   );
 }

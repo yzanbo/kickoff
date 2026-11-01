@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { WorkspaceInspection } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
+import { ErrorText } from "../ErrorText";
 import { FolderField } from "./FolderField";
 import { InspectionPanel } from "./InspectionPanel";
 import type { FormProps } from "./NewProjectDialog";
@@ -121,7 +122,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
       </label>
 
 
-      {error && <p className="error">{error}</p>}
+      <ErrorText message={error} />
 
       <div className="dialog-actions">
         <button type="button" className="btn" onClick={onCancel}>

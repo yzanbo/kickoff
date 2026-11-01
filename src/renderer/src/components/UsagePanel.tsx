@@ -1,5 +1,5 @@
-import { formatClock } from "../time";
-import { FIVE_HOUR_IDLE, type usePlanUsage } from "../usage";
+import { FIVE_HOUR_IDLE, planName, usageUnavailableText, type usePlanUsage } from "../usage";
+import { UsageFetchedNote } from "./UsageFetchedNote";
 import { UsageMeter } from "./UsageMeter";
 
 interface Props {
@@ -10,10 +10,11 @@ interface Props {
 export function UsagePanel({ planUsage }: Props) {
   const { usage, refresh, refreshing } = planUsage;
 
+  const plan = planName(usage);
   return (
     <section className="section">
       <div className="section-head">
-        <h2>使用状況{usage?.plan ? `（${usage.plan} プラン）` : ""}</h2>
+        <h2>使用状況{plan ? `（${plan}）` : ""}</h2>
         <button className="btn" disabled={refreshing} onClick={() => void refresh()}>
           {refreshing ? "更新中…" : "更新"}
         </button>
@@ -22,7 +23,7 @@ export function UsagePanel({ planUsage }: Props) {
         <p className="muted">取得中…</p>
       ) : !usage.available ? (
         <div className="empty">
-          プランの使用枠を取得できませんでした{usage.error ? `（${usage.error}）` : ""}。
+          {usageUnavailableText(usage)}
         </div>
       ) : (
         <>
@@ -39,11 +40,7 @@ export function UsagePanel({ planUsage }: Props) {
               </div>
             ))}
           </div>
-          <p className="muted small">
-            {formatClock(usage.fetched_at)} 時点
-            （5 分ごとに自動更新）
-            {usage.error && <span className="error">・最新の取得に失敗: {usage.error}</span>}
-          </p>
+          <UsageFetchedNote usage={usage} />
         </>
       )}
     </section>

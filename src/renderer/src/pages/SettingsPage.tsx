@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { BrowserExtensions } from "../components/BrowserExtensions";
+import { ErrorText } from "../components/ErrorText";
 import { SaveActions } from "../components/SaveActions";
 import { Segmented } from "../components/Segmented";
 import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
@@ -101,7 +102,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
           )}
           <GitHubStatusCard github={github} />
         </div>
-        {providers.error && <p className="error">{providers.error}</p>}
+        <ErrorText message={providers.error} />
       </section>
 
       {draft && (

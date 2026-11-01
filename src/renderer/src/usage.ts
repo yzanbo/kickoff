@@ -40,6 +40,11 @@ export function planLabel(plan: string): string {
   return known[plan.toLowerCase()] ?? plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
+/** 使用枠を取得できなかったときの文 */
+export function usageUnavailableText(usage: PlanUsage): string {
+  return `プランの使用枠を取得できませんでした${usage.error ? `（${usage.error}）` : ""}。`;
+}
+
 /** 使用率の段階（70% から注意、90% から警告） */
 export function usageLevel(pct: number): "normal" | "warning" | "critical" {
   return pct >= 90 ? "critical" : pct >= 70 ? "warning" : "normal";

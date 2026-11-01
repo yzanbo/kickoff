@@ -4,6 +4,7 @@ import type { Attachment } from "../../../core/types";
 import { api } from "../api";
 import { errorMessage } from "../errors";
 import { AttachmentChip } from "./AttachmentChip";
+import { ErrorText } from "./ErrorText";
 import { IconButton } from "./IconButton";
 import { RunOptionsBar, type RunOptionsState } from "./RunOptionsBar";
 
@@ -185,7 +186,7 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
         </div>
       </div>
       {dragging && <div className="drop-hint">ここにドロップして添付</div>}
-      {error && <p className="error small composer-error">{error}</p>}
+      <ErrorText message={error} className="composer-error" />
     </div>
   );
 }

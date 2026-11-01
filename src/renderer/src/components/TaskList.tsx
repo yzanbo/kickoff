@@ -4,6 +4,7 @@ import { PHASE_LABELS, PHASES, TASK_STATUS_LABELS, TASK_STATUSES, type Phase, ty
 import { api, type TaskInput } from "../api";
 import { confirmDialog } from "../dialogs";
 import { errorMessage } from "../errors";
+import { ErrorText } from "./ErrorText";
 import { IconButton } from "./IconButton";
 import { SectionBadge } from "./SectionBadge";
 
@@ -182,7 +183,7 @@ function TaskForm({
           </select>
         )}
       </div>
-      {error && <p className="error small">{error}</p>}
+      <ErrorText message={error} />
       <div className="task-form-actions">
         {onDelete && (
           <button type="button" className="btn btn-danger-text" onClick={() => void onDelete()}>

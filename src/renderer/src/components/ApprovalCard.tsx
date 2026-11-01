@@ -3,6 +3,7 @@ import type { Approval, ApprovalDecision, Question } from "../../../core/types";
 import { api } from "../api";
 import { errorMessage } from "../errors";
 import { isSubagentTool } from "../subagents";
+import { ErrorText } from "./ErrorText";
 
 /** ツール実行の承認依頼、または AI からの質問（AskUserQuestion） */
 export function ApprovalCard({ approval }: { approval: Approval }) {
@@ -84,7 +85,7 @@ function PermissionCard({ approval }: { approval: Approval }) {
           </button>
         </div>
       )}
-      {error && <p className="error small">{error}</p>}
+      <ErrorText message={error} />
     </div>
   );
 }
@@ -170,7 +171,7 @@ function QuestionCard({ approval }: { approval: Approval }) {
           スキップ
         </button>
       </div>
-      {error && <p className="error small">{error}</p>}
+      <ErrorText message={error} />
     </div>
   );
 }

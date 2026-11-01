@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PHASE_LABELS, SCOPED_SECTIONS, type Project, type ScopedSection } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
+import { ErrorText } from "../ErrorText";
 
 const DEFAULT_SCOPE = ["docs"];
 
@@ -83,7 +84,7 @@ function ScopeRow({ project, section }: { project: Project; section: ScopedSecti
             </button>
           )}
         </form>
-        {error && <p className="error small">{error}</p>}
+        <ErrorText message={error} />
       </div>
     </div>
   );

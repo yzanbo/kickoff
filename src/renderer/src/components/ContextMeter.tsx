@@ -5,7 +5,7 @@ import { cachedLoader } from "../cachedLoader";
 import { formatTokens } from "../format";
 import { useDismiss } from "../hooks/useDismiss";
 import { resetIn } from "../time";
-import { planLabel, usageLevel, useSharedPlanUsage, weeklyModel } from "../usage";
+import { planLabel, usageLevel, usageUnavailableText, useSharedPlanUsage, weeklyModel } from "../usage";
 import { ClaudeMark } from "./ClaudeMark";
 import { RefreshButton } from "./IconButton";
 
@@ -102,7 +102,7 @@ export function ContextMeter({ run }: { run: Run }) {
             {!usage ? (
               <p className="context-sub">取得中…</p>
             ) : !usage.available ? (
-              <p className="context-sub">プランの使用枠を取得できませんでした</p>
+              <p className="context-sub">{usageUnavailableText(usage)}</p>
             ) : (
               windows.map((w) => <UsageBar key={w.key} window={w} />)
             )}

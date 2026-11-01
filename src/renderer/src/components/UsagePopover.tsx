@@ -1,8 +1,8 @@
 import { useRef } from "react";
 import { useDismiss } from "../hooks/useDismiss";
-import { formatClock } from "../time";
-import { FIVE_HOUR_IDLE, planName, type usePlanUsage } from "../usage";
+import { FIVE_HOUR_IDLE, planName, usageUnavailableText, type usePlanUsage } from "../usage";
 import { PopoverHeader } from "./PopoverHeader";
+import { UsageFetchedNote } from "./UsageFetchedNote";
 import { UsageMeter } from "./UsageMeter";
 
 interface Props {
@@ -29,7 +29,7 @@ export function UsagePopover({ planUsage, onClose }: Props) {
       {!usage ? (
         <p className="muted small">取得中…</p>
       ) : !usage.available ? (
-        <p className="muted small">プランの使用枠を取得できませんでした{usage.error ? `（${usage.error}）` : ""}。</p>
+        <p className="muted small">{usageUnavailableText(usage)}</p>
       ) : (
         <div className="usage-popover-body">
           <UsageMeter window={usage.five_hour} idleText={FIVE_HOUR_IDLE} />
@@ -37,10 +37,7 @@ export function UsagePopover({ planUsage, onClose }: Props) {
           {usage.model_weekly.map((w) => (
             <UsageMeter key={w.key} window={w} />
           ))}
-          <p className="muted small usage-popover-foot">
-            {formatClock(usage.fetched_at)} 時点（5 分ごとに自動更新）
-            {usage.error && <span className="error"> ・最新の取得に失敗: {usage.error}</span>}
-          </p>
+          <UsageFetchedNote usage={usage} className="usage-popover-foot" />
         </div>
       )}
     </div>
