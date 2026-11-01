@@ -6,7 +6,7 @@ import { Highlight, useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, startRunDrag } from "../groups";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
-import { href, navigate, routeProjectId, type Route } from "../router";
+import { href, navigate, openRun, routeProjectId, type Route } from "../router";
 import { SECTION_META } from "../sections";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState } from "../../../core/types";
@@ -402,6 +402,11 @@ const WorkspacePage = memo(function WorkspacePage({
           title={`${meta.label}: ${run.title}（${AGENT_STATE_LABELS[state]}）`}
           draggable
           onDragStart={(e) => startRunDrag(e, run.id)}
+          onClick={(e) => {
+            // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
+            e.preventDefault();
+            openRun(project.id, run.id);
+          }}
         >
           <StatusSlot state={state} />
           <span className="chat-row-body">

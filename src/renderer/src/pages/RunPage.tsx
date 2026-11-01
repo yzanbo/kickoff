@@ -1,5 +1,4 @@
-import { ChevronRight, Maximize2, Pencil, Wrench, X } from "lucide-react";
-import { BackToBoard } from "../components/BackToBoard";
+import { ChevronRight, Pencil, Wrench, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Approval, Attachment, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
@@ -18,12 +17,11 @@ interface RunPageProps {
   runId: number;
   focus?: number;
   /** panel: カンバンの右側に出すパネルとして表示する（閉じる・全画面で開くボタンつき） */
-  variant?: "page" | "panel";
-  onClose?: () => void;
+  onClose: () => void;
 }
 
 /** エージェントとのチャット（全画面、またはカンバン横のパネル） */
-export function RunPage({ projectId, runId, focus, variant = "page", onClose }: RunPageProps) {
+export function RunPage({ projectId, runId, focus, onClose }: RunPageProps) {
   const [run, setRun] = useState<Run>();
   const [project, setProject] = useState<Project>();
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -71,7 +69,7 @@ export function RunPage({ projectId, runId, focus, variant = "page", onClose }: 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} live={live} focus={focus} variant={variant} onClose={onClose} />
+    <RunView run={run} project={project} events={events} approvals={approvals} live={live} focus={focus} onClose={onClose} />
   );
 }
 
@@ -82,7 +80,6 @@ function RunView({
   approvals,
   live,
   focus,
-  variant,
   onClose,
 }: {
   run: Run;
@@ -91,8 +88,7 @@ function RunView({
   approvals: Approval[];
   live: string;
   focus?: number;
-  variant: "page" | "panel";
-  onClose?: () => void;
+  onClose: () => void;
 }) {
   const options = useRunOptions(
     { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: Boolean(run.fast_mode) },
@@ -124,21 +120,12 @@ function RunView({
   }, [items.length, approvals.length, live, focus]);
 
   return (
-    <div className={`run-page ${variant === "panel" ? "run-panel" : ""}`}>
+    <div className="run-page run-panel">
       <header className="run-header">
         <div className="run-title-row">
-          {variant === "panel" ? (
-            <>
-              <button className="icon-button" title="閉じる（Esc）" aria-label="パネルを閉じる" onClick={onClose}>
-                <X size={15} />
-              </button>
-              <a className="icon-button" href={href({ name: "run", projectId: run.project_id, runId: run.id })} title="全画面で開く" aria-label="全画面で開く">
-                <Maximize2 size={13} />
-              </a>
-            </>
-          ) : (
-            <BackToBoard projectId={run.project_id} />
-          )}
+          <button className="icon-button" title="閉じる（Esc）" aria-label="パネルを閉じる" onClick={onClose}>
+            <X size={15} />
+          </button>
           <SectionBadge section={run.phase} />
           <h1 title={run.title}>{run.title || "チャット"}</h1>
           <button

@@ -2,7 +2,7 @@ import { Bot, Search, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { SearchHit } from "../../../core/types";
 import { api } from "../api";
-import { navigate } from "../router";
+import { openRun } from "../router";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
 
@@ -56,7 +56,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
   function open(hit: SearchHit | undefined) {
     if (!hit) return;
     dialogRef.current?.close();
-    navigate({ name: "run", projectId: hit.project_id, runId: hit.run_id, focus: hit.event_id });
+    openRun(hit.project_id, hit.run_id, hit.event_id);
   }
 
   return (
