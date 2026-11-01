@@ -81,4 +81,6 @@ export interface ProviderRunResult {
   /** API 換算の推定コスト（サブスクリプション利用時も参考値として記録） */
   costUsd?: number;
   turns?: number;
+  /** 最後の応答の時点で、コンテキストウィンドウに入っているトークン数とその上限 */
+  context?: { tokens: number; window: number | null };
 }
