@@ -10,11 +10,9 @@ import {
   FolderPlus,
   GalleryHorizontal,
   ListTree,
-  Pencil,
   Plus,
   Rows3,
   Search,
-  Trash2,
   X,
 } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
@@ -23,6 +21,7 @@ import { api } from "../api";
 import { Highlight, useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, PROJECT_DRAG_TYPE, startRunDrag, useGroupReorder, useReorder } from "../groups";
 import { initialOf, projectHue } from "../projectColor";
+import { useGroupMenu } from "./GroupMenu";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
 import { href, navigate, openNewChat, openRun, routeProjectId, type Route } from "../router";
@@ -466,6 +465,8 @@ const WorkspacePage = memo(function WorkspacePage({
     if (!confirm(`グループ「${group.name}」を削除しますか？\n中のチャットは消えず、グループなしに戻ります。`)) return;
     await api.deleteGroup(group.id);
   };
+  // グループの「…」メニュー（右クリックでも開く）
+  const groupMenu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g) });
   /**
    * ドロップできる場所にする。チャットはそのグループへ（groupId が null ならグループから外す）、
    * グループの見出しは、その位置へ並べ替える
@@ -657,7 +658,8 @@ const WorkspacePage = memo(function WorkspacePage({
               <div
                 className={`custom-group-head ${route.name === "project" && route.tab === "groups" && route.group === group.id ? "active" : ""}`}
                 draggable={renaming !== group.id}
-                title="ドラッグでグループを並べ替える"
+                title="ドラッグでグループを並べ替える（右クリックでメニュー）"
+                onContextMenu={(e) => groupMenu.openFor(group, e)}
                 {...reorder.handle(group.id)}
               >
                 <button
@@ -693,14 +695,7 @@ const WorkspacePage = memo(function WorkspacePage({
                 {renaming !== group.id && (
                   <>
                     <span className="custom-group-count">{members.length}</span>
-                    <span className="custom-group-actions">
-                      <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
-                        <Pencil size={12} />
-                      </button>
-                      <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => void removeGroup(group)}>
-                        <Trash2 size={12} />
-                      </button>
-                    </span>
+                    {groupMenu.button(group)}
                     <button
                       className="icon-button custom-group-add"
                       title={`「${group.name}」に新しいチャット`}
@@ -735,8 +730,19 @@ const WorkspacePage = memo(function WorkspacePage({
             グループなし
           </button>
           <span className="custom-group-count">{ungroupedRows.length}</span>
+          {/* グループの見出しと列をそろえるため、「…」の位置は空けておき、＋は同じ位置に置く */}
+          <span className="group-menu-spacer" aria-hidden />
+          <button
+            className="icon-button custom-group-add"
+            title="グループなしで新しいチャット"
+            aria-label="グループなしで新しいチャット"
+            onClick={() => openNewChat(project.id)}
+          >
+            <Plus size={13} />
+          </button>
         </div>
       )}
+      {groupMenu.menu}
       {collapsed || (keyword && rows.length === 0) || (groups.length > 0 && ungroupedClosed && !keyword) ? null : rows.length === 0 ? (
         <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
           <Plus size={13} /> 最初のチャットを始める

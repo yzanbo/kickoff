@@ -773,25 +773,27 @@ button.chat-row {
   color: var(--faint, var(--muted));
 }
 
-.custom-group-actions {
-  display: none;
-  flex: none;
-}
-
-.custom-group-head:hover .custom-group-actions,
-.custom-group-head:focus-within .custom-group-actions {
-  display: inline-flex;
-}
-
-.custom-group-head:hover .custom-group-count {
-  display: none;
-}
-
+/* ホバーしても表示が変わらないよう、件数・「…」・＋はいつも出しておく（「…」と＋は控えめな色） */
+.group-menu-button,
 .custom-group-add {
   flex: none;
   width: 22px;
   height: 22px;
+  color: var(--extra-muted);
 }
+
+.group-menu-button:hover,
+.custom-group-add:hover {
+  color: var(--text);
+}
+
+/* 「グループなし」には「…」がないので、同じ幅を空けて＋の位置をそろえる */
+.group-menu-spacer {
+  flex: none;
+  width: 22px;
+}
+
+
 
 .custom-group-rows {
   padding-left: 10px;
@@ -4474,14 +4476,6 @@ mark {
   cursor: grab;
 }
 
-.group-column-head .icon-button:not(.group-add-chat) {
-  display: none;
-}
-
-.group-column-head:hover .icon-button,
-.group-column-head:focus-within .icon-button {
-  display: inline-flex;
-}
 
 .group-column-head .column-count {
   flex: none;
@@ -4496,9 +4490,6 @@ mark {
   white-space: nowrap;
 }
 
-.group-column-head:hover .column-count {
-  display: none;
-}
 
 .group-add-column {
   border-style: dashed;
