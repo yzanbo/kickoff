@@ -4827,8 +4827,9 @@ mark {
   min-width: 0;
 }
 
+/* 名前が長いときは縮めて省略し、短いときは伸ばさない（鉛筆ボタンが名前のすぐ後ろに来るように） */
 .run-panel .run-title-row h1 {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
