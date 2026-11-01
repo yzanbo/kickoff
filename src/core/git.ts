@@ -212,3 +212,37 @@ export async function searchProject(repo: string, { query, caseSensitive, wholeW
   }
   return result;
 }
+
+/** 操作するパスがすべてリポジトリの中か確かめる */
+async function assertAllInside(repo: string, paths: string[]) {
+  if (paths.length === 0) throw new Error("ファイルが選ばれていません");
+  for (const p of paths) await assertInside(repo, p);
+}
+
+/** ステージする（消したファイルは、消したことをステージする） */
+export async function stagePaths(repo: string, paths: string[]): Promise<void> {
+  await assertAllInside(repo, paths);
+  await gitOutput(repo, ["add", "-A", "--", ...paths]);
+}
+
+/** ステージを取り消す（作業中の中身はそのまま。コミットがまだないリポジトリでは索引から外す） */
+export async function unstagePaths(repo: string, paths: string[]): Promise<void> {
+  await assertAllInside(repo, paths);
+  const hasHead = await gitOutput(repo, ["rev-parse", "--verify", "-q", "HEAD"]).then(
+    () => true,
+    () => false,
+  );
+  await gitOutput(repo, hasHead ? ["restore", "--staged", "--", ...paths] : ["rm", "-r", "-q", "--cached", "--", ...paths]);
+}
+
+/**
+ * まだステージしていない変更を捨てる（元に戻す）。管理しているファイルはステージした中身に戻し、
+ * 未追跡のファイルは消す。取り消せないので、画面で確かめてから呼ぶ
+ */
+export async function discardPaths(repo: string, paths: string[]): Promise<void> {
+  await assertAllInside(repo, paths);
+  const untracked = new Set(nulList(await gitOutput(repo, ["ls-files", "--others", "--exclude-standard", "-z", "--", ...paths])));
+  const tracked = paths.filter((p) => !untracked.has(p));
+  if (untracked.size > 0) await gitOutput(repo, ["clean", "-f", "-q", "--", ...untracked]);
+  if (tracked.length > 0) await gitOutput(repo, ["restore", "--worktree", "--", ...tracked]);
+}
