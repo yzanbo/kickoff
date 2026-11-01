@@ -1,4 +1,4 @@
-import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, Plus, SquareKanban, Trash2, X, Globe } from "lucide-react";
+import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, PanelRightClose, Plus, SquareKanban, Trash2, X, Globe } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -446,6 +446,10 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
           <button className="panel-tab-add" title="ブラウザのタブを開く" aria-label="ブラウザのタブを開く" onClick={openBrowser}>
             <Plus size={12} />
             <Globe size={12} />
+          </button>
+          {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
+          <button className="panel-collapse" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={closePanel}>
+            <PanelRightClose size={15} />
           </button>
         </div>
         <div className="panel-content">
