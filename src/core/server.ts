@@ -24,6 +24,7 @@ import {
   type ApprovalDecision,
   type ModelOption,
   type ProviderId,
+  type ServerStatus,
 } from "./types.js";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "./workspace.js";
 import { normalizeScope } from "./scope.js";
@@ -39,7 +40,12 @@ export interface ServerDeps {
   uploads: UploadStore;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
   staticDir?: string;
+  /** 待ち受けているアドレスとポート（接続の詳細の表示用） */
+  listen?: { host: string; port: number };
 }
+
+const STARTED_AT = new Date().toISOString();
+const VERSION = "0.1.0";
 
 const settingsSchema = z
   .object({
@@ -196,7 +202,21 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json({ error: err.message }, 500);
   });
 
-  app.get("/api/health", (c) => c.json({ ok: true, version: "0.1.0" }));
+  app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));
+
+  // 画面の左下の「接続」の詳細
+  app.get("/api/status", (c) => {
+    const settings = store.getSettings();
+    const status: ServerStatus = {
+      version: VERSION,
+      started_at: STARTED_AT,
+      host: deps.listen?.host ?? "127.0.0.1",
+      port: deps.listen?.port ?? Number(new URL(c.req.url).port),
+      remote_enabled: settings.remoteEnabled,
+      agents: { ...runner.stats(), max: settings.maxConcurrentRuns },
+    };
+    return c.json(status);
+  });
 
   // ---- 設定 ----
   app.get("/api/settings", (c) => c.json(store.getSettings()));

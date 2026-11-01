@@ -134,6 +134,11 @@ export class Runner {
     this.active.get(runId)?.abort();
   }
 
+  /** 実行中・順番待ちのエージェントの数（接続の詳細の表示用） */
+  stats(): { running: number; queued: number } {
+    return { running: this.active.size, queued: this.queue.length };
+  }
+
   isBusy(runId: number): boolean {
     return this.active.has(runId) || this.queue.some((q) => q.runId === runId);
   }

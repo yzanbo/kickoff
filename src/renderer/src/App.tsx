@@ -7,6 +7,7 @@ import { NewProjectDialog } from "./components/NewProjectDialog";
 import { ProjectNav } from "./components/ProjectNav";
 import { SearchPanel } from "./components/SearchPanel";
 import { UsageMeter } from "./components/UsageMeter";
+import { ConnectionPopover, CONNECTION_LABELS } from "./components/ConnectionPopover";
 import { UsagePopover } from "./components/UsagePopover";
 import { publishServerEvent } from "./events";
 import { HomePage } from "./pages/HomePage";
@@ -29,6 +30,9 @@ export function App() {
   // フッターの使用状況の詳細（右下に出すだけで、画面は移らない）
   const [usageOpen, setUsageOpen] = useState(false);
   const closeUsage = useCallback(() => setUsageOpen(false), []);
+  // 左下の接続の詳細（左下に出すだけで、画面は移らない）
+  const [connOpen, setConnOpen] = useState(false);
+  const closeConn = useCallback(() => setConnOpen(false), []);
   // サイドバーの開閉（⌘B）。状態は覚えておく
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem("kickoff:sidebar") !== "closed");
   // サイドバーの幅（右端をドラッグで変更、ダブルクリックで既定に戻す）
@@ -82,7 +86,7 @@ export function App() {
     api.approvals().then(setApprovals).catch(() => {});
   }, [loadProjects]);
 
-  const connection = useServerEvents((event: BusEvent) => {
+  const { state: connection, since: connectedSince } = useServerEvents((event: BusEvent) => {
     planUsage.onEvent(event);
     publishServerEvent(event);
     switch (event.type) {
@@ -207,9 +211,14 @@ export function App() {
         )}
       </main>
       <footer className="app-footer">
-        <span className={`conn conn-${connection}`} title="サーバーとの接続">
+        <button
+          className={`conn conn-${connection} ${connOpen ? "active" : ""}`}
+          title="接続の詳細"
+          aria-expanded={connOpen}
+          onClick={() => setConnOpen((o) => !o)}
+        >
           {CONNECTION_LABELS[connection]}
-        </span>
+        </button>
         <span className="spacer" />
         {usage?.plan && (
           <span className="plan-chip" title="Claude Code でログインしているアカウントの契約プラン">
@@ -245,6 +254,7 @@ export function App() {
           }}
         />
       )}
+      {connOpen && <ConnectionPopover state={connection} since={connectedSince} onClose={closeConn} />}
       {usageOpen && (
         <UsagePopover planUsage={planUsage} plan={usage?.plan ? planLabel(usage.plan) : null} onClose={closeUsage} />
       )}
@@ -267,4 +277,3 @@ function clampSidebar(width: number): number {
   return Math.round(Math.max(200, Math.min(480, width)));
 }
 
-const CONNECTION_LABELS = { connecting: "接続中…", open: "接続済み", closed: "切断" } as const;

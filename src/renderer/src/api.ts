@@ -13,6 +13,7 @@ import type {
   RunGroup,
   RunOptions,
   SearchHit,
+  ServerStatus,
   Task,
   BusEvent,
   GitHubStatus,
@@ -80,6 +81,7 @@ export const api = {
   updateSettings: (patch: Partial<AppSettings>) => request<AppSettings>("PUT", "/api/settings", patch),
   providers: () => request<ProviderStatus[]>("GET", "/api/providers"),
   github: () => request<GitHubStatus>("GET", "/api/github"),
+  status: () => request<ServerStatus>("GET", "/api/status"),
   usage: () => request<PlanUsage>("GET", "/api/usage"),
   refreshUsage: () => request<PlanUsage>("POST", "/api/usage/refresh"),
   projects: () => request<ProjectSummary[]>("GET", "/api/projects"),
@@ -157,8 +159,10 @@ export const api = {
 export type ConnectionState = "connecting" | "open" | "closed";
 
 /** サーバーからのイベント（SSE）を購読する。切断時は EventSource が自動で再接続する */
-export function useServerEvents(onEvent: (event: BusEvent) => void): ConnectionState {
+/** サーバーからのイベントを受け取る。state は接続の状態、since は最後につながった時刻 */
+export function useServerEvents(onEvent: (event: BusEvent) => void): { state: ConnectionState; since: number | null } {
   const [state, setState] = useState<ConnectionState>("connecting");
+  const [since, setSince] = useState<number | null>(null);
   const handler = useRef(onEvent);
   handler.current = onEvent;
 
@@ -168,7 +172,10 @@ export function useServerEvents(onEvent: (event: BusEvent) => void): ConnectionS
     let closed = false;
     const connect = () => {
       source = new EventSource("/api/events");
-      source.onopen = () => setState("open");
+      source.onopen = () => {
+        setState("open");
+        setSince(Date.now());
+      };
       source.onerror = () => {
         if (source?.readyState !== EventSource.CLOSED) return setState("connecting");
         // 自動再接続されない切断（認証エラーなど）は、こちらで張り直す
@@ -191,7 +198,7 @@ export function useServerEvents(onEvent: (event: BusEvent) => void): ConnectionS
     };
   }, []);
 
-  return state;
+  return { state, since };
 }
 
 /** 非同期の読み込み状態をまとめて扱う */
