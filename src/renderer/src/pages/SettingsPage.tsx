@@ -41,6 +41,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
       const saved = await api.updateSettings({
         maxConcurrentRuns: draft.maxConcurrentRuns,
         ntfyUrl: draft.ntfyUrl.trim(),
+        desktopNotifications: draft.desktopNotifications,
         claudeModel: draft.claudeModel,
         defaultEffort: draft.defaultEffort,
         defaultPermission: draft.defaultPermission,
@@ -204,6 +205,19 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
 
           <h2>通知</h2>
           <div className="form">
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={draft.desktopNotifications}
+                onChange={(e) => setDraft({ ...draft, desktopNotifications: e.target.checked })}
+              />
+              <span>
+                Mac の通知で知らせる
+                <span className="field-help">
+                  チャットの完了・失敗・回答待ちを通知します。通知を押すと、そのチャットを開きます。Kickoff でそのチャットを見ているときは通知しません。
+                </span>
+              </span>
+            </label>
             <label className="field">
               <span className="field-label">ntfy のトピック URL（任意）</span>
               <input

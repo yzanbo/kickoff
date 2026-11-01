@@ -53,6 +53,7 @@ const settingsSchema = z
     defaultProvider: z.enum(PROVIDER_IDS),
     remoteEnabled: z.boolean(),
     ntfyUrl: z.union([z.literal(""), z.url()]),
+    desktopNotifications: z.boolean(),
     projectsDir: z.string().min(1).max(500),
     claudeModel: z.string().min(1).max(100),
     defaultEffort: z.enum(EFFORT_LEVELS).nullable(),

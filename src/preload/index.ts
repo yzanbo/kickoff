@@ -6,6 +6,8 @@ const api = {
   pickFolder: (title?: string): Promise<string | null> => ipcRenderer.invoke("kickoff:pick-folder", title),
   openPath: (target: string): Promise<void> => ipcRenderer.invoke("kickoff:open-path", target),
   openInChrome: (url: string): Promise<void> => ipcRenderer.invoke("kickoff:open-in-chrome", url),
+  /** Kickoff のウィンドウを前面に出す（通知を押したとき） */
+  focusWindow: (): Promise<void> => ipcRenderer.invoke("kickoff:focus-window"),
   /** 埋め込みブラウザの拡張機能（React DevTools など） */
   browserExtensions: {
     list: (): Promise<BrowserExtensionInfo[]> => ipcRenderer.invoke("kickoff:browser-extensions"),
