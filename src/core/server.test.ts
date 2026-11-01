@@ -370,6 +370,7 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(st.ahead, 0);
   assert.match(execFileSync("git", ["log", "--oneline", "-1"], { cwd: remote }).toString(), /b を直す/);
 
+
   // 履歴: 新しい順。ブランチの印。コミットの詳細と、そのコミットでのファイルの差分
   const log = (await call("GET", `/api/projects/${project.id}/git/log`)).body;
   assert.deepEqual(log.commits.map((c: { subject: string }) => c.subject), ["b を直す", "init"]);
@@ -409,6 +410,17 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(removed.length, 1);
   assert.equal(fs.existsSync(wt.path), false);
   fs.rmSync(path.dirname(wt.path), { recursive: true, force: true });
+
+  // プル: ほかの手元から押されたコミットを、早送りで取り込む
+  const other = tempDir();
+  execFileSync("git", ["clone", "-q", remote, other]);
+  fs.writeFileSync(path.join(other, "from-other.txt"), "x\n");
+  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "add", "."], { cwd: other });
+  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "ほかから"], { cwd: other });
+  execFileSync("git", ["push", "-q"], { cwd: other });
+  const pulled = await call("POST", `/api/projects/${project.id}/git/pull`);
+  assert.equal(pulled.status, 200);
+  assert.equal(fs.existsSync(path.join(repo, "from-other.txt")), true);
 });
 
 test("チャットの作業場所: 新しいワークツリーを作って、その中でエージェントを動かす。Git の操作も作業場所ごと", async () => {
@@ -444,5 +456,14 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status${q}`)).body.unstaged, [{ path: "b.txt", kind: "U" }]);
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body.unstaged, []);
   assert.equal((await call("GET", `/api/projects/${project.id}/git/status?worktree=${encodeURIComponent("/tmp")}`)).status, 400);
+
+  // 片付け: ワークツリーと手元のブランチを消す（本体は片付けられない）
+  fs.rmSync(path.join(worktree, "b.txt"));
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: repo })).status, 400);
+  const finished = await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: worktree });
+  assert.equal(finished.status, 200);
+  assert.equal(finished.body.length, 1);
+  assert.equal(fs.existsSync(worktree), false);
+  assert.equal(execFileSync("git", ["branch", "--list", "feat/a"], { cwd: repo }).toString().trim(), "");
   fs.rmSync(path.dirname(worktree), { recursive: true, force: true });
 });

@@ -457,3 +457,21 @@ export async function removeWorktree(repo: string, target: string, force: boolea
   else await gitOutput(repo, ["worktree", "remove", ...(force ? ["--force"] : []), target]);
   return listWorktrees(repo);
 }
+
+/** リモートの変更を取ってきて、いまのブランチを早送りで最新にする（手元の変更とぶつかるときは失敗する） */
+export async function pullBranch(repo: string): Promise<void> {
+  await gitOutput(repo, ["pull", "--ff-only", "-q"], [], 120_000);
+}
+
+/**
+ * PR がマージされたワークツリーを片付ける（ワークツリーと手元のブランチを消す）。
+ * GitHub で squash などでマージすると手元では「マージ済み」にならないので、ブランチは -D で消す（画面で確かめてから呼ぶ）
+ */
+export async function finishWorktree(repo: string, target: string): Promise<GitWorktree[]> {
+  const worktree = (await listWorktrees(repo)).find((w) => w.path === target);
+  if (!worktree) throw new Error("ワークツリーが見つかりません");
+  if (worktree.main) throw new Error("本体のフォルダは片付けられません");
+  await gitOutput(repo, ["worktree", "remove", target]);
+  if (worktree.branch) await gitOutput(repo, ["branch", "-D", worktree.branch]);
+  return listWorktrees(repo);
+}

@@ -569,6 +569,15 @@ export interface GitWorktree {
   prunable: boolean;
 }
 
+/** ブランチの PR（GitHub。gh で調べる） */
+export interface PullRequestInfo {
+  number: number;
+  url: string;
+  title: string;
+  state: "OPEN" | "MERGED" | "CLOSED";
+  isDraft: boolean;
+}
+
 /** Kickoff サーバー（コア）の状態（画面の左下の接続の詳細） */
 export interface ServerStatus {
   version: string;

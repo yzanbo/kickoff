@@ -1,7 +1,8 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { commitStaged, discardPaths, FileConflictError, addWorktree, gitCommitDetail, gitCommitDiff, gitLog, gitRefs, listWorktrees, removeWorktree, worktreePathFor, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
+import { commitStaged, discardPaths, FileConflictError, addWorktree, finishWorktree, gitCommitDetail, pullBranch, gitCommitDiff, gitLog, gitRefs, listWorktrees, removeWorktree, worktreePathFor, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
+import { createPullRequest, pullRequestFor } from "../github.js";
 import type { ServerDeps } from "../server.js";
 import { HttpError, requireProject } from "./http.js";
 
@@ -171,6 +172,56 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const { path, force } = z.object({ path: z.string().min(1).max(2000), force: z.boolean().default(false) }).parse(await c.req.json());
     try {
       return c.json(await removeWorktree(project.repo_path, path, force));
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+  });
+
+  // プル（早送りで最新にする）
+  app.post("/api/projects/:id/git/pull", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const dir = await workdir(c, project);
+    try {
+      await pullBranch(dir);
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+    return c.json(await gitStatus(dir));
+  });
+
+  // 作業場所のブランチの PR（GitHub。gh を使う）。なければ null
+  app.get("/api/projects/:id/git/pr", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const dir = await workdir(c, project);
+    const status = await gitStatus(dir);
+    if (!status.repo || !status.branch || !status.hasOrigin) return c.json(null);
+    try {
+      return c.json(await pullRequestFor(dir, status.branch));
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+  });
+
+  // PR を作る（まだプッシュしていなければ、先にプッシュする）
+  app.post("/api/projects/:id/git/pr", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const dir = await workdir(c, project);
+    try {
+      const status = await gitStatus(dir);
+      if (!status.repo || !status.branch) throw new Error("PR にするブランチがありません");
+      if (!status.upstream || status.ahead > 0) await pushBranch(dir);
+      return c.json(await createPullRequest(dir, status.branch), 201);
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+  });
+
+  // PR がマージされたワークツリーを片付ける（ワークツリーと手元のブランチを消す）
+  app.post("/api/projects/:id/git/worktrees/finish", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { path } = z.object({ path: z.string().min(1).max(2000) }).parse(await c.req.json());
+    try {
+      return c.json(await finishWorktree(project.repo_path, path));
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
