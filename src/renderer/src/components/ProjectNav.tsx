@@ -35,6 +35,7 @@ import { confirmDialog } from "../dialogs";
 
 const CURRENT_KEY = "kickoff:current-project";
 const LAYOUT_KEY = "kickoff:sidebar-layout";
+const LAST_HASH_KEY = "kickoff:last-hash-by-project";
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
 type NavLayout = "slide" | "stack";
 /** 横スワイプで隣へ移るのに必要な移動量（ページ幅に対する割合） */
@@ -120,6 +121,24 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     if (routeProject !== undefined) setCurrentId(routeProject);
   }, [routeProject]);
 
+  // プロジェクトごとに、最後に見ていた画面（URL）を覚えておく（横スライドで戻ってきたときに開く）
+  const lastHashes = useRef<Record<number, string>>(JSON.parse(sessionStorage.getItem(LAST_HASH_KEY) ?? "{}"));
+  useEffect(() => {
+    if (routeProject === undefined) return;
+    // 新しいチャットの画面は覚えない（戻るたびに新しいチャットが開かないように）
+    if (route.name === "newChat") return;
+    lastHashes.current[routeProject] = location.hash;
+    sessionStorage.setItem(LAST_HASH_KEY, JSON.stringify(lastHashes.current));
+  }, [route, routeProject]);
+
+  /** 横スライドで切り替えたプロジェクトを、右側にも表示する（Arc・Zen Browser のスペースと同じ） */
+  const showProject = (id: number) => {
+    if (layout !== "slide" || routeProject === id) return;
+    const hash = lastHashes.current[id];
+    if (hash) location.hash = hash;
+    else navigate({ name: "project", id, tab: "board" });
+  };
+
   useEffect(() => {
     if (current) localStorage.setItem(CURRENT_KEY, String(current.id));
   }, [current]);
@@ -165,13 +184,12 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     });
   });
 
-  const go = useCallback(
-    (to: number) => {
-      const target = ordered[Math.min(Math.max(to, 0), ordered.length - 1)];
-      if (target) setCurrentId(target.id);
-    },
-    [ordered],
-  );
+  const go = (to: number) => {
+    const target = ordered[Math.min(Math.max(to, 0), ordered.length - 1)];
+    if (!target) return;
+    setCurrentId(target.id);
+    showProject(target.id);
+  };
 
   // ショートカット: ⌥⌘← / ⌥⌘→ で前後、⌃1〜9 で n 番目
   useEffect(() => {
