@@ -13,7 +13,7 @@ const diffQuerySchema = z.object({
 });
 
 /** プロジェクトのフォルダの Git の変更とファイル（ソース管理・エクスプローラー・検索・ファイルの編集） */
-export function gitRoutes(app: Hono, { store }: ServerDeps) {
+export function gitRoutes(app: Hono, { store, runner }: ServerDeps) {
   /**
    * 操作するフォルダ（?worktree= があれば、このプロジェクトのそのワークツリー。なければ本体）。
    * エディタタブで作業場所を切り替えたときに使う
@@ -220,8 +220,15 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
   app.post("/api/projects/:id/git/worktrees/finish", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const { path } = z.object({ path: z.string().min(1).max(2000) }).parse(await c.req.json());
+    // 作業中のチャットがあるうちは片付けない（作業中のフォルダが消えてしまう）
+    if (store.runsInWorktree(project.id, path).some((r) => runner.isBusy(r.id))) {
+      throw new HttpError(409, "このワークツリーで作業中のチャットがあります。終わってから片付けてください");
+    }
     try {
-      return c.json(await finishWorktree(project.repo_path, path));
+      const worktrees = await finishWorktree(project.repo_path, path);
+      // そこで作業していたチャットは、続きを本体で進める
+      store.clearRunWorktree(project.id, path);
+      return c.json(worktrees);
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }

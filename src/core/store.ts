@@ -383,6 +383,18 @@ export class Store {
     return run;
   }
 
+  /** その作業場所（ワークツリー）を使っているチャット */
+  runsInWorktree(projectId: number, worktreePath: string): Run[] {
+    return (this.db.prepare("SELECT * FROM runs WHERE project_id = ? AND worktree_path = ?").all(projectId, worktreePath) as unknown as Run[]).map((r) => this.getRun(r.id)!);
+  }
+
+  /** ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻す（並び順は変えない） */
+  clearRunWorktree(projectId: number, worktreePath: string): void {
+    const runs = this.runsInWorktree(projectId, worktreePath);
+    this.db.prepare("UPDATE runs SET worktree_path = '' WHERE project_id = ? AND worktree_path = ?").run(projectId, worktreePath);
+    for (const run of runs) this.onChange({ type: "run", run: this.getRun(run.id)! });
+  }
+
   setRunGroup(id: number, groupId: number | null): Run {
     this.db.prepare("UPDATE runs SET group_id = ? WHERE id = ?").run(groupId, id);
     const run = this.getRun(id)!;
