@@ -35,7 +35,7 @@
 | 左に項目・右に内容のダイアログ | `TabbedDialog`（プロジェクトの編集・設定） |
 | 確認・入力・お知らせのダイアログ | `confirmDialog` / `promptDialog` / `alertDialog`（`dialogs.tsx`） |
 | ポップオーバー | `PopoverHeader`。外側クリックと Esc で閉じるのは `useDismiss`（`escape`: `stop` = いちばん上だけ閉じる / `pass` = ほかの Esc にも伝える / `none`） |
-| 右クリック・「…」・＋のメニュー | `PopupMenu` ＋ `clampToViewport`。開いたら先頭にピントを置き ↑↓ で移るのは `useMenuKeys` |
+| 右クリック・「…」・＋のメニュー | `PopupMenu` ＋ `clampToViewport`。開いたら先頭にピントを置き ↑↓ で移るのは `useMenuKeys`。ボタンから開くメニューは `ignore` にボタンのセレクタを渡し、開いているときに押したら閉じる |
 | 選択肢から 1 つ選ぶボタンの組 | `Segmented`（見た目は className で決める） |
 | 名前で絞り込む検索欄 | `SearchField`。候補の ↑↓・Enter は `useListNavigation` |
 | フォームの 1 行（名前・入力・補足） | `Field` |
