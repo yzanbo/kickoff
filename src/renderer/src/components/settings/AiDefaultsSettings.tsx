@@ -6,6 +6,9 @@ import { Field } from "../Field";
 import { SaveActions } from "../SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
 
+/** 同時に実行するエージェント数の選択肢（ほかに「上限なし」） */
+const CONCURRENCY_CHOICES = [1, 2, 3, 4, 5, 6, 7, 8];
+
 /** 設定: 新しいチャットの AI の既定（モデル・推論の深さ・権限モード・ファストモード）と、同時に実行するエージェント数 */
 export function AiDefaultsSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
@@ -51,14 +54,21 @@ export function AiDefaultsSettings() {
             </span>
           </span>
         </label>
-        <Field label="同時に実行するエージェント数" help="多いほど速く進みますが、プランの使用枠を早く消費します。">
-          <input
-            type="number"
-            min={1}
-            max={8}
-            value={draft.maxConcurrentRuns}
-            onChange={(e) => setDraft({ ...draft, maxConcurrentRuns: Number(e.target.value) })}
-          />
+        <Field
+          label="同時に実行するエージェント数"
+          help="多いほど速く進みますが、プランの使用枠を早く消費します。上限なしにすると、順番待ちをせずにすべて同時に動かします。"
+        >
+          <select
+            value={draft.maxConcurrentRuns ?? "none"}
+            onChange={(e) => setDraft({ ...draft, maxConcurrentRuns: e.target.value === "none" ? null : Number(e.target.value) })}
+          >
+            {CONCURRENCY_CHOICES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+            <option value="none">上限なし</option>
+          </select>
         </Field>
       </div>
       <SaveActions

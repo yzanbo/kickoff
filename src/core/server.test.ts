@@ -113,6 +113,10 @@ test("設定・プロジェクト・タスク・成果物の API", async () => {
   const status = await call("GET", "/api/status");
   assert.equal(status.body.version, "0.1.0");
   assert.equal(status.body.agents.max, 3);
+  // 上限なしは null で保存する
+  assert.equal((await call("PUT", "/api/settings", { maxConcurrentRuns: null })).body.maxConcurrentRuns, null);
+  assert.equal((await call("GET", "/api/status")).body.agents.max, null);
+  await call("PUT", "/api/settings", { maxConcurrentRuns: 3 });
 
   assert.deepEqual(
     (await call("GET", "/api/projects")).body.map((p: { id: number }) => p.id),

@@ -190,6 +190,19 @@ test("同時実行数の上限を超えた分は待機し、中断すると承�
   await until(() => store.getRun(b.id)?.status === "cancelled");
 });
 
+test("同時実行数が上限なし（null）なら、順番待ちをせずにすべて動かす", async () => {
+  const { store, runner, project } = setup(async (_p, cb, signal) => {
+    const d = await cb.requestApproval({ kind: "permission", toolName: "Bash", input: { command: "ls" }, canRemember: false }, signal);
+    return signal.aborted ? { status: "cancelled", sessionId: null } : { status: d.action === "deny" ? "failed" : "completed", sessionId: null };
+  });
+  store.updateSettings({ maxConcurrentRuns: null });
+
+  const runs = await Promise.all(["a", "b", "c"].map((prompt) => runner.start({ projectId: project.id, phase: "requirements", prompt })));
+  await until(() => runs.every((r) => store.getRun(r.id)?.status === "waiting"));
+  for (const r of runs) runner.cancel(r.id);
+  await until(() => runs.every((r) => store.getRun(r.id)?.status === "cancelled"));
+});
+
 test("タスクの実行で AI が状態を更新しなかった場合、成功ならレビュー待ちにする", async () => {
   const { store, runner, project } = setup(async () => ({ status: "completed", sessionId: null }));
   const task = store.createTask({ project_id: project.id, phase: "implementation", title: "t" });

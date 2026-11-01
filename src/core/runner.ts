@@ -177,7 +177,8 @@ export class Runner {
   }
 
   private pump() {
-    const limit = this.deps.store.getSettings().maxConcurrentRuns;
+    // 上限なし（null）なら、待たせずにすべて動かす
+    const limit = this.deps.store.getSettings().maxConcurrentRuns ?? Infinity;
     while (this.active.size < limit && this.queue.length > 0) {
       const item = this.queue.shift()!;
       void this.execute(item);
