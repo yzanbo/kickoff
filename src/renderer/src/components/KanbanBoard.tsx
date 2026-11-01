@@ -1,5 +1,14 @@
-import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, Plus, SquareKanban, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent } from "react";
+import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, Plus, SquareKanban, Trash2, X } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { agentStateOf, stageOf } from "../../../core/board";
 import {
   AGENT_STATE_LABELS,
@@ -22,6 +31,12 @@ import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
 
 type ViewMode = "board" | "list";
+
+const PANEL_WIDTH_KEY = "kickoff:panel-width";
+const DEFAULT_PANEL_WIDTH = 560;
+const MIN_PANEL_WIDTH = 360;
+/** パネルを広げても、カンバン側に残す幅 */
+const MIN_BOARD_WIDTH = 260;
 
 /** 列の色（状態の点の色を流用。完了は控えめ） */
 const STAGE_TONE: Record<BoardStage, string> = {
@@ -59,10 +74,13 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
   const [dragId, setDragId] = useState<number | null>(null);
   const [over, setOver] = useState<BoardStage | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
-  // 右側のパネルで開いているチャット。閉じるときはアニメーションが終わるまで中身を残す
-  const [panelRun, setPanelRun] = useState<Run | null>(null);
+  // 右側のパネルで開いているチャット（タブ）。パネルを閉じてもタブは残し、次に開いたときに戻す
+  const [tabs, setTabs] = useState<{ id: number; projectId: number }[]>([]);
+  const [activeTab, setActiveTab] = useState<number | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [panelWidth, setPanelWidth] = useState(() => Number(localStorage.getItem(PANEL_WIDTH_KEY)) || DEFAULT_PANEL_WIDTH);
+  const [resizing, setResizing] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
   const [, setTick] = useState(0);
 
@@ -148,15 +166,56 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     },
   });
 
-  /** カードをクリック: 右側からチャットのパネルを出し、カンバンを狭める */
+  /** カードをクリック: 右側のパネルにタブで開く（開いていればそのタブへ）。カンバンはその分狭くなる */
   const open = (run: Run) => {
-    clearTimeout(closeTimer.current);
-    setPanelRun(run);
+    setTabs((prev) => (prev.some((t) => t.id === run.id) ? prev : [...prev, { id: run.id, projectId: run.project_id }]));
+    setActiveTab(run.id);
     setPanelOpen(true);
   };
-  const closePanel = () => {
-    setPanelOpen(false);
-    closeTimer.current = setTimeout(() => setPanelRun(null), 260);
+  const closePanel = () => setPanelOpen(false);
+
+  /** タブを閉じる。表示中のタブなら隣のタブへ、最後のタブならパネルも閉じる */
+  const closeTab = (id: number) => {
+    setTabs((prev) => {
+      const index = prev.findIndex((t) => t.id === id);
+      const next = prev.filter((t) => t.id !== id);
+      if (activeTab === id) setActiveTab(next[Math.min(index, next.length - 1)]?.id ?? null);
+      if (next.length === 0) setPanelOpen(false);
+      return next;
+    });
+  };
+
+  // 削除・アーカイブされたチャットのタブは閉じる
+  useEffect(() => {
+    const gone = tabs.filter((t) => !runs.some((r) => r.id === t.id));
+    if (loaded && gone.length > 0) gone.forEach((t) => closeTab(t.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runs, loaded]);
+
+  /** パネルの左端をドラッグして幅を変える（カンバン側に最低限の幅を残す） */
+  const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const body = bodyRef.current;
+    if (!body) return;
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+    setResizing(true);
+    const right = body.getBoundingClientRect().right;
+    const max = body.clientWidth - MIN_BOARD_WIDTH;
+    let width = panelWidth;
+    const onMove = (ev: PointerEvent) => {
+      width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(max, right - ev.clientX)));
+      body.style.setProperty("--panel-w", `${width}px`);
+    };
+    const onUp = () => {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      setResizing(false);
+      setPanelWidth(width);
+      localStorage.setItem(PANEL_WIDTH_KEY, String(width));
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
   };
 
   // Esc でパネルを閉じる（メニューが開いていればメニューを優先）
@@ -237,7 +296,11 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
       </div>
       {error && <p className="error small board-error">{error}</p>}
 
-      <div className={`board-body ${panelOpen ? "with-panel" : ""}`}>
+      <div
+        ref={bodyRef}
+        className={`board-body ${panelOpen ? "with-panel" : ""} ${resizing ? "resizing" : ""}`}
+        style={{ "--panel-w": `${panelWidth}px` } as React.CSSProperties}
+      >
       <div className="board-main">
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
@@ -260,7 +323,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                   {list.map(({ run, state }) => (
                     <article
                       key={run.id}
-                      className={`board-card ${dragId === run.id ? "dragging" : ""} ${panelOpen && panelRun?.id === run.id ? "selected" : ""}`}
+                      className={`board-card ${dragId === run.id ? "dragging" : ""} ${panelOpen && activeTab === run.id ? "selected" : ""} ${tabs.some((t) => t.id === run.id) ? "in-tab" : ""}`}
                       {...cardProps(run)}
                     >
                       <span className="card-title">{run.title || "無題のチャット"}</span>
@@ -301,7 +364,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                 {list.map(({ run, state }) => (
                   <div
                     key={run.id}
-                    className={`list-row ${dragId === run.id ? "dragging" : ""} ${panelOpen && panelRun?.id === run.id ? "selected" : ""}`}
+                    className={`list-row ${dragId === run.id ? "dragging" : ""} ${panelOpen && activeTab === run.id ? "selected" : ""} ${tabs.some((t) => t.id === run.id) ? "in-tab" : ""}`}
                     {...cardProps(run)}
                   >
                     <div className="list-main">
@@ -325,10 +388,40 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
       )}
 
       </div>
-      <aside className="board-panel" aria-hidden={!panelOpen}>
-        {panelRun && (
-          <RunPage key={panelRun.id} projectId={panelRun.project_id} runId={panelRun.id} variant="panel" onClose={closePanel} />
-        )}
+      <aside className="board-panel" aria-hidden={!panelOpen} inert={!panelOpen}>
+        <div
+          className="panel-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="パネルの幅を変える"
+          title="ドラッグで幅を変える"
+          onPointerDown={startResize}
+        />
+        <div className="panel-tabs" role="tablist">
+          {tabs.map((t) => {
+            const run = runs.find((r) => r.id === t.id);
+            const Icon = run ? SECTION_META[run.phase].icon : null;
+            return (
+              <div key={t.id} className={`panel-tab ${activeTab === t.id ? "active" : ""}`} role="tab" aria-selected={activeTab === t.id}>
+                <button className="panel-tab-label" onClick={() => setActiveTab(t.id)} title={run?.title}>
+                  {Icon && run && <Icon size={12} className={`sec-icon sec-${run.phase}`} aria-hidden />}
+                  <span>{run?.title || "チャット"}</span>
+                </button>
+                <button className="panel-tab-close" aria-label={`${run?.title ?? "チャット"} のタブを閉じる`} onClick={() => closeTab(t.id)}>
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="panel-content">
+          {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
+          {tabs.map((t) => (
+            <div key={t.id} className="panel-tab-page" hidden={activeTab !== t.id}>
+              <RunPage projectId={t.projectId} runId={t.id} variant="panel" onClose={closePanel} />
+            </div>
+          ))}
+        </div>
       </aside>
       </div>
 
