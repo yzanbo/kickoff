@@ -6,7 +6,7 @@ import { Highlight, useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
-import { href, openNewChat, openRun, routeProjectId, type Route } from "../router";
+import { href, navigate, openNewChat, openRun, routeProjectId, type Route } from "../router";
 import { SECTION_META } from "../sections";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState } from "../../../core/types";
@@ -547,7 +547,7 @@ const WorkspacePage = memo(function WorkspacePage({
               {...dropTarget(group.id)}
             >
               <div
-                className="custom-group-head"
+                className={`custom-group-head ${route.name === "project" && route.tab === "groups" && route.group === group.id ? "active" : ""}`}
                 draggable={renaming !== group.id}
                 title="ドラッグでグループを並べ替える"
                 {...reorder.handle(group.id)}
@@ -571,9 +571,15 @@ const WorkspacePage = memo(function WorkspacePage({
                     onCancel={() => setRenaming(undefined)}
                   />
                 ) : (
-                  <span className="custom-group-name" onDoubleClick={() => setRenaming(group.id)} title="ダブルクリックで名前を変更">
+                  <button
+                    type="button"
+                    className="custom-group-name"
+                    title="プロジェクトのグループで表示（ダブルクリックで名前を変更）"
+                    onClick={() => navigate({ name: "project", id: project.id, tab: "groups", group: group.id })}
+                    onDoubleClick={() => setRenaming(group.id)}
+                  >
                     {group.name}
-                  </span>
+                  </button>
                 )}
                 {/* 名前の編集中は、ほかの操作を隠す（鉛筆を押し直して編集が始まり直さないように） */}
                 {renaming !== group.id && (

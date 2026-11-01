@@ -210,6 +210,7 @@ export function App() {
             tab={route.name === "project" ? route.tab : route.name === "newChat" && route.group ? "groups" : "board"}
             projects={projects}
             focus={route.name === "project" ? undefined : route}
+            highlightGroup={route.name === "project" ? route.group : undefined}
           />
         ) : (
           <HomePage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
