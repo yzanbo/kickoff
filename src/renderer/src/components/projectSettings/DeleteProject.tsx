@@ -3,6 +3,7 @@ import { api } from "../../api";
 import { confirmDialog } from "../../dialogs";
 import { useActionError } from "../../hooks/useActionError";
 import { navigate } from "../../router";
+import { ErrorText } from "../ErrorText";
 
 export function DeleteProject({ project }: { project: Project }) {
   const { error, guard } = useActionError();
@@ -28,7 +29,7 @@ export function DeleteProject({ project }: { project: Project }) {
       <button className="btn btn-danger" onClick={() => void remove()}>
         プロジェクトを削除
       </button>
-      {error && <p className="error small">{error}</p>}
+      <ErrorText message={error} />
     </section>
   );
 }

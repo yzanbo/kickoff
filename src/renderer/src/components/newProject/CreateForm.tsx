@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
+import { ErrorText } from "../ErrorText";
 import { FolderField } from "./FolderField";
 import type { FormProps } from "./NewProjectDialog";
 
@@ -80,7 +81,7 @@ export function CreateForm({ defaultParentDir, onCancel, onCreated }: FormProps 
         </span>
       </label>
 
-      {error && <p className="error">{error}</p>}
+      <ErrorText message={error} />
 
       <div className="dialog-actions">
         <button type="button" className="btn" onClick={onCancel}>

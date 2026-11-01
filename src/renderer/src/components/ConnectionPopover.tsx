@@ -5,6 +5,7 @@ import { errorMessage } from "../errors";
 import { useDismiss } from "../hooks/useDismiss";
 import { href } from "../router";
 import { accountLine } from "../usage";
+import { ErrorText } from "./ErrorText";
 import { PopoverHeader } from "./PopoverHeader";
 import { StatusDot, toneOf, type StatusTone } from "./StatusDot";
 
@@ -125,7 +126,7 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
         />
       </section>
 
-      {error && <p className="error small">{error}</p>}
+      <ErrorText message={error} />
       <a className="conn-settings-link small" href={href({ name: "settings" })} onClick={onClose}>
         設定を開く
       </a>

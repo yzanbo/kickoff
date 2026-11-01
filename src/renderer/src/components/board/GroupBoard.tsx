@@ -10,6 +10,7 @@ import { useActionError } from "../../hooks/useActionError";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import type { ReopenRoute } from "../../router";
 import { CardMenu } from "../CardMenu";
+import { ErrorText } from "../ErrorText";
 import { useGroupMenu } from "../GroupMenu";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
@@ -205,7 +206,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
         onView={setView}
         panel={panel}
       />
-      {error && <p className="error small board-error">{error}</p>}
+      <ErrorText message={error} className="board-error" />
 
       <div {...panel.body}>
         <div className="board-main">

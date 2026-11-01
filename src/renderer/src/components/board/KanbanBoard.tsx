@@ -11,6 +11,7 @@ import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
 import { CardMenu } from "../CardMenu";
+import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
@@ -198,7 +199,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         }
         panel={panel}
       />
-      {error && <p className="error small board-error">{error}</p>}
+      <ErrorText message={error} className="board-error" />
 
       <div {...panel.body}>
         <div className="board-main">
