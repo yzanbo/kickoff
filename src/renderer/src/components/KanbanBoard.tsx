@@ -1,4 +1,4 @@
-import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, PanelRightClose, Plus, SquareKanban, Trash2, X, Globe } from "lucide-react";
+import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, PanelRightClose, PanelRightOpen, Plus, SquareKanban, Trash2, X, Globe } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -199,6 +199,12 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     setPanelOpen(true);
   };
   const closePanel = () => setPanelOpen(false);
+  /** タブを残したまま閉じたときは、右端に細い帯を残して、そこから開き直せるようにする */
+  const rail = !panelOpen && tabs.length > 0;
+  const reopen = (key?: string) => {
+    if (key) setActiveTab(key);
+    setPanelOpen(true);
+  };
 
   /** タブを閉じる。表示中のタブなら隣のタブへ、最後のタブならパネルも閉じる */
   const closeTab = (key: string) => {
@@ -327,7 +333,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
 
       <div
         ref={bodyRef}
-        className={`board-body ${panelOpen ? "with-panel" : ""} ${resizing ? "resizing" : ""}`}
+        className={`board-body ${panelOpen ? "with-panel" : rail ? "with-rail" : ""} ${resizing ? "resizing" : ""}`}
         style={{ "--panel-w": `${panelWidth}px` } as React.CSSProperties}
       >
       <div className="board-main">
@@ -417,8 +423,32 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
       )}
 
       </div>
-      <aside className="board-panel" aria-hidden={!panelOpen} inert={!panelOpen}>
+      <aside className={`board-panel ${rail ? "rail" : ""}`} aria-hidden={!panelOpen && !rail} inert={!panelOpen && !rail}>
+        {rail && (
+          <div className="panel-rail">
+            <button className="panel-rail-button" title="パネルを開く" aria-label="パネルを開く" onClick={() => reopen()}>
+              <PanelRightOpen size={15} />
+            </button>
+            {tabs.map((t) => {
+              const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
+              const Icon = t.kind === "browser" ? Globe : run ? SECTION_META[run.phase].icon : null;
+              const label = t.kind === "browser" ? t.title || hostOf(t.url) : run?.title || "チャット";
+              return (
+                <button
+                  key={t.key}
+                  className={`panel-rail-button ${activeTab === t.key ? "active" : ""}`}
+                  title={label}
+                  aria-label={`${label} を開く`}
+                  onClick={() => reopen(t.key)}
+                >
+                  {Icon && <Icon size={14} className={run ? `sec-icon sec-${run.phase}` : undefined} aria-hidden />}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div
+          inert={!panelOpen}
           className="panel-resizer"
           role="separator"
           aria-orientation="vertical"
@@ -426,7 +456,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
           title="ドラッグで幅を変える"
           onPointerDown={startResize}
         />
-        <div className="panel-tabs" role="tablist">
+        <div className="panel-tabs" role="tablist" inert={!panelOpen}>
           {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
           <button className="panel-collapse" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={closePanel}>
             <PanelRightClose size={15} />
@@ -452,7 +482,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
             <Globe size={12} />
           </button>
         </div>
-        <div className="panel-content">
+        <div className="panel-content" inert={!panelOpen}>
           {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
           {tabs.map((t) => (
             <div key={t.key} className="panel-tab-page" hidden={activeTab !== t.key}>
