@@ -463,6 +463,8 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   const finished = await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: worktree });
   assert.equal(finished.status, 200);
   assert.equal(finished.body.length, 1);
+  // そこで作業していたチャットは、本体に戻る
+  assert.equal(store.getRun(created.body.id)?.worktree_path, "");
   assert.equal(fs.existsSync(worktree), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/a"], { cwd: repo }).toString().trim(), "");
   fs.rmSync(path.dirname(worktree), { recursive: true, force: true });
