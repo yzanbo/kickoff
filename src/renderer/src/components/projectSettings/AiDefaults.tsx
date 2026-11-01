@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { EFFORT_LABELS, EFFORT_LEVELS, PERMISSION_CHOICES, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice, type Project, type ProjectDefaults } from "../../../../core/types";
 import { api, useAsync } from "../../api";
 import { groupModels, modelDisplayName } from "../../models";
-import { useSave } from "./useSave";
+import { useSave } from "../../hooks/useSave";
+import { SaveActions } from "../SaveActions";
 
 /** 「アプリの設定に従う」を表す select の値 */
 const INHERIT = "__inherit__";
@@ -91,16 +92,7 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
             <option value="off">使わない</option>
           </select>
         </label>
-        <div className="form-actions">
-          <button
-            className="btn btn-primary"
-            disabled={!dirty || save.saving}
-            onClick={() => void save.run(() => api.updateProject(project.id, { defaults: draft }))}
-          >
-            {save.saving ? "保存中…" : "保存"}
-          </button>
-          {save.message && <span className={save.message.kind === "ok" ? "success" : "error"}>{save.message.text}</span>}
-        </div>
+        <SaveActions save={save} disabled={!dirty} onSave={() => api.updateProject(project.id, { defaults: draft })} />
       </div>
     </div>
   );

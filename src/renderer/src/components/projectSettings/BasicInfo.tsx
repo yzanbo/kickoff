@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Project } from "../../../../core/types";
 import { api } from "../../api";
-import { useSave } from "./useSave";
+import { useSave } from "../../hooks/useSave";
+import { SaveActions } from "../SaveActions";
 
 export function BasicInfo({ project }: { project: Project }) {
   const pick = (p: Project) => ({
@@ -48,16 +49,7 @@ export function BasicInfo({ project }: { project: Project }) {
             onChange={(e) => setDraft({ ...draft, deploy_instructions: e.target.value })}
           />
         </label>
-        <div className="form-actions">
-          <button
-            className="btn btn-primary"
-            disabled={!dirty || !draft.name.trim() || save.saving}
-            onClick={() => void save.run(() => api.updateProject(project.id, { ...draft, name: draft.name.trim() }))}
-          >
-            {save.saving ? "保存中…" : "保存"}
-          </button>
-          {save.message && <span className={save.message.kind === "ok" ? "success" : "error"}>{save.message.text}</span>}
-        </div>
+        <SaveActions save={save} disabled={!dirty || !draft.name.trim()} onSave={() => api.updateProject(project.id, { ...draft, name: draft.name.trim() })} />
       </div>
     </section>
   );
