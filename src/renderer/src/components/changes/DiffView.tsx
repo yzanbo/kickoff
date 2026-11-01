@@ -3,7 +3,10 @@ import type { GitDiff, GitFileChange } from "../../../../core/types";
 import { api } from "../../api";
 import { cx } from "../../cx";
 import { errorMessage } from "../../errors";
+import type { CodeToken } from "../../highlight";
+import { useHighlight } from "../../hooks/useHighlight";
 import { useStoredChoice } from "../../hooks/useStoredState";
+import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
 import { Segmented } from "../Segmented";
 import { parseDiff, toSplitRows, type DiffLine } from "./parseDiff";
@@ -47,6 +50,7 @@ export function DiffView({ projectId, file, staged, version }: { projectId: numb
   // 取り直している間は、前の差分を出しておく（同じファイルのとき。ちらつかないように）
   const current = state?.key === key ? state : undefined;
   const lines = useMemo(() => (current?.diff ? parseDiff(current.diff.diff) : []), [current?.diff]);
+  const tokensOf = useDiffHighlight(lines, file);
 
   return (
     <div className="diff-view">
@@ -80,9 +84,9 @@ export function DiffView({ projectId, file, staged, version }: { projectId: numb
         ) : lines.length === 0 ? (
           <p className="muted small diff-message">中身の変更はありません（名前や権限だけの変更です）。</p>
         ) : layout === "split" ? (
-          <SplitDiff lines={lines} />
+          <SplitDiff lines={lines} tokensOf={tokensOf} />
         ) : (
-          <UnifiedDiff lines={lines} />
+          <UnifiedDiff lines={lines} tokensOf={tokensOf} />
         )}
         {current?.diff?.truncated && <p className="muted small diff-message">大きいため、途中までを表示しています。</p>}
       </div>
@@ -91,7 +95,32 @@ export function DiffView({ projectId, file, staged, version }: { projectId: numb
 }
 
 /** git diff と同じ 1 列（左に変更前・変更後の行番号） */
-function UnifiedDiff({ lines }: { lines: DiffLine[] }) {
+/**
+ * 差分の行の色（VS Code と同じ配色）。前後の行のつながり（複数行のコメントなど）を保つため、
+ * 変更前（残した行・消した行）と変更後（残した行・足した行）をそれぞれ 1 つのコードとして色を付ける
+ */
+function useDiffHighlight(lines: DiffLine[], file: GitFileChange) {
+  const before = useMemo(() => lines.filter((l) => l.oldNo !== undefined), [lines]);
+  const after = useMemo(() => lines.filter((l) => l.newNo !== undefined), [lines]);
+  const beforeTokens = useHighlight(
+    useMemo(() => before.map((l) => l.text), [before]),
+    file.old_path ?? file.path,
+  );
+  const afterTokens = useHighlight(
+    useMemo(() => after.map((l) => l.text), [after]),
+    file.path,
+  );
+  return useMemo(() => {
+    const map = new Map<DiffLine, CodeToken[]>();
+    before.forEach((line, i) => beforeTokens?.[i] && map.set(line, beforeTokens[i]));
+    after.forEach((line, i) => afterTokens?.[i] && map.set(line, afterTokens[i]));
+    return map;
+  }, [before, after, beforeTokens, afterTokens]);
+}
+
+type TokensOf = Map<DiffLine, CodeToken[]>;
+
+function UnifiedDiff({ lines, tokensOf }: { lines: DiffLine[]; tokensOf: TokensOf }) {
   return (
     <table className="diff-table">
       <colgroup>
@@ -111,7 +140,7 @@ function UnifiedDiff({ lines }: { lines: DiffLine[] }) {
               <td className="diff-no">{line.newNo}</td>
               <td className="diff-code">
                 <span className="diff-sign">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
-                {line.text}
+                <CodeLine tokens={tokensOf.get(line)} text={line.text} />
               </td>
             </tr>
           ),
@@ -122,7 +151,7 @@ function UnifiedDiff({ lines }: { lines: DiffLine[] }) {
 }
 
 /** 左に変更前、右に変更後を並べる（VS Code と同じ） */
-function SplitDiff({ lines }: { lines: DiffLine[] }) {
+function SplitDiff({ lines, tokensOf }: { lines: DiffLine[]; tokensOf: TokensOf }) {
   const rows = useMemo(() => toSplitRows(lines), [lines]);
   // 左右で key を分ける（同じ key だと、片側のセルが落ちる）
   const side = (line: DiffLine | undefined, no: "oldNo" | "newNo") => [
@@ -130,7 +159,7 @@ function SplitDiff({ lines }: { lines: DiffLine[] }) {
       {line?.[no]}
     </td>,
     <td key={`${no}-code`} className={cx("diff-code", line ? `line-${line.type}` : "line-empty")}>
-      {line?.text}
+      {line && <CodeLine tokens={tokensOf.get(line)} text={line.text} />}
     </td>,
   ];
   return (
