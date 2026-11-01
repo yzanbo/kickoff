@@ -118,10 +118,6 @@ export function ProjectPage({
             {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
             {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
           </div>
-          <span className="spacer" />
-          <button className="btn btn-primary" onClick={() => openNewChat(project.id)}>
-            <Plus size={15} /> 新しいチャット
-          </button>
         </div>
         <button
           className="path-button"
