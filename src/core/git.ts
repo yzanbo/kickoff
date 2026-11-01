@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { FileContent, GitChangeKind, GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitStatus, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
+import type { FileContent, GitChangeKind, GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitStatus, GitWorktree, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -398,4 +398,62 @@ export async function gitRefs(repo: string): Promise<GitRefs> {
     refs.stashes.push({ ref, hash, message });
   }
   return refs;
+}
+
+/** `git worktree list --porcelain` を読む（空行で区切られた塊ごとに 1 つ。最初が本体） */
+export function parseWorktrees(out: string): GitWorktree[] {
+  return out
+    .split("\n\n")
+    .map((block) => block.split("\n").filter(Boolean))
+    .filter((lines) => lines.length > 0)
+    .map((lines, i) => {
+      const field = (name: string) => lines.find((l) => l === name || l.startsWith(`${name} `));
+      const branch = field("branch")?.slice(7) ?? null;
+      return {
+        path: field("worktree")?.slice(9) ?? "",
+        branch: branch?.startsWith("refs/heads/") ? branch.slice(11) : branch,
+        head: field("HEAD")?.slice(5) ?? "",
+        main: i === 0,
+        locked: Boolean(field("locked")),
+        prunable: Boolean(field("prunable")),
+      };
+    });
+}
+
+export async function listWorktrees(repo: string): Promise<GitWorktree[]> {
+  return parseWorktrees(await gitOutput(repo, ["worktree", "list", "--porcelain"]));
+}
+
+/** 新しいワークツリーを置くフォルダ（リポジトリの隣の <名前>-worktrees/<ブランチ名>。/ は - にする） */
+export async function worktreePathFor(repo: string, branch: string): Promise<string> {
+  const root = await fs.realpath(repo);
+  return path.join(path.dirname(root), `${path.basename(root)}-worktrees`, branch.replace(/[\\/]+/g, "-"));
+}
+
+/**
+ * ワークツリーを作る。ブランチがなければいまのコミットから作り、あればそのブランチを取り出す。
+ * 置き場所は worktreePathFor で決める（すでにあれば失敗する）
+ */
+export async function addWorktree(repo: string, branch: string): Promise<GitWorktree[]> {
+  await gitOutput(repo, ["check-ref-format", "--branch", branch]).catch(() => {
+    throw new Error("ブランチの名前に使えない文字があります");
+  });
+  const target = await worktreePathFor(repo, branch);
+  if (await fs.stat(target).catch(() => null)) throw new Error(`フォルダがすでにあります: ${target}`);
+  const exists = await gitOutput(repo, ["rev-parse", "--verify", "-q", `refs/heads/${branch}`]).then(
+    () => true,
+    () => false,
+  );
+  await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target]);
+  return listWorktrees(repo);
+}
+
+/** ワークツリーを消す（本体は消せない。force: コミットしていない変更があっても消す）。なくなったものの記録も片付ける */
+export async function removeWorktree(repo: string, target: string, force: boolean): Promise<GitWorktree[]> {
+  const worktree = (await listWorktrees(repo)).find((w) => w.path === target);
+  if (!worktree) throw new Error("ワークツリーが見つかりません");
+  if (worktree.main) throw new Error("本体のフォルダは消せません");
+  if (worktree.prunable) await gitOutput(repo, ["worktree", "prune"]);
+  else await gitOutput(repo, ["worktree", "remove", ...(force ? ["--force"] : []), target]);
+  return listWorktrees(repo);
 }

@@ -554,6 +554,19 @@ export interface GitRefs {
   stashes: { ref: string; hash: string; message: string }[];
 }
 
+/** git のワークツリー（同じリポジトリの別のブランチを、別のフォルダに取り出したもの） */
+export interface GitWorktree {
+  path: string;
+  /** 取り出しているブランチ（ブランチから外れていれば null） */
+  branch: string | null;
+  head: string;
+  /** 本体（最初に作ったフォルダ。消せない） */
+  main: boolean;
+  locked: boolean;
+  /** フォルダがなくなっていて、片付けられる */
+  prunable: boolean;
+}
+
 /** Kickoff サーバー（コア）の状態（画面の左下の接続の詳細） */
 export interface ServerStatus {
   version: string;
