@@ -1,9 +1,11 @@
 import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch, List, ListTree, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import type { GitFileChange } from "../../../../core/types";
+import { cx } from "../../cx";
 import { confirmDialog } from "../../dialogs";
 import { useActionError } from "../../hooks/useActionError";
-import { useStoredChoice, useStoredFlag } from "../../hooks/useStoredState";
+import { startHorizontalDrag } from "../../hooks/dragResize";
+import { useStoredChoice, useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { ErrorText } from "../ErrorText";
 import { IconButton, RefreshButton } from "../IconButton";
 import { Segmented } from "../Segmented";
@@ -33,6 +35,10 @@ interface Selection {
 type ChangesView = "files" | "search" | "changes";
 const VIEW_KEY = "kickoff:changes-view";
 const TREE_KEY = "kickoff:changes-tree";
+const LIST_WIDTH_KEY = "kickoff:changes-list-width";
+const DEFAULT_LIST_WIDTH = 300;
+/** 左の一覧の幅は 200px から、差分の側を 320px 残すところまで */
+const clampListWidth = (width: number, total: number) => Math.round(Math.max(200, Math.min(total - 320, width)));
 
 /**
  * プロジェクトの「変更」タブ（VS Code と同じく、左端で表示を切り替える）。
@@ -64,6 +70,29 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
   const [changesTree, setChangesTree] = useStoredFlag(TREE_KEY);
   const actionError = useActionError();
+  // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
+  const [listWidth, setListWidth] = useStoredNumber(LIST_WIDTH_KEY, DEFAULT_LIST_WIDTH);
+  const [resizing, setResizing] = useState(false);
+  const listRef = useRef<HTMLElement>(null);
+  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    const list = listRef.current;
+    const total = list?.parentElement?.clientWidth;
+    if (!list || !total) return;
+    const left = list.getBoundingClientRect().left;
+    let next = listWidth;
+    setResizing(true);
+    startHorizontalDrag(e, {
+      // ドラッグ中は描き直さず、幅だけを書き換えて指に追従させる
+      move: (clientX) => {
+        next = clampListWidth(clientX - left, total);
+        list.style.width = `${next}px`;
+      },
+      end: () => {
+        setResizing(false);
+        setListWidth(next);
+      },
+    });
+  };
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
@@ -105,7 +134,7 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
     });
 
   return (
-    <div className="changes">
+    <div className={cx("changes", resizing && "resizing")}>
       {/* 左端の表示の切り替え（VS Code のアクティビティバーと同じ） */}
       <Segmented
         className="changes-activity"
@@ -119,7 +148,12 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
           { value: "changes", label: "変更（ソース管理）", icon: GitBranch, iconOnly: true, badge: git.count },
         ]}
       />
-      <aside className="changes-list" aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}>
+      <aside
+        ref={listRef}
+        className="changes-list"
+        style={{ width: listWidth }}
+        aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}
+      >
         {view === "search" ? (
           <SearchView search={search} selected={selected} onSelect={(path, line) => void setSelected({ path, line })} />
         ) : view === "files" ? (
@@ -188,6 +222,15 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
           </>
         )}
       </aside>
+      <div
+        className="changes-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="一覧の幅を変える"
+        title="ドラッグで幅を変える（ダブルクリックで元に戻す）"
+        onPointerDown={startResize}
+        onDoubleClick={() => setListWidth(DEFAULT_LIST_WIDTH)}
+      />
       <div className="changes-diff">
         {selected && (selected.line !== undefined || selected.edit) ? (
           <FileView
