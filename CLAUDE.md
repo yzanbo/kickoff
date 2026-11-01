@@ -14,7 +14,7 @@
 ### 画面（`src/renderer/src`）
 
 - 複数のファイルになる機能は `components/<機能>/` にまとめる（`board/` `sidebar/` `sidePanel/` `newProject/` `projectSettings/` `settings/`）。
-- 汎用の hooks は `hooks/`。小さな共有の補助は直下のモジュール（`cx.ts` `errors.ts` `time.ts` `format.ts` `chatTitle.ts` `cachedLoader.ts` `models.ts` `usage.ts` `groups.ts` など）。
+- 汎用の hooks は `hooks/`。小さな共有の補助は直下のモジュール（`cx.ts` `errors.ts` `time.ts` `format.ts` `chatTitle.ts` `cachedLoader.ts` `models.ts` `usage.ts` `groups.ts` `projectOrder.ts` `theme.ts` など）。
 - 大きな部品は「状態と操作の hook（`useXxx`）」と「表示の部品」に分ける（例: `useSidePanel` ＋ `SidePanel` / `PanelToggle` / `DraftCards`、`useSidebar` ＋ `Sidebar`）。要素に渡す props の束も hook から返してよい（`panel.body`、`sidebar.layout`）。
 - 画面（ルート）を増やす前に、ダイアログや右のパネルで足りないか考える（設定は左下の歯車・⌘, から開くダイアログ）。
 - チャットに付いている情報（サブエージェントなど）は、チャット欄のすぐ上のピルの列（`.composer-chips`）に並べる。
@@ -35,7 +35,7 @@
 | 左に項目・右に内容のダイアログ | `TabbedDialog`（プロジェクトの編集・設定） |
 | 確認・入力・お知らせのダイアログ | `confirmDialog` / `promptDialog` / `alertDialog`（`dialogs.tsx`） |
 | ポップオーバー | `PopoverHeader`。外側クリックと Esc で閉じるのは `useDismiss`（`escape`: `stop` = いちばん上だけ閉じる / `pass` = ほかの Esc にも伝える / `none`） |
-| 右クリック・「…」のメニュー | `PopupMenu` ＋ `clampToViewport` |
+| 右クリック・「…」・＋のメニュー | `PopupMenu` ＋ `clampToViewport`。開いたら先頭にピントを置き ↑↓ で移るのは `useMenuKeys` |
 | 選択肢から 1 つ選ぶボタンの組 | `Segmented`（見た目は className で決める） |
 | 名前で絞り込む検索欄 | `SearchField`。候補の ↑↓・Enter は `useListNavigation` |
 | フォームの 1 行（名前・入力・補足） | `Field` |
@@ -46,15 +46,19 @@
 | CLI の状態カード | `StatusCard` / `GitHubStatusCard`。カードとその並びは `.card` / `.card-grid` |
 | サイドバーのグループの開閉 | `GroupToggle`。開閉の矢印は `Chevron` |
 | ボードのカードの操作 | `runCardProps`（クリック・Enter で開く / 右クリックでメニュー / ドラッグ） |
-| 画像を大きく見る | `ImageViewer`（アプリの中で開く。外のブラウザには Kickoff のログインがないので、添付を外で開かない。画像以外の添付はアプリの中でダウンロード） |
+| 画像を大きく見る | `ImageViewer`（アプリの中で開く。外のブラウザには Kickoff のログインがないので、添付を外で開かない。画像以外の添付はアプリの中でダウンロード）。画像以外を大きく見せるときは children、見出しのボタンは actions で渡す（Mermaid の図の全画面） |
+| Markdown の表示 | `Markdown`（```mermaid は `MermaidDiagram` で図にする。生成中の返答には `streaming` を付け、書きかけの図を描かない） |
+| プロジェクトのバッジ | `ProjectChip`（押してカンバンを開くなら `linked`、名前の代わりに選択欄などを置くなら children）。プロジェクトの並び順は `sidebarOrder` |
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |
 | ボードの見出し | `BoardHeader`。道具は概念ごとのまとまりに入れる（左: 表示 → 探す・絞り込む / 右: 作る・開く → パネルの開閉） |
 
 ## hooks と補助関数
 
-- window のイベント: `useWindowEvent`（effect の中で `addEventListener` しない）。サーバーのイベント: `useServerEvent`。
-- localStorage: `useStoredState` / `useStoredFlag` / `useStoredChoice` / `useStoredNumber` / `useStoredFlagMap`（部品から直接読み書きしない）。
+- window のイベント: `useWindowEvent`（effect の中で `addEventListener` しない。ほかより先に受け取るなら `capture`）。サーバーのイベント: `useServerEvent`。
+- いま画面に出ているテーマ（ダーク・ライト）: `useAppliedTheme`（`<html data-theme>` の変化で描き直す）。
+- localStorage: `useStoredState` / `useStoredFlag` / `useStoredChoice` / `useStoredNumber` / `useStoredFlagMap`（部品から直接読み書きしない）。選択肢を増やすときも、今までの値はそのままの意味で読めるようにする（例: アーカイブの絞り込みは `"1"` / `"0"` のまま、`"archived"` を足した）。`useStoredFlagMap` の `set` は参照が変わらないので、memo した部品に渡せる。
+- 右側のパネル（`useSidePanel`）の開閉と開いているタブは、`memoryKey` でボードごとに覚える（タブやプロジェクトを切り替えて戻っても元どおり）。
 - 操作の失敗の表示: `useActionError`。時間とともに変わる表示: `useTicker`。つまみで幅を変える: `startHorizontalDrag`。アプリ全体で 1 回だけ取得: `cachedLoader`。
 - 例外の文: `errorMessage`（`e instanceof Error ? e.message : String(e)` を書かない）。class 名の組み立て: `cx`。
 - チャット名: `chatTitle`。時刻: `relativeTime` / `resetIn` / `formatClock`（`time.ts`）。トークン数: `formatTokens`。
@@ -77,6 +81,8 @@
 - 使わなくなったクラスの CSS は消す。消すときは、名前を組み立てて付けるクラス（`sec-` `state-` `tone-` `status-` `meter-` `conn-` `task-status-` `priority-` `provider-` `drop-` `inspection-`）に気をつける。
 - 定義していない CSS 変数を使わない。
 - Electron のドラッグ領域は後に書いた要素が優先されるので、閉じたサイドバーの「開く」ボタンは DOM のいちばん後ろに置く。
+- ドラッグ領域（`.run-header` `.page-header` `.sidebar-header`）の中で操作するもの（ボタン・リンク・入力欄・選択欄）には `-webkit-app-region: no-drag` を付ける。付けないと、押してもウィンドウのドラッグになって効かない（JS のクリックでは再現しないので、計算後のスタイルで確かめる）。
+- ピルの中に置く選択欄は `.pill-select`（枠と背景はピルに任せる）。
 
 ## Electron とサーバー
 
