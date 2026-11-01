@@ -3102,8 +3102,15 @@ mark {
 }
 
 .board-body.with-panel {
-  grid-template-columns: minmax(0, 1fr) min(560px, 48%);
+  grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 560px), calc(100% - 260px));
   gap: 12px;
+}
+
+/* 幅をドラッグで変えている間は、アニメーションを止めて指に追従させる */
+.board-body.resizing,
+.board-body.resizing .board-panel {
+  transition: none;
+  user-select: none;
 }
 
 .board-main {
@@ -3119,6 +3126,9 @@ mark {
 }
 
 .board-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -3176,6 +3186,121 @@ mark {
 
 .run-panel .run-composer {
   padding: 4px 12px 12px;
+}
+
+.panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  width: 6px;
+  cursor: col-resize;
+}
+
+.panel-resizer:hover,
+.board-body.resizing .panel-resizer {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.panel-tabs {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 6px 8px 0 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.panel-tabs:empty {
+  display: none;
+}
+
+.panel-tab {
+  display: flex;
+  flex: 0 1 180px;
+  align-items: center;
+  min-width: 80px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  color: var(--muted);
+}
+
+.panel-tab:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.panel-tab.active {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.panel-tab-label {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px 0 8px;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.panel-tab-label span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.panel-tab-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.panel-tab:hover .panel-tab-close,
+.panel-tab.active .panel-tab-close,
+.panel-tab-close:focus-visible {
+  opacity: 1;
+}
+
+.panel-tab-close:hover {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+.panel-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.panel-tab-page {
+  height: 100%;
+}
+
+.board-card.in-tab,
+.list-row.in-tab {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
 }
 
 .board-card.selected,
