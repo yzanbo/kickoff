@@ -44,7 +44,7 @@ const DEFAULT_LIST_WIDTH = 300;
 const clampListWidth = (width: number, total: number) => Math.round(Math.max(200, Math.min(total - 320, width)));
 
 /**
- * プロジェクトの「変更」タブ（VS Code と同じく、左端で表示を切り替える）。
+ * プロジェクトの「エディタ」タブ（VS Code と同じく、左端で表示を切り替える）。
  * - すべてのファイル（エクスプローラー）: フォルダの木。変更のあるファイルとフォルダだけ色を変える
  * - 検索: ファイルの中を探す
  * - 変更（ソース管理）: ステージされている変更・変更（未追跡・競合を含む）

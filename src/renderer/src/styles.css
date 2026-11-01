@@ -182,7 +182,7 @@ kbd {
   -webkit-app-region: no-drag;
 }
 
-/* 幅を変えるつまみ（サイドバー・右のパネル・「変更」タブの一覧）。VS Code・Cursor と同じく、乗せると青い線を出す */
+/* 幅を変えるつまみ（サイドバー・右のパネル・「エディタ」タブの一覧）。VS Code・Cursor と同じく、乗せると青い線を出す */
 .sidebar-resizer:hover,
 .resizing-sidebar .sidebar-resizer,
 .panel-resizer:hover,
@@ -192,7 +192,7 @@ kbd {
   background: var(--info);
 }
 
-/* 「変更」タブの左の一覧の幅を変えるつまみ（一覧と差分の境目。線の上に重ねる） */
+/* 「エディタ」タブの左の一覧の幅を変えるつまみ（一覧と差分の境目。線の上に重ねる） */
 .changes-resizer {
   position: relative;
   z-index: 2;
@@ -5453,7 +5453,7 @@ a:focus-visible,
   outline-offset: 2px;
 }
 
-/* プロジェクトの「変更」タブ（VS Code のソース管理と同じく、左にファイルの一覧、右に差分） */
+/* プロジェクトの「エディタ」タブ（VS Code のソース管理と同じく、左にファイルの一覧、右に差分） */
 .changes {
   display: flex;
   flex: 1;
@@ -5730,7 +5730,7 @@ a:focus-visible,
   color: var(--muted);
 }
 
-/* 「変更」タブの左端の表示の切り替え（VS Code のアクティビティバー: すべてのファイル・変更） */
+/* 「エディタ」タブの左端の表示の切り替え（VS Code のアクティビティバー: すべてのファイル・変更） */
 .changes-activity {
   display: flex;
   flex: none;
@@ -5760,9 +5760,19 @@ a:focus-visible,
   color: var(--text);
 }
 
+/* 選んでいる表示: VS Code と同じく、左端に真っすぐな縦線（ボタンの丸みに沿わせない） */
 .changes-activity button.active {
   color: var(--text);
-  box-shadow: inset 2px 0 0 var(--accent-bright);
+}
+
+.changes-activity button.active::before {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: -4px;
+  width: 2px;
+  content: "";
+  background: var(--text);
 }
 
 /* ボタンの組の数（変更のあるファイルの数など） */
@@ -5844,7 +5854,7 @@ a:focus-visible,
   white-space: nowrap;
 }
 
-/* 「変更」タブの検索（VS Code と同じく、入力欄の右に大文字と小文字・単語単位・正規表現の切り替え） */
+/* 「エディタ」タブの検索（VS Code と同じく、入力欄の右に大文字と小文字・単語単位・正規表現の切り替え） */
 .code-search-box {
   display: flex;
   align-items: center;
@@ -6059,7 +6069,7 @@ a:focus-visible,
   width: 100%;
 }
 
-/* 「変更」タブの履歴（Fork と同じく、左にブランチの線、右に件名・作者・日時） */
+/* 「エディタ」タブの履歴（Fork と同じく、左にブランチの線、右に件名・作者・日時） */
 .history-list {
   margin: 0;
   padding: 4px 0 8px;

@@ -43,7 +43,7 @@ const TAB_LABELS: Record<ProjectTab, string> = {
   schedule: "スケジュール",
   tasks: "タスク",
   reports: "レポート",
-  changes: "変更",
+  changes: "エディタ",
 };
 
 /** プロジェクト画面: チャット一覧と、決まったこと（要件定義書・スケジュール・タスク・レポート）をタブで */
