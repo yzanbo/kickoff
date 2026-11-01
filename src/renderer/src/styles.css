@@ -2362,6 +2362,7 @@ mark {
 
 .run-sub {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin: -8px 0 6px;
   padding-left: 2px;
