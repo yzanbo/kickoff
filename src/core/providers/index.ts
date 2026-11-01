@@ -1,6 +1,6 @@
 import type { ProviderId } from "../types.js";
 import { ClaudeProvider } from "./claude.js";
-import { CodexProvider } from "./codex.js";
+import { PlannedProvider } from "./planned.js";
 import type { AgentProvider } from "./types.js";
 
 export type { AgentProvider } from "./types.js";
@@ -9,6 +9,7 @@ export type { AgentProvider } from "./types.js";
 export function createProviders(): Record<ProviderId, AgentProvider> {
   return {
     claude: new ClaudeProvider(),
-    codex: new CodexProvider(),
+    codex: new PlannedProvider("codex", "Codex", "codex"),
+    gemini: new PlannedProvider("gemini", "Gemini", "gemini"),
   };
 }

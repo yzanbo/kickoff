@@ -191,21 +191,25 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
                     {group.name}
                   </span>
                 )}
-                <span className="column-count">{members.length}</span>
-                <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
-                  <Pencil size={13} />
-                </button>
-                <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => removeGroup(group)}>
-                  <Trash2 size={13} />
-                </button>
-                <button
-                  className="icon-button group-add-chat"
-                  title={`「${group.name}」に新しいチャット`}
-                  aria-label={`${group.name} に新しいチャット`}
-                  onClick={() => navigate({ name: "newChat", projectId, group: group.id })}
-                >
-                  <Plus size={14} />
-                </button>
+                {renaming !== group.id && (
+                  <>
+                    <span className="column-count">{members.length}</span>
+                    <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
+                      <Pencil size={13} />
+                    </button>
+                    <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => removeGroup(group)}>
+                      <Trash2 size={13} />
+                    </button>
+                    <button
+                      className="icon-button group-add-chat"
+                      title={`「${group.name}」に新しいチャット`}
+                      aria-label={`${group.name} に新しいチャット`}
+                      onClick={() => navigate({ name: "newChat", projectId, group: group.id })}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </>
+                )}
               </header>
               <div className="column-cards">
                 {members.length === 0 && <p className="column-empty">チャットをここへドラッグ</p>}

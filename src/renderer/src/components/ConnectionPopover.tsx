@@ -67,6 +67,7 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
 
   const claude = providers?.find((p) => p.id === "claude");
   const codex = providers?.find((p) => p.id === "codex");
+  const gemini = providers?.find((p) => p.id === "gemini");
 
   return (
     <div ref={ref} className="usage-popover connection-popover" role="dialog" aria-label="接続の詳細">
@@ -122,7 +123,17 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
           ok={claude ? claude.installed && claude.loggedIn : undefined}
           detail={claude ? [claude.account, claude.plan && `${planLabel(claude.plan)} プラン`].filter(Boolean).join(" ・ ") || claude.detail : "確認中…"}
         />
-        <ToolRow name="Codex" ok={codex?.implemented ? codex.loggedIn : null} detail={codex?.implemented ? codex.detail : "対応予定"} />
+        {[codex, gemini].map(
+          (p) =>
+            p && (
+              <ToolRow
+                key={p.id}
+                name={p.label}
+                ok={p.implemented ? p.loggedIn : null}
+                detail={p.implemented ? p.detail : p.installed ? "CLI はインストール済み・対応予定" : "対応予定"}
+              />
+            ),
+        )}
         <ToolRow
           name="GitHub CLI（gh）"
           ok={github ? github.installed && github.loggedIn : undefined}

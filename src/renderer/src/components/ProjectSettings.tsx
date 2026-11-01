@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { Bot, Check, FileText, FolderLock, MessageSquarePlus, Sparkles, SquareTerminal, Trash2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   BOARD_STAGE_LABELS,
   BOARD_STAGES,
@@ -7,6 +8,7 @@ import {
   PERMISSION_CHOICES,
   PERMISSION_LABELS,
   PHASES,
+  PROVIDER_IDS,
   type AppSettings,
   type BoardStage,
   type EffortLevel,
@@ -14,11 +16,15 @@ import {
   type Phase,
   type Project,
   type ProjectDefaults,
+  type ProviderId,
+  type ProviderStatus,
 } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { groupModels, modelDisplayName } from "../models";
 import { navigate } from "../router";
 import { SECTION_META } from "../sections";
+import { planLabel } from "../usage";
+import { ClaudeMark } from "./RunOptionsBar";
 import { WriteScopeEditor } from "./WriteScopeEditor";
 
 /** 「アプリの設定に従う」を表す select の値 */
@@ -45,23 +51,148 @@ function useSave() {
   return { saving, message, run };
 }
 
-/** プロジェクトの設定タブ: 基本情報・AI の既定・新しいチャットの既定・書き込みできるフォルダ・削除 */
+type SectionKey = "basic" | "ai" | "chat" | "scope" | "danger";
+
+const SECTIONS: { key: SectionKey; label: string; icon: typeof Bot }[] = [
+  { key: "basic", label: "基本情報", icon: FileText },
+  { key: "ai", label: "AI", icon: Bot },
+  { key: "chat", label: "新しいチャット", icon: MessageSquarePlus },
+  { key: "scope", label: "書き込みできるフォルダ", icon: FolderLock },
+  { key: "danger", label: "削除", icon: Trash2 },
+];
+
+/**
+ * プロジェクトの設定（設定タブと「編集」ダイアログで共通）。
+ * 左の一覧で項目を切り替える: 基本情報・AI・新しいチャットの既定・書き込みできるフォルダ・削除
+ */
 export function ProjectSettings({ project }: { project: Project }) {
+  const [section, setSection] = useState<SectionKey>("basic");
   const settings = useAsync(api.settings);
   return (
-    <>
-      <BasicInfo project={project} />
-      <AiDefaults project={project} app={settings.data} />
-      <ChatDefaults project={project} />
-      <section className="section">
-        <h2>書き込みできるフォルダ</h2>
-        <p className="muted small">
-          要件定義・スケジュールのチャットで AI が書き込めるフォルダです。ここ以外への書き込みと読み取り以外のコマンドは、権限モードに関係なく拒否されます。
-        </p>
-        <WriteScopeEditor project={project} />
-      </section>
-      <DeleteProject project={project} />
-    </>
+    <div className="project-settings">
+      <nav className="project-settings-nav" aria-label="設定の項目">
+        {SECTIONS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            className={`project-settings-tab ${section === key ? "active" : ""} ${key === "danger" ? "danger" : ""}`}
+            aria-current={section === key}
+            onClick={() => setSection(key)}
+          >
+            <Icon size={15} aria-hidden />
+            {label}
+          </button>
+        ))}
+      </nav>
+      <div className="project-settings-content">
+        {section === "basic" && <BasicInfo project={project} />}
+        {section === "ai" && <AiSection project={project} app={settings.data} />}
+        {section === "chat" && <ChatDefaults project={project} />}
+        {section === "scope" && (
+          <section className="section">
+            <h2>書き込みできるフォルダ</h2>
+            <p className="muted small">
+              要件定義・スケジュールのチャットで AI が書き込めるフォルダです。ここ以外への書き込みと読み取り以外のコマンドは、権限モードに関係なく拒否されます。
+            </p>
+            <WriteScopeEditor project={project} />
+          </section>
+        )}
+        {section === "danger" && <DeleteProject project={project} />}
+      </div>
+    </div>
+  );
+}
+
+/** AI の見た目（カードのアイコンと、ログインに使う CLI） */
+const PROVIDER_META: Record<ProviderId, { icon: ReactNode; cli: string }> = {
+  claude: { icon: <ClaudeMark size={20} />, cli: "claude" },
+  codex: { icon: <SquareTerminal size={20} />, cli: "codex" },
+  gemini: { icon: <Sparkles size={20} />, cli: "gemini" },
+};
+
+/** AI: どの AI を使うか（カード）と、その AI の既定 */
+function AiSection({ project, app }: { project: Project; app: AppSettings | undefined }) {
+  const providers = useAsync(api.providers);
+  const [error, setError] = useState<string>();
+  const choose = async (id: ProviderId) => {
+    try {
+      await api.updateProject(project.id, { provider: id });
+      setError(undefined);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  return (
+    <section className="section">
+      <h2>AI</h2>
+      <p className="muted small">このプロジェクトのチャットで使う AI です。どれも Mac にインストールした CLI のログインをそのまま使います（API キーは不要）。</p>
+      <div className="provider-cards" role="radiogroup" aria-label="使う AI">
+        {PROVIDER_IDS.map((id) => (
+          <ProviderCard
+            key={id}
+            id={id}
+            status={providers.data?.find((p) => p.id === id)}
+            selected={project.provider === id}
+            onSelect={() => void choose(id)}
+          />
+        ))}
+      </div>
+      {error && <p className="error small">{error}</p>}
+      {project.provider === "claude" ? (
+        <AiDefaults project={project} app={app} />
+      ) : (
+        <p className="muted small">この AI の既定の設定は、対応したときにここで選べるようになります。</p>
+      )}
+    </section>
+  );
+}
+
+function ProviderCard({
+  id,
+  status,
+  selected,
+  onSelect,
+}: {
+  id: ProviderId;
+  status: ProviderStatus | undefined;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const meta = PROVIDER_META[id];
+  const ready = status?.implemented && status.installed && status.loggedIn;
+  const state = !status
+    ? { tone: "pending", text: "確認中…" }
+    : !status.implemented
+      ? { tone: "na", text: status.installed ? "CLI はインストール済み" : "CLI 未インストール" }
+      : !status.installed
+        ? { tone: "ng", text: "CLI が見つかりません" }
+        : status.loggedIn
+          ? { tone: "ok", text: "ログイン済み" }
+          : { tone: "ng", text: `未ログイン（${meta.cli} でログイン）` };
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      className={`provider-card ${selected ? "selected" : ""}`}
+      disabled={!status?.implemented}
+      title={status?.detail}
+      onClick={onSelect}
+    >
+      <span className="provider-card-head">
+        <span className={`provider-icon provider-${id}`}>{meta.icon}</span>
+        <span className="provider-name">{status?.label ?? id}</span>
+        {selected && <Check size={16} className="provider-check" aria-label="使用中" />}
+        {status && !status.implemented && <span className="badge">対応予定</span>}
+      </span>
+      <span className={`provider-state tone-${state.tone}`}>
+        <span className="provider-dot" />
+        {state.text}
+      </span>
+      {ready && (status.account || status.plan) && (
+        <span className="provider-account muted">{[status.account, status.plan && `${planLabel(status.plan)} プラン`].filter(Boolean).join(" ・ ")}</span>
+      )}
+    </button>
   );
 }
 
@@ -148,8 +279,8 @@ function AiDefaults({ project, app }: { project: Project; app: AppSettings | und
   const appPermission = app ? (app.defaultPermission === "phase" ? "セクションに合わせる" : PERMISSION_LABELS[app.defaultPermission]) : "…";
 
   return (
-    <section className="section">
-      <h2>AI の既定</h2>
+    <div className="ai-defaults">
+      <h3>Claude Code の既定</h3>
       <p className="muted small">
         このプロジェクトの新しいチャットは、ここで決めた設定から始まります。「アプリの設定に従う」の項目は、設定画面の AI の既定を使います。
       </p>
@@ -220,7 +351,7 @@ function AiDefaults({ project, app }: { project: Project; app: AppSettings | und
           {save.message && <span className={save.message.kind === "ok" ? "success" : "error"}>{save.message.text}</span>}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 

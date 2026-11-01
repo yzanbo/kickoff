@@ -38,7 +38,7 @@ export const ARTIFACT_KIND_LABELS: Record<ArtifactKind, string> = {
   note: "メモ",
 };
 
-export const PROVIDER_IDS = ["claude", "codex"] as const;
+export const PROVIDER_IDS = ["claude", "codex", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 export const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"] as const;
