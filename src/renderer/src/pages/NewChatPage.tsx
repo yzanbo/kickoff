@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BOARD_STAGE_LABELS, type BoardStage, type Phase } from "../../../core/types";
 import { api, useAsync } from "../api";
+import { BackToBoard } from "../components/BackToBoard";
 import { Composer } from "../components/Composer";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { SectionPicker } from "../components/SectionPicker";
@@ -27,6 +28,12 @@ export function NewChatPage({ projectId, section: initialSection, stage }: { pro
 
   return (
     <div className="run-page new-chat">
+      <header className="run-header">
+        <div className="run-title-row">
+          <BackToBoard projectId={projectId} />
+          <h1>新しいチャット</h1>
+        </div>
+      </header>
       <div className="timeline">
         <div className="new-chat-hero">
           <div className={`new-chat-icon sec-${section}`}>
