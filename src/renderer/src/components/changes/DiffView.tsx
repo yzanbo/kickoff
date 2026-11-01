@@ -37,6 +37,7 @@ export function DiffView({
   staged,
   version,
   onEdit,
+  commit,
 }: {
   projectId: number;
   file: GitFileChange;
@@ -44,14 +45,16 @@ export function DiffView({
   version: number;
   /** いまのファイルを編集する（消したファイルでは渡さない） */
   onEdit?: () => void;
+  /** コミットでの差分を出すとき（履歴から開いたとき）。staged は使わない */
+  commit?: string;
 }) {
   const [layout, setLayout] = useStoredChoice<DiffLayout>(LAYOUT_KEY, ["split", "unified"], "split");
-  const key = `${projectId}:${staged ? "staged" : "unstaged"}:${file.path}:${file.old_path ?? ""}`;
+  const key = `${projectId}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
   const [state, setState] = useState<{ key: string; diff?: GitDiff; error?: string }>();
 
   useEffect(() => {
     let alive = true;
-    api.gitDiff(projectId, file, staged).then(
+    (commit ? api.gitCommitDiff(projectId, commit, file) : api.gitDiff(projectId, file, staged)).then(
       (diff) => alive && setState({ key, diff }),
       (e: unknown) => alive && setState({ key, error: errorMessage(e) }),
     );
@@ -74,7 +77,7 @@ export function DiffView({
           {file.path}
         </span>
         <span className="diff-state">
-          {CHANGE_LABELS[file.kind]}・{staged ? "ステージ済み" : "未ステージ"}
+          {CHANGE_LABELS[file.kind]}・{commit ? commit.slice(0, 7) : staged ? "ステージ済み" : "未ステージ"}
         </span>
         <span className="spacer" />
         {onEdit && (

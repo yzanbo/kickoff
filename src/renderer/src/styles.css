@@ -6058,3 +6058,170 @@ a:focus-visible,
   justify-content: center;
   width: 100%;
 }
+
+/* 「変更」タブの履歴（Fork と同じく、左にブランチの線、右に件名・作者・日時） */
+.history-list {
+  margin: 0;
+  padding: 4px 0 8px;
+  list-style: none;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 26px;
+  padding: 0 10px 0 6px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.history-row:hover {
+  background: var(--bg-hover);
+}
+
+.history-row.selected {
+  background: var(--bg-active);
+}
+
+.graph-cell {
+  flex: none;
+  overflow: hidden;
+}
+
+.graph-cell path {
+  fill: none;
+  stroke-width: 2;
+}
+
+.graph-cell circle {
+  stroke-width: 2;
+}
+
+.history-text {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.history-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-meta {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+/* ブランチ・タグの印（いまのブランチは目立たせる） */
+.ref-badge {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+}
+
+.ref-badge.head {
+  border-color: color-mix(in srgb, var(--info) 60%, transparent);
+  font-weight: 600;
+  color: var(--info);
+}
+
+.ref-badge.remote {
+  border-style: dashed;
+}
+
+.ref-badge.tag {
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+  color: var(--warn);
+}
+
+.history-more {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.history-more:hover:not(:disabled) {
+  color: var(--text);
+}
+
+/* 選んだコミットの詳細（上にメッセージと変わったファイル、下に差分） */
+.commit-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.commit-meta {
+  flex: none;
+  max-height: 45%;
+  padding: 12px 14px 6px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.commit-subject {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.commit-body {
+  margin: 0 0 8px;
+  font-size: 13px;
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+
+.commit-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.commit-facts dt {
+  color: var(--muted);
+}
+
+.commit-facts dd {
+  margin: 0;
+}
+
+.commit-files-head {
+  margin: 4px 0 2px;
+}
+
+.commit-files .change-file {
+  padding-left: 4px;
+}

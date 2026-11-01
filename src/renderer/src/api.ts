@@ -17,8 +17,10 @@ import type {
   Task,
   BusEvent,
   FileContent,
+  GitCommitDetail,
   GitDiff,
   GitFileChange,
+  GitLog,
   GitHubStatus,
   GitStatus,
   PlanUsage,
@@ -179,6 +181,13 @@ export const api = {
     request<GitStatus>("POST", `/api/projects/${projectId}/git/${action}`, { paths }),
   gitCommit: (projectId: number, message: string) => request<GitStatus>("POST", `/api/projects/${projectId}/git/commit`, { message }),
   gitPush: (projectId: number) => request<GitStatus>("POST", `/api/projects/${projectId}/git/push`),
+  gitLog: (projectId: number, skip = 0) => request<GitLog>("GET", `/api/projects/${projectId}/git/log?skip=${skip}`),
+  gitCommitDetail: (projectId: number, hash: string) => request<GitCommitDetail>("GET", `/api/projects/${projectId}/git/commits/${hash}`),
+  gitCommitDiff: (projectId: number, hash: string, file: GitFileChange) =>
+    request<GitDiff>(
+      "GET",
+      `/api/projects/${projectId}/git/commits/${hash}/diff?${new URLSearchParams({ path: file.path, ...(file.old_path ? { old: file.old_path } : {}) })}`,
+    ),
   projectFiles: (projectId: number) => request<ProjectFiles>("GET", `/api/projects/${projectId}/files`),
   /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
   saveProjectFile: (projectId: number, path: string, content: string, baseHash: string | null) =>
