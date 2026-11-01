@@ -30,8 +30,6 @@ interface Options {
   /** ボードに出ているチャット（削除・アーカイブされたチャットのタブを閉じるのに使う） */
   runs: Run[];
   loaded: boolean;
-  /** ブラウザで前回見ていた URL を覚えておく単位（ボードごと） */
-  scope: string;
   /** true の間は Esc でパネルを閉じない（メニューが開いているときなど） */
   holdEsc?: boolean;
 }
@@ -40,7 +38,7 @@ interface Options {
  * ボードの右側から出てくるパネル（チャット・ブラウザのタブ）。カンバンとグループのボードで共通。
  * body はボードとパネルを並べる要素に渡し、renderPanel() をその中の最後に置く。
  */
-export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) {
+export function useSidePanel({ runs, loaded, holdEsc = false }: Options) {
   // パネルを閉じてもタブは残し、次に開いたときに戻す
   const [tabs, setTabs] = useState<PanelTab[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -67,12 +65,10 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
     setPanelOpen(true);
   };
 
-  /** ブラウザのタブを開く（前回このボードで見ていた URL から） */
-  const urlKey = `kickoff:browser-url:${scope}`;
+  /** ブラウザの新しいタブを開く（空のページで、アドレス欄に入力して開く） */
   const openBrowser = () => {
     const key = `browser:${Date.now()}`;
-    const url = localStorage.getItem(urlKey) || "localhost:3000";
-    setTabs((prev) => [...prev, { key, kind: "browser", url, title: "" }]);
+    setTabs((prev) => [...prev, { key, kind: "browser", url: "", title: "" }]);
     setActiveTab(key);
     setPanelOpen(true);
   };
@@ -144,7 +140,7 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
   const tabLabel = (t: PanelTab) => {
     const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
     const Icon = t.kind === "browser" ? Globe : run ? SECTION_META[run.phase].icon : null;
-    const label = t.kind === "browser" ? t.title || hostOf(t.url) : run?.title || "チャット";
+    const label = t.kind === "browser" ? t.title || (t.url ? hostOf(t.url) : "新しいタブ") : run?.title || "チャット";
     return { run, Icon, label };
   };
 
@@ -236,7 +232,8 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
               <BrowserPane
                 url={t.url}
                 onChange={({ url, title }) => {
-                  localStorage.setItem(urlKey, url);
+                  // 空のページのあいだは「新しいタブ」と表示する
+                  if (url === "about:blank") title = "";
                   setTabs((prev) => prev.map((x) => (x.key === t.key && x.kind === "browser" ? { ...x, title } : x)));
                 }}
               />

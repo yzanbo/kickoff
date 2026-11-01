@@ -36,7 +36,7 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
   const [query, setQuery] = useState("");
   const search = useChatSearch(query, projectId);
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
-  const panel = useSidePanel({ runs, loaded: true, scope: String(projectId), holdEsc: menu !== null });
+  const panel = useSidePanel({ runs, loaded: true, holdEsc: menu !== null });
 
   const groupIds = new Set(groups.map((g) => g.id));
   const membersOf = (groupId: number | null) =>

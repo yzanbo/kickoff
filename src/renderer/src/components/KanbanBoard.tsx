@@ -105,7 +105,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focusRun }:
   });
 
   // 右側から出てくるパネル（チャット・ブラウザのタブ）
-  const panel = useSidePanel({ runs, loaded, scope: String(projectId ?? "all"), holdEsc: menu !== null });
+  const panel = useSidePanel({ runs, loaded, holdEsc: menu !== null });
   /** カードから開く。プロジェクトのボードでは URL もそのチャットにする（サイドバーで強調され、戻る・進むで行き来できる） */
   const open = (run: Run) => {
     panel.open(run);
