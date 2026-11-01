@@ -44,9 +44,20 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus });
-  const app = createApp({ store, bus, token, providers, usage, runner, approvals, uploads, staticDir: opts.staticDir });
-
   const host = opts.host ?? "127.0.0.1";
+  const app = createApp({
+    store,
+    bus,
+    token,
+    providers,
+    usage,
+    runner,
+    approvals,
+    uploads,
+    staticDir: opts.staticDir,
+    listen: { host, port: opts.port },
+  });
+
   const server = await new Promise<ServerType>((resolve, reject) => {
     const s = serve({ fetch: app.fetch, port: opts.port, hostname: host }, () => resolve(s));
     s.once("error", reject);

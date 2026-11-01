@@ -384,6 +384,18 @@ export interface PlanUsage {
   error?: string;
 }
 
+/** Kickoff サーバー（コア）の状態（画面の左下の接続の詳細） */
+export interface ServerStatus {
+  version: string;
+  started_at: string;
+  /** 待ち受けているアドレス（127.0.0.1 ならこの Mac からだけ） */
+  host: string;
+  port: number;
+  /** スマホなど、ほかの端末からの接続を許可しているか */
+  remote_enabled: boolean;
+  agents: { running: number; queued: number; max: number };
+}
+
 export interface GitHubStatus {
   installed: boolean;
   loggedIn: boolean;
