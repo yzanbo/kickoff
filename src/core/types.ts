@@ -481,6 +481,34 @@ export interface FileContent {
   truncated: boolean;
 }
 
+/** プロジェクトのファイルの中を探すときの指定（VS Code の検索と同じ 3 つの切り替え） */
+export interface ProjectSearchQuery {
+  query: string;
+  /** 大文字と小文字を区別する */
+  caseSensitive: boolean;
+  /** 単語単位で探す */
+  wholeWord: boolean;
+  /** 正規表現として探す */
+  regex: boolean;
+}
+
+/** 見つかった行 */
+export interface SearchMatch {
+  line: number;
+  /** 最初に見つかった位置（1 から） */
+  column: number;
+  text: string;
+}
+
+/** プロジェクトのファイルの中を探した結果（ファイルごと） */
+export interface ProjectSearchResult {
+  files: { path: string; matches: SearchMatch[] }[];
+  /** 見つかった行の数 */
+  total: number;
+  /** 多すぎて途中で切った */
+  truncated: boolean;
+}
+
 /** Kickoff サーバー（コア）の状態（画面の左下の接続の詳細） */
 export interface ServerStatus {
   version: string;
