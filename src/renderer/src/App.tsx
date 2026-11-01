@@ -141,6 +141,11 @@ export function App() {
           {CONNECTION_LABELS[connection]}
         </span>
         <span className="spacer" />
+        {usage?.plan && (
+          <span className="plan-chip" title="Claude Code でログインしているアカウントの契約プラン">
+            Claude {planLabel(usage.plan)}
+          </span>
+        )}
         {usage?.available ? (
           <a className="footer-usage" href={href({ name: "settings" })} title="使用状況の詳細">
             <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
@@ -171,6 +176,12 @@ export function App() {
       )}
     </div>
   );
+}
+
+/** 契約プランの表示名（"max" → "Max"） */
+function planLabel(plan: string): string {
+  const known: Record<string, string> = { pro: "Pro", max: "Max", team: "Team", enterprise: "Enterprise", free: "Free" };
+  return known[plan.toLowerCase()] ?? plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
 const CONNECTION_LABELS = { connecting: "接続中…", open: "接続済み", closed: "切断" } as const;
