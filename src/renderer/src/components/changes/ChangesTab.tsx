@@ -8,6 +8,7 @@ import { ErrorText } from "../ErrorText";
 import { IconButton, RefreshButton } from "../IconButton";
 import { Segmented } from "../Segmented";
 import { CHANGE_LABELS, DiffView } from "./DiffView";
+import { FileIcon } from "./FileIcon";
 import { FileTree } from "./FileTree";
 import { FileView } from "./FileView";
 import { SearchView } from "./SearchView";
@@ -202,6 +203,7 @@ function ChangeGroup({
                   title={`${file.path}（${CHANGE_LABELS[file.kind]}）`}
                   onClick={() => onSelect({ path: file.path, staged })}
                 >
+                  <FileIcon name={file.path.slice(slash + 1)} />
                   <span className={cx("change-name", file.kind === "D" && "deleted")}>{file.path.slice(slash + 1)}</span>
                   {slash > 0 && <span className="change-dir">{file.path.slice(0, slash)}</span>}
                   <span className="change-kind" data-kind={file.kind} aria-label={CHANGE_LABELS[file.kind]}>
