@@ -1,12 +1,13 @@
-import { GalleryHorizontal, Plus, Rows3 } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, GalleryHorizontal, Plus, Rows3 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Approval, ProjectSummary, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { PROJECT_DRAG_TYPE, useReorder } from "../../groups";
-import { useStoredChoice } from "../../hooks/useStoredState";
+import { useStoredChoice, useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { initialOf, projectHue } from "../../projectColor";
 import { navigate, routeProjectId, type Route } from "../../router";
+import { IconButton } from "../IconButton";
 import { Segmented } from "../Segmented";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
@@ -15,6 +16,8 @@ import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 const LAYOUT_KEY = "kickoff:sidebar-layout";
 const LAST_HASH_KEY = "kickoff:last-hash-by-project";
+/** プロジェクトごとの、チャット一覧を閉じているか（"1" なら閉じている） */
+const COLLAPSED_PREFIX = "kickoff:collapsed:";
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
 type NavLayout = "slide" | "stack";
 interface Props {
@@ -46,6 +49,8 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   });
   const [currentId, setCurrentId] = useState(loadCurrentProject);
   const [layout, changeLayout] = useStoredChoice<NavLayout>(LAYOUT_KEY, ["slide", "stack"], "slide");
+  // チャット一覧の開閉（縦並びでは、すべてまとめて閉じる・開くこともできる）
+  const collapsedMap = useStoredFlagMap(COLLAPSED_PREFIX);
   // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるように、先に読み込む）
   const { runs, groups } = useSidebarData(ordered);
   const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
@@ -130,6 +135,9 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   );
 
   if (layout === "stack") {
+    const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
+    const allOpen = ordered.every((p) => !collapsedMap.get(p.id));
+    const setAllCollapsed = (on: boolean) => ordered.forEach((p) => collapsedMap.set(p.id, on));
     return (
       <div className="workspaces">
         <div className="workspace-stack">
@@ -142,6 +150,8 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
                 approvals={approvals}
                 route={route}
                 hidden={false}
+                collapsed={collapsedMap.get(p.id)}
+                onCollapsedChange={collapsedMap.set}
                 headDrag={reorder.handle(p.id)}
               />
             </div>
@@ -151,6 +161,11 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
           <button className="sidebar-new" onClick={onNewProject}>
             <Plus size={14} /> 新しいプロジェクト
           </button>
+          {/* すべてのプロジェクトのチャット一覧を、まとめて閉じる・開く */}
+          <div className="stack-fold">
+            <IconButton icon={ChevronsDownUp} label="すべてのプロジェクトを閉じる" title="すべて閉じる" disabled={allCollapsed} onClick={() => setAllCollapsed(true)} />
+            <IconButton icon={ChevronsUpDown} label="すべてのプロジェクトを開く" title="すべて開く" disabled={allOpen} onClick={() => setAllCollapsed(false)} />
+          </div>
           {layoutToggle}
         </div>
       </div>
@@ -174,6 +189,8 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
               approvals={approvals}
               route={route}
               hidden={i !== index}
+              collapsed={collapsedMap.get(p.id)}
+              onCollapsedChange={collapsedMap.set}
             />
           ))}
         </div>
