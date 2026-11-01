@@ -4678,6 +4678,53 @@ mark {
   gap: 4px;
 }
 
+/* 全プロジェクトのカンバン: カードのプロジェクトのバッジと、左端の色の線（サイドバーと同じ色） */
+.project-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 160px;
+  padding: 1px 7px 1px 2px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--ws-hue, 150) 35% 30%);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: hsl(var(--ws-hue, 150) 60% 78%);
+  background: hsl(var(--ws-hue, 150) 30% 17%);
+}
+
+.project-chip-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  color: hsl(var(--ws-hue, 150) 30% 12%);
+  background: hsl(var(--ws-hue, 150) 60% 68%);
+}
+
+:root[data-theme="light"] .project-chip {
+  border-color: hsl(var(--ws-hue, 150) 45% 78%);
+  color: hsl(var(--ws-hue, 150) 55% 30%);
+  background: hsl(var(--ws-hue, 150) 55% 94%);
+}
+
+:root[data-theme="light"] .project-chip-mark {
+  color: #fff;
+  background: hsl(var(--ws-hue, 150) 50% 45%);
+}
+
+.board-card.with-project,
+.list-row.with-project {
+  box-shadow: inset 3px 0 0 hsl(var(--ws-hue, 150) 55% 55%);
+}
+
 .label-chip {
   padding: 1px 6px;
   border-radius: 4px;
