@@ -128,6 +128,15 @@ function registerIpc() {
     });
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });
+  // 参照資料を選ぶ（フォルダもファイルも、複数まとめて選べる）
+  ipcMain.handle("kickoff:pick-references", async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ["openFile", "openDirectory", "multiSelections"],
+      title: "参照資料にするフォルダ・ファイルを選択",
+      buttonLabel: "追加",
+    });
+    return result.canceled ? [] : result.filePaths;
+  });
   ipcMain.handle("kickoff:open-in-chrome", (_e, url: string) => openInChrome(String(url)));
   ipcMain.handle("kickoff:browser-extensions", () => listExtensions());
   ipcMain.handle("kickoff:browser-extension-install", (_e, key: string) => {

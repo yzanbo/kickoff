@@ -162,6 +162,15 @@ export function buildSystemPrompt(project: Project, phase: Phase, task: Task | n
     );
   }
 
+  if (project.references.length > 0) {
+    lines.push(
+      ``,
+      `## 参照資料`,
+      `このプロジェクトでは、次のフォルダ・ファイルを参照資料として読めます。必要に応じて Read / Glob / Grep で読んでください（書き込みはできません）。`,
+      ...project.references.map((r) => `- ${r.path}${r.kind === "folder" ? "/（フォルダ）" : "（ファイル）"}`),
+    );
+  }
+
   if (task) {
     lines.push(``, `## 担当タスク (#${task.id})`, `- タイトル: ${task.title}`);
     if (task.description.trim()) lines.push(`- 内容:\n${indent(task.description.trim())}`);

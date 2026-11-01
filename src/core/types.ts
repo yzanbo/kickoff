@@ -126,6 +126,8 @@ export interface Project {
   write_scopes: WriteScopes;
   /** このプロジェクトの既定（書いていない項目はアプリ全体の設定に従う） */
   defaults: ProjectDefaults;
+  /** 参照資料（AI がいつでも読めるフォルダ・ファイル。絶対パス） */
+  references: ProjectReference[];
   created_at: string;
   updated_at: string;
 }
@@ -143,6 +145,12 @@ export interface ProjectDefaults {
   section?: Phase;
   /** 新しいチャットを置くカンバンの列（なければ状態から決める） */
   stage?: BoardStage;
+}
+
+/** 参照資料の 1 件（AI は読むだけで、書き込めない） */
+export interface ProjectReference {
+  path: string;
+  kind: "folder" | "file";
 }
 
 /** 書き込み範囲を制限するセクション */

@@ -122,3 +122,21 @@ export function evaluateScopedToolUse(
   }
   return { decision: "pass" };
 }
+
+/**
+ * 参照資料（読むだけのフォルダ・ファイル）への書き込みを止める。どのセクション・権限モードでも効く。
+ * readOnly はリポジトリの外にある参照資料の絶対パス（リポジトリの中のものは、ふつうの書き込みの判定に任せる）
+ */
+export function evaluateReferenceWrite(cwd: string, readOnly: string[], toolName: string, input: Record<string, unknown>): ToolDecision {
+  const pathKey = WRITE_TOOLS[toolName];
+  if (!pathKey || readOnly.length === 0) return { decision: "pass" };
+  const filePath = input[pathKey];
+  if (typeof filePath !== "string") return { decision: "pass" };
+  const target = realPathLoose(path.resolve(cwd, filePath));
+  const hit = readOnly.find((ref) => {
+    const r = realPathLoose(ref);
+    return target === r || target.startsWith(r + path.sep);
+  });
+  if (!hit) return { decision: "pass" };
+  return { decision: "deny", reason: `参照資料（${hit}）は読むだけで、書き込めません` };
+}

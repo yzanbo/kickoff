@@ -5,6 +5,8 @@ const api = {
   platform: process.platform,
   pickFolder: (title?: string): Promise<string | null> => ipcRenderer.invoke("kickoff:pick-folder", title),
   openPath: (target: string): Promise<void> => ipcRenderer.invoke("kickoff:open-path", target),
+  /** 参照資料にするフォルダ・ファイルを選ぶ（複数可） */
+  pickReferences: (): Promise<string[]> => ipcRenderer.invoke("kickoff:pick-references"),
   openInChrome: (url: string): Promise<void> => ipcRenderer.invoke("kickoff:open-in-chrome", url),
   /** Kickoff のウィンドウを前面に出す（通知を押したとき） */
   focusWindow: (): Promise<void> => ipcRenderer.invoke("kickoff:focus-window"),
