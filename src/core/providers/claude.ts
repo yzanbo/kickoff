@@ -17,7 +17,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { KICKOFF_SERVER_NAME, type KickoffTool } from "../kickoffTools.js";
-import { evaluateScopedToolUse } from "../scope.js";
+import { evaluateReferenceWrite, evaluateScopedToolUse } from "../scope.js";
 import type { PhasePolicy } from "../phases.js";
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type UsageWindow } from "../types.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
@@ -59,7 +59,8 @@ function agentEnv(): Record<string, string | undefined> {
  */
 function scopeHooks(params: ProviderRunParams): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
   const scope = params.policy.writeScope;
-  if (!scope) return undefined;
+  const readOnly = params.readOnlyPaths ?? [];
+  if (!scope && readOnly.length === 0) return undefined;
   return {
     PreToolUse: [
       {
@@ -67,7 +68,9 @@ function scopeHooks(params: ProviderRunParams): Partial<Record<HookEvent, HookCa
           async (input) => {
             if (input.hook_event_name !== "PreToolUse") return {};
             const toolInput = (input.tool_input ?? {}) as Record<string, unknown>;
-            const result = evaluateScopedToolUse(params.cwd, scope, input.tool_name, toolInput);
+            // 参照資料への書き込みは、どのセクションでも止める。そのあとで、セクションの書き込み範囲を判定する
+            const ref = evaluateReferenceWrite(params.cwd, readOnly, input.tool_name, toolInput);
+            const result = ref.decision !== "pass" || !scope ? ref : evaluateScopedToolUse(params.cwd, scope, input.tool_name, toolInput);
             if (result.decision === "pass") return {};
             return {
               hookSpecificOutput: {

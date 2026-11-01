@@ -93,7 +93,10 @@ export const api = {
   updateProject: (
     id: number,
     patch: Partial<
-      Pick<Project, "name" | "description" | "provider" | "test_command" | "deploy_instructions" | "write_scopes" | "defaults">
+      Pick<
+        Project,
+        "name" | "description" | "provider" | "test_command" | "deploy_instructions" | "write_scopes" | "defaults" | "references"
+      >
     >,
   ) =>
     request<Project>("PATCH", `/api/projects/${id}`, patch),

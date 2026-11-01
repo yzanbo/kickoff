@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { Hono, type Context } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
@@ -23,6 +24,7 @@ import {
   TASK_STATUSES,
   type ApprovalDecision,
   type ModelOption,
+  type Project,
   type ProviderId,
   type ServerStatus,
 } from "./types.js";
@@ -161,6 +163,8 @@ const projectPatchSchema = z
         schedule: z.array(z.string().max(500)).max(20),
       })
       .partial(),
+    // 参照資料（パスだけ送ればよい。種類はサーバーで調べる）
+    references: z.array(z.object({ path: z.string().trim().min(1).max(1000) })).max(50),
     // 送った内容で置き換える（書いていない項目はアプリ全体の設定に従う）
     defaults: z
       .object({
@@ -274,7 +278,7 @@ export function createApp(deps: ServerDeps): Hono {
 
   app.patch("/api/projects/:id", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const patch = projectPatchSchema.parse(await c.req.json());
+    const { references, ...patch } = projectPatchSchema.parse(await c.req.json());
     if (patch.write_scopes) {
       // フォルダはリポジトリからの相対パスに揃え、外を指すものは拒否する
       const merged = { ...project.write_scopes };
@@ -287,7 +291,7 @@ export function createApp(deps: ServerDeps): Hono {
       }
       patch.write_scopes = merged;
     }
-    return c.json(store.updateProject(project.id, patch));
+    return c.json(store.updateProject(project.id, { ...patch, ...(references ? { references: resolveReferences(references) } : {}) }));
   });
 
   // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない
@@ -563,6 +567,25 @@ function requireTask(store: Store, idParam: string) {
   const task = store.getTask(Number(idParam));
   if (!task) throw new HttpError(404, "タスクが見つかりません");
   return task;
+}
+
+/** 参照資料のパスを絶対パスにそろえ（~ はホームフォルダ）、フォルダかファイルかを調べる。見つからなければ 400 */
+function resolveReferences(input: { path: string }[]): Project["references"] {
+  const seen = new Set<string>();
+  const out: Project["references"] = [];
+  for (const { path: raw } of input) {
+    const abs = path.resolve(raw.replace(/^~(?=$|\/)/, os.homedir()));
+    if (seen.has(abs)) continue;
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(abs);
+    } catch {
+      throw new HttpError(400, `見つかりません: ${raw}`);
+    }
+    seen.add(abs);
+    out.push({ path: abs, kind: stat.isDirectory() ? "folder" : "file" });
+  }
+  return out;
 }
 
 function requireGroup(store: Store, idParam: string) {

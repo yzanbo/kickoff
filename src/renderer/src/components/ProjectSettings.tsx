@@ -1,4 +1,4 @@
-import { Bot, Check, FileText, FolderLock, MessageSquarePlus, Sparkles, SquareTerminal, Trash2 } from "lucide-react";
+import { Bot, Check, FileText, FolderLock, Library, MessageSquarePlus, Sparkles, SquareTerminal, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   BOARD_STAGE_LABELS,
@@ -25,6 +25,7 @@ import { navigate } from "../router";
 import { SECTION_META } from "../sections";
 import { planLabel } from "../usage";
 import { ClaudeMark } from "./RunOptionsBar";
+import { ReferenceEditor } from "./ReferenceEditor";
 import { WriteScopeEditor } from "./WriteScopeEditor";
 
 /** 「アプリの設定に従う」を表す select の値 */
@@ -51,10 +52,11 @@ function useSave() {
   return { saving, message, run };
 }
 
-type SectionKey = "basic" | "ai" | "chat" | "scope" | "danger";
+type SectionKey = "basic" | "refs" | "ai" | "chat" | "scope" | "danger";
 
 const SECTIONS: { key: SectionKey; label: string; icon: typeof Bot }[] = [
   { key: "basic", label: "基本情報", icon: FileText },
+  { key: "refs", label: "参照資料", icon: Library },
   { key: "ai", label: "AI", icon: Bot },
   { key: "chat", label: "新しいチャット", icon: MessageSquarePlus },
   { key: "scope", label: "書き込みできるフォルダ", icon: FolderLock },
@@ -85,6 +87,15 @@ export function ProjectSettings({ project }: { project: Project }) {
       </nav>
       <div className="project-settings-content">
         {section === "basic" && <BasicInfo project={project} />}
+        {section === "refs" && (
+          <section className="section">
+            <h2>参照資料</h2>
+            <p className="muted small">
+              く、このプロジェクトのチャットで AI がいつでも読めるフォルダ・ファイルです。AI には一覧が伝わり、必要に応じて中身を読みます（書き込みはできません）。
+            </p>
+            <ReferenceEditor project={project} />
+          </section>
+        )}
         {section === "ai" && <AiSection project={project} app={settings.data} />}
         {section === "chat" && <ChatDefaults project={project} />}
         {section === "scope" && (

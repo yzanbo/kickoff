@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { ApprovalCenter } from "./approvals.js";
 import type { Bus } from "./bus.js";
 import { createKickoffTools } from "./kickoffTools.js";
@@ -5,7 +6,7 @@ import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import { resolveRunDefaults } from "./sectionDefaults.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
-import type { Attachment, BoardStage, Phase, ProviderId, Run, RunOptions } from "./types.js";
+import type { Attachment, BoardStage, Phase, Project, ProviderId, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
 import { withAttachmentNote, type UploadStore } from "./uploads.js";
 
@@ -191,7 +192,9 @@ export class Runner {
           effort: run.effort,
           permissionMode: run.permission_mode,
           fastMode: Boolean(run.fast_mode),
-          additionalDirectories: this.deps.uploads ? [this.deps.uploads.dir] : [],
+          // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
+          additionalDirectories: [...(this.deps.uploads ? [this.deps.uploads.dir] : []), ...referenceDirectories(project)],
+          readOnlyPaths: project.references.map((r) => r.path).filter((p) => !isInside(project.repo_path, p)),
           tools: createKickoffTools({
             store,
             projectId: project.id,
@@ -283,4 +286,15 @@ export class Runner {
 function firstLine(text: string): string {
   const line = text.trim().split("\n")[0] ?? "";
   return line.length > 60 ? `${line.slice(0, 60)}…` : line;
+}
+
+/** 参照資料を読めるようにするフォルダ（ファイルはそのフォルダ）。重複は除く */
+function referenceDirectories(project: Project): string[] {
+  return [...new Set(project.references.map((r) => (r.kind === "folder" ? r.path : path.dirname(r.path))))];
+}
+
+/** target が dir の中（dir 自身を含む）か */
+function isInside(dir: string, target: string): boolean {
+  const rel = path.relative(path.resolve(dir), path.resolve(target));
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
 }

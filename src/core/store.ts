@@ -136,6 +136,8 @@ const MIGRATIONS = [
   // v9: コンテキストウィンドウの使用量
   `ALTER TABLE runs ADD COLUMN context_tokens INTEGER;
    ALTER TABLE runs ADD COLUMN context_window INTEGER;`,
+  // v10: 参照資料（JSON。references は SQL の予約語なので列名を変える）
+  "ALTER TABLE projects ADD COLUMN reference_paths TEXT NOT NULL DEFAULT '[]'",
 ];
 
 type Row = Record<string, SQLInputValue>;
@@ -155,8 +157,13 @@ export function snippetAround(text: string, keyword: string): { snippet: string;
 
 /** DB の行（write_scopes・defaults は JSON 文字列）をアプリの型に変換する */
 function toProject(row: unknown): Project {
-  const r = row as Omit<Project, "write_scopes" | "defaults"> & { write_scopes: string; defaults: string };
-  return { ...r, write_scopes: parseJson(r.write_scopes), defaults: parseJson(r.defaults) };
+  const { reference_paths, ...r } = row as Omit<Project, "write_scopes" | "defaults" | "references"> & {
+    write_scopes: string;
+    defaults: string;
+    reference_paths?: string;
+  };
+  const references = parseJson<Project["references"]>(reference_paths || "[]");
+  return { ...r, write_scopes: parseJson(r.write_scopes), defaults: parseJson(r.defaults), references: Array.isArray(references) ? references : [] };
 }
 
 /** 壊れた値は空（既定）に戻す */
@@ -340,13 +347,16 @@ export class Store {
       auto_commit?: boolean;
       write_scopes?: Project["write_scopes"];
       defaults?: Project["defaults"];
+      references?: Project["references"];
     },
   ): Project {
+    const { references, ...rest } = patch;
     const row: Row = {
-      ...patch,
+      ...rest,
       auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0,
       write_scopes: patch.write_scopes === undefined ? undefined : JSON.stringify(patch.write_scopes),
       defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
+      reference_paths: references === undefined ? undefined : JSON.stringify(references),
     } as Row;
     this.updateRow("projects", id, row, [
       "name",
@@ -358,6 +368,7 @@ export class Store {
       "auto_commit",
       "write_scopes",
       "defaults",
+      "reference_paths",
     ]);
     const project = this.getProject(id)!;
     this.onChange({ type: "project", project });

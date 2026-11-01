@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { createKickoffTools } from "./kickoffTools.js";
 import { phasePolicy } from "./phases.js";
-import { evaluateScopedToolUse, isReadOnlyCommand, normalizeScope } from "./scope.js";
+import { evaluateReferenceWrite, evaluateScopedToolUse, isReadOnlyCommand, normalizeScope } from "./scope.js";
 import { Store } from "./store.js";
 
 const repo = () => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-scope-")));
@@ -71,4 +71,13 @@ test("要件定義・スケジュールには既定で docs が設定され、�
   await assert.rejects(save.handler({ kind: "schedule", title: "s", content: "x", export_path: "docs/schedule.md" }), /planning/);
   await save.handler({ kind: "schedule", title: "s", content: "x", export_path: "planning/schedule.md" });
   assert.ok(fs.existsSync(path.join(r, "planning", "schedule.md")));
+});
+
+test("参照資料への書き込みは、どのセクションでも拒否する", () => {
+  const ref = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-ref-"));
+  const repo = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-repo-"));
+  assert.equal(evaluateReferenceWrite(repo, [ref], "Write", { file_path: path.join(ref, "a.md") }).decision, "deny");
+  assert.equal(evaluateReferenceWrite(repo, [ref], "Edit", { file_path: path.join(repo, "src/a.ts") }).decision, "pass");
+  assert.equal(evaluateReferenceWrite(repo, [ref], "Read", { file_path: path.join(ref, "a.md") }).decision, "pass");
+  assert.equal(evaluateReferenceWrite(repo, [], "Write", { file_path: path.join(ref, "a.md") }).decision, "pass");
 });
