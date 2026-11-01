@@ -1,4 +1,4 @@
-import { Search, Settings, SquareKanban, SquarePen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Search, Settings, SquareKanban, SquarePen } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Approval, BusEvent, ProjectSummary } from "../../core/types";
 import { api, useServerEvents } from "./api";
@@ -26,6 +26,14 @@ export function App() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [creating, setCreating] = useState(false);
   const [palette, setPalette] = useState(false);
+  // サイドバーの開閉（⌘B）。状態は覚えておく
+  const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem("kickoff:sidebar") !== "closed");
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((open) => {
+      localStorage.setItem("kickoff:sidebar", open ? "closed" : "open");
+      return !open;
+    });
+  }, []);
   const [searching, setSearching] = useState(false);
   const [projectsDir, setProjectsDir] = useState("~/Documents");
 
@@ -66,7 +74,10 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
-      if (e.key === "k") {
+      if (e.key === "b") {
+        e.preventDefault();
+        toggleSidebar();
+      } else if (e.key === "k") {
         e.preventDefault();
         setPalette(true);
       } else if (e.key === "f") {
@@ -79,7 +90,7 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [route]);
+  }, [route, toggleSidebar]);
 
   const { usage } = planUsage;
 
@@ -91,12 +102,22 @@ export function App() {
   }
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
+    <div className={`layout ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
+      {!sidebarOpen && (
+        <button className="sidebar-expand" title="サイドバーを開く（⌘B）" aria-label="サイドバーを開く" onClick={toggleSidebar}>
+          <PanelLeftOpen size={16} />
+        </button>
+      )}
+      <aside className="sidebar" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
         <div className="sidebar-header">
-          <a className="brand" href={href({ name: "home" })}>
-            Kickoff
-          </a>
+          <div className="brand-row">
+            <a className="brand" href={href({ name: "home" })}>
+              Kickoff
+            </a>
+            <button className="icon-button sidebar-close" title="サイドバーを閉じる（⌘B）" aria-label="サイドバーを閉じる" onClick={toggleSidebar}>
+              <PanelLeftClose size={15} />
+            </button>
+          </div>
         </div>
         <div className="nav-rows">
           <button className="nav-row" onClick={startNewChat} title="新しいチャット（⌘N）">
