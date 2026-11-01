@@ -475,3 +475,10 @@ export async function finishWorktree(repo: string, target: string): Promise<GitW
   if (worktree.branch) await gitOutput(repo, ["branch", "-D", worktree.branch]);
   return listWorktrees(repo);
 }
+
+/** リモートの情報を取ってくる（作業中のファイルは変えない。遅れている数を出すのに使う。origin がなければ何もしない） */
+export async function fetchRemote(repo: string): Promise<void> {
+  const remotes = await gitOutput(repo, ["remote"]);
+  if (!remotes.trim()) return;
+  await gitOutput(repo, ["fetch", "-q", "--prune"], [], 120_000);
+}

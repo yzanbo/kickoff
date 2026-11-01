@@ -1,4 +1,4 @@
-import { ArrowUp, Check, UploadCloud } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, UploadCloud } from "lucide-react";
 import { useState } from "react";
 import type { GitStatus } from "../../../../core/types";
 import { confirmDialog } from "../../dialogs";
@@ -20,7 +20,7 @@ export function CommitBox({
   guard: (action: () => Promise<unknown>) => Promise<void>;
 }) {
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState<"commit" | "push">();
+  const [busy, setBusy] = useState<"commit" | "push" | "pull">();
   const changes = [...status.conflicts, ...status.unstaged];
   const canCommit = status.staged.length > 0 || changes.length > 0;
 
@@ -53,6 +53,14 @@ export function CommitBox({
     setBusy(undefined);
   };
 
+  // リモートより遅れていれば、早送りで取り込む（GitHub でマージした PR を手元に入れるときなど）
+  const pull = async () => {
+    if (busy) return;
+    setBusy("pull");
+    await guard(() => git.pull());
+    setBusy(undefined);
+  };
+
   // プッシュするもの: 進んでいるコミット、またはまだ公開していないブランチ（origin があるとき）
   const publish = !status.upstream && status.hasOrigin && status.branch !== null;
   return (
@@ -74,6 +82,11 @@ export function CommitBox({
       <button className="btn btn-primary commit-button" disabled={Boolean(busy) || !canCommit} onClick={() => void commit()}>
         <Check size={14} aria-hidden /> {busy === "commit" ? "コミット中…" : "コミット"}
       </button>
+      {status.behind > 0 && (
+        <button className="btn commit-button" disabled={Boolean(busy)} onClick={() => void pull()}>
+          <ArrowDown size={14} aria-hidden /> {busy === "pull" ? "プル中…" : `プル（${status.behind} 件）`}
+        </button>
+      )}
       {(status.ahead > 0 || publish) && (
         <button className="btn commit-button" disabled={Boolean(busy)} onClick={() => void push()}>
           {publish ? <UploadCloud size={14} aria-hidden /> : <ArrowUp size={14} aria-hidden />}

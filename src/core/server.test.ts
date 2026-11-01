@@ -418,7 +418,10 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "add", "."], { cwd: other });
   execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "ほかから"], { cwd: other });
   execFileSync("git", ["push", "-q"], { cwd: other });
+  // フェッチで、遅れている数がわかる
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/fetch`)).body.behind, 1);
   const pulled = await call("POST", `/api/projects/${project.id}/git/pull`);
+  assert.equal(pulled.body.behind, 0);
   assert.equal(pulled.status, 200);
   assert.equal(fs.existsSync(path.join(repo, "from-other.txt")), true);
 });
