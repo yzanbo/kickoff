@@ -3018,6 +3018,44 @@ mark {
   font-size: 12px;
 }
 
+/* 新しいチャットの作成先のグループ（プロジェクト名の横） */
+.new-chat .run-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.new-chat-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--muted);
+}
+
+.new-chat-group.has-group {
+  border-color: color-mix(in srgb, var(--accent-bright) 50%, transparent);
+  color: var(--accent-bright);
+}
+
+.new-chat-group select {
+  width: auto;
+  /* 選んだ名前の長さに合わせる（いちばん長い選択肢の幅に広がらないように） */
+  field-sizing: content;
+  padding: 0 2px;
+  border: none;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.new-chat-group select:focus {
+  outline: none;
+}
+
 .new-chat-hero {
   display: grid;
   justify-items: center;
