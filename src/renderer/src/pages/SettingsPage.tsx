@@ -9,6 +9,7 @@ import {
   type PermissionChoice,
 } from "../../../core/types";
 import { api, useAsync } from "../api";
+import { BrowserExtensions } from "../components/BrowserExtensions";
 import { StatusCard } from "../components/StatusCard";
 import { groupModels, modelDisplayName } from "../models";
 import { UsagePanel } from "../components/UsagePanel";
@@ -223,6 +224,11 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
           </div>
         </section>
       )}
+
+      <section className="section">
+        <h2>ブラウザの拡張機能</h2>
+        <BrowserExtensions />
+      </section>
 
       <section className="section">
         <h2>スマホ連携</h2>
