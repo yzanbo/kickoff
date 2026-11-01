@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { PHASE_LABELS, SCOPED_SECTIONS, type Project, type ScopedSection } from "../../../core/types";
-import { api } from "../api";
-import { errorMessage } from "../errors";
+import { PHASE_LABELS, SCOPED_SECTIONS, type Project, type ScopedSection } from "../../../../core/types";
+import { api } from "../../api";
+import { errorMessage } from "../../errors";
 
 const DEFAULT_SCOPE = ["docs"];
 

@@ -3,7 +3,7 @@ import { useAppData } from "./appData";
 import { AppFooter } from "./components/AppFooter";
 import { CommandPalette } from "./components/CommandPalette";
 import { ConnectionPopover } from "./components/ConnectionPopover";
-import { NewProjectDialog } from "./components/NewProjectDialog";
+import { NewProjectDialog } from "./components/newProject/NewProjectDialog";
 import { SearchPanel } from "./components/SearchPanel";
 import { loadCurrentProject } from "./components/sidebar/currentProject";
 import { Sidebar, SidebarOpenButton } from "./components/sidebar/Sidebar";
