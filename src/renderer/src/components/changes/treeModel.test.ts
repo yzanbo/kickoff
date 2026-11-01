@@ -26,6 +26,7 @@ test("ファイルは未ステージ・競合を優先し、フォルダには�
   const { files, folders } = changeKinds({
     repo: true,
     branch: "main",
+    upstream: null,
     ahead: 0,
     behind: 0,
     staged: [{ path: "src/a.ts", kind: "A" }],
