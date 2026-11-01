@@ -2575,6 +2575,11 @@ mark {
   display: none;
 }
 
+.tool-group {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .tool-group > summary {
   display: flex;
   align-items: center;
@@ -2637,6 +2642,8 @@ mark {
 
 .tool-calls {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 4px;
   margin: 4px 0 8px;
   padding: 8px;
@@ -2646,6 +2653,7 @@ mark {
 }
 
 .tool-call {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-elev);
@@ -2669,6 +2677,8 @@ mark {
 }
 
 .tool-arg {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   font-family: var(--mono);
   font-size: 12px;

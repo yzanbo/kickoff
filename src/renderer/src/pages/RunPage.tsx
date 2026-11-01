@@ -458,7 +458,12 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
         )}
       </summary>
       {detail}
-      {r?.content && (r.is_error || !detail) && <pre className={`tool-output ${r.is_error ? "error" : ""}`}>{rel(r.content)}</pre>}
+      {r?.content && (r.is_error || !detail) && (
+        <pre className={`tool-output ${r.is_error ? "error" : ""}`}>
+          {/* サブエージェントの結果は、Claude Code の前置きを外して報告の本文だけを見せる */}
+          {rel(name === "Agent" || name === "Task" ? cleanSubagentReport(r.content) : r.content)}
+        </pre>
+      )}
     </details>
   );
 }
