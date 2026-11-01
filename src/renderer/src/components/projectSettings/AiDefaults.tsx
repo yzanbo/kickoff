@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice, type Project, type ProjectDefaults } from "../../../../core/types";
 import { api, useAsync } from "../../api";
 import { useSave } from "../../hooks/useSave";
-import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../../models";
+import { modelDisplayName } from "../../models";
+import { EffortOptions, ModelOptions, PermissionOptions } from "../AiOptions";
+import { Field } from "../Field";
 import { SaveActions } from "../SaveActions";
 
 /** 「アプリの設定に従う」を表す select の値 */
@@ -37,50 +39,29 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
         このプロジェクトの新しいチャットは、ここで決めた設定から始まります。「アプリの設定に従う」の項目は、設定画面の AI の既定を使います。
       </p>
       <div className="form">
-        <label className="field">
-          <span className="field-label">モデル</span>
+        <Field label="モデル">
           <select value={draft.model ?? INHERIT} onChange={(e) => set("model", e.target.value)}>
             <option value={INHERIT}>アプリの設定に従う（{app ? modelDisplayName(list, app.claudeModel) : "…"}）</option>
-            {draft.model && !list.some((m) => m.value === draft.model) && <option value={draft.model}>{draft.model}</option>}
-            {groupModels(list).map((g) => (
-              <optgroup key={g.family} label={g.family}>
-                {g.items.map((i) => (
-                  <option key={i.value} value={i.value}>
-                    {i.version} — {i.description}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
+            <ModelOptions models={list} value={draft.model} />
           </select>
-        </label>
-        <label className="field">
-          <span className="field-label">推論の深さ（effort）</span>
+        </Field>
+        <Field label="推論の深さ（effort）">
           <select
             value={draft.effort === undefined ? INHERIT : (draft.effort ?? "")}
             onChange={(e) => set("effort", e.target.value === INHERIT ? INHERIT : ((e.target.value || null) as EffortLevel | null))}
           >
             <option value={INHERIT}>アプリの設定に従う（{appEffort}）</option>
             <option value="">セクションに合わせる</option>
-            {effortsFor(currentModel).map((level) => (
-              <option key={level} value={level}>
-                {EFFORT_LABELS[level]}
-              </option>
-            ))}
+            <EffortOptions model={currentModel} />
           </select>
-        </label>
-        <label className="field">
-          <span className="field-label">権限モード</span>
+        </Field>
+        <Field label="権限モード">
           <select value={draft.permission ?? INHERIT} onChange={(e) => set("permission", e.target.value as PermissionChoice | typeof INHERIT)}>
             <option value={INHERIT}>アプリの設定に従う（{appPermission}）</option>
-            {permissionChoices(currentModel).map((p) => (
-              <option key={p} value={p}>
-                {p === "phase" ? "セクションに合わせる" : PERMISSION_LABELS[p]}
-              </option>
-            ))}
+            <PermissionOptions model={currentModel} phaseLabel="セクションに合わせる" />
           </select>
-        </label>
-        <label className="field">
-          <span className="field-label">ファストモード</span>
+        </Field>
+        <Field label="ファストモード">
           <select
             value={draft.fastMode === undefined ? INHERIT : draft.fastMode ? "on" : "off"}
             onChange={(e) => set("fastMode", e.target.value === INHERIT ? INHERIT : e.target.value === "on")}
@@ -91,7 +72,7 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
             </option>
             <option value="off">使わない</option>
           </select>
-        </label>
+        </Field>
         <SaveActions save={save} disabled={!dirty} onSave={() => api.updateProject(project.id, { defaults: draft })} />
       </div>
     </div>

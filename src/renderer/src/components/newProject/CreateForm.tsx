@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { ErrorText } from "../ErrorText";
+import { Field } from "../Field";
 import { FolderField } from "./FolderField";
 import type { FormProps } from "./NewProjectDialog";
 
@@ -46,25 +47,22 @@ export function CreateForm({ defaultParentDir, onCancel, onCreated }: FormProps 
 
   return (
     <form className="dialog-form" onSubmit={(e) => void submit(e)}>
-      <label className="field">
-        <span className="field-label">プロジェクト名</span>
+      <Field label="プロジェクト名">
         <input type="text" value={name} autoFocus required maxLength={100} onChange={(e) => setName(e.target.value)} />
-      </label>
+      </Field>
 
-      <label className="field">
-        <span className="field-label">アイデア</span>
+      <Field label="アイデア">
         <textarea
           rows={5}
           value={idea}
           placeholder="作りたいもの、困っていること、思いついたことを数行で。要件定義で AI と詰めていきます。"
           onChange={(e) => setIdea(e.target.value)}
         />
-      </label>
+      </Field>
 
       <FolderField label="保存先" value={parentDir} onChange={setParentDir} pickerTitle="保存先のフォルダを選択" />
 
-      <label className="field">
-        <span className="field-label">フォルダ名</span>
+      <Field label="フォルダ名" help={`${fullPath} に作成し、git リポジトリとして初期化します（英数字・ハイフン・アンダースコア）。`}>
         <input
           type="text"
           value={folderName}
@@ -76,10 +74,7 @@ export function CreateForm({ defaultParentDir, onCancel, onCreated }: FormProps 
             setFolderEdited(true);
           }}
         />
-        <span className="field-help">
-          {fullPath} に作成し、git リポジトリとして初期化します（英数字・ハイフン・アンダースコア）。
-        </span>
-      </label>
+      </Field>
 
       <ErrorText message={error} />
 
