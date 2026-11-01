@@ -143,6 +143,12 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     },
   });
 
+  /** カードのどこを押しても開く（矢印などのボタンとタイトルのリンクはそれぞれの動作のまま） */
+  const openCard = (e: MouseEvent, run: Run) => {
+    if ((e.target as HTMLElement).closest("button, a")) return;
+    navigate({ name: "run", projectId: run.project_id, runId: run.id });
+  };
+
   const openMenu = (e: MouseEvent, run: Run) => {
     e.preventDefault();
     setMenu({ x: e.clientX, y: e.clientY, run });
@@ -212,6 +218,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                         setOver(null);
                       }}
                       onContextMenu={(e) => openMenu(e, run)}
+                      onClick={(e) => openCard(e, run)}
                     >
                       <a className="card-link" href={href({ name: "run", projectId: run.project_id, runId: run.id })} draggable={false}>
                         <span className="card-title">{run.title || "無題のチャット"}</span>
