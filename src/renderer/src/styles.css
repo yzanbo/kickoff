@@ -3418,13 +3418,10 @@ mark {
   font-weight: 600;
 }
 
-/* 手で圧縮する（ボタンと説明） */
+/* 手で圧縮するボタン（上の文字のすぐ下に置く） */
 .context-compact {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  margin-top: 8px;
+  margin-top: -4px;
 }
 
 .context-bar {
@@ -4387,12 +4384,16 @@ mark {
   border-left: 1px solid var(--border);
 }
 
+/* 表示と探す・絞り込むは名前のすぐ右に左寄せ、作る・開くとパネルの開閉は右端に寄せる */
 .board-tools {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
   align-items: center;
   gap: 8px;
+  margin-left: 8px;
+}
+
+.board-tools-end {
   margin-left: auto;
 }
 
