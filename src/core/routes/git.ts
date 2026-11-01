@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { commitStaged, discardPaths, FileConflictError, gitCommitDetail, gitCommitDiff, gitLog, gitRefs, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
+import { commitStaged, discardPaths, FileConflictError, addWorktree, gitCommitDetail, gitCommitDiff, gitLog, gitRefs, listWorktrees, removeWorktree, worktreePathFor, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
 import type { ServerDeps } from "../server.js";
 import { HttpError, requireProject } from "./http.js";
 
@@ -130,6 +130,35 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const query = z.object({ path: z.string().min(1).max(1000), old: z.string().min(1).max(1000).optional() }).parse({ path: c.req.query("path"), old: c.req.query("old") });
     try {
       return c.json(await gitCommitDiff(project.repo_path, c.req.param("hash"), query.path, query.old));
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+  });
+
+  // ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）
+  app.get("/api/projects/:id/git/worktrees", async (c) => c.json(await listWorktrees(requireProject(store, c.req.param("id")).repo_path)));
+
+  app.get("/api/projects/:id/git/worktrees/path", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { branch } = z.object({ branch: z.string().min(1).max(200) }).parse({ branch: c.req.query("branch") });
+    return c.json({ path: await worktreePathFor(project.repo_path, branch) });
+  });
+
+  app.post("/api/projects/:id/git/worktrees", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { branch } = z.object({ branch: z.string().trim().min(1).max(200) }).parse(await c.req.json());
+    try {
+      return c.json(await addWorktree(project.repo_path, branch), 201);
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+  });
+
+  app.post("/api/projects/:id/git/worktrees/remove", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { path, force } = z.object({ path: z.string().min(1).max(2000), force: z.boolean().default(false) }).parse(await c.req.json());
+    try {
+      return c.json(await removeWorktree(project.repo_path, path, force));
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }

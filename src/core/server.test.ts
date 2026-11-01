@@ -389,4 +389,21 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.deepEqual(refs.remotes, [{ name: "origin", branches: [{ name: "origin/main", hash: log.commits[0].hash }] }]);
   assert.deepEqual(refs.tags, [{ name: "v1", hash: log.commits[1].hash }]);
   assert.deepEqual(refs.stashes, []);
+
+  // ワークツリー: 作る（リポジトリの隣のフォルダ）・一覧・変更があれば force でないと消せない
+  const wtUrl = `/api/projects/${project.id}/git/worktrees`;
+  assert.equal((await call("GET", wtUrl)).body.length, 1);
+  assert.equal((await call("POST", wtUrl, { branch: "bad name" })).status, 400);
+  const created = await call("POST", wtUrl, { branch: "feature/x" });
+  assert.equal(created.status, 201);
+  const wt = created.body.find((w: { branch: string }) => w.branch === "feature/x");
+  assert.equal(wt.path, path.join(path.dirname(fs.realpathSync(repo)), `${path.basename(fs.realpathSync(repo))}-worktrees`, "feature-x"));
+  assert.equal(created.body[0].main, true);
+  fs.writeFileSync(path.join(wt.path, "wip.txt"), "wip\n");
+  assert.equal((await call("POST", `${wtUrl}/remove`, { path: wt.path })).status, 400);
+  assert.equal((await call("POST", `${wtUrl}/remove`, { path: created.body[0].path })).status, 400);
+  const removed = (await call("POST", `${wtUrl}/remove`, { path: wt.path, force: true })).body;
+  assert.equal(removed.length, 1);
+  assert.equal(fs.existsSync(wt.path), false);
+  fs.rmSync(path.dirname(wt.path), { recursive: true, force: true });
 });
