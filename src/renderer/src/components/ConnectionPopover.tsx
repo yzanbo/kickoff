@@ -3,7 +3,6 @@ import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../core/t
 import { api, type ConnectionState } from "../api";
 import { errorMessage } from "../errors";
 import { useDismiss } from "../hooks/useDismiss";
-import { href } from "../router";
 import { accountLine } from "../usage";
 import { ErrorText } from "./ErrorText";
 import { PopoverHeader } from "./PopoverHeader";
@@ -14,6 +13,8 @@ interface Props {
   /** 最後につながった時刻 */
   since: number | null;
   onClose: () => void;
+  /** 設定（接続の項目）を開く */
+  onOpenSettings: () => void;
 }
 
 export const CONNECTION_LABELS: Record<ConnectionState, string> = {
@@ -28,7 +29,7 @@ const STATE_TEXT: Record<ConnectionState, string> = { connecting: "接続中…"
 const timeText = (t: number | string) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 /** 左下の接続の表示を押したときに、左下から出る詳細（画面は移らない） */
-export function ConnectionPopover({ state, since, onClose }: Props) {
+export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [server, setServer] = useState<ServerStatus>();
   const [providers, setProviders] = useState<ProviderStatus[]>();
@@ -127,9 +128,16 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
       </section>
 
       <ErrorText message={error} />
-      <a className="conn-settings-link small" href={href({ name: "settings" })} onClick={onClose}>
+      <button
+        type="button"
+        className="link-button conn-settings-link small"
+        onClick={() => {
+          onClose();
+          onOpenSettings();
+        }}
+      >
         設定を開く
-      </a>
+      </button>
     </div>
   );
 }
