@@ -1,13 +1,17 @@
+import { Shrink } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ProviderStatus, Run, UsageWindow } from "../../../core/types";
 import { api } from "../api";
 import { cachedLoader } from "../cachedLoader";
+import { errorMessage } from "../errors";
 import { formatTokens } from "../format";
 import { useDismiss } from "../hooks/useDismiss";
 import { resetIn } from "../time";
 import { planLabel, usageLevel, usageUnavailableText, useSharedPlanUsage, weeklyModel } from "../usage";
 import { ClaudeMark } from "./ClaudeMark";
+import { ErrorText } from "./ErrorText";
 import { RefreshButton } from "./IconButton";
+import { BUSY_STATUSES } from "./RunStatus";
 
 // ログイン中のアカウントは、アプリ全体で 1 回だけ取得する
 const loadProviders = cachedLoader<ProviderStatus[]>(api.providers, []);
@@ -58,6 +62,19 @@ export function ContextMeter({ run }: { run: Run }) {
     ? [usage.five_hour, usage.seven_day, ...usage.model_weekly].filter((w) => w.utilization !== null)
     : [];
 
+  // 手で圧縮する（作業中・まだ会話がないときはできない）。終わると compact イベントとコンテキストの大きさが届く
+  const compacting = run.status === "queued" || run.status === "running";
+  const canCompact = Boolean(run.session_id) && !BUSY_STATUSES.includes(run.status);
+  const [compactError, setCompactError] = useState<string>();
+  const compact = async () => {
+    setCompactError(undefined);
+    try {
+      await api.compactRun(run.id);
+    } catch (e) {
+      setCompactError(errorMessage(e));
+    }
+  };
+
   return (
     <div ref={ref} className="context-meter" onMouseEnter={show} onMouseLeave={hide}>
       <button
@@ -77,13 +94,27 @@ export function ContextMeter({ run }: { run: Run }) {
               <p className="context-sub">次の応答のあとに表示されます</p>
             ) : (
               <>
-                <div className="context-pct">{pct}%使用</div>
-                <div className="context-sub">
-                  {formatTokens(tokens!)} / {formatTokens(windowSize!)}トークン
+                <div className="context-row">
+                  <span className="context-pct">{pct}%使用</span>
+                  <span className="context-sub">
+                    {formatTokens(tokens!)} / {formatTokens(windowSize!)}トークン
+                  </span>
+                </div>
+                {/* どれだけ使っているかを、数字だけでなく棒でも見せる */}
+                <div className="context-bar" role="img" aria-label={`${pct}% 使用`}>
+                  <span className={`context-bar-fill tone-${tone(pct)}`} style={{ width: `${pct}%` }} />
                 </div>
               </>
             )}
             <div className="context-sub">セッションコスト: ${run.cost_usd.toFixed(2)}（API 換算）</div>
+            {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
+            <div className="context-compact">
+              <button type="button" className="btn btn-sm" disabled={!canCompact} onClick={() => void compact()}>
+                <Shrink size={13} /> {compacting ? "圧縮中…" : "会話を圧縮"}
+              </button>
+              <span className="context-sub">これまでの会話を要約して、コンテキストを空けます</span>
+            </div>
+            <ErrorText message={compactError} />
           </section>
 
           <section className="context-section">

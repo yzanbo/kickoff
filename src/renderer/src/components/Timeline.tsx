@@ -2,6 +2,7 @@ import { ChevronRight, Wrench } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 import type { Attachment, RunEvent } from "../../../core/types";
 import { cx } from "../cx";
+import { formatTokens } from "../format";
 import { cleanSubagentReport, isSubagentTool } from "../subagents";
 import { summarizeTools, toolLabel, type TimelineItem, type ToolCall } from "../timeline";
 import { describeToolInput } from "./ApprovalCard";
@@ -175,6 +176,16 @@ function EventItem({ event }: { event: RunEvent }) {
       return <div className="event-note error">{String(data.message)}</div>;
     case "notice":
       return <div className="event-note">{String(data.message)}</div>;
+    case "compact": {
+      // 手で圧縮したとき・上限に近づいて自動で圧縮されたとき
+      const { trigger, pre_tokens, post_tokens } = data as { trigger: "manual" | "auto"; pre_tokens: number; post_tokens?: number };
+      return (
+        <div className="event-note">
+          ここまでの会話を要約しました（{trigger === "auto" ? "自動" : "手動"}・{formatTokens(pre_tokens)}
+          {post_tokens !== undefined && ` → ${formatTokens(post_tokens)}`} トークン）
+        </div>
+      );
+    }
     default:
       return null;
   }

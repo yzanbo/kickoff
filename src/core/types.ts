@@ -269,6 +269,8 @@ export type RunEventData =
   | { type: "result"; status: RunStatus; text?: string; cost_usd?: number; turns?: number }
   | { type: "error"; message: string }
   | { type: "notice"; message: string }
+  /** 会話を要約してコンテキストを空けた（manual: 手で圧縮 / auto: 上限に近づいて自動で）。前後のトークン数 */
+  | { type: "compact"; trigger: "manual" | "auto"; pre_tokens: number; post_tokens?: number }
   /** サブエージェントの開始・終了（途中経過は保存せず、run_subagent で届く） */
   | ({ type: "subagent" } & SubagentInfo);
 

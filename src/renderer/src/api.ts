@@ -158,6 +158,7 @@ export const api = {
   moveRun: (runId: number, stage: BoardStage) => request<Run>("PATCH", `/api/runs/${runId}`, { stage }),
   markSeen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/seen`),
   markUnseen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/unseen`),
+  compactRun: (runId: number) => request<Run>("POST", `/api/runs/${runId}/compact`),
   archiveRun: (runId: number, archived = true) => request<Run>("POST", `/api/runs/${runId}/archive`, { archived }),
   deleteRun: (runId: number) => request<{ ok: true }>("DELETE", `/api/runs/${runId}`),
   setRunGroup: (runId: number, groupId: number | null) => request<Run>("PATCH", `/api/runs/${runId}`, { group_id: groupId }),

@@ -196,3 +196,41 @@ test("タスクの実行で AI が状態を更新しなかった場合、成功�
   await runner.start({ projectId: project.id, phase: "implementation", taskId: task.id, prompt: "go" });
   await until(() => store.getTask(task.id)?.status === "review");
 });
+
+test("手で圧縮すると /compact を送り、要約したことだけを残す（発言・確認待ち・会話の回数には数えない）", async () => {
+  const { store, runner, provider, project } = setup(async (params, cb) => {
+    if (params.prompt === "/compact") {
+      cb.emit({ type: "compact", trigger: "manual", pre_tokens: 120_000, post_tokens: 18_000 });
+      // 本物のプロバイダーは、要約のあとの大きさ（post_tokens）を結果のコンテキストとして返す
+      return { status: "completed", sessionId: "s1", result: "", turns: 1, context: { tokens: 18_000, window: 200_000 } };
+    }
+    cb.emit({ type: "init", session_id: "s1" });
+    cb.emit({ type: "text", text: "ok" });
+    return { status: "completed", sessionId: "s1", result: "ok", turns: 1, context: { tokens: 120_000, window: 200_000 } };
+  });
+
+  // まだ会話がないチャットは圧縮できない
+  const fresh = store.createRun({ project_id: project.id, task_id: null, phase: "requirements", provider: "claude", title: "t", status: "completed", model: null });
+  await assert.rejects(runner.compact(fresh.id), /まだ会話がない/);
+
+  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "こんにちは" });
+  await until(() => store.getRun(run.id)?.status === "completed");
+  store.setRunAttention(run.id, false);
+  const before = store.getRun(run.id)!;
+  const eventsBefore = store.listEvents(run.id).length;
+
+  await runner.compact(run.id);
+  await until(() => !runner.isBusy(run.id) && store.getRun(run.id)?.status === "completed");
+  const after = store.getRun(run.id)!;
+  assert.equal(provider.calls.at(-1)?.prompt, "/compact");
+  assert.equal(provider.calls.at(-1)?.resumeSessionId, "s1");
+  const added = store.listEvents(run.id).slice(eventsBefore);
+  assert.deepEqual(
+    added.map((e) => e.type),
+    ["compact"],
+  );
+  assert.equal(after.attention, 0);
+  assert.equal(after.num_turns, before.num_turns);
+  assert.equal(after.result, before.result);
+  assert.equal(after.context_tokens, 18_000);
+});

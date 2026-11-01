@@ -3418,6 +3418,15 @@ mark {
   font-weight: 600;
 }
 
+/* 手で圧縮する（ボタンと説明） */
+.context-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 8px;
+}
+
 .context-bar {
   height: 4px;
   overflow: hidden;

@@ -203,6 +203,10 @@ export class ClaudeProvider implements AgentProvider {
           contextTokens =
             u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + u.output_tokens;
         }
+        // 要約したあとのコンテキストの大きさ（分かるときだけ）
+        if (msg.type === "system" && msg.subtype === "compact_boundary" && msg.compact_metadata.post_tokens !== undefined) {
+          contextTokens = msg.compact_metadata.post_tokens;
+        }
       }
     } catch (e) {
       if (signal.aborted) return { status: "cancelled", sessionId };
