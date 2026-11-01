@@ -142,6 +142,7 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
       >
         {view === "history" ? (
           <HistorySidebar
+            projectId={projectId}
             log={log}
             onPick={(hash) => {
               const found = log.commits?.find((c) => c.hash === hash);

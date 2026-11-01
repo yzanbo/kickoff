@@ -22,6 +22,7 @@ import type {
   GitFileChange,
   GitLog,
   GitRefs,
+  GitWorktree,
   GitHubStatus,
   GitStatus,
   PlanUsage,
@@ -184,6 +185,10 @@ export const api = {
   gitPush: (projectId: number) => request<GitStatus>("POST", `/api/projects/${projectId}/git/push`),
   gitLog: (projectId: number, skip = 0) => request<GitLog>("GET", `/api/projects/${projectId}/git/log?skip=${skip}`),
   gitRefs: (projectId: number) => request<GitRefs>("GET", `/api/projects/${projectId}/git/refs`),
+  gitWorktrees: (projectId: number) => request<GitWorktree[]>("GET", `/api/projects/${projectId}/git/worktrees`),
+  addWorktree: (projectId: number, branch: string) => request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees`, { branch }),
+  removeWorktree: (projectId: number, path: string, force = false) =>
+    request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force }),
   gitCommitDetail: (projectId: number, hash: string) => request<GitCommitDetail>("GET", `/api/projects/${projectId}/git/commits/${hash}`),
   gitCommitDiff: (projectId: number, hash: string, file: GitFileChange) =>
     request<GitDiff>(

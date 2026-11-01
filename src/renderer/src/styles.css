@@ -6044,6 +6044,8 @@ a:focus-visible,
 .change-group-row:focus-within > .row-actions,
 .change-file:hover + .row-actions,
 .change-file:focus-visible + .row-actions,
+.ref-item:hover + .row-actions,
+.ref-item:focus-visible + .row-actions,
 .tree-row:hover + .row-actions,
 .tree-row:focus-visible + .row-actions,
 .row-actions:hover,
@@ -6403,4 +6405,9 @@ a:focus-visible,
 
 .commit-files .change-file {
   padding-left: 10px;
+}
+
+.change-item .ref-item {
+  flex: 1;
+  min-width: 0;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { GitCommit, GitRefs } from "../../../../core/types";
+import type { GitCommit, GitRefs, GitWorktree } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { layoutGraph } from "./commitGraph";
@@ -14,6 +14,8 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
   const [reload, setReload] = useState(0);
   // ブランチ・リモート・タグ・stash（左の一覧）
   const [refs, setRefs] = useState<{ projectId: number; value: GitRefs }>();
+  // ワークツリー（作る・消すと、その結果で置き換える）
+  const [worktrees, setWorktrees] = useState<{ projectId: number; value: GitWorktree[] }>();
   const loaded = state?.projectId === projectId ? state.commits.length : 0;
 
   useEffect(() => {
@@ -21,6 +23,10 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
     let alive = true;
     api.gitRefs(projectId).then(
       (value) => alive && setRefs((prev) => (prev?.projectId === projectId && JSON.stringify(prev.value) === JSON.stringify(value) ? prev : { projectId, value })),
+      () => undefined,
+    );
+    api.gitWorktrees(projectId).then(
+      (value) => alive && setWorktrees({ projectId, value }),
       () => undefined,
     );
     // 読み込んだところまで（初めは 1 ページ）を読み直す
@@ -50,7 +56,10 @@ export function useGitLog(projectId: number, active: boolean, version: number) {
 
   const current = state?.projectId === projectId ? state : undefined;
   const graph = useMemo(() => layoutGraph(current?.commits ?? []), [current?.commits]);
-  return { refs: refs?.projectId === projectId ? refs.value : undefined, commits: current?.commits, more: Boolean(current?.more), error: current?.error, graph, loadMore, loadingMore, refresh: () => setReload((n) => n + 1) };
+  return {
+    worktrees: worktrees?.projectId === projectId ? worktrees.value : undefined,
+    setWorktrees: (value: GitWorktree[]) => setWorktrees({ projectId, value }),
+    refs: refs?.projectId === projectId ? refs.value : undefined, commits: current?.commits, more: Boolean(current?.more), error: current?.error, graph, loadMore, loadingMore, refresh: () => setReload((n) => n + 1) };
 }
 
 /** 描き直しが要るかを比べるための、コミットとその印 */
