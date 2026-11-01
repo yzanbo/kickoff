@@ -1,4 +1,4 @@
-import { Archive, ChevronLeft, ChevronRight, Plus, SquareKanban } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import { agentStateOf, stageOf } from "../../../../core/board";
 import { BOARD_STAGE_LABELS, BOARD_STAGES, type AgentState, type Approval, type BoardStage, type Phase, type ProjectSummary, type Run } from "../../../../core/types";
@@ -7,7 +7,7 @@ import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
 import { errorMessage } from "../../errors";
 import { useRunRename } from "../../hooks/useRunRename";
-import { useStoredChoice, useStoredFlag, useStoredState } from "../../hooks/useStoredState";
+import { useStoredChoice, useStoredState } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
@@ -18,7 +18,7 @@ import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
-import { KanbanFilters } from "./KanbanFilters";
+import { decodeArchiveFilter, encodeArchiveFilter, KanbanFilters, type ArchiveFilter } from "./KanbanFilters";
 import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
 import { STAGE_TONE } from "./tones";
@@ -49,10 +49,11 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
-  // アーカイブしたチャットも出すか・ボード／リスト（覚えておく）
-  const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_KEY);
+  // アーカイブでの絞り込み・ボード／リスト（覚えておく）
+  const [archive, setArchive] = useStoredState<ArchiveFilter>(SHOW_ARCHIVED_KEY, decodeArchiveFilter, encodeArchiveFilter);
   const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list"], "board");
-  const { runs, loaded, setRuns } = useBoardRuns(projectId, showArchived, setError);
+  // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
+  const { runs, loaded, setRuns } = useBoardRuns(projectId, archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
   const [section, setSection] = useState<Phase | "all">("all");
   // 全プロジェクトのボードでの、プロジェクトの絞り込み（選んだものは覚えておく。"" はすべて）
@@ -98,6 +99,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const grouped = useMemo(() => {
     const map = new Map<BoardStage, { run: Run; state: AgentState }[]>(BOARD_STAGES.map((s) => [s, []]));
     for (const run of runs) {
+      if (archive === "archived" && !run.archived_at) continue;
       if (section !== "all" && run.phase !== section) continue;
       if (activeProjectFilter !== "all" && run.project_id !== activeProjectFilter) continue;
       if (!search.matches(run)) continue;
@@ -106,7 +108,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     }
     for (const list of map.values()) list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
     return map;
-  }, [runs, approvals, section, search, activeProjectFilter]);
+  }, [runs, approvals, section, search, activeProjectFilter, archive]);
   const total = [...grouped.values()].reduce((n, l) => n + l.length, 0);
 
   async function move(run: Run, stage: BoardStage) {
@@ -176,23 +178,15 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         query={query}
         onQuery={setQuery}
         filters={
-          <>
-            <KanbanFilters
-              projects={allProjects && projects.length > 1 ? projects : undefined}
-              projectFilter={activeProjectFilter}
-              onProjectFilter={setProjectFilter}
-              section={section}
-              onSection={setSection}
-            />
-            <IconButton
-              icon={Archive}
-              label={showArchived ? "アーカイブしたチャットを隠す" : "アーカイブしたチャットも表示する"}
-              size={15}
-              className={cx("archived-toggle", showArchived && "active")}
-              aria-pressed={showArchived}
-              onClick={() => setShowArchived(!showArchived)}
-            />
-          </>
+          <KanbanFilters
+            projects={allProjects && projects.length > 1 ? projects : undefined}
+            projectFilter={activeProjectFilter}
+            onProjectFilter={setProjectFilter}
+            section={section}
+            onSection={setSection}
+            archive={archive}
+            onArchive={setArchive}
+          />
         }
         actions={
           <button className="btn btn-sm" onClick={() => newChat()} disabled={allProjects && projects.length === 0}>
