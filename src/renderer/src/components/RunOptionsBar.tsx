@@ -6,11 +6,13 @@ import {
   PERMISSION_LABELS,
   type EffortLevel,
   type ModelOption,
+  type Phase,
   type PermissionChoice,
   type RunOptions,
 } from "../../../core/types";
 import { api } from "../api";
 import { groupModels, modelDisplayName } from "../models";
+import { effectiveEffort, effectivePermission } from "../../../core/sectionDefaults";
 
 // モデル一覧はアプリ全体で 1 回だけ取得する
 let modelsPromise: Promise<ModelOption[]> | undefined;
@@ -27,7 +29,7 @@ function loadModels() {
  * 新しいチャットは設定画面の既定から始まり、ここでの変更はそのチャットだけに効く。
  * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始める。
  */
-export function useRunOptions(initial?: RunOptions) {
+export function useRunOptions(initial: RunOptions | undefined, section: Phase) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
@@ -56,8 +58,23 @@ export function useRunOptions(initial?: RunOptions) {
     if (fastMode && !current.supportsFastMode) setFastMode(false);
   }, [current, effort, permission, fastMode]);
 
-  const options: RunOptions = { model, effort, permission_mode: permission, fast_mode: fastMode };
-  return { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode, options };
+  // 「既定」のままでも、実際に使われる値（セクションの既定）を表示・送信する
+  const shownEffort = effectiveEffort(section, effort);
+  const shownPermission = effectivePermission(section, permission);
+  const options: RunOptions = { model, effort: shownEffort, permission_mode: shownPermission, fast_mode: fastMode };
+  return {
+    models,
+    current,
+    model,
+    setModel,
+    effort: shownEffort,
+    setEffort,
+    permission: shownPermission,
+    setPermission,
+    fastMode,
+    setFastMode,
+    options,
+  };
 }
 
 export type RunOptionsState = ReturnType<typeof useRunOptions>;
@@ -89,13 +106,7 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
 
       <label className="pill-select" title="推論の深さ">
         <Brain size={14} aria-hidden />
-        <select
-          aria-label="推論の深さ"
-          value={effort ?? ""}
-          disabled={disabled}
-          onChange={(e) => setEffort((e.target.value || null) as EffortLevel | null)}
-        >
-          <option value="">既定</option>
+        <select aria-label="推論の深さ" value={effort} disabled={disabled} onChange={(e) => setEffort(e.target.value as EffortLevel)}>
           {efforts.map((level) => (
             <option key={level} value={level}>
               {EFFORT_LABELS[level]}
@@ -112,7 +123,7 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
           disabled={disabled}
           onChange={(e) => setPermission(e.target.value as PermissionChoice)}
         >
-          {PERMISSION_CHOICES.filter((p) => p !== "auto" || !current || current.supportsAutoMode).map((p) => (
+          {PERMISSION_CHOICES.filter((p) => p !== "phase" && (p !== "auto" || !current || current.supportsAutoMode)).map((p) => (
             <option key={p} value={p}>
               {PERMISSION_LABELS[p]}
             </option>

@@ -1,4 +1,5 @@
 import { DEFAULT_WRITE_SCOPE } from "./scope.js";
+import { SECTION_DEFAULT_EFFORT, SECTION_DEFAULT_PERMISSION } from "./sectionDefaults.js";
 import { PHASE_LABELS, type Phase, type Project, type Task } from "./types.js";
 
 /**
@@ -47,15 +48,18 @@ const CHECK_COMMANDS = [
   "cargo test",
 ];
 
+/** 既定の権限モードが「編集を自動承認」のセクションか（autoEdit と同じ意味） */
+export const sectionAutoEdit = (phase: Phase) => SECTION_DEFAULT_PERMISSION[phase] === "acceptEdits";
+
 export function phasePolicy(phase: Phase, project: Project): PhasePolicy {
   const testCommand = project.test_command.trim();
   const withTest = (cmds: string[]) => (testCommand ? [...cmds, testCommand] : cmds);
 
   switch (phase) {
     case "requirements":
-      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: true, effort: "high", writeScope: writeScopeOf(project, phase) };
+      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: true, effort: SECTION_DEFAULT_EFFORT[phase], writeScope: writeScopeOf(project, phase) };
     case "schedule":
-      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: false, effort: "medium", writeScope: writeScopeOf(project, phase) };
+      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: false, effort: SECTION_DEFAULT_EFFORT[phase], writeScope: writeScopeOf(project, phase) };
     case "implementation":
       return {
         phase,
@@ -66,13 +70,13 @@ export function phasePolicy(phase: Phase, project: Project): PhasePolicy {
           ...(project.auto_commit ? ["git add", "git commit"] : []),
         ]),
         web: true,
-        effort: "high",
+        effort: SECTION_DEFAULT_EFFORT[phase],
       };
     case "testing":
-      return { phase, autoEdit: true, allowedCommands: withTest([...GIT_READ, ...CHECK_COMMANDS]), web: false, effort: "high" };
+      return { phase, autoEdit: true, allowedCommands: withTest([...GIT_READ, ...CHECK_COMMANDS]), web: false, effort: SECTION_DEFAULT_EFFORT[phase] };
     case "deployment":
       // デプロイは外部に影響するため、読み取り以外のコマンドはすべて承認制
-      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: true, effort: "medium" };
+      return { phase, autoEdit: false, allowedCommands: GIT_READ, web: true, effort: SECTION_DEFAULT_EFFORT[phase] };
   }
 }
 

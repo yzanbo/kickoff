@@ -78,12 +78,10 @@ function RunView({
   live: string;
   focus?: number;
 }) {
-  const options = useRunOptions({
-    model: run.model,
-    effort: run.effort,
-    permission_mode: run.permission_mode,
-    fast_mode: Boolean(run.fast_mode),
-  });
+  const options = useRunOptions(
+    { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: Boolean(run.fast_mode) },
+    run.phase,
+  );
   const busy = BUSY_STATUSES.includes(run.status);
   const timelineRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);

@@ -143,7 +143,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
                 value={draft.defaultEffort ?? ""}
                 onChange={(e) => setDraft({ ...draft, defaultEffort: (e.target.value || null) as EffortLevel | null })}
               >
-                <option value="">セクション既定（要件定義・実装は High など）</option>
+                <option value="">セクションに合わせる（要件定義・実装・テスト: High / スケジュール・デプロイ: Medium）</option>
                 {(currentModel?.efforts ?? EFFORT_LEVELS).map((level) => (
                   <option key={level} value={level}>
                     {EFFORT_LABELS[level]}
@@ -159,7 +159,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
               >
                 {PERMISSION_CHOICES.filter((p) => p !== "auto" || !currentModel || currentModel.supportsAutoMode).map((p) => (
                   <option key={p} value={p}>
-                    {PERMISSION_LABELS[p]}
+                    {p === "phase" ? "セクションに合わせる（実装・テスト: 編集を自動承認 / それ以外: 毎回確認）" : PERMISSION_LABELS[p]}
                   </option>
                 ))}
               </select>

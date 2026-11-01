@@ -38,3 +38,13 @@ test("アーカイブしたチャットは一覧に出ず、削除すると会�
   assert.equal(store.getRun(run.id), undefined);
   assert.equal(store.listEvents(run.id).length, 0);
 });
+
+test("既定のままなら、セクションの既定の推論の深さと権限モードを使う", async () => {
+  const { effectiveEffort, effectivePermission } = await import("./sectionDefaults.js");
+  assert.equal(effectiveEffort("requirements", null, null), "high");
+  assert.equal(effectiveEffort("schedule", null), "medium");
+  assert.equal(effectiveEffort("schedule", "max"), "max");
+  assert.equal(effectivePermission("implementation", "phase"), "acceptEdits");
+  assert.equal(effectivePermission("deployment", "phase", null), "default");
+  assert.equal(effectivePermission("deployment", "auto"), "auto");
+});

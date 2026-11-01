@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck, CircleDot, CircleX, Clock, ListTree, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, ListTree, Plus, SquareKanban } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { Approval, ProjectSummary, Run } from "../../../core/types";
 import { api } from "../api";
@@ -288,6 +288,13 @@ const WorkspacePage = memo(function WorkspacePage({
   hidden: boolean;
 }) {
   const [grouping, setGrouping] = useState<Grouping>(() => (localStorage.getItem(GROUPING_KEY) === "status" ? "status" : "recent"));
+  // 見出しのクリックでチャット一覧を開閉する（プロジェクトごとに記憶）
+  const collapseKey = `kickoff:collapsed:${project.id}`;
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(collapseKey) === "1");
+  const toggleCollapsed = () => {
+    localStorage.setItem(collapseKey, collapsed ? "0" : "1");
+    setCollapsed(!collapsed);
+  };
   const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
   const isActive = route.name === "project" && route.id === project.id;
   const rows = runs.map((run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) }));
@@ -328,22 +335,33 @@ const WorkspacePage = memo(function WorkspacePage({
   return (
     <section className="workspace-page" aria-hidden={hidden} inert={hidden}>
       <div className={`workspace-head ${isActive ? "active" : ""}`}>
-        <a className="workspace-name" href={href({ name: "project", id: project.id, tab: "board" })} title={project.repo_path}>
-          {project.name}
-        </a>
-        {waitingCount > 0 && (
-          <span className="count-badge" title="回答待ちのチャット" aria-label={`回答待ち ${waitingCount} 件`}>
-            {waitingCount}
-          </span>
-        )}
         <button
-          className="icon-button"
-          title={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
-          aria-label={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
-          onClick={toggleGrouping}
+          className="workspace-toggle"
+          aria-expanded={!collapsed}
+          title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
+          onClick={toggleCollapsed}
         >
-          {grouping === "recent" ? <ListTree size={14} /> : <Clock size={14} />}
+          {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+          <span className="workspace-name">{project.name}</span>
+          {waitingCount > 0 && (
+            <span className="count-badge" title="回答待ちのチャット" aria-label={`回答待ち ${waitingCount} 件`}>
+              {waitingCount}
+            </span>
+          )}
         </button>
+        <a className="icon-button" href={href({ name: "project", id: project.id, tab: "board" })} title="プロジェクトのカンバンを開く" aria-label="プロジェクトのカンバンを開く">
+          <SquareKanban size={14} />
+        </a>
+        {!collapsed && (
+          <button
+            className="icon-button"
+            title={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
+            aria-label={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
+            onClick={toggleGrouping}
+          >
+            {grouping === "recent" ? <ListTree size={14} /> : <Clock size={14} />}
+          </button>
+        )}
         <button
           className="icon-button"
           title="新しいチャット（⌘N）"
@@ -353,7 +371,7 @@ const WorkspacePage = memo(function WorkspacePage({
           <Plus size={15} />
         </button>
       </div>
-      {rows.length === 0 ? (
+      {collapsed ? null : rows.length === 0 ? (
         <a className="chat-row ghost" href={href({ name: "newChat", projectId: project.id })}>
           <Plus size={13} /> 最初のチャットを始める
         </a>
