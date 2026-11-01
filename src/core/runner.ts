@@ -28,6 +28,8 @@ export interface StartRunInput {
 interface QueueItem {
   runId: number;
   prompt: string;
+  /** 会話の要約（/compact）。発言・結果としては残さず、確認待ちにもしない */
+  compact?: boolean;
 }
 
 /**
@@ -104,6 +106,21 @@ export class Runner {
     return store.getRun(run.id)!;
   }
 
+  /**
+   * 会話を要約して、コンテキストを空ける（Claude Code の /compact を手で実行する）。
+   * 会話の記録には発言として残さず、要約したこと（compact イベント）だけが残る。終わっても確認待ちにしない
+   */
+  async compact(runId: number): Promise<Run> {
+    const { store } = this.deps;
+    const run = store.getRun(runId);
+    if (!run) throw new Error("実行が見つかりません");
+    if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから圧縮してください");
+    if (!run.session_id) throw new Error("まだ会話がないので、圧縮できません");
+    store.updateRun(run.id, { status: "queued", error: null });
+    this.enqueue({ runId: run.id, prompt: "/compact", compact: true });
+    return store.getRun(run.id)!;
+  }
+
   /** チャット名を AI に付けてもらう（ユーザーが名前を変えていなければ置き換える） */
   private async autoTitle(runId: number, text: string) {
     const run = this.deps.store.getRun(runId);
@@ -167,7 +184,7 @@ export class Runner {
     }
   }
 
-  private async execute({ runId, prompt }: QueueItem) {
+  private async execute({ runId, prompt, compact = false }: QueueItem) {
     const { store, approvals, providers, usage } = this.deps;
     const controller = new AbortController();
     this.active.set(runId, controller);
@@ -179,7 +196,7 @@ export class Runner {
       const provider = providers[run.provider];
 
       store.updateRun(runId, { status: "running" });
-      if (task && (task.status === "todo" || task.status === "blocked")) store.updateTask(task.id, { status: "in_progress" });
+      if (task && !compact && (task.status === "todo" || task.status === "blocked")) store.updateTask(task.id, { status: "in_progress" });
 
       const policy = phasePolicy(run.phase, project);
       const result = await provider.run(
@@ -248,23 +265,32 @@ export class Runner {
         status: result.status,
         session_id: result.sessionId ?? current.session_id,
         cost_usd: current.cost_usd + (result.costUsd ?? 0),
-        num_turns: current.num_turns + (result.turns ?? 0),
-        result: result.result ?? current.result,
+        // 要約は会話の回数・最後の回答に数えない
+        num_turns: current.num_turns + (compact ? 0 : (result.turns ?? 0)),
+        result: compact ? current.result : (result.result ?? current.result),
         error: result.error ?? null,
-        ...(result.context ? { context_tokens: result.context.tokens, context_window: result.context.window ?? current.context_window } : {}),
-        // 終わったら「確認待ち」にする（中断したときは除く）。チャットを開くと消える
-        attention: result.status === "cancelled" ? current.attention : 1,
+        ...(result.context
+          ? { context_tokens: result.context.tokens, context_window: result.context.window ?? current.context_window }
+          : compact && result.status === "completed"
+            ? // 要約したあとの大きさが分からないときは、次の応答まで空にしておく
+              { context_tokens: null }
+            : {}),
+        // 終わったら「確認待ち」にする（中断・要約のときは除く）。チャットを開くと消える
+        attention: compact || result.status === "cancelled" ? current.attention : 1,
       });
-      store.addEvent(runId, {
-        type: "result",
-        status: result.status,
-        text: result.status === "completed" ? result.result : result.error,
-        cost_usd: result.costUsd,
-        turns: result.turns,
-      });
+      // 要約は compact イベントだけを残す（失敗したときは理由を残す）
+      if (!compact || result.status !== "completed") {
+        store.addEvent(runId, {
+          type: "result",
+          status: result.status,
+          text: result.status === "completed" ? result.result : result.error,
+          cost_usd: result.costUsd,
+          turns: result.turns,
+        });
+      }
 
-      // エージェントがタスクの状態を更新しなかった場合の後始末
-      if (task) {
+      // エージェントがタスクの状態を更新しなかった場合の後始末（要約はタスクの作業ではないので除く）
+      if (task && !compact) {
         const latest = store.getTask(task.id);
         if (latest?.status === "in_progress") {
           store.updateTask(task.id, {

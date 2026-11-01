@@ -150,6 +150,16 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     }
   });
 
+  // 会話を要約して、コンテキストを空ける（手で圧縮する）
+  app.post("/api/runs/:id/compact", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    try {
+      return c.json(await runner.compact(run.id));
+    } catch (e) {
+      throw new HttpError(409, (e as Error).message);
+    }
+  });
+
   app.post("/api/runs/:id/cancel", (c) => {
     const run = requireRun(store, c.req.param("id"));
     runner.cancel(run.id);

@@ -11,6 +11,12 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks): string |
         cb.emit({ type: "init", session_id: msg.session_id, model: msg.model, permission_mode: msg.permissionMode });
         return msg.session_id;
       }
+      // 会話の要約（手で圧縮したとき・上限に近づいて自動で圧縮されたとき）
+      if (msg.subtype === "compact_boundary") {
+        const { trigger, pre_tokens, post_tokens } = msg.compact_metadata;
+        cb.emit({ type: "compact", trigger, pre_tokens, ...(post_tokens !== undefined ? { post_tokens } : {}) });
+        return undefined;
+      }
       // サブエージェント: 開始と終了は記録し、途中経過（トークン数・直近のツール）は画面にだけ流す
       if (msg.subtype === "task_started") {
         cb.emit({
