@@ -294,6 +294,13 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json(store.updateProject(project.id, { ...patch, ...(references ? { references: resolveReferences(references) } : {}) }));
   });
 
+  // サイドバーでのプロジェクトの並び順
+  app.put("/api/projects/order", async (c) => {
+    const { ids } = z.object({ ids: z.array(z.number().int()).max(500) }).parse(await c.req.json());
+    store.reorderProjects(ids);
+    return c.json({ ok: true });
+  });
+
   // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない
   app.delete("/api/projects/:id", (c) => {
     const project = requireProject(store, c.req.param("id"));

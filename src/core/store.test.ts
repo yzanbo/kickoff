@@ -151,3 +151,11 @@ test("プロジェクトの既定は JSON で保存され、壊れていなけ�
   const updated = store.updateProject(project.id, { defaults: { model: "haiku", effort: null, stage: "todo" } });
   assert.deepEqual(updated.defaults, { model: "haiku", effort: null, stage: "todo" });
 });
+
+test("プロジェクトの並び順: 作った順に付き、並べ替えられる", () => {
+  const { store, project } = setup();
+  const b = store.createProject({ name: "b", repo_path: "/tmp/b", provider: "claude" });
+  assert.ok(b.position > project.position);
+  store.reorderProjects([b.id, project.id]);
+  assert.ok(store.getProject(b.id)!.position < store.getProject(project.id)!.position);
+});

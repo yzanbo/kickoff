@@ -138,6 +138,9 @@ const MIGRATIONS = [
    ALTER TABLE runs ADD COLUMN context_window INTEGER;`,
   // v10: 参照資料（JSON。references は SQL の予約語なので列名を変える）
   "ALTER TABLE projects ADD COLUMN reference_paths TEXT NOT NULL DEFAULT '[]'",
+  // v11: サイドバーでのプロジェクトの並び順（最初は作った順）
+  `ALTER TABLE projects ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+   UPDATE projects SET position = id;`,
 ];
 
 type Row = Record<string, SQLInputValue>;
@@ -324,8 +327,8 @@ export class Store {
   createProject(input: NewProject): Project {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO projects (name, description, repo_path, provider, test_command, deploy_instructions, auto_commit)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO projects (name, description, repo_path, provider, test_command, deploy_instructions, auto_commit, position)
+         VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM projects))`,
       )
       .run(
         input.name,
@@ -378,6 +381,16 @@ export class Store {
   /** タスクや実行の更新時にプロジェクトの更新日時を進める（一覧の並び順用） */
   private touchProject(id: number) {
     this.db.prepare(`UPDATE projects SET updated_at = ${NOW} WHERE id = ?`).run(id);
+  }
+
+  /** サイドバーでのプロジェクトの並び順を ids の順にする */
+  reorderProjects(ids: number[]) {
+    const stmt = this.db.prepare("UPDATE projects SET position = ? WHERE id = ?");
+    ids.forEach((id, i) => stmt.run(i + 1, id));
+    for (const id of ids) {
+      const project = this.getProject(id);
+      if (project) this.onChange({ type: "project", project });
+    }
   }
 
   deleteProject(id: number) {

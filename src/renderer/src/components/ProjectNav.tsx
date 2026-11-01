@@ -21,7 +21,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type P
 import type { Approval, ProjectSummary, Run, RunGroup } from "../../../core/types";
 import { api } from "../api";
 import { Highlight, useChatSearch } from "../chatSearch";
-import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
+import { droppedRunId, isRunDrag, PROJECT_DRAG_TYPE, startRunDrag, useGroupReorder, useReorder } from "../groups";
 import { initialOf, projectHue } from "../projectColor";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
@@ -56,7 +56,21 @@ interface Props {
  */
 export function ProjectNav({ projects, approvals, route, onNewProject }: Props) {
   // スライドの位置が変わらないよう、作成順に並べる
-  const ordered = [...projects].sort((a, b) => a.id - b.id);
+  // サイドバーでの並び順（ドラッグで並べ替えた順。同じなら作成順）
+  const ordered = [...projects].sort((a, b) => a.position - b.position || a.id - b.id);
+  const reorder = useReorder(
+    ordered.map((p) => p.id),
+    (ids) => void api.reorderProjects(ids),
+    PROJECT_DRAG_TYPE,
+  );
+  /** 並べ替えのドロップ先にする（プロジェクトのアイコン・縦並びの各プロジェクト） */
+  const reorderDrop = (id: number) => ({
+    onDragOver: (e: React.DragEvent) => void reorder.over(e, id),
+    onDragLeave: (e: React.DragEvent) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) reorder.leave(id);
+    },
+    onDrop: (e: React.DragEvent) => void reorder.drop(e, id),
+  });
   const [currentId, setCurrentId] = useState<number | undefined>(() => Number(localStorage.getItem(CURRENT_KEY)) || undefined);
   const [runs, setRuns] = useState<Record<number, Run[]>>({});
   const [layout, setLayout] = useState<NavLayout>(() => (localStorage.getItem(LAYOUT_KEY) === "stack" ? "stack" : "slide"));
@@ -291,15 +305,17 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
       <div className="workspaces">
         <div className="workspace-stack">
           {ordered.map((p) => (
-            <WorkspacePage
-              key={p.id}
-              project={p}
-              runs={runs[p.id] ?? []}
-              groups={groups[p.id] ?? NO_GROUPS}
-              approvals={approvals}
-              route={route}
-              hidden={false}
-            />
+            <div key={p.id} className={`stack-item ${reorder.classFor(p.id)}`} {...reorderDrop(p.id)}>
+              <WorkspacePage
+                project={p}
+                runs={runs[p.id] ?? []}
+                groups={groups[p.id] ?? NO_GROUPS}
+                approvals={approvals}
+                route={route}
+                hidden={false}
+                headDrag={reorder.handle(p.id)}
+              />
+            </div>
           ))}
         </div>
         <div className="workspace-switcher stack">
@@ -349,10 +365,13 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
               key={p.id}
               role="tab"
               aria-selected={i === index}
-              className={`workspace-dot ${i === index ? "active" : ""}`}
+              className={`workspace-dot ${i === index ? "active" : ""} ${reorder.classFor(p.id)}`}
               style={{ "--ws-hue": `${projectHue(p.id)}` } as React.CSSProperties}
-              title={`${p.name}${i < 9 ? `（⌃${i + 1}）` : ""}`}
+              title={`${p.name}${i < 9 ? `（⌃${i + 1}）` : ""}（ドラッグで並べ替え）`}
               onClick={() => go(i)}
+              draggable
+              {...reorder.handle(p.id)}
+              {...reorderDrop(p.id)}
             >
               {initialOf(p.name)}
               {waiting && <span className="workspace-dot-badge" aria-label="回答待ちあり" />}
@@ -391,6 +410,7 @@ const WorkspacePage = memo(function WorkspacePage({
   approvals,
   route,
   hidden,
+  headDrag,
 }: {
   project: ProjectSummary;
   runs: Run[];
@@ -398,6 +418,8 @@ const WorkspacePage = memo(function WorkspacePage({
   approvals: Approval[];
   route: Route;
   hidden: boolean;
+  /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
+  headDrag?: { onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
 }) {
   const [grouping, setGrouping] = useState<Grouping>(() => (localStorage.getItem(GROUPING_KEY) === "status" ? "status" : "recent"));
   // 見出しのクリックでチャット一覧を開閉する（プロジェクトごとに記憶）
@@ -424,6 +446,13 @@ const WorkspacePage = memo(function WorkspacePage({
   // グループの開閉（グループごとに記憶。グループはあとから読み込まれるので、その都度 localStorage を見る）
   const [closedOverride, setClosedOverride] = useState<Record<number, boolean>>({});
   const isGroupClosed = (id: number) => closedOverride[id] ?? localStorage.getItem(`kickoff:group-closed:${id}`) === "1";
+  // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
+  const ungroupedKey = `kickoff:ungrouped-closed:${project.id}`;
+  const [ungroupedClosed, setUngroupedClosed] = useState(() => localStorage.getItem(ungroupedKey) === "1");
+  const toggleUngrouped = () => {
+    localStorage.setItem(ungroupedKey, ungroupedClosed ? "0" : "1");
+    setUngroupedClosed(!ungroupedClosed);
+  };
   const toggleGroup = (id: number) => {
     const closed = !isGroupClosed(id);
     localStorage.setItem(`kickoff:group-closed:${id}`, closed ? "1" : "0");
@@ -529,7 +558,12 @@ const WorkspacePage = memo(function WorkspacePage({
       style={{ "--ws-hue": `${projectHue(project.id)}` } as React.CSSProperties}
     >
       {/* どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする */}
-      <div className={`workspace-head ${isActive ? "active" : ""}`}>
+      <div
+        className={`workspace-head ${isActive ? "active" : ""}`}
+        draggable={Boolean(headDrag)}
+        title={headDrag ? "ドラッグでプロジェクトを並べ替える" : undefined}
+        {...headDrag}
+      >
         {/* 左のボタン: チャット一覧の開閉 / 名前: プロジェクトのカンバンを表示 */}
         <button
           className="workspace-chevron"
@@ -689,10 +723,21 @@ const WorkspacePage = memo(function WorkspacePage({
         })}
       {!collapsed && groups.length > 0 && ungroupedRows.length > 0 && (
         <div className={`custom-group-head ungrouped ${dropOver === "none" ? "drop-target" : ""}`} {...dropTarget(null)}>
-          グループなし
+          <button
+            className="custom-group-toggle"
+            aria-expanded={!(ungroupedClosed && !keyword)}
+            title={ungroupedClosed ? "開く" : "閉じる"}
+            onClick={toggleUngrouped}
+          >
+            {ungroupedClosed && !keyword ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+          </button>
+          <button className="custom-group-name ungrouped-name" onClick={toggleUngrouped}>
+            グループなし
+          </button>
+          <span className="custom-group-count">{ungroupedRows.length}</span>
         </div>
       )}
-      {collapsed || (keyword && rows.length === 0) ? null : rows.length === 0 ? (
+      {collapsed || (keyword && rows.length === 0) || (groups.length > 0 && ungroupedClosed && !keyword) ? null : rows.length === 0 ? (
         <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
           <Plus size={13} /> 最初のチャットを始める
         </button>
