@@ -15,6 +15,8 @@ const CURRENT_KEY = "kickoff:current-project";
 const SWIPE_RATIO = 0.18;
 /** この時間ホイールのイベントが途切れたら、1 回のジェスチャー（慣性を含む）が終わったとみなす */
 const GESTURE_END_MS = 180;
+/** 端のプロジェクトより先へ引っ張れる最大量（px） */
+const EDGE_PULL_MAX = 36;
 
 interface Props {
   projects: ProjectSummary[];
@@ -41,9 +43,11 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     active: boolean;
     committed: boolean;
     committedAt: number;
-    /** 直前のイベントの移動量（慣性は小さくなっていくので、急に大きくなれば新しいスワイプ） */
-    lastAbs: number;
-  }>({ total: 0, active: false, committed: false, committedAt: 0, lastAbs: 0 });
+    /** 切り替えたあとの慣性で見た、いちばん小さい移動量（慣性は小さくなっていく） */
+    floor: number;
+    /** floor よりはっきり大きい移動量が続いた回数（続けば、新しいスワイプ） */
+    rising: number;
+  }>({ total: 0, active: false, committed: false, committedAt: 0, floor: Infinity, rising: 0 });
 
   const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
   const current = ordered[index];
@@ -121,7 +125,8 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   const resist = (offset: number) => {
     const atStart = index === 0 && offset < 0;
     const atEnd = index === ordered.length - 1 && offset > 0;
-    return atStart || atEnd ? offset / 4 : offset;
+    if (!atStart && !atEnd) return offset;
+    return Math.sign(offset) * Math.min(EDGE_PULL_MAX, Math.abs(offset) / 4);
   };
 
   /** 移動量がしきい値を超えたら、その場で隣へ切り替える */
@@ -151,21 +156,25 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
       g.active = false;
       g.committed = false;
     }, GESTURE_END_MS);
-    const abs = Math.abs(e.deltaX);
     if (g.committed) {
-      // 切り替えたあとに届く慣性のイベントは無視する（遅れて二重に動かないように）。
-      // ただし移動量が急に大きくなったら、続けて行った次のスワイプとして受け付ける
-      const isNewSwipe = performance.now() - g.committedAt > 100 && abs > Math.max(6, g.lastAbs * 1.6);
-      g.lastAbs = abs;
-      if (!isNewSwipe) return;
+      // 切り替えたあとに届く慣性のイベントは無視する（遅れて二重に動いたり、端で引っ張られたままにならないように）。
+      // 慣性は揺らぎながら小さくなっていくので、1 回だけ大きいのは揺らぎとみなし、
+      // 底からはっきり大きい移動量が続いたときだけ、続けて行った次のスワイプとして受け付ける
+      const abs = Math.abs(e.deltaX);
+      g.floor = Math.min(g.floor, abs);
+      g.rising = abs > g.floor * 2 + 4 ? g.rising + 1 : 0;
+      // その向きに隣のプロジェクトがなければ、次のスワイプでも動かさない（端で引っ張られたままになるのを防ぐ）
+      const canMove = e.deltaX > 0 ? index < ordered.length - 1 : index > 0;
+      if (performance.now() - g.committedAt < 120 || g.rising < 3 || !canMove) return;
       g.committed = false;
       g.total = 0;
     }
-    g.lastAbs = abs;
     g.total += e.deltaX;
     if (commitIfFar(g.total)) {
       g.committed = true;
       g.committedAt = performance.now();
+      g.floor = Infinity;
+      g.rising = 0;
       return;
     }
     place(resist(Math.max(-width(), Math.min(width(), g.total))));
