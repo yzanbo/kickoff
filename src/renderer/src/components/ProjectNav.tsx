@@ -1,6 +1,6 @@
-import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, ListTree, Plus, SquareKanban } from "lucide-react";
+import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, ListTree, Plus, Search, SquareKanban, X } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
-import type { Approval, ProjectSummary, Run } from "../../../core/types";
+import type { Approval, ProjectSummary, Run, SearchHit } from "../../../core/types";
 import { api } from "../api";
 import { useServerEvent } from "../events";
 import { href, navigate, routeProjectId, type Route } from "../router";
@@ -273,6 +273,17 @@ const GROUP_ICONS: Record<AgentState, typeof CircleAlert> = {
   done: CircleCheck,
 };
 
+/** 検索で一致した部分を強調して表示する */
+function Highlight({ hit }: { hit: SearchHit }) {
+  return (
+    <>
+      {hit.snippet.slice(0, hit.match_start)}
+      <mark>{hit.snippet.slice(hit.match_start, hit.match_end)}</mark>
+      {hit.snippet.slice(hit.match_end)}
+    </>
+  );
+}
+
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 const WorkspacePage = memo(function WorkspacePage({
   project,
@@ -297,7 +308,36 @@ const WorkspacePage = memo(function WorkspacePage({
   };
   const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
   const isActive = route.name === "project" && route.id === project.id;
-  const rows = runs.map((run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) }));
+  // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
+  const [query, setQuery] = useState("");
+  const [contentHits, setContentHits] = useState<Map<number, SearchHit>>(new Map());
+  const keyword = query.trim();
+  useEffect(() => {
+    if (!keyword) {
+      setContentHits(new Map());
+      return;
+    }
+    let alive = true;
+    const timer = setTimeout(() => {
+      api
+        .search(keyword, { projectId: project.id })
+        .then((hits) => {
+          if (!alive) return;
+          const map = new Map<number, SearchHit>();
+          for (const h of hits) if (!map.has(h.run_id)) map.set(h.run_id, h);
+          setContentHits(map);
+        })
+        .catch(() => {});
+    }, 200);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [keyword, project.id]);
+
+  const allRows = runs.map((run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) }));
+  const titleMatches = (run: Run) => run.title.toLowerCase().includes(keyword.toLowerCase());
+  const rows = keyword ? allRows.filter(({ run }) => titleMatches(run) || contentHits.has(run.id)) : allRows;
 
   const toggleGrouping = () => {
     const next = grouping === "recent" ? "status" : "recent";
@@ -322,10 +362,17 @@ const WorkspacePage = memo(function WorkspacePage({
               <span className="chat-row-title">{run.title || "チャット"}</span>
               <span className="chat-row-time">{relativeTime(run.updated_at)}</span>
             </span>
-            <span className="chat-row-meta">
-              <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
-              {meta.label}
-            </span>
+            {keyword && !titleMatches(run) && contentHits.has(run.id) ? (
+              // 中身だけが一致したときは、一致した部分を見せる
+              <span className="chat-row-snippet">
+                <Highlight hit={contentHits.get(run.id)!} />
+              </span>
+            ) : (
+              <span className="chat-row-meta">
+                <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
+                {meta.label}
+              </span>
+            )}
           </span>
         </a>
       </li>
@@ -371,7 +418,26 @@ const WorkspacePage = memo(function WorkspacePage({
           <Plus size={15} />
         </button>
       </div>
-      {collapsed ? null : rows.length === 0 ? (
+      {!collapsed && allRows.length > 0 && (
+        <div className="chat-search">
+          <Search size={13} className="muted" aria-hidden />
+          <input
+            type="text"
+            value={query}
+            placeholder="このプロジェクトのチャットを検索"
+            aria-label={`${project.name} のチャットを検索`}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setQuery("")}
+          />
+          {query && (
+            <button className="chat-search-clear" aria-label="検索を解除" onClick={() => setQuery("")}>
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      )}
+      {!collapsed && keyword && rows.length === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
+      {collapsed || (keyword && rows.length === 0) ? null : rows.length === 0 ? (
         <a className="chat-row ghost" href={href({ name: "newChat", projectId: project.id })}>
           <Plus size={13} /> 最初のチャットを始める
         </a>
