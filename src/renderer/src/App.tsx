@@ -223,8 +223,8 @@ export function App() {
         </button>
         <span className="spacer" />
         {usage?.plan && (
-          <span className="plan-chip" title="Claude Code でログインしているアカウントの契約プラン">
-            Claude {planLabel(usage.plan)}
+          <span className="plan-chip" title={`${usage.provider_label} でログインしているアカウントの契約プラン`}>
+            {usage.provider_label} {planLabel(usage.plan)}
           </span>
         )}
         {usage?.available ? (
@@ -268,7 +268,11 @@ export function App() {
       <DialogHost />
       {connOpen && <ConnectionPopover state={connection} since={connectedSince} onClose={closeConn} />}
       {usageOpen && (
-        <UsagePopover planUsage={planUsage} plan={usage?.plan ? planLabel(usage.plan) : null} onClose={closeUsage} />
+        <UsagePopover
+          planUsage={planUsage}
+          plan={usage?.plan ? `${usage.provider_label} ${planLabel(usage.plan)}` : null}
+          onClose={closeUsage}
+        />
       )}
       {palette && <CommandPalette projects={projects} onClose={() => setPalette(false)} />}
       {searching && (

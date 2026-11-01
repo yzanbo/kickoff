@@ -116,7 +116,7 @@ export function ContextMeter({ run }: { run: Run }) {
           <section className="context-section">
             <div className="context-plan-head">
               <ClaudeMark size={18} />
-              <span className="context-plan-name">Claude</span>
+              <span className="context-plan-name">{usage?.provider_label ?? "Claude"}</span>
               {usage?.plan && <span className="context-plan-chip">{planLabel(usage.plan)}</span>}
               <span className="spacer" />
               <button

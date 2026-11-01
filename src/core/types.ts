@@ -403,6 +403,10 @@ export interface UsageWindow {
 }
 
 export interface PlanUsage {
+  /** どの AI のプランか（Codex・Gemini に対応したときも同じ形で返す） */
+  provider: ProviderId;
+  /** 表示名（"Claude" など） */
+  provider_label: string;
   /** プランの使用枠が取得できたか（API キー利用時などは false） */
   available: boolean;
   plan: string | null;

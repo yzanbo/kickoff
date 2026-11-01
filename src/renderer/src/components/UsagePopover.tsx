@@ -32,7 +32,7 @@ export function UsagePopover({ planUsage, plan, onClose }: Props) {
   return (
     <div ref={ref} className="usage-popover" role="dialog" aria-label="使用状況の詳細">
       <div className="usage-popover-head">
-        <span className="usage-popover-title">使用状況{plan ? `（Claude ${plan}）` : ""}</span>
+        <span className="usage-popover-title">使用状況{plan ? `（${plan}）` : ""}</span>
         <button className="icon-button" title="更新" aria-label="使用状況を更新" disabled={refreshing} onClick={() => void refresh()}>
           <RefreshCw size={13} className={refreshing ? "spin" : ""} />
         </button>
