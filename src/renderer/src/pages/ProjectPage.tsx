@@ -19,6 +19,7 @@ import { BUSY_STATUSES } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";
 import { ProjectEditDialog } from "../components/ProjectEditDialog";
+import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
 import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
@@ -121,7 +122,9 @@ export function ProjectPage({
     <div className={`page page-wide ${tab === "board" || tab === "groups" ? "page-board" : ""} ${stale ? "is-stale" : ""}`}>
       <header className="page-header project-header">
         <div className="project-title-row">
-          <h1>{project.name}</h1>
+          <h1>
+            <ProjectSwitcher project={project} projects={projects} tab={tab} />
+          </h1>
           <button className="btn btn-sm project-edit-button" title="プロジェクトの名前・既定の設定などを編集" onClick={() => setEditing(true)}>
             <Pencil size={13} /> 編集
           </button>
