@@ -1,4 +1,5 @@
 import { ChevronRight, Pencil, Wrench } from "lucide-react";
+import { BackToBoard } from "../components/BackToBoard";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Approval, Attachment, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
@@ -111,6 +112,7 @@ function RunView({
     <div className="run-page">
       <header className="run-header">
         <div className="run-title-row">
+          <BackToBoard projectId={run.project_id} />
           <SectionBadge section={run.phase} />
           <h1 title={run.title}>{run.title || "チャット"}</h1>
           <button
