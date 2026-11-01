@@ -1,7 +1,8 @@
 import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { GitFileChange } from "../../../../core/types";
 import { cx } from "../../cx";
+import { confirmDialog } from "../../dialogs";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import { Chevron } from "../Chevron";
 import { ErrorText } from "../ErrorText";
@@ -20,12 +21,14 @@ import { useProjectSearch } from "./useProjectSearch";
 /**
  * 選んでいるファイル。変更の一覧から選んだときは、ステージ済み・未ステージのどちらか（同じファイルが両方にあることもある）。
  * エクスプローラーから選んだときは staged を持たない（変更があれば差分、なければ中身を出す）。
- * 検索の結果から選んだときは line を持つ（変更があってもいまの中身を出し、その行を目立たせる）
+ * 検索の結果から選んだときは line を持つ（変更があってもいまの中身を出し、その行を目立たせる）。
+ * edit は、差分の「編集」から来たとき（いまの中身を開いてすぐ編集する）
  */
 interface Selection {
   path: string;
   staged?: boolean;
   line?: number;
+  edit?: boolean;
 }
 
 type ChangesView = "files" | "search" | "changes";
@@ -38,10 +41,22 @@ const VIEW_KEY = "kickoff:changes-view";
  * - 変更（ソース管理）: ステージされている変更・変更（未追跡・競合を含む）
  * ファイルを選ぶと、変更があれば差分、なければ中身を右に出す
  */
-export function ChangesTab({ projectId, rootName, git }: { projectId: number; rootName: string; git: GitStatusController }) {
+export function ChangesTab({ projectId, repoPath, git }: { projectId: number; repoPath: string; git: GitStatusController }) {
+  const rootName = repoPath.split("/").pop() ?? repoPath;
   const { status } = git;
   const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "search", "changes"], "changes");
-  const [selected, setSelected] = useState<Selection>();
+  const [selected, setSelectedState] = useState<Selection>();
+  // 編集中のファイルに保存していない変更があるか（別のファイルを開く前に確かめる）
+  const dirty = useRef(false);
+  const setSelected = async (next: Selection) => {
+    if (
+      dirty.current &&
+      !(await confirmDialog({ title: "保存していない変更があります", message: "別のファイルを開くと、変更は消えます。", confirmLabel: "変更を捨てて開く", danger: true }))
+    )
+      return;
+    dirty.current = false;
+    setSelectedState(next);
+  };
   const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
   const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
@@ -57,12 +72,21 @@ export function ChangesTab({ projectId, rootName, git }: { projectId: number; ro
   const find = (list: GitFileChange[], path: string) => list.find((f) => f.path === path);
   // 選んだファイルの差分（エクスプローラーから選んだときは、未ステージ → ステージ済みの順に探す）
   const change: { file: GitFileChange; staged: boolean } | undefined = (() => {
-    if (!selected || selected.line !== undefined) return undefined;
+    if (!selected || selected.line !== undefined || selected.edit) return undefined;
     const unstaged = selected.staged !== true ? find(groups.unstaged, selected.path) : undefined;
     if (unstaged) return { file: unstaged, staged: false };
     const staged = selected.staged !== false ? find(groups.staged, selected.path) : undefined;
     return staged && { file: staged, staged: true };
   })();
+  // ファイルの中身の表示・編集に渡すもの
+  const fileViewProps = (path: string) => ({
+    projectId,
+    repoPath,
+    path,
+    version: git.version,
+    onSaved: () => void git.refresh(),
+    onDirtyChange: (next: boolean) => (dirty.current = next),
+  });
   const toggleFolder = (path: string) =>
     setOpenFolders((prev) => {
       const next = new Set(prev);
@@ -87,7 +111,7 @@ export function ChangesTab({ projectId, rootName, git }: { projectId: number; ro
       />
       <aside className="changes-list" aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}>
         {view === "search" ? (
-          <SearchView search={search} selected={selected} onSelect={(path, line) => setSelected({ path, line })} />
+          <SearchView search={search} selected={selected} onSelect={(path, line) => void setSelected({ path, line })} />
         ) : view === "files" ? (
           <>
             <header className="changes-head">
@@ -105,7 +129,7 @@ export function ChangesTab({ projectId, rootName, git }: { projectId: number; ro
                 open={openFolders}
                 onToggle={toggleFolder}
                 selected={selected?.path}
-                onSelect={(path) => setSelected({ path })}
+                onSelect={(path) => void setSelected({ path })}
                 kinds={kinds}
               />
             ) : (
@@ -141,21 +165,33 @@ export function ChangesTab({ projectId, rootName, git }: { projectId: number; ro
             ) : (
               <>
                 {groups.staged.length > 0 && (
-                  <ChangeGroup title="ステージされている変更" files={groups.staged} staged selected={selected} onSelect={setSelected} />
+                  <ChangeGroup title="ステージされている変更" files={groups.staged} staged selected={selected} onSelect={(next) => void setSelected(next)} />
                 )}
-                <ChangeGroup title="変更" files={groups.unstaged} staged={false} selected={selected} onSelect={setSelected} />
+                <ChangeGroup title="変更" files={groups.unstaged} staged={false} selected={selected} onSelect={(next) => void setSelected(next)} />
               </>
             )}
           </>
         )}
       </aside>
       <div className="changes-diff">
-        {selected?.line !== undefined ? (
-          <FileView projectId={projectId} path={selected.path} line={selected.line} changed={kinds.files.has(selected.path)} version={git.version} />
+        {selected && (selected.line !== undefined || selected.edit) ? (
+          <FileView
+            key={`${selected.path}:${selected.line ?? ""}:${selected.edit ? "edit" : ""}`}
+            {...fileViewProps(selected.path)}
+            line={selected.line}
+            changed={kinds.files.has(selected.path)}
+            initialEditing={selected.edit}
+          />
         ) : change ? (
-          <DiffView projectId={projectId} file={change.file} staged={change.staged} version={git.version} />
+          <DiffView
+            projectId={projectId}
+            file={change.file}
+            staged={change.staged}
+            version={git.version}
+            onEdit={change.file.kind === "D" ? undefined : () => void setSelected({ path: change.file.path, edit: true })}
+          />
         ) : selected && selected.staged === undefined ? (
-          <FileView projectId={projectId} path={selected.path} version={git.version} />
+          <FileView key={selected.path} {...fileViewProps(selected.path)} />
         ) : (
           <p className="muted small changes-hint">
             {view === "changes" && empty ? "コミットしていない変更はありません。" : "ファイルを選ぶと、変更があれば差分、なければ中身を表示します。"}

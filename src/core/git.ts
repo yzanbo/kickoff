@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -132,11 +133,37 @@ export async function listProjectFiles(repo: string): Promise<ProjectFiles | nul
   };
 }
 
+/** 中身の指紋（保存の前に、開いたあとでほかで変わっていないか比べる） */
+const hashOf = (data: Buffer) => createHash("sha1").update(data).digest("hex");
+
+/** リポジトリの中の、実体のパス（リポジトリの外を指すシンボリックリンクは使わせない） */
+async function resolveInside(repo: string, file: string): Promise<string> {
+  const real = await fs.realpath(await assertInside(repo, file));
+  await assertInside(repo, path.relative(await fs.realpath(repo), real));
+  return real;
+}
+
+/** 開いたあとで、ほかで（エージェントなどが）ファイルを変えていた */
+export class FileConflictError extends Error {}
+
+/**
+ * ファイルを保存する（いまあるファイルだけ）。baseHash は開いたときの指紋で、いまの中身と違えば上書きせずに
+ * FileConflictError にする（エージェントの作業を消さないため）。null なら確かめずに上書きする
+ */
+export async function writeProjectFile(repo: string, file: string, content: string, baseHash: string | null): Promise<{ hash: string }> {
+  const real = await resolveInside(repo, file);
+  if (!(await fs.stat(real)).isFile()) throw new Error("ファイルではありません");
+  if (baseHash !== null && hashOf(await fs.readFile(real)) !== baseHash) {
+    throw new FileConflictError("開いたあとで、ほかでファイルが変わりました");
+  }
+  const data = Buffer.from(content, "utf8");
+  await fs.writeFile(real, data);
+  return { hash: hashOf(data) };
+}
+
 /** ファイルの中身（リポジトリの外を指すシンボリックリンクは読まない） */
 export async function readProjectFile(repo: string, file: string): Promise<FileContent> {
-  const target = await assertInside(repo, file);
-  const real = await fs.realpath(target);
-  await assertInside(repo, path.relative(await fs.realpath(repo), real));
+  const real = await resolveInside(repo, file);
   const stat = await fs.stat(real);
   if (!stat.isFile()) throw new Error("ファイルではありません");
   const handle = await fs.open(real, "r");
@@ -145,7 +172,8 @@ export async function readProjectFile(repo: string, file: string): Promise<FileC
     await handle.read(buffer, 0, buffer.length, 0);
     // 先頭に NUL があればバイナリとみなす（git と同じ考え方）
     const binary = buffer.subarray(0, 8000).includes(0);
-    return { content: binary ? "" : buffer.toString("utf8"), binary, truncated: stat.size > MAX_FILE_BYTES };
+    const truncated = stat.size > MAX_FILE_BYTES;
+    return { content: binary ? "" : buffer.toString("utf8"), hash: binary || truncated ? "" : hashOf(buffer), binary, truncated };
   } finally {
     await handle.close();
   }
