@@ -765,21 +765,13 @@ button.chat-row {
 .custom-group-count {
   flex: none;
   font-size: 11px;
-  color: var(--faint, var(--muted));
+  color: var(--muted);
 }
 
-/* ホバーしても表示が変わらないよう、件数・「…」・＋はいつも出しておく（「…」と＋は控えめな色） */
+/* ホバーしても表示が変わらないよう、件数・「…」・＋はいつも出しておく（大きさと色はアイコンボタンと同じ） */
 .group-menu-button,
 .custom-group-add {
   flex: none;
-  width: 22px;
-  height: 22px;
-  color: var(--extra-muted);
-}
-
-.group-menu-button:hover,
-.custom-group-add:hover {
-  color: var(--text);
 }
 
 /* 「グループなし」には「…」がないので、同じ幅（アイコンボタンの幅）を空けて＋の位置をそろえる */
@@ -1210,9 +1202,25 @@ input[type="text"].inline-name {
   cursor: pointer;
 }
 
-.icon-button:hover {
+.icon-button:hover,
+.icon-button.active {
   color: var(--text);
   background: var(--bg-hover);
+}
+
+/* 押せないときは薄くする（取得中で回っている更新ボタンはそのまま） */
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon-button:disabled:hover {
+  color: var(--muted);
+  background: transparent;
+}
+
+.icon-button[aria-busy="true"] {
+  opacity: 1;
 }
 
 /* 回答待ちの件数 */
@@ -4604,11 +4612,6 @@ mark {
   color: var(--muted);
 }
 
-.archived-toggle.active {
-  color: var(--text);
-  background: var(--bg-hover);
-}
-
 .project-chip {
   display: inline-flex;
   align-items: center;
@@ -4736,11 +4739,6 @@ mark {
 /* ボードの見出しの、右側のパネルの開閉ボタン（閉じていて開いたタブがあれば数を出す） */
 .panel-toggle {
   position: relative;
-}
-
-.panel-toggle.active {
-  color: var(--text);
-  background: var(--bg-hover);
 }
 
 .panel-toggle-count {
@@ -5026,11 +5024,6 @@ mark {
   gap: 2px;
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
-}
-
-.browser-toolbar .icon-button:disabled {
-  opacity: 0.35;
-  cursor: default;
 }
 
 .browser-address {

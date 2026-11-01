@@ -1,4 +1,3 @@
-import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { RunEvent } from "../../../core/types";
 import { cx } from "../cx";
@@ -8,6 +7,7 @@ import { useDismiss } from "../hooks/useDismiss";
 import { useStoredNumber } from "../hooks/useStoredState";
 import { cleanSubagentReport, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "../subagents";
 import { groupEvents } from "../timeline";
+import { CloseButton } from "./IconButton";
 import { Markdown } from "./Markdown";
 import { TimelineItems, Working } from "./Timeline";
 
@@ -102,9 +102,7 @@ export function SubagentDetail({
             <span className="subagent-detail-name">{entry.description}</span>
             <span className="muted small">{meta.filter(Boolean).join(" · ")}</span>
           </div>
-          <button className="icon-button subagent-detail-close" title="閉じる（Esc）" aria-label="閉じる" onClick={onClose}>
-            <X size={15} />
-          </button>
+          <CloseButton title="閉じる（Esc）" size={15} className="subagent-detail-close" onClick={onClose} />
         </header>
         <div className="subagent-detail-body timeline" ref={bodyRef}>
           <div className="timeline-inner">

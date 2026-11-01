@@ -15,6 +15,7 @@ import { relativeTime } from "../../time";
 import { CardMenu } from "../CardMenu";
 import { useGroupMenu } from "../GroupMenu";
 import { GroupPickMenu } from "../GroupPickMenu";
+import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { StatusSlot } from "../StatusSlot";
 
@@ -187,22 +188,18 @@ export const WorkspacePage = memo(function WorkspacePage({
           </span>
         )}
         {!collapsed && (
-          <button
-            className="icon-button"
-            title={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
-            aria-label={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
+          <IconButton
+            icon={grouping === "recent" ? ListTree : Clock}
+            label={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
             onClick={toggleGrouping}
-          >
-            {grouping === "recent" ? <ListTree size={14} /> : <Clock size={14} />}
-          </button>
+          />
         )}
-        <button className="icon-button" title="グループを作成" aria-label={`${project.name} にグループを作成`} onClick={startCreate}>
-          <FolderPlus size={14} />
-        </button>
-        <button
-          className="icon-button"
+        <IconButton icon={FolderPlus} label={`${project.name} にグループを作成`} title="グループを作成" onClick={startCreate} />
+        <IconButton
+          icon={Plus}
+          label={`${project.name} の新しいチャット`}
           title={groups.length > 0 ? "新しいチャット（作成先のグループを選ぶ）" : "新しいチャット（⌘N）"}
-          aria-label={`${project.name} の新しいチャット`}
+          size={15}
           aria-haspopup={groups.length > 0 ? "menu" : undefined}
           onClick={(e) => {
             // グループがあれば、どこに作るかを選んでもらう
@@ -210,9 +207,7 @@ export const WorkspacePage = memo(function WorkspacePage({
             const r = e.currentTarget.getBoundingClientRect();
             setPickAt({ x: r.left, y: r.bottom + 4 });
           }}
-        >
-          <Plus size={15} />
-        </button>
+        />
       </div>
       {pickAt && (
         <GroupPickMenu
@@ -307,14 +302,14 @@ export const WorkspacePage = memo(function WorkspacePage({
                 {renaming !== group.id && (
                   <>
                     <span className="custom-group-count">{members.length}</span>
-                    <button
-                      className="icon-button custom-group-add"
+                    <IconButton
+                      icon={Plus}
+                      label={`${group.name} に新しいチャット`}
                       title={`「${group.name}」に新しいチャット`}
-                      aria-label={`${group.name} に新しいチャット`}
+                      size={13}
+                      className="custom-group-add"
                       onClick={() => openNewChat(project.id, { group: group.id })}
-                    >
-                      <Plus size={13} />
-                    </button>
+                    />
                     {groupMenu.button(group)}
                   </>
                 )}
@@ -342,14 +337,7 @@ export const WorkspacePage = memo(function WorkspacePage({
             グループなし
           </button>
           <span className="custom-group-count">{ungroupedRows.length}</span>
-          <button
-            className="icon-button custom-group-add"
-            title="グループなしで新しいチャット"
-            aria-label="グループなしで新しいチャット"
-            onClick={() => openNewChat(project.id)}
-          >
-            <Plus size={13} />
-          </button>
+          <IconButton icon={Plus} label="グループなしで新しいチャット" size={13} className="custom-group-add" onClick={() => openNewChat(project.id)} />
           {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
           <span className="group-menu-spacer" aria-hidden />
         </div>
@@ -382,7 +370,12 @@ export const WorkspacePage = memo(function WorkspacePage({
       {!collapsed && archivedMatches.length > 0 && (
         <div className="archived-section">
           <div className="custom-group-head ungrouped">
-            <button className="custom-group-toggle" aria-expanded={archivedOpen || Boolean(keyword)} onClick={toggleArchived}>
+            <button
+              className="custom-group-toggle"
+              aria-expanded={archivedOpen || Boolean(keyword)}
+              title={archivedOpen || keyword ? "閉じる" : "開く"}
+              onClick={toggleArchived}
+            >
               {archivedOpen || keyword ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               <Archive size={12} aria-hidden />
             </button>

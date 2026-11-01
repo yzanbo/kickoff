@@ -2,6 +2,7 @@ import type { WebviewTag } from "electron";
 import { ArrowLeft, ArrowRight, ExternalLink, Globe, RotateCw, SquareTerminal, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { normalizeUrl } from "../url";
+import { IconButton } from "./IconButton";
 
 interface Props {
   url: string;
@@ -84,21 +85,15 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
   return (
     <div className="browser-pane">
       <form className="browser-toolbar" onSubmit={go}>
-        <button type="button" className="icon-button" disabled={!nav.back} title="戻る" aria-label="戻る" onClick={() => ref.current?.goBack()}>
-          <ArrowLeft size={15} />
-        </button>
-        <button type="button" className="icon-button" disabled={!nav.forward} title="進む" aria-label="進む" onClick={() => ref.current?.goForward()}>
-          <ArrowRight size={15} />
-        </button>
-        <button
+        <IconButton icon={ArrowLeft} label="戻る" size={15} type="button" disabled={!nav.back} onClick={() => ref.current?.goBack()} />
+        <IconButton icon={ArrowRight} label="進む" size={15} type="button" disabled={!nav.forward} onClick={() => ref.current?.goForward()} />
+        <IconButton
           type="button"
-          className="icon-button"
-          title={loading ? "読み込みを止める" : "再読み込み"}
-          aria-label={loading ? "読み込みを止める" : "再読み込み"}
+          icon={loading ? X : RotateCw}
+          size={loading ? 15 : 14}
+          label={loading ? "読み込みを止める" : "再読み込み"}
           onClick={() => (loading ? ref.current?.stop() : ref.current?.reload())}
-        >
-          {loading ? <X size={15} /> : <RotateCw size={14} />}
-        </button>
+        />
         <input
           className="browser-address"
           aria-label="URL"
@@ -110,24 +105,21 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
           onChange={(e) => setAddress(e.target.value)}
           onFocus={(e) => e.target.select()}
         />
-        <button
-          type="button"
-          className="icon-button"
+        <IconButton
+          icon={SquareTerminal}
+          label="開発者ツールを開く"
           title="開発者ツール（React DevTools など）"
-          aria-label="開発者ツールを開く"
-          onClick={() => (ref.current?.isDevToolsOpened() ? ref.current.closeDevTools() : ref.current?.openDevTools())}
-        >
-          <SquareTerminal size={15} />
-        </button>
-        <button
+          size={15}
           type="button"
-          className="icon-button"
+          onClick={() => (ref.current?.isDevToolsOpened() ? ref.current.closeDevTools() : ref.current?.openDevTools())}
+        />
+        <IconButton
+          icon={ExternalLink}
+          label="Chrome で開く"
           title="Chrome で開く（ログインが必要なページや Bitwarden を使うとき）"
-          aria-label="Chrome で開く"
+          type="button"
           onClick={() => void window.kickoff?.openInChrome(current)}
-        >
-          <ExternalLink size={14} />
-        </button>
+        />
       </form>
       {error && <p className="browser-error">{error}</p>}
       {/* partition は main プロセスでも専用のセッションに強制している */}

@@ -1,4 +1,3 @@
-import { RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ProviderStatus, Run, UsageWindow } from "../../../core/types";
 import { api } from "../api";
@@ -8,6 +7,7 @@ import { useDismiss } from "../hooks/useDismiss";
 import { resetIn } from "../time";
 import { planLabel, usageLevel, useSharedPlanUsage, weeklyModel } from "../usage";
 import { ClaudeMark } from "./ClaudeMark";
+import { RefreshButton } from "./IconButton";
 
 // ログイン中のアカウントは、アプリ全体で 1 回だけ取得する
 const loadProviders = cachedLoader<ProviderStatus[]>(api.providers, []);
@@ -92,16 +92,12 @@ export function ContextMeter({ run }: { run: Run }) {
               <span className="context-plan-name">{usage?.provider_label ?? "Claude"}</span>
               {usage?.plan && <span className="context-plan-chip">{planLabel(usage.plan)}</span>}
               <span className="spacer" />
-              <button
+              <RefreshButton
+                label="使用枠を更新"
+                busy={Boolean(planUsage?.refreshing)}
                 type="button"
-                className="icon-button"
-                title="使用枠を更新"
-                aria-label="使用枠を更新"
-                disabled={planUsage?.refreshing}
                 onClick={() => void planUsage?.refresh()}
-              >
-                <RefreshCw size={14} className={planUsage?.refreshing ? "spin" : ""} />
-              </button>
+              />
             </div>
             {!usage ? (
               <p className="context-sub">取得中…</p>

@@ -4,6 +4,7 @@ import type { Attachment } from "../../../core/types";
 import { api } from "../api";
 import { errorMessage } from "../errors";
 import { AttachmentChip } from "./AttachmentChip";
+import { IconButton } from "./IconButton";
 import { RunOptionsBar, type RunOptionsState } from "./RunOptionsBar";
 
 interface Props {
@@ -148,15 +149,15 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
       />
       <div className="composer-bar">
         <div className="composer-tools">
-          <button
-            type="button"
-            className="icon-button attach-button"
+          <IconButton
+            icon={Paperclip}
+            label="ファイルを添付"
             title="ファイルを添付（ドラッグ＆ドロップ・貼り付けでも可）"
-            aria-label="ファイルを添付"
+            size={16}
+            className="attach-button"
+            type="button"
             onClick={() => inputRef.current?.click()}
-          >
-            <Paperclip size={16} />
-          </button>
+          />
           <input
             ref={inputRef}
             type="file"

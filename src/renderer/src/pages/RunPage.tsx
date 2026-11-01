@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Pencil, X } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Approval, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
@@ -6,6 +6,7 @@ import { chatTitle } from "../chatTitle";
 import { ApprovalCard } from "../components/ApprovalCard";
 import { Composer } from "../components/Composer";
 import { ContextMeter } from "../components/ContextMeter";
+import { CloseButton, IconButton } from "../components/IconButton";
 import { Markdown } from "../components/Markdown";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
@@ -136,27 +137,24 @@ function RunView({
     <div className="run-page run-panel">
       <header className="run-header">
         <div className="run-title-row">
-          <button className="icon-button" title="閉じる（Esc）" aria-label="パネルを閉じる" onClick={onClose}>
-            <X size={15} />
-          </button>
+          <CloseButton label="パネルを閉じる" title="閉じる（Esc）" size={15} onClick={onClose} />
           <SectionBadge section={run.phase} />
           <h1 title={run.title}>{chatTitle(run.title)}</h1>
-          <button
-            className="icon-button"
-            title="名前を変更"
-            aria-label="名前を変更"
+          <IconButton
+            icon={Pencil}
+            label="名前を変更"
+            size={13}
             onClick={async () => {
               const title = await promptDialog({ title: "チャットの名前を変更", initial: run.title, confirmLabel: "変更" });
               if (title && title !== run.title) await api.renameRun(run.id, title);
             }}
-          >
-            <Pencil size={13} />
-          </button>
+          />
           {/* アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す */}
-          <button
-            className="icon-button"
+          <IconButton
+            icon={run.archived_at ? ArchiveRestore : Archive}
+            size={13}
             title={run.archived_at ? "アーカイブから戻す" : "アーカイブ（一覧から隠す。会話の記録は残ります）"}
-            aria-label={run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
+            label={run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
             onClick={async () => {
               try {
                 await api.archiveRun(run.id, !run.archived_at);
@@ -164,9 +162,7 @@ function RunView({
                 await alertDialog("アーカイブできませんでした", errorMessage(e));
               }
             }}
-          >
-            {run.archived_at ? <ArchiveRestore size={13} /> : <Archive size={13} />}
-          </button>
+          />
           {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
           <span className="spacer" />
           <span className={`run-state state-${waiting ? "waiting" : run.status}`}>

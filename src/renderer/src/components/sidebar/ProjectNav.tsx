@@ -121,6 +121,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
         className={layout === "slide" ? "active" : ""}
         aria-pressed={layout === "slide"}
         title="1 プロジェクトずつ横にスライド"
+        aria-label="1 プロジェクトずつ横にスライド"
         onClick={() => changeLayout("slide")}
       >
         <GalleryHorizontal size={13} />
@@ -129,6 +130,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
         className={layout === "stack" ? "active" : ""}
         aria-pressed={layout === "stack"}
         title="すべてのプロジェクトを縦に並べる"
+        aria-label="すべてのプロジェクトを縦に並べる"
         onClick={() => changeLayout("stack")}
       >
         <Rows3 size={13} />

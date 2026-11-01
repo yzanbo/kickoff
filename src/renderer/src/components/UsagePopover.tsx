@@ -1,8 +1,8 @@
-import { RefreshCw, X } from "lucide-react";
 import { useRef } from "react";
 import { useDismiss } from "../hooks/useDismiss";
 import { formatClock } from "../time";
 import { FIVE_HOUR_IDLE, planName, type usePlanUsage } from "../usage";
+import { CloseButton, RefreshButton } from "./IconButton";
 import { UsageMeter } from "./UsageMeter";
 
 interface Props {
@@ -23,12 +23,8 @@ export function UsagePopover({ planUsage, onClose }: Props) {
     <div ref={ref} className="usage-popover" role="dialog" aria-label="使用状況の詳細">
       <div className="usage-popover-head">
         <span className="usage-popover-title">使用状況{plan ? `（${plan}）` : ""}</span>
-        <button className="icon-button" title="更新" aria-label="使用状況を更新" disabled={refreshing} onClick={() => void refresh()}>
-          <RefreshCw size={13} className={refreshing ? "spin" : ""} />
-        </button>
-        <button className="icon-button" title="閉じる（Esc）" aria-label="閉じる" onClick={onClose}>
-          <X size={14} />
-        </button>
+        <RefreshButton label="使用状況を更新" title="更新" size={13} busy={refreshing} onClick={() => void refresh()} />
+        <CloseButton title="閉じる（Esc）" onClick={onClose} />
       </div>
       {!usage ? (
         <p className="muted small">取得中…</p>
