@@ -30,10 +30,12 @@ interface RunPageProps {
   onClose: () => void;
   /** チャットを読み込んだとき・名前やセクションが変わったとき（パネルのタブの名前とアイコンに使う） */
   onRunChange?: (run: Run) => void;
+  /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
+  visible?: boolean;
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function RunPage({ projectId, runId, focus, onClose, onRunChange }: RunPageProps) {
+export function RunPage({ projectId, runId, focus, onClose, onRunChange, visible = true }: RunPageProps) {
   const [run, setRun] = useState<Run>();
   const [project, setProject] = useState<Project>();
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -65,10 +67,12 @@ export function RunPage({ projectId, runId, focus, onClose, onRunChange }: RunPa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run?.id, run?.title, run?.phase]);
 
-  // 開いて見たので「確認待ち」を消す（見ている間に終わった場合も同じ）
+  // 開いて見たので「確認待ち」を消す（パネルに表示したとき・見ている間に作業が終わったとき）。
+  // 右クリックの「未読にする」で付けた印は、表示したままでも消さず、次に開くまで残す
   useEffect(() => {
-    if (run?.attention) void api.markSeen(run.id).catch(() => {});
-  }, [run?.id, run?.attention]);
+    if (visible && run?.attention) void api.markSeen(run.id).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, run?.id, run?.status]);
 
   useServerEvent((e) => {
     if (e.type === "run_delta" && e.run_id === runId) {

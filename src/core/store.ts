@@ -373,6 +373,14 @@ export class Store {
   }
 
   /** チャットをグループへ移す（null でグループから外す）。並び順が変わらないよう更新日時は進めない */
+  /** 確認待ち（未読）の印を付ける・外す。最後に動いた時刻（一覧の並び順）は変えない */
+  setRunAttention(id: number, attention: boolean): Run {
+    this.db.prepare("UPDATE runs SET attention = ? WHERE id = ?").run(attention ? 1 : 0, id);
+    const run = this.getRun(id)!;
+    this.onChange({ type: "run", run });
+    return run;
+  }
+
   setRunGroup(id: number, groupId: number | null): Run {
     this.db.prepare("UPDATE runs SET group_id = ? WHERE id = ?").run(groupId, id);
     const run = this.getRun(id)!;
