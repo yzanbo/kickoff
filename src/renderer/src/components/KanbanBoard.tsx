@@ -65,11 +65,21 @@ interface Props {
  * チャットのカンバン。列（未着手・対応中・レビュー・完了）はあなたが動かす進み具合で、
  * カードの点はエージェント自身の状態（回答待ち・作業中・確認待ちなど）。
  */
+const PROJECT_FILTER_KEY = "kickoff:board-project-filter";
+
 export function KanbanBoard({ projectId, projects, approvals, title, focus }: Props) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<ViewMode>(() => (localStorage.getItem("kickoff:board-view") === "list" ? "list" : "board"));
   const [section, setSection] = useState<Phase | "all">("all");
+  // 全プロジェクトのボードでの、プロジェクトの絞り込み（選んだものは覚えておく）
+  const [projectFilter, setProjectFilter] = useState<number | "all">(() => Number(localStorage.getItem(PROJECT_FILTER_KEY)) || "all");
+  const changeProjectFilter = (value: number | "all") => {
+    localStorage.setItem(PROJECT_FILTER_KEY, String(value === "all" ? "" : value));
+    setProjectFilter(value);
+  };
+  // 絞り込んでいたプロジェクトがなくなったら、すべてに戻す
+  const activeProjectFilter = projectId === undefined && projectFilter !== "all" && projects.some((p) => p.id === projectFilter) ? projectFilter : "all";
   // カンバン内の検索（チャット名とやり取りの中身）
   const [query, setQuery] = useState("");
   const search = useChatSearch(query, projectId);
@@ -153,13 +163,14 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     const map = new Map<BoardStage, { run: Run; state: AgentState }[]>(BOARD_STAGES.map((s) => [s, []]));
     for (const run of runs) {
       if (section !== "all" && run.phase !== section) continue;
+      if (activeProjectFilter !== "all" && run.project_id !== activeProjectFilter) continue;
       if (!search.matches(run)) continue;
       const state = agentStateOf(run, approvals.some((a) => a.run_id === run.id));
       map.get(stageOf(run, state))?.push({ run, state });
     }
     for (const list of map.values()) list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
     return map;
-  }, [runs, approvals, section, search]);
+  }, [runs, approvals, section, search, activeProjectFilter]);
 
   async function move(run: Run, stage: BoardStage) {
     // 先に画面へ反映し、失敗したら戻す
@@ -176,7 +187,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
 
   /** 列の＋: その列に置く新しいチャット。見出しの「新規」は列を決めない（プロジェクトの既定に従う）。全体ボードでは最近のプロジェクトで始める */
   function newChat(stage?: BoardStage) {
-    const target = projectId ?? projects[0]?.id;
+    // 全プロジェクトのボードでは、絞り込んでいるプロジェクト（なければ最近のプロジェクト）で始める
+    const target = projectId ?? (activeProjectFilter !== "all" ? activeProjectFilter : projects[0]?.id);
     if (target === undefined) return;
     // 画面は移らず、右側のパネルで始める
     panel.openNew({ projectId: target, stage, section: section === "all" ? undefined : section });
@@ -249,6 +261,21 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         <span className="muted small">{total} 件</span>
         <span className="spacer" />
         <BoardSearch query={query} onChange={setQuery} />
+        {projectId === undefined && projects.length > 1 && (
+          <select
+            className={`board-filter ${activeProjectFilter !== "all" ? "filtered" : ""}`}
+            aria-label="プロジェクトで絞り込み"
+            value={activeProjectFilter}
+            onChange={(e) => changeProjectFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
+          >
+            <option value="all">すべてのプロジェクト</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        )}
         <select className="board-filter" aria-label="セクションで絞り込み" value={section} onChange={(e) => setSection(e.target.value as Phase | "all")}>
           <option value="all">すべてのセクション</option>
           {PHASES.map((p) => (
