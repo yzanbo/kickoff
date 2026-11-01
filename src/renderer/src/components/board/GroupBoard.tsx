@@ -53,7 +53,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
   // ボード（列）/ リスト（縦に並べる）の切り替え。カンバンとは別に覚える
   const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list"], "board");
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
-  const panel = useSidePanel({ runs, loaded: true, holdEsc: menu !== null });
+  const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs, loaded: true, holdEsc: menu !== null });
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {

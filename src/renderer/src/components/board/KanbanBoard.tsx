@@ -70,6 +70,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
 
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）
   const panel = useSidePanel({
+    memoryKey: `kanban:${projectId ?? "all"}`,
     runs,
     loaded,
     holdEsc: menu !== null,
