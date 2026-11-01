@@ -365,12 +365,14 @@ export class ClaudeProvider implements AgentProvider {
         return undefined;
 
       case "assistant": {
-        const sub = msg.parent_tool_use_id !== null;
+        // サブエージェントの発言は、どのサブエージェントのものかを残す（画面でその中身を見られるように）
+        const parent = msg.parent_tool_use_id ?? undefined;
+        const sub = parent ? { sub: true, parent } : {};
         for (const block of msg.message.content) {
           if (block.type === "text" && block.text.trim()) {
-            cb.emit({ type: "text", text: block.text, ...(sub ? { sub } : {}) });
+            cb.emit({ type: "text", text: block.text, ...sub });
           } else if (block.type === "tool_use") {
-            cb.emit({ type: "tool_use", id: block.id, name: block.name, input: block.input, ...(sub ? { sub } : {}) });
+            cb.emit({ type: "tool_use", id: block.id, name: block.name, input: block.input, ...sub });
           } else if (block.type === "thinking" && block.thinking.trim()) {
             cb.emit({ type: "thinking", text: block.thinking });
           }
@@ -394,6 +396,7 @@ export class ClaudeProvider implements AgentProvider {
             tool_use_id: block.tool_use_id,
             content: text.length > TOOL_RESULT_LIMIT ? `${text.slice(0, TOOL_RESULT_LIMIT)}\n…（省略）` : text,
             is_error: Boolean(block.is_error),
+            ...(msg.parent_tool_use_id ? { parent: msg.parent_tool_use_id } : {}),
           });
         }
         return undefined;

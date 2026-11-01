@@ -1,5 +1,5 @@
-import { ChevronRight, Pencil, Wrench, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, ChevronRight, Pencil, Wrench, X } from "lucide-react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Approval, Attachment, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
 import { ApprovalCard, describeToolInput } from "../components/ApprovalCard";
@@ -8,6 +8,7 @@ import { Composer } from "../components/Composer";
 import { Markdown } from "../components/Markdown";
 import { ContextMeter } from "../components/ContextMeter";
 import { SubagentChip, useSubagents } from "../components/Subagents";
+import { cleanSubagentReport, type SubagentEntry } from "../subagents";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
@@ -98,6 +99,9 @@ function RunView({
   );
   const busy = BUSY_STATUSES.includes(run.status);
   const subagents = useSubagents(run.id, events, busy);
+  // 中身を見ているサブエージェント（Task / Agent の呼び出し ID）
+  const [subOpen, setSubOpen] = useState<string>();
+  const openedSub = subagents.find((s) => s.key === subOpen);
   const timelineRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const items = useMemo(() => groupEvents(events), [events]);
@@ -123,6 +127,7 @@ function RunView({
   }, [items.length, approvals.length, live, focus]);
 
   return (
+    <OpenSubagentContext.Provider value={setSubOpen}>
     <div className="run-page run-panel">
       <header className="run-header">
         <div className="run-title-row">
@@ -207,7 +212,115 @@ function RunView({
           trailing={<ContextMeter run={run} />}
         />
         <div className="composer-chips">
-          <SubagentChip entries={subagents} run={run} models={options.models} />
+          <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => setSubOpen(s.key)} />
+        </div>
+      </div>
+      {openedSub && <SubagentDetail entry={openedSub} events={events} rel={rel} busy={busy} onClose={() => setSubOpen(undefined)} />}
+    </div>
+    </OpenSubagentContext.Provider>
+  );
+}
+
+/** タイムラインの Task / Agent の呼び出しから、そのサブエージェントの中身を開く */
+const OpenSubagentContext = createContext<(toolUseId: string) => void>(() => {});
+
+const SUB_STATUS_LABELS: Record<SubagentEntry["status"], string> = { running: "実行中", completed: "完了", failed: "失敗", stopped: "中断" };
+
+/**
+ * サブエージェントの中身（そのサブエージェントの発言とツールの実行）。チャットの上に重ねて表示し、実行中は追記されていく
+ */
+function SubagentDetail({
+  entry,
+  events,
+  rel,
+  busy,
+  onClose,
+}: {
+  entry: SubagentEntry;
+  events: RunEvent[];
+  rel: (s: string) => string;
+  busy: boolean;
+  onClose: () => void;
+}) {
+  const items = useMemo(() => groupEvents(events, entry.key), [events, entry.key]);
+  const call = events.find((e) => e.type === "tool_use" && (e.data as { id: string }).id === entry.key);
+  const prompt = (call?.data as { input?: { prompt?: string } } | undefined)?.input?.prompt;
+  const result = events.find(
+    (e) => e.type === "tool_result" && (e.data as { tool_use_id: string; parent?: string }).tool_use_id === entry.key && !(e.data as { parent?: string }).parent,
+  );
+  const rawResult = (result?.data as { content?: string } | undefined)?.content;
+  const resultText = rawResult ? cleanSubagentReport(rawResult) : undefined;
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  // Esc で閉じる（パネルを閉じる Esc より先に）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+
+  // 実行中は、新しい動きに合わせて下までスクロールする
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el && entry.status === "running") el.scrollTop = el.scrollHeight;
+  }, [items.length, entry.status]);
+
+  return (
+    <div className="subagent-detail" role="dialog" aria-label={`サブエージェント: ${entry.description}`}>
+      <header className="subagent-detail-head">
+        <button className="icon-button" title="チャットに戻る（Esc）" aria-label="チャットに戻る" onClick={onClose}>
+          <ArrowLeft size={15} />
+        </button>
+        <div className="subagent-detail-title">
+          <span className="subagent-detail-name">{entry.description}</span>
+          <span className="muted small">
+            {[entry.subagentType ?? "general-purpose", entry.tokens !== undefined ? `${Math.round(entry.tokens / 100) / 10}k tokens` : null, SUB_STATUS_LABELS[entry.status]]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </div>
+      </header>
+      <div className="subagent-detail-body timeline" ref={bodyRef}>
+        <div className="timeline-inner">
+          {prompt && (
+            <div className="bubble user subagent-prompt">
+              <div className="subagent-label">親のエージェントからの依頼</div>
+              <Markdown>{prompt}</Markdown>
+            </div>
+          )}
+          {items.length === 0 && (
+            <p className="muted small">
+              {entry.status === "running" ? "まだ動きがありません…" : "このサブエージェントの中身は記録されていません（以前のチャットでは残っていません）"}
+            </p>
+          )}
+          {items.map((item, i) =>
+            item.kind === "tools" ? (
+              <ToolGroup key={item.key} tools={item.tools} rel={rel} active={busy && entry.status === "running" && i === items.length - 1} />
+            ) : (
+              <EventItem key={item.key} event={item.event} />
+            ),
+          )}
+          {resultText && (
+            <div className="subagent-result">
+              <div className="subagent-label">親のエージェントへの報告</div>
+              <Markdown>{resultText}</Markdown>
+            </div>
+          )}
+          {entry.status === "running" && (
+            <div className="working">
+              <span className="dots" aria-hidden>
+                <span />
+                <span />
+                <span />
+              </span>
+              {entry.lastTool ? `${entry.lastTool} を実行中` : "作業中"}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -223,11 +336,15 @@ interface ToolCall {
 
 type TimelineItem = { kind: "event"; key: string; event: RunEvent } | { kind: "tools"; key: string; tools: ToolCall[] };
 
-/** 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる） */
-function groupEvents(events: RunEvent[]): TimelineItem[] {
+/**
+ * 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる）。
+ * parent を渡すとそのサブエージェントの中身だけ、渡さなければ親のエージェントの分だけを並べる
+ */
+function groupEvents(events: RunEvent[], parent?: string): TimelineItem[] {
   const items: TimelineItem[] = [];
   const byId = new Map<string, ToolCall>();
   for (const e of events) {
+    if (((e.data as { parent?: string }).parent ?? undefined) !== parent) continue;
     if (e.type === "tool_use") {
       const call: ToolCall = { use: e };
       byId.set((e.data as { id: string }).id, call);
@@ -312,7 +429,8 @@ function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string)
 }
 
 function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string }) {
-  const { name, input = {} } = call.use.data as { name: string; input?: Record<string, unknown> };
+  const { id, name, input = {} } = call.use.data as { id: string; name: string; input?: Record<string, unknown> };
+  const openSubagent = useContext(OpenSubagentContext);
   const r = call.result?.data as { content?: string; is_error?: boolean } | undefined;
   let detail: ReactNode = null;
   if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
@@ -326,6 +444,18 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
         <span className="tool-name">{toolLabel(name)}</span>
         <span className="tool-arg">{rel(describeToolInput(name, input))}</span>
         {!call.result && <span className="spinner small" aria-label="実行中" />}
+        {(name === "Agent" || name === "Task") && (
+          <button
+            type="button"
+            className="tool-open-sub"
+            onClick={(e) => {
+              e.preventDefault();
+              openSubagent(id);
+            }}
+          >
+            中身を見る
+          </button>
+        )}
       </summary>
       {detail}
       {r?.content && (r.is_error || !detail) && <pre className={`tool-output ${r.is_error ? "error" : ""}`}>{rel(r.content)}</pre>}

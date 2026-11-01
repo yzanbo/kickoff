@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { RunEvent } from "../../core/types.js";
-import { collectSubagents } from "./subagents.js";
+import { cleanSubagentReport, collectSubagents } from "./subagents.js";
 
 const ev = (id: number, type: RunEvent["type"], data: object): RunEvent =>
   ({ id, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;
@@ -27,4 +27,11 @@ test("サブエージェント: 呼び出し・通知・途中経過をまとめ
 
   const stopped = collectSubagents(events, {}, false);
   assert.equal(stopped[1].status, "stopped");
+});
+
+test("サブエージェントの報告: 前置きと字下げを外す", () => {
+  const raw =
+    "  <tools-used-before-summary>Glob</tools-used-before-summary>\n  \n[Subagent hand-back] The text below is ... The report follows:\n  ありませんでした。\n  \n  ファイルは変更していません。";
+  assert.equal(cleanSubagentReport(raw), "ありませんでした。\n\nファイルは変更していません。");
+  assert.equal(cleanSubagentReport("そのままの報告"), "そのままの報告");
 });

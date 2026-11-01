@@ -59,7 +59,9 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus }: Props)
   const draftsOf = (groupId: number | null) =>
     panel.drafts
       .filter((d) => d.target.projectId === projectId && (d.target.group ?? null) === groupId)
-      .map((d) => <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onClick={() => panel.showTab(d.key)} />);
+      .map((d) => (
+        <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onOpen={() => panel.showTab(d.key)} onDelete={() => panel.closeTab(d.key)} />
+      ));
 
   const groupIds = new Set(groups.map((g) => g.id));
   const membersOf = (groupId: number | null) =>

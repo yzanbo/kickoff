@@ -1,4 +1,4 @@
-import { Globe, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, X } from "lucide-react";
+import { Globe, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { BoardStage, Phase, ProjectSummary, Run } from "../../../core/types";
 import { RunPage } from "../pages/RunPage";
@@ -298,6 +298,8 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
     drafts: tabs.flatMap((t) => (t.kind === "new" ? [{ key: t.key, target: { projectId: t.projectId, section: t.section, stage: t.stage, group: t.group } }] : [])),
     /** タブを表示する（下書きを押したとき） */
     showTab: reopen,
+    /** タブを閉じる（下書きを削除したとき） */
+    closeTab,
     isShowingTab: (key: string) => panelOpen && activeTab === key,
     /** パネルの表示中のタブがこのチャットか（カードを選択中として見せる） */
     isShowing: (runId: number) => panelOpen && activeTab === chatKey(runId),
@@ -314,12 +316,57 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
   };
 }
 
-/** 送る前の新しいチャット（パネルで入力中）の下書き。押すとそのタブを表示する */
-export function DraftCard({ active, onClick }: { active: boolean; onClick: () => void }) {
+/**
+ * 送る前の新しいチャット（パネルで入力中）の下書き。押すとそのタブを表示し、右クリックで開く・削除を選べる
+ */
+export function DraftCard({ active, onOpen, onDelete }: { active: boolean; onOpen: () => void; onDelete: () => void }) {
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const onDown = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenu(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        setMenu(null);
+      }
+    };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [menu]);
+
   return (
-    <button type="button" className={`draft-card ${active ? "selected" : ""}`} onClick={onClick} title="右側で入力中の新しいチャット">
-      <SquarePen size={14} aria-hidden />
-      新しいチャット（入力中）
-    </button>
+    <>
+      <button
+        type="button"
+        className={`draft-card ${active ? "selected" : ""}`}
+        title="右側で入力中の新しいチャット（右クリックで削除）"
+        onClick={onOpen}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: Math.min(e.clientX, window.innerWidth - 220), y: Math.min(e.clientY, window.innerHeight - 120) });
+        }}
+      >
+        <SquarePen size={14} aria-hidden />
+        新しいチャット（入力中）
+      </button>
+      {menu && (
+        <div ref={menuRef} className="menu" style={{ left: menu.x, top: menu.y }} role="menu">
+          <button role="menuitem" onClick={() => (onOpen(), setMenu(null))}>
+            <SquarePen size={14} /> 開く
+          </button>
+          <button role="menuitem" className="danger" onClick={() => (onDelete(), setMenu(null))}>
+            <Trash2 size={14} /> 削除（入力中の内容は消えます）
+          </button>
+        </div>
+      )}
+    </>
   );
 }

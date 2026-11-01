@@ -249,10 +249,11 @@ export interface Attachment {
 export type RunEventData =
   | { type: "user"; text: string; attachments?: Attachment[] }
   | { type: "init"; model?: string; session_id: string; permission_mode?: string }
-  | { type: "text"; text: string; sub?: boolean }
+  /** sub: サブエージェントの発言。parent: そのサブエージェントを起動した Task / Agent ツールの呼び出し ID */
+  | { type: "text"; text: string; sub?: boolean; parent?: string }
   | { type: "thinking"; text: string }
-  | { type: "tool_use"; id: string; name: string; input: unknown; sub?: boolean }
-  | { type: "tool_result"; tool_use_id: string; content: string; is_error: boolean }
+  | { type: "tool_use"; id: string; name: string; input: unknown; sub?: boolean; parent?: string }
+  | { type: "tool_result"; tool_use_id: string; content: string; is_error: boolean; parent?: string }
   | { type: "approval"; approval_id: string; kind: ApprovalKind; tool_name: string; title?: string }
   | { type: "approval_resolved"; approval_id: string; action: ApprovalDecision["action"] }
   | { type: "result"; status: RunStatus; text?: string; cost_usd?: number; turns?: number }
