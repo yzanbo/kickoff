@@ -54,7 +54,7 @@
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |
 | ボードの見出し | `BoardHeader`。道具は概念ごとのまとまりに入れる（左: 表示 → 探す・絞り込む / 右: 作る・開く → パネルの開閉） |
-| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）・「検索」（`SearchView` ＋ `useProjectSearch`、印は `searchPattern` / `splitMatches`）・「変更」を切り替える。差分は `DiffView`（左右に並べる・1 列）、変更のないファイルの中身は `FileView`。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
+| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）・「検索」（`SearchView` ＋ `useProjectSearch`、印は `searchPattern` / `splitMatches`）・「変更」を切り替える。フォルダ・ファイルのアイコンは `FileIcon`（VS Code の Material Icon Theme。対応表は使うときだけ読み込む）。差分は `DiffView`（左右に並べる・1 列）、変更のないファイルの中身は `FileView`。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
 
 ## hooks と補助関数
 

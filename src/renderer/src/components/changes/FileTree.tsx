@@ -1,9 +1,9 @@
-import { File, Folder, FolderOpen } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { GitChangeKind } from "../../../../core/types";
 import { cx } from "../../cx";
 import { Chevron } from "../Chevron";
 import { CHANGE_LABELS } from "./DiffView";
+import { FileIcon } from "./FileIcon";
 import type { TreeNode } from "./treeModel";
 
 interface Props {
@@ -37,7 +37,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, dep
               onClick={() => (node.dir ? expandable && onToggle(node.path) : onSelect(node.path))}
             >
               <span className="tree-chevron">{expandable && <Chevron open={isOpen} />}</span>
-              {node.dir ? isOpen ? <FolderOpen size={14} aria-hidden /> : <Folder size={14} aria-hidden /> : <File size={14} aria-hidden />}
+              <FileIcon name={node.name} dir={node.dir} open={isOpen} />
               <span className="tree-name">{node.name}</span>
               {/* ファイルは記号、フォルダは点（中に変更がある） */}
               {kind && <span className="tree-kind">{node.dir ? "•" : kind}</span>}

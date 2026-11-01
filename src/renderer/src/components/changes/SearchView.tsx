@@ -5,6 +5,7 @@ import { cx } from "../../cx";
 import { Chevron } from "../Chevron";
 import { ErrorText } from "../ErrorText";
 import { IconButton, RefreshButton } from "../IconButton";
+import { FileIcon } from "./FileIcon";
 import { searchPattern, splitMatches } from "./searchMatch";
 import type { ProjectSearchController } from "./useProjectSearch";
 
@@ -95,6 +96,7 @@ function SearchFile({
     <section className="change-group">
       <button className="code-search-file" aria-expanded={open} title={path} onClick={() => setOpen(!open)}>
         <Chevron open={open} />
+        <FileIcon name={path.slice(slash + 1)} />
         <span className="change-name">{path.slice(slash + 1)}</span>
         {slash > 0 && <span className="change-dir">{path.slice(0, slash)}</span>}
         <span className="change-count">{matches.length}</span>

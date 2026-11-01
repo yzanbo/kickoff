@@ -5926,3 +5926,15 @@ a:focus-visible,
 .diff-table .line-focus {
   background: color-mix(in srgb, var(--warn) 18%, transparent);
 }
+
+/* フォルダ・ファイルのアイコン（Material Icon Theme） */
+.file-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.change-file .file-icon,
+.code-search-file .file-icon {
+  align-self: center;
+}
