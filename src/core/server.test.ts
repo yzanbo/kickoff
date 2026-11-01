@@ -306,7 +306,18 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.deepEqual(files.ignored, [{ path: "node_modules", dir: true }]);
   assert.equal(files.truncated, false);
   // ファイルの中身（リポジトリの外・外を指すリンクは読ませない）
-  assert.deepEqual((await call("GET", `/api/projects/${project.id}/file?path=a.txt`)).body, { content: "one\ntwo\n", binary: false, truncated: false });
+  const opened = (await call("GET", `/api/projects/${project.id}/file?path=a.txt`)).body;
+  assert.deepEqual({ ...opened, hash: undefined }, { content: "one\ntwo\n", hash: undefined, binary: false, truncated: false });
+  assert.match(opened.hash, /^[0-9a-f]{40}$/);
+  // 保存: 開いたときの指紋が同じなら書く。ほかで変わっていれば 409 で上書きしない。null なら上書きする
+  const saved = await call("PUT", `/api/projects/${project.id}/file`, { path: "a.txt", content: "one\nTWO\n", base_hash: opened.hash });
+  assert.equal(saved.status, 200);
+  assert.equal(fs.readFileSync(path.join(repo, "a.txt"), "utf8"), "one\nTWO\n");
+  const stale = await call("PUT", `/api/projects/${project.id}/file`, { path: "a.txt", content: "mine\n", base_hash: opened.hash });
+  assert.equal(stale.status, 409);
+  assert.equal(fs.readFileSync(path.join(repo, "a.txt"), "utf8"), "one\nTWO\n");
+  assert.equal((await call("PUT", `/api/projects/${project.id}/file`, { path: "a.txt", content: "one\ntwo\n", base_hash: null })).status, 200);
+  assert.equal((await call("PUT", `/api/projects/${project.id}/file`, { path: "../outside.txt", content: "x", base_hash: null })).status, 400);
   assert.equal((await call("GET", `/api/projects/${project.id}/file?path=../outside.txt`)).status, 400);
   fs.symlinkSync("/etc/hosts", path.join(repo, "link.txt"));
   assert.equal((await call("GET", `/api/projects/${project.id}/file?path=link.txt`)).status, 400);

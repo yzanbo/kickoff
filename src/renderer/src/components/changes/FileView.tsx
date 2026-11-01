@@ -1,19 +1,51 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { ExternalLink, Pencil, Save, X } from "lucide-react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { FileContent } from "../../../../core/types";
-import { api } from "../../api";
+import { api, ApiError } from "../../api";
+import { cx } from "../../cx";
+import { confirmDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
 import { useHighlight } from "../../hooks/useHighlight";
-import { cx } from "../../cx";
 import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
 
+// 編集の部品（Monaco）は大きいので、「編集」を押したときに初めて読み込む
+const CodeEditor = lazy(() => import("./CodeEditor"));
+
+interface Props {
+  projectId: number;
+  /** プロジェクトのフォルダ（VS Code で開くときの場所に使う） */
+  repoPath: string;
+  path: string;
+  /** 開く行（検索の結果から開いたとき。目立たせる） */
+  line?: number;
+  /** コミットしていない変更があるか（見出しに出す） */
+  changed?: boolean;
+  /** 開いたらすぐ編集する（差分の「編集」から来たとき） */
+  initialEditing?: boolean;
+  version: number;
+  /** 保存したとき（変更の一覧を取り直す） */
+  onSaved?: () => void;
+  /** 保存していない変更があるか（別のファイルを開く前に確かめる） */
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
 /**
- * ファイルの中身（読むだけ。行番号つき）。line を渡すと、その行までスクロールして目立たせる（検索の結果から開いたとき）。
- * changed: コミットしていない変更があるか（見出しに出す）
+ * ファイルの中身（行番号つき）。「編集」で VS Code と同じ編集の部品にし、⌘S・保存ボタンで保存する。
+ * 保存の前に、開いたあとでほかで（エージェントなどが）変えていないか確かめ、変わっていれば上書きするか聞く
  */
-export function FileView({ projectId, path, line, changed = false, version }: { projectId: number; path: string; line?: number; changed?: boolean; version: number }) {
+export function FileView({ projectId, repoPath, path, line, changed = false, initialEditing = false, version, onSaved, onDirtyChange }: Props) {
   const key = `${projectId}:${path}`;
   const [state, setState] = useState<{ key: string; file?: FileContent; error?: string }>();
+  const [reload, setReload] = useState(0);
+  // 編集: 開いたとき（保存したとき）の中身と指紋。null なら見るだけ
+  const [base, setBase] = useState<{ content: string; hash: string } | null>(null);
+  const [wantEdit, setWantEdit] = useState(initialEditing);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ text: string; error?: boolean }>();
+  const [editorKey, setEditorKey] = useState(0);
+  const getValue = useRef<(() => string) | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -25,11 +57,73 @@ export function FileView({ projectId, path, line, changed = false, version }: { 
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, version]);
+  }, [key, version, reload]);
 
   const current = state?.key === key ? state : undefined;
+  const editable = Boolean(current?.file && !current.file.binary && !current.file.truncated);
+  // 「編集」を押したら（差分から来たら）、読み込んだ中身から編集を始める
+  useEffect(() => {
+    if (wantEdit && editable && current?.file && !base) {
+      setBase({ content: current.file.content, hash: current.file.hash });
+      setWantEdit(false);
+    }
+  }, [wantEdit, editable, current?.file, base]);
+
+  const changeDirty = (next: boolean) => {
+    setDirty(next);
+    if (next) setMessage(undefined);
+    onDirtyChange?.(next);
+  };
+
+  const save = async (content: string, force = false): Promise<void> => {
+    if (!base) return;
+    setSaving(true);
+    setMessage(undefined);
+    try {
+      const { hash } = await api.saveProjectFile(projectId, path, content, force ? null : base.hash);
+      setBase({ content, hash });
+      setMessage({ text: "保存しました" });
+      onSaved?.();
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        const overwrite = await confirmDialog({
+          title: "ほかでファイルが変わっています",
+          message: "開いたあとで、エージェントなどがこのファイルを変えました。上書きすると、その変更は消えます。",
+          confirmLabel: "上書きする",
+          danger: true,
+        });
+        if (overwrite) return save(content, true);
+        setMessage({ text: "保存していません（ほかでの変更を確かめてください）", error: true });
+      } else {
+        setMessage({ text: errorMessage(e), error: true });
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const stopEditing = async () => {
+    if (dirty && !(await confirmDialog({ title: "保存していない変更を捨てますか？", confirmLabel: "捨てる", danger: true }))) return;
+    setBase(null);
+    changeDirty(false);
+    setMessage(undefined);
+    setReload((n) => n + 1);
+  };
+
+  // ほかで変わった中身を読み直して、編集をやり直す（自分の変更は捨てる）
+  const reloadFromDisk = async () => {
+    if (dirty && !(await confirmDialog({ title: "保存していない変更を捨てて読み直しますか？", confirmLabel: "読み直す", danger: true }))) return;
+    if (!current?.file) return;
+    setBase({ content: current.file.content, hash: current.file.hash });
+    setEditorKey((n) => n + 1);
+    changeDirty(false);
+    setMessage(undefined);
+  };
+
+  // 編集している間に、ほかでファイルが変わった
+  const changedOnDisk = Boolean(base && current?.file && current.file.hash !== base.hash);
   const lines = useMemo(() => current?.file?.content.replace(/\n$/, "").split("\n") ?? [], [current?.file]);
-  const tokens = useHighlight(lines, path);
+  const tokens = useHighlight(base ? [] : lines, path);
   const focusRef = useRef<HTMLTableRowElement>(null);
   // 開いた行を真ん中に出す（中身を読み込んだあと・別の行を選んだとき）
   useEffect(() => {
@@ -42,13 +136,56 @@ export function FileView({ projectId, path, line, changed = false, version }: { 
         <span className="diff-path" title={path}>
           {path}
         </span>
-        <span className="diff-state">
-          {line !== undefined && `${line} 行目・`}
-          {changed ? "変更あり" : "変更なし"}
+        <span className={cx("diff-state", message?.error && "error")}>
+          {message?.text ??
+            (base ? (dirty ? "編集中・未保存" : "編集中") : `${line !== undefined ? `${line} 行目・` : ""}${changed ? "変更あり" : "変更なし"}`)}
         </span>
+        <span className="spacer" />
+        {window.kickoff && (
+          <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void window.kickoff?.openInVSCode(`${repoPath}/${path}`, line)}>
+            <ExternalLink size={13} aria-hidden /> VS Code で開く
+          </button>
+        )}
+        {base ? (
+          <>
+            <button className="btn btn-sm btn-primary" disabled={!dirty || saving} title="保存（⌘S）" onClick={() => getValue.current && void save(getValue.current())}>
+              <Save size={13} aria-hidden /> {saving ? "保存中…" : "保存"}
+            </button>
+            <button className="btn btn-sm" onClick={() => void stopEditing()}>
+              <X size={13} aria-hidden /> 編集をやめる
+            </button>
+          </>
+        ) : (
+          editable && (
+            <button className="btn btn-sm" onClick={() => setWantEdit(true)}>
+              <Pencil size={13} aria-hidden /> 編集
+            </button>
+          )
+        )}
       </header>
-      <div className="diff-body">
-        {!current ? (
+      {changedOnDisk && (
+        <div className="file-changed-notice" role="status">
+          開いたあとで、ほかでこのファイルが変わりました。
+          <button className="btn btn-sm" onClick={() => void reloadFromDisk()}>
+            読み直す
+          </button>
+        </div>
+      )}
+      <div className={cx("diff-body", base && "editing")}>
+        {base ? (
+          <Suspense fallback={<p className="muted small diff-message">編集の準備中…</p>}>
+            <CodeEditor
+              key={editorKey}
+              path={path}
+              initialValue={base.content}
+              savedValue={base.content}
+              line={line}
+              valueRef={getValue}
+              onDirtyChange={changeDirty}
+              onSave={(content) => void save(content)}
+            />
+          </Suspense>
+        ) : !current ? (
           <p className="muted small diff-message">読み込み中…</p>
         ) : current.error ? (
           <ErrorText message={current.error} className="diff-message" />
@@ -72,7 +209,7 @@ export function FileView({ projectId, path, line, changed = false, version }: { 
             </tbody>
           </table>
         )}
-        {current?.file?.truncated && <p className="muted small diff-message">大きいため、途中までを表示しています。</p>}
+        {!base && current?.file?.truncated && <p className="muted small diff-message">大きいため、途中までを表示しています（編集はできません）。</p>}
       </div>
     </div>
   );

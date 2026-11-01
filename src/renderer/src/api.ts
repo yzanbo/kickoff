@@ -175,6 +175,9 @@ export const api = {
   reorderGroups: (projectId: number, ids: number[]) => request<RunGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
   gitStatus: (projectId: number) => request<GitStatus>("GET", `/api/projects/${projectId}/git/status`),
   projectFiles: (projectId: number) => request<ProjectFiles>("GET", `/api/projects/${projectId}/files`),
+  /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
+  saveProjectFile: (projectId: number, path: string, content: string, baseHash: string | null) =>
+    request<{ hash: string }>("PUT", `/api/projects/${projectId}/file`, { path, content, base_hash: baseHash }),
   searchProject: (projectId: number, { query, caseSensitive, wholeWord, regex }: ProjectSearchQuery) =>
     request<ProjectSearchResult>(
       "GET",

@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { GitDiff, GitFileChange } from "../../../../core/types";
 import { api } from "../../api";
@@ -30,7 +31,20 @@ export const CHANGE_LABELS: Record<GitFileChange["kind"], string> = {
  * 選んだファイルの差分。VS Code と同じく左右に並べて出し、git diff と同じ 1 列にもできる（選んだ方を覚えておく）。
  * version が変わったら（変更の一覧を取り直したら）、差分も取り直す
  */
-export function DiffView({ projectId, file, staged, version }: { projectId: number; file: GitFileChange; staged: boolean; version: number }) {
+export function DiffView({
+  projectId,
+  file,
+  staged,
+  version,
+  onEdit,
+}: {
+  projectId: number;
+  file: GitFileChange;
+  staged: boolean;
+  version: number;
+  /** いまのファイルを編集する（消したファイルでは渡さない） */
+  onEdit?: () => void;
+}) {
   const [layout, setLayout] = useStoredChoice<DiffLayout>(LAYOUT_KEY, ["split", "unified"], "split");
   const key = `${projectId}:${staged ? "staged" : "unstaged"}:${file.path}:${file.old_path ?? ""}`;
   const [state, setState] = useState<{ key: string; diff?: GitDiff; error?: string }>();
@@ -63,6 +77,11 @@ export function DiffView({ projectId, file, staged, version }: { projectId: numb
           {CHANGE_LABELS[file.kind]}・{staged ? "ステージ済み" : "未ステージ"}
         </span>
         <span className="spacer" />
+        {onEdit && (
+          <button className="btn btn-sm" title="いまのファイルを編集する" onClick={onEdit}>
+            <Pencil size={13} aria-hidden /> 編集
+          </button>
+        )}
         <Segmented
           className="view-toggle"
           label="差分の表示のしかた"

@@ -155,6 +155,12 @@ function registerIpc() {
   ipcMain.handle("kickoff:open-path", async (_e, target: string) => {
     if (typeof target === "string" && path.isAbsolute(target)) await shell.openPath(target);
   });
+  // VS Code でファイルを開く（line があればその行へ）。VS Code がなければ失敗を返す
+  ipcMain.handle("kickoff:open-in-vscode", async (_e, target: string, line?: number) => {
+    if (typeof target !== "string" || !path.isAbsolute(target)) throw new Error("ファイルの場所が正しくありません");
+    const position = typeof line === "number" && line > 0 ? `:${Math.floor(line)}` : "";
+    await shell.openExternal(`vscode://file${encodeURI(target)}${position}`);
+  });
 }
 
 app.on("window-all-closed", () => {

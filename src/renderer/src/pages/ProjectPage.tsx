@@ -181,7 +181,7 @@ export function ProjectPage({
         </section>
       )}
       {tab === "reports" && <ReportsTab artifacts={artifacts} />}
-      {tab === "changes" && <ChangesTab projectId={project.id} rootName={project.repo_path.split("/").pop() ?? project.name} git={git} />}
+      {tab === "changes" && <ChangesTab projectId={project.id} repoPath={project.repo_path} git={git} />}
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
     </div>
   );
