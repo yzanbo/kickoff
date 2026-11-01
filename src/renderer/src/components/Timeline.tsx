@@ -3,7 +3,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { Attachment, RunEvent } from "../../../core/types";
 import { cx } from "../cx";
 import { cleanSubagentReport, isSubagentTool } from "../subagents";
-import { toolLabel, type TimelineItem, type ToolCall } from "../timeline";
+import { summarizeTools, toolLabel, type TimelineItem, type ToolCall } from "../timeline";
 import { describeToolInput } from "./ApprovalCard";
 import { AttachmentChip } from "./AttachmentChip";
 import { Markdown } from "./Markdown";
@@ -39,14 +39,9 @@ export function Working({ children }: { children: ReactNode }) {
   );
 }
 
-/** ツールのまとまり（閉じた状態では「読む ×2・編集」のように要約する） */
+/** ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約する） */
 function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
-  const counts = new Map<string, number>();
-  for (const t of tools) {
-    const label = toolLabel((t.use.data as { name: string }).name);
-    counts.set(label, (counts.get(label) ?? 0) + 1);
-  }
-  const summary = [...counts].map(([label, n]) => (n > 1 ? `${label} ×${n}` : label)).join("・");
+  const summary = summarizeTools(tools);
   const failed = tools.filter((t) => (t.result?.data as { is_error?: boolean } | undefined)?.is_error).length;
   const last = tools[tools.length - 1];
   const lastData = last.use.data as { name: string; input?: Record<string, unknown> };

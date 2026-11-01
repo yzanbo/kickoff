@@ -202,6 +202,10 @@ function RunView({
       </div>
 
       <div className="run-composer">
+        {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
+        <div className="composer-chips">
+          <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => setSubOpen(s.key)} />
+        </div>
         <Composer
           options={options}
           busy={busy}
@@ -213,9 +217,6 @@ function RunView({
           onStop={() => void api.cancelRun(run.id)}
           trailing={<ContextMeter run={run} />}
         />
-        <div className="composer-chips">
-          <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => setSubOpen(s.key)} />
-        </div>
       </div>
       {openedSub && <SubagentDetail entry={openedSub} events={events} rel={rel} busy={busy} onClose={() => setSubOpen(undefined)} />}
     </div>

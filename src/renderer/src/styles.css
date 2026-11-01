@@ -2973,11 +2973,12 @@ mark {
 }
 
 /* チャット欄の下のチップ（サブエージェントなど） */
+/* チャット欄のすぐ上のピルの列（サブエージェントなど） */
 .composer-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px 0 0;
+  padding: 0 0 8px;
 }
 
 .composer-chips:empty {
@@ -3016,6 +3017,10 @@ mark {
 
 .chip-running {
   color: var(--muted);
+}
+
+.chip-failed {
+  color: var(--ng);
 }
 
 .chip-chevron {
@@ -3480,6 +3485,67 @@ mark {
   gap: 6px;
   min-width: 0;
   color: var(--text);
+}
+
+/* 画像の添付は押すと大きく表示する */
+.attachment-open {
+  padding: 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  background: none;
+  cursor: zoom-in;
+}
+
+/* 画像を大きく見る（画面いっぱいの暗い背景に、画像を収まる大きさで出す） */
+.image-viewer {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 24px;
+  border: none;
+  color: #fff;
+  background: transparent;
+}
+
+.image-viewer[open] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.image-viewer::backdrop {
+  background: rgb(0 0 0 / 78%);
+}
+
+.image-viewer:focus {
+  outline: none;
+}
+
+.image-viewer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.image-viewer-name {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-viewer img {
+  max-width: 100%;
+  max-height: calc(100vh - 110px);
+  border-radius: var(--radius);
+  object-fit: contain;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
 }
 
 .attachment-thumb,
