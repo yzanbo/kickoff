@@ -1829,25 +1829,6 @@ select:focus {
   color: var(--muted);
 }
 
-.provider-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--extra-muted);
-}
-
-.provider-state.tone-ok .provider-dot {
-  background: var(--ok);
-}
-
-.provider-state.tone-ng .provider-dot {
-  background: var(--ng);
-}
-
-.provider-state.tone-pending .provider-dot {
-  background: var(--warn);
-}
-
 .provider-account {
   overflow: hidden;
   font-size: 12px;
@@ -2315,21 +2296,23 @@ mark {
   gap: 6px;
 }
 
-/* 状態カード（準備状況） */
+/* カードとその並び（準備状況・使用枠など） */
 
-.status-grid {
+.card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
   margin: 12px 0;
 }
 
-.status-card {
+.card {
   padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-elev);
 }
+
+/* 状態カード */
 
 .status-title {
   display: flex;
@@ -2337,20 +2320,29 @@ mark {
   font-weight: 600;
 }
 
+/* 状態の点（使える・使えない・確認中・対応予定） */
 .status-dot {
-  width: 8px;
-  height: 8px;
-  margin-right: 8px;
+  flex: none;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--muted);
+  background: var(--extra-muted);
 }
 
-.status-ok .status-dot {
+.status-dot.tone-ok {
   background: var(--ok);
 }
 
-.status-ng .status-dot {
+.status-dot.tone-ng {
   background: var(--ng);
+}
+
+.status-dot.tone-pending {
+  background: var(--warn);
+}
+
+.status-title .status-dot {
+  margin-right: 8px;
 }
 
 .status-detail {
@@ -3958,20 +3950,6 @@ mark {
   font-size: 11px;
 }
 
-.usage-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-  margin: 12px 0 8px;
-}
-
-.usage-card {
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elev);
-}
-
 /* ==== フッター ==== */
 
 .app-footer {
@@ -4044,26 +4022,6 @@ mark {
 
 .conn-list dd {
   margin: 0;
-}
-
-.conn-dot {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--extra-muted);
-}
-
-.conn-dot-open {
-  background: var(--ok);
-}
-
-.conn-dot-closed {
-  background: var(--ng);
-}
-
-.conn-dot-connecting {
-  background: var(--warn);
 }
 
 .conn-tool {

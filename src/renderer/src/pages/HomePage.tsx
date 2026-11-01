@@ -1,8 +1,8 @@
 import { FolderGit2, Plus } from "lucide-react";
 import type { Approval, ProjectSummary } from "../../../core/types";
 import { api, useAsync } from "../api";
+import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
-import { StatusCard } from "../components/StatusCard";
 
 interface Props {
   projects: ProjectSummary[];
@@ -21,9 +21,9 @@ export function HomePage({ projects, approvals, onNewProject }: Props) {
     <div className="page page-wide page-board">
       {notReady && (
         <section className="section">
-          <div className="status-grid">
+          <div className="card-grid">
             <StatusCard title="Claude Code" ok={providers.loading ? undefined : Boolean(claude?.loggedIn)} detail={providers.error ?? claude?.detail ?? "確認中…"} />
-            <StatusCard title="GitHub CLI（gh）" ok={github.loading ? undefined : Boolean(github.data?.loggedIn)} detail={github.error ?? github.data?.detail ?? "確認中…"} />
+            <GitHubStatusCard github={github} />
           </div>
         </section>
       )}

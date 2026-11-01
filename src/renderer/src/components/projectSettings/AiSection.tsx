@@ -5,6 +5,7 @@ import { api, useAsync } from "../../api";
 import { useActionError } from "../../hooks/useActionError";
 import { accountLine } from "../../usage";
 import { ClaudeMark } from "../ClaudeMark";
+import { StatusDot, type StatusTone } from "../StatusDot";
 import { AiDefaults } from "./AiDefaults";
 
 /** AI の見た目（カードのアイコンと、ログインに使う CLI） */
@@ -58,7 +59,7 @@ export function ProviderCard({
 }) {
   const meta = PROVIDER_META[id];
   const ready = status?.implemented && status.installed && status.loggedIn;
-  const state = !status
+  const state: { tone: StatusTone; text: string } = !status
     ? { tone: "pending", text: "確認中…" }
     : !status.implemented
       ? { tone: "na", text: status.installed ? "CLI はインストール済み" : "CLI 未インストール" }
@@ -83,8 +84,8 @@ export function ProviderCard({
         {selected && <Check size={16} className="provider-check" aria-label="使用中" />}
         {status && !status.implemented && <span className="badge">対応予定</span>}
       </span>
-      <span className={`provider-state tone-${state.tone}`}>
-        <span className="provider-dot" />
+      <span className="provider-state">
+        <StatusDot tone={state.tone} />
         {state.text}
       </span>
       {ready && (status.account || status.plan) && (
