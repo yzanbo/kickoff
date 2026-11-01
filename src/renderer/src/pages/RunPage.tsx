@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, Pencil, Wrench, X } from "lucide-react";
+import { ChevronRight, Pencil, Wrench, X } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Approval, Attachment, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
@@ -271,11 +271,11 @@ function SubagentDetail({
   }, [items.length, entry.status]);
 
   return (
+    <>
+    {/* 後ろのチャットは少し暗くして残す（押すと閉じる） */}
+    <div className="subagent-backdrop" onClick={onClose} />
     <div className="subagent-detail" role="dialog" aria-label={`サブエージェント: ${entry.description}`}>
       <header className="subagent-detail-head">
-        <button className="icon-button" title="チャットに戻る（Esc）" aria-label="チャットに戻る" onClick={onClose}>
-          <ArrowLeft size={15} />
-        </button>
         <div className="subagent-detail-title">
           <span className="subagent-detail-name">{entry.description}</span>
           <span className="muted small">
@@ -284,6 +284,9 @@ function SubagentDetail({
               .join(" · ")}
           </span>
         </div>
+        <button className="icon-button subagent-detail-close" title="閉じる（Esc）" aria-label="閉じる" onClick={onClose}>
+          <X size={15} />
+        </button>
       </header>
       <div className="subagent-detail-body timeline" ref={bodyRef}>
         <div className="timeline-inner">
@@ -324,6 +327,7 @@ function SubagentDetail({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
