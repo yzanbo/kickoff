@@ -184,32 +184,8 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
     return { run, Icon, label };
   };
 
-  // 閉じているときは、右端に細い帯を残して、そこから開き直せるようにする
-  const rail = !panelOpen;
-
   const renderPanel = () => (
-    <aside className={`board-panel ${rail ? "rail" : ""}`}>
-      {rail && (
-        <div className="panel-rail">
-          <button className="panel-rail-button" title="パネルを開く" aria-label="パネルを開く" onClick={() => reopen()}>
-            <PanelRightOpen size={15} />
-          </button>
-          {tabs.map((t) => {
-            const { run, Icon, label } = tabLabel(t);
-            return (
-              <button
-                key={t.key}
-                className={`panel-rail-button ${activeTab === t.key ? "active" : ""}`}
-                title={label}
-                aria-label={`${label} を開く`}
-                onClick={() => reopen(t.key)}
-              >
-                {Icon && <Icon size={14} className={run ? `sec-icon sec-${run.phase}` : undefined} aria-hidden />}
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <aside className="board-panel" aria-hidden={!panelOpen}>
       <div
         inert={!panelOpen}
         className="panel-resizer"
@@ -318,11 +294,24 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
     /** ボードとパネルを並べる要素に渡す */
     body: {
       ref: bodyRef,
-      className: `board-body ${panelOpen ? "with-panel" : rail ? "with-rail" : ""} ${resizing ? "resizing" : ""}`,
+      className: `board-body ${panelOpen ? "with-panel" : ""} ${resizing ? "resizing" : ""}`,
       // 横幅いっぱいは、CSS 側の上限（ボードの幅）まで広げる
       style: { "--panel-w": maximized ? "100vw" : `${panelWidth}px` } as CSSProperties,
     },
     renderPanel,
+    /** ボードの見出し（「ボード／リスト」の右）に置く、パネルの開閉ボタン。閉じていて開いたタブがあれば数を出す */
+    toggleButton: (
+      <button
+        className={`icon-button panel-toggle ${panelOpen ? "active" : ""}`}
+        title={panelOpen ? "右側のパネルを閉じる（Esc）" : "右側のパネルを開く"}
+        aria-label={panelOpen ? "右側のパネルを閉じる" : "右側のパネルを開く"}
+        aria-pressed={panelOpen}
+        onClick={() => (panelOpen ? close() : reopen())}
+      >
+        {panelOpen ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
+        {!panelOpen && tabs.length > 0 && <span className="panel-toggle-count">{tabs.length}</span>}
+      </button>
+    ),
   };
 }
 
