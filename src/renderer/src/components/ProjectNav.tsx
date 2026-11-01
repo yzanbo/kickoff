@@ -1,4 +1,5 @@
 import {
+  Archive,
   ChevronDown,
   ChevronRight,
   CircleAlert,
@@ -22,6 +23,7 @@ import { Highlight, useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, PROJECT_DRAG_TYPE, startRunDrag, useGroupReorder, useReorder } from "../groups";
 import { initialOf, projectHue } from "../projectColor";
 import { useGroupMenu } from "./GroupMenu";
+import { CardMenu } from "./KanbanBoard";
 import { GroupPickMenu } from "./GroupPickMenu";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
@@ -31,7 +33,7 @@ import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState } from "../../../core/types";
 import { relativeTime } from "./RunList";
 import { StatusSlot } from "./StatusSlot";
-import { confirmDialog } from "../dialogs";
+import { alertDialog, confirmDialog } from "../dialogs";
 
 const CURRENT_KEY = "kickoff:current-project";
 const LAYOUT_KEY = "kickoff:sidebar-layout";
@@ -154,7 +156,8 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   useEffect(() => {
     for (const p of ordered) {
       if (runs[p.id]) continue;
-      void api.runs(p.id).then((list) => setRuns((prev) => ({ ...prev, [p.id]: list })));
+      // アーカイブしたチャットも読み込み、一覧の下の「アーカイブ済み」に分けて出す
+      void api.runs(p.id, { archived: true }).then((list) => setRuns((prev) => ({ ...prev, [p.id]: list })));
       void api.groups(p.id).then((list) => setGroups((prev) => ({ ...prev, [p.id]: list })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -454,7 +457,18 @@ const WorkspacePage = memo(function WorkspacePage({
   const [query, setQuery] = useState("");
   const { keyword, matches, snippetFor } = useChatSearch(query, project.id);
 
-  const allRows = runs.map((run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) }));
+  const withState = (run: Run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) });
+  const allRows = runs.filter((r) => !r.archived_at).map(withState);
+  // アーカイブしたチャット（一覧の下にまとめて、開閉できる。最初は閉じておく）
+  const archivedRows = runs.filter((r) => r.archived_at).map(withState);
+  const archivedKey = `kickoff:archived-open:${project.id}`;
+  const [archivedOpen, setArchivedOpen] = useState(() => localStorage.getItem(archivedKey) === "1");
+  const toggleArchived = () => {
+    localStorage.setItem(archivedKey, archivedOpen ? "0" : "1");
+    setArchivedOpen(!archivedOpen);
+  };
+  // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
+  const [rowMenu, setRowMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
   const rows = allRows.filter(({ run }) => matches(run));
 
   // ＋を押したときの、作成先のグループを選ぶメニュー
@@ -545,11 +559,15 @@ const WorkspacePage = memo(function WorkspacePage({
     return (
       <li key={run.id}>
         <a
-          className={`chat-row ${active ? "active" : ""} ${state === "needs_input" || state === "attention" ? "is-unread" : ""}`}
+          className={`chat-row ${run.archived_at ? "archived" : ""} ${active ? "active" : ""} ${state === "needs_input" || state === "attention" ? "is-unread" : ""}`}
           href={href({ name: "run", projectId: project.id, runId: run.id })}
           title={`${meta.label}: ${run.title}（${AGENT_STATE_LABELS[state]}）`}
           draggable
           onDragStart={(e) => startRunDrag(e, run.id)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setRowMenu({ x: e.clientX, y: e.clientY, run });
+          }}
           onClick={(e) => {
             // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
             e.preventDefault();
@@ -610,7 +628,7 @@ const WorkspacePage = memo(function WorkspacePage({
           </span>
           <span className="workspace-title-text">
             <span className="workspace-name">{project.name}</span>
-            <span className="workspace-sub">{runs.length} チャット</span>
+            <span className="workspace-sub">{allRows.length} チャット</span>
           </span>
         </a>
         {waitingCount > 0 && (
@@ -810,6 +828,29 @@ const WorkspacePage = memo(function WorkspacePage({
             </div>
           );
         })
+      )}
+      {!collapsed && archivedRows.filter(({ run }) => matches(run)).length > 0 && (
+        <div className="archived-section">
+          <div className="custom-group-head ungrouped">
+            <button className="custom-group-toggle" aria-expanded={archivedOpen || Boolean(keyword)} onClick={toggleArchived}>
+              {archivedOpen || keyword ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              <Archive size={12} aria-hidden />
+            </button>
+            <button className="custom-group-name ungrouped-name" onClick={toggleArchived}>
+              アーカイブ済み
+            </button>
+            <span className="custom-group-count">{archivedRows.filter(({ run }) => matches(run)).length}</span>
+          </div>
+          {(archivedOpen || keyword) && <ul className="chat-rows archived-rows">{archivedRows.filter(({ run }) => matches(run)).map(renderRow)}</ul>}
+        </div>
+      )}
+      {rowMenu && (
+        <CardMenu
+          {...rowMenu}
+          onOpenPanel={(run) => openRun(run.project_id, run.id)}
+          onClose={() => setRowMenu(null)}
+          onError={(m) => void alertDialog("操作できませんでした", m)}
+        />
       )}
     </section>
   );

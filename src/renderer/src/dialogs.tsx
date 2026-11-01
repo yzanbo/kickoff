@@ -14,6 +14,8 @@ interface ConfirmOptions {
   confirmLabel?: string;
   /** 取り消せない操作（赤いボタンにする） */
   danger?: boolean;
+  /** キャンセルを出さない（お知らせ） */
+  hideCancel?: boolean;
 }
 
 interface PromptOptions {
@@ -37,6 +39,11 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
     if (!show) return resolve(window.confirm([options.title, options.message].filter(Boolean).join("\n\n")));
     show({ kind: "confirm", resolve, ...options });
   });
+}
+
+/** お知らせのダイアログ（エラーなど。ボタンは OK だけ） */
+export function alertDialog(title: string, message?: string): Promise<void> {
+  return confirmDialog({ title, message, hideCancel: true }).then(() => undefined);
 }
 
 /** 入力のダイアログ。決定すれば入力した文字（前後の空白は除く）、キャンセルなら null */
@@ -72,6 +79,8 @@ export function DialogHost() {
     if (req.kind === "prompt") {
       inputRef.current?.focus();
       inputRef.current?.select();
+    } else if (req.hideCancel) {
+      ref.current?.querySelector<HTMLButtonElement>(".app-dialog-actions .btn-primary")?.focus();
     } else {
       cancelRef.current?.focus();
     }
@@ -123,9 +132,11 @@ export function DialogHost() {
           </label>
         )}
         <div className="app-dialog-actions">
-          <button ref={cancelRef} type="button" className="btn" onClick={() => finish(false)}>
-            キャンセル
-          </button>
+          {!(req.kind === "confirm" && req.hideCancel) && (
+            <button ref={cancelRef} type="button" className="btn" onClick={() => finish(false)}>
+              キャンセル
+            </button>
+          )}
           <button
             type={req.kind === "prompt" ? "submit" : "button"}
             className={`btn ${danger ? "btn-danger" : "btn-primary"}`}

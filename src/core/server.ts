@@ -337,8 +337,11 @@ export function createApp(deps: ServerDeps): Hono {
   });
 
   // ---- 実行（エージェントとの会話） ----
+  // ?archived=1 でアーカイブしたチャットも含める
   app.get("/api/projects/:id/runs", (c) =>
-    c.json(store.listRuns({ projectId: requireProject(store, c.req.param("id")).id, limit: 300 })),
+    c.json(
+      store.listRuns({ projectId: requireProject(store, c.req.param("id")).id, limit: 300, includeArchived: c.req.query("archived") === "1" }),
+    ),
   );
 
   app.post("/api/projects/:id/runs", async (c) => {
@@ -373,7 +376,9 @@ export function createApp(deps: ServerDeps): Hono {
   });
 
   // 全プロジェクトのチャット（⌘K の検索・移動用）
-  app.get("/api/runs", (c) => c.json(store.listRuns({ limit: Math.min(Number(c.req.query("limit") ?? 300), 1000) })));
+  app.get("/api/runs", (c) =>
+    c.json(store.listRuns({ limit: Math.min(Number(c.req.query("limit") ?? 300), 1000), includeArchived: c.req.query("archived") === "1" })),
+  );
 
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
