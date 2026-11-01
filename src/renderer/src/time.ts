@@ -43,3 +43,15 @@ export function resetIn(resetsAt: string | null, now = Date.now()): string | nul
 export function formatClock(iso: string): string {
   return new Date(iso).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
 }
+
+/** 日時を、今日・昨日は時刻つきの短い形で（"今日 22:06" / "昨日 21:25" / "10月25日 22:01" / "2025/3/1"）。履歴の表に使う */
+export function formatDayTime(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(now) - day(date)) / 86_400_000);
+  const clock = formatClock(iso);
+  if (diff === 0) return `今日 ${clock}`;
+  if (diff === 1) return `昨日 ${clock}`;
+  if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}月${date.getDate()}日 ${clock}`;
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+}

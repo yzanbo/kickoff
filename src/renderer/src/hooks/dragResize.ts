@@ -13,14 +13,23 @@ export function startHorizontalDrag(
     end: () => void;
   },
 ) {
+  startDrag(e, (ev) => handlers.move(ev.clientX), handlers.end);
+}
+
+/** つまみを上下にドラッグして高さを変える（move にはポインターの y 座標が届く） */
+export function startVerticalDrag(e: ReactPointerEvent<HTMLElement>, handlers: { move: (clientY: number) => void; end: () => void }) {
+  startDrag(e, (ev) => handlers.move(ev.clientY), handlers.end);
+}
+
+function startDrag(e: ReactPointerEvent<HTMLElement>, move: (ev: PointerEvent) => void, end: () => void) {
   e.preventDefault();
   const handle = e.currentTarget;
   handle.setPointerCapture(e.pointerId);
-  const onMove = (ev: PointerEvent) => handlers.move(ev.clientX);
+  const onMove = (ev: PointerEvent) => move(ev);
   const onUp = () => {
     handle.removeEventListener("pointermove", onMove);
     handle.removeEventListener("pointerup", onUp);
-    handlers.end();
+    end();
   };
   handle.addEventListener("pointermove", onMove);
   handle.addEventListener("pointerup", onUp);

@@ -11,8 +11,7 @@ import { IconButton, RefreshButton } from "../IconButton";
 import { Segmented } from "../Segmented";
 import { ChangeGroup, type GitAction } from "./ChangeGroup";
 import { CommitBox } from "./CommitBox";
-import { CommitView } from "./CommitView";
-import { HistoryView } from "./HistoryView";
+import { HistoryMain, HistorySidebar } from "./HistoryView";
 import { useGitLog } from "./useGitLog";
 import { DiffView } from "./DiffView";
 import { FileTree } from "./FileTree";
@@ -166,7 +165,13 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
         aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : view === "history" ? "履歴" : "変更のあるファイル"}
       >
         {view === "history" ? (
-          <HistoryView log={log} selected={commit?.hash} onSelect={setCommit} />
+          <HistorySidebar
+            log={log}
+            onPick={(hash) => {
+              const found = log.commits?.find((c) => c.hash === hash);
+              if (found) setCommit(found);
+            }}
+          />
         ) : view === "search" ? (
           <SearchView search={search} selected={selected} onSelect={(path, line) => void setSelected({ path, line })} />
         ) : view === "files" ? (
@@ -247,11 +252,7 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
       />
       <div className="changes-diff">
         {view === "history" ? (
-          commit ? (
-            <CommitView projectId={projectId} commit={commit} />
-          ) : (
-            <p className="muted small changes-hint">コミットを選ぶと、変わったファイルと差分を表示します。</p>
-          )
+          <HistoryMain projectId={projectId} log={log} commit={commit} onSelect={setCommit} />
         ) : selected && (selected.line !== undefined || selected.edit) ? (
           <FileView
             key={`${selected.path}:${selected.line ?? ""}:${selected.edit ? "edit" : ""}`}
