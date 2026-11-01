@@ -5008,18 +5008,8 @@ mark {
 /* ブラウザのタブ */
 
 .panel-tab-add {
-  display: inline-flex;
   flex: none;
-  align-items: center;
-  gap: 2px;
-  height: 26px;
   margin: 2px 0 0 4px;
-  padding: 0 6px;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
 }
 
 .panel-tab-add:hover {

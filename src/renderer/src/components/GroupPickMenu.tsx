@@ -1,6 +1,7 @@
 import { Folder, Inbox, SquarePen } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { RunGroup } from "../../../core/types";
+import { useMenuKeys } from "../hooks/useMenuKeys";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /**
@@ -21,20 +22,7 @@ export function GroupPickMenu({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-
-  // 開いたら先頭にピントを置き、↑↓ で項目を移る
-  useEffect(() => {
-    ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-      e.preventDefault();
-      const items = [...(ref.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
-      const i = items.indexOf(document.activeElement as HTMLButtonElement);
-      items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, []);
+  useMenuKeys(ref);
 
   const pick = (group: number | undefined) => {
     onClose();

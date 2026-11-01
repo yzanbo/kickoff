@@ -1,11 +1,15 @@
 import { Globe, Maximize2, MessageSquare, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, X, type LucideIcon } from "lucide-react";
+import { useRef, useState } from "react";
 import type { Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
+import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { RunPage } from "../../pages/RunPage";
 import { normalizeUrl } from "../../url";
 import { BrowserPane } from "../BrowserPane";
+import { IconButton } from "../IconButton";
 import { NewChatPane } from "../NewChatPane";
+import { clampToViewport, PopupMenu } from "../PopupMenu";
 import type { PanelTab, SidePanelController } from "./useSidePanel";
 
 function hostOf(url: string): string {
@@ -30,9 +34,14 @@ function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: str
   return { Icon: MessageSquare, iconClass: phase ? `sec-icon sec-${phase}` : "muted", label: title === undefined ? "チャット" : chatTitle(title) };
 }
 
-/** ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く） */
-export function SidePanel({ panel }: { panel: SidePanelController }) {
+/**
+ * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。
+ * onNewChat: タブの列の＋で「新しいチャット」を選んだとき（どのプロジェクト・グループで始めるかはボードが決める）
+ */
+export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; onNewChat: () => void }) {
   const { tabs, activeTab, panelOpen, maximized } = panel;
+  // タブの列の＋のメニュー（新しいチャット・ブラウザ）
+  const [addMenu, setAddMenu] = useState<{ x: number; y: number } | null>(null);
   return (
     <aside className="board-panel" aria-hidden={!panelOpen}>
       <div
@@ -74,11 +83,27 @@ export function SidePanel({ panel }: { panel: SidePanelController }) {
             </div>
           );
         })}
-        <button className="panel-tab-add" title="ブラウザのタブを開く" aria-label="ブラウザのタブを開く" onClick={panel.openBrowser}>
-          <Plus size={12} />
-          <Globe size={12} />
-        </button>
+        <IconButton
+          icon={Plus}
+          label="新しいタブ"
+          title="新しいタブ（チャット・ブラウザ）"
+          className="panel-tab-add"
+          aria-haspopup="menu"
+          aria-expanded={addMenu !== null}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setAddMenu(clampToViewport(r.left, r.bottom + 4, 180, 90));
+          }}
+        />
       </div>
+      {addMenu && (
+        <AddTabMenu
+          {...addMenu}
+          onNewChat={onNewChat}
+          onBrowser={panel.openBrowser}
+          onClose={() => setAddMenu(null)}
+        />
+      )}
       <div className="panel-content" inert={!panelOpen}>
         {tabs.length === 0 && (
           <div className="panel-empty">
@@ -127,6 +152,26 @@ export function SidePanel({ panel }: { panel: SidePanelController }) {
         ))}
       </div>
     </aside>
+  );
+}
+
+/** タブの列の＋のメニュー: 新しいチャットかブラウザのタブを開く */
+function AddTabMenu({ x, y, onNewChat, onBrowser, onClose }: { x: number; y: number; onNewChat: () => void; onBrowser: () => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useMenuKeys(ref);
+  const pick = (action: () => void) => {
+    onClose();
+    action();
+  };
+  return (
+    <PopupMenu x={x} y={y} label="新しいタブ" menuRef={ref} onClose={onClose}>
+      <button role="menuitem" onClick={() => pick(onNewChat)}>
+        <SquarePen size={14} /> 新しいチャット
+      </button>
+      <button role="menuitem" onClick={() => pick(onBrowser)}>
+        <Globe size={14} /> ブラウザ
+      </button>
+    </PopupMenu>
   );
 }
 

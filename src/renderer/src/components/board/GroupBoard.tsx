@@ -258,7 +258,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
             </div>
           )}
         </div>
-        <SidePanel panel={panel} />
+        <SidePanel panel={panel} onNewChat={() => panel.openNew({ projectId })} />
       </div>
 
       {groupMenu.menu}

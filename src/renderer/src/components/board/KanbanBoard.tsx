@@ -257,7 +257,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             </div>
           )}
         </div>
-        <SidePanel panel={panel} />
+        <SidePanel panel={panel} onNewChat={() => newChat()} />
       </div>
 
       {menu && <CardMenu {...menu} onOpenPanel={open} onRename={rename.start} onClose={() => setMenu(null)} onError={setError} />}
