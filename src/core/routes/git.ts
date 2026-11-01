@@ -1,7 +1,7 @@
 import type { Context, Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { commitStaged, discardPaths, FileConflictError, addWorktree, finishWorktree, gitCommitDetail, pullBranch, gitCommitDiff, gitLog, gitRefs, listWorktrees, removeWorktree, worktreePathFor, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
+import { commitStaged, discardPaths, FileConflictError, addWorktree, fetchRemote, finishWorktree, gitCommitDetail, pullBranch, gitCommitDiff, gitLog, gitRefs, listWorktrees, removeWorktree, worktreePathFor, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
 import { createPullRequest, pullRequestFor } from "../github.js";
 import type { ServerDeps } from "../server.js";
 import { HttpError, requireProject } from "./http.js";
@@ -175,6 +175,18 @@ export function gitRoutes(app: Hono, { store, runner }: ServerDeps) {
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
+  });
+
+  // フェッチ（リモートの情報を取ってくる。作業中のファイルは変えない）
+  app.post("/api/projects/:id/git/fetch", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const dir = await workdir(c, project);
+    try {
+      await fetchRemote(dir);
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+    return c.json(await gitStatus(dir));
   });
 
   // プル（早送りで最新にする）

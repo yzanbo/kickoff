@@ -13,6 +13,7 @@ import { ChangeGroup, type GitAction } from "./ChangeGroup";
 import { CommitBox } from "./CommitBox";
 import { HistoryMain, HistorySidebar } from "./HistoryView";
 import { useGitLog } from "./useGitLog";
+import { WorktreeBar } from "./WorktreeBar";
 import { WorktreePicker } from "./WorktreePicker";
 import { DiffView } from "./DiffView";
 import { FileTree } from "./FileTree";
@@ -137,6 +138,8 @@ export function ChangesTab({
     {/* 作業場所（本体・ワークツリー）の切り替え。ワークツリーが本体だけなら空（CSS で隠す） */}
     <div className="changes-bar">
       <WorktreePicker projectId={projectId} value={worktree} onChange={onWorktreeChange} version={git.version} />
+      {/* ワークツリーの作業の流れ（PR を作る・PR の状態・マージされたら片付ける） */}
+      {worktree && <WorktreeBar projectId={projectId} worktree={worktree} git={git} onFinished={() => onWorktreeChange(undefined)} />}
     </div>
     <div className={cx("changes", list.resizing && "resizing")}>
       {/* 左端の表示の切り替え（VS Code のアクティビティバーと同じ） */}
@@ -220,7 +223,7 @@ export function ChangesTab({
                 label={changesTree ? "一覧で表示" : "ツリーで表示"}
                 onClick={() => setChangesTree(!changesTree)}
               />
-              <RefreshButton label="変更を取り直す" busy={git.loading} onClick={() => void git.refresh()} />
+              <RefreshButton label="変更を取り直す（リモートの情報も取ってくる）" busy={git.loading} onClick={() => void git.fetchRemote()} />
             </header>
             <ErrorText message={git.error ?? actionError.error} />
             <CommitBox status={status} git={git} guard={actionError.guard} />

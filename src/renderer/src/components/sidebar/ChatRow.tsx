@@ -8,6 +8,7 @@ import { SECTION_META } from "../../sections";
 import { relativeTime } from "../../time";
 import { ChatTitleInput } from "../ChatTitleInput";
 import { StatusSlot } from "../StatusSlot";
+import { WorktreeChip } from "../WorktreeChip";
 
 /** サイドバーのチャットの行（押すと右のパネルで開く・ドラッグでグループへ移す・右クリックでメニュー） */
 export function ChatRow({
@@ -66,6 +67,7 @@ export function ChatRow({
           <span className="chat-row-meta">
             <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
             {meta.label}
+            <WorktreeChip run={run} />
           </span>
         </span>
       </a>

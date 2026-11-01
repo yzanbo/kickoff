@@ -28,6 +28,7 @@ import type {
   PlanUsage,
   Project,
   ProjectFiles,
+  PullRequestInfo,
   ProjectSearchQuery,
   ProjectSearchResult,
   ProjectSummary,
@@ -195,6 +196,13 @@ export const api = {
     request<GitStatus>("POST", gitUrl(target, `/git/${action}`), { paths }),
   gitCommit: (target: GitTarget, message: string) => request<GitStatus>("POST", gitUrl(target, "/git/commit"), { message }),
   gitPush: (target: GitTarget) => request<GitStatus>("POST", gitUrl(target, "/git/push")),
+  gitPull: (target: GitTarget) => request<GitStatus>("POST", gitUrl(target, "/git/pull")),
+  gitFetch: (target: GitTarget) => request<GitStatus>("POST", gitUrl(target, "/git/fetch")),
+  /** 作業場所のブランチの PR（なければ null）と、PR を作る（まだプッシュしていなければ先にプッシュする） */
+  pullRequest: (target: GitTarget) => request<PullRequestInfo | null>("GET", gitUrl(target, "/git/pr")),
+  createPullRequest: (target: GitTarget) => request<PullRequestInfo>("POST", gitUrl(target, "/git/pr")),
+  /** PR がマージされたワークツリーを片付ける（ワークツリーと手元のブランチを消す） */
+  finishWorktree: (projectId: number, path: string) => request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/finish`, { path }),
   gitLog: (target: GitTarget, skip = 0) => request<GitLog>("GET", gitUrl(target, "/git/log", { skip: String(skip) })),
   gitRefs: (target: GitTarget) => request<GitRefs>("GET", gitUrl(target, "/git/refs")),
   gitWorktrees: (projectId: number) => request<GitWorktree[]>("GET", `/api/projects/${projectId}/git/worktrees`),

@@ -6450,3 +6450,43 @@ a:focus-visible,
 .warn-text {
   color: var(--warn);
 }
+
+/* ワークツリーの作業の流れ（エディタタブの作業場所の右: PR を作る・PR の状態・片付ける） */
+.worktree-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* PR の状態の色（GitHub と同じ: オープン = 緑、マージ済み = 紫、クローズ = 赤） */
+.pr-chip.open {
+  border-color: color-mix(in srgb, var(--ok) 60%, transparent);
+  color: var(--ok);
+}
+
+.pr-chip.merged {
+  border-color: color-mix(in srgb, var(--sec-schedule) 60%, transparent);
+  color: var(--sec-schedule);
+}
+
+.pr-chip.closed {
+  border-color: color-mix(in srgb, var(--ng) 60%, transparent);
+  color: var(--ng);
+}
+
+/* サイドバーのチャットの行では、作業場所の印を小さく */
+.chat-row-meta .worktree-chip {
+  max-width: 110px;
+  font-size: 10px;
+  line-height: 14px;
+}

@@ -29,6 +29,8 @@ async function gh(cwd: string, args: string[]): Promise<string> {
     const err = e as { code?: unknown; stderr?: unknown };
     if (err.code === "ENOENT") throw new Error("gh が見つかりません。`brew install gh` でインストールしてください");
     const detail = typeof err.stderr === "string" ? err.stderr.trim() : "";
+    if (/known GitHub host/i.test(detail)) throw new Error("プッシュ先が GitHub ではないので、PR は作れません");
+    if (/gh auth login/i.test(detail)) throw new Error("GitHub にログインしていません。ターミナルで `gh auth login` を実行してください");
     throw detail ? new Error(detail) : e;
   }
 }

@@ -20,6 +20,7 @@ import { OpenSubagentContext, TimelineItems, Working } from "../components/Timel
 import { alertDialog } from "../dialogs";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
+import { useBusyNeighbors } from "../hooks/useBusyNeighbors";
 import { groupEvents, relativize } from "../timeline";
 
 interface RunPageProps {
@@ -121,6 +122,7 @@ function RunView({
   );
   const busy = BUSY_STATUSES.includes(run.status);
   const subagents = useSubagents(run.id, events, busy);
+  const busyNeighbors = useBusyNeighbors(run);
   // 中身を見ているサブエージェント（Task / Agent の呼び出し ID）
   const [subOpen, setSubOpen] = useState<string>();
   // 見出しでチャットの名前を変えている途中か
@@ -235,6 +237,10 @@ function RunView({
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
           <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => setSubOpen(s.key)} />
+          {/* 同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる） */}
+          {busyNeighbors > 0 && (
+            <span className="small warn-text">この作業場所では、ほかのチャット {busyNeighbors} 件も作業中です。同じファイルを触ると作業がぶつかることがあります。</span>
+          )}
         </div>
         <Composer
           options={options}
