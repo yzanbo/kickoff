@@ -1,4 +1,4 @@
-import type { GitChangeKind, GitStatus, ProjectFiles } from "../../../../core/types";
+import type { GitChangeKind, GitFileChange, GitStatus, ProjectFiles } from "../../../../core/types";
 
 /** エクスプローラーの 1 行（フォルダかファイル） */
 export interface TreeNode {
@@ -49,11 +49,17 @@ const PRIORITY: GitChangeKind[] = ["!", "M", "T", "D", "R", "C", "A", "U"];
  * ファイルとフォルダの変更の記号。ファイルは、まだステージしていない変更・競合を、ステージ済みより優先する。
  * フォルダは、中にあるファイル（消したファイルも含む）でいちばん目立つもの
  */
-export function changeKinds(status: GitStatus | undefined): { files: Map<string, GitChangeKind>; folders: Map<string, GitChangeKind> } {
+export function changeKinds(status: GitStatus | undefined): ChangeKinds {
+  return kindMaps(status?.repo ? [...status.staged, ...status.unstaged, ...status.conflicts] : []);
+}
+
+export type ChangeKinds = { files: Map<string, GitChangeKind>; folders: Map<string, GitChangeKind> };
+
+/** 変更の一覧から、ファイルとフォルダの記号を作る（後ろにあるものほど優先する） */
+export function kindMaps(changes: GitFileChange[]): ChangeKinds {
   const files = new Map<string, GitChangeKind>();
   const folders = new Map<string, GitChangeKind>();
-  if (!status?.repo) return { files, folders };
-  for (const change of [...status.staged, ...status.unstaged, ...status.conflicts]) files.set(change.path, change.kind);
+  for (const change of changes) files.set(change.path, change.kind);
   const stronger = (a: GitChangeKind | undefined, b: GitChangeKind) => (a !== undefined && PRIORITY.indexOf(a) <= PRIORITY.indexOf(b) ? a : b);
   for (const [file, kind] of files) {
     for (let slash = file.lastIndexOf("/"); slash > 0; slash = file.lastIndexOf("/", slash - 1)) {
@@ -62,4 +68,14 @@ export function changeKinds(status: GitStatus | undefined): { files: Map<string,
     }
   }
   return { files, folders };
+}
+
+/** 木の中のフォルダのパス（すべて） */
+export function folderPaths(nodes: TreeNode[], out: string[] = []): string[] {
+  for (const node of nodes) {
+    if (!node.dir) continue;
+    out.push(node.path);
+    folderPaths(node.children, out);
+  }
+  return out;
 }

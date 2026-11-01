@@ -5964,3 +5964,61 @@ a:focus-visible,
   color: var(--warn);
   background: color-mix(in srgb, var(--warn) 10%, transparent);
 }
+
+/* 「ステージされている変更」「変更」の見出しの行（開閉・操作のボタン・数） */
+.change-group-row {
+  display: flex;
+  align-items: center;
+  padding-right: 10px;
+}
+
+.change-group-row .change-group-head {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+/* 一覧・木の 1 行（行のボタンと、右の操作のボタン） */
+.change-item {
+  display: flex;
+  align-items: center;
+}
+
+.change-item .change-file {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.tree-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tree-item > .file-tree {
+  grid-column: 1 / -1;
+}
+
+/* 操作のボタン（ステージ・元に戻すなど）。VS Code と同じく、行にマウスを乗せたとき・ピントがあるときだけ出す */
+.row-actions {
+  display: none;
+  flex: none;
+  align-items: center;
+  padding-right: 4px;
+}
+
+.row-actions .icon-button {
+  width: 22px;
+  height: 22px;
+}
+
+.change-group-row:hover > .row-actions,
+.change-group-row:focus-within > .row-actions,
+.change-file:hover + .row-actions,
+.change-file:focus-visible + .row-actions,
+.tree-row:hover + .row-actions,
+.tree-row:focus-visible + .row-actions,
+.row-actions:hover,
+.row-actions:focus-within {
+  display: flex;
+}

@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { GitChangeKind } from "../../../../core/types";
 import { cx } from "../../cx";
 import { Chevron } from "../Chevron";
@@ -15,11 +15,13 @@ interface Props {
   onSelect: (path: string) => void;
   /** 変更の記号（ファイルとフォルダ。VS Code と同じく、変更のあるものだけ色を変える） */
   kinds: { files: Map<string, GitChangeKind>; folders: Map<string, GitChangeKind> };
+  /** 行の右に出す操作（ステージ・元に戻すなど。マウスを乗せたときに出す） */
+  actions?: (node: TreeNode) => ReactNode;
   depth?: number;
 }
 
 /** エクスプローラーのフォルダの木（開いているフォルダの中だけ描く） */
-export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, depth = 0 }: Props) {
+export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, actions, depth = 0 }: Props) {
   return (
     <ul className="file-tree" role={depth === 0 ? "tree" : "group"}>
       {nodes.map((node) => {
@@ -28,7 +30,7 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, dep
         // 無視しているフォルダは中を開かない（node_modules などを全部たどらないように）
         const expandable = node.dir && !node.ignored;
         return (
-          <li key={node.path} role="treeitem" aria-expanded={expandable ? isOpen : undefined} aria-selected={selected === node.path}>
+          <li key={node.path} role="treeitem" aria-expanded={expandable ? isOpen : undefined} aria-selected={selected === node.path} className="tree-item">
             <button
               className={cx("tree-row", node.ignored && "ignored", selected === node.path && "selected")}
               style={{ "--depth": depth } as CSSProperties}
@@ -42,8 +44,9 @@ export function FileTree({ nodes, open, onToggle, selected, onSelect, kinds, dep
               {/* ファイルは記号、フォルダは点（中に変更がある） */}
               {kind && <span className="tree-kind">{node.dir ? "•" : kind}</span>}
             </button>
+            {actions && <span className="row-actions">{actions(node)}</span>}
             {isOpen && node.children.length > 0 && (
-              <FileTree nodes={node.children} open={open} onToggle={onToggle} selected={selected} onSelect={onSelect} kinds={kinds} depth={depth + 1} />
+              <FileTree nodes={node.children} open={open} onToggle={onToggle} selected={selected} onSelect={onSelect} kinds={kinds} actions={actions} depth={depth + 1} />
             )}
           </li>
         );
