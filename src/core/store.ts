@@ -202,6 +202,7 @@ export interface NewRun {
   permission_mode?: PermissionChoice;
   fast_mode?: boolean;
   stage?: BoardStage | null;
+  group_id?: number | null;
 }
 
 export interface NewArtifact {
@@ -544,8 +545,8 @@ export class Store {
   createRun(input: NewRun): Run {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, stage)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, stage, group_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.project_id,
@@ -559,6 +560,7 @@ export class Store {
         input.permission_mode ?? "phase",
         input.fast_mode ? 1 : 0,
         input.stage ?? null,
+        input.group_id ?? null,
       );
     const run = this.getRun(Number(lastInsertRowid))!;
     this.touchProject(run.project_id);

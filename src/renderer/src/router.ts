@@ -8,7 +8,7 @@ export type Route =
   | { name: "home" }
   | { name: "settings" }
   | { name: "project"; id: number; tab: ProjectTab }
-  | { name: "newChat"; projectId: number; section?: Phase; stage?: BoardStage }
+  | { name: "newChat"; projectId: number; section?: Phase; stage?: BoardStage; group?: number }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "run"; projectId: number; runId: number; focus?: number };
 
@@ -27,11 +27,13 @@ function parse(hash: string): Route {
   if (newChat) {
     const section = params.get("section");
     const stage = params.get("stage");
+    const group = Number(params.get("group"));
     return {
       name: "newChat",
       projectId: Number(newChat[1]),
       section: section && (PHASES as readonly string[]).includes(section) ? (section as Phase) : undefined,
       stage: stage && (BOARD_STAGES as readonly string[]).includes(stage) ? (stage as BoardStage) : undefined,
+      ...(Number.isInteger(group) && group > 0 ? { group } : {}),
     };
   }
 
@@ -64,6 +66,7 @@ export function href(route: Route): string {
       const q = new URLSearchParams();
       if (route.section) q.set("section", route.section);
       if (route.stage) q.set("stage", route.stage);
+      if (route.group) q.set("group", String(route.group));
       return `#/projects/${route.projectId}/new${q.size ? `?${q}` : ""}`;
     }
     case "run":

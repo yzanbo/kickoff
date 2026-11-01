@@ -1,18 +1,16 @@
-import { Folder, FolderPlus, Globe, Pencil, Trash2 } from "lucide-react";
+import { Folder, FolderPlus, Globe, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState, type DragEvent } from "react";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, type Approval, type Run, type RunGroup } from "../../../core/types";
 import { api } from "../api";
-import { droppedRunId, isRunDrag, startRunDrag } from "../groups";
+import { droppedGroupId, droppedRunId, isGroupDrag, isRunDrag, reorderIds, startGroupDrag, startRunDrag } from "../groups";
 import { useChatSearch } from "../chatSearch";
+import { navigate } from "../router";
 import { InlineName } from "./InlineName";
 import { BoardSearch, CardMenu, CardSnippet, STATE_TONE } from "./KanbanBoard";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
 import { useSidePanel } from "./SidePanel";
-
-/** グループの列をドラッグで並べ替えるときのデータの種類 */
-const GROUP_DRAG_TYPE = "application/x-kickoff-group";
 
 interface Props {
   projectId: number;
@@ -62,8 +60,7 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
   /** 列をドロップ先にする。チャットはその列のグループへ、グループの列はその位置へ並べ替える */
   const dropProps = (groupId: number | null) => ({
     onDragOver: (e: DragEvent) => {
-      const isGroup = e.dataTransfer.types.includes(GROUP_DRAG_TYPE);
-      if (!isRunDrag(e) && !(isGroup && groupId !== null)) return;
+      if (!isRunDrag(e) && !(isGroupDrag(e) && groupId !== null)) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       setOver(groupId ?? "none");
@@ -74,12 +71,11 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
     onDrop: (e: DragEvent) => {
       e.preventDefault();
       setOver(undefined);
-      const movedGroup = Number(e.dataTransfer.getData(GROUP_DRAG_TYPE));
-      if (movedGroup && groupId !== null) {
-        if (movedGroup === groupId) return;
-        const ids = groups.map((g) => g.id).filter((id) => id !== movedGroup);
-        ids.splice(ids.indexOf(groupId), 0, movedGroup);
-        void guard(() => api.reorderGroups(projectId, ids));
+      const movedGroup = droppedGroupId(e);
+      if (movedGroup) {
+        const ids = groups.map((g) => g.id);
+        const next = groupId === null ? ids : reorderIds(ids, movedGroup, groupId);
+        if (next !== ids) void guard(() => api.reorderGroups(projectId, next));
         return;
       }
       const run = runs.find((r) => r.id === droppedRunId(e));
@@ -154,6 +150,10 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
           <header className="column-head">
             <span className="column-title muted">グループなし</span>
             <span className="column-count">{ungrouped.length}</span>
+            <span className="spacer" />
+            <button className="icon-button" title="新しいチャット" aria-label="グループなしで新しいチャット" onClick={() => navigate({ name: "newChat", projectId })}>
+              <Plus size={14} />
+            </button>
           </header>
           <div className="column-cards">
             {ungrouped.length === 0 && <p className="column-empty">なし</p>}
@@ -169,10 +169,7 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
                 className="column-head group-column-head"
                 draggable={renaming !== group.id}
                 title="ドラッグでグループを並べ替える"
-                onDragStart={(e) => {
-                  e.dataTransfer.setData(GROUP_DRAG_TYPE, String(group.id));
-                  e.dataTransfer.effectAllowed = "move";
-                }}
+                onDragStart={(e) => startGroupDrag(e, group.id)}
               >
                 <Folder size={13} className="muted" aria-hidden />
                 {renaming === group.id ? (
@@ -195,6 +192,14 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
                 </button>
                 <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => removeGroup(group)}>
                   <Trash2 size={13} />
+                </button>
+                <button
+                  className="icon-button group-add-chat"
+                  title={`「${group.name}」に新しいチャット`}
+                  aria-label={`${group.name} に新しいチャット`}
+                  onClick={() => navigate({ name: "newChat", projectId, group: group.id })}
+                >
+                  <Plus size={14} />
                 </button>
               </header>
               <div className="column-cards">

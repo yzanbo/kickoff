@@ -122,6 +122,7 @@ const runInputSchema = z
     options: runOptionsSchema,
     attachments: z.array(attachmentSchema).max(20).default([]),
     stage: z.enum(BOARD_STAGES).optional(),
+    group_id: z.number().int().optional(),
   })
   .refine((v) => v.prompt || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
 
@@ -331,6 +332,9 @@ export function createApp(deps: ServerDeps): Hono {
   app.post("/api/projects/:id/runs", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const input = runInputSchema.parse(await c.req.json());
+    if (input.group_id !== undefined && requireGroup(store, String(input.group_id)).project_id !== project.id) {
+      throw new HttpError(400, "ほかのプロジェクトのグループには入れられません");
+    }
     const run = await runner.start({
       projectId: project.id,
       phase: input.phase,
@@ -339,6 +343,7 @@ export function createApp(deps: ServerDeps): Hono {
       options: input.options,
       attachments: input.attachments,
       stage: input.stage,
+      groupId: input.group_id,
     });
     return c.json(run, 201);
   });

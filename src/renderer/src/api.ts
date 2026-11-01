@@ -119,7 +119,15 @@ export const api = {
   },
   startRun: (
     projectId: number,
-    input: { phase: Phase; prompt: string; task_id?: number; options: RunOptions; attachments?: Attachment[]; stage?: BoardStage },
+    input: {
+      phase: Phase;
+      prompt: string;
+      task_id?: number;
+      options: RunOptions;
+      attachments?: Attachment[];
+      stage?: BoardStage;
+      group_id?: number;
+    },
   ) => request<Run>("POST", `/api/projects/${projectId}/runs`, input),
   run: (id: number) => request<RunDetail>("GET", `/api/runs/${id}`),
   sendMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
