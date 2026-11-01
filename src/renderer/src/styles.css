@@ -796,10 +796,10 @@ button.chat-row {
   color: var(--text);
 }
 
-/* 「グループなし」には「…」がないので、同じ幅を空けて＋の位置をそろえる */
+/* 「グループなし」には「…」がないので、同じ幅（アイコンボタンの幅）を空けて＋の位置をそろえる */
 .group-menu-spacer {
   flex: none;
-  width: 22px;
+  width: 26px;
 }
 
 
