@@ -118,7 +118,11 @@ export function createApp(deps: ServerDeps): Hono {
         void stream.writeSSE({ data: JSON.stringify(event) });
       });
       const ping = setInterval(() => void stream.writeSSE({ event: "ping", data: "" }), 25_000);
-      await new Promise<void>((resolve) => stream.onAbort(resolve));
+      // 切断の知らせは、待つ前（最初の書き込みの前）に受け取れるようにしておく
+      const closed = new Promise<void>((resolve) => stream.onAbort(resolve));
+      // 何か書くまで応答ヘッダーが届かず、画面が「接続中」のままになるので、つないだらすぐ 1 回送る
+      await stream.writeSSE({ event: "ping", data: "" });
+      await closed;
       clearInterval(ping);
       unsubscribe();
     }),
