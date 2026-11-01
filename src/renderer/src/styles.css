@@ -139,7 +139,7 @@ kbd {
 
 .layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
   transition: grid-template-columns 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -155,19 +155,42 @@ kbd {
 }
 
 .sidebar {
+  position: relative;
   min-width: 0;
   overflow: hidden;
 }
 
 /* 閉じても中身の幅は変えず、はみ出た分を隠す（開閉中に中身が崩れないように） */
-.sidebar > * {
-  min-width: 260px;
+.sidebar > :not(.sidebar-resizer) {
+  min-width: var(--sidebar-w, 260px);
 }
 
-/* macOS の信号機ボタンのすぐ右に置く「開く」ボタン */
-.sidebar-expand {
-  position: fixed;
-  top: 13px;
+/* 幅を変えている間はアニメーションを止める */
+.layout.resizing-sidebar {
+  transition: none;
+  user-select: none;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 5px;
+  cursor: col-resize;
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-resizer:hover,
+.resizing-sidebar .sidebar-resizer {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置） */
+.titlebar-toggle {
+  position: absolute;
+  top: 10px;
   left: 78px;
   z-index: 30;
   display: grid;
@@ -182,7 +205,11 @@ kbd {
   -webkit-app-region: no-drag;
 }
 
-.sidebar-expand:hover {
+.titlebar-toggle.floating {
+  position: fixed;
+}
+
+.titlebar-toggle:hover {
   color: var(--text);
   background: var(--bg-elev);
 }
@@ -197,15 +224,7 @@ kbd {
   padding-left: 96px;
 }
 
-.brand-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
 
-.sidebar-close {
-  -webkit-app-region: no-drag;
-}
 
 .main {
   min-width: 0;
@@ -277,21 +296,12 @@ kbd {
 }
 
 .sidebar-header {
-  display: grid;
-  gap: 10px;
-  /* macOS の信号機ボタンの分の余白。ウィンドウのドラッグ領域にする */
-  padding: 40px 12px 8px;
+  /* macOS の信号機ボタンの行。開閉ボタン以外はウィンドウのドラッグ領域 */
+  position: relative;
+  height: 44px;
   -webkit-app-region: drag;
 }
 
-.brand {
-  padding: 0 4px;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--text);
-  -webkit-app-region: no-drag;
-}
 
 .search-button {
   display: flex;
@@ -2910,7 +2920,7 @@ mark {
     display: none;
   }
 
-  .sidebar-expand {
+  .titlebar-toggle.floating {
     top: max(8px, env(safe-area-inset-top));
     left: 8px;
   }
