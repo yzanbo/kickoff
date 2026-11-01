@@ -1,4 +1,22 @@
-import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, Folder, FolderPlus, ListTree, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  CircleDot,
+  CircleX,
+  Clock,
+  Folder,
+  FolderPlus,
+  GalleryHorizontal,
+  ListTree,
+  Pencil,
+  Plus,
+  Rows3,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { Approval, ProjectSummary, Run, RunGroup } from "../../../core/types";
 import { api } from "../api";
@@ -14,6 +32,9 @@ import { relativeTime } from "./RunList";
 import { StatusSlot } from "./StatusSlot";
 
 const CURRENT_KEY = "kickoff:current-project";
+const LAYOUT_KEY = "kickoff:sidebar-layout";
+/** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
+type NavLayout = "slide" | "stack";
 /** 横スワイプで隣へ移るのに必要な移動量（ページ幅に対する割合） */
 const SWIPE_RATIO = 0.18;
 /** この時間ホイールのイベントが途切れたら、1 回のジェスチャー（慣性を含む）が終わったとみなす */
@@ -37,6 +58,11 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   const ordered = [...projects].sort((a, b) => a.id - b.id);
   const [currentId, setCurrentId] = useState<number | undefined>(() => Number(localStorage.getItem(CURRENT_KEY)) || undefined);
   const [runs, setRuns] = useState<Record<number, Run[]>>({});
+  const [layout, setLayout] = useState<NavLayout>(() => (localStorage.getItem(LAYOUT_KEY) === "stack" ? "stack" : "slide"));
+  const changeLayout = (next: NavLayout) => {
+    localStorage.setItem(LAYOUT_KEY, next);
+    setLayout(next);
+  };
   const [groups, setGroups] = useState<Record<number, RunGroup[]>>({});
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -81,6 +107,12 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   useEffect(() => {
     if (current) localStorage.setItem(CURRENT_KEY, String(current.id));
   }, [current]);
+
+  // 縦並びでは、選んだプロジェクト（ショートカット・開いた画面）が見えるところまでスクロールする
+  useEffect(() => {
+    if (layout !== "stack" || !current) return;
+    document.querySelector(`.workspace-stack [data-project-id="${current.id}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [layout, current]);
 
   // すべてのプロジェクトのチャットを読み込む（スライドしたときにすぐ見えるように）
   const ids = ordered.map((p) => p.id).join(",");
@@ -231,6 +263,54 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     );
   }
 
+  /** 横スライド / 縦並びの切り替え（下の行の右端） */
+  const layoutToggle = (
+    <div className="sidebar-layout-toggle" role="group" aria-label="プロジェクトの並べ方">
+      <button
+        className={layout === "slide" ? "active" : ""}
+        aria-pressed={layout === "slide"}
+        title="1 プロジェクトずつ横にスライド"
+        onClick={() => changeLayout("slide")}
+      >
+        <GalleryHorizontal size={13} />
+      </button>
+      <button
+        className={layout === "stack" ? "active" : ""}
+        aria-pressed={layout === "stack"}
+        title="すべてのプロジェクトを縦に並べる"
+        onClick={() => changeLayout("stack")}
+      >
+        <Rows3 size={13} />
+      </button>
+    </div>
+  );
+
+  if (layout === "stack") {
+    return (
+      <div className="workspaces">
+        <div className="workspace-stack">
+          {ordered.map((p) => (
+            <WorkspacePage
+              key={p.id}
+              project={p}
+              runs={runs[p.id] ?? []}
+              groups={groups[p.id] ?? NO_GROUPS}
+              approvals={approvals}
+              route={route}
+              hidden={false}
+            />
+          ))}
+        </div>
+        <div className="workspace-switcher stack">
+          <button className="sidebar-new" onClick={onNewProject}>
+            <Plus size={14} /> 新しいプロジェクト
+          </button>
+          {layoutToggle}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="workspaces">
       <div
@@ -281,6 +361,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
         <button className="workspace-dot add" title="新しいプロジェクト" aria-label="新しいプロジェクト" onClick={onNewProject}>
           <Plus size={14} />
         </button>
+        {layoutToggle}
       </div>
     </div>
   );
@@ -450,6 +531,7 @@ const WorkspacePage = memo(function WorkspacePage({
   return (
     <section
       className="workspace-page"
+      data-project-id={project.id}
       aria-hidden={hidden}
       inert={hidden}
       style={{ "--ws-hue": `${projectHue(project.id)}` } as React.CSSProperties}
