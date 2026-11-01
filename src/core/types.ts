@@ -422,6 +422,46 @@ export interface PlanUsage {
   error?: string;
 }
 
+/**
+ * Git の変更のあるファイル（VS Code のソース管理と同じ記号）。
+ * M: 変更 / A: 追加 / D: 削除 / R: 名前の変更 / C: コピー / T: 種類の変更 / U: 未追跡（新しいファイル） / !: 競合
+ */
+export type GitChangeKind = "M" | "A" | "D" | "R" | "C" | "T" | "U" | "!";
+
+export interface GitFileChange {
+  /** リポジトリの中のパス */
+  path: string;
+  /** 名前を変えたときの元のパス */
+  old_path?: string;
+  kind: GitChangeKind;
+}
+
+/** プロジェクトのフォルダの Git の状態（repo が false なら Git で管理されていない） */
+export type GitStatus =
+  | { repo: false }
+  | {
+      repo: true;
+      /** いまのブランチ（コミット前・ブランチから外れているときは null） */
+      branch: string | null;
+      ahead: number;
+      behind: number;
+      /** ステージされている変更 */
+      staged: GitFileChange[];
+      /** ステージされていない変更（未追跡のファイルも含む） */
+      unstaged: GitFileChange[];
+      /** 競合しているファイル */
+      conflicts: GitFileChange[];
+    };
+
+/** 1 つのファイルの差分（unified 形式） */
+export interface GitDiff {
+  diff: string;
+  /** バイナリのファイル（差分は出せない） */
+  binary: boolean;
+  /** 大きすぎて途中で切った */
+  truncated: boolean;
+}
+
 /** Kickoff サーバー（コア）の状態（画面の左下の接続の詳細） */
 export interface ServerStatus {
   version: string;

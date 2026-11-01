@@ -14,6 +14,7 @@ import type { ApprovalCenter } from "./approvals.js";
 import type { Runner } from "./runner.js";
 import type { UploadStore } from "./uploads.js";
 import { agentRoutes } from "./routes/agents.js";
+import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
 import { HttpError } from "./routes/http.js";
 import { projectRoutes } from "./routes/projects.js";
@@ -110,6 +111,7 @@ export function createApp(deps: ServerDeps): Hono {
   groupRoutes(app, deps);
   uploadRoutes(app, deps);
   agentRoutes(app, deps);
+  gitRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>

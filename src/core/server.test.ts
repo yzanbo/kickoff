@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import type { AddressInfo } from "node:net";
@@ -255,4 +256,44 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   assert.equal((await call("GET", "/api/providers/unknown/models")).status, 400);
   assert.deepEqual((await call("GET", "/api/usage")).body, { available: false });
   assert.deepEqual((await call("POST", "/api/usage/refresh")).body, { available: false });
+});
+
+test("Git の変更の API（状態と、ファイルごとの差分）", async () => {
+  const { call, project } = setup();
+  // Git で管理されていないフォルダ
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body, { repo: false });
+
+  const repo = project.repo_path;
+  const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo });
+  git("init", "-b", "main");
+  fs.writeFileSync(path.join(repo, "a.txt"), "one\n");
+  fs.writeFileSync(path.join(repo, "b.txt"), "bee\n");
+  git("add", ".");
+  git("commit", "-m", "init");
+  fs.writeFileSync(path.join(repo, "a.txt"), "one\ntwo\n");
+  fs.writeFileSync(path.join(repo, "b.txt"), "bee!\n");
+  git("add", "b.txt");
+  fs.writeFileSync(path.join(repo, "new.txt"), "hello\n");
+
+  const status = (await call("GET", `/api/projects/${project.id}/git/status`)).body;
+  assert.equal(status.repo, true);
+  assert.equal(status.branch, "main");
+  assert.deepEqual(status.staged, [{ path: "b.txt", kind: "M" }]);
+  assert.deepEqual(status.unstaged, [
+    { path: "a.txt", kind: "M" },
+    { path: "new.txt", kind: "U" },
+  ]);
+
+  const unstaged = (await call("GET", `/api/projects/${project.id}/git/diff?path=a.txt`)).body;
+  assert.match(unstaged.diff, /^\+two$/m);
+  assert.equal(unstaged.binary, false);
+  const staged = (await call("GET", `/api/projects/${project.id}/git/diff?path=b.txt&staged=1`)).body;
+  assert.match(staged.diff, /^-bee$/m);
+  assert.match(staged.diff, /^\+bee!$/m);
+  // 未追跡のファイルは、すべて追加として出す
+  const untracked = (await call("GET", `/api/projects/${project.id}/git/diff?path=new.txt`)).body;
+  assert.match(untracked.diff, /^\+hello$/m);
+  // リポジトリの外は読ませない
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/diff?path=../outside.txt`)).status, 400);
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/diff?path=/etc/hosts`)).status, 400);
 });

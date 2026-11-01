@@ -1,19 +1,13 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import { errorMessage } from "./errors.js";
+import { gitOutput } from "./git.js";
 import type { WorkspaceInspection } from "./types.js";
 
 export type { WorkspaceInspection };
 
-const execFileAsync = promisify(execFile);
-
-async function git(cwd: string, args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { cwd, timeout: 30_000 });
-  return stdout.trim();
-}
+const git = async (cwd: string, args: string[]) => (await gitOutput(cwd, args)).trim();
 
 /** "~/foo" をホームディレクトリに展開する */
 export function expandHome(p: string): string {
