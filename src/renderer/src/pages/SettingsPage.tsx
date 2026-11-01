@@ -4,7 +4,7 @@ import { api, useAsync } from "../api";
 import { BrowserExtensions } from "../components/BrowserExtensions";
 import { SaveActions } from "../components/SaveActions";
 import { Segmented } from "../components/Segmented";
-import { StatusCard } from "../components/StatusCard";
+import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { UsagePanel } from "../components/UsagePanel";
 import { useSave } from "../hooks/useSave";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../models";
@@ -80,7 +80,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
         <p className="muted small">
           AI エージェントと GitHub は、Mac にインストールされた各 CLI のログインをそのまま使います（API キーは不要です）。
         </p>
-        <div className="status-grid">
+        <div className="card-grid">
           {providers.loading && !providers.data ? (
             <StatusCard title="AI エージェント" ok={undefined} detail="確認中…" />
           ) : (
@@ -88,7 +88,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
               <StatusCard
                 key={p.id}
                 title={p.label}
-                ok={p.implemented ? p.loggedIn : undefined}
+                ok={p.implemented ? p.loggedIn : null}
                 badge={p.implemented ? undefined : "対応予定"}
                 detail={
                   <>
@@ -99,11 +99,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
               />
             ))
           )}
-          <StatusCard
-            title="GitHub CLI（gh）"
-            ok={github.loading ? undefined : Boolean(github.data?.loggedIn)}
-            detail={github.error ?? github.data?.detail ?? "確認中…"}
-          />
+          <GitHubStatusCard github={github} />
         </div>
         {providers.error && <p className="error">{providers.error}</p>}
       </section>

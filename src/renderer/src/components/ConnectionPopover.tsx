@@ -6,6 +6,7 @@ import { useDismiss } from "../hooks/useDismiss";
 import { href } from "../router";
 import { accountLine } from "../usage";
 import { PopoverHeader } from "./PopoverHeader";
+import { StatusDot, toneOf, type StatusTone } from "./StatusDot";
 
 interface Props {
   state: ConnectionState;
@@ -20,6 +21,7 @@ export const CONNECTION_LABELS: Record<ConnectionState, string> = {
   closed: "Kickoff サーバーから切断",
 };
 
+const CONNECTION_TONES: Record<ConnectionState, StatusTone> = { connecting: "pending", open: "ok", closed: "ng" };
 const STATE_TEXT: Record<ConnectionState, string> = { connecting: "接続中…", open: "接続済み", closed: "切断（5 秒ごとに再接続します）" };
 
 const timeText = (t: number | string) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -65,7 +67,7 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
 
       <section className="conn-section">
         <div className="conn-row-title">
-          <span className={`conn-dot conn-dot-${state}`} />
+          <StatusDot tone={CONNECTION_TONES[state]} />
           Kickoff サーバー
         </div>
         <p className="muted small conn-help">画面とエージェントの実行・保存をつなぐ、この Mac の中のサーバーです。</p>
@@ -133,10 +135,9 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
 
 /** ok: true = 使える / false = 使えない / null = 対応予定 / undefined = 確認中 */
 function ToolRow({ name, ok, detail }: { name: string; ok: boolean | null | undefined; detail: string }) {
-  const tone = ok === undefined ? "connecting" : ok === null ? "na" : ok ? "open" : "closed";
   return (
     <div className="conn-tool">
-      <span className={`conn-dot conn-dot-${tone}`} />
+      <StatusDot tone={toneOf(ok)} />
       <span className="conn-tool-name">{name}</span>
       <span className="conn-tool-detail muted">{detail}</span>
     </div>

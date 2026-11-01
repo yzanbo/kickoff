@@ -26,15 +26,15 @@ export function UsagePanel({ planUsage }: Props) {
         </div>
       ) : (
         <>
-          <div className="usage-grid">
-            <div className="usage-card">
+          <div className="card-grid">
+            <div className="card">
               <UsageMeter window={usage.five_hour} idleText={FIVE_HOUR_IDLE} />
             </div>
-            <div className="usage-card">
+            <div className="card">
               <UsageMeter window={usage.seven_day} />
             </div>
             {usage.model_weekly.map((w) => (
-              <div className="usage-card" key={w.key}>
+              <div className="card" key={w.key}>
                 <UsageMeter window={w} />
               </div>
             ))}
