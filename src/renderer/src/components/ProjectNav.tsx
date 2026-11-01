@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, ListTree, Plus, Search, SquareKanban, X } from "lucide-react";
+import { ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, ListTree, Plus, Search, X } from "lucide-react";
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { Approval, ProjectSummary, Run, SearchHit } from "../../../core/types";
 import { api } from "../api";
@@ -382,23 +382,24 @@ const WorkspacePage = memo(function WorkspacePage({
   return (
     <section className="workspace-page" aria-hidden={hidden} inert={hidden}>
       <div className={`workspace-head ${isActive ? "active" : ""}`}>
+        {/* 左のボタン: チャット一覧の開閉 / 名前: プロジェクトのカンバンを表示 */}
         <button
-          className="workspace-toggle"
+          className="workspace-chevron"
           aria-expanded={!collapsed}
+          aria-label={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
           title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
           onClick={toggleCollapsed}
         >
           {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-          <span className="workspace-name">{project.name}</span>
-          {waitingCount > 0 && (
-            <span className="count-badge" title="回答待ちのチャット" aria-label={`回答待ち ${waitingCount} 件`}>
-              {waitingCount}
-            </span>
-          )}
         </button>
-        <a className="icon-button" href={href({ name: "project", id: project.id, tab: "board" })} title="プロジェクトのカンバンを開く" aria-label="プロジェクトのカンバンを開く">
-          <SquareKanban size={14} />
+        <a className="workspace-name" href={href({ name: "project", id: project.id, tab: "board" })} title={`${project.name} のカンバンを開く`}>
+          {project.name}
         </a>
+        {waitingCount > 0 && (
+          <span className="count-badge" title="回答待ちのチャット" aria-label={`回答待ち ${waitingCount} 件`}>
+            {waitingCount}
+          </span>
+        )}
         {!collapsed && (
           <button
             className="icon-button"

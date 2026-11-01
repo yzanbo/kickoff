@@ -643,6 +643,25 @@ kbd {
   background: var(--bg-hover);
 }
 
+.workspace-chevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.workspace-chevron:hover {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
 .workspace-toggle {
   display: flex;
   flex: 1;
