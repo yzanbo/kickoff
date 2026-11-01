@@ -33,9 +33,10 @@ export function ContextMeter({ run }: { run: Run }) {
   const ref = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const tokens = run.context_tokens;
+  // まだ数値が届いていないとき（新しいチャット・要約の直後など）は 0% として出す
+  const tokens = run.context_tokens ?? 0;
   const windowSize = run.context_window;
-  const pct = tokens !== null && windowSize ? Math.min(100, Math.round((tokens / windowSize) * 100)) : null;
+  const pct = windowSize ? Math.min(100, Math.round((tokens / windowSize) * 100)) : 0;
 
   useEffect(() => {
     if (open) void loadProviders().then((list) => setAccount(list.find((p) => p.id === "claude")?.account));
@@ -80,39 +81,40 @@ export function ContextMeter({ run }: { run: Run }) {
       <button
         type="button"
         className="context-ring-button"
-        aria-label={pct === null ? "コンテキストウィンドウ" : `コンテキストウィンドウ ${pct}% 使用`}
+        aria-label={`コンテキストウィンドウ ${pct}% 使用`}
         aria-expanded={open}
         onClick={() => (pinned ? close() : (setPinned(true), setOpen(true)))}
       >
-        <Ring pct={pct ?? 0} />
+        <Ring pct={pct} />
       </button>
       {open && (
         <div className="context-popover" role="dialog" aria-label="コンテキストウィンドウと使用枠">
           <section className="context-section">
             <div className="context-title">コンテキストウィンドウ</div>
-            {pct === null ? (
-              <p className="context-sub">次の応答のあとに表示されます</p>
-            ) : (
-              <>
-                <div className="context-row">
-                  <span className="context-pct">{pct}%使用</span>
-                  <span className="context-sub">
-                    {formatTokens(tokens!)} / {formatTokens(windowSize!)}トークン
-                  </span>
-                </div>
-                {/* どれだけ使っているかを、数字だけでなく棒でも見せる */}
-                <div className="context-bar" role="img" aria-label={`${pct}% 使用`}>
-                  <span className={`context-bar-fill tone-${tone(pct)}`} style={{ width: `${pct}%` }} />
-                </div>
-              </>
-            )}
+            <div className="context-row">
+              <span className="context-pct">{pct}%使用</span>
+              {windowSize && (
+                <span className="context-sub">
+                  {formatTokens(tokens)} / {formatTokens(windowSize)}トークン
+                </span>
+              )}
+            </div>
+            {/* どれだけ使っているかを、数字だけでなく棒でも見せる */}
+            <div className="context-bar" role="img" aria-label={`${pct}% 使用`}>
+              <span className={`context-bar-fill tone-${tone(pct)}`} style={{ width: `${pct}%` }} />
+            </div>
             <div className="context-sub">セッションコスト: ${run.cost_usd.toFixed(2)}（API 換算）</div>
             {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
             <div className="context-compact">
-              <button type="button" className="btn btn-sm" disabled={!canCompact} onClick={() => void compact()}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                title="これまでの会話を要約して、コンテキストを空けます"
+                disabled={!canCompact}
+                onClick={() => void compact()}
+              >
                 <Shrink size={13} /> {compacting ? "圧縮中…" : "会話を圧縮"}
               </button>
-              <span className="context-sub">これまでの会話を要約して、コンテキストを空けます</span>
             </div>
             <ErrorText message={compactError} />
           </section>

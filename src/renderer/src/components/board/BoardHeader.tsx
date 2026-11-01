@@ -24,8 +24,9 @@ interface Props {
 }
 
 /**
- * ボード（全プロジェクトのカンバン・プロジェクトのカンバン・グループ）の見出し。名前と件数の右に、道具を概念ごとにまとめて並べる:
- * 探す・絞り込む（検索・絞り込み・アーカイブの表示） / 表示（ボード・リスト） / 作る・開く（新規・ブラウザ。右のパネルに新しいタブを開く） / パネルの開閉
+ * ボード（全プロジェクトのカンバン・プロジェクトのカンバン・グループ）の見出し。道具を概念ごとにまとめて並べる:
+ * 左（名前の右）に 表示（ボード・リスト） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
+ * 右に 作る・開く（新規・ブラウザ。右のパネルに新しいタブを開く） / パネルの開閉
  */
 export function BoardHeader({ icon, title, count, query, onQuery, filters, actions, view, onView, panel }: Props) {
   return (
@@ -33,12 +34,8 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, actio
       {icon}
       <span className="board-title">{title}</span>
       <span className="muted small">{count} 件</span>
-      {/* 道具のまとまり（狭いときは、まとまりごと次の行の右側へ） */}
+      {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
-        <div className="board-tool-group" role="group" aria-label="探す・絞り込む">
-          <BoardSearch query={query} onChange={onQuery} />
-          {filters}
-        </div>
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
@@ -51,6 +48,12 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, actio
             ]}
           />
         </div>
+        <div className="board-tool-group" role="group" aria-label="探す・絞り込む">
+          <BoardSearch query={query} onChange={onQuery} />
+          {filters}
+        </div>
+      </div>
+      <div className="board-tools board-tools-end">
         <div className="board-tool-group" role="group" aria-label="作る・開く">
           {actions}
           <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
