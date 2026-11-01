@@ -1,4 +1,4 @@
-import { Folder, Inbox } from "lucide-react";
+import { Folder, Inbox, SquarePen } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { RunGroup } from "../../../core/types";
@@ -61,7 +61,9 @@ export function GroupPickMenu({
       role="menu"
       aria-label="新しいチャットの作成先"
     >
-      <div className="menu-label">どこに作成しますか？</div>
+      <div className="menu-label">
+        <SquarePen size={12} aria-hidden /> 新しいチャットの作成先
+      </div>
       {groups.map((g) => (
         <button key={g.id} role="menuitem" onClick={() => pick(g.id)}>
           <Folder size={14} /> {g.name}

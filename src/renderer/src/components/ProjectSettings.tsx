@@ -27,6 +27,7 @@ import { planLabel } from "../usage";
 import { ClaudeMark } from "./RunOptionsBar";
 import { ReferenceEditor } from "./ReferenceEditor";
 import { WriteScopeEditor } from "./WriteScopeEditor";
+import { confirmDialog } from "../dialogs";
 
 /** 「アプリの設定に従う」を表す select の値 */
 const INHERIT = "__inherit__";
@@ -428,9 +429,12 @@ function ChatDefaults({ project }: { project: Project }) {
 function DeleteProject({ project }: { project: Project }) {
   const [error, setError] = useState<string>();
   const remove = async () => {
-    const ok = confirm(
-      `「${project.name}」を削除しますか？\n\nチャット・グループ・タスク・要件定義書などの Kickoff 上の記録は消えます。\nフォルダとリポジトリ（${project.repo_path}）は削除されません。`,
-    );
+    const ok = await confirmDialog({
+      title: `プロジェクト「${project.name}」を削除しますか？`,
+      message: `チャット・グループ・タスク・要件定義書などの Kickoff 上の記録は消えます。フォルダとリポジトリ（${project.repo_path}）は削除されません。`,
+      confirmLabel: "削除",
+      danger: true,
+    });
     if (!ok) return;
     try {
       await api.deleteProject(project.id);
