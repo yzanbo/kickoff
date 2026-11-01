@@ -20,6 +20,7 @@ import {
   type ProviderStatus,
 } from "../../../core/types";
 import { api, useAsync } from "../api";
+import { errorMessage } from "../errors";
 import { groupModels, modelDisplayName } from "../models";
 import { navigate } from "../router";
 import { SECTION_META } from "../sections";
@@ -45,7 +46,7 @@ function useSave() {
       await action();
       setMessage({ kind: "ok", text: "保存しました" });
     } catch (e) {
-      setMessage({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+      setMessage({ kind: "error", text: errorMessage(e) });
     } finally {
       setSaving(false);
     }
@@ -130,7 +131,7 @@ function AiSection({ project, app }: { project: Project; app: AppSettings | unde
       await api.updateProject(project.id, { provider: id });
       setError(undefined);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     }
   };
 
@@ -440,7 +441,7 @@ function DeleteProject({ project }: { project: Project }) {
       await api.deleteProject(project.id);
       navigate({ name: "home" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     }
   };
   return (

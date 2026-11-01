@@ -11,6 +11,7 @@ import {
 import { api, type TaskInput } from "../api";
 import { SectionBadge } from "./SectionBadge";
 import { confirmDialog } from "../dialogs";
+import { errorMessage } from "../errors";
 
 const PRIORITY_LABELS: Record<number, string> = { 1: "高", 2: "中", 3: "低" };
 
@@ -150,7 +151,7 @@ function TaskForm({
             ...(withStatus ? { status: value.status } : {}),
           });
         } catch (err) {
-          setError(err instanceof Error ? err.message : String(err));
+          setError(errorMessage(err));
           setSaving(false);
         }
       }}

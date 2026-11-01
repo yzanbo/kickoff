@@ -2,6 +2,7 @@ import { Archive, ArchiveRestore, PanelRight, Pencil, Trash2 } from "lucide-reac
 import type { Run } from "../../../core/types";
 import { api } from "../api";
 import { confirmDialog, promptDialog } from "../dialogs";
+import { errorMessage } from "../errors";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /** チャットの右クリックメニュー（カンバンのカード・グループのボード・サイドバー）: 開く・名前を変更・アーカイブ・削除 */
@@ -25,7 +26,7 @@ export function CardMenu({
       await fn();
       onClose();
     } catch (e) {
-      onError(e instanceof Error ? e.message : String(e));
+      onError(errorMessage(e));
       onClose();
     }
   };

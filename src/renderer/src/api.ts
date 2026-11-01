@@ -24,6 +24,7 @@ import type {
   ProviderStatus,
   WorkspaceInspection,
 } from "../../core/types";
+import { errorMessage } from "./errors";
 
 export interface NewProjectInput {
   name: string;
@@ -229,7 +230,7 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[] = []) {
     setLoading(true);
     load()
       .then((d) => alive && (setData(d), setError(undefined)))
-      .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => alive && setError(errorMessage(e)))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
