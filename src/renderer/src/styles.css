@@ -5826,3 +5826,103 @@ a:focus-visible,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 「変更」タブの検索（VS Code と同じく、入力欄の右に大文字と小文字・単語単位・正規表現の切り替え） */
+.code-search-box {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 8px 10px 4px;
+  padding: 1px 3px 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.code-search-box:focus-within {
+  border-color: var(--accent-bright);
+}
+
+/* 入力欄の共通の枠（input[type="text"]）より強く指定する */
+.code-search-box .code-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  border: none;
+  font-size: 13px;
+  background: transparent;
+}
+
+.code-search-box .code-search-input:focus {
+  outline: none;
+}
+
+.code-search-box .code-search-toggle {
+  width: 24px;
+  height: 24px;
+}
+
+.code-search-message {
+  margin: 4px 12px;
+}
+
+.code-search-file {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 10px 2px 8px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.code-search-file:hover {
+  background: var(--bg-hover);
+}
+
+.code-search-file .change-count {
+  margin-left: auto;
+}
+
+.code-search-row {
+  display: block;
+  width: 100%;
+  padding: 2px 10px 2px 30px;
+  overflow: hidden;
+  border: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.code-search-row:hover {
+  background: var(--bg-hover);
+}
+
+.code-search-row.selected {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+/* 見つかった部分 */
+.code-search-match {
+  padding: 0 1px;
+  border-radius: 2px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+/* 検索の結果から開いた行 */
+.diff-table .line-focus {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+}

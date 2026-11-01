@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { GitFileChange } from "../../../../core/types";
 import { cx } from "../../cx";
@@ -10,35 +10,41 @@ import { Segmented } from "../Segmented";
 import { CHANGE_LABELS, DiffView } from "./DiffView";
 import { FileTree } from "./FileTree";
 import { FileView } from "./FileView";
+import { SearchView } from "./SearchView";
 import { changeKinds } from "./treeModel";
 import type { GitStatusController } from "./useGitStatus";
 import { useProjectFiles } from "./useProjectFiles";
+import { useProjectSearch } from "./useProjectSearch";
 
 /**
  * 選んでいるファイル。変更の一覧から選んだときは、ステージ済み・未ステージのどちらか（同じファイルが両方にあることもある）。
- * エクスプローラーから選んだときは staged を持たない（変更があれば差分、なければ中身を出す）
+ * エクスプローラーから選んだときは staged を持たない（変更があれば差分、なければ中身を出す）。
+ * 検索の結果から選んだときは line を持つ（変更があってもいまの中身を出し、その行を目立たせる）
  */
 interface Selection {
   path: string;
   staged?: boolean;
+  line?: number;
 }
 
-type ChangesView = "files" | "changes";
+type ChangesView = "files" | "search" | "changes";
 const VIEW_KEY = "kickoff:changes-view";
 
 /**
  * プロジェクトの「変更」タブ（VS Code と同じく、左端で表示を切り替える）。
  * - すべてのファイル（エクスプローラー）: フォルダの木。変更のあるファイルとフォルダだけ色を変える
+ * - 検索: ファイルの中を探す
  * - 変更（ソース管理）: ステージされている変更・変更（未追跡・競合を含む）
  * ファイルを選ぶと、変更があれば差分、なければ中身を右に出す
  */
 export function ChangesTab({ projectId, rootName, git }: { projectId: number; rootName: string; git: GitStatusController }) {
   const { status } = git;
-  const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "changes"], "changes");
+  const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "search", "changes"], "changes");
   const [selected, setSelected] = useState<Selection>();
   const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
   const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
+  const search = useProjectSearch(projectId);
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
@@ -50,7 +56,7 @@ export function ChangesTab({ projectId, rootName, git }: { projectId: number; ro
   const find = (list: GitFileChange[], path: string) => list.find((f) => f.path === path);
   // 選んだファイルの差分（エクスプローラーから選んだときは、未ステージ → ステージ済みの順に探す）
   const change: { file: GitFileChange; staged: boolean } | undefined = (() => {
-    if (!selected) return undefined;
+    if (!selected || selected.line !== undefined) return undefined;
     const unstaged = selected.staged !== true ? find(groups.unstaged, selected.path) : undefined;
     if (unstaged) return { file: unstaged, staged: false };
     const staged = selected.staged !== false ? find(groups.staged, selected.path) : undefined;
@@ -74,11 +80,14 @@ export function ChangesTab({ projectId, rootName, git }: { projectId: number; ro
         iconSize={18}
         options={[
           { value: "files", label: "すべてのファイル（エクスプローラー）", icon: Files, iconOnly: true },
+          { value: "search", label: "検索", icon: Search, iconOnly: true },
           { value: "changes", label: "変更（ソース管理）", icon: GitBranch, iconOnly: true, badge: git.count },
         ]}
       />
-      <aside className="changes-list" aria-label={view === "files" ? "すべてのファイル" : "変更のあるファイル"}>
-        {view === "files" ? (
+      <aside className="changes-list" aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}>
+        {view === "search" ? (
+          <SearchView search={search} selected={selected} onSelect={(path, line) => setSelected({ path, line })} />
+        ) : view === "files" ? (
           <>
             <header className="changes-head">
               <span className="changes-branch" title={rootName}>
@@ -140,7 +149,9 @@ export function ChangesTab({ projectId, rootName, git }: { projectId: number; ro
         )}
       </aside>
       <div className="changes-diff">
-        {change ? (
+        {selected?.line !== undefined ? (
+          <FileView projectId={projectId} path={selected.path} line={selected.line} changed={kinds.files.has(selected.path)} version={git.version} />
+        ) : change ? (
           <DiffView projectId={projectId} file={change.file} staged={change.staged} version={git.version} />
         ) : selected && selected.staged === undefined ? (
           <FileView projectId={projectId} path={selected.path} version={git.version} />

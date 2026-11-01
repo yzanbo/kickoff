@@ -54,7 +54,7 @@
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |
 | ボードの見出し | `BoardHeader`。道具は概念ごとのまとまりに入れる（左: 表示 → 探す・絞り込む / 右: 作る・開く → パネルの開閉） |
-| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）と「変更」を切り替える。差分は `DiffView`（左右に並べる・1 列）、変更のないファイルの中身は `FileView`。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
+| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）・「検索」（`SearchView` ＋ `useProjectSearch`、印は `searchPattern` / `splitMatches`）・「変更」を切り替える。差分は `DiffView`（左右に並べる・1 列）、変更のないファイルの中身は `FileView`。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
 
 ## hooks と補助関数
 
@@ -82,7 +82,7 @@
 - 既存のクラスを使う。同じ宣言のブロックを増やさず、共通のクラスにまとめる（例: `.card`）。
 - 同じ詳細度で後ろにあるルール（`.icon-button` など）に上書きされて効かない指定を書かない。足したら計算後のスタイルで確かめる。
 - 使わなくなったクラスの CSS は消す。消すときは、名前を組み立てて付けるクラス（`sec-` `state-` `tone-` `status-` `meter-` `conn-` `task-status-` `priority-` `provider-` `drop-` `inspection-` `line-`）に気をつける。
-- 新しいクラス名は、既存のものと重ならないか `styles.css` を検索してから付ける（タイムラインの `.diff-add` / `.diff-del` は `display: block` なので、差分の表では `line-add` などを使う）。
+- 新しいクラス名は、既存のものと重ならないか `styles.css` を検索してから付ける（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
 - プロジェクトの画面はどのタブでも同じ横幅（`.page-wide` は上限なし）。タブで幅を変えない。
 - 定義していない CSS 変数を使わない。
 - Electron のドラッグ領域は後に書いた要素が優先されるので、閉じたサイドバーの「開く」ボタンは DOM のいちばん後ろに置く。
