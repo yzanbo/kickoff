@@ -7,7 +7,9 @@ import { Composer } from "./Composer";
 import { CloseButton } from "./IconButton";
 import { ProjectChip } from "./ProjectChip";
 import { useRunOptions } from "./RunOptionsBar";
+import { BUSY_STATUSES } from "./RunStatus";
 import { SectionPicker } from "./SectionPicker";
+import { WorkplacePicker, type Workplace } from "./changes/WorkplacePicker";
 
 interface Props {
   projectId: number;
@@ -42,6 +44,12 @@ export function NewChatPane({
   const options = useRunOptions(undefined, section, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
   const runs = useAsync(() => api.runs(projectId), [projectId]);
+  // 作業場所（初めは本体。並行して進めたいときにワークツリーを選ぶ）
+  const [place, setPlace] = useState<Workplace>({ kind: "main" });
+  useEffect(() => setPlace({ kind: "main" }), [projectId]);
+  // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる）
+  const placePath = place.kind === "existing" ? place.path : place.kind === "main" ? "" : null;
+  const busyHere = placePath !== null && (runs.data ?? []).some((r) => r.worktree_path === placePath && BUSY_STATUSES.includes(r.status));
   const groups = useAsync(() => api.groups(projectId), [projectId]);
   const groupName = groups.data?.find((g) => g.id === group)?.name;
   // グループ名が分かったら、タブにも出す
@@ -86,6 +94,7 @@ export function NewChatPane({
           ) : (
             project.data && <ProjectChip id={project.data.id} name={project.data.name} linked />
           )}
+          <WorkplacePicker projectId={projectId} value={place} onChange={setPlace} />
           {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
           {groups.data && groups.data.length > 0 && onGroupChange && (
             <label className={`new-chat-group ${group ? "has-group" : ""}`} title="作成先のグループ">
@@ -121,6 +130,8 @@ export function NewChatPane({
           </p>
           {stageShown && <p className="muted small">カンバンの「{BOARD_STAGE_LABELS[stageShown]}」に追加されます</p>}
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
+          {place.kind === "new" && <p className="muted small">新しいワークツリー「{place.branch}」を作り、その中で作業します</p>}
+          {busyHere && <p className="small warn-text">この作業場所では、ほかのチャットが作業中です。同じファイルを触ると作業がぶつかることがあります。</p>}
         </div>
       </div>
       <div className="run-composer">
@@ -133,7 +144,15 @@ export function NewChatPane({
             initialText={isFirst && idea ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${idea}` : undefined}
             placeholder={`${SECTION_META[section].placeholder}（Enter で送信、Shift+Enter で改行）`}
             onSend={async (prompt, attachments) => {
-              const run = await api.startRun(projectId, { phase: section, prompt, options: options.options, attachments, stage, group_id: group });
+              const run = await api.startRun(projectId, {
+                phase: section,
+                prompt,
+                options: options.options,
+                attachments,
+                stage,
+                group_id: group,
+                ...(place.kind === "existing" ? { worktree_path: place.path } : place.kind === "new" ? { new_worktree_branch: place.branch } : {}),
+              });
               onCreated(run);
             }}
           />

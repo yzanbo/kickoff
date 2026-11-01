@@ -56,6 +56,9 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const { runs, loaded, setRuns } = useBoardRuns(projectId, archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
   const [section, setSection] = useState<Phase | "all">("all");
+  // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
+  const [worktreeFilter, setWorktreeFilter] = useState("all");
+  const worktreePaths = useMemo(() => [...new Set(runs.map((r) => r.worktree_path).filter(Boolean))].sort(), [runs]);
   // 全プロジェクトのボードでの、プロジェクトの絞り込み（選んだものは覚えておく。"" はすべて）
   const [projectFilter, setProjectFilter] = useStoredState<number | "all">(
     PROJECT_FILTER_KEY,
@@ -101,6 +104,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     const map = new Map<BoardStage, { run: Run; state: AgentState }[]>(BOARD_STAGES.map((s) => [s, []]));
     for (const run of runs) {
       if (archive === "archived" && !run.archived_at) continue;
+      if (worktreeFilter !== "all" && run.worktree_path !== worktreeFilter) continue;
       if (section !== "all" && run.phase !== section) continue;
       if (activeProjectFilter !== "all" && run.project_id !== activeProjectFilter) continue;
       if (!search.matches(run)) continue;
@@ -109,7 +113,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     }
     for (const list of map.values()) list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
     return map;
-  }, [runs, approvals, section, search, activeProjectFilter, archive]);
+  }, [runs, approvals, section, search, activeProjectFilter, archive, worktreeFilter]);
   const total = [...grouped.values()].reduce((n, l) => n + l.length, 0);
 
   async function move(run: Run, stage: BoardStage) {
@@ -187,6 +191,9 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             onSection={setSection}
             archive={archive}
             onArchive={setArchive}
+            worktrees={worktreePaths}
+            worktree={worktreeFilter}
+            onWorktree={setWorktreeFilter}
           />
         }
         actions={

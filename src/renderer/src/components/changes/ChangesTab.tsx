@@ -13,6 +13,7 @@ import { ChangeGroup, type GitAction } from "./ChangeGroup";
 import { CommitBox } from "./CommitBox";
 import { HistoryMain, HistorySidebar } from "./HistoryView";
 import { useGitLog } from "./useGitLog";
+import { WorktreePicker } from "./WorktreePicker";
 import { DiffView } from "./DiffView";
 import { FileTree } from "./FileTree";
 import { FileView } from "./FileView";
@@ -47,8 +48,21 @@ const LIST_WIDTH_KEY = "kickoff:changes-list-width";
  * - 変更（ソース管理）: ステージされている変更・変更（未追跡・競合を含む）
  * ファイルを選ぶと、変更があれば差分、なければ中身を右に出す
  */
-export function ChangesTab({ projectId, repoPath, git }: { projectId: number; repoPath: string; git: GitStatusController }) {
-  const rootName = repoPath.split("/").pop() ?? repoPath;
+export function ChangesTab({
+  projectId,
+  repoPath,
+  git,
+  worktree,
+  onWorktreeChange,
+}: {
+  projectId: number;
+  repoPath: string;
+  git: GitStatusController;
+  /** 見ている作業場所（ワークツリーのフォルダ。undefined なら本体） */
+  worktree?: string;
+  onWorktreeChange: (worktree: string | undefined) => void;
+}) {
+  const rootName = (worktree ?? repoPath).split("/").pop() ?? repoPath;
   const { status } = git;
   const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "search", "changes", "history"], "changes");
   const [selected, setSelectedState] = useState<Selection>();
@@ -119,6 +133,11 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
     });
 
   return (
+    <>
+    {/* 作業場所（本体・ワークツリー）の切り替え。ワークツリーが本体だけなら空（CSS で隠す） */}
+    <div className="changes-bar">
+      <WorktreePicker projectId={projectId} value={worktree} onChange={onWorktreeChange} version={git.version} />
+    </div>
     <div className={cx("changes", list.resizing && "resizing")}>
       {/* 左端の表示の切り替え（VS Code のアクティビティバーと同じ） */}
       <Segmented
@@ -247,5 +266,6 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
         )}
       </div>
     </div>
+    </>
   );
 }

@@ -88,6 +88,15 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   return (await res.json()) as T;
 }
 
+/** Git・ファイル・検索の操作先（プロジェクトの番号だけなら本体。worktree があればそのワークツリー） */
+export type GitTarget = number | { projectId: number; worktree?: string };
+
+function gitUrl(target: GitTarget, path: string, params: Record<string, string> = {}) {
+  const { projectId, worktree } = typeof target === "number" ? { projectId: target, worktree: undefined } : target;
+  const query = new URLSearchParams({ ...params, ...(worktree ? { worktree } : {}) }).toString();
+  return `/api/projects/${projectId}${path}${query ? `?${query}` : ""}`;
+}
+
 export const api = {
   settings: () => request<AppSettings>("GET", "/api/settings"),
   updateSettings: (patch: Partial<AppSettings>) => request<AppSettings>("PUT", "/api/settings", patch),
@@ -147,6 +156,9 @@ export const api = {
       attachments?: Attachment[];
       stage?: BoardStage;
       group_id?: number;
+      /** 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体） */
+      worktree_path?: string;
+      new_worktree_branch?: string;
     },
   ) => request<Run>("POST", `/api/projects/${projectId}/runs`, input),
   run: (id: number) => request<RunDetail>("GET", `/api/runs/${id}`),
@@ -177,40 +189,33 @@ export const api = {
   createGroup: (projectId: number, name: string) => request<RunGroup>("POST", `/api/projects/${projectId}/groups`, { name }),
   renameGroup: (groupId: number, name: string) => request<RunGroup>("PATCH", `/api/groups/${groupId}`, { name }),
   reorderGroups: (projectId: number, ids: number[]) => request<RunGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
-  gitStatus: (projectId: number) => request<GitStatus>("GET", `/api/projects/${projectId}/git/status`),
+  gitStatus: (target: GitTarget) => request<GitStatus>("GET", gitUrl(target, "/git/status")),
   /** ステージ・ステージの取り消し・変更を元に戻す（終わったあとの状態を返す） */
-  gitAction: (projectId: number, action: "stage" | "unstage" | "discard", paths: string[]) =>
-    request<GitStatus>("POST", `/api/projects/${projectId}/git/${action}`, { paths }),
-  gitCommit: (projectId: number, message: string) => request<GitStatus>("POST", `/api/projects/${projectId}/git/commit`, { message }),
-  gitPush: (projectId: number) => request<GitStatus>("POST", `/api/projects/${projectId}/git/push`),
-  gitLog: (projectId: number, skip = 0) => request<GitLog>("GET", `/api/projects/${projectId}/git/log?skip=${skip}`),
-  gitRefs: (projectId: number) => request<GitRefs>("GET", `/api/projects/${projectId}/git/refs`),
+  gitAction: (target: GitTarget, action: "stage" | "unstage" | "discard", paths: string[]) =>
+    request<GitStatus>("POST", gitUrl(target, `/git/${action}`), { paths }),
+  gitCommit: (target: GitTarget, message: string) => request<GitStatus>("POST", gitUrl(target, "/git/commit"), { message }),
+  gitPush: (target: GitTarget) => request<GitStatus>("POST", gitUrl(target, "/git/push")),
+  gitLog: (target: GitTarget, skip = 0) => request<GitLog>("GET", gitUrl(target, "/git/log", { skip: String(skip) })),
+  gitRefs: (target: GitTarget) => request<GitRefs>("GET", gitUrl(target, "/git/refs")),
   gitWorktrees: (projectId: number) => request<GitWorktree[]>("GET", `/api/projects/${projectId}/git/worktrees`),
   addWorktree: (projectId: number, branch: string) => request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees`, { branch }),
   removeWorktree: (projectId: number, path: string, force = false) =>
     request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force }),
-  gitCommitDetail: (projectId: number, hash: string) => request<GitCommitDetail>("GET", `/api/projects/${projectId}/git/commits/${hash}`),
-  gitCommitDiff: (projectId: number, hash: string, file: GitFileChange) =>
-    request<GitDiff>(
-      "GET",
-      `/api/projects/${projectId}/git/commits/${hash}/diff?${new URLSearchParams({ path: file.path, ...(file.old_path ? { old: file.old_path } : {}) })}`,
-    ),
-  projectFiles: (projectId: number) => request<ProjectFiles>("GET", `/api/projects/${projectId}/files`),
+  gitCommitDetail: (target: GitTarget, hash: string) => request<GitCommitDetail>("GET", gitUrl(target, `/git/commits/${hash}`)),
+  gitCommitDiff: (target: GitTarget, hash: string, file: GitFileChange) =>
+    request<GitDiff>("GET", gitUrl(target, `/git/commits/${hash}/diff`, { path: file.path, ...(file.old_path ? { old: file.old_path } : {}) })),
+  projectFiles: (target: GitTarget) => request<ProjectFiles>("GET", gitUrl(target, "/files")),
   /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
-  saveProjectFile: (projectId: number, path: string, content: string, baseHash: string | null) =>
-    request<{ hash: string }>("PUT", `/api/projects/${projectId}/file`, { path, content, base_hash: baseHash }),
-  searchProject: (projectId: number, { query, caseSensitive, wholeWord, regex }: ProjectSearchQuery) =>
+  saveProjectFile: (target: GitTarget, path: string, content: string, baseHash: string | null) =>
+    request<{ hash: string }>("PUT", gitUrl(target, "/file"), { path, content, base_hash: baseHash }),
+  searchProject: (target: GitTarget, { query, caseSensitive, wholeWord, regex }: ProjectSearchQuery) =>
     request<ProjectSearchResult>(
       "GET",
-      `/api/projects/${projectId}/search?${new URLSearchParams({ q: query, case: caseSensitive ? "1" : "0", word: wholeWord ? "1" : "0", regex: regex ? "1" : "0" })}`,
+      gitUrl(target, "/search", { q: query, case: caseSensitive ? "1" : "0", word: wholeWord ? "1" : "0", regex: regex ? "1" : "0" }),
     ),
-  projectFile: (projectId: number, path: string) =>
-    request<FileContent>("GET", `/api/projects/${projectId}/file?${new URLSearchParams({ path })}`),
-  gitDiff: (projectId: number, file: GitFileChange, staged: boolean) =>
-    request<GitDiff>(
-      "GET",
-      `/api/projects/${projectId}/git/diff?${new URLSearchParams({ path: file.path, staged: staged ? "1" : "0", ...(file.old_path ? { old: file.old_path } : {}) })}`,
-    ),
+  projectFile: (target: GitTarget, path: string) => request<FileContent>("GET", gitUrl(target, "/file", { path })),
+  gitDiff: (target: GitTarget, file: GitFileChange, staged: boolean) =>
+    request<GitDiff>("GET", gitUrl(target, "/git/diff", { path: file.path, staged: staged ? "1" : "0", ...(file.old_path ? { old: file.old_path } : {}) })),
   deleteGroup: (groupId: number) => request<{ ok: true }>("DELETE", `/api/groups/${groupId}`),
   cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
 

@@ -13,6 +13,7 @@ import { ProjectChip } from "../components/ProjectChip";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
+import { WorktreeChip } from "../components/WorktreeChip";
 import { SubagentDetail } from "../components/SubagentDetail";
 import { SubagentChip, useSubagents } from "../components/Subagents";
 import { OpenSubagentContext, TimelineItems, Working } from "../components/Timeline";
@@ -199,6 +200,8 @@ function RunView({
         <div className="run-sub muted small">
           {/* どのプロジェクトのチャットかが一目でわかるよう、サイドバーと同じ色のバッジにする（押すとそのプロジェクトのカンバン） */}
           {project && <ProjectChip id={project.id} name={project.name} linked />}
+          {/* 作業場所（ワークツリー）で作業しているチャット */}
+          <WorktreeChip run={run} />
           {run.num_turns > 0 && <span>{run.num_turns} ターン</span>}
           {run.cost_usd > 0 && (
             <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${run.cost_usd.toFixed(2)}</span>

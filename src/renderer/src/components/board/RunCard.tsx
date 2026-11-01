@@ -5,6 +5,7 @@ import type { RunTitleEditor } from "../../hooks/useRunRename";
 import { relativeTime } from "../../time";
 import { ChatTitleInput } from "../ChatTitleInput";
 import { ProjectChip } from "../ProjectChip";
+import { WorktreeChip } from "../WorktreeChip";
 import { SectionBadge } from "../SectionBadge";
 import { STATE_TONE } from "./tones";
 
@@ -30,6 +31,7 @@ export function RunCardContent({ run, state, projectName, pending = 0, trailing,
       <div className="card-labels">
         {projectName !== undefined && <ProjectChip id={run.project_id} name={projectName} />}
         <SectionBadge section={run.phase} short />
+        <WorktreeChip run={run} />
         {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
       </div>
       <div className="card-foot">
@@ -52,6 +54,7 @@ export function RunRowContent({ run, state, projectName, trailing, rename }: Pro
         <span className="list-meta">
           {projectName !== undefined && <ProjectChip id={run.project_id} name={projectName} />}
           <SectionBadge section={run.phase} short />
+          <WorktreeChip run={run} />
           {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
           <span className="dot" style={{ background: STATE_TONE[state] }} />
           <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
