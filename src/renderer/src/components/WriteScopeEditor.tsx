@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PHASE_LABELS, SCOPED_SECTIONS, type Project, type ScopedSection } from "../../../core/types";
 import { api } from "../api";
+import { errorMessage } from "../errors";
 
 const DEFAULT_SCOPE = ["docs"];
 
@@ -28,7 +29,7 @@ function ScopeRow({ project, section }: { project: Project; section: ScopedSecti
       await api.updateProject(project.id, { write_scopes: { [section]: next } });
       setInput("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setSaving(false);
     }

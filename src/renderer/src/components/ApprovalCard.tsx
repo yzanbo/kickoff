@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Approval, ApprovalDecision, Question } from "../../../core/types";
 import { api } from "../api";
+import { errorMessage } from "../errors";
 import { isSubagentTool } from "../subagents";
 
 /** ツール実行の承認依頼、または AI からの質問（AskUserQuestion） */
@@ -17,7 +18,7 @@ function useResolve(id: string) {
     try {
       await api.resolveApproval(id, decision);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
       setSending(false);
     }
   }

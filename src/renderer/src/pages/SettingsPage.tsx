@@ -11,6 +11,7 @@ import {
 import { api, useAsync } from "../api";
 import { BrowserExtensions } from "../components/BrowserExtensions";
 import { StatusCard } from "../components/StatusCard";
+import { errorMessage } from "../errors";
 import { groupModels, modelDisplayName } from "../models";
 import { UsagePanel } from "../components/UsagePanel";
 import type { usePlanUsage } from "../usage";
@@ -50,7 +51,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
       settings.setData(saved);
       setMessage({ kind: "ok", text: "保存しました" });
     } catch (e) {
-      setMessage({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+      setMessage({ kind: "error", text: errorMessage(e) });
     } finally {
       setSaving(false);
     }

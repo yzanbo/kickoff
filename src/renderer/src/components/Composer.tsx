@@ -2,6 +2,7 @@ import { ArrowUp, Paperclip, Square } from "lucide-react";
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { Attachment } from "../../../core/types";
 import { api } from "../api";
+import { errorMessage } from "../errors";
 import { AttachmentChip } from "./AttachmentChip";
 import { RunOptionsBar, type RunOptionsState } from "./RunOptionsBar";
 
@@ -50,7 +51,7 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
         .upload(file)
         .then((attachment) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, attachment } : f))))
         .catch((e: unknown) =>
-          setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: e instanceof Error ? e.message : String(e) } : f))),
+          setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))),
         );
     }
   }
@@ -79,7 +80,7 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
       files.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl));
       setFiles([]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setSending(false);
     }

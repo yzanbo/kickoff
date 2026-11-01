@@ -235,9 +235,6 @@ kbd {
   transition: padding-left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-
-
-
 .main {
   min-width: 0;
   overflow-y: auto;
@@ -318,32 +315,6 @@ kbd {
   position: relative;
   height: 44px;
   -webkit-app-region: drag;
-}
-
-
-.search-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font: inherit;
-  font-size: 13px;
-  color: var(--muted);
-  background: var(--bg);
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-}
-
-.search-button span {
-  flex: 1;
-  text-align: left;
-}
-
-.search-button:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
 }
 
 .sidebar-section {
@@ -554,14 +525,11 @@ button.chat-row {
   margin: 0;
 }
 
-
-
 .chat-search-empty {
   margin: 4px 8px;
   font-size: 12px;
   color: var(--muted);
 }
-
 
 .status-slot {
   display: grid;
@@ -820,8 +788,6 @@ button.chat-row {
   width: 26px;
 }
 
-
-
 .custom-group-rows {
   padding-left: 10px;
 }
@@ -1008,25 +974,6 @@ input[type="text"].inline-name {
   background: var(--bg-active);
 }
 
-.workspace-toggle {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  font: inherit;
-  text-align: left;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.workspace-toggle:hover {
-  color: var(--text);
-}
-
 .workspace-name {
   overflow: hidden;
   font-size: 15px;
@@ -1034,10 +981,6 @@ input[type="text"].inline-name {
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--text);
-}
-
-.workspace-page .nav-chat {
-  padding-left: 10px;
 }
 
 .workspace-switcher {
@@ -1213,20 +1156,6 @@ input[type="text"].inline-name {
   padding: 8px;
 }
 
-.sidebar-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 4px 4px 8px;
-}
-
-.sidebar-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-
 .sidebar-new {
   display: flex;
   align-items: center;
@@ -1286,82 +1215,7 @@ input[type="text"].inline-name {
   background: var(--bg-hover);
 }
 
-/* プロジェクト → チャット */
-
-.nav-projects,
-.nav-chats {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.nav-project {
-  display: flex;
-  align-items: center;
-  min-height: 30px;
-  border-radius: 6px;
-}
-
-.nav-project:hover,
-.nav-project.active {
-  background: var(--bg-hover);
-}
-
-.nav-chevron {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 22px;
-  height: 28px;
-  border: none;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.nav-project-link {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 4px 0;
-  color: var(--text);
-}
-
-.nav-project-name {
-  overflow: hidden;
-  font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.nav-add {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  margin-right: 3px;
-  border: none;
-  border-radius: 6px;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-  opacity: 0;
-}
-
-.nav-project:hover .nav-add,
-.nav-project.active .nav-add,
-.nav-add:focus-visible {
-  opacity: 1;
-}
-
-.nav-add:hover {
-  color: var(--text);
-  background: var(--bg-active);
-}
-
+/* 回答待ちの件数 */
 .count-badge {
   display: inline-grid;
   place-items: center;
@@ -1373,57 +1227,6 @@ input[type="text"].inline-name {
   font-weight: 700;
   color: #fff;
   background: var(--accent);
-}
-
-.nav-chats {
-  margin: 1px 0 6px;
-}
-
-.nav-chat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 28px;
-  padding: 3px 8px 3px 26px;
-  border-radius: 6px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.nav-chat:hover {
-  color: var(--text);
-  background: var(--bg-hover);
-}
-
-.nav-chat.active {
-  color: var(--text);
-  background: var(--bg-active);
-}
-
-.nav-chat.is-waiting {
-  color: var(--text);
-}
-
-.nav-chat-title {
-  flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.nav-chat.empty-chat {
-  font-size: 12px;
-}
-
-.nav-more {
-  display: block;
-  padding: 2px 8px 2px 26px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.nav-more:hover {
-  color: var(--text);
 }
 
 /* ==== セクションの色・状態アイコン ==== */
@@ -2311,7 +2114,6 @@ mark {
 
 /* ==== ホーム・プロジェクト画面 ==== */
 
-.home-header,
 .project-title-row,
 .doc-toolbar {
   display: flex;
@@ -2319,40 +2121,6 @@ mark {
   gap: 10px;
 }
 
-.project-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
-  margin-bottom: 36px;
-}
-
-.project-card {
-  display: grid;
-  gap: 4px;
-  padding: 16px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  color: var(--text);
-  background: var(--bg-elev);
-  transition: border-color 0.15s;
-}
-
-.project-card:hover {
-  border-color: var(--border-strong);
-}
-
-.project-card-name {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.project-card-desc {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.project-card-stats,
 .project-stats {
   display: flex;
   align-items: center;
@@ -2448,13 +2216,6 @@ mark {
   color: var(--muted);
 }
 
-.filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-
 .filter-chip {
   display: inline-flex;
   align-items: center;
@@ -2477,61 +2238,6 @@ mark {
   border-color: var(--border-strong);
   color: var(--text);
   background: var(--bg-hover);
-}
-
-.chip-count {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.new-in-section {
-  margin-top: 12px;
-}
-
-.run-list {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  list-style: none;
-  background: var(--bg-elev);
-}
-
-.run-list li + li {
-  border-top: 1px solid var(--border);
-}
-
-.run-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  color: var(--text);
-}
-
-.run-item:hover {
-  background: var(--bg-hover);
-}
-
-.run-item.is-waiting {
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-}
-
-.run-item-title {
-  flex: 1;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.run-item-time {
-  flex: none;
-  min-width: 4em;
-  font-size: 12px;
-  text-align: right;
-  color: var(--muted);
 }
 
 .doc-toolbar {
@@ -2689,27 +2395,6 @@ mark {
 
 .run-sub a:hover {
   color: var(--text);
-}
-
-.back-button {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  height: 26px;
-  padding: 0 8px 0 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  -webkit-app-region: no-drag;
-}
-
-.back-button:hover {
-  border-color: var(--border-strong);
-  color: var(--text);
-  background: var(--bg-elev);
 }
 
 /* 新しいチャットは見出しが短いので、中央の案内を少し上げる */
@@ -4581,7 +4266,6 @@ mark {
   cursor: grab;
 }
 
-
 .group-column-head .column-count {
   flex: none;
 }
@@ -4598,7 +4282,6 @@ mark {
 .group-column-head .group-add-chat {
   margin-left: auto;
 }
-
 
 .group-add-column {
   border-style: dashed;
@@ -4875,10 +4558,6 @@ mark {
   opacity: 0.35;
 }
 
-.card-link {
-  color: var(--text);
-}
-
 .card-title {
   display: -webkit-box;
   overflow: hidden;
@@ -4974,14 +4653,6 @@ mark {
 .board-card.with-project,
 .list-row.with-project {
   box-shadow: inset 3px 0 0 hsl(var(--ws-hue, 150) 55% 55%);
-}
-
-.label-chip {
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  color: var(--text);
-  background: var(--bg-hover);
 }
 
 .card-foot {

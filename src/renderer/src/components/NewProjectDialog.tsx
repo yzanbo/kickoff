@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { Project, WorkspaceInspection } from "../../../core/types";
 import { api } from "../api";
+import { errorMessage } from "../errors";
 import { href } from "../router";
 
 interface Props {
@@ -93,7 +94,7 @@ function CreateForm({ defaultParentDir, onCancel, onCreated }: FormProps & { def
     try {
       onCreated(await api.createProject({ name, idea, parent_dir: parentDir, folder_name: folderName }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(errorMessage(err));
       setSubmitting(false);
     }
   }
@@ -173,7 +174,7 @@ function ImportForm({ onCancel, onCreated }: FormProps) {
       api
         .inspectWorkspace(folder)
         .then((info) => alive && setInspection(info))
-        .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)))
+        .catch((e: unknown) => alive && setError(errorMessage(e)))
         .finally(() => alive && setInspecting(false));
     }, 300);
     return () => {
@@ -211,7 +212,7 @@ function ImportForm({ onCancel, onCreated }: FormProps) {
         }),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(errorMessage(err));
       setSubmitting(false);
     }
   }

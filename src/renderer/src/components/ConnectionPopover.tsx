@@ -1,5 +1,6 @@
 import { RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { errorMessage } from "../errors";
 import { useDismiss } from "../hooks/useDismiss";
 import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../core/types";
 import { api, type ConnectionState } from "../api";
@@ -41,7 +42,7 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
       setProviders(p);
       setGithub(g);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorMessage(e));
     } finally {
       setLoading(false);
     }
