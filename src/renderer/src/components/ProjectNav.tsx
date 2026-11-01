@@ -22,6 +22,7 @@ import type { Approval, ProjectSummary, Run, RunGroup } from "../../../core/type
 import { api } from "../api";
 import { Highlight, useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
+import { initialOf, projectHue } from "../projectColor";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
 import { href, navigate, openNewChat, openRun, routeProjectId, type Route } from "../router";
@@ -367,15 +368,6 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   );
 }
 
-/** プロジェクトの色相（下の切り替えアイコンと、見出しで同じ色を使う） */
-function projectHue(id: number): number {
-  return (id * 67) % 360;
-}
-
-/** プロジェクト名の頭文字（アイコン用） */
-function initialOf(name: string): string {
-  return Array.from(name.trim())[0]?.toUpperCase() ?? "?";
-}
 
 const NO_GROUPS: RunGroup[] = [];
 

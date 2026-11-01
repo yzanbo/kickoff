@@ -28,6 +28,8 @@ import { useServerEvent } from "../events";
 import { openRun, REOPEN_EVENT, type ReopenRoute } from "../router";
 import { SECTION_META } from "../sections";
 import { relativeTime } from "./RunList";
+import { projectHue } from "../projectColor";
+import { ProjectChip } from "./ProjectChip";
 import { SectionBadge } from "./SectionBadge";
 import { DraftCard, useSidePanel } from "./SidePanel";
 
@@ -296,13 +298,14 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                   {list.map(({ run, state }) => (
                     <article
                       key={run.id}
-                      className={`board-card ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
+                      style={projectId === undefined ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as React.CSSProperties) : undefined}
+                      className={`board-card ${projectId === undefined ? "with-project" : ""} ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
                       {...cardProps(run)}
                     >
                       <span className="card-title">{run.title || "無題のチャット"}</span>
                       <CardSnippet hit={search.snippetFor(run)} />
                       <div className="card-labels">
-                        {projectId === undefined && <span className="label-chip">{projectName(run.project_id)}</span>}
+                        {projectId === undefined && <ProjectChip id={run.project_id} name={projectName(run.project_id)} />}
                         <SectionBadge section={run.phase} short />
                       </div>
                       <div className="card-foot">
@@ -339,14 +342,15 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                 {list.map(({ run, state }) => (
                   <div
                     key={run.id}
-                    className={`list-row ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
+                    style={projectId === undefined ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as React.CSSProperties) : undefined}
+                    className={`list-row ${projectId === undefined ? "with-project" : ""} ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
                     {...cardProps(run)}
                   >
                     <div className="list-main">
                       <span className="card-title one-line">{run.title || "無題のチャット"}</span>
                       <CardSnippet hit={search.snippetFor(run)} />
                       <span className="list-meta">
-                        {projectId === undefined && <span className="label-chip">{projectName(run.project_id)}</span>}
+                        {projectId === undefined && <ProjectChip id={run.project_id} name={projectName(run.project_id)} />}
                         <SectionBadge section={run.phase} short />
                         <span className="dot" style={{ background: STATE_TONE[state] }} />
                         <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
