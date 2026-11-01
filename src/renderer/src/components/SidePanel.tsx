@@ -1,4 +1,4 @@
-import { Globe, PanelRightClose, PanelRightOpen, Plus, X } from "lucide-react";
+import { Globe, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, Plus, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { Run } from "../../../core/types";
 import { RunPage } from "../pages/RunPage";
@@ -22,6 +22,7 @@ function hostOf(url: string): string {
 }
 
 const PANEL_WIDTH_KEY = "kickoff:panel-width";
+const PANEL_MAX_KEY = "kickoff:panel-maximized";
 const DEFAULT_PANEL_WIDTH = 560;
 const MIN_PANEL_WIDTH = 360;
 
@@ -46,6 +47,12 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelWidth, setPanelWidth] = useState(() => Number(localStorage.getItem(PANEL_WIDTH_KEY)) || DEFAULT_PANEL_WIDTH);
   const [resizing, setResizing] = useState(false);
+  // 横幅いっぱい（ボードを覆う）。戻すと、元の幅に戻る
+  const [maximized, setMaximized] = useState(() => localStorage.getItem(PANEL_MAX_KEY) === "1");
+  const toggleMaximized = () => {
+    localStorage.setItem(PANEL_MAX_KEY, maximized ? "0" : "1");
+    setMaximized(!maximized);
+  };
   const bodyRef = useRef<HTMLDivElement>(null);
 
   /**
@@ -103,7 +110,12 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
     setResizing(true);
     const right = body.getBoundingClientRect().right;
     const max = body.clientWidth;
-    let width = panelWidth;
+    // 横幅いっぱいのときは、今の幅からドラッグを始める（ドラッグすると横幅いっぱいは解除）
+    let width = maximized ? body.clientWidth : panelWidth;
+    if (maximized) {
+      localStorage.setItem(PANEL_MAX_KEY, "0");
+      setMaximized(false);
+    }
     const onMove = (ev: PointerEvent) => {
       width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(max, right - ev.clientX)));
       body.style.setProperty("--panel-w", `${width}px`);
@@ -172,10 +184,21 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
         onPointerDown={startResize}
       />
       <div className="panel-tabs" role="tablist" inert={!panelOpen}>
-        {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-        <button className="panel-collapse" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
-          <PanelRightClose size={15} />
-        </button>
+        <div className="panel-controls">
+          {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
+          <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
+            <PanelRightClose size={15} />
+          </button>
+          <button
+            className="panel-control"
+            title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+            aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+            aria-pressed={maximized}
+            onClick={toggleMaximized}
+          >
+            {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
+        </div>
         {tabs.map((t) => {
           const { run, Icon, label } = tabLabel(t);
           return (
@@ -235,7 +258,8 @@ export function useSidePanel({ runs, loaded, scope, holdEsc = false }: Options) 
     body: {
       ref: bodyRef,
       className: `board-body ${panelOpen ? "with-panel" : rail ? "with-rail" : ""} ${resizing ? "resizing" : ""}`,
-      style: { "--panel-w": `${panelWidth}px` } as CSSProperties,
+      // 横幅いっぱいは、CSS 側の上限（ボードの幅）まで広げる
+      style: { "--panel-w": maximized ? "100vw" : `${panelWidth}px` } as CSSProperties,
     },
     renderPanel,
   };
