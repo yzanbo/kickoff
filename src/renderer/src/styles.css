@@ -525,6 +525,24 @@ button.chat-row {
   cursor: pointer;
 }
 
+.chat-search-content {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  color: var(--extra-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-search-content:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
 .chat-search-clear:hover {
   color: var(--text);
   background: var(--bg-hover);
@@ -536,21 +554,7 @@ button.chat-row {
   margin: 0;
 }
 
-.card-snippet {
-  display: -webkit-box;
-  overflow: hidden;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
 
-.card-snippet mark {
-  border-radius: 2px;
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 40%, transparent);
-}
 
 .chat-search-empty {
   margin: 4px 8px;
@@ -558,13 +562,6 @@ button.chat-row {
   color: var(--muted);
 }
 
-.chat-row-snippet {
-  overflow: hidden;
-  font-size: 11px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--muted);
-}
 
 .status-slot {
   display: grid;

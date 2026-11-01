@@ -8,7 +8,7 @@ import { useChatSearch } from "../chatSearch";
 import { REOPEN_EVENT, type ReopenRoute } from "../router";
 import { useGroupMenu } from "./GroupMenu";
 import { InlineName } from "./InlineName";
-import { BoardSearch, CardMenu, CardSnippet, STATE_TONE } from "./KanbanBoard";
+import { BoardSearch, CardMenu, STATE_TONE } from "./KanbanBoard";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
 import { DraftCard, useSidePanel } from "./SidePanel";
@@ -41,7 +41,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
   // ボード（列）/ リスト（縦に並べる）の切り替え。カンバンとは別に覚える
   const [view, setView] = useState<"board" | "list">(() => (localStorage.getItem("kickoff:group-view") === "list" ? "list" : "board"));
   useEffect(() => localStorage.setItem("kickoff:group-view", view), [view]);
-  const search = useChatSearch(query, projectId);
+  const search = useChatSearch(query);
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
   const panel = useSidePanel({ runs, loaded: true, holdEsc: menu !== null });
 
@@ -166,7 +166,6 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
     return (
       <article key={run.id} className={`board-card ${cardClass(run)}`} {...cardProps(run)}>
         <span className="card-title">{run.title || "無題のチャット"}</span>
-        <CardSnippet hit={search.snippetFor(run)} />
         <div className="card-labels">
           <SectionBadge section={run.phase} short />
         </div>
@@ -185,8 +184,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
       <div key={run.id} className={`list-row ${cardClass(run)}`} {...cardProps(run)}>
         <div className="list-main">
           <span className="card-title one-line">{run.title || "無題のチャット"}</span>
-          <CardSnippet hit={search.snippetFor(run)} />
-          <span className="list-meta">
+            <span className="list-meta">
             <SectionBadge section={run.phase} short />
             <span className="dot" style={{ background: STATE_TONE[state] }} />
             <span className="muted small">{AGENT_STATE_LABELS[state]}</span>

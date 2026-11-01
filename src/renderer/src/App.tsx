@@ -15,6 +15,7 @@ import { ProjectPage } from "./pages/ProjectPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { href, openNewChat, routeProjectId, useRoute } from "./router";
 import { applyTheme, loadTheme } from "./theme";
+import { OPEN_CONTENT_SEARCH_EVENT } from "./chatSearch";
 import { useRunNotifications } from "./notifications";
 import { FIVE_HOUR_IDLE, planLabel, PlanUsageContext, usePlanUsage } from "./usage";
 import { DialogHost } from "./dialogs";
@@ -121,10 +122,19 @@ export function App() {
     }
   });
 
-  // ショートカット: ⌘K 検索・移動 / ⌘F 画面の中で探す（プロジェクトではボードのチャット検索）/ ⌘⇧F やり取りの全文検索 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト）
+  // ボードの検索欄の横のボタンから、チャットの中の文言の全文検索を開く
+  useEffect(() => {
+    const open = () => setSearching(true);
+    window.addEventListener(OPEN_CONTENT_SEARCH_EVENT, open);
+    return () => window.removeEventListener(OPEN_CONTENT_SEARCH_EVENT, open);
+  }, []);
+
+  // ショートカット: ⌘K 検索・移動 / ⌘F チャットを名前で探す / ⌘⇧F チャットの中の文言を全文検索 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+      // Shift つきは ⌘⇧F だけ受け付ける
+      if (e.shiftKey && e.key.toLowerCase() !== "f") return;
       if (e.key === "b") {
         e.preventDefault();
         toggleSidebar();
@@ -132,18 +142,18 @@ export function App() {
         e.preventDefault();
         setPalette(true);
       } else if (e.key.toLowerCase() === "f" && e.shiftKey) {
-        // ⌘⇧F: どの画面でも、すべてのチャットのやり取りを全文検索
+        // ⌘⇧F: チャットの中の文言を全文検索（開いているチャット・プロジェクトに絞り込める）
         e.preventDefault();
         setSearching(true);
       } else if (e.key === "f") {
         e.preventDefault();
-        // ⌘F: プロジェクトの画面では、ボード（カンバン・グループ）のチャットの検索欄へ。それ以外は全体の検索を開く
+        // ⌘F: チャットを名前で探す。ボードがあればその検索欄へ、なければ ⌘K の移動パネル（チャット名で探せる）
         const boardSearch = document.querySelector<HTMLInputElement>("main .board-search input");
-        if (routeProjectId(route) !== undefined && boardSearch) {
+        if (boardSearch) {
           boardSearch.focus();
           boardSearch.select();
         } else {
-          setSearching(true);
+          setPalette(true);
         }
       } else if (e.key === "n") {
         e.preventDefault();
