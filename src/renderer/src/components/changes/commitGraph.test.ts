@@ -11,6 +11,9 @@ test("一本道の履歴は、すべて 1 列目に並ぶ", () => {
   assert.equal(lanes, 1);
   assert.deepEqual(rows.map((r) => r.col), [0, 0, 0]);
   assert.deepEqual(rows[2].bottom, []);
+  // いちばん新しいコミット（ブランチの先頭）の上には線を引かない
+  assert.deepEqual(rows[0].top, []);
+  assert.deepEqual(rows[1].top.map((e) => [e.from, e.to]), [[0, 0]]);
 });
 
 test("枝分かれとマージ: マージの点から 2 本に分かれ、分かれたところで 1 本に戻る", () => {
