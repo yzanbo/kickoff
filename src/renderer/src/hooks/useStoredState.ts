@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 /**
  * localStorage に保存する状態（開閉・表示の切り替えなど）。
@@ -48,10 +48,14 @@ export function useStoredNumber(key: string, initial: number) {
 export function useStoredFlagMap(prefix: string) {
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
   const get = (id: number | string) => overrides[id] ?? localStorage.getItem(`${prefix}${id}`) === "1";
-  const toggle = (id: number | string) => {
-    const next = !get(id);
-    localStorage.setItem(`${prefix}${id}`, next ? "1" : "0");
-    setOverrides((prev) => ({ ...prev, [id]: next }));
-  };
-  return { get, toggle };
+  // 参照が変わらないので、memo した部品にそのまま渡せる
+  const set = useCallback(
+    (id: number | string, on: boolean) => {
+      localStorage.setItem(`${prefix}${id}`, on ? "1" : "0");
+      setOverrides((prev) => ({ ...prev, [id]: on }));
+    },
+    [prefix],
+  );
+  const toggle = (id: number | string) => set(id, !get(id));
+  return { get, set, toggle };
 }

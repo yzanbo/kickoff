@@ -39,6 +39,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   approvals,
   route,
   hidden,
+  collapsed,
+  onCollapsedChange,
   headDrag,
 }: {
   project: ProjectSummary;
@@ -47,13 +49,15 @@ export const WorkspacePage = memo(function WorkspacePage({
   approvals: Approval[];
   route: Route;
   hidden: boolean;
+  /** チャット一覧を閉じているか（縦並びの「すべて閉じる・開く」で変えるので、外で持つ） */
+  collapsed: boolean;
+  onCollapsedChange: (projectId: number, collapsed: boolean) => void;
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
 }) {
   const [grouping, setGrouping] = useStoredChoice<Grouping>(GROUPING_KEY, ["recent", "status"], "recent");
-  // 見出しのクリックでチャット一覧を開閉する（プロジェクトごとに記憶）
-  const [collapsed, setCollapsed] = useStoredFlag(`kickoff:collapsed:${project.id}`);
-  const toggleCollapsed = () => setCollapsed(!collapsed);
+  // 見出しのクリックでチャット一覧を開閉する
+  const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
   const isActive = route.name === "project" && route.id === project.id;
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
