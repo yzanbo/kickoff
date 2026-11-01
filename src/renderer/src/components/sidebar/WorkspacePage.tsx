@@ -1,24 +1,22 @@
-import { Archive, ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, Folder, FolderPlus, ListTree, Plus } from "lucide-react";
-import { memo, useCallback, useState } from "react";
+import { Archive, CircleAlert, CircleCheck, CircleDot, CircleX, Folder, Plus } from "lucide-react";
+import { memo, useState } from "react";
 import { agentStateOf } from "../../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState, type Approval, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
-import { chatTitle } from "../../chatTitle";
 import { alertDialog } from "../../dialogs";
-import { confirmDeleteGroup, startRunDrag, useGroupDrop } from "../../groups";
-import { useStoredChoice, useStoredFlag } from "../../hooks/useStoredState";
-import { initialOf, projectHue } from "../../projectColor";
-import { href, navigate, openNewChat, openRun, type Route } from "../../router";
-import { SECTION_META } from "../../sections";
-import { relativeTime } from "../../time";
+import { confirmDeleteGroup, useGroupDrop } from "../../groups";
+import { useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
+import { projectHue } from "../../projectColor";
+import { navigate, openNewChat, openRun, type Route } from "../../router";
 import { CardMenu } from "../CardMenu";
 import { useGroupMenu } from "../GroupMenu";
-import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { SearchField } from "../SearchField";
-import { StatusSlot } from "../StatusSlot";
+import { ChatRow } from "./ChatRow";
+import { GroupToggle } from "./GroupToggle";
+import { WorkspaceHead } from "./WorkspaceHead";
 
 type Grouping = "recent" | "status";
 const GROUPING_KEY = "kickoff:sidebar-grouping";
@@ -72,23 +70,14 @@ export const WorkspacePage = memo(function WorkspacePage({
   const rows = allRows.filter(({ run }) => matches(run));
   const archivedMatches = archivedRows.filter(({ run }) => matches(run));
 
-  // ＋を押したときの、作成先のグループを選ぶメニュー
-  const [pickAt, setPickAt] = useState<{ x: number; y: number } | null>(null);
-  const closePick = useCallback(() => setPickAt(null), []);
   // 自分で作ったグループ
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
-  // グループの開閉（グループごとに記憶。グループはあとから読み込まれるので、その都度 localStorage を見る）
-  const [closedOverride, setClosedOverride] = useState<Record<number, boolean>>({});
-  const isGroupClosed = (id: number) => closedOverride[id] ?? localStorage.getItem(`kickoff:group-closed:${id}`) === "1";
+  // グループの開閉（グループごとに記憶）
+  const groupClosed = useStoredFlagMap("kickoff:group-closed:");
   // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
   const [ungroupedClosed, setUngroupedClosed] = useStoredFlag(`kickoff:ungrouped-closed:${project.id}`);
   const toggleUngrouped = () => setUngroupedClosed(!ungroupedClosed);
-  const toggleGroup = (id: number) => {
-    const closed = !isGroupClosed(id);
-    localStorage.setItem(`kickoff:group-closed:${id}`, closed ? "1" : "0");
-    setClosedOverride((prev) => ({ ...prev, [id]: closed }));
-  };
   const startCreate = () => {
     if (collapsed) toggleCollapsed();
     setCreating(true);
@@ -111,43 +100,15 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   const toggleGrouping = () => setGrouping(grouping === "recent" ? "status" : "recent");
 
-  const renderRow = ({ run, state }: { run: Run; state: AgentState }) => {
-    const meta = SECTION_META[run.phase];
-    const Icon = meta.icon;
-    const active = route.name === "run" && route.runId === run.id;
-    return (
-      <li key={run.id}>
-        <a
-          className={`chat-row ${run.archived_at ? "archived" : ""} ${active ? "active" : ""} ${state === "needs_input" || state === "attention" ? "is-unread" : ""}`}
-          href={href({ name: "run", projectId: project.id, runId: run.id })}
-          title={`${meta.label}: ${run.title}（${AGENT_STATE_LABELS[state]}）`}
-          draggable
-          onDragStart={(e) => startRunDrag(e, run.id)}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            setRowMenu({ x: e.clientX, y: e.clientY, run });
-          }}
-          onClick={(e) => {
-            // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
-            e.preventDefault();
-            openRun(project.id, run.id);
-          }}
-        >
-          <StatusSlot state={state} />
-          <span className="chat-row-body">
-            <span className="chat-row-line">
-              <span className="chat-row-title">{chatTitle(run.title)}</span>
-              <span className="chat-row-time">{relativeTime(run.updated_at)}</span>
-            </span>
-            <span className="chat-row-meta">
-              <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
-              {meta.label}
-            </span>
-          </span>
-        </a>
-      </li>
-    );
-  };
+  const renderRow = ({ run, state }: { run: Run; state: AgentState }) => (
+    <ChatRow
+      key={run.id}
+      run={run}
+      state={state}
+      active={route.name === "run" && route.runId === run.id}
+      onMenu={(at) => setRowMenu({ ...at, run })}
+    />
+  );
 
   return (
     <section
@@ -157,68 +118,19 @@ export const WorkspacePage = memo(function WorkspacePage({
       inert={hidden}
       style={{ "--ws-hue": `${projectHue(project.id)}` } as React.CSSProperties}
     >
-      {/* どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする */}
-      <div
-        className={`workspace-head ${isActive ? "active" : ""}`}
-        draggable={Boolean(headDrag)}
-        title={headDrag ? "ドラッグでプロジェクトを並べ替える" : undefined}
-        {...headDrag}
-      >
-        {/* 左のボタン: チャット一覧の開閉 / 名前: プロジェクトのカンバンを表示 */}
-        <button
-          className="workspace-chevron"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
-          title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
-          onClick={toggleCollapsed}
-        >
-          {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-        </button>
-        <a className="workspace-title" href={href({ name: "project", id: project.id, tab: "board" })} title={`${project.name} のカンバンを開く`}>
-          <span className="workspace-avatar" aria-hidden>
-            {initialOf(project.name)}
-          </span>
-          <span className="workspace-title-text">
-            <span className="workspace-name">{project.name}</span>
-            <span className="workspace-sub">{allRows.length} チャット</span>
-          </span>
-        </a>
-        {waitingCount > 0 && (
-          <span className="count-badge" title="回答待ちのチャット" aria-label={`回答待ち ${waitingCount} 件`}>
-            {waitingCount}
-          </span>
-        )}
-        {!collapsed && (
-          <IconButton
-            icon={grouping === "recent" ? ListTree : Clock}
-            label={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
-            onClick={toggleGrouping}
-          />
-        )}
-        <IconButton icon={FolderPlus} label={`${project.name} にグループを作成`} title="グループを作成" onClick={startCreate} />
-        <IconButton
-          icon={Plus}
-          label={`${project.name} の新しいチャット`}
-          title={groups.length > 0 ? "新しいチャット（作成先のグループを選ぶ）" : "新しいチャット（⌘N）"}
-          size={15}
-          aria-haspopup={groups.length > 0 ? "menu" : undefined}
-          onClick={(e) => {
-            // グループがあれば、どこに作るかを選んでもらう
-            if (groups.length === 0) return openNewChat(project.id);
-            const r = e.currentTarget.getBoundingClientRect();
-            setPickAt({ x: r.left, y: r.bottom + 4 });
-          }}
-        />
-      </div>
-      {pickAt && (
-        <GroupPickMenu
-          x={pickAt.x}
-          y={pickAt.y}
-          groups={groups}
-          onPick={(group) => openNewChat(project.id, group ? { group } : {})}
-          onClose={closePick}
-        />
-      )}
+      <WorkspaceHead
+        project={project}
+        groups={groups}
+        active={isActive}
+        collapsed={collapsed}
+        onToggleCollapsed={toggleCollapsed}
+        chatCount={allRows.length}
+        waitingCount={waitingCount}
+        grouping={grouping}
+        onToggleGrouping={toggleGrouping}
+        onCreateGroup={startCreate}
+        headDrag={headDrag}
+      />
       {!collapsed && allRows.length > 0 && (
         <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />
       )}
@@ -241,7 +153,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           const members = groupedRows(group.id);
           // 検索中は、一致するチャットがないグループを隠す
           if (keyword && members.length === 0) return null;
-          const closed = isGroupClosed(group.id) && !keyword;
+          const closed = groupClosed.get(group.id) && !keyword;
           return (
             <div
               key={group.id}
@@ -255,15 +167,7 @@ export const WorkspacePage = memo(function WorkspacePage({
                 onContextMenu={(e) => groupMenu.openFor(group, e)}
                 {...reorder.handle(group.id)}
               >
-                <button
-                  className="custom-group-toggle"
-                  aria-expanded={!closed}
-                  title={closed ? "開く" : "閉じる"}
-                  onClick={() => toggleGroup(group.id)}
-                >
-                  {closed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                  <Folder size={13} aria-hidden />
-                </button>
+                <GroupToggle open={!closed} onToggle={() => groupClosed.toggle(group.id)} icon={Folder} />
                 {renaming === group.id ? (
                   <InlineName
                     initial={group.name}
@@ -311,14 +215,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         })}
       {!collapsed && groups.length > 0 && ungroupedRows.length > 0 && (
         <div className={`custom-group-head ungrouped ${dropOver === "none" ? "drop-target" : ""}`} {...dropTarget(null)}>
-          <button
-            className="custom-group-toggle"
-            aria-expanded={!(ungroupedClosed && !keyword)}
-            title={ungroupedClosed ? "開く" : "閉じる"}
-            onClick={toggleUngrouped}
-          >
-            {ungroupedClosed && !keyword ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-          </button>
+          <GroupToggle open={!(ungroupedClosed && !keyword)} onToggle={toggleUngrouped} />
           <button className="custom-group-name ungrouped-name" onClick={toggleUngrouped}>
             グループなし
           </button>
@@ -356,15 +253,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       {!collapsed && archivedMatches.length > 0 && (
         <div className="archived-section">
           <div className="custom-group-head ungrouped">
-            <button
-              className="custom-group-toggle"
-              aria-expanded={archivedOpen || Boolean(keyword)}
-              title={archivedOpen || keyword ? "閉じる" : "開く"}
-              onClick={toggleArchived}
-            >
-              {archivedOpen || keyword ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-              <Archive size={12} aria-hidden />
-            </button>
+            <GroupToggle open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived} icon={Archive} iconSize={12} />
             <button className="custom-group-name ungrouped-name" onClick={toggleArchived}>
               アーカイブ済み
             </button>

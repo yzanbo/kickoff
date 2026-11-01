@@ -41,3 +41,17 @@ export function useStoredNumber(key: string, initial: number) {
     (value) => String(value),
   );
 }
+
+/**
+ * id ごとの "1" / "0"（グループごとの開閉など）。id はあとから増えるので、その都度保存された値を読む
+ */
+export function useStoredFlagMap(prefix: string) {
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const get = (id: number | string) => overrides[id] ?? localStorage.getItem(`${prefix}${id}`) === "1";
+  const toggle = (id: number | string) => {
+    const next = !get(id);
+    localStorage.setItem(`${prefix}${id}`, next ? "1" : "0");
+    setOverrides((prev) => ({ ...prev, [id]: next }));
+  };
+  return { get, toggle };
+}
