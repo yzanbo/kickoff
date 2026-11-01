@@ -1,4 +1,4 @@
-import { FolderOpen, Plus } from "lucide-react";
+import { FolderOpen, Pencil, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   ARTIFACT_KIND_LABELS,
@@ -18,6 +18,7 @@ import { KanbanBoard } from "../components/KanbanBoard";
 import { BUSY_STATUSES } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";
+import { ProjectEditDialog } from "../components/ProjectEditDialog";
 import { ProjectSettings } from "../components/ProjectSettings";
 import { useServerEvent } from "../events";
 import { href, type ProjectTab } from "../router";
@@ -57,6 +58,7 @@ export function ProjectPage({
 }) {
   const [data, setData] = useState<ProjectData>();
   const [error, setError] = useState<string>();
+  const [editing, setEditing] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -106,6 +108,9 @@ export function ProjectPage({
       <header className="page-header project-header">
         <div className="project-title-row">
           <h1>{project.name}</h1>
+          <button className="btn btn-sm project-edit-button" title="プロジェクトの名前・既定の設定などを編集" onClick={() => setEditing(true)}>
+            <Pencil size={13} /> 編集
+          </button>
           <div className="project-stats">
             {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
             {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
@@ -152,6 +157,7 @@ export function ProjectPage({
       )}
       {tab === "reports" && <ReportsTab artifacts={artifacts} />}
       {tab === "settings" && <ProjectSettings project={project} />}
+      {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
     </div>
   );
 }
