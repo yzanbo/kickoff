@@ -5,7 +5,7 @@ import { errorMessage } from "../errors";
 import { useDismiss } from "../hooks/useDismiss";
 import { href } from "../router";
 import { accountLine } from "../usage";
-import { CloseButton, RefreshButton } from "./IconButton";
+import { PopoverHeader } from "./PopoverHeader";
 
 interface Props {
   state: ConnectionState;
@@ -61,11 +61,7 @@ export function ConnectionPopover({ state, since, onClose }: Props) {
 
   return (
     <div ref={ref} className="usage-popover connection-popover" role="dialog" aria-label="接続の詳細">
-      <div className="usage-popover-head">
-        <span className="usage-popover-title">接続の詳細</span>
-        <RefreshButton label="接続を再確認" title="再確認" size={13} busy={loading} onClick={() => void load()} />
-        <CloseButton title="閉じる（Esc）" onClick={onClose} />
-      </div>
+      <PopoverHeader title="接続の詳細" refresh={{ label: "接続を再確認", title: "再確認", busy: loading, onClick: () => void load() }} onClose={onClose} />
 
       <section className="conn-section">
         <div className="conn-row-title">

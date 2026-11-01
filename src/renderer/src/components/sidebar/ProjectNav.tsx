@@ -7,8 +7,9 @@ import { useStoredChoice } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { initialOf, projectHue } from "../../projectColor";
 import { navigate, routeProjectId, type Route } from "../../router";
-import { loadCurrentProject, saveCurrentProject } from "./currentProject";
+import { Segmented } from "../Segmented";
 import { WorkspacePage } from "./WorkspacePage";
+import { loadCurrentProject, saveCurrentProject } from "./currentProject";
 import { useSidebarData } from "./useSidebarData";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
@@ -116,26 +117,16 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
 
   /** 横スライド / 縦並びの切り替え（下の行の右端） */
   const layoutToggle = (
-    <div className="sidebar-layout-toggle" role="group" aria-label="プロジェクトの並べ方">
-      <button
-        className={layout === "slide" ? "active" : ""}
-        aria-pressed={layout === "slide"}
-        title="1 プロジェクトずつ横にスライド"
-        aria-label="1 プロジェクトずつ横にスライド"
-        onClick={() => changeLayout("slide")}
-      >
-        <GalleryHorizontal size={13} />
-      </button>
-      <button
-        className={layout === "stack" ? "active" : ""}
-        aria-pressed={layout === "stack"}
-        title="すべてのプロジェクトを縦に並べる"
-        aria-label="すべてのプロジェクトを縦に並べる"
-        onClick={() => changeLayout("stack")}
-      >
-        <Rows3 size={13} />
-      </button>
-    </div>
+    <Segmented
+      className="sidebar-layout-toggle"
+      label="プロジェクトの並べ方"
+      value={layout}
+      onChange={changeLayout}
+      options={[
+        { value: "slide", label: "1 プロジェクトずつ横にスライド", icon: GalleryHorizontal, iconOnly: true },
+        { value: "stack", label: "すべてのプロジェクトを縦に並べる", icon: Rows3, iconOnly: true },
+      ]}
+    />
   );
 
   if (layout === "stack") {

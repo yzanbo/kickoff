@@ -2224,7 +2224,12 @@ mark {
   color: var(--muted);
 }
 
-.filter-chip {
+/* 全文検索の「探す範囲」: ボタンの組の枠は並びに影響させず、各ボタンをチップにする */
+.search-scope-options {
+  display: contents;
+}
+
+.search-scope-options button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2238,11 +2243,11 @@ mark {
   cursor: pointer;
 }
 
-.filter-chip:hover {
+.search-scope-options button:hover {
   color: var(--text);
 }
 
-.filter-chip.active {
+.search-scope-options button.active {
   border-color: var(--border-strong);
   color: var(--text);
   background: var(--bg-hover);
@@ -4166,14 +4171,14 @@ mark {
   }
 }
 
-.usage-popover-head {
+.popover-head {
   display: flex;
   align-items: center;
   gap: 2px;
   margin-bottom: 10px;
 }
 
-.usage-popover-title {
+.popover-title {
   flex: 1;
   font-size: 13px;
   font-weight: 600;

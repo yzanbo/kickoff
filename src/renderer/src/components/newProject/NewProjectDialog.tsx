@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Project } from "../../../../core/types";
 import { useModalDialog } from "../../hooks/useModalDialog";
+import { Segmented } from "../Segmented";
 import { CreateForm } from "./CreateForm";
 import { ImportForm } from "./ImportForm";
 
@@ -22,26 +23,16 @@ export function NewProjectDialog({ defaultParentDir, onClose, onCreated }: Props
     <dialog ref={ref} className="dialog" onClose={onClose}>
       <div className="dialog-body">
         <h2>新しいプロジェクト</h2>
-        <div className="segmented" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "create"}
-            className={mode === "create" ? "active" : ""}
-            onClick={() => setMode("create")}
-          >
-            新しく作る
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === "import"}
-            className={mode === "import" ? "active" : ""}
-            onClick={() => setMode("import")}
-          >
-            既存のフォルダを取り込む
-          </button>
-        </div>
+        <Segmented<Mode>
+          className="segmented"
+          label="作り方"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "create", label: "新しく作る" },
+            { value: "import", label: "既存のフォルダを取り込む" },
+          ]}
+        />
         {mode === "create" ? (
           <CreateForm defaultParentDir={defaultParentDir} onCancel={close} onCreated={onCreated} />
         ) : (
