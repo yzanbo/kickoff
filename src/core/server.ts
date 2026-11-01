@@ -15,6 +15,7 @@ import type { ApprovalCenter } from "./approvals.js";
 import type { Runner } from "./runner.js";
 import type { UploadStore } from "./uploads.js";
 import {
+  BOARD_STAGES,
   EFFORT_LEVELS,
   PERMISSION_CHOICES,
   PHASES,
@@ -114,6 +115,7 @@ const runInputSchema = z
     prompt: z.string().trim().max(50_000).default(""),
     options: runOptionsSchema,
     attachments: z.array(attachmentSchema).max(20).default([]),
+    stage: z.enum(BOARD_STAGES).optional(),
   })
   .refine((v) => v.prompt || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
 
@@ -304,6 +306,7 @@ export function createApp(deps: ServerDeps): Hono {
       prompt: input.prompt,
       options: input.options,
       attachments: input.attachments,
+      stage: input.stage,
     });
     return c.json(run, 201);
   });
@@ -328,11 +331,36 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }) });
   });
 
-  // チャットの名前を変える
+  // チャットの名前・カンバンの列を変える
   app.patch("/api/runs/:id", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    const { title } = z.object({ title: z.string().trim().min(1).max(100) }).parse(await c.req.json());
-    return c.json(store.updateRun(run.id, { title }));
+    const patch = z
+      .object({ title: z.string().trim().min(1).max(100), stage: z.enum(BOARD_STAGES).nullable() })
+      .partial()
+      .parse(await c.req.json());
+    return c.json(store.updateRun(run.id, patch));
+  });
+
+  // チャットを開いて確認した（確認待ちを消す）
+  app.post("/api/runs/:id/seen", (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    return c.json(run.attention ? store.updateRun(run.id, { attention: 0 }) : run);
+  });
+
+  // アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す
+  app.post("/api/runs/:id/archive", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { archived } = z.object({ archived: z.boolean().default(true) }).parse(await c.req.json().catch(() => ({})));
+    if (archived && runner.isBusy(run.id)) throw new HttpError(409, "作業中のチャットはアーカイブできません。中断してから行ってください");
+    return c.json(store.updateRun(run.id, { archived_at: archived ? new Date().toISOString() : null }));
+  });
+
+  // 削除（会話の記録も消える）
+  app.delete("/api/runs/:id", (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    if (runner.isBusy(run.id)) throw new HttpError(409, "作業中のチャットは削除できません。中断してから行ってください");
+    store.deleteRun(run.id);
+    return c.json({ ok: true });
   });
 
   app.post("/api/runs/:id/messages", async (c) => {

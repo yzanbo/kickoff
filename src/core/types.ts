@@ -85,6 +85,32 @@ export interface RunOptions {
   fast_mode?: boolean | null;
 }
 
+/** カンバンの列（あなたが動かす進み具合） */
+export const BOARD_STAGES = ["todo", "doing", "review", "done"] as const;
+export type BoardStage = (typeof BOARD_STAGES)[number];
+
+export const BOARD_STAGE_LABELS: Record<BoardStage, string> = {
+  todo: "未着手",
+  doing: "対応中",
+  review: "レビュー",
+  done: "完了",
+};
+
+/**
+ * エージェント自身の状態（状態の分け方に合わせる）。
+ * needs_input: 承認・回答待ち / failed: エラー / running: 作業中 / attention: 終わって確認待ち / done: 待機中
+ */
+export const AGENT_STATES = ["needs_input", "failed", "attention", "running", "done"] as const;
+export type AgentState = (typeof AGENT_STATES)[number];
+
+export const AGENT_STATE_LABELS: Record<AgentState, string> = {
+  needs_input: "回答待ち",
+  failed: "エラー",
+  attention: "確認待ち",
+  running: "作業中",
+  done: "待機中",
+};
+
 export type RunStatus = "queued" | "running" | "waiting" | "completed" | "failed" | "cancelled";
 
 export interface Project {
@@ -153,6 +179,12 @@ export interface Run {
   num_turns: number;
   result: string | null;
   error: string | null;
+  /** カンバンの列。null なら状態から決める（確認待ちはレビュー、それ以外は対応中） */
+  stage: BoardStage | null;
+  /** AI の作業が終わって、まだ開いて確認していない（SQLite の真偽値 0 / 1） */
+  attention: number;
+  /** アーカイブした日時（null なら一覧に出す） */
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -352,6 +384,7 @@ export type BusEvent =
   | { type: "task"; task: Task }
   | { type: "task_deleted"; id: number; project_id: number }
   | { type: "run"; run: Run }
+  | { type: "run_deleted"; id: number; project_id: number }
   | { type: "run_event"; project_id: number; event: RunEvent }
   /** AI の返答の途中経過（保存しない。確定した文は run_event の text で届く） */
   | { type: "run_delta"; project_id: number; run_id: number; text: string }
