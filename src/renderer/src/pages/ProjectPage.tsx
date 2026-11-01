@@ -20,6 +20,8 @@ import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";
 import { ProjectEditDialog } from "../components/ProjectEditDialog";
 import { ProjectSwitcher } from "../components/ProjectSwitcher";
+import { ChangesTab } from "../components/changes/ChangesTab";
+import { useGitStatus } from "../components/changes/useGitStatus";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
 import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
@@ -41,6 +43,7 @@ const TAB_LABELS: Record<ProjectTab, string> = {
   schedule: "スケジュール",
   tasks: "タスク",
   reports: "レポート",
+  changes: "変更",
 };
 
 /** プロジェクト画面: チャット一覧と、決まったこと（要件定義書・スケジュール・タスク・レポート）をタブで */
@@ -66,6 +69,8 @@ export function ProjectPage({
   const [data, setData] = useState<ProjectData | undefined>(() => projectCache.get(id));
   const [error, setError] = useState<string>();
   const [editing, setEditing] = useState(false);
+  // Git の変更（タブのバッジに数を出し、変更のタブで一覧と差分を出す）
+  const git = useGitStatus(id, tab === "changes");
 
   const load = useCallback(async () => {
     try {
@@ -119,7 +124,7 @@ export function ProjectPage({
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (
-    <div className={`page page-wide ${tab === "board" || tab === "groups" ? "page-board" : ""} ${stale ? "is-stale" : ""}`}>
+    <div className={`page page-wide ${tab === "board" || tab === "groups" || tab === "changes" ? "page-board" : ""} ${stale ? "is-stale" : ""}`}>
       <header className="page-header project-header">
         <div className="project-title-row">
           <h1>
@@ -154,6 +159,11 @@ export function ProjectPage({
               {t === "tasks" && tasks.length > 0 && <span className="tab-count">{tasks.length}</span>}
               {t === "board" && runs.length > 0 && <span className="tab-count">{runs.length}</span>}
               {t === "groups" && groups.length > 0 && <span className="tab-count">{groups.length}</span>}
+              {t === "changes" && git.count > 0 && (
+                <span className="change-count" aria-label={`変更のあるファイル ${git.count} 件`}>
+                  {git.count}
+                </span>
+              )}
             </a>
           ))}
         </nav>
@@ -169,6 +179,7 @@ export function ProjectPage({
         </section>
       )}
       {tab === "reports" && <ReportsTab artifacts={artifacts} />}
+      {tab === "changes" && <ChangesTab projectId={project.id} git={git} />}
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
     </div>
   );

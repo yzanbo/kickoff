@@ -16,7 +16,10 @@ import type {
   ServerStatus,
   Task,
   BusEvent,
+  GitDiff,
+  GitFileChange,
   GitHubStatus,
+  GitStatus,
   PlanUsage,
   Project,
   ProjectSummary,
@@ -166,6 +169,12 @@ export const api = {
   createGroup: (projectId: number, name: string) => request<RunGroup>("POST", `/api/projects/${projectId}/groups`, { name }),
   renameGroup: (groupId: number, name: string) => request<RunGroup>("PATCH", `/api/groups/${groupId}`, { name }),
   reorderGroups: (projectId: number, ids: number[]) => request<RunGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
+  gitStatus: (projectId: number) => request<GitStatus>("GET", `/api/projects/${projectId}/git/status`),
+  gitDiff: (projectId: number, file: GitFileChange, staged: boolean) =>
+    request<GitDiff>(
+      "GET",
+      `/api/projects/${projectId}/git/diff?${new URLSearchParams({ path: file.path, staged: staged ? "1" : "0", ...(file.old_path ? { old: file.old_path } : {}) })}`,
+    ),
   deleteGroup: (groupId: number) => request<{ ok: true }>("DELETE", `/api/groups/${groupId}`),
   cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
 

@@ -252,8 +252,9 @@ kbd {
   transition: opacity 0.12s;
 }
 
+/* プロジェクトの画面・全体のカンバン: どのタブでも同じ横幅にする（タブを切り替えても見出しやタブの位置が動かないように） */
 .page-wide {
-  max-width: 980px;
+  max-width: none;
 }
 
 .page-header {
@@ -5423,4 +5424,267 @@ a:focus-visible,
 [role="button"]:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent-bright) 70%, transparent);
   outline-offset: 2px;
+}
+
+/* プロジェクトの「変更」タブ（VS Code のソース管理と同じく、左にファイルの一覧、右に差分） */
+.changes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.changes-list {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 300px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.changes-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.changes-branch {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.changes-sync {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  font-size: 11px;
+}
+
+.changes-empty,
+.changes-hint,
+.diff-message {
+  margin: 16px 12px;
+}
+
+.change-group-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px 4px 8px;
+  border: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.change-group-head:hover {
+  color: var(--text);
+}
+
+.change-group-title {
+  flex: 1;
+}
+
+/* 変更のあるファイルの数（VS Code と同じ丸いバッジ。グループの見出しとプロジェクトのタブ） */
+.change-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+.change-files {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.change-file {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 10px 3px 26px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.change-file:hover {
+  background: var(--bg-hover);
+}
+
+.change-file.selected {
+  background: var(--bg-active);
+}
+
+.change-name {
+  flex: none;
+  max-width: 65%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.change-name.deleted {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.change-dir {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+/* 状態の記号の色（VS Code と同じ: 変更 = 黄、追加・未追跡 = 緑、削除・競合 = 赤、名前の変更 = 青） */
+.change-kind {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--warn);
+}
+
+.change-kind[data-kind="A"],
+.change-kind[data-kind="U"] {
+  color: var(--ok);
+}
+
+.change-kind[data-kind="D"],
+.change-kind[data-kind="!"] {
+  color: var(--ng);
+}
+
+.change-kind[data-kind="R"],
+.change-kind[data-kind="C"] {
+  color: var(--info);
+}
+
+.changes-diff,
+.diff-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.diff-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.diff-path {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-state {
+  flex: none;
+  color: var(--muted);
+}
+
+.diff-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diff-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.diff-col-no {
+  width: 48px;
+}
+
+.diff-no {
+  padding: 0 8px;
+  text-align: right;
+  vertical-align: top;
+  color: var(--extra-muted);
+  user-select: none;
+}
+
+.diff-code {
+  padding: 0 10px;
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.diff-sign {
+  display: inline-block;
+  width: 1.2em;
+  color: var(--muted);
+  user-select: none;
+}
+
+.diff-hunk td {
+  padding: 3px 10px;
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 8%, transparent);
+}
+
+/* 差分の行（タイムラインの編集内容の .diff-add / .diff-del とは別の名前にする） */
+.diff-table .line-add {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+
+.diff-table .line-del {
+  background: color-mix(in srgb, var(--ng) 16%, transparent);
+}
+
+/* 左右に並べたとき、片側にしかない行の反対側 */
+.diff-table .line-empty {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+
+.diff-table .line-note {
+  font-style: italic;
+  color: var(--muted);
 }

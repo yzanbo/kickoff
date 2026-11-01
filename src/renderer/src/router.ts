@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BOARD_STAGES, PHASES, type BoardStage, type Phase } from "../../core/types";
 
 // プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く
-export const PROJECT_TABS = ["board", "groups", "requirements", "schedule", "tasks", "reports"] as const;
+export const PROJECT_TABS = ["board", "groups", "requirements", "schedule", "tasks", "reports", "changes"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 export type Route =
