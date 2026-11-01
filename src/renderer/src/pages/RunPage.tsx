@@ -2,11 +2,12 @@ import { Archive, ArchiveRestore, Pencil } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Approval, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
-import { chatTitle } from "../chatTitle";
+import { CHAT_TITLE_MAX, chatTitle } from "../chatTitle";
 import { ApprovalCard } from "../components/ApprovalCard";
 import { Composer } from "../components/Composer";
 import { ContextMeter } from "../components/ContextMeter";
 import { CloseButton, IconButton } from "../components/IconButton";
+import { InlineName } from "../components/InlineName";
 import { Markdown } from "../components/Markdown";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
@@ -14,7 +15,7 @@ import { SectionBadge } from "../components/SectionBadge";
 import { SubagentDetail } from "../components/SubagentDetail";
 import { SubagentChip, useSubagents } from "../components/Subagents";
 import { OpenSubagentContext, TimelineItems, Working } from "../components/Timeline";
-import { alertDialog, promptDialog } from "../dialogs";
+import { alertDialog } from "../dialogs";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
 import { href } from "../router";
@@ -27,10 +28,12 @@ interface RunPageProps {
   focus?: number;
   /** パネルを閉じる */
   onClose: () => void;
+  /** チャットを読み込んだとき・名前やセクションが変わったとき（パネルのタブの名前とアイコンに使う） */
+  onRunChange?: (run: Run) => void;
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function RunPage({ projectId, runId, focus, onClose }: RunPageProps) {
+export function RunPage({ projectId, runId, focus, onClose, onRunChange }: RunPageProps) {
   const [run, setRun] = useState<Run>();
   const [project, setProject] = useState<Project>();
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -53,6 +56,14 @@ export function RunPage({ projectId, runId, focus, onClose }: RunPageProps) {
       .catch((e: unknown) => setError(errorMessage(e)));
     api.project(projectId).then(setProject).catch(() => {});
   }, [runId, projectId]);
+
+  // パネルのタブに、チャットの名前とセクションを知らせる（名前を変えたらタブもすぐ変わる）
+  const notifyRun = useRef(onRunChange);
+  notifyRun.current = onRunChange;
+  useEffect(() => {
+    if (run) notifyRun.current?.(run);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run?.id, run?.title, run?.phase]);
 
   // 開いて見たので「確認待ち」を消す（見ている間に終わった場合も同じ）
   useEffect(() => {
@@ -107,6 +118,8 @@ function RunView({
   const subagents = useSubagents(run.id, events, busy);
   // 中身を見ているサブエージェント（Task / Agent の呼び出し ID）
   const [subOpen, setSubOpen] = useState<string>();
+  // 見出しでチャットの名前を変えている途中か
+  const [renaming, setRenaming] = useState(false);
   const openedSub = subagents.find((s) => s.key === subOpen);
   const timelineRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
@@ -139,16 +152,25 @@ function RunView({
         <div className="run-title-row">
           <CloseButton label="パネルを閉じる" title="閉じる（Esc）" size={15} onClick={onClose} />
           <SectionBadge section={run.phase} />
-          <h1 title={run.title}>{chatTitle(run.title)}</h1>
-          <IconButton
-            icon={Pencil}
-            label="名前を変更"
-            size={13}
-            onClick={async () => {
-              const title = await promptDialog({ title: "チャットの名前を変更", initial: run.title, confirmLabel: "変更" });
-              if (title && title !== run.title) await api.renameRun(run.id, title);
-            }}
-          />
+          {renaming ? (
+            <InlineName
+              initial={run.title}
+              maxLength={CHAT_TITLE_MAX}
+              className="run-title-input"
+              onSubmit={(title) => {
+                setRenaming(false);
+                void api.renameRun(run.id, title).catch((e: unknown) => alertDialog("名前を変更できませんでした", errorMessage(e)));
+              }}
+              onCancel={() => setRenaming(false)}
+            />
+          ) : (
+            <>
+              <h1 title={`${run.title}（ダブルクリックで名前を変更）`} onDoubleClick={() => setRenaming(true)}>
+                {chatTitle(run.title)}
+              </h1>
+              <IconButton icon={Pencil} label="名前を変更" size={13} onClick={() => setRenaming(true)} />
+            </>
+          )}
           {/* アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す */}
           <IconButton
             icon={run.archived_at ? ArchiveRestore : Archive}

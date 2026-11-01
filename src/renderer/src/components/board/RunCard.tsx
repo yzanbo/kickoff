@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { AGENT_STATE_LABELS, type AgentState, type Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
+import type { RunTitleEditor } from "../../hooks/useRunRename";
 import { relativeTime } from "../../time";
+import { ChatTitleInput } from "../ChatTitleInput";
 import { ProjectChip } from "../ProjectChip";
 import { SectionBadge } from "../SectionBadge";
 import { STATE_TONE } from "./tones";
@@ -15,14 +17,16 @@ interface Props {
   pending?: number;
   /** 列を移す矢印など（いちばん右） */
   trailing?: ReactNode;
+  /** 名前をその場で変えている途中のとき */
+  rename?: RunTitleEditor;
 }
 
 
 /** ボードのカードの中身（名前・ラベル・状態・時刻） */
-export function RunCardContent({ run, state, projectName, pending = 0, trailing }: Props) {
+export function RunCardContent({ run, state, projectName, pending = 0, trailing, rename }: Props) {
   return (
     <>
-      <span className="card-title">{chatTitle(run.title)}</span>
+      {rename ? <ChatTitleInput run={run} editor={rename} /> : <span className="card-title">{chatTitle(run.title)}</span>}
       <div className="card-labels">
         {projectName !== undefined && <ProjectChip id={run.project_id} name={projectName} />}
         <SectionBadge section={run.phase} short />
@@ -40,11 +44,11 @@ export function RunCardContent({ run, state, projectName, pending = 0, trailing 
 }
 
 /** リスト表示の行の中身 */
-export function RunRowContent({ run, state, projectName, trailing }: Props) {
+export function RunRowContent({ run, state, projectName, trailing, rename }: Props) {
   return (
     <>
       <div className="list-main">
-        <span className="card-title one-line">{chatTitle(run.title)}</span>
+        {rename ? <ChatTitleInput run={run} editor={rename} /> : <span className="card-title one-line">{chatTitle(run.title)}</span>}
         <span className="list-meta">
           {projectName !== undefined && <ProjectChip id={run.project_id} name={projectName} />}
           <SectionBadge section={run.phase} short />

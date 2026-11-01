@@ -6,6 +6,7 @@ import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
 import { errorMessage } from "../../errors";
+import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice, useStoredFlag, useStoredState } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
@@ -46,6 +47,8 @@ interface Props {
 export function KanbanBoard({ projectId, projects, approvals, title, focus }: Props) {
   const allProjects = projectId === undefined;
   const [error, setError] = useState<string>();
+  // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
+  const rename = useRunRename(setError);
   // アーカイブしたチャットも出すか・ボード／リスト（覚えておく）
   const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_KEY);
   const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list"], "board");
@@ -140,6 +143,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
       onMenu: (at) => setMenu({ ...at, run }),
       onDragStart: (e) => drag.start(e, run),
       onDragEnd: drag.end,
+      editing: Boolean(rename.editorFor(run)),
     }),
     style: allProjects ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as CSSProperties) : undefined,
   });
@@ -223,6 +227,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                             projectName={allProjects ? projectName(run.project_id) : undefined}
                             pending={pendingFor(run)}
                             trailing={arrows(run, stage)}
+                            rename={rename.editorFor(run)}
                           />
                         </article>
                       ))}
@@ -247,6 +252,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                           state={state}
                           projectName={allProjects ? projectName(run.project_id) : undefined}
                           trailing={arrows(run, stage)}
+                            rename={rename.editorFor(run)}
                         />
                       </div>
                     ))}
@@ -259,7 +265,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         <SidePanel panel={panel} />
       </div>
 
-      {menu && <CardMenu {...menu} onOpenPanel={open} onClose={() => setMenu(null)} onError={setError} />}
+      {menu && <CardMenu {...menu} onOpenPanel={open} onRename={rename.start} onClose={() => setMenu(null)} onError={setError} />}
     </div>
   );
 }

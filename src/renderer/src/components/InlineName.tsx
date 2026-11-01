@@ -6,6 +6,8 @@ interface Props {
   initial?: string;
   placeholder?: string;
   className?: string;
+  /** 文字数の上限（グループ名は 60、チャット名は 100） */
+  maxLength?: number;
   onSubmit: (name: string) => void;
   onCancel: () => void;
 }
@@ -14,7 +16,7 @@ interface Props {
  * その場で名前を入力・変更する欄（Enter・フォーカスを外すと決定、Esc で取り消し）。
  * 横の ✓ / ✕ でも決定・取り消しできる（押しても入力欄からフォーカスが外れないようにして、二重に動かない）
  */
-export function InlineName({ initial = "", placeholder, className, onSubmit, onCancel }: Props) {
+export function InlineName({ initial = "", placeholder, className, maxLength = 60, onSubmit, onCancel }: Props) {
   const [value, setValue] = useState(initial);
   const ref = useRef<HTMLInputElement>(null);
   const done = useRef(false);
@@ -43,12 +45,17 @@ export function InlineName({ initial = "", placeholder, className, onSubmit, onC
       className={`inline-name ${className ?? ""}`}
       value={value}
       placeholder={placeholder}
-      maxLength={60}
+      maxLength={maxLength}
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={(e) => {
         // 日本語入力の変換確定の Enter では決定しない
         if (e.key === "Enter" && !e.nativeEvent.isComposing) finish(true);
-        else if (e.key === "Escape") finish(false);
+        else if (e.key === "Escape") {
+          // 取り消しだけにする（同じ Esc で右のパネルまで閉じないように）
+          e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
+          finish(false);
+        }
       }}
       onBlur={() => finish(true)}
     />

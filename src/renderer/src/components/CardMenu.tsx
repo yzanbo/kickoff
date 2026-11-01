@@ -2,7 +2,7 @@ import { Archive, ArchiveRestore, PanelRight, Pencil, Trash2 } from "lucide-reac
 import type { Run } from "../../../core/types";
 import { api } from "../api";
 import { chatTitle } from "../chatTitle";
-import { confirmDialog, promptDialog } from "../dialogs";
+import { confirmDialog } from "../dialogs";
 import { errorMessage } from "../errors";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
@@ -12,6 +12,7 @@ export function CardMenu({
   y,
   run,
   onOpenPanel,
+  onRename,
   onClose,
   onError,
 }: {
@@ -19,6 +20,8 @@ export function CardMenu({
   y: number;
   run: Run;
   onOpenPanel: (run: Run) => void;
+  /** 名前をその場で変え始める（カード・行の名前を入力欄にする） */
+  onRename: (run: Run) => void;
   onClose: () => void;
   onError: (message: string) => void;
 }) {
@@ -38,14 +41,7 @@ export function CardMenu({
       <button role="menuitem" onClick={() => (onOpenPanel(run), onClose())}>
         <PanelRight size={14} /> 開く
       </button>
-      <button
-        role="menuitem"
-        onClick={async () => {
-          onClose();
-          const title = await promptDialog({ title: "チャットの名前を変更", initial: run.title, confirmLabel: "変更" });
-          if (title && title !== run.title) void act(() => api.renameRun(run.id, title));
-        }}
-      >
+      <button role="menuitem" onClick={() => (onClose(), onRename(run))}>
         <Pencil size={14} /> 名前を変更
       </button>
       {run.archived_at ? (
