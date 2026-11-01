@@ -1,6 +1,6 @@
-import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch, List, ListTree, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch, History, List, ListTree, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import type { GitFileChange } from "../../../../core/types";
+import type { GitCommit, GitFileChange } from "../../../../core/types";
 import { cx } from "../../cx";
 import { confirmDialog } from "../../dialogs";
 import { useActionError } from "../../hooks/useActionError";
@@ -11,6 +11,9 @@ import { IconButton, RefreshButton } from "../IconButton";
 import { Segmented } from "../Segmented";
 import { ChangeGroup, type GitAction } from "./ChangeGroup";
 import { CommitBox } from "./CommitBox";
+import { CommitView } from "./CommitView";
+import { HistoryView } from "./HistoryView";
+import { useGitLog } from "./useGitLog";
 import { DiffView } from "./DiffView";
 import { FileTree } from "./FileTree";
 import { FileView } from "./FileView";
@@ -33,7 +36,7 @@ interface Selection {
   edit?: boolean;
 }
 
-type ChangesView = "files" | "search" | "changes";
+type ChangesView = "files" | "search" | "changes" | "history";
 const VIEW_KEY = "kickoff:changes-view";
 const TREE_KEY = "kickoff:changes-tree";
 const LIST_WIDTH_KEY = "kickoff:changes-list-width";
@@ -51,7 +54,7 @@ const clampListWidth = (width: number, total: number) => Math.round(Math.max(200
 export function ChangesTab({ projectId, repoPath, git }: { projectId: number; repoPath: string; git: GitStatusController }) {
   const rootName = repoPath.split("/").pop() ?? repoPath;
   const { status } = git;
-  const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "search", "changes"], "changes");
+  const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "search", "changes", "history"], "changes");
   const [selected, setSelectedState] = useState<Selection>();
   // 編集中のファイルに保存していない変更があるか（別のファイルを開く前に確かめる）
   const dirty = useRef(false);
@@ -68,6 +71,12 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
   const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
   const search = useProjectSearch(projectId);
+  // 履歴（Fork のようにブランチの線つき）と、選んだコミット
+  const log = useGitLog(projectId, view === "history" && Boolean(status?.repo), git.version);
+  const [picked, setPicked] = useState<{ projectId: number; commit: GitCommit }>();
+  // 別のプロジェクトに切り替えたら、選んでいたコミットは外す（ほかのリポジトリにはない）
+  const commit = picked?.projectId === projectId ? picked.commit : undefined;
+  const setCommit = (next: GitCommit) => setPicked({ projectId, commit: next });
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
   const [changesTree, setChangesTree] = useStoredFlag(TREE_KEY);
   const actionError = useActionError();
@@ -147,15 +156,18 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
           { value: "files", label: "すべてのファイル（エクスプローラー）", icon: Files, iconOnly: true },
           { value: "search", label: "検索", icon: Search, iconOnly: true },
           { value: "changes", label: "変更（ソース管理）", icon: GitBranch, iconOnly: true, badge: git.count },
+          { value: "history", label: "履歴", icon: History, iconOnly: true },
         ]}
       />
       <aside
         ref={listRef}
         className="changes-list"
         style={{ width: listWidth }}
-        aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}
+        aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : view === "history" ? "履歴" : "変更のあるファイル"}
       >
-        {view === "search" ? (
+        {view === "history" ? (
+          <HistoryView log={log} selected={commit?.hash} onSelect={setCommit} />
+        ) : view === "search" ? (
           <SearchView search={search} selected={selected} onSelect={(path, line) => void setSelected({ path, line })} />
         ) : view === "files" ? (
           <>
@@ -234,7 +246,13 @@ export function ChangesTab({ projectId, repoPath, git }: { projectId: number; re
         onDoubleClick={() => setListWidth(DEFAULT_LIST_WIDTH)}
       />
       <div className="changes-diff">
-        {selected && (selected.line !== undefined || selected.edit) ? (
+        {view === "history" ? (
+          commit ? (
+            <CommitView projectId={projectId} commit={commit} />
+          ) : (
+            <p className="muted small changes-hint">コミットを選ぶと、変わったファイルと差分を表示します。</p>
+          )
+        ) : selected && (selected.line !== undefined || selected.edit) ? (
           <FileView
             key={`${selected.path}:${selected.line ?? ""}:${selected.edit ? "edit" : ""}`}
             {...fileViewProps(selected.path)}
