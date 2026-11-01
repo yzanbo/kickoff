@@ -204,6 +204,9 @@ export interface Run {
   archived_at: string | null;
   /** 自分で作ったグループ（null ならグループなし） */
   group_id: number | null;
+  /** 最後の応答の時点でコンテキストに入っていたトークン数と、その上限（まだ応答がなければ null） */
+  context_tokens: number | null;
+  context_window: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -375,6 +378,8 @@ export interface PlanUsage {
   seven_day: UsageWindow;
   /** モデル別の週枠（例: Fable） */
   model_weekly: UsageWindow[];
+  /** 追加の使用枠（extra usage）。わからなければ null */
+  extra_usage?: { enabled: boolean; utilization: number | null } | null;
   fetched_at: string;
   error?: string;
 }

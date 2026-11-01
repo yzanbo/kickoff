@@ -6,6 +6,7 @@ import { ApprovalCard, describeToolInput } from "../components/ApprovalCard";
 import { AttachmentChip } from "../components/AttachmentChip";
 import { Composer } from "../components/Composer";
 import { Markdown } from "../components/Markdown";
+import { ContextMeter } from "../components/ContextMeter";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
@@ -201,6 +202,7 @@ function RunView({
             await api.sendMessage(run.id, text, options.options, attachments);
           }}
           onStop={() => void api.cancelRun(run.id)}
+          trailing={<ContextMeter run={run} />}
         />
       </div>
     </div>

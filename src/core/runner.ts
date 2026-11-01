@@ -236,6 +236,7 @@ export class Runner {
         num_turns: current.num_turns + (result.turns ?? 0),
         result: result.result ?? current.result,
         error: result.error ?? null,
+        ...(result.context ? { context_tokens: result.context.tokens, context_window: result.context.window ?? current.context_window } : {}),
         // 終わったら「確認待ち」にする（中断したときは除く）。チャットを開くと消える
         attention: result.status === "cancelled" ? current.attention : 1,
       });

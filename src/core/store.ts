@@ -133,6 +133,9 @@ const MIGRATIONS = [
    ALTER TABLE runs ADD COLUMN group_id INTEGER REFERENCES run_groups(id) ON DELETE SET NULL;`,
   // v8: プロジェクトごとの既定（JSON）
   "ALTER TABLE projects ADD COLUMN defaults TEXT NOT NULL DEFAULT '{}'",
+  // v9: コンテキストウィンドウの使用量
+  `ALTER TABLE runs ADD COLUMN context_tokens INTEGER;
+   ALTER TABLE runs ADD COLUMN context_window INTEGER;`,
 ];
 
 type Row = Record<string, SQLInputValue>;
@@ -582,6 +585,8 @@ export class Store {
         | "stage"
         | "attention"
         | "archived_at"
+        | "context_tokens"
+        | "context_window"
       >
     >,
   ): Run {
@@ -589,6 +594,8 @@ export class Store {
       "stage",
       "attention",
       "archived_at",
+      "context_tokens",
+      "context_window",
       "fast_mode",
       "title",
       "status",

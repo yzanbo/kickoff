@@ -249,6 +249,8 @@ export class ClaudeProvider implements AgentProvider {
 
     let sessionId = params.resumeSessionId;
     let final: SDKResultMessage | undefined;
+    // メインのエージェントの最後の応答で、コンテキストに入っていたトークン数
+    let contextTokens: number | undefined;
 
     try {
       const q = query({
@@ -279,6 +281,11 @@ export class ClaudeProvider implements AgentProvider {
         const sid = this.handleMessage(msg, cb);
         if (sid) sessionId = sid;
         if (msg.type === "result") final = msg;
+        if (msg.type === "assistant" && msg.parent_tool_use_id === null) {
+          const u = msg.message.usage;
+          contextTokens =
+            u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + u.output_tokens;
+        }
       }
     } catch (e) {
       if (signal.aborted) return { status: "cancelled", sessionId };
@@ -298,7 +305,10 @@ export class ClaudeProvider implements AgentProvider {
       });
     }
 
-    const common = { sessionId: final.session_id ?? sessionId, costUsd: final.total_cost_usd, turns: final.num_turns };
+    // 上限は、使ったモデルのうちいちばん大きいコンテキストウィンドウ（サブエージェントの小さいモデルを除くため）
+    const windows = Object.values(final.modelUsage ?? {}).map((m) => m.contextWindow).filter((w) => w > 0);
+    const context = contextTokens === undefined ? undefined : { tokens: contextTokens, window: windows.length ? Math.max(...windows) : null };
+    const common = { sessionId: final.session_id ?? sessionId, costUsd: final.total_cost_usd, turns: final.num_turns, context };
     if (final.subtype === "success" && !final.is_error) {
       return { ...common, status: "completed", result: final.result };
     }
@@ -409,6 +419,7 @@ export function normalizeUsage(res: SDKControlGetUsageResponse): PlanUsage {
     five_hour: win("five_hour", "5時間", limits?.five_hour),
     seven_day: win("seven_day", "週", limits?.seven_day),
     model_weekly: (limits?.model_scoped ?? []).map((m) => win(`model:${m.display_name}`, `週（${m.display_name}）`, m)),
+    extra_usage: limits?.extra_usage ? { enabled: limits.extra_usage.is_enabled, utilization: limits.extra_usage.utilization } : null,
     fetched_at: new Date().toISOString(),
   };
 }

@@ -14,6 +14,8 @@ interface Props {
   busy?: boolean;
   /** モデル選択の前に置く追加の選択（新しいチャットのセクションなど） */
   leading?: ReactNode;
+  /** 送信ボタンの左に置くもの（コンテキストウィンドウのメーターなど） */
+  trailing?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
   onStop?: () => void;
 }
@@ -27,7 +29,7 @@ interface PendingFile {
 }
 
 /** チャットの入力欄（⌘+Enter で送信。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付） */
-export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, onSend, onStop }: Props) {
+export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, trailing, onSend, onStop }: Props) {
   const [text, setText] = useState(initialText ?? "");
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [sending, setSending] = useState(false);
@@ -166,6 +168,8 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
           {leading}
           <RunOptionsBar state={options} />
         </div>
+        <div className="composer-actions">
+        {trailing}
         {busy && onStop ? (
           <button className="send-button stop" title="中断" aria-label="中断" onClick={onStop}>
             <Square size={12} fill="currentColor" />
@@ -175,6 +179,7 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
             <ArrowUp size={17} strokeWidth={2.5} />
           </button>
         )}
+        </div>
       </div>
       {dragging && <div className="drop-hint">ここにドロップして添付</div>}
       {error && <p className="error small composer-error">{error}</p>}

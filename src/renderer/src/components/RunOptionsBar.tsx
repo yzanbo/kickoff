@@ -1,4 +1,4 @@
-import { Brain, Shield, Sparkle, Zap } from "lucide-react";
+import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   EFFORT_LABELS,
@@ -12,6 +12,7 @@ import {
 } from "../../../core/types";
 import { api } from "../api";
 import { groupModels, modelDisplayName } from "../models";
+import { OptionMenu } from "./OptionMenu";
 import { effectiveEffort, effectivePermission, resolveRunDefaults } from "../../../core/sectionDefaults";
 
 // モデル一覧はアプリ全体で 1 回だけ取得する
@@ -80,71 +81,92 @@ export function useRunOptions(initial: RunOptions | undefined, section: Phase, p
 
 export type RunOptionsState = ReturnType<typeof useRunOptions>;
 
-/** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード） */
+/** 権限モードの説明（一覧で名前の下に出す） */
+const PERMISSION_HINTS: Partial<Record<PermissionChoice, string>> = {
+  default: "ファイルの編集やコマンドの前に毎回確認する",
+  acceptEdits: "ファイルの編集は自動で承認し、コマンドは確認する",
+  auto: "安全と判断した操作は確認せずに進める",
+  plan: "計画を立てるだけで、ファイルは変更しない",
+};
+
+/** Claude のマーク（モデルの選択のアイコン） */
+export function ClaudeMark({ size = 14 }: { size?: number }) {
+  const rays = Array.from({ length: 12 }, (_, i) => (i * 360) / 12);
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      {rays.map((deg, i) => (
+        <rect key={deg} x="11" y={i % 2 ? 3.5 : 2} width="2" height={i % 2 ? 8.5 : 10} rx="1" fill="currentColor" transform={`rotate(${deg} 12 12)`} />
+      ))}
+    </svg>
+  );
+}
+
+/** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード / ファストモード） */
 export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; disabled?: boolean }) {
   const { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode } = state;
   const efforts = current?.efforts ?? (Object.keys(EFFORT_LABELS) as EffortLevel[]);
+  const fastSupported = !current || current.supportsFastMode;
 
   return (
     <div className="run-options">
-      <label className="pill-select model-select" title={current?.description ?? "モデル"}>
-        <Sparkle size={14} aria-hidden />
-        {/* 閉じているときは「Opus 5.5」、開くとファミリーごとのバージョン一覧 */}
-        <span className="model-name">{modelDisplayName(models, model)}</span>
-        <select aria-label="モデル" value={model ?? ""} disabled={disabled} onChange={(e) => setModel(e.target.value || null)}>
-          {models.length === 0 && <option value={model ?? ""}>{model ?? "読み込み中…"}</option>}
-          {groupModels(models).map((g) => (
-            <optgroup key={g.family} label={g.family}>
-              {g.items.map((i) => (
-                <option key={i.value} value={i.value}>
-                  {i.version}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </label>
-
-      <label className="pill-select" title="推論の深さ">
-        <Brain size={14} aria-hidden />
-        <select aria-label="推論の深さ" value={effort} disabled={disabled} onChange={(e) => setEffort(e.target.value as EffortLevel)}>
-          {efforts.map((level) => (
-            <option key={level} value={level}>
-              {EFFORT_LABELS[level]}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="pill-select" title="権限モード">
-        <Shield size={14} aria-hidden />
-        <select
-          aria-label="権限モード"
-          value={permission}
-          disabled={disabled}
-          onChange={(e) => setPermission(e.target.value as PermissionChoice)}
-        >
-          {PERMISSION_CHOICES.filter((p) => p !== "phase" && (p !== "auto" || !current || current.supportsAutoMode)).map((p) => (
-            <option key={p} value={p}>
-              {PERMISSION_LABELS[p]}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {(!current || current.supportsFastMode) && (
-        <button
-          type="button"
-          className={`fast-toggle ${fastMode ? "on" : ""}`}
-          aria-pressed={fastMode}
-          disabled={disabled}
-          title={fastMode ? "ファストモード: オン（追加の使用枠から消費）" : "ファストモード: オフ"}
-          onClick={() => setFastMode(!fastMode)}
-        >
-          <Zap size={14} fill={fastMode ? "currentColor" : "none"} />
-          {fastMode && <span className="fast-label">Fast</span>}
-        </button>
-      )}
+      <OptionMenu
+        value={model ?? ""}
+        display={modelDisplayName(models, model)}
+        icon={<ClaudeMark />}
+        ariaLabel="モデル"
+        title={current?.description ?? "モデル"}
+        disabled={disabled}
+        className="model-menu"
+        groups={groupModels(models).map((g) => ({
+          label: g.family,
+          items: g.items.map((i) => ({ value: i.value, label: `${g.family} ${i.version}`, description: i.description })),
+        }))}
+        onChange={(v) => setModel(v || null)}
+      />
+      <OptionMenu
+        value={effort}
+        icon={<Brain size={15} />}
+        ariaLabel="推論の深さ"
+        title="推論の深さ（effort）"
+        disabled={disabled}
+        groups={[{ label: "推論の深さ", items: efforts.map((level) => ({ value: level, label: EFFORT_LABELS[level] })) }]}
+        onChange={setEffort}
+      />
+      <OptionMenu
+        value={permission}
+        icon={<Shield size={15} />}
+        ariaLabel="権限モード"
+        title="権限モード"
+        disabled={disabled}
+        groups={[
+          {
+            label: "権限モード",
+            items: PERMISSION_CHOICES.filter((p) => p !== "phase" && (p !== "auto" || !current || current.supportsAutoMode)).map((p) => ({
+              value: p,
+              label: PERMISSION_LABELS[p],
+              description: PERMISSION_HINTS[p],
+            })),
+          },
+        ]}
+        onChange={setPermission}
+      />
+      <button
+        type="button"
+        className={`fast-toggle ${fastMode ? "on" : ""}`}
+        aria-pressed={fastMode}
+        aria-label="ファストモード"
+        disabled={disabled || !fastSupported}
+        title={
+          !fastSupported
+            ? "ファストモード: このモデルは対応していません"
+            : fastMode
+              ? "ファストモード: オン（応答が速くなる代わりに、追加の使用枠から消費）"
+              : "ファストモード: オフ"
+        }
+        onClick={() => setFastMode(!fastMode)}
+      >
+        <Zap size={15} fill={fastMode ? "currentColor" : "none"} />
+      </button>
     </div>
   );
 }

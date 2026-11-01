@@ -15,7 +15,7 @@ import { ProjectPage } from "./pages/ProjectPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { href, navigate, routeProjectId, useRoute } from "./router";
 import { applyTheme, loadTheme } from "./theme";
-import { FIVE_HOUR_IDLE, usePlanUsage } from "./usage";
+import { FIVE_HOUR_IDLE, planLabel, PlanUsageContext, usePlanUsage } from "./usage";
 
 applyTheme(loadTheme());
 
@@ -137,6 +137,7 @@ export function App() {
   }
 
   return (
+    <PlanUsageContext.Provider value={planUsage}>
     <div
       ref={layoutRef}
       className={`layout ${sidebarOpen ? "" : "sidebar-collapsed"} ${resizingSidebar ? "resizing-sidebar" : ""}`}
@@ -256,13 +257,8 @@ export function App() {
         />
       )}
     </div>
+    </PlanUsageContext.Provider>
   );
-}
-
-/** 契約プランの表示名（"max" → "Max"） */
-function planLabel(plan: string): string {
-  const known: Record<string, string> = { pro: "Pro", max: "Max", team: "Team", enterprise: "Enterprise", free: "Free" };
-  return known[plan.toLowerCase()] ?? plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
 const DEFAULT_SIDEBAR_WIDTH = 260;
