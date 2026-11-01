@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { FileContent } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
+import { useHighlight } from "../../hooks/useHighlight";
+import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
 
 /** 変更のないファイルの中身（読むだけ。行番号つき） */
@@ -23,6 +25,7 @@ export function FileView({ projectId, path, version }: { projectId: number; path
 
   const current = state?.key === key ? state : undefined;
   const lines = useMemo(() => current?.file?.content.replace(/\n$/, "").split("\n") ?? [], [current?.file]);
+  const tokens = useHighlight(lines, path);
 
   return (
     <div className="diff-view">
@@ -49,7 +52,9 @@ export function FileView({ projectId, path, version }: { projectId: number; path
               {lines.map((line, i) => (
                 <tr key={i}>
                   <td className="diff-no">{i + 1}</td>
-                  <td className="diff-code">{line}</td>
+                  <td className="diff-code">
+                    <CodeLine tokens={tokens?.[i]} text={line} />
+                  </td>
                 </tr>
               ))}
             </tbody>
