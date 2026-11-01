@@ -52,8 +52,6 @@ function hostOf(url: string): string {
 const PANEL_WIDTH_KEY = "kickoff:panel-width";
 const DEFAULT_PANEL_WIDTH = 560;
 const MIN_PANEL_WIDTH = 360;
-/** パネルを広げても、カンバン側に残す幅 */
-const MIN_BOARD_WIDTH = 260;
 
 /** 列の色（状態の点の色を流用。完了は控えめ） */
 const STAGE_TONE: Record<BoardStage, string> = {
@@ -220,7 +218,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runs, loaded]);
 
-  /** パネルの左端をドラッグして幅を変える（カンバン側に最低限の幅を残す） */
+  /** パネルの左端をドラッグして幅を変える（カンバンを覆うところまで広げられる） */
   const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     const body = bodyRef.current;
@@ -229,7 +227,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     handle.setPointerCapture(e.pointerId);
     setResizing(true);
     const right = body.getBoundingClientRect().right;
-    const max = body.clientWidth - MIN_BOARD_WIDTH;
+    const max = body.clientWidth;
     let width = panelWidth;
     const onMove = (ev: PointerEvent) => {
       width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(max, right - ev.clientX)));
