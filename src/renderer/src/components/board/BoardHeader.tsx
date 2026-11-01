@@ -1,6 +1,7 @@
-import { Globe, List, Search, SquareKanban, TextSearch, X } from "lucide-react";
+import { Globe, List, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
+import { SearchField } from "../SearchField";
 import { PanelToggle } from "../sidePanel/SidePanel";
 import type { SidePanelController } from "../sidePanel/useSidePanel";
 
@@ -58,32 +59,11 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, actio
 /** チャットを名前で絞り込む検索欄（⌘F でここへ。Esc で消す）。横のボタンで文言の全文検索（⌘⇧F）を開く */
 function BoardSearch({ query, onChange }: { query: string; onChange: (query: string) => void }) {
   return (
-    <div className="chat-search board-search">
-      <Search size={13} className="muted" aria-hidden />
-      <input
-        type="text"
-        value={query}
-        placeholder="チャット名で検索（⌘F）"
-        aria-label="このボードのチャットを名前で検索"
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && query) {
-            // パネルを閉じる Esc より先に、検索語を消す
-            e.stopPropagation();
-            e.nativeEvent.stopImmediatePropagation();
-            onChange("");
-          }
-        }}
-      />
-      {query && (
-        <button className="chat-search-clear" aria-label="検索を解除" onClick={() => onChange("")}>
-          <X size={12} />
-        </button>
-      )}
+    <SearchField className="board-search" value={query} onChange={onChange} placeholder="チャット名で検索（⌘F）" label="このボードのチャットを名前で検索">
       {/* チャットの中の文言を探すときは、全文検索のパネルへ */}
       <button className="chat-search-content" title="チャットの中の文言を検索（⌘⇧F）" aria-label="チャットの中の文言を検索" onClick={openContentSearch}>
         <TextSearch size={13} />
       </button>
-    </div>
+    </SearchField>
   );
 }

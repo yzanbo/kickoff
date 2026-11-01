@@ -1,8 +1,10 @@
 import { Bot, Search, User } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { SearchHit } from "../../../core/types";
 import { api } from "../api";
 import { chatTitle } from "../chatTitle";
+import { useListNavigation } from "../hooks/useListNavigation";
+import { useModalDialog } from "../hooks/useModalDialog";
 import { openRun } from "../router";
 import { relativeTime } from "../time";
 import { SectionBadge } from "./SectionBadge";
@@ -25,12 +27,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [loading, setLoading] = useState(false);
-  const [index, setIndex] = useState(0);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    dialogRef.current?.showModal();
-  }, []);
+  const dialog = useModalDialog();
 
   // 入力が止まったら検索する
   useEffect(() => {
@@ -44,7 +41,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
     const timer = setTimeout(() => {
       api
         .search(q, scope === "run" ? { runId } : scope === "project" ? { projectId } : {})
-        .then((r) => alive && (setHits(r), setIndex(0)))
+        .then((r) => alive && (setHits(r), nav.setIndex(0)))
         .catch(() => alive && setHits([]))
         .finally(() => alive && setLoading(false));
     }, 200);
@@ -56,16 +53,17 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
 
   function open(hit: SearchHit | undefined) {
     if (!hit) return;
-    dialogRef.current?.close();
+    dialog.close();
     openRun(hit.project_id, hit.run_id, hit.event_id);
   }
+  const nav = useListNavigation(hits, open);
 
   return (
     <dialog
-      ref={dialogRef}
+      ref={dialog.ref}
       className="palette search-panel"
       onClose={onClose}
-      onClick={(e) => e.target === dialogRef.current && dialogRef.current?.close()}
+      {...dialog.backdropProps}
     >
       <div className="palette-input">
         <Search size={16} className="muted" />
@@ -74,18 +72,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
           value={query}
           placeholder="チャットの中の文言を検索（⌘⇧F）"
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              setIndex((i) => Math.min(i + 1, hits.length - 1));
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              setIndex((i) => Math.max(i - 1, 0));
-            } else if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              open(hits[index]);
-            }
-          }}
+          onKeyDown={nav.onKeyDown}
         />
         {loading && <span className="spinner" aria-label="検索中" />}
       </div>
@@ -100,8 +87,8 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
       <ul className="palette-list" role="listbox">
         {query.trim() && !loading && hits.length === 0 && <li className="palette-empty">見つかりません</li>}
         {hits.map((hit, i) => (
-          <li key={hit.event_id} role="option" aria-selected={i === index}>
-            <button className={`search-hit ${i === index ? "active" : ""}`} onMouseEnter={() => setIndex(i)} onClick={() => open(hit)}>
+          <li key={hit.event_id} role="option" aria-selected={i === nav.index}>
+            <button className={`search-hit ${i === nav.index ? "active" : ""}`} onMouseEnter={() => nav.setIndex(i)} onClick={() => open(hit)}>
               <div className="search-hit-head">
                 {hit.type === "user" ? <User size={13} aria-label="自分" /> : <Bot size={13} aria-label="AI" />}
                 <span className="search-hit-title">{chatTitle(hit.run_title)}</span>

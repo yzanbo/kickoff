@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Project } from "../../../../core/types";
+import { useModalDialog } from "../../hooks/useModalDialog";
 import { CreateForm } from "./CreateForm";
 import { ImportForm } from "./ImportForm";
 
@@ -14,16 +15,11 @@ type Mode = "create" | "import";
 /** 新しいプロジェクト（新規作成 / 既存フォルダの取り込み） */
 export function NewProjectDialog({ defaultParentDir, onClose, onCreated }: Props) {
   const [mode, setMode] = useState<Mode>("create");
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    dialogRef.current?.showModal();
-  }, []);
-
-  const close = () => dialogRef.current?.close();
+  // 入力の途中で閉じないよう、背景を押しても閉じない
+  const { ref, close } = useModalDialog({ closeOnBackdrop: false });
 
   return (
-    <dialog ref={dialogRef} className="dialog" onClose={onClose}>
+    <dialog ref={ref} className="dialog" onClose={onClose}>
       <div className="dialog-body">
         <h2>新しいプロジェクト</h2>
         <div className="segmented" role="tablist">
