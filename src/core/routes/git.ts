@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { commitStaged, discardPaths, FileConflictError, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
+import { commitStaged, discardPaths, FileConflictError, gitCommitDetail, gitCommitDiff, gitLog, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
 import type { ServerDeps } from "../server.js";
 import { HttpError, requireProject } from "./http.js";
 
@@ -103,5 +103,33 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
       throw new HttpError(400, errorMessage(e));
     }
     return c.json(await gitStatus(project.repo_path));
+  });
+
+  // 履歴（読むだけ）
+  app.get("/api/projects/:id/git/log", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { skip, limit } = z
+      .object({ skip: z.coerce.number().int().min(0).default(0), limit: z.coerce.number().int().min(1).max(1000).default(200) })
+      .parse({ skip: c.req.query("skip"), limit: c.req.query("limit") });
+    return c.json(await gitLog(project.repo_path, skip, limit));
+  });
+
+  app.get("/api/projects/:id/git/commits/:hash", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    try {
+      return c.json(await gitCommitDetail(project.repo_path, c.req.param("hash")));
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
+  });
+
+  app.get("/api/projects/:id/git/commits/:hash/diff", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const query = z.object({ path: z.string().min(1).max(1000), old: z.string().min(1).max(1000).optional() }).parse({ path: c.req.query("path"), old: c.req.query("old") });
+    try {
+      return c.json(await gitCommitDiff(project.repo_path, c.req.param("hash"), query.path, query.old));
+    } catch (e) {
+      throw new HttpError(400, errorMessage(e));
+    }
   });
 }

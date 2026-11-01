@@ -515,6 +515,34 @@ export interface ProjectSearchResult {
   truncated: boolean;
 }
 
+/** 履歴の 1 つのコミット（一覧に出すもの） */
+export interface GitCommit {
+  hash: string;
+  /** 親のコミット（マージなら 2 つ以上、最初のコミットなら空） */
+  parents: string[];
+  author: string;
+  email: string;
+  /** 作った時刻（ISO） */
+  date: string;
+  /** このコミットを指すブランチ・タグ（例: "HEAD -> main"・"origin/main"・"tag: v1.0"） */
+  refs: string[];
+  subject: string;
+}
+
+/** 履歴（新しい順。more が true ならまだ続きがある） */
+export interface GitLog {
+  commits: GitCommit[];
+  more: boolean;
+}
+
+/** コミットの詳細（メッセージの全文と、変わったファイル） */
+export interface GitCommitDetail extends GitCommit {
+  body: string;
+  committer: string;
+  committedAt: string;
+  files: GitFileChange[];
+}
+
 /** Kickoff サーバー（コア）の状態（画面の左下の接続の詳細） */
 export interface ServerStatus {
   version: string;

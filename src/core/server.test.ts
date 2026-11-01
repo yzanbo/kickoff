@@ -366,4 +366,19 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal(st.upstream, "origin/main");
   assert.equal(st.ahead, 0);
   assert.match(execFileSync("git", ["log", "--oneline", "-1"], { cwd: remote }).toString(), /b を直す/);
+
+  // 履歴: 新しい順。ブランチの印。コミットの詳細と、そのコミットでのファイルの差分
+  const log = (await call("GET", `/api/projects/${project.id}/git/log`)).body;
+  assert.deepEqual(log.commits.map((c: { subject: string }) => c.subject), ["b を直す", "init"]);
+  assert.ok(log.commits[0].refs.includes("HEAD -> main"));
+  assert.deepEqual(log.commits[1].parents, []);
+  assert.equal(log.more, false);
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/log?limit=1`)).body.more, true);
+  const detail = (await call("GET", `/api/projects/${project.id}/git/commits/${log.commits[0].hash}`)).body;
+  assert.deepEqual(detail.files, [{ path: "b.txt", kind: "M" }]);
+  const first = (await call("GET", `/api/projects/${project.id}/git/commits/${log.commits[1].hash}`)).body;
+  assert.deepEqual(first.files.map((f: { path: string }) => f.path), ["a.txt", "b.txt"]);
+  const commitDiff = (await call("GET", `/api/projects/${project.id}/git/commits/${log.commits[0].hash}/diff?path=b.txt`)).body;
+  assert.match(commitDiff.diff, /^\+bee!$/m);
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/commits/zzz`)).status, 400);
 });

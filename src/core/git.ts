@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { FileContent, GitChangeKind, GitDiff, GitFileChange, GitStatus, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
+import type { FileContent, GitChangeKind, GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitStatus, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -279,4 +279,81 @@ export async function pushBranch(repo: string): Promise<void> {
   }
   if (!status.hasOrigin) throw new Error("プッシュ先のリモート（origin）がありません");
   await gitOutput(repo, ["push", "-q", "-u", "origin", status.branch], [], 120_000);
+}
+
+/** 履歴の区切り（コミットの間は RS、項目の間は NUL） */
+const LOG_FORMAT = "%H%x00%P%x00%an%x00%ae%x00%aI%x00%D%x00%s%x1e";
+const HASH_RE = /^[0-9a-f]{4,64}$/i;
+
+function parseCommit(record: string): GitCommit {
+  const [hash, parents, author, email, date, refs, subject] = record.replace(/^\n/, "").split("\0");
+  return {
+    hash,
+    parents: parents ? parents.split(" ") : [],
+    author,
+    email,
+    date,
+    refs: refs ? refs.split(", ") : [],
+    subject,
+  };
+}
+
+/** 履歴（すべてのブランチ。新しい順で、親より子が先。skip 件目から limit 件） */
+export async function gitLog(repo: string, skip = 0, limit = 200): Promise<GitLog> {
+  // コミットがまだなければ空
+  const hasHead = await gitOutput(repo, ["rev-parse", "--verify", "-q", "HEAD"]).then(
+    () => true,
+    () => false,
+  );
+  if (!hasHead) return { commits: [], more: false };
+  const out = await gitOutput(repo, ["log", "--all", "--topo-order", `--format=${LOG_FORMAT}`, `--skip=${skip}`, `-n`, String(limit + 1)]);
+  const commits = out.split("\x1e").filter((r) => r.trim()).map(parseCommit);
+  return { commits: commits.slice(0, limit), more: commits.length > limit };
+}
+
+/** 名前の変わったファイルなども含めた、変わったファイルの一覧（git diff --name-status -z の出力を読む） */
+function parseNameStatus(out: string): GitFileChange[] {
+  const parts = out.split("\0").filter(Boolean);
+  const files: GitFileChange[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const code = parts[i];
+    const kind = kindOf(code[0]);
+    if (code[0] === "R" || code[0] === "C") {
+      files.push({ old_path: parts[i + 1], path: parts[i + 2], kind });
+      i += 2;
+    } else {
+      files.push({ path: parts[i + 1], kind });
+      i += 1;
+    }
+  }
+  return files;
+}
+
+/** コミットの詳細（マージは 1 つ目の親との差、最初のコミットは空との差） */
+export async function gitCommitDetail(repo: string, hash: string): Promise<GitCommitDetail> {
+  if (!HASH_RE.test(hash)) throw new Error("コミットの指定が正しくありません");
+  const head = await gitOutput(repo, ["show", "-s", `--format=${LOG_FORMAT.replace("%x1e", "")}%x00%cn%x00%cI%x00%B`, hash]);
+  const [hashFull, parents, author, email, date, refs, subject, committer, committedAt, ...body] = head.split("\0");
+  const commit = parseCommit([hashFull, parents, author, email, date, refs, subject].join("\0"));
+  const parent = commit.parents[0];
+  const changes = parent
+    ? await gitOutput(repo, ["diff", "--name-status", "-M", "-z", parent, commit.hash])
+    : await gitOutput(repo, ["diff-tree", "--root", "--no-commit-id", "-r", "-M", "--name-status", "-z", commit.hash]);
+  return { ...commit, body: body.join("\0").trim(), committer, committedAt: committedAt, files: parseNameStatus(changes) };
+}
+
+/** コミットでの 1 つのファイルの差分（1 つ目の親との差。最初のコミットは空との差） */
+export async function gitCommitDiff(repo: string, hash: string, file: string, oldPath?: string): Promise<GitDiff> {
+  if (!HASH_RE.test(hash)) throw new Error("コミットの指定が正しくありません");
+  await assertInside(repo, file);
+  if (oldPath) await assertInside(repo, oldPath);
+  const paths = oldPath ? ["--", oldPath, file] : ["--", file];
+  const parents = (await gitOutput(repo, ["show", "-s", "--format=%P", hash])).trim();
+  const parent = parents.split(" ")[0];
+  const diff = parent
+    ? await gitOutput(repo, ["diff", "--no-color", "--no-ext-diff", "-M", parent, hash, ...paths])
+    : await gitOutput(repo, ["show", "--no-color", "--no-ext-diff", "--format=", hash, ...paths]);
+  const binary = /^Binary files .* differ$/m.test(diff) || diff.includes("GIT binary patch");
+  const truncated = diff.length > MAX_DIFF_CHARS;
+  return { diff: truncated ? diff.slice(0, MAX_DIFF_CHARS) : diff, binary, truncated };
 }
