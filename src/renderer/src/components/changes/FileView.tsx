@@ -1,13 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FileContent } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { useHighlight } from "../../hooks/useHighlight";
+import { cx } from "../../cx";
 import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
 
-/** 変更のないファイルの中身（読むだけ。行番号つき） */
-export function FileView({ projectId, path, version }: { projectId: number; path: string; version: number }) {
+/**
+ * ファイルの中身（読むだけ。行番号つき）。line を渡すと、その行までスクロールして目立たせる（検索の結果から開いたとき）。
+ * changed: コミットしていない変更があるか（見出しに出す）
+ */
+export function FileView({ projectId, path, line, changed = false, version }: { projectId: number; path: string; line?: number; changed?: boolean; version: number }) {
   const key = `${projectId}:${path}`;
   const [state, setState] = useState<{ key: string; file?: FileContent; error?: string }>();
 
@@ -26,6 +30,11 @@ export function FileView({ projectId, path, version }: { projectId: number; path
   const current = state?.key === key ? state : undefined;
   const lines = useMemo(() => current?.file?.content.replace(/\n$/, "").split("\n") ?? [], [current?.file]);
   const tokens = useHighlight(lines, path);
+  const focusRef = useRef<HTMLTableRowElement>(null);
+  // 開いた行を真ん中に出す（中身を読み込んだあと・別の行を選んだとき）
+  useEffect(() => {
+    focusRef.current?.scrollIntoView({ block: "center" });
+  }, [line, lines]);
 
   return (
     <div className="diff-view">
@@ -33,7 +42,10 @@ export function FileView({ projectId, path, version }: { projectId: number; path
         <span className="diff-path" title={path}>
           {path}
         </span>
-        <span className="diff-state">変更なし</span>
+        <span className="diff-state">
+          {line !== undefined && `${line} 行目・`}
+          {changed ? "変更あり" : "変更なし"}
+        </span>
       </header>
       <div className="diff-body">
         {!current ? (
@@ -49,11 +61,11 @@ export function FileView({ projectId, path, version }: { projectId: number; path
               <col />
             </colgroup>
             <tbody>
-              {lines.map((line, i) => (
-                <tr key={i}>
+              {lines.map((text, i) => (
+                <tr key={i} ref={i + 1 === line ? focusRef : undefined} className={cx(i + 1 === line && "line-focus")}>
                   <td className="diff-no">{i + 1}</td>
                   <td className="diff-code">
-                    <CodeLine tokens={tokens?.[i]} text={line} />
+                    <CodeLine tokens={tokens?.[i]} text={text} />
                   </td>
                 </tr>
               ))}

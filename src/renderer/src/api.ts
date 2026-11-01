@@ -24,6 +24,8 @@ import type {
   PlanUsage,
   Project,
   ProjectFiles,
+  ProjectSearchQuery,
+  ProjectSearchResult,
   ProjectSummary,
   Phase,
   ProviderStatus,
@@ -173,6 +175,11 @@ export const api = {
   reorderGroups: (projectId: number, ids: number[]) => request<RunGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
   gitStatus: (projectId: number) => request<GitStatus>("GET", `/api/projects/${projectId}/git/status`),
   projectFiles: (projectId: number) => request<ProjectFiles>("GET", `/api/projects/${projectId}/files`),
+  searchProject: (projectId: number, { query, caseSensitive, wholeWord, regex }: ProjectSearchQuery) =>
+    request<ProjectSearchResult>(
+      "GET",
+      `/api/projects/${projectId}/search?${new URLSearchParams({ q: query, case: caseSensitive ? "1" : "0", word: wholeWord ? "1" : "0", regex: regex ? "1" : "0" })}`,
+    ),
   projectFile: (projectId: number, path: string) =>
     request<FileContent>("GET", `/api/projects/${projectId}/file?${new URLSearchParams({ path })}`),
   gitDiff: (projectId: number, file: GitFileChange, staged: boolean) =>
