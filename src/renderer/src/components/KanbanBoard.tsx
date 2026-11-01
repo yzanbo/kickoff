@@ -29,7 +29,7 @@ import { openRun, REOPEN_EVENT, type ReopenRoute } from "../router";
 import { SECTION_META } from "../sections";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
-import { useSidePanel } from "./SidePanel";
+import { DraftCard, useSidePanel } from "./SidePanel";
 
 type ViewMode = "board" | "list";
 
@@ -118,6 +118,12 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     panel.open(run);
     if (projectId !== undefined) openRun(run.project_id, run.id, undefined, { replace: true });
   };
+
+  /** 列の＋から始めて、まだ送っていない新しいチャット（その列に下書きとして出す） */
+  const draftsOf = (stage: BoardStage) =>
+    panel.drafts
+      .filter((d) => d.target.stage === stage)
+      .map((d) => <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onClick={() => panel.showTab(d.key)} />);
 
   // サイドバー・検索などから開いたチャット・新しいチャットを、パネルで開く
   const openFocus = (target: ReopenRoute) => {
@@ -283,6 +289,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                   </button>
                 </header>
                 <div className="column-cards">
+                  {draftsOf(stage)}
                   {list.length === 0 && <p className="column-empty">なし</p>}
                   {list.map(({ run, state }) => (
                     <article
@@ -325,7 +332,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                     <Plus size={14} />
                   </button>
                 </header>
-                {list.length === 0 && <p className="column-empty">なし</p>}
+                {draftsOf(stage)}
+                  {list.length === 0 && <p className="column-empty">なし</p>}
                 {list.map(({ run, state }) => (
                   <div
                     key={run.id}

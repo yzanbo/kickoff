@@ -1,28 +1,31 @@
-import { Folder, FolderPlus, Globe, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState, type DragEvent } from "react";
+import { Folder, FolderPlus, Globe, List, Pencil, Plus, SquareKanban, Trash2 } from "lucide-react";
+import { useEffect, useState, type DragEvent } from "react";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, type Approval, type Run, type RunGroup } from "../../../core/types";
 import { api } from "../api";
 import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
 import { useChatSearch } from "../chatSearch";
+import { REOPEN_EVENT, type ReopenRoute } from "../router";
 import { InlineName } from "./InlineName";
 import { BoardSearch, CardMenu, CardSnippet, STATE_TONE } from "./KanbanBoard";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
-import { useSidePanel } from "./SidePanel";
+import { DraftCard, useSidePanel } from "./SidePanel";
 
 interface Props {
   projectId: number;
   runs: Run[];
   groups: RunGroup[];
   approvals: Approval[];
+  /** サイドバーのグループの＋から来たとき: そのグループで新しいチャットを始める */
+  focus?: ReopenRoute;
 }
 
 /**
  * 自分で作ったグループを管理するボード。列 = グループ、カード = チャット。
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
-export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
+export function GroupBoard({ projectId, runs, groups, approvals, focus }: Props) {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const [dragRun, setDragRun] = useState<number>();
@@ -31,9 +34,32 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
   const [error, setError] = useState<string>();
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
   const [query, setQuery] = useState("");
+  // ボード（列）/ リスト（縦に並べる）の切り替え。カンバンとは別に覚える
+  const [view, setView] = useState<"board" | "list">(() => (localStorage.getItem("kickoff:group-view") === "list" ? "list" : "board"));
+  useEffect(() => localStorage.setItem("kickoff:group-view", view), [view]);
   const search = useChatSearch(query, projectId);
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
   const panel = useSidePanel({ runs, loaded: true, holdEsc: menu !== null });
+
+  // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
+  const openFocus = (target: ReopenRoute) => {
+    if (target.name === "newChat") panel.openNew({ projectId, section: target.section, stage: target.stage, group: target.group });
+  };
+  const focusKey = focus ? JSON.stringify(focus) : "";
+  useEffect(() => {
+    if (focus) openFocus(focus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey]);
+  useEffect(() => {
+    const onReopen = (e: Event) => openFocus((e as CustomEvent<ReopenRoute>).detail);
+    window.addEventListener(REOPEN_EVENT, onReopen);
+    return () => window.removeEventListener(REOPEN_EVENT, onReopen);
+  });
+  /** その列（グループ）で入力中の新しいチャット */
+  const draftsOf = (groupId: number | null) =>
+    panel.drafts
+      .filter((d) => d.target.projectId === projectId && (d.target.group ?? null) === groupId)
+      .map((d) => <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onClick={() => panel.showTab(d.key)} />);
 
   const groupIds = new Set(groups.map((g) => g.id));
   const membersOf = (groupId: number | null) =>
@@ -83,33 +109,37 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
     },
   });
 
+  /** カード・リストの行で共通: クリックで右側に開く、ドラッグでグループを移す、右クリックでメニュー */
+  const cardProps = (run: Run) => ({
+    draggable: true,
+    role: "button",
+    tabIndex: 0,
+    "aria-label": `チャット「${run.title || "無題のチャット"}」を開く（ドラッグでグループを移す）`,
+    onDragStart: (e: DragEvent) => {
+      startRunDrag(e, run.id);
+      setDragRun(run.id);
+    },
+    onDragEnd: () => setDragRun(undefined),
+    onClick: () => panel.open(run),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+        e.preventDefault();
+        panel.open(run);
+      }
+    },
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault();
+      setMenu({ x: e.clientX, y: e.clientY, run });
+    },
+  });
+  const cardClass = (run: Run) =>
+    `${dragRun === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`;
+  const stateOf = (run: Run) => agentStateOf(run, approvals.some((a) => a.run_id === run.id));
+
   const renderCard = (run: Run) => {
-    const state = agentStateOf(run, approvals.some((a) => a.run_id === run.id));
+    const state = stateOf(run);
     return (
-      <article
-        key={run.id}
-        className={`board-card ${dragRun === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
-        draggable
-        role="button"
-        tabIndex={0}
-        aria-label={`チャット「${run.title || "無題のチャット"}」を開く（ドラッグでグループを移す）`}
-        onDragStart={(e) => {
-          startRunDrag(e, run.id);
-          setDragRun(run.id);
-        }}
-        onDragEnd={() => setDragRun(undefined)}
-        onClick={() => panel.open(run)}
-        onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
-            e.preventDefault();
-            panel.open(run);
-          }
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu({ x: e.clientX, y: e.clientY, run });
-        }}
-      >
+      <article key={run.id} className={`board-card ${cardClass(run)}`} {...cardProps(run)}>
         <span className="card-title">{run.title || "無題のチャット"}</span>
         <CardSnippet hit={search.snippetFor(run)} />
         <div className="card-labels">
@@ -124,7 +154,106 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
     );
   };
 
-  const ungrouped = membersOf(null);
+  const renderRow = (run: Run) => {
+    const state = stateOf(run);
+    return (
+      <div key={run.id} className={`list-row ${cardClass(run)}`} {...cardProps(run)}>
+        <div className="list-main">
+          <span className="card-title one-line">{run.title || "無題のチャット"}</span>
+          <CardSnippet hit={search.snippetFor(run)} />
+          <span className="list-meta">
+            <SectionBadge section={run.phase} short />
+            <span className="dot" style={{ background: STATE_TONE[state] }} />
+            <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
+          </span>
+        </div>
+        <span className="card-time">{relativeTime(run.updated_at)}</span>
+      </div>
+    );
+  };
+
+  /** グループの見出し（ボードの列・リストで共通）。group が null なら「グループなし」 */
+  const renderHead = (group: RunGroup | null, count: number) => {
+    if (!group) {
+      return (
+        <header className="column-head">
+          <span className="column-title muted">グループなし</span>
+          <span className="column-count">{count}</span>
+          <span className="spacer" />
+          <button className="icon-button" title="新しいチャット" aria-label="グループなしで新しいチャット" onClick={() => panel.openNew({ projectId })}>
+            <Plus size={14} />
+          </button>
+        </header>
+      );
+    }
+    return (
+      <header
+        className="column-head group-column-head"
+        draggable={renaming !== group.id}
+        title="ドラッグでグループを並べ替える"
+        {...reorder.handle(group.id)}
+      >
+        <Folder size={13} className="muted" aria-hidden />
+        {renaming === group.id ? (
+          <InlineName
+            initial={group.name}
+            onSubmit={(name) => {
+              setRenaming(undefined);
+              void guard(() => api.renameGroup(group.id, name));
+            }}
+            onCancel={() => setRenaming(undefined)}
+          />
+        ) : (
+          <span className="column-title" onDoubleClick={() => setRenaming(group.id)}>
+            {group.name}
+          </span>
+        )}
+        {/* 名前の編集中は、ほかの操作を隠す */}
+        {renaming !== group.id && (
+          <>
+            <span className="column-count">{count}</span>
+            <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
+              <Pencil size={13} />
+            </button>
+            <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => removeGroup(group)}>
+              <Trash2 size={13} />
+            </button>
+            <button
+              className="icon-button group-add-chat"
+              title={`「${group.name}」に新しいチャット`}
+              aria-label={`${group.name} に新しいチャット`}
+              onClick={() => panel.openNew({ projectId, group: group.id })}
+            >
+              <Plus size={14} />
+            </button>
+          </>
+        )}
+      </header>
+    );
+  };
+
+  const createForm = creating ? (
+    <header className="column-head">
+      <Folder size={13} className="muted" aria-hidden />
+      <InlineName
+        placeholder="グループ名（例: コードレビュー）"
+        onSubmit={(name) => {
+          setCreating(false);
+          void guard(() => api.createGroup(projectId, name));
+        }}
+        onCancel={() => setCreating(false)}
+      />
+    </header>
+  ) : (
+    <button className="group-add" onClick={() => setCreating(true)}>
+      <FolderPlus size={14} /> グループを作成
+    </button>
+  );
+
+  const sections: (RunGroup | null)[] = [null, ...groups];
+  const keyOf = (g: RunGroup | null) => g?.id ?? "none";
+  const sectionClass = (g: RunGroup | null) => `${over === (g?.id ?? "none") ? "drop-target" : ""} ${g ? reorder.classFor(g.id) : "ungrouped"}`;
+  const emptyText = (g: RunGroup | null) => (g ? "チャットをここへドラッグ" : "なし");
 
   return (
     <div className="board group-board">
@@ -140,106 +269,57 @@ export function GroupBoard({ projectId, runs, groups, approvals }: Props) {
         <button className="btn btn-sm" onClick={() => setCreating(true)}>
           <FolderPlus size={13} /> グループを作成
         </button>
+        <button className="btn btn-sm" onClick={() => panel.openNew({ projectId })} title="右側で新しいチャットを始める">
+          <Plus size={13} /> 新規
+        </button>
+        <div className="view-toggle" role="group" aria-label="表示の切り替え">
+          <button className={view === "board" ? "active" : ""} aria-pressed={view === "board"} onClick={() => setView("board")}>
+            <SquareKanban size={13} /> ボード
+          </button>
+          <button className={view === "list" ? "active" : ""} aria-pressed={view === "list"} onClick={() => setView("list")}>
+            <List size={13} /> リスト
+          </button>
+        </div>
       </div>
       {error && <p className="error small board-error">{error}</p>}
 
       <div {...panel.body}>
-      <div className="board-main">
-      <div className="board-columns">
-        <section className={`board-column ungrouped ${over === "none" ? "drop-target" : ""}`} {...dropProps(null)}>
-          <header className="column-head">
-            <span className="column-title muted">グループなし</span>
-            <span className="column-count">{ungrouped.length}</span>
-            <span className="spacer" />
-            <button className="icon-button" title="新しいチャット" aria-label="グループなしで新しいチャット" onClick={() => panel.openNew({ projectId })}>
-              <Plus size={14} />
-            </button>
-          </header>
-          <div className="column-cards">
-            {ungrouped.length === 0 && <p className="column-empty">なし</p>}
-            {ungrouped.map(renderCard)}
-          </div>
-        </section>
-
-        {groups.map((group) => {
-          const members = membersOf(group.id);
-          return (
-            <section
-              key={group.id}
-              className={`board-column ${over === group.id ? "drop-target" : ""} ${reorder.classFor(group.id)}`}
-              {...dropProps(group.id)}
-            >
-              <header
-                className="column-head group-column-head"
-                draggable={renaming !== group.id}
-                title="ドラッグでグループを並べ替える"
-                {...reorder.handle(group.id)}
-              >
-                <Folder size={13} className="muted" aria-hidden />
-                {renaming === group.id ? (
-                  <InlineName
-                    initial={group.name}
-                    onSubmit={(name) => {
-                      setRenaming(undefined);
-                      void guard(() => api.renameGroup(group.id, name));
-                    }}
-                    onCancel={() => setRenaming(undefined)}
-                  />
-                ) : (
-                  <span className="column-title" onDoubleClick={() => setRenaming(group.id)}>
-                    {group.name}
-                  </span>
-                )}
-                {renaming !== group.id && (
-                  <>
-                    <span className="column-count">{members.length}</span>
-                    <button className="icon-button" title="名前を変更" aria-label={`${group.name} の名前を変更`} onClick={() => setRenaming(group.id)}>
-                      <Pencil size={13} />
-                    </button>
-                    <button className="icon-button" title="グループを削除" aria-label={`${group.name} を削除`} onClick={() => removeGroup(group)}>
-                      <Trash2 size={13} />
-                    </button>
-                    <button
-                      className="icon-button group-add-chat"
-                      title={`「${group.name}」に新しいチャット`}
-                      aria-label={`${group.name} に新しいチャット`}
-                      onClick={() => panel.openNew({ projectId, group: group.id })}
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </>
-                )}
-              </header>
-              <div className="column-cards">
-                {members.length === 0 && <p className="column-empty">チャットをここへドラッグ</p>}
-                {members.map(renderCard)}
-              </div>
-            </section>
-          );
-        })}
-
-        <section className="board-column group-add-column">
-          {creating ? (
-            <header className="column-head">
-              <Folder size={13} className="muted" aria-hidden />
-              <InlineName
-                placeholder="グループ名（例: コードレビュー）"
-                onSubmit={(name) => {
-                  setCreating(false);
-                  void guard(() => api.createGroup(projectId, name));
-                }}
-                onCancel={() => setCreating(false)}
-              />
-            </header>
+        <div className="board-main">
+          {view === "board" ? (
+            <div className="board-columns">
+              {sections.map((g) => {
+                const members = membersOf(g?.id ?? null);
+                return (
+                  <section key={keyOf(g)} className={`board-column ${sectionClass(g)}`} {...dropProps(g?.id ?? null)}>
+                    {renderHead(g, members.length)}
+                    <div className="column-cards">
+                      {draftsOf(g?.id ?? null)}
+                      {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
+                      {members.map(renderCard)}
+                    </div>
+                  </section>
+                );
+              })}
+              <section className="board-column group-add-column">{createForm}</section>
+            </div>
           ) : (
-            <button className="group-add" onClick={() => setCreating(true)}>
-              <FolderPlus size={14} /> グループを作成
-            </button>
+            <div className="board-list">
+              {sections.map((g) => {
+                const members = membersOf(g?.id ?? null);
+                return (
+                  <section key={keyOf(g)} className={`list-group ${sectionClass(g)}`} {...dropProps(g?.id ?? null)}>
+                    {renderHead(g, members.length)}
+                    {draftsOf(g?.id ?? null)}
+                    {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
+                    {members.map(renderRow)}
+                  </section>
+                );
+              })}
+              <section className="list-group group-add-row">{createForm}</section>
+            </div>
           )}
-        </section>
-      </div>
-      </div>
-      {panel.renderPanel()}
+        </div>
+        {panel.renderPanel()}
       </div>
 
       {menu && <CardMenu {...menu} onOpenPanel={panel.open} onClose={() => setMenu(null)} onError={setError} />}
