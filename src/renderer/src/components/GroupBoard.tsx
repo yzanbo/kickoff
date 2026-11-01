@@ -229,7 +229,6 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
         {renaming !== group.id && (
           <>
             <span className="column-count">{count}</span>
-            {groupMenu.button(group)}
             <button
               className="icon-button group-add-chat"
               title={`「${group.name}」に新しいチャット`}
@@ -238,6 +237,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
             >
               <Plus size={14} />
             </button>
+            {groupMenu.button(group)}
           </>
         )}
       </header>

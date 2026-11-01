@@ -695,7 +695,6 @@ const WorkspacePage = memo(function WorkspacePage({
                 {renaming !== group.id && (
                   <>
                     <span className="custom-group-count">{members.length}</span>
-                    {groupMenu.button(group)}
                     <button
                       className="icon-button custom-group-add"
                       title={`「${group.name}」に新しいチャット`}
@@ -704,6 +703,7 @@ const WorkspacePage = memo(function WorkspacePage({
                     >
                       <Plus size={13} />
                     </button>
+                    {groupMenu.button(group)}
                   </>
                 )}
               </div>
@@ -730,8 +730,6 @@ const WorkspacePage = memo(function WorkspacePage({
             グループなし
           </button>
           <span className="custom-group-count">{ungroupedRows.length}</span>
-          {/* グループの見出しと列をそろえるため、「…」の位置は空けておき、＋は同じ位置に置く */}
-          <span className="group-menu-spacer" aria-hidden />
           <button
             className="icon-button custom-group-add"
             title="グループなしで新しいチャット"
@@ -740,6 +738,8 @@ const WorkspacePage = memo(function WorkspacePage({
           >
             <Plus size={13} />
           </button>
+          {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
+          <span className="group-menu-spacer" aria-hidden />
         </div>
       )}
       {groupMenu.menu}
