@@ -182,9 +182,30 @@ kbd {
   -webkit-app-region: no-drag;
 }
 
+/* 幅を変えるつまみ（サイドバー・右のパネル・「変更」タブの一覧）。VS Code・Cursor と同じく、乗せると青い線を出す */
 .sidebar-resizer:hover,
-.resizing-sidebar .sidebar-resizer {
-  background: color-mix(in srgb, var(--accent) 45%, transparent);
+.resizing-sidebar .sidebar-resizer,
+.panel-resizer:hover,
+.board-body.resizing .panel-resizer,
+.changes-resizer:hover,
+.changes.resizing .changes-resizer {
+  background: var(--info);
+}
+
+/* 「変更」タブの左の一覧の幅を変えるつまみ（一覧と差分の境目。線の上に重ねる） */
+.changes-resizer {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: 5px;
+  margin: 0 -3px 0 -2px;
+  cursor: col-resize;
+}
+
+/* ドラッグ中は、文字を選んだり差分の側が反応したりしないようにする */
+.changes.resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 /* 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置） */
@@ -4996,10 +5017,6 @@ button.project-switch {
   cursor: col-resize;
 }
 
-.panel-resizer:hover,
-.board-body.resizing .panel-resizer {
-  background: color-mix(in srgb, var(--accent) 45%, transparent);
-}
 
 .panel-tabs {
   display: flex;
