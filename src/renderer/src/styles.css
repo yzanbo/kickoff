@@ -739,11 +739,6 @@ button.chat-row {
   white-space: nowrap;
 }
 
-.custom-group-name:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 .custom-group-head.active {
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
