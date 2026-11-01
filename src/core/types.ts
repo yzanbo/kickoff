@@ -257,7 +257,25 @@ export type RunEventData =
   | { type: "approval_resolved"; approval_id: string; action: ApprovalDecision["action"] }
   | { type: "result"; status: RunStatus; text?: string; cost_usd?: number; turns?: number }
   | { type: "error"; message: string }
-  | { type: "notice"; message: string };
+  | { type: "notice"; message: string }
+  /** サブエージェントの開始・終了（途中経過は保存せず、run_subagent で届く） */
+  | ({ type: "subagent" } & SubagentInfo);
+
+/** サブエージェント（Task / Agent ツールで起動された別のエージェント）の状態 */
+export interface SubagentInfo {
+  task_id: string;
+  /** 起動した Task / Agent ツールの呼び出し ID（タイムラインの呼び出しと結びつける） */
+  tool_use_id?: string;
+  description: string;
+  subagent_type?: string;
+  status: "running" | "completed" | "failed" | "stopped";
+  tokens?: number;
+  tool_uses?: number;
+  duration_ms?: number;
+  /** 直近に使ったツール（途中経過） */
+  last_tool?: string;
+  summary?: string;
+}
 
 export type RunEventType = RunEventData["type"];
 
@@ -437,6 +455,8 @@ export type BusEvent =
   | { type: "run_event"; project_id: number; event: RunEvent }
   /** AI の返答の途中経過（保存しない。確定した文は run_event の text で届く） */
   | { type: "run_delta"; project_id: number; run_id: number; text: string }
+  /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */
+  | { type: "run_subagent"; project_id: number; run_id: number; subagent: SubagentInfo }
   | { type: "artifact"; artifact: Artifact }
   | { type: "approval"; approval: Approval }
   | { type: "approval_resolved"; id: string; run_id: number }

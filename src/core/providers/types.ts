@@ -10,6 +10,7 @@ import type {
   ProviderId,
   ProviderStatus,
   RunEventData,
+  SubagentInfo,
 } from "../types.js";
 
 /**
@@ -70,6 +71,8 @@ export interface ProviderCallbacks {
   emit(event: AgentEvent): void;
   /** 返答の文字を生成されたそばから渡す（画面のストリーミング表示用。保存しない） */
   stream?(text: string): void;
+  /** サブエージェントの途中経過（保存しない） */
+  subagentProgress?(info: SubagentInfo): void;
   requestApproval(request: ApprovalRequest, signal: AbortSignal): Promise<ApprovalDecision>;
 }
 

@@ -202,6 +202,9 @@ export class Runner {
           }),
         },
         {
+          subagentProgress: (subagent) => {
+            this.deps.bus?.publish({ type: "run_subagent", project_id: project.id, run_id: runId, subagent });
+          },
           stream: (text) => {
             this.deps.bus?.publish({ type: "run_delta", project_id: project.id, run_id: runId, text });
           },
