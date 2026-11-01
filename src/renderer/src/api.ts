@@ -101,6 +101,7 @@ export const api = {
   ) =>
     request<Project>("PATCH", `/api/projects/${id}`, patch),
   deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),
+  reorderProjects: (ids: number[]) => request<{ ok: true }>("PUT", "/api/projects/order", { ids }),
   models: (provider: ProviderId) => request<ModelOption[]>("GET", `/api/providers/${provider}/models`),
 
   // タスク

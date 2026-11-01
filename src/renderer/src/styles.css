@@ -695,8 +695,13 @@ button.chat-row {
 }
 
 .custom-group-head.ungrouped {
-  padding-left: 8px;
   border-radius: var(--radius);
+}
+
+/* 「グループなし」は自分で作ったグループより控えめに */
+.custom-group-name.ungrouped-name {
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .custom-group-toggle {
@@ -1032,6 +1037,59 @@ input[type="text"].inline-name {
 .workspace-stack .workspace-page {
   padding-bottom: 4px;
   overflow: visible;
+}
+
+/* プロジェクトの並べ替え: 動かしているものは薄く、入る位置に線を出す */
+.workspace-dot.group-dragging,
+.stack-item.group-dragging {
+  opacity: 0.35;
+}
+
+.stack-item {
+  position: relative;
+}
+
+.workspace-dot.drop-before::before,
+.workspace-dot.drop-after::after,
+.stack-item.drop-before::before,
+.stack-item.drop-after::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+}
+
+.workspace-dot.drop-before::before,
+.workspace-dot.drop-after::after {
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+}
+
+.workspace-dot.drop-before::before {
+  left: -5px;
+}
+
+.workspace-dot.drop-after::after {
+  right: -5px;
+}
+
+.stack-item.drop-before::before,
+.stack-item.drop-after::after {
+  right: 10px;
+  left: 10px;
+  height: 2px;
+}
+
+.stack-item.drop-before::before {
+  top: 0;
+}
+
+.stack-item.drop-after::after {
+  bottom: 0;
 }
 
 /* 横スライド / 縦並びの切り替え（下の行の右端） */

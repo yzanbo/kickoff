@@ -14,22 +14,9 @@ export function isRunDrag(e: DragEvent): boolean {
   return e.dataTransfer.types.includes(RUN_DRAG_TYPE);
 }
 
-/** グループを並べ替えるドラッグのデータの種類 */
+/** 並べ替えのドラッグのデータの種類（グループ・プロジェクト） */
 export const GROUP_DRAG_TYPE = "application/x-kickoff-group";
-
-export function startGroupDrag(e: DragEvent, groupId: number) {
-  e.dataTransfer.setData(GROUP_DRAG_TYPE, String(groupId));
-  e.dataTransfer.effectAllowed = "move";
-}
-
-export function isGroupDrag(e: DragEvent): boolean {
-  return e.dataTransfer.types.includes(GROUP_DRAG_TYPE);
-}
-
-export function droppedGroupId(e: DragEvent): number | undefined {
-  const id = Number(e.dataTransfer.getData(GROUP_DRAG_TYPE));
-  return Number.isInteger(id) && id > 0 ? id : undefined;
-}
+export const PROJECT_DRAG_TYPE = "application/x-kickoff-project";
 
 /**
  * moved を target の位置へ動かした並び。上から下へ動かすときは target の後ろ、
@@ -50,10 +37,10 @@ export function droppedRunId(e: DragEvent): number | undefined {
 }
 
 /**
- * グループのドラッグでの並べ替え（サイドバーとグループのボードで共通）。
- * 動かしているグループを薄くし、入る位置に線を出す（下へ動かすときは相手の後ろ、上へは前）。
+ * ドラッグでの並べ替え（グループ・プロジェクトで共通）。
+ * 動かしているものを薄くし、入る位置に線を出す（後ろへ動かすときは相手の後ろ、前へは前）。
  */
-export function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
+export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dragType: string = GROUP_DRAG_TYPE) {
   const [dragging, setDragging] = useState<number>();
   const [target, setTarget] = useState<{ id: number; side: "before" | "after" }>();
   const end = () => {
@@ -62,17 +49,18 @@ export function useGroupReorder(ids: number[], onReorder: (ids: number[]) => voi
   };
 
   return {
-    /** グループの見出し（つかむところ）に付ける */
+    /** つかむところ（グループの見出し・プロジェクトのアイコンなど）に付ける */
     handle: (id: number) => ({
       onDragStart: (e: DragEvent) => {
-        startGroupDrag(e, id);
+        e.dataTransfer.setData(dragType, String(id));
+        e.dataTransfer.effectAllowed = "move";
         setDragging(id);
       },
       onDragEnd: end,
     }),
-    /** dragover。グループのドラッグでなければ false（チャットのドロップなど、ほかの処理に任せる） */
+    /** dragover。この並べ替えのドラッグでなければ false（チャットのドロップなど、ほかの処理に任せる） */
     over: (e: DragEvent, id: number | null): boolean => {
-      if (!isGroupDrag(e)) return false;
+      if (!e.dataTransfer.types.includes(dragType)) return false;
       const from = dragging === undefined ? -1 : ids.indexOf(dragging);
       const to = id === null ? -1 : ids.indexOf(id);
       if (from < 0 || to < 0 || from === to) {
@@ -89,10 +77,10 @@ export function useGroupReorder(ids: number[], onReorder: (ids: number[]) => voi
     leave: (id: number | null) => {
       if (id !== null && target?.id === id) setTarget(undefined);
     },
-    /** drop。グループのドロップでなければ false */
+    /** drop。この並べ替えのドロップでなければ false */
     drop: (e: DragEvent, id: number | null): boolean => {
-      const moved = droppedGroupId(e);
-      if (!moved) return false;
+      const moved = Number(e.dataTransfer.getData(dragType));
+      if (!Number.isInteger(moved) || moved <= 0) return false;
       e.preventDefault();
       end();
       if (id !== null) {
@@ -101,7 +89,12 @@ export function useGroupReorder(ids: number[], onReorder: (ids: number[]) => voi
       }
       return true;
     },
-    /** グループ（列）に付けるクラス: 動かしている途中 / 入る位置の線 */
+    /** 並べ替える要素に付けるクラス: 動かしている途中 / 入る位置の線 */
     classFor: (id: number) => `${dragging === id ? "group-dragging" : ""} ${target?.id === id ? `drop-${target.side}` : ""}`,
   };
+}
+
+/** グループの並べ替え（サイドバーとグループのボード） */
+export function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
+  return useReorder(ids, onReorder, GROUP_DRAG_TYPE);
 }

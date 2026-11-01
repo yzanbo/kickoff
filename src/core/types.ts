@@ -128,6 +128,8 @@ export interface Project {
   defaults: ProjectDefaults;
   /** 参照資料（AI がいつでも読めるフォルダ・ファイル。絶対パス） */
   references: ProjectReference[];
+  /** サイドバーでの並び順（小さいほど前） */
+  position: number;
   created_at: string;
   updated_at: string;
 }
