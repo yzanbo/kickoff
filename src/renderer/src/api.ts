@@ -16,12 +16,14 @@ import type {
   ServerStatus,
   Task,
   BusEvent,
+  FileContent,
   GitDiff,
   GitFileChange,
   GitHubStatus,
   GitStatus,
   PlanUsage,
   Project,
+  ProjectFiles,
   ProjectSummary,
   Phase,
   ProviderStatus,
@@ -170,6 +172,9 @@ export const api = {
   renameGroup: (groupId: number, name: string) => request<RunGroup>("PATCH", `/api/groups/${groupId}`, { name }),
   reorderGroups: (projectId: number, ids: number[]) => request<RunGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
   gitStatus: (projectId: number) => request<GitStatus>("GET", `/api/projects/${projectId}/git/status`),
+  projectFiles: (projectId: number) => request<ProjectFiles>("GET", `/api/projects/${projectId}/files`),
+  projectFile: (projectId: number, path: string) =>
+    request<FileContent>("GET", `/api/projects/${projectId}/file?${new URLSearchParams({ path })}`),
   gitDiff: (projectId: number, file: GitFileChange, staged: boolean) =>
     request<GitDiff>(
       "GET",

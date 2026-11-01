@@ -2179,9 +2179,12 @@ button.project-switch {
 
 .path-button {
   display: inline-flex;
+  /* 狭いときは、名前よりパスを先に縮める */
+  flex: 0 10 auto;
   align-items: center;
   gap: 6px;
-  margin: 2px 0 6px;
+  min-width: 0;
+  margin: 0;
   padding: 0;
   border: none;
   font-family: var(--mono);
@@ -2197,6 +2200,13 @@ button.project-switch {
 
 .path-button:disabled {
   cursor: default;
+}
+
+/* 狭いときは、パスの後ろを省いて 1 行に収める */
+.path-button-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tabs {
@@ -5567,28 +5577,42 @@ a:focus-visible,
   color: var(--extra-muted);
 }
 
-/* 状態の記号の色（VS Code と同じ: 変更 = 黄、追加・未追跡 = 緑、削除・競合 = 赤、名前の変更 = 青） */
-.change-kind {
+.change-kind,
+.tree-kind {
   flex: none;
   margin-left: auto;
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 700;
+}
+
+/*
+ * 状態の色（VS Code と同じ: 変更 = 黄、追加・未追跡 = 緑、削除・競合 = 赤、名前の変更 = 青）。
+ * 変更の一覧では記号、エクスプローラーでは変更のあるファイル・フォルダの名前と記号に付ける
+ */
+.change-kind,
+.tree-row[data-kind] {
   color: var(--warn);
 }
 
 .change-kind[data-kind="A"],
-.change-kind[data-kind="U"] {
+.change-kind[data-kind="U"],
+.tree-row[data-kind="A"],
+.tree-row[data-kind="U"] {
   color: var(--ok);
 }
 
 .change-kind[data-kind="D"],
-.change-kind[data-kind="!"] {
+.change-kind[data-kind="!"],
+.tree-row[data-kind="D"],
+.tree-row[data-kind="!"] {
   color: var(--ng);
 }
 
 .change-kind[data-kind="R"],
-.change-kind[data-kind="C"] {
+.change-kind[data-kind="C"],
+.tree-row[data-kind="R"],
+.tree-row[data-kind="C"] {
   color: var(--info);
 }
 
@@ -5687,4 +5711,118 @@ a:focus-visible,
 .diff-table .line-note {
   font-style: italic;
   color: var(--muted);
+}
+
+/* 「変更」タブの左端の表示の切り替え（VS Code のアクティビティバー: すべてのファイル・変更） */
+.changes-activity {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 44px;
+  padding: 6px 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.changes-activity button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--extra-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.changes-activity button:hover {
+  color: var(--text);
+}
+
+.changes-activity button.active {
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--accent-bright);
+}
+
+/* ボタンの組の数（変更のあるファイルの数など） */
+.segmented-badge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  background: var(--info);
+}
+
+.changes-activity .segmented-badge {
+  position: absolute;
+  right: -2px;
+  bottom: 0;
+}
+
+/* エクスプローラーのフォルダの木 */
+.file-tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.changes-list > .file-tree {
+  padding: 4px 0 8px;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 2px 10px 2px calc(6px + var(--depth, 0) * 12px);
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.tree-row:hover {
+  background: var(--bg-hover);
+}
+
+.tree-row.selected {
+  background: var(--bg-active);
+}
+
+/* .gitignore で無視しているもの（node_modules など） */
+.tree-row.ignored {
+  opacity: 0.5;
+}
+
+.tree-row svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.tree-chevron {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+}
+
+.tree-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

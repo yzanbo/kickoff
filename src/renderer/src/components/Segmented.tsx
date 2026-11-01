@@ -7,6 +7,8 @@ export interface SegmentOption<T extends string> {
   icon?: LucideIcon;
   /** アイコンだけで見せる（label は読み上げとマウスを乗せたときの説明に使う） */
   iconOnly?: boolean;
+  /** 右上に出す数（0 なら出さない。変更のあるファイルの数など） */
+  badge?: number;
 }
 
 /**
@@ -31,7 +33,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div className={className} role="radiogroup" aria-label={label}>
-      {options.map(({ value: v, label: text, icon: Icon, iconOnly }) => (
+      {options.map(({ value: v, label: text, icon: Icon, iconOnly, badge }) => (
         <button
           key={v}
           type="button"
@@ -44,6 +46,7 @@ export function Segmented<T extends string>({
         >
           {Icon && <Icon size={iconSize} />}
           {!iconOnly && (Icon ? <> <span className="btn-label">{text}</span></> : text)}
+          {Boolean(badge) && <span className="segmented-badge">{badge}</span>}
         </button>
       ))}
     </div>

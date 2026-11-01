@@ -8,6 +8,7 @@
 - 書く前に、下の共有部品・hooks・補助関数で足りないか探す。同じ形を 2 か所目に書くことになったら、共有にしてから使う。
 - 保存されている形式は変えない。localStorage のキー名と値（`"1"` / `"0"` など）はそのまま使い、DB のスキーマは `src/core/schema.ts` の `MIGRATIONS` に追記して変える（既存の要素は書き換えない）。
 - 1 ファイルが 300 行を超えたら分割を考える。
+- macOS のファイル名は大文字・小文字を区別しないので、部品（`FileTree.tsx`）と補助（`fileTree.ts`）のように、大文字・小文字だけが違う名前を付けない。
 
 ## 置き場所と分け方
 
@@ -36,7 +37,7 @@
 | 確認・入力・お知らせのダイアログ | `confirmDialog` / `promptDialog` / `alertDialog`（`dialogs.tsx`） |
 | ポップオーバー | `PopoverHeader`。外側クリックと Esc で閉じるのは `useDismiss`（`escape`: `stop` = いちばん上だけ閉じる / `pass` = ほかの Esc にも伝える / `none`） |
 | 右クリック・「…」・＋のメニュー | `PopupMenu` ＋ `clampToViewport`。開いたら先頭にピントを置き ↑↓ で移るのは `useMenuKeys`。ボタンから開くメニューは `ignore` にボタンのセレクタを渡し、開いているときに押したら閉じる |
-| 選択肢から 1 つ選ぶボタンの組 | `Segmented`（見た目は className で決める） |
+| 選択肢から 1 つ選ぶボタンの組 | `Segmented`（見た目は className で決める。数を出すなら選択肢の `badge`） |
 | 名前で絞り込む検索欄 | `SearchField`。候補の ↑↓・Enter は `useListNavigation` |
 | フォームの 1 行（名前・入力・補足） | `Field` |
 | 保存ボタンと結果 | `useSave` ＋ `SaveActions`（結果の文だけなら `ResultMessage`） |
@@ -52,7 +53,7 @@
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |
 | ボードの見出し | `BoardHeader`。道具は概念ごとのまとまりに入れる（左: 表示 → 探す・絞り込む / 右: 作る・開く → パネルの開閉） |
-| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。差分は `DiffView`（左右に並べる・1 列）、差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
+| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）と「変更」を切り替える。差分は `DiffView`（左右に並べる・1 列）、変更のないファイルの中身は `FileView`。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
 
 ## hooks と補助関数
 
