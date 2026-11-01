@@ -4,6 +4,7 @@ import type { BoardStage, Phase, ProjectSummary, Run } from "../../../core/types
 import { cx } from "../cx";
 import { startHorizontalDrag } from "../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../hooks/useStoredState";
+import { useWindowEvent } from "../hooks/useWindowEvent";
 import { RunPage } from "../pages/RunPage";
 import { SECTION_META } from "../sections";
 import { normalizeUrl } from "../url";
@@ -159,14 +160,13 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
   };
 
   // Esc でパネルを閉じる（メニューやダイアログが開いていればそちらを優先）
-  useEffect(() => {
-    if (!panelOpen) return;
-    const onKey = (e: KeyboardEvent) => {
+  useWindowEvent(
+    "keydown",
+    (e) => {
       if (e.key === "Escape" && !holdEsc && !document.querySelector("dialog[open]")) close();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [panelOpen, holdEsc]);
+    },
+    panelOpen,
+  );
 
   return {
     tabs,

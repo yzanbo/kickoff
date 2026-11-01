@@ -1,18 +1,18 @@
 import { RefreshCw, X } from "lucide-react";
 import { useRef } from "react";
 import { useDismiss } from "../hooks/useDismiss";
-import { FIVE_HOUR_IDLE, type usePlanUsage } from "../usage";
+import { FIVE_HOUR_IDLE, planName, type usePlanUsage } from "../usage";
 import { UsageMeter } from "./UsageMeter";
 
 interface Props {
   planUsage: ReturnType<typeof usePlanUsage>;
-  plan: string | null;
   onClose: () => void;
 }
 
 /** フッターの使用状況を押したときに、右下から出る詳細（画面は移らない） */
-export function UsagePopover({ planUsage, plan, onClose }: Props) {
+export function UsagePopover({ planUsage, onClose }: Props) {
   const { usage, refresh, refreshing } = planUsage;
+  const plan = planName(usage);
   const ref = useRef<HTMLDivElement>(null);
 
   // 外側のクリック・Esc で閉じる（フッターのボタン自体はそちらで開閉する）
