@@ -445,6 +445,8 @@ export type GitStatus =
       branch: string | null;
       /** 追いかけているリモートのブランチ（例: origin/main。まだなければ null） */
       upstream: string | null;
+      /** プッシュ先のリモート（origin）があるか */
+      hasOrigin: boolean;
       ahead: number;
       behind: number;
       /** ステージされている変更 */

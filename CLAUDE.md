@@ -54,7 +54,7 @@
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |
 | ボードの見出し | `BoardHeader`。道具は概念ごとのまとまりに入れる（左: 表示 → 探す・絞り込む / 右: 作る・開く → パネルの開閉） |
-| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）・「検索」（`SearchView` ＋ `useProjectSearch`、印は `searchPattern` / `splitMatches`）・「変更」（`ChangeGroup`。一覧と木を切り替え、行にマウスを乗せるとステージ・ステージの取り消し・元に戻すのボタン。元に戻すは確かめてから。操作は `useGitStatus` の `act`）を切り替える。行の右の操作は `.row-actions`（FileTree の `actions`）。フォルダ・ファイルのアイコンは `FileIcon`（VS Code の Material Icon Theme。対応表は使うときだけ読み込む）。差分は `DiffView`（左右に並べる・1 列）、ファイルの中身は `FileView`。編集は `CodeEditor`（Monaco。「編集」を押したときだけ読み込む。入口は言語サービスを除いた `monacoEditor.ts`）で、保存は開いたときの指紋（`hash`）と比べ、ほかで変わっていれば上書きするか聞く。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
+| Git の変更 | プロジェクトの「変更」タブ（`ChangesTab` ＋ `useGitStatus`）。左端で「すべてのファイル」（`FileTree` ＋ `useProjectFiles`、木は `buildTree`、変更の色は `changeKinds`）・「検索」（`SearchView` ＋ `useProjectSearch`、印は `searchPattern` / `splitMatches`）・「変更」（`ChangeGroup`。一覧と木を切り替え、行にマウスを乗せるとステージ・ステージの取り消し・元に戻すのボタン。元に戻すは確かめてから。上にコミットの欄 `CommitBox`（ステージしたものがなければ、すべてステージするか確かめる。進んでいればプッシュ、未公開ならブランチを公開）。操作は `useGitStatus` の `act` / `commit` / `push`）を切り替える。行の右の操作は `.row-actions`（FileTree の `actions`）。フォルダ・ファイルのアイコンは `FileIcon`（VS Code の Material Icon Theme。対応表は使うときだけ読み込む）。差分は `DiffView`（左右に並べる・1 列）、ファイルの中身は `FileView`。編集は `CodeEditor`（Monaco。「編集」を押したときだけ読み込む。入口は言語サービスを除いた `monacoEditor.ts`）で、保存は開いたときの指紋（`hash`）と比べ、ほかで変わっていれば上書きするか聞く。差分の行に分けるのは `parseDiff` / `toSplitRows`。Git の実行はコアの `gitOutput`（`git.ts`） |
 
 ## hooks と補助関数
 
