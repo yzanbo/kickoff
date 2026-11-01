@@ -4,7 +4,7 @@ import { createKickoffTools } from "./kickoffTools.js";
 import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
-import type { Attachment, Phase, ProviderId, Run, RunOptions } from "./types.js";
+import type { Attachment, BoardStage, Phase, ProviderId, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
 import { withAttachmentNote, type UploadStore } from "./uploads.js";
 
@@ -16,6 +16,8 @@ export interface StartRunInput {
   title?: string;
   options?: RunOptions;
   attachments?: Attachment[];
+  /** カンバンの列（列の＋から始めたとき） */
+  stage?: BoardStage;
 }
 
 interface QueueItem {
@@ -66,6 +68,7 @@ export class Runner {
       effort: options.effort === undefined ? settings.defaultEffort : options.effort,
       permission_mode: options.permission_mode ?? settings.defaultPermission,
       fast_mode: options.fast_mode ?? settings.defaultFastMode,
+      stage: input.stage ?? null,
     });
     const attachments = input.attachments ?? [];
     store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}) });
@@ -85,6 +88,7 @@ export class Runner {
     store.updateRun(run.id, {
       status: "queued",
       error: null,
+      attention: 0,
       model: options.model === undefined ? undefined : options.model,
       effort: options.effort === undefined ? undefined : options.effort,
       permission_mode: options.permission_mode ?? undefined,
@@ -231,6 +235,8 @@ export class Runner {
         num_turns: current.num_turns + (result.turns ?? 0),
         result: result.result ?? current.result,
         error: result.error ?? null,
+        // 終わったら「確認待ち」にする（中断したときは除く）。チャットを開くと消える
+        attention: result.status === "cancelled" ? current.attention : 1,
       });
       store.addEvent(runId, {
         type: "result",

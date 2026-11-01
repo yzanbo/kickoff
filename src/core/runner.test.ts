@@ -121,6 +121,36 @@ test("返答の途中経過は配信だけされ、チャット名は AI が付�
   );
 });
 
+test("作業が終わると確認待ちになり、続けて送ると消える。中断では付かない", async () => {
+  // 2 回目の実行は、合図があるまで終わらせない
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  let calls = 0;
+  const { store, runner, project } = setup(async (_p, _cb, signal) => {
+    calls++;
+    if (calls === 2) await gate;
+    if (calls === 3) await new Promise<void>((r) => signal.addEventListener("abort", () => r()));
+    return { status: signal.aborted ? "cancelled" : "completed", sessionId: "s" };
+  });
+  const run = await runner.start({ projectId: project.id, phase: "implementation", prompt: "x", stage: "todo" });
+  assert.equal(store.getRun(run.id)?.stage, "todo");
+  await until(() => store.getRun(run.id)?.status === "completed");
+  assert.equal(store.getRun(run.id)?.attention, 1);
+
+  await runner.send(run.id, "続き");
+  assert.equal(store.getRun(run.id)?.attention, 0);
+  release();
+  await until(() => store.getRun(run.id)?.status === "completed" && store.getRun(run.id)?.attention === 1);
+
+  // 中断したときは確認待ちを付けない
+  store.updateRun(run.id, { attention: 0 });
+  await runner.send(run.id, "もう一度");
+  await until(() => store.getRun(run.id)?.status === "running");
+  runner.cancel(run.id);
+  await until(() => store.getRun(run.id)?.status === "cancelled");
+  assert.equal(store.getRun(run.id)?.attention, 0);
+});
+
 test("承認待ちの間は waiting になり、回答するとエージェントに結果が渡る", async () => {
   let received: unknown;
   const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {

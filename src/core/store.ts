@@ -6,6 +6,7 @@ import {
   type AppSettings,
   type Artifact,
   type ArtifactKind,
+  type BoardStage,
   type BusEvent,
   type EffortLevel,
   type PermissionChoice,
@@ -114,6 +115,10 @@ const MIGRATIONS = [
   "ALTER TABLE projects ADD COLUMN write_scopes TEXT NOT NULL DEFAULT '{}'",
   // v5: ファストモード
   "ALTER TABLE runs ADD COLUMN fast_mode INTEGER NOT NULL DEFAULT 0",
+  // v6: カンバンの列・確認待ち・アーカイブ
+  `ALTER TABLE runs ADD COLUMN stage TEXT;
+   ALTER TABLE runs ADD COLUMN attention INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE runs ADD COLUMN archived_at TEXT;`,
 ];
 
 type Row = Record<string, SQLInputValue>;
@@ -175,6 +180,7 @@ export interface NewRun {
   effort?: EffortLevel | null;
   permission_mode?: PermissionChoice;
   fast_mode?: boolean;
+  stage?: BoardStage | null;
 }
 
 export interface NewArtifact {
@@ -420,8 +426,10 @@ export class Store {
 
   // ---- 実行（エージェントとの会話セッション） ----
 
-  listRuns(filter: { projectId?: number; taskId?: number; statuses?: RunStatus[]; limit?: number } = {}): Run[] {
-    const where: string[] = [];
+  listRuns(
+    filter: { projectId?: number; taskId?: number; statuses?: RunStatus[]; limit?: number; includeArchived?: boolean } = {},
+  ): Run[] {
+    const where: string[] = filter.includeArchived ? [] : ["archived_at IS NULL"];
     const params: Row = {};
     if (filter.projectId !== undefined) {
       where.push("project_id = $project_id");
@@ -438,6 +446,14 @@ export class Store {
     return this.db.prepare(sql).all(params) as unknown as Run[];
   }
 
+  /** チャットを完全に削除する（会話の記録も消える） */
+  deleteRun(id: number) {
+    const run = this.getRun(id);
+    if (!run) return;
+    this.db.prepare("DELETE FROM runs WHERE id = ?").run(id);
+    this.onChange({ type: "run_deleted", id, project_id: run.project_id });
+  }
+
   getRun(id: number): Run | undefined {
     return this.db.prepare("SELECT * FROM runs WHERE id = ?").get(id) as unknown as Run | undefined;
   }
@@ -445,8 +461,8 @@ export class Store {
   createRun(input: NewRun): Run {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, stage)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.project_id,
@@ -459,6 +475,7 @@ export class Store {
         input.effort ?? null,
         input.permission_mode ?? "phase",
         input.fast_mode ? 1 : 0,
+        input.stage ?? null,
       );
     const run = this.getRun(Number(lastInsertRowid))!;
     this.touchProject(run.project_id);
@@ -471,11 +488,27 @@ export class Store {
     patch: Partial<
       Pick<
         Run,
-        "title" | "status" | "session_id" | "model" | "effort" | "permission_mode" | "fast_mode" | "cost_usd" | "num_turns" | "result" | "error"
+        | "title"
+        | "status"
+        | "session_id"
+        | "model"
+        | "effort"
+        | "permission_mode"
+        | "fast_mode"
+        | "cost_usd"
+        | "num_turns"
+        | "result"
+        | "error"
+        | "stage"
+        | "attention"
+        | "archived_at"
       >
     >,
   ): Run {
     this.updateRow("runs", id, patch as Row, [
+      "stage",
+      "attention",
+      "archived_at",
       "fast_mode",
       "title",
       "status",
@@ -553,7 +586,7 @@ export class Store {
 
   /** 起動時の復旧: 前回終了時に動いていた実行を中断扱いにする */
   recoverInterruptedRuns(): number {
-    const stale = this.listRuns({ statuses: ["queued", "running", "waiting"], limit: 1000 });
+    const stale = this.listRuns({ statuses: ["queued", "running", "waiting"], limit: 1000, includeArchived: true });
     for (const run of stale) {
       this.updateRun(run.id, {
         status: "failed",
