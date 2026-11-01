@@ -29,7 +29,8 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
     const sync = () => {
       const url = view.getURL();
       setCurrent(url);
-      setAddress(url);
+      // 空のページでは、アドレス欄も空のままにする
+      setAddress(url === "about:blank" ? "" : url);
       setNav({ back: view.canGoBack(), forward: view.canGoForward() });
       changeRef.current?.({ url, title: view.getTitle() });
     };
@@ -104,6 +105,8 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
           value={address}
           spellCheck={false}
           placeholder="URL を入力、または Google で検索"
+          // 新しいタブ（空のページ）は、すぐ入力できるようにする
+          autoFocus={!initialUrl}
           onChange={(e) => setAddress(e.target.value)}
           onFocus={(e) => e.target.select()}
         />
