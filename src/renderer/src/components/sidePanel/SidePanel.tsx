@@ -91,6 +91,8 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
           aria-haspopup="menu"
           aria-expanded={addMenu !== null}
           onClick={(e) => {
+            // 開いているときに押したら閉じる
+            if (addMenu) return setAddMenu(null);
             const r = e.currentTarget.getBoundingClientRect();
             setAddMenu(clampToViewport(r.left, r.bottom + 4, 180, 90));
           }}
@@ -164,7 +166,7 @@ function AddTabMenu({ x, y, onNewChat, onBrowser, onClose }: { x: number; y: num
     action();
   };
   return (
-    <PopupMenu x={x} y={y} label="新しいタブ" menuRef={ref} onClose={onClose}>
+    <PopupMenu x={x} y={y} label="新しいタブ" ignore=".panel-tab-add" menuRef={ref} onClose={onClose}>
       <button role="menuitem" onClick={() => pick(onNewChat)}>
         <SquarePen size={14} /> 新しいチャット
       </button>

@@ -83,10 +83,13 @@ export function WorkspaceHead({
           label={`${project.name} の新しいチャット`}
           title={groups.length > 0 ? "新しいチャット（作成先のグループを選ぶ）" : "新しいチャット（⌘N）"}
           size={15}
+          className="workspace-new-chat"
           aria-haspopup={groups.length > 0 ? "menu" : undefined}
+          aria-expanded={groups.length > 0 ? pickAt !== null : undefined}
           onClick={(e) => {
-            // グループがあれば、どこに作るかを選んでもらう
+            // グループがあれば、どこに作るかを選んでもらう（開いているときに押したら閉じる）
             if (groups.length === 0) return openNewChat(project.id);
+            if (pickAt) return setPickAt(null);
             const r = e.currentTarget.getBoundingClientRect();
             setPickAt({ x: r.left, y: r.bottom + 4 });
           }}
@@ -97,6 +100,7 @@ export function WorkspaceHead({
           x={pickAt.x}
           y={pickAt.y}
           groups={groups}
+          ignore=".workspace-new-chat"
           onPick={(group) => openNewChat(project.id, group ? { group } : {})}
           onClose={() => setPickAt(null)}
         />

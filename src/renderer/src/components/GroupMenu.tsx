@@ -25,12 +25,13 @@ export function useGroupMenu({ onRename, onDelete }: { onRename: (group: RunGrou
       title="メニュー（名前を変更・削除）"
       className="group-menu-button"
       aria-haspopup="menu"
-      onClick={(e) => openFor(group, e)}
+      aria-expanded={open?.group.id === group.id}
+      onClick={(e) => (open?.group.id === group.id ? setOpen(null) : openFor(group, e))}
     />
   );
 
   const menu = open && (
-    <PopupMenu x={open.x} y={open.y} onClose={() => setOpen(null)}>
+    <PopupMenu x={open.x} y={open.y} ignore=".group-menu-button" onClose={() => setOpen(null)}>
       <button role="menuitem" onClick={() => (setOpen(null), onRename(open.group))}>
         <Pencil size={14} /> 名前を変更
       </button>

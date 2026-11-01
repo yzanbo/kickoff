@@ -12,12 +12,15 @@ export function GroupPickMenu({
   x,
   y,
   groups,
+  ignore,
   onPick,
   onClose,
 }: {
   x: number;
   y: number;
   groups: RunGroup[];
+  /** 開くボタンのセレクタ（押したらボタンの側で閉じる） */
+  ignore?: string;
   onPick: (group: number | undefined) => void;
   onClose: () => void;
 }) {
@@ -31,7 +34,7 @@ export function GroupPickMenu({
   const at = clampToViewport(x, y, 230, 60 + groups.length * 34);
 
   return (
-    <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label="新しいチャットの作成先" menuRef={ref} onClose={onClose}>
+    <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label="新しいチャットの作成先" ignore={ignore} menuRef={ref} onClose={onClose}>
       <div className="menu-label">
         <SquarePen size={12} aria-hidden /> 新しいチャットの作成先
       </div>

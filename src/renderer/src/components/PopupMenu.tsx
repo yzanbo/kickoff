@@ -15,6 +15,8 @@ interface Props {
   label?: string;
   /** Esc の扱い（useDismiss と同じ。既定は、重なったいちばん上のメニューだけ閉じる） */
   escape?: "stop" | "pass";
+  /** 開くボタンのセレクタ。押しても外側として閉じず、ボタンの側で開閉する（開いているときに押したら閉じる） */
+  ignore?: string;
   /** メニューの要素を外から使うとき（ピントの移動など） */
   menuRef?: RefObject<HTMLDivElement | null>;
   onClose: () => void;
@@ -25,10 +27,10 @@ interface Props {
  * 右クリック・「…」で開くメニュー。外側のクリック・Esc で閉じる。
  * サイドバーの横スライド（transform）の中から開いても位置がずれないよう、body の直下に出す
  */
-export function PopupMenu({ x, y, className, label, escape = "stop", menuRef, onClose, children }: Props) {
+export function PopupMenu({ x, y, className, label, escape = "stop", ignore, menuRef, onClose, children }: Props) {
   const ownRef = useRef<HTMLDivElement>(null);
   const ref = menuRef ?? ownRef;
-  useDismiss(ref, onClose, { escape });
+  useDismiss(ref, onClose, { escape, ignore });
   return createPortal(
     <div ref={ref} className={className ? `menu ${className}` : "menu"} style={{ left: x, top: y }} role="menu" aria-label={label}>
       {children}

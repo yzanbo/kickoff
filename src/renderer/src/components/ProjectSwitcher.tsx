@@ -23,6 +23,8 @@ export function ProjectSwitcher({ project, projects, tab }: { project: { id: num
         aria-haspopup="menu"
         aria-expanded={at !== null}
         onClick={(e) => {
+          // 開いているときに押したら閉じる
+          if (at) return setAt(null);
           const r = e.currentTarget.getBoundingClientRect();
           setAt(clampToViewport(r.left, r.bottom + 4, 260, 16 + ordered.length * 34));
         }}
@@ -61,7 +63,7 @@ function ProjectSwitchMenu({
   const ref = useRef<HTMLDivElement>(null);
   useMenuKeys(ref);
   return (
-    <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" menuRef={ref} onClose={onClose}>
+    <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore=".project-switch" menuRef={ref} onClose={onClose}>
       {projects.map((p) => (
         <button
           key={p.id}
