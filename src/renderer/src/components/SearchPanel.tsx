@@ -71,7 +71,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
         <input
           autoFocus
           value={query}
-          placeholder="チャットのやり取りを検索"
+          placeholder="チャットの中の文言を検索（⌘⇧F）"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {

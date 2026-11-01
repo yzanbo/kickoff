@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, List, Pencil, PanelRight, Plus, Search, SquareKanban, Trash2, Globe, X } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, List, Pencil, PanelRight, Plus, Search, SquareKanban, TextSearch, Trash2, Globe, X } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -21,10 +21,9 @@ import {
   type Phase,
   type ProjectSummary,
   type Run,
-  type SearchHit,
 } from "../../../core/types";
 import { api } from "../api";
-import { Highlight, useChatSearch } from "../chatSearch";
+import { openContentSearch, useChatSearch } from "../chatSearch";
 import { useServerEvent } from "../events";
 import { openRun, REOPEN_EVENT, type ReopenRoute } from "../router";
 import { SECTION_META } from "../sections";
@@ -106,7 +105,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const activeProjectFilter = projectId === undefined && projectFilter !== "all" && projects.some((p) => p.id === projectFilter) ? projectFilter : "all";
   // カンバン内の検索（チャット名とやり取りの中身）
   const [query, setQuery] = useState("");
-  const search = useChatSearch(query, projectId);
+  const search = useChatSearch(query);
   const [dragId, setDragId] = useState<number | null>(null);
   const [over, setOver] = useState<BoardStage | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
@@ -369,7 +368,6 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                       {...cardProps(run)}
                     >
                       <span className="card-title">{run.title || "無題のチャット"}</span>
-                      <CardSnippet hit={search.snippetFor(run)} />
                       <div className="card-labels">
                         {projectId === undefined && <ProjectChip id={run.project_id} name={projectName(run.project_id)} />}
                         <SectionBadge section={run.phase} short />
@@ -415,7 +413,6 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                   >
                     <div className="list-main">
                       <span className="card-title one-line">{run.title || "無題のチャット"}</span>
-                      <CardSnippet hit={search.snippetFor(run)} />
                       <span className="list-meta">
                         {projectId === undefined && <ProjectChip id={run.project_id} name={projectName(run.project_id)} />}
                         <SectionBadge section={run.phase} short />
@@ -452,8 +449,8 @@ export function BoardSearch({ query, onChange }: { query: string; onChange: (q: 
       <input
         type="text"
         value={query}
-        placeholder="チャットを検索（⌘F）"
-        aria-label="このボードのチャットを検索"
+        placeholder="チャット名で検索（⌘F）"
+        aria-label="このボードのチャットを名前で検索"
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Escape" && query) {
@@ -469,19 +466,14 @@ export function BoardSearch({ query, onChange }: { query: string; onChange: (q: 
           <X size={12} />
         </button>
       )}
+      {/* チャットの中の文言を探すときは、全文検索のパネルへ */}
+      <button className="chat-search-content" title="チャットの中の文言を検索（⌘⇧F）" aria-label="チャットの中の文言を検索" onClick={openContentSearch}>
+        <TextSearch size={13} />
+      </button>
     </div>
   );
 }
 
-/** 中身だけが検索に一致したカードに、一致した部分を出す */
-export function CardSnippet({ hit }: { hit: SearchHit | undefined }) {
-  if (!hit) return null;
-  return (
-    <span className="card-snippet">
-      <Highlight hit={hit} />
-    </span>
-  );
-}
 
 function ArrowButton({ to, dir, onMove }: { to: BoardStage | null; dir: "prev" | "next"; onMove: (to: BoardStage) => void }) {
   if (!to) return <span className="arrow-spacer" />;

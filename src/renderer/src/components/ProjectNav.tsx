@@ -19,7 +19,7 @@ import {
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import type { Approval, ProjectSummary, Run, RunGroup } from "../../../core/types";
 import { api } from "../api";
-import { Highlight, useChatSearch } from "../chatSearch";
+import { useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, PROJECT_DRAG_TYPE, startRunDrag, useGroupReorder, useReorder } from "../groups";
 import { initialOf, projectHue } from "../projectColor";
 import { useGroupMenu } from "./GroupMenu";
@@ -455,7 +455,7 @@ const WorkspacePage = memo(function WorkspacePage({
   const isActive = route.name === "project" && route.id === project.id;
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
-  const { keyword, matches, snippetFor } = useChatSearch(query, project.id);
+  const { keyword, matches } = useChatSearch(query);
 
   const withState = (run: Run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) });
   const allRows = runs.filter((r) => !r.archived_at).map(withState);
@@ -555,7 +555,6 @@ const WorkspacePage = memo(function WorkspacePage({
     const meta = SECTION_META[run.phase];
     const Icon = meta.icon;
     const active = route.name === "run" && route.runId === run.id;
-    const snippet = snippetFor(run);
     return (
       <li key={run.id}>
         <a
@@ -580,17 +579,10 @@ const WorkspacePage = memo(function WorkspacePage({
               <span className="chat-row-title">{run.title || "チャット"}</span>
               <span className="chat-row-time">{relativeTime(run.updated_at)}</span>
             </span>
-            {snippet ? (
-              // 中身だけが一致したときは、一致した部分を見せる
-              <span className="chat-row-snippet">
-                <Highlight hit={snippet} />
-              </span>
-            ) : (
-              <span className="chat-row-meta">
-                <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
-                {meta.label}
-              </span>
-            )}
+            <span className="chat-row-meta">
+              <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
+              {meta.label}
+            </span>
           </span>
         </a>
       </li>
@@ -679,7 +671,7 @@ const WorkspacePage = memo(function WorkspacePage({
           <input
             type="text"
             value={query}
-            placeholder="このプロジェクトのチャットを検索"
+            placeholder="チャット名で検索"
             aria-label={`${project.name} のチャットを検索`}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Escape" && setQuery("")}
