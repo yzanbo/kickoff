@@ -302,6 +302,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
             <List size={13} /> リスト
           </button>
         </div>
+        {panel.toggleButton}
       </div>
       {error && <p className="error small board-error">{error}</p>}
 
