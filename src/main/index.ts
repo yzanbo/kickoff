@@ -163,9 +163,15 @@ app.on("window-all-closed", () => {
 
 let closing = false;
 app.on("before-quit", (e) => {
-  if (!core || closing) return;
-  // 実行中のエージェントや DB を閉じてから終了する
+  if (!core) return;
+  // 実行中のエージェントや DB を閉じてから終了する（片付けの間に届いた終了の指示も待たせる）
   e.preventDefault();
+  if (closing) return;
   closing = true;
-  void core.close().finally(() => app.quit());
+  // 片付けのあとに app.quit() を呼び直すと、ウィンドウを閉じたところで終了が取り消されてしまうので、app.exit で終える。
+  // 片付けが終わらなくても、5 秒で終える
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
+  void Promise.race([core.close(), timeout])
+    .catch((err) => console.error("[main] 終了の片付けに失敗しました", err))
+    .finally(() => app.exit(0));
 });

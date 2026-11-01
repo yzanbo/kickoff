@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { serve, type ServerType } from "@hono/node-server";
 import { loadOrCreateToken } from "./auth.js";
 import { Bus } from "./bus.js";
+import { startHttpServer, stopHttpServer } from "./httpServer.js";
 import { createProviders } from "./providers/index.js";
 import { createApp } from "./server.js";
 import { Store } from "./store.js";
@@ -58,10 +58,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     listen: { host, port: opts.port },
   });
 
-  const server = await new Promise<ServerType>((resolve, reject) => {
-    const s = serve({ fetch: app.fetch, port: opts.port, hostname: host }, () => resolve(s));
-    s.once("error", reject);
-  });
+  const server = await startHttpServer(app, { port: opts.port, host });
   usage.start();
 
   return {
@@ -71,14 +68,11 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     store,
     bus,
     approvals,
-    close: () =>
-      new Promise<void>((resolve) => {
-        runner.shutdown();
-        usage.stop();
-        server.close(() => {
-          store.close();
-          resolve();
-        });
-      }),
+    close: async () => {
+      runner.shutdown();
+      usage.stop();
+      await stopHttpServer(server);
+      store.close();
+    },
   };
 }
