@@ -141,7 +141,7 @@ export function App() {
     >
       {!sidebarOpen && (
         <button className="titlebar-toggle floating" title="サイドバーを開く（⌘B）" aria-label="サイドバーを開く" onClick={toggleSidebar}>
-          <PanelLeftOpen size={16} />
+          <PanelLeftOpen size={14} strokeWidth={1.75} />
         </button>
       )}
       <aside className="sidebar" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
@@ -157,7 +157,7 @@ export function App() {
         {/* 一番上の行は macOS の信号機ボタンの行。そのすぐ右に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
         <div className="sidebar-header">
           <button className="titlebar-toggle" title="サイドバーを閉じる（⌘B）" aria-label="サイドバーを閉じる" onClick={toggleSidebar}>
-            <PanelLeftClose size={16} />
+            <PanelLeftClose size={14} strokeWidth={1.75} />
           </button>
         </div>
         <div className="nav-rows">

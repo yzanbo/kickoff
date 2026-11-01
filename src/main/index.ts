@@ -90,6 +90,8 @@ function createWindow(url: string) {
     minHeight: 600,
     title: "Kickoff",
     titleBarStyle: "hiddenInset",
+    // 信号機ボタンの位置を固定し、画面側の開閉ボタンと高さをそろえる（styles.css の .titlebar-toggle と対応）
+    trafficLightPosition: { x: 14, y: 14 },
     backgroundColor: "#0f1115",
     webPreferences: {
       preload: path.join(outDir, "preload", "index.cjs"),
