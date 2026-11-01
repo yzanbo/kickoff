@@ -18,7 +18,8 @@ export interface NewChatTarget {
 /** 右側のパネルのタブ（チャット・新しいチャット・ブラウザ） */
 type PanelTab =
   | { key: string; kind: "chat"; id: number; projectId: number; focus?: number }
-  | ({ key: string; kind: "new" } & NewChatTarget)
+  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる） */
+  | ({ key: string; kind: "new"; groupName?: string } & NewChatTarget)
   | { key: string; kind: "browser"; url: string; title: string };
 
 const chatKey = (id: number) => `chat:${id}`;
@@ -175,7 +176,11 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
     const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
     const Icon = t.kind === "browser" ? Globe : t.kind === "new" ? SquarePen : run ? SECTION_META[run.phase].icon : null;
     const label =
-      t.kind === "browser" ? t.title || (t.url ? hostOf(t.url) : "新しいタブ") : t.kind === "new" ? "新しいチャット" : run?.title || "チャット";
+      t.kind === "browser" ? t.title || (t.url ? hostOf(t.url) : "新しいタブ") : t.kind === "new"
+          ? t.groupName
+            ? `新しいチャット · ${t.groupName}`
+            : "新しいチャット"
+          : run?.title || "チャット";
     return { run, Icon, label };
   };
 
@@ -270,7 +275,12 @@ export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreate
                 stage={t.stage}
                 group={t.group}
                 projects={projects}
-                onProjectChange={(projectId) => setTabs((prev) => prev.map((x) => (x.key === t.key ? { ...t, projectId } : x)))}
+                onProjectChange={(projectId) =>
+                  setTabs((prev) => prev.map((x) => (x.key === t.key ? { ...t, projectId, group: undefined, groupName: undefined } : x)))
+                }
+                onGroupChange={(group, groupName) =>
+                  setTabs((prev) => prev.map((x) => (x.key === t.key && x.kind === "new" ? { ...x, group, groupName } : x)))
+                }
                 onClose={close}
                 onCreated={(run) => replaceWithChat(t.key, run)}
               />

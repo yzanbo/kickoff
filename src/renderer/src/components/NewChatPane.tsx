@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Folder, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BOARD_STAGE_LABELS, type BoardStage, type Phase, type ProjectSummary, type Run } from "../../../core/types";
 import { api, useAsync } from "../api";
@@ -17,19 +17,36 @@ interface Props {
   /** 全プロジェクトのボードでは、どのプロジェクトで始めるかを選べるようにする */
   projects?: ProjectSummary[];
   onProjectChange?: (projectId: number) => void;
+  /** 作成先のグループを変えたとき・グループ名が分かったとき（タブの表示に使う） */
+  onGroupChange?: (group: number | undefined, groupName: string | undefined) => void;
   onClose: () => void;
   /** 最初のメッセージを送ってチャットができたとき（このタブをそのチャットに置き換える） */
   onCreated: (run: Run) => void;
 }
 
 /** 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる） */
-export function NewChatPane({ projectId, section: initialSection, stage, group, projects, onProjectChange, onClose, onCreated }: Props) {
+export function NewChatPane({
+  projectId,
+  section: initialSection,
+  stage,
+  group,
+  projects,
+  onProjectChange,
+  onGroupChange,
+  onClose,
+  onCreated,
+}: Props) {
   const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
   const options = useRunOptions(undefined, section, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
   const runs = useAsync(() => api.runs(projectId), [projectId]);
   const groups = useAsync(() => api.groups(projectId), [projectId]);
   const groupName = groups.data?.find((g) => g.id === group)?.name;
+  // グループ名が分かったら、タブにも出す
+  useEffect(() => {
+    if (groupName) onGroupChange?.(group, groupName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupName]);
 
   // セクションの指定がなければ、プロジェクトの既定 → 直近のチャットと同じ → 要件定義の順に決める
   useEffect(() => {
@@ -69,6 +86,27 @@ export function NewChatPane({ projectId, section: initialSection, stage, group, 
             </select>
           ) : (
             <span>{project.data?.name ?? ""}</span>
+          )}
+          {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
+          {groups.data && groups.data.length > 0 && onGroupChange && (
+            <label className={`new-chat-group ${group ? "has-group" : ""}`} title="作成先のグループ">
+              <Folder size={12} aria-hidden />
+              <select
+                aria-label="作成先のグループ"
+                value={group ?? ""}
+                onChange={(e) => {
+                  const next = e.target.value ? Number(e.target.value) : undefined;
+                  onGroupChange(next, groups.data?.find((g) => g.id === next)?.name);
+                }}
+              >
+                <option value="">グループなし</option>
+                {groups.data.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
         </div>
       </header>
