@@ -1,6 +1,6 @@
 import type { DragEvent, KeyboardEvent, MouseEvent } from "react";
 import type { Run } from "../../../../core/types";
-import { runTitle } from "./RunCard";
+import { chatTitle } from "../../chatTitle";
 
 /**
  * ボードのカード（リストの行も同じ）の操作をカード全体でそろえる:
@@ -27,7 +27,7 @@ export function runCardProps(
   return {
     role: "button",
     tabIndex: 0,
-    "aria-label": `チャット「${runTitle(run)}」を開く（${dragHint}）`,
+    "aria-label": `チャット「${chatTitle(run.title)}」を開く（${dragHint}）`,
     draggable: true,
     onDragStart,
     onDragEnd,

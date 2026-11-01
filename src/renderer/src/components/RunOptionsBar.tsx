@@ -1,30 +1,15 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  EFFORT_LABELS,
-  PERMISSION_CHOICES,
-  PERMISSION_LABELS,
-  type EffortLevel,
-  type ModelOption,
-  type Phase,
-  type PermissionChoice,
-  type RunOptions,
-} from "../../../core/types";
+import { effectiveEffort, effectivePermission, resolveRunDefaults } from "../../../core/sectionDefaults";
+import { EFFORT_LABELS, PERMISSION_LABELS, type EffortLevel, type ModelOption, type PermissionChoice, type Phase, type RunOptions } from "../../../core/types";
 import { api } from "../api";
-import { groupModels, modelDisplayName } from "../models";
+import { cachedLoader } from "../cachedLoader";
+import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../models";
 import { ClaudeMark } from "./ClaudeMark";
 import { OptionMenu } from "./OptionMenu";
-import { effectiveEffort, effectivePermission, resolveRunDefaults } from "../../../core/sectionDefaults";
 
 // モデル一覧はアプリ全体で 1 回だけ取得する
-let modelsPromise: Promise<ModelOption[]> | undefined;
-function loadModels() {
-  modelsPromise ??= api.models("claude").catch(() => {
-    modelsPromise = undefined;
-    return [];
-  });
-  return modelsPromise;
-}
+const loadModels = cachedLoader<ModelOption[]>(() => api.models("claude"), []);
 
 /**
  * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
@@ -94,7 +79,7 @@ const PERMISSION_HINTS: Partial<Record<PermissionChoice, string>> = {
 /** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード / ファストモード） */
 export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; disabled?: boolean }) {
   const { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode } = state;
-  const efforts = current?.efforts ?? (Object.keys(EFFORT_LABELS) as EffortLevel[]);
+  const efforts = effortsFor(current);
   const fastSupported = !current || current.supportsFastMode;
 
   return (
@@ -131,7 +116,9 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
         groups={[
           {
             label: "権限モード",
-            items: PERMISSION_CHOICES.filter((p) => p !== "phase" && (p !== "auto" || !current || current.supportsAutoMode)).map((p) => ({
+            items: permissionChoices(current)
+              .filter((p) => p !== "phase")
+              .map((p) => ({
               value: p,
               label: PERMISSION_LABELS[p],
               description: PERMISSION_HINTS[p],

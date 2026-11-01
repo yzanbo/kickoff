@@ -1,5 +1,6 @@
 import { Globe, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, X } from "lucide-react";
 import type { Run } from "../../../../core/types";
+import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
 import { RunPage } from "../../pages/RunPage";
 import { SECTION_META } from "../../sections";
@@ -27,7 +28,9 @@ function tabLabel(t: PanelTab, runs: Run[]) {
         ? t.groupName
           ? `新しいチャット · ${t.groupName}`
           : "新しいチャット"
-        : run?.title || "チャット";
+        : run
+          ? chatTitle(run.title)
+          : "チャット";
   return { run, Icon, label };
 }
 

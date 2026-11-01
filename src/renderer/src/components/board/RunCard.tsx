@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AGENT_STATE_LABELS, type AgentState, type Run } from "../../../../core/types";
+import { chatTitle } from "../../chatTitle";
 import { relativeTime } from "../../time";
 import { ProjectChip } from "../ProjectChip";
 import { SectionBadge } from "../SectionBadge";
@@ -16,13 +17,12 @@ interface Props {
   trailing?: ReactNode;
 }
 
-export const runTitle = (run: Run) => run.title || "無題のチャット";
 
 /** ボードのカードの中身（名前・ラベル・状態・時刻） */
 export function RunCardContent({ run, state, projectName, pending = 0, trailing }: Props) {
   return (
     <>
-      <span className="card-title">{runTitle(run)}</span>
+      <span className="card-title">{chatTitle(run.title)}</span>
       <div className="card-labels">
         {projectName !== undefined && <ProjectChip id={run.project_id} name={projectName} />}
         <SectionBadge section={run.phase} short />
@@ -44,7 +44,7 @@ export function RunRowContent({ run, state, projectName, trailing }: Props) {
   return (
     <>
       <div className="list-main">
-        <span className="card-title one-line">{runTitle(run)}</span>
+        <span className="card-title one-line">{chatTitle(run.title)}</span>
         <span className="list-meta">
           {projectName !== undefined && <ProjectChip id={run.project_id} name={projectName} />}
           <SectionBadge section={run.phase} short />

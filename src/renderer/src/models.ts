@@ -1,4 +1,4 @@
-import type { ModelOption } from "../../core/types";
+import { EFFORT_LEVELS, PERMISSION_CHOICES, type EffortLevel, type ModelOption, type PermissionChoice } from "../../core/types";
 
 /** 一覧での並び順（性能の高い順） */
 const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku"];
@@ -41,4 +41,14 @@ export function modelDisplayName(models: ModelOption[], value: string | null): s
   if (!m) return value ?? "読み込み中…";
   const { family, version } = splitModelLabel(m.label);
   return version ? `${family} ${version}` : family;
+}
+
+/** そのモデルで選べる推論の深さ（モデルが分からなければすべて） */
+export function effortsFor(model: ModelOption | undefined): readonly EffortLevel[] {
+  return model?.efforts ?? EFFORT_LEVELS;
+}
+
+/** そのモデルで選べる権限モード（Auto mode は対応しているモデルだけ。モデルが分からなければすべて） */
+export function permissionChoices(model: ModelOption | undefined): PermissionChoice[] {
+  return PERMISSION_CHOICES.filter((p) => p !== "auto" || !model || model.supportsAutoMode);
 }

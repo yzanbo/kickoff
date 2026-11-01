@@ -40,6 +40,21 @@ export function planLabel(plan: string): string {
   return known[plan.toLowerCase()] ?? plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
+/** 使用率の段階（70% から注意、90% から警告） */
+export function usageLevel(pct: number): "normal" | "warning" | "critical" {
+  return pct >= 90 ? "critical" : pct >= 70 ? "warning" : "normal";
+}
+
+/** モデル別の週枠（「週（Fable）」）なら、そのモデル名 */
+export function weeklyModel(label: string): string | undefined {
+  return /^週（(.+)）$/.exec(label)?.[1];
+}
+
+/** CLI のログイン情報の 1 行（"you@example.com ・ Max プラン"）。どちらも分からなければ空 */
+export function accountLine(status: { account?: string; plan?: string }): string {
+  return [status.account, status.plan && `${planLabel(status.plan)} プラン`].filter(Boolean).join(" ・ ");
+}
+
 /** ログインしているアカウントの契約プラン（"Claude Max" など。分からなければ null） */
 export function planName(usage: PlanUsage | undefined): string | null {
   return usage?.plan ? `${usage.provider_label} ${planLabel(usage.plan)}` : null;

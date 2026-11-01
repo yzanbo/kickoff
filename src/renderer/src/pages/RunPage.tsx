@@ -2,6 +2,7 @@ import { Archive, ArchiveRestore, Pencil, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Approval, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
+import { chatTitle } from "../chatTitle";
 import { ApprovalCard } from "../components/ApprovalCard";
 import { Composer } from "../components/Composer";
 import { ContextMeter } from "../components/ContextMeter";
@@ -139,7 +140,7 @@ function RunView({
             <X size={15} />
           </button>
           <SectionBadge section={run.phase} />
-          <h1 title={run.title}>{run.title || "チャット"}</h1>
+          <h1 title={run.title}>{chatTitle(run.title)}</h1>
           <button
             className="icon-button"
             title="名前を変更"

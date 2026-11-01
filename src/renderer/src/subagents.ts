@@ -18,6 +18,14 @@ export interface SubagentEntry {
 
 const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
 
+/** サブエージェントの状態の表示名 */
+export const SUBAGENT_STATUS_LABELS: Record<SubagentEntry["status"], string> = {
+  running: "実行中",
+  completed: "完了",
+  failed: "失敗",
+  stopped: "中断",
+};
+
 /** サブエージェントを起動するツール（Task / Agent）か */
 export function isSubagentTool(name: string): boolean {
   return SUBAGENT_TOOLS.has(name);

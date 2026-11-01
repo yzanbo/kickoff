@@ -1,12 +1,11 @@
-import { useState } from "react";
 import type { Project } from "../../../../core/types";
 import { api } from "../../api";
 import { confirmDialog } from "../../dialogs";
-import { errorMessage } from "../../errors";
+import { useActionError } from "../../hooks/useActionError";
 import { navigate } from "../../router";
 
 export function DeleteProject({ project }: { project: Project }) {
-  const [error, setError] = useState<string>();
+  const { error, guard } = useActionError();
   const remove = async () => {
     const ok = await confirmDialog({
       title: `プロジェクト「${project.name}」を削除しますか？`,
@@ -15,12 +14,10 @@ export function DeleteProject({ project }: { project: Project }) {
       danger: true,
     });
     if (!ok) return;
-    try {
+    await guard(async () => {
       await api.deleteProject(project.id);
       navigate({ name: "home" });
-    } catch (e) {
-      setError(errorMessage(e));
-    }
+    });
   };
   return (
     <section className="section danger-zone">

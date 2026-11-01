@@ -2,6 +2,7 @@ import { FolderGit2, MessageSquare, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectSummary, Run } from "../../../core/types";
 import { api } from "../api";
+import { chatTitle } from "../chatTitle";
 import { navigate, type Route } from "../router";
 import { SECTION_META } from "../sections";
 
@@ -46,7 +47,7 @@ export function CommandPalette({ projects, onClose }: { projects: ProjectSummary
         const Icon = SECTION_META[r.phase].icon;
         return {
           key: `r-${r.id}`,
-          label: r.title || "チャット",
+          label: chatTitle(r.title),
           hint: `${names.get(r.project_id) ?? ""} ・ ${SECTION_META[r.phase].label}`,
           icon: Icon ? <Icon size={15} className={`sec-icon sec-${r.phase}`} /> : <MessageSquare size={15} />,
           route: { name: "run", projectId: r.project_id, runId: r.id } as Route,

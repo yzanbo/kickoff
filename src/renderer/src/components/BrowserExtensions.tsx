@@ -1,6 +1,7 @@
 import { Download, FolderOpen, Puzzle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { BrowserExtensionInfo } from "../../../preload/index";
+import { errorMessage } from "../errors";
 import type { ResultText } from "../hooks/useSave";
 import { ResultMessage } from "./SaveActions";
 
@@ -30,7 +31,7 @@ export function BrowserExtensions() {
       setList(await fn());
       setMessage({ kind: "ok", text: done });
     } catch (e) {
-      setMessage({ kind: "error", text: e instanceof Error ? e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "") : String(e) });
+      setMessage({ kind: "error", text: errorMessage(e) });
     } finally {
       setBusy(null);
     }

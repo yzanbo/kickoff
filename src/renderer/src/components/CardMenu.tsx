@@ -1,6 +1,7 @@
 import { Archive, ArchiveRestore, PanelRight, Pencil, Trash2 } from "lucide-react";
 import type { Run } from "../../../core/types";
 import { api } from "../api";
+import { chatTitle } from "../chatTitle";
 import { confirmDialog, promptDialog } from "../dialogs";
 import { errorMessage } from "../errors";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
@@ -62,7 +63,7 @@ export function CardMenu({
         onClick={async () => {
           onClose();
           const ok = await confirmDialog({
-            title: `チャット「${run.title || "無題のチャット"}」を削除しますか？`,
+            title: `チャット「${chatTitle(run.title)}」を削除しますか？`,
             message: "会話の記録も消えます。残しておきたいときはアーカイブを使ってください。",
             confirmLabel: "削除",
             danger: true,

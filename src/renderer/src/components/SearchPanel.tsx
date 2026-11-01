@@ -2,6 +2,7 @@ import { Bot, Search, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { SearchHit } from "../../../core/types";
 import { api } from "../api";
+import { chatTitle } from "../chatTitle";
 import { openRun } from "../router";
 import { relativeTime } from "../time";
 import { SectionBadge } from "./SectionBadge";
@@ -103,7 +104,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
             <button className={`search-hit ${i === index ? "active" : ""}`} onMouseEnter={() => setIndex(i)} onClick={() => open(hit)}>
               <div className="search-hit-head">
                 {hit.type === "user" ? <User size={13} aria-label="自分" /> : <Bot size={13} aria-label="AI" />}
-                <span className="search-hit-title">{hit.run_title || "チャット"}</span>
+                <span className="search-hit-title">{chatTitle(hit.run_title)}</span>
                 <SectionBadge section={hit.phase} short />
                 <span className="muted small">{relativeTime(hit.created_at)}</span>
               </div>

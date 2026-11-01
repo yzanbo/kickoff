@@ -1,19 +1,11 @@
 import { useEffect, useState } from "react";
-import {
-  EFFORT_LABELS,
-  EFFORT_LEVELS,
-  PERMISSION_CHOICES,
-  PERMISSION_LABELS,
-  type AppSettings,
-  type EffortLevel,
-  type PermissionChoice,
-} from "../../../core/types";
+import {EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice} from "../../../core/types";
 import { api, useAsync } from "../api";
-import { BrowserExtensions } from "../components/BrowserExtensions";
+import {BrowserExtensions} from "../components/BrowserExtensions";
 import { SaveActions } from "../components/SaveActions";
 import { StatusCard } from "../components/StatusCard";
 import { useSave } from "../hooks/useSave";
-import { groupModels, modelDisplayName } from "../models";
+import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../models";
 import { UsagePanel } from "../components/UsagePanel";
 import type { usePlanUsage } from "../usage";
 import { useTheme, type Theme } from "../theme";
@@ -138,7 +130,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
                 onChange={(e) => setDraft({ ...draft, defaultEffort: (e.target.value || null) as EffortLevel | null })}
               >
                 <option value="">セクションに合わせる（要件定義・実装・テスト: High / スケジュール・デプロイ: Medium）</option>
-                {(currentModel?.efforts ?? EFFORT_LEVELS).map((level) => (
+                {effortsFor(currentModel).map((level) => (
                   <option key={level} value={level}>
                     {EFFORT_LABELS[level]}
                   </option>
@@ -151,7 +143,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
                 value={draft.defaultPermission}
                 onChange={(e) => setDraft({ ...draft, defaultPermission: e.target.value as PermissionChoice })}
               >
-                {PERMISSION_CHOICES.filter((p) => p !== "auto" || !currentModel || currentModel.supportsAutoMode).map((p) => (
+                {permissionChoices(currentModel).map((p) => (
                   <option key={p} value={p}>
                     {p === "phase" ? "セクションに合わせる（実装・テスト: 編集を自動承認 / それ以外: 毎回確認）" : PERMISSION_LABELS[p]}
                   </option>

@@ -2,25 +2,20 @@ import { RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ProviderStatus, Run, UsageWindow } from "../../../core/types";
 import { api } from "../api";
-import { resetIn } from "../time";
-import { planLabel, useSharedPlanUsage } from "../usage";
-import { useDismiss } from "../hooks/useDismiss";
+import { cachedLoader } from "../cachedLoader";
 import { formatTokens } from "../format";
+import { useDismiss } from "../hooks/useDismiss";
+import { resetIn } from "../time";
+import { planLabel, usageLevel, useSharedPlanUsage, weeklyModel } from "../usage";
 import { ClaudeMark } from "./ClaudeMark";
 
 // ログイン中のアカウントは、アプリ全体で 1 回だけ取得する
-let providersPromise: Promise<ProviderStatus[]> | undefined;
-function loadProviders() {
-  providersPromise ??= api.providers().catch(() => {
-    providersPromise = undefined;
-    return [];
-  });
-  return providersPromise;
-}
+const loadProviders = cachedLoader<ProviderStatus[]>(api.providers, []);
 
 
 /** 使用率の色（70% から注意、90% から警告） */
-const tone = (pct: number) => (pct >= 90 ? "danger" : pct >= 70 ? "warn" : "ok");
+const TONES = { normal: "ok", warning: "warn", critical: "danger" } as const;
+const tone = (pct: number) => TONES[usageLevel(pct)];
 
 /**
  * チャット欄の右下の丸いメーター: コンテキストウィンドウの使用率。
@@ -134,7 +129,8 @@ function UsageBar({ window: w }: { window: UsageWindow }) {
   const pct = Math.round(w.utilization ?? 0);
   const reset = resetIn(w.resets_at);
   // 「週（Fable）」は 「週 · Fable」と書く
-  const label = w.label.replace(/^週（(.+)）$/, "週 · $1").replace(/^週$/, "週間");
+  const model = weeklyModel(w.label);
+  const label = model ? `週 · ${model}` : w.label === "週" ? "週間" : w.label;
   return (
     <div className="context-usage">
       <div className="context-row">

@@ -38,3 +38,8 @@ export function resetIn(resetsAt: string | null, now = Date.now()): string | nul
   const short = resetInShort(resetsAt, now);
   return short && `${short}にリセット`;
 }
+
+/** 時刻だけ（"14:05"） */
+export function formatClock(iso: string): string {
+  return new Date(iso).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
+}

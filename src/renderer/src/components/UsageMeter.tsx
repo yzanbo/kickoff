@@ -1,13 +1,11 @@
 import type { UsageWindow } from "../../../core/types";
 import { formatReset, resetInShort } from "../time";
+import { usageLevel } from "../usage";
 
 type Severity = "idle" | "normal" | "warning" | "critical";
 
 function severityOf(utilization: number | null): Severity {
-  if (utilization === null) return "idle";
-  if (utilization >= 90) return "critical";
-  if (utilization >= 70) return "warning";
-  return "normal";
+  return utilization === null ? "idle" : usageLevel(utilization);
 }
 
 // 色だけで状態を伝えないよう、注意以上はアイコンとラベルを必ず添える
