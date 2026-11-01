@@ -2,12 +2,16 @@ import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { GitChangeKind, GitDiff, GitFileChange, GitStatus } from "./types.js";
+import type { FileContent, GitChangeKind, GitDiff, GitFileChange, GitStatus, ProjectFiles } from "./types.js";
 
 const execFileAsync = promisify(execFile);
 
 /** 差分を返す上限（これより大きければ途中で切る） */
 const MAX_DIFF_CHARS = 400_000;
+/** ファイルの一覧の上限（大きなリポジトリでも重くならないように） */
+const MAX_FILES = 20_000;
+/** ファイルの中身を返す上限（バイト） */
+const MAX_FILE_BYTES = 1_000_000;
 
 /**
  * git を実行して標準出力をそのまま返す。okCodes の終了コードは失敗にしない
@@ -78,11 +82,12 @@ export async function gitStatus(repo: string): Promise<GitStatus> {
   return parseGitStatus(await gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"]));
 }
 
-/** リポジトリの中のパスか（外のファイルを読ませない） */
-async function assertInside(repo: string, file: string) {
+/** リポジトリの中のパスか（外のファイルを読ませない）。リポジトリの中の絶対パスを返す */
+async function assertInside(repo: string, file: string): Promise<string> {
   const root = await fs.realpath(repo);
   const target = path.resolve(root, file);
   if (path.isAbsolute(file) || !target.startsWith(root + path.sep)) throw new Error("リポジトリの外のファイルです");
+  return target;
 }
 
 /**
@@ -102,4 +107,46 @@ export async function gitDiff(repo: string, file: string, staged: boolean, oldPa
   const binary = /^Binary files .* differ$/m.test(diff) || diff.includes("GIT binary patch");
   const truncated = diff.length > MAX_DIFF_CHARS;
   return { diff: truncated ? diff.slice(0, MAX_DIFF_CHARS) : diff, binary, truncated };
+}
+
+const nulList = (out: string) => out.split("\0").filter(Boolean);
+
+/**
+ * エクスプローラーに出すファイルの一覧（Git で管理していなければ null）。
+ * 管理しているファイルと、まだ追加していないファイル（消したファイルは除く）。.gitignore で無視しているものは、
+ * フォルダなら中を開かずにまとめて返す（node_modules などを全部たどらないように）
+ */
+export async function listProjectFiles(repo: string): Promise<ProjectFiles | null> {
+  if ((await gitStatus(repo)).repo === false) return null;
+  const [all, deleted, ignored] = await Promise.all([
+    gitOutput(repo, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"]),
+    gitOutput(repo, ["ls-files", "--deleted", "-z"]),
+    gitOutput(repo, ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"]),
+  ]);
+  const gone = new Set(nulList(deleted));
+  const files = [...new Set(nulList(all))].filter((f) => !gone.has(f)).sort();
+  return {
+    files: files.slice(0, MAX_FILES),
+    ignored: nulList(ignored).map((p) => (p.endsWith("/") ? { path: p.slice(0, -1), dir: true } : { path: p, dir: false })),
+    truncated: files.length > MAX_FILES,
+  };
+}
+
+/** ファイルの中身（リポジトリの外を指すシンボリックリンクは読まない） */
+export async function readProjectFile(repo: string, file: string): Promise<FileContent> {
+  const target = await assertInside(repo, file);
+  const real = await fs.realpath(target);
+  await assertInside(repo, path.relative(await fs.realpath(repo), real));
+  const stat = await fs.stat(real);
+  if (!stat.isFile()) throw new Error("ファイルではありません");
+  const handle = await fs.open(real, "r");
+  try {
+    const buffer = Buffer.alloc(Math.min(stat.size, MAX_FILE_BYTES));
+    await handle.read(buffer, 0, buffer.length, 0);
+    // 先頭に NUL があればバイナリとみなす（git と同じ考え方）
+    const binary = buffer.subarray(0, 8000).includes(0);
+    return { content: binary ? "" : buffer.toString("utf8"), binary, truncated: stat.size > MAX_FILE_BYTES };
+  } finally {
+    await handle.close();
+  }
 }
