@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { gitDiff, gitStatus, listProjectFiles, readProjectFile } from "../git.js";
+import { gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject } from "../git.js";
 import type { ServerDeps } from "../server.js";
 import { HttpError, requireProject } from "./http.js";
 
@@ -38,6 +38,19 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
       return c.json(await readProjectFile(project.repo_path, path));
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
+    }
+  });
+
+  app.get("/api/projects/:id/search", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const flag = z.enum(["0", "1"]).default("0").transform((v) => v === "1");
+    const query = z
+      .object({ q: z.string().max(1000).default(""), case: flag, word: flag, regex: flag })
+      .parse({ q: c.req.query("q"), case: c.req.query("case"), word: c.req.query("word"), regex: c.req.query("regex") });
+    try {
+      return c.json(await searchProject(project.repo_path, { query: query.q, caseSensitive: query.case, wholeWord: query.word, regex: query.regex }));
+    } catch {
+      throw new HttpError(400, query.regex ? "正規表現の書き方が正しくありません" : "検索できませんでした");
     }
   });
 }

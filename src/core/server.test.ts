@@ -310,4 +310,21 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.equal((await call("GET", `/api/projects/${project.id}/file?path=../outside.txt`)).status, 400);
   fs.symlinkSync("/etc/hosts", path.join(repo, "link.txt"));
   assert.equal((await call("GET", `/api/projects/${project.id}/file?path=link.txt`)).status, 400);
+
+  // ファイルの中を探す（大文字・小文字・単語単位・正規表現。無視しているフォルダは探さない）
+  fs.writeFileSync(path.join(repo, "c.txt"), "Hello world\nhello-there\nshell\n");
+  fs.writeFileSync(path.join(repo, "node_modules", "pkg", "hello.js"), "hello\n");
+  const search = async (q: string, opts = "") => (await call("GET", `/api/projects/${project.id}/search?q=${encodeURIComponent(q)}${opts}`)).body;
+  const hits = await search("hello");
+  assert.deepEqual(hits.files, [
+    { path: "c.txt", matches: [{ line: 1, column: 1, text: "Hello world" }, { line: 2, column: 1, text: "hello-there" }] },
+    { path: "new.txt", matches: [{ line: 1, column: 1, text: "hello" }] },
+  ]);
+  assert.equal(hits.total, 3);
+  assert.equal((await search("hello", "&case=1")).total, 2);
+  assert.equal((await search("ell", "&word=1")).total, 0);
+  assert.equal((await search("h.llo", "&regex=1")).total, 3);
+  assert.equal((await search("h.llo")).total, 0);
+  assert.equal((await call("GET", `/api/projects/${project.id}/search?q=${encodeURIComponent("(")}&regex=1`)).status, 400);
+  assert.deepEqual(await search(""), { files: [], total: 0, truncated: false });
 });
