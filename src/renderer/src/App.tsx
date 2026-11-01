@@ -158,11 +158,6 @@ export function App() {
       className={`layout ${sidebarOpen ? "" : "sidebar-collapsed"} ${resizingSidebar ? "resizing-sidebar" : ""}`}
       style={{ "--sidebar-w": `${sidebarWidth}px` } as React.CSSProperties}
     >
-      {!sidebarOpen && (
-        <button className="titlebar-toggle floating" title="サイドバーを開く（⌘B）" aria-label="サイドバーを開く" onClick={toggleSidebar}>
-          <PanelLeftOpen size={14} strokeWidth={1.75} />
-        </button>
-      )}
       <aside className="sidebar" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
         <div
           className="sidebar-resizer"
@@ -259,6 +254,15 @@ export function App() {
             openNewChat(project.id, { section: "requirements" });
           }}
         />
+      )}
+      {/*
+        閉じているときの「開く」ボタン。Electron のドラッグ領域（見出しなど）は後に書かれた要素が優先されるので、
+        押せなくならないよう、画面のいちばん後ろに置く
+      */}
+      {!sidebarOpen && (
+        <button className="titlebar-toggle floating" title="サイドバーを開く（⌘B）" aria-label="サイドバーを開く" onClick={toggleSidebar}>
+          <PanelLeftOpen size={14} strokeWidth={1.75} />
+        </button>
       )}
       {connOpen && <ConnectionPopover state={connection} since={connectedSince} onClose={closeConn} />}
       {usageOpen && (
