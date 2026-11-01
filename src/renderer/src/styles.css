@@ -2354,8 +2354,12 @@ mark {
   -webkit-app-region: drag;
 }
 
+/* 見出しはウィンドウのドラッグ領域なので、操作するものは外す（外さないと押してもウィンドウのドラッグになる） */
 .run-header a,
-.run-header button {
+.run-header button,
+.run-header input,
+.run-header select,
+.run-header label {
   -webkit-app-region: no-drag;
 }
 
@@ -2681,12 +2685,6 @@ mark {
 
 /* 新しいチャット */
 
-.new-chat-project {
-  width: auto;
-  padding: 2px 6px;
-  font-size: 12px;
-}
-
 /* 新しいチャットの作成先のグループ（プロジェクト名の横） */
 .new-chat .run-sub {
   display: flex;
@@ -2709,20 +2707,30 @@ mark {
   color: var(--accent-bright);
 }
 
-.new-chat-group select {
+.new-chat-group .pill-select {
+  font-size: 12px;
+}
+
+/* ピルの中に置く選択欄（枠と背景はピルに任せる） */
+.pill-select {
   width: auto;
   /* 選んだ名前の長さに合わせる（いちばん長い選択肢の幅に広がらないように） */
   field-sizing: content;
   padding: 0 2px;
   border: none;
-  font-size: 12px;
   color: inherit;
   background: transparent;
   cursor: pointer;
 }
 
-.new-chat-group select:focus {
+.pill-select:focus {
   outline: none;
+}
+
+/* バッジのまま、どのプロジェクトで始めるかを選び直す（全プロジェクトのボードの新しいチャット） */
+.project-chip-select {
+  max-width: none;
+  padding-right: 2px;
 }
 
 .new-chat-hero {

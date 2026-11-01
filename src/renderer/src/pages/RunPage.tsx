@@ -19,7 +19,6 @@ import { OpenSubagentContext, TimelineItems, Working } from "../components/Timel
 import { alertDialog } from "../dialogs";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
-import { href } from "../router";
 import { groupEvents, relativize } from "../timeline";
 
 interface RunPageProps {
@@ -199,11 +198,7 @@ function RunView({
         </div>
         <div className="run-sub muted small">
           {/* どのプロジェクトのチャットかが一目でわかるよう、サイドバーと同じ色のバッジにする（押すとそのプロジェクトのカンバン） */}
-          {project && (
-            <a className="run-project" href={href({ name: "project", id: project.id, tab: "board" })}>
-              <ProjectChip id={project.id} name={project.name} />
-            </a>
-          )}
+          {project && <ProjectChip id={project.id} name={project.name} linked />}
           {run.num_turns > 0 && <span>{run.num_turns} ターン</span>}
           {run.cost_usd > 0 && (
             <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${run.cost_usd.toFixed(2)}</span>

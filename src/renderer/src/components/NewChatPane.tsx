@@ -5,6 +5,7 @@ import { api, useAsync } from "../api";
 import { SECTION_META } from "../sections";
 import { Composer } from "./Composer";
 import { CloseButton } from "./IconButton";
+import { ProjectChip } from "./ProjectChip";
 import { useRunOptions } from "./RunOptionsBar";
 import { SectionPicker } from "./SectionPicker";
 
@@ -70,27 +71,27 @@ export function NewChatPane({
           <h1>新しいチャット</h1>
         </div>
         <div className="run-sub muted small">
+          {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
           {projects && projects.length > 1 && onProjectChange ? (
-            <select
-              className="new-chat-project"
-              aria-label="プロジェクト"
-              value={projectId}
-              onChange={(e) => onProjectChange(Number(e.target.value))}
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            // 全プロジェクトのボードでは、バッジのまま選び直せる
+            <ProjectChip id={projectId} name={projects.find((p) => p.id === projectId)?.name ?? ""} className="project-chip-select">
+              <select className="pill-select" aria-label="プロジェクト" value={projectId} onChange={(e) => onProjectChange(Number(e.target.value))}>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </ProjectChip>
           ) : (
-            <span>{project.data?.name ?? ""}</span>
+            project.data && <ProjectChip id={project.data.id} name={project.data.name} linked />
           )}
           {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
           {groups.data && groups.data.length > 0 && onGroupChange && (
             <label className={`new-chat-group ${group ? "has-group" : ""}`} title="作成先のグループ">
               <Folder size={12} aria-hidden />
               <select
+                className="pill-select"
                 aria-label="作成先のグループ"
                 value={group ?? ""}
                 onChange={(e) => {
