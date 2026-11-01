@@ -1,77 +1,153 @@
-import { ArrowDown, ArrowUp, GitBranch } from "lucide-react";
-import { useState } from "react";
+import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch } from "lucide-react";
+import { useMemo, useState } from "react";
 import type { GitFileChange } from "../../../../core/types";
 import { cx } from "../../cx";
+import { useStoredChoice } from "../../hooks/useStoredState";
 import { Chevron } from "../Chevron";
 import { ErrorText } from "../ErrorText";
-import { RefreshButton } from "../IconButton";
+import { IconButton, RefreshButton } from "../IconButton";
+import { Segmented } from "../Segmented";
 import { CHANGE_LABELS, DiffView } from "./DiffView";
+import { FileTree } from "./FileTree";
+import { FileView } from "./FileView";
+import { changeKinds } from "./treeModel";
 import type { GitStatusController } from "./useGitStatus";
-
-/** 選んでいるファイル（同じファイルがステージ済みと未ステージの両方にあることもあるので、どちらかも持つ） */
-interface Selection {
-  path: string;
-  staged: boolean;
-}
+import { useProjectFiles } from "./useProjectFiles";
 
 /**
- * プロジェクトの「変更」タブ: VS Code のソース管理と同じく、ステージされている変更・変更（未追跡を含む）を並べ、
- * ファイルを選ぶとその差分を右に出す
+ * 選んでいるファイル。変更の一覧から選んだときは、ステージ済み・未ステージのどちらか（同じファイルが両方にあることもある）。
+ * エクスプローラーから選んだときは staged を持たない（変更があれば差分、なければ中身を出す）
  */
-export function ChangesTab({ projectId, git }: { projectId: number; git: GitStatusController }) {
+interface Selection {
+  path: string;
+  staged?: boolean;
+}
+
+type ChangesView = "files" | "changes";
+const VIEW_KEY = "kickoff:changes-view";
+
+/**
+ * プロジェクトの「変更」タブ（VS Code と同じく、左端で表示を切り替える）。
+ * - すべてのファイル（エクスプローラー）: フォルダの木。変更のあるファイルとフォルダだけ色を変える
+ * - 変更（ソース管理）: ステージされている変更・変更（未追跡・競合を含む）
+ * ファイルを選ぶと、変更があれば差分、なければ中身を右に出す
+ */
+export function ChangesTab({ projectId, rootName, git }: { projectId: number; rootName: string; git: GitStatusController }) {
   const { status } = git;
+  const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "changes"], "changes");
   const [selected, setSelected] = useState<Selection>();
+  const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
+  const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
+  const kinds = useMemo(() => changeKinds(status), [status]);
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
   }
   if (!status.repo) return <p className="muted small">このプロジェクトのフォルダは、Git で管理されていません。</p>;
 
-  // 選んでいたファイルが一覧からなくなったら（コミットした・元に戻したなど）、選ぶのをやめる
   const groups = { staged: status.staged, unstaged: [...status.conflicts, ...status.unstaged] };
-  const selectedFile = selected && (selected.staged ? groups.staged : groups.unstaged).find((f) => f.path === selected.path);
   const empty = groups.staged.length === 0 && groups.unstaged.length === 0;
+  const find = (list: GitFileChange[], path: string) => list.find((f) => f.path === path);
+  // 選んだファイルの差分（エクスプローラーから選んだときは、未ステージ → ステージ済みの順に探す）
+  const change: { file: GitFileChange; staged: boolean } | undefined = (() => {
+    if (!selected) return undefined;
+    const unstaged = selected.staged !== true ? find(groups.unstaged, selected.path) : undefined;
+    if (unstaged) return { file: unstaged, staged: false };
+    const staged = selected.staged !== false ? find(groups.staged, selected.path) : undefined;
+    return staged && { file: staged, staged: true };
+  })();
+  const toggleFolder = (path: string) =>
+    setOpenFolders((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(path)) next.add(path);
+      return next;
+    });
 
   return (
     <div className="changes">
-      <aside className="changes-list" aria-label="変更のあるファイル">
-        <header className="changes-head">
-          <GitBranch size={14} aria-hidden />
-          <span className="changes-branch" title="いまのブランチ">
-            {status.branch ?? "（ブランチなし）"}
-          </span>
-          {status.ahead > 0 && (
-            <span className="changes-sync" title={`リモートより ${status.ahead} 件進んでいます`}>
-              <ArrowUp size={11} aria-hidden />
-              {status.ahead}
-            </span>
-          )}
-          {status.behind > 0 && (
-            <span className="changes-sync" title={`リモートより ${status.behind} 件遅れています`}>
-              <ArrowDown size={11} aria-hidden />
-              {status.behind}
-            </span>
-          )}
-          <span className="spacer" />
-          <RefreshButton label="変更を取り直す" busy={git.loading} onClick={() => void git.refresh()} />
-        </header>
-        <ErrorText message={git.error} />
-        {empty ? (
-          <p className="muted small changes-empty">変更はありません。</p>
+      {/* 左端の表示の切り替え（VS Code のアクティビティバーと同じ） */}
+      <Segmented
+        className="changes-activity"
+        label="左側の表示"
+        value={view}
+        onChange={setView}
+        iconSize={18}
+        options={[
+          { value: "files", label: "すべてのファイル（エクスプローラー）", icon: Files, iconOnly: true },
+          { value: "changes", label: "変更（ソース管理）", icon: GitBranch, iconOnly: true, badge: git.count },
+        ]}
+      />
+      <aside className="changes-list" aria-label={view === "files" ? "すべてのファイル" : "変更のあるファイル"}>
+        {view === "files" ? (
+          <>
+            <header className="changes-head">
+              <span className="changes-branch" title={rootName}>
+                {rootName}
+              </span>
+              <span className="spacer" />
+              <RefreshButton label="ファイルの一覧を取り直す" busy={git.loading} onClick={() => void git.refresh()} />
+              <IconButton icon={ChevronsDownUp} label="フォルダをすべて閉じる" disabled={openFolders.size === 0} onClick={() => setOpenFolders(new Set())} />
+            </header>
+            <ErrorText message={files.error} />
+            {files.tree ? (
+              <FileTree
+                nodes={files.tree}
+                open={openFolders}
+                onToggle={toggleFolder}
+                selected={selected?.path}
+                onSelect={(path) => setSelected({ path })}
+                kinds={kinds}
+              />
+            ) : (
+              !files.error && <p className="muted small changes-empty">読み込み中…</p>
+            )}
+            {files.truncated && <p className="muted small changes-empty">ファイルが多いため、途中までを表示しています。</p>}
+          </>
         ) : (
           <>
-            {groups.staged.length > 0 && (
-              <ChangeGroup title="ステージされている変更" files={groups.staged} staged selected={selected} onSelect={setSelected} />
+            <header className="changes-head">
+              <GitBranch size={14} aria-hidden />
+              <span className="changes-branch" title="いまのブランチ">
+                {status.branch ?? "（ブランチなし）"}
+              </span>
+              {status.ahead > 0 && (
+                <span className="changes-sync" title={`リモートより ${status.ahead} 件進んでいます`}>
+                  <ArrowUp size={11} aria-hidden />
+                  {status.ahead}
+                </span>
+              )}
+              {status.behind > 0 && (
+                <span className="changes-sync" title={`リモートより ${status.behind} 件遅れています`}>
+                  <ArrowDown size={11} aria-hidden />
+                  {status.behind}
+                </span>
+              )}
+              <span className="spacer" />
+              <RefreshButton label="変更を取り直す" busy={git.loading} onClick={() => void git.refresh()} />
+            </header>
+            <ErrorText message={git.error} />
+            {empty ? (
+              <p className="muted small changes-empty">変更はありません。</p>
+            ) : (
+              <>
+                {groups.staged.length > 0 && (
+                  <ChangeGroup title="ステージされている変更" files={groups.staged} staged selected={selected} onSelect={setSelected} />
+                )}
+                <ChangeGroup title="変更" files={groups.unstaged} staged={false} selected={selected} onSelect={setSelected} />
+              </>
             )}
-            <ChangeGroup title="変更" files={groups.unstaged} staged={false} selected={selected} onSelect={setSelected} />
           </>
         )}
       </aside>
       <div className="changes-diff">
-        {selected && selectedFile ? (
-          <DiffView projectId={projectId} file={selectedFile} staged={selected.staged} version={git.version} />
+        {change ? (
+          <DiffView projectId={projectId} file={change.file} staged={change.staged} version={git.version} />
+        ) : selected && selected.staged === undefined ? (
+          <FileView projectId={projectId} path={selected.path} version={git.version} />
         ) : (
-          <p className="muted small changes-hint">{empty ? "コミットしていない変更はありません。" : "ファイルを選ぶと、差分を表示します。"}</p>
+          <p className="muted small changes-hint">
+            {view === "changes" && empty ? "コミットしていない変更はありません。" : "ファイルを選ぶと、変更があれば差分、なければ中身を表示します。"}
+          </p>
         )}
       </div>
     </div>

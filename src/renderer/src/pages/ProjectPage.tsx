@@ -133,19 +133,21 @@ export function ProjectPage({
           <button className="btn btn-sm project-edit-button" title="プロジェクトの名前・既定の設定などを編集" onClick={() => setEditing(true)}>
             <Pencil size={13} /> 編集
           </button>
+          {/* フォルダの場所（名前の横に並べ、見出しを 1 行に収める） */}
+          <button
+            className="path-button"
+            disabled={!window.kickoff}
+            title={window.kickoff ? `Finder で開く（${project.repo_path}）` : project.repo_path}
+            onClick={() => void window.kickoff?.openPath(project.repo_path)}
+          >
+            <FolderOpen size={13} aria-hidden />
+            <span className="path-button-text">{project.repo_path}</span>
+          </button>
           <div className="project-stats">
             {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
             {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
           </div>
         </div>
-        <button
-          className="path-button"
-          disabled={!window.kickoff}
-          title={window.kickoff ? "Finder で開く" : undefined}
-          onClick={() => void window.kickoff?.openPath(project.repo_path)}
-        >
-          <FolderOpen size={13} /> {project.repo_path}
-        </button>
         <nav className="tabs" role="tablist">
           {(Object.keys(TAB_LABELS) as ProjectTab[]).map((t) => (
             <a
@@ -179,7 +181,7 @@ export function ProjectPage({
         </section>
       )}
       {tab === "reports" && <ReportsTab artifacts={artifacts} />}
-      {tab === "changes" && <ChangesTab projectId={project.id} git={git} />}
+      {tab === "changes" && <ChangesTab projectId={project.id} rootName={project.repo_path.split("/").pop() ?? project.name} git={git} />}
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
     </div>
   );
