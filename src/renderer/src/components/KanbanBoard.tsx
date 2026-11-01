@@ -427,6 +427,10 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
           onPointerDown={startResize}
         />
         <div className="panel-tabs" role="tablist">
+          {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
+          <button className="panel-collapse" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={closePanel}>
+            <PanelRightClose size={15} />
+          </button>
           {tabs.map((t) => {
             const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
             const Icon = t.kind === "browser" ? Globe : run ? SECTION_META[run.phase].icon : null;
@@ -446,10 +450,6 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
           <button className="panel-tab-add" title="ブラウザのタブを開く" aria-label="ブラウザのタブを開く" onClick={openBrowser}>
             <Plus size={12} />
             <Globe size={12} />
-          </button>
-          {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-          <button className="panel-collapse" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={closePanel}>
-            <PanelRightClose size={15} />
           </button>
         </div>
         <div className="panel-content">
