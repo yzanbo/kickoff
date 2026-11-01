@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { ApprovalCenter } from "./approvals.js";
 import type { Bus } from "./bus.js";
+import { errorMessage } from "./errors.js";
 import { createKickoffTools } from "./kickoffTools.js";
 import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import { resolveRunDefaults } from "./sectionDefaults.js";
@@ -272,7 +273,7 @@ export class Runner {
         }
       }
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
+      const message = errorMessage(e);
       store.updateRun(runId, { status: "failed", error: message });
       store.addEvent(runId, { type: "error", message });
     } finally {
