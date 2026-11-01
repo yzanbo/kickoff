@@ -349,8 +349,8 @@ export type ApprovalDecision =
   | { action: "answer"; answers: Record<string, string | string[]>; response?: string };
 
 export interface AppSettings {
-  /** 同時に実行するエージェント数の上限（プランの使用枠を守るため） */
-  maxConcurrentRuns: number;
+  /** 同時に実行するエージェント数の上限（プランの使用枠を守るため）。null なら上限なし */
+  maxConcurrentRuns: number | null;
   /** 新規プロジェクトの既定プロバイダー */
   defaultProvider: ProviderId;
   /** 新しいチャットの既定のモデル（Claude） */
@@ -431,7 +431,8 @@ export interface ServerStatus {
   port: number;
   /** スマホなど、ほかの端末からの接続を許可しているか */
   remote_enabled: boolean;
-  agents: { running: number; queued: number; max: number };
+  /** max: 同時に実行するエージェント数の上限（null なら上限なし） */
+  agents: { running: number; queued: number; max: number | null };
 }
 
 export interface GitHubStatus {
