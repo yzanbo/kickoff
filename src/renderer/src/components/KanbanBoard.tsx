@@ -1,5 +1,5 @@
-import { Archive, ChevronLeft, ChevronRight, ExternalLink, List, Pencil, Plus, SquareKanban, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from "react";
+import { Archive, ChevronLeft, ChevronRight, List, Maximize2, Pencil, PanelRight, Plus, SquareKanban, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent } from "react";
 import { agentStateOf, stageOf } from "../../../core/board";
 import {
   AGENT_STATE_LABELS,
@@ -15,8 +15,9 @@ import {
 } from "../../../core/types";
 import { api } from "../api";
 import { useServerEvent } from "../events";
-import { href, navigate } from "../router";
+import { navigate } from "../router";
 import { SECTION_META } from "../sections";
+import { RunPage } from "../pages/RunPage";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
 
@@ -58,6 +59,10 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
   const [dragId, setDragId] = useState<number | null>(null);
   const [over, setOver] = useState<BoardStage | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
+  // 右側のパネルで開いているチャット。閉じるときはアニメーションが終わるまで中身を残す
+  const [panelRun, setPanelRun] = useState<Run | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [error, setError] = useState<string>();
   const [, setTick] = useState(0);
 
@@ -143,11 +148,58 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
     },
   });
 
-  /** カードのどこを押しても開く（矢印などのボタンとタイトルのリンクはそれぞれの動作のまま） */
-  const openCard = (e: MouseEvent, run: Run) => {
-    if ((e.target as HTMLElement).closest("button, a")) return;
-    navigate({ name: "run", projectId: run.project_id, runId: run.id });
+  /** カードをクリック: 右側からチャットのパネルを出し、カンバンを狭める */
+  const open = (run: Run) => {
+    clearTimeout(closeTimer.current);
+    setPanelRun(run);
+    setPanelOpen(true);
   };
+  const closePanel = () => {
+    setPanelOpen(false);
+    closeTimer.current = setTimeout(() => setPanelRun(null), 260);
+  };
+
+  // Esc でパネルを閉じる（メニューが開いていればメニューを優先）
+  useEffect(() => {
+    if (!panelOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !menu && !document.querySelector("dialog[open]")) closePanel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelOpen, menu]);
+
+  /**
+   * カード（リストの行も同じ）の操作をカード全体でそろえる:
+   * ドラッグ = 列の移動 / クリック = チャットを開く / 右クリック = メニュー。
+   * 中の矢印ボタンだけは列の移動ボタンとして働く。
+   */
+  const cardProps = (run: Run) => ({
+    role: "button",
+    tabIndex: 0,
+    "aria-label": `チャット「${run.title || "無題のチャット"}」を開く（ドラッグで列を移動）`,
+    draggable: true,
+    onDragStart: (e: DragEvent) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(run.id));
+      setDragId(run.id);
+    },
+    onDragEnd: () => {
+      setDragId(null);
+      setOver(null);
+    },
+    onClick: (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest("button")) open(run);
+    },
+    onKeyDown: (e: ReactKeyboardEvent<HTMLElement>) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+        e.preventDefault();
+        open(run);
+      }
+    },
+    onContextMenu: (e: MouseEvent) => openMenu(e, run),
+  });
 
   const openMenu = (e: MouseEvent, run: Run) => {
     e.preventDefault();
@@ -185,6 +237,8 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
       </div>
       {error && <p className="error small board-error">{error}</p>}
 
+      <div className={`board-body ${panelOpen ? "with-panel" : ""}`}>
+      <div className="board-main">
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : view === "board" ? (
@@ -206,23 +260,10 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                   {list.map(({ run, state }) => (
                     <article
                       key={run.id}
-                      className={`board-card ${dragId === run.id ? "dragging" : ""}`}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData("text/plain", String(run.id));
-                        setDragId(run.id);
-                      }}
-                      onDragEnd={() => {
-                        setDragId(null);
-                        setOver(null);
-                      }}
-                      onContextMenu={(e) => openMenu(e, run)}
-                      onClick={(e) => openCard(e, run)}
+                      className={`board-card ${dragId === run.id ? "dragging" : ""} ${panelOpen && panelRun?.id === run.id ? "selected" : ""}`}
+                      {...cardProps(run)}
                     >
-                      <a className="card-link" href={href({ name: "run", projectId: run.project_id, runId: run.id })} draggable={false}>
-                        <span className="card-title">{run.title || "無題のチャット"}</span>
-                      </a>
+                      <span className="card-title">{run.title || "無題のチャット"}</span>
                       <div className="card-labels">
                         {projectId === undefined && <span className="label-chip">{projectName(run.project_id)}</span>}
                         <SectionBadge section={run.phase} short />
@@ -260,16 +301,10 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                 {list.map(({ run, state }) => (
                   <div
                     key={run.id}
-                    className={`list-row ${dragId === run.id ? "dragging" : ""}`}
-                    draggable
-                    onDragStart={() => setDragId(run.id)}
-                    onDragEnd={() => {
-                      setDragId(null);
-                      setOver(null);
-                    }}
-                    onContextMenu={(e) => openMenu(e, run)}
+                    className={`list-row ${dragId === run.id ? "dragging" : ""} ${panelOpen && panelRun?.id === run.id ? "selected" : ""}`}
+                    {...cardProps(run)}
                   >
-                    <a className="list-main" href={href({ name: "run", projectId: run.project_id, runId: run.id })} draggable={false}>
+                    <div className="list-main">
                       <span className="card-title one-line">{run.title || "無題のチャット"}</span>
                       <span className="list-meta">
                         {projectId === undefined && <span className="label-chip">{projectName(run.project_id)}</span>}
@@ -277,7 +312,7 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
                         <span className="dot" style={{ background: STATE_TONE[state] }} />
                         <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
                       </span>
-                    </a>
+                    </div>
                     <span className="card-time">{relativeTime(run.updated_at)}</span>
                     <ArrowButton to={neighbour(stage, -1)} dir="prev" onMove={(to) => void move(run, to)} />
                     <ArrowButton to={neighbour(stage, 1)} dir="next" onMove={(to) => void move(run, to)} />
@@ -289,7 +324,15 @@ export function KanbanBoard({ projectId, projects, approvals, title }: Props) {
         </div>
       )}
 
-      {menu && <CardMenu {...menu} onClose={() => setMenu(null)} onError={setError} />}
+      </div>
+      <aside className="board-panel" aria-hidden={!panelOpen}>
+        {panelRun && (
+          <RunPage key={panelRun.id} projectId={panelRun.project_id} runId={panelRun.id} variant="panel" onClose={closePanel} />
+        )}
+      </aside>
+      </div>
+
+      {menu && <CardMenu {...menu} onOpenPanel={open} onClose={() => setMenu(null)} onError={setError} />}
     </div>
   );
 }
@@ -305,7 +348,21 @@ function ArrowButton({ to, dir, onMove }: { to: BoardStage | null; dir: "prev" |
 }
 
 /** カードの右クリックメニュー: 開く・名前を変更・アーカイブ・削除 */
-function CardMenu({ x, y, run, onClose, onError }: { x: number; y: number; run: Run; onClose: () => void; onError: (m: string) => void }) {
+function CardMenu({
+  x,
+  y,
+  run,
+  onOpenPanel,
+  onClose,
+  onError,
+}: {
+  x: number;
+  y: number;
+  run: Run;
+  onOpenPanel: (run: Run) => void;
+  onClose: () => void;
+  onError: (m: string) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -334,12 +391,15 @@ function CardMenu({ x, y, run, onClose, onError }: { x: number; y: number; run: 
 
   // 画面の端からはみ出さないように寄せる
   const left = Math.min(x, window.innerWidth - 220);
-  const top = Math.min(y, window.innerHeight - 180);
+  const top = Math.min(y, window.innerHeight - 220);
 
   return (
     <div ref={ref} className="menu" style={{ left, top }} role="menu">
+      <button role="menuitem" onClick={() => (onOpenPanel(run), onClose())}>
+        <PanelRight size={14} /> 開く
+      </button>
       <button role="menuitem" onClick={() => (navigate({ name: "run", projectId: run.project_id, runId: run.id }), onClose())}>
-        <ExternalLink size={14} /> 開く
+        <Maximize2 size={14} /> 全画面で開く
       </button>
       <button
         role="menuitem"
