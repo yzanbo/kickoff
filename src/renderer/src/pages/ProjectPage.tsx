@@ -5,14 +5,14 @@ import {
   PHASES,
   type Approval,
   type Artifact,
-  type Phase,
   type Project,
+  type ProjectSummary,
   type Run,
   type Task,
 } from "../../../core/types";
 import { api } from "../api";
 import { Markdown } from "../components/Markdown";
-import { RunList } from "../components/RunList";
+import { KanbanBoard } from "../components/KanbanBoard";
 import { BUSY_STATUSES } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";
@@ -30,7 +30,7 @@ interface ProjectData {
 }
 
 const TAB_LABELS: Record<ProjectTab, string> = {
-  chats: "チャット",
+  board: "ボード",
   requirements: "要件定義書",
   schedule: "スケジュール",
   tasks: "タスク",
@@ -39,7 +39,7 @@ const TAB_LABELS: Record<ProjectTab, string> = {
 };
 
 /** プロジェクト画面: チャット一覧と、決まったこと（要件定義書・スケジュール・タスク・レポート）をタブで */
-export function ProjectPage({ id, tab }: { id: number; tab: ProjectTab }) {
+export function ProjectPage({ id, tab, projects }: { id: number; tab: ProjectTab; projects: ProjectSummary[] }) {
   const [data, setData] = useState<ProjectData>();
   const [error, setError] = useState<string>();
 
@@ -83,7 +83,7 @@ export function ProjectPage({ id, tab }: { id: number; tab: ProjectTab }) {
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (
-    <div className="page page-wide">
+    <div className={`page page-wide ${tab === "board" ? "page-board" : ""}`}>
       <header className="page-header project-header">
         <div className="project-title-row">
           <h1>{project.name}</h1>
@@ -115,13 +115,13 @@ export function ProjectPage({ id, tab }: { id: number; tab: ProjectTab }) {
             >
               {TAB_LABELS[t]}
               {t === "tasks" && tasks.length > 0 && <span className="tab-count">{tasks.length}</span>}
-              {t === "chats" && runs.length > 0 && <span className="tab-count">{runs.length}</span>}
+              {t === "board" && runs.length > 0 && <span className="tab-count">{runs.length}</span>}
             </a>
           ))}
         </nav>
       </header>
 
-      {tab === "chats" && <ChatsTab project={project} runs={runs} approvals={approvals} />}
+      {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
       {tab === "tasks" && (
@@ -132,35 +132,6 @@ export function ProjectPage({ id, tab }: { id: number; tab: ProjectTab }) {
       {tab === "reports" && <ReportsTab artifacts={artifacts} />}
       {tab === "settings" && <SettingsTab project={project} />}
     </div>
-  );
-}
-
-function ChatsTab({ project, runs, approvals }: { project: Project; runs: Run[]; approvals: Approval[] }) {
-  const [filter, setFilter] = useState<Phase | "all">("all");
-  const visible = filter === "all" ? runs : runs.filter((r) => r.phase === filter);
-  return (
-    <section className="section">
-      <div className="filter-chips" role="group" aria-label="セクションで絞り込み">
-        <button className={`filter-chip ${filter === "all" ? "active" : ""}`} onClick={() => setFilter("all")}>
-          すべて <span className="chip-count">{runs.length}</span>
-        </button>
-        {PHASES.map((p) => {
-          const Icon = SECTION_META[p].icon;
-          return (
-            <button key={p} className={`filter-chip ${filter === p ? "active" : ""}`} onClick={() => setFilter(p)}>
-              <Icon size={13} className={`sec-icon sec-${p}`} aria-hidden /> {SECTION_META[p].label}
-              <span className="chip-count">{runs.filter((r) => r.phase === p).length}</span>
-            </button>
-          );
-        })}
-      </div>
-      <RunList projectId={project.id} runs={visible} approvals={approvals} />
-      {filter !== "all" && (
-        <a className="btn new-in-section" href={href({ name: "newChat", projectId: project.id, section: filter })}>
-          <Plus size={14} /> {SECTION_META[filter].label}のチャットを始める
-        </a>
-      )}
-    </section>
   );
 }
 

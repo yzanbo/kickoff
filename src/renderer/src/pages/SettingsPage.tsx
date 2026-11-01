@@ -10,9 +10,11 @@ import {
 } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { StatusCard } from "../components/StatusCard";
+import { UsagePanel } from "../components/UsagePanel";
+import type { usePlanUsage } from "../usage";
 import { useTheme, type Theme } from "../theme";
 
-export function SettingsPage() {
+export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePlanUsage> }) {
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const settings = useAsync(api.settings);
@@ -56,6 +58,8 @@ export function SettingsPage() {
       <header className="page-header">
         <h1>設定</h1>
       </header>
+
+      <UsagePanel planUsage={planUsage} />
 
       <section className="section">
         <h2>表示</h2>

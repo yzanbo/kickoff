@@ -37,6 +37,11 @@ export function RunPage({ projectId, runId, focus }: { projectId: number; runId:
     api.project(projectId).then(setProject).catch(() => {});
   }, [runId, projectId]);
 
+  // 開いて見たので「確認待ち」を消す（見ている間に終わった場合も同じ）
+  useEffect(() => {
+    if (run?.attention) void api.markSeen(run.id).catch(() => {});
+  }, [run?.id, run?.attention]);
+
   useServerEvent((e) => {
     if (e.type === "run_delta" && e.run_id === runId) {
       setLive((prev) => prev + e.text);
@@ -128,7 +133,7 @@ function RunView({
           </span>
         </div>
         <div className="run-sub muted small">
-          {project && <a href={href({ name: "project", id: project.id, tab: "chats" })}>{project.name}</a>}
+          {project && <a href={href({ name: "project", id: project.id, tab: "board" })}>{project.name}</a>}
           {run.num_turns > 0 && <span>{run.num_turns} ターン</span>}
           {run.cost_usd > 0 && (
             <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${run.cost_usd.toFixed(2)}</span>

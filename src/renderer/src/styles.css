@@ -1,53 +1,71 @@
 /* ==== デザイントークン（ダークが既定、ライトは data-theme="light"） ==== */
 
 :root {
+  /* 既定ダーク（緑みのダーク）に合わせた配色 */
   color-scheme: dark;
-  --bg: #1a1a19;
-  --bg-sidebar: #141413;
-  --bg-elev: #232321;
-  --bg-hover: #2c2c2a;
-  --bg-active: #353532;
-  --border: #353533;
-  --border-strong: #4a4a46;
-  --text: #f0efec;
-  --muted: #9a9890;
-  --accent: #d97757;
+  --bg: #181b1a; /* surface0: 画面の地 */
+  --bg-sidebar: #141716; /* surfaceSidebar */
+  --bg-elev: #1e2120; /* surface1: カード・入力欄 */
+  --bg-hover: #272a29; /* surface2 */
+  --bg-active: #434645; /* surface3: 自分の吹き出し・選択中 */
+  --border: #252b2a;
+  --border-strong: #2f3534; /* borderAccent */
+  --text: #fafafa;
+  --muted: #a1a5a4;
+  --extra-muted: #717574;
+  --accent: #20744a;
+  --accent-bright: #7ccba0;
   --accent-text: #ffffff;
-  --ok: #3fb950;
-  --ng: #f0625a;
-  --warn: #e3a008;
-  --info: #3987e5;
+  --ok: #6cb17b;
+  --ng: #d8847b;
+  --warn: #c09664;
+  --info: #5caaf6;
+  /* 状態の点（statusDot*。明るさをそろえて見分けやすくしたもの） */
+  --dot-needs-input: #db932e;
+  --dot-failed: #f7796d;
+  --dot-running: #5caaf6;
+  --dot-attention: #35c264;
   /* セクションの色（必ずアイコンとラベルと一緒に使う） */
   --sec-requirements: #3987e5;
   --sec-schedule: #9085e9;
   --sec-implementation: #d95926;
   --sec-testing: #199e70;
   --sec-deployment: #d55181;
+  --radius-sm: 6px;
   --radius: 8px;
   --radius-lg: 12px;
-  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif;
+  --radius-xl: 16px;
+  --row: 36px;
+  --row-tight: 28px;
+  --mono: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--text);
   background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #fafaf8;
-  --bg-sidebar: #f2f1ed;
-  --bg-elev: #ffffff;
-  --bg-hover: #ebeae5;
-  --bg-active: #e2e0d9;
-  --border: #e3e1da;
-  --border-strong: #cfccc3;
-  --text: #1d1c1a;
-  --muted: #6b6a64;
-  --ok: #1a7f37;
-  --ng: #cf222e;
-  --warn: #9a6700;
-  --info: #2a78d6;
+  --bg: #ffffff;
+  --bg-sidebar: #f4f4f5;
+  --bg-elev: #fafafa;
+  --bg-hover: #f4f4f5;
+  --bg-active: #e4e4e7;
+  --border: #e4e4e7;
+  --border-strong: #ececf1;
+  --text: #1a1a1e;
+  --muted: #71717a;
+  --extra-muted: #a1a1aa;
+  --ok: #3e704a;
+  --ng: #9d433b;
+  --warn: #7b5d39;
+  --info: #268ae0;
+  --dot-needs-input: #b37824;
+  --dot-failed: #f12e2f;
+  --dot-running: #268ae0;
+  --dot-attention: #299f51;
   --sec-requirements: #2a78d6;
   --sec-schedule: #6250d6;
   --sec-implementation: #eb6834;
@@ -2501,5 +2519,350 @@ mark {
 
   .scope-row {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ==== カンバン（カンバンのプラグイン に合わせた構成） ==== */
+
+.page-board {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: none;
+  padding-bottom: 16px;
+}
+
+.page-board > .board {
+  flex: 1;
+  min-height: 0;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.board-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 12px;
+}
+
+.board-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.board-filter {
+  width: auto;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.btn-sm {
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.view-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.view-toggle button.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.board-error,
+.board-loading {
+  margin: 0 0 8px;
+}
+
+.dot {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.board-columns {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  min-height: 0;
+  overflow-x: auto;
+}
+
+.board-column {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 170px;
+  max-width: 260px;
+  min-height: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+
+.board-column.drop-target,
+.list-group.drop-target {
+  border-color: var(--accent);
+  background: var(--bg-elev);
+}
+
+.column-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.column-head .dot {
+  width: 8px;
+  height: 8px;
+}
+
+.column-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.column-count {
+  flex: 1;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.column-cards {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  padding-bottom: 8px;
+  overflow-y: auto;
+}
+
+.column-empty {
+  margin: 0;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.board-card {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  cursor: grab;
+}
+
+.board-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.board-card.dragging,
+.list-row.dragging {
+  opacity: 0.35;
+}
+
+.card-link {
+  color: var(--text);
+}
+
+.card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card-title.one-line {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.card-labels,
+.list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.label-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.card-state {
+  color: var(--text);
+}
+
+.card-pending {
+  font-weight: 600;
+  color: var(--dot-needs-input);
+}
+
+.card-time {
+  flex: 1;
+  overflow: hidden;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.arrow-button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.arrow-button:hover {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+.arrow-spacer {
+  width: 18px;
+}
+
+/* リスト表示 */
+
+.board-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.list-group {
+  margin-bottom: 12px;
+  padding: 0 6px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.list-row:hover {
+  background: var(--bg-elev);
+}
+
+.list-main {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 0;
+  color: var(--text);
+}
+
+.list-row .card-time {
+  flex: none;
+}
+
+/* 右クリックメニュー */
+
+.menu {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  min-width: 200px;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+}
+
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--bg-hover);
+}
+
+.menu button.danger {
+  color: var(--ng);
+}
+
+@media (max-width: 720px) {
+  .board-columns {
+    scroll-snap-type: x mandatory;
+  }
+
+  .board-column {
+    flex: 0 0 82%;
+    max-width: none;
+    scroll-snap-align: start;
   }
 }
