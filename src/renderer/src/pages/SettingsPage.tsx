@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import {EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice} from "../../../core/types";
+import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice } from "../../../core/types";
 import { api, useAsync } from "../api";
-import {BrowserExtensions} from "../components/BrowserExtensions";
+import { BrowserExtensions } from "../components/BrowserExtensions";
 import { SaveActions } from "../components/SaveActions";
+import { Segmented } from "../components/Segmented";
 import { StatusCard } from "../components/StatusCard";
+import { UsagePanel } from "../components/UsagePanel";
 import { useSave } from "../hooks/useSave";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../models";
-import { UsagePanel } from "../components/UsagePanel";
-import type { usePlanUsage } from "../usage";
 import { useTheme, type Theme } from "../theme";
+import type { usePlanUsage } from "../usage";
 
 export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePlanUsage> }) {
   const providers = useAsync(api.providers);
@@ -50,13 +51,17 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
 
       <section className="section">
         <h2>表示</h2>
-        <div className="segmented theme-switch" role="radiogroup" aria-label="テーマ">
-          {(["dark", "light", "system"] as Theme[]).map((t) => (
-            <button key={t} role="radio" aria-checked={theme === t} className={theme === t ? "active" : ""} onClick={() => setTheme(t)}>
-              {{ dark: "ダーク", light: "ライト", system: "システムに合わせる" }[t]}
-            </button>
-          ))}
-        </div>
+        <Segmented<Theme>
+          className="segmented theme-switch"
+          label="テーマ"
+          value={theme}
+          onChange={setTheme}
+          options={[
+            { value: "dark", label: "ダーク" },
+            { value: "light", label: "ライト" },
+            { value: "system", label: "システムに合わせる" },
+          ]}
+        />
       </section>
 
       <section className="section">

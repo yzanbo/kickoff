@@ -8,6 +8,7 @@ import { useModalDialog } from "../hooks/useModalDialog";
 import { openRun } from "../router";
 import { relativeTime } from "../time";
 import { SectionBadge } from "./SectionBadge";
+import { Segmented } from "./Segmented";
 
 export type SearchScope = "run" | "project" | "all";
 
@@ -77,11 +78,13 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
         {loading && <span className="spinner" aria-label="検索中" />}
       </div>
       <div className="search-scopes">
-        {scopes.map((s) => (
-          <button key={s} className={`filter-chip ${scope === s ? "active" : ""}`} onClick={() => setScope(s)}>
-            {SCOPE_LABELS[s]}
-          </button>
-        ))}
+        <Segmented<SearchScope>
+          className="search-scope-options"
+          label="探す範囲"
+          value={scope}
+          onChange={setScope}
+          options={scopes.map((s) => ({ value: s, label: SCOPE_LABELS[s] }))}
+        />
         {query.trim() && !loading && <span className="muted small">{hits.length >= 50 ? "50 件以上" : `${hits.length} 件`}</span>}
       </div>
       <ul className="palette-list" role="listbox">

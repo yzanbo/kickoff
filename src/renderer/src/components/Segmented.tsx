@@ -1,0 +1,51 @@
+import type { LucideIcon } from "lucide-react";
+
+export interface SegmentOption<T extends string> {
+  value: T;
+  label: string;
+  /** 文字の前に出すアイコン */
+  icon?: LucideIcon;
+  /** アイコンだけで見せる（label は読み上げとマウスを乗せたときの説明に使う） */
+  iconOnly?: boolean;
+}
+
+/**
+ * 選択肢から 1 つを選ぶボタンの組（ボード／リスト、テーマ、並べ方など）。
+ * 見た目は className（segmented・view-toggle など）で決め、選んでいるボタンには active が付く
+ */
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+  className,
+  iconSize = 13,
+}: {
+  value: T;
+  options: SegmentOption<T>[];
+  onChange: (value: T) => void;
+  /** 組の名前（読み上げ用） */
+  label: string;
+  className: string;
+  iconSize?: number;
+}) {
+  return (
+    <div className={className} role="radiogroup" aria-label={label}>
+      {options.map(({ value: v, label: text, icon: Icon, iconOnly }) => (
+        <button
+          key={v}
+          type="button"
+          role="radio"
+          aria-checked={value === v}
+          className={value === v ? "active" : ""}
+          title={iconOnly ? text : undefined}
+          aria-label={iconOnly ? text : undefined}
+          onClick={() => onChange(v)}
+        >
+          {Icon && <Icon size={iconSize} />}
+          {!iconOnly && (Icon ? <> <span className="btn-label">{text}</span></> : text)}
+        </button>
+      ))}
+    </div>
+  );
+}

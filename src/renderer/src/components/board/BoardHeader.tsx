@@ -2,6 +2,7 @@ import { Globe, List, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
 import { SearchField } from "../SearchField";
+import { Segmented } from "../Segmented";
 import { PanelToggle } from "../sidePanel/SidePanel";
 import type { SidePanelController } from "../sidePanel/useSidePanel";
 
@@ -40,14 +41,16 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, actio
         </button>
         {actions}
         <div className="board-tools-end">
-          <div className="view-toggle" role="group" aria-label="表示の切り替え">
-            <button className={view === "board" ? "active" : ""} aria-pressed={view === "board"} onClick={() => onView("board")}>
-              <SquareKanban size={13} /> <span className="btn-label">ボード</span>
-            </button>
-            <button className={view === "list" ? "active" : ""} aria-pressed={view === "list"} onClick={() => onView("list")}>
-              <List size={13} /> <span className="btn-label">リスト</span>
-            </button>
-          </div>
+          <Segmented
+            className="view-toggle"
+            label="表示の切り替え"
+            value={view}
+            onChange={onView}
+            options={[
+              { value: "board", label: "ボード", icon: SquareKanban },
+              { value: "list", label: "リスト", icon: List },
+            ]}
+          />
           {extra}
           <PanelToggle panel={panel} />
         </div>
