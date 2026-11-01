@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { REOPEN_EVENT, type ReopenRoute } from "../../router";
 
 /**
@@ -15,10 +16,5 @@ export function useBoardFocus(focus: ReopenRoute | undefined, open: (target: Reo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey, enabled]);
 
-  useEffect(() => {
-    if (!enabled) return;
-    const onReopen = (e: Event) => openRef.current((e as CustomEvent<ReopenRoute>).detail);
-    window.addEventListener(REOPEN_EVENT, onReopen);
-    return () => window.removeEventListener(REOPEN_EVENT, onReopen);
-  }, [enabled]);
+  useWindowEvent(REOPEN_EVENT, (e) => open((e as CustomEvent<ReopenRoute>).detail), enabled);
 }

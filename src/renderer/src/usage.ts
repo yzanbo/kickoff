@@ -41,4 +41,9 @@ export function planLabel(plan: string): string {
   return known[plan.toLowerCase()] ?? plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
+/** ログインしているアカウントの契約プラン（"Claude Max" など。分からなければ null） */
+export function planName(usage: PlanUsage | undefined): string | null {
+  return usage?.plan ? `${usage.provider_label} ${planLabel(usage.plan)}` : null;
+}
+
 export const FIVE_HOUR_IDLE = "Claude から 5 時間枠の情報が返っていません（枠が始まっていないか、今のプランに適用されていません）";
