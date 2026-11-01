@@ -121,7 +121,7 @@ export function App() {
     }
   });
 
-  // ショートカット: ⌘K 検索・移動 / ⌘F やり取りの検索 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト）
+  // ショートカット: ⌘K 検索・移動 / ⌘F プロジェクトではボードのチャット検索、それ以外はやり取りの検索 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
@@ -133,7 +133,14 @@ export function App() {
         setPalette(true);
       } else if (e.key === "f") {
         e.preventDefault();
-        setSearching(true);
+        // プロジェクトの画面では、ボード（カンバン・グループ）のチャットの検索欄へ。それ以外は全体の検索を開く
+        const boardSearch = document.querySelector<HTMLInputElement>("main .board-search input");
+        if (routeProjectId(route) !== undefined && boardSearch) {
+          boardSearch.focus();
+          boardSearch.select();
+        } else {
+          setSearching(true);
+        }
       } else if (e.key === "n") {
         e.preventDefault();
         startNewChat();

@@ -1,4 +1,4 @@
-import { ChevronRight, Pencil, Wrench, X } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronRight, Pencil, Wrench, X } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Approval, Attachment, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
@@ -14,7 +14,7 @@ import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/R
 import { SectionBadge } from "../components/SectionBadge";
 import { useServerEvent } from "../events";
 import { href } from "../router";
-import { promptDialog } from "../dialogs";
+import { alertDialog, promptDialog } from "../dialogs";
 
 interface RunPageProps {
   projectId: number;
@@ -148,6 +148,22 @@ function RunView({
           >
             <Pencil size={13} />
           </button>
+          {/* アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す */}
+          <button
+            className="icon-button"
+            title={run.archived_at ? "アーカイブから戻す" : "アーカイブ（一覧から隠す。会話の記録は残ります）"}
+            aria-label={run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
+            onClick={async () => {
+              try {
+                await api.archiveRun(run.id, !run.archived_at);
+              } catch (e) {
+                await alertDialog("アーカイブできませんでした", e instanceof Error ? e.message : String(e));
+              }
+            }}
+          >
+            {run.archived_at ? <ArchiveRestore size={13} /> : <Archive size={13} />}
+          </button>
+          {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
           <span className="spacer" />
           <span className={`run-state state-${waiting ? "waiting" : run.status}`}>
             <RunStatusIcon run={run} waiting={waiting} />

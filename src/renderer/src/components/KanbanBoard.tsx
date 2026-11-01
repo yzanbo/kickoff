@@ -1,4 +1,4 @@
-import { Archive, ChevronLeft, ChevronRight, List, Pencil, PanelRight, Plus, Search, SquareKanban, Trash2, Globe, X } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, List, Pencil, PanelRight, Plus, Search, SquareKanban, Trash2, Globe, X } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -8,6 +8,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import { agentStateOf, stageOf } from "../../../core/board";
 import {
   AGENT_STATE_LABELS,
@@ -69,11 +70,18 @@ interface Props {
 /** ボードごとの直前のチャット（プロジェクトを切り替えたときに、すぐ出すため） */
 const runsCache = new Map<string, Run[]>();
 
+const SHOW_ARCHIVED_KEY = "kickoff:show-archived";
 const PROJECT_FILTER_KEY = "kickoff:board-project-filter";
 
 export function KanbanBoard({ projectId, projects, approvals, title, focus }: Props) {
   // 一度開いたボードのチャットは覚えておき、切り替えたときにすぐ出す（裏で読み直す）
-  const cacheKey = String(projectId ?? "all");
+  // アーカイブしたチャットも出すか（覚えておく）
+  const [showArchived, setShowArchived] = useState(() => localStorage.getItem(SHOW_ARCHIVED_KEY) === "1");
+  const toggleArchived = () => {
+    localStorage.setItem(SHOW_ARCHIVED_KEY, showArchived ? "0" : "1");
+    setShowArchived(!showArchived);
+  };
+  const cacheKey = `${projectId ?? "all"}${showArchived ? ":archived" : ""}`;
   const [state, setState] = useState(() => ({ key: cacheKey, runs: runsCache.get(cacheKey) ?? [], loaded: runsCache.has(cacheKey) }));
   // 切り替えた直後（まだ前のボードの状態のとき）も、覚えている内容を最初の描画から使う
   const current = state.key === cacheKey ? state : { key: cacheKey, runs: runsCache.get(cacheKey) ?? [], loaded: runsCache.has(cacheKey) };
@@ -108,7 +116,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   useEffect(() => {
     let alive = true;
     setState({ key: cacheKey, runs: runsCache.get(cacheKey) ?? [], loaded: runsCache.has(cacheKey) });
-    (projectId === undefined ? api.allRuns() : api.runs(projectId))
+    (projectId === undefined ? api.allRuns({ archived: showArchived }) : api.runs(projectId, { archived: showArchived }))
       .then((list) => alive && setRuns(list))
       .catch((e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)));
     // 経過時間の表示を進める
@@ -117,7 +125,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
       alive = false;
       clearInterval(timer);
     };
-  }, [projectId]);
+  }, [projectId, showArchived]);
 
   useEffect(() => localStorage.setItem("kickoff:board-view", view), [view]);
 
@@ -125,7 +133,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     if (e.type === "run" && (projectId === undefined || e.run.project_id === projectId)) {
       setRuns((prev) => {
         const rest = prev.filter((r) => r.id !== e.run.id);
-        return e.run.archived_at ? rest : [e.run, ...rest];
+        // アーカイブしたチャットは、表示しているときだけ残す
+        return e.run.archived_at && !showArchived ? rest : [e.run, ...rest];
       });
     } else if (e.type === "run_deleted") {
       setRuns((prev) => prev.filter((r) => r.id !== e.id));
@@ -314,6 +323,15 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             <List size={13} /> リスト
           </button>
         </div>
+        <button
+          className={`icon-button archived-toggle ${showArchived ? "active" : ""}`}
+          title={showArchived ? "アーカイブしたチャットを隠す" : "アーカイブしたチャットも表示する"}
+          aria-label={showArchived ? "アーカイブしたチャットを隠す" : "アーカイブしたチャットも表示する"}
+          aria-pressed={showArchived}
+          onClick={toggleArchived}
+        >
+          <Archive size={15} />
+        </button>
         {panel.toggleButton}
       </div>
       {error && <p className="error small board-error">{error}</p>}
@@ -343,7 +361,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                     <article
                       key={run.id}
                       style={projectId === undefined ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as React.CSSProperties) : undefined}
-                      className={`board-card ${projectId === undefined ? "with-project" : ""} ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
+                      className={`board-card ${run.archived_at ? "archived" : ""} ${projectId === undefined ? "with-project" : ""} ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
                       {...cardProps(run)}
                     >
                       <span className="card-title">{run.title || "無題のチャット"}</span>
@@ -351,6 +369,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                       <div className="card-labels">
                         {projectId === undefined && <ProjectChip id={run.project_id} name={projectName(run.project_id)} />}
                         <SectionBadge section={run.phase} short />
+                        {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
                       </div>
                       <div className="card-foot">
                         <span className="dot" style={{ background: STATE_TONE[state] }} />
@@ -387,7 +406,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                   <div
                     key={run.id}
                     style={projectId === undefined ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as React.CSSProperties) : undefined}
-                    className={`list-row ${projectId === undefined ? "with-project" : ""} ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
+                    className={`list-row ${run.archived_at ? "archived" : ""} ${projectId === undefined ? "with-project" : ""} ${dragId === run.id ? "dragging" : ""} ${panel.isShowing(run.id) ? "selected" : ""} ${panel.hasTab(run.id) ? "in-tab" : ""}`}
                     {...cardProps(run)}
                   >
                     <div className="list-main">
@@ -396,6 +415,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                       <span className="list-meta">
                         {projectId === undefined && <ProjectChip id={run.project_id} name={projectName(run.project_id)} />}
                         <SectionBadge section={run.phase} short />
+                        {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
                         <span className="dot" style={{ background: STATE_TONE[state] }} />
                         <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
                       </span>
@@ -428,7 +448,7 @@ export function BoardSearch({ query, onChange }: { query: string; onChange: (q: 
       <input
         type="text"
         value={query}
-        placeholder="チャットを検索"
+        placeholder="チャットを検索（⌘F）"
         aria-label="このボードのチャットを検索"
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
@@ -514,7 +534,8 @@ export function CardMenu({
   const left = Math.min(x, window.innerWidth - 220);
   const top = Math.min(y, window.innerHeight - 220);
 
-  return (
+  // サイドバーの横スライド（transform）の中からも開くので、body の直下に出す
+  return createPortal(
     <div ref={ref} className="menu" style={{ left, top }} role="menu">
       <button role="menuitem" onClick={() => (onOpenPanel(run), onClose())}>
         <PanelRight size={14} /> 開く
@@ -529,9 +550,15 @@ export function CardMenu({
       >
         <Pencil size={14} /> 名前を変更
       </button>
-      <button role="menuitem" onClick={() => void act(() => api.archiveRun(run.id))}>
-        <Archive size={14} /> アーカイブ
-      </button>
+      {run.archived_at ? (
+        <button role="menuitem" onClick={() => void act(() => api.archiveRun(run.id, false))}>
+          <ArchiveRestore size={14} /> アーカイブから戻す
+        </button>
+      ) : (
+        <button role="menuitem" onClick={() => void act(() => api.archiveRun(run.id))}>
+          <Archive size={14} /> アーカイブ
+        </button>
+      )}
       <button
         role="menuitem"
         className="danger"
@@ -548,6 +575,7 @@ export function CardMenu({
       >
         <Trash2 size={14} /> 削除…
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -115,8 +115,10 @@ export const api = {
   artifacts: (projectId: number) => request<Artifact[]>("GET", `/api/projects/${projectId}/artifacts`),
 
   // 実行（エージェントとの会話）
-  runs: (projectId: number) => request<Run[]>("GET", `/api/projects/${projectId}/runs`),
-  allRuns: () => request<Run[]>("GET", "/api/runs?limit=300"),
+  /** archived: アーカイブしたチャットも含める */
+  runs: (projectId: number, opts: { archived?: boolean } = {}) =>
+    request<Run[]>("GET", `/api/projects/${projectId}/runs${opts.archived ? "?archived=1" : ""}`),
+  allRuns: (opts: { archived?: boolean } = {}) => request<Run[]>("GET", `/api/runs?limit=300${opts.archived ? "&archived=1" : ""}`),
   search: (q: string, scope: { projectId?: number; runId?: number } = {}) => {
     const params = new URLSearchParams({ q });
     if (scope.projectId !== undefined) params.set("project_id", String(scope.projectId));

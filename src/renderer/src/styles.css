@@ -4846,6 +4846,26 @@ mark {
   color: var(--text);
 }
 
+/* アーカイブしたチャット（表示しているときだけ、薄く出す） */
+.board-card.archived,
+.list-row.archived,
+.chat-row.archived {
+  opacity: 0.55;
+}
+
+.archived-chip {
+  padding: 1px 6px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.archived-toggle.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
 .project-chip {
   display: inline-flex;
   align-items: center;
