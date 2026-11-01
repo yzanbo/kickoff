@@ -283,26 +283,30 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
         <Folder size={16} className="muted" />
         <span className="board-title">グループ</span>
         <span className="muted small">{groups.length} 件</span>
-        <span className="spacer" />
+        {/* 操作のまとまり（狭いときは、まとめて次の行の右側へ） */}
+        <div className="board-tools">
         <BoardSearch query={query} onChange={setQuery} />
         <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
-          <Globe size={13} /> ブラウザ
+          <Globe size={13} /> <span className="btn-label">ブラウザ</span>
         </button>
         <button className="btn btn-sm" onClick={() => setCreating(true)}>
-          <FolderPlus size={13} /> グループを作成
+          <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>
         </button>
         <button className="btn btn-sm" onClick={() => panel.openNew({ projectId })} title="右側で新しいチャットを始める">
-          <Plus size={13} /> 新規
+          <Plus size={13} /> <span className="btn-label">新規</span>
         </button>
+        <div className="board-tools-end">
         <div className="view-toggle" role="group" aria-label="表示の切り替え">
           <button className={view === "board" ? "active" : ""} aria-pressed={view === "board"} onClick={() => setView("board")}>
-            <SquareKanban size={13} /> ボード
+            <SquareKanban size={13} /> <span className="btn-label">ボード</span>
           </button>
           <button className={view === "list" ? "active" : ""} aria-pressed={view === "list"} onClick={() => setView("list")}>
-            <List size={13} /> リスト
+            <List size={13} /> <span className="btn-label">リスト</span>
           </button>
         </div>
         {panel.toggleButton}
+        </div>
+        </div>
       </div>
       {error && <p className="error small board-error">{error}</p>}
 

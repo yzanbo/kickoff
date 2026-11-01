@@ -284,7 +284,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         <SquareKanban size={16} className="muted" />
         <span className="board-title">{title}</span>
         <span className="muted small">{total} 件</span>
-        <span className="spacer" />
+        {/* 操作のまとまり（狭いときは、まとめて次の行の右側へ） */}
+        <div className="board-tools">
         <BoardSearch query={query} onChange={setQuery} />
         {projectId === undefined && projects.length > 1 && (
           <select
@@ -310,17 +311,18 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
           ))}
         </select>
         <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
-          <Globe size={13} /> ブラウザ
+          <Globe size={13} /> <span className="btn-label">ブラウザ</span>
         </button>
         <button className="btn btn-sm" onClick={() => newChat()} disabled={projectId === undefined && projects.length === 0}>
-          <Plus size={13} /> 新規
+          <Plus size={13} /> <span className="btn-label">新規</span>
         </button>
+        <div className="board-tools-end">
         <div className="view-toggle" role="group" aria-label="表示の切り替え">
           <button className={view === "board" ? "active" : ""} aria-pressed={view === "board"} onClick={() => setView("board")}>
-            <SquareKanban size={13} /> ボード
+            <SquareKanban size={13} /> <span className="btn-label">ボード</span>
           </button>
           <button className={view === "list" ? "active" : ""} aria-pressed={view === "list"} onClick={() => setView("list")}>
-            <List size={13} /> リスト
+            <List size={13} /> <span className="btn-label">リスト</span>
           </button>
         </div>
         <button
@@ -333,6 +335,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
           <Archive size={15} />
         </button>
         {panel.toggleButton}
+        </div>
+        </div>
       </div>
       {error && <p className="error small board-error">{error}</p>}
 
