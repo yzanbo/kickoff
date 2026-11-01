@@ -1,5 +1,5 @@
 import { PanelLeftClose, PanelLeftOpen, Search, Settings, SquareKanban, SquarePen } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Approval, BusEvent, ProjectSummary } from "../../core/types";
 import { api, useServerEvents } from "./api";
 import { CommandPalette } from "./components/CommandPalette";
@@ -28,6 +28,38 @@ export function App() {
   const [palette, setPalette] = useState(false);
   // サイドバーの開閉（⌘B）。状態は覚えておく
   const [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem("kickoff:sidebar") !== "closed");
+  // サイドバーの幅（右端をドラッグで変更、ダブルクリックで既定に戻す）
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(
+    () => clampSidebar(Number(localStorage.getItem("kickoff:sidebar-width")) || DEFAULT_SIDEBAR_WIDTH),
+  );
+  const [resizingSidebar, setResizingSidebar] = useState(false);
+  const saveSidebarWidth = (width: number) => {
+    setSidebarWidth(width);
+    localStorage.setItem("kickoff:sidebar-width", String(width));
+  };
+  const startSidebarResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const handle = e.currentTarget;
+    const layout = layoutRef.current;
+    if (!layout) return;
+    handle.setPointerCapture(e.pointerId);
+    setResizingSidebar(true);
+    let width = sidebarWidth;
+    const onMove = (ev: PointerEvent) => {
+      width = clampSidebar(ev.clientX);
+      // ドラッグ中は再描画せず、CSS の変数だけを書き換えて指に追従させる
+      layout.style.setProperty("--sidebar-w", `${width}px`);
+    };
+    const onUp = () => {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      setResizingSidebar(false);
+      saveSidebarWidth(width);
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+  };
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((open) => {
       localStorage.setItem("kickoff:sidebar", open ? "closed" : "open");
@@ -102,22 +134,31 @@ export function App() {
   }
 
   return (
-    <div className={`layout ${sidebarOpen ? "" : "sidebar-collapsed"}`}>
+    <div
+      ref={layoutRef}
+      className={`layout ${sidebarOpen ? "" : "sidebar-collapsed"} ${resizingSidebar ? "resizing-sidebar" : ""}`}
+      style={{ "--sidebar-w": `${sidebarWidth}px` } as React.CSSProperties}
+    >
       {!sidebarOpen && (
-        <button className="sidebar-expand" title="サイドバーを開く（⌘B）" aria-label="サイドバーを開く" onClick={toggleSidebar}>
+        <button className="titlebar-toggle floating" title="サイドバーを開く（⌘B）" aria-label="サイドバーを開く" onClick={toggleSidebar}>
           <PanelLeftOpen size={16} />
         </button>
       )}
       <aside className="sidebar" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
+        <div
+          className="sidebar-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="サイドバーの幅を変える"
+          title="ドラッグで幅を変える"
+          onPointerDown={startSidebarResize}
+          onDoubleClick={() => saveSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+        />
+        {/* 一番上の行は macOS の信号機ボタンの行。そのすぐ右に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
         <div className="sidebar-header">
-          <div className="brand-row">
-            <a className="brand" href={href({ name: "home" })}>
-              Kickoff
-            </a>
-            <button className="icon-button sidebar-close" title="サイドバーを閉じる（⌘B）" aria-label="サイドバーを閉じる" onClick={toggleSidebar}>
-              <PanelLeftClose size={15} />
-            </button>
-          </div>
+          <button className="titlebar-toggle" title="サイドバーを閉じる（⌘B）" aria-label="サイドバーを閉じる" onClick={toggleSidebar}>
+            <PanelLeftClose size={16} />
+          </button>
         </div>
         <div className="nav-rows">
           <button className="nav-row" onClick={startNewChat} title="新しいチャット（⌘N）">
@@ -203,6 +244,12 @@ export function App() {
 function planLabel(plan: string): string {
   const known: Record<string, string> = { pro: "Pro", max: "Max", team: "Team", enterprise: "Enterprise", free: "Free" };
   return known[plan.toLowerCase()] ?? plan.charAt(0).toUpperCase() + plan.slice(1);
+}
+
+const DEFAULT_SIDEBAR_WIDTH = 260;
+/** サイドバーの幅は 200〜480px（狭くしすぎ・広げすぎを防ぐ） */
+function clampSidebar(width: number): number {
+  return Math.round(Math.max(200, Math.min(480, width)));
 }
 
 const CONNECTION_LABELS = { connecting: "接続中…", open: "接続済み", closed: "切断" } as const;
