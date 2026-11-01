@@ -296,4 +296,18 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   // リポジトリの外は読ませない
   assert.equal((await call("GET", `/api/projects/${project.id}/git/diff?path=../outside.txt`)).status, 400);
   assert.equal((await call("GET", `/api/projects/${project.id}/git/diff?path=/etc/hosts`)).status, 400);
+
+  // エクスプローラー: 管理しているファイル・未追加のファイル。無視しているフォルダは中を開かずに 1 つ
+  fs.writeFileSync(path.join(repo, ".gitignore"), "node_modules/\n");
+  fs.mkdirSync(path.join(repo, "node_modules", "pkg"), { recursive: true });
+  fs.writeFileSync(path.join(repo, "node_modules", "pkg", "index.js"), "x\n");
+  const files = (await call("GET", `/api/projects/${project.id}/files`)).body;
+  assert.deepEqual(files.files, [".gitignore", "a.txt", "b.txt", "new.txt"]);
+  assert.deepEqual(files.ignored, [{ path: "node_modules", dir: true }]);
+  assert.equal(files.truncated, false);
+  // ファイルの中身（リポジトリの外・外を指すリンクは読ませない）
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/file?path=a.txt`)).body, { content: "one\ntwo\n", binary: false, truncated: false });
+  assert.equal((await call("GET", `/api/projects/${project.id}/file?path=../outside.txt`)).status, 400);
+  fs.symlinkSync("/etc/hosts", path.join(repo, "link.txt"));
+  assert.equal((await call("GET", `/api/projects/${project.id}/file?path=link.txt`)).status, 400);
 });

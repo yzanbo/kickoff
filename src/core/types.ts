@@ -462,6 +462,25 @@ export interface GitDiff {
   truncated: boolean;
 }
 
+/** プロジェクトのフォルダのファイルの一覧（エクスプローラーの表示） */
+export interface ProjectFiles {
+  /** Git で管理している・まだ追加していないファイル（.gitignore で無視しているものは除く） */
+  files: string[];
+  /** .gitignore で無視しているもの（フォルダは中を開かず、まとめて 1 つ） */
+  ignored: { path: string; dir: boolean }[];
+  /** 多すぎて途中で切った */
+  truncated: boolean;
+}
+
+/** ファイルの中身（変更のないファイルを選んだときに出す） */
+export interface FileContent {
+  content: string;
+  /** バイナリのファイル（中身は出せない） */
+  binary: boolean;
+  /** 大きすぎて途中で切った */
+  truncated: boolean;
+}
+
 /** Kickoff サーバー（コア）の状態（画面の左下の接続の詳細） */
 export interface ServerStatus {
   version: string;
