@@ -327,6 +327,41 @@ export class ClaudeProvider implements AgentProvider {
           cb.emit({ type: "init", session_id: msg.session_id, model: msg.model, permission_mode: msg.permissionMode });
           return msg.session_id;
         }
+        // サブエージェント: 開始と終了は記録し、途中経過（トークン数・直近のツール）は画面にだけ流す
+        if (msg.subtype === "task_started") {
+          cb.emit({
+            type: "subagent",
+            task_id: msg.task_id,
+            tool_use_id: msg.tool_use_id,
+            description: msg.description,
+            subagent_type: msg.subagent_type,
+            status: "running",
+          });
+        } else if (msg.subtype === "task_progress") {
+          cb.subagentProgress?.({
+            task_id: msg.task_id,
+            tool_use_id: msg.tool_use_id,
+            description: msg.description,
+            subagent_type: msg.subagent_type,
+            status: "running",
+            tokens: msg.usage.total_tokens,
+            tool_uses: msg.usage.tool_uses,
+            duration_ms: msg.usage.duration_ms,
+            last_tool: msg.last_tool_name,
+          });
+        } else if (msg.subtype === "task_notification") {
+          cb.emit({
+            type: "subagent",
+            task_id: msg.task_id,
+            tool_use_id: msg.tool_use_id,
+            description: "",
+            status: msg.status,
+            tokens: msg.usage?.total_tokens,
+            tool_uses: msg.usage?.tool_uses,
+            duration_ms: msg.usage?.duration_ms,
+            summary: msg.summary,
+          });
+        }
         return undefined;
 
       case "assistant": {

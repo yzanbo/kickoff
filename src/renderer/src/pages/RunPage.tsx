@@ -7,6 +7,7 @@ import { AttachmentChip } from "../components/AttachmentChip";
 import { Composer } from "../components/Composer";
 import { Markdown } from "../components/Markdown";
 import { ContextMeter } from "../components/ContextMeter";
+import { SubagentChip, useSubagents } from "../components/Subagents";
 import { useRunOptions } from "../components/RunOptionsBar";
 import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
 import { SectionBadge } from "../components/SectionBadge";
@@ -96,6 +97,7 @@ function RunView({
     run.phase,
   );
   const busy = BUSY_STATUSES.includes(run.status);
+  const subagents = useSubagents(run.id, events, busy);
   const timelineRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const items = useMemo(() => groupEvents(events), [events]);
@@ -204,6 +206,9 @@ function RunView({
           onStop={() => void api.cancelRun(run.id)}
           trailing={<ContextMeter run={run} />}
         />
+        <div className="composer-chips">
+          <SubagentChip entries={subagents} run={run} models={options.models} />
+        </div>
       </div>
     </div>
   );
@@ -232,8 +237,8 @@ function groupEvents(events: RunEvent[]): TimelineItem[] {
     } else if (e.type === "tool_result") {
       const call = byId.get((e.data as { tool_use_id: string }).tool_use_id);
       if (call) call.result = e;
-    } else if (e.type === "init" || e.type === "approval" || e.type === "thinking") {
-      // 表示しない（thinking は既定で中身が空）
+    } else if (e.type === "init" || e.type === "approval" || e.type === "thinking" || e.type === "subagent") {
+      // 表示しない（thinking は既定で中身が空。サブエージェントはチャット欄の下の一覧で見せる）
     } else {
       items.push({ kind: "event", key: `e${e.id}`, event: e });
     }
@@ -282,7 +287,11 @@ function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string)
   const lastData = last.use.data as { name: string; input?: Record<string, unknown> };
 
   return (
-    <details className={`tool-group ${failed ? "has-error" : ""} ${active && !last.result ? "active" : ""}`}>
+    <details
+      className={`tool-group ${failed ? "has-error" : ""} ${active && !last.result ? "active" : ""}`}
+      // サブエージェントの一覧から、その呼び出しを含むまとまりへ移れるようにする
+      data-tool-ids={tools.map((t) => t.use.id).join(" ")}
+    >
       <summary>
         <ChevronRight size={14} className="tool-chevron" />
         <Wrench size={13} className="muted" />
