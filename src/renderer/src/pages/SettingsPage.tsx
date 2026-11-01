@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice } from "../../../core/types";
+import { type AppSettings, type EffortLevel, type PermissionChoice } from "../../../core/types";
 import { api, useAsync } from "../api";
+import { EffortOptions, ModelOptions, PermissionOptions } from "../components/AiOptions";
 import { BrowserExtensions } from "../components/BrowserExtensions";
 import { ErrorText } from "../components/ErrorText";
+import { Field } from "../components/Field";
 import { SaveActions } from "../components/SaveActions";
 import { Segmented } from "../components/Segmented";
 import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { UsagePanel } from "../components/UsagePanel";
 import { useSave } from "../hooks/useSave";
-import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../models";
+import { modelDisplayName } from "../models";
 import { useTheme, type Theme } from "../theme";
 import type { usePlanUsage } from "../usage";
 
@@ -110,51 +112,28 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
           <h2>AI の既定</h2>
           <p className="muted small">新しいチャットはこの設定から始まります。チャット欄で変えた内容は、そのチャットだけに効きます。</p>
           <div className="form">
-            <label className="field">
-              <span className="field-label">モデル（{modelDisplayName(models.data ?? [], draft.claudeModel)}）</span>
+            <Field label={`モデル（${modelDisplayName(models.data ?? [], draft.claudeModel)}）`}>
               <select value={draft.claudeModel} onChange={(e) => setDraft({ ...draft, claudeModel: e.target.value })}>
-                {!models.data?.some((m) => m.value === draft.claudeModel) && <option value={draft.claudeModel}>{draft.claudeModel}</option>}
-                {groupModels(models.data ?? []).map((g) => (
-                  <optgroup key={g.family} label={g.family}>
-                    {g.items.map((i) => (
-                      <option key={i.value} value={i.value}>
-                        {i.version} — {i.description}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
+                <ModelOptions models={models.data ?? []} value={draft.claudeModel} />
               </select>
-            </label>
-            <label className="field">
-              <span className="field-label">推論の深さ（effort）</span>
+            </Field>
+            <Field label="推論の深さ（effort）">
               <select
                 value={draft.defaultEffort ?? ""}
                 onChange={(e) => setDraft({ ...draft, defaultEffort: (e.target.value || null) as EffortLevel | null })}
               >
                 <option value="">セクションに合わせる（要件定義・実装・テスト: High / スケジュール・デプロイ: Medium）</option>
-                {effortsFor(currentModel).map((level) => (
-                  <option key={level} value={level}>
-                    {EFFORT_LABELS[level]}
-                  </option>
-                ))}
+                <EffortOptions model={currentModel} />
               </select>
-            </label>
-            <label className="field">
-              <span className="field-label">権限モード</span>
+            </Field>
+            <Field label="権限モード" help="要件定義・スケジュールの「書き込みできるフォルダ」の制限は、どのモードでも必ず効きます。">
               <select
                 value={draft.defaultPermission}
                 onChange={(e) => setDraft({ ...draft, defaultPermission: e.target.value as PermissionChoice })}
               >
-                {permissionChoices(currentModel).map((p) => (
-                  <option key={p} value={p}>
-                    {p === "phase" ? "セクションに合わせる（実装・テスト: 編集を自動承認 / それ以外: 毎回確認）" : PERMISSION_LABELS[p]}
-                  </option>
-                ))}
+                <PermissionOptions model={currentModel} phaseLabel="セクションに合わせる（実装・テスト: 編集を自動承認 / それ以外: 毎回確認）" />
               </select>
-              <span className="field-help">
-                要件定義・スケジュールの「書き込みできるフォルダ」の制限は、どのモードでも必ず効きます。
-              </span>
-            </label>
+            </Field>
             <label className="check">
               <input
                 type="checkbox"
@@ -174,8 +153,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
 
           <h2>エージェントの実行</h2>
           <div className="form">
-            <label className="field">
-              <span className="field-label">同時に実行するエージェント数</span>
+            <Field label="同時に実行するエージェント数" help="多いほど速く進みますが、プランの使用枠を早く消費します。">
               <input
                 type="number"
                 min={1}
@@ -183,10 +161,7 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
                 value={draft.maxConcurrentRuns}
                 onChange={(e) => setDraft({ ...draft, maxConcurrentRuns: Number(e.target.value) })}
               />
-              <span className="field-help">
-                多いほど速く進みますが、プランの使用枠を早く消費します。
-              </span>
-            </label>
+            </Field>
           </div>
 
           <h2>通知</h2>
@@ -204,16 +179,14 @@ export function SettingsPage({ planUsage }: { planUsage: ReturnType<typeof usePl
                 </span>
               </span>
             </label>
-            <label className="field">
-              <span className="field-label">ntfy のトピック URL（任意）</span>
+            <Field label="ntfy のトピック URL（任意）" help="承認待ち・完了・失敗をスマホに通知します（M5 で対応）。">
               <input
                 type="url"
                 value={draft.ntfyUrl}
                 placeholder="https://ntfy.sh/your-topic"
                 onChange={(e) => setDraft({ ...draft, ntfyUrl: e.target.value })}
               />
-              <span className="field-help">承認待ち・完了・失敗をスマホに通知します（M5 で対応）。</span>
-            </label>
+            </Field>
           </div>
 
           <SaveActions save={save} disabled={!dirty} onSave={() => saveSettings(draft)} />

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { BOARD_STAGE_LABELS, BOARD_STAGES, PHASES, type BoardStage, type Phase, type Project, type ProjectDefaults } from "../../../../core/types";
 import { api } from "../../api";
-import { SECTION_META } from "../../sections";
 import { useSave } from "../../hooks/useSave";
+import { SECTION_META } from "../../sections";
+import { Field } from "../Field";
 import { SaveActions } from "../SaveActions";
 
 export function ChatDefaults({ project }: { project: Project }) {
@@ -29,8 +30,7 @@ export function ChatDefaults({ project }: { project: Project }) {
     <section className="section">
       <h2>新しいチャットの既定</h2>
       <div className="form">
-        <label className="field">
-          <span className="field-label">セクション</span>
+        <Field label="セクション" help="新しいチャットの画面で、最初に選ばれているセクションです。">
           <select value={section} onChange={(e) => setSection(e.target.value as Phase | "")}>
             <option value="">直近のチャットと同じ（はじめは要件定義）</option>
             {PHASES.map((p) => (
@@ -39,10 +39,8 @@ export function ChatDefaults({ project }: { project: Project }) {
               </option>
             ))}
           </select>
-          <span className="field-help">新しいチャットの画面で、最初に選ばれているセクションです。</span>
-        </label>
-        <label className="field">
-          <span className="field-label">カンバンの列</span>
+        </Field>
+        <Field label="カンバンの列" help="カンバンの列の＋から作ったチャットは、その列に置かれます。">
           <select value={stage} onChange={(e) => setStage(e.target.value as BoardStage | "")}>
             <option value="">状態に合わせる（作業中は対応中、確認待ちはレビュー）</option>
             {BOARD_STAGES.map((s) => (
@@ -51,8 +49,7 @@ export function ChatDefaults({ project }: { project: Project }) {
               </option>
             ))}
           </select>
-          <span className="field-help">カンバンの列の＋から作ったチャットは、その列に置かれます。</span>
-        </label>
+        </Field>
         <SaveActions save={save} disabled={!dirty} onSave={submit} />
       </div>
     </section>

@@ -3,6 +3,7 @@ import type { WorkspaceInspection } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { ErrorText } from "../ErrorText";
+import { Field } from "../Field";
 import { FolderField } from "./FolderField";
 import { InspectionPanel } from "./InspectionPanel";
 import type { FormProps } from "./NewProjectDialog";
@@ -97,8 +98,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
         </label>
       )}
 
-      <label className="field">
-        <span className="field-label">プロジェクト名</span>
+      <Field label="プロジェクト名">
         <input
           type="text"
           value={name}
@@ -109,17 +109,16 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
             setNameEdited(true);
           }}
         />
-      </label>
+      </Field>
 
-      <label className="field">
-        <span className="field-label">概要・やりたいこと（任意）</span>
+      <Field label="概要・やりたいこと（任意）">
         <textarea
           rows={3}
           value={description}
           placeholder="どんなアプリか、これから何をしたいか"
           onChange={(e) => setDescription(e.target.value)}
         />
-      </label>
+      </Field>
 
 
       <ErrorText message={error} />
