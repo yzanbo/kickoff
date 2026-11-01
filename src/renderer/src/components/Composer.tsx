@@ -28,7 +28,7 @@ interface PendingFile {
   error?: string;
 }
 
-/** チャットの入力欄（⌘+Enter で送信。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付） */
+/** チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付） */
 export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, trailing, onSend, onStop }: Props) {
   const [text, setText] = useState(initialText ?? "");
   const [files, setFiles] = useState<PendingFile[]>([]);
@@ -86,7 +86,8 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+    // Enter で送信、Shift+Enter で改行。日本語入力の変換を確定する Enter では送らない
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
       e.preventDefault();
       void send();
     }
@@ -139,7 +140,7 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
         rows={3}
         value={text}
         autoFocus={autoFocus}
-        placeholder={placeholder ?? (busy ? "エージェントが作業中です…" : "メッセージを入力（⌘+Enter で送信）")}
+        placeholder={placeholder ?? (busy ? "エージェントが作業中です…" : "メッセージを入力（Enter で送信、Shift+Enter で改行）")}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
@@ -175,7 +176,7 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
             <Square size={12} fill="currentColor" />
           </button>
         ) : (
-          <button className="send-button" title="送信（⌘+Enter）" aria-label="送信" disabled={!canSend} onClick={() => void send()}>
+          <button className="send-button" title="送信（Enter）" aria-label="送信" disabled={!canSend} onClick={() => void send()}>
             <ArrowUp size={17} strokeWidth={2.5} />
           </button>
         )}
