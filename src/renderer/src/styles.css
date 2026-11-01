@@ -1175,21 +1175,6 @@ input[type="text"].inline-name {
   border-top: 1px solid var(--border);
 }
 
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  color: var(--muted);
-}
-
-.nav-item:hover,
-.nav-item.active {
-  color: var(--text);
-  background: var(--bg-hover);
-}
-
 .icon-button {
   display: inline-grid;
   place-items: center;
@@ -4824,10 +4809,6 @@ mark {
   overflow-x: auto;
   border-bottom: 1px solid var(--border);
   scrollbar-width: none;
-}
-
-.panel-tabs:empty {
-  display: none;
 }
 
 .panel-tab {

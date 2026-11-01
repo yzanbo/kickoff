@@ -48,7 +48,7 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
         <ProjectNav projects={projects} approvals={approvals} route={route} onNewProject={onNewProject} />
       </nav>
       <div className="sidebar-footer">
-        <a className={`nav-item ${route.name === "settings" ? "active" : ""}`} href={href({ name: "settings" })}>
+        <a className={`nav-row ${route.name === "settings" ? "active" : ""}`} href={href({ name: "settings" })}>
           <Settings size={15} /> 設定
         </a>
       </div>
