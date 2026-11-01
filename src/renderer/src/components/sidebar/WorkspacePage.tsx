@@ -1,4 +1,4 @@
-import { Archive, ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, Folder, FolderPlus, ListTree, Plus, Search, X } from "lucide-react";
+import { Archive, ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleDot, CircleX, Clock, Folder, FolderPlus, ListTree, Plus } from "lucide-react";
 import { memo, useCallback, useState } from "react";
 import { agentStateOf } from "../../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState, type Approval, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
@@ -17,6 +17,7 @@ import { useGroupMenu } from "../GroupMenu";
 import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
+import { SearchField } from "../SearchField";
 import { StatusSlot } from "../StatusSlot";
 
 type Grouping = "recent" | "status";
@@ -219,22 +220,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         />
       )}
       {!collapsed && allRows.length > 0 && (
-        <div className="chat-search">
-          <Search size={13} className="muted" aria-hidden />
-          <input
-            type="text"
-            value={query}
-            placeholder="チャット名で検索"
-            aria-label={`${project.name} のチャットを検索`}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Escape" && setQuery("")}
-          />
-          {query && (
-            <button className="chat-search-clear" aria-label="検索を解除" onClick={() => setQuery("")}>
-              <X size={12} />
-            </button>
-          )}
-        </div>
+        <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />
       )}
       {!collapsed && keyword && rows.length === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
       {!collapsed && creating && (

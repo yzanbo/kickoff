@@ -1,8 +1,10 @@
 import { FolderGit2, MessageSquare, Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ProjectSummary, Run } from "../../../core/types";
 import { api } from "../api";
 import { chatTitle } from "../chatTitle";
+import { useListNavigation } from "../hooks/useListNavigation";
+import { useModalDialog } from "../hooks/useModalDialog";
 import { navigate, type Route } from "../router";
 import { SECTION_META } from "../sections";
 
@@ -18,11 +20,9 @@ interface Item {
 export function CommandPalette({ projects, onClose }: { projects: ProjectSummary[]; onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [runs, setRuns] = useState<Run[]>([]);
-  const [index, setIndex] = useState(0);
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const dialog = useModalDialog();
 
   useEffect(() => {
-    dialogRef.current?.showModal();
     void api.allRuns().then(setRuns).catch(() => {});
   }, []);
 
@@ -60,16 +60,16 @@ export function CommandPalette({ projects, onClose }: { projects: ProjectSummary
     return filtered.slice(0, 50);
   }, [projects, runs, query]);
 
-  useEffect(() => setIndex(0), [query]);
-
   function go(item: Item | undefined) {
     if (!item) return;
-    dialogRef.current?.close();
+    dialog.close();
     navigate(item.route);
   }
+  const nav = useListNavigation(items, go);
+  useEffect(() => nav.setIndex(0), [query]);
 
   return (
-    <dialog ref={dialogRef} className="palette" onClose={onClose} onClick={(e) => e.target === dialogRef.current && dialogRef.current?.close()}>
+    <dialog ref={dialog.ref} className="palette" onClose={onClose} {...dialog.backdropProps}>
       <div className="palette-input">
         <Search size={16} className="muted" />
         <input
@@ -77,25 +77,14 @@ export function CommandPalette({ projects, onClose }: { projects: ProjectSummary
           value={query}
           placeholder="チャット・プロジェクトを検索"
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") {
-              e.preventDefault();
-              setIndex((i) => Math.min(i + 1, items.length - 1));
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              setIndex((i) => Math.max(i - 1, 0));
-            } else if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              go(items[index]);
-            }
-          }}
+          onKeyDown={nav.onKeyDown}
         />
       </div>
       <ul className="palette-list" role="listbox">
         {items.length === 0 && <li className="palette-empty">見つかりません</li>}
         {items.map((item, i) => (
-          <li key={item.key} role="option" aria-selected={i === index}>
-            <button className={`palette-item ${i === index ? "active" : ""}`} onMouseEnter={() => setIndex(i)} onClick={() => go(item)}>
+          <li key={item.key} role="option" aria-selected={i === nav.index}>
+            <button className={`palette-item ${i === nav.index ? "active" : ""}`} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
               {item.icon}
               <span className="palette-label">{item.label}</span>
               <span className="palette-hint">{item.hint}</span>
