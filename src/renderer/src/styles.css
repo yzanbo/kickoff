@@ -250,6 +250,11 @@ kbd {
   padding: 6px 40px 64px;
 }
 
+.page.is-stale {
+  opacity: 0.55;
+  transition: opacity 0.12s;
+}
+
 .page-wide {
   max-width: 980px;
 }
