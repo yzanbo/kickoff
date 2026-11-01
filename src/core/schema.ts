@@ -119,6 +119,8 @@ const MIGRATIONS = [
   // v11: サイドバーでのプロジェクトの並び順（最初は作った順）
   `ALTER TABLE projects ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
    UPDATE projects SET position = id;`,
+  // v12: チャットの作業場所（git のワークツリーのフォルダ。空ならプロジェクトのフォルダ＝本体）
+  "ALTER TABLE runs ADD COLUMN worktree_path TEXT NOT NULL DEFAULT ''",
 ];
 
 /** スキーマのバージョン管理（PRAGMA user_version）。変更は MIGRATIONS に追記していく */
