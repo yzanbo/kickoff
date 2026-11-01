@@ -3137,7 +3137,7 @@ mark {
   z-index: 20;
   display: flex;
   flex-direction: column;
-  width: min(560px, 88%);
+  max-width: 100%;
   border-left: 1px solid var(--border-strong);
   background: var(--bg);
   box-shadow: -16px 0 40px rgb(0 0 0 / 30%);
@@ -3155,6 +3155,11 @@ mark {
   from {
     opacity: 0;
   }
+}
+
+.subagent-detail.resizing {
+  user-select: none;
+  animation: none;
 }
 
 .subagent-detail-close {

@@ -224,6 +224,8 @@ function RunView({
 /** タイムラインの Task / Agent の呼び出しから、そのサブエージェントの中身を開く */
 const OpenSubagentContext = createContext<(toolUseId: string) => void>(() => {});
 
+const SUBAGENT_WIDTH_KEY = "kickoff:subagent-width";
+
 const SUB_STATUS_LABELS: Record<SubagentEntry["status"], string> = { running: "実行中", completed: "完了", failed: "失敗", stopped: "中断" };
 
 /**
@@ -251,6 +253,34 @@ function SubagentDetail({
   const rawResult = (result?.data as { content?: string } | undefined)?.content;
   const resultText = rawResult ? cleanSubagentReport(rawResult) : undefined;
   const bodyRef = useRef<HTMLDivElement>(null);
+  // 引き出しの幅（左端をドラッグして変える。チャットのパネルいっぱいまで広げられる）
+  const [width, setWidth] = useState(() => Number(localStorage.getItem(SUBAGENT_WIDTH_KEY)) || 560);
+  const [resizing, setResizing] = useState(false);
+  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const drawer = e.currentTarget.parentElement;
+    const panel = drawer?.parentElement;
+    if (!drawer || !panel) return;
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+    setResizing(true);
+    const right = panel.getBoundingClientRect().right;
+    const max = panel.clientWidth;
+    let next = drawer.getBoundingClientRect().width;
+    const onMove = (ev: PointerEvent) => {
+      next = Math.round(Math.max(320, Math.min(max, right - ev.clientX)));
+      drawer.style.width = `${next}px`;
+    };
+    const onUp = () => {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      setResizing(false);
+      setWidth(next);
+      localStorage.setItem(SUBAGENT_WIDTH_KEY, String(next));
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+  };
 
   // Esc で閉じる（パネルを閉じる Esc より先に）
   useEffect(() => {
@@ -274,7 +304,20 @@ function SubagentDetail({
     <>
     {/* 後ろのチャットは少し暗くして残す（押すと閉じる） */}
     <div className="subagent-backdrop" onClick={onClose} />
-    <div className="subagent-detail" role="dialog" aria-label={`サブエージェント: ${entry.description}`}>
+    <div
+      className={`subagent-detail ${resizing ? "resizing" : ""}`}
+      style={{ width: `min(${width}px, 100%)` }}
+      role="dialog"
+      aria-label={`サブエージェント: ${entry.description}`}
+    >
+      <div
+        className="panel-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="引き出しの幅を変える"
+        title="ドラッグで幅を変える"
+        onPointerDown={startResize}
+      />
       <header className="subagent-detail-head">
         <div className="subagent-detail-title">
           <span className="subagent-detail-name">{entry.description}</span>
