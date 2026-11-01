@@ -1,5 +1,6 @@
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
 import type { RunGroup } from "../../../core/types";
 
 /**
@@ -48,7 +49,10 @@ export function useGroupMenu({ onRename, onDelete }: { onRename: (group: RunGrou
     </button>
   );
 
-  const menu = open && (
+  // サイドバーの横スライド（transform）の中だと位置がずれるので、body の直下に出す
+  const menu =
+    open &&
+    createPortal(
     <div ref={ref} className="menu" style={{ left: open.x, top: open.y }} role="menu">
       <button role="menuitem" onClick={() => (setOpen(null), onRename(open.group))}>
         <Pencil size={14} /> 名前を変更
@@ -56,8 +60,9 @@ export function useGroupMenu({ onRename, onDelete }: { onRename: (group: RunGrou
       <button role="menuitem" className="danger" onClick={() => (setOpen(null), onDelete(open.group))}>
         <Trash2 size={14} /> グループを削除
       </button>
-    </div>
-  );
+    </div>,
+    document.body,
+    );
 
   return { button, menu, openFor };
 }

@@ -22,6 +22,7 @@ import { Highlight, useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, PROJECT_DRAG_TYPE, startRunDrag, useGroupReorder, useReorder } from "../groups";
 import { initialOf, projectHue } from "../projectColor";
 import { useGroupMenu } from "./GroupMenu";
+import { GroupPickMenu } from "./GroupPickMenu";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
 import { href, navigate, openNewChat, openRun, routeProjectId, type Route } from "../router";
@@ -437,6 +438,9 @@ const WorkspacePage = memo(function WorkspacePage({
   const allRows = runs.map((run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) }));
   const rows = allRows.filter(({ run }) => matches(run));
 
+  // ＋を押したときの、作成先のグループを選ぶメニュー
+  const [pickAt, setPickAt] = useState<{ x: number; y: number } | null>(null);
+  const closePick = useCallback(() => setPickAt(null), []);
   // 自分で作ったグループ
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
@@ -604,13 +608,28 @@ const WorkspacePage = memo(function WorkspacePage({
         </button>
         <button
           className="icon-button"
-          title="新しいチャット（⌘N）"
+          title={groups.length > 0 ? "新しいチャット（作成先のグループを選ぶ）" : "新しいチャット（⌘N）"}
           aria-label={`${project.name} の新しいチャット`}
-          onClick={() => openNewChat(project.id)}
+          aria-haspopup={groups.length > 0 ? "menu" : undefined}
+          onClick={(e) => {
+            // グループがあれば、どこに作るかを選んでもらう
+            if (groups.length === 0) return openNewChat(project.id);
+            const r = e.currentTarget.getBoundingClientRect();
+            setPickAt({ x: r.left, y: r.bottom + 4 });
+          }}
         >
           <Plus size={15} />
         </button>
       </div>
+      {pickAt && (
+        <GroupPickMenu
+          x={pickAt.x}
+          y={pickAt.y}
+          groups={groups}
+          onPick={(group) => openNewChat(project.id, group ? { group } : {})}
+          onClose={closePick}
+        />
+      )}
       {!collapsed && allRows.length > 0 && (
         <div className="chat-search">
           <Search size={13} className="muted" aria-hidden />
