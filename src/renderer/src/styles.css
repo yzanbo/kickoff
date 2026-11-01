@@ -1470,6 +1470,47 @@ select:focus {
   width: min(560px, calc(100vw - 32px));
 }
 
+/* プロジェクトの編集（設定タブと同じ内容を、画面を移らずに） */
+.dialog.project-edit-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(85vh, 900px);
+  overflow: hidden;
+}
+
+.project-edit-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.project-edit-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.project-edit-head h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.project-edit-body {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 24px 24px;
+  overflow-y: auto;
+}
+
+.project-edit-button {
+  color: var(--muted);
+}
+
+.project-edit-button:hover {
+  color: var(--text);
+}
+
 .dialog::backdrop,
 .palette::backdrop {
   background: rgb(0 0 0 / 50%);
