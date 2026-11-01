@@ -6,7 +6,7 @@ import { Highlight, useChatSearch } from "../chatSearch";
 import { droppedRunId, isRunDrag, startRunDrag, useGroupReorder } from "../groups";
 import { InlineName } from "./InlineName";
 import { useServerEvent } from "../events";
-import { href, navigate, openRun, routeProjectId, type Route } from "../router";
+import { href, openNewChat, openRun, routeProjectId, type Route } from "../router";
 import { SECTION_META } from "../sections";
 import { agentStateOf } from "../../../core/board";
 import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState } from "../../../core/types";
@@ -497,7 +497,7 @@ const WorkspacePage = memo(function WorkspacePage({
           className="icon-button"
           title="新しいチャット（⌘N）"
           aria-label={`${project.name} の新しいチャット`}
-          onClick={() => navigate({ name: "newChat", projectId: project.id })}
+          onClick={() => openNewChat(project.id)}
         >
           <Plus size={15} />
         </button>
@@ -591,7 +591,7 @@ const WorkspacePage = memo(function WorkspacePage({
                       className="icon-button custom-group-add"
                       title={`「${group.name}」に新しいチャット`}
                       aria-label={`${group.name} に新しいチャット`}
-                      onClick={() => navigate({ name: "newChat", projectId: project.id, group: group.id })}
+                      onClick={() => openNewChat(project.id, { group: group.id })}
                     >
                       <Plus size={13} />
                     </button>
@@ -613,9 +613,9 @@ const WorkspacePage = memo(function WorkspacePage({
         </div>
       )}
       {collapsed || (keyword && rows.length === 0) ? null : rows.length === 0 ? (
-        <a className="chat-row ghost" href={href({ name: "newChat", projectId: project.id })}>
+        <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
           <Plus size={13} /> 最初のチャットを始める
-        </a>
+        </button>
       ) : ungroupedRows.length === 0 ? null : grouping === "recent" ? (
         <ul className="chat-rows" {...(groups.length > 0 ? dropTarget(null) : {})}>
           {ungroupedRows.map(renderRow)}

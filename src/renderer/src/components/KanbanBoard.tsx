@@ -25,7 +25,7 @@ import {
 import { api } from "../api";
 import { Highlight, useChatSearch } from "../chatSearch";
 import { useServerEvent } from "../events";
-import { navigate, openRun, OPEN_RUN_EVENT, type OpenRunDetail } from "../router";
+import { openRun, REOPEN_EVENT, type ReopenRoute } from "../router";
 import { SECTION_META } from "../sections";
 import { relativeTime } from "./RunList";
 import { SectionBadge } from "./SectionBadge";
@@ -55,15 +55,15 @@ interface Props {
   projects: ProjectSummary[];
   approvals: Approval[];
   title: string;
-  /** 右側のパネルで開くチャット（サイドバー・検索などから開いたとき） */
-  focusRun?: { runId: number; focus?: number };
+  /** 右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
+  focus?: ReopenRoute;
 }
 
 /**
  * チャットのカンバン。列（未着手・対応中・レビュー・完了）はあなたが動かす進み具合で、
  * カードの点はエージェント自身の状態（回答待ち・作業中・確認待ちなど）。
  */
-export function KanbanBoard({ projectId, projects, approvals, title, focusRun }: Props) {
+export function KanbanBoard({ projectId, projects, approvals, title, focus }: Props) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<ViewMode>(() => (localStorage.getItem("kickoff:board-view") === "list" ? "list" : "board"));
@@ -105,26 +105,35 @@ export function KanbanBoard({ projectId, projects, approvals, title, focusRun }:
   });
 
   // 右側から出てくるパネル（チャット・ブラウザのタブ）
-  const panel = useSidePanel({ runs, loaded, holdEsc: menu !== null });
+  const panel = useSidePanel({
+    runs,
+    loaded,
+    holdEsc: menu !== null,
+    projects: projectId === undefined ? projects : undefined,
+    // 新しいチャットを送ったら、プロジェクトのボードでは URL もそのチャットにする
+    onCreated: (run) => projectId !== undefined && openRun(run.project_id, run.id, undefined, { replace: true }),
+  });
   /** カードから開く。プロジェクトのボードでは URL もそのチャットにする（サイドバーで強調され、戻る・進むで行き来できる） */
   const open = (run: Run) => {
     panel.open(run);
     if (projectId !== undefined) openRun(run.project_id, run.id, undefined, { replace: true });
   };
 
-  // サイドバー・検索などから開いたチャットを、パネルで開く
+  // サイドバー・検索などから開いたチャット・新しいチャットを、パネルで開く
+  const openFocus = (target: ReopenRoute) => {
+    if (target.name === "run") panel.open({ id: target.runId, project_id: target.projectId }, target.focus);
+    else panel.openNew({ projectId: target.projectId, section: target.section, stage: target.stage, group: target.group });
+  };
+  const focusKey = focus ? JSON.stringify(focus) : "";
   useEffect(() => {
-    if (focusRun && projectId !== undefined) panel.open({ id: focusRun.runId, project_id: projectId }, focusRun.focus);
+    if (focus && projectId !== undefined) openFocus(focus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusRun?.runId, focusRun?.focus, projectId]);
+  }, [focusKey, projectId]);
   useEffect(() => {
     if (projectId === undefined) return;
-    const onOpen = (e: Event) => {
-      const { runId, focus } = (e as CustomEvent<OpenRunDetail>).detail;
-      panel.open({ id: runId, project_id: projectId }, focus);
-    };
-    window.addEventListener(OPEN_RUN_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_RUN_EVENT, onOpen);
+    const onReopen = (e: Event) => openFocus((e as CustomEvent<ReopenRoute>).detail);
+    window.addEventListener(REOPEN_EVENT, onReopen);
+    return () => window.removeEventListener(REOPEN_EVENT, onReopen);
   });
 
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name ?? "";
@@ -159,7 +168,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focusRun }:
   function newChat(stage?: BoardStage) {
     const target = projectId ?? projects[0]?.id;
     if (target === undefined) return;
-    navigate({ name: "newChat", projectId: target, stage, section: section === "all" ? undefined : section });
+    // 画面は移らず、右側のパネルで始める
+    panel.openNew({ projectId: target, stage, section: section === "all" ? undefined : section });
   }
 
   const dropProps = (stage: BoardStage) => ({

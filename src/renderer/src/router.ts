@@ -77,6 +77,10 @@ export function href(route: Route): string {
 }
 
 export function navigate(route: Route, options: { replace?: boolean } = {}) {
+  if (location.hash === href(route) && (route.name === "run" || route.name === "newChat")) {
+    window.dispatchEvent(new CustomEvent<ReopenRoute>(REOPEN_EVENT, { detail: route }));
+    return;
+  }
   if (options.replace) {
     // 履歴に残さず置き換える（新しいチャット画面 → 作成されたチャットへ移るとき）
     history.replaceState(null, "", href(route));
@@ -86,21 +90,21 @@ export function navigate(route: Route, options: { replace?: boolean } = {}) {
   }
 }
 
-/** 同じチャットをもう一度開いたとき（URL が変わらないとき）に、パネルを開き直させるイベント */
-export const OPEN_RUN_EVENT = "kickoff:open-run";
-export type OpenRunDetail = { runId: number; focus?: number };
-
 /**
- * チャットを開く: プロジェクトのカンバンへ移り、右側のパネルで開く（チャット単体の画面はない）。
- * 同じチャットを開き直したときは URL が変わらないので、イベントでパネルに知らせる。
+ * チャット・新しいチャットはプロジェクトのカンバンの右側のパネルで開く（単体の画面はない）。
+ * 同じものを開き直したときは URL が変わらないので、このイベントでパネルに知らせる
  */
+export const REOPEN_EVENT = "kickoff:reopen";
+export type ReopenRoute = Extract<Route, { name: "run" } | { name: "newChat" }>;
+
+/** チャットを開く（プロジェクトのカンバンへ移り、右側のパネルで開く） */
 export function openRun(projectId: number, runId: number, focus?: number, options: { replace?: boolean } = {}) {
-  const route: Route = { name: "run", projectId, runId, ...(focus ? { focus } : {}) };
-  if (location.hash === href(route)) {
-    window.dispatchEvent(new CustomEvent<OpenRunDetail>(OPEN_RUN_EVENT, { detail: { runId, focus } }));
-  } else {
-    navigate(route, options);
-  }
+  navigate({ name: "run", projectId, runId, ...(focus ? { focus } : {}) }, options);
+}
+
+/** 新しいチャットを始める（プロジェクトのカンバンへ移り、右側のパネルで始める） */
+export function openNewChat(projectId: number, target: { section?: Phase; stage?: BoardStage; group?: number } = {}) {
+  navigate({ name: "newChat", projectId, ...target });
 }
 
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */

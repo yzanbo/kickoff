@@ -1,14 +1,24 @@
-import { Globe, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, Plus, X } from "lucide-react";
+import { Globe, Maximize2, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import type { Run } from "../../../core/types";
+import type { BoardStage, Phase, ProjectSummary, Run } from "../../../core/types";
 import { RunPage } from "../pages/RunPage";
 import { SECTION_META } from "../sections";
 import { normalizeUrl } from "../url";
 import { BrowserPane } from "./BrowserPane";
+import { NewChatPane } from "./NewChatPane";
 
-/** 右側のパネルのタブ（チャット、またはブラウザ） */
+/** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・列・グループで始めるか） */
+export interface NewChatTarget {
+  projectId: number;
+  section?: Phase;
+  stage?: BoardStage;
+  group?: number;
+}
+
+/** 右側のパネルのタブ（チャット・新しいチャット・ブラウザ） */
 type PanelTab =
   | { key: string; kind: "chat"; id: number; projectId: number; focus?: number }
+  | ({ key: string; kind: "new" } & NewChatTarget)
   | { key: string; kind: "browser"; url: string; title: string };
 
 const chatKey = (id: number) => `chat:${id}`;
@@ -32,13 +42,17 @@ interface Options {
   loaded: boolean;
   /** true の間は Esc でパネルを閉じない（メニューが開いているときなど） */
   holdEsc?: boolean;
+  /** 全プロジェクトのボードでは、新しいチャットのプロジェクトを選べるようにする */
+  projects?: ProjectSummary[];
+  /** 新しいチャットができたとき（URL をそのチャットにするなど） */
+  onCreated?: (run: Run) => void;
 }
 
 /**
  * ボードの右側から出てくるパネル（チャット・ブラウザのタブ）。カンバンとグループのボードで共通。
  * body はボードとパネルを並べる要素に渡し、renderPanel() をその中の最後に置く。
  */
-export function useSidePanel({ runs, loaded, holdEsc = false }: Options) {
+export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreated }: Options) {
   // パネルを閉じてもタブは残し、次に開いたときに戻す
   const [tabs, setTabs] = useState<PanelTab[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -63,6 +77,28 @@ export function useSidePanel({ runs, loaded, holdEsc = false }: Options) {
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev.map((t) => (t.key === key && focus ? tab : t)) : [...prev, tab]));
     setActiveTab(key);
     setPanelOpen(true);
+  };
+
+  /**
+   * 新しいチャットのタブを開く（ボードや列・グループの＋、サイドバーの＋など）。
+   * 同じ指定のまだ送っていないタブがあれば、それを表示する
+   */
+  const openNew = (target: NewChatTarget) => {
+    const same = (t: PanelTab) =>
+      t.kind === "new" && t.projectId === target.projectId && t.section === target.section && t.stage === target.stage && t.group === target.group;
+    const existing = tabs.find(same);
+    const key = existing?.key ?? `new:${Date.now()}`;
+    if (!existing) setTabs((prev) => [...prev, { key, kind: "new", ...target }]);
+    setActiveTab(key);
+    setPanelOpen(true);
+  };
+
+  /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える */
+  const replaceWithChat = (key: string, run: Run) => {
+    const chat: PanelTab = { key: chatKey(run.id), kind: "chat", id: run.id, projectId: run.project_id };
+    setTabs((prev) => prev.map((t) => (t.key === key ? chat : t)));
+    setActiveTab(chat.key);
+    onCreated?.(run);
   };
 
   /** ブラウザの新しいタブを開く（空のページで、アドレス欄に入力して開く） */
@@ -139,8 +175,9 @@ export function useSidePanel({ runs, loaded, holdEsc = false }: Options) {
 
   const tabLabel = (t: PanelTab) => {
     const run = t.kind === "chat" ? runs.find((r) => r.id === t.id) : undefined;
-    const Icon = t.kind === "browser" ? Globe : run ? SECTION_META[run.phase].icon : null;
-    const label = t.kind === "browser" ? t.title || (t.url ? hostOf(t.url) : "新しいタブ") : run?.title || "チャット";
+    const Icon = t.kind === "browser" ? Globe : t.kind === "new" ? SquarePen : run ? SECTION_META[run.phase].icon : null;
+    const label =
+      t.kind === "browser" ? t.title || (t.url ? hostOf(t.url) : "新しいタブ") : t.kind === "new" ? "新しいチャット" : run?.title || "チャット";
     return { run, Icon, label };
   };
 
@@ -228,6 +265,17 @@ export function useSidePanel({ runs, loaded, holdEsc = false }: Options) {
           <div key={t.key} className="panel-tab-page" hidden={activeTab !== t.key}>
             {t.kind === "chat" ? (
               <RunPage projectId={t.projectId} runId={t.id} focus={t.focus} onClose={close} />
+            ) : t.kind === "new" ? (
+              <NewChatPane
+                projectId={t.projectId}
+                section={t.section}
+                stage={t.stage}
+                group={t.group}
+                projects={projects}
+                onProjectChange={(projectId) => setTabs((prev) => prev.map((x) => (x.key === t.key ? { ...t, projectId } : x)))}
+                onClose={close}
+                onCreated={(run) => replaceWithChat(t.key, run)}
+              />
             ) : (
               <BrowserPane
                 url={t.url}
@@ -246,6 +294,7 @@ export function useSidePanel({ runs, loaded, holdEsc = false }: Options) {
 
   return {
     open,
+    openNew,
     openBrowser,
     /** パネルの表示中のタブがこのチャットか（カードを選択中として見せる） */
     isShowing: (runId: number) => panelOpen && activeTab === chatKey(runId),

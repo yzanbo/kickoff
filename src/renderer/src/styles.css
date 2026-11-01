@@ -225,9 +225,6 @@ kbd {
   padding-left: 76px;
 }
 
-.sidebar-collapsed .main > .run-page > .run-header .run-title-row {
-  padding-left: 96px;
-}
 
 
 
@@ -393,6 +390,15 @@ kbd {
   padding: 6px 8px 6px 4px;
   border-radius: var(--radius);
   color: var(--text);
+}
+
+button.chat-row {
+  width: 100%;
+  border: none;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
 }
 
 .chat-row:hover {
@@ -2669,6 +2675,12 @@ mark {
 }
 
 /* 新しいチャット */
+
+.new-chat-project {
+  width: auto;
+  padding: 2px 6px;
+  font-size: 12px;
+}
 
 .new-chat-hero {
   display: grid;
