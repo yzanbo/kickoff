@@ -219,10 +219,18 @@ kbd {
   background: var(--bg-elev);
 }
 
-/* 閉じている間は、上の行が信号機ボタンと「開く」ボタンに重ならないよう左を空ける */
-.sidebar-collapsed .page-header,
-.sidebar-collapsed .page-board > .board > .board-header {
-  padding-left: 76px;
+/*
+ * 閉じている間は、いちばん上の行（タイトルと編集ボタン）を信号機ボタンと同じ行まで上げ、開閉ボタンの右に並べる。
+ * その下（パス・タブ）は、ずらさずに左端にそろえる
+ */
+.sidebar-collapsed .page {
+  padding-top: 6px;
+}
+
+.sidebar-collapsed .page-header > :first-child,
+.sidebar-collapsed .page > .board:first-child > .board-header {
+  min-height: 34px;
+  padding-left: 64px;
 }
 
 
