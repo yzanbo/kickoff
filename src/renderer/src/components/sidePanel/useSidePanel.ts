@@ -28,7 +28,23 @@ const PANEL_MAX_KEY = "kickoff:panel-maximized";
 const DEFAULT_PANEL_WIDTH = 560;
 const MIN_PANEL_WIDTH = 360;
 
+/** パネルの状態（ボードごと） */
+interface PanelState {
+  tabs: PanelTab[];
+  activeTab: string | null;
+  panelOpen: boolean;
+}
+
+/**
+ * ボードごとの、開いているタブとパネルの開閉。カンバンとグループのタブを切り替えると、ボードの部品は作り直されるので、
+ * 戻ってきたときに元どおりにできるよう、ここに覚えておく（アプリを閉じるまで）
+ */
+const panelMemory = new Map<string, PanelState>();
+const EMPTY_PANEL: PanelState = { tabs: [], activeTab: null, panelOpen: false };
+
 interface Options {
+  /** パネルの状態を覚えておく名前（ボードごとに分ける。例: "kanban:all"・"groups:3"） */
+  memoryKey: string;
   /** ボードに出ているチャット（削除・アーカイブされたチャットのタブを閉じるのに使う） */
   runs: Run[];
   loaded: boolean;
@@ -46,11 +62,24 @@ export type SidePanelController = ReturnType<typeof useSidePanel>;
  * ボードの右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）の状態と操作。カンバンとグループのボードで共通。
  * 表示は SidePanel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）・DraftCards（列の下書き）で行う
  */
-export function useSidePanel({ runs, loaded, holdEsc = false, projects, onCreated }: Options) {
+export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, projects, onCreated }: Options) {
   // パネルを閉じてもタブは残し、次に開いたときに戻す
-  const [tabs, setTabs] = useState<PanelTab[]>([]);
-  const [activeTab, setActiveTab] = useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const saved = () => panelMemory.get(memoryKey) ?? EMPTY_PANEL;
+  const [tabs, setTabs] = useState<PanelTab[]>(() => saved().tabs);
+  const [activeTab, setActiveTab] = useState<string | null>(() => saved().activeTab);
+  const [panelOpen, setPanelOpen] = useState(() => saved().panelOpen);
+  // 同じ部品のまま別のボード（プロジェクト）に切り替わったら、そのボードで覚えている状態に戻す
+  const [shownKey, setShownKey] = useState(memoryKey);
+  if (shownKey !== memoryKey) {
+    const next = saved();
+    setShownKey(memoryKey);
+    setTabs(next.tabs);
+    setActiveTab(next.activeTab);
+    setPanelOpen(next.panelOpen);
+  }
+  useEffect(() => {
+    if (shownKey === memoryKey) panelMemory.set(memoryKey, { tabs, activeTab, panelOpen });
+  }, [memoryKey, shownKey, tabs, activeTab, panelOpen]);
   const [panelWidth, setPanelWidth] = useStoredNumber(PANEL_WIDTH_KEY, DEFAULT_PANEL_WIDTH);
   const [resizing, setResizing] = useState(false);
   // 横幅いっぱい（ボードを覆う）。戻すと、元の幅に戻る
