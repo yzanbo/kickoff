@@ -7,12 +7,13 @@ import {
   type Artifact,
   type ArtifactKind,
   type BusEvent,
-  type EffortLevel,
-  type PermissionChoice,
+  type NewArtifact,
+  type NewProject,
+  type NewRun,
+  type NewTask,
   type Phase,
   type Project,
   type ProjectSummary,
-  type ProviderId,
   type Run,
   type RunEvent,
   type RunGroup,
@@ -62,54 +63,6 @@ function parseJson<T extends object>(text: string | null | undefined): T {
   } catch {
     return {} as T;
   }
-}
-
-export interface NewProject {
-  name: string;
-  description?: string;
-  repo_path: string;
-  provider: ProviderId;
-  test_command?: string;
-  deploy_instructions?: string;
-  auto_commit?: boolean;
-}
-
-export interface NewTask {
-  project_id: number;
-  phase: Phase;
-  title: string;
-  description?: string;
-  acceptance_criteria?: string;
-  priority?: number;
-  status?: TaskStatus;
-  created_by?: "user" | "agent";
-}
-
-export interface NewRun {
-  project_id: number;
-  task_id: number | null;
-  phase: Phase;
-  provider: ProviderId;
-  title: string;
-  status: RunStatus;
-  model: string | null;
-  effort?: EffortLevel | null;
-  permission_mode?: PermissionChoice;
-  fast_mode?: boolean;
-  group_id?: number | null;
-  /** 作業場所（ワークツリーのフォルダ。省略・空なら本体） */
-  worktree_path?: string;
-}
-
-export interface NewArtifact {
-  project_id: number;
-  phase: Phase;
-  kind: ArtifactKind;
-  title: string;
-  content: string;
-  file_path?: string;
-  run_id?: number | null;
-  task_id?: number | null;
 }
 
 /**
