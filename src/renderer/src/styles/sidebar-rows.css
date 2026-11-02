@@ -1,0 +1,193 @@
+/* ==== サイドバーのチャットの行（乗せたときの操作・下書き・ピント・複数選択と選択バー・経過時間） ==== */
+
+/* チャットの行（2 行・先頭に状態の印） */
+
+.chat-rows {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: var(--row);
+  padding: 6px 8px 6px 4px;
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+button.chat-row {
+  width: 100%;
+  border: none;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-row:hover,
+.chat-row-item:hover > .chat-row {
+  background: var(--bg-elev);
+}
+
+/* 行に乗せたときに右端に出す、アーカイブ・削除（時刻の上に重ねる） */
+.chat-row-item {
+  position: relative;
+}
+
+.chat-row-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: none;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+}
+
+.chat-row-item:hover > .chat-row-actions,
+.chat-row-actions:focus-within {
+  display: flex;
+}
+
+.chat-row-actions .icon-button {
+  width: 22px;
+  height: 22px;
+}
+
+.chat-row-actions .icon-button.danger:hover {
+  color: var(--ng);
+}
+
+.chat-row-item:hover .chat-row-time {
+  visibility: hidden;
+}
+
+.chat-row.active {
+  background: var(--bg-hover);
+}
+
+.chat-row.ghost {
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.chat-row-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.chat-row-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  /* 長いタイトルを省略表示にして、経過時間を常に見せる */
+  min-width: 0;
+}
+
+.chat-row-title {
+  flex: 1;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.76;
+}
+
+.chat-row:hover .chat-row-title,
+.chat-row.active .chat-row-title,
+.chat-row.is-unread .chat-row-title {
+  opacity: 1;
+}
+
+.chat-row.is-unread .chat-row-title {
+  font-weight: 600;
+}
+
+.chat-row-time {
+  flex: none;
+  font-size: 11px;
+  color: var(--extra-muted);
+}
+
+/* 送る前の新しいチャット（下書き）の行: 名前を斜めにして、送ったチャットと見分ける */
+.draft-row .chat-row-title {
+  font-style: italic;
+}
+
+.draft-slot {
+  color: var(--muted);
+}
+
+/* キーボード（↑↓・Tab）でピントを当てたチャットの行 */
+.chat-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 複数選んだチャットの行 */
+.chat-row.multi-selected,
+.chat-row-item:hover > .chat-row.multi-selected {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* 複数選んだチャットをまとめて操作する欄（一覧の下、下の行の上） */
+.selection-bar {
+  display: grid;
+  flex: none;
+  gap: 6px;
+  padding: 8px var(--gutter);
+  border-top: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.selection-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.selection-bar-count {
+  font-weight: 600;
+}
+
+/* link-button の font: inherit に負けないよう、同じ要素に付く class を連結して詳細度を上げる */
+.link-button.selection-bar-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.selection-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.selection-bar .selection-bar-delete:hover:not(:disabled) {
+  color: var(--ng);
+}
+
+/* 作業中のチャットの経過時間（作業中の青） */
+.chat-row-time.running {
+  color: var(--dot-running);
+}
+
+.chat-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}

@@ -1,0 +1,97 @@
+/* ==== サイドバーのチャットのまとまりの見出し（印・名前・件数）と開閉の入れ物（Collapse） ==== */
+
+/* サイドバーのチャットのまとまりの見出し（印・名前・件数。ボードの列の見出しと同じ形） */
+.status-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--row-tight);
+  margin-top: 4px;
+  padding: 0 8px 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* 開閉で高さがなめらかに変わる入れ物（Collapse。サイドバーのプロジェクト・グループ・まとまり） */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.collapse.open {
+  grid-template-rows: 1fr;
+}
+
+.collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/*
+ * 開閉できるまとまりの中身は、開閉の矢印の下から一段下げ、縦の線でつなぐ（VS Code のファイルの木と同じ。どこに入っているかが分かるように）。
+ * 自分で作ったグループ・グループなし・固定・アーカイブ済み・並べ方のまとまり（Collapse の indent）
+ */
+.collapse.indent > .collapse-inner {
+  margin-left: 9px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapse {
+    transition: none;
+  }
+}
+
+/* 見出しの名前の部分（押すと開閉する） */
+.status-group-name {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.status-group-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-group-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.status-group-extra {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.status-group-count {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.status-group-worktree {
+  color: var(--info);
+}
+
+/* フォルダの見つからないワークツリー・片付けたあとの以前のブランチ（薄い灰） */
+.status-group-gone,
+.board-lane-gone {
+  color: var(--extra-muted);
+}
+
