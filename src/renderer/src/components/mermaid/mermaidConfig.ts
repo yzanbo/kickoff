@@ -5,7 +5,7 @@ import type { AppliedTheme } from "../../theme";
 const MAX_TEXT_SIZE = 20_000;
 const MAX_EDGES = 400;
 
-/** 色分けに使う色（セクションの色から。円グラフ・マインドマップ・タイムラインなど） */
+/** 色分けに使う色（tokens.css の --sec-* の色から。円グラフ・マインドマップ・タイムラインなど） */
 const PALETTE_VARS = [
   "--sec-requirements",
   "--sec-implementation",

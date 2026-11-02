@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Artifact, Project, Run, RunGroup, Task } from "../../../../core/types";
+import type { Project, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { useServerEvent } from "../../events";
 
-/** プロジェクト画面に出すもの（プロジェクト・タスク・成果物・チャット・グループ） */
+/** プロジェクト画面に出すもの（プロジェクト・チャット・グループ） */
 export interface ProjectData {
   project: Project;
-  tasks: Task[];
-  artifacts: Artifact[];
   runs: Run[];
   groups: RunGroup[];
 }
@@ -27,8 +25,8 @@ export function useProjectData(id: number) {
 
   const load = useCallback(async () => {
     try {
-      const [project, tasks, artifacts, runs, groups] = await Promise.all([api.project(id), api.tasks(id), api.artifacts(id), api.runs(id), api.groups(id)]);
-      const next = { project, tasks, artifacts, runs, groups };
+      const [project, runs, groups] = await Promise.all([api.project(id), api.runs(id), api.groups(id)]);
+      const next = { project, runs, groups };
       projectCache.set(id, next);
       setData(next);
       setError(undefined);
@@ -47,9 +45,6 @@ export function useProjectData(id: number) {
   useServerEvent((e) => {
     const related =
       (e.type === "project" && e.project.id === id) ||
-      (e.type === "task" && e.task.project_id === id) ||
-      (e.type === "task_deleted" && e.project_id === id) ||
-      (e.type === "artifact" && e.artifact.project_id === id) ||
       (e.type === "run" && e.run.project_id === id) ||
       (e.type === "run_deleted" && e.project_id === id) ||
       (e.type === "group" && e.group.project_id === id) ||

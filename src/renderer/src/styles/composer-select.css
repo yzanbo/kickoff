@@ -1,4 +1,4 @@
-/* ==== チャット欄の選択（アイコン・名前・▾ の選択欄。セクションはセクションの色） ==== */
+/* ==== チャット欄の選択（アイコン・名前・▾ の選択欄） ==== */
 
 /* チャット欄の選択（アイコン・名前・▾） */
 .option-menu {
@@ -115,19 +115,6 @@
 
 .model-menu .option-popover {
   width: 280px;
-}
-
-/* セクションの選択は、セクションの色で */
-.section-menu .option-button {
-  font-weight: 600;
-  color: var(--sec);
-  background: color-mix(in srgb, var(--sec) 12%, transparent);
-}
-
-.section-menu .option-button:hover,
-.section-menu .option-button.open {
-  color: var(--sec);
-  background: color-mix(in srgb, var(--sec) 20%, transparent);
 }
 
 .fast-toggle {

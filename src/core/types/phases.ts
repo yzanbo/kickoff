@@ -5,37 +5,11 @@
 export const PHASES = ["requirements", "schedule", "implementation", "testing", "deployment"] as const;
 export type Phase = (typeof PHASES)[number];
 
-export const PHASE_LABELS: Record<Phase, string> = {
-  requirements: "要件定義",
-  schedule: "スケジュール",
-  implementation: "実装",
-  testing: "テスト",
-  deployment: "デプロイ",
-};
-
 export const TASK_STATUSES = ["todo", "in_progress", "review", "pr_open", "done", "blocked"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
-export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  todo: "TODO",
-  in_progress: "実行中",
-  review: "レビュー待ち",
-  pr_open: "PR 作成済み",
-  done: "完了",
-  blocked: "ブロック",
-};
-
 export const ARTIFACT_KINDS = ["requirements", "schedule", "design", "test_report", "deploy_log", "note"] as const;
 export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
-
-export const ARTIFACT_KIND_LABELS: Record<ArtifactKind, string> = {
-  requirements: "要件定義書",
-  schedule: "スケジュール",
-  design: "設計メモ",
-  test_report: "テストレポート",
-  deploy_log: "デプロイログ",
-  note: "メモ",
-};
 
 export const PROVIDER_IDS = ["claude", "codex", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];

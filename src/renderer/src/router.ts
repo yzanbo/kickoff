@@ -1,9 +1,9 @@
 import { createContext, useContext, useState } from "react";
-import { PHASES, type Phase } from "../../core/types";
 import { useWindowEvent } from "./hooks/useWindowEvent";
 
-// プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く
-const PROJECT_TABS = ["board", "groups", "requirements", "schedule", "tasks", "reports", "changes"] as const;
+// プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はエディタ（changes）でファイルとして見る
+// （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
+const PROJECT_TABS = ["board", "groups", "changes"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 export type Route =
@@ -11,7 +11,7 @@ export type Route =
   | { name: "allProjects" }
   /** group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき） */
   | { name: "project"; id: number; tab: ProjectTab; group?: number }
-  | { name: "newChat"; projectId: number; section?: Phase; group?: number }
+  | { name: "newChat"; projectId: number; group?: number }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "run"; projectId: number; runId: number; focus?: number };
 
@@ -28,14 +28,9 @@ export function parse(hash: string): Route {
 
   const newChat = path.match(/^\/projects\/(\d+)\/new$/);
   if (newChat) {
-    const section = params.get("section");
+    // 以前の ?section= は読まない
     const group = Number(params.get("group"));
-    return {
-      name: "newChat",
-      projectId: Number(newChat[1]),
-      section: section && (PHASES as readonly string[]).includes(section) ? (section as Phase) : undefined,
-      ...(Number.isInteger(group) && group > 0 ? { group } : {}),
-    };
+    return { name: "newChat", projectId: Number(newChat[1]), ...(Number.isInteger(group) && group > 0 ? { group } : {}) };
   }
 
   const project = path.match(/^\/projects\/(\d+)(?:\/([a-z]+))?$/);
@@ -69,10 +64,7 @@ export function href(route: Route): string {
         ? `#/projects/${route.id}`
         : `#/projects/${route.id}/${route.tab}${route.group ? `?group=${route.group}` : ""}`;
     case "newChat": {
-      const q = new URLSearchParams();
-      if (route.section) q.set("section", route.section);
-      if (route.group) q.set("group", String(route.group));
-      return `#/projects/${route.projectId}/new${q.size ? `?${q}` : ""}`;
+      return `#/projects/${route.projectId}/new${route.group ? `?group=${route.group}` : ""}`;
     }
     case "run":
       return `#/projects/${route.projectId}/runs/${route.runId}${route.focus ? `?event=${route.focus}` : ""}`;
@@ -108,7 +100,7 @@ export function openRun(projectId: number, runId: number, focus?: number, option
 }
 
 /** 新しいチャットを始める（プロジェクトのカンバンへ移り、右側のパネルで始める） */
-export function openNewChat(projectId: number, target: { section?: Phase; group?: number } = {}) {
+export function openNewChat(projectId: number, target: { group?: number } = {}) {
   navigate({ name: "newChat", projectId, ...target });
 }
 

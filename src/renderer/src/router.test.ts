@@ -7,18 +7,21 @@ test("parse: ハッシュを画面に読む（タブなしはボード、知ら�
   assert.deepEqual(parse("#/"), { name: "allProjects" });
   assert.deepEqual(parse("#/nowhere"), { name: "allProjects" });
   assert.deepEqual(parse("#/projects/3"), { name: "project", id: 3, tab: "board" });
-  assert.deepEqual(parse("#/projects/3/tasks"), { name: "project", id: 3, tab: "tasks" });
+  assert.deepEqual(parse("#/projects/3/changes"), { name: "project", id: 3, tab: "changes" });
   assert.deepEqual(parse("#/projects/3/unknown"), { name: "project", id: 3, tab: "board" });
+  // なくした要件定義書・スケジュール・タスク・レポートのタブは、ボードに戻る
+  for (const tab of ["requirements", "schedule", "tasks", "reports"]) {
+    assert.deepEqual(parse(`#/projects/3/${tab}`), { name: "project", id: 3, tab: "board" }, tab);
+  }
   // グループは「グループ」のタブでだけ読む（0 や数でないものは無視）
   assert.deepEqual(parse("#/projects/3/groups?group=7"), { name: "project", id: 3, tab: "groups", group: 7 });
   assert.deepEqual(parse("#/projects/3/groups?group=0"), { name: "project", id: 3, tab: "groups" });
-  assert.deepEqual(parse("#/projects/3/tasks?group=7"), { name: "project", id: 3, tab: "tasks" });
+  assert.deepEqual(parse("#/projects/3/changes?group=7"), { name: "project", id: 3, tab: "changes" });
 });
 
-test("parse: 新しいチャット（セクションは知っているものだけ）とチャット（focus は 0 なら付けない）", () => {
-  assert.deepEqual(parse("#/projects/3/new"), { name: "newChat", projectId: 3, section: undefined });
-  assert.deepEqual(parse("#/projects/3/new?section=requirements&group=2"), { name: "newChat", projectId: 3, section: "requirements", group: 2 });
-  assert.deepEqual(parse("#/projects/3/new?section=bogus"), { name: "newChat", projectId: 3, section: undefined });
+test("parse: 新しいチャット（以前の section は読まない）とチャット（focus は 0 なら付けない）", () => {
+  assert.deepEqual(parse("#/projects/3/new"), { name: "newChat", projectId: 3 });
+  assert.deepEqual(parse("#/projects/3/new?section=requirements&group=2"), { name: "newChat", projectId: 3, group: 2 });
   assert.deepEqual(parse("#/projects/3/runs/12"), { name: "run", projectId: 3, runId: 12 });
   assert.deepEqual(parse("#/projects/3/runs/12?event=99"), { name: "run", projectId: 3, runId: 12, focus: 99 });
   assert.deepEqual(parse("#/projects/3/runs/12?event=0"), { name: "run", projectId: 3, runId: 12 });
@@ -30,14 +33,12 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "board" },
     { name: "project", id: 1, tab: "changes" },
     { name: "project", id: 1, tab: "groups", group: 5 },
-    { name: "newChat", projectId: 2, section: "schedule", group: 4 },
+    { name: "newChat", projectId: 2, group: 4 },
     { name: "run", projectId: 2, runId: 30 },
     { name: "run", projectId: 2, runId: 30, focus: 8 },
   ];
   for (const route of routes) {
-    const back = parse(href(route));
-    // newChat は section を常に持つ（なければ undefined）ので、キーの有無ではなく値で比べる
-    assert.deepEqual(JSON.parse(JSON.stringify(back)), JSON.parse(JSON.stringify(route)), href(route));
+    assert.deepEqual(parse(href(route)), route, href(route));
   }
   assert.equal(href({ name: "project", id: 1, tab: "board" }), "#/projects/1");
   assert.equal(href({ name: "newChat", projectId: 2 }), "#/projects/2/new");

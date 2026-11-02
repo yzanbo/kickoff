@@ -15,8 +15,6 @@ interface Props {
   placeholder?: string;
   autoFocus?: boolean;
   busy?: boolean;
-  /** モデル選択の前に置く追加の選択（新しいチャットのセクションなど） */
-  leading?: ReactNode;
   /** 送信ボタンの左に置くもの（コンテキストウィンドウのメーターなど） */
   trailing?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
@@ -42,7 +40,7 @@ interface PendingFile {
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
 
-export function Composer({ options, placeholder, autoFocus, busy, leading, trailing, onSend, onStop, onTextChange, suggestTarget }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onTextChange, suggestTarget }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -198,7 +196,6 @@ export function Composer({ options, placeholder, autoFocus, busy, leading, trail
               e.target.value = "";
             }}
           />
-          {leading}
           <RunOptionsBar state={options} />
         </div>
         <div className="composer-actions">

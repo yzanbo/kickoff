@@ -22,7 +22,7 @@ interface RunPaneProps {
   focus?: number;
   /** パネルを閉じる */
   onClose: () => void;
-  /** チャットを読み込んだとき・名前やセクションが変わったとき（パネルのタブの名前とアイコンに使う） */
+  /** チャットを読み込んだとき・名前が変わったとき（パネルのタブの名前に使う） */
   onRunChange?: (run: Run) => void;
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
   visible?: boolean;
@@ -34,13 +34,13 @@ interface RunPaneProps {
 export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true, onOpenTerminal }: RunPaneProps) {
   const { run, project, events, approvals, live, error } = useRunDetail(runId, projectId);
 
-  // パネルのタブに、チャットの名前とセクションを知らせる（名前を変えたらタブもすぐ変わる）
+  // パネルのタブに、チャットの名前を知らせる（名前を変えたらタブもすぐ変わる）
   const notifyRun = useRef(onRunChange);
   notifyRun.current = onRunChange;
   useEffect(() => {
     if (run) notifyRun.current?.(run);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run?.id, run?.title, run?.phase]);
+  }, [run?.id, run?.title]);
 
   // 開いて見たので「確認待ち」を消す（パネルに表示したとき・見ている間に作業が終わったとき）。
   // 右クリックの「未読にする」で付けた印は、表示したままでも消さず、次に開くまで残す

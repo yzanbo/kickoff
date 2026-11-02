@@ -1,10 +1,9 @@
 import { GitBranch } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 import { boardColumnOf } from "../../../../core/board";
-import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, PHASES, type GitWorktree } from "../../../../core/types";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type GitWorktree } from "../../../../core/types";
 import type { BoardEntry } from "../board/boardColumns";
 import { COLUMN_TONE } from "../board/tones";
-import { SECTION_META } from "../../sections";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { cx } from "../../cx";
 import { useWorktreeList } from "../../worktree/worktreeBranches";
@@ -64,7 +63,7 @@ function Group({
 }
 
 /**
- * サイドバーのチャットを、並べ方（状態・作業場所・セクション）でまとめて出す。「新しい順」はまとめないので使わない。
+ * サイドバーのチャットを、並べ方（状態・作業場所）でまとめて出す。「新しい順」はまとめないので使わない。
  * まとまりはそれぞれ開閉でき、プロジェクト・グループ・並べ方ごとに覚える。forceOpen（検索中）のときはすべて開く。
  * グループなしだけでなく、自分で作ったグループの中でも同じようにまとめる
  */
@@ -105,14 +104,6 @@ function groupsOf(grouping: Exclude<ChatGrouping, "recent">, worktrees: GitWorkt
       if (group.length === 0) return null;
       const mark = <span className="status-group-dot" style={{ background: COLUMN_TONE[column] }} aria-hidden />;
       return <Group key={column} id={column} mark={mark} label={BOARD_COLUMN_LABELS[column]} rows={group} renderRow={renderRow} />;
-    });
-  }
-  if (grouping === "phase") {
-    return PHASES.map((phase) => {
-      const group = rows.filter((r) => r.run.phase === phase);
-      if (group.length === 0) return null;
-      const Icon = SECTION_META[phase].icon;
-      return <Group key={phase} id={phase} mark={<Icon size={13} className={`sec-icon sec-${phase}`} />} label={SECTION_META[phase].label} rows={group} renderRow={renderRow} />;
     });
   }
   // 作業場所（本体・ワークツリー・フォルダなし・以前のブランチ）ごと。本体を先に（workplaceOf / compareWorkplaces）

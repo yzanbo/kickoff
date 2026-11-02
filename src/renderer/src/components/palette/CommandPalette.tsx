@@ -7,7 +7,6 @@ import { useListNavigation } from "../../hooks/useListNavigation";
 import { useModalDialog } from "../../hooks/useModalDialog";
 import { useProjects } from "../../projectsContext";
 import { navigate, type Route } from "../../router";
-import { SECTION_META } from "../../sections";
 
 interface Item {
   key: string;
@@ -45,16 +44,13 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         icon: <FolderGit2 size={15} />,
         route: { name: "project", id: p.id, tab: "board" } as Route,
       })),
-      ...runs.map((r) => {
-        const Icon = SECTION_META[r.phase].icon;
-        return {
-          key: `r-${r.id}`,
-          label: chatTitle(r.title),
-          hint: `${names.get(r.project_id) ?? ""} ・ ${SECTION_META[r.phase].label}`,
-          icon: Icon ? <Icon size={15} className={`sec-icon sec-${r.phase}`} /> : <MessageSquare size={15} />,
-          route: { name: "run", projectId: r.project_id, runId: r.id } as Route,
-        };
-      }),
+      ...runs.map((r) => ({
+        key: `r-${r.id}`,
+        label: chatTitle(r.title),
+        hint: names.get(r.project_id) ?? "",
+        icon: <MessageSquare size={15} />,
+        route: { name: "run", projectId: r.project_id, runId: r.id } as Route,
+      })),
     ];
     const q = query.trim().toLowerCase();
     // 何も入力していないときは、新規作成よりチャットとプロジェクトを先に出す
