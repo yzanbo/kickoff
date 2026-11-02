@@ -109,6 +109,15 @@
 - HTTP サーバーは `stopHttpServer` で止める（開いたままの SSE の接続も切る）。
 - SSE は、つないだらすぐ最初の行を送る（書くまで応答ヘッダーが届かない）。切断の知らせ（`onAbort`）は最初の `await` より前に登録する。
 
+## 製品版の Kickoff で Kickoff を作るとき
+
+このリポジトリのチャットは、製品版の Kickoff（`/Applications/Kickoff.app`。プロセス名 `Kickoff`、データ `Kickoff`、ポート 4317）の中で動いていることがある。作って確かめるのは開発版（Kickoff Dev。プロセスは `node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .`、データ `Kickoff Dev`、ポート 4318）だけで、製品版は自分を動かしているアプリなので触らない。
+
+- 製品版を止めない・入れ替えない。`pkill -f Kickoff` のように名前でまとめて止めない（製品版、つまり自分も止まる）。開発版を止めるときは、上のプロセスを `pgrep -f "Electron.app/Contents/MacOS/Electron \."` で特定して `kill -TERM` を送る。
+- `npm run install-app`（製品版の入れ替え）は、製品版の中のチャット・ターミナルから流さない（チャットからは実行中のチャットがあるとして止まり、製品版のターミナルからは `KICKOFF_TERMINAL_OF` を見て止まる）。必要なら、利用者に macOS のターミナルで流すよう頼む。
+- 製品版の中のターミナルやチャットから起動した開発版は、製品版の子どものプロセスになる。製品版が終わると開発版もいきなり止められ、開発版の localStorage が消えることがあるので、製品版を終了・入れ替えする前に開発版を `kill -TERM` で止める。
+- 同じ作業場所（本体のフォルダ）を、複数のチャットで同時に書き換えない。並行して進めるときは、チャットごとにワークツリーを使う。
+
 ## 確かめ方
 
 - 型は `npm run typecheck`（`tsc --noEmit --noUnusedLocals`。使っていない import と変数も残さない）、テストは `npm test`。

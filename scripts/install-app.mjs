@@ -1,6 +1,6 @@
 // ビルドして、この Mac の /Applications/Kickoff.app（本番）を入れ替える: npm run install-app
 // 本番の Kickoff が動いていれば、実行中のチャットがないことを確かめてから終了してもらい（片付けを待つ）、入れ替えたあと開き直す。
-// 開発アプリ（Kickoff Dev）には触らない
+// 開発アプリ（Kickoff Dev）には触らない。macOS のターミナルか開発版のターミナルから流す（製品版の中のチャット・ターミナルからは止める）
 import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
@@ -36,6 +36,14 @@ async function assertIdle() {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 製品版の Kickoff の中のターミナルから流すと、製品版を終了したときにこのスクリプトも止められ、入れ替えの途中で終わることがある。
+// 印のない古い版の Kickoff のターミナル（TERM_PROGRAM だけ）も、どちらか分からないので止める。開発版（Kickoff Dev）のターミナルからは流してよい
+const terminalOf = process.env.KICKOFF_TERMINAL_OF ?? (process.env.TERM_PROGRAM === "Kickoff" ? "unknown" : undefined);
+if (terminalOf === "production" || terminalOf === "unknown") {
+  console.error("製品版の Kickoff の中のターミナルからは実行できません（製品版を終了するとき、このスクリプトも止まるため）。macOS のターミナル（Terminal.app など）で実行してください");
+  process.exit(1);
+}
 
 await assertIdle();
 execSync("npx electron-vite build", { cwd: root, stdio: "inherit" });
