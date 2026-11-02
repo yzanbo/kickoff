@@ -16,7 +16,7 @@ type Row = { run: Run; state: AgentState };
 
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身）。
- * サイドバー全体で、矢印を押すと開閉、それ以外を押すと選ぶ: 左の矢印で開閉し、見出しのほかの部分を押すとこのグループを選ぶ（そのグループのボードを開く）。
+ * 左の矢印を押すと開閉する。見出しのほかの部分を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（そのグループのボードを開いてハイライトする。サイドバー全体で同じ）。
  * 名前のダブルクリックで名前を変える・ドラッグで並べ替える・チャットをドロップしてグループへ移す・右クリックでメニュー
  */
 export function CustomGroupSection({
@@ -57,12 +57,17 @@ export function CustomGroupSection({
   dropProps: Record<string, unknown>;
   dragProps: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
 }) {
-  /** 見出しの矢印以外を押したとき: このグループを選ぶ（そのグループのボードを開く。開閉は左の矢印だけで行う） */
+  /**
+   * 見出しの矢印以外を押したとき（サイドバー全体で同じ）: 選んでいて開いていれば閉じる。
+   * それ以外（選んでいない・選んでいて閉じている）は、選び直して開く（そのグループのボードを開いてハイライトし、中も開く）
+   */
   const press = () => {
+    if (selected && !closed) return onSetClosed(true);
     navigate({ name: "project", id: projectId, tab: "groups", group: group.id });
     flashGroup(group.id);
+    if (closed) onSetClosed(false);
   };
-  const pressLabel = `「${group.name}」のボードを開く`;
+  const pressLabel = selected && !closed ? "閉じる" : `「${group.name}」のボードを開く`;
   return (
     <div className={cx("custom-group", dropClass)} {...dropProps}>
       <div
@@ -71,7 +76,7 @@ export function CustomGroupSection({
         title="ドラッグでグループを並べ替える（右クリックでメニュー・名前をダブルクリックで名前を変更）"
         onContextMenu={(e) => menu.openFor(group, e)}
         onClick={(e) => {
-          // 矢印以外のところを押すと選ぶ（矢印・＋・…・名前の入力欄は除く）
+          // 矢印以外のところを押すと、選んで開く / 開閉する（矢印・＋・…・名前の入力欄は除く）
           if ((e.target as HTMLElement).closest("button, input")) return;
           press();
         }}

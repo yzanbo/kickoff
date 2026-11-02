@@ -24,8 +24,9 @@ export const useChatSelection = () => useContext(ChatSelectionContext);
 
 /** サイドバーの行の要素（画面の並び順をここから取る） */
 export const CHAT_ROW_SELECTOR = ".workspaces a.chat-row[data-run-id]";
-/** 画面に出ている行の、上からの並び（横スライドの裏のプロジェクト（inert）は除く） */
-export const visibleRows = () => [...document.querySelectorAll<HTMLElement>(CHAT_ROW_SELECTOR)].filter((el) => !el.closest("[inert]"));
+/** 画面に出ている行の、上からの並び（横スライドの裏のプロジェクト（inert）・閉じているまとまりの中は除く） */
+export const visibleRows = () =>
+  [...document.querySelectorAll<HTMLElement>(CHAT_ROW_SELECTOR)].filter((el) => !el.closest("[inert]") && !el.closest(".collapse:not(.open)"));
 const rowIds = () => visibleRows().map((el) => Number(el.dataset.runId));
 
 /** 選んでいる状態（existing: いまあるチャット。消えたものは選択から外す） */

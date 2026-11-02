@@ -13,7 +13,7 @@ import type { StateCounts } from "./sidebarFlags";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
- * サイドバー全体で、矢印を押すと開閉、それ以外を押すと選ぶ: 左の四角の矢印で開閉し、カードのほかの部分（中のボタンを除く）を押すとこのプロジェクトを選ぶ（カンバンを開く。閉じていればチャット一覧も開く。プロジェクトだけの例外）。
+ * 左の四角の矢印を押すと開閉する。カードのほかの部分（中のボタンを除く）を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（サイドバー全体で同じ）。
  * 出すのは、いつも使うものだけ: チャット一覧の開閉（頭文字。乗せると矢印に変わる）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
@@ -52,14 +52,15 @@ export function WorkspaceHead({
   const [pickAt, setPickAt] = useState<{ x: number; y: number } | null>(null);
   const projectMenu = useProjectMenu([project]);
   /**
-   * カードの矢印以外を押したとき: このプロジェクトを選ぶ（カンバンを開く）。
-   * プロジェクトだけは例外で、チャット一覧が閉じていれば開く（閉じるのは左の矢印だけ。グループは選んでも開閉しない）
+   * カードの矢印以外を押したとき（サイドバー全体で同じ）: 選んでいて開いていれば閉じる。
+   * それ以外（選んでいない・選んでいて閉じている）は、選び直して開く（カンバンを開き、チャット一覧も開く）
    */
   const press = () => {
+    if (active && !collapsed) return onToggleCollapsed();
     navigate({ name: "project", id: project.id, tab: "board" });
     if (collapsed) onToggleCollapsed();
   };
-  const pressLabel = `${project.name} のカンバンを開く`;
+  const pressLabel = active && !collapsed ? "チャット一覧を閉じる" : `${project.name} のカンバンを開く`;
   return (
     <>
       <div
@@ -68,7 +69,7 @@ export function WorkspaceHead({
         title={headDrag ? "ドラッグでプロジェクトを並べ替える（右クリックで固定・アーカイブ）" : "右クリックで固定・アーカイブ"}
         onContextMenu={(e) => projectMenu.open(e, project, { onCreateGroup, collapse: { collapsed, toggle: onToggleCollapsed } })}
         onClick={(e) => {
-          // カードの矢印以外のところを押すと選ぶ。中のボタン（矢印・ピン・状態の数・＋）はそちらの動き
+          // カードの矢印以外のところを押すと、選んで開く / 開閉する。中のボタン（矢印・ピン・状態の数・＋）はそちらの動き
           if ((e.target as HTMLElement).closest("button, a, input, select")) return;
           press();
         }}
@@ -89,7 +90,7 @@ export function WorkspaceHead({
           href={href({ name: "project", id: project.id, tab: "board" })}
           title={pressLabel}
           onClick={(e) => {
-            // 名前を押しても、カードを押したのと同じ（選ぶ）
+            // 名前を押しても、カードを押したのと同じ
             e.preventDefault();
             press();
           }}
