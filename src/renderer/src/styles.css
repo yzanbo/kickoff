@@ -929,30 +929,7 @@ button.chat-row {
   cursor: pointer;
 }
 
-/* 自分で作ったグループのアイコン: ふだんはフォルダ。アイコンに乗せたときと、選んでいるグループの見出しに乗せたときは矢印に変わる（どちらも押すと開閉する） */
-.group-icon-toggle {
-  justify-content: center;
-  width: 20px;
-}
-
-.group-icon-chevron {
-  display: none;
-}
-
-.custom-group-head.active:hover .group-icon-folder,
-.group-icon-toggle:hover .group-icon-folder,
-.group-icon-toggle:focus-visible .group-icon-folder {
-  display: none;
-}
-
-.custom-group-head.active:hover .group-icon-chevron,
-.group-icon-toggle:hover .group-icon-chevron,
-.group-icon-toggle:focus-visible .group-icon-chevron {
-  display: grid;
-  place-items: center;
-}
-
-/* 自分で作ったグループの見出しは、どこを押しても選ぶ / 開閉する */
+/* 自分で作ったグループの見出しは、矢印以外のところを押すと選ぶ */
 .custom-group > .custom-group-head {
   cursor: pointer;
 }

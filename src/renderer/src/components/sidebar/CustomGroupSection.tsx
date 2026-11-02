@@ -5,19 +5,18 @@ import { api } from "../../api";
 import { cx } from "../../cx";
 import { flashGroup } from "../../groups";
 import { navigate, openNewChat } from "../../router";
-import { Chevron } from "../Chevron";
 import { Collapse } from "../Collapse";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import type { ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
+import { GroupToggle } from "./GroupToggle";
 
 type Row = { run: Run; state: AgentState };
 
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身）。
- * 見出しを押すと（プロジェクトのカードと同じ）、選んでいなければ選び（そのグループのボードを開く）、
- * 選んでいれば開閉する。フォルダのアイコンは、乗せると開閉の矢印に変わり、押すといつでも開閉する（選んでいるグループは見出しに乗せただけで矢印）。
+ * サイドバー全体で、矢印を押すと開閉、それ以外を押すと選ぶ: 左の矢印で開閉し、見出しのほかの部分を押すとこのグループを選ぶ（そのグループのボードを開く）。
  * 名前のダブルクリックで名前を変える・ドラッグで並べ替える・チャットをドロップしてグループへ移す・右クリックでメニュー
  */
 export function CustomGroupSection({
@@ -58,13 +57,12 @@ export function CustomGroupSection({
   dropProps: Record<string, unknown>;
   dragProps: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
 }) {
-  /** 見出しを押したとき: 選んでいなければ選ぶ（開閉はしない）、選んでいれば開閉する */
+  /** 見出しの矢印以外を押したとき: このグループを選ぶ（そのグループのボードを開く。開閉は左の矢印だけで行う） */
   const press = () => {
-    if (selected) return onSetClosed(!closed);
     navigate({ name: "project", id: projectId, tab: "groups", group: group.id });
     flashGroup(group.id);
   };
-  const pressLabel = selected ? (closed ? "開く" : "閉じる") : `「${group.name}」のボードを開く`;
+  const pressLabel = `「${group.name}」のボードを開く`;
   return (
     <div className={cx("custom-group", dropClass)} {...dropProps}>
       <div
@@ -73,26 +71,14 @@ export function CustomGroupSection({
         title="ドラッグでグループを並べ替える（右クリックでメニュー・名前をダブルクリックで名前を変更）"
         onContextMenu={(e) => menu.openFor(group, e)}
         onClick={(e) => {
-          // 見出しのどこを押しても同じ（＋・…・名前の入力欄は除く）
+          // 矢印以外のところを押すと選ぶ（矢印・＋・…・名前の入力欄は除く）
           if ((e.target as HTMLElement).closest("button, input")) return;
           press();
         }}
         {...dragProps}
       >
-        {/* フォルダのアイコン: 乗せると開閉の矢印に変わり、押すと選んでいてもいなくても開閉する（選んでいるグループは、見出しに乗せただけで矢印になる） */}
-        <button
-          type="button"
-          className="custom-group-toggle group-icon-toggle"
-          aria-expanded={!closed}
-          aria-label={closed ? `「${group.name}」を開く` : `「${group.name}」を閉じる`}
-          title={closed ? "開く" : "閉じる"}
-          onClick={() => onSetClosed(!closed)}
-        >
-          <Folder size={13} className="group-icon-folder" aria-hidden />
-          <span className="group-icon-chevron" aria-hidden>
-            <Chevron open={!closed} />
-          </span>
-        </button>
+        {/* 開閉の矢印（ほかのまとまりと同じ）とフォルダのアイコン。押すと開閉する */}
+        <GroupToggle open={!closed} onToggle={() => onSetClosed(!closed)} icon={Folder} />
         {renaming ? (
           <InlineName
             initial={group.name}
