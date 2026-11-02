@@ -1,4 +1,4 @@
-import type { RunEvent, SubagentInfo } from "../../core/types";
+import type { RunEvent, SubagentInfo } from "../../../../core/types";
 
 /** 一覧の 1 行（Task / Agent ツールの呼び出しと、SDK のサブエージェントの通知をまとめたもの） */
 export interface SubagentEntry {

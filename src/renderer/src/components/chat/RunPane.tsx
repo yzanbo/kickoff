@@ -1,30 +1,30 @@
 import { Archive, ArchiveRestore, Pencil, SquareTerminal } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Approval, Project, Run, RunEvent } from "../../../core/types";
-import { api } from "../api";
-import { CHAT_TITLE_MAX, chatTitle } from "../chatTitle";
-import { ApprovalCard } from "../components/ApprovalCard";
-import { Composer } from "../components/Composer";
-import { ContextMeter } from "../components/ContextMeter";
-import { CloseButton, IconButton } from "../components/IconButton";
-import { InlineName } from "../components/InlineName";
-import { Markdown } from "../components/Markdown";
-import { ProjectChip } from "../components/ProjectChip";
-import { useRunOptions } from "../components/RunOptionsBar";
-import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../components/RunStatus";
-import { SectionBadge } from "../components/SectionBadge";
-import { WorktreeChip } from "../components/WorktreeChip";
-import { SubagentDetail } from "../components/SubagentDetail";
-import { SubagentChip, useSubagents } from "../components/Subagents";
-import { OpenSubagentContext, TimelineItems, Working } from "../components/Timeline";
-import { alertDialog } from "../dialogs";
-import { errorMessage } from "../errors";
-import { useServerEvent } from "../events";
-import type { TerminalTarget } from "../components/sidePanel/useSidePanel";
-import { useBusyNeighbors } from "../hooks/useBusyNeighbors";
-import { groupEvents, relativize } from "../timeline";
+import type { Approval, Project, Run, RunEvent } from "../../../../core/types";
+import { api } from "../../api";
+import { CHAT_TITLE_MAX, chatTitle } from "../../chatTitle";
+import { ApprovalCard } from "./ApprovalCard";
+import { Composer } from "./Composer";
+import { ContextMeter } from "./ContextMeter";
+import { CloseButton, IconButton } from "../IconButton";
+import { InlineName } from "../InlineName";
+import { Markdown } from "../Markdown";
+import { ProjectChip } from "../ProjectChip";
+import { useRunOptions } from "./RunOptionsBar";
+import { BUSY_STATUSES, RUN_STATUS_LABELS, RunStatusIcon } from "../RunStatus";
+import { SectionBadge } from "../SectionBadge";
+import { WorktreeChip } from "../WorktreeChip";
+import { SubagentDetail } from "./SubagentDetail";
+import { SubagentChip, useSubagents } from "./Subagents";
+import { OpenSubagentContext, TimelineItems, Working } from "./Timeline";
+import { alertDialog } from "../../dialogs";
+import { errorMessage } from "../../errors";
+import { useServerEvent } from "../../events";
+import type { TerminalTarget } from "../sidePanel/useSidePanel";
+import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
+import { groupEvents, relativize } from "./timelineItems";
 
-interface RunPageProps {
+interface RunPaneProps {
   projectId: number;
   runId: number;
   /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
@@ -40,7 +40,7 @@ interface RunPageProps {
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function RunPage({ projectId, runId, focus, onClose, onRunChange, visible = true, onOpenTerminal }: RunPageProps) {
+export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true, onOpenTerminal }: RunPaneProps) {
   const [run, setRun] = useState<Run>();
   const [project, setProject] = useState<Project>();
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -119,7 +119,7 @@ function RunView({
   live: string;
   focus?: number;
   onClose: () => void;
-  onOpenTerminal?: RunPageProps["onOpenTerminal"];
+  onOpenTerminal?: RunPaneProps["onOpenTerminal"];
 }) {
   const options = useRunOptions(
     { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: Boolean(run.fast_mode) },

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "../../core/types.js";
-import { summarizeTools, type ToolCall } from "./timeline.js";
+import type { RunEvent } from "../../../../core/types.js";
+import { summarizeTools, type ToolCall } from "./timelineItems.js";
 
 let nextId = 1;
 const call = (name: string, input: object = {}): ToolCall => ({

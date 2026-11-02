@@ -1,15 +1,15 @@
 import { Archive, ArchiveRestore, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Run, type RunEvent, type SubagentInfo } from "../../../core/types";
-import { useServerEvent } from "../events";
-import { formatTokens } from "../format";
-import { useDismiss } from "../hooks/useDismiss";
-import { useStoredState } from "../hooks/useStoredState";
-import { subagentsArchivedKey } from "../storageKeys";
-import { modelDisplayName } from "../models";
-import { collectSubagents, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "../subagents";
-import { ClaudeMark } from "./ClaudeMark";
-import { IconButton } from "./IconButton";
+import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Run, type RunEvent, type SubagentInfo } from "../../../../core/types";
+import { useServerEvent } from "../../events";
+import { formatTokens } from "../../format";
+import { useDismiss } from "../../hooks/useDismiss";
+import { useStoredState } from "../../hooks/useStoredState";
+import { subagentsArchivedKey } from "../../storageKeys";
+import { modelDisplayName } from "../../models";
+import { collectSubagents, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "./subagentList";
+import { ClaudeMark } from "../ClaudeMark";
+import { IconButton } from "../IconButton";
 
 /** チャットのサブエージェントの一覧（途中経過はサーバーからのイベントで受け取る） */
 export function useSubagents(runId: number, events: RunEvent[], busy: boolean): SubagentEntry[] {
