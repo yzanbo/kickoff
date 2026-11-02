@@ -17,7 +17,7 @@ export function ArchivedFold({ foldKey, count, children }: { foldKey: string; co
   const [open, setOpen] = useStoredFlag(`kickoff:board-archived-open:${foldKey}`);
   if (count === 0) return null;
   return (
-    <RowSection icon={Archive} label="アーカイブ済み" count={count} open={open} onToggle={() => setOpen(!open)}>
+    <RowSection icon={Archive} label="アーカイブ済み" count={count} open={open} onToggle={() => setOpen(!open)} indent={false}>
       <div className="archived-fold">{children}</div>
     </RowSection>
   );

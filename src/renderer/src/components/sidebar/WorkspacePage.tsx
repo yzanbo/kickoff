@@ -5,11 +5,11 @@ import { BOARD_COLUMN_LABELS, type AgentState, type Approval, type ProjectSummar
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
-import { confirmDeleteGroup, flashGroup, useGroupDrop } from "../../groups";
+import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
-import { navigate, openNewChat, openRun, type Route, routeProjectId } from "../../router";
+import { openNewChat, openRun, type Route, routeProjectId } from "../../router";
 import { CardMenu } from "../CardMenu";
 import { useGroupMenu } from "../GroupMenu";
 import { IconButton } from "../IconButton";
@@ -19,11 +19,14 @@ import { ChatRow } from "./ChatRow";
 import { GroupToggle } from "./GroupToggle";
 import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
+import { CustomGroupSection } from "./CustomGroupSection";
 import { DraftRows } from "./DraftRows";
 import { RowSection } from "./RowSection";
 import type { StateFilter } from "./HeadCounts";
 import { GROUPING_KEY, isWaitingState, stateCounts, useFoldAll, useShowArchivedChats, WAITING_ONLY_KEY } from "./sidebarFlags";
 import { WorkspaceHead } from "./WorkspaceHead";
+import { cx } from "../../cx";
+import { Collapse } from "../Collapse";
 
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
@@ -162,143 +165,99 @@ export const WorkspacePage = memo(function WorkspacePage({
         onCreateGroup={startCreate}
         headDrag={headDrag}
       />
-      {!collapsed && allRows.length > 0 && (
-        <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />
-      )}
-      {!collapsed && keyword && visibleRows.length === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
-      {!collapsed && !keyword && stateFilter && visibleRows.length === 0 && (
-        <p className="chat-search-empty">{BOARD_COLUMN_LABELS[stateFilter]}のチャットはありません</p>
-      )}
-      {!collapsed && creating && (
-        <div className="custom-group-head editing">
-          <Folder size={13} aria-hidden />
-          <InlineName
-            placeholder="グループ名（例: コードレビュー）"
-            onSubmit={(name) => {
-              setCreating(false);
-              void api.createGroup(project.id, name);
-            }}
-            onCancel={() => setCreating(false)}
-          />
-        </div>
-      )}
-      {/* 送る前の新しいチャット（下書き）。絞り込んでいる間は出さない */}
-      {!collapsed && !filtering && <DraftRows projectId={project.id} />}
-      {!collapsed && pinnedRows.length > 0 && (
-        <RowSection icon={Pin} label="固定" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
-          <ul className="chat-rows">{pinnedRows.map(renderRow)}</ul>
-        </RowSection>
-      )}
-      {!collapsed &&
-        groups.map((group) => {
+      {/* チャット一覧（開閉で高さがなめらかに変わる） */}
+      <Collapse open={!collapsed}>
+        {allRows.length > 0 && <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />}
+        {keyword && visibleRows.length === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
+        {!keyword && stateFilter && visibleRows.length === 0 && <p className="chat-search-empty">{BOARD_COLUMN_LABELS[stateFilter]}のチャットはありません</p>}
+        {creating && (
+          <div className="custom-group-head editing">
+            <Folder size={13} aria-hidden />
+            <InlineName
+              placeholder="グループ名（例: コードレビュー）"
+              onSubmit={(name) => {
+                setCreating(false);
+                void api.createGroup(project.id, name);
+              }}
+              onCancel={() => setCreating(false)}
+            />
+          </div>
+        )}
+        {/* 送る前の新しいチャット（下書き）。絞り込んでいる間は出さない */}
+        {!filtering && <DraftRows projectId={project.id} />}
+        {pinnedRows.length > 0 && (
+          <RowSection icon={Pin} label="固定" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
+            <ul className="chat-rows">{pinnedRows.map(renderRow)}</ul>
+          </RowSection>
+        )}
+        {groups.map((group) => {
           const members = groupedRows(group.id);
           // 検索中は、一致するチャットがないグループを隠す
           if (filtering && members.length === 0) return null;
-          const closed = groupClosed.get(group.id) && !filtering;
           return (
-            <div
+            <CustomGroupSection
               key={group.id}
-              className={`custom-group ${dropOver === group.id ? "drop-target" : ""} ${reorder.classFor(group.id)}`}
-              {...dropTarget(group.id)}
-            >
-              <div
-                className={`custom-group-head ${route.name === "project" && route.tab === "groups" && route.group === group.id ? "active" : ""}`}
-                draggable={renaming !== group.id}
-                title="ドラッグでグループを並べ替える（右クリックでメニュー）"
-                onContextMenu={(e) => groupMenu.openFor(group, e)}
-                {...reorder.handle(group.id)}
-              >
-                <GroupToggle open={!closed} onToggle={() => groupClosed.toggle(group.id)} icon={Folder} />
-                {renaming === group.id ? (
-                  <InlineName
-                    initial={group.name}
-                    onSubmit={(name) => {
-                      setRenaming(undefined);
-                      void api.renameGroup(group.id, name);
-                    }}
-                    onCancel={() => setRenaming(undefined)}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="custom-group-name"
-                    title="プロジェクトのグループで表示（ダブルクリックで名前を変更）"
-                    onClick={() => {
-                      navigate({ name: "project", id: project.id, tab: "groups", group: group.id });
-                      // すでにそのグループを表示しているときも、もう一度ハイライトする
-                      flashGroup(group.id);
-                    }}
-                    onDoubleClick={() => setRenaming(group.id)}
-                  >
-                    {group.name}
-                  </button>
-                )}
-                {/* 名前の編集中は、ほかの操作を隠す（鉛筆を押し直して編集が始まり直さないように） */}
-                {renaming !== group.id && (
-                  <>
-                    <span className="custom-group-count">{members.length}</span>
-                    <IconButton
-                      icon={Plus}
-                      label={`${group.name} に新しいチャット`}
-                      title={`「${group.name}」に新しいチャット`}
-                      size={13}
-                      className="custom-group-add"
-                      onClick={() => openNewChat(project.id, { group: group.id })}
-                    />
-                    {groupMenu.button(group)}
-                  </>
-                )}
-              </div>
-              {!closed &&
-                (members.length === 0 ? (
-                  <p className="custom-group-empty">チャットをここへドラッグ</p>
-                ) : grouping !== "recent" ? (
-                  // 並べ方でまとめているときは、グループの中も同じようにまとめる
-                  <div className="custom-group-grouped">
-                    <GroupedChatRows grouping={grouping} projectId={project.id} scope={group.id} rows={members} renderRow={renderRow} forceOpen={filtering} />
-                  </div>
-                ) : (
-                  <ul className="chat-rows custom-group-rows">{members.map(renderRow)}</ul>
-                ))}
-            </div>
+              projectId={project.id}
+              group={group}
+              members={members}
+              closed={groupClosed.get(group.id) && !filtering}
+              onSetClosed={(closed) => groupClosed.set(group.id, closed)}
+              selected={route.name === "project" && route.id === project.id && route.tab === "groups" && route.group === group.id}
+              filtering={filtering}
+              grouping={grouping}
+              renderRow={renderRow}
+              renaming={renaming === group.id}
+              onRenameStart={() => setRenaming(group.id)}
+              onRenameEnd={() => setRenaming(undefined)}
+              menu={groupMenu}
+              dropClass={cx(dropOver === group.id && "drop-target", reorder.classFor(group.id))}
+              dropProps={dropTarget(group.id)}
+              dragProps={reorder.handle(group.id)}
+            />
           );
         })}
-      {!collapsed && groups.length > 0 && ungroupedRows.length > 0 && (
-        <div className={`custom-group-head ungrouped ${dropOver === "none" ? "drop-target" : ""}`} {...dropTarget(null)}>
-          <GroupToggle open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} />
-          <button className="custom-group-name ungrouped-name" onClick={toggleUngrouped}>
-            グループなし
+        {groups.length > 0 && ungroupedRows.length > 0 && (
+          <div className={`custom-group-head ungrouped ${dropOver === "none" ? "drop-target" : ""}`} {...dropTarget(null)}>
+            <GroupToggle open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} />
+            <button className="custom-group-name ungrouped-name" onClick={toggleUngrouped}>
+              グループなし
+            </button>
+            <span className="custom-group-count">{ungroupedRows.length}</span>
+            <IconButton icon={Plus} label="グループなしで新しいチャット" size={13} className="custom-group-add" onClick={() => openNewChat(project.id)} />
+            {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
+            <span className="group-menu-spacer" aria-hidden />
+          </div>
+        )}
+        {(filtering && rows.length === 0) || (visibleRows.length === 0 && groups.length > 0 && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 ? (
+          <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
+            <Plus size={13} /> 最初のチャットを始める
           </button>
-          <span className="custom-group-count">{ungroupedRows.length}</span>
-          <IconButton icon={Plus} label="グループなしで新しいチャット" size={13} className="custom-group-add" onClick={() => openNewChat(project.id)} />
-          {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
-          <span className="group-menu-spacer" aria-hidden />
-        </div>
-      )}
+        ) : ungroupedRows.length === 0 ? null : (
+          // グループがあるときは「グループなし」の見出しで開閉し、中身を段下げする
+          <Collapse open={!(groups.length > 0 && ungroupedClosed && !filtering)} indent={groups.length > 0}>
+            {grouping === "recent" ? (
+              <ul className="chat-rows" {...(groups.length > 0 ? dropTarget(null) : {})}>
+                {ungroupedRows.map(renderRow)}
+              </ul>
+            ) : (
+              <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} forceOpen={filtering} />
+            )}
+          </Collapse>
+        )}
+        {showArchived && !waitingOnly && archivedMatches.length > 0 && (
+          <RowSection icon={Archive} label="アーカイブ済み" count={archivedMatches.length} open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived}>
+            {/* 中も、ほかのチャットと同じまとめ方で出す（開閉はアーカイブ済みの中だけで覚える） */}
+            {grouping === "recent" ? (
+              <ul className="chat-rows archived-rows">{archivedMatches.map(renderRow)}</ul>
+            ) : (
+              <div className="custom-group-grouped">
+                <GroupedChatRows grouping={grouping} projectId={project.id} scope="archived" rows={archivedMatches} renderRow={renderRow} forceOpen={Boolean(keyword)} />
+              </div>
+            )}
+          </RowSection>
+        )}
+      </Collapse>
       {groupMenu.menu}
-      {collapsed || (filtering && rows.length === 0) || (groups.length > 0 && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 ? (
-        <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
-          <Plus size={13} /> 最初のチャットを始める
-        </button>
-      ) : ungroupedRows.length === 0 ? null : grouping === "recent" ? (
-        <ul className="chat-rows" {...(groups.length > 0 ? dropTarget(null) : {})}>
-          {ungroupedRows.map(renderRow)}
-        </ul>
-      ) : (
-        <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} forceOpen={filtering} />
-      )}
-      {!collapsed && showArchived && !waitingOnly && archivedMatches.length > 0 && (
-        <RowSection icon={Archive} label="アーカイブ済み" count={archivedMatches.length} open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived}>
-          {/* 中も、ほかのチャットと同じまとめ方で出す（開閉はアーカイブ済みの中だけで覚える） */}
-          {grouping === "recent" ? (
-            <ul className="chat-rows archived-rows">{archivedMatches.map(renderRow)}</ul>
-          ) : (
-            <div className="custom-group-grouped">
-              <GroupedChatRows grouping={grouping} projectId={project.id} scope="archived" rows={archivedMatches} renderRow={renderRow} forceOpen={Boolean(keyword)} />
-            </div>
-          )}
-        </RowSection>
-      )}
       {rowMenu && (
         <CardMenu
           {...rowMenu}
