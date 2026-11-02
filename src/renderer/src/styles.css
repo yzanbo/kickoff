@@ -460,6 +460,28 @@ kbd {
   display: none;
 }
 
+/* 1 行で表示のときは、プロジェクトのカードも詰める（頭文字を小さく・名前を 1 行にして、チャット数の行は出さない） */
+.workspaces.compact .workspace-head {
+  margin-bottom: 6px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.workspaces.compact .workspace-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.workspaces.compact .workspace-name {
+  font-size: 13px;
+}
+
+.workspaces.compact .workspace-sub {
+  display: none;
+}
+
 .workspaces.compact .chat-row-actions {
   top: 3px;
 }
@@ -1478,6 +1500,16 @@ button.project-switch:hover,
 
 .stack-item.drop-after::after {
   bottom: 0;
+}
+
+/* 縦並びの上の、すべてのプロジェクトをまたぐ検索欄 */
+.search-all {
+  flex: none;
+  padding: 2px var(--gutter) 6px;
+}
+
+.search-all-empty {
+  padding: 0 var(--gutter);
 }
 
 /* 縦並びの、しまったプロジェクトのまとまりの見出し */

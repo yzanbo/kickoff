@@ -16,7 +16,9 @@ import { useChatSelection } from "./chatSelection";
 import { SelectionBar } from "./SelectionBar";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
-import { foldAll, stateCounts, useCompactRows, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
+import { foldAll, stateCounts, useCompactRows, useShowArchivedChats, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
+import { useChatSearch } from "../../chatSearch";
+import { SearchField } from "../SearchField";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 const LAYOUT_KEY = "kickoff:sidebar-layout";
@@ -42,6 +44,8 @@ interface Props {
  * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替える。
  */
 export function ProjectNav({ projects, approvals, runs, groups, route, onNewProject }: Props) {
+  // 横スライド / 縦並び
+  const [layout, changeLayout] = useStoredChoice<NavLayout>(LAYOUT_KEY, ["slide", "stack"], "slide");
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
   // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
   const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_PROJECTS_KEY);
@@ -56,7 +60,13 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
   const [compact] = useCompactRows();
   const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], approvals).length > 0;
-  const ordered = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
+  // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
+  const [searchAll, setSearchAll] = useState("");
+  const allSearch = useChatSearch(layout === "stack" ? searchAll : "");
+  const [showArchivedChats] = useShowArchivedChats();
+  const hasMatch = (p: ProjectSummary) => (runs[p.id] ?? []).some((r) => (!r.archived_at || showArchivedChats) && allSearch.matches(r));
+  const base = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
+  const ordered = allSearch.keyword ? base.filter(hasMatch) : base;
   const reorder = useReorder(
     visible.map((p) => p.id),
     (ids) => void api.reorderProjects(ids),
@@ -74,7 +84,6 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   const [currentId, setCurrentId] = useState(loadCurrentProject);
   // 下の丸の右クリックメニュー（プロジェクトに対する操作）
   const projectMenu = useProjectMenu(projects);
-  const [layout, changeLayout] = useStoredChoice<NavLayout>(LAYOUT_KEY, ["slide", "stack"], "slide");
   // チャット一覧の開閉（縦並びでは、すべてまとめて閉じる・開くこともできる）
   const collapsedMap = useStoredFlagMap(COLLAPSED_PREFIX);
   const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
@@ -121,7 +130,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
     showProject(target.id);
   };
   // トラックパッドの 2 本指スワイプ・タッチのドラッグで隣のプロジェクトへ
-  const swipe = useWorkspaceSwipe({ index, count: ordered.length, go });
+  const swipe = useWorkspaceSwipe({ index, count: ordered.length, go, active: layout === "slide" });
 
   // ショートカット: ⌥⌘← / ⌥⌘→ で前後、⌃1〜9 で n 番目
   useWindowEvent("keydown", (e) => {
@@ -184,6 +193,9 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
     return (
       <div className={cx("workspaces", compact && "compact")}>
         <ProjectListHead {...head} fold={{ allCollapsed, set: setAllCollapsed }} />
+        <div className="search-all">
+          <SearchField value={searchAll} onChange={setSearchAll} placeholder="すべてのプロジェクトのチャットを検索" label="すべてのプロジェクトのチャットを検索" />
+        </div>
         <div className="workspace-stack">
           {ordered.map((p, i) => (
             <Fragment key={p.id}>
@@ -197,8 +209,9 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
                 approvals={approvals}
                 route={route}
                 hidden={false}
-                collapsed={!waitingOnly && collapsedMap.get(p.id)}
+                collapsed={!waitingOnly && !allSearch.keyword && collapsedMap.get(p.id)}
                 onCollapsedChange={collapsedMap.set}
+                searchAll={allSearch.keyword}
                 headDrag={!canReorder || isArchived(p.id) ? undefined : reorder.handle(p.id)}
               />
             </div>
@@ -206,6 +219,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
           ))}
           {!showArchived && archivedHead}
           {waitingEmpty}
+          {allSearch.keyword && ordered.length === 0 && <p className="chat-search-empty search-all-empty">「{allSearch.keyword}」に一致するチャットはありません</p>}
         </div>
         {selectionBar}
         <div className="workspace-switcher stack">
