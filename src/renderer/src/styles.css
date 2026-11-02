@@ -1219,6 +1219,11 @@ button.project-switch:hover,
   padding: 8px var(--gutter);
 }
 
+/* 縦並びの下の行の「新しいプロジェクト」: 上下の余白をそろえる（上だけの margin を外す） */
+.workspace-switcher.stack .sidebar-new {
+  margin-top: 0;
+}
+
 /* プロジェクト一覧の上の見出しの行: 何に効くかを文字で出したボタン（「プロジェクト」「チャット」）と、右端の「すべて閉じる / 開く」 */
 .project-list-head {
   container: project-list-head / inline-size;
@@ -1271,6 +1276,84 @@ button.project-switch:hover,
   .head-chip-caret {
     display: none;
   }
+}
+
+/* 縦並び: すべてのプロジェクトを上から順に並べ、まとめてスクロールする */
+.workspace-stack {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 8px;
+  overflow-y: auto;
+}
+
+.workspace-stack .workspace-page {
+  padding-bottom: 4px;
+  overflow: visible;
+}
+
+/* プロジェクトの並べ替え: 動かしているものは薄く、入る位置に線を出す */
+.workspace-dot.group-dragging,
+.stack-item.group-dragging {
+  opacity: 0.35;
+}
+
+.stack-item {
+  position: relative;
+}
+
+.workspace-dot.drop-before::before,
+.workspace-dot.drop-after::after,
+.stack-item.drop-before::before,
+.stack-item.drop-after::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+}
+
+.workspace-dot.drop-before::before,
+.workspace-dot.drop-after::after {
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+}
+
+.workspace-dot.drop-before::before {
+  left: -5px;
+}
+
+.workspace-dot.drop-after::after {
+  right: -5px;
+}
+
+.stack-item.drop-before::before,
+.stack-item.drop-after::after {
+  right: 10px;
+  left: 10px;
+  height: 2px;
+}
+
+.stack-item.drop-before::before {
+  top: 0;
+}
+
+.stack-item.drop-after::after {
+  bottom: 0;
+}
+
+/* 縦並びの、しまったプロジェクトのまとまりの見出し */
+.archived-projects-head {
+  margin: 4px 0;
+}
+
+/* 横スライドの下の丸: しまったプロジェクトは点線で薄く */
+.workspace-dot.archived {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  opacity: 0.45;
 }
 
 .workspace-dot {
