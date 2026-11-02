@@ -5,13 +5,13 @@ import { formatTokens } from "../format";
 import { startHorizontalDrag } from "../hooks/dragResize";
 import { useDismiss } from "../hooks/useDismiss";
 import { useStoredNumber } from "../hooks/useStoredState";
+import { SUBAGENT_WIDTH_KEY } from "../storageKeys";
 import { cleanSubagentReport, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "../subagents";
 import { groupEvents } from "../timeline";
 import { CloseButton } from "./IconButton";
 import { Markdown } from "./Markdown";
 import { TimelineItems, Working } from "./Timeline";
 
-const WIDTH_KEY = "kickoff:subagent-width";
 const MIN_WIDTH = 320;
 
 
@@ -44,7 +44,7 @@ export function SubagentDetail({
   const drawerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   // 引き出しの幅（チャットのパネルいっぱいまで広げられる）
-  const [width, setWidth] = useStoredNumber(WIDTH_KEY, 560);
+  const [width, setWidth] = useStoredNumber(SUBAGENT_WIDTH_KEY, 560);
   const [resizing, setResizing] = useState(false);
 
   const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {

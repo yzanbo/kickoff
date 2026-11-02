@@ -5,6 +5,7 @@ import { cx } from "../../cx";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { initialOf, projectHue } from "../../projectColor";
 import { SECTION_META } from "../../sections";
+import { BOARD_LANE_CLOSED_PREFIX } from "../../storageKeys";
 import { useWorktreeLists } from "../../worktreeBranches";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "../../workplace";
 import { GroupToggle } from "../sidebar/GroupToggle";
@@ -148,7 +149,7 @@ export function BoardLanes({
   /** 段の前に置くもの（下書き） */
   before?: ReactNode;
 }) {
-  const closed = useStoredFlagMap("kickoff:board-lane-closed:");
+  const closed = useStoredFlagMap(BOARD_LANE_CLOSED_PREFIX);
   // 作業場所で分けるときは、プロジェクトごとのワークツリーの一覧からブランチ名を引く
   const worktreesOf = useWorktreeLists(kind === "worktree" ? entries.map((e) => e.run.project_id) : []);
   const lanes = lanesOf(kind, entries, projects, groups, showEmpty, worktreesOf);

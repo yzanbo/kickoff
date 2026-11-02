@@ -2,6 +2,7 @@ import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointer
 import { startVerticalDrag } from "../../hooks/dragResize";
 import { useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { BOTTOM_PANEL_HEIGHT_KEY } from "../../storageKeys";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
 
 /** 1 つのシェル（key は裏のシェルのキー） */
@@ -30,7 +31,6 @@ interface ScopeState {
   active: string | null;
 }
 
-const HEIGHT_KEY = "kickoff:bottom-panel-height";
 const DEFAULT_HEIGHT = 198;
 const MIN_HEIGHT = 120;
 /** 上の画面に残す高さ */
@@ -53,7 +53,7 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
   const [groups, setGroups] = useState<TerminalGroup[]>([]);
   const [scopes, setScopes] = useState<Record<string, ScopeState>>({});
   const [maximized, setMaximized] = useState(false);
-  const [height, setHeight] = useStoredNumber(HEIGHT_KEY, DEFAULT_HEIGHT);
+  const [height, setHeight] = useStoredNumber(BOTTOM_PANEL_HEIGHT_KEY, DEFAULT_HEIGHT);
   const [resizing, setResizing] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
   const available = Boolean(window.kickoff?.terminal);

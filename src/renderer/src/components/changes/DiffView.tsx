@@ -7,6 +7,7 @@ import { errorMessage } from "../../errors";
 import type { CodeToken } from "../../highlight";
 import { useHighlight } from "../../hooks/useHighlight";
 import { useStoredChoice } from "../../hooks/useStoredState";
+import { DIFF_LAYOUT_KEY } from "../../storageKeys";
 import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
 import { Segmented } from "../Segmented";
@@ -14,7 +15,6 @@ import { parseDiff, toSplitRows, type DiffLine } from "./parseDiff";
 import { useGitTarget } from "./worktreeContext";
 
 type DiffLayout = "split" | "unified";
-const LAYOUT_KEY = "kickoff:diff-layout";
 
 /** ファイルの状態の名前（差分の見出しに出す） */
 export const CHANGE_LABELS: Record<GitFileChange["kind"], string> = {
@@ -49,7 +49,7 @@ export function DiffView({
   /** コミットでの差分を出すとき（履歴から開いたとき）。staged は使わない */
   commit?: string;
 }) {
-  const [layout, setLayout] = useStoredChoice<DiffLayout>(LAYOUT_KEY, ["split", "unified"], "unified");
+  const [layout, setLayout] = useStoredChoice<DiffLayout>(DIFF_LAYOUT_KEY, ["split", "unified"], "unified");
   const { target, key: at } = useGitTarget(projectId);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
   const [state, setState] = useState<{ key: string; diff?: GitDiff; error?: string }>();

@@ -6,6 +6,7 @@ import { cx } from "../../cx";
 import { errorMessage } from "../../errors";
 import { useDragWidth } from "../../hooks/useDragWidth";
 import { useStoredFlag } from "../../hooks/useStoredState";
+import { COMMIT_FILES_LIST_KEY, COMMIT_FILES_WIDTH_KEY } from "../../storageKeys";
 import { formatDayTime } from "../../time";
 import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
@@ -17,8 +18,6 @@ import { buildTree, folderPaths, kindMaps } from "./treeModel";
 import { useGitTarget } from "./worktreeContext";
 
 type CommitTab = "commit" | "changes";
-const TREE_KEY = "kickoff:commit-files-tree";
-const FILES_WIDTH_KEY = "kickoff:commit-files-width";
 
 /**
  * 履歴で選んだコミットの詳細（Fork と同じ: 1 行の見出しと「コミット」「変更」のタブ）。
@@ -30,9 +29,9 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
   // 変わったファイルを木で出すか（初めは木。Fork と同じ）
-  const [list, setList] = useStoredFlag(TREE_KEY);
+  const [list, setList] = useStoredFlag(COMMIT_FILES_LIST_KEY);
   // 左のファイルの一覧の幅（境目をドラッグで変える。ダブルクリックで元に戻す）
-  const filesPane = useDragWidth({ storageKey: FILES_WIDTH_KEY, initial: 260, min: 160 });
+  const filesPane = useDragWidth({ storageKey: COMMIT_FILES_WIDTH_KEY, initial: 260, min: 160 });
 
   useEffect(() => {
     let alive = true;

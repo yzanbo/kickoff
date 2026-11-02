@@ -9,6 +9,7 @@ import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
+import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, SIDEBAR_WAITING_ONLY_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
 import { openNewChat, openRun, type Route, routeProjectId } from "../../router";
 import { CardMenu } from "../CardMenu";
 import { useGroupMenu } from "../GroupMenu";
@@ -23,7 +24,7 @@ import { CustomGroupSection } from "./CustomGroupSection";
 import { DraftRows } from "./DraftRows";
 import { RowSection } from "./RowSection";
 import type { StateFilter } from "./HeadCounts";
-import { GROUPING_KEY, isWaitingState, stateCounts, useFoldAll, useShowArchivedChats, WAITING_ONLY_KEY } from "./sidebarFlags";
+import { isWaitingState, stateCounts, useFoldAll, useShowArchivedChats } from "./sidebarFlags";
 import { WorkspaceHead } from "./WorkspaceHead";
 import { cx } from "../../cx";
 import { Collapse } from "../Collapse";
@@ -56,11 +57,11 @@ export const WorkspacePage = memo(function WorkspacePage({
   /** すべてのプロジェクトをまたぐ検索欄（縦並びの上）の検索語。プロジェクトの検索欄が空のときに使う */
   searchAll?: string;
 }) {
-  const [grouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  const [grouping] = useSharedChoice<ChatGrouping>(SIDEBAR_GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
   const [showArchived] = useShowArchivedChats();
   // 自分待ち（回答待ち・確認待ち）だけを出すか（上の行の「自分待ち」で切り替える）
-  const [waitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
+  const [waitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   // 選んでいる = いまの画面がこのプロジェクト（カンバン・チャットなど）
@@ -77,7 +78,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const allRows = runs.filter((r) => !r.archived_at).map(withState);
   // アーカイブしたチャット（一覧の下にまとめて、開閉できる。最初は閉じておく）
   const archivedRows = runs.filter((r) => r.archived_at).map(withState);
-  const [archivedOpen, setArchivedOpen] = useStoredFlag(`kickoff:archived-open:${project.id}`);
+  const [archivedOpen, setArchivedOpen] = useStoredFlag(sidebarArchivedOpenKey(project.id));
   const toggleArchived = () => setArchivedOpen(!archivedOpen);
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
   const [rowMenu, setRowMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
@@ -86,7 +87,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   );
   // 上に固定したチャットは、グループ・グループなしから抜き出して、いちばん上にまとめる
   const pinnedRows = visibleRows.filter(({ run }) => run.pinned);
-  const [pinnedClosed, setPinnedClosed] = useStoredFlag(`kickoff:pinned-closed:${project.id}`);
+  const [pinnedClosed, setPinnedClosed] = useStoredFlag(sidebarPinnedClosedKey(project.id));
   const rows = visibleRows.filter(({ run }) => !run.pinned);
   const archivedMatches = archivedRows.filter(({ run }) => matches(run));
 
@@ -94,9 +95,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   // グループの開閉（グループごとに記憶）
-  const groupClosed = useStoredFlagMap("kickoff:group-closed:");
+  const groupClosed = useStoredFlagMap(SIDEBAR_GROUP_CLOSED_PREFIX);
   // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
-  const [ungroupedClosed, setUngroupedClosed] = useStoredFlag(`kickoff:ungrouped-closed:${project.id}`);
+  const [ungroupedClosed, setUngroupedClosed] = useStoredFlag(sidebarUngroupedClosedKey(project.id));
   const toggleUngrouped = () => setUngroupedClosed(!ungroupedClosed);
   // 見出しの行の「すべて閉じる / 開く」: 中のまとまり（グループ・グループなし・固定・アーカイブ済み）もそろえる
   useFoldAll((closed) => {

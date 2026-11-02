@@ -7,6 +7,14 @@ import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from 
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
+import {
+  SIDEBAR_LAST_HASH_KEY,
+  SIDEBAR_LAYOUT_KEY,
+  SIDEBAR_PROJECT_COLLAPSED_PREFIX,
+  SIDEBAR_PROJECT_ORDER_KEY,
+  SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY,
+  SIDEBAR_WAITING_ONLY_KEY,
+} from "../../storageKeys";
 import { cx } from "../../cx";
 import { GroupToggle } from "./GroupToggle";
 import { ProjectListHead, type NavLayout } from "./ProjectListHead";
@@ -16,19 +24,11 @@ import { useChatSelection } from "./chatSelection";
 import { SelectionBar } from "./SelectionBar";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
-import { foldAll, stateCounts, useCompactProjects, useCompactRows, useShowArchivedChats, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
+import { foldAll, stateCounts, useCompactProjects, useCompactRows, useShowArchivedChats, waitingRuns } from "./sidebarFlags";
 import { useChatSearch } from "../../chatSearch";
 import { SearchField } from "../SearchField";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
-const LAYOUT_KEY = "kickoff:sidebar-layout";
-const LAST_HASH_KEY = "kickoff:last-hash-by-project";
-/** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか（"1" なら出す） */
-const SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:sidebar-show-archived-projects";
-/** プロジェクトの並べ方（手動 / 最近動いた順） */
-const PROJECT_ORDER_KEY = "kickoff:sidebar-project-order";
-/** プロジェクトごとの、チャット一覧を閉じているか（"1" なら閉じている） */
-const COLLAPSED_PREFIX = "kickoff:collapsed:";
 interface Props {
   projects: ProjectSummary[];
   approvals: Approval[];
@@ -45,19 +45,19 @@ interface Props {
  */
 export function ProjectNav({ projects, approvals, runs, groups, route, onNewProject }: Props) {
   // 横スライド / 縦並び
-  const [layout, changeLayout] = useStoredChoice<NavLayout>(LAYOUT_KEY, ["slide", "stack"], "slide");
+  const [layout, changeLayout] = useStoredChoice<NavLayout>(SIDEBAR_LAYOUT_KEY, ["slide", "stack"], "slide");
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
   // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
-  const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_PROJECTS_KEY);
+  const [showArchived, setShowArchived] = useStoredFlag(SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY);
   // 最近動いた順: チャット（アーカイブしたものを除く）が最後に動いた時刻。チャットがなければ作った時刻
-  const [projectOrder, setProjectOrder] = useStoredChoice<ProjectOrder>(PROJECT_ORDER_KEY, PROJECT_ORDERS, "manual");
+  const [projectOrder, setProjectOrder] = useStoredChoice<ProjectOrder>(SIDEBAR_PROJECT_ORDER_KEY, PROJECT_ORDERS, "manual");
   const lastActive = (p: ProjectSummary) => (runs[p.id] ?? []).find((r) => !r.archived_at)?.updated_at ?? p.created_at;
   const visible = sidebarOrder(projects, projectOrder === "recent" ? lastActive : undefined);
   // 手動の並びのときだけ、ドラッグで並べ替えられる（しまったものは並べ替えない）
   const canReorder = projectOrder === "manual";
   const archived = archivedProjects(projects);
   // 自分待ちだけを出すときは、自分待ちのチャットがあるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
-  const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
+  const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
   const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], approvals).length > 0;
@@ -86,7 +86,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   // 下の丸の右クリックメニュー（プロジェクトに対する操作）
   const projectMenu = useProjectMenu(projects);
   // チャット一覧の開閉（縦並びでは、すべてまとめて閉じる・開くこともできる）
-  const collapsedMap = useStoredFlagMap(COLLAPSED_PREFIX);
+  const collapsedMap = useStoredFlagMap(SIDEBAR_PROJECT_COLLAPSED_PREFIX);
   const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
   const current = ordered[index];
 
@@ -97,13 +97,13 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   }, [routeProject]);
 
   // プロジェクトごとに、最後に見ていた画面（URL）を覚えておく（横スライドで戻ってきたときに開く）
-  const lastHashes = useRef<Record<number, string>>(JSON.parse(sessionStorage.getItem(LAST_HASH_KEY) ?? "{}"));
+  const lastHashes = useRef<Record<number, string>>(JSON.parse(sessionStorage.getItem(SIDEBAR_LAST_HASH_KEY) ?? "{}"));
   useEffect(() => {
     if (routeProject === undefined) return;
     // 新しいチャットの画面は覚えない（戻るたびに新しいチャットが開かないように）
     if (route.name === "newChat") return;
     lastHashes.current[routeProject] = location.hash;
-    sessionStorage.setItem(LAST_HASH_KEY, JSON.stringify(lastHashes.current));
+    sessionStorage.setItem(SIDEBAR_LAST_HASH_KEY, JSON.stringify(lastHashes.current));
   }, [route, routeProject]);
 
   /** 横スライドで切り替えたプロジェクトを、右側にも表示する（Arc・Zen Browser のスペースと同じ） */

@@ -5,7 +5,8 @@ import { useSharedFlag } from "../../hooks/useStoredState";
 import { sidebarOrder } from "../../projectOrder";
 import { href, type Route } from "../../router";
 import { ProjectNav } from "./ProjectNav";
-import { WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
+import { SIDEBAR_WAITING_ONLY_KEY } from "../../storageKeys";
+import { waitingRuns } from "./sidebarFlags";
 import type { SidebarController } from "./useSidebar";
 import { useSidebarData } from "./useSidebarData";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
@@ -26,7 +27,7 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
   // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const { runs, groups } = useSidebarData(projects);
   // 自分待ち（回答待ち・確認待ち）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）
-  const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
+  const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   const waitingCount = sidebarOrder(projects).reduce((n, p) => n + waitingRuns(runs[p.id] ?? [], approvals).length, 0);
   // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
   const selection = useChatSelectionState(new Set(Object.values(runs).flatMap((list) => list.map((r) => r.id))));

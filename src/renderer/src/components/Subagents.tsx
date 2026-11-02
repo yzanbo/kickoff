@@ -5,6 +5,7 @@ import { useServerEvent } from "../events";
 import { formatTokens } from "../format";
 import { useDismiss } from "../hooks/useDismiss";
 import { useStoredState } from "../hooks/useStoredState";
+import { subagentsArchivedKey } from "../storageKeys";
 import { modelDisplayName } from "../models";
 import { collectSubagents, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "../subagents";
 import { ClaudeMark } from "./ClaudeMark";
@@ -43,7 +44,7 @@ export function SubagentChip({
   const ref = useRef<HTMLDivElement>(null);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
   const [archived, saveArchived] = useStoredState(
-    `kickoff:subagents-archived:${run.id}`,
+    subagentsArchivedKey(run.id),
     (raw) => new Set(JSON.parse(raw ?? "[]") as string[]),
     (keys) => JSON.stringify([...keys]),
   );

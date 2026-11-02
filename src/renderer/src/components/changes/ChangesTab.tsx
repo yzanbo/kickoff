@@ -6,6 +6,7 @@ import { confirmDialog } from "../../dialogs";
 import { useActionError } from "../../hooks/useActionError";
 import { useDragWidth } from "../../hooks/useDragWidth";
 import { useStoredChoice, useStoredFlag } from "../../hooks/useStoredState";
+import { CHANGES_LIST_WIDTH_KEY, CHANGES_TREE_KEY, CHANGES_VIEW_KEY } from "../../storageKeys";
 import { ErrorText } from "../ErrorText";
 import { IconButton, RefreshButton } from "../IconButton";
 import { Segmented } from "../Segmented";
@@ -38,9 +39,6 @@ interface Selection {
 }
 
 type ChangesView = "files" | "search" | "changes" | "history";
-const VIEW_KEY = "kickoff:changes-view";
-const TREE_KEY = "kickoff:changes-tree";
-const LIST_WIDTH_KEY = "kickoff:changes-list-width";
 
 /**
  * プロジェクトの「エディタ」タブ（VS Code と同じく、左端で表示を切り替える）。
@@ -65,7 +63,7 @@ export function ChangesTab({
 }) {
   const rootName = (worktree ?? repoPath).split("/").pop() ?? repoPath;
   const { status } = git;
-  const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "search", "changes", "history"], "history");
+  const [view, setView] = useStoredChoice<ChangesView>(CHANGES_VIEW_KEY, ["files", "search", "changes", "history"], "history");
   const [selected, setSelectedState] = useState<Selection>();
   // 編集中のファイルに保存していない変更があるか（別のファイルを開く前に確かめる）
   const dirty = useRef(false);
@@ -89,10 +87,10 @@ export function ChangesTab({
   const commit = picked?.projectId === projectId ? picked.commit : undefined;
   const setCommit = (next: GitCommit) => setPicked({ projectId, commit: next });
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
-  const [changesTree, setChangesTree] = useStoredFlag(TREE_KEY, true);
+  const [changesTree, setChangesTree] = useStoredFlag(CHANGES_TREE_KEY, true);
   const actionError = useActionError();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
-  const list = useDragWidth({ storageKey: LIST_WIDTH_KEY, initial: 246 });
+  const list = useDragWidth({ storageKey: CHANGES_LIST_WIDTH_KEY, initial: 246 });
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;

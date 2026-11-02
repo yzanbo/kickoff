@@ -6,6 +6,7 @@ import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { sidebarOrder } from "../../projectOrder";
+import { PANEL_MAXIMIZED_KEY, PANEL_WIDTH_KEY } from "../../storageKeys";
 import { loadPanel, registerPanel, savePanel } from "./panelMemory";
 
 /** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・グループで始めるか） */
@@ -41,8 +42,6 @@ export function terminalTargets(projects: ProjectSummary[], projectId?: number):
 
 const chatKey = (id: number) => `chat:${id}`;
 
-const PANEL_WIDTH_KEY = "kickoff:panel-width";
-const PANEL_MAX_KEY = "kickoff:panel-maximized";
 const DEFAULT_PANEL_WIDTH = 1127;
 const MIN_PANEL_WIDTH = 360;
 
@@ -89,7 +88,7 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
   const [panelWidth, setPanelWidth] = useStoredNumber(PANEL_WIDTH_KEY, DEFAULT_PANEL_WIDTH);
   const [resizing, setResizing] = useState(false);
   // 横幅いっぱい（ボードを覆う）。戻すと、元の幅に戻る
-  const [maximized, setMaximized] = useStoredFlag(PANEL_MAX_KEY);
+  const [maximized, setMaximized] = useStoredFlag(PANEL_MAXIMIZED_KEY);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const show = (key: string) => {

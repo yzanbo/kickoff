@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, ty
 import { startVerticalDrag } from "../../hooks/dragResize";
 import { useDragWidth } from "../../hooks/useDragWidth";
 import { useStoredChoice, useStoredNumber } from "../../hooks/useStoredState";
+import { BROWSER_DEVTOOLS_DOCK_KEY, BROWSER_DEVTOOLS_HEIGHT_KEY, BROWSER_DEVTOOLS_WIDTH_KEY } from "../../storageKeys";
 
 /** 開発者ツールを出す場所: 右・下（ブラウザのタブの中）・別のウィンドウ */
 export const DEVTOOLS_DOCKS = ["right", "bottom", "window"] as const;
@@ -14,8 +15,6 @@ export const DEVTOOLS_DOCK_LABELS: Record<DevtoolsDock, string> = {
   window: "別のウィンドウで表示",
 };
 
-const DOCK_KEY = "kickoff:browser-devtools-dock";
-const HEIGHT_KEY = "kickoff:browser-devtools-height";
 const DEFAULT_HEIGHT = 300;
 const MIN_HEIGHT = 140;
 
@@ -26,13 +25,13 @@ const MIN_HEIGHT = 140;
  * 前に出していたものはメインプロセスが閉じる。右と下の入れ替えは開き直さず、同じ入れ物の並べ方だけを変える
  */
 export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
-  const [dock, setDock] = useStoredChoice<DevtoolsDock>(DOCK_KEY, DEVTOOLS_DOCKS, "window");
+  const [dock, setDock] = useStoredChoice<DevtoolsDock>(BROWSER_DEVTOOLS_DOCK_KEY, DEVTOOLS_DOCKS, "window");
   // いま出している場所（null は閉じている）。タブの中の入れ物は開くたびに作り直す（key。一度使った入れ物は使い回せない）
   const [shown, setShown] = useState<DevtoolsDock | null>(null);
   const [embedKey, setEmbedKey] = useState(0);
   const devtoolsRef = useRef<WebviewTag | null>(null);
-  const width = useDragWidth({ storageKey: "kickoff:browser-devtools-width", initial: 420, min: 260, keep: 240, side: "right" });
-  const [height, setHeight] = useStoredNumber(HEIGHT_KEY, DEFAULT_HEIGHT);
+  const width = useDragWidth({ storageKey: BROWSER_DEVTOOLS_WIDTH_KEY, initial: 420, min: 260, keep: 240, side: "right" });
+  const [height, setHeight] = useStoredNumber(BROWSER_DEVTOOLS_HEIGHT_KEY, DEFAULT_HEIGHT);
   const [resizingHeight, setResizingHeight] = useState(false);
   const embedded = shown === "right" || shown === "bottom";
 

@@ -3,7 +3,8 @@ import { useSharedChoice } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
 import { CHAT_GROUPINGS, GROUPING_META, type ChatGrouping } from "./chatGroupings";
 import { HeadAction, HeadMenu, HeadToggle } from "./HeadMenu";
-import { GROUPING_KEY, useCompactProjects, useCompactRows, useShowArchivedChats } from "./sidebarFlags";
+import { SIDEBAR_GROUPING_KEY } from "../../storageKeys";
+import { useCompactProjects, useCompactRows, useShowArchivedChats } from "./sidebarFlags";
 
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
 export type NavLayout = "slide" | "stack";
@@ -30,7 +31,7 @@ interface Props {
  * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行のアーカイブの右に、ほかと同じ形のボタン（HeadAction）で置く（プロジェクトの行には収まらないため）
  */
 export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
-  const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(SIDEBAR_GROUPING_KEY, CHAT_GROUPINGS, "recent");
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
   const [compactProjects, setCompactProjects] = useCompactProjects();
