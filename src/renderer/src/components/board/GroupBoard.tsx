@@ -37,7 +37,7 @@ interface Props {
   approvals: Approval[];
   /** サイドバーのグループの＋から来たとき: そのグループで新しいチャットを始める */
   focus?: ReopenRoute;
-  /** サイドバーのグループ名から来たとき: そのグループが見えるところまでスクロールする（色や枠の演出はしない） */
+  /** サイドバーのグループ名から来たとき: そのグループを表示して、背景と枠を少しハイライトする（広がる光の動きは付けない） */
   highlight?: number;
 }
 
@@ -185,7 +185,7 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
   const sections: (RunGroup | null)[] = [null, ...groups];
   const sectionProps = (g: RunGroup | null, base: string) => ({
     key: g?.id ?? "none",
-    className: cx(base, over === (g?.id ?? "none") && "drop-target", g ? reorder.classFor(g.id) : "ungrouped"),
+    className: cx(base, over === (g?.id ?? "none") && "drop-target", g ? reorder.classFor(g.id) : "ungrouped", g !== null && g.id === highlight && "highlighted"),
     "data-group-id": g?.id,
     ...dropProps(g?.id ?? null),
   });
