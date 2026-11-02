@@ -8,7 +8,8 @@ import { ProjectNav } from "./ProjectNav";
 import { WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
 import type { SidebarController } from "./useSidebar";
 import { useSidebarData } from "./useSidebarData";
-import { ChatSelectionContext, useChatSelectionState } from "./chatSelection";
+import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 
 interface Props {
   sidebar: SidebarController;
@@ -29,6 +30,24 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
   const waitingCount = sidebarOrder(projects).reduce((n, p) => n + waitingRuns(runs[p.id] ?? [], approvals).length, 0);
   // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
   const selection = useChatSelectionState(new Set(Object.values(runs).flatMap((list) => list.map((r) => r.id))));
+  // ↑↓ でチャットを移る（サイドバーにピントがあるとき。Enter で開く。Shift を押しながらで選ぶものに足す）
+  useWindowEvent("keydown", (e) => {
+    if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.metaKey || e.altKey || e.ctrlKey) return;
+    const target = e.target as HTMLElement | null;
+    if (!target?.closest(".sidebar-section") || target.closest("input, textarea, select, [role=menu]")) return;
+    const rows = visibleRows();
+    if (rows.length === 0) return;
+    const current = rows.indexOf(target.closest<HTMLElement>("a.chat-row") as HTMLElement);
+    const step = e.key === "ArrowDown" ? 1 : -1;
+    const next = rows[current < 0 ? (step > 0 ? 0 : rows.length - 1) : Math.min(rows.length - 1, Math.max(0, current + step))];
+    e.preventDefault();
+    next.focus();
+    next.scrollIntoView({ block: "nearest" });
+    if (e.shiftKey) {
+      if (current >= 0) selection.add(Number(rows[current].dataset.runId));
+      selection.add(Number(next.dataset.runId));
+    }
+  });
   return (
     <aside className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
       <div

@@ -23,6 +23,7 @@ import { useRunNotifications } from "./notifications";
 import { AllProjectsPage } from "./pages/AllProjectsPage";
 import { ProjectPage } from "./pages/ProjectPage";
 import { openNewChat, routeProjectId, useRoute } from "./router";
+import { useChatHistory } from "./hooks/useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { applyTheme, loadTheme } from "./theme";
 import { PlanUsageContext, usePlanUsage } from "./usage";
@@ -31,6 +32,8 @@ applyTheme(loadTheme());
 
 export function App() {
   const route = useRoute();
+  // ⌘[ / ⌘] で、前に開いたチャット・次のチャットへ
+  useChatHistory(route);
   const planUsage = usePlanUsage();
   const { projects, approvals, projectsDir, notifyEnabled, loadProjects, connection } = useAppData(planUsage.onEvent);
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）

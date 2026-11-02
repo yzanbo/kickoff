@@ -57,7 +57,8 @@ export function useChatSelectionState(existing: Set<number>): ChatSelection {
       setPicked(new Set([...ids, ...order.slice(a, b + 1)]));
     },
     add: (id) => {
-      setPicked(new Set([...ids, id]));
+      // 続けて呼んでも取りこぼさないよう、いまの値に足す
+      setPicked((prev) => new Set([...[...prev].filter((x) => existing.has(x)), id]));
       if (anchor === null) setAnchor(id);
     },
     clear: () => {
