@@ -1,6 +1,7 @@
-import { Archive, ArchiveX, Clock, GalleryHorizontal, GripVertical, Rows2, Rows3, Rows4 } from "lucide-react";
+import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GripVertical, Rows2, Rows3, Rows4 } from "lucide-react";
 import { useSharedChoice } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
+import { IconButton } from "../IconButton";
 import { CHAT_GROUPINGS, GROUPING_META, type ChatGrouping } from "./chatGroupings";
 import { HeadMenu, HeadToggle } from "./HeadMenu";
 import { GROUPING_KEY, useCompactProjects, useCompactRows, useShowArchivedChats } from "./sidebarFlags";
@@ -14,6 +15,8 @@ interface Props {
   order: ProjectOrder;
   onOrder: (order: ProjectOrder) => void;
   /** しまった（アーカイブした）プロジェクトの数（0 なら出す・隠すの項目を置かない） */
+  /** すべてのプロジェクトのチャット一覧（と中のまとまり）をまとめて閉じる・開く（縦並び・横スライドのどちらでも） */
+  fold: { allCollapsed: boolean; set: (collapsed: boolean) => void };
   archivedCount: number;
   showArchived: boolean;
   onShowArchived: (show: boolean) => void;
@@ -25,9 +28,9 @@ interface Props {
  * プロジェクト = 並べ方（縦 / 横スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・アーカイブ（出すか）/
  * チャット = まとめ方・表示（行を 1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。チャットの設定はすべてのプロジェクトに効く。
  * 「表示」はプロジェクトのカードとチャットの行で別々に切り替える。
- * 縦並びのときの「すべて閉じる / 開く」は、見出しの行ではなく、下の検索欄の右に置く（ProjectNav）
+ * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行の右端に置く（プロジェクトの行には収まらないため）
  */
-export function ProjectListHead({ layout, onLayout, order, onOrder, archivedCount, showArchived, onShowArchived }: Props) {
+export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
   const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
@@ -105,6 +108,14 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, archivedCoun
         />
         {/* アーカイブはプロジェクトの行と同じく右端 */}
         {archiveToggle("archive-chats", "チャット", showArchivedChats, setShowArchivedChats)}
+        {/* 開いているものがあれば閉じる、すべて閉じていれば開く */}
+        <IconButton
+          icon={fold.allCollapsed ? ChevronsUpDown : ChevronsDownUp}
+          className="project-list-fold"
+          label={fold.allCollapsed ? "すべてのプロジェクトを開く" : "すべてのプロジェクトを閉じる"}
+          title={fold.allCollapsed ? "すべて開く" : "すべて閉じる"}
+          onClick={() => fold.set(!fold.allCollapsed)}
+        />
       </div>
     </div>
   );

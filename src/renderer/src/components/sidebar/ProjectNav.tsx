@@ -1,4 +1,4 @@
-import { Archive, ChevronsDownUp, ChevronsUpDown, Plus } from "lucide-react";
+import { Archive, Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
@@ -8,7 +8,6 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
 import { cx } from "../../cx";
-import { IconButton } from "../IconButton";
 import { GroupToggle } from "./GroupToggle";
 import { ProjectListHead, type NavLayout } from "./ProjectListHead";
 import { useProjectMenu } from "./ProjectMenu";
@@ -183,31 +182,33 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
 
   const selectionBar = selection && <SelectionBar selection={selection} runs={runs} groups={groups} />;
 
-  /** 一覧の上の見出しの行に渡す（並べ方・しまったプロジェクトを出すか） */
-  const head = { layout, onLayout: changeLayout, order: projectOrder, onOrder: setProjectOrder, archivedCount: archived.length, showArchived, onShowArchived: setShowArchived };
+  // プロジェクトと、その中のまとまりをすべて閉じる・開く（縦並び・横スライドのどちらでも、見出しの行から）
+  const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
+  const setAllCollapsed = (on: boolean) => {
+    ordered.forEach((p) => collapsedMap.set(p.id, on));
+    foldAll(on);
+  };
+  /** 一覧の上の見出しの行に渡す（並べ方・しまったプロジェクトを出すか・すべて閉じる / 開く） */
+  const head = {
+    layout,
+    onLayout: changeLayout,
+    order: projectOrder,
+    onOrder: setProjectOrder,
+    archivedCount: archived.length,
+    showArchived,
+    onShowArchived: setShowArchived,
+    fold: { allCollapsed, set: setAllCollapsed },
+  };
 
   if (layout === "stack") {
-    const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
     // 固定したプロジェクト（並びの先頭にある）と、その後ろの最初のプロジェクト
     const hasPinned = ordered.some((p) => p.pinned > 0 && !isArchived(p.id));
     const firstUnpinned = ordered.findIndex((p) => !p.pinned && !isArchived(p.id));
-    // プロジェクトと、その中のまとまりをすべて閉じる・開く
-    const setAllCollapsed = (on: boolean) => {
-      ordered.forEach((p) => collapsedMap.set(p.id, on));
-      foldAll(on);
-    };
     return (
       <div className={cx("workspaces", compact && "compact", compactProjects && "compact-projects")}>
         <ProjectListHead {...head} />
-        {/* すべてのプロジェクトをまたぐ検索欄と、その右に「すべて閉じる / 開く」（開いているものがあれば閉じ、すべて閉じていれば開く） */}
         <div className="search-all">
-          <SearchField value={searchAll} onChange={setSearchAll} placeholder="全プロジェクトのチャットを検索" label="すべてのプロジェクトのチャットを検索" />
-          <IconButton
-            icon={allCollapsed ? ChevronsUpDown : ChevronsDownUp}
-            label={allCollapsed ? "すべてのプロジェクトを開く" : "すべてのプロジェクトを閉じる"}
-            title={allCollapsed ? "すべて開く" : "すべて閉じる"}
-            onClick={() => setAllCollapsed(!allCollapsed)}
-          />
+          <SearchField value={searchAll} onChange={setSearchAll} placeholder="すべてのプロジェクトのチャットを検索" label="すべてのプロジェクトのチャットを検索" />
         </div>
         <div className="workspace-stack">
           {ordered.map((p, i) => (
