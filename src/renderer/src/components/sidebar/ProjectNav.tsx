@@ -218,7 +218,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
             {hasPinned && i === firstUnpinned && <div className="project-section-label">プロジェクト</div>}
             {/* しまったプロジェクトのまとまりの見出し（押して開閉する。初めは閉じている） */}
             {i === visible.length && archivedHead}
-            <div className={`stack-item ${!canReorder || isArchived(p.id) ? "" : reorder.classFor(p.id)}`} {...reorderDrop(p.id)}>
+            <div className={cx("stack-item", !canReorder || isArchived(p.id) ? "" : reorder.classFor(p.id))} {...reorderDrop(p.id)}>
               <WorkspacePage
                 project={p}
                 runs={runs[p.id] ?? []}
