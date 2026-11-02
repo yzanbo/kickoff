@@ -215,6 +215,8 @@ export interface Run {
   attention: number;
   /** アーカイブした日時（null なら一覧に出す） */
   archived_at: string | null;
+  /** サイドバーのプロジェクトの上に固定したか（SQLite の真偽値 0 / 1） */
+  pinned: number;
   /** 自分で作ったグループ（null ならグループなし） */
   group_id: number | null;
   /** 作業場所（git のワークツリーのフォルダ。空ならプロジェクトのフォルダ＝本体） */

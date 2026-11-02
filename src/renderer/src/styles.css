@@ -431,8 +431,30 @@ kbd {
   background: var(--bg-elev);
 }
 
-.nav-row kbd {
+.nav-row kbd,
+.nav-row .count-badge {
   margin-left: auto;
+}
+
+/* 自分待ちだけを出していて、ひとつもないとき */
+.waiting-empty {
+  padding: 4px var(--gutter);
+}
+
+/* チャットを 1 行で出す（並べ方のメニューの「1 行で表示」）: 2 行目のセクション・ブランチを隠し、行を詰める */
+.workspaces.compact .chat-row {
+  align-items: center;
+  min-height: 28px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.workspaces.compact .chat-row-meta {
+  display: none;
+}
+
+.workspaces.compact .chat-row-actions {
+  top: 3px;
 }
 
 /* チャットの行（2 行・先頭に状態の印） */
@@ -947,7 +969,7 @@ input[type="text"].inline-name {
 .custom-group > .chat-rows,
 .custom-group > .custom-group-empty,
 .custom-group > .custom-group-grouped,
-.archived-section > .chat-rows,
+.row-section > .chat-rows,
 .custom-group-head.ungrouped + .chat-rows,
 .custom-group-head.ungrouped ~ .status-group,
 .status-group > .chat-rows {

@@ -128,6 +128,13 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     return c.json(run.attention ? run : store.setRunAttention(run.id, true));
   });
 
+  // サイドバーの上に固定する・やめる
+  app.post("/api/runs/:id/pin", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { pinned } = z.object({ pinned: z.boolean() }).parse(await c.req.json());
+    return c.json(store.setRunPinned(run.id, pinned));
+  });
+
   // アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す
   app.post("/api/runs/:id/archive", async (c) => {
     const run = requireRun(store, c.req.param("id"));

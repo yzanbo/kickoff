@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Pin, PinOff, Trash2 } from "lucide-react";
 import { AGENT_STATE_LABELS, type AgentState, type Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
@@ -9,13 +9,13 @@ import { SECTION_META } from "../../sections";
 import { formatDayTime, shortRelativeTime } from "../../time";
 import { alertDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
-import { confirmDeleteRun, toggleArchiveRun } from "../../runActions";
+import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../../runActions";
 import { ChatTitleInput } from "../ChatTitleInput";
 import { IconButton } from "../IconButton";
 import { StatusSlot } from "../StatusSlot";
 import { WorktreeChip } from "../WorktreeChip";
 
-/** サイドバーのチャットの行（押すと右のパネルで開く・ドラッグでグループへ移す・右クリックでメニュー。乗せると右端にアーカイブ・削除） */
+/** サイドバーのチャットの行（押すと右のパネルで開く・ドラッグでグループへ移す・右クリックでメニュー。乗せると右端に固定・アーカイブ・削除） */
 export function ChatRow({
   run,
   state,
@@ -81,6 +81,9 @@ export function ChatRow({
       </a>
       {/* 乗せたときだけ出す（時刻の上に重ねる）。行の中のリンクと分けて置く */}
       <span className="chat-row-actions">
+        {!run.archived_at && (
+          <IconButton icon={run.pinned ? PinOff : Pin} size={13} label={run.pinned ? "固定をやめる" : "上に固定"} onClick={() => act(() => togglePinRun(run))} />
+        )}
         <IconButton
           icon={run.archived_at ? ArchiveRestore : Archive}
           size={13}

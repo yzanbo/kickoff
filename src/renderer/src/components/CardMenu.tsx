@@ -1,11 +1,11 @@
-import { Archive, ArchiveRestore, Mail, MailOpen, PanelRight, Pencil, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Mail, MailOpen, PanelRight, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import type { Run } from "../../../core/types";
 import { api } from "../api";
 import { errorMessage } from "../errors";
-import { confirmDeleteRun, toggleArchiveRun } from "../runActions";
+import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../runActions";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
-/** チャットの右クリックメニュー（カンバンのカード・グループのボード・サイドバー）: 開く・名前を変更・アーカイブ・削除 */
+/** チャットの右クリックメニュー（カンバンのカード・グループのボード・サイドバー）: 開く・名前を変更・既読 / 未読・サイドバーの上に固定・アーカイブ・削除 */
 export function CardMenu({
   x,
   y,
@@ -33,7 +33,7 @@ export function CardMenu({
       onClose();
     }
   };
-  const at = clampToViewport(x, y, 220, 260);
+  const at = clampToViewport(x, y, 220, 295);
 
   return (
     <PopupMenu x={at.x} y={at.y} escape="pass" onClose={onClose}>
@@ -51,6 +51,12 @@ export function CardMenu({
       ) : (
         <button role="menuitem" onClick={() => void act(() => api.markUnseen(run.id))}>
           <Mail size={14} /> 未読にする
+        </button>
+      )}
+      {/* 固定はサイドバーの、プロジェクトのいちばん上のまとまりに出す（アーカイブしたものは固定しない） */}
+      {!run.archived_at && (
+        <button role="menuitem" onClick={() => void act(() => togglePinRun(run))}>
+          {run.pinned ? <PinOff size={14} /> : <Pin size={14} />} {run.pinned ? "固定をやめる" : "サイドバーの上に固定"}
         </button>
       )}
       <button role="menuitem" onClick={() => void act(() => toggleArchiveRun(run))}>

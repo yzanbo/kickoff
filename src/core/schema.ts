@@ -124,6 +124,8 @@ const MIGRATIONS = [
   // v13: プロジェクトを上に固定する（ピン留め）・使っていないプロジェクトをしまう（アーカイブ）
   `ALTER TABLE projects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
    ALTER TABLE projects ADD COLUMN archived_at TEXT;`,
+  // v14: チャットをサイドバーの上に固定する（ピン留め）
+  `ALTER TABLE runs ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;`,
 ];
 
 /** スキーマのバージョン管理（PRAGMA user_version）。変更は MIGRATIONS に追記していく */

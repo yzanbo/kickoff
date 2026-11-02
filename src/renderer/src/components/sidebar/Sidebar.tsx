@@ -1,8 +1,13 @@
-import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
+import { Inbox, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
 import type { Approval, ProjectSummary } from "../../../../core/types";
+import { cx } from "../../cx";
+import { useSharedFlag } from "../../hooks/useStoredState";
+import { sidebarOrder } from "../../projectOrder";
 import { href, type Route } from "../../router";
 import { ProjectNav } from "./ProjectNav";
+import { WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
 import type { SidebarController } from "./useSidebar";
+import { useSidebarData } from "./useSidebarData";
 
 interface Props {
   sidebar: SidebarController;
@@ -14,8 +19,13 @@ interface Props {
   onNewProject: () => void;
 }
 
-/** 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定） */
+/** 左のサイドバー（新しいチャット・全プロジェクト・自分待ち・検索、プロジェクトごとのチャット一覧、設定） */
 export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSearch, onNewProject }: Props) {
+  // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
+  const { runs, groups } = useSidebarData(projects);
+  // 自分待ち（回答待ち・確認待ち）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）
+  const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
+  const waitingCount = sidebarOrder(projects).reduce((n, p) => n + waitingRuns(runs[p.id] ?? [], approvals).length, 0);
   return (
     <aside className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
       <div
@@ -40,12 +50,21 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
         <a className={`nav-row ${route.name === "allProjects" ? "active" : ""}`} href={href({ name: "allProjects" })}>
           <LayoutGrid size={15} /> 全プロジェクト
         </a>
+        <button
+          className={cx("nav-row", waitingOnly && "active")}
+          aria-pressed={waitingOnly}
+          title={waitingOnly ? "すべてのチャットを表示" : "回答待ち・確認待ちのチャットだけを表示"}
+          onClick={() => setWaitingOnly(!waitingOnly)}
+        >
+          <Inbox size={15} /> 自分待ち
+          {waitingCount > 0 && <span className="count-badge">{waitingCount}</span>}
+        </button>
         <button className="nav-row" onClick={onSearch}>
           <Search size={15} /> 検索 <kbd>⌘K</kbd>
         </button>
       </div>
       <nav className="sidebar-section" aria-label="プロジェクトとチャット">
-        <ProjectNav projects={projects} approvals={approvals} route={route} onNewProject={onNewProject} />
+        <ProjectNav projects={projects} approvals={approvals} runs={runs} groups={groups} route={route} onNewProject={onNewProject} />
       </nav>
     </aside>
   );
