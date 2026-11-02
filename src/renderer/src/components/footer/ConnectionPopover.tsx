@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../core/types";
-import { api, type ConnectionState } from "../api";
-import { errorMessage } from "../errors";
-import { useDismiss } from "../hooks/useDismiss";
-import { accountLine } from "../usage";
-import { ErrorText } from "./ErrorText";
-import { PopoverHeader } from "./PopoverHeader";
-import { StatusDot, toneOf, type StatusTone } from "./StatusDot";
+import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../../core/types";
+import { api, type ConnectionState } from "../../api";
+import { errorMessage } from "../../errors";
+import { useDismiss } from "../../hooks/useDismiss";
+import { accountLine } from "../../usage";
+import { ErrorText } from "../ErrorText";
+import { PopoverHeader } from "../PopoverHeader";
+import { StatusDot, toneOf, type StatusTone } from "../StatusDot";
 
 interface Props {
   state: ConnectionState;

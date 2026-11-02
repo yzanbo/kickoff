@@ -1,6 +1,6 @@
-import type { PlanUsage } from "../../../core/types";
-import { cx } from "../cx";
-import { formatClock } from "../time";
+import type { PlanUsage } from "../../../../core/types";
+import { cx } from "../../cx";
+import { formatClock } from "../../time";
 
 /** 使用枠の「何時時点」と、最新の取得に失敗したときの理由 */
 export function UsageFetchedNote({ usage, className }: { usage: PlanUsage; className?: string }) {

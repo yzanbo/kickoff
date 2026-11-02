@@ -1,11 +1,11 @@
 import { GitBranch, Settings } from "lucide-react";
-import type { PlanUsage } from "../../../core/types";
-import type { ConnectionState } from "../api";
-import { href } from "../router";
-import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../usage";
-import { useMainBranch } from "../worktreeBranches";
+import type { PlanUsage } from "../../../../core/types";
+import type { ConnectionState } from "../../api";
+import { href } from "../../router";
+import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../../usage";
+import { useMainBranch } from "../../worktreeBranches";
 import { CONNECTION_LABELS } from "./ConnectionPopover";
-import { IconButton } from "./IconButton";
+import { IconButton } from "../IconButton";
 import { UsageMeter } from "./UsageMeter";
 
 interface Props {

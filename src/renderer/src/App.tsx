@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useAppData } from "./appData";
 import { OPEN_CONTENT_SEARCH_EVENT } from "./chatSearch";
-import { AppFooter } from "./components/AppFooter";
+import { AppFooter } from "./components/footer/AppFooter";
 import { BottomPanel } from "./components/bottomPanel/BottomPanel";
 import { useBottomPanel } from "./components/bottomPanel/useBottomPanel";
 import { CommandPalette } from "./components/palette/CommandPalette";
 import { LayoutToggles } from "./components/LayoutToggles";
-import { ConnectionPopover } from "./components/ConnectionPopover";
+import { ConnectionPopover } from "./components/footer/ConnectionPopover";
 import { SearchPanel } from "./components/palette/SearchPanel";
-import { UsagePopover } from "./components/UsagePopover";
+import { UsagePopover } from "./components/footer/UsagePopover";
 import { NewProjectDialog } from "./components/newProject/NewProjectDialog";
 import { ProjectChat } from "./components/projectChat/ProjectChat";
 import { ProjectChatContext, useProjectChat } from "./components/projectChat/useProjectChat";

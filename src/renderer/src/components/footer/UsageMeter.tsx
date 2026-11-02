@@ -1,6 +1,6 @@
-import type { UsageWindow } from "../../../core/types";
-import { formatReset, resetInShort } from "../time";
-import { usageLevel } from "../usage";
+import type { UsageWindow } from "../../../../core/types";
+import { formatReset, resetInShort } from "../../time";
+import { usageLevel } from "../../usage";
 
 type Severity = "idle" | "normal" | "warning" | "critical";
 
