@@ -67,17 +67,31 @@ const subscribeShared = (listener: () => void) => {
 };
 
 /**
- * 同じ key を使うすべての部品でそろう "1" / "0"（サイドバーの各プロジェクトのメニュー・上の行など、別々の部品から切り替えるもの）。
- * useStoredFlag は部品ごとに値を持つので、ほかの部品で切り替えても変わらない。set は参照が変わらない
+ * 同じ key を使うすべての部品でそろう、localStorage に保存する状態（サイドバーの各プロジェクトのメニュー・右クリックのメニューなど、
+ * 別々の部品から切り替えるもの）。useStoredState は部品ごとに値を持つので、ほかの部品で切り替えても変わらない。
+ * encode は参照の変わらない関数を渡す（set の参照が変わらないように）
  */
-export function useSharedFlag(key: string, initial = false) {
+export function useSharedState<T>(key: string, decode: (raw: string | null) => T, encode: (value: T) => string) {
   const raw = useSyncExternalStore(subscribeShared, () => localStorage.getItem(key));
   const set = useCallback(
-    (on: boolean) => {
-      localStorage.setItem(key, on ? "1" : "0");
+    (next: T) => {
+      localStorage.setItem(key, encode(next));
       sharedListeners.forEach((l) => l());
     },
-    [key],
+    [key, encode],
   );
-  return [raw === null ? initial : raw === "1", set] as const;
+  return [decode(raw), set] as const;
+}
+
+const encodeFlag = (on: boolean) => (on ? "1" : "0");
+const encodeChoice = (value: string) => value;
+
+/** 部品どうしでそろう "1" / "0" */
+export function useSharedFlag(key: string, initial = false) {
+  return useSharedState(key, (raw) => (raw === null ? initial : raw === "1"), encodeFlag);
+}
+
+/** 部品どうしでそろう、決まった文字列のどれか（知らない値・未保存なら initial） */
+export function useSharedChoice<T extends string>(key: string, choices: readonly T[], initial: T) {
+  return useSharedState<T>(key, (raw) => (choices.includes(raw as T) ? (raw as T) : initial), encodeChoice);
 }

@@ -8,15 +8,17 @@ import { href, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
-import { ProjectMenu } from "../ProjectMenu";
 import { ChatGroupingMenu, type ChatGrouping } from "./ChatGroupingMenu";
+import { HeadCounts } from "./HeadCounts";
+import { useProjectMenu } from "./ProjectMenu";
+import type { StateCounts } from "./sidebarFlags";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
- * 左のボタン: チャット一覧の開閉 / 名前: プロジェクトのカンバンを表示 / 右: まとめ方・グループを作成・新しいチャット。
- * 名前の右のピン: 上に固定しているものは常に出し、ほかはマウスを乗せたときだけ出す（押して固定する・やめる）。
- * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを出す。
- * 右クリックで、上に固定する・しまう（アーカイブ）のメニュー（ProjectMenu）
+ * 常に出すのは、いつも使うものだけ: チャット一覧の開閉・名前（押すとカンバン）・状態ごとのチャット数・新しいチャット（＋）と、固定の印。
+ * マウスを乗せたとき（ピントがあるとき）だけ出す: 固定する・チャットの並べ方・グループを作成。
+ * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを常に出す。
+ * 右クリックで、プロジェクトに対するすべての操作をまとまりに分けたメニュー（useProjectMenu）
  */
 export function WorkspaceHead({
   project,
@@ -25,7 +27,7 @@ export function WorkspaceHead({
   collapsed,
   onToggleCollapsed,
   chatCount,
-  waitingCount,
+  counts,
   grouping,
   onGroupingChange,
   showArchived,
@@ -39,7 +41,8 @@ export function WorkspaceHead({
   collapsed: boolean;
   onToggleCollapsed: () => void;
   chatCount: number;
-  waitingCount: number;
+  /** 作業中・回答待ち・確認待ちのチャット数 */
+  counts: StateCounts;
   grouping: ChatGrouping;
   onGroupingChange: (grouping: ChatGrouping) => void;
   /** アーカイブ済みのチャットを一覧の下に出すか */
@@ -51,17 +54,14 @@ export function WorkspaceHead({
 }) {
   // ＋を押したときの、作成先のグループを選ぶメニュー
   const [pickAt, setPickAt] = useState<{ x: number; y: number } | null>(null);
-  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const projectMenu = useProjectMenu([project]);
   return (
     <>
       <div
         className={cx("workspace-head", active && "active", project.archived_at && "archived")}
         draggable={Boolean(headDrag)}
         title={headDrag ? "ドラッグでプロジェクトを並べ替える（右クリックで固定・アーカイブ）" : "右クリックで固定・アーカイブ"}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenuAt({ x: e.clientX, y: e.clientY });
-        }}
+        onContextMenu={(e) => projectMenu.open(e, project, { onCreateGroup, collapse: { collapsed, toggle: onToggleCollapsed } })}
         {...headDrag}
       >
         <button
@@ -95,15 +95,14 @@ export function WorkspaceHead({
             onClick={() => changeProject(project.id, { pinned: !project.pinned })}
           />
         )}
-        {waitingCount > 0 && (
-          <span className="count-badge" title="回答待ちのチャット" aria-label={`回答待ち ${waitingCount} 件`}>
-            {waitingCount}
-          </span>
-        )}
-        {!collapsed && (
-          <ChatGroupingMenu value={grouping} onChange={onGroupingChange} showArchived={showArchived} onShowArchived={onShowArchived} />
-        )}
-        <IconButton icon={FolderPlus} label={`${project.name} にグループを作成`} title="グループを作成" onClick={onCreateGroup} />
+        <HeadCounts counts={counts} />
+        {/* マウスを乗せたときだけ出す（右クリックのメニューにも同じものがある） */}
+        <span className="workspace-hover-actions">
+          {!collapsed && (
+            <ChatGroupingMenu value={grouping} onChange={onGroupingChange} showArchived={showArchived} onShowArchived={onShowArchived} />
+          )}
+          <IconButton icon={FolderPlus} label={`${project.name} にグループを作成`} title="グループを作成" onClick={onCreateGroup} />
+        </span>
         <IconButton
           icon={Plus}
           label={`${project.name} の新しいチャット`}
@@ -131,7 +130,7 @@ export function WorkspaceHead({
           onClose={() => setPickAt(null)}
         />
       )}
-      {menuAt && <ProjectMenu {...menuAt} project={project} onClose={() => setMenuAt(null)} />}
+      {projectMenu.element}
     </>
   );
 }

@@ -1,4 +1,5 @@
-import { Archive, ChevronsDownUp, ChevronsUpDown, GalleryHorizontal, Rows3 } from "lucide-react";
+import { Archive, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, Rows3 } from "lucide-react";
+import type { ProjectOrder } from "../../projectOrder";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { Segmented } from "../Segmented";
@@ -8,12 +9,14 @@ export type NavLayout = "slide" | "stack";
 
 /**
  * プロジェクト一覧の上の見出しの行（VS Code のエクスプローラーの見出しと同じ形）。左に「プロジェクト」、右に表示方法の操作を常に出す:
- * すべて閉じる / 開く（縦並びのとき）・アーカイブしたプロジェクトを出すか（あるとき）・並べ方。
+ * 最近動いた順に並べるか・すべて閉じる / 開く（縦並びのとき）・アーカイブしたプロジェクトを出すか（あるとき）・並べ方。
  * 下の行は主な操作（新しいプロジェクト・プロジェクトの丸）だけにして、狭くても折り返さないようにする
  */
 export function ProjectListHead({
   layout,
   onLayout,
+  order,
+  onOrder,
   fold,
   archivedCount,
   showArchived,
@@ -21,6 +24,8 @@ export function ProjectListHead({
 }: {
   layout: NavLayout;
   onLayout: (layout: NavLayout) => void;
+  order: ProjectOrder;
+  onOrder: (order: ProjectOrder) => void;
   /** 縦並びのとき: すべてのプロジェクトのチャット一覧をまとめて閉じる・開く */
   fold?: { allCollapsed: boolean; set: (collapsed: boolean) => void };
   /** しまった（アーカイブした）プロジェクトの数（0 なら切り替えを置かない） */
@@ -31,6 +36,14 @@ export function ProjectListHead({
   return (
     <div className="project-list-head">
       <span className="project-list-title">プロジェクト</span>
+      {/* 押すたびに、最近動いた順 ⇄ 手動（ドラッグで並べ替えた順）。どちらでも固定したものは上 */}
+      <IconButton
+        icon={Clock}
+        className={cx(order === "recent" && "active")}
+        label={order === "recent" ? "手動の並び（ドラッグで並べ替えた順）に戻す" : "最近動いた順に並べる"}
+        aria-pressed={order === "recent"}
+        onClick={() => onOrder(order === "recent" ? "manual" : "recent")}
+      />
       {/* 開いているものがあれば閉じる、すべて閉じていれば開く */}
       {fold && (
         <IconButton

@@ -7,7 +7,7 @@ import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
 import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
-import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
+import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
 import { navigate, openNewChat, openRun, type Route } from "../../router";
 import { CardMenu } from "../CardMenu";
@@ -20,10 +20,9 @@ import { GroupToggle } from "./GroupToggle";
 import { CHAT_GROUPINGS, type ChatGrouping } from "./ChatGroupingMenu";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { RowSection } from "./RowSection";
-import { isWaitingState, SHOW_ARCHIVED_KEY, WAITING_ONLY_KEY } from "./sidebarFlags";
+import { GROUPING_KEY, isWaitingState, SHOW_ARCHIVED_KEY, stateCounts, WAITING_ONLY_KEY } from "./sidebarFlags";
 import { WorkspaceHead } from "./WorkspaceHead";
 
-const GROUPING_KEY = "kickoff:sidebar-grouping";
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -49,14 +48,13 @@ export const WorkspacePage = memo(function WorkspacePage({
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
 }) {
-  const [grouping, setGrouping] = useStoredChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
   const [showArchived, setShowArchived] = useSharedFlag(SHOW_ARCHIVED_KEY);
   // 自分待ち（回答待ち・確認待ち）だけを出すか（上の行の「自分待ち」で切り替える）
   const [waitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
-  const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
   const isActive = route.name === "project" && route.id === project.id;
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
@@ -136,7 +134,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
         chatCount={allRows.length}
-        waitingCount={waitingCount}
+        counts={stateCounts(runs, approvals)}
         grouping={grouping}
         onGroupingChange={setGrouping}
         showArchived={showArchived}

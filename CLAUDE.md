@@ -54,7 +54,7 @@
 | 画像を大きく見る | `ImageViewer`（アプリの中で開く。外のブラウザには Kickoff のログインがないので、添付を外で開かない。画像以外の添付はアプリの中でダウンロード）。画像以外を大きく見せるときは children、見出しのボタンは actions で渡す（Mermaid の図の全画面） |
 | コードの色付け | `useHighlight`（行ごとの色。VS Code の Dark+ / Light+ でダーク・ライトに合わせる）＋ `CodeLine`（1 行を描く）。言語はファイル名から `languageOf`（`highlight.ts`）。色付けのライブラリ（Shiki）は使うときだけ読み込む |
 | Markdown の表示 | `Markdown`（```mermaid は `MermaidDiagram` で図にする。生成中の返答には `streaming` を付け、書きかけの図を描かない） |
-| プロジェクトのバッジ | `ProjectChip`（押してカンバンを開くなら `linked`、名前の代わりに選択欄などを置くなら children）。プロジェクトの並び順は `sidebarOrder`（上に固定したものが先、アーカイブしたものは出さない。アーカイブ済みは `archivedProjects`）。固定・アーカイブは右クリックの `ProjectMenu` と見出しのピン（固定しているものは常に、ほかはマウスを乗せたときだけ出す）。変更は `changeProject`。サイドバーにしまったものを出すかは `kickoff:sidebar-show-archived-projects`（初めは閉じる。見出しの行のボタンと、縦並びでは一覧の下の見出しで切り替える） |
+| プロジェクトのバッジ | `ProjectChip`（押してカンバンを開くなら `linked`、名前の代わりに選択欄などを置くなら children）。プロジェクトの並び順は `sidebarOrder`（上に固定したものが先、アーカイブしたものは出さない。アーカイブ済みは `archivedProjects`）。見出しのカード（`WorkspaceHead`）に常に出すのは、いつも使うもの（開閉・名前・状態ごとのチャット数 `HeadCounts`（作業中・回答待ち・確認待ち。色はカンバンの列と同じ）・＋・固定の印）だけ。固定する・チャットの並べ方・グループを作成はマウスを乗せたときだけ（`.workspace-hover-actions`）。右クリックはプロジェクトに対するすべての操作をまとまりに分けた `useProjectMenu`（このプロジェクト / 整理 / チャットの表示（すべてのプロジェクト）/ 編集・削除）。操作を足すときは、まずこのメニューに入れ、常に出すかは別に考える。並び順は見出しの行で「最近動いた順」も選べる（`kickoff:sidebar-project-order`。そのときはドラッグで並べ替えない）。変更は `changeProject`。サイドバーにしまったものを出すかは `kickoff:sidebar-show-archived-projects`（初めは閉じる。見出しの行のボタンと、縦並びでは一覧の下の見出しで切り替える） |
 | 画面の見出しの名前（プロジェクトの切り替え） | `ProjectSwitcher`（全プロジェクトの画面（サイドバーの「全プロジェクト」）は `project` なし。メニューの先頭で全プロジェクトに戻る。カンバンにプロジェクトの絞り込みは置かない） |
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |

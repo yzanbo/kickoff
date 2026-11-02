@@ -12,7 +12,7 @@ import { COMPACT_KEY } from "./sidebarFlags";
 export const CHAT_GROUPINGS = ["recent", "status", "worktree", "phase"] as const;
 export type ChatGrouping = (typeof CHAT_GROUPINGS)[number];
 
-const GROUPING_META: Record<ChatGrouping, { label: string; icon: LucideIcon }> = {
+export const GROUPING_META: Record<ChatGrouping, { label: string; icon: LucideIcon }> = {
   recent: { label: "新しい順", icon: Clock },
   status: { label: "状態でまとめる", icon: ListTree },
   worktree: { label: "作業場所（ブランチ）でまとめる", icon: GitBranch },
