@@ -1,22 +1,15 @@
 import { DatabaseSync } from "node:sqlite";
 import { backupBeforeMigration } from "./dbBackup.js";
 import { migrate, SCHEMA_VERSION, schemaVersion } from "./schema.js";
-import { createArtifactStore } from "./store/artifacts.js";
 import type { Notify } from "./store/common.js";
 import { createGroupStore } from "./store/groups.js";
 import { createProjectStore, type ProjectPatch } from "./store/projects.js";
 import { createRunStore, type RunFilter, type RunPatch } from "./store/runs.js";
 import { createSettingsStore } from "./store/settings.js";
-import { createTaskStore, type TaskPatch } from "./store/tasks.js";
 import type {
   AppSettings,
-  Artifact,
-  ArtifactKind,
-  NewArtifact,
   NewProject,
   NewRun,
-  NewTask,
-  Phase,
   Project,
   ProjectSummary,
   Run,
@@ -24,8 +17,6 @@ import type {
   RunEventData,
   RunGroup,
   SearchHit,
-  Task,
-  TaskStatus,
 } from "./types.js";
 
 /**
@@ -37,10 +28,8 @@ export class Store {
   readonly db: DatabaseSync;
   private readonly settings;
   private readonly projects;
-  private readonly tasks;
   private readonly runs;
   private readonly groups;
-  private readonly artifacts;
 
   constructor(file: string, onChange: Notify = () => {}) {
     this.db = new DatabaseSync(file);
@@ -51,10 +40,8 @@ export class Store {
     migrate(this.db);
     this.settings = createSettingsStore(this.db, onChange);
     this.projects = createProjectStore(this.db, onChange);
-    this.tasks = createTaskStore(this.db, onChange);
     this.runs = createRunStore(this.db, onChange);
     this.groups = createGroupStore(this.db, onChange, this.runs.get);
-    this.artifacts = createArtifactStore(this.db, onChange);
     this.projects.assignMissingHues();
   }
 
@@ -101,28 +88,6 @@ export class Store {
 
   deleteProject(id: number) {
     this.projects.delete(id);
-  }
-
-  // ---- タスク（store/tasks.ts） ----
-
-  listTasks(projectId: number, filter: { phase?: Phase; status?: TaskStatus } = {}): Task[] {
-    return this.tasks.list(projectId, filter);
-  }
-
-  getTask(id: number): Task | undefined {
-    return this.tasks.get(id);
-  }
-
-  createTask(input: NewTask): Task {
-    return this.tasks.create(input);
-  }
-
-  updateTask(id: number, patch: TaskPatch): Task {
-    return this.tasks.update(id, patch);
-  }
-
-  deleteTask(id: number) {
-    this.tasks.delete(id);
   }
 
   // ---- 実行（エージェントとの会話セッション。store/runs.ts） ----
@@ -191,7 +156,7 @@ export class Store {
     return this.runs.searchEvents(query, filter);
   }
 
-  /** 起動時の復旧: 前回終了時に動いていた実行を中断扱いにする（チャットとタスクをまたぐので、ここで行う） */
+  /** 起動時の復旧: 前回終了時に動いていた実行を中断扱いにする */
   recoverInterruptedRuns(): number {
     const stale = this.listRuns({ statuses: ["queued", "running", "waiting"], limit: 1000, includeArchived: true });
     for (const run of stale) {
@@ -199,10 +164,6 @@ export class Store {
         status: "failed",
         error: "アプリの終了により中断しました。メッセージを送ると続きから再開できます。",
       });
-      if (run.task_id) {
-        const task = this.getTask(run.task_id);
-        if (task?.status === "in_progress") this.updateTask(task.id, { status: "todo" });
-      }
     }
     return stale.length;
   }
@@ -233,19 +194,5 @@ export class Store {
   /** グループを消す。中のチャットは消さず、グループなしに戻す */
   deleteGroup(id: number) {
     this.groups.delete(id);
-  }
-
-  // ---- 成果物（store/artifacts.ts） ----
-
-  listArtifacts(projectId: number, filter: { kind?: ArtifactKind } = {}): Artifact[] {
-    return this.artifacts.list(projectId, filter);
-  }
-
-  getArtifact(id: number): Artifact | undefined {
-    return this.artifacts.get(id);
-  }
-
-  createArtifact(input: NewArtifact): Artifact {
-    return this.artifacts.create(input);
   }
 }

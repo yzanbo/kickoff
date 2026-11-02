@@ -19,7 +19,6 @@ export interface Approval {
   id: string;
   run_id: number;
   project_id: number;
-  task_id: number | null;
   kind: ApprovalKind;
   tool_name: string;
   input: Record<string, unknown>;

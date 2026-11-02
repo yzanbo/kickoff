@@ -1,13 +1,11 @@
 import { executeRun, type ExecutionDeps, type QueueItem } from "./runExecution.js";
 import { resolveRunDefaults } from "./runDefaults.js";
-import type { Attachment, Phase, Run, RunOptions } from "./types.js";
+import type { Attachment, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
 import { withAttachmentNote } from "./uploads.js";
 
 interface StartRunInput {
   projectId: number;
-  phase: Phase;
-  taskId?: number | null;
   prompt: string;
   title?: string;
   options?: RunOptions;
@@ -34,8 +32,6 @@ export class Runner {
     const { store, providers } = this.deps;
     const project = store.getProject(input.projectId);
     if (!project) throw new Error("プロジェクトが見つかりません");
-    const task = input.taskId ? store.getTask(input.taskId) : undefined;
-    if (input.taskId && (!task || task.project_id !== project.id)) throw new Error("タスクが見つかりません");
     if (!providers[project.provider].implemented) throw new Error(`${providers[project.provider].label} はまだ使えません`);
 
     // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
@@ -44,10 +40,8 @@ export class Runner {
     const model = options.model ?? (project.provider === "claude" ? defaults.model || null : null);
     const run = store.createRun({
       project_id: project.id,
-      task_id: task?.id ?? null,
-      phase: input.phase,
       provider: project.provider,
-      title: input.title ?? task?.title ?? firstLine(input.prompt),
+      title: input.title ?? firstLine(input.prompt),
       status: "queued",
       model,
       effort: options.effort === undefined ? defaults.effort : options.effort,

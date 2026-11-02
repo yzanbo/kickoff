@@ -6,7 +6,7 @@ import { Store } from "./store.js";
 function mk() {
   const store = new Store(":memory:");
   const project = store.createProject({ name: "p", repo_path: "/tmp/p", provider: "claude" });
-  const run = store.createRun({ project_id: project.id, task_id: null, phase: "implementation", provider: "claude", title: "t", status: "running", model: null });
+  const run = store.createRun({ project_id: project.id, provider: "claude", title: "t", status: "running", model: null });
   return { store, run };
 }
 

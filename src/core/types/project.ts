@@ -1,5 +1,5 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { EffortLevel, PermissionChoice, Phase, ProviderId, TaskStatus } from "./phases.js";
+import type { EffortLevel, PermissionChoice, ProviderId } from "./phases.js";
 
 export interface Project {
   id: number;
@@ -7,9 +7,6 @@ export interface Project {
   description: string;
   repo_path: string;
   provider: ProviderId;
-  test_command: string;
-  deploy_instructions: string;
-  auto_commit: number; // SQLite の真偽値（0 / 1）
   /** このプロジェクトの既定（書いていない項目はアプリ全体の設定に従う） */
   defaults: ProjectDefaults;
   /** 参照資料（AI がいつでも読めるフォルダ・ファイル。絶対パス） */
@@ -35,8 +32,6 @@ export interface ProjectDefaults {
   effort?: EffortLevel | null;
   permission?: PermissionChoice;
   fastMode?: boolean;
-  /** 新しいチャットのセクション（なければ直近のチャットと同じ） */
-  section?: Phase;
 }
 
 /** 参照資料の 1 件（AI は読むだけで、書き込めない） */
@@ -46,9 +41,6 @@ export interface ProjectReference {
 }
 
 export interface ProjectSummary extends Project {
-  task_counts: Record<TaskStatus, number>;
-  /** フェーズごとのタスク数（done は完了したもの） */
-  phase_task_counts: Record<Phase, { total: number; done: number }>;
   total_cost_usd: number;
   active_runs: number;
 }

@@ -58,7 +58,7 @@ test("実行するとイベントが記録され、続きのメッセージは�
     return { status: "completed", sessionId: "s1", result: "ok", costUsd: 0.01, turns: 1 };
   });
 
-  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "こんにちは", options: { model: "sonnet", effort: "low" } });
+  const run = await runner.start({ projectId: project.id, prompt: "こんにちは", options: { model: "sonnet", effort: "low" } });
   await until(() => store.getRun(run.id)?.status === "completed");
   assert.equal(store.getRun(run.id)?.session_id, "s1");
   assert.equal(provider.calls[0].model, "sonnet");
@@ -79,7 +79,7 @@ test("実行するとイベントが記録され、続きのメッセージは�
 test("チャット欄で指定がなければ設定の既定（モデル・深さ・権限・ファストモード）を使う", async () => {
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
   store.updateSettings({ claudeModel: "fable", defaultEffort: "high", defaultPermission: "auto", defaultFastMode: true });
-  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "x" });
+  const run = await runner.start({ projectId: project.id, prompt: "x" });
   await until(() => store.getRun(run.id)?.status === "completed");
   const call = provider.calls[0];
   assert.deepEqual([call.model, call.effort, call.permissionMode, call.fastMode], ["fable", "high", "auto", true]);
@@ -90,7 +90,7 @@ test("添付ファイルはパスがメッセージに書き添えられ、会�
   const uploads = new UploadStore(uploadsDir);
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }), uploads);
   const attachment = await uploads.save({ name: "spec.md", type: "text/markdown", bytes: new TextEncoder().encode("# 仕様") });
-  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "読んで", attachments: [attachment] });
+  const run = await runner.start({ projectId: project.id, prompt: "読んで", attachments: [attachment] });
   await until(() => store.getRun(run.id)?.status === "completed");
   assert.match(provider.calls[0].prompt, /spec\.md（text\/markdown/);
   assert.deepEqual(provider.calls[0].additionalDirectories, [uploadsDir]);
@@ -108,7 +108,7 @@ test("返答の途中経過は配信だけされ、チャット名は AI が付�
   const deltas: string[] = [];
   bus.subscribe((e) => e.type === "run_delta" && deltas.push(e.text));
 
-  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "とても長い依頼文" });
+  const run = await runner.start({ projectId: project.id, prompt: "とても長い依頼文" });
   await until(() => store.getRun(run.id)?.status === "completed" && store.getRun(run.id)?.title === "挨拶");
   assert.deepEqual(deltas, ["こん", "にちは"]);
   // 途中経過は保存しない
@@ -129,7 +129,7 @@ test("作業が終わると確認待ちになり、続けて送ると消える�
     if (calls === 3) await new Promise<void>((r) => signal.addEventListener("abort", () => r()));
     return { status: signal.aborted ? "cancelled" : "completed", sessionId: "s" };
   });
-  const run = await runner.start({ projectId: project.id, phase: "implementation", prompt: "x" });
+  const run = await runner.start({ projectId: project.id, prompt: "x" });
   await until(() => store.getRun(run.id)?.status === "completed");
   assert.equal(store.getRun(run.id)?.attention, 1);
 
@@ -154,7 +154,7 @@ test("承認待ちの間は waiting になり、回答するとエージェン�
     return { status: "completed", sessionId: "s" };
   });
 
-  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "q" });
+  const run = await runner.start({ projectId: project.id, prompt: "q" });
   await until(() => store.getRun(run.id)?.status === "waiting");
   const [pending] = approvals.list({ runId: run.id });
   assert.ok(approvals.resolve(pending.id, { action: "answer", answers: { 何を作る: "Todo" } }));
@@ -170,8 +170,8 @@ test("同時実行数の上限を超えた分は待機し、中断すると承�
   });
   store.updateSettings({ maxConcurrentRuns: 1 });
 
-  const a = await runner.start({ projectId: project.id, phase: "requirements", prompt: "a" });
-  const b = await runner.start({ projectId: project.id, phase: "requirements", prompt: "b" });
+  const a = await runner.start({ projectId: project.id, prompt: "a" });
+  const b = await runner.start({ projectId: project.id, prompt: "b" });
   await until(() => store.getRun(a.id)?.status === "waiting");
   assert.equal(store.getRun(b.id)?.status, "queued");
 
@@ -193,17 +193,10 @@ test("同時実行数が上限なし（null）なら、順番待ちをせずに�
   });
   store.updateSettings({ maxConcurrentRuns: null });
 
-  const runs = await Promise.all(["a", "b", "c"].map((prompt) => runner.start({ projectId: project.id, phase: "requirements", prompt })));
+  const runs = await Promise.all(["a", "b", "c"].map((prompt) => runner.start({ projectId: project.id, prompt })));
   await until(() => runs.every((r) => store.getRun(r.id)?.status === "waiting"));
   for (const r of runs) runner.cancel(r.id);
   await until(() => runs.every((r) => store.getRun(r.id)?.status === "cancelled"));
-});
-
-test("タスクの実行で AI が状態を更新しなかった場合、成功ならレビュー待ちにする", async () => {
-  const { store, runner, project } = setup(async () => ({ status: "completed", sessionId: null }));
-  const task = store.createTask({ project_id: project.id, phase: "implementation", title: "t" });
-  await runner.start({ projectId: project.id, phase: "implementation", taskId: task.id, prompt: "go" });
-  await until(() => store.getTask(task.id)?.status === "review");
 });
 
 test("手で圧縮すると /compact を送り、要約したことだけを残す（発言・確認待ち・会話の回数には数えない）", async () => {
@@ -219,10 +212,10 @@ test("手で圧縮すると /compact を送り、要約したことだけを残�
   });
 
   // まだ会話がないチャットは圧縮できない
-  const fresh = store.createRun({ project_id: project.id, task_id: null, phase: "requirements", provider: "claude", title: "t", status: "completed", model: null });
+  const fresh = store.createRun({ project_id: project.id, provider: "claude", title: "t", status: "completed", model: null });
   await assert.rejects(runner.compact(fresh.id), /まだ会話がない/);
 
-  const run = await runner.start({ projectId: project.id, phase: "requirements", prompt: "こんにちは" });
+  const run = await runner.start({ projectId: project.id, prompt: "こんにちは" });
   await until(() => store.getRun(run.id)?.status === "completed");
   store.setRunAttention(run.id, false);
   const before = store.getRun(run.id)!;

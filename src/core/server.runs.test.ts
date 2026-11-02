@@ -13,10 +13,10 @@ test("チャット・グループの API", async () => {
 
   // 本文も添付もなければ送れない。ほかのプロジェクトのグループには入れられない
   assert.equal((await call("POST", `/api/projects/${project.id}/runs`, { phase: "requirements" })).status, 400);
-  const cross = await call("POST", `/api/projects/${project.id}/runs`, { phase: "requirements", prompt: "x", group_id: otherGroup.id });
+  const cross = await call("POST", `/api/projects/${project.id}/runs`, { prompt: "x", group_id: otherGroup.id });
   assert.deepEqual(cross, { status: 400, body: { error: "ほかのプロジェクトのグループには入れられません" } });
 
-  const started = await call("POST", `/api/projects/${project.id}/runs`, { phase: "requirements", prompt: "こんにちは", group_id: group.body.id });
+  const started = await call("POST", `/api/projects/${project.id}/runs`, { prompt: "こんにちは", group_id: group.body.id });
   assert.equal(started.status, 201);
   const runId: number = started.body.id;
   await until(() => !runner.isBusy(runId));
@@ -128,7 +128,7 @@ test("チャット欄の / のコマンド: プロジェクトの作業場所で
 test("自動のアーカイブ: 完了して日数がたったチャットだけをアーカイブする（確認待ち・固定はしない）。設定で日数を選ぶ", async () => {
   const { call, project, store } = setup();
   const finish = async (prompt: string) => {
-    const run = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "requirements", prompt })).body;
+    const run = (await call("POST", `/api/projects/${project.id}/runs`, { prompt })).body;
     await until(() => store.getRun(run.id)?.status === "completed");
     return run.id as number;
   };

@@ -181,13 +181,13 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   git("commit", "-q", "-m", "init");
 
   // 本体（指定なし）
-  const main = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "本体で" })).body;
+  const main = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "本体で" })).body;
   assert.equal(main.worktree_path, "");
   await until(() => store.getRun(main.id)?.status === "completed");
   assert.equal(provider.lastCwd, repo);
 
   // 新しいワークツリー
-  const created = await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "並行で", new_worktree_branch: "feat/a" });
+  const created = await call("POST", `/api/projects/${project.id}/runs`, { prompt: "並行で", new_worktree_branch: "feat/a" });
   assert.equal(created.status, 201);
   const worktree = created.body.worktree_path;
   assert.ok(worktree.endsWith(path.join(`${path.basename(fs.realpathSync(repo))}-worktrees`, "feat-a")));
@@ -195,8 +195,8 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(provider.lastCwd, worktree);
 
   // いまあるワークツリーを選ぶ・知らないフォルダは断る
-  assert.equal((await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "同じ所", worktree_path: worktree })).body.worktree_path, worktree);
-  assert.equal((await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "x", worktree_path: "/tmp" })).status, 400);
+  assert.equal((await call("POST", `/api/projects/${project.id}/runs`, { prompt: "同じ所", worktree_path: worktree })).body.worktree_path, worktree);
+  assert.equal((await call("POST", `/api/projects/${project.id}/runs`, { prompt: "x", worktree_path: "/tmp" })).status, 400);
 
   // Git の操作は ?worktree= のワークツリーで行う
   fs.writeFileSync(path.join(worktree, "b.txt"), "b\n");
@@ -221,14 +221,14 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(execFileSync("git", ["branch", "--list", "feat/a"], { cwd: repo }).toString().trim(), "");
 
   // エディタタブの履歴から消したときも、チャットは本体に戻る（ブランチの名前は残す）
-  const other = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "別の作業", new_worktree_branch: "feat/b" })).body;
+  const other = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "別の作業", new_worktree_branch: "feat/b" })).body;
   await until(() => store.getRun(other.id)?.status === "completed");
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: other.worktree_path })).status, 200);
   assert.equal(store.getRun(other.id)?.worktree_path, "");
   assert.equal(store.getRun(other.id)?.branch, "feat/b");
 
   // アプリの外でフォルダを消したワークツリー: 続きを送ると分かる文で失敗し、片付けると Git の記録を消してチャットは本体に戻る
-  const gone = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "消える所", new_worktree_branch: "feat/c" })).body;
+  const gone = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "消える所", new_worktree_branch: "feat/c" })).body;
   await until(() => store.getRun(gone.id)?.status === "completed");
   fs.rmSync(gone.worktree_path, { recursive: true, force: true });
   // フォルダが消えた作業場所の Git の操作は 404（「Git で管理されていません」と紛らわしく出さない）

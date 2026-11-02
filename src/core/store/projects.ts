@@ -1,12 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 import { legacyProjectDefaults } from "../legacyValues.js";
 import { pickProjectHue } from "../projectColors.js";
-import { PHASES, TASK_STATUSES, type NewProject, type Phase, type Project, type ProjectSummary, type TaskStatus } from "../types.js";
+import type { NewProject, Project, ProjectSummary } from "../types.js";
 import { parseJson, updateRow, type Notify, type Row } from "./common.js";
 
 /** プロジェクトの変えられる項目 */
-export type ProjectPatch = Partial<Omit<NewProject, "auto_commit">> & {
-  auto_commit?: boolean;
+export type ProjectPatch = Partial<NewProject> & {
   defaults?: Project["defaults"];
   references?: Project["references"];
   pinned?: boolean;
@@ -19,9 +18,6 @@ const PROJECT_COLUMNS = [
   "description",
   "repo_path",
   "provider",
-  "test_command",
-  "deploy_instructions",
-  "auto_commit",
   "defaults",
   "reference_paths",
   "pinned",
@@ -29,13 +25,29 @@ const PROJECT_COLUMNS = [
   "hue",
 ] as const;
 
-/** DB の行（defaults・reference_paths は JSON 文字列）をアプリの型に変換する。使わなくなった列（write_scopes）は読まない */
+/** 使わなくなった列（セクション・テスト・デプロイ・自動コミット・書き込み範囲・要件定義書の確定）。次の段で DB から消す */
+interface LegacyProjectColumns {
+  current_phase?: unknown;
+  test_command?: unknown;
+  deploy_instructions?: unknown;
+  auto_commit?: unknown;
+  write_scopes?: unknown;
+  requirements_confirmed_at?: unknown;
+}
+
+/** DB の行（defaults・reference_paths は JSON 文字列）をアプリの型に変換する。使わなくなった列は読まない */
 function toProject(row: unknown): Project {
-  const { reference_paths, write_scopes: _writeScopes, defaults, ...r } = row as Omit<Project, "defaults" | "references"> & {
-    defaults: string;
-    reference_paths?: string;
-    write_scopes?: string;
-  };
+  const {
+    reference_paths,
+    defaults,
+    current_phase: _phase,
+    test_command: _test,
+    deploy_instructions: _deploy,
+    auto_commit: _commit,
+    write_scopes: _scopes,
+    requirements_confirmed_at: _confirmed,
+    ...r
+  } = row as Omit<Project, "defaults" | "references"> & LegacyProjectColumns & { defaults: string; reference_paths?: string };
   const references = parseJson<Project["references"]>(reference_paths || "[]");
   return { ...r, defaults: legacyProjectDefaults(parseJson(defaults)), references: Array.isArray(references) ? references : [] };
 }
@@ -59,12 +71,9 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
         db.prepare("UPDATE projects SET hue = ? WHERE id = ?").run(hue, row.id);
       }
     },
-    /** 一覧（更新順）。タスクの数・費用・動いているチャットの数を添える */
+    /** 一覧（更新順）。費用・動いているチャットの数を添える */
     list(): ProjectSummary[] {
       const projects = db.prepare("SELECT * FROM projects ORDER BY updated_at DESC").all().map(toProject);
-      const counts = db
-        .prepare("SELECT project_id, phase, status, COUNT(*) AS n FROM tasks GROUP BY project_id, phase, status")
-        .all() as { project_id: number; phase: Phase; status: TaskStatus; n: number }[];
       const runs = db
         .prepare(
           `SELECT project_id, SUM(cost_usd) AS cost,
@@ -74,16 +83,8 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
         .all() as { project_id: number; cost: number; active: number }[];
 
       return projects.map((p) => {
-        const task_counts = Object.fromEntries(TASK_STATUSES.map((s) => [s, 0])) as Record<TaskStatus, number>;
-        const phase_task_counts = Object.fromEntries(PHASES.map((ph) => [ph, { total: 0, done: 0 }])) as Record<Phase, { total: number; done: number }>;
-        for (const c of counts) {
-          if (c.project_id !== p.id) continue;
-          task_counts[c.status] += c.n;
-          phase_task_counts[c.phase].total += c.n;
-          if (c.status === "done") phase_task_counts[c.phase].done += c.n;
-        }
         const r = runs.find((x) => x.project_id === p.id);
-        return { ...p, task_counts, phase_task_counts, total_cost_usd: r?.cost ?? 0, active_runs: r?.active ?? 0 };
+        return { ...p, total_cost_usd: r?.cost ?? 0, active_runs: r?.active ?? 0 };
       });
     },
     findByPath(repoPath: string): Project | undefined {
@@ -93,17 +94,14 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewProject): Project {
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO projects (name, description, repo_path, provider, test_command, deploy_instructions, auto_commit, position, hue)
-           VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM projects), ?)`,
+          `INSERT INTO projects (name, description, repo_path, provider, position, hue)
+           VALUES (?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM projects), ?)`,
         )
         .run(
           input.name,
           input.description ?? "",
           input.repo_path,
           input.provider,
-          input.test_command ?? "",
-          input.deploy_instructions ?? "",
-          input.auto_commit === false ? 0 : 1,
           // ほかのプロジェクト（しまったものも含む）と被らない色
           pickProjectHue((db.prepare("SELECT hue FROM projects WHERE hue IS NOT NULL").all() as { hue: number }[]).map((r) => r.hue)),
         );
@@ -115,7 +113,6 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
       const { references, ...rest } = patch;
       const row: Row = {
         ...rest,
-        auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0,
         pinned: patch.pinned === undefined ? undefined : patch.pinned ? 1 : 0,
         defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
         reference_paths: references === undefined ? undefined : JSON.stringify(references),
