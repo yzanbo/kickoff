@@ -239,7 +239,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           {ungroupedRows.map(renderRow)}
         </ul>
       ) : (
-        <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} />
+        <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} forceOpen={Boolean(keyword)} />
       )}
       {!collapsed && showArchived && archivedMatches.length > 0 && (
         <div className="archived-section">
