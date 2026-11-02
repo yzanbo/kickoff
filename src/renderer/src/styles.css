@@ -271,9 +271,24 @@ kbd {
   transition: padding-left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.main {
+/* 画面と、その下のパネル（ターミナル）を縦に並べる */
+.main-column {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
+}
+
+/* 下のパネルを最大化しているときは、上の画面を隠す */
+.main-column.bottom-maximized > .main {
+  display: none;
 }
 
 .page {
@@ -2186,6 +2201,11 @@ mark {
 
 .project-header {
   margin-bottom: 10px;
+}
+
+/* 名前の行とタブの間（開いているタブの地の色が、名前のカードにくっつかないように。高さは取りすぎない） */
+.project-header .tabs {
+  margin-top: 6px;
 }
 
 .project-title-row h1 {
@@ -4269,9 +4289,12 @@ button.project-switch.all-projects:hover,
   margin-left: -6px;
 }
 
-.conn {
+/* 下の帯の文字のボタン（接続・ターミナル） */
+.footer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   height: 100%;
-  margin-left: -6px;
   padding: 0 6px;
   border: none;
   font: inherit;
@@ -4280,10 +4303,18 @@ button.project-switch.all-projects:hover,
   cursor: pointer;
 }
 
-.conn:hover,
-.conn.active {
+.footer-button:hover,
+.footer-button.active {
   color: var(--text);
   background: var(--bg-hover);
+}
+
+.conn {
+  margin-left: -6px;
+}
+
+.footer-terminal {
+  margin-left: -10px;
 }
 
 /* 左下から出る接続の詳細（使用状況の詳細と同じ見た目で、左に寄せる） */
@@ -6622,4 +6653,107 @@ a:focus-visible,
 .terminal-screen {
   flex: 1;
   min-height: 0;
+}
+
+/* ==== 下のパネル（どの画面でも開けるターミナル。VS Code と同じ） ==== */
+
+.bottom-panel {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.bottom-panel[hidden] {
+  display: none;
+}
+
+.bottom-panel.maximized {
+  flex: 1;
+}
+
+.bottom-panel.resizing {
+  user-select: none;
+}
+
+/* 上の端のつまみ（境目の線の上に重ねる。乗せると青い線） */
+.bottom-panel-resizer {
+  position: absolute;
+  top: -3px;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  height: 5px;
+  cursor: row-resize;
+}
+
+.bottom-panel-resizer:hover,
+.bottom-panel.resizing .bottom-panel-resizer {
+  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+}
+
+.bottom-panel-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bottom-panel-title {
+  flex: none;
+  margin-right: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* タブの列は右のパネルと同じ見た目。下の線はバーの線を使い、タブは名前の長さに合わせる */
+.bottom-panel-tabs {
+  min-width: 0;
+  padding: 4px 0 0;
+  border-bottom: none;
+}
+
+.bottom-panel-tabs .panel-tab {
+  flex: none;
+  min-width: 0;
+  max-width: 220px;
+}
+
+/* 最大化して画面のいちばん上に来たとき、サイドバーを閉じていれば信号機ボタンと開閉ボタンの右から並べる */
+.sidebar-collapsed .bottom-panel.maximized .bottom-panel-bar {
+  padding-left: 104px;
+}
+
+.bottom-panel-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.bottom-panel-page {
+  height: 100%;
+}
+
+.bottom-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  padding: 16px;
+}
+
+.bottom-panel-targets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
 }
