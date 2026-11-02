@@ -187,8 +187,6 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
     active: active?.key ?? null,
     maximized,
     targets,
-    /** ほかのプロジェクトで動いているシェルの数（下の帯に出す） */
-    elsewhere: groups.filter((g) => !inScope(g)).reduce((n, g) => n + g.panes.length, 0),
     toggle,
     close: () => setScope({ open: false }),
     openTerminal,
