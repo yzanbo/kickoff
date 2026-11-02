@@ -1317,11 +1317,14 @@ button.project-switch:hover,
 }
 
 /* サイドバーの下の行: 主な操作だけ（横スライドはプロジェクトの丸、縦並びは「新しいプロジェクト」）。表示方法の操作は上の見出しの行 */
+/* 一覧の下の行（横スライドはプロジェクトの丸、縦並びは「新しいプロジェクト」）。並べ方を変えても高さが変わらないよう、高さを決めて中身を上下の真ん中に置く */
 .workspace-switcher {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 6px;
-  padding: 10px var(--gutter) 8px;
+  height: 55px;
+  padding: 0 var(--gutter);
   border-top: 1px solid var(--border);
 }
 
@@ -1341,13 +1344,11 @@ button.project-switch:hover,
   flex: none;
 }
 
-.workspace-switcher.stack {
-  padding: 8px var(--gutter);
-}
-
-/* 縦並びの下の行の「新しいプロジェクト」: 上下の余白をそろえる（上だけの margin を外す） */
+/* 縦並びの下の行の「新しいプロジェクト」: 上だけの margin を外し、行の高さに収まる高さにする */
 .workspace-switcher.stack .sidebar-new {
+  height: 38px;
   margin-top: 0;
+  padding-block: 0;
 }
 
 /* プロジェクト一覧の上の見出し: 1 行目はプロジェクト、2 行目はチャットの設定（種類ごとのボタン）。左に何に効くかの名前 */
