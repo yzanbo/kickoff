@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { agentStateOf, stageOf } from "./board.js";
+import { agentStateOf, boardColumnOf } from "./board.js";
 import { Store } from "./store.js";
 
 function mk() {
@@ -19,13 +19,13 @@ test("エージェントの状態は 回答待ち → エラー → 作業中 �
   assert.equal(agentStateOf(store.updateRun(run.id, { attention: 0 }), false), "done");
 });
 
-test("動かしていないチャットは、確認待ちならレビュー列、それ以外は対応中の列に置く", () => {
+test("カンバンの列は AI の状態だけで決まる（作業中 → 回答待ち → 確認待ち（失敗も）→ 完了）", () => {
   const { store, run } = mk();
-  const done = store.updateRun(run.id, { status: "completed", attention: 1 });
-  assert.equal(stageOf(done, agentStateOf(done, false)), "review");
-  assert.equal(stageOf(run, "running"), "doing");
-  const moved = store.updateRun(run.id, { stage: "todo" });
-  assert.equal(stageOf(moved, agentStateOf(moved, false)), "todo");
+  assert.equal(boardColumnOf(agentStateOf(run, false)), "running");
+  assert.equal(boardColumnOf(agentStateOf(run, true)), "needs_input");
+  assert.equal(boardColumnOf(agentStateOf(store.updateRun(run.id, { status: "completed", attention: 1 }), false)), "review");
+  assert.equal(boardColumnOf(agentStateOf(store.updateRun(run.id, { status: "failed", attention: 1 }), false)), "review");
+  assert.equal(boardColumnOf(agentStateOf(store.updateRun(run.id, { status: "completed", attention: 0 }), false)), "done");
 });
 
 test("アーカイブしたチャットは一覧に出ず、削除すると会話の記録も消える", () => {

@@ -3,7 +3,7 @@ import { addWorktree, listWorktrees, worktreePathFor } from "../git.js";
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
-import { BOARD_STAGES, EFFORT_LEVELS, PERMISSION_CHOICES, PHASES } from "../types.js";
+import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES } from "../types.js";
 import { HttpError, requireGroup, requireProject, requireRun } from "./http.js";
 
 const runOptionsSchema = z
@@ -31,7 +31,6 @@ const runInputSchema = z
     prompt: z.string().trim().max(50_000).default(""),
     options: runOptionsSchema,
     attachments: z.array(attachmentSchema).max(20).default([]),
-    stage: z.enum(BOARD_STAGES).optional(),
     group_id: z.number().int().optional(),
     // 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体）
     worktree_path: z.string().max(2000).optional(),
@@ -70,7 +69,6 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
       prompt: input.prompt,
       options: input.options,
       attachments: input.attachments,
-      stage: input.stage,
       groupId: input.group_id,
       worktreePath,
     });
@@ -99,13 +97,12 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }) });
   });
 
-  // チャットの名前・カンバンの列・グループを変える
+  // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
   app.patch("/api/runs/:id", async (c) => {
     const run = requireRun(store, c.req.param("id"));
     const { group_id, ...patch } = z
       .object({
         title: z.string().trim().min(1).max(100),
-        stage: z.enum(BOARD_STAGES).nullable(),
         group_id: z.number().int().nullable(),
       })
       .partial()

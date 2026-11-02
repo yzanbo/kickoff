@@ -6,7 +6,6 @@ import {
   type AppSettings,
   type Artifact,
   type ArtifactKind,
-  type BoardStage,
   type BusEvent,
   type EffortLevel,
   type PermissionChoice,
@@ -48,7 +47,9 @@ function toProject(row: unknown): Project {
     reference_paths?: string;
   };
   const references = parseJson<Project["references"]>(reference_paths || "[]");
-  return { ...r, write_scopes: parseJson(r.write_scopes), defaults: parseJson(r.defaults), references: Array.isArray(references) ? references : [] };
+  // 以前の「新しいチャットを置くカンバンの列」（stage）は、列が AI の状態で決まるようになったので読まない
+  const { stage: _legacyStage, ...defaults } = parseJson<Project["defaults"] & { stage?: unknown }>(r.defaults);
+  return { ...r, write_scopes: parseJson(r.write_scopes), defaults, references: Array.isArray(references) ? references : [] };
 }
 
 /** 壊れた値は空（既定）に戻す */
@@ -93,7 +94,6 @@ export interface NewRun {
   effort?: EffortLevel | null;
   permission_mode?: PermissionChoice;
   fast_mode?: boolean;
-  stage?: BoardStage | null;
   group_id?: number | null;
   /** 作業場所（ワークツリーのフォルダ。省略・空なら本体） */
   worktree_path?: string;
@@ -457,8 +457,8 @@ export class Store {
   createRun(input: NewRun): Run {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, stage, group_id, worktree_path)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.project_id,
@@ -471,7 +471,6 @@ export class Store {
         input.effort ?? null,
         input.permission_mode ?? "phase",
         input.fast_mode ? 1 : 0,
-        input.stage ?? null,
         input.group_id ?? null,
         input.worktree_path ?? "",
       );
@@ -497,7 +496,6 @@ export class Store {
         | "num_turns"
         | "result"
         | "error"
-        | "stage"
         | "attention"
         | "archived_at"
         | "context_tokens"
@@ -506,7 +504,6 @@ export class Store {
     >,
   ): Run {
     this.updateRow("runs", id, patch as Row, [
-      "stage",
       "attention",
       "archived_at",
       "context_tokens",

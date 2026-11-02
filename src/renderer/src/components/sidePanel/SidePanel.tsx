@@ -144,7 +144,6 @@ export function SidePanel({ panel, onNewChat, terminals }: { panel: SidePanelCon
               <NewChatPane
                 projectId={t.projectId}
                 section={t.section}
-                stage={t.stage}
                 group={t.group}
                 projects={panel.projects}
                 onProjectChange={(projectId) => panel.updateTab(t.key, () => ({ ...t, projectId, group: undefined, groupName: undefined }))}

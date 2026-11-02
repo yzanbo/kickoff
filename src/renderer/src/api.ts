@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type {
   AppSettings,
-  BoardStage,
   Attachment,
   Approval,
   ApprovalDecision,
@@ -159,7 +158,6 @@ export const api = {
       task_id?: number;
       options: RunOptions;
       attachments?: Attachment[];
-      stage?: BoardStage;
       group_id?: number;
       /** 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体） */
       worktree_path?: string;
@@ -183,7 +181,6 @@ export const api = {
     return saved;
   },
   renameRun: (runId: number, title: string) => request<Run>("PATCH", `/api/runs/${runId}`, { title }),
-  moveRun: (runId: number, stage: BoardStage) => request<Run>("PATCH", `/api/runs/${runId}`, { stage }),
   markSeen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/seen`),
   markUnseen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/unseen`),
   compactRun: (runId: number) => request<Run>("POST", `/api/runs/${runId}/compact`),

@@ -5,7 +5,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { normalizeScope } from "../scope.js";
 import type { ServerDeps } from "../server.js";
-import { BOARD_STAGES, EFFORT_LEVELS, PERMISSION_CHOICES, PHASES, PROVIDER_IDS, type Project } from "../types.js";
+import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES, PROVIDER_IDS, type Project } from "../types.js";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../workspace.js";
 import { HttpError, requireProject } from "./http.js";
 
@@ -49,7 +49,6 @@ const projectPatchSchema = z
         permission: z.enum(PERMISSION_CHOICES),
         fastMode: z.boolean(),
         section: z.enum(PHASES),
-        stage: z.enum(BOARD_STAGES),
       })
       .partial()
       .strict(),

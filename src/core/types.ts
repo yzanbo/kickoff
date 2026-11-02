@@ -85,14 +85,17 @@ export interface RunOptions {
   fast_mode?: boolean | null;
 }
 
-/** カンバンの列（あなたが動かす進み具合） */
-export const BOARD_STAGES = ["todo", "doing", "review", "done"] as const;
-export type BoardStage = (typeof BOARD_STAGES)[number];
+/**
+ * カンバンの列。人は動かさず、AI の状態から決まる（boardColumnOf）:
+ * 作業中（考えている・順番待ち）→ 回答待ち（承認・質問に答えてほしい）→ 確認待ち（作業が終わった・失敗した。まだ見ていない）→ 完了（見た）
+ */
+export const BOARD_COLUMNS = ["running", "needs_input", "review", "done"] as const;
+export type BoardColumn = (typeof BOARD_COLUMNS)[number];
 
-export const BOARD_STAGE_LABELS: Record<BoardStage, string> = {
-  todo: "未着手",
-  doing: "対応中",
-  review: "レビュー",
+export const BOARD_COLUMN_LABELS: Record<BoardColumn, string> = {
+  running: "作業中",
+  needs_input: "回答待ち",
+  review: "確認待ち",
   done: "完了",
 };
 
@@ -145,8 +148,6 @@ export interface ProjectDefaults {
   fastMode?: boolean;
   /** 新しいチャットのセクション（なければ直近のチャットと同じ） */
   section?: Phase;
-  /** 新しいチャットを置くカンバンの列（なければ状態から決める） */
-  stage?: BoardStage;
 }
 
 /** 参照資料の 1 件（AI は読むだけで、書き込めない） */
@@ -206,8 +207,6 @@ export interface Run {
   num_turns: number;
   result: string | null;
   error: string | null;
-  /** カンバンの列。null なら状態から決める（確認待ちはレビュー、それ以外は対応中） */
-  stage: BoardStage | null;
   /** AI の作業が終わって、まだ開いて確認していない（SQLite の真偽値 0 / 1） */
   attention: number;
   /** アーカイブした日時（null なら一覧に出す） */

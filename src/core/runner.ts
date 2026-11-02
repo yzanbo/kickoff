@@ -7,7 +7,7 @@ import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import { resolveRunDefaults } from "./sectionDefaults.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
-import type { Attachment, BoardStage, Phase, Project, ProviderId, Run, RunOptions } from "./types.js";
+import type { Attachment, Phase, Project, ProviderId, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
 import { withAttachmentNote, type UploadStore } from "./uploads.js";
 
@@ -19,8 +19,6 @@ export interface StartRunInput {
   title?: string;
   options?: RunOptions;
   attachments?: Attachment[];
-  /** カンバンの列（列の＋から始めたとき） */
-  stage?: BoardStage;
   /** 自分で作ったグループ（グループの＋から始めたとき） */
   groupId?: number;
   /** 作業場所（ワークツリーのフォルダ。省略なら本体） */
@@ -77,7 +75,6 @@ export class Runner {
       effort: options.effort === undefined ? defaults.effort : options.effort,
       permission_mode: options.permission_mode ?? defaults.permission,
       fast_mode: options.fast_mode ?? defaults.fastMode,
-      stage: input.stage ?? project.defaults.stage ?? null,
       group_id: input.groupId ?? null,
       worktree_path: input.worktreePath ?? "",
     });
