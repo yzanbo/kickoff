@@ -8,6 +8,9 @@ export const COLUMN_TONE: Record<BoardColumn, string> = {
   done: "var(--extra-muted)",
 };
 
+/** 「下書き」の列の色（まだ送っていない。AI は何もしていない） */
+export const DRAFT_TONE = "var(--extra-muted)";
+
 /** カードの点の色（エージェントの状態） */
 export const STATE_TONE: Record<AgentState, string> = {
   needs_input: "var(--dot-needs-input)",
