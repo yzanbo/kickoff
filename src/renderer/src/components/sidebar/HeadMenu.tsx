@@ -23,6 +23,7 @@ export interface HeadMenuSection {
 /**
  * プロジェクト一覧の上の見出しの行の、設定の種類（並べ方・並び順・まとめ方・表示）ごとのボタン。
  * ボタンは 2 段で、上に種類の名前・下にいまの値を出し、押すとその種類の選択肢だけを出す。
+ * 幅は、取りうる値（values）のうちいちばん長いものに合わせて固定する（選び直しても幅が変わらない）。
  * 狭いときは文字を隠してアイコンだけにする（@container。アイコンもいまの値を表すものを渡す）
  */
 export function HeadMenu({
@@ -30,6 +31,7 @@ export function HeadMenu({
   icon: Icon,
   label,
   value,
+  values,
   title,
   sections,
 }: {
@@ -40,6 +42,8 @@ export function HeadMenu({
   label: string;
   /** いまの値（縦並びなど） */
   value: string;
+  /** 取りうる値すべて（幅をいちばん長いものに合わせる） */
+  values: string[];
   title: string;
   sections: HeadMenuSection[];
 }) {
@@ -63,7 +67,14 @@ export function HeadMenu({
         <Icon size={13} className="head-chip-icon" aria-hidden />
         <span className="head-chip-text">
           <span className="head-chip-label">{label}</span>
-          <span className="head-chip-value">{value}</span>
+          {/* 取りうる値を同じ場所に重ねて置き、いまの値だけを見せる（幅はいちばん長い値で決まる） */}
+          <span className="head-chip-value">
+            {[...new Set([value, ...values])].map((v) => (
+              <span key={v} className={v === value ? undefined : "head-chip-sizer"} aria-hidden={v === value ? undefined : true}>
+                {v}
+              </span>
+            ))}
+          </span>
         </span>
       </button>
       {at && <Menu {...at} label={label} ignore={`.${buttonClass}`} sections={sections} onClose={() => setAt(null)} />}

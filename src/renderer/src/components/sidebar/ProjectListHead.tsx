@@ -9,6 +9,9 @@ import { COMPACT_KEY, GROUPING_KEY, SHOW_ARCHIVED_KEY } from "./sidebarFlags";
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
 export type NavLayout = "slide" | "stack";
 
+/** 「表示」のボタンの、取りうる値（幅をそろえる） */
+const DISPLAY_VALUES = ["標準", "1 件オン", "2 件オン", "3 件オン"];
+
 interface Props {
   layout: NavLayout;
   onLayout: (layout: NavLayout) => void;
@@ -33,9 +36,11 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
   const [compact, setCompact] = useSharedFlag(COMPACT_KEY);
   const radio = { role: "menuitemradio" as const };
   const check = { role: "menuitemcheckbox" as const };
-  // 表示: オンにしているもの（なければ「標準」、2 つ以上なら数）
-  const displayOn = [showArchivedChats && "アーカイブ済み", compact && "1 行", archivedCount > 0 && showArchived && "アーカイブ PJ"].filter((v): v is string => Boolean(v));
-  const displayValue = displayOn.length === 0 ? "標準" : displayOn.length === 1 ? displayOn[0] : `${displayOn.length} 件オン`;
+  // 表示: オンにしているものの数（なければ「標準」。何がオンかは説明に出す）
+  const displayOn = [showArchivedChats && "アーカイブ済みのチャット", compact && "1 行で表示", archivedCount > 0 && showArchived && "アーカイブしたプロジェクト"].filter(
+    (v): v is string => Boolean(v),
+  );
+  const displayValue = displayOn.length === 0 ? "標準" : `${displayOn.length} 件オン`;
   return (
     <div className="project-list-head">
       <HeadMenu
@@ -43,6 +48,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         icon={layout === "stack" ? Rows3 : GalleryHorizontal}
         label="並べ方"
         value={layout === "stack" ? "縦並び" : "スライド"}
+        values={["縦並び", "スライド"]}
         title={`プロジェクトの並べ方（いまは「${layout === "stack" ? "縦に並べる" : "1 つずつ横にスライド"}」）`}
         sections={[
           {
@@ -59,6 +65,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         icon={order === "recent" ? Clock : GripVertical}
         label="並び順"
         value={order === "recent" ? "最近順" : "手動"}
+        values={["手動", "最近順"]}
         title={`プロジェクトの並び順（いまは「${order === "recent" ? "最近動いた順" : "手動"}」。固定したものは上）`}
         sections={[
           {
@@ -75,6 +82,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         icon={GROUPING_META[grouping].icon}
         label="まとめ方"
         value={GROUPING_META[grouping].short}
+        values={CHAT_GROUPINGS.map((g) => GROUPING_META[g].short)}
         title={`チャットのまとめ方（すべてのプロジェクト。いまは「${GROUPING_META[grouping].label}」）`}
         sections={[
           {
@@ -88,7 +96,8 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         icon={Eye}
         label="表示"
         value={displayValue}
-        title={`表示するもの（アーカイブ済みのチャット・1 行で表示・アーカイブしたプロジェクト。いまは「${displayValue}」）`}
+        values={DISPLAY_VALUES}
+        title={`表示するもの（いまは${displayOn.length === 0 ? "標準" : `「${displayOn.join("・")}」がオン`}）`}
         sections={[
           {
             label: "チャット",

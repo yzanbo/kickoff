@@ -1230,23 +1230,24 @@ button.project-switch:hover,
   display: flex;
   flex: none;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   padding: 4px var(--gutter) 2px;
 }
 
-.project-list-fold {
+/* 後ろにある .icon-button の幅より優先する */
+.project-list-head .project-list-fold {
+  width: 22px;
   margin-left: auto;
 }
 
-/* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（狭いときはアイコンだけ。値が長いときは省略して、説明に全文を出す） */
+/* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（幅は取りうる値でいちばん長いものに固定。狭いときはアイコンだけ） */
 .head-chip {
   display: inline-flex;
-  flex: 0 1 auto;
+  flex: none;
   align-items: center;
   justify-content: center;
-  min-width: 0;
   height: 32px;
-  padding: 0 7px;
+  padding: 0 5px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font: inherit;
@@ -1272,12 +1273,20 @@ button.project-switch:hover,
   color: var(--extra-muted);
 }
 
+/* 取りうる値を同じ場所に重ね、いまの値だけを見せる（幅はいちばん長い値で固定） */
 .head-chip-value {
-  overflow: hidden;
+  display: grid;
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  text-overflow: ellipsis;
+}
+
+.head-chip-value > * {
+  grid-area: 1 / 1;
+}
+
+.head-chip-sizer {
+  visibility: hidden;
 }
 
 .head-chip-icon {
@@ -1285,8 +1294,8 @@ button.project-switch:hover,
   color: var(--muted);
 }
 
-/* 文字では収まらない幅（サイドバーが約 255px 未満）では、文字を隠してアイコン（いまの値）だけにする */
-@container project-list-head (max-width: 231px) {
+/* 文字では収まらない幅（サイドバーが約 280px 未満）では、文字を隠してアイコン（いまの値）だけにする */
+@container project-list-head (max-width: 255px) {
   .head-chip {
     height: 26px;
     padding: 0 6px;
