@@ -2,7 +2,6 @@ import { ArchiveRestore, Pin, Plus } from "lucide-react";
 import { useState, type DragEvent } from "react";
 import type { ProjectSummary, RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
-import { initialOf } from "../../projectColor";
 import { changeProject, confirmRestoreProject } from "../../projectOrder";
 import { href, navigate, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
@@ -15,7 +14,7 @@ import type { StateCounts } from "./sidebarFlags";
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
  * カードの外枠の中を押すと（中のボタンを除く）、選んでいなければ選び（カンバンを開く。開閉はしない）、選んでいればチャット一覧を開閉する。
- * マウスを乗せたとき、押すと開閉するなら頭文字が矢印に変わり、押すと選ぶなら頭文字のまま。頭文字そのものは、乗せると矢印になり、押すといつでも開閉する。
+ * 左の四角は、いつも開閉の矢印（押すと、選んでいてもいなくても開閉する）。
  * 出すのは、いつも使うものだけ: チャット一覧の開閉（頭文字。乗せると矢印に変わる）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
@@ -76,7 +75,7 @@ export function WorkspaceHead({
         }}
         {...headDrag}
       >
-        {/* 頭文字のボタン: 乗せると開閉の矢印に変わり、押すと選んでいてもいなくても開閉する（選んでいるカードは、カードに乗せただけで矢印になる） */}
+        {/* 開閉のボタン（プロジェクトの色の四角に、いつも開閉の矢印を出す。押すと、選んでいてもいなくても開閉する） */}
         <button
           className="workspace-avatar workspace-toggle"
           aria-expanded={!collapsed}
@@ -84,12 +83,7 @@ export function WorkspaceHead({
           title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
           onClick={onToggleCollapsed}
         >
-          <span className="workspace-toggle-initial" aria-hidden>
-            {initialOf(project.name)}
-          </span>
-          <span className="workspace-toggle-chevron" aria-hidden>
-            <Chevron open={!collapsed} size={15} />
-          </span>
+          <Chevron open={!collapsed} size={15} />
         </button>
         <a
           className="workspace-title"

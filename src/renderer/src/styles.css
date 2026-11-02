@@ -1295,32 +1295,12 @@ button.project-switch:hover,
   text-overflow: ellipsis;
 }
 
-/* プロジェクトの頭文字のボタン: ふだんは頭文字。頭文字に乗せたとき（押すと開閉する）と、選んでいるカードに乗せたとき（カードを押すと開閉する）は矢印に変わる */
+/* プロジェクトの開閉のボタン（プロジェクトの色の四角に、いつも開閉の矢印を出す） */
 .workspace-toggle {
   margin-right: 4px;
   padding: 0;
   border: none;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
   cursor: pointer;
-}
-
-.workspace-toggle-chevron {
-  display: none;
-}
-
-.workspace-head.active:hover .workspace-toggle-initial,
-.workspace-toggle:hover .workspace-toggle-initial,
-.workspace-toggle:focus-visible .workspace-toggle-initial {
-  display: none;
-}
-
-.workspace-head.active:hover .workspace-toggle-chevron,
-.workspace-toggle:hover .workspace-toggle-chevron,
-.workspace-toggle:focus-visible .workspace-toggle-chevron {
-  display: grid;
-  place-items: center;
 }
 
 .workspace-name {
