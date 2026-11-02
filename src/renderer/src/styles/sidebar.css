@@ -620,32 +620,6 @@ button.chat-row {
   color: var(--muted);
 }
 
-.inline-name-wrap {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-}
-
-.inline-name-wrap .icon-button {
-  flex: none;
-  width: 22px;
-  height: 22px;
-}
-
-.inline-name-ok {
-  color: var(--accent-bright);
-}
-
-input[type="text"].inline-name {
-  flex: 1;
-  min-width: 0;
-  height: 22px;
-  padding: 0 6px;
-  font-size: 13px;
-}
-
 /* サイドバーのチャットのまとまりの見出し（印・名前・件数。ボードの列の見出しと同じ形） */
 .status-group-head {
   display: flex;
