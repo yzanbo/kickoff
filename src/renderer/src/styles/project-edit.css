@@ -1,0 +1,207 @@
+/* ==== プロジェクトの編集の中身（参照資料・使う AI のカード・編集ボタン） ==== */
+
+/* 参照資料 */
+.reference-editor {
+  display: grid;
+  gap: 12px;
+  max-width: 640px;
+  margin-top: 12px;
+}
+
+.reference-empty {
+  padding: 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.reference-empty p {
+  margin: 0;
+}
+
+.reference-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+
+.reference-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+}
+
+.reference-item:hover {
+  background: var(--bg-hover);
+}
+
+.reference-icon {
+  flex: none;
+}
+
+.reference-icon.folder {
+  color: var(--info);
+}
+
+.reference-icon.file {
+  color: var(--muted);
+}
+
+.reference-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.reference-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-dir {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reference-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.reference-typed {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 260px;
+}
+
+.reference-typed input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 使う AI のカード */
+.provider-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+
+.provider-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--bg);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.provider-card:hover:not(:disabled) {
+  border-color: var(--extra-muted);
+}
+
+.provider-card.selected {
+  border-color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+}
+
+.provider-card:disabled {
+  cursor: default;
+}
+
+.provider-card:disabled .provider-icon,
+.provider-card:disabled .provider-name {
+  opacity: 0.6;
+}
+
+.provider-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.provider-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+}
+
+.provider-claude {
+  color: #d97757;
+}
+
+.provider-codex {
+  color: var(--text);
+}
+
+.provider-gemini {
+  color: #5c9bf6;
+}
+
+.provider-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.provider-check {
+  color: var(--accent-bright);
+}
+
+.provider-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.provider-account {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-defaults h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.project-edit-button {
+  color: var(--muted);
+}
+
+.project-edit-button:hover {
+  color: var(--text);
+}

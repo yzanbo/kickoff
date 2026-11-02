@@ -1,0 +1,40 @@
+/* ==== 新規プロジェクトのフォルダの検査の一覧 ==== */
+
+.inspection {
+  display: grid;
+  gap: 4px;
+  margin: -4px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  list-style: none;
+  background: var(--bg-hover);
+}
+
+.inspection li {
+  display: flex;
+  gap: 8px;
+}
+
+.inspection-icon {
+  flex: none;
+  width: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.inspection-ok .inspection-icon {
+  color: var(--ok);
+}
+
+.inspection-warn .inspection-icon {
+  color: var(--warn);
+}
+
+.inspection-ng .inspection-icon {
+  color: var(--ng);
+}
+
+.inspection-info .inspection-icon {
+  color: var(--muted);
+}
