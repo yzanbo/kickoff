@@ -27,6 +27,7 @@ import { useChatHistory } from "./hooks/useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { applyTheme, loadTheme } from "./theme";
 import { PlanUsageContext, usePlanUsage } from "./usage";
+import { setProjectHues } from "./projectColor";
 
 applyTheme(loadTheme());
 
@@ -36,6 +37,8 @@ export function App() {
   useChatHistory(route);
   const planUsage = usePlanUsage();
   const { projects, approvals, projectsDir, notifyEnabled, loadProjects, connection } = useAppData(planUsage.onEvent);
+  // プロジェクトの色（DB に覚えた色）を、色を使う部品が読めるようにする（描く前に入れる）
+  setProjectHues(projects);
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）
   useRunNotifications({ enabled: notifyEnabled, projects, route });
   const sidebar = useSidebar();

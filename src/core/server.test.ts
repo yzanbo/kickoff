@@ -568,6 +568,13 @@ test("プロジェクトを上に固定する・しまう（アーカイブ）�
   assert.equal(restored.pinned, 0);
 });
 
+test("プロジェクトの色: 一覧の色だけに変えられる", async () => {
+  const { call, project } = setup();
+  assert.ok(typeof project.hue === "number");
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { hue: 222 })).body.hue, 222);
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { hue: 100 })).status, 400);
+});
+
 test("自動のアーカイブ: 完了して日数がたったチャットだけをアーカイブする（確認待ち・固定はしない）。設定で日数を選ぶ", async () => {
   const { call, project, store } = setup();
   const finish = async (prompt: string) => {

@@ -23,6 +23,7 @@ import {
   type TaskStatus,
 } from "./types.js";
 import { migrate, NOW } from "./schema.js";
+import { pickProjectHue } from "./projectColors.js";
 
 type Row = Record<string, SQLInputValue>;
 
@@ -124,6 +125,19 @@ export class Store {
     this.db = new DatabaseSync(file);
     this.db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
     migrate(this.db);
+    this.assignMissingHues();
+  }
+
+  /** 色のないプロジェクト（色を覚える前に作ったもの）に、作った順に、ほかと被らない色を割り振る */
+  private assignMissingHues() {
+    const rows = this.db.prepare("SELECT id, hue FROM projects ORDER BY id").all() as { id: number; hue: number | null }[];
+    const used = rows.flatMap((r) => (r.hue === null ? [] : [r.hue]));
+    for (const row of rows) {
+      if (row.hue !== null) continue;
+      const hue = pickProjectHue(used);
+      used.push(hue);
+      this.db.prepare("UPDATE projects SET hue = ? WHERE id = ?").run(hue, row.id);
+    }
   }
 
   close() {
@@ -195,8 +209,8 @@ export class Store {
   createProject(input: NewProject): Project {
     const { lastInsertRowid } = this.db
       .prepare(
-        `INSERT INTO projects (name, description, repo_path, provider, test_command, deploy_instructions, auto_commit, position)
-         VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM projects))`,
+        `INSERT INTO projects (name, description, repo_path, provider, test_command, deploy_instructions, auto_commit, position, hue)
+         VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM projects), ?)`,
       )
       .run(
         input.name,
@@ -206,6 +220,8 @@ export class Store {
         input.test_command ?? "",
         input.deploy_instructions ?? "",
         input.auto_commit === false ? 0 : 1,
+        // ほかのプロジェクト（しまったものも含む）と被らない色
+        pickProjectHue((this.db.prepare("SELECT hue FROM projects WHERE hue IS NOT NULL").all() as { hue: number }[]).map((r) => r.hue)),
       );
     const project = this.getProject(Number(lastInsertRowid))!;
     this.onChange({ type: "project", project });
@@ -221,6 +237,7 @@ export class Store {
       references?: Project["references"];
       pinned?: boolean;
       archived_at?: string | null;
+      hue?: number;
     },
   ): Project {
     const { references, ...rest } = patch;
@@ -245,6 +262,7 @@ export class Store {
       "reference_paths",
       "pinned",
       "archived_at",
+      "hue",
     ]);
     const project = this.getProject(id)!;
     this.onChange({ type: "project", project });
