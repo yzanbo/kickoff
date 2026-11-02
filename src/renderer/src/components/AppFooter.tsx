@@ -1,4 +1,4 @@
-import { GitBranch, Settings, SquareTerminal } from "lucide-react";
+import { GitBranch, Settings } from "lucide-react";
 import type { PlanUsage } from "../../../core/types";
 import type { ConnectionState } from "../api";
 import { href } from "../router";
@@ -18,12 +18,10 @@ interface Props {
   onUsageClick: () => void;
   /** いま開いているプロジェクト（ブランチを出す。全プロジェクトの画面ではなし） */
   projectId?: number;
-  /** 下のパネルのターミナルの開閉（Mac のアプリでだけ） */
-  terminal?: { open: boolean; onClick: () => void; /** ほかのプロジェクトで動いているシェルの数 */ elsewhere: number };
 }
 
-/** 下の帯（左: 設定とサーバーとの接続・ブランチ・ターミナルの開閉 / 右: 契約プランと使用状況）。接続と使用状況は押すと詳細を出す */
-export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick, projectId, terminal }: Props) {
+/** 下の帯（左: 設定とサーバーとの接続・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。接続と使用状況は押すと詳細を出す */
+export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick, projectId }: Props) {
   return (
     <footer className="app-footer">
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
@@ -32,16 +30,6 @@ export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, u
         {CONNECTION_LABELS[connection]}
       </button>
       {projectId !== undefined && <FooterBranch projectId={projectId} />}
-      {terminal && (
-        <button className={`footer-button footer-terminal ${terminal.open ? "active" : ""}`} title="ターミナル（⌃` / ⌘J）" aria-expanded={terminal.open} onClick={terminal.onClick}>
-          <SquareTerminal size={13} aria-hidden /> ターミナル
-          {terminal.elsewhere > 0 && (
-            <span className="tab-count" title={`ほかのプロジェクトで ${terminal.elsewhere} 個のターミナルが動いています`}>
-              ほか {terminal.elsewhere}
-            </span>
-          )}
-        </button>
-      )}
       <span className="spacer" />
       {usage?.plan && (
         <span className="plan-chip" title={`${usage.provider_label} でログインしているアカウントの契約プラン`}>
