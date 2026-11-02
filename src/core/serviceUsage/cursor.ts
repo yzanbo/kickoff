@@ -3,22 +3,9 @@ import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { ServiceUsage, UsageWindow } from "../types.js";
-import {
-  dollars,
-  errorUsage,
-  fetchJson,
-  HttpStatusError,
-  isExpired,
-  isoFromDate,
-  jwtClaims,
-  jwtExpiry,
-  okUsage,
-  unavailableUsage,
-  usageWindow,
-  type UsageFetcher,
-} from "./common.js";
+import { defineFetcher, dollars, fetchJsonOr, isExpired, isoFromDate, jwtClaims, jwtExpiry, usageResult, usageWindow } from "./common.js";
 
-const BASE = { id: "cursor", label: "Cursor" } as const;
+const result = usageResult({ id: "cursor", label: "Cursor" });
 const USAGE_URL = "https://cursor.com/api/usage-summary";
 const STATE_DB = path.join(os.homedir(), "Library", "Application Support", "Cursor", "User", "globalStorage", "state.vscdb");
 
@@ -57,7 +44,7 @@ export function parseCursorUsage(body: CursorUsageSummary, account: string | nul
   if (onDemand?.enabled && typeof onDemand.used === "number") {
     notes.push(`オンデマンド ${dollars(onDemand.used)}${typeof onDemand.limit === "number" ? ` / ${dollars(onDemand.limit)}` : ""}`);
   }
-  return okUsage(BASE, { plan: body.membershipType ?? null, account, windows, notes });
+  return result.ok({ plan: body.membershipType ?? null, account, windows, notes });
 }
 
 /** Cursor.app のログイン（state.vscdb の cursorAuth/*）。読むだけで、書き換えない */
@@ -80,26 +67,23 @@ function readCursorAuth(): { token: string | null; email: string | null } | null
 /** Cursor の今月の利用（合計・Auto・モデルを指定）。Cursor.app のログインを使う */
 async function fetchCursorUsage(): Promise<ServiceUsage> {
   const auth = readCursorAuth();
-  if (!auth?.token) return unavailableUsage(BASE, "Cursor にログインしていません（Cursor を開いてログインしてください）");
+  if (!auth?.token) return result.unavailable("Cursor にログインしていません（Cursor を開いてログインしてください）");
   const account = auth.email;
   // 新しい Cursor は、ログイン情報をキーチェーンの鍵で暗号化している
   if (auth.token.startsWith("cursor-safe-storage")) {
-    return unavailableUsage(BASE, "この Cursor はログイン情報を暗号化して保存しているため、Kickoff からは読めません", { account });
+    return result.unavailable("この Cursor はログイン情報を暗号化して保存しているため、Kickoff からは読めません", { account });
   }
   const userId = String(jwtClaims(auth.token)?.sub ?? "").split("|").pop();
-  if (!userId) return errorUsage(BASE, "Cursor のログイン情報を読めませんでした", { account });
-  if (isExpired(jwtExpiry(auth.token))) return errorUsage(BASE, "Cursor のログインの期限が切れています。Cursor を開くと更新されます", { account });
-  try {
-    const body = await fetchJson<CursorUsageSummary>(USAGE_URL, {
-      headers: { Cookie: `WorkosCursorSessionToken=${userId}%3A%3A${auth.token}`, Accept: "application/json" },
-    });
-    return parseCursorUsage(body, account);
-  } catch (e) {
-    if (e instanceof HttpStatusError && (e.status === 401 || e.status === 403)) {
-      return errorUsage(BASE, "Cursor のログインが使えませんでした。Cursor を開いてログインし直してください", { account });
-    }
-    throw e;
-  }
+  if (!userId) return result.error("Cursor のログイン情報を読めませんでした", { account });
+  if (isExpired(jwtExpiry(auth.token))) return result.error("Cursor のログインの期限が切れています。Cursor を開くと更新されます", { account });
+  // 401・403 はログインが使えない（開き直すと更新される）
+  const loginFailed = () => result.error("Cursor のログインが使えませんでした。Cursor を開いてログインし直してください", { account });
+  return fetchJsonOr<CursorUsageSummary, ServiceUsage>(
+    USAGE_URL,
+    { headers: { Cookie: `WorkosCursorSessionToken=${userId}%3A%3A${auth.token}`, Accept: "application/json" } },
+    (body) => parseCursorUsage(body, account),
+    { 401: loginFailed, 403: loginFailed },
+  );
 }
 
-export const cursorUsage: UsageFetcher = { ...BASE, fetch: fetchCursorUsage };
+export const cursorUsage = defineFetcher(result, fetchCursorUsage);

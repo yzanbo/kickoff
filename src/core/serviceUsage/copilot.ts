@@ -1,8 +1,8 @@
 import type { ServiceUsage, UsageWindow } from "../types.js";
-import { fetchJson, HttpStatusError, isoFromDate, okUsage, unavailableUsage, usageWindow, type UsageFetcher } from "./common.js";
 import { execFileAsync } from "../exec.js";
+import { defineFetcher, fetchJsonOr, isoFromDate, usageResult, usageWindow } from "./common.js";
 
-const BASE = { id: "copilot", label: "GitHub Copilot" } as const;
+const result = usageResult({ id: "copilot", label: "GitHub Copilot" });
 const USAGE_URL = "https://api.github.com/copilot_internal/user";
 
 interface QuotaSnapshot {
@@ -30,7 +30,7 @@ const QUOTA_LABELS = [
 export function parseCopilotUsage(body: CopilotUserResponse): ServiceUsage {
   const account = body.login ?? null;
   const plan = body.copilot_plan ?? null;
-  if (body.access_type_sku === "subscription_ended") return unavailableUsage(BASE, "Copilot の契約が終わっています", { plan, account });
+  if (body.access_type_sku === "subscription_ended") return result.unavailable("Copilot の契約が終わっています", { plan, account });
   const snapshots = body.quota_snapshots ?? {};
   const resetsAt = isoFromDate(body.quota_reset_date);
   const windows: UsageWindow[] = [];
@@ -48,9 +48,9 @@ export function parseCopilotUsage(body: CopilotUserResponse): ServiceUsage {
   }
   // 契約していないアカウントは、枠が 1 つも返らない
   if (windows.length === 0 && notes.length === 0) {
-    return unavailableUsage(BASE, "このアカウントは Copilot を契約していません", { plan: null, account });
+    return result.unavailable("このアカウントは Copilot を契約していません", { plan: null, account });
   }
-  return okUsage(BASE, { plan, account, windows, notes });
+  return result.ok({ plan, account, windows, notes });
 }
 
 /** gh のログイン（トークン）。gh がない・未ログインなら null */
@@ -66,25 +66,18 @@ async function ghToken(): Promise<string | null> {
 /** GitHub Copilot の月の枠（プレミアムリクエストなど）。gh のログインを使う */
 async function fetchCopilotUsage(): Promise<ServiceUsage> {
   const token = await ghToken();
-  if (!token) return unavailableUsage(BASE, "GitHub CLI（gh）でログインすると表示できます（ターミナルで `gh auth login`）");
-  try {
-    const body = await fetchJson<CopilotUserResponse>(USAGE_URL, {
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: "application/json",
-        "Editor-Version": "vscode/1.96.2",
-        "Editor-Plugin-Version": "copilot-chat/0.26.7",
-        "User-Agent": "GitHubCopilotChat/0.26.7",
-        "X-Github-Api-Version": "2025-04-01",
-      },
-    });
-    return parseCopilotUsage(body);
-  } catch (e) {
-    if (e instanceof HttpStatusError && (e.status === 401 || e.status === 404)) {
-      return unavailableUsage(BASE, "gh のログインでは Copilot の使用状況を見られませんでした（Copilot を契約しているアカウントでログインしてください）");
-    }
-    throw e;
-  }
+  if (!token) return result.unavailable("GitHub CLI（gh）でログインすると表示できます（ターミナルで `gh auth login`）");
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: "application/json",
+    "Editor-Version": "vscode/1.96.2",
+    "Editor-Plugin-Version": "copilot-chat/0.26.7",
+    "User-Agent": "GitHubCopilotChat/0.26.7",
+    "X-Github-Api-Version": "2025-04-01",
+  };
+  // 401・404 は、このログインでは見られない（Copilot を契約していないアカウントなど）
+  const notVisible = () => result.unavailable("gh のログインでは Copilot の使用状況を見られませんでした（Copilot を契約しているアカウントでログインしてください）");
+  return fetchJsonOr<CopilotUserResponse, ServiceUsage>(USAGE_URL, { headers }, parseCopilotUsage, { 401: notVisible, 404: notVisible });
 }
 
-export const copilotUsage: UsageFetcher = { ...BASE, fetch: fetchCopilotUsage };
+export const copilotUsage = defineFetcher(result, fetchCopilotUsage);

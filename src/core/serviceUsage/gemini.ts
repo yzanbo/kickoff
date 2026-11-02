@@ -2,21 +2,9 @@ import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "n
 import os from "node:os";
 import path from "node:path";
 import type { ServiceUsage, UsageWindow } from "../types.js";
-import {
-  errorUsage,
-  fetchJson,
-  HttpStatusError,
-  isExpired,
-  isoFromDate,
-  jwtClaims,
-  okUsage,
-  readJsonFile,
-  unavailableUsage,
-  usageWindow,
-  type UsageFetcher,
-} from "./common.js";
+import { defineFetcher, emailOf, fetchJson, fetchJsonOr, isExpired, isoFromDate, jwtClaims, readJsonFile, usageResult, usageWindow } from "./common.js";
 
-const BASE = { id: "gemini", label: "Gemini" } as const;
+const result = usageResult({ id: "gemini", label: "Gemini" });
 const CODE_ASSIST = "https://cloudcode-pa.googleapis.com/v1internal";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
@@ -70,7 +58,7 @@ export function parseGeminiQuota(quota: QuotaResponse, plan: string | null, acco
     const lowest = inTier.reduce((a, b) => (b.remainingFraction! < a.remainingFraction! ? b : a));
     windows.push(usageWindow(key, label, (1 - lowest.remainingFraction!) * 100, isoFromDate(lowest.resetTime)));
   }
-  return okUsage(BASE, { plan, account, windows });
+  return result.ok({ plan, account, windows });
 }
 
 /** インストールされている Gemini CLI の、Google ログイン用の ID（ログインを更新するのに使う）。見つからなければ null */
@@ -123,38 +111,34 @@ async function accessToken(creds: OAuthCreds): Promise<string | null> {
   return res.access_token ?? null;
 }
 
-const post = <T>(method: string, token: string, body: unknown) =>
-  fetchJson<T>(`${CODE_ASSIST}:${method}`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+/** Code Assist の API への POST（URL と指定） */
+const postRequest = (method: string, token: string, body: unknown): [string, RequestInit] => [
+  `${CODE_ASSIST}:${method}`,
+  { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) },
+];
 
 /** Gemini CLI（Google ログイン）のモデルごとの枠。~/.gemini/oauth_creds.json を読む */
 async function fetchGeminiUsage(): Promise<ServiceUsage> {
   const creds = readJsonFile<OAuthCreds>(path.join(os.homedir(), ".gemini", "oauth_creds.json"));
   if (!creds?.access_token && !creds?.refresh_token) {
-    return unavailableUsage(BASE, "Gemini CLI に Google アカウントでログインしていません（ターミナルで `gemini`）");
+    return result.unavailable("Gemini CLI に Google アカウントでログインしていません（ターミナルで `gemini`）");
   }
   const claims = creds.id_token ? jwtClaims(creds.id_token) : null;
-  const account = typeof claims?.email === "string" ? claims.email : null;
+  const account = emailOf(claims);
   const token = await accessToken(creds);
-  if (!token) return errorUsage(BASE, "Gemini CLI のログインの更新が必要です。Gemini CLI を一度起動すると更新されます", { account });
+  if (!token) return result.error("Gemini CLI のログインの更新が必要です。Gemini CLI を一度起動すると更新されます", { account });
 
-  const load = await post<LoadCodeAssistResponse>("loadCodeAssist", token, { metadata: { ideType: "GEMINI_CLI", pluginType: "GEMINI" } });
+  const load = await fetchJson<LoadCodeAssistResponse>(...postRequest("loadCodeAssist", token, { metadata: { ideType: "GEMINI_CLI", pluginType: "GEMINI" } }));
   const plan = geminiPlan(load, typeof claims?.hd === "string");
   if (isConsumerShutdown(load)) {
-    return unavailableUsage(BASE, "個人向けの Gemini CLI（Google ログイン）は 2026 年 6 月に終了しました（Workspace・Standard 以上の契約なら使えます）", {
-      account,
-    });
+    return result.unavailable("個人向けの Gemini CLI（Google ログイン）は 2026 年 6 月に終了しました（Workspace・Standard 以上の契約なら使えます）", { account });
   }
-  try {
-    const quota = await post<QuotaResponse>("retrieveUserQuota", token, load.cloudaicompanionProject ? { project: load.cloudaicompanionProject } : {});
-    return parseGeminiQuota(quota, plan, account);
-  } catch (e) {
-    if (e instanceof HttpStatusError && e.status === 403) return unavailableUsage(BASE, "このアカウントの契約では、Gemini CLI の枠を見られません", { plan, account });
-    throw e;
-  }
+  // 403 は、この契約では枠を見られない
+  return fetchJsonOr<QuotaResponse, ServiceUsage>(
+    ...postRequest("retrieveUserQuota", token, load.cloudaicompanionProject ? { project: load.cloudaicompanionProject } : {}),
+    (quota) => parseGeminiQuota(quota, plan, account),
+    { 403: () => result.unavailable("このアカウントの契約では、Gemini CLI の枠を見られません", { plan, account }) },
+  );
 }
 
-export const geminiUsage: UsageFetcher = { ...BASE, fetch: fetchGeminiUsage };
+export const geminiUsage = defineFetcher(result, fetchGeminiUsage);
