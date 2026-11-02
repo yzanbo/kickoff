@@ -1,4 +1,4 @@
-import { List, SquareKanban, TextSearch } from "lucide-react";
+import { List, Rows3, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
 import { SearchField } from "../SearchField";
@@ -6,7 +6,8 @@ import { Segmented } from "../Segmented";
 import { PanelToggle } from "../sidePanel/SidePanel";
 import type { SidePanelController } from "../sidePanel/useSidePanel";
 
-export type BoardView = "board" | "list";
+/** 表示の種類: ボード（状態の列）・リスト・スイムレーン（段ごとに状態の列。カンバンだけ） */
+export type BoardView = "board" | "list" | "lanes";
 
 interface Props {
   /** 見出し（アイコン・名前・件数）。プロジェクトのタブでは、タブの名前と重なるので出さない（全プロジェクトの画面だけ渡す） */
@@ -21,7 +22,9 @@ interface Props {
   primary?: ReactNode;
   view: BoardView;
   onView: (view: BoardView) => void;
-  /** 表示のまとまりで、ボード／リストの後ろに置くもの（段の分け方） */
+  /** スイムレーンも選べるか（カンバンだけ） */
+  lanesView?: boolean;
+  /** 表示のまとまりで、表示の切り替えの後ろに置くもの（スイムレーンの段の分け方） */
   viewOptions?: ReactNode;
   panel: SidePanelController;
 }
@@ -31,7 +34,7 @@ interface Props {
  * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
-export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, panel }: Props) {
+export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, lanesView = false, viewOptions, panel }: Props) {
   return (
     <div className="board-header">
       {heading && (
@@ -53,6 +56,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
             options={[
               { value: "board", label: "ボード", icon: SquareKanban },
               { value: "list", label: "リスト", icon: List },
+              ...(lanesView ? [{ value: "lanes" as const, label: "スイムレーン", icon: Rows3 }] : []),
             ]}
           />
           {viewOptions}

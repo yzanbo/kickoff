@@ -7,15 +7,14 @@ import { SECTION_META } from "../../sections";
 import { useRunBranch } from "../../worktreeBranches";
 import { GroupToggle } from "../sidebar/GroupToggle";
 
-/** ボードの段（スイムレーン）の分け方: なし・作業場所（ブランチ）・セクション・プロジェクト（全プロジェクトのボードだけ） */
-export const BOARD_LANES = ["none", "worktree", "phase", "project"] as const;
+/** スイムレーンの段の分け方: 作業場所（ブランチ）・セクション・プロジェクト（全プロジェクトのボードだけ） */
+export const BOARD_LANES = ["worktree", "phase", "project"] as const;
 export type BoardLane = (typeof BOARD_LANES)[number];
 
 export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
-  none: "段に分けない",
-  worktree: "作業場所（ブランチ）で段に分ける",
-  phase: "セクションで段に分ける",
-  project: "プロジェクトで段に分ける",
+  worktree: "作業場所（ブランチ）",
+  phase: "セクション",
+  project: "プロジェクト",
 };
 
 type Entry = { run: Run; state: AgentState };
@@ -27,7 +26,7 @@ interface Lane {
 }
 
 /** チャットを段に分ける（段の並び: 作業場所は本体が先、セクションは決まった順、プロジェクトはボードの並び） */
-function lanesOf(kind: Exclude<BoardLane, "none">, entries: Entry[], projects: ProjectSummary[]): Lane[] {
+function lanesOf(kind: BoardLane, entries: Entry[], projects: ProjectSummary[]): Lane[] {
   if (kind === "phase") {
     return PHASES.flatMap((phase) => {
       const list = entries.filter((e) => e.run.phase === phase);
@@ -94,7 +93,7 @@ export function BoardLanes({
   renderColumns,
   before,
 }: {
-  kind: Exclude<BoardLane, "none">;
+  kind: BoardLane;
   /** 段の開閉を覚える名前（ボードごと） */
   boardKey: string;
   entries: Entry[];
