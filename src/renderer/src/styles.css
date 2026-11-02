@@ -38,6 +38,9 @@
   --row: 36px;
   /* 欄の左右の余白（左のサイドバー・真ん中の画面・右のチャット欄・パネルでそろえる） */
   --gutter: 12px;
+  /* 欄・パネルの開閉の動き（左のサイドバー・ボードの右のパネル・右のチャット欄・下のパネルでそろえる） */
+  --panel-motion-duration: 0.24s;
+  --panel-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --row-tight: 28px;
   --mono: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
@@ -145,7 +148,7 @@ kbd {
   grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
-  transition: grid-template-columns 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: grid-template-columns var(--panel-motion-duration) var(--panel-motion-ease);
 }
 
 /* サイドバーを閉じたとき（⌘B） */
@@ -285,7 +288,7 @@ kbd {
 .sidebar-collapsed .page-header > :first-child {
   /* 開閉ボタン（左から 96px まで）の右に置く。画面の左右の余白の分を差し引く */
   padding-left: calc(104px - var(--page-x));
-  transition: padding-left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
 }
 
 /* 画面と、その下のパネル（ターミナル）を縦に並べる */
@@ -5052,8 +5055,8 @@ button.project-switch.all-projects:hover,
   /* 閉じたパネル（右へずらして隠す）が、画面の横にはみ出してスクロールさせないように */
   overflow-x: clip;
   transition:
-    grid-template-columns 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
-    gap 0.28s;
+    grid-template-columns var(--panel-motion-duration) var(--panel-motion-ease),
+    gap var(--panel-motion-duration) var(--panel-motion-ease);
 }
 
 .board-body.with-panel {
@@ -5126,9 +5129,9 @@ button.project-switch.all-projects:hover,
   opacity: 0;
   transform: translateX(24px);
   transition:
-    opacity 0.24s ease,
-    transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
-    border-color 0.24s;
+    opacity var(--panel-motion-duration) ease,
+    transform var(--panel-motion-duration) var(--panel-motion-ease),
+    border-color var(--panel-motion-duration);
 }
 
 .board-body.with-panel .board-panel {
@@ -5386,11 +5389,17 @@ button.project-switch.all-projects:hover,
   background: #fff;
 }
 
-/* ページと、タブの中に出した開発者ツール（右・下）を並べる */
+/*
+ * ページと、タブの中に出した開発者ツール（右・下）を並べる。ページ（webview）はパネルの角丸で切り取られず白い角がはみ出すので、
+ * 下の角をパネルと同じ丸さで切り取る（パネルの枠の 1px の内側）
+ */
 .browser-body {
   display: flex;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+  border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
+  clip-path: inset(0 round 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px));
 }
 
 .browser-body.dock-bottom {
@@ -6763,32 +6772,55 @@ a:focus-visible,
 
 /* ==== 下のパネル（どの画面でも開けるターミナル。VS Code と同じ） ==== */
 
+/* 閉じているときは高さ 0。開くと、高さが --bottom-h まで動く */
 .bottom-panel {
   position: relative;
   display: flex;
   flex: none;
   flex-direction: column;
+  height: 0;
   min-height: 0;
-  border-top: 1px solid var(--border);
+  overflow: hidden;
+  border-top: 1px solid transparent;
   background: var(--bg);
+  transition:
+    height var(--panel-motion-duration) var(--panel-motion-ease),
+    border-color var(--panel-motion-duration);
 }
 
-.bottom-panel[hidden] {
-  display: none;
+.bottom-panel.open {
+  height: var(--bottom-h);
+  border-top-color: var(--border);
 }
 
-.bottom-panel.maximized {
+.bottom-panel.open.maximized {
   flex: 1;
+  height: auto;
 }
 
 .bottom-panel.resizing {
   user-select: none;
+  transition: none;
+}
+
+/* 中身は開いたときの高さのまま（ターミナルが、動いている間に何度も大きさを変えないように） */
+.bottom-panel-inner {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  height: var(--bottom-h);
+  min-height: 0;
+}
+
+.bottom-panel.maximized .bottom-panel-inner {
+  flex: 1;
+  height: auto;
 }
 
 /* 上の端のつまみ（境目の線の上に重ねる。乗せると青い線） */
 .bottom-panel-resizer {
   position: absolute;
-  top: -3px;
+  top: 0;
   right: 0;
   left: 0;
   z-index: 3;
@@ -6914,6 +6946,7 @@ a:focus-visible,
 
 /* ==== プロジェクトのチャット欄（画面の右端。どのタブでも開ける） ==== */
 
+/* 閉じているときは幅 0。開くと、幅が --chat-w まで動く（中身は右端に寄せ、右から出てくるように見せる） */
 .project-chat {
   grid-column: 3;
   grid-row: 1;
@@ -6921,25 +6954,42 @@ a:focus-visible,
   display: flex;
   flex: none;
   flex-direction: column;
+  align-items: flex-end;
+  width: 0;
   min-width: 0;
-  border-left: 1px solid var(--border);
+  overflow: hidden;
+  border-left: 1px solid transparent;
   background: var(--bg);
+  transition:
+    width var(--panel-motion-duration) var(--panel-motion-ease),
+    border-color var(--panel-motion-duration);
 }
 
-.project-chat[hidden] {
-  display: none;
+.project-chat.open {
+  width: var(--chat-w);
+  border-left-color: var(--border);
 }
 
 .project-chat.resizing {
   user-select: none;
+  transition: none;
 }
 
-/* 左端の境目のつまみ（線の上に重ねる） */
+/* 中身は開いたときの幅のまま（動いている間に並びが崩れないように） */
+.project-chat-inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: var(--chat-w);
+  min-height: 0;
+}
+
+/* 左端の境目のつまみ（欄の内側に置く。外にはみ出すと隠れる） */
 .project-chat-resizer {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: -3px;
+  left: 0;
   margin: 0;
 }
 
