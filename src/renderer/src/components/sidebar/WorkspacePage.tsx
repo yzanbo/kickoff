@@ -11,7 +11,7 @@ import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from 
 import { projectHue } from "../../projectColor";
 import { useRunStates } from "../../approvalsContext";
 import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, SIDEBAR_WAITING_ONLY_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
-import { openNewChat, openRun, type Route, routeProjectId } from "../../router";
+import { openNewChat, openRun, routeProjectId, useRoute } from "../../router";
 import { CardMenu } from "../menus/CardMenu";
 import { useGroupMenu } from "../menus/GroupMenu";
 import { IconButton } from "../IconButton";
@@ -36,7 +36,6 @@ export const WorkspacePage = memo(function WorkspacePage({
   project,
   runs,
   groups,
-  route,
   hidden,
   collapsed,
   onCollapsedChange,
@@ -46,7 +45,6 @@ export const WorkspacePage = memo(function WorkspacePage({
   project: ProjectSummary;
   runs: Run[];
   groups: RunGroup[];
-  route: Route;
   hidden: boolean;
   /** チャット一覧を閉じているか（縦並びの「すべて閉じる・開く」で変えるので、外で持つ） */
   collapsed: boolean;
@@ -56,6 +54,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   /** すべてのプロジェクトをまたぐ検索欄（縦並びの上）の検索語。プロジェクトの検索欄が空のときに使う */
   searchAll?: string;
 }) {
+  const route = useRoute();
   const [grouping] = useSharedChoice<ChatGrouping>(SIDEBAR_GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
   const [showArchived] = useShowArchivedChats();
@@ -203,7 +202,6 @@ export const WorkspacePage = memo(function WorkspacePage({
               members={members}
               closed={groupClosed.get(group.id) && !filtering}
               onSetClosed={(closed) => groupClosed.set(group.id, closed)}
-              selected={route.name === "project" && route.id === project.id && route.tab === "groups" && route.group === group.id}
               filtering={filtering}
               grouping={grouping}
               renderRow={renderRow}
