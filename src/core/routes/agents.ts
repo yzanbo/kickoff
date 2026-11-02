@@ -1,9 +1,10 @@
 import type { Hono } from "hono";
 import { z } from "zod";
+import { listWorktrees } from "../git.js";
 import { githubStatus } from "../github.js";
 import type { ServerDeps } from "../server.js";
-import { PROVIDER_IDS, type ApprovalDecision, type ModelOption, type ProviderId } from "../types.js";
-import { HttpError } from "./http.js";
+import { PROVIDER_IDS, type ApprovalDecision, type ModelOption, type ProviderId, type SlashCommandOption } from "../types.js";
+import { HttpError, requireProject } from "./http.js";
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
   z.object({ action: z.literal("allow") }),
@@ -17,7 +18,7 @@ const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action
 ]);
 
 /** 承認依頼・AI からの質問への回答、外部 CLI（Claude など）の状態とモデル一覧、プランの使用枠・サービスごとの使用状況 */
-export function agentRoutes(app: Hono, { providers, usage, serviceUsage, approvals }: ServerDeps) {
+export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, approvals }: ServerDeps) {
   // ---- 承認依頼・AI からの質問 ----
   app.get("/api/approvals", (c) => {
     const projectId = c.req.query("project_id");
@@ -45,6 +46,25 @@ export function agentRoutes(app: Hono, { providers, usage, serviceUsage, approva
     const models = (await providers[id].models?.()) ?? [];
     if (models.length > 0) modelCache.set(id, { at: Date.now(), models });
     return c.json(models);
+  });
+
+  // チャット欄の / で出すコマンド（作業場所ごと。プロジェクトのコマンド・スキルも含むので、作業場所のフォルダで調べる。数分はとっておく）
+  const commandCache = new Map<string, { at: number; commands: SlashCommandOption[] }>();
+  app.get("/api/projects/:id/commands", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const worktree = c.req.query("worktree");
+    let cwd = project.repo_path;
+    if (worktree) {
+      const found = (await listWorktrees(project.repo_path)).find((w) => w.path === worktree);
+      if (!found) throw new HttpError(400, "このプロジェクトのワークツリーではありません");
+      cwd = found.path;
+    }
+    const key = `${project.provider}:${cwd}`;
+    const cached = commandCache.get(key);
+    if (cached && Date.now() - cached.at < 5 * 60_000) return c.json(cached.commands);
+    const commands = (await providers[project.provider].commands?.(cwd)) ?? [];
+    if (commands.length > 0) commandCache.set(key, { at: Date.now(), commands });
+    return c.json(commands);
   });
 
   // ---- プランの使用枠（5 時間・週） ----

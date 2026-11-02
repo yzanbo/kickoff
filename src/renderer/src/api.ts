@@ -26,6 +26,7 @@ import type {
   GitStatus,
   PlanUsage,
   ServiceUsage,
+  SlashCommandOption,
   Project,
   ProjectFiles,
   PullRequestInfo,
@@ -214,6 +215,8 @@ export const api = {
   gitCommitDiff: (target: GitTarget, hash: string, file: GitFileChange) =>
     request<GitDiff>("GET", gitUrl(target, `/git/commits/${hash}/diff`, { path: file.path, ...(file.old_path ? { old: file.old_path } : {}) })),
   projectFiles: (target: GitTarget) => request<ProjectFiles>("GET", gitUrl(target, "/files")),
+  /** チャット欄の / で出すコマンド（作業場所のプロジェクトのコマンド・スキルも含む） */
+  slashCommands: (target: GitTarget) => request<SlashCommandOption[]>("GET", gitUrl(target, "/commands")),
   /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
   saveProjectFile: (target: GitTarget, path: string, content: string, baseHash: string | null) =>
     request<{ hash: string }>("PUT", gitUrl(target, "/file"), { path, content, base_hash: baseHash }),

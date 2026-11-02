@@ -13,7 +13,7 @@ import type { AgentProvider, ProviderRunResult } from "./providers/types.js";
 import { Runner } from "./runner.js";
 import { createApp } from "./server.js";
 import { Store } from "./store.js";
-import type { ProviderId } from "./types.js";
+import type { ProviderId, SlashCommandOption } from "./types.js";
 import { UploadStore } from "./uploads.js";
 import { ServiceUsageMonitor } from "./serviceUsage/index.js";
 import type { UsageMonitor } from "./usage.js";
@@ -34,6 +34,13 @@ class FakeProvider implements AgentProvider {
   async run(params: { cwd: string }): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
     return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
+  }
+  /** チャット欄の / のコマンド（返すものと、調べた作業フォルダ） */
+  commandList: SlashCommandOption[] = [];
+  lastCommandsCwd = "";
+  async commands(cwd: string) {
+    this.lastCommandsCwd = cwd;
+    return this.commandList;
   }
 }
 
@@ -507,4 +514,14 @@ test("サービスごとの使用状況: Claude と各サービスを並べ、�
   const refreshed = await call("POST", "/api/usage/services/refresh");
   assert.equal(refreshed.status, 200);
   assert.equal(codexCalls(), 2);
+});
+
+test("チャット欄の / のコマンド: プロジェクトの作業場所で調べる。プロジェクトがなければ 404", async () => {
+  const { call, project, provider } = setup();
+  provider.commandList = [{ name: "review", description: "コードを見直す", argumentHint: "" }];
+  const res = await call("GET", `/api/projects/${project.id}/commands`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, provider.commandList);
+  assert.equal(provider.lastCommandsCwd, project.repo_path);
+  assert.equal((await call("GET", "/api/projects/999/commands")).status, 404);
 });

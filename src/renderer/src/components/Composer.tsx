@@ -1,12 +1,14 @@
 import { ArrowUp, Paperclip, Square } from "lucide-react";
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { Attachment } from "../../../core/types";
-import { api } from "../api";
+import { api, type GitTarget } from "../api";
 import { errorMessage } from "../errors";
 import { AttachmentChip } from "./AttachmentChip";
 import { ErrorText } from "./ErrorText";
 import { IconButton } from "./IconButton";
 import { RunOptionsBar, type RunOptionsState } from "./RunOptionsBar";
+import { SuggestList } from "./suggest/SuggestList";
+import { useSuggest } from "./suggest/useSuggest";
 
 interface Props {
   options: RunOptionsState;
@@ -23,6 +25,8 @@ interface Props {
   onStop?: () => void;
   /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
   onTextChange?: (text: string) => void;
+  /** / と @ の候補を出す作業場所（コマンド・ファイルをここから探す） */
+  suggestTarget?: GitTarget;
 }
 
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
@@ -37,8 +41,11 @@ interface PendingFile {
 }
 
 /** チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付） */
-export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, trailing, onSend, onStop, onTextChange }: Props) {
+export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, trailing, onSend, onStop, onTextChange, suggestTarget }: Props) {
   const [text, setText] = useState(initialText ?? "");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // / と @ の候補（Claude Code の VS Code 拡張と同じ）
+  const suggest = useSuggest({ target: suggestTarget, text, setText, textareaRef });
   const textChange = useRef(onTextChange);
   textChange.current = onTextChange;
   useEffect(() => {
@@ -101,6 +108,8 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    // 候補を出している間は、↑↓・Enter・Tab・Esc を候補の操作に使う
+    if (suggest.handleKey(e)) return;
     // Enter で送信、Shift+Enter で改行。日本語入力の変換を確定する Enter では送らない
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
       e.preventDefault();
@@ -151,12 +160,18 @@ export function Composer({ options, placeholder, initialText, autoFocus, busy, l
           ))}
         </div>
       )}
+      <SuggestList suggest={suggest} />
       <textarea
+        ref={textareaRef}
         rows={3}
         value={text}
+        onSelect={(e) => suggest.onCaret(e.currentTarget.selectionStart)}
         autoFocus={autoFocus}
         placeholder={placeholder ?? (busy ? "エージェントが作業中です…" : "メッセージを入力（Enter で送信、Shift+Enter で改行）")}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          suggest.onCaret(e.target.selectionStart);
+        }}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
       />

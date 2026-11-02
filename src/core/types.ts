@@ -396,6 +396,14 @@ export interface ProviderStatus {
   detail: string;
 }
 
+/** チャット欄の / で出すコマンド（Claude Code のスラッシュコマンド・スキル） */
+export interface SlashCommandOption {
+  name: string;
+  description: string;
+  /** 引数のヒント（"<file>" など。なければ空） */
+  argumentHint: string;
+}
+
 /** サブスクリプションの使用枠（5 時間・週など）の 1 区分 */
 export interface UsageWindow {
   key: string;

@@ -3029,6 +3029,83 @@ button.project-switch.all-projects:hover,
   border-color: var(--border-strong);
 }
 
+/* チャット欄の / と @ の候補（入力欄のすぐ上に出す） */
+.suggest-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: grid;
+  max-height: 320px;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+}
+
+.suggest-head {
+  padding: 4px 8px 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.suggest-empty {
+  margin: 0;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.suggest-item svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.suggest-item.active {
+  background: var(--bg-hover);
+}
+
+.suggest-name {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.suggest-hint {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--extra-muted);
+}
+
+.suggest-desc {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
 .composer.dragging {
   border-color: var(--accent);
   border-style: dashed;
