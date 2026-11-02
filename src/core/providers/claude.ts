@@ -2,15 +2,16 @@ import {
   createSdkMcpServer,
   query,
   tool,
-  type CanUseTool,
   type Options,
   type Query,
   type SDKResultMessage,
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { errorMessage } from "../errors.js";
+import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claudeLabels.js";
 import { KICKOFF_SERVER_NAME } from "../kickoffTools.js";
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
+import { createCanUseTool } from "./claudeApprovals.js";
 import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
 import { emitSdkMessage } from "./claudeMessages.js";
 import { resolvePermissionMode, runHooks, toAllowedTools } from "./claudePolicy.js";
@@ -18,45 +19,6 @@ import type { SelfInfo } from "../selfProtection.js";
 import { normalizeUsage } from "./claudeUsage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
 import { execFileAsync } from "../exec.js";
-
-/** ターミナルの画面でしか意味のないコマンド（Kickoff の画面には同じ働きのものがあるか、使えない）。チャット欄の / には出さない */
-const TERMINAL_ONLY_COMMANDS = new Set([
-  "exit",
-  "quit",
-  "vim",
-  "theme",
-  "terminal-setup",
-  "statusline",
-  "ide",
-  "login",
-  "logout",
-  "upgrade",
-  "doctor",
-  "resume",
-  "config",
-  "help",
-  "bug",
-  "feedback",
-  "model",
-  "permissions",
-  "hooks",
-  "agents",
-  "mcp",
-  "memory",
-  "status",
-  "privacy-settings",
-  "release-notes",
-  "keybindings",
-  "rewind",
-  "export",
-  // 見た目・調査用（ターミナルだけ）
-  "color",
-  "heapdump",
-  // Kickoff の画面に同じものがある（推論の深さ・ファストモード・名前の変更）
-  "effort",
-  "fast",
-  "rename",
-]);
 
 export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;
@@ -181,45 +143,7 @@ export class ClaudeProvider implements AgentProvider {
     const onAbort = () => abortController.abort();
     signal.addEventListener("abort", onAbort, { once: true });
 
-    const canUseTool: CanUseTool = async (toolName, input, opts) => {
-      // AskUserQuestion: Claude からの質問をユーザーに回答してもらう
-      if (toolName === "AskUserQuestion") {
-        const decision = await cb.requestApproval(
-          { kind: "question", toolName, input, title: opts.title, canRemember: false },
-          opts.signal,
-        );
-        if (decision.action === "answer") {
-          return {
-            behavior: "allow",
-            updatedInput: { ...input, answers: decision.answers, ...(decision.response ? { response: decision.response } : {}) },
-          };
-        }
-        return { behavior: "deny", message: decision.action === "deny" && decision.message ? decision.message : "ユーザーは質問への回答をスキップしました" };
-      }
-
-      const decision = await cb.requestApproval(
-        {
-          kind: "permission",
-          toolName,
-          input,
-          title: opts.title,
-          description: opts.description ?? opts.decisionReason,
-          canRemember: !opts.suppressAlwaysAllowRule && (opts.suggestions?.length ?? 0) > 0,
-        },
-        opts.signal,
-      );
-      switch (decision.action) {
-        case "allow":
-          return { behavior: "allow", updatedInput: input };
-        case "allow_always":
-          // 提案された許可ルールを適用（localSettings ならリポジトリの .claude/settings.local.json に保存される）
-          return { behavior: "allow", updatedInput: input, updatedPermissions: opts.suggestions ?? [] };
-        case "deny":
-          return { behavior: "deny", message: decision.message || "ユーザーが拒否しました" };
-        default:
-          return { behavior: "deny", message: "不正な応答です" };
-      }
-    };
+    const canUseTool = createCanUseTool(cb);
 
     let sessionId = params.resumeSessionId;
     let final: SDKResultMessage | undefined;
@@ -323,19 +247,3 @@ export class ClaudeProvider implements AgentProvider {
     }
   }
 }
-
-const FAST_MODE_REASONS: Record<string, string> = {
-  extra_usage_disabled: "追加の使用枠（extra usage）が無効です",
-  model_not_allowed: "このモデルはファストモードに対応していません",
-  free: "現在のプランでは使えません",
-  preference: "設定で無効になっています",
-  not_first_party: "このプロバイダーでは使えません",
-  disabled_by_env: "環境変数で無効になっています",
-  network_error: "状態を確認できませんでした",
-};
-
-const ERROR_LABELS: Record<string, string> = {
-  error_max_turns: "最大ターン数に達しました",
-  error_max_budget_usd: "予算上限に達しました",
-  error_during_execution: "実行中にエラーが発生しました",
-};
