@@ -583,6 +583,15 @@ button.chat-row {
   color: var(--extra-muted);
 }
 
+/* 送る前の新しいチャット（下書き）の行: 名前を斜めにして、送ったチャットと見分ける */
+.draft-row .chat-row-title {
+  font-style: italic;
+}
+
+.draft-slot {
+  color: var(--muted);
+}
+
 /* キーボード（↑↓・Tab）でピントを当てたチャットの行 */
 .chat-row:focus-visible {
   outline: 2px solid var(--accent);

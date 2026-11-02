@@ -1,0 +1,67 @@
+import { SquarePen, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { useMenuKeys } from "../../hooks/useMenuKeys";
+import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { discardDraft, openDraft, useAllDrafts, type SidebarDraft } from "../sidePanel/panelMemory";
+
+/**
+ * サイドバーのプロジェクトの、送る前の新しいチャット（ボードの右のパネル・プロジェクトのチャット欄で書いている途中）。
+ * ボードの「下書き」の列と同じもの。押すとそのパネルで開き（別の画面のものは、その画面へ移ってから）、右クリックで開く・削除
+ */
+export function DraftRows({ projectId }: { projectId: number }) {
+  const drafts = useAllDrafts().filter((d) => d.projectId === projectId);
+  if (drafts.length === 0) return null;
+  return (
+    <ul className="chat-rows draft-rows">
+      {drafts.map((d) => (
+        <DraftRow key={`${d.memoryKey}:${d.key}`} draft={d} />
+      ))}
+    </ul>
+  );
+}
+
+function DraftRow({ draft }: { draft: SidebarDraft }) {
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const first = draft.text.trim().split("\n")[0] ?? "";
+  return (
+    <li className="chat-row-item">
+      <button
+        type="button"
+        className="chat-row draft-row"
+        title={`${first ? "書きかけの新しいチャット" : "新しいチャット"}（未送信。右クリックで削除）`}
+        onClick={() => openDraft(draft)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
+        <span className="status-slot draft-slot" aria-hidden>
+          <SquarePen size={12} />
+        </span>
+        <span className="chat-row-body">
+          <span className="chat-row-line">
+            <span className="chat-row-title">{first || "新しいチャット"}</span>
+            <span className="chat-row-time">下書き</span>
+          </span>
+        </span>
+      </button>
+      {menu && <DraftMenu {...menu} onOpen={() => openDraft(draft)} onDelete={() => discardDraft(draft)} onClose={() => setMenu(null)} />}
+    </li>
+  );
+}
+
+function DraftMenu({ x, y, onOpen, onDelete, onClose }: { x: number; y: number; onOpen: () => void; onDelete: () => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useMenuKeys(ref);
+  const at = clampToViewport(x, y, 200, 100);
+  return (
+    <PopupMenu x={at.x} y={at.y} label="下書きの操作" menuRef={ref} onClose={onClose}>
+      <button role="menuitem" onClick={() => (onClose(), onOpen())}>
+        <SquarePen size={14} /> 開く
+      </button>
+      <button role="menuitem" className="danger" onClick={() => (onClose(), onDelete())}>
+        <Trash2 size={14} /> 削除
+      </button>
+    </PopupMenu>
+  );
+}

@@ -19,6 +19,7 @@ import { ChatRow } from "./ChatRow";
 import { GroupToggle } from "./GroupToggle";
 import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
+import { DraftRows } from "./DraftRows";
 import { RowSection } from "./RowSection";
 import { GROUPING_KEY, isWaitingState, stateCounts, useFoldAll, useShowArchivedChats, WAITING_ONLY_KEY } from "./sidebarFlags";
 import { WorkspaceHead } from "./WorkspaceHead";
@@ -163,6 +164,8 @@ export const WorkspacePage = memo(function WorkspacePage({
           />
         </div>
       )}
+      {/* 送る前の新しいチャット（下書き）。絞り込んでいる間は出さない */}
+      {!collapsed && !filtering && <DraftRows projectId={project.id} />}
       {!collapsed && pinnedRows.length > 0 && (
         <RowSection icon={Pin} label="固定" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
           <ul className="chat-rows">{pinnedRows.map(renderRow)}</ul>
