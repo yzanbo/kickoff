@@ -1,4 +1,4 @@
-import { Archive, ChevronsDownUp, ChevronsUpDown, Clock, Eye, GalleryHorizontal, GripVertical, Rows2, Rows3 } from "lucide-react";
+import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GripVertical, Rows2, Rows3, Rows4 } from "lucide-react";
 import { useSharedChoice } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
 import { IconButton } from "../IconButton";
@@ -8,9 +8,6 @@ import { GROUPING_KEY, useCompactRows, useShowArchivedChats } from "./sidebarFla
 
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
 export type NavLayout = "slide" | "stack";
-
-/** 「表示」のボタンの、取りうる値（幅をそろえる） */
-const DISPLAY_VALUES = ["標準", "1 件オン", "2 件オン", "3 件オン"];
 
 interface Props {
   layout: NavLayout;
@@ -27,7 +24,7 @@ interface Props {
 
 /**
  * プロジェクト一覧の上の見出しの行。設定の種類（ジャンル）ごとにボタンを分け、1 つのボタンには 1 種類だけを入れる:
- * 並べ方（縦 / 横スライド）・並び順（手動 / 最近動いた順）・まとめ方（チャット）・表示（アーカイブ済み・1 行など）。
+ * 並べ方（縦 / 横スライド）・並び順（手動 / 最近動いた順）・まとめ方（チャット）・アーカイブ（出すか）・表示（チャットの行を 1 行 / 2 行）。
  * 右端は、縦並びのときの「すべて閉じる / 開く」（VS Code のエクスプローラーの見出しと同じ位置）
  */
 export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
@@ -36,11 +33,10 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
   const [compact, setCompact] = useCompactRows();
   const radio = { role: "menuitemradio" as const };
   const check = { role: "menuitemcheckbox" as const };
-  // 表示: オンにしているものの数（なければ「標準」。何がオンかは説明に出す）
-  const displayOn = [showArchivedChats && "アーカイブ済みのチャット", compact && "1 行で表示", archivedCount > 0 && showArchived && "アーカイブしたプロジェクト"].filter(
-    (v): v is string => Boolean(v),
-  );
-  const displayValue = displayOn.length === 0 ? "標準" : `${displayOn.length} 件オン`;
+  // アーカイブ: 出しているもの（チャット・プロジェクト）。すべてなら「表示」、どれもなければ「隠す」、一部なら「一部」
+  const archiveChoices = [{ on: showArchivedChats, label: "チャット" }, ...(archivedCount > 0 ? [{ on: showArchived, label: "プロジェクト" }] : [])];
+  const archiveOn = archiveChoices.filter((c) => c.on).map((c) => c.label);
+  const archiveValue = archiveOn.length === 0 ? "隠す" : archiveOn.length === archiveChoices.length ? "表示" : "一部";
   return (
     <div className="project-list-head">
       <HeadMenu
@@ -92,30 +88,39 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         ]}
       />
       <HeadMenu
-        id="display"
-        icon={Eye}
-        label="表示"
-        value={displayValue}
-        values={DISPLAY_VALUES}
-        title={`表示するもの（いまは${displayOn.length === 0 ? "標準" : `「${displayOn.join("・")}」がオン`}）`}
+        id="archive"
+        icon={archiveValue === "隠す" ? ArchiveX : Archive}
+        label="アーカイブ"
+        value={archiveValue}
+        values={["隠す", "表示", "一部"]}
+        title={`アーカイブしたものを表示するか（いまは${archiveOn.length === 0 ? "隠す" : `「${archiveOn.join("・")}」を表示`}）`}
         sections={[
           {
-            label: "チャット",
+            label: "アーカイブしたものを表示",
             items: [
-              { ...check, key: "archived-chats", icon: Archive, label: "アーカイブ済みを表示", checked: showArchivedChats, onSelect: () => setShowArchivedChats(!showArchivedChats) },
-              { ...check, key: "compact", icon: Rows2, label: "1 行で表示", checked: compact, onSelect: () => setCompact(!compact) },
+              { ...check, key: "archived-chats", icon: Archive, label: "アーカイブ済みのチャット", checked: showArchivedChats, onSelect: () => setShowArchivedChats(!showArchivedChats) },
+              ...(archivedCount > 0
+                ? [{ ...check, key: "archived-projects", icon: Archive, label: `アーカイブしたプロジェクト（${archivedCount}）`, checked: showArchived, onSelect: () => onShowArchived(!showArchived) }]
+                : []),
             ],
           },
-          ...(archivedCount > 0
-            ? [
-                {
-                  label: "プロジェクト",
-                  items: [
-                    { ...check, key: "archived-projects", icon: Archive, label: `アーカイブしたプロジェクトを表示（${archivedCount}）`, checked: showArchived, onSelect: () => onShowArchived(!showArchived) },
-                  ],
-                },
-              ]
-            : []),
+        ]}
+      />
+      <HeadMenu
+        id="rows"
+        icon={compact ? Rows4 : Rows2}
+        label="表示"
+        value={compact ? "1 行" : "2 行"}
+        values={["1 行", "2 行"]}
+        title={`チャットの行（いまは「${compact ? "1 行（名前と時刻）" : "2 行（セクション・ブランチも）"}」）`}
+        sections={[
+          {
+            label: "チャットの行",
+            items: [
+              { ...radio, key: "compact", icon: Rows4, label: "1 行（名前と時刻）", checked: compact, onSelect: () => setCompact(true) },
+              { ...radio, key: "full", icon: Rows2, label: "2 行（セクション・ブランチも）", checked: !compact, onSelect: () => setCompact(false) },
+            ],
+          },
         ]}
       />
       {/* 開いているものがあれば閉じる、すべて閉じていれば開く */}

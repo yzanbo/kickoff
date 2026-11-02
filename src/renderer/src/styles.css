@@ -1294,8 +1294,8 @@ button.project-switch:hover,
   color: var(--muted);
 }
 
-/* 文字では収まらない幅（サイドバーが約 280px 未満）では、文字を隠してアイコン（いまの値）だけにする */
-@container project-list-head (max-width: 255px) {
+/* 文字では収まらない幅（サイドバーが約 322px 未満）では、文字を隠してアイコン（いまの値）だけにする */
+@container project-list-head (max-width: 297px) {
   .head-chip {
     height: 26px;
     padding: 0 6px;
