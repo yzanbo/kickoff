@@ -1375,12 +1375,6 @@ button.project-switch:hover,
   color: var(--muted);
 }
 
-/* 「すべて閉じる / 開く」は行の右端（後ろにある .icon-button の幅より優先する） */
-.project-list-head .project-list-fold {
-  width: 22px;
-  margin-left: auto;
-}
-
 /* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（幅は取りうる値でいちばん長いものに固定。狭いときはアイコンだけ） */
 .head-chip {
   display: inline-flex;

@@ -1,9 +1,8 @@
 import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GripVertical, Rows2, Rows3, Rows4 } from "lucide-react";
 import { useSharedChoice } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
-import { IconButton } from "../IconButton";
 import { CHAT_GROUPINGS, GROUPING_META, type ChatGrouping } from "./chatGroupings";
-import { HeadMenu, HeadToggle } from "./HeadMenu";
+import { HeadAction, HeadMenu, HeadToggle } from "./HeadMenu";
 import { GROUPING_KEY, useCompactProjects, useCompactRows, useShowArchivedChats } from "./sidebarFlags";
 
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
@@ -28,7 +27,7 @@ interface Props {
  * プロジェクト = 並べ方（縦 / 横スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・アーカイブ（出すか）/
  * チャット = まとめ方・表示（行を 1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。チャットの設定はすべてのプロジェクトに効く。
  * 「表示」はプロジェクトのカードとチャットの行で別々に切り替える。
- * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行の右端に置く（プロジェクトの行には収まらないため）
+ * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行のアーカイブの右に、ほかと同じ形のボタン（HeadAction）で置く（プロジェクトの行には収まらないため）
  */
 export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
   const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
@@ -108,12 +107,15 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         />
         {/* アーカイブはプロジェクトの行と同じく右端 */}
         {archiveToggle("archive-chats", "チャット", showArchivedChats, setShowArchivedChats)}
-        {/* 開いているものがあれば閉じる、すべて閉じていれば開く */}
-        <IconButton
+        {/* 開いているものがあれば閉じる、すべて閉じていれば開く（ほかのボタンと同じ形。下の段は押すとどうなるか） */}
+        <HeadAction
+          id="fold"
           icon={fold.allCollapsed ? ChevronsUpDown : ChevronsDownUp}
-          className="project-list-fold"
+          caption="すべて"
+          action={fold.allCollapsed ? "開く" : "閉じる"}
+          actions={["閉じる", "開く"]}
           label={fold.allCollapsed ? "すべてのプロジェクトを開く" : "すべてのプロジェクトを閉じる"}
-          title={fold.allCollapsed ? "すべて開く" : "すべて閉じる"}
+          title={fold.allCollapsed ? "すべてのプロジェクトと中のまとまりを開く" : "すべてのプロジェクトと中のまとまりを閉じる"}
           onClick={() => fold.set(!fold.allCollapsed)}
         />
       </div>
