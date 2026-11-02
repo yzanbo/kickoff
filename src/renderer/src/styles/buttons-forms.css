@@ -1,5 +1,32 @@
 /* ==== ボタン・フォーム ==== */
 
+/* 名前をその場で変える（InlineName）。.inline-name-ok は下の .icon-button と同じ要素に効くので、順を変えない（.icon-button より前） */
+.inline-name-wrap {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inline-name-wrap .icon-button {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.inline-name-ok {
+  color: var(--accent-bright);
+}
+
+input[type="text"].inline-name {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 13px;
+}
+
 /* アイコンだけのボタン（IconButton / CloseButton / RefreshButton。label が aria-label と title になる） */
 .icon-button {
   display: inline-grid;
