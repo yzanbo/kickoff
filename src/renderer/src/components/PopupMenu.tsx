@@ -1,6 +1,7 @@
-import { useRef, type ReactNode, type RefObject } from "react";
+import { useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useDismiss } from "../hooks/useDismiss";
+import { useMenuKeys } from "../hooks/useMenuKeys";
 
 /** メニューが画面の端からはみ出さないよう寄せた位置（width・height はおおよそのメニューの大きさ） */
 export function clampToViewport(x: number, y: number, width: number, height: number) {
@@ -17,20 +18,18 @@ interface Props {
   escape?: "stop" | "pass";
   /** 開くボタンのセレクタ。押しても外側として閉じず、ボタンの側で開閉する（開いているときに押したら閉じる） */
   ignore?: string;
-  /** メニューの要素を外から使うとき（ピントの移動など） */
-  menuRef?: RefObject<HTMLDivElement | null>;
   onClose: () => void;
   children: ReactNode;
 }
 
 /**
- * 右クリック・「…」で開くメニュー。外側のクリック・Esc で閉じる。
+ * 右クリック・「…」で開くメニュー。外側のクリック・Esc で閉じる。開いたら先頭の項目にピントを置き、↑↓ で項目を移る（useMenuKeys）。
  * サイドバーの横スライド（transform）の中から開いても位置がずれないよう、body の直下に出す
  */
-export function PopupMenu({ x, y, className, label, escape = "stop", ignore, menuRef, onClose, children }: Props) {
-  const ownRef = useRef<HTMLDivElement>(null);
-  const ref = menuRef ?? ownRef;
+export function PopupMenu({ x, y, className, label, escape = "stop", ignore, onClose, children }: Props) {
+  const ref = useRef<HTMLDivElement>(null);
   useDismiss(ref, onClose, { escape, ignore });
+  useMenuKeys(ref);
   return createPortal(
     <div ref={ref} className={className ? `menu ${className}` : "menu"} style={{ left: x, top: y }} role="menu" aria-label={label}>
       {children}

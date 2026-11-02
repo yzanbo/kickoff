@@ -1,6 +1,5 @@
 import { SquarePen, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
+import { useState } from "react";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 import { discardDraft, openDraft, useAllDrafts, type SidebarDraft } from "../sidePanel/panelMemory";
 
@@ -51,11 +50,9 @@ function DraftRow({ draft }: { draft: SidebarDraft }) {
 }
 
 function DraftMenu({ x, y, onOpen, onDelete, onClose }: { x: number; y: number; onOpen: () => void; onDelete: () => void; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useMenuKeys(ref);
   const at = clampToViewport(x, y, 200, 100);
   return (
-    <PopupMenu x={at.x} y={at.y} label="下書きの操作" menuRef={ref} onClose={onClose}>
+    <PopupMenu x={at.x} y={at.y} label="下書きの操作" onClose={onClose}>
       <button role="menuitem" onClick={() => (onClose(), onOpen())}>
         <SquarePen size={14} /> 開く
       </button>

@@ -1,7 +1,6 @@
 import { Check, ChevronDown, LayoutGrid } from "lucide-react";
-import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import type { ProjectSummary } from "../../../../core/types";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { initialOf, projectHue } from "../../projectColor";
 import { archivedProjects, sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
@@ -88,8 +87,6 @@ function ProjectSwitchMenu({
   onPick: (id: number | undefined) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useMenuKeys(ref);
   const item = (id: number | undefined, mark: ReactNode, name: string) => (
     <button
       key={id ?? "all"}
@@ -112,7 +109,7 @@ function ProjectSwitchMenu({
     </button>
   );
   return (
-    <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore=".project-switch" menuRef={ref} onClose={onClose}>
+    <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore=".project-switch" onClose={onClose}>
       {item(undefined, <LayoutGrid size={10} />, ALL_PROJECTS)}
       <div className="menu-separator" role="separator" />
       {projects.map((p) => item(p.id, initialOf(p.name), p.name))}

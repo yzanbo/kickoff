@@ -1,7 +1,5 @@
 import { Folder, Inbox, SquarePen } from "lucide-react";
-import { useRef } from "react";
 import type { RunGroup } from "../../../../core/types";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 
 /**
@@ -27,8 +25,6 @@ export function GroupPickMenu({
   onPick: (group: number | undefined) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useMenuKeys(ref);
 
   const pick = (group: number | undefined) => {
     onClose();
@@ -37,7 +33,7 @@ export function GroupPickMenu({
   const at = clampToViewport(x, y, 230, 60 + groups.length * 34);
 
   return (
-    <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label={title} ignore={ignore} menuRef={ref} onClose={onClose}>
+    <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label={title} ignore={ignore} onClose={onClose}>
       <div className="menu-label">
         <SquarePen size={12} aria-hidden /> {title}
       </div>

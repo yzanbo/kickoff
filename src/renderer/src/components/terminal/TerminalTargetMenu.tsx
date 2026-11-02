@@ -1,6 +1,4 @@
 import { SquareTerminal } from "lucide-react";
-import { useRef } from "react";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
 
@@ -29,10 +27,8 @@ export function TerminalTargetMenu({
   onPick: (t: TerminalTarget) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useMenuKeys(ref);
   return (
-    <PopupMenu x={x} y={y} label="ターミナルを開く場所" ignore={ignore} menuRef={ref} onClose={onClose}>
+    <PopupMenu x={x} y={y} label="ターミナルを開く場所" ignore={ignore} onClose={onClose}>
       <div className="menu-label">ターミナルを開く場所</div>
       {targets.map((t) => (
         <button

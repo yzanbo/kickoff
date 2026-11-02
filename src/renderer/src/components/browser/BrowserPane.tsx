@@ -2,7 +2,6 @@ import type { WebviewTag } from "electron";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Globe, RotateCw, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cx } from "../../cx";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { normalizeUrl } from "../../url";
 import { IconButton } from "../IconButton";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
@@ -187,10 +186,8 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
 
 /** 開発者ツールを出す場所のメニュー（右・下・別のウィンドウ）。選ぶと、その場所で開く */
 function DockMenu({ x, y, value, onPick, onClose }: { x: number; y: number; value: DevtoolsDock; onPick: (dock: DevtoolsDock) => void; onClose: () => void }) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  useMenuKeys(menuRef);
   return (
-    <PopupMenu x={x} y={y} label="開発者ツールの場所" ignore=".browser-devtools-dock" menuRef={menuRef} onClose={onClose}>
+    <PopupMenu x={x} y={y} label="開発者ツールの場所" ignore=".browser-devtools-dock" onClose={onClose}>
       <div className="menu-label">開発者ツールの場所</div>
       {DEVTOOLS_DOCKS.map((dock) => (
         <button
