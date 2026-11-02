@@ -1,7 +1,8 @@
 import type { Run } from "../../core/types";
 import { api } from "./api";
 import { chatTitle } from "./chatTitle";
-import { confirmDialog } from "./dialogs";
+import { alertDialog, confirmDialog } from "./dialogs";
+import { errorMessage } from "./errors";
 
 /** 確かめてから、チャットをアーカイブする（アーカイブ済みなら戻す。どちらも確かめる。やめたら false） */
 export async function toggleArchiveRun(run: Pick<Run, "id" | "title" | "archived_at">): Promise<boolean> {
@@ -33,3 +34,51 @@ export async function confirmDeleteRun(run: Pick<Run, "id" | "title">): Promise<
   if (ok) await api.deleteRun(run.id);
   return ok;
 }
+
+/** チャットをまとめて操作する（1 件ずつ送り、断られたもの（作業中など）は最後にまとめて知らせる） */
+async function eachRun(runs: Run[], action: string, fn: (run: Run) => Promise<unknown>) {
+  const failures: string[] = [];
+  for (const run of runs) {
+    try {
+      await fn(run);
+    } catch (e) {
+      failures.push(`「${chatTitle(run.title)}」: ${errorMessage(e)}`);
+    }
+  }
+  if (failures.length > 0) await alertDialog(`${failures.length} 件は${action}できませんでした`, failures.slice(0, 5).join("\n"));
+}
+
+/** 確かめてから、まとめてアーカイブする（どれもアーカイブ済みなら、まとめて戻す。やめたら false） */
+export async function confirmArchiveRuns(runs: Run[]): Promise<boolean> {
+  const restore = runs.every((r) => r.archived_at);
+  const targets = restore ? runs : runs.filter((r) => !r.archived_at);
+  const ok = await confirmDialog(
+    restore
+      ? { title: `${targets.length} 件のチャットをアーカイブから戻しますか？`, message: "一覧に、また出るようになります。", confirmLabel: "戻す" }
+      : {
+          title: `${targets.length} 件のチャットをアーカイブしますか？`,
+          message: "一覧から隠れます。会話の記録は残ります。作業中のチャットはアーカイブできません。",
+          confirmLabel: "アーカイブ",
+        },
+  );
+  if (ok) await eachRun(targets, restore ? "戻す" : "アーカイブ", (r) => api.archiveRun(r.id, !restore));
+  return ok;
+}
+
+/** 確かめてから、まとめて削除する（やめたら false） */
+export async function confirmDeleteRuns(runs: Run[]): Promise<boolean> {
+  const ok = await confirmDialog({
+    title: `${runs.length} 件のチャットを削除しますか？`,
+    message: "会話の記録も消えます。残しておきたいときはアーカイブを使ってください。作業中のチャットは削除できません。",
+    confirmLabel: "削除",
+    danger: true,
+  });
+  if (ok) await eachRun(runs, "削除", (r) => api.deleteRun(r.id));
+  return ok;
+}
+
+/** まとめて既読にする（確認待ちの印を消す。印のないものはそのまま） */
+export const markRunsSeen = (runs: Run[]) => eachRun(runs.filter((r) => r.attention), "既読に", (r) => api.markSeen(r.id));
+
+/** まとめてグループへ移す（null はグループなし。同じプロジェクトのチャットだけ） */
+export const moveRunsToGroup = (runs: Run[], groupId: number | null) => eachRun(runs, "移動", (r) => api.setRunGroup(r.id, groupId));

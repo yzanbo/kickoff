@@ -5,7 +5,7 @@ import { useMenuKeys } from "../hooks/useMenuKeys";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /**
- * 新しいチャットをどこに作るかを選ぶメニュー（グループがあるプロジェクトの＋を押したとき）。
+ * グループを選ぶメニュー（新しいチャットの作成先・まとめて選んだチャットの移動先）。
  * group が undefined なら「グループなし」
  */
 export function GroupPickMenu({
@@ -13,6 +13,7 @@ export function GroupPickMenu({
   y,
   groups,
   ignore,
+  title = "新しいチャットの作成先",
   onPick,
   onClose,
 }: {
@@ -21,6 +22,8 @@ export function GroupPickMenu({
   groups: RunGroup[];
   /** 開くボタンのセレクタ（押したらボタンの側で閉じる） */
   ignore?: string;
+  /** メニューの見出し */
+  title?: string;
   onPick: (group: number | undefined) => void;
   onClose: () => void;
 }) {
@@ -34,9 +37,9 @@ export function GroupPickMenu({
   const at = clampToViewport(x, y, 230, 60 + groups.length * 34);
 
   return (
-    <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label="新しいチャットの作成先" ignore={ignore} menuRef={ref} onClose={onClose}>
+    <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label={title} ignore={ignore} menuRef={ref} onClose={onClose}>
       <div className="menu-label">
-        <SquarePen size={12} aria-hidden /> 新しいチャットの作成先
+        <SquarePen size={12} aria-hidden /> {title}
       </div>
       {groups.map((g) => (
         <button key={g.id} role="menuitem" onClick={() => pick(g.id)}>
