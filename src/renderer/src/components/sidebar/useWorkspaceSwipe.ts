@@ -4,6 +4,10 @@ import { useCallback, useLayoutEffect, useRef, type PointerEvent, type WheelEven
 const SWIPE_RATIO = 0.18;
 /** この時間ホイールのイベントが途切れたら、1 回のジェスチャー（慣性を含む）が終わったとみなす */
 const GESTURE_END_MS = 180;
+/** 切り替えた直後に、次のスワイプを受け付けない時間（ms） */
+const COOLDOWN_MS = 200;
+/** 切り替えたあと、移動量がこの回数続けて増えたら、慣性ではなく次のスワイプとみなす（慣性は小さくなっていく一方） */
+const RISING_TO_RESTART = 2;
 /** 端のプロジェクトより先へ引っ張れる最大量（px） */
 const EDGE_PULL_MAX = 36;
 
@@ -14,13 +18,18 @@ const EDGE_PULL_MAX = 36;
 export function useWorkspaceSwipe({ index, count, go }: { index: number; count: number; go: (to: number) => void }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  // 1 回のスワイプの状態。committed: すでに切り替えた（ジェスチャーが終わるまで、残りの慣性のイベントはすべて無視する）
+  // 1 回のスワイプの状態。committed: すでに切り替えた（次のスワイプが始まるまで、残りの慣性のイベントは無視する）
   const gesture = useRef<{
     total: number;
     timer?: ReturnType<typeof setTimeout>;
     active: boolean;
     committed: boolean;
-  }>({ total: 0, active: false, committed: false });
+    committedAt: number;
+    /** 直前のイベントの移動量 */
+    prevAbs: number;
+    /** 移動量が続けて増えた回数 */
+    rising: number;
+  }>({ total: 0, active: false, committed: false, committedAt: 0, prevAbs: 0, rising: 0 });
 
   /**
    * スライド位置を要素に直接反映する（指に追従させる間は React の再描画を挟まない）。
@@ -74,12 +83,22 @@ export function useWorkspaceSwipe({ index, count, go }: { index: number; count: 
       g.active = false;
       g.committed = false;
     }, GESTURE_END_MS);
-    // 1 回のジェスチャー（指を離したあとの慣性を含む）では 1 つだけ移る。切り替えたあとのイベントは、途切れるまですべて無視する
-    // （慣性を次のスワイプと取り違えて、いくつも先のプロジェクトまで動かないように。続けて移るときは、止まってからもう一度スワイプする）
-    if (g.committed) return;
+    // 1 回のスワイプ（指を離したあとの慣性を含む）では 1 つだけ移る。切り替えたあとの慣性のイベントは無視し、
+    // 移動量が続けて増えたら（慣性は小さくなっていく一方なので）次のスワイプとして受け付ける（2 回スワイプしたら 2 つ移る）
+    if (g.committed) {
+      const abs = Math.abs(e.deltaX);
+      g.rising = abs > g.prevAbs + 2 ? g.rising + 1 : 0;
+      g.prevAbs = abs;
+      if (performance.now() - g.committedAt < COOLDOWN_MS || g.rising < RISING_TO_RESTART) return;
+      g.committed = false;
+      g.total = 0;
+    }
     g.total += e.deltaX;
     if (commitIfFar(g.total)) {
       g.committed = true;
+      g.committedAt = performance.now();
+      g.prevAbs = Math.abs(e.deltaX);
+      g.rising = 0;
       return;
     }
     place(resist(Math.max(-width(), Math.min(width(), g.total))));
