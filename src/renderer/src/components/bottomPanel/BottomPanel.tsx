@@ -1,9 +1,9 @@
 import { Columns2, Maximize2, Minimize2, Plus, SquareTerminal } from "lucide-react";
-import { useState } from "react";
 import { cx } from "../../cx";
 import { CloseButton, IconButton } from "../IconButton";
 import { PanelTab } from "../sidePanel/PanelTab";
-import { targetMenuAt, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
+import { useAnchoredMenu } from "../menus/useAnchoredMenu";
+import { TARGET_MENU_WIDTH, targetMenuHeight, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
 import { TerminalSplit } from "./TerminalSplit";
 import type { BottomPanelController } from "./useBottomPanel";
 
@@ -13,14 +13,13 @@ import type { BottomPanelController } from "./useBottomPanel";
  */
 export function BottomPanel({ panel }: { panel: BottomPanelController }) {
   const { open, tabs, active, maximized, targets } = panel;
-  const [addMenu, setAddMenu] = useState<{ x: number; y: number } | null>(null);
+  const addMenu = useAnchoredMenu(".bottom-panel-add", TARGET_MENU_WIDTH, "right");
   if (!panel.available) return null;
 
   /** ＋: 開く場所が 1 つならそこで、いくつもあれば選ぶメニューを出す */
   const add = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (targets.length === 1) return panel.openTerminal(targets[0]);
-    if (addMenu) return setAddMenu(null);
-    setAddMenu(targetMenuAt(e.currentTarget, targets.length));
+    addMenu.toggle(e, targetMenuHeight(targets.length));
   };
 
   return (
@@ -62,7 +61,7 @@ export function BottomPanel({ panel }: { panel: BottomPanelController }) {
             label="新しいターミナル"
             className="bottom-panel-add"
             aria-haspopup={targets.length > 1 ? "menu" : undefined}
-            aria-expanded={targets.length > 1 ? addMenu !== null : undefined}
+            aria-expanded={targets.length > 1 ? addMenu.isOpen : undefined}
             onClick={add}
           />
         )}
@@ -76,7 +75,7 @@ export function BottomPanel({ panel }: { panel: BottomPanelController }) {
         />
         <CloseButton label="パネルを閉じる" title="閉じる（⌃` / ⌘J）" size={15} onClick={panel.close} />
       </div>
-      {addMenu && <TerminalTargetMenu {...addMenu} targets={targets} ignore=".bottom-panel-add" onPick={panel.openTerminal} onClose={() => setAddMenu(null)} />}
+      {addMenu.at && <TerminalTargetMenu {...addMenu.at} targets={targets} ignore={addMenu.ignore} onPick={panel.openTerminal} onClose={addMenu.close} />}
       <div className="bottom-panel-body">
         {tabs.length === 0 && (
           <div className="bottom-panel-empty">

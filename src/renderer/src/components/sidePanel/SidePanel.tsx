@@ -1,9 +1,8 @@
 import { Globe, Maximize2, Minimize2, PanelRightClose, Plus, SquarePen, SquareTerminal } from "lucide-react";
-import { useState } from "react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
-import { clampToViewport } from "../PopupMenu";
-import { targetMenuAt, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
+import { useAnchoredMenu } from "../menus/useAnchoredMenu";
+import { TARGET_MENU_WIDTH, targetMenuHeight, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
 import { AddTabMenu, addMenuHeight } from "./AddTabMenu";
 import { PanelTab } from "./PanelTab";
 import { PanelTabPage } from "./PanelTabPage";
@@ -32,9 +31,9 @@ export function SidePanel({
   const close = sidebar ? sidebar.onClose : panel.close;
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
   // タブの列の＋のメニュー（新しいチャット・ブラウザ・ターミナル）
-  const [addMenu, setAddMenu] = useState<{ x: number; y: number } | null>(null);
+  const addMenu = useAnchoredMenu(".panel-tab-add", 220);
   // タブがないときの「ターミナルを開く」で、開く場所を選ぶメニュー（全プロジェクトのボード）
-  const [terminalMenu, setTerminalMenu] = useState<{ x: number; y: number } | null>(null);
+  const terminalMenu = useAnchoredMenu(".panel-empty-terminal", TARGET_MENU_WIDTH, "right");
   return (
     <aside className={cx("board-panel", sidebar && "as-sidebar")} aria-hidden={!panelOpen}>
       {!sidebar && (
@@ -87,23 +86,18 @@ export function SidePanel({
           title={terminalTargets.length > 0 ? "新しいタブ（チャット・ブラウザ・ターミナル）" : "新しいタブ（チャット・ブラウザ）"}
           className="panel-tab-add"
           aria-haspopup="menu"
-          aria-expanded={addMenu !== null}
-          onClick={(e) => {
-            // 開いているときに押したら閉じる
-            if (addMenu) return setAddMenu(null);
-            const r = e.currentTarget.getBoundingClientRect();
-            setAddMenu(clampToViewport(r.left, r.bottom + 4, 220, addMenuHeight(terminalTargets.length)));
-          }}
+          aria-expanded={addMenu.isOpen}
+          onClick={(e) => addMenu.toggle(e, addMenuHeight(terminalTargets.length))}
         />
       </div>
-      {addMenu && (
+      {addMenu.at && (
         <AddTabMenu
-          {...addMenu}
+          {...addMenu.at}
           onNewChat={onNewChat}
           onBrowser={() => panel.openBrowser()}
           terminals={terminalTargets}
           onTerminal={panel.openTerminal}
-          onClose={() => setAddMenu(null)}
+          onClose={addMenu.close}
         />
       )}
       <div className="panel-content" inert={!panelOpen}>
@@ -125,7 +119,7 @@ export function SidePanel({
                 aria-haspopup={terminalTargets.length > 1 ? "menu" : undefined}
                 onClick={(e) => {
                   if (terminalTargets.length === 1) return panel.openTerminal(terminalTargets[0]);
-                  setTerminalMenu(terminalMenu ? null : targetMenuAt(e.currentTarget, terminalTargets.length));
+                  terminalMenu.toggle(e, targetMenuHeight(terminalTargets.length));
                 }}
               >
                 <SquareTerminal size={14} /> ターミナルを開く
@@ -133,13 +127,13 @@ export function SidePanel({
             )}
           </div>
         )}
-        {terminalMenu && (
+        {terminalMenu.at && (
           <TerminalTargetMenu
-            {...terminalMenu}
+            {...terminalMenu.at}
             targets={terminalTargets}
-            ignore=".panel-empty-terminal"
+            ignore={terminalMenu.ignore}
             onPick={panel.openTerminal}
-            onClose={() => setTerminalMenu(null)}
+            onClose={terminalMenu.close}
           />
         )}
         {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}

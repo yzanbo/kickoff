@@ -1,12 +1,10 @@
 import { SquareTerminal } from "lucide-react";
-import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
+import { MenuItem, PopupMenu } from "../PopupMenu";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
 
-/** メニューの位置（押したボタンの右端にそろえて、その下に出す） */
-export function targetMenuAt(button: HTMLElement, count: number) {
-  const r = button.getBoundingClientRect();
-  return clampToViewport(r.right - 220, r.bottom + 4, 220, 16 + count * 34);
-}
+/** メニューの幅と、開く場所の数から決まるおおよその高さ（useAnchoredMenu に渡す。押したボタンの右端にそろえて、その下に出す） */
+export const TARGET_MENU_WIDTH = 220;
+export const targetMenuHeight = (count: number) => 16 + count * 34;
 
 /**
  * どのプロジェクトでターミナルを開くかのメニュー（全プロジェクトの画面の、下のパネルの＋・ボードの「ターミナル」）。
