@@ -915,18 +915,28 @@ button.chat-row {
   color: var(--muted);
 }
 
+/*
+ * サイドバーの開閉のボタン（矢印だけ）。どのまとまりも同じ大きさの小さな角丸のボタンにして、いつも薄い背景を付ける
+ * （名前の部分とは別の、押すと開閉する場所だと分かるように）。乗せたときは、このボタンだけ濃くする
+ */
 .custom-group-toggle {
-  display: inline-flex;
+  display: grid;
   flex: none;
-  align-items: center;
-  gap: 2px;
-  height: 22px;
-  padding: 0 2px;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 5px;
   color: var(--muted);
-  background: transparent;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
   cursor: pointer;
+}
+
+/* 開閉のボタンの横に添えるアイコン（フォルダ・固定・アーカイブ） */
+.custom-group-icon {
+  flex: none;
+  color: var(--muted);
 }
 
 /* 自分で作ったグループの見出しは、矢印以外のところを押すと選ぶ */
@@ -934,9 +944,10 @@ button.chat-row {
   cursor: pointer;
 }
 
-.custom-group-toggle:hover {
+.custom-group-toggle:hover,
+.custom-group-toggle:focus-visible {
   color: var(--text);
-  background: var(--bg-elev);
+  background: color-mix(in srgb, var(--text) 18%, transparent);
 }
 
 .custom-group-name {
@@ -1278,6 +1289,19 @@ button.project-switch:hover,
   padding: 0;
   border: none;
   cursor: pointer;
+}
+
+/* 乗せたときは、開閉のボタン（四角）だけ濃くする（カード全体が明るくなるのとは別に、押すと開閉すると分かるように） */
+.workspace-toggle:hover,
+.workspace-toggle:focus-visible {
+  color: hsl(var(--ws-hue, 150) 70% 85%);
+  background: hsl(var(--ws-hue, 150) 40% 34%);
+}
+
+:root[data-theme="light"] .workspace-toggle:hover,
+:root[data-theme="light"] .workspace-toggle:focus-visible {
+  color: hsl(var(--ws-hue, 150) 60% 25%);
+  background: hsl(var(--ws-hue, 150) 50% 78%);
 }
 
 .workspace-name {
