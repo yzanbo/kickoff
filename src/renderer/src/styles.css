@@ -940,6 +940,21 @@ input[type="text"].inline-name {
   color: var(--text);
 }
 
+/*
+ * 開閉できるまとまりの中身は、開閉の矢印の下から一段下げ、縦の線でつなぐ（VS Code のファイルの木と同じ。どこに入っているかが分かるように）。
+ * 自分で作ったグループ・グループなし・アーカイブ済み・並べ方のまとまり
+ */
+.custom-group > .chat-rows,
+.custom-group > .custom-group-empty,
+.archived-section > .chat-rows,
+.custom-group-head.ungrouped + .chat-rows,
+.custom-group-head.ungrouped ~ .status-group,
+.status-group > .chat-rows {
+  margin-left: 9px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-strong);
+}
+
 /* 見出しの名前の部分（押すと開閉する） */
 .status-group-name {
   display: flex;
