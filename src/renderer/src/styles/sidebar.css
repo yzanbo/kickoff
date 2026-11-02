@@ -508,22 +508,6 @@ button.chat-row {
   border-radius: var(--radius);
 }
 
-/* メニューの中の見出し（新しいチャットの作成先・タブの列の＋のターミナル） */
-.menu-label {
-  padding: 6px 10px 4px;
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.group-pick-menu {
-  min-width: 200px;
-}
-
-.group-pick-menu .muted-item {
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-}
-
 /* 「グループなし」は自分で作ったグループより控えめに */
 .custom-group-name.ungrouped-name {
   font-weight: 400;
