@@ -1,4 +1,4 @@
-import { PHASES, type Phase, type ProjectSummary } from "../../../../core/types";
+import { PHASES, type Phase } from "../../../../core/types";
 import { cx } from "../../cx";
 import { SECTION_META } from "../../sections";
 
@@ -9,11 +9,8 @@ export type ArchiveFilter = "all" | "active" | "archived";
 export const decodeArchiveFilter = (raw: string | null): ArchiveFilter => (raw === "1" ? "all" : raw === "archived" ? "archived" : "active");
 export const encodeArchiveFilter = (value: ArchiveFilter): string => (value === "all" ? "1" : value === "archived" ? "archived" : "0");
 
-/** カンバンの絞り込み（全プロジェクトのボードではプロジェクト、どのボードでもセクションとアーカイブ） */
+/** カンバンの絞り込み（セクション・アーカイブ・作業場所。プロジェクトは見出しの名前から切り替える） */
 export function KanbanFilters({
-  projects,
-  projectFilter,
-  onProjectFilter,
   section,
   onSection,
   archive,
@@ -22,10 +19,6 @@ export function KanbanFilters({
   worktree,
   onWorktree,
 }: {
-  /** プロジェクトで絞り込めるとき（全プロジェクトのボードで 2 つ以上あるとき）だけ渡す */
-  projects?: ProjectSummary[];
-  projectFilter: number | "all";
-  onProjectFilter: (value: number | "all") => void;
   section: Phase | "all";
   onSection: (value: Phase | "all") => void;
   archive: ArchiveFilter;
@@ -38,21 +31,6 @@ export function KanbanFilters({
 }) {
   return (
     <>
-      {projects && (
-        <select
-          className={cx("board-filter", projectFilter !== "all" && "filtered")}
-          aria-label="プロジェクトで絞り込み"
-          value={projectFilter}
-          onChange={(e) => onProjectFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
-        >
-          <option value="all">すべてのプロジェクト</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      )}
       <select
         className={cx("board-filter", section !== "all" && "filtered")}
         aria-label="セクションで絞り込み"

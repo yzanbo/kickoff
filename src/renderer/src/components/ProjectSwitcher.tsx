@@ -1,5 +1,5 @@
-import { Check, ChevronDown } from "lucide-react";
-import { useRef, useState, type CSSProperties } from "react";
+import { Check, ChevronDown, LayoutGrid } from "lucide-react";
+import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { ProjectSummary } from "../../../core/types";
 import { useMenuKeys } from "../hooks/useMenuKeys";
 import { initialOf, projectHue } from "../projectColor";
@@ -7,24 +7,29 @@ import { sidebarOrder } from "../projectOrder";
 import { navigate, type ProjectTab } from "../router";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
+/** 全プロジェクト（ホーム）の名前 */
+const ALL_PROJECTS = "全プロジェクト";
+
 /**
- * プロジェクトの見出しの名前。サイドバーと同じプロジェクトの色のカード（頭文字と名前）にして、どのプロジェクトかを色でもわかるようにする。
- * 押すとほかのプロジェクトを選べ、いまのタブ（ボード・グループなど）のまま切り替わる。プロジェクトが 1 つだけなら押せない
+ * 画面の見出しの名前（プロジェクトの画面とホーム）。サイドバーと同じプロジェクトの色のカード（頭文字と名前）にして、どのプロジェクトかを色でもわかるようにする。
+ * project がなければ全プロジェクト（ホーム）。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
+ * （全プロジェクトから選んだときはカンバン）。プロジェクトがなければ押せない
  */
-export function ProjectSwitcher({ project, projects, tab }: { project: { id: number; name: string }; projects: ProjectSummary[]; tab: ProjectTab }) {
+export function ProjectSwitcher({ project, projects, tab = "board" }: { project?: { id: number; name: string }; projects: ProjectSummary[]; tab?: ProjectTab }) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
-  const hue = { "--ws-hue": `${projectHue(project.id)}` } as CSSProperties;
+  const hue = project ? ({ "--ws-hue": `${projectHue(project.id)}` } as CSSProperties) : undefined;
+  const className = project ? "project-switch" : "project-switch all-projects";
   const identity = (
     <>
       <span className="workspace-avatar" aria-hidden>
-        {initialOf(project.name)}
+        {project ? initialOf(project.name) : <LayoutGrid size={15} />}
       </span>
-      <span className="project-switch-name">{project.name}</span>
+      <span className="project-switch-name">{project ? project.name : ALL_PROJECTS}</span>
     </>
   );
-  if (projects.length <= 1) {
+  if (projects.length === 0) {
     return (
-      <span className="project-switch" style={hue}>
+      <span className={className} style={hue}>
         {identity}
       </span>
     );
@@ -33,7 +38,7 @@ export function ProjectSwitcher({ project, projects, tab }: { project: { id: num
   return (
     <>
       <button
-        className="project-switch"
+        className={className}
         style={hue}
         title="プロジェクトを切り替える"
         aria-haspopup="menu"
@@ -42,7 +47,7 @@ export function ProjectSwitcher({ project, projects, tab }: { project: { id: num
           // 開いているときに押したら閉じる
           if (at) return setAt(null);
           const r = e.currentTarget.getBoundingClientRect();
-          setAt(clampToViewport(r.left, r.bottom + 4, 260, 16 + ordered.length * 34));
+          setAt(clampToViewport(r.left, r.bottom + 4, 260, 25 + (ordered.length + 1) * 34));
         }}
       >
         {identity}
@@ -52,8 +57,8 @@ export function ProjectSwitcher({ project, projects, tab }: { project: { id: num
         <ProjectSwitchMenu
           {...at}
           projects={ordered}
-          currentId={project.id}
-          onPick={(id) => navigate({ name: "project", id, tab })}
+          currentId={project?.id}
+          onPick={(id) => navigate(id === undefined ? { name: "home" } : { name: "project", id, tab: project ? tab : "board" })}
           onClose={() => setAt(null)}
         />
       )}
@@ -72,31 +77,40 @@ function ProjectSwitchMenu({
   x: number;
   y: number;
   projects: ProjectSummary[];
-  currentId: number;
-  onPick: (id: number) => void;
+  /** いまのプロジェクト（なければ全プロジェクト） */
+  currentId?: number;
+  /** 選んだプロジェクト（undefined は全プロジェクト） */
+  onPick: (id: number | undefined) => void;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useMenuKeys(ref);
+  const item = (id: number | undefined, mark: ReactNode, name: string) => (
+    <button
+      key={id ?? "all"}
+      role="menuitemradio"
+      aria-checked={id === currentId}
+      onClick={() => {
+        onClose();
+        if (id !== currentId) onPick(id);
+      }}
+    >
+      <span
+        className={id === undefined ? "project-chip-mark all-projects" : "project-chip-mark"}
+        style={id === undefined ? undefined : ({ "--ws-hue": `${projectHue(id)}` } as CSSProperties)}
+        aria-hidden
+      >
+        {mark}
+      </span>
+      <span className="project-switch-item">{name}</span>
+      {id === currentId && <Check size={14} aria-hidden />}
+    </button>
+  );
   return (
     <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore=".project-switch" menuRef={ref} onClose={onClose}>
-      {projects.map((p) => (
-        <button
-          key={p.id}
-          role="menuitemradio"
-          aria-checked={p.id === currentId}
-          onClick={() => {
-            onClose();
-            if (p.id !== currentId) onPick(p.id);
-          }}
-        >
-          <span className="project-chip-mark" style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties} aria-hidden>
-            {initialOf(p.name)}
-          </span>
-          <span className="project-switch-item">{p.name}</span>
-          {p.id === currentId && <Check size={14} aria-hidden />}
-        </button>
-      ))}
+      {item(undefined, <LayoutGrid size={10} />, ALL_PROJECTS)}
+      <div className="menu-separator" role="separator" />
+      {projects.map((p) => item(p.id, initialOf(p.name), p.name))}
     </PopupMenu>
   );
 }

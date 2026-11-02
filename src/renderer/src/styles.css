@@ -2199,6 +2199,41 @@ button.project-switch {
   min-width: 0;
 }
 
+/* 全プロジェクト（ホーム）の見出しと、切り替えの項目。どのプロジェクトの色でもない灰色にする */
+.project-switch.all-projects {
+  border-color: var(--border-strong);
+  background: var(--bg-elev);
+}
+
+button.project-switch.all-projects:hover,
+.project-switch.all-projects[aria-expanded="true"] {
+  border-color: var(--extra-muted);
+  background: var(--bg-hover);
+}
+
+.all-projects .workspace-avatar,
+.project-chip-mark.all-projects {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+:root[data-theme="light"] .project-switch.all-projects {
+  border-color: var(--border);
+  background: var(--bg-elev);
+}
+
+:root[data-theme="light"] button.project-switch.all-projects:hover,
+:root[data-theme="light"] .project-switch.all-projects[aria-expanded="true"] {
+  border-color: var(--extra-muted);
+  background: var(--bg-hover);
+}
+
+:root[data-theme="light"] .all-projects .workspace-avatar,
+:root[data-theme="light"] .project-chip-mark.all-projects {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
 .path-button {
   display: inline-flex;
   /* 狭いときは、名前よりパスを先に縮める */
@@ -5383,6 +5418,12 @@ button.project-switch {
 
 .menu button.danger {
   color: var(--ng);
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border-strong);
 }
 
 @media (max-width: 720px) {

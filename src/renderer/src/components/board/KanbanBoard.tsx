@@ -28,7 +28,6 @@ import { useStageDrag } from "./useStageDrag";
 
 const VIEW_KEY = "kickoff:board-view";
 const SHOW_ARCHIVED_KEY = "kickoff:show-archived";
-const PROJECT_FILTER_KEY = "kickoff:board-project-filter";
 
 interface Props {
   /** 未指定なら全プロジェクトのボード（カードにプロジェクト名を出す） */
@@ -59,14 +58,6 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
   const [worktreeFilter, setWorktreeFilter] = useState("all");
   const worktreePaths = useMemo(() => [...new Set(runs.map((r) => r.worktree_path).filter(Boolean))].sort(), [runs]);
-  // 全プロジェクトのボードでの、プロジェクトの絞り込み（選んだものは覚えておく。"" はすべて）
-  const [projectFilter, setProjectFilter] = useStoredState<number | "all">(
-    PROJECT_FILTER_KEY,
-    (raw) => Number(raw) || "all",
-    (value) => String(value === "all" ? "" : value),
-  );
-  // 絞り込んでいたプロジェクトがなくなったら、すべてに戻す
-  const activeProjectFilter = allProjects && projectFilter !== "all" && projects.some((p) => p.id === projectFilter) ? projectFilter : "all";
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
@@ -106,14 +97,13 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
       if (archive === "archived" && !run.archived_at) continue;
       if (worktreeFilter !== "all" && run.worktree_path !== worktreeFilter) continue;
       if (section !== "all" && run.phase !== section) continue;
-      if (activeProjectFilter !== "all" && run.project_id !== activeProjectFilter) continue;
       if (!search.matches(run)) continue;
       const state = agentStateOf(run, approvals.some((a) => a.run_id === run.id));
       map.get(stageOf(run, state))?.push({ run, state });
     }
     for (const list of map.values()) list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
     return map;
-  }, [runs, approvals, section, search, activeProjectFilter, archive, worktreeFilter]);
+  }, [runs, approvals, section, search, archive, worktreeFilter]);
   const total = [...grouped.values()].reduce((n, l) => n + l.length, 0);
 
   async function move(run: Run, stage: BoardStage) {
@@ -131,8 +121,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
 
   /** 列の＋: その列に置く新しいチャット。見出しの「新規」は列を決めない（プロジェクトの既定に従う） */
   function newChat(stage?: BoardStage) {
-    // 全プロジェクトのボードでは、絞り込んでいるプロジェクト（なければ最近のプロジェクト）で始める
-    const target = projectId ?? (activeProjectFilter !== "all" ? activeProjectFilter : projects[0]?.id);
+    // 全プロジェクトのボードでは、最近のプロジェクトで始める（パネルでバッジから選び直せる）
+    const target = projectId ?? projects[0]?.id;
     if (target === undefined) return;
     // 画面は移らず、右側のパネルで始める
     panel.openNew({ projectId: target, stage, section: section === "all" ? undefined : section });
@@ -184,9 +174,6 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         onQuery={setQuery}
         filters={
           <KanbanFilters
-            projects={allProjects && projects.length > 1 ? projects : undefined}
-            projectFilter={activeProjectFilter}
-            onProjectFilter={setProjectFilter}
             section={section}
             onSection={setSection}
             archive={archive}
