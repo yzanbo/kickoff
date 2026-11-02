@@ -1,4 +1,4 @@
-import { Archive, ChevronsDownUp, ChevronsUpDown, GalleryHorizontal, Plus, Rows3 } from "lucide-react";
+import { Archive, Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
@@ -8,10 +8,9 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, sidebarOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
 import { cx } from "../../cx";
-import { IconButton } from "../IconButton";
 import { ProjectMenu } from "../ProjectMenu";
-import { Segmented } from "../Segmented";
 import { GroupToggle } from "./GroupToggle";
+import { SidebarViewMenu, type NavLayout } from "./SidebarViewMenu";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
@@ -24,8 +23,6 @@ const LAST_HASH_KEY = "kickoff:last-hash-by-project";
 const SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:sidebar-show-archived-projects";
 /** プロジェクトごとの、チャット一覧を閉じているか（"1" なら閉じている） */
 const COLLAPSED_PREFIX = "kickoff:collapsed:";
-/** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
-type NavLayout = "slide" | "stack";
 interface Props {
   projects: ProjectSummary[];
   approvals: Approval[];
@@ -161,19 +158,8 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
     </div>
   );
 
-  /** 横スライド / 縦並びの切り替え（下の行の右端） */
-  const layoutToggle = (
-    <Segmented
-      className="sidebar-layout-toggle"
-      label="プロジェクトの並べ方"
-      value={layout}
-      onChange={changeLayout}
-      options={[
-        { value: "slide", label: "1 プロジェクトずつ横にスライド", icon: GalleryHorizontal, iconOnly: true },
-        { value: "stack", label: "すべてのプロジェクトを縦に並べる", icon: Rows3, iconOnly: true },
-      ]}
-    />
-  );
+  /** 下の行の右端の「表示」のメニュー（並べ方・しまったプロジェクトを出すか） */
+  const viewMenu = { layout, onLayout: changeLayout, archivedCount: archived.length, showArchived, onShowArchived: setShowArchived };
 
   if (layout === "stack") {
     const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
@@ -204,16 +190,13 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
           {!showArchived && archivedHead}
           {waitingEmpty}
         </div>
+        {/* 下の行: 新しいプロジェクトと表示のメニュー（狭いときは名前を隠して＋だけにする） */}
         <div className="workspace-switcher stack">
-          <button className="sidebar-new" onClick={onNewProject}>
-            <Plus size={14} /> 新しいプロジェクト
+          <button className="sidebar-new switcher-new" title="新しいプロジェクト" onClick={onNewProject}>
+            <Plus size={14} aria-hidden />
+            <span className="switcher-new-label">新しいプロジェクト</span>
           </button>
-          {/* すべてのプロジェクトのチャット一覧を、まとめて閉じる・開く */}
-          <div className="stack-fold">
-            <IconButton icon={ChevronsDownUp} label="すべてのプロジェクトを閉じる" title="すべて閉じる" disabled={allCollapsed} onClick={() => setAllCollapsed(true)} />
-            <IconButton icon={ChevronsUpDown} label="すべてのプロジェクトを開く" title="すべて開く" disabled={allOpen} onClick={() => setAllCollapsed(false)} />
-          </div>
-          {layoutToggle}
+          <SidebarViewMenu {...viewMenu} fold={{ allCollapsed, allOpen, set: setAllCollapsed }} />
         </div>
       </div>
     );
@@ -256,17 +239,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
           onMenu={(at, project) => setMenu({ ...at, project })}
           onNewProject={onNewProject}
         />
-        {/* しまったプロジェクトを丸の列に出す・隠す（しまったものがあるときだけ。初めは隠す） */}
-        {archived.length > 0 && (
-          <IconButton
-            icon={Archive}
-            className={cx("archived-projects-toggle", showArchived && "active")}
-            label={showArchived ? "アーカイブしたプロジェクトを隠す" : `アーカイブしたプロジェクトを表示（${archived.length}）`}
-            aria-pressed={showArchived}
-            onClick={() => setShowArchived(!showArchived)}
-          />
-        )}
-        {layoutToggle}
+        <SidebarViewMenu {...viewMenu} />
       </div>
       {menu && <ProjectMenu {...menu} onClose={() => setMenu(null)} />}
     </div>

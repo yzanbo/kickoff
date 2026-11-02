@@ -1191,8 +1191,9 @@ button.project-switch:hover,
   opacity: 0.6;
 }
 
-/* サイドバーの下の行: プロジェクトの丸（縦並びでは「新しいプロジェクト」など）と、右端の並べ方の切り替え */
+/* サイドバーの下の行: プロジェクトの丸（縦並びでは「新しいプロジェクト」）と、右端の「表示」のメニュー（いつも 1 行に収める） */
 .workspace-switcher {
+  container: sidebar-switcher / inline-size;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1217,21 +1218,30 @@ button.project-switch:hover,
 }
 
 .workspace-switcher.stack {
-  flex-wrap: wrap;
   padding: 8px var(--gutter);
 }
 
-/* 縦並びの下の行: 「新しいプロジェクト」の右に「すべて閉じる・開く」を並べる（狭いときは次の行へ回す） */
-.workspace-switcher.stack .sidebar-new {
+/* 縦並びの下の行の「新しいプロジェクト」: 右の「表示」のボタンと 1 行に並べ、狭いときは名前を隠して＋だけにする */
+.switcher-new {
   flex: 1;
-  width: auto;
-  white-space: nowrap;
+  gap: 4px;
+  min-width: 0;
+  height: 28px;
+  margin-top: 0;
+  padding: 0 6px;
 }
 
-.stack-fold {
-  display: flex;
-  gap: 2px;
-  margin: 4px 4px 0 0;
+.switcher-new-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 名前が切れる幅（サイドバーが約 205px 未満）では隠す */
+@container sidebar-switcher (max-width: 181px) {
+  .switcher-new-label {
+    display: none;
+  }
 }
 
 /* 縦並び: すべてのプロジェクトを上から順に並べ、まとめてスクロールする */
@@ -1300,15 +1310,6 @@ button.project-switch:hover,
   bottom: 0;
 }
 
-/* 横スライドで、しまった（アーカイブした）プロジェクトを出す・隠す（下の行の右、並べ方の切り替えの左） */
-.archived-projects-toggle {
-  margin-left: auto;
-}
-
-.archived-projects-toggle + .sidebar-layout-toggle {
-  margin-left: 0;
-}
-
 /* 縦並びの、しまったプロジェクトのまとまりの見出し */
 .archived-projects-head {
   margin: 4px 0;
@@ -1319,39 +1320,6 @@ button.project-switch:hover,
   border-style: dashed;
   border-color: var(--border-strong);
   opacity: 0.45;
-}
-
-/* 横スライド / 縦並びの切り替え（下の行の右端） */
-.sidebar-layout-toggle {
-  display: flex;
-  flex: none;
-  gap: 1px;
-  margin-left: auto;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-}
-
-.sidebar-layout-toggle button {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: 5px;
-  color: var(--extra-muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.sidebar-layout-toggle button:hover {
-  color: var(--text);
-}
-
-.sidebar-layout-toggle button.active {
-  color: var(--text);
-  background: var(--bg-active);
 }
 
 .workspace-dot {
