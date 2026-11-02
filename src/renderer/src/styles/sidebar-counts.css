@@ -1,0 +1,78 @@
+/* ==== プロジェクトの見出しの状態ごとのチャット数 ==== */
+
+/* プロジェクトの見出しの、状態ごとのチャット数（色はカンバンの列と同じ） */
+.head-counts {
+  display: flex;
+  flex: none;
+  gap: 3px;
+}
+
+.head-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  cursor: pointer;
+}
+
+.head-count:hover {
+  background: color-mix(in srgb, var(--tone) 26%, transparent);
+}
+
+/* 押して、その状態だけに絞っているとき */
+.head-count.active {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 30%, transparent);
+}
+
+.head-count-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+/* 作業中の点は、動いていることが分かるようにゆっくり明滅させる */
+.head-count-running .head-count-dot {
+  animation: head-count-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes head-count-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.workspace-empty {
+  padding: 8px;
+}
+
+.sidebar-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-new:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}

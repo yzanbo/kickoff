@@ -7,6 +7,9 @@
 @import "./sidebar-groups.css";
 @import "./sidebar-sections.css";
 @import "./sidebar-projects.css";
+@import "./sidebar-head.css";
+@import "./sidebar-list.css";
+@import "./sidebar-counts.css";
 @import "./status.css";
 @import "./buttons-forms.css";
 @import "./dialogs.css";

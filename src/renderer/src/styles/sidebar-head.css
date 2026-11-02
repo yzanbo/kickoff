@@ -1,0 +1,95 @@
+/* ==== プロジェクト一覧の上の見出しの行（1 行目はプロジェクト・2 行目はチャット。種類ごとのボタン） ==== */
+
+/* プロジェクト一覧の上の見出し: 1 行目はプロジェクト、2 行目はチャットの設定（種類ごとのボタン）。左に何に効くかの名前 */
+.project-list-head {
+  container: project-list-head / inline-size;
+  display: grid;
+  flex: none;
+  gap: 3px;
+  padding: 4px var(--gutter) 2px;
+}
+
+.project-list-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* 行の名前（2 行のボタンの左端をそろえるため、幅を固定する） */
+.project-list-row-label {
+  flex: none;
+  width: 62px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（幅は取りうる値でいちばん長いものに固定。狭いときはアイコンだけ） */
+.head-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.head-chip:hover,
+.head-chip.active {
+  background: var(--bg-hover);
+}
+
+.head-chip-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.head-chip-label {
+  font-size: 10px;
+  color: var(--extra-muted);
+}
+
+/* 取りうる値を同じ場所に重ね、いまの値だけを見せる（幅はいちばん長い値で固定） */
+.head-chip-value {
+  display: grid;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.head-chip-value > * {
+  grid-area: 1 / 1;
+}
+
+.head-chip-sizer {
+  visibility: hidden;
+}
+
+.head-chip-icon {
+  display: none;
+  color: var(--muted);
+}
+
+/* 文字では収まらない幅（縦並びでサイドバーが約 285px 未満）では、文字を隠してアイコン（いまの値）だけにする */
+@container project-list-head (max-width: 259px) {
+  .head-chip {
+    height: 26px;
+    padding: 0 6px;
+  }
+
+  .head-chip-icon {
+    display: block;
+  }
+
+  .head-chip-text {
+    display: none;
+  }
+}
