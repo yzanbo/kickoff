@@ -56,6 +56,7 @@ const settingsSchema = z
     defaultEffort: z.enum(EFFORT_LEVELS).nullable(),
     defaultPermission: z.enum(PERMISSION_CHOICES),
     defaultFastMode: z.boolean(),
+    autoArchiveDays: z.number().int().min(1).max(365).nullable(),
   })
   .partial();
 

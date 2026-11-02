@@ -567,3 +567,33 @@ test("プロジェクトを上に固定する・しまう（アーカイブ）�
   assert.equal(restored.archived_at, null);
   assert.equal(restored.pinned, 0);
 });
+
+test("自動のアーカイブ: 完了して日数がたったチャットだけをアーカイブする（確認待ち・固定はしない）。設定で日数を選ぶ", async () => {
+  const { call, project, store } = setup();
+  const finish = async (prompt: string) => {
+    const run = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "requirements", prompt })).body;
+    await until(() => store.getRun(run.id)?.status === "completed");
+    return run.id as number;
+  };
+  const done = await finish("終わったもの");
+  const pinned = await finish("固定したもの");
+  const unread = await finish("まだ見ていないもの");
+  store.setRunAttention(done, false);
+  store.setRunAttention(pinned, false);
+  store.setRunPinned(pinned, true);
+  store.setRunAttention(unread, true);
+
+  // まだ日数がたっていなければ、何もしない
+  assert.equal(store.archiveStaleRuns(7), 0);
+  // 8 日後: 完了して確認済みのものだけ
+  assert.equal(store.archiveStaleRuns(7, new Date(Date.now() + 8 * 86_400_000)), 1);
+  assert.ok(store.getRun(done)?.archived_at);
+  assert.equal(store.getRun(pinned)?.archived_at, null);
+  assert.equal(store.getRun(unread)?.archived_at, null);
+
+  // 設定（初めはしない。1〜365 日）
+  assert.equal((await call("GET", "/api/settings")).body.autoArchiveDays, null);
+  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: 0 })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: 7 })).body.autoArchiveDays, 7);
+  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: null })).body.autoArchiveDays, null);
+});
