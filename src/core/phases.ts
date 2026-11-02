@@ -127,15 +127,21 @@ const PHASE_INSTRUCTIONS: Record<Phase, string> = {
 - 最後に担当タスクを mcp__kickoff__update_task で更新します。`,
 };
 
-/** プロバイダーのシステムプロンプトに追記するプロジェクト文脈 */
-export function buildSystemPrompt(project: Project, phase: Phase, task: Task | null): string {
+/**
+ * プロバイダーのシステムプロンプトに追記するプロジェクト文脈。
+ * workdir: チャットの作業場所（ワークツリーで作業するチャットはそのフォルダ。「リポジトリ」として伝え、本体の場所は添えるだけにする）
+ */
+export function buildSystemPrompt(project: Project, phase: Phase, task: Task | null, workdir = project.repo_path): string {
   const lines = [
     `# Kickoff からの指示`,
     `あなたはローカルのプロジェクト管理アプリ「Kickoff」から起動されたエージェントです。プロジェクトのタスクと成果物は mcp__kickoff__ で始まるツールで読み書きします。ユーザーへの返答と成果物は日本語で書いてください。`,
     ``,
     `## プロジェクト`,
     `- 名前: ${project.name}`,
-    `- リポジトリ: ${project.repo_path}`,
+    `- リポジトリ: ${workdir}`,
+    ...(workdir !== project.repo_path
+      ? [`- 本体のフォルダ: ${project.repo_path}（このチャットはワークツリーで作業しています。ファイルの読み書き・コマンドは上のリポジトリで行い、本体は変えないでください）`]
+      : []),
     `- このチャットのセクション: ${PHASE_LABELS[phase]}`,
   ];
   if (project.description.trim()) lines.push(`- 概要:\n${indent(project.description.trim())}`);

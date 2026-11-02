@@ -213,7 +213,7 @@ export class Runner {
         {
           cwd,
           prompt,
-          systemPrompt: buildSystemPrompt(project, run.phase, task),
+          systemPrompt: buildSystemPrompt(project, run.phase, task, cwd),
           policy,
           resumeSessionId: run.session_id,
           model: run.model,
@@ -222,7 +222,8 @@ export class Runner {
           fastMode: Boolean(run.fast_mode),
           // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
           additionalDirectories: [...(this.deps.uploads ? [this.deps.uploads.dir] : []), ...referenceDirectories(project)],
-          readOnlyPaths: project.references.map((r) => r.path).filter((p) => !isInside(project.repo_path, p)),
+          // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
+          readOnlyPaths: project.references.map((r) => r.path).filter((p) => !isInside(cwd, p)),
           tools: createKickoffTools({
             store,
             projectId: project.id,
@@ -230,6 +231,7 @@ export class Runner {
             taskId: task?.id ?? null,
             phase: run.phase,
             writeScope: policy.writeScope,
+            workdir: cwd,
           }),
         },
         {
