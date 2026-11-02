@@ -5,23 +5,7 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { BOTTOM_PANEL_HEIGHT_KEY } from "../../storageKeys";
 import { newTabKey } from "../sidePanel/tabKeys";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
-
-/** 1 つのシェル（key は裏のシェルのキー） */
-interface TerminalPaneInfo extends TerminalTarget {
-  key: string;
-}
-
-/** 下のパネルのタブ 1 つ（VS Code のターミナルのグループと同じ。分割すると、ペインが左右に並ぶ） */
-export interface TerminalGroup {
-  key: string;
-  projectId: number;
-  label: string;
-  panes: TerminalPaneInfo[];
-  /** ペインの幅の割合（足すと 1） */
-  sizes: number[];
-  /** 入力先のペイン */
-  activePane: string;
-}
+import { activePaneOf, movePane as movePaneIn, removePane, splitGroup, type TerminalGroup, type TerminalPaneInfo } from "./terminalGroups";
 
 /** どの画面のパネルか（プロジェクトの ID。全プロジェクトの画面は "all"） */
 type BottomScope = number | "all";
@@ -37,7 +21,6 @@ const MIN_HEIGHT = 120;
 /** 上の画面に残す高さ */
 const KEEP_ABOVE = 120;
 
-const equalSizes = (n: number) => Array.from({ length: n }, () => 1 / n);
 
 export type BottomPanelController = ReturnType<typeof useBottomPanel>;
 
@@ -101,13 +84,9 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
   /** 表示しているタブを分割する（入力先のペインと同じフォルダで、その右に新しいペインを開く） */
   const split = () => {
     if (!active) return;
-    const from = active.panes.find((p) => p.key === active.activePane) ?? active.panes[0];
+    const from = activePaneOf(active);
     const pane: TerminalPaneInfo = { key: newTabKey("bottom"), cwd: from.cwd, label: from.label, projectId: from.projectId };
-    updateGroup(active.key, (g) => {
-      const at = g.panes.findIndex((p) => p.key === g.activePane) + 1;
-      const panes = [...g.panes.slice(0, at), pane, ...g.panes.slice(at)];
-      return { ...g, panes, sizes: equalSizes(panes.length), activePane: pane.key };
-    });
+    updateGroup(active.key, (g) => splitGroup(g, pane));
   };
 
   /** ペインを閉じる（シェルも止める）。最後のペインならタブごと閉じる */
@@ -116,23 +95,13 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
     if (!group) return;
     if (group.panes.length <= 1) return closeTab(groupKey);
     void window.kickoff?.terminal.close(paneKey);
-    updateGroup(groupKey, (g) => {
-      const index = g.panes.findIndex((p) => p.key === paneKey);
-      const panes = g.panes.filter((p) => p.key !== paneKey);
-      // 閉じたペインの幅は、残りに割合のまま配る
-      const kept = g.sizes.filter((_, i) => i !== index);
-      const total = kept.reduce((a, b) => a + b, 0) || 1;
-      const activePane = g.activePane === paneKey ? panes[Math.min(index, panes.length - 1)].key : g.activePane;
-      return { ...g, panes, sizes: kept.map((s) => s / total), activePane };
-    });
+    updateGroup(groupKey, (g) => removePane(g, paneKey));
   };
 
   /** 入力先のペインを左右に移す（⌥⌘← / →） */
   const movePane = (step: -1 | 1) => {
     if (!active || active.panes.length < 2) return;
-    const index = active.panes.findIndex((p) => p.key === active.activePane);
-    const next = active.panes[(index + step + active.panes.length) % active.panes.length];
-    updateGroup(active.key, (g) => ({ ...g, activePane: next.key }));
+    updateGroup(active.key, (g) => movePaneIn(g, step));
   };
 
   /** 上の端をドラッグして高さを変える（ダブルクリックで元の高さ） */
