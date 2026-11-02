@@ -65,7 +65,11 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     listen: { host, port: opts.port },
   });
 
-  const server = await startHttpServer(app, { port: opts.port, host });
+  // ポートが使われているなどで待ち受けられなければ、開いた DB を閉じてから伝える
+  const server = await startHttpServer(app, { port: opts.port, host }).catch((e: unknown) => {
+    store.close();
+    throw e;
+  });
   usage.start();
   // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ）
   const stopAutoArchive = startAutoArchive(store, bus);
