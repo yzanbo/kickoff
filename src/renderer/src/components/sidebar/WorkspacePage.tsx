@@ -218,7 +218,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           );
         })}
         {groups.length > 0 && ungroupedRows.length > 0 && (
-          <div className={`custom-group-head ungrouped ${dropOver === "none" ? "drop-target" : ""}`} {...dropTarget(null)}>
+          <div className={cx("custom-group-head ungrouped", dropOver === "none" && "drop-target")} {...dropTarget(null)}>
             <GroupToggle open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} />
             <button className="custom-group-name ungrouped-name" onClick={toggleUngrouped}>
               グループなし
