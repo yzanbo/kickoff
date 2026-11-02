@@ -5,6 +5,7 @@ import { AppFooter } from "./components/AppFooter";
 import { BottomPanel } from "./components/bottomPanel/BottomPanel";
 import { useBottomPanel } from "./components/bottomPanel/useBottomPanel";
 import { CommandPalette } from "./components/CommandPalette";
+import { LayoutToggles } from "./components/LayoutToggles";
 import { ConnectionPopover } from "./components/ConnectionPopover";
 import { SearchPanel } from "./components/SearchPanel";
 import { UsagePopover } from "./components/UsagePopover";
@@ -89,7 +90,6 @@ export function App() {
               projects={projects}
               focus={route.name === "project" ? undefined : route}
               highlightGroup={route.name === "project" ? route.group : undefined}
-              chat={chat}
             />
           ) : (
             <AllProjectsPage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
@@ -122,6 +122,12 @@ export function App() {
         {settings && <SettingsDialog initial={settings} onClose={() => setSettings(null)} />}
         {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}
         <SidebarOpenButton sidebar={sidebar} />
+        {/* 右上のレイアウトの開閉（ドラッグ領域より優先されるよう、開くボタンと同じく後ろに置く） */}
+        <LayoutToggles
+          sidebar={{ open: sidebar.open, onToggle: sidebar.toggle }}
+          bottom={bottomPanel.available ? { open: bottomPanel.open, onToggle: bottomPanel.toggle } : undefined}
+          chat={chat.projectId !== undefined ? { open: chat.open, onToggle: chat.toggle } : undefined}
+        />
         <DialogHost />
         {connOpen && (
           <ConnectionPopover state={connection.state} since={connection.since} onClose={() => setConnOpen(false)} onOpenSettings={() => setSettings("connection")} />

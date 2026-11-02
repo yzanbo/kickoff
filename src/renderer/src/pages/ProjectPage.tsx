@@ -23,8 +23,6 @@ import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { WorktreeContext } from "../components/changes/worktreeContext";
-import { ProjectChatToggle } from "../components/projectChat/ProjectChat";
-import type { ProjectChatController } from "../components/projectChat/useProjectChat";
 import { useStoredState } from "../hooks/useStoredState";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
@@ -60,7 +58,6 @@ export function ProjectPage({
   projects,
   focus,
   highlightGroup,
-  chat,
 }: {
   id: number;
   tab: ProjectTab;
@@ -69,8 +66,6 @@ export function ProjectPage({
   focus?: ReopenRoute;
   /** グループのタブで目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlightGroup?: number;
-  /** 画面の右端のチャット欄（開閉ボタンをタブの列の右端に置く） */
-  chat: ProjectChatController;
 }) {
   // 一度開いたプロジェクトは、切り替えたときにすぐ出す（裏で読み直す。「読み込み中」を挟んでちらつかないように）
   const [data, setData] = useState<ProjectData | undefined>(() => projectCache.get(id));
@@ -157,7 +152,6 @@ export function ProjectPage({
             {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
           </div>
         </div>
-        {/* タブの列と、右端にチャット欄の開閉 */}
         <div className="project-tabs-row">
         <nav className="tabs" role="tablist">
           {(Object.keys(TAB_LABELS) as ProjectTab[]).map((t) => (
@@ -180,7 +174,6 @@ export function ProjectPage({
             </a>
           ))}
         </nav>
-        <ProjectChatToggle chat={chat} />
         </div>
       </header>
 
