@@ -106,6 +106,7 @@ export function App() {
           usage={planUsage.usage}
           usageOpen={usageOpen}
           onUsageClick={() => setUsageOpen((o) => !o)}
+          projectId={routeProjectId(route)}
           terminal={bottomPanel.available ? { open: bottomPanel.open, onClick: bottomPanel.toggle, elsewhere: bottomPanel.elsewhere } : undefined}
         />
         {creating && (

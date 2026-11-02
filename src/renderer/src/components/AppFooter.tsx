@@ -1,7 +1,9 @@
-import { Settings, SquareTerminal } from "lucide-react";
+import { GitBranch, Settings, SquareTerminal } from "lucide-react";
 import type { PlanUsage } from "../../../core/types";
 import type { ConnectionState } from "../api";
+import { href } from "../router";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../usage";
+import { useRunBranch } from "../worktreeBranches";
 import { CONNECTION_LABELS } from "./ConnectionPopover";
 import { IconButton } from "./IconButton";
 import { UsageMeter } from "./UsageMeter";
@@ -14,12 +16,14 @@ interface Props {
   usage: PlanUsage | undefined;
   usageOpen: boolean;
   onUsageClick: () => void;
+  /** いま開いているプロジェクト（ブランチを出す。全プロジェクトの画面ではなし） */
+  projectId?: number;
   /** 下のパネルのターミナルの開閉（Mac のアプリでだけ） */
   terminal?: { open: boolean; onClick: () => void; /** ほかのプロジェクトで動いているシェルの数 */ elsewhere: number };
 }
 
-/** 下の帯（左: 設定とサーバーとの接続・ターミナルの開閉 / 右: 契約プランと使用状況）。接続と使用状況は押すと詳細を出す */
-export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick, terminal }: Props) {
+/** 下の帯（左: 設定とサーバーとの接続・ブランチ・ターミナルの開閉 / 右: 契約プランと使用状況）。接続と使用状況は押すと詳細を出す */
+export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick, projectId, terminal }: Props) {
   return (
     <footer className="app-footer">
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
@@ -27,6 +31,7 @@ export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, u
       <button className={`footer-button conn conn-${connection} ${connOpen ? "active" : ""}`} title="接続の詳細" aria-expanded={connOpen} onClick={onConnClick}>
         {CONNECTION_LABELS[connection]}
       </button>
+      {projectId !== undefined && <FooterBranch projectId={projectId} />}
       {terminal && (
         <button className={`footer-button footer-terminal ${terminal.open ? "active" : ""}`} title="ターミナル（⌃` / ⌘J）" aria-expanded={terminal.open} onClick={terminal.onClick}>
           <SquareTerminal size={13} aria-hidden /> ターミナル
@@ -56,5 +61,16 @@ export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, u
         usage && <span className="muted">使用状況を取得できません</span>
       )}
     </footer>
+  );
+}
+
+/** いまのプロジェクト（本体）のブランチ（VS Code の左下と同じ）。押すとエディタタブ（コミット・プッシュ・プル）を開く */
+function FooterBranch({ projectId }: { projectId: number }) {
+  const branch = useRunBranch({ project_id: projectId, worktree_path: "" });
+  if (!branch) return null;
+  return (
+    <a className="footer-button footer-branch" href={href({ name: "project", id: projectId, tab: "changes" })} title={`ブランチ（本体）: ${branch}\n押すとエディタタブを開きます`}>
+      <GitBranch size={13} aria-hidden /> {branch}
+    </a>
   );
 }

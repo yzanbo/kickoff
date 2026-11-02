@@ -4348,8 +4348,17 @@ button.project-switch.all-projects:hover,
   margin-left: -6px;
 }
 
-.footer-terminal {
+.footer-terminal,
+.footer-branch {
   margin-left: -10px;
+}
+
+.footer-branch {
+  max-width: 220px;
+  overflow: hidden;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 左下から出る接続の詳細（使用状況の詳細と同じ見た目で、左に寄せる） */
