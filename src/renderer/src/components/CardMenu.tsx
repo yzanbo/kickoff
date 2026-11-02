@@ -59,7 +59,14 @@ export function CardMenu({
           {run.pinned ? <PinOff size={14} /> : <Pin size={14} />} {run.pinned ? "固定をやめる" : "サイドバーの上に固定"}
         </button>
       )}
-      <button role="menuitem" onClick={() => void act(() => toggleArchiveRun(run))}>
+      <button
+        role="menuitem"
+        onClick={() => {
+          // 確かめるダイアログを出す前にメニューを閉じる（削除と同じ）
+          onClose();
+          void act(() => toggleArchiveRun(run));
+        }}
+      >
         {run.archived_at ? (
           <>
             <ArchiveRestore size={14} /> アーカイブから戻す
