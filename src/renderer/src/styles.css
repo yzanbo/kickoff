@@ -3713,17 +3713,15 @@ button.project-switch.all-projects:hover,
   opacity: 0.55;
 }
 
+/* サブエージェントの行の右端のアーカイブ・戻す（いつも薄い色で出し、乗せたら濃くする） */
 .subagent-row-action {
   flex: none;
   align-self: center;
   margin-left: auto;
-  opacity: 0;
 }
 
-.subagent-row:hover .subagent-row-action,
-.subagent-row:focus-within .subagent-row-action,
-.subagent-row.archived .subagent-row-action {
-  opacity: 1;
+.subagent-row-action:not(:hover) {
+  color: var(--extra-muted);
 }
 
 /* 一覧の上: 完了したものをまとめてアーカイブ */
@@ -6738,9 +6736,9 @@ a:focus-visible,
   grid-column: 1 / -1;
 }
 
-/* 操作のボタン（ステージ・元に戻すなど）。VS Code と同じく、行にマウスを乗せたとき・ピントがあるときだけ出す */
+/* 行の右の操作のボタン（ステージ・元に戻す・Finder で開くなど）。いつも薄い色で出し、乗せたボタンだけ濃くする */
 .row-actions {
-  display: none;
+  display: flex;
   flex: none;
   align-items: center;
   padding-right: 4px;
@@ -6751,17 +6749,8 @@ a:focus-visible,
   height: 22px;
 }
 
-.change-group-row:hover > .row-actions,
-.change-group-row:focus-within > .row-actions,
-.change-file:hover + .row-actions,
-.change-file:focus-visible + .row-actions,
-.ref-item:hover + .row-actions,
-.ref-item:focus-visible + .row-actions,
-.tree-row:hover + .row-actions,
-.tree-row:focus-visible + .row-actions,
-.row-actions:hover,
-.row-actions:focus-within {
-  display: flex;
+.row-actions .icon-button:not(:hover) {
+  color: var(--extra-muted);
 }
 
 /* 「変更」の上のコミットの欄（VS Code と同じく、メッセージ・コミット・プッシュを縦に並べる） */
@@ -7372,7 +7361,7 @@ a:focus-visible,
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--info) 55%, transparent);
 }
 
-/* ペインの右上の閉じるボタン（乗せたときだけ出す） */
+/* ペインの右上の閉じるボタン（いつも出す） */
 .terminal-split-close {
   position: absolute;
   top: 4px;
@@ -7387,12 +7376,6 @@ a:focus-visible,
   color: var(--muted);
   background: var(--bg-elev);
   cursor: pointer;
-  opacity: 0;
-}
-
-.terminal-split-pane:hover .terminal-split-close,
-.terminal-split-close:focus-visible {
-  opacity: 1;
 }
 
 .terminal-split-close:hover {
