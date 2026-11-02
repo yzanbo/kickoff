@@ -13,3 +13,8 @@ asarUnpack:
 mac:
   target: dmg
   category: public.app-category.developer-tools
+  # Apple の開発者の証明書（Developer ID）がないので、手元用の署名（ad-hoc）でアプリ全体に署名する。
+  # 署名しないと、本体だけの中途半端な署名になり、開けない・同梱の実行ファイルが動かないことがある。配布するときは Developer ID と公証にする
+  identity: "-"
+  # ad-hoc の署名では、ライブラリの検証で読み込みを断られないよう、hardened runtime を使わない
+  hardenedRuntime: false
