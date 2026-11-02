@@ -11,6 +11,7 @@ import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
 import { CardMenu } from "../CardMenu";
 import { ErrorText } from "../ErrorText";
+import { useProjectChatContext } from "../projectChat/useProjectChat";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
@@ -131,9 +132,18 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     </header>
   );
   const columnHead = (column: BoardColumn, count: number) => head(BOARD_COLUMN_LABELS[column], COLUMN_TONE[column], count);
-  // まだ送っていない新しいチャット（右のパネルで書いている途中。AI はまだ何もしていない）。あるときだけ、いちばん左に「下書き」の列を出す
-  const draftCount = panel.drafts.length;
+  // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない）。いちばん左の「下書き」の列に出す
+  const chat = useProjectChatContext();
+  const sideDrafts = chat && projectId !== undefined && chat.projectId === projectId ? chat.panel : null;
+  const draftCount = panel.drafts.length + (sideDrafts?.drafts.length ?? 0);
   const draftHead = head("下書き", DRAFT_TONE, draftCount);
+  const draftCards = (
+    <>
+      <DraftCards panel={panel} />
+      {sideDrafts && chat && <DraftCards panel={sideDrafts} onShow={chat.showTab} />}
+      {draftCount === 0 && <p className="column-empty">なし</p>}
+    </>
+  );
 
   return (
     <div className="board">
@@ -170,14 +180,10 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             <p className="muted small board-loading">読み込み中…</p>
           ) : view === "board" ? (
             <div className="board-columns">
-              {draftCount > 0 && (
-                <section className="board-column">
-                  {draftHead}
-                  <div className="column-cards">
-                    <DraftCards panel={panel} />
-                  </div>
-                </section>
-              )}
+              <section className="board-column">
+                {draftHead}
+                <div className="column-cards">{draftCards}</div>
+              </section>
               {BOARD_COLUMNS.map((column) => {
                 const list = grouped.get(column) ?? [];
                 return (
@@ -203,12 +209,10 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             </div>
           ) : (
             <div className="board-list">
-              {draftCount > 0 && (
-                <section className="list-group">
-                  {draftHead}
-                  <DraftCards panel={panel} />
-                </section>
-              )}
+              <section className="list-group">
+                {draftHead}
+                {draftCards}
+              </section>
               {BOARD_COLUMNS.map((column) => {
                 const list = grouped.get(column) ?? [];
                 return (

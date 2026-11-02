@@ -4,11 +4,22 @@ import { cx } from "../../cx";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 import type { NewChatTarget, SidePanelController } from "./useSidePanel";
 
-/** 列・グループに出す、送る前の新しいチャット（パネルで入力中）の下書き（filter がなければすべて） */
-export function DraftCards({ panel, filter = () => true }: { panel: SidePanelController; filter?: (target: NewChatTarget) => boolean }) {
+/**
+ * 列・グループに出す、送る前の新しいチャット（パネルで入力中）の下書き（filter がなければすべて）。
+ * onShow: 押したときにタブを表示する方法（プロジェクトのチャット欄の下書きは、欄を開いてから表示する）
+ */
+export function DraftCards({
+  panel,
+  filter = () => true,
+  onShow = panel.showTab,
+}: {
+  panel: SidePanelController;
+  filter?: (target: NewChatTarget) => boolean;
+  onShow?: (key: string) => void;
+}) {
   return panel.drafts
     .filter((d) => filter(d.target))
-    .map((d) => <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onOpen={() => panel.showTab(d.key)} onDelete={() => panel.closeTab(d.key)} />);
+    .map((d) => <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onOpen={() => onShow(d.key)} onDelete={() => panel.closeTab(d.key)} />);
 }
 
 /** 下書きのカード。押すとそのタブを表示し、右クリックで開く・削除を選べる */

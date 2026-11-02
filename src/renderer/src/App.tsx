@@ -11,7 +11,7 @@ import { SearchPanel } from "./components/SearchPanel";
 import { UsagePopover } from "./components/UsagePopover";
 import { NewProjectDialog } from "./components/newProject/NewProjectDialog";
 import { ProjectChat } from "./components/projectChat/ProjectChat";
-import { useProjectChat } from "./components/projectChat/useProjectChat";
+import { ProjectChatContext, useProjectChat } from "./components/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "./components/settings/SettingsDialog";
 import { Sidebar, SidebarOpenButton } from "./components/sidebar/Sidebar";
 import { loadCurrentProject } from "./components/sidebar/currentProject";
@@ -68,6 +68,7 @@ export function App() {
 
   return (
     <PlanUsageContext.Provider value={planUsage}>
+      <ProjectChatContext.Provider value={chat}>
       <div {...sidebar.layout}>
         <Sidebar
           sidebar={sidebar}
@@ -142,6 +143,7 @@ export function App() {
           />
         )}
       </div>
+      </ProjectChatContext.Provider>
     </PlanUsageContext.Provider>
   );
 }
