@@ -6,7 +6,7 @@ import { BOTTOM_PANEL_HEIGHT_KEY } from "../../storageKeys";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
 
 /** 1 つのシェル（key は裏のシェルのキー） */
-export interface TerminalPaneInfo extends TerminalTarget {
+interface TerminalPaneInfo extends TerminalTarget {
   key: string;
 }
 
@@ -23,7 +23,7 @@ export interface TerminalGroup {
 }
 
 /** どの画面のパネルか（プロジェクトの ID。全プロジェクトの画面は "all"） */
-export type BottomScope = number | "all";
+type BottomScope = number | "all";
 
 /** 画面ごとの、開いているか・表示しているタブ */
 interface ScopeState {

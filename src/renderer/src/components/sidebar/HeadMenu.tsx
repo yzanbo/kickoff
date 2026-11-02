@@ -5,7 +5,7 @@ import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 
 /** メニューの 1 項目（radio はどれか 1 つ、checkbox はオン・オフ） */
-export interface HeadMenuItem {
+interface HeadMenuItem {
   key: string;
   role: "menuitemradio" | "menuitemcheckbox";
   icon: LucideIcon;
@@ -15,7 +15,7 @@ export interface HeadMenuItem {
 }
 
 /** メニューのまとまり（label は見出し） */
-export interface HeadMenuSection {
+interface HeadMenuSection {
   label?: string;
   items: HeadMenuItem[];
 }

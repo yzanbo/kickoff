@@ -2,7 +2,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useDismiss } from "../hooks/useDismiss";
 
-export interface OptionItem<T extends string> {
+interface OptionItem<T extends string> {
   value: T;
   label: string;
   /** 項目の下に小さく出す説明 */
@@ -10,7 +10,7 @@ export interface OptionItem<T extends string> {
   disabled?: boolean;
 }
 
-export interface OptionGroup<T extends string> {
+interface OptionGroup<T extends string> {
   /** 見出し（なければ見出しなし） */
   label?: string;
   items: OptionItem<T>[];
