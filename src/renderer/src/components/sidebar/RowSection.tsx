@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { Collapse } from "../Collapse";
 import { GroupToggle } from "./GroupToggle";
 
 /** サイドバーの、開閉できるチャットのまとまり（固定・アーカイブ済み）。見出しは「グループなし」と同じ形で、中身は段下げして縦の線でつなぐ */
@@ -9,6 +10,7 @@ export function RowSection({
   count,
   open,
   onToggle,
+  indent = true,
   children,
 }: {
   icon: LucideIcon;
@@ -16,6 +18,8 @@ export function RowSection({
   count: number;
   open: boolean;
   onToggle: () => void;
+  /** 中身を段下げして縦の線でつなぐ（ボードのカードには付けない） */
+  indent?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -27,7 +31,9 @@ export function RowSection({
         </button>
         <span className="custom-group-count">{count}</span>
       </div>
-      {open && children}
+      <Collapse open={open} indent={indent}>
+        {children}
+      </Collapse>
     </div>
   );
 }

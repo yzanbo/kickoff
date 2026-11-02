@@ -9,6 +9,7 @@ import { cx } from "../../cx";
 import { useWorktreeList } from "../../worktreeBranches";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "../../workplace";
 import type { ChatGrouping } from "./chatGroupings";
+import { Collapse } from "../Collapse";
 import { GroupToggle } from "./GroupToggle";
 import { SECTION_CLOSED_PREFIX, useFoldAll } from "./sidebarFlags";
 
@@ -55,7 +56,9 @@ function Group({
           <span className="status-group-count">{rows.length}</span>
         </button>
       </div>
-      {open && <ul className="chat-rows">{rows.map(renderRow)}</ul>}
+      <Collapse open={open} indent>
+        <ul className="chat-rows">{rows.map(renderRow)}</ul>
+      </Collapse>
     </div>
   );
 }

@@ -929,6 +929,32 @@ button.chat-row {
   cursor: pointer;
 }
 
+/* 自分で作ったグループのアイコン: ふだんはフォルダ。選んでいるグループに乗せる（ピントがある）と、押すと開閉するので矢印に変わる */
+.group-icon-toggle {
+  justify-content: center;
+  width: 20px;
+}
+
+.group-icon-chevron {
+  display: none;
+}
+
+.custom-group-head.active:hover .group-icon-folder,
+.custom-group-head.active .group-icon-toggle:focus-visible .group-icon-folder {
+  display: none;
+}
+
+.custom-group-head.active:hover .group-icon-chevron,
+.custom-group-head.active .group-icon-toggle:focus-visible .group-icon-chevron {
+  display: grid;
+  place-items: center;
+}
+
+/* 自分で作ったグループの見出しは、どこを押しても選ぶ / 開閉する */
+.custom-group > .custom-group-head {
+  cursor: pointer;
+}
+
 .custom-group-toggle:hover {
   color: var(--text);
   background: var(--bg-elev);
@@ -1054,21 +1080,36 @@ input[type="text"].inline-name {
   color: var(--text);
 }
 
+/* 開閉で高さがなめらかに変わる入れ物（Collapse。サイドバーのプロジェクト・グループ・まとまり） */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.collapse.open {
+  grid-template-rows: 1fr;
+}
+
+.collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
 /*
  * 開閉できるまとまりの中身は、開閉の矢印の下から一段下げ、縦の線でつなぐ（VS Code のファイルの木と同じ。どこに入っているかが分かるように）。
- * 自分で作ったグループ・グループなし・アーカイブ済み・並べ方のまとまり
+ * 自分で作ったグループ・グループなし・固定・アーカイブ済み・並べ方のまとまり（Collapse の indent）
  */
-.custom-group > .chat-rows,
-.custom-group > .custom-group-empty,
-.custom-group > .custom-group-grouped,
-.row-section > .custom-group-grouped,
-.row-section > .chat-rows,
-.custom-group-head.ungrouped + .chat-rows,
-.custom-group-head.ungrouped ~ .status-group,
-.status-group > .chat-rows {
+.collapse.indent > .collapse-inner {
   margin-left: 9px;
   padding-left: 6px;
   border-left: 1px solid var(--border-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapse {
+    transition: none;
+  }
 }
 
 /* 見出しの名前の部分（押すと開閉する） */

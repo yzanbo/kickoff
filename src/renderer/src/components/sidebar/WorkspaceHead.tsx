@@ -14,7 +14,7 @@ import type { StateCounts } from "./sidebarFlags";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
- * カードの外枠の中を押すと（中のボタンを除く）、選んでいなければ選び（カンバンを開く）、選んでいればチャット一覧を開閉する。
+ * カードの外枠の中を押すと（中のボタンを除く）、選んでいなければ選び（カンバンを開く。開閉はしない）、選んでいればチャット一覧を開閉する。
  * マウスを乗せたとき、押すと開閉するなら頭文字が矢印に変わり、押すと選ぶなら頭文字のまま。
  * 出すのは、いつも使うものだけ: チャット一覧の開閉（頭文字。乗せると矢印に変わる）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
@@ -54,13 +54,12 @@ export function WorkspaceHead({
   const [pickAt, setPickAt] = useState<{ x: number; y: number } | null>(null);
   const projectMenu = useProjectMenu([project]);
   /**
-   * カードを押したとき: 選んでいなければ選ぶ（カンバンを開く。閉じていればチャット一覧も開く）、
+   * カードを押したとき: 選んでいなければ選ぶ（カンバンを開く。開閉はしない）、
    * 選んでいれば、チャット一覧を開閉する
    */
   const press = () => {
     if (active) return onToggleCollapsed();
     navigate({ name: "project", id: project.id, tab: "board" });
-    if (collapsed) onToggleCollapsed();
   };
   const pressLabel = active ? (collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる") : `${project.name} を開く`;
   return (
