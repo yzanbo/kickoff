@@ -22,6 +22,8 @@ export function WorkspaceHead({
   waitingCount,
   grouping,
   onGroupingChange,
+  showArchived,
+  onShowArchived,
   onCreateGroup,
   headDrag,
 }: {
@@ -34,6 +36,9 @@ export function WorkspaceHead({
   waitingCount: number;
   grouping: ChatGrouping;
   onGroupingChange: (grouping: ChatGrouping) => void;
+  /** アーカイブ済みのチャットを一覧の下に出すか */
+  showArchived: boolean;
+  onShowArchived: (show: boolean) => void;
   onCreateGroup: () => void;
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
@@ -72,7 +77,7 @@ export function WorkspaceHead({
           </span>
         )}
         {!collapsed && (
-          <ChatGroupingMenu value={grouping} onChange={onGroupingChange} />
+          <ChatGroupingMenu value={grouping} onChange={onGroupingChange} showArchived={showArchived} onShowArchived={onShowArchived} />
         )}
         <IconButton icon={FolderPlus} label={`${project.name} にグループを作成`} title="グループを作成" onClick={onCreateGroup} />
         <IconButton

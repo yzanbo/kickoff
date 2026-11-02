@@ -464,8 +464,42 @@ button.chat-row {
   cursor: pointer;
 }
 
-.chat-row:hover {
+.chat-row:hover,
+.chat-row-item:hover > .chat-row {
   background: var(--bg-elev);
+}
+
+/* 行に乗せたときに右端に出す、アーカイブ・削除（時刻の上に重ねる） */
+.chat-row-item {
+  position: relative;
+}
+
+.chat-row-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: none;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+}
+
+.chat-row-item:hover > .chat-row-actions,
+.chat-row-actions:focus-within {
+  display: flex;
+}
+
+.chat-row-actions .icon-button {
+  width: 22px;
+  height: 22px;
+}
+
+.chat-row-actions .icon-button.danger:hover {
+  color: var(--ng);
+}
+
+.chat-row-item:hover .chat-row-time {
+  visibility: hidden;
 }
 
 .chat-row.active {
