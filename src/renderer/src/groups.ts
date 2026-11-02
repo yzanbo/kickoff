@@ -9,7 +9,7 @@ export const GROUP_FLASH_EVENT = "kickoff:group-flash";
 /** グループのボードで、そのグループをもう一度ハイライトする（グループのタブでなければ何もしない） */
 export const flashGroup = (groupId: number) => window.dispatchEvent(new CustomEvent<number>(GROUP_FLASH_EVENT, { detail: groupId }));
 
-export const RUN_DRAG_TYPE = "application/x-kickoff-run";
+const RUN_DRAG_TYPE = "application/x-kickoff-run";
 
 /** チャットのドラッグを始める（ドロップ先でチャットの ID を受け取れるようにする） */
 export function startRunDrag(e: DragEvent, runId: number) {
@@ -18,12 +18,12 @@ export function startRunDrag(e: DragEvent, runId: number) {
 }
 
 /** ドラッグ中のものがチャットか */
-export function isRunDrag(e: DragEvent): boolean {
+function isRunDrag(e: DragEvent): boolean {
   return e.dataTransfer.types.includes(RUN_DRAG_TYPE);
 }
 
 /** 並べ替えのドラッグのデータの種類（グループ・プロジェクト） */
-export const GROUP_DRAG_TYPE = "application/x-kickoff-group";
+const GROUP_DRAG_TYPE = "application/x-kickoff-group";
 export const PROJECT_DRAG_TYPE = "application/x-kickoff-project";
 
 /**
@@ -39,7 +39,7 @@ export function reorderIds(ids: number[], moved: number, target: number): number
 }
 
 /** ドロップされたチャットの ID（チャットでなければ undefined） */
-export function droppedRunId(e: DragEvent): number | undefined {
+function droppedRunId(e: DragEvent): number | undefined {
   const id = Number(e.dataTransfer.getData(RUN_DRAG_TYPE));
   return Number.isInteger(id) && id > 0 ? id : undefined;
 }
@@ -103,7 +103,7 @@ export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dr
 }
 
 /** グループの並べ替え（サイドバーとグループのボード） */
-export function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
+function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
   return useReorder(ids, onReorder, GROUP_DRAG_TYPE);
 }
 

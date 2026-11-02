@@ -3,7 +3,7 @@ import { navigate } from "../../router";
 import type { PanelTab } from "./useSidePanel";
 
 /** パネルの状態（ボードごと） */
-export interface PanelState {
+interface PanelState {
   tabs: PanelTab[];
   activeTab: string | null;
   panelOpen: boolean;
@@ -15,7 +15,7 @@ export interface PanelState {
  * キーは kanban:<プロジェクト | all> / groups:<プロジェクト> / side:<プロジェクト>（プロジェクトのチャット欄）
  */
 const panelMemory = new Map<string, PanelState>();
-export const EMPTY_PANEL: PanelState = { tabs: [], activeTab: null, panelOpen: false };
+const EMPTY_PANEL: PanelState = { tabs: [], activeTab: null, panelOpen: false };
 
 const listeners = new Set<() => void>();
 let version = 0;

@@ -71,7 +71,7 @@ const subscribeShared = (listener: () => void) => {
  * 別々の部品から切り替えるもの）。useStoredState は部品ごとに値を持つので、ほかの部品で切り替えても変わらない。
  * encode は参照の変わらない関数を渡す（set の参照が変わらないように）
  */
-export function useSharedState<T>(key: string, decode: (raw: string | null) => T, encode: (value: T) => string) {
+function useSharedState<T>(key: string, decode: (raw: string | null) => T, encode: (value: T) => string) {
   const raw = useSyncExternalStore(subscribeShared, () => localStorage.getItem(key));
   const set = useCallback(
     (next: T) => {

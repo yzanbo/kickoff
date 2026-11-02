@@ -10,7 +10,7 @@ import { relativeTime } from "../../time";
 import { SectionBadge } from "../SectionBadge";
 import { Segmented } from "../Segmented";
 
-export type SearchScope = "run" | "project" | "all";
+type SearchScope = "run" | "project" | "all";
 
 interface Props {
   /** 開いた画面のチャット・プロジェクト（範囲の選択肢に使う） */

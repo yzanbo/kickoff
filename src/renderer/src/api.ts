@@ -36,7 +36,7 @@ import type {
   WorkspaceInspection,
 } from "../../core/types";
 
-export interface NewProjectInput {
+interface NewProjectInput {
   name: string;
   idea: string;
   parent_dir: string;
@@ -51,13 +51,13 @@ export interface TaskInput {
   priority: number;
 }
 
-export interface RunDetail {
+interface RunDetail {
   run: Run;
   events: RunEvent[];
   approvals: Approval[];
 }
 
-export interface ImportProjectInput {
+interface ImportProjectInput {
   path: string;
   name: string;
   description: string;
