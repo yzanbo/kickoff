@@ -1,7 +1,6 @@
 import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import { BOARD_COLUMNS, type BoardColumn, type Run, type RunGroup } from "../../../../core/types";
-import { cx } from "../../cx";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
@@ -49,7 +48,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   const { projects: allList, projectName } = useProjects();
   const projects = useMemo(() => (allProjects ? sidebarOrder(allList) : allList), [allList, allProjects]);
   // チャットの状態と回答待ちの数（回答待ちの依頼は App が持つ）
-  const { stateOf, pendingCount } = useRunStates();
+  const { stateOf } = useRunStates();
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
@@ -112,10 +111,9 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     rename,
     menu,
     onOpen: open,
-    classFor: (run) => cx(run.archived_at && "archived", allProjects && "with-project"),
+    classFor: () => (allProjects ? "with-project" : undefined),
     style: (run) => (allProjects ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as CSSProperties) : undefined),
     projectName: (run) => (allProjects ? projectName(run.project_id) : undefined),
-    pending: (run) => pendingCount(run.id),
   });
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない）。いちばん左の「下書き」の列に出す
   const chat = useProjectChatContext();
