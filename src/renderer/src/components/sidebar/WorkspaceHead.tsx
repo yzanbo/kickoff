@@ -1,11 +1,12 @@
 import { ArchiveRestore, Pin, Plus } from "lucide-react";
-import { useState, type DragEvent } from "react";
+import type { DragEvent } from "react";
 import type { ProjectSummary, RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { changeProject, confirmRestoreProject } from "../../projectOrder";
 import { href, navigate, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
-import { GroupPickMenu } from "../menus/GroupPickMenu";
+import { GROUP_PICK_MENU_WIDTH, GroupPickMenu, groupPickMenuHeight } from "../menus/GroupPickMenu";
+import { useAnchoredMenu } from "../menus/useAnchoredMenu";
 import { IconButton } from "../IconButton";
 import { HeadCounts, type StateFilter } from "./HeadCounts";
 import { pressedLeftOfName } from "./GroupToggle";
@@ -50,7 +51,7 @@ export function WorkspaceHead({
   headDrag?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
 }) {
   // ＋を押したときの、作成先のグループを選ぶメニュー
-  const [pickAt, setPickAt] = useState<{ x: number; y: number } | null>(null);
+  const pickMenu = useAnchoredMenu(".workspace-new-chat", GROUP_PICK_MENU_WIDTH);
   const projectMenu = useProjectMenu([project]);
   /**
    * カードの矢印以外を押したとき（サイドバー全体で同じ）: 選んでいて開いていれば閉じる。
@@ -126,24 +127,21 @@ export function WorkspaceHead({
           size={15}
           className="workspace-new-chat"
           aria-haspopup={groups.length > 0 ? "menu" : undefined}
-          aria-expanded={groups.length > 0 ? pickAt !== null : undefined}
+          aria-expanded={groups.length > 0 ? pickMenu.isOpen : undefined}
           onClick={(e) => {
             // グループがあれば、どこに作るかを選んでもらう（開いているときに押したら閉じる）
             if (groups.length === 0) return openNewChat(project.id);
-            if (pickAt) return setPickAt(null);
-            const r = e.currentTarget.getBoundingClientRect();
-            setPickAt({ x: r.left, y: r.bottom + 4 });
+            pickMenu.toggle(e, groupPickMenuHeight(groups.length));
           }}
         />
       </div>
-      {pickAt && (
+      {pickMenu.at && (
         <GroupPickMenu
-          x={pickAt.x}
-          y={pickAt.y}
+          {...pickMenu.at}
           groups={groups}
-          ignore=".workspace-new-chat"
+          ignore={pickMenu.ignore}
           onPick={(group) => openNewChat(project.id, group ? { group } : {})}
-          onClose={() => setPickAt(null)}
+          onClose={pickMenu.close}
         />
       )}
       {projectMenu.element}

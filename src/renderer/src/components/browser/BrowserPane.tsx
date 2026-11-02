@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cx } from "../../cx";
 import { normalizeUrl } from "../../url";
 import { IconButton } from "../IconButton";
-import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
+import { MenuItem, PopupMenu } from "../PopupMenu";
+import { useAnchoredMenu } from "../menus/useAnchoredMenu";
 import { DEVTOOLS_DOCK_LABELS, DEVTOOLS_DOCKS, useDevtools, type DevtoolsDock } from "./useDevtools";
 
 interface Props {
@@ -26,7 +27,7 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
   const [error, setError] = useState<string>();
   // 開発者ツール（右・下・別のウィンドウ）と、出す場所を選ぶメニュー
   const devtools = useDevtools(ref);
-  const [dockMenu, setDockMenu] = useState<{ x: number; y: number } | null>(null);
+  const dockMenu = useAnchoredMenu(".browser-devtools-dock", 200, "right");
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
 
@@ -133,12 +134,8 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
             type="button"
             className="browser-devtools-dock"
             aria-haspopup="menu"
-            aria-expanded={dockMenu !== null}
-            onClick={(e) => {
-              if (dockMenu) return setDockMenu(null);
-              const r = e.currentTarget.getBoundingClientRect();
-              setDockMenu(clampToViewport(r.right - 200, r.bottom + 4, 200, 130));
-            }}
+            aria-expanded={dockMenu.isOpen}
+            onClick={(e) => dockMenu.toggle(e, 130)}
           />
         </span>
         <IconButton
@@ -149,7 +146,7 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
           onClick={() => void window.kickoff?.openInChrome(current)}
         />
       </form>
-      {dockMenu && <DockMenu {...dockMenu} value={devtools.dock} onPick={devtools.changeDock} onClose={() => setDockMenu(null)} />}
+      {dockMenu.at && <DockMenu {...dockMenu.at} value={devtools.dock} onPick={devtools.changeDock} onClose={dockMenu.close} />}
       {error && <p className="browser-error">{error}</p>}
       <div className={cx("browser-body", devtools.embed && `dock-${devtools.embed.dock}`, devtools.resizing && "resizing")}>
         {/* partition は main プロセスでも専用のセッションに強制している */}

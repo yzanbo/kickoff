@@ -1,11 +1,12 @@
 import { Check, ChevronDown, LayoutGrid } from "lucide-react";
-import { useState, type CSSProperties, type ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { ProjectSummary } from "../../../../core/types";
 import { initialOf, projectHue } from "../../projectColor";
 import { archivedProjects, sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { navigate, type ProjectTab } from "../../router";
-import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
+import { MenuItem, PopupMenu } from "../PopupMenu";
+import { useAnchoredMenu } from "../menus/useAnchoredMenu";
 
 /** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */
 const ALL_PROJECTS = "全プロジェクト";
@@ -17,7 +18,7 @@ const ALL_PROJECTS = "全プロジェクト";
  */
 export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: number; name: string }; tab?: ProjectTab }) {
   const { projects } = useProjects();
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const menu = useAnchoredMenu(".project-switch", 260);
   const hue = project ? ({ "--ws-hue": `${projectHue(project.id)}` } as CSSProperties) : undefined;
   const className = project ? "project-switch" : "project-switch all-projects";
   const identity = (
@@ -42,25 +43,21 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
         style={hue}
         title="プロジェクトを切り替える"
         aria-haspopup="menu"
-        aria-expanded={at !== null}
-        onClick={(e) => {
-          // 開いているときに押したら閉じる
-          if (at) return setAt(null);
-          const r = e.currentTarget.getBoundingClientRect();
-          setAt(clampToViewport(r.left, r.bottom + 4, 260, 25 + (ordered.length + 1) * 34 + (archived.length > 0 ? 40 + archived.length * 34 : 0)));
-        }}
+        aria-expanded={menu.isOpen}
+        onClick={(e) => menu.toggle(e, 25 + (ordered.length + 1) * 34 + (archived.length > 0 ? 40 + archived.length * 34 : 0))}
       >
         {identity}
         <ChevronDown size={16} aria-hidden />
       </button>
-      {at && (
+      {menu.at && (
         <ProjectSwitchMenu
-          {...at}
+          {...menu.at}
           projects={ordered}
           archived={archived}
           currentId={project?.id}
+          ignore={menu.ignore}
           onPick={(id) => navigate(id === undefined ? { name: "allProjects" } : { name: "project", id, tab: project ? tab : "board" })}
-          onClose={() => setAt(null)}
+          onClose={menu.close}
         />
       )}
     </>
@@ -73,12 +70,15 @@ function ProjectSwitchMenu({
   projects,
   archived,
   currentId,
+  ignore,
   onPick,
   onClose,
 }: {
   x: number;
   y: number;
   projects: ProjectSummary[];
+  /** 開くボタンのセレクタ（押したらボタンの側で閉じる） */
+  ignore: string;
   /** しまった（アーカイブした）プロジェクト */
   archived: ProjectSummary[];
   /** いまのプロジェクト（なければ全プロジェクト） */
@@ -101,7 +101,7 @@ function ProjectSwitchMenu({
     </MenuItem>
   );
   return (
-    <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore=".project-switch" onClose={onClose}>
+    <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore={ignore} onClose={onClose}>
       {item(undefined, <LayoutGrid size={10} />, ALL_PROJECTS)}
       <div className="menu-separator" role="separator" />
       {projects.map((p) => item(p.id, initialOf(p.name), p.name))}

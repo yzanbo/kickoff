@@ -1,7 +1,8 @@
 import { Check, type LucideIcon } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import { cx } from "../../cx";
-import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
+import { MenuItem, PopupMenu } from "../PopupMenu";
+import { useAnchoredMenu } from "../menus/useAnchoredMenu";
 
 /** メニューの 1 項目（radio はどれか 1 つ、checkbox はオン・オフ） */
 interface HeadMenuItem {
@@ -46,26 +47,21 @@ export function HeadMenu({
   title: string;
   sections: HeadMenuSection[];
 }) {
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const buttonClass = `head-menu-${id}`;
+  const menu = useAnchoredMenu(`.${buttonClass}`, 260);
   return (
     <>
       <button
-        className={cx("head-chip", buttonClass, at && "active")}
+        className={cx("head-chip", buttonClass, menu.isOpen && "active")}
         title={title}
         aria-label={`${label}: ${value}`}
         aria-haspopup="menu"
-        aria-expanded={at !== null}
-        onClick={(e) => {
-          // 開いているときに押したら閉じる
-          if (at) return setAt(null);
-          const r = e.currentTarget.getBoundingClientRect();
-          setAt(clampToViewport(r.left, r.bottom + 4, 260, 40 + sections.reduce((n, s) => n + s.items.length * 34 + (s.label ? 24 : 0), 0)));
-        }}
+        aria-expanded={menu.isOpen}
+        onClick={(e) => menu.toggle(e, 40 + sections.reduce((n, s) => n + s.items.length * 34 + (s.label ? 24 : 0), 0))}
       >
         <ChipFace icon={Icon} label={label} value={value} values={values} />
       </button>
-      {at && <Menu {...at} label={label} ignore={`.${buttonClass}`} sections={sections} onClose={() => setAt(null)} />}
+      {menu.at && <Menu {...menu.at} label={label} ignore={menu.ignore} sections={sections} onClose={menu.close} />}
     </>
   );
 }

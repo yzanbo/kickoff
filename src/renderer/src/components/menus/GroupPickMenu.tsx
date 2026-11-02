@@ -2,6 +2,10 @@ import { Folder, Inbox, SquarePen } from "lucide-react";
 import type { RunGroup } from "../../../../core/types";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 
+/** メニューの幅と、グループの数から決まるおおよその高さ（画面からはみ出さない位置にするため） */
+export const GROUP_PICK_MENU_WIDTH = 230;
+export const groupPickMenuHeight = (groups: number) => 60 + groups * 34;
+
 /**
  * グループを選ぶメニュー（新しいチャットの作成先・まとめて選んだチャットの移動先）。
  * group が undefined なら「グループなし」
@@ -26,7 +30,7 @@ export function GroupPickMenu({
   onClose: () => void;
 }) {
 
-  const at = clampToViewport(x, y, 230, 60 + groups.length * 34);
+  const at = clampToViewport(x, y, GROUP_PICK_MENU_WIDTH, groupPickMenuHeight(groups.length));
 
   return (
     <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label={title} ignore={ignore} onClose={onClose}>
