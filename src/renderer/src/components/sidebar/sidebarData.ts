@@ -24,6 +24,13 @@ export function upsertGroup(prev: GroupsByProject, group: RunGroup): GroupsByPro
   return { ...prev, [group.project_id]: list.sort(byPosition) };
 }
 
+/** 削除されたプロジェクトの分を消す（消えたチャットが「ある」ものとして残らないように） */
+export function dropProject<T>(prev: Record<number, T>, projectId: number): Record<number, T> {
+  if (!(projectId in prev)) return prev;
+  const { [projectId]: _, ...rest } = prev;
+  return rest;
+}
+
 /** 削除されたグループを一覧から消す */
 export function removeGroup(prev: GroupsByProject, projectId: number, id: number): GroupsByProject {
   return { ...prev, [projectId]: (prev[projectId] ?? []).filter((g) => g.id !== id) };
