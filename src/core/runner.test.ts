@@ -8,6 +8,7 @@ import { Bus } from "./bus.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./providers/types.js";
 import { Runner } from "./runner.js";
 import { Store } from "./store.js";
+import { FakeProviderBase } from "./testing/fakeProvider.js";
 import type { ProviderId } from "./types.js";
 import { UploadStore } from "./uploads.js";
 import type { UsageMonitor } from "./usage.js";
@@ -15,14 +16,10 @@ import type { UsageMonitor } from "./usage.js";
 type Script = (params: ProviderRunParams, cb: ProviderCallbacks, signal: AbortSignal) => Promise<ProviderRunResult>;
 
 /** 台本どおりに振る舞う偽のプロバイダー */
-class FakeProvider implements AgentProvider {
-  readonly id = "claude" as const;
-  readonly label = "Fake";
-  readonly implemented = true;
+class FakeProvider extends FakeProviderBase {
   calls: ProviderRunParams[] = [];
-  constructor(private script: Script) {}
-  async status() {
-    return { id: this.id, label: this.label, implemented: true, installed: true, loggedIn: true, detail: "" };
+  constructor(private script: Script) {
+    super();
   }
   run(params: ProviderRunParams, cb: ProviderCallbacks, signal: AbortSignal) {
     this.calls.push(params);

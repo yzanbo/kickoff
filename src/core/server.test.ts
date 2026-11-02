@@ -13,6 +13,7 @@ import type { AgentProvider, ProviderRunResult } from "./providers/types.js";
 import { Runner } from "./runner.js";
 import { createApp } from "./server.js";
 import { Store } from "./store.js";
+import { FakeProviderBase } from "./testing/fakeProvider.js";
 import type { ProviderId, SlashCommandOption } from "./types.js";
 import { UploadStore } from "./uploads.js";
 import { ServiceUsageMonitor } from "./serviceUsage/index.js";
@@ -22,13 +23,7 @@ const TOKEN = "t".repeat(32);
 const AUTH = { authorization: `Bearer ${TOKEN}` };
 
 /** すぐに完了する偽のプロバイダー */
-class FakeProvider implements AgentProvider {
-  readonly id = "claude" as const;
-  readonly label = "Fake";
-  readonly implemented = true;
-  async status() {
-    return { id: this.id, label: this.label, implemented: true, installed: true, loggedIn: true, detail: "" };
-  }
+class FakeProvider extends FakeProviderBase {
   /** 最後に動かした作業フォルダ（チャットの作業場所の確かめに使う） */
   lastCwd = "";
   async run(params: { cwd: string }): Promise<ProviderRunResult> {
