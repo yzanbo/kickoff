@@ -58,7 +58,7 @@ export interface ApprovalRequest {
 }
 
 /** プロバイダーから Kickoff へ通知する実行中イベント（DB にはこの形のまま保存される） */
-export type AgentEvent = Exclude<RunEventData, { type: "user" | "approval" | "approval_resolved" | "result" }>;
+type AgentEvent = Exclude<RunEventData, { type: "user" | "approval" | "approval_resolved" | "result" }>;
 
 export interface ProviderCallbacks {
   emit(event: AgentEvent): void;
