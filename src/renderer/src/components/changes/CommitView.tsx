@@ -1,10 +1,10 @@
 import { List, ListTree } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { GitCommit, GitCommitDetail, GitFileChange } from "../../../../core/types";
+import type { GitCommit, GitFileChange } from "../../../../core/types";
 import { api } from "../../api";
 import { cx } from "../../cx";
-import { errorMessage } from "../../errors";
 import { useDragWidth } from "../../hooks/useDragWidth";
+import { useKeyedAsync } from "../../hooks/useKeyedAsync";
 import { useStoredFlag } from "../../hooks/useStoredState";
 import { COMMIT_FILES_LIST_KEY, COMMIT_FILES_WIDTH_KEY } from "../../storageKeys";
 import { formatDayTime } from "../../time";
@@ -25,7 +25,9 @@ type CommitTab = "commit" | "changes";
  */
 export function CommitView({ projectId, commit }: { projectId: number; commit: GitCommit }) {
   const { target, key: at } = useGitTarget(projectId);
-  const [state, setState] = useState<{ hash: string; detail?: GitCommitDetail; error?: string }>();
+  // コミットごとに読む（作業場所が変わったら同じコミットでも取り直す。その間は前の内容を出す）
+  const loaded = useKeyedAsync(commit.hash, () => api.gitCommitDetail(target, commit.hash), { deps: [at] });
+  const detail = loaded.data;
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
   // 変わったファイルを木で出すか（初めは木。Fork と同じ）
@@ -33,24 +35,8 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
   // 左のファイルの一覧の幅（境目をドラッグで変える。ダブルクリックで元に戻す）
   const filesPane = useDragWidth({ storageKey: COMMIT_FILES_WIDTH_KEY, initial: 260, min: 160 });
 
-  useEffect(() => {
-    let alive = true;
-    setFile(undefined);
-    api.gitCommitDetail(target, commit.hash).then(
-      (detail) => {
-        if (!alive) return;
-        setState({ hash: commit.hash, detail });
-        setFile(detail.files[0]);
-      },
-      (e: unknown) => alive && setState({ hash: commit.hash, error: errorMessage(e) }),
-    );
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [at, commit.hash]);
-
-  const detail = state?.hash === commit.hash ? state.detail : undefined;
+  // 読み込んだら 1 つ目のファイルを選ぶ（別のコミットに変わったら、読み込むまで外す）
+  useEffect(() => setFile(detail?.files[0]), [detail]);
   const files = useMemo(() => detail?.files ?? [], [detail]);
   const nodes = useMemo(() => buildTree({ files: files.map((f) => f.path), ignored: [] }), [files]);
   const kinds = useMemo(() => kindMaps(files), [files]);
@@ -80,7 +66,7 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
           ]}
         />
       </header>
-      <ErrorText message={state?.hash === commit.hash ? state.error : undefined} className="code-search-message" />
+      <ErrorText message={loaded.error} className="code-search-message" />
       {tab === "commit" ? (
         <section className="commit-meta">
           <h3 className="commit-subject">{commit.subject}</h3>
