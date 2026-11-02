@@ -1,0 +1,180 @@
+/* ==== ボードのカード（列の中のカード・アーカイブ済みのまとまり・プロジェクトのバッジ・足元） ==== */
+
+.column-cards {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  padding-bottom: 8px;
+  overflow-y: auto;
+}
+
+.column-empty {
+  margin: 0;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.board-card {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  cursor: pointer;
+}
+
+.board-card,
+.list-row {
+  /* ドラッグのときに文字が選択されないように */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.board-card:active,
+.list-row:active {
+  cursor: grabbing;
+}
+
+.board-card:focus-visible,
+.list-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.board-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.board-card.dragging,
+.list-row.dragging {
+  opacity: 0.35;
+}
+
+.card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card-title.one-line {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.card-labels,
+.list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 全プロジェクトのカンバン: カードのプロジェクトのバッジと、左端の色の線（サイドバーと同じ色） */
+/* 絞り込み中のセレクトは、絞り込んでいることがわかるようにする */
+.board-filter.filtered {
+  border-color: var(--accent-bright);
+  color: var(--text);
+}
+
+/* ボードの列・まとまりのいちばん下の、アーカイブ済みのまとまり（サイドバーと同じ見出し。中のカードは列と同じ間隔で並べる） */
+.archived-fold {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* アーカイブしたチャット（表示しているときだけ、薄く出す） */
+.board-card.archived,
+.list-row.archived,
+.chat-row.archived {
+  opacity: 0.55;
+}
+
+.archived-chip {
+  padding: 1px 6px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.project-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 160px;
+  padding: 1px 7px 1px 2px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--ws-hue, 150) 35% 30%);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: hsl(var(--ws-hue, 150) 60% 78%);
+  background: hsl(var(--ws-hue, 150) 30% 17%);
+}
+
+.project-chip-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  color: hsl(var(--ws-hue, 150) 30% 12%);
+  background: hsl(var(--ws-hue, 150) 60% 68%);
+}
+
+:root[data-theme="light"] .project-chip {
+  border-color: hsl(var(--ws-hue, 150) 45% 78%);
+  color: hsl(var(--ws-hue, 150) 55% 30%);
+  background: hsl(var(--ws-hue, 150) 55% 94%);
+}
+
+:root[data-theme="light"] .project-chip-mark {
+  color: #fff;
+  background: hsl(var(--ws-hue, 150) 50% 45%);
+}
+
+.board-card.with-project,
+.list-row.with-project {
+  box-shadow: inset 3px 0 0 hsl(var(--ws-hue, 150) 55% 55%);
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.card-state {
+  color: var(--text);
+}
+
+.card-pending {
+  font-weight: 600;
+  color: var(--dot-needs-input);
+}
+
+.card-time {
+  flex: 1;
+  overflow: hidden;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
