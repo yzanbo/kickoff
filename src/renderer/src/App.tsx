@@ -29,6 +29,7 @@ import { applyTheme, loadTheme } from "./theme";
 import { PlanUsageContext, usePlanUsage } from "./usage";
 import { setProjectHues } from "./projectColor";
 import { indexProjects, ProjectsContext } from "./projectsContext";
+import { ApprovalsContext, indexApprovals } from "./approvalsContext";
 
 applyTheme(loadTheme());
 
@@ -42,6 +43,8 @@ export function App() {
   setProjectHues(projects);
   // プロジェクトの一覧と名前の引き当て（props で中継せず、要る部品が useProjects で読む）
   const projectsIndex = useMemo(() => indexProjects(projects), [projects]);
+  // 回答待ちの依頼からチャットの状態を引く（approvals を中継せず、要る部品が useRunStates で読む）
+  const runStates = useMemo(() => indexApprovals(approvals), [approvals]);
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）
   useRunNotifications({ enabled: notifyEnabled, projectName: projectsIndex.projectName, route });
   const sidebar = useSidebar();
@@ -78,12 +81,12 @@ export function App() {
   return (
     <PlanUsageContext.Provider value={planUsage}>
       <ProjectsContext.Provider value={projectsIndex}>
+      <ApprovalsContext.Provider value={runStates}>
       <ProjectChatContext.Provider value={chat}>
       <div {...sidebar.layout}>
         <Sidebar
           sidebar={sidebar}
           route={route}
-          approvals={approvals}
           onNewChat={startNewChat}
           onSearch={() => setPalette(true)}
           onNewProject={() => setCreating(true)}
@@ -101,7 +104,7 @@ export function App() {
               highlightGroup={route.name === "project" ? route.group : undefined}
             />
           ) : (
-            <AllProjectsPage approvals={approvals} onNewProject={() => setCreating(true)} />
+            <AllProjectsPage onNewProject={() => setCreating(true)} />
           )}
         </main>
         <BottomPanel panel={bottomPanel} />
@@ -152,6 +155,7 @@ export function App() {
         )}
       </div>
       </ProjectChatContext.Provider>
+      </ApprovalsContext.Provider>
       </ProjectsContext.Provider>
     </PlanUsageContext.Provider>
   );

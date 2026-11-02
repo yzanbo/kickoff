@@ -1,7 +1,7 @@
 import { Archive, Folder, Pin, Plus } from "lucide-react";
 import { memo, useState } from "react";
 import { boardColumnOf } from "../../../../core/board";
-import { BOARD_COLUMN_LABELS, type AgentState, type Approval, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
+import { BOARD_COLUMN_LABELS, type AgentState, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
@@ -9,7 +9,7 @@ import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
-import { approvalIndex, runStateOf } from "../../runState";
+import { useRunStates } from "../../approvalsContext";
 import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, SIDEBAR_WAITING_ONLY_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
 import { openNewChat, openRun, type Route, routeProjectId } from "../../router";
 import { CardMenu } from "../menus/CardMenu";
@@ -36,7 +36,6 @@ export const WorkspacePage = memo(function WorkspacePage({
   project,
   runs,
   groups,
-  approvals,
   route,
   hidden,
   collapsed,
@@ -47,7 +46,6 @@ export const WorkspacePage = memo(function WorkspacePage({
   project: ProjectSummary;
   runs: Run[];
   groups: RunGroup[];
-  approvals: Approval[];
   route: Route;
   hidden: boolean;
   /** チャット一覧を閉じているか（縦並びの「すべて閉じる・開く」で変えるので、外で持つ） */
@@ -75,8 +73,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 検索・自分待ち・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
   const filtering = Boolean(keyword) || waitingOnly || stateFilter !== null;
 
-  const pending = approvalIndex(approvals);
-  const withState = (run: Run) => ({ run, state: runStateOf(run, pending) });
+  const { pending, stateOf } = useRunStates();
+  const withState = (run: Run) => ({ run, state: stateOf(run) });
   const allRows = runs.filter((r) => !r.archived_at).map(withState);
   // アーカイブしたチャット（一覧の下にまとめて、開閉できる。最初は閉じておく）
   const archivedRows = runs.filter((r) => r.archived_at).map(withState);
@@ -158,7 +156,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
         chatCount={allRows.length}
-        counts={stateCounts(runs, approvals)}
+        counts={stateCounts(runs, pending)}
         stateFilter={stateFilter}
         onStateFilter={(next) => {
           setStateFilter(next);

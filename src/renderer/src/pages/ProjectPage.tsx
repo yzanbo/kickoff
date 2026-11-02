@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ARTIFACT_KIND_LABELS,
   PHASES,
-  type Approval,
   type Artifact,
   type Project,
   type Run,
@@ -27,7 +26,7 @@ import { editorWorktreeKey } from "../storageKeys";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
 import { confirmRestoreProject } from "../projectOrder";
-import { approvalIndex } from "../runState";
+import { useRunStates } from "../approvalsContext";
 import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
 import { REPORT_KINDS, SECTION_META } from "../sections";
 
@@ -37,7 +36,6 @@ interface ProjectData {
   artifacts: Artifact[];
   runs: Run[];
   groups: RunGroup[];
-  approvals: Approval[];
 }
 
 const TAB_LABELS: Record<ProjectTab, string> = {
@@ -75,18 +73,13 @@ export function ProjectPage({
   const [worktree, setWorktree] = useStoredState<string | undefined>(editorWorktreeKey(id), (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes", worktree);
+  // 回答待ちの依頼（App が持ち、イベントで更新される）
+  const { pending } = useRunStates();
 
   const load = useCallback(async () => {
     try {
-      const [project, tasks, artifacts, runs, groups, approvals] = await Promise.all([
-        api.project(id),
-        api.tasks(id),
-        api.artifacts(id),
-        api.runs(id),
-        api.groups(id),
-        api.approvals(),
-      ]);
-      const next = { project, tasks, artifacts, runs, groups, approvals: approvals.filter((a) => a.project_id === id) };
+      const [project, tasks, artifacts, runs, groups] = await Promise.all([api.project(id), api.tasks(id), api.artifacts(id), api.runs(id), api.groups(id)]);
+      const next = { project, tasks, artifacts, runs, groups };
       projectCache.set(id, next);
       setData(next);
       setError(undefined);
@@ -111,9 +104,7 @@ export function ProjectPage({
       (e.type === "run" && e.run.project_id === id) ||
       (e.type === "run_deleted" && e.project_id === id) ||
       (e.type === "group" && e.group.project_id === id) ||
-      (e.type === "group_deleted" && e.project_id === id) ||
-      (e.type === "approval" && e.approval.project_id === id) ||
-      e.type === "approval_resolved";
+      (e.type === "group_deleted" && e.project_id === id);
     if (related) void load();
   });
 
@@ -121,10 +112,9 @@ export function ProjectPage({
   const shown = data?.project.id === id ? data : (projectCache.get(id) ?? data);
   if (error && !shown) return <div className="page error">{error}</div>;
   if (!shown) return <div className="page muted">読み込み中…</div>;
-  const { project, tasks, artifacts, runs, groups, approvals } = shown;
+  const { project, tasks, artifacts, runs, groups } = shown;
   // 別のプロジェクトを読み込んでいる途中（前の画面を薄くして出しておく）
   const stale = project.id !== id;
-  const pending = approvalIndex(approvals);
   const waiting = runs.filter((r) => pending.has(r.id)).length;
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
@@ -189,8 +179,8 @@ export function ProjectPage({
         </div>
       </header>
 
-      {tab === "board" && <KanbanBoard projectId={project.id} approvals={approvals} focus={focus} groups={groups} />}
-      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} focus={focus} highlight={highlightGroup} />}
+      {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} groups={groups} />}
+      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} focus={focus} highlight={highlightGroup} />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
       {tab === "tasks" && (

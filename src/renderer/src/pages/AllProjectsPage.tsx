@@ -1,5 +1,4 @@
 import { FolderGit2, Plus } from "lucide-react";
-import type { Approval } from "../../../core/types";
 import { api } from "../api";
 import { useAsync } from "../hooks/useAsync";
 import { ProjectSwitcher } from "../components/project/ProjectSwitcher";
@@ -7,15 +6,16 @@ import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
 import { sidebarOrder } from "../projectOrder";
 import { useProjects } from "../projectsContext";
+import { useRunStates } from "../approvalsContext";
 
 interface Props {
-  approvals: Approval[];
   onNewProject: () => void;
 }
 
 /** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
-export function AllProjectsPage({ approvals, onNewProject }: Props) {
+export function AllProjectsPage({ onNewProject }: Props) {
   const { projects } = useProjects();
+  const { approvals } = useRunStates();
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
@@ -57,7 +57,7 @@ export function AllProjectsPage({ approvals, onNewProject }: Props) {
           </button>
         </div>
       ) : (
-        <KanbanBoard approvals={shownApprovals} title="カンバン" />
+        <KanbanBoard title="カンバン" />
       )}
     </div>
   );
