@@ -1,19 +1,24 @@
-import { GitBranch } from "lucide-react";
+import { Folder, GitBranch } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { PHASES, type AgentState, type ProjectSummary, type Run } from "../../../../core/types";
+import { PHASES, type AgentState, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
+import { cx } from "../../cx";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { initialOf, projectHue } from "../../projectColor";
 import { SECTION_META } from "../../sections";
 import { useRunBranch } from "../../worktreeBranches";
 import { GroupToggle } from "../sidebar/GroupToggle";
 
-/** スイムレーンの段の分け方: 作業場所（ブランチ）・セクション・プロジェクト（全プロジェクトのボードだけ） */
-export const BOARD_LANES = ["worktree", "phase", "project"] as const;
+/**
+ * スイムレーンの段の分け方（列はどれも状態）。カンバンでは 作業場所・セクション・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
+ * グループのタブではグループで分ける
+ */
+export const BOARD_LANES = ["worktree", "phase", "group", "project"] as const;
 export type BoardLane = (typeof BOARD_LANES)[number];
 
 export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   worktree: "作業場所（ブランチ）",
   phase: "セクション",
+  group: "グループ",
   project: "プロジェクト",
 };
 
@@ -26,7 +31,21 @@ interface Lane {
 }
 
 /** チャットを段に分ける（段の並び: 作業場所は本体が先、セクションは決まった順、プロジェクトはボードの並び） */
-function lanesOf(kind: BoardLane, entries: Entry[], projects: ProjectSummary[]): Lane[] {
+/** グループで分けるときの段の名前（"g12" のようなグループ、"none" はグループなし）から、グループの ID を取り出す */
+export const groupOfLane = (laneKey: string): number | null => (laneKey === "none" ? null : Number(laneKey.slice(1)));
+
+function lanesOf(kind: BoardLane, entries: Entry[], projects: ProjectSummary[], groups: RunGroup[], showEmpty: boolean): Lane[] {
+  if (kind === "group") {
+    // グループなしを先に、そのあと自分で作ったグループの並び順（showEmpty のときは、チャットのないグループも出す）
+    const ids = new Set(groups.map((g) => g.id));
+    const rest = entries.filter((e) => e.run.group_id === null || !ids.has(e.run.group_id));
+    const lanes: Lane[] = rest.length > 0 || showEmpty ? [{ key: "none", head: <LaneTitle mark={<Folder size={14} className="muted" />} label="グループなし" />, entries: rest }] : [];
+    for (const g of groups) {
+      const list = entries.filter((e) => e.run.group_id === g.id);
+      if (list.length > 0 || showEmpty) lanes.push({ key: `g${g.id}`, head: <LaneTitle mark={<Folder size={14} className="muted" />} label={g.name} />, entries: list });
+    }
+    return lanes;
+  }
   if (kind === "phase") {
     return PHASES.flatMap((phase) => {
       const list = entries.filter((e) => e.run.phase === phase);
@@ -92,18 +111,28 @@ export function BoardLanes({
   projects,
   renderColumns,
   before,
+  groups = [],
+  showEmpty = false,
+  laneProps,
 }: {
   kind: BoardLane;
+  /** 自分で作ったグループ（グループで段に分けるとき） */
+  groups?: RunGroup[];
+  /** チャットのない段も出す（グループのタブ: 下書き・ドラッグで入れる先として） */
+  showEmpty?: boolean;
+  /** 段の要素に付けるもの（ドロップ先にするなど） */
+  laneProps?: (laneKey: string) => { className?: string } & Record<string, unknown>;
   /** 段の開閉を覚える名前（ボードごと） */
   boardKey: string;
   entries: Entry[];
   projects: ProjectSummary[];
-  renderColumns: (entries: Entry[]) => ReactNode;
+  /** 段の中の列（laneKey は段の名前。グループで分けるときは groupOfLane でグループに直せる） */
+  renderColumns: (entries: Entry[], laneKey: string) => ReactNode;
   /** 段の前に置くもの（下書き） */
   before?: ReactNode;
 }) {
   const closed = useStoredFlagMap("kickoff:board-lane-closed:");
-  const lanes = lanesOf(kind, entries, projects);
+  const lanes = lanesOf(kind, entries, projects, groups, showEmpty);
   return (
     <div className="board-lanes">
       {before}
@@ -111,8 +140,9 @@ export function BoardLanes({
       {lanes.map((lane) => {
         const id = `${boardKey}:${kind}:${lane.key}`;
         const open = !closed.get(id);
+        const extra = laneProps?.(lane.key) ?? {};
         return (
-          <section key={lane.key} className="board-lane">
+          <section key={lane.key} {...extra} className={cx("board-lane", extra.className)}>
             <div className="board-lane-head">
               <GroupToggle open={open} onToggle={() => closed.toggle(id)} />
               <button className="board-lane-name" aria-expanded={open} onClick={() => closed.toggle(id)}>
@@ -120,7 +150,7 @@ export function BoardLanes({
                 <span className="board-lane-count">{lane.entries.length}</span>
               </button>
             </div>
-            {open && <div className="board-columns lane-columns">{renderColumns(lane.entries)}</div>}
+            {open && <div className="board-columns lane-columns">{renderColumns(lane.entries, lane.key)}</div>}
           </section>
         );
       })}

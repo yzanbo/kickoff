@@ -19,6 +19,9 @@ import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
+import { BoardLanes, groupOfLane } from "./BoardLanes";
+import type { BoardEntry } from "./boardColumns";
+import { GroupLaneColumns } from "./GroupLaneColumns";
 import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
 import { useBoardFocus } from "./useBoardFocus";
@@ -52,8 +55,8 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
-  // ボード（列）/ リスト（縦に並べる）の切り替え。カンバンとは別に覚える
-  const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list"], "board");
+  // ボード（列 = グループ）/ リスト / スイムレーン（段 = グループ、列 = 下書きと状態）の切り替え。カンバンとは別に覚える
+  const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list", "lanes"], "board");
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
   const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs, loaded: true, holdEsc: menu !== null });
 
@@ -190,6 +193,12 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
   // その列（グループ）で入力中の新しいチャット
   const drafts = (g: RunGroup | null) => <DraftCards panel={panel} filter={(t) => t.projectId === projectId && (t.group ?? null) === (g?.id ?? null)} />;
 
+  // スイムレーン: グループごとの段に、下書き・作業中・回答待ち・確認待ち・完了の列を並べる
+  const entries: BoardEntry[] = runs
+    .filter(search.matches)
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    .map((run) => ({ run, state: stateOf(run) }));
+
   return (
     <div className="board group-board">
       <BoardHeader
@@ -207,13 +216,41 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
         }
         view={view}
         onView={setView}
+        lanesView
         panel={panel}
       />
       <ErrorText message={error} className="board-error" />
 
       <div {...panel.body}>
         <div className="board-main">
-          {view === "board" ? (
+          {view === "lanes" ? (
+            // 段（グループ）へカードをドラッグすると、そのグループへ移す
+            <BoardLanes
+              kind="group"
+              boardKey={`groups:${projectId}`}
+              entries={entries}
+              projects={[]}
+              groups={groups}
+              showEmpty
+              laneProps={(key) => {
+                const groupId = groupOfLane(key);
+                return { ...dropProps(groupId), className: cx(over === (groupId ?? "none") && "drop-target") };
+              }}
+              renderColumns={(list, key) => (
+                <GroupLaneColumns
+                  entries={list}
+                  groupId={groupOfLane(key)}
+                  projectId={projectId}
+                  panel={panel}
+                  renderCard={({ run, state }) => (
+                    <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
+                      <RunCardContent run={run} state={state} rename={rename.editorFor(run)} />
+                    </article>
+                  )}
+                />
+              )}
+            />
+          ) : view === "board" ? (
             <div className="board-columns">
               {sections.map((g) => {
                 const members = membersOf(g?.id ?? null);
