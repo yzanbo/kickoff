@@ -104,6 +104,7 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
         />
         <input
           className="browser-address"
+          type="text"
           aria-label="URL"
           value={address}
           spellCheck={false}
