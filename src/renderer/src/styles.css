@@ -946,6 +946,7 @@ input[type="text"].inline-name {
  */
 .custom-group > .chat-rows,
 .custom-group > .custom-group-empty,
+.custom-group > .custom-group-grouped,
 .archived-section > .chat-rows,
 .custom-group-head.ungrouped + .chat-rows,
 .custom-group-head.ungrouped ~ .status-group,
@@ -5061,6 +5062,79 @@ button.project-switch.all-projects:hover,
   flex: 1;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* ボードの段（スイムレーン）: 段ごとに状態の列を並べ、全体を縦にスクロールする。段の見出しはスクロールしても上に残す */
+.board-lanes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding-bottom: 8px;
+  overflow-y: auto;
+}
+
+.board-lane {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.board-lane-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--row-tight);
+  background: var(--bg);
+}
+
+.board-lane-name {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.board-lane-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.board-lane-extra,
+.board-lane-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.board-lane-worktree {
+  color: var(--info);
+}
+
+/* 段の中の列は、中身の高さに合わせる（列ごとにスクロールしない） */
+.lane-columns {
+  flex: none;
+}
+
+.lane-columns .column-cards {
+  overflow: visible;
 }
 
 .column-cards {

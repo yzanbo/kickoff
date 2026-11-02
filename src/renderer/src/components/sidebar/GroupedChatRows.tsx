@@ -56,7 +56,8 @@ function Group({
 
 /**
  * サイドバーのチャットを、並べ方（状態・作業場所・セクション）でまとめて出す。「新しい順」はまとめないので使わない。
- * まとまりはそれぞれ開閉でき、プロジェクト・並べ方ごとに覚える。forceOpen（検索中）のときはすべて開く
+ * まとまりはそれぞれ開閉でき、プロジェクト・グループ・並べ方ごとに覚える。forceOpen（検索中）のときはすべて開く。
+ * グループなしだけでなく、自分で作ったグループの中でも同じようにまとめる
  */
 export function GroupedChatRows({
   grouping,
@@ -64,15 +65,18 @@ export function GroupedChatRows({
   rows,
   renderRow,
   forceOpen = false,
+  scope,
 }: {
   grouping: Exclude<ChatGrouping, "recent">;
   projectId: number;
   rows: Row[];
   renderRow: (row: Row) => ReactNode;
   forceOpen?: boolean;
+  /** 自分で作ったグループの中でまとめるとき、そのグループ（開閉をグループごとに覚える。なければグループなし） */
+  scope?: number;
 }) {
   const closed = useStoredFlagMap("kickoff:sidebar-group-closed:");
-  const idOf = (key: string) => `${projectId}:${grouping}:${key}`;
+  const idOf = (key: string) => `${projectId}:${scope === undefined ? "" : `g${scope}:`}${grouping}:${key}`;
   const state = { isClosed: (key: string) => closed.get(idOf(key)), toggle: (key: string) => closed.toggle(idOf(key)), forceOpen };
   return <OpenState.Provider value={state}>{groupsOf(grouping, projectId, rows, renderRow)}</OpenState.Provider>;
 }

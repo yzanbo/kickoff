@@ -45,8 +45,9 @@
 | モデル・推論の深さ・権限モードの選択肢 | `ModelOptions` / `EffortOptions` / `PermissionOptions` |
 | 状態の点 | `StatusDot` ＋ `toneOf` |
 | CLI の状態カード | `StatusCard` / `GitHubStatusCard`。カードとその並びは `.card` / `.card-grid` |
-| サイドバーのチャットの並べ方 | `ChatGroupingMenu`（見出しのボタンからメニューで選ぶ: 新しい順・状態・作業場所（ブランチ）・セクションと、アーカイブ済みを出すか（`kickoff:sidebar-show-archived`）。行に乗せると右端にアーカイブ・削除（`runActions.ts` の `toggleArchiveRun` / `confirmDeleteRun`。右クリックのメニューと共通）。保存は `kickoff:sidebar-grouping` の `recent` / `status` をそのまま使い、`worktree` / `phase` を足した）。まとめた表示は `GroupedChatRows`（まとまりごとに開閉し、`kickoff:sidebar-group-closed:<プロジェクト>:<並べ方>:<まとまり>` に覚える。検索中はすべて開く） |
+| サイドバーのチャットの並べ方 | `ChatGroupingMenu`（見出しのボタンからメニューで選ぶ: 新しい順・状態・作業場所（ブランチ）・セクションと、アーカイブ済みを出すか（`kickoff:sidebar-show-archived`）。行に乗せると右端にアーカイブ・削除（`runActions.ts` の `toggleArchiveRun` / `confirmDeleteRun`。右クリックのメニューと共通）。保存は `kickoff:sidebar-grouping` の `recent` / `status` をそのまま使い、`worktree` / `phase` を足した）。まとめた表示は `GroupedChatRows`（グループなしと、自分で作ったグループの中の両方をまとめる。まとまりごとに開閉し、`kickoff:sidebar-group-closed:<プロジェクト>:<並べ方>:<まとまり>` に覚える。検索中はすべて開く） |
 | サイドバーのグループの開閉 | `GroupToggle`。開閉の矢印は `Chevron` |
+| ボードの段（スイムレーン） | `BoardLanes`（ボード表示の「段の分け方」: なし・作業場所（ブランチ）・セクション・プロジェクト（全プロジェクトのボードだけ）。`kickoff:board-lanes`。段ごとに状態の列を並べ、見出しで開閉（`kickoff:board-lane-closed:`）） |
 | ボードのカードの操作 | `runCardProps`（クリック・Enter で開く / 右クリックでメニュー / ドラッグはグループのボードだけ）。カンバンの列（作業中・回答待ち・確認待ち・完了）は AI の状態から `boardColumnOf` で決め、人は動かさない（DB の `runs.stage` は使わない）。まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中）は、いちばん左の「下書き」の列に出す（チャット欄の分は `ProjectChatContext` から取る。書いている途中の文は `Composer` の `onTextChange` からタブの `draftText` に入れ、カードに初めの 3 行を出す）。新しいチャットは見出しの「新規」から始める。列の＋は、その列に意味があるとき（グループのボード）だけ置く |
 | 画像を大きく見る | `ImageViewer`（アプリの中で開く。外のブラウザには Kickoff のログインがないので、添付を外で開かない。画像以外の添付はアプリの中でダウンロード）。画像以外を大きく見せるときは children、見出しのボタンは actions で渡す（Mermaid の図の全画面） |
 | コードの色付け | `useHighlight`（行ごとの色。VS Code の Dark+ / Light+ でダーク・ライトに合わせる）＋ `CodeLine`（1 行を描く）。言語はファイル名から `languageOf`（`highlight.ts`）。色付けのライブラリ（Shiki）は使うときだけ読み込む |

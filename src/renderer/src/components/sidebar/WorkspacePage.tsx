@@ -49,8 +49,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   headDrag?: { onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
 }) {
   const [grouping, setGrouping] = useStoredChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
-  // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出す）
-  const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_KEY, true);
+  // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
+  const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_KEY);
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
@@ -211,6 +211,11 @@ export const WorkspacePage = memo(function WorkspacePage({
               {!closed &&
                 (members.length === 0 ? (
                   <p className="custom-group-empty">チャットをここへドラッグ</p>
+                ) : grouping !== "recent" ? (
+                  // 並べ方でまとめているときは、グループの中も同じようにまとめる
+                  <div className="custom-group-grouped">
+                    <GroupedChatRows grouping={grouping} projectId={project.id} scope={group.id} rows={members} renderRow={renderRow} forceOpen={Boolean(keyword)} />
+                  </div>
                 ) : (
                   <ul className="chat-rows custom-group-rows">{members.map(renderRow)}</ul>
                 ))}
