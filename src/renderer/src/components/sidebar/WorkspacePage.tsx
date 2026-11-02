@@ -186,7 +186,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         {/* 送る前の新しいチャット（下書き）。絞り込んでいる間は出さない */}
         {!filtering && <DraftRows projectId={project.id} />}
         {pinnedRows.length > 0 && (
-          <RowSection icon={Pin} label="固定" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
+          <RowSection icon={Pin} label="固定" className="pinned" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
             <ul className="chat-rows">{pinnedRows.map(renderRow)}</ul>
           </RowSection>
         )}

@@ -186,6 +186,9 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
 
   if (layout === "stack") {
     const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
+    // 固定したプロジェクト（並びの先頭にある）と、その後ろの最初のプロジェクト
+    const hasPinned = ordered.some((p) => p.pinned > 0 && !isArchived(p.id));
+    const firstUnpinned = ordered.findIndex((p) => !p.pinned && !isArchived(p.id));
     // プロジェクトと、その中のまとまりをすべて閉じる・開く
     const setAllCollapsed = (on: boolean) => {
       ordered.forEach((p) => collapsedMap.set(p.id, on));
@@ -200,6 +203,9 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
         <div className="workspace-stack">
           {ordered.map((p, i) => (
             <Fragment key={p.id}>
+            {/* 固定したプロジェクトがあるときは、「固定」と「プロジェクト」の見出しで分ける（Slack のスターと同じ） */}
+            {hasPinned && i === 0 && <div className="project-section-label pinned">固定</div>}
+            {hasPinned && i === firstUnpinned && <div className="project-section-label">プロジェクト</div>}
             {/* しまったプロジェクトのまとまりの見出し（押して開閉する。初めは閉じている） */}
             {i === visible.length && archivedHead}
             <div className={`stack-item ${!canReorder || isArchived(p.id) ? "" : reorder.classFor(p.id)}`} {...reorderDrop(p.id)}>

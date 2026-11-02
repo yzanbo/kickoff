@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { cx } from "../../cx";
 import { Collapse } from "../Collapse";
 import { GroupToggle } from "./GroupToggle";
 
@@ -11,6 +12,7 @@ export function RowSection({
   open,
   onToggle,
   indent = true,
+  className,
   children,
 }: {
   icon: LucideIcon;
@@ -20,10 +22,12 @@ export function RowSection({
   onToggle: () => void;
   /** 中身を段下げして縦の線でつなぐ（ボードのカードには付けない） */
   indent?: boolean;
+  /** まとまりの種類の見た目（pinned: 固定。ピンを固定の色で塗る） */
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="row-section">
+    <div className={cx("row-section", className)}>
       <div className="custom-group-head ungrouped">
         <GroupToggle open={open} onToggle={onToggle} icon={icon} iconSize={12} />
         <button className="custom-group-name ungrouped-name" onClick={onToggle}>
