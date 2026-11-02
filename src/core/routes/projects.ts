@@ -87,7 +87,8 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   // 既存フォルダの点検（取り込みダイアログでの事前表示用）
   app.get("/api/workspace/inspect", async (c) => {
-    const info = await inspectWorkspace(c.req.query("path") ?? "");
+    const { path } = z.object({ path: z.string().trim().min(1).max(1000) }).parse({ path: c.req.query("path") });
+    const info = await inspectWorkspace(path);
     const registered = info.gitRoot ? store.findProjectByPath(info.gitRoot) : store.findProjectByPath(info.path);
     return c.json({ ...info, registered_project_id: registered?.id ?? null });
   });
