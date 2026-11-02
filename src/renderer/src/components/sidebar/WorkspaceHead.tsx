@@ -8,7 +8,7 @@ import { href, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
-import { HeadCounts } from "./HeadCounts";
+import { HeadCounts, type StateFilter } from "./HeadCounts";
 import { useProjectMenu } from "./ProjectMenu";
 import type { StateCounts } from "./sidebarFlags";
 
@@ -28,6 +28,8 @@ export function WorkspaceHead({
   onToggleCollapsed,
   chatCount,
   counts,
+  stateFilter,
+  onStateFilter,
   onCreateGroup,
   headDrag,
 }: {
@@ -39,6 +41,9 @@ export function WorkspaceHead({
   chatCount: number;
   /** 作業中・回答待ち・確認待ちのチャット数 */
   counts: StateCounts;
+  /** 状態の数を押して絞っている状態 */
+  stateFilter: StateFilter | null;
+  onStateFilter: (state: StateFilter | null) => void;
   onCreateGroup: () => void;
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
@@ -91,7 +96,7 @@ export function WorkspaceHead({
             onClick={() => changeProject(project.id, { pinned: !project.pinned })}
           />
         )}
-        <HeadCounts counts={counts} />
+        <HeadCounts counts={counts} filter={stateFilter} onFilter={onStateFilter} />
         <IconButton
           icon={Plus}
           label={`${project.name} の新しいチャット`}

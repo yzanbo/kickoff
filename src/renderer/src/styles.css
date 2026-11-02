@@ -1583,11 +1583,24 @@ button.project-switch:hover,
   gap: 3px;
   height: 18px;
   padding: 0 5px;
+  border: 1px solid transparent;
   border-radius: 9px;
+  font: inherit;
   font-size: 11px;
   font-weight: 700;
   color: var(--tone);
   background: color-mix(in srgb, var(--tone) 16%, transparent);
+  cursor: pointer;
+}
+
+.head-count:hover {
+  background: color-mix(in srgb, var(--tone) 26%, transparent);
+}
+
+/* 押して、その状態だけに絞っているとき */
+.head-count.active {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 30%, transparent);
 }
 
 .head-count-dot {
