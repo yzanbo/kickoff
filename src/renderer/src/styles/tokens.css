@@ -84,3 +84,17 @@
   box-sizing: border-box;
 }
 
+/*
+ * 画面のコード（inline style / setProperty）が与える CSS 変数。ここでは定義せず、使う側は必要なら var(--x, 既定値) で受ける。
+ *   --sidebar-w  左のサイドバーの幅（useSidebar.ts）
+ *   --panel-w    ボードの右のパネルの幅（useSidePanel.ts）
+ *   --bottom-h   下のパネルの高さ（useBottomPanel.ts）
+ *   --chat-w     プロジェクトのチャット欄の幅（useProjectChat.ts・ProjectChat.tsx）
+ *   --depth      ファイルの木の段の深さ（FileTree.tsx）
+ *   --tone       見出しの状態ごとの件数の色（HeadCounts.tsx）
+ *   --ws-hue     プロジェクトの色相（ProjectChip.tsx・ProjectSwitcher.tsx・WorkspacePage.tsx・WorkspaceDots.tsx・KanbanBoard.tsx・BoardLanes.tsx・BasicInfo.tsx）
+ *   --diagram-w  Mermaid の図の幅（MermaidDiagram.tsx）
+ * 逆に、上の :root の値を getComputedStyle で読んでいるコードもある（名前を変えるときは一緒に直す）:
+ *   mermaidConfig.ts（--text --bg --bg-sidebar --bg-hover --bg-elev --bg-active --muted --accent-bright --info --warn --ok --ng --dot-needs-input --sec-*）
+ *   terminalTheme.ts・CodeEditor.tsx（--bg --text --mono）
+ */
