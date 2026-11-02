@@ -6,6 +6,7 @@ import { PROJECT_DRAG_TYPE, useReorder } from "../../groups";
 import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
+import { useProjects } from "../../projectsContext";
 import { navigate, routeProjectId, type Route } from "../../router";
 import {
   SIDEBAR_LAYOUT_KEY,
@@ -30,7 +31,6 @@ import { SearchField } from "../SearchField";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 interface Props {
-  projects: ProjectSummary[];
   approvals: Approval[];
   /** プロジェクトごとのチャット（アーカイブしたものも含む）とグループ（useSidebarData） */
   runs: Record<number, Run[]>;
@@ -43,7 +43,8 @@ interface Props {
  * Zen Browser のワークスペースのような、プロジェクトごとのサイドバー。
  * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替える。
  */
-export function ProjectNav({ projects, approvals, runs, groups, route, onNewProject }: Props) {
+export function ProjectNav({ approvals, runs, groups, route, onNewProject }: Props) {
+  const { projects } = useProjects();
   // 横スライド / 縦並び
   const [layout, changeLayout] = useStoredChoice<NavLayout>(SIDEBAR_LAYOUT_KEY, ["slide", "stack"], "slide");
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。

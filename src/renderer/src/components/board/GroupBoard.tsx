@@ -1,6 +1,6 @@
 import { Folder, FolderPlus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
+import type { Approval, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
@@ -8,6 +8,7 @@ import { confirmDeleteGroup, startRunDrag, useGroupDrop, GROUP_FLASH_EVENT } fro
 import { useActionError } from "../../hooks/useActionError";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
+import { useProjects } from "../../projectsContext";
 import type { ReopenRoute } from "../../router";
 import { approvalIndex, runStateOf } from "../../runState";
 import { GROUP_VIEW_KEY } from "../../storageKeys";
@@ -31,8 +32,6 @@ import { ArchivedFold, splitArchived } from "./ArchivedFold";
 
 interface Props {
   projectId: number;
-  /** すべてのプロジェクト（タブの列の＋のターミナルの開く場所に使う） */
-  projects: ProjectSummary[];
   runs: Run[];
   groups: RunGroup[];
   approvals: Approval[];
@@ -46,7 +45,9 @@ interface Props {
  * 自分で作ったグループを管理するボード。列 = グループ、カード = チャット。
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
-export function GroupBoard({ projectId, projects, runs, groups, approvals, focus, highlight }: Props) {
+export function GroupBoard({ projectId, runs, groups, approvals, focus, highlight }: Props) {
+  // タブの列の＋のターミナルの開く場所（このプロジェクトの本体）
+  const { projects } = useProjects();
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const [dragRun, setDragRun] = useState<number>();

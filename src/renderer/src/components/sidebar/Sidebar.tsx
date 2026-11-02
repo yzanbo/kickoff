@@ -1,8 +1,9 @@
 import { Inbox, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
-import type { Approval, ProjectSummary } from "../../../../core/types";
+import type { Approval } from "../../../../core/types";
 import { cx } from "../../cx";
 import { useSharedFlag } from "../../hooks/useStoredState";
 import { sidebarOrder } from "../../projectOrder";
+import { useProjects } from "../../projectsContext";
 import { href, type Route } from "../../router";
 import { ProjectNav } from "./ProjectNav";
 import { SIDEBAR_WAITING_ONLY_KEY } from "../../storageKeys";
@@ -15,7 +16,6 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 interface Props {
   sidebar: SidebarController;
   route: Route;
-  projects: ProjectSummary[];
   approvals: Approval[];
   onNewChat: () => void;
   onSearch: () => void;
@@ -23,7 +23,8 @@ interface Props {
 }
 
 /** 左のサイドバー（新しいチャット・全プロジェクト・自分待ち・検索、プロジェクトごとのチャット一覧、設定） */
-export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSearch, onNewProject }: Props) {
+export function Sidebar({ sidebar, route, approvals, onNewChat, onSearch, onNewProject }: Props) {
+  const { projects } = useProjects();
   // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const { runs, groups } = useSidebarData(projects);
   // 自分待ち（回答待ち・確認待ち）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）
@@ -88,7 +89,7 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
       </div>
       <nav className="sidebar-section" aria-label="プロジェクトとチャット">
         <ChatSelectionContext.Provider value={selection}>
-          <ProjectNav projects={projects} approvals={approvals} runs={runs} groups={groups} route={route} onNewProject={onNewProject} />
+          <ProjectNav approvals={approvals} runs={runs} groups={groups} route={route} onNewProject={onNewProject} />
         </ChatSelectionContext.Provider>
       </nav>
     </aside>

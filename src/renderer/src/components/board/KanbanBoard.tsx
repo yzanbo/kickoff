@@ -1,12 +1,14 @@
 import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
-import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type Approval, type BoardColumn, type Phase, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type Approval, type BoardColumn, type Phase, type Run, type RunGroup } from "../../../../core/types";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice, useStoredState } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
+import { sidebarOrder } from "../../projectOrder";
+import { useProjects } from "../../projectsContext";
 import { openRun, type ReopenRoute } from "../../router";
 import { approvalIndex, runStateOf } from "../../runState";
 import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY, BOARD_VIEW_KEY } from "../../storageKeys";
@@ -40,7 +42,6 @@ const NO_GROUPS: RunGroup[] = [];
 interface Props {
   /** 未指定なら全プロジェクトのボード（カードにプロジェクト名を出す） */
   projectId?: number;
-  projects: ProjectSummary[];
   approvals: Approval[];
   /** 見出しの名前（全プロジェクトの画面だけ。プロジェクトのボードはタブの名前があるので出さない） */
   title?: string;
@@ -54,8 +55,11 @@ interface Props {
  * チャットのカンバン。列（作業中・回答待ち・確認待ち・完了）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
  * カードの点はより細かい状態（順番待ち・エラーなど）。
  */
-export function KanbanBoard({ projectId, projects, approvals, title, focus, groups = NO_GROUPS }: Props) {
+export function KanbanBoard({ projectId, approvals, title, focus, groups = NO_GROUPS }: Props) {
   const allProjects = projectId === undefined;
+  // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトを除いたサイドバーの並び（名前の引き当てはどのボードでも全プロジェクトから）
+  const { projects: allList, projectName } = useProjects();
+  const projects = useMemo(() => (allProjects ? sidebarOrder(allList) : allList), [allList, allProjects]);
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
@@ -107,7 +111,6 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
     !allProjects,
   );
 
-  const projectName = (id: number) => projects.find((p) => p.id === id)?.name ?? "";
   const pendingFor = (run: Run) => approvals.filter((a) => a.run_id === run.id).length;
 
   // 絞り込んだチャット（新しく動いた順）

@@ -4,6 +4,7 @@ import type { ProjectSummary } from "../../../../core/types";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { initialOf, projectHue } from "../../projectColor";
 import { archivedProjects, sidebarOrder } from "../../projectOrder";
+import { useProjects } from "../../projectsContext";
 import { navigate, type ProjectTab } from "../../router";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 
@@ -15,7 +16,8 @@ const ALL_PROJECTS = "全プロジェクト";
  * project がなければ全プロジェクト。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
  * （全プロジェクトから選んだときはカンバン）。しまった（アーカイブした）プロジェクトは下の「アーカイブ済み」に分けて出す。プロジェクトがなければ押せない
  */
-export function ProjectSwitcher({ project, projects, tab = "board" }: { project?: { id: number; name: string }; projects: ProjectSummary[]; tab?: ProjectTab }) {
+export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: number; name: string }; tab?: ProjectTab }) {
+  const { projects } = useProjects();
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const hue = project ? ({ "--ws-hue": `${projectHue(project.id)}` } as CSSProperties) : undefined;
   const className = project ? "project-switch" : "project-switch all-projects";

@@ -6,7 +6,6 @@ import {
   type Approval,
   type Artifact,
   type Project,
-  type ProjectSummary,
   type Run,
   type RunGroup,
   type Task,
@@ -58,13 +57,11 @@ const projectCache = new Map<number, ProjectData>();
 export function ProjectPage({
   id,
   tab,
-  projects,
   focus,
   highlightGroup,
 }: {
   id: number;
   tab: ProjectTab;
-  projects: ProjectSummary[];
   /** カンバンの右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
   /** グループのタブで目立たせるグループ（サイドバーのグループ名から来たとき） */
@@ -136,7 +133,7 @@ export function ProjectPage({
       <header className="page-header project-header">
         <div className="project-title-row">
           <h1>
-            <ProjectSwitcher project={project} projects={projects} tab={tab} />
+            <ProjectSwitcher project={project} tab={tab} />
           </h1>
           <button className="btn btn-sm project-edit-button" title="プロジェクトの名前・既定の設定などを編集" onClick={() => setEditing(true)}>
             <Pencil size={13} /> 編集
@@ -192,8 +189,8 @@ export function ProjectPage({
         </div>
       </header>
 
-      {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} focus={focus} groups={groups} />}
-      {tab === "groups" && <GroupBoard projectId={project.id} projects={projects} runs={runs} groups={groups} approvals={approvals} focus={focus} highlight={highlightGroup} />}
+      {tab === "board" && <KanbanBoard projectId={project.id} approvals={approvals} focus={focus} groups={groups} />}
+      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} approvals={approvals} focus={focus} highlight={highlightGroup} />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
       {tab === "tasks" && (

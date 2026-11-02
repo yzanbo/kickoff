@@ -1,20 +1,21 @@
 import { FolderGit2, Plus } from "lucide-react";
-import type { Approval, ProjectSummary } from "../../../core/types";
+import type { Approval } from "../../../core/types";
 import { api } from "../api";
 import { useAsync } from "../hooks/useAsync";
 import { ProjectSwitcher } from "../components/project/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
 import { sidebarOrder } from "../projectOrder";
+import { useProjects } from "../projectsContext";
 
 interface Props {
-  projects: ProjectSummary[];
   approvals: Approval[];
   onNewProject: () => void;
 }
 
 /** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
-export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
+export function AllProjectsPage({ approvals, onNewProject }: Props) {
+  const { projects } = useProjects();
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
@@ -31,7 +32,7 @@ export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
       <header className="page-header project-header">
         <div className="project-title-row">
           <h1>
-            <ProjectSwitcher projects={projects} />
+            <ProjectSwitcher />
           </h1>
           <div className="project-stats">
             {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
@@ -56,7 +57,7 @@ export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
           </button>
         </div>
       ) : (
-        <KanbanBoard projects={shown} approvals={shownApprovals} title="カンバン" />
+        <KanbanBoard approvals={shownApprovals} title="カンバン" />
       )}
     </div>
   );

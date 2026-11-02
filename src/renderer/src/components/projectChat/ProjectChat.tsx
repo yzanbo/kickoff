@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
-import type { ProjectSummary } from "../../../../core/types";
 import { cx } from "../../cx";
+import { useProjects } from "../../projectsContext";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { terminalTargets } from "../sidePanel/useSidePanel";
 import type { ProjectChatController } from "./useProjectChat";
@@ -9,8 +9,9 @@ import type { ProjectChatController } from "./useProjectChat";
  * プロジェクトのチャット欄（画面の右端。下のパネルより下まで）。中身はボードの右のパネルと同じタブ（SidePanel）で、
  * ＋からチャット・ブラウザ・ターミナルを開ける。左端のつまみで幅を変える。閉じても要素は残し（幅 0）、書きかけの文章をなくさない
  */
-export function ProjectChat({ chat, projects }: { chat: ProjectChatController; projects: ProjectSummary[] }) {
+export function ProjectChat({ chat }: { chat: ProjectChatController }) {
   const { width, projectId, panel } = chat;
+  const { projects } = useProjects();
   if (projectId === undefined) return null;
   return (
     <aside
