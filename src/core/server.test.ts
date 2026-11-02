@@ -228,6 +228,11 @@ test("チャット・グループの API", async () => {
   assert.equal(store.getRun(runId)?.updated_at, updatedAt);
   assert.equal((await call("POST", `/api/runs/${runId}/seen`)).body.attention, 0);
   assert.equal(store.getRun(runId)?.updated_at, updatedAt);
+  // サイドバーの上に固定する・やめる: 並び順（最後に動いた時刻）は変えない
+  assert.equal((await call("POST", `/api/runs/${runId}/pin`, { pinned: true })).body.pinned, 1);
+  assert.equal(store.getRun(runId)?.updated_at, updatedAt);
+  assert.equal((await call("POST", `/api/runs/${runId}/pin`, { pinned: false })).body.pinned, 0);
+  assert.equal((await call("POST", `/api/runs/${runId}/pin`, {})).status, 400);
   assert.ok((await call("POST", `/api/runs/${runId}/archive`)).body.archived_at);
   assert.equal((await call("GET", `/api/projects/${project.id}/runs`)).body.length, 0);
   assert.equal((await call("GET", `/api/projects/${project.id}/runs?archived=1`)).body.length, 1);

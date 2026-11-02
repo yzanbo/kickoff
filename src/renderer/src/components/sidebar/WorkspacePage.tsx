@@ -1,4 +1,4 @@
-import { Archive, Folder, Plus } from "lucide-react";
+import { Archive, Folder, Pin, Plus } from "lucide-react";
 import { memo, useState } from "react";
 import { agentStateOf } from "../../../../core/board";
 import type { AgentState, Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
@@ -7,7 +7,7 @@ import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
 import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
-import { useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
+import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
 import { navigate, openNewChat, openRun, type Route } from "../../router";
 import { CardMenu } from "../CardMenu";
@@ -19,10 +19,11 @@ import { ChatRow } from "./ChatRow";
 import { GroupToggle } from "./GroupToggle";
 import { CHAT_GROUPINGS, type ChatGrouping } from "./ChatGroupingMenu";
 import { GroupedChatRows } from "./GroupedChatRows";
+import { RowSection } from "./RowSection";
+import { isWaitingState, SHOW_ARCHIVED_KEY, WAITING_ONLY_KEY } from "./sidebarFlags";
 import { WorkspaceHead } from "./WorkspaceHead";
 
 const GROUPING_KEY = "kickoff:sidebar-grouping";
-const SHOW_ARCHIVED_KEY = "kickoff:sidebar-show-archived";
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -50,7 +51,9 @@ export const WorkspacePage = memo(function WorkspacePage({
 }) {
   const [grouping, setGrouping] = useStoredChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
-  const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_KEY);
+  const [showArchived, setShowArchived] = useSharedFlag(SHOW_ARCHIVED_KEY);
+  // 自分待ち（回答待ち・確認待ち）だけを出すか（上の行の「自分待ち」で切り替える）
+  const [waitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
@@ -58,6 +61,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
   const { keyword, matches } = useChatSearch(query);
+  // 検索・自分待ちで絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
+  const filtering = Boolean(keyword) || waitingOnly;
 
   const withState = (run: Run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) });
   const allRows = runs.filter((r) => !r.archived_at).map(withState);
@@ -67,7 +72,11 @@ export const WorkspacePage = memo(function WorkspacePage({
   const toggleArchived = () => setArchivedOpen(!archivedOpen);
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
   const [rowMenu, setRowMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
-  const rows = allRows.filter(({ run }) => matches(run));
+  const visibleRows = allRows.filter(({ run, state }) => matches(run) && (!waitingOnly || isWaitingState(state)));
+  // 上に固定したチャットは、グループ・グループなしから抜き出して、いちばん上にまとめる
+  const pinnedRows = visibleRows.filter(({ run }) => run.pinned);
+  const [pinnedClosed, setPinnedClosed] = useStoredFlag(`kickoff:pinned-closed:${project.id}`);
+  const rows = visibleRows.filter(({ run }) => !run.pinned);
   const archivedMatches = archivedRows.filter(({ run }) => matches(run));
 
   // 自分で作ったグループ
@@ -138,7 +147,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       {!collapsed && allRows.length > 0 && (
         <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />
       )}
-      {!collapsed && keyword && rows.length === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
+      {!collapsed && keyword && visibleRows.length === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
       {!collapsed && creating && (
         <div className="custom-group-head editing">
           <Folder size={13} aria-hidden />
@@ -152,12 +161,17 @@ export const WorkspacePage = memo(function WorkspacePage({
           />
         </div>
       )}
+      {!collapsed && pinnedRows.length > 0 && (
+        <RowSection icon={Pin} label="固定" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
+          <ul className="chat-rows">{pinnedRows.map(renderRow)}</ul>
+        </RowSection>
+      )}
       {!collapsed &&
         groups.map((group) => {
           const members = groupedRows(group.id);
           // 検索中は、一致するチャットがないグループを隠す
-          if (keyword && members.length === 0) return null;
-          const closed = groupClosed.get(group.id) && !keyword;
+          if (filtering && members.length === 0) return null;
+          const closed = groupClosed.get(group.id) && !filtering;
           return (
             <div
               key={group.id}
@@ -214,7 +228,7 @@ export const WorkspacePage = memo(function WorkspacePage({
                 ) : grouping !== "recent" ? (
                   // 並べ方でまとめているときは、グループの中も同じようにまとめる
                   <div className="custom-group-grouped">
-                    <GroupedChatRows grouping={grouping} projectId={project.id} scope={group.id} rows={members} renderRow={renderRow} forceOpen={Boolean(keyword)} />
+                    <GroupedChatRows grouping={grouping} projectId={project.id} scope={group.id} rows={members} renderRow={renderRow} forceOpen={filtering} />
                   </div>
                 ) : (
                   <ul className="chat-rows custom-group-rows">{members.map(renderRow)}</ul>
@@ -224,7 +238,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         })}
       {!collapsed && groups.length > 0 && ungroupedRows.length > 0 && (
         <div className={`custom-group-head ungrouped ${dropOver === "none" ? "drop-target" : ""}`} {...dropTarget(null)}>
-          <GroupToggle open={!(ungroupedClosed && !keyword)} onToggle={toggleUngrouped} />
+          <GroupToggle open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} />
           <button className="custom-group-name ungrouped-name" onClick={toggleUngrouped}>
             グループなし
           </button>
@@ -235,7 +249,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         </div>
       )}
       {groupMenu.menu}
-      {collapsed || (keyword && rows.length === 0) || (groups.length > 0 && ungroupedClosed && !keyword) ? null : rows.length === 0 ? (
+      {collapsed || (filtering && rows.length === 0) || (groups.length > 0 && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 ? (
         <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
           <Plus size={13} /> 最初のチャットを始める
         </button>
@@ -244,19 +258,12 @@ export const WorkspacePage = memo(function WorkspacePage({
           {ungroupedRows.map(renderRow)}
         </ul>
       ) : (
-        <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} forceOpen={Boolean(keyword)} />
+        <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} forceOpen={filtering} />
       )}
-      {!collapsed && showArchived && archivedMatches.length > 0 && (
-        <div className="archived-section">
-          <div className="custom-group-head ungrouped">
-            <GroupToggle open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived} icon={Archive} iconSize={12} />
-            <button className="custom-group-name ungrouped-name" onClick={toggleArchived}>
-              アーカイブ済み
-            </button>
-            <span className="custom-group-count">{archivedMatches.length}</span>
-          </div>
-          {(archivedOpen || keyword) && <ul className="chat-rows archived-rows">{archivedMatches.map(renderRow)}</ul>}
-        </div>
+      {!collapsed && showArchived && !waitingOnly && archivedMatches.length > 0 && (
+        <RowSection icon={Archive} label="アーカイブ済み" count={archivedMatches.length} open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived}>
+          <ul className="chat-rows archived-rows">{archivedMatches.map(renderRow)}</ul>
+        </RowSection>
       )}
       {rowMenu && (
         <CardMenu

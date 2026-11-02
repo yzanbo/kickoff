@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
 /**
  * localStorage に保存する状態（開閉・表示の切り替えなど）。
@@ -58,4 +58,26 @@ export function useStoredFlagMap(prefix: string) {
   );
   const toggle = (id: number | string) => set(id, !get(id));
   return { get, set, toggle };
+}
+
+const sharedListeners = new Set<() => void>();
+const subscribeShared = (listener: () => void) => {
+  sharedListeners.add(listener);
+  return () => void sharedListeners.delete(listener);
+};
+
+/**
+ * 同じ key を使うすべての部品でそろう "1" / "0"（サイドバーの各プロジェクトのメニュー・上の行など、別々の部品から切り替えるもの）。
+ * useStoredFlag は部品ごとに値を持つので、ほかの部品で切り替えても変わらない。set は参照が変わらない
+ */
+export function useSharedFlag(key: string, initial = false) {
+  const raw = useSyncExternalStore(subscribeShared, () => localStorage.getItem(key));
+  const set = useCallback(
+    (on: boolean) => {
+      localStorage.setItem(key, on ? "1" : "0");
+      sharedListeners.forEach((l) => l());
+    },
+    [key],
+  );
+  return [raw === null ? initial : raw === "1", set] as const;
 }

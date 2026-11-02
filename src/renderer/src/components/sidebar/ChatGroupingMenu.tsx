@@ -1,8 +1,10 @@
-import { Archive, Check, Clock, GitBranch, Layers, ListTree, type LucideIcon } from "lucide-react";
+import { Archive, Check, Clock, GitBranch, Layers, ListTree, Rows2, type LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
+import { useSharedFlag } from "../../hooks/useStoredState";
 import { IconButton } from "../IconButton";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { COMPACT_KEY } from "./sidebarFlags";
 
 /**
  * サイドバーのチャット一覧の並べ方。保存の形式は今までのまま（"recent" / "status"）で、作業場所・セクションを足した
@@ -17,7 +19,7 @@ const GROUPING_META: Record<ChatGrouping, { label: string; icon: LucideIcon }> =
   phase: { label: "セクションでまとめる", icon: Layers },
 };
 
-/** 並べ方のボタン（いまの並べ方のアイコン）。押すと並べ方と、アーカイブ済みを出すかを選ぶメニューを出す */
+/** 並べ方のボタン（いまの並べ方のアイコン）。押すと並べ方と、アーカイブ済みを出すか・1 行で出すか（どのプロジェクトでも同じ）を選ぶメニューを出す */
 export function ChatGroupingMenu({
   value,
   onChange,
@@ -42,7 +44,7 @@ export function ChatGroupingMenu({
         onClick={(e) => {
           if (at) return setAt(null);
           const r = e.currentTarget.getBoundingClientRect();
-          setAt(clampToViewport(r.left, r.bottom + 4, 260, 220));
+          setAt(clampToViewport(r.left, r.bottom + 4, 260, 255));
         }}
       />
       {at && <GroupingMenu {...at} value={value} onPick={onChange} showArchived={showArchived} onShowArchived={onShowArchived} onClose={() => setAt(null)} />}
@@ -69,6 +71,7 @@ function GroupingMenu({
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
   useMenuKeys(menuRef);
+  const [compact, setCompact] = useSharedFlag(COMPACT_KEY);
   return (
     <PopupMenu x={x} y={y} label="チャットの並べ方" ignore=".chat-grouping-button" menuRef={menuRef} onClose={onClose}>
       <div className="menu-label">チャットの並べ方</div>
@@ -95,6 +98,11 @@ function GroupingMenu({
         <Archive size={14} aria-hidden />
         <span className="project-switch-item">アーカイブ済みを表示</span>
         {showArchived && <Check size={14} aria-hidden />}
+      </button>
+      <button role="menuitemcheckbox" aria-checked={compact} onClick={() => (onClose(), setCompact(!compact))}>
+        <Rows2 size={14} aria-hidden />
+        <span className="project-switch-item">1 行で表示</span>
+        {compact && <Check size={14} aria-hidden />}
       </button>
     </PopupMenu>
   );

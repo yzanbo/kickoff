@@ -184,6 +184,7 @@ export const api = {
   renameRun: (runId: number, title: string) => request<Run>("PATCH", `/api/runs/${runId}`, { title }),
   markSeen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/seen`),
   markUnseen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/unseen`),
+  pinRun: (runId: number, pinned: boolean) => request<Run>("POST", `/api/runs/${runId}/pin`, { pinned }),
   compactRun: (runId: number) => request<Run>("POST", `/api/runs/${runId}/compact`),
   archiveRun: (runId: number, archived = true) => request<Run>("POST", `/api/runs/${runId}/archive`, { archived }),
   deleteRun: (runId: number) => request<{ ok: true }>("DELETE", `/api/runs/${runId}`),

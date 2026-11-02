@@ -1,11 +1,10 @@
 import { Archive, ChevronsDownUp, ChevronsUpDown, GalleryHorizontal, Plus, Rows3 } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import type { Approval, ProjectSummary, RunGroup } from "../../../../core/types";
+import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { PROJECT_DRAG_TYPE, useReorder } from "../../groups";
-import { useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
+import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
-import { initialOf, projectHue } from "../../projectColor";
 import { archivedProjects, sidebarOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
 import { cx } from "../../cx";
@@ -13,9 +12,10 @@ import { IconButton } from "../IconButton";
 import { ProjectMenu } from "../ProjectMenu";
 import { Segmented } from "../Segmented";
 import { GroupToggle } from "./GroupToggle";
+import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
-import { useSidebarData } from "./useSidebarData";
+import { COMPACT_KEY, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 const LAYOUT_KEY = "kickoff:sidebar-layout";
@@ -29,6 +29,9 @@ type NavLayout = "slide" | "stack";
 interface Props {
   projects: ProjectSummary[];
   approvals: Approval[];
+  /** プロジェクトごとのチャット（アーカイブしたものも含む）とグループ（useSidebarData） */
+  runs: Record<number, Run[]>;
+  groups: Record<number, RunGroup[]>;
   route: Route;
   onNewProject: () => void;
 }
@@ -37,13 +40,17 @@ interface Props {
  * Zen Browser のワークスペースのような、プロジェクトごとのサイドバー。
  * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替える。
  */
-export function ProjectNav({ projects, approvals, route, onNewProject }: Props) {
+export function ProjectNav({ projects, approvals, runs, groups, route, onNewProject }: Props) {
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
   // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
   const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_PROJECTS_KEY);
   const visible = sidebarOrder(projects);
   const archived = archivedProjects(projects);
-  const ordered = showArchived ? [...visible, ...archived] : visible;
+  // 自分待ちだけを出すときは、自分待ちのチャットがあるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
+  const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
+  const [compact] = useSharedFlag(COMPACT_KEY);
+  const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], approvals).length > 0;
+  const ordered = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const reorder = useReorder(
     visible.map((p) => p.id),
     (ids) => void api.reorderProjects(ids),
@@ -64,8 +71,6 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   const [layout, changeLayout] = useStoredChoice<NavLayout>(LAYOUT_KEY, ["slide", "stack"], "slide");
   // チャット一覧の開閉（縦並びでは、すべてまとめて閉じる・開くこともできる）
   const collapsedMap = useStoredFlagMap(COLLAPSED_PREFIX);
-  // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるように、先に読み込む）
-  const { runs, groups } = useSidebarData(ordered);
   const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
   const current = ordered[index];
 
@@ -111,11 +116,6 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   };
   // トラックパッドの 2 本指スワイプ・タッチのドラッグで隣のプロジェクトへ
   const swipe = useWorkspaceSwipe({ index, count: ordered.length, go });
-  // 下の丸の列: 選んでいるプロジェクトの丸を、スクロールして見えるところに出す
-  const dotsRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    dotsRef.current?.querySelector(".workspace-dot.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [index]);
 
   // ショートカット: ⌥⌘← / ⌥⌘→ で前後、⌃1〜9 で n 番目
   useWindowEvent("keydown", (e) => {
@@ -141,13 +141,23 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
 
   /** 縦並びの、しまったプロジェクトのまとまりの見出し（サイドバーのアーカイブ済みのチャットと同じ形） */
   const toggleArchived = () => setShowArchived(!showArchived);
-  const archivedHead = archived.length > 0 && (
+  const archivedHead = archived.length > 0 && !waitingOnly && (
     <div className="custom-group-head ungrouped archived-projects-head">
       <GroupToggle open={showArchived} onToggle={toggleArchived} icon={Archive} iconSize={12} />
       <button className="custom-group-name ungrouped-name" onClick={toggleArchived}>
         アーカイブしたプロジェクト
       </button>
       <span className="custom-group-count">{archived.length}</span>
+    </div>
+  );
+
+  /** 自分待ちだけを出していて、ひとつもないとき */
+  const waitingEmpty = waitingOnly && ordered.length === 0 && (
+    <div className="waiting-empty">
+      <p className="chat-search-empty">自分待ちのチャットはありません</p>
+      <button className="chat-row ghost" onClick={() => setWaitingOnly(false)}>
+        すべてのチャットを表示
+      </button>
     </div>
   );
 
@@ -170,7 +180,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     const allOpen = ordered.every((p) => !collapsedMap.get(p.id));
     const setAllCollapsed = (on: boolean) => ordered.forEach((p) => collapsedMap.set(p.id, on));
     return (
-      <div className="workspaces">
+      <div className={cx("workspaces", compact && "compact")}>
         <div className="workspace-stack">
           {ordered.map((p, i) => (
             <Fragment key={p.id}>
@@ -184,7 +194,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
                 approvals={approvals}
                 route={route}
                 hidden={false}
-                collapsed={collapsedMap.get(p.id)}
+                collapsed={!waitingOnly && collapsedMap.get(p.id)}
                 onCollapsedChange={collapsedMap.set}
                 headDrag={isArchived(p.id) ? undefined : reorder.handle(p.id)}
               />
@@ -192,6 +202,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
             </Fragment>
           ))}
           {!showArchived && archivedHead}
+          {waitingEmpty}
         </div>
         <div className="workspace-switcher stack">
           <button className="sidebar-new" onClick={onNewProject}>
@@ -209,12 +220,13 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   }
 
   return (
-    <div className="workspaces">
+    <div className={cx("workspaces", compact && "compact")}>
       <div
         className="workspace-viewport"
         ref={swipe.viewportRef}
         {...swipe.handlers}
       >
+        {waitingEmpty}
         <div className="workspace-track" ref={swipe.trackRef}>
           {ordered.map((p, i) => (
             <WorkspacePage
@@ -225,7 +237,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
               approvals={approvals}
               route={route}
               hidden={i !== index}
-              collapsed={collapsedMap.get(p.id)}
+              collapsed={!waitingOnly && collapsedMap.get(p.id)}
               onCollapsedChange={collapsedMap.set}
             />
           ))}
@@ -233,44 +245,17 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
       </div>
 
       <div className="workspace-switcher">
-        {/* プロジェクトの丸（右の並べ方の切り替えを除いた幅で、真ん中に並べる。入りきらなければ横にスクロール。マウスのホイールでも横に動く） */}
-        <div
-          ref={dotsRef}
-          className="workspace-dots"
-          role="tablist"
-          aria-label="プロジェクトの切り替え"
-          onWheel={(e) => {
-            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
-          }}
-        >
-        {ordered.map((p, i) => {
-          const waiting = approvals.some((a) => a.project_id === p.id);
-          return (
-            <button
-              key={p.id}
-              role="tab"
-              aria-selected={i === index}
-              className={cx("workspace-dot", i === index && "active", p.pinned > 0 && "pinned", isArchived(p.id) ? "archived" : reorder.classFor(p.id))}
-              style={{ "--ws-hue": `${projectHue(p.id)}` } as React.CSSProperties}
-              title={`${p.name}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${isArchived(p.id) ? "" : "ドラッグで並べ替え・"}右クリックで固定・アーカイブ）`}
-              onClick={() => go(i)}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setMenu({ x: e.clientX, y: e.clientY, project: p });
-              }}
-              draggable={!isArchived(p.id)}
-              {...(isArchived(p.id) ? {} : reorder.handle(p.id))}
-              {...reorderDrop(p.id)}
-            >
-              {initialOf(p.name)}
-              {waiting && <span className="workspace-dot-badge" aria-label="回答待ちあり" />}
-            </button>
-          );
-        })}
-        <button className="workspace-dot add" title="新しいプロジェクト" aria-label="新しいプロジェクト" onClick={onNewProject}>
-          <Plus size={14} />
-        </button>
-        </div>
+        <WorkspaceDots
+          projects={ordered}
+          index={index}
+          approvals={approvals}
+          isArchived={isArchived}
+          reorder={reorder}
+          reorderDrop={reorderDrop}
+          onGo={go}
+          onMenu={(at, project) => setMenu({ ...at, project })}
+          onNewProject={onNewProject}
+        />
         {/* しまったプロジェクトを丸の列に出す・隠す（しまったものがあるときだけ。初めは隠す） */}
         {archived.length > 0 && (
           <IconButton

@@ -45,7 +45,7 @@
 | モデル・推論の深さ・権限モードの選択肢 | `ModelOptions` / `EffortOptions` / `PermissionOptions` |
 | 状態の点 | `StatusDot` ＋ `toneOf` |
 | CLI の状態カード | `StatusCard` / `GitHubStatusCard`。カードとその並びは `.card` / `.card-grid` |
-| サイドバーのチャットの並べ方 | `ChatGroupingMenu`（見出しのボタンからメニューで選ぶ: 新しい順・状態・作業場所（ブランチ）・セクションと、アーカイブ済みを出すか（`kickoff:sidebar-show-archived`）。行に乗せると右端にアーカイブ・削除（`runActions.ts` の `toggleArchiveRun` / `confirmDeleteRun`。右クリックのメニューと共通）。保存は `kickoff:sidebar-grouping` の `recent` / `status` をそのまま使い、`worktree` / `phase` を足した）。まとめた表示は `GroupedChatRows`（グループなしと、自分で作ったグループの中の両方をまとめる。まとまりごとに開閉し、`kickoff:sidebar-group-closed:<プロジェクト>:<並べ方>:<まとまり>` に覚える。検索中はすべて開く） |
+| サイドバーのチャットの並べ方 | `ChatGroupingMenu`（見出しのボタンからメニューで選ぶ: 新しい順・状態・作業場所（ブランチ）・セクションと、アーカイブ済みを出すか（`kickoff:sidebar-show-archived`）・1 行で出すか（`kickoff:sidebar-compact`。どのプロジェクトでも同じなので `useSharedFlag`）。上の行の「自分待ち」（`kickoff:sidebar-waiting-only`）は回答待ち・確認待ちのチャットとそのプロジェクトだけを出す（`sidebarFlags.ts` の `waitingRuns`。数はしまったプロジェクトを除く）。チャットの固定（`runs.pinned`、`togglePinRun`。並び順の時刻は変えない）は、プロジェクトのいちばん上の「固定」のまとまりに抜き出す（固定・アーカイブ済みのまとまりは `RowSection`）。行に乗せると右端に固定・アーカイブ・削除（`runActions.ts` の `toggleArchiveRun` / `confirmDeleteRun`。右クリックのメニューと共通）。保存は `kickoff:sidebar-grouping` の `recent` / `status` をそのまま使い、`worktree` / `phase` を足した）。まとめた表示は `GroupedChatRows`（グループなしと、自分で作ったグループの中の両方をまとめる。まとまりごとに開閉し、`kickoff:sidebar-group-closed:<プロジェクト>:<並べ方>:<まとまり>` に覚える。検索中はすべて開く） |
 | サイドバーのグループの開閉 | `GroupToggle`。開閉の矢印は `Chevron` |
 | ボードのスイムレーン | 表示の切り替えの 3 つ目（ボード / リスト / スイムレーン。`kickoff:board-view` / `kickoff:group-view` の `lanes`）。`BoardLanes`（列はどれも状態。カンバンの段の分け方: 作業場所（ブランチ）・セクション・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、`kickoff:board-lanes`。グループのタブは段 = グループで、列は下書き＋状態（`GroupLaneColumns`）。段へカードをドラッグするとグループを移す。段ごとに状態の列を並べ、見出しで開閉（`kickoff:board-lane-closed:`）） |
 | ボードの列の見出し | `ColumnHead`（色の点・名前・件数・右端の操作）。完了の列には `ArchiveAllButton`（確かめてから、列のチャットをすべてアーカイブ） |
@@ -69,7 +69,7 @@
 
 - window のイベント: `useWindowEvent`（effect の中で `addEventListener` しない。ほかより先に受け取るなら `capture`）。サーバーのイベント: `useServerEvent`。
 - いま画面に出ているテーマ（ダーク・ライト）: `useAppliedTheme`（`<html data-theme>` の変化で描き直す）。
-- localStorage: `useStoredState` / `useStoredFlag` / `useStoredChoice` / `useStoredNumber` / `useStoredFlagMap`（部品から直接読み書きしない）。選択肢を増やすときも、今までの値はそのままの意味で読めるようにする（例: アーカイブの絞り込みは `"1"` / `"0"` のまま、`"archived"` を足した）。`useStoredFlagMap` の `set` は参照が変わらないので、memo した部品に渡せる。
+- localStorage: `useStoredState` / `useStoredFlag` / `useStoredChoice` / `useStoredNumber` / `useStoredFlagMap`（部品から直接読み書きしない）。別々の部品から同じ値を切り替えるもの（サイドバーの各プロジェクトのメニューなど）は `useSharedFlag`（ほかの部品にもすぐ伝わる）。選択肢を増やすときも、今までの値はそのままの意味で読めるようにする（例: アーカイブの絞り込みは `"1"` / `"0"` のまま、`"archived"` を足した）。`useStoredFlagMap` の `set` は参照が変わらないので、memo した部品に渡せる。
 - 右側のパネル（`useSidePanel`）の開閉と開いているタブは、`memoryKey` でボードごとに覚える（タブやプロジェクトを切り替えて戻っても元どおり）。
 - 操作の失敗の表示: `useActionError`。時間とともに変わる表示: `useTicker`。つまみで幅・高さを変える: `startHorizontalDrag` / `startVerticalDrag`。左右の欄の境目は `useDragWidth`（幅を覚え、ダブルクリックで戻す。つまみは `.pane-resizer`）。アプリ全体で 1 回だけ取得: `cachedLoader`。
 - 例外の文: `errorMessage`（`e instanceof Error ? e.message : String(e)` を書かない）。class 名の組み立て: `cx`。

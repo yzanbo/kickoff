@@ -388,6 +388,14 @@ export class Store {
     return run;
   }
 
+  /** サイドバーの上に固定する・やめる（最後に動いた時刻（並び順）は変えない） */
+  setRunPinned(id: number, pinned: boolean): Run {
+    this.db.prepare("UPDATE runs SET pinned = ? WHERE id = ?").run(pinned ? 1 : 0, id);
+    const run = this.getRun(id)!;
+    this.onChange({ type: "run", run });
+    return run;
+  }
+
   /** その作業場所（ワークツリー）を使っているチャット */
   runsInWorktree(projectId: number, worktreePath: string): Run[] {
     return (this.db.prepare("SELECT * FROM runs WHERE project_id = ? AND worktree_path = ?").all(projectId, worktreePath) as unknown as Run[]).map((r) => this.getRun(r.id)!);
