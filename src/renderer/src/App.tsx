@@ -9,6 +9,8 @@ import { ConnectionPopover } from "./components/ConnectionPopover";
 import { SearchPanel } from "./components/SearchPanel";
 import { UsagePopover } from "./components/UsagePopover";
 import { NewProjectDialog } from "./components/newProject/NewProjectDialog";
+import { ProjectChat } from "./components/projectChat/ProjectChat";
+import { useProjectChat } from "./components/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "./components/settings/SettingsDialog";
 import { Sidebar, SidebarOpenButton } from "./components/sidebar/Sidebar";
 import { loadCurrentProject } from "./components/sidebar/currentProject";
@@ -42,6 +44,8 @@ export function App() {
   // 設定のダイアログ（開いている項目。null なら閉じている）
   const [settings, setSettings] = useState<SettingsSection | null>(null);
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
+  // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。プロジェクトの画面でだけ出す）
+  const chat = useProjectChat(routeProjectId(route));
   const bottomPanel = useBottomPanel(routeProjectId(route) ?? "all", terminalTargets(projects, routeProjectId(route)));
 
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める */
@@ -85,6 +89,7 @@ export function App() {
               projects={projects}
               focus={route.name === "project" ? undefined : route}
               highlightGroup={route.name === "project" ? route.group : undefined}
+              chat={chat}
             />
           ) : (
             <AllProjectsPage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
@@ -92,6 +97,7 @@ export function App() {
         </main>
         <BottomPanel panel={bottomPanel} />
         </div>
+        <ProjectChat chat={chat} />
         <AppFooter
           onOpenSettings={() => setSettings("usage")}
           connection={connection.state}

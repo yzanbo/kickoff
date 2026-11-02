@@ -6,11 +6,12 @@ import { NewChatPane } from "../NewChatPane";
 import type { ProjectChatController } from "./useProjectChat";
 
 /**
- * プロジェクトのチャット欄（画面の右端）。チャットを 1 つ表示し、上の「新しいチャット」で書き直す。
+ * プロジェクトのチャット欄（画面の右端。下のパネルより下まで）。チャットを 1 つ表示し、上の「新しいチャット」で書き直す。
  * 閉じても要素は残し（hidden）、書きかけの文章をなくさない
  */
 export function ProjectChat({ chat }: { chat: ProjectChatController }) {
-  const { width } = chat;
+  const { width, projectId } = chat;
+  if (projectId === undefined) return null;
   return (
     <aside
       ref={width.paneRef}
@@ -28,9 +29,9 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
       </div>
       <div className="project-chat-body">
         {chat.runId === null ? (
-          <NewChatPane key={`new:${chat.projectId}`} projectId={chat.projectId} onClose={chat.close} onCreated={(run) => chat.showRun(run.id)} />
+          <NewChatPane key={`new:${projectId}`} projectId={projectId} onClose={chat.close} onCreated={(run) => chat.showRun(run.id)} />
         ) : (
-          <RunPage key={chat.runId} projectId={chat.projectId} runId={chat.runId} visible={chat.open} onClose={chat.close} />
+          <RunPage key={chat.runId} projectId={projectId} runId={chat.runId} visible={chat.open} onClose={chat.close} />
         )}
       </div>
     </aside>
