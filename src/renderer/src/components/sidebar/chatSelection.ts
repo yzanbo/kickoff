@@ -38,10 +38,13 @@ export function useChatSelectionState(existing: Set<number>): ChatSelection {
     ids,
     has: (id) => ids.has(id),
     toggle: (id) => {
-      const next = new Set(ids);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      setPicked(next);
+      // 続けて押しても取りこぼさないよう、いまの値から足す・外す
+      setPicked((prev) => {
+        const next = new Set([...prev].filter((x) => existing.has(x)));
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
       setAnchor(id);
     },
     range: (id) => {
