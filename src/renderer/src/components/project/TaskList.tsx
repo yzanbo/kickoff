@@ -3,7 +3,7 @@ import { useState } from "react";
 import { PHASE_LABELS, PHASES, TASK_STATUS_LABELS, TASK_STATUSES, type Phase, type Task, type TaskStatus } from "../../../../core/types";
 import { api, type TaskInput } from "../../api";
 import { confirmDialog } from "../../dialogs";
-import { errorMessage } from "../../errors";
+import { useSave } from "../../hooks/useSave";
 import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
 import { SectionBadge } from "../SectionBadge";
@@ -123,30 +123,24 @@ function TaskForm({
   onDelete?: () => Promise<void>;
 }) {
   const [value, setValue] = useState(initial);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>();
+  const save = useSave();
   const set = <K extends keyof typeof value>(key: K, v: (typeof value)[K]) => setValue((prev) => ({ ...prev, [key]: v }));
 
   return (
     <form
       className="task-form"
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault();
-        setSaving(true);
-        setError(undefined);
-        try {
-          await onSubmit({
+        void save.run(() =>
+          onSubmit({
             phase: value.phase,
             title: value.title,
             description: value.description,
             acceptance_criteria: value.acceptance_criteria,
             priority: value.priority,
             ...(withStatus ? { status: value.status } : {}),
-          });
-        } catch (err) {
-          setError(errorMessage(err));
-          setSaving(false);
-        }
+          }),
+        );
       }}
     >
       <input type="text" aria-label="タイトル" placeholder="タイトル" value={value.title} required autoFocus onChange={(e) => set("title", e.target.value)} />
@@ -183,7 +177,7 @@ function TaskForm({
           </select>
         )}
       </div>
-      <ErrorText message={error} />
+      <ErrorText message={save.error} />
       <div className="task-form-actions">
         {onDelete && (
           <button type="button" className="btn btn-danger-text" onClick={() => void onDelete()}>
@@ -194,7 +188,7 @@ function TaskForm({
         <button type="button" className="btn" onClick={onCancel}>
           キャンセル
         </button>
-        <button type="submit" className="btn btn-primary" disabled={saving || !value.title.trim()}>
+        <button type="submit" className="btn btn-primary" disabled={save.saving || !value.title.trim()}>
           {submitLabel}
         </button>
       </div>

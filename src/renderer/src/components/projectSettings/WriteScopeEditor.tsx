@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PHASE_LABELS, SCOPED_SECTIONS, type Project, type ScopedSection } from "../../../../core/types";
 import { api } from "../../api";
-import { errorMessage } from "../../errors";
+import { useSave } from "../../hooks/useSave";
 import { ErrorText } from "../ErrorText";
 
 const DEFAULT_SCOPE = ["docs"];
@@ -20,20 +20,10 @@ export function WriteScopeEditor({ project }: { project: Project }) {
 function ScopeRow({ project, section }: { project: Project; section: ScopedSection }) {
   const folders = project.write_scopes?.[section] ?? DEFAULT_SCOPE;
   const [input, setInput] = useState("");
-  const [error, setError] = useState<string>();
-  const [saving, setSaving] = useState(false);
+  const { saving, error, run } = useSave();
 
   async function save(next: string[]) {
-    setSaving(true);
-    setError(undefined);
-    try {
-      await api.updateProject(project.id, { write_scopes: { [section]: next } });
-      setInput("");
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setSaving(false);
-    }
+    if (await run(() => api.updateProject(project.id, { write_scopes: { [section]: next } }))) setInput("");
   }
 
   async function pick() {
