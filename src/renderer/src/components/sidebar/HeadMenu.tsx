@@ -1,7 +1,6 @@
 import { Check, type LucideIcon } from "lucide-react";
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useState } from "react";
 import { cx } from "../../cx";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 
 /** メニューの 1 項目（radio はどれか 1 つ、checkbox はオン・オフ） */
@@ -72,10 +71,8 @@ export function HeadMenu({
 }
 
 function Menu({ x, y, label, ignore, sections, onClose }: { x: number; y: number; label: string; ignore: string; sections: HeadMenuSection[]; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useMenuKeys(ref);
   return (
-    <PopupMenu x={x} y={y} label={label} ignore={ignore} menuRef={ref} onClose={onClose}>
+    <PopupMenu x={x} y={y} label={label} ignore={ignore} onClose={onClose}>
       {sections.map((section, i) => (
         <Fragment key={section.label ?? i}>
           {i > 0 && <div className="menu-separator" role="separator" />}

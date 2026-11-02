@@ -1,6 +1,4 @@
 import { Globe, SquarePen, SquareTerminal } from "lucide-react";
-import { useRef } from "react";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { PopupMenu } from "../PopupMenu";
 import type { TerminalTarget } from "./useSidePanel";
 
@@ -28,14 +26,12 @@ export function AddTabMenu({
   onTerminal: (target: TerminalTarget) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useMenuKeys(ref);
   const pick = (action: () => void) => {
     onClose();
     action();
   };
   return (
-    <PopupMenu x={x} y={y} label="新しいタブ" ignore=".panel-tab-add" menuRef={ref} onClose={onClose}>
+    <PopupMenu x={x} y={y} label="新しいタブ" ignore=".panel-tab-add" onClose={onClose}>
       <button role="menuitem" onClick={() => pick(onNewChat)}>
         <SquarePen size={14} /> 新しいチャット
       </button>

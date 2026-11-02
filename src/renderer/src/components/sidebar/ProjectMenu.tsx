@@ -11,9 +11,8 @@ import {
   SquarePen,
   Trash2,
 } from "lucide-react";
-import { useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import type { ProjectSummary } from "../../../../core/types";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "../../projectOrder";
 import { openNewChat } from "../../router";
 import { ProjectEditDialog } from "../project/ProjectEditDialog";
@@ -83,8 +82,6 @@ function ProjectMenu({
   onEdit: (section?: ProjectSettingsSection) => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useMenuKeys(ref);
   const at = clampToViewport(x, y, 260, MENU_HEIGHT);
   /** 押したらメニューを閉じてから行う */
   const item = (key: string, icon: ReactNode, label: string, run: () => void, opts: { danger?: boolean } = {}) => (
@@ -102,7 +99,7 @@ function ProjectMenu({
   );
   const archived = Boolean(project.archived_at);
   return (
-    <PopupMenu x={at.x} y={at.y} className="project-menu" label={`${project.name} のメニュー`} menuRef={ref} onClose={onClose}>
+    <PopupMenu x={at.x} y={at.y} className="project-menu" label={`${project.name} のメニュー`} onClose={onClose}>
       <div className="menu-label">このプロジェクト</div>
       {item("new", <SquarePen size={14} />, "新しいチャット", () => openNewChat(project.id))}
       {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}

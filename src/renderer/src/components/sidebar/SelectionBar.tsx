@@ -1,7 +1,6 @@
 import { Archive, ArchiveRestore, FolderInput, MailOpen, Trash2, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Run, RunGroup } from "../../../../core/types";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { confirmArchiveRuns, confirmDeleteRuns, markRunsSeen, moveRunsToGroup } from "../../runActions";
 import { GroupPickMenu } from "../menus/GroupPickMenu";
@@ -129,15 +128,13 @@ function SelectionMenu({
   onClear: () => void;
   onClose: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useMenuKeys(ref);
   const at = clampToViewport(x, y, 230, 230);
   const item = (run: () => void) => () => {
     onClose();
     run();
   };
   return (
-    <PopupMenu x={at.x} y={at.y} label={`${count} 件のチャットの操作`} menuRef={ref} onClose={onClose}>
+    <PopupMenu x={at.x} y={at.y} label={`${count} 件のチャットの操作`} onClose={onClose}>
       <div className="menu-label">{count} 件を選択中</div>
       <button role="menuitem" onClick={item(onArchive)}>
         {allArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />} {allArchived ? "まとめてアーカイブから戻す" : "まとめてアーカイブ"}
