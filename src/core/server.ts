@@ -15,6 +15,7 @@ import type { ApprovalCenter } from "./approvals.js";
 import type { Runner } from "./runner.js";
 import type { UploadStore } from "./uploads.js";
 import { agentRoutes } from "./routes/agents.js";
+import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
 import { HttpError } from "./routes/http.js";
@@ -23,6 +24,7 @@ import { runRoutes } from "./routes/runs.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { uploadRoutes } from "./routes/uploads.js";
+import { worktreeRoutes } from "./routes/worktrees.js";
 import type { ProviderId, ServerStatus } from "./types.js";
 
 export interface ServerDeps {
@@ -98,6 +100,8 @@ export function createApp(deps: ServerDeps): Hono {
   uploadRoutes(app, deps);
   agentRoutes(app, deps);
   gitRoutes(app, deps);
+  filesRoutes(app, deps);
+  worktreeRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>
