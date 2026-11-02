@@ -1,10 +1,10 @@
 import { Plus } from "lucide-react";
-import { Fragment, useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
+import { Fragment, useEffect, useRef, type CSSProperties, type MouseEvent } from "react";
 import { BOARD_COLUMN_LABELS, type ProjectSummary } from "../../../../core/types";
 import { cx } from "../../cx";
-import type { useReorder } from "../../groups";
 import { initialOf, projectHue } from "../../projectColor";
 import type { StateCounts } from "./sidebarFlags";
+import type { ProjectReorder } from "./useProjectReorder";
 
 /**
  * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・右クリックでメニュー）。
@@ -14,10 +14,8 @@ export function WorkspaceDots({
   projects,
   index,
   countsOf,
-  canReorder,
   isArchived,
   reorder,
-  reorderDrop,
   onGo,
   onMenu,
   onNewProject,
@@ -27,12 +25,10 @@ export function WorkspaceDots({
   index: number;
   /** プロジェクトごとの、作業中・回答待ち・確認待ちのチャット数 */
   countsOf: (id: number) => StateCounts;
-  /** ドラッグで並べ替えられるか（最近動いた順のときは並べ替えない） */
-  canReorder: boolean;
-  /** しまった（アーカイブした）プロジェクトか（並べ替えない） */
+  /** しまった（アーカイブした）プロジェクトか（薄く出す） */
   isArchived: (id: number) => boolean;
-  reorder: ReturnType<typeof useReorder>;
-  reorderDrop: (id: number) => Partial<Record<"onDragOver" | "onDragLeave" | "onDrop", (e: DragEvent) => void>>;
+  /** ドラッグでの並べ替え（最近動いた順・しまったものは並べ替えない） */
+  reorder: ProjectReorder;
   onGo: (index: number) => void;
   /** 右クリック（プロジェクトのメニューを開く） */
   onMenu: (e: MouseEvent, project: ProjectSummary) => void;
@@ -55,7 +51,7 @@ export function WorkspaceDots({
     >
       {projects.map((p, i) => {
         const counts = countsOf(p.id);
-        const draggable = canReorder && !isArchived(p.id);
+        const draggable = reorder.draggable(p.id);
         const summary = (["running", "needs_input", "review"] as const)
           .filter((c) => counts[c] > 0)
           .map((c) => `${BOARD_COLUMN_LABELS[c]} ${counts[c]}`)
@@ -68,14 +64,14 @@ export function WorkspaceDots({
           <button
             role="tab"
             aria-selected={i === index}
-            className={cx("workspace-dot", i === index && "active", p.pinned > 0 && "pinned", isArchived(p.id) && "archived", draggable && reorder.classFor(p.id))}
+            className={cx("workspace-dot", i === index && "active", p.pinned > 0 && "pinned", isArchived(p.id) && "archived", reorder.classFor(p.id))}
             style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties}
             title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}右クリックで固定・アーカイブ）`}
             onClick={() => onGo(i)}
             onContextMenu={(e) => onMenu(e, p)}
             draggable={draggable}
-            {...(draggable ? reorder.handle(p.id) : {})}
-            {...reorderDrop(p.id)}
+            {...reorder.handle(p.id)}
+            {...reorder.dropProps(p.id)}
           >
             {initialOf(p.name)}
             {counts.running > 0 && <span className="workspace-dot-working" aria-label={`作業中 ${counts.running} 件`} />}

@@ -5,7 +5,6 @@ import { BOARD_COLUMN_LABELS, type AgentState, type ProjectSummary, type Run, ty
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
-import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
@@ -13,7 +12,6 @@ import { useRunStates } from "../../approvalsContext";
 import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, SIDEBAR_WAITING_ONLY_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
 import { openNewChat, openRun, routeProjectId, useRoute } from "../../router";
 import { CardMenu } from "../menus/CardMenu";
-import { useGroupMenu } from "../menus/GroupMenu";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { SearchField } from "../SearchField";
@@ -22,6 +20,7 @@ import { GroupToggle } from "./GroupToggle";
 import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
+import { useGroupSections } from "./useGroupSections";
 import { DraftRows } from "./DraftRows";
 import { RowSection } from "./RowSection";
 import type { StateFilter } from "./HeadCounts";
@@ -90,9 +89,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   const rows = visibleRows.filter(({ run }) => !run.pinned);
   const archivedMatches = archivedRows.filter(({ run }) => matches(run));
 
-  // 自分で作ったグループ
+  // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
-  const [renaming, setRenaming] = useState<number>();
+  const sections = useGroupSections({ projectId: project.id, groups, runs });
   // グループの開閉（グループごとに記憶）
   const groupClosed = useStoredFlagMap(SIDEBAR_GROUP_CLOSED_PREFIX);
   // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
@@ -109,18 +108,8 @@ export const WorkspacePage = memo(function WorkspacePage({
     if (collapsed) toggleCollapsed();
     setCreating(true);
   };
-  const removeGroup = async (group: RunGroup) => {
-    if (await confirmDeleteGroup(group)) await api.deleteGroup(group.id);
-  };
-  // グループの「…」メニュー（右クリックでも開く）
-  const groupMenu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g) });
-  // グループ・グループなしをドロップ先にする。チャットはそのグループへ、グループの見出しはその位置へ並べ替える
-  const { reorder, over: dropOver, dropProps: dropTarget } = useGroupDrop({
-    groups,
-    runs,
-    onReorder: (ids) => void api.reorderGroups(project.id, ids),
-    onMoveRun: (run, groupId) => void api.setRunGroup(run.id, groupId),
-  });
+  // 「グループなし」をドロップ先にする（チャットをグループから外す）
+  const { over: dropOverNone, props: dropNone } = sections.ungroupedDrop;
   const groupIds = new Set(groups.map((g) => g.id));
   const groupedRows = (id: number) => rows.filter(({ run }) => run.group_id === id);
   const ungroupedRows = rows.filter(({ run }) => run.group_id === null || !groupIds.has(run.group_id));
@@ -205,18 +194,12 @@ export const WorkspacePage = memo(function WorkspacePage({
               filtering={filtering}
               grouping={grouping}
               renderRow={renderRow}
-              renaming={renaming === group.id}
-              onRenameStart={() => setRenaming(group.id)}
-              onRenameEnd={() => setRenaming(undefined)}
-              menu={groupMenu}
-              dropClass={cx(dropOver === group.id && "drop-target", reorder.classFor(group.id))}
-              dropProps={dropTarget(group.id)}
-              dragProps={reorder.handle(group.id)}
+              section={sections.sectionProps(group)}
             />
           );
         })}
         {groups.length > 0 && ungroupedRows.length > 0 && (
-          <div className={cx("custom-group-head ungrouped", dropOver === "none" && "drop-target")} {...dropTarget(null)}>
+          <div className={cx("custom-group-head ungrouped", dropOverNone && "drop-target")} {...dropNone}>
             <GroupToggle open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} />
             <button className="custom-group-name ungrouped-name" onClick={toggleUngrouped}>
               グループなし
@@ -235,7 +218,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           // グループがあるときは「グループなし」の見出しで開閉し、中身を段下げする
           <Collapse open={!(groups.length > 0 && ungroupedClosed && !filtering)} indent={groups.length > 0}>
             {grouping === "recent" ? (
-              <ul className="chat-rows" {...(groups.length > 0 ? dropTarget(null) : {})}>
+              <ul className="chat-rows" {...(groups.length > 0 ? dropNone : {})}>
                 {ungroupedRows.map(renderRow)}
               </ul>
             ) : (
@@ -256,7 +239,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           </RowSection>
         )}
       </Collapse>
-      {groupMenu.menu}
+      {sections.menuElement}
       {rowMenu && (
         <CardMenu
           {...rowMenu}
