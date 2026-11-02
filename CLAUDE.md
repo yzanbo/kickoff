@@ -68,7 +68,7 @@
 - 操作の失敗の表示: `useActionError`。時間とともに変わる表示: `useTicker`。つまみで幅・高さを変える: `startHorizontalDrag` / `startVerticalDrag`。左右の欄の境目は `useDragWidth`（幅を覚え、ダブルクリックで戻す。つまみは `.pane-resizer`）。アプリ全体で 1 回だけ取得: `cachedLoader`。
 - 例外の文: `errorMessage`（`e instanceof Error ? e.message : String(e)` を書かない）。class 名の組み立て: `cx`。
 - チャット名: `chatTitle`。時刻: `relativeTime` / `resetIn` / `formatClock`（`time.ts`）。トークン数: `formatTokens`。
-- 使用枠: `planName` / `accountLine` / `usageLevel` / `weeklyModel` / `usageUnavailableText`（`usage.ts`）。モデルごとの選択肢: `effortsFor` / `permissionChoices` / `groupModels`（`models.ts`）。
+- 使用枠: `planName` / `accountLine` / `usageLevel` / `weeklyModel` / `usageUnavailableText`（`usage.ts`）。設定の「使用状況」のサービスごと（Claude Code・Codex・GitHub Copilot・Cursor・Gemini）はコアの `serviceUsage/`（1 サービス 1 ファイルの `UsageFetcher`。応答の変換は `parseXxx` に分けてテストする）。各サービスのログイン情報は読むだけで、更新・書き換えをしない（更新用のトークンを使うと、そのサービスの CLI のログインが切れる）。期限切れは、そのサービスを起動するよう案内する。モデルごとの選択肢: `effortsFor` / `permissionChoices` / `groupModels`（`models.ts`）。
 
 ## 表示の決まり
 

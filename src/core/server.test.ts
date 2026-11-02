@@ -15,6 +15,7 @@ import { createApp } from "./server.js";
 import { Store } from "./store.js";
 import type { ProviderId } from "./types.js";
 import { UploadStore } from "./uploads.js";
+import { ServiceUsageMonitor } from "./serviceUsage/index.js";
 import type { UsageMonitor } from "./usage.js";
 
 const TOKEN = "t".repeat(32);
@@ -47,7 +48,20 @@ function setup() {
   const provider = new FakeProvider();
   const providers = { claude: provider, codex: provider, gemini: provider } as Record<ProviderId, AgentProvider>;
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, runner, approvals, uploads });
+  // ほかのサービスは、ネットワークに出ない偽物にする
+  let codexCalls = 0;
+  const serviceUsage = new ServiceUsageMonitor(usage, [
+    {
+      id: "codex",
+      label: "Codex",
+      fetch: async () => {
+        codexCalls++;
+        return { id: "codex", label: "Codex", status: "ok", plan: "plus", account: null, windows: [], notes: [], fetched_at: new Date().toISOString() };
+      },
+    },
+    { id: "cursor", label: "Cursor", fetch: async () => Promise.reject(new Error("つながりません")) },
+  ]);
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads });
   const project = store.createProject({ name: "p", repo_path: tempDir(), provider: "claude" });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
@@ -60,7 +74,7 @@ function setup() {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, runner, project, call, provider };
+  return { app, store, runner, project, call, provider, codexCalls: () => codexCalls };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 10));
@@ -471,4 +485,25 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(fs.existsSync(worktree), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/a"], { cwd: repo }).toString().trim(), "");
   fs.rmSync(path.dirname(worktree), { recursive: true, force: true });
+});
+
+test("サービスごとの使用状況: Claude と各サービスを並べ、失敗したサービスは error にしてほかは出す。取り直しは更新のときだけ", async () => {
+  const { call, codexCalls } = setup();
+  const first = await call("GET", "/api/usage/services");
+  assert.equal(first.status, 200);
+  assert.deepEqual(
+    first.body.map((s: { id: string; status: string }) => [s.id, s.status]),
+    [
+      ["claude", "unavailable"],
+      ["codex", "ok"],
+      ["cursor", "error"],
+    ],
+  );
+  assert.match(first.body[2].message, /つながりません/);
+  // 5 分以内はとっておいた値を返す
+  await call("GET", "/api/usage/services");
+  assert.equal(codexCalls(), 1);
+  const refreshed = await call("POST", "/api/usage/services/refresh");
+  assert.equal(refreshed.status, 200);
+  assert.equal(codexCalls(), 2);
 });

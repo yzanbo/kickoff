@@ -404,6 +404,33 @@ export interface UsageWindow {
   /** 使用率 0〜100。枠が始まっていなければ null */
   utilization: number | null;
   resets_at: string | null;
+  /** 使った量の補足（"120 / 300 回"・"$3.20 / $20.00" など。率だけのサービスはなし） */
+  detail?: string;
+}
+
+/** 設定の「使用状況」に並べるサービス */
+export const USAGE_SERVICE_IDS = ["claude", "codex", "copilot", "cursor", "gemini"] as const;
+export type UsageServiceId = (typeof USAGE_SERVICE_IDS)[number];
+
+/**
+ * サービスごとの使用状況（設定の「使用状況」）。各サービスのログイン情報を読むだけで、書き換えない。
+ * status: ok = 取得できた / unavailable = 見られない（未ログイン・未契約・未インストールなど。message に見る方法） /
+ * error = 取得に失敗した（message に理由）
+ */
+export interface ServiceUsage {
+  id: UsageServiceId;
+  /** 表示名（"Claude Code" など） */
+  label: string;
+  status: "ok" | "unavailable" | "error";
+  /** 契約プラン（"max"・"plus"・"free" など。わからなければ null） */
+  plan: string | null;
+  /** ログインしているアカウント（メールアドレス・GitHub のユーザー名。わからなければ null） */
+  account: string | null;
+  windows: UsageWindow[];
+  /** 枠のほかの補足（"クレジット残り 150" など） */
+  notes: string[];
+  message?: string;
+  fetched_at: string;
 }
 
 export interface PlanUsage {

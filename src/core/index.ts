@@ -6,6 +6,7 @@ import { startHttpServer, stopHttpServer } from "./httpServer.js";
 import { createProviders } from "./providers/index.js";
 import { createApp } from "./server.js";
 import { Store } from "./store.js";
+import { ServiceUsageMonitor } from "./serviceUsage/index.js";
 import { UsageMonitor } from "./usage.js";
 import { ApprovalCenter } from "./approvals.js";
 import { Runner } from "./runner.js";
@@ -41,6 +42,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const providers = createProviders();
   // 使用枠は Claude のプランから取得する（Codex 対応時にプロバイダーごとに拡張する）
   const usage = new UsageMonitor(providers.claude, bus);
+  // 設定の「使用状況」に並べる、ほかのサービス（Codex・Copilot・Cursor・Gemini）の使用状況
+  const serviceUsage = new ServiceUsageMonitor(usage);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus });
@@ -51,6 +54,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     token,
     providers,
     usage,
+    serviceUsage,
     runner,
     approvals,
     uploads,

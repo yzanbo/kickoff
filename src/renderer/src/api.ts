@@ -26,6 +26,7 @@ import type {
   GitHubStatus,
   GitStatus,
   PlanUsage,
+  ServiceUsage,
   Project,
   ProjectFiles,
   PullRequestInfo,
@@ -106,6 +107,9 @@ export const api = {
   status: () => request<ServerStatus>("GET", "/api/status"),
   usage: () => request<PlanUsage>("GET", "/api/usage"),
   refreshUsage: () => request<PlanUsage>("POST", "/api/usage/refresh"),
+  /** サービスごとの使用状況（設定の「使用状況」） */
+  usageServices: () => request<ServiceUsage[]>("GET", "/api/usage/services"),
+  refreshUsageServices: () => request<ServiceUsage[]>("POST", "/api/usage/services/refresh"),
   projects: () => request<ProjectSummary[]>("GET", "/api/projects"),
   project: (id: number) => request<Project>("GET", `/api/projects/${id}`),
   createProject: (input: NewProjectInput) => request<Project>("POST", "/api/projects", input),
