@@ -1,5 +1,5 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { EffortLevel, PermissionChoice, ProviderId } from "./phases.js";
+import type { EffortLevel, PermissionChoice, ProviderId } from "./settings.js";
 
 export interface Project {
   id: number;

@@ -1,5 +1,5 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { EffortLevel, PermissionChoice, ProviderId } from "./phases.js";
+import type { EffortLevel, PermissionChoice, ProviderId } from "./settings.js";
 import type { RunStatus } from "./run.js";
 
 // Store に渡す作成時の入力（DB の行の形ではなく、省略できる項目は既定で埋める）

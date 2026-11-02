@@ -1,5 +1,5 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { ProviderId } from "./phases.js";
+import type { ProviderId } from "./settings.js";
 
 // 外部 CLI（Claude Code など）の状態・コマンド・使用枠
 export interface ProviderStatus {
