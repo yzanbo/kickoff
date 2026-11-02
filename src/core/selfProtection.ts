@@ -31,7 +31,7 @@ export function currentSelf(dataDir: string, port: number): SelfInfo {
   };
 }
 
-export type SelfDecision = { decision: "pass" } | { decision: "deny"; reason: string };
+type SelfDecision = { decision: "pass" } | { decision: "deny"; reason: string };
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 

@@ -7,7 +7,7 @@ import { unpackCrx } from "./crx.js";
 import { execFileAsync } from "../core/exec.js";
 
 /** 埋め込みブラウザ用のセッション（ログイン状態は保持するが、Kickoff 本体とは分ける） */
-export const BROWSER_PARTITION = "persist:kickoff-browser";
+const BROWSER_PARTITION = "persist:kickoff-browser";
 
 /** よく使う拡張機能の Chrome ウェブストア ID */
 export const KNOWN_EXTENSIONS = {

@@ -66,7 +66,7 @@ export function isReadOnlyCommand(command: string): boolean {
     .every((part) => READ_ONLY_COMMANDS.some((cmd) => part === cmd || part.startsWith(`${cmd} `)));
 }
 
-export type ToolDecision = { decision: "allow" | "deny"; reason: string } | { decision: "pass" };
+type ToolDecision = { decision: "allow" | "deny"; reason: string } | { decision: "pass" };
 
 /**
  * 書き込み範囲が決まっているセクションで、ツールの実行を許可・拒否する。

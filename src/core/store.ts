@@ -29,7 +29,7 @@ import { pickProjectHue } from "./projectColors.js";
 type Row = Record<string, SQLInputValue>;
 
 /** キーワードの前後を切り出す（前 40 文字・後ろ 80 文字程度） */
-export function snippetAround(text: string, keyword: string): { snippet: string; match_start: number; match_end: number } {
+function snippetAround(text: string, keyword: string): { snippet: string; match_start: number; match_end: number } {
   const flat = text.replace(/\s+/g, " ");
   const index = flat.toLowerCase().indexOf(keyword.toLowerCase());
   if (index < 0) return { snippet: flat.slice(0, 120), match_start: 0, match_end: 0 };

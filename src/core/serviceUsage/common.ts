@@ -49,7 +49,7 @@ export async function fetchJson<T>(url: string, init: RequestInit = {}): Promise
 }
 
 /** 使用率を 0〜100 にそろえる */
-export const clampPercent = (n: number) => Math.max(0, Math.min(100, n));
+const clampPercent = (n: number) => Math.max(0, Math.min(100, n));
 
 /** 秒（UNIX 時刻）を ISO の文字列に */
 export const isoFromSeconds = (s: unknown) => (typeof s === "number" && s > 0 ? new Date(s * 1000).toISOString() : null);

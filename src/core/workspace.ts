@@ -20,7 +20,7 @@ export function toFolderName(name: string): string {
     .replace(/^[-.]+|[-.]+$/g, "");
 }
 
-export interface NewWorkspace {
+interface NewWorkspace {
   parentDir: string;
   folderName: string;
   name: string;

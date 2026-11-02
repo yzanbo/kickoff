@@ -103,7 +103,7 @@ export const BOARD_COLUMN_LABELS: Record<BoardColumn, string> = {
  * エージェント自身の状態（状態の分け方に合わせる）。
  * needs_input: 承認・回答待ち / failed: エラー / running: 作業中 / attention: 終わって確認待ち / done: 待機中
  */
-export const AGENT_STATES = ["needs_input", "failed", "attention", "running", "done"] as const;
+const AGENT_STATES = ["needs_input", "failed", "attention", "running", "done"] as const;
 export type AgentState = (typeof AGENT_STATES)[number];
 
 export const AGENT_STATE_LABELS: Record<AgentState, string> = {
@@ -431,7 +431,7 @@ export interface UsageWindow {
 }
 
 /** 設定の「使用状況」に並べるサービス */
-export const USAGE_SERVICE_IDS = ["claude", "codex", "copilot", "cursor", "gemini"] as const;
+const USAGE_SERVICE_IDS = ["claude", "codex", "copilot", "cursor", "gemini"] as const;
 export type UsageServiceId = (typeof USAGE_SERVICE_IDS)[number];
 
 /**
@@ -660,12 +660,6 @@ export interface WorkspaceInspection {
   dirty: boolean;
   suggestedName: string;
   registered_project_id?: number | null;
-}
-
-export interface PairingInfo {
-  enabled: boolean;
-  urls: string[];
-  qr_svg: string | null;
 }
 
 /** サーバーからクライアントへ配信するイベント（SSE） */

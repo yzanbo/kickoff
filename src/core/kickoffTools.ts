@@ -19,7 +19,7 @@ export interface KickoffTool {
   handler: (args: Record<string, unknown>) => Promise<string>;
 }
 
-export interface KickoffToolContext {
+interface KickoffToolContext {
   store: Store;
   projectId: number;
   runId: number;

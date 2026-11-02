@@ -25,7 +25,7 @@ export function claudeServiceUsage(usage: PlanUsage): ServiceUsage {
   };
 }
 
-export const SERVICE_FETCHERS: UsageFetcher[] = [codexUsage, copilotUsage, cursorUsage, geminiUsage];
+const SERVICE_FETCHERS: UsageFetcher[] = [codexUsage, copilotUsage, cursorUsage, geminiUsage];
 
 /**
  * 設定の「使用状況」に並べる、サービスごとの使用状況（Claude Code・Codex・GitHub Copilot・Cursor・Gemini）。

@@ -14,7 +14,7 @@ import type { Attachment, Phase, Project, ProviderId, Run, RunOptions } from "./
 import type { UsageMonitor } from "./usage.js";
 import { withAttachmentNote, type UploadStore } from "./uploads.js";
 
-export interface StartRunInput {
+interface StartRunInput {
   projectId: number;
   phase: Phase;
   taskId?: number | null;

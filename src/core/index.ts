@@ -14,7 +14,7 @@ import { Runner } from "./runner.js";
 import { UploadStore } from "./uploads.js";
 import { startAutoArchive } from "./autoArchive.js";
 
-export interface CoreOptions {
+interface CoreOptions {
   dataDir: string;
   port: number;
   /** 127.0.0.1 なら Mac 内からのみ、0.0.0.0 なら LAN にも公開 */

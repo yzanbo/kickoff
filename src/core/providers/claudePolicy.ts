@@ -9,7 +9,7 @@ import type { ProviderRunParams } from "./types.js";
  * 書き込み範囲の制限をフック（PreToolUse）で強制する。フックは権限モードや許可ルールより先に
  * 毎回呼ばれるので、Auto mode やユーザー設定の許可ルールがあっても範囲外には書き込めない。
  */
-export function scopeHooks(params: ProviderRunParams): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
+function scopeHooks(params: ProviderRunParams): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
   const scope = params.policy.writeScope;
   const readOnly = params.readOnlyPaths ?? [];
   if (!scope && readOnly.length === 0) return undefined;
@@ -42,7 +42,7 @@ export function scopeHooks(params: ProviderRunParams): Partial<Record<HookEvent,
  * エージェントを動かしている Kickoff 自身（プロセス・アプリ本体・保存先・API）を壊すツールの呼び出しを、どのチャットでも断る（selfProtection.ts）。
  * 書き込み範囲の制限と同じく PreToolUse のフックなので、権限モードや許可ルールに関係なく効く
  */
-export function selfProtectionHook(self: SelfInfo): HookCallbackMatcher {
+function selfProtectionHook(self: SelfInfo): HookCallbackMatcher {
   return {
     hooks: [
       async (input) => {

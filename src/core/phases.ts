@@ -1,5 +1,5 @@
 import { DEFAULT_WRITE_SCOPE } from "./scope.js";
-import { SECTION_DEFAULT_EFFORT, SECTION_DEFAULT_PERMISSION } from "./sectionDefaults.js";
+import { SECTION_DEFAULT_EFFORT } from "./sectionDefaults.js";
 import { PHASE_LABELS, type Phase, type Project, type Task } from "./types.js";
 
 /**
@@ -47,9 +47,6 @@ const CHECK_COMMANDS = [
   "go test",
   "cargo test",
 ];
-
-/** 既定の権限モードが「編集を自動承認」のセクションか（autoEdit と同じ意味） */
-export const sectionAutoEdit = (phase: Phase) => SECTION_DEFAULT_PERMISSION[phase] === "acceptEdits";
 
 export function phasePolicy(phase: Phase, project: Project): PhasePolicy {
   const testCommand = project.test_command.trim();
