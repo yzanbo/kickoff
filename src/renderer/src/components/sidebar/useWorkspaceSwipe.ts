@@ -15,7 +15,7 @@ const EDGE_PULL_MAX = 36;
  * サイドバーの横スライド: トラックパッドの 2 本指スワイプ・タッチのドラッグで、隣のプロジェクトへ切り替える。
  * 指に追従させる間は React の再描画を挟まず、要素の transform を直接動かす
  */
-export function useWorkspaceSwipe({ index, count, go }: { index: number; count: number; go: (to: number) => void }) {
+export function useWorkspaceSwipe({ index, count, go, active = true }: { index: number; count: number; go: (to: number) => void; active?: boolean }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   // 1 回のスワイプの状態。committed: すでに切り替えた（次のスワイプが始まるまで、残りの慣性のイベントは無視する）
@@ -45,7 +45,10 @@ export function useWorkspaceSwipe({ index, count, go }: { index: number; count: 
     [index],
   );
 
-  useLayoutEffect(() => place(0), [place]);
+  // 縦並びから横スライドに切り替えたとき（スライドの要素が新しくできたとき）も、いまのプロジェクトの位置に合わせる
+  useLayoutEffect(() => {
+    if (active) place(0);
+  }, [place, active]);
 
   const width = () => viewportRef.current?.clientWidth ?? 260;
   /** 端のプロジェクトより先へは、少しだけ動いて戻る（ゴムのような抵抗） */

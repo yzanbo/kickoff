@@ -37,6 +37,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   collapsed,
   onCollapsedChange,
   headDrag,
+  searchAll = "",
 }: {
   project: ProjectSummary;
   runs: Run[];
@@ -49,6 +50,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   onCollapsedChange: (projectId: number, collapsed: boolean) => void;
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
+  /** すべてのプロジェクトをまたぐ検索欄（縦並びの上）の検索語。プロジェクトの検索欄が空のときに使う */
+  searchAll?: string;
 }) {
   const [grouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
@@ -60,7 +63,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const isActive = route.name === "project" && route.id === project.id;
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
-  const { keyword, matches } = useChatSearch(query);
+  const { keyword, matches } = useChatSearch(query || searchAll);
   // 見出しの状態の数を押して、その状態のチャットだけに絞る（このプロジェクトだけ。もう一度押すと戻す）
   const [stateFilter, setStateFilter] = useState<StateFilter | null>(null);
   // 検索・自分待ち・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
