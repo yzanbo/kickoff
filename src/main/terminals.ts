@@ -132,7 +132,9 @@ export function registerTerminalIpc() {
     if (typeof key !== "string" || !key) throw new Error("ターミナルの指定が正しくありません");
     const existing = sessions.get(key);
     if (existing) {
+      // 別の画面（読み直したあとなど）からつなぎ直したときも、その画面が消えたらシェルを止められるように見張る
       existing.owner = e.sender;
+      watchOwner(e.sender);
       flush(key, existing);
       return { snapshot: existing.serializer.serialize(), created: false };
     }
