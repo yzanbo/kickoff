@@ -9,6 +9,7 @@ import { sidebarOrder } from "../../projectOrder";
 import { PANEL_MAXIMIZED_KEY, PANEL_WIDTH_KEY } from "../../storageKeys";
 import { loadPanel, registerPanel, savePanel } from "./panelMemory";
 import { closeTabs } from "./panelTabs";
+import { newTabKey } from "./tabKeys";
 
 /** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・グループで始めるか） */
 export interface NewChatTarget {
@@ -128,7 +129,7 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
 
   /** 内蔵ターミナルの新しいタブを開く（cwd のフォルダでシェルを始める） */
   const openTerminal = ({ cwd, label }: TerminalTarget) => {
-    const key = `terminal:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    const key = newTabKey("terminal");
     setTabs((prev) => [...prev, { key, kind: "terminal", cwd, label }]);
     show(key);
   };
