@@ -583,6 +583,12 @@ button.chat-row {
   color: var(--extra-muted);
 }
 
+/* キーボード（↑↓・Tab）でピントを当てたチャットの行 */
+.chat-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 /* 複数選んだチャットの行 */
 .chat-row.multi-selected,
 .chat-row-item:hover > .chat-row.multi-selected {
