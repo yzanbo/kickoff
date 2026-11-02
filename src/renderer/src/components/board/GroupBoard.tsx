@@ -193,9 +193,6 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
   return (
     <div className="board group-board">
       <BoardHeader
-        icon={<Folder size={16} className="muted" />}
-        title="グループ"
-        count={groups.length}
         query={query}
         onQuery={setQuery}
         organize={

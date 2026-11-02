@@ -10,9 +10,8 @@ import { targetMenuAt, TerminalTargetMenu } from "../terminal/TerminalTargetMenu
 export type BoardView = "board" | "list";
 
 interface Props {
-  icon: ReactNode;
-  title: string;
-  count: number;
+  /** 見出し（アイコン・名前・件数）。プロジェクトのタブでは、タブの名前と重なるので出さない（全プロジェクトの画面だけ渡す） */
+  heading?: { icon: ReactNode; title: string; count: number };
   query: string;
   onQuery: (query: string) => void;
   /** 探す・絞り込むのまとまりで、検索欄の後ろに置くもの（プロジェクト・セクション・アーカイブの表示） */
@@ -33,14 +32,18 @@ interface Props {
  * 左（名前の右）に 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に 作る・開く（新規・ブラウザ・ターミナル。右のパネルに新しいタブを開く） / パネルの開閉
  */
-export function BoardHeader({ icon, title, count, query, onQuery, filters, organize, actions, view, onView, panel, terminals }: Props) {
+export function BoardHeader({ heading, query, onQuery, filters, organize, actions, view, onView, panel, terminals }: Props) {
   const [terminalMenu, setTerminalMenu] = useState<{ x: number; y: number } | null>(null);
   const canTerminal = Boolean(window.kickoff?.terminal) && terminals.length > 0;
   return (
     <div className="board-header">
-      {icon}
-      <span className="board-title">{title}</span>
-      <span className="muted small">{count} 件</span>
+      {heading && (
+        <>
+          {heading.icon}
+          <span className="board-title">{heading.title}</span>
+          <span className="muted small">{heading.count} 件</span>
+        </>
+      )}
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
         <div className="board-tool-group" role="group" aria-label="表示">

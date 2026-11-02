@@ -30,7 +30,8 @@ interface Props {
   projectId?: number;
   projects: ProjectSummary[];
   approvals: Approval[];
-  title: string;
+  /** 見出しの名前（全プロジェクトの画面だけ。プロジェクトのボードはタブの名前があるので出さない） */
+  title?: string;
   /** 右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
 }
@@ -137,9 +138,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   return (
     <div className="board">
       <BoardHeader
-        icon={<SquareKanban size={16} className="muted" />}
-        title={title}
-        count={total}
+        heading={title ? { icon: <SquareKanban size={16} className="muted" />, title, count: total } : undefined}
         query={query}
         onQuery={setQuery}
         filters={
