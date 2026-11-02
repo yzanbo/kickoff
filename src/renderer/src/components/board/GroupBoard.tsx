@@ -1,7 +1,7 @@
 import { Folder, FolderPlus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { agentStateOf } from "../../../../core/board";
-import type { Approval, Run, RunGroup } from "../../../../core/types";
+import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
@@ -17,7 +17,7 @@ import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
-import { useSidePanel } from "../sidePanel/useSidePanel";
+import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
 import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
@@ -27,6 +27,8 @@ const VIEW_KEY = "kickoff:group-view";
 
 interface Props {
   projectId: number;
+  /** すべてのプロジェクト（タブの列の＋のターミナルの開く場所に使う） */
+  projects: ProjectSummary[];
   runs: Run[];
   groups: RunGroup[];
   approvals: Approval[];
@@ -40,7 +42,7 @@ interface Props {
  * 自分で作ったグループを管理するボード。列 = グループ、カード = チャット。
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
-export function GroupBoard({ projectId, runs, groups, approvals, focus, highlight }: Props) {
+export function GroupBoard({ projectId, projects, runs, groups, approvals, focus, highlight }: Props) {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const [dragRun, setDragRun] = useState<number>();
@@ -258,7 +260,7 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
             </div>
           )}
         </div>
-        <SidePanel panel={panel} onNewChat={() => panel.openNew({ projectId })} />
+        <SidePanel panel={panel} onNewChat={() => panel.openNew({ projectId })} terminals={terminalTargets(projects, projectId)} />
       </div>
 
       {groupMenu.menu}

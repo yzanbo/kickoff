@@ -4,6 +4,7 @@ import { cx } from "../../cx";
 import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { sidebarOrder } from "../../projectOrder";
 
 /** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・列・グループで始めるか） */
 export interface NewChatTarget {
@@ -13,13 +14,27 @@ export interface NewChatTarget {
   group?: number;
 }
 
-/** 右側のパネルのタブ（チャット・新しいチャット・ブラウザ） */
+/** 右側のパネルのタブ（チャット・新しいチャット・ブラウザ・ターミナル） */
 export type PanelTab =
   /** title・phase: タブに出すチャットの名前とセクション（開いたとき・チャットの画面が読み込んだときに入れる） */
   | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; phase?: Phase }
   /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる） */
   | ({ key: string; kind: "new"; groupName?: string } & NewChatTarget)
-  | { key: string; kind: "browser"; url: string; title: string };
+  | { key: string; kind: "browser"; url: string; title: string }
+  /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。key は裏のシェルのキーにも使う */
+  | { key: string; kind: "terminal"; cwd: string; label: string };
+
+/** 内蔵ターミナルを開く場所（タブの列の＋のメニューに出す） */
+export interface TerminalTarget {
+  cwd: string;
+  label: string;
+}
+
+/** ボードのタブの列の＋から開けるターミナル（プロジェクトのボードはそのプロジェクトの本体、全プロジェクトのボードは各プロジェクト） */
+export function terminalTargets(projects: ProjectSummary[], projectId?: number): TerminalTarget[] {
+  const list = projectId === undefined ? sidebarOrder(projects) : projects.filter((p) => p.id === projectId);
+  return list.map((p) => ({ cwd: p.repo_path, label: p.name }));
+}
 
 const chatKey = (id: number) => `chat:${id}`;
 
@@ -113,10 +128,17 @@ export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, project
     show(key);
   };
 
-  /** ブラウザの新しいタブを開く（空のページで、アドレス欄に入力して開く） */
-  const openBrowser = () => {
+  /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
+  const openBrowser = (url = "") => {
     const key = `browser:${Date.now()}`;
-    setTabs((prev) => [...prev, { key, kind: "browser", url: "", title: "" }]);
+    setTabs((prev) => [...prev, { key, kind: "browser", url, title: "" }]);
+    show(key);
+  };
+
+  /** 内蔵ターミナルの新しいタブを開く（cwd のフォルダでシェルを始める） */
+  const openTerminal = ({ cwd, label }: TerminalTarget) => {
+    const key = `terminal:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    setTabs((prev) => [...prev, { key, kind: "terminal", cwd, label }]);
     show(key);
   };
 
@@ -134,8 +156,9 @@ export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, project
   const close = () => setPanelOpen(false);
   const reopen = () => setPanelOpen(true);
 
-  /** タブを閉じる。表示中のタブなら隣のタブへ、最後のタブならパネルも閉じる */
+  /** タブを閉じる。表示中のタブなら隣のタブへ、最後のタブならパネルも閉じる。ターミナルはシェルも止める */
   const closeTab = (key: string) => {
+    if (tabs.some((t) => t.key === key && t.kind === "terminal")) void window.kickoff?.terminal.close(key);
     setTabs((prev) => {
       const index = prev.findIndex((t) => t.key === key);
       const next = prev.filter((t) => t.key !== key);
@@ -193,6 +216,7 @@ export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, project
     open,
     openNew,
     openBrowser,
+    openTerminal,
     /** タブを表示する（タブ・下書きを押したとき） */
     showTab: show,
     closeTab,

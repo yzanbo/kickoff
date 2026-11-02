@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, SquareTerminal } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Approval, Project, Run, RunEvent } from "../../../core/types";
 import { api } from "../api";
@@ -34,10 +34,12 @@ interface RunPageProps {
   onRunChange?: (run: Run) => void;
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
   visible?: boolean;
+  /** このチャットの作業場所でターミナルを開く（右のパネルのタブ。Mac のアプリでだけ渡す） */
+  onOpenTerminal?: (target: { cwd: string; label: string }) => void;
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function RunPage({ projectId, runId, focus, onClose, onRunChange, visible = true }: RunPageProps) {
+export function RunPage({ projectId, runId, focus, onClose, onRunChange, visible = true, onOpenTerminal }: RunPageProps) {
   const [run, setRun] = useState<Run>();
   const [project, setProject] = useState<Project>();
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -95,7 +97,7 @@ export function RunPage({ projectId, runId, focus, onClose, onRunChange, visible
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} live={live} focus={focus} onClose={onClose} />
+    <RunView run={run} project={project} events={events} approvals={approvals} live={live} focus={focus} onClose={onClose} onOpenTerminal={onOpenTerminal} />
   );
 }
 
@@ -107,6 +109,7 @@ function RunView({
   live,
   focus,
   onClose,
+  onOpenTerminal,
 }: {
   run: Run;
   project?: Project;
@@ -115,6 +118,7 @@ function RunView({
   live: string;
   focus?: number;
   onClose: () => void;
+  onOpenTerminal?: RunPageProps["onOpenTerminal"];
 }) {
   const options = useRunOptions(
     { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: Boolean(run.fast_mode) },
@@ -192,6 +196,22 @@ function RunView({
               }
             }}
           />
+          {/* チャットの作業場所（ワークツリーなら、そのフォルダ）でターミナルを開く */}
+          {onOpenTerminal && project && (
+            <IconButton
+              icon={SquareTerminal}
+              size={13}
+              label="作業場所でターミナルを開く"
+              title={`ターミナルを開く（${run.worktree_path || project.repo_path}）`}
+              onClick={() =>
+                onOpenTerminal(
+                  run.worktree_path
+                    ? { cwd: run.worktree_path, label: run.worktree_path.split("/").pop() ?? project.name }
+                    : { cwd: project.repo_path, label: project.name },
+                )
+              }
+            />
+          )}
           {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
           <span className="spacer" />
           <span className={`run-state state-${waiting ? "waiting" : run.status}`}>

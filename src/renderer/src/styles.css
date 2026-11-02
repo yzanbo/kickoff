@@ -691,7 +691,7 @@ button.chat-row {
   border-radius: var(--radius);
 }
 
-/* 新しいチャットの作成先を選ぶメニュー */
+/* メニューの中の見出し（新しいチャットの作成先・タブの列の＋のターミナル） */
 .menu-label {
   padding: 6px 10px 4px;
   font-size: 11px;
@@ -6530,4 +6530,19 @@ a:focus-visible,
   max-width: 110px;
   font-size: 10px;
   line-height: 14px;
+}
+
+/* ==== 内蔵ターミナル（右のパネルのタブ） ==== */
+
+.terminal-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 6px 4px 4px 10px;
+  background: var(--bg);
+}
+
+.terminal-screen {
+  flex: 1;
+  min-height: 0;
 }

@@ -16,7 +16,7 @@ import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
-import { useSidePanel } from "../sidePanel/useSidePanel";
+import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
 import { decodeArchiveFilter, encodeArchiveFilter, KanbanFilters, type ArchiveFilter } from "./KanbanFilters";
 import { RunCardContent, RunRowContent } from "./RunCard";
@@ -251,7 +251,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             </div>
           )}
         </div>
-        <SidePanel panel={panel} onNewChat={() => newChat()} />
+        <SidePanel panel={panel} onNewChat={() => newChat()} terminals={terminalTargets(projects, projectId)} />
       </div>
 
       {menu && <CardMenu {...menu} onOpenPanel={open} onRename={rename.start} onClose={() => setMenu(null)} onError={setError} />}

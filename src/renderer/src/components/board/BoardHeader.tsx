@@ -56,7 +56,7 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, actio
       <div className="board-tools board-tools-end">
         <div className="board-tool-group" role="group" aria-label="作る・開く">
           {actions}
-          <button className="btn btn-sm" onClick={panel.openBrowser} title="開発中のアプリやドキュメントを右側で開く">
+          <button className="btn btn-sm" onClick={() => panel.openBrowser()} title="開発中のアプリやドキュメントを右側で開く">
             <Globe size={13} /> <span className="btn-label">ブラウザ</span>
           </button>
         </div>
