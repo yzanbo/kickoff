@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { isPathInScope } from "./scope.js";
+import { isPathInScope, realPathLoose } from "./scope.js";
 import type { Store } from "./store.js";
 import { ARTIFACT_KINDS, PHASES, TASK_STATUSES, type Phase } from "./types.js";
 
@@ -182,11 +182,11 @@ export function createKickoffTools(ctx: KickoffToolContext): KickoffTool[] {
   return tools;
 }
 
-/** リポジトリ外への書き込みを防ぎつつファイルを書き出す */
+/** リポジトリ外への書き込みを防ぎつつファイルを書き出す（シンボリックリンクの先で外に出るものも断る。書き込み範囲の判定と同じ解決） */
 export async function exportToRepo(repoPath: string, relPath: string, content: string): Promise<string> {
   if (path.isAbsolute(relPath)) throw new Error("export_path はリポジトリからの相対パスで指定してください");
-  const root = path.resolve(repoPath);
-  const target = path.resolve(root, relPath);
+  const root = realPathLoose(repoPath);
+  const target = realPathLoose(path.resolve(root, relPath));
   if (target !== root && !target.startsWith(root + path.sep)) {
     throw new Error("export_path がリポジトリの外を指しています");
   }

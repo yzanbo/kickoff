@@ -53,7 +53,7 @@ export function normalizeScope(repoPath: string, input: string): string {
 }
 
 /** シンボリックリンクを解決した実体のパス（まだ存在しないファイルは、存在する親から組み立てる） */
-function realPathLoose(p: string): string {
+export function realPathLoose(p: string): string {
   let current = path.resolve(p);
   const rest: string[] = [];
   while (!fs.existsSync(current)) {
