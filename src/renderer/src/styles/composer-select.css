@@ -1,0 +1,157 @@
+/* ==== チャット欄の選択（アイコン・名前・▾ の選択欄。セクションはセクションの色） ==== */
+
+/* チャット欄の選択（アイコン・名前・▾） */
+.option-menu {
+  position: relative;
+}
+
+.option-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 14px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.option-button:hover:not(:disabled),
+.option-button.open {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.option-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.option-icon {
+  display: inline-flex;
+}
+
+.option-chevron {
+  opacity: 0.7;
+}
+
+.option-popover {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  min-width: 220px;
+  max-height: min(420px, 60vh);
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+  animation: popover-in 0.14s ease-out;
+}
+
+.option-group + .option-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.option-group-label {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  color: var(--extra-muted);
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.option-item.cursor:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.option-item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.option-item-text {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+
+.option-item-desc {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option-check {
+  flex: none;
+  color: var(--accent-bright);
+}
+
+.model-menu .option-popover {
+  width: 280px;
+}
+
+/* セクションの選択は、セクションの色で */
+.section-menu .option-button {
+  font-weight: 600;
+  color: var(--sec);
+  background: color-mix(in srgb, var(--sec) 12%, transparent);
+}
+
+.section-menu .option-button:hover,
+.section-menu .option-button.open {
+  color: var(--sec);
+  background: color-mix(in srgb, var(--sec) 20%, transparent);
+}
+
+.fast-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.fast-toggle:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.fast-toggle.on {
+  color: var(--warn);
+}
+
+.fast-toggle:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

@@ -10,6 +10,11 @@
 @import "./project-page.css";
 @import "./chat.css";
 @import "./composer.css";
+@import "./composer-select.css";
+@import "./subagents.css";
+@import "./subagents-drawer.css";
+@import "./context-meter.css";
+@import "./attachments.css";
 @import "./approval.css";
 @import "./tasks.css";
 @import "./markdown.css";
