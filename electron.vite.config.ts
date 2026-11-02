@@ -1,9 +1,10 @@
 import { resolve } from "node:path";
 import { defineConfig } from "electron-vite";
 import react from "@vitejs/plugin-react";
+import { APP_ENVS } from "./src/core/appEnv";
 
-// コアの API サーバーのポート（開発時は Vite から /api をここへ転送する）
-const corePort = Number(process.env.KICKOFF_PORT ?? 4317);
+// コアの API サーバーのポート（開発時は Vite から /api をここへ転送する。開発用のポート: appEnv.ts）
+const corePort = Number(process.env.KICKOFF_PORT ?? APP_ENVS.development.port);
 
 export default defineConfig({
   main: {
