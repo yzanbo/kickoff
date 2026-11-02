@@ -28,6 +28,7 @@ import { editorWorktreeKey } from "../storageKeys";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
 import { confirmRestoreProject } from "../projectOrder";
+import { approvalIndex } from "../runState";
 import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
 import { REPORT_KINDS, SECTION_META } from "../sections";
 
@@ -126,7 +127,8 @@ export function ProjectPage({
   const { project, tasks, artifacts, runs, groups, approvals } = shown;
   // 別のプロジェクトを読み込んでいる途中（前の画面を薄くして出しておく）
   const stale = project.id !== id;
-  const waiting = runs.filter((r) => approvals.some((a) => a.run_id === r.id)).length;
+  const pending = approvalIndex(approvals);
+  const waiting = runs.filter((r) => pending.has(r.id)).length;
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (

@@ -1,6 +1,5 @@
 import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
-import { agentStateOf } from "../../../../core/board";
 import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type Approval, type BoardColumn, type Phase, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
@@ -9,6 +8,7 @@ import { useStoredChoice, useStoredState } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
+import { approvalIndex, runStateOf } from "../../runState";
 import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY, BOARD_VIEW_KEY } from "../../storageKeys";
 import { CardMenu } from "../menus/CardMenu";
 import { ErrorText } from "../ErrorText";
@@ -113,6 +113,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
   // 絞り込んだチャット（新しく動いた順）
   const entries = useMemo(() => {
     const list: Entry[] = [];
+    const pending = approvalIndex(approvals);
     for (const run of runs) {
       // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない（projects に入っていない）
       if (allProjects && !projects.some((p) => p.id === run.project_id)) continue;
@@ -120,7 +121,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
       if (worktreeFilter !== "all" && run.worktree_path !== worktreeFilter) continue;
       if (section !== "all" && run.phase !== section) continue;
       if (!search.matches(run)) continue;
-      list.push({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) });
+      list.push({ run, state: runStateOf(run, pending) });
     }
     return list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
   }, [runs, approvals, section, search, archive, worktreeFilter, allProjects, projects]);

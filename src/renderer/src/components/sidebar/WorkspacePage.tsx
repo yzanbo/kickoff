@@ -1,6 +1,6 @@
 import { Archive, Folder, Pin, Plus } from "lucide-react";
 import { memo, useState } from "react";
-import { agentStateOf, boardColumnOf } from "../../../../core/board";
+import { boardColumnOf } from "../../../../core/board";
 import { BOARD_COLUMN_LABELS, type AgentState, type Approval, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
@@ -9,6 +9,7 @@ import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
+import { approvalIndex, runStateOf } from "../../runState";
 import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, SIDEBAR_WAITING_ONLY_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
 import { openNewChat, openRun, type Route, routeProjectId } from "../../router";
 import { CardMenu } from "../menus/CardMenu";
@@ -74,7 +75,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 検索・自分待ち・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
   const filtering = Boolean(keyword) || waitingOnly || stateFilter !== null;
 
-  const withState = (run: Run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) });
+  const pending = approvalIndex(approvals);
+  const withState = (run: Run) => ({ run, state: runStateOf(run, pending) });
   const allRows = runs.filter((r) => !r.archived_at).map(withState);
   // アーカイブしたチャット（一覧の下にまとめて、開閉できる。最初は閉じておく）
   const archivedRows = runs.filter((r) => r.archived_at).map(withState);
