@@ -1,6 +1,5 @@
 import { Folder, FolderPlus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { agentStateOf } from "../../../../core/board";
 import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
@@ -10,6 +9,7 @@ import { useActionError } from "../../hooks/useActionError";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import type { ReopenRoute } from "../../router";
+import { approvalIndex, runStateOf } from "../../runState";
 import { GROUP_VIEW_KEY } from "../../storageKeys";
 import { CardMenu } from "../menus/CardMenu";
 import { ErrorText } from "../ErrorText";
@@ -121,7 +121,8 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
       editing: Boolean(rename.editorFor(run)),
     });
   const cardClass = (run: Run) => cx(dragRun === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
-  const stateOf = (run: Run) => agentStateOf(run, approvals.some((a) => a.run_id === run.id));
+  const pending = approvalIndex(approvals);
+  const stateOf = (run: Run) => runStateOf(run, pending);
 
   /** グループの見出し（ボードの列・リストで共通）。group が null なら「グループなし」 */
   const renderHead = (group: RunGroup | null, count: number) => {
