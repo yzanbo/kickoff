@@ -1,0 +1,168 @@
+/* ==== コンテキストウィンドウのメーターと手で圧縮するボタン ==== */
+
+/* コンテキストウィンドウのメーター */
+.context-meter {
+  position: relative;
+}
+
+.context-ring-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.context-ring-button:hover {
+  background: var(--bg-hover);
+}
+
+.context-ring-track {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 2.5;
+}
+
+.context-ring-fill {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s;
+}
+
+.context-ring.tone-warn .context-ring-fill {
+  stroke: var(--warn);
+}
+
+.context-ring.tone-danger .context-ring-fill {
+  stroke: var(--dot-failed);
+}
+
+.context-popover {
+  position: absolute;
+  right: -8px;
+  bottom: calc(100% + 8px);
+  z-index: 50;
+  width: 300px;
+  padding: 4px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  animation: popover-in 0.14s ease-out;
+}
+
+.context-section {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.context-section + .context-section {
+  border-top: 1px solid var(--border);
+}
+
+.context-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.context-pct {
+  font-size: 15px;
+}
+
+.context-sub {
+  margin: 0;
+  color: var(--muted);
+}
+
+.context-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.context-plan-name {
+  font-size: 15px;
+}
+
+.context-plan-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg-hover);
+}
+
+.context-usage {
+  display: grid;
+  gap: 6px;
+}
+
+.context-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.context-row strong {
+  font-weight: 600;
+}
+
+/* 手で圧縮するボタン（上の文字のすぐ下に置く） */
+.context-compact {
+  display: flex;
+  margin-top: -4px;
+}
+
+.context-bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--bg-hover);
+}
+
+.context-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ok);
+}
+
+.context-bar-fill.tone-warn {
+  background: var(--warn);
+}
+
+.context-bar-fill.tone-danger {
+  background: var(--dot-failed);
+}
+
+.send-button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.send-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.send-button.stop {
+  color: var(--bg);
+  background: var(--text);
+}

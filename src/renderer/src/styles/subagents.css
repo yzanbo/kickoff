@@ -1,0 +1,198 @@
+/* ==== サブエージェント（チャット欄のすぐ上のピルの列・行・アーカイブ） ==== */
+
+/* チャット欄の下のチップ（サブエージェントなど） */
+/* チャット欄のすぐ上のピルの列（サブエージェントなど） */
+.composer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 0 8px;
+}
+
+.composer-chips:empty {
+  display: none;
+}
+
+.subagent-chip-wrap {
+  position: relative;
+}
+
+.composer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-elev);
+  cursor: pointer;
+}
+
+.composer-chip:hover,
+.composer-chip.open {
+  background: var(--bg-hover);
+}
+
+.chip-mark {
+  display: inline-flex;
+  color: #d97757;
+  animation: spin 2.4s linear infinite;
+}
+
+.chip-running {
+  color: var(--muted);
+}
+
+.chip-failed {
+  color: var(--ng);
+}
+
+.chip-chevron {
+  color: var(--muted);
+}
+
+.subagent-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  width: min(460px, 80vw);
+  max-height: min(440px, 60vh);
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  animation: popover-in 0.14s ease-out;
+}
+
+.subagent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.subagent-row:hover {
+  background: var(--bg-hover);
+}
+
+.subagent-row.archived {
+  opacity: 0.55;
+}
+
+/* サブエージェントの行の右端のアーカイブ・戻す（いつも薄い色で出し、乗せたら濃くする） */
+.subagent-row-action {
+  flex: none;
+  align-self: center;
+  margin-left: auto;
+}
+
+.subagent-row-action:not(:hover) {
+  color: var(--extra-muted);
+}
+
+/* 一覧の上: 完了したものをまとめてアーカイブ */
+.subagent-archive-all {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 2px solid var(--accent);
+  border-radius: var(--radius) var(--radius) 0 0;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.subagent-archive-all:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.subagent-archive-all:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.subagent-archived-toggle {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: none;
+  border-top: 1px solid var(--border);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.subagent-archived-toggle:hover {
+  color: var(--text);
+}
+
+.subagent-empty {
+  margin: 8px 12px;
+}
+
+.subagent-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.subagent-icon.spinning {
+  color: #d97757;
+  animation: spin 2.4s linear infinite;
+}
+
+.subagent-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.subagent-title {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-meta {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-status.status-failed {
+  color: var(--ng);
+}
+
+.subagent-status.status-running {
+  color: var(--accent-bright);
+}
