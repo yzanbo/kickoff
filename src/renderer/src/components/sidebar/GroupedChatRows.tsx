@@ -6,7 +6,7 @@ import { COLUMN_TONE } from "../board/tones";
 import { SECTION_META } from "../../sections";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { useRunBranch } from "../../worktreeBranches";
-import type { ChatGrouping } from "./ChatGroupingMenu";
+import type { ChatGrouping } from "./chatGroupings";
 import { GroupToggle } from "./GroupToggle";
 
 type Row = { run: Run; state: AgentState };
