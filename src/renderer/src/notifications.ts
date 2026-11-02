@@ -1,10 +1,9 @@
 import { useRef } from "react";
 import type { ProjectSummary, Run, RunStatus } from "../../core/types";
 import { chatTitle } from "./chatTitle";
+import { BUSY_STATUSES } from "./components/RunStatus";
 import { useServerEvent } from "./events";
 import { openRun, type Route } from "./router";
-
-const BUSY: RunStatus[] = ["queued", "running", "waiting"];
 
 /**
  * チャットの完了・失敗・回答待ちを、Mac の通知で知らせる。押すと Kickoff が前面に出て、そのチャットを開く。
@@ -36,7 +35,7 @@ export function useRunNotifications({ enabled, projects, route }: { enabled: boo
       titles.current.set(run.id, run.title);
       const prev = last.current.get(run.id);
       last.current.set(run.id, run.status);
-      if (!prev || !BUSY.includes(prev) || BUSY.includes(run.status)) return;
+      if (!prev || !BUSY_STATUSES.includes(prev) || BUSY_STATUSES.includes(run.status)) return;
       const project = state.current.projects.find((p) => p.id === run.project_id)?.name ?? "";
       const name = chatTitle(run.title);
       if (run.status === "completed") notify(run, `✓ 完了: ${name}`, `${project} ・ AI の作業が終わりました`);
