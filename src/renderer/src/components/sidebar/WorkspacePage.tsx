@@ -5,7 +5,7 @@ import type { AgentState, Approval, ProjectSummary, Run, RunGroup } from "../../
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
-import { confirmDeleteGroup, useGroupDrop } from "../../groups";
+import { confirmDeleteGroup, flashGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
@@ -201,7 +201,11 @@ export const WorkspacePage = memo(function WorkspacePage({
                     type="button"
                     className="custom-group-name"
                     title="プロジェクトのグループで表示（ダブルクリックで名前を変更）"
-                    onClick={() => navigate({ name: "project", id: project.id, tab: "groups", group: group.id })}
+                    onClick={() => {
+                      navigate({ name: "project", id: project.id, tab: "groups", group: group.id });
+                      // すでにそのグループを表示しているときも、もう一度ハイライトする
+                      flashGroup(group.id);
+                    }}
                     onDoubleClick={() => setRenaming(group.id)}
                   >
                     {group.name}
