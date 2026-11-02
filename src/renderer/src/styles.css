@@ -883,24 +883,6 @@ button.chat-row {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
-/* サイドバーのグループ名から来たときに、そのグループを少しハイライトする */
-.board-column.highlighted,
-.list-group.highlighted {
-  border-color: color-mix(in srgb, var(--accent-bright) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
-  animation: group-highlight 1.2s ease-out;
-}
-
-@keyframes group-highlight {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-bright) 45%, transparent);
-  }
-
-  100% {
-    box-shadow: 0 0 0 10px transparent;
-  }
-}
-
 .custom-group-count {
   flex: none;
   font-size: 11px;

@@ -37,7 +37,7 @@ interface Props {
   approvals: Approval[];
   /** サイドバーのグループの＋から来たとき: そのグループで新しいチャットを始める */
   focus?: ReopenRoute;
-  /** サイドバーのグループ名から来たとき: そのグループを表示して、背景を少しハイライトする */
+  /** サイドバーのグループ名から来たとき: そのグループが見えるところまでスクロールする（色や枠の演出はしない） */
   highlight?: number;
 }
 
@@ -65,7 +65,7 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
     if (target.name === "newChat") panel.openNew({ projectId, section: target.section, group: target.group });
   });
 
-  // 目立たせるグループが見えるところまでスクロールする
+  // サイドバーで選んだグループが見えるところまでスクロールする
   useEffect(() => {
     if (highlight === undefined) return;
     const timer = setTimeout(() => {
@@ -185,7 +185,7 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
   const sections: (RunGroup | null)[] = [null, ...groups];
   const sectionProps = (g: RunGroup | null, base: string) => ({
     key: g?.id ?? "none",
-    className: cx(base, over === (g?.id ?? "none") && "drop-target", g ? reorder.classFor(g.id) : "ungrouped", g !== null && g.id === highlight && "highlighted"),
+    className: cx(base, over === (g?.id ?? "none") && "drop-target", g ? reorder.classFor(g.id) : "ungrouped"),
     "data-group-id": g?.id,
     ...dropProps(g?.id ?? null),
   });
