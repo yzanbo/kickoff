@@ -934,10 +934,27 @@ input[type="text"].inline-name {
   gap: 6px;
   height: var(--row-tight);
   margin-top: 4px;
-  padding: 0 8px;
+  padding: 0 8px 0 2px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text);
+}
+
+/* 見出しの名前の部分（押すと開閉する） */
+.status-group-name {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
 }
 
 .status-group-dot {
