@@ -2,7 +2,7 @@ import { Archive, Check, Clock, GitBranch, Layers, ListTree, Rows2, type LucideI
 import { useRef, useState } from "react";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { useSharedChoice, useSharedFlag } from "../../hooks/useStoredState";
-import { IconButton } from "../IconButton";
+import { HeadChip } from "./HeadChip";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 import { COMPACT_KEY, GROUPING_KEY, SHOW_ARCHIVED_KEY } from "./sidebarFlags";
 
@@ -20,7 +20,7 @@ export const GROUPING_META: Record<ChatGrouping, { label: string; icon: LucideIc
 };
 
 /**
- * チャットの並べ方・表示のボタン（いまの並べ方のアイコン。プロジェクト一覧の上の見出しの行に置く）。
+ * チャットの並べ方・表示のボタン（「チャット」。先頭はいまの並べ方のアイコン。プロジェクト一覧の上の見出しの行に置く）。
  * 押すと並べ方と、アーカイブ済みを出すか・1 行で出すかを選ぶメニューを出す。どれもすべてのプロジェクトのチャット一覧に効く
  */
 export function ChatGroupingMenu() {
@@ -29,13 +29,12 @@ export function ChatGroupingMenu() {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   return (
     <>
-      <IconButton
+      <HeadChip
         icon={GROUPING_META[value].icon}
-        label="チャットの並べ方・表示"
+        label="チャット"
         title={`チャットの並べ方・表示（すべてのプロジェクト。いまは「${GROUPING_META[value].label}」）`}
         className="chat-grouping-button"
-        aria-haspopup="menu"
-        aria-expanded={at !== null}
+        open={at !== null}
         onClick={(e) => {
           if (at) return setAt(null);
           const r = e.currentTarget.getBoundingClientRect();
