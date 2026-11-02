@@ -1136,23 +1136,30 @@ button.project-switch:hover,
   text-overflow: ellipsis;
 }
 
-.workspace-chevron {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 20px;
-  height: 22px;
+/* プロジェクトの頭文字のボタン: ふだんは頭文字、カードにマウスを乗せる（ピントがある）と開閉の矢印に変わる */
+.workspace-toggle {
+  margin-right: 4px;
   padding: 0;
   border: none;
-  border-radius: 4px;
-  color: var(--muted);
-  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.workspace-chevron:hover {
-  color: var(--text);
-  background: var(--bg-active);
+.workspace-toggle-chevron {
+  display: none;
+}
+
+.workspace-head:hover .workspace-toggle-initial,
+.workspace-toggle:focus-visible .workspace-toggle-initial {
+  display: none;
+}
+
+.workspace-head:hover .workspace-toggle-chevron,
+.workspace-toggle:focus-visible .workspace-toggle-chevron {
+  display: grid;
+  place-items: center;
 }
 
 .workspace-name {

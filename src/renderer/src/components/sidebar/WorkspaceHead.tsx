@@ -14,7 +14,7 @@ import type { StateCounts } from "./sidebarFlags";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
- * 出すのは、いつも使うものだけ: チャット一覧の開閉・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
+ * 出すのは、いつも使うものだけ: チャット一覧の開閉（頭文字。乗せると矢印に変わる）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
  * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを出す。
@@ -55,19 +55,22 @@ export function WorkspaceHead({
         onContextMenu={(e) => projectMenu.open(e, project, { onCreateGroup, collapse: { collapsed, toggle: onToggleCollapsed } })}
         {...headDrag}
       >
+        {/* 頭文字のボタン（カードにマウスを乗せると開閉の矢印に変わる。押すとチャット一覧を開閉） */}
         <button
-          className="workspace-chevron"
+          className="workspace-avatar workspace-toggle"
           aria-expanded={!collapsed}
-          aria-label={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
+          aria-label={collapsed ? `${project.name} のチャット一覧を開く` : `${project.name} のチャット一覧を閉じる`}
           title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
           onClick={onToggleCollapsed}
         >
-          <Chevron open={!collapsed} size={14} />
-        </button>
-        <a className="workspace-title" href={href({ name: "project", id: project.id, tab: "board" })} title={`${project.name} のカンバンを開く`}>
-          <span className="workspace-avatar" aria-hidden>
+          <span className="workspace-toggle-initial" aria-hidden>
             {initialOf(project.name)}
           </span>
+          <span className="workspace-toggle-chevron" aria-hidden>
+            <Chevron open={!collapsed} size={15} />
+          </span>
+        </button>
+        <a className="workspace-title" href={href({ name: "project", id: project.id, tab: "board" })} title={`${project.name} のカンバンを開く`}>
           <span className="workspace-title-text">
             <span className="workspace-name">{project.name}</span>
             <span className="workspace-sub">{chatCount} チャット</span>
