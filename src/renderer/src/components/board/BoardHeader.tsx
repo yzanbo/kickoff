@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
 import { SearchField } from "../SearchField";
 import { Segmented } from "../Segmented";
-import { PanelToggle } from "../sidePanel/SidePanel";
+import { PanelToggle } from "../sidePanel/PanelToggle";
 import type { SidePanelController } from "../sidePanel/useSidePanel";
 
 /** 表示の種類: ボード（状態の列）・リスト・スイムレーン（段ごとに状態の列。カンバンだけ） */
