@@ -30,7 +30,6 @@ import { workplaceOf } from "../../worktree/workplace";
 /** カンバン（列 = 状態）で選べる段の分け方 */
 const KANBAN_LANES: BoardLane[] = ["worktree", "phase", "group", "project"];
 
-type Entry = BoardEntry;
 const NO_GROUPS: RunGroup[] = [];
 
 interface Props {
@@ -110,7 +109,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
 
   // 絞り込んだチャット（新しく動いた順）
   const entries = useMemo(() => {
-    const list: Entry[] = [];
+    const list: BoardEntry[] = [];
     for (const run of runs) {
       // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない（projects に入っていない）
       if (allProjects && !projects.some((p) => p.id === run.project_id)) continue;
@@ -164,7 +163,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   /** アーカイブ済みのまとまりの開閉を覚える名前（ボード・段・列ごと） */
   const foldKey = (column: BoardColumn, laneKey = "") => `kanban:${projectId ?? "all"}:${laneKey}:${column}`;
   /** 状態の列（ボード・スイムレーンの段。アーカイブ済みは列のいちばん下の閉じたまとまりに分け、見出しの件数はアーカイブしていないものだけ） */
-  const columns = (list: Entry[], laneKey?: string) => {
+  const columns = (list: BoardEntry[], laneKey?: string) => {
     const grouped = byColumn(list);
     return BOARD_COLUMNS.map((column) => <StateColumn key={column} column={column} entries={grouped.get(column) ?? []} foldKey={foldKey(column, laneKey)} render={cards.card} />);
   };

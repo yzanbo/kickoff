@@ -1,10 +1,11 @@
 import { Folder, Plus } from "lucide-react";
 import type { ReactNode } from "react";
-import type { AgentState, Run, RunGroup } from "../../../../core/types";
+import type { RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { cx } from "../../cx";
 import { flashGroup } from "../../groups";
 import { navigate, openNewChat, useRoute } from "../../router";
+import type { BoardEntry } from "../board/boardColumns";
 import { Collapse } from "../Collapse";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
@@ -12,8 +13,6 @@ import type { ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { GroupToggle, pressedLeftOfName } from "./GroupToggle";
 import type { GroupSectionProps } from "./useGroupSections";
-
-type Row = { run: Run; state: AgentState };
 
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身）。
@@ -33,13 +32,13 @@ export function CustomGroupSection({
 }: {
   projectId: number;
   group: RunGroup;
-  members: Row[];
+  members: BoardEntry[];
   closed: boolean;
   onSetClosed: (closed: boolean) => void;
   /** 検索・絞り込みの間（並べ方のまとまりを開いて見せる） */
   filtering: boolean;
   grouping: ChatGrouping;
-  renderRow: (row: Row) => ReactNode;
+  renderRow: (row: BoardEntry) => ReactNode;
   /** 見出しの操作の束（useGroupSections の sectionProps） */
   section: GroupSectionProps;
 }) {

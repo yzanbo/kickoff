@@ -1,6 +1,6 @@
 import { Folder, GitBranch } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { PHASES, type AgentState, type GitWorktree, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
+import { PHASES, type GitWorktree, type ProjectSummary, type RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { initialOf, projectHue } from "../../projectColor";
@@ -10,6 +10,7 @@ import { BOARD_LANE_CLOSED_PREFIX } from "../../storageKeys";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "../../worktree/workplace";
 import { GroupToggle } from "../sidebar/GroupToggle";
+import type { BoardEntry } from "./boardColumns";
 
 /**
  * スイムレーンの段の分け方（列はどれも状態）。カンバンでは 作業場所・セクション・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
@@ -25,12 +26,10 @@ export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   project: "プロジェクト",
 };
 
-type Entry = { run: Run; state: AgentState };
-
 interface Lane {
   key: string;
   head: ReactNode;
-  entries: Entry[];
+  entries: BoardEntry[];
 }
 
 /** チャットを段に分ける（段の並び: 作業場所は本体が先、セクションは決まった順、プロジェクトはボードの並び） */
@@ -39,7 +38,7 @@ export const groupOfLane = (laneKey: string): number | null => (laneKey === "non
 
 function lanesOf(
   kind: BoardLane,
-  entries: Entry[],
+  entries: BoardEntry[],
   projects: ProjectSummary[],
   groups: RunGroup[],
   showEmpty: boolean,
@@ -80,7 +79,7 @@ function lanesOf(
     });
   }
   // 作業場所（プロジェクトと作業場所の組。本体が先。見出しはサイドバーと同じ workplaceOf）
-  const byPlace = new Map<string, { projectId: number; place: RunWorkplace; entries: Entry[] }>();
+  const byPlace = new Map<string, { projectId: number; place: RunWorkplace; entries: BoardEntry[] }>();
   for (const e of entries) {
     const place = workplaceOf(e.run, worktreesOf(e.run.project_id));
     const key = `${e.run.project_id}\u0000${place.key}`;
@@ -145,10 +144,10 @@ export function BoardLanes({
   laneProps?: (laneKey: string) => { className?: string } & Record<string, unknown>;
   /** 段の開閉を覚える名前（ボードごと） */
   boardKey: string;
-  entries: Entry[];
+  entries: BoardEntry[];
   projects: ProjectSummary[];
   /** 段の中の列（laneKey は段の名前。グループで分けるときは groupOfLane でグループに直せる） */
-  renderColumns: (entries: Entry[], laneKey: string) => ReactNode;
+  renderColumns: (entries: BoardEntry[], laneKey: string) => ReactNode;
   /** 段の前に置くもの（下書き） */
   before?: ReactNode;
 }) {

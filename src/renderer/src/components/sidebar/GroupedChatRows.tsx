@@ -1,7 +1,8 @@
 import { GitBranch } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 import { boardColumnOf } from "../../../../core/board";
-import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, PHASES, type AgentState, type GitWorktree, type Run } from "../../../../core/types";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, PHASES, type GitWorktree } from "../../../../core/types";
+import type { BoardEntry } from "../board/boardColumns";
 import { COLUMN_TONE } from "../board/tones";
 import { SECTION_META } from "../../sections";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
@@ -13,8 +14,6 @@ import { Collapse } from "../Collapse";
 import { GroupToggle } from "./GroupToggle";
 import { SIDEBAR_SECTION_CLOSED_PREFIX } from "../../storageKeys";
 import { useFoldAll } from "./sidebarFlags";
-
-type Row = { run: Run; state: AgentState };
 
 /** まとまりの開閉（プロジェクト・並べ方・まとまりごとに覚える。検索中は開いて見せる） */
 const OpenState = createContext<{ isClosed: (id: string) => boolean; toggle: (id: string) => void; set: (id: string, closed: boolean) => void; forceOpen: boolean }>({
@@ -39,8 +38,8 @@ function Group({
   label: string;
   extra?: string;
   title?: string;
-  rows: Row[];
-  renderRow: (row: Row) => ReactNode;
+  rows: BoardEntry[];
+  renderRow: (row: BoardEntry) => ReactNode;
 }) {
   const state = useContext(OpenState);
   const open = state.forceOpen || !state.isClosed(id);
@@ -79,8 +78,8 @@ export function GroupedChatRows({
 }: {
   grouping: Exclude<ChatGrouping, "recent">;
   projectId: number;
-  rows: Row[];
-  renderRow: (row: Row) => ReactNode;
+  rows: BoardEntry[];
+  renderRow: (row: BoardEntry) => ReactNode;
   forceOpen?: boolean;
   /** 自分で作ったグループの中・アーカイブ済みの中でまとめるとき、そのまとまり（開閉をまとまりごとに覚える。なければグループなし） */
   scope?: number | "archived";
@@ -98,7 +97,7 @@ export function GroupedChatRows({
   return <OpenState.Provider value={state}>{groupsOf(grouping, worktrees, rows, renderRow)}</OpenState.Provider>;
 }
 
-function groupsOf(grouping: Exclude<ChatGrouping, "recent">, worktrees: GitWorktree[] | undefined, rows: Row[], renderRow: (row: Row) => ReactNode) {
+function groupsOf(grouping: Exclude<ChatGrouping, "recent">, worktrees: GitWorktree[] | undefined, rows: BoardEntry[], renderRow: (row: BoardEntry) => ReactNode) {
   // 状態は、ボードの列と同じ分け方（作業中・回答待ち・確認待ち・完了）
   if (grouping === "status") {
     return BOARD_COLUMNS.map((column) => {
@@ -117,7 +116,7 @@ function groupsOf(grouping: Exclude<ChatGrouping, "recent">, worktrees: GitWorkt
     });
   }
   // 作業場所（本体・ワークツリー・フォルダなし・以前のブランチ）ごと。本体を先に（workplaceOf / compareWorkplaces）
-  const byPlace = new Map<string, { place: RunWorkplace; rows: Row[] }>();
+  const byPlace = new Map<string, { place: RunWorkplace; rows: BoardEntry[] }>();
   for (const row of rows) {
     const place = workplaceOf(row.run, worktrees);
     const hit = byPlace.get(place.key);
