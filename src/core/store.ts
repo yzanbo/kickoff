@@ -22,7 +22,8 @@ import {
   type Task,
   type TaskStatus,
 } from "./types.js";
-import { migrate, NOW } from "./schema.js";
+import { backupBeforeMigration } from "./dbBackup.js";
+import { migrate, NOW, SCHEMA_VERSION, schemaVersion } from "./schema.js";
 import { pickProjectHue } from "./projectColors.js";
 
 type Row = Record<string, SQLInputValue>;
@@ -124,6 +125,9 @@ export class Store {
   ) {
     this.db = new DatabaseSync(file);
     this.db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
+    // いまあるデータの版を上げるときは、その前に写しておく（作ったばかり・メモリの DB は除く）
+    const from = schemaVersion(this.db);
+    if (file !== ":memory:" && from > 0 && from < SCHEMA_VERSION) backupBeforeMigration(this.db, file, from);
     migrate(this.db);
     this.assignMissingHues();
   }
