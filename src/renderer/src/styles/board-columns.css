@@ -38,7 +38,7 @@
   padding-bottom: 8px;
 }
 
-.column-head .dot {
+.column-head .status-dot {
   width: 8px;
   height: 8px;
 }
