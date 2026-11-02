@@ -6,7 +6,8 @@ import { SECTION_META } from "../../sections";
 export type ArchiveFilter = "all" | "active" | "archived";
 
 /** 保存の形式は、2 択だったころのまま（"1" = すべて、"0"・未保存 = 未アーカイブ）。アーカイブ済みだけは "archived" */
-export const decodeArchiveFilter = (raw: string | null): ArchiveFilter => (raw === "1" ? "all" : raw === "archived" ? "archived" : "active");
+// 保存していなければ「すべてのチャット」（"1"）。"0" は未アーカイブだけ
+export const decodeArchiveFilter = (raw: string | null): ArchiveFilter => (raw === null || raw === "1" ? "all" : raw === "archived" ? "archived" : "active");
 export const encodeArchiveFilter = (value: ArchiveFilter): string => (value === "all" ? "1" : value === "archived" ? "archived" : "0");
 
 /** カンバンの絞り込み（セクション・アーカイブ・作業場所。プロジェクトは見出しの名前から切り替える） */

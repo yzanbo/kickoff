@@ -18,7 +18,7 @@ import type { GitLogController } from "./useGitLog";
 
 /** 上のコミットの表の高さ（割合。下はコミットの詳細） */
 const SPLIT_KEY = "kickoff:history-split";
-const DEFAULT_SPLIT = 45;
+const DEFAULT_SPLIT = 43;
 
 /** 左の一覧の 1 つのまとまり（ブランチ・リモートなど。見出しで開閉。action は見出しの右のボタン。always なら空でも出す） */
 function RefSection({ title, count, action, always = false, children }: { title: string; count: number; action?: ReactNode; always?: boolean; children: ReactNode }) {

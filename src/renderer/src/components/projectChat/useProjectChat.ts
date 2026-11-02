@@ -20,7 +20,7 @@ export function useProjectChat(projectId: number | undefined) {
   const openMap = useStoredFlagMap("kickoff:project-chat-open:");
   const open = projectId !== undefined && openMap.get(projectId);
   const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}` });
-  const width = useDragWidth({ storageKey: "kickoff:project-chat-width", initial: 420, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
+  const width = useDragWidth({ storageKey: "kickoff:project-chat-width", initial: 367, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
 
   /** 開閉。開くときにタブがなければ、新しいチャットを開く */
   const toggle = () => {

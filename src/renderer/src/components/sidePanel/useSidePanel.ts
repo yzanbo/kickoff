@@ -42,7 +42,7 @@ const chatKey = (id: number) => `chat:${id}`;
 
 const PANEL_WIDTH_KEY = "kickoff:panel-width";
 const PANEL_MAX_KEY = "kickoff:panel-maximized";
-const DEFAULT_PANEL_WIDTH = 560;
+const DEFAULT_PANEL_WIDTH = 1127;
 const MIN_PANEL_WIDTH = 360;
 
 /** パネルの状態（ボードごと） */

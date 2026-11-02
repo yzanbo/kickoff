@@ -31,7 +31,7 @@ interface ScopeState {
 }
 
 const HEIGHT_KEY = "kickoff:bottom-panel-height";
-const DEFAULT_HEIGHT = 280;
+const DEFAULT_HEIGHT = 198;
 const MIN_HEIGHT = 120;
 /** 上の画面に残す高さ */
 const KEEP_ABOVE = 120;

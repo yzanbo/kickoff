@@ -1,10 +1,10 @@
 import { Archive, ChevronsDownUp, ChevronsUpDown, Clock, Eye, GalleryHorizontal, GripVertical, Rows2, Rows3 } from "lucide-react";
-import { useSharedChoice, useSharedFlag } from "../../hooks/useStoredState";
+import { useSharedChoice } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
 import { IconButton } from "../IconButton";
 import { CHAT_GROUPINGS, GROUPING_META, type ChatGrouping } from "./chatGroupings";
 import { HeadMenu } from "./HeadMenu";
-import { COMPACT_KEY, GROUPING_KEY, SHOW_ARCHIVED_KEY } from "./sidebarFlags";
+import { GROUPING_KEY, useCompactRows, useShowArchivedChats } from "./sidebarFlags";
 
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
 export type NavLayout = "slide" | "stack";
@@ -32,8 +32,8 @@ interface Props {
  */
 export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
   const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
-  const [showArchivedChats, setShowArchivedChats] = useSharedFlag(SHOW_ARCHIVED_KEY);
-  const [compact, setCompact] = useSharedFlag(COMPACT_KEY);
+  const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
+  const [compact, setCompact] = useCompactRows();
   const radio = { role: "menuitemradio" as const };
   const check = { role: "menuitemcheckbox" as const };
   // 表示: オンにしているものの数（なければ「標準」。何がオンかは説明に出す）

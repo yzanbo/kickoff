@@ -14,7 +14,7 @@ import { useProjectMenu } from "./ProjectMenu";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
-import { COMPACT_KEY, foldAll, stateCounts, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
+import { foldAll, stateCounts, useCompactRows, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 const LAYOUT_KEY = "kickoff:sidebar-layout";
@@ -52,7 +52,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   const archived = archivedProjects(projects);
   // 自分待ちだけを出すときは、自分待ちのチャットがあるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
-  const [compact] = useSharedFlag(COMPACT_KEY);
+  const [compact] = useCompactRows();
   const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], approvals).length > 0;
   const ordered = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const reorder = useReorder(

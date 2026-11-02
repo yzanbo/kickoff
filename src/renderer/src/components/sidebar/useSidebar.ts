@@ -5,7 +5,7 @@ import { useStoredState } from "../../hooks/useStoredState";
 
 const OPEN_KEY = "kickoff:sidebar";
 const WIDTH_KEY = "kickoff:sidebar-width";
-const DEFAULT_WIDTH = 260;
+const DEFAULT_WIDTH = 294;
 
 /** サイドバーの幅は 200〜480px（狭くしすぎ・広げすぎを防ぐ） */
 function clampWidth(width: number): number {

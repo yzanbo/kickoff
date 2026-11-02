@@ -1,4 +1,5 @@
 import { agentStateOf, boardColumnOf } from "../../../../core/board";
+import { useSharedFlag } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { AgentState, Approval, BoardColumn, Run } from "../../../../core/types";
 
@@ -6,10 +7,15 @@ import type { AgentState, Approval, BoardColumn, Run } from "../../../../core/ty
 export const GROUPING_KEY = "kickoff:sidebar-grouping";
 /** 自分待ち（回答待ち・確認待ち）のチャットだけを出すか（"1" なら出す。上の行の「自分待ち」で切り替える） */
 export const WAITING_ONLY_KEY = "kickoff:sidebar-waiting-only";
-/** チャットを 1 行で出すか（"1" なら 2 行目のセクション・ブランチを隠す。並べ方のメニューで切り替える） */
+/** チャットを 1 行で出すか（"1" なら 2 行目のセクション・ブランチを隠す。見出しの行の「表示」で切り替える） */
 export const COMPACT_KEY = "kickoff:sidebar-compact";
-/** アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない） */
+/** アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ） */
 export const SHOW_ARCHIVED_KEY = "kickoff:sidebar-show-archived";
+
+/** チャットを 1 行で出すか（初めは 1 行。どの部品でも同じ初期値になるよう、ここから読む） */
+export const useCompactRows = () => useSharedFlag(COMPACT_KEY, true);
+/** アーカイブ済みのチャットを出すか（初めは出す） */
+export const useShowArchivedChats = () => useSharedFlag(SHOW_ARCHIVED_KEY, true);
 
 /** 自分が見る番か（カンバンの回答待ち・確認待ちの列と同じ） */
 export const isWaitingState = (state: AgentState) => {

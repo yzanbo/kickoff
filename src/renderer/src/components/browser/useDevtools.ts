@@ -26,7 +26,7 @@ const MIN_HEIGHT = 140;
  * 前に出していたものはメインプロセスが閉じる。右と下の入れ替えは開き直さず、同じ入れ物の並べ方だけを変える
  */
 export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
-  const [dock, setDock] = useStoredChoice<DevtoolsDock>(DOCK_KEY, DEVTOOLS_DOCKS, "right");
+  const [dock, setDock] = useStoredChoice<DevtoolsDock>(DOCK_KEY, DEVTOOLS_DOCKS, "window");
   // いま出している場所（null は閉じている）。タブの中の入れ物は開くたびに作り直す（key。一度使った入れ物は使い回せない）
   const [shown, setShown] = useState<DevtoolsDock | null>(null);
   const [embedKey, setEmbedKey] = useState(0);
