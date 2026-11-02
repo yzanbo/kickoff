@@ -1,5 +1,5 @@
 import type { WebviewTag } from "electron";
-import { ArrowLeft, ArrowRight, ExternalLink, Globe, RotateCw, SquareTerminal, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, Globe, RotateCw, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { normalizeUrl } from "../url";
 import { IconButton } from "./IconButton";
@@ -21,6 +21,8 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
   const [loading, setLoading] = useState(false);
   const [nav, setNav] = useState({ back: false, forward: false });
   const [error, setError] = useState<string>();
+  // 開発者ツールを開いているか（別のウィンドウで開く）
+  const [devtools, setDevtools] = useState(false);
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
 
@@ -53,7 +55,13 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
     view.addEventListener("did-navigate-in-page", sync);
     view.addEventListener("page-title-updated", sync);
     view.addEventListener("did-fail-load", onFail);
+    const onDevtoolsOpen = () => setDevtools(true);
+    const onDevtoolsClose = () => setDevtools(false);
+    view.addEventListener("devtools-opened", onDevtoolsOpen);
+    view.addEventListener("devtools-closed", onDevtoolsClose);
     return () => {
+      view.removeEventListener("devtools-opened", onDevtoolsOpen);
+      view.removeEventListener("devtools-closed", onDevtoolsClose);
       view.removeEventListener("did-start-loading", onStart);
       view.removeEventListener("did-stop-loading", onStop);
       view.removeEventListener("did-navigate", sync);
@@ -105,12 +113,15 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
           onChange={(e) => setAddress(e.target.value)}
           onFocus={(e) => e.target.select()}
         />
+        {/* 開発者ツール（別のウィンドウで開く。React DevTools など、入れた拡張機能も使える） */}
         <IconButton
-          icon={SquareTerminal}
-          label="開発者ツールを開く"
-          title="開発者ツール（React DevTools など）"
-          size={15}
+          icon={Wrench}
+          label={devtools ? "開発者ツールを閉じる" : "開発者ツールを開く"}
+          title={devtools ? "開発者ツールを閉じる" : "開発者ツールを開く（別のウィンドウ。React DevTools なども使えます）"}
+          size={14}
           type="button"
+          aria-pressed={devtools}
+          className={devtools ? "active" : undefined}
           onClick={() => (ref.current?.isDevToolsOpened() ? ref.current.closeDevTools() : ref.current?.openDevTools())}
         />
         <IconButton

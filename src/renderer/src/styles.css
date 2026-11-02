@@ -5343,7 +5343,7 @@ button.project-switch.all-projects:hover,
   flex: none;
   align-items: center;
   gap: 2px;
-  padding: 6px 8px;
+  padding: 6px var(--gutter);
   border-bottom: 1px solid var(--border);
 }
 
@@ -5352,11 +5352,17 @@ button.project-switch.all-projects:hover,
   min-width: 0;
   height: 28px;
   margin: 0 4px;
-  padding: 0 10px;
+  padding: 0 12px;
   border-radius: 999px;
   font-family: var(--mono);
   font-size: 12px;
   background: var(--bg-elev);
+}
+
+/* 丸いアドレス欄では、太い枠（ほかの入力欄のフォーカスの印）が角で途切れて見えるので、枠の色を変えるだけにする */
+.browser-address:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent-bright) 60%, var(--border));
 }
 
 .browser-error {
