@@ -14,7 +14,7 @@ import {
 import { useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { ProjectSummary } from "../../../../core/types";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
-import { changeProject } from "../../projectOrder";
+import { changeProject, confirmArchiveProject } from "../../projectOrder";
 import { openNewChat } from "../../router";
 import { ProjectEditDialog } from "../ProjectEditDialog";
 import type { ProjectSettingsSection } from "../projectSettings/ProjectSettings";
@@ -122,7 +122,8 @@ function ProjectMenu({
           extras.collapse.toggle,
         )}
       {item("archive", archived ? <ArchiveRestore size={14} /> : <Archive size={14} />, archived ? "アーカイブから戻す" : "アーカイブ（しまう）", () =>
-        changeProject(project.id, { archived: !archived }),
+        // アーカイブするときは確かめる（戻すときはそのまま）
+        archived ? changeProject(project.id, { archived: false }) : void confirmArchiveProject(project),
       )}
 
       <div className="menu-separator" role="separator" />
