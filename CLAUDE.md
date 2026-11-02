@@ -26,7 +26,7 @@
 - 見つからないときの 404 は `routes/http.ts` の `requireProject` / `requireRun` / `requireArtifact` / `requireGroupOf`（ほかのプロジェクトのグループを断る）などを使う。作業場所の解決は `requireWorktree(repo, worktree)`（null = 本体 / 400 / フォルダが消えていれば 404）と、ルート用の `requireWorkdir(c, project)`。外部コマンドの失敗を 400 にするのは `badRequest(fn)`（`FileConflictError` → 409 は `conflictOnError`）、Git の操作のあとに状態を返すのは `gitAction`。入力は zod で検証し（共通の形は `routes/schemas.ts` の `queryOf` / `optionalId` / `repoPath` / `folderPath` / `flag` / `branchName` / `groupName`）、失敗の 400 は `onError` に任せる。
 - 型と定数は `types.ts` を入口に `types/`（`phases` `project` `task` `run` `approval` `provider` `git` `server` `store` `bus`。画面からは `core/types` のまま import する）。DB は `store.ts`（メソッド名を変えない委譲のファサード）＋ `store/`（表ごとに `(db, onChange)` を受ける）。Git の実行は `git.ts` を入口に `git/`（`exec`（`gitOutput`）`status` `files` `changes` `history` `worktrees`）。
 - Claude のプロバイダーは役割ごとに分けてある: 実行ファイルと環境変数 `claudeEnv`、権限と書き込み範囲 `claudePolicy`、SDK のメッセージの変換 `claudeMessages`、使用枠 `claudeUsage`、承認の問い合わせ（`canUseTool`）`claudeApprovals`、文言の定数 `claudeLabels`。1 回の実行（渡す値の組み立て・コールバック・結果の反映）は `runExecution.ts` の `executeRun` で、`Runner` は受付と待機列だけ。
-- 例外の文は `src/core/errors.ts` の `errorMessage`。外部コマンドは `exec.ts` の `execFileAsync`、パスの包含判定・`~` の展開・リンクの解決は `paths.ts`（`isInside` / `expandHome` / `realPathLoose`）、期限付きのキャッシュは `ttlCache.ts`。テストの偽のプロバイダーは `testing/fakeProvider.ts`。
+- 例外の文は `src/core/errors.ts` の `errorMessage`。外部コマンドは `exec.ts` の `execFileAsync`、パスの包含判定・`~` の展開・リンクの解決は `paths.ts`（`isInside` / `expandHome` / `realPathLoose`）、期限付きのキャッシュは `ttlCache.ts`。テストからだけ使う補助は `testing/`（偽のプロバイダー `fakeProvider.ts`、API テストの準備 `testServer.ts`）。
 
 ## 画面の共有部品（手書きしない）
 
@@ -127,7 +127,7 @@
 ## 確かめ方
 
 - 型は `npm run typecheck`（`tsc --noEmit --noUnusedLocals`。使っていない import と変数も残さない）、テストは `npm test`。
-- API のルートを変えたら `src/core/server.test.ts` にテストを足す。
+- API のルートを変えたら、その領域の `src/core/server.<領域>.test.ts` にテストを足す（認証・SSE・停止 = `server.test.ts` / プロジェクト・タスク・成果物・固定・色 = `server.projects.test.ts` / チャット・グループ・添付・承認依頼・プロバイダー・使用枠・`/` のコマンド・自動アーカイブ = `server.runs.test.ts` / Git・ワークツリー = `server.git.test.ts` / サービスごとの使用状況 = `server.usage.test.ts`）。サーバーの組み立て・偽のプロバイダー・トークン付きの呼び出し・`until` は `src/core/testing/testServer.ts` の `setup()` などを使い、テストごとに書き直さない。
 - 画面の変更は、開発アプリ（`KICKOFF_REMOTE_DEBUG=9333 npm run dev`。CDP のポートは 9333。名前は「Kickoff Dev」、データは `Kickoff Dev`、コアのポートは 4318 で、インストールしたアプリ（本番）とは別。`appEnv.ts`）で実際に動かして確かめる。本番のデータ・アプリには触らない。見た目を変えないはずの変更は、変更の前後で DOM と計算後のスタイルを比べる（`node scripts/ui-snapshot.mjs take <名前> [#/hash]` で記録し、`diff <前> <後>` で比べる。同じ localStorage の状態から同じ順で画面を開く。CSS の順は `css <名前>` で記録して比べる）。
 - core や main を変えたあとに開発アプリを再起動するときは、Electron のメインプロセスにだけ `kill -TERM` を送る（pkill でまとめて止めると、ディスクに書かれていない localStorage が消える）。その前に `/api/status` で実行中のチャットがないことを確かめる。
 - 利用者の localStorage を書き換えて確かめたら、元の値に戻す。
