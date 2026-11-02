@@ -4,8 +4,10 @@
 //   node scripts/ui-snapshot.mjs take <名前> [#/hash] [--pre "<先に画面で実行する JS>"] [--wait ms]
 //   node scripts/ui-snapshot.mjs diff <前の名前> <後の名前> [--ignore prop1,prop2] [--limit 60]
 //   node scripts/ui-snapshot.mjs css <名前>           … 読み込まれている CSS の規則を順に記録する（分割の前後で順が同じかを見る）
+//   node scripts/ui-snapshot.mjs state save <名前>    … いまの localStorage を保存する（前後で同じ状態から始めるため）
+//   node scripts/ui-snapshot.mjs state restore <名前> … 保存した localStorage に戻して画面を読み直す（確かめ終わったら利用者の状態に戻すのにも使う）
 //
-// 記録は /tmp/kickoff-snaps/<名前>.json。本番のアプリ（ポート 4317）には触らない。
+// 記録は /tmp/kickoff-snaps/<名前>.json（状態は state-<名前>.json）。本番のアプリ（ポート 4317）には触らない。
 import fs from "node:fs";
 import path from "node:path";
 
@@ -161,6 +163,28 @@ async function css(args) {
   }
 }
 
+/** localStorage の保存と復元（復元は sessionStorage も消し、#/ に戻して読み直す） */
+async function state(args) {
+  const [action, name] = args;
+  if (!name || (action !== "save" && action !== "restore")) throw new Error("state save <名前> か state restore <名前>");
+  const cdp = await connect();
+  try {
+    if (action === "save") {
+      const json = await cdp.evaluate("JSON.stringify({ hash: location.hash, ls: Object.fromEntries(Object.entries(localStorage)) })");
+      fs.mkdirSync(DIR, { recursive: true });
+      fs.writeFileSync(file(`state-${name}`), json);
+      console.log(`${Object.keys(JSON.parse(json).ls).length} 件のキーを保存 → ${file(`state-${name}`)}`);
+    } else {
+      const saved = JSON.parse(fs.readFileSync(file(`state-${name}`), "utf8"));
+      await cdp.evaluate(`localStorage.clear(); for (const [k, v] of Object.entries(${JSON.stringify(saved.ls)})) localStorage.setItem(k, v); sessionStorage.clear(); location.hash = "#/"; location.reload();`);
+      await sleep(3500);
+      console.log(`${Object.keys(saved.ls).length} 件のキーに戻して読み直しました`);
+    }
+  } finally {
+    cdp.close();
+  }
+}
+
 /** スタイルの違い・DOM の違いを出す。違いがあれば終了コード 1 */
 function diff(args) {
   const [a, b] = args;
@@ -232,9 +256,9 @@ function diffCss(A, B) {
 }
 
 const [command, ...rest] = process.argv.slice(2);
-const commands = { take, diff, css };
+const commands = { take, diff, css, state };
 if (!commands[command]) {
-  console.error("使い方: node scripts/ui-snapshot.mjs take <名前> [#/hash] | diff <前> <後> | css <名前>");
+  console.error("使い方: node scripts/ui-snapshot.mjs take <名前> [#/hash] | diff <前> <後> | css <名前> | state save|restore <名前>");
   process.exit(2);
 }
 await commands[command](rest);
