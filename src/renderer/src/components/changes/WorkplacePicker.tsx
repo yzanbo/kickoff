@@ -1,7 +1,8 @@
 import { GitBranch } from "lucide-react";
 import { cx } from "../../cx";
 import { promptDialog } from "../../dialogs";
-import { useWorktrees, worktreeLabel } from "../../worktree/WorktreePicker";
+import { useWorktreeList } from "../../worktree/worktreeBranches";
+import { worktreeLabel } from "../../worktree/WorktreePicker";
 
 /** 新しいチャットの作業場所（本体・いまあるワークツリー・新しく作るワークツリー） */
 export type Workplace = { kind: "main" } | { kind: "existing"; path: string } | { kind: "new"; branch: string };
@@ -25,7 +26,7 @@ export function askNewWorktreeBranch(): Promise<string | null> {
  * 「新しいワークツリー…」を選ぶとブランチ名を聞き、チャットを始めるときに作る
  */
 export function WorkplacePicker({ projectId, value, onChange }: { projectId: number; value: Workplace; onChange: (place: Workplace) => void }) {
-  const worktrees = useWorktrees(projectId);
+  const worktrees = useWorktreeList(projectId);
   if (!worktrees || worktrees.length === 0) return null;
   const current = value.kind === "existing" ? value.path : value.kind === "new" ? NEW : "";
 

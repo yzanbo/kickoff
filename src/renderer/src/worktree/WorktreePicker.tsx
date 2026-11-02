@@ -1,28 +1,12 @@
 import { FolderGit2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { GitWorktree } from "../../../core/types";
-import { api } from "../api";
 import { cx } from "../cx";
 import { baseName } from "../format";
+import { refreshWorktrees, useWorktreeList } from "./worktreeBranches";
 
 /** ワークツリーの短い名前（ブランチ名。なければフォルダ名） */
 export const worktreeLabel = (w: Pick<GitWorktree, "branch" | "path">) => w.branch ?? baseName(w.path);
-
-/** プロジェクトのワークツリー（version が変わったら読み直す） */
-export function useWorktrees(projectId: number, version = 0) {
-  const [state, setState] = useState<{ projectId: number; list: GitWorktree[] }>();
-  useEffect(() => {
-    let alive = true;
-    api.gitWorktrees(projectId).then(
-      (list) => alive && setState({ projectId, list }),
-      () => alive && setState({ projectId, list: [] }),
-    );
-    return () => {
-      alive = false;
-    };
-  }, [projectId, version]);
-  return state?.projectId === projectId ? state.list : undefined;
-}
 
 /**
  * エディタタブで見る作業場所（本体・ワークツリー）を選ぶ。ワークツリーが本体だけなら出さない。
@@ -39,7 +23,9 @@ export function WorktreePicker({
   onChange: (worktree: string | undefined) => void;
   version: number;
 }) {
-  const worktrees = useWorktrees(projectId, version);
+  // プロジェクトで共通の一覧（変更の一覧を取り直したら、古くなっていれば取り直す）
+  const worktrees = useWorktreeList(projectId);
+  useEffect(() => refreshWorktrees(projectId), [projectId, version]);
   useEffect(() => {
     if (worktrees && value && !worktrees.some((w) => w.path === value && !w.main)) onChange(undefined);
   }, [worktrees, value, onChange]);
