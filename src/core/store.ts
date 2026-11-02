@@ -1,600 +1,197 @@
-import { DatabaseSync, type SQLInputValue } from "node:sqlite";
-import {
-  DEFAULT_SETTINGS,
-  PHASES,
-  TASK_STATUSES,
-  type AppSettings,
-  type Artifact,
-  type ArtifactKind,
-  type BusEvent,
-  type NewArtifact,
-  type NewProject,
-  type NewRun,
-  type NewTask,
-  type Phase,
-  type Project,
-  type ProjectSummary,
-  type Run,
-  type RunEvent,
-  type RunGroup,
-  type RunEventData,
-  type RunStatus,
-  type SearchHit,
-  type Task,
-  type TaskStatus,
-} from "./types.js";
+import { DatabaseSync } from "node:sqlite";
 import { backupBeforeMigration } from "./dbBackup.js";
-import { migrate, NOW, SCHEMA_VERSION, schemaVersion } from "./schema.js";
-import { pickProjectHue } from "./projectColors.js";
-
-type Row = Record<string, SQLInputValue>;
-
-/** キーワードの前後を切り出す（前 40 文字・後ろ 80 文字程度） */
-function snippetAround(text: string, keyword: string): { snippet: string; match_start: number; match_end: number } {
-  const flat = text.replace(/\s+/g, " ");
-  const index = flat.toLowerCase().indexOf(keyword.toLowerCase());
-  if (index < 0) return { snippet: flat.slice(0, 120), match_start: 0, match_end: 0 };
-  const start = Math.max(0, index - 40);
-  const end = Math.min(flat.length, index + keyword.length + 80);
-  const prefix = start > 0 ? "…" : "";
-  const snippet = `${prefix}${flat.slice(start, end)}${end < flat.length ? "…" : ""}`;
-  const matchStart = prefix.length + index - start;
-  return { snippet, match_start: matchStart, match_end: matchStart + keyword.length };
-}
-
-/** DB の行（write_scopes・defaults は JSON 文字列）をアプリの型に変換する */
-function toProject(row: unknown): Project {
-  const { reference_paths, ...r } = row as Omit<Project, "write_scopes" | "defaults" | "references"> & {
-    write_scopes: string;
-    defaults: string;
-    reference_paths?: string;
-  };
-  const references = parseJson<Project["references"]>(reference_paths || "[]");
-  // 以前の「新しいチャットを置くカンバンの列」（stage）は、列が AI の状態で決まるようになったので読まない
-  const { stage: _legacyStage, ...defaults } = parseJson<Project["defaults"] & { stage?: unknown }>(r.defaults);
-  return { ...r, write_scopes: parseJson(r.write_scopes), defaults, references: Array.isArray(references) ? references : [] };
-}
-
-/** 壊れた値は空（既定）に戻す */
-function parseJson<T extends object>(text: string | null | undefined): T {
-  try {
-    const value = JSON.parse(text || "{}");
-    return value && typeof value === "object" ? value : ({} as T);
-  } catch {
-    return {} as T;
-  }
-}
+import { migrate, SCHEMA_VERSION, schemaVersion } from "./schema.js";
+import { createArtifactStore } from "./store/artifacts.js";
+import type { Notify } from "./store/common.js";
+import { createGroupStore } from "./store/groups.js";
+import { createProjectStore, type ProjectPatch } from "./store/projects.js";
+import { createRunStore, type RunFilter, type RunPatch } from "./store/runs.js";
+import { createSettingsStore } from "./store/settings.js";
+import { createTaskStore, type TaskPatch } from "./store/tasks.js";
+import type {
+  AppSettings,
+  Artifact,
+  ArtifactKind,
+  NewArtifact,
+  NewProject,
+  NewRun,
+  NewTask,
+  Phase,
+  Project,
+  ProjectSummary,
+  Run,
+  RunEvent,
+  RunEventData,
+  RunGroup,
+  SearchHit,
+  Task,
+  TaskStatus,
+} from "./types.js";
 
 /**
  * SQLite の永続化層。変更系メソッドは onChange でイベントを通知する
- * （UI やモバイルへのリアルタイム配信はこの通知を起点にする）
+ * （UI やモバイルへのリアルタイム配信はこの通知を起点にする）。
+ * 中身は store/ に表ごとに分けてあり、ここは同じ名前で委譲する入口
  */
 export class Store {
   readonly db: DatabaseSync;
+  private readonly settings;
+  private readonly projects;
+  private readonly tasks;
+  private readonly runs;
+  private readonly groups;
+  private readonly artifacts;
 
-  constructor(
-    file: string,
-    private readonly onChange: (e: BusEvent) => void = () => {},
-  ) {
+  constructor(file: string, onChange: Notify = () => {}) {
     this.db = new DatabaseSync(file);
     this.db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
     // いまあるデータの版を上げるときは、その前に写しておく（作ったばかり・メモリの DB は除く）
     const from = schemaVersion(this.db);
     if (file !== ":memory:" && from > 0 && from < SCHEMA_VERSION) backupBeforeMigration(this.db, file, from);
     migrate(this.db);
-    this.assignMissingHues();
-  }
-
-  /** 色のないプロジェクト（色を覚える前に作ったもの）に、作った順に、ほかと被らない色を割り振る */
-  private assignMissingHues() {
-    const rows = this.db.prepare("SELECT id, hue FROM projects ORDER BY id").all() as { id: number; hue: number | null }[];
-    const used = rows.flatMap((r) => (r.hue === null ? [] : [r.hue]));
-    for (const row of rows) {
-      if (row.hue !== null) continue;
-      const hue = pickProjectHue(used);
-      used.push(hue);
-      this.db.prepare("UPDATE projects SET hue = ? WHERE id = ?").run(hue, row.id);
-    }
+    this.settings = createSettingsStore(this.db, onChange);
+    this.projects = createProjectStore(this.db, onChange);
+    this.tasks = createTaskStore(this.db, onChange);
+    this.runs = createRunStore(this.db, onChange);
+    this.groups = createGroupStore(this.db, onChange, this.runs.get);
+    this.artifacts = createArtifactStore(this.db, onChange);
+    this.projects.assignMissingHues();
   }
 
   close() {
     this.db.close();
   }
 
-  // ---- 設定 ----
+  // ---- 設定（store/settings.ts） ----
 
   getSettings(): AppSettings {
-    const rows = this.db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
-    const stored = Object.fromEntries(rows.map((r) => [r.key, JSON.parse(r.value)]));
-    return { ...DEFAULT_SETTINGS, ...stored };
+    return this.settings.get();
   }
 
   updateSettings(patch: Partial<AppSettings>): AppSettings {
-    const stmt = this.db.prepare(
-      "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-    );
-    for (const [key, value] of Object.entries(patch)) {
-      if (value !== undefined) stmt.run(key, JSON.stringify(value));
-    }
-    const settings = this.getSettings();
-    this.onChange({ type: "settings", settings });
-    return settings;
+    return this.settings.update(patch);
   }
 
-  // ---- プロジェクト ----
+  // ---- プロジェクト（store/projects.ts） ----
 
   listProjects(): ProjectSummary[] {
-    const projects = this.db.prepare("SELECT * FROM projects ORDER BY updated_at DESC").all().map(toProject);
-    const counts = this.db
-      .prepare("SELECT project_id, phase, status, COUNT(*) AS n FROM tasks GROUP BY project_id, phase, status")
-      .all() as { project_id: number; phase: Phase; status: TaskStatus; n: number }[];
-    const runs = this.db
-      .prepare(
-        `SELECT project_id, SUM(cost_usd) AS cost,
-           SUM(CASE WHEN status IN ('queued','running','waiting') THEN 1 ELSE 0 END) AS active
-         FROM runs GROUP BY project_id`,
-      )
-      .all() as { project_id: number; cost: number; active: number }[];
-
-    return projects.map((p) => {
-      const task_counts = Object.fromEntries(TASK_STATUSES.map((s) => [s, 0])) as Record<TaskStatus, number>;
-      const phase_task_counts = Object.fromEntries(PHASES.map((ph) => [ph, { total: 0, done: 0 }])) as Record<
-        Phase,
-        { total: number; done: number }
-      >;
-      for (const c of counts) {
-        if (c.project_id !== p.id) continue;
-        task_counts[c.status] += c.n;
-        phase_task_counts[c.phase].total += c.n;
-        if (c.status === "done") phase_task_counts[c.phase].done += c.n;
-      }
-      const r = runs.find((x) => x.project_id === p.id);
-      return { ...p, task_counts, phase_task_counts, total_cost_usd: r?.cost ?? 0, active_runs: r?.active ?? 0 };
-    });
+    return this.projects.list();
   }
 
   findProjectByPath(repoPath: string): Project | undefined {
-    const row = this.db.prepare("SELECT * FROM projects WHERE repo_path = ?").get(repoPath);
-    return row ? toProject(row) : undefined;
+    return this.projects.findByPath(repoPath);
   }
 
   getProject(id: number): Project | undefined {
-    const row = this.db.prepare("SELECT * FROM projects WHERE id = ?").get(id);
-    return row ? toProject(row) : undefined;
+    return this.projects.get(id);
   }
 
   createProject(input: NewProject): Project {
-    const { lastInsertRowid } = this.db
-      .prepare(
-        `INSERT INTO projects (name, description, repo_path, provider, test_command, deploy_instructions, auto_commit, position, hue)
-         VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM projects), ?)`,
-      )
-      .run(
-        input.name,
-        input.description ?? "",
-        input.repo_path,
-        input.provider,
-        input.test_command ?? "",
-        input.deploy_instructions ?? "",
-        input.auto_commit === false ? 0 : 1,
-        // ほかのプロジェクト（しまったものも含む）と被らない色
-        pickProjectHue((this.db.prepare("SELECT hue FROM projects WHERE hue IS NOT NULL").all() as { hue: number }[]).map((r) => r.hue)),
-      );
-    const project = this.getProject(Number(lastInsertRowid))!;
-    this.onChange({ type: "project", project });
-    return project;
+    return this.projects.create(input);
   }
 
-  updateProject(
-    id: number,
-    patch: Partial<Omit<NewProject, "auto_commit">> & {
-      auto_commit?: boolean;
-      write_scopes?: Project["write_scopes"];
-      defaults?: Project["defaults"];
-      references?: Project["references"];
-      pinned?: boolean;
-      archived_at?: string | null;
-      hue?: number;
-    },
-  ): Project {
-    const { references, ...rest } = patch;
-    const row: Row = {
-      ...rest,
-      auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0,
-      pinned: patch.pinned === undefined ? undefined : patch.pinned ? 1 : 0,
-      write_scopes: patch.write_scopes === undefined ? undefined : JSON.stringify(patch.write_scopes),
-      defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
-      reference_paths: references === undefined ? undefined : JSON.stringify(references),
-    } as Row;
-    this.updateRow("projects", id, row, [
-      "name",
-      "description",
-      "repo_path",
-      "provider",
-      "test_command",
-      "deploy_instructions",
-      "auto_commit",
-      "write_scopes",
-      "defaults",
-      "reference_paths",
-      "pinned",
-      "archived_at",
-      "hue",
-    ]);
-    const project = this.getProject(id)!;
-    this.onChange({ type: "project", project });
-    return project;
-  }
-
-  /** タスクや実行の更新時にプロジェクトの更新日時を進める（一覧の並び順用） */
-  private touchProject(id: number) {
-    this.db.prepare(`UPDATE projects SET updated_at = ${NOW} WHERE id = ?`).run(id);
+  updateProject(id: number, patch: ProjectPatch): Project {
+    return this.projects.update(id, patch);
   }
 
   /** サイドバーでのプロジェクトの並び順を ids の順にする */
   reorderProjects(ids: number[]) {
-    const stmt = this.db.prepare("UPDATE projects SET position = ? WHERE id = ?");
-    ids.forEach((id, i) => stmt.run(i + 1, id));
-    for (const id of ids) {
-      const project = this.getProject(id);
-      if (project) this.onChange({ type: "project", project });
-    }
+    this.projects.reorder(ids);
   }
 
   deleteProject(id: number) {
-    this.db.prepare("DELETE FROM projects WHERE id = ?").run(id);
-    this.onChange({ type: "project_deleted", id });
+    this.projects.delete(id);
   }
 
-  // ---- タスク ----
+  // ---- タスク（store/tasks.ts） ----
 
   listTasks(projectId: number, filter: { phase?: Phase; status?: TaskStatus } = {}): Task[] {
-    const where = ["project_id = $project_id"];
-    const params: Row = { project_id: projectId };
-    if (filter.phase) {
-      where.push("phase = $phase");
-      params.phase = filter.phase;
-    }
-    if (filter.status) {
-      where.push("status = $status");
-      params.status = filter.status;
-    }
-    return this.db
-      .prepare(`SELECT * FROM tasks WHERE ${where.join(" AND ")} ORDER BY priority ASC, id ASC`)
-      .all(params) as unknown as Task[];
+    return this.tasks.list(projectId, filter);
   }
 
   getTask(id: number): Task | undefined {
-    return this.db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as unknown as Task | undefined;
+    return this.tasks.get(id);
   }
 
   createTask(input: NewTask): Task {
-    const { lastInsertRowid } = this.db
-      .prepare(
-        `INSERT INTO tasks (project_id, phase, title, description, acceptance_criteria, priority, status, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        input.project_id,
-        input.phase,
-        input.title,
-        input.description ?? "",
-        input.acceptance_criteria ?? "",
-        input.priority ?? 2,
-        input.status ?? "todo",
-        input.created_by ?? "user",
-      );
-    const task = this.getTask(Number(lastInsertRowid))!;
-    this.touchProject(task.project_id);
-    this.onChange({ type: "task", task });
-    return task;
+    return this.tasks.create(input);
   }
 
-  updateTask(
-    id: number,
-    patch: Partial<
-      Pick<
-        Task,
-        "phase" | "title" | "description" | "acceptance_criteria" | "status" | "priority" | "summary" | "branch" | "worktree_path" | "pr_url"
-      >
-    >,
-  ): Task {
-    this.updateRow("tasks", id, patch as Row, [
-      "phase",
-      "title",
-      "description",
-      "acceptance_criteria",
-      "status",
-      "priority",
-      "summary",
-      "branch",
-      "worktree_path",
-      "pr_url",
-    ]);
-    const task = this.getTask(id)!;
-    this.touchProject(task.project_id);
-    this.onChange({ type: "task", task });
-    return task;
+  updateTask(id: number, patch: TaskPatch): Task {
+    return this.tasks.update(id, patch);
   }
 
   deleteTask(id: number) {
-    const task = this.getTask(id);
-    if (!task) return;
-    this.db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
-    this.onChange({ type: "task_deleted", id, project_id: task.project_id });
+    this.tasks.delete(id);
   }
 
-  // ---- 実行（エージェントとの会話セッション） ----
+  // ---- 実行（エージェントとの会話セッション。store/runs.ts） ----
 
-  listRuns(
-    filter: { projectId?: number; taskId?: number; statuses?: RunStatus[]; limit?: number; includeArchived?: boolean; onlyArchived?: boolean } = {},
-  ): Run[] {
-    const where: string[] = filter.onlyArchived ? ["archived_at IS NOT NULL"] : filter.includeArchived ? [] : ["archived_at IS NULL"];
-    const params: Row = {};
-    if (filter.projectId !== undefined) {
-      where.push("project_id = $project_id");
-      params.project_id = filter.projectId;
-    }
-    if (filter.taskId !== undefined) {
-      where.push("task_id = $task_id");
-      params.task_id = filter.taskId;
-    }
-    if (filter.statuses?.length) {
-      where.push(`status IN (${filter.statuses.map((s) => `'${s}'`).join(",")})`);
-    }
-    const sql = `SELECT * FROM runs ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY id DESC LIMIT ${filter.limit ?? 100}`;
-    return this.db.prepare(sql).all(params) as unknown as Run[];
+  listRuns(filter: RunFilter = {}): Run[] {
+    return this.runs.list(filter);
+  }
+
+  getRun(id: number): Run | undefined {
+    return this.runs.get(id);
+  }
+
+  createRun(input: NewRun): Run {
+    return this.runs.create(input);
+  }
+
+  updateRun(id: number, patch: RunPatch): Run {
+    return this.runs.update(id, patch);
   }
 
   /** チャットを完全に削除する（会話の記録も消える） */
   deleteRun(id: number) {
-    const run = this.getRun(id);
-    if (!run) return;
-    this.db.prepare("DELETE FROM runs WHERE id = ?").run(id);
-    this.onChange({ type: "run_deleted", id, project_id: run.project_id });
+    this.runs.delete(id);
   }
 
-  /** チャットをグループへ移す（null でグループから外す）。並び順が変わらないよう更新日時は進めない */
   /** 確認待ち（未読）の印を付ける・外す。最後に動いた時刻（一覧の並び順）は変えない */
   setRunAttention(id: number, attention: boolean): Run {
-    this.db.prepare("UPDATE runs SET attention = ? WHERE id = ?").run(attention ? 1 : 0, id);
-    const run = this.getRun(id)!;
-    this.onChange({ type: "run", run });
-    return run;
-  }
-
-  /**
-   * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数を返す。
-   * 完了 = 終わっていて（完了・中断）、確認待ちの印がなく、固定していないもの（エラー・回答待ち・作業中・固定したものはしない）
-   */
-  archiveStaleRuns(days: number, now = new Date()): number {
-    const before = new Date(now.getTime() - days * 86_400_000).toISOString();
-    const rows = this.db
-      .prepare(
-        "SELECT id FROM runs WHERE archived_at IS NULL AND status IN ('completed', 'cancelled') AND attention = 0 AND pinned = 0 AND updated_at < ?",
-      )
-      .all(before) as { id: number }[];
-    const at = now.toISOString();
-    for (const { id } of rows) {
-      this.db.prepare("UPDATE runs SET archived_at = ? WHERE id = ?").run(at, id);
-      this.onChange({ type: "run", run: this.getRun(id)! });
-    }
-    return rows.length;
+    return this.runs.setAttention(id, attention);
   }
 
   /** サイドバーの上に固定する・やめる（最後に動いた時刻（並び順）は変えない） */
   setRunPinned(id: number, pinned: boolean): Run {
-    this.db.prepare("UPDATE runs SET pinned = ? WHERE id = ?").run(pinned ? 1 : 0, id);
-    const run = this.getRun(id)!;
-    this.onChange({ type: "run", run });
-    return run;
+    return this.runs.setPinned(id, pinned);
+  }
+
+  /** チャットをグループへ移す（null でグループから外す）。並び順が変わらないよう更新日時は進めない */
+  setRunGroup(id: number, groupId: number | null): Run {
+    return this.runs.setGroup(id, groupId);
+  }
+
+  /** 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数を返す */
+  archiveStaleRuns(days: number, now = new Date()): number {
+    return this.runs.archiveStale(days, now);
   }
 
   /** その作業場所（ワークツリー）を使っているチャット */
   runsInWorktree(projectId: number, worktreePath: string): Run[] {
-    return this.db.prepare("SELECT * FROM runs WHERE project_id = ? AND worktree_path = ? ORDER BY id").all(projectId, worktreePath) as unknown as Run[];
+    return this.runs.inWorktree(projectId, worktreePath);
   }
 
   /** ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻す（並び順は変えない） */
   clearRunWorktree(projectId: number, worktreePath: string): void {
-    const runs = this.runsInWorktree(projectId, worktreePath);
-    this.db.prepare("UPDATE runs SET worktree_path = '' WHERE project_id = ? AND worktree_path = ?").run(projectId, worktreePath);
-    for (const run of runs) this.onChange({ type: "run", run: this.getRun(run.id)! });
-  }
-
-  setRunGroup(id: number, groupId: number | null): Run {
-    this.db.prepare("UPDATE runs SET group_id = ? WHERE id = ?").run(groupId, id);
-    const run = this.getRun(id)!;
-    this.onChange({ type: "run", run });
-    return run;
-  }
-
-  // ---- チャットのグループ ----
-
-  listGroups(projectId: number): RunGroup[] {
-    return this.db.prepare("SELECT * FROM run_groups WHERE project_id = ? ORDER BY position, id").all(projectId) as unknown as RunGroup[];
-  }
-
-  getGroup(id: number): RunGroup | undefined {
-    return this.db.prepare("SELECT * FROM run_groups WHERE id = ?").get(id) as unknown as RunGroup | undefined;
-  }
-
-  createGroup(projectId: number, name: string): RunGroup {
-    const { next } = this.db
-      .prepare("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM run_groups WHERE project_id = ?")
-      .get(projectId) as { next: number };
-    const { lastInsertRowid } = this.db
-      .prepare("INSERT INTO run_groups (project_id, name, position) VALUES (?, ?, ?)")
-      .run(projectId, name, next);
-    const group = this.getGroup(Number(lastInsertRowid))!;
-    this.onChange({ type: "group", group });
-    return group;
-  }
-
-  renameGroup(id: number, name: string): RunGroup {
-    this.updateRow("run_groups", id, { name }, ["name"]);
-    const group = this.getGroup(id)!;
-    this.onChange({ type: "group", group });
-    return group;
-  }
-
-  /** ids の順に並べ直す（ほかのプロジェクトのグループは無視する） */
-  reorderGroups(projectId: number, ids: number[]): RunGroup[] {
-    const stmt = this.db.prepare("UPDATE run_groups SET position = ? WHERE id = ? AND project_id = ?");
-    ids.forEach((id, i) => stmt.run(i, id, projectId));
-    const groups = this.listGroups(projectId);
-    for (const group of groups) this.onChange({ type: "group", group });
-    return groups;
-  }
-
-  /** グループを消す。中のチャットは消さず、グループなしに戻す */
-  deleteGroup(id: number) {
-    const group = this.getGroup(id);
-    if (!group) return;
-    const members = this.db.prepare("SELECT id FROM runs WHERE group_id = ?").all(id) as { id: number }[];
-    this.db.prepare("DELETE FROM run_groups WHERE id = ?").run(id);
-    for (const { id: runId } of members) this.onChange({ type: "run", run: this.getRun(runId)! });
-    this.onChange({ type: "group_deleted", id, project_id: group.project_id });
-  }
-
-  getRun(id: number): Run | undefined {
-    return this.db.prepare("SELECT * FROM runs WHERE id = ?").get(id) as unknown as Run | undefined;
-  }
-
-  createRun(input: NewRun): Run {
-    const { lastInsertRowid } = this.db
-      .prepare(
-        `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        input.project_id,
-        input.task_id,
-        input.phase,
-        input.provider,
-        input.title,
-        input.status,
-        input.model,
-        input.effort ?? null,
-        input.permission_mode ?? "phase",
-        input.fast_mode ? 1 : 0,
-        input.group_id ?? null,
-        input.worktree_path ?? "",
-      );
-    const run = this.getRun(Number(lastInsertRowid))!;
-    this.touchProject(run.project_id);
-    this.onChange({ type: "run", run });
-    return run;
-  }
-
-  updateRun(
-    id: number,
-    patch: Partial<
-      Pick<
-        Run,
-        | "title"
-        | "status"
-        | "session_id"
-        | "model"
-        | "effort"
-        | "permission_mode"
-        | "fast_mode"
-        | "cost_usd"
-        | "num_turns"
-        | "result"
-        | "error"
-        | "attention"
-        | "archived_at"
-        | "context_tokens"
-        | "context_window"
-        | "branch"
-        | "turn_started_at"
-      >
-    >,
-  ): Run {
-    this.updateRow("runs", id, patch as Row, [
-      "branch",
-      "turn_started_at",
-      "attention",
-      "archived_at",
-      "context_tokens",
-      "context_window",
-      "fast_mode",
-      "title",
-      "status",
-      "session_id",
-      "model",
-      "effort",
-      "permission_mode",
-      "cost_usd",
-      "num_turns",
-      "result",
-      "error",
-    ]);
-    const run = this.getRun(id)!;
-    this.onChange({ type: "run", run });
-    return run;
+    this.runs.clearWorktree(projectId, worktreePath);
   }
 
   addEvent(runId: number, event: RunEventData): RunEvent {
-    const { type, ...data } = event;
-    const { lastInsertRowid } = this.db
-      .prepare("INSERT INTO run_events (run_id, type, data) VALUES (?, ?, ?)")
-      .run(runId, type, JSON.stringify(data));
-    const row = this.db.prepare("SELECT * FROM run_events WHERE id = ?").get(Number(lastInsertRowid)) as {
-      id: number;
-      run_id: number;
-      type: RunEvent["type"];
-      data: string;
-      created_at: string;
-    };
-    const saved: RunEvent = { ...row, data: JSON.parse(row.data) };
-    const run = this.getRun(runId);
-    if (run) this.onChange({ type: "run_event", project_id: run.project_id, event: saved });
-    return saved;
+    return this.runs.addEvent(runId, event);
   }
 
   listEvents(runId: number): RunEvent[] {
-    const rows = this.db.prepare("SELECT * FROM run_events WHERE run_id = ? ORDER BY id ASC").all(runId) as {
-      id: number;
-      run_id: number;
-      type: RunEvent["type"];
-      data: string;
-      created_at: string;
-    }[];
-    return rows.map((r) => ({ ...r, data: JSON.parse(r.data) }));
+    return this.runs.listEvents(runId);
   }
 
-  /**
-   * チャットのやり取り（自分の発言と AI の返答）をキーワードで検索する。新しい順。
-   * 大文字・小文字は区別しない（ASCII のみ。SQLite の LIKE の仕様）。
-   */
+  /** チャットのやり取り（自分の発言と AI の返答）をキーワードで検索する。新しい順 */
   searchEvents(query: string, filter: { projectId?: number; runId?: number; limit?: number } = {}): SearchHit[] {
-    const keyword = query.trim();
-    if (!keyword) return [];
-    const where = ["e.type IN ('user', 'text')", "json_extract(e.data, '$.text') LIKE $pattern ESCAPE '\\'"];
-    const params: Row = { pattern: `%${keyword.replace(/[\\%_]/g, (c) => `\\${c}`)}%` };
-    if (filter.projectId !== undefined) {
-      where.push("r.project_id = $project_id");
-      params.project_id = filter.projectId;
-    }
-    if (filter.runId !== undefined) {
-      where.push("e.run_id = $run_id");
-      params.run_id = filter.runId;
-    }
-    const rows = this.db
-      .prepare(
-        `SELECT e.id AS event_id, e.run_id, r.project_id, r.title AS run_title, r.phase, e.type,
-                json_extract(e.data, '$.text') AS text, e.created_at
-         FROM run_events e JOIN runs r ON r.id = e.run_id
-         WHERE ${where.join(" AND ")}
-         ORDER BY e.id DESC LIMIT ${Math.min(filter.limit ?? 50, 200)}`,
-      )
-      .all(params) as (Omit<SearchHit, "snippet" | "match_start" | "match_end"> & { text: string })[];
-    return rows.map(({ text, ...row }) => ({ ...row, ...snippetAround(text, keyword) }));
+    return this.runs.searchEvents(query, filter);
   }
 
-  /** 起動時の復旧: 前回終了時に動いていた実行を中断扱いにする */
+  /** 起動時の復旧: 前回終了時に動いていた実行を中断扱いにする（チャットとタスクをまたぐので、ここで行う） */
   recoverInterruptedRuns(): number {
     const stale = this.listRuns({ statuses: ["queued", "running", "waiting"], limit: 1000, includeArchived: true });
     for (const run of stale) {
@@ -610,53 +207,45 @@ export class Store {
     return stale.length;
   }
 
-  // ---- 成果物 ----
+  // ---- チャットのグループ（store/groups.ts） ----
+
+  listGroups(projectId: number): RunGroup[] {
+    return this.groups.list(projectId);
+  }
+
+  getGroup(id: number): RunGroup | undefined {
+    return this.groups.get(id);
+  }
+
+  createGroup(projectId: number, name: string): RunGroup {
+    return this.groups.create(projectId, name);
+  }
+
+  renameGroup(id: number, name: string): RunGroup {
+    return this.groups.rename(id, name);
+  }
+
+  /** ids の順に並べ直す（ほかのプロジェクトのグループは無視する） */
+  reorderGroups(projectId: number, ids: number[]): RunGroup[] {
+    return this.groups.reorder(projectId, ids);
+  }
+
+  /** グループを消す。中のチャットは消さず、グループなしに戻す */
+  deleteGroup(id: number) {
+    this.groups.delete(id);
+  }
+
+  // ---- 成果物（store/artifacts.ts） ----
 
   listArtifacts(projectId: number, filter: { kind?: ArtifactKind } = {}): Artifact[] {
-    if (filter.kind) {
-      return this.db
-        .prepare("SELECT * FROM artifacts WHERE project_id = ? AND kind = ? ORDER BY id DESC")
-        .all(projectId, filter.kind) as unknown as Artifact[];
-    }
-    return this.db
-      .prepare("SELECT * FROM artifacts WHERE project_id = ? ORDER BY id DESC")
-      .all(projectId) as unknown as Artifact[];
+    return this.artifacts.list(projectId, filter);
   }
 
   getArtifact(id: number): Artifact | undefined {
-    return this.db.prepare("SELECT * FROM artifacts WHERE id = ?").get(id) as unknown as Artifact | undefined;
+    return this.artifacts.get(id);
   }
 
   createArtifact(input: NewArtifact): Artifact {
-    const { lastInsertRowid } = this.db
-      .prepare(
-        `INSERT INTO artifacts (project_id, phase, kind, title, content, file_path, run_id, task_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        input.project_id,
-        input.phase,
-        input.kind,
-        input.title,
-        input.content,
-        input.file_path ?? "",
-        input.run_id ?? null,
-        input.task_id ?? null,
-      );
-    const artifact = this.getArtifact(Number(lastInsertRowid))!;
-    this.touchProject(artifact.project_id);
-    this.onChange({ type: "artifact", artifact });
-    return artifact;
-  }
-
-  // ---- 内部ヘルパー ----
-
-  private updateRow(table: string, id: number, patch: Row, allowed: readonly string[]) {
-    const keys = Object.keys(patch).filter((k) => allowed.includes(k) && patch[k] !== undefined);
-    if (keys.length === 0) return;
-    const sets = keys.map((k) => `${k} = $${k}`).join(", ");
-    const params: Row = { id };
-    for (const k of keys) params[k] = patch[k];
-    this.db.prepare(`UPDATE ${table} SET ${sets}, updated_at = ${NOW} WHERE id = $id`).run(params);
+    return this.artifacts.create(input);
   }
 }
