@@ -1,12 +1,13 @@
 import { FolderPlus, Plus } from "lucide-react";
 import { useEffect } from "react";
-import type { Run, RunGroup } from "../../../../core/types";
+import type { RunGroup } from "../../../../core/types";
 import { useRunStates } from "../../approvalsContext";
 import { cx } from "../../cx";
 import { GROUP_FLASH_EVENT } from "../../groups";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { ReopenRoute } from "../../router";
 import { useSidePanel } from "../sidePanel/useSidePanel";
+import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
 import { BoardHeader } from "./BoardHeader";
 import { BoardLanes, groupOfLane } from "./BoardLanes";
 import { BoardShell } from "./BoardShell";
@@ -20,7 +21,6 @@ import { useGroupBoard } from "./useGroupBoard";
 
 interface Props {
   projectId: number;
-  runs: Run[];
   groups: RunGroup[];
   /** サイドバーのグループの＋から来たとき: そのグループで新しいチャットを始める */
   focus?: ReopenRoute;
@@ -32,11 +32,11 @@ interface Props {
  * 自分で作ったグループを管理するボード。列 = グループ、カード = チャット。
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
-export function GroupBoard({ projectId, runs, groups, focus, highlight }: Props) {
-  const board = useGroupBoard({ projectId, runs, groups });
+export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
+  const board = useGroupBoard({ projectId, groups });
   const { view, menu, rename, over, dropProps } = board;
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
-  const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs, loaded: true, holdEsc: menu.isOpen });
+  const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs: board.runs, loaded: board.loaded, holdEsc: menu.isOpen });
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {
@@ -69,7 +69,7 @@ export function GroupBoard({ projectId, runs, groups, focus, highlight }: Props)
   const { stateOf } = useRunStates();
 
   // スイムレーン: グループごとの段に、下書き・作業中・回答待ち・確認待ち・完了の列を並べる
-  const entries: BoardEntry[] = runs
+  const entries: BoardEntry[] = board.shown
     .filter(board.search.matches)
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
     .map((run) => ({ run, state: stateOf(run) }));
@@ -78,6 +78,7 @@ export function GroupBoard({ projectId, runs, groups, focus, highlight }: Props)
     <BoardHeader
       query={board.query}
       onQuery={board.setQuery}
+      filters={<ArchiveFilterSelect value={board.archive} onChange={board.setArchive} />}
       organize={
         <button className="btn btn-sm" onClick={() => board.setCreating(true)}>
           <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>

@@ -1,16 +1,16 @@
 import { useState } from "react";
 import type { Phase, Run } from "../../../../core/types";
 import { useChatSearch } from "../../chatSearch";
-import { useStoredChoice, useStoredState } from "../../hooks/useStoredState";
+import { useStoredChoice } from "../../hooks/useStoredState";
 import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY } from "../../storageKeys";
 import { workplaceOf } from "../../worktree/workplace";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
 import { BOARD_LANES, type BoardLane } from "./BoardLanes";
-import { decodeArchiveFilter, encodeArchiveFilter, type ArchiveFilter } from "./KanbanFilters";
+import { useArchiveFilter } from "./archiveFilter";
 
 /** カンバンの絞り込み（アーカイブ（覚えておく）・セクション・作業場所・名前の検索） */
 export function useKanbanFilters() {
-  const [archive, setArchive] = useStoredState<ArchiveFilter>(BOARD_SHOW_ARCHIVED_KEY, decodeArchiveFilter, encodeArchiveFilter);
+  const [archive, setArchive] = useArchiveFilter(BOARD_SHOW_ARCHIVED_KEY);
   const [section, setSection] = useState<Phase | "all">("all");
   // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
   const [worktree, setWorktree] = useState("all");

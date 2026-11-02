@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decodeArchiveFilter, encodeArchiveFilter, type ArchiveFilter } from "./KanbanFilters";
+import { archiveMatches, decodeArchiveFilter, encodeArchiveFilter, type ArchiveFilter } from "./archiveFilter";
 
 test("decodeArchiveFilter: 保存されている形式（\"1\" = すべて / \"0\" = アーカイブしていないもの / \"archived\" = アーカイブ済み）をそのまま読む", () => {
   // 何も保存していなければ「すべて」（今までと同じ初期値）
@@ -17,4 +17,12 @@ test("encodeArchiveFilter: 保存する形式は \"1\" / \"0\" / \"archived\" �
   assert.equal(encodeArchiveFilter("active"), "0");
   assert.equal(encodeArchiveFilter("archived"), "archived");
   for (const value of ["all", "active", "archived"] as ArchiveFilter[]) assert.equal(decodeArchiveFilter(encodeArchiveFilter(value)), value);
+});
+
+test("archiveMatches: すべて = どちらも出す / 未アーカイブ = アーカイブ済みを出さない / アーカイブ済み = 未アーカイブを出さない", () => {
+  const active = { archived_at: null };
+  const archived = { archived_at: "2026-01-01T00:00:00Z" };
+  assert.deepEqual([archiveMatches(active, "all"), archiveMatches(archived, "all")], [true, true]);
+  assert.deepEqual([archiveMatches(active, "active"), archiveMatches(archived, "active")], [true, false]);
+  assert.deepEqual([archiveMatches(active, "archived"), archiveMatches(archived, "archived")], [false, true]);
 });
