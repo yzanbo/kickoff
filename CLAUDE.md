@@ -46,7 +46,7 @@
 | 状態の点 | `StatusDot` ＋ `toneOf` |
 | CLI の状態カード | `StatusCard` / `GitHubStatusCard`。カードとその並びは `.card` / `.card-grid` |
 | サイドバーのグループの開閉 | `GroupToggle`。開閉の矢印は `Chevron` |
-| ボードのカードの操作 | `runCardProps`（クリック・Enter で開く / 右クリックでメニュー / ドラッグはグループのボードだけ）。カンバンの列（作業中・回答待ち・確認待ち・完了）は AI の状態から `boardColumnOf` で決め、人は動かさない（DB の `runs.stage` は使わない） |
+| ボードのカードの操作 | `runCardProps`（クリック・Enter で開く / 右クリックでメニュー / ドラッグはグループのボードだけ）。カンバンの列（作業中・回答待ち・確認待ち・完了）は AI の状態から `boardColumnOf` で決め、人は動かさない（DB の `runs.stage` は使わない）。まだ送っていない新しいチャット（右のパネルで書いている途中）は、あるときだけいちばん左の「下書き」の列に出す |
 | 画像を大きく見る | `ImageViewer`（アプリの中で開く。外のブラウザには Kickoff のログインがないので、添付を外で開かない。画像以外の添付はアプリの中でダウンロード）。画像以外を大きく見せるときは children、見出しのボタンは actions で渡す（Mermaid の図の全画面） |
 | コードの色付け | `useHighlight`（行ごとの色。VS Code の Dark+ / Light+ でダーク・ライトに合わせる）＋ `CodeLine`（1 行を描く）。言語はファイル名から `languageOf`（`highlight.ts`）。色付けのライブラリ（Shiki）は使うときだけ読み込む |
 | Markdown の表示 | `Markdown`（```mermaid は `MermaidDiagram` で図にする。生成中の返答には `streaming` を付け、書きかけの図を描かない） |

@@ -18,7 +18,7 @@ import { BoardHeader, type BoardView } from "./BoardHeader";
 import { decodeArchiveFilter, encodeArchiveFilter, KanbanFilters, type ArchiveFilter } from "./KanbanFilters";
 import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
-import { COLUMN_TONE } from "./tones";
+import { COLUMN_TONE, DRAFT_TONE } from "./tones";
 import { useBoardFocus } from "./useBoardFocus";
 import { useBoardRuns } from "./useBoardRuns";
 
@@ -122,15 +122,17 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const cardClass = (run: Run) =>
     cx(run.archived_at && "archived", allProjects && "with-project", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
   /** 列・リストのまとまりの見出し（列の名前・件数） */
-  const columnHead = (column: BoardColumn, count: number) => (
+  const head = (label: string, tone: string, count: number) => (
     <header className="column-head">
-      <span className="dot" style={{ background: COLUMN_TONE[column] }} />
-      <span className="column-title">{BOARD_COLUMN_LABELS[column]}</span>
+      <span className="dot" style={{ background: tone }} />
+      <span className="column-title">{label}</span>
       <span className="column-count">{count}</span>
     </header>
   );
-  // まだ送っていない新しいチャット（送ると作業中になるので、作業中の列に下書きとして出す）
-  const drafts = (column: BoardColumn) => column === "running" && <DraftCards panel={panel} />;
+  const columnHead = (column: BoardColumn, count: number) => head(BOARD_COLUMN_LABELS[column], COLUMN_TONE[column], count);
+  // まだ送っていない新しいチャット（右のパネルで書いている途中。AI はまだ何もしていない）。あるときだけ、いちばん左に「下書き」の列を出す
+  const draftCount = panel.drafts.length;
+  const draftHead = head("下書き", DRAFT_TONE, draftCount);
 
   return (
     <div className="board">
@@ -169,13 +171,20 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             <p className="muted small board-loading">読み込み中…</p>
           ) : view === "board" ? (
             <div className="board-columns">
+              {draftCount > 0 && (
+                <section className="board-column">
+                  {draftHead}
+                  <div className="column-cards">
+                    <DraftCards panel={panel} />
+                  </div>
+                </section>
+              )}
               {BOARD_COLUMNS.map((column) => {
                 const list = grouped.get(column) ?? [];
                 return (
                   <section key={column} className="board-column">
                     {columnHead(column, list.length)}
                     <div className="column-cards">
-                      {drafts(column)}
                       {list.length === 0 && <p className="column-empty">なし</p>}
                       {list.map(({ run, state }) => (
                         <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
@@ -195,12 +204,17 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             </div>
           ) : (
             <div className="board-list">
+              {draftCount > 0 && (
+                <section className="list-group">
+                  {draftHead}
+                  <DraftCards panel={panel} />
+                </section>
+              )}
               {BOARD_COLUMNS.map((column) => {
                 const list = grouped.get(column) ?? [];
                 return (
                   <section key={column} className="list-group">
                     {columnHead(column, list.length)}
-                    {drafts(column)}
                     {list.length === 0 && <p className="column-empty">なし</p>}
                     {list.map(({ run, state }) => (
                       <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>

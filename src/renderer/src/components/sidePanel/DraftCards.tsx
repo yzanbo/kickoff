@@ -27,7 +27,7 @@ function DraftCard({ active, onOpen, onDelete }: { active: boolean; onOpen: () =
         }}
       >
         <SquarePen size={14} aria-hidden />
-        新しいチャット（入力中）
+        新しいチャット（未送信）
       </button>
       {menu && (
         <PopupMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)}>
