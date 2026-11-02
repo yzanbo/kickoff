@@ -1,6 +1,6 @@
 /* ==== ボタン・フォーム ==== */
 
-/* 名前をその場で変える（InlineName）。.inline-name-ok は下の .icon-button と同じ要素に効くので、順を変えない（.icon-button より前） */
+/* 名前をその場で変える（InlineName）。OK のボタンの色は .icon-button.inline-name-ok で .icon-button に勝たせ、乗せたときの色はあとの .icon-button:hover に任せる（この順を変えない） */
 .inline-name-wrap {
   display: flex;
   flex: 1;
@@ -15,7 +15,7 @@
   height: 22px;
 }
 
-.inline-name-ok {
+.icon-button.inline-name-ok {
   color: var(--accent-bright);
 }
 
