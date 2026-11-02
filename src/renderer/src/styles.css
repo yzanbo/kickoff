@@ -182,14 +182,27 @@ kbd {
   -webkit-app-region: no-drag;
 }
 
-/* 幅を変えるつまみ（サイドバー・右のパネル・「エディタ」タブの一覧）。VS Code・Cursor と同じく、乗せると青い線を出す */
+/*
+ * 幅を変えるつまみ（サイドバー・右のパネル・「エディタ」タブの一覧）。VS Code・Cursor と同じく、乗せると青い線を出す。
+ * つかめる幅は広いまま、線は 2px にする（サイドバーは右端、パネルは左端の境目の上に、欄の境目は真ん中に）
+ */
 .sidebar-resizer:hover,
 .resizing-sidebar .sidebar-resizer,
 .panel-resizer:hover,
 .board-body.resizing .panel-resizer,
 .pane-resizer:hover,
 .resizing > .pane-resizer {
-  background: var(--info);
+  background: linear-gradient(var(--info), var(--info)) center / 2px 100% no-repeat;
+}
+
+.sidebar-resizer:hover,
+.resizing-sidebar .sidebar-resizer {
+  background-position: right;
+}
+
+.panel-resizer:hover,
+.board-body.resizing .panel-resizer {
+  background-position: left;
 }
 
 /* 左右の欄の境目のつまみ（エディタの一覧と差分・履歴のファイルと差分。線の上に重ねる） */
@@ -253,7 +266,8 @@ kbd {
 
 .sidebar-collapsed .page-header > :first-child,
 .sidebar-collapsed .page > .board:first-child > .board-header {
-  padding-left: 64px;
+  /* 開閉ボタン（左から 96px まで）の右に置く。画面の左右の余白の分を差し引く */
+  padding-left: calc(104px - var(--page-x));
   transition: padding-left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -263,10 +277,12 @@ kbd {
 }
 
 .page {
+  /* 左右の余白（横幅いっぱいの画面は狭くする） */
+  --page-x: 40px;
   max-width: 820px;
   margin: 0 auto;
   /* 上は信号機ボタンの行（タイトルの行がその高さに収まる） */
-  padding: 6px 40px 64px;
+  padding: 6px var(--page-x) 64px;
 }
 
 .page.is-stale {
@@ -275,7 +291,9 @@ kbd {
 }
 
 /* プロジェクトの画面・全体のカンバン: どのタブでも同じ横幅にする（タブを切り替えても見出しやタブの位置が動かないように） */
+/* 横幅いっぱいの画面（ボード・エディタなど）。サイドバーとの間を空けすぎない */
 .page-wide {
+  --page-x: 20px;
   max-width: none;
 }
 
@@ -1008,20 +1026,27 @@ button.project-switch:hover,
   color: var(--text);
 }
 
+/* サイドバーの下の行: プロジェクトの丸（縦並びでは「新しいプロジェクト」など）と、右端の並べ方の切り替え */
 .workspace-switcher {
-  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  align-items: center;
   gap: 6px;
-  padding: 10px 56px 8px;
+  padding: 10px 8px 8px;
   border-top: 1px solid var(--border);
 }
 
+.workspace-dots {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .workspace-switcher.stack {
-  justify-content: flex-start;
-  align-items: center;
-  padding: 8px 56px 8px 8px;
+  flex-wrap: wrap;
+  padding: 8px;
 }
 
 /* 縦並びの下の行: 「新しいプロジェクト」の右に「すべて閉じる・開く」を並べる（狭いときは次の行へ回す） */
@@ -1105,15 +1130,13 @@ button.project-switch:hover,
 
 /* 横スライド / 縦並びの切り替え（下の行の右端） */
 .sidebar-layout-toggle {
-  position: absolute;
-  top: 50%;
-  right: 8px;
   display: flex;
+  flex: none;
   gap: 1px;
+  margin-left: auto;
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: 7px;
-  transform: translateY(-50%);
 }
 
 .sidebar-layout-toggle button {
@@ -4459,7 +4482,8 @@ button.project-switch.all-projects:hover,
   }
 
   .page {
-    padding: 20px 16px 48px;
+    --page-x: 16px;
+    padding: 20px var(--page-x) 48px;
   }
 
   .run-header,
@@ -6346,7 +6370,7 @@ a:focus-visible,
 
 .history-resizer:hover,
 .history-main.resizing .history-resizer {
-  background: var(--info);
+  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
 }
 
 .history-detail {

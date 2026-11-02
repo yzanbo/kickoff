@@ -197,7 +197,9 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
         </div>
       </div>
 
-      <div className="workspace-switcher" role="tablist" aria-label="プロジェクトの切り替え">
+      <div className="workspace-switcher">
+        {/* プロジェクトの丸（右の並べ方の切り替えを除いた幅で、真ん中に並べる。入りきらなければ次の行へ） */}
+        <div className="workspace-dots" role="tablist" aria-label="プロジェクトの切り替え">
         {ordered.map((p, i) => {
           const waiting = approvals.some((a) => a.project_id === p.id);
           return (
@@ -221,6 +223,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
         <button className="workspace-dot add" title="新しいプロジェクト" aria-label="新しいプロジェクト" onClick={onNewProject}>
           <Plus size={14} />
         </button>
+        </div>
         {layoutToggle}
       </div>
     </div>
