@@ -24,7 +24,12 @@ export function BottomPanel({ panel }: { panel: BottomPanelController }) {
   };
 
   return (
-    <section {...panel.panelProps} className={cx("bottom-panel", maximized && "maximized", panel.resizing && "resizing")} hidden={!open} aria-label="ターミナル">
+    <section {...panel.panelProps} className={cx("bottom-panel", open && "open", maximized && "maximized", panel.resizing && "resizing")}
+      inert={!open}
+      aria-hidden={!open}
+      aria-label="ターミナル"
+    >
+      <div className="bottom-panel-inner">
       <div
         className="bottom-panel-resizer"
         role="separator"
@@ -103,6 +108,7 @@ export function BottomPanel({ panel }: { panel: BottomPanelController }) {
             />
           </div>
         ))}
+      </div>
       </div>
     </section>
   );

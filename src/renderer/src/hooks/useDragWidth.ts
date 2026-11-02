@@ -13,12 +13,15 @@ export function useDragWidth({
   min = 200,
   keep = 320,
   side = "left",
+  cssVar,
 }: {
   storageKey: string;
   initial: number;
   min?: number;
   keep?: number;
   side?: "left" | "right";
+  /** ドラッグ中に書き換える CSS 変数（開閉の動きのために幅を変数で持つ欄。なければ width を書き換える） */
+  cssVar?: string;
 }) {
   const [width, setWidth] = useStoredNumber(storageKey, initial);
   const [resizing, setResizing] = useState(false);
@@ -35,7 +38,8 @@ export function useDragWidth({
       // ドラッグ中は描き直さず、幅だけを書き換えて指に追従させる
       move: (clientX) => {
         next = Math.round(Math.max(min, Math.min(total - keep, side === "left" ? clientX - left : right - clientX)));
-        pane.style.width = `${next}px`;
+        if (cssVar) pane.style.setProperty(cssVar, `${next}px`);
+        else pane.style.width = `${next}px`;
       },
       end: () => {
         setResizing(false);

@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { startVerticalDrag } from "../../hooks/dragResize";
 import { useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
@@ -148,7 +148,7 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
     startVerticalDrag(e, {
       move: (clientY) => {
         next = Math.round(Math.max(MIN_HEIGHT, Math.min(max, bottom - clientY)));
-        panel.style.height = `${next}px`;
+        panel.style.setProperty("--bottom-h", `${next}px`);
       },
       end: () => {
         setResizing(false);
@@ -201,9 +201,10 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
     startResize,
     resetHeight: () => setHeight(DEFAULT_HEIGHT),
     /** パネルの要素に渡す */
+    // 開閉は高さの動きで見せる（中身は開いたときの高さのまま。ターミナルが動いている間に何度も大きさを変えないように）
     panelProps: {
       ref: panelRef,
-      style: maximized ? undefined : { height: `${height}px` },
+      style: { "--bottom-h": `${height}px` } as CSSProperties,
     },
     resizing,
   };
