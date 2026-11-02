@@ -893,35 +893,44 @@ input[type="text"].inline-name {
   font-size: 13px;
 }
 
+/* サイドバーのチャットのまとまりの見出し（印・名前・件数。ボードの列の見出しと同じ形） */
 .status-group-head {
   display: flex;
   align-items: center;
   gap: 6px;
   height: var(--row-tight);
+  margin-top: 4px;
   padding: 0 8px;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.status-group-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-group-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.status-group-extra {
+  font-weight: 400;
   color: var(--muted);
 }
 
-/* 作業場所でまとめたときの、ワークツリーの見出し（ブランチの印と同じ色） */
-.status-group-head.on-worktree svg {
+.status-group-count {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.status-group-worktree {
   color: var(--info);
-}
-
-.status-group-head.state-needs_input svg {
-  color: var(--dot-needs-input);
-}
-
-.status-group-head.state-failed svg {
-  color: var(--dot-failed);
-}
-
-.status-group-head.state-attention svg {
-  color: var(--dot-attention);
-}
-
-.status-group-head.state-running svg {
-  color: var(--dot-running);
 }
 
 /* ==== プロジェクトのワークスペース（横スライドで切り替え） ==== */
