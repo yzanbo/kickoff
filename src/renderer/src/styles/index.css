@@ -19,6 +19,8 @@
 @import "./palette.css";
 @import "./search.css";
 @import "./project-page.css";
+@import "./project-tabs.css";
+@import "./cards.css";
 @import "./chat.css";
 @import "./chat-tools.css";
 @import "./new-chat.css";
