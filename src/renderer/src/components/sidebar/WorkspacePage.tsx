@@ -9,7 +9,7 @@ import { confirmDeleteGroup, flashGroup, useGroupDrop } from "../../groups";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
-import { navigate, openNewChat, openRun, type Route } from "../../router";
+import { navigate, openNewChat, openRun, type Route, routeProjectId } from "../../router";
 import { CardMenu } from "../CardMenu";
 import { useGroupMenu } from "../GroupMenu";
 import { IconButton } from "../IconButton";
@@ -60,7 +60,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   const [waitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
-  const isActive = route.name === "project" && route.id === project.id;
+  // 選んでいる = いまの画面がこのプロジェクト（カンバン・チャットなど）
+  const isActive = routeProjectId(route) === project.id;
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
   const { keyword, matches } = useChatSearch(query || searchAll);

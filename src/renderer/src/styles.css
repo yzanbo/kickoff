@@ -1252,7 +1252,7 @@ button.project-switch:hover,
   text-overflow: ellipsis;
 }
 
-/* プロジェクトの頭文字のボタン: ふだんは頭文字、カードにマウスを乗せる（ピントがある）と開閉の矢印に変わる */
+/* プロジェクトの頭文字のボタン: ふだんは頭文字。選んでいるカードに乗せる（ピントがある）と、押すと開閉するので矢印に変わる */
 .workspace-toggle {
   margin-right: 4px;
   padding: 0;
@@ -1267,13 +1267,13 @@ button.project-switch:hover,
   display: none;
 }
 
-.workspace-head:hover .workspace-toggle-initial,
-.workspace-toggle:focus-visible .workspace-toggle-initial {
+.workspace-head.active:hover .workspace-toggle-initial,
+.workspace-head.active .workspace-toggle:focus-visible .workspace-toggle-initial {
   display: none;
 }
 
-.workspace-head:hover .workspace-toggle-chevron,
-.workspace-toggle:focus-visible .workspace-toggle-chevron {
+.workspace-head.active:hover .workspace-toggle-chevron,
+.workspace-head.active .workspace-toggle:focus-visible .workspace-toggle-chevron {
   display: grid;
   place-items: center;
 }
