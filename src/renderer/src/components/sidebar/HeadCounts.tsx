@@ -2,11 +2,10 @@ import type { CSSProperties } from "react";
 import { BOARD_COLUMN_LABELS } from "../../../../core/types";
 import { cx } from "../../cx";
 import { COLUMN_TONE } from "../board/tones";
-import type { StateCounts } from "./sidebarFlags";
+import { COUNTED_COLUMNS, type StateCounts } from "../../runState";
 
-export const SHOWN_STATES = ["running", "needs_input", "review"] as const;
 /** 状態の数を押して絞り込む状態（作業中・回答待ち・確認待ち） */
-export type StateFilter = (typeof SHOWN_STATES)[number];
+export type StateFilter = (typeof COUNTED_COLUMNS)[number];
 
 /**
  * プロジェクトの見出しの、状態ごとのチャット数（作業中・回答待ち・確認待ち。色はカンバンの列と同じ。0 のものは出さない）。
@@ -14,7 +13,7 @@ export type StateFilter = (typeof SHOWN_STATES)[number];
  * 押すと、そのプロジェクトのチャットをその状態だけに絞る（もう一度押すと戻す。絞っている状態は 0 件でも出しておく）
  */
 export function HeadCounts({ counts, filter, onFilter }: { counts: StateCounts; filter: StateFilter | null; onFilter: (state: StateFilter | null) => void }) {
-  const shown = SHOWN_STATES.filter((c) => counts[c] > 0 || c === filter);
+  const shown = COUNTED_COLUMNS.filter((c) => counts[c] > 0 || c === filter);
   if (shown.length === 0) return null;
   return (
     <span className="head-counts">

@@ -7,6 +7,9 @@ import { KanbanBoard } from "../components/board/KanbanBoard";
 import { sidebarOrder } from "../projectOrder";
 import { useProjects } from "../projectsContext";
 import { useRunStates } from "../approvalsContext";
+import { useBoardRuns } from "../components/board/useBoardRuns";
+import { StateStats } from "../components/project/StateStats";
+import { stateCounts } from "../runState";
 
 interface Props {
   onNewProject: () => void;
@@ -15,17 +18,19 @@ interface Props {
 /** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
 export function AllProjectsPage({ onNewProject }: Props) {
   const { projects } = useProjects();
-  const { approvals } = useRunStates();
+  const { pending } = useRunStates();
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
   // しまった（アーカイブした）プロジェクトは、全プロジェクトの画面に出さない
   const shown = sidebarOrder(projects);
   const notReady = (!providers.loading && !claude?.loggedIn) || (!github.loading && !github.data?.loggedIn);
-  // 回答待ち・作業中の数（プロジェクトの画面と同じ数え方で、全プロジェクトの分）
-  const shownApprovals = approvals.filter((a) => shown.some((p) => p.id === a.project_id));
-  const waiting = new Set(shownApprovals.map((a) => a.run_id)).size;
-  const working = shown.reduce((n, p) => n + p.active_runs, 0) - waiting;
+  // 状態ごとの数: すぐ下の全プロジェクトのカンバンと同じチャット（しまったプロジェクトの分は除く）を、プロジェクトの画面・サイドバーと同じ数え方で
+  const { runs } = useBoardRuns(undefined, false, () => {});
+  const counts = stateCounts(
+    runs.filter((r) => shown.some((p) => p.id === r.project_id)),
+    pending,
+  );
 
   return (
     <div className="page page-wide page-board">
@@ -35,8 +40,7 @@ export function AllProjectsPage({ onNewProject }: Props) {
             <ProjectSwitcher />
           </h1>
           <div className="project-stats">
-            {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
-            {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
+            <StateStats counts={counts} />
           </div>
         </div>
       </header>

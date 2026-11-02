@@ -2,8 +2,9 @@ import { ArchiveRestore, FolderOpen, Pencil } from "lucide-react";
 import { useRunStates } from "../../approvalsContext";
 import { confirmRestoreProject } from "../../projectOrder";
 import { href, type ProjectTab } from "../../router";
-import { BUSY_STATUSES } from "../RunStatus";
+import { stateCounts } from "../../runState";
 import { ProjectSwitcher } from "./ProjectSwitcher";
+import { StateStats } from "./StateStats";
 import type { ProjectData } from "./useProjectData";
 
 const TAB_LABELS: Record<ProjectTab, string> = {
@@ -17,15 +18,14 @@ const TAB_LABELS: Record<ProjectTab, string> = {
 };
 
 /**
- * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・編集・しまったものを戻す・フォルダの場所・回答待ちと作業中の数と、
+ * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・編集・しまったものを戻す・フォルダの場所・状態ごとのチャット数と、
  * タブの列（タスク・チャット・グループの件数、エディタは変更のあるファイルの数 changeCount）
  */
 export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: ProjectData; tab: ProjectTab; changeCount: number; onEdit: () => void }) {
   const { project, tasks, runs, groups } = data;
-  // 回答待ちの依頼（App が持ち、イベントで更新される）
+  // 状態ごとの数（回答待ちの依頼は App が持ち、イベントで更新される。サイドバー・カンバンの列と同じ数え方）
   const { pending } = useRunStates();
-  const waiting = runs.filter((r) => pending.has(r.id)).length;
-  const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
+  const counts = stateCounts(runs, pending);
   return (
   <header className="page-header project-header">
     <div className="project-title-row">
@@ -57,8 +57,7 @@ export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: Projec
       </button>
       <div className="project-stats">
         {project.archived_at && <span className="stat stat-archived">アーカイブ済み</span>}
-        {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
-        {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
+        <StateStats counts={counts} />
       </div>
     </div>
     <div className="project-tabs-row">
