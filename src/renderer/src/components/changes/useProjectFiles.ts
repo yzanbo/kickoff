@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { ProjectFiles } from "../../../../core/types";
 import { api } from "../../api";
-import { errorMessage } from "../../errors";
+import { useKeyedAsync } from "../../hooks/useKeyedAsync";
 import { buildTree } from "./treeModel";
 import { useGitTarget } from "../../worktree/worktreeContext";
 
@@ -11,26 +11,10 @@ import { useGitTarget } from "../../worktree/worktreeContext";
  */
 export function useProjectFiles(projectId: number, active: boolean, version: number) {
   const { target, key } = useGitTarget(projectId);
-  const [state, setState] = useState<{ key: string; files?: ProjectFiles; error?: string }>();
-
-  useEffect(() => {
-    if (!active) return;
-    let alive = true;
-    api.projectFiles(target).then(
-      (files) =>
-        alive &&
-        setState((prev) =>
-          prev?.key === key && prev.files && JSON.stringify(prev.files) === JSON.stringify(files) ? prev : { key, files },
-        ),
-      (e: unknown) => alive && setState({ key, error: errorMessage(e) }),
-    );
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, active, version]);
-
-  const current = state?.key === key ? state : undefined;
-  const tree = useMemo(() => (current?.files ? buildTree(current.files) : undefined), [current?.files]);
-  return { tree, truncated: Boolean(current?.files?.truncated), error: current?.error };
+  const { data: files, error } = useKeyedAsync(key, () => api.projectFiles(target), { active, deps: [version], same: sameFiles });
+  const tree = useMemo(() => (files ? buildTree(files) : undefined), [files]);
+  return { tree, truncated: Boolean(files?.truncated), error };
 }
+
+/** 取り直した結果が前と同じか（同じなら描き直さない） */
+const sameFiles = (a: ProjectFiles, b: ProjectFiles) => JSON.stringify(a) === JSON.stringify(b);
