@@ -6855,30 +6855,24 @@ a:focus-visible,
   margin: 0;
 }
 
-/* 上の行（信号機ボタンと同じ高さ。ウィンドウのドラッグ領域にする） */
-.project-chat-bar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
+/* 中身はボードの右のパネルと同じもの。欄いっぱいに広げ、浮いたパネルの見た目（枠・影・動き）はなくす */
+.board-panel.as-sidebar {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+}
+
+/* タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける */
+.board-panel.as-sidebar .panel-tabs {
   min-height: 40px;
-  padding: 0 100px 0 var(--gutter);
-  border-bottom: 1px solid var(--border);
-  color: var(--muted);
+  padding-right: 100px;
   -webkit-app-region: drag;
 }
 
-.project-chat-bar button {
+.board-panel.as-sidebar .panel-tabs button {
   -webkit-app-region: no-drag;
-}
-
-.project-chat-title {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.project-chat-body {
-  flex: 1;
-  min-height: 0;
 }
 

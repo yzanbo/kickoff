@@ -1,39 +1,35 @@
-import { useServerEvent } from "../../events";
 import { useDragWidth } from "../../hooks/useDragWidth";
-import { useStoredFlagMap, useStoredState } from "../../hooks/useStoredState";
+import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { useSidePanel } from "../sidePanel/useSidePanel";
 
 export type ProjectChatController = ReturnType<typeof useProjectChat>;
 
 /**
- * プロジェクトのチャット欄（画面の右端。どのタブでも開ける、AI と話すチャット 1 つ。Cursor・VS Code の右のチャットと同じ）の状態。
- * 開いているか・表示しているチャットはプロジェクトごと、幅はアプリ全体で覚える。⌥⌘B で開閉。
- * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。projectId がない画面（全プロジェクト）では出さない。
- * ボードの右のパネル（カードを開く）とは別のもの
+ * プロジェクトのチャット欄（画面の右端。どのタブでも開ける。Cursor・VS Code の右のチャットと同じ）の状態。
+ * 中身はボードの右のパネルと同じタブ（チャット・新しいチャット・ブラウザ・ターミナル。useSidePanel）。
+ * 開いているかはプロジェクトごと（localStorage）、タブはプロジェクトごと（アプリを閉じるまで）、幅はアプリ全体で覚える。⌥⌘B で開閉。
+ * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。projectId がない画面（全プロジェクト）では出さない
  */
 export function useProjectChat(projectId: number | undefined) {
   const openMap = useStoredFlagMap("kickoff:project-chat-open:");
   const open = projectId !== undefined && openMap.get(projectId);
-  const setOpen = (value: boolean) => projectId !== undefined && openMap.set(projectId, value);
-  // 表示しているチャット（なければ新しいチャットを書く画面）
-  const [runId, setRunId] = useStoredState<number | null>(
-    `kickoff:project-chat:${projectId ?? "none"}`,
-    (raw) => Number(raw) || null,
-    (value) => (value === null ? "" : String(value)),
-  );
+  const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}` });
   const width = useDragWidth({ storageKey: "kickoff:project-chat-width", initial: 420, min: 320, keep: 480, side: "right" });
 
-  // 表示していたチャットが消えたら、新しいチャットにする
-  useServerEvent((e) => {
-    if (e.type === "run_deleted" && e.id === runId) setRunId(null);
-  });
+  /** 開閉。開くときにタブがなければ、新しいチャットを開く */
+  const toggle = () => {
+    if (projectId === undefined) return;
+    if (!open && panel.tabs.length === 0) panel.openNew({ projectId });
+    openMap.set(projectId, !open);
+  };
 
   useWindowEvent(
     "keydown",
     (e) => {
       if (e.metaKey && e.altKey && !e.ctrlKey && !e.shiftKey && e.code === "KeyB") {
         e.preventDefault();
-        setOpen(!open);
+        toggle();
       }
     },
     projectId !== undefined,
@@ -42,12 +38,9 @@ export function useProjectChat(projectId: number | undefined) {
   return {
     projectId,
     open,
-    toggle: () => setOpen(!open),
-    close: () => setOpen(false),
-    runId,
-    /** 新しいチャットを書く画面にする */
-    startNew: () => setRunId(null),
-    showRun: setRunId,
+    toggle,
+    close: () => projectId !== undefined && openMap.set(projectId, false),
+    panel,
     width,
   };
 }
