@@ -38,13 +38,12 @@ export function PanelTabPage({
           onClose={onClose}
           onOpenTerminal={terminalTargets.length > 0 ? panel.openTerminal : undefined}
           onRunChange={(run) =>
-            panel.updateTab(t.key, (x) => (x.kind === "chat" && (x.title !== run.title || x.phase !== run.phase) ? { ...x, title: run.title, phase: run.phase } : x))
+            panel.updateTab(t.key, (x) => (x.kind === "chat" && x.title !== run.title ? { ...x, title: run.title } : x))
           }
         />
       ) : t.kind === "new" ? (
         <NewChatPane
           projectId={t.projectId}
-          section={t.section}
           group={t.group}
           projects={panel.projects}
           onProjectChange={(projectId) => panel.updateTab(t.key, () => ({ ...t, projectId, group: undefined, groupName: undefined }))}

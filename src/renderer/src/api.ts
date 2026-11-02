@@ -3,7 +3,6 @@ import type {
   Attachment,
   Approval,
   ApprovalDecision,
-  Artifact,
   ModelOption,
   ProviderId,
   Run,
@@ -12,7 +11,6 @@ import type {
   RunOptions,
   SearchHit,
   ServerStatus,
-  Task,
   FileContent,
   GitCommitDetail,
   GitDiff,
@@ -31,7 +29,6 @@ import type {
   ProjectSearchQuery,
   ProjectSearchResult,
   ProjectSummary,
-  Phase,
   ProviderStatus,
   WorkspaceInspection,
 } from "../../core/types";
@@ -41,14 +38,6 @@ interface NewProjectInput {
   idea: string;
   parent_dir: string;
   folder_name: string;
-}
-
-export interface TaskInput {
-  phase: Phase;
-  title: string;
-  description: string;
-  acceptance_criteria: string;
-  priority: number;
 }
 
 interface RunDetail {
@@ -127,16 +116,6 @@ export const api = {
   reorderProjects: (ids: number[]) => request<{ ok: true }>("PUT", "/api/projects/order", { ids }),
   models: (provider: ProviderId) => request<ModelOption[]>("GET", `/api/providers/${provider}/models`),
 
-  // タスク
-  tasks: (projectId: number) => request<Task[]>("GET", `/api/projects/${projectId}/tasks`),
-  createTask: (projectId: number, input: TaskInput) => request<Task>("POST", `/api/projects/${projectId}/tasks`, input),
-  updateTask: (id: number, patch: Partial<TaskInput & { status: Task["status"] }>) =>
-    request<Task>("PATCH", `/api/tasks/${id}`, patch),
-  deleteTask: (id: number) => request<{ ok: true }>("DELETE", `/api/tasks/${id}`),
-
-  // 成果物
-  artifacts: (projectId: number) => request<Artifact[]>("GET", `/api/projects/${projectId}/artifacts`),
-
   // 実行（エージェントとの会話）
   /** archived: アーカイブしたチャットも含める */
   runs: (projectId: number, opts: { archived?: boolean } = {}) =>
@@ -151,9 +130,7 @@ export const api = {
   startRun: (
     projectId: number,
     input: {
-      phase: Phase;
       prompt: string;
-      task_id?: number;
       options: RunOptions;
       attachments?: Attachment[];
       group_id?: number;

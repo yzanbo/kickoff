@@ -1,43 +1,4 @@
-/* ==== セクションの色・状態アイコン ==== */
-
-.sec-requirements {
-  --sec: var(--sec-requirements);
-}
-
-.sec-schedule {
-  --sec: var(--sec-schedule);
-}
-
-.sec-implementation {
-  --sec: var(--sec-implementation);
-}
-
-.sec-testing {
-  --sec: var(--sec-testing);
-}
-
-.sec-deployment {
-  --sec: var(--sec-deployment);
-}
-
-.sec-icon {
-  flex: none;
-  color: var(--sec);
-}
-
-.section-badge {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--sec);
-  background: color-mix(in srgb, var(--sec) 15%, transparent);
-}
+/* ==== 状態アイコン ==== */
 
 .status-icon {
   flex: none;

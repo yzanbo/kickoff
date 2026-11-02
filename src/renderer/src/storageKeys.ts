@@ -30,13 +30,13 @@ export const SIDEBAR_LAST_HASH_KEY = "kickoff:last-hash-by-project";
 export const SIDEBAR_GROUPING_KEY = "kickoff:sidebar-grouping";
 /** 自分待ち（回答待ち・確認待ち）のチャットだけを出すか（"1" なら出す） */
 export const SIDEBAR_WAITING_ONLY_KEY = "kickoff:sidebar-waiting-only";
-/** チャットを 1 行で出すか（"1" なら 2 行目のセクション・ブランチを隠す） */
+/** チャットを 1 行で出すか（"1" なら 2 行目のブランチを隠す） */
 export const SIDEBAR_COMPACT_KEY = "kickoff:sidebar-compact";
 /** プロジェクトのカードを 1 行で出すか（"1" なら名前だけにして、チャット数の行を隠す） */
 export const SIDEBAR_PROJECT_COMPACT_KEY = "kickoff:sidebar-project-compact";
 /** アーカイブ済みのチャットを一覧の下に出すか（"1" なら出す。ボードの絞り込みとは別） */
 export const SIDEBAR_SHOW_ARCHIVED_KEY = "kickoff:sidebar-show-archived";
-/** 並べ方でまとめたまとまり（状態・作業場所・セクション）ごとの、閉じているか（後ろに <プロジェクト>:<並べ方>:<まとまり>） */
+/** 並べ方でまとめたまとまり（状態・作業場所）ごとの、閉じているか（後ろに <プロジェクト>:<並べ方>:<まとまり>） */
 export const SIDEBAR_SECTION_CLOSED_PREFIX = "kickoff:sidebar-group-closed:";
 /** 自分で作ったグループごとの、閉じているか（後ろにグループの ID） */
 export const SIDEBAR_GROUP_CLOSED_PREFIX = "kickoff:group-closed:";

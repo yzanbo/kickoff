@@ -103,7 +103,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           label="表示"
           value={compact ? "1 行" : "2 行"}
           values={["1 行", "2 行"]}
-          title="チャットの行（1 行 = 名前と時刻 / 2 行 = セクション・ブランチも）"
+          title="チャットの行（1 行 = 名前と時刻 / 2 行 = ブランチも）"
           onToggle={() => setCompact(!compact)}
         />
         {/* アーカイブはプロジェクトの行と同じく右端 */}

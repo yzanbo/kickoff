@@ -47,7 +47,7 @@ export function CreateForm({ defaultParentDir, onCancel, onCreated }: FormProps 
         <textarea
           rows={5}
           value={idea}
-          placeholder="作りたいもの、困っていること、思いついたことを数行で。要件定義で AI と詰めていきます。"
+          placeholder="作りたいもの、困っていること、思いついたことを数行で。プロジェクトの概要として AI に伝わります。"
           onChange={(e) => setIdea(e.target.value)}
         />
       </Field>

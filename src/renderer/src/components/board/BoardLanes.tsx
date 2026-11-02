@@ -1,11 +1,10 @@
 import { Folder, GitBranch } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { PHASES, type GitWorktree, type ProjectSummary, type RunGroup } from "../../../../core/types";
+import type { GitWorktree, ProjectSummary, RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { initialOf, projectHue } from "../../projectColor";
 import { useProjects } from "../../projectsContext";
-import { SECTION_META } from "../../sections";
 import { BOARD_LANE_CLOSED_PREFIX } from "../../storageKeys";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "../../worktree/workplace";
@@ -13,15 +12,14 @@ import { GroupToggle } from "../sidebar/GroupToggle";
 import type { BoardEntry } from "./boardColumns";
 
 /**
- * スイムレーンの段の分け方（列はどれも状態）。カンバンでは 作業場所・セクション・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
+ * スイムレーンの段の分け方（列はどれも状態）。カンバンでは 作業場所・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
  * グループのタブではグループで分ける
  */
-export const BOARD_LANES = ["worktree", "phase", "group", "project"] as const;
+export const BOARD_LANES = ["worktree", "group", "project"] as const;
 export type BoardLane = (typeof BOARD_LANES)[number];
 
 export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   worktree: "作業場所（ブランチ）",
-  phase: "セクション",
   group: "グループ",
   project: "プロジェクト",
 };
@@ -32,7 +30,7 @@ interface Lane {
   entries: BoardEntry[];
 }
 
-/** チャットを段に分ける（段の並び: 作業場所は本体が先、セクションは決まった順、プロジェクトはボードの並び） */
+/** チャットを段に分ける（段の並び: 作業場所は本体が先、プロジェクトはボードの並び） */
 /** グループで分けるときの段の名前（"g12" のようなグループ、"none" はグループなし）から、グループの ID を取り出す */
 export const groupOfLane = (laneKey: string): number | null => (laneKey === "none" ? null : Number(laneKey.slice(1)));
 
@@ -57,14 +55,6 @@ function lanesOf(
     const rest = entries.filter((e) => e.run.group_id === null || !ids.has(e.run.group_id));
     if (rest.length > 0 || showEmpty) lanes.push({ key: "none", head: <LaneTitle mark={<Folder size={14} className="muted" />} label="グループなし" />, entries: rest });
     return lanes;
-  }
-  if (kind === "phase") {
-    return PHASES.flatMap((phase) => {
-      const list = entries.filter((e) => e.run.phase === phase);
-      if (list.length === 0) return [];
-      const Icon = SECTION_META[phase].icon;
-      return [{ key: phase, head: <LaneTitle mark={<Icon size={14} className={`sec-icon sec-${phase}`} />} label={SECTION_META[phase].label} />, entries: list }];
-    });
   }
   if (kind === "project") {
     return projects.flatMap((p) => {

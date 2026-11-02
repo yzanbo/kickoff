@@ -1,7 +1,6 @@
 /* ==== 全プロジェクト・プロジェクトの画面 ==== */
 
-.project-title-row,
-.doc-toolbar {
+.project-title-row {
   display: flex;
   align-items: center;
   gap: 10px;

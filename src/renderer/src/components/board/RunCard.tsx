@@ -5,7 +5,6 @@ import { relativeTime } from "../../time";
 import { ChatTitleInput } from "../ChatTitleInput";
 import { ProjectChip } from "../ProjectChip";
 import { WorktreeChip } from "../WorktreeChip";
-import { SectionBadge } from "../SectionBadge";
 import { StatusDot } from "../StatusDot";
 import { STATE_TONE } from "./tones";
 
@@ -28,7 +27,6 @@ export function RunCardContent({ run, state, projectName, pending = 0, rename }:
       {rename ? <ChatTitleInput run={run} editor={rename} /> : <span className="card-title">{chatTitle(run.title)}</span>}
       <div className="card-labels">
         {projectName !== undefined && <ProjectChip id={run.project_id} name={projectName} />}
-        <SectionBadge section={run.phase} short />
         <WorktreeChip run={run} />
         {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
       </div>
@@ -50,7 +48,6 @@ export function RunRowContent({ run, state, projectName, rename }: Props) {
         {rename ? <ChatTitleInput run={run} editor={rename} /> : <span className="card-title one-line">{chatTitle(run.title)}</span>}
         <span className="list-meta">
           {projectName !== undefined && <ProjectChip id={run.project_id} name={projectName} />}
-          <SectionBadge section={run.phase} short />
           <WorktreeChip run={run} />
           {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
           <StatusDot color={STATE_TONE[state]} />

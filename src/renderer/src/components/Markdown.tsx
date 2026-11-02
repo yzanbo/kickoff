@@ -23,7 +23,7 @@ const COMPONENTS: Components = { a: link, pre: codeBlock(false) };
 const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true) };
 
 /**
- * AI の発言や成果物の Markdown 表示（HTML は描画しない）。```mermaid は図にする。
+ * AI の発言などの Markdown 表示（HTML は描画しない）。```mermaid は図にする。
  * streaming: 生成中の返答
  */
 export function Markdown({ children, streaming = false }: { children: string; streaming?: boolean }) {

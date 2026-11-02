@@ -37,7 +37,7 @@ export function hostOf(url: string): string {
 }
 
 /**
- * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し（セクションの色）、
+ * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し、
  * ブラウザは地球儀、新しいチャットはペン、ターミナルは端末の印にする
  */
 export function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
@@ -47,6 +47,5 @@ export function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClas
   // ボードの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
   const run = runs.find((r) => r.id === t.id);
   const title = run?.title ?? t.title;
-  const phase = run?.phase ?? t.phase;
-  return { Icon: MessageSquare, iconClass: phase ? `sec-icon sec-${phase}` : "muted", label: title === undefined ? "チャット" : chatTitle(title) };
+  return { Icon: MessageSquare, iconClass: "muted", label: title === undefined ? "チャット" : chatTitle(title) };
 }

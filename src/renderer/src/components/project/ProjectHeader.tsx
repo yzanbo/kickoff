@@ -10,19 +10,15 @@ import type { ProjectData } from "./useProjectData";
 const TAB_LABELS: Record<ProjectTab, string> = {
   board: "ボード",
   groups: "グループ",
-  requirements: "要件定義書",
-  schedule: "スケジュール",
-  tasks: "タスク",
-  reports: "レポート",
   changes: "エディタ",
 };
 
 /**
  * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・編集・しまったものを戻す・フォルダの場所・状態ごとのチャット数と、
- * タブの列（タスク・チャット・グループの件数、エディタは変更のあるファイルの数 changeCount）
+ * タブの列（チャット・グループの件数、エディタは変更のあるファイルの数 changeCount）
  */
 export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: ProjectData; tab: ProjectTab; changeCount: number; onEdit: () => void }) {
-  const { project, tasks, runs, groups } = data;
+  const { project, runs, groups } = data;
   // 状態ごとの数（回答待ちの依頼は App が持ち、イベントで更新される。サイドバー・カンバンの列と同じ数え方）
   const { pending } = useRunStates();
   const counts = stateCounts(runs, pending);
@@ -71,7 +67,6 @@ export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: Projec
           href={href({ name: "project", id: project.id, tab: t })}
         >
           {TAB_LABELS[t]}
-          {t === "tasks" && tasks.length > 0 && <span className="tab-count">{tasks.length}</span>}
           {t === "board" && runs.length > 0 && <span className="tab-count">{runs.length}</span>}
           {t === "groups" && groups.length > 0 && <span className="tab-count">{groups.length}</span>}
           {t === "changes" && changeCount > 0 && (

@@ -14,7 +14,7 @@ interface Props {
   heading?: { icon: ReactNode; title: string; count: number };
   query: string;
   onQuery: (query: string) => void;
-  /** 探す・絞り込むのまとまりで、検索欄の後ろに置くもの（プロジェクト・セクション・アーカイブの表示） */
+  /** 探す・絞り込むのまとまりで、検索欄の後ろに置くもの（アーカイブ・作業場所の表示） */
   filters?: ReactNode;
   /** 整えるのまとまり（表示と検索の間）。ボードの形を変えるもの（グループを作成） */
   organize?: ReactNode;

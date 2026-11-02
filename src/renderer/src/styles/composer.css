@@ -127,8 +127,8 @@
 }
 
 /*
- * チャット欄が狭いとき（右のパネル・チャット欄）: 折り返さずに詰め、▾ を消し、推論の深さ・権限モードはアイコンだけにする。
- * さらに狭いときはセクションもアイコンだけにする（いまの値は、乗せると説明に出る）。
+ * チャット欄が狭いとき（右のパネル・チャット欄）: 折り返さずに詰め、▾ を消し、推論の深さ・権限モードはアイコンだけにする
+ * （いまの値は、乗せると説明に出る）。
  * 上の基底（flex-wrap: wrap）と同じ詳細度なので、必ず基底より後ろに置く（前にあると nowrap が負ける）
  */
 @container (max-width: 560px) {
@@ -148,12 +148,6 @@
   }
 
   .run-options .option-menu:not(.model-menu) .option-label {
-    display: none;
-  }
-}
-
-@container (max-width: 440px) {
-  .section-menu .option-label {
     display: none;
   }
 }

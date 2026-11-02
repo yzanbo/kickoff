@@ -128,7 +128,7 @@ export function App() {
             onCreated={(project) => {
               setCreating(false);
               loadProjects();
-              openNewChat(project.id, { section: "requirements" });
+              openNewChat(project.id);
             }}
           />
         )}

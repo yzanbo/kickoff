@@ -1,23 +1,20 @@
-import { Folder } from "lucide-react";
+import { Folder, SquarePen } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Phase, ProjectSummary, Run } from "../../../../core/types";
+import type { ProjectSummary, Run } from "../../../../core/types";
 import { api } from "../../api";
 import { useAsync } from "../../hooks/useAsync";
 import { useProjects } from "../../projectsContext";
 import { choiceDialog } from "../../dialogs";
-import { SECTION_META } from "../../sections";
 import { Composer, SendCancelled } from "../chat/Composer";
 import { CloseButton } from "../IconButton";
 import { ProjectChip } from "../ProjectChip";
 import { useRunOptions } from "../chat/RunOptionsBar";
 import { BUSY_STATUSES } from "../RunStatus";
-import { SectionPicker } from "../SectionPicker";
 import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "../changes/WorkplacePicker";
 import { invalidateWorktrees } from "../../worktree/worktreeBranches";
 
 interface Props {
   projectId: number;
-  section?: Phase;
   /** グループの＋から始めたときのグループ */
   group?: number;
   /** 全プロジェクトのボードでは、どのプロジェクトで始めるかを選べるようにする */
@@ -35,7 +32,6 @@ interface Props {
 /** 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる） */
 export function NewChatPane({
   projectId,
-  section: initialSection,
   group,
   projects,
   onProjectChange,
@@ -44,7 +40,6 @@ export function NewChatPane({
   onCreated,
   onDraftChange,
 }: Props) {
-  const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
   const { projectName } = useProjects();
   const options = useRunOptions(undefined, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
@@ -62,14 +57,7 @@ export function NewChatPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupName]);
 
-  // セクションの指定がなければ、直近のチャットと同じ → 要件定義の順に決める
-  useEffect(() => {
-    if (initialSection) setSection(initialSection);
-    else if (runs.data?.[0]) setSection(runs.data[0].phase);
-  }, [initialSection, runs.data]);
-
   const ready = !project.loading && !runs.loading;
-  const Icon = SECTION_META[section].icon;
 
   return (
     <div className="run-page run-panel new-chat">
@@ -121,13 +109,11 @@ export function NewChatPane({
       </header>
       <div className="timeline">
         <div className="new-chat-hero">
-          <div className={`new-chat-icon sec-${section}`}>
-            <Icon size={22} />
+          <div className="new-chat-icon">
+            <SquarePen size={22} />
           </div>
           <h1>{project.data?.name ?? ""}</h1>
-          <p className="muted">
-            {SECTION_META[section].label} — {SECTION_META[section].description}
-          </p>
+          <p className="muted">調べもの・設計・実装・テストなど、AI に頼みたいことを書いて始めます</p>
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
           {place.kind === "new" && <p className="muted small">新しいワークツリー「{place.branch}」を作り、その中で作業します</p>}
           {busyHere && <p className="small warn-text">この作業場所では、ほかのチャットが作業中です。同じファイルを触ると作業がぶつかることがあります。</p>}
@@ -139,11 +125,10 @@ export function NewChatPane({
             key={projectId}
             options={options}
             autoFocus
-            leading={<SectionPicker value={section} onChange={setSection} />}
             onTextChange={onDraftChange}
             // 新しいワークツリーはまだないので、本体から探す
             suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
-            placeholder={`${SECTION_META[section].placeholder}（Enter で送信、Shift+Enter で改行）`}
+            placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"
             onSend={async (prompt, attachments) => {
               // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい）
               // 開いたときの一覧は古くなっているので、送るときに取り直して確かめる
@@ -166,7 +151,6 @@ export function NewChatPane({
                 }
               }
               const run = await api.startRun(projectId, {
-                phase: section,
                 prompt,
                 options: options.options,
                 attachments,

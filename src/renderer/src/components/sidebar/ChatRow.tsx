@@ -5,7 +5,6 @@ import { cx } from "../../cx";
 import { startRunDrag } from "../../groups";
 import type { RunTitleEditor } from "../../hooks/useRunRename";
 import { href, openRun } from "../../router";
-import { SECTION_META } from "../../sections";
 import { formatDayTime, shortRelativeTime } from "../../time";
 import { workingFor } from "../chat/activity";
 import { useTicker } from "../../hooks/useTicker";
@@ -40,8 +39,6 @@ export function ChatRow({
   /** 名前をその場で変えている途中のとき */
   rename?: RunTitleEditor;
 }) {
-  const meta = SECTION_META[run.phase];
-  const Icon = meta.icon;
   // hooks は、下の早い return（名前の変更中）より前に呼ぶ
   const selection = useChatSelection();
   const selected = selection?.has(run.id) ?? false;
@@ -72,7 +69,7 @@ export function ChatRow({
         data-run-id={run.id}
         aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
         href={href({ name: "run", projectId: run.project_id, runId: run.id })}
-        title={`${meta.label}: ${run.title}（${AGENT_STATE_LABELS[state]}）`}
+        title={`${chatTitle(run.title)}（${AGENT_STATE_LABELS[state]}）`}
         draggable
         onDragStart={(e) => startRunDrag(e, run.id)}
         onDoubleClick={(e) => {
@@ -108,8 +105,6 @@ export function ChatRow({
             )}
           </span>
           <span className="chat-row-meta">
-            <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
-            {meta.label}
             <WorktreeChip run={run} />
           </span>
         </span>

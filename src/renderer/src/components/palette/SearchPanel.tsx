@@ -7,7 +7,6 @@ import { useListNavigation } from "../../hooks/useListNavigation";
 import { useModalDialog } from "../../hooks/useModalDialog";
 import { openRun } from "../../router";
 import { relativeTime } from "../../time";
-import { SectionBadge } from "../SectionBadge";
 import { Segmented } from "../Segmented";
 
 type SearchScope = "run" | "project" | "all";
@@ -95,7 +94,6 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
               <div className="search-hit-head">
                 {hit.type === "user" ? <User size={13} aria-label="自分" /> : <Bot size={13} aria-label="AI" />}
                 <span className="search-hit-title">{chatTitle(hit.run_title)}</span>
-                <SectionBadge section={hit.phase} short />
                 <span className="muted small">{relativeTime(hit.created_at)}</span>
               </div>
               <div className="search-hit-snippet">

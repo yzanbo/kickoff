@@ -52,7 +52,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
-  // 絞り込み（アーカイブ・セクション・作業場所・名前）とボード／リスト／スイムレーン（覚えておく）
+  // 絞り込み（アーカイブ・作業場所・名前）とボード／リスト／スイムレーン（覚えておく）
   const filters = useKanbanFilters();
   const [view, setView] = useStoredChoice<BoardView>(BOARD_VIEW_KEY, ["board", "list", "lanes"], "board");
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
@@ -83,7 +83,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     focus,
     (target) => {
       if (target.name === "run") panel.open({ id: target.runId, project_id: target.projectId }, target.focus);
-      else panel.openNew({ projectId: target.projectId, section: target.section, group: target.group });
+      else panel.openNew({ projectId: target.projectId, group: target.group });
     },
     !allProjects,
   );
@@ -102,7 +102,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     const target = projectId ?? projects[0]?.id;
     if (target === undefined) return;
     // 画面は移らず、右側のパネルで始める
-    panel.openNew({ projectId: target, section: filters.section === "all" ? undefined : filters.section });
+    panel.openNew({ projectId: target });
   }
 
   /** カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える。全プロジェクトのボードではプロジェクトの色と名前を付ける） */
@@ -140,8 +140,6 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
       onQuery={filters.setQuery}
       filters={
         <KanbanFilters
-          section={filters.section}
-          onSection={filters.setSection}
           archive={filters.archive}
           onArchive={filters.setArchive}
           worktrees={worktreeChoices}

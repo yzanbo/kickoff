@@ -10,7 +10,7 @@ export function DeleteProject({ project }: { project: Project }) {
   const remove = async () => {
     const ok = await confirmDialog({
       title: `プロジェクト「${project.name}」を削除しますか？`,
-      message: `チャット・グループ・タスク・要件定義書などの Kickoff 上の記録は消えます。フォルダとリポジトリ（${project.repo_path}）は削除されません。`,
+      message: `チャット・グループなどの Kickoff 上の記録は消えます。フォルダとリポジトリ（${project.repo_path}）は削除されません。`,
       confirmLabel: "削除",
       danger: true,
     });
@@ -24,7 +24,7 @@ export function DeleteProject({ project }: { project: Project }) {
     <section className="section danger-zone">
       <h2>プロジェクトの削除</h2>
       <p className="muted small">
-        Kickoff 上の記録（チャット・グループ・タスク・要件定義書など）を消します。フォルダとリポジトリは削除されないので、あとから取り込み直せます。
+        Kickoff 上の記録（チャット・グループなど）を消します。フォルダとリポジトリは削除されないので、あとから取り込み直せます。
       </p>
       <button className="btn btn-danger" onClick={() => void remove()}>
         プロジェクトを削除

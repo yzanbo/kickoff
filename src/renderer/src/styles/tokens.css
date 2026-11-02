@@ -25,7 +25,7 @@
   --dot-failed: #f7796d;
   --dot-running: #5caaf6;
   --dot-attention: #35c264;
-  /* セクションの色（必ずアイコンとラベルと一緒に使う） */
+  /* 色分けの色（以前のセクションの色。Mermaid の図・コミットの線・ワークツリーの印などで使う） */
   --sec-requirements: #3987e5;
   --sec-schedule: #9085e9;
   --sec-implementation: #d95926;

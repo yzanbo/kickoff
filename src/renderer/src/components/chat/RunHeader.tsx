@@ -7,12 +7,11 @@ import { CloseButton, IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { ProjectChip } from "../ProjectChip";
 import { RUN_STATUS_LABELS, RunStatusIcon } from "../RunStatus";
-import { SectionBadge } from "../SectionBadge";
 import { terminalTargetOf, type TerminalTarget } from "../sidePanel/useSidePanel";
 import { WorktreeChip } from "../WorktreeChip";
 
 /**
- * チャットの見出し: 閉じる・セクション・名前（ダブルクリックか鉛筆でその場で変更）・アーカイブ・作業場所のターミナル・状態と、
+ * チャットの見出し: 閉じる・名前（ダブルクリックか鉛筆でその場で変更）・アーカイブ・作業場所のターミナル・状態と、
  * その下にプロジェクト・作業場所・ターン数・API 換算の行。waiting は確認（回答待ち）があるか
  */
 export function RunHeader({
@@ -34,7 +33,6 @@ export function RunHeader({
     <header className="run-header">
       <div className="run-title-row">
         <CloseButton label="パネルを閉じる" title="閉じる（Esc）" size={15} onClick={onClose} />
-        <SectionBadge section={run.phase} />
         {editor ? (
           <InlineName initial={run.title} maxLength={CHAT_TITLE_MAX} className="run-title-input" onSubmit={editor.onSubmit} onCancel={editor.onCancel} />
         ) : (

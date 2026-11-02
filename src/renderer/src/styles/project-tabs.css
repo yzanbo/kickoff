@@ -1,4 +1,4 @@
-/* ==== プロジェクトの各タブの中身（全文検索の探す範囲・資料のカードと報告・危険な操作・書き込みできるフォルダ） ==== */
+/* ==== プロジェクトの各タブの中身（全文検索の探す範囲・危険な操作） ==== */
 
 /* 全文検索の「探す範囲」: ボタンの組の枠は並びに影響させず、各ボタンをチップにする */
 .search-scope-options {
@@ -27,33 +27,6 @@
   border-color: var(--border-strong);
   color: var(--text);
   background: var(--bg-hover);
-}
-
-.doc-toolbar {
-  margin-bottom: 12px;
-}
-
-.doc-card {
-  padding: 20px 24px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elev);
-}
-
-.report {
-  margin-bottom: 8px;
-}
-
-.report summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  cursor: pointer;
-}
-
-.report-title {
-  flex: 1;
 }
 
 .danger-zone {

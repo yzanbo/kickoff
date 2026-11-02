@@ -68,7 +68,7 @@
   padding-right: calc(var(--gutter) - var(--scrollbar-w));
 }
 
-/* チャットを 1 行で出す（見出しの「チャット」の行の「表示」）: 2 行目のセクション・ブランチを隠し、行を詰める */
+/* チャットを 1 行で出す（見出しの「チャット」の行の「表示」）: 2 行目のブランチを隠し、行を詰める */
 .workspaces.compact .chat-row {
   align-items: center;
   min-height: 28px;

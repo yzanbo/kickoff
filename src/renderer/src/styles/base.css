@@ -44,10 +44,6 @@ h2 {
   flex: 1;
 }
 
-.prewrap {
-  white-space: pre-wrap;
-}
-
 kbd {
   padding: 0 5px;
   border: 1px solid var(--border);

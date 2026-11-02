@@ -37,8 +37,6 @@ export function useAppData(onEvent: (event: BusEvent) => void) {
     switch (event.type) {
       case "project":
       case "project_deleted":
-      case "task":
-      case "task_deleted":
       case "run":
         loadProjects();
         break;

@@ -56,9 +56,5 @@
   .meter.meter-inline .meter-track {
     width: 40px;
   }
-
-  .task-form-row {
-    flex-direction: column;
-  }
 }
 
