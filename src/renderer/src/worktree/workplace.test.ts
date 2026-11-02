@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { GitWorktree } from "../../core/types";
+import type { GitWorktree } from "../../../core/types";
 import { compareWorkplaces, workplaceOf } from "./workplace";
 
 const wt = (path: string, branch: string | null, extra: Partial<GitWorktree> = {}): GitWorktree => ({

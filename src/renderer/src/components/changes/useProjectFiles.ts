@@ -3,7 +3,7 @@ import type { ProjectFiles } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { buildTree } from "./treeModel";
-import { useGitTarget } from "./worktreeContext";
+import { useGitTarget } from "../../worktree/worktreeContext";
 
 /**
  * エクスプローラーに出すファイルの木。active（すべてのファイルを表示している）の間だけ読み、

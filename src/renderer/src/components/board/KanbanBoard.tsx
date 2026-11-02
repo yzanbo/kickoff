@@ -27,8 +27,8 @@ import { BOARD_LANE_LABELS, BOARD_LANES, BoardLanes, type BoardLane } from "./Bo
 import { byColumn, type BoardEntry } from "./boardColumns";
 import { ColumnHead } from "./ColumnHead";
 import { useBoardRuns } from "./useBoardRuns";
-import { useWorktreeLists } from "../../worktreeBranches";
-import { workplaceOf } from "../../workplace";
+import { useWorktreeLists } from "../../worktree/worktreeBranches";
+import { workplaceOf } from "../../worktree/workplace";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
 
 /** カンバン（列 = 状態）で選べる段の分け方 */

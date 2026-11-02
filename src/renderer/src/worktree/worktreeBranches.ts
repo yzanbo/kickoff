@@ -1,8 +1,8 @@
 import { useEffect, useSyncExternalStore } from "react";
-import type { GitWorktree, Run } from "../../core/types";
+import type { GitWorktree, Run } from "../../../core/types";
 import { branchName, workplaceOf, type RunWorkplace } from "./workplace";
-import { api } from "./api";
-import { useWindowEvent } from "./hooks/useWindowEvent";
+import { api } from "../api";
+import { useWindowEvent } from "../hooks/useWindowEvent";
 
 /** 取り直すまでの間隔（ブランチは時々しか変わらないので、見ている間だけ・ウィンドウに戻ったときに取り直す） */
 const MAX_AGE_MS = 30_000;

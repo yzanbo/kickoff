@@ -3,7 +3,7 @@ import type { PlanUsage } from "../../../../core/types";
 import type { ConnectionState } from "../../api";
 import { href } from "../../router";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../../usage";
-import { useMainBranch } from "../../worktreeBranches";
+import { useMainBranch } from "../../worktree/worktreeBranches";
 import { CONNECTION_LABELS } from "./ConnectionPopover";
 import { IconButton } from "../IconButton";
 import { UsageMeter } from "./UsageMeter";

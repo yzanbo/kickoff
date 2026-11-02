@@ -9,7 +9,7 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { ErrorText } from "../ErrorText";
 import { RefreshButton } from "../IconButton";
 import type { GitStatusController } from "./useGitStatus";
-import { invalidateWorktrees } from "../../worktreeBranches";
+import { invalidateWorktrees } from "../../worktree/worktreeBranches";
 
 const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オープン", MERGED: "マージ済み", CLOSED: "クローズ" };
 

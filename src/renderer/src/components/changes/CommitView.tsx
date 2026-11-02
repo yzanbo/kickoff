@@ -15,7 +15,7 @@ import { CHANGE_LABELS, DiffView } from "./DiffView";
 import { FileIcon } from "./FileIcon";
 import { FileTree } from "./FileTree";
 import { buildTree, folderPaths, kindMaps } from "./treeModel";
-import { useGitTarget } from "./worktreeContext";
+import { useGitTarget } from "../../worktree/worktreeContext";
 
 type CommitTab = "commit" | "changes";
 

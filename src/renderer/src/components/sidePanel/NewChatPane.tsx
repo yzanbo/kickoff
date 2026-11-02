@@ -11,7 +11,7 @@ import { useRunOptions } from "../chat/RunOptionsBar";
 import { BUSY_STATUSES } from "../RunStatus";
 import { SectionPicker } from "../SectionPicker";
 import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "../changes/WorkplacePicker";
-import { invalidateWorktrees } from "../../worktreeBranches";
+import { invalidateWorktrees } from "../../worktree/worktreeBranches";
 
 interface Props {
   projectId: number;

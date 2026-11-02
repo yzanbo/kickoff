@@ -16,7 +16,7 @@ import { SearchField } from "../SearchField";
 import { CommitTable } from "./CommitTable";
 import { CommitView } from "./CommitView";
 import type { GitLogController } from "./useGitLog";
-import { invalidateWorktrees } from "../../worktreeBranches";
+import { invalidateWorktrees } from "../../worktree/worktreeBranches";
 
 /** 上のコミットの表の高さ（割合。下はコミットの詳細） */
 const DEFAULT_SPLIT = 43;
