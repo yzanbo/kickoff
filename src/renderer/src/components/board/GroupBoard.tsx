@@ -211,6 +211,7 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
         view={view}
         onView={setView}
         panel={panel}
+        terminals={terminalTargets(projects, projectId)}
       />
       <ErrorText message={error} className="board-error" />
 

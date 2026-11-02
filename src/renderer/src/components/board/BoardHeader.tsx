@@ -1,10 +1,11 @@
-import { Globe, List, SquareKanban, TextSearch } from "lucide-react";
-import type { ReactNode } from "react";
+import { Globe, List, SquareKanban, SquareTerminal, TextSearch } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
 import { SearchField } from "../SearchField";
 import { Segmented } from "../Segmented";
 import { PanelToggle } from "../sidePanel/SidePanel";
-import type { SidePanelController } from "../sidePanel/useSidePanel";
+import type { SidePanelController, TerminalTarget } from "../sidePanel/useSidePanel";
+import { targetMenuAt, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
 
 export type BoardView = "board" | "list";
 
@@ -23,14 +24,18 @@ interface Props {
   view: BoardView;
   onView: (view: BoardView) => void;
   panel: SidePanelController;
+  /** 「ターミナル」で開ける場所（terminalTargets。いくつもあればメニューで選ぶ。Mac のアプリでだけ出す） */
+  terminals: TerminalTarget[];
 }
 
 /**
  * ボード（全プロジェクトのカンバン・プロジェクトのカンバン・グループ）の見出し。道具を概念ごとにまとめて並べる:
  * 左（名前の右）に 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
- * 右に 作る・開く（新規・ブラウザ。右のパネルに新しいタブを開く） / パネルの開閉
+ * 右に 作る・開く（新規・ブラウザ・ターミナル。右のパネルに新しいタブを開く） / パネルの開閉
  */
-export function BoardHeader({ icon, title, count, query, onQuery, filters, organize, actions, view, onView, panel }: Props) {
+export function BoardHeader({ icon, title, count, query, onQuery, filters, organize, actions, view, onView, panel, terminals }: Props) {
+  const [terminalMenu, setTerminalMenu] = useState<{ x: number; y: number } | null>(null);
+  const canTerminal = Boolean(window.kickoff?.terminal) && terminals.length > 0;
   return (
     <div className="board-header">
       {icon}
@@ -66,11 +71,28 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, organ
           <button className="btn btn-sm" onClick={() => panel.openBrowser()} title="開発中のアプリやドキュメントを右側で開く">
             <Globe size={13} /> <span className="btn-label">ブラウザ</span>
           </button>
+          {canTerminal && (
+            <button
+              className="btn btn-sm board-terminal"
+              title="右側でターミナルを開く"
+              aria-haspopup={terminals.length > 1 ? "menu" : undefined}
+              aria-expanded={terminals.length > 1 ? terminalMenu !== null : undefined}
+              onClick={(e) => {
+                if (terminals.length === 1) return panel.openTerminal(terminals[0]);
+                setTerminalMenu(terminalMenu ? null : targetMenuAt(e.currentTarget, terminals.length));
+              }}
+            >
+              <SquareTerminal size={13} /> <span className="btn-label">ターミナル</span>
+            </button>
+          )}
         </div>
         <div className="board-tool-group">
           <PanelToggle panel={panel} />
         </div>
       </div>
+      {terminalMenu && (
+        <TerminalTargetMenu {...terminalMenu} targets={terminals} ignore=".board-terminal" onPick={panel.openTerminal} onClose={() => setTerminalMenu(null)} />
+      )}
     </div>
   );
 }
