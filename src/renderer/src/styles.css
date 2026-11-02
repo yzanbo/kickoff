@@ -1238,6 +1238,7 @@ button.project-switch:hover,
   margin-left: auto;
 }
 
+/* 設定の種類ごとのボタン: 種類の名前を文字で出す（狭いときはアイコンだけ） */
 .head-chip {
   display: inline-flex;
   flex: none;
@@ -1261,19 +1262,17 @@ button.project-switch:hover,
   background: var(--bg-hover);
 }
 
-.head-chip-caret {
-  color: var(--extra-muted);
+.head-chip-icon {
+  display: none;
 }
 
-/* 狭いときは、先頭のアイコン → ▾ の順に隠して 1 行に収める */
-@container project-list-head (max-width: 234px) {
+/* 文字では 1 行に収まらない幅（サイドバーが約 255px 未満）では、文字を隠してアイコンだけにする */
+@container project-list-head (max-width: 231px) {
   .head-chip-icon {
-    display: none;
+    display: block;
   }
-}
 
-@container project-list-head (max-width: 199px) {
-  .head-chip-caret {
+  .head-chip-label {
     display: none;
   }
 }

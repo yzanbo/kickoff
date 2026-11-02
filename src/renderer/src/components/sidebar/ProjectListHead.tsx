@@ -1,24 +1,13 @@
-import { Archive, Check, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GripVertical, Rows3, type LucideIcon } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
-import { useMenuKeys } from "../../hooks/useMenuKeys";
+import { Archive, ArrowDownUp, ChevronsDownUp, ChevronsUpDown, Clock, Eye, GalleryHorizontal, GripVertical, ListTree, Rows2, Rows3 } from "lucide-react";
+import { useSharedChoice, useSharedFlag } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
 import { IconButton } from "../IconButton";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
-import { ChatGroupingMenu } from "./ChatGroupingMenu";
-import { HeadChip } from "./HeadChip";
+import { CHAT_GROUPINGS, GROUPING_META, type ChatGrouping } from "./chatGroupings";
+import { HeadMenu } from "./HeadMenu";
+import { COMPACT_KEY, GROUPING_KEY, SHOW_ARCHIVED_KEY } from "./sidebarFlags";
 
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
 export type NavLayout = "slide" | "stack";
-
-const LAYOUTS: { value: NavLayout; label: string; icon: LucideIcon }[] = [
-  { value: "stack", label: "縦に並べる（すべてのプロジェクト）", icon: Rows3 },
-  { value: "slide", label: "1 つずつ横にスライド", icon: GalleryHorizontal },
-];
-
-const ORDERS: { value: ProjectOrder; label: string; icon: LucideIcon }[] = [
-  { value: "manual", label: "手動（ドラッグで並べ替え）", icon: GripVertical },
-  { value: "recent", label: "最近動いた順", icon: Clock },
-];
 
 interface Props {
   layout: NavLayout;
@@ -34,30 +23,85 @@ interface Props {
 }
 
 /**
- * プロジェクト一覧の上の見出しの行。何に効くかを文字で出したボタンから選ぶ:
- * 「プロジェクト」（並べ方・並び順・アーカイブしたプロジェクトを出すか）/「チャット」（すべてのプロジェクトのチャットの並べ方・表示）。
- * 右端は、縦並びのときの「すべて閉じる / 開く」（VS Code のエクスプローラーの見出しと同じ位置）。
- * アイコンだけのボタンを並べない（何をするものか分からないため）
+ * プロジェクト一覧の上の見出しの行。設定の種類（ジャンル）ごとにボタンを分け、1 つのボタンには 1 種類だけを入れる:
+ * 並べ方（縦 / 横スライド）・並び順（手動 / 最近動いた順）・まとめ方（チャット）・表示（アーカイブ済み・1 行など）。
+ * 右端は、縦並びのときの「すべて閉じる / 開く」（VS Code のエクスプローラーの見出しと同じ位置）
  */
-export function ProjectListHead({ fold, ...props }: Props) {
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
-  const current = LAYOUTS.find((l) => l.value === props.layout)!;
-  const order = ORDERS.find((o) => o.value === props.order)!;
+export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
+  const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  const [showArchivedChats, setShowArchivedChats] = useSharedFlag(SHOW_ARCHIVED_KEY);
+  const [compact, setCompact] = useSharedFlag(COMPACT_KEY);
+  const radio = { role: "menuitemradio" as const };
+  const check = { role: "menuitemcheckbox" as const };
   return (
     <div className="project-list-head">
-      <HeadChip
-        icon={current.icon}
-        label="プロジェクト"
-        title={`プロジェクトの並べ方・並び順（いまは「${current.label}」「${order.label}」）`}
-        className="project-view-button"
-        open={at !== null}
-        onClick={(e) => {
-          if (at) return setAt(null);
-          const r = e.currentTarget.getBoundingClientRect();
-          setAt(clampToViewport(r.left, r.bottom + 4, 260, 260));
-        }}
+      <HeadMenu
+        id="layout"
+        icon={layout === "stack" ? Rows3 : GalleryHorizontal}
+        label="並べ方"
+        title={`プロジェクトの並べ方（いまは「${layout === "stack" ? "縦に並べる" : "1 つずつ横にスライド"}」）`}
+        sections={[
+          {
+            label: "プロジェクトの並べ方",
+            items: [
+              { ...radio, key: "stack", icon: Rows3, label: "縦に並べる（すべてのプロジェクト）", checked: layout === "stack", onSelect: () => onLayout("stack") },
+              { ...radio, key: "slide", icon: GalleryHorizontal, label: "1 つずつ横にスライド", checked: layout === "slide", onSelect: () => onLayout("slide") },
+            ],
+          },
+        ]}
       />
-      <ChatGroupingMenu />
+      <HeadMenu
+        id="order"
+        icon={ArrowDownUp}
+        label="並び順"
+        title={`プロジェクトの並び順（いまは「${order === "recent" ? "最近動いた順" : "手動"}」。固定したものは上）`}
+        sections={[
+          {
+            label: "プロジェクトの並び順（固定したものは上）",
+            items: [
+              { ...radio, key: "manual", icon: GripVertical, label: "手動（ドラッグで並べ替え）", checked: order === "manual", onSelect: () => onOrder("manual") },
+              { ...radio, key: "recent", icon: Clock, label: "最近動いた順", checked: order === "recent", onSelect: () => onOrder("recent") },
+            ],
+          },
+        ]}
+      />
+      <HeadMenu
+        id="grouping"
+        icon={ListTree}
+        label="まとめ方"
+        title={`チャットのまとめ方（すべてのプロジェクト。いまは「${GROUPING_META[grouping].label}」）`}
+        sections={[
+          {
+            label: "チャットのまとめ方",
+            items: CHAT_GROUPINGS.map((g) => ({ ...radio, key: g, icon: GROUPING_META[g].icon, label: GROUPING_META[g].label, checked: g === grouping, onSelect: () => setGrouping(g) })),
+          },
+        ]}
+      />
+      <HeadMenu
+        id="display"
+        icon={Eye}
+        label="表示"
+        title="表示するもの（アーカイブ済みのチャット・1 行で表示・アーカイブしたプロジェクト）"
+        sections={[
+          {
+            label: "チャット",
+            items: [
+              { ...check, key: "archived-chats", icon: Archive, label: "アーカイブ済みを表示", checked: showArchivedChats, onSelect: () => setShowArchivedChats(!showArchivedChats) },
+              { ...check, key: "compact", icon: Rows2, label: "1 行で表示", checked: compact, onSelect: () => setCompact(!compact) },
+            ],
+          },
+          ...(archivedCount > 0
+            ? [
+                {
+                  label: "プロジェクト",
+                  items: [
+                    { ...check, key: "archived-projects", icon: Archive, label: `アーカイブしたプロジェクトを表示（${archivedCount}）`, checked: showArchived, onSelect: () => onShowArchived(!showArchived) },
+                  ],
+                },
+              ]
+            : []),
+        ]}
+      />
       {/* 開いているものがあれば閉じる、すべて閉じていれば開く */}
       {fold && (
         <IconButton
@@ -68,56 +112,6 @@ export function ProjectListHead({ fold, ...props }: Props) {
           onClick={() => fold.set(!fold.allCollapsed)}
         />
       )}
-      {at && <ProjectViewMenu {...at} {...props} onClose={() => setAt(null)} />}
     </div>
-  );
-}
-
-function ProjectViewMenu({
-  x,
-  y,
-  layout,
-  onLayout,
-  order,
-  onOrder,
-  archivedCount,
-  showArchived,
-  onShowArchived,
-  onClose,
-}: Omit<Props, "fold"> & { x: number; y: number; onClose: () => void }) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  useMenuKeys(menuRef);
-  const choice = (key: string, role: "menuitemradio" | "menuitemcheckbox", icon: LucideIcon, label: ReactNode, checked: boolean, run: () => void) => {
-    const Icon = icon;
-    return (
-      <button
-        key={key}
-        role={role}
-        aria-checked={checked}
-        onClick={() => {
-          onClose();
-          run();
-        }}
-      >
-        <Icon size={14} aria-hidden />
-        <span className="project-switch-item">{label}</span>
-        {checked && <Check size={14} aria-hidden />}
-      </button>
-    );
-  };
-  return (
-    <PopupMenu x={x} y={y} label="プロジェクトの表示" ignore=".project-view-button" menuRef={menuRef} onClose={onClose}>
-      <div className="menu-label">並べ方</div>
-      {LAYOUTS.map((l) => choice(l.value, "menuitemradio", l.icon, l.label, l.value === layout, () => onLayout(l.value)))}
-      <div className="menu-separator" role="separator" />
-      <div className="menu-label">並び順（固定したものは上）</div>
-      {ORDERS.map((o) => choice(o.value, "menuitemradio", o.icon, o.label, o.value === order, () => onOrder(o.value)))}
-      {archivedCount > 0 && (
-        <>
-          <div className="menu-separator" role="separator" />
-          {choice("archived", "menuitemcheckbox", Archive, `アーカイブしたプロジェクトを表示（${archivedCount}）`, showArchived, () => onShowArchived(!showArchived))}
-        </>
-      )}
-    </PopupMenu>
   );
 }

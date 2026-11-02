@@ -17,7 +17,7 @@ import { InlineName } from "../InlineName";
 import { SearchField } from "../SearchField";
 import { ChatRow } from "./ChatRow";
 import { GroupToggle } from "./GroupToggle";
-import { CHAT_GROUPINGS, type ChatGrouping } from "./ChatGroupingMenu";
+import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { RowSection } from "./RowSection";
 import { GROUPING_KEY, isWaitingState, SHOW_ARCHIVED_KEY, stateCounts, WAITING_ONLY_KEY } from "./sidebarFlags";
