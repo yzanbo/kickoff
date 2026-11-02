@@ -9,6 +9,16 @@ export function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
 }
 
+/** 狭い所（サイドバーの行）向けの短い経過時間: 今・5分・23時間・3日、それより前は 11/1（「前」は付けない） */
+export function shortRelativeTime(iso: string): string {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return "今";
+  if (diff < 3600) return `${Math.floor(diff / 60)}分`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}時間`;
+  if (diff < 7 * 86400) return `${Math.floor(diff / 86400)}日`;
+  return new Date(iso).toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+}
+
 /** リセットまでの表示（5 時間枠は残り時間、週枠は日時） */
 export function formatReset(resetsAt: string | null, now = Date.now()): string | null {
   if (!resetsAt) return null;

@@ -6,7 +6,7 @@ import { startRunDrag } from "../../groups";
 import type { RunTitleEditor } from "../../hooks/useRunRename";
 import { href, openRun } from "../../router";
 import { SECTION_META } from "../../sections";
-import { relativeTime } from "../../time";
+import { formatDayTime, shortRelativeTime } from "../../time";
 import { alertDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
 import { confirmDeleteRun, toggleArchiveRun } from "../../runActions";
@@ -68,7 +68,9 @@ export function ChatRow({
         <span className="chat-row-body">
           <span className="chat-row-line">
             <span className="chat-row-title">{chatTitle(run.title)}</span>
-            <span className="chat-row-time">{relativeTime(run.updated_at)}</span>
+            <span className="chat-row-time" title={formatDayTime(run.updated_at)}>
+              {shortRelativeTime(run.updated_at)}
+            </span>
           </span>
           <span className="chat-row-meta">
             <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
