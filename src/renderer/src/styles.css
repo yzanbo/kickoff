@@ -883,11 +883,21 @@ button.chat-row {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
-/* サイドバーのグループ名から来たときに、そのグループを少しハイライトする（背景と枠の色だけ。広がる光の動きは付けない） */
+/*
+ * サイドバーのグループ名から来たときに、そのグループを少しのあいだハイライトする（背景と枠の色だけ。広がる光の動きは付けない）。
+ * 2 秒ほど色を付けたまま見せ、そのあと元の色に戻す（終わったあとは、ふだんの見た目）
+ */
 .board-column.highlighted,
 .list-group.highlighted {
-  border-color: color-mix(in srgb, var(--accent-bright) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  animation: group-lit 2.6s ease-out;
+}
+
+@keyframes group-lit {
+  0%,
+  70% {
+    border-color: color-mix(in srgb, var(--accent-bright) 55%, transparent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  }
 }
 
 .custom-group-count {
