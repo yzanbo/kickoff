@@ -883,6 +883,13 @@ button.chat-row {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
+/* サイドバーのグループ名から来たときに、そのグループを少しハイライトする（背景と枠の色だけ。広がる光の動きは付けない） */
+.board-column.highlighted,
+.list-group.highlighted {
+  border-color: color-mix(in srgb, var(--accent-bright) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+}
+
 .custom-group-count {
   flex: none;
   font-size: 11px;
