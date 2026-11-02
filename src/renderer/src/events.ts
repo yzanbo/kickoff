@@ -20,3 +20,9 @@ export function useServerEvent(handler: Listener) {
     };
   }, []);
 }
+
+/** 部品の外（モジュール）でサーバーイベントを受け取る。やめるときは返り値を呼ぶ */
+export function subscribeServerEvent(listener: Listener): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+}

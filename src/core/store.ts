@@ -514,11 +514,13 @@ export class Store {
         | "context_tokens"
         | "context_window"
         | "branch"
+        | "turn_started_at"
       >
     >,
   ): Run {
     this.updateRow("runs", id, patch as Row, [
       "branch",
+      "turn_started_at",
       "attention",
       "archived_at",
       "context_tokens",

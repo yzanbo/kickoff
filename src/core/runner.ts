@@ -205,7 +205,7 @@ export class Runner {
       if (!isDir) throw new Error(`作業場所のフォルダが見つかりません（${cwd}）。ワークツリーが消された可能性があります。新しいチャットで作業場所を選び直してください`);
       // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）
       const branch = await currentBranch(cwd);
-      store.updateRun(runId, { status: "running", ...(branch ? { branch } : {}) });
+      store.updateRun(runId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
       if (task && !compact && (task.status === "todo" || task.status === "blocked")) store.updateTask(task.id, { status: "in_progress" });
 
       const policy = phasePolicy(run.phase, project);

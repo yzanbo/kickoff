@@ -497,6 +497,8 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(store.getRun(created.body.id)?.worktree_path, "");
   assert.equal(store.getRun(created.body.id)?.branch, "feat/a");
   assert.equal(store.getRun(main.id)?.branch, "main");
+  // いまの作業を始めた時刻（作業中のチャットの経過時間に使う）
+  assert.ok(store.getRun(main.id)?.turn_started_at);
   assert.equal(fs.existsSync(worktree), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/a"], { cwd: repo }).toString().trim(), "");
 

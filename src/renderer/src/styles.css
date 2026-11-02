@@ -583,6 +583,11 @@ button.chat-row {
   color: var(--extra-muted);
 }
 
+/* 作業中のチャットの経過時間（作業中の青） */
+.chat-row-time.running {
+  color: var(--dot-running);
+}
+
 .chat-row-meta {
   display: flex;
   align-items: center;
