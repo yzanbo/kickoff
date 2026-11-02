@@ -1,0 +1,134 @@
+/* ==== 履歴の左の一覧（ブランチ・リモート・タグ）とコミットの詳細の見出し・変更 ==== */
+
+/* 履歴の左の一覧（すべてのコミット・ブランチ・リモート・タグ・stash） */
+.ref-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ref-all:hover {
+  background: var(--bg-hover);
+}
+
+.ref-items {
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+}
+
+.ref-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 10px 3px 22px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ref-item:hover {
+  background: var(--bg-hover);
+}
+
+/* いまのブランチ（Fork と同じく、地の色で目立たせる） */
+.ref-item.current {
+  font-weight: 600;
+  background: var(--bg-active);
+}
+
+.ref-item svg,
+.ref-remote-name svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.ref-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-note {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ref-remote-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 22px;
+  font-size: 13px;
+}
+
+/* コミットの詳細の 1 行の見出し（作者・番号・日時・件名・タブ） */
+.commit-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.commit-author {
+  flex: none;
+  font-weight: 600;
+}
+
+.commit-line-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 「変更」のタブ: 左に変わったファイル、右に差分 */
+.commit-changes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.commit-files {
+  flex: none;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+
+.commit-files-head {
+  display: flex;
+  align-items: center;
+  padding: 4px 6px 4px 10px;
+}
+
+.commit-files .change-file {
+  padding-left: 10px;
+}
+
+.change-item .ref-item {
+  flex: 1;
+  min-width: 0;
+}
