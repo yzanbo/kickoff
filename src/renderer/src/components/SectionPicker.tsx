@@ -10,7 +10,7 @@ export function SectionPicker({ value, onChange }: { value: Phase; onChange: (v:
       value={value}
       icon={<Icon size={15} />}
       ariaLabel="セクション"
-      title={SECTION_META[value].description}
+      title={`${SECTION_META[value].label}: ${SECTION_META[value].description}`}
       className={`section-menu sec-${value}`}
       groups={[{ label: "セクション", items: PHASES.map((p) => ({ value: p, label: SECTION_META[p].label, description: SECTION_META[p].description })) }]}
       onChange={onChange}

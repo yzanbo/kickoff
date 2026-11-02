@@ -3046,6 +3046,39 @@ button.project-switch.all-projects:hover,
   justify-content: space-between;
   gap: 8px;
   padding: 4px 12px 12px;
+  /* 狭いときは、下の @container で詰めて 1 行に収める */
+  container-type: inline-size;
+}
+
+/*
+ * チャット欄が狭いとき（右のパネル・チャット欄）: ▾ を消して詰め、推論の深さ・権限モードはアイコンだけにする。
+ * さらに狭いときはセクションもアイコンだけにする（いまの値は、乗せると説明に出る）
+ */
+@container (max-width: 560px) {
+  .composer-tools,
+  .run-options {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .composer-bar .option-chevron {
+    display: none;
+  }
+
+  .composer-bar .option-button {
+    gap: 4px;
+    padding: 0 6px;
+  }
+
+  .run-options .option-menu:not(.model-menu) .option-label {
+    display: none;
+  }
+}
+
+@container (max-width: 440px) {
+  .section-menu .option-label {
+    display: none;
+  }
 }
 
 .composer-tools,

@@ -102,7 +102,8 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
         value={effort}
         icon={<Brain size={15} />}
         ariaLabel="推論の深さ"
-        title="推論の深さ（effort）"
+        // 狭いときはアイコンだけになるので、いまの値も説明に出す
+        title={`推論の深さ（effort）: ${efforts.includes(effort) ? EFFORT_LABELS[effort] : effort}`}
         disabled={disabled}
         groups={[{ label: "推論の深さ", items: efforts.map((level) => ({ value: level, label: EFFORT_LABELS[level] })) }]}
         onChange={setEffort}
@@ -111,7 +112,7 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
         value={permission}
         icon={<Shield size={15} />}
         ariaLabel="権限モード"
-        title="権限モード"
+        title={`権限モード: ${PERMISSION_LABELS[permission]}`}
         disabled={disabled}
         groups={[
           {
