@@ -17,7 +17,7 @@ import { changeProject, confirmArchiveProject, confirmRestoreProject } from "../
 import { openNewChat } from "../../router";
 import { ProjectEditDialog } from "../project/ProjectEditDialog";
 import type { ProjectSettingsSection } from "../projectSettings/ProjectSettings";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 
 /** 開いた場所によって使える操作（見出しのカードから開いたときだけ渡す） */
 export interface ProjectMenuExtras {
@@ -85,17 +85,9 @@ function ProjectMenu({
   const at = clampToViewport(x, y, 260, MENU_HEIGHT);
   /** 押したらメニューを閉じてから行う */
   const item = (key: string, icon: ReactNode, label: string, run: () => void, opts: { danger?: boolean } = {}) => (
-    <button
-      key={key}
-      role="menuitem"
-      className={opts.danger ? "danger" : undefined}
-      onClick={() => {
-        onClose();
-        run();
-      }}
-    >
+    <MenuItem key={key} danger={opts.danger} onSelect={run}>
       {icon} {label}
-    </button>
+    </MenuItem>
   );
   const archived = Boolean(project.archived_at);
   return (

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cx } from "../../cx";
 import { normalizeUrl } from "../../url";
 import { IconButton } from "../IconButton";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import { DEVTOOLS_DOCK_LABELS, DEVTOOLS_DOCKS, useDevtools, type DevtoolsDock } from "./useDevtools";
 
 interface Props {
@@ -190,18 +190,10 @@ function DockMenu({ x, y, value, onPick, onClose }: { x: number; y: number; valu
     <PopupMenu x={x} y={y} label="開発者ツールの場所" ignore=".browser-devtools-dock" onClose={onClose}>
       <div className="menu-label">開発者ツールの場所</div>
       {DEVTOOLS_DOCKS.map((dock) => (
-        <button
-          key={dock}
-          role="menuitemradio"
-          aria-checked={dock === value}
-          onClick={() => {
-            onClose();
-            onPick(dock);
-          }}
-        >
+        <MenuItem key={dock} role="menuitemradio" checked={dock === value} onSelect={() => onPick(dock)}>
           <span className="project-switch-item">{DEVTOOLS_DOCK_LABELS[dock]}</span>
           {dock === value && <Check size={14} aria-hidden />}
-        </button>
+        </MenuItem>
       ))}
     </PopupMenu>
   );

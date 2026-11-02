@@ -3,7 +3,7 @@ import type { Run } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../../runActions";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 
 /** チャットの右クリックメニュー（カンバンのカード・グループのボード・サイドバー）: 開く・名前を変更・既読 / 未読・サイドバーの上に固定・アーカイブ・削除 */
 export function CardMenu({
@@ -37,12 +37,12 @@ export function CardMenu({
 
   return (
     <PopupMenu x={at.x} y={at.y} escape="pass" onClose={onClose}>
-      <button role="menuitem" onClick={() => (onOpenPanel(run), onClose())}>
+      <MenuItem onSelect={() => onOpenPanel(run)}>
         <PanelRight size={14} /> 開く
-      </button>
-      <button role="menuitem" onClick={() => (onClose(), onRename(run))}>
+      </MenuItem>
+      <MenuItem onSelect={() => onRename(run)}>
         <Pencil size={14} /> 名前を変更
-      </button>
+      </MenuItem>
       {/* 未読 = 確認待ちの印（サイドバーで太字になる。次に開くまで残る） */}
       {run.attention ? (
         <button role="menuitem" onClick={() => void act(() => api.markSeen(run.id))}>
