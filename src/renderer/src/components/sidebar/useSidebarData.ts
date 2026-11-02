@@ -3,7 +3,7 @@ import type { ProjectSummary } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { useServerEvent } from "../../events";
-import { removeGroup, removeRun, upsertGroup, upsertRun, type GroupsByProject, type RunsByProject } from "./sidebarData";
+import { dropProject, removeGroup, removeRun, upsertGroup, upsertRun, type GroupsByProject, type RunsByProject } from "./sidebarData";
 
 /** 読み込みに失敗したあと、取り直すまでの間隔（サーバーが起動中・一時的に切れたときのため） */
 const RETRY_MS = 5000;
@@ -28,12 +28,7 @@ export function useSidebarData(projects: ProjectSummary[]) {
       setErrors((prev) => ({ ...prev, [projectId]: errorMessage(e) }));
       retry ??= setTimeout(() => alive && setAttempt((n) => n + 1), RETRY_MS);
     };
-    const clearError = (projectId: number) =>
-      setErrors((prev) => {
-        if (!(projectId in prev)) return prev;
-        const { [projectId]: _, ...rest } = prev;
-        return rest;
-      });
+    const clearError = (projectId: number) => setErrors((prev) => dropProject(prev, projectId));
     for (const p of projects) {
       // アーカイブしたチャットも読み込み、一覧の下の「アーカイブ済み」に分けて出す
       if (!runs[p.id]) {
@@ -67,6 +62,11 @@ export function useSidebarData(projects: ProjectSummary[]) {
         break;
       case "run":
         setRuns((prev) => upsertRun(prev, e.run));
+        break;
+      case "project_deleted":
+        setRuns((prev) => dropProject(prev, e.id));
+        setGroups((prev) => dropProject(prev, e.id));
+        setErrors((prev) => dropProject(prev, e.id));
         break;
     }
   });

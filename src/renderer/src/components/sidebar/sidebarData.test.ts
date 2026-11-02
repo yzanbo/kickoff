@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Run, RunGroup } from "../../../../core/types";
-import { removeGroup, removeRun, upsertGroup, upsertRun } from "./sidebarData";
+import { dropProject, removeGroup, removeRun, upsertGroup, upsertRun } from "./sidebarData";
 
 const run = (id: number, project_id: number, updated_at: string) => ({ id, project_id, updated_at }) as Run;
 const group = (id: number, project_id: number, position: number) => ({ id, project_id, position }) as RunGroup;
@@ -29,4 +29,10 @@ test("upsertGroup / removeGroup: グループは並び順（position → id）�
   assert.deepEqual(next[1].map((g) => g.id), [1, 3, 2]);
   assert.deepEqual(upsertGroup(next, group(1, 1, 5))[1].map((g) => g.id), [3, 2, 1]);
   assert.deepEqual(removeGroup(next, 1, 3)[1].map((g) => g.id), [1, 2]);
+});
+
+test("dropProject: 削除されたプロジェクトの分だけを消す（なければそのまま）", () => {
+  const prev = { 1: [run(10, 1, "a")], 2: [run(20, 2, "b")] };
+  assert.deepEqual(dropProject(prev, 1), { 2: prev[2] });
+  assert.equal(dropProject(prev, 9), prev);
 });
