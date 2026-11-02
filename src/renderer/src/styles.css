@@ -5386,6 +5386,46 @@ button.project-switch.all-projects:hover,
   background: #fff;
 }
 
+/* ページと、タブの中に出した開発者ツール（右・下）を並べる */
+.browser-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.browser-body.dock-bottom {
+  flex-direction: column;
+}
+
+.browser-devtools {
+  display: flex;
+  flex: none;
+  min-width: 0;
+  min-height: 0;
+}
+
+.browser-devtools-view {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 境目をドラッグしている間は、ページ・開発者ツールがポインターを横取りしないようにする */
+.browser-body.resizing webview {
+  pointer-events: none;
+}
+
+/* 開発者ツールのボタンと、出す場所のメニューのボタン（くっつけて 1 つに見せる） */
+.browser-devtools-buttons {
+  display: inline-flex;
+  align-items: center;
+}
+
+.browser-devtools-buttons .browser-devtools-dock {
+  width: 16px;
+}
+
 .browser-pane {
   min-width: 0;
   overflow: hidden;
@@ -6464,7 +6504,8 @@ a:focus-visible,
   border-bottom: 1px solid var(--border);
 }
 
-.history-resizer {
+.history-resizer,
+.browser-devtools-resizer {
   position: relative;
   z-index: 2;
   flex: none;
@@ -6474,7 +6515,9 @@ a:focus-visible,
 }
 
 .history-resizer:hover,
-.history-main.resizing .history-resizer {
+.history-main.resizing .history-resizer,
+.browser-devtools-resizer:hover,
+.browser-body.resizing .browser-devtools-resizer {
   background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
 }
 
