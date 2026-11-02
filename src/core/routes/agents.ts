@@ -4,6 +4,7 @@ import { githubStatus } from "../github.js";
 import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ApprovalDecision, type ModelOption, type ProviderId, type SlashCommandOption } from "../types.js";
 import { HttpError, requireProject, requireWorkdir } from "./http.js";
+import { optionalId, queryOf } from "./schemas.js";
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
   z.object({ action: z.literal("allow") }),
@@ -20,8 +21,8 @@ const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action
 export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, approvals }: ServerDeps) {
   // ---- 承認依頼・AI からの質問 ----
   app.get("/api/approvals", (c) => {
-    const projectId = c.req.query("project_id");
-    return c.json(approvals.list({ projectId: projectId ? Number(projectId) : undefined }));
+    const { project_id } = z.object({ project_id: optionalId }).parse({ project_id: queryOf(c, "project_id") });
+    return c.json(approvals.list({ projectId: project_id }));
   });
 
   app.post("/api/approvals/:id", async (c) => {

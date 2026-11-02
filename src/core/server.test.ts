@@ -172,6 +172,9 @@ test("設定・プロジェクト・タスク・成果物の API", async () => {
   const inspected = await call("GET", `/api/workspace/inspect?path=${encodeURIComponent(project.repo_path)}`);
   assert.equal(inspected.status, 200);
   assert.ok("registered_project_id" in inspected.body);
+  // フォルダの指定がなければ 400（起動したフォルダを点検しない）
+  assert.equal((await call("GET", "/api/workspace/inspect")).status, 400);
+  assert.equal((await call("GET", "/api/workspace/inspect?path=%20")).status, 400);
 
   const task = await call("POST", `/api/projects/${project.id}/tasks`, { phase: "implementation", title: "t" });
   assert.equal(task.status, 201);
@@ -212,6 +215,15 @@ test("チャット・グループの API", async () => {
   assert.deepEqual(detail.body.approvals, []);
   assert.deepEqual(await call("GET", "/api/runs/999"), { status: 404, body: { error: "実行が見つかりません" } });
   assert.ok(Array.isArray((await call("GET", `/api/search?q=${encodeURIComponent("こんにちは")}&project_id=${project.id}`)).body));
+  // 絞り込み・件数が数でなければ 400（NaN を SQL に入れない）。件数の上限は 1000 に丸める
+  assert.equal((await call("GET", "/api/search?q=a&project_id=x")).status, 400);
+  assert.equal((await call("GET", "/api/search?q=a&limit=abc")).status, 400);
+  assert.equal((await call("GET", "/api/search?q=a&run_id=")).status, 200);
+  assert.equal((await call("GET", "/api/runs?limit=abc")).status, 400);
+  assert.equal((await call("GET", "/api/runs?limit=0")).status, 400);
+  assert.equal((await call("GET", "/api/runs?limit=5000")).body.length, 1);
+  assert.equal((await call("GET", "/api/approvals?project_id=x")).status, 400);
+  assert.deepEqual((await call("GET", `/api/approvals?project_id=${project.id}`)).body, []);
 
   // カンバンの列（stage）は AI の状態で決まるので、送っても変わらない
   const renamed = await call("PATCH", `/api/runs/${runId}`, { title: "名前", stage: "todo", group_id: null });

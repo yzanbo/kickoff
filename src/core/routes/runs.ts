@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES } from "../types.js";
 import { HttpError, requireGroup, requireProject, requireRun } from "./http.js";
+import { optionalId, queryOf } from "./schemas.js";
 
 const runOptionsSchema = z
   .object({
@@ -80,20 +81,17 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
 
   // チャットのやり取りのキーワード検索（⌘F）
   app.get("/api/search", (c) => {
-    const num = (v: string | undefined) => (v ? Number(v) : undefined);
-    return c.json(
-      store.searchEvents(c.req.query("q") ?? "", {
-        projectId: num(c.req.query("project_id")),
-        runId: num(c.req.query("run_id")),
-        limit: num(c.req.query("limit")),
-      }),
-    );
+    const { q, project_id, run_id, limit } = z
+      .object({ q: z.string().max(1000).default(""), project_id: optionalId, run_id: optionalId, limit: optionalId })
+      .parse({ q: queryOf(c, "q"), project_id: queryOf(c, "project_id"), run_id: queryOf(c, "run_id"), limit: queryOf(c, "limit") });
+    return c.json(store.searchEvents(q, { projectId: project_id, runId: run_id, limit }));
   });
 
-  // 全プロジェクトのチャット（⌘K の検索・移動用）
-  app.get("/api/runs", (c) =>
-    c.json(store.listRuns({ limit: Math.min(Number(c.req.query("limit") ?? 300), 1000), includeArchived: c.req.query("archived") === "1" })),
-  );
+  // 全プロジェクトのチャット（⌘K の検索・移動用）。件数は 1000 まで
+  app.get("/api/runs", (c) => {
+    const { limit } = z.object({ limit: z.coerce.number().int().positive().default(300) }).parse({ limit: queryOf(c, "limit") });
+    return c.json(store.listRuns({ limit: Math.min(limit, 1000), includeArchived: c.req.query("archived") === "1" }));
+  });
 
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
