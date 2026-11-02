@@ -197,6 +197,7 @@ export function SidePanel({
                 onGroupChange={(group, groupName) => panel.updateTab(t.key, (x) => (x.kind === "new" ? { ...x, group, groupName } : x))}
                 onClose={close}
                 onCreated={(run) => panel.replaceWithChat(t.key, run)}
+                onDraftChange={(text) => panel.updateTab(t.key, (x) => (x.kind === "new" && (x.draftText ?? "") !== text ? { ...x, draftText: text } : x))}
               />
             ) : t.kind === "terminal" ? (
               <Suspense fallback={<div className="page muted">読み込み中…</div>}>

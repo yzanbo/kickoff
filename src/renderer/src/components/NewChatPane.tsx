@@ -24,6 +24,8 @@ interface Props {
   onClose: () => void;
   /** 最初のメッセージを送ってチャットができたとき（このタブをそのチャットに置き換える） */
   onCreated: (run: Run) => void;
+  /** 書いている文が変わったとき（ボードの「下書き」のカードに出す） */
+  onDraftChange?: (text: string) => void;
 }
 
 /** 右側のパネルで始める新しいチャット（最初のメッセージを送ると、そのチャットのタブになる） */
@@ -36,6 +38,7 @@ export function NewChatPane({
   onGroupChange,
   onClose,
   onCreated,
+  onDraftChange,
 }: Props) {
   const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
   const options = useRunOptions(undefined, section, projectId);
@@ -136,6 +139,7 @@ export function NewChatPane({
             options={options}
             autoFocus
             leading={<SectionPicker value={section} onChange={setSection} />}
+            onTextChange={onDraftChange}
             initialText={isFirst && idea ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${idea}` : undefined}
             placeholder={`${SECTION_META[section].placeholder}（Enter で送信、Shift+Enter で改行）`}
             onSend={async (prompt, attachments) => {

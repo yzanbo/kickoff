@@ -19,11 +19,12 @@ export function DraftCards({
 }) {
   return panel.drafts
     .filter((d) => filter(d.target))
-    .map((d) => <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onOpen={() => onShow(d.key)} onDelete={() => panel.closeTab(d.key)} />);
+    .map((d) => <DraftCard key={d.key} text={d.text} active={panel.isShowingTab(d.key)} onOpen={() => onShow(d.key)} onDelete={() => panel.closeTab(d.key)} />);
 }
 
-/** 下書きのカード。押すとそのタブを表示し、右クリックで開く・削除を選べる */
-function DraftCard({ active, onOpen, onDelete }: { active: boolean; onOpen: () => void; onDelete: () => void }) {
+/** 下書きのカード。書いている途中の文があれば、その初めの数行を出す。押すとそのタブを表示し、右クリックで開く・削除を選べる */
+function DraftCard({ text, active, onOpen, onDelete }: { text: string; active: boolean; onOpen: () => void; onDelete: () => void }) {
+  const written = text.trim();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   return (
     <>
@@ -37,8 +38,11 @@ function DraftCard({ active, onOpen, onDelete }: { active: boolean; onOpen: () =
           setMenu(clampToViewport(e.clientX, e.clientY, 220, 120));
         }}
       >
-        <SquarePen size={14} aria-hidden />
-        新しいチャット（未送信）
+        <span className="draft-card-head">
+          <SquarePen size={13} aria-hidden />
+          {written ? "書きかけ（未送信）" : "新しいチャット（未送信）"}
+        </span>
+        {written && <span className="draft-card-text">{written}</span>}
       </button>
       {menu && (
         <PopupMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)}>
