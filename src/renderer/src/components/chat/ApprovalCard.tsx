@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Approval, ApprovalDecision, Question } from "../../../../core/types";
 import { api } from "../../api";
-import { errorMessage } from "../../errors";
+import { useActionError } from "../../hooks/useActionError";
 import { isSubagentTool } from "./subagentList";
 import { ErrorText } from "../ErrorText";
 
@@ -11,17 +11,13 @@ export function ApprovalCard({ approval }: { approval: Approval }) {
 }
 
 function useResolve(id: string) {
+  // 送れたらカードごと消えるので、送信中のままにしておく（失敗したときだけ押し直せるようにする）
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string>();
+  const { error, setError, guard } = useActionError();
   async function resolve(decision: ApprovalDecision) {
     setSending(true);
     setError(undefined);
-    try {
-      await api.resolveApproval(id, decision);
-    } catch (e) {
-      setError(errorMessage(e));
-      setSending(false);
-    }
+    if (!(await guard(() => api.resolveApproval(id, decision)))) setSending(false);
   }
   return { sending, error, resolve };
 }
