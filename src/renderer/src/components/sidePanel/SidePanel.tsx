@@ -10,6 +10,7 @@ import { BrowserPane } from "../BrowserPane";
 import { IconButton } from "../IconButton";
 import { NewChatPane } from "../NewChatPane";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { targetMenuAt, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
 import { PanelTab } from "./PanelTab";
 import type { PanelTab as PanelTabData, SidePanelController, TerminalTarget } from "./useSidePanel";
 
@@ -62,6 +63,8 @@ export function SidePanel({
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
   // タブの列の＋のメニュー（新しいチャット・ブラウザ・ターミナル）
   const [addMenu, setAddMenu] = useState<{ x: number; y: number } | null>(null);
+  // タブがないときの「ターミナルを開く」で、開く場所を選ぶメニュー（全プロジェクトのボード）
+  const [terminalMenu, setTerminalMenu] = useState<{ x: number; y: number } | null>(null);
   return (
     <aside className={cx("board-panel", sidebar && "as-sidebar")} aria-hidden={!panelOpen}>
       {!sidebar && (
@@ -146,7 +149,28 @@ export function SidePanel({
             <button className="btn" onClick={() => panel.openBrowser()}>
               <Globe size={14} /> ブラウザを開く
             </button>
+            {terminalTargets.length > 0 && (
+              <button
+                className="btn panel-empty-terminal"
+                aria-haspopup={terminalTargets.length > 1 ? "menu" : undefined}
+                onClick={(e) => {
+                  if (terminalTargets.length === 1) return panel.openTerminal(terminalTargets[0]);
+                  setTerminalMenu(terminalMenu ? null : targetMenuAt(e.currentTarget, terminalTargets.length));
+                }}
+              >
+                <SquareTerminal size={14} /> ターミナルを開く
+              </button>
+            )}
           </div>
+        )}
+        {terminalMenu && (
+          <TerminalTargetMenu
+            {...terminalMenu}
+            targets={terminalTargets}
+            ignore=".panel-empty-terminal"
+            onPick={panel.openTerminal}
+            onClose={() => setTerminalMenu(null)}
+          />
         )}
         {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
         {tabs.map((t) => (
