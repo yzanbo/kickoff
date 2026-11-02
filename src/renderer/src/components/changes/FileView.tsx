@@ -1,11 +1,11 @@
 import { ExternalLink, Pencil, Save, X } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { FileContent } from "../../../../core/types";
 import { api, ApiError } from "../../api";
 import { cx } from "../../cx";
 import { confirmDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
 import { useHighlight } from "../../hooks/useHighlight";
+import { useKeyedAsync } from "../../hooks/useKeyedAsync";
 import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
 import { useGitTarget } from "../../worktree/worktreeContext";
@@ -39,8 +39,8 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
   // 作業場所（ワークツリー）を見ていれば、そのフォルダのファイル
   const { target, key: at, worktree } = useGitTarget(projectId);
   const key = `${at}:${path}`;
-  const [state, setState] = useState<{ key: string; file?: FileContent; error?: string }>();
-  const [reload, setReload] = useState(0);
+  // 同じ作業場所の同じファイルなら、取り直している間も前の中身を出す。別のファイルに変わったら読み込み中に戻る
+  const loaded = useKeyedAsync(key, () => api.projectFile(target, path), { deps: [version] });
   // 編集: 開いたとき（保存したとき）の中身と指紋。null なら見るだけ
   const [base, setBase] = useState<{ content: string; hash: string } | null>(null);
   const [wantEdit, setWantEdit] = useState(initialEditing);
@@ -50,19 +50,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
   const [editorKey, setEditorKey] = useState(0);
   const getValue = useRef<(() => string) | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    api.projectFile(target, path).then(
-      (file) => alive && setState({ key, file }),
-      (e: unknown) => alive && setState({ key, error: errorMessage(e) }),
-    );
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, version, reload]);
-
-  const current = state?.key === key ? state : undefined;
+  const current = loaded.loaded ? { file: loaded.data, error: loaded.error } : undefined;
   const editable = Boolean(current?.file && !current.file.binary && !current.file.truncated);
   // 「編集」を押したら（差分から来たら）、読み込んだ中身から編集を始める
   useEffect(() => {
@@ -110,7 +98,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
     setBase(null);
     changeDirty(false);
     setMessage(undefined);
-    setReload((n) => n + 1);
+    loaded.reload();
   };
 
   // ほかで変わった中身を読み直して、編集をやり直す（自分の変更は捨てる）
