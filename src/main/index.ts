@@ -14,6 +14,7 @@ import {
   openInChrome,
   removeExtension,
 } from "./browser.js";
+import { killAllTerminals, registerTerminalIpc } from "./terminals.js";
 
 // ビルド後の out/main を基準にする
 const outDir = path.join(import.meta.dirname, "..");
@@ -114,6 +115,7 @@ function createWindow(url: string) {
 }
 
 function registerIpc() {
+  registerTerminalIpc();
   // 通知を押したとき: Kickoff を前面に出す
   ipcMain.handle("kickoff:focus-window", () => {
     if (!mainWindow) return;
@@ -169,6 +171,8 @@ app.on("window-all-closed", () => {
 
 let closing = false;
 app.on("before-quit", (e) => {
+  // 内蔵ターミナルのシェルは、すぐ止められるので先に止める
+  killAllTerminals();
   if (!core) return;
   // 実行中のエージェントや DB を閉じてから終了する（片付けの間に届いた終了の指示も待たせる）
   e.preventDefault();

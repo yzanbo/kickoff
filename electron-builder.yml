@@ -8,6 +8,8 @@ files:
 asarUnpack:
   # Agent SDK が起動する Claude Code のネイティブバイナリは asar の外に置く必要がある
   - node_modules/@anthropic-ai/claude-agent-sdk-*/**
+  # 内蔵ターミナルの node-pty（ネイティブのモジュールと spawn-helper）
+  - node_modules/node-pty/**
 mac:
   target: dmg
   category: public.app-category.developer-tools

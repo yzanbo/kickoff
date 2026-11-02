@@ -12,6 +12,28 @@ const api = {
   openInChrome: (url: string): Promise<void> => ipcRenderer.invoke("kickoff:open-in-chrome", url),
   /** Kickoff のウィンドウを前面に出す（通知を押したとき） */
   focusWindow: (): Promise<void> => ipcRenderer.invoke("kickoff:focus-window"),
+  /** 内蔵ターミナル（右のパネルのタブ）。key はタブごとのキー */
+  terminal: {
+    /** シェルにつなぐ（なければ cwd で始める）。snapshot はいまの画面の内容（つなぎ直したとき） */
+    open: (key: string, cwd: string, cols: number, rows: number): Promise<{ snapshot: string; created: boolean }> =>
+      ipcRenderer.invoke("kickoff:terminal-open", key, cwd, cols, rows),
+    write: (key: string, data: string): void => ipcRenderer.send("kickoff:terminal-write", key, data),
+    resize: (key: string, cols: number, rows: number): void => ipcRenderer.send("kickoff:terminal-resize", key, cols, rows),
+    /** シェルを止める（タブを閉じたとき） */
+    close: (key: string): Promise<void> => ipcRenderer.invoke("kickoff:terminal-close", key),
+    /** シェルの出力。戻り値で受け取りをやめる */
+    onData: (listener: (key: string, data: string) => void): (() => void) => {
+      const handler = (_e: unknown, key: string, data: string) => listener(key, data);
+      ipcRenderer.on("kickoff:terminal-data", handler);
+      return () => ipcRenderer.off("kickoff:terminal-data", handler);
+    },
+    /** シェルが終わったとき */
+    onExit: (listener: (key: string, exitCode: number) => void): (() => void) => {
+      const handler = (_e: unknown, key: string, exitCode: number) => listener(key, exitCode);
+      ipcRenderer.on("kickoff:terminal-exit", handler);
+      return () => ipcRenderer.off("kickoff:terminal-exit", handler);
+    },
+  },
   /** 埋め込みブラウザの拡張機能（React DevTools など） */
   browserExtensions: {
     list: (): Promise<BrowserExtensionInfo[]> => ipcRenderer.invoke("kickoff:browser-extensions"),

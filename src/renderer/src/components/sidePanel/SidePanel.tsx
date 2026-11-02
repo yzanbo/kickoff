@@ -1,5 +1,5 @@
-import { Globe, Maximize2, MessageSquare, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, X, type LucideIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { Globe, Maximize2, MessageSquare, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, SquareTerminal, X, type LucideIcon } from "lucide-react";
+import { lazy, Suspense, useRef, useState } from "react";
 import type { Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
@@ -10,7 +10,10 @@ import { BrowserPane } from "../BrowserPane";
 import { IconButton } from "../IconButton";
 import { NewChatPane } from "../NewChatPane";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
-import type { PanelTab, SidePanelController } from "./useSidePanel";
+import type { PanelTab, SidePanelController, TerminalTarget } from "./useSidePanel";
+
+// xterm.js は、ターミナルのタブを開いたときだけ読み込む
+const TerminalPane = lazy(() => import("../terminal/TerminalPane"));
 
 function hostOf(url: string): string {
   try {
@@ -22,10 +25,11 @@ function hostOf(url: string): string {
 
 /**
  * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し（セクションの色）、
- * ブラウザは地球儀、新しいチャットはペンにする
+ * ブラウザは地球儀、新しいチャットはペン、ターミナルは端末の印にする
  */
 function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
   if (t.kind === "browser") return { Icon: Globe, label: t.title || (t.url ? hostOf(t.url) : "新しいタブ") };
+  if (t.kind === "terminal") return { Icon: SquareTerminal, label: `ターミナル · ${t.label}` };
   if (t.kind === "new") return { Icon: SquarePen, label: t.groupName ? `新しいチャット · ${t.groupName}` : "新しいチャット" };
   // ボードの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
   const run = runs.find((r) => r.id === t.id);
@@ -36,11 +40,13 @@ function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: str
 
 /**
  * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。
- * onNewChat: タブの列の＋で「新しいチャット」を選んだとき（どのプロジェクト・グループで始めるかはボードが決める）
+ * onNewChat: タブの列の＋で「新しいチャット」を選んだとき（どのプロジェクト・グループで始めるかはボードが決める）。
+ * terminals: タブの列の＋から開けるターミナル（terminalTargets。Mac のアプリでだけ出す）
  */
-export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; onNewChat: () => void }) {
+export function SidePanel({ panel, onNewChat, terminals }: { panel: SidePanelController; onNewChat: () => void; terminals: TerminalTarget[] }) {
   const { tabs, activeTab, panelOpen, maximized } = panel;
-  // タブの列の＋のメニュー（新しいチャット・ブラウザ）
+  const terminalTargets = window.kickoff?.terminal ? terminals : [];
+  // タブの列の＋のメニュー（新しいチャット・ブラウザ・ターミナル）
   const [addMenu, setAddMenu] = useState<{ x: number; y: number } | null>(null);
   return (
     <aside className="board-panel" aria-hidden={!panelOpen}>
@@ -73,7 +79,7 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
           const { Icon, iconClass, label } = tabLabel(t, panel.runs);
           return (
             <div key={t.key} className={cx("panel-tab", activeTab === t.key && "active")} role="tab" aria-selected={activeTab === t.key}>
-              <button className="panel-tab-label" onClick={() => panel.showTab(t.key)} title={t.kind === "browser" ? t.url : label}>
+              <button className="panel-tab-label" onClick={() => panel.showTab(t.key)} title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : label}>
                 <Icon size={12} className={iconClass} aria-hidden />
                 <span>{label}</span>
               </button>
@@ -86,7 +92,7 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
         <IconButton
           icon={Plus}
           label="新しいタブ"
-          title="新しいタブ（チャット・ブラウザ）"
+          title={terminalTargets.length > 0 ? "新しいタブ（チャット・ブラウザ・ターミナル）" : "新しいタブ（チャット・ブラウザ）"}
           className="panel-tab-add"
           aria-haspopup="menu"
           aria-expanded={addMenu !== null}
@@ -94,7 +100,7 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
             // 開いているときに押したら閉じる
             if (addMenu) return setAddMenu(null);
             const r = e.currentTarget.getBoundingClientRect();
-            setAddMenu(clampToViewport(r.left, r.bottom + 4, 180, 90));
+            setAddMenu(clampToViewport(r.left, r.bottom + 4, 220, addMenuHeight(terminalTargets.length)));
           }}
         />
       </div>
@@ -102,7 +108,9 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
         <AddTabMenu
           {...addMenu}
           onNewChat={onNewChat}
-          onBrowser={panel.openBrowser}
+          onBrowser={() => panel.openBrowser()}
+          terminals={terminalTargets}
+          onTerminal={panel.openTerminal}
           onClose={() => setAddMenu(null)}
         />
       )}
@@ -110,7 +118,7 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
         {tabs.length === 0 && (
           <div className="panel-empty">
             <p className="muted small">カードを押すと、ここにチャットが開きます。</p>
-            <button className="btn" onClick={panel.openBrowser}>
+            <button className="btn" onClick={() => panel.openBrowser()}>
               <Globe size={14} /> ブラウザを開く
             </button>
           </div>
@@ -125,6 +133,7 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
                 focus={t.focus}
                 visible={panelOpen && activeTab === t.key}
                 onClose={panel.close}
+                onOpenTerminal={terminalTargets.length > 0 ? panel.openTerminal : undefined}
                 onRunChange={(run) =>
                   panel.updateTab(t.key, (x) => (x.kind === "chat" && (x.title !== run.title || x.phase !== run.phase) ? { ...x, title: run.title, phase: run.phase } : x))
                 }
@@ -141,6 +150,10 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
                 onClose={panel.close}
                 onCreated={(run) => panel.replaceWithChat(t.key, run)}
               />
+            ) : t.kind === "terminal" ? (
+              <Suspense fallback={<div className="page muted">読み込み中…</div>}>
+                <TerminalPane termKey={t.key} cwd={t.cwd} visible={panelOpen && activeTab === t.key} onOpenUrl={(url) => panel.openBrowser(url)} />
+              </Suspense>
             ) : (
               <BrowserPane
                 url={t.url}
@@ -157,8 +170,30 @@ export function SidePanel({ panel, onNewChat }: { panel: SidePanelController; on
   );
 }
 
-/** タブの列の＋のメニュー: 新しいチャットかブラウザのタブを開く */
-function AddTabMenu({ x, y, onNewChat, onBrowser, onClose }: { x: number; y: number; onNewChat: () => void; onBrowser: () => void; onClose: () => void }) {
+/** タブの列の＋のメニューの高さ（画面からはみ出さない位置を決めるため） */
+const addMenuHeight = (terminals: number) => 90 + (terminals === 1 ? 34 : terminals > 1 ? 40 + terminals * 34 : 0);
+
+/**
+ * タブの列の＋のメニュー: 新しいチャット・ブラウザ・ターミナルのタブを開く。
+ * ターミナルは開く場所が 1 つ（プロジェクトのボード）なら 1 項目、いくつもある（全プロジェクトのボード）ならプロジェクトごとに並べる
+ */
+function AddTabMenu({
+  x,
+  y,
+  onNewChat,
+  onBrowser,
+  terminals,
+  onTerminal,
+  onClose,
+}: {
+  x: number;
+  y: number;
+  onNewChat: () => void;
+  onBrowser: () => void;
+  terminals: TerminalTarget[];
+  onTerminal: (target: TerminalTarget) => void;
+  onClose: () => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useMenuKeys(ref);
   const pick = (action: () => void) => {
@@ -173,6 +208,22 @@ function AddTabMenu({ x, y, onNewChat, onBrowser, onClose }: { x: number; y: num
       <button role="menuitem" onClick={() => pick(onBrowser)}>
         <Globe size={14} /> ブラウザ
       </button>
+      {terminals.length === 1 && (
+        <button role="menuitem" onClick={() => pick(() => onTerminal(terminals[0]))}>
+          <SquareTerminal size={14} /> ターミナル
+        </button>
+      )}
+      {terminals.length > 1 && (
+        <>
+          <div className="menu-separator" role="separator" />
+          <div className="menu-label">ターミナル</div>
+          {terminals.map((target) => (
+            <button key={target.cwd} role="menuitem" title={target.cwd} onClick={() => pick(() => onTerminal(target))}>
+              <SquareTerminal size={14} /> {target.label}
+            </button>
+          ))}
+        </>
+      )}
     </PopupMenu>
   );
 }
