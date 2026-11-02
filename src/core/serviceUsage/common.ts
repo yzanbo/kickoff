@@ -70,17 +70,42 @@ export function usageWindow(key: string, label: string, utilization: number | nu
 
 type Base = Pick<ServiceUsage, "id" | "label">;
 
-export function okUsage(base: Base, fields: Partial<Omit<ServiceUsage, "id" | "label" | "status" | "fetched_at">>): ServiceUsage {
-  return { ...base, status: "ok", plan: null, account: null, windows: [], notes: [], ...fields, fetched_at: new Date().toISOString() };
+/** 1 つのサービスの結果の作り方（id・表示名を持ち、ok / unavailable / error を同じ形で作る） */
+export interface UsageResults extends Base {
+  ok(fields: Partial<Omit<ServiceUsage, "id" | "label" | "status" | "fetched_at">>): ServiceUsage;
+  /** 見られない（未ログイン・未契約など）。message に見る方法を書く */
+  unavailable(message: string, fields?: Partial<Pick<ServiceUsage, "plan" | "account">>): ServiceUsage;
+  /** 取得に失敗した（message に理由） */
+  error(message: string, fields?: Partial<Pick<ServiceUsage, "plan" | "account">>): ServiceUsage;
 }
 
-/** 見られない（未ログイン・未契約など）。message に見る方法を書く */
-export function unavailableUsage(base: Base, message: string, fields: Partial<Pick<ServiceUsage, "plan" | "account">> = {}): ServiceUsage {
-  return { ...base, status: "unavailable", plan: null, account: null, windows: [], notes: [], ...fields, message, fetched_at: new Date().toISOString() };
+export function usageResult(base: Base): UsageResults {
+  const empty = () => ({ ...base, plan: null, account: null, windows: [], notes: [] });
+  return {
+    ...base,
+    ok: (fields) => ({ ...empty(), status: "ok", ...fields, fetched_at: new Date().toISOString() }),
+    unavailable: (message, fields = {}) => ({ ...empty(), status: "unavailable", ...fields, message, fetched_at: new Date().toISOString() }),
+    error: (message, fields = {}) => ({ ...empty(), status: "error", ...fields, message, fetched_at: new Date().toISOString() }),
+  };
 }
 
-export function errorUsage(base: Base, message: string, fields: Partial<Pick<ServiceUsage, "plan" | "account">> = {}): ServiceUsage {
-  return { ...base, status: "error", plan: null, account: null, windows: [], notes: [], ...fields, message, fetched_at: new Date().toISOString() };
+/** メールアドレス（JWT の中身などから。なければ null） */
+export const emailOf = (claims: Record<string, unknown> | null | undefined): string | null => (typeof claims?.email === "string" ? claims.email : null);
+
+/**
+ * JSON を取って parse で結果にする。状態コードが onStatus にある HTTP の失敗は、その結果にする（ログイン切れ・契約なしなど）。
+ * ほかの失敗はそのまま投げる（呼び出し側で error にする）
+ */
+export async function fetchJsonOr<T, R>(url: string, init: RequestInit, parse: (body: T) => R, onStatus: Record<number, () => R>): Promise<R> {
+  let body: T;
+  try {
+    body = await fetchJson<T>(url, init);
+  } catch (e) {
+    const fallback = e instanceof HttpStatusError ? onStatus[e.status] : undefined;
+    if (!fallback) throw e;
+    return fallback();
+  }
+  return parse(body);
 }
 
 /** サービスの使用状況を取る関数 */
@@ -89,3 +114,6 @@ export interface UsageFetcher {
   label: string;
   fetch: () => Promise<ServiceUsage>;
 }
+
+/** 1 サービス 1 ファイルの fetcher（id・表示名は結果の作り方と同じもの） */
+export const defineFetcher = ({ id, label }: Base, fetch: () => Promise<ServiceUsage>): UsageFetcher => ({ id, label, fetch });

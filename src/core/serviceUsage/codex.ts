@@ -1,22 +1,9 @@
 import os from "node:os";
 import path from "node:path";
 import type { ServiceUsage } from "../types.js";
-import {
-  errorUsage,
-  fetchJson,
-  HttpStatusError,
-  isExpired,
-  isoFromSeconds,
-  jwtClaims,
-  jwtExpiry,
-  okUsage,
-  readJsonFile,
-  unavailableUsage,
-  usageWindow,
-  type UsageFetcher,
-} from "./common.js";
+import { defineFetcher, emailOf, fetchJsonOr, isExpired, isoFromSeconds, jwtClaims, jwtExpiry, readJsonFile, usageResult, usageWindow } from "./common.js";
 
-const BASE = { id: "codex", label: "Codex" } as const;
+const result = usageResult({ id: "codex", label: "Codex" });
 const USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
 /** 期限が書かれていないとき、ログインを更新したとみなす日数（Codex と同じ 8 日） */
 const STALE_DAYS = 8;
@@ -58,7 +45,7 @@ export function parseCodexUsage(body: CodexUsageResponse, account: string | null
   const credits = body.credits;
   if (credits?.unlimited) notes.push("クレジット: 無制限");
   else if (credits?.has_credits && typeof credits.balance === "number") notes.push(`クレジット残り ${credits.balance}`);
-  return okUsage(BASE, {
+  return result.ok({
     plan: body.plan_type ?? planHint,
     account,
     windows: windows.flatMap(([key, raw, fallback]) =>
@@ -74,13 +61,12 @@ async function fetchCodexUsage(): Promise<ServiceUsage> {
   const auth = readJsonFile<CodexAuth>(path.join(home, "auth.json"));
   const tokens = auth?.tokens;
   if (!tokens?.access_token) {
-    return unavailableUsage(
-      BASE,
+    return result.unavailable(
       auth?.OPENAI_API_KEY ? "API キーで使っているため、プランの使用枠はありません" : "Codex にログインしていません（ターミナルで `codex login`）",
     );
   }
   const idClaims = tokens.id_token ? jwtClaims(tokens.id_token) : null;
-  const account = typeof idClaims?.email === "string" ? idClaims.email : null;
+  const account = emailOf(idClaims);
   const authClaim = jwtClaims(tokens.access_token)?.["https://api.openai.com/auth"] as { chatgpt_plan_type?: string } | undefined;
   const plan = authClaim?.chatgpt_plan_type ?? null;
 
@@ -89,22 +75,18 @@ async function fetchCodexUsage(): Promise<ServiceUsage> {
   const lastRefresh = auth?.last_refresh ? Date.parse(auth.last_refresh) : NaN;
   const stale = expiresAt !== null ? isExpired(expiresAt, 5 * 60_000) : !(Date.now() - lastRefresh < STALE_DAYS * 86_400_000);
   const refreshHint = "Codex のログインの更新が必要です。Codex（CLI かアプリ）を一度起動すると更新され、ここにも出ます";
-  if (stale) return errorUsage(BASE, refreshHint, { plan, account });
+  if (stale) return result.error(refreshHint, { plan, account });
 
-  try {
-    const body = await fetchJson<CodexUsageResponse>(USAGE_URL, {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-        Accept: "application/json",
-        "User-Agent": "codex-cli",
-        ...(tokens.account_id ? { "ChatGPT-Account-Id": tokens.account_id } : {}),
-      },
-    });
-    return parseCodexUsage(body, account, plan);
-  } catch (e) {
-    if (e instanceof HttpStatusError && e.status === 401) return errorUsage(BASE, refreshHint, { plan, account });
-    throw e;
-  }
+  const headers = {
+    Authorization: `Bearer ${tokens.access_token}`,
+    Accept: "application/json",
+    "User-Agent": "codex-cli",
+    ...(tokens.account_id ? { "ChatGPT-Account-Id": tokens.account_id } : {}),
+  };
+  // 401 はログインの期限切れ（Kickoff では更新しない）
+  return fetchJsonOr<CodexUsageResponse, ServiceUsage>(USAGE_URL, { headers }, (body) => parseCodexUsage(body, account, plan), {
+    401: () => result.error(refreshHint, { plan, account }),
+  });
 }
 
-export const codexUsage: UsageFetcher = { ...BASE, fetch: fetchCodexUsage };
+export const codexUsage = defineFetcher(result, fetchCodexUsage);

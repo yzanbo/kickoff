@@ -2,7 +2,7 @@ import { errorMessage } from "../errors.js";
 import type { PlanUsage, ServiceUsage } from "../types.js";
 import type { UsageMonitor } from "../usage.js";
 import { codexUsage } from "./codex.js";
-import { errorUsage, okUsage, unavailableUsage, type UsageFetcher } from "./common.js";
+import { usageResult, type UsageFetcher } from "./common.js";
 import { copilotUsage } from "./copilot.js";
 import { cursorUsage } from "./cursor.js";
 import { geminiUsage } from "./gemini.js";
@@ -10,15 +10,15 @@ import { geminiUsage } from "./gemini.js";
 /** 取り直すまでの間隔（設定を開いている間に画面が取りに来る。誰も見ていなければ取らない） */
 const MAX_AGE_MS = 5 * 60_000;
 
-const CLAUDE = { id: "claude", label: "Claude Code" } as const;
+const claude = usageResult({ id: "claude", label: "Claude Code" });
 
 /** Claude のプランの使用枠（いつもの帯と同じもの）を、サービスの使用状況の形にする */
 export function claudeServiceUsage(usage: PlanUsage): ServiceUsage {
   if (!usage.available) {
-    return usage.error ? errorUsage(CLAUDE, usage.error, { plan: usage.plan }) : unavailableUsage(CLAUDE, "Claude のプランの使用枠を取得できませんでした（API キーで使っている場合は枠がありません）");
+    return usage.error ? claude.error(usage.error, { plan: usage.plan }) : claude.unavailable("Claude のプランの使用枠を取得できませんでした（API キーで使っている場合は枠がありません）");
   }
   return {
-    ...okUsage(CLAUDE, { plan: usage.plan, windows: [usage.five_hour, usage.seven_day, ...usage.model_weekly] }),
+    ...claude.ok({ plan: usage.plan, windows: [usage.five_hour, usage.seven_day, ...usage.model_weekly] }),
     fetched_at: usage.fetched_at,
     // 最新の取得に失敗しても直前の値は出し、理由を添える
     ...(usage.error ? { message: `最新の取得に失敗: ${usage.error}` } : {}),
@@ -52,10 +52,10 @@ export class ServiceUsageMonitor {
   }
 
   private async load(force: boolean): Promise<ServiceUsage[]> {
-    const claude = (force ? this.claude.refresh(true) : this.claude.get()).then(claudeServiceUsage, (e: unknown) => errorUsage(CLAUDE, errorMessage(e)));
+    const first = (force ? this.claude.refresh(true) : this.claude.get()).then(claudeServiceUsage, (e: unknown) => claude.error(errorMessage(e)));
     // 1 つが失敗・遅延しても、ほかのサービスは出す
-    const others = this.fetchers.map((f) => f.fetch().catch((e: unknown) => errorUsage(f, `取得できませんでした（${errorMessage(e)}）`)));
-    const list = await Promise.all([claude, ...others]);
+    const others = this.fetchers.map((f) => f.fetch().catch((e: unknown) => usageResult(f).error(`取得できませんでした（${errorMessage(e)}）`)));
+    const list = await Promise.all([first, ...others]);
     this.cache = { at: Date.now(), list };
     return list;
   }
