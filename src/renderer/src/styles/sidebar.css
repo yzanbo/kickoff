@@ -260,7 +260,8 @@ button.chat-row {
   font-weight: 600;
 }
 
-.selection-bar-clear {
+/* link-button の font: inherit に負けないよう、同じ要素に付く class を連結して詳細度を上げる */
+.link-button.selection-bar-clear {
   display: inline-flex;
   align-items: center;
   gap: 3px;
