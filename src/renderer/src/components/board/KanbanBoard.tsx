@@ -21,9 +21,20 @@ import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
 import { COLUMN_TONE, DRAFT_TONE } from "./tones";
 import { useBoardFocus } from "./useBoardFocus";
+import { BOARD_LANE_LABELS, BOARD_LANES, BoardLanes, type BoardLane } from "./BoardLanes";
 import { useBoardRuns } from "./useBoardRuns";
 
 const VIEW_KEY = "kickoff:board-view";
+const LANES_KEY = "kickoff:board-lanes";
+
+type Entry = { run: Run; state: AgentState };
+
+/** チャットを状態の列に分ける（並びはそのまま） */
+function byColumn(entries: Entry[]) {
+  const map = new Map<BoardColumn, Entry[]>(BOARD_COLUMNS.map((c) => [c, []]));
+  for (const e of entries) map.get(boardColumnOf(e.state))?.push(e);
+  return map;
+}
 const SHOW_ARCHIVED_KEY = "kickoff:show-archived";
 
 interface Props {
@@ -89,20 +100,23 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const projectName = (id: number) => projects.find((p) => p.id === id)?.name ?? "";
   const pendingFor = (run: Run) => approvals.filter((a) => a.run_id === run.id).length;
 
-  const grouped = useMemo(() => {
-    const map = new Map<BoardColumn, { run: Run; state: AgentState }[]>(BOARD_COLUMNS.map((s) => [s, []]));
+  // 絞り込んだチャット（新しく動いた順）
+  const entries = useMemo(() => {
+    const list: Entry[] = [];
     for (const run of runs) {
       if (archive === "archived" && !run.archived_at) continue;
       if (worktreeFilter !== "all" && run.worktree_path !== worktreeFilter) continue;
       if (section !== "all" && run.phase !== section) continue;
       if (!search.matches(run)) continue;
-      const state = agentStateOf(run, approvals.some((a) => a.run_id === run.id));
-      map.get(boardColumnOf(state))?.push({ run, state });
+      list.push({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) });
     }
-    for (const list of map.values()) list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
-    return map;
+    return list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
   }, [runs, approvals, section, search, archive, worktreeFilter]);
-  const total = [...grouped.values()].reduce((n, l) => n + l.length, 0);
+  const grouped = useMemo(() => byColumn(entries), [entries]);
+  const total = entries.length;
+  // 段（スイムレーン）の分け方。プロジェクトで分けるのは全プロジェクトのボードだけ
+  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(LANES_KEY, BOARD_LANES, "none");
+  const lanes: BoardLane = laneChoice === "project" && !allProjects ? "none" : laneChoice;
 
   /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
   function newChat() {
@@ -146,6 +160,33 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     </>
   );
 
+  /** 状態の列 1 本（ボードの表示） */
+  const columnSection = (column: BoardColumn, list: Entry[]) => (
+    <section key={column} className="board-column">
+      {columnHead(column, list.length)}
+      <div className="column-cards">
+        {list.length === 0 && <p className="column-empty">なし</p>}
+        {list.map(({ run, state }) => (
+          <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
+            <RunCardContent
+              run={run}
+              state={state}
+              projectName={allProjects ? projectName(run.project_id) : undefined}
+              pending={pendingFor(run)}
+              rename={rename.editorFor(run)}
+            />
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+  const draftColumn = (
+    <section className="board-column">
+      {draftHead}
+      <div className="column-cards">{draftCards}</div>
+    </section>
+  );
+
   return (
     <div className="board">
       <BoardHeader
@@ -170,6 +211,17 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         }
         view={view}
         onView={setView}
+        viewOptions={
+          view === "board" && (
+            <select className={cx("board-filter", lanes !== "none" && "filtered")} aria-label="段の分け方" value={lanes} onChange={(e) => setLanes(e.target.value as BoardLane)}>
+              {BOARD_LANES.filter((l) => l !== "project" || allProjects).map((l) => (
+                <option key={l} value={l}>
+                  {BOARD_LANE_LABELS[l]}
+                </option>
+              ))}
+            </select>
+          )
+        }
         panel={panel}
       />
       <ErrorText message={error} className="board-error" />
@@ -178,34 +230,23 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         <div className="board-main">
           {!loaded ? (
             <p className="muted small board-loading">読み込み中…</p>
+          ) : view === "board" && lanes !== "none" ? (
+            // 段に分ける: 段ごとに状態の列を並べる。下書きはまだ段が決まらないので、あるときだけ上に置く
+            <BoardLanes
+              kind={lanes}
+              boardKey={`${projectId ?? "all"}`}
+              entries={entries}
+              projects={projects}
+              renderColumns={(list) => {
+                const columns = byColumn(list);
+                return BOARD_COLUMNS.map((column) => columnSection(column, columns.get(column) ?? []));
+              }}
+              before={draftCount > 0 && <div className="board-columns lane-columns">{draftColumn}</div>}
+            />
           ) : view === "board" ? (
             <div className="board-columns">
-              <section className="board-column">
-                {draftHead}
-                <div className="column-cards">{draftCards}</div>
-              </section>
-              {BOARD_COLUMNS.map((column) => {
-                const list = grouped.get(column) ?? [];
-                return (
-                  <section key={column} className="board-column">
-                    {columnHead(column, list.length)}
-                    <div className="column-cards">
-                      {list.length === 0 && <p className="column-empty">なし</p>}
-                      {list.map(({ run, state }) => (
-                        <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
-                          <RunCardContent
-                            run={run}
-                            state={state}
-                            projectName={allProjects ? projectName(run.project_id) : undefined}
-                            pending={pendingFor(run)}
-                            rename={rename.editorFor(run)}
-                          />
-                        </article>
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
+              {draftColumn}
+              {BOARD_COLUMNS.map((column) => columnSection(column, grouped.get(column) ?? []))}
             </div>
           ) : (
             <div className="board-list">

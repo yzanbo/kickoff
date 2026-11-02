@@ -21,6 +21,8 @@ interface Props {
   primary?: ReactNode;
   view: BoardView;
   onView: (view: BoardView) => void;
+  /** 表示のまとまりで、ボード／リストの後ろに置くもの（段の分け方） */
+  viewOptions?: ReactNode;
   panel: SidePanelController;
 }
 
@@ -29,7 +31,7 @@ interface Props {
  * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
-export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, panel }: Props) {
+export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, panel }: Props) {
   return (
     <div className="board-header">
       {heading && (
@@ -53,6 +55,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
               { value: "list", label: "リスト", icon: List },
             ]}
           />
+          {viewOptions}
         </div>
         {organize && (
           <div className="board-tool-group" role="group" aria-label="整える">
