@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { Fragment, lazy, Suspense, useRef } from "react";
 import { cx } from "../../cx";
 import { startHorizontalDrag } from "../../hooks/dragResize";
-import type { TerminalGroup } from "./useBottomPanel";
+import type { TerminalGroup } from "./terminalGroups";
 
 // xterm.js は、ターミナルを開いたときだけ読み込む
 const TerminalPane = lazy(() => import("../terminal/TerminalPane"));
