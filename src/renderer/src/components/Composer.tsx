@@ -21,7 +21,12 @@ interface Props {
   trailing?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
   onStop?: () => void;
+  /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
+  onTextChange?: (text: string) => void;
 }
+
+/** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
+const TEXT_CHANGE_DELAY_MS = 300;
 
 interface PendingFile {
   key: string;
@@ -32,8 +37,15 @@ interface PendingFile {
 }
 
 /** チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付） */
-export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, trailing, onSend, onStop }: Props) {
+export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, trailing, onSend, onStop, onTextChange }: Props) {
   const [text, setText] = useState(initialText ?? "");
+  const textChange = useRef(onTextChange);
+  textChange.current = onTextChange;
+  useEffect(() => {
+    if (!textChange.current) return;
+    const timer = setTimeout(() => textChange.current?.(text), TEXT_CHANGE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [text]);
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [sending, setSending] = useState(false);
   const [dragging, setDragging] = useState(false);

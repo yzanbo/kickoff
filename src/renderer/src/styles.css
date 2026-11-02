@@ -5483,8 +5483,9 @@ button.project-switch.all-projects:hover,
 /* 送る前の新しいチャット（パネルで入力中）を、その列・グループに下書きとして出す */
 .draft-card {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   width: 100%;
   padding: 10px 12px;
   border: 1px dashed var(--accent-bright);
@@ -5499,6 +5500,26 @@ button.project-switch.all-projects:hover,
 
 .draft-card:hover {
   background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.draft-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+/* 書いている途中の文（初めの 3 行まで） */
+.draft-card-text {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .list-row {

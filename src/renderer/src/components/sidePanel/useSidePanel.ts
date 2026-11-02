@@ -18,8 +18,8 @@ export interface NewChatTarget {
 export type PanelTab =
   /** title・phase: タブに出すチャットの名前とセクション（開いたとき・チャットの画面が読み込んだときに入れる） */
   | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; phase?: Phase }
-  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる） */
-  | ({ key: string; kind: "new"; groupName?: string } & NewChatTarget)
+  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す） */
+  | ({ key: string; kind: "new"; groupName?: string; draftText?: string } & NewChatTarget)
   | { key: string; kind: "browser"; url: string; title: string }
   /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。key は裏のシェルのキーにも使う */
   | { key: string; kind: "terminal"; cwd: string; label: string };
@@ -236,7 +236,9 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     toggleMaximized: () => setMaximized(!maximized),
     startResize,
     /** 送る前の新しいチャットのタブ（ボードの列・グループに下書きとして出す） */
-    drafts: tabs.flatMap((t) => (t.kind === "new" ? [{ key: t.key, target: { projectId: t.projectId, section: t.section, group: t.group } }] : [])),
+    drafts: tabs.flatMap((t) =>
+      t.kind === "new" ? [{ key: t.key, text: t.draftText ?? "", target: { projectId: t.projectId, section: t.section, group: t.group } }] : [],
+    ),
     isShowingTab: (key: string) => panelOpen && activeTab === key,
     /** パネルの表示中のタブがこのチャットか（カードを選択中として見せる） */
     isShowing: (runId: number) => panelOpen && activeTab === chatKey(runId),
