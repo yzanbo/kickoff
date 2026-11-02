@@ -5,7 +5,7 @@ import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/t
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
-import { confirmDeleteGroup, startRunDrag, useGroupDrop } from "../../groups";
+import { confirmDeleteGroup, startRunDrag, useGroupDrop, GROUP_FLASH_EVENT } from "../../groups";
 import { useActionError } from "../../hooks/useActionError";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
@@ -25,6 +25,7 @@ import { GroupLaneColumns } from "./GroupLaneColumns";
 import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
 import { useBoardFocus } from "./useBoardFocus";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 
 const VIEW_KEY = "kickoff:group-view";
 
@@ -37,7 +38,7 @@ interface Props {
   approvals: Approval[];
   /** サイドバーのグループの＋から来たとき: そのグループで新しいチャットを始める */
   focus?: ReopenRoute;
-  /** サイドバーのグループ名から来たとき: そのグループを表示して、背景と枠を少しのあいだハイライトする（2 秒ほどで消える。広がる光の動きは付けない） */
+  /** サイドバーのグループ名から来たとき: そのグループを表示して、背景と枠を少しのあいだハイライトする（1.5 秒ほどで消える。押し直すたびにやり直す。広がる光の動きは付けない） */
   highlight?: number;
 }
 
@@ -73,6 +74,17 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
     }, 50);
     return () => clearTimeout(timer);
   }, [highlight, view]);
+  // すでに表示しているグループをサイドバーでもう一度押したとき: ハイライトの動きを始めからやり直し、見えるところまでスクロールする
+  useWindowEvent(GROUP_FLASH_EVENT, (e) => {
+    const id = (e as CustomEvent<number>).detail;
+    if (id !== highlight) return;
+    const el = document.querySelector(`[data-group-id="${id}"]`);
+    if (!el) return;
+    el.classList.remove("highlighted");
+    void el.getBoundingClientRect(); // 外したことを反映させてから付け直す（動きをやり直す）
+    el.classList.add("highlighted");
+    el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  });
 
   const groupIds = new Set(groups.map((g) => g.id));
   const membersOf = (groupId: number | null) =>

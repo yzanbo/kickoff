@@ -3,6 +3,12 @@ import type { Run, RunGroup } from "../../core/types";
 import { confirmDialog } from "./dialogs";
 
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
+/** サイドバーでグループ名を押したときの知らせ（すでに表示しているグループでも、もう一度ハイライトするため） */
+export const GROUP_FLASH_EVENT = "kickoff:group-flash";
+
+/** グループのボードで、そのグループをもう一度ハイライトする（グループのタブでなければ何もしない） */
+export const flashGroup = (groupId: number) => window.dispatchEvent(new CustomEvent<number>(GROUP_FLASH_EVENT, { detail: groupId }));
+
 export const RUN_DRAG_TYPE = "application/x-kickoff-run";
 
 /** チャットのドラッグを始める（ドロップ先でチャットの ID を受け取れるようにする） */
