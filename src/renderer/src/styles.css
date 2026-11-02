@@ -915,10 +915,7 @@ button.chat-row {
   color: var(--muted);
 }
 
-/*
- * サイドバーの開閉のボタン（矢印だけ）。どのまとまりも同じ大きさの小さな角丸のボタンにして、いつも薄い背景を付ける
- * （名前の部分とは別の、押すと開閉する場所だと分かるように）。乗せたときは、このボタンだけ濃くする
- */
+/* サイドバーの開閉の矢印（どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない） */
 .custom-group-toggle {
   display: grid;
   flex: none;
@@ -927,9 +924,8 @@ button.chat-row {
   height: 18px;
   padding: 0;
   border: none;
-  border-radius: 5px;
   color: var(--muted);
-  background: color-mix(in srgb, var(--text) 8%, transparent);
+  background: transparent;
   cursor: pointer;
 }
 
@@ -947,7 +943,6 @@ button.chat-row {
 .custom-group-toggle:hover,
 .custom-group-toggle:focus-visible {
   color: var(--text);
-  background: color-mix(in srgb, var(--text) 18%, transparent);
 }
 
 .custom-group-name {
@@ -1283,25 +1278,32 @@ button.project-switch:hover,
   text-overflow: ellipsis;
 }
 
-/* プロジェクトの開閉のボタン（プロジェクトの色の四角に、いつも開閉の矢印を出す） */
+/* プロジェクトの開閉の矢印（プロジェクトの色。カードを押しても開閉するので、ボタンらしい背景は付けない） */
 .workspace-toggle {
-  margin-right: 4px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 24px;
   padding: 0;
   border: none;
+  color: hsl(var(--ws-hue, 150) 55% 65%);
+  background: transparent;
   cursor: pointer;
 }
 
-/* 乗せたときは、開閉のボタン（四角）だけ濃くする（カード全体が明るくなるのとは別に、押すと開閉すると分かるように） */
 .workspace-toggle:hover,
 .workspace-toggle:focus-visible {
-  color: hsl(var(--ws-hue, 150) 70% 85%);
-  background: hsl(var(--ws-hue, 150) 40% 34%);
+  color: hsl(var(--ws-hue, 150) 70% 82%);
+}
+
+:root[data-theme="light"] .workspace-toggle {
+  color: hsl(var(--ws-hue, 150) 50% 40%);
 }
 
 :root[data-theme="light"] .workspace-toggle:hover,
 :root[data-theme="light"] .workspace-toggle:focus-visible {
-  color: hsl(var(--ws-hue, 150) 60% 25%);
-  background: hsl(var(--ws-hue, 150) 50% 78%);
+  color: hsl(var(--ws-hue, 150) 60% 28%);
 }
 
 .workspace-name {
