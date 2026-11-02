@@ -36,6 +36,8 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --row: 36px;
+  /* 欄の左右の余白（左のサイドバー・真ん中の画面・右のチャット欄・パネルでそろえる） */
+  --gutter: 12px;
   --row-tight: 28px;
   --mono: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
@@ -323,7 +325,7 @@ kbd {
 /* プロジェクトの画面・全体のカンバン: どのタブでも同じ横幅にする（タブを切り替えても見出しやタブの位置が動かないように） */
 /* 横幅いっぱいの画面（ボード・エディタなど）。サイドバーとの間を空けすぎない */
 .page-wide {
-  --page-x: 20px;
+  --page-x: var(--gutter);
   max-width: none;
 }
 
@@ -400,7 +402,7 @@ kbd {
 .nav-rows {
   display: grid;
   gap: 1px;
-  padding: 0 8px 8px;
+  padding: 0 var(--gutter) 8px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -945,7 +947,7 @@ input[type="text"].inline-name {
 .workspace-page {
   flex: 0 0 100%;
   min-width: 0;
-  padding: 4px 8px 8px;
+  padding: 4px var(--gutter) 8px;
   overflow-y: auto;
 }
 
@@ -1061,7 +1063,7 @@ button.project-switch:hover,
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 8px 8px;
+  padding: 10px var(--gutter) 8px;
   border-top: 1px solid var(--border);
 }
 
@@ -1083,7 +1085,7 @@ button.project-switch:hover,
 
 .workspace-switcher.stack {
   flex-wrap: wrap;
-  padding: 8px;
+  padding: 8px var(--gutter);
 }
 
 /* 縦並びの下の行: 「新しいプロジェクト」の右に「すべて閉じる・開く」を並べる（狭いときは次の行へ回す） */
@@ -2591,7 +2593,7 @@ button.project-switch.all-projects:hover,
 
 .run-header {
   /* macOS の信号機ボタンの高さ分を上に空け、見出し自体は 36px */
-  padding: 22px 16px 0;
+  padding: 22px var(--gutter) 0;
   border-bottom: 1px solid var(--border);
   -webkit-app-region: drag;
 }
@@ -2665,7 +2667,7 @@ button.project-switch.all-projects:hover,
   gap: 4px;
   max-width: 820px;
   margin: 0 auto;
-  padding: 20px 16px 24px;
+  padding: 20px var(--gutter) 24px;
   font-size: 15px;
 }
 
@@ -2673,7 +2675,7 @@ button.project-switch.all-projects:hover,
   max-width: 852px;
   width: 100%;
   margin: 0 auto;
-  padding: 4px 16px 16px;
+  padding: 4px var(--gutter) 16px;
 }
 
 .bubble.user {
@@ -4605,7 +4607,7 @@ button.project-switch.all-projects:hover,
   flex-direction: column;
   height: 100%;
   max-width: none;
-  padding-bottom: 16px;
+  padding-bottom: var(--gutter);
 }
 
 /* グループのボード */
@@ -5160,11 +5162,11 @@ button.project-switch.all-projects:hover,
 }
 
 .run-panel .timeline-inner {
-  padding: 16px 14px 20px;
+  padding: 16px var(--gutter) 20px;
 }
 
 .run-panel .run-composer {
-  padding: 4px 12px 12px;
+  padding: 4px var(--gutter) var(--gutter);
 }
 
 .panel-resizer {
@@ -5182,7 +5184,7 @@ button.project-switch.all-projects:hover,
   display: flex;
   flex: none;
   gap: 2px;
-  padding: 6px 8px 0 10px;
+  padding: 6px var(--gutter) 0;
   overflow-x: auto;
   border-bottom: 1px solid var(--border);
   scrollbar-width: none;
@@ -6662,7 +6664,7 @@ a:focus-visible,
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 6px 4px 4px 10px;
+  padding: 6px 4px 4px var(--gutter);
   background: var(--bg);
 }
 
@@ -6716,7 +6718,7 @@ a:focus-visible,
   flex: none;
   align-items: center;
   gap: 4px;
-  padding: 0 8px 0 14px;
+  padding: 0 var(--gutter);
   border-bottom: 1px solid var(--border);
 }
 
@@ -6860,7 +6862,7 @@ a:focus-visible,
   align-items: center;
   gap: 6px;
   min-height: 40px;
-  padding: 0 100px 0 14px;
+  padding: 0 100px 0 var(--gutter);
   border-bottom: 1px solid var(--border);
   color: var(--muted);
   -webkit-app-region: drag;
