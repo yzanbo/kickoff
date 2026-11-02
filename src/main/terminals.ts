@@ -2,7 +2,7 @@ import { statSync } from "node:fs";
 import os from "node:os";
 import headless from "@xterm/headless";
 import serialize from "@xterm/addon-serialize";
-import { ipcMain, type WebContents } from "electron";
+import { app, ipcMain, type WebContents } from "electron";
 import * as pty from "node-pty";
 
 /**
@@ -47,6 +47,8 @@ function shellEnv(): Record<string, string> {
   env.TERM = "xterm-256color";
   env.COLORTERM = "truecolor";
   env.TERM_PROGRAM = "Kickoff";
+  // どちらの Kickoff のターミナルか（製品版の中から製品版を入れ替えないよう、install-app が見る）
+  env.KICKOFF_TERMINAL_OF = app.isPackaged ? "production" : "development";
   // Finder から起動すると LANG がなく、日本語が崩れる
   env.LANG ??= "ja_JP.UTF-8";
   return env;
