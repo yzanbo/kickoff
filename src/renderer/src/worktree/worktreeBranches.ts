@@ -19,7 +19,8 @@ function notify() {
   listeners.forEach((l) => l());
 }
 
-function refresh(projectId: number) {
+/** 古くなっていれば取り直す（30 秒以内に取っていれば何もしない。取っている途中なら待つ） */
+export function refreshWorktrees(projectId: number) {
   const hit = cache.get(projectId);
   if (loading.has(projectId) || (hit && Date.now() - hit.at < MAX_AGE_MS)) return;
   loading.add(projectId);
@@ -38,10 +39,17 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-/** ワークツリーを作った・片付けた・消したあとに呼ぶ（古い一覧を捨てて、すぐ取り直す） */
+/** ワークツリーを作った・片付けた・消したあとに呼ぶ（いまの一覧を古いことにして、すぐ取り直す。届くまでは前の一覧を出しておく） */
 export function invalidateWorktrees(projectId: number) {
-  cache.delete(projectId);
-  refresh(projectId);
+  const hit = cache.get(projectId);
+  if (hit) cache.set(projectId, { ...hit, at: 0 });
+  refreshWorktrees(projectId);
+}
+
+/** 操作の結果として届いた一覧をそのまま覚える（ワークツリーを作る・消す API はいまの一覧を返す） */
+export function setWorktreeList(projectId: number, list: GitWorktree[]) {
+  cache.set(projectId, { list, at: Date.now() });
+  notify();
 }
 
 /** いくつかのプロジェクトのワークツリーの一覧（読み込み中は undefined）。一覧が変わると描き直す */
@@ -49,8 +57,8 @@ export function useWorktreeLists(projectIds: number[]): (projectId: number) => G
   useSyncExternalStore(subscribe, () => version);
   const key = [...new Set(projectIds)].sort((a, b) => a - b).join(",");
   const ids = () => (key ? key.split(",").map(Number) : []);
-  useEffect(() => ids().forEach(refresh), [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  useWindowEvent("focus", () => ids().forEach(refresh));
+  useEffect(() => ids().forEach(refreshWorktrees), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useWindowEvent("focus", () => ids().forEach(refreshWorktrees));
   return (projectId) => cache.get(projectId)?.list;
 }
 
