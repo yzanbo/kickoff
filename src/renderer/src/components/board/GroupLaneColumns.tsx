@@ -4,18 +4,22 @@ import { DraftCards } from "../sidePanel/DraftCards";
 import type { SidePanelController } from "../sidePanel/useSidePanel";
 import { ArchiveAllButton } from "./ArchiveAllButton";
 import { byColumn, type BoardEntry } from "./boardColumns";
+import { ArchivedFold, splitArchived } from "./ArchivedFold";
 import { ColumnHead } from "./ColumnHead";
 import { COLUMN_TONE, DRAFT_TONE } from "./tones";
 
 /** グループのタブのスイムレーンで、1 つのグループの段に並べる列（下書き・作業中・回答待ち・確認待ち・完了） */
 export function GroupLaneColumns({
   entries,
+  foldKey,
   groupId,
   projectId,
   panel,
   renderCard,
 }: {
   entries: BoardEntry[];
+  /** アーカイブ済みのまとまりの開閉を覚える名前（段ごと） */
+  foldKey: string;
   /** null はグループなし */
   groupId: number | null;
   projectId: number;
@@ -35,7 +39,8 @@ export function GroupLaneColumns({
         </div>
       </section>
       {BOARD_COLUMNS.map((c) => {
-        const cards = columns.get(c) ?? [];
+        // アーカイブ済みは、列のいちばん下の閉じたまとまりに分ける（件数はアーカイブしていないものだけ）
+        const [cards, archived] = splitArchived(columns.get(c) ?? [], (e) => e.run);
         return (
           <section key={c} className="board-column">
             <ColumnHead
@@ -47,6 +52,9 @@ export function GroupLaneColumns({
             <div className="column-cards">
               {cards.length === 0 && <p className="column-empty">なし</p>}
               {cards.map(renderCard)}
+              <ArchivedFold foldKey={`${foldKey}:${c}`} count={archived.length}>
+                {archived.map(renderCard)}
+              </ArchivedFold>
             </div>
           </section>
         );

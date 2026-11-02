@@ -26,6 +26,7 @@ import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
 import { useBoardFocus } from "./useBoardFocus";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { ArchivedFold, splitArchived } from "./ArchivedFold";
 
 const VIEW_KEY = "kickoff:group-view";
 
@@ -251,6 +252,7 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
               renderColumns={(list, key) => (
                 <GroupLaneColumns
                   entries={list}
+                  foldKey={`groups:${projectId}:${key}`}
                   groupId={groupOfLane(key)}
                   projectId={projectId}
                   panel={panel}
@@ -265,19 +267,24 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
           ) : view === "board" ? (
             <div className="board-columns">
               {sections.map((g) => {
-                const members = membersOf(g?.id ?? null);
+                // アーカイブ済みは、グループのいちばん下の閉じたまとまりに分ける（件数はアーカイブしていないものだけ）
+                const [members, archived] = splitArchived(membersOf(g?.id ?? null), (r) => r);
                 const { key, ...props } = sectionProps(g, "board-column");
+                const card = (run: Run) => (
+                  <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
+                    <RunCardContent run={run} state={stateOf(run)} rename={rename.editorFor(run)} />
+                  </article>
+                );
                 return (
                   <section key={key} {...props}>
                     {renderHead(g, members.length)}
                     <div className="column-cards">
                       {drafts(g)}
                       {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
-                      {members.map((run) => (
-                        <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
-                          <RunCardContent run={run} state={stateOf(run)} rename={rename.editorFor(run)} />
-                        </article>
-                      ))}
+                      {members.map(card)}
+                      <ArchivedFold foldKey={`groups:${projectId}:board:${key}`} count={archived.length}>
+                        {archived.map(card)}
+                      </ArchivedFold>
                     </div>
                   </section>
                 );
@@ -287,18 +294,22 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
           ) : (
             <div className="board-list">
               {sections.map((g) => {
-                const members = membersOf(g?.id ?? null);
+                const [members, archived] = splitArchived(membersOf(g?.id ?? null), (r) => r);
                 const { key, ...props } = sectionProps(g, "list-group");
+                const row = (run: Run) => (
+                  <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
+                    <RunRowContent run={run} state={stateOf(run)} rename={rename.editorFor(run)} />
+                  </div>
+                );
                 return (
                   <section key={key} {...props}>
                     {renderHead(g, members.length)}
                     {drafts(g)}
                     {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
-                    {members.map((run) => (
-                      <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
-                        <RunRowContent run={run} state={stateOf(run)} rename={rename.editorFor(run)} />
-                      </div>
-                    ))}
+                    {members.map(row)}
+                    <ArchivedFold foldKey={`groups:${projectId}:list:${key}`} count={archived.length}>
+                      {archived.map(row)}
+                    </ArchivedFold>
                   </section>
                 );
               })}
