@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import type {
   AppSettings,
   Attachment,
@@ -14,7 +13,6 @@ import type {
   SearchHit,
   ServerStatus,
   Task,
-  BusEvent,
   FileContent,
   GitCommitDetail,
   GitDiff,
@@ -37,7 +35,6 @@ import type {
   ProviderStatus,
   WorkspaceInspection,
 } from "../../core/types";
-import { errorMessage } from "./errors";
 
 export interface NewProjectInput {
   name: string;
@@ -237,74 +234,6 @@ export const api = {
   resolveApproval: (id: string, decision: ApprovalDecision) =>
     request<{ ok: true }>("POST", `/api/approvals/${id}`, decision),
 };
-
-export type ConnectionState = "connecting" | "open" | "closed";
-
-/** サーバーからのイベント（SSE）を購読する。切断時は EventSource が自動で再接続する */
-/** サーバーからのイベントを受け取る。state は接続の状態、since は最後につながった時刻 */
-export function useServerEvents(onEvent: (event: BusEvent) => void): { state: ConnectionState; since: number | null } {
-  const [state, setState] = useState<ConnectionState>("connecting");
-  const [since, setSince] = useState<number | null>(null);
-  const handler = useRef(onEvent);
-  handler.current = onEvent;
-
-  useEffect(() => {
-    let source: EventSource | undefined;
-    let retry: ReturnType<typeof setTimeout> | undefined;
-    let closed = false;
-    const connect = () => {
-      source = new EventSource("/api/events");
-      source.onopen = () => {
-        setState("open");
-        setSince(Date.now());
-      };
-      source.onerror = () => {
-        if (source?.readyState !== EventSource.CLOSED) return setState("connecting");
-        // 自動再接続されない切断（認証エラーなど）は、こちらで張り直す
-        setState("closed");
-        if (!closed) retry = setTimeout(connect, 5000);
-      };
-      source.onmessage = (e) => {
-        try {
-          handler.current(JSON.parse(e.data) as BusEvent);
-        } catch {
-          // 不正なイベントは無視
-        }
-      };
-    };
-    connect();
-    return () => {
-      closed = true;
-      clearTimeout(retry);
-      source?.close();
-    };
-  }, []);
-
-  return { state, since };
-}
-
-/** 非同期の読み込み状態をまとめて扱う */
-export function useAsync<T>(load: () => Promise<T>, deps: unknown[] = []) {
-  const [data, setData] = useState<T>();
-  const [error, setError] = useState<string>();
-  const [loading, setLoading] = useState(true);
-  const [nonce, setNonce] = useState(0);
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    load()
-      .then((d) => alive && (setData(d), setError(undefined)))
-      .catch((e: unknown) => alive && setError(errorMessage(e)))
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, nonce]);
-
-  return { data, setData, error, loading, reload: () => setNonce((n) => n + 1) };
-}
 
 /** 添付ファイルを画面で開く・表示するための URL */
 export function attachmentUrl(a: Attachment): string {

@@ -1,4 +1,5 @@
-import { api, useAsync } from "../../api";
+import { api } from "../../api";
+import { useAsync } from "../../hooks/useAsync";
 import { ErrorText } from "../ErrorText";
 import { GitHubStatusCard, StatusCard } from "../StatusCard";
 

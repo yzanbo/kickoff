@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../../core/types";
-import { api, type ConnectionState } from "../../api";
+import { api } from "../../api";
+import type { ConnectionState } from "../../hooks/useServerEvents";
 import { errorMessage } from "../../errors";
 import { useDismiss } from "../../hooks/useDismiss";
 import { accountLine } from "../../usage";

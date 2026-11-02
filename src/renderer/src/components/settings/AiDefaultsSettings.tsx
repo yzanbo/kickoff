@@ -1,5 +1,6 @@
 import type { EffortLevel, PermissionChoice } from "../../../../core/types";
-import { api, useAsync } from "../../api";
+import { api } from "../../api";
+import { useAsync } from "../../hooks/useAsync";
 import { modelDisplayName } from "../../models";
 import { EffortOptions, ModelOptions, PermissionOptions } from "../AiOptions";
 import { Field } from "../Field";

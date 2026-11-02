@@ -1,6 +1,6 @@
 import { GitBranch, Settings } from "lucide-react";
 import type { PlanUsage } from "../../../../core/types";
-import type { ConnectionState } from "../../api";
+import type { ConnectionState } from "../../hooks/useServerEvents";
 import { href } from "../../router";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../../usage";
 import { useMainBranch } from "../../worktree/worktreeBranches";
