@@ -1,11 +1,11 @@
 import { Pencil } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import type { GitDiff, GitFileChange } from "../../../../core/types";
+import { useMemo } from "react";
+import type { GitFileChange } from "../../../../core/types";
 import { api } from "../../api";
 import { cx } from "../../cx";
-import { errorMessage } from "../../errors";
 import type { CodeToken } from "../../highlight";
 import { useHighlight } from "../../hooks/useHighlight";
+import { useKeyedAsync } from "../../hooks/useKeyedAsync";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import { DIFF_LAYOUT_KEY } from "../../storageKeys";
 import { CodeLine } from "../CodeLine";
@@ -52,22 +52,9 @@ export function DiffView({
   const [layout, setLayout] = useStoredChoice<DiffLayout>(DIFF_LAYOUT_KEY, ["split", "unified"], "unified");
   const { target, key: at } = useGitTarget(projectId);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
-  const [state, setState] = useState<{ key: string; diff?: GitDiff; error?: string }>();
-
-  useEffect(() => {
-    let alive = true;
-    (commit ? api.gitCommitDiff(target, commit, file) : api.gitDiff(target, file, staged)).then(
-      (diff) => alive && setState({ key, diff }),
-      (e: unknown) => alive && setState({ key, error: errorMessage(e) }),
-    );
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, version]);
-
   // 取り直している間は、前の差分を出しておく（同じファイルのとき。ちらつかないように）
-  const current = state?.key === key ? state : undefined;
+  const loaded = useKeyedAsync(key, () => (commit ? api.gitCommitDiff(target, commit, file) : api.gitDiff(target, file, staged)), { deps: [version] });
+  const current = loaded.loaded ? { diff: loaded.data, error: loaded.error } : undefined;
   const lines = useMemo(() => (current?.diff ? parseDiff(current.diff.diff) : []), [current?.diff]);
   const tokensOf = useDiffHighlight(lines, file);
 
