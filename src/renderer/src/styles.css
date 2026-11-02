@@ -1201,6 +1201,16 @@ button.project-switch:hover,
   background: hsl(var(--ws-hue, 150) 55% 93%);
 }
 
+/* サイドバーのプロジェクトのカードは、枠の線を出さない（背景の色だけで見せる。画面の見出しの名前のカードは枠を残す） */
+.workspace-head,
+.workspace-head:hover,
+.workspace-head.active,
+:root[data-theme="light"] .workspace-head,
+:root[data-theme="light"] .workspace-head:hover,
+:root[data-theme="light"] .workspace-head.active {
+  border-color: transparent;
+}
+
 .workspace-title {
   display: flex;
   flex: 1;
