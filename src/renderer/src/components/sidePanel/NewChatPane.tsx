@@ -46,7 +46,7 @@ export function NewChatPane({
 }: Props) {
   const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
   const { projectName } = useProjects();
-  const options = useRunOptions(undefined, section, projectId);
+  const options = useRunOptions(undefined, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
   const runs = useAsync(() => api.runs(projectId), [projectId]);
   // 作業場所（初めは本体。並行して進めたいときにワークツリーを選ぶ）

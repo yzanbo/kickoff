@@ -60,9 +60,5 @@
   .task-form-row {
     flex-direction: column;
   }
-
-  .scope-row {
-    grid-template-columns: 1fr;
-  }
 }
 

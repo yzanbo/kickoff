@@ -25,12 +25,10 @@ test("設定・プロジェクト・タスク・成果物の API", async () => {
   assert.equal((await call("GET", `/api/projects/${project.id}`)).body.name, "p");
   assert.deepEqual(await call("GET", "/api/projects/999"), { status: 404, body: { error: "プロジェクトが見つかりません" } });
 
-  const patched = await call("PATCH", `/api/projects/${project.id}`, { name: "q", write_scopes: { requirements: ["docs/", "docs"] } });
+  // 以前の書き込み範囲（write_scopes）は受け付けず（無視する）、返しもしない
+  const patched = await call("PATCH", `/api/projects/${project.id}`, { name: "q", write_scopes: { requirements: ["docs"] } });
   assert.equal(patched.body.name, "q");
-  assert.deepEqual(patched.body.write_scopes.requirements, ["docs"]);
-  const outside = await call("PATCH", `/api/projects/${project.id}`, { write_scopes: { schedule: ["../x"] } });
-  assert.equal(outside.status, 400);
-  assert.equal(outside.body.error, "リポジトリの外のフォルダは指定できません: ../x");
+  assert.equal(patched.body.write_scopes, undefined);
   const missing = await call("PATCH", `/api/projects/${project.id}`, { references: [{ path: "/no/such/kickoff/path" }] });
   assert.deepEqual(missing, { status: 400, body: { error: "見つかりません: /no/such/kickoff/path" } });
   const refs = await call("PATCH", `/api/projects/${project.id}`, { references: [{ path: project.repo_path }, { path: project.repo_path }] });

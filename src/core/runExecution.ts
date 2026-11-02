@@ -4,9 +4,8 @@ import type { ApprovalCenter } from "./approvals.js";
 import type { Bus } from "./bus.js";
 import { errorMessage } from "./errors.js";
 import { currentBranch } from "./git.js";
-import { createKickoffTools } from "./kickoffTools.js";
 import { isInside } from "./paths.js";
-import { buildSystemPrompt, phasePolicy } from "./phases.js";
+import { buildSystemPrompt, CHAT_POLICY } from "./chatPolicy.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./providers/types.js";
 import type { Store } from "./store.js";
 import type { Project, ProviderId, Run, Task } from "./types.js";
@@ -45,7 +44,7 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
     store.updateRun(runId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
     if (task && !compact && (task.status === "todo" || task.status === "blocked")) store.updateTask(task.id, { status: "in_progress" });
 
-    const result = await providers[run.provider].run(buildRunParams(deps, run, project, task, cwd, prompt), callbacksFor(deps, run, task, signal), signal);
+    const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, task, signal), signal);
     applyResult(store, runId, task, result, compact);
   } catch (e) {
     const message = errorMessage(e);
@@ -62,14 +61,13 @@ async function resolveWorkdir(run: Run, task: Task | null, project: Project): Pr
   return cwd;
 }
 
-/** プロバイダーに渡すもの（作業場所・指示・権限・Kickoff のツール） */
-function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, task: Task | null, cwd: string, prompt: string): ProviderRunParams {
-  const policy = phasePolicy(run.phase, project);
+/** プロバイダーに渡すもの（作業場所・指示・権限） */
+function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: string, prompt: string): ProviderRunParams {
   return {
     cwd,
     prompt,
-    systemPrompt: buildSystemPrompt(project, run.phase, task, cwd),
-    policy,
+    systemPrompt: buildSystemPrompt(project, cwd),
+    policy: CHAT_POLICY,
     resumeSessionId: run.session_id,
     model: run.model,
     effort: run.effort,
@@ -79,15 +77,6 @@ function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, task: T
     additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project)],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
     readOnlyPaths: project.references.map((r) => r.path).filter((p) => !isInside(cwd, p)),
-    tools: createKickoffTools({
-      store: deps.store,
-      projectId: project.id,
-      runId: run.id,
-      taskId: task?.id ?? null,
-      phase: run.phase,
-      writeScope: policy.writeScope,
-      workdir: cwd,
-    }),
   };
 }
 

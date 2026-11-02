@@ -1,7 +1,5 @@
 import {
-  createSdkMcpServer,
   query,
-  tool,
   type Options,
   type Query,
   type SDKResultMessage,
@@ -9,12 +7,11 @@ import {
 } from "@anthropic-ai/claude-agent-sdk";
 import { errorMessage } from "../errors.js";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claudeLabels.js";
-import { KICKOFF_SERVER_NAME } from "../kickoffTools.js";
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
 import { createCanUseTool } from "./claudeApprovals.js";
 import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
 import { emitSdkMessage } from "./claudeMessages.js";
-import { resolvePermissionMode, runHooks, toAllowedTools } from "./claudePolicy.js";
+import { runHooks, toAllowedTools } from "./claudePolicy.js";
 import type { SelfInfo } from "../selfProtection.js";
 import { normalizeUsage } from "./claudeUsage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
@@ -119,26 +116,6 @@ export class ClaudeProvider implements AgentProvider {
   }
 
   async run(params: ProviderRunParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderRunResult> {
-    const mcp = createSdkMcpServer({
-      name: KICKOFF_SERVER_NAME,
-      version: "1.0.0",
-      tools: params.tools.map((t) =>
-        tool(
-          t.name,
-          t.description,
-          t.schema,
-          async (args) => {
-            try {
-              return { content: [{ type: "text" as const, text: await t.handler(args as Record<string, unknown>) }] };
-            } catch (e) {
-              return { content: [{ type: "text" as const, text: errorMessage(e) }], isError: true };
-            }
-          },
-          { annotations: { readOnlyHint: t.readOnly } },
-        ),
-      ),
-    });
-
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
     signal.addEventListener("abort", onAbort, { once: true });
@@ -157,13 +134,13 @@ export class ClaudeProvider implements AgentProvider {
           cwd: params.cwd,
           additionalDirectories: params.additionalDirectories,
           model: params.model || undefined,
-          effort: params.effort ?? params.policy.effort,
+          // 決めていなければ指定しない（SDK とモデルの既定に任せる）
+          effort: params.effort ?? undefined,
           systemPrompt: { type: "preset", preset: "claude_code", append: params.systemPrompt },
           // ユーザーの ~/.claude（CLAUDE.md・スキル等）とリポジトリの設定を Claude Code と同様に読み込む
           settingSources: ["user", "project", "local"],
-          permissionMode: resolvePermissionMode(params),
-          allowedTools: toAllowedTools(params.policy, params.tools),
-          mcpServers: { [KICKOFF_SERVER_NAME]: mcp },
+          permissionMode: params.permissionMode,
+          allowedTools: toAllowedTools(params.policy),
           canUseTool,
           resume: params.resumeSessionId ?? undefined,
           abortController,

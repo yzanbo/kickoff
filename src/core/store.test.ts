@@ -148,10 +148,10 @@ test("グループ: 作成順に並び、並べ替え・削除するとチャッ
 test("プロジェクトの既定は JSON で保存され、壊れていなければそのまま読める", () => {
   const { store, project } = setup();
   assert.deepEqual(project.defaults, {});
-  const updated = store.updateProject(project.id, { defaults: { model: "haiku", effort: null, section: "implementation" } });
-  assert.deepEqual(updated.defaults, { model: "haiku", effort: null, section: "implementation" });
-  // 以前保存した「新しいチャットを置くカンバンの列」（stage）は読まない（列は AI の状態で決まる）
-  const legacy = store.updateProject(project.id, { defaults: { model: "haiku", stage: "todo" } as never });
+  const updated = store.updateProject(project.id, { defaults: { model: "haiku", effort: null } });
+  assert.deepEqual(updated.defaults, { model: "haiku", effort: null });
+  // 以前保存したカンバンの列（stage）・新しいチャットのセクション（section）・「セクションに合わせる」の権限モードは読まない
+  const legacy = store.updateProject(project.id, { defaults: { model: "haiku", stage: "todo", section: "testing", permission: "phase" } as never });
   assert.deepEqual(legacy.defaults, { model: "haiku" });
 });
 
@@ -220,24 +220,22 @@ test("ワークツリーのチャット: 作業場所で探し、片付けると
   assert.deepEqual(events, []);
 });
 
-test("プロジェクトの書き込み範囲・既定・参照資料は JSON で保存され、そのまま読み戻せる", () => {
+test("プロジェクトの既定・参照資料は JSON で保存され、そのまま読み戻せる", () => {
   const { store, project } = setup();
-  assert.deepEqual(project.write_scopes, {});
+  assert.equal("write_scopes" in project, false);
   assert.deepEqual(project.references, []);
   const references = [
     { path: "/tmp/spec", kind: "folder" as const },
     { path: "/tmp/notes.md", kind: "file" as const },
   ];
   const updated = store.updateProject(project.id, {
-    write_scopes: { requirements: ["docs", "specs"], schedule: [] },
-    defaults: { model: "haiku", effort: "high", permission: "auto", fastMode: true, section: "testing" },
+    defaults: { model: "haiku", effort: "high", permission: "auto", fastMode: true },
     references,
     pinned: true,
     hue: 222,
     auto_commit: false,
   });
-  assert.deepEqual(updated.write_scopes, { requirements: ["docs", "specs"], schedule: [] });
-  assert.deepEqual(updated.defaults, { model: "haiku", effort: "high", permission: "auto", fastMode: true, section: "testing" });
+  assert.deepEqual(updated.defaults, { model: "haiku", effort: "high", permission: "auto", fastMode: true });
   assert.deepEqual(updated.references, references);
   assert.equal(updated.pinned, 1);
   assert.equal(updated.hue, 222);
@@ -248,7 +246,6 @@ test("プロジェクトの書き込み範囲・既定・参照資料は JSON �
   const partial = store.updateProject(project.id, { name: "renamed" });
   assert.equal(partial.name, "renamed");
   assert.deepEqual(partial.references, references);
-  assert.deepEqual(partial.write_scopes, { requirements: ["docs", "specs"], schedule: [] });
   // 参照資料を空にできる。フォルダのパスで探せる
   assert.deepEqual(store.updateProject(project.id, { references: [] }).references, []);
   assert.equal(store.findProjectByPath("/tmp/demo")?.id, project.id);

@@ -1,7 +1,8 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { effectiveEffort, effectivePermission, resolveRunDefaults } from "../../../../core/sectionDefaults";
-import { EFFORT_LABELS, PERMISSION_LABELS, type EffortLevel, type ModelOption, type PermissionChoice, type Phase, type RunOptions } from "../../../../core/types";
+import { isPermissionChoice } from "../../../../core/legacyValues";
+import { resolveRunDefaults } from "../../../../core/runDefaults";
+import { EFFORT_LABELS, PERMISSION_LABELS, type EffortLevel, type ModelOption, type PermissionChoice, type RunOptions } from "../../../../core/types";
 import { api } from "../../api";
 import { cachedLoader } from "../../cachedLoader";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../../models";
@@ -16,11 +17,12 @@ const loadModels = cachedLoader<ModelOption[]>(() => api.models("claude"), []);
  * 新しいチャットはプロジェクトの既定（なければ設定画面の既定）から始まり、ここでの変更はそのチャットだけに効く。
  * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始める。
  */
-export function useRunOptions(initial: RunOptions | undefined, section: Phase, projectId?: number) {
+export function useRunOptions(initial: RunOptions | undefined, projectId?: number) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
-  const [permission, setPermission] = useState<PermissionChoice>(initial?.permission_mode ?? "phase");
+  // 知らない値（以前の「セクション既定」など）は「毎回確認」として読む
+  const [permission, setPermission] = useState<PermissionChoice>(isPermissionChoice(initial?.permission_mode) ? initial?.permission_mode : "default");
   const [fastMode, setFastMode] = useState<boolean>(Boolean(initial?.fast_mode));
 
   useEffect(() => {
@@ -42,22 +44,20 @@ export function useRunOptions(initial: RunOptions | undefined, section: Phase, p
   useEffect(() => {
     if (!current) return;
     if (effort && !current.efforts.includes(effort)) setEffort(null);
-    if (permission === "auto" && !current.supportsAutoMode) setPermission("phase");
+    if (permission === "auto" && !current.supportsAutoMode) setPermission("default");
     if (fastMode && !current.supportsFastMode) setFastMode(false);
   }, [current, effort, permission, fastMode]);
 
-  // 「既定」のままでも、実際に使われる値（セクションの既定）を表示・送信する
-  const shownEffort = effectiveEffort(section, effort);
-  const shownPermission = effectivePermission(section, permission);
-  const options: RunOptions = { model, effort: shownEffort, permission_mode: shownPermission, fast_mode: fastMode };
+  // 推論の深さの null は「指定しない」（モデルの既定に任せる）
+  const options: RunOptions = { model, effort, permission_mode: permission, fast_mode: fastMode };
   return {
     models,
     current,
     model,
     setModel,
-    effort: shownEffort,
+    effort,
     setEffort,
-    permission: shownPermission,
+    permission,
     setPermission,
     fastMode,
     setFastMode,
@@ -66,6 +66,13 @@ export function useRunOptions(initial: RunOptions | undefined, section: Phase, p
 }
 
 export type RunOptionsState = ReturnType<typeof useRunOptions>;
+
+/** 推論の深さを指定しないときの名前 */
+const EFFORT_DEFAULT_LABEL = "既定";
+
+function effortLabel(effort: EffortLevel | null): string {
+  return effort ? (EFFORT_LABELS[effort] ?? effort) : EFFORT_DEFAULT_LABEL;
+}
 
 /** 権限モードの説明（一覧で名前の下に出す） */
 const PERMISSION_HINTS: Partial<Record<PermissionChoice, string>> = {
@@ -98,15 +105,23 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
         }))}
         onChange={(v) => setModel(v || null)}
       />
-      <OptionMenu
-        value={effort}
+      <OptionMenu<EffortLevel | "">
+        value={effort ?? ""}
         icon={<Brain size={15} />}
         ariaLabel="推論の深さ"
         // 狭いときはアイコンだけになるので、いまの値も説明に出す
-        title={`推論の深さ（effort）: ${efforts.includes(effort) ? EFFORT_LABELS[effort] : effort}`}
+        title={`推論の深さ（effort）: ${effortLabel(effort)}`}
         disabled={disabled}
-        groups={[{ label: "推論の深さ", items: efforts.map((level) => ({ value: level, label: EFFORT_LABELS[level] })) }]}
-        onChange={setEffort}
+        groups={[
+          {
+            label: "推論の深さ",
+            items: [
+              { value: "", label: EFFORT_DEFAULT_LABEL, description: "指定せず、モデルの既定に任せる" },
+              ...efforts.map((level) => ({ value: level, label: EFFORT_LABELS[level] })),
+            ],
+          },
+        ]}
+        onChange={(v) => setEffort(v || null)}
       />
       <OptionMenu
         value={permission}
@@ -117,9 +132,7 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
         groups={[
           {
             label: "権限モード",
-            items: permissionChoices(current)
-              .filter((p) => p !== "phase")
-              .map((p) => ({
+            items: permissionChoices(current).map((p) => ({
               value: p,
               label: PERMISSION_LABELS[p],
               description: PERMISSION_HINTS[p],

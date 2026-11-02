@@ -4,7 +4,7 @@ import { api } from "../../api";
 import { useAsync } from "../../hooks/useAsync";
 import { useSave } from "../../hooks/useSave";
 import { modelDisplayName } from "../../models";
-import { EffortOptions, ModelOptions, PermissionOptions } from "../AiOptions";
+import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions } from "../AiOptions";
 import { Field } from "../Field";
 import { SaveActions } from "../SaveActions";
 
@@ -30,8 +30,8 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
   const currentModel = list.find((m) => m.value === (draft.model ?? app?.claudeModel));
 
   // アプリの設定の値（「アプリの設定に従う」の横に出す）
-  const appEffort = app ? (app.defaultEffort ? EFFORT_LABELS[app.defaultEffort] : "セクションに合わせる") : "…";
-  const appPermission = app ? (app.defaultPermission === "phase" ? "セクションに合わせる" : PERMISSION_LABELS[app.defaultPermission]) : "…";
+  const appEffort = app ? (app.defaultEffort ? EFFORT_LABELS[app.defaultEffort] : EFFORT_UNSET_LABEL) : "…";
+  const appPermission = app ? PERMISSION_LABELS[app.defaultPermission] : "…";
 
   return (
     <div className="ai-defaults">
@@ -52,14 +52,14 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
             onChange={(e) => set("effort", e.target.value === INHERIT ? INHERIT : ((e.target.value || null) as EffortLevel | null))}
           >
             <option value={INHERIT}>アプリの設定に従う（{appEffort}）</option>
-            <option value="">セクションに合わせる</option>
+            <option value="">{EFFORT_UNSET_LABEL}</option>
             <EffortOptions model={currentModel} />
           </select>
         </Field>
         <Field label="権限モード">
           <select value={draft.permission ?? INHERIT} onChange={(e) => set("permission", e.target.value as PermissionChoice | typeof INHERIT)}>
             <option value={INHERIT}>アプリの設定に従う（{appPermission}）</option>
-            <PermissionOptions model={currentModel} phaseLabel="セクションに合わせる" />
+            <PermissionOptions model={currentModel} />
           </select>
         </Field>
         <Field label="ファストモード">

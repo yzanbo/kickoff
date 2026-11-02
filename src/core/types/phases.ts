@@ -51,15 +51,11 @@ export const EFFORT_LABELS: Record<EffortLevel, string> = {
   max: "Max",
 };
 
-/**
- * 権限モード。"phase" はセクションごとの既定（要件定義は読み取り中心、実装は編集を自動承認 など）。
- * それ以外は Claude Code の permissionMode と同じ意味。
- */
-export const PERMISSION_CHOICES = ["phase", "default", "acceptEdits", "auto", "plan"] as const;
+/** 権限モード（Claude Code の permissionMode と同じ意味。ファイルの編集を自動で承認するかもこれだけで決まる） */
+export const PERMISSION_CHOICES = ["default", "acceptEdits", "auto", "plan"] as const;
 export type PermissionChoice = (typeof PERMISSION_CHOICES)[number];
 
 export const PERMISSION_LABELS: Record<PermissionChoice, string> = {
-  phase: "セクション既定",
   default: "毎回確認",
   acceptEdits: "編集を自動承認",
   auto: "Auto mode",
@@ -72,7 +68,7 @@ export interface AppSettings {
   defaultProvider: ProviderId;
   /** 新しいチャットの既定のモデル（Claude） */
   claudeModel: string;
-  /** 新しいチャットの既定の推論の深さ（null ならセクション既定） */
+  /** 新しいチャットの既定の推論の深さ（null なら指定しない＝モデルの既定） */
   defaultEffort: EffortLevel | null;
   /** 新しいチャットの既定の権限モード */
   defaultPermission: PermissionChoice;
@@ -95,7 +91,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultProvider: "claude",
   claudeModel: "opus",
   defaultEffort: null,
-  defaultPermission: "phase",
+  defaultPermission: "default",
   defaultFastMode: false,
   remoteEnabled: false,
   ntfyUrl: "",

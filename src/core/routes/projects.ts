@@ -2,9 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
-import { errorMessage } from "../errors.js";
 import { expandHome } from "../paths.js";
-import { normalizeScope } from "../scope.js";
 import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES, PROVIDER_IDS, type Project, type ProviderId } from "../types.js";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../workspace.js";
@@ -40,12 +38,6 @@ const projectPatchSchema = z
     // 上に固定する・しまう（アーカイブ）
     pinned: z.boolean(),
     archived: z.boolean(),
-    write_scopes: z
-      .object({
-        requirements: z.array(z.string().max(500)).max(20),
-        schedule: z.array(z.string().max(500)).max(20),
-      })
-      .partial(),
     // 参照資料（パスだけ送ればよい。種類はサーバーで調べる）
     references: z.array(z.object({ path: z.string().trim().min(1).max(1000) })).max(50),
     // 送った内容で置き換える（書いていない項目はアプリ全体の設定に従う）
@@ -99,18 +91,6 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
   app.patch("/api/projects/:id", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const { references, archived, ...patch } = projectPatchSchema.parse(await c.req.json());
-    if (patch.write_scopes) {
-      // フォルダはリポジトリからの相対パスに揃え、外を指すものは拒否する
-      const merged = { ...project.write_scopes };
-      for (const [section, folders] of Object.entries(patch.write_scopes) as [keyof typeof merged, string[]][]) {
-        try {
-          merged[section] = [...new Set(folders.map((f) => normalizeScope(project.repo_path, f)))];
-        } catch (e) {
-          throw new HttpError(400, errorMessage(e));
-        }
-      }
-      patch.write_scopes = merged;
-    }
     return c.json(
       store.updateProject(project.id, {
         ...patch,

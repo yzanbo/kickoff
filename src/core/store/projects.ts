@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { legacyProjectDefaults } from "../legacyValues.js";
 import { pickProjectHue } from "../projectColors.js";
 import { PHASES, TASK_STATUSES, type NewProject, type Phase, type Project, type ProjectSummary, type TaskStatus } from "../types.js";
 import { parseJson, updateRow, type Notify, type Row } from "./common.js";
@@ -6,7 +7,6 @@ import { parseJson, updateRow, type Notify, type Row } from "./common.js";
 /** プロジェクトの変えられる項目 */
 export type ProjectPatch = Partial<Omit<NewProject, "auto_commit">> & {
   auto_commit?: boolean;
-  write_scopes?: Project["write_scopes"];
   defaults?: Project["defaults"];
   references?: Project["references"];
   pinned?: boolean;
@@ -22,7 +22,6 @@ const PROJECT_COLUMNS = [
   "test_command",
   "deploy_instructions",
   "auto_commit",
-  "write_scopes",
   "defaults",
   "reference_paths",
   "pinned",
@@ -30,17 +29,15 @@ const PROJECT_COLUMNS = [
   "hue",
 ] as const;
 
-/** DB の行（write_scopes・defaults は JSON 文字列）をアプリの型に変換する */
+/** DB の行（defaults・reference_paths は JSON 文字列）をアプリの型に変換する。使わなくなった列（write_scopes）は読まない */
 function toProject(row: unknown): Project {
-  const { reference_paths, ...r } = row as Omit<Project, "write_scopes" | "defaults" | "references"> & {
-    write_scopes: string;
+  const { reference_paths, write_scopes: _writeScopes, defaults, ...r } = row as Omit<Project, "defaults" | "references"> & {
     defaults: string;
     reference_paths?: string;
+    write_scopes?: string;
   };
   const references = parseJson<Project["references"]>(reference_paths || "[]");
-  // 以前の「新しいチャットを置くカンバンの列」（stage）は、列が AI の状態で決まるようになったので読まない
-  const { stage: _legacyStage, ...defaults } = parseJson<Project["defaults"] & { stage?: unknown }>(r.defaults);
-  return { ...r, write_scopes: parseJson(r.write_scopes), defaults, references: Array.isArray(references) ? references : [] };
+  return { ...r, defaults: legacyProjectDefaults(parseJson(defaults)), references: Array.isArray(references) ? references : [] };
 }
 
 /** プロジェクト（projects 表。色・並び順・固定・アーカイブもここ） */
@@ -120,7 +117,6 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
         ...rest,
         auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0,
         pinned: patch.pinned === undefined ? undefined : patch.pinned ? 1 : 0,
-        write_scopes: patch.write_scopes === undefined ? undefined : JSON.stringify(patch.write_scopes),
         defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
         reference_paths: references === undefined ? undefined : JSON.stringify(references),
       } as Row;

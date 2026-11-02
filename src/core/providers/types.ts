@@ -1,5 +1,4 @@
-import type { KickoffTool } from "../kickoffTools.js";
-import type { PhasePolicy } from "../phases.js";
+import type { ChatPolicy } from "../chatPolicy.js";
 import type { ApprovalDecision, ApprovalKind, EffortLevel, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "../types.js";
 
 /**
@@ -31,13 +30,13 @@ export interface ProviderRunParams {
   prompt: string;
   /** プロバイダー既定のシステムプロンプトに追記する Kickoff の文脈 */
   systemPrompt: string;
-  policy: PhasePolicy;
+  policy: ChatPolicy;
   /** 続きの会話の場合、前回のセッション ID */
   resumeSessionId: string | null;
   model: string | null;
-  /** 推論の深さ（null ならフェーズのポリシーに従う） */
+  /** 推論の深さ（null なら指定しない＝SDK とモデルの既定） */
   effort: EffortLevel | null;
-  /** 権限モード（"phase" ならフェーズのポリシーに従う） */
+  /** 権限モード（ファイルの編集を自動で承認するかも、これで決まる） */
   permissionMode: PermissionChoice;
   /** ファストモード（対応していないモデル・プランでは通常の速度になる） */
   fastMode: boolean;
@@ -45,7 +44,6 @@ export interface ProviderRunParams {
   additionalDirectories: string[];
   /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
   readOnlyPaths?: string[];
-  tools: KickoffTool[];
 }
 
 export interface ApprovalRequest {

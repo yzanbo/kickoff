@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { legacyRunOptions } from "../legacyValues.js";
 import type { NewRun, Run, RunEvent, RunEventData, RunStatus, SearchHit } from "../types.js";
 import { touchProject, updateRow, type Notify, type Row } from "./common.js";
 
@@ -77,9 +78,18 @@ function snippetAround(text: string, keyword: string): { snippet: string; match_
   return { snippet, match_start: matchStart, match_end: matchStart + keyword.length };
 }
 
+/** DB の行をアプリの型に変換する（以前の権限モード・推論の深さは legacyValues で読み替える） */
+function toRun(row: unknown): Run {
+  const r = row as Run;
+  return { ...r, ...legacyRunOptions(r) };
+}
+
 /** チャット（エージェントとの会話セッション）と、その記録（run_events）・検索 */
 export function createRunStore(db: DatabaseSync, onChange: Notify) {
-  const get = (id: number): Run | undefined => db.prepare("SELECT * FROM runs WHERE id = ?").get(id) as unknown as Run | undefined;
+  const get = (id: number): Run | undefined => {
+    const row = db.prepare("SELECT * FROM runs WHERE id = ?").get(id);
+    return row ? toRun(row) : undefined;
+  };
   /** 1 列だけ変えて、変更を知らせる（updated_at は進めない: 並び順を変えない操作に使う） */
   const setColumn = (id: number, column: "attention" | "pinned" | "group_id", value: number | null): Run => {
     db.prepare(`UPDATE runs SET ${column} = ? WHERE id = ?`).run(value, id);
@@ -88,7 +98,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
     return run;
   };
   const inWorktree = (projectId: number, worktreePath: string): Run[] =>
-    db.prepare("SELECT * FROM runs WHERE project_id = ? AND worktree_path = ? ORDER BY id").all(projectId, worktreePath) as unknown as Run[];
+    db.prepare("SELECT * FROM runs WHERE project_id = ? AND worktree_path = ? ORDER BY id").all(projectId, worktreePath).map(toRun);
 
   return {
     get,
@@ -107,7 +117,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
         where.push(`status IN (${filter.statuses.map((s) => `'${s}'`).join(",")})`);
       }
       const sql = `SELECT * FROM runs ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY id DESC LIMIT ${filter.limit ?? 100}`;
-      return db.prepare(sql).all(params) as unknown as Run[];
+      return db.prepare(sql).all(params).map(toRun);
     },
     create(input: NewRun): Run {
       const { lastInsertRowid } = db
@@ -124,7 +134,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
           input.status,
           input.model,
           input.effort ?? null,
-          input.permission_mode ?? "phase",
+          input.permission_mode ?? "default",
           input.fast_mode ? 1 : 0,
           input.group_id ?? null,
           input.worktree_path ?? "",

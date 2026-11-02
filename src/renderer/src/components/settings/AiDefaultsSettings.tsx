@@ -2,7 +2,7 @@ import type { EffortLevel, PermissionChoice } from "../../../../core/types";
 import { api } from "../../api";
 import { useAsync } from "../../hooks/useAsync";
 import { modelDisplayName } from "../../models";
-import { EffortOptions, ModelOptions, PermissionOptions } from "../AiOptions";
+import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions } from "../AiOptions";
 import { Field } from "../Field";
 import { SaveActions } from "../SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
@@ -31,13 +31,13 @@ export function AiDefaultsSettings() {
             value={draft.defaultEffort ?? ""}
             onChange={(e) => setDraft({ ...draft, defaultEffort: (e.target.value || null) as EffortLevel | null })}
           >
-            <option value="">セクションに合わせる（要件定義・実装・テスト: High / スケジュール・デプロイ: Medium）</option>
+            <option value="">{EFFORT_UNSET_LABEL}</option>
             <EffortOptions model={currentModel} />
           </select>
         </Field>
-        <Field label="権限モード" help="要件定義・スケジュールの「書き込みできるフォルダ」の制限は、どのモードでも必ず効きます。">
+        <Field label="権限モード" help="参照資料への書き込みは、どのモードでも断ります。">
           <select value={draft.defaultPermission} onChange={(e) => setDraft({ ...draft, defaultPermission: e.target.value as PermissionChoice })}>
-            <PermissionOptions model={currentModel} phaseLabel="セクションに合わせる（実装・テスト: 編集を自動承認 / それ以外: 毎回確認）" />
+            <PermissionOptions model={currentModel} />
           </select>
         </Field>
         <label className="check">
