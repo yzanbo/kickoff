@@ -1,13 +1,10 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import { app, BrowserWindow, session, shell, webContents, type Session, type WebContents } from "electron";
 import { errorMessage } from "../core/errors.js";
 import { unpackCrx } from "./crx.js";
-
-const execFileAsync = promisify(execFile);
+import { execFileAsync } from "../core/exec.js";
 
 /** 埋め込みブラウザ用のセッション（ログイン状態は保持するが、Kickoff 本体とは分ける） */
 export const BROWSER_PARTITION = "persist:kickoff-browser";

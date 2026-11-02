@@ -1,9 +1,6 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { ServiceUsage, UsageWindow } from "../types.js";
 import { fetchJson, HttpStatusError, isoFromDate, okUsage, unavailableUsage, usageWindow, type UsageFetcher } from "./common.js";
-
-const execFileAsync = promisify(execFile);
+import { execFileAsync } from "../exec.js";
 
 const BASE = { id: "copilot", label: "GitHub Copilot" } as const;
 const USAGE_URL = "https://api.github.com/copilot_internal/user";

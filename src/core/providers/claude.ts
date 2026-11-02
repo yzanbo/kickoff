@@ -1,5 +1,3 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import {
   createSdkMcpServer,
   query,
@@ -19,6 +17,7 @@ import { resolvePermissionMode, runHooks, toAllowedTools } from "./claudePolicy.
 import type { SelfInfo } from "../selfProtection.js";
 import { normalizeUsage } from "./claudeUsage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
+import { execFileAsync } from "../exec.js";
 
 /** ターミナルの画面でしか意味のないコマンド（Kickoff の画面には同じ働きのものがあるか、使えない）。チャット欄の / には出さない */
 const TERMINAL_ONLY_COMMANDS = new Set([
@@ -58,8 +57,6 @@ const TERMINAL_ONLY_COMMANDS = new Set([
   "fast",
   "rename",
 ]);
-
-const execFileAsync = promisify(execFile);
 
 export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;

@@ -1,7 +1,4 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import { execFileAsync } from "../core/exec.js";
 
 /** Electron の開発用の実行ファイル（npm run dev で動く Kickoff Dev など。Helper のプロセスは含まない） */
 const ELECTRON_MAIN = /\/Electron\.app\/Contents\/MacOS\/Electron(\s|$)/;

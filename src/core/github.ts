@@ -1,8 +1,5 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { GitHubStatus, PullRequestInfo } from "./types.js";
-
-const execFileAsync = promisify(execFile);
+import { execFileAsync } from "./exec.js";
 
 /** gh CLI のインストール・ログイン状態（push と PR 作成に使う） */
 export async function githubStatus(): Promise<GitHubStatus> {

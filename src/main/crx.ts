@@ -1,10 +1,7 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import { execFileAsync } from "../core/exec.js";
 
 /** .crx のヘッダーの後ろから始まる zip 部分の位置（CRX2 / CRX3 に対応） */
 export function crxZipOffset(crx: Buffer): number {

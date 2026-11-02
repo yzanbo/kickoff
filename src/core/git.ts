@@ -1,12 +1,9 @@
-import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
 import type { FileContent, GitChangeKind, GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitStatus, GitWorktree, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
 import { prepareWorktree } from "./worktreeSetup.js";
-
-const execFileAsync = promisify(execFile);
+import { execFileAsync } from "./exec.js";
 
 /** 差分を返す上限（これより大きければ途中で切る） */
 const MAX_DIFF_CHARS = 400_000;
