@@ -41,8 +41,8 @@ export function App() {
   const [usageOpen, setUsageOpen] = useState(false);
   // 設定のダイアログ（開いている項目。null なら閉じている）
   const [settings, setSettings] = useState<SettingsSection | null>(null);
-  // 下のパネルのターミナル（いまのプロジェクトで開く。全プロジェクトの画面ではプロジェクトを選ぶ）
-  const bottomPanel = useBottomPanel(terminalTargets(projects, routeProjectId(route)));
+  // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
+  const bottomPanel = useBottomPanel(routeProjectId(route) ?? "all", terminalTargets(projects, routeProjectId(route)));
 
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める */
   const startNewChat = () => {
@@ -100,7 +100,7 @@ export function App() {
           usage={planUsage.usage}
           usageOpen={usageOpen}
           onUsageClick={() => setUsageOpen((o) => !o)}
-          terminal={bottomPanel.available ? { open: bottomPanel.open, onClick: bottomPanel.toggle } : undefined}
+          terminal={bottomPanel.available ? { open: bottomPanel.open, onClick: bottomPanel.toggle, elsewhere: bottomPanel.elsewhere } : undefined}
         />
         {creating && (
           <NewProjectDialog

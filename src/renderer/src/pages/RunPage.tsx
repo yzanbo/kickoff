@@ -20,6 +20,7 @@ import { OpenSubagentContext, TimelineItems, Working } from "../components/Timel
 import { alertDialog } from "../dialogs";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
+import type { TerminalTarget } from "../components/sidePanel/useSidePanel";
 import { useBusyNeighbors } from "../hooks/useBusyNeighbors";
 import { groupEvents, relativize } from "../timeline";
 
@@ -35,7 +36,7 @@ interface RunPageProps {
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
   visible?: boolean;
   /** このチャットの作業場所でターミナルを開く（右のパネルのタブ。Mac のアプリでだけ渡す） */
-  onOpenTerminal?: (target: { cwd: string; label: string }) => void;
+  onOpenTerminal?: (target: TerminalTarget) => void;
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
@@ -206,8 +207,8 @@ function RunView({
               onClick={() =>
                 onOpenTerminal(
                   run.worktree_path
-                    ? { cwd: run.worktree_path, label: run.worktree_path.split("/").pop() ?? project.name }
-                    : { cwd: project.repo_path, label: project.name },
+                    ? { cwd: run.worktree_path, label: run.worktree_path.split("/").pop() ?? project.name, projectId: project.id }
+                    : { cwd: project.repo_path, label: project.name, projectId: project.id },
                 )
               }
             />

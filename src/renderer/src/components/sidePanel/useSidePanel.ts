@@ -28,12 +28,14 @@ export type PanelTab =
 export interface TerminalTarget {
   cwd: string;
   label: string;
+  /** どのプロジェクトのターミナルか */
+  projectId: number;
 }
 
 /** ボードのタブの列の＋から開けるターミナル（プロジェクトのボードはそのプロジェクトの本体、全プロジェクトのボードは各プロジェクト） */
 export function terminalTargets(projects: ProjectSummary[], projectId?: number): TerminalTarget[] {
   const list = projectId === undefined ? sidebarOrder(projects) : projects.filter((p) => p.id === projectId);
-  return list.map((p) => ({ cwd: p.repo_path, label: p.name }));
+  return list.map((p) => ({ cwd: p.repo_path, label: p.name, projectId: p.id }));
 }
 
 const chatKey = (id: number) => `chat:${id}`;
