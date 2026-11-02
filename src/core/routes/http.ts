@@ -1,3 +1,4 @@
+import { listWorktrees } from "../git.js";
 import type { Store } from "../store.js";
 
 /** 画面に返すエラー（状態コードと文言） */
@@ -34,4 +35,16 @@ export function requireRun(store: Store, idParam: string) {
   const run = store.getRun(Number(idParam));
   if (!run) throw new HttpError(404, "実行が見つかりません");
   return run;
+}
+
+/**
+ * 作業場所のフォルダ（?worktree= の値）。なければ本体。このプロジェクトのワークツリーでなければ 400、
+ * フォルダが消えていれば（アプリの外で消された）404
+ */
+export async function requireWorkdir(repo: string, worktree: string | undefined): Promise<string> {
+  if (!worktree) return repo;
+  const found = (await listWorktrees(repo)).find((w) => w.path === worktree);
+  if (!found) throw new HttpError(400, "このプロジェクトのワークツリーではありません");
+  if (found.prunable) throw new HttpError(404, "作業場所のフォルダが見つかりません（ワークツリーが消された可能性があります）");
+  return found.path;
 }

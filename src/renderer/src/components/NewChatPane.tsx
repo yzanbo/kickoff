@@ -10,6 +10,7 @@ import { useRunOptions } from "./RunOptionsBar";
 import { BUSY_STATUSES } from "./RunStatus";
 import { SectionPicker } from "./SectionPicker";
 import { WorkplacePicker, type Workplace } from "./changes/WorkplacePicker";
+import { invalidateWorktrees } from "../worktreeBranches";
 
 interface Props {
   projectId: number;
@@ -153,6 +154,8 @@ export function NewChatPane({
                 group_id: group,
                 ...(place.kind === "existing" ? { worktree_path: place.path } : place.kind === "new" ? { new_worktree_branch: place.branch } : {}),
               });
+              // 新しいワークツリーを作ったときは、ブランチの一覧をすぐ取り直す
+              if (place.kind === "new") invalidateWorktrees(projectId);
               onCreated(run);
             }}
           />

@@ -4,7 +4,7 @@ import { errorMessage } from "../errors.js";
 import { commitStaged, discardPaths, FileConflictError, addWorktree, fetchRemote, finishWorktree, gitCommitDetail, pullBranch, gitCommitDiff, gitLog, gitRefs, listWorktrees, removeWorktree, worktreePathFor, pushBranch, gitDiff, gitStatus, listProjectFiles, readProjectFile, searchProject, stagePaths, unstagePaths, writeProjectFile } from "../git.js";
 import { createPullRequest, pullRequestFor } from "../github.js";
 import type { ServerDeps } from "../server.js";
-import { HttpError, requireProject } from "./http.js";
+import { HttpError, requireProject, requireWorkdir } from "./http.js";
 
 const diffQuerySchema = z.object({
   path: z.string().min(1).max(1000),
@@ -18,13 +18,8 @@ export function gitRoutes(app: Hono, { store, runner }: ServerDeps) {
    * 操作するフォルダ（?worktree= があれば、このプロジェクトのそのワークツリー。なければ本体）。
    * エディタタブで作業場所を切り替えたときに使う
    */
-  const workdir = async (c: Context, project = requireProject(store, c.req.param("id") ?? "")): Promise<string> => {
-    const worktree = c.req.query("worktree");
-    if (!worktree) return project.repo_path;
-    const found = (await listWorktrees(project.repo_path)).find((w) => w.path === worktree);
-    if (!found) throw new HttpError(400, "このプロジェクトのワークツリーではありません");
-    return found.path;
-  };
+  const workdir = async (c: Context, project = requireProject(store, c.req.param("id") ?? "")): Promise<string> =>
+    requireWorkdir(project.repo_path, c.req.query("worktree"));
 
   app.get("/api/projects/:id/git/status", async (c) => c.json(await gitStatus(await workdir(c))));
 

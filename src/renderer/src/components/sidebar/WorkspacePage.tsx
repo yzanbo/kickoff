@@ -263,7 +263,14 @@ export const WorkspacePage = memo(function WorkspacePage({
       )}
       {!collapsed && showArchived && !waitingOnly && archivedMatches.length > 0 && (
         <RowSection icon={Archive} label="アーカイブ済み" count={archivedMatches.length} open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived}>
-          <ul className="chat-rows archived-rows">{archivedMatches.map(renderRow)}</ul>
+          {/* 中も、ほかのチャットと同じまとめ方で出す（開閉はアーカイブ済みの中だけで覚える） */}
+          {grouping === "recent" ? (
+            <ul className="chat-rows archived-rows">{archivedMatches.map(renderRow)}</ul>
+          ) : (
+            <div className="custom-group-grouped">
+              <GroupedChatRows grouping={grouping} projectId={project.id} scope="archived" rows={archivedMatches} renderRow={renderRow} forceOpen={Boolean(keyword)} />
+            </div>
+          )}
         </RowSection>
       )}
       {rowMenu && (

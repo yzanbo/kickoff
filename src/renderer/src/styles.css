@@ -969,6 +969,7 @@ input[type="text"].inline-name {
 .custom-group > .chat-rows,
 .custom-group > .custom-group-empty,
 .custom-group > .custom-group-grouped,
+.row-section > .custom-group-grouped,
 .row-section > .chat-rows,
 .custom-group-head.ungrouped + .chat-rows,
 .custom-group-head.ungrouped ~ .status-group,
@@ -1020,6 +1021,12 @@ input[type="text"].inline-name {
 
 .status-group-worktree {
   color: var(--info);
+}
+
+/* フォルダの見つからないワークツリー・片付けたあとの以前のブランチ（薄い灰） */
+.status-group-gone,
+.board-lane-gone {
+  color: var(--extra-muted);
 }
 
 /* ==== プロジェクトのワークスペース（横スライドで切り替え） ==== */
@@ -7160,6 +7167,13 @@ a:focus-visible,
 .worktree-chip.on-main {
   border-color: var(--border-strong);
   color: var(--muted);
+}
+
+/* フォルダの見つからないワークツリー・片付けて本体に戻ったチャットの、最後に作業したブランチ（点線で薄く。説明に理由） */
+.worktree-chip.is-gone {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  color: var(--extra-muted);
 }
 
 /* 注意の文（同じ作業場所で、ほかのチャットが作業中など） */

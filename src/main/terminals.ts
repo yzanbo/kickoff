@@ -134,9 +134,17 @@ export function registerTerminalIpc() {
       flush(key, existing);
       return { snapshot: existing.serializer.serialize(), created: false };
     }
+    const missing = typeof cwd === "string" && cwd !== "" && !isDirectory(cwd);
     const dir = typeof cwd === "string" && isDirectory(cwd) ? cwd : os.homedir();
     watchOwner(e.sender);
-    start(key, dir, clampSize(cols, 80), clampSize(rows, 24), e.sender);
+    const session = start(key, dir, clampSize(cols, 80), clampSize(rows, 24), e.sender);
+    // 作業場所のフォルダが見つからず（ワークツリーが消されたなど）ホームで開いたときは、画面の先頭でそう知らせる
+    if (missing) {
+      const note = `\x1b[33m作業場所のフォルダが見つからないため、ホームフォルダで開きました（${cwd}）\x1b[0m\r\n`;
+      session.screen.write(note);
+      session.pending += note;
+      flush(key, session);
+    }
     return { snapshot: "", created: true };
   });
   ipcMain.on("kickoff:terminal-write", (_e, key: unknown, data: unknown) => {

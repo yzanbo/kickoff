@@ -511,6 +511,8 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   const gone = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "消える所", new_worktree_branch: "feat/c" })).body;
   await until(() => store.getRun(gone.id)?.status === "completed");
   fs.rmSync(gone.worktree_path, { recursive: true, force: true });
+  // フォルダが消えた作業場所の Git の操作は 404（「Git で管理されていません」と紛らわしく出さない）
+  assert.equal((await call("GET", `/api/projects/${project.id}/git/status?worktree=${encodeURIComponent(gone.worktree_path)}`)).status, 404);
   assert.equal((await call("POST", `/api/runs/${gone.id}/messages`, { text: "続き" })).status, 200);
   await until(() => store.getRun(gone.id)?.status === "failed");
   assert.match(store.getRun(gone.id)?.error ?? "", /作業場所のフォルダが見つかりません/);

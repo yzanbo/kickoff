@@ -1,10 +1,9 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { listWorktrees } from "../git.js";
 import { githubStatus } from "../github.js";
 import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ApprovalDecision, type ModelOption, type ProviderId, type SlashCommandOption } from "../types.js";
-import { HttpError, requireProject } from "./http.js";
+import { HttpError, requireProject, requireWorkdir } from "./http.js";
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
   z.object({ action: z.literal("allow") }),
@@ -52,13 +51,7 @@ export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, 
   const commandCache = new Map<string, { at: number; commands: SlashCommandOption[] }>();
   app.get("/api/projects/:id/commands", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const worktree = c.req.query("worktree");
-    let cwd = project.repo_path;
-    if (worktree) {
-      const found = (await listWorktrees(project.repo_path)).find((w) => w.path === worktree);
-      if (!found) throw new HttpError(400, "このプロジェクトのワークツリーではありません");
-      cwd = found.path;
-    }
+    const cwd = await requireWorkdir(project.repo_path, c.req.query("worktree"));
     const key = `${project.provider}:${cwd}`;
     const cached = commandCache.get(key);
     if (cached && Date.now() - cached.at < 5 * 60_000) return c.json(cached.commands);

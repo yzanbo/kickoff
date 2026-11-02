@@ -9,6 +9,7 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { ErrorText } from "../ErrorText";
 import { RefreshButton } from "../IconButton";
 import type { GitStatusController } from "./useGitStatus";
+import { invalidateWorktrees } from "../../worktreeBranches";
 
 const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オープン", MERGED: "マージ済み", CLOSED: "クローズ" };
 
@@ -41,6 +42,8 @@ export function WorktreeBar({
       setPr({ value: await api.pullRequest(target) });
       setError(undefined);
     } catch (e) {
+      // 途中で失敗しても、ワークツリーは消えていることがあるので、一覧を取り直す
+      invalidateWorktrees(projectId);
       setError(errorMessage(e));
     } finally {
       setBusy(undefined);
@@ -77,6 +80,7 @@ export function WorktreeBar({
     setError(undefined);
     try {
       await api.finishWorktree(projectId, worktree);
+      invalidateWorktrees(projectId);
       // 本体を最新にする（手元に変更があってできなければ、そう伝える）
       await api.gitPull(projectId).catch((e: unknown) => void alertDialog("本体を最新にできませんでした", errorMessage(e)));
       onFinished();

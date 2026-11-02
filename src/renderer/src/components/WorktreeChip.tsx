@@ -1,22 +1,19 @@
 import { GitBranch } from "lucide-react";
 import type { Run } from "../../../core/types";
 import { cx } from "../cx";
-import { useRunBranch } from "../worktreeBranches";
+import { useRunWorkplace } from "../worktreeBranches";
 
 /**
- * チャットが作業しているブランチの印（すべてのチャットに出す）。ワークツリーで作業しているチャットは色を付け、
- * 本体のチャットは控えめにする。ブランチが分からないうちは、ワークツリーならフォルダ名を出す
+ * チャットが作業しているブランチの印（すべてのチャットに出す）。ワークツリーで作業しているチャットは色を付け、本体のチャットは控えめにする。
+ * ワークツリーのフォルダが見つからない・片付けて本体に戻ったチャットは、最後に作業したブランチを点線の枠で出す（説明に理由）
  */
-export function WorktreeChip({ run }: { run: Pick<Run, "project_id" | "worktree_path"> }) {
-  const branch = useRunBranch(run);
-  const folder = run.worktree_path ? run.worktree_path.split("/").pop() : null;
-  const label = branch ?? folder;
-  if (!label) return null;
-  const place = run.worktree_path ? `ワークツリー（${run.worktree_path}）` : "本体";
+export function WorktreeChip({ run }: { run: Pick<Run, "project_id" | "worktree_path" | "branch"> }) {
+  const place = useRunWorkplace(run);
+  if (!place.name) return null;
   return (
-    <span className={cx("worktree-chip", !run.worktree_path && "on-main")} title={`ブランチ: ${branch ?? "不明"}\n作業場所: ${place}`}>
+    <span className={cx("worktree-chip", place.kind === "main" && "on-main", (place.kind === "missing" || place.kind === "past") && "is-gone")} title={place.title}>
       <GitBranch size={11} aria-hidden />
-      {label}
+      {place.name}
     </span>
   );
 }

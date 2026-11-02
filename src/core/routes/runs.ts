@@ -49,11 +49,14 @@ const messageInputSchema = z
 /** チャット（エージェントとの会話）: 始める・続ける・中断・名前や列の変更・アーカイブ・削除・検索 */
 export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
   // ?archived=1 でアーカイブしたチャットも含める
-  app.get("/api/projects/:id/runs", (c) =>
-    c.json(
-      store.listRuns({ projectId: requireProject(store, c.req.param("id")).id, limit: 300, includeArchived: c.req.query("archived") === "1" }),
-    ),
-  );
+  // プロジェクトのチャット。アーカイブ済みも含めるときは、未アーカイブとアーカイブ済みを別々に上限まで取る
+  // （アーカイブ済みが多くても、未アーカイブのチャットが一覧から落ちないように）
+  app.get("/api/projects/:id/runs", (c) => {
+    const projectId = requireProject(store, c.req.param("id")).id;
+    const active = store.listRuns({ projectId, limit: 300 });
+    const archived = c.req.query("archived") === "1" ? store.listRuns({ projectId, limit: 300, onlyArchived: true }) : [];
+    return c.json([...active, ...archived].sort((a, b) => b.id - a.id));
+  });
 
   app.post("/api/projects/:id/runs", async (c) => {
     const project = requireProject(store, c.req.param("id"));
