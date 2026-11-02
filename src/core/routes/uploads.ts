@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import type { Hono } from "hono";
 import type { ServerDeps } from "../server.js";
-import { HttpError } from "./http.js";
+import { badRequest, HttpError } from "./http.js";
 
 /** 添付ファイル（受け取り・画面での表示） */
 export function uploadRoutes(app: Hono, { uploads }: ServerDeps) {
@@ -11,11 +11,7 @@ export function uploadRoutes(app: Hono, { uploads }: ServerDeps) {
     if (files.length === 0) throw new HttpError(400, "ファイルがありません");
     const saved = [];
     for (const file of files) {
-      try {
-        saved.push(await uploads.save({ name: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) }));
-      } catch (e) {
-        throw new HttpError(400, (e as Error).message);
-      }
+      saved.push(await badRequest(async () => uploads.save({ name: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) })));
     }
     return c.json(saved, 201);
   });

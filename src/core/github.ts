@@ -1,5 +1,6 @@
-import type { GitHubStatus, PullRequestInfo } from "./types.js";
+import { errorMessage } from "./errors.js";
 import { execFileAsync } from "./exec.js";
+import type { GitHubStatus, PullRequestInfo } from "./types.js";
 
 /** gh CLI のインストール・ログイン状態（push と PR 作成に使う） */
 export async function githubStatus(): Promise<GitHubStatus> {
@@ -40,7 +41,7 @@ export async function pullRequestFor(cwd: string, branch: string): Promise<PullR
     return JSON.parse(await gh(cwd, ["pr", "view", branch, "--json", PR_FIELDS])) as PullRequestInfo;
   } catch (e) {
     // PR がまだない
-    if (/no pull requests found/i.test(String((e as Error).message))) return null;
+    if (/no pull requests found/i.test(errorMessage(e))) return null;
     throw e;
   }
 }

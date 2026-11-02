@@ -2,12 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
+import { errorMessage } from "../errors.js";
 import { expandHome } from "../paths.js";
 import { normalizeScope } from "../scope.js";
 import type { ServerDeps } from "../server.js";
-import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES, PROVIDER_IDS, type Project } from "../types.js";
+import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES, PROVIDER_IDS, type Project, type ProviderId } from "../types.js";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../workspace.js";
-import { HttpError, requireProject } from "./http.js";
+import { badRequest, HttpError, requireProject } from "./http.js";
 import { PROJECT_HUES } from "../projectColors.js";
 
 const newProjectSchema = z.object({
@@ -63,24 +64,15 @@ const projectPatchSchema = z
 
 /** プロジェクト（作成・取り込み・設定の変更・並び順・管理から外す） */
 export function projectRoutes(app: Hono, { store }: ServerDeps) {
+  // 指定がなければ、設定の既定のプロバイダー
+  const providerOf = (provider?: ProviderId) => provider ?? store.getSettings().defaultProvider;
+
   app.get("/api/projects", (c) => c.json(store.listProjects()));
 
   app.post("/api/projects", async (c) => {
     const input = newProjectSchema.parse(await c.req.json());
-    const repoPath = await createWorkspace({
-      parentDir: input.parent_dir,
-      folderName: input.folder_name,
-      name: input.name,
-      idea: input.idea,
-    }).catch((e: Error) => {
-      throw new HttpError(400, e.message);
-    });
-    const project = store.createProject({
-      name: input.name,
-      description: input.idea,
-      repo_path: repoPath,
-      provider: input.provider ?? store.getSettings().defaultProvider,
-    });
+    const repoPath = await badRequest(() => createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, idea: input.idea }));
+    const project = store.createProject({ name: input.name, description: input.idea, repo_path: repoPath, provider: providerOf(input.provider) });
     store.updateSettings({ projectsDir: input.parent_dir });
     return c.json(project, 201);
   });
@@ -95,17 +87,10 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   app.post("/api/projects/import", async (c) => {
     const input = importProjectSchema.parse(await c.req.json());
-    const repoPath = await prepareImportedWorkspace(input.path, input.init_git).catch((e: Error) => {
-      throw new HttpError(400, e.message);
-    });
+    const repoPath = await badRequest(() => prepareImportedWorkspace(input.path, input.init_git));
     const existing = store.findProjectByPath(repoPath);
     if (existing) throw new HttpError(409, `このフォルダは「${existing.name}」として登録済みです`);
-    const project = store.createProject({
-      name: input.name,
-      description: input.description,
-      repo_path: repoPath,
-      provider: input.provider ?? store.getSettings().defaultProvider,
-    });
+    const project = store.createProject({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
     return c.json(project, 201);
   });
 
@@ -121,7 +106,7 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
         try {
           merged[section] = [...new Set(folders.map((f) => normalizeScope(project.repo_path, f)))];
         } catch (e) {
-          throw new HttpError(400, (e as Error).message);
+          throw new HttpError(400, errorMessage(e));
         }
       }
       patch.write_scopes = merged;

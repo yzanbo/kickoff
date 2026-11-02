@@ -1,11 +1,10 @@
-import { errorMessage } from "../errors.js";
-import { addWorktree, listWorktrees, worktreePathFor } from "../git.js";
 import type { Hono } from "hono";
 import { z } from "zod";
+import { addWorktree, worktreePathFor } from "../git.js";
 import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES } from "../types.js";
-import { HttpError, requireGroup, requireProject, requireRun } from "./http.js";
-import { optionalId, queryOf } from "./schemas.js";
+import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject, requireRun, requireWorktree } from "./http.js";
+import { branchName, optionalId, queryOf } from "./schemas.js";
 
 const runOptionsSchema = z
   .object({
@@ -35,7 +34,7 @@ const runInputSchema = z
     group_id: z.number().int().optional(),
     // 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体）
     worktree_path: z.string().max(2000).optional(),
-    new_worktree_branch: z.string().trim().min(1).max(200).optional(),
+    new_worktree_branch: branchName.optional(),
   })
   .refine((v) => v.prompt || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
 
@@ -62,9 +61,7 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
   app.post("/api/projects/:id/runs", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const input = runInputSchema.parse(await c.req.json());
-    if (input.group_id !== undefined && requireGroup(store, String(input.group_id)).project_id !== project.id) {
-      throw new HttpError(400, "ほかのプロジェクトのグループには入れられません");
-    }
+    if (input.group_id !== undefined) requireGroupOf(store, input.group_id, project.id);
     const worktreePath = await resolveWorktree(project.repo_path, input.worktree_path, input.new_worktree_branch);
     const run = await runner.start({
       projectId: project.id,
@@ -109,9 +106,7 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
       .partial()
       .parse(await c.req.json());
     if (group_id !== undefined) {
-      if (group_id !== null && requireGroup(store, String(group_id)).project_id !== run.project_id) {
-        throw new HttpError(400, "ほかのプロジェクトのグループには入れられません");
-      }
+      if (group_id !== null) requireGroupOf(store, group_id, run.project_id);
       store.setRunGroup(run.id, group_id);
     }
     return c.json(Object.keys(patch).length ? store.updateRun(run.id, patch) : store.getRun(run.id));
@@ -155,21 +150,14 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
   app.post("/api/runs/:id/messages", async (c) => {
     const run = requireRun(store, c.req.param("id"));
     const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
-    try {
-      return c.json(await runner.send(run.id, text, options, attachments));
-    } catch (e) {
-      throw new HttpError(409, (e as Error).message);
-    }
+    // 作業中のチャットには送れない（409）
+    return c.json(await conflictOnError(() => runner.send(run.id, text, options, attachments)));
   });
 
-  // 会話を要約して、コンテキストを空ける（手で圧縮する）
+  // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中・まだ会話がなければ 409）
   app.post("/api/runs/:id/compact", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    try {
-      return c.json(await runner.compact(run.id));
-    } catch (e) {
-      throw new HttpError(409, (e as Error).message);
-    }
+    return c.json(await conflictOnError(() => runner.compact(run.id)));
   });
 
   app.post("/api/runs/:id/cancel", (c) => {
@@ -180,21 +168,17 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
 }
 
 /**
- * チャットの作業場所を決める。新しいブランチ名があればワークツリーを作り、フォルダの指定があれば
- * このプロジェクトのワークツリーか確かめる（本体・知らないフォルダは本体＝空にする）
+ * チャットの作業場所（DB に入れる worktree_path）を決める。新しいブランチ名があればワークツリーを作り（作れなければ 400）、
+ * フォルダの指定があればこのプロジェクトのワークツリーか確かめる（requireWorktree）。本体は空
  */
 async function resolveWorktree(repo: string, worktreePath?: string, newBranch?: string): Promise<string> {
-  try {
-    if (newBranch) {
+  if (newBranch) {
+    return badRequest(async () => {
       const target = await worktreePathFor(repo, newBranch);
       await addWorktree(repo, newBranch);
       return target;
-    }
-    if (!worktreePath) return "";
-    const found = (await listWorktrees(repo)).find((w) => w.path === worktreePath);
-    if (!found) throw new Error("このプロジェクトのワークツリーではありません");
-    return found.main ? "" : found.path;
-  } catch (e) {
-    throw new HttpError(400, errorMessage(e));
+    });
   }
+  const found = await requireWorktree(repo, worktreePath);
+  return found && !found.main ? found.path : "";
 }

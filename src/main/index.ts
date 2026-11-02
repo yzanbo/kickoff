@@ -3,6 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain, session, shell } from "electron";
 import { APP_ENVS } from "../core/appEnv.js";
 import { seedDevData } from "../core/devData.js";
 import { AUTH_COOKIE } from "../core/auth.js";
+import { errorMessage } from "../core/errors.js";
 import { startCore, type Core } from "../core/index.js";
 import { loadLoginShellPath } from "../core/shellEnv.js";
 import {
@@ -66,7 +67,7 @@ if (!app.requestSingleInstanceLock()) {
         staticDir: devUrl ? undefined : path.join(outDir, "renderer"),
       });
     } catch (e) {
-      dialog.showErrorBox("Kickoff を起動できません", `コアの起動に失敗しました（ポート ${port}）。\n${String(e)}`);
+      dialog.showErrorBox("Kickoff を起動できません", `コアの起動に失敗しました（ポート ${port}）。\n${errorMessage(e)}`);
       app.quit();
       return;
     }
