@@ -20,7 +20,7 @@ import { GroupToggle } from "./GroupToggle";
 import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { RowSection } from "./RowSection";
-import { GROUPING_KEY, isWaitingState, SHOW_ARCHIVED_KEY, stateCounts, useFoldAll, WAITING_ONLY_KEY } from "./sidebarFlags";
+import { GROUPING_KEY, isWaitingState, stateCounts, useFoldAll, useShowArchivedChats, WAITING_ONLY_KEY } from "./sidebarFlags";
 import { WorkspaceHead } from "./WorkspaceHead";
 
 
@@ -50,7 +50,7 @@ export const WorkspacePage = memo(function WorkspacePage({
 }) {
   const [grouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
-  const [showArchived] = useSharedFlag(SHOW_ARCHIVED_KEY);
+  const [showArchived] = useShowArchivedChats();
   // 自分待ち（回答待ち・確認待ち）だけを出すか（上の行の「自分待ち」で切り替える）
   const [waitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
   // 見出しのクリックでチャット一覧を開閉する

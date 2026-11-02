@@ -65,7 +65,7 @@ export function ChangesTab({
 }) {
   const rootName = (worktree ?? repoPath).split("/").pop() ?? repoPath;
   const { status } = git;
-  const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "search", "changes", "history"], "changes");
+  const [view, setView] = useStoredChoice<ChangesView>(VIEW_KEY, ["files", "search", "changes", "history"], "history");
   const [selected, setSelectedState] = useState<Selection>();
   // 編集中のファイルに保存していない変更があるか（別のファイルを開く前に確かめる）
   const dirty = useRef(false);
@@ -89,10 +89,10 @@ export function ChangesTab({
   const commit = picked?.projectId === projectId ? picked.commit : undefined;
   const setCommit = (next: GitCommit) => setPicked({ projectId, commit: next });
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
-  const [changesTree, setChangesTree] = useStoredFlag(TREE_KEY);
+  const [changesTree, setChangesTree] = useStoredFlag(TREE_KEY, true);
   const actionError = useActionError();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
-  const list = useDragWidth({ storageKey: LIST_WIDTH_KEY, initial: 300 });
+  const list = useDragWidth({ storageKey: LIST_WIDTH_KEY, initial: 246 });
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;

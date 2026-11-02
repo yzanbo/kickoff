@@ -117,10 +117,10 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
   }, [runs, approvals, section, search, archive, worktreeFilter, allProjects, projects]);
   const grouped = useMemo(() => byColumn(entries), [entries]);
   const total = entries.length;
-  // スイムレーンの段の分け方（初めは作業場所）。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ
+  // スイムレーンの段の分け方（初めはセクション）。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ
   const laneOptions = KANBAN_LANES.filter((l) => (allProjects ? l !== "group" : l !== "project"));
-  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(LANES_KEY, BOARD_LANES, "worktree");
-  const lanes: BoardLane = laneOptions.includes(laneChoice) ? laneChoice : "worktree";
+  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(LANES_KEY, BOARD_LANES, "phase");
+  const lanes: BoardLane = laneOptions.includes(laneChoice) ? laneChoice : "phase";
 
   /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
   function newChat() {

@@ -49,7 +49,7 @@ export function DiffView({
   /** コミットでの差分を出すとき（履歴から開いたとき）。staged は使わない */
   commit?: string;
 }) {
-  const [layout, setLayout] = useStoredChoice<DiffLayout>(LAYOUT_KEY, ["split", "unified"], "split");
+  const [layout, setLayout] = useStoredChoice<DiffLayout>(LAYOUT_KEY, ["split", "unified"], "unified");
   const { target, key: at } = useGitTarget(projectId);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
   const [state, setState] = useState<{ key: string; diff?: GitDiff; error?: string }>();
