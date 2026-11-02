@@ -118,9 +118,18 @@
   container-type: inline-size;
 }
 
+.composer-tools,
+.run-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
 /*
- * チャット欄が狭いとき（右のパネル・チャット欄）: ▾ を消して詰め、推論の深さ・権限モードはアイコンだけにする。
- * さらに狭いときはセクションもアイコンだけにする（いまの値は、乗せると説明に出る）
+ * チャット欄が狭いとき（右のパネル・チャット欄）: 折り返さずに詰め、▾ を消し、推論の深さ・権限モードはアイコンだけにする。
+ * さらに狭いときはセクションもアイコンだけにする（いまの値は、乗せると説明に出る）。
+ * 上の基底（flex-wrap: wrap）と同じ詳細度なので、必ず基底より後ろに置く（前にあると nowrap が負ける）
  */
 @container (max-width: 560px) {
   .composer-tools,
@@ -147,14 +156,6 @@
   .section-menu .option-label {
     display: none;
   }
-}
-
-.composer-tools,
-.run-options {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px;
 }
 
 .composer-error {
