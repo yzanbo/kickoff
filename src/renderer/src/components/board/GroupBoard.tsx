@@ -1,6 +1,6 @@
 import { Folder, FolderPlus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Approval, Run, RunGroup } from "../../../../core/types";
+import type { Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
@@ -10,7 +10,7 @@ import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import { useProjects } from "../../projectsContext";
 import type { ReopenRoute } from "../../router";
-import { approvalIndex, runStateOf } from "../../runState";
+import { useRunStates } from "../../approvalsContext";
 import { GROUP_VIEW_KEY } from "../../storageKeys";
 import { CardMenu } from "../menus/CardMenu";
 import { ErrorText } from "../ErrorText";
@@ -34,7 +34,6 @@ interface Props {
   projectId: number;
   runs: Run[];
   groups: RunGroup[];
-  approvals: Approval[];
   /** サイドバーのグループの＋から来たとき: そのグループで新しいチャットを始める */
   focus?: ReopenRoute;
   /** サイドバーのグループ名から来たとき: そのグループを表示して、背景と枠を少しのあいだハイライトする（1 秒ほどで消える。押し直すたびにやり直す。広がる光の動きは付けない） */
@@ -45,7 +44,7 @@ interface Props {
  * 自分で作ったグループを管理するボード。列 = グループ、カード = チャット。
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
-export function GroupBoard({ projectId, runs, groups, approvals, focus, highlight }: Props) {
+export function GroupBoard({ projectId, runs, groups, focus, highlight }: Props) {
   // タブの列の＋のターミナルの開く場所（このプロジェクトの本体）
   const { projects } = useProjects();
   const [creating, setCreating] = useState(false);
@@ -122,8 +121,8 @@ export function GroupBoard({ projectId, runs, groups, approvals, focus, highligh
       editing: Boolean(rename.editorFor(run)),
     });
   const cardClass = (run: Run) => cx(dragRun === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
-  const pending = approvalIndex(approvals);
-  const stateOf = (run: Run) => runStateOf(run, pending);
+  // チャットの状態（回答待ちの依頼は App が持つ）
+  const { stateOf } = useRunStates();
 
   /** グループの見出し（ボードの列・リストで共通）。group が null なら「グループなし」 */
   const renderHead = (group: RunGroup | null, count: number) => {

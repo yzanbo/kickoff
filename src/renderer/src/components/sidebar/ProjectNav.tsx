@@ -1,12 +1,13 @@
 import { Archive, Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
-import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
+import type { ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { PROJECT_DRAG_TYPE, useReorder } from "../../groups";
 import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
+import { useRunStates } from "../../approvalsContext";
 import { navigate, routeProjectId, type Route } from "../../router";
 import {
   SIDEBAR_LAYOUT_KEY,
@@ -31,7 +32,6 @@ import { SearchField } from "../SearchField";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 interface Props {
-  approvals: Approval[];
   /** プロジェクトごとのチャット（アーカイブしたものも含む）とグループ（useSidebarData） */
   runs: Record<number, Run[]>;
   groups: Record<number, RunGroup[]>;
@@ -43,8 +43,9 @@ interface Props {
  * Zen Browser のワークスペースのような、プロジェクトごとのサイドバー。
  * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替える。
  */
-export function ProjectNav({ approvals, runs, groups, route, onNewProject }: Props) {
+export function ProjectNav({ runs, groups, route, onNewProject }: Props) {
   const { projects } = useProjects();
+  const { pending } = useRunStates();
   // 横スライド / 縦並び
   const [layout, changeLayout] = useStoredChoice<NavLayout>(SIDEBAR_LAYOUT_KEY, ["slide", "stack"], "slide");
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
@@ -61,7 +62,7 @@ export function ProjectNav({ approvals, runs, groups, route, onNewProject }: Pro
   const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
-  const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], approvals).length > 0;
+  const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], pending).length > 0;
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
   const [searchAll, setSearchAll] = useState("");
   const allSearch = useChatSearch(layout === "stack" ? searchAll : "");
@@ -224,7 +225,6 @@ export function ProjectNav({ approvals, runs, groups, route, onNewProject }: Pro
                 project={p}
                 runs={runs[p.id] ?? []}
                 groups={groups[p.id] ?? NO_GROUPS}
-                approvals={approvals}
                 route={route}
                 hidden={false}
                 collapsed={!waitingOnly && !allSearch.keyword && collapsedMap.get(p.id)}
@@ -265,7 +265,6 @@ export function ProjectNav({ approvals, runs, groups, route, onNewProject }: Pro
               project={p}
               runs={runs[p.id] ?? []}
               groups={groups[p.id] ?? NO_GROUPS}
-              approvals={approvals}
               route={route}
               hidden={i !== index}
               collapsed={!waitingOnly && collapsedMap.get(p.id)}
@@ -280,7 +279,7 @@ export function ProjectNav({ approvals, runs, groups, route, onNewProject }: Pro
         <WorkspaceDots
           projects={ordered}
           index={index}
-          countsOf={(id) => stateCounts(runs[id] ?? [], approvals)}
+          countsOf={(id) => stateCounts(runs[id] ?? [], pending)}
           canReorder={canReorder}
           isArchived={isArchived}
           reorder={reorder}

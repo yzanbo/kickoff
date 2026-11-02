@@ -1,9 +1,9 @@
 import { boardColumnOf } from "../../../../core/board";
 import { useSharedFlag } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
-import { approvalIndex, runStateOf } from "../../runState";
+import { runStateOf, type ApprovalIndex } from "../../runState";
 import { SIDEBAR_COMPACT_KEY, SIDEBAR_PROJECT_COMPACT_KEY, SIDEBAR_SECTION_CLOSED_PREFIX, SIDEBAR_SHOW_ARCHIVED_KEY } from "../../storageKeys";
-import type { AgentState, Approval, BoardColumn, Run } from "../../../../core/types";
+import type { AgentState, BoardColumn, Run } from "../../../../core/types";
 
 /** チャットを 1 行で出すか（初めは 1 行。どの部品でも同じ初期値になるよう、ここから読む） */
 export const useCompactRows = () => useSharedFlag(SIDEBAR_COMPACT_KEY, true);
@@ -18,18 +18,14 @@ export const isWaitingState = (state: AgentState) => {
   return column === "needs_input" || column === "review";
 };
 
-/** 自分待ちのチャット（アーカイブしたものは除く） */
-export const waitingRuns = (runs: Run[], approvals: Approval[]) => {
-  const pending = approvalIndex(approvals);
-  return runs.filter((r) => !r.archived_at && isWaitingState(runStateOf(r, pending)));
-};
+/** 自分待ちのチャット（アーカイブしたものは除く）。pending は ApprovalsContext の回答待ちの一覧 */
+export const waitingRuns = (runs: Run[], pending: ApprovalIndex) => runs.filter((r) => !r.archived_at && isWaitingState(runStateOf(r, pending)));
 
 /** サイドバーのプロジェクトに出す状態ごとのチャット数（作業中・回答待ち・確認待ち。アーカイブしたものは数えない） */
 export type StateCounts = Record<Exclude<BoardColumn, "done">, number>;
 
-export function stateCounts(runs: Run[], approvals: Approval[]): StateCounts {
+export function stateCounts(runs: Run[], pending: ApprovalIndex): StateCounts {
   const counts: StateCounts = { running: 0, needs_input: 0, review: 0 };
-  const pending = approvalIndex(approvals);
   for (const r of runs) {
     if (r.archived_at) continue;
     const column = boardColumnOf(runStateOf(r, pending));
