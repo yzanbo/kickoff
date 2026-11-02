@@ -1,0 +1,79 @@
+/* ==== アプリ全体の確認・入力・選択のダイアログ・背景・ダイアログの本文と操作の行 ==== */
+
+/* アプリ全体の確認・入力のダイアログ（OS 標準の confirm / prompt の代わり） */
+.dialog.app-dialog {
+  width: min(420px, calc(100vw - 32px));
+  animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 選択肢のダイアログ（choiceDialog）は、ボタンが 3 つ以上並ぶので広げる */
+.dialog.app-dialog.app-dialog-choice {
+  width: min(520px, calc(100vw - 32px));
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+.app-dialog-body {
+  display: grid;
+  gap: 12px;
+  padding: 20px 20px 16px;
+}
+
+.app-dialog-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.app-dialog-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.app-dialog-actions {
+  display: flex;
+  /* 入りきらないときは、はみ出さずに折り返す */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.app-dialog-actions .btn {
+  min-width: 84px;
+  justify-content: center;
+}
+
+.dialog::backdrop,
+.palette::backdrop {
+  background: rgb(0 0 0 / 50%);
+}
+
+.dialog-body,
+.dialog-form {
+  display: grid;
+  gap: 16px;
+}
+
+.dialog-body {
+  padding: 24px;
+}
+
+.dialog-body h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
