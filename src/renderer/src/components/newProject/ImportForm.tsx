@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { WorkspaceInspection } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
+import { useSubmit } from "../../hooks/useSubmit";
 import { ErrorText } from "../ErrorText";
 import { Field } from "../Field";
 import { FolderField } from "./FolderField";
@@ -16,8 +17,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   const [nameEdited, setNameEdited] = useState(false);
   const [description, setDescription] = useState("");
   const [initGit, setInitGit] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
+  const { submitting, error, setError, submit } = useSubmit();
 
   // フォルダが決まったら中身を点検する（入力中は少し待つ）
   useEffect(() => {
@@ -53,28 +53,14 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
     Boolean(inspection.registered_project_id) ||
     (needsInit && !initGit);
 
-  async function submit(e: FormEvent) {
+  const importProject = (e: FormEvent) => {
     e.preventDefault();
     if (!inspection) return;
-    setSubmitting(true);
-    setError(undefined);
-    try {
-      onCreated(
-        await api.importProject({
-          path: inspection.path,
-          name,
-          description,
-          init_git: initGit,
-        }),
-      );
-    } catch (err) {
-      setError(errorMessage(err));
-      setSubmitting(false);
-    }
-  }
+    void submit(async () => onCreated(await api.importProject({ path: inspection.path, name, description, init_git: initGit })));
+  };
 
   return (
-    <form className="dialog-form" onSubmit={(e) => void submit(e)}>
+    <form className="dialog-form" onSubmit={importProject}>
       <FolderField label="取り込むフォルダ" value={folder} onChange={setFolder} pickerTitle="取り込むフォルダを選択" autoFocus />
 
       {inspecting && <p className="muted small">フォルダを確認しています…</p>}

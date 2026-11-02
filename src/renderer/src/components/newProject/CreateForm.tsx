@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "../../api";
-import { errorMessage } from "../../errors";
+import { useSubmit } from "../../hooks/useSubmit";
 import { ErrorText } from "../ErrorText";
 import { Field } from "../Field";
 import { FolderField } from "./FolderField";
@@ -23,30 +23,22 @@ export function CreateForm({ defaultParentDir, onCancel, onCreated }: FormProps 
   const [parentDir, setParentDir] = useState(defaultParentDir);
   const [folderName, setFolderName] = useState("");
   const [folderEdited, setFolderEdited] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
+  const { submitting, error, submit } = useSubmit();
 
   // フォルダ名を手で変えるまでは、名前から自動で提案する
   useEffect(() => {
     if (!folderEdited) setFolderName(suggestFolderName(name));
   }, [name, folderEdited]);
 
-  async function submit(e: FormEvent) {
+  const create = (e: FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError(undefined);
-    try {
-      onCreated(await api.createProject({ name, idea, parent_dir: parentDir, folder_name: folderName }));
-    } catch (err) {
-      setError(errorMessage(err));
-      setSubmitting(false);
-    }
-  }
+    void submit(async () => onCreated(await api.createProject({ name, idea, parent_dir: parentDir, folder_name: folderName })));
+  };
 
   const fullPath = `${parentDir.replace(/\/+$/, "")}/${folderName || "…"}`;
 
   return (
-    <form className="dialog-form" onSubmit={(e) => void submit(e)}>
+    <form className="dialog-form" onSubmit={create}>
       <Field label="プロジェクト名">
         <input type="text" value={name} autoFocus required maxLength={100} onChange={(e) => setName(e.target.value)} />
       </Field>
