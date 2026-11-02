@@ -1,18 +1,13 @@
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { errorMessage } from "./errors.js";
 import { gitOutput } from "./git.js";
+import { expandHome } from "./paths.js";
 import type { WorkspaceInspection } from "./types.js";
 
 export type { WorkspaceInspection };
 
 const git = async (cwd: string, args: string[]) => (await gitOutput(cwd, args)).trim();
-
-/** "~/foo" をホームディレクトリに展開する */
-export function expandHome(p: string): string {
-  return p === "~" || p.startsWith("~/") ? path.join(os.homedir(), p.slice(1)) : p;
-}
 
 /** フォルダ名として安全な文字だけにする（英数字・ハイフン・アンダースコア・ドット） */
 export function toFolderName(name: string): string {

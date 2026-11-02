@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { isPathInScope, realPathLoose } from "./scope.js";
+import { isInside, realPathLoose } from "./paths.js";
+import { isPathInScope } from "./scope.js";
 import type { Store } from "./store.js";
 import { ARTIFACT_KINDS, PHASES, TASK_STATUSES, type Phase } from "./types.js";
 
@@ -187,9 +188,7 @@ export async function exportToRepo(repoPath: string, relPath: string, content: s
   if (path.isAbsolute(relPath)) throw new Error("export_path はリポジトリからの相対パスで指定してください");
   const root = realPathLoose(repoPath);
   const target = realPathLoose(path.resolve(root, relPath));
-  if (target !== root && !target.startsWith(root + path.sep)) {
-    throw new Error("export_path がリポジトリの外を指しています");
-  }
+  if (!isInside(root, target)) throw new Error("export_path がリポジトリの外を指しています");
   await fs.mkdir(path.dirname(target), { recursive: true });
   await fs.writeFile(target, content.endsWith("\n") ? content : content + "\n", "utf8");
   return path.relative(root, target);
