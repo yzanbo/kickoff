@@ -26,6 +26,8 @@ import { BOARD_LANE_LABELS, BOARD_LANES, BoardLanes, type BoardLane } from "./Bo
 import { byColumn, type BoardEntry } from "./boardColumns";
 import { ColumnHead } from "./ColumnHead";
 import { useBoardRuns } from "./useBoardRuns";
+import { useWorktreeLists } from "../../worktreeBranches";
+import { workplaceOf } from "../../workplace";
 
 const VIEW_KEY = "kickoff:board-view";
 const LANES_KEY = "kickoff:board-lanes";
@@ -67,7 +69,15 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
   const [section, setSection] = useState<Phase | "all">("all");
   // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
   const [worktreeFilter, setWorktreeFilter] = useState("all");
-  const worktreePaths = useMemo(() => [...new Set(runs.map((r) => r.worktree_path).filter(Boolean))].sort(), [runs]);
+  // 絞り込みの候補: ワークツリーの作業場所（ブランチ名で出し、フォルダが消えたものは「フォルダなし」と添える）
+  const worktreeRuns = runs.filter((r) => r.worktree_path);
+  const worktreesOf = useWorktreeLists(worktreeRuns.map((r) => r.project_id));
+  const worktreeChoices = [...new Map(worktreeRuns.map((r) => [r.worktree_path, r])).values()]
+    .map((r) => {
+      const place = workplaceOf(r, worktreesOf(r.project_id));
+      return { path: r.worktree_path, label: place.kind === "missing" ? `${place.name}（フォルダなし）` : place.name };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label));
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
@@ -204,7 +214,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
             onSection={setSection}
             archive={archive}
             onArchive={setArchive}
-            worktrees={worktreePaths}
+            worktrees={worktreeChoices}
             worktree={worktreeFilter}
             onWorktree={setWorktreeFilter}
           />

@@ -42,6 +42,9 @@ export function ChatRow({
 }) {
   const meta = SECTION_META[run.phase];
   const Icon = meta.icon;
+  // hooks は、下の早い return（名前の変更中）より前に呼ぶ
+  const selection = useChatSelection();
+  const selected = selection?.has(run.id) ?? false;
   if (rename) {
     // 押しても開かず、ドラッグもしない（入力欄の文字を選べるように）
     return (
@@ -55,8 +58,6 @@ export function ChatRow({
       </li>
     );
   }
-  const selection = useChatSelection();
-  const selected = selection?.has(run.id) ?? false;
   const act = (fn: () => Promise<unknown>) => void fn().catch((e: unknown) => alertDialog("操作できませんでした", errorMessage(e)));
   return (
     <li className="chat-row-item">
