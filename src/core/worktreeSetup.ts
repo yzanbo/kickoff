@@ -1,9 +1,6 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import { execFileAsync } from "./exec.js";
 
 /** 新しいワークツリーへ、本体から写すフォルダ（Git で無視していて、作り直すのに時間がかかるもの） */
 const CARRY_DIRS = ["node_modules"];

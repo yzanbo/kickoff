@@ -1,9 +1,6 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { ProviderId, ProviderStatus } from "../types.js";
 import type { AgentProvider, ProviderRunResult } from "./types.js";
-
-const execFileAsync = promisify(execFile);
+import { execFileAsync } from "../exec.js";
 
 /**
  * まだ Kickoff から使えない（対応予定の）プロバイダー。状態の表示のため、CLI が入っているかだけ確かめる。
