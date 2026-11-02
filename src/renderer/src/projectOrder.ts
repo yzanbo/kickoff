@@ -24,7 +24,17 @@ export const archivedProjects = (projects: ProjectSummary[]) => projects.filter(
 export const changeProject = (id: number, patch: { pinned?: boolean; archived?: boolean }) =>
   void api.updateProject(id, patch).catch((e: unknown) => alertDialog("変更できませんでした", errorMessage(e)));
 
-/** 確かめてから、プロジェクトをアーカイブする（やめたら何もしない。戻すときは確かめない） */
+/** 確かめてから、プロジェクトをアーカイブから戻す（やめたら何もしない） */
+export async function confirmRestoreProject(project: Pick<ProjectSummary, "id" | "name">) {
+  const ok = await confirmDialog({
+    title: `プロジェクト「${project.name}」をアーカイブから戻しますか？`,
+    message: "サイドバー・プロジェクトの切り替え・全プロジェクトの画面に、また出るようになります。",
+    confirmLabel: "戻す",
+  });
+  if (ok) changeProject(project.id, { archived: false });
+}
+
+/** 確かめてから、プロジェクトをアーカイブする（やめたら何もしない） */
 export async function confirmArchiveProject(project: Pick<ProjectSummary, "id" | "name">) {
   const ok = await confirmDialog({
     title: `プロジェクト「${project.name}」をアーカイブしますか？`,

@@ -26,7 +26,7 @@ import { WorktreeContext } from "../components/changes/worktreeContext";
 import { useStoredState } from "../hooks/useStoredState";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
-import { changeProject } from "../projectOrder";
+import { confirmRestoreProject } from "../projectOrder";
 import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
 import { REPORT_KINDS, SECTION_META } from "../sections";
 
@@ -143,7 +143,7 @@ export function ProjectPage({
             <button
               className="btn btn-sm"
               title="アーカイブから戻す（サイドバー・全プロジェクトの画面に出す）"
-              onClick={() => changeProject(project.id, { archived: false })}
+              onClick={() => void confirmRestoreProject(project)}
             >
               <ArchiveRestore size={13} /> 戻す
             </button>
