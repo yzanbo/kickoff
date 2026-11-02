@@ -97,7 +97,7 @@ export function App() {
         </main>
         <BottomPanel panel={bottomPanel} />
         </div>
-        <ProjectChat chat={chat} />
+        <ProjectChat chat={chat} projects={projects} />
         <AppFooter
           onOpenSettings={() => setSettings("usage")}
           connection={connection.state}

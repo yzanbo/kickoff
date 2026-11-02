@@ -40,41 +40,58 @@ function tabLabel(t: PanelTabData, runs: Run[]): { Icon: LucideIcon; iconClass?:
 }
 
 /**
- * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。
+ * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
  * onNewChat: タブの列の＋で「新しいチャット」を選んだとき（どのプロジェクト・グループで始めるかはボードが決める）。
- * terminals: タブの列の＋から開けるターミナル（terminalTargets。Mac のアプリでだけ出す）
+ * terminals: タブの列の＋から開けるターミナル（terminalTargets。Mac のアプリでだけ出す）。
+ * sidebar: プロジェクトのチャット欄として使うとき（開閉は欄が持つ。幅の変更・横幅いっぱいは欄の側で行うので出さない）
  */
-export function SidePanel({ panel, onNewChat, terminals }: { panel: SidePanelController; onNewChat: () => void; terminals: TerminalTarget[] }) {
-  const { tabs, activeTab, panelOpen, maximized } = panel;
+export function SidePanel({
+  panel,
+  onNewChat,
+  terminals,
+  sidebar,
+}: {
+  panel: SidePanelController;
+  onNewChat: () => void;
+  terminals: TerminalTarget[];
+  sidebar?: { open: boolean; onClose: () => void };
+}) {
+  const { tabs, activeTab, maximized } = panel;
+  const panelOpen = sidebar ? sidebar.open : panel.panelOpen;
+  const close = sidebar ? sidebar.onClose : panel.close;
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
   // タブの列の＋のメニュー（新しいチャット・ブラウザ・ターミナル）
   const [addMenu, setAddMenu] = useState<{ x: number; y: number } | null>(null);
   return (
-    <aside className="board-panel" aria-hidden={!panelOpen}>
-      <div
-        inert={!panelOpen}
-        className="panel-resizer"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="パネルの幅を変える"
-        title="ドラッグで幅を変える"
-        onPointerDown={panel.startResize}
-      />
+    <aside className={cx("board-panel", sidebar && "as-sidebar")} aria-hidden={!panelOpen}>
+      {!sidebar && (
+        <div
+          inert={!panelOpen}
+          className="panel-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="パネルの幅を変える"
+          title="ドラッグで幅を変える"
+          onPointerDown={panel.startResize}
+        />
+      )}
       <div className="panel-tabs" role="tablist" inert={!panelOpen}>
         <div className="panel-controls">
           {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-          <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={panel.close}>
+          <button className="panel-control" title={sidebar ? "チャット欄を閉じる（⌥⌘B）" : "パネルを閉じる（Esc）"} aria-label="パネルを閉じる" onClick={close}>
             <PanelRightClose size={15} />
           </button>
-          <button
-            className="panel-control"
-            title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-            aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-            aria-pressed={maximized}
-            onClick={panel.toggleMaximized}
-          >
-            {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-          </button>
+          {!sidebar && (
+            <button
+              className="panel-control"
+              title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+              aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+              aria-pressed={maximized}
+              onClick={panel.toggleMaximized}
+            >
+              {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            </button>
+          )}
         </div>
         {tabs.map((t) => {
           const { Icon, iconClass, label } = tabLabel(t, panel.runs);
@@ -119,7 +136,13 @@ export function SidePanel({ panel, onNewChat, terminals }: { panel: SidePanelCon
       <div className="panel-content" inert={!panelOpen}>
         {tabs.length === 0 && (
           <div className="panel-empty">
-            <p className="muted small">カードを押すと、ここにチャットが開きます。</p>
+            {sidebar ? (
+              <button className="btn" onClick={onNewChat}>
+                <SquarePen size={14} /> 新しいチャット
+              </button>
+            ) : (
+              <p className="muted small">カードを押すと、ここにチャットが開きます。</p>
+            )}
             <button className="btn" onClick={() => panel.openBrowser()}>
               <Globe size={14} /> ブラウザを開く
             </button>
@@ -134,7 +157,7 @@ export function SidePanel({ panel, onNewChat, terminals }: { panel: SidePanelCon
                 runId={t.id}
                 focus={t.focus}
                 visible={panelOpen && activeTab === t.key}
-                onClose={panel.close}
+                onClose={close}
                 onOpenTerminal={terminalTargets.length > 0 ? panel.openTerminal : undefined}
                 onRunChange={(run) =>
                   panel.updateTab(t.key, (x) => (x.kind === "chat" && (x.title !== run.title || x.phase !== run.phase) ? { ...x, title: run.title, phase: run.phase } : x))
@@ -148,7 +171,7 @@ export function SidePanel({ panel, onNewChat, terminals }: { panel: SidePanelCon
                 projects={panel.projects}
                 onProjectChange={(projectId) => panel.updateTab(t.key, () => ({ ...t, projectId, group: undefined, groupName: undefined }))}
                 onGroupChange={(group, groupName) => panel.updateTab(t.key, (x) => (x.kind === "new" ? { ...x, group, groupName } : x))}
-                onClose={panel.close}
+                onClose={close}
                 onCreated={(run) => panel.replaceWithChat(t.key, run)}
               />
             ) : t.kind === "terminal" ? (

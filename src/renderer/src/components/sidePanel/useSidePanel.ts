@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { Phase, ProjectSummary, Run } from "../../../../core/types";
 import { cx } from "../../cx";
+import { useServerEvent } from "../../events";
 import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
@@ -61,9 +62,9 @@ const EMPTY_PANEL: PanelState = { tabs: [], activeTab: null, panelOpen: false };
 interface Options {
   /** パネルの状態を覚えておく名前（ボードごとに分ける。例: "kanban:all"・"groups:3"） */
   memoryKey: string;
-  /** ボードに出ているチャット（削除・アーカイブされたチャットのタブを閉じるのに使う） */
-  runs: Run[];
-  loaded: boolean;
+  /** ボードに出ているチャット（アーカイブされたチャットのタブを閉じるのに使う。ボードのないチャット欄では渡さない） */
+  runs?: Run[];
+  loaded?: boolean;
   /** true の間は Esc でパネルを閉じない（メニューが開いているときなど） */
   holdEsc?: boolean;
   /** 全プロジェクトのボードでは、新しいチャットのプロジェクトを選べるようにする */
@@ -72,13 +73,15 @@ interface Options {
   onCreated?: (run: Run) => void;
 }
 
+const NO_RUNS: Run[] = [];
+
 export type SidePanelController = ReturnType<typeof useSidePanel>;
 
 /**
  * ボードの右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）の状態と操作。カンバンとグループのボードで共通。
  * 表示は SidePanel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）・DraftCards（列の下書き）で行う
  */
-export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, projects, onCreated }: Options) {
+export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEsc = false, projects, onCreated }: Options) {
   // パネルを閉じてもタブは残し、次に開いたときに戻す
   const saved = () => panelMemory.get(memoryKey) ?? EMPTY_PANEL;
   const [tabs, setTabs] = useState<PanelTab[]>(() => saved().tabs);
@@ -168,6 +171,11 @@ export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, project
       return next;
     });
   };
+
+  // 削除したチャットのタブは閉じる（ボードのないチャット欄でも）
+  useServerEvent((e) => {
+    if (e.type === "run_deleted" && tabs.some((t) => t.key === chatKey(e.id))) closeTab(chatKey(e.id));
+  });
 
   // 削除・アーカイブされたチャットのタブは閉じる
   useEffect(() => {
