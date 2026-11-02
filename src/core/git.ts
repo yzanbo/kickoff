@@ -420,6 +420,16 @@ export function parseWorktrees(out: string): GitWorktree[] {
     });
 }
 
+/** いまのブランチ名（ブランチから外れている・Git でないフォルダなら空） */
+export async function currentBranch(dir: string): Promise<string> {
+  try {
+    const name = (await gitOutput(dir, ["rev-parse", "--abbrev-ref", "HEAD"])).trim();
+    return name === "HEAD" ? "" : name;
+  } catch {
+    return "";
+  }
+}
+
 export async function listWorktrees(repo: string): Promise<GitWorktree[]> {
   return parseWorktrees(await gitOutput(repo, ["worktree", "list", "--porcelain"]));
 }
@@ -471,7 +481,9 @@ export async function finishWorktree(repo: string, target: string): Promise<GitW
   const worktree = (await listWorktrees(repo)).find((w) => w.path === target);
   if (!worktree) throw new Error("ワークツリーが見つかりません");
   if (worktree.main) throw new Error("本体のフォルダは片付けられません");
-  await gitOutput(repo, ["worktree", "remove", target]);
+  // フォルダがアプリの外で消されていれば、Git の記録だけを消す
+  if (worktree.prunable) await gitOutput(repo, ["worktree", "prune"]);
+  else await gitOutput(repo, ["worktree", "remove", target]);
   if (worktree.branch) await gitOutput(repo, ["branch", "-D", worktree.branch]);
   return listWorktrees(repo);
 }

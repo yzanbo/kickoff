@@ -126,6 +126,8 @@ const MIGRATIONS = [
    ALTER TABLE projects ADD COLUMN archived_at TEXT;`,
   // v14: チャットをサイドバーの上に固定する（ピン留め）
   `ALTER TABLE runs ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;`,
+  // v15: チャットが作業したブランチ（ワークツリーを片付けた・消したあとも、どのブランチの作業だったか分かるように）
+  `ALTER TABLE runs ADD COLUMN branch TEXT NOT NULL DEFAULT '';`,
 ];
 
 /** スキーマのバージョン管理（PRAGMA user_version）。変更は MIGRATIONS に追記していく */
