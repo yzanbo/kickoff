@@ -1,14 +1,8 @@
 import { PHASES, type Phase } from "../../../../core/types";
 import { cx } from "../../cx";
 import { SECTION_META } from "../../sections";
-
-/** アーカイブでの絞り込み（all: すべて / active: 未アーカイブ / archived: アーカイブ済み） */
-export type ArchiveFilter = "all" | "active" | "archived";
-
-/** 保存の形式は、2 択だったころのまま（"1" = すべて、"0"・未保存 = 未アーカイブ）。アーカイブ済みだけは "archived" */
-// 保存していなければ「すべてのチャット」（"1"）。"0" は未アーカイブだけ
-export const decodeArchiveFilter = (raw: string | null): ArchiveFilter => (raw === null || raw === "1" ? "all" : raw === "archived" ? "archived" : "active");
-export const encodeArchiveFilter = (value: ArchiveFilter): string => (value === "all" ? "1" : value === "archived" ? "archived" : "0");
+import type { ArchiveFilter } from "./archiveFilter";
+import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
 
 /** カンバンの絞り込み（セクション・アーカイブ・作業場所。プロジェクトは見出しの名前から切り替える） */
 export function KanbanFilters({
@@ -45,17 +39,7 @@ export function KanbanFilters({
           </option>
         ))}
       </select>
-      {/* 未アーカイブ（いつもの表示）以外を選んでいるときは、絞り込み中の色にする */}
-      <select
-        className={cx("board-filter", archive !== "active" && "filtered")}
-        aria-label="アーカイブで絞り込み"
-        value={archive}
-        onChange={(e) => onArchive(e.target.value as ArchiveFilter)}
-      >
-        <option value="all">すべてのチャット</option>
-        <option value="active">未アーカイブ</option>
-        <option value="archived">アーカイブ済み</option>
-      </select>
+      <ArchiveFilterSelect value={archive} onChange={onArchive} />
       {worktrees.length > 0 && (
         <select
           className={cx("board-filter", worktree !== "all" && "filtered")}

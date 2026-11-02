@@ -58,6 +58,8 @@ export const BOARD_LANES_KEY = "kickoff:board-lanes";
 export const BOARD_LANES_ALL_KEY = "kickoff:board-lanes-all";
 /** カンバンのアーカイブでの絞り込み（"1" / "0" / "archived"。decodeArchiveFilter） */
 export const BOARD_SHOW_ARCHIVED_KEY = "kickoff:show-archived";
+/** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える。形式は同じ） */
+export const GROUP_SHOW_ARCHIVED_KEY = "kickoff:group-show-archived";
 /** スイムレーンの段ごとの、閉じているか（後ろに <ボード>:<分け方>:<段>） */
 export const BOARD_LANE_CLOSED_PREFIX = "kickoff:board-lane-closed:";
 /** ボードの列・まとまりごとの「アーカイブ済み」を開いているか */

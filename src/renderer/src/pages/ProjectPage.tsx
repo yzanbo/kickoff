@@ -38,7 +38,7 @@ export function ProjectPage({
 
   if (error && !shown) return <div className="page error">{error}</div>;
   if (!shown) return <div className="page muted">読み込み中…</div>;
-  const { project, tasks, artifacts, runs, groups } = shown;
+  const { project, tasks, artifacts, groups } = shown;
   // 別のプロジェクトを読み込んでいる途中（前の画面を薄くして出しておく）
   const stale = project.id !== id;
 
@@ -47,7 +47,7 @@ export function ProjectPage({
       <ProjectHeader data={shown} tab={tab} changeCount={git.count} onEdit={() => setEditing(true)} />
 
       {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} groups={groups} />}
-      {tab === "groups" && <GroupBoard projectId={project.id} runs={runs} groups={groups} focus={focus} highlight={highlightGroup} />}
+      {tab === "groups" && <GroupBoard projectId={project.id} groups={groups} focus={focus} highlight={highlightGroup} />}
       {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
       {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
       {tab === "tasks" && (

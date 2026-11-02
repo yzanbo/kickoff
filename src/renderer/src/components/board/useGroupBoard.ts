@@ -1,26 +1,32 @@
 import { useState } from "react";
-import type { Run, RunGroup } from "../../../../core/types";
+import type { RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useActionError } from "../../hooks/useActionError";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
-import { GROUP_VIEW_KEY } from "../../storageKeys";
+import { GROUP_SHOW_ARCHIVED_KEY, GROUP_VIEW_KEY } from "../../storageKeys";
 import { useGroupMenu } from "../menus/GroupMenu";
+import { archiveMatches, useArchiveFilter } from "./archiveFilter";
 import type { BoardView } from "./BoardHeader";
 import { useCardMenu } from "./useBoardCards";
+import { useBoardRuns } from "./useBoardRuns";
 
 export type GroupBoardState = ReturnType<typeof useGroupBoard>;
 
 /**
  * グループのボードの状態と操作: グループを作る・名前を変える・削除する（「…」メニュー）、列へのドロップ（チャットを移す・列を並べ替える）、
- * 名前の検索、ボード / リスト / スイムレーンの切り替え（カンバンとは別に覚える）、失敗の文
+ * 名前の検索、アーカイブでの絞り込みとボード / リスト / スイムレーンの切り替え（どちらもカンバンとは別に覚える）、失敗の文。
+ * チャットはカンバンと同じく useBoardRuns で読み、アーカイブ済みを出すときはそれも読み込む（runs は読み込んだすべて、shown は絞り込んだもの）
  */
-export function useGroupBoard({ projectId, runs, groups }: { projectId: number; runs: Run[]; groups: RunGroup[] }) {
+export function useGroupBoard({ projectId, groups }: { projectId: number; groups: RunGroup[] }) {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const { error, setError, guard } = useActionError();
+  const [archive, setArchive] = useArchiveFilter(GROUP_SHOW_ARCHIVED_KEY);
+  const { runs, loaded } = useBoardRuns(projectId, archive !== "active", setError);
+  const shown = runs.filter((r) => archiveMatches(r, archive));
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
   const menu = useCardMenu();
@@ -29,9 +35,9 @@ export function useGroupBoard({ projectId, runs, groups }: { projectId: number; 
   const [view, setView] = useStoredChoice<BoardView>(GROUP_VIEW_KEY, ["board", "list", "lanes"], "board");
 
   const groupIds = new Set(groups.map((g) => g.id));
-  /** そのグループ（null はグループなし）のチャット。検索で絞り、新しく動いた順 */
+  /** そのグループ（null はグループなし）のチャット。アーカイブと検索で絞り、新しく動いた順 */
   const membersOf = (groupId: number | null) =>
-    runs
+    shown
       .filter((r) => (groupId === null ? r.group_id === null || !groupIds.has(r.group_id) : r.group_id === groupId))
       .filter(search.matches)
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
@@ -50,6 +56,11 @@ export function useGroupBoard({ projectId, runs, groups }: { projectId: number; 
   });
 
   return {
+    runs,
+    loaded,
+    shown,
+    archive,
+    setArchive,
     creating,
     setCreating,
     renaming,
