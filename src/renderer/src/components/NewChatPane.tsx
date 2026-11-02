@@ -2,14 +2,15 @@ import { Folder } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Phase, ProjectSummary, Run } from "../../../core/types";
 import { api, useAsync } from "../api";
+import { choiceDialog } from "../dialogs";
 import { SECTION_META } from "../sections";
-import { Composer } from "./Composer";
+import { Composer, SendCancelled } from "./Composer";
 import { CloseButton } from "./IconButton";
 import { ProjectChip } from "./ProjectChip";
 import { useRunOptions } from "./RunOptionsBar";
 import { BUSY_STATUSES } from "./RunStatus";
 import { SectionPicker } from "./SectionPicker";
-import { WorkplacePicker, type Workplace } from "./changes/WorkplacePicker";
+import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "./changes/WorkplacePicker";
 import { invalidateWorktrees } from "../worktreeBranches";
 
 interface Props {
@@ -49,8 +50,7 @@ export function NewChatPane({
   const [place, setPlace] = useState<Workplace>({ kind: "main" });
   useEffect(() => setPlace({ kind: "main" }), [projectId]);
   // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる）
-  const placePath = place.kind === "existing" ? place.path : place.kind === "main" ? "" : null;
-  const busyHere = placePath !== null && (runs.data ?? []).some((r) => r.worktree_path === placePath && BUSY_STATUSES.includes(r.status));
+  const busyHere = isBusyAt(runs.data ?? [], place);
   const groups = useAsync(() => api.groups(projectId), [projectId]);
   const groupName = groups.data?.find((g) => g.id === group)?.name;
   // グループ名が分かったら、タブにも出す
@@ -143,16 +143,36 @@ export function NewChatPane({
             suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
             placeholder={`${SECTION_META[section].placeholder}（Enter で送信、Shift+Enter で改行）`}
             onSend={async (prompt, attachments) => {
+              // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい）
+              // 開いたときの一覧は古くなっているので、送るときに取り直して確かめる
+              let target = place;
+              if (isBusyAt(await api.runs(projectId), place)) {
+                const choice = await choiceDialog({
+                  title: "この作業場所では、ほかのチャットが作業中です",
+                  message: "同じファイルを書き換えると、作業がぶつかることがあります。新しいワークツリーで始めると、別のフォルダで並行して進められます。質問だけなど、ファイルを書き換えないチャットなら、このまま送っても大丈夫です。",
+                  choices: [
+                    { value: "here", label: "このまま送る" },
+                    { value: "worktree", label: "新しいワークツリーで始める", primary: true },
+                  ],
+                });
+                if (!choice) throw new SendCancelled();
+                if (choice === "worktree") {
+                  const branch = await askNewWorktreeBranch();
+                  if (!branch) throw new SendCancelled();
+                  target = { kind: "new", branch };
+                  setPlace(target);
+                }
+              }
               const run = await api.startRun(projectId, {
                 phase: section,
                 prompt,
                 options: options.options,
                 attachments,
                 group_id: group,
-                ...(place.kind === "existing" ? { worktree_path: place.path } : place.kind === "new" ? { new_worktree_branch: place.branch } : {}),
+                ...(target.kind === "existing" ? { worktree_path: target.path } : target.kind === "new" ? { new_worktree_branch: target.branch } : {}),
               });
               // 新しいワークツリーを作ったときは、ブランチの一覧をすぐ取り直す
-              if (place.kind === "new") invalidateWorktrees(projectId);
+              if (target.kind === "new") invalidateWorktrees(projectId);
               onCreated(run);
             }}
           />
@@ -160,4 +180,10 @@ export function NewChatPane({
       </div>
     </div>
   );
+}
+
+/** その作業場所（本体・いまあるワークツリー）で、作業中のチャットがあるか。新しく作るワークツリーなら、まだない */
+function isBusyAt(runs: Run[], place: Workplace): boolean {
+  const path = place.kind === "existing" ? place.path : place.kind === "main" ? "" : null;
+  return path !== null && runs.some((r) => r.worktree_path === path && BUSY_STATUSES.includes(r.status));
 }

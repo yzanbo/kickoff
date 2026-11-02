@@ -27,9 +27,17 @@ interface PromptOptions {
   confirmLabel?: string;
 }
 
+interface ChoiceOptions {
+  title: string;
+  message?: string;
+  /** キャンセルのほかに並べる選択肢（左から順に。primary はいちばんおすすめのもの） */
+  choices: { value: string; label: string; primary?: boolean }[];
+}
+
 type Request =
   | ({ kind: "confirm"; resolve: (ok: boolean) => void } & ConfirmOptions)
-  | ({ kind: "prompt"; resolve: (value: string | null) => void } & PromptOptions);
+  | ({ kind: "prompt"; resolve: (value: string | null) => void } & PromptOptions)
+  | ({ kind: "choice"; resolve: (value: string | null) => void } & ChoiceOptions);
 
 let show: ((req: Request) => void) | undefined;
 
@@ -51,6 +59,14 @@ export function promptDialog(options: PromptOptions): Promise<string | null> {
   return new Promise((resolve) => {
     if (!show) return resolve(null);
     show({ kind: "prompt", resolve, ...options });
+  });
+}
+
+/** いくつかの選択肢から選ぶダイアログ（「このまま送る / 新しいワークツリーで始める」など）。選んだものの value、キャンセルなら null */
+export function choiceDialog<T extends string>(options: Omit<ChoiceOptions, "choices"> & { choices: { value: T; label: string; primary?: boolean }[] }): Promise<T | null> {
+  return new Promise((resolve) => {
+    if (!show) return resolve(null);
+    show({ kind: "choice", resolve: (value) => resolve(value as T | null), ...options });
   });
 }
 
@@ -79,29 +95,30 @@ export function DialogHost() {
     if (req.kind === "prompt") {
       inputRef.current?.focus();
       inputRef.current?.select();
-    } else if (req.hideCancel) {
+    } else if (req.kind === "confirm" && req.hideCancel) {
       ref.current?.querySelector<HTMLButtonElement>(".app-dialog-actions .btn-primary")?.focus();
     } else {
       cancelRef.current?.focus();
     }
   }, [req]);
 
-  const finish = (ok: boolean) => {
+  const finish = (ok: boolean, choice?: string) => {
     if (!req) return;
     if (req.kind === "confirm") req.resolve(ok);
+    else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null);
     else req.resolve(ok && value.trim() ? value.trim() : null);
     setReq(null);
     ref.current?.close();
   };
 
   if (!req) return null;
-  const confirmLabel = req.confirmLabel ?? (req.kind === "prompt" ? "保存" : "OK");
+  const confirmLabel = req.kind === "choice" ? "" : (req.confirmLabel ?? (req.kind === "prompt" ? "保存" : "OK"));
   const danger = req.kind === "confirm" && req.danger;
 
   return (
     <dialog
       ref={ref}
-      className="dialog app-dialog"
+      className={`dialog app-dialog ${req.kind === "choice" ? "app-dialog-choice" : ""}`}
       onCancel={(e) => {
         e.preventDefault();
         finish(false);
@@ -137,14 +154,22 @@ export function DialogHost() {
               キャンセル
             </button>
           )}
-          <button
-            type={req.kind === "prompt" ? "submit" : "button"}
-            className={`btn ${danger ? "btn-danger" : "btn-primary"}`}
-            disabled={req.kind === "prompt" && !value.trim()}
-            onClick={req.kind === "confirm" ? () => finish(true) : undefined}
-          >
-            {confirmLabel}
-          </button>
+          {req.kind === "choice" ? (
+            req.choices.map((c) => (
+              <button key={c.value} type="button" className={`btn ${c.primary ? "btn-primary" : ""}`} onClick={() => finish(true, c.value)}>
+                {c.label}
+              </button>
+            ))
+          ) : (
+            <button
+              type={req.kind === "prompt" ? "submit" : "button"}
+              className={`btn ${danger ? "btn-danger" : "btn-primary"}`}
+              disabled={req.kind === "prompt" && !value.trim()}
+              onClick={req.kind === "confirm" ? () => finish(true) : undefined}
+            >
+              {confirmLabel}
+            </button>
+          )}
         </div>
       </form>
     </dialog>
