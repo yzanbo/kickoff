@@ -22,7 +22,7 @@ import { useWindowEvent } from "./hooks/useWindowEvent";
 import { useRunNotifications } from "./notifications";
 import { AllProjectsPage } from "./pages/AllProjectsPage";
 import { ProjectPage } from "./pages/ProjectPage";
-import { openNewChat, routeProjectId, useRoute } from "./router";
+import { openNewChat, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { useChatHistory } from "./hooks/useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { applyTheme, loadTheme } from "./theme";
@@ -34,7 +34,8 @@ import { ApprovalsContext, indexApprovals } from "./approvalsContext";
 applyTheme(loadTheme());
 
 export function App() {
-  const route = useRoute();
+  // URL（ハッシュ）はここで 1 回だけ購読し、部品は useRoute()（RouteContext）で読む
+  const route = useHashRoute();
   // ⌘[ / ⌘] で、前に開いたチャット・次のチャットへ
   useChatHistory(route);
   const planUsage = usePlanUsage();
@@ -80,13 +81,13 @@ export function App() {
 
   return (
     <PlanUsageContext.Provider value={planUsage}>
+      <RouteContext.Provider value={route}>
       <ProjectsContext.Provider value={projectsIndex}>
       <ApprovalsContext.Provider value={runStates}>
       <ProjectChatContext.Provider value={chat}>
       <div {...sidebar.layout}>
         <Sidebar
           sidebar={sidebar}
-          route={route}
           onNewChat={startNewChat}
           onSearch={() => setPalette(true)}
           onNewProject={() => setCreating(true)}
@@ -157,6 +158,7 @@ export function App() {
       </ProjectChatContext.Provider>
       </ApprovalsContext.Provider>
       </ProjectsContext.Provider>
+      </RouteContext.Provider>
     </PlanUsageContext.Provider>
   );
 }

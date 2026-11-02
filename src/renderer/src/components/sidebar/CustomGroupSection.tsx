@@ -4,7 +4,7 @@ import type { AgentState, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { cx } from "../../cx";
 import { flashGroup } from "../../groups";
-import { navigate, openNewChat } from "../../router";
+import { navigate, openNewChat, useRoute } from "../../router";
 import { Collapse } from "../Collapse";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
@@ -25,7 +25,6 @@ export function CustomGroupSection({
   members,
   closed,
   onSetClosed,
-  selected,
   filtering,
   grouping,
   renderRow,
@@ -42,8 +41,6 @@ export function CustomGroupSection({
   members: Row[];
   closed: boolean;
   onSetClosed: (closed: boolean) => void;
-  /** 選んでいる = いまそのグループのボードを見ている */
-  selected: boolean;
   /** 検索・絞り込みの間（並べ方のまとまりを開いて見せる） */
   filtering: boolean;
   grouping: ChatGrouping;
@@ -57,6 +54,9 @@ export function CustomGroupSection({
   dropProps: Record<string, unknown>;
   dragProps: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
 }) {
+  // 選んでいる = いまそのグループのボードを見ている
+  const route = useRoute();
+  const selected = route.name === "project" && route.id === projectId && route.tab === "groups" && route.group === group.id;
   /**
    * 見出しの矢印以外を押したとき（サイドバー全体で同じ）: 選んでいて開いていれば閉じる。
    * それ以外（選んでいない・選んでいて閉じている）は、選び直して開く（そのグループのボードを開いてハイライトし、中も開く）

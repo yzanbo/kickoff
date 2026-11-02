@@ -8,7 +8,7 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { useRunStates } from "../../approvalsContext";
-import { navigate, routeProjectId, type Route } from "../../router";
+import { navigate, routeProjectId, useRoute } from "../../router";
 import {
   SIDEBAR_LAYOUT_KEY,
   SIDEBAR_PROJECT_COLLAPSED_PREFIX,
@@ -35,7 +35,6 @@ interface Props {
   /** プロジェクトごとのチャット（アーカイブしたものも含む）とグループ（useSidebarData） */
   runs: Record<number, Run[]>;
   groups: Record<number, RunGroup[]>;
-  route: Route;
   onNewProject: () => void;
 }
 
@@ -43,7 +42,8 @@ interface Props {
  * Zen Browser のワークスペースのような、プロジェクトごとのサイドバー。
  * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替える。
  */
-export function ProjectNav({ runs, groups, route, onNewProject }: Props) {
+export function ProjectNav({ runs, groups, onNewProject }: Props) {
+  const route = useRoute();
   const { projects } = useProjects();
   const { pending } = useRunStates();
   // 横スライド / 縦並び
@@ -225,7 +225,6 @@ export function ProjectNav({ runs, groups, route, onNewProject }: Props) {
                 project={p}
                 runs={runs[p.id] ?? []}
                 groups={groups[p.id] ?? NO_GROUPS}
-                route={route}
                 hidden={false}
                 collapsed={!waitingOnly && !allSearch.keyword && collapsedMap.get(p.id)}
                 onCollapsedChange={collapsedMap.set}
@@ -265,7 +264,6 @@ export function ProjectNav({ runs, groups, route, onNewProject }: Props) {
               project={p}
               runs={runs[p.id] ?? []}
               groups={groups[p.id] ?? NO_GROUPS}
-              route={route}
               hidden={i !== index}
               collapsed={!waitingOnly && collapsedMap.get(p.id)}
               onCollapsedChange={collapsedMap.set}

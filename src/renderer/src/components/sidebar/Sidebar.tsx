@@ -4,7 +4,7 @@ import { useSharedFlag } from "../../hooks/useStoredState";
 import { sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { useRunStates } from "../../approvalsContext";
-import { href, type Route } from "../../router";
+import { href, useRoute } from "../../router";
 import { ProjectNav } from "./ProjectNav";
 import { SIDEBAR_WAITING_ONLY_KEY } from "../../storageKeys";
 import { waitingRuns } from "./sidebarFlags";
@@ -15,14 +15,14 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 
 interface Props {
   sidebar: SidebarController;
-  route: Route;
   onNewChat: () => void;
   onSearch: () => void;
   onNewProject: () => void;
 }
 
 /** 左のサイドバー（新しいチャット・全プロジェクト・自分待ち・検索、プロジェクトごとのチャット一覧、設定） */
-export function Sidebar({ sidebar, route, onNewChat, onSearch, onNewProject }: Props) {
+export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
+  const route = useRoute();
   const { projects } = useProjects();
   const { pending } = useRunStates();
   // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
@@ -89,7 +89,7 @@ export function Sidebar({ sidebar, route, onNewChat, onSearch, onNewProject }: P
       </div>
       <nav className="sidebar-section" aria-label="プロジェクトとチャット">
         <ChatSelectionContext.Provider value={selection}>
-          <ProjectNav runs={runs} groups={groups} route={route} onNewProject={onNewProject} />
+          <ProjectNav runs={runs} groups={groups} onNewProject={onNewProject} />
         </ChatSelectionContext.Provider>
       </nav>
     </aside>

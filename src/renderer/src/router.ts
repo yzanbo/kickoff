@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { PHASES, type Phase } from "../../core/types";
+import { useWindowEvent } from "./hooks/useWindowEvent";
 
 // プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く
 const PROJECT_TABS = ["board", "groups", "requirements", "schedule", "tasks", "reports", "changes"] as const;
@@ -45,16 +46,20 @@ function parse(hash: string): Route {
   return { name: "allProjects" };
 }
 
-/** ハッシュベースの簡易ルーター（Electron とスマホのブラウザの両方で動く） */
-export function useRoute(): Route {
+/**
+ * ハッシュベースの簡易ルーター（Electron とスマホのブラウザの両方で動く）。
+ * URL の購読は App の 1 回だけ（useHashRoute）で、部品は RouteContext から useRoute() で読む（route を props で中継しない）
+ */
+export function useHashRoute(): Route {
   const [route, setRoute] = useState(() => parse(location.hash));
-  useEffect(() => {
-    const onChange = () => setRoute(parse(location.hash));
-    window.addEventListener("hashchange", onChange);
-    return () => window.removeEventListener("hashchange", onChange);
-  }, []);
+  useWindowEvent("hashchange", () => setRoute(parse(location.hash)));
   return route;
 }
+
+export const RouteContext = createContext<Route>({ name: "allProjects" });
+
+/** いまの画面（App が入れた RouteContext） */
+export const useRoute = () => useContext(RouteContext);
 
 export function href(route: Route): string {
   switch (route.name) {
