@@ -1,8 +1,8 @@
 import { Folder, Inbox, SquarePen } from "lucide-react";
 import { useRef } from "react";
-import type { RunGroup } from "../../../core/types";
-import { useMenuKeys } from "../hooks/useMenuKeys";
-import { clampToViewport, PopupMenu } from "./PopupMenu";
+import type { RunGroup } from "../../../../core/types";
+import { useMenuKeys } from "../../hooks/useMenuKeys";
+import { clampToViewport, PopupMenu } from "../PopupMenu";
 
 /**
  * グループを選ぶメニュー（新しいチャットの作成先・まとめて選んだチャットの移動先）。

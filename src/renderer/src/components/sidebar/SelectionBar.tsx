@@ -4,7 +4,7 @@ import type { Run, RunGroup } from "../../../../core/types";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { confirmArchiveRuns, confirmDeleteRuns, markRunsSeen, moveRunsToGroup } from "../../runActions";
-import { GroupPickMenu } from "../GroupPickMenu";
+import { GroupPickMenu } from "../menus/GroupPickMenu";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 import type { ChatSelection } from "./chatSelection";
 

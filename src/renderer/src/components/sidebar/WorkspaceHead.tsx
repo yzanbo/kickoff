@@ -5,7 +5,7 @@ import { cx } from "../../cx";
 import { changeProject, confirmRestoreProject } from "../../projectOrder";
 import { href, navigate, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
-import { GroupPickMenu } from "../GroupPickMenu";
+import { GroupPickMenu } from "../menus/GroupPickMenu";
 import { IconButton } from "../IconButton";
 import { HeadCounts, type StateFilter } from "./HeadCounts";
 import { pressedLeftOfName } from "./GroupToggle";
