@@ -5,6 +5,7 @@ import type { Bus } from "./bus.js";
 import { errorMessage } from "./errors.js";
 import { currentBranch } from "./git.js";
 import { createKickoffTools } from "./kickoffTools.js";
+import { isInside } from "./paths.js";
 import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import { resolveRunDefaults } from "./sectionDefaults.js";
 import type { AgentProvider } from "./providers/index.js";
@@ -330,10 +331,4 @@ function firstLine(text: string): string {
 /** 参照資料を読めるようにするフォルダ（ファイルはそのフォルダ）。重複は除く */
 function referenceDirectories(project: Project): string[] {
   return [...new Set(project.references.map((r) => (r.kind === "folder" ? r.path : path.dirname(r.path))))];
-}
-
-/** target が dir の中（dir 自身を含む）か */
-function isInside(dir: string, target: string): boolean {
-  const rel = path.relative(path.resolve(dir), path.resolve(target));
-  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
 }

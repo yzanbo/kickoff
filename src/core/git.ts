@@ -4,6 +4,7 @@ import path from "node:path";
 import type { FileContent, GitChangeKind, GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitStatus, GitWorktree, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
 import { prepareWorktree } from "./worktreeSetup.js";
 import { execFileAsync } from "./exec.js";
+import { isInside } from "./paths.js";
 
 /** 差分を返す上限（これより大きければ途中で切る） */
 const MAX_DIFF_CHARS = 400_000;
@@ -98,7 +99,7 @@ export async function gitStatus(repo: string): Promise<GitStatus> {
 async function assertInside(repo: string, file: string): Promise<string> {
   const root = await fs.realpath(repo);
   const target = path.resolve(root, file);
-  if (path.isAbsolute(file) || !target.startsWith(root + path.sep)) throw new Error("リポジトリの外のファイルです");
+  if (path.isAbsolute(file) || target === root || !isInside(root, target)) throw new Error("リポジトリの外のファイルです");
   return target;
 }
 

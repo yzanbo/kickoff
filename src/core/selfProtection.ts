@@ -1,5 +1,6 @@
 import os from "node:os";
 import path from "node:path";
+import { expandHome, isInside } from "./paths.js";
 
 /**
  * エージェントを動かしている Kickoff 自身（製品版で Kickoff を作るときは製品版）。
@@ -63,11 +64,6 @@ const FILE_TOOLS: Record<string, string[]> = {
   Grep: ["path"],
 };
 
-const inside = (file: string, dir: string) => {
-  const rel = path.relative(dir, path.resolve(file.replace(/^~(?=\/)/, os.homedir())));
-  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
-};
-
 /**
  * ツールの呼び出しが、エージェントを動かしている Kickoff 自身を壊すものなら断る:
  * 自分のプロセスを止める（kill・pkill・killall・AppleScript）・アプリ本体に触る・保存先のデータに触る・自分の API を叩く。
@@ -81,7 +77,7 @@ export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: 
 
   for (const key of FILE_TOOLS[toolName] ?? []) {
     const file = input[key];
-    if (typeof file === "string" && file && inside(file, self.dataDir)) {
+    if (typeof file === "string" && file && isInside(self.dataDir, expandHome(file))) {
       return { decision: "deny", reason: join(who, `その保存先（${self.dataDir}）は読み書きできません`, dev) };
     }
   }

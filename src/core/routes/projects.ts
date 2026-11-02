@@ -1,8 +1,8 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import type { Hono } from "hono";
 import { z } from "zod";
+import { expandHome } from "../paths.js";
 import { normalizeScope } from "../scope.js";
 import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES, PROVIDER_IDS, type Project } from "../types.js";
@@ -155,7 +155,7 @@ function resolveReferences(input: { path: string }[]): Project["references"] {
   const seen = new Set<string>();
   const out: Project["references"] = [];
   for (const { path: raw } of input) {
-    const abs = path.resolve(raw.replace(/^~(?=$|\/)/, os.homedir()));
+    const abs = path.resolve(expandHome(raw));
     if (seen.has(abs)) continue;
     let stat: fs.Stats;
     try {

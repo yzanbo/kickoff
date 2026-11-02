@@ -1,5 +1,5 @@
-import fs from "node:fs";
 import path from "node:path";
+import { isInside, realPathLoose } from "./paths.js";
 
 /**
  * 書き込み範囲の制限（プロバイダー非依存）。
@@ -45,34 +45,16 @@ export function normalizeScope(repoPath: string, input: string): string {
   const trimmed = input.trim().replace(/\/+$/, "");
   if (!trimmed) throw new Error("フォルダを指定してください");
   const target = path.resolve(root, trimmed);
-  if (target !== root && !target.startsWith(root + path.sep)) {
-    throw new Error(`リポジトリの外のフォルダは指定できません: ${input}`);
-  }
+  if (!isInside(root, target)) throw new Error(`リポジトリの外のフォルダは指定できません: ${input}`);
   const rel = path.relative(root, target);
   return rel === "" ? "." : rel.split(path.sep).join("/");
 }
 
-/** シンボリックリンクを解決した実体のパス（まだ存在しないファイルは、存在する親から組み立てる） */
-export function realPathLoose(p: string): string {
-  let current = path.resolve(p);
-  const rest: string[] = [];
-  while (!fs.existsSync(current)) {
-    const parent = path.dirname(current);
-    if (parent === current) break;
-    rest.unshift(path.basename(current));
-    current = parent;
-  }
-  return path.join(fs.realpathSync(current), ...rest);
-}
-
-/** filePath が、cwd 配下の scopes のいずれかの中にあるか */
+/** filePath が、cwd 配下の scopes のいずれかの中にあるか（シンボリックリンクは実体で見る） */
 export function isPathInScope(cwd: string, scopes: string[], filePath: string): boolean {
   const target = realPathLoose(path.resolve(cwd, filePath));
   const root = realPathLoose(cwd);
-  return scopes.some((scope) => {
-    const dir = scope === "." ? root : path.join(root, scope);
-    return target === dir || target.startsWith(dir + path.sep);
-  });
+  return scopes.some((scope) => isInside(scope === "." ? root : path.join(root, scope), target));
 }
 
 /** パイプでつないだ各コマンドが読み取り専用か（リダイレクトや連結は不可） */
@@ -133,10 +115,7 @@ export function evaluateReferenceWrite(cwd: string, readOnly: string[], toolName
   const filePath = input[pathKey];
   if (typeof filePath !== "string") return { decision: "pass" };
   const target = realPathLoose(path.resolve(cwd, filePath));
-  const hit = readOnly.find((ref) => {
-    const r = realPathLoose(ref);
-    return target === r || target.startsWith(r + path.sep);
-  });
+  const hit = readOnly.find((ref) => isInside(realPathLoose(ref), target));
   if (!hit) return { decision: "pass" };
   return { decision: "deny", reason: `参照資料（${hit}）は読むだけで、書き込めません` };
 }
