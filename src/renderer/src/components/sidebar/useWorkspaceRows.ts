@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { boardColumnOf } from "../../../../core/board";
 import type { Run, RunGroup } from "../../../../core/types";
 import { useRunStates } from "../../approvalsContext";
@@ -25,20 +25,24 @@ export function useWorkspaceRows({ runs, groups, searchAll }: { runs: Run[]; gro
   const filtering = Boolean(keyword) || waitingOnly || stateFilter !== null;
 
   const { pending, stateOf } = useRunStates();
-  const withState = (run: Run) => ({ run, state: stateOf(run) });
-  const allRows = runs.filter((r) => !r.archived_at).map(withState);
-  // アーカイブしたチャット（一覧の下にまとめて、開閉できる。最初は閉じておく）
-  const archivedRows = runs.filter((r) => r.archived_at).map(withState);
-  const visibleRows = allRows.filter(
-    ({ run, state }) => matches(run) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter),
-  );
-  // 上に固定したチャットは、グループ・グループなしから抜き出して、いちばん上にまとめる
-  const pinnedRows = visibleRows.filter(({ run }) => run.pinned);
-  const rows = visibleRows.filter(({ run }) => !run.pinned);
-  const archivedMatches = archivedRows.filter(({ run }) => matches(run));
-  const groupIds = new Set(groups.map((g) => g.id));
+  // 行の分け方は、チャット・絞り込み・回答待ちの一覧が変わったときだけ計算し直す（matches は検索語が変わるまで同じ関数）
+  const { allRows, visibleRows, pinnedRows, rows, archivedMatches, ungroupedRows } = useMemo(() => {
+    const withState = (run: Run) => ({ run, state: stateOf(run) });
+    const allRows = runs.filter((r) => !r.archived_at).map(withState);
+    // アーカイブしたチャット（一覧の下にまとめて、開閉できる。最初は閉じておく）
+    const archivedRows = runs.filter((r) => r.archived_at).map(withState);
+    const visibleRows = allRows.filter(
+      ({ run, state }) => matches(run) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter),
+    );
+    // 上に固定したチャットは、グループ・グループなしから抜き出して、いちばん上にまとめる
+    const pinnedRows = visibleRows.filter(({ run }) => run.pinned);
+    const rows = visibleRows.filter(({ run }) => !run.pinned);
+    const archivedMatches = archivedRows.filter(({ run }) => matches(run));
+    const groupIds = new Set(groups.map((g) => g.id));
+    const ungroupedRows = rows.filter(({ run }) => run.group_id === null || !groupIds.has(run.group_id));
+    return { allRows, visibleRows, pinnedRows, rows, archivedMatches, ungroupedRows };
+  }, [runs, groups, matches, waitingOnly, stateFilter, stateOf]);
   const groupedRows = (id: number) => rows.filter(({ run }) => run.group_id === id);
-  const ungroupedRows = rows.filter(({ run }) => run.group_id === null || !groupIds.has(run.group_id));
 
   return {
     waitingOnly,
