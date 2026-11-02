@@ -162,3 +162,95 @@ test("プロジェクトの並び順: 作った順に付き、並べ替えられ
   store.reorderProjects([b.id, project.id]);
   assert.ok(store.getProject(b.id)!.position < store.getProject(project.id)!.position);
 });
+
+/** チャットを 1 つ作る（テストの既定: 要件定義・完了） */
+function mkRun(store: Store, projectId: number, title: string, extra: Partial<Parameters<Store["createRun"]>[0]> = {}) {
+  return store.createRun({ project_id: projectId, task_id: null, phase: "requirements", provider: "claude", title, status: "completed", model: null, ...extra });
+}
+
+test("チャットの一覧: アーカイブ済みを含める・だけ・状態・件数で絞り込める（新しい順）", () => {
+  const { store, project } = setup();
+  const other = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
+  const a = mkRun(store, project.id, "a");
+  const b = mkRun(store, project.id, "b", { status: "running" });
+  const c = mkRun(store, project.id, "c", { status: "failed" });
+  const d = mkRun(store, other.id, "d");
+  store.updateRun(c.id, { archived_at: new Date().toISOString() });
+  const ids = (runs: { id: number }[]) => runs.map((r) => r.id);
+
+  // 既定はアーカイブしていないものだけ。新しい順
+  assert.deepEqual(ids(store.listRuns()), [d.id, b.id, a.id]);
+  assert.deepEqual(ids(store.listRuns({ projectId: project.id })), [b.id, a.id]);
+  assert.deepEqual(ids(store.listRuns({ projectId: project.id, includeArchived: true })), [c.id, b.id, a.id]);
+  assert.deepEqual(ids(store.listRuns({ projectId: project.id, onlyArchived: true })), [c.id]);
+  // 状態（アーカイブ済みは含めない限り出ない）
+  assert.deepEqual(ids(store.listRuns({ statuses: ["running", "failed"] })), [b.id]);
+  assert.deepEqual(ids(store.listRuns({ statuses: ["running", "failed"], includeArchived: true })), [c.id, b.id]);
+  assert.deepEqual(ids(store.listRuns({ statuses: [] })), [d.id, b.id, a.id]);
+  // 件数
+  assert.deepEqual(ids(store.listRuns({ limit: 2 })), [d.id, b.id]);
+  assert.deepEqual(ids(store.listRuns({ taskId: 999 })), []);
+});
+
+test("ワークツリーのチャット: 作業場所で探し、片付けると本体に戻る（並び順は変えず、変更を知らせる）", () => {
+  const { store, project, events } = setup();
+  const other = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
+  const wt = "/tmp/demo-worktrees/feat-a";
+  const inWt = mkRun(store, project.id, "a", { worktree_path: wt });
+  const inWt2 = mkRun(store, project.id, "b", { worktree_path: wt });
+  const inMain = mkRun(store, project.id, "c");
+  const otherWt = mkRun(store, other.id, "d", { worktree_path: wt });
+  assert.deepEqual(store.runsInWorktree(project.id, wt).map((r) => r.id), [inWt.id, inWt2.id]);
+  assert.deepEqual(store.runsInWorktree(project.id, "/tmp/none"), []);
+
+  const before = store.getRun(inWt.id)!.updated_at;
+  events.length = 0;
+  store.clearRunWorktree(project.id, wt);
+  assert.equal(store.getRun(inWt.id)!.worktree_path, "");
+  assert.equal(store.getRun(inWt2.id)!.worktree_path, "");
+  assert.equal(store.getRun(inWt.id)!.updated_at, before);
+  // ほかのプロジェクト・本体のチャットは触らない
+  assert.equal(store.getRun(otherWt.id)!.worktree_path, wt);
+  assert.equal(store.getRun(inMain.id)!.worktree_path, "");
+  assert.deepEqual(events.map((e) => e.type === "run" && e.run.id), [inWt.id, inWt2.id]);
+  assert.deepEqual(store.runsInWorktree(project.id, wt), []);
+  // もう一度片付けても何も知らせない
+  events.length = 0;
+  store.clearRunWorktree(project.id, wt);
+  assert.deepEqual(events, []);
+});
+
+test("プロジェクトの書き込み範囲・既定・参照資料は JSON で保存され、そのまま読み戻せる", () => {
+  const { store, project } = setup();
+  assert.deepEqual(project.write_scopes, {});
+  assert.deepEqual(project.references, []);
+  const references = [
+    { path: "/tmp/spec", kind: "folder" as const },
+    { path: "/tmp/notes.md", kind: "file" as const },
+  ];
+  const updated = store.updateProject(project.id, {
+    write_scopes: { requirements: ["docs", "specs"], schedule: [] },
+    defaults: { model: "haiku", effort: "high", permission: "auto", fastMode: true, section: "testing" },
+    references,
+    pinned: true,
+    hue: 222,
+    auto_commit: false,
+  });
+  assert.deepEqual(updated.write_scopes, { requirements: ["docs", "specs"], schedule: [] });
+  assert.deepEqual(updated.defaults, { model: "haiku", effort: "high", permission: "auto", fastMode: true, section: "testing" });
+  assert.deepEqual(updated.references, references);
+  assert.equal(updated.pinned, 1);
+  assert.equal(updated.hue, 222);
+  assert.equal(updated.auto_commit, 0);
+  // 読み直しても同じ。書いていない項目はそのまま
+  const again = store.getProject(project.id)!;
+  assert.deepEqual({ ...again, updated_at: undefined }, { ...updated, updated_at: undefined });
+  const partial = store.updateProject(project.id, { name: "renamed" });
+  assert.equal(partial.name, "renamed");
+  assert.deepEqual(partial.references, references);
+  assert.deepEqual(partial.write_scopes, { requirements: ["docs", "specs"], schedule: [] });
+  // 参照資料を空にできる。フォルダのパスで探せる
+  assert.deepEqual(store.updateProject(project.id, { references: [] }).references, []);
+  assert.equal(store.findProjectByPath("/tmp/demo")?.id, project.id);
+  assert.equal(store.findProjectByPath("/tmp/none"), undefined);
+});
