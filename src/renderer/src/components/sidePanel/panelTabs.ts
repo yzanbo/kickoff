@@ -1,3 +1,7 @@
+import { Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import type { Run } from "../../../../core/types";
+import { chatTitle } from "../../chatTitle";
+import { normalizeUrl } from "../../url";
 import type { PanelTab } from "./useSidePanel";
 
 /**
@@ -21,4 +25,28 @@ export function closeTabs<T extends Pick<PanelTab, "key">>(
     (state, key) => ({ tabs: state.tabs.filter((t) => t.key !== key), activeTab: nextActiveTab(state.tabs, key, state.activeTab) }),
     { tabs: [...tabs], activeTab },
   );
+}
+
+/** ブラウザのタブに出すホスト名（URL として読めなければそのまま） */
+export function hostOf(url: string): string {
+  try {
+    return new URL(normalizeUrl(url)).host || url;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し（セクションの色）、
+ * ブラウザは地球儀、新しいチャットはペン、ターミナルは端末の印にする
+ */
+export function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
+  if (t.kind === "browser") return { Icon: Globe, label: t.title || (t.url ? hostOf(t.url) : "新しいタブ") };
+  if (t.kind === "terminal") return { Icon: SquareTerminal, label: `ターミナル · ${t.label}` };
+  if (t.kind === "new") return { Icon: SquarePen, label: t.groupName ? `新しいチャット · ${t.groupName}` : "新しいチャット" };
+  // ボードの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
+  const run = runs.find((r) => r.id === t.id);
+  const title = run?.title ?? t.title;
+  const phase = run?.phase ?? t.phase;
+  return { Icon: MessageSquare, iconClass: phase ? `sec-icon sec-${phase}` : "muted", label: title === undefined ? "チャット" : chatTitle(title) };
 }
