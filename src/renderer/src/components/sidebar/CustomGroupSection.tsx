@@ -1,5 +1,5 @@
 import { Folder, Plus } from "lucide-react";
-import type { DragEvent, MouseEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { AgentState, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { cx } from "../../cx";
@@ -11,6 +11,7 @@ import { InlineName } from "../InlineName";
 import type { ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { GroupToggle, pressedLeftOfName } from "./GroupToggle";
+import type { GroupSectionProps } from "./useGroupSections";
 
 type Row = { run: Run; state: AgentState };
 
@@ -28,13 +29,7 @@ export function CustomGroupSection({
   filtering,
   grouping,
   renderRow,
-  renaming,
-  onRenameStart,
-  onRenameEnd,
-  menu,
-  dropClass,
-  dropProps,
-  dragProps,
+  section: { menu, renaming, onRenameStart, onRenameEnd, dropClass, dropProps, dragProps },
 }: {
   projectId: number;
   group: RunGroup;
@@ -45,14 +40,8 @@ export function CustomGroupSection({
   filtering: boolean;
   grouping: ChatGrouping;
   renderRow: (row: Row) => ReactNode;
-  renaming: boolean;
-  onRenameStart: () => void;
-  onRenameEnd: () => void;
-  menu: { openFor: (group: RunGroup, e: MouseEvent) => void; button: (group: RunGroup) => ReactNode };
-  /** ドロップ先・並べ替えの見た目 */
-  dropClass?: string;
-  dropProps: Record<string, unknown>;
-  dragProps: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
+  /** 見出しの操作の束（useGroupSections の sectionProps） */
+  section: GroupSectionProps;
 }) {
   // 選んでいる = いまそのグループのボードを見ている
   const route = useRoute();

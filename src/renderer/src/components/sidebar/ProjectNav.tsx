@@ -1,8 +1,6 @@
 import { Archive, Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { ProjectSummary, Run, RunGroup } from "../../../../core/types";
-import { api } from "../../api";
-import { PROJECT_DRAG_TYPE, useReorder } from "../../groups";
 import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
@@ -21,6 +19,7 @@ import { GroupToggle } from "./GroupToggle";
 import { ProjectListHead, type NavLayout } from "./ProjectListHead";
 import { useProjectMenu } from "./ProjectMenu";
 import { WorkspaceDots } from "./WorkspaceDots";
+import { useProjectReorder } from "./useProjectReorder";
 import { useChatSelection } from "./chatSelection";
 import { SelectionBar } from "./SelectionBar";
 import { WorkspacePage } from "./WorkspacePage";
@@ -70,20 +69,9 @@ export function ProjectNav({ runs, groups, onNewProject }: Props) {
   const hasMatch = (p: ProjectSummary) => (runs[p.id] ?? []).some((r) => (!r.archived_at || showArchivedChats) && allSearch.matches(r));
   const base = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const ordered = allSearch.keyword ? base.filter(hasMatch) : base;
-  const reorder = useReorder(
-    visible.map((p) => p.id),
-    (ids) => void api.reorderProjects(ids),
-    PROJECT_DRAG_TYPE,
-  );
-  /** 並べ替えのドロップ先にする（プロジェクトのアイコン・縦並びの各プロジェクト。しまったものは除く） */
-  const reorderDrop = (id: number) => (!canReorder || isArchived(id) ? {} : {
-    onDragOver: (e: React.DragEvent) => void reorder.over(e, id),
-    onDragLeave: (e: React.DragEvent) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) reorder.leave(id);
-    },
-    onDrop: (e: React.DragEvent) => void reorder.drop(e, id),
-  });
   const isArchived = (id: number) => archived.some((p) => p.id === id);
+  // ドラッグでの並べ替え（縦並びのカード・横スライドの丸で共通。しまったものは除く）
+  const reorder = useProjectReorder({ ids: visible.map((p) => p.id), canReorder, isArchived });
   const [currentId, setCurrentId] = useState(loadCurrentProject);
   // 下の丸の右クリックメニュー（プロジェクトに対する操作）
   const projectMenu = useProjectMenu(projects);
@@ -220,7 +208,7 @@ export function ProjectNav({ runs, groups, onNewProject }: Props) {
             {hasPinned && i === firstUnpinned && <div className="project-section-label">プロジェクト</div>}
             {/* しまったプロジェクトのまとまりの見出し（押して開閉する。初めは閉じている） */}
             {i === visible.length && archivedHead}
-            <div className={cx("stack-item", !canReorder || isArchived(p.id) ? "" : reorder.classFor(p.id))} {...reorderDrop(p.id)}>
+            <div className={cx("stack-item", reorder.classFor(p.id))} {...reorder.dropProps(p.id)}>
               <WorkspacePage
                 project={p}
                 runs={runs[p.id] ?? []}
@@ -229,7 +217,7 @@ export function ProjectNav({ runs, groups, onNewProject }: Props) {
                 collapsed={!waitingOnly && !allSearch.keyword && collapsedMap.get(p.id)}
                 onCollapsedChange={collapsedMap.set}
                 searchAll={allSearch.keyword}
-                headDrag={!canReorder || isArchived(p.id) ? undefined : reorder.handle(p.id)}
+                headDrag={reorder.handle(p.id)}
               />
             </div>
             </Fragment>
@@ -278,10 +266,8 @@ export function ProjectNav({ runs, groups, onNewProject }: Props) {
           projects={ordered}
           index={index}
           countsOf={(id) => stateCounts(runs[id] ?? [], pending)}
-          canReorder={canReorder}
           isArchived={isArchived}
           reorder={reorder}
-          reorderDrop={reorderDrop}
           onGo={go}
           onMenu={projectMenu.open}
           onNewProject={onNewProject}
