@@ -14,18 +14,13 @@ const EDGE_PULL_MAX = 36;
 export function useWorkspaceSwipe({ index, count, go }: { index: number; count: number; go: (to: number) => void }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  // 1 回のスワイプの状態。committed: すでに切り替えた（残りの慣性のイベントは無視する）
+  // 1 回のスワイプの状態。committed: すでに切り替えた（ジェスチャーが終わるまで、残りの慣性のイベントはすべて無視する）
   const gesture = useRef<{
     total: number;
     timer?: ReturnType<typeof setTimeout>;
     active: boolean;
     committed: boolean;
-    committedAt: number;
-    /** 切り替えたあとの慣性で見た、いちばん小さい移動量（慣性は小さくなっていく） */
-    floor: number;
-    /** floor よりはっきり大きい移動量が続いた回数（続けば、新しいスワイプ） */
-    rising: number;
-  }>({ total: 0, active: false, committed: false, committedAt: 0, floor: Infinity, rising: 0 });
+  }>({ total: 0, active: false, committed: false });
 
   /**
    * スライド位置を要素に直接反映する（指に追従させる間は React の再描画を挟まない）。
@@ -79,25 +74,12 @@ export function useWorkspaceSwipe({ index, count, go }: { index: number; count: 
       g.active = false;
       g.committed = false;
     }, GESTURE_END_MS);
-    if (g.committed) {
-      // 切り替えたあとに届く慣性のイベントは無視する（遅れて二重に動いたり、端で引っ張られたままにならないように）。
-      // 慣性は揺らぎながら小さくなっていくので、1 回だけ大きいのは揺らぎとみなし、
-      // 底からはっきり大きい移動量が続いたときだけ、続けて行った次のスワイプとして受け付ける
-      const abs = Math.abs(e.deltaX);
-      g.floor = Math.min(g.floor, abs);
-      g.rising = abs > g.floor * 2 + 4 ? g.rising + 1 : 0;
-      // その向きに隣のプロジェクトがなければ、次のスワイプでも動かさない（端で引っ張られたままになるのを防ぐ）
-      const canMove = e.deltaX > 0 ? index < count - 1 : index > 0;
-      if (performance.now() - g.committedAt < 120 || g.rising < 3 || !canMove) return;
-      g.committed = false;
-      g.total = 0;
-    }
+    // 1 回のジェスチャー（指を離したあとの慣性を含む）では 1 つだけ移る。切り替えたあとのイベントは、途切れるまですべて無視する
+    // （慣性を次のスワイプと取り違えて、いくつも先のプロジェクトまで動かないように。続けて移るときは、止まってからもう一度スワイプする）
+    if (g.committed) return;
     g.total += e.deltaX;
     if (commitIfFar(g.total)) {
       g.committed = true;
-      g.committedAt = performance.now();
-      g.floor = Infinity;
-      g.rising = 0;
       return;
     }
     place(resist(Math.max(-width(), Math.min(width(), g.total))));
