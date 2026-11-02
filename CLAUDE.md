@@ -45,7 +45,7 @@
 | モデル・推論の深さ・権限モードの選択肢 | `ModelOptions` / `EffortOptions` / `PermissionOptions` |
 | 状態の点 | `StatusDot` ＋ `toneOf` |
 | CLI の状態カード | `StatusCard` / `GitHubStatusCard`。カードとその並びは `.card` / `.card-grid` |
-| サイドバーのチャットの並べ方 | `ChatGroupingMenu`（見出しのボタンからメニューで選ぶ: 新しい順・状態・作業場所（ブランチ）・セクションと、アーカイブ済みを出すか（`kickoff:sidebar-show-archived`）・1 行で出すか（`kickoff:sidebar-compact`。どのプロジェクトでも同じなので `useSharedFlag`）。上の行の「自分待ち」（`kickoff:sidebar-waiting-only`）は回答待ち・確認待ちのチャットとそのプロジェクトだけを出す（`sidebarFlags.ts` の `waitingRuns`。数はしまったプロジェクトを除く）。チャットの固定（`runs.pinned`、`togglePinRun`。並び順の時刻は変えない）は、プロジェクトのいちばん上の「固定」のまとまりに抜き出す（固定・アーカイブ済みのまとまりは `RowSection`）。行に乗せると右端に固定・アーカイブ・削除（`runActions.ts` の `toggleArchiveRun` / `confirmDeleteRun`。右クリックのメニューと共通）。保存は `kickoff:sidebar-grouping` の `recent` / `status` をそのまま使い、`worktree` / `phase` を足した）。まとめた表示は `GroupedChatRows`（グループなしと、自分で作ったグループの中の両方をまとめる。まとまりごとに開閉し、`kickoff:sidebar-group-closed:<プロジェクト>:<並べ方>:<まとまり>` に覚える。検索中はすべて開く） |
+| サイドバーのチャットの並べ方 | `ChatGroupingMenu`（プロジェクト一覧の上の見出しの行のボタンからメニューで選ぶ。すべてのプロジェクトに効く: 新しい順・状態・作業場所（ブランチ）・セクションと、アーカイブ済みを出すか（`kickoff:sidebar-show-archived`）・1 行で出すか（`kickoff:sidebar-compact`。どのプロジェクトでも同じなので `useSharedFlag`）。上の行の「自分待ち」（`kickoff:sidebar-waiting-only`）は回答待ち・確認待ちのチャットとそのプロジェクトだけを出す（`sidebarFlags.ts` の `waitingRuns`。数はしまったプロジェクトを除く）。チャットの固定（`runs.pinned`、`togglePinRun`。並び順の時刻は変えない）は、プロジェクトのいちばん上の「固定」のまとまりに抜き出す（固定・アーカイブ済みのまとまりは `RowSection`）。行に乗せると右端に固定・アーカイブ・削除（`runActions.ts` の `toggleArchiveRun` / `confirmDeleteRun`。右クリックのメニューと共通）。保存は `kickoff:sidebar-grouping` の `recent` / `status` をそのまま使い、`worktree` / `phase` を足した）。まとめた表示は `GroupedChatRows`（グループなしと、自分で作ったグループの中の両方をまとめる。まとまりごとに開閉し、`kickoff:sidebar-group-closed:<プロジェクト>:<並べ方>:<まとまり>` に覚える。検索中はすべて開く） |
 | サイドバーの表示方法 | プロジェクト一覧の上の見出しの行 `ProjectListHead`（VS Code のエクスプローラーの見出しと同じ形。すべて閉じる / 開く・アーカイブしたプロジェクトを出すか・並べ方を常に出す）。下の行は主な操作だけ（縦並びは新しいプロジェクト、横スライドはプロジェクトの丸）。表示方法の操作は下の行に足さない（狭いと折り返す）。メニューに隠さない |
 | サイドバーのグループの開閉 | `GroupToggle`。開閉の矢印は `Chevron` |
 | ボードのスイムレーン | 表示の切り替えの 3 つ目（ボード / リスト / スイムレーン。`kickoff:board-view` / `kickoff:group-view` の `lanes`）。`BoardLanes`（列はどれも状態。カンバンの段の分け方: 作業場所（ブランチ）・セクション・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、`kickoff:board-lanes`。グループのタブは段 = グループで、列は下書き＋状態（`GroupLaneColumns`）。段へカードをドラッグするとグループを移す。段ごとに状態の列を並べ、見出しで開閉（`kickoff:board-lane-closed:`）） |
@@ -54,7 +54,7 @@
 | 画像を大きく見る | `ImageViewer`（アプリの中で開く。外のブラウザには Kickoff のログインがないので、添付を外で開かない。画像以外の添付はアプリの中でダウンロード）。画像以外を大きく見せるときは children、見出しのボタンは actions で渡す（Mermaid の図の全画面） |
 | コードの色付け | `useHighlight`（行ごとの色。VS Code の Dark+ / Light+ でダーク・ライトに合わせる）＋ `CodeLine`（1 行を描く）。言語はファイル名から `languageOf`（`highlight.ts`）。色付けのライブラリ（Shiki）は使うときだけ読み込む |
 | Markdown の表示 | `Markdown`（```mermaid は `MermaidDiagram` で図にする。生成中の返答には `streaming` を付け、書きかけの図を描かない） |
-| プロジェクトのバッジ | `ProjectChip`（押してカンバンを開くなら `linked`、名前の代わりに選択欄などを置くなら children）。プロジェクトの並び順は `sidebarOrder`（上に固定したものが先、アーカイブしたものは出さない。アーカイブ済みは `archivedProjects`）。見出しのカード（`WorkspaceHead`）に常に出すのは、いつも使うもの（開閉・名前・状態ごとのチャット数 `HeadCounts`（作業中・回答待ち・確認待ち。色はカンバンの列と同じ）・＋・固定の印）だけ。固定する・チャットの並べ方・グループを作成はマウスを乗せたときだけ（`.workspace-hover-actions`）。右クリックはプロジェクトに対するすべての操作をまとまりに分けた `useProjectMenu`（このプロジェクト / 整理 / チャットの表示（すべてのプロジェクト）/ 編集・削除）。操作を足すときは、まずこのメニューに入れ、常に出すかは別に考える。並び順は見出しの行で「最近動いた順」も選べる（`kickoff:sidebar-project-order`。そのときはドラッグで並べ替えない）。変更は `changeProject`。サイドバーにしまったものを出すかは `kickoff:sidebar-show-archived-projects`（初めは閉じる。見出しの行のボタンと、縦並びでは一覧の下の見出しで切り替える） |
+| プロジェクトのバッジ | `ProjectChip`（押してカンバンを開くなら `linked`、名前の代わりに選択欄などを置くなら children）。プロジェクトの並び順は `sidebarOrder`（上に固定したものが先、アーカイブしたものは出さない。アーカイブ済みは `archivedProjects`）。見出しのカード（`WorkspaceHead`）に常に出すのは、いつも使うもの（開閉・名前・状態ごとのチャット数 `HeadCounts`（作業中・回答待ち・確認待ち。色はカンバンの列と同じ）・＋・固定の印）だけ。固定のボタンはいつも出し、固定しているかは色と塗りで分ける。右クリックはプロジェクトに対する操作をまとまりに分けた `useProjectMenu`（このプロジェクト / 整理 / 編集・削除）。すべてのプロジェクトに効く設定（チャットの並べ方・アーカイブ済みを表示・1 行で表示の `ChatGroupingMenu`）はプロジェクトのメニューに入れず、一覧の上の見出しの行 `ProjectListHead` に置く。操作を足すときは、まずこのメニューに入れ、常に出すかは別に考える。並び順は見出しの行で「最近動いた順」も選べる（`kickoff:sidebar-project-order`。そのときはドラッグで並べ替えない）。変更は `changeProject`。サイドバーにしまったものを出すかは `kickoff:sidebar-show-archived-projects`（初めは閉じる。見出しの行のボタンと、縦並びでは一覧の下の見出しで切り替える） |
 | 画面の見出しの名前（プロジェクトの切り替え） | `ProjectSwitcher`（全プロジェクトの画面（サイドバーの「全プロジェクト」）は `project` なし。メニューの先頭で全プロジェクトに戻る。カンバンにプロジェクトの絞り込みは置かない） |
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |
@@ -85,6 +85,7 @@
 - 使用率の段階: 70% から注意、90% から警告（`usageLevel`）。数値がまだ届いていないときも 0% として出す。
 - 未読は確認待ちの印（`attention`）。印の付け外しは `setRunAttention` で行い、最後に動いた時刻（一覧の並び順）を変えない。印を消すのは、パネルでそのチャットを表示したときと、見ている間に作業が終わったときだけ。
 - 閉じるボタンのアイコンの大きさ: ポップオーバー 14、パネルと引き出し 15、ダイアログ 16。
+- マウスを乗せたときだけ出す操作・表示は作らない（基本的に NG）。いつも出すか、右クリックのメニューに入れる。状態（固定しているかなど）は、出す・隠すで分けず、見た目（色・塗り）で分ける。
 - アイコンだけの操作には必ず名前を付ける（`IconButton` の `label`）。選択肢の組は radiogroup / radio と aria-checked（`Segmented`）、開閉は aria-expanded と title。
 
 ## CSS（`styles.css` の 1 ファイル）

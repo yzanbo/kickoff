@@ -1,4 +1,4 @@
-import { ArchiveRestore, FolderPlus, Pin, Plus } from "lucide-react";
+import { ArchiveRestore, Pin, Plus } from "lucide-react";
 import { useState, type DragEvent } from "react";
 import type { ProjectSummary, RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
@@ -8,16 +8,16 @@ import { href, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
-import { ChatGroupingMenu, type ChatGrouping } from "./ChatGroupingMenu";
 import { HeadCounts } from "./HeadCounts";
 import { useProjectMenu } from "./ProjectMenu";
 import type { StateCounts } from "./sidebarFlags";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
- * 常に出すのは、いつも使うものだけ: チャット一覧の開閉・名前（押すとカンバン）・状態ごとのチャット数・新しいチャット（＋）と、固定の印。
- * マウスを乗せたとき（ピントがあるとき）だけ出す: 固定する・チャットの並べ方・グループを作成。
- * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを常に出す。
+ * 出すのは、いつも使うものだけ: チャット一覧の開閉・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
+ * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
+ * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
+ * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを出す。
  * 右クリックで、プロジェクトに対するすべての操作をまとまりに分けたメニュー（useProjectMenu）
  */
 export function WorkspaceHead({
@@ -28,10 +28,6 @@ export function WorkspaceHead({
   onToggleCollapsed,
   chatCount,
   counts,
-  grouping,
-  onGroupingChange,
-  showArchived,
-  onShowArchived,
   onCreateGroup,
   headDrag,
 }: {
@@ -43,11 +39,6 @@ export function WorkspaceHead({
   chatCount: number;
   /** 作業中・回答待ち・確認待ちのチャット数 */
   counts: StateCounts;
-  grouping: ChatGrouping;
-  onGroupingChange: (grouping: ChatGrouping) => void;
-  /** アーカイブ済みのチャットを一覧の下に出すか */
-  showArchived: boolean;
-  onShowArchived: (show: boolean) => void;
   onCreateGroup: () => void;
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
@@ -85,24 +76,19 @@ export function WorkspaceHead({
         {project.archived_at ? (
           <IconButton icon={ArchiveRestore} label={`${project.name} をアーカイブから戻す`} title="アーカイブから戻す" onClick={() => changeProject(project.id, { archived: false })} />
         ) : (
+          // いつも出し、固定しているか見た目で分かるようにする（固定: プロジェクトの色で塗る / していない: 薄い灰の線）
           <IconButton
             icon={Pin}
             size={13}
             className={cx("workspace-pin", project.pinned > 0 && "pinned")}
+            iconClassName={project.pinned > 0 ? "pin-filled" : undefined}
             label={project.pinned ? `${project.name} の固定をやめる` : `${project.name} を上に固定`}
-            title={project.pinned ? "固定をやめる" : "上に固定"}
-            aria-pressed={Boolean(project.pinned)}
+            title={project.pinned ? "上に固定しています（押すと固定をやめる）" : "上に固定"}
+            aria-pressed={project.pinned > 0}
             onClick={() => changeProject(project.id, { pinned: !project.pinned })}
           />
         )}
         <HeadCounts counts={counts} />
-        {/* マウスを乗せたときだけ出す（右クリックのメニューにも同じものがある） */}
-        <span className="workspace-hover-actions">
-          {!collapsed && (
-            <ChatGroupingMenu value={grouping} onChange={onGroupingChange} showArchived={showArchived} onShowArchived={onShowArchived} />
-          )}
-          <IconButton icon={FolderPlus} label={`${project.name} にグループを作成`} title="グループを作成" onClick={onCreateGroup} />
-        </span>
         <IconButton
           icon={Plus}
           label={`${project.name} の新しいチャット`}

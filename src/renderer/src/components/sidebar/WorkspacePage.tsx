@@ -48,9 +48,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
 }) {
-  const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  const [grouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
-  const [showArchived, setShowArchived] = useSharedFlag(SHOW_ARCHIVED_KEY);
+  const [showArchived] = useSharedFlag(SHOW_ARCHIVED_KEY);
   // 自分待ち（回答待ち・確認待ち）だけを出すか（上の行の「自分待ち」で切り替える）
   const [waitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
   // 見出しのクリックでチャット一覧を開閉する
@@ -135,10 +135,6 @@ export const WorkspacePage = memo(function WorkspacePage({
         onToggleCollapsed={toggleCollapsed}
         chatCount={allRows.length}
         counts={stateCounts(runs, approvals)}
-        grouping={grouping}
-        onGroupingChange={setGrouping}
-        showArchived={showArchived}
-        onShowArchived={setShowArchived}
         onCreateGroup={startCreate}
         headDrag={headDrag}
       />
