@@ -122,6 +122,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       state={state}
       active={route.name === "run" && route.runId === run.id}
       onMenu={(at) => setRowMenu({ ...at, run })}
+      onRename={() => rename.start(run)}
       rename={rename.editorFor(run)}
     />
   );
