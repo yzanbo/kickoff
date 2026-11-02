@@ -1,9 +1,14 @@
+import { createContext, useContext } from "react";
 import { useDragWidth } from "../../hooks/useDragWidth";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 
 export type ProjectChatController = ReturnType<typeof useProjectChat>;
+
+/** プロジェクトのチャット欄（App が持つ）。ボードが、欄で書いている途中の新しいチャットも「下書き」に出すのに使う */
+export const ProjectChatContext = createContext<ProjectChatController | null>(null);
+export const useProjectChatContext = () => useContext(ProjectChatContext);
 
 /**
  * プロジェクトのチャット欄（画面の右端。どのタブでも開ける。Cursor・VS Code の右のチャットと同じ）の状態。
@@ -39,6 +44,11 @@ export function useProjectChat(projectId: number | undefined) {
     projectId,
     open,
     toggle,
+    /** 欄を開いて、そのタブを表示する（ボードの下書きを押したとき） */
+    showTab: (key: string) => {
+      if (projectId !== undefined) openMap.set(projectId, true);
+      panel.showTab(key);
+    },
     close: () => projectId !== undefined && openMap.set(projectId, false),
     panel,
     width,
