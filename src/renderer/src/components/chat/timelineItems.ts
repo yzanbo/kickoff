@@ -98,7 +98,12 @@ export function toolLabel(name: string): string {
   return TOOL_LABELS[name] ?? name;
 }
 
-/** 表示用にリポジトリの絶対パスを相対パスにする */
+/**
+ * 表示用にリポジトリの絶対パスを相対パスにする（`repo/` を外し、リポジトリそのものは「.」）。
+ * `repo-worktrees/...` のように、リポジトリの名前に文字が続く別のパスは変えない
+ */
 export function relativize(text: string, repo: string): string {
-  return text.split(`${repo}/`).join("").split(repo).join(".");
+  if (!repo) return text;
+  const escaped = repo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return text.replace(new RegExp(`${escaped}/|${escaped}(?![\\w.-])`, "g"), (m) => (m.endsWith("/") ? "" : "."));
 }
