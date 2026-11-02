@@ -1,9 +1,9 @@
 import { Archive, ArchiveRestore, Mail, MailOpen, PanelRight, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
-import type { Run } from "../../../core/types";
-import { api } from "../api";
-import { errorMessage } from "../errors";
-import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../runActions";
-import { clampToViewport, PopupMenu } from "./PopupMenu";
+import type { Run } from "../../../../core/types";
+import { api } from "../../api";
+import { errorMessage } from "../../errors";
+import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../../runActions";
+import { clampToViewport, PopupMenu } from "../PopupMenu";
 
 /** チャットの右クリックメニュー（カンバンのカード・グループのボード・サイドバー）: 開く・名前を変更・既読 / 未読・サイドバーの上に固定・アーカイブ・削除 */
 export function CardMenu({

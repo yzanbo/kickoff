@@ -11,8 +11,8 @@ import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from 
 import { projectHue } from "../../projectColor";
 import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, SIDEBAR_WAITING_ONLY_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
 import { openNewChat, openRun, type Route, routeProjectId } from "../../router";
-import { CardMenu } from "../CardMenu";
-import { useGroupMenu } from "../GroupMenu";
+import { CardMenu } from "../menus/CardMenu";
+import { useGroupMenu } from "../menus/GroupMenu";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { SearchField } from "../SearchField";

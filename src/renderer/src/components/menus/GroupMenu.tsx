@@ -1,8 +1,8 @@
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
-import type { RunGroup } from "../../../core/types";
-import { IconButton } from "./IconButton";
-import { clampToViewport, PopupMenu } from "./PopupMenu";
+import type { RunGroup } from "../../../../core/types";
+import { IconButton } from "../IconButton";
+import { clampToViewport, PopupMenu } from "../PopupMenu";
 
 /**
  * グループの「…」メニュー（名前を変更・削除）。ホバーで表示が変わらないよう、「…」ボタンはいつも出しておき、
