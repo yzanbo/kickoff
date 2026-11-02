@@ -75,9 +75,9 @@ export function WorkspaceHead({
         }}
         {...headDrag}
       >
-        {/* 開閉のボタン（プロジェクトの色の四角に、いつも開閉の矢印を出す。押すと、選んでいてもいなくても開閉する） */}
+        {/* 開閉の矢印（プロジェクトの色。押すと、選んでいてもいなくても開閉だけする） */}
         <button
-          className="workspace-avatar workspace-toggle"
+          className="workspace-toggle"
           aria-expanded={!collapsed}
           aria-label={collapsed ? `${project.name} のチャット一覧を開く` : `${project.name} のチャット一覧を閉じる`}
           title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
