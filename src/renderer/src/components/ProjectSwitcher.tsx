@@ -11,7 +11,7 @@ import { clampToViewport, PopupMenu } from "./PopupMenu";
 const ALL_PROJECTS = "全プロジェクト";
 
 /**
- * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。サイドバーと同じプロジェクトの色のカード（頭文字と名前）にして、どのプロジェクトかを色でもわかるようにする。
+ * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。サイドバーと同じプロジェクトの色のカード（名前だけ。頭文字の四角は付けない）にして、どのプロジェクトかを色でもわかるようにする。
  * project がなければ全プロジェクト。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
  * （全プロジェクトから選んだときはカンバン）。しまった（アーカイブした）プロジェクトは下の「アーカイブ済み」に分けて出す。プロジェクトがなければ押せない
  */
@@ -21,9 +21,7 @@ export function ProjectSwitcher({ project, projects, tab = "board" }: { project?
   const className = project ? "project-switch" : "project-switch all-projects";
   const identity = (
     <>
-      <span className="workspace-avatar" aria-hidden>
-        {project ? initialOf(project.name) : <LayoutGrid size={15} />}
-      </span>
+      {!project && <LayoutGrid size={16} aria-hidden />}
       <span className="project-switch-name">{project ? project.name : ALL_PROJECTS}</span>
     </>
   );
