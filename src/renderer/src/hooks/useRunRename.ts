@@ -1,10 +1,14 @@
 import { useState } from "react";
 import type { Run } from "../../../core/types";
 import { api } from "../api";
+import { alertDialog } from "../dialogs";
 import { errorMessage } from "../errors";
 
-/** チャットの名前をその場で変える（右クリックメニューの「名前を変更」から。ダイアログは出さない） */
-export function useRunRename(onError: (message: string) => void) {
+/** 名前を変えられなかったときの既定の知らせ方（お知らせのダイアログ） */
+const alertRenameFailure = (message: string) => void alertDialog("名前を変更できませんでした", message);
+
+/** チャットの名前をその場で変える（右クリックメニューの「名前を変更」から。ダイアログは出さない）。onError を省くとお知らせで出す */
+export function useRunRename(onError: (message: string) => void = alertRenameFailure) {
   const [renamingId, setRenamingId] = useState<number | null>(null);
   return {
     start: (run: Run) => setRenamingId(run.id),

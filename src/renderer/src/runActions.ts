@@ -82,3 +82,9 @@ export const markRunsSeen = (runs: Run[]) => eachRun(runs.filter((r) => r.attent
 
 /** まとめてグループへ移す（null はグループなし。同じプロジェクトのチャットだけ） */
 export const moveRunsToGroup = (runs: Run[], groupId: number | null) => eachRun(runs, "移動", (r) => api.setRunGroup(r.id, groupId));
+
+/** 失敗をお知らせのダイアログで知らせる（操作の catch に渡す） */
+export const reportFailure = (title: string) => (e: unknown) => alertDialog(title, errorMessage(e));
+
+/** 確かめずに、チャットをアーカイブする（アーカイブ済みなら戻す。チャットの見出しのボタン。失敗はお知らせで出す） */
+export const toggleArchiveRunNow = (run: Pick<Run, "id" | "archived_at">) => api.archiveRun(run.id, !run.archived_at).catch(reportFailure("アーカイブできませんでした"));

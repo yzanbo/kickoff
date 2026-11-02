@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import type { Phase, ProjectSummary, Run } from "../../../../core/types";
+import type { Phase, Project, ProjectSummary, Run } from "../../../../core/types";
 import { cx } from "../../cx";
+import { baseName } from "../../format";
 import { useServerEvent } from "../../events";
 import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
@@ -40,6 +41,13 @@ export interface TerminalTarget {
 export function terminalTargets(projects: ProjectSummary[], projectId?: number): TerminalTarget[] {
   const list = projectId === undefined ? sidebarOrder(projects) : projects.filter((p) => p.id === projectId);
   return list.map((p) => ({ cwd: p.repo_path, label: p.name, projectId: p.id }));
+}
+
+/** チャットの作業場所（ワークツリーなら、そのフォルダ。なければプロジェクトの本体）でターミナルを開くときの場所 */
+export function terminalTargetOf(run: Pick<Run, "worktree_path">, project: Pick<Project, "id" | "name" | "repo_path">): TerminalTarget {
+  return run.worktree_path
+    ? { cwd: run.worktree_path, label: baseName(run.worktree_path), projectId: project.id }
+    : { cwd: project.repo_path, label: project.name, projectId: project.id };
 }
 
 const chatKey = (id: number) => `chat:${id}`;
