@@ -8,7 +8,7 @@ import { errorMessage } from "../../errors";
 import { useHighlight } from "../../hooks/useHighlight";
 import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
-import { useGitTarget } from "./worktreeContext";
+import { useGitTarget } from "../../worktree/worktreeContext";
 
 // 編集の部品（Monaco）は大きいので、「編集」を押したときに初めて読み込む
 const CodeEditor = lazy(() => import("./CodeEditor"));

@@ -1,7 +1,7 @@
 import { GitBranch } from "lucide-react";
 import { cx } from "../../cx";
 import { promptDialog } from "../../dialogs";
-import { useWorktrees, worktreeLabel } from "./WorktreePicker";
+import { useWorktrees, worktreeLabel } from "../../worktree/WorktreePicker";
 
 /** 新しいチャットの作業場所（本体・いまあるワークツリー・新しく作るワークツリー） */
 export type Workplace = { kind: "main" } | { kind: "existing"; path: string } | { kind: "new"; branch: string };

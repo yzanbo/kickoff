@@ -22,7 +22,7 @@ import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectSwitcher } from "../components/project/ProjectSwitcher";
 import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
-import { WorktreeContext } from "../components/changes/worktreeContext";
+import { WorktreeContext } from "../worktree/worktreeContext";
 import { useStoredState } from "../hooks/useStoredState";
 import { editorWorktreeKey } from "../storageKeys";
 import { errorMessage } from "../errors";

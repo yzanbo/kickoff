@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ProjectSearchQuery, ProjectSearchResult } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
-import { useGitTarget } from "./worktreeContext";
+import { useGitTarget } from "../../worktree/worktreeContext";
 
 /** 打つのが止まってから探すまでの時間 */
 const DEBOUNCE_MS = 300;

@@ -15,7 +15,7 @@ import { CommitBox } from "./CommitBox";
 import { HistoryMain, HistorySidebar } from "./HistoryView";
 import { useGitLog } from "./useGitLog";
 import { WorktreeBar } from "./WorktreeBar";
-import { WorktreePicker } from "./WorktreePicker";
+import { WorktreePicker } from "../../worktree/WorktreePicker";
 import { DiffView } from "./DiffView";
 import { FileTree } from "./FileTree";
 import { FileView } from "./FileView";

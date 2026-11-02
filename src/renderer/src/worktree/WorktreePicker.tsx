@@ -1,8 +1,8 @@
 import { FolderGit2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { GitWorktree } from "../../../../core/types";
-import { api } from "../../api";
-import { cx } from "../../cx";
+import type { GitWorktree } from "../../../core/types";
+import { api } from "../api";
+import { cx } from "../cx";
 
 /** ワークツリーの短い名前（ブランチ名。なければフォルダ名） */
 export const worktreeLabel = (w: Pick<GitWorktree, "branch" | "path">) => w.branch ?? w.path.split("/").pop() ?? w.path;

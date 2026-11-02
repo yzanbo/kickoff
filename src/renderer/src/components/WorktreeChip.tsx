@@ -1,7 +1,7 @@
 import { GitBranch } from "lucide-react";
 import type { Run } from "../../../core/types";
 import { cx } from "../cx";
-import { useRunWorkplace } from "../worktreeBranches";
+import { useRunWorkplace } from "../worktree/worktreeBranches";
 
 /**
  * チャットが作業しているブランチの印（すべてのチャットに出す）。ワークツリーで作業しているチャットは色を付け、本体のチャットは控えめにする。

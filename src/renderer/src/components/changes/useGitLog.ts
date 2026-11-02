@@ -3,7 +3,7 @@ import type { GitCommit, GitRefs, GitWorktree } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { layoutGraph } from "./commitGraph";
-import { useGitTarget } from "./worktreeContext";
+import { useGitTarget } from "../../worktree/worktreeContext";
 
 /**
  * 履歴（すべてのブランチ）とグラフ。active（履歴を表示している）の間だけ読み、version が変わったら

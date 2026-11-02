@@ -1,4 +1,4 @@
-import type { GitWorktree, Run } from "../../core/types";
+import type { GitWorktree, Run } from "../../../core/types";
 
 /** ワークツリーのブランチ名（ブランチから外れていれば "HEAD a1b2c3d"） */
 export const branchName = (w: GitWorktree) => w.branch ?? `HEAD ${w.head.slice(0, 7)}`;

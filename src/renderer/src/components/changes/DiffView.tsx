@@ -12,7 +12,7 @@ import { CodeLine } from "../CodeLine";
 import { ErrorText } from "../ErrorText";
 import { Segmented } from "../Segmented";
 import { parseDiff, toSplitRows, type DiffLine } from "./parseDiff";
-import { useGitTarget } from "./worktreeContext";
+import { useGitTarget } from "../../worktree/worktreeContext";
 
 type DiffLayout = "split" | "unified";
 

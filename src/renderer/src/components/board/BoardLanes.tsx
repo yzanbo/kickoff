@@ -6,8 +6,8 @@ import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { initialOf, projectHue } from "../../projectColor";
 import { SECTION_META } from "../../sections";
 import { BOARD_LANE_CLOSED_PREFIX } from "../../storageKeys";
-import { useWorktreeLists } from "../../worktreeBranches";
-import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "../../workplace";
+import { useWorktreeLists } from "../../worktree/worktreeBranches";
+import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "../../worktree/workplace";
 import { GroupToggle } from "../sidebar/GroupToggle";
 
 /**
