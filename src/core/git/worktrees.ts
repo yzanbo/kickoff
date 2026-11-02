@@ -1,0 +1,80 @@
+// ワークツリー（同じリポジトリの別のブランチを、隣のフォルダに取り出す）
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { GitWorktree } from "../types.js";
+import { prepareWorktree } from "../worktreeSetup.js";
+import { gitOutput } from "./exec.js";
+
+/** `git worktree list --porcelain` を読む（空行で区切られた塊ごとに 1 つ。最初が本体） */
+export function parseWorktrees(out: string): GitWorktree[] {
+  return out
+    .split("\n\n")
+    .map((block) => block.split("\n").filter(Boolean))
+    .filter((lines) => lines.length > 0)
+    .map((lines, i) => {
+      const field = (name: string) => lines.find((l) => l === name || l.startsWith(`${name} `));
+      const branch = field("branch")?.slice(7) ?? null;
+      return {
+        path: field("worktree")?.slice(9) ?? "",
+        branch: branch?.startsWith("refs/heads/") ? branch.slice(11) : branch,
+        head: field("HEAD")?.slice(5) ?? "",
+        main: i === 0,
+        locked: Boolean(field("locked")),
+        prunable: Boolean(field("prunable")),
+      };
+    });
+}
+
+export async function listWorktrees(repo: string): Promise<GitWorktree[]> {
+  return parseWorktrees(await gitOutput(repo, ["worktree", "list", "--porcelain"]));
+}
+
+/** 新しいワークツリーを置くフォルダ（リポジトリの隣の <名前>-worktrees/<ブランチ名>。/ は - にする） */
+export async function worktreePathFor(repo: string, branch: string): Promise<string> {
+  const root = await fs.realpath(repo);
+  return path.join(path.dirname(root), `${path.basename(root)}-worktrees`, branch.replace(/[\\/]+/g, "-"));
+}
+
+/**
+ * ワークツリーを作る。ブランチがなければいまのコミットから作り、あればそのブランチを取り出す。
+ * 置き場所は worktreePathFor で決める（すでにあれば失敗する）。作ったら、本体の node_modules などを写してすぐ作業できるようにする（prepareWorktree）
+ */
+export async function addWorktree(repo: string, branch: string): Promise<GitWorktree[]> {
+  await gitOutput(repo, ["check-ref-format", "--branch", branch]).catch(() => {
+    throw new Error("ブランチの名前に使えない文字があります");
+  });
+  const target = await worktreePathFor(repo, branch);
+  if (await fs.stat(target).catch(() => null)) throw new Error(`フォルダがすでにあります: ${target}`);
+  const exists = await gitOutput(repo, ["rev-parse", "--verify", "-q", `refs/heads/${branch}`]).then(
+    () => true,
+    () => false,
+  );
+  await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target]);
+  await prepareWorktree(await fs.realpath(repo), target);
+  return listWorktrees(repo);
+}
+
+/** ワークツリーを消す（本体は消せない。force: コミットしていない変更があっても消す）。なくなったものの記録も片付ける */
+export async function removeWorktree(repo: string, target: string, force: boolean): Promise<GitWorktree[]> {
+  const worktree = (await listWorktrees(repo)).find((w) => w.path === target);
+  if (!worktree) throw new Error("ワークツリーが見つかりません");
+  if (worktree.main) throw new Error("本体のフォルダは消せません");
+  if (worktree.prunable) await gitOutput(repo, ["worktree", "prune"]);
+  else await gitOutput(repo, ["worktree", "remove", ...(force ? ["--force"] : []), target]);
+  return listWorktrees(repo);
+}
+
+/**
+ * PR がマージされたワークツリーを片付ける（ワークツリーと手元のブランチを消す）。
+ * GitHub で squash などでマージすると手元では「マージ済み」にならないので、ブランチは -D で消す（画面で確かめてから呼ぶ）
+ */
+export async function finishWorktree(repo: string, target: string): Promise<GitWorktree[]> {
+  const worktree = (await listWorktrees(repo)).find((w) => w.path === target);
+  if (!worktree) throw new Error("ワークツリーが見つかりません");
+  if (worktree.main) throw new Error("本体のフォルダは片付けられません");
+  // フォルダがアプリの外で消されていれば、Git の記録だけを消す
+  if (worktree.prunable) await gitOutput(repo, ["worktree", "prune"]);
+  else await gitOutput(repo, ["worktree", "remove", target]);
+  if (worktree.branch) await gitOutput(repo, ["branch", "-D", worktree.branch]);
+  return listWorktrees(repo);
+}
