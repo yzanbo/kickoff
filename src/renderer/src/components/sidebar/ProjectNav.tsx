@@ -5,22 +5,24 @@ import { api } from "../../api";
 import { PROJECT_DRAG_TYPE, useReorder } from "../../groups";
 import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
-import { archivedProjects, sidebarOrder } from "../../projectOrder";
+import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
 import { cx } from "../../cx";
-import { ProjectMenu } from "../ProjectMenu";
 import { GroupToggle } from "./GroupToggle";
 import { ProjectListHead, type NavLayout } from "./ProjectListHead";
+import { useProjectMenu } from "./ProjectMenu";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
-import { COMPACT_KEY, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
+import { COMPACT_KEY, stateCounts, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 const LAYOUT_KEY = "kickoff:sidebar-layout";
 const LAST_HASH_KEY = "kickoff:last-hash-by-project";
 /** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか（"1" なら出す） */
 const SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:sidebar-show-archived-projects";
+/** プロジェクトの並べ方（手動 / 最近動いた順） */
+const PROJECT_ORDER_KEY = "kickoff:sidebar-project-order";
 /** プロジェクトごとの、チャット一覧を閉じているか（"1" なら閉じている） */
 const COLLAPSED_PREFIX = "kickoff:collapsed:";
 interface Props {
@@ -41,7 +43,12 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
   // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
   const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_PROJECTS_KEY);
-  const visible = sidebarOrder(projects);
+  // 最近動いた順: チャット（アーカイブしたものを除く）が最後に動いた時刻。チャットがなければ作った時刻
+  const [projectOrder, setProjectOrder] = useStoredChoice<ProjectOrder>(PROJECT_ORDER_KEY, PROJECT_ORDERS, "manual");
+  const lastActive = (p: ProjectSummary) => (runs[p.id] ?? []).find((r) => !r.archived_at)?.updated_at ?? p.created_at;
+  const visible = sidebarOrder(projects, projectOrder === "recent" ? lastActive : undefined);
+  // 手動の並びのときだけ、ドラッグで並べ替えられる（しまったものは並べ替えない）
+  const canReorder = projectOrder === "manual";
   const archived = archivedProjects(projects);
   // 自分待ちだけを出すときは、自分待ちのチャットがあるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
@@ -54,7 +61,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
     PROJECT_DRAG_TYPE,
   );
   /** 並べ替えのドロップ先にする（プロジェクトのアイコン・縦並びの各プロジェクト。しまったものは除く） */
-  const reorderDrop = (id: number) => (isArchived(id) ? {} : {
+  const reorderDrop = (id: number) => (!canReorder || isArchived(id) ? {} : {
     onDragOver: (e: React.DragEvent) => void reorder.over(e, id),
     onDragLeave: (e: React.DragEvent) => {
       if (!e.currentTarget.contains(e.relatedTarget as Node | null)) reorder.leave(id);
@@ -63,8 +70,8 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   });
   const isArchived = (id: number) => archived.some((p) => p.id === id);
   const [currentId, setCurrentId] = useState(loadCurrentProject);
-  // 下の丸の右クリックメニュー（上に固定する・しまう）
-  const [menu, setMenu] = useState<{ x: number; y: number; project: ProjectSummary } | null>(null);
+  // 下の丸の右クリックメニュー（プロジェクトに対する操作）
+  const projectMenu = useProjectMenu(projects);
   const [layout, changeLayout] = useStoredChoice<NavLayout>(LAYOUT_KEY, ["slide", "stack"], "slide");
   // チャット一覧の開閉（縦並びでは、すべてまとめて閉じる・開くこともできる）
   const collapsedMap = useStoredFlagMap(COLLAPSED_PREFIX);
@@ -159,7 +166,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   );
 
   /** 一覧の上の見出しの行に渡す（並べ方・しまったプロジェクトを出すか） */
-  const head = { layout, onLayout: changeLayout, archivedCount: archived.length, showArchived, onShowArchived: setShowArchived };
+  const head = { layout, onLayout: changeLayout, order: projectOrder, onOrder: setProjectOrder, archivedCount: archived.length, showArchived, onShowArchived: setShowArchived };
 
   if (layout === "stack") {
     const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
@@ -172,7 +179,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
             <Fragment key={p.id}>
             {/* しまったプロジェクトのまとまりの見出し（押して開閉する。初めは閉じている） */}
             {i === visible.length && archivedHead}
-            <div className={`stack-item ${isArchived(p.id) ? "" : reorder.classFor(p.id)}`} {...reorderDrop(p.id)}>
+            <div className={`stack-item ${!canReorder || isArchived(p.id) ? "" : reorder.classFor(p.id)}`} {...reorderDrop(p.id)}>
               <WorkspacePage
                 project={p}
                 runs={runs[p.id] ?? []}
@@ -182,7 +189,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
                 hidden={false}
                 collapsed={!waitingOnly && collapsedMap.get(p.id)}
                 onCollapsedChange={collapsedMap.set}
-                headDrag={isArchived(p.id) ? undefined : reorder.handle(p.id)}
+                headDrag={!canReorder || isArchived(p.id) ? undefined : reorder.handle(p.id)}
               />
             </div>
             </Fragment>
@@ -229,16 +236,17 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
         <WorkspaceDots
           projects={ordered}
           index={index}
-          approvals={approvals}
+          countsOf={(id) => stateCounts(runs[id] ?? [], approvals)}
+          canReorder={canReorder}
           isArchived={isArchived}
           reorder={reorder}
           reorderDrop={reorderDrop}
           onGo={go}
-          onMenu={(at, project) => setMenu({ ...at, project })}
+          onMenu={projectMenu.open}
           onNewProject={onNewProject}
         />
       </div>
-      {menu && <ProjectMenu {...menu} onClose={() => setMenu(null)} />}
+      {projectMenu.element}
     </div>
   );
 }

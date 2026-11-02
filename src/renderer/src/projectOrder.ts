@@ -3,12 +3,19 @@ import { api } from "./api";
 import { alertDialog } from "./dialogs";
 import { errorMessage } from "./errors";
 
+/** サイドバーのプロジェクトの並べ方: 手動（ドラッグで並べ替えた順）/ 最近動いた順 */
+export const PROJECT_ORDERS = ["manual", "recent"] as const;
+export type ProjectOrder = (typeof PROJECT_ORDERS)[number];
+
 /**
  * サイドバーに出すプロジェクトの並び: 上に固定したものを先に、そのあとドラッグで並べ替えた順（同じなら作成順）。
+ * lastActive を渡すと、固定したものの次は最近動いた順（サイドバーの「最近動いた順」）。
  * しまった（アーカイブした）プロジェクトは出さない（切り替え・全プロジェクトの画面でも同じ）
  */
-export const sidebarOrder = (projects: ProjectSummary[]) =>
-  projects.filter((p) => !p.archived_at).sort((a, b) => b.pinned - a.pinned || a.position - b.position || a.id - b.id);
+export const sidebarOrder = (projects: ProjectSummary[], lastActive?: (p: ProjectSummary) => string) =>
+  projects
+    .filter((p) => !p.archived_at)
+    .sort((a, b) => b.pinned - a.pinned || (lastActive ? lastActive(b).localeCompare(lastActive(a)) : 0) || a.position - b.position || a.id - b.id);
 
 /** しまった（アーカイブした）プロジェクト（名前順） */
 export const archivedProjects = (projects: ProjectSummary[]) => projects.filter((p) => p.archived_at).sort((a, b) => a.name.localeCompare(b.name));

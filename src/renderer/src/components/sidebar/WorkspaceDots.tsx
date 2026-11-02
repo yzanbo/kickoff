@@ -1,18 +1,20 @@
 import { Plus } from "lucide-react";
-import { useEffect, useRef, type CSSProperties, type DragEvent } from "react";
-import type { Approval, ProjectSummary } from "../../../../core/types";
+import { useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
+import { BOARD_COLUMN_LABELS, type ProjectSummary } from "../../../../core/types";
 import { cx } from "../../cx";
 import type { useReorder } from "../../groups";
 import { initialOf, projectHue } from "../../projectColor";
+import type { StateCounts } from "./sidebarFlags";
 
 /**
  * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・右クリックでメニュー）。
- * 選んでいるプロジェクトの丸は、スクロールして見えるところに出す
+ * 左上の青い点は作業中、右上の点は自分待ち（回答待ちはオレンジ、確認待ちだけなら緑）。選んでいるプロジェクトの丸は、スクロールして見えるところに出す
  */
 export function WorkspaceDots({
   projects,
   index,
-  approvals,
+  countsOf,
+  canReorder,
   isArchived,
   reorder,
   reorderDrop,
@@ -23,13 +25,17 @@ export function WorkspaceDots({
   projects: ProjectSummary[];
   /** 選んでいるプロジェクトの位置 */
   index: number;
-  approvals: Approval[];
+  /** プロジェクトごとの、作業中・回答待ち・確認待ちのチャット数 */
+  countsOf: (id: number) => StateCounts;
+  /** ドラッグで並べ替えられるか（最近動いた順のときは並べ替えない） */
+  canReorder: boolean;
   /** しまった（アーカイブした）プロジェクトか（並べ替えない） */
   isArchived: (id: number) => boolean;
   reorder: ReturnType<typeof useReorder>;
   reorderDrop: (id: number) => Partial<Record<"onDragOver" | "onDragLeave" | "onDrop", (e: DragEvent) => void>>;
   onGo: (index: number) => void;
-  onMenu: (at: { x: number; y: number }, project: ProjectSummary) => void;
+  /** 右クリック（プロジェクトのメニューを開く） */
+  onMenu: (e: MouseEvent, project: ProjectSummary) => void;
   onNewProject: () => void;
 }) {
   const dotsRef = useRef<HTMLDivElement>(null);
@@ -48,26 +54,31 @@ export function WorkspaceDots({
       }}
     >
       {projects.map((p, i) => {
-        const waiting = approvals.some((a) => a.project_id === p.id);
+        const counts = countsOf(p.id);
+        const draggable = canReorder && !isArchived(p.id);
+        const summary = (["running", "needs_input", "review"] as const)
+          .filter((c) => counts[c] > 0)
+          .map((c) => `${BOARD_COLUMN_LABELS[c]} ${counts[c]}`)
+          .join("・");
         return (
           <button
             key={p.id}
             role="tab"
             aria-selected={i === index}
-            className={cx("workspace-dot", i === index && "active", p.pinned > 0 && "pinned", isArchived(p.id) ? "archived" : reorder.classFor(p.id))}
+            className={cx("workspace-dot", i === index && "active", p.pinned > 0 && "pinned", isArchived(p.id) && "archived", draggable && reorder.classFor(p.id))}
             style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties}
-            title={`${p.name}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${isArchived(p.id) ? "" : "ドラッグで並べ替え・"}右クリックで固定・アーカイブ）`}
+            title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}右クリックで固定・アーカイブ）`}
             onClick={() => onGo(i)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              onMenu({ x: e.clientX, y: e.clientY }, p);
-            }}
-            draggable={!isArchived(p.id)}
-            {...(isArchived(p.id) ? {} : reorder.handle(p.id))}
+            onContextMenu={(e) => onMenu(e, p)}
+            draggable={draggable}
+            {...(draggable ? reorder.handle(p.id) : {})}
             {...reorderDrop(p.id)}
           >
             {initialOf(p.name)}
-            {waiting && <span className="workspace-dot-badge" aria-label="回答待ちあり" />}
+            {counts.running > 0 && <span className="workspace-dot-working" aria-label={`作業中 ${counts.running} 件`} />}
+            {(counts.needs_input > 0 || counts.review > 0) && (
+              <span className={cx("workspace-dot-badge", counts.needs_input === 0 && "review")} aria-label={summary} />
+            )}
           </button>
         );
       })}
