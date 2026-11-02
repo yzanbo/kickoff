@@ -1164,25 +1164,9 @@ button.project-switch:hover,
   color: var(--text);
 }
 
-/* プロジェクトの見出しの、マウスを乗せたとき・ピントがあるときだけ出す操作（チャットの並べ方・グループを作成） */
-.workspace-hover-actions {
-  display: none;
-  gap: 4px;
-}
-
-.workspace-head:hover .workspace-hover-actions,
-.workspace-head:focus-within .workspace-hover-actions {
-  display: flex;
-}
-
-/* プロジェクトの見出しのピン: 固定しているものは常に、ほかはマウスを乗せたとき・ピントがあるときだけ出す */
-.workspace-head .workspace-pin:not(.pinned) {
-  display: none;
-}
-
-.workspace-head:hover .workspace-pin,
-.workspace-head:focus-within .workspace-pin {
-  display: inline-grid;
+/* プロジェクトの見出しのピン（いつも出す）: 固定していないときは薄い灰の線、固定しているときはプロジェクトの色で塗る */
+.workspace-head .workspace-pin {
+  color: var(--extra-muted);
 }
 
 .workspace-head .workspace-pin.pinned {
@@ -1191,6 +1175,10 @@ button.project-switch:hover,
 
 :root[data-theme="light"] .workspace-head .workspace-pin.pinned {
   color: hsl(var(--ws-hue, 150) 55% 38%);
+}
+
+.workspace-pin .pin-filled {
+  fill: currentColor;
 }
 
 /* しまった（アーカイブした）プロジェクト（サイドバーで出すとき）: 枠を点線にして、名前を薄く */
@@ -1251,7 +1239,16 @@ button.project-switch:hover,
   color: var(--muted);
 }
 
-/* 横スライド / 縦並びの切り替え（見出しの行の右端） */
+/* 見出しの行の区切り: 左はプロジェクトの表示、右はチャットの表示 */
+.project-list-sep {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: var(--border-strong);
+}
+
+/* 横スライド / 縦並びの切り替え（見出しの行） */
 .sidebar-layout-toggle {
   display: flex;
   flex: none;

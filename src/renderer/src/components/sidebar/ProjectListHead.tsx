@@ -3,13 +3,15 @@ import type { ProjectOrder } from "../../projectOrder";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { Segmented } from "../Segmented";
+import { ChatGroupingMenu } from "./ChatGroupingMenu";
 
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
 export type NavLayout = "slide" | "stack";
 
 /**
  * プロジェクト一覧の上の見出しの行（VS Code のエクスプローラーの見出しと同じ形）。左に「プロジェクト」、右に表示方法の操作を常に出す:
- * 最近動いた順に並べるか・すべて閉じる / 開く（縦並びのとき）・アーカイブしたプロジェクトを出すか（あるとき）・並べ方。
+ * 最近動いた順に並べるか・すべて閉じる / 開く（縦並びのとき）・アーカイブしたプロジェクトを出すか（あるとき）・並べ方と、
+ * 区切りのあとに、すべてのプロジェクトのチャット一覧に効く「チャットの並べ方・表示」。
  * 下の行は主な操作（新しいプロジェクト・プロジェクトの丸）だけにして、狭くても折り返さないようにする
  */
 export function ProjectListHead({
@@ -72,6 +74,9 @@ export function ProjectListHead({
           { value: "stack", label: "すべてのプロジェクトを縦に並べる", icon: Rows3, iconOnly: true },
         ]}
       />
+      {/* ここから右は、チャットの表示（すべてのプロジェクトに効く） */}
+      <span className="project-list-sep" aria-hidden />
+      <ChatGroupingMenu />
     </div>
   );
 }

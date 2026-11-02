@@ -1,10 +1,10 @@
 import { Archive, Check, Clock, GitBranch, Layers, ListTree, Rows2, type LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
-import { useSharedFlag } from "../../hooks/useStoredState";
+import { useSharedChoice, useSharedFlag } from "../../hooks/useStoredState";
 import { IconButton } from "../IconButton";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
-import { COMPACT_KEY } from "./sidebarFlags";
+import { COMPACT_KEY, GROUPING_KEY, SHOW_ARCHIVED_KEY } from "./sidebarFlags";
 
 /**
  * サイドバーのチャット一覧の並べ方。保存の形式は今までのまま（"recent" / "status"）で、作業場所・セクションを足した
@@ -19,25 +19,20 @@ export const GROUPING_META: Record<ChatGrouping, { label: string; icon: LucideIc
   phase: { label: "セクションでまとめる", icon: Layers },
 };
 
-/** 並べ方のボタン（いまの並べ方のアイコン）。押すと並べ方と、アーカイブ済みを出すか・1 行で出すか（どのプロジェクトでも同じ）を選ぶメニューを出す */
-export function ChatGroupingMenu({
-  value,
-  onChange,
-  showArchived,
-  onShowArchived,
-}: {
-  value: ChatGrouping;
-  onChange: (value: ChatGrouping) => void;
-  showArchived: boolean;
-  onShowArchived: (show: boolean) => void;
-}) {
+/**
+ * チャットの並べ方・表示のボタン（いまの並べ方のアイコン。プロジェクト一覧の上の見出しの行に置く）。
+ * 押すと並べ方と、アーカイブ済みを出すか・1 行で出すかを選ぶメニューを出す。どれもすべてのプロジェクトのチャット一覧に効く
+ */
+export function ChatGroupingMenu() {
+  const [value, onChange] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  const [showArchived, onShowArchived] = useSharedFlag(SHOW_ARCHIVED_KEY);
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   return (
     <>
       <IconButton
         icon={GROUPING_META[value].icon}
-        label="チャットの並べ方"
-        title={`チャットの並べ方（いまは「${GROUPING_META[value].label}」）`}
+        label="チャットの並べ方・表示"
+        title={`チャットの並べ方・表示（すべてのプロジェクト。いまは「${GROUPING_META[value].label}」）`}
         className="chat-grouping-button"
         aria-haspopup="menu"
         aria-expanded={at !== null}
