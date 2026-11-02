@@ -32,6 +32,8 @@ import { ArchivedFold, splitArchived } from "./ArchivedFold";
 
 const VIEW_KEY = "kickoff:board-view";
 const LANES_KEY = "kickoff:board-lanes";
+/** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える） */
+const ALL_LANES_KEY = "kickoff:board-lanes-all";
 /** カンバン（列 = 状態）で選べる段の分け方 */
 const KANBAN_LANES: BoardLane[] = ["worktree", "phase", "group", "project"];
 
@@ -128,10 +130,12 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
   }, [runs, approvals, section, search, archive, worktreeFilter, allProjects, projects]);
   const grouped = useMemo(() => byColumn(entries), [entries]);
   const total = entries.length;
-  // スイムレーンの段の分け方（初めはセクション）。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ
+  // スイムレーンの段の分け方。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ。
+  // 全プロジェクトのボードは別に覚え、初めはプロジェクト（プロジェクト別のカンバン）。プロジェクトのボードは初めはセクション
   const laneOptions = KANBAN_LANES.filter((l) => (allProjects ? l !== "group" : l !== "project"));
-  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(LANES_KEY, BOARD_LANES, "phase");
-  const lanes: BoardLane = laneOptions.includes(laneChoice) ? laneChoice : "phase";
+  const defaultLane: BoardLane = allProjects ? "project" : "phase";
+  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(allProjects ? ALL_LANES_KEY : LANES_KEY, BOARD_LANES, defaultLane);
+  const lanes: BoardLane = laneOptions.includes(laneChoice) ? laneChoice : defaultLane;
 
   /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
   function newChat() {
