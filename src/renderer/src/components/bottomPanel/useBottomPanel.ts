@@ -3,6 +3,7 @@ import { startVerticalDrag } from "../../hooks/dragResize";
 import { useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { BOTTOM_PANEL_HEIGHT_KEY } from "../../storageKeys";
+import { newTabKey } from "../sidePanel/tabKeys";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
 
 /** 1 つのシェル（key は裏のシェルのキー） */
@@ -36,7 +37,6 @@ const MIN_HEIGHT = 120;
 /** 上の画面に残す高さ */
 const KEEP_ABOVE = 120;
 
-const newKey = (prefix: string) => `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
 const equalSizes = (n: number) => Array.from({ length: n }, () => 1 / n);
 
 export type BottomPanelController = ReturnType<typeof useBottomPanel>;
@@ -69,8 +69,8 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
   const updateGroup = (key: string, update: (g: TerminalGroup) => TerminalGroup) => setGroups((prev) => prev.map((g) => (g.key === key ? update(g) : g)));
 
   const openTerminal = (target: TerminalTarget) => {
-    const pane: TerminalPaneInfo = { key: newKey("bottom"), ...target };
-    const group: TerminalGroup = { key: newKey("group"), projectId: target.projectId, label: target.label, panes: [pane], sizes: [1], activePane: pane.key };
+    const pane: TerminalPaneInfo = { key: newTabKey("bottom"), ...target };
+    const group: TerminalGroup = { key: newTabKey("group"), projectId: target.projectId, label: target.label, panes: [pane], sizes: [1], activePane: pane.key };
     setGroups((prev) => [...prev, group]);
     setScope({ open: true, active: group.key });
   };
@@ -102,7 +102,7 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
   const split = () => {
     if (!active) return;
     const from = active.panes.find((p) => p.key === active.activePane) ?? active.panes[0];
-    const pane: TerminalPaneInfo = { key: newKey("bottom"), cwd: from.cwd, label: from.label, projectId: from.projectId };
+    const pane: TerminalPaneInfo = { key: newTabKey("bottom"), cwd: from.cwd, label: from.label, projectId: from.projectId };
     updateGroup(active.key, (g) => {
       const at = g.panes.findIndex((p) => p.key === g.activePane) + 1;
       const panes = [...g.panes.slice(0, at), pane, ...g.panes.slice(at)];
