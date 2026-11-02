@@ -439,7 +439,7 @@ export class Store {
 
   /** その作業場所（ワークツリー）を使っているチャット */
   runsInWorktree(projectId: number, worktreePath: string): Run[] {
-    return (this.db.prepare("SELECT * FROM runs WHERE project_id = ? AND worktree_path = ?").all(projectId, worktreePath) as unknown as Run[]).map((r) => this.getRun(r.id)!);
+    return this.db.prepare("SELECT * FROM runs WHERE project_id = ? AND worktree_path = ? ORDER BY id").all(projectId, worktreePath) as unknown as Run[];
   }
 
   /** ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻す（並び順は変えない） */
