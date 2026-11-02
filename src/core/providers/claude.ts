@@ -314,11 +314,16 @@ export class ClaudeProvider implements AgentProvider {
         pathToClaudeCodeExecutable: this.executable,
       },
     });
-    let result = "";
-    for await (const msg of q) {
-      if (msg.type === "result" && msg.subtype === "success") result = msg.result;
+    try {
+      let result = "";
+      for await (const msg of q) {
+        if (msg.type === "result" && msg.subtype === "success") result = msg.result;
+      }
+      return result.trim().replace(/^["'「『]|["'」』]$/g, "").split("\n")[0].slice(0, 40);
+    } finally {
+      // 途中で失敗しても Claude Code のプロセスを残さない（withIdleSession と同じ）
+      q.close();
     }
-    return result.trim().replace(/^["'「『]|["'」』]$/g, "").split("\n")[0].slice(0, 40);
   }
 }
 
