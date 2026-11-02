@@ -105,7 +105,7 @@
 
 ## Electron とサーバー
 
-- 終了時の片付けは `before-quit` で `preventDefault` → 片付け → `app.exit(0)`。`app.quit()` を呼び直さない（ウィンドウだけ閉じてアプリが残る）。片付けは 5 秒で打ち切る。
+- 終了時の片付けは `before-quit` で `preventDefault` → 片付け（自分から起動した Electron のアプリを `stopChildElectronApps` で止める → ターミナル → コア）→ `app.exit(0)`。`app.quit()` を呼び直さない（ウィンドウだけ閉じてアプリが残る）。片付けは 5 秒で打ち切る。
 - HTTP サーバーは `stopHttpServer` で止める（開いたままの SSE の接続も切る）。
 - SSE は、つないだらすぐ最初の行を送る（書くまで応答ヘッダーが届かない）。切断の知らせ（`onAbort`）は最初の `await` より前に登録する。
 
@@ -113,9 +113,9 @@
 
 このリポジトリのチャットは、製品版の Kickoff（`/Applications/Kickoff.app`。プロセス名 `Kickoff`、データ `Kickoff`、ポート 4317）の中で動いていることがある。作って確かめるのは開発版（Kickoff Dev。プロセスは `node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .`、データ `Kickoff Dev`、ポート 4318）だけで、製品版は自分を動かしているアプリなので触らない。
 
-- 製品版を止めない・入れ替えない。`pkill -f Kickoff` のように名前でまとめて止めない（製品版、つまり自分も止まる）。開発版を止めるときは、上のプロセスを `pgrep -f "Electron.app/Contents/MacOS/Electron \."` で特定して `kill -TERM` を送る。
+- 製品版を止めない・入れ替えない。`pkill -f Kickoff` のように名前でまとめて止めない（製品版、つまり自分も止まる。`pkill` と `killall` は `.claude/settings.json` で禁止してあり、Kickoff のエージェントも Claude Code も使えない）。開発版を止めるときは、上のプロセスを `pgrep -f "Electron.app/Contents/MacOS/Electron \."` で特定して `kill -TERM` を送る。
 - `npm run install-app`（製品版の入れ替え）は、製品版の中のチャット・ターミナルから流さない（チャットからは実行中のチャットがあるとして止まり、製品版のターミナルからは `KICKOFF_TERMINAL_OF` を見て止まる）。必要なら、利用者に macOS のターミナルで流すよう頼む。
-- 製品版の中のターミナルやチャットから起動した開発版は、製品版の子どものプロセスになる。製品版が終わると開発版もいきなり止められ、開発版の localStorage が消えることがあるので、製品版を終了・入れ替えする前に開発版を `kill -TERM` で止める。
+- 製品版の中のターミナルやチャットから起動した開発版は、製品版の子どものプロセスになる。製品版は終わるとき、自分から起動された Electron のアプリのメインプロセスにだけ先に SIGTERM を送り、終わるのを待ってから、ターミナルとエージェントを止める（`childApps.ts` の `stopChildElectronApps`。3 秒まで）。シェルやエージェントを先に止めると、開発版が Helper ごといきなり止められ、localStorage が消えるため。
 - 同じ作業場所（本体のフォルダ）を、複数のチャットで同時に書き換えない。並行して進めるときは、チャットごとにワークツリーを使う。
 
 ## 確かめ方
