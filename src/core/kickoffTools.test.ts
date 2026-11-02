@@ -20,6 +20,20 @@ test("exportToRepo はリポジトリ内に書き出し、外へのパスは拒�
   await assert.rejects(exportToRepo(repo, "/etc/passwd", "x"));
 });
 
+test("exportToRepo はシンボリックリンクの先で外に出る書き出しも拒否する（中を指すリンクは実体に書く）", async () => {
+  const repo = fs.realpathSync(tmpRepo());
+  const outside = fs.realpathSync(tmpRepo());
+  fs.mkdirSync(path.join(repo, "docs"));
+  fs.symlinkSync(outside, path.join(repo, "docs", "link"));
+  await assert.rejects(exportToRepo(repo, "docs/link/x.md", "x"), /外/);
+  await assert.rejects(exportToRepo(repo, "docs/link/deeper/x.md", "x"), /外/);
+  assert.equal(fs.existsSync(path.join(outside, "x.md")), false);
+  // リポジトリの中を指すリンクは書けて、実体のパスを返す
+  fs.symlinkSync(path.join(repo, "docs"), path.join(repo, "alias"));
+  assert.equal(await exportToRepo(repo, "alias/a.md", "a"), path.join("docs", "a.md"));
+  assert.equal(fs.readFileSync(path.join(repo, "docs", "a.md"), "utf8"), "a\n");
+});
+
 test("AI のツールは他プロジェクトのタスクに触れられない", async () => {
   const store = new Store(":memory:");
   const mine = store.createProject({ name: "a", repo_path: tmpRepo(), provider: "claude" });
