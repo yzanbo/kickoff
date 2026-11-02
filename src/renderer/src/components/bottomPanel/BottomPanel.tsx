@@ -1,19 +1,17 @@
-import { Maximize2, Minimize2, Plus, SquareTerminal } from "lucide-react";
-import { lazy, Suspense, useRef, useState } from "react";
+import { Columns2, Maximize2, Minimize2, Plus, SquareTerminal } from "lucide-react";
+import { useRef, useState } from "react";
 import { cx } from "../../cx";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { CloseButton, IconButton } from "../IconButton";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 import { PanelTab } from "../sidePanel/PanelTab";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
+import { TerminalSplit } from "./TerminalSplit";
 import type { BottomPanelController } from "./useBottomPanel";
 
-// xterm.js は、ターミナルを開いたときだけ読み込む
-const TerminalPane = lazy(() => import("../terminal/TerminalPane"));
-
 /**
- * 画面の下のパネル（VS Code の「ターミナル」と同じ）。どの画面でも開け、画面を移ってもタブとシェルはそのまま。
- * 閉じても要素は残し（hidden）、もう一度開いたら同じ画面に戻る
+ * 画面の下のパネル（VS Code の「ターミナル」と同じ）。どの画面でも開け、ターミナルはプロジェクトごと（useBottomPanel）。
+ * タブは分割でき（⌘\）、ペインを左右に並べる（TerminalSplit）。閉じても要素は残し（hidden）、もう一度開いたら同じ画面に戻る
  */
 export function BottomPanel({ panel }: { panel: BottomPanelController }) {
   const { open, tabs, active, maximized, targets } = panel;
@@ -47,8 +45,9 @@ export function BottomPanel({ panel }: { panel: BottomPanelController }) {
               key={t.key}
               active={active === t.key}
               icon={SquareTerminal}
-              label={t.label}
-              title={t.cwd}
+              // 分割しているタブは、ペインの数も出す
+              label={t.panes.length > 1 ? `${t.label} (${t.panes.length})` : t.label}
+              title={t.panes.map((p) => p.cwd).join("\n")}
               onSelect={() => panel.showTab(t.key)}
               onClose={() => panel.closeTab(t.key)}
             />
@@ -65,6 +64,7 @@ export function BottomPanel({ panel }: { panel: BottomPanelController }) {
             onClick={add}
           />
         )}
+        {active && <IconButton icon={Columns2} size={14} label="ターミナルを分割" title="ターミナルを分割（⌘\）" onClick={panel.split} />}
         <IconButton
           icon={maximized ? Minimize2 : Maximize2}
           size={13}
@@ -94,12 +94,16 @@ export function BottomPanel({ panel }: { panel: BottomPanelController }) {
             )}
           </div>
         )}
-        {/* タブを切り替えても画面が残るよう、開いているタブはすべて保持する */}
-        {tabs.map((t) => (
-          <div key={t.key} className="bottom-panel-page" hidden={active !== t.key}>
-            <Suspense fallback={<div className="page muted">読み込み中…</div>}>
-              <TerminalPane termKey={t.key} cwd={t.cwd} visible={open && active === t.key} onOpenUrl={(url) => window.open(url, "_blank")} />
-            </Suspense>
+        {/* タブ・プロジェクトを切り替えても画面が残るよう、すべてのプロジェクトのタブを保持する（見せるのはこの画面の表示中のタブだけ） */}
+        {panel.groups.map((g) => (
+          <div key={g.key} className="bottom-panel-page" hidden={active !== g.key}>
+            <TerminalSplit
+              group={g}
+              visible={open && active === g.key}
+              onFocusPane={(paneKey) => panel.focusPane(g.key, paneKey)}
+              onClosePane={(paneKey) => panel.closePane(g.key, paneKey)}
+              onResize={(sizes) => panel.resizePanes(g.key, sizes)}
+            />
           </div>
         ))}
       </div>

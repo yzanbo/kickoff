@@ -16,8 +16,12 @@ interface Props {
   termKey: string;
   /** シェルを始めるフォルダ */
   cwd: string;
-  /** パネルで表示しているか（表示したときに大きさを合わせ、入力できるようにする） */
+  /** パネルで表示しているか（表示したときに大きさを合わせる） */
   visible: boolean;
+  /** 入力先か（分割したペインのうち 1 つ。省略なら表示しているとき） */
+  focused?: boolean;
+  /** ペインを押した・入力し始めたとき */
+  onFocus?: () => void;
   /** ⌘ を押しながら URL を押したとき（アプリの中のブラウザで開く） */
   onOpenUrl: (url: string) => void;
 }
@@ -26,7 +30,7 @@ interface Props {
  * 内蔵ターミナル（xterm.js）。シェルは Electron のメインプロセスで動いていて、タブを裏に回しても・ボードを切り替えても動き続ける。
  * 表示し直したときは、いまの画面の内容をもらって描き直す。使うときだけ読み込む（SidePanel から lazy で読む）
  */
-export default function TerminalPane({ termKey, cwd, visible, onOpenUrl }: Props) {
+export default function TerminalPane({ termKey, cwd, visible, focused = visible, onFocus, onOpenUrl }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal>(undefined);
   const fitRef = useRef<FitAddon>(undefined);
@@ -124,17 +128,22 @@ export default function TerminalPane({ termKey, cwd, visible, onOpenUrl }: Props
     if (termRef.current) termRef.current.options.theme = terminalTheme(theme);
   }, [theme]);
 
-  // 表示したら、大きさを合わせて入力できるようにする
+  // 表示したら、大きさを合わせる
   useEffect(() => {
     if (!visible) return;
     const el = ref.current;
     if (el && el.clientWidth > 0) fitRef.current?.fit();
-    termRef.current?.focus();
   }, [visible]);
+
+  // 入力先になったら、入力できるようにする
+  useEffect(() => {
+    if (focused) termRef.current?.focus();
+  }, [focused]);
 
   return (
     <div
       className="terminal-pane"
+      onFocus={onFocus}
       // ⌘ のないキー（⌃B・⌃K・Esc など）はシェルのもの。アプリのショートカットやパネルを閉じる Esc に渡さない
       onKeyDown={(e) => {
         if (!e.metaKey) e.stopPropagation();

@@ -15,7 +15,7 @@ interface Props {
   usageOpen: boolean;
   onUsageClick: () => void;
   /** 下のパネルのターミナルの開閉（Mac のアプリでだけ） */
-  terminal?: { open: boolean; onClick: () => void };
+  terminal?: { open: boolean; onClick: () => void; /** ほかのプロジェクトで動いているシェルの数 */ elsewhere: number };
 }
 
 /** 下の帯（左: 設定とサーバーとの接続・ターミナルの開閉 / 右: 契約プランと使用状況）。接続と使用状況は押すと詳細を出す */
@@ -30,6 +30,11 @@ export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, u
       {terminal && (
         <button className={`footer-button footer-terminal ${terminal.open ? "active" : ""}`} title="ターミナル（⌃` / ⌘J）" aria-expanded={terminal.open} onClick={terminal.onClick}>
           <SquareTerminal size={13} aria-hidden /> ターミナル
+          {terminal.elsewhere > 0 && (
+            <span className="tab-count" title={`ほかのプロジェクトで ${terminal.elsewhere} 個のターミナルが動いています`}>
+              ほか {terminal.elsewhere}
+            </span>
+          )}
         </button>
       )}
       <span className="spacer" />
