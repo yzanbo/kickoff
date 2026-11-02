@@ -1,0 +1,124 @@
+/* ==== タスク ==== */
+
+.task-groups {
+  display: grid;
+  gap: 20px;
+}
+
+.task-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.task-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.task-empty {
+  padding: 4px 0;
+}
+
+.task-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.task-row + .task-row {
+  margin-top: 6px;
+}
+
+.task-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.task-title {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.priority {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--bg-hover);
+}
+
+.priority-1 {
+  color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 14%, transparent);
+}
+
+.task-status {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.task-status-in_progress {
+  color: var(--info);
+}
+
+.task-status-review,
+.task-status-pr_open {
+  color: var(--accent);
+}
+
+.task-status-done {
+  color: var(--ok);
+}
+
+.task-status-blocked {
+  color: var(--ng);
+}
+
+.task-body {
+  padding: 0 12px 12px;
+  font-size: 13px;
+}
+
+.task-body p {
+  margin: 4px 0 10px;
+}
+
+.task-body-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.task-form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.task-form-row,
+.task-form-actions {
+  display: flex;
+  gap: 8px;
+}
+

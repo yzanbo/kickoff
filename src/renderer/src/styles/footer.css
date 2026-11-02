@@ -1,0 +1,233 @@
+/* ==== フッター ==== */
+
+.app-footer {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 16px;
+  height: 28px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  background: var(--bg-sidebar);
+}
+
+/* 左下の設定（歯車だけ）。フッターの高さに収まる大きさにする */
+.footer-settings {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-left: -6px;
+}
+
+/* 下の帯の文字のボタン（接続・ターミナル） */
+.footer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  padding: 0 6px;
+  border: none;
+  font: inherit;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.footer-button:hover,
+.footer-button.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.conn {
+  margin-left: -6px;
+}
+
+.footer-branch {
+  margin-left: -10px;
+}
+
+.footer-branch {
+  max-width: 220px;
+  overflow: hidden;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 左下から出る接続の詳細（使用状況の詳細と同じ見た目で、左に寄せる） */
+.usage-popover.connection-popover {
+  right: auto;
+  left: 12px;
+  width: 360px;
+  transform-origin: bottom left;
+}
+
+.conn-section {
+  display: grid;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.conn-row-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.conn-help {
+  margin: 0;
+}
+
+.conn-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+.conn-list dt {
+  color: var(--muted);
+}
+
+.conn-list dd {
+  margin: 0;
+}
+
+.conn-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.conn-tool-name {
+  flex: none;
+}
+
+.conn-tool-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conn-settings-link {
+  display: inline-block;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  text-align: left;
+  color: var(--muted);
+}
+
+.conn-settings-link:hover {
+  color: var(--text);
+}
+
+.conn::before {
+  content: "●";
+  margin-right: 5px;
+  font-size: 9px;
+  vertical-align: 1px;
+}
+
+.conn-open::before {
+  color: var(--ok);
+}
+
+.conn-closed::before {
+  color: var(--ng);
+}
+
+.meter-inline .meter-reset {
+  font-size: 11px;
+  color: var(--extra-muted);
+  white-space: nowrap;
+}
+
+.plan-chip {
+  padding: 0 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-bright);
+}
+
+:root[data-theme="light"] .plan-chip {
+  color: var(--accent);
+}
+
+.footer-usage {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 100%;
+  padding: 0 6px;
+  border: none;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.footer-usage:hover,
+.footer-usage.active {
+  background: var(--bg-hover);
+}
+
+/* 右下からふわっと出る使用状況の詳細 */
+.usage-popover {
+  position: fixed;
+  right: 12px;
+  bottom: 36px;
+  z-index: 60;
+  width: 320px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  transform-origin: bottom right;
+  animation: popover-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+.popover-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.popover-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.usage-popover-body {
+  display: grid;
+  gap: 14px;
+}
+
+.usage-popover-foot {
+  margin: 0;
+}
+
+.icon-button .spin {
+  animation: spin 0.9s linear infinite;
+}
+

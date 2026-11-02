@@ -1,0 +1,15 @@
+/* ==== 内蔵ターミナル（右のパネルのタブ） ==== */
+
+.terminal-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 6px 4px 4px var(--gutter);
+  background: var(--bg);
+}
+
+.terminal-screen {
+  flex: 1;
+  min-height: 0;
+}
+

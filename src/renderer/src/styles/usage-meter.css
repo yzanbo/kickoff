@@ -1,0 +1,93 @@
+/* ==== 使用枠メーター ==== */
+
+.meter {
+  --meter-fill: var(--info);
+  display: grid;
+  gap: 6px;
+}
+
+.meter-idle {
+  --meter-fill: var(--muted);
+}
+
+.meter-warning {
+  --meter-fill: #fab219;
+}
+
+.meter-critical {
+  --meter-fill: #d03b3b;
+}
+
+.meter-head,
+.meter-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.meter-label {
+  font-weight: 500;
+}
+
+.meter-value {
+  font-weight: 600;
+}
+
+.meter-idle .meter-value {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.meter-track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--meter-fill) 20%, var(--bg-elev));
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--meter-fill);
+  transition: width 0.4s ease;
+}
+
+.meter-foot {
+  font-size: 12px;
+}
+
+.meter-status {
+  font-weight: 600;
+}
+
+.meter-detail {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.meter.meter-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.meter.meter-inline .meter-label {
+  color: var(--muted);
+}
+
+.meter.meter-inline .meter-track {
+  width: 72px;
+  height: 6px;
+}
+
+.meter.meter-inline .meter-value {
+  min-width: 2.5em;
+}
+
+.meter.meter-inline .meter-status {
+  font-size: 11px;
+}
+

@@ -1,0 +1,417 @@
+/* ==== チャット画面 ==== */
+
+.run-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+}
+
+.run-header {
+  /* macOS の信号機ボタンの高さ分を上に空け、見出し自体は 36px */
+  padding: 22px var(--gutter) 0;
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+}
+
+/* 見出しはウィンドウのドラッグ領域なので、操作するものは外す（外さないと押してもウィンドウのドラッグになる） */
+.run-header a,
+.run-header button,
+.run-header input,
+.run-header select,
+.run-header label {
+  -webkit-app-region: no-drag;
+}
+
+.run-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+}
+
+.run-title-row h1 {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.run-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -8px 0 6px;
+  padding-left: 2px;
+}
+
+.run-sub a {
+  color: var(--muted);
+}
+
+.run-sub a:hover {
+  color: var(--text);
+}
+
+/* 新しいチャットは見出しが短いので、中央の案内を少し上げる */
+.run-page.new-chat {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.run-state {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.run-state.state-waiting {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.timeline {
+  overflow-y: auto;
+}
+
+.timeline-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 20px var(--gutter) 24px;
+  font-size: 15px;
+}
+
+.run-composer {
+  max-width: 852px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 4px var(--gutter) 16px;
+}
+
+.bubble.user {
+  align-self: flex-end;
+  max-width: 80%;
+  margin: 12px 0 4px;
+  padding: 12px 16px;
+  /* 右上だけ角を立てる */
+  border-radius: 16px 2px 16px 16px;
+  white-space: pre-wrap;
+  background: var(--bg-active);
+}
+
+.bubble-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.assistant {
+  padding: 8px 0;
+  line-height: 1.7;
+}
+
+.assistant.sub {
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+  color: var(--muted);
+}
+
+.assistant.live::after {
+  content: "▍";
+  margin-left: 2px;
+  color: var(--accent);
+  animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.working {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: bounce 1.2s infinite ease-in-out;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.event-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.event-note.error {
+  color: var(--ng);
+}
+
+/* ツールの実行（まとめて 1 行、開くと個別に） */
+
+.tool-group summary,
+.tool-call summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.tool-group summary::-webkit-details-marker,
+.tool-call summary::-webkit-details-marker {
+  display: none;
+}
+
+.tool-group {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tool-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 3px 10px 3px 4px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.tool-group > summary:hover,
+.tool-group[open] > summary {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+/* 実行中のツールは、文字の上を光が流れる */
+.tool-group.active .tool-summary,
+.tool-group.active .tool-current {
+  color: transparent;
+  background: linear-gradient(90deg, var(--muted) 0%, var(--text) 50%, var(--muted) 100%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.tool-chevron {
+  flex: none;
+  transition: transform 0.15s;
+}
+
+.tool-group[open] > summary .tool-chevron {
+  transform: rotate(90deg);
+}
+
+.tool-summary {
+  flex: none;
+}
+
+.tool-current {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tool-failed {
+  color: var(--ng);
+}
+
+.tool-calls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 4px;
+  margin: 4px 0 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+
+.tool-call {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.tool-call.error {
+  border-color: color-mix(in srgb, var(--ng) 50%, var(--border));
+}
+
+.tool-call > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.tool-name {
+  flex: none;
+  font-weight: 600;
+}
+
+.tool-arg {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.tool-output,
+.diff,
+.approval-command {
+  max-height: 320px;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tool-output.error {
+  color: var(--ng);
+}
+
+.diff-add {
+  display: block;
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+
+.diff-del {
+  display: block;
+  color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 10%, transparent);
+}
+
+/* 新しいチャット */
+
+/* 新しいチャットの作成先のグループ（プロジェクト名の横） */
+.new-chat .run-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.new-chat-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--muted);
+}
+
+.new-chat-group.has-group {
+  border-color: color-mix(in srgb, var(--accent-bright) 50%, transparent);
+  color: var(--accent-bright);
+}
+
+.new-chat-group .pill-select {
+  font-size: 12px;
+}
+
+/* ピルの中に置く選択欄（枠と背景はピルに任せる） */
+.pill-select {
+  width: auto;
+  /* 選んだ名前の長さに合わせる（いちばん長い選択肢の幅に広がらないように） */
+  field-sizing: content;
+  padding: 0 2px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pill-select:focus {
+  outline: none;
+}
+
+/* バッジのまま、どのプロジェクトで始めるかを選び直す（全プロジェクトのボードの新しいチャット） */
+.project-chip-select {
+  max-width: none;
+  padding-right: 2px;
+}
+
+.new-chat-hero {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18vh 24px 24px;
+  text-align: center;
+}
+
+.new-chat-hero p {
+  margin: 0;
+}
+
+.new-chat-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--sec);
+  background: color-mix(in srgb, var(--sec) 15%, transparent);
+}
+

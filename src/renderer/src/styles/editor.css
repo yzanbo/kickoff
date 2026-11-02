@@ -1,0 +1,1045 @@
+/* ==== エディタ（変更・差分・履歴・ファイルの木・検索） ==== */
+/* プロジェクトの「エディタ」タブ（VS Code のソース管理と同じく、左にファイルの一覧、右に差分） */
+.changes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.changes-list {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 300px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.changes-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 6px 6px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.changes-branch {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.changes-sync {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  font-size: 11px;
+}
+
+.changes-empty,
+.changes-hint,
+.diff-message {
+  margin: 16px 12px;
+}
+
+.change-group-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 10px 4px 8px;
+  border: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.change-group-head:hover {
+  color: var(--text);
+}
+
+.change-group-title {
+  flex: 1;
+}
+
+/* 変更のあるファイルの数（VS Code と同じ丸いバッジ。グループの見出しとプロジェクトのタブ） */
+.change-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+.change-files {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.change-file {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 10px 3px 26px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.change-file:hover {
+  background: var(--bg-hover);
+}
+
+.change-file.selected {
+  background: var(--bg-active);
+}
+
+.change-name {
+  flex: none;
+  max-width: 65%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.change-name.deleted {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.change-dir {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+.change-kind,
+.tree-kind {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/*
+ * 状態の色（VS Code と同じ: 変更 = 黄、追加・未追跡 = 緑、削除・競合 = 赤、名前の変更 = 青）。
+ * 変更の一覧では記号、エクスプローラーでは変更のあるファイル・フォルダの名前と記号に付ける
+ */
+.change-kind,
+.tree-row[data-kind] {
+  color: var(--warn);
+}
+
+.change-kind[data-kind="A"],
+.change-kind[data-kind="U"],
+.tree-row[data-kind="A"],
+.tree-row[data-kind="U"] {
+  color: var(--ok);
+}
+
+.change-kind[data-kind="D"],
+.change-kind[data-kind="!"],
+.tree-row[data-kind="D"],
+.tree-row[data-kind="!"] {
+  color: var(--ng);
+}
+
+.change-kind[data-kind="R"],
+.change-kind[data-kind="C"],
+.tree-row[data-kind="R"],
+.tree-row[data-kind="C"] {
+  color: var(--info);
+}
+
+.changes-diff,
+.diff-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.diff-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.diff-path {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-state {
+  flex: none;
+  color: var(--muted);
+}
+
+.diff-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.diff-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.diff-col-no {
+  width: 48px;
+}
+
+.diff-no {
+  padding: 0 8px;
+  text-align: right;
+  vertical-align: top;
+  color: var(--extra-muted);
+  user-select: none;
+}
+
+.diff-code {
+  padding: 0 10px;
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.diff-sign {
+  display: inline-block;
+  width: 1.2em;
+  color: var(--muted);
+  user-select: none;
+}
+
+.diff-hunk td {
+  padding: 3px 10px;
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 8%, transparent);
+}
+
+/* 差分の行（タイムラインの編集内容の .diff-add / .diff-del とは別の名前にする） */
+.diff-table .line-add {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+}
+
+.diff-table .line-del {
+  background: color-mix(in srgb, var(--ng) 16%, transparent);
+}
+
+/* 左右に並べたとき、片側にしかない行の反対側 */
+.diff-table .line-empty {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+
+.diff-table .line-note {
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* 「エディタ」タブの左端の表示の切り替え（VS Code のアクティビティバー: すべてのファイル・変更） */
+.changes-activity {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 44px;
+  padding: 6px 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.changes-activity button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--extra-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.changes-activity button:hover {
+  color: var(--text);
+}
+
+/* 選んでいる表示: VS Code と同じく、左端に真っすぐな縦線（ボタンの丸みに沿わせない） */
+.changes-activity button.active {
+  color: var(--text);
+}
+
+.changes-activity button.active::before {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: -4px;
+  width: 2px;
+  content: "";
+  background: var(--text);
+}
+
+/* ボタンの組の数（変更のあるファイルの数など） */
+.segmented-badge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: #fff;
+  background: var(--info);
+}
+
+.changes-activity .segmented-badge {
+  position: absolute;
+  right: -2px;
+  bottom: 0;
+}
+
+/* エクスプローラーのフォルダの木 */
+.file-tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.changes-list > .file-tree {
+  padding: 4px 0 8px;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 2px 10px 2px calc(6px + var(--depth, 0) * 12px);
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.tree-row:hover {
+  background: var(--bg-hover);
+}
+
+.tree-row.selected {
+  background: var(--bg-active);
+}
+
+/* .gitignore で無視しているもの（node_modules など） */
+.tree-row.ignored {
+  opacity: 0.5;
+}
+
+.tree-row svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.tree-chevron {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+}
+
+.tree-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 「エディタ」タブの検索（VS Code と同じく、入力欄の右に大文字と小文字・単語単位・正規表現の切り替え） */
+.code-search-box {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 8px 10px 4px;
+  padding: 1px 3px 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.code-search-box:focus-within {
+  border-color: var(--accent-bright);
+}
+
+/* 入力欄の共通の枠（input[type="text"]）より強く指定する */
+.code-search-box .code-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  border: none;
+  font-size: 13px;
+  background: transparent;
+}
+
+.code-search-box .code-search-input:focus {
+  outline: none;
+}
+
+.code-search-box .code-search-toggle {
+  width: 24px;
+  height: 24px;
+}
+
+.code-search-message {
+  margin: 4px 12px;
+}
+
+.code-search-file {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 10px 2px 8px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.code-search-file:hover {
+  background: var(--bg-hover);
+}
+
+.code-search-file .change-count {
+  margin-left: auto;
+}
+
+.code-search-row {
+  display: block;
+  width: 100%;
+  padding: 2px 10px 2px 30px;
+  overflow: hidden;
+  border: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.code-search-row:hover {
+  background: var(--bg-hover);
+}
+
+.code-search-row.selected {
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+/* 見つかった部分 */
+.code-search-match {
+  padding: 0 1px;
+  border-radius: 2px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+/* 検索の結果から開いた行 */
+.diff-table .line-focus {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+}
+
+/* フォルダ・ファイルのアイコン（Material Icon Theme） */
+.file-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.change-file .file-icon,
+.code-search-file .file-icon {
+  align-self: center;
+}
+
+/* ファイルの編集（Monaco）。差分・中身の表示と同じ枠いっぱいに広げる */
+.diff-body.editing {
+  overflow: hidden;
+}
+
+.code-editor {
+  width: 100%;
+  height: 100%;
+}
+
+.diff-state.error {
+  color: var(--ng);
+}
+
+/* 編集している間に、ほかでファイルが変わったときの知らせ */
+.file-changed-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+
+/* 「ステージされている変更」「変更」の見出しの行（開閉・操作のボタン・数） */
+.change-group-row {
+  display: flex;
+  align-items: center;
+  padding-right: 10px;
+}
+
+.change-group-row .change-group-head {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+/* 一覧・木の 1 行（行のボタンと、右の操作のボタン） */
+.change-item {
+  display: flex;
+  align-items: center;
+}
+
+.change-item .change-file {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.tree-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tree-item > .file-tree {
+  grid-column: 1 / -1;
+}
+
+/* 行の右の操作のボタン（ステージ・元に戻す・Finder で開くなど）。いつも薄い色で出し、乗せたボタンだけ濃くする */
+.row-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-right: 4px;
+}
+
+.row-actions .icon-button {
+  width: 22px;
+  height: 22px;
+}
+
+.row-actions .icon-button:not(:hover) {
+  color: var(--extra-muted);
+}
+
+/* 「変更」の上のコミットの欄（VS Code と同じく、メッセージ・コミット・プッシュを縦に並べる） */
+.commit-box {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 6px;
+}
+
+.commit-box .commit-message {
+  min-height: 52px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.commit-button {
+  justify-content: center;
+  width: 100%;
+}
+
+/* 「エディタ」タブの履歴（Fork と同じく、左にブランチの線、右に件名・作者・日時） */
+.history-list {
+  margin: 0;
+  padding: 4px 0 8px;
+  list-style: none;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 26px;
+  padding: 0 10px 0 6px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.history-row:hover {
+  background: var(--bg-hover);
+}
+
+.history-row.selected {
+  background: var(--bg-active);
+}
+
+.graph-cell {
+  flex: none;
+  overflow: hidden;
+}
+
+.graph-cell path {
+  fill: none;
+  stroke-width: 2;
+}
+
+.graph-cell circle {
+  stroke-width: 2;
+}
+
+/* ブランチ・タグの印（いまのブランチは目立たせる） */
+.ref-badge {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--muted);
+}
+
+.ref-badge.head {
+  border-color: color-mix(in srgb, var(--info) 60%, transparent);
+  font-weight: 600;
+  color: var(--info);
+}
+
+.ref-badge.remote {
+  border-style: dashed;
+}
+
+.ref-badge.tag {
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+  color: var(--warn);
+}
+
+.history-more {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.history-more:hover:not(:disabled) {
+  color: var(--text);
+}
+
+/* 選んだコミットの詳細（上にメッセージと変わったファイル、下に差分） */
+.commit-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.commit-meta {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 14px 6px;
+  overflow-y: auto;
+}
+
+.commit-subject {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.commit-body {
+  margin: 0 0 8px;
+  font-size: 13px;
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+
+.commit-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+.commit-facts dt {
+  color: var(--muted);
+}
+
+.commit-facts dd {
+  margin: 0;
+}
+
+/* 履歴の表の列（件名・作者・コミットの番号・日時。Fork と同じ） */
+.history-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-author,
+.history-hash,
+.history-date {
+  flex: none;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.history-author {
+  width: 130px;
+}
+
+.history-hash {
+  width: 64px;
+  font-family: var(--mono);
+}
+
+.history-date {
+  width: 118px;
+}
+
+/* 履歴の右側（上にコミットの表、下に詳細。境目はドラッグで動かせる） */
+.history-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.history-main.resizing {
+  cursor: row-resize;
+  user-select: none;
+}
+
+.history-table {
+  flex: none;
+  min-height: 0;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-resizer,
+.browser-devtools-resizer {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  height: 5px;
+  margin: -3px 0 -2px;
+  cursor: row-resize;
+}
+
+.history-resizer:hover,
+.history-main.resizing .history-resizer,
+.browser-devtools-resizer:hover,
+.browser-body.resizing .browser-devtools-resizer {
+  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+}
+
+.history-detail {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 履歴の左の一覧（すべてのコミット・ブランチ・リモート・タグ・stash） */
+.ref-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ref-all:hover {
+  background: var(--bg-hover);
+}
+
+.ref-items {
+  margin: 0;
+  padding: 0 0 4px;
+  list-style: none;
+}
+
+.ref-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 10px 3px 22px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ref-item:hover {
+  background: var(--bg-hover);
+}
+
+/* いまのブランチ（Fork と同じく、地の色で目立たせる） */
+.ref-item.current {
+  font-weight: 600;
+  background: var(--bg-active);
+}
+
+.ref-item svg,
+.ref-remote-name svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.ref-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-note {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ref-remote-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 22px;
+  font-size: 13px;
+}
+
+/* コミットの詳細の 1 行の見出し（作者・番号・日時・件名・タブ） */
+.commit-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.commit-author {
+  flex: none;
+  font-weight: 600;
+}
+
+.commit-line-subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 「変更」のタブ: 左に変わったファイル、右に差分 */
+.commit-changes {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.commit-files {
+  flex: none;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+}
+
+.commit-files-head {
+  display: flex;
+  align-items: center;
+  padding: 4px 6px 4px 10px;
+}
+
+.commit-files .change-file {
+  padding-left: 10px;
+}
+
+.change-item .ref-item {
+  flex: 1;
+  min-width: 0;
+}
+
+/* エディタタブの上の行（作業場所の切り替え）。ワークツリーが本体だけなら中が空なので隠す */
+.changes-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.changes-bar:empty {
+  display: none;
+}
+
+/* チャットが作業しているブランチの印（チャットの見出し・ボードのカード・サイドバーの行） */
+.worktree-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 160px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--info) 45%, transparent);
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--info);
+}
+
+.worktree-chip svg {
+  flex: none;
+}
+
+/* 本体で作業しているチャットのブランチは控えめに（ワークツリーのものと見分ける） */
+.worktree-chip.on-main {
+  border-color: var(--border-strong);
+  color: var(--muted);
+}
+
+/* フォルダの見つからないワークツリー・片付けて本体に戻ったチャットの、最後に作業したブランチ（点線で薄く。説明に理由） */
+.worktree-chip.is-gone {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  color: var(--extra-muted);
+}
+
+/* 注意の文（同じ作業場所で、ほかのチャットが作業中など） */
+.warn-text {
+  color: var(--warn);
+}
+
+/* ワークツリーの作業の流れ（エディタタブの作業場所の右: PR を作る・PR の状態・片付ける） */
+.worktree-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* PR の状態の色（GitHub と同じ: オープン = 緑、マージ済み = 紫、クローズ = 赤） */
+.pr-chip.open {
+  border-color: color-mix(in srgb, var(--ok) 60%, transparent);
+  color: var(--ok);
+}
+
+.pr-chip.merged {
+  border-color: color-mix(in srgb, var(--sec-schedule) 60%, transparent);
+  color: var(--sec-schedule);
+}
+
+.pr-chip.closed {
+  border-color: color-mix(in srgb, var(--ng) 60%, transparent);
+  color: var(--ng);
+}
+
+/* サイドバーのチャットの行では、作業場所の印を小さく */
+.chat-row-meta .worktree-chip {
+  max-width: 110px;
+  font-size: 10px;
+  line-height: 14px;
+}
+

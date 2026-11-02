@@ -1,0 +1,513 @@
+/* ==== カンバン（カンバンのプラグイン に合わせた構成） ==== */
+
+.page-board {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: none;
+  padding-bottom: var(--gutter);
+}
+
+/* グループのボード */
+.group-column-head {
+  cursor: grab;
+}
+
+.group-column-head .column-count {
+  flex: none;
+}
+
+/* カンバンの列と同じく、件数は名前のすぐ横、＋と「…」は右端に寄せる */
+.group-column-head .column-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-column-head .group-add-chat {
+  margin-left: auto;
+}
+
+.group-add-column {
+  border-style: dashed;
+  background: transparent;
+}
+
+.group-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.group-add:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.page-board > .board {
+  flex: 1;
+  min-height: 0;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.board {
+  /* 見出しの並びを、ボードの幅に合わせて変える（下の @container） */
+  container-type: inline-size;
+}
+
+.board-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 10px;
+}
+
+/* 文字は折り返さない（入りきらないときは、操作のまとまりごと次の行の右側へ） */
+.board-header > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.board-header > .board-tools {
+  /* まとまりの中でも折り返せるよう、縮められるようにする */
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* 道具の概念ごとのまとまり（探す・絞り込む / 表示 / 作る・開く / パネル）。まとまりの中は折り返さず、間に区切り線を入れる */
+.board-tool-group {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.board-tool-group + .board-tool-group {
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+/* 表示と探す・絞り込むは名前のすぐ右に左寄せ、作る・開くとパネルの開閉は右端に寄せる */
+.board-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.board-tools-end {
+  margin-left: auto;
+}
+
+.board-title {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+}
+
+.board-header .view-toggle button,
+.board-header .btn {
+  white-space: nowrap;
+}
+
+/* 幅が狭いときは、ボタンの文字を隠してアイコンだけにし、検索欄も狭くする */
+@container (max-width: 1120px) {
+  .board-header .btn-label {
+    display: none;
+  }
+
+  .board-header .btn-sm {
+    padding: 3px 7px;
+  }
+
+  .chat-search.board-search {
+    width: 160px;
+  }
+}
+
+@container (max-width: 680px) {
+  .chat-search.board-search {
+    width: 120px;
+  }
+
+  .board-filter {
+    max-width: 130px;
+  }
+}
+
+.board-filter {
+  width: auto;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.btn-sm {
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.view-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.view-toggle button.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.board-error,
+.board-loading {
+  margin: 0 0 8px;
+}
+
+.dot {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.board-columns {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  min-height: 0;
+  overflow-x: auto;
+}
+
+.board-column {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 170px;
+  max-width: 260px;
+  min-height: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+
+.board-column.drop-target,
+.list-group.drop-target {
+  border-color: var(--accent);
+  background: var(--bg-elev);
+}
+
+.column-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.column-head .dot {
+  width: 8px;
+  height: 8px;
+}
+
+.column-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.column-count {
+  flex: 1;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ボードの段（スイムレーン）: 段ごとに状態の列を並べ、全体を縦にスクロールする。段の見出しはスクロールしても上に残す */
+.board-lanes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding-bottom: 8px;
+  overflow-y: auto;
+}
+
+.board-lane {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.board-lane-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--row-tight);
+  background: var(--bg);
+}
+
+.board-lane-name {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.board-lane-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.board-lane-extra,
+.board-lane-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.board-lane-worktree {
+  color: var(--info);
+}
+
+/* 段の中の列は、中身の高さに合わせる（列ごとにスクロールしない） */
+.lane-columns {
+  flex: none;
+}
+
+.lane-columns .column-cards {
+  overflow: visible;
+}
+
+.column-cards {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  padding-bottom: 8px;
+  overflow-y: auto;
+}
+
+.column-empty {
+  margin: 0;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.board-card {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  cursor: pointer;
+}
+
+.board-card,
+.list-row {
+  /* ドラッグのときに文字が選択されないように */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.board-card:active,
+.list-row:active {
+  cursor: grabbing;
+}
+
+.board-card:focus-visible,
+.list-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.board-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.board-card.dragging,
+.list-row.dragging {
+  opacity: 0.35;
+}
+
+.card-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.card-title.one-line {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.card-labels,
+.list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 全プロジェクトのカンバン: カードのプロジェクトのバッジと、左端の色の線（サイドバーと同じ色） */
+/* 絞り込み中のセレクトは、絞り込んでいることがわかるようにする */
+.board-filter.filtered {
+  border-color: var(--accent-bright);
+  color: var(--text);
+}
+
+/* ボードの列・まとまりのいちばん下の、アーカイブ済みのまとまり（サイドバーと同じ見出し。中のカードは列と同じ間隔で並べる） */
+.archived-fold {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* アーカイブしたチャット（表示しているときだけ、薄く出す） */
+.board-card.archived,
+.list-row.archived,
+.chat-row.archived {
+  opacity: 0.55;
+}
+
+.archived-chip {
+  padding: 1px 6px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.project-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 160px;
+  padding: 1px 7px 1px 2px;
+  overflow: hidden;
+  border: 1px solid hsl(var(--ws-hue, 150) 35% 30%);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: hsl(var(--ws-hue, 150) 60% 78%);
+  background: hsl(var(--ws-hue, 150) 30% 17%);
+}
+
+.project-chip-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  color: hsl(var(--ws-hue, 150) 30% 12%);
+  background: hsl(var(--ws-hue, 150) 60% 68%);
+}
+
+:root[data-theme="light"] .project-chip {
+  border-color: hsl(var(--ws-hue, 150) 45% 78%);
+  color: hsl(var(--ws-hue, 150) 55% 30%);
+  background: hsl(var(--ws-hue, 150) 55% 94%);
+}
+
+:root[data-theme="light"] .project-chip-mark {
+  color: #fff;
+  background: hsl(var(--ws-hue, 150) 50% 45%);
+}
+
+.board-card.with-project,
+.list-row.with-project {
+  box-shadow: inset 3px 0 0 hsl(var(--ws-hue, 150) 55% 55%);
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.card-state {
+  color: var(--text);
+}
+
+.card-pending {
+  font-weight: 600;
+  color: var(--dot-needs-input);
+}
+
+.card-time {
+  flex: 1;
+  overflow: hidden;
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+

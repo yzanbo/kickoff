@@ -1,0 +1,86 @@
+/* ==== デザイントークン（ダークが既定、ライトは data-theme="light"） ==== */
+
+:root {
+  /* 既定ダーク（緑みのダーク）に合わせた配色 */
+  color-scheme: dark;
+  --bg: #181b1a; /* surface0: 画面の地 */
+  --bg-sidebar: #141716; /* surfaceSidebar */
+  --bg-elev: #1e2120; /* surface1: カード・入力欄 */
+  --bg-hover: #272a29; /* surface2 */
+  --bg-active: #434645; /* surface3: 自分の吹き出し・選択中 */
+  --border: #252b2a;
+  --border-strong: #2f3534; /* borderAccent */
+  --text: #fafafa;
+  --muted: #a1a5a4;
+  --extra-muted: #717574;
+  --accent: #20744a;
+  --accent-bright: #7ccba0;
+  --accent-text: #ffffff;
+  --ok: #6cb17b;
+  --ng: #d8847b;
+  --warn: #c09664;
+  --info: #5caaf6;
+  /* 状態の点（statusDot*。明るさをそろえて見分けやすくしたもの） */
+  --dot-needs-input: #db932e;
+  --dot-failed: #f7796d;
+  --dot-running: #5caaf6;
+  --dot-attention: #35c264;
+  /* セクションの色（必ずアイコンとラベルと一緒に使う） */
+  --sec-requirements: #3987e5;
+  --sec-schedule: #9085e9;
+  --sec-implementation: #d95926;
+  --sec-testing: #199e70;
+  --sec-deployment: #d55181;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --row: 36px;
+  /* 欄の左右の余白（左のサイドバー・真ん中の画面・右のチャット欄・パネルでそろえる） */
+  --gutter: 12px;
+  /* スクロールバーの幅（下の ::-webkit-scrollbar と同じ値にする） */
+  --scrollbar-w: 8px;
+  /* 欄・パネルの開閉の動き（左のサイドバー・ボードの右のパネル・右のチャット欄・下のパネルでそろえる） */
+  --panel-motion-duration: 0.24s;
+  --panel-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --row-tight: 28px;
+  --mono: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-sidebar: #f4f4f5;
+  --bg-elev: #fafafa;
+  --bg-hover: #f4f4f5;
+  --bg-active: #e4e4e7;
+  --border: #e4e4e7;
+  --border-strong: #ececf1;
+  --text: #1a1a1e;
+  --muted: #71717a;
+  --extra-muted: #a1a1aa;
+  --ok: #3e704a;
+  --ng: #9d433b;
+  --warn: #7b5d39;
+  --info: #268ae0;
+  --dot-needs-input: #b37824;
+  --dot-failed: #f12e2f;
+  --dot-running: #268ae0;
+  --dot-attention: #299f51;
+  --sec-requirements: #2a78d6;
+  --sec-schedule: #6250d6;
+  --sec-implementation: #eb6834;
+  --sec-testing: #1baf7a;
+  --sec-deployment: #e87ba4;
+}
+
+* {
+  box-sizing: border-box;
+}
+

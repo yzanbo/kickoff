@@ -1,0 +1,73 @@
+/* ==== やり取りの全文検索（⌘⇧F） ==== */
+
+.search-scopes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 0;
+}
+
+.search-hit {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.search-hit.active {
+  background: var(--bg-hover);
+}
+
+.search-hit-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.search-hit-title {
+  flex: 1;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.search-hit-snippet {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+mark {
+  padding: 0 2px;
+  border-radius: 3px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 40%, transparent);
+}
+
+/* 検索結果から開いた発言を一瞬強調する */
+.flash {
+  animation: flash 1.8s ease-out;
+}
+
+@keyframes flash {
+  0%,
+  30% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 70%, transparent);
+    background-color: color-mix(in srgb, var(--warn) 18%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
