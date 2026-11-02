@@ -1,4 +1,15 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { BrowserExtensionInfo } from "../core/types.js";
+
+// 画面が preload から型を読めるように、コアの型をここからも出す
+export type { BrowserExtensionInfo };
+
+/** メインプロセスからの知らせ（channel）を受け取る。戻り値で受け取りをやめる */
+function subscribe<T extends unknown[]>(channel: string, listener: (...args: T) => void): () => void {
+  const handler = (_e: unknown, ...args: unknown[]) => listener(...(args as T));
+  ipcRenderer.on(channel, handler);
+  return () => ipcRenderer.off(channel, handler);
+}
 
 // 画面に公開するネイティブ機能（デスクトップアプリでのみ存在。スマホのブラウザでは undefined）
 const api = {
@@ -17,11 +28,7 @@ const api = {
   /** 埋め込みブラウザの開発者ツールを閉じる（別のウィンドウも） */
   closeDevTools: (targetId: number): Promise<void> => ipcRenderer.invoke("kickoff:browser-devtools-close", targetId),
   /** 開発者ツールの別のウィンドウを、利用者が閉じたとき。戻り値で受け取りをやめる */
-  onDevToolsWindowClosed: (listener: (targetId: number) => void): (() => void) => {
-    const handler = (_e: unknown, targetId: number) => listener(targetId);
-    ipcRenderer.on("kickoff:browser-devtools-window-closed", handler);
-    return () => ipcRenderer.off("kickoff:browser-devtools-window-closed", handler);
-  },
+  onDevToolsWindowClosed: (listener: (targetId: number) => void): (() => void) => subscribe("kickoff:browser-devtools-window-closed", listener),
   /** Kickoff のウィンドウを前面に出す（通知を押したとき） */
   focusWindow: (): Promise<void> => ipcRenderer.invoke("kickoff:focus-window"),
   /** 内蔵ターミナル（右のパネルのタブ）。key はタブごとのキー */
@@ -34,17 +41,9 @@ const api = {
     /** シェルを止める（タブを閉じたとき） */
     close: (key: string): Promise<void> => ipcRenderer.invoke("kickoff:terminal-close", key),
     /** シェルの出力。戻り値で受け取りをやめる */
-    onData: (listener: (key: string, data: string) => void): (() => void) => {
-      const handler = (_e: unknown, key: string, data: string) => listener(key, data);
-      ipcRenderer.on("kickoff:terminal-data", handler);
-      return () => ipcRenderer.off("kickoff:terminal-data", handler);
-    },
+    onData: (listener: (key: string, data: string) => void): (() => void) => subscribe("kickoff:terminal-data", listener),
     /** シェルが終わったとき */
-    onExit: (listener: (key: string, exitCode: number) => void): (() => void) => {
-      const handler = (_e: unknown, key: string, exitCode: number) => listener(key, exitCode);
-      ipcRenderer.on("kickoff:terminal-exit", handler);
-      return () => ipcRenderer.off("kickoff:terminal-exit", handler);
-    },
+    onExit: (listener: (key: string, exitCode: number) => void): (() => void) => subscribe("kickoff:terminal-exit", listener),
   },
   /** 埋め込みブラウザの拡張機能（React DevTools など） */
   browserExtensions: {
@@ -56,13 +55,6 @@ const api = {
     remove: (path: string): Promise<BrowserExtensionInfo[]> => ipcRenderer.invoke("kickoff:browser-extension-remove", path),
   },
 };
-
-export interface BrowserExtensionInfo {
-  name: string;
-  version: string;
-  path: string;
-  source: "webstore" | "chrome-profile" | "folder";
-}
 
 contextBridge.exposeInMainWorld("kickoff", api);
 
