@@ -1,6 +1,6 @@
 import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
-import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type BoardColumn, type Phase, type Run, type RunGroup } from "../../../../core/types";
+import { BOARD_COLUMNS, type BoardColumn, type Phase, type Run, type RunGroup } from "../../../../core/types";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
 import { useRunRename } from "../../hooks/useRunRename";
@@ -12,26 +12,20 @@ import { useProjects } from "../../projectsContext";
 import { openRun, type ReopenRoute } from "../../router";
 import { useRunStates } from "../../approvalsContext";
 import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY, BOARD_VIEW_KEY } from "../../storageKeys";
-import { CardMenu } from "../menus/CardMenu";
-import { ErrorText } from "../ErrorText";
 import { useProjectChatContext } from "../projectChat/useProjectChat";
 import { DraftCards } from "../sidePanel/DraftCards";
-import { SidePanel } from "../sidePanel/SidePanel";
-import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
+import { useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
 import { decodeArchiveFilter, encodeArchiveFilter, KanbanFilters, type ArchiveFilter } from "./KanbanFilters";
-import { RunCardContent, RunRowContent } from "./RunCard";
-import { runCardProps } from "./runCardProps";
-import { COLUMN_TONE, DRAFT_TONE } from "./tones";
 import { useBoardFocus } from "./useBoardFocus";
-import { ArchiveAllButton } from "./ArchiveAllButton";
 import { BOARD_LANE_LABELS, BOARD_LANES, BoardLanes, type BoardLane } from "./BoardLanes";
 import { byColumn, type BoardEntry } from "./boardColumns";
-import { ColumnHead } from "./ColumnHead";
+import { BoardShell } from "./BoardShell";
+import { DraftColumn, StateColumn } from "./StateColumn";
+import { useBoardCards, useCardMenu } from "./useBoardCards";
 import { useBoardRuns } from "./useBoardRuns";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
 import { workplaceOf } from "../../worktree/workplace";
-import { ArchivedFold, splitArchived } from "./ArchivedFold";
 
 /** カンバン（列 = 状態）で選べる段の分け方 */
 const KANBAN_LANES: BoardLane[] = ["worktree", "phase", "group", "project"];
@@ -84,14 +78,15 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     .sort((a, b) => a.label.localeCompare(b.label));
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
-  const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
+  // カードの右クリックメニュー
+  const menu = useCardMenu();
 
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）
   const panel = useSidePanel({
     memoryKey: `kanban:${projectId ?? "all"}`,
     runs,
     loaded,
-    holdEsc: menu !== null,
+    holdEsc: menu.isOpen,
     projects: allProjects ? projects : undefined,
     // 新しいチャットを送ったら、プロジェクトのボードでは URL もそのチャットにする
     onCreated: (run) => !allProjects && openRun(run.project_id, run.id, undefined, { replace: true }),
@@ -145,173 +140,110 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     panel.openNew({ projectId: target, section: section === "all" ? undefined : section });
   }
 
-  const cardProps = (run: Run) => ({
-    ...runCardProps(run, {
-      onOpen: () => open(run),
-      onMenu: (at) => setMenu({ ...at, run }),
-      editing: Boolean(rename.editorFor(run)),
-    }),
-    style: allProjects ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as CSSProperties) : undefined,
+  /** カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える。全プロジェクトのボードではプロジェクトの色と名前を付ける） */
+  const cards = useBoardCards({
+    panel,
+    rename,
+    menu,
+    onOpen: open,
+    classFor: (run) => cx(run.archived_at && "archived", allProjects && "with-project"),
+    style: (run) => (allProjects ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as CSSProperties) : undefined),
+    projectName: (run) => (allProjects ? projectName(run.project_id) : undefined),
+    pending: (run) => pendingCount(run.id),
   });
-  const cardClass = (run: Run) =>
-    cx(run.archived_at && "archived", allProjects && "with-project", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
-  /** 列・リストのまとまりの見出し（列の名前・件数） */
-  // 完了の列には、すべてアーカイブするボタンを置く
-  const columnHead = (column: BoardColumn, list: Entry[]) => (
-    <ColumnHead
-      label={BOARD_COLUMN_LABELS[column]}
-      tone={COLUMN_TONE[column]}
-      count={list.length}
-      action={column === "done" ? <ArchiveAllButton runs={list.map((e) => e.run)} /> : undefined}
-    />
-  );
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない）。いちばん左の「下書き」の列に出す
   const chat = useProjectChatContext();
   const sideDrafts = chat && projectId !== undefined && chat.projectId === projectId ? chat.panel : null;
   const draftCount = panel.drafts.length + (sideDrafts?.drafts.length ?? 0);
-  // 新しいチャットは見出しの「新規」から始める（列の＋は、押しても列に意味がないので置かない）
-  const draftHead = <ColumnHead label="下書き" tone={DRAFT_TONE} count={draftCount} />;
   const draftCards = (
     <>
       <DraftCards panel={panel} />
       {sideDrafts && chat && <DraftCards panel={sideDrafts} onShow={chat.showTab} />}
-      {draftCount === 0 && <p className="column-empty">なし</p>}
     </>
-  );
-
-  const card = ({ run, state }: Entry) => (
-    <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
-      <RunCardContent
-        run={run}
-        state={state}
-        projectName={allProjects ? projectName(run.project_id) : undefined}
-        pending={pendingCount(run.id)}
-        rename={rename.editorFor(run)}
-      />
-    </article>
   );
   /** アーカイブ済みのまとまりの開閉を覚える名前（ボード・段・列ごと） */
   const foldKey = (column: BoardColumn, laneKey = "") => `kanban:${projectId ?? "all"}:${laneKey}:${column}`;
-  /**
-   * 状態の列 1 本（ボードの表示）。アーカイブ済みは列のいちばん下の閉じたまとまりに分ける（サイドバーと同じ）。
-   * 見出しの件数は、アーカイブしていないものだけ
-   */
-  const columnSection = (column: BoardColumn, list: Entry[], laneKey?: string) => {
-    const [active, archived] = splitArchived(list, (e) => e.run);
-    return (
-      <section key={column} className="board-column">
-        {columnHead(column, active)}
-        <div className="column-cards">
-          {active.length === 0 && <p className="column-empty">なし</p>}
-          {active.map(card)}
-          <ArchivedFold foldKey={foldKey(column, laneKey)} count={archived.length}>
-            {archived.map(card)}
-          </ArchivedFold>
-        </div>
-      </section>
-    );
+  /** 状態の列（ボード・スイムレーンの段。アーカイブ済みは列のいちばん下の閉じたまとまりに分け、見出しの件数はアーカイブしていないものだけ） */
+  const columns = (list: Entry[], laneKey?: string) => {
+    const grouped = byColumn(list);
+    return BOARD_COLUMNS.map((column) => <StateColumn key={column} column={column} entries={grouped.get(column) ?? []} foldKey={foldKey(column, laneKey)} render={cards.card} />);
   };
-  const draftColumn = (
-    <section className="board-column">
-      {draftHead}
-      <div className="column-cards">{draftCards}</div>
-    </section>
+
+  const header = (
+    <BoardHeader
+      heading={title ? { icon: <SquareKanban size={16} className="muted" />, title, count: total } : undefined}
+      query={query}
+      onQuery={setQuery}
+      filters={
+        <KanbanFilters
+          section={section}
+          onSection={setSection}
+          archive={archive}
+          onArchive={setArchive}
+          worktrees={worktreeChoices}
+          worktree={worktreeFilter}
+          onWorktree={setWorktreeFilter}
+        />
+      }
+      primary={
+        <button className="btn btn-sm" onClick={() => newChat()} disabled={allProjects && projects.length === 0}>
+          <Plus size={13} /> <span className="btn-label">新規</span>
+        </button>
+      }
+      view={view}
+      onView={setView}
+      lanesView
+      viewOptions={
+        view === "lanes" && (
+          <select className="board-filter" aria-label="段の分け方" title="段の分け方" value={lanes} onChange={(e) => setLanes(e.target.value as BoardLane)}>
+            {laneOptions.map((l) => (
+              <option key={l} value={l}>
+                段: {BOARD_LANE_LABELS[l]}
+              </option>
+            ))}
+          </select>
+        )
+      }
+      panel={panel}
+    />
   );
 
   return (
-    <div className="board">
-      <BoardHeader
-        heading={title ? { icon: <SquareKanban size={16} className="muted" />, title, count: total } : undefined}
-        query={query}
-        onQuery={setQuery}
-        filters={
-          <KanbanFilters
-            section={section}
-            onSection={setSection}
-            archive={archive}
-            onArchive={setArchive}
-            worktrees={worktreeChoices}
-            worktree={worktreeFilter}
-            onWorktree={setWorktreeFilter}
-          />
-        }
-        primary={
-          <button className="btn btn-sm" onClick={() => newChat()} disabled={allProjects && projects.length === 0}>
-            <Plus size={13} /> <span className="btn-label">新規</span>
-          </button>
-        }
-        view={view}
-        onView={setView}
-        lanesView
-        viewOptions={
-          view === "lanes" && (
-            <select className="board-filter" aria-label="段の分け方" title="段の分け方" value={lanes} onChange={(e) => setLanes(e.target.value as BoardLane)}>
-              {laneOptions.map((l) => (
-                <option key={l} value={l}>
-                  段: {BOARD_LANE_LABELS[l]}
-                </option>
-              ))}
-            </select>
-          )
-        }
-        panel={panel}
-      />
-      <ErrorText message={error} className="board-error" />
-
-      <div {...panel.body}>
-        <div className="board-main">
-          {!loaded ? (
-            <p className="muted small board-loading">読み込み中…</p>
-          ) : view === "lanes" ? (
-            // 段に分ける: 段ごとに状態の列を並べる。下書きはまだ段が決まらないので、あるときだけ上に置く
-            <BoardLanes
-              kind={lanes}
-              boardKey={`${projectId ?? "all"}`}
-              entries={entries}
-              projects={projects}
-              groups={groups}
-              renderColumns={(list, laneKey) => {
-                const columns = byColumn(list);
-                return BOARD_COLUMNS.map((column) => columnSection(column, columns.get(column) ?? [], laneKey));
-              }}
-              before={draftCount > 0 && <div className="board-columns lane-columns">{draftColumn}</div>}
-            />
-          ) : view === "board" ? (
-            <div className="board-columns">
-              {draftColumn}
-              {BOARD_COLUMNS.map((column) => columnSection(column, grouped.get(column) ?? []))}
-            </div>
-          ) : (
-            <div className="board-list">
-              <section className="list-group">
-                {draftHead}
-                {draftCards}
-              </section>
-              {BOARD_COLUMNS.map((column) => {
-                const [active, archived] = splitArchived(grouped.get(column) ?? [], (e) => e.run);
-                const row = ({ run, state }: Entry) => (
-                  <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
-                    <RunRowContent run={run} state={state} projectName={allProjects ? projectName(run.project_id) : undefined} rename={rename.editorFor(run)} />
-                  </div>
-                );
-                return (
-                  <section key={column} className="list-group">
-                    {columnHead(column, active)}
-                    {active.length === 0 && <p className="column-empty">なし</p>}
-                    {active.map(row)}
-                    <ArchivedFold foldKey={foldKey(column, "list")} count={archived.length}>
-                      {archived.map(row)}
-                    </ArchivedFold>
-                  </section>
-                );
-              })}
-            </div>
-          )}
+    <BoardShell header={header} error={error} panel={panel} onNewChat={() => newChat()} projectId={projectId} menu={menu} onOpenRun={open} rename={rename} onError={setError}>
+      {!loaded ? (
+        <p className="muted small board-loading">読み込み中…</p>
+      ) : view === "lanes" ? (
+        // 段に分ける: 段ごとに状態の列を並べる。下書きはまだ段が決まらないので、あるときだけ上に置く
+        <BoardLanes
+          kind={lanes}
+          boardKey={`${projectId ?? "all"}`}
+          entries={entries}
+          projects={projects}
+          groups={groups}
+          renderColumns={columns}
+          before={
+            draftCount > 0 && (
+              <div className="board-columns lane-columns">
+                <DraftColumn count={draftCount}>{draftCards}</DraftColumn>
+              </div>
+            )
+          }
+        />
+      ) : view === "board" ? (
+        <div className="board-columns">
+          <DraftColumn count={draftCount}>{draftCards}</DraftColumn>
+          {columns(entries)}
         </div>
-        <SidePanel panel={panel} onNewChat={() => newChat()} terminals={terminalTargets(projects, projectId)} />
-      </div>
-
-      {menu && <CardMenu {...menu} onOpenPanel={open} onRename={rename.start} onClose={() => setMenu(null)} onError={setError} />}
-    </div>
+      ) : (
+        <div className="board-list">
+          <DraftColumn count={draftCount} list>
+            {draftCards}
+          </DraftColumn>
+          {BOARD_COLUMNS.map((column) => (
+            <StateColumn key={column} column={column} entries={grouped.get(column) ?? []} foldKey={foldKey(column, "list")} render={cards.row} list />
+          ))}
+        </div>
+      )}
+    </BoardShell>
   );
 }
