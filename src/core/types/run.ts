@@ -1,6 +1,6 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { ApprovalDecision, ApprovalKind } from "./approval.js";
-import type { EffortLevel, PermissionChoice, Phase, ProviderId } from "./phases.js";
+import type { EffortLevel, PermissionChoice, ProviderId } from "./settings.js";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
 /** チャット欄で選べるモデル */
@@ -54,14 +54,12 @@ export type RunStatus = "queued" | "running" | "waiting" | "completed" | "failed
 export interface Run {
   id: number;
   project_id: number;
-  task_id: number | null;
-  phase: Phase;
   provider: ProviderId;
   title: string;
   status: RunStatus;
   session_id: string | null;
   model: string | null;
-  /** 推論の深さ（null ならフェーズ既定） */
+  /** 推論の深さ（null なら指定しない＝モデルの既定） */
   effort: EffortLevel | null;
   permission_mode: PermissionChoice;
   /** ファストモードを指定したか（SQLite の真偽値 0 / 1） */
@@ -108,7 +106,6 @@ export interface SearchHit {
   run_id: number;
   project_id: number;
   run_title: string;
-  phase: Phase;
   /** user: 自分の発言 / text: AI の返答 */
   type: "user" | "text";
   /** キーワードの前後を切り出した文（match_start〜match_end がキーワード） */

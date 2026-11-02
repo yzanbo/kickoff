@@ -77,10 +77,13 @@ function snippetAround(text: string, keyword: string): { snippet: string; match_
   return { snippet, match_start: matchStart, match_end: matchStart + keyword.length };
 }
 
-/** DB の行をアプリの型に変換する（以前の権限モード・推論の深さは legacyValues で読み替える） */
+/**
+ * DB の行をアプリの型に変換する。使わなくなった列（セクション phase・タスク task_id・カンバンの列 stage）は返さず、
+ * 以前の権限モード・推論の深さは phase を見て legacyValues で読み替える
+ */
 function toRun(row: unknown): Run {
-  const r = row as Run;
-  return { ...r, ...legacyRunOptions(r) };
+  const { phase, task_id: _task, stage: _stage, ...r } = row as Run & { phase: string; task_id: unknown; stage: unknown };
+  return { ...r, ...legacyRunOptions({ phase, effort: r.effort, permission_mode: r.permission_mode }) };
 }
 
 /** チャット（エージェントとの会話セッション）と、その記録（run_events）・検索 */
@@ -215,7 +218,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       }
       const rows = db
         .prepare(
-          `SELECT e.id AS event_id, e.run_id, r.project_id, r.title AS run_title, r.phase, e.type,
+          `SELECT e.id AS event_id, e.run_id, r.project_id, r.title AS run_title, e.type,
                   json_extract(e.data, '$.text') AS text, e.created_at
            FROM run_events e JOIN runs r ON r.id = e.run_id
            WHERE ${where.join(" AND ")}

@@ -30,7 +30,7 @@ export function updateRow(db: DatabaseSync, table: string, id: number, patch: Ro
   db.prepare(`UPDATE ${table} SET ${sets}, updated_at = ${NOW} WHERE id = $id`).run(params);
 }
 
-/** タスクや実行の更新時にプロジェクトの更新日時を進める（一覧の並び順用） */
+/** チャットの作成時にプロジェクトの更新日時を進める（一覧の並び順用） */
 export function touchProject(db: DatabaseSync, id: number) {
   db.prepare(`UPDATE projects SET updated_at = ${NOW} WHERE id = ?`).run(id);
 }

@@ -1,16 +1,5 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-// 開発のセクション・タスクの状態・成果物の種類・プロバイダー・推論の深さ・権限モードの定数と、アプリ全体の設定
-// 開発のセクション（サイドバーでプロジェクトの下に並び、それぞれにチャットがぶら下がる）。
-// 順番の決まった工程ではなく、どのセクションでもいつでもチャットできる。
-export const PHASES = ["requirements", "schedule", "implementation", "testing", "deployment"] as const;
-export type Phase = (typeof PHASES)[number];
-
-export const TASK_STATUSES = ["todo", "in_progress", "review", "pr_open", "done", "blocked"] as const;
-export type TaskStatus = (typeof TASK_STATUSES)[number];
-
-export const ARTIFACT_KINDS = ["requirements", "schedule", "design", "test_report", "deploy_log", "note"] as const;
-export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
-
+// プロバイダー・推論の深さ・権限モードの定数と、アプリ全体の設定
 export const PROVIDER_IDS = ["claude", "codex", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 

@@ -47,6 +47,8 @@ test("以前のチャット（権限モードが phase）は、読むときに�
   // 新しいチャットは、推論の深さを決めていなければ指定しない（null のまま）
   const fresh = mk();
   assert.deepEqual(pick(fresh.store.getRun(fresh.run.id)!), { effort: null, permission_mode: "default" });
+  // 使わなくなった列（phase・task_id・stage）は返さない
+  for (const key of ["phase", "task_id", "stage"]) assert.equal(key in fresh.run, false, key);
 });
 
 function pick(run: { effort: unknown; permission_mode: unknown }) {
