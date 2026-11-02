@@ -20,7 +20,10 @@ npm test           # コアの単体テスト
 npm run typecheck  # 型チェック
 npm run daemon     # Electron なしでコア（API サーバー）だけを起動
 npm run dist       # .app / .dmg を作成
+npm run icon       # build/icon.svg からアプリのアイコン（build/icon.png・icon.icns）を作り直す
 ```
+
+`npm install` のあと（postinstall）に、開発用の Electron.app の名前とアイコンを Kickoff に書き換える（`scripts/dev-app-identity.mjs`。Dock やメニューバーに「Electron」と出ないように）。アイコンを作り直したら `node scripts/dev-app-identity.mjs` で当て直し、開発アプリを起動し直す。
 
 データは `~/Library/Application Support/Kickoff/` に保存される。
 
@@ -32,6 +35,8 @@ npm run dist       # .app / .dmg を作成
 | `src/main` | Electron のメインプロセス（コアの起動、ウィンドウ、ネイティブダイアログ） |
 | `src/preload` | 画面に公開する最小限のネイティブ機能 |
 | `src/renderer` | 画面（React） |
+| `build` | アプリのアイコン（元の絵は `icon.svg`） |
+| `scripts` | アイコンの作成・開発用の Electron.app の書き換え |
 
 | 環境変数 | 説明 |
 |---|---|

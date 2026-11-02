@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="100 100 824 824">
+  <!-- 画面のファビコン（build/icon.svg の角丸の四角だけを切り出したもの） -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22302a"/>
+      <stop offset="1" stop-color="#101614"/>
+    </linearGradient>
+    <linearGradient id="mark" gradientUnits="userSpaceOnUse" x1="720" y1="260" x2="300" y2="760">
+      <stop offset="0" stop-color="#a6e6c1"/>
+      <stop offset="1" stop-color="#3f9f6c"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="183.5" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="3"/>
+  <!-- 縦の線・上の腕（右上への矢印）・下の脚を 1 本の形で描く（重なりに境目が出ないように） -->
+  <path d="M340 300 V724 M340 640 L680 300 M540 300 H680 V440 M500 480 L690 724" fill="none" stroke="url(#mark)" stroke-width="92" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
