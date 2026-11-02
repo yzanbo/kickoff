@@ -1,34 +1,30 @@
 import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
-import { BOARD_COLUMNS, type BoardColumn, type Phase, type Run, type RunGroup } from "../../../../core/types";
-import { useChatSearch } from "../../chatSearch";
+import { BOARD_COLUMNS, type BoardColumn, type Run, type RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { useRunRename } from "../../hooks/useRunRename";
-import { useStoredChoice, useStoredState } from "../../hooks/useStoredState";
+import { useStoredChoice } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { openRun, type ReopenRoute } from "../../router";
 import { useRunStates } from "../../approvalsContext";
-import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY, BOARD_VIEW_KEY } from "../../storageKeys";
+import { BOARD_VIEW_KEY } from "../../storageKeys";
 import { useProjectChatContext } from "../projectChat/useProjectChat";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
-import { decodeArchiveFilter, encodeArchiveFilter, KanbanFilters, type ArchiveFilter } from "./KanbanFilters";
+import { KanbanFilters } from "./KanbanFilters";
 import { useBoardFocus } from "./useBoardFocus";
-import { BOARD_LANE_LABELS, BOARD_LANES, BoardLanes, type BoardLane } from "./BoardLanes";
+import { BOARD_LANE_LABELS, BoardLanes, type BoardLane } from "./BoardLanes";
 import { byColumn, type BoardEntry } from "./boardColumns";
+import { useKanbanEntries } from "./useKanbanEntries";
+import { useKanbanFilters, useKanbanLanes, useWorktreeChoices } from "./useKanbanFilters";
 import { BoardShell } from "./BoardShell";
 import { DraftColumn, StateColumn } from "./StateColumn";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
 import { useBoardRuns } from "./useBoardRuns";
-import { useWorktreeLists } from "../../worktree/worktreeBranches";
-import { workplaceOf } from "../../worktree/workplace";
-
-/** カンバン（列 = 状態）で選べる段の分け方 */
-const KANBAN_LANES: BoardLane[] = ["worktree", "phase", "group", "project"];
 
 const NO_GROUPS: RunGroup[] = [];
 
@@ -57,26 +53,13 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
-  // アーカイブでの絞り込み・ボード／リスト（覚えておく）
-  const [archive, setArchive] = useStoredState<ArchiveFilter>(BOARD_SHOW_ARCHIVED_KEY, decodeArchiveFilter, encodeArchiveFilter);
+  // 絞り込み（アーカイブ・セクション・作業場所・名前）とボード／リスト／スイムレーン（覚えておく）
+  const filters = useKanbanFilters();
   const [view, setView] = useStoredChoice<BoardView>(BOARD_VIEW_KEY, ["board", "list", "lanes"], "board");
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
-  const { runs, loaded } = useBoardRuns(projectId, archive !== "active", setError);
+  const { runs, loaded } = useBoardRuns(projectId, filters.archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
-  const [section, setSection] = useState<Phase | "all">("all");
-  // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
-  const [worktreeFilter, setWorktreeFilter] = useState("all");
-  // 絞り込みの候補: ワークツリーの作業場所（ブランチ名で出し、フォルダが消えたものは「フォルダなし」と添える）
-  const worktreeRuns = runs.filter((r) => r.worktree_path);
-  const worktreesOf = useWorktreeLists(worktreeRuns.map((r) => r.project_id));
-  const worktreeChoices = [...new Map(worktreeRuns.map((r) => [r.worktree_path, r])).values()]
-    .map((r) => {
-      const place = workplaceOf(r, worktreesOf(r.project_id));
-      return { path: r.worktree_path, label: place.kind === "missing" ? `${place.name}（フォルダなし）` : place.name };
-    })
-    .sort((a, b) => a.label.localeCompare(b.label));
-  const [query, setQuery] = useState("");
-  const search = useChatSearch(query);
+  const worktreeChoices = useWorktreeChoices(runs);
   // カードの右クリックメニュー
   const menu = useCardMenu();
 
@@ -107,28 +90,12 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   );
 
 
-  // 絞り込んだチャット（新しく動いた順）
-  const entries = useMemo(() => {
-    const list: BoardEntry[] = [];
-    for (const run of runs) {
-      // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない（projects に入っていない）
-      if (allProjects && !projects.some((p) => p.id === run.project_id)) continue;
-      if (archive === "archived" && !run.archived_at) continue;
-      if (worktreeFilter !== "all" && run.worktree_path !== worktreeFilter) continue;
-      if (section !== "all" && run.phase !== section) continue;
-      if (!search.matches(run)) continue;
-      list.push({ run, state: stateOf(run) });
-    }
-    return list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
-  }, [runs, stateOf, section, search, archive, worktreeFilter, allProjects, projects]);
-  const grouped = useMemo(() => byColumn(entries), [entries]);
+  // 絞り込んだチャット（新しく動いた順）。全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない
+  const projectIds = useMemo(() => (allProjects ? new Set(projects.map((p) => p.id)) : undefined), [allProjects, projects]);
+  const { entries, grouped } = useKanbanEntries({ runs, filters: { ...filters, matches: filters.search.matches }, stateOf, projectIds });
   const total = entries.length;
-  // スイムレーンの段の分け方。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ。
-  // 全プロジェクトのボードは別に覚え、初めはプロジェクト（プロジェクト別のカンバン）。プロジェクトのボードは初めはセクション
-  const laneOptions = KANBAN_LANES.filter((l) => (allProjects ? l !== "group" : l !== "project"));
-  const defaultLane: BoardLane = allProjects ? "project" : "phase";
-  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(allProjects ? BOARD_LANES_ALL_KEY : BOARD_LANES_KEY, BOARD_LANES, defaultLane);
-  const lanes: BoardLane = laneOptions.includes(laneChoice) ? laneChoice : defaultLane;
+  // スイムレーンの段の分け方
+  const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
 
   /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
   function newChat() {
@@ -136,7 +103,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     const target = projectId ?? projects[0]?.id;
     if (target === undefined) return;
     // 画面は移らず、右側のパネルで始める
-    panel.openNew({ projectId: target, section: section === "all" ? undefined : section });
+    panel.openNew({ projectId: target, section: filters.section === "all" ? undefined : filters.section });
   }
 
   /** カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える。全プロジェクトのボードではプロジェクトの色と名前を付ける） */
@@ -171,17 +138,17 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   const header = (
     <BoardHeader
       heading={title ? { icon: <SquareKanban size={16} className="muted" />, title, count: total } : undefined}
-      query={query}
-      onQuery={setQuery}
+      query={filters.query}
+      onQuery={filters.setQuery}
       filters={
         <KanbanFilters
-          section={section}
-          onSection={setSection}
-          archive={archive}
-          onArchive={setArchive}
+          section={filters.section}
+          onSection={filters.setSection}
+          archive={filters.archive}
+          onArchive={filters.setArchive}
           worktrees={worktreeChoices}
-          worktree={worktreeFilter}
-          onWorktree={setWorktreeFilter}
+          worktree={filters.worktree}
+          onWorktree={filters.setWorktree}
         />
       }
       primary={
