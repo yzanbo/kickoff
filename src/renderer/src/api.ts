@@ -123,7 +123,7 @@ export const api = {
         Project,
         "name" | "description" | "provider" | "test_command" | "deploy_instructions" | "write_scopes" | "defaults" | "references"
       >
-    >,
+    > & { pinned?: boolean; archived?: boolean },
   ) =>
     request<Project>("PATCH", `/api/projects/${id}`, patch),
   deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),

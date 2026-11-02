@@ -1,4 +1,4 @@
-import { FolderOpen, Pencil, Plus } from "lucide-react";
+import { ArchiveRestore, FolderOpen, Pencil, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import {
   ARTIFACT_KIND_LABELS,
@@ -20,6 +20,7 @@ import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";
 import { ProjectEditDialog } from "../components/ProjectEditDialog";
 import { ProjectSwitcher } from "../components/ProjectSwitcher";
+import { alertDialog } from "../dialogs";
 import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { WorktreeContext } from "../components/changes/worktreeContext";
@@ -137,6 +138,16 @@ export function ProjectPage({
           <button className="btn btn-sm project-edit-button" title="プロジェクトの名前・既定の設定などを編集" onClick={() => setEditing(true)}>
             <Pencil size={13} /> 編集
           </button>
+          {/* しまった（アーカイブした）プロジェクト: サイドバーに出ないので、ここから戻せるようにする */}
+          {project.archived_at && (
+            <button
+              className="btn btn-sm"
+              title="アーカイブから戻す（サイドバー・全プロジェクトの画面に出す）"
+              onClick={() => void api.updateProject(project.id, { archived: false }).catch((e: unknown) => alertDialog("戻せませんでした", errorMessage(e)))}
+            >
+              <ArchiveRestore size={13} /> 戻す
+            </button>
+          )}
           {/* フォルダの場所（名前の横に並べ、見出しを 1 行に収める） */}
           <button
             className="path-button"
@@ -148,6 +159,7 @@ export function ProjectPage({
             <span className="path-button-text">{project.repo_path}</span>
           </button>
           <div className="project-stats">
+            {project.archived_at && <span className="stat stat-archived">アーカイブ済み</span>}
             {waiting > 0 && <span className="stat stat-waiting">回答待ち {waiting}</span>}
             {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
           </div>

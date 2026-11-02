@@ -525,3 +525,16 @@ test("チャット欄の / のコマンド: プロジェクトの作業場所で
   assert.equal(provider.lastCommandsCwd, project.repo_path);
   assert.equal((await call("GET", "/api/projects/999/commands")).status, 404);
 });
+
+test("プロジェクトを上に固定する・しまう（アーカイブ）・戻す", async () => {
+  const { call, project } = setup();
+  const pinned = (await call("PATCH", `/api/projects/${project.id}`, { pinned: true })).body;
+  assert.equal(pinned.pinned, 1);
+  const archived = (await call("PATCH", `/api/projects/${project.id}`, { archived: true })).body;
+  assert.ok(archived.archived_at);
+  // しまったままもう一度しまっても、しまった日時は変わらない
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { archived: true })).body.archived_at, archived.archived_at);
+  const restored = (await call("PATCH", `/api/projects/${project.id}`, { archived: false, pinned: false })).body;
+  assert.equal(restored.archived_at, null);
+  assert.equal(restored.pinned, 0);
+});

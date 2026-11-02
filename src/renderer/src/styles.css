@@ -1142,6 +1142,13 @@ button.project-switch:hover,
   color: var(--text);
 }
 
+/* 上に固定したプロジェクトの印（名前の右） */
+.workspace-pin {
+  margin-left: 5px;
+  vertical-align: -1px;
+  color: var(--muted);
+}
+
 /* サイドバーの下の行: プロジェクトの丸（縦並びでは「新しいプロジェクト」など）と、右端の並べ方の切り替え */
 .workspace-switcher {
   display: flex;
@@ -1318,6 +1325,19 @@ button.project-switch:hover,
   border-color: hsl(var(--ws-hue) 60% 60%);
   opacity: 1;
   transform: scale(1.08);
+}
+
+/* 上に固定したプロジェクトの丸: 中の下に小さな線（丸の列は横スクロールなので、外にはみ出すと切れる） */
+.workspace-dot.pinned::after {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: hsl(var(--ws-hue) 60% 60%);
+  transform: translateX(-50%);
+  content: "";
 }
 
 .workspace-dot.add {
@@ -2293,6 +2313,11 @@ mark {
 .stat-waiting {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.stat-archived {
+  color: var(--muted);
+  background: var(--bg-active);
 }
 
 .stat-working {

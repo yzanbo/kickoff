@@ -121,6 +121,9 @@ const MIGRATIONS = [
    UPDATE projects SET position = id;`,
   // v12: チャットの作業場所（git のワークツリーのフォルダ。空ならプロジェクトのフォルダ＝本体）
   "ALTER TABLE runs ADD COLUMN worktree_path TEXT NOT NULL DEFAULT ''",
+  // v13: プロジェクトを上に固定する（ピン留め）・使っていないプロジェクトをしまう（アーカイブ）
+  `ALTER TABLE projects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+   ALTER TABLE projects ADD COLUMN archived_at TEXT;`,
 ];
 
 /** スキーマのバージョン管理（PRAGMA user_version）。変更は MIGRATIONS に追記していく */

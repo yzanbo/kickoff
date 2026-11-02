@@ -4,6 +4,7 @@ import { api, useAsync } from "../api";
 import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
+import { sidebarOrder } from "../projectOrder";
 
 interface Props {
   projects: ProjectSummary[];
@@ -16,10 +17,13 @@ export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
+  // しまった（アーカイブした）プロジェクトは、全プロジェクトの画面に出さない
+  const shown = sidebarOrder(projects);
   const notReady = (!providers.loading && !claude?.loggedIn) || (!github.loading && !github.data?.loggedIn);
   // 回答待ち・作業中の数（プロジェクトの画面と同じ数え方で、全プロジェクトの分）
-  const waiting = new Set(approvals.map((a) => a.run_id)).size;
-  const working = projects.reduce((n, p) => n + p.active_runs, 0) - waiting;
+  const shownApprovals = approvals.filter((a) => shown.some((p) => p.id === a.project_id));
+  const waiting = new Set(shownApprovals.map((a) => a.run_id)).size;
+  const working = shown.reduce((n, p) => n + p.active_runs, 0) - waiting;
 
   return (
     <div className="page page-wide page-board">
@@ -42,7 +46,7 @@ export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
           </div>
         </section>
       )}
-      {projects.length === 0 ? (
+      {shown.length === 0 ? (
         <div className="empty empty-hero">
           <FolderGit2 size={28} />
           <p>アイデアから始めましょう。新しいフォルダを作るか、既存のフォルダを取り込めます。</p>
@@ -51,7 +55,7 @@ export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
           </button>
         </div>
       ) : (
-        <KanbanBoard projects={projects} approvals={approvals} title="カンバン" />
+        <KanbanBoard projects={shown} approvals={shownApprovals} title="カンバン" />
       )}
     </div>
   );

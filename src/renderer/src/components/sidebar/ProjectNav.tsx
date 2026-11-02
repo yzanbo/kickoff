@@ -9,6 +9,7 @@ import { initialOf, projectHue } from "../../projectColor";
 import { sidebarOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
 import { IconButton } from "../IconButton";
+import { ProjectMenu } from "../ProjectMenu";
 import { Segmented } from "../Segmented";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
@@ -49,6 +50,8 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     onDrop: (e: React.DragEvent) => void reorder.drop(e, id),
   });
   const [currentId, setCurrentId] = useState(loadCurrentProject);
+  // 下の丸の右クリックメニュー（上に固定する・しまう）
+  const [menu, setMenu] = useState<{ x: number; y: number; project: ProjectSummary } | null>(null);
   const [layout, changeLayout] = useStoredChoice<NavLayout>(LAYOUT_KEY, ["slide", "stack"], "slide");
   // チャット一覧の開閉（縦並びでは、すべてまとめて閉じる・開くこともできる）
   const collapsedMap = useStoredFlagMap(COLLAPSED_PREFIX);
@@ -220,10 +223,14 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
               key={p.id}
               role="tab"
               aria-selected={i === index}
-              className={`workspace-dot ${i === index ? "active" : ""} ${reorder.classFor(p.id)}`}
+              className={`workspace-dot ${i === index ? "active" : ""} ${p.pinned ? "pinned" : ""} ${reorder.classFor(p.id)}`}
               style={{ "--ws-hue": `${projectHue(p.id)}` } as React.CSSProperties}
-              title={`${p.name}${i < 9 ? `（⌃${i + 1}）` : ""}（ドラッグで並べ替え）`}
+              title={`${p.name}${p.pinned ? "（固定）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（ドラッグで並べ替え・右クリックで固定・アーカイブ）`}
               onClick={() => go(i)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setMenu({ x: e.clientX, y: e.clientY, project: p });
+              }}
               draggable
               {...reorder.handle(p.id)}
               {...reorderDrop(p.id)}
@@ -239,6 +246,7 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
         </div>
         {layoutToggle}
       </div>
+      {menu && <ProjectMenu {...menu} onClose={() => setMenu(null)} />}
     </div>
   );
 }

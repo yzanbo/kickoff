@@ -53,7 +53,7 @@
 | 画像を大きく見る | `ImageViewer`（アプリの中で開く。外のブラウザには Kickoff のログインがないので、添付を外で開かない。画像以外の添付はアプリの中でダウンロード）。画像以外を大きく見せるときは children、見出しのボタンは actions で渡す（Mermaid の図の全画面） |
 | コードの色付け | `useHighlight`（行ごとの色。VS Code の Dark+ / Light+ でダーク・ライトに合わせる）＋ `CodeLine`（1 行を描く）。言語はファイル名から `languageOf`（`highlight.ts`）。色付けのライブラリ（Shiki）は使うときだけ読み込む |
 | Markdown の表示 | `Markdown`（```mermaid は `MermaidDiagram` で図にする。生成中の返答には `streaming` を付け、書きかけの図を描かない） |
-| プロジェクトのバッジ | `ProjectChip`（押してカンバンを開くなら `linked`、名前の代わりに選択欄などを置くなら children）。プロジェクトの並び順は `sidebarOrder` |
+| プロジェクトのバッジ | `ProjectChip`（押してカンバンを開くなら `linked`、名前の代わりに選択欄などを置くなら children）。プロジェクトの並び順は `sidebarOrder`（上に固定したものが先、アーカイブしたものは出さない。アーカイブ済みは `archivedProjects`）。固定・アーカイブは右クリックの `ProjectMenu` |
 | 画面の見出しの名前（プロジェクトの切り替え） | `ProjectSwitcher`（全プロジェクトの画面（サイドバーの「全プロジェクト」）は `project` なし。メニューの先頭で全プロジェクトに戻る。カンバンにプロジェクトの絞り込みは置かない） |
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`。名前の変更にダイアログは使わない |

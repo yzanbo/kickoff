@@ -133,6 +133,10 @@ export interface Project {
   references: ProjectReference[];
   /** サイドバーでの並び順（小さいほど前） */
   position: number;
+  /** 上に固定している（SQLite の真偽値 0 / 1） */
+  pinned: number;
+  /** しまった日時（アーカイブ。null なら出す。サイドバー・切り替え・全プロジェクトの画面に出さない） */
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }

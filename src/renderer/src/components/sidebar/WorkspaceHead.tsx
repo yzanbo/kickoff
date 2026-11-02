@@ -1,4 +1,4 @@
-import { FolderPlus, Plus } from "lucide-react";
+import { FolderPlus, Pin, Plus } from "lucide-react";
 import { useState, type DragEvent } from "react";
 import type { ProjectSummary, RunGroup } from "../../../../core/types";
 import { initialOf } from "../../projectColor";
@@ -6,11 +6,13 @@ import { href, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
+import { ProjectMenu } from "../ProjectMenu";
 import { ChatGroupingMenu, type ChatGrouping } from "./ChatGroupingMenu";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
- * 左のボタン: チャット一覧の開閉 / 名前: プロジェクトのカンバンを表示 / 右: まとめ方・グループを作成・新しいチャット
+ * 左のボタン: チャット一覧の開閉 / 名前: プロジェクトのカンバンを表示 / 右: まとめ方・グループを作成・新しいチャット。
+ * 右クリックで、上に固定する・しまう（アーカイブ）のメニュー（ProjectMenu）
  */
 export function WorkspaceHead({
   project,
@@ -45,12 +47,17 @@ export function WorkspaceHead({
 }) {
   // ＋を押したときの、作成先のグループを選ぶメニュー
   const [pickAt, setPickAt] = useState<{ x: number; y: number } | null>(null);
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   return (
     <>
       <div
         className={`workspace-head ${active ? "active" : ""}`}
         draggable={Boolean(headDrag)}
-        title={headDrag ? "ドラッグでプロジェクトを並べ替える" : undefined}
+        title={headDrag ? "ドラッグでプロジェクトを並べ替える（右クリックで固定・アーカイブ）" : "右クリックで固定・アーカイブ"}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenuAt({ x: e.clientX, y: e.clientY });
+        }}
         {...headDrag}
       >
         <button
@@ -67,7 +74,10 @@ export function WorkspaceHead({
             {initialOf(project.name)}
           </span>
           <span className="workspace-title-text">
-            <span className="workspace-name">{project.name}</span>
+            <span className="workspace-name">
+              {project.name}
+              {project.pinned ? <Pin size={11} className="workspace-pin" aria-label="上に固定" /> : null}
+            </span>
             <span className="workspace-sub">{chatCount} チャット</span>
           </span>
         </a>
@@ -107,6 +117,7 @@ export function WorkspaceHead({
           onClose={() => setPickAt(null)}
         />
       )}
+      {menuAt && <ProjectMenu {...menuAt} project={project} onClose={() => setMenuAt(null)} />}
     </>
   );
 }

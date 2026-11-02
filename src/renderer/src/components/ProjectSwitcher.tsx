@@ -3,7 +3,7 @@ import { useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { ProjectSummary } from "../../../core/types";
 import { useMenuKeys } from "../hooks/useMenuKeys";
 import { initialOf, projectHue } from "../projectColor";
-import { sidebarOrder } from "../projectOrder";
+import { archivedProjects, sidebarOrder } from "../projectOrder";
 import { navigate, type ProjectTab } from "../router";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
@@ -13,7 +13,7 @@ const ALL_PROJECTS = "全プロジェクト";
 /**
  * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。サイドバーと同じプロジェクトの色のカード（頭文字と名前）にして、どのプロジェクトかを色でもわかるようにする。
  * project がなければ全プロジェクト。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
- * （全プロジェクトから選んだときはカンバン）。プロジェクトがなければ押せない
+ * （全プロジェクトから選んだときはカンバン）。しまった（アーカイブした）プロジェクトは下の「アーカイブ済み」に分けて出す。プロジェクトがなければ押せない
  */
 export function ProjectSwitcher({ project, projects, tab = "board" }: { project?: { id: number; name: string }; projects: ProjectSummary[]; tab?: ProjectTab }) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
@@ -35,6 +35,7 @@ export function ProjectSwitcher({ project, projects, tab = "board" }: { project?
     );
   }
   const ordered = sidebarOrder(projects);
+  const archived = archivedProjects(projects);
   return (
     <>
       <button
@@ -47,7 +48,7 @@ export function ProjectSwitcher({ project, projects, tab = "board" }: { project?
           // 開いているときに押したら閉じる
           if (at) return setAt(null);
           const r = e.currentTarget.getBoundingClientRect();
-          setAt(clampToViewport(r.left, r.bottom + 4, 260, 25 + (ordered.length + 1) * 34));
+          setAt(clampToViewport(r.left, r.bottom + 4, 260, 25 + (ordered.length + 1) * 34 + (archived.length > 0 ? 40 + archived.length * 34 : 0)));
         }}
       >
         {identity}
@@ -57,6 +58,7 @@ export function ProjectSwitcher({ project, projects, tab = "board" }: { project?
         <ProjectSwitchMenu
           {...at}
           projects={ordered}
+          archived={archived}
           currentId={project?.id}
           onPick={(id) => navigate(id === undefined ? { name: "allProjects" } : { name: "project", id, tab: project ? tab : "board" })}
           onClose={() => setAt(null)}
@@ -70,6 +72,7 @@ function ProjectSwitchMenu({
   x,
   y,
   projects,
+  archived,
   currentId,
   onPick,
   onClose,
@@ -77,6 +80,8 @@ function ProjectSwitchMenu({
   x: number;
   y: number;
   projects: ProjectSummary[];
+  /** しまった（アーカイブした）プロジェクト */
+  archived: ProjectSummary[];
   /** いまのプロジェクト（なければ全プロジェクト） */
   currentId?: number;
   /** 選んだプロジェクト（undefined は全プロジェクト） */
@@ -111,6 +116,13 @@ function ProjectSwitchMenu({
       {item(undefined, <LayoutGrid size={10} />, ALL_PROJECTS)}
       <div className="menu-separator" role="separator" />
       {projects.map((p) => item(p.id, initialOf(p.name), p.name))}
+      {archived.length > 0 && (
+        <>
+          <div className="menu-separator" role="separator" />
+          <div className="menu-label">アーカイブ済み</div>
+          {archived.map((p) => item(p.id, initialOf(p.name), p.name))}
+        </>
+      )}
     </PopupMenu>
   );
 }
