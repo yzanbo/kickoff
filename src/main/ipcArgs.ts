@@ -9,7 +9,8 @@ export type KnownExtensionKey = keyof typeof KNOWN_EXTENSIONS;
 
 /** 対応している拡張機能のキーか確かめる */
 export function knownExtension(key: unknown): KnownExtensionKey {
-  if (typeof key !== "string" || !(key in KNOWN_EXTENSIONS)) throw new Error("未対応の拡張機能です");
+  // in だと Object.prototype の名前（toString など）も通ってしまうので、自分の項目だけを見る
+  if (typeof key !== "string" || !Object.hasOwn(KNOWN_EXTENSIONS, key)) throw new Error("未対応の拡張機能です");
   return key as KnownExtensionKey;
 }
 
