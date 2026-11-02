@@ -6,6 +6,7 @@ import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { sidebarOrder } from "../../projectOrder";
+import { loadPanel, registerPanel, savePanel } from "./panelMemory";
 
 /** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・グループで始めるか） */
 export interface NewChatTarget {
@@ -45,20 +46,6 @@ const PANEL_MAX_KEY = "kickoff:panel-maximized";
 const DEFAULT_PANEL_WIDTH = 1127;
 const MIN_PANEL_WIDTH = 360;
 
-/** パネルの状態（ボードごと） */
-interface PanelState {
-  tabs: PanelTab[];
-  activeTab: string | null;
-  panelOpen: boolean;
-}
-
-/**
- * ボードごとの、開いているタブとパネルの開閉。カンバンとグループのタブを切り替えると、ボードの部品は作り直されるので、
- * 戻ってきたときに元どおりにできるよう、ここに覚えておく（アプリを閉じるまで）
- */
-const panelMemory = new Map<string, PanelState>();
-const EMPTY_PANEL: PanelState = { tabs: [], activeTab: null, panelOpen: false };
-
 interface Options {
   /** パネルの状態を覚えておく名前（ボードごとに分ける。例: "kanban:all"・"groups:3"） */
   memoryKey: string;
@@ -83,7 +70,7 @@ export type SidePanelController = ReturnType<typeof useSidePanel>;
  */
 export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEsc = false, projects, onCreated }: Options) {
   // パネルを閉じてもタブは残し、次に開いたときに戻す
-  const saved = () => panelMemory.get(memoryKey) ?? EMPTY_PANEL;
+  const saved = () => loadPanel(memoryKey);
   const [tabs, setTabs] = useState<PanelTab[]>(() => saved().tabs);
   const [activeTab, setActiveTab] = useState<string | null>(() => saved().activeTab);
   const [panelOpen, setPanelOpen] = useState(() => saved().panelOpen);
@@ -97,7 +84,7 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     setPanelOpen(next.panelOpen);
   }
   useEffect(() => {
-    if (shownKey === memoryKey) panelMemory.set(memoryKey, { tabs, activeTab, panelOpen });
+    if (shownKey === memoryKey) savePanel(memoryKey, { tabs, activeTab, panelOpen });
   }, [memoryKey, shownKey, tabs, activeTab, panelOpen]);
   const [panelWidth, setPanelWidth] = useStoredNumber(PANEL_WIDTH_KEY, DEFAULT_PANEL_WIDTH);
   const [resizing, setResizing] = useState(false);
@@ -171,6 +158,10 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
       return next;
     });
   };
+  // サイドバーの下書きから、このパネルのタブを表示する・閉じるために登録する（いつも最新の関数を呼ぶ）
+  const openerRef = useRef({ show: (key: string) => show(key), close: closeTab });
+  openerRef.current = { show: (key: string) => show(key), close: closeTab };
+  useEffect(() => registerPanel(memoryKey, { show: (key) => openerRef.current.show(key), close: (key) => openerRef.current.close(key) }), [memoryKey]);
 
   // 削除したチャットのタブは閉じる（ボードのないチャット欄でも）
   useServerEvent((e) => {

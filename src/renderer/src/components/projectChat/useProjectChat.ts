@@ -1,7 +1,8 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { useDragWidth } from "../../hooks/useDragWidth";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { registerPanel } from "../sidePanel/panelMemory";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 
 export type ProjectChatController = ReturnType<typeof useProjectChat>;
@@ -21,6 +22,20 @@ export function useProjectChat(projectId: number | undefined) {
   const open = projectId !== undefined && openMap.get(projectId);
   const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}` });
   const width = useDragWidth({ storageKey: "kickoff:project-chat-width", initial: 367, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
+
+  /** 欄を開いて、そのタブを表示する（ボード・サイドバーの下書きを押したとき） */
+  const showTab = (key: string) => {
+    if (projectId !== undefined) openMap.set(projectId, true);
+    panel.showTab(key);
+  };
+  // サイドバーの下書きからは、欄ごと開いて表示する（パネルの登録より後に登録して、こちらを優先する）
+  const actionsRef = useRef({ show: showTab, close: panel.closeTab });
+  actionsRef.current = { show: showTab, close: panel.closeTab };
+  useEffect(
+    () => registerPanel(`side:${projectId ?? "none"}`, { show: (key) => actionsRef.current.show(key), close: (key) => actionsRef.current.close(key) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [projectId],
+  );
 
   /** 開閉。開くときにタブがなければ、新しいチャットを開く */
   const toggle = () => {
@@ -44,11 +59,7 @@ export function useProjectChat(projectId: number | undefined) {
     projectId,
     open,
     toggle,
-    /** 欄を開いて、そのタブを表示する（ボードの下書きを押したとき） */
-    showTab: (key: string) => {
-      if (projectId !== undefined) openMap.set(projectId, true);
-      panel.showTab(key);
-    },
+    showTab,
     close: () => projectId !== undefined && openMap.set(projectId, false),
     panel,
     width,

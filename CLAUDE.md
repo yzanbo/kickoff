@@ -71,7 +71,7 @@
 - window のイベント: `useWindowEvent`（effect の中で `addEventListener` しない。ほかより先に受け取るなら `capture`）。サーバーのイベント: `useServerEvent`。
 - いま画面に出ているテーマ（ダーク・ライト）: `useAppliedTheme`（`<html data-theme>` の変化で描き直す）。
 - localStorage: `useStoredState` / `useStoredFlag` / `useStoredChoice` / `useStoredNumber` / `useStoredFlagMap`（部品から直接読み書きしない）。別々の部品から同じ値を切り替えるもの（サイドバーの各プロジェクトのメニューなど）は `useSharedFlag`（ほかの部品にもすぐ伝わる）。選択肢を増やすときも、今までの値はそのままの意味で読めるようにする（例: アーカイブの絞り込みは `"1"` / `"0"` のまま、`"archived"` を足した）。`useStoredFlagMap` の `set` は参照が変わらないので、memo した部品に渡せる。
-- 右側のパネル（`useSidePanel`）の開閉と開いているタブは、`memoryKey` でボードごとに覚える（タブやプロジェクトを切り替えて戻っても元どおり）。
+- 右側のパネル（`useSidePanel`）の開閉と開いているタブは、`memoryKey` でボードごとに覚える（`panelMemory.ts`。タブやプロジェクトを切り替えて戻っても元どおり）。送る前の新しいチャット（下書き）は、すべてのボード・チャット欄の分をサイドバーの各プロジェクトの上にも出す（`DraftRows`。押すとそのパネルで開き、別の画面のものはその画面へ移ってから開く。`openDraft` / `discardDraft`）。
 - 操作の失敗の表示: `useActionError`。時間とともに変わる表示: `useTicker`。つまみで幅・高さを変える: `startHorizontalDrag` / `startVerticalDrag`。左右の欄の境目は `useDragWidth`（幅を覚え、ダブルクリックで戻す。つまみは `.pane-resizer`）。アプリ全体で 1 回だけ取得: `cachedLoader`。
 - 例外の文: `errorMessage`（`e instanceof Error ? e.message : String(e)` を書かない）。class 名の組み立て: `cx`。
 - チャット名: `chatTitle`。時刻: `relativeTime` / `resetIn` / `formatClock`（`time.ts`）。トークン数: `formatTokens`。
