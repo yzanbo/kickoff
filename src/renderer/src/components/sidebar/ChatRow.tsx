@@ -7,7 +7,7 @@ import type { RunTitleEditor } from "../../hooks/useRunRename";
 import { href, openRun } from "../../router";
 import { SECTION_META } from "../../sections";
 import { formatDayTime, shortRelativeTime } from "../../time";
-import { workingFor } from "../../activity";
+import { workingFor } from "../chat/activity";
 import { useTicker } from "../../hooks/useTicker";
 import { useRunActivity } from "../../runActivity";
 import { useChatSelection } from "./chatSelection";

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { describeActivity } from "./activity";
+import { describeActivity } from "./components/chat/activity";
 import { subscribeServerEvent } from "./events";
 
 // チャットごとの、いまの作業（直近の記録から作った短い文）。作業が終わったら消す

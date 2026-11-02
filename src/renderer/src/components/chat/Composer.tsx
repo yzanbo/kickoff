@@ -1,14 +1,14 @@
 import { ArrowUp, Paperclip, Square } from "lucide-react";
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
-import type { Attachment } from "../../../core/types";
-import { api, type GitTarget } from "../api";
-import { errorMessage } from "../errors";
+import type { Attachment } from "../../../../core/types";
+import { api, type GitTarget } from "../../api";
+import { errorMessage } from "../../errors";
 import { AttachmentChip } from "./AttachmentChip";
-import { ErrorText } from "./ErrorText";
-import { IconButton } from "./IconButton";
+import { ErrorText } from "../ErrorText";
+import { IconButton } from "../IconButton";
 import { RunOptionsBar, type RunOptionsState } from "./RunOptionsBar";
-import { SuggestList } from "./suggest/SuggestList";
-import { useSuggest } from "./suggest/useSuggest";
+import { SuggestList } from "../suggest/SuggestList";
+import { useSuggest } from "../suggest/useSuggest";
 
 interface Props {
   options: RunOptionsState;

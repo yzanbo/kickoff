@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { RunEvent } from "../../../core/types";
-import { cx } from "../cx";
-import { formatTokens } from "../format";
-import { startHorizontalDrag } from "../hooks/dragResize";
-import { useDismiss } from "../hooks/useDismiss";
-import { useStoredNumber } from "../hooks/useStoredState";
-import { SUBAGENT_WIDTH_KEY } from "../storageKeys";
-import { cleanSubagentReport, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "../subagents";
-import { groupEvents } from "../timeline";
-import { CloseButton } from "./IconButton";
-import { Markdown } from "./Markdown";
+import type { RunEvent } from "../../../../core/types";
+import { cx } from "../../cx";
+import { formatTokens } from "../../format";
+import { startHorizontalDrag } from "../../hooks/dragResize";
+import { useDismiss } from "../../hooks/useDismiss";
+import { useStoredNumber } from "../../hooks/useStoredState";
+import { SUBAGENT_WIDTH_KEY } from "../../storageKeys";
+import { cleanSubagentReport, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "./subagentList";
+import { groupEvents } from "./timelineItems";
+import { CloseButton } from "../IconButton";
+import { Markdown } from "../Markdown";
 import { TimelineItems, Working } from "./Timeline";
 
 const MIN_WIDTH = 320;

@@ -1,12 +1,12 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { effectiveEffort, effectivePermission, resolveRunDefaults } from "../../../core/sectionDefaults";
-import { EFFORT_LABELS, PERMISSION_LABELS, type EffortLevel, type ModelOption, type PermissionChoice, type Phase, type RunOptions } from "../../../core/types";
-import { api } from "../api";
-import { cachedLoader } from "../cachedLoader";
-import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../models";
-import { ClaudeMark } from "./ClaudeMark";
-import { OptionMenu } from "./OptionMenu";
+import { effectiveEffort, effectivePermission, resolveRunDefaults } from "../../../../core/sectionDefaults";
+import { EFFORT_LABELS, PERMISSION_LABELS, type EffortLevel, type ModelOption, type PermissionChoice, type Phase, type RunOptions } from "../../../../core/types";
+import { api } from "../../api";
+import { cachedLoader } from "../../cachedLoader";
+import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../../models";
+import { ClaudeMark } from "../ClaudeMark";
+import { OptionMenu } from "../OptionMenu";
 
 // モデル一覧はアプリ全体で 1 回だけ取得する
 const loadModels = cachedLoader<ModelOption[]>(() => api.models("claude"), []);

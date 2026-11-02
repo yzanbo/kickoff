@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "../../core/types.js";
-import { cleanSubagentReport, collectSubagents } from "./subagents.js";
+import type { RunEvent } from "../../../../core/types.js";
+import { cleanSubagentReport, collectSubagents } from "./subagentList.js";
 
 const ev = (id: number, type: RunEvent["type"], data: object): RunEvent =>
   ({ id, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;

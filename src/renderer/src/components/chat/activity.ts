@@ -1,5 +1,5 @@
-import type { RunEvent } from "../../core/types";
-import { EDIT_TOOLS, toolLabel } from "./timeline";
+import type { RunEvent } from "../../../../core/types";
+import { EDIT_TOOLS, toolLabel } from "./timelineItems";
 
 const SEARCH_TOOLS = new Set(["Grep", "Glob"]);
 const WEB_TOOLS = new Set(["WebFetch", "WebSearch"]);

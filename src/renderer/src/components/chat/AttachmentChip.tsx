@@ -1,7 +1,7 @@
-import type { Attachment } from "../../../core/types";
+import type { Attachment } from "../../../../core/types";
 import { useState } from "react";
-import { attachmentUrl } from "../api";
-import { ImageViewer } from "./ImageViewer";
+import { attachmentUrl } from "../../api";
+import { ImageViewer } from "../ImageViewer";
 
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;

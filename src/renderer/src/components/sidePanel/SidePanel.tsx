@@ -4,7 +4,7 @@ import type { Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
-import { RunPage } from "../../pages/RunPage";
+import { RunPane } from "../chat/RunPane";
 import { normalizeUrl } from "../../url";
 import { BrowserPane } from "../browser/BrowserPane";
 import { IconButton } from "../IconButton";
@@ -176,7 +176,7 @@ export function SidePanel({
         {tabs.map((t) => (
           <div key={t.key} className="panel-tab-page" hidden={activeTab !== t.key}>
             {t.kind === "chat" ? (
-              <RunPage
+              <RunPane
                 projectId={t.projectId}
                 runId={t.id}
                 focus={t.focus}

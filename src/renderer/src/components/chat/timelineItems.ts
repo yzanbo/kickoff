@@ -1,5 +1,5 @@
 // チャットのタイムラインの組み立て（イベント → 表示の単位）
-import type { RunEvent } from "../../core/types";
+import type { RunEvent } from "../../../../core/types";
 
 export interface ToolCall {
   use: RunEvent;
