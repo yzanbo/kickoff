@@ -4,7 +4,7 @@ import type { Run, RunGroup } from "../../../../core/types";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { confirmArchiveRuns, confirmDeleteRuns, markRunsSeen, moveRunsToGroup } from "../../runActions";
 import { GroupPickMenu } from "../menus/GroupPickMenu";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import type { ChatSelection } from "./chatSelection";
 
 /**
@@ -129,33 +129,29 @@ function SelectionMenu({
   onClose: () => void;
 }) {
   const at = clampToViewport(x, y, 230, 230);
-  const item = (run: () => void) => () => {
-    onClose();
-    run();
-  };
   return (
     <PopupMenu x={at.x} y={at.y} label={`${count} 件のチャットの操作`} onClose={onClose}>
       <div className="menu-label">{count} 件を選択中</div>
-      <button role="menuitem" onClick={item(onArchive)}>
+      <MenuItem onSelect={onArchive}>
         {allArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />} {allArchived ? "まとめてアーカイブから戻す" : "まとめてアーカイブ"}
-      </button>
+      </MenuItem>
       {canMove && (
-        <button role="menuitem" onClick={item(onMove)}>
+        <MenuItem onSelect={onMove}>
           <FolderInput size={14} /> グループへ移す
-        </button>
+        </MenuItem>
       )}
       {unread && (
-        <button role="menuitem" onClick={item(onSeen)}>
+        <MenuItem onSelect={onSeen}>
           <MailOpen size={14} /> まとめて既読にする
-        </button>
+        </MenuItem>
       )}
-      <button role="menuitem" className="danger" onClick={item(onDelete)}>
+      <MenuItem danger onSelect={onDelete}>
         <Trash2 size={14} /> まとめて削除…
-      </button>
+      </MenuItem>
       <div className="menu-separator" role="separator" />
-      <button role="menuitem" onClick={item(onClear)}>
+      <MenuItem onSelect={onClear}>
         <X size={14} /> 選ぶのをやめる
-      </button>
+      </MenuItem>
     </PopupMenu>
   );
 }

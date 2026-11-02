@@ -5,7 +5,7 @@ import { initialOf, projectHue } from "../../projectColor";
 import { archivedProjects, sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { navigate, type ProjectTab } from "../../router";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 
 /** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */
 const ALL_PROJECTS = "全プロジェクト";
@@ -88,15 +88,7 @@ function ProjectSwitchMenu({
   onClose: () => void;
 }) {
   const item = (id: number | undefined, mark: ReactNode, name: string) => (
-    <button
-      key={id ?? "all"}
-      role="menuitemradio"
-      aria-checked={id === currentId}
-      onClick={() => {
-        onClose();
-        if (id !== currentId) onPick(id);
-      }}
-    >
+    <MenuItem key={id ?? "all"} role="menuitemradio" checked={id === currentId} onSelect={() => id !== currentId && onPick(id)}>
       <span
         className={id === undefined ? "project-chip-mark all-projects" : "project-chip-mark"}
         style={id === undefined ? undefined : ({ "--ws-hue": `${projectHue(id)}` } as CSSProperties)}
@@ -106,7 +98,7 @@ function ProjectSwitchMenu({
       </span>
       <span className="project-switch-item">{name}</span>
       {id === currentId && <Check size={14} aria-hidden />}
-    </button>
+    </MenuItem>
   );
   return (
     <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore=".project-switch" onClose={onClose}>

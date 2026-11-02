@@ -1,5 +1,6 @@
-import { useRef, type ReactNode } from "react";
+import { createContext, useContext, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { cx } from "../cx";
 import { useDismiss } from "../hooks/useDismiss";
 import { useMenuKeys } from "../hooks/useMenuKeys";
 
@@ -31,9 +32,52 @@ export function PopupMenu({ x, y, className, label, escape = "stop", ignore, onC
   useDismiss(ref, onClose, { escape, ignore });
   useMenuKeys(ref);
   return createPortal(
-    <div ref={ref} className={className ? `menu ${className}` : "menu"} style={{ left: x, top: y }} role="menu" aria-label={label}>
-      {children}
-    </div>,
+    <MenuCloseContext.Provider value={onClose}>
+      <div ref={ref} className={className ? `menu ${className}` : "menu"} style={{ left: x, top: y }} role="menu" aria-label={label}>
+        {children}
+      </div>
+    </MenuCloseContext.Provider>,
     document.body,
+  );
+}
+
+/** いちばん近い PopupMenu を閉じる（MenuItem が押されたときに使う） */
+const MenuCloseContext = createContext<() => void>(() => {});
+
+/**
+ * メニューの 1 項目。押すと、メニューを閉じてから onSelect を行う（閉じるのは PopupMenu から受け取る）。
+ * role は選択肢なら menuitemradio / menuitemcheckbox（checked を付ける）。danger は削除などの赤い項目
+ */
+export function MenuItem({
+  role = "menuitem",
+  checked,
+  danger,
+  className,
+  title,
+  onSelect,
+  children,
+}: {
+  role?: "menuitem" | "menuitemradio" | "menuitemcheckbox";
+  checked?: boolean;
+  danger?: boolean;
+  className?: string;
+  title?: string;
+  onSelect: () => void;
+  children: ReactNode;
+}) {
+  const close = useContext(MenuCloseContext);
+  return (
+    <button
+      role={role}
+      aria-checked={checked}
+      className={cx(className, danger && "danger") || undefined}
+      title={title}
+      onClick={() => {
+        close();
+        onSelect();
+      }}
+    >
+      {children}
+    </button>
   );
 }

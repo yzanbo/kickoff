@@ -2,7 +2,7 @@ import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import type { RunGroup } from "../../../../core/types";
 import { IconButton } from "../IconButton";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 
 /**
  * グループの「…」メニュー（名前を変更・削除）。ホバーで表示が変わらないよう、「…」ボタンはいつも出しておき、
@@ -32,12 +32,12 @@ export function useGroupMenu({ onRename, onDelete }: { onRename: (group: RunGrou
 
   const menu = open && (
     <PopupMenu x={open.x} y={open.y} ignore=".group-menu-button" onClose={() => setOpen(null)}>
-      <button role="menuitem" onClick={() => (setOpen(null), onRename(open.group))}>
+      <MenuItem onSelect={() => onRename(open.group)}>
         <Pencil size={14} /> 名前を変更
-      </button>
-      <button role="menuitem" className="danger" onClick={() => (setOpen(null), onDelete(open.group))}>
+      </MenuItem>
+      <MenuItem danger onSelect={() => onDelete(open.group)}>
         <Trash2 size={14} /> グループを削除
-      </button>
+      </MenuItem>
     </PopupMenu>
   );
 

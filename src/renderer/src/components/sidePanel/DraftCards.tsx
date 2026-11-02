@@ -1,7 +1,7 @@
 import { SquarePen, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cx } from "../../cx";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import type { NewChatTarget, SidePanelController } from "./useSidePanel";
 
 /**
@@ -46,12 +46,12 @@ function DraftCard({ text, active, onOpen, onDelete }: { text: string; active: b
       </button>
       {menu && (
         <PopupMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)}>
-          <button role="menuitem" onClick={() => (onOpen(), setMenu(null))}>
+          <MenuItem onSelect={onOpen}>
             <SquarePen size={14} /> 開く
-          </button>
-          <button role="menuitem" className="danger" onClick={() => (onDelete(), setMenu(null))}>
+          </MenuItem>
+          <MenuItem danger onSelect={onDelete}>
             <Trash2 size={14} /> 削除（入力中の内容は消えます）
-          </button>
+          </MenuItem>
         </PopupMenu>
       )}
     </>

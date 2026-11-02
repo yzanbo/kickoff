@@ -1,6 +1,6 @@
 import { SquarePen, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import { discardDraft, openDraft, useAllDrafts, type SidebarDraft } from "../sidePanel/panelMemory";
 
 /**
@@ -53,12 +53,12 @@ function DraftMenu({ x, y, onOpen, onDelete, onClose }: { x: number; y: number; 
   const at = clampToViewport(x, y, 200, 100);
   return (
     <PopupMenu x={at.x} y={at.y} label="下書きの操作" onClose={onClose}>
-      <button role="menuitem" onClick={() => (onClose(), onOpen())}>
+      <MenuItem onSelect={onOpen}>
         <SquarePen size={14} /> 開く
-      </button>
-      <button role="menuitem" className="danger" onClick={() => (onClose(), onDelete())}>
+      </MenuItem>
+      <MenuItem danger onSelect={onDelete}>
         <Trash2 size={14} /> 削除
-      </button>
+      </MenuItem>
     </PopupMenu>
   );
 }

@@ -1,5 +1,5 @@
 import { Globe, SquarePen, SquareTerminal } from "lucide-react";
-import { PopupMenu } from "../PopupMenu";
+import { MenuItem, PopupMenu } from "../PopupMenu";
 import type { TerminalTarget } from "./useSidePanel";
 
 /** タブの列の＋のメニューの高さ（画面からはみ出さない位置を決めるため） */
@@ -26,31 +26,27 @@ export function AddTabMenu({
   onTerminal: (target: TerminalTarget) => void;
   onClose: () => void;
 }) {
-  const pick = (action: () => void) => {
-    onClose();
-    action();
-  };
   return (
     <PopupMenu x={x} y={y} label="新しいタブ" ignore=".panel-tab-add" onClose={onClose}>
-      <button role="menuitem" onClick={() => pick(onNewChat)}>
+      <MenuItem onSelect={onNewChat}>
         <SquarePen size={14} /> 新しいチャット
-      </button>
-      <button role="menuitem" onClick={() => pick(onBrowser)}>
+      </MenuItem>
+      <MenuItem onSelect={onBrowser}>
         <Globe size={14} /> ブラウザ
-      </button>
+      </MenuItem>
       {terminals.length === 1 && (
-        <button role="menuitem" onClick={() => pick(() => onTerminal(terminals[0]))}>
+        <MenuItem onSelect={() => onTerminal(terminals[0])}>
           <SquareTerminal size={14} /> ターミナル
-        </button>
+        </MenuItem>
       )}
       {terminals.length > 1 && (
         <>
           <div className="menu-separator" role="separator" />
           <div className="menu-label">ターミナル</div>
           {terminals.map((target) => (
-            <button key={target.cwd} role="menuitem" title={target.cwd} onClick={() => pick(() => onTerminal(target))}>
+            <MenuItem key={target.cwd} title={target.cwd} onSelect={() => onTerminal(target)}>
               <SquareTerminal size={14} /> {target.label}
-            </button>
+            </MenuItem>
           ))}
         </>
       )}

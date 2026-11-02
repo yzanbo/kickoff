@@ -1,7 +1,7 @@
 import { Check, type LucideIcon } from "lucide-react";
 import { Fragment, useState } from "react";
 import { cx } from "../../cx";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 
 /** メニューの 1 項目（radio はどれか 1 つ、checkbox はオン・オフ） */
 interface HeadMenuItem {
@@ -78,19 +78,11 @@ function Menu({ x, y, label, ignore, sections, onClose }: { x: number; y: number
           {i > 0 && <div className="menu-separator" role="separator" />}
           {section.label && <div className="menu-label">{section.label}</div>}
           {section.items.map(({ key, role, icon: ItemIcon, label: itemLabel, checked, onSelect }) => (
-            <button
-              key={key}
-              role={role}
-              aria-checked={checked}
-              onClick={() => {
-                onClose();
-                onSelect();
-              }}
-            >
+            <MenuItem key={key} role={role} checked={checked} onSelect={onSelect}>
               <ItemIcon size={14} aria-hidden />
               <span className="project-switch-item">{itemLabel}</span>
               {checked && <Check size={14} aria-hidden />}
-            </button>
+            </MenuItem>
           ))}
         </Fragment>
       ))}

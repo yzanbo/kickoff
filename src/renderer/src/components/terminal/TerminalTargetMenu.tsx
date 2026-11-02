@@ -1,5 +1,5 @@
 import { SquareTerminal } from "lucide-react";
-import { clampToViewport, PopupMenu } from "../PopupMenu";
+import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
 
 /** メニューの位置（押したボタンの右端にそろえて、その下に出す） */
@@ -31,17 +31,9 @@ export function TerminalTargetMenu({
     <PopupMenu x={x} y={y} label="ターミナルを開く場所" ignore={ignore} onClose={onClose}>
       <div className="menu-label">ターミナルを開く場所</div>
       {targets.map((t) => (
-        <button
-          key={t.cwd}
-          role="menuitem"
-          title={t.cwd}
-          onClick={() => {
-            onClose();
-            onPick(t);
-          }}
-        >
+        <MenuItem key={t.cwd} title={t.cwd} onSelect={() => onPick(t)}>
           <SquareTerminal size={14} /> {t.label}
-        </button>
+        </MenuItem>
       ))}
     </PopupMenu>
   );
