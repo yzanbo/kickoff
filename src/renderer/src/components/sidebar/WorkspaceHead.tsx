@@ -1,7 +1,9 @@
-import { FolderPlus, Pin, Plus } from "lucide-react";
+import { ArchiveRestore, FolderPlus, Pin, Plus } from "lucide-react";
 import { useState, type DragEvent } from "react";
 import type { ProjectSummary, RunGroup } from "../../../../core/types";
+import { cx } from "../../cx";
 import { initialOf } from "../../projectColor";
+import { changeProject } from "../../projectOrder";
 import { href, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
@@ -12,6 +14,8 @@ import { ChatGroupingMenu, type ChatGrouping } from "./ChatGroupingMenu";
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
  * 左のボタン: チャット一覧の開閉 / 名前: プロジェクトのカンバンを表示 / 右: まとめ方・グループを作成・新しいチャット。
+ * 名前の右のピン: 上に固定しているものは常に出し、ほかはマウスを乗せたときだけ出す（押して固定する・やめる）。
+ * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを出す。
  * 右クリックで、上に固定する・しまう（アーカイブ）のメニュー（ProjectMenu）
  */
 export function WorkspaceHead({
@@ -51,7 +55,7 @@ export function WorkspaceHead({
   return (
     <>
       <div
-        className={`workspace-head ${active ? "active" : ""}`}
+        className={cx("workspace-head", active && "active", project.archived_at && "archived")}
         draggable={Boolean(headDrag)}
         title={headDrag ? "ドラッグでプロジェクトを並べ替える（右クリックで固定・アーカイブ）" : "右クリックで固定・アーカイブ"}
         onContextMenu={(e) => {
@@ -74,13 +78,23 @@ export function WorkspaceHead({
             {initialOf(project.name)}
           </span>
           <span className="workspace-title-text">
-            <span className="workspace-name">
-              {project.name}
-              {project.pinned ? <Pin size={11} className="workspace-pin" aria-label="上に固定" /> : null}
-            </span>
+            <span className="workspace-name">{project.name}</span>
             <span className="workspace-sub">{chatCount} チャット</span>
           </span>
         </a>
+        {project.archived_at ? (
+          <IconButton icon={ArchiveRestore} label={`${project.name} をアーカイブから戻す`} title="アーカイブから戻す" onClick={() => changeProject(project.id, { archived: false })} />
+        ) : (
+          <IconButton
+            icon={Pin}
+            size={13}
+            className={cx("workspace-pin", project.pinned > 0 && "pinned")}
+            label={project.pinned ? `${project.name} の固定をやめる` : `${project.name} を上に固定`}
+            title={project.pinned ? "固定をやめる" : "上に固定"}
+            aria-pressed={Boolean(project.pinned)}
+            onClick={() => changeProject(project.id, { pinned: !project.pinned })}
+          />
+        )}
         {waitingCount > 0 && (
           <span className="count-badge" title="回答待ちのチャット" aria-label={`回答待ち ${waitingCount} 件`}>
             {waitingCount}

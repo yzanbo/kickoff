@@ -1,15 +1,13 @@
 import { Archive, ArchiveRestore, Pin, PinOff } from "lucide-react";
 import { useRef } from "react";
 import type { Project } from "../../../core/types";
-import { api } from "../api";
-import { alertDialog } from "../dialogs";
-import { errorMessage } from "../errors";
 import { useMenuKeys } from "../hooks/useMenuKeys";
+import { changeProject } from "../projectOrder";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /**
  * プロジェクトの右クリックメニュー（サイドバーのプロジェクトのカード・下の丸）: 上に固定する・しまう（アーカイブ）。
- * しまったプロジェクトは、サイドバー・切り替え・全プロジェクトの画面に出なくなる（見出しの名前のメニューの「アーカイブ済み」から開ける）
+ * しまったプロジェクトは、サイドバー（下の行の切り替えで出せる）・切り替え・全プロジェクトの画面に出なくなる（見出しの名前のメニューの「アーカイブ済み」から開ける）
  */
 export function ProjectMenu({ x, y, project, onClose }: { x: number; y: number; project: Pick<Project, "id" | "name" | "pinned" | "archived_at">; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -17,7 +15,7 @@ export function ProjectMenu({ x, y, project, onClose }: { x: number; y: number; 
   const at = clampToViewport(x, y, 220, 100);
   const update = (patch: { pinned?: boolean; archived?: boolean }) => {
     onClose();
-    void api.updateProject(project.id, patch).catch((e: unknown) => alertDialog("変更できませんでした", errorMessage(e)));
+    changeProject(project.id, patch);
   };
   return (
     <PopupMenu x={at.x} y={at.y} label={`${project.name} のメニュー`} menuRef={ref} onClose={onClose}>
