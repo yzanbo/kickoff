@@ -113,6 +113,7 @@
 
 このリポジトリのチャットは、製品版の Kickoff（`/Applications/Kickoff.app`。プロセス名 `Kickoff`、データ `Kickoff`、ポート 4317）の中で動いていることがある。作って確かめるのは開発版（Kickoff Dev。プロセスは `node_modules/electron/dist/Electron.app/Contents/MacOS/Electron .`、データ `Kickoff Dev`、ポート 4318）だけで、製品版は自分を動かしているアプリなので触らない。
 
+- エージェントは、自分を動かしている Kickoff（プロセス・アプリ本体・保存先・API のポート）を壊すツールの呼び出しを、`PreToolUse` フックで断られる（`selfProtection.ts`。権限モードに関係なく効く。製品版なら製品版、開発版なら開発版を守る）。うっかりを防ぐもので、わざと避ける書き方までは見抜けないので、下の決まりも守る。
 - 製品版を止めない・入れ替えない。`pkill -f Kickoff` のように名前でまとめて止めない（製品版、つまり自分も止まる。`pkill` と `killall` は `.claude/settings.json` で禁止してあり、Kickoff のエージェントも Claude Code も使えない）。開発版を止めるときは、上のプロセスを `pgrep -f "Electron.app/Contents/MacOS/Electron \."` で特定して `kill -TERM` を送る。
 - `npm run install-app`（製品版の入れ替え）は、製品版の中のチャット・ターミナルから流さない（チャットからは実行中のチャットがあるとして止まり、製品版のターミナルからは `KICKOFF_TERMINAL_OF` を見て止まる）。必要なら、利用者に macOS のターミナルで流すよう頼む。
 - 製品版の中のターミナルやチャットから起動した開発版は、製品版の子どものプロセスになる。製品版は終わるとき、自分から起動された Electron のアプリのメインプロセスにだけ先に SIGTERM を送り、終わるのを待ってから、ターミナルとエージェントを止める（`childApps.ts` の `stopChildElectronApps`。3 秒まで）。シェルやエージェントを先に止めると、開発版が Helper ごといきなり止められ、localStorage が消えるため。
