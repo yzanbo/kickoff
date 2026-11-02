@@ -137,9 +137,10 @@ kbd {
 
 /* ==== レイアウト ==== */
 
+/* 左: サイドバー / 真ん中: 画面と下のパネル / 右: プロジェクトのチャット欄（下のパネルより下まで） / 下: 帯 */
 .layout {
   display: grid;
-  grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
   transition: grid-template-columns 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -147,7 +148,7 @@ kbd {
 
 /* サイドバーを閉じたとき（⌘B） */
 .layout.sidebar-collapsed {
-  grid-template-columns: 0px minmax(0, 1fr);
+  grid-template-columns: 0px minmax(0, 1fr) auto;
 }
 
 .layout.sidebar-collapsed .sidebar {
@@ -4527,6 +4528,11 @@ button.project-switch.all-projects:hover,
     display: none;
   }
 
+  /* スマホでは縦 1 列なので、プロジェクトのチャット欄は出さない（ボードの右のパネルを使う） */
+  .project-chat {
+    display: none;
+  }
+
   .titlebar-toggle.floating {
     top: max(8px, env(safe-area-inset-top));
     left: 8px;
@@ -6831,21 +6837,9 @@ a:focus-visible,
 
 /* ==== プロジェクトのチャット欄（画面の右端。どのタブでも開ける） ==== */
 
-/* プロジェクトの画面と、右端のチャット欄を左右に並べる（画面はそれぞれの中でスクロール） */
-.project-layout {
-  display: flex;
-  height: 100%;
-  min-height: 0;
-}
-
-.project-layout > .page {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
-  overflow-y: auto;
-}
-
 .project-chat {
+  grid-column: 3;
+  grid-row: 1;
   position: relative;
   display: flex;
   flex: none;

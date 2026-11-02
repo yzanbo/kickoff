@@ -23,8 +23,8 @@ import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { WorktreeContext } from "../components/changes/worktreeContext";
-import { ProjectChat, ProjectChatToggle } from "../components/projectChat/ProjectChat";
-import { useProjectChat } from "../components/projectChat/useProjectChat";
+import { ProjectChatToggle } from "../components/projectChat/ProjectChat";
+import type { ProjectChatController } from "../components/projectChat/useProjectChat";
 import { useStoredState } from "../hooks/useStoredState";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
@@ -60,6 +60,7 @@ export function ProjectPage({
   projects,
   focus,
   highlightGroup,
+  chat,
 }: {
   id: number;
   tab: ProjectTab;
@@ -68,6 +69,8 @@ export function ProjectPage({
   focus?: ReopenRoute;
   /** グループのタブで目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlightGroup?: number;
+  /** 画面の右端のチャット欄（開閉ボタンをタブの列の右端に置く） */
+  chat: ProjectChatController;
 }) {
   // 一度開いたプロジェクトは、切り替えたときにすぐ出す（裏で読み直す。「読み込み中」を挟んでちらつかないように）
   const [data, setData] = useState<ProjectData | undefined>(() => projectCache.get(id));
@@ -77,8 +80,6 @@ export function ProjectPage({
   const [worktree, setWorktree] = useStoredState<string | undefined>(`kickoff:editor-worktree:${id}`, (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes", worktree);
-  // 画面の右端のチャット欄（どのタブでも開ける。ボードの右のパネルとは別）
-  const chat = useProjectChat(id);
 
   const load = useCallback(async () => {
     try {
@@ -132,7 +133,6 @@ export function ProjectPage({
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (
-    <div className="project-layout">
     <div className={`page page-wide ${tab === "board" || tab === "groups" || tab === "changes" ? "page-board" : ""} ${stale ? "is-stale" : ""}`}>
       <header className="page-header project-header">
         <div className="project-title-row">
@@ -201,8 +201,6 @@ export function ProjectPage({
         </WorktreeContext.Provider>
       )}
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
-    </div>
-    <ProjectChat chat={chat} />
     </div>
   );
 }
