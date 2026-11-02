@@ -170,8 +170,15 @@ export function gitRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.post("/api/projects/:id/git/worktrees/remove", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const { path, force } = z.object({ path: z.string().min(1).max(2000), force: z.boolean().default(false) }).parse(await c.req.json());
+    // 作業中のチャットがあるうちは消さない（作業中のフォルダが消えてしまう）
+    if (store.runsInWorktree(project.id, path).some((r) => runner.isBusy(r.id))) {
+      throw new HttpError(409, "このワークツリーで作業中のチャットがあります。終わってから消してください");
+    }
     try {
-      return c.json(await removeWorktree(project.repo_path, path, force));
+      const worktrees = await removeWorktree(project.repo_path, path, force);
+      // そこで作業していたチャットは、続きを本体で進める（片付けと同じ）
+      store.clearRunWorktree(project.id, path);
+      return c.json(worktrees);
     } catch (e) {
       throw new HttpError(400, errorMessage(e));
     }
@@ -242,6 +249,9 @@ export function gitRoutes(app: Hono, { store, runner }: ServerDeps) {
       store.clearRunWorktree(project.id, path);
       return c.json(worktrees);
     } catch (e) {
+      // ブランチを消すところで失敗しても、ワークツリーが消えていれば、チャットは本体に戻す
+      const remaining = await listWorktrees(project.repo_path).catch(() => null);
+      if (remaining && !remaining.some((w) => w.path === path)) store.clearRunWorktree(project.id, path);
       throw new HttpError(400, errorMessage(e));
     }
   });

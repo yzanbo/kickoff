@@ -513,10 +513,12 @@ export class Store {
         | "archived_at"
         | "context_tokens"
         | "context_window"
+        | "branch"
       >
     >,
   ): Run {
     this.updateRow("runs", id, patch as Row, [
+      "branch",
       "attention",
       "archived_at",
       "context_tokens",

@@ -493,10 +493,30 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   const finished = await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: worktree });
   assert.equal(finished.status, 200);
   assert.equal(finished.body.length, 1);
-  // そこで作業していたチャットは、本体に戻る
+  // そこで作業していたチャットは、本体に戻る。作業したブランチの名前は残す
   assert.equal(store.getRun(created.body.id)?.worktree_path, "");
+  assert.equal(store.getRun(created.body.id)?.branch, "feat/a");
+  assert.equal(store.getRun(main.id)?.branch, "main");
   assert.equal(fs.existsSync(worktree), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/a"], { cwd: repo }).toString().trim(), "");
+
+  // エディタタブの履歴から消したときも、チャットは本体に戻る（ブランチの名前は残す）
+  const other = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "別の作業", new_worktree_branch: "feat/b" })).body;
+  await until(() => store.getRun(other.id)?.status === "completed");
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: other.worktree_path })).status, 200);
+  assert.equal(store.getRun(other.id)?.worktree_path, "");
+  assert.equal(store.getRun(other.id)?.branch, "feat/b");
+
+  // アプリの外でフォルダを消したワークツリー: 続きを送ると分かる文で失敗し、片付けると Git の記録を消してチャットは本体に戻る
+  const gone = (await call("POST", `/api/projects/${project.id}/runs`, { phase: "implementation", prompt: "消える所", new_worktree_branch: "feat/c" })).body;
+  await until(() => store.getRun(gone.id)?.status === "completed");
+  fs.rmSync(gone.worktree_path, { recursive: true, force: true });
+  assert.equal((await call("POST", `/api/runs/${gone.id}/messages`, { text: "続き" })).status, 200);
+  await until(() => store.getRun(gone.id)?.status === "failed");
+  assert.match(store.getRun(gone.id)?.error ?? "", /作業場所のフォルダが見つかりません/);
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: gone.worktree_path })).status, 200);
+  assert.equal(store.getRun(gone.id)?.worktree_path, "");
+  assert.equal(store.getRun(gone.id)?.branch, "feat/c");
   fs.rmSync(path.dirname(worktree), { recursive: true, force: true });
 });
 

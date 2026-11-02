@@ -1,7 +1,9 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import type { ApprovalCenter } from "./approvals.js";
 import type { Bus } from "./bus.js";
 import { errorMessage } from "./errors.js";
+import { currentBranch } from "./git.js";
 import { createKickoffTools } from "./kickoffTools.js";
 import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import { resolveRunDefaults } from "./sectionDefaults.js";
@@ -196,14 +198,20 @@ export class Runner {
       const task = run.task_id ? (store.getTask(run.task_id) ?? null) : null;
       const provider = providers[run.provider];
 
-      store.updateRun(runId, { status: "running" });
+      // 作業場所: チャットのワークツリー → タスクのワークツリー → プロジェクトのフォルダ（本体）
+      const cwd = run.worktree_path || task?.worktree_path || project.repo_path;
+      // フォルダが消えていれば（ワークツリーをアプリの外で消したときなど）、分かる文で止める
+      const isDir = await fs.stat(cwd).then((s) => s.isDirectory(), () => false);
+      if (!isDir) throw new Error(`作業場所のフォルダが見つかりません（${cwd}）。ワークツリーが消された可能性があります。新しいチャットで作業場所を選び直してください`);
+      // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）
+      const branch = await currentBranch(cwd);
+      store.updateRun(runId, { status: "running", ...(branch ? { branch } : {}) });
       if (task && !compact && (task.status === "todo" || task.status === "blocked")) store.updateTask(task.id, { status: "in_progress" });
 
       const policy = phasePolicy(run.phase, project);
       const result = await provider.run(
         {
-          // 作業場所: チャットのワークツリー → タスクのワークツリー → プロジェクトのフォルダ（本体）
-          cwd: run.worktree_path || task?.worktree_path || project.repo_path,
+          cwd,
           prompt,
           systemPrompt: buildSystemPrompt(project, run.phase, task),
           policy,
