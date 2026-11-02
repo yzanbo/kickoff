@@ -1,6 +1,5 @@
 import { Bell, Bot, Gauge, Palette, PlugZap, Puzzle, Smartphone } from "lucide-react";
 import { useTheme, type Theme } from "../../theme";
-import { useSharedPlanUsage } from "../../usage";
 import { BrowserExtensions } from "../BrowserExtensions";
 import { Segmented } from "../Segmented";
 import { TabbedDialog, type DialogSection } from "../TabbedDialog";
@@ -50,10 +49,9 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
   );
 }
 
-/** 使用状況（フッターの使用量の詳細と同じもの） */
+/** 使用状況（サービスごと。Claude Code はフッターの使用量と同じもの） */
 function UsageSettings() {
-  const planUsage = useSharedPlanUsage();
-  return planUsage && <UsagePanel planUsage={planUsage} />;
+  return <UsagePanel />;
 }
 
 function DisplaySettings() {

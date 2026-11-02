@@ -1,0 +1,93 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import type { ServiceUsage, UsageWindow } from "../types.js";
+import { fetchJson, HttpStatusError, isoFromDate, okUsage, unavailableUsage, usageWindow, type UsageFetcher } from "./common.js";
+
+const execFileAsync = promisify(execFile);
+
+const BASE = { id: "copilot", label: "GitHub Copilot" } as const;
+const USAGE_URL = "https://api.github.com/copilot_internal/user";
+
+interface QuotaSnapshot {
+  entitlement?: number;
+  remaining?: number;
+  percent_remaining?: number;
+  unlimited?: boolean;
+}
+
+export interface CopilotUserResponse {
+  login?: string;
+  copilot_plan?: string;
+  access_type_sku?: string;
+  quota_reset_date?: string;
+  quota_snapshots?: Partial<Record<"premium_interactions" | "chat" | "completions", QuotaSnapshot>> | null;
+}
+
+const QUOTA_LABELS = [
+  ["premium_interactions", "プレミアムリクエスト（月）", "回"],
+  ["chat", "チャット（月）", "回"],
+  ["completions", "コード補完（月）", "回"],
+] as const;
+
+/** Copilot の応答を Kickoff の形にする（無制限の枠はメーターにせず、補足に書く） */
+export function parseCopilotUsage(body: CopilotUserResponse): ServiceUsage {
+  const account = body.login ?? null;
+  const plan = body.copilot_plan ?? null;
+  if (body.access_type_sku === "subscription_ended") return unavailableUsage(BASE, "Copilot の契約が終わっています", { plan, account });
+  const snapshots = body.quota_snapshots ?? {};
+  const resetsAt = isoFromDate(body.quota_reset_date);
+  const windows: UsageWindow[] = [];
+  const notes: string[] = [];
+  for (const [key, label, unit] of QUOTA_LABELS) {
+    const q = snapshots[key];
+    if (!q) continue;
+    if (q.unlimited) {
+      notes.push(`${label.replace(/（月）$/, "")}: 無制限`);
+      continue;
+    }
+    const used = typeof q.entitlement === "number" && typeof q.remaining === "number" ? q.entitlement - q.remaining : null;
+    const percent = typeof q.percent_remaining === "number" ? 100 - q.percent_remaining : null;
+    windows.push(usageWindow(key, label, percent, resetsAt, used !== null ? `${Math.round(used)} / ${q.entitlement} ${unit}` : undefined));
+  }
+  // 契約していないアカウントは、枠が 1 つも返らない
+  if (windows.length === 0 && notes.length === 0) {
+    return unavailableUsage(BASE, "このアカウントは Copilot を契約していません", { plan: null, account });
+  }
+  return okUsage(BASE, { plan, account, windows, notes });
+}
+
+/** gh のログイン（トークン）。gh がない・未ログインなら null */
+async function ghToken(): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync("gh", ["auth", "token"], { timeout: 10_000, env: { ...process.env, GH_PROMPT_DISABLED: "1" } });
+    return stdout.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/** GitHub Copilot の月の枠（プレミアムリクエストなど）。gh のログインを使う */
+async function fetchCopilotUsage(): Promise<ServiceUsage> {
+  const token = await ghToken();
+  if (!token) return unavailableUsage(BASE, "GitHub CLI（gh）でログインすると表示できます（ターミナルで `gh auth login`）");
+  try {
+    const body = await fetchJson<CopilotUserResponse>(USAGE_URL, {
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/json",
+        "Editor-Version": "vscode/1.96.2",
+        "Editor-Plugin-Version": "copilot-chat/0.26.7",
+        "User-Agent": "GitHubCopilotChat/0.26.7",
+        "X-Github-Api-Version": "2025-04-01",
+      },
+    });
+    return parseCopilotUsage(body);
+  } catch (e) {
+    if (e instanceof HttpStatusError && (e.status === 401 || e.status === 404)) {
+      return unavailableUsage(BASE, "gh のログインでは Copilot の使用状況を見られませんでした（Copilot を契約しているアカウントでログインしてください）");
+    }
+    throw e;
+  }
+}
+
+export const copilotUsage: UsageFetcher = { ...BASE, fetch: fetchCopilotUsage };

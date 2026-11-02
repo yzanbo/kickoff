@@ -32,7 +32,8 @@ export function UsageMeter({ window: w, compact, inline, idleText }: Props) {
   const reset = formatReset(w.resets_at);
   const status = w.utilization !== null && w.utilization >= 100 ? "⛔ 上限に到達" : SEVERITY_LABELS[severity];
   const valueText = w.utilization === null ? "情報なし" : `${Math.round(w.utilization)}%`;
-  const detail = w.utilization === null ? idleText : reset;
+  // 使った量（"120 / 300 回" など）とリセットの時刻
+  const detail = w.utilization === null ? idleText : [w.detail, reset].filter(Boolean).join(" ・ ") || undefined;
   const resetShort = resetInShort(w.resets_at);
 
   if (inline) {

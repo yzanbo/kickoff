@@ -2414,6 +2414,42 @@ button.project-switch.all-projects:hover,
   background: var(--bg-elev);
 }
 
+/* 設定の「使用状況」のサービスごとのまとまり（名前・プラン・アカウントの行と、枠のカード） */
+.usage-service {
+  padding: 14px 0 6px;
+}
+
+.usage-service + .usage-service {
+  border-top: 1px solid var(--border);
+}
+
+.usage-service-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.usage-service-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.usage-service-account {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-service-time {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.usage-service .card-grid {
+  margin: 10px 0 6px;
+}
+
 /* 状態カード */
 
 .status-title {

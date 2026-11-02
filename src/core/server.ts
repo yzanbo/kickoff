@@ -9,6 +9,7 @@ import { AUTH_COOKIE, tokenMatches } from "./auth.js";
 import type { Bus } from "./bus.js";
 import type { AgentProvider } from "./providers/index.js";
 import type { Store } from "./store.js";
+import type { ServiceUsageMonitor } from "./serviceUsage/index.js";
 import type { UsageMonitor } from "./usage.js";
 import type { ApprovalCenter } from "./approvals.js";
 import type { Runner } from "./runner.js";
@@ -29,6 +30,8 @@ export interface ServerDeps {
   token: string;
   providers: Record<ProviderId, AgentProvider>;
   usage: UsageMonitor;
+  /** 設定の「使用状況」のサービスごとの使用状況 */
+  serviceUsage: ServiceUsageMonitor;
   runner: Runner;
   approvals: ApprovalCenter;
   uploads: UploadStore;

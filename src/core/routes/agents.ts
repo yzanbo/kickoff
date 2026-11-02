@@ -16,8 +16,8 @@ const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action
   }),
 ]);
 
-/** 承認依頼・AI からの質問への回答、外部 CLI（Claude など）の状態とモデル一覧、プランの使用枠 */
-export function agentRoutes(app: Hono, { providers, usage, approvals }: ServerDeps) {
+/** 承認依頼・AI からの質問への回答、外部 CLI（Claude など）の状態とモデル一覧、プランの使用枠・サービスごとの使用状況 */
+export function agentRoutes(app: Hono, { providers, usage, serviceUsage, approvals }: ServerDeps) {
   // ---- 承認依頼・AI からの質問 ----
   app.get("/api/approvals", (c) => {
     const projectId = c.req.query("project_id");
@@ -50,4 +50,7 @@ export function agentRoutes(app: Hono, { providers, usage, approvals }: ServerDe
   // ---- プランの使用枠（5 時間・週） ----
   app.get("/api/usage", async (c) => c.json(await usage.get()));
   app.post("/api/usage/refresh", async (c) => c.json(await usage.refresh(true)));
+  // サービスごと（Claude Code・Codex・GitHub Copilot・Cursor・Gemini）。設定の「使用状況」
+  app.get("/api/usage/services", async (c) => c.json(await serviceUsage.get()));
+  app.post("/api/usage/services/refresh", async (c) => c.json(await serviceUsage.refresh(true)));
 }
