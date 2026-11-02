@@ -22,7 +22,6 @@ import { HttpError } from "./routes/http.js";
 import { projectRoutes } from "./routes/projects.js";
 import { runRoutes } from "./routes/runs.js";
 import { settingsRoutes } from "./routes/settings.js";
-import { taskRoutes } from "./routes/tasks.js";
 import { uploadRoutes } from "./routes/uploads.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import type { ProviderId, ServerStatus } from "./types.js";
@@ -94,7 +93,6 @@ export function createApp(deps: ServerDeps): Hono {
   // ---- 機能ごとの API（routes/ に分けている。登録の順は変えない） ----
   settingsRoutes(app, deps);
   projectRoutes(app, deps);
-  taskRoutes(app, deps);
   runRoutes(app, deps);
   groupRoutes(app, deps);
   uploadRoutes(app, deps);

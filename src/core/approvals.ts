@@ -24,7 +24,7 @@ export class ApprovalCenter {
   }
 
   request(
-    context: { runId: number; projectId: number; taskId: number | null },
+    context: { runId: number; projectId: number },
     req: ApprovalRequest,
     signal: AbortSignal,
   ): { approval: Approval; decision: Promise<ApprovalDecision> } {
@@ -32,7 +32,6 @@ export class ApprovalCenter {
       id: randomUUID(),
       run_id: context.runId,
       project_id: context.projectId,
-      task_id: context.taskId,
       kind: req.kind,
       tool_name: req.toolName,
       input: req.input,

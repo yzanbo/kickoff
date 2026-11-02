@@ -14,18 +14,12 @@ export class HttpError extends Error {
   }
 }
 
-// URL の id からプロジェクト・タスク・グループ・チャット・成果物を取り出す（見つからなければ 404）
+// URL の id からプロジェクト・グループ・チャットを取り出す（見つからなければ 404）
 
 export function requireProject(store: Store, idParam: string) {
   const project = store.getProject(Number(idParam));
   if (!project) throw new HttpError(404, "プロジェクトが見つかりません");
   return project;
-}
-
-export function requireTask(store: Store, idParam: string) {
-  const task = store.getTask(Number(idParam));
-  if (!task) throw new HttpError(404, "タスクが見つかりません");
-  return task;
 }
 
 export function requireGroup(store: Store, idParam: string) {
@@ -38,12 +32,6 @@ export function requireRun(store: Store, idParam: string) {
   const run = store.getRun(Number(idParam));
   if (!run) throw new HttpError(404, "実行が見つかりません");
   return run;
-}
-
-export function requireArtifact(store: Store, idParam: string) {
-  const artifact = store.getArtifact(Number(idParam));
-  if (!artifact) throw new HttpError(404, "成果物が見つかりません");
-  return artifact;
 }
 
 /** グループ。ほかのプロジェクトのものなら 400（チャットを入れられるのは同じプロジェクトのグループだけ） */

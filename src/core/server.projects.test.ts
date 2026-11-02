@@ -1,10 +1,10 @@
-// API のテスト: 設定・プロジェクト・タスク・成果物、プロジェクトの固定・アーカイブ・色（共通の準備は testing/testServer.ts）
+// API のテスト: 設定・プロジェクト、プロジェクトの固定・アーカイブ・色（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { setup, tempDir } from "./testing/testServer.js";
+import { AUTH, setup, tempDir } from "./testing/testServer.js";
 
-test("設定・プロジェクト・タスク・成果物の API", async () => {
-  const { call, project, store } = setup();
+test("設定・プロジェクトの API", async () => {
+  const { app, call, project, store } = setup();
   assert.equal((await call("PUT", "/api/settings", { maxConcurrentRuns: 3 })).body.maxConcurrentRuns, 3);
   const invalid = await call("PUT", "/api/settings", { maxConcurrentRuns: 99 });
   assert.equal(invalid.status, 400);
@@ -49,17 +49,13 @@ test("設定・プロジェクト・タスク・成果物の API", async () => {
   assert.equal((await call("GET", "/api/workspace/inspect")).status, 400);
   assert.equal((await call("GET", "/api/workspace/inspect?path=%20")).status, 400);
 
-  const task = await call("POST", `/api/projects/${project.id}/tasks`, { phase: "implementation", title: "t" });
-  assert.equal(task.status, 201);
-  assert.equal(task.body.priority, 2);
-  assert.equal(task.body.created_by, "user");
-  assert.equal((await call("PATCH", `/api/tasks/${task.body.id}`, { status: "done" })).body.status, "done");
-  assert.equal((await call("GET", `/api/projects/${project.id}/tasks`)).body.length, 1);
-  assert.deepEqual((await call("DELETE", `/api/tasks/${task.body.id}`)).body, { ok: true });
-  assert.deepEqual(await call("PATCH", "/api/tasks/999", {}), { status: 404, body: { error: "タスクが見つかりません" } });
-
-  assert.deepEqual((await call("GET", `/api/projects/${project.id}/artifacts`)).body, []);
-  assert.deepEqual(await call("GET", "/api/artifacts/999"), { status: 404, body: { error: "成果物が見つかりません" } });
+  // タスク・成果物の API はなくした
+  for (const url of [`/api/projects/${project.id}/tasks`, `/api/projects/${project.id}/artifacts`]) {
+    assert.equal((await app.request(url, { headers: AUTH })).status, 404, url);
+  }
+  // 以前の設定（テストのコマンド・デプロイの手順・自動コミット）は受け付けず（無視する）、返しもしない
+  const legacy = (await call("PATCH", `/api/projects/${project.id}`, { test_command: "npm test", deploy_instructions: "x", auto_commit: false })).body;
+  for (const key of ["test_command", "deploy_instructions", "auto_commit"]) assert.equal(key in legacy, false, key);
 });
 
 test("プロジェクトを上に固定する・しまう（アーカイブ）・戻す", async () => {

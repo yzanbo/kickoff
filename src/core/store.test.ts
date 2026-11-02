@@ -12,48 +12,24 @@ function setup() {
 
 test("プロジェクトを作成すると既定値が入り、変更が通知される", () => {
   const { project, events } = setup();
-  assert.equal(project.auto_commit, 1);
+  assert.equal(project.provider, "claude");
+  // 使わなくなった列（テスト・デプロイ・自動コミットなど）は返さない
+  for (const key of ["test_command", "deploy_instructions", "auto_commit", "current_phase", "write_scopes"]) assert.equal(key in project, false, key);
   assert.equal(events.at(-1)?.type, "project");
 });
 
-test("タスクの集計がプロジェクト一覧に反映される", () => {
+test("中断された実行は起動時に失敗扱いになる", () => {
   const { store, project } = setup();
-  store.createTask({ project_id: project.id, phase: "implementation", title: "A" });
-  const b = store.createTask({ project_id: project.id, phase: "implementation", title: "B" });
-  store.updateTask(b.id, { status: "pr_open", pr_url: "https://github.com/x/y/pull/1", branch: "kickoff/task-2" });
-
-  const [summary] = store.listProjects();
-  assert.equal(summary.task_counts.todo, 1);
-  assert.equal(summary.task_counts.pr_open, 1);
-  assert.deepEqual(summary.phase_task_counts.implementation, { total: 2, done: 0 });
-  assert.deepEqual(summary.phase_task_counts.testing, { total: 0, done: 0 });
-  assert.equal(store.getTask(b.id)?.branch, "kickoff/task-2");
-});
-
-test("中断された実行は起動時に失敗扱いになり、タスクは TODO に戻る", () => {
-  const { store, project } = setup();
-  const task = store.createTask({ project_id: project.id, phase: "implementation", title: "A", status: "in_progress" });
-  const run = store.createRun({
-    project_id: project.id,
-    task_id: task.id,
-    phase: "implementation",
-    provider: "claude",
-    title: "A",
-    status: "running",
-    model: null,
-  });
+  const run = store.createRun({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
 
   assert.equal(store.recoverInterruptedRuns(), 1);
   assert.equal(store.getRun(run.id)?.status, "failed");
-  assert.equal(store.getTask(task.id)?.status, "todo");
 });
 
 test("実行イベントは JSON で保存され、順番どおりに読み出せる", () => {
   const { store, project } = setup();
   const run = store.createRun({
     project_id: project.id,
-    task_id: null,
-    phase: "requirements",
     provider: "claude",
     title: "壁打ち",
     status: "running",
@@ -78,18 +54,11 @@ test("設定は既定値とマージされる", () => {
   assert.equal(store.getSettings().defaultProvider, "claude");
 });
 
-test("プロジェクトを削除するとタスクも消える", () => {
-  const { store, project } = setup();
-  store.createTask({ project_id: project.id, phase: "testing", title: "A" });
-  store.deleteProject(project.id);
-  assert.equal(store.listTasks(project.id).length, 0);
-});
-
 test("チャットのやり取りをキーワードで検索できる（範囲の絞り込み・記号のエスケープ）", () => {
   const { store, project } = setup();
   const other = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
   const mk = (projectId: number, title: string) =>
-    store.createRun({ project_id: projectId, task_id: null, phase: "requirements", provider: "claude", title, status: "completed", model: null });
+    store.createRun({ project_id: projectId, provider: "claude", title, status: "completed", model: null });
   const a = mk(project.id, "ログインの相談");
   const b = mk(other.id, "別プロジェクト");
   store.addEvent(a.id, { type: "user", text: "ログイン方式は OAuth にしたい" });
@@ -124,8 +93,6 @@ test("グループ: 作成順に並び、並べ替え・削除するとチャッ
 
   const run = store.createRun({
     project_id: project.id,
-    task_id: null,
-    phase: "implementation",
     provider: "claude",
     title: "レビュー依頼",
     status: "completed",
@@ -165,7 +132,7 @@ test("プロジェクトの並び順: 作った順に付き、並べ替えられ
 
 /** チャットを 1 つ作る（テストの既定: 要件定義・完了） */
 function mkRun(store: Store, projectId: number, title: string, extra: Partial<Parameters<Store["createRun"]>[0]> = {}) {
-  return store.createRun({ project_id: projectId, task_id: null, phase: "requirements", provider: "claude", title, status: "completed", model: null, ...extra });
+  return store.createRun({ project_id: projectId, provider: "claude", title, status: "completed", model: null, ...extra });
 }
 
 test("チャットの一覧: アーカイブ済みを含める・だけ・状態・件数で絞り込める（新しい順）", () => {
@@ -189,7 +156,6 @@ test("チャットの一覧: アーカイブ済みを含める・だけ・状態
   assert.deepEqual(ids(store.listRuns({ statuses: [] })), [d.id, b.id, a.id]);
   // 件数
   assert.deepEqual(ids(store.listRuns({ limit: 2 })), [d.id, b.id]);
-  assert.deepEqual(ids(store.listRuns({ taskId: 999 })), []);
 });
 
 test("ワークツリーのチャット: 作業場所で探し、片付けると本体に戻る（並び順は変えず、変更を知らせる）", () => {
@@ -233,13 +199,11 @@ test("プロジェクトの既定・参照資料は JSON で保存され、そ�
     references,
     pinned: true,
     hue: 222,
-    auto_commit: false,
   });
   assert.deepEqual(updated.defaults, { model: "haiku", effort: "high", permission: "auto", fastMode: true });
   assert.deepEqual(updated.references, references);
   assert.equal(updated.pinned, 1);
   assert.equal(updated.hue, 222);
-  assert.equal(updated.auto_commit, 0);
   // 読み直しても同じ。書いていない項目はそのまま
   const again = store.getProject(project.id)!;
   assert.deepEqual({ ...again, updated_at: undefined }, { ...updated, updated_at: undefined });

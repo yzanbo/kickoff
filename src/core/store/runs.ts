@@ -6,7 +6,6 @@ import { touchProject, updateRow, type Notify, type Row } from "./common.js";
 /** チャットの一覧の絞り込み */
 export interface RunFilter {
   projectId?: number;
-  taskId?: number;
   statuses?: RunStatus[];
   limit?: number;
   includeArchived?: boolean;
@@ -109,10 +108,6 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
         where.push("project_id = $project_id");
         params.project_id = filter.projectId;
       }
-      if (filter.taskId !== undefined) {
-        where.push("task_id = $task_id");
-        params.task_id = filter.taskId;
-      }
       if (filter.statuses?.length) {
         where.push(`status IN (${filter.statuses.map((s) => `'${s}'`).join(",")})`);
       }
@@ -122,13 +117,12 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewRun): Run {
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO runs (project_id, task_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          // phase は使わなくなった列（NOT NULL なので、次の段で列を消すまで固定の値を入れる）
+          `INSERT INTO runs (project_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
+           VALUES (?, 'implementation', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           input.project_id,
-          input.task_id,
-          input.phase,
           input.provider,
           input.title,
           input.status,

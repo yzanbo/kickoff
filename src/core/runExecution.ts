@@ -8,7 +8,7 @@ import { isInside } from "./paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./chatPolicy.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./providers/types.js";
 import type { Store } from "./store.js";
-import type { Project, ProviderId, Run, Task } from "./types.js";
+import type { Project, ProviderId, Run } from "./types.js";
 import type { UploadStore } from "./uploads.js";
 
 /** 実行に使うもの（Runner から受け取る） */
@@ -29,7 +29,7 @@ export interface QueueItem {
 }
 
 /**
- * 1 回の実行（待機列から取り出したもの）を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットとタスクに反映する。
+ * 1 回の実行（待機列から取り出したもの）を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。
  * 失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
 export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact = false }: QueueItem, signal: AbortSignal): Promise<void> {
@@ -37,15 +37,13 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
   try {
     const run = store.getRun(runId)!;
     const project = store.getProject(run.project_id)!;
-    const task = run.task_id ? (store.getTask(run.task_id) ?? null) : null;
-    const cwd = await resolveWorkdir(run, task, project);
+    const cwd = await resolveWorkdir(run, project);
     // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）
     const branch = await currentBranch(cwd);
     store.updateRun(runId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
-    if (task && !compact && (task.status === "todo" || task.status === "blocked")) store.updateTask(task.id, { status: "in_progress" });
 
-    const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, task, signal), signal);
-    applyResult(store, runId, task, result, compact);
+    const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, signal), signal);
+    applyResult(store, runId, result, compact);
   } catch (e) {
     const message = errorMessage(e);
     store.updateRun(runId, { status: "failed", error: message });
@@ -53,9 +51,9 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
   }
 }
 
-/** 作業場所: チャットのワークツリー → タスクのワークツリー → プロジェクトのフォルダ（本体）。フォルダが消えていれば（ワークツリーをアプリの外で消したときなど）分かる文で止める */
-async function resolveWorkdir(run: Run, task: Task | null, project: Project): Promise<string> {
-  const cwd = run.worktree_path || task?.worktree_path || project.repo_path;
+/** 作業場所: チャットのワークツリー → プロジェクトのフォルダ（本体）。フォルダが消えていれば（ワークツリーをアプリの外で消したときなど）分かる文で止める */
+async function resolveWorkdir(run: Run, project: Project): Promise<string> {
+  const cwd = run.worktree_path || project.repo_path;
   const isDir = await fs.stat(cwd).then((s) => s.isDirectory(), () => false);
   if (!isDir) throw new Error(`作業場所のフォルダが見つかりません（${cwd}）。ワークツリーが消された可能性があります。新しいチャットで作業場所を選び直してください`);
   return cwd;
@@ -81,7 +79,7 @@ function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: st
 }
 
 /** プロバイダーからの知らせ: 途中経過は配るだけ、イベントは記録、承認依頼は回答を待つ（待つ間は waiting） */
-function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, task: Task | null, signal: AbortSignal): ProviderCallbacks {
+function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, signal: AbortSignal): ProviderCallbacks {
   const runId = run.id;
   const projectId = run.project_id;
   return {
@@ -98,7 +96,7 @@ function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, task: 
       store.addEvent(runId, event);
     },
     requestApproval: async (req, approvalSignal) => {
-      const { approval, decision } = approvals.request({ runId, projectId, taskId: task?.id ?? null }, req, approvalSignal);
+      const { approval, decision } = approvals.request({ runId, projectId }, req, approvalSignal);
       store.addEvent(runId, {
         type: "approval",
         approval_id: approval.id,
@@ -117,8 +115,8 @@ function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, task: 
   };
 }
 
-/** 結果をチャットに反映し（状態・費用・回数・コンテキスト・確認待ち）、タスクの状態を後始末する */
-function applyResult(store: Store, runId: number, task: Task | null, result: ProviderRunResult, compact: boolean) {
+/** 結果をチャットに反映する（状態・費用・回数・コンテキスト・確認待ち） */
+function applyResult(store: Store, runId: number, result: ProviderRunResult, compact: boolean) {
   const current = store.getRun(runId)!;
   store.updateRun(runId, {
     status: result.status,
@@ -146,16 +144,6 @@ function applyResult(store: Store, runId: number, task: Task | null, result: Pro
       cost_usd: result.costUsd,
       turns: result.turns,
     });
-  }
-
-  // エージェントがタスクの状態を更新しなかった場合の後始末（要約はタスクの作業ではないので除く）
-  if (task && !compact) {
-    const latest = store.getTask(task.id);
-    if (latest?.status === "in_progress") {
-      store.updateTask(task.id, {
-        status: result.status === "completed" ? "review" : result.status === "cancelled" ? "todo" : "blocked",
-      });
-    }
   }
 }
 

@@ -4,7 +4,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { expandHome } from "../paths.js";
 import type { ServerDeps } from "../server.js";
-import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES, PROVIDER_IDS, type Project, type ProviderId } from "../types.js";
+import { EFFORT_LEVELS, PERMISSION_CHOICES, PROVIDER_IDS, type Project, type ProviderId } from "../types.js";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../workspace.js";
 import { badRequest, HttpError, requireProject } from "./http.js";
 import { PROJECT_HUES } from "../projectColors.js";
@@ -30,9 +30,6 @@ const projectPatchSchema = z
     name: z.string().trim().min(1).max(100),
     description: z.string().max(10_000),
     provider: z.enum(PROVIDER_IDS),
-    test_command: z.string().max(500),
-    deploy_instructions: z.string().max(10_000),
-    auto_commit: z.boolean(),
     // プロジェクトの色（色の一覧から選ぶ）
     hue: z.number().int().refine((h) => (PROJECT_HUES as readonly number[]).includes(h), "色は一覧から選んでください"),
     // 上に固定する・しまう（アーカイブ）
@@ -47,7 +44,6 @@ const projectPatchSchema = z
         effort: z.enum(EFFORT_LEVELS).nullable(),
         permission: z.enum(PERMISSION_CHOICES),
         fastMode: z.boolean(),
-        section: z.enum(PHASES),
       })
       .partial()
       .strict(),

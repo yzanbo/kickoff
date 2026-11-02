@@ -62,12 +62,11 @@ export function NewChatPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupName]);
 
-  // セクションの指定がなければ、プロジェクトの既定 → 直近のチャットと同じ → 要件定義の順に決める
+  // セクションの指定がなければ、直近のチャットと同じ → 要件定義の順に決める
   useEffect(() => {
     if (initialSection) setSection(initialSection);
-    else if (project.data?.defaults.section) setSection(project.data.defaults.section);
     else if (runs.data?.[0]) setSection(runs.data[0].phase);
-  }, [initialSection, runs.data, project.data]);
+  }, [initialSection, runs.data]);
 
   const ready = !project.loading && !runs.loading;
   const Icon = SECTION_META[section].icon;

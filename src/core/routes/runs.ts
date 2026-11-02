@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { addWorktree, worktreePathFor } from "../git.js";
 import type { ServerDeps } from "../server.js";
-import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES } from "../types.js";
+import { EFFORT_LEVELS, PERMISSION_CHOICES } from "../types.js";
 import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject, requireRun, requireWorktree } from "./http.js";
 import { branchName, optionalId, queryOf } from "./schemas.js";
 
@@ -26,8 +26,6 @@ const attachmentSchema = z.object({
 // 本文が空でも、添付があれば送れる
 const runInputSchema = z
   .object({
-    phase: z.enum(PHASES),
-    task_id: z.number().int().optional(),
     prompt: z.string().trim().max(50_000).default(""),
     options: runOptionsSchema,
     attachments: z.array(attachmentSchema).max(20).default([]),
@@ -65,8 +63,6 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     const worktreePath = await resolveWorktree(project.repo_path, input.worktree_path, input.new_worktree_branch);
     const run = await runner.start({
       projectId: project.id,
-      phase: input.phase,
-      taskId: input.task_id,
       prompt: input.prompt,
       options: input.options,
       attachments: input.attachments,
