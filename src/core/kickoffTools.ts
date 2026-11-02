@@ -26,6 +26,8 @@ export interface KickoffToolContext {
   phase: Phase;
   /** 書き込みできるフォルダ（指定があれば export_path もこの中に限る） */
   writeScope?: string[];
+  /** 成果物の書き出し先（チャットの作業場所。ワークツリーで作業するチャットはそのフォルダ。省略すると本体） */
+  workdir?: string;
 }
 
 export const KICKOFF_SERVER_NAME = "kickoff";
@@ -149,17 +151,19 @@ export function createKickoffTools(ctx: KickoffToolContext): KickoffTool[] {
       readOnly: false,
       handler: async (args) => {
         const project = store.getProject(projectId)!;
+        // 書き出しはチャットの作業場所へ（ワークツリーのチャットが本体に書いて、本体に変更が出ないように）
+        const dir = ctx.workdir ?? project.repo_path;
         let filePath = "";
         if (args.export_path) {
           const exportPath = args.export_path as string;
-          if (ctx.writeScope && !isPathInScope(project.repo_path, ctx.writeScope, exportPath)) {
+          if (ctx.writeScope && !isPathInScope(dir, ctx.writeScope, exportPath)) {
             throw new Error(
               ctx.writeScope.length
                 ? `export_path は ${ctx.writeScope.map((s) => `${s}/`).join("、")} の中にしてください`
                 : "このセクションでは export_path を指定できません",
             );
           }
-          filePath = await exportToRepo(project.repo_path, exportPath, args.content as string);
+          filePath = await exportToRepo(dir, exportPath, args.content as string);
         }
         const artifact = store.createArtifact({
           project_id: projectId,

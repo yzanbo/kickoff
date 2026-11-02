@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { createKickoffTools, exportToRepo } from "./kickoffTools.js";
-import { phasePolicy } from "./phases.js";
+import { buildSystemPrompt, phasePolicy } from "./phases.js";
 import { toAllowedTools } from "./providers/claudePolicy.js";
 import { Store } from "./store.js";
 
@@ -57,4 +57,25 @@ test("フェーズの権限が Claude の許可ルールに変換される", () 
   const deploy = toAllowedTools(phasePolicy("deployment", project), tools);
   assert.ok(!deploy.includes("Edit"));
   assert.ok(!deploy.some((r) => r.startsWith("Bash(git commit")));
+});
+
+test("ワークツリーのチャット: 成果物は作業場所に書き出し、指示の「リポジトリ」も作業場所にする（本体は場所だけ添える）", async () => {
+  const store = new Store(":memory:");
+  const repo = tmpRepo();
+  const worktree = tmpRepo();
+  const project = store.createProject({ name: "a", repo_path: repo, provider: "claude" });
+  const run = store.createRun({ project_id: project.id, task_id: null, phase: "requirements", provider: "claude", title: "x", status: "completed", model: null });
+  const tools = createKickoffTools({ store, projectId: project.id, runId: run.id, taskId: null, phase: "requirements", workdir: worktree });
+  const save = tools.find((t) => t.name === "save_artifact")!;
+  await save.handler({ kind: "requirements", title: "要件", content: "# 要件", export_path: "docs/requirements.md" });
+  assert.ok(fs.existsSync(path.join(worktree, "docs/requirements.md")));
+  assert.equal(fs.existsSync(path.join(repo, "docs/requirements.md")), false);
+
+  const prompt = buildSystemPrompt(project, "requirements", null, worktree);
+  assert.ok(prompt.includes(`- リポジトリ: ${worktree}`));
+  assert.ok(prompt.includes(`- 本体のフォルダ: ${repo}`));
+  // 本体で作業するチャットは、いままでどおり
+  const main = buildSystemPrompt(project, "requirements", null);
+  assert.ok(main.includes(`- リポジトリ: ${repo}`));
+  assert.ok(!main.includes("本体のフォルダ"));
 });
