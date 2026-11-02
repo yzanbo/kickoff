@@ -273,6 +273,7 @@ function RunView({
           }}
           onStop={() => void api.cancelRun(run.id)}
           trailing={<ContextMeter run={run} />}
+          suggestTarget={{ projectId: run.project_id, worktree: run.worktree_path || undefined }}
         />
       </div>
       {openedSub && <SubagentDetail entry={openedSub} events={events} rel={rel} busy={busy} onClose={() => setSubOpen(undefined)} />}

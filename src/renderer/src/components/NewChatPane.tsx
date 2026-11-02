@@ -140,6 +140,8 @@ export function NewChatPane({
             autoFocus
             leading={<SectionPicker value={section} onChange={setSection} />}
             onTextChange={onDraftChange}
+            // 新しいワークツリーはまだないので、本体から探す
+            suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
             initialText={isFirst && idea ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${idea}` : undefined}
             placeholder={`${SECTION_META[section].placeholder}（Enter で送信、Shift+Enter で改行）`}
             onSend={async (prompt, attachments) => {

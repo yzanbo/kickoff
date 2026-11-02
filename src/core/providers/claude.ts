@@ -5,18 +5,58 @@ import {
   query,
   tool,
   type CanUseTool,
+  type Options,
   type Query,
   type SDKResultMessage,
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { errorMessage } from "../errors.js";
 import { KICKOFF_SERVER_NAME } from "../kickoffTools.js";
-import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus } from "../types.js";
+import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
 import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
 import { emitSdkMessage } from "./claudeMessages.js";
 import { resolvePermissionMode, scopeHooks, toAllowedTools } from "./claudePolicy.js";
 import { normalizeUsage } from "./claudeUsage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
+
+/** ターミナルの画面でしか意味のないコマンド（Kickoff の画面には同じ働きのものがあるか、使えない）。チャット欄の / には出さない */
+const TERMINAL_ONLY_COMMANDS = new Set([
+  "exit",
+  "quit",
+  "vim",
+  "theme",
+  "terminal-setup",
+  "statusline",
+  "ide",
+  "login",
+  "logout",
+  "upgrade",
+  "doctor",
+  "resume",
+  "config",
+  "help",
+  "bug",
+  "feedback",
+  "model",
+  "permissions",
+  "hooks",
+  "agents",
+  "mcp",
+  "memory",
+  "status",
+  "privacy-settings",
+  "release-notes",
+  "keybindings",
+  "rewind",
+  "export",
+  // 見た目・調査用（ターミナルだけ）
+  "color",
+  "heapdump",
+  // Kickoff の画面に同じものがある（推論の深さ・ファストモード・名前の変更）
+  "effort",
+  "fast",
+  "rename",
+]);
 
 const execFileAsync = promisify(execFile);
 
@@ -78,10 +118,26 @@ export class ClaudeProvider implements AgentProvider {
   }
 
   /**
+   * チャット欄の / で出すコマンド。プロジェクトの設定（.claude/commands・スキル・プラグイン）も読むよう、cwd とすべての設定を渡す。
+   * ターミナルの画面でしか意味のないコマンド（終了・見た目の切り替えなど）は出さない
+   */
+  async commands(cwd: string): Promise<SlashCommandOption[]> {
+    return this.withIdleSession(
+      async (q) =>
+        (await q.supportedCommands())
+          // __ で始まるものは Claude Code の内部用
+          .filter((c) => !TERMINAL_ONLY_COMMANDS.has(c.name) && !c.name.startsWith("_"))
+          .map((c) => ({ name: c.name, description: c.description, argumentHint: c.argumentHint ?? "" }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      { cwd, settingSources: ["user", "project", "local"] },
+    );
+  }
+
+  /**
    * メッセージを送らないセッションを一瞬開いて、制御用の API だけを呼ぶ。
    * モデルへのリクエストは発生しないので、使用枠を消費しない。
    */
-  private async withIdleSession<T>(fn: (q: Query) => Promise<T>): Promise<T> {
+  private async withIdleSession<T>(fn: (q: Query) => Promise<T>, extra: Pick<Options, "cwd" | "settingSources"> = {}): Promise<T> {
     let release!: () => void;
     const idle = new Promise<void>((resolve) => (release = resolve));
     async function* noMessages(): AsyncGenerator<SDKUserMessage> {
@@ -89,7 +145,7 @@ export class ClaudeProvider implements AgentProvider {
     }
     const q = query({
       prompt: noMessages(),
-      options: { env: agentEnv(), settingSources: [], pathToClaudeCodeExecutable: this.executable },
+      options: { env: agentEnv(), settingSources: [], pathToClaudeCodeExecutable: this.executable, ...extra },
     });
     try {
       return await fn(q);

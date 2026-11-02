@@ -1,17 +1,6 @@
 import type { KickoffTool } from "../kickoffTools.js";
 import type { PhasePolicy } from "../phases.js";
-import type {
-  ApprovalDecision,
-  ApprovalKind,
-  EffortLevel,
-  ModelOption,
-  PermissionChoice,
-  PlanUsage,
-  ProviderId,
-  ProviderStatus,
-  RunEventData,
-  SubagentInfo,
-} from "../types.js";
+import type { ApprovalDecision, ApprovalKind, EffortLevel, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "../types.js";
 
 /**
  * エージェント実行基盤の抽象化。
@@ -29,6 +18,8 @@ export interface AgentProvider {
   usage?(): Promise<PlanUsage>;
   /** チャット欄で選べるモデルの一覧 */
   models?(): Promise<ModelOption[]>;
+  /** チャット欄の / で出すコマンド（cwd のプロジェクトのコマンド・スキルも含む） */
+  commands?(cwd: string): Promise<SlashCommandOption[]>;
   /** 最初のメッセージから短いチャット名を作る */
   title?(text: string): Promise<string>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
