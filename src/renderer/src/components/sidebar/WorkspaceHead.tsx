@@ -15,7 +15,7 @@ import type { StateCounts } from "./sidebarFlags";
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
  * カードの外枠の中を押すと（中のボタンを除く）、選んでいなければ選び（カンバンを開く。開閉はしない）、選んでいればチャット一覧を開閉する。
- * マウスを乗せたとき、押すと開閉するなら頭文字が矢印に変わり、押すと選ぶなら頭文字のまま。
+ * マウスを乗せたとき、押すと開閉するなら頭文字が矢印に変わり、押すと選ぶなら頭文字のまま。頭文字そのものは、乗せると矢印になり、押すといつでも開閉する。
  * 出すのは、いつも使うものだけ: チャット一覧の開閉（頭文字。乗せると矢印に変わる）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
@@ -76,13 +76,13 @@ export function WorkspaceHead({
         }}
         {...headDrag}
       >
-        {/* 頭文字のボタン（カードを押したのと同じ。選んでいるカードに乗せたときだけ、開閉の矢印に変わる。選んでいなければ頭文字のまま = 押すと選ぶ） */}
+        {/* 頭文字のボタン: 乗せると開閉の矢印に変わり、押すと選んでいてもいなくても開閉する（選んでいるカードは、カードに乗せただけで矢印になる） */}
         <button
           className="workspace-avatar workspace-toggle"
-          aria-expanded={active ? !collapsed : undefined}
-          aria-label={active ? `${project.name} の${pressLabel}` : pressLabel}
-          title={pressLabel}
-          onClick={press}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? `${project.name} のチャット一覧を開く` : `${project.name} のチャット一覧を閉じる`}
+          title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
+          onClick={onToggleCollapsed}
         >
           <span className="workspace-toggle-initial" aria-hidden>
             {initialOf(project.name)}
