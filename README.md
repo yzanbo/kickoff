@@ -43,10 +43,10 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 
 | ディレクトリ | 役割 |
 |---|---|
-| `src/core` | Electron に依存しない中核（HTTP API・SQLite・エージェント実行）。デスクトップ画面・スマホ・将来のネイティブアプリが同じ API を使う |
+| `src/core` | Electron に依存しない中核（HTTP API・SQLite・エージェント実行）。デスクトップ画面・スマホ・将来のネイティブアプリが同じ API を使う。型は `types/`、DB は `store/`、Git は `git/`、API は `routes/`、テスト専用の補助は `testing/` |
 | `src/main` | Electron のメインプロセス（コアの起動、ウィンドウ、ネイティブダイアログ） |
 | `src/preload` | 画面に公開する最小限のネイティブ機能 |
-| `src/renderer` | 画面（React） |
+| `src/renderer` | 画面（React）。部品は `components/<機能>/`、CSS は `styles/`（機能ごとのファイルを `index.css` の `@import` の順でつなぐ） |
 | `build` | アプリのアイコン（元の絵は本番 `icon.svg`・開発版 `icon-dev.svg`） |
 | `scripts` | アイコンの作成・開発用の Electron.app の書き換え |
 
