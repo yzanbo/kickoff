@@ -4,28 +4,24 @@ import type { Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
-import { confirmDeleteGroup, startRunDrag, useGroupDrop, GROUP_FLASH_EVENT } from "../../groups";
+import { confirmDeleteGroup, useGroupDrop, GROUP_FLASH_EVENT } from "../../groups";
 import { useActionError } from "../../hooks/useActionError";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
-import { useProjects } from "../../projectsContext";
 import type { ReopenRoute } from "../../router";
 import { useRunStates } from "../../approvalsContext";
 import { GROUP_VIEW_KEY } from "../../storageKeys";
-import { CardMenu } from "../menus/CardMenu";
-import { ErrorText } from "../ErrorText";
 import { useGroupMenu } from "../menus/GroupMenu";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { DraftCards } from "../sidePanel/DraftCards";
-import { SidePanel } from "../sidePanel/SidePanel";
-import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
+import { useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
 import { BoardLanes, groupOfLane } from "./BoardLanes";
 import type { BoardEntry } from "./boardColumns";
 import { GroupLaneColumns } from "./GroupLaneColumns";
-import { RunCardContent, RunRowContent } from "./RunCard";
-import { runCardProps } from "./runCardProps";
+import { BoardShell } from "./BoardShell";
+import { useBoardCards, useCardMenu } from "./useBoardCards";
 import { useBoardFocus } from "./useBoardFocus";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
@@ -45,21 +41,19 @@ interface Props {
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
 export function GroupBoard({ projectId, runs, groups, focus, highlight }: Props) {
-  // タブの列の＋のターミナルの開く場所（このプロジェクトの本体）
-  const { projects } = useProjects();
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
-  const [dragRun, setDragRun] = useState<number>();
   const { error, setError, guard } = useActionError();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
-  const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
+  // カードの右クリックメニュー
+  const menu = useCardMenu();
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
   // ボード（列 = グループ）/ リスト / スイムレーン（段 = グループ、列 = 下書きと状態）の切り替え。カンバンとは別に覚える
   const [view, setView] = useStoredChoice<BoardView>(GROUP_VIEW_KEY, ["board", "list", "lanes"], "board");
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
-  const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs, loaded: true, holdEsc: menu !== null });
+  const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs, loaded: true, holdEsc: menu.isOpen });
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {
@@ -108,19 +102,7 @@ export function GroupBoard({ projectId, runs, groups, focus, highlight }: Props)
   });
 
   /** カード・リストの行で共通: クリックで右側に開く、ドラッグでグループを移す、右クリックでメニュー */
-  const cardProps = (run: Run) =>
-    runCardProps(run, {
-      dragHint: "ドラッグでグループを移す",
-      onOpen: () => panel.open(run),
-      onMenu: (at) => setMenu({ ...at, run }),
-      onDragStart: (e) => {
-        startRunDrag(e, run.id);
-        setDragRun(run.id);
-      },
-      onDragEnd: () => setDragRun(undefined),
-      editing: Boolean(rename.editorFor(run)),
-    });
-  const cardClass = (run: Run) => cx(dragRun === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
+  const cards = useBoardCards({ panel, rename, menu, onOpen: panel.open, drag: { hint: "ドラッグでグループを移す" } });
   // チャットの状態（回答待ちの依頼は App が持つ）
   const { stateOf } = useRunStates();
 
@@ -212,116 +194,109 @@ export function GroupBoard({ projectId, runs, groups, focus, highlight }: Props)
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
     .map((run) => ({ run, state: stateOf(run) }));
 
+  const header = (
+    <BoardHeader
+      query={query}
+      onQuery={setQuery}
+      organize={
+        <button className="btn btn-sm" onClick={() => setCreating(true)}>
+          <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>
+        </button>
+      }
+      primary={
+        <button className="btn btn-sm" onClick={() => panel.openNew({ projectId })} title="右側で新しいチャットを始める">
+          <Plus size={13} /> <span className="btn-label">新規</span>
+        </button>
+      }
+      view={view}
+      onView={setView}
+      lanesView
+      panel={panel}
+    />
+  );
+
   return (
-    <div className="board group-board">
-      <BoardHeader
-        query={query}
-        onQuery={setQuery}
-        organize={
-          <button className="btn btn-sm" onClick={() => setCreating(true)}>
-            <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>
-          </button>
-        }
-        primary={
-          <button className="btn btn-sm" onClick={() => panel.openNew({ projectId })} title="右側で新しいチャットを始める">
-            <Plus size={13} /> <span className="btn-label">新規</span>
-          </button>
-        }
-        view={view}
-        onView={setView}
-        lanesView
-        panel={panel}
-      />
-      <ErrorText message={error} className="board-error" />
-
-      <div {...panel.body}>
-        <div className="board-main">
-          {view === "lanes" ? (
-            // 段（グループ）へカードをドラッグすると、そのグループへ移す
-            <BoardLanes
-              kind="group"
-              boardKey={`groups:${projectId}`}
-              entries={entries}
-              projects={[]}
-              groups={groups}
-              showEmpty
-              laneProps={(key) => {
-                const groupId = groupOfLane(key);
-                return { ...dropProps(groupId), className: cx(over === (groupId ?? "none") && "drop-target") };
-              }}
-              renderColumns={(list, key) => (
-                <GroupLaneColumns
-                  entries={list}
-                  foldKey={`groups:${projectId}:${key}`}
-                  groupId={groupOfLane(key)}
-                  projectId={projectId}
-                  panel={panel}
-                  renderCard={({ run, state }) => (
-                    <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
-                      <RunCardContent run={run} state={state} rename={rename.editorFor(run)} />
-                    </article>
-                  )}
-                />
-              )}
+    <BoardShell
+      className="group-board"
+      header={header}
+      error={error}
+      panel={panel}
+      onNewChat={() => panel.openNew({ projectId })}
+      projectId={projectId}
+      menu={menu}
+      onOpenRun={panel.open}
+      rename={rename}
+      onError={setError}
+      after={groupMenu.menu}
+    >
+      {view === "lanes" ? (
+        // 段（グループ）へカードをドラッグすると、そのグループへ移す
+        <BoardLanes
+          kind="group"
+          boardKey={`groups:${projectId}`}
+          entries={entries}
+          projects={[]}
+          groups={groups}
+          showEmpty
+          laneProps={(key) => {
+            const groupId = groupOfLane(key);
+            return { ...dropProps(groupId), className: cx(over === (groupId ?? "none") && "drop-target") };
+          }}
+          renderColumns={(list, key) => (
+            <GroupLaneColumns
+              entries={list}
+              foldKey={`groups:${projectId}:${key}`}
+              groupId={groupOfLane(key)}
+              projectId={projectId}
+              panel={panel}
+              renderCard={cards.card}
             />
-          ) : view === "board" ? (
-            <div className="board-columns">
-              {sections.map((g) => {
-                // アーカイブ済みは、グループのいちばん下の閉じたまとまりに分ける（件数はアーカイブしていないものだけ）
-                const [members, archived] = splitArchived(membersOf(g?.id ?? null), (r) => r);
-                const { key, ...props } = sectionProps(g, "board-column");
-                const card = (run: Run) => (
-                  <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
-                    <RunCardContent run={run} state={stateOf(run)} rename={rename.editorFor(run)} />
-                  </article>
-                );
-                return (
-                  <section key={key} {...props}>
-                    {renderHead(g, members.length)}
-                    <div className="column-cards">
-                      {drafts(g)}
-                      {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
-                      {members.map(card)}
-                      <ArchivedFold foldKey={`groups:${projectId}:board:${key}`} count={archived.length}>
-                        {archived.map(card)}
-                      </ArchivedFold>
-                    </div>
-                  </section>
-                );
-              })}
-              <section className="board-column group-add-column">{createForm}</section>
-            </div>
-          ) : (
-            <div className="board-list">
-              {sections.map((g) => {
-                const [members, archived] = splitArchived(membersOf(g?.id ?? null), (r) => r);
-                const { key, ...props } = sectionProps(g, "list-group");
-                const row = (run: Run) => (
-                  <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
-                    <RunRowContent run={run} state={stateOf(run)} rename={rename.editorFor(run)} />
-                  </div>
-                );
-                return (
-                  <section key={key} {...props}>
-                    {renderHead(g, members.length)}
-                    {drafts(g)}
-                    {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
-                    {members.map(row)}
-                    <ArchivedFold foldKey={`groups:${projectId}:list:${key}`} count={archived.length}>
-                      {archived.map(row)}
-                    </ArchivedFold>
-                  </section>
-                );
-              })}
-              <section className="list-group group-add-row">{createForm}</section>
-            </div>
           )}
+        />
+      ) : view === "board" ? (
+        <div className="board-columns">
+          {sections.map((g) => {
+            // アーカイブ済みは、グループのいちばん下の閉じたまとまりに分ける（件数はアーカイブしていないものだけ）
+            const [members, archived] = splitArchived(membersOf(g?.id ?? null), (r) => r);
+            const { key, ...props } = sectionProps(g, "board-column");
+            const card = (run: Run) => cards.card({ run, state: stateOf(run) });
+            return (
+              <section key={key} {...props}>
+                {renderHead(g, members.length)}
+                <div className="column-cards">
+                  {drafts(g)}
+                  {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
+                  {members.map(card)}
+                  <ArchivedFold foldKey={`groups:${projectId}:board:${key}`} count={archived.length}>
+                    {archived.map(card)}
+                  </ArchivedFold>
+                </div>
+              </section>
+            );
+          })}
+          <section className="board-column group-add-column">{createForm}</section>
         </div>
-        <SidePanel panel={panel} onNewChat={() => panel.openNew({ projectId })} terminals={terminalTargets(projects, projectId)} />
-      </div>
-
-      {groupMenu.menu}
-      {menu && <CardMenu {...menu} onOpenPanel={panel.open} onRename={rename.start} onClose={() => setMenu(null)} onError={setError} />}
-    </div>
+      ) : (
+        <div className="board-list">
+          {sections.map((g) => {
+            const [members, archived] = splitArchived(membersOf(g?.id ?? null), (r) => r);
+            const { key, ...props } = sectionProps(g, "list-group");
+            const row = (run: Run) => cards.row({ run, state: stateOf(run) });
+            return (
+              <section key={key} {...props}>
+                {renderHead(g, members.length)}
+                {drafts(g)}
+                {members.length === 0 && <p className="column-empty">{emptyText(g)}</p>}
+                {members.map(row)}
+                <ArchivedFold foldKey={`groups:${projectId}:list:${key}`} count={archived.length}>
+                  {archived.map(row)}
+                </ArchivedFold>
+              </section>
+            );
+          })}
+          <section className="list-group group-add-row">{createForm}</section>
+        </div>
+      )}
+    </BoardShell>
   );
 }
