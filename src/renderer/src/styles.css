@@ -1238,41 +1238,65 @@ button.project-switch:hover,
   margin-left: auto;
 }
 
-/* 設定の種類ごとのボタン: 種類の名前を文字で出す（狭いときはアイコンだけ） */
+/* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（狭いときはアイコンだけ。値が長いときは省略して、説明に全文を出す） */
 .head-chip {
   display: inline-flex;
-  flex: none;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 4px;
-  height: 24px;
-  padding: 0 6px;
+  justify-content: center;
+  min-width: 0;
+  height: 32px;
+  padding: 0 7px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
+  color: var(--text);
   background: transparent;
   cursor: pointer;
 }
 
 .head-chip:hover,
 .head-chip.active {
-  color: var(--text);
   background: var(--bg-hover);
+}
+
+.head-chip-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.head-chip-label {
+  font-size: 10px;
+  color: var(--extra-muted);
+}
+
+.head-chip-value {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .head-chip-icon {
   display: none;
+  color: var(--muted);
 }
 
-/* 文字では 1 行に収まらない幅（サイドバーが約 255px 未満）では、文字を隠してアイコンだけにする */
+/* 文字では収まらない幅（サイドバーが約 255px 未満）では、文字を隠してアイコン（いまの値）だけにする */
 @container project-list-head (max-width: 231px) {
+  .head-chip {
+    height: 26px;
+    padding: 0 6px;
+  }
+
   .head-chip-icon {
     display: block;
   }
 
-  .head-chip-label {
+  .head-chip-text {
     display: none;
   }
 }

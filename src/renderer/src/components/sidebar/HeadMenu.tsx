@@ -22,9 +22,27 @@ export interface HeadMenuSection {
 
 /**
  * プロジェクト一覧の上の見出しの行の、設定の種類（並べ方・並び順・まとめ方・表示）ごとのボタン。
- * ボタンには種類の名前を文字で出し、押すとその種類の選択肢だけを出す。狭いときは文字を隠してアイコンだけにする（@container）
+ * ボタンは 2 段で、上に種類の名前・下にいまの値を出し、押すとその種類の選択肢だけを出す。
+ * 狭いときは文字を隠してアイコンだけにする（@container。アイコンもいまの値を表すものを渡す）
  */
-export function HeadMenu({ id, icon: Icon, label, title, sections }: { id: string; icon: LucideIcon; label: string; title: string; sections: HeadMenuSection[] }) {
+export function HeadMenu({
+  id,
+  icon: Icon,
+  label,
+  value,
+  title,
+  sections,
+}: {
+  id: string;
+  /** いまの値を表すアイコン（狭いときに出す） */
+  icon: LucideIcon;
+  /** 種類の名前（並べ方など） */
+  label: string;
+  /** いまの値（縦並びなど） */
+  value: string;
+  title: string;
+  sections: HeadMenuSection[];
+}) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const buttonClass = `head-menu-${id}`;
   return (
@@ -32,7 +50,7 @@ export function HeadMenu({ id, icon: Icon, label, title, sections }: { id: strin
       <button
         className={cx("head-chip", buttonClass, at && "active")}
         title={title}
-        aria-label={label}
+        aria-label={`${label}: ${value}`}
         aria-haspopup="menu"
         aria-expanded={at !== null}
         onClick={(e) => {
@@ -43,7 +61,10 @@ export function HeadMenu({ id, icon: Icon, label, title, sections }: { id: strin
         }}
       >
         <Icon size={13} className="head-chip-icon" aria-hidden />
-        <span className="head-chip-label">{label}</span>
+        <span className="head-chip-text">
+          <span className="head-chip-label">{label}</span>
+          <span className="head-chip-value">{value}</span>
+        </span>
       </button>
       {at && <Menu {...at} label={label} ignore={`.${buttonClass}`} sections={sections} onClose={() => setAt(null)} />}
     </>
