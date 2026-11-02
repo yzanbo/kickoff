@@ -260,13 +260,27 @@ kbd {
  * （開閉で縦の位置が変わらないように）。閉じている間だけ、その行を開閉ボタンの右へずらす。
  * その下（パス・タブ）は、どちらでも左端にそろえる
  */
-.page-header > :first-child,
-.page > .board:first-child > .board-header {
+.page-header > :first-child {
   min-height: 34px;
 }
 
-.sidebar-collapsed .page-header > :first-child,
-.sidebar-collapsed .page > .board:first-child > .board-header {
+/* 画面のいちばん上の行の右端は、右上のレイアウトの開閉（LayoutToggles）のために空けておく（チャット欄の上の行も同じ） */
+.page-header > :first-child {
+  padding-right: 100px;
+}
+
+/* 右上のレイアウトの開閉（VS Code と同じ。信号機ボタンと同じ高さ） */
+.layout-toggles {
+  position: fixed;
+  top: 8px;
+  right: 10px;
+  z-index: 30;
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-collapsed .page-header > :first-child {
   /* 開閉ボタン（左から 96px まで）の右に置く。画面の左右の余白の分を差し引く */
   padding-left: calc(104px - var(--page-x));
   transition: padding-left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -2226,11 +2240,6 @@ mark {
   margin-bottom: 0;
 }
 
-.project-chat-toggle.active {
-  border-color: var(--accent);
-  color: var(--text);
-  background: var(--bg-hover);
-}
 
 .project-title-row h1 {
   min-width: 0;
@@ -6851,7 +6860,7 @@ a:focus-visible,
   align-items: center;
   gap: 6px;
   min-height: 40px;
-  padding: 0 8px 0 14px;
+  padding: 0 100px 0 14px;
   border-bottom: 1px solid var(--border);
   color: var(--muted);
   -webkit-app-region: drag;

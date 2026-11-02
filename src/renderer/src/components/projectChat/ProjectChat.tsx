@@ -37,17 +37,3 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
     </aside>
   );
 }
-
-/** チャット欄の開閉ボタン（プロジェクトのタブの列の右端） */
-export function ProjectChatToggle({ chat }: { chat: ProjectChatController }) {
-  return (
-    <button
-      className={cx("btn btn-sm project-chat-toggle", chat.open && "active")}
-      title={chat.open ? "チャット欄を閉じる（⌥⌘B）" : "チャット欄を開く（⌥⌘B）"}
-      aria-pressed={chat.open}
-      onClick={chat.toggle}
-    >
-      <MessageSquare size={13} aria-hidden /> <span className="btn-label">チャット</span>
-    </button>
-  );
-}
