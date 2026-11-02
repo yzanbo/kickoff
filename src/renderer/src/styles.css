@@ -460,18 +460,11 @@ kbd {
   display: none;
 }
 
-/* 1 行で表示のときは、プロジェクトのカードも詰める（頭文字を小さく・名前を 1 行にして、チャット数の行は出さない） */
+/* 1 行で表示のときは、プロジェクトのカードも詰める（名前を 1 行にして、チャット数の行は出さない） */
 .workspaces.compact .workspace-head {
   margin-bottom: 6px;
   padding-top: 3px;
   padding-bottom: 3px;
-}
-
-.workspaces.compact .workspace-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  font-size: 11px;
 }
 
 .workspaces.compact .workspace-name {
@@ -1244,24 +1237,6 @@ button.project-switch:hover,
   gap: 8px;
   min-width: 0;
   color: var(--text);
-}
-
-.workspace-avatar {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: hsl(var(--ws-hue, 150) 60% 75%);
-  background: hsl(var(--ws-hue, 150) 35% 24%);
-}
-
-:root[data-theme="light"] .workspace-avatar {
-  color: hsl(var(--ws-hue, 150) 55% 32%);
-  background: hsl(var(--ws-hue, 150) 50% 86%);
 }
 
 .workspace-title-text {
@@ -2739,7 +2714,7 @@ mark {
   align-items: center;
   gap: 8px;
   max-width: 100%;
-  padding: 3px 10px 3px 3px;
+  padding: 4px 10px;
   border-radius: 10px;
   font: inherit;
   color: inherit;
@@ -2778,7 +2753,6 @@ button.project-switch.all-projects:hover,
   background: var(--bg-hover);
 }
 
-.all-projects .workspace-avatar,
 .project-chip-mark.all-projects {
   color: var(--text);
   background: var(--bg-active);
@@ -2795,7 +2769,6 @@ button.project-switch.all-projects:hover,
   background: var(--bg-hover);
 }
 
-:root[data-theme="light"] .all-projects .workspace-avatar,
 :root[data-theme="light"] .project-chip-mark.all-projects {
   color: var(--text);
   background: var(--bg-active);
