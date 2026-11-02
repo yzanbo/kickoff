@@ -1,0 +1,92 @@
+/* ==== プロジェクトの各タブの中身（全文検索の探す範囲・資料のカードと報告・危険な操作・書き込みできるフォルダ） ==== */
+
+/* 全文検索の「探す範囲」: ボタンの組の枠は並びに影響させず、各ボタンをチップにする */
+.search-scope-options {
+  display: contents;
+}
+
+.search-scope-options button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.search-scope-options button:hover {
+  color: var(--text);
+}
+
+.search-scope-options button.active {
+  border-color: var(--border-strong);
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.doc-toolbar {
+  margin-bottom: 12px;
+}
+
+.doc-card {
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+}
+
+.report {
+  margin-bottom: 8px;
+}
+
+.report summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.report-title {
+  flex: 1;
+}
+
+.danger-zone {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* 書き込みできるフォルダ */
+
+.scope-editor {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.scope-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+}
+
+.scope-label {
+  padding-top: 4px;
+  font-weight: 500;
+}
+
+.scope-body {
+  display: grid;
+  gap: 8px;
+}
+
+.scope-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}

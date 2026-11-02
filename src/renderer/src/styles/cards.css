@@ -1,0 +1,93 @@
+/* ==== カードとその並び（準備状況・使用枠）・使用状況のサービスごとのまとまり・状態カードと状態の点 ==== */
+
+/* カードとその並び（準備状況・使用枠など） */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.card {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+}
+
+/* 設定の「使用状況」のサービスごとのまとまり（名前・プラン・アカウントの行と、枠のカード） */
+.usage-service {
+  padding: 14px 0 6px;
+}
+
+.usage-service + .usage-service {
+  border-top: 1px solid var(--border);
+}
+
+.usage-service-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.usage-service-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.usage-service-account {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-service-time {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.usage-service .card-grid {
+  margin: 10px 0 6px;
+}
+
+/* 状態カード */
+
+.status-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+/* 状態の点（使える・使えない・確認中・対応予定） */
+.status-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--extra-muted);
+}
+
+.status-dot.tone-ok {
+  background: var(--ok);
+}
+
+.status-dot.tone-ng {
+  background: var(--ng);
+}
+
+.status-dot.tone-pending {
+  background: var(--warn);
+}
+
+.status-title .status-dot {
+  margin-right: 8px;
+}
+
+.status-detail {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
