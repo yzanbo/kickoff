@@ -4,7 +4,7 @@ import type { ProjectSummary, RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { initialOf } from "../../projectColor";
 import { changeProject, confirmRestoreProject } from "../../projectOrder";
-import { href, openNewChat } from "../../router";
+import { href, navigate, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
@@ -14,6 +14,7 @@ import type { StateCounts } from "./sidebarFlags";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
+ * カードの外枠の中を押すとカンバンを開く（中のボタンを除く）。
  * 出すのは、いつも使うものだけ: チャット一覧の開閉（頭文字。乗せると矢印に変わる）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
@@ -58,6 +59,11 @@ export function WorkspaceHead({
         draggable={Boolean(headDrag)}
         title={headDrag ? "ドラッグでプロジェクトを並べ替える（右クリックで固定・アーカイブ）" : "右クリックで固定・アーカイブ"}
         onContextMenu={(e) => projectMenu.open(e, project, { onCreateGroup, collapse: { collapsed, toggle: onToggleCollapsed } })}
+        onClick={(e) => {
+          // カードの外枠の中なら、どこを押してもカンバンを開く（頭文字が矢印に変わる範囲と同じ）。中のボタン・リンクはそちらの動き
+          if ((e.target as HTMLElement).closest("button, a, input, select")) return;
+          navigate({ name: "project", id: project.id, tab: "board" });
+        }}
         {...headDrag}
       >
         {/* 頭文字のボタン（カードにマウスを乗せると開閉の矢印に変わる。押すとチャット一覧を開閉） */}
