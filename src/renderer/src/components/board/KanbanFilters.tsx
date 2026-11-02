@@ -24,8 +24,8 @@ export function KanbanFilters({
   onSection: (value: Phase | "all") => void;
   archive: ArchiveFilter;
   onArchive: (value: ArchiveFilter) => void;
-  /** チャットの作業場所（ワークツリーのフォルダ）。ワークツリーで作業しているチャットがあるときだけ、絞り込みを出す */
-  worktrees: string[];
+  /** チャットの作業場所（ワークツリーのフォルダと、出す名前）。ワークツリーで作業しているチャットがあるときだけ、絞り込みを出す */
+  worktrees: { path: string; label: string }[];
   /** "all" はすべて、"" は本体 */
   worktree: string;
   onWorktree: (value: string) => void;
@@ -65,9 +65,9 @@ export function KanbanFilters({
         >
           <option value="all">すべての作業場所</option>
           <option value="">本体</option>
-          {worktrees.map((path) => (
-            <option key={path} value={path}>
-              {path.split("/").pop()}
+          {worktrees.map((w) => (
+            <option key={w.path} value={w.path} title={w.path}>
+              {w.label}
             </option>
           ))}
         </select>

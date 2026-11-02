@@ -144,6 +144,9 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   });
 
   // すべてしまっているときは、下の行（しまったものを出す切り替え）を出す
+  // 複数選んだチャットをまとめて操作する欄（選んでいるときだけ、下の行の上に出す）。hooks は、下の早い return より前に呼ぶ
+  const selection = useChatSelection();
+
   if (projects.length === 0) {
     return (
       <div className="workspace-empty">
@@ -176,8 +179,6 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
     </div>
   );
 
-  // 複数選んだチャットをまとめて操作する欄（選んでいるときだけ、下の行の上に出す）
-  const selection = useChatSelection();
   const selectionBar = selection && <SelectionBar selection={selection} runs={runs} groups={groups} />;
 
   /** 一覧の上の見出しの行に渡す（並べ方・しまったプロジェクトを出すか） */
