@@ -1,8 +1,8 @@
 import type { GitWorktree, Run } from "../../../core/types";
+import { baseName } from "../format";
 
 /** ワークツリーのブランチ名（ブランチから外れていれば "HEAD a1b2c3d"） */
 export const branchName = (w: GitWorktree) => w.branch ?? `HEAD ${w.head.slice(0, 7)}`;
-const folderName = (path: string) => path.split("/").pop() ?? path;
 
 /**
  * チャットの作業場所の種類。main: 本体 / worktree: ワークツリー /
@@ -39,10 +39,10 @@ export function workplaceOf(run: Pick<Run, "worktree_path" | "branch">, list: Gi
     if (wt && !wt.prunable) return { key: path, kind: "worktree", name: branchName(wt), title: `ブランチ: ${branchName(wt)}\n作業場所: ワークツリー（${path}）` };
     // 一覧を読み込み終わって見つからない・フォルダが消えている
     if (wt || list) {
-      const name = wt?.branch ?? (run.branch || folderName(path));
+      const name = wt?.branch ?? (run.branch || baseName(path));
       return { key: path, kind: "missing", name, title: `ブランチ: ${name}\n作業場所: ワークツリー（${path}）のフォルダが見つかりません。アプリの外で消された可能性があります` };
     }
-    const name = run.branch || folderName(path);
+    const name = run.branch || baseName(path);
     return { key: path, kind: "worktree", name, title: `ブランチ: ${name}\n作業場所: ワークツリー（${path}）` };
   }
   const main = list?.find((w) => w.main);

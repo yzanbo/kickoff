@@ -5,6 +5,7 @@ import { api } from "../../api";
 import { cx } from "../../cx";
 import { confirmDialog, promptDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
+import { baseName } from "../../format";
 import { useActionError } from "../../hooks/useActionError";
 import { startVerticalDrag } from "../../hooks/dragResize";
 import { useStoredNumber } from "../../hooks/useStoredState";
@@ -17,6 +18,7 @@ import { CommitTable } from "./CommitTable";
 import { CommitView } from "./CommitView";
 import type { GitLogController } from "./useGitLog";
 import { invalidateWorktrees } from "../../worktree/worktreeBranches";
+import { worktreeLabel } from "../../worktree/WorktreePicker";
 
 /** 上のコミットの表の高さ（割合。下はコミットの詳細） */
 const DEFAULT_SPLIT = 43;
@@ -78,7 +80,7 @@ function RefItem({
 export function HistorySidebar({ projectId, log, onPick }: { projectId: number; log: GitLogController; onPick: (hash: string) => void }) {
   const [filter, setFilter] = useState("");
   const worktreeError = useActionError();
-  const repoName = log.worktrees?.[0]?.path.split("/").pop() ?? "";
+  const repoName = log.worktrees?.[0] ? baseName(log.worktrees[0].path) : "";
 
   // ワークツリーを作る（ブランチの名前を聞く。なければいまのコミットから作る）
   const createWorktree = async () => {
@@ -99,7 +101,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
 
   // ワークツリーを消す（フォルダを消す。ブランチは残す。変更が残っていれば、もう一度確かめる）
   const removeWorktree = async (w: GitWorktree) => {
-    const name = w.branch ?? w.path.split("/").pop();
+    const name = worktreeLabel(w);
     if (
       !(await confirmDialog({
         title: `ワークツリー「${name}」を消しますか？`,

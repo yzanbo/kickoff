@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import type { GitWorktree } from "../../../core/types";
 import { api } from "../api";
 import { cx } from "../cx";
+import { baseName } from "../format";
 
 /** ワークツリーの短い名前（ブランチ名。なければフォルダ名） */
-export const worktreeLabel = (w: Pick<GitWorktree, "branch" | "path">) => w.branch ?? w.path.split("/").pop() ?? w.path;
+export const worktreeLabel = (w: Pick<GitWorktree, "branch" | "path">) => w.branch ?? baseName(w.path);
 
 /** プロジェクトのワークツリー（version が変わったら読み直す） */
 export function useWorktrees(projectId: number, version = 0) {
