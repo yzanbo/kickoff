@@ -1,16 +1,14 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Phase, Project, ProjectSummary, Run } from "../../../../core/types";
 import { cx } from "../../cx";
 import { baseName } from "../../format";
 import { useServerEvent } from "../../events";
-import { startHorizontalDrag } from "../../hooks/dragResize";
-import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { sidebarOrder } from "../../projectOrder";
-import { PANEL_MAXIMIZED_KEY, PANEL_WIDTH_KEY } from "../../storageKeys";
 import { loadPanel, registerPanel, savePanel } from "./panelMemory";
 import { closeTabs } from "./panelTabs";
 import { newTabKey } from "./tabKeys";
+import { usePanelWidth } from "./usePanelWidth";
 
 /** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・グループで始めるか） */
 export interface NewChatTarget {
@@ -52,8 +50,6 @@ export function terminalTargetOf(run: Pick<Run, "worktree_path">, project: Pick<
 
 const chatKey = (id: number) => `chat:${id}`;
 
-const DEFAULT_PANEL_WIDTH = 1127;
-const MIN_PANEL_WIDTH = 360;
 
 interface Options {
   /** パネルの状態を覚えておく名前（ボードごとに分ける。例: "kanban:all"・"groups:3"） */
@@ -95,11 +91,8 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
   useEffect(() => {
     if (shownKey === memoryKey) savePanel(memoryKey, { tabs, activeTab, panelOpen });
   }, [memoryKey, shownKey, tabs, activeTab, panelOpen]);
-  const [panelWidth, setPanelWidth] = useStoredNumber(PANEL_WIDTH_KEY, DEFAULT_PANEL_WIDTH);
-  const [resizing, setResizing] = useState(false);
-  // 横幅いっぱい（ボードを覆う）。戻すと、元の幅に戻る
-  const [maximized, setMaximized] = useStoredFlag(PANEL_MAXIMIZED_KEY);
-  const bodyRef = useRef<HTMLDivElement>(null);
+  // 幅と横幅いっぱい（ボードを覆う）
+  const size = usePanelWidth();
 
   const show = (key: string) => {
     setActiveTab(key);
@@ -185,28 +178,6 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runs, loaded]);
 
-  /** パネルの左端をドラッグして幅を変える（ボードを覆うところまで広げられる） */
-  const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const body = bodyRef.current;
-    if (!body) return;
-    const right = body.getBoundingClientRect().right;
-    const max = body.clientWidth;
-    // 横幅いっぱいのときは、今の幅からドラッグを始める（ドラッグすると横幅いっぱいは解除）
-    let width = maximized ? body.clientWidth : panelWidth;
-    if (maximized) setMaximized(false);
-    setResizing(true);
-    startHorizontalDrag(e, {
-      move: (clientX) => {
-        width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(max, right - clientX)));
-        body.style.setProperty("--panel-w", `${width}px`);
-      },
-      end: () => {
-        setResizing(false);
-        setPanelWidth(width);
-      },
-    });
-  };
-
   // Esc でパネルを閉じる（メニューやダイアログが開いていればそちらを優先）
   useWindowEvent(
     "keydown",
@@ -220,7 +191,7 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     tabs,
     activeTab,
     panelOpen,
-    maximized,
+    maximized: size.maximized,
     runs,
     projects,
     open,
@@ -234,8 +205,8 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     replaceWithChat,
     close,
     toggle: () => (panelOpen ? close() : reopen()),
-    toggleMaximized: () => setMaximized(!maximized),
-    startResize,
+    toggleMaximized: size.toggleMaximized,
+    startResize: size.startResize,
     /** 送る前の新しいチャットのタブ（ボードの列・グループに下書きとして出す） */
     drafts: tabs.flatMap((t) =>
       t.kind === "new" ? [{ key: t.key, text: t.draftText ?? "", target: { projectId: t.projectId, section: t.section, group: t.group } }] : [],
@@ -247,10 +218,9 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     hasTab: (runId: number) => tabs.some((t) => t.key === chatKey(runId)),
     /** ボードとパネルを並べる要素に渡す */
     body: {
-      ref: bodyRef,
-      className: cx("board-body", panelOpen && "with-panel", resizing && "resizing"),
-      // 横幅いっぱいは、CSS 側の上限（ボードの幅）まで広げる
-      style: { "--panel-w": maximized ? "100vw" : `${panelWidth}px` } as CSSProperties,
+      ref: size.bodyRef,
+      className: cx("board-body", panelOpen && "with-panel", size.resizing && "resizing"),
+      style: size.style,
     },
   };
 }
