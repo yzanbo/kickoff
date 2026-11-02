@@ -17,7 +17,7 @@ import { SearchField } from "../SearchField";
 import { CommitTable } from "./CommitTable";
 import { CommitView } from "./CommitView";
 import type { GitLogController } from "./useGitLog";
-import { invalidateWorktrees } from "../../worktree/worktreeBranches";
+import { invalidateWorktrees, setWorktreeList } from "../../worktree/worktreeBranches";
 import { worktreeLabel } from "../../worktree/WorktreePicker";
 
 /** 上のコミットの表の高さ（割合。下はコミットの詳細） */
@@ -93,7 +93,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
     });
     if (!branch) return;
     await worktreeError.guard(async () => {
-      log.setWorktrees(await api.addWorktree(projectId, branch));
+      setWorktreeList(projectId, await api.addWorktree(projectId, branch));
       invalidateWorktrees(projectId);
       log.refresh();
     });
@@ -112,7 +112,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
     )
       return;
     try {
-      log.setWorktrees(await api.removeWorktree(projectId, w.path));
+      setWorktreeList(projectId, await api.removeWorktree(projectId, w.path));
       invalidateWorktrees(projectId);
       worktreeError.setError(undefined);
     } catch (e) {
@@ -125,7 +125,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
       });
       if (force)
         await worktreeError.guard(async () => {
-          log.setWorktrees(await api.removeWorktree(projectId, w.path, true));
+          setWorktreeList(projectId, await api.removeWorktree(projectId, w.path, true));
           invalidateWorktrees(projectId);
         });
     }
