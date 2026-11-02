@@ -1,4 +1,4 @@
-import { Check, Clock, GitBranch, Layers, ListTree, type LucideIcon } from "lucide-react";
+import { Archive, Check, Clock, GitBranch, Layers, ListTree, type LucideIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { IconButton } from "../IconButton";
@@ -17,8 +17,18 @@ const GROUPING_META: Record<ChatGrouping, { label: string; icon: LucideIcon }> =
   phase: { label: "セクションでまとめる", icon: Layers },
 };
 
-/** 並べ方のボタン（いまの並べ方のアイコン）。押すと並べ方を選ぶメニューを出す */
-export function ChatGroupingMenu({ value, onChange }: { value: ChatGrouping; onChange: (value: ChatGrouping) => void }) {
+/** 並べ方のボタン（いまの並べ方のアイコン）。押すと並べ方と、アーカイブ済みを出すかを選ぶメニューを出す */
+export function ChatGroupingMenu({
+  value,
+  onChange,
+  showArchived,
+  onShowArchived,
+}: {
+  value: ChatGrouping;
+  onChange: (value: ChatGrouping) => void;
+  showArchived: boolean;
+  onShowArchived: (show: boolean) => void;
+}) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   return (
     <>
@@ -32,15 +42,31 @@ export function ChatGroupingMenu({ value, onChange }: { value: ChatGrouping; onC
         onClick={(e) => {
           if (at) return setAt(null);
           const r = e.currentTarget.getBoundingClientRect();
-          setAt(clampToViewport(r.left, r.bottom + 4, 260, 170));
+          setAt(clampToViewport(r.left, r.bottom + 4, 260, 220));
         }}
       />
-      {at && <GroupingMenu {...at} value={value} onPick={onChange} onClose={() => setAt(null)} />}
+      {at && <GroupingMenu {...at} value={value} onPick={onChange} showArchived={showArchived} onShowArchived={onShowArchived} onClose={() => setAt(null)} />}
     </>
   );
 }
 
-function GroupingMenu({ x, y, value, onPick, onClose }: { x: number; y: number; value: ChatGrouping; onPick: (value: ChatGrouping) => void; onClose: () => void }) {
+function GroupingMenu({
+  x,
+  y,
+  value,
+  onPick,
+  showArchived,
+  onShowArchived,
+  onClose,
+}: {
+  x: number;
+  y: number;
+  value: ChatGrouping;
+  onPick: (value: ChatGrouping) => void;
+  showArchived: boolean;
+  onShowArchived: (show: boolean) => void;
+  onClose: () => void;
+}) {
   const menuRef = useRef<HTMLDivElement>(null);
   useMenuKeys(menuRef);
   return (
@@ -64,6 +90,12 @@ function GroupingMenu({ x, y, value, onPick, onClose }: { x: number; y: number; 
           </button>
         );
       })}
+      <div className="menu-separator" role="separator" />
+      <button role="menuitemcheckbox" aria-checked={showArchived} onClick={() => (onClose(), onShowArchived(!showArchived))}>
+        <Archive size={14} aria-hidden />
+        <span className="project-switch-item">アーカイブ済みを表示</span>
+        {showArchived && <Check size={14} aria-hidden />}
+      </button>
     </PopupMenu>
   );
 }

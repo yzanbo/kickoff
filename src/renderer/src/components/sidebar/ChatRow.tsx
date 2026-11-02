@@ -1,3 +1,4 @@
+import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import { AGENT_STATE_LABELS, type AgentState, type Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
@@ -6,11 +7,15 @@ import type { RunTitleEditor } from "../../hooks/useRunRename";
 import { href, openRun } from "../../router";
 import { SECTION_META } from "../../sections";
 import { relativeTime } from "../../time";
+import { alertDialog } from "../../dialogs";
+import { errorMessage } from "../../errors";
+import { confirmDeleteRun, toggleArchiveRun } from "../../runActions";
 import { ChatTitleInput } from "../ChatTitleInput";
+import { IconButton } from "../IconButton";
 import { StatusSlot } from "../StatusSlot";
 import { WorktreeChip } from "../WorktreeChip";
 
-/** サイドバーのチャットの行（押すと右のパネルで開く・ドラッグでグループへ移す・右クリックでメニュー） */
+/** サイドバーのチャットの行（押すと右のパネルで開く・ドラッグでグループへ移す・右クリックでメニュー。乗せると右端にアーカイブ・削除） */
 export function ChatRow({
   run,
   state,
@@ -40,8 +45,9 @@ export function ChatRow({
       </li>
     );
   }
+  const act = (fn: () => Promise<unknown>) => void fn().catch((e: unknown) => alertDialog("操作できませんでした", errorMessage(e)));
   return (
-    <li>
+    <li className="chat-row-item">
       <a
         className={cx("chat-row", run.archived_at && "archived", active && "active", (state === "needs_input" || state === "attention") && "is-unread")}
         href={href({ name: "run", projectId: run.project_id, runId: run.id })}
@@ -71,6 +77,16 @@ export function ChatRow({
           </span>
         </span>
       </a>
+      {/* 乗せたときだけ出す（時刻の上に重ねる）。行の中のリンクと分けて置く */}
+      <span className="chat-row-actions">
+        <IconButton
+          icon={run.archived_at ? ArchiveRestore : Archive}
+          size={13}
+          label={run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
+          onClick={() => act(() => toggleArchiveRun(run))}
+        />
+        <IconButton icon={Trash2} size={13} label="削除" title="削除…" className="danger" onClick={() => act(() => confirmDeleteRun(run))} />
+      </span>
     </li>
   );
 }

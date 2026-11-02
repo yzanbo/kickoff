@@ -22,6 +22,7 @@ import { GroupedChatRows } from "./GroupedChatRows";
 import { WorkspaceHead } from "./WorkspaceHead";
 
 const GROUPING_KEY = "kickoff:sidebar-grouping";
+const SHOW_ARCHIVED_KEY = "kickoff:sidebar-show-archived";
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -48,6 +49,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   headDrag?: { onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
 }) {
   const [grouping, setGrouping] = useStoredChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出す）
+  const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_KEY, true);
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
@@ -127,6 +130,8 @@ export const WorkspacePage = memo(function WorkspacePage({
         waitingCount={waitingCount}
         grouping={grouping}
         onGroupingChange={setGrouping}
+        showArchived={showArchived}
+        onShowArchived={setShowArchived}
         onCreateGroup={startCreate}
         headDrag={headDrag}
       />
@@ -236,7 +241,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       ) : (
         <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} />
       )}
-      {!collapsed && archivedMatches.length > 0 && (
+      {!collapsed && showArchived && archivedMatches.length > 0 && (
         <div className="archived-section">
           <div className="custom-group-head ungrouped">
             <GroupToggle open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived} icon={Archive} iconSize={12} />

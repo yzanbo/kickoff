@@ -1,9 +1,8 @@
 import { Archive, ArchiveRestore, Mail, MailOpen, PanelRight, Pencil, Trash2 } from "lucide-react";
 import type { Run } from "../../../core/types";
 import { api } from "../api";
-import { chatTitle } from "../chatTitle";
-import { confirmDialog } from "../dialogs";
 import { errorMessage } from "../errors";
+import { confirmDeleteRun, toggleArchiveRun } from "../runActions";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
 /** チャットの右クリックメニュー（カンバンのカード・グループのボード・サイドバー）: 開く・名前を変更・アーカイブ・削除 */
@@ -54,27 +53,23 @@ export function CardMenu({
           <Mail size={14} /> 未読にする
         </button>
       )}
-      {run.archived_at ? (
-        <button role="menuitem" onClick={() => void act(() => api.archiveRun(run.id, false))}>
-          <ArchiveRestore size={14} /> アーカイブから戻す
-        </button>
-      ) : (
-        <button role="menuitem" onClick={() => void act(() => api.archiveRun(run.id))}>
-          <Archive size={14} /> アーカイブ
-        </button>
-      )}
+      <button role="menuitem" onClick={() => void act(() => toggleArchiveRun(run))}>
+        {run.archived_at ? (
+          <>
+            <ArchiveRestore size={14} /> アーカイブから戻す
+          </>
+        ) : (
+          <>
+            <Archive size={14} /> アーカイブ
+          </>
+        )}
+      </button>
       <button
         role="menuitem"
         className="danger"
-        onClick={async () => {
+        onClick={() => {
           onClose();
-          const ok = await confirmDialog({
-            title: `チャット「${chatTitle(run.title)}」を削除しますか？`,
-            message: "会話の記録も消えます。残しておきたいときはアーカイブを使ってください。",
-            confirmLabel: "削除",
-            danger: true,
-          });
-          if (ok) void act(() => api.deleteRun(run.id));
+          void act(() => confirmDeleteRun(run));
         }}
       >
         <Trash2 size={14} /> 削除…
