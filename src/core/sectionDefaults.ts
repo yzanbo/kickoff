@@ -20,7 +20,7 @@ export const SECTION_DEFAULT_EFFORT: Record<Phase, EffortLevel> = {
 };
 
 /** 実装・テストはファイルの編集を自動承認、それ以外は毎回確認 */
-export const SECTION_DEFAULT_PERMISSION: Record<Phase, Exclude<PermissionChoice, "phase">> = {
+const SECTION_DEFAULT_PERMISSION: Record<Phase, Exclude<PermissionChoice, "phase">> = {
   requirements: "default",
   schedule: "default",
   implementation: "acceptEdits",

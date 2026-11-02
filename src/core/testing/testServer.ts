@@ -19,7 +19,7 @@ export const TOKEN = "t".repeat(32);
 export const AUTH = { authorization: `Bearer ${TOKEN}` };
 
 /** すぐに完了する偽のプロバイダー */
-export class FakeProvider extends FakeProviderBase {
+class FakeProvider extends FakeProviderBase {
   /** 最後に動かした作業フォルダ（チャットの作業場所の確かめに使う） */
   lastCwd = "";
   async run(params: { cwd: string }): Promise<ProviderRunResult> {

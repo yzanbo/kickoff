@@ -22,6 +22,7 @@ npm run daemon     # Electron なしでコア（API サーバー）だけを起�
 npm run dist       # .app / .dmg を作成
 npm run install-app  # ビルドして /Applications/Kickoff.app（本番）を入れ替える（動いていれば終了して開き直す。実行中のチャットがあればやめる）
 npm run icon       # build/icon.svg・icon-dev.svg からアプリのアイコン（本番・開発版の .png / .icns）を作り直す
+npm run knip       # 使っていない export・ファイル・依存を調べる（入口と CLI スクリプトは knip.json の entry）
 node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）の画面の DOM と計算後のスタイルを記録する。diff <前> <後> で比べ、css <名前> で CSS の規則の順を記録する
 ```
 
