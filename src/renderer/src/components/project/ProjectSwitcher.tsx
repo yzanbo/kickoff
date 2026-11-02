@@ -1,11 +1,11 @@
 import { Check, ChevronDown, LayoutGrid } from "lucide-react";
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
-import type { ProjectSummary } from "../../../core/types";
-import { useMenuKeys } from "../hooks/useMenuKeys";
-import { initialOf, projectHue } from "../projectColor";
-import { archivedProjects, sidebarOrder } from "../projectOrder";
-import { navigate, type ProjectTab } from "../router";
-import { clampToViewport, PopupMenu } from "./PopupMenu";
+import type { ProjectSummary } from "../../../../core/types";
+import { useMenuKeys } from "../../hooks/useMenuKeys";
+import { initialOf, projectHue } from "../../projectColor";
+import { archivedProjects, sidebarOrder } from "../../projectOrder";
+import { navigate, type ProjectTab } from "../../router";
+import { clampToViewport, PopupMenu } from "../PopupMenu";
 
 /** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */
 const ALL_PROJECTS = "全プロジェクト";

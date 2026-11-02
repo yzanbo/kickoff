@@ -16,7 +16,7 @@ import type { ProjectSummary } from "../../../../core/types";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "../../projectOrder";
 import { openNewChat } from "../../router";
-import { ProjectEditDialog } from "../ProjectEditDialog";
+import { ProjectEditDialog } from "../project/ProjectEditDialog";
 import type { ProjectSettingsSection } from "../projectSettings/ProjectSettings";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 

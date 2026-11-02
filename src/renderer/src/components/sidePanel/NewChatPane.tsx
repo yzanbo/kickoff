@@ -1,17 +1,17 @@
 import { Folder } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Phase, ProjectSummary, Run } from "../../../core/types";
-import { api, useAsync } from "../api";
-import { choiceDialog } from "../dialogs";
-import { SECTION_META } from "../sections";
-import { Composer, SendCancelled } from "./chat/Composer";
-import { CloseButton } from "./IconButton";
-import { ProjectChip } from "./ProjectChip";
-import { useRunOptions } from "./chat/RunOptionsBar";
-import { BUSY_STATUSES } from "./RunStatus";
-import { SectionPicker } from "./SectionPicker";
-import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "./changes/WorkplacePicker";
-import { invalidateWorktrees } from "../worktreeBranches";
+import type { Phase, ProjectSummary, Run } from "../../../../core/types";
+import { api, useAsync } from "../../api";
+import { choiceDialog } from "../../dialogs";
+import { SECTION_META } from "../../sections";
+import { Composer, SendCancelled } from "../chat/Composer";
+import { CloseButton } from "../IconButton";
+import { ProjectChip } from "../ProjectChip";
+import { useRunOptions } from "../chat/RunOptionsBar";
+import { BUSY_STATUSES } from "../RunStatus";
+import { SectionPicker } from "../SectionPicker";
+import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "../changes/WorkplacePicker";
+import { invalidateWorktrees } from "../../worktreeBranches";
 
 interface Props {
   projectId: number;
