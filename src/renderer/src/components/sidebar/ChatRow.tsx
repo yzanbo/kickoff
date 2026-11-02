@@ -15,18 +15,21 @@ import { IconButton } from "../IconButton";
 import { StatusSlot } from "../StatusSlot";
 import { WorktreeChip } from "../WorktreeChip";
 
-/** サイドバーのチャットの行（押すと右のパネルで開く・ドラッグでグループへ移す・右クリックでメニュー。乗せると右端に固定・アーカイブ・削除） */
+/** サイドバーのチャットの行（押すと右のパネルで開く・ダブルクリックで名前を変える・ドラッグでグループへ移す・右クリックでメニュー。乗せると右端に固定・アーカイブ・削除） */
 export function ChatRow({
   run,
   state,
   active,
   onMenu,
+  onRename,
   rename,
 }: {
   run: Run;
   state: AgentState;
   active: boolean;
   onMenu: (at: { x: number; y: number }) => void;
+  /** ダブルクリックで名前をその場で変え始める */
+  onRename: () => void;
   /** 名前をその場で変えている途中のとき */
   rename?: RunTitleEditor;
 }) {
@@ -54,6 +57,10 @@ export function ChatRow({
         title={`${meta.label}: ${run.title}（${AGENT_STATE_LABELS[state]}）`}
         draggable
         onDragStart={(e) => startRunDrag(e, run.id)}
+        onDoubleClick={(e) => {
+          e.preventDefault();
+          onRename();
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           onMenu({ x: e.clientX, y: e.clientY });
