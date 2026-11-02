@@ -5347,20 +5347,24 @@ button.project-switch.all-projects:hover,
   border-bottom: 1px solid var(--border);
 }
 
-.browser-address {
+/* 共通の入力欄の指定（input[type="text"]）より強くする */
+.browser-toolbar .browser-address {
   flex: 1;
   min-width: 0;
   height: 28px;
   margin: 0 4px;
   padding: 0 12px;
+  /* type のない入力欄は共通の入力欄の見た目が付かず、ブラウザの既定の立体的な枠（inset）になるので、ほかと同じ 1px の枠にする */
+  border: 1px solid var(--border);
   border-radius: 999px;
   font-family: var(--mono);
   font-size: 12px;
+  color: var(--text);
   background: var(--bg-elev);
 }
 
 /* 丸いアドレス欄では、太い枠（ほかの入力欄のフォーカスの印）が角で途切れて見えるので、枠の色を変えるだけにする */
-.browser-address:focus {
+.browser-toolbar .browser-address:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--accent-bright) 60%, var(--border));
 }
