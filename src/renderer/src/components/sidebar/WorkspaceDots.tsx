@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
+import { Fragment, useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
 import { BOARD_COLUMN_LABELS, type ProjectSummary } from "../../../../core/types";
 import { cx } from "../../cx";
 import type { useReorder } from "../../groups";
@@ -60,9 +60,12 @@ export function WorkspaceDots({
           .filter((c) => counts[c] > 0)
           .map((c) => `${BOARD_COLUMN_LABELS[c]} ${counts[c]}`)
           .join("・");
+        // 固定したプロジェクトの丸と、残りの丸の間に区切りを入れる
+        const divider = i > 0 && projects[i - 1].pinned > 0 && !p.pinned;
         return (
+          <Fragment key={p.id}>
+          {divider && <span className="workspace-dots-divider" role="separator" aria-hidden />}
           <button
-            key={p.id}
             role="tab"
             aria-selected={i === index}
             className={cx("workspace-dot", i === index && "active", p.pinned > 0 && "pinned", isArchived(p.id) && "archived", draggable && reorder.classFor(p.id))}
@@ -80,6 +83,7 @@ export function WorkspaceDots({
               <span className={cx("workspace-dot-badge", counts.needs_input === 0 && "review")} aria-label={summary} />
             )}
           </button>
+          </Fragment>
         );
       })}
       <button className="workspace-dot add" title="新しいプロジェクト" aria-label="新しいプロジェクト" onClick={onNewProject}>
