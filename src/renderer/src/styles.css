@@ -2316,6 +2316,7 @@ button.project-switch.all-projects:hover,
   gap: 6px;
   padding: 5px 12px 6px;
   border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   margin-bottom: -1px;
   white-space: nowrap;
   color: var(--muted);
@@ -2323,12 +2324,19 @@ button.project-switch.all-projects:hover,
 
 .tab:hover {
   color: var(--text);
+  background: var(--bg-elev);
 }
 
+/* 開いているタブ: 地の色と、明るい色の下線でひと目でわかるようにする */
 .tab.active {
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--accent-bright);
   color: var(--text);
   font-weight: 600;
+  background: var(--bg-hover);
+}
+
+:root[data-theme="light"] .tab.active {
+  border-bottom-color: var(--accent);
 }
 
 .tab-count {
@@ -4984,6 +4992,8 @@ button.project-switch.all-projects:hover,
   grid-template-columns: minmax(0, 1fr) 0px;
   gap: 0;
   min-height: 0;
+  /* 閉じたパネル（右へずらして隠す）が、画面の横にはみ出してスクロールさせないように */
+  overflow-x: clip;
   transition:
     grid-template-columns 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
     gap 0.28s;

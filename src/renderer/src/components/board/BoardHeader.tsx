@@ -16,6 +16,8 @@ interface Props {
   onQuery: (query: string) => void;
   /** 探す・絞り込むのまとまりで、検索欄の後ろに置くもの（プロジェクト・セクション・アーカイブの表示） */
   filters?: ReactNode;
+  /** 整えるのまとまり（表示と検索の間）。ボードの形を変えるもの（グループを作成） */
+  organize?: ReactNode;
   /** 作る・開くのまとまりで、「ブラウザ」の前に置くもの（新規・グループを作成） */
   actions?: ReactNode;
   view: BoardView;
@@ -25,10 +27,10 @@ interface Props {
 
 /**
  * ボード（全プロジェクトのカンバン・プロジェクトのカンバン・グループ）の見出し。道具を概念ごとにまとめて並べる:
- * 左（名前の右）に 表示（ボード・リスト） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
+ * 左（名前の右）に 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に 作る・開く（新規・ブラウザ。右のパネルに新しいタブを開く） / パネルの開閉
  */
-export function BoardHeader({ icon, title, count, query, onQuery, filters, actions, view, onView, panel }: Props) {
+export function BoardHeader({ icon, title, count, query, onQuery, filters, organize, actions, view, onView, panel }: Props) {
   return (
     <div className="board-header">
       {icon}
@@ -48,6 +50,11 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, actio
             ]}
           />
         </div>
+        {organize && (
+          <div className="board-tool-group" role="group" aria-label="整える">
+            {organize}
+          </div>
+        )}
         <div className="board-tool-group" role="group" aria-label="探す・絞り込む">
           <BoardSearch query={query} onChange={onQuery} />
           {filters}
