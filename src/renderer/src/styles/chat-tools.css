@@ -1,0 +1,157 @@
+/* ==== チャットのツールの実行（まとめて 1 行・開くと個別に・実行中の光・出力と差分の色） ==== */
+
+/* ツールの実行（まとめて 1 行、開くと個別に） */
+
+.tool-group summary,
+.tool-call summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.tool-group summary::-webkit-details-marker,
+.tool-call summary::-webkit-details-marker {
+  display: none;
+}
+
+.tool-group {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tool-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 3px 10px 3px 4px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.tool-group > summary:hover,
+.tool-group[open] > summary {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+/* 実行中のツールは、文字の上を光が流れる */
+.tool-group.active .tool-summary,
+.tool-group.active .tool-current {
+  color: transparent;
+  background: linear-gradient(90deg, var(--muted) 0%, var(--text) 50%, var(--muted) 100%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 1.6s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.tool-chevron {
+  flex: none;
+  transition: transform 0.15s;
+}
+
+.tool-group[open] > summary .tool-chevron {
+  transform: rotate(90deg);
+}
+
+.tool-summary {
+  flex: none;
+}
+
+.tool-current {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tool-failed {
+  color: var(--ng);
+}
+
+.tool-calls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 4px;
+  margin: 4px 0 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+}
+
+.tool-call {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.tool-call.error {
+  border-color: color-mix(in srgb, var(--ng) 50%, var(--border));
+}
+
+.tool-call > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.tool-name {
+  flex: none;
+  font-weight: 600;
+}
+
+.tool-arg {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted);
+}
+
+.tool-output,
+.diff,
+.approval-command {
+  max-height: 320px;
+  margin: 0;
+  padding: 8px 12px;
+  overflow: auto;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tool-output.error {
+  color: var(--ng);
+}
+
+.diff-add {
+  display: block;
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+
+.diff-del {
+  display: block;
+  color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 10%, transparent);
+}

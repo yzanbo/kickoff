@@ -1,0 +1,74 @@
+/* ==== 新しいチャット（作成先のグループ・ピルの中の選択欄・プロジェクトの選び直し・中央の案内） ==== */
+
+/* 新しいチャット */
+
+/* 新しいチャットの作成先のグループ（プロジェクト名の横） */
+.new-chat .run-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.new-chat-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 4px 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--muted);
+}
+
+.new-chat-group.has-group {
+  border-color: color-mix(in srgb, var(--accent-bright) 50%, transparent);
+  color: var(--accent-bright);
+}
+
+.new-chat-group .pill-select {
+  font-size: 12px;
+}
+
+/* ピルの中に置く選択欄（枠と背景はピルに任せる） */
+.pill-select {
+  width: auto;
+  /* 選んだ名前の長さに合わせる（いちばん長い選択肢の幅に広がらないように） */
+  field-sizing: content;
+  padding: 0 2px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pill-select:focus {
+  outline: none;
+}
+
+/* バッジのまま、どのプロジェクトで始めるかを選び直す（全プロジェクトのボードの新しいチャット） */
+.project-chip-select {
+  max-width: none;
+  padding-right: 2px;
+}
+
+.new-chat-hero {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18vh 24px 24px;
+  text-align: center;
+}
+
+.new-chat-hero p {
+  margin: 0;
+}
+
+.new-chat-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  color: var(--sec);
+  background: color-mix(in srgb, var(--sec) 15%, transparent);
+}
+
