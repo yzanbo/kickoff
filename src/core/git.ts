@@ -119,6 +119,11 @@ export async function gitDiff(repo: string, file: string, staged: boolean, oldPa
     const untracked = await gitOutput(repo, ["ls-files", "--others", "--exclude-standard", "--", file]);
     if (untracked.trim()) diff = await gitOutput(repo, ["diff", "--no-color", "--no-ext-diff", "--no-index", "--", "/dev/null", file], [1]);
   }
+  return toGitDiff(diff);
+}
+
+/** git diff の出力を画面に返す形にする（バイナリの印と、大きすぎれば途中で切る） */
+export function toGitDiff(diff: string): GitDiff {
   const binary = /^Binary files .* differ$/m.test(diff) || diff.includes("GIT binary patch");
   const truncated = diff.length > MAX_DIFF_CHARS;
   return { diff: truncated ? diff.slice(0, MAX_DIFF_CHARS) : diff, binary, truncated };
@@ -286,7 +291,8 @@ export async function pushBranch(repo: string): Promise<void> {
 const LOG_FORMAT = "%H%x00%P%x00%an%x00%ae%x00%aI%x00%D%x00%s%x1e";
 const HASH_RE = /^[0-9a-f]{4,64}$/i;
 
-function parseCommit(record: string): GitCommit {
+/** git log の 1 件（LOG_FORMAT の並び）を読む */
+export function parseCommit(record: string): GitCommit {
   const [hash, parents, author, email, date, refs, subject] = record.replace(/^\n/, "").split("\0");
   return {
     hash,
@@ -313,7 +319,7 @@ export async function gitLog(repo: string, skip = 0, limit = 200): Promise<GitLo
 }
 
 /** 名前の変わったファイルなども含めた、変わったファイルの一覧（git diff --name-status -z の出力を読む） */
-function parseNameStatus(out: string): GitFileChange[] {
+export function parseNameStatus(out: string): GitFileChange[] {
   const parts = out.split("\0").filter(Boolean);
   const files: GitFileChange[] = [];
   for (let i = 0; i < parts.length; i++) {
@@ -354,9 +360,7 @@ export async function gitCommitDiff(repo: string, hash: string, file: string, ol
   const diff = parent
     ? await gitOutput(repo, ["diff", "--no-color", "--no-ext-diff", "-M", parent, hash, ...paths])
     : await gitOutput(repo, ["show", "--no-color", "--no-ext-diff", "--format=", hash, ...paths]);
-  const binary = /^Binary files .* differ$/m.test(diff) || diff.includes("GIT binary patch");
-  const truncated = diff.length > MAX_DIFF_CHARS;
-  return { diff: truncated ? diff.slice(0, MAX_DIFF_CHARS) : diff, binary, truncated };
+  return toGitDiff(diff);
 }
 
 /** ブランチ・リモート・タグ・stash（履歴の左の一覧） */
