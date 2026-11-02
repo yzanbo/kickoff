@@ -24,6 +24,11 @@
 @import "./scrollbar.css";
 @import "./focus.css";
 @import "./editor.css";
+@import "./editor-explorer.css";
+@import "./editor-changes.css";
+@import "./editor-history.css";
+@import "./editor-history-sidebar.css";
+@import "./editor-chips.css";
 @import "./terminal.css";
 @import "./bottom-panel.css";
 @import "./project-chat.css";

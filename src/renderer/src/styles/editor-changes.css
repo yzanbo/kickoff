@@ -1,0 +1,97 @@
+/* ==== ファイルの編集（Monaco）・変更の一覧の行と操作・コミットの欄 ==== */
+
+/* ファイルの編集（Monaco）。差分・中身の表示と同じ枠いっぱいに広げる */
+.diff-body.editing {
+  overflow: hidden;
+}
+
+.code-editor {
+  width: 100%;
+  height: 100%;
+}
+
+.diff-state.error {
+  color: var(--ng);
+}
+
+/* 編集している間に、ほかでファイルが変わったときの知らせ */
+.file-changed-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+
+/* 「ステージされている変更」「変更」の見出しの行（開閉・操作のボタン・数） */
+.change-group-row {
+  display: flex;
+  align-items: center;
+  padding-right: 10px;
+}
+
+.change-group-row .change-group-head {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+/* 一覧・木の 1 行（行のボタンと、右の操作のボタン） */
+.change-item {
+  display: flex;
+  align-items: center;
+}
+
+.change-item .change-file {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.tree-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tree-item > .file-tree {
+  grid-column: 1 / -1;
+}
+
+/* 行の右の操作のボタン（ステージ・元に戻す・Finder で開くなど）。いつも薄い色で出し、乗せたボタンだけ濃くする */
+.row-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-right: 4px;
+}
+
+.row-actions .icon-button {
+  width: 22px;
+  height: 22px;
+}
+
+.row-actions .icon-button:not(:hover) {
+  color: var(--extra-muted);
+}
+
+/* 「変更」の上のコミットの欄（VS Code と同じく、メッセージ・コミット・プッシュを縦に並べる） */
+.commit-box {
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 6px;
+}
+
+.commit-box .commit-message {
+  min-height: 52px;
+  padding: 6px 8px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.commit-button {
+  justify-content: center;
+  width: 100%;
+}
