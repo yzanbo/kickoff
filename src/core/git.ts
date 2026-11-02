@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { FileContent, GitChangeKind, GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitStatus, GitWorktree, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "./types.js";
+import { prepareWorktree } from "./worktreeSetup.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -442,7 +443,7 @@ export async function worktreePathFor(repo: string, branch: string): Promise<str
 
 /**
  * ワークツリーを作る。ブランチがなければいまのコミットから作り、あればそのブランチを取り出す。
- * 置き場所は worktreePathFor で決める（すでにあれば失敗する）
+ * 置き場所は worktreePathFor で決める（すでにあれば失敗する）。作ったら、本体の node_modules などを写してすぐ作業できるようにする（prepareWorktree）
  */
 export async function addWorktree(repo: string, branch: string): Promise<GitWorktree[]> {
   await gitOutput(repo, ["check-ref-format", "--branch", branch]).catch(() => {
@@ -455,6 +456,7 @@ export async function addWorktree(repo: string, branch: string): Promise<GitWork
     () => false,
   );
   await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target]);
+  await prepareWorktree(await fs.realpath(repo), target);
   return listWorktrees(repo);
 }
 

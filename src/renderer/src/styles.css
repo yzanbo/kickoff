@@ -2384,6 +2384,11 @@ select:focus {
   animation: dialog-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* 選択肢のダイアログ（choiceDialog）は、ボタンが 3 つ以上並ぶので広げる */
+.dialog.app-dialog.app-dialog-choice {
+  width: min(520px, calc(100vw - 32px));
+}
+
 @keyframes dialog-in {
   from {
     opacity: 0;
@@ -2413,6 +2418,8 @@ select:focus {
 
 .app-dialog-actions {
   display: flex;
+  /* 入りきらないときは、はみ出さずに折り返す */
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;

@@ -39,6 +39,9 @@ interface PendingFile {
 }
 
 /** チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付） */
+/** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
+export class SendCancelled extends Error {}
+
 export function Composer({ options, placeholder, autoFocus, busy, leading, trailing, onSend, onStop, onTextChange, suggestTarget }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）
   const [text, setText] = useState("");
@@ -100,7 +103,7 @@ export function Composer({ options, placeholder, autoFocus, busy, leading, trail
       files.forEach((f) => f.previewUrl && URL.revokeObjectURL(f.previewUrl));
       setFiles([]);
     } catch (e) {
-      setError(errorMessage(e));
+      if (!(e instanceof SendCancelled)) setError(errorMessage(e));
     } finally {
       setSending(false);
     }
