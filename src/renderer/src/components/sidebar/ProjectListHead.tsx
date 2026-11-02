@@ -26,7 +26,7 @@ interface Props {
  * プロジェクト一覧の上の見出し。何に効くかで 2 行に分け、どちらも設定の種類（ジャンル）ごとのボタンを並べる（1 つのボタンには 1 種類だけ。
  * 2 択のものは押すたびに切り替え（HeadToggle）、3 つ以上あるもの（まとめ方）はメニューから選ぶ（HeadMenu））:
  * プロジェクト = 並べ方（縦 / 横スライド）・並び順（手動 / 最近動いた順）・アーカイブ（出すか）と、右端に縦並びのときの「すべて閉じる / 開く」/
- * チャット = まとめ方・アーカイブ（出すか）・表示（1 行 / 2 行）。チャットの設定はすべてのプロジェクトに効く
+ * チャット = まとめ方・表示（1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。チャットの設定はすべてのプロジェクトに効く
  */
 export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
   const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
@@ -95,7 +95,6 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
             },
           ]}
         />
-        {archiveToggle("archive-chats", "チャット", showArchivedChats, setShowArchivedChats)}
         <HeadToggle
           id="rows"
           icon={compact ? Rows4 : Rows2}
@@ -105,6 +104,8 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           title="チャットの行（1 行 = 名前と時刻 / 2 行 = セクション・ブランチも）"
           onToggle={() => setCompact(!compact)}
         />
+        {/* アーカイブはプロジェクトの行と同じく右端 */}
+        {archiveToggle("archive-chats", "チャット", showArchivedChats, setShowArchivedChats)}
       </div>
     </div>
   );
