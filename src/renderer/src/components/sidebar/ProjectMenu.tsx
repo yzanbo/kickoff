@@ -121,7 +121,7 @@ function ProjectMenu({
           extras.collapse.collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる",
           extras.collapse.toggle,
         )}
-      {item("archive", archived ? <ArchiveRestore size={14} /> : <Archive size={14} />, archived ? "アーカイブから戻す" : "アーカイブ（しまう）", () =>
+      {item("archive", archived ? <ArchiveRestore size={14} /> : <Archive size={14} />, archived ? "アーカイブから戻す" : "アーカイブ", () =>
         // アーカイブするときは確かめる（戻すときはそのまま）
         archived ? changeProject(project.id, { archived: false }) : void confirmArchiveProject(project),
       )}
