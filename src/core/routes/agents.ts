@@ -3,6 +3,7 @@ import { z } from "zod";
 import { githubStatus } from "../github.js";
 import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ApprovalDecision, type ModelOption, type ProviderId, type SlashCommandOption } from "../types.js";
+import { ttlCache } from "../ttlCache.js";
 import { HttpError, requireProject, requireWorkdir } from "./http.js";
 import { optionalId, queryOf } from "./schemas.js";
 
@@ -37,27 +38,27 @@ export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, 
   );
   app.get("/api/github", async (c) => c.json(await githubStatus()));
 
-  // チャット欄のモデル一覧（取得に 1 秒ほどかかるのでキャッシュする）
-  const modelCache = new Map<ProviderId, { at: number; models: ModelOption[] }>();
+  // チャット欄のモデル一覧（取得に 1 秒ほどかかるので 1 時間はとっておく。空の結果は覚えない）
+  const modelCache = ttlCache<ProviderId, ModelOption[]>(60 * 60_000);
   app.get("/api/providers/:id/models", async (c) => {
     const id = z.enum(PROVIDER_IDS).parse(c.req.param("id"));
     const cached = modelCache.get(id);
-    if (cached && Date.now() - cached.at < 60 * 60_000) return c.json(cached.models);
+    if (cached) return c.json(cached);
     const models = (await providers[id].models?.()) ?? [];
-    if (models.length > 0) modelCache.set(id, { at: Date.now(), models });
+    if (models.length > 0) modelCache.set(id, models);
     return c.json(models);
   });
 
   // チャット欄の / で出すコマンド（作業場所ごと。プロジェクトのコマンド・スキルも含むので、作業場所のフォルダで調べる。数分はとっておく）
-  const commandCache = new Map<string, { at: number; commands: SlashCommandOption[] }>();
+  const commandCache = ttlCache<string, SlashCommandOption[]>(5 * 60_000);
   app.get("/api/projects/:id/commands", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const cwd = await requireWorkdir(project.repo_path, c.req.query("worktree"));
+    const cwd = await requireWorkdir(c, project);
     const key = `${project.provider}:${cwd}`;
     const cached = commandCache.get(key);
-    if (cached && Date.now() - cached.at < 5 * 60_000) return c.json(cached.commands);
+    if (cached) return c.json(cached);
     const commands = (await providers[project.provider].commands?.(cwd)) ?? [];
-    if (commands.length > 0) commandCache.set(key, { at: Date.now(), commands });
+    if (commands.length > 0) commandCache.set(key, commands);
     return c.json(commands);
   });
 
