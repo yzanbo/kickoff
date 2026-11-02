@@ -1,12 +1,12 @@
 import type { WebviewTag } from "electron";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Globe, RotateCw, Wrench, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ExternalLink, Globe, RotateCw, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cx } from "../../cx";
 import { normalizeUrl } from "../../url";
 import { IconButton } from "../IconButton";
-import { MenuItem, PopupMenu } from "../PopupMenu";
 import { useAnchoredMenu } from "../menus/useAnchoredMenu";
-import { DEVTOOLS_DOCK_LABELS, DEVTOOLS_DOCKS, useDevtools, type DevtoolsDock } from "./useDevtools";
+import { DockMenu } from "./DockMenu";
+import { DEVTOOLS_DOCK_LABELS, useDevtools } from "./useDevtools";
 
 interface Props {
   url: string;
@@ -178,20 +178,5 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
         )}
       </div>
     </div>
-  );
-}
-
-/** 開発者ツールを出す場所のメニュー（右・下・別のウィンドウ）。選ぶと、その場所で開く */
-function DockMenu({ x, y, value, onPick, onClose }: { x: number; y: number; value: DevtoolsDock; onPick: (dock: DevtoolsDock) => void; onClose: () => void }) {
-  return (
-    <PopupMenu x={x} y={y} label="開発者ツールの場所" ignore=".browser-devtools-dock" onClose={onClose}>
-      <div className="menu-label">開発者ツールの場所</div>
-      {DEVTOOLS_DOCKS.map((dock) => (
-        <MenuItem key={dock} role="menuitemradio" checked={dock === value} onSelect={() => onPick(dock)}>
-          <span className="project-switch-item">{DEVTOOLS_DOCK_LABELS[dock]}</span>
-          {dock === value && <Check size={14} aria-hidden />}
-        </MenuItem>
-      ))}
-    </PopupMenu>
   );
 }
