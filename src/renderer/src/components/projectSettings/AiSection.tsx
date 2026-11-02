@@ -1,7 +1,8 @@
 import { Check, Sparkles, SquareTerminal } from "lucide-react";
 import { type ReactNode } from "react";
 import { PROVIDER_IDS, type AppSettings, type Project, type ProviderId, type ProviderStatus } from "../../../../core/types";
-import { api, useAsync } from "../../api";
+import { api } from "../../api";
+import { useAsync } from "../../hooks/useAsync";
 import { useActionError } from "../../hooks/useActionError";
 import { accountLine } from "../../usage";
 import { ClaudeMark } from "../ClaudeMark";

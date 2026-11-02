@@ -1,7 +1,8 @@
 import { Folder } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Phase, ProjectSummary, Run } from "../../../../core/types";
-import { api, useAsync } from "../../api";
+import { api } from "../../api";
+import { useAsync } from "../../hooks/useAsync";
 import { choiceDialog } from "../../dialogs";
 import { SECTION_META } from "../../sections";
 import { Composer, SendCancelled } from "../chat/Composer";

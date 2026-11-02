@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AppSettings } from "../../../../core/types";
-import { api, useAsync } from "../../api";
+import { api } from "../../api";
+import { useAsync } from "../../hooks/useAsync";
 import { useSave } from "../../hooks/useSave";
 
 /** アプリの設定を読み込んで下書きにし、項目ごとに保存する（設定のダイアログのタブごとに使う） */

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Approval, BusEvent, ProjectSummary } from "../../core/types";
-import { api, useServerEvents } from "./api";
+import { api } from "./api";
+import { useServerEvents } from "./hooks/useServerEvents";
 import { publishServerEvent } from "./events";
 
 /**

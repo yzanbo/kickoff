@@ -1,6 +1,7 @@
 import { FolderGit2, Plus } from "lucide-react";
 import type { Approval, ProjectSummary } from "../../../core/types";
-import { api, useAsync } from "../api";
+import { api } from "../api";
+import { useAsync } from "../hooks/useAsync";
 import { ProjectSwitcher } from "../components/project/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { KanbanBoard } from "../components/board/KanbanBoard";

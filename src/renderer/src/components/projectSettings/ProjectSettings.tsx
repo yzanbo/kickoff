@@ -1,6 +1,7 @@
 import { Bot, FileText, FolderLock, Library, MessageSquarePlus, Trash2 } from "lucide-react";
 import type { Project } from "../../../../core/types";
-import { api, useAsync } from "../../api";
+import { api } from "../../api";
+import { useAsync } from "../../hooks/useAsync";
 import type { DialogSection } from "../TabbedDialog";
 import { AiSection } from "./AiSection";
 import { BasicInfo } from "./BasicInfo";

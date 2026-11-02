@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice, type Project, type ProjectDefaults } from "../../../../core/types";
-import { api, useAsync } from "../../api";
+import { api } from "../../api";
+import { useAsync } from "../../hooks/useAsync";
 import { useSave } from "../../hooks/useSave";
 import { modelDisplayName } from "../../models";
 import { EffortOptions, ModelOptions, PermissionOptions } from "../AiOptions";
