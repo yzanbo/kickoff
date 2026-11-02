@@ -18,8 +18,8 @@ interface Props {
   filters?: ReactNode;
   /** 整えるのまとまり（表示と検索の間）。ボードの形を変えるもの（グループを作成） */
   organize?: ReactNode;
-  /** 作る・開くのまとまりで、「ブラウザ」の前に置くもの（新規・グループを作成） */
-  actions?: ReactNode;
+  /** いちばん左に置く主な操作（新規）。見出しがあれば、その後ろ */
+  primary?: ReactNode;
   view: BoardView;
   onView: (view: BoardView) => void;
   panel: SidePanelController;
@@ -29,10 +29,10 @@ interface Props {
 
 /**
  * ボード（全プロジェクトのカンバン・プロジェクトのカンバン・グループ）の見出し。道具を概念ごとにまとめて並べる:
- * 左（名前の右）に 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
- * 右に 作る・開く（新規・ブラウザ・ターミナル。右のパネルに新しいタブを開く） / パネルの開閉
+ * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
+ * 右に 開く（ブラウザ・ターミナル。右のパネルに新しいタブを開く） / パネルの開閉
  */
-export function BoardHeader({ heading, query, onQuery, filters, organize, actions, view, onView, panel, terminals }: Props) {
+export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, panel, terminals }: Props) {
   const [terminalMenu, setTerminalMenu] = useState<{ x: number; y: number } | null>(null);
   const canTerminal = Boolean(window.kickoff?.terminal) && terminals.length > 0;
   return (
@@ -46,6 +46,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, action
       )}
       {/* 道具のまとまり（狭いときは、まとまりごと次の行へ） */}
       <div className="board-tools">
+        {primary && <div className="board-tool-group">{primary}</div>}
         <div className="board-tool-group" role="group" aria-label="表示">
           <Segmented
             className="view-toggle"
@@ -70,7 +71,6 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, action
       </div>
       <div className="board-tools board-tools-end">
         <div className="board-tool-group" role="group" aria-label="作る・開く">
-          {actions}
           <button className="btn btn-sm" onClick={() => panel.openBrowser()} title="開発中のアプリやドキュメントを右側で開く">
             <Globe size={13} /> <span className="btn-label">ブラウザ</span>
           </button>

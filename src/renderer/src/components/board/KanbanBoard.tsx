@@ -1,5 +1,5 @@
 import { Plus, SquareKanban } from "lucide-react";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { agentStateOf, boardColumnOf } from "../../../../core/board";
 import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type AgentState, type Approval, type BoardColumn, type Phase, type ProjectSummary, type Run } from "../../../../core/types";
 import { useChatSearch } from "../../chatSearch";
@@ -11,6 +11,7 @@ import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
 import { CardMenu } from "../CardMenu";
 import { ErrorText } from "../ErrorText";
+import { IconButton } from "../IconButton";
 import { useProjectChatContext } from "../projectChat/useProjectChat";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
@@ -124,11 +125,12 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const cardClass = (run: Run) =>
     cx(run.archived_at && "archived", allProjects && "with-project", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
   /** 列・リストのまとまりの見出し（列の名前・件数） */
-  const head = (label: string, tone: string, count: number) => (
+  const head = (label: string, tone: string, count: number, action?: ReactNode) => (
     <header className="column-head">
       <span className="dot" style={{ background: tone }} />
       <span className="column-title">{label}</span>
       <span className="column-count">{count}</span>
+      {action}
     </header>
   );
   const columnHead = (column: BoardColumn, count: number) => head(BOARD_COLUMN_LABELS[column], COLUMN_TONE[column], count);
@@ -136,7 +138,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const chat = useProjectChatContext();
   const sideDrafts = chat && projectId !== undefined && chat.projectId === projectId ? chat.panel : null;
   const draftCount = panel.drafts.length + (sideDrafts?.drafts.length ?? 0);
-  const draftHead = head("下書き", DRAFT_TONE, draftCount);
+  // 新しいチャットは下書きから始まるので、下書きの列の見出しにも＋を置く
+  const draftHead = head("下書き", DRAFT_TONE, draftCount, <IconButton icon={Plus} label="新しいチャット" onClick={() => newChat()} />);
   const draftCards = (
     <>
       <DraftCards panel={panel} />
@@ -162,7 +165,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             onWorktree={setWorktreeFilter}
           />
         }
-        actions={
+        primary={
           <button className="btn btn-sm" onClick={() => newChat()} disabled={allProjects && projects.length === 0}>
             <Plus size={13} /> <span className="btn-label">新規</span>
           </button>

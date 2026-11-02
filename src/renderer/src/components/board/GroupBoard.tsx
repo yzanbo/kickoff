@@ -200,7 +200,7 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
             <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>
           </button>
         }
-        actions={
+        primary={
           <button className="btn btn-sm" onClick={() => panel.openNew({ projectId })} title="右側で新しいチャットを始める">
             <Plus size={13} /> <span className="btn-label">新規</span>
           </button>
