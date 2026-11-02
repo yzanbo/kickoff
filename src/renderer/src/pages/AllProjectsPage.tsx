@@ -4,6 +4,8 @@ import { api, useAsync } from "../api";
 import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
+import { PanelLayout } from "../components/sidePanel/SidePanel";
+import { terminalTargets, useSidePanel } from "../components/sidePanel/useSidePanel";
 
 interface Props {
   projects: ProjectSummary[];
@@ -17,6 +19,8 @@ export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
   const notReady = (!providers.loading && !claude?.loggedIn) || (!github.loading && !github.data?.loggedIn);
+  // 右のパネル（全プロジェクトの画面だけのもの。新しいチャットはプロジェクトを選んで始める）
+  const panel = useSidePanel({ memoryKey: "kanban:all", projects });
   // 回答待ち・作業中の数（プロジェクトの画面と同じ数え方で、全プロジェクトの分）
   const waiting = new Set(approvals.map((a) => a.run_id)).size;
   const working = projects.reduce((n, p) => n + p.active_runs, 0) - waiting;
@@ -51,7 +55,9 @@ export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
           </button>
         </div>
       ) : (
-        <KanbanBoard projects={projects} approvals={approvals} title="カンバン" />
+        <PanelLayout panel={panel} onNewChat={() => projects[0] && panel.openNew({ projectId: projects[0].id })} terminals={terminalTargets(projects)}>
+          <KanbanBoard projects={projects} approvals={approvals} title="カンバン" panel={panel} />
+        </PanelLayout>
       )}
     </div>
   );
