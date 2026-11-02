@@ -23,8 +23,6 @@ interface Props {
   view: BoardView;
   onView: (view: BoardView) => void;
   panel: SidePanelController;
-  /** 右のパネルの開閉ボタンを出すか（プロジェクトの画面では、タブの列の右に出すので出さない） */
-  panelToggle?: boolean;
 }
 
 /**
@@ -32,7 +30,7 @@ interface Props {
  * 左（名前の右）に 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に 作る・開く（新規・ブラウザ。右のパネルに新しいタブを開く） / パネルの開閉
  */
-export function BoardHeader({ icon, title, count, query, onQuery, filters, organize, actions, view, onView, panel, panelToggle = true }: Props) {
+export function BoardHeader({ icon, title, count, query, onQuery, filters, organize, actions, view, onView, panel }: Props) {
   return (
     <div className="board-header">
       {icon}
@@ -69,11 +67,9 @@ export function BoardHeader({ icon, title, count, query, onQuery, filters, organ
             <Globe size={13} /> <span className="btn-label">ブラウザ</span>
           </button>
         </div>
-        {panelToggle && (
-          <div className="board-tool-group">
-            <PanelToggle panel={panel} />
-          </div>
-        )}
+        <div className="board-tool-group">
+          <PanelToggle panel={panel} />
+        </div>
       </div>
     </div>
   );

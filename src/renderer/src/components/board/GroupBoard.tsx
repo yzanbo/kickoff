@@ -1,7 +1,7 @@
 import { Folder, FolderPlus, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { agentStateOf } from "../../../../core/board";
-import type { Approval, Run, RunGroup } from "../../../../core/types";
+import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
@@ -16,7 +16,8 @@ import { useGroupMenu } from "../GroupMenu";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { DraftCards } from "../sidePanel/DraftCards";
-import type { SidePanelController } from "../sidePanel/useSidePanel";
+import { SidePanel } from "../sidePanel/SidePanel";
+import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
 import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
@@ -26,8 +27,8 @@ const VIEW_KEY = "kickoff:group-view";
 
 interface Props {
   projectId: number;
-  /** 右のパネル（プロジェクトの画面のもの。開閉ボタンはタブの列の右にある） */
-  panel: SidePanelController;
+  /** すべてのプロジェクト（タブの列の＋のターミナルの開く場所に使う） */
+  projects: ProjectSummary[];
   runs: Run[];
   groups: RunGroup[];
   approvals: Approval[];
@@ -41,7 +42,7 @@ interface Props {
  * 自分で作ったグループを管理するボード。列 = グループ、カード = チャット。
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
-export function GroupBoard({ projectId, panel, runs, groups, approvals, focus, highlight }: Props) {
+export function GroupBoard({ projectId, projects, runs, groups, approvals, focus, highlight }: Props) {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const [dragRun, setDragRun] = useState<number>();
@@ -54,6 +55,7 @@ export function GroupBoard({ projectId, panel, runs, groups, approvals, focus, h
   // ボード（列）/ リスト（縦に並べる）の切り替え。カンバンとは別に覚える
   const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list"], "board");
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
+  const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs, loaded: true, holdEsc: menu !== null });
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {
@@ -209,11 +211,11 @@ export function GroupBoard({ projectId, panel, runs, groups, approvals, focus, h
         view={view}
         onView={setView}
         panel={panel}
-        panelToggle={false}
       />
       <ErrorText message={error} className="board-error" />
 
-      <div className="board-main">
+      <div {...panel.body}>
+        <div className="board-main">
           {view === "board" ? (
             <div className="board-columns">
               {sections.map((g) => {
@@ -257,6 +259,8 @@ export function GroupBoard({ projectId, panel, runs, groups, approvals, focus, h
               <section className="list-group group-add-row">{createForm}</section>
             </div>
           )}
+        </div>
+        <SidePanel panel={panel} onNewChat={() => panel.openNew({ projectId })} terminals={terminalTargets(projects, projectId)} />
       </div>
 
       {groupMenu.menu}
