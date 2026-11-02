@@ -2,6 +2,7 @@ import type { HookCallbackMatcher, HookEvent, PermissionMode } from "@anthropic-
 import { KICKOFF_SERVER_NAME, type KickoffTool } from "../kickoffTools.js";
 import type { PhasePolicy } from "../phases.js";
 import { evaluateReferenceWrite, evaluateScopedToolUse } from "../scope.js";
+import { evaluateSelfProtection, type SelfInfo } from "../selfProtection.js";
 import type { ProviderRunParams } from "./types.js";
 
 /**
@@ -35,6 +36,30 @@ export function scopeHooks(params: ProviderRunParams): Partial<Record<HookEvent,
       },
     ],
   };
+}
+
+/**
+ * エージェントを動かしている Kickoff 自身（プロセス・アプリ本体・保存先・API）を壊すツールの呼び出しを、どのチャットでも断る（selfProtection.ts）。
+ * 書き込み範囲の制限と同じく PreToolUse のフックなので、権限モードや許可ルールに関係なく効く
+ */
+export function selfProtectionHook(self: SelfInfo): HookCallbackMatcher {
+  return {
+    hooks: [
+      async (input) => {
+        if (input.hook_event_name !== "PreToolUse") return {};
+        const result = evaluateSelfProtection(self, input.tool_name, (input.tool_input ?? {}) as Record<string, unknown>);
+        if (result.decision === "pass") return {};
+        return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: result.reason } };
+      },
+    ],
+  };
+}
+
+/** チャットの実行に付けるフック（自分を守る見張りはいつも、書き込み範囲の制限はあるときだけ） */
+export function runHooks(params: ProviderRunParams, self: SelfInfo | undefined): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
+  const scoped = scopeHooks(params)?.PreToolUse ?? [];
+  const matchers = [...(self ? [selfProtectionHook(self)] : []), ...scoped];
+  return matchers.length > 0 ? { PreToolUse: matchers } : undefined;
 }
 
 /** チャット欄で選んだ権限モード。"phase" ならフェーズのポリシーから決める */

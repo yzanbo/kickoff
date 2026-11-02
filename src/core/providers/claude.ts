@@ -15,7 +15,8 @@ import { KICKOFF_SERVER_NAME } from "../kickoffTools.js";
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
 import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
 import { emitSdkMessage } from "./claudeMessages.js";
-import { resolvePermissionMode, scopeHooks, toAllowedTools } from "./claudePolicy.js";
+import { resolvePermissionMode, runHooks, toAllowedTools } from "./claudePolicy.js";
+import type { SelfInfo } from "../selfProtection.js";
 import { normalizeUsage } from "./claudeUsage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
 
@@ -65,6 +66,9 @@ export class ClaudeProvider implements AgentProvider {
   readonly label = "Claude Code";
   readonly implemented = true;
   private readonly executable = resolveClaudeExecutable();
+
+  /** self: エージェントを動かしている Kickoff 自身（自分を壊すツールの呼び出しを断るのに使う） */
+  constructor(private readonly self?: SelfInfo) {}
 
   async status(): Promise<ProviderStatus> {
     const base = { id: this.id, label: this.label, implemented: true };
@@ -244,7 +248,7 @@ export class ClaudeProvider implements AgentProvider {
           abortController,
           env: agentEnv(),
           pathToClaudeCodeExecutable: this.executable,
-          hooks: scopeHooks(params),
+          hooks: runHooks(params, this.self),
           includePartialMessages: true,
           ...(params.fastMode ? { settings: { fastMode: true } } : {}),
         },
