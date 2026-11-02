@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { Phase, ProjectSummary, Run } from "../../../../core/types";
 import { api } from "../../api";
 import { useAsync } from "../../hooks/useAsync";
+import { useProjects } from "../../projectsContext";
 import { choiceDialog } from "../../dialogs";
 import { SECTION_META } from "../../sections";
 import { Composer, SendCancelled } from "../chat/Composer";
@@ -44,6 +45,7 @@ export function NewChatPane({
   onDraftChange,
 }: Props) {
   const [section, setSection] = useState<Phase>(initialSection ?? "requirements");
+  const { projectName } = useProjects();
   const options = useRunOptions(undefined, section, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
   const runs = useAsync(() => api.runs(projectId), [projectId]);
@@ -81,7 +83,7 @@ export function NewChatPane({
           {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
           {projects && projects.length > 1 && onProjectChange ? (
             // 全プロジェクトのボードでは、バッジのまま選び直せる
-            <ProjectChip id={projectId} name={projects.find((p) => p.id === projectId)?.name ?? ""} className="project-chip-select">
+            <ProjectChip id={projectId} name={projectName(projectId)} className="project-chip-select">
               <select className="pill-select" aria-label="プロジェクト" value={projectId} onChange={(e) => onProjectChange(Number(e.target.value))}>
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>

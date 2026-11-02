@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppData } from "./appData";
 import { OPEN_CONTENT_SEARCH_EVENT } from "./chatSearch";
 import { AppFooter } from "./components/footer/AppFooter";
@@ -28,6 +28,7 @@ import { useAppShortcuts } from "./shortcuts";
 import { applyTheme, loadTheme } from "./theme";
 import { PlanUsageContext, usePlanUsage } from "./usage";
 import { setProjectHues } from "./projectColor";
+import { indexProjects, ProjectsContext } from "./projectsContext";
 
 applyTheme(loadTheme());
 
@@ -39,8 +40,10 @@ export function App() {
   const { projects, approvals, projectsDir, notifyEnabled, loadProjects, connection } = useAppData(planUsage.onEvent);
   // プロジェクトの色（DB に覚えた色）を、色を使う部品が読めるようにする（描く前に入れる）
   setProjectHues(projects);
+  // プロジェクトの一覧と名前の引き当て（props で中継せず、要る部品が useProjects で読む）
+  const projectsIndex = useMemo(() => indexProjects(projects), [projects]);
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）
-  useRunNotifications({ enabled: notifyEnabled, projects, route });
+  useRunNotifications({ enabled: notifyEnabled, projectName: projectsIndex.projectName, route });
   const sidebar = useSidebar();
   const [creating, setCreating] = useState(false);
   const [palette, setPalette] = useState(false);
@@ -74,12 +77,12 @@ export function App() {
 
   return (
     <PlanUsageContext.Provider value={planUsage}>
+      <ProjectsContext.Provider value={projectsIndex}>
       <ProjectChatContext.Provider value={chat}>
       <div {...sidebar.layout}>
         <Sidebar
           sidebar={sidebar}
           route={route}
-          projects={projects}
           approvals={approvals}
           onNewChat={startNewChat}
           onSearch={() => setPalette(true)}
@@ -94,17 +97,16 @@ export function App() {
               id={route.name === "project" ? route.id : route.projectId}
               // サイドバーのグループの＋から来たときは、グループのタブで始める
               tab={route.name === "project" ? route.tab : route.name === "newChat" && route.group ? "groups" : "board"}
-              projects={projects}
               focus={route.name === "project" ? undefined : route}
               highlightGroup={route.name === "project" ? route.group : undefined}
             />
           ) : (
-            <AllProjectsPage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
+            <AllProjectsPage approvals={approvals} onNewProject={() => setCreating(true)} />
           )}
         </main>
         <BottomPanel panel={bottomPanel} />
         </div>
-        <ProjectChat chat={chat} projects={projects} />
+        <ProjectChat chat={chat} />
         <AppFooter
           onOpenSettings={() => setSettings("usage")}
           connection={connection.state}
@@ -140,7 +142,7 @@ export function App() {
           <ConnectionPopover state={connection.state} since={connection.since} onClose={() => setConnOpen(false)} onOpenSettings={() => setSettings("connection")} />
         )}
         {usageOpen && <UsagePopover planUsage={planUsage} onClose={() => setUsageOpen(false)} />}
-        {palette && <CommandPalette projects={projects} onClose={() => setPalette(false)} />}
+        {palette && <CommandPalette onClose={() => setPalette(false)} />}
         {searching && (
           <SearchPanel
             runId={route.name === "run" ? route.runId : undefined}
@@ -150,6 +152,7 @@ export function App() {
         )}
       </div>
       </ProjectChatContext.Provider>
+      </ProjectsContext.Provider>
     </PlanUsageContext.Provider>
   );
 }

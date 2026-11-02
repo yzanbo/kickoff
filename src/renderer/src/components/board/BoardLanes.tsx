@@ -4,6 +4,7 @@ import { PHASES, type AgentState, type GitWorktree, type ProjectSummary, type Ru
 import { cx } from "../../cx";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { initialOf, projectHue } from "../../projectColor";
+import { useProjects } from "../../projectsContext";
 import { SECTION_META } from "../../sections";
 import { BOARD_LANE_CLOSED_PREFIX } from "../../storageKeys";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
@@ -43,6 +44,7 @@ function lanesOf(
   groups: RunGroup[],
   showEmpty: boolean,
   worktreesOf: (projectId: number) => GitWorktree[] | undefined,
+  projectName: (projectId: number) => string,
 ): Lane[] {
   if (kind === "group") {
     // 自分で作ったグループを並び順のまま先に、グループなし（まだ整理していないもの）を最後に。サイドバーと同じ並び
@@ -89,7 +91,8 @@ function lanesOf(
   return [...byPlace.entries()]
     .sort(([, a], [, b]) => a.projectId - b.projectId || compareWorkplaces(a.place, b.place))
     .map(([key, { projectId, place, entries: list }]) => {
-      const projectName = projects.length > 1 ? projects.find((p) => p.id === projectId)?.name : undefined;
+      // 複数のプロジェクトが並ぶボードでは、どのプロジェクトの作業場所かを添える
+      const name = projects.length > 1 ? projectName(projectId) : undefined;
       const kindLabel = WORKPLACE_KIND_LABELS[place.kind];
       return {
         key,
@@ -97,7 +100,7 @@ function lanesOf(
           <LaneTitle
             mark={<GitBranch size={14} className={cx(place.kind === "worktree" && "board-lane-worktree", (place.kind === "missing" || place.kind === "past") && "board-lane-gone")} />}
             label={place.name || "本体"}
-            extra={projectName ? `${projectName} ・ ${kindLabel}` : kindLabel}
+            extra={name ? `${name} ・ ${kindLabel}` : kindLabel}
             title={place.title}
           />
         ),
@@ -152,7 +155,8 @@ export function BoardLanes({
   const closed = useStoredFlagMap(BOARD_LANE_CLOSED_PREFIX);
   // 作業場所で分けるときは、プロジェクトごとのワークツリーの一覧からブランチ名を引く
   const worktreesOf = useWorktreeLists(kind === "worktree" ? entries.map((e) => e.run.project_id) : []);
-  const lanes = lanesOf(kind, entries, projects, groups, showEmpty, worktreesOf);
+  const { projectName } = useProjects();
+  const lanes = lanesOf(kind, entries, projects, groups, showEmpty, worktreesOf, projectName);
   return (
     <div className="board-lanes">
       {before}

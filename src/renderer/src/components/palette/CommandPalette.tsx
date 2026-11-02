@@ -1,10 +1,11 @@
 import { FolderGit2, MessageSquare, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { ProjectSummary, Run } from "../../../../core/types";
+import type { Run } from "../../../../core/types";
 import { api } from "../../api";
 import { chatTitle } from "../../chatTitle";
 import { useListNavigation } from "../../hooks/useListNavigation";
 import { useModalDialog } from "../../hooks/useModalDialog";
+import { useProjects } from "../../projectsContext";
 import { navigate, type Route } from "../../router";
 import { SECTION_META } from "../../sections";
 
@@ -17,7 +18,8 @@ interface Item {
 }
 
 /** ⌘K: プロジェクトとチャットを名前で探して移動する */
-export function CommandPalette({ projects, onClose }: { projects: ProjectSummary[]; onClose: () => void }) {
+export function CommandPalette({ onClose }: { onClose: () => void }) {
+  const { projects } = useProjects();
   const [query, setQuery] = useState("");
   const [runs, setRuns] = useState<Run[]>([]);
   const dialog = useModalDialog();
