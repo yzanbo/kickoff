@@ -3,7 +3,7 @@ import { useState, type DragEvent } from "react";
 import type { ProjectSummary, RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { initialOf } from "../../projectColor";
-import { changeProject } from "../../projectOrder";
+import { changeProject, confirmRestoreProject } from "../../projectOrder";
 import { href, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
@@ -77,7 +77,7 @@ export function WorkspaceHead({
           </span>
         </a>
         {project.archived_at ? (
-          <IconButton icon={ArchiveRestore} label={`${project.name} をアーカイブから戻す`} title="アーカイブから戻す" onClick={() => changeProject(project.id, { archived: false })} />
+          <IconButton icon={ArchiveRestore} label={`${project.name} をアーカイブから戻す`} title="アーカイブから戻す" onClick={() => void confirmRestoreProject(project)} />
         ) : (
           // いつも出し、固定しているか見た目で分かるようにする（固定: プロジェクトの色で塗る / していない: 薄い灰の線）
           <IconButton
