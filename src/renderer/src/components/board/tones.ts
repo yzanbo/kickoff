@@ -1,11 +1,11 @@
-import type { AgentState, BoardStage } from "../../../../core/types";
+import type { AgentState, BoardColumn } from "../../../../core/types";
 
-/** カンバンの列の色（状態の点の色を流用。完了は控えめ） */
-export const STAGE_TONE: Record<BoardStage, string> = {
-  todo: "var(--extra-muted)",
-  doing: "var(--dot-running)",
-  review: "var(--dot-needs-input)",
-  done: "var(--dot-attention)",
+/** カンバンの列の色（状態の点の色と同じ。完了は控えめ） */
+export const COLUMN_TONE: Record<BoardColumn, string> = {
+  running: "var(--dot-running)",
+  needs_input: "var(--dot-needs-input)",
+  review: "var(--dot-attention)",
+  done: "var(--extra-muted)",
 };
 
 /** カードの点の色（エージェントの状態） */

@@ -1,5 +1,5 @@
 // カンバンとステータス表示の決め方（コア・画面の両方で使う。Node 依存を持ち込まないこと）
-import type { AgentState, BoardStage, Run } from "./types.js";
+import type { AgentState, BoardColumn, Run } from "./types.js";
 
 /**
  * チャットのエージェントの状態優先順位:
@@ -13,8 +13,10 @@ export function agentStateOf(run: Run, hasPendingApproval: boolean): AgentState 
   return "done";
 }
 
-/** カンバンの列。動かしていないチャットは、確認待ちならレビュー、それ以外は対応中に置く */
-export function stageOf(run: Run, state: AgentState): BoardStage {
-  if (run.stage) return run.stage;
-  return state === "attention" ? "review" : "doing";
+/** カンバンの列（AI の状態だけで決まる。失敗したものも、見て確かめるまでは確認待ち） */
+export function boardColumnOf(state: AgentState): BoardColumn {
+  if (state === "running") return "running";
+  if (state === "needs_input") return "needs_input";
+  if (state === "attention" || state === "failed") return "review";
+  return "done";
 }

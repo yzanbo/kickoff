@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import type { BoardStage, Phase, ProjectSummary, Run } from "../../../../core/types";
+import type { Phase, ProjectSummary, Run } from "../../../../core/types";
 import { cx } from "../../cx";
 import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { sidebarOrder } from "../../projectOrder";
 
-/** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・列・グループで始めるか） */
+/** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・グループで始めるか） */
 export interface NewChatTarget {
   projectId: number;
   section?: Phase;
-  stage?: BoardStage;
   group?: number;
 }
 
@@ -125,7 +124,7 @@ export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, project
    */
   const openNew = (target: NewChatTarget) => {
     // 指定ごとに決まったキーにして、続けて呼ばれても（開発時の二重実行でも）1 つにまとめる
-    const key = `new:${target.projectId}:${target.section ?? ""}:${target.stage ?? ""}:${target.group ?? ""}`;
+    const key = `new:${target.projectId}:${target.section ?? ""}:${target.group ?? ""}`;
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "new", ...target }]));
     show(key);
   };
@@ -229,7 +228,7 @@ export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, project
     toggleMaximized: () => setMaximized(!maximized),
     startResize,
     /** 送る前の新しいチャットのタブ（ボードの列・グループに下書きとして出す） */
-    drafts: tabs.flatMap((t) => (t.kind === "new" ? [{ key: t.key, target: { projectId: t.projectId, section: t.section, stage: t.stage, group: t.group } }] : [])),
+    drafts: tabs.flatMap((t) => (t.kind === "new" ? [{ key: t.key, target: { projectId: t.projectId, section: t.section, group: t.group } }] : [])),
     isShowingTab: (key: string) => panelOpen && activeTab === key,
     /** パネルの表示中のタブがこのチャットか（カードを選択中として見せる） */
     isShowing: (runId: number) => panelOpen && activeTab === chatKey(runId),

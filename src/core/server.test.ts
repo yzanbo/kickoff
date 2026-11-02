@@ -206,9 +206,10 @@ test("チャット・グループの API", async () => {
   assert.deepEqual(await call("GET", "/api/runs/999"), { status: 404, body: { error: "実行が見つかりません" } });
   assert.ok(Array.isArray((await call("GET", `/api/search?q=${encodeURIComponent("こんにちは")}&project_id=${project.id}`)).body));
 
+  // カンバンの列（stage）は AI の状態で決まるので、送っても変わらない
   const renamed = await call("PATCH", `/api/runs/${runId}`, { title: "名前", stage: "todo", group_id: null });
   assert.equal(renamed.body.title, "名前");
-  assert.equal(renamed.body.stage, "todo");
+  assert.equal(renamed.body.stage, null);
   assert.equal(renamed.body.group_id, null);
   assert.equal((await call("PATCH", `/api/runs/${runId}`, { group_id: otherGroup.id })).status, 400);
   assert.equal((await call("PATCH", `/api/runs/${runId}`, { group_id: group.body.id })).body.group_id, group.body.id);

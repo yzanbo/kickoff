@@ -132,8 +132,7 @@ test("作業が終わると確認待ちになり、続けて送ると消える�
     if (calls === 3) await new Promise<void>((r) => signal.addEventListener("abort", () => r()));
     return { status: signal.aborted ? "cancelled" : "completed", sessionId: "s" };
   });
-  const run = await runner.start({ projectId: project.id, phase: "implementation", prompt: "x", stage: "todo" });
-  assert.equal(store.getRun(run.id)?.stage, "todo");
+  const run = await runner.start({ projectId: project.id, phase: "implementation", prompt: "x" });
   await until(() => store.getRun(run.id)?.status === "completed");
   assert.equal(store.getRun(run.id)?.attention, 1);
 

@@ -5022,28 +5022,6 @@ button.project-switch.all-projects:hover,
   color: var(--muted);
 }
 
-.arrow-button {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: 4px;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.arrow-button:hover {
-  color: var(--text);
-  background: var(--bg-active);
-}
-
-.arrow-spacer {
-  width: 18px;
-}
-
 /* カンバンの右側に出すチャットのパネル（開くとカンバンが狭くなる） */
 
 .board-body {

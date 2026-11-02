@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BOARD_STAGES, PHASES, type BoardStage, type Phase } from "../../core/types";
+import { PHASES, type Phase } from "../../core/types";
 
 // プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く
 export const PROJECT_TABS = ["board", "groups", "requirements", "schedule", "tasks", "reports", "changes"] as const;
@@ -10,7 +10,7 @@ export type Route =
   | { name: "allProjects" }
   /** group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき） */
   | { name: "project"; id: number; tab: ProjectTab; group?: number }
-  | { name: "newChat"; projectId: number; section?: Phase; stage?: BoardStage; group?: number }
+  | { name: "newChat"; projectId: number; section?: Phase; group?: number }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "run"; projectId: number; runId: number; focus?: number };
 
@@ -27,13 +27,11 @@ function parse(hash: string): Route {
   const newChat = path.match(/^\/projects\/(\d+)\/new$/);
   if (newChat) {
     const section = params.get("section");
-    const stage = params.get("stage");
     const group = Number(params.get("group"));
     return {
       name: "newChat",
       projectId: Number(newChat[1]),
       section: section && (PHASES as readonly string[]).includes(section) ? (section as Phase) : undefined,
-      stage: stage && (BOARD_STAGES as readonly string[]).includes(stage) ? (stage as BoardStage) : undefined,
       ...(Number.isInteger(group) && group > 0 ? { group } : {}),
     };
   }
@@ -67,7 +65,6 @@ export function href(route: Route): string {
     case "newChat": {
       const q = new URLSearchParams();
       if (route.section) q.set("section", route.section);
-      if (route.stage) q.set("stage", route.stage);
       if (route.group) q.set("group", String(route.group));
       return `#/projects/${route.projectId}/new${q.size ? `?${q}` : ""}`;
     }
@@ -105,7 +102,7 @@ export function openRun(projectId: number, runId: number, focus?: number, option
 }
 
 /** 新しいチャットを始める（プロジェクトのカンバンへ移り、右側のパネルで始める） */
-export function openNewChat(projectId: number, target: { section?: Phase; stage?: BoardStage; group?: number } = {}) {
+export function openNewChat(projectId: number, target: { section?: Phase; group?: number } = {}) {
   navigate({ name: "newChat", projectId, ...target });
 }
 

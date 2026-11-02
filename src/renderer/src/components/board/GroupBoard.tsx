@@ -59,7 +59,7 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {
-    if (target.name === "newChat") panel.openNew({ projectId, section: target.section, stage: target.stage, group: target.group });
+    if (target.name === "newChat") panel.openNew({ projectId, section: target.section, group: target.group });
   });
 
   // 目立たせるグループが見えるところまでスクロールする

@@ -1,11 +1,9 @@
-import { ChevronLeft, ChevronRight, Plus, SquareKanban } from "lucide-react";
+import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
-import { agentStateOf, stageOf } from "../../../../core/board";
-import { BOARD_STAGE_LABELS, BOARD_STAGES, type AgentState, type Approval, type BoardStage, type Phase, type ProjectSummary, type Run } from "../../../../core/types";
-import { api } from "../../api";
+import { agentStateOf, boardColumnOf } from "../../../../core/board";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type AgentState, type Approval, type BoardColumn, type Phase, type ProjectSummary, type Run } from "../../../../core/types";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
-import { errorMessage } from "../../errors";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice, useStoredState } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
@@ -13,7 +11,6 @@ import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
 import { CardMenu } from "../CardMenu";
 import { ErrorText } from "../ErrorText";
-import { IconButton } from "../IconButton";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
@@ -21,10 +18,9 @@ import { BoardHeader, type BoardView } from "./BoardHeader";
 import { decodeArchiveFilter, encodeArchiveFilter, KanbanFilters, type ArchiveFilter } from "./KanbanFilters";
 import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
-import { STAGE_TONE } from "./tones";
+import { COLUMN_TONE } from "./tones";
 import { useBoardFocus } from "./useBoardFocus";
 import { useBoardRuns } from "./useBoardRuns";
-import { useStageDrag } from "./useStageDrag";
 
 const VIEW_KEY = "kickoff:board-view";
 const SHOW_ARCHIVED_KEY = "kickoff:show-archived";
@@ -40,8 +36,8 @@ interface Props {
 }
 
 /**
- * チャットのカンバン。列（未着手・対応中・レビュー・完了）はあなたが動かす進み具合で、
- * カードの点はエージェント自身の状態（回答待ち・作業中・確認待ちなど）。
+ * チャットのカンバン。列（作業中・回答待ち・確認待ち・完了）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
+ * カードの点はより細かい状態（順番待ち・エラーなど）。
  */
 export function KanbanBoard({ projectId, projects, approvals, title, focus }: Props) {
   const allProjects = projectId === undefined;
@@ -52,7 +48,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const [archive, setArchive] = useStoredState<ArchiveFilter>(SHOW_ARCHIVED_KEY, decodeArchiveFilter, encodeArchiveFilter);
   const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list"], "board");
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
-  const { runs, loaded, setRuns } = useBoardRuns(projectId, archive !== "active", setError);
+  const { runs, loaded } = useBoardRuns(projectId, archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
   const [section, setSection] = useState<Phase | "all">("all");
   // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
@@ -83,7 +79,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
     focus,
     (target) => {
       if (target.name === "run") panel.open({ id: target.runId, project_id: target.projectId }, target.focus);
-      else panel.openNew({ projectId: target.projectId, section: target.section, stage: target.stage, group: target.group });
+      else panel.openNew({ projectId: target.projectId, section: target.section, group: target.group });
     },
     !allProjects,
   );
@@ -92,77 +88,49 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const pendingFor = (run: Run) => approvals.filter((a) => a.run_id === run.id).length;
 
   const grouped = useMemo(() => {
-    const map = new Map<BoardStage, { run: Run; state: AgentState }[]>(BOARD_STAGES.map((s) => [s, []]));
+    const map = new Map<BoardColumn, { run: Run; state: AgentState }[]>(BOARD_COLUMNS.map((s) => [s, []]));
     for (const run of runs) {
       if (archive === "archived" && !run.archived_at) continue;
       if (worktreeFilter !== "all" && run.worktree_path !== worktreeFilter) continue;
       if (section !== "all" && run.phase !== section) continue;
       if (!search.matches(run)) continue;
       const state = agentStateOf(run, approvals.some((a) => a.run_id === run.id));
-      map.get(stageOf(run, state))?.push({ run, state });
+      map.get(boardColumnOf(state))?.push({ run, state });
     }
     for (const list of map.values()) list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
     return map;
   }, [runs, approvals, section, search, archive, worktreeFilter]);
   const total = [...grouped.values()].reduce((n, l) => n + l.length, 0);
 
-  async function move(run: Run, stage: BoardStage) {
-    // 先に画面へ反映し、失敗したら戻す
-    setRuns((prev) => prev.map((r) => (r.id === run.id ? { ...r, stage } : r)));
-    try {
-      await api.moveRun(run.id, stage);
-    } catch (e) {
-      setRuns((prev) => prev.map((r) => (r.id === run.id ? run : r)));
-      setError(errorMessage(e));
-    }
-  }
-
-  const neighbour = (stage: BoardStage, step: -1 | 1): BoardStage | null => BOARD_STAGES[BOARD_STAGES.indexOf(stage) + step] ?? null;
-
-  /** 列の＋: その列に置く新しいチャット。見出しの「新規」は列を決めない（プロジェクトの既定に従う） */
-  function newChat(stage?: BoardStage) {
+  /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
+  function newChat() {
     // 全プロジェクトのボードでは、最近のプロジェクトで始める（パネルでバッジから選び直せる）
     const target = projectId ?? projects[0]?.id;
     if (target === undefined) return;
     // 画面は移らず、右側のパネルで始める
-    panel.openNew({ projectId: target, stage, section: section === "all" ? undefined : section });
+    panel.openNew({ projectId: target, section: section === "all" ? undefined : section });
   }
-
-  // カードを別の列へドラッグして移す
-  const drag = useStageDrag(runs, (run, stage) => {
-    if (stageOf(run, agentStateOf(run, pendingFor(run) > 0)) !== stage) void move(run, stage);
-  });
 
   const cardProps = (run: Run) => ({
     ...runCardProps(run, {
-      dragHint: "ドラッグで列を移動",
       onOpen: () => open(run),
       onMenu: (at) => setMenu({ ...at, run }),
-      onDragStart: (e) => drag.start(e, run),
-      onDragEnd: drag.end,
       editing: Boolean(rename.editorFor(run)),
     }),
     style: allProjects ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as CSSProperties) : undefined,
   });
   const cardClass = (run: Run) =>
-    cx(run.archived_at && "archived", allProjects && "with-project", drag.dragId === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
-  const arrows = (run: Run, stage: BoardStage) => (
-    <>
-      <ArrowButton to={neighbour(stage, -1)} dir="prev" onMove={(to) => void move(run, to)} />
-      <ArrowButton to={neighbour(stage, 1)} dir="next" onMove={(to) => void move(run, to)} />
-    </>
-  );
-  /** 列・リストのまとまりの見出し（列の名前・件数・その列に新しいチャット） */
-  const stageHead = (stage: BoardStage, count: number, plusTitle?: string) => (
+    cx(run.archived_at && "archived", allProjects && "with-project", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
+  /** 列・リストのまとまりの見出し（列の名前・件数） */
+  const columnHead = (column: BoardColumn, count: number) => (
     <header className="column-head">
-      <span className="dot" style={{ background: STAGE_TONE[stage] }} />
-      <span className="column-title">{BOARD_STAGE_LABELS[stage]}</span>
+      <span className="dot" style={{ background: COLUMN_TONE[column] }} />
+      <span className="column-title">{BOARD_COLUMN_LABELS[column]}</span>
       <span className="column-count">{count}</span>
-      <IconButton icon={Plus} label={`${BOARD_STAGE_LABELS[stage]}に新しいチャット`} title={plusTitle} onClick={() => newChat(stage)} />
     </header>
   );
-  // 列の＋から始めて、まだ送っていない新しいチャット（その列に下書きとして出す）
-  const drafts = (stage: BoardStage) => <DraftCards panel={panel} filter={(t) => t.stage === stage} />;
+  // まだ送っていない新しいチャット（送ると作業中になるので、作業中の列に下書きとして出す）
+  const drafts = (column: BoardColumn) => column === "running" && <DraftCards panel={panel} />;
 
   return (
     <div className="board">
@@ -201,13 +169,13 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             <p className="muted small board-loading">読み込み中…</p>
           ) : view === "board" ? (
             <div className="board-columns">
-              {BOARD_STAGES.map((stage) => {
-                const list = grouped.get(stage) ?? [];
+              {BOARD_COLUMNS.map((column) => {
+                const list = grouped.get(column) ?? [];
                 return (
-                  <section key={stage} className={cx("board-column", drag.over === stage && "drop-target")} {...drag.dropProps(stage)}>
-                    {stageHead(stage, list.length, `${BOARD_STAGE_LABELS[stage]}に新しいチャット`)}
+                  <section key={column} className="board-column">
+                    {columnHead(column, list.length)}
                     <div className="column-cards">
-                      {drafts(stage)}
+                      {drafts(column)}
                       {list.length === 0 && <p className="column-empty">なし</p>}
                       {list.map(({ run, state }) => (
                         <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
@@ -216,7 +184,6 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                             state={state}
                             projectName={allProjects ? projectName(run.project_id) : undefined}
                             pending={pendingFor(run)}
-                            trailing={arrows(run, stage)}
                             rename={rename.editorFor(run)}
                           />
                         </article>
@@ -228,12 +195,12 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
             </div>
           ) : (
             <div className="board-list">
-              {BOARD_STAGES.map((stage) => {
-                const list = grouped.get(stage) ?? [];
+              {BOARD_COLUMNS.map((column) => {
+                const list = grouped.get(column) ?? [];
                 return (
-                  <section key={stage} className={cx("list-group", drag.over === stage && "drop-target")} {...drag.dropProps(stage)}>
-                    {stageHead(stage, list.length)}
-                    {drafts(stage)}
+                  <section key={column} className="list-group">
+                    {columnHead(column, list.length)}
+                    {drafts(column)}
                     {list.length === 0 && <p className="column-empty">なし</p>}
                     {list.map(({ run, state }) => (
                       <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
@@ -241,8 +208,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                           run={run}
                           state={state}
                           projectName={allProjects ? projectName(run.project_id) : undefined}
-                          trailing={arrows(run, stage)}
-                            rename={rename.editorFor(run)}
+                          rename={rename.editorFor(run)}
                         />
                       </div>
                     ))}
@@ -257,16 +223,5 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
 
       {menu && <CardMenu {...menu} onOpenPanel={open} onRename={rename.start} onClose={() => setMenu(null)} onError={setError} />}
     </div>
-  );
-}
-
-/** カードの矢印（前後の列へ移す）。端の列では同じ幅の空きを置いて、時刻の位置をそろえる */
-function ArrowButton({ to, dir, onMove }: { to: BoardStage | null; dir: "prev" | "next"; onMove: (to: BoardStage) => void }) {
-  if (!to) return <span className="arrow-spacer" />;
-  const label = dir === "prev" ? "前の列へ" : "次の列へ";
-  return (
-    <button className="arrow-button" title={`${label}（${BOARD_STAGE_LABELS[to]}）`} aria-label={label} onClick={() => onMove(to)}>
-      {dir === "prev" ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-    </button>
   );
 }

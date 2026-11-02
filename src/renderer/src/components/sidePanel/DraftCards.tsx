@@ -4,8 +4,8 @@ import { cx } from "../../cx";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 import type { NewChatTarget, SidePanelController } from "./useSidePanel";
 
-/** 列・グループに出す、送る前の新しいチャット（パネルで入力中）の下書き */
-export function DraftCards({ panel, filter }: { panel: SidePanelController; filter: (target: NewChatTarget) => boolean }) {
+/** 列・グループに出す、送る前の新しいチャット（パネルで入力中）の下書き（filter がなければすべて） */
+export function DraftCards({ panel, filter = () => true }: { panel: SidePanelController; filter?: (target: NewChatTarget) => boolean }) {
   return panel.drafts
     .filter((d) => filter(d.target))
     .map((d) => <DraftCard key={d.key} active={panel.isShowingTab(d.key)} onOpen={() => panel.showTab(d.key)} onDelete={() => panel.closeTab(d.key)} />);

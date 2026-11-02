@@ -148,8 +148,11 @@ test("グループ: 作成順に並び、並べ替え・削除するとチャッ
 test("プロジェクトの既定は JSON で保存され、壊れていなければそのまま読める", () => {
   const { store, project } = setup();
   assert.deepEqual(project.defaults, {});
-  const updated = store.updateProject(project.id, { defaults: { model: "haiku", effort: null, stage: "todo" } });
-  assert.deepEqual(updated.defaults, { model: "haiku", effort: null, stage: "todo" });
+  const updated = store.updateProject(project.id, { defaults: { model: "haiku", effort: null, section: "implementation" } });
+  assert.deepEqual(updated.defaults, { model: "haiku", effort: null, section: "implementation" });
+  // 以前保存した「新しいチャットを置くカンバンの列」（stage）は読まない（列は AI の状態で決まる）
+  const legacy = store.updateProject(project.id, { defaults: { model: "haiku", stage: "todo" } as never });
+  assert.deepEqual(legacy.defaults, { model: "haiku" });
 });
 
 test("プロジェクトの並び順: 作った順に付き、並べ替えられる", () => {

@@ -1,6 +1,6 @@
 import { Folder } from "lucide-react";
 import { useEffect, useState } from "react";
-import { BOARD_STAGE_LABELS, type BoardStage, type Phase, type ProjectSummary, type Run } from "../../../core/types";
+import type { Phase, ProjectSummary, Run } from "../../../core/types";
 import { api, useAsync } from "../api";
 import { SECTION_META } from "../sections";
 import { Composer } from "./Composer";
@@ -14,8 +14,6 @@ import { WorkplacePicker, type Workplace } from "./changes/WorkplacePicker";
 interface Props {
   projectId: number;
   section?: Phase;
-  /** カンバンの列の＋から始めたときの列 */
-  stage?: BoardStage;
   /** グループの＋から始めたときのグループ */
   group?: number;
   /** 全プロジェクトのボードでは、どのプロジェクトで始めるかを選べるようにする */
@@ -32,7 +30,6 @@ interface Props {
 export function NewChatPane({
   projectId,
   section: initialSection,
-  stage,
   group,
   projects,
   onProjectChange,
@@ -69,7 +66,6 @@ export function NewChatPane({
   const isFirst = runs.data && runs.data.length === 0;
   const ready = !project.loading && !runs.loading;
   const Icon = SECTION_META[section].icon;
-  const stageShown = stage ?? project.data?.defaults.stage;
 
   return (
     <div className="run-page run-panel new-chat">
@@ -128,7 +124,6 @@ export function NewChatPane({
           <p className="muted">
             {SECTION_META[section].label} — {SECTION_META[section].description}
           </p>
-          {stageShown && <p className="muted small">カンバンの「{BOARD_STAGE_LABELS[stageShown]}」に追加されます</p>}
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
           {place.kind === "new" && <p className="muted small">新しいワークツリー「{place.branch}」を作り、その中で作業します</p>}
           {busyHere && <p className="small warn-text">この作業場所では、ほかのチャットが作業中です。同じファイルを触ると作業がぶつかることがあります。</p>}
@@ -149,7 +144,6 @@ export function NewChatPane({
                 prompt,
                 options: options.options,
                 attachments,
-                stage,
                 group_id: group,
                 ...(place.kind === "existing" ? { worktree_path: place.path } : place.kind === "new" ? { new_worktree_branch: place.branch } : {}),
               });
