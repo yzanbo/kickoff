@@ -1,7 +1,7 @@
 import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
-import { agentStateOf, boardColumnOf } from "../../../../core/board";
-import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type AgentState, type Approval, type BoardColumn, type Phase, type ProjectSummary, type Run } from "../../../../core/types";
+import { agentStateOf } from "../../../../core/board";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type Approval, type BoardColumn, type Phase, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { useChatSearch } from "../../chatSearch";
 import { cx } from "../../cx";
 import { useRunRename } from "../../hooks/useRunRename";
@@ -21,20 +21,19 @@ import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
 import { COLUMN_TONE, DRAFT_TONE } from "./tones";
 import { useBoardFocus } from "./useBoardFocus";
+import { ArchiveAllButton } from "./ArchiveAllButton";
 import { BOARD_LANE_LABELS, BOARD_LANES, BoardLanes, type BoardLane } from "./BoardLanes";
+import { byColumn, type BoardEntry } from "./boardColumns";
+import { ColumnHead } from "./ColumnHead";
 import { useBoardRuns } from "./useBoardRuns";
 
 const VIEW_KEY = "kickoff:board-view";
 const LANES_KEY = "kickoff:board-lanes";
+/** カンバン（列 = 状態）で選べる段の分け方 */
+const KANBAN_LANES: BoardLane[] = ["worktree", "phase", "group", "project"];
 
-type Entry = { run: Run; state: AgentState };
-
-/** チャットを状態の列に分ける（並びはそのまま） */
-function byColumn(entries: Entry[]) {
-  const map = new Map<BoardColumn, Entry[]>(BOARD_COLUMNS.map((c) => [c, []]));
-  for (const e of entries) map.get(boardColumnOf(e.state))?.push(e);
-  return map;
-}
+type Entry = BoardEntry;
+const NO_GROUPS: RunGroup[] = [];
 const SHOW_ARCHIVED_KEY = "kickoff:show-archived";
 
 interface Props {
@@ -46,13 +45,15 @@ interface Props {
   title?: string;
   /** 右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
+  /** 自分で作ったグループ（スイムレーンをグループで分けるとき。プロジェクトのボードだけ） */
+  groups?: RunGroup[];
 }
 
 /**
  * チャットのカンバン。列（作業中・回答待ち・確認待ち・完了）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
  * カードの点はより細かい状態（順番待ち・エラーなど）。
  */
-export function KanbanBoard({ projectId, projects, approvals, title, focus }: Props) {
+export function KanbanBoard({ projectId, projects, approvals, title, focus, groups = NO_GROUPS }: Props) {
   const allProjects = projectId === undefined;
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
@@ -114,9 +115,10 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   }, [runs, approvals, section, search, archive, worktreeFilter]);
   const grouped = useMemo(() => byColumn(entries), [entries]);
   const total = entries.length;
-  // スイムレーンの段の分け方（初めは作業場所）。プロジェクトで分けるのは全プロジェクトのボードだけ
+  // スイムレーンの段の分け方（初めは作業場所）。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ
+  const laneOptions = KANBAN_LANES.filter((l) => (allProjects ? l !== "group" : l !== "project"));
   const [laneChoice, setLanes] = useStoredChoice<BoardLane>(LANES_KEY, BOARD_LANES, "worktree");
-  const lanes: BoardLane = laneChoice === "project" && !allProjects ? "worktree" : laneChoice;
+  const lanes: BoardLane = laneOptions.includes(laneChoice) ? laneChoice : "worktree";
 
   /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
   function newChat() {
@@ -138,20 +140,21 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const cardClass = (run: Run) =>
     cx(run.archived_at && "archived", allProjects && "with-project", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
   /** 列・リストのまとまりの見出し（列の名前・件数） */
-  const head = (label: string, tone: string, count: number) => (
-    <header className="column-head">
-      <span className="dot" style={{ background: tone }} />
-      <span className="column-title">{label}</span>
-      <span className="column-count">{count}</span>
-    </header>
+  // 完了の列には、すべてアーカイブするボタンを置く
+  const columnHead = (column: BoardColumn, list: Entry[]) => (
+    <ColumnHead
+      label={BOARD_COLUMN_LABELS[column]}
+      tone={COLUMN_TONE[column]}
+      count={list.length}
+      action={column === "done" ? <ArchiveAllButton runs={list.map((e) => e.run)} /> : undefined}
+    />
   );
-  const columnHead = (column: BoardColumn, count: number) => head(BOARD_COLUMN_LABELS[column], COLUMN_TONE[column], count);
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない）。いちばん左の「下書き」の列に出す
   const chat = useProjectChatContext();
   const sideDrafts = chat && projectId !== undefined && chat.projectId === projectId ? chat.panel : null;
   const draftCount = panel.drafts.length + (sideDrafts?.drafts.length ?? 0);
   // 新しいチャットは見出しの「新規」から始める（列の＋は、押しても列に意味がないので置かない）
-  const draftHead = head("下書き", DRAFT_TONE, draftCount);
+  const draftHead = <ColumnHead label="下書き" tone={DRAFT_TONE} count={draftCount} />;
   const draftCards = (
     <>
       <DraftCards panel={panel} />
@@ -163,7 +166,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   /** 状態の列 1 本（ボードの表示） */
   const columnSection = (column: BoardColumn, list: Entry[]) => (
     <section key={column} className="board-column">
-      {columnHead(column, list.length)}
+      {columnHead(column, list)}
       <div className="column-cards">
         {list.length === 0 && <p className="column-empty">なし</p>}
         {list.map(({ run, state }) => (
@@ -215,7 +218,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         viewOptions={
           view === "lanes" && (
             <select className="board-filter" aria-label="段の分け方" title="段の分け方" value={lanes} onChange={(e) => setLanes(e.target.value as BoardLane)}>
-              {BOARD_LANES.filter((l) => l !== "project" || allProjects).map((l) => (
+              {laneOptions.map((l) => (
                 <option key={l} value={l}>
                   段: {BOARD_LANE_LABELS[l]}
                 </option>
@@ -238,6 +241,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
               boardKey={`${projectId ?? "all"}`}
               entries={entries}
               projects={projects}
+              groups={groups}
               renderColumns={(list) => {
                 const columns = byColumn(list);
                 return BOARD_COLUMNS.map((column) => columnSection(column, columns.get(column) ?? []));
@@ -259,7 +263,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
                 const list = grouped.get(column) ?? [];
                 return (
                   <section key={column} className="list-group">
-                    {columnHead(column, list.length)}
+                    {columnHead(column, list)}
                     {list.length === 0 && <p className="column-empty">なし</p>}
                     {list.map(({ run, state }) => (
                       <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
