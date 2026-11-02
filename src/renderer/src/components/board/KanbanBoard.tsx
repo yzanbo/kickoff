@@ -59,7 +59,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   const rename = useRunRename(setError);
   // アーカイブでの絞り込み・ボード／リスト（覚えておく）
   const [archive, setArchive] = useStoredState<ArchiveFilter>(SHOW_ARCHIVED_KEY, decodeArchiveFilter, encodeArchiveFilter);
-  const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list"], "board");
+  const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list", "lanes"], "board");
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
   const { runs, loaded } = useBoardRuns(projectId, archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
@@ -114,9 +114,9 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
   }, [runs, approvals, section, search, archive, worktreeFilter]);
   const grouped = useMemo(() => byColumn(entries), [entries]);
   const total = entries.length;
-  // 段（スイムレーン）の分け方。プロジェクトで分けるのは全プロジェクトのボードだけ
-  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(LANES_KEY, BOARD_LANES, "none");
-  const lanes: BoardLane = laneChoice === "project" && !allProjects ? "none" : laneChoice;
+  // スイムレーンの段の分け方（初めは作業場所）。プロジェクトで分けるのは全プロジェクトのボードだけ
+  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(LANES_KEY, BOARD_LANES, "worktree");
+  const lanes: BoardLane = laneChoice === "project" && !allProjects ? "worktree" : laneChoice;
 
   /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
   function newChat() {
@@ -211,12 +211,13 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         }
         view={view}
         onView={setView}
+        lanesView
         viewOptions={
-          view === "board" && (
-            <select className={cx("board-filter", lanes !== "none" && "filtered")} aria-label="段の分け方" value={lanes} onChange={(e) => setLanes(e.target.value as BoardLane)}>
+          view === "lanes" && (
+            <select className="board-filter" aria-label="段の分け方" title="段の分け方" value={lanes} onChange={(e) => setLanes(e.target.value as BoardLane)}>
               {BOARD_LANES.filter((l) => l !== "project" || allProjects).map((l) => (
                 <option key={l} value={l}>
-                  {BOARD_LANE_LABELS[l]}
+                  段: {BOARD_LANE_LABELS[l]}
                 </option>
               ))}
             </select>
@@ -230,7 +231,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus }: Pr
         <div className="board-main">
           {!loaded ? (
             <p className="muted small board-loading">読み込み中…</p>
-          ) : view === "board" && lanes !== "none" ? (
+          ) : view === "lanes" ? (
             // 段に分ける: 段ごとに状態の列を並べる。下書きはまだ段が決まらないので、あるときだけ上に置く
             <BoardLanes
               kind={lanes}
