@@ -8,6 +8,7 @@ import { ProjectNav } from "./ProjectNav";
 import { WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
 import type { SidebarController } from "./useSidebar";
 import { useSidebarData } from "./useSidebarData";
+import { ChatSelectionContext, useChatSelectionState } from "./chatSelection";
 
 interface Props {
   sidebar: SidebarController;
@@ -26,6 +27,8 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
   // 自分待ち（回答待ち・確認待ち）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）
   const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
   const waitingCount = sidebarOrder(projects).reduce((n, p) => n + waitingRuns(runs[p.id] ?? [], approvals).length, 0);
+  // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
+  const selection = useChatSelectionState(new Set(Object.values(runs).flatMap((list) => list.map((r) => r.id))));
   return (
     <aside className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
       <div
@@ -64,7 +67,9 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
         </button>
       </div>
       <nav className="sidebar-section" aria-label="プロジェクトとチャット">
-        <ProjectNav projects={projects} approvals={approvals} runs={runs} groups={groups} route={route} onNewProject={onNewProject} />
+        <ChatSelectionContext.Provider value={selection}>
+          <ProjectNav projects={projects} approvals={approvals} runs={runs} groups={groups} route={route} onNewProject={onNewProject} />
+        </ChatSelectionContext.Provider>
       </nav>
     </aside>
   );

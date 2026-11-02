@@ -10,6 +10,7 @@ import { formatDayTime, shortRelativeTime } from "../../time";
 import { workingFor } from "../../activity";
 import { useTicker } from "../../hooks/useTicker";
 import { useRunActivity } from "../../runActivity";
+import { useChatSelection } from "./chatSelection";
 import { alertDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
 import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../../runActions";
@@ -18,7 +19,10 @@ import { IconButton } from "../IconButton";
 import { StatusSlot } from "../StatusSlot";
 import { WorktreeChip } from "../WorktreeChip";
 
-/** サイドバーのチャットの行（押すと右のパネルで開く・ダブルクリックで名前を変える・ドラッグでグループへ移す・右クリックでメニュー。乗せると右端に固定・アーカイブ・削除） */
+/**
+ * サイドバーのチャットの行（押すと右のパネルで開く・⌘ / Shift を押しながらで複数選ぶ・ダブルクリックで名前を変える・ドラッグでグループへ移す・
+ * 右クリックでメニュー（複数選んでいればまとめて操作）。乗せると右端に固定・アーカイブ・削除）
+ */
 export function ChatRow({
   run,
   state,
@@ -51,11 +55,21 @@ export function ChatRow({
       </li>
     );
   }
+  const selection = useChatSelection();
+  const selected = selection?.has(run.id) ?? false;
   const act = (fn: () => Promise<unknown>) => void fn().catch((e: unknown) => alertDialog("操作できませんでした", errorMessage(e)));
   return (
     <li className="chat-row-item">
       <a
-        className={cx("chat-row", run.archived_at && "archived", active && "active", (state === "needs_input" || state === "attention") && "is-unread")}
+        className={cx(
+          "chat-row",
+          run.archived_at && "archived",
+          active && "active",
+          selected && "multi-selected",
+          (state === "needs_input" || state === "attention") && "is-unread",
+        )}
+        data-run-id={run.id}
+        aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
         href={href({ name: "run", projectId: run.project_id, runId: run.id })}
         title={`${meta.label}: ${run.title}（${AGENT_STATE_LABELS[state]}）`}
         draggable
@@ -66,11 +80,17 @@ export function ChatRow({
         }}
         onContextMenu={(e) => {
           e.preventDefault();
-          onMenu({ x: e.clientX, y: e.clientY });
+          // 選んでいるチャットを右クリックしたら、まとめて操作するメニュー
+          if (selection && selected && selection.ids.size > 1) selection.openMenu({ x: e.clientX, y: e.clientY });
+          else onMenu({ x: e.clientX, y: e.clientY });
         }}
         onClick={(e) => {
-          // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
           e.preventDefault();
+          // ⌘ を押しながら: 選ぶ・外す / Shift: 前に選んだものからの範囲（どちらも開かない）
+          if (selection && (e.metaKey || e.ctrlKey)) return selection.toggle(run.id);
+          if (selection && e.shiftKey) return selection.range(run.id);
+          selection?.clear();
+          // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
           openRun(run.project_id, run.id);
         }}
       >

@@ -12,6 +12,8 @@ import { GroupToggle } from "./GroupToggle";
 import { ProjectListHead, type NavLayout } from "./ProjectListHead";
 import { useProjectMenu } from "./ProjectMenu";
 import { WorkspaceDots } from "./WorkspaceDots";
+import { useChatSelection } from "./chatSelection";
+import { SelectionBar } from "./SelectionBar";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
 import { foldAll, stateCounts, useCompactRows, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
@@ -165,6 +167,10 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
     </div>
   );
 
+  // 複数選んだチャットをまとめて操作する欄（選んでいるときだけ、下の行の上に出す）
+  const selection = useChatSelection();
+  const selectionBar = selection && <SelectionBar selection={selection} runs={runs} groups={groups} />;
+
   /** 一覧の上の見出しの行に渡す（並べ方・しまったプロジェクトを出すか） */
   const head = { layout, onLayout: changeLayout, order: projectOrder, onOrder: setProjectOrder, archivedCount: archived.length, showArchived, onShowArchived: setShowArchived };
 
@@ -201,6 +207,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
           {!showArchived && archivedHead}
           {waitingEmpty}
         </div>
+        {selectionBar}
         <div className="workspace-switcher stack">
           <button className="sidebar-new" onClick={onNewProject}>
             <Plus size={14} /> 新しいプロジェクト
@@ -236,6 +243,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
         </div>
       </div>
 
+      {selectionBar}
       <div className="workspace-switcher">
         <WorkspaceDots
           projects={ordered}

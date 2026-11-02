@@ -583,6 +583,50 @@ button.chat-row {
   color: var(--extra-muted);
 }
 
+/* 複数選んだチャットの行 */
+.chat-row.multi-selected,
+.chat-row-item:hover > .chat-row.multi-selected {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* 複数選んだチャットをまとめて操作する欄（一覧の下、下の行の上） */
+.selection-bar {
+  display: grid;
+  flex: none;
+  gap: 6px;
+  padding: 8px var(--gutter);
+  border-top: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.selection-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.selection-bar-count {
+  font-weight: 600;
+}
+
+.selection-bar-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.selection-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.selection-bar .selection-bar-delete:hover:not(:disabled) {
+  color: var(--ng);
+}
+
 /* 作業中のチャットの経過時間（作業中の青） */
 .chat-row-time.running {
   color: var(--dot-running);
