@@ -14,7 +14,7 @@ import { useSidebar } from "./components/sidebar/useSidebar";
 import { DialogHost } from "./dialogs";
 import { useWindowEvent } from "./hooks/useWindowEvent";
 import { useRunNotifications } from "./notifications";
-import { HomePage } from "./pages/HomePage";
+import { AllProjectsPage } from "./pages/AllProjectsPage";
 import { ProjectPage } from "./pages/ProjectPage";
 import { openNewChat, routeProjectId, useRoute } from "./router";
 import { useAppShortcuts } from "./shortcuts";
@@ -80,7 +80,7 @@ export function App() {
               highlightGroup={route.name === "project" ? route.group : undefined}
             />
           ) : (
-            <HomePage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
+            <AllProjectsPage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
           )}
         </main>
         <AppFooter

@@ -11,8 +11,8 @@ interface Props {
   onNewProject: () => void;
 }
 
-/** ホーム: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
-export function HomePage({ projects, approvals, onNewProject }: Props) {
+/** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
+export function AllProjectsPage({ projects, approvals, onNewProject }: Props) {
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");

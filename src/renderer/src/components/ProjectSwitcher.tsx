@@ -7,12 +7,12 @@ import { sidebarOrder } from "../projectOrder";
 import { navigate, type ProjectTab } from "../router";
 import { clampToViewport, PopupMenu } from "./PopupMenu";
 
-/** 全プロジェクト（ホーム）の名前 */
+/** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */
 const ALL_PROJECTS = "全プロジェクト";
 
 /**
- * 画面の見出しの名前（プロジェクトの画面とホーム）。サイドバーと同じプロジェクトの色のカード（頭文字と名前）にして、どのプロジェクトかを色でもわかるようにする。
- * project がなければ全プロジェクト（ホーム）。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
+ * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。サイドバーと同じプロジェクトの色のカード（頭文字と名前）にして、どのプロジェクトかを色でもわかるようにする。
+ * project がなければ全プロジェクト。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
  * （全プロジェクトから選んだときはカンバン）。プロジェクトがなければ押せない
  */
 export function ProjectSwitcher({ project, projects, tab = "board" }: { project?: { id: number; name: string }; projects: ProjectSummary[]; tab?: ProjectTab }) {
@@ -58,7 +58,7 @@ export function ProjectSwitcher({ project, projects, tab = "board" }: { project?
           {...at}
           projects={ordered}
           currentId={project?.id}
-          onPick={(id) => navigate(id === undefined ? { name: "home" } : { name: "project", id, tab: project ? tab : "board" })}
+          onPick={(id) => navigate(id === undefined ? { name: "allProjects" } : { name: "project", id, tab: project ? tab : "board" })}
           onClose={() => setAt(null)}
         />
       )}
