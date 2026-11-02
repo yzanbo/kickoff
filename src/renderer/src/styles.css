@@ -1168,6 +1168,8 @@ input[type="text"].inline-name {
   margin-bottom: 8px;
   padding: 6px 4px 6px 4px;
   border-radius: 10px;
+  /* 外枠の中を押すとカンバンを開く */
+  cursor: pointer;
 }
 
 /* プロジェクトの色のカード（サイドバーのプロジェクトの見出し・プロジェクトの画面の名前） */
