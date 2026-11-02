@@ -10,7 +10,7 @@ import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import type { ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
-import { GroupToggle } from "./GroupToggle";
+import { GroupToggle, pressedLeftOfName } from "./GroupToggle";
 
 type Row = { run: Run; state: AgentState };
 
@@ -78,6 +78,8 @@ export function CustomGroupSection({
         onClick={(e) => {
           // 矢印以外のところを押すと、選んで開く / 開閉する（矢印・＋・…・名前の入力欄は除く）
           if ((e.target as HTMLElement).closest("button, input")) return;
+          // 名前より左（矢印のまわり・フォルダのアイコン）は、矢印を押したのと同じく開閉だけ
+          if (pressedLeftOfName(e, e.currentTarget.querySelector(".custom-group-name, input"))) return onSetClosed(!closed);
           press();
         }}
         {...dragProps}
