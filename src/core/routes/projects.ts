@@ -8,6 +8,7 @@ import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_CHOICES, PHASES, PROVIDER_IDS, type Project } from "../types.js";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../workspace.js";
 import { HttpError, requireProject } from "./http.js";
+import { PROJECT_HUES } from "../projectColors.js";
 
 const newProjectSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -33,6 +34,8 @@ const projectPatchSchema = z
     test_command: z.string().max(500),
     deploy_instructions: z.string().max(10_000),
     auto_commit: z.boolean(),
+    // プロジェクトの色（色の一覧から選ぶ）
+    hue: z.number().int().refine((h) => (PROJECT_HUES as readonly number[]).includes(h), "色は一覧から選んでください"),
     // 上に固定する・しまう（アーカイブ）
     pinned: z.boolean(),
     archived: z.boolean(),

@@ -130,6 +130,8 @@ const MIGRATIONS = [
   `ALTER TABLE runs ADD COLUMN branch TEXT NOT NULL DEFAULT '';`,
   // v16: いまの作業を始めた時刻（作業中のチャットの経過時間を出す）
   `ALTER TABLE runs ADD COLUMN turn_started_at TEXT;`,
+  // v17: プロジェクトの色（色相。PROJECT_HUES から、ほかと被らないように選んで覚える）
+  `ALTER TABLE projects ADD COLUMN hue INTEGER;`,
 ];
 
 /** スキーマのバージョン管理（PRAGMA user_version）。変更は MIGRATIONS に追記していく */

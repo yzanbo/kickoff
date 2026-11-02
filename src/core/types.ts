@@ -137,6 +137,8 @@ export interface Project {
   pinned: number;
   /** しまった日時（アーカイブ。null なら出す。サイドバー・切り替え・全プロジェクトの画面に出さない） */
   archived_at: string | null;
+  /** プロジェクトの色（色相 0〜359。作ったときに、ほかと被らない色を選ぶ。編集で変えられる） */
+  hue: number;
   created_at: string;
   updated_at: string;
 }

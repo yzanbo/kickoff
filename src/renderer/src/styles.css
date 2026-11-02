@@ -7641,3 +7641,27 @@ a:focus-visible,
   -webkit-app-region: no-drag;
 }
 
+/* プロジェクトの色を選ぶ（編集の「基本情報」）。選んでいる色は外側に輪を出す */
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.color-swatch {
+  width: 26px;
+  height: 26px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: hsl(var(--ws-hue) 45% 45%);
+  cursor: pointer;
+}
+
+.color-swatch:hover {
+  background: hsl(var(--ws-hue) 50% 52%);
+}
+
+.color-swatch[aria-checked="true"] {
+  border-color: var(--bg);
+  box-shadow: 0 0 0 2px hsl(var(--ws-hue) 60% 65%);
+}
