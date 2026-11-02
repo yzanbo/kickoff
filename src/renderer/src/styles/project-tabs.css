@@ -60,33 +60,3 @@
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
-
-/* 書き込みできるフォルダ */
-
-.scope-editor {
-  display: grid;
-  gap: 14px;
-  margin-top: 12px;
-}
-
-.scope-row {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 12px;
-}
-
-.scope-label {
-  padding-top: 4px;
-  font-weight: 500;
-}
-
-.scope-body {
-  display: grid;
-  gap: 8px;
-}
-
-.scope-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}

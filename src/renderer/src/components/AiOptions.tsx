@@ -19,6 +19,9 @@ export function ModelOptions({ models, value }: { models: ModelOption[]; value: 
   );
 }
 
+/** 推論の深さを指定しない（null）ときの書き方 */
+export const EFFORT_UNSET_LABEL = "指定しない（モデルの既定）";
+
 /** そのモデルで選べる推論の深さの選択肢 */
 export function EffortOptions({ model }: { model: ModelOption | undefined }) {
   return (
@@ -32,13 +35,13 @@ export function EffortOptions({ model }: { model: ModelOption | undefined }) {
   );
 }
 
-/** そのモデルで選べる権限モードの選択肢（「セクションに合わせる」の書き方は置き場所ごとに決める） */
-export function PermissionOptions({ model, phaseLabel }: { model: ModelOption | undefined; phaseLabel: string }) {
+/** そのモデルで選べる権限モードの選択肢 */
+export function PermissionOptions({ model }: { model: ModelOption | undefined }) {
   return (
     <>
       {permissionChoices(model).map((p) => (
         <option key={p} value={p}>
-          {p === "phase" ? phaseLabel : PERMISSION_LABELS[p]}
+          {PERMISSION_LABELS[p]}
         </option>
       ))}
     </>

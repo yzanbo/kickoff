@@ -10,8 +10,6 @@ export interface Project {
   test_command: string;
   deploy_instructions: string;
   auto_commit: number; // SQLite の真偽値（0 / 1）
-  /** セクションごとの書き込みできるフォルダ（リポジトリからの相対パス。未指定なら既定の docs） */
-  write_scopes: WriteScopes;
   /** このプロジェクトの既定（書いていない項目はアプリ全体の設定に従う） */
   defaults: ProjectDefaults;
   /** 参照資料（AI がいつでも読めるフォルダ・ファイル。絶対パス） */
@@ -30,7 +28,7 @@ export interface Project {
 
 /**
  * プロジェクトごとの既定。キーがなければアプリ全体の設定に従う。
- * effort の null は「セクションに合わせる」、permission の "phase" も同じ意味。
+ * effort の null は「指定しない（モデルの既定）」。
  */
 export interface ProjectDefaults {
   model?: string;
@@ -46,11 +44,6 @@ export interface ProjectReference {
   path: string;
   kind: "folder" | "file";
 }
-
-/** 書き込み範囲を制限するセクション */
-export const SCOPED_SECTIONS = ["requirements", "schedule"] as const;
-export type ScopedSection = (typeof SCOPED_SECTIONS)[number];
-export type WriteScopes = Partial<Record<ScopedSection, string[]>>;
 
 export interface ProjectSummary extends Project {
   task_counts: Record<TaskStatus, number>;

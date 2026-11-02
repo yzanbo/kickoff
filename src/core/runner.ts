@@ -1,5 +1,5 @@
 import { executeRun, type ExecutionDeps, type QueueItem } from "./runExecution.js";
-import { resolveRunDefaults } from "./sectionDefaults.js";
+import { resolveRunDefaults } from "./runDefaults.js";
 import type { Attachment, Phase, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
 import { withAttachmentNote } from "./uploads.js";
