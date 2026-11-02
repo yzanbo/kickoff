@@ -10,11 +10,6 @@
     display: none;
   }
 
-  /* スマホでは縦 1 列なので、プロジェクトのチャット欄は出さない（ボードの右のパネルを使う） */
-  .project-chat {
-    display: none;
-  }
-
   .titlebar-toggle.floating {
     top: max(8px, env(safe-area-inset-top));
     left: 8px;
