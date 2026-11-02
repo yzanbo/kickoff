@@ -219,12 +219,15 @@ export class Store {
       write_scopes?: Project["write_scopes"];
       defaults?: Project["defaults"];
       references?: Project["references"];
+      pinned?: boolean;
+      archived_at?: string | null;
     },
   ): Project {
     const { references, ...rest } = patch;
     const row: Row = {
       ...rest,
       auto_commit: patch.auto_commit === undefined ? undefined : patch.auto_commit ? 1 : 0,
+      pinned: patch.pinned === undefined ? undefined : patch.pinned ? 1 : 0,
       write_scopes: patch.write_scopes === undefined ? undefined : JSON.stringify(patch.write_scopes),
       defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
       reference_paths: references === undefined ? undefined : JSON.stringify(references),
@@ -240,6 +243,8 @@ export class Store {
       "write_scopes",
       "defaults",
       "reference_paths",
+      "pinned",
+      "archived_at",
     ]);
     const project = this.getProject(id)!;
     this.onChange({ type: "project", project });

@@ -33,6 +33,9 @@ const projectPatchSchema = z
     test_command: z.string().max(500),
     deploy_instructions: z.string().max(10_000),
     auto_commit: z.boolean(),
+    // 上に固定する・しまう（アーカイブ）
+    pinned: z.boolean(),
+    archived: z.boolean(),
     write_scopes: z
       .object({
         requirements: z.array(z.string().max(500)).max(20),
@@ -106,7 +109,7 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   app.patch("/api/projects/:id", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { references, ...patch } = projectPatchSchema.parse(await c.req.json());
+    const { references, archived, ...patch } = projectPatchSchema.parse(await c.req.json());
     if (patch.write_scopes) {
       // フォルダはリポジトリからの相対パスに揃え、外を指すものは拒否する
       const merged = { ...project.write_scopes };
@@ -119,7 +122,13 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
       }
       patch.write_scopes = merged;
     }
-    return c.json(store.updateProject(project.id, { ...patch, ...(references ? { references: resolveReferences(references) } : {}) }));
+    return c.json(
+      store.updateProject(project.id, {
+        ...patch,
+        ...(references ? { references: resolveReferences(references) } : {}),
+        ...(archived === undefined ? {} : { archived_at: archived ? (project.archived_at ?? new Date().toISOString()) : null }),
+      }),
+    );
   });
 
   // サイドバーでのプロジェクトの並び順

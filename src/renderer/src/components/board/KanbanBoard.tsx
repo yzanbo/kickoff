@@ -105,6 +105,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
   const entries = useMemo(() => {
     const list: Entry[] = [];
     for (const run of runs) {
+      // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない（projects に入っていない）
+      if (allProjects && !projects.some((p) => p.id === run.project_id)) continue;
       if (archive === "archived" && !run.archived_at) continue;
       if (worktreeFilter !== "all" && run.worktree_path !== worktreeFilter) continue;
       if (section !== "all" && run.phase !== section) continue;
@@ -112,7 +114,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
       list.push({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) });
     }
     return list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
-  }, [runs, approvals, section, search, archive, worktreeFilter]);
+  }, [runs, approvals, section, search, archive, worktreeFilter, allProjects, projects]);
   const grouped = useMemo(() => byColumn(entries), [entries]);
   const total = entries.length;
   // スイムレーンの段の分け方（初めは作業場所）。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ
