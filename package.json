@@ -6,9 +6,10 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "daemon": "tsx src/core/daemon.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --noUnusedLocals",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "dist": "electron-vite build && electron-builder --mac --arm64",
+    "install-app": "node scripts/install-app.mjs",
     "icon": "node scripts/build-icon.mjs",
     "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper && node scripts/dev-app-identity.mjs"
   },

@@ -134,10 +134,17 @@ const MIGRATIONS = [
   `ALTER TABLE projects ADD COLUMN hue INTEGER;`,
 ];
 
+/** いまのコードのスキーマの版 */
+export const SCHEMA_VERSION = MIGRATIONS.length;
+
+/** データベースのスキーマの版（PRAGMA user_version。作ったばかりなら 0） */
+export function schemaVersion(db: DatabaseSync): number {
+  return (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
+}
+
 /** スキーマのバージョン管理（PRAGMA user_version）。変更は MIGRATIONS に追記していく */
 export function migrate(db: DatabaseSync) {
-  const { user_version } = db.prepare("PRAGMA user_version").get() as { user_version: number };
-  for (let v = user_version; v < MIGRATIONS.length; v++) {
+  for (let v = schemaVersion(db); v < MIGRATIONS.length; v++) {
     db.exec("BEGIN");
     try {
       db.exec(MIGRATIONS[v]);

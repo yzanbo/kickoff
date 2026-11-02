@@ -18,6 +18,8 @@ const SKIP = new Set([
   "kickoff.db",
   "kickoff.db-wal",
   "kickoff.db-shm",
+  // 本番のデータベースのバックアップ（dbBackup.ts）
+  "backups",
 ]);
 
 /**

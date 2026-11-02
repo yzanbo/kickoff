@@ -17,9 +17,10 @@
 npm install
 npm run dev        # Electron アプリを開発モードで起動
 npm test           # コアの単体テスト
-npm run typecheck  # 型チェック
+npm run typecheck  # 型チェック（使っていない import・変数も見る）
 npm run daemon     # Electron なしでコア（API サーバー）だけを起動
 npm run dist       # .app / .dmg を作成
+npm run install-app  # ビルドして /Applications/Kickoff.app（本番）を入れ替える（動いていれば終了して開き直す。実行中のチャットがあればやめる）
 npm run icon       # build/icon.svg・icon-dev.svg からアプリのアイコン（本番・開発版の .png / .icns）を作り直す
 ```
 
@@ -30,6 +31,8 @@ npm run icon       # build/icon.svg・icon-dev.svg からアプリのアイコ�
 | 名前（Dock・メニューバー） | Kickoff | Kickoff Dev（アイコンに DEV の帯） |
 | データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
 | ポート | 4317 | 4318 |
+
+データベースのスキーマの版を上げる前に、いまのデータベースを同じフォルダの `backups/` に写す（`kickoff-v<版>-<日時>.db`。新しいものから 5 件。`src/core/dbBackup.ts`）。新しい版を入れて不具合があったら、本番の Kickoff を終了し、`kickoff.db` をこの写しと入れ替えて、前の版のアプリで開く。
 
 開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/core/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
 

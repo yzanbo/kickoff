@@ -111,7 +111,7 @@
 
 ## 確かめ方
 
-- 型は `npx tsc --noEmit --noUnusedLocals`（使っていない import と変数も残さない）、テストは `npm test`。
+- 型は `npm run typecheck`（`tsc --noEmit --noUnusedLocals`。使っていない import と変数も残さない）、テストは `npm test`。
 - API のルートを変えたら `src/core/server.test.ts` にテストを足す。
 - 画面の変更は、開発アプリ（`KICKOFF_REMOTE_DEBUG=9333 npm run dev`。CDP のポートは 9333。名前は「Kickoff Dev」、データは `Kickoff Dev`、コアのポートは 4318 で、インストールしたアプリ（本番）とは別。`appEnv.ts`）で実際に動かして確かめる。本番のデータ・アプリには触らない。見た目を変えないはずの変更は、変更の前後で DOM と計算後のスタイルを比べる。
 - core や main を変えたあとに開発アプリを再起動するときは、Electron のメインプロセスにだけ `kill -TERM` を送る（pkill でまとめて止めると、ディスクに書かれていない localStorage が消える）。その前に `/api/status` で実行中のチャットがないことを確かめる。
