@@ -125,10 +125,7 @@
  */
 .page-header > :first-child {
   min-height: 34px;
-}
-
-/* 画面のいちばん上の行の右端は、右上のレイアウトの開閉（LayoutToggles）のために空けておく（チャット欄の上の行も同じ） */
-.page-header > :first-child {
+  /* 右端は、右上のレイアウトの開閉（LayoutToggles）のために空けておく（チャット欄の上の行も同じ） */
   padding-right: 100px;
 }
 
