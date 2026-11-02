@@ -85,6 +85,17 @@ test("チャット欄で指定がなければ設定の既定（モデル・深�
   assert.deepEqual([call.model, call.effort, call.permissionMode, call.fastMode], ["fable", "high", "auto", true]);
 });
 
+test("どこでも決めていなければ、推論の深さは指定せず（null）、権限モードは毎回確認。指示と権限はどのチャットも同じ", async () => {
+  const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
+  const run = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.getRun(run.id)?.status === "completed");
+  const call = provider.calls[0];
+  assert.deepEqual([call.effort, call.permissionMode], [null, "default"]);
+  assert.deepEqual([store.getRun(run.id)?.effort, store.getRun(run.id)?.permission_mode], [null, "default"]);
+  assert.ok(call.policy.allowedCommands.includes("git status"));
+  assert.ok(!call.systemPrompt.includes("mcp__kickoff__"));
+});
+
 test("添付ファイルはパスがメッセージに書き添えられ、会話には添付として記録される", async () => {
   const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-run-up-"));
   const uploads = new UploadStore(uploadsDir);
