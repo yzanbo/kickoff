@@ -19,3 +19,11 @@ export interface GitHubStatus {
   account?: string;
   detail: string;
 }
+
+/** 埋め込みブラウザの拡張機能（React DevTools など。メインプロセスと画面で同じ形） */
+export interface BrowserExtensionInfo {
+  name: string;
+  version: string;
+  path: string;
+  source: "webstore" | "chrome-profile" | "folder";
+}
