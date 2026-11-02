@@ -6,6 +6,7 @@ import { ChatTitleInput } from "../ChatTitleInput";
 import { ProjectChip } from "../ProjectChip";
 import { WorktreeChip } from "../WorktreeChip";
 import { SectionBadge } from "../SectionBadge";
+import { StatusDot } from "../StatusDot";
 import { STATE_TONE } from "./tones";
 
 interface Props {
@@ -32,7 +33,7 @@ export function RunCardContent({ run, state, projectName, pending = 0, rename }:
         {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
       </div>
       <div className="card-foot">
-        <span className="dot" style={{ background: STATE_TONE[state] }} />
+        <StatusDot color={STATE_TONE[state]} />
         <span className="card-state">{AGENT_STATE_LABELS[state]}</span>
         {pending > 0 && <span className="card-pending">回答 {pending}件</span>}
         <span className="card-time">{relativeTime(run.updated_at)}</span>
@@ -52,7 +53,7 @@ export function RunRowContent({ run, state, projectName, rename }: Props) {
           <SectionBadge section={run.phase} short />
           <WorktreeChip run={run} />
           {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
-          <span className="dot" style={{ background: STATE_TONE[state] }} />
+          <StatusDot color={STATE_TONE[state]} />
           <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
         </span>
       </div>
