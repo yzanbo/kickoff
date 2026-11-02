@@ -1,7 +1,7 @@
 import { Archive, Folder, Pin, Plus } from "lucide-react";
 import { memo, useState } from "react";
-import { agentStateOf } from "../../../../core/board";
-import type { AgentState, Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
+import { agentStateOf, boardColumnOf } from "../../../../core/board";
+import { BOARD_COLUMN_LABELS, type AgentState, type Approval, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
@@ -21,6 +21,7 @@ import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { DraftRows } from "./DraftRows";
 import { RowSection } from "./RowSection";
+import type { StateFilter } from "./HeadCounts";
 import { GROUPING_KEY, isWaitingState, stateCounts, useFoldAll, useShowArchivedChats, WAITING_ONLY_KEY } from "./sidebarFlags";
 import { WorkspaceHead } from "./WorkspaceHead";
 
@@ -60,8 +61,10 @@ export const WorkspacePage = memo(function WorkspacePage({
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
   const { keyword, matches } = useChatSearch(query);
-  // 検索・自分待ちで絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
-  const filtering = Boolean(keyword) || waitingOnly;
+  // 見出しの状態の数を押して、その状態のチャットだけに絞る（このプロジェクトだけ。もう一度押すと戻す）
+  const [stateFilter, setStateFilter] = useState<StateFilter | null>(null);
+  // 検索・自分待ち・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
+  const filtering = Boolean(keyword) || waitingOnly || stateFilter !== null;
 
   const withState = (run: Run) => ({ run, state: agentStateOf(run, approvals.some((a) => a.run_id === run.id)) });
   const allRows = runs.filter((r) => !r.archived_at).map(withState);
@@ -71,7 +74,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   const toggleArchived = () => setArchivedOpen(!archivedOpen);
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
   const [rowMenu, setRowMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
-  const visibleRows = allRows.filter(({ run, state }) => matches(run) && (!waitingOnly || isWaitingState(state)));
+  const visibleRows = allRows.filter(
+    ({ run, state }) => matches(run) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter),
+  );
   // 上に固定したチャットは、グループ・グループなしから抜き出して、いちばん上にまとめる
   const pinnedRows = visibleRows.filter(({ run }) => run.pinned);
   const [pinnedClosed, setPinnedClosed] = useStoredFlag(`kickoff:pinned-closed:${project.id}`);
@@ -144,6 +149,12 @@ export const WorkspacePage = memo(function WorkspacePage({
         onToggleCollapsed={toggleCollapsed}
         chatCount={allRows.length}
         counts={stateCounts(runs, approvals)}
+        stateFilter={stateFilter}
+        onStateFilter={(next) => {
+          setStateFilter(next);
+          // 閉じているときに絞ったら、開いて見せる
+          if (next && collapsed) toggleCollapsed();
+        }}
         onCreateGroup={startCreate}
         headDrag={headDrag}
       />
@@ -151,6 +162,9 @@ export const WorkspacePage = memo(function WorkspacePage({
         <SearchField value={query} onChange={setQuery} placeholder="チャット名で検索" label={`${project.name} のチャットを検索`} />
       )}
       {!collapsed && keyword && visibleRows.length === 0 && <p className="chat-search-empty">「{keyword}」に一致するチャットはありません</p>}
+      {!collapsed && !keyword && stateFilter && visibleRows.length === 0 && (
+        <p className="chat-search-empty">{BOARD_COLUMN_LABELS[stateFilter]}のチャットはありません</p>
+      )}
       {!collapsed && creating && (
         <div className="custom-group-head editing">
           <Folder size={13} aria-hidden />
