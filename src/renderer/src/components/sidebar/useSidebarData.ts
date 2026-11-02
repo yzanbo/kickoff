@@ -1,52 +1,75 @@
 import { useEffect, useState } from "react";
-import type { ProjectSummary, Run, RunGroup } from "../../../../core/types";
+import type { ProjectSummary } from "../../../../core/types";
 import { api } from "../../api";
+import { errorMessage } from "../../errors";
 import { useServerEvent } from "../../events";
+import { removeGroup, removeRun, upsertGroup, upsertRun, type GroupsByProject, type RunsByProject } from "./sidebarData";
 
-const byPosition = (a: RunGroup, b: RunGroup) => a.position - b.position || a.id - b.id;
-const byUpdated = (a: Run, b: Run) => b.updated_at.localeCompare(a.updated_at);
+/** 読み込みに失敗したあと、取り直すまでの間隔（サーバーが起動中・一時的に切れたときのため） */
+const RETRY_MS = 5000;
 
 /**
  * サイドバーに出す、プロジェクトごとのチャット（アーカイブしたものも含む）とグループ。
- * 全プロジェクトの分を先に読み込み、以降はサーバーからのイベントで更新する
+ * 全プロジェクトの分を先に読み込み、以降はサーバーからのイベントで更新する。
+ * 読み込みに失敗したプロジェクトは errors に記録し、しばらくして取り直す（失敗したまま空にしない）
  */
 export function useSidebarData(projects: ProjectSummary[]) {
-  const [runs, setRuns] = useState<Record<number, Run[]>>({});
-  const [groups, setGroups] = useState<Record<number, RunGroup[]>>({});
+  const [runs, setRuns] = useState<RunsByProject>({});
+  const [groups, setGroups] = useState<GroupsByProject>({});
+  const [errors, setErrors] = useState<Record<number, string>>({});
+  const [attempt, setAttempt] = useState(0);
 
   const ids = projects.map((p) => p.id).join(",");
   useEffect(() => {
+    let alive = true;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    const failed = (projectId: number) => (e: unknown) => {
+      if (!alive) return;
+      setErrors((prev) => ({ ...prev, [projectId]: errorMessage(e) }));
+      retry ??= setTimeout(() => alive && setAttempt((n) => n + 1), RETRY_MS);
+    };
+    const clearError = (projectId: number) =>
+      setErrors((prev) => {
+        if (!(projectId in prev)) return prev;
+        const { [projectId]: _, ...rest } = prev;
+        return rest;
+      });
     for (const p of projects) {
-      if (runs[p.id]) continue;
       // アーカイブしたチャットも読み込み、一覧の下の「アーカイブ済み」に分けて出す
-      void api.runs(p.id, { archived: true }).then((list) => setRuns((prev) => ({ ...prev, [p.id]: list })));
-      void api.groups(p.id).then((list) => setGroups((prev) => ({ ...prev, [p.id]: list })));
+      if (!runs[p.id]) {
+        api.runs(p.id, { archived: true }).then((list) => {
+          if (!alive) return;
+          setRuns((prev) => ({ ...prev, [p.id]: list }));
+          clearError(p.id);
+        }, failed(p.id));
+      }
+      if (!groups[p.id]) {
+        api.groups(p.id).then((list) => alive && setGroups((prev) => ({ ...prev, [p.id]: list })), failed(p.id));
+      }
     }
+    return () => {
+      alive = false;
+      clearTimeout(retry);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ids]);
+  }, [ids, attempt]);
 
   useServerEvent((e) => {
     switch (e.type) {
       case "group":
-        setGroups((prev) => {
-          const list = [e.group, ...(prev[e.group.project_id] ?? []).filter((g) => g.id !== e.group.id)];
-          return { ...prev, [e.group.project_id]: list.sort(byPosition) };
-        });
+        setGroups((prev) => upsertGroup(prev, e.group));
         break;
       case "group_deleted":
-        setGroups((prev) => ({ ...prev, [e.project_id]: (prev[e.project_id] ?? []).filter((g) => g.id !== e.id) }));
+        setGroups((prev) => removeGroup(prev, e.project_id, e.id));
         break;
       case "run_deleted":
-        setRuns((prev) => ({ ...prev, [e.project_id]: (prev[e.project_id] ?? []).filter((r) => r.id !== e.id) }));
+        setRuns((prev) => removeRun(prev, e.project_id, e.id));
         break;
       case "run":
-        setRuns((prev) => {
-          const list = prev[e.run.project_id] ?? [];
-          return { ...prev, [e.run.project_id]: [e.run, ...list.filter((r) => r.id !== e.run.id)].sort(byUpdated) };
-        });
+        setRuns((prev) => upsertRun(prev, e.run));
         break;
     }
   });
 
-  return { runs, groups };
+  return { runs, groups, errors };
 }
