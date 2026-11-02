@@ -3,6 +3,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .browser-toolbar {
@@ -97,11 +99,6 @@
 
 .browser-devtools-buttons .browser-devtools-dock {
   width: 16px;
-}
-
-.browser-pane {
-  min-width: 0;
-  overflow: hidden;
 }
 
 .browser-unavailable {
