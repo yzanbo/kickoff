@@ -8,8 +8,6 @@ import { useWorktreeLists } from "../../worktree/worktreeBranches";
 import { BOARD_LANES, type BoardLane } from "./BoardLanes";
 import { decodeArchiveFilter, encodeArchiveFilter, type ArchiveFilter } from "./KanbanFilters";
 
-export type KanbanFilterState = ReturnType<typeof useKanbanFilters>;
-
 /** カンバンの絞り込み（アーカイブ（覚えておく）・セクション・作業場所・名前の検索） */
 export function useKanbanFilters() {
   const [archive, setArchive] = useStoredState<ArchiveFilter>(BOARD_SHOW_ARCHIVED_KEY, decodeArchiveFilter, encodeArchiveFilter);
