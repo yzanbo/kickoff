@@ -929,7 +929,7 @@ button.chat-row {
   cursor: pointer;
 }
 
-/* 自分で作ったグループのアイコン: ふだんはフォルダ。選んでいるグループに乗せる（ピントがある）と、押すと開閉するので矢印に変わる */
+/* 自分で作ったグループのアイコン: ふだんはフォルダ。アイコンに乗せたときと、選んでいるグループの見出しに乗せたときは矢印に変わる（どちらも押すと開閉する） */
 .group-icon-toggle {
   justify-content: center;
   width: 20px;
@@ -940,12 +940,14 @@ button.chat-row {
 }
 
 .custom-group-head.active:hover .group-icon-folder,
-.custom-group-head.active .group-icon-toggle:focus-visible .group-icon-folder {
+.group-icon-toggle:hover .group-icon-folder,
+.group-icon-toggle:focus-visible .group-icon-folder {
   display: none;
 }
 
 .custom-group-head.active:hover .group-icon-chevron,
-.custom-group-head.active .group-icon-toggle:focus-visible .group-icon-chevron {
+.group-icon-toggle:hover .group-icon-chevron,
+.group-icon-toggle:focus-visible .group-icon-chevron {
   display: grid;
   place-items: center;
 }
@@ -1293,7 +1295,7 @@ button.project-switch:hover,
   text-overflow: ellipsis;
 }
 
-/* プロジェクトの頭文字のボタン: ふだんは頭文字。選んでいるカードに乗せる（ピントがある）と、押すと開閉するので矢印に変わる */
+/* プロジェクトの頭文字のボタン: ふだんは頭文字。頭文字に乗せたとき（押すと開閉する）と、選んでいるカードに乗せたとき（カードを押すと開閉する）は矢印に変わる */
 .workspace-toggle {
   margin-right: 4px;
   padding: 0;
@@ -1309,12 +1311,14 @@ button.project-switch:hover,
 }
 
 .workspace-head.active:hover .workspace-toggle-initial,
-.workspace-head.active .workspace-toggle:focus-visible .workspace-toggle-initial {
+.workspace-toggle:hover .workspace-toggle-initial,
+.workspace-toggle:focus-visible .workspace-toggle-initial {
   display: none;
 }
 
 .workspace-head.active:hover .workspace-toggle-chevron,
-.workspace-head.active .workspace-toggle:focus-visible .workspace-toggle-chevron {
+.workspace-toggle:hover .workspace-toggle-chevron,
+.workspace-toggle:focus-visible .workspace-toggle-chevron {
   display: grid;
   place-items: center;
 }

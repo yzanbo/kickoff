@@ -17,7 +17,7 @@ type Row = { run: Run; state: AgentState };
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身）。
  * 見出しを押すと（プロジェクトのカードと同じ）、選んでいなければ選び（そのグループのボードを開く）、
- * 選んでいれば開閉する。フォルダのアイコンは、選んでいるグループに乗せたときだけ開閉の矢印に変わる。
+ * 選んでいれば開閉する。フォルダのアイコンは、乗せると開閉の矢印に変わり、押すといつでも開閉する（選んでいるグループは見出しに乗せただけで矢印）。
  * 名前のダブルクリックで名前を変える・ドラッグで並べ替える・チャットをドロップしてグループへ移す・右クリックでメニュー
  */
 export function CustomGroupSection({
@@ -79,14 +79,14 @@ export function CustomGroupSection({
         }}
         {...dragProps}
       >
-        {/* フォルダのアイコン。選んでいるグループに乗せたときだけ、開閉の矢印に変わる */}
+        {/* フォルダのアイコン: 乗せると開閉の矢印に変わり、押すと選んでいてもいなくても開閉する（選んでいるグループは、見出しに乗せただけで矢印になる） */}
         <button
           type="button"
           className="custom-group-toggle group-icon-toggle"
-          aria-expanded={selected ? !closed : undefined}
-          aria-label={selected ? `「${group.name}」を${pressLabel}` : pressLabel}
-          title={pressLabel}
-          onClick={press}
+          aria-expanded={!closed}
+          aria-label={closed ? `「${group.name}」を開く` : `「${group.name}」を閉じる`}
+          title={closed ? "開く" : "閉じる"}
+          onClick={() => onSetClosed(!closed)}
         >
           <Folder size={13} className="group-icon-folder" aria-hidden />
           <span className="group-icon-chevron" aria-hidden>
