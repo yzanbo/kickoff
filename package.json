@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "dist": "electron-vite build && electron-builder --mac --arm64",
-    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper"
+    "icon": "node scripts/build-icon.mjs",
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper && node scripts/dev-app-identity.mjs"
   },
   "description": "Claude Agent SDK で要件定義〜実装〜テスト〜デプロイを一元管理するローカルアプリ",
   "dependencies": {
