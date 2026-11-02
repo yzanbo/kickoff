@@ -17,7 +17,7 @@ export function CommitBox({
   status: Extract<GitStatus, { repo: true }>;
   git: GitStatusController;
   /** 失敗を一覧の上に出す（useActionError の guard） */
-  guard: (action: () => Promise<unknown>) => Promise<void>;
+  guard: (action: () => Promise<unknown>) => Promise<boolean>;
 }) {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<"commit" | "push" | "pull">();
