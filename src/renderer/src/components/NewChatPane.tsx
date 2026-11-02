@@ -66,8 +66,6 @@ export function NewChatPane({
     else if (runs.data?.[0]) setSection(runs.data[0].phase);
   }, [initialSection, runs.data, project.data]);
 
-  const idea = project.data?.description.trim();
-  const isFirst = runs.data && runs.data.length === 0;
   const ready = !project.loading && !runs.loading;
   const Icon = SECTION_META[section].icon;
 
@@ -143,7 +141,6 @@ export function NewChatPane({
             onTextChange={onDraftChange}
             // 新しいワークツリーはまだないので、本体から探す
             suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
-            initialText={isFirst && idea ? `次のアイデアについて、要件定義を一緒に進めてください。\n\n${idea}` : undefined}
             placeholder={`${SECTION_META[section].placeholder}（Enter で送信、Shift+Enter で改行）`}
             onSend={async (prompt, attachments) => {
               const run = await api.startRun(projectId, {

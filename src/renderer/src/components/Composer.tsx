@@ -13,8 +13,6 @@ import { useSuggest } from "./suggest/useSuggest";
 interface Props {
   options: RunOptionsState;
   placeholder?: string;
-  /** 入力欄にあらかじめ入れておく文 */
-  initialText?: string;
   autoFocus?: boolean;
   busy?: boolean;
   /** モデル選択の前に置く追加の選択（新しいチャットのセクションなど） */
@@ -41,8 +39,9 @@ interface PendingFile {
 }
 
 /** チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付） */
-export function Composer({ options, placeholder, initialText, autoFocus, busy, leading, trailing, onSend, onStop, onTextChange, suggestTarget }: Props) {
-  const [text, setText] = useState(initialText ?? "");
+export function Composer({ options, placeholder, autoFocus, busy, leading, trailing, onSend, onStop, onTextChange, suggestTarget }: Props) {
+  // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）
+  const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // / と @ の候補（Claude Code の VS Code 拡張と同じ）
   const suggest = useSuggest({ target: suggestTarget, text, setText, textareaRef });
