@@ -99,6 +99,11 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
   };
   // トラックパッドの 2 本指スワイプ・タッチのドラッグで隣のプロジェクトへ
   const swipe = useWorkspaceSwipe({ index, count: ordered.length, go });
+  // 下の丸の列: 選んでいるプロジェクトの丸を、スクロールして見えるところに出す
+  const dotsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    dotsRef.current?.querySelector(".workspace-dot.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [index]);
 
   // ショートカット: ⌥⌘← / ⌥⌘→ で前後、⌃1〜9 で n 番目
   useWindowEvent("keydown", (e) => {
@@ -198,8 +203,16 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
       </div>
 
       <div className="workspace-switcher">
-        {/* プロジェクトの丸（右の並べ方の切り替えを除いた幅で、真ん中に並べる。入りきらなければ次の行へ） */}
-        <div className="workspace-dots" role="tablist" aria-label="プロジェクトの切り替え">
+        {/* プロジェクトの丸（右の並べ方の切り替えを除いた幅で、真ん中に並べる。入りきらなければ横にスクロール。マウスのホイールでも横に動く） */}
+        <div
+          ref={dotsRef}
+          className="workspace-dots"
+          role="tablist"
+          aria-label="プロジェクトの切り替え"
+          onWheel={(e) => {
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
+          }}
+        >
         {ordered.map((p, i) => {
           const waiting = approvals.some((a) => a.project_id === p.id);
           return (
