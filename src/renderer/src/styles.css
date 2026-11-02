@@ -1219,144 +1219,58 @@ button.project-switch:hover,
   padding: 8px var(--gutter);
 }
 
-/* プロジェクト一覧の上の見出しの行: 左に「プロジェクト」（狭いときはここが縮む）、右に表示方法の操作 */
+/* プロジェクト一覧の上の見出しの行: 何に効くかを文字で出したボタン（「プロジェクト」「チャット」）と、右端の「すべて閉じる / 開く」 */
 .project-list-head {
+  container: project-list-head / inline-size;
   display: flex;
   flex: none;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   padding: 4px var(--gutter) 2px;
 }
 
-.project-list-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
+.project-list-fold {
+  margin-left: auto;
+}
+
+.head-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
   font-size: 11px;
   font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   color: var(--muted);
-}
-
-/* 見出しの行の区切り: 左はプロジェクトの表示、右はチャットの表示 */
-.project-list-sep {
-  flex: none;
-  width: 1px;
-  height: 16px;
-  margin: 0 4px;
-  background: var(--border-strong);
-}
-
-/* 横スライド / 縦並びの切り替え（見出しの行） */
-.sidebar-layout-toggle {
-  display: flex;
-  flex: none;
-  gap: 1px;
-  margin-left: 4px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-}
-
-.sidebar-layout-toggle button {
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: 5px;
-  color: var(--extra-muted);
   background: transparent;
   cursor: pointer;
 }
 
-.sidebar-layout-toggle button:hover {
+.head-chip:hover,
+.head-chip.active {
   color: var(--text);
+  background: var(--bg-hover);
 }
 
-.sidebar-layout-toggle button.active {
-  color: var(--text);
-  background: var(--bg-active);
+.head-chip-caret {
+  color: var(--extra-muted);
 }
 
-/* 縦並び: すべてのプロジェクトを上から順に並べ、まとめてスクロールする */
-.workspace-stack {
-  flex: 1;
-  min-height: 0;
-  padding-bottom: 8px;
-  overflow-y: auto;
+/* 狭いときは、先頭のアイコン → ▾ の順に隠して 1 行に収める */
+@container project-list-head (max-width: 234px) {
+  .head-chip-icon {
+    display: none;
+  }
 }
 
-.workspace-stack .workspace-page {
-  padding-bottom: 4px;
-  overflow: visible;
-}
-
-/* プロジェクトの並べ替え: 動かしているものは薄く、入る位置に線を出す */
-.workspace-dot.group-dragging,
-.stack-item.group-dragging {
-  opacity: 0.35;
-}
-
-.stack-item {
-  position: relative;
-}
-
-.workspace-dot.drop-before::before,
-.workspace-dot.drop-after::after,
-.stack-item.drop-before::before,
-.stack-item.drop-after::after {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  border-radius: 2px;
-  background: var(--accent-bright);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
-  pointer-events: none;
-}
-
-.workspace-dot.drop-before::before,
-.workspace-dot.drop-after::after {
-  top: 2px;
-  bottom: 2px;
-  width: 2px;
-}
-
-.workspace-dot.drop-before::before {
-  left: -5px;
-}
-
-.workspace-dot.drop-after::after {
-  right: -5px;
-}
-
-.stack-item.drop-before::before,
-.stack-item.drop-after::after {
-  right: 10px;
-  left: 10px;
-  height: 2px;
-}
-
-.stack-item.drop-before::before {
-  top: 0;
-}
-
-.stack-item.drop-after::after {
-  bottom: 0;
-}
-
-/* 縦並びの、しまったプロジェクトのまとまりの見出し */
-.archived-projects-head {
-  margin: 4px 0;
-}
-
-/* 横スライドの下の丸: しまったプロジェクトは点線で薄く */
-.workspace-dot.archived {
-  border-style: dashed;
-  border-color: var(--border-strong);
-  opacity: 0.45;
+@container project-list-head (max-width: 199px) {
+  .head-chip-caret {
+    display: none;
+  }
 }
 
 .workspace-dot {
