@@ -11,6 +11,7 @@ import { UsageMonitor } from "./usage.js";
 import { ApprovalCenter } from "./approvals.js";
 import { Runner } from "./runner.js";
 import { UploadStore } from "./uploads.js";
+import { startAutoArchive } from "./autoArchive.js";
 
 export interface CoreOptions {
   dataDir: string;
@@ -64,6 +65,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
 
   const server = await startHttpServer(app, { port: opts.port, host });
   usage.start();
+  // 完了したチャットの自動のアーカイブ（設定でオンにしたときだけ）
+  const stopAutoArchive = startAutoArchive(store, bus);
 
   return {
     port: opts.port,
@@ -75,6 +78,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     close: async () => {
       runner.shutdown();
       usage.stop();
+      stopAutoArchive();
       await stopHttpServer(server);
       store.close();
     },

@@ -388,6 +388,25 @@ export class Store {
     return run;
   }
 
+  /**
+   * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数を返す。
+   * 完了 = 終わっていて（完了・中断）、確認待ちの印がなく、固定していないもの（エラー・回答待ち・作業中・固定したものはしない）
+   */
+  archiveStaleRuns(days: number, now = new Date()): number {
+    const before = new Date(now.getTime() - days * 86_400_000).toISOString();
+    const rows = this.db
+      .prepare(
+        "SELECT id FROM runs WHERE archived_at IS NULL AND status IN ('completed', 'cancelled') AND attention = 0 AND pinned = 0 AND updated_at < ?",
+      )
+      .all(before) as { id: number }[];
+    const at = now.toISOString();
+    for (const { id } of rows) {
+      this.db.prepare("UPDATE runs SET archived_at = ? WHERE id = ?").run(at, id);
+      this.onChange({ type: "run", run: this.getRun(id)! });
+    }
+    return rows.length;
+  }
+
   /** サイドバーの上に固定する・やめる（最後に動いた時刻（並び順）は変えない） */
   setRunPinned(id: number, pinned: boolean): Run {
     this.db.prepare("UPDATE runs SET pinned = ? WHERE id = ?").run(pinned ? 1 : 0, id);

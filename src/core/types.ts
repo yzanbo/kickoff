@@ -380,6 +380,8 @@ export interface AppSettings {
   desktopNotifications: boolean;
   /** 新規プロジェクトの保存先（前回使ったフォルダ） */
   projectsDir: string;
+  /** 完了したチャットを、この日数がたったら自動でアーカイブする（null ならしない） */
+  autoArchiveDays: number | null;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -393,6 +395,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   ntfyUrl: "",
   desktopNotifications: true,
   projectsDir: "~/Documents",
+  autoArchiveDays: null,
 };
 
 export interface ProviderStatus {
