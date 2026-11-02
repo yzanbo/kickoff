@@ -3,7 +3,7 @@ import type { PlanUsage } from "../../../core/types";
 import type { ConnectionState } from "../api";
 import { href } from "../router";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../usage";
-import { useRunBranch } from "../worktreeBranches";
+import { useMainBranch } from "../worktreeBranches";
 import { CONNECTION_LABELS } from "./ConnectionPopover";
 import { IconButton } from "./IconButton";
 import { UsageMeter } from "./UsageMeter";
@@ -54,7 +54,7 @@ export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, u
 
 /** いまのプロジェクト（本体）のブランチ（VS Code の左下と同じ）。押すとエディタタブ（コミット・プッシュ・プル）を開く */
 function FooterBranch({ projectId }: { projectId: number }) {
-  const branch = useRunBranch({ project_id: projectId, worktree_path: "" });
+  const branch = useMainBranch(projectId);
   if (!branch) return null;
   return (
     <a className="footer-button footer-branch" href={href({ name: "project", id: projectId, tab: "changes" })} title={`ブランチ（本体）: ${branch}\n押すとエディタタブを開きます`}>

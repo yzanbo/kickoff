@@ -1,11 +1,13 @@
 import { GitBranch } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 import { boardColumnOf } from "../../../../core/board";
-import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, PHASES, type AgentState, type Run } from "../../../../core/types";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, PHASES, type AgentState, type GitWorktree, type Run } from "../../../../core/types";
 import { COLUMN_TONE } from "../board/tones";
 import { SECTION_META } from "../../sections";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
-import { useRunBranch } from "../../worktreeBranches";
+import { cx } from "../../cx";
+import { useWorktreeList } from "../../worktreeBranches";
+import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "../../workplace";
 import type { ChatGrouping } from "./chatGroupings";
 import { GroupToggle } from "./GroupToggle";
 import { SECTION_CLOSED_PREFIX, useFoldAll } from "./sidebarFlags";
@@ -76,21 +78,23 @@ export function GroupedChatRows({
   rows: Row[];
   renderRow: (row: Row) => ReactNode;
   forceOpen?: boolean;
-  /** 自分で作ったグループの中でまとめるとき、そのグループ（開閉をグループごとに覚える。なければグループなし） */
-  scope?: number;
+  /** 自分で作ったグループの中・アーカイブ済みの中でまとめるとき、そのまとまり（開閉をまとまりごとに覚える。なければグループなし） */
+  scope?: number | "archived";
 }) {
   const closed = useStoredFlagMap(SECTION_CLOSED_PREFIX);
-  const idOf = (key: string) => `${projectId}:${scope === undefined ? "" : `g${scope}:`}${grouping}:${key}`;
+  const worktrees = useWorktreeList(projectId);
+  const scopeKey = scope === undefined ? "" : scope === "archived" ? "archived:" : `g${scope}:`;
+  const idOf = (key: string) => `${projectId}:${scopeKey}${grouping}:${key}`;
   const state = {
     isClosed: (key: string) => closed.get(idOf(key)),
     toggle: (key: string) => closed.toggle(idOf(key)),
     set: (key: string, on: boolean) => closed.set(idOf(key), on),
     forceOpen,
   };
-  return <OpenState.Provider value={state}>{groupsOf(grouping, projectId, rows, renderRow)}</OpenState.Provider>;
+  return <OpenState.Provider value={state}>{groupsOf(grouping, worktrees, rows, renderRow)}</OpenState.Provider>;
 }
 
-function groupsOf(grouping: Exclude<ChatGrouping, "recent">, projectId: number, rows: Row[], renderRow: (row: Row) => ReactNode) {
+function groupsOf(grouping: Exclude<ChatGrouping, "recent">, worktrees: GitWorktree[] | undefined, rows: Row[], renderRow: (row: Row) => ReactNode) {
   // 状態は、ボードの列と同じ分け方（作業中・回答待ち・確認待ち・完了）
   if (grouping === "status") {
     return BOARD_COLUMNS.map((column) => {
@@ -108,25 +112,26 @@ function groupsOf(grouping: Exclude<ChatGrouping, "recent">, projectId: number, 
       return <Group key={phase} id={phase} mark={<Icon size={13} className={`sec-icon sec-${phase}`} />} label={SECTION_META[phase].label} rows={group} renderRow={renderRow} />;
     });
   }
-  // 作業場所（本体・ワークツリー）ごと。本体を先に、ワークツリーはフォルダの名前順
-  return [...new Set(rows.map((r) => r.run.worktree_path))]
-    .sort((a, b) => (a === "" ? -1 : b === "" ? 1 : a.localeCompare(b)))
-    .map((path) => <WorktreeGroup key={path || "main"} projectId={projectId} path={path} rows={rows.filter((r) => r.run.worktree_path === path)} renderRow={renderRow} />);
-}
-
-/** 作業場所でまとめるときのまとまり（見出しはブランチ名と、本体かワークツリーか） */
-function WorktreeGroup({ projectId, path, rows, renderRow }: { projectId: number; path: string; rows: Row[]; renderRow: (row: Row) => ReactNode }) {
-  const branch = useRunBranch({ project_id: projectId, worktree_path: path });
-  const name = branch ?? (path ? (path.split("/").pop() ?? path) : "本体");
-  return (
-    <Group
-      id={path || "main"}
-      mark={<GitBranch size={13} className={path ? "status-group-worktree" : undefined} />}
-      label={name}
-      extra={path ? "ワークツリー" : "本体"}
-      title={path || "本体"}
-      rows={rows}
-      renderRow={renderRow}
-    />
-  );
+  // 作業場所（本体・ワークツリー・フォルダなし・以前のブランチ）ごと。本体を先に（workplaceOf / compareWorkplaces）
+  const byPlace = new Map<string, { place: RunWorkplace; rows: Row[] }>();
+  for (const row of rows) {
+    const place = workplaceOf(row.run, worktrees);
+    const hit = byPlace.get(place.key);
+    if (hit) hit.rows.push(row);
+    else byPlace.set(place.key, { place, rows: [row] });
+  }
+  return [...byPlace.values()]
+    .sort((a, b) => compareWorkplaces(a.place, b.place))
+    .map(({ place, rows: list }) => (
+      <Group
+        key={place.key || "main"}
+        id={place.key || "main"}
+        mark={<GitBranch size={13} className={cx(place.kind === "worktree" && "status-group-worktree", (place.kind === "missing" || place.kind === "past") && "status-group-gone")} />}
+        label={place.name || "本体"}
+        extra={WORKPLACE_KIND_LABELS[place.kind]}
+        title={place.title}
+        rows={list}
+        renderRow={renderRow}
+      />
+    ));
 }

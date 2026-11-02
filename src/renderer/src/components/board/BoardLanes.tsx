@@ -1,11 +1,12 @@
 import { Folder, GitBranch } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { PHASES, type AgentState, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
+import { PHASES, type AgentState, type GitWorktree, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { initialOf, projectHue } from "../../projectColor";
 import { SECTION_META } from "../../sections";
-import { useRunBranch } from "../../worktreeBranches";
+import { useWorktreeLists } from "../../worktreeBranches";
+import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "../../workplace";
 import { GroupToggle } from "../sidebar/GroupToggle";
 
 /**
@@ -34,7 +35,14 @@ interface Lane {
 /** グループで分けるときの段の名前（"g12" のようなグループ、"none" はグループなし）から、グループの ID を取り出す */
 export const groupOfLane = (laneKey: string): number | null => (laneKey === "none" ? null : Number(laneKey.slice(1)));
 
-function lanesOf(kind: BoardLane, entries: Entry[], projects: ProjectSummary[], groups: RunGroup[], showEmpty: boolean): Lane[] {
+function lanesOf(
+  kind: BoardLane,
+  entries: Entry[],
+  projects: ProjectSummary[],
+  groups: RunGroup[],
+  showEmpty: boolean,
+  worktreesOf: (projectId: number) => GitWorktree[] | undefined,
+): Lane[] {
   if (kind === "group") {
     // 自分で作ったグループを並び順のまま先に、グループなし（まだ整理していないもの）を最後に。サイドバーと同じ並び
     // （showEmpty のときは、チャットのないグループも出す）
@@ -68,38 +76,45 @@ function lanesOf(kind: BoardLane, entries: Entry[], projects: ProjectSummary[], 
       return [{ key: `p${p.id}`, head: <LaneTitle mark={mark} label={p.name} />, entries: list }];
     });
   }
-  // 作業場所（プロジェクトとフォルダの組。本体が先）
-  const keys = [...new Set(entries.map((e) => `${e.run.project_id}\u0000${e.run.worktree_path}`))].sort((a, b) => {
-    const [pa, wa] = a.split("\u0000");
-    const [pb, wb] = b.split("\u0000");
-    return pa !== pb ? Number(pa) - Number(pb) : wa === "" ? -1 : wb === "" ? 1 : wa.localeCompare(wb);
-  });
-  return keys.map((key) => {
-    const [projectId, path] = key.split("\u0000");
-    const project = projects.find((p) => p.id === Number(projectId));
-    return {
-      key,
-      head: <WorktreeLaneTitle projectId={Number(projectId)} path={path} projectName={projects.length > 1 ? project?.name : undefined} />,
-      entries: entries.filter((e) => `${e.run.project_id}\u0000${e.run.worktree_path}` === key),
-    };
-  });
+  // 作業場所（プロジェクトと作業場所の組。本体が先。見出しはサイドバーと同じ workplaceOf）
+  const byPlace = new Map<string, { projectId: number; place: RunWorkplace; entries: Entry[] }>();
+  for (const e of entries) {
+    const place = workplaceOf(e.run, worktreesOf(e.run.project_id));
+    const key = `${e.run.project_id}\u0000${place.key}`;
+    const hit = byPlace.get(key);
+    if (hit) hit.entries.push(e);
+    else byPlace.set(key, { projectId: e.run.project_id, place, entries: [e] });
+  }
+  return [...byPlace.entries()]
+    .sort(([, a], [, b]) => a.projectId - b.projectId || compareWorkplaces(a.place, b.place))
+    .map(([key, { projectId, place, entries: list }]) => {
+      const projectName = projects.length > 1 ? projects.find((p) => p.id === projectId)?.name : undefined;
+      const kindLabel = WORKPLACE_KIND_LABELS[place.kind];
+      return {
+        key,
+        head: (
+          <LaneTitle
+            mark={<GitBranch size={14} className={cx(place.kind === "worktree" && "board-lane-worktree", (place.kind === "missing" || place.kind === "past") && "board-lane-gone")} />}
+            label={place.name || "本体"}
+            extra={projectName ? `${projectName} ・ ${kindLabel}` : kindLabel}
+            title={place.title}
+          />
+        ),
+        entries: list,
+      };
+    });
 }
 
-function LaneTitle({ mark, label, extra }: { mark: ReactNode; label: string; extra?: string }) {
+function LaneTitle({ mark, label, extra, title }: { mark: ReactNode; label: string; extra?: string; title?: string }) {
   return (
     <>
       {mark}
-      <span className="board-lane-label">{label}</span>
+      <span className="board-lane-label" title={title}>
+        {label}
+      </span>
       {extra && <span className="board-lane-extra">{extra}</span>}
     </>
   );
-}
-
-function WorktreeLaneTitle({ projectId, path, projectName }: { projectId: number; path: string; projectName?: string }) {
-  const branch = useRunBranch({ project_id: projectId, worktree_path: path });
-  const name = branch ?? (path ? (path.split("/").pop() ?? path) : "本体");
-  const place = path ? "ワークツリー" : "本体";
-  return <LaneTitle mark={<GitBranch size={14} className={path ? "board-lane-worktree" : undefined} />} label={name} extra={projectName ? `${projectName} ・ ${place}` : place} />;
 }
 
 /**
@@ -134,7 +149,9 @@ export function BoardLanes({
   before?: ReactNode;
 }) {
   const closed = useStoredFlagMap("kickoff:board-lane-closed:");
-  const lanes = lanesOf(kind, entries, projects, groups, showEmpty);
+  // 作業場所で分けるときは、プロジェクトごとのワークツリーの一覧からブランチ名を引く
+  const worktreesOf = useWorktreeLists(kind === "worktree" ? entries.map((e) => e.run.project_id) : []);
+  const lanes = lanesOf(kind, entries, projects, groups, showEmpty, worktreesOf);
   return (
     <div className="board-lanes">
       {before}

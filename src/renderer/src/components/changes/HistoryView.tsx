@@ -15,6 +15,7 @@ import { SearchField } from "../SearchField";
 import { CommitTable } from "./CommitTable";
 import { CommitView } from "./CommitView";
 import type { GitLogController } from "./useGitLog";
+import { invalidateWorktrees } from "../../worktreeBranches";
 
 /** 上のコミットの表の高さ（割合。下はコミットの詳細） */
 const SPLIT_KEY = "kickoff:history-split";
@@ -91,6 +92,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
     if (!branch) return;
     await worktreeError.guard(async () => {
       log.setWorktrees(await api.addWorktree(projectId, branch));
+      invalidateWorktrees(projectId);
       log.refresh();
     });
   };
@@ -98,9 +100,18 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
   // ワークツリーを消す（フォルダを消す。ブランチは残す。変更が残っていれば、もう一度確かめる）
   const removeWorktree = async (w: GitWorktree) => {
     const name = w.branch ?? w.path.split("/").pop();
-    if (!(await confirmDialog({ title: `ワークツリー「${name}」を消しますか？`, message: `${w.path} のフォルダを消します。ブランチは残ります。`, confirmLabel: "消す", danger: true }))) return;
+    if (
+      !(await confirmDialog({
+        title: `ワークツリー「${name}」を消しますか？`,
+        message: `${w.path} のフォルダを消します。ブランチは残ります。ここで作業していたチャットは、続きを本体で進めます。`,
+        confirmLabel: "消す",
+        danger: true,
+      }))
+    )
+      return;
     try {
       log.setWorktrees(await api.removeWorktree(projectId, w.path));
+      invalidateWorktrees(projectId);
       worktreeError.setError(undefined);
     } catch (e) {
       if (!errorMessage(e).includes("--force")) return worktreeError.setError(errorMessage(e));
@@ -110,7 +121,11 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
         confirmLabel: "変更ごと消す",
         danger: true,
       });
-      if (force) await worktreeError.guard(async () => log.setWorktrees(await api.removeWorktree(projectId, w.path, true)));
+      if (force)
+        await worktreeError.guard(async () => {
+          log.setWorktrees(await api.removeWorktree(projectId, w.path, true));
+          invalidateWorktrees(projectId);
+        });
     }
   };
   const refs = log.refs;

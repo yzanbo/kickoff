@@ -352,9 +352,9 @@ export class Store {
   // ---- 実行（エージェントとの会話セッション） ----
 
   listRuns(
-    filter: { projectId?: number; taskId?: number; statuses?: RunStatus[]; limit?: number; includeArchived?: boolean } = {},
+    filter: { projectId?: number; taskId?: number; statuses?: RunStatus[]; limit?: number; includeArchived?: boolean; onlyArchived?: boolean } = {},
   ): Run[] {
-    const where: string[] = filter.includeArchived ? [] : ["archived_at IS NULL"];
+    const where: string[] = filter.onlyArchived ? ["archived_at IS NOT NULL"] : filter.includeArchived ? [] : ["archived_at IS NULL"];
     const params: Row = {};
     if (filter.projectId !== undefined) {
       where.push("project_id = $project_id");
