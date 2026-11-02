@@ -38,6 +38,8 @@
   --row: 36px;
   /* 欄の左右の余白（左のサイドバー・真ん中の画面・右のチャット欄・パネルでそろえる） */
   --gutter: 12px;
+  /* スクロールバーの幅（下の ::-webkit-scrollbar と同じ値にする） */
+  --scrollbar-w: 8px;
   /* 欄・パネルの開閉の動き（左のサイドバー・ボードの右のパネル・右のチャット欄・下のパネルでそろえる） */
   --panel-motion-duration: 0.24s;
   --panel-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -439,6 +441,11 @@ kbd {
 /* 自分待ちだけを出していて、ひとつもないとき */
 .waiting-empty {
   padding: 4px var(--gutter);
+}
+
+/* 縦並びの一覧の中ではスクロールバーの場所を空けているので、そのぶん右を減らす */
+.workspace-stack > .waiting-empty {
+  padding-right: calc(var(--gutter) - var(--scrollbar-w));
 }
 
 /* チャットを 1 行で出す（並べ方のメニューの「1 行で表示」）: 2 行目のセクション・ブランチを隠し、行を詰める */
@@ -1057,11 +1064,16 @@ input[type="text"].inline-name {
   transition: none;
 }
 
+/*
+ * サイドバーのチャット一覧: スクロールバーの場所をいつも空けておき（出る・出ないで中身の幅が変わらないように）、
+ * そのぶん右の余白を減らして、見た目の右の余白は --gutter のままにする
+ */
 .workspace-page {
   flex: 0 0 100%;
   min-width: 0;
-  padding: 4px var(--gutter) 8px;
+  padding: 4px calc(var(--gutter) - var(--scrollbar-w)) 8px var(--gutter);
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .workspace-head {
@@ -1344,6 +1356,7 @@ button.project-switch:hover,
   min-height: 0;
   padding-bottom: 8px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .workspace-stack .workspace-page {
@@ -6137,6 +6150,7 @@ button.project-switch.all-projects:hover,
 }
 
 /* ==== スクロールバー（ように細く、控えめに） ==== */
+/* 幅を変えるときは --scrollbar-w も合わせる */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
