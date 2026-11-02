@@ -20,13 +20,13 @@ import { SectionBadge } from "../components/SectionBadge";
 import { TaskList } from "../components/TaskList";
 import { ProjectEditDialog } from "../components/ProjectEditDialog";
 import { ProjectSwitcher } from "../components/ProjectSwitcher";
-import { alertDialog } from "../dialogs";
 import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { WorktreeContext } from "../components/changes/worktreeContext";
 import { useStoredState } from "../hooks/useStoredState";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
+import { changeProject } from "../projectOrder";
 import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
 import { REPORT_KINDS, SECTION_META } from "../sections";
 
@@ -143,7 +143,7 @@ export function ProjectPage({
             <button
               className="btn btn-sm"
               title="アーカイブから戻す（サイドバー・全プロジェクトの画面に出す）"
-              onClick={() => void api.updateProject(project.id, { archived: false }).catch((e: unknown) => alertDialog("戻せませんでした", errorMessage(e)))}
+              onClick={() => changeProject(project.id, { archived: false })}
             >
               <ArchiveRestore size={13} /> 戻す
             </button>

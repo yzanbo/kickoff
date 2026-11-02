@@ -1142,11 +1142,31 @@ button.project-switch:hover,
   color: var(--text);
 }
 
-/* 上に固定したプロジェクトの印（名前の右） */
-.workspace-pin {
-  margin-left: 5px;
-  vertical-align: -1px;
-  color: var(--muted);
+/* プロジェクトの見出しのピン: 固定しているものは常に、ほかはマウスを乗せたとき・ピントがあるときだけ出す */
+.workspace-head .workspace-pin:not(.pinned) {
+  display: none;
+}
+
+.workspace-head:hover .workspace-pin,
+.workspace-head:focus-within .workspace-pin {
+  display: inline-grid;
+}
+
+.workspace-head .workspace-pin.pinned {
+  color: hsl(var(--ws-hue, 150) 60% 65%);
+}
+
+:root[data-theme="light"] .workspace-head .workspace-pin.pinned {
+  color: hsl(var(--ws-hue, 150) 55% 38%);
+}
+
+/* しまった（アーカイブした）プロジェクト（サイドバーで出すとき）: 枠を点線にして、名前を薄く */
+.workspace-head.archived {
+  border-style: dashed;
+}
+
+.workspace-head.archived .workspace-title {
+  opacity: 0.6;
 }
 
 /* サイドバーの下の行: プロジェクトの丸（縦並びでは「新しいプロジェクト」など）と、右端の並べ方の切り替え */
@@ -1256,6 +1276,27 @@ button.project-switch:hover,
 
 .stack-item.drop-after::after {
   bottom: 0;
+}
+
+/* 横スライドで、しまった（アーカイブした）プロジェクトを出す・隠す（下の行の右、並べ方の切り替えの左） */
+.archived-projects-toggle {
+  margin-left: auto;
+}
+
+.archived-projects-toggle + .sidebar-layout-toggle {
+  margin-left: 0;
+}
+
+/* 縦並びの、しまったプロジェクトのまとまりの見出し */
+.archived-projects-head {
+  margin: 4px 0;
+}
+
+/* 横スライドの下の丸: しまったプロジェクトは点線で薄く */
+.workspace-dot.archived {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  opacity: 0.45;
 }
 
 /* 横スライド / 縦並びの切り替え（下の行の右端） */

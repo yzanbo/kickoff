@@ -1,16 +1,18 @@
-import { ChevronsDownUp, ChevronsUpDown, GalleryHorizontal, Plus, Rows3 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Archive, ChevronsDownUp, ChevronsUpDown, GalleryHorizontal, Plus, Rows3 } from "lucide-react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { Approval, ProjectSummary, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { PROJECT_DRAG_TYPE, useReorder } from "../../groups";
-import { useStoredChoice, useStoredFlagMap } from "../../hooks/useStoredState";
+import { useStoredChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { initialOf, projectHue } from "../../projectColor";
-import { sidebarOrder } from "../../projectOrder";
+import { archivedProjects, sidebarOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
+import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { ProjectMenu } from "../ProjectMenu";
 import { Segmented } from "../Segmented";
+import { GroupToggle } from "./GroupToggle";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
 import { useSidebarData } from "./useSidebarData";
@@ -18,6 +20,8 @@ import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 const LAYOUT_KEY = "kickoff:sidebar-layout";
 const LAST_HASH_KEY = "kickoff:last-hash-by-project";
+/** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか（"1" なら出す） */
+const SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:sidebar-show-archived-projects";
 /** プロジェクトごとの、チャット一覧を閉じているか（"1" なら閉じている） */
 const COLLAPSED_PREFIX = "kickoff:collapsed:";
 /** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
@@ -34,21 +38,26 @@ interface Props {
  * 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下部のアイコン・ショートカットで切り替える。
  */
 export function ProjectNav({ projects, approvals, route, onNewProject }: Props) {
-  // サイドバーでの並び順（ドラッグで並べ替えた順。同じなら作成順）
-  const ordered = sidebarOrder(projects);
+  // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
+  // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
+  const [showArchived, setShowArchived] = useStoredFlag(SHOW_ARCHIVED_PROJECTS_KEY);
+  const visible = sidebarOrder(projects);
+  const archived = archivedProjects(projects);
+  const ordered = showArchived ? [...visible, ...archived] : visible;
   const reorder = useReorder(
-    ordered.map((p) => p.id),
+    visible.map((p) => p.id),
     (ids) => void api.reorderProjects(ids),
     PROJECT_DRAG_TYPE,
   );
-  /** 並べ替えのドロップ先にする（プロジェクトのアイコン・縦並びの各プロジェクト） */
-  const reorderDrop = (id: number) => ({
+  /** 並べ替えのドロップ先にする（プロジェクトのアイコン・縦並びの各プロジェクト。しまったものは除く） */
+  const reorderDrop = (id: number) => (isArchived(id) ? {} : {
     onDragOver: (e: React.DragEvent) => void reorder.over(e, id),
     onDragLeave: (e: React.DragEvent) => {
       if (!e.currentTarget.contains(e.relatedTarget as Node | null)) reorder.leave(id);
     },
     onDrop: (e: React.DragEvent) => void reorder.drop(e, id),
   });
+  const isArchived = (id: number) => archived.some((p) => p.id === id);
   const [currentId, setCurrentId] = useState(loadCurrentProject);
   // 下の丸の右クリックメニュー（上に固定する・しまう）
   const [menu, setMenu] = useState<{ x: number; y: number; project: ProjectSummary } | null>(null);
@@ -119,7 +128,8 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     }
   });
 
-  if (ordered.length === 0) {
+  // すべてしまっているときは、下の行（しまったものを出す切り替え）を出す
+  if (projects.length === 0) {
     return (
       <div className="workspace-empty">
         <button className="sidebar-new" onClick={onNewProject}>
@@ -128,6 +138,18 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
       </div>
     );
   }
+
+  /** 縦並びの、しまったプロジェクトのまとまりの見出し（サイドバーのアーカイブ済みのチャットと同じ形） */
+  const toggleArchived = () => setShowArchived(!showArchived);
+  const archivedHead = archived.length > 0 && (
+    <div className="custom-group-head ungrouped archived-projects-head">
+      <GroupToggle open={showArchived} onToggle={toggleArchived} icon={Archive} iconSize={12} />
+      <button className="custom-group-name ungrouped-name" onClick={toggleArchived}>
+        アーカイブしたプロジェクト
+      </button>
+      <span className="custom-group-count">{archived.length}</span>
+    </div>
+  );
 
   /** 横スライド / 縦並びの切り替え（下の行の右端） */
   const layoutToggle = (
@@ -150,8 +172,11 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
     return (
       <div className="workspaces">
         <div className="workspace-stack">
-          {ordered.map((p) => (
-            <div key={p.id} className={`stack-item ${reorder.classFor(p.id)}`} {...reorderDrop(p.id)}>
+          {ordered.map((p, i) => (
+            <Fragment key={p.id}>
+            {/* しまったプロジェクトのまとまりの見出し（押して開閉する。初めは閉じている） */}
+            {i === visible.length && archivedHead}
+            <div className={`stack-item ${isArchived(p.id) ? "" : reorder.classFor(p.id)}`} {...reorderDrop(p.id)}>
               <WorkspacePage
                 project={p}
                 runs={runs[p.id] ?? []}
@@ -161,10 +186,12 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
                 hidden={false}
                 collapsed={collapsedMap.get(p.id)}
                 onCollapsedChange={collapsedMap.set}
-                headDrag={reorder.handle(p.id)}
+                headDrag={isArchived(p.id) ? undefined : reorder.handle(p.id)}
               />
             </div>
+            </Fragment>
           ))}
+          {!showArchived && archivedHead}
         </div>
         <div className="workspace-switcher stack">
           <button className="sidebar-new" onClick={onNewProject}>
@@ -223,16 +250,16 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
               key={p.id}
               role="tab"
               aria-selected={i === index}
-              className={`workspace-dot ${i === index ? "active" : ""} ${p.pinned ? "pinned" : ""} ${reorder.classFor(p.id)}`}
+              className={cx("workspace-dot", i === index && "active", p.pinned > 0 && "pinned", isArchived(p.id) ? "archived" : reorder.classFor(p.id))}
               style={{ "--ws-hue": `${projectHue(p.id)}` } as React.CSSProperties}
-              title={`${p.name}${p.pinned ? "（固定）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（ドラッグで並べ替え・右クリックで固定・アーカイブ）`}
+              title={`${p.name}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${isArchived(p.id) ? "" : "ドラッグで並べ替え・"}右クリックで固定・アーカイブ）`}
               onClick={() => go(i)}
               onContextMenu={(e) => {
                 e.preventDefault();
                 setMenu({ x: e.clientX, y: e.clientY, project: p });
               }}
-              draggable
-              {...reorder.handle(p.id)}
+              draggable={!isArchived(p.id)}
+              {...(isArchived(p.id) ? {} : reorder.handle(p.id))}
               {...reorderDrop(p.id)}
             >
               {initialOf(p.name)}
@@ -244,6 +271,16 @@ export function ProjectNav({ projects, approvals, route, onNewProject }: Props) 
           <Plus size={14} />
         </button>
         </div>
+        {/* しまったプロジェクトを丸の列に出す・隠す（しまったものがあるときだけ。初めは隠す） */}
+        {archived.length > 0 && (
+          <IconButton
+            icon={Archive}
+            className={cx("archived-projects-toggle", showArchived && "active")}
+            label={showArchived ? "アーカイブしたプロジェクトを隠す" : `アーカイブしたプロジェクトを表示（${archived.length}）`}
+            aria-pressed={showArchived}
+            onClick={() => setShowArchived(!showArchived)}
+          />
+        )}
         {layoutToggle}
       </div>
       {menu && <ProjectMenu {...menu} onClose={() => setMenu(null)} />}
