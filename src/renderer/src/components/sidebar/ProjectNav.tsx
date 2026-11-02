@@ -8,7 +8,6 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
 import {
-  SIDEBAR_LAST_HASH_KEY,
   SIDEBAR_LAYOUT_KEY,
   SIDEBAR_PROJECT_COLLAPSED_PREFIX,
   SIDEBAR_PROJECT_ORDER_KEY,
@@ -24,6 +23,7 @@ import { useChatSelection } from "./chatSelection";
 import { SelectionBar } from "./SelectionBar";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
+import { loadLastHashes, saveLastHashes, type LastHashes } from "./lastHashes";
 import { foldAll, stateCounts, useCompactProjects, useCompactRows, useShowArchivedChats, waitingRuns } from "./sidebarFlags";
 import { useChatSearch } from "../../chatSearch";
 import { SearchField } from "../SearchField";
@@ -97,13 +97,13 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   }, [routeProject]);
 
   // プロジェクトごとに、最後に見ていた画面（URL）を覚えておく（横スライドで戻ってきたときに開く）
-  const lastHashes = useRef<Record<number, string>>(JSON.parse(sessionStorage.getItem(SIDEBAR_LAST_HASH_KEY) ?? "{}"));
+  const lastHashes = useRef<LastHashes>(loadLastHashes());
   useEffect(() => {
     if (routeProject === undefined) return;
     // 新しいチャットの画面は覚えない（戻るたびに新しいチャットが開かないように）
     if (route.name === "newChat") return;
     lastHashes.current[routeProject] = location.hash;
-    sessionStorage.setItem(SIDEBAR_LAST_HASH_KEY, JSON.stringify(lastHashes.current));
+    saveLastHashes(lastHashes.current);
   }, [route, routeProject]);
 
   /** 横スライドで切り替えたプロジェクトを、右側にも表示する（Arc・Zen Browser のスペースと同じ） */
