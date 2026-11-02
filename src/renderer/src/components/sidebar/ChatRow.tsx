@@ -7,6 +7,9 @@ import type { RunTitleEditor } from "../../hooks/useRunRename";
 import { href, openRun } from "../../router";
 import { SECTION_META } from "../../sections";
 import { formatDayTime, shortRelativeTime } from "../../time";
+import { workingFor } from "../../activity";
+import { useTicker } from "../../hooks/useTicker";
+import { useRunActivity } from "../../runActivity";
 import { alertDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
 import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../../runActions";
@@ -75,9 +78,13 @@ export function ChatRow({
         <span className="chat-row-body">
           <span className="chat-row-line">
             <span className="chat-row-title">{chatTitle(run.title)}</span>
-            <span className="chat-row-time" title={formatDayTime(run.updated_at)}>
-              {shortRelativeTime(run.updated_at)}
-            </span>
+            {state === "running" ? (
+              <RunningTime run={run} />
+            ) : (
+              <span className="chat-row-time" title={formatDayTime(run.updated_at)}>
+                {shortRelativeTime(run.updated_at)}
+              </span>
+            )}
           </span>
           <span className="chat-row-meta">
             <Icon size={11} className={`sec-icon sec-${run.phase}`} aria-hidden />
@@ -100,5 +107,17 @@ export function ChatRow({
         <IconButton icon={Trash2} size={13} label="削除" title="削除…" className="danger" onClick={() => act(() => confirmDeleteRun(run))} />
       </span>
     </li>
+  );
+}
+
+/** 作業中のチャットの時刻の代わりに出す経過時間（「作業中 3分」）。マウスを乗せると、いまの作業（ファイルの編集・コマンドの実行など） */
+function RunningTime({ run }: { run: Run }) {
+  useTicker(30_000);
+  const activity = useRunActivity(run.id);
+  const since = run.turn_started_at ?? run.updated_at;
+  return (
+    <span className="chat-row-time running" title={`${activity ?? "作業中"}\n始めた時刻: ${formatDayTime(since)}`}>
+      {workingFor(since)}
+    </span>
   );
 }

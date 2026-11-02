@@ -53,7 +53,7 @@ const TOOL_LABELS: Record<string, string> = {
   ToolSearch: "ツール検索",
 };
 
-const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
+export const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
 const SEARCH_TOOLS = new Set(["Grep", "Glob", "WebSearch"]);
 
 /**

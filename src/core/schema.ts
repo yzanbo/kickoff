@@ -128,6 +128,8 @@ const MIGRATIONS = [
   `ALTER TABLE runs ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;`,
   // v15: チャットが作業したブランチ（ワークツリーを片付けた・消したあとも、どのブランチの作業だったか分かるように）
   `ALTER TABLE runs ADD COLUMN branch TEXT NOT NULL DEFAULT '';`,
+  // v16: いまの作業を始めた時刻（作業中のチャットの経過時間を出す）
+  `ALTER TABLE runs ADD COLUMN turn_started_at TEXT;`,
 ];
 
 /** スキーマのバージョン管理（PRAGMA user_version）。変更は MIGRATIONS に追記していく */
