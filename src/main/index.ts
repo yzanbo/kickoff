@@ -19,6 +19,7 @@ import {
   openInChrome,
   removeExtension,
 } from "./browser.js";
+import { stopChildElectronApps } from "./childApps.js";
 import { killAllTerminals, registerTerminalIpc } from "./terminals.js";
 
 // ビルド後の out/main を基準にする
@@ -193,17 +194,23 @@ app.on("window-all-closed", () => {
 
 let closing = false;
 app.on("before-quit", (e) => {
-  // 内蔵ターミナルのシェルは、すぐ止められるので先に止める
-  killAllTerminals();
-  if (!core) return;
+  if (!core) return killAllTerminals();
   // 実行中のエージェントや DB を閉じてから終了する（片付けの間に届いた終了の指示も待たせる）
   e.preventDefault();
   if (closing) return;
   closing = true;
+  const coreToClose = core;
   // 片付けのあとに app.quit() を呼び直すと、ウィンドウを閉じたところで終了が取り消されてしまうので、app.exit で終える。
   // 片付けが終わらなくても、5 秒で終える
   const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
-  void Promise.race([core.close(), timeout])
+  const cleanup = async () => {
+    // 内蔵ターミナル・エージェントから起動した Electron のアプリ（開発版の Kickoff Dev など）を、先に正しく止める（3 秒まで）。
+    // シェルやエージェントを先に止めると、そのアプリが Helper ごといきなり止められ、localStorage が消えることがある
+    await stopChildElectronApps(3000);
+    killAllTerminals();
+    await coreToClose.close();
+  };
+  void Promise.race([cleanup(), timeout])
     .catch((err) => console.error("[main] 終了の片付けに失敗しました", err))
     .finally(() => app.exit(0));
 });
