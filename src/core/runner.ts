@@ -1,18 +1,8 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import type { ApprovalCenter } from "./approvals.js";
-import type { Bus } from "./bus.js";
-import { errorMessage } from "./errors.js";
-import { currentBranch } from "./git.js";
-import { createKickoffTools } from "./kickoffTools.js";
-import { isInside } from "./paths.js";
-import { buildSystemPrompt, phasePolicy } from "./phases.js";
+import { executeRun, type ExecutionDeps, type QueueItem } from "./runExecution.js";
 import { resolveRunDefaults } from "./sectionDefaults.js";
-import type { AgentProvider } from "./providers/index.js";
-import type { Store } from "./store.js";
-import type { Attachment, Phase, Project, ProviderId, Run, RunOptions } from "./types.js";
+import type { Attachment, Phase, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
-import { withAttachmentNote, type UploadStore } from "./uploads.js";
+import { withAttachmentNote } from "./uploads.js";
 
 interface StartRunInput {
   projectId: number;
@@ -28,32 +18,17 @@ interface StartRunInput {
   worktreePath?: string;
 }
 
-interface QueueItem {
-  runId: number;
-  prompt: string;
-  /** 会話の要約（/compact）。発言・結果としては残さず、確認待ちにもしない */
-  compact?: boolean;
-}
-
 /**
  * エージェントの実行を管理する。
  * 同時実行数の上限を超えた分は待機列に入れ、空きができしだい順に開始する。
  * 1 つの実行（Run）は 1 つの会話で、追加のメッセージを送ると同じセッションを続きから再開する。
+ * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は runExecution.ts
  */
 export class Runner {
   private readonly active = new Map<number, AbortController>();
   private readonly queue: QueueItem[] = [];
 
-  constructor(
-    private readonly deps: {
-      store: Store;
-      approvals: ApprovalCenter;
-      providers: Record<ProviderId, AgentProvider>;
-      usage: UsageMonitor;
-      uploads?: UploadStore;
-      bus?: Bus;
-    },
-  ) {}
+  constructor(private readonly deps: ExecutionDeps & { usage: UsageMonitor }) {}
 
   async start(input: StartRunInput): Promise<Run> {
     const { store, providers } = this.deps;
@@ -188,136 +163,14 @@ export class Runner {
     }
   }
 
-  private async execute({ runId, prompt, compact = false }: QueueItem) {
-    const { store, approvals, providers, usage } = this.deps;
+  private async execute(item: QueueItem) {
     const controller = new AbortController();
-    this.active.set(runId, controller);
-
+    this.active.set(item.runId, controller);
     try {
-      const run = store.getRun(runId)!;
-      const project = store.getProject(run.project_id)!;
-      const task = run.task_id ? (store.getTask(run.task_id) ?? null) : null;
-      const provider = providers[run.provider];
-
-      // 作業場所: チャットのワークツリー → タスクのワークツリー → プロジェクトのフォルダ（本体）
-      const cwd = run.worktree_path || task?.worktree_path || project.repo_path;
-      // フォルダが消えていれば（ワークツリーをアプリの外で消したときなど）、分かる文で止める
-      const isDir = await fs.stat(cwd).then((s) => s.isDirectory(), () => false);
-      if (!isDir) throw new Error(`作業場所のフォルダが見つかりません（${cwd}）。ワークツリーが消された可能性があります。新しいチャットで作業場所を選び直してください`);
-      // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）
-      const branch = await currentBranch(cwd);
-      store.updateRun(runId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
-      if (task && !compact && (task.status === "todo" || task.status === "blocked")) store.updateTask(task.id, { status: "in_progress" });
-
-      const policy = phasePolicy(run.phase, project);
-      const result = await provider.run(
-        {
-          cwd,
-          prompt,
-          systemPrompt: buildSystemPrompt(project, run.phase, task, cwd),
-          policy,
-          resumeSessionId: run.session_id,
-          model: run.model,
-          effort: run.effort,
-          permissionMode: run.permission_mode,
-          fastMode: Boolean(run.fast_mode),
-          // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
-          additionalDirectories: [...(this.deps.uploads ? [this.deps.uploads.dir] : []), ...referenceDirectories(project)],
-          // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
-          readOnlyPaths: project.references.map((r) => r.path).filter((p) => !isInside(cwd, p)),
-          tools: createKickoffTools({
-            store,
-            projectId: project.id,
-            runId,
-            taskId: task?.id ?? null,
-            phase: run.phase,
-            writeScope: policy.writeScope,
-            workdir: cwd,
-          }),
-        },
-        {
-          subagentProgress: (subagent) => {
-            this.deps.bus?.publish({ type: "run_subagent", project_id: project.id, run_id: runId, subagent });
-          },
-          stream: (text) => {
-            this.deps.bus?.publish({ type: "run_delta", project_id: project.id, run_id: runId, text });
-          },
-          emit: (event) => {
-            if (event.type === "init" && event.session_id !== store.getRun(runId)?.session_id) {
-              store.updateRun(runId, { session_id: event.session_id });
-            }
-            store.addEvent(runId, event);
-          },
-          requestApproval: async (req, signal) => {
-            const { approval, decision } = approvals.request(
-              { runId, projectId: project.id, taskId: task?.id ?? null },
-              req,
-              signal,
-            );
-            store.addEvent(runId, {
-              type: "approval",
-              approval_id: approval.id,
-              kind: approval.kind,
-              tool_name: approval.tool_name,
-              title: approval.title,
-            });
-            store.updateRun(runId, { status: "waiting" });
-            const answer = await decision;
-            store.addEvent(runId, { type: "approval_resolved", approval_id: approval.id, action: answer.action });
-            if (!controller.signal.aborted && approvals.list({ runId }).length === 0) {
-              store.updateRun(runId, { status: "running" });
-            }
-            return answer;
-          },
-        },
-        controller.signal,
-      );
-
-      const current = store.getRun(runId)!;
-      store.updateRun(runId, {
-        status: result.status,
-        session_id: result.sessionId ?? current.session_id,
-        cost_usd: current.cost_usd + (result.costUsd ?? 0),
-        // 要約は会話の回数・最後の回答に数えない
-        num_turns: current.num_turns + (compact ? 0 : (result.turns ?? 0)),
-        result: compact ? current.result : (result.result ?? current.result),
-        error: result.error ?? null,
-        ...(result.context
-          ? { context_tokens: result.context.tokens, context_window: result.context.window ?? current.context_window }
-          : compact && result.status === "completed"
-            ? // 要約したあとの大きさが分からないときは、次の応答まで空にしておく
-              { context_tokens: null }
-            : {}),
-        // 終わったら「確認待ち」にする（中断・要約のときは除く）。チャットを開くと消える
-        attention: compact || result.status === "cancelled" ? current.attention : 1,
-      });
-      // 要約は compact イベントだけを残す（失敗したときは理由を残す）
-      if (!compact || result.status !== "completed") {
-        store.addEvent(runId, {
-          type: "result",
-          status: result.status,
-          text: result.status === "completed" ? result.result : result.error,
-          cost_usd: result.costUsd,
-          turns: result.turns,
-        });
-      }
-
-      // エージェントがタスクの状態を更新しなかった場合の後始末（要約はタスクの作業ではないので除く）
-      if (task && !compact) {
-        const latest = store.getTask(task.id);
-        if (latest?.status === "in_progress") {
-          store.updateTask(task.id, {
-            status: result.status === "completed" ? "review" : result.status === "cancelled" ? "todo" : "blocked",
-          });
-        }
-      }
-    } catch (e) {
-      const message = errorMessage(e);
-      store.updateRun(runId, { status: "failed", error: message });
-      store.addEvent(runId, { type: "error", message });
+      await executeRun(this.deps, item, controller.signal);
     } finally {
-      this.active.delete(runId);
-      void usage.refresh();
+      this.active.delete(item.runId);
+      void this.deps.usage.refresh();
       this.pump();
     }
   }
@@ -326,9 +179,4 @@ export class Runner {
 function firstLine(text: string): string {
   const line = text.trim().split("\n")[0] ?? "";
   return line.length > 60 ? `${line.slice(0, 60)}…` : line;
-}
-
-/** 参照資料を読めるようにするフォルダ（ファイルはそのフォルダ）。重複は除く */
-function referenceDirectories(project: Project): string[] {
-  return [...new Set(project.references.map((r) => (r.kind === "folder" ? r.path : path.dirname(r.path))))];
 }
