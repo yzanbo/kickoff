@@ -14,7 +14,8 @@ import type { StateCounts } from "./sidebarFlags";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
- * カードの外枠の中を押すとカンバンを開く（中のボタンを除く）。
+ * カードの外枠の中を押すと（中のボタンを除く）、選んでいなければ選び（カンバンを開く）、選んでいればチャット一覧を開閉する。
+ * マウスを乗せたとき、押すと開閉するなら頭文字が矢印に変わり、押すと選ぶなら頭文字のまま。
  * 出すのは、いつも使うものだけ: チャット一覧の開閉（頭文字。乗せると矢印に変わる）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
@@ -52,6 +53,16 @@ export function WorkspaceHead({
   // ＋を押したときの、作成先のグループを選ぶメニュー
   const [pickAt, setPickAt] = useState<{ x: number; y: number } | null>(null);
   const projectMenu = useProjectMenu([project]);
+  /**
+   * カードを押したとき: 選んでいなければ選ぶ（カンバンを開く。閉じていればチャット一覧も開く）、
+   * 選んでいれば、チャット一覧を開閉する
+   */
+  const press = () => {
+    if (active) return onToggleCollapsed();
+    navigate({ name: "project", id: project.id, tab: "board" });
+    if (collapsed) onToggleCollapsed();
+  };
+  const pressLabel = active ? (collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる") : `${project.name} を開く`;
   return (
     <>
       <div
@@ -60,19 +71,19 @@ export function WorkspaceHead({
         title={headDrag ? "ドラッグでプロジェクトを並べ替える（右クリックで固定・アーカイブ）" : "右クリックで固定・アーカイブ"}
         onContextMenu={(e) => projectMenu.open(e, project, { onCreateGroup, collapse: { collapsed, toggle: onToggleCollapsed } })}
         onClick={(e) => {
-          // カードの外枠の中なら、どこを押してもカンバンを開く（頭文字が矢印に変わる範囲と同じ）。中のボタン・リンクはそちらの動き
+          // カードの外枠の中なら、どこを押しても同じ（選ぶ / 開閉）。中のボタン（ピン・状態の数・＋）はそちらの動き
           if ((e.target as HTMLElement).closest("button, a, input, select")) return;
-          navigate({ name: "project", id: project.id, tab: "board" });
+          press();
         }}
         {...headDrag}
       >
-        {/* 頭文字のボタン（カードにマウスを乗せると開閉の矢印に変わる。押すとチャット一覧を開閉） */}
+        {/* 頭文字のボタン（カードを押したのと同じ。選んでいるカードに乗せたときだけ、開閉の矢印に変わる。選んでいなければ頭文字のまま = 押すと選ぶ） */}
         <button
           className="workspace-avatar workspace-toggle"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? `${project.name} のチャット一覧を開く` : `${project.name} のチャット一覧を閉じる`}
-          title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
-          onClick={onToggleCollapsed}
+          aria-expanded={active ? !collapsed : undefined}
+          aria-label={active ? `${project.name} の${pressLabel}` : pressLabel}
+          title={pressLabel}
+          onClick={press}
         >
           <span className="workspace-toggle-initial" aria-hidden>
             {initialOf(project.name)}
@@ -81,7 +92,16 @@ export function WorkspaceHead({
             <Chevron open={!collapsed} size={15} />
           </span>
         </button>
-        <a className="workspace-title" href={href({ name: "project", id: project.id, tab: "board" })} title={`${project.name} のカンバンを開く`}>
+        <a
+          className="workspace-title"
+          href={href({ name: "project", id: project.id, tab: "board" })}
+          title={pressLabel}
+          onClick={(e) => {
+            // 名前を押しても、カードを押したのと同じ（選ぶ / 開閉）
+            e.preventDefault();
+            press();
+          }}
+        >
           <span className="workspace-title-text">
             <span className="workspace-name">{project.name}</span>
             <span className="workspace-sub">{chatCount} チャット</span>
