@@ -10,6 +10,18 @@ const api = {
   /** 参照資料にするフォルダ・ファイルを選ぶ（複数可） */
   pickReferences: (): Promise<string[]> => ipcRenderer.invoke("kickoff:pick-references"),
   openInChrome: (url: string): Promise<void> => ipcRenderer.invoke("kickoff:open-in-chrome", url),
+  /** 埋め込みブラウザ（targetId）の開発者ツールを、別の埋め込みブラウザ（devtoolsId）の中に表示する */
+  openDevToolsIn: (targetId: number, devtoolsId: number): Promise<void> => ipcRenderer.invoke("kickoff:browser-devtools-in", targetId, devtoolsId),
+  /** 埋め込みブラウザ（targetId）の開発者ツールを、別のウィンドウで開く */
+  openDevToolsWindow: (targetId: number): Promise<void> => ipcRenderer.invoke("kickoff:browser-devtools-window", targetId),
+  /** 埋め込みブラウザの開発者ツールを閉じる（別のウィンドウも） */
+  closeDevTools: (targetId: number): Promise<void> => ipcRenderer.invoke("kickoff:browser-devtools-close", targetId),
+  /** 開発者ツールの別のウィンドウを、利用者が閉じたとき。戻り値で受け取りをやめる */
+  onDevToolsWindowClosed: (listener: (targetId: number) => void): (() => void) => {
+    const handler = (_e: unknown, targetId: number) => listener(targetId);
+    ipcRenderer.on("kickoff:browser-devtools-window-closed", handler);
+    return () => ipcRenderer.off("kickoff:browser-devtools-window-closed", handler);
+  },
   /** Kickoff のウィンドウを前面に出す（通知を押したとき） */
   focusWindow: (): Promise<void> => ipcRenderer.invoke("kickoff:focus-window"),
   /** 内蔵ターミナル（右のパネルのタブ）。key はタブごとのキー */

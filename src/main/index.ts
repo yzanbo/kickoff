@@ -11,6 +11,9 @@ import {
   installFromWebStore,
   listExtensions,
   loadSavedExtensions,
+  closeDevTools,
+  openDevToolsIn,
+  openDevToolsWindow,
   openInChrome,
   removeExtension,
 } from "./browser.js";
@@ -140,6 +143,19 @@ function registerIpc() {
     return result.canceled ? [] : result.filePaths;
   });
   ipcMain.handle("kickoff:open-in-chrome", (_e, url: string) => openInChrome(String(url)));
+  // 埋め込みブラウザの開発者ツールを、同じ画面の別の埋め込みブラウザの中に表示する（右・下に並べる）
+  ipcMain.handle("kickoff:browser-devtools-in", (e, targetId: unknown, devtoolsId: unknown) => {
+    if (typeof targetId !== "number" || typeof devtoolsId !== "number") throw new Error("開発者ツールの指定が正しくありません");
+    openDevToolsIn(e.sender, targetId, devtoolsId);
+  });
+  // 埋め込みブラウザの開発者ツールを、別のウィンドウで開く
+  ipcMain.handle("kickoff:browser-devtools-window", (e, targetId: unknown) => {
+    if (typeof targetId !== "number") throw new Error("開発者ツールの指定が正しくありません");
+    openDevToolsWindow(e.sender, targetId);
+  });
+  ipcMain.handle("kickoff:browser-devtools-close", (e, targetId: unknown) => {
+    if (typeof targetId === "number") closeDevTools(e.sender, targetId);
+  });
   ipcMain.handle("kickoff:browser-extensions", () => listExtensions());
   ipcMain.handle("kickoff:browser-extension-install", (_e, key: string) => {
     if (!(key in KNOWN_EXTENSIONS)) throw new Error("未対応の拡張機能です");

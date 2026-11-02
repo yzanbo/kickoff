@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { app, session, shell, type Session, type WebContents } from "electron";
+import { app, BrowserWindow, session, shell, webContents, type Session, type WebContents } from "electron";
 import { errorMessage } from "../core/errors.js";
 import { unpackCrx } from "./crx.js";
 
@@ -50,6 +50,71 @@ export function hardenWebviews() {
       });
     }
   });
+}
+
+/**
+ * 埋め込みブラウザの開発者ツールを、同じ画面の別の埋め込みブラウザ（devtoolsId）の中に表示する（右・下に並べるため）。
+ * どちらも、頼んできた画面の中の埋め込みブラウザであることを確かめる
+ */
+const isOurWebview = (host: WebContents, c: WebContents | undefined): c is WebContents => Boolean(c && c.getType() === "webview" && c.hostWebContents === host);
+
+// 埋め込みブラウザ（の WebContents の ID）ごとの、開発者ツールの別のウィンドウ
+const devtoolsWindows = new Map<number, BrowserWindow>();
+
+/** 別のウィンドウを閉じる（こちらから閉じるときは、画面には知らせない） */
+function closeDevToolsWindow(targetId: number) {
+  const win = devtoolsWindows.get(targetId);
+  devtoolsWindows.delete(targetId);
+  if (win && !win.isDestroyed()) win.destroy();
+}
+
+function targetOf(host: WebContents, targetId: number): WebContents {
+  const target = webContents.fromId(targetId);
+  if (!isOurWebview(host, target)) throw new Error("開発者ツールを開けません");
+  return target;
+}
+
+/** いま出している開発者ツール（別のウィンドウ・タブの中）を閉じる */
+function resetDevTools(target: WebContents) {
+  closeDevToolsWindow(target.id);
+  if (target.isDevToolsOpened()) target.closeDevTools();
+}
+
+export function openDevToolsIn(host: WebContents, targetId: number, devtoolsId: number) {
+  const target = targetOf(host, targetId);
+  const devtools = webContents.fromId(devtoolsId);
+  if (!isOurWebview(host, devtools)) throw new Error("開発者ツールを開けません");
+  resetDevTools(target);
+  target.setDevToolsWebContents(devtools);
+  target.openDevTools();
+}
+
+/**
+ * 埋め込みブラウザの開発者ツールを、別のウィンドウで開く。一度タブの中に表示すると Electron の既定の別ウィンドウは開かなくなるので、
+ * 開発者ツール用のウィンドウをこちらで作り、その中に表示する（Electron の説明どおりのやり方）。
+ * 利用者がウィンドウを閉じたら、開発者ツールも閉じて画面に知らせる（kickoff:browser-devtools-window-closed）
+ */
+export function openDevToolsWindow(host: WebContents, targetId: number) {
+  const target = targetOf(host, targetId);
+  resetDevTools(target);
+  const win = new BrowserWindow({ width: 1000, height: 720, title: "開発者ツール", backgroundColor: "#202124" });
+  devtoolsWindows.set(targetId, win);
+  target.setDevToolsWebContents(win.webContents);
+  target.openDevTools({ mode: "detach" });
+  win.on("closed", () => {
+    // こちらから閉じたとき（場所を変えた・閉じるボタン）は何もしない
+    if (devtoolsWindows.get(targetId) !== win) return;
+    devtoolsWindows.delete(targetId);
+    if (!target.isDestroyed() && target.isDevToolsOpened()) target.closeDevTools();
+    if (!host.isDestroyed()) host.send("kickoff:browser-devtools-window-closed", targetId);
+  });
+}
+
+/** 開発者ツールを閉じる（別のウィンドウも） */
+export function closeDevTools(host: WebContents, targetId: number) {
+  const target = webContents.fromId(targetId);
+  if (!target) return closeDevToolsWindow(targetId);
+  if (isOurWebview(host, target)) resetDevTools(target);
 }
 
 /** Chrome がインストールされていれば Chrome で、なければ既定のブラウザで開く */

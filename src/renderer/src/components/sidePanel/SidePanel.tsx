@@ -6,7 +6,7 @@ import { cx } from "../../cx";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
 import { RunPage } from "../../pages/RunPage";
 import { normalizeUrl } from "../../url";
-import { BrowserPane } from "../BrowserPane";
+import { BrowserPane } from "../browser/BrowserPane";
 import { IconButton } from "../IconButton";
 import { NewChatPane } from "../NewChatPane";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
