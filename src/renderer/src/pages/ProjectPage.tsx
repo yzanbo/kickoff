@@ -24,6 +24,7 @@ import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { WorktreeContext } from "../components/changes/worktreeContext";
 import { useStoredState } from "../hooks/useStoredState";
+import { editorWorktreeKey } from "../storageKeys";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
 import { confirmRestoreProject } from "../projectOrder";
@@ -73,7 +74,7 @@ export function ProjectPage({
   const [error, setError] = useState<string>();
   const [editing, setEditing] = useState(false);
   // エディタタブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
-  const [worktree, setWorktree] = useStoredState<string | undefined>(`kickoff:editor-worktree:${id}`, (raw) => raw || undefined, (v) => v ?? "");
+  const [worktree, setWorktree] = useStoredState<string | undefined>(editorWorktreeKey(id), (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes", worktree);
 

@@ -9,6 +9,7 @@ import { useStoredChoice, useStoredState } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { openRun, type ReopenRoute } from "../../router";
+import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY, BOARD_VIEW_KEY } from "../../storageKeys";
 import { CardMenu } from "../CardMenu";
 import { ErrorText } from "../ErrorText";
 import { useProjectChatContext } from "../projectChat/useProjectChat";
@@ -30,16 +31,11 @@ import { useWorktreeLists } from "../../worktreeBranches";
 import { workplaceOf } from "../../workplace";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
 
-const VIEW_KEY = "kickoff:board-view";
-const LANES_KEY = "kickoff:board-lanes";
-/** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える） */
-const ALL_LANES_KEY = "kickoff:board-lanes-all";
 /** カンバン（列 = 状態）で選べる段の分け方 */
 const KANBAN_LANES: BoardLane[] = ["worktree", "phase", "group", "project"];
 
 type Entry = BoardEntry;
 const NO_GROUPS: RunGroup[] = [];
-const SHOW_ARCHIVED_KEY = "kickoff:show-archived";
 
 interface Props {
   /** 未指定なら全プロジェクトのボード（カードにプロジェクト名を出す） */
@@ -64,8 +60,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
   // アーカイブでの絞り込み・ボード／リスト（覚えておく）
-  const [archive, setArchive] = useStoredState<ArchiveFilter>(SHOW_ARCHIVED_KEY, decodeArchiveFilter, encodeArchiveFilter);
-  const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list", "lanes"], "board");
+  const [archive, setArchive] = useStoredState<ArchiveFilter>(BOARD_SHOW_ARCHIVED_KEY, decodeArchiveFilter, encodeArchiveFilter);
+  const [view, setView] = useStoredChoice<BoardView>(BOARD_VIEW_KEY, ["board", "list", "lanes"], "board");
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
   const { runs, loaded } = useBoardRuns(projectId, archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
@@ -134,7 +130,7 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
   // 全プロジェクトのボードは別に覚え、初めはプロジェクト（プロジェクト別のカンバン）。プロジェクトのボードは初めはセクション
   const laneOptions = KANBAN_LANES.filter((l) => (allProjects ? l !== "group" : l !== "project"));
   const defaultLane: BoardLane = allProjects ? "project" : "phase";
-  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(allProjects ? ALL_LANES_KEY : LANES_KEY, BOARD_LANES, defaultLane);
+  const [laneChoice, setLanes] = useStoredChoice<BoardLane>(allProjects ? BOARD_LANES_ALL_KEY : BOARD_LANES_KEY, BOARD_LANES, defaultLane);
   const lanes: BoardLane = laneOptions.includes(laneChoice) ? laneChoice : defaultLane;
 
   /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */

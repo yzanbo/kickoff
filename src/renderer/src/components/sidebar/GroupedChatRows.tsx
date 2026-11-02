@@ -11,7 +11,8 @@ import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplac
 import type { ChatGrouping } from "./chatGroupings";
 import { Collapse } from "../Collapse";
 import { GroupToggle } from "./GroupToggle";
-import { SECTION_CLOSED_PREFIX, useFoldAll } from "./sidebarFlags";
+import { SIDEBAR_SECTION_CLOSED_PREFIX } from "../../storageKeys";
+import { useFoldAll } from "./sidebarFlags";
 
 type Row = { run: Run; state: AgentState };
 
@@ -84,7 +85,7 @@ export function GroupedChatRows({
   /** 自分で作ったグループの中・アーカイブ済みの中でまとめるとき、そのまとまり（開閉をまとまりごとに覚える。なければグループなし） */
   scope?: number | "archived";
 }) {
-  const closed = useStoredFlagMap(SECTION_CLOSED_PREFIX);
+  const closed = useStoredFlagMap(SIDEBAR_SECTION_CLOSED_PREFIX);
   const worktrees = useWorktreeList(projectId);
   const scopeKey = scope === undefined ? "" : scope === "archived" ? "archived:" : `g${scope}:`;
   const idOf = (key: string) => `${projectId}:${scopeKey}${grouping}:${key}`;

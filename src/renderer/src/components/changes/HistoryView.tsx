@@ -8,6 +8,7 @@ import { errorMessage } from "../../errors";
 import { useActionError } from "../../hooks/useActionError";
 import { startVerticalDrag } from "../../hooks/dragResize";
 import { useStoredNumber } from "../../hooks/useStoredState";
+import { HISTORY_SPLIT_KEY } from "../../storageKeys";
 import { Chevron } from "../Chevron";
 import { ErrorText } from "../ErrorText";
 import { IconButton, RefreshButton } from "../IconButton";
@@ -18,7 +19,6 @@ import type { GitLogController } from "./useGitLog";
 import { invalidateWorktrees } from "../../worktreeBranches";
 
 /** 上のコミットの表の高さ（割合。下はコミットの詳細） */
-const SPLIT_KEY = "kickoff:history-split";
 const DEFAULT_SPLIT = 43;
 
 /** 左の一覧の 1 つのまとまり（ブランチ・リモートなど。見出しで開閉。action は見出しの右のボタン。always なら空でも出す） */
@@ -249,7 +249,7 @@ export function HistoryMain({
   commit?: GitCommit;
   onSelect: (commit: GitCommit) => void;
 }) {
-  const [split, setSplit] = useStoredNumber(SPLIT_KEY, DEFAULT_SPLIT);
+  const [split, setSplit] = useStoredNumber(HISTORY_SPLIT_KEY, DEFAULT_SPLIT);
   const [resizing, setResizing] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);

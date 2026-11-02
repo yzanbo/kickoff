@@ -1,10 +1,10 @@
-const CURRENT_KEY = "kickoff:current-project";
+import { CURRENT_PROJECT_KEY } from "../../storageKeys";
 
 /** サイドバーで最後に選んでいたプロジェクト（⌘N の新しいチャットの作成先にも使う） */
 export function loadCurrentProject(): number | undefined {
-  return Number(localStorage.getItem(CURRENT_KEY)) || undefined;
+  return Number(localStorage.getItem(CURRENT_PROJECT_KEY)) || undefined;
 }
 
 export function saveCurrentProject(id: number) {
-  localStorage.setItem(CURRENT_KEY, String(id));
+  localStorage.setItem(CURRENT_PROJECT_KEY, String(id));
 }

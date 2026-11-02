@@ -10,6 +10,7 @@ import { useActionError } from "../../hooks/useActionError";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import type { ReopenRoute } from "../../router";
+import { GROUP_VIEW_KEY } from "../../storageKeys";
 import { CardMenu } from "../CardMenu";
 import { ErrorText } from "../ErrorText";
 import { useGroupMenu } from "../GroupMenu";
@@ -27,8 +28,6 @@ import { runCardProps } from "./runCardProps";
 import { useBoardFocus } from "./useBoardFocus";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
-
-const VIEW_KEY = "kickoff:group-view";
 
 interface Props {
   projectId: number;
@@ -58,7 +57,7 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
   // ボード（列 = グループ）/ リスト / スイムレーン（段 = グループ、列 = 下書きと状態）の切り替え。カンバンとは別に覚える
-  const [view, setView] = useStoredChoice<BoardView>(VIEW_KEY, ["board", "list", "lanes"], "board");
+  const [view, setView] = useStoredChoice<BoardView>(GROUP_VIEW_KEY, ["board", "list", "lanes"], "board");
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
   const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs, loaded: true, holdEsc: menu !== null });
 

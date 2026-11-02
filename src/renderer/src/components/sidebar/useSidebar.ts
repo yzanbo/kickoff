@@ -2,9 +2,8 @@ import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { cx } from "../../cx";
 import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredState } from "../../hooks/useStoredState";
+import { SIDEBAR_OPEN_KEY, SIDEBAR_WIDTH_KEY } from "../../storageKeys";
 
-const OPEN_KEY = "kickoff:sidebar";
-const WIDTH_KEY = "kickoff:sidebar-width";
 const DEFAULT_WIDTH = 294;
 
 /** サイドバーの幅は 200〜480px（狭くしすぎ・広げすぎを防ぐ） */
@@ -19,8 +18,8 @@ export type SidebarController = ReturnType<typeof useSidebar>;
  * 表示は Sidebar（サイドバー本体）・SidebarOpenButton（閉じているときの開くボタン）で行う
  */
 export function useSidebar() {
-  const [open, setOpen] = useStoredState(OPEN_KEY, (raw) => raw !== "closed", (on) => (on ? "open" : "closed"));
-  const [width, setWidth] = useStoredState(WIDTH_KEY, (raw) => clampWidth(Number(raw) || DEFAULT_WIDTH), String);
+  const [open, setOpen] = useStoredState(SIDEBAR_OPEN_KEY, (raw) => raw !== "closed", (on) => (on ? "open" : "closed"));
+  const [width, setWidth] = useStoredState(SIDEBAR_WIDTH_KEY, (raw) => clampWidth(Number(raw) || DEFAULT_WIDTH), String);
   const [resizing, setResizing] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
 

@@ -1,10 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { THEME_KEY } from "./storageKeys";
 
 export type Theme = "dark" | "light" | "system";
-const KEY = "kickoff:theme";
 
 export function loadTheme(): Theme {
-  const v = localStorage.getItem(KEY);
+  const v = localStorage.getItem(THEME_KEY);
   return v === "light" || v === "system" ? v : "dark";
 }
 
@@ -17,7 +17,7 @@ export function applyTheme(theme: Theme) {
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(loadTheme);
   useEffect(() => {
-    localStorage.setItem(KEY, theme);
+    localStorage.setItem(THEME_KEY, theme);
     applyTheme(theme);
     if (theme !== "system") return;
     const mq = matchMedia("(prefers-color-scheme: dark)");

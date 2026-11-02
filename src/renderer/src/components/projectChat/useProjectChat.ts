@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef } from "react";
 import { useDragWidth } from "../../hooks/useDragWidth";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { PROJECT_CHAT_OPEN_PREFIX, PROJECT_CHAT_WIDTH_KEY } from "../../storageKeys";
 import { registerPanel } from "../sidePanel/panelMemory";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 
@@ -18,10 +19,10 @@ export const useProjectChatContext = () => useContext(ProjectChatContext);
  * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。projectId がない画面（全プロジェクト）では出さない
  */
 export function useProjectChat(projectId: number | undefined) {
-  const openMap = useStoredFlagMap("kickoff:project-chat-open:");
+  const openMap = useStoredFlagMap(PROJECT_CHAT_OPEN_PREFIX);
   const open = projectId !== undefined && openMap.get(projectId);
   const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}` });
-  const width = useDragWidth({ storageKey: "kickoff:project-chat-width", initial: 367, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
+  const width = useDragWidth({ storageKey: PROJECT_CHAT_WIDTH_KEY, initial: 367, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
 
   /** 欄を開いて、そのタブを表示する（ボード・サイドバーの下書きを押したとき） */
   const showTab = (key: string) => {

@@ -1,25 +1,15 @@
 import { agentStateOf, boardColumnOf } from "../../../../core/board";
 import { useSharedFlag } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { SIDEBAR_COMPACT_KEY, SIDEBAR_PROJECT_COMPACT_KEY, SIDEBAR_SECTION_CLOSED_PREFIX, SIDEBAR_SHOW_ARCHIVED_KEY } from "../../storageKeys";
 import type { AgentState, Approval, BoardColumn, Run } from "../../../../core/types";
 
-/** チャットの並べ方（ChatGroupingMenu の CHAT_GROUPINGS。どのプロジェクトでも同じ） */
-export const GROUPING_KEY = "kickoff:sidebar-grouping";
-/** 自分待ち（回答待ち・確認待ち）のチャットだけを出すか（"1" なら出す。上の行の「自分待ち」で切り替える） */
-export const WAITING_ONLY_KEY = "kickoff:sidebar-waiting-only";
-/** チャットを 1 行で出すか（"1" なら 2 行目のセクション・ブランチを隠す。見出しの「チャット」の行の「表示」で切り替える） */
-export const COMPACT_KEY = "kickoff:sidebar-compact";
-/** プロジェクトのカードを 1 行で出すか（"1" なら名前だけにして、チャット数の行を隠す。見出しの「プロジェクト」の行の「表示」で切り替える） */
-export const PROJECT_COMPACT_KEY = "kickoff:sidebar-project-compact";
-/** アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ） */
-export const SHOW_ARCHIVED_KEY = "kickoff:sidebar-show-archived";
-
 /** チャットを 1 行で出すか（初めは 1 行。どの部品でも同じ初期値になるよう、ここから読む） */
-export const useCompactRows = () => useSharedFlag(COMPACT_KEY, true);
+export const useCompactRows = () => useSharedFlag(SIDEBAR_COMPACT_KEY, true);
 /** プロジェクトのカードを 1 行で出すか（初めは 2 行。チャットの行とは別に切り替える） */
-export const useCompactProjects = () => useSharedFlag(PROJECT_COMPACT_KEY, false);
+export const useCompactProjects = () => useSharedFlag(SIDEBAR_PROJECT_COMPACT_KEY, false);
 /** アーカイブ済みのチャットを出すか（初めは出す） */
-export const useShowArchivedChats = () => useSharedFlag(SHOW_ARCHIVED_KEY, true);
+export const useShowArchivedChats = () => useSharedFlag(SIDEBAR_SHOW_ARCHIVED_KEY, true);
 
 /** 自分が見る番か（カンバンの回答待ち・確認待ちの列と同じ） */
 export const isWaitingState = (state: AgentState) => {
@@ -44,9 +34,6 @@ export function stateCounts(runs: Run[], approvals: Approval[]): StateCounts {
   return counts;
 }
 
-/** 並べ方でまとめたまとまり（状態・作業場所・セクション）ごとの、閉じているか（GroupedChatRows） */
-export const SECTION_CLOSED_PREFIX = "kickoff:sidebar-group-closed:";
-
 const FOLD_ALL_EVENT = "kickoff:sidebar-fold-all";
 
 /**
@@ -55,7 +42,7 @@ const FOLD_ALL_EVENT = "kickoff:sidebar-fold-all";
  */
 export function foldAll(collapsed: boolean) {
   if (!collapsed) {
-    for (const key of Object.keys(localStorage)) if (key.startsWith(SECTION_CLOSED_PREFIX)) localStorage.setItem(key, "0");
+    for (const key of Object.keys(localStorage)) if (key.startsWith(SIDEBAR_SECTION_CLOSED_PREFIX)) localStorage.setItem(key, "0");
   }
   window.dispatchEvent(new CustomEvent<boolean>(FOLD_ALL_EVENT, { detail: collapsed }));
 }
