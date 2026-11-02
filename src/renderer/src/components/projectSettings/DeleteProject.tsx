@@ -17,7 +17,7 @@ export function DeleteProject({ project }: { project: Project }) {
     if (!ok) return;
     await guard(async () => {
       await api.deleteProject(project.id);
-      navigate({ name: "home" });
+      navigate({ name: "allProjects" });
     });
   };
   return (

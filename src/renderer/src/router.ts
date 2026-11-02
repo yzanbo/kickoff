@@ -6,7 +6,8 @@ export const PROJECT_TABS = ["board", "groups", "requirements", "schedule", "tas
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 export type Route =
-  | { name: "home" }
+  /** 全プロジェクト（全プロジェクトのチャットのカンバン。URL は #/） */
+  | { name: "allProjects" }
   /** group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき） */
   | { name: "project"; id: number; tab: ProjectTab; group?: number }
   | { name: "newChat"; projectId: number; section?: Phase; stage?: BoardStage; group?: number }
@@ -43,7 +44,7 @@ function parse(hash: string): Route {
     const group = Number(params.get("group"));
     return { name: "project", id: Number(project[1]), tab, ...(tab === "groups" && Number.isInteger(group) && group > 0 ? { group } : {}) };
   }
-  return { name: "home" };
+  return { name: "allProjects" };
 }
 
 /** ハッシュベースの簡易ルーター（Electron とスマホのブラウザの両方で動く） */

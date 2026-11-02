@@ -1,4 +1,4 @@
-import { PanelLeftClose, PanelLeftOpen, Search, SquareKanban, SquarePen } from "lucide-react";
+import { LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
 import type { Approval, ProjectSummary } from "../../../../core/types";
 import { href, type Route } from "../../router";
 import { ProjectNav } from "./ProjectNav";
@@ -14,7 +14,7 @@ interface Props {
   onNewProject: () => void;
 }
 
-/** 左のサイドバー（新しいチャット・カンバン・検索、プロジェクトごとのチャット一覧、設定） */
+/** 左のサイドバー（新しいチャット・全プロジェクト・検索、プロジェクトごとのチャット一覧、設定） */
 export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSearch, onNewProject }: Props) {
   return (
     <aside className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
@@ -37,8 +37,8 @@ export function Sidebar({ sidebar, route, projects, approvals, onNewChat, onSear
         <button className="nav-row" onClick={onNewChat} title="新しいチャット（⌘N）">
           <SquarePen size={15} /> 新しいチャット <kbd>⌘N</kbd>
         </button>
-        <a className={`nav-row ${route.name === "home" ? "active" : ""}`} href={href({ name: "home" })}>
-          <SquareKanban size={15} /> カンバン
+        <a className={`nav-row ${route.name === "allProjects" ? "active" : ""}`} href={href({ name: "allProjects" })}>
+          <LayoutGrid size={15} /> 全プロジェクト
         </a>
         <button className="nav-row" onClick={onSearch}>
           <Search size={15} /> 検索 <kbd>⌘K</kbd>

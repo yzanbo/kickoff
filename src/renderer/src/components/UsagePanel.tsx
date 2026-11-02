@@ -6,7 +6,7 @@ interface Props {
   planUsage: ReturnType<typeof usePlanUsage>;
 }
 
-/** ホームに表示する使用状況の詳細（5 時間・週・モデル別の週枠） */
+/** 設定に表示する使用状況の詳細（5 時間・週・モデル別の週枠） */
 export function UsagePanel({ planUsage }: Props) {
   const { usage, refresh, refreshing } = planUsage;
 
