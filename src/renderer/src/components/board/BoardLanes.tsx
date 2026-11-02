@@ -36,14 +36,16 @@ export const groupOfLane = (laneKey: string): number | null => (laneKey === "non
 
 function lanesOf(kind: BoardLane, entries: Entry[], projects: ProjectSummary[], groups: RunGroup[], showEmpty: boolean): Lane[] {
   if (kind === "group") {
-    // グループなしを先に、そのあと自分で作ったグループの並び順（showEmpty のときは、チャットのないグループも出す）
+    // 自分で作ったグループを並び順のまま先に、グループなし（まだ整理していないもの）を最後に。サイドバーと同じ並び
+    // （showEmpty のときは、チャットのないグループも出す）
     const ids = new Set(groups.map((g) => g.id));
-    const rest = entries.filter((e) => e.run.group_id === null || !ids.has(e.run.group_id));
-    const lanes: Lane[] = rest.length > 0 || showEmpty ? [{ key: "none", head: <LaneTitle mark={<Folder size={14} className="muted" />} label="グループなし" />, entries: rest }] : [];
+    const lanes: Lane[] = [];
     for (const g of groups) {
       const list = entries.filter((e) => e.run.group_id === g.id);
       if (list.length > 0 || showEmpty) lanes.push({ key: `g${g.id}`, head: <LaneTitle mark={<Folder size={14} className="muted" />} label={g.name} />, entries: list });
     }
+    const rest = entries.filter((e) => e.run.group_id === null || !ids.has(e.run.group_id));
+    if (rest.length > 0 || showEmpty) lanes.push({ key: "none", head: <LaneTitle mark={<Folder size={14} className="muted" />} label="グループなし" />, entries: rest });
     return lanes;
   }
   if (kind === "phase") {
