@@ -1,12 +1,12 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { PHASE_LABELS, PHASES, TASK_STATUS_LABELS, TASK_STATUSES, type Phase, type Task, type TaskStatus } from "../../../core/types";
-import { api, type TaskInput } from "../api";
-import { confirmDialog } from "../dialogs";
-import { errorMessage } from "../errors";
-import { ErrorText } from "./ErrorText";
-import { IconButton } from "./IconButton";
-import { SectionBadge } from "./SectionBadge";
+import { PHASE_LABELS, PHASES, TASK_STATUS_LABELS, TASK_STATUSES, type Phase, type Task, type TaskStatus } from "../../../../core/types";
+import { api, type TaskInput } from "../../api";
+import { confirmDialog } from "../../dialogs";
+import { errorMessage } from "../../errors";
+import { ErrorText } from "../ErrorText";
+import { IconButton } from "../IconButton";
+import { SectionBadge } from "../SectionBadge";
 
 const PRIORITY_LABELS: Record<number, string> = { 1: "高", 2: "中", 3: "低" };
 

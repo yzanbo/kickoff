@@ -8,7 +8,7 @@ import { RunPane } from "../chat/RunPane";
 import { normalizeUrl } from "../../url";
 import { BrowserPane } from "../browser/BrowserPane";
 import { IconButton } from "../IconButton";
-import { NewChatPane } from "../NewChatPane";
+import { NewChatPane } from "./NewChatPane";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
 import { targetMenuAt, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
 import { PanelTab } from "./PanelTab";
