@@ -15,7 +15,8 @@ export type Route =
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "run"; projectId: number; runId: number; focus?: number };
 
-function parse(hash: string): Route {
+/** URL のハッシュを画面に読む（知らない形は全プロジェクト） */
+export function parse(hash: string): Route {
   const [path, query = ""] = (hash.replace(/^#/, "") || "/").split("?");
   const params = new URLSearchParams(query);
 
