@@ -10,7 +10,7 @@ import { navigate, routeProjectId, type Route } from "../../router";
 import { cx } from "../../cx";
 import { ProjectMenu } from "../ProjectMenu";
 import { GroupToggle } from "./GroupToggle";
-import { SidebarViewMenu, type NavLayout } from "./SidebarViewMenu";
+import { ProjectListHead, type NavLayout } from "./ProjectListHead";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
@@ -158,15 +158,15 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
     </div>
   );
 
-  /** 下の行の右端の「表示」のメニュー（並べ方・しまったプロジェクトを出すか） */
-  const viewMenu = { layout, onLayout: changeLayout, archivedCount: archived.length, showArchived, onShowArchived: setShowArchived };
+  /** 一覧の上の見出しの行に渡す（並べ方・しまったプロジェクトを出すか） */
+  const head = { layout, onLayout: changeLayout, archivedCount: archived.length, showArchived, onShowArchived: setShowArchived };
 
   if (layout === "stack") {
     const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
-    const allOpen = ordered.every((p) => !collapsedMap.get(p.id));
     const setAllCollapsed = (on: boolean) => ordered.forEach((p) => collapsedMap.set(p.id, on));
     return (
       <div className={cx("workspaces", compact && "compact")}>
+        <ProjectListHead {...head} fold={{ allCollapsed, set: setAllCollapsed }} />
         <div className="workspace-stack">
           {ordered.map((p, i) => (
             <Fragment key={p.id}>
@@ -190,13 +190,10 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
           {!showArchived && archivedHead}
           {waitingEmpty}
         </div>
-        {/* 下の行: 新しいプロジェクトと表示のメニュー（狭いときは名前を隠して＋だけにする） */}
         <div className="workspace-switcher stack">
-          <button className="sidebar-new switcher-new" title="新しいプロジェクト" onClick={onNewProject}>
-            <Plus size={14} aria-hidden />
-            <span className="switcher-new-label">新しいプロジェクト</span>
+          <button className="sidebar-new" onClick={onNewProject}>
+            <Plus size={14} /> 新しいプロジェクト
           </button>
-          <SidebarViewMenu {...viewMenu} fold={{ allCollapsed, allOpen, set: setAllCollapsed }} />
         </div>
       </div>
     );
@@ -204,6 +201,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
 
   return (
     <div className={cx("workspaces", compact && "compact")}>
+      <ProjectListHead {...head} />
       <div
         className="workspace-viewport"
         ref={swipe.viewportRef}
@@ -239,7 +237,6 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
           onMenu={(at, project) => setMenu({ ...at, project })}
           onNewProject={onNewProject}
         />
-        <SidebarViewMenu {...viewMenu} />
       </div>
       {menu && <ProjectMenu {...menu} onClose={() => setMenu(null)} />}
     </div>

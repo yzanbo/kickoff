@@ -1191,9 +1191,8 @@ button.project-switch:hover,
   opacity: 0.6;
 }
 
-/* サイドバーの下の行: プロジェクトの丸（縦並びでは「新しいプロジェクト」）と、右端の「表示」のメニュー（いつも 1 行に収める） */
+/* サイドバーの下の行: 主な操作だけ（横スライドはプロジェクトの丸、縦並びは「新しいプロジェクト」）。表示方法の操作は上の見出しの行 */
 .workspace-switcher {
-  container: sidebar-switcher / inline-size;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1221,27 +1220,57 @@ button.project-switch:hover,
   padding: 8px var(--gutter);
 }
 
-/* 縦並びの下の行の「新しいプロジェクト」: 右の「表示」のボタンと 1 行に並べ、狭いときは名前を隠して＋だけにする */
-.switcher-new {
-  flex: 1;
-  gap: 4px;
-  min-width: 0;
-  height: 28px;
-  margin-top: 0;
-  padding: 0 6px;
+/* プロジェクト一覧の上の見出しの行: 左に「プロジェクト」（狭いときはここが縮む）、右に表示方法の操作 */
+.project-list-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  padding: 4px var(--gutter) 2px;
 }
 
-.switcher-new-label {
+.project-list-title {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
+  color: var(--muted);
 }
 
-/* 名前が切れる幅（サイドバーが約 205px 未満）では隠す */
-@container sidebar-switcher (max-width: 181px) {
-  .switcher-new-label {
-    display: none;
-  }
+/* 横スライド / 縦並びの切り替え（見出しの行の右端） */
+.sidebar-layout-toggle {
+  display: flex;
+  flex: none;
+  gap: 1px;
+  margin-left: 4px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+.sidebar-layout-toggle button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  color: var(--extra-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-layout-toggle button:hover {
+  color: var(--text);
+}
+
+.sidebar-layout-toggle button.active {
+  color: var(--text);
+  background: var(--bg-active);
 }
 
 /* 縦並び: すべてのプロジェクトを上から順に並べ、まとめてスクロールする */
