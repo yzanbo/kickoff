@@ -6592,7 +6592,7 @@ a:focus-visible,
   display: none;
 }
 
-/* チャットの作業場所（ワークツリー）の印（チャットの見出し・ボードのカード） */
+/* チャットが作業しているブランチの印（チャットの見出し・ボードのカード・サイドバーの行） */
 .worktree-chip {
   display: inline-flex;
   align-items: center;
@@ -6611,6 +6611,12 @@ a:focus-visible,
 
 .worktree-chip svg {
   flex: none;
+}
+
+/* 本体で作業しているチャットのブランチは控えめに（ワークツリーのものと見分ける） */
+.worktree-chip.on-main {
+  border-color: var(--border-strong);
+  color: var(--muted);
 }
 
 /* 注意の文（同じ作業場所で、ほかのチャットが作業中など） */
