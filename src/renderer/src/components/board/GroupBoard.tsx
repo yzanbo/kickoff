@@ -198,15 +198,15 @@ export function GroupBoard({ projectId, projects, runs, groups, approvals, focus
         count={groups.length}
         query={query}
         onQuery={setQuery}
+        organize={
+          <button className="btn btn-sm" onClick={() => setCreating(true)}>
+            <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>
+          </button>
+        }
         actions={
-          <>
-            <button className="btn btn-sm" onClick={() => setCreating(true)}>
-              <FolderPlus size={13} /> <span className="btn-label">グループを作成</span>
-            </button>
-            <button className="btn btn-sm" onClick={() => panel.openNew({ projectId })} title="右側で新しいチャットを始める">
-              <Plus size={13} /> <span className="btn-label">新規</span>
-            </button>
-          </>
+          <button className="btn btn-sm" onClick={() => panel.openNew({ projectId })} title="右側で新しいチャットを始める">
+            <Plus size={13} /> <span className="btn-label">新規</span>
+          </button>
         }
         view={view}
         onView={setView}

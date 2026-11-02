@@ -1,4 +1,4 @@
-import { Globe, Maximize2, MessageSquare, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, SquareTerminal, X, type LucideIcon } from "lucide-react";
+import { Globe, Maximize2, MessageSquare, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
 import { lazy, Suspense, useRef, useState } from "react";
 import type { Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
@@ -10,7 +10,8 @@ import { BrowserPane } from "../BrowserPane";
 import { IconButton } from "../IconButton";
 import { NewChatPane } from "../NewChatPane";
 import { clampToViewport, PopupMenu } from "../PopupMenu";
-import type { PanelTab, SidePanelController, TerminalTarget } from "./useSidePanel";
+import { PanelTab } from "./PanelTab";
+import type { PanelTab as PanelTabData, SidePanelController, TerminalTarget } from "./useSidePanel";
 
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む
 const TerminalPane = lazy(() => import("../terminal/TerminalPane"));
@@ -27,7 +28,7 @@ function hostOf(url: string): string {
  * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し（セクションの色）、
  * ブラウザは地球儀、新しいチャットはペン、ターミナルは端末の印にする
  */
-function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
+function tabLabel(t: PanelTabData, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
   if (t.kind === "browser") return { Icon: Globe, label: t.title || (t.url ? hostOf(t.url) : "新しいタブ") };
   if (t.kind === "terminal") return { Icon: SquareTerminal, label: `ターミナル · ${t.label}` };
   if (t.kind === "new") return { Icon: SquarePen, label: t.groupName ? `新しいチャット · ${t.groupName}` : "新しいチャット" };
@@ -78,15 +79,16 @@ export function SidePanel({ panel, onNewChat, terminals }: { panel: SidePanelCon
         {tabs.map((t) => {
           const { Icon, iconClass, label } = tabLabel(t, panel.runs);
           return (
-            <div key={t.key} className={cx("panel-tab", activeTab === t.key && "active")} role="tab" aria-selected={activeTab === t.key}>
-              <button className="panel-tab-label" onClick={() => panel.showTab(t.key)} title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : label}>
-                <Icon size={12} className={iconClass} aria-hidden />
-                <span>{label}</span>
-              </button>
-              <button className="panel-tab-close" aria-label={`${label} のタブを閉じる`} onClick={() => panel.closeTab(t.key)}>
-                <X size={12} />
-              </button>
-            </div>
+            <PanelTab
+              key={t.key}
+              active={activeTab === t.key}
+              icon={Icon}
+              iconClass={iconClass}
+              label={label}
+              title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : label}
+              onSelect={() => panel.showTab(t.key)}
+              onClose={() => panel.closeTab(t.key)}
+            />
           );
         })}
         <IconButton
