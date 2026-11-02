@@ -64,7 +64,7 @@
 - window のイベント: `useWindowEvent`（effect の中で `addEventListener` しない。ほかより先に受け取るなら `capture`）。サーバーのイベント: `useServerEvent`。
 - いま画面に出ているテーマ（ダーク・ライト）: `useAppliedTheme`（`<html data-theme>` の変化で描き直す）。
 - localStorage: `useStoredState` / `useStoredFlag` / `useStoredChoice` / `useStoredNumber` / `useStoredFlagMap`（部品から直接読み書きしない）。選択肢を増やすときも、今までの値はそのままの意味で読めるようにする（例: アーカイブの絞り込みは `"1"` / `"0"` のまま、`"archived"` を足した）。`useStoredFlagMap` の `set` は参照が変わらないので、memo した部品に渡せる。
-- 右側のパネル（`useSidePanel` ＋ `PanelLayout`）はプロジェクトごとに 1 つで、プロジェクトの画面のどのタブでも同じパネル（開閉ボタンはタブの列の右端）。全プロジェクトの画面はそれだけのパネル。開閉と開いているタブは `memoryKey`（`project:<id>` / `kanban:all`）で覚える（タブやプロジェクトを切り替えて戻っても元どおり）。ボードは `panel` を受け取って使う（自分で作らない）。
+- 右側のパネル（`useSidePanel`）の開閉と開いているタブは、`memoryKey` でボードごとに覚える（タブやプロジェクトを切り替えて戻っても元どおり）。
 - 操作の失敗の表示: `useActionError`。時間とともに変わる表示: `useTicker`。つまみで幅・高さを変える: `startHorizontalDrag` / `startVerticalDrag`。左右の欄の境目は `useDragWidth`（幅を覚え、ダブルクリックで戻す。つまみは `.pane-resizer`）。アプリ全体で 1 回だけ取得: `cachedLoader`。
 - 例外の文: `errorMessage`（`e instanceof Error ? e.message : String(e)` を書かない）。class 名の組み立て: `cx`。
 - チャット名: `chatTitle`。時刻: `relativeTime` / `resetIn` / `formatClock`（`time.ts`）。トークン数: `formatTokens`。

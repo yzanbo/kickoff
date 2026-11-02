@@ -259,11 +259,13 @@ kbd {
  * （開閉で縦の位置が変わらないように）。閉じている間だけ、その行を開閉ボタンの右へずらす。
  * その下（パス・タブ）は、どちらでも左端にそろえる
  */
-.page-header > :first-child {
+.page-header > :first-child,
+.page > .board:first-child > .board-header {
   min-height: 34px;
 }
 
-.sidebar-collapsed .page-header > :first-child {
+.sidebar-collapsed .page-header > :first-child,
+.sidebar-collapsed .page > .board:first-child > .board-header {
   /* 開閉ボタン（左から 96px まで）の右に置く。画面の左右の余白の分を差し引く */
   padding-left: calc(104px - var(--page-x));
   transition: padding-left 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -2201,26 +2203,9 @@ mark {
   margin-bottom: 10px;
 }
 
-/*
- * タブの列と、右端の右のパネルの開閉。名前の行との間は少し空ける（開いているタブの地の色が、名前のカードにくっつかないように。
- * 高さは取りすぎない）。下の線はこの行に引く
- */
-.project-tabs-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* 名前の行とタブの間（開いているタブの地の色が、名前のカードにくっつかないように。高さは取りすぎない） */
+.project-header .tabs {
   margin-top: 6px;
-  border-bottom: 1px solid var(--border);
-}
-
-.project-tabs-row .tabs {
-  flex: 1;
-  min-width: 0;
-  border-bottom: none;
-}
-
-.project-tabs-row .tab {
-  margin-bottom: 0;
 }
 
 .project-title-row h1 {
@@ -4633,7 +4618,7 @@ button.project-switch.all-projects:hover,
   background: var(--bg-elev);
 }
 
-.panel-host > .board {
+.page-board > .board {
   flex: 1;
   min-height: 0;
 }
@@ -5092,19 +5077,9 @@ button.project-switch.all-projects:hover,
 
 .board-main {
   display: flex;
-  flex: 1;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-}
-
-/* 右のパネルの左に置く画面の中身（ボード・エディタは中でスクロール、文書のタブはここでスクロール） */
-.panel-host {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
 }
 
 .board-main > .board-columns,

@@ -23,12 +23,10 @@ import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { WorktreeContext } from "../components/changes/worktreeContext";
-import { PanelLayout, PanelToggle } from "../components/sidePanel/SidePanel";
-import { terminalTargets, useSidePanel } from "../components/sidePanel/useSidePanel";
 import { useStoredState } from "../hooks/useStoredState";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
-import { href, openRun, type ProjectTab, type ReopenRoute } from "../router";
+import { href, openNewChat, type ProjectTab, type ReopenRoute } from "../router";
 import { REPORT_KINDS, SECTION_META } from "../sections";
 
 interface ProjectData {
@@ -77,12 +75,6 @@ export function ProjectPage({
   const [worktree, setWorktree] = useStoredState<string | undefined>(`kickoff:editor-worktree:${id}`, (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes", worktree);
-  // 右のパネル（プロジェクトごと。どのタブでも同じパネルで、タブを切り替えても中身は残る）
-  const panel = useSidePanel({
-    memoryKey: `project:${id}`,
-    // カンバンで新しいチャットを送ったら、URL もそのチャットにする（サイドバーで強調され、戻る・進むで行き来できる）
-    onCreated: (run) => tab === "board" && openRun(run.project_id, run.id, undefined, { replace: true }),
-  });
 
   const load = useCallback(async () => {
     try {
@@ -136,7 +128,7 @@ export function ProjectPage({
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (
-    <div className={`page page-wide page-board ${stale ? "is-stale" : ""}`}>
+    <div className={`page page-wide ${tab === "board" || tab === "groups" || tab === "changes" ? "page-board" : ""} ${stale ? "is-stale" : ""}`}>
       <header className="page-header project-header">
         <div className="project-title-row">
           <h1>
@@ -160,8 +152,6 @@ export function ProjectPage({
             {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
           </div>
         </div>
-        {/* タブの列と、右端に右のパネルの開閉（どのタブでも同じパネル） */}
-        <div className="project-tabs-row">
         <nav className="tabs" role="tablist">
           {(Object.keys(TAB_LABELS) as ProjectTab[]).map((t) => (
             <a
@@ -183,17 +173,12 @@ export function ProjectPage({
             </a>
           ))}
         </nav>
-        <PanelToggle panel={panel} />
-        </div>
       </header>
 
-      <PanelLayout panel={panel} onNewChat={() => panel.openNew({ projectId: project.id })} terminals={terminalTargets(projects, project.id)}>
-      {tab === "board" && (
-        <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" focus={focus} panel={panel} panelToggle={false} />
-      )}
-      {tab === "groups" && <GroupBoard projectId={project.id} panel={panel} runs={runs} groups={groups} approvals={approvals} focus={focus} highlight={highlightGroup} />}
-      {tab === "requirements" && <DocTab kind="requirements" artifacts={artifacts} onChat={() => panel.openNew({ projectId: project.id, section: "requirements" })} />}
-      {tab === "schedule" && <DocTab kind="schedule" artifacts={artifacts} onChat={() => panel.openNew({ projectId: project.id, section: "schedule" })} />}
+      {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" focus={focus} />}
+      {tab === "groups" && <GroupBoard projectId={project.id} projects={projects} runs={runs} groups={groups} approvals={approvals} focus={focus} highlight={highlightGroup} />}
+      {tab === "requirements" && <DocTab project={project} kind="requirements" artifacts={artifacts} />}
+      {tab === "schedule" && <DocTab project={project} kind="schedule" artifacts={artifacts} />}
       {tab === "tasks" && (
         <section className="section">
           <TaskList projectId={project.id} tasks={tasks} phases={PHASES.filter((p) => p !== "schedule")} />
@@ -206,14 +191,12 @@ export function ProjectPage({
           <ChangesTab key={worktree ?? ""} projectId={project.id} repoPath={project.repo_path} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
         </WorktreeContext.Provider>
       )}
-      </PanelLayout>
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
     </div>
   );
 }
 
-/** 要件定義書・スケジュール。「チャットで作る・見直す」は右のパネルで新しいチャットを始める（onChat） */
-function DocTab({ kind, artifacts, onChat }: { kind: "requirements" | "schedule"; artifacts: Artifact[]; onChat: () => void }) {
+function DocTab({ project, kind, artifacts }: { project: Project; kind: "requirements" | "schedule"; artifacts: Artifact[] }) {
   const doc = artifacts.find((a) => a.kind === kind);
   return (
     <section className="section">
@@ -226,7 +209,7 @@ function DocTab({ kind, artifacts, onChat }: { kind: "requirements" | "schedule"
           </span>
         )}
         <span className="spacer" />
-        <button className="btn" onClick={onChat}>
+        <button className="btn" onClick={() => openNewChat(project.id, { section: kind })}>
           <Plus size={14} /> {doc ? "チャットで見直す" : "チャットで作る"}
         </button>
       </div>

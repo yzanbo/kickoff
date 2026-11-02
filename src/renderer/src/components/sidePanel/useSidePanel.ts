@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { BoardStage, Phase, ProjectSummary, Run } from "../../../../core/types";
 import { cx } from "../../cx";
-import { useServerEvent } from "../../events";
 import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
@@ -61,9 +60,14 @@ const panelMemory = new Map<string, PanelState>();
 const EMPTY_PANEL: PanelState = { tabs: [], activeTab: null, panelOpen: false };
 
 interface Options {
-  /** パネルの状態を覚えておく名前（画面ごとに分ける。例: "project:3"・"kanban:all"） */
+  /** パネルの状態を覚えておく名前（ボードごとに分ける。例: "kanban:all"・"groups:3"） */
   memoryKey: string;
-  /** 全プロジェクトの画面では、新しいチャットのプロジェクトを選べるようにする */
+  /** ボードに出ているチャット（削除・アーカイブされたチャットのタブを閉じるのに使う） */
+  runs: Run[];
+  loaded: boolean;
+  /** true の間は Esc でパネルを閉じない（メニューが開いているときなど） */
+  holdEsc?: boolean;
+  /** 全プロジェクトのボードでは、新しいチャットのプロジェクトを選べるようにする */
   projects?: ProjectSummary[];
   /** 新しいチャットができたとき（URL をそのチャットにするなど） */
   onCreated?: (run: Run) => void;
@@ -72,11 +76,10 @@ interface Options {
 export type SidePanelController = ReturnType<typeof useSidePanel>;
 
 /**
- * 画面の右側から出てくるパネル（チャット・新しいチャット・ブラウザ・ターミナルのタブ）の状態と操作。
- * プロジェクトの画面ではどのタブでも同じパネル（プロジェクトごと）、全プロジェクトの画面はそれだけのパネル。
- * 表示は PanelLayout（画面の中身と並べる）・PanelToggle（開閉ボタン）・DraftCards（列の下書き）で行う
+ * ボードの右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）の状態と操作。カンバンとグループのボードで共通。
+ * 表示は SidePanel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）・DraftCards（列の下書き）で行う
  */
-export function useSidePanel({ memoryKey, projects, onCreated }: Options) {
+export function useSidePanel({ memoryKey, runs, loaded, holdEsc = false, projects, onCreated }: Options) {
   // パネルを閉じてもタブは残し、次に開いたときに戻す
   const saved = () => panelMemory.get(memoryKey) ?? EMPTY_PANEL;
   const [tabs, setTabs] = useState<PanelTab[]>(() => saved().tabs);
@@ -167,11 +170,12 @@ export function useSidePanel({ memoryKey, projects, onCreated }: Options) {
     });
   };
 
-  // 削除・アーカイブしたチャットのタブは閉じる
-  useServerEvent((e) => {
-    const gone = e.type === "run_deleted" ? e.id : e.type === "run" && e.run.archived_at ? e.run.id : null;
-    if (gone !== null && tabs.some((t) => t.key === chatKey(gone))) closeTab(chatKey(gone));
-  });
+  // 削除・アーカイブされたチャットのタブは閉じる
+  useEffect(() => {
+    const gone = tabs.filter((t) => t.kind === "chat" && !runs.some((r) => r.id === t.id));
+    if (loaded && gone.length > 0) gone.forEach((t) => closeTab(t.key));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runs, loaded]);
 
   /** パネルの左端をドラッグして幅を変える（ボードを覆うところまで広げられる） */
   const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -199,7 +203,7 @@ export function useSidePanel({ memoryKey, projects, onCreated }: Options) {
   useWindowEvent(
     "keydown",
     (e) => {
-      if (e.key === "Escape" && !document.querySelector("dialog[open], .menu")) close();
+      if (e.key === "Escape" && !holdEsc && !document.querySelector("dialog[open]")) close();
     },
     panelOpen,
   );
@@ -209,6 +213,7 @@ export function useSidePanel({ memoryKey, projects, onCreated }: Options) {
     activeTab,
     panelOpen,
     maximized,
+    runs,
     projects,
     open,
     openNew,

@@ -15,7 +15,8 @@ import { CardMenu } from "../CardMenu";
 import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
 import { DraftCards } from "../sidePanel/DraftCards";
-import type { SidePanelController } from "../sidePanel/useSidePanel";
+import { SidePanel } from "../sidePanel/SidePanel";
+import { terminalTargets, useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardHeader, type BoardView } from "./BoardHeader";
 import { decodeArchiveFilter, encodeArchiveFilter, KanbanFilters, type ArchiveFilter } from "./KanbanFilters";
 import { RunCardContent, RunRowContent } from "./RunCard";
@@ -36,17 +37,13 @@ interface Props {
   title: string;
   /** 右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
-  /** 右のパネル（プロジェクトの画面・全プロジェクトの画面のもの） */
-  panel: SidePanelController;
-  /** 右のパネルの開閉ボタンを見出しに出すか（プロジェクトの画面では、タブの列の右に出すので出さない） */
-  panelToggle?: boolean;
 }
 
 /**
  * チャットのカンバン。列（未着手・対応中・レビュー・完了）はあなたが動かす進み具合で、
  * カードの点はエージェント自身の状態（回答待ち・作業中・確認待ちなど）。
  */
-export function KanbanBoard({ projectId, projects, approvals, title, focus, panel, panelToggle }: Props) {
+export function KanbanBoard({ projectId, projects, approvals, title, focus }: Props) {
   const allProjects = projectId === undefined;
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
@@ -65,6 +62,16 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, pane
   const search = useChatSearch(query);
   const [menu, setMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
 
+  // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）
+  const panel = useSidePanel({
+    memoryKey: `kanban:${projectId ?? "all"}`,
+    runs,
+    loaded,
+    holdEsc: menu !== null,
+    projects: allProjects ? projects : undefined,
+    // 新しいチャットを送ったら、プロジェクトのボードでは URL もそのチャットにする
+    onCreated: (run) => !allProjects && openRun(run.project_id, run.id, undefined, { replace: true }),
+  });
   /** カードから開く。プロジェクトのボードでは URL もそのチャットにする（サイドバーで強調され、戻る・進むで行き来できる） */
   const open = (run: Run) => {
     panel.open(run);
@@ -184,11 +191,11 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, pane
         view={view}
         onView={setView}
         panel={panel}
-        panelToggle={panelToggle}
       />
       <ErrorText message={error} className="board-error" />
 
-      <div className="board-main">
+      <div {...panel.body}>
+        <div className="board-main">
           {!loaded ? (
             <p className="muted small board-loading">読み込み中…</p>
           ) : view === "board" ? (
@@ -243,6 +250,8 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, pane
               })}
             </div>
           )}
+        </div>
+        <SidePanel panel={panel} onNewChat={() => newChat()} terminals={terminalTargets(projects, projectId)} />
       </div>
 
       {menu && <CardMenu {...menu} onOpenPanel={open} onRename={rename.start} onClose={() => setMenu(null)} onError={setError} />}

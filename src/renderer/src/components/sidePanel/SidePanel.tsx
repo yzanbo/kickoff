@@ -1,5 +1,6 @@
 import { Globe, Maximize2, MessageSquare, Minimize2, PanelRightClose, PanelRightOpen, Plus, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
-import { lazy, Suspense, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
+import type { Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
 import { useMenuKeys } from "../../hooks/useMenuKeys";
@@ -27,35 +28,23 @@ function hostOf(url: string): string {
  * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し（セクションの色）、
  * ブラウザは地球儀、新しいチャットはペン、ターミナルは端末の印にする
  */
-function tabLabel(t: PanelTabData): { Icon: LucideIcon; iconClass?: string; label: string } {
+function tabLabel(t: PanelTabData, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
   if (t.kind === "browser") return { Icon: Globe, label: t.title || (t.url ? hostOf(t.url) : "新しいタブ") };
   if (t.kind === "terminal") return { Icon: SquareTerminal, label: `ターミナル · ${t.label}` };
   if (t.kind === "new") return { Icon: SquarePen, label: t.groupName ? `新しいチャット · ${t.groupName}` : "新しいチャット" };
-  // 名前とセクションは、チャットの画面が読み込んだとき・変わったときにタブへ入れる（onRunChange）
-  const { title, phase } = t;
+  // ボードの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
+  const run = runs.find((r) => r.id === t.id);
+  const title = run?.title ?? t.title;
+  const phase = run?.phase ?? t.phase;
   return { Icon: MessageSquare, iconClass: phase ? `sec-icon sec-${phase}` : "muted", label: title === undefined ? "チャット" : chatTitle(title) };
 }
 
-interface PanelProps {
-  panel: SidePanelController;
-  /** タブの列の＋で「新しいチャット」を選んだとき（どのプロジェクトで始めるかは画面が決める） */
-  onNewChat: () => void;
-  /** タブの列の＋から開けるターミナル（terminalTargets。Mac のアプリでだけ出す） */
-  terminals: TerminalTarget[];
-}
-
-/** 画面の中身（children）と右のパネルを左右に並べる（プロジェクトの画面・全プロジェクトの画面） */
-export function PanelLayout({ children, ...props }: PanelProps & { children: ReactNode }) {
-  return (
-    <div {...props.panel.body}>
-      <div className="panel-host">{children}</div>
-      <SidePanel {...props} />
-    </div>
-  );
-}
-
-/** 右のパネル（PanelLayout の中で、画面の中身の右に置く） */
-function SidePanel({ panel, onNewChat, terminals }: PanelProps) {
+/**
+ * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。
+ * onNewChat: タブの列の＋で「新しいチャット」を選んだとき（どのプロジェクト・グループで始めるかはボードが決める）。
+ * terminals: タブの列の＋から開けるターミナル（terminalTargets。Mac のアプリでだけ出す）
+ */
+export function SidePanel({ panel, onNewChat, terminals }: { panel: SidePanelController; onNewChat: () => void; terminals: TerminalTarget[] }) {
   const { tabs, activeTab, panelOpen, maximized } = panel;
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
   // タブの列の＋のメニュー（新しいチャット・ブラウザ・ターミナル）
@@ -88,7 +77,7 @@ function SidePanel({ panel, onNewChat, terminals }: PanelProps) {
           </button>
         </div>
         {tabs.map((t) => {
-          const { Icon, iconClass, label } = tabLabel(t);
+          const { Icon, iconClass, label } = tabLabel(t, panel.runs);
           return (
             <PanelTab
               key={t.key}
