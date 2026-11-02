@@ -1,4 +1,5 @@
 import { agentStateOf, boardColumnOf } from "../../../../core/board";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { AgentState, Approval, BoardColumn, Run } from "../../../../core/types";
 
 /** チャットの並べ方（ChatGroupingMenu の CHAT_GROUPINGS。どのプロジェクトでも同じ） */
@@ -31,4 +32,25 @@ export function stateCounts(runs: Run[], approvals: Approval[]): StateCounts {
     if (column !== "done") counts[column]++;
   }
   return counts;
+}
+
+/** 並べ方でまとめたまとまり（状態・作業場所・セクション）ごとの、閉じているか（GroupedChatRows） */
+export const SECTION_CLOSED_PREFIX = "kickoff:sidebar-group-closed:";
+
+const FOLD_ALL_EVENT = "kickoff:sidebar-fold-all";
+
+/**
+ * 見出しの行の「すべて閉じる / 開く」: プロジェクトだけでなく、中のまとまり（グループ・グループなし・固定・アーカイブ済み・並べ方のまとまり）もすべて開閉する。
+ * 描かれている部品には知らせ（useFoldAll）で伝え、開くときは、描かれていないまとまり（閉じたプロジェクトの中など）の覚えている値も開いたにする
+ */
+export function foldAll(collapsed: boolean) {
+  if (!collapsed) {
+    for (const key of Object.keys(localStorage)) if (key.startsWith(SECTION_CLOSED_PREFIX)) localStorage.setItem(key, "0");
+  }
+  window.dispatchEvent(new CustomEvent<boolean>(FOLD_ALL_EVENT, { detail: collapsed }));
+}
+
+/** 「すべて閉じる / 開く」を受け取る（collapsed: 閉じるなら true） */
+export function useFoldAll(handler: (collapsed: boolean) => void) {
+  useWindowEvent(FOLD_ALL_EVENT, (e) => handler((e as CustomEvent<boolean>).detail));
 }

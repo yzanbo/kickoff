@@ -8,13 +8,15 @@ import { useStoredFlagMap } from "../../hooks/useStoredState";
 import { useRunBranch } from "../../worktreeBranches";
 import type { ChatGrouping } from "./chatGroupings";
 import { GroupToggle } from "./GroupToggle";
+import { SECTION_CLOSED_PREFIX, useFoldAll } from "./sidebarFlags";
 
 type Row = { run: Run; state: AgentState };
 
 /** まとまりの開閉（プロジェクト・並べ方・まとまりごとに覚える。検索中は開いて見せる） */
-const OpenState = createContext<{ isClosed: (id: string) => boolean; toggle: (id: string) => void; forceOpen: boolean }>({
+const OpenState = createContext<{ isClosed: (id: string) => boolean; toggle: (id: string) => void; set: (id: string, closed: boolean) => void; forceOpen: boolean }>({
   isClosed: () => false,
   toggle: () => {},
+  set: () => {},
   forceOpen: false,
 });
 
@@ -38,6 +40,8 @@ function Group({
 }) {
   const state = useContext(OpenState);
   const open = state.forceOpen || !state.isClosed(id);
+  // 見出しの行の「すべて閉じる / 開く」
+  useFoldAll((collapsed) => state.set(id, collapsed));
   return (
     <div className="status-group">
       <div className="status-group-head" title={title}>
@@ -75,9 +79,14 @@ export function GroupedChatRows({
   /** 自分で作ったグループの中でまとめるとき、そのグループ（開閉をグループごとに覚える。なければグループなし） */
   scope?: number;
 }) {
-  const closed = useStoredFlagMap("kickoff:sidebar-group-closed:");
+  const closed = useStoredFlagMap(SECTION_CLOSED_PREFIX);
   const idOf = (key: string) => `${projectId}:${scope === undefined ? "" : `g${scope}:`}${grouping}:${key}`;
-  const state = { isClosed: (key: string) => closed.get(idOf(key)), toggle: (key: string) => closed.toggle(idOf(key)), forceOpen };
+  const state = {
+    isClosed: (key: string) => closed.get(idOf(key)),
+    toggle: (key: string) => closed.toggle(idOf(key)),
+    set: (key: string, on: boolean) => closed.set(idOf(key), on),
+    forceOpen,
+  };
   return <OpenState.Provider value={state}>{groupsOf(grouping, projectId, rows, renderRow)}</OpenState.Provider>;
 }
 

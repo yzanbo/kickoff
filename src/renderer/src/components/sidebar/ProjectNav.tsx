@@ -14,7 +14,7 @@ import { useProjectMenu } from "./ProjectMenu";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
-import { COMPACT_KEY, stateCounts, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
+import { COMPACT_KEY, foldAll, stateCounts, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 const LAYOUT_KEY = "kickoff:sidebar-layout";
@@ -170,7 +170,11 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
 
   if (layout === "stack") {
     const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
-    const setAllCollapsed = (on: boolean) => ordered.forEach((p) => collapsedMap.set(p.id, on));
+    // プロジェクトと、その中のまとまりをすべて閉じる・開く
+    const setAllCollapsed = (on: boolean) => {
+      ordered.forEach((p) => collapsedMap.set(p.id, on));
+      foldAll(on);
+    };
     return (
       <div className={cx("workspaces", compact && "compact")}>
         <ProjectListHead {...head} fold={{ allCollapsed, set: setAllCollapsed }} />

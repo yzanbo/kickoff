@@ -20,7 +20,7 @@ import { GroupToggle } from "./GroupToggle";
 import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { RowSection } from "./RowSection";
-import { GROUPING_KEY, isWaitingState, SHOW_ARCHIVED_KEY, stateCounts, WAITING_ONLY_KEY } from "./sidebarFlags";
+import { GROUPING_KEY, isWaitingState, SHOW_ARCHIVED_KEY, stateCounts, useFoldAll, WAITING_ONLY_KEY } from "./sidebarFlags";
 import { WorkspaceHead } from "./WorkspaceHead";
 
 
@@ -85,6 +85,13 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
   const [ungroupedClosed, setUngroupedClosed] = useStoredFlag(`kickoff:ungrouped-closed:${project.id}`);
   const toggleUngrouped = () => setUngroupedClosed(!ungroupedClosed);
+  // 見出しの行の「すべて閉じる / 開く」: 中のまとまり（グループ・グループなし・固定・アーカイブ済み）もそろえる
+  useFoldAll((closed) => {
+    groups.forEach((g) => groupClosed.set(g.id, closed));
+    setUngroupedClosed(closed);
+    setPinnedClosed(closed);
+    setArchivedOpen(!closed);
+  });
   const startCreate = () => {
     if (collapsed) toggleCollapsed();
     setCreating(true);

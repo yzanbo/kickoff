@@ -1,4 +1,4 @@
-import { Archive, ArrowDownUp, ChevronsDownUp, ChevronsUpDown, Clock, Eye, GalleryHorizontal, GripVertical, ListTree, Rows2, Rows3 } from "lucide-react";
+import { Archive, ChevronsDownUp, ChevronsUpDown, Clock, Eye, GalleryHorizontal, GripVertical, Rows2, Rows3 } from "lucide-react";
 import { useSharedChoice, useSharedFlag } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
 import { IconButton } from "../IconButton";
@@ -33,12 +33,16 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
   const [compact, setCompact] = useSharedFlag(COMPACT_KEY);
   const radio = { role: "menuitemradio" as const };
   const check = { role: "menuitemcheckbox" as const };
+  // 表示: オンにしているもの（なければ「標準」、2 つ以上なら数）
+  const displayOn = [showArchivedChats && "アーカイブ済み", compact && "1 行", archivedCount > 0 && showArchived && "アーカイブ PJ"].filter((v): v is string => Boolean(v));
+  const displayValue = displayOn.length === 0 ? "標準" : displayOn.length === 1 ? displayOn[0] : `${displayOn.length} 件オン`;
   return (
     <div className="project-list-head">
       <HeadMenu
         id="layout"
         icon={layout === "stack" ? Rows3 : GalleryHorizontal}
         label="並べ方"
+        value={layout === "stack" ? "縦並び" : "スライド"}
         title={`プロジェクトの並べ方（いまは「${layout === "stack" ? "縦に並べる" : "1 つずつ横にスライド"}」）`}
         sections={[
           {
@@ -52,8 +56,9 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
       />
       <HeadMenu
         id="order"
-        icon={ArrowDownUp}
+        icon={order === "recent" ? Clock : GripVertical}
         label="並び順"
+        value={order === "recent" ? "最近順" : "手動"}
         title={`プロジェクトの並び順（いまは「${order === "recent" ? "最近動いた順" : "手動"}」。固定したものは上）`}
         sections={[
           {
@@ -67,8 +72,9 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
       />
       <HeadMenu
         id="grouping"
-        icon={ListTree}
+        icon={GROUPING_META[grouping].icon}
         label="まとめ方"
+        value={GROUPING_META[grouping].short}
         title={`チャットのまとめ方（すべてのプロジェクト。いまは「${GROUPING_META[grouping].label}」）`}
         sections={[
           {
@@ -81,7 +87,8 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         id="display"
         icon={Eye}
         label="表示"
-        title="表示するもの（アーカイブ済みのチャット・1 行で表示・アーカイブしたプロジェクト）"
+        value={displayValue}
+        title={`表示するもの（アーカイブ済みのチャット・1 行で表示・アーカイブしたプロジェクト。いまは「${displayValue}」）`}
         sections={[
           {
             label: "チャット",
