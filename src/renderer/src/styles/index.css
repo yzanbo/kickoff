@@ -2,6 +2,10 @@
 @import "./base.css";
 @import "./layout.css";
 @import "./sidebar.css";
+@import "./sidebar-rows.css";
+@import "./sidebar-search.css";
+@import "./sidebar-groups.css";
+@import "./sidebar-sections.css";
 @import "./sidebar-projects.css";
 @import "./status.css";
 @import "./buttons-forms.css";

@@ -1,0 +1,206 @@
+/* ==== サイドバーの自分で作ったグループ（並べ替え・見出し・開閉の矢印） ==== */
+
+/* 自分で作ったグループ（サイドバー） */
+.custom-group {
+  position: relative;
+  border-radius: var(--radius);
+  transition: opacity 0.15s;
+}
+
+/* グループの並べ替え: 動かしているグループは薄く、入る位置に線を出す */
+.custom-group.group-dragging,
+.board-column.group-dragging {
+  opacity: 0.35;
+}
+
+.custom-group.drop-before::before,
+.custom-group.drop-after::after,
+.board-column.drop-before::before,
+.board-column.drop-after::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+  animation: drop-line-in 0.12s ease-out;
+}
+
+.custom-group.drop-before::before,
+.custom-group.drop-after::after {
+  left: 6px;
+  right: 6px;
+  height: 2px;
+}
+
+.custom-group.drop-before::before {
+  top: -2px;
+}
+
+.custom-group.drop-after::after {
+  bottom: -2px;
+}
+
+.board-column.drop-before::before,
+.board-column.drop-after::after {
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+}
+
+.board-column.drop-before::before {
+  left: -7px;
+}
+
+.board-column.drop-after::after {
+  right: -7px;
+}
+
+@keyframes drop-line-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.custom-group.drop-target,
+.custom-group-head.drop-target,
+.chat-rows.drop-target {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.custom-group-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: var(--row-tight);
+  padding: 0 4px 0 2px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--muted);
+  transition: background 0.12s;
+}
+
+.custom-group-head.editing {
+  padding-left: 20px;
+}
+
+.custom-group-head.ungrouped {
+  border-radius: var(--radius);
+}
+
+/* 「グループなし」は自分で作ったグループより控えめに */
+.custom-group-name.ungrouped-name {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* サイドバーの開閉の矢印（どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない） */
+.custom-group-toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* 開閉のボタンの横に添えるアイコン（フォルダ・固定・アーカイブ） */
+.custom-group-icon {
+  flex: none;
+  color: var(--muted);
+}
+
+/* 自分で作ったグループの見出しは、矢印以外のところを押すと選ぶ */
+.custom-group > .custom-group-head {
+  cursor: pointer;
+}
+
+.custom-group-toggle:hover,
+.custom-group-toggle:focus-visible {
+  color: var(--text);
+}
+
+.custom-group-name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ホバーは下線ではなく、チャットの行と同じく行全体の背景で知らせる（表示する項目は変えない） */
+.custom-group-head:not(.editing):hover {
+  background: var(--bg-elev);
+}
+
+.custom-group-head:hover .custom-group-name {
+  color: var(--text);
+}
+
+.custom-group-head.active {
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/*
+ * サイドバーのグループ名から来たときに、そのグループを少しのあいだハイライトする（背景と枠の色だけ。広がる光の動きは付けない）。
+ * 1 秒ほど色を付けたまま見せ、そのあと 0.6 秒で元の色に戻す（終わったあとは、ふだんの見た目。押し直すとやり直す）
+ */
+.board-column.highlighted,
+.list-group.highlighted {
+  animation: group-lit 1.6s ease-out;
+}
+
+@keyframes group-lit {
+  0%,
+  62.5% {
+    border-color: color-mix(in srgb, var(--accent-bright) 55%, transparent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  }
+}
+
+.custom-group-count {
+  flex: none;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ホバーしても表示が変わらないよう、件数・「…」・＋はいつも出しておく（大きさと色はアイコンボタンと同じ） */
+.group-menu-button,
+.custom-group-add {
+  flex: none;
+}
+
+/* 「グループなし」には「…」がないので、同じ幅（アイコンボタンの幅）を空けて＋の位置をそろえる */
+.group-menu-spacer {
+  flex: none;
+  width: 26px;
+}
+
+.custom-group-rows {
+  padding-left: 10px;
+}
+
+.custom-group-empty {
+  margin: 0;
+  padding: 4px 8px 6px 30px;
+  font-size: 12px;
+  color: var(--muted);
+}

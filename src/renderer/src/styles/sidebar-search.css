@@ -1,0 +1,126 @@
+/* ==== 検索欄（サイドバー・カンバンの見出し）と行の先頭の状態の印 ==== */
+
+.chat-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin: 0 0 6px;
+  padding: 0 6px 0 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.chat-search:focus-within {
+  border-color: var(--border-strong);
+}
+
+.chat-search input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font-size: 12px;
+  background: transparent;
+}
+
+.chat-search input[type="text"]:focus {
+  outline: none;
+}
+
+.chat-search-clear {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-search-content {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  color: var(--extra-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-search-content:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.chat-search-clear:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* カンバンの見出しの検索欄 */
+.chat-search.board-search {
+  width: 200px;
+  margin: 0;
+}
+
+.chat-search-empty {
+  margin: 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.status-slot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 20px;
+}
+
+.status-dot-mark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.state-attention .status-dot-mark {
+  background: var(--dot-attention);
+}
+
+.state-failed .status-dot-mark {
+  width: 8px;
+  height: 8px;
+  background: var(--dot-failed);
+}
+
+.state-done .status-dot-mark {
+  background: var(--extra-muted);
+  opacity: 0.3;
+}
+
+.status-slot.state-needs_input {
+  color: var(--dot-needs-input);
+}
+
+.status-ring {
+  width: 11px;
+  height: 11px;
+  border: 2px solid color-mix(in srgb, var(--dot-running) 25%, transparent);
+  border-top-color: var(--dot-running);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.status-group {
+  margin-bottom: 6px;
+}
