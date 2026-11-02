@@ -22,6 +22,7 @@ npm run daemon     # Electron なしでコア（API サーバー）だけを起�
 npm run dist       # .app / .dmg を作成
 npm run install-app  # ビルドして /Applications/Kickoff.app（本番）を入れ替える（動いていれば終了して開き直す。実行中のチャットがあればやめる）
 npm run icon       # build/icon.svg・icon-dev.svg からアプリのアイコン（本番・開発版の .png / .icns）を作り直す
+node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）の画面の DOM と計算後のスタイルを記録する。diff <前> <後> で比べ、css <名前> で CSS の規則の順を記録する
 ```
 
 インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/core/appEnv.ts`）。

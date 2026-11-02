@@ -89,12 +89,14 @@
 - 操作は、基本的にいつも出すか、右クリックのメニューに入れる。マウスを乗せたときだけ出すのは、たくさん並ぶ一覧の行の操作で、いつも出すと一覧が埋まるときに限る（いまはサイドバーのチャットの行の固定・アーカイブ・削除）。そのときも同じ操作を右クリックのメニューに置く。状態（固定しているかなど）は、出す・隠すで分けず、見た目（色・塗り）で分ける。
 - アイコンだけの操作には必ず名前を付ける（`IconButton` の `label`）。選択肢の組は radiogroup / radio と aria-checked（`Segmented`）、開閉は aria-expanded と title。
 
-## CSS（`styles.css` の 1 ファイル）
+## CSS（`src/renderer/src/styles/` の機能ごとのファイル。`index.css` の `@import` の順で 1 つにつながる）
 
+- ファイルと順（＝カスケードの順。`index.css` には `@import` 以外を書かない）: `tokens`（変数。末尾に TSX が inline style / `setProperty` で与える変数の一覧）→ `base`（body と `.muted` `.small` などの小さな共有クラス。後ろの部品に負ける前提で先頭側）→ `layout` → `sidebar` → `sidebar-projects` → `status` → `buttons-forms`（`.btn` `.icon-button` `.link-button`・`InlineName`・入力欄）→ `dialogs` → `search` → `project-page` → `chat` → `composer` → `approval` → `tasks` → `markdown` → `usage-meter` → `footer` → `mobile` → `board` → `side-panel` → `browser` → `board-list` → `menu`（`PopupMenu` の中身）→ `scrollbar` → `focus` → `editor` → `terminal` → `bottom-panel` → `project-chat` → `color-swatch`。
+- 置き場所: 規則はその機能のファイル（部品が `components/<機能>/` にあるなら同じ名前のファイル）。複数の画面で使う部品は `buttons-forms.css` か `menu.css`。新しいファイルは `index.css` の該当する位置に `@import` を足す（`base` より後ろ、汎用の部品はそれを使う画面より前）。基底を上書きする `@media` / `@container` は、その基底と同じファイルの基底より後ろに置く（`mobile.css` には、後ろのファイルの基底に負けるものを置かない）。
 - 既存のクラスを使う。同じ宣言のブロックを増やさず、共通のクラスにまとめる（例: `.card`）。
 - 同じ詳細度で後ろにあるルール（`.icon-button` など）に上書きされて効かない指定を書かない。足したら計算後のスタイルで確かめる。
 - 使わなくなったクラスの CSS は消す。消すときは、名前を組み立てて付けるクラス（`sec-` `state-` `tone-` `status-` `meter-` `conn-` `task-status-` `priority-` `provider-` `drop-` `inspection-` `line-`、PR の状態の `open` / `merged` / `closed`）に気をつける。
-- 新しいクラス名は、既存のものと重ならないか `styles.css` を検索してから付ける（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
+- 新しいクラス名は、既存のものと重ならないか `styles/` 全体を検索してから付ける（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
 - プロジェクトの画面はどのタブでも同じ横幅（`.page-wide` は上限なし）。タブで幅を変えない。
 - 定義していない CSS 変数を使わない。
 - 欄・パネルの開閉の動きは `--panel-motion-duration` / `--panel-motion-ease` にそろえる（左のサイドバー・ボードの右のパネル・右のチャット欄・下のパネル）。開閉で大きさが動く欄は、中身を開いたときの大きさのまま置いて切り取る（動いている間に中身を並べ直さない）。
@@ -123,7 +125,7 @@
 
 - 型は `npm run typecheck`（`tsc --noEmit --noUnusedLocals`。使っていない import と変数も残さない）、テストは `npm test`。
 - API のルートを変えたら `src/core/server.test.ts` にテストを足す。
-- 画面の変更は、開発アプリ（`KICKOFF_REMOTE_DEBUG=9333 npm run dev`。CDP のポートは 9333。名前は「Kickoff Dev」、データは `Kickoff Dev`、コアのポートは 4318 で、インストールしたアプリ（本番）とは別。`appEnv.ts`）で実際に動かして確かめる。本番のデータ・アプリには触らない。見た目を変えないはずの変更は、変更の前後で DOM と計算後のスタイルを比べる。
+- 画面の変更は、開発アプリ（`KICKOFF_REMOTE_DEBUG=9333 npm run dev`。CDP のポートは 9333。名前は「Kickoff Dev」、データは `Kickoff Dev`、コアのポートは 4318 で、インストールしたアプリ（本番）とは別。`appEnv.ts`）で実際に動かして確かめる。本番のデータ・アプリには触らない。見た目を変えないはずの変更は、変更の前後で DOM と計算後のスタイルを比べる（`node scripts/ui-snapshot.mjs take <名前> [#/hash]` で記録し、`diff <前> <後>` で比べる。同じ localStorage の状態から同じ順で画面を開く。CSS の順は `css <名前>` で記録して比べる）。
 - core や main を変えたあとに開発アプリを再起動するときは、Electron のメインプロセスにだけ `kill -TERM` を送る（pkill でまとめて止めると、ディスクに書かれていない localStorage が消える）。その前に `/api/status` で実行中のチャットがないことを確かめる。
 - 利用者の localStorage を書き換えて確かめたら、元の値に戻す。
 - コミットは区切りごとに、日本語で「種類: 内容」（`feat` / `fix` / `refactor` / `test`）。
