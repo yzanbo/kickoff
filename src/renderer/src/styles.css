@@ -903,6 +903,11 @@ input[type="text"].inline-name {
   color: var(--muted);
 }
 
+/* 作業場所でまとめたときの、ワークツリーの見出し（ブランチの印と同じ色） */
+.status-group-head.on-worktree svg {
+  color: var(--info);
+}
+
 .status-group-head.state-needs_input svg {
   color: var(--dot-needs-input);
 }

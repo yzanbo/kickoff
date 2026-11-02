@@ -1,7 +1,7 @@
-import { Archive, CircleAlert, CircleCheck, CircleDot, CircleX, Folder, Plus } from "lucide-react";
+import { Archive, Folder, Plus } from "lucide-react";
 import { memo, useState } from "react";
 import { agentStateOf } from "../../../../core/board";
-import { AGENT_STATE_LABELS, AGENT_STATES, type AgentState, type Approval, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
+import type { AgentState, Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
@@ -17,19 +17,11 @@ import { InlineName } from "../InlineName";
 import { SearchField } from "../SearchField";
 import { ChatRow } from "./ChatRow";
 import { GroupToggle } from "./GroupToggle";
+import { CHAT_GROUPINGS, type ChatGrouping } from "./ChatGroupingMenu";
+import { GroupedChatRows } from "./GroupedChatRows";
 import { WorkspaceHead } from "./WorkspaceHead";
 
-type Grouping = "recent" | "status";
 const GROUPING_KEY = "kickoff:sidebar-grouping";
-
-/** ステータスでまとめるときの見出しのアイコン */
-const GROUP_ICONS: Record<AgentState, typeof CircleAlert> = {
-  needs_input: CircleAlert,
-  failed: CircleX,
-  attention: CircleCheck,
-  running: CircleDot,
-  done: CircleCheck,
-};
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -55,7 +47,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
 }) {
-  const [grouping, setGrouping] = useStoredChoice<Grouping>(GROUPING_KEY, ["recent", "status"], "recent");
+  const [grouping, setGrouping] = useStoredChoice<ChatGrouping>(GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   const waitingCount = approvals.filter((a) => a.project_id === project.id).length;
@@ -103,7 +95,6 @@ export const WorkspacePage = memo(function WorkspacePage({
   const groupedRows = (id: number) => rows.filter(({ run }) => run.group_id === id);
   const ungroupedRows = rows.filter(({ run }) => run.group_id === null || !groupIds.has(run.group_id));
 
-  const toggleGrouping = () => setGrouping(grouping === "recent" ? "status" : "recent");
 
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
   const rename = useRunRename((m) => void alertDialog("名前を変更できませんでした", m));
@@ -135,7 +126,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         chatCount={allRows.length}
         waitingCount={waitingCount}
         grouping={grouping}
-        onToggleGrouping={toggleGrouping}
+        onGroupingChange={setGrouping}
         onCreateGroup={startCreate}
         headDrag={headDrag}
       />
@@ -243,20 +234,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           {ungroupedRows.map(renderRow)}
         </ul>
       ) : (
-        AGENT_STATES.map((state) => {
-          const group = ungroupedRows.filter((r) => r.state === state);
-          if (group.length === 0) return null;
-          const Icon = GROUP_ICONS[state];
-          return (
-            <div key={state} className="status-group">
-              <div className={`status-group-head state-${state}`}>
-                <Icon size={14} />
-                {AGENT_STATE_LABELS[state]}
-              </div>
-              <ul className="chat-rows">{group.map(renderRow)}</ul>
-            </div>
-          );
-        })
+        <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} />
       )}
       {!collapsed && archivedMatches.length > 0 && (
         <div className="archived-section">

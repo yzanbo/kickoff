@@ -1,4 +1,4 @@
-import { Clock, FolderPlus, ListTree, Plus } from "lucide-react";
+import { FolderPlus, Plus } from "lucide-react";
 import { useState, type DragEvent } from "react";
 import type { ProjectSummary, RunGroup } from "../../../../core/types";
 import { initialOf } from "../../projectColor";
@@ -6,6 +6,7 @@ import { href, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
+import { ChatGroupingMenu, type ChatGrouping } from "./ChatGroupingMenu";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
@@ -20,7 +21,7 @@ export function WorkspaceHead({
   chatCount,
   waitingCount,
   grouping,
-  onToggleGrouping,
+  onGroupingChange,
   onCreateGroup,
   headDrag,
 }: {
@@ -31,8 +32,8 @@ export function WorkspaceHead({
   onToggleCollapsed: () => void;
   chatCount: number;
   waitingCount: number;
-  grouping: "recent" | "status";
-  onToggleGrouping: () => void;
+  grouping: ChatGrouping;
+  onGroupingChange: (grouping: ChatGrouping) => void;
   onCreateGroup: () => void;
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
@@ -71,11 +72,7 @@ export function WorkspaceHead({
           </span>
         )}
         {!collapsed && (
-          <IconButton
-            icon={grouping === "recent" ? ListTree : Clock}
-            label={grouping === "recent" ? "ステータスでまとめる" : "新しい順に並べる"}
-            onClick={onToggleGrouping}
-          />
+          <ChatGroupingMenu value={grouping} onChange={onGroupingChange} />
         )}
         <IconButton icon={FolderPlus} label={`${project.name} にグループを作成`} title="グループを作成" onClick={onCreateGroup} />
         <IconButton
