@@ -20,12 +20,20 @@ npm test           # コアの単体テスト
 npm run typecheck  # 型チェック
 npm run daemon     # Electron なしでコア（API サーバー）だけを起動
 npm run dist       # .app / .dmg を作成
-npm run icon       # build/icon.svg からアプリのアイコン（build/icon.png・icon.icns）を作り直す
+npm run icon       # build/icon.svg・icon-dev.svg からアプリのアイコン（本番・開発版の .png / .icns）を作り直す
 ```
 
-`npm install` のあと（postinstall）に、開発用の Electron.app の名前とアイコンを Kickoff に書き換える（`scripts/dev-app-identity.mjs`。Dock やメニューバーに「Electron」と出ないように）。アイコンを作り直したら `node scripts/dev-app-identity.mjs` で当て直し、開発アプリを起動し直す。
+インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/core/appEnv.ts`）。
 
-データは `~/Library/Application Support/Kickoff/` に保存される。
+| | 本番（`/Applications/Kickoff.app`） | 開発 |
+|---|---|---|
+| 名前（Dock・メニューバー） | Kickoff | Kickoff Dev（アイコンに DEV の帯） |
+| データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
+| ポート | 4317 | 4318 |
+
+開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/core/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
+
+`npm install` のあと（postinstall）に、開発用の Electron.app の名前とアイコンを「Kickoff Dev」に書き換える（`scripts/dev-app-identity.mjs`。Dock やメニューバーに「Electron」と出ないように）。アイコンを作り直したら `node scripts/dev-app-identity.mjs` で当て直し、開発アプリを起動し直す。
 
 ## 構成
 
@@ -35,11 +43,11 @@ npm run icon       # build/icon.svg からアプリのアイコン（build/icon.
 | `src/main` | Electron のメインプロセス（コアの起動、ウィンドウ、ネイティブダイアログ） |
 | `src/preload` | 画面に公開する最小限のネイティブ機能 |
 | `src/renderer` | 画面（React） |
-| `build` | アプリのアイコン（元の絵は `icon.svg`） |
+| `build` | アプリのアイコン（元の絵は本番 `icon.svg`・開発版 `icon-dev.svg`） |
 | `scripts` | アイコンの作成・開発用の Electron.app の書き換え |
 
 | 環境変数 | 説明 |
 |---|---|
-| `KICKOFF_PORT` | API サーバーのポート（既定 4317） |
-| `KICKOFF_DATA_DIR` | `npm run daemon` のデータ保存先 |
+| `KICKOFF_PORT` | API サーバーのポート（既定は本番 4317・開発 4318） |
+| `KICKOFF_DATA_DIR` | `npm run daemon` のデータ保存先（既定は開発の `Kickoff Dev`） |
 | `KICKOFF_ALLOW_API_KEY` | `1` のときだけ `ANTHROPIC_API_KEY` をエージェントに渡す（既定はプランのログインを使用） |

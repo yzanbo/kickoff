@@ -1,5 +1,7 @@
 import path from "node:path";
 import { app, BrowserWindow, dialog, ipcMain, session, shell } from "electron";
+import { APP_ENVS } from "../core/appEnv.js";
+import { seedDevData } from "../core/devData.js";
 import { AUTH_COOKIE } from "../core/auth.js";
 import { startCore, type Core } from "../core/index.js";
 import { loadLoginShellPath } from "../core/shellEnv.js";
@@ -21,13 +23,17 @@ import { killAllTerminals, registerTerminalIpc } from "./terminals.js";
 
 // ビルド後の out/main を基準にする
 const outDir = path.join(import.meta.dirname, "..");
-const port = Number(process.env.KICKOFF_PORT ?? 4317);
+// 本番（インストールしたアプリ）と開発（npm run dev）で、名前・保存先・ポートを分ける（同時に動かせるように。appEnv.ts）
+const env = APP_ENVS[app.isPackaged ? "production" : "development"];
+const port = Number(process.env.KICKOFF_PORT ?? env.port);
 // 開発時は electron-vite の dev サーバー、本番時はコアが画面も配信する
 const devUrl = process.env.ELECTRON_RENDERER_URL;
 
-// データの保存先をヘッドレス起動（daemon）と揃える
-app.setName("Kickoff");
-app.setPath("userData", path.join(app.getPath("appData"), "Kickoff"));
+// データの保存先は、同じ環境のヘッドレス起動（daemon）とそろえる
+app.setName(env.name);
+app.setPath("userData", path.join(app.getPath("appData"), env.name));
+// 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を作る前に）
+if (!app.isPackaged) seedDevData(path.join(app.getPath("appData"), APP_ENVS.production.name), app.getPath("userData"));
 
 let core: Core | undefined;
 
@@ -92,7 +98,7 @@ function createWindow(url: string) {
     height: 880,
     minWidth: 960,
     minHeight: 600,
-    title: "Kickoff",
+    title: env.name,
     titleBarStyle: "hiddenInset",
     // 信号機ボタンの位置を固定し、画面側の開閉ボタンと高さをそろえる（styles.css の .titlebar-toggle と対応）
     trafficLightPosition: { x: 14, y: 14 },
