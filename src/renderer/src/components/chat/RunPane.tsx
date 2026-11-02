@@ -50,18 +50,28 @@ export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible
   const [error, setError] = useState<string>();
 
   useEffect(() => {
+    // 切り替えを素早く繰り返しても、前のチャットの応答で上書きされないように（useBoardRuns と同じ alive の形）
+    let alive = true;
     setRun(undefined);
     setEvents([]);
     setLive("");
+    setError(undefined);
     api
       .run(runId)
       .then((d) => {
+        if (!alive) return;
         setRun(d.run);
         setEvents(d.events);
         setApprovals(d.approvals);
       })
-      .catch((e: unknown) => setError(errorMessage(e)));
-    api.project(projectId).then(setProject).catch(() => {});
+      .catch((e: unknown) => alive && setError(errorMessage(e)));
+    api
+      .project(projectId)
+      .then((p) => alive && setProject(p))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, [runId, projectId]);
 
   // パネルのタブに、チャットの名前とセクションを知らせる（名前を変えたらタブもすぐ変わる）
