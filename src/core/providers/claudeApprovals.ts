@@ -6,7 +6,7 @@ import type { ApprovalRequest, ProviderCallbacks } from "./types.js";
 type ToolOptions = Pick<Parameters<CanUseTool>[2], "title" | "description" | "decisionReason" | "suggestions" | "suppressAlwaysAllowRule">;
 
 /** ツールの呼び出しを、ユーザーへの承認依頼にする（AskUserQuestion は質問、それ以外は許可） */
-export function approvalRequestFor(toolName: string, input: Record<string, unknown>, opts: ToolOptions): ApprovalRequest {
+function approvalRequestFor(toolName: string, input: Record<string, unknown>, opts: ToolOptions): ApprovalRequest {
   if (toolName === "AskUserQuestion") return { kind: "question", toolName, input, title: opts.title, canRemember: false };
   return {
     kind: "permission",
@@ -19,7 +19,7 @@ export function approvalRequestFor(toolName: string, input: Record<string, unkno
 }
 
 /** ユーザーの回答を Claude Code の判定にする */
-export function toPermissionResult(request: ApprovalRequest, decision: ApprovalDecision, suggestions: PermissionUpdate[] | undefined): PermissionResult {
+function toPermissionResult(request: ApprovalRequest, decision: ApprovalDecision, suggestions: PermissionUpdate[] | undefined): PermissionResult {
   const { input } = request;
   if (request.kind === "question") {
     // 質問への回答は入力に足して通す。答えなければ、質問をスキップしたとして断る

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main/index.ts",
+    "src/preload/index.ts",
+    "src/renderer/src/main.tsx",
+    "src/core/daemon.ts",
+    "electron.vite.config.ts",
+    "scripts/*.mjs",
+    "scripts/*.cjs"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{mjs,cjs}"],
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": ["sips", "iconutil", "plutil", "pgrep", "ditto"]
+}

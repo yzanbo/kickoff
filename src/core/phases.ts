@@ -24,7 +24,7 @@ export interface PhasePolicy {
 }
 
 /** プロジェクトに設定された書き込みできるフォルダ（未設定なら docs） */
-export function writeScopeOf(project: Project, section: "requirements" | "schedule"): string[] {
+function writeScopeOf(project: Project, section: "requirements" | "schedule"): string[] {
   return project.write_scopes[section] ?? DEFAULT_WRITE_SCOPE;
 }
 

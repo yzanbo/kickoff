@@ -11,7 +11,8 @@
     "dist": "electron-vite build && electron-builder --mac --arm64",
     "install-app": "node scripts/install-app.mjs",
     "icon": "node scripts/build-icon.mjs",
-    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper && node scripts/dev-app-identity.mjs"
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper && node scripts/dev-app-identity.mjs",
+    "knip": "knip"
   },
   "description": "Claude Agent SDK で要件定義〜実装〜テスト〜デプロイを一元管理するローカルアプリ",
   "dependencies": {
@@ -24,6 +25,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/hast": "^3.0.5",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -35,6 +37,7 @@
     "electron": "^45.2.1",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
+    "knip": "^6.44.1",
     "lucide-react": "^1.66.0",
     "material-icon-theme": "^5.40.0",
     "mermaid": "^12.2.0",

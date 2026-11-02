@@ -127,7 +127,7 @@
 
 ## 確かめ方
 
-- 型は `npm run typecheck`（`tsc --noEmit --noUnusedLocals`。使っていない import と変数も残さない）、テストは `npm test`。
+- 型は `npm run typecheck`（`tsc --noEmit --noUnusedLocals`。使っていない import と変数も残さない）、テストは `npm test`。使っていない export・ファイル・依存は `npm run knip`（knip。入口と CLI スクリプトは `knip.json` の `entry`）で見て、`export` を外すか消す（テストからだけ使うものは残す）。
 - API のルートを変えたら、その領域の `src/core/server.<領域>.test.ts` にテストを足す（認証・SSE・停止 = `server.test.ts` / プロジェクト・タスク・成果物・固定・色 = `server.projects.test.ts` / チャット・グループ・添付・承認依頼・プロバイダー・使用枠・`/` のコマンド・自動アーカイブ = `server.runs.test.ts` / Git・ワークツリー = `server.git.test.ts` / サービスごとの使用状況 = `server.usage.test.ts`）。サーバーの組み立て・偽のプロバイダー・トークン付きの呼び出し・`until` は `src/core/testing/testServer.ts` の `setup()` などを使い、テストごとに書き直さない。
 - 画面の変更は、開発アプリ（`KICKOFF_REMOTE_DEBUG=9333 npm run dev`。CDP のポートは 9333。名前は「Kickoff Dev」、データは `Kickoff Dev`、コアのポートは 4318 で、インストールしたアプリ（本番）とは別。`appEnv.ts`）で実際に動かして確かめる。本番のデータ・アプリには触らない。見た目を変えないはずの変更は、変更の前後で DOM と計算後のスタイルを比べる（`node scripts/ui-snapshot.mjs take <名前> [#/hash]` で記録し、`diff <前> <後>` で比べる。同じ localStorage の状態から同じ順で画面を開く。CSS の順は `css <名前>` で記録して比べる）。
 - core や main を変えたあとに開発アプリを再起動するときは、Electron のメインプロセスにだけ `kill -TERM` を送る（pkill でまとめて止めると、ディスクに書かれていない localStorage が消える）。その前に `/api/status` で実行中のチャットがないことを確かめる。

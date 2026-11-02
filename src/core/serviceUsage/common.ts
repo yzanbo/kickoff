@@ -31,7 +31,7 @@ export function readJsonFile<T>(path: string): T | null {
 }
 
 /** HTTP の失敗（状態コードつき） */
-export class HttpStatusError extends Error {
+class HttpStatusError extends Error {
   constructor(
     readonly status: number,
     readonly body: string,
