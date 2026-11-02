@@ -1,0 +1,115 @@
+/* ==== 埋め込みブラウザ（アドレス欄・開発者ツール） ==== */
+.browser-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.browser-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  padding: 6px var(--gutter);
+  border-bottom: 1px solid var(--border);
+}
+
+/* 共通の入力欄の指定（input[type="text"]）より強くする */
+.browser-toolbar .browser-address {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  margin: 0 4px;
+  padding: 0 12px;
+  /* type のない入力欄は共通の入力欄の見た目が付かず、ブラウザの既定の立体的な枠（inset）になるので、ほかと同じ 1px の枠にする */
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+/* 丸いアドレス欄では、太い枠（ほかの入力欄のフォーカスの印）が角で途切れて見えるので、枠の色を変えるだけにする */
+.browser-toolbar .browser-address:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent-bright) 60%, var(--border));
+}
+
+.browser-error {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--ng);
+  border-bottom: 1px solid var(--border);
+}
+
+.browser-view {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: #fff;
+}
+
+/*
+ * ページと、タブの中に出した開発者ツール（右・下）を並べる。ページ（webview）はパネルの角丸で切り取られず白い角がはみ出すので、
+ * 下の角をパネルと同じ丸さで切り取る（パネルの枠の 1px の内側）
+ */
+.browser-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
+  clip-path: inset(0 round 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px));
+}
+
+.browser-body.dock-bottom {
+  flex-direction: column;
+}
+
+.browser-devtools {
+  display: flex;
+  flex: none;
+  min-width: 0;
+  min-height: 0;
+}
+
+.browser-devtools-view {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 境目をドラッグしている間は、ページ・開発者ツールがポインターを横取りしないようにする */
+.browser-body.resizing webview {
+  pointer-events: none;
+}
+
+/* 開発者ツールのボタンと、出す場所のメニューのボタン（くっつけて 1 つに見せる） */
+.browser-devtools-buttons {
+  display: inline-flex;
+  align-items: center;
+}
+
+.browser-devtools-buttons .browser-devtools-dock {
+  width: 16px;
+}
+
+.browser-pane {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.browser-unavailable {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+

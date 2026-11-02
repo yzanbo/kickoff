@@ -1,0 +1,236 @@
+/* ==== レイアウト ==== */
+
+/* 左: サイドバー / 真ん中: 画面と下のパネル / 右: プロジェクトのチャット欄（下のパネルより下まで） / 下: 帯 */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100vh;
+  transition: grid-template-columns var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+/* サイドバーを閉じたとき（⌘B） */
+.layout.sidebar-collapsed {
+  grid-template-columns: 0px minmax(0, 1fr) auto;
+}
+
+.layout.sidebar-collapsed .sidebar {
+  border-right-color: transparent;
+}
+
+.sidebar {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 閉じても中身の幅は変えず、はみ出た分を隠す（開閉中に中身が崩れないように） */
+.sidebar > :not(.sidebar-resizer) {
+  min-width: var(--sidebar-w, 260px);
+}
+
+/* 幅を変えている間はアニメーションを止める */
+.layout.resizing-sidebar {
+  transition: none;
+  user-select: none;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 5px;
+  cursor: col-resize;
+  -webkit-app-region: no-drag;
+}
+
+/*
+ * 幅を変えるつまみ（サイドバー・右のパネル・「エディタ」タブの一覧）。VS Code・Cursor と同じく、乗せると青い線を出す。
+ * つかめる幅は広いまま、線は 2px にする（サイドバーは右端、パネルは左端の境目の上に、欄の境目は真ん中に）
+ */
+.sidebar-resizer:hover,
+.resizing-sidebar .sidebar-resizer,
+.panel-resizer:hover,
+.board-body.resizing .panel-resizer,
+.pane-resizer:hover,
+.resizing > .pane-resizer {
+  background: linear-gradient(var(--info), var(--info)) center / 2px 100% no-repeat;
+}
+
+.sidebar-resizer:hover,
+.resizing-sidebar .sidebar-resizer {
+  background-position: right;
+}
+
+.panel-resizer:hover,
+.board-body.resizing .panel-resizer {
+  background-position: left;
+}
+
+/* 左右の欄の境目のつまみ（エディタの一覧と差分・履歴のファイルと差分。線の上に重ねる） */
+.pane-resizer {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: 5px;
+  margin: 0 -3px 0 -2px;
+  cursor: col-resize;
+}
+
+/* ドラッグ中は、文字を選んだり差分の側が反応したりしないようにする */
+.changes.resizing,
+.commit-changes.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置） */
+.titlebar-toggle {
+  /*
+   * 信号機ボタン（1 つの枠 14×16px・丸は直径 12px・20px 間隔。左上 14px,14px から並ぶので
+   * 中心の高さは約 22px、右端は約 68px）と同じ行・同じ高さ・同じくらいの大きさにする
+   */
+  position: absolute;
+  top: 12px;
+  left: 76px;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-toggle.floating {
+  position: fixed;
+}
+
+.titlebar-toggle:hover {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+/*
+ * 画面のいちばん上の行（タイトルと編集ボタンなど）は、サイドバーの開閉に関係なく信号機ボタンと同じ高さに置く
+ * （開閉で縦の位置が変わらないように）。閉じている間だけ、その行を開閉ボタンの右へずらす。
+ * その下（パス・タブ）は、どちらでも左端にそろえる
+ */
+.page-header > :first-child {
+  min-height: 34px;
+}
+
+/* 画面のいちばん上の行の右端は、右上のレイアウトの開閉（LayoutToggles）のために空けておく（チャット欄の上の行も同じ） */
+.page-header > :first-child {
+  padding-right: 100px;
+}
+
+/* 右上のレイアウトの開閉（VS Code と同じ。信号機ボタンと同じ高さ） */
+.layout-toggles {
+  position: fixed;
+  top: 8px;
+  right: 10px;
+  z-index: 30;
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-collapsed .page-header > :first-child {
+  /* 開閉ボタン（左から 96px まで）の右に置く。画面の左右の余白の分を差し引く */
+  padding-left: calc(104px - var(--page-x));
+  transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+/* 画面と、その下のパネル（ターミナル）を縦に並べる */
+.main-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 下のパネルを最大化しているときは、上の画面を隠す */
+.main-column.bottom-maximized > .main {
+  display: none;
+}
+
+.page {
+  /* 左右の余白（横幅いっぱいの画面は狭くする） */
+  --page-x: 40px;
+  max-width: 820px;
+  margin: 0 auto;
+  /* 上は信号機ボタンの行（タイトルの行がその高さに収まる） */
+  padding: 6px var(--page-x) 64px;
+}
+
+.page.is-stale {
+  opacity: 0.55;
+  transition: opacity 0.12s;
+}
+
+/* プロジェクトの画面・全体のカンバン: どのタブでも同じ横幅にする（タブを切り替えても見出しやタブの位置が動かないように） */
+/* 横幅いっぱいの画面（ボード・エディタなど）。サイドバーとの間を空けすぎない */
+.page-wide {
+  --page-x: var(--gutter);
+  max-width: none;
+}
+
+.page-header {
+  margin-bottom: 24px;
+  -webkit-app-region: drag;
+}
+
+.page-header a,
+.page-header button {
+  -webkit-app-region: no-drag;
+}
+
+.section {
+  margin-bottom: 32px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.section-head h2 {
+  margin-bottom: 0;
+}
+
+.empty {
+  padding: 28px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty-hero {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 48px 24px;
+}
+
+.empty-hero p {
+  margin: 0 0 8px;
+}
+

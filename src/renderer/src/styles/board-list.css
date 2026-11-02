@@ -1,0 +1,149 @@
+/* ==== ブラウザの拡張機能の一覧・ボードのリスト表示 ==== */
+/* 設定: ブラウザの拡張機能 */
+
+.ext-list {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ext-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.ext-name {
+  flex: 1;
+}
+
+.ext-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* リスト表示 */
+
+.board-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.list-group {
+  position: relative;
+  margin-bottom: 12px;
+  /* 強調表示（枠と背景）のときに見出しが枠にくっつかないよう、いつも内側に余白をとる */
+  padding: 6px 8px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+
+/* グループのリスト表示: 並べ替えの線（上下）と、作成ボタンの行 */
+.list-group.group-dragging {
+  opacity: 0.35;
+}
+
+.list-group.drop-before::before,
+.list-group.drop-after::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  left: 6px;
+  z-index: 2;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+}
+
+.list-group.drop-before::before {
+  top: -7px;
+}
+
+.list-group.drop-after::after {
+  bottom: -7px;
+}
+
+.list-group.group-add-row {
+  padding: 4px 6px;
+  border: 1px dashed var(--border-strong);
+}
+
+/* 送る前の新しいチャット（パネルで入力中）を、その列・グループに下書きとして出す */
+.draft-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px dashed var(--accent-bright);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  cursor: pointer;
+}
+
+.draft-card:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.draft-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+/* 書いている途中の文（初めの 3 行まで） */
+.draft-card-text {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px 0 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.list-row:hover {
+  background: var(--bg-elev);
+}
+
+.list-main {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 0;
+  color: var(--text);
+}
+
+.list-row .card-time {
+  flex: none;
+}
+

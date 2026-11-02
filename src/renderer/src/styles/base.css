@@ -1,0 +1,59 @@
+/* ==== 基底（body・見出し・小さな共有クラス。後ろの部品に上書きされる前提なので先頭側に置く） ==== */
+body {
+  margin: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+h2 {
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 12px;
+}
+
+.error {
+  color: var(--ng);
+}
+
+.success {
+  color: var(--ok);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.prewrap {
+  white-space: pre-wrap;
+}
+
+kbd {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+

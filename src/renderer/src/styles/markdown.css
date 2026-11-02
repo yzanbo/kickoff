@@ -1,0 +1,103 @@
+/* ==== Markdown ==== */
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  margin: 1.3em 0 0.5em;
+}
+
+.markdown h1 {
+  font-size: 19px;
+}
+
+.markdown h2 {
+  font-size: 16px;
+}
+
+.markdown h3 {
+  font-size: 14px;
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol {
+  margin: 0.55em 0;
+}
+
+.markdown code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 0.9em;
+  background: var(--bg-hover);
+}
+
+.markdown pre,
+.mermaid-diagram {
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sidebar);
+}
+
+.markdown pre code {
+  padding: 0;
+  background: none;
+}
+
+/* Mermaid の図（コードの欄と同じ枠） */
+.mermaid-diagram {
+  margin: 1em 0;
+}
+
+/* 返答の生成中・描いている間の枠 */
+.mermaid-placeholder {
+  min-height: 96px;
+  background: linear-gradient(90deg, var(--bg-sidebar) 0%, var(--bg-hover) 50%, var(--bg-sidebar) 100%) 0 0 / 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* 図の上の行のボタン（右寄せ） */
+.mermaid-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin: -6px -8px 6px 0;
+}
+
+/* ソースを表示しているとき（図の枠の中に、そのまま出す） */
+.markdown .mermaid-source {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.markdown table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.markdown th,
+.markdown td {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.markdown blockquote {
+  margin: 0.6em 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--border-strong);
+  color: var(--muted);
+}
+

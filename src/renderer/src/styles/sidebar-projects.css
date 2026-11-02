@@ -1,0 +1,633 @@
+/* ==== プロジェクトのワークスペース（横スライドで切り替え） ==== */
+
+.workspaces {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workspace-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* 縦スクロールはページ側で、横の操作はスワイプとして受け取る */
+  touch-action: pan-y;
+}
+
+.workspace-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.workspace-track.dragging {
+  transition: none;
+}
+
+/*
+ * サイドバーのチャット一覧: スクロールバーの場所をいつも空けておき（出る・出ないで中身の幅が変わらないように）、
+ * そのぶん右の余白を減らして、見た目の右の余白は --gutter のままにする
+ */
+.workspace-page {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: 4px calc(var(--gutter) - var(--scrollbar-w)) 8px var(--gutter);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.workspace-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 6px 4px 6px 4px;
+  border-radius: 10px;
+  /* 外枠の中を押すとカンバンを開く */
+  cursor: pointer;
+}
+
+/* プロジェクトの色のカード（サイドバーのプロジェクトの見出し・プロジェクトの画面の名前） */
+.workspace-head,
+.project-switch {
+  border: 1px solid hsl(var(--ws-hue, 150) 30% 24%);
+  background: hsl(var(--ws-hue, 150) 25% 13%);
+}
+
+.workspace-head:hover,
+.workspace-head.active,
+button.project-switch:hover,
+.project-switch[aria-expanded="true"] {
+  border-color: hsl(var(--ws-hue, 150) 40% 34%);
+  background: hsl(var(--ws-hue, 150) 28% 16%);
+}
+
+:root[data-theme="light"] .workspace-head,
+:root[data-theme="light"] .project-switch {
+  border-color: hsl(var(--ws-hue, 150) 40% 82%);
+  background: hsl(var(--ws-hue, 150) 50% 96%);
+}
+
+:root[data-theme="light"] .workspace-head:hover,
+:root[data-theme="light"] .workspace-head.active,
+:root[data-theme="light"] button.project-switch:hover,
+:root[data-theme="light"] .project-switch[aria-expanded="true"] {
+  border-color: hsl(var(--ws-hue, 150) 45% 70%);
+  background: hsl(var(--ws-hue, 150) 55% 93%);
+}
+
+/* サイドバーのプロジェクトのカードは、枠の線を出さない（背景の色だけで見せる。画面の見出しの名前のカードは枠を残す） */
+.workspace-head,
+.workspace-head:hover,
+.workspace-head.active,
+:root[data-theme="light"] .workspace-head,
+:root[data-theme="light"] .workspace-head:hover,
+:root[data-theme="light"] .workspace-head.active {
+  border-color: transparent;
+}
+
+.workspace-title {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text);
+}
+
+.workspace-title-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.workspace-sub {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* プロジェクトの開閉の矢印（プロジェクトの色。カードを押しても開閉するので、ボタンらしい背景は付けない） */
+.workspace-toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  color: hsl(var(--ws-hue, 150) 55% 65%);
+  background: transparent;
+  cursor: pointer;
+}
+
+.workspace-toggle:hover,
+.workspace-toggle:focus-visible {
+  color: hsl(var(--ws-hue, 150) 70% 82%);
+}
+
+:root[data-theme="light"] .workspace-toggle {
+  color: hsl(var(--ws-hue, 150) 50% 40%);
+}
+
+:root[data-theme="light"] .workspace-toggle:hover,
+:root[data-theme="light"] .workspace-toggle:focus-visible {
+  color: hsl(var(--ws-hue, 150) 60% 28%);
+}
+
+.workspace-name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+/* プロジェクトの見出しのピン（いつも出す）: 固定していないときは薄い灰の線、固定しているときはプロジェクトの色で塗る */
+.workspace-head .workspace-pin {
+  color: var(--extra-muted);
+}
+
+.workspace-head .workspace-pin.pinned {
+  color: hsl(var(--ws-hue, 150) 60% 65%);
+}
+
+:root[data-theme="light"] .workspace-head .workspace-pin.pinned {
+  color: hsl(var(--ws-hue, 150) 55% 38%);
+}
+
+.workspace-pin .pin-filled {
+  fill: currentColor;
+}
+
+/* しまった（アーカイブした）プロジェクト（サイドバーで出すとき）: 枠を点線にして、名前を薄く */
+.workspace-head.archived {
+  border-style: dashed;
+}
+
+.workspace-head.archived .workspace-title {
+  opacity: 0.6;
+}
+
+/* サイドバーの下の行: 主な操作だけ（横スライドはプロジェクトの丸、縦並びは「新しいプロジェクト」）。表示方法の操作は上の見出しの行 */
+/* 一覧の下の行（横スライドはプロジェクトの丸、縦並びは「新しいプロジェクト」）。並べ方を変えても高さが変わらないよう、高さを決めて中身を上下の真ん中に置く */
+.workspace-switcher {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 var(--gutter);
+  border-top: 1px solid var(--border);
+}
+
+/* 入りきらないときは横にスクロール（スクロールバーは出さない。端が切れないよう safe center） */
+.workspace-dots {
+  display: flex;
+  flex: 1;
+  justify-content: safe center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.workspace-dots > * {
+  flex: none;
+}
+
+/* 縦並びの下の行の「新しいプロジェクト」: 上だけの margin を外し、横スライドの丸の列と同じ高さにする */
+.workspace-switcher.stack .sidebar-new {
+  height: 32px;
+  margin-top: 0;
+  padding-block: 0;
+}
+
+/* プロジェクト一覧の上の見出し: 1 行目はプロジェクト、2 行目はチャットの設定（種類ごとのボタン）。左に何に効くかの名前 */
+.project-list-head {
+  container: project-list-head / inline-size;
+  display: grid;
+  flex: none;
+  gap: 3px;
+  padding: 4px var(--gutter) 2px;
+}
+
+.project-list-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* 行の名前（2 行のボタンの左端をそろえるため、幅を固定する） */
+.project-list-row-label {
+  flex: none;
+  width: 62px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（幅は取りうる値でいちばん長いものに固定。狭いときはアイコンだけ） */
+.head-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.head-chip:hover,
+.head-chip.active {
+  background: var(--bg-hover);
+}
+
+.head-chip-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.head-chip-label {
+  font-size: 10px;
+  color: var(--extra-muted);
+}
+
+/* 取りうる値を同じ場所に重ね、いまの値だけを見せる（幅はいちばん長い値で固定） */
+.head-chip-value {
+  display: grid;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.head-chip-value > * {
+  grid-area: 1 / 1;
+}
+
+.head-chip-sizer {
+  visibility: hidden;
+}
+
+.head-chip-icon {
+  display: none;
+  color: var(--muted);
+}
+
+/* 文字では収まらない幅（縦並びでサイドバーが約 285px 未満）では、文字を隠してアイコン（いまの値）だけにする */
+@container project-list-head (max-width: 259px) {
+  .head-chip {
+    height: 26px;
+    padding: 0 6px;
+  }
+
+  .head-chip-icon {
+    display: block;
+  }
+
+  .head-chip-text {
+    display: none;
+  }
+}
+
+/* 縦並び: すべてのプロジェクトを上から順に並べ、まとめてスクロールする */
+.workspace-stack {
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 8px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.workspace-stack .workspace-page {
+  padding-bottom: 4px;
+  overflow: visible;
+}
+
+/* プロジェクトの並べ替え: 動かしているものは薄く、入る位置に線を出す */
+.workspace-dot.group-dragging,
+.stack-item.group-dragging {
+  opacity: 0.35;
+}
+
+.stack-item {
+  position: relative;
+}
+
+.workspace-dot.drop-before::before,
+.workspace-dot.drop-after::after,
+.stack-item.drop-before::before,
+.stack-item.drop-after::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+}
+
+.workspace-dot.drop-before::before,
+.workspace-dot.drop-after::after {
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+}
+
+.workspace-dot.drop-before::before {
+  left: -5px;
+}
+
+.workspace-dot.drop-after::after {
+  right: -5px;
+}
+
+.stack-item.drop-before::before,
+.stack-item.drop-after::after {
+  right: 10px;
+  left: 10px;
+  height: 2px;
+}
+
+.stack-item.drop-before::before {
+  top: 0;
+}
+
+.stack-item.drop-after::after {
+  bottom: 0;
+}
+
+/* 縦並びで、固定したプロジェクトと残りを分ける見出し（固定したものがあるときだけ） */
+.project-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px var(--gutter) 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* 「プロジェクト」の見出しの前に区切りの線（固定の見出しには付けない） */
+.project-section-label:not(.pinned) {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* 横スライドの丸の列で、固定したプロジェクトと残りの間の区切り */
+.workspace-dots-divider {
+  align-self: center;
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: var(--border-strong);
+}
+
+/* チャットの「固定」のまとまり: ピンをプロジェクトの色で塗って、ほかのまとまりより目立たせる */
+.row-section.pinned .custom-group-icon {
+  color: hsl(var(--ws-hue, 150) 60% 65%);
+  fill: currentColor;
+}
+
+:root[data-theme="light"] .row-section.pinned .custom-group-icon {
+  color: hsl(var(--ws-hue, 150) 55% 38%);
+}
+
+/* 縦並びの上の、すべてのプロジェクトをまたぐ検索欄 */
+.search-all {
+  flex: none;
+  padding: 2px var(--gutter) 6px;
+}
+
+.search-all-empty {
+  padding: 0 var(--gutter);
+}
+
+/* 縦並びの、しまったプロジェクトのまとまりの見出し */
+.archived-projects-head {
+  margin: 4px 0;
+}
+
+/* 横スライドの下の丸: しまったプロジェクトは点線で薄く */
+.workspace-dot.archived {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  opacity: 0.45;
+}
+
+.workspace-dot {
+  --ws-hue: 20;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: hsl(var(--ws-hue) 60% 72%);
+  background: hsl(var(--ws-hue) 35% 22%);
+  cursor: pointer;
+  opacity: 0.7;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+:root[data-theme="light"] .workspace-dot {
+  color: hsl(var(--ws-hue) 55% 32%);
+  background: hsl(var(--ws-hue) 55% 90%);
+}
+
+.workspace-dot:hover {
+  opacity: 1;
+}
+
+.workspace-dot.active {
+  border-color: hsl(var(--ws-hue) 60% 60%);
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+/* 上に固定したプロジェクトの丸: 中の下に小さな線（丸の列は横スクロールなので、外にはみ出すと切れる） */
+.workspace-dot.pinned::after {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: hsl(var(--ws-hue) 60% 60%);
+  transform: translateX(-50%);
+  content: "";
+}
+
+.workspace-dot.add {
+  color: var(--muted);
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+}
+
+/* 丸の右上: 自分待ち（回答待ちはオレンジ、確認待ちだけなら緑）。左上: 作業中（青） */
+.workspace-dot-badge,
+.workspace-dot-working {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--bg-sidebar);
+  border-radius: 50%;
+  background: var(--dot-needs-input);
+}
+
+.workspace-dot-badge.review {
+  background: var(--dot-attention);
+}
+
+.workspace-dot-working {
+  right: auto;
+  left: -3px;
+  background: var(--dot-running);
+}
+
+/* プロジェクトの見出しの、状態ごとのチャット数（色はカンバンの列と同じ） */
+.head-counts {
+  display: flex;
+  flex: none;
+  gap: 3px;
+}
+
+.head-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
+  cursor: pointer;
+}
+
+.head-count:hover {
+  background: color-mix(in srgb, var(--tone) 26%, transparent);
+}
+
+/* 押して、その状態だけに絞っているとき */
+.head-count.active {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 30%, transparent);
+}
+
+.head-count-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+/* 作業中の点は、動いていることが分かるようにゆっくり明滅させる */
+.head-count-running .head-count-dot {
+  animation: head-count-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes head-count-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.workspace-empty {
+  padding: 8px;
+}
+
+.sidebar-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-new:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-button:hover,
+.icon-button.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* 押せないときは薄くする（取得中で回っている更新ボタンはそのまま） */
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon-button:disabled:hover {
+  color: var(--muted);
+  background: transparent;
+}
+
+.icon-button[aria-busy="true"] {
+  opacity: 1;
+}
+
+/* 回答待ちの件数 */
+.count-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+}
+

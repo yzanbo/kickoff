@@ -1,0 +1,70 @@
+/* ==== プロジェクトのチャット欄（画面の右端。どのタブでも開ける） ==== */
+
+/* 閉じているときは幅 0。開くと、幅が --chat-w まで動く（中身は右端に寄せ、右から出てくるように見せる） */
+.project-chat {
+  grid-column: 3;
+  grid-row: 1;
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid transparent;
+  background: var(--bg);
+  transition:
+    width var(--panel-motion-duration) var(--panel-motion-ease),
+    border-color var(--panel-motion-duration);
+}
+
+.project-chat.open {
+  width: var(--chat-w);
+  border-left-color: var(--border);
+}
+
+.project-chat.resizing {
+  user-select: none;
+  transition: none;
+}
+
+/* 中身は開いたときの幅のまま（動いている間に並びが崩れないように） */
+.project-chat-inner {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: var(--chat-w);
+  min-height: 0;
+}
+
+/* 左端の境目のつまみ（欄の内側に置く。外にはみ出すと隠れる） */
+.project-chat-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+}
+
+/* 中身はボードの右のパネルと同じもの。欄いっぱいに広げ、浮いたパネルの見た目（枠・影・動き）はなくす */
+.board-panel.as-sidebar {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+}
+
+/* タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける */
+.board-panel.as-sidebar .panel-tabs {
+  min-height: 40px;
+  padding-right: 100px;
+  -webkit-app-region: drag;
+}
+
+.board-panel.as-sidebar .panel-tabs button {
+  -webkit-app-region: no-drag;
+}
+

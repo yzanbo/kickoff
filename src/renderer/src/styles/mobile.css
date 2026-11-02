@@ -1,0 +1,73 @@
+/* ==== スマホ（縦 1 列） ==== */
+
+@media (max-width: 720px) {
+  /* スマホでは閉じたサイドバーを消す（縦 1 列のため幅のアニメーションは使わない） */
+  .layout.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .layout.sidebar-collapsed .sidebar {
+    display: none;
+  }
+
+  /* スマホでは縦 1 列なので、プロジェクトのチャット欄は出さない（ボードの右のパネルを使う） */
+  .project-chat {
+    display: none;
+  }
+
+  .titlebar-toggle.floating {
+    top: max(8px, env(safe-area-inset-top));
+    left: 8px;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100dvh;
+  }
+
+  .sidebar {
+    max-height: 40dvh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    padding: max(10px, env(safe-area-inset-top)) 12px 6px;
+  }
+
+  .page {
+    --page-x: 16px;
+    padding: 20px var(--page-x) 48px;
+  }
+
+  .run-header,
+  .timeline-inner,
+  .run-composer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .run-header {
+    padding-top: 12px;
+  }
+
+  .app-footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .meter.meter-inline .meter-track {
+    width: 40px;
+  }
+
+  .task-form-row {
+    flex-direction: column;
+  }
+
+  .scope-row {
+    grid-template-columns: 1fr;
+  }
+}
+

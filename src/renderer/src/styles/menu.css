@@ -1,0 +1,78 @@
+/* ==== 右クリック・「…」のメニュー ==== */
+/* 右クリックメニュー */
+
+.menu {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  min-width: 200px;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+}
+
+/* プロジェクトの右クリックメニュー（項目が多いので、画面が低いときは中でスクロール） */
+.project-menu {
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+.menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--bg-hover);
+}
+
+.menu button.danger {
+  color: var(--ng);
+}
+
+.menu-separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border-strong);
+}
+
+@media (max-width: 720px) {
+  /* スマホではパネルを全面に重ねる */
+  .board-body.with-panel {
+    grid-template-columns: minmax(0, 1fr) 0px;
+  }
+
+  .board-body.with-panel .board-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    border-radius: 0;
+  }
+
+  .board-columns {
+    scroll-snap-type: x mandatory;
+  }
+
+  .board-column {
+    flex: 0 0 82%;
+    max-width: none;
+    scroll-snap-align: start;
+  }
+}
+
+.conn-list .mono {
+  font-family: var(--mono);
+}
+

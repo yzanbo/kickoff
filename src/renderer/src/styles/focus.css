@@ -1,0 +1,14 @@
+/* ==== ボタンのピントの枠（全体） ====
+ * マウスで押したときは出さず、キーボード（Tab）で移ったときだけ、アクセントの色の細い枠を出す */
+button:focus,
+a:focus {
+  outline: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-bright) 70%, transparent);
+  outline-offset: 2px;
+}
+

@@ -1,0 +1,762 @@
+/* ==== サイドバー ==== */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.sidebar-header {
+  /* macOS の信号機ボタンの行。開閉ボタン以外はウィンドウのドラッグ領域 */
+  position: relative;
+  height: 44px;
+  -webkit-app-region: drag;
+}
+
+.sidebar-section {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 上部のメニュー行（新規・履歴・検索の並び） */
+
+.nav-rows {
+  display: grid;
+  gap: 1px;
+  padding: 0 var(--gutter) 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--row-tight);
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-row:hover,
+.nav-row.active {
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.nav-row kbd,
+.nav-row .count-badge {
+  margin-left: auto;
+}
+
+/* 自分待ちだけを出していて、ひとつもないとき */
+.waiting-empty {
+  padding: 4px var(--gutter);
+}
+
+/* 縦並びの一覧の中ではスクロールバーの場所を空けているので、そのぶん右を減らす */
+.workspace-stack > .waiting-empty {
+  padding-right: calc(var(--gutter) - var(--scrollbar-w));
+}
+
+/* チャットを 1 行で出す（見出しの「チャット」の行の「表示」）: 2 行目のセクション・ブランチを隠し、行を詰める */
+.workspaces.compact .chat-row {
+  align-items: center;
+  min-height: 28px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.workspaces.compact .chat-row-meta {
+  display: none;
+}
+
+/* プロジェクトのカードを 1 行で出す（見出しの「プロジェクト」の行の「表示」。チャットの行とは別）: 名前を 1 行にして、チャット数の行は出さない */
+.workspaces.compact-projects .workspace-head {
+  margin-bottom: 6px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.workspaces.compact-projects .workspace-name {
+  font-size: 13px;
+}
+
+.workspaces.compact-projects .workspace-sub {
+  display: none;
+}
+
+.workspaces.compact .chat-row-actions {
+  top: 3px;
+}
+
+/* チャットの行（2 行・先頭に状態の印） */
+
+.chat-rows {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: var(--row);
+  padding: 6px 8px 6px 4px;
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+button.chat-row {
+  width: 100%;
+  border: none;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-row:hover,
+.chat-row-item:hover > .chat-row {
+  background: var(--bg-elev);
+}
+
+/* 行に乗せたときに右端に出す、アーカイブ・削除（時刻の上に重ねる） */
+.chat-row-item {
+  position: relative;
+}
+
+.chat-row-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: none;
+  gap: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+}
+
+.chat-row-item:hover > .chat-row-actions,
+.chat-row-actions:focus-within {
+  display: flex;
+}
+
+.chat-row-actions .icon-button {
+  width: 22px;
+  height: 22px;
+}
+
+.chat-row-actions .icon-button.danger:hover {
+  color: var(--ng);
+}
+
+.chat-row-item:hover .chat-row-time {
+  visibility: hidden;
+}
+
+.chat-row.active {
+  background: var(--bg-hover);
+}
+
+.chat-row.ghost {
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.chat-row-body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.chat-row-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  /* 長いタイトルを省略表示にして、経過時間を常に見せる */
+  min-width: 0;
+}
+
+.chat-row-title {
+  flex: 1;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0.76;
+}
+
+.chat-row:hover .chat-row-title,
+.chat-row.active .chat-row-title,
+.chat-row.is-unread .chat-row-title {
+  opacity: 1;
+}
+
+.chat-row.is-unread .chat-row-title {
+  font-weight: 600;
+}
+
+.chat-row-time {
+  flex: none;
+  font-size: 11px;
+  color: var(--extra-muted);
+}
+
+/* 送る前の新しいチャット（下書き）の行: 名前を斜めにして、送ったチャットと見分ける */
+.draft-row .chat-row-title {
+  font-style: italic;
+}
+
+.draft-slot {
+  color: var(--muted);
+}
+
+/* キーボード（↑↓・Tab）でピントを当てたチャットの行 */
+.chat-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 複数選んだチャットの行 */
+.chat-row.multi-selected,
+.chat-row-item:hover > .chat-row.multi-selected {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* 複数選んだチャットをまとめて操作する欄（一覧の下、下の行の上） */
+.selection-bar {
+  display: grid;
+  flex: none;
+  gap: 6px;
+  padding: 8px var(--gutter);
+  border-top: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.selection-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.selection-bar-count {
+  font-weight: 600;
+}
+
+.selection-bar-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+}
+
+.selection-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.selection-bar .selection-bar-delete:hover:not(:disabled) {
+  color: var(--ng);
+}
+
+/* 作業中のチャットの経過時間（作業中の青） */
+.chat-row-time.running {
+  color: var(--dot-running);
+}
+
+.chat-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.chat-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  margin: 0 0 6px;
+  padding: 0 6px 0 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.chat-search:focus-within {
+  border-color: var(--border-strong);
+}
+
+.chat-search input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font-size: 12px;
+  background: transparent;
+}
+
+.chat-search input[type="text"]:focus {
+  outline: none;
+}
+
+.chat-search-clear {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-search-content {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  color: var(--extra-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-search-content:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.chat-search-clear:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* カンバンの見出しの検索欄 */
+.chat-search.board-search {
+  width: 200px;
+  margin: 0;
+}
+
+.chat-search-empty {
+  margin: 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.status-slot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 20px;
+}
+
+.status-dot-mark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.state-attention .status-dot-mark {
+  background: var(--dot-attention);
+}
+
+.state-failed .status-dot-mark {
+  width: 8px;
+  height: 8px;
+  background: var(--dot-failed);
+}
+
+.state-done .status-dot-mark {
+  background: var(--extra-muted);
+  opacity: 0.3;
+}
+
+.status-slot.state-needs_input {
+  color: var(--dot-needs-input);
+}
+
+.status-ring {
+  width: 11px;
+  height: 11px;
+  border: 2px solid color-mix(in srgb, var(--dot-running) 25%, transparent);
+  border-top-color: var(--dot-running);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.status-group {
+  margin-bottom: 6px;
+}
+
+/* 自分で作ったグループ（サイドバー） */
+.custom-group {
+  position: relative;
+  border-radius: var(--radius);
+  transition: opacity 0.15s;
+}
+
+/* グループの並べ替え: 動かしているグループは薄く、入る位置に線を出す */
+.custom-group.group-dragging,
+.board-column.group-dragging {
+  opacity: 0.35;
+}
+
+.custom-group.drop-before::before,
+.custom-group.drop-after::after,
+.board-column.drop-before::before,
+.board-column.drop-after::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  pointer-events: none;
+  animation: drop-line-in 0.12s ease-out;
+}
+
+.custom-group.drop-before::before,
+.custom-group.drop-after::after {
+  left: 6px;
+  right: 6px;
+  height: 2px;
+}
+
+.custom-group.drop-before::before {
+  top: -2px;
+}
+
+.custom-group.drop-after::after {
+  bottom: -2px;
+}
+
+.board-column.drop-before::before,
+.board-column.drop-after::after {
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+}
+
+.board-column.drop-before::before {
+  left: -7px;
+}
+
+.board-column.drop-after::after {
+  right: -7px;
+}
+
+@keyframes drop-line-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.custom-group.drop-target,
+.custom-group-head.drop-target,
+.chat-rows.drop-target {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.custom-group-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  height: var(--row-tight);
+  padding: 0 4px 0 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.custom-group-head.editing {
+  padding-left: 20px;
+}
+
+.custom-group-head.ungrouped {
+  border-radius: var(--radius);
+}
+
+/* メニューの中の見出し（新しいチャットの作成先・タブの列の＋のターミナル） */
+.menu-label {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.group-pick-menu {
+  min-width: 200px;
+}
+
+.group-pick-menu .muted-item {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* 「グループなし」は自分で作ったグループより控えめに */
+.custom-group-name.ungrouped-name {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* サイドバーの開閉の矢印（どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない） */
+.custom-group-toggle {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* 開閉のボタンの横に添えるアイコン（フォルダ・固定・アーカイブ） */
+.custom-group-icon {
+  flex: none;
+  color: var(--muted);
+}
+
+/* 自分で作ったグループの見出しは、矢印以外のところを押すと選ぶ */
+.custom-group > .custom-group-head {
+  cursor: pointer;
+}
+
+.custom-group-toggle:hover,
+.custom-group-toggle:focus-visible {
+  color: var(--text);
+}
+
+.custom-group-name {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  font-weight: 500;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ホバーは下線ではなく、チャットの行と同じく行全体の背景で知らせる（表示する項目は変えない） */
+.custom-group-head {
+  border-radius: var(--radius);
+  transition: background 0.12s;
+}
+
+.custom-group-head:not(.editing):hover {
+  background: var(--bg-elev);
+}
+
+.custom-group-head:hover .custom-group-name {
+  color: var(--text);
+}
+
+.custom-group-head.active {
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/*
+ * サイドバーのグループ名から来たときに、そのグループを少しのあいだハイライトする（背景と枠の色だけ。広がる光の動きは付けない）。
+ * 1 秒ほど色を付けたまま見せ、そのあと 0.6 秒で元の色に戻す（終わったあとは、ふだんの見た目。押し直すとやり直す）
+ */
+.board-column.highlighted,
+.list-group.highlighted {
+  animation: group-lit 1.6s ease-out;
+}
+
+@keyframes group-lit {
+  0%,
+  62.5% {
+    border-color: color-mix(in srgb, var(--accent-bright) 55%, transparent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  }
+}
+
+.custom-group-count {
+  flex: none;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ホバーしても表示が変わらないよう、件数・「…」・＋はいつも出しておく（大きさと色はアイコンボタンと同じ） */
+.group-menu-button,
+.custom-group-add {
+  flex: none;
+}
+
+/* 「グループなし」には「…」がないので、同じ幅（アイコンボタンの幅）を空けて＋の位置をそろえる */
+.group-menu-spacer {
+  flex: none;
+  width: 26px;
+}
+
+.custom-group-rows {
+  padding-left: 10px;
+}
+
+.custom-group-empty {
+  margin: 0;
+  padding: 4px 8px 6px 30px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.inline-name-wrap {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.inline-name-wrap .icon-button {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.inline-name-ok {
+  color: var(--accent-bright);
+}
+
+input[type="text"].inline-name {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 13px;
+}
+
+/* サイドバーのチャットのまとまりの見出し（印・名前・件数。ボードの列の見出しと同じ形） */
+.status-group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--row-tight);
+  margin-top: 4px;
+  padding: 0 8px 0 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* 開閉で高さがなめらかに変わる入れ物（Collapse。サイドバーのプロジェクト・グループ・まとまり） */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.collapse.open {
+  grid-template-rows: 1fr;
+}
+
+.collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/*
+ * 開閉できるまとまりの中身は、開閉の矢印の下から一段下げ、縦の線でつなぐ（VS Code のファイルの木と同じ。どこに入っているかが分かるように）。
+ * 自分で作ったグループ・グループなし・固定・アーカイブ済み・並べ方のまとまり（Collapse の indent）
+ */
+.collapse.indent > .collapse-inner {
+  margin-left: 9px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapse {
+    transition: none;
+  }
+}
+
+/* 見出しの名前の部分（押すと開閉する） */
+.status-group-name {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.status-group-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-group-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.status-group-extra {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.status-group-count {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.status-group-worktree {
+  color: var(--info);
+}
+
+/* フォルダの見つからないワークツリー・片付けたあとの以前のブランチ（薄い灰） */
+.status-group-gone,
+.board-lane-gone {
+  color: var(--extra-muted);
+}
+

@@ -1,0 +1,119 @@
+/* ==== 承認依頼・質問 ==== */
+
+.approval-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+}
+
+.approval-card p {
+  margin: 0;
+}
+
+.approval-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.approval-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+}
+
+.approval-badge.question {
+  background: var(--info);
+}
+
+.approval-title {
+  font-weight: 600;
+}
+
+.approval-command {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.approval-actions,
+.approval-deny {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.approval-deny input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.question {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.question legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.question-header {
+  margin-right: 8px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--bg-hover);
+}
+
+.question-options {
+  display: grid;
+  gap: 6px;
+}
+
+.question-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.question-option:hover {
+  border-color: var(--border-strong);
+}
+
+.question-option.checked {
+  border-color: var(--info);
+  background: color-mix(in srgb, var(--info) 10%, transparent);
+}
+
+.question-option input[type="radio"],
+.question-option input[type="checkbox"] {
+  margin-top: 4px;
+}
+
+.question-option > span {
+  display: grid;
+  flex: 1;
+}
+
+.question-label {
+  font-weight: 500;
+}
+
+.question-other {
+  gap: 4px;
+}
+
