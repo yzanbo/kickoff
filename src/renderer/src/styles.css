@@ -2203,9 +2203,32 @@ mark {
   margin-bottom: 10px;
 }
 
-/* 名前の行とタブの間（開いているタブの地の色が、名前のカードにくっつかないように。高さは取りすぎない） */
-.project-header .tabs {
+/*
+ * タブの列と、右端のチャット欄の開閉。名前の行との間は少し空ける（開いているタブの地の色が、名前のカードにくっつかないように。
+ * 高さは取りすぎない）。下の線はこの行に引く
+ */
+.project-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.project-tabs-row .tabs {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none;
+}
+
+.project-tabs-row .tab {
+  margin-bottom: 0;
+}
+
+.project-chat-toggle.active {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--bg-hover);
 }
 
 .project-title-row h1 {
@@ -6804,5 +6827,75 @@ a:focus-visible,
 .terminal-split-close:hover {
   color: var(--text);
   background: var(--bg-active);
+}
+
+/* ==== プロジェクトのチャット欄（画面の右端。どのタブでも開ける） ==== */
+
+/* プロジェクトの画面と、右端のチャット欄を左右に並べる（画面はそれぞれの中でスクロール） */
+.project-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.project-layout > .page {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.project-chat {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.project-chat[hidden] {
+  display: none;
+}
+
+.project-chat.resizing {
+  user-select: none;
+}
+
+/* 左端の境目のつまみ（線の上に重ねる） */
+.project-chat-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  margin: 0;
+}
+
+/* 上の行（信号機ボタンと同じ高さ。ウィンドウのドラッグ領域にする） */
+.project-chat-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  -webkit-app-region: drag;
+}
+
+.project-chat-bar button {
+  -webkit-app-region: no-drag;
+}
+
+.project-chat-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.project-chat-body {
+  flex: 1;
+  min-height: 0;
 }
 

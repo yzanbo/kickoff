@@ -23,6 +23,8 @@ import { ProjectSwitcher } from "../components/ProjectSwitcher";
 import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { WorktreeContext } from "../components/changes/worktreeContext";
+import { ProjectChat, ProjectChatToggle } from "../components/projectChat/ProjectChat";
+import { useProjectChat } from "../components/projectChat/useProjectChat";
 import { useStoredState } from "../hooks/useStoredState";
 import { errorMessage } from "../errors";
 import { useServerEvent } from "../events";
@@ -75,6 +77,8 @@ export function ProjectPage({
   const [worktree, setWorktree] = useStoredState<string | undefined>(`kickoff:editor-worktree:${id}`, (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes", worktree);
+  // 画面の右端のチャット欄（どのタブでも開ける。ボードの右のパネルとは別）
+  const chat = useProjectChat(id);
 
   const load = useCallback(async () => {
     try {
@@ -128,6 +132,7 @@ export function ProjectPage({
   const working = runs.filter((r) => BUSY_STATUSES.includes(r.status)).length - waiting;
 
   return (
+    <div className="project-layout">
     <div className={`page page-wide ${tab === "board" || tab === "groups" || tab === "changes" ? "page-board" : ""} ${stale ? "is-stale" : ""}`}>
       <header className="page-header project-header">
         <div className="project-title-row">
@@ -152,6 +157,8 @@ export function ProjectPage({
             {working > 0 && <span className="stat stat-working">作業中 {working}</span>}
           </div>
         </div>
+        {/* タブの列と、右端にチャット欄の開閉 */}
+        <div className="project-tabs-row">
         <nav className="tabs" role="tablist">
           {(Object.keys(TAB_LABELS) as ProjectTab[]).map((t) => (
             <a
@@ -173,6 +180,8 @@ export function ProjectPage({
             </a>
           ))}
         </nav>
+        <ProjectChatToggle chat={chat} />
+        </div>
       </header>
 
       {tab === "board" && <KanbanBoard projectId={project.id} projects={projects} approvals={approvals} title="カンバン" focus={focus} />}
@@ -192,6 +201,8 @@ export function ProjectPage({
         </WorktreeContext.Provider>
       )}
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
+    </div>
+    <ProjectChat chat={chat} />
     </div>
   );
 }
