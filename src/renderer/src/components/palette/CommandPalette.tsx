@@ -1,12 +1,12 @@
 import { FolderGit2, MessageSquare, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { ProjectSummary, Run } from "../../../core/types";
-import { api } from "../api";
-import { chatTitle } from "../chatTitle";
-import { useListNavigation } from "../hooks/useListNavigation";
-import { useModalDialog } from "../hooks/useModalDialog";
-import { navigate, type Route } from "../router";
-import { SECTION_META } from "../sections";
+import type { ProjectSummary, Run } from "../../../../core/types";
+import { api } from "../../api";
+import { chatTitle } from "../../chatTitle";
+import { useListNavigation } from "../../hooks/useListNavigation";
+import { useModalDialog } from "../../hooks/useModalDialog";
+import { navigate, type Route } from "../../router";
+import { SECTION_META } from "../../sections";
 
 interface Item {
   key: string;

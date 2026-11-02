@@ -1,14 +1,14 @@
 import { Bot, Search, User } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { SearchHit } from "../../../core/types";
-import { api } from "../api";
-import { chatTitle } from "../chatTitle";
-import { useListNavigation } from "../hooks/useListNavigation";
-import { useModalDialog } from "../hooks/useModalDialog";
-import { openRun } from "../router";
-import { relativeTime } from "../time";
-import { SectionBadge } from "./SectionBadge";
-import { Segmented } from "./Segmented";
+import type { SearchHit } from "../../../../core/types";
+import { api } from "../../api";
+import { chatTitle } from "../../chatTitle";
+import { useListNavigation } from "../../hooks/useListNavigation";
+import { useModalDialog } from "../../hooks/useModalDialog";
+import { openRun } from "../../router";
+import { relativeTime } from "../../time";
+import { SectionBadge } from "../SectionBadge";
+import { Segmented } from "../Segmented";
 
 export type SearchScope = "run" | "project" | "all";
 
