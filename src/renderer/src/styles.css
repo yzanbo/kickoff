@@ -1035,13 +1035,20 @@ button.project-switch:hover,
   border-top: 1px solid var(--border);
 }
 
+/* 入りきらないときは横にスクロール（スクロールバーは出さない。端が切れないよう safe center） */
 .workspace-dots {
   display: flex;
   flex: 1;
-  flex-wrap: wrap;
-  justify-content: center;
+  justify-content: safe center;
   gap: 6px;
   min-width: 0;
+  padding: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.workspace-dots > * {
+  flex: none;
 }
 
 .workspace-switcher.stack {
