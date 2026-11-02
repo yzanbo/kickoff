@@ -2,7 +2,7 @@ import { FileText, Folder, FolderOpen, Plus, X } from "lucide-react";
 import { useState } from "react";
 import type { Project, ProjectReference } from "../../../../core/types";
 import { api } from "../../api";
-import { errorMessage } from "../../errors";
+import { useSave } from "../../hooks/useSave";
 import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
 
@@ -18,23 +18,10 @@ function splitPath(p: string): { name: string; dir: string } {
  */
 export function ReferenceEditor({ project }: { project: Project }) {
   const [typed, setTyped] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>();
+  const { saving, error, run } = useSave();
   const refs = project.references;
 
-  const save = async (next: Pick<ProjectReference, "path">[]) => {
-    setSaving(true);
-    setError(undefined);
-    try {
-      await api.updateProject(project.id, { references: next as ProjectReference[] });
-      return true;
-    } catch (e) {
-      setError(errorMessage(e));
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  };
+  const save = (next: Pick<ProjectReference, "path">[]) => run(() => api.updateProject(project.id, { references: next as ProjectReference[] }));
 
   const add = async (paths: string[]) => {
     const fresh = paths.map((p) => p.trim()).filter((p) => p && !refs.some((r) => r.path === p));
