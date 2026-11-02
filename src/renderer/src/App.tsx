@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAppData } from "./appData";
 import { OPEN_CONTENT_SEARCH_EVENT } from "./chatSearch";
 import { AppFooter } from "./components/AppFooter";
+import { BottomPanel } from "./components/bottomPanel/BottomPanel";
+import { useBottomPanel } from "./components/bottomPanel/useBottomPanel";
 import { CommandPalette } from "./components/CommandPalette";
 import { ConnectionPopover } from "./components/ConnectionPopover";
 import { SearchPanel } from "./components/SearchPanel";
@@ -11,6 +13,7 @@ import { SettingsDialog, type SettingsSection } from "./components/settings/Sett
 import { Sidebar, SidebarOpenButton } from "./components/sidebar/Sidebar";
 import { loadCurrentProject } from "./components/sidebar/currentProject";
 import { useSidebar } from "./components/sidebar/useSidebar";
+import { terminalTargets } from "./components/sidePanel/useSidePanel";
 import { DialogHost } from "./dialogs";
 import { useWindowEvent } from "./hooks/useWindowEvent";
 import { useRunNotifications } from "./notifications";
@@ -38,6 +41,8 @@ export function App() {
   const [usageOpen, setUsageOpen] = useState(false);
   // 設定のダイアログ（開いている項目。null なら閉じている）
   const [settings, setSettings] = useState<SettingsSection | null>(null);
+  // 下のパネルのターミナル（いまのプロジェクトで開く。全プロジェクトの画面ではプロジェクトを選ぶ）
+  const bottomPanel = useBottomPanel(terminalTargets(projects, routeProjectId(route)));
 
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める */
   const startNewChat = () => {
@@ -68,6 +73,8 @@ export function App() {
           onSearch={() => setPalette(true)}
           onNewProject={() => setCreating(true)}
         />
+        {/* 画面と、その下のパネル（ターミナル） */}
+        <div className={`main-column ${bottomPanel.open && bottomPanel.maximized ? "bottom-maximized" : ""}`}>
         <main className="main">
           {route.name === "project" || route.name === "run" || route.name === "newChat" ? (
             // チャット・新しいチャットはプロジェクトのカンバンの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
@@ -83,6 +90,8 @@ export function App() {
             <AllProjectsPage projects={projects} approvals={approvals} onNewProject={() => setCreating(true)} />
           )}
         </main>
+        <BottomPanel panel={bottomPanel} />
+        </div>
         <AppFooter
           onOpenSettings={() => setSettings("usage")}
           connection={connection.state}
@@ -91,6 +100,7 @@ export function App() {
           usage={planUsage.usage}
           usageOpen={usageOpen}
           onUsageClick={() => setUsageOpen((o) => !o)}
+          terminal={bottomPanel.available ? { open: bottomPanel.open, onClick: bottomPanel.toggle } : undefined}
         />
         {creating && (
           <NewProjectDialog

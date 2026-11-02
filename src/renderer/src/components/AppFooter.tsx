@@ -1,4 +1,4 @@
-import { Settings } from "lucide-react";
+import { Settings, SquareTerminal } from "lucide-react";
 import type { PlanUsage } from "../../../core/types";
 import type { ConnectionState } from "../api";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../usage";
@@ -14,17 +14,24 @@ interface Props {
   usage: PlanUsage | undefined;
   usageOpen: boolean;
   onUsageClick: () => void;
+  /** 下のパネルのターミナルの開閉（Mac のアプリでだけ） */
+  terminal?: { open: boolean; onClick: () => void };
 }
 
-/** 下の帯（左: 設定とサーバーとの接続 / 右: 契約プランと使用状況）。接続と使用状況は押すと詳細を出す */
-export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick }: Props) {
+/** 下の帯（左: 設定とサーバーとの接続・ターミナルの開閉 / 右: 契約プランと使用状況）。接続と使用状況は押すと詳細を出す */
+export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick, terminal }: Props) {
   return (
     <footer className="app-footer">
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
       <IconButton icon={Settings} label="設定" title="設定（⌘,）" className="footer-settings" onClick={onOpenSettings} />
-      <button className={`conn conn-${connection} ${connOpen ? "active" : ""}`} title="接続の詳細" aria-expanded={connOpen} onClick={onConnClick}>
+      <button className={`footer-button conn conn-${connection} ${connOpen ? "active" : ""}`} title="接続の詳細" aria-expanded={connOpen} onClick={onConnClick}>
         {CONNECTION_LABELS[connection]}
       </button>
+      {terminal && (
+        <button className={`footer-button footer-terminal ${terminal.open ? "active" : ""}`} title="ターミナル（⌃` / ⌘J）" aria-expanded={terminal.open} onClick={terminal.onClick}>
+          <SquareTerminal size={13} aria-hidden /> ターミナル
+        </button>
+      )}
       <span className="spacer" />
       {usage?.plan && (
         <span className="plan-chip" title={`${usage.provider_label} でログインしているアカウントの契約プラン`}>
