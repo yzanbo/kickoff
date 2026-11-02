@@ -20,9 +20,10 @@ import { groupRoutes } from "./routes/groups.js";
 import { HttpError } from "./routes/http.js";
 import { projectRoutes } from "./routes/projects.js";
 import { runRoutes } from "./routes/runs.js";
+import { settingsRoutes } from "./routes/settings.js";
 import { taskRoutes } from "./routes/tasks.js";
 import { uploadRoutes } from "./routes/uploads.js";
-import { EFFORT_LEVELS, PERMISSION_CHOICES, PROVIDER_IDS, type ProviderId, type ServerStatus } from "./types.js";
+import type { ProviderId, ServerStatus } from "./types.js";
 
 export interface ServerDeps {
   store: Store;
@@ -43,22 +44,6 @@ export interface ServerDeps {
 
 const STARTED_AT = new Date().toISOString();
 const VERSION = "0.1.0";
-
-const settingsSchema = z
-  .object({
-    maxConcurrentRuns: z.number().int().min(1).max(8).nullable(),
-    defaultProvider: z.enum(PROVIDER_IDS),
-    remoteEnabled: z.boolean(),
-    ntfyUrl: z.union([z.literal(""), z.url()]),
-    desktopNotifications: z.boolean(),
-    projectsDir: z.string().min(1).max(500),
-    claudeModel: z.string().min(1).max(100),
-    defaultEffort: z.enum(EFFORT_LEVELS).nullable(),
-    defaultPermission: z.enum(PERMISSION_CHOICES),
-    defaultFastMode: z.boolean(),
-    autoArchiveDays: z.number().int().min(1).max(365).nullable(),
-  })
-  .partial();
 
 /**
  * Kickoff の HTTP API。デスクトップの画面・スマホのブラウザ・将来のネイティブアプリが共通で使う。
@@ -104,11 +89,8 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json(status);
   });
 
-  // ---- 設定 ----
-  app.get("/api/settings", (c) => c.json(store.getSettings()));
-  app.put("/api/settings", async (c) => c.json(store.updateSettings(settingsSchema.parse(await c.req.json()))));
-
   // ---- 機能ごとの API（routes/ に分けている。登録の順は変えない） ----
+  settingsRoutes(app, deps);
   projectRoutes(app, deps);
   taskRoutes(app, deps);
   runRoutes(app, deps);
