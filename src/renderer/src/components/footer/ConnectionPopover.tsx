@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { GitHubStatus, ProviderStatus, ServerStatus } from "../../../../core/types";
+import { useRef } from "react";
 import { api } from "../../api";
-import type { ConnectionState } from "../../hooks/useServerEvents";
-import { errorMessage } from "../../errors";
+import { useAsync } from "../../hooks/useAsync";
 import { useDismiss } from "../../hooks/useDismiss";
+import type { ConnectionState } from "../../hooks/useServerEvents";
 import { accountLine } from "../../usage";
 import { ErrorText } from "../ErrorText";
 import { PopoverHeader } from "../PopoverHeader";
@@ -32,30 +31,9 @@ const timeText = (t: number | string) => new Date(t).toLocaleString("ja-JP", { m
 /** 左下の接続の表示を押したときに、左下から出る詳細（画面は移らない） */
 export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const [server, setServer] = useState<ServerStatus>();
-  const [providers, setProviders] = useState<ProviderStatus[]>();
-  const [github, setGithub] = useState<GitHubStatus>();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(undefined);
-    try {
-      const [s, p, g] = await Promise.all([api.status(), api.providers(), api.github()]);
-      setServer(s);
-      setProviders(p);
-      setGithub(g);
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load, state]);
+  // 接続の状態が変わったら取り直す（取り直している間も前の内容を出しておく）
+  const { data, loading, error, reload } = useAsync(() => Promise.all([api.status(), api.providers(), api.github()]), [state]);
+  const [server, providers, github] = data ?? [];
 
   // 外側のクリック・Esc で閉じる（左下の表示自体はそちらで開閉する）
   useDismiss(ref, onClose, { ignore: ".conn", escape: "pass" });
@@ -66,7 +44,7 @@ export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Pro
 
   return (
     <div ref={ref} className="usage-popover connection-popover" role="dialog" aria-label="接続の詳細">
-      <PopoverHeader title="接続の詳細" refresh={{ label: "接続を再確認", title: "再確認", busy: loading, onClick: () => void load() }} onClose={onClose} />
+      <PopoverHeader title="接続の詳細" refresh={{ label: "接続を再確認", title: "再確認", busy: loading, onClick: reload }} onClose={onClose} />
 
       <section className="conn-section">
         <div className="conn-row-title">
