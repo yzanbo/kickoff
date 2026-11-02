@@ -5543,6 +5543,13 @@ button.project-switch.all-projects:hover,
   color: var(--text);
 }
 
+/* ボードの列・まとまりのいちばん下の、アーカイブ済みのまとまり（サイドバーと同じ見出し。中のカードは列と同じ間隔で並べる） */
+.archived-fold {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 /* アーカイブしたチャット（表示しているときだけ、薄く出す） */
 .board-card.archived,
 .list-row.archived,

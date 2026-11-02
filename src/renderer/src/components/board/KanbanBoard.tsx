@@ -28,6 +28,7 @@ import { ColumnHead } from "./ColumnHead";
 import { useBoardRuns } from "./useBoardRuns";
 import { useWorktreeLists } from "../../worktreeBranches";
 import { workplaceOf } from "../../workplace";
+import { ArchivedFold, splitArchived } from "./ArchivedFold";
 
 const VIEW_KEY = "kickoff:board-view";
 const LANES_KEY = "kickoff:board-lanes";
@@ -175,26 +176,38 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
     </>
   );
 
-  /** 状態の列 1 本（ボードの表示） */
-  const columnSection = (column: BoardColumn, list: Entry[]) => (
-    <section key={column} className="board-column">
-      {columnHead(column, list)}
-      <div className="column-cards">
-        {list.length === 0 && <p className="column-empty">なし</p>}
-        {list.map(({ run, state }) => (
-          <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
-            <RunCardContent
-              run={run}
-              state={state}
-              projectName={allProjects ? projectName(run.project_id) : undefined}
-              pending={pendingFor(run)}
-              rename={rename.editorFor(run)}
-            />
-          </article>
-        ))}
-      </div>
-    </section>
+  const card = ({ run, state }: Entry) => (
+    <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
+      <RunCardContent
+        run={run}
+        state={state}
+        projectName={allProjects ? projectName(run.project_id) : undefined}
+        pending={pendingFor(run)}
+        rename={rename.editorFor(run)}
+      />
+    </article>
   );
+  /** アーカイブ済みのまとまりの開閉を覚える名前（ボード・段・列ごと） */
+  const foldKey = (column: BoardColumn, laneKey = "") => `kanban:${projectId ?? "all"}:${laneKey}:${column}`;
+  /**
+   * 状態の列 1 本（ボードの表示）。アーカイブ済みは列のいちばん下の閉じたまとまりに分ける（サイドバーと同じ）。
+   * 見出しの件数は、アーカイブしていないものだけ
+   */
+  const columnSection = (column: BoardColumn, list: Entry[], laneKey?: string) => {
+    const [active, archived] = splitArchived(list, (e) => e.run);
+    return (
+      <section key={column} className="board-column">
+        {columnHead(column, active)}
+        <div className="column-cards">
+          {active.length === 0 && <p className="column-empty">なし</p>}
+          {active.map(card)}
+          <ArchivedFold foldKey={foldKey(column, laneKey)} count={archived.length}>
+            {archived.map(card)}
+          </ArchivedFold>
+        </div>
+      </section>
+    );
+  };
   const draftColumn = (
     <section className="board-column">
       {draftHead}
@@ -254,9 +267,9 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
               entries={entries}
               projects={projects}
               groups={groups}
-              renderColumns={(list) => {
+              renderColumns={(list, laneKey) => {
                 const columns = byColumn(list);
-                return BOARD_COLUMNS.map((column) => columnSection(column, columns.get(column) ?? []));
+                return BOARD_COLUMNS.map((column) => columnSection(column, columns.get(column) ?? [], laneKey));
               }}
               before={draftCount > 0 && <div className="board-columns lane-columns">{draftColumn}</div>}
             />
@@ -272,21 +285,20 @@ export function KanbanBoard({ projectId, projects, approvals, title, focus, grou
                 {draftCards}
               </section>
               {BOARD_COLUMNS.map((column) => {
-                const list = grouped.get(column) ?? [];
+                const [active, archived] = splitArchived(grouped.get(column) ?? [], (e) => e.run);
+                const row = ({ run, state }: Entry) => (
+                  <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
+                    <RunRowContent run={run} state={state} projectName={allProjects ? projectName(run.project_id) : undefined} rename={rename.editorFor(run)} />
+                  </div>
+                );
                 return (
                   <section key={column} className="list-group">
-                    {columnHead(column, list)}
-                    {list.length === 0 && <p className="column-empty">なし</p>}
-                    {list.map(({ run, state }) => (
-                      <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
-                        <RunRowContent
-                          run={run}
-                          state={state}
-                          projectName={allProjects ? projectName(run.project_id) : undefined}
-                          rename={rename.editorFor(run)}
-                        />
-                      </div>
-                    ))}
+                    {columnHead(column, active)}
+                    {active.length === 0 && <p className="column-empty">なし</p>}
+                    {active.map(row)}
+                    <ArchivedFold foldKey={foldKey(column, "list")} count={archived.length}>
+                      {archived.map(row)}
+                    </ArchivedFold>
                   </section>
                 );
               })}
