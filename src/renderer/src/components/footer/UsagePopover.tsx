@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import { useDismiss } from "../hooks/useDismiss";
-import { FIVE_HOUR_IDLE, planName, usageUnavailableText, type usePlanUsage } from "../usage";
-import { PopoverHeader } from "./PopoverHeader";
+import { useDismiss } from "../../hooks/useDismiss";
+import { FIVE_HOUR_IDLE, planName, usageUnavailableText, type usePlanUsage } from "../../usage";
+import { PopoverHeader } from "../PopoverHeader";
 import { UsageFetchedNote } from "./UsageFetchedNote";
 import { UsageMeter } from "./UsageMeter";
 

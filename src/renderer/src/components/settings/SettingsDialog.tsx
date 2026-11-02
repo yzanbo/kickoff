@@ -3,7 +3,7 @@ import { useTheme, type Theme } from "../../theme";
 import { BrowserExtensions } from "../BrowserExtensions";
 import { Segmented } from "../Segmented";
 import { TabbedDialog, type DialogSection } from "../TabbedDialog";
-import { UsagePanel } from "../UsagePanel";
+import { UsagePanel } from "../footer/UsagePanel";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
 import { ConnectionSettings } from "./ConnectionSettings";

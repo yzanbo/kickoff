@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import type { ServiceUsage } from "../../../core/types";
-import { api } from "../api";
-import { useActionError } from "../hooks/useActionError";
-import { formatClock } from "../time";
-import { FIVE_HOUR_IDLE, planLabel } from "../usage";
-import { ErrorText } from "./ErrorText";
-import { StatusDot, toneOf } from "./StatusDot";
+import type { ServiceUsage } from "../../../../core/types";
+import { api } from "../../api";
+import { useActionError } from "../../hooks/useActionError";
+import { formatClock } from "../../time";
+import { FIVE_HOUR_IDLE, planLabel } from "../../usage";
+import { ErrorText } from "../ErrorText";
+import { StatusDot, toneOf } from "../StatusDot";
 import { UsageMeter } from "./UsageMeter";
 
 /** 開いている間に取り直す間隔 */
