@@ -1,4 +1,4 @@
-import { Archive, Plus } from "lucide-react";
+import { Archive, ChevronsDownUp, ChevronsUpDown, Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { Approval, ProjectSummary, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
@@ -8,6 +8,7 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
 import { navigate, routeProjectId, type Route } from "../../router";
 import { cx } from "../../cx";
+import { IconButton } from "../IconButton";
 import { GroupToggle } from "./GroupToggle";
 import { ProjectListHead, type NavLayout } from "./ProjectListHead";
 import { useProjectMenu } from "./ProjectMenu";
@@ -16,7 +17,7 @@ import { useChatSelection } from "./chatSelection";
 import { SelectionBar } from "./SelectionBar";
 import { WorkspacePage } from "./WorkspacePage";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
-import { foldAll, stateCounts, useCompactRows, useShowArchivedChats, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
+import { foldAll, stateCounts, useCompactProjects, useCompactRows, useShowArchivedChats, WAITING_ONLY_KEY, waitingRuns } from "./sidebarFlags";
 import { useChatSearch } from "../../chatSearch";
 import { SearchField } from "../SearchField";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
@@ -59,6 +60,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   // 自分待ちだけを出すときは、自分待ちのチャットがあるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSharedFlag(WAITING_ONLY_KEY);
   const [compact] = useCompactRows();
+  const [compactProjects] = useCompactProjects();
   const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], approvals).length > 0;
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
   const [searchAll, setSearchAll] = useState("");
@@ -195,10 +197,17 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
       foldAll(on);
     };
     return (
-      <div className={cx("workspaces", compact && "compact")}>
-        <ProjectListHead {...head} fold={{ allCollapsed, set: setAllCollapsed }} />
+      <div className={cx("workspaces", compact && "compact", compactProjects && "compact-projects")}>
+        <ProjectListHead {...head} />
+        {/* すべてのプロジェクトをまたぐ検索欄と、その右に「すべて閉じる / 開く」（開いているものがあれば閉じ、すべて閉じていれば開く） */}
         <div className="search-all">
-          <SearchField value={searchAll} onChange={setSearchAll} placeholder="すべてのプロジェクトのチャットを検索" label="すべてのプロジェクトのチャットを検索" />
+          <SearchField value={searchAll} onChange={setSearchAll} placeholder="全プロジェクトのチャットを検索" label="すべてのプロジェクトのチャットを検索" />
+          <IconButton
+            icon={allCollapsed ? ChevronsUpDown : ChevronsDownUp}
+            label={allCollapsed ? "すべてのプロジェクトを開く" : "すべてのプロジェクトを閉じる"}
+            title={allCollapsed ? "すべて開く" : "すべて閉じる"}
+            onClick={() => setAllCollapsed(!allCollapsed)}
+          />
         </div>
         <div className="workspace-stack">
           {ordered.map((p, i) => (
@@ -239,7 +248,7 @@ export function ProjectNav({ projects, approvals, runs, groups, route, onNewProj
   }
 
   return (
-    <div className={cx("workspaces", compact && "compact")}>
+    <div className={cx("workspaces", compact && "compact", compactProjects && "compact-projects")}>
       <ProjectListHead {...head} />
       <div
         className="workspace-viewport"

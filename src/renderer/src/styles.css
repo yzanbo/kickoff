@@ -448,7 +448,7 @@ kbd {
   padding-right: calc(var(--gutter) - var(--scrollbar-w));
 }
 
-/* チャットを 1 行で出す（並べ方のメニューの「1 行で表示」）: 2 行目のセクション・ブランチを隠し、行を詰める */
+/* チャットを 1 行で出す（見出しの「チャット」の行の「表示」）: 2 行目のセクション・ブランチを隠し、行を詰める */
 .workspaces.compact .chat-row {
   align-items: center;
   min-height: 28px;
@@ -460,18 +460,18 @@ kbd {
   display: none;
 }
 
-/* 1 行で表示のときは、プロジェクトのカードも詰める（名前を 1 行にして、チャット数の行は出さない） */
-.workspaces.compact .workspace-head {
+/* プロジェクトのカードを 1 行で出す（見出しの「プロジェクト」の行の「表示」。チャットの行とは別）: 名前を 1 行にして、チャット数の行は出さない */
+.workspaces.compact-projects .workspace-head {
   margin-bottom: 6px;
   padding-top: 3px;
   padding-bottom: 3px;
 }
 
-.workspaces.compact .workspace-name {
+.workspaces.compact-projects .workspace-name {
   font-size: 13px;
 }
 
-.workspaces.compact .workspace-sub {
+.workspaces.compact-projects .workspace-sub {
   display: none;
 }
 
@@ -1374,12 +1374,6 @@ button.project-switch:hover,
   color: var(--muted);
 }
 
-/* 後ろにある .icon-button の幅より優先する */
-.project-list-head .project-list-fold {
-  width: 22px;
-  margin-left: auto;
-}
-
 /* 設定の種類ごとのボタン: 上に種類の名前、下にいまの値（幅は取りうる値でいちばん長いものに固定。狭いときはアイコンだけ） */
 .head-chip {
   display: inline-flex;
@@ -1555,9 +1549,18 @@ button.project-switch:hover,
 }
 
 /* 縦並びの上の、すべてのプロジェクトをまたぐ検索欄 */
+/* 縦並びの、すべてのプロジェクトをまたぐ検索欄（右に「すべて閉じる / 開く」） */
 .search-all {
+  display: flex;
   flex: none;
+  align-items: center;
+  gap: 4px;
   padding: 2px var(--gutter) 6px;
+}
+
+.search-all > :first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .search-all-empty {
