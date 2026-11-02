@@ -494,8 +494,10 @@ button.chat-row {
   min-width: 0;
   height: var(--row-tight);
   padding: 0 4px 0 2px;
+  border-radius: var(--radius);
   font-size: 13px;
   color: var(--muted);
+  transition: background 0.12s;
 }
 
 .custom-group-head.editing {
@@ -575,11 +577,6 @@ button.chat-row {
 }
 
 /* ホバーは下線ではなく、チャットの行と同じく行全体の背景で知らせる（表示する項目は変えない） */
-.custom-group-head {
-  border-radius: var(--radius);
-  transition: background 0.12s;
-}
-
 .custom-group-head:not(.editing):hover {
   background: var(--bg-elev);
 }
