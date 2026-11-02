@@ -1,34 +1,28 @@
 import { Archive, Folder, Pin, Plus } from "lucide-react";
 import { memo, useState } from "react";
-import { boardColumnOf } from "../../../../core/board";
 import { BOARD_COLUMN_LABELS, type AgentState, type ProjectSummary, type Run, type RunGroup } from "../../../../core/types";
 import { api } from "../../api";
-import { useChatSearch } from "../../chatSearch";
 import { alertDialog } from "../../dialogs";
 import { useRunRename } from "../../hooks/useRunRename";
-import { useSharedChoice, useSharedFlag, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
+import { useSharedChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
-import { useRunStates } from "../../approvalsContext";
-import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, SIDEBAR_WAITING_ONLY_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
+import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
 import { openNewChat, openRun, routeProjectId, useRoute } from "../../router";
 import { CardMenu } from "../menus/CardMenu";
-import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { SearchField } from "../SearchField";
 import { ChatRow } from "./ChatRow";
-import { GroupToggle } from "./GroupToggle";
 import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
 import { useGroupSections } from "./useGroupSections";
 import { DraftRows } from "./DraftRows";
 import { RowSection } from "./RowSection";
-import type { StateFilter } from "./HeadCounts";
-import { isWaitingState, stateCounts, useFoldAll, useShowArchivedChats } from "./sidebarFlags";
+import { stateCounts, useFoldAll, useShowArchivedChats } from "./sidebarFlags";
+import { UngroupedHead } from "./UngroupedHead";
+import { useWorkspaceRows } from "./useWorkspaceRows";
 import { WorkspaceHead } from "./WorkspaceHead";
-import { cx } from "../../cx";
 import { Collapse } from "../Collapse";
-
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -57,37 +51,19 @@ export const WorkspacePage = memo(function WorkspacePage({
   const [grouping] = useSharedChoice<ChatGrouping>(SIDEBAR_GROUPING_KEY, CHAT_GROUPINGS, "recent");
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
   const [showArchived] = useShowArchivedChats();
-  // 自分待ち（回答待ち・確認待ち）だけを出すか（上の行の「自分待ち」で切り替える）
-  const [waitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   // 見出しのクリックでチャット一覧を開閉する
   const toggleCollapsed = () => onCollapsedChange(project.id, !collapsed);
   // 選んでいる = いまの画面がこのプロジェクト（カンバン・チャットなど）
   const isActive = routeProjectId(route) === project.id;
-  // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
-  const [query, setQuery] = useState("");
-  const { keyword, matches } = useChatSearch(query || searchAll);
-  // 見出しの状態の数を押して、その状態のチャットだけに絞る（このプロジェクトだけ。もう一度押すと戻す）
-  const [stateFilter, setStateFilter] = useState<StateFilter | null>(null);
-  // 検索・自分待ち・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
-  const filtering = Boolean(keyword) || waitingOnly || stateFilter !== null;
-
-  const { pending, stateOf } = useRunStates();
-  const withState = (run: Run) => ({ run, state: stateOf(run) });
-  const allRows = runs.filter((r) => !r.archived_at).map(withState);
-  // アーカイブしたチャット（一覧の下にまとめて、開閉できる。最初は閉じておく）
-  const archivedRows = runs.filter((r) => r.archived_at).map(withState);
+  // 行の絞り込み（検索・自分待ち・状態）と、固定・グループ・アーカイブ済みへの分け方
+  const list = useWorkspaceRows({ runs, groups, searchAll });
+  const { waitingOnly, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, allRows, visibleRows, pinnedRows, rows, archivedMatches, ungroupedRows } = list;
+  // 開閉の記憶: アーカイブ済み・固定（プロジェクトごと）
   const [archivedOpen, setArchivedOpen] = useStoredFlag(sidebarArchivedOpenKey(project.id));
   const toggleArchived = () => setArchivedOpen(!archivedOpen);
+  const [pinnedClosed, setPinnedClosed] = useStoredFlag(sidebarPinnedClosedKey(project.id));
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
   const [rowMenu, setRowMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
-  const visibleRows = allRows.filter(
-    ({ run, state }) => matches(run) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter),
-  );
-  // 上に固定したチャットは、グループ・グループなしから抜き出して、いちばん上にまとめる
-  const pinnedRows = visibleRows.filter(({ run }) => run.pinned);
-  const [pinnedClosed, setPinnedClosed] = useStoredFlag(sidebarPinnedClosedKey(project.id));
-  const rows = visibleRows.filter(({ run }) => !run.pinned);
-  const archivedMatches = archivedRows.filter(({ run }) => matches(run));
 
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
@@ -108,12 +84,6 @@ export const WorkspacePage = memo(function WorkspacePage({
     if (collapsed) toggleCollapsed();
     setCreating(true);
   };
-  // 「グループなし」をドロップ先にする（チャットをグループから外す）
-  const { over: dropOverNone, props: dropNone } = sections.ungroupedDrop;
-  const groupIds = new Set(groups.map((g) => g.id));
-  const groupedRows = (id: number) => rows.filter(({ run }) => run.group_id === id);
-  const ungroupedRows = rows.filter(({ run }) => run.group_id === null || !groupIds.has(run.group_id));
-
 
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
   const rename = useRunRename((m) => void alertDialog("名前を変更できませんでした", m));
@@ -180,7 +150,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           </RowSection>
         )}
         {groups.map((group) => {
-          const members = groupedRows(group.id);
+          const members = list.groupedRows(group.id);
           // 検索中は、一致するチャットがないグループを隠す
           if (filtering && members.length === 0) return null;
           return (
@@ -199,16 +169,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           );
         })}
         {groups.length > 0 && ungroupedRows.length > 0 && (
-          <div className={cx("custom-group-head ungrouped", dropOverNone && "drop-target")} {...dropNone}>
-            <GroupToggle open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} />
-            <button className="custom-group-name ungrouped-name" onClick={toggleUngrouped}>
-              グループなし
-            </button>
-            <span className="custom-group-count">{ungroupedRows.length}</span>
-            <IconButton icon={Plus} label="グループなしで新しいチャット" size={13} className="custom-group-add" onClick={() => openNewChat(project.id)} />
-            {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
-            <span className="group-menu-spacer" aria-hidden />
-          </div>
+          <UngroupedHead projectId={project.id} count={ungroupedRows.length} open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} drop={sections.ungroupedDrop} />
         )}
         {(filtering && rows.length === 0) || (visibleRows.length === 0 && groups.length > 0 && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 ? (
           <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
@@ -218,7 +179,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           // グループがあるときは「グループなし」の見出しで開閉し、中身を段下げする
           <Collapse open={!(groups.length > 0 && ungroupedClosed && !filtering)} indent={groups.length > 0}>
             {grouping === "recent" ? (
-              <ul className="chat-rows" {...(groups.length > 0 ? dropNone : {})}>
+              <ul className="chat-rows" {...(groups.length > 0 ? sections.ungroupedDrop.props : {})}>
                 {ungroupedRows.map(renderRow)}
               </ul>
             ) : (
