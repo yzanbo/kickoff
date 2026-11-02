@@ -8,6 +8,7 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { sidebarOrder } from "../../projectOrder";
 import { PANEL_MAXIMIZED_KEY, PANEL_WIDTH_KEY } from "../../storageKeys";
 import { loadPanel, registerPanel, savePanel } from "./panelMemory";
+import { closeTabs } from "./panelTabs";
 
 /** 新しいチャットを始めるときの指定（どのプロジェクト・セクション・グループで始めるか） */
 export interface NewChatTarget {
@@ -147,16 +148,17 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
   const reopen = () => setPanelOpen(true);
 
   /** タブを閉じる。表示中のタブなら隣のタブへ、最後のタブならパネルも閉じる。ターミナルはシェルも止める */
-  const closeTab = (key: string) => {
-    if (tabs.some((t) => t.key === key && t.kind === "terminal")) void window.kickoff?.terminal.close(key);
-    setTabs((prev) => {
-      const index = prev.findIndex((t) => t.key === key);
-      const next = prev.filter((t) => t.key !== key);
-      if (activeTab === key) setActiveTab(next[Math.min(index, next.length - 1)]?.key ?? null);
-      if (next.length === 0) setPanelOpen(false);
-      return next;
-    });
+  const closeMany = (keys: string[]) => {
+    const closing = new Set(keys);
+    for (const t of tabs) if (closing.has(t.key) && t.kind === "terminal") void window.kickoff?.terminal.close(t.key);
+    // 次に表示するタブは純粋関数で決め、state の更新は updater の外で行う（updater の中の副作用は StrictMode で 2 回走る）
+    const next = closeTabs(tabs, keys, activeTab);
+    if (next.tabs.length === tabs.length) return;
+    setTabs(next.tabs);
+    if (next.activeTab !== activeTab) setActiveTab(next.activeTab);
+    if (next.tabs.length === 0) setPanelOpen(false);
   };
+  const closeTab = (key: string) => closeMany([key]);
   // サイドバーの下書きから、このパネルのタブを表示する・閉じるために登録する（いつも最新の関数を呼ぶ）
   const openerRef = useRef({ show: (key: string) => show(key), close: closeTab });
   openerRef.current = { show: (key: string) => show(key), close: closeTab };
@@ -170,7 +172,7 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
   // 削除・アーカイブされたチャットのタブは閉じる
   useEffect(() => {
     const gone = tabs.filter((t) => t.kind === "chat" && !runs.some((r) => r.id === t.id));
-    if (loaded && gone.length > 0) gone.forEach((t) => closeTab(t.key));
+    if (loaded && gone.length > 0) closeMany(gone.map((t) => t.key));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runs, loaded]);
 
