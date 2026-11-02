@@ -1,10 +1,11 @@
 import type { RunEvent } from "../../../../core/types";
 import { EDIT_TOOLS, toolLabel } from "./timelineItems";
+import { baseName } from "../../format";
 
 const SEARCH_TOOLS = new Set(["Grep", "Glob"]);
 const WEB_TOOLS = new Set(["WebFetch", "WebSearch"]);
 
-const fileName = (value: unknown) => String(value ?? "").split("/").pop() ?? "";
+const fileName = (value: unknown) => baseName(String(value ?? ""));
 const clip = (text: string, max = 40) => {
   const line = text.trim().split("\n")[0] ?? "";
   return line.length > max ? `${line.slice(0, max)}…` : line;

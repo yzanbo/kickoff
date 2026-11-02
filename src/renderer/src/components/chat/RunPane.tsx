@@ -19,6 +19,7 @@ import { SubagentChip, useSubagents } from "./Subagents";
 import { OpenSubagentContext, TimelineItems, Working } from "./Timeline";
 import { alertDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
+import { baseName } from "../../format";
 import { useServerEvent } from "../../events";
 import type { TerminalTarget } from "../sidePanel/useSidePanel";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
@@ -217,7 +218,7 @@ function RunView({
               onClick={() =>
                 onOpenTerminal(
                   run.worktree_path
-                    ? { cwd: run.worktree_path, label: run.worktree_path.split("/").pop() ?? project.name, projectId: project.id }
+                    ? { cwd: run.worktree_path, label: baseName(run.worktree_path), projectId: project.id }
                     : { cwd: project.repo_path, label: project.name, projectId: project.id },
                 )
               }

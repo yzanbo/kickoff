@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, ChevronsDownUp, Files, GitBranch, History, List, Li
 import { useMemo, useRef, useState } from "react";
 import type { GitCommit, GitFileChange } from "../../../../core/types";
 import { cx } from "../../cx";
+import { baseName } from "../../format";
 import { confirmDialog } from "../../dialogs";
 import { useActionError } from "../../hooks/useActionError";
 import { useDragWidth } from "../../hooks/useDragWidth";
@@ -61,7 +62,7 @@ export function ChangesTab({
   worktree?: string;
   onWorktreeChange: (worktree: string | undefined) => void;
 }) {
-  const rootName = (worktree ?? repoPath).split("/").pop() ?? repoPath;
+  const rootName = baseName(worktree ?? repoPath);
   const { status } = git;
   const [view, setView] = useStoredChoice<ChangesView>(CHANGES_VIEW_KEY, ["files", "search", "changes", "history"], "history");
   const [selected, setSelectedState] = useState<Selection>();
