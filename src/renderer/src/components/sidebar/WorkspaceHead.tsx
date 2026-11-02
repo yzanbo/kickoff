@@ -8,12 +8,13 @@ import { Chevron } from "../Chevron";
 import { GroupPickMenu } from "../GroupPickMenu";
 import { IconButton } from "../IconButton";
 import { HeadCounts, type StateFilter } from "./HeadCounts";
+import { pressedLeftOfName } from "./GroupToggle";
 import { useProjectMenu } from "./ProjectMenu";
 import type { StateCounts } from "./sidebarFlags";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
- * 左の四角の矢印を押すと開閉する。カードのほかの部分（中のボタンを除く）を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（サイドバー全体で同じ）。
+ * 左の矢印（名前より左のどこでも）を押すと、選ばずに開閉だけする。カードのほかの部分（中のボタンを除く）を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（サイドバー全体で同じ）。
  * 出すのは、いつも使うものだけ: チャット一覧の開閉（頭文字。乗せると矢印に変わる）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
@@ -71,6 +72,8 @@ export function WorkspaceHead({
         onClick={(e) => {
           // カードの矢印以外のところを押すと、選んで開く / 開閉する。中のボタン（矢印・ピン・状態の数・＋）はそちらの動き
           if ((e.target as HTMLElement).closest("button, a, input, select")) return;
+          // 名前より左（矢印のまわりの余白）は、矢印を押したのと同じく開閉だけ
+          if (pressedLeftOfName(e, e.currentTarget.querySelector(".workspace-title"))) return onToggleCollapsed();
           press();
         }}
         {...headDrag}
