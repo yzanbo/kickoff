@@ -11,7 +11,7 @@ import { IconButton } from "../IconButton";
 import { HeadCounts, type StateFilter } from "./HeadCounts";
 import { pressedLeftOfName } from "./GroupToggle";
 import { useProjectMenu } from "./ProjectMenu";
-import type { StateCounts } from "./sidebarFlags";
+import type { StateCounts } from "../../runState";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。

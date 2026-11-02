@@ -3,7 +3,7 @@ import { Fragment, useEffect, useRef, type CSSProperties, type MouseEvent } from
 import { BOARD_COLUMN_LABELS, type ProjectSummary } from "../../../../core/types";
 import { cx } from "../../cx";
 import { initialOf, projectHue } from "../../projectColor";
-import type { StateCounts } from "./sidebarFlags";
+import type { StateCounts } from "../../runState";
 import type { ProjectReorder } from "./useProjectReorder";
 
 /**

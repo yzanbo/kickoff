@@ -21,19 +21,15 @@
   font-weight: 600;
 }
 
-.stat-waiting {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-}
-
 .stat-archived {
   color: var(--muted);
   background: var(--bg-active);
 }
 
-.stat-working {
-  color: var(--info);
-  background: color-mix(in srgb, var(--info) 16%, transparent);
+/* 状態ごとのチャット数（StateStats。色はカンバンの列と同じで、--tone で受け取る） */
+.stat-state {
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 16%, transparent);
 }
 
 .project-header {

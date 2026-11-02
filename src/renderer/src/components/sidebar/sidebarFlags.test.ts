@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Run } from "../../../../core/types";
 import { approvalIndex } from "../../runState";
-import { isWaitingState, stateCounts, waitingRuns } from "./sidebarFlags";
+import { isWaitingState, waitingRuns } from "./sidebarFlags";
 
 const run = (id: number, patch: Partial<Run> = {}): Run => ({ id, status: "completed", attention: 0, archived_at: null, ...patch }) as Run;
 const runs = [
@@ -25,11 +25,6 @@ test("isWaitingState: 自分が見る番は回答待ちと確認待ち（失敗�
   assert.equal(isWaitingState("failed"), true);
   assert.equal(isWaitingState("running"), false);
   assert.equal(isWaitingState("done"), false);
-});
-
-test("stateCounts: 作業中・回答待ち・確認待ちの数（回答待ちの依頼があるチャットは回答待ち。完了とアーカイブ済みは数えない）", () => {
-  assert.deepEqual(stateCounts(runs, pending), { running: 2, needs_input: 2, review: 2 });
-  assert.deepEqual(stateCounts([], pending), { running: 0, needs_input: 0, review: 0 });
 });
 
 test("waitingRuns: 自分待ちのチャットだけ（元の順のまま。アーカイブ済みは除く）", () => {

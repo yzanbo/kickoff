@@ -91,7 +91,7 @@
  *   --bottom-h   下のパネルの高さ（useBottomPanel.ts）
  *   --chat-w     プロジェクトのチャット欄の幅（useProjectChat.ts・ProjectChat.tsx）
  *   --depth      ファイルの木の段の深さ（FileTree.tsx）
- *   --tone       見出しの状態ごとの件数の色（HeadCounts.tsx）
+ *   --tone       状態ごとのチャット数の色（サイドバー HeadCounts.tsx・画面の見出し StateStats.tsx）
  *   --ws-hue     プロジェクトの色相（ProjectChip.tsx・ProjectSwitcher.tsx・WorkspacePage.tsx・WorkspaceDots.tsx・KanbanBoard.tsx・BoardLanes.tsx・BasicInfo.tsx）
  *   --diagram-w  Mermaid の図の幅（MermaidDiagram.tsx）
  * 逆に、上の :root の値を getComputedStyle で読んでいるコードもある（名前を変えるときは一緒に直す）:

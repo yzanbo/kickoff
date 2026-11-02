@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Run, RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { ProjectListHead } from "./ProjectListHead";
-import { stateCounts } from "./sidebarFlags";
+import { stateCounts } from "../../runState";
 import { NO_GROUPS, type ProjectNavController } from "./useProjectNav";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
