@@ -2,28 +2,10 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { addWorktree, worktreePathFor } from "../git.js";
 import type { ServerDeps } from "../server.js";
-import { EFFORT_LEVELS, PERMISSION_CHOICES } from "../types.js";
 import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject, requireRun, requireWorktree } from "./http.js";
-import { branchName, optionalId, queryOf } from "./schemas.js";
+import { attachmentSchema, branchName, messageInputSchema, optionalId, queryOf, runOptionsSchema } from "./schemas.js";
 import { forkRun } from "../runFork.js";
 import { rewindFiles, rewindRun, RunBusyError } from "../runRewind.js";
-
-const runOptionsSchema = z
-  .object({
-    model: z.string().max(100).nullable(),
-    effort: z.enum(EFFORT_LEVELS).nullable(),
-    permission_mode: z.enum(PERMISSION_CHOICES).nullable(),
-    fast_mode: z.boolean().nullable(),
-  })
-  .partial()
-  .default({});
-
-const attachmentSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().max(300),
-  mime: z.string().max(200),
-  size: z.number().int().nonnegative(),
-});
 
 // 本文が空でも、添付があれば送れる
 const runInputSchema = z
@@ -38,18 +20,7 @@ const runInputSchema = z
   })
   .refine((v) => v.prompt || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
 
-const messageInputSchema = z
-  .object({
-    text: z.string().trim().max(50_000).default(""),
-    options: runOptionsSchema,
-    attachments: z.array(attachmentSchema).max(20).default([]),
-  })
-  .refine((v) => v.text || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
-
 /** チャット（エージェントとの会話）: 始める・続ける・中断・名前や列の変更・アーカイブ・削除・検索 */
-/** 選んだ待ちの指示（送信待ちの複数選択） */
-const queueIdsSchema = z.object({ ids: z.array(z.string().min(1).max(100)).min(1).max(500) });
-
 export function runRoutes(app: Hono, { store, runner, approvals, providers }: ServerDeps) {
   // ?archived=1 でアーカイブしたチャットも含める
   // プロジェクトのチャット。アーカイブ済みも含めるときは、未アーカイブとアーカイブ済みを別々に上限まで取る
@@ -93,7 +64,7 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
 
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
-    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id), queue_stop_after: runner.queueStopAfter(run.id), reconnect: runner.reconnectState(run.id), background: runner.backgroundState(run.id) });
+    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id), queue_stops: runner.queueStops(run.id), reconnect: runner.reconnectState(run.id), background: runner.backgroundState(run.id) });
   });
 
   // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
@@ -159,46 +130,11 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json(await conflictOnError(() => runner.send(run.id, text, options, attachments)));
   });
 
-  // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る）
-  app.post("/api/runs/:id/queue", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
-    return c.json(await conflictOnError(() => runner.queueMessage(run.id, text, options, attachments)));
-  });
-
-  // 待ちの指示をすべて消す
-  app.delete("/api/runs/:id/queue", (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    return c.json({ removed: runner.clearQueued(run.id), queue: runner.queued(run.id) });
-  });
-
   // 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる（待っていなければ 404）
   app.delete("/api/runs/:id/reconnect", (c) => {
     const run = requireRun(store, c.req.param("id"));
     if (!runner.stopReconnect(run.id)) throw new HttpError(404, "つながるのを待っていません");
     return c.json({ ok: true });
-  });
-
-  // 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。印はいくつでも。stop: false で外す・id: null ですべて外す。列にない指示なら 404）
-  app.put("/api/runs/:id/queue/stop-after", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const { id, stop } = z.object({ id: z.string().min(1).max(100).nullable(), stop: z.boolean().default(true) }).parse(await c.req.json());
-    if (!runner.setQueueStopAfter(run.id, id, stop)) throw new HttpError(404, "待ちの指示が見つかりません");
-    return c.json({ stop_after: runner.queueStopAfter(run.id), queue: runner.queued(run.id) });
-  });
-
-  // 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか（戻したとき、作業中でなければ先頭をすぐ送る）
-  app.put("/api/runs/:id/queue/paused", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const { paused } = z.object({ paused: z.boolean() }).parse(await c.req.json());
-    return c.json({ paused: await runner.setQueuePaused(run.id, paused), queue: runner.queued(run.id) });
-  });
-
-  // 待ちの列から消す
-  app.delete("/api/runs/:id/queue/:queueId", (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    if (!runner.removeQueued(run.id, c.req.param("queueId"))) throw new HttpError(404, "待ちの指示が見つかりません");
-    return c.json({ queue: runner.queued(run.id) });
   });
 
   // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）
@@ -212,61 +148,6 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
   app.post("/api/runs/:id/background/:taskId/stop", async (c) => {
     const run = requireRun(store, c.req.param("id"));
     if (!(await runner.stopBackgroundTask(run.id, c.req.param("taskId")))) throw new HttpError(404, "このチャットは作業中ではありません");
-    return c.json({ ok: true });
-  });
-
-  // 待ちの指示の文を書き換える
-  app.patch("/api/runs/:id/queue/:queueId", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    // attachments: 添付を置き換える（足す・外す。省けば今のまま）
-    const { text, attachments } = z
-      .object({ text: z.string().max(50_000), attachments: z.array(attachmentSchema).max(20).optional() })
-      .parse(await c.req.json());
-    if (!(await badRequest(async () => runner.editQueued(run.id, c.req.param("queueId"), text, attachments)))) {
-      throw new HttpError(404, "待ちの指示が見つかりません");
-    }
-    return c.json({ queue: runner.queued(run.id) });
-  });
-
-  // 待ちの列を並べ替える（index は移したあとの位置）
-  app.post("/api/runs/:id/queue/:queueId/move", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const { index } = z.object({ index: z.number().int().min(0) }).parse(await c.req.json());
-    if (!runner.moveQueued(run.id, c.req.param("queueId"), index)) throw new HttpError(404, "待ちの指示が見つかりません");
-    return c.json({ queue: runner.queued(run.id) });
-  });
-
-  // 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ列の先頭に戻す）
-  app.post("/api/runs/:id/queue/send-all", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const { ids } = queueIdsSchema.partial().parse(await c.req.json().catch(() => ({})));
-    if (!(await conflictOnError(() => runner.sendAllQueued(run.id, ids)))) throw new HttpError(404, "待ちの指示がありません");
-    return c.json({ ok: true });
-  });
-
-  // 選んだ待ちの指示をまとめて消す
-  app.post("/api/runs/:id/queue/remove-many", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const { ids } = queueIdsSchema.parse(await c.req.json());
-    return c.json({ removed: runner.removeQueuedMany(run.id, ids), queue: runner.queued(run.id) });
-  });
-
-  // 選んだ待ちの指示を、並びを保ったまままとめて移す（to: いちばん上・いちばん下 / before: その指示の前（null ならいちばん下）。ドラッグで落とした位置）
-  app.post("/api/runs/:id/queue/move-many", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const body = queueIdsSchema
-      .extend({ to: z.enum(["top", "bottom"]).optional(), before: z.string().min(1).max(100).nullable().optional() })
-      .refine((b) => (b.to === undefined) !== (b.before === undefined), "to か before のどちらか一方を指定してください")
-      .parse(await c.req.json());
-    const to = body.to ?? { before: body.before ?? null };
-    return c.json({ moved: runner.moveQueuedMany(run.id, body.ids, to), queue: runner.queued(run.id) });
-  });
-
-  // 待ちの 1 件をすぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ列の先頭に戻す）
-  app.post("/api/runs/:id/queue/:queueId/send", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const sent = await conflictOnError(() => runner.sendQueuedNow(run.id, c.req.param("queueId")));
-    if (!sent) throw new HttpError(404, "待ちの指示が見つかりません");
     return c.json({ ok: true });
   });
 

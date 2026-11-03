@@ -23,6 +23,7 @@ import { HttpError } from "./routes/http.js";
 import { projectRoutes } from "./routes/projects.js";
 import { runRoutes } from "./routes/runs.js";
 import { runMoveRoutes } from "./routes/runMove.js";
+import { queueRoutes } from "./routes/queue.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { uploadRoutes } from "./routes/uploads.js";
 import { voiceRoutes } from "./routes/voice.js";
@@ -100,6 +101,7 @@ export function createApp(deps: ServerDeps): Hono {
   projectRoutes(app, deps);
   runRoutes(app, deps);
   runMoveRoutes(app, deps);
+  queueRoutes(app, deps);
   groupRoutes(app, deps);
   uploadRoutes(app, deps);
   agentRoutes(app, deps);

@@ -64,7 +64,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onRunChange, visible = true, onOpenSubagent }: RunPaneProps) {
-  const { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, background, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, queuePaused, queueStops, retry, reconnect, background, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -76,7 +76,7 @@ export function RunPane({ projectId, runId, focus, onRunChange, visible = true, 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} background={background} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} connection={{ retry, reconnect }} background={background} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
   );
 }
 
@@ -87,7 +87,7 @@ function RunView({
   approvals,
   queue,
   queuePaused,
-  queueStopAfter,
+  queueStops,
   connection,
   background,
   live,
@@ -102,8 +102,8 @@ function RunView({
   queue: QueuedMessage[];
   /** 待ちの列を、終わっても自動で送らずに止めておくか */
   queuePaused: boolean;
-  /** 「ここまで自動で送る」の印を付けた待ちの指示（いくつでも） */
-  queueStopAfter: string[];
+  /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと） */
+  queueStops: number[];
   /** 通信の再試行中・つながるのを待っているところ */
   connection: Connection;
   /** 裏で動いている作業と、メインの返答が終わったか */
@@ -236,7 +236,7 @@ function RunView({
           )}
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stopAfter={queueStopAfter} busy={busy} newChatTarget={{ projectId: run.project_id, group: run.group_id ?? undefined }} />
+        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stops={queueStops} busy={busy} newChatTarget={{ projectId: run.project_id, group: run.group_id ?? undefined }} />
         <Composer
           chatContext={{ projectId: run.project_id, exclude: run.id }}
           options={options}

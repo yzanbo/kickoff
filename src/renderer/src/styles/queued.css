@@ -60,14 +60,25 @@
 }
 
 /* 「ここまで自動で送る」の線（この上の行を送ったら止める）。黄の線に文を重ねる */
+/* 「ここまで送ったら止めます」の印（指示とは別の行。左のつまみでドラッグして移す。1 件目の上にも置ける） */
 .queued-stop-line {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 20px;
   margin: 2px 0;
-  padding-left: 28px;
+  /* つまみを行のつまみと同じ位置にそろえる（.queued-row の左の詰め物と同じ） */
+  padding-left: 6px;
   font-size: 11px;
   color: var(--warn);
+}
+
+.queued-stop-line .queued-stop-grip {
+  color: color-mix(in srgb, var(--warn) 70%, transparent);
+}
+
+.queued-stop-line.dragging {
+  opacity: 0.4;
 }
 
 .queued-stop-line::before {

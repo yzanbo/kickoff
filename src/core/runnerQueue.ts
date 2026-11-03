@@ -80,12 +80,17 @@ export abstract class RunnerQueue {
     return this.sendQueuedNow(runId, merged.id);
   }
 
-  /** 「ここまで自動で送る」の印を付けた待ちの指示（列の順。いくつでも） */
-  queueStopAfter(runId: number): string[] {
-    return this.followups.stopAfterOf(runId);
+  /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと） */
+  queueStops(runId: number): number[] {
+    return this.followups.stopsOf(runId);
   }
 
-  /** 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。id が null ならすべて外す。id が列になければ false） */
+  /** 印の位置をまとめて置き換える（ドラッグで動かした・× で外した） */
+  setQueueStops(runId: number, stops: number[]) {
+    this.followups.setStops(runId, stops);
+  }
+
+  /** その指示のすぐあとに印を付ける・外す（id が null ならすべて外す。id が列になければ false） */
   setQueueStopAfter(runId: number, id: string | null, stop = true): boolean {
     return this.followups.setStopAfter(runId, id, stop);
   }
@@ -107,9 +112,8 @@ export abstract class RunnerQueue {
 
   /** 待ちの列の先頭を送る（送れなければ、理由をチャットに残す） */
   protected async sendNextQueued(runId: number) {
-    // 止めておくチャットは、終わっても送らない（行の「すぐ送る」で 1 件ずつ送る）
-    if (this.followups.isPaused(runId)) return;
-    const next = this.followups.take(runId);
+    // 止めておくチャットは、終わっても送らない（行の「すぐ送る」で 1 件ずつ送る）。先頭の上に印があれば、ここで止めておく
+    const next = this.followups.takeNext(runId);
     if (!next) return;
     try {
       await this.send(runId, next.text, next.options, next.attachments);
