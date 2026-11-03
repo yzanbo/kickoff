@@ -107,8 +107,9 @@ export function QueuedMessages({
   );
   // 書き直している指示（id と書いている途中の文）
   const [editing, setEditing] = useState<{ id: string; text: string }>();
-  // ドラッグで並べ替えている指示（from: 元の位置）と、入れる位置（at: 0〜件数。その位置の行の前に入れる）
-  const [drag, setDrag] = useState<{ id: string; from: number; at?: number }>();
+  // ドラッグで並べ替えている指示（from: 元の位置）と、入れる位置（at: 0〜件数。その位置の行の前に入れる）。
+  // ids: 選んだ行をつかんだときは、選んだものをまとめて動かす
+  const [drag, setDrag] = useState<{ id: string; from: number; at?: number; ids?: string[] }>();
   /** ドラッグ中の行の上: 行の上半分なら前、下半分なら後ろに入れる位置にする */
   const dragOver = (e: DragEvent<HTMLDivElement>, i: number) => {
     if (!drag) return;
@@ -120,7 +121,12 @@ export function QueuedMessages({
   };
   const drop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (drag?.at !== undefined) {
+    if (drag?.at !== undefined && drag.ids) {
+      // まとめて動かす: 落とした位置から下で、動かさない最初の指示の前へ入れる（なければいちばん下）
+      const ids = drag.ids;
+      const before = queue.slice(drag.at).find((m) => !ids.includes(m.id))?.id ?? null;
+      void api.moveQueuedMany(runId, ids, { before }).catch(failed);
+    } else if (drag?.at !== undefined) {
       // 移したあとの位置（元の位置より後ろへ入れるときは、自分が抜けた分だけ 1 つ前になる）
       const index = drag.at > drag.from ? drag.at - 1 : drag.at;
       if (index !== drag.from) void api.moveQueued(runId, drag.id, index).catch(failed);
@@ -233,6 +239,7 @@ export function QueuedMessages({
                 count={queue.length}
                 busy={busy}
                 selectedCount={selected.includes(m.id) ? selected.length : 0}
+                dragCount={selected.includes(m.id) ? Math.max(1, selected.length) : 1}
                 isStop={i === stopIndex}
                 onSelect={(e) => selectRow(e, m.id)}
                 groupActions={{
@@ -243,9 +250,10 @@ export function QueuedMessages({
                 className={cx(
                   "queued-row",
                   selected.includes(m.id) && "selected",
-                  drag?.id === m.id && "dragging",
-                  drag && drag.at === i && drag.from !== i && drag.from !== i - 1 && "drop-before",
-                  drag && drag.at === i + 1 && i === queue.length - 1 && drag.from !== i && "drop-after",
+                  (drag?.id === m.id || drag?.ids?.includes(m.id)) && "dragging",
+                  // 入る位置の線（1 件のときは、元の位置と変わらないところには出さない）
+                  drag && drag.at === i && (drag.ids || (drag.from !== i && drag.from !== i - 1)) && "drop-before",
+                  drag && drag.at === i + 1 && i === queue.length - 1 && (drag.ids || drag.from !== i) && "drop-after",
                 )}
                 actions={{
                   edit: () => setEditing({ id: m.id, text: m.text }),
@@ -254,7 +262,7 @@ export function QueuedMessages({
                   sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),
                   remove: () => void api.removeQueued(runId, m.id).catch(failed),
                 }}
-                onDragStart={() => setDrag({ id: m.id, from: i })}
+                onDragStart={() => setDrag({ id: m.id, from: i, ids: selected.includes(m.id) && selected.length > 1 ? selected : undefined })}
                 onDragEnd={() => setDrag(undefined)}
                 onDragOver={(e) => dragOver(e, i)}
                 onDrop={drop}

@@ -174,7 +174,7 @@ export class Runner {
 
   /** 待ちの指示をいくつかまとめて消す・いちばん上か下へまとめて移す（扱った数を返す） */
   removeQueuedMany = (runId: number, ids: string[]): number => this.followups.removeMany(runId, ids);
-  moveQueuedMany = (runId: number, ids: string[], to: "top" | "bottom"): number => this.followups.moveMany(runId, ids, to);
+  moveQueuedMany = (runId: number, ids: string[], to: "top" | "bottom" | { before: string | null }): number => this.followups.moveMany(runId, ids, to);
 
   /** 待ちの列を並べ替える（なければ false） */
   moveQueued(runId: number, id: string, index: number): boolean {

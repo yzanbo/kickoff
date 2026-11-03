@@ -19,6 +19,16 @@ export interface QueuedRowActions {
   remove: () => void;
 }
 
+/** まとめて動かすときのドラッグの絵（「n 件を移動」の札。絵を写したらすぐ消す） */
+function setCountDragImage(dataTransfer: DataTransfer, count: number) {
+  const badge = document.createElement("div");
+  badge.className = "queued-drag-badge";
+  badge.textContent = `${count} 件を移動`;
+  document.body.appendChild(badge);
+  dataTransfer.setDragImage(badge, 12, 12);
+  setTimeout(() => badge.remove(), 0);
+}
+
 /**
  * 送信待ちの 1 行: つまみ（ドラッグで並べ替え。2 件以上のとき）・番号・添付・文・操作のボタン。
  * 文は選んでコピーでき、ダブルクリックで書き直す。右クリックでも同じ操作（狭いときに隠す ↑↓ もここに残す）。
@@ -30,6 +40,7 @@ export function QueuedRow({
   count,
   busy,
   selectedCount,
+  dragCount = 1,
   isStop,
   onSelect,
   groupActions,
@@ -46,6 +57,8 @@ export function QueuedRow({
   busy: boolean;
   /** 選ばれていれば、選んでいる数（0 なら選ばれていない）。2 件以上なら、右クリックのメニューは選んだもの全体への操作にする */
   selectedCount: number;
+  /** この行のつまみからドラッグしたときに動く数（選んだ行をつかむと、選んだものをまとめて動かす） */
+  dragCount?: number;
   /** 「ここまで自動で送る」の印を付けた指示か */
   isStop: boolean;
   /** 行のクリック（⌘ / Ctrl で 1 件ずつ、Shift で範囲を選ぶ） */
@@ -98,9 +111,10 @@ export function QueuedRow({
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("text/plain", m.text);
-            // 動かしている間の絵は、つまみだけでなく行全体にする
+            // 動かしている間の絵は、つまみだけでなく行全体にする（まとめて動かすときは「n 件を移動」の札）
             const row = e.currentTarget.parentElement;
-            if (row) {
+            if (dragCount > 1) setCountDragImage(e.dataTransfer, dragCount);
+            else if (row) {
               const r = row.getBoundingClientRect();
               e.dataTransfer.setDragImage(row, e.clientX - r.left, e.clientY - r.top);
             }

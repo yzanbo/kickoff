@@ -156,14 +156,6 @@
   color: var(--warn);
 }
 
-.queued-stop-line::after {
-  flex: 1;
-  border-top: 1px dashed color-mix(in srgb, var(--warn) 60%, transparent);
-  content: "";
-  order: -1;
-  max-width: 12px;
-}
-
 .queued-stop-line::before {
   flex: 1;
   order: 1;
@@ -219,6 +211,19 @@
 
 .queued-row.editing .queued-index {
   margin-top: 5px;
+}
+
+/* まとめて動かすときのドラッグの絵（画面の外で描いて、ドラッグの絵に写す） */
+.queued-drag-badge {
+  position: fixed;
+  top: -100px;
+  left: -100px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent);
 }
 
 .queued-row.dragging {
