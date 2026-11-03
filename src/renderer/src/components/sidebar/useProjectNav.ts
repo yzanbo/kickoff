@@ -120,6 +120,8 @@ export function useProjectNav(runs: Record<number, Run[]>) {
 
   // ショートカット: ⌥⌘← / ⌥⌘→（縦スライドは ↑ / ↓ も）・⌃Tab / ⌃⇧Tab で前後、⌃1〜9 で n 番目
   useWindowEvent("keydown", (e) => {
+    // チャットの中の ⌘⌥↑ / ↓（前後の指示へ）など、先に扱ったキーは見ない
+    if (e.defaultPrevented) return;
     // ⌃Tab で次、⌃⇧Tab で前（ブラウザのタブと同じく、端まで来たら反対の端へ回る）
     if (e.ctrlKey && !e.metaKey && !e.altKey && e.key === "Tab") {
       e.preventDefault();

@@ -61,3 +61,24 @@ export function historyMove({ key, prompts, index, text, selectionStart, selecti
   const restored = next >= 0 ? prompts[next] : "";
   return { index: next, text: restored, caret: restored.length };
 }
+
+/** 自分の指示の一覧（指示の履歴・チャットの目次）の 1 行 */
+export interface PromptEntry {
+  id: number;
+  /** 送った文（添付だけなら空） */
+  text: string;
+  /** 一覧に出す名前（文。添付だけならファイル名） */
+  label: string;
+  at: string;
+}
+
+/** チャットのイベントから、自分の指示を会話の順に */
+export function promptEntries(events: RunEvent[]): PromptEntry[] {
+  return events
+    .filter((e) => e.type === "user")
+    .map((e) => {
+      const data = e.data as { text?: string; attachments?: { name: string }[] };
+      const text = String(data.text ?? "").trim();
+      return { id: e.id, text, label: text || (data.attachments ?? []).map((a) => a.name).join("、"), at: e.created_at };
+    });
+}

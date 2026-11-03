@@ -9,18 +9,17 @@ import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
 import { Composer, type QueueSendMode } from "./Composer";
 import type { ComposerFill } from "./quoteComment";
-import { confirmDialog } from "../../dialogs";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
 import { useRunOptions } from "./RunOptionsBar";
 import type { Connection } from "./ConnectionStatus";
 import { RunTimeline } from "./RunTimeline";
-import { countBackground } from "./backgroundLabel";
+import { confirmStopAgents } from "./backgroundLabel";
 import { SubagentChip, useSubagents } from "./Subagents";
 import { QueuedMessages } from "./QueuedMessages";
 import { TodoChip } from "./TodoChip";
 import { OpenSubagentContext } from "./ToolGroup";
-import { userPrompts } from "./promptHistory";
+import { promptEntries, userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
 import { ListPlus, MessageSquarePlus, MoveHorizontal, Search } from "lucide-react";
@@ -28,6 +27,7 @@ import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
 import { PromptsChip } from "./PromptsChip";
+import { PromptRail } from "./PromptRail";
 import { jumpToEvent } from "./jumpToEvent";
 import { useTimelineWindow } from "./useTimelineWindow";
 import { RewindContext } from "./MessageItems";
@@ -124,20 +124,6 @@ function RunView({
   const subagents = useSubagents(run.id, events, busy, background);
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
-  /** 作業を止める前に、裏で動いているサブエージェント・コマンドも止まることを確かめる（なければそのまま true） */
-  const confirmStopAgents = (action: string) => {
-    const counted = countBackground(background);
-    const agents = background ? counted.agents : runningAgents;
-    const what = [agents > 0 ? `サブエージェント ${agents} 件` : null, counted.commands > 0 ? `コマンド ${counted.commands} 件` : null].filter(Boolean).join("・");
-    return !what
-      ? Promise.resolve(true)
-      : confirmDialog({
-          title: `裏で動いている${what}も止まります`,
-          message: `${action}と、いまの作業と一緒に、裏で動いている${what}も止まり、サブエージェントの報告は届きません。終わるまで待つときは、キャンセルして「ためておく」で送ってください。`,
-          confirmLabel: `${action}`,
-          danger: true,
-        });
-  };
   const busyNeighbors = useBusyNeighbors(run);
   // サブエージェントの中身は、パネルの新しいタブで開く（ツールのまとまりの「中身を見る」からは呼び出し ID だけが届く）
   // 流れの項目に context で渡すので、描き直しのたびに作り直さない（作り直すと memo した項目がすべて描き直される）
@@ -152,6 +138,8 @@ function RunView({
   const items = useMemo(() => groupEvents(events), [events]);
   // チャット欄の ↑ で呼び出す、前に送った自分の発言
   const prompts = useMemo(() => userPrompts(events), [events]);
+  // チャットの目次（流れの右端）に並べる指示
+  const entries = useMemo(() => promptEntries(events), [events]);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
   const repoPath = project?.repo_path;
   const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
@@ -178,6 +166,8 @@ function RunView({
   const [jumpTarget, setJumpTarget] = useState<number | null>(null);
   const jump = (eventId: number) => {
     stickToBottom.current = false;
+    // 移ったら流れにピントを置く（続けて ⌘⌥↑ / ↓・↑↓ のスクロールが効くように。一覧を閉じてピントが外れたままにしない）
+    panelRef.current?.querySelector<HTMLElement>(".timeline")?.focus({ preventScroll: true });
     if (!timeline.reveal(eventId)) setJumpTarget(eventId);
     else if (panelRef.current) jumpToEvent(panelRef.current, eventId);
   };
@@ -232,7 +222,9 @@ function RunView({
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}
       <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
-      <RunTimeline items={timeline.visible} hidden={timeline.hidden} onShowMore={timeline.showMore} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
+      <RunTimeline items={timeline.visible} hidden={timeline.hidden} onShowMore={timeline.showMore} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible}>
+        <PromptRail root={panelRef} prompts={entries} onJump={jump} />
+      </RunTimeline>
       <div className="run-composer">
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
@@ -278,7 +270,7 @@ function RunView({
             />
           }
           onStop={() =>
-            void confirmStopAgents("中断する").then((ok) => {
+            void confirmStopAgents(background, runningAgents, "中断する").then((ok) => {
               if (!ok) return;
               setStopping(true);
               void api.cancelRun(run.id).catch(() => setStopping(false));
