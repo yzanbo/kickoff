@@ -24,7 +24,8 @@ export function QueuedHeadActions({
   onClearSelection: () => void;
   failed: (e: unknown) => void;
 }) {
-  const stopping = busy ? "（いまの作業を止めてから送る）" : "";
+  // 作業中は止めずに、いまのやり取りに伝える（Runner の tell。メインのエージェントがいまの手順の切れ目で読む）
+  const stopping = busy ? "（作業は止めずに、いまのやり取りに伝える）" : "";
   if (selected.length > 0) {
     const n = selected.length;
     const done = () => onClearSelection();
