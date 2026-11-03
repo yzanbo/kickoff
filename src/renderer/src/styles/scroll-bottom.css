@@ -1,7 +1,8 @@
 /*
  * 一番下へ戻るボタン（chat.css の .scroll-bottom）に、いまの状態を添えた形。色はカンバンの列と同じ
  * （作業中 = 青・回答待ち = 橙・返答が届いた = 緑・失敗 = 赤・終わっている = 控えめ）。
- * 答えを待っている・返答が届いたとき（.attention）だけ、小さく上下して下へ誘う
+ * 答えを待っている・返答が届いたとき（.attention）だけ、小さく上下して下へ誘う。
+ * 読んでいる文に重ならないよう、真ん中ではなく右下の隅に置き、目立たせる必要がないときは少し薄くする（乗せると濃く）
  */
 .timeline-wrap .scroll-bottom.guide {
   --pill-tone: var(--extra-muted);
@@ -10,8 +11,12 @@
   gap: 6px;
   width: auto;
   max-width: calc(100% - 24px);
-  height: 30px;
-  padding: 0 12px;
+  height: 28px;
+  padding: 0 10px;
+  /* 右下の隅（右端のスクロールバーを避ける） */
+  right: calc(var(--gutter) + 8px);
+  left: auto;
+  transform: none;
   border-color: color-mix(in srgb, var(--pill-tone) 45%, var(--border));
   border-radius: 999px;
   font: inherit;
@@ -21,6 +26,14 @@
   color: var(--muted);
   background: color-mix(in srgb, var(--pill-tone) 10%, var(--bg-elev));
   cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.timeline-wrap .scroll-bottom.guide:hover,
+.timeline-wrap .scroll-bottom.guide:focus-visible,
+.timeline-wrap .scroll-bottom.guide.attention {
+  opacity: 1;
 }
 
 .timeline-wrap .scroll-bottom.guide.working {
@@ -85,7 +98,7 @@
 /* 下を指して小さく上下する（動きを減らす設定では動かさない） */
 @keyframes scroll-guide-bob {
   50% {
-    transform: translate(-50%, 3px);
+    transform: translateY(3px);
   }
 }
 
