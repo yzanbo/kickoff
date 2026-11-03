@@ -6,10 +6,8 @@ import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
 import { sidebarOrder } from "../projectOrder";
 import { useProjects } from "../projectsContext";
-import { useRunStates } from "../approvalsContext";
 import { useBoardRuns } from "../components/board/useBoardRuns";
 import { StateStats } from "../components/project/StateStats";
-import { stateCounts } from "../runState";
 
 interface Props {
   onNewProject: () => void;
@@ -18,7 +16,6 @@ interface Props {
 /** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
 export function AllProjectsPage({ onNewProject }: Props) {
   const { projects } = useProjects();
-  const { pending } = useRunStates();
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
@@ -27,10 +24,7 @@ export function AllProjectsPage({ onNewProject }: Props) {
   const notReady = (!providers.loading && !claude?.loggedIn) || (!github.loading && !github.data?.loggedIn);
   // 状態ごとの数: すぐ下の全プロジェクトのカンバンと同じチャット（しまったプロジェクトの分は除く）を、プロジェクトの画面・サイドバーと同じ数え方で
   const { runs } = useBoardRuns(undefined, false, () => {});
-  const counts = stateCounts(
-    runs.filter((r) => shown.some((p) => p.id === r.project_id)),
-    pending,
-  );
+  const shownRuns = runs.filter((r) => shown.some((p) => p.id === r.project_id));
 
   return (
     <div className="page page-wide page-board">
@@ -40,7 +34,7 @@ export function AllProjectsPage({ onNewProject }: Props) {
             <ProjectSwitcher />
           </h1>
           <div className="project-stats">
-            <StateStats counts={counts} />
+            <StateStats runs={shownRuns} showProject />
           </div>
         </div>
       </header>

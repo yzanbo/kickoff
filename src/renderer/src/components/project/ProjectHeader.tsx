@@ -1,8 +1,6 @@
 import { ArchiveRestore, FolderOpen, Pencil } from "lucide-react";
-import { useRunStates } from "../../approvalsContext";
 import { confirmRestoreProject } from "../../projectOrder";
 import { href, type ProjectTab } from "../../router";
-import { stateCounts } from "../../runState";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { StateStats } from "./StateStats";
 import type { ProjectData } from "./useProjectData";
@@ -19,9 +17,6 @@ const TAB_LABELS: Record<ProjectTab, string> = {
  */
 export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: ProjectData; tab: ProjectTab; changeCount: number; onEdit: () => void }) {
   const { project, runs, groups } = data;
-  // 状態ごとの数（回答待ちの依頼は App が持ち、イベントで更新される。サイドバー・カンバンの列と同じ数え方）
-  const { pending } = useRunStates();
-  const counts = stateCounts(runs, pending);
   return (
   <header className="page-header project-header">
     <div className="project-title-row">
@@ -53,7 +48,7 @@ export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: Projec
       </button>
       <div className="project-stats">
         {project.archived_at && <span className="stat stat-archived">アーカイブ済み</span>}
-        <StateStats counts={counts} />
+        <StateStats runs={runs} />
       </div>
     </div>
     <div className="project-tabs-row">
