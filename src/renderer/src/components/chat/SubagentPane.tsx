@@ -14,7 +14,18 @@ import { useRunDetail } from "./useRunDetail";
  * 下の入力欄から追加の指示を送れる: メインのエージェントに、SendMessage でこのサブエージェントへそのまま伝えてもらう
  * （サブエージェントは続きから始める）。メインが作業中なら止めずに伝え（いまの手順の切れ目で読む）、伝えられなければ送信待ちに入れる
  */
-export function SubagentPane({ projectId, runId, toolUseId }: { projectId: number; runId: number; toolUseId: string }) {
+export function SubagentPane({
+  projectId,
+  runId,
+  toolUseId,
+  onOpenSubagent,
+}: {
+  projectId: number;
+  runId: number;
+  toolUseId: string;
+  /** 同じチャットのほかのサブエージェントを、パネルのタブで開く（やり直した回へ移る） */
+  onOpenSubagent: (toolUseId: string, title: string) => void;
+}) {
   const { run, project, events, background, error } = useRunDetail(runId, projectId);
   const busy = run ? BUSY_STATUSES.includes(run.status) : false;
   const subagents = useSubagents(runId, events, busy, background);
@@ -32,7 +43,17 @@ export function SubagentPane({ projectId, runId, toolUseId }: { projectId: numbe
   };
   return (
     <div className="subagent-pane">
-      <SubagentView runId={run.id} entry={entry} events={events} rel={rel} busy={busy} />
+      <SubagentView
+        runId={run.id}
+        entry={entry}
+        events={events}
+        rel={rel}
+        busy={busy}
+        onOpen={(key) => {
+          const target = subagents.find((s) => s.key === key);
+          if (target) onOpenSubagent(target.key, target.description);
+        }}
+      />
       <div className="run-composer subagent-composer">
         {agentId ? (
           <Composer

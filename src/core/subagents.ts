@@ -1,5 +1,6 @@
 import { isBackgroundLaunch } from "./backgroundTasks.js";
 import { isNetworkError } from "./networkErrors.js";
+import { markSuperseded } from "./subagentSupersede.js";
 import type { RunEvent, SubagentInfo } from "./types.js";
 
 // サブエージェントの一覧の組み立て（画面の一覧・タブと、コアの作業の終わりのお知らせ・通信が戻ったときの再開で共有する。Node 依存なし）
@@ -43,6 +44,8 @@ export interface SubagentEntry {
   undeliveredReport?: string;
   /** 1 回の返答で書ける量（出力のトークン数）の上限で止まった（失敗のときだけ） */
   outputLimit?: boolean;
+  /** 止まったあとに、親が同じ仕事をやり直した新しいサブエージェント（subagentSupersede.ts） */
+  supersededBy?: { key: string; description: string };
 }
 
 /** 失敗の文が、出力の上限（max_output_tokens）で止まったものか（通信の切断とは別。同じやり方では、再開しても同じところで止まる） */
@@ -219,7 +222,7 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
   }
   // 動いていないのに終わっていないもの: Claude Code が終わった、または裏で動いているものの一覧から消えた（終わりの知らせを取りこぼした）。
   // 報告を渡していれば完了、なければ中断とみなす（一覧は裏で動かしたものだけなので、待つ形のものには使わない）
-  return [...map.values()].map((s) => {
+  return markSuperseded([...map.values()].map((s) => {
     const settled: SubagentEntry =
       s.status === "running" &&
       (!busy || (live !== undefined && backgrounded.has(s.key) && s.agentId !== undefined && !live.has(s.agentId)))
@@ -231,7 +234,7 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
     const state = delivery.get(s.key) ?? "received";
     const final = state === "pending" && !busy ? "lost" : state;
     return final === "lost" ? { ...settled, delivery: final, undeliveredReport: subagentReport(settled, events) } : { ...settled, delivery: final };
-  });
+  }));
 }
 
 /**
@@ -251,7 +254,7 @@ export function unfinishedSubagents(events: RunEvent[], sinceEventId: number): S
  */
 export function networkStoppedSubagents(events: RunEvent[], sinceEventId: number): SubagentEntry[] {
   return collectSubagents(events, {}, false).filter(
-    (s) => s.network && s.agentId !== undefined && (s.endEventId ?? Number.POSITIVE_INFINITY) > sinceEventId,
+    (s) => s.network && !s.supersededBy && s.agentId !== undefined && (s.endEventId ?? Number.POSITIVE_INFINITY) > sinceEventId,
   );
 }
 

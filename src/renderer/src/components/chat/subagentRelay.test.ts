@@ -26,4 +26,6 @@ test("止まったサブエージェントの再開・やり直し: 宛先と依
 test("再開の頼み: 出力の上限で止まったものは、短く分けるよう添える", () => {
   assert.doesNotMatch(resumeRequest("a1", "調べもの"), /書ける量の上限/);
   assert.match(resumeRequest("a1", "調べもの", { outputLimit: true }), /報告は短くまとめる/);
+  assert.match(retryRequest({ description: "調べもの", outputLimit: true }), /報告は短くまとめる/);
+  assert.doesNotMatch(retryRequest({ description: "調べもの" }), /報告は短くまとめる/);
 });

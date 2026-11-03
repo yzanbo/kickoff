@@ -68,7 +68,12 @@ export function PanelTabPage({
           onDraftChange={(text) => panel.updateTab(t.key, (x) => (x.kind === "new" && (x.draftText ?? "") !== text ? { ...x, draftText: text } : x))}
         />
       ) : t.kind === "subagent" ? (
-        <SubagentPane projectId={t.projectId} runId={t.runId} toolUseId={t.toolUseId} />
+        <SubagentPane
+          projectId={t.projectId}
+          runId={t.runId}
+          toolUseId={t.toolUseId}
+          onOpenSubagent={(toolUseId, title) => panel.openSubagent({ runId: t.runId, projectId: t.projectId, toolUseId, title })}
+        />
       ) : t.kind === "terminal" ? (
         <Suspense fallback={<div className="page muted">読み込み中…</div>}>
           <TerminalPane termKey={t.key} cwd={t.cwd} visible={visible} focused={visible && focused} onOpenUrl={(url) => panel.openBrowser(url)} />

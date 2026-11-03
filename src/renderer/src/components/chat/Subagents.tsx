@@ -9,7 +9,7 @@ import { useTicker } from "../../hooks/useTicker";
 import { subagentsArchivedKey } from "../../storageKeys";
 import { modelDisplayName } from "../../models";
 import { collectSubagents, type SubagentEntry } from "../../../../core/subagents";
-import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel } from "./subagentList";
+import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 import { activityOf, activityText, latestOf } from "./stall";
 import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "../ClaudeMark";
@@ -77,8 +77,9 @@ export function SubagentChip({
   // 実行中なのに長く動きがないもの（ピルにも出して、開かなくても気づけるようにする）
   const stalled = visible.filter((s) => s.status === "running" && activityOf(s.lastActivityAt).level === "stalled").length;
   // 通信の切断で止まったものは、作業の失敗と分けて数える（「再開」で続きから戻せる）
-  const failed = visible.filter((s) => s.status === "failed" && !s.network).length;
-  const network = visible.filter((s) => s.network).length;
+  // 親がもうやり直したものは、手を打たなくてよいので数えない
+  const failed = visible.filter((s) => s.status === "failed" && !s.network && !s.supersededBy).length;
+  const network = visible.filter((s) => s.network && !s.supersededBy).length;
   // 報告が親に届いたか（受け取り待ち・届いていない）。届いていないものは「報告を親に渡す」で渡し直せる
   const awaiting = visible.filter((s) => s.status === "completed" && s.delivery === "pending").length;
   const undelivered = visible.filter((s) => s.status === "completed" && s.delivery === "lost").length;
@@ -114,11 +115,21 @@ export function SubagentChip({
           <span className="subagent-title">{s.description}</span>
           <span className="subagent-meta">
             {meta.join(" · ")}
-            {showsSubagentStatus(s) && <span className={`subagent-status ${subagentStatusClass(s)}`}> · {subagentStatusLabel(s)}</span>}
+            {showsSubagentStatus(s) && <span className={`subagent-status ${subagentStatusClass(s)}`} title={subagentStatusTitle(s)}> · {subagentStatusLabel(s)}</span>}
             {s.status === "running" && s.lastTool && <span> · {s.lastTool}</span>}
             {s.status === "running" && <ActivityNote entry={s} />}
           </span>
-          {!isArchived && <SubagentActions runId={run.id} entry={s} busy={busy} />}
+          {!isArchived && (
+            <SubagentActions
+              runId={run.id}
+              entry={s}
+              busy={busy}
+              onOpen={(key) => {
+                const target = entries.find((x) => x.key === key);
+                if (target) (onOpen(target), setOpen(false));
+              }}
+            />
+          )}
         </span>
         {isArchived ? (
           <IconButton
