@@ -118,6 +118,10 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
           onDragEnd={() => setDrag(undefined)}
         >
           {queue.length > 1 && <GripVertical size={13} className="queued-grip" aria-hidden />}
+          {/* 送る順番（1 が次に送るもの） */}
+          <span className="queued-index" aria-label={`${i + 1} 番目`}>
+            {i + 1}
+          </span>
           <QueuedAttachments attachments={m.attachments} />
           <span className="queued-text" title={m.text} onDoubleClick={() => setEditing({ id: m.id, text: m.text })}>
             {m.text || m.attachments.map((a) => a.name).join("、")}
