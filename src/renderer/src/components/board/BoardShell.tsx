@@ -1,17 +1,21 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Run } from "../../../../core/types";
 import { cx } from "../../cx";
 import type { useRunRename } from "../../hooks/useRunRename";
 import { useProjects } from "../../projectsContext";
 import { ErrorText } from "../ErrorText";
+import { ChoiceMenu } from "../menus/ChoiceMenu";
+import { clampToViewport } from "../PopupMenu";
 import { CardMenu } from "../menus/CardMenu";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { terminalTargets, type SidePanelController } from "../sidePanel/useSidePanel";
+import { BOARD_HEADER_LAYOUT_LABELS, BOARD_HEADER_LAYOUTS, useBoardHeaderLayout } from "./boardHeaderLayout";
 import type { useCardMenu } from "./useBoardCards";
 
 /**
  * ボード（カンバン・グループ）の共通の外枠: 見出し → 失敗の文 → ボードの中身と右側のパネル → カードの右クリックメニュー。
- * children はボードの中身（board-main の中）。after はほかのメニューなど、いちばん後ろに描くもの
+ * children はボードの中身（board-main の中）。after はほかのメニューなど、いちばん後ろに描くもの。
+ * 見出しの置き方が beside なら、見出しと失敗の文をボードの側（パネルの左）に入れ、パネルを上端まで伸ばす
  */
 export function BoardShell({
   className,
@@ -45,15 +49,51 @@ export function BoardShell({
   children: ReactNode;
 }) {
   const { projects } = useProjects();
-  return (
-    <div className={cx("board", className)}>
+  const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
+  const [layoutMenu, setLayoutMenu] = useState<{ x: number; y: number } | null>(null);
+  const beside = headerLayout === "beside";
+  // 見出しの右クリックで置き方を切り替える（入力欄の上ではふつうの右クリック＝貼り付けなどを残す）
+  const top = (
+    <div
+      className="board-top"
+      onContextMenu={(e) => {
+        if ((e.target as HTMLElement).closest("input, textarea")) return;
+        e.preventDefault();
+        setLayoutMenu(clampToViewport(e.clientX, e.clientY, 220, 100));
+      }}
+    >
       {header}
       <ErrorText message={error} className="board-error" />
+    </div>
+  );
+  const main = <div className="board-main">{children}</div>;
+  return (
+    <div className={cx("board", className)}>
+      {!beside && top}
       <div {...panel.body}>
-        <div className="board-main">{children}</div>
+        {beside ? (
+          <div className="board-side">
+            {top}
+            {main}
+          </div>
+        ) : (
+          main
+        )}
         <SidePanel panel={panel} onNewChat={onNewChat} terminals={terminalTargets(projects, projectId)} />
       </div>
       {after}
+      {layoutMenu && (
+        <ChoiceMenu
+          x={layoutMenu.x}
+          y={layoutMenu.y}
+          title="見出しの置き方"
+          values={BOARD_HEADER_LAYOUTS}
+          labels={BOARD_HEADER_LAYOUT_LABELS}
+          value={headerLayout}
+          onPick={setHeaderLayout}
+          onClose={() => setLayoutMenu(null)}
+        />
+      )}
       {menu.at && <CardMenu {...menu.at} onOpenPanel={onOpenRun} onRename={rename.start} onClose={menu.close} onError={onError} />}
     </div>
   );

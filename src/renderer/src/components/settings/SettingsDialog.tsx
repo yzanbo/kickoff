@@ -5,6 +5,7 @@ import { useTheme, type Theme } from "../../theme";
 import { Field } from "../Field";
 import { BrowserExtensions } from "../BrowserExtensions";
 import { Segmented } from "../Segmented";
+import { BOARD_HEADER_LAYOUT_LABELS, useBoardHeaderLayout, type BoardHeaderLayout } from "../board/boardHeaderLayout";
 import { useProjectTabsLayout, type ProjectTabsLayout } from "../project/ProjectTabs";
 import { TabbedDialog, type DialogSection } from "../TabbedDialog";
 import { UsagePanel } from "../footer/UsagePanel";
@@ -75,6 +76,7 @@ function DisplaySettings() {
   const [compactComposer, setCompactComposer] = useSharedFlag(COMPOSER_COMPACT_KEY);
   const [wideChat, setWideChat] = useSharedFlag(CHAT_WIDE_KEY);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
+  const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
   return (
     <section className="section">
       <h2>表示</h2>
@@ -125,6 +127,21 @@ function DisplaySettings() {
             options={[
               { value: "top", label: "上に横並び" },
               { value: "side", label: "左に縦並び（アイコン）" },
+            ]}
+          />
+        </Field>
+        <Field
+          label="ボードの見出し"
+          help="パネルを上まで伸ばすと、ボードでチャットのパネルを開いたとき、パネルを上端まで伸ばして見出しの右側を覆います（見出しはボードの側だけに出ます）。チャットの縦の幅が広がります。見出しの右クリックでも切り替えられます。"
+        >
+          <Segmented<BoardHeaderLayout>
+            className="segmented theme-switch"
+            label="ボードの見出しの置き方"
+            value={headerLayout}
+            onChange={setHeaderLayout}
+            options={[
+              { value: "top", label: BOARD_HEADER_LAYOUT_LABELS.top },
+              { value: "beside", label: BOARD_HEADER_LAYOUT_LABELS.beside },
             ]}
           />
         </Field>
