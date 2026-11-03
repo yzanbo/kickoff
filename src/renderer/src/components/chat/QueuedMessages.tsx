@@ -44,7 +44,8 @@ export function QueuedMessages({
   queue: QueuedMessage[];
   paused: boolean;
   /** 「ここまで自動で送る」の印を付けた指示（その指示を送ったら止めておく） */
-  stopAfter: string | null;
+  /** 「ここまで自動で送る」の印を付けた指示（いくつでも） */
+  stopAfter: string[];
   busy: boolean;
 }) {
   const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
@@ -155,9 +156,9 @@ export function QueuedMessages({
   const failed = reportFailure("待ちの指示を操作できませんでした");
   // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
   const ask = useAskInNewChat(runId, queue, newChatTarget);
-  // 「ここまで自動で送る」の印の位置（なければ -1）
-  const stopIndex = stopAfter ? queue.findIndex((m) => m.id === stopAfter) : -1;
-  const clearStop = () => void api.setQueueStopAfter(runId, null).catch(failed);
+  // 「ここまで自動で送る」の印（いくつでも）と、次に止まる位置（いちばん上の印。なければ -1）
+  const stopIndex = queue.findIndex((m) => stopAfter.includes(m.id));
+  const toggleStop = (id: string) => void api.setQueueStopAfter(runId, id, !stopAfter.includes(id)).catch(failed);
   // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）
   const hint = paused
     ? collapsed
@@ -244,7 +245,7 @@ export function QueuedMessages({
                 busy={busy}
                 selectedCount={selected.includes(m.id) ? selected.length : 0}
                 dragCount={selected.includes(m.id) ? Math.max(1, selected.length) : 1}
-                isStop={i === stopIndex}
+                isStop={stopAfter.includes(m.id)}
                 onAsk={
                   ask &&
                   ((remove) => {
@@ -268,7 +269,7 @@ export function QueuedMessages({
                 )}
                 actions={{
                   edit: () => setEditing({ id: m.id, text: m.text, attachments: m.attachments }),
-                  toggleStop: () => void api.setQueueStopAfter(runId, i === stopIndex ? null : m.id).catch(failed),
+                  toggleStop: () => toggleStop(m.id),
                   move: (to) => void api.moveQueued(runId, m.id, to).catch(failed),
                   sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),
                   remove: () => void api.removeQueued(runId, m.id).catch(failed),
@@ -279,11 +280,11 @@ export function QueuedMessages({
                 onDrop={drop}
               />
             )}
-            {/* 「ここまで自動で送る」: この行を送ったら止める線（最後の行なら、すべて送ったあとに来たものから止める） */}
-            {i === stopIndex && (
+            {/* 「ここまで自動で送る」: この行を送ったら止める線（いくつでも。止まったあと自動で送るに戻すと、次の線まで送る。最後の行なら、すべて送ったあとに来たものから止める） */}
+            {stopAfter.includes(m.id) && (
               <div className="queued-stop-line" role="note">
                 <span>ここまで送ったら止めます</span>
-                <IconButton icon={X} size={11} label="ここで止めるのをやめる" onClick={clearStop} />
+                <IconButton icon={X} size={11} label="ここで止めるのをやめる" onClick={() => toggleStop(m.id)} />
               </div>
             )}
             </Fragment>
