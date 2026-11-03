@@ -2,6 +2,7 @@ import type { Attachment } from "../../../../core/types";
 import { useState } from "react";
 import { attachmentUrl } from "../../api";
 import { ImageViewer, type ViewerImage } from "../ImageViewer";
+import { useImageMenu } from "../imageViewer/useImageMenu";
 
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -21,7 +22,7 @@ export function viewerImagesOf(attachments: Attachment[]): ViewerImage[] {
 
 /**
  * 添付ファイルの表示（画像はサムネイル、それ以外はファイル名とサイズ）。
- * 画像は押すとアプリの中で大きく表示し、送ったファイルはアプリの中でダウンロードする（外のブラウザは使わない）
+ * 画像は押すとアプリの中で大きく表示し（右クリックでコピー・保存も）、送ったファイルはアプリの中でダウンロードする（外のブラウザは使わない）
  */
 export function AttachmentChip({
   attachment,
@@ -38,6 +39,7 @@ export function AttachmentChip({
   onRemove?: () => void;
 }) {
   const [viewing, setViewing] = useState(false);
+  const imageMenu = useImageMenu();
   const isImage = isPreviewable(attachment.mime);
   const src = previewUrl ?? (attachment.id ? attachmentUrl(attachment as Attachment) : undefined);
   const body = (
@@ -52,7 +54,10 @@ export function AttachmentChip({
   return (
     <span className={`attachment ${uploading ? "uploading" : ""}`}>
       {isImage && src ? (
-        <button type="button" className="attachment-link attachment-open" title="大きく表示" aria-label={`${attachment.name} を大きく表示`} onClick={() => setViewing(true)}>
+        <button type="button" className="attachment-link attachment-open" title="大きく表示" aria-label={`${attachment.name} を大きく表示`}
+          onClick={() => setViewing(true)}
+          onContextMenu={(e) => imageMenu.open(e, { src, name: attachment.name }, () => setViewing(true))}
+        >
           {body}
         </button>
       ) : attachment.id && !onRemove ? (
@@ -67,6 +72,7 @@ export function AttachmentChip({
           ×
         </button>
       )}
+      {imageMenu.element}
       {viewing && src && <AttachmentViewer src={src} name={attachment.name} siblings={siblings} onClose={() => setViewing(false)} />}
     </span>
   );

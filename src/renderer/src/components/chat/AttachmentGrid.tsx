@@ -5,6 +5,7 @@ import { attachmentUrl } from "../../api";
 import { useDismiss } from "../../hooks/useDismiss";
 import { ImageViewer } from "../ImageViewer";
 import { PopoverHeader } from "../PopoverHeader";
+import { useImageMenu } from "../imageViewer/useImageMenu";
 import { AttachmentChip, isPreviewable, viewerImagesOf } from "./AttachmentChip";
 
 /**
@@ -16,7 +17,9 @@ export function AttachmentGrid({ attachments, anchor, onClose }: { attachments: 
   const ref = useRef<HTMLDivElement>(null);
   // 全画面で見ている画像（画像の中の位置）。見ている間は一覧の外側クリック・Esc で一覧を閉じない
   const [viewing, setViewing] = useState<number>();
-  useDismiss(ref, onClose, { enabled: viewing === undefined });
+  // 画像の右クリック（コピー・大きく表示・保存）。メニューは一覧の外に出るので、開いている間も一覧を閉じない
+  const imageMenu = useImageMenu();
+  useDismiss(ref, onClose, { enabled: viewing === undefined && !imageMenu.active });
   const images = attachments.filter((a) => isPreviewable(a.mime));
   const files = attachments.filter((a) => !isPreviewable(a.mime));
   const width = Math.min(360, window.innerWidth - 16);
@@ -39,7 +42,10 @@ export function AttachmentGrid({ attachments, anchor, onClose }: { attachments: 
       {images.length > 0 && (
         <div className="attachment-grid">
           {images.map((a, i) => (
-            <button key={a.id} type="button" className="attachment-grid-item" title={`${a.name}（全画面で表示）`} aria-label={`${a.name} を全画面で表示`} onClick={() => setViewing(i)}>
+            <button key={a.id} type="button" className="attachment-grid-item" title={`${a.name}（全画面で表示）`} aria-label={`${a.name} を全画面で表示`}
+              onClick={() => setViewing(i)}
+              onContextMenu={(e) => imageMenu.open(e, { src: attachmentUrl(a), name: a.name }, () => setViewing(i))}
+            >
               <img src={attachmentUrl(a)} alt="" />
             </button>
           ))}
@@ -52,6 +58,7 @@ export function AttachmentGrid({ attachments, anchor, onClose }: { attachments: 
           ))}
         </div>
       )}
+      {imageMenu.element}
       {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
     </div>,
     document.body,
