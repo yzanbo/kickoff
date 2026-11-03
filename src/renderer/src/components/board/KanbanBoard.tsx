@@ -7,6 +7,7 @@ import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
+import { useProjectTagFilter } from "../../projectTagFilter";
 import { openRun, type ReopenRoute } from "../../router";
 import { useRunStates } from "../../approvalsContext";
 import { BOARD_VIEW_KEY } from "../../storageKeys";
@@ -45,9 +46,15 @@ interface Props {
  */
 export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Props) {
   const allProjects = projectId === undefined;
-  // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトを除いたサイドバーの並び（名前の引き当てはどのボードでも全プロジェクトから）
+  // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトを除いたサイドバーの並び（名前の引き当てはどのボードでも全プロジェクトから）。
+  // サイドバーの「タグ」で絞り込んでいれば、合うプロジェクトだけ
   const { projects: allList, projectName } = useProjects();
-  const projects = useMemo(() => (allProjects ? sidebarOrder(allList) : allList), [allList, allProjects]);
+  const tagFilter = useProjectTagFilter();
+  const projects = useMemo(
+    () => (allProjects ? sidebarOrder(allList).filter(tagFilter.matches) : allList),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
+    [allList, allProjects, tagFilter.selected],
+  );
   // チャットの状態と回答待ちの数（回答待ちの依頼は App が持つ）
   const { stateOf } = useRunStates();
   const [error, setError] = useState<string>();
