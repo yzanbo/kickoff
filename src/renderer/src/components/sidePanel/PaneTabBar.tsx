@@ -8,6 +8,8 @@ import { tabLabel } from "./panelTabs";
 import { closeChatWithChoice } from "../chat/closeChat";
 import { CHAT_TITLE_MAX } from "../../chatTitle";
 import { useRunRename } from "../../hooks/useRunRename";
+import { useRunStates } from "../../approvalsContext";
+import { StatusSlot } from "../StatusSlot";
 import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import type { SidePanelController } from "./useSidePanel";
@@ -50,6 +52,10 @@ export function PaneTabBar({
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
   // チャットのタブの名前をその場で変える（ダブルクリック）
   const rename = useRunRename();
+  // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
+  const { stateOf } = useRunStates();
+  const chatRunOf = (t: { id: number; status?: Run["status"]; attention?: boolean }) =>
+    panel.runs.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, attention: Boolean(t.attention) } as Run) : undefined);
   return (
     <div
       className={cx("panel-tabs", insertAt !== null && pane.tabs.length === 0 && "split-insert-bar")}
@@ -63,6 +69,9 @@ export function PaneTabBar({
         const t = panel.tabs.find((x) => x.key === key);
         if (!t) return null;
         const { Icon, iconClass, label } = tabLabel(t, panel.runs);
+        // チャットのタブの状態（未読・失敗のタブは名前も太字にする。サイドバーの行と同じ）
+        const chatRun = t.kind === "chat" ? chatRunOf(t) : undefined;
+        const chatState = chatRun && stateOf(chatRun);
         return (
           <PanelTab
             key={t.key}
@@ -75,9 +84,11 @@ export function PaneTabBar({
               insertAt === i && "split-insert-before",
               insertAt === pane.tabs.length && i === pane.tabs.length - 1 && "split-insert-after",
               drag.dragging === t.key && "split-dragging",
+              (chatState === "attention" || chatState === "failed") && "unread",
             )}
             extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
             onSelect={() => panel.showTab(t.key)}
+            lead={chatState && <StatusSlot state={chatState} />}
             // チャットのタブは、名前のダブルクリックでその場で名前を変える（見出しには名前を出さない）
             onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Run) : undefined}
             editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Run), t.title ?? "") : undefined}
