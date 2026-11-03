@@ -236,6 +236,13 @@
   margin-top: 6px;
 }
 
+/* 届かなかった報告は、次に送る指示に自動で添える（reportHandover.ts）という添え書き */
+.subagent-recovery-note {
+  align-self: center;
+  font-size: 12px;
+  color: var(--extra-muted);
+}
+
 /* ToDo のピルと一覧（TodoChip） */
 .chip-icon {
   color: var(--muted);

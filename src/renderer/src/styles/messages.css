@@ -59,6 +59,15 @@
   color: var(--extra-muted);
 }
 
+/* 届いていなかったサブエージェントの報告を添えて渡した印 */
+.message-handover {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  color: var(--muted);
+}
+
 /* 吹き出しの中の書き直しの欄 */
 .user-message.editing {
   width: 80%;

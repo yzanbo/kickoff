@@ -6,7 +6,7 @@ import { reportFailure } from "../../runActions";
 import { cx } from "../../cx";
 import { activityOf } from "./stall";
 import { isSubagentHalted } from "./subagentList";
-import { handOverReport, resumeRequest, retryRequest } from "./subagentRelay";
+import { HAND_OVER_NOW, resumeRequest, retryRequest } from "./subagentRelay";
 
 /**
  * サブエージェントの行・タブの見出しの操作。実行中なのに長く動きがないものは「止める」（Claude Code の stopTask。作業中だけ。
@@ -20,23 +20,23 @@ export function SubagentActions({ runId, entry, busy, className }: { runId: numb
     const stalled = busy && entry.agentId && activityOf(entry.lastActivityAt).level === "stalled";
     return stalled ? <StopStalled runId={runId} entry={entry} agentId={entry.agentId!} className={className} /> : null;
   }
-  // 報告を送ったのに親に届かなかった: 報告の本文をメインのエージェントに渡し直す
+  // 報告を送ったのに親に届かなかった: 次の指示に添えて渡すが、待たずにいま渡すこともできる（本文はコアが添える）
   if (entry.status === "completed" && entry.delivery === "lost" && entry.undeliveredReport) {
-    const report = entry.undeliveredReport;
     return (
       <span className={cx("subagent-recovery", className)}>
         <button
           type="button"
           className="btn"
-          title="このサブエージェントの報告を、メインのエージェントに渡し直します"
+          title="次の指示を待たずに、届いていなかった報告をメインのエージェントにいま渡します（渡さなくても、次に送る指示に自動で添えます）"
           onClick={(e) => {
             e.stopPropagation();
-            void api.tellRun(runId, handOverReport(entry, report), {}).catch(reportFailure("報告を渡せませんでした"));
+            void api.tellRun(runId, HAND_OVER_NOW, {}).catch(reportFailure("報告を渡せませんでした"));
           }}
         >
           <Inbox size={12} aria-hidden />
-          報告を親に渡す
+          いま親に渡す
         </button>
+        <span className="subagent-recovery-note">次に送る指示にも自動で添えます</span>
       </span>
     );
   }

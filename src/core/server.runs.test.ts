@@ -397,6 +397,31 @@ test("作業の終わり: 終わりの知らせがないまま止まったサブ
   assert.equal(store.listEvents(runId).filter((e) => e.type === "notice" && /作業の終わりとともに/.test(JSON.stringify(e.data))).length, 1);
 });
 
+test("届かなかったサブエージェントの報告: 次に送る指示に本文を添えて渡し、自分の発言に印を残す（渡したら次からは添えない）", async () => {
+  const { call, project, provider, store } = setup();
+  // 裏で動かしたサブエージェントが報告を送ったが、親が動かないまま作業が終わった
+  provider.emits = [
+    { type: "tool_use", id: "tu1", name: "Agent", input: { description: "調査" } },
+    { type: "tool_result", tool_use_id: "tu1", content: "Async agent launched successfully.\nagentId: a1", is_error: false },
+    { type: "subagent", task_id: "a1", tool_use_id: "tu1", description: "調査", status: "running" },
+    { type: "subagent", task_id: "a1", tool_use_id: "tu1", description: "", status: "completed", summary: "見つけたのは 3 件" },
+  ];
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => store.getRun(runId)?.status === "completed");
+  provider.emits = [];
+  await call("POST", `/api/runs/${runId}/messages`, { text: "次" });
+  await until(() => provider.prompts.length === 2);
+  assert.ok(provider.prompts[1].startsWith("次\n"));
+  assert.match(provider.prompts[1], /「調査」（ID: a1）の報告 ---\n見つけたのは 3 件/);
+  const user = store.listEvents(runId).filter((e) => e.type === "user").at(-1)!;
+  // 記録の自分の発言は、書いた文のまま（報告は印だけ）
+  assert.deepEqual(user.data, { text: "次", handover: ["tu1"] });
+  await until(() => store.listEvents(runId).filter((e) => e.type === "result").length === 2);
+  await call("POST", `/api/runs/${runId}/messages`, { text: "その次" });
+  await until(() => provider.prompts.length === 3);
+  assert.equal(provider.prompts[2], "その次");
+});
+
 test("通信の切断: 続けて何度も止まったら、再開するかを聞き（回答待ち）、再開するで数え直して送る", async () => {
   const { call, project, runner, provider, network, approvals } = setup();
   network.online = true;
