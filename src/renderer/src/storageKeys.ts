@@ -22,6 +22,9 @@ export const BOARD_COLUMNS_KEY = "kickoff:board-columns";
 export const SIDEBAR_PROJECT_ORDER_KEY = "kickoff:sidebar-project-order";
 /** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか（"1" なら出す） */
 export const SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:sidebar-show-archived-projects";
+/** プロジェクトのタグでの絞り込み（選んだタグの JSON の文字列配列。"" はタグのないプロジェクト。空・未保存なら絞り込まない）。
+ * サイドバー・全プロジェクトの画面・⌘⇧A・プロジェクトの切り替えで共通（useProjectTagFilter） */
+export const PROJECT_TAG_FILTER_KEY = "kickoff:project-tag-filter";
 /** プロジェクトごとの、チャット一覧を閉じているか（"1" なら閉じている。後ろにプロジェクトの ID） */
 export const SIDEBAR_PROJECT_COLLAPSED_PREFIX = "kickoff:collapsed:";
 /** プロジェクトごとに最後に見ていた画面（URL）。sessionStorage に JSON で */

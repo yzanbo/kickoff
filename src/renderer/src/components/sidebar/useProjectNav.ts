@@ -6,6 +6,7 @@ import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from 
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { archivedProjects, PROJECT_ORDERS, sidebarOrder, type ProjectOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
+import { useProjectTagFilter } from "../../projectTagFilter";
 import { navigate, routeProjectId, useRoute } from "../../router";
 import {
   SIDEBAR_LAYOUT_KEY,
@@ -41,10 +42,13 @@ export function useProjectNav(runs: Record<number, Run[]>) {
   // 最近動いた順: チャット（アーカイブしたものを除く）が最後に動いた時刻。チャットがなければ作った時刻
   const [projectOrder, setProjectOrder] = useStoredChoice<ProjectOrder>(SIDEBAR_PROJECT_ORDER_KEY, PROJECT_ORDERS, "manual");
   const lastActive = (p: ProjectSummary) => (runs[p.id] ?? []).find((r) => !r.archived_at)?.active_at ?? p.created_at;
-  const visible = sidebarOrder(projects, projectOrder === "recent" ? lastActive : undefined);
+  // タグでの絞り込み（見出しの「タグ」。合わないプロジェクトは、固定・しまったものも含めて出さない）
+  const tagFilter = useProjectTagFilter();
+  const sorted = sidebarOrder(projects, projectOrder === "recent" ? lastActive : undefined);
+  const visible = tagFilter.active ? sorted.filter(tagFilter.matches) : sorted;
   // 手動の並びのときだけ、ドラッグで並べ替えられる（しまったものは並べ替えない）
   const canReorder = projectOrder === "manual";
-  const archived = archivedProjects(projects);
+  const archived = archivedProjects(projects).filter(tagFilter.matches);
   // 自分待ちだけを出すときは、自分待ちのチャットがあるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   const [compact] = useCompactRows();
@@ -58,8 +62,9 @@ export function useProjectNav(runs: Record<number, Run[]>) {
   const base = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const ordered = allSearch.keyword ? base.filter(hasMatch) : base;
   const isArchived = (id: number) => archived.some((p) => p.id === id);
-  // ドラッグでの並べ替え（縦並びのカード・横スライドの丸で共通。しまったものは除く）
-  const reorder = useProjectReorder({ ids: visible.map((p) => p.id), canReorder, isArchived });
+  // ドラッグでの並べ替え（縦並びのカード・横スライドの丸で共通。しまったものは除く）。
+  // タグで絞り込んでいても、隠れたものを含む並び全体の中で動かす（隠れたものの位置を崩さない）
+  const reorder = useProjectReorder({ ids: sorted.map((p) => p.id), canReorder, isArchived });
   const [currentId, setCurrentId] = useState(loadCurrentProject);
   // 下の丸の右クリックメニュー（プロジェクトに対する操作）
   const projectMenu = useProjectMenu(projects);
@@ -166,6 +171,7 @@ export function useProjectNav(runs: Record<number, Run[]>) {
     swipe,
     waitingOnly,
     setWaitingOnly,
+    tagFilter,
     showArchived,
     setShowArchived,
     searchAll,

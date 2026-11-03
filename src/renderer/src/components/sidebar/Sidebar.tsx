@@ -3,6 +3,7 @@ import { cx } from "../../cx";
 import { useSharedFlag } from "../../hooks/useStoredState";
 import { sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
+import { useProjectTagFilter } from "../../projectTagFilter";
 import { useRunStates } from "../../approvalsContext";
 import { href, useRoute } from "../../router";
 import { ProjectNav } from "./ProjectNav";
@@ -27,9 +28,13 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   const { pending } = useRunStates();
   // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const { runs, groups } = useSidebarData(projects);
-  // 自分待ち（回答待ち・確認待ち）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）
+  // 自分待ち（回答待ち・確認待ち）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
   const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
-  const waitingCount = sidebarOrder(projects).reduce((n, p) => n + waitingRuns(runs[p.id] ?? [], pending).length, 0);
+  // タグで絞り込んでいれば、出しているプロジェクトの分だけを数える（押して出る一覧と合わせる）
+  const tagFilter = useProjectTagFilter();
+  const waitingCount = sidebarOrder(projects)
+    .filter(tagFilter.matches)
+    .reduce((n, p) => n + waitingRuns(runs[p.id] ?? [], pending).length, 0);
   // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
   const selection = useChatSelectionState(new Set(Object.values(runs).flatMap((list) => list.map((r) => r.id))));
   // ↑↓ でチャットを移る（サイドバーにピントがあるとき。Enter で開く。Shift を押しながらで選ぶものに足す）
