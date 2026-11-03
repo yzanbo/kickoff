@@ -1,23 +1,28 @@
 /* ==== プロジェクト一覧の上の見出しの行（1 行目はプロジェクト・2 行目はチャット。種類ごとのボタン） ==== */
 
 /* プロジェクト一覧の上の見出し: 1 行目はプロジェクト、2 行目はチャットの設定（種類ごとのボタン）。左に何に効くかの名前 */
+/*
+ * 2 行のボタンを縦にそろえる: 見出し全体を 5 列（行の名前＋ボタン 4 つ）の格子にし、各行は subgrid で同じ列に乗せる。
+ * 列の幅は、上下の行のボタンのうち長いほうに合わせ、余った幅は均等に配って横幅いっぱいにする
+ */
 .project-list-head {
   container: project-list-head / inline-size;
   display: grid;
   flex: none;
+  grid-template-columns: max-content repeat(4, minmax(max-content, 1fr));
   gap: 3px;
   padding: 4px var(--gutter) 2px;
 }
 
 .project-list-row {
-  display: flex;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 3px;
 }
 
 /* 行の名前（2 行のボタンの左端をそろえるため、幅を固定する） */
 .project-list-row-label {
-  flex: none;
   width: 62px;
   font-size: 10px;
   font-weight: 600;
@@ -29,9 +34,11 @@
   display: inline-flex;
   flex: none;
   align-items: center;
-  justify-content: center;
+  /* 列の幅に広げたボタンの中で、種類の名前と値を左にそろえる（上下の行で文字の始まりがそろう） */
+  justify-content: flex-start;
+  min-width: 0;
   height: 32px;
-  padding: 0 5px;
+  padding: 0 4px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font: inherit;
@@ -91,5 +98,12 @@
 
   .head-chip-text {
     display: none;
+  }
+}
+
+/* アイコンだけのときは、アイコンをボタンの真ん中に置く */
+@container project-list-head (max-width: 259px) {
+  .head-chip {
+    justify-content: center;
   }
 }
