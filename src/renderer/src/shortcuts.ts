@@ -6,18 +6,24 @@ interface Actions {
   openContentSearch: () => void;
   newChat: () => void;
   openSettings: () => void;
+  openActiveChats: () => void;
 }
 
 /**
  * アプリ全体のショートカット: ⌘B サイドバーの開閉 / ⌘K 検索・移動 / ⌘F チャットを名前で探す /
  * ⌘⇧F チャットの中の文言を全文検索 / ⌘N 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト） /
- * ⌘, 設定（Mac の環境設定と同じ）
+ * ⌘, 設定（Mac の環境設定と同じ）/ ⌘⇧A 作業中・回答待ち・確認待ちのチャットの一覧（Chrome の「タブを検索」と同じキー）
  */
 export function useAppShortcuts(actions: Actions) {
   useWindowEvent("keydown", (e) => {
     if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
-    // Shift つきは ⌘⇧F だけ受け付ける
-    if (e.shiftKey && e.key.toLowerCase() !== "f") return;
+    // Shift つきは ⌘⇧F と ⌘⇧A だけ受け付ける
+    if (e.shiftKey && !["f", "a"].includes(e.key.toLowerCase())) return;
+    if (e.shiftKey && e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      actions.openActiveChats();
+      return;
+    }
     if (e.key === "b") {
       e.preventDefault();
       actions.toggleSidebar();

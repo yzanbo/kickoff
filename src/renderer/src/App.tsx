@@ -4,6 +4,7 @@ import { OPEN_CONTENT_SEARCH_EVENT } from "./chatSearch";
 import { AppFooter } from "./components/footer/AppFooter";
 import { BottomPanel } from "./components/bottomPanel/BottomPanel";
 import { useBottomPanel } from "./components/bottomPanel/useBottomPanel";
+import { ActiveChatsPalette } from "./components/palette/ActiveChatsPalette";
 import { CommandPalette } from "./components/palette/CommandPalette";
 import { LayoutToggles } from "./components/LayoutToggles";
 import { ConnectionPopover } from "./components/footer/ConnectionPopover";
@@ -51,6 +52,8 @@ export function App() {
   const sidebar = useSidebar();
   const [creating, setCreating] = useState(false);
   const [palette, setPalette] = useState(false);
+  // ⌘⇧A: 作業中・回答待ち・確認待ちのチャットの一覧
+  const [activeChats, setActiveChats] = useState(false);
   const [searching, setSearching] = useState(false);
   // 下の帯の接続・使用状況の詳細（その場に出すだけで、画面は移らない）
   const [connOpen, setConnOpen] = useState(false);
@@ -75,6 +78,7 @@ export function App() {
     openContentSearch: () => setSearching(true),
     newChat: startNewChat,
     openSettings: () => setSettings("usage"),
+    openActiveChats: () => setActiveChats(true),
   });
   // ボードの検索欄の横のボタンから、チャットの中の文言の全文検索を開く
   useWindowEvent(OPEN_CONTENT_SEARCH_EVENT, () => setSearching(true));
@@ -148,6 +152,7 @@ export function App() {
         )}
         {usageOpen && <UsagePopover planUsage={planUsage} onClose={() => setUsageOpen(false)} />}
         {palette && <CommandPalette onClose={() => setPalette(false)} />}
+        {activeChats && <ActiveChatsPalette onClose={() => setActiveChats(false)} />}
         {searching && (
           <SearchPanel
             runId={route.name === "run" ? route.runId : undefined}
