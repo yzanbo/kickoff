@@ -53,3 +53,168 @@
   height: 22px;
   color: var(--extra-muted);
 }
+
+/* 吹き出しの中の書き直しの欄 */
+.user-message.editing {
+  width: 80%;
+}
+
+.user-message.editing .bubble.user {
+  width: 100%;
+}
+
+.bubble-editor textarea {
+  width: 100%;
+  padding: 0;
+  border: none;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: transparent;
+  resize: vertical;
+  outline: none;
+}
+
+.bubble-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* 上に貼り付けておく自分の発言（読んでいる返答の元の発言。押すとその発言へ） */
+.sticky-prompt {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 2;
+  display: -webkit-box;
+  width: min(796px, calc(100% - 2 * var(--gutter)));
+  padding: 6px 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  color: var(--muted);
+  background: var(--bg-elev);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+  cursor: pointer;
+  transform: translateX(-50%);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sticky-prompt:hover {
+  color: var(--text);
+}
+
+/* チャットの中の検索（見出しのすぐ下の 1 行。開いている間は行を 1 つ足す） */
+.run-page.finding {
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.chat-find {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px var(--gutter);
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-find input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  background: transparent;
+  outline: none;
+}
+
+.chat-find-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+::highlight(chat-find) {
+  background-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+::highlight(chat-find-current) {
+  color: #000;
+  background-color: var(--warn);
+}
+
+/* 発言の目次（見出しのボタンから開く） */
+.chat-outline {
+  position: relative;
+}
+
+.chat-outline-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  width: min(380px, 80vw);
+  max-height: min(460px, 70vh);
+  padding: 10px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  -webkit-app-region: no-drag;
+}
+
+.chat-outline-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-outline-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-outline-row:hover {
+  background: var(--bg-hover);
+}
+
+.chat-outline-index {
+  flex: none;
+  min-width: 16px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.chat-outline-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-outline-row time {
+  flex: none;
+  font-size: 11px;
+}

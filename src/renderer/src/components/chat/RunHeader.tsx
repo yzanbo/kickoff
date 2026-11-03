@@ -1,4 +1,5 @@
 import { Archive, ArchiveRestore, ExternalLink, Pencil } from "lucide-react";
+import type { ReactNode } from "react";
 import type { Project, Run } from "../../../../core/types";
 import { CHAT_TITLE_MAX, chatTitle } from "../../chatTitle";
 import { useRunRename } from "../../hooks/useRunRename";
@@ -18,11 +19,14 @@ export function RunHeader({
   run,
   project,
   waiting,
+  tools,
   onClose,
 }: {
   run: Run;
   project?: Project;
   waiting: boolean;
+  /** 右の道具の列の先頭に置くもの（チャットの中の検索・発言の目次） */
+  tools?: ReactNode;
   onClose: () => void;
 }) {
   const rename = useRunRename();
@@ -59,6 +63,7 @@ export function RunHeader({
         <span className="spacer" />
         {/* 作業場所の道具（右に寄せ、名前・バッジと分ける。アプリの中のターミナルはパネルのタブの列のボタンから） */}
         <span className="run-tools">
+        {tools}
         {/* 外部のターミナル（アプリの外。設定で選んだアプリ）で、作業場所を開く */}
         {window.kickoff && project && (
           <IconButton

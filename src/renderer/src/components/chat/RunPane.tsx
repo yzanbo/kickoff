@@ -17,7 +17,13 @@ import { OpenSubagentContext } from "./Timeline";
 import { userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
-import { ListPlus, Zap } from "lucide-react";
+import { ListPlus, Search, Zap } from "lucide-react";
+import { cx } from "../../cx";
+import { IconButton } from "../IconButton";
+import { ChatFind } from "./ChatFind";
+import { ChatOutline } from "./ChatOutline";
+import { jumpToEvent } from "./jumpToEvent";
+import { RewindContext } from "./MessageItems";
 import { useStoredChoice } from "../../hooks/useStoredState";
 import { QUEUE_MODE_KEY } from "../../storageKeys";
 import { Segmented, type SegmentOption } from "../Segmented";
@@ -113,11 +119,42 @@ function RunView({
   useEffect(() => {
     if (!busy) setStopping(false);
   }, [busy]);
+  // チャットの中の検索を開いているか・発言へ移る（目次から）
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [finding, setFinding] = useState(false);
+  const jump = (eventId: number) => {
+    stickToBottom.current = false;
+    if (panelRef.current) jumpToEvent(panelRef.current, eventId);
+  };
+  // 自分の発言を書き直して送り直す（その発言から後ろを消して巻き戻す。作業中はできない）
+  const rewind = useMemo(
+    () => ({
+      busy,
+      send: async (eventId: number, text: string) => {
+        stickToBottom.current = true;
+        await api.rewindRun(run.id, eventId, text, options.options);
+      },
+    }),
+    [busy, run.id, options.options],
+  );
 
   return (
     <OpenSubagentContext.Provider value={setSubOpen}>
-    <div className="run-page run-panel">
-      <RunHeader run={run} project={project} waiting={waiting} onClose={onClose} />
+    <RewindContext.Provider value={rewind}>
+    <div ref={panelRef} className={cx("run-page run-panel", finding && "finding")}>
+      <RunHeader
+        run={run}
+        project={project}
+        waiting={waiting}
+        tools={
+          <>
+            <IconButton icon={Search} size={13} label="このチャットの中を検索" aria-expanded={finding} onClick={() => setFinding(!finding)} />
+            <ChatOutline events={events} onJump={jump} />
+          </>
+        }
+        onClose={onClose}
+      />
+      {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
       <RunTimeline items={items} rel={rel} run={run} busy={busy} waiting={waiting} stopping={stopping} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
       <div className="run-composer">
         <QueuedMessages runId={run.id} queue={queue} busy={busy} />
@@ -170,6 +207,7 @@ function RunView({
       </div>
       {openedSub && <SubagentDetail entry={openedSub} events={events} rel={rel} busy={busy} onClose={() => setSubOpen(undefined)} />}
     </div>
+    </RewindContext.Provider>
     </OpenSubagentContext.Provider>
   );
 }
