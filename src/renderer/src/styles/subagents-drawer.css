@@ -73,6 +73,11 @@
   margin-left: auto;
 }
 
+/* タブの見出しは狭いので、添え書きはボタンの title に任せる */
+.subagent-detail-head .subagent-recovery-note {
+  display: none;
+}
+
 .subagent-detail-name {
   overflow: hidden;
   font-weight: 600;

@@ -105,6 +105,11 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
     entry.pendingTool = e.type === "tool_use" ? d.name : undefined;
   };
   for (const e of events) {
+    // 届かなかった報告を、利用者の次の指示に添えて渡した（reportHandover.ts）: 受け取ったとみなす
+    for (const key of e.type === "user" ? ((e.data as { handover?: string[] }).handover ?? []) : []) {
+      awaitingParent.delete(key);
+      delivery.set(key, "received");
+    }
     if (e.type === "text" || e.type === "thinking" || e.type === "tool_result") touch(e);
     // 報告を送ったあとに親が動いた: 親は報告を受け取っている（Claude Code は報告を親の次の手順の入力として渡す）
     if (awaitingParent.size > 0 && isParentActivity(e)) settleAwaiting("received");

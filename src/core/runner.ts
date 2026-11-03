@@ -4,6 +4,7 @@ import type { RunControl } from "./providers/types.js";
 import { executeRun, type ExecutionDeps, type QueueItem, type RunOutcome } from "./runExecution.js";
 import { RunReconnect } from "./runReconnect.js";
 import { resolveRunDefaults } from "./runDefaults.js";
+import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
 import { autoTitle, firstLine, promptWithAttachments } from "./runInput.js";
 import type { Attachment, BackgroundState, QueuedMessage, ReconnectState, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
@@ -116,7 +117,8 @@ export class Runner {
     if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから送ってください");
     // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）
     this.reconnect.forget(runId);
-    store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}) });
+    const { prompt, handover } = await this.prepare(runId, text, attachments);
+    store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
     store.updateRun(run.id, {
       status: "queued",
@@ -127,8 +129,18 @@ export class Runner {
       permission_mode: options.permission_mode ?? undefined,
       fast_mode: options.fast_mode ?? undefined,
     });
-    this.enqueue({ runId: run.id, prompt: await promptWithAttachments(this.deps, text, attachments) });
+    this.enqueue({ runId: run.id, prompt });
     return store.getRun(run.id)!;
+  }
+
+  /**
+   * 続きの指示の下ごしらえ: 添付のパスと、親に届かなかったサブエージェントの報告を添える（前の作業が報告を受け取る前に
+   * 終わっていたとき。送るまで残っている報告を、次の自然な機会に渡す）。handover は自分の発言の記録に足す
+   */
+  private async prepare(runId: number, text: string, attachments: Attachment[]) {
+    const lost = undeliveredReports(this.deps.store.listEvents(runId));
+    const prompt = withUndeliveredReports(await promptWithAttachments(this.deps, text, attachments), lost);
+    return { prompt, handover: lost.length ? { handover: lost.map((s) => s.key) } : {} };
   }
 
   /** 作業中のチャットの次の指示の待ちの列 */
@@ -177,10 +189,11 @@ export class Runner {
       return "sent";
     }
     const control = this.controls.get(runId);
-    if (control?.tell(await promptWithAttachments(this.deps, text, attachments))) {
+    const { prompt, handover } = await this.prepare(runId, text, attachments);
+    if (control?.tell(prompt)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
       this.reconnect.forget(runId);
-      store.addEvent(runId, { type: "user", text, ...(attachments.length ? { attachments } : {}) });
+      store.addEvent(runId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover });
       if (run.attention) store.setRunAttention(runId, false);
       return "told";
     }

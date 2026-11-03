@@ -1,4 +1,4 @@
-import { Pencil } from "lucide-react";
+import { Inbox, Pencil } from "lucide-react";
 import { createContext, useContext, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import type { Attachment, RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
@@ -28,8 +28,10 @@ const COLLAPSE_PX = 240;
  * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）
  */
 export function UserMessage({ event }: { event: RunEvent }) {
-  const data = event.data as { text?: string; attachments?: Attachment[] };
+  const data = event.data as { text?: string; attachments?: Attachment[]; handover?: string[] };
   const text = String(data.text ?? "");
+  // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
+  const handover = data.handover?.length ?? 0;
   const attachments = data.attachments ?? [];
   const bodyRef = useRef<HTMLDivElement>(null);
   // 折りたたむほど長いか（描いてから測る）と、開いているか
@@ -85,6 +87,12 @@ export function UserMessage({ event }: { event: RunEvent }) {
         <time dateTime={event.created_at} title={formatFullDateTime(event.created_at)}>
           {formatMessageTime(event.created_at)}
         </time>
+        {handover > 0 && (
+          <span className="message-handover" title="前の作業が受け取る前に終わっていたサブエージェントの報告を、この指示に添えて渡しました">
+            <Inbox size={12} aria-hidden />
+            サブエージェントの報告 {handover} 件を添えました
+          </span>
+        )}
         {text && <CopyButton text={text} label="メッセージをコピー" className="message-action" />}
         {rewind && (
           <IconButton

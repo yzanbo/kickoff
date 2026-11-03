@@ -182,7 +182,8 @@ export interface ReconnectState {
 }
 
 export type RunEventData =
-  | { type: "user"; text: string; attachments?: Attachment[] }
+  /** handover: この発言に添えて渡した、届いていなかったサブエージェントの報告（一覧の行のキー） */
+  | { type: "user"; text: string; attachments?: Attachment[]; handover?: string[] }
   /** effort: 実際に使った推論の深さ（Claude Code が知らせたときだけ。null は深さを送らないモデル） */
   | { type: "init"; model?: string; session_id: string; permission_mode?: string; effort?: string | null }
   /** sub: サブエージェントの発言。parent: そのサブエージェントを起動した Task / Agent ツールの呼び出し ID */

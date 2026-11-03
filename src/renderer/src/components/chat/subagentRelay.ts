@@ -56,16 +56,6 @@ export function retryRequest(entry: { description: string; subagentType?: string
 }
 
 /**
- * 親に届かなかった報告を、メインのエージェントに渡し直す文（サブエージェントは報告を送ったが、親が受け取る前に作業が終わったとき）。
- * 報告の本文を添える（長すぎれば頭だけにし、残りはサブエージェントに聞き直すよう頼む）
+ * 親に届かなかった報告を、次の指示を待たずにいま渡す（報告の本文はコアが送るときに添える。reportHandover.ts）
  */
-export function handOverReport(entry: { description: string; agentId?: string }, report: string): string {
-  const id = entry.agentId ? `（ID: ${entry.agentId}）` : "";
-  const body = report.length > MAX_PROMPT_IN_RETRY ? `${report.slice(0, MAX_PROMPT_IN_RETRY)}\n…（長いので途中まで。続きはサブエージェントに SendMessage で聞いてください）` : report;
-  return [
-    `【サブエージェントの報告】「${entry.description}」${id}`,
-    "このサブエージェントの報告が、作業の終わりに間に合わず、あなたに届いていませんでした。下の報告を読んで、作業を続けてください。",
-    "---",
-    body,
-  ].join("\n");
-}
+export const HAND_OVER_NOW = "届いていなかったサブエージェントの報告を渡します。読んで、必要なら作業を続けてください。";
