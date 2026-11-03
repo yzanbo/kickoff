@@ -1,28 +1,7 @@
 /* ==== 状態アイコン ==== */
 
-.status-icon {
-  flex: none;
-}
-
-.status-icon.waiting {
-  color: var(--accent);
-}
-
-.status-icon.failed {
-  color: var(--ng);
-}
-
-.status-icon.done {
-  color: var(--ok);
-}
-
-.status-icon.spin,
 .spinner {
   animation: spin 0.9s linear infinite;
-}
-
-.status-icon.spin {
-  color: var(--info);
 }
 
 @keyframes spin {
