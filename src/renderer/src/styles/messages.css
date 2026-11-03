@@ -95,38 +95,61 @@
   left: 0;
   z-index: 2;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: flex-start;
+  gap: 4px;
   /* 中身は発言の流れ（.timeline-inner）と同じ幅にそろえる */
-  padding: 8px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
-  border: none;
+  padding: 6px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
   border-bottom: 1px solid var(--border);
-  font: inherit;
-  text-align: left;
-  color: var(--text);
   background: var(--bg-elev);
   box-shadow: 0 6px 12px -8px rgb(0 0 0 / 45%);
-  cursor: pointer;
 }
 
 .sticky-prompt:hover {
   background: var(--bg-hover);
 }
 
+/* 見出しと指示の文（押すとその発言へ）。たたんでいる間は 1 行に並べて省く */
+.sticky-prompt-jump {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 0;
+  border: none;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  cursor: pointer;
+}
+
 .sticky-prompt-label {
+  flex: none;
   font-size: 11px;
   font-weight: 600;
   color: var(--muted);
 }
 
 .sticky-prompt-text {
-  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* 全文: 改行を生かして折り返し、長ければ中でスクロールする */
+.sticky-prompt.expanded .sticky-prompt-text {
+  max-height: 40vh;
+  overflow-y: auto;
   white-space: pre-wrap;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+}
+
+.sticky-prompt-toggle {
+  flex: none;
 }
 
 /* チャットの中の検索（見出しのすぐ下の 1 行。開いている間は行を 1 つ足す） */

@@ -8,6 +8,7 @@ import type { Approval, Run } from "../../../../core/types";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { jumpToEvent } from "./jumpToEvent";
+import { StickyPrompt } from "./StickyPrompt";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 
@@ -194,18 +195,13 @@ export function RunTimeline({
         </div>
       </div>
       {pinned && (
-        <button
-          type="button"
-          className="sticky-prompt"
-          title="この発言へ移る"
-          onClick={() => {
+        <StickyPrompt
+          text={pinned.text}
+          onJump={() => {
             stickToBottom.current = false;
             if (timelineRef.current) jumpToEvent(timelineRef.current, pinned.id);
           }}
-        >
-          <span className="sticky-prompt-label">あなたの指示</span>
-          <span className="sticky-prompt-text">{pinned.text}</span>
-        </button>
+        />
       )}
       {/* 一番下へ戻るボタン: いまの状態を添えて出す（答えを待っている・返答が届いたときは目立たせて誘う） */}
       {away && (
