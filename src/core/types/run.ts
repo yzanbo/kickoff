@@ -97,7 +97,6 @@ export interface RunGroup {
   /** 並び順（小さいほど上・左） */
   position: number;
   created_at: string;
-  updated_at: string;
 }
 
 /** チャットのやり取りの検索結果（1 件 = 1 つの発言） */

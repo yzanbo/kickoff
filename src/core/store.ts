@@ -1,6 +1,5 @@
-import { DatabaseSync } from "node:sqlite";
-import { backupBeforeMigration } from "./dbBackup.js";
-import { migrate, SCHEMA_VERSION, schemaVersion } from "./schema.js";
+import type { DatabaseSync } from "node:sqlite";
+import { openDatabase } from "./dbOpen.js";
 import type { Notify } from "./store/common.js";
 import { createGroupStore } from "./store/groups.js";
 import { createProjectStore, type ProjectPatch } from "./store/projects.js";
@@ -32,12 +31,7 @@ export class Store {
   private readonly groups;
 
   constructor(file: string, onChange: Notify = () => {}) {
-    this.db = new DatabaseSync(file);
-    this.db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
-    // いまあるデータの版を上げるときは、その前に写しておく（作ったばかり・メモリの DB は除く）
-    const from = schemaVersion(this.db);
-    if (file !== ":memory:" && from > 0 && from < SCHEMA_VERSION) backupBeforeMigration(this.db, file, from);
-    migrate(this.db);
+    this.db = openDatabase(file);
     this.settings = createSettingsStore(this.db, onChange);
     this.projects = createProjectStore(this.db, onChange);
     this.runs = createRunStore(this.db, onChange);

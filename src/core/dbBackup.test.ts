@@ -5,8 +5,9 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { backupBeforeMigration } from "./dbBackup.js";
-import { SCHEMA_VERSION } from "./schema.js";
+import { SCHEMA_VERSION, schemaVersion } from "./schema.js";
 import { Store } from "./store.js";
+import { createLegacyV17 } from "./testing/legacySchemaV17.js";
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-backup-"));
@@ -44,17 +45,26 @@ test("Store: 新しく作るデータベース・いまの版のデータベー�
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test("Store: 版を上げる前に写す（マイグレーションに失敗しても、写しは残る）", () => {
+test("Store: 古い系統の DB を変換する前に写す（変換に失敗しても、写しは残り、元のまま）", () => {
   const dir = tempDir();
   const file = path.join(dir, "kickoff.db");
-  new Store(file).close();
-  // 1 つ前の版に見せかける（最後のマイグレーションをもう一度当てることになり、すでにある列を足そうとして失敗する）
-  const db = new DatabaseSync(file);
-  db.exec(`PRAGMA user_version = ${SCHEMA_VERSION - 1}`);
-  db.close();
+  const legacy = new DatabaseSync(file);
+  createLegacyV17(legacy);
+  // 新しいスキーマの決まり（費用は 0 以上）に合わない行があると、変換は失敗する
+  legacy.exec("INSERT INTO projects (name, repo_path) VALUES ('p', '/tmp/p'); INSERT INTO runs (project_id, phase, provider, status, cost_usd) VALUES (1, 'testing', 'claude', 'completed', -1);");
+  legacy.close();
   assert.throws(() => new Store(file));
   const backups = fs.readdirSync(path.join(dir, "backups"));
   assert.equal(backups.length, 1);
-  assert.match(backups[0], new RegExp(`^kickoff-v${SCHEMA_VERSION - 1}-`));
+  assert.match(backups[0], /^kickoff-v17-/);
+  // 元の DB は v17 のまま（表も行もそのまま）
+  const db = new DatabaseSync(file);
+  assert.equal(schemaVersion(db), 17);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM runs").get()?.n, 1);
+  assert.deepEqual(
+    db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map((r) => r.name),
+    ["artifacts", "projects", "run_events", "run_groups", "runs", "settings", "tasks"],
+  );
+  db.close();
   fs.rmSync(dir, { recursive: true, force: true });
 });
