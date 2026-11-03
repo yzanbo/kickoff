@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { RunEvent } from "./types.js";
-import { cleanSubagentReport, collectSubagents, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents.js";
+import { cleanSubagentReport, collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents.js";
 
 const ev = (id: number, type: RunEvent["type"], data: object): RunEvent =>
   ({ id, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;
@@ -215,4 +215,54 @@ test("サブエージェント: 最後に動いた時刻と、結果を待って
   // ほかのサブエージェント・メインの動きでは進めない
   const [other] = collectSubagents([...events, at(5, "text", { text: "メインの返答" }, "2026-11-03T12:30:00Z")], {}, true);
   assert.equal(other.lastActivityAt, "2026-11-03T12:02:00Z");
+});
+
+test("サブエージェントの報告の受け渡し: 待つ形はツールの結果で受け取り、裏で動かしたものは報告のあとに親が動いたら受け取り", () => {
+  const launch = (n: number, key: string, agent: string) => [
+    ev(n, "tool_use", { id: key, name: "Agent", input: { description: key } }),
+    ev(n + 1, "tool_result", { tool_use_id: key, is_error: false, content: `Async agent launched successfully.\nagentId: ${agent}` }),
+    ev(n + 2, "subagent", { task_id: agent, tool_use_id: key, description: key, status: "running" }),
+  ];
+  // 待つ形: 結果が返れば受け取っている
+  const foreground = [
+    ev(1, "tool_use", { id: "fg", name: "Agent", input: { description: "fg" } }),
+    ev(2, "tool_result", { tool_use_id: "fg", is_error: false, content: "報告です" }),
+  ];
+  assert.equal(collectSubagents(foreground, {}, false)[0].delivery, "received");
+
+  // 裏で動かした: 完了の知らせのあと、親がまだ動いていなければ受け取り待ち
+  const sent = [...launch(1, "bg", "a1"), ev(4, "subagent", { task_id: "a1", tool_use_id: "bg", description: "", status: "completed", summary: "報告" })];
+  assert.equal(collectSubagents(sent, {}, true)[0].delivery, "pending");
+  // 親が動いた（返答を書いた）: 受け取った
+  const received = [...sent, ev(5, "text", { text: "報告を読みました" })];
+  assert.equal(collectSubagents(received, {}, false)[0].delivery, "received");
+  // サブエージェントの中の発言は、親の動きに数えない
+  assert.equal(collectSubagents([...sent, ev(5, "text", { text: "中", sub: true, parent: "bg" })], {}, true)[0].delivery, "pending");
+  // 親が動かないまま作業が終わった: 届いていない（親に渡し直す報告の本文も持つ）
+  const lost = [...sent, ev(5, "result", { status: "cancelled" })];
+  const [gone] = collectSubagents(lost, {}, false);
+  assert.deepEqual([gone.delivery, gone.undeliveredReport], ["lost", "報告"]);
+  // 報告を渡した（SubagentHandback）あとに親が動いても受け取った
+  const handback = [...launch(1, "hb", "a2"), ev(4, "tool_use", { id: "h", name: "SubagentHandback", parent: "hb", input: { message: "渡した報告" } }), ev(5, "tool_use", { id: "m", name: "Read", input: {} })];
+  assert.equal(collectSubagents(handback, {}, true, new Set()).find((s) => s.key === "hb")?.delivery, "received");
+  // 再開したら、前の回の受け渡しは数え直す
+  const resumed = [...received, ev(6, "tool_use", { id: "sm", name: "SendMessage", input: { to: "a1" } }), ev(7, "subagent", { task_id: "a1", tool_use_id: "sm", description: "", status: "running" })];
+  assert.equal(collectSubagents(resumed, {}, true)[0].delivery, undefined);
+});
+
+test("サブエージェント: 出力の上限（max_output_tokens）で止まった失敗を見分ける（通信の切断とは別）", () => {
+  const events = [
+    ev(1, "tool_use", { id: "tu", name: "Agent", input: { description: "長い報告" } }),
+    ev(2, "subagent", { task_id: "a", tool_use_id: "tu", description: "", status: "running" }),
+    ev(3, "subagent", {
+      task_id: "a",
+      tool_use_id: "tu",
+      description: "",
+      status: "failed",
+      summary: "Agent terminated early due to an API error: API Error: Claude's response exceeded the 8192 output token maximum. (error type max_output_tokens)",
+    }),
+  ];
+  const [s] = collectSubagents(events, {}, false);
+  assert.deepEqual([s.status, s.outputLimit, s.network], ["failed", true, false]);
+  assert.equal(isOutputLimitError("API Error: Connection dropped (ECONNRESET)"), false);
 });

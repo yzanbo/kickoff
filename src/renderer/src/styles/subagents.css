@@ -207,9 +207,16 @@
   color: var(--accent-bright);
 }
 
-/* 通信の切断で中断（作業の失敗ではないので、赤でなく注意の色） */
-.subagent-status.status-network {
+/* 通信の切断で中断・報告が親に届いていない（作業の失敗ではないので、赤でなく注意の色） */
+.subagent-status.status-network,
+.subagent-status.status-undelivered {
   color: var(--warn);
+}
+
+/* 報告を送り、親の受け取りを待っている */
+.subagent-status.status-awaiting,
+.chip-awaiting {
+  color: var(--info);
 }
 
 /* 止まったサブエージェントを戻すボタン（再開・やり直す。SubagentRecovery。一覧の行の下段・タブの見出しの右） */
@@ -266,33 +273,4 @@
 .todo-completed .todo-text {
   color: var(--muted);
   text-decoration: line-through;
-}
-
-/* 裏で動いている作業の一覧（作業中の行の下。BackgroundTasks）。1 件ずつ止めるボタン付き */
-.background-tasks {
-  display: grid;
-  gap: 2px;
-  margin: -4px 0 8px;
-  padding: 0 0 0 22px;
-  list-style: none;
-}
-
-.background-task {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.background-task-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* サブエージェントは名前を押すと中身をタブで開く */
-.link-button.background-task-name:hover {
-  text-decoration: underline;
 }

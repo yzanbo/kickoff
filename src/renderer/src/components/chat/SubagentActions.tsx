@@ -1,4 +1,4 @@
-import { Play, RotateCcw, Square } from "lucide-react";
+import { Inbox, Play, RotateCcw, Square } from "lucide-react";
 import type { SubagentEntry } from "../../../../core/subagents";
 import { api } from "../../api";
 import { confirmDialog } from "../../dialogs";
@@ -6,7 +6,7 @@ import { reportFailure } from "../../runActions";
 import { cx } from "../../cx";
 import { activityOf } from "./stall";
 import { isSubagentHalted } from "./subagentList";
-import { resumeRequest, retryRequest } from "./subagentRelay";
+import { handOverReport, resumeRequest, retryRequest } from "./subagentRelay";
 
 /**
  * サブエージェントの行・タブの見出しの操作。実行中なのに長く動きがないものは「止める」（Claude Code の stopTask。作業中だけ。
@@ -20,11 +20,31 @@ export function SubagentActions({ runId, entry, busy, className }: { runId: numb
     const stalled = busy && entry.agentId && activityOf(entry.lastActivityAt).level === "stalled";
     return stalled ? <StopStalled runId={runId} entry={entry} agentId={entry.agentId!} className={className} /> : null;
   }
+  // 報告を送ったのに親に届かなかった: 報告の本文をメインのエージェントに渡し直す
+  if (entry.status === "completed" && entry.delivery === "lost" && entry.undeliveredReport) {
+    const report = entry.undeliveredReport;
+    return (
+      <span className={cx("subagent-recovery", className)}>
+        <button
+          type="button"
+          className="btn"
+          title="このサブエージェントの報告を、メインのエージェントに渡し直します"
+          onClick={(e) => {
+            e.stopPropagation();
+            void api.tellRun(runId, handOverReport(entry, report), {}).catch(reportFailure("報告を渡せませんでした"));
+          }}
+        >
+          <Inbox size={12} aria-hidden />
+          報告を親に渡す
+        </button>
+      </span>
+    );
+  }
   if (!isSubagentHalted(entry)) return null;
   const send = (text: string, failure: string) => api.tellRun(runId, text, {}).catch(reportFailure(failure));
   const resume = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (entry.agentId) void send(resumeRequest(entry.agentId, entry.description), "再開を頼めませんでした");
+    if (entry.agentId) void send(resumeRequest(entry.agentId, entry.description, { outputLimit: entry.outputLimit }), "再開を頼めませんでした");
   };
   const retry = async (e: React.MouseEvent) => {
     e.stopPropagation();

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { relayedText, relayMessage, resumeRequest, retryRequest } from "./subagentRelay.js";
+import { handOverReport, relayedText, relayMessage, resumeRequest, retryRequest } from "./subagentRelay.js";
 
 test("サブエージェントへの追加の指示: 宛先の ID が合うときだけ、本文を取り出す", () => {
   const message = relayMessage("a1b2", "調べもの", "ついでに README も見て\n2 行目");
@@ -21,4 +21,12 @@ test("止まったサブエージェントの再開・やり直し: 宛先と依
   const long = retryRequest({ description: "調べもの", prompt: "あ".repeat(7000) });
   assert.doesNotMatch(long, /あああ/);
   assert.match(long, /前にこのサブエージェントを起動したときと同じもの/);
+});
+
+test("再開の頼み: 出力の上限で止まったものは、短く分けるよう添える。届かなかった報告は本文を添えて渡し直す", () => {
+  assert.doesNotMatch(resumeRequest("a1", "調べもの"), /書ける量の上限/);
+  assert.match(resumeRequest("a1", "調べもの", { outputLimit: true }), /報告は短くまとめる/);
+  const handed = handOverReport({ description: "調べもの", agentId: "a1" }, "見つけたのは 3 件");
+  assert.match(handed, /「調べもの」（ID: a1）/);
+  assert.ok(handed.endsWith("---\n見つけたのは 3 件"));
 });

@@ -30,10 +30,14 @@ export function relayedText(message: string, agentId: string): string | undefine
  * 止まったサブエージェントの再開を頼む文。メインのエージェントに、SendMessage で止まったところから続けさせる
  * （記録が見つからないなど再開できないときだけ、同じ依頼で立ち上げ直してもらう）
  */
-export function resumeRequest(agentId: string, name: string): string {
+export function resumeRequest(agentId: string, name: string, { outputLimit = false }: { outputLimit?: boolean } = {}): string {
   return [
     `【サブエージェントの再開】「${name}」（ID: ${agentId}）`,
     "このサブエージェントは途中で止まっています。SendMessage でこのサブエージェントに、止まったところから続けるよう伝えて再開させてください。再開できないとき（記録が見つからないなど）だけ、同じ依頼で立ち上げ直してください。あなた自身では作業せず、報告が届いたら要点を伝えてください。",
+    // 出力の上限で止まったものは、同じやり方では同じところで止まる
+    ...(outputLimit
+      ? ["1 回の返答で書ける量の上限で止まったので、「報告は短くまとめる」「大きなファイルは何回かに分けて書く」と添えて伝えてください。"]
+      : []),
   ].join("\n");
 }
 
@@ -49,4 +53,19 @@ export function retryRequest(entry: { description: string; subagentType?: string
   ];
   if (!entry.prompt || entry.prompt.length > MAX_PROMPT_IN_RETRY) return [...head, "依頼の文は、前にこのサブエージェントを起動したときと同じものを使ってください。"].join("\n");
   return [...head, "依頼の文は次のとおりです。", "---", entry.prompt].join("\n");
+}
+
+/**
+ * 親に届かなかった報告を、メインのエージェントに渡し直す文（サブエージェントは報告を送ったが、親が受け取る前に作業が終わったとき）。
+ * 報告の本文を添える（長すぎれば頭だけにし、残りはサブエージェントに聞き直すよう頼む）
+ */
+export function handOverReport(entry: { description: string; agentId?: string }, report: string): string {
+  const id = entry.agentId ? `（ID: ${entry.agentId}）` : "";
+  const body = report.length > MAX_PROMPT_IN_RETRY ? `${report.slice(0, MAX_PROMPT_IN_RETRY)}\n…（長いので途中まで。続きはサブエージェントに SendMessage で聞いてください）` : report;
+  return [
+    `【サブエージェントの報告】「${entry.description}」${id}`,
+    "このサブエージェントの報告が、作業の終わりに間に合わず、あなたに届いていませんでした。下の報告を読んで、作業を続けてください。",
+    "---",
+    body,
+  ].join("\n");
 }
