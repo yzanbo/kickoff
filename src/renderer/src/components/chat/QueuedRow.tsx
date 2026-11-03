@@ -18,13 +18,17 @@ export interface QueuedRowActions {
 
 /**
  * 送信待ちの 1 行: つまみ（ドラッグで並べ替え。2 件以上のとき）・番号・添付・文・操作のボタン。
- * 文は選んでコピーでき、ダブルクリックで書き直す。右クリックでも同じ操作（狭いときに隠す ↑↓ もここに残す）
+ * 文は選んでコピーでき、ダブルクリックで書き直す。右クリックでも同じ操作（狭いときに隠す ↑↓ もここに残す）。
+ * ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選び、選んでいる行の右クリックは選んだもの全体への操作になる
  */
 export function QueuedRow({
   message: m,
   index: i,
   count,
   busy,
+  selectedCount,
+  onSelect,
+  groupActions,
   className,
   actions,
   onDragStart,
@@ -36,6 +40,12 @@ export function QueuedRow({
   index: number;
   count: number;
   busy: boolean;
+  /** 選ばれていれば、選んでいる数（0 なら選ばれていない）。2 件以上なら、右クリックのメニューは選んだもの全体への操作にする */
+  selectedCount: number;
+  /** 行のクリック（⌘ / Ctrl で 1 件ずつ、Shift で範囲を選ぶ） */
+  onSelect: (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => void;
+  /** 選んだもの全体への操作（右クリックのメニュー） */
+  groupActions: { sendTogether: () => void; moveTo: (to: "top" | "bottom") => void; remove: () => void };
   className: string;
   actions: QueuedRowActions;
   onDragStart: () => void;
@@ -51,6 +61,16 @@ export function QueuedRow({
       className={className}
       onDragOver={onDragOver}
       onDrop={onDrop}
+      // Shift ＋クリックで範囲を選ぶときに、文の選択が伸びないようにする
+      onMouseDown={(e) => {
+        if (e.shiftKey && !(e.target as HTMLElement).closest("button")) e.preventDefault();
+      }}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("button")) return;
+        // 文をなぞって選んだあとのクリックは、選ぶ操作にしない
+        if (!e.shiftKey && !e.metaKey && !e.ctrlKey && window.getSelection()?.toString()) return;
+        onSelect(e);
+      }}
       onDoubleClick={(e) => {
         // ボタン・サムネイルのダブルクリックは除く
         if ((e.target as HTMLElement).closest("button")) return;
@@ -102,15 +122,29 @@ export function QueuedRow({
       {/* メニューは行の外に置く（行のダブルクリック・右クリックがメニューの中に効かないように） */}
       {menu && (
         <PopupMenu x={menu.x} y={menu.y} label="送信待ちの指示の操作" onClose={() => setMenu(undefined)}>
-          <MenuItem onSelect={actions.edit}>書き直す</MenuItem>
-          <MenuItem onSelect={actions.sendNow}>{sendLabel}</MenuItem>
-          {i > 0 && <MenuItem onSelect={() => actions.move(0)}>いちばん上へ</MenuItem>}
-          {i > 0 && <MenuItem onSelect={() => actions.move(i - 1)}>上へ</MenuItem>}
-          {i < count - 1 && <MenuItem onSelect={() => actions.move(i + 1)}>下へ</MenuItem>}
-          {i < count - 1 && <MenuItem onSelect={() => actions.move(count - 1)}>いちばん下へ</MenuItem>}
-          <MenuItem danger onSelect={actions.remove}>
-            待ちの列から消す
-          </MenuItem>
+          {selectedCount > 1 ? (
+            // 選んだもの全体への操作
+            <>
+              <MenuItem onSelect={groupActions.sendTogether}>選んだ {selectedCount} 件をまとめて送る</MenuItem>
+              <MenuItem onSelect={() => groupActions.moveTo("top")}>選んだ {selectedCount} 件をいちばん上へ</MenuItem>
+              <MenuItem onSelect={() => groupActions.moveTo("bottom")}>選んだ {selectedCount} 件をいちばん下へ</MenuItem>
+              <MenuItem danger onSelect={groupActions.remove}>
+                選んだ {selectedCount} 件を消す
+              </MenuItem>
+            </>
+          ) : (
+            <>
+              <MenuItem onSelect={actions.edit}>書き直す</MenuItem>
+              <MenuItem onSelect={actions.sendNow}>{sendLabel}</MenuItem>
+              {i > 0 && <MenuItem onSelect={() => actions.move(0)}>いちばん上へ</MenuItem>}
+              {i > 0 && <MenuItem onSelect={() => actions.move(i - 1)}>上へ</MenuItem>}
+              {i < count - 1 && <MenuItem onSelect={() => actions.move(i + 1)}>下へ</MenuItem>}
+              {i < count - 1 && <MenuItem onSelect={() => actions.move(count - 1)}>いちばん下へ</MenuItem>}
+              <MenuItem danger onSelect={actions.remove}>
+                待ちの列から消す
+              </MenuItem>
+            </>
+          )}
         </PopupMenu>
       )}
     </>
