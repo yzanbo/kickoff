@@ -231,7 +231,9 @@
   gap: 6px;
 }
 
-.subagent-recovery .btn {
+/* 小さな操作のボタン（サブエージェントの再開など・失敗した作業の直す操作 FailedTurnActions） */
+.subagent-recovery .btn,
+.turn-retry .btn {
   gap: 4px;
   padding: 2px 8px;
   font-size: 12px;
