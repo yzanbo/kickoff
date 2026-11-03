@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "../errors.js";
-import { addWorktree, finishWorktree, listWorktrees, removeWorktree, worktreePathFor } from "../git.js";
+import { addWorktree, finishWorktree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../git.js";
 import type { ServerDeps } from "../server.js";
 import { badRequest, HttpError, requireProject } from "./http.js";
 import { branchName, folderPath } from "./schemas.js";
@@ -29,11 +29,20 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
     }
   };
 
+  // 消す前の確かめ（コミットしていない変更・プッシュしていないコミット）
+  app.get("/api/projects/:id/git/worktrees/info", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const { path } = z.object({ path: folderPath }).parse({ path: c.req.query("path") });
+    return c.json(await badRequest(() => worktreeRemovalInfo(project.repo_path, path)));
+  });
+
   app.post("/api/projects/:id/git/worktrees/remove", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { path, force } = z.object({ path: folderPath, force: z.boolean().default(false) }).parse(await c.req.json());
+    const { path, force, deleteBranch } = z
+      .object({ path: folderPath, force: z.boolean().default(false), deleteBranch: z.boolean().default(false) })
+      .parse(await c.req.json());
     assertIdle(project.id, path, "消し");
-    const worktrees = await badRequest(() => removeWorktree(project.repo_path, path, force));
+    const worktrees = await badRequest(() => removeWorktree(project.repo_path, path, force, deleteBranch));
     // そこで作業していたチャットは、続きを本体で進める（片付けと同じ）
     store.clearRunWorktree(project.id, path);
     return c.json(worktrees);

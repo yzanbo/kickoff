@@ -145,6 +145,21 @@ export interface GitWorktree {
   prunable: boolean;
 }
 
+/** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット） */
+export interface WorktreeRemovalInfo {
+  branch: string | null;
+  /** コミットしていない変更のファイル数（フォルダがなくなっていれば 0） */
+  changes: number;
+  /** どのリモートにもないコミットの数（リモートがなければ 0） */
+  unpushed: number;
+  /** このブランチにしかない（ほかのブランチにもリモートにもない）コミットの数。ブランチも消すとなくなる */
+  onlyHere: number;
+  /** リモートの追跡先があるか（一度でもプッシュしたか） */
+  pushed: boolean;
+  /** リポジトリにリモートがあるか（なければプッシュの話はしない） */
+  hasRemote: boolean;
+}
+
 /** ブランチの PR（GitHub。gh で調べる） */
 export interface PullRequestInfo {
   number: number;

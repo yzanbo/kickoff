@@ -220,6 +220,20 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(fs.existsSync(worktree), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/a"], { cwd: repo }).toString().trim(), "");
 
+  // 消す前の確かめ: コミットしていない変更・このブランチにしかないコミット。ブランチも一緒に消せる
+  const wt = (await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/d" })).body.find((w: { branch: string }) => w.branch === "feat/d").path;
+  fs.writeFileSync(path.join(wt, "d.txt"), "d\n");
+  execFileSync("git", ["add", "d.txt"], { cwd: wt });
+  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-m", "d"], { cwd: wt });
+  fs.writeFileSync(path.join(wt, "e.txt"), "e\n");
+  const info = await call("GET", `/api/projects/${project.id}/git/worktrees/info?path=${encodeURIComponent(wt)}`);
+  assert.deepEqual(info.body, { branch: "feat/d", changes: 1, unpushed: 0, onlyHere: 1, pushed: false, hasRemote: false });
+  // 変更があると force なしでは消せない。force とブランチを消す指定で、フォルダもブランチも消える
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt })).status, 400);
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt, force: true, deleteBranch: true })).status, 200);
+  assert.equal(fs.existsSync(wt), false);
+  assert.equal(execFileSync("git", ["branch", "--list", "feat/d"], { cwd: repo }).toString().trim(), "");
+
   // エディタタブの履歴から消したときも、チャットは本体に戻る（ブランチの名前は残す）
   const other = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "別の作業", new_worktree_branch: "feat/b" })).body;
   await until(() => store.getRun(other.id)?.status === "completed");

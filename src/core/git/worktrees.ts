@@ -1,7 +1,7 @@
 // ワークツリー（同じリポジトリの別のブランチを、隣のフォルダに取り出す）
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { GitWorktree } from "../types.js";
+import type { GitWorktree, WorktreeRemovalInfo } from "../types.js";
 import { prepareWorktree } from "../worktreeSetup.js";
 import { gitOutput } from "./exec.js";
 
@@ -54,13 +54,40 @@ export async function addWorktree(repo: string, branch: string): Promise<GitWork
   return listWorktrees(repo);
 }
 
-/** ワークツリーを消す（本体は消せない。force: コミットしていない変更があっても消す）。なくなったものの記録も片付ける */
-export async function removeWorktree(repo: string, target: string, force: boolean): Promise<GitWorktree[]> {
+/** ワークツリーを消す前の確かめ（コミットしていない変更の数・どのリモートにもないコミットの数・プッシュしたことがあるか） */
+export async function worktreeRemovalInfo(repo: string, target: string): Promise<WorktreeRemovalInfo> {
+  const worktree = (await listWorktrees(repo)).find((w) => w.path === target);
+  if (!worktree) throw new Error("ワークツリーが見つかりません");
+  const ok = (p: Promise<string>) => p.then((out) => out, () => "");
+  const changes = worktree.prunable ? "" : await ok(gitOutput(target, ["status", "--porcelain"]));
+  const remotes = await ok(gitOutput(repo, ["remote"]));
+  const branch = worktree.branch;
+  const ref = `refs/heads/${branch}`;
+  const unpushed = branch && remotes.trim() ? await ok(gitOutput(repo, ["rev-list", "--count", ref, "--not", "--remotes"])) : "0";
+  // --branches と組む --exclude は refs/heads/ を付けない名前で書く
+  const onlyHere = branch ? await ok(gitOutput(repo, ["rev-list", "--count", ref, "--not", `--exclude=${branch}`, "--branches", "--remotes"])) : "0";
+  const upstream = branch ? await ok(gitOutput(repo, ["rev-parse", "--abbrev-ref", `${branch}@{upstream}`])) : "";
+  return {
+    branch,
+    changes: changes.split("\n").filter(Boolean).length,
+    unpushed: Number(unpushed.trim()) || 0,
+    onlyHere: Number(onlyHere.trim()) || 0,
+    pushed: Boolean(upstream.trim()),
+    hasRemote: Boolean(remotes.trim()),
+  };
+}
+
+/**
+ * ワークツリーを消す（本体は消せない。force: コミットしていない変更があっても消す）。なくなったものの記録も片付ける。
+ * deleteBranch なら、取り出していたブランチも消す（プッシュしていないコミットがあっても消すので、画面で確かめてから呼ぶ）
+ */
+export async function removeWorktree(repo: string, target: string, force: boolean, deleteBranch = false): Promise<GitWorktree[]> {
   const worktree = (await listWorktrees(repo)).find((w) => w.path === target);
   if (!worktree) throw new Error("ワークツリーが見つかりません");
   if (worktree.main) throw new Error("本体のフォルダは消せません");
   if (worktree.prunable) await gitOutput(repo, ["worktree", "prune"]);
   else await gitOutput(repo, ["worktree", "remove", ...(force ? ["--force"] : []), target]);
+  if (deleteBranch && worktree.branch) await gitOutput(repo, ["branch", "-D", worktree.branch]);
   return listWorktrees(repo);
 }
 
