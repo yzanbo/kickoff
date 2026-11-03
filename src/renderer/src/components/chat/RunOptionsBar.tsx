@@ -1,6 +1,5 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { isPermissionChoice } from "../../../../core/legacyValues";
 import { resolveRunDefaults } from "../../../../core/runDefaults";
 import { EFFORT_LABELS, PERMISSION_LABELS, type EffortLevel, type ModelOption, type PermissionChoice, type RunOptions } from "../../../../core/types";
 import { api } from "../../api";
@@ -21,8 +20,7 @@ export function useRunOptions(initial: RunOptions | undefined, projectId?: numbe
   const [models, setModels] = useState<ModelOption[]>([]);
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
-  // 知らない値（以前の「セクション既定」など）は「毎回確認」として読む
-  const [permission, setPermission] = useState<PermissionChoice>(isPermissionChoice(initial?.permission_mode) ? initial?.permission_mode : "default");
+  const [permission, setPermission] = useState<PermissionChoice>(initial?.permission_mode ?? "default");
   const [fastMode, setFastMode] = useState<boolean>(Boolean(initial?.fast_mode));
 
   useEffect(() => {

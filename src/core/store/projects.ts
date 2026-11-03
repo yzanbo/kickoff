@@ -1,5 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-import { legacyProjectDefaults } from "../legacyValues.js";
 import { pickProjectHue } from "../projectColors.js";
 import type { NewProject, Project, ProjectSummary } from "../types.js";
 import { parseJson, updateRow, type Notify, type Row } from "./common.js";
@@ -36,7 +35,7 @@ function toProject(row: unknown): Project {
   return {
     ...r,
     updated_at: active_at,
-    defaults: legacyProjectDefaults(parseJson(defaults)),
+    defaults: parseJson(defaults),
     references: Array.isArray(references) ? references : [],
   };
 }
@@ -49,17 +48,6 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
   };
   return {
     get,
-    /** 色のないプロジェクト（色を覚える前に作ったもの）に、作った順に、ほかと被らない色を割り振る（起動時） */
-    assignMissingHues() {
-      const rows = db.prepare("SELECT id, hue FROM projects ORDER BY id").all() as { id: number; hue: number | null }[];
-      const used = rows.flatMap((r) => (r.hue === null ? [] : [r.hue]));
-      for (const row of rows) {
-        if (row.hue !== null) continue;
-        const hue = pickProjectHue(used);
-        used.push(hue);
-        db.prepare("UPDATE projects SET hue = ? WHERE id = ?").run(hue, row.id);
-      }
-    },
     /** 一覧（更新順）。費用・動いているチャットの数を添える */
     list(): ProjectSummary[] {
       const projects = db.prepare("SELECT * FROM projects ORDER BY active_at DESC").all().map(toProject);
@@ -92,7 +80,7 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
           input.repo_path,
           input.provider,
           // ほかのプロジェクト（しまったものも含む）と被らない色
-          pickProjectHue((db.prepare("SELECT hue FROM projects WHERE hue IS NOT NULL").all() as { hue: number }[]).map((r) => r.hue)),
+          pickProjectHue((db.prepare("SELECT hue FROM projects").all() as { hue: number }[]).map((r) => r.hue)),
         );
       const project = get(Number(lastInsertRowid))!;
       onChange({ type: "project", project });

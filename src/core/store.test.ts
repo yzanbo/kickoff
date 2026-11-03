@@ -117,9 +117,6 @@ test("プロジェクトの既定は JSON で保存され、壊れていなけ�
   assert.deepEqual(project.defaults, {});
   const updated = store.updateProject(project.id, { defaults: { model: "haiku", effort: null } });
   assert.deepEqual(updated.defaults, { model: "haiku", effort: null });
-  // 以前保存したカンバンの列（stage）・新しいチャットのセクション（section）・「セクションに合わせる」の権限モードは読まない
-  const legacy = store.updateProject(project.id, { defaults: { model: "haiku", stage: "todo", section: "testing", permission: "phase" } as never });
-  assert.deepEqual(legacy.defaults, { model: "haiku" });
 });
 
 test("プロジェクトの並び順: 作った順に付き、並べ替えられる", () => {
