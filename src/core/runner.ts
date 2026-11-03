@@ -58,9 +58,9 @@ export class Runner extends RunnerQueue {
   ) {
     super();
     this.followups = new FollowupQueue(
-      (runId, queue, paused, stopAfter) => {
+      (runId, queue, paused, stops) => {
         const run = deps.store.getRun(runId);
-        if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused, stop_after: stopAfter });
+        if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused, stops });
       },
       // 再起動しても残す（読み戻した列は止めておく）
       deps.store,

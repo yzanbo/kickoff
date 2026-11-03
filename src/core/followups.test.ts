@@ -29,36 +29,46 @@ test("送信待ち: 変わるたびに保存し、作り直す（再起動する
   assert.deepEqual(restarted.list(run.id)[1], first);
   // 前回の作業は中断しているので、勝手に送らず止めておく
   assert.equal(restarted.isPaused(run.id), true);
-  assert.deepEqual(restarted.stopAfterOf(run.id), [first.id]);
+  // 「1 つ目」（2 件目）のあとの印は、位置で残る
+  assert.deepEqual(restarted.stopsOf(run.id), [2]);
   // 止めたことも保存する（もう一度再起動しても止めたまま）
   assert.equal(store.listQueues()[0].paused, true);
 });
 
-test("送信待ち: 「ここまで」の印はいくつでも付けられ、送った印から外れる。まとめると 1 件に移り、保存して読み戻せる", () => {
+test("送信待ち: 印は指示とは別の位置で持ち、並べ替えでは動かない。先頭の上の印で止まり、自動に戻すとその印を越える", () => {
   const { store, run } = setup();
   const queue = new FollowupQueue(() => {}, store);
-  const [a, b, c, d] = ["a", "b", "c", "d"].map((t) => queue.add(run.id, t, {}, []));
-  queue.setStopAfter(run.id, d.id);
-  queue.setStopAfter(run.id, b.id);
-  // 列の順で返す
-  assert.deepEqual(queue.stopAfterOf(run.id), [b.id, d.id]);
-  // 2 つ以上は JSON の配列で保存し、読み戻せる
-  assert.deepEqual(new FollowupQueue(() => {}, store).stopAfterOf(run.id), [b.id, d.id]);
+  const [a, b, c] = ["a", "b", "c"].map((t) => queue.add(run.id, t, {}, []));
+  // 1 件目の上と 2 件目のあと
+  queue.setStops(run.id, [2, 0, 2]);
+  assert.deepEqual(queue.stopsOf(run.id), [0, 2]);
+  assert.deepEqual(new FollowupQueue(() => {}, store).stopsOf(run.id), [0, 2]);
+  // 並べ替えでは動かない
+  queue.move(run.id, c.id, 0);
+  assert.deepEqual(queue.stopsOf(run.id), [0, 2]);
 
-  // 印のない指示を送っても止めない。印の指示を送ったら止め、その印だけ外れる
-  queue.take(run.id, a.id);
-  assert.equal(queue.isPaused(run.id), false);
-  queue.take(run.id, b.id);
+  // 先頭の上に印があるので、自動では送らずに止めておく（印は残る）
+  assert.equal(queue.takeNext(run.id), undefined);
   assert.equal(queue.isPaused(run.id), true);
-  assert.deepEqual(queue.stopAfterOf(run.id), [d.id]);
+  assert.deepEqual(queue.stopsOf(run.id), [0, 2]);
+  // 自動に戻すと先頭の上の印を越え、次の印まで送る
+  queue.setPaused(run.id, false);
+  assert.deepEqual(queue.stopsOf(run.id), [2]);
+  assert.equal(queue.takeNext(run.id)?.id, c.id);
+  assert.equal(queue.takeNext(run.id)?.id, a.id);
+  assert.deepEqual(queue.stopsOf(run.id), [0]);
+  assert.equal(queue.takeNext(run.id), undefined);
+  assert.equal(queue.isPaused(run.id), true);
 
-  // まとめると、まとめた 1 件に印が移る
-  const merged = queue.merge(run.id, { ids: [c.id, d.id] });
-  assert.deepEqual(queue.stopAfterOf(run.id), [merged?.id]);
-  // 外す
-  queue.setStopAfter(run.id, merged!.id, false);
-  assert.deepEqual(queue.stopAfterOf(run.id), []);
+  // 右クリックの「ここまで自動で送る」: その指示のすぐあと
+  queue.setStopAfter(run.id, b.id);
+  assert.deepEqual(queue.stopsOf(run.id), [0, 1]);
+  queue.setStopAfter(run.id, b.id, false);
+  assert.deepEqual(queue.stopsOf(run.id), [0]);
   assert.equal(queue.setStopAfter(run.id, "nope"), false);
+  // すべて消したら印も外れる
+  queue.clear(run.id);
+  assert.deepEqual(queue.stopsOf(run.id), []);
 });
 
 test("送信待ち: 空になった・チャットを消したら保存からも消える", () => {

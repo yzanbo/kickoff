@@ -1,11 +1,12 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, X } from "lucide-react";
-import { Fragment, useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
-import { IconButton } from "../IconButton";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { Fragment, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
 import { QueuedHeadActions, QueuedModeButton, QueuedMoveActions } from "./QueuedHeadActions";
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
+import { QueuedStopLine } from "./QueuedStopLine";
+import { useQueueDrag } from "./useQueueDrag";
 import { useAskInNewChat } from "./askInNewChat";
 import type { NewChatTarget } from "../sidePanel/useSidePanel";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
@@ -34,7 +35,7 @@ export function QueuedMessages({
   runId,
   queue,
   paused,
-  stopAfter,
+  stops,
   busy,
   newChatTarget,
 }: {
@@ -44,8 +45,8 @@ export function QueuedMessages({
   queue: QueuedMessage[];
   paused: boolean;
   /** 「ここまで自動で送る」の印を付けた指示（その指示を送ったら止めておく） */
-  /** 「ここまで自動で送る」の印を付けた指示（いくつでも） */
-  stopAfter: string[];
+  /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも） */
+  stops: number[];
   busy: boolean;
 }) {
   const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
@@ -114,32 +115,11 @@ export function QueuedMessages({
   );
   // 書き直している指示（id と書いている途中の文）
   const [editing, setEditing] = useState<{ id: string; text: string; attachments: Attachment[] }>();
-  // ドラッグで並べ替えている指示（from: 元の位置）と、入れる位置（at: 0〜件数。その位置の行の前に入れる）。
-  // ids: 選んだ行をつかんだときは、選んだものをまとめて動かす
-  const [drag, setDrag] = useState<{ id: string; from: number; at?: number; ids?: string[] }>();
-  /** ドラッグ中の行の上: 行の上半分なら前、下半分なら後ろに入れる位置にする */
-  const dragOver = (e: DragEvent<HTMLDivElement>, i: number) => {
-    if (!drag) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    const rect = e.currentTarget.getBoundingClientRect();
-    const at = e.clientY < rect.top + rect.height / 2 ? i : i + 1;
-    if (at !== drag.at) setDrag({ ...drag, at });
-  };
-  const drop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (drag?.at !== undefined && drag.ids) {
-      // まとめて動かす: 落とした位置から下で、動かさない最初の指示の前へ入れる（なければいちばん下）
-      const ids = drag.ids;
-      const before = queue.slice(drag.at).find((m) => !ids.includes(m.id))?.id ?? null;
-      void api.moveQueuedMany(runId, ids, { before }).catch(failed);
-    } else if (drag?.at !== undefined) {
-      // 移したあとの位置（元の位置より後ろへ入れるときは、自分が抜けた分だけ 1 つ前になる）
-      const index = drag.at > drag.from ? drag.at - 1 : drag.at;
-      if (index !== drag.from) void api.moveQueued(runId, drag.id, index).catch(failed);
-    }
-    setDrag(undefined);
-  };
+  const failed = reportFailure("待ちの指示を操作できませんでした");
+  // ドラッグ: 指示の並べ替えと、「ここまで送ったら止めます」の印の移動
+  const dnd = useQueueDrag(runId, queue, stops, failed);
+  // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
+  const ask = useAskInNewChat(runId, queue, newChatTarget);
   // 書き直している行の高さ（文を中でスクロールさせず全部見せるため、一覧の高さの上限をこれより低くしない）
   const [editHeight, setEditHeight] = useState(0);
   useLayoutEffect(() => {
@@ -153,12 +133,21 @@ export function QueuedMessages({
     setOverflowing(Boolean(el && !expanded && el.scrollHeight > el.clientHeight + 1));
   }, [queue, editing, collapsed, expanded, height]);
   if (queue.length === 0) return null;
-  const failed = reportFailure("待ちの指示を操作できませんでした");
-  // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
-  const ask = useAskInNewChat(runId, queue, newChatTarget);
-  // 「ここまで自動で送る」の印（いくつでも）と、次に止まる位置（いちばん上の印。なければ -1）
-  const stopIndex = queue.findIndex((m) => stopAfter.includes(m.id));
-  const toggleStop = (id: string) => void api.setQueueStopAfter(runId, id, !stopAfter.includes(id)).catch(failed);
+  // 次に止まる位置（いちばん上の印。なければ -1）。行の右クリックの「ここまで自動で送る」は、その行のすぐあとの印を付け外しする
+  const stopIndex = stops.length > 0 ? stops[0] : -1;
+  const toggleStop = (id: string, i: number) => void api.setQueueStopAfter(runId, id, !stops.includes(i + 1)).catch(failed);
+  /** 印の線（指示とは別の行。ドラッグでほかの位置へ移し、× で外す） */
+  const stopLine = (k: number) =>
+    stops.includes(k) && (
+      <QueuedStopLine
+        dragging={dnd.drag?.stop === k}
+        onDragStart={() => dnd.startStop(k)}
+        onDragEnd={dnd.end}
+        onDragOver={(e) => dnd.overAt(e, k)}
+        onDrop={dnd.drop}
+        onRemove={() => void api.setQueueStops(runId, stops.filter((x) => x !== k)).catch(failed)}
+      />
+    );
   // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）
   const hint = paused
     ? collapsed
@@ -170,8 +159,10 @@ export function QueuedMessages({
       ? "自動で送れませんでした。行の「すぐ送る」で送れます"
       : collapsed
         ? ""
-        : stopIndex >= 0
-          ? `終わったら ${stopIndex + 1} 件目まで順に送り、そのあとは止めます`
+        : stopIndex === 0
+          ? "終わっても送らずに止めます（1 件目の上で止める印）"
+          : stopIndex > 0
+          ? `終わったら ${stopIndex} 件目まで順に送り、そのあとは止めます`
           : "終わったら順に送ります";
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
@@ -226,6 +217,8 @@ export function QueuedMessages({
         <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(height, editHeight) }}>
           {queue.map((m, i) => (
             <Fragment key={m.id}>
+            {/* 「ここまで送ったら止めます」: この行の前で止める印（1 件目の上にも置ける） */}
+            {stopLine(i)}
             {editing?.id === m.id ? (
               <QueuedEditor
                 index={i}
@@ -245,7 +238,7 @@ export function QueuedMessages({
                 busy={busy}
                 selectedCount={selected.includes(m.id) ? selected.length : 0}
                 dragCount={selected.includes(m.id) ? Math.max(1, selected.length) : 1}
-                isStop={stopAfter.includes(m.id)}
+                isStop={stops.includes(i + 1)}
                 onAsk={
                   ask &&
                   ((remove) => {
@@ -262,33 +255,28 @@ export function QueuedMessages({
                 className={cx(
                   "queued-row",
                   selected.includes(m.id) && "selected",
-                  (drag?.id === m.id || drag?.ids?.includes(m.id)) && "dragging",
-                  // 入る位置の線（1 件のときは、元の位置と変わらないところには出さない）
-                  drag && drag.at === i && (drag.ids || (drag.from !== i && drag.from !== i - 1)) && "drop-before",
-                  drag && drag.at === i + 1 && i === queue.length - 1 && (drag.ids || drag.from !== i) && "drop-after",
+                  (dnd.drag?.id === m.id || dnd.drag?.ids?.includes(m.id)) && "dragging",
+                  // 入る位置の線（動かしても変わらないところには出さない）
+                  dnd.dropBefore(i) && "drop-before",
+                  dnd.dropAfterLast(i) && "drop-after",
                 )}
                 actions={{
                   edit: () => setEditing({ id: m.id, text: m.text, attachments: m.attachments }),
-                  toggleStop: () => toggleStop(m.id),
+                  toggleStop: () => toggleStop(m.id, i),
                   move: (to) => void api.moveQueued(runId, m.id, to).catch(failed),
                   sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),
                   remove: () => void api.removeQueued(runId, m.id).catch(failed),
                 }}
-                onDragStart={() => setDrag({ id: m.id, from: i, ids: selected.includes(m.id) && selected.length > 1 ? selected : undefined })}
-                onDragEnd={() => setDrag(undefined)}
-                onDragOver={(e) => dragOver(e, i)}
-                onDrop={drop}
+                onDragStart={() => dnd.startMessage(m.id, i, selected.includes(m.id) && selected.length > 1 ? selected : undefined)}
+                onDragEnd={dnd.end}
+                onDragOver={(e) => dnd.overRow(e, i)}
+                onDrop={dnd.drop}
               />
-            )}
-            {/* 「ここまで自動で送る」: この行を送ったら止める線（いくつでも。止まったあと自動で送るに戻すと、次の線まで送る。最後の行なら、すべて送ったあとに来たものから止める） */}
-            {stopAfter.includes(m.id) && (
-              <div className="queued-stop-line" role="note">
-                <span>ここまで送ったら止めます</span>
-                <IconButton icon={X} size={11} label="ここで止めるのをやめる" onClick={() => toggleStop(m.id)} />
-              </div>
             )}
             </Fragment>
           ))}
+          {/* すべて送ったあとで止める印（あとから来た指示の前で止める） */}
+          {stopLine(queue.length)}
         </div>
       )}
     </div>

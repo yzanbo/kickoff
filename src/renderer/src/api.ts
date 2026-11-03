@@ -56,8 +56,8 @@ interface RunDetail {
   /** 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか */
   queue_paused?: boolean;
   /** 「ここまで自動で送る」の印を付けた待ちの指示 */
-  /** 「ここまで自動で送る」の印を付けた待ちの指示（列の順。いくつでも） */
-  queue_stop_after?: string[];
+  /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと） */
+  queue_stops?: number[];
   /** 通信が切れて止まり、つながったら自動で再開するのを待っているか */
   reconnect?: ReconnectState | null;
   /** 裏で動いている作業と、メインの返答が終わったか（作業中でなければ null） */
@@ -268,9 +268,12 @@ export const api = {
   /** 待ちの列を、終わっても自動で送らずに止めておくか（戻すと、作業中でなければ先頭をすぐ送る） */
   setQueuePaused: (runId: number, paused: boolean) =>
     request<{ paused: boolean; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/paused`, { paused }),
-  /** その指示に「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。印はいくつでも。id が null ならすべて外す） */
+  /** その指示のすぐあとに「ここまで送ったら止めます」の印を付ける・外す（右クリックの「ここまで自動で送る」。id が null ならすべて外す） */
   setQueueStopAfter: (runId: number, id: string | null, stop = true) =>
-    request<{ stop_after: string[]; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/stop-after`, { id, stop }),
+    request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/stop-after`, { id, stop }),
+  /** 印の位置をまとめて置き換える（印のドラッグ・×。0 = 1 件目の上、n = n 件目のあと） */
+  setQueueStops: (runId: number, stops: number[]) =>
+    request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/stops`, { stops }),
   /** 待ちの指示をすべて消す */
   clearQueued: (runId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue`),
   /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */

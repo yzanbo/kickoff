@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { z } from "zod";
+import { EFFORT_LEVELS, PERMISSION_CHOICES } from "../types.js";
 
 // ルートで共通に使う zod の形（入力の検証に失敗したときの 400 は server.ts の onError が返す）
 
@@ -24,3 +25,31 @@ export const groupName = z.string().trim().min(1).max(60);
 
 /** 音声入力の言語（"auto" か、ISO 639-1 などの言語コード） */
 export const voiceLanguage = z.string().regex(/^(auto|[a-z]{2,3})$/, "言語の指定が正しくありません");
+
+/** チャットの送り方の選択（モデル・推論の深さ・権限モード・速いモード） */
+export const runOptionsSchema = z
+  .object({
+    model: z.string().max(100).nullable(),
+    effort: z.enum(EFFORT_LEVELS).nullable(),
+    permission_mode: z.enum(PERMISSION_CHOICES).nullable(),
+    fast_mode: z.boolean().nullable(),
+  })
+  .partial()
+  .default({});
+
+/** 添付（アップロード済みのファイル） */
+export const attachmentSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().max(300),
+  mime: z.string().max(200),
+  size: z.number().int().nonnegative(),
+});
+
+/** 続けて送る指示（本文が空でも、添付があれば送れる） */
+export const messageInputSchema = z
+  .object({
+    text: z.string().trim().max(50_000).default(""),
+    options: runOptionsSchema,
+    attachments: z.array(attachmentSchema).max(20).default([]),
+  })
+  .refine((v) => v.text || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });

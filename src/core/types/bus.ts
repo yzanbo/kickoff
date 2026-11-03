@@ -28,7 +28,7 @@ export type BusEvent =
   /** 通信が切れて止まり、つながったら自動で再開するのを待っているか（null で待っていない） */
   | { type: "run_reconnect"; project_id: number; run_id: number; reconnect: ReconnectState | null }
   /** 作業中のチャットに送った次の指示の待ちの列（変わるたびに全体を送る） */
-  | { type: "run_queue"; project_id: number; run_id: number; queue: QueuedMessage[]; /** 終わっても自動で送らずに止めておくか */ paused: boolean; /** 「ここまで自動で送る」の印を付けた指示（列の順。いくつでも） */ stop_after: string[] }
+  | { type: "run_queue"; project_id: number; run_id: number; queue: QueuedMessage[]; /** 終わっても自動で送らずに止めておくか */ paused: boolean; /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと） */ stops: number[] }
   | { type: "approval"; approval: Approval }
   | { type: "approval_resolved"; id: string; run_id: number }
   | { type: "settings"; settings: AppSettings }
