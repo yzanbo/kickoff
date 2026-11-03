@@ -136,6 +136,9 @@ export function QueuedMessages({
   // 次に止まる位置（いちばん上の印。なければ -1）。行の右クリックの「この指示のあとで止める」は、その行のすぐあとの印を付け外しする
   const stopIndex = stops.length > 0 ? stops[0] : -1;
   const toggleStop = (id: string, i: number) => void api.setQueueStopAfter(runId, id, !stops.includes(i + 1)).catch(failed);
+  // 指示のすぐ前（位置 i）の印を付け外しする（1 件目の上にも置ける）
+  const toggleStopBefore = (i: number) =>
+    void api.setQueueStops(runId, stops.includes(i) ? stops.filter((x) => x !== i) : [...stops, i].sort((a, b) => a - b)).catch(failed);
   /** 印の線（指示とは別の行。ドラッグでほかの位置へ移し、× で外す） */
   const stopLine = (k: number) =>
     stops.includes(k) && (
@@ -239,6 +242,7 @@ export function QueuedMessages({
                 selectedCount={selected.includes(m.id) ? selected.length : 0}
                 dragCount={selected.includes(m.id) ? Math.max(1, selected.length) : 1}
                 isStop={stops.includes(i + 1)}
+                isStopBefore={stops.includes(i)}
                 onAsk={
                   ask &&
                   ((remove) => {
@@ -263,6 +267,7 @@ export function QueuedMessages({
                 actions={{
                   edit: () => setEditing({ id: m.id, text: m.text, attachments: m.attachments }),
                   toggleStop: () => toggleStop(m.id, i),
+                  toggleStopBefore: () => toggleStopBefore(i),
                   move: (to) => void api.moveQueued(runId, m.id, to).catch(failed),
                   sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),
                   remove: () => void api.removeQueued(runId, m.id).catch(failed),
