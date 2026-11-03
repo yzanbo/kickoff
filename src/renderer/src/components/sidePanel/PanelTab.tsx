@@ -1,5 +1,5 @@
 import { X, type LucideIcon } from "lucide-react";
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "../../cx";
 import { InlineName } from "../InlineName";
 
@@ -20,6 +20,7 @@ export function PanelTab({
   onClose,
   onRename,
   editor,
+  lead,
 }: {
   active: boolean;
   icon: LucideIcon;
@@ -31,6 +32,8 @@ export function PanelTab({
   extra?: HTMLAttributes<HTMLDivElement>;
   onSelect: () => void;
   onClose: () => void;
+  /** アイコンの代わりに名前の前に置くもの（チャットのタブの状態の印） */
+  lead?: ReactNode;
   /** 名前のダブルクリックで名前を変え始める */
   onRename?: () => void;
   /** 名前を変えている途中なら、入力欄の初めの値・上限・決定・取り消し */
@@ -40,12 +43,12 @@ export function PanelTab({
     <div className={cx("panel-tab", active && "active", className)} role="tab" aria-selected={active} {...extra}>
       {editor ? (
         <span className="panel-tab-label editing">
-          <Icon size={12} className={iconClass} aria-hidden />
+          {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           <InlineName initial={editor.initial} maxLength={editor.maxLength} className="panel-tab-input" onSubmit={editor.onSubmit} onCancel={editor.onCancel} />
         </span>
       ) : (
         <button className="panel-tab-label" onClick={onSelect} onDoubleClick={onRename} title={onRename ? `${title ?? label}（ダブルクリックで名前を変更）` : (title ?? label)}>
-          <Icon size={12} className={iconClass} aria-hidden />
+          {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           <span>{label}</span>
         </button>
       )}

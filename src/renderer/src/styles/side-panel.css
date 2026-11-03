@@ -195,6 +195,12 @@
   text-overflow: ellipsis;
 }
 
+/* 未読（終わった・失敗したのに見ていない）のチャットのタブは、名前を太字にする（サイドバーの行と同じ） */
+.panel-tab.unread .panel-tab-label span {
+  font-weight: 600;
+  color: var(--text);
+}
+
 .panel-tab-close {
   display: grid;
   flex: none;

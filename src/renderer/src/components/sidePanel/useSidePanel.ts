@@ -19,7 +19,8 @@ export interface NewChatTarget {
 /** 右側のパネルのタブ（チャット・新しいチャット・ブラウザ・ターミナル） */
 export type PanelTab =
   /** title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる） */
-  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string }
+  /** status / attention: タブの中のチャットから届いた最新の状態（ボードの一覧にないチャットでも、タブに状態の印を出すため） */
+  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; status?: Run["status"]; attention?: boolean }
   /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す） */
   | ({ key: string; kind: "new"; groupName?: string; draftText?: string } & NewChatTarget)
   | { key: string; kind: "browser"; url: string; title: string }
