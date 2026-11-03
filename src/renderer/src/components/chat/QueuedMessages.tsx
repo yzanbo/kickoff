@@ -1,11 +1,13 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Pause, Play, X } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, X } from "lucide-react";
 import { Fragment, useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
 import { IconButton } from "../IconButton";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
-import { QueuedHeadActions, QueuedMoveActions } from "./QueuedHeadActions";
+import { QueuedHeadActions, QueuedModeButton, QueuedMoveActions } from "./QueuedHeadActions";
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
+import { useAskInNewChat } from "./askInNewChat";
+import type { NewChatTarget } from "../sidePanel/useSidePanel";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { cx } from "../../cx";
 import { reportFailure } from "../../runActions";
@@ -34,8 +36,11 @@ export function QueuedMessages({
   paused,
   stopAfter,
   busy,
+  newChatTarget,
 }: {
   runId: number;
+  /** 「新しいチャットで聞く」で作るチャットのプロジェクト・グループ（元のチャットと同じ） */
+  newChatTarget: NewChatTarget;
   queue: QueuedMessage[];
   paused: boolean;
   /** 「ここまで自動で送る」の印を付けた指示（その指示を送ったら止めておく） */
@@ -148,6 +153,8 @@ export function QueuedMessages({
   }, [queue, editing, collapsed, expanded, height]);
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
+  // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
+  const ask = useAskInNewChat(runId, queue, newChatTarget);
   // 「ここまで自動で送る」の印の位置（なければ -1）
   const stopIndex = stopAfter ? queue.findIndex((m) => m.id === stopAfter) : -1;
   const clearStop = () => void api.setQueueStopAfter(runId, null).catch(failed);
@@ -209,22 +216,8 @@ export function QueuedMessages({
         )}
         {/* 選んだ指示の並べ替え（送る・消すとは分けて「自動で送る」のすぐ左に） */}
         {selected.length > 0 && <QueuedMoveActions runId={runId} selected={selected} failed={failed} />}
-        {/* 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。ここから右が送る・消すの操作） */}
-        <button
-          type="button"
-          className={cx("btn btn-sm queued-head-btn queued-mode", paused && "paused")}
-          aria-pressed={paused}
-          aria-label={paused ? "止めています（押すと、自動で送るに戻す）" : "自動で送ります（押すと、送らずに止めておく）"}
-          title={
-            paused
-              ? `いまの作業が終わっても送らずに止めておきます。行の「すぐ送る」で 1 件ずつ送れます。押すと、自動で送るに戻します${busy ? "" : "（先頭をすぐ送ります）"}`
-              : "いまの作業が終わったら、先頭から順に自動で送ります。押すと、送らずに止めておきます（移動の前などに）"
-          }
-          onClick={() => void api.setQueuePaused(runId, !paused).catch(failed)}
-        >
-          {paused ? <Pause size={12} aria-hidden /> : <Play size={12} aria-hidden />}
-          <span className="queued-head-label">{paused ? "止めています" : "自動で送る"}</span>
-        </button>
+        {/* 終わったら自動で送るか、送らずに止めておくか（ここから右が送る・消すの操作） */}
+        <QueuedModeButton runId={runId} paused={paused} busy={busy} failed={failed} />
         <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} onClearSelection={clearSelection} failed={failed} />
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
@@ -252,6 +245,13 @@ export function QueuedMessages({
                 selectedCount={selected.includes(m.id) ? selected.length : 0}
                 dragCount={selected.includes(m.id) ? Math.max(1, selected.length) : 1}
                 isStop={i === stopIndex}
+                onAsk={
+                  ask &&
+                  ((remove) => {
+                    ask(selected.includes(m.id) && selected.length > 1 ? selected : [m.id], remove);
+                    clearSelection();
+                  })
+                }
                 onSelect={(e) => selectRow(e, m.id)}
                 groupActions={{
                   sendTogether: () => void api.sendAllQueued(runId, selected).then(clearSelection, failed),

@@ -9,6 +9,7 @@ import { activeTabOf, closeLayoutTabs, isTabVisible, placeTab, reconcileLayout, 
 import { loadPanel, registerPanel, savePanel } from "./panelMemory";
 import { newTabKey } from "./tabKeys";
 import { usePanelWidth } from "./usePanelWidth";
+import type { NewChatSeed } from "../chat/askInNewChat";
 
 /** 新しいチャットを始めるときの指定（どのプロジェクト・グループで始めるか） */
 export interface NewChatTarget {
@@ -21,8 +22,8 @@ export type PanelTab =
   /** title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる） */
   /** status / attention: タブの中のチャットから届いた最新の状態（ボードの一覧にないチャットでも、タブに状態の印を出すため） */
   | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; status?: Run["status"]; attention?: boolean }
-  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す） */
-  | ({ key: string; kind: "new"; groupName?: string; draftText?: string } & NewChatTarget)
+  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す）。seed: 初めに入力欄に入れるもの（送信待ちの指示から始めたとき） */
+  | ({ key: string; kind: "new"; groupName?: string; draftText?: string; seed?: NewChatSeed } & NewChatTarget)
   /** チャットの中のサブエージェントの中身（toolUseId: Task / Agent の呼び出し ID。title: タブに出す名前） */
   | { key: string; kind: "subagent"; runId: number; projectId: number; toolUseId: string; title: string }
   | { key: string; kind: "browser"; url: string; title: string }
@@ -122,13 +123,14 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
    * ブラウザ・ターミナルと同じく、押すたびに新しいタブを開く（書きかけの新しいチャットがあっても、もう 1 つ始められる）
    */
   const lastNew = useRef<{ target: string; key: string; at: number }>(undefined);
-  const openNew = (target: NewChatTarget) => {
-    // 同じ指定でほぼ同時に呼ばれたとき（開発時の effect の二重実行）だけ 1 つにまとめる
+  const openNew = (target: NewChatTarget, seed?: NewChatSeed) => {
+    // 同じ指定でほぼ同時に呼ばれたとき（開発時の effect の二重実行）だけ 1 つにまとめる（初めの入力があるものは利用者の操作なのでまとめない）
     const sig = `${target.projectId}:${target.group ?? ""}`;
     const recent = lastNew.current;
-    const key = recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
+    const key = !seed && recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
     lastNew.current = { target: sig, key, at: Date.now() };
-    setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "new", ...target }]));
+    const tab: PanelTab = { key, kind: "new", ...target, ...(seed ? { seed, draftText: seed.text } : {}) };
+    setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, tab]));
     reveal(key);
   };
 

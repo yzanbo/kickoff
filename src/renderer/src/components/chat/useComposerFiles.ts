@@ -45,6 +45,12 @@ export function useComposerFiles() {
       .catch((e: unknown) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))));
   }
 
+  /** アップロード済みの添付を足す（送信待ちの指示を新しいチャットで聞くとき。アップロードし直さない） */
+  function addAttachments(list: Attachment[]) {
+    const added = list.map((attachment) => ({ key: `${Date.now()}-${Math.random()}`, file: new File([], attachment.name, { type: attachment.mime }), attachment }));
+    setFiles((prev) => [...prev, ...added]);
+  }
+
   function removeFile(key: string) {
     setFiles((prev) => {
       const target = prev.find((f) => f.key === key);
@@ -90,6 +96,7 @@ export function useComposerFiles() {
     dragging,
     addFiles,
     addChat,
+    addAttachments,
     removeFile,
     clear,
     onPaste,

@@ -1,5 +1,5 @@
 import { Folder, SquarePen } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ProjectSummary, Run } from "../../../../core/types";
 import { api } from "../../api";
 import { useAsync } from "../../hooks/useAsync";
@@ -11,11 +11,15 @@ import { useRunOptions } from "../chat/RunOptionsBar";
 import { BUSY_STATUSES } from "../RunStatus";
 import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "../changes/WorkplacePicker";
 import { invalidateWorktrees } from "../../worktree/worktreeBranches";
+import type { NewChatSeed } from "../chat/askInNewChat";
+import type { ComposerFill } from "../chat/quoteComment";
 
 interface Props {
   projectId: number;
   /** グループの＋から始めたときのグループ */
   group?: number;
+  /** 初めに入力欄に入れるもの（送信待ちの指示を新しいチャットで聞くとき。文と添付） */
+  seed?: NewChatSeed;
   /** 全プロジェクトのボードでは、どのプロジェクトで始めるかを選べるようにする */
   projects?: ProjectSummary[];
   onProjectChange?: (projectId: number) => void;
@@ -31,6 +35,7 @@ interface Props {
 export function NewChatPane({
   projectId,
   group,
+  seed,
   projects,
   onProjectChange,
   onGroupChange,
@@ -55,6 +60,14 @@ export function NewChatPane({
   }, [groupName]);
 
   const ready = !project.loading && !runs.loading;
+  // 送信待ちの指示から始めたときは、入力欄ができたら文と添付を入れる（1 回だけ。送るのは自分で）
+  const fillComposer = useRef<ComposerFill | null>(null);
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!ready || !seed || seeded.current) return;
+    seeded.current = true;
+    fillComposer.current?.(seed.text, { attachments: seed.attachments });
+  }, [ready, seed]);
 
   return (
     <div className="run-page run-panel new-chat">
@@ -111,6 +124,7 @@ export function NewChatPane({
           <h1>{project.data?.name ?? ""}</h1>
           <p className="muted">調べもの・設計・実装・テストなど、AI に頼みたいことを書いて始めます</p>
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
+          {seed && <p className="muted small">送信待ちの指示を入力欄に入れました。直して送れます（作成先のグループは上で選べます）</p>}
           {place.kind === "new" && <p className="muted small">新しいワークツリー「{place.branch}」を作り、その中で作業します</p>}
           {busyHere && <p className="small warn-text">この作業場所では、ほかのチャットが作業中です。同じファイルを触ると作業がぶつかることがあります。</p>}
         </div>
@@ -123,6 +137,7 @@ export function NewChatPane({
             options={options}
             autoFocus
             onTextChange={onDraftChange}
+            fillRef={fillComposer}
             // 新しいワークツリーはまだないので、本体から探す
             suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
             placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"

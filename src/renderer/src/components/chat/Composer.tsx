@@ -18,7 +18,8 @@ import { SuggestList } from "../suggest/SuggestList";
 import { useSuggest } from "../suggest/useSuggest";
 import { useComposerFiles } from "./useComposerFiles";
 import { usePromptHistory } from "./usePromptHistory";
-import { useComposerKeys } from "./composerKeys";
+import { isSendEnter, sendModeOf, useComposerKeys, type QueueSendMode } from "./composerKeys";
+export type { QueueSendMode } from "./composerKeys";
 import { appendBlock, type ComposerFill } from "./quoteComment";
 import { ChatContextButton } from "./ChatContextButton";
 
@@ -56,15 +57,6 @@ const COMPOSER_MAX_HEIGHT = 240;
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
 const TEXT_CHANGE_DELAY_MS = 300;
 
-/** 作業中に送るときの扱い（伝える = 止めずに、いまのやり取りに足す / ためておく = 終わったら送る） */
-export type QueueSendMode = "tell" | "queue";
-
-/** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり） */
-const sendModeOf = (e: { metaKey: boolean; shiftKey: boolean }): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);
-
-/** 送信の Enter か（Shift+Enter は改行。⌘⇧Enter は送り方を決めた送信。日本語入力の変換を確定する Enter は除く） */
-const isSendEnter = (e: KeyboardEvent) => e.key === "Enter" && (!e.shiftKey || e.metaKey) && !e.nativeEvent.isComposing && e.keyCode !== 229;
-
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
 
@@ -87,7 +79,12 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       el.setSelectionRange(caret, caret);
     });
   };
-  if (fillRef) fillRef.current = (value, opts) => fill(opts?.append ? appendBlock(text, value) : value);
+  if (fillRef)
+    fillRef.current = (value, opts) => {
+      fill(opts?.append ? appendBlock(text, value) : value);
+      // 添付も入れる（送信待ちの指示を新しいチャットで聞くとき。アップロード済みのものをそのまま使う）
+      if (opts?.attachments) attach.addAttachments(opts.attachments);
+    };
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
   const [compact] = useSharedFlag(COMPOSER_COMPACT_KEY);
   // ↑↓ で前の発言を呼び出す

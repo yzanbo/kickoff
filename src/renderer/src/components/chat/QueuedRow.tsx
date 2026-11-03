@@ -42,6 +42,7 @@ export function QueuedRow({
   selectedCount,
   dragCount = 1,
   isStop,
+  onAsk,
   onSelect,
   groupActions,
   className,
@@ -61,6 +62,8 @@ export function QueuedRow({
   dragCount?: number;
   /** 「ここまで自動で送る」の印を付けた指示か */
   isStop: boolean;
+  /** 新しいチャットで聞く（文と添付を新しいチャットのタブに入れて開く。remove なら送信待ちから外す = 移す。選んでいれば選んだものすべて） */
+  onAsk?: (remove: boolean) => void;
   /** 行のクリック（⌘ / Ctrl で 1 件ずつ、Shift で範囲を選ぶ） */
   onSelect: (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => void;
   /** 選んだもの全体への操作（右クリックのメニュー） */
@@ -148,6 +151,7 @@ export function QueuedRow({
               <MenuItem onSelect={groupActions.sendTogether}>選んだ {selectedCount} 件をまとめて送る</MenuItem>
               <MenuItem onSelect={() => groupActions.moveTo("top")}>選んだ {selectedCount} 件をいちばん上へ</MenuItem>
               <MenuItem onSelect={() => groupActions.moveTo("bottom")}>選んだ {selectedCount} 件をいちばん下へ</MenuItem>
+              {onAsk && <AskMenuItems onAsk={onAsk} what={`選んだ ${selectedCount} 件`} />}
               <MenuItem danger onSelect={groupActions.remove}>
                 選んだ {selectedCount} 件を消す
               </MenuItem>
@@ -163,6 +167,7 @@ export function QueuedRow({
               {i > 0 && <MenuItem onSelect={() => actions.move(i - 1)}>上へ</MenuItem>}
               {i < count - 1 && <MenuItem onSelect={() => actions.move(i + 1)}>下へ</MenuItem>}
               {i < count - 1 && <MenuItem onSelect={() => actions.move(count - 1)}>いちばん下へ</MenuItem>}
+              {onAsk && <AskMenuItems onAsk={onAsk} what="この指示" />}
               <MenuItem danger onSelect={actions.remove}>
                 待ちの列から消す
               </MenuItem>
@@ -230,5 +235,19 @@ export function QueuedAttachments({ attachments }: { attachments: Attachment[] }
       {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
       {grid && <AttachmentGrid attachments={attachments} anchor={grid} onClose={() => setGrid(undefined)} />}
     </span>
+  );
+}
+
+/** 新しいチャットで聞く（送信待ちに残す）・新しいチャットに移す（送信待ちから外す）。文と添付（画像も）を新しいチャットのタブに入れて開く */
+function AskMenuItems({ onAsk, what }: { onAsk: (remove: boolean) => void; what: string }) {
+  return (
+    <>
+      <MenuItem onSelect={() => onAsk(false)} title={`${what}を新しいチャットのタブに入れて開きます。送信待ちには残り、このチャットでもあとで送られます`}>
+        新しいチャットで聞く（送信待ちに残す）
+      </MenuItem>
+      <MenuItem onSelect={() => onAsk(true)} title={`${what}を新しいチャットのタブに入れて開き、送信待ちから外します（このチャットでは送りません）`}>
+        新しいチャットに移す（送信待ちから外す）
+      </MenuItem>
+    </>
   );
 }
