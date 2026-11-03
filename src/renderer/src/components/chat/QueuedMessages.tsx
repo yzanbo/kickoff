@@ -13,7 +13,7 @@ import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
  * 見出しに実行中と送信待ちの数、行に添付（画像はサムネイル）を出す。
- * 行はドラッグでも並べ替えられる（↑↓ のボタンと同じ）。
+ * 行はドラッグでも並べ替えられる（↑↓ のボタンと同じ）。見出しの右の「まとめて送る」は、すべてを 1 つにまとめてすぐ送る。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
 export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
@@ -49,16 +49,27 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
       : `送信待ち ${queue.length} 件（自動で送れませんでした。「すぐ送る」で送ってください）`;
   return (
     <div className={cx("queued-messages", collapsed && "collapsed")} aria-label="送信待ちの指示">
-      <button
-        type="button"
-        className="queued-head small muted"
-        aria-expanded={!collapsed}
-        title={collapsed ? "送信待ちの一覧を開く" : "送信待ちの一覧をたたむ"}
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        <ChevronRight size={13} className="queued-chevron" aria-hidden />
-        {summary}
-      </button>
+      <div className="queued-head-row">
+        <button
+          type="button"
+          className="queued-head small muted"
+          aria-expanded={!collapsed}
+          title={collapsed ? "送信待ちの一覧を開く" : "送信待ちの一覧をたたむ"}
+          onClick={() => setCollapsed(!collapsed)}
+        >
+          <ChevronRight size={13} className="queued-chevron" aria-hidden />
+          {summary}
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm queued-send-all"
+          title={`送信待ちの ${queue.length} 件を 1 つにまとめて、すぐ送る${busy ? "（いまの作業を止めてから送る）" : ""}`}
+          onClick={() => void api.sendAllQueued(runId).catch(failed)}
+        >
+          <SendHorizontal size={12} aria-hidden />
+          まとめて送る
+        </button>
+      </div>
       {!collapsed && queue.map((m, i) => (
         editing?.id === m.id ? (
           <QueuedEditor
