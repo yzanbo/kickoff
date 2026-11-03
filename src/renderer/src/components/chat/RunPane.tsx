@@ -6,7 +6,8 @@ import { chatDraftKey } from "../../storageKeys";
 import { FileLinkContext } from "../fileLinks/fileLinkContext";
 import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
-import { Composer } from "./Composer";
+import { Composer, SendCancelled } from "./Composer";
+import { confirmDialog } from "../../dialogs";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
 import { useRunOptions } from "./RunOptionsBar";
@@ -103,6 +104,18 @@ function RunView({
   );
   const busy = BUSY_STATUSES.includes(run.status);
   const subagents = useSubagents(run.id, events, busy);
+  // 裏で動いているサブエージェント（作業を止めると一緒に止まる）
+  const runningAgents = subagents.filter((s) => s.status === "running").length;
+  /** 作業を止める前に、裏で動いているサブエージェントも止まることを確かめる（なければそのまま true） */
+  const confirmStopAgents = (action: string) =>
+    runningAgents === 0
+      ? Promise.resolve(true)
+      : confirmDialog({
+          title: `裏で動いているサブエージェント ${runningAgents} 件も止まります`,
+          message: `${action}と、いまの作業と一緒に、裏で動いているサブエージェントも止まり、その報告は届きません。終わるまで待つときは、キャンセルして「ためておく」で送ってください。`,
+          confirmLabel: `${action}`,
+          danger: true,
+        });
   const busyNeighbors = useBusyNeighbors(run);
   // 中身を見ているサブエージェント（Task / Agent の呼び出し ID）
   const [subOpen, setSubOpen] = useState<string>();
@@ -157,7 +170,7 @@ function RunView({
         onClose={onClose}
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
-      <RunTimeline items={items} rel={rel} run={run} busy={busy} waiting={waiting} stopping={stopping} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
+      <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
       <div className="run-composer">
         <QueuedMessages runId={run.id} queue={queue} busy={busy} />
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
@@ -186,7 +199,10 @@ function RunView({
           }}
           onQueue={async (text, attachments) => {
             // 割り込むときは、待ちの列を通さずに、いまの作業を止めてからすぐ送る（列に一瞬出さない）
-            if (queueMode === "interrupt") await api.interrupt(run.id, text, options.options, attachments);
+            if (queueMode === "interrupt") {
+              if (!(await confirmStopAgents("割り込んで送る"))) throw new SendCancelled();
+              await api.interrupt(run.id, text, options.options, attachments);
+            }
             else await api.queueMessage(run.id, text, options.options, attachments);
           }}
           busyControls={
@@ -198,10 +214,13 @@ function RunView({
               className="view-toggle queue-mode"
             />
           }
-          onStop={() => {
-            setStopping(true);
-            void api.cancelRun(run.id).catch(() => setStopping(false));
-          }}
+          onStop={() =>
+            void confirmStopAgents("中断する").then((ok) => {
+              if (!ok) return;
+              setStopping(true);
+              void api.cancelRun(run.id).catch(() => setStopping(false));
+            })
+          }
           trailing={<ContextMeter run={run} />}
           suggestTarget={{ projectId: run.project_id, worktree: run.worktree_path || undefined }}
           fillRef={fillComposer}

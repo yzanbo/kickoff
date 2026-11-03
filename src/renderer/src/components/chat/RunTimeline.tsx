@@ -43,12 +43,14 @@ function lastResultIdOf(items: TimelineItem[]): number {
 const BOTTOM_SLACK_PX = 80;
 
 /** 作業中の行の文（止めている・順番待ち・返答を書いている・ツールを実行中・考えている） */
-function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean): ReactNode {
+function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean, runningAgents: number): ReactNode {
   if (stopping) return "停止中…";
   if (run.status === "queued") return "順番を待っています";
   if (live) return "返答を書いています";
   const last = items[items.length - 1];
   if (last?.kind === "tools" && !last.tools[last.tools.length - 1].result) return "ツールを実行中";
+  // 返答を書き終えたあと、裏のサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
+  if (runningAgents > 0 && last?.kind === "event" && last.event.type === "text") return `裏で動いているサブエージェント ${runningAgents} 件の終わりを待っています`;
   return <ThinkingWords since={lastActivityAt(last) ?? run.turn_started_at} />;
 }
 
@@ -85,6 +87,7 @@ export function RunTimeline({
   rel,
   run,
   busy,
+  runningAgents = 0,
   waiting,
   stopping,
   live,
@@ -96,6 +99,8 @@ export function RunTimeline({
   rel: (s: string) => string;
   run: Run;
   busy: boolean;
+  /** 裏で動いているサブエージェントの数（返答を書き終えたあとも作業中のときに、その終わりを待っていると出す） */
+  runningAgents?: number;
   waiting: boolean;
   /** 停止を押して、止まるのを待っている */
   stopping: boolean;
@@ -177,7 +182,7 @@ export function RunTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping)}</Working>
+            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping, runningAgents)}</Working>
           )}
         </div>
       </div>
