@@ -96,6 +96,10 @@ export const HISTORY_SPLIT_KEY = "kickoff:history-split";
 /** プロジェクトごとの、エディタタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
 export const editorWorktreeKey = (projectId: number) => `kickoff:editor-worktree:${projectId}`;
 
+// チャット
+/** 作業中に送った指示の扱い（"queue" = いまの作業が終わったら送る / "interrupt" = いまの作業を止めてすぐ送る） */
+export const QUEUE_MODE_KEY = "kickoff:queue-mode";
+
 // 埋め込みブラウザ
 /** 開発者ツールを出す場所（"right" / "bottom" / "window"） */
 export const BROWSER_DEVTOOLS_DOCK_KEY = "kickoff:browser-devtools-dock";

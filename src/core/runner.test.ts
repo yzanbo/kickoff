@@ -266,7 +266,7 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
   bus.subscribe((e) => e.type === "run_queue" && published.push(e.queue.length));
   const run = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => gates.length === 1);
-  assert.deepEqual(await runner.queueMessage(run.id, "2"), { queued: true });
+  assert.equal((await runner.queueMessage(run.id, "2")).queued, true);
   await runner.queueMessage(run.id, "3");
   assert.deepEqual(runner.queued(run.id).map((m) => m.text), ["2", "3"]);
   // 並べ替え: 3 を先頭に

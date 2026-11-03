@@ -16,6 +16,18 @@ import { TodoChip } from "./TodoChip";
 import { OpenSubagentContext } from "./Timeline";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
+import { ListPlus, Zap } from "lucide-react";
+import { useStoredChoice } from "../../hooks/useStoredState";
+import { QUEUE_MODE_KEY } from "../../storageKeys";
+import { Segmented, type SegmentOption } from "../Segmented";
+
+type QueueMode = "queue" | "interrupt";
+
+/** 作業中に送ったときの扱いの選択肢（アイコンだけで出す） */
+const QUEUE_MODE_OPTIONS: SegmentOption<QueueMode>[] = [
+  { value: "queue", label: "ためておく（いまの作業が終わったら送る）", icon: ListPlus, iconOnly: true },
+  { value: "interrupt", label: "割り込む（いまの作業を止めてすぐ送る）", icon: Zap, iconOnly: true },
+];
 
 interface RunPaneProps {
   projectId: number;
@@ -91,6 +103,8 @@ function RunView({
   const items = useMemo(() => groupEvents(events), [events]);
   const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
   const waiting = approvals.length > 0;
+  // 作業中に送ったときの扱い（ためておく / 割り込む。どのチャットでも同じ）
+  const [queueMode, setQueueMode] = useStoredChoice<QueueMode>(QUEUE_MODE_KEY, ["queue", "interrupt"], "queue");
   // 停止を押して、止まるのを待っている（止まったら戻す）
   const [stopping, setStopping] = useState(false);
   useEffect(() => {
@@ -116,14 +130,31 @@ function RunView({
         <Composer
           options={options}
           busy={busy}
-          placeholder={busy ? "作業中です。送ると、いまの作業が終わったあとに送ります（Enter）" : "続けて指示する（Enter で送信、Shift+Enter で改行）"}
+          placeholder={
+            busy
+              ? queueMode === "interrupt"
+                ? "作業中です。送ると、いまの作業を止めてすぐ送ります（Enter）"
+                : "作業中です。送ると、いまの作業が終わったあとに送ります（Enter）"
+              : "続けて指示する（Enter で送信、Shift+Enter で改行）"
+          }
           onSend={async (text, attachments) => {
             stickToBottom.current = true;
             await api.sendMessage(run.id, text, options.options, attachments);
           }}
           onQueue={async (text, attachments) => {
-            await api.queueMessage(run.id, text, options.options, attachments);
+            const queued = await api.queueMessage(run.id, text, options.options, attachments);
+            // 割り込むときは、列に入れた指示をすぐ送る（いまの作業を止めてから送る）
+            if (queueMode === "interrupt" && queued.id) await api.sendQueuedNow(run.id, queued.id);
           }}
+          busyControls={
+            <Segmented<QueueMode>
+              value={queueMode}
+              options={QUEUE_MODE_OPTIONS}
+              onChange={setQueueMode}
+              label="作業中に送ったときの扱い"
+              className="view-toggle queue-mode"
+            />
+          }
           onStop={() => {
             setStopping(true);
             void api.cancelRun(run.id).catch(() => setStopping(false));
