@@ -2,8 +2,8 @@
 
 /* 作業中に送った次の指示の待ちの列（QueuedMessages。チャット欄のすぐ上） */
 .queued-messages {
-  margin-bottom: 8px;
-  padding: 6px;
+  margin-bottom: 6px;
+  padding: 3px 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-elev);
@@ -19,6 +19,14 @@
 .queued-send-all {
   flex: none;
   gap: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
+/* 縦を取りすぎないよう、行の操作のボタンは小さく */
+.queued-messages .icon-button {
+  width: 22px;
+  height: 22px;
 }
 
 .queued-head-row .queued-clear:hover {
@@ -32,7 +40,7 @@
   align-items: center;
   gap: 4px;
   min-width: 0;
-  padding: 2px 6px 4px 2px;
+  padding: 1px 6px 1px 2px;
   border: none;
   font: inherit;
   font-size: 12px;
@@ -68,7 +76,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 2px 0 2px 6px;
+  padding: 1px 0 1px 6px;
   border-radius: var(--radius);
 }
 
@@ -132,8 +140,8 @@
 
 .queued-thumb {
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   overflow: hidden;
   border: 1px solid var(--border);
