@@ -238,12 +238,16 @@ test("既定の推論の深さの API: 作業フォルダの Claude Code の設�
   assert.equal((await call("GET", "/api/projects/999/effort-default")).status, 404);
 });
 
-test("待ちの列の API: まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めてから送る）", async () => {
+test("待ちの列の API: すべて消す・まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めてから送る）", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
   const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   assert.equal((await call("POST", `/api/runs/${runId}/queue/send-all`)).status, 404);
+  // すべて消す
+  await call("POST", `/api/runs/${runId}/queue`, { text: "消す" });
+  assert.deepEqual((await call("DELETE", `/api/runs/${runId}/queue`)).body, { removed: 1, queue: [] });
+  assert.deepEqual((await call("DELETE", `/api/runs/${runId}/queue`)).body, { removed: 0, queue: [] });
   await call("POST", `/api/runs/${runId}/queue`, { text: "A" });
   await call("POST", `/api/runs/${runId}/queue`, { text: "B" });
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/send-all`)).body, { ok: true });

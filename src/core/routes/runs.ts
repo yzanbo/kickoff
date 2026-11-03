@@ -159,6 +159,12 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json(await conflictOnError(() => runner.queueMessage(run.id, text, options, attachments)));
   });
 
+  // 待ちの指示をすべて消す
+  app.delete("/api/runs/:id/queue", (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    return c.json({ removed: runner.clearQueued(run.id), queue: runner.queued(run.id) });
+  });
+
   // 待ちの列から消す
   app.delete("/api/runs/:id/queue/:queueId", (c) => {
     const run = requireRun(store, c.req.param("id"));
