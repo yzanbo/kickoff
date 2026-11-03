@@ -4,9 +4,22 @@ import { confirmDialog } from "../../dialogs";
 import { IconButton } from "../IconButton";
 
 /**
+ * 選んだ指示の並べ替え（いちばん上へ・いちばん下へ）。送る・消すとは意味が違うので、見出しの「自動で送る」のすぐ左に置く
+ */
+export function QueuedMoveActions({ runId, selected, failed }: { runId: number; selected: string[]; failed: (e: unknown) => void }) {
+  const n = selected.length;
+  return (
+    <span className="queued-head-moves">
+      <IconButton icon={ArrowUpToLine} size={13} label={`選んだ ${n} 件をいちばん上へ`} onClick={() => void api.moveQueuedMany(runId, selected, "top").catch(failed)} />
+      <IconButton icon={ArrowDownToLine} size={13} label={`選んだ ${n} 件をいちばん下へ`} onClick={() => void api.moveQueuedMany(runId, selected, "bottom").catch(failed)} />
+    </span>
+  );
+}
+
+/**
  * 送信待ちの見出しの右の、全体・選んだものへの操作。
  * 選んでいなければ「すべて送る」（すべてを 1 つにまとめてすぐ送る）と「すべて消す」（2 件以上のときだけ。1 件なら行のボタンと同じになるため）、
- * 選んでいれば「まとめて送る」（選んだものだけを 1 つにまとめてすぐ送る）・いちばん上へ・いちばん下へ・消す・選ぶのをやめる
+ * 選んでいれば「まとめて送る」（選んだものだけを 1 つにまとめてすぐ送る）・消す・選ぶのをやめる（並べ替えは QueuedMoveActions）
  */
 export function QueuedHeadActions({
   runId,
@@ -41,8 +54,6 @@ export function QueuedHeadActions({
           <SendHorizontal size={12} aria-hidden />
           <span className="queued-head-label">まとめて送る</span>
         </button>
-        <IconButton icon={ArrowUpToLine} size={13} label={`選んだ ${n} 件をいちばん上へ`} onClick={() => void api.moveQueuedMany(runId, selected, "top").catch(failed)} />
-        <IconButton icon={ArrowDownToLine} size={13} label={`選んだ ${n} 件をいちばん下へ`} onClick={() => void api.moveQueuedMany(runId, selected, "bottom").catch(failed)} />
         <button
           type="button"
           className="btn btn-sm queued-head-btn queued-clear"
