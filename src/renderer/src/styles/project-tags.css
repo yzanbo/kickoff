@@ -1,0 +1,141 @@
+/* ==== プロジェクトのタグ（チップ ProjectTags・編集の欄 TagEditor・絞り込みの印 TagFilterNotice・見出しの「タグ」） ==== */
+
+/* タグのチップの列（サイドバーのカードの 2 行目では文の続きに並べ、はみ出したら行ごと省略する） */
+.project-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.project-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 16px;
+  color: var(--muted);
+  background: var(--bg-elev);
+}
+
+.project-tag-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* チップの外すボタン（.icon-button より後ろに置いて、小さくする） */
+.project-tag-remove {
+  width: 14px;
+  height: 14px;
+  margin-right: -4px;
+  border-radius: 999px;
+}
+
+/* サイドバーのカード: チャット数の後ろに 1 行で並べる（折り返さず、はみ出した分は .workspace-sub で省略） */
+.workspace-sub .project-tags {
+  flex-wrap: nowrap;
+  margin-left: 6px;
+}
+
+/* 編集の「タグ」の欄: 入力欄（候補はその下に重ねる）→ 付いているタグ */
+.tag-editor {
+  display: grid;
+  gap: 8px;
+  max-width: 480px;
+}
+
+.tag-editor .project-tag {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--text);
+}
+
+.tag-editor-input {
+  position: relative;
+}
+
+.tag-suggest {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  z-index: 10;
+  display: grid;
+  max-height: 220px;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+
+.tag-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.tag-suggest-item.active {
+  background: var(--bg-hover);
+}
+
+.tag-suggest-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 見出しの「タグ」: 絞り込んでいる間は、ひと目で分かるようアクセントの色にする */
+.head-chip.filtering {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.head-chip.filtering .head-chip-label,
+.head-chip.filtering .head-chip-icon {
+  color: var(--accent-bright);
+}
+
+/* 全プロジェクトの画面・⌘⇧A の、タグで絞り込んでいる印（押すと外す） */
+.tag-filter-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 0 2px 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  -webkit-app-region: no-drag;
+}
+
+.tag-filter-notice-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-filter-notice .icon-button {
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
