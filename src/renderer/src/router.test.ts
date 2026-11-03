@@ -19,6 +19,18 @@ test("parse: ハッシュを画面に読む（タブなしはボード、知ら�
   assert.deepEqual(parse("#/projects/3/changes?group=7"), { name: "project", id: 3, tab: "changes" });
 });
 
+test("parse: エディタタブで開くファイル（エディタタブでだけ読む。行は 1 以上の整数だけ）", () => {
+  assert.deepEqual(parse("#/projects/3/changes?file=src%2Fa.ts&line=12&worktree=%2Fw%2Fx"), {
+    name: "project",
+    id: 3,
+    tab: "changes",
+    file: { path: "src/a.ts", line: 12, worktree: "/w/x" },
+  });
+  assert.deepEqual(parse("#/projects/3/changes?file=a.ts&line=0"), { name: "project", id: 3, tab: "changes", file: { path: "a.ts" } });
+  assert.deepEqual(parse("#/projects/3/changes?line=4"), { name: "project", id: 3, tab: "changes" });
+  assert.deepEqual(parse("#/projects/3/groups?file=a.ts"), { name: "project", id: 3, tab: "groups" });
+});
+
 test("parse: 新しいチャット（以前の section は読まない）とチャット（focus は 0 なら付けない）", () => {
   assert.deepEqual(parse("#/projects/3/new"), { name: "newChat", projectId: 3 });
   assert.deepEqual(parse("#/projects/3/new?section=requirements&group=2"), { name: "newChat", projectId: 3, group: 2 });
@@ -33,6 +45,8 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "board" },
     { name: "project", id: 1, tab: "changes" },
     { name: "project", id: 1, tab: "groups", group: 5 },
+    { name: "project", id: 1, tab: "changes", file: { path: "src/a b.ts", line: 3, worktree: "/x/app-worktrees/w" } },
+    { name: "project", id: 1, tab: "changes", file: { path: "README.md" } },
     { name: "newChat", projectId: 2, group: 4 },
     { name: "run", projectId: 2, runId: 30 },
     { name: "run", projectId: 2, runId: 30, focus: 8 },

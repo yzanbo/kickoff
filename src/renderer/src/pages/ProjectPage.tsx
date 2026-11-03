@@ -8,7 +8,7 @@ import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectHeader } from "../components/project/ProjectHeader";
 import { useProjectData } from "../components/project/useProjectData";
 import { useStoredState } from "../hooks/useStoredState";
-import type { ProjectTab, ReopenRoute } from "../router";
+import type { FileTarget, ProjectTab, ReopenRoute } from "../router";
 import { editorWorktreeKey } from "../storageKeys";
 import { WorktreeContext } from "../worktree/worktreeContext";
 
@@ -18,6 +18,7 @@ export function ProjectPage({
   tab,
   focus,
   highlightGroup,
+  openFile,
 }: {
   id: number;
   tab: ProjectTab;
@@ -25,6 +26,8 @@ export function ProjectPage({
   focus?: ReopenRoute;
   /** グループのタブで目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlightGroup?: number;
+  /** エディタタブで開くファイル（チャットの返答のファイルのチップから） */
+  openFile?: FileTarget;
 }) {
   const { data: shown, error } = useProjectData(id);
   const [editing, setEditing] = useState(false);
@@ -38,6 +41,11 @@ export function ProjectPage({
   const [worktree, setWorktree] = useStoredState<string | undefined>(editorWorktreeKey(id), (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes", worktree);
+  // 開くファイルが別の作業場所のものなら、先にその作業場所へ切り替える（切り替わってから ChangesTab に渡す）
+  useEffect(() => {
+    if (openFile && openFile.worktree !== worktree) setWorktree(openFile.worktree);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openFile]);
 
   if (error && !shown) return <div className="page error">{error}</div>;
   if (!shown) return <div className="page muted">読み込み中…</div>;
@@ -54,7 +62,16 @@ export function ProjectPage({
       {tab === "changes" && (
         <WorktreeContext.Provider value={worktree}>
           {/* 作業場所を変えたら、選んでいたファイル・検索などは初めからにする */}
-          <ChangesTab key={worktree ?? ""} projectId={project.id} repoPath={project.repo_path} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
+          <ChangesTab
+            key={worktree ?? ""}
+            projectId={project.id}
+            repoPath={project.repo_path}
+            git={git}
+            worktree={worktree}
+            onWorktreeChange={setWorktree}
+            // 別のプロジェクトを読み込んでいる途中・作業場所を切り替える前は渡さない
+            openFile={!stale && openFile?.worktree === worktree ? openFile : undefined}
+          />
         </WorktreeContext.Provider>
       )}
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}

@@ -6,11 +6,21 @@ import { useWindowEvent } from "./hooks/useWindowEvent";
 const PROJECT_TABS = ["board", "groups", "changes"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
+/** エディタタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
+export interface FileTarget {
+  path: string;
+  line?: number;
+  worktree?: string;
+}
+
 export type Route =
   /** 全プロジェクト（全プロジェクトのチャットのカンバン。URL は #/） */
   | { name: "allProjects" }
-  /** group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき） */
-  | { name: "project"; id: number; tab: ProjectTab; group?: number }
+  /**
+   * group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき）。
+   * file: エディタタブで開くファイル（開いたら URL から外す）
+   */
+  | { name: "project"; id: number; tab: ProjectTab; group?: number; file?: FileTarget }
   | { name: "newChat"; projectId: number; group?: number }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "run"; projectId: number; runId: number; focus?: number };
@@ -37,9 +47,29 @@ export function parse(hash: string): Route {
   if (project) {
     const tab = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "board";
     const group = Number(params.get("group"));
-    return { name: "project", id: Number(project[1]), tab, ...(tab === "groups" && Number.isInteger(group) && group > 0 ? { group } : {}) };
+    const file = tab === "changes" ? parseFileTarget(params) : undefined;
+    return {
+      name: "project",
+      id: Number(project[1]),
+      tab,
+      ...(tab === "groups" && Number.isInteger(group) && group > 0 ? { group } : {}),
+      ...(file ? { file } : {}),
+    };
   }
   return { name: "allProjects" };
+}
+
+/** エディタタブで開くファイル（?file=&line=&worktree=。file がなければ undefined） */
+function parseFileTarget(params: URLSearchParams): FileTarget | undefined {
+  const path = params.get("file");
+  if (!path) return undefined;
+  const line = Number(params.get("line"));
+  const worktree = params.get("worktree");
+  return { path, ...(Number.isInteger(line) && line > 0 ? { line } : {}), ...(worktree ? { worktree } : {}) };
+}
+
+function fileQuery({ path, line, worktree }: FileTarget): string {
+  return `?${new URLSearchParams({ file: path, ...(line ? { line: String(line) } : {}), ...(worktree ? { worktree } : {}) })}`;
 }
 
 /**
@@ -60,9 +90,9 @@ export const useRoute = () => useContext(RouteContext);
 export function href(route: Route): string {
   switch (route.name) {
     case "project":
-      return route.tab === "board"
-        ? `#/projects/${route.id}`
-        : `#/projects/${route.id}/${route.tab}${route.group ? `?group=${route.group}` : ""}`;
+      if (route.tab === "board") return `#/projects/${route.id}`;
+      if (route.tab === "changes") return `#/projects/${route.id}/changes${route.file ? fileQuery(route.file) : ""}`;
+      return `#/projects/${route.id}/${route.tab}${route.group ? `?group=${route.group}` : ""}`;
     case "newChat": {
       return `#/projects/${route.projectId}/new${route.group ? `?group=${route.group}` : ""}`;
     }
@@ -102,6 +132,11 @@ export function openRun(projectId: number, runId: number, focus?: number, option
 /** 新しいチャットを始める（プロジェクトのカンバンへ移り、右側のパネルで始める） */
 export function openNewChat(projectId: number, target: { group?: number } = {}) {
   navigate({ name: "newChat", projectId, ...target });
+}
+
+/** プロジェクトのエディタタブで、ファイルを開く（行があればその行へ移る） */
+export function openProjectFile(projectId: number, file: FileTarget) {
+  navigate({ name: "project", id: projectId, tab: "changes", file });
 }
 
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */

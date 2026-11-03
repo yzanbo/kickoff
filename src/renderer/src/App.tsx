@@ -103,6 +103,7 @@ export function App() {
               tab={route.name === "project" ? route.tab : route.name === "newChat" && route.group ? "groups" : "board"}
               focus={route.name === "project" ? undefined : route}
               highlightGroup={route.name === "project" ? route.group : undefined}
+              openFile={route.name === "project" ? route.file : undefined}
             />
           ) : (
             <AllProjectsPage onNewProject={() => setCreating(true)} />

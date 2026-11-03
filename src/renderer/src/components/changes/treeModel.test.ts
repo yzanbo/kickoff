@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildTree, changeKinds, type TreeNode } from "./treeModel";
+import { buildTree, changeKinds, parentFolders, type TreeNode } from "./treeModel";
 
 const names = (nodes: TreeNode[]): unknown => nodes.map((n) => (n.dir ? { [n.name + (n.ignored ? "（無視）" : "")]: names(n.children) } : n.name + (n.ignored ? "（無視）" : "")));
 
@@ -42,4 +42,9 @@ test("ファイルは未ステージ・競合を優先し、フォルダには�
   assert.equal(folders.get("src"), "M");
   assert.equal(folders.get("src/lib"), "U");
   assert.equal(folders.get("docs"), "!");
+});
+
+test("parentFolders: ファイルの上にあるフォルダを近い順に返す（直下のファイルは空）", () => {
+  assert.deepEqual(parentFolders("a/b/c.ts"), ["a/b", "a"]);
+  assert.deepEqual(parentFolders("README.md"), []);
 });

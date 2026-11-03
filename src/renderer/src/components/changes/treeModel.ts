@@ -62,12 +62,16 @@ export function kindMaps(changes: GitFileChange[]): ChangeKinds {
   for (const change of changes) files.set(change.path, change.kind);
   const stronger = (a: GitChangeKind | undefined, b: GitChangeKind) => (a !== undefined && PRIORITY.indexOf(a) <= PRIORITY.indexOf(b) ? a : b);
   for (const [file, kind] of files) {
-    for (let slash = file.lastIndexOf("/"); slash > 0; slash = file.lastIndexOf("/", slash - 1)) {
-      const folder = file.slice(0, slash);
-      folders.set(folder, stronger(folders.get(folder), kind));
-    }
+    for (const folder of parentFolders(file)) folders.set(folder, stronger(folders.get(folder), kind));
   }
   return { files, folders };
+}
+
+/** ファイルの上にあるフォルダのパス（近い順。"a/b/c.ts" → ["a/b", "a"]） */
+export function parentFolders(file: string): string[] {
+  const out: string[] = [];
+  for (let slash = file.lastIndexOf("/"); slash > 0; slash = file.lastIndexOf("/", slash - 1)) out.push(file.slice(0, slash));
+  return out;
 }
 
 /** 木の中のフォルダのパス（すべて） */
