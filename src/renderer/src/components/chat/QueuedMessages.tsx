@@ -93,6 +93,7 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
         editing?.id === m.id ? (
           <QueuedEditor
             key={m.id}
+            attachments={m.attachments}
             text={editing.text}
             onChange={(text) => setEditing({ id: m.id, text })}
             onSave={() => void api.editQueued(runId, m.id, editing.text).then(() => setEditing(undefined), failed)}
@@ -175,8 +176,21 @@ function QueuedAttachments({ attachments }: { attachments: Attachment[] }) {
   );
 }
 
-/** 待ちの指示を書き直す欄（Enter で保存・Shift+Enter で改行・Esc でやめる） */
-function QueuedEditor({ text, onChange, onSave, onCancel }: { text: string; onChange: (text: string) => void; onSave: () => void; onCancel: () => void }) {
+/** 待ちの指示を書き直す欄（Enter で保存・Shift+Enter で改行・Esc でやめる。添付も並べて出す） */
+function QueuedEditor({
+  attachments,
+  text,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  /** その指示の添付（書き直している間も見られるよう、欄の左に出す。画像は押すと大きく表示） */
+  attachments: Attachment[];
+  text: string;
+  onChange: (text: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Escape") {
       e.preventDefault();
@@ -189,6 +203,7 @@ function QueuedEditor({ text, onChange, onSave, onCancel }: { text: string; onCh
   };
   return (
     <div className="queued-row editing">
+      <QueuedAttachments attachments={attachments} />
       <textarea
         className="queued-editor"
         value={text}
