@@ -1,3 +1,4 @@
+import { busyWithUnread } from "../../../../core/board";
 import { AGENT_STATE_LABELS, type AgentState, type Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import type { RunTitleEditor } from "../../hooks/useRunRename";
@@ -33,6 +34,7 @@ export function RunCardContent({ run, state, projectName, pending = 0, rename }:
       <div className="card-foot">
         <StatusDot color={STATE_TONE[state]} />
         <span className="card-state">{AGENT_STATE_LABELS[state]}</span>
+        {busyWithUnread(run, state) && <UnreadMark />}
         {pending > 0 && <span className="card-pending">回答 {pending}件</span>}
         <span className="card-time">{relativeTime(run.active_at)}</span>
       </div>
@@ -52,9 +54,15 @@ export function RunRowContent({ run, state, projectName, rename }: Props) {
           {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
           <StatusDot color={STATE_TONE[state]} />
           <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
+          {busyWithUnread(run, state) && <UnreadMark />}
         </span>
       </div>
       <span className="card-time">{relativeTime(run.active_at)}</span>
     </>
   );
+}
+
+/** 作業中のまま、まだ見ていない返答がある（状態の横に添える） */
+function UnreadMark() {
+  return <span className="card-unread">未読あり</span>;
 }

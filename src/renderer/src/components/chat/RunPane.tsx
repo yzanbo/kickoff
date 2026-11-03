@@ -56,25 +56,18 @@ interface RunPaneProps {
 export function RunPane({ projectId, runId, focus, onRunChange, visible = true }: RunPaneProps) {
   const { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, live, error } = useRunDetail(runId, projectId);
 
-  // パネルのタブに、チャットの名前を知らせる（名前を変えたらタブもすぐ変わる）
+  // パネルのタブに、チャットの名前と状態（作業中・未読など）を知らせる（変わったらタブもすぐ変わる）
   const notifyRun = useRef(onRunChange);
   notifyRun.current = onRunChange;
   useEffect(() => {
     if (run) notifyRun.current?.(run);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run?.id, run?.title]);
-
-  // 開いて見たので「未読」を消す（パネルに表示したとき・見ている間に作業が終わったとき）。
-  // 右クリックの「未読にする」で付けた印は、表示したままでも消さず、次に開くまで残す
-  useEffect(() => {
-    if (visible && run?.attention) void api.markSeen(run.id).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, run?.id, run?.status]);
+  }, [run?.id, run?.title, run?.status, run?.attention]);
 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} live={live} focus={focus} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} live={live} focus={focus} visible={visible} />
   );
 }
 
@@ -89,6 +82,7 @@ function RunView({
   connection,
   live,
   focus,
+  visible,
 }: {
   run: Run;
   project?: Project;
@@ -103,6 +97,8 @@ function RunView({
   connection: Connection;
   live: string;
   focus?: number;
+  /** チャットを表示しているか（最新の結果を一番下まで見たら既読にする） */
+  visible: boolean;
 }) {
   const options = useRunOptions(
     { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: run.fast_mode },
@@ -191,7 +187,7 @@ function RunView({
         }
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
-      <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
+      <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
       <div className="run-composer">
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">

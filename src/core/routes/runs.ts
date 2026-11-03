@@ -113,10 +113,13 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json(Object.keys(patch).length ? store.updateRun(run.id, patch) : store.getRun(run.id));
   });
 
-  // チャットを開いて確認した（未読を消す）
-  app.post("/api/runs/:id/seen", (c) => {
+  // 確認した（未読を消す）。event_id = 画面で一番下まで見た記録。それより新しい返答が届いていれば、まだ見ていないので消さない
+  // （event_id がなければ、メニューの「既読にする」などで、そのまま消す）
+  app.post("/api/runs/:id/seen", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    return c.json(run.attention ? store.setRunAttention(run.id, false) : run);
+    const { event_id } = z.object({ event_id: z.number().int().optional() }).parse(await c.req.json().catch(() => ({})));
+    if (!run.attention || (event_id !== undefined && store.latestUnreadEventId(run.id) > event_id)) return c.json(run);
+    return c.json(store.setRunAttention(run.id, false));
   });
 
   // 未読にする（未読に戻す。次に開くまで残る）

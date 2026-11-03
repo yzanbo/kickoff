@@ -145,6 +145,10 @@ export class Store {
     this.runs.clearWorktree(projectId, worktreePath);
   }
 
+  latestUnreadEventId(runId: number): number {
+    return this.runs.latestUnreadEventId(runId);
+  }
+
   addEvent(runId: number, event: RunEventData): RunEvent {
     return this.runs.addEvent(runId, event);
   }

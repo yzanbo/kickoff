@@ -178,3 +178,13 @@
   color: var(--muted);
 }
 
+
+/* 作業中のまま、まだ見ていない返答がある（状態の横の小さな札。未読と同じ緑） */
+.card-unread {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dot-attention);
+  background: color-mix(in srgb, var(--dot-attention) 16%, transparent);
+}

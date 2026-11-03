@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { unfinishedBackgroundAgents } from "./backgroundTasks.js";
 import type { ApprovalCenter } from "./approvals.js";
+import { isUnreadEvent } from "./board.js";
 import type { Bus } from "./bus.js";
 import { errorMessage } from "./errors.js";
 import { currentBranch } from "./git.js";
@@ -50,7 +51,7 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
     const branch = await currentBranch(cwd);
     store.updateRun(runId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
 
-    const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, signal), signal);
+    const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, signal, compact), signal);
     applyResult(store, runId, result, compact);
     return { status: result.status, network: result.status === "failed" && Boolean(result.network) };
   } catch (e) {
@@ -94,7 +95,7 @@ function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: st
 }
 
 /** プロバイダーからの知らせ: 途中経過は配るだけ、イベントは記録、承認依頼は回答を待つ（待つ間は waiting） */
-function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, signal: AbortSignal): ProviderCallbacks {
+function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, signal: AbortSignal, compact: boolean): ProviderCallbacks {
   const runId = run.id;
   const projectId = run.project_id;
   return {
@@ -111,7 +112,9 @@ function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, signal
       if (event.type === "init" && event.session_id !== store.getRun(runId)?.session_id) {
         store.updateRun(runId, { session_id: event.session_id });
       }
-      store.addEvent(runId, event);
+      const saved = store.addEvent(runId, event);
+      // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
+      if (!compact && isUnreadEvent(saved) && !store.getRun(runId)?.attention) store.setRunAttention(runId, true);
     },
     requestApproval: async (req, approvalSignal) => {
       const { approval, decision } = approvals.request({ runId, projectId }, req, approvalSignal);
@@ -150,7 +153,7 @@ function applyResult(store: Store, runId: number, result: ProviderRunResult, com
         ? // 要約したあとの大きさが分からないときは、次の応答まで空にしておく
           { context_tokens: null }
         : {}),
-    // 終わったら「未読」にする（中断・要約のときは除く）。チャットを開くと消える
+    // 終わったら「未読」にする（中断・要約のときは除く）。最後の結果を一番下まで見ると消える
     attention: compact || result.status === "cancelled" ? current.attention : true,
   });
   // 裏で動かしたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる

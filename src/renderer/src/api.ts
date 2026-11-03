@@ -174,7 +174,8 @@ export const api = {
     return saved;
   },
   renameRun: (runId: number, title: string) => request<Run>("PATCH", `/api/runs/${runId}`, { title }),
-  markSeen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/seen`),
+  /** eventId: 一番下まで見た記録（それより新しい返答があれば、未読のまま） */
+  markSeen: (runId: number, eventId?: number) => request<Run>("POST", `/api/runs/${runId}/seen`, eventId === undefined ? undefined : { event_id: eventId }),
   markUnseen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/unseen`),
   pinRun: (runId: number, pinned: boolean) => request<Run>("POST", `/api/runs/${runId}/pin`, { pinned }),
   compactRun: (runId: number) => request<Run>("POST", `/api/runs/${runId}/compact`),

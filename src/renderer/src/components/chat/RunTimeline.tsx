@@ -4,7 +4,7 @@ import { cx } from "../../cx";
 import { RUN_STATUS_LABELS } from "../RunStatus";
 import { useTicker } from "../../hooks/useTicker";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
-import type { Approval, Run } from "../../../../core/types";
+import type { Approval, Run, RunEvent } from "../../../../core/types";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { ReconnectRow, RetryLabel, type Connection } from "./ConnectionStatus";
@@ -12,6 +12,7 @@ import { jumpToEvent } from "./jumpToEvent";
 import { StickyPrompt } from "./StickyPrompt";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
+import { useMarkSeen } from "./useMarkSeen";
 
 /**
  * 画面の上に流れて見えなくなった、いちばん下の自分の発言（その返答を読んでいる）。
@@ -98,6 +99,8 @@ export function RunTimeline({
   approvals,
   focus,
   stickToBottom,
+  events,
+  visible,
 }: {
   items: TimelineItem[];
   rel: (s: string) => string;
@@ -114,6 +117,10 @@ export function RunTimeline({
   approvals: Approval[];
   focus?: number;
   stickToBottom: RefObject<boolean>;
+  /** 会話の記録（最新の結果を一番下まで見たら既読にする） */
+  events: RunEvent[];
+  /** チャットを表示しているか（パネルの裏のタブ・閉じたパネルは見ていない） */
+  visible: boolean;
 }) {
   const timelineRef = useRef<HTMLDivElement>(null);
   // 一番下から離れているか（一番下へ戻るボタンを出す）
@@ -139,6 +146,9 @@ export function RunTimeline({
     const el = timelineRef.current;
     if (el && stickToBottom.current && !focus) el.scrollTop = el.scrollHeight;
   }, [items.length, approvals.length, live, focus, stickToBottom]);
+
+  // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
+  useMarkSeen({ timelineRef, run, events, visible, away, slackPx: BOTTOM_SLACK_PX });
 
   function scrollToBottom() {
     const el = timelineRef.current;
