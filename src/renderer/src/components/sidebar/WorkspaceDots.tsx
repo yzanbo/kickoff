@@ -74,9 +74,21 @@ export function WorkspaceDots({
             {...reorder.dropProps(p.id)}
           >
             {initialOf(p.name)}
-            {counts.running > 0 && <span className="workspace-dot-working" aria-label={`作業中 ${counts.running} 件`} />}
-            {(counts.needs_input > 0 || counts.review > 0) && (
-              <span className={cx("workspace-dot-badge", counts.needs_input === 0 && "review")} aria-label={summary} />
+            {/* 状態ごとの件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 回答待ち、右下 = 確認待ち */}
+            {counts.running > 0 && (
+              <span className="workspace-dot-count running" aria-label={`作業中 ${counts.running} 件`}>
+                {counts.running}
+              </span>
+            )}
+            {counts.needs_input > 0 && (
+              <span className="workspace-dot-count needs-input" aria-label={`回答待ち ${counts.needs_input} 件`}>
+                {counts.needs_input}
+              </span>
+            )}
+            {counts.review > 0 && (
+              <span className="workspace-dot-count review" aria-label={`確認待ち ${counts.review} 件`}>
+                {counts.review}
+              </span>
             )}
           </button>
           </Fragment>
