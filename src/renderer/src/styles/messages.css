@@ -156,41 +156,26 @@
   background-color: var(--warn);
 }
 
-/* 発言の目次（見出しのボタンから開く） */
-.chat-outline {
-  position: relative;
-}
-
-.chat-outline-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 50;
-  width: min(380px, 80vw);
-  max-height: min(460px, 70vh);
-  padding: 10px;
-  overflow-y: auto;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elev);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
-  -webkit-app-region: no-drag;
-}
-
-.chat-outline-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.chat-outline-row {
+/* 自分の発言の一覧（チャット欄の上のピル「発言 n」から上に開く。行を押すとその発言へ、右のボタンで入力欄に入れる） */
+.prompt-row {
   display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: var(--radius);
+}
+
+.prompt-row:hover {
+  background: var(--bg-hover);
+}
+
+.prompt-jump {
+  display: flex;
+  flex: 1;
   align-items: baseline;
   gap: 8px;
-  width: 100%;
+  min-width: 0;
   padding: 6px 8px;
   border: none;
-  border-radius: var(--radius);
   font: inherit;
   font-size: 13px;
   text-align: left;
@@ -199,11 +184,7 @@
   cursor: pointer;
 }
 
-.chat-outline-row:hover {
-  background: var(--bg-hover);
-}
-
-.chat-outline-index {
+.prompt-index {
   flex: none;
   min-width: 16px;
   font-size: 11px;
@@ -211,7 +192,7 @@
   text-align: right;
 }
 
-.chat-outline-text {
+.prompt-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -219,7 +200,8 @@
   white-space: nowrap;
 }
 
-.chat-outline-row time {
+.prompt-time {
   flex: none;
   font-size: 11px;
+  color: var(--muted);
 }

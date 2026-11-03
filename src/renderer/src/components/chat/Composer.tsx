@@ -1,5 +1,5 @@
 import { ArrowUp, Paperclip, Square } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
 import type { Attachment } from "../../../../core/types";
 import { api, type GitTarget } from "../../api";
 import { errorMessage } from "../../errors";
@@ -35,6 +35,8 @@ interface Props {
   history?: string[];
   /** 書きかけの文を残す localStorage のキー（既存のチャットの chatDraftKey。新しいチャットはタブの draftText で残すので渡さない） */
   draftKey?: string;
+  /** 外から入力欄に文を入れる口（発言の一覧の「入力欄に入れる」など。入れたら文の終わりにピントを置く） */
+  fillRef?: MutableRefObject<((text: string) => void) | null>;
 }
 
 /** 入力欄を伸ばす上限（px。これを超えたら中でスクロールする） */
@@ -55,11 +57,23 @@ interface PendingFile {
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
 
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget, history, draftKey }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget, history, draftKey, fillRef }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useStoredText(draftKey);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  if (fillRef) {
+    fillRef.current = (value: string) => {
+      setText(value);
+      // 描き直して高さが合ってから、文の終わりにピントを置く
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      });
+    };
+  }
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
   const [compact] = useSharedFlag(COMPOSER_COMPACT_KEY);
   // ↑↓ で前の発言を呼び出す
