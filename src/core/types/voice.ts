@@ -14,6 +14,9 @@ export const VOICE_LANGUAGES = [
   { value: "ko", label: "韓国語" },
 ] as const;
 
+/** 日本語・中国語の文字と全角の記号（起こした文をつなぐとき、この文字どうしの継ぎ目には空白を入れない） */
+export const CJK_CHAR = /[\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}]|[、。・「」『』【】（）！？：；，．ー〜　]/u;
+
 /** OpenAI の文字起こしのモデルの候補（互換のサーバーでは、ほかの名前も入れられる） */
 export const OPENAI_TRANSCRIBE_MODELS = ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"] as const;
 
