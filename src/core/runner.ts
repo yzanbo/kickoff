@@ -31,6 +31,8 @@ export class Runner {
   private readonly followups: FollowupQueue;
   /** アプリを終えるところ（待ちの列を送らない） */
   private shuttingDown = false;
+  /** 割り込んで送る指示（待ちの列には入れず、いまの作業が止まったらいちばん先に送る） */
+  private readonly interrupts = new Map<number, { text: string; options: RunOptions; attachments: Attachment[] }>();
 
   constructor(private readonly deps: ExecutionDeps & { usage: UsageMonitor }) {
     this.followups = new FollowupQueue((runId, queue) => {
@@ -121,6 +123,22 @@ export class Runner {
     return this.followups.edit(runId, id, text.trim());
   }
 
+  /**
+   * 割り込んで送る: 作業中なら、待ちの列には入れずに、いまの作業を止めてからいちばん先に送る（画面の待ちの列に一瞬も出さない）。
+   * 作業中でなければ、すぐ送る
+   */
+  async interrupt(runId: number, text: string, options: RunOptions = {}, attachments: Attachment[] = []): Promise<void> {
+    if (!this.deps.store.getRun(runId)) throw new Error("実行が見つかりません");
+    if (this.active.has(runId)) {
+      this.interrupts.set(runId, { text, options, attachments });
+      this.active.get(runId)!.abort();
+      return;
+    }
+    // 順番待ち（まだ始まっていない）なら取りやめてから送る
+    if (this.isBusy(runId)) this.cancel(runId);
+    await this.send(runId, text, options, attachments);
+  }
+
   /** 待ちの指示をすべて消す（消した数を返す） */
   clearQueued(runId: number): number {
     return this.followups.clear(runId);
@@ -165,6 +183,17 @@ export class Runner {
 
   /** 待ちの列の先頭を送る（送れなければ、理由をチャットに残す） */
   private async sendNextQueued(runId: number) {
+    // 割り込んで送る指示があれば、待ちの列より先に送る
+    const interrupt = this.interrupts.get(runId);
+    if (interrupt) {
+      this.interrupts.delete(runId);
+      try {
+        await this.send(runId, interrupt.text, interrupt.options, interrupt.attachments);
+      } catch (e) {
+        this.deps.store.addEvent(runId, { type: "error", message: `割り込んだ指示を送れませんでした: ${errorMessage(e)}` });
+      }
+      return;
+    }
     const next = this.followups.take(runId);
     if (!next) return;
     try {
@@ -264,6 +293,7 @@ export class Runner {
       void this.deps.usage.refresh();
       // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）
       if (!this.shuttingDown) void this.sendNextQueued(item.runId);
+      else this.interrupts.delete(item.runId);
       this.pump();
     }
   }

@@ -172,6 +172,14 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json({ queue: runner.queued(run.id) });
   });
 
+  // 割り込んで送る（作業中なら、待ちの列には入れずに、いまの作業を止めてからすぐ送る）
+  app.post("/api/runs/:id/interrupt", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
+    await conflictOnError(() => runner.interrupt(run.id, text, options, attachments));
+    return c.json({ ok: true });
+  });
+
   // 待ちの指示の文を書き換える
   app.patch("/api/runs/:id/queue/:queueId", async (c) => {
     const run = requireRun(store, c.req.param("id"));

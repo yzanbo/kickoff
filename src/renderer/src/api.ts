@@ -222,6 +222,9 @@ export const api = {
     request<EffortDefault>("GET", `/api/projects/${projectId}/effort-default?${new URLSearchParams({ ...(model ? { model } : {}), ...(worktree ? { worktree } : {}) })}`),
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
   forkRun: (runId: number, eventId: number) => request<Run>("POST", `/api/runs/${runId}/fork`, { event_id: eventId }),
+  /** 割り込んで送る（作業中なら、待ちの列には入れずに、いまの作業を止めてからすぐ送る） */
+  interrupt: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
+    request<{ ok: true }>("POST", `/api/runs/${runId}/interrupt`, { text, options, attachments }),
   /** 待ちの指示をすべて消す */
   clearQueued: (runId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue`),
   /** 待ちの指示をすべて 1 つにまとめて、すぐ送る（作業中なら止めてから送る） */

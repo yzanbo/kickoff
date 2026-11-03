@@ -146,9 +146,9 @@ function RunView({
             await api.sendMessage(run.id, text, options.options, attachments);
           }}
           onQueue={async (text, attachments) => {
-            const queued = await api.queueMessage(run.id, text, options.options, attachments);
-            // 割り込むときは、列に入れた指示をすぐ送る（いまの作業を止めてから送る）
-            if (queueMode === "interrupt" && queued.id) await api.sendQueuedNow(run.id, queued.id);
+            // 割り込むときは、待ちの列を通さずに、いまの作業を止めてからすぐ送る（列に一瞬出さない）
+            if (queueMode === "interrupt") await api.interrupt(run.id, text, options.options, attachments);
+            else await api.queueMessage(run.id, text, options.options, attachments);
           }}
           busyControls={
             <Segmented<QueueMode>
