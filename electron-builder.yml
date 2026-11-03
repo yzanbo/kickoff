@@ -18,3 +18,7 @@ mac:
   identity: "-"
   # ad-hoc の署名では、ライブラリの検証で読み込みを断られないよう、hardened runtime を使わない
   hardenedRuntime: false
+  # チャット欄の音声入力で、macOS がマイクの許可を聞けるようにする（説明がないと、マイクを使おうとした時点で断られる）。
+  # hardened runtime を使わないので、マイクの entitlement（com.apple.security.device.audio-input）は要らない
+  extendInfo:
+    NSMicrophoneUsageDescription: チャット欄の音声入力で、話した内容を文字にするためにマイクを使います。
