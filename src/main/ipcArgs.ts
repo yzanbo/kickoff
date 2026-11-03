@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { EXTERNAL_TERMINALS, type ExternalTerminalId } from "../core/types.js";
+import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, type ExternalBrowserId, type ExternalTerminalId } from "../core/types.js";
 
 /** よく使う拡張機能の Chrome ウェブストア ID */
 export const KNOWN_EXTENSIONS = {
@@ -59,11 +59,32 @@ export function externalTerminalArgs(id: ExternalTerminalId, dir: string): strin
   }
 }
 
+/** 一覧のうち、この Mac に入っているアプリ（/Applications か ~/Applications にあるもの。always はいつも入っているもの） */
+function installedApps<T extends string>(apps: readonly { id: T; app: string }[], always: T, home: string, exists: (p: string) => boolean): T[] {
+  return apps
+    .filter((a) => a.id === always || [`/Applications/${a.app}.app`, path.join(home, "Applications", `${a.app}.app`)].some(exists))
+    .map((a) => a.id);
+}
+
 /** この Mac に入っている外部のターミナル（Terminal.app はいつも入っている） */
 export function installedTerminals(home = os.homedir(), exists: (p: string) => boolean = fs.existsSync): ExternalTerminalId[] {
-  return EXTERNAL_TERMINALS.filter(
-    (t) => t.id === "terminal" || [`/Applications/${t.app}.app`, path.join(home, "Applications", `${t.app}.app`)].some(exists),
-  ).map((t) => t.id);
+  return installedApps(EXTERNAL_TERMINALS, "terminal", home, exists);
+}
+
+/** 対応している外部のブラウザか確かめる（知らないものは Chrome にする） */
+export function knownBrowser(id: unknown): ExternalBrowserId {
+  return EXTERNAL_BROWSERS.some((b) => b.id === id) ? (id as ExternalBrowserId) : "chrome";
+}
+
+/** 外部のブラウザで開く `open` の引数（url は http(s) のときだけ渡す。なければアプリを開くだけ） */
+export function externalBrowserArgs(id: ExternalBrowserId, url?: unknown): string[] {
+  const app = EXTERNAL_BROWSERS.find((b) => b.id === id)?.app ?? "Google Chrome";
+  return typeof url === "string" && /^https?:\/\//.test(url) ? ["-a", app, url] : ["-a", app];
+}
+
+/** この Mac に入っている外部のブラウザ（Safari はいつも入っている） */
+export function installedBrowsers(home = os.homedir(), exists: (p: string) => boolean = fs.existsSync): ExternalBrowserId[] {
+  return installedApps(EXTERNAL_BROWSERS, "safari", home, exists);
 }
 
 /** Mac の通知の中身（タイトル・本文と、押したときに開くチャット） */

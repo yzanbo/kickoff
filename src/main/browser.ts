@@ -1,5 +1,4 @@
 import { app, session, shell, type Session, type WebContents } from "electron";
-import { execFileAsync } from "../core/exec.js";
 
 // 埋め込みブラウザ（<webview>）のセッションと安全設定。開発者ツールは browserDevtools.ts、拡張機能は browserExtensions.ts
 
@@ -31,14 +30,4 @@ export function hardenWebviews() {
       });
     }
   });
-}
-
-/** Chrome がインストールされていれば Chrome で、なければ既定のブラウザで開く */
-export async function openInChrome(url: string) {
-  if (!/^https?:\/\//.test(url)) return;
-  try {
-    await execFileAsync("open", ["-a", "Google Chrome", url]);
-  } catch {
-    await shell.openExternal(url);
-  }
 }

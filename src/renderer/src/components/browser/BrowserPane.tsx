@@ -2,6 +2,7 @@ import type { WebviewTag } from "electron";
 import { ArrowLeft, ArrowRight, ChevronDown, ExternalLink, Globe, RotateCw, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cx } from "../../cx";
+import { useExternalBrowser } from "../../externalApps";
 import { normalizeUrl } from "../../url";
 import { IconButton } from "../IconButton";
 import { useAnchoredMenu } from "../menus/useAnchoredMenu";
@@ -22,6 +23,8 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
   const ref = useRef<WebviewTag | null>(null);
   const [address, setAddress] = useState(initialUrl);
   const [current, setCurrent] = useState(initialUrl);
+  // 外のブラウザ（パネルのブラウザの ▾ で選ぶ。初めは Chrome）
+  const external = useExternalBrowser();
   const [loading, setLoading] = useState(false);
   const [nav, setNav] = useState({ back: false, forward: false });
   const [error, setError] = useState<string>();
@@ -140,10 +143,10 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
         </span>
         <IconButton
           icon={ExternalLink}
-          label="Chrome で開く"
-          title="Chrome で開く（ログインが必要なページや Bitwarden を使うとき）"
+          label={`${external.label}で開く`}
+          title={`${external.label}で開く（ログインが必要なページや Bitwarden を使うとき。アプリはパネルのブラウザの ▾ で選べます）`}
           type="button"
-          onClick={() => void window.kickoff?.openInChrome(current)}
+          onClick={() => external.open(current)}
         />
       </form>
       {dockMenu.at && <DockMenu {...dockMenu.at} value={devtools.dock} onPick={devtools.changeDock} onClose={dockMenu.close} />}

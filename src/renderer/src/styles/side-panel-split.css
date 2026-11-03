@@ -151,3 +151,19 @@ input[type="text"].panel-tab-input {
   margin: 2px 0 0 auto;
   padding-left: 4px;
 }
+
+/* タブの列のブラウザ・ターミナル: アイコン（新しいタブ）と細い ▾（開き方のメニュー）を 1 つのまとまりにする */
+.panel-split-button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.panel-split-button .panel-open-with {
+  width: 14px;
+  margin-left: -3px;
+}
+
+.panel-split-button .panel-open-with[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--bg-hover);
+}

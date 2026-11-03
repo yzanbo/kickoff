@@ -1,8 +1,7 @@
-import { Archive, ArchiveRestore, ExternalLink } from "lucide-react";
+import { Archive, ArchiveRestore } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Project, Run } from "../../../../core/types";
 import { toggleArchiveRunNow } from "../../runActions";
-import { useExternalTerminal } from "../../externalTerminal";
 import { IconButton } from "../IconButton";
 import { ProjectChip } from "../ProjectChip";
 import { busyWithUnread } from "../../../../core/board";
@@ -27,7 +26,6 @@ export function RunHeader({
   /** 右の道具の列の先頭に置くもの（チャットの中の検索・発言の目次） */
   tools?: ReactNode;
 }) {
-  const external = useExternalTerminal();
   // 状態の印はサイドバーの行・パネルのタブと同じもの（回答待ちの確認があれば回答待ち）
   const { stateOf } = useRunStates();
   const state = waiting ? "needs_input" : stateOf(run);
@@ -52,16 +50,6 @@ export function RunHeader({
           label={run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
           onClick={() => void toggleArchiveRunNow(run)}
         />
-        {/* 外部のターミナル（アプリの外。設定で選んだアプリ）で、作業場所を開く */}
-        {window.kickoff && project && (
-          <IconButton
-            icon={ExternalLink}
-            size={13}
-            label="外部のターミナルで作業場所を開く"
-            title={`${external.label}で開く（${run.worktree_path || project.repo_path}）。アプリは設定の「ターミナル」で選べます`}
-            onClick={() => external.open(run.worktree_path || project.repo_path)}
-          />
-        )}
         </span>
         {/* ターン数と費用（狭いときは隠す） */}
         {(run.num_turns > 0 || run.cost_usd > 0) && (

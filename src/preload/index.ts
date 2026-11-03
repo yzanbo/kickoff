@@ -24,7 +24,10 @@ const api = {
   openInVSCode: (target: string, line?: number): Promise<void> => ipcRenderer.invoke("kickoff:open-in-vscode", target, line),
   /** 参照資料にするフォルダ・ファイルを選ぶ（複数可） */
   pickReferences: (): Promise<string[]> => ipcRenderer.invoke("kickoff:pick-references"),
-  openInChrome: (url: string): Promise<void> => ipcRenderer.invoke("kickoff:open-in-chrome", url),
+  /** 外部のブラウザ（browser: アプリの id。省くと Chrome）でページを開く（url がなければアプリを開くだけ） */
+  openInBrowser: (url: string | undefined, browser?: string): Promise<void> => ipcRenderer.invoke("kickoff:open-in-browser", url, browser),
+  /** この Mac に入っている外部のブラウザの id */
+  externalBrowsers: (): Promise<string[]> => ipcRenderer.invoke("kickoff:external-browsers"),
   /** 埋め込みブラウザ（targetId）の開発者ツールを、別の埋め込みブラウザ（devtoolsId）の中に表示する */
   openDevToolsIn: (targetId: number, devtoolsId: number): Promise<void> => ipcRenderer.invoke("kickoff:browser-devtools-in", targetId, devtoolsId),
   /** 埋め込みブラウザ（targetId）の開発者ツールを、別のウィンドウで開く */
