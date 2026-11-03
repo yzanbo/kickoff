@@ -26,6 +26,7 @@
 @import "./messages.css";
 @import "./new-chat.css";
 @import "./composer.css";
+@import "./dictation.css";
 @import "./queued.css";
 @import "./composer-select.css";
 @import "./subagents.css";

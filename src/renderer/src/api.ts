@@ -33,6 +33,7 @@ import type {
   ProjectSearchResult,
   ProjectSummary,
   ProviderStatus,
+  VoiceStatus,
   WorkspaceInspection,
 } from "../../core/types";
 
@@ -74,6 +75,16 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
   });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
+  }
+  return (await res.json()) as T;
+}
+
+/** multipart（FormData）で送る（添付ファイル・音声） */
+async function postForm<T>(url: string, form: FormData): Promise<T> {
+  const res = await fetch(url, { method: "POST", body: form, credentials: "same-origin" });
   if (!res.ok) {
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
@@ -152,12 +163,7 @@ export const api = {
   upload: async (file: File): Promise<Attachment> => {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch("/api/uploads", { method: "POST", body: form, credentials: "same-origin" });
-    if (!res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
-    }
-    const [saved] = (await res.json()) as Attachment[];
+    const [saved] = await postForm<Attachment[]>("/api/uploads", form);
     return saved;
   },
   renameRun: (runId: number, title: string) => request<Run>("PATCH", `/api/runs/${runId}`, { title }),
@@ -243,6 +249,20 @@ export const api = {
   moveQueuedMany: (runId: number, ids: string[], to: "top" | "bottom") =>
     request<{ moved: number; queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/move-many`, { ids, to }),
   sendQueuedNow: (runId: number, id: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/${id}/send`),
+
+  // 音声入力（文字起こし・準備の状態・この Mac のモデル・OpenAI の API キー）
+  /** 録った音声を文にする（language を省けば設定の言語） */
+  transcribe: (audio: Blob, language?: string) => {
+    const form = new FormData();
+    form.append("file", audio, `voice.${audio.type.includes("mp4") ? "m4a" : "webm"}`);
+    if (language) form.append("language", language);
+    return postForm<{ text: string }>("/api/transcribe", form);
+  },
+  voiceStatus: () => request<VoiceStatus>("GET", "/api/voice"),
+  downloadVoiceModel: (id: string) => request<VoiceStatus>("POST", `/api/voice/models/${encodeURIComponent(id)}/download`),
+  deleteVoiceModel: (id: string) => request<VoiceStatus>("DELETE", `/api/voice/models/${encodeURIComponent(id)}`),
+  /** OpenAI の API キーを保存する（空なら消す）。キーは返らず、保存したかだけ */
+  saveOpenAiKey: (key: string) => request<{ saved: boolean }>("PUT", "/api/voice/openai-key", { key }),
 
   // 承認依頼・質問
   approvals: () => request<Approval[]>("GET", "/api/approvals"),

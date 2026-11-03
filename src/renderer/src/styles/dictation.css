@@ -1,0 +1,128 @@
+/* ==== 音声入力: チャット欄のマイクのボタン（録音中・文字起こし中・失敗）と、設定の「音声入力」（この Mac の準備・モデルの一覧） ==== */
+
+/* 準備ができていないとき（押すと設定を開く）は、ほかの道具より薄く */
+.dictation-button.unready {
+  opacity: 0.55;
+}
+
+/* 録音中: 赤く塗り、ゆっくり脈打たせる */
+.dictation-button.recording,
+.dictation-button.recording:hover {
+  color: #fff;
+  background: var(--ng);
+  animation: dictation-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes dictation-pulse {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--ng) 30%, transparent);
+  }
+}
+
+.dictation-recording,
+.dictation-status {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.dictation-time {
+  min-width: 32px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ng);
+}
+
+.dictation-status {
+  padding: 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dictation-status .spinner {
+  margin-right: 2px;
+}
+
+.dictation-cancel {
+  width: 22px;
+  height: 22px;
+}
+
+/* 失敗の文と「もう一度」（入力欄の下。.composer-error と同じ余白） */
+.dictation-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 8px 16px;
+}
+
+.dictation-error .error {
+  flex: 1;
+  margin: 0;
+}
+
+/* 設定: この Mac の準備（見出しの横に確かめ直すボタン） */
+.voice-tools-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.voice-tools {
+  margin: 4px 0;
+}
+
+/* 設定: モデルの一覧（選んでいるものは枠の色で示す） */
+.voice-models {
+  display: grid;
+  gap: 8px;
+}
+
+.voice-model {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.voice-model.selected {
+  border-color: var(--accent);
+}
+
+.voice-model-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.voice-model-name {
+  font-weight: 600;
+}
+
+.voice-model-recommended {
+  color: var(--accent-bright);
+}
+
+.voice-model-note {
+  margin: 0;
+}
+
+.voice-model-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.voice-model-actions .error {
+  margin: 0;
+}
+
+.voice-model-progress {
+  flex: 1;
+  max-width: 240px;
+}

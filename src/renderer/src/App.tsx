@@ -14,6 +14,7 @@ import { NewProjectDialog } from "./components/newProject/NewProjectDialog";
 import { ProjectChat } from "./components/projectChat/ProjectChat";
 import { ProjectChatContext, useProjectChat } from "./components/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "./components/settings/SettingsDialog";
+import { OPEN_SETTINGS_EVENT } from "./components/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "./components/sidebar/Sidebar";
 import { loadCurrentProject } from "./components/sidebar/currentProject";
 import { useSidebar } from "./components/sidebar/useSidebar";
@@ -82,6 +83,8 @@ export function App() {
   });
   // ボードの検索欄の横のボタンから、チャットの中の文言の全文検索を開く
   useWindowEvent(OPEN_CONTENT_SEARCH_EVENT, () => setSearching(true));
+  // 部品から設定をその項目で開く（チャット欄のマイクから「音声入力」など。開いていれば、その項目に切り替える）
+  useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
 
   return (
     <PlanUsageContext.Provider value={planUsage}>
@@ -137,7 +140,7 @@ export function App() {
             }}
           />
         )}
-        {settings && <SettingsDialog initial={settings} onClose={() => setSettings(null)} />}
+        {settings && <SettingsDialog key={settings} initial={settings} onClose={() => setSettings(null)} />}
         {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}
         <SidebarOpenButton sidebar={sidebar} />
         {/* 右上のレイアウトの開閉（ドラッグ領域より優先されるよう、開くボタンと同じく後ろに置く） */}
