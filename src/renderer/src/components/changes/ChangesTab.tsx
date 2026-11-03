@@ -1,11 +1,12 @@
 import { Files, GitBranch, History, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GitCommit } from "../../../../core/types";
 import { cx } from "../../cx";
 import { baseName } from "../../format";
 import { useActionError } from "../../hooks/useActionError";
 import { useDragWidth } from "../../hooks/useDragWidth";
 import { useStoredChoice } from "../../hooks/useStoredState";
+import { navigate, type FileTarget } from "../../router";
 import { CHANGES_LIST_WIDTH_KEY, CHANGES_VIEW_KEY } from "../../storageKeys";
 import { WorktreePicker } from "../../worktree/WorktreePicker";
 import { ErrorText } from "../ErrorText";
@@ -15,7 +16,7 @@ import { ChangesPane } from "./ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { HistorySidebar } from "./HistoryView";
 import { SearchView } from "./SearchView";
-import { changeKinds } from "./treeModel";
+import { changeKinds, parentFolders } from "./treeModel";
 import { selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
 import { useGitLog } from "./useGitLog";
 import type { GitStatusController } from "./useGitStatus";
@@ -37,6 +38,7 @@ export function ChangesTab({
   git,
   worktree,
   onWorktreeChange,
+  openFile,
 }: {
   projectId: number;
   repoPath: string;
@@ -44,6 +46,8 @@ export function ChangesTab({
   /** 見ている作業場所（ワークツリーのフォルダ。undefined なら本体） */
   worktree?: string;
   onWorktreeChange: (worktree: string | undefined) => void;
+  /** 開くファイル（チャットの返答のファイルのチップから。この作業場所のもの） */
+  openFile?: FileTarget;
 }) {
   const rootName = baseName(worktree ?? repoPath);
   const { status } = git;
@@ -64,6 +68,17 @@ export function ChangesTab({
   const actionError = useActionError();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
   const list = useDragWidth({ storageKey: CHANGES_LIST_WIDTH_KEY, initial: 246 });
+  // チャットの返答のファイルのチップから来たとき: エクスプローラーでそのファイルを選び（行があればその行へ）、
+  // 上のフォルダを開いて、URL からは外す（同じファイルをもう一度押しても開けるように）
+  useEffect(() => {
+    if (!openFile) return;
+    const { path, line } = openFile;
+    setView("files");
+    setOpenFolders((prev) => new Set([...prev, ...parentFolders(path)]));
+    void setSelected(line ? { path, line } : { path });
+    navigate({ name: "project", id: projectId, tab: "changes" }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openFile]);
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
