@@ -173,14 +173,19 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   const moved = await call("POST", `/api/runs/${runId}/queue/${queue[1].id}/move`, { index: 0 });
   assert.deepEqual(moved.body.queue.map((m: { text: string }) => m.text), ["3", "2"]);
   assert.equal((await call("POST", `/api/runs/${runId}/queue/nope/move`, { index: 0 })).status, 404);
-  assert.deepEqual((await call("DELETE", `/api/runs/${runId}/queue/${queue[0].id}`)).body, { queue: [moved.body.queue[0]] });
+  // 書き換え（空にはできない）
+  const edited = await call("PATCH", `/api/runs/${runId}/queue/${queue[1].id}`, { text: " 3 を直した " });
+  assert.equal(edited.body.queue.find((m: { id: string }) => m.id === queue[1].id).text, "3 を直した");
+  assert.equal((await call("PATCH", `/api/runs/${runId}/queue/${queue[1].id}`, { text: "  " })).status, 400);
+  assert.equal((await call("PATCH", `/api/runs/${runId}/queue/nope`, { text: "x" })).status, 404);
+  assert.deepEqual((await call("DELETE", `/api/runs/${runId}/queue/${queue[0].id}`)).body, { queue: [{ ...moved.body.queue[0], text: "3 を直した" }] });
   assert.equal((await call("DELETE", `/api/runs/${runId}/queue/nope`)).status, 404);
   assert.equal((await call("POST", `/api/runs/${runId}/queue/nope/send`)).status, 404);
 
   // すぐ送る: いまの作業を止めてから送る（送った指示も作業中のまま）
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/${queue[1].id}/send`)).body, { ok: true });
   await until(() => provider.prompts.length === 2);
-  assert.equal(provider.prompts[1], "3");
+  assert.equal(provider.prompts[1], "3 を直した");
   assert.deepEqual(runner.queued(runId), []);
   runner.cancel(runId);
   await until(() => !runner.isBusy(runId));

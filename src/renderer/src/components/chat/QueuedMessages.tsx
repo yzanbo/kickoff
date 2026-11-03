@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowUp, ChevronRight, FileText, SendHorizontal, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowDown, ArrowUp, Check, ChevronRight, FileText, Pencil, SendHorizontal, Trash2, X } from "lucide-react";
+import { useState, type KeyboardEvent } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api, attachmentUrl } from "../../api";
 import { ImageViewer } from "../ImageViewer";
@@ -17,6 +17,8 @@ import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
  */
 export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
   const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
+  // 書き直している指示（id と書いている途中の文）
+  const [editing, setEditing] = useState<{ id: string; text: string }>();
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
   const summary = collapsed
@@ -37,11 +39,21 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
         {summary}
       </button>
       {!collapsed && queue.map((m, i) => (
+        editing?.id === m.id ? (
+          <QueuedEditor
+            key={m.id}
+            text={editing.text}
+            onChange={(text) => setEditing({ id: m.id, text })}
+            onSave={() => void api.editQueued(runId, m.id, editing.text).then(() => setEditing(undefined), failed)}
+            onCancel={() => setEditing(undefined)}
+          />
+        ) : (
         <div key={m.id} className="queued-row">
           <QueuedAttachments attachments={m.attachments} />
-          <span className="queued-text" title={m.text}>
+          <span className="queued-text" title={m.text} onDoubleClick={() => setEditing({ id: m.id, text: m.text })}>
             {m.text || m.attachments.map((a) => a.name).join("、")}
           </span>
+          <IconButton icon={Pencil} label="書き直す" title="書き直す（ダブルクリックでも）" size={13} onClick={() => setEditing({ id: m.id, text: m.text })} />
           <IconButton icon={ArrowUp} label="上へ" size={13} disabled={i === 0} onClick={() => void api.moveQueued(runId, m.id, i - 1).catch(failed)} />
           <IconButton
             icon={ArrowDown}
@@ -58,6 +70,7 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
           />
           <IconButton icon={Trash2} label="待ちの列から消す" size={13} onClick={() => void api.removeQueued(runId, m.id).catch(failed)} />
         </div>
+        )
       ))}
     </div>
   );
@@ -85,5 +98,34 @@ function QueuedAttachments({ attachments }: { attachments: Attachment[] }) {
       )}
       {viewing && <ImageViewer src={attachmentUrl(viewing)} name={viewing.name} onClose={() => setViewing(undefined)} />}
     </span>
+  );
+}
+
+/** 待ちの指示を書き直す欄（Enter で保存・Shift+Enter で改行・Esc でやめる） */
+function QueuedEditor({ text, onChange, onSave, onCancel }: { text: string; onChange: (text: string) => void; onSave: () => void; onCancel: () => void }) {
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      onCancel();
+    } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      onSave();
+    }
+  };
+  return (
+    <div className="queued-row editing">
+      <textarea
+        className="queued-editor"
+        value={text}
+        rows={Math.min(6, Math.max(1, text.split("\n").length))}
+        autoFocus
+        aria-label="待ちの指示を書き直す"
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={onKeyDown}
+      />
+      <IconButton icon={Check} label="保存" title="保存（Enter）" size={13} onClick={onSave} />
+      <IconButton icon={X} label="やめる" title="やめる（Esc）" size={13} onClick={onCancel} />
+    </div>
   );
 }

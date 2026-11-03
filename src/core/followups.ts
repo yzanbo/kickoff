@@ -29,6 +29,14 @@ export class FollowupQueue {
     return true;
   }
 
+  /** 文を書き換える（なければ false） */
+  edit(runId: number, id: string, text: string): boolean {
+    const list = this.list(runId);
+    if (!list.some((m) => m.id === id)) return false;
+    this.set(runId, list.map((m) => (m.id === id ? { ...m, text } : m)));
+    return true;
+  }
+
   /** 並べ替える（index は移したあとの位置。範囲の外は端に寄せる。なければ false） */
   move(runId: number, id: string, index: number): boolean {
     const list = [...this.list(runId)];
