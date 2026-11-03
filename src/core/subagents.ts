@@ -30,6 +30,10 @@ export interface SubagentEntry {
   startEventId?: number;
   /** 止まった記録の ID（終わりの知らせ・ツールの結果・通信で親が失敗した結果。分からなければ undefined） */
   endEventId?: number;
+  /** 最後に動いた時刻（サブエージェントの発言・ツール・知らせ。画面に届く途中経過は画面の側で足す） */
+  lastActivityAt?: string;
+  /** 結果を待っているツール（呼んで、まだ結果が届いていない。長いコマンドを実行中など） */
+  pendingTool?: string;
 }
 
 /** Agent / Task ツールの結果の文から、サブエージェントの ID を取り出す（以前の記録で、作業 ID の知らせが残っていないとき） */
@@ -60,10 +64,20 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
   // 通信の切断で止まったもの（行のキー）
   const network = new Set<string>();
   const markNetwork = (key: string, yes: boolean) => (yes ? network.add(key) : network.delete(key));
+  // サブエージェントの中の動き（parent = 起動した呼び出し ID）: 最後に動いた時刻と、結果を待っているツール
+  const touch = (e: RunEvent) => {
+    const d = e.data as { parent?: string; name?: string };
+    const entry = d.parent ? map.get(d.parent) : undefined;
+    if (!entry) return;
+    entry.lastActivityAt = e.created_at;
+    entry.pendingTool = e.type === "tool_use" ? d.name : undefined;
+  };
   for (const e of events) {
+    if (e.type === "text" || e.type === "thinking" || e.type === "tool_result") touch(e);
     if (e.type === "tool_use") {
       const d = e.data as { id: string; name: string; input?: { description?: string; subagent_type?: string; model?: string; prompt?: string } };
       if (!isSubagentTool(d.name)) {
+        touch(e);
         // サブエージェントが報告を渡した（終わりの知らせを取りこぼしても、終わったと分かる）
         const parent = (e.data as { parent?: string }).parent;
         if (d.name === "SubagentHandback" && parent) handedBack.add(parent);
@@ -79,6 +93,7 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
         status: "running",
         toolUseEventId: e.id,
         startEventId: e.id,
+        lastActivityAt: e.created_at,
       });
     } else if (e.type === "tool_result") {
       const d = e.data as { tool_use_id: string; is_error: boolean; content?: unknown };
@@ -118,6 +133,8 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
         ...entry,
         startEventId: restarted ? e.id : (entry.startEventId ?? e.id),
         endEventId: d.status === "running" ? (restarted ? undefined : entry.endEventId) : e.id,
+        lastActivityAt: e.created_at,
+        pendingTool: restarted ? undefined : entry.pendingTool,
         description: entry.description || d.description,
         subagentType: entry.subagentType ?? d.subagent_type,
         status: resumed || !(d.status === "running" && entry.status !== "running") ? d.status : entry.status,

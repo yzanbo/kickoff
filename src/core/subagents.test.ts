@@ -197,3 +197,22 @@ test("サブエージェント: 実行の終わりに終わっていないもの
   const stoppedByUser = [...events, ev(14, "subagent", { task_id: "ta", tool_use_id: "a", description: "", status: "stopped" })];
   assert.deepEqual(unfinishedSubagents(stoppedByUser, 3).map((s) => s.description), ["待つ形"]);
 });
+
+test("サブエージェント: 最後に動いた時刻と、結果を待っているツール（中の発言・ツール・知らせで進める）", () => {
+  const at = (id: number, type: RunEvent["type"], data: object, created_at: string): RunEvent =>
+    ({ id, run_id: 1, type, data, created_at }) as unknown as RunEvent;
+  const events = [
+    at(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "調査" } }, "2026-11-03T12:00:00Z"),
+    at(2, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "調査", status: "running" }, "2026-11-03T12:00:01Z"),
+    at(3, "text", { text: "調べます", sub: true, parent: "tu1" }, "2026-11-03T12:01:00Z"),
+    at(4, "tool_use", { id: "b1", name: "Bash", input: { command: "npm test" }, sub: true, parent: "tu1" }, "2026-11-03T12:02:00Z"),
+  ];
+  const [running] = collectSubagents(events, {}, true);
+  assert.deepEqual([running.lastActivityAt, running.pendingTool], ["2026-11-03T12:02:00Z", "Bash"]);
+  // 結果が届いたら、待っているツールはなくなる
+  const [done] = collectSubagents([...events, at(5, "tool_result", { tool_use_id: "b1", content: "ok", is_error: false, parent: "tu1" }, "2026-11-03T12:20:00Z")], {}, true);
+  assert.deepEqual([done.lastActivityAt, done.pendingTool], ["2026-11-03T12:20:00Z", undefined]);
+  // ほかのサブエージェント・メインの動きでは進めない
+  const [other] = collectSubagents([...events, at(5, "text", { text: "メインの返答" }, "2026-11-03T12:30:00Z")], {}, true);
+  assert.equal(other.lastActivityAt, "2026-11-03T12:02:00Z");
+});
