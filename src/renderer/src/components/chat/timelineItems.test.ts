@@ -75,10 +75,13 @@ test("relativize: リポジトリの絶対パスを相対パスにする（リ�
   assert.equal(relativize("/x/app (1)/src/a.ts", "/x/app (1)"), "src/a.ts");
 });
 
-test("groupEvents: 作業の終わり（result）に、その作業を始めた自分の発言の時刻を付ける", () => {
+test("groupEvents: 作業の終わり（result）に、その作業を始めた自分の発言の時刻と返答の文を付ける", () => {
   const at = (id: number, type: string, time: string, data: object = {}) => ({ ...event(id, type, data), created_at: time });
   const items = groupEvents([
     at(1, "user", "2026-11-01T00:00:00Z", { text: "1 回目" }),
+    at(10, "text", "2026-11-01T00:00:30Z", { text: "答え 1" }),
+    at(11, "text", "2026-11-01T00:00:40Z", { text: "サブ", sub: true, parent: "x" }),
+    at(12, "text", "2026-11-01T00:00:50Z", { text: "答え 2" }),
     at(2, "result", "2026-11-01T00:01:23Z", { status: "completed" }),
     at(3, "user", "2026-11-01T00:05:00Z", { text: "2 回目" }),
     at(4, "user", "2026-11-01T00:05:10Z", { text: "追加" }),
@@ -88,4 +91,7 @@ test("groupEvents: 作業の終わり（result）に、その作業を始めた�
   const starts = items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnStart] : []));
   // 続けて送ったときは最初の発言から数え、発言のない result には付けない
   assert.deepEqual(starts, ["2026-11-01T00:00:00Z", "2026-11-01T00:05:00Z", undefined]);
+  // コピーする返答は、その作業での AI の返答だけ（サブエージェントの発言は含めない）
+  const texts = items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnText] : []));
+  assert.deepEqual(texts, ["答え 1\n\n答え 2", undefined, undefined]);
 });
