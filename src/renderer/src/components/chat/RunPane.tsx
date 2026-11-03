@@ -11,6 +11,7 @@ import { useRunOptions } from "./RunOptionsBar";
 import { RunTimeline } from "./RunTimeline";
 import { SubagentDetail } from "./SubagentDetail";
 import { SubagentChip, useSubagents } from "./Subagents";
+import { TodoChip } from "./TodoChip";
 import { OpenSubagentContext } from "./Timeline";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
@@ -101,6 +102,7 @@ function RunView({
       <div className="run-composer">
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
+          <TodoChip events={events} />
           <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => setSubOpen(s.key)} />
           {/* 同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる） */}
           {busyNeighbors > 0 && (

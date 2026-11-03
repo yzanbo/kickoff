@@ -118,7 +118,7 @@ export function SubagentChip({
   };
 
   return (
-    <div ref={ref} className="subagent-chip-wrap">
+    <div ref={ref} className="chip-wrap">
       <button type="button" className={`composer-chip ${open ? "open" : ""}`} aria-expanded={open} onClick={() => setOpen(!open)}>
         {running > 0 && (
           <span className="chip-mark">
@@ -131,7 +131,7 @@ export function SubagentChip({
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {open && (
-        <div className="subagent-popover" role="dialog" aria-label="サブエージェント">
+        <div className="chip-popover" role="dialog" aria-label="サブエージェント">
           <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => archive(finished.map((s) => s.key))}>
             <Archive size={15} aria-hidden />
             完了したサブエージェントをアーカイブ
