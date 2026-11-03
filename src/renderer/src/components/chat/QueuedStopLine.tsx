@@ -42,7 +42,7 @@ export function QueuedStopLine({
         <GripVertical size={13} aria-hidden />
       </span>
       <span>ここまで送ったら止めます</span>
-      <IconButton icon={X} size={11} label="ここで止めるのをやめる" onClick={onRemove} />
+      <IconButton icon={X} size={11} label="この止める線を外す" onClick={onRemove} />
     </div>
   );
 }

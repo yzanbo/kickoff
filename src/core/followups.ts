@@ -48,7 +48,7 @@ export class FollowupQueue {
     this.notify(runId);
   }
 
-  /** その指示のすぐあとに印を付ける・外す（右クリックの「ここまで自動で送る」。id が null ならすべて外す。id が列になければ false） */
+  /** その指示のすぐあとに印を付ける・外す（右クリックの「この指示のあとで止める」。id が null ならすべて外す。id が列になければ false） */
   setStopAfter(runId: number, id: string | null, stop = true): boolean {
     if (id === null) {
       this.setStops(runId, []);
