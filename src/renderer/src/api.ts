@@ -5,6 +5,7 @@ import type {
   ApprovalDecision,
   ModelOption,
   ProviderId,
+  EffortDefault,
   QueuedMessage,
   Run,
   RunEvent,
@@ -215,6 +216,9 @@ export const api = {
   removeQueued: (runId: number, id: string) => request<{ queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue/${id}`),
   moveQueued: (runId: number, id: string, index: number) =>
     request<{ queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/${id}/move`, { index }),
+  /** 推論の深さを指定しないとき（既定）に Claude Code が使う深さ（設定から求める） */
+  effortDefault: (projectId: number, model: string | null, worktree?: string) =>
+    request<EffortDefault>("GET", `/api/projects/${projectId}/effort-default?${new URLSearchParams({ ...(model ? { model } : {}), ...(worktree ? { worktree } : {}) })}`),
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
   forkRun: (runId: number, eventId: number) => request<Run>("POST", `/api/runs/${runId}/fork`, { event_id: eventId }),
   sendQueuedNow: (runId: number, id: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/${id}/send`),

@@ -6,11 +6,22 @@ import type { EffortLevel, PermissionChoice, ProviderId } from "./settings.js";
 /** チャット欄で選べるモデル */
 export interface ModelOption {
   value: string;
+  /** 別名（opus など）が指すモデルの ID（claude-opus-5-5 など。分からなければなし） */
+  resolvedModel?: string;
   label: string;
   description: string;
   efforts: EffortLevel[];
   supportsAutoMode: boolean;
   supportsFastMode: boolean;
+}
+
+/**
+ * 推論の深さを指定しないとき（既定）に Claude Code が使う深さ。effort が null ならモデルの既定（値は分からない）。
+ * source はどこで決まったか（env = 環境変数 / local・project = 作業フォルダの .claude / user = ~/.claude）
+ */
+export interface EffortDefault {
+  effort: EffortLevel | null;
+  source: "env" | "local" | "project" | "user" | null;
 }
 
 /** 実行ごとに選べるオプション（チャット欄の選択） */
@@ -134,7 +145,8 @@ export interface Attachment {
 
 export type RunEventData =
   | { type: "user"; text: string; attachments?: Attachment[] }
-  | { type: "init"; model?: string; session_id: string; permission_mode?: string }
+  /** effort: 実際に使った推論の深さ（Claude Code が知らせたときだけ。null は深さを送らないモデル） */
+  | { type: "init"; model?: string; session_id: string; permission_mode?: string; effort?: string | null }
   /** sub: サブエージェントの発言。parent: そのサブエージェントを起動した Task / Agent ツールの呼び出し ID */
   | { type: "text"; text: string; sub?: boolean; parent?: string }
   /** 思考（text は既定では空）。duration_ms: 考えていた時間（メインのエージェントで、測れたときだけ） */

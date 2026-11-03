@@ -36,7 +36,9 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
   switch (msg.type) {
     case "system":
       if (msg.subtype === "init") {
-        cb.emit({ type: "init", session_id: msg.session_id, model: msg.model, permission_mode: msg.permissionMode });
+        // effort: 実際に使う推論の深さ（設定・モデルの既定を通したあとの値。CLI が知らせるときだけ）
+        const effort = (msg as { effort?: string | null }).effort;
+        cb.emit({ type: "init", session_id: msg.session_id, model: msg.model, permission_mode: msg.permissionMode, ...(effort !== undefined ? { effort } : {}) });
         return msg.session_id;
       }
       // 会話の要約（手で圧縮したとき・上限に近づいて自動で圧縮されたとき）

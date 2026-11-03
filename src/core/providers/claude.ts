@@ -69,6 +69,7 @@ export class ClaudeProvider implements AgentProvider {
         .filter((m) => m.value !== "default")
         .map((m) => ({
           value: m.value,
+          ...(m.resolvedModel ? { resolvedModel: m.resolvedModel } : {}),
           label: m.displayName,
           description: m.description,
           efforts: (m.supportedEffortLevels ?? []).filter((e): e is EffortLevel => EFFORT_LEVELS.includes(e)),

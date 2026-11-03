@@ -1,3 +1,4 @@
+import { claudeEffortDefault } from "../providers/claudeEffortDefault.js";
 import type { Hono } from "hono";
 import { z } from "zod";
 import { githubStatus } from "../github.js";
@@ -51,6 +52,13 @@ export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, 
 
   // チャット欄の / で出すコマンド（作業場所ごと。プロジェクトのコマンド・スキルも含むので、作業場所のフォルダで調べる。数分はとっておく）
   const commandCache = ttlCache<string, SlashCommandOption[]>(5 * 60_000);
+  // 推論の深さを指定しないとき（既定）に Claude Code が使う深さ（設定から求める。?model= はモデルの ID、?worktree= は作業場所）
+  app.get("/api/projects/:id/effort-default", async (c) => {
+    const project = requireProject(store, c.req.param("id"));
+    const cwd = await requireWorkdir(c, project);
+    return c.json(await claudeEffortDefault(c.req.query("model") || null, cwd));
+  });
+
   app.get("/api/projects/:id/commands", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const cwd = await requireWorkdir(c, project);
