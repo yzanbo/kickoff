@@ -1,4 +1,4 @@
-import { ExternalLink, GitPullRequest, GitPullRequestArrow, Sparkles } from "lucide-react";
+import { ExternalLink, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PullRequestInfo } from "../../../../core/types";
 import { api } from "../../api";
@@ -7,7 +7,9 @@ import { alertDialog, confirmDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { ErrorText } from "../ErrorText";
-import { RefreshButton } from "../IconButton";
+import { IconButton, RefreshButton } from "../IconButton";
+import { baseName } from "../../format";
+import { confirmRemoveWorktree } from "../../worktree/removeWorktree";
 import type { GitStatusController } from "./useGitStatus";
 import { invalidateWorktrees } from "../../worktree/worktreeBranches";
 
@@ -15,7 +17,8 @@ const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オ�
 
 /**
  * ワークツリーの作業の流れ（エディタタブでワークツリーを選んでいるとき、作業場所の右に出す）。
- * プッシュして GitHub に PR を作る → GitHub でマージ → 「片付ける」でワークツリーとブランチを消し、本体を最新にする
+ * プッシュして GitHub に PR を作る → GitHub でマージ → 「片付ける」でワークツリーとブランチを消し、本体を最新にする。
+ * 右端のごみ箱で、PR の状態にかかわらずワークツリーを消せる（ブランチも消すかを選ぶ）
  */
 export function WorktreeBar({
   projectId,
@@ -31,7 +34,7 @@ export function WorktreeBar({
 }) {
   const target = { projectId, worktree };
   const [pr, setPr] = useState<{ value: PullRequestInfo | null } | undefined>();
-  const [busy, setBusy] = useState<"load" | "create" | "finish">();
+  const [busy, setBusy] = useState<"load" | "create" | "finish" | "remove">();
   const [error, setError] = useState<string>();
   const status = git.status?.repo ? git.status : undefined;
 
@@ -90,6 +93,19 @@ export function WorktreeBar({
     }
   };
 
+  // ワークツリーを消す（変更・プッシュしていないコミットを知らせ、ブランチも消すかを選んでもらう）
+  const remove = async () => {
+    setBusy("remove");
+    setError(undefined);
+    try {
+      if (await confirmRemoveWorktree(projectId, { path: worktree, branch: status?.branch ?? null }, status?.branch ?? baseName(worktree))) onFinished();
+      else setBusy(undefined);
+    } catch (e) {
+      setError(errorMessage(e));
+      setBusy(undefined);
+    }
+  };
+
   if (!status) return null;
   const value = pr?.value;
   return (
@@ -118,6 +134,7 @@ export function WorktreeBar({
         )
       )}
       {status.hasOrigin && <RefreshButton label="PR の状態を取り直す" busy={busy === "load"} onClick={() => void load()} />}
+      <IconButton icon={Trash2} label="ワークツリーを消す" title="このワークツリーを消す（ブランチも消すかを選べます）" disabled={Boolean(busy)} onClick={() => void remove()} />
       <ErrorText message={error} />
     </div>
   );
