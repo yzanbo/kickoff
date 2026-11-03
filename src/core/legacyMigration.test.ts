@@ -58,7 +58,7 @@ test("古い v17 の DB を変換する: ID・番号の続き・以前の値の�
   assert.equal(userVersion(db), USER_VERSION_BASE + SCHEMA_VERSION);
   assert.deepEqual(
     db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'run_event_search_%' ORDER BY name").all().map((r) => r.name),
-    ["projects", "run_event_search", "run_events", "run_groups", "runs", "settings"],
+    ["projects", "run_event_search", "run_events", "run_groups", "run_queues", "runs", "settings"],
   );
   assert.match(fs.readdirSync(path.join(path.dirname(file), "backups"))[0], /^kickoff-v17-/);
 

@@ -3,6 +3,7 @@ import { openDatabase } from "./dbOpen.js";
 import type { Notify } from "./store/common.js";
 import { createGroupStore } from "./store/groups.js";
 import { createProjectStore, type ProjectPatch } from "./store/projects.js";
+import { createQueueStore, type SavedQueue } from "./store/queues.js";
 import { createRunStore, type RunFilter, type RunPatch } from "./store/runs.js";
 import { createSettingsStore, type SecretKey } from "./store/settings.js";
 import type {
@@ -29,6 +30,7 @@ export class Store {
   private readonly projects;
   private readonly runs;
   private readonly groups;
+  private readonly queues;
 
   constructor(file: string, onChange: Notify = () => {}) {
     this.db = openDatabase(file);
@@ -36,6 +38,7 @@ export class Store {
     this.projects = createProjectStore(this.db, onChange);
     this.runs = createRunStore(this.db, onChange);
     this.groups = createGroupStore(this.db, onChange, this.runs.get);
+    this.queues = createQueueStore(this.db);
   }
 
   close() {
@@ -184,6 +187,18 @@ export class Store {
       });
     }
     return stale.length;
+  }
+
+  // ---- 送信待ちの指示（store/queues.ts） ----
+
+  /** 保存した送信待ちの列（起動したときに読み戻す） */
+  listQueues(): SavedQueue[] {
+    return this.queues.list();
+  }
+
+  /** 送信待ちの列を丸ごと書く（空なら消す） */
+  saveQueue(queue: SavedQueue) {
+    this.queues.save(queue);
   }
 
   // ---- チャットのグループ（store/groups.ts） ----
