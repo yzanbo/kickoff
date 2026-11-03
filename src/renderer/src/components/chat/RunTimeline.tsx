@@ -178,6 +178,8 @@ export function RunTimeline({
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
   // 本当に動いているかの目安: 最後に何かが届いた時刻（記録・書いている途中の返答・サブエージェントの動き）。
   // Claude Code に問い合わせる手段はないので、1 秒ごとの描き直しで、長く動きがなければ知らせる
+  // 何も届かない間も、動きの様子（「n 分動きがありません」）を進めるため、作業中は定期的に描き直す（流れの各項目は memo しているので軽い）
+  useTicker(busy ? 15_000 : 3_600_000);
   const liveAt = useRef<string>(undefined);
   useEffect(() => {
     if (live) liveAt.current = new Date().toISOString();

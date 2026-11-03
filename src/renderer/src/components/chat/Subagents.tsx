@@ -1,5 +1,5 @@
 import { Archive, ArchiveRestore, ChevronUp } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EFFORT_LABELS, type BackgroundState, type EffortLevel, type ModelOption, type Run, type RunEvent, type SubagentInfo } from "../../../../core/types";
 import { useServerEvent } from "../../events";
 import { formatTokens } from "../../format";
@@ -29,11 +29,14 @@ export function useSubagents(runId: number, events: RunEvent[], busy: boolean, b
     }
   });
   // 裏で動いているものの一覧（Claude Code が知らせる。作業中だけ）にないサブエージェントは、もう動いていない
-  const entries = collectSubagents(events, progress, busy, background ? new Set(background.tasks.map((t) => t.task_id)) : undefined);
-  return entries.map((s) => {
-    const at = s.agentId ? progressAt[s.agentId] : undefined;
-    return at && s.status === "running" ? { ...s, lastActivityAt: latestOf(s.lastActivityAt, at) } : s;
-  });
+  // 記録・途中経過・裏の作業が変わったときだけ組み立て直す（返答が届くたびの描き直しで、記録を全部たどらない）
+  return useMemo(() => {
+    const entries = collectSubagents(events, progress, busy, background ? new Set(background.tasks.map((t) => t.task_id)) : undefined);
+    return entries.map((s) => {
+      const at = s.agentId ? progressAt[s.agentId] : undefined;
+      return at && s.status === "running" ? { ...s, lastActivityAt: latestOf(s.lastActivityAt, at) } : s;
+    });
+  }, [events, progress, progressAt, busy, background]);
 }
 
 
