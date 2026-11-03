@@ -18,7 +18,7 @@ export function useRunDetail(runId: number, projectId: number) {
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   // 待ちの列を、終わっても自動で送らずに止めておくか
   const [queuePaused, setQueuePaused] = useState(false);
-  // 「ここまで自動で送る」の印を付けた待ちの指示
+  // 「ここまで送ったら止めます」の位置（0 = 1 件目の上、n = n 件目のあと）
   const [queueStops, setQueueStops] = useState<number[]>([]);
   // AI の API への通信を再試行しているところ（通信が切れたときなど）と、止まってつながるのを待っているところ
   const [retry, setRetry] = useState<ApiRetryInfo | null>(null);

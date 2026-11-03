@@ -60,7 +60,7 @@ test("送信待ち: 印は指示とは別の位置で持ち、並べ替えでは
   assert.equal(queue.takeNext(run.id), undefined);
   assert.equal(queue.isPaused(run.id), true);
 
-  // 右クリックの「ここまで自動で送る」: その指示のすぐあと
+  // 右クリックの「この指示のあとで止める」: その指示のすぐあと
   queue.setStopAfter(run.id, b.id);
   assert.deepEqual(queue.stopsOf(run.id), [0, 1]);
   queue.setStopAfter(run.id, b.id, false);

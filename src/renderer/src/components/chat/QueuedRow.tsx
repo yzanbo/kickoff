@@ -12,7 +12,7 @@ import { isPreviewable, viewerImagesOf } from "./AttachmentChip";
 /** 送信待ちの 1 行への操作（行のボタンと右クリックのメニューで共通） */
 export interface QueuedRowActions {
   edit: () => void;
-  /** 「ここまで自動で送る」の印を付ける・外す */
+  /** この指示のすぐあとの「ここまで送ったら止めます」を付ける・外す */
   toggleStop: () => void;
   move: (to: number) => void;
   sendNow: () => void;
@@ -60,7 +60,7 @@ export function QueuedRow({
   selectedCount: number;
   /** この行のつまみからドラッグしたときに動く数（選んだ行をつかむと、選んだものをまとめて動かす） */
   dragCount?: number;
-  /** 「ここまで自動で送る」の印を付けた指示か */
+  /** この指示のすぐあとに「ここまで送ったら止めます」があるか */
   isStop: boolean;
   /** 新しいチャットで聞く（文と添付を新しいチャットのタブに入れて開く。remove なら送信待ちから外す = 移す。選んでいれば選んだものすべて） */
   onAsk?: (remove: boolean) => void;
@@ -76,7 +76,8 @@ export function QueuedRow({
   onDrop: (e: DragEvent<HTMLDivElement>) => void;
 }) {
   const [menu, setMenu] = useState<{ x: number; y: number }>();
-  const sendLabel = busy ? "止めずに、いま伝える" : "すぐ送る";
+  // 作業中は止めずに、いまのやり取りに伝える（作業していなければ、すぐ送る）
+  const sendLabel = busy ? "いま伝える（作業は止めない）" : "いますぐ送る";
   return (
     <>
     <div
@@ -102,7 +103,8 @@ export function QueuedRow({
         // 文を選んでいるときは、コピーのための既定のメニューに任せる
         if (window.getSelection()?.toString()) return;
         e.preventDefault();
-        setMenu(clampToViewport(e.clientX, e.clientY, 220, 180));
+        // 行は画面の下のほう（チャット欄のすぐ上）にあるので、メニューの大きさ（項目と区切り線で 400px ほど）を見て、下にはみ出すなら上へ寄せる
+        setMenu(clampToViewport(e.clientX, e.clientY, 300, 400));
       }}
     >
       {/* ドラッグはつまみからだけ（文は選んでコピーできるように、行全体はドラッグにしない） */}
@@ -136,40 +138,50 @@ export function QueuedRow({
       <span className="queued-text" title={m.text}>
         {m.text || m.attachments.map((a) => a.name).join("、")}
       </span>
-      <IconButton icon={Pencil} label="書き直す" title="書き直す（ダブルクリックでも）" size={13} onClick={actions.edit} />
-      <IconButton icon={ArrowUp} label="上へ" size={13} className="queued-move" disabled={i === 0} onClick={() => actions.move(i - 1)} />
-      <IconButton icon={ArrowDown} label="下へ" size={13} className="queued-move" disabled={i === count - 1} onClick={() => actions.move(i + 1)} />
+      <IconButton icon={Pencil} label="文を書き直す" title="文を書き直す（ダブルクリックでも）" size={13} onClick={actions.edit} />
+      <IconButton icon={ArrowUp} label="1 つ上へ移動" size={13} className="queued-move" disabled={i === 0} onClick={() => actions.move(i - 1)} />
+      <IconButton icon={ArrowDown} label="1 つ下へ移動" size={13} className="queued-move" disabled={i === count - 1} onClick={() => actions.move(i + 1)} />
       <IconButton icon={SendHorizontal} label={sendLabel} size={13} onClick={actions.sendNow} />
-      <IconButton icon={Trash2} label="待ちの列から消す" size={13} onClick={actions.remove} />
+      <IconButton icon={Trash2} label="送信待ちから消す" size={13} onClick={actions.remove} />
     </div>
       {/* メニューは行の外に置く（行のダブルクリック・右クリックがメニューの中に効かないように） */}
       {menu && (
         <PopupMenu x={menu.x} y={menu.y} label="送信待ちの指示の操作" onClose={() => setMenu(undefined)}>
           {selectedCount > 1 ? (
-            // 選んだもの全体への操作
+            // 選んだもの全体への操作（送る → 並べ替え → 新しいチャットへ → 消す）
             <>
               <MenuItem onSelect={groupActions.sendTogether}>選んだ {selectedCount} 件をまとめて送る</MenuItem>
-              <MenuItem onSelect={() => groupActions.moveTo("top")}>選んだ {selectedCount} 件をいちばん上へ</MenuItem>
-              <MenuItem onSelect={() => groupActions.moveTo("bottom")}>選んだ {selectedCount} 件をいちばん下へ</MenuItem>
+              <div className="menu-separator" role="separator" />
+              <MenuItem onSelect={() => groupActions.moveTo("top")}>選んだ {selectedCount} 件をいちばん上へ移動</MenuItem>
+              <MenuItem onSelect={() => groupActions.moveTo("bottom")}>選んだ {selectedCount} 件をいちばん下へ移動</MenuItem>
               {onAsk && <AskMenuItems onAsk={onAsk} what={`選んだ ${selectedCount} 件`} />}
+              <div className="menu-separator" role="separator" />
               <MenuItem danger onSelect={groupActions.remove}>
-                選んだ {selectedCount} 件を消す
+                選んだ {selectedCount} 件を送信待ちから消す
               </MenuItem>
             </>
           ) : (
+            // 1 件への操作（書き直す → 送る・止める → 並べ替え → 新しいチャットへ → 消す）
             <>
-              <MenuItem onSelect={actions.edit}>書き直す</MenuItem>
+              <MenuItem onSelect={actions.edit}>文を書き直す</MenuItem>
+              <div className="menu-separator" role="separator" />
               <MenuItem onSelect={actions.sendNow}>{sendLabel}</MenuItem>
-              <MenuItem onSelect={actions.toggleStop} title="この指示を送ったら、残りは送らずに止めておく（途中まで自動で送る）">
-                {isStop ? "ここで止めるのをやめる" : "ここまで自動で送る"}
+              <MenuItem
+                onSelect={actions.toggleStop}
+                title={isStop ? "この指示のあとの「ここまで送ったら止めます」を外します" : "この指示まで自動で送ったら、残りは送らずに止めておきます（線はドラッグで動かせます）"}
+              >
+                {isStop ? "この指示のあとで止めない" : "この指示のあとで止める"}
               </MenuItem>
-              {i > 0 && <MenuItem onSelect={() => actions.move(0)}>いちばん上へ</MenuItem>}
-              {i > 0 && <MenuItem onSelect={() => actions.move(i - 1)}>上へ</MenuItem>}
-              {i < count - 1 && <MenuItem onSelect={() => actions.move(i + 1)}>下へ</MenuItem>}
-              {i < count - 1 && <MenuItem onSelect={() => actions.move(count - 1)}>いちばん下へ</MenuItem>}
+              {count > 1 && <div className="menu-separator" role="separator" />}
+              {i > 0 && <MenuItem onSelect={() => actions.move(0)}>いちばん上へ移動</MenuItem>}
+              {i > 0 && <MenuItem onSelect={() => actions.move(i - 1)}>1 つ上へ移動</MenuItem>}
+              {i < count - 1 && <MenuItem onSelect={() => actions.move(i + 1)}>1 つ下へ移動</MenuItem>}
+              {i < count - 1 && <MenuItem onSelect={() => actions.move(count - 1)}>いちばん下へ移動</MenuItem>}
+              {onAsk && <div className="menu-separator" role="separator" />}
               {onAsk && <AskMenuItems onAsk={onAsk} what="この指示" />}
+              <div className="menu-separator" role="separator" />
               <MenuItem danger onSelect={actions.remove}>
-                待ちの列から消す
+                送信待ちから消す
               </MenuItem>
             </>
           )}

@@ -32,8 +32,8 @@ export function QueuedMoveActions({ runId, selected, failed }: { runId: number; 
   const n = selected.length;
   return (
     <span className="queued-head-moves">
-      <IconButton icon={ArrowUpToLine} size={13} label={`選んだ ${n} 件をいちばん上へ`} onClick={() => void api.moveQueuedMany(runId, selected, "top").catch(failed)} />
-      <IconButton icon={ArrowDownToLine} size={13} label={`選んだ ${n} 件をいちばん下へ`} onClick={() => void api.moveQueuedMany(runId, selected, "bottom").catch(failed)} />
+      <IconButton icon={ArrowUpToLine} size={13} label={`選んだ ${n} 件をいちばん上へ移動`} onClick={() => void api.moveQueuedMany(runId, selected, "top").catch(failed)} />
+      <IconButton icon={ArrowDownToLine} size={13} label={`選んだ ${n} 件をいちばん下へ移動`} onClick={() => void api.moveQueuedMany(runId, selected, "bottom").catch(failed)} />
     </span>
   );
 }

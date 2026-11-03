@@ -25,7 +25,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json({ removed: runner.clearQueued(run.id), queue: runner.queued(run.id) });
   });
 
-  // その指示のすぐあとに「ここまで送ったら止めます」の印を付ける・外す（右クリックの「ここまで自動で送る」。stop: false で外す・id: null ですべて外す。列にない指示なら 404）
+  // その指示のすぐあとに「ここまで送ったら止めます」の印を付ける・外す（右クリックの「この指示のあとで止める」。stop: false で外す・id: null ですべて外す。列にない指示なら 404）
   app.put("/api/runs/:id/queue/stop-after", async (c) => {
     const run = requireRun(store, c.req.param("id"));
     const { id, stop } = z.object({ id: z.string().min(1).max(100).nullable(), stop: z.boolean().default(true) }).parse(await c.req.json());
