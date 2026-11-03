@@ -15,6 +15,12 @@
   -webkit-app-region: drag;
 }
 
+/* 開いているときの開閉ボタンは、信号機ボタンの横ではなく行の右端に置く（閉じているときの「開く」は左上のまま） */
+.sidebar-header .titlebar-toggle {
+  right: var(--gutter);
+  left: auto;
+}
+
 .sidebar-section {
   display: flex;
   flex: 1;
