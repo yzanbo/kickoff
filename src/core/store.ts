@@ -4,7 +4,7 @@ import type { Notify } from "./store/common.js";
 import { createGroupStore } from "./store/groups.js";
 import { createProjectStore, type ProjectPatch } from "./store/projects.js";
 import { createRunStore, type RunFilter, type RunPatch } from "./store/runs.js";
-import { createSettingsStore } from "./store/settings.js";
+import { createSettingsStore, type SecretKey } from "./store/settings.js";
 import type {
   AppSettings,
   NewProject,
@@ -50,6 +50,15 @@ export class Store {
 
   updateSettings(patch: Partial<AppSettings>): AppSettings {
     return this.settings.update(patch);
+  }
+
+  /** API キーなどの秘密の値（設定の一覧・画面への配信には含めない） */
+  getSecret(key: SecretKey): string | null {
+    return this.settings.secret(key);
+  }
+
+  setSecret(key: SecretKey, value: string) {
+    this.settings.setSecret(key, value);
   }
 
   // ---- プロジェクト（store/projects.ts） ----

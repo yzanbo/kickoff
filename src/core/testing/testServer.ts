@@ -12,6 +12,9 @@ import { Store } from "../store.js";
 import type { ProviderId, SlashCommandOption } from "../types.js";
 import { UploadStore } from "../uploads.js";
 import { ServiceUsageMonitor } from "../serviceUsage/index.js";
+import { VoiceService } from "../transcribe/service.js";
+import type { VoiceTools } from "../transcribe/tools.js";
+import type { AudioInput, LocalOptions, OpenAiOptions } from "../transcribe/types.js";
 import type { UsageMonitor } from "../usage.js";
 import { FakeProviderBase } from "./fakeProvider.js";
 
@@ -83,7 +86,25 @@ export function setup() {
     },
     { id: "cursor", label: "Cursor", fetch: async () => Promise.reject(new Error("つながりません")) },
   ]);
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads });
+  // 音声入力: 文字起こしとコマンドの探し方・ダウンロードを偽物にする（呼ばれた方法と値を覚える）
+  const voiceFake = {
+    tools: { whisper: "/fake/whisper-cli", ffmpeg: "/fake/ffmpeg" } as VoiceTools,
+    calls: [] as { engine: "local" | "openai"; audio: AudioInput; opts: LocalOptions | OpenAiOptions }[],
+    /** ダウンロードで返す中身（Response を返す関数） */
+    download: async (): Promise<Response> => new Response(new Uint8Array([1, 2, 3]), { headers: { "content-length": "3" } }),
+  };
+  const voice = new VoiceService({
+    store,
+    modelsDir: tempDir(),
+    publish: (e) => bus.publish(e),
+    engines: {
+      local: async (audio, opts) => (voiceFake.calls.push({ engine: "local", audio, opts }), "ローカルの文"),
+      openai: async (audio, opts) => (voiceFake.calls.push({ engine: "openai", audio, opts }), "OpenAI の文"),
+    },
+    findTools: async () => voiceFake.tools,
+    fetch: () => voiceFake.download(),
+  });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice });
   const project = store.createProject({ name: "p", repo_path: tempDir(), provider: "claude" });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
@@ -96,7 +117,7 @@ export function setup() {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, runner, project, call, provider, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, voiceFake, codexCalls: () => codexCalls };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 10));

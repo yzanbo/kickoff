@@ -21,3 +21,6 @@ export const flag = z.enum(["0", "1"]);
 export const branchName = z.string().trim().min(1).max(200);
 
 export const groupName = z.string().trim().min(1).max(60);
+
+/** 音声入力の言語（"auto" か、ISO 639-1 などの言語コード） */
+export const voiceLanguage = z.string().regex(/^(auto|[a-z]{2,3})$/, "言語の指定が正しくありません");

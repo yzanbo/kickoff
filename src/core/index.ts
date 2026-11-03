@@ -13,6 +13,7 @@ import { ApprovalCenter } from "./approvals.js";
 import { Runner } from "./runner.js";
 import { UploadStore } from "./uploads.js";
 import { startAutoArchive } from "./autoArchive.js";
+import { VoiceService } from "./transcribe/service.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -50,6 +51,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus });
+  // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
+  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), publish: (e) => bus.publish(e) });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
@@ -61,6 +64,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     runner,
     approvals,
     uploads,
+    voice,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });
@@ -83,6 +87,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     approvals,
     close: async () => {
       runner.shutdown();
+      voice.downloads.stopAll();
       usage.stop();
       stopAutoArchive();
       await stopHttpServer(server);

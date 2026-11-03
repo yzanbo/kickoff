@@ -4,6 +4,7 @@ import type { AppSettings } from "./settings.js";
 import type { Project } from "./project.js";
 import type { PlanUsage } from "./provider.js";
 import type { QueuedMessage, Run, RunEvent, RunGroup, SubagentInfo } from "./run.js";
+import type { VoiceDownload } from "./voice.js";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
 export type BusEvent =
@@ -25,4 +26,6 @@ export type BusEvent =
   | { type: "approval"; approval: Approval }
   | { type: "approval_resolved"; id: string; run_id: number }
   | { type: "settings"; settings: AppSettings }
-  | { type: "usage"; usage: PlanUsage };
+  | { type: "usage"; usage: PlanUsage }
+  /** 音声入力のモデルのダウンロードの進み具合（download が null なら終わった・やめた。downloaded はファイルがあるか） */
+  | { type: "voice_model"; id: string; download: VoiceDownload | null; downloaded: boolean };

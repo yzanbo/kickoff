@@ -1,7 +1,9 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
-import { EFFORT_LEVELS, PERMISSION_CHOICES, PROVIDER_IDS } from "../types.js";
+import { WHISPER_MODEL_IDS } from "../transcribe/models.js";
+import { EFFORT_LEVELS, PERMISSION_CHOICES, PROVIDER_IDS, VOICE_PROVIDERS } from "../types.js";
+import { voiceLanguage } from "./schemas.js";
 
 const settingsSchema = z
   .object({
@@ -16,6 +18,12 @@ const settingsSchema = z
     defaultPermission: z.enum(PERMISSION_CHOICES),
     defaultFastMode: z.boolean(),
     autoArchiveDays: z.number().int().min(1).max(365).nullable(),
+    voiceEnabled: z.boolean(),
+    voiceProvider: z.enum(VOICE_PROVIDERS),
+    voiceLanguage,
+    voiceModel: z.enum(WHISPER_MODEL_IDS),
+    voiceOpenaiBaseUrl: z.union([z.literal(""), z.url({ protocol: /^https?$/ })]),
+    voiceOpenaiModel: z.string().trim().min(1).max(100),
   })
   .partial();
 

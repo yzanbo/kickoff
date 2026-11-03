@@ -1,5 +1,7 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // プロバイダー・推論の深さ・権限モードの定数と、アプリ全体の設定
+import type { VoiceProvider } from "./voice.js";
+
 export const PROVIDER_IDS = ["claude", "codex", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
@@ -47,6 +49,18 @@ export interface AppSettings {
   projectsDir: string;
   /** 完了したチャットを、この日数がたったら自動でアーカイブする（null ならしない） */
   autoArchiveDays: number | null;
+  /** チャット欄の音声入力（マイクのボタン）を使うか */
+  voiceEnabled: boolean;
+  /** 文字起こしの方法（この Mac / OpenAI） */
+  voiceProvider: VoiceProvider;
+  /** 話す言語（"auto" なら自動で判別。VOICE_LANGUAGES） */
+  voiceLanguage: string;
+  /** この Mac で使う whisper のモデルの id（transcribe/models.ts の WHISPER_MODELS） */
+  voiceModel: string;
+  /** OpenAI 互換のサーバーの URL（空なら https://api.openai.com/v1）。API キーは設定とは別に保存し、ここには入れない */
+  voiceOpenaiBaseUrl: string;
+  /** OpenAI の文字起こしのモデル */
+  voiceOpenaiModel: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -61,6 +75,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   desktopNotifications: true,
   projectsDir: "~/Documents",
   autoArchiveDays: null,
+  voiceEnabled: false,
+  voiceProvider: "local",
+  voiceLanguage: "ja",
+  voiceModel: "large-v3-turbo-q5_0",
+  voiceOpenaiBaseUrl: "",
+  voiceOpenaiModel: "gpt-4o-transcribe",
 };
 
 /** 外部のターミナルとして開けるアプリ（id は保存に使う。app は /Applications の中の名前。開き方はメインプロセスの ipcArgs.ts） */

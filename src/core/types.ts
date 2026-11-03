@@ -8,3 +8,4 @@ export * from "./types/git.js";
 export * from "./types/server.js";
 export * from "./types/store.js";
 export * from "./types/bus.js";
+export * from "./types/voice.js";
