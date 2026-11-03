@@ -177,6 +177,8 @@ export interface ReconnectState {
   attempts: number;
   /** 自動で再開する回数の上限（超えたら人に聞く） */
   max: number;
+  /** 通信の切断で止まり、つながったら続きから再開を頼むサブエージェントの名前（なければ空） */
+  agents: string[];
 }
 
 export type RunEventData =

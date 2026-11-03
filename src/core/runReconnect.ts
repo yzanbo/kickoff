@@ -71,7 +71,8 @@ export class RunReconnect {
 
   /** つながったら自動で再開するのを待っているか（画面に出す） */
   state(runId: number): ReconnectState | null {
-    return this.watcher.has(runId) ? { attempts: this.attempts.get(runId) ?? 0, max: MAX_AUTO_RESUMES } : null;
+    if (!this.watcher.has(runId)) return null;
+    return { attempts: this.attempts.get(runId) ?? 0, max: MAX_AUTO_RESUMES, agents: [...(this.stoppedAgents.get(runId)?.values() ?? [])] };
   }
 
   /**

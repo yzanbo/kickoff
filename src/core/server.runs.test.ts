@@ -334,7 +334,7 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   assert.equal(store.getRun(runId)?.status, "failed");
   assert.equal(runner.queuePaused(runId), true);
   assert.deepEqual(runner.queued(runId).map((m) => m.text), ["次"]);
-  assert.deepEqual((await call("GET", `/api/runs/${runId}`)).body.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES });
+  assert.deepEqual((await call("GET", `/api/runs/${runId}`)).body.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES, agents: [] });
   assert.ok(store.listEvents(runId).some((e) => e.type === "notice" && /自動で再開します/.test(JSON.stringify(e.data))));
   // つながらない間は何も送らない（送信待ちも送らない）
   await new Promise((r) => setTimeout(r, 30));
@@ -364,6 +364,8 @@ test("通信の切断: 通信で止まったサブエージェントは、自動
   const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
   await until(() => runner.reconnectState(runId) !== null);
   provider.emits = [];
+  // つながるのを待っている間は、続きから再開を頼むサブエージェントの名前も返す（画面の待っている行に添える）
+  assert.deepEqual((await call("GET", `/api/runs/${runId}`)).body.reconnect.agents, ["調査"]);
   const events = store.listEvents(runId);
   // 実行の終わりの記録に通信の切断の印。お知らせには、止まったサブエージェントの名前を添える
   assert.ok(events.some((e) => e.type === "result" && (e.data as { network?: boolean }).network === true));

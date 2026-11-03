@@ -40,3 +40,10 @@ test("ワークツリーのチャット: 指示の「リポジトリ」は作業
   assert.ok(main.includes("- リポジトリ: /tmp/a"));
   assert.ok(!main.includes("本体のフォルダ"));
 });
+
+test("指示: 通信のエラーで止まったサブエージェントは 1 回だけ続きから再開し、ほかの失敗・利用者が止めたものは再開しない", () => {
+  const prompt = buildSystemPrompt(project([]));
+  assert.match(prompt, /API・通信のエラー/);
+  assert.match(prompt, /1 回だけ再開/);
+  assert.match(prompt, /利用者が止めたもの（中断）は、再開も立ち上げ直しもせず/);
+});
