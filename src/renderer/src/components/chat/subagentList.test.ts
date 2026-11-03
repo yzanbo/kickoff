@@ -29,6 +29,20 @@ test("サブエージェント: 呼び出し・通知・途中経過をまとめ
   assert.equal(stopped[1].status, "stopped");
 });
 
+test("サブエージェント: 以前の記録に残った、裏で動かしたコマンド（Bash）のタスクは出さない", () => {
+  const events = [
+    ev(1, "tool_use", { id: "bash1", name: "Bash", input: { command: "npm run dev", run_in_background: true } }),
+    ev(2, "subagent", { task_id: "b1", tool_use_id: "bash1", description: "開発版を起動する", status: "running" }),
+    ev(3, "subagent", { task_id: "b1", tool_use_id: "bash1", description: "", status: "failed" }),
+    ev(4, "tool_use", { id: "tu1", name: "Agent", input: { description: "調査" } }),
+    ev(5, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "", status: "completed" }),
+  ];
+  assert.deepEqual(
+    collectSubagents(events, {}, false).map((s) => [s.key, s.status]),
+    [["tu1", "completed"]],
+  );
+});
+
 test("サブエージェントの報告: 前置きと字下げを外す", () => {
   const raw =
     "  <tools-used-before-summary>Glob</tools-used-before-summary>\n  \n[Subagent hand-back] The text below is ... The report follows:\n  ありませんでした。\n  \n  ファイルは変更していません。";

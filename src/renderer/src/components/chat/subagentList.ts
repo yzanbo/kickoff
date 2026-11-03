@@ -37,10 +37,15 @@ export function isSubagentTool(name: string): boolean {
  */
 export function collectSubagents(events: RunEvent[], progress: Record<string, SubagentInfo>, busy: boolean): SubagentEntry[] {
   const map = new Map<string, SubagentEntry>();
+  // サブエージェントでないツール（Bash など）の呼び出し。以前の記録には、裏で動かしたコマンドのタスクも subagent として残っているので除く
+  const otherTools = new Set<string>();
   for (const e of events) {
     if (e.type === "tool_use") {
       const d = e.data as { id: string; name: string; input?: { description?: string; subagent_type?: string; model?: string } };
-      if (!isSubagentTool(d.name)) continue;
+      if (!isSubagentTool(d.name)) {
+        otherTools.add(d.id);
+        continue;
+      }
       map.set(d.id, {
         key: d.id,
         description: d.input?.description ?? "サブエージェント",
@@ -56,6 +61,7 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
     } else if (e.type === "subagent") {
       const d = e.data as unknown as SubagentInfo;
       const key = d.tool_use_id ?? d.task_id;
+      if (otherTools.has(key)) continue;
       const entry = map.get(key) ?? { key, description: d.description || "サブエージェント", status: d.status };
       map.set(key, {
         ...entry,
