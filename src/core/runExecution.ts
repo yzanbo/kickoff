@@ -30,6 +30,8 @@ export interface ExecutionDeps {
 export interface QueueItem {
   runId: number;
   prompt: string;
+  /** 指示の ID（自分の発言の記録の message_uuid。ファイルを戻すときの目印） */
+  promptId?: string;
   /** 会話の要約（/compact）。発言・結果としては残さず、未読にもしない */
   compact?: boolean;
 }
@@ -55,7 +57,7 @@ export interface StoppedAgent {
  * 1 回の実行（待機列から取り出したもの）を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。
  * 失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
-export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact = false }: QueueItem, signal: AbortSignal): Promise<RunOutcome> {
+export async function executeRun(deps: ExecutionDeps, { runId, prompt, promptId, compact = false }: QueueItem, signal: AbortSignal): Promise<RunOutcome> {
   const { store, providers, bus } = deps;
   try {
     const run = store.getRun(runId)!;
@@ -67,7 +69,7 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
     const since = store.listEvents(runId).at(-1)?.id ?? 0;
 
-    const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, signal, compact), signal);
+    const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt, promptId), callbacksFor(deps, run, signal, compact), signal);
     const network = result.status === "failed" && Boolean(result.network);
     applyResult(store, runId, result, compact, since, network);
     const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
@@ -98,10 +100,11 @@ async function resolveWorkdir(run: Run, project: Project): Promise<string> {
 }
 
 /** プロバイダーに渡すもの（作業場所・指示・権限） */
-function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: string, prompt: string): ProviderRunParams {
+function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: string, prompt: string, promptId?: string): ProviderRunParams {
   return {
     cwd,
     prompt,
+    ...(promptId ? { promptId } : {}),
     systemPrompt: buildSystemPrompt(project, cwd),
     policy: CHAT_POLICY,
     resumeSessionId: run.session_id,

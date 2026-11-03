@@ -37,6 +37,7 @@ import type {
   ProviderStatus,
   VoiceStatus,
   WorkspaceInspection,
+  FileRewindResult,
 } from "../../core/types";
 
 interface NewProjectInput {
@@ -246,8 +247,11 @@ export const api = {
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
   forkRun: (runId: number, eventId: number) => request<Run>("POST", `/api/runs/${runId}/fork`, { event_id: eventId }),
   /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。ファイルの変更は戻さない） */
-  rewindRun: (runId: number, eventId: number, text: string, options: RunOptions = {}) =>
-    request<Run>("POST", `/api/runs/${runId}/rewind`, { event_id: eventId, text, options }),
+  rewindRun: (runId: number, eventId: number, text: string, options: RunOptions = {}, restoreFiles = false) =>
+    request<Run>("POST", `/api/runs/${runId}/rewind`, { event_id: eventId, text, options, restore_files: restoreFiles }),
+  /** ファイルだけを、自分の発言を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけ） */
+  rewindFiles: (runId: number, eventId: number, dryRun: boolean) =>
+    request<FileRewindResult>("POST", `/api/runs/${runId}/rewind-files`, { event_id: eventId, dry_run: dryRun }),
   /**
    * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）。
    * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った

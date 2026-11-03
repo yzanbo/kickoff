@@ -74,3 +74,12 @@ export interface PlanUsage {
   fetched_at: string;
   error?: string;
 }
+
+/** ファイルを戻した結果（canRewind: 戻せる・戻せたか。filesChanged: 変わるファイル。insertions / deletions: 行の増減） */
+export interface FileRewindResult {
+  canRewind: boolean;
+  error?: string;
+  filesChanged?: string[];
+  insertions?: number;
+  deletions?: number;
+}

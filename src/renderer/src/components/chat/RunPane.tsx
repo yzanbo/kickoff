@@ -35,6 +35,7 @@ import { useStoredState } from "../../hooks/useStoredState";
 import { QUEUE_MODE_KEY } from "../../storageKeys";
 import { Segmented, type SegmentOption } from "../Segmented";
 import { SelectionComment } from "./SelectionComment";
+import { confirmRewindSend, restoreFilesBefore } from "./rewindActions";
 
 type QueueMode = QueueSendMode;
 
@@ -189,10 +190,15 @@ function RunView({
   const rewind = useMemo(
     () => ({
       busy,
+      // 確かめ（その発言のあとに AI が変えたファイルがあれば、会話だけ / ファイルも から選ぶ）てから送る。やめたら false
       send: async (eventId: number, text: string) => {
+        const choice = await confirmRewindSend(run.id, eventId);
+        if (!choice) return false;
         stickToBottom.current = true;
-        await api.rewindRun(run.id, eventId, text, rewindOptions.current);
+        await api.rewindRun(run.id, eventId, text, rewindOptions.current, choice.restoreFiles);
+        return true;
       },
+      restoreFiles: (eventId: number) => restoreFilesBefore(run.id, eventId),
     }),
     [busy, run.id],
   );

@@ -12,7 +12,7 @@ import { errorMessage } from "../errors.js";
 import { isNetworkError } from "../networkErrors.js";
 import { isUsageLimitError, resetTimeOf } from "../usageLimit.js";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claudeLabels.js";
-import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
+import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
 import { createCanUseTool } from "./claudeApprovals.js";
 import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
 import { createMessageState, emitSdkMessage } from "./claudeMessages.js";
@@ -103,7 +103,7 @@ export class ClaudeProvider implements AgentProvider {
    * メッセージを送らないセッションを一瞬開いて、制御用の API だけを呼ぶ。
    * モデルへのリクエストは発生しないので、使用枠を消費しない。
    */
-  private async withIdleSession<T>(fn: (q: Query) => Promise<T>, extra: Pick<Options, "cwd" | "settingSources"> = {}): Promise<T> {
+  private async withIdleSession<T>(fn: (q: Query) => Promise<T>, extra: Pick<Options, "cwd" | "settingSources" | "resume" | "enableFileCheckpointing"> = {}): Promise<T> {
     let release!: () => void;
     const idle = new Promise<void>((resolve) => (release = resolve));
     async function* noMessages(): AsyncGenerator<SDKUserMessage> {
@@ -146,7 +146,7 @@ export class ClaudeProvider implements AgentProvider {
     const usageLimit = (error: string | undefined) => (limited || isUsageLimitError(error) ? { usageLimit: { resetsAt: limitResetsAt } } : {});
 
     // 入力はストリーミング（作業中に発言を足す・裏の作業を止めるため、返答が終わり裏の作業もなくなるまで開いておく）
-    const input = createInputChannel(params.prompt);
+    const input = createInputChannel(params.prompt, params.promptId);
     try {
       const q = query({
         prompt: input.messages,
@@ -168,12 +168,14 @@ export class ClaudeProvider implements AgentProvider {
           pathToClaudeCodeExecutable: this.executable,
           hooks: runHooks(params, this.self),
           includePartialMessages: true,
+          // 編集の前のファイルを取っておく（巻き戻しで、自分の発言の時点のファイルに戻せるように）
+          enableFileCheckpointing: true,
           ...(params.fastMode ? { settings: { fastMode: true } } : {}),
         },
       });
 
       // 作業中の発言の足し方と、裏の作業の止め方を Runner に渡す
-      cb.control?.({ tell: (text) => input.push(text), stopTask: (taskId) => q.stopTask(taskId) });
+      cb.control?.({ tell: (text, uuid) => input.push(text, uuid), stopTask: (taskId) => q.stopTask(taskId) });
       // 思考の時間を測る（流れてくる途中経過で始まりと終わりを見る）
       const messageState = createMessageState();
       // 裏で動いている作業と、メインの返答が終わったか（変わったときだけ知らせる）
@@ -259,6 +261,11 @@ export class ClaudeProvider implements AgentProvider {
     } catch {
       return (await forkSession(sessionId, { upToMessageId: messageId })).sessionId;
     }
+  }
+
+  /** ファイルを、会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに量だけ）。発言は送らずにセッションを開いて頼む */
+  async rewindFiles(sessionId: string, messageId: string, cwd: string, dryRun: boolean): Promise<FileRewindResult> {
+    return this.withIdleSession((q) => q.rewindFiles(messageId, { dryRun }), { cwd, resume: sessionId, enableFileCheckpointing: true });
   }
 
   /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */

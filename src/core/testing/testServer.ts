@@ -9,7 +9,7 @@ import type { AgentProvider, ProviderCallbacks, ProviderRunResult } from "../pro
 import { Runner } from "../runner.js";
 import { createApp } from "../server.js";
 import { Store } from "../store.js";
-import type { BackgroundState, ProviderId, SlashCommandOption } from "../types.js";
+import type { BackgroundState, FileRewindResult, ProviderId, SlashCommandOption } from "../types.js";
 import { UploadStore } from "../uploads.js";
 import { ServiceUsageMonitor } from "../serviceUsage/index.js";
 import { VoiceService } from "../transcribe/service.js";
@@ -43,9 +43,10 @@ class FakeProvider extends FakeProviderBase {
   acceptTell = true;
   /** これがあれば、外から release するまで作業中のままにする（止められたら cancelled） */
   private gate: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "control">, signal: AbortSignal): Promise<ProviderRunResult> {
+  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "control">, signal: AbortSignal): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
+    this.promptIds.push(params.promptId);
     this.resumes.push(params.resumeSessionId);
     this.emits.forEach((event) => cb.emit(event));
     if (this.background) cb.background?.(this.background);
@@ -69,6 +70,15 @@ class FakeProvider extends FakeProviderBase {
   }
   /** 分岐したときの引数（会話・位置・作業フォルダ） */
   forks: [string, string, string][] = [];
+  /** ファイルを戻した呼び出し（会話・発言の ID・作業フォルダ・dryRun）と、返す結果 */
+  rewinds: [string, string, string, boolean][] = [];
+  rewindResult: FileRewindResult = { canRewind: true, filesChanged: ["/r/a.ts", "/r/b.ts"], insertions: 3, deletions: 1 };
+  async rewindFiles(sessionId: string, messageId: string, cwd: string, dryRun: boolean) {
+    this.rewinds.push([sessionId, messageId, cwd, dryRun]);
+    return this.rewindResult;
+  }
+  /** 渡した指示の ID（自分の発言の記録の message_uuid と同じもの） */
+  promptIds: (string | undefined)[] = [];
   async fork(sessionId: string, messageId: string, cwd: string) {
     this.forks.push([sessionId, messageId, cwd]);
     return `fork-${this.forks.length}`;

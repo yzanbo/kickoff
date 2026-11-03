@@ -1,5 +1,5 @@
 import type { ChatPolicy } from "../chatPolicy.js";
-import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "../types.js";
+import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "../types.js";
 
 /**
  * エージェント実行基盤の抽象化。
@@ -23,6 +23,8 @@ export interface AgentProvider {
   title?(text: string): Promise<string>;
   /** 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装） */
   fork?(sessionId: string, messageId: string, cwd: string): Promise<string>;
+  /** ファイルを、その会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけを返す）。作業中でないときに呼ぶ */
+  rewindFiles?(sessionId: string, messageId: string, cwd: string, dryRun: boolean): Promise<FileRewindResult>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
   run(params: ProviderRunParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderRunResult>;
 }
@@ -30,6 +32,8 @@ export interface AgentProvider {
 export interface ProviderRunParams {
   cwd: string;
   prompt: string;
+  /** 指示の ID（自分の発言の記録の message_uuid。ファイルをこの発言の時点に戻すときの目印） */
+  promptId?: string;
   /** プロバイダー既定のシステムプロンプトに追記する Kickoff の文脈 */
   systemPrompt: string;
   policy: ChatPolicy;
@@ -63,7 +67,7 @@ type AgentEvent = Exclude<RunEventData, { type: "user" | "approval" | "approval_
 /** 作業中のチャットへの操作（ストリーミング入力が開いている間だけ） */
 export interface RunControl {
   /** 作業を止めずに発言を足す（いまの手順の切れ目でメインのエージェントが読む）。入力が閉じていれば false */
-  tell(text: string): boolean;
+  tell(text: string, uuid?: string): boolean;
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
   stopTask(taskId: string): Promise<void>;
 }
