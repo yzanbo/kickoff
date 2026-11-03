@@ -1,8 +1,7 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type CSSProperties } from "react";
 import { BrowserPane } from "../browser/BrowserPane";
 import { RunPane } from "../chat/RunPane";
 import { NewChatPane } from "./NewChatPane";
-import { isTabVisible } from "./paneLayout";
 import type { PanelTab, SidePanelController } from "./useSidePanel";
 
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む
@@ -11,23 +10,35 @@ const TerminalPane = lazy(() => import("../terminal/TerminalPane"));
 /**
  * パネルの 1 つのタブの中身（チャット・新しいチャット・ターミナル・ブラウザ）。
  * タブを切り替えても入力中の文章やスクロール位置が残るよう、表示していないタブも hidden で残す。
+ * ペインを分けても作り直さない（webview・ターミナル・入力中の文を保つ）よう、どのタブもパネルの中身の直下に置き、
+ * 分けているときは style でそのペインの位置に重ねる。押す・ピントが入るとそのペインにピントを移す
  */
 export function PanelTabPage({
   tab: t,
   panel,
   panelOpen,
+  paneId,
+  active,
+  focused,
+  style,
   onClose,
 }: {
   tab: PanelTab;
   panel: SidePanelController;
   panelOpen: boolean;
+  /** タブが入っているペイン */
+  paneId: string;
+  /** 自分のペインで表示中のタブか */
+  active: boolean;
+  /** 自分のペインにピントがあるか */
+  focused: boolean;
+  style?: CSSProperties;
   onClose: () => void;
 }) {
-  // 分割していれば、自分のペインで表示中のタブか
-  const active = isTabVisible(panel.layout, t.key);
   const visible = panelOpen && active;
+  const focus = () => panel.focusPane(paneId);
   return (
-    <div className="panel-tab-page" hidden={!active}>
+    <div className="panel-tab-page" hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
       {t.kind === "chat" ? (
         <RunPane
           projectId={t.projectId}
@@ -52,7 +63,7 @@ export function PanelTabPage({
         />
       ) : t.kind === "terminal" ? (
         <Suspense fallback={<div className="page muted">読み込み中…</div>}>
-          <TerminalPane termKey={t.key} cwd={t.cwd} visible={visible} onOpenUrl={(url) => panel.openBrowser(url)} />
+          <TerminalPane termKey={t.key} cwd={t.cwd} visible={visible} focused={visible && focused} onOpenUrl={(url) => panel.openBrowser(url)} />
         </Suspense>
       ) : (
         <BrowserPane

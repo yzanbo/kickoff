@@ -68,6 +68,26 @@
   -webkit-app-region: no-drag;
 }
 
+/*
+ * ペインを分けたとき: タブの列の高さは信号機ボタンの行にそろえ、ドラッグ領域は上の段のペインだけ。
+ * 右上のレイアウトの開閉のために空けるのは、右上のペインだけ
+ */
+.board-panel.as-sidebar .split-view {
+  --split-tabs-h: 40px;
+}
+
+.board-panel.as-sidebar .split-pane .panel-tabs {
+  padding-right: var(--gutter);
+}
+
+.board-panel.as-sidebar .split-pane:not(.top-row) .panel-tabs {
+  -webkit-app-region: no-drag;
+}
+
+.board-panel.as-sidebar .split-pane.top-right .panel-tabs {
+  padding-right: 100px;
+}
+
 /* スマホ（縦 1 列）ではプロジェクトのチャット欄は出さない（ボードの右のパネルを使う）。上の基底（display: flex）と同じ詳細度なので、必ず基底より後ろに置く */
 @media (max-width: 720px) {
   .project-chat {
