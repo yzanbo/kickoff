@@ -161,8 +161,10 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   assert.equal((await call("POST", `/api/runs/${runId}/queue`, {})).status, 400);
-  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "2" })).body, { queued: true });
-  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "3" })).body, { queued: true });
+  assert.equal((await call("POST", `/api/runs/${runId}/queue`, { text: "2" })).body.queued, true);
+  const third = (await call("POST", `/api/runs/${runId}/queue`, { text: "3" })).body;
+  assert.equal(third.queued, true);
+  assert.equal(typeof third.id, "string");
   const queue = (await call("GET", `/api/runs/${runId}`)).body.queue as { id: string; text: string }[];
   assert.deepEqual(queue.map((m) => m.text), ["2", "3"]);
 

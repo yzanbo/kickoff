@@ -96,16 +96,16 @@ export class Runner {
 
   /**
    * 次の指示を送る。作業中なら待ちの列に入れ（終わったら順に送る）、作業中でなければすぐ送る。
-   * queued: 列に入れたか
+   * queued: 列に入れたか、id: 列に入れたその指示の ID（「割り込んで送る」で、すぐ送るのに使う）
    */
-  async queueMessage(runId: number, text: string, options: RunOptions = {}, attachments: Attachment[] = []): Promise<{ queued: boolean }> {
+  async queueMessage(runId: number, text: string, options: RunOptions = {}, attachments: Attachment[] = []): Promise<{ queued: boolean; id?: string }> {
     if (!this.deps.store.getRun(runId)) throw new Error("実行が見つかりません");
     if (!this.isBusy(runId)) {
       await this.send(runId, text, options, attachments);
       return { queued: false };
     }
-    this.followups.add(runId, text, options, attachments);
-    return { queued: true };
+    const { id } = this.followups.add(runId, text, options, attachments);
+    return { queued: true, id };
   }
 
   /** 待ちの列から消す（なければ false） */

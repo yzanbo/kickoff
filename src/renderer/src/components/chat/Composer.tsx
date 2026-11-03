@@ -19,6 +19,8 @@ interface Props {
   trailing?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
   onStop?: () => void;
+  /** 作業中だけ、送信ボタンの左に出すもの（送り方の切り替えなど） */
+  busyControls?: ReactNode;
   /** 作業中に送ったとき（待ちの列に入れる。渡さなければ、作業中は送れない） */
   onQueue?: (text: string, attachments: Attachment[]) => Promise<void>;
   /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
@@ -42,7 +44,7 @@ interface PendingFile {
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
 
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, onTextChange, suggestTarget }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -205,6 +207,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
         </div>
         <div className="composer-actions">
         {trailing}
+        {busy && busyControls}
         {/* 作業中は中断。書いていれば、その横に待ちの列に入れるボタン */}
         {busy && onStop && (
           <button className="send-button stop" title="中断" aria-label="中断" onClick={onStop}>
