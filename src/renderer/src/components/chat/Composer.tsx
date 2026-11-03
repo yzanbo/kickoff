@@ -5,6 +5,7 @@ import type { GitTarget } from "../../api";
 import { errorMessage } from "../../errors";
 import { cx } from "../../cx";
 import { useSharedFlag, useStoredText } from "../../hooks/useStoredState";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { COMPOSER_COMPACT_KEY } from "../../storageKeys";
 import { PendingFileChips } from "./PendingFileChips";
 import { ErrorText } from "../ErrorText";
@@ -57,7 +58,7 @@ const TEXT_CHANGE_DELAY_MS = 300;
 export type QueueSendMode = "tell" | "queue";
 
 /** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり） */
-const sendModeOf = (e: KeyboardEvent): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);
+const sendModeOf = (e: { metaKey: boolean; shiftKey: boolean }): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);
 
 /** 送信の Enter か（Shift+Enter は改行。⌘⇧Enter は送り方を決めた送信。日本語入力の変換を確定する Enter は除く） */
 const isSendEnter = (e: KeyboardEvent) => e.key === "Enter" && (!e.shiftKey || e.metaKey) && !e.nativeEvent.isComposing && e.keyCode !== 229;
@@ -180,8 +181,20 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     }
   }
 
+  // ⌘ / ⌘⇧ を押している間だけ、その送り方（⌘Enter = 伝える・⌘⇧Enter = ためておく）のボタンを光らせる（作業中だけ。
+  // 押しているキーでどちらになるかを、送る前に目で確かめられるように。選んでいる送り方そのものは変えない）
+  const [heldMode, setHeldMode] = useState<QueueSendMode>();
+  const trackHeld = (e: { metaKey: boolean; shiftKey: boolean; ctrlKey: boolean; altKey: boolean }) =>
+    setHeldMode(e.ctrlKey || e.altKey ? undefined : sendModeOf(e));
+  // キーを離した・ほかへピントが移った・Kickoff が後ろに回ったら消す（チャット欄の外で離したときも）
+  useWindowEvent("keyup", (e) => {
+    if (!e.metaKey) setHeldMode(undefined);
+  });
+  useWindowEvent("blur", () => setHeldMode(undefined));
+
   /** チャット欄の中（入力欄・下の道具）のキー: ⌘⇧Space で録音の開始・停止、録音中・文字起こし中の Esc でやめる */
   function onComposerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    trackHeld(e);
     if (e.code === "Space" && e.metaKey && e.shiftKey && !e.altKey && !e.ctrlKey) {
       e.preventDefault();
       dictation.toggle();
@@ -193,7 +206,13 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   }
 
   return (
-    <div className={cx("composer", attach.dragging && "dragging", compact && "compact")} onKeyDown={onComposerKeyDown} {...attach.dropProps}>
+    <div
+      className={cx("composer", attach.dragging && "dragging", compact && "compact")}
+      onKeyDown={onComposerKeyDown}
+      onKeyUp={trackHeld}
+      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setHeldMode(undefined)}
+      {...attach.dropProps}
+    >
       {attach.files.length > 0 && (
         <div className="composer-attachments">
           <PendingFileChips files={attach.files} onRemove={attach.removeFile} />
@@ -240,7 +259,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
         </div>
         <div className="composer-actions">
         {trailing}
-        {busy && busyControls}
+        {busy && busyControls && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
         {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
         {busy && onStop && (
           <button className="send-button stop" title="中断" aria-label="中断" onClick={onStop}>
