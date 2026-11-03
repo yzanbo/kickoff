@@ -1,3 +1,4 @@
+import { confirmDialog } from "../../dialogs";
 import type { BackgroundState, BackgroundTask } from "../../../../core/types";
 
 /** 種類ごとの呼び名 */
@@ -27,4 +28,22 @@ export function backgroundWaitLabel(state: BackgroundState | null): string | und
 export function countBackground(state: BackgroundState | null): { agents: number; commands: number } {
   const tasks = state?.tasks ?? [];
   return { agents: tasks.filter((t) => t.kind === "agent").length, commands: tasks.filter((t) => t.kind !== "agent").length };
+}
+
+/**
+ * 作業を止める前に、裏で動いているサブエージェント・コマンドも止まることを確かめる（なければそのまま true）。
+ * runningAgents: 一覧の知らせがない古い Claude Code のときに、サブエージェントの一覧の行から数えた動いている数
+ */
+export function confirmStopAgents(background: BackgroundState | null, runningAgents: number, action: string): Promise<boolean> {
+  const counted = countBackground(background);
+  const agents = background ? counted.agents : runningAgents;
+  const what = [agents > 0 ? `サブエージェント ${agents} 件` : null, counted.commands > 0 ? `コマンド ${counted.commands} 件` : null].filter(Boolean).join("・");
+  return !what
+    ? Promise.resolve(true)
+    : confirmDialog({
+        title: `裏で動いている${what}も止まります`,
+        message: `${action}と、いまの作業と一緒に、裏で動いている${what}も止まり、サブエージェントの報告は届きません。終わるまで待つときは、キャンセルして「ためておく」で送ってください。`,
+        confirmLabel: `${action}`,
+        danger: true,
+      });
 }

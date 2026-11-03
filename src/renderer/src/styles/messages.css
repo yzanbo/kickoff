@@ -264,3 +264,17 @@
 .run-page.wide .sticky-prompt {
   padding-inline: var(--gutter);
 }
+
+/* 指示の履歴の絞り込みの欄（一覧をスクロールしても上に残す）と、↑↓ で選んでいる行 */
+.prompts-popover .chat-search {
+  position: sticky;
+  top: -6px;
+  z-index: 1;
+  margin: -6px -6px 6px;
+  padding: 10px 10px 6px;
+  background: var(--bg-elev);
+}
+
+.prompt-row.active {
+  background: var(--bg-hover);
+}
