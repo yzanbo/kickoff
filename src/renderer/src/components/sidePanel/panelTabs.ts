@@ -1,4 +1,4 @@
-import { Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Bot, Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
 import type { Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { normalizeUrl } from "../../url";
@@ -31,6 +31,7 @@ export function hostOf(url: string): string {
 export function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
   if (t.kind === "browser") return { Icon: Globe, label: t.title || (t.url ? hostOf(t.url) : "新しいタブ") };
   if (t.kind === "terminal") return { Icon: SquareTerminal, label: `ターミナル · ${t.label}` };
+  if (t.kind === "subagent") return { Icon: Bot, iconClass: "muted", label: t.title };
   if (t.kind === "new") return { Icon: SquarePen, label: t.groupName ? `新しいチャット · ${t.groupName}` : "新しいチャット" };
   // ボードの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
   const run = runs.find((r) => r.id === t.id);
