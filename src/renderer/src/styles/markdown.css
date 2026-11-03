@@ -54,6 +54,41 @@
   background: none;
 }
 
+/* コードブロックの枠（上の帯に言語名とコピーのボタン。帯とコードで 1 つの枠に見せる） */
+.code-block {
+  margin: 1em 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sidebar);
+}
+
+.code-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 4px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.code-block-lang {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.code-block .code-block-copy {
+  width: 22px;
+  height: 22px;
+}
+
+.markdown .code-block pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
 /* Mermaid の図（コードの欄と同じ枠） */
 .mermaid-diagram {
   margin: 1em 0;
