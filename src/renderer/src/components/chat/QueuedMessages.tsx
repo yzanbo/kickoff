@@ -1,5 +1,5 @@
-import { ChevronRight, SendHorizontal, Trash2 } from "lucide-react";
-import { useState, type DragEvent } from "react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, SendHorizontal, Trash2 } from "lucide-react";
+import { useLayoutEffect, useRef, useState, type DragEvent } from "react";
 import type { QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
 import { QueuedEditor, QueuedRow } from "./QueuedRow";
@@ -7,17 +7,21 @@ import { confirmDialog } from "../../dialogs";
 import { cx } from "../../cx";
 import { reportFailure } from "../../runActions";
 import { useStoredFlag } from "../../hooks/useStoredState";
-import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
+import { QUEUE_COLLAPSED_KEY, QUEUE_EXPANDED_KEY } from "../../storageKeys";
 
 /**
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
- * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
+ * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし（見出しの「すべて表示」でスクロールさせずにすべて出せる）、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
 export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
   const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
+  // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
+  const [expanded, setExpanded] = useStoredFlag(QUEUE_EXPANDED_KEY);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [overflowing, setOverflowing] = useState(false);
   // 書き直している指示（id と書いている途中の文）
   const [editing, setEditing] = useState<{ id: string; text: string }>();
   // ドラッグで並べ替えている指示（from: 元の位置）と、入れる位置（at: 0〜件数。その位置の行の前に入れる）
@@ -40,6 +44,11 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
     }
     setDrag(undefined);
   };
+  // 一覧の高さが上限を超えたか（超えたときだけ「すべて表示」を出す。すべて出している間は「縮める」を出したまま）
+  useLayoutEffect(() => {
+    const el = listRef.current;
+    setOverflowing(Boolean(el && !expanded && el.scrollHeight > el.clientHeight + 1));
+  }, [queue, editing, collapsed, expanded]);
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
   // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）
@@ -58,6 +67,20 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
           <span className="queued-count">送信待ち {queue.length} 件</span>
           {hint && <span className="queued-hint">{hint}</span>}
         </button>
+        {/* 溜まって中でスクロールするようになったら、すべて出す・縮めるを切り替えられる */}
+        {!collapsed && (overflowing || expanded) && (
+          <button
+            type="button"
+            className="btn btn-sm queued-head-btn"
+            aria-label={expanded ? "縮めて表示" : "すべて表示"}
+            aria-expanded={expanded}
+            title={expanded ? "5 件ほどの高さに縮め、中でスクロールさせる" : `送信待ちの ${queue.length} 件をすべて表示する（中でスクロールさせない）`}
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? <ChevronsDownUp size={12} aria-hidden /> : <ChevronsUpDown size={12} aria-hidden />}
+            <span className="queued-head-label">{expanded ? "縮める" : "すべて表示"}</span>
+          </button>
+        )}
         {/* 全体への操作は 2 件以上のときだけ（1 件のときは行の「すぐ送る」「消す」と同じで、その 1 件へのボタンに見えるため） */}
         {queue.length > 1 && (
           <>
@@ -96,7 +119,7 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、5 件ほどの高さを超えたら中でスクロールする */}
       {!collapsed && (
-        <div className="queued-list">
+        <div ref={listRef} className={cx("queued-list", expanded && "expanded")}>
           {queue.map((m, i) =>
             editing?.id === m.id ? (
               <QueuedEditor
