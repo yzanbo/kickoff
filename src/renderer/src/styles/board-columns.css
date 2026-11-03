@@ -126,3 +126,21 @@
 .lane-columns .column-cards {
   overflow: visible;
 }
+
+/* ボードの本体（パネルの横に残る部分）の幅で、列の並べ方を変える（下の @container board-main） */
+.board-main {
+  container: board-main / inline-size;
+}
+
+/* 列が 2 本並ばないほど狭いとき: 1 列ずつ横にめくる（次の列の端を少し見せ、横にスクロールできるとわかるように） */
+@container board-main (max-width: 420px) {
+  .board-columns {
+    scroll-snap-type: x mandatory;
+  }
+
+  .board-column {
+    flex: 0 0 calc(100% - 32px);
+    max-width: none;
+    scroll-snap-align: start;
+  }
+}

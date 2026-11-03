@@ -2,6 +2,11 @@
 
 /* 閉じているときは幅 0。開くと、幅が --chat-w まで動く（中身は右端に寄せ、右から出てくるように見せる） */
 .project-chat {
+  /*
+   * 見せる幅: 覚えた幅（--chat-w）のまま、真ん中の画面を --main-min-w だけ残すところまで（ウィンドウを狭めた・サイドバーを開いたときも）。
+   * 欄そのものは 320px より狭くしない
+   */
+  --chat-shown: min(var(--chat-w), max(320px, calc(100vw - var(--sidebar-shown, 0px) - var(--main-min-w))));
   grid-column: 3;
   grid-row: 1;
   position: relative;
@@ -20,7 +25,7 @@
 }
 
 .project-chat.open {
-  width: var(--chat-w);
+  width: var(--chat-shown);
   border-left-color: var(--border);
 }
 
@@ -34,7 +39,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  width: var(--chat-w);
+  width: var(--chat-shown);
   min-height: 0;
 }
 

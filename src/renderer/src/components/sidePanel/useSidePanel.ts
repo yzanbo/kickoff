@@ -209,6 +209,8 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     layout,
     panelOpen,
     maximized: size.maximized,
+    /** 横に残るボードが狭すぎて、パネルでボードを覆っているか（横幅いっぱいの切り替えは出さない） */
+    covering: size.covering,
     runs,
     projects,
     open,
