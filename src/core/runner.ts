@@ -146,11 +146,13 @@ export class Runner {
   removeQueued = (runId: number, id: string): boolean => this.followups.remove(runId, id);
 
   /** 待ちの指示の文を書き換える（なければ false。文も添付もなくなるなら断る） */
-  editQueued(runId: number, id: string, text: string): boolean {
+  /** 待ちの指示を書き直す（attachments があれば添付も置き換える。文も添付もなくなるなら断る） */
+  editQueued(runId: number, id: string, text: string, attachments?: Attachment[]): boolean {
     const message = this.followups.list(runId).find((m) => m.id === id);
     if (!message) return false;
-    if (!text.trim() && message.attachments.length === 0) throw new Error("メッセージか添付ファイルが必要です");
-    return this.followups.edit(runId, id, text.trim());
+    const nextAttachments = attachments ?? message.attachments;
+    if (!text.trim() && nextAttachments.length === 0) throw new Error("メッセージか添付ファイルが必要です");
+    return this.followups.edit(runId, id, text.trim(), nextAttachments);
   }
 
   /**

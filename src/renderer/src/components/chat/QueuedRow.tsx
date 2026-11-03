@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowUp, Check, FileText, GripVertical, Pencil, SendHorizontal, Trash2, X } from "lucide-react";
-import { useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
+import { ArrowDown, ArrowUp, FileText, GripVertical, Pencil, SendHorizontal, Trash2 } from "lucide-react";
+import { useState, type DragEvent, type MouseEvent } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { attachmentUrl } from "../../api";
 import { ImageViewer } from "../ImageViewer";
@@ -176,10 +176,10 @@ export function QueuedRow({
 
 /**
  * 送信待ちの添付。行では 1 つ目だけを小さく出し、2 つ以上なら数を重ねる（狭い欄でも 1 行に収め、文を読めるようにする）。
- * 書き直している間（all）は、すべてを並べて出す（折り返す）。画像は押すと大きく表示し、同じ指示の画像は ← / → で前後に移れる。
+ * 画像は押すと大きく表示し、同じ指示の画像は ← / → で前後に移れる。
  * 画像は右クリックでコピー・保存もできる。画像以外はファイルの印と名前。乗せると、すべての添付の名前を出す
  */
-export function QueuedAttachments({ attachments, all = false }: { attachments: Attachment[]; all?: boolean }) {
+export function QueuedAttachments({ attachments }: { attachments: Attachment[] }) {
   // 大きく見ている画像（同じ指示の画像の中の位置）と、添付が複数のときに開く一覧（開いたボタンの位置）
   const [viewing, setViewing] = useState<number>();
   const [grid, setGrid] = useState<DOMRect>();
@@ -188,13 +188,13 @@ export function QueuedAttachments({ attachments, all = false }: { attachments: A
   if (attachments.length === 0) return null;
   const images = attachments.filter((a) => isPreviewable(a.mime));
   // 行では、画像を先にして 1 つ目だけを出す
-  const shown = all ? attachments : [images[0] ?? attachments[0]];
+  const shown = [images[0] ?? attachments[0]];
   const rest = attachments.length - shown.length;
   const names = attachments.map((a) => a.name).join("\n");
   // 行で複数の添付を 1 つにまとめているときは、まず一覧を開き、そこから全画面へ（1 つだけなら、すぐ全画面）
   const openGrid = rest > 0 ? (e: MouseEvent<HTMLElement>) => setGrid(e.currentTarget.getBoundingClientRect()) : undefined;
   return (
-    <span className={all ? "queued-attachments all" : "queued-attachments"} title={all ? undefined : `添付 ${attachments.length} 件\n${names}`}>
+    <span className="queued-attachments" title={`添付 ${attachments.length} 件\n${names}`}>
       {shown.map((a) =>
         isPreviewable(a.mime) ? (
           <button
@@ -220,7 +220,7 @@ export function QueuedAttachments({ attachments, all = false }: { attachments: A
             <span className="queued-file-count">+{rest}</span>
           </button>
         ) : (
-          <span key={a.id} className="queued-file" title={all ? a.name : undefined}>
+          <span key={a.id} className="queued-file">
             <FileText size={12} aria-hidden />
             <span className="queued-file-name">{a.name}</span>
           </span>
@@ -230,67 +230,5 @@ export function QueuedAttachments({ attachments, all = false }: { attachments: A
       {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
       {grid && <AttachmentGrid attachments={attachments} anchor={grid} onClose={() => setGrid(undefined)} />}
     </span>
-  );
-}
-
-/** 送信待ちの指示を書き直す欄（Enter で保存・Shift+Enter で改行・Esc でやめる。添付は上にすべて並べる） */
-export function QueuedEditor({
-  index,
-  withGrip,
-  attachments,
-  text,
-  onChange,
-  onSave,
-  onCancel,
-}: {
-  /** 送る順番（0 から。ほかの行と同じく番号を出す） */
-  index: number;
-  /** ほかの行につまみの印があるか（あれば同じ幅を空けて、番号の位置をそろえる） */
-  withGrip: boolean;
-  attachments: Attachment[];
-  text: string;
-  onChange: (text: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
-}) {
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      onCancel();
-    } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
-      e.preventDefault();
-      onSave();
-    }
-  };
-  return (
-    <div className="queued-row editing">
-      {withGrip && <span className="queued-grip queued-grip-space" aria-hidden />}
-      <span className="queued-index" aria-label={`${index + 1} 番目`}>
-        {index + 1}
-      </span>
-      <div className="queued-editor-body">
-        <QueuedAttachments attachments={attachments} all />
-        <textarea
-          className="queued-editor"
-          value={text}
-          // 高さは文に合わせる（折り返した行も含めて全部見せる。CSS の field-sizing）
-          rows={1}
-          // 開いたら文の終わりから書き始める
-          ref={(el) => {
-            if (el && !el.dataset.ready) {
-              el.dataset.ready = "1";
-              el.focus();
-              el.setSelectionRange(el.value.length, el.value.length);
-            }
-          }}
-          aria-label="待ちの指示を書き直す"
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
-        />
-      </div>
-      <IconButton icon={Check} label="保存" title="保存（Enter）" size={13} onClick={onSave} />
-      <IconButton icon={X} label="やめる" title="やめる（Esc）" size={13} onClick={onCancel} />
-    </div>
   );
 }

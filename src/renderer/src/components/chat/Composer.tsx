@@ -6,7 +6,7 @@ import { errorMessage } from "../../errors";
 import { cx } from "../../cx";
 import { useSharedFlag, useStoredText } from "../../hooks/useStoredState";
 import { COMPOSER_COMPACT_KEY } from "../../storageKeys";
-import { AttachmentChip } from "./AttachmentChip";
+import { PendingFileChips } from "./PendingFileChips";
 import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
 import { DictationButton, DictationError } from "../dictation/DictationButton";
@@ -195,17 +195,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     <div className={cx("composer", attach.dragging && "dragging", compact && "compact")} onKeyDown={onComposerKeyDown} {...attach.dropProps}>
       {attach.files.length > 0 && (
         <div className="composer-attachments">
-          {attach.files.map((f) => (
-            <span key={f.key} className="composer-attachment">
-              <AttachmentChip
-                attachment={{ name: f.file.name, mime: f.file.type, size: f.file.size }}
-                previewUrl={f.previewUrl}
-                uploading={!f.attachment && !f.error}
-                onRemove={() => attach.removeFile(f.key)}
-              />
-              {f.error && <span className="error small">{f.error}</span>}
-            </span>
-          ))}
+          <PendingFileChips files={attach.files} onRemove={attach.removeFile} />
         </div>
       )}
       <SuggestList suggest={suggest} />

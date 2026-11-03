@@ -1,10 +1,11 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Pause, Play, X } from "lucide-react";
 import { Fragment, useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
 import { IconButton } from "../IconButton";
-import type { QueuedMessage } from "../../../../core/types";
+import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
 import { QueuedHeadActions } from "./QueuedHeadActions";
-import { QueuedEditor, QueuedRow } from "./QueuedRow";
+import { QueuedEditor } from "./QueuedEditor";
+import { QueuedRow } from "./QueuedRow";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { cx } from "../../cx";
 import { reportFailure } from "../../runActions";
@@ -106,7 +107,7 @@ export function QueuedMessages({
     true,
   );
   // 書き直している指示（id と書いている途中の文）
-  const [editing, setEditing] = useState<{ id: string; text: string }>();
+  const [editing, setEditing] = useState<{ id: string; text: string; attachments: Attachment[] }>();
   // ドラッグで並べ替えている指示（from: 元の位置）と、入れる位置（at: 0〜件数。その位置の行の前に入れる）。
   // ids: 選んだ行をつかんだときは、選んだものをまとめて動かす
   const [drag, setDrag] = useState<{ id: string; from: number; at?: number; ids?: string[] }>();
@@ -233,10 +234,11 @@ export function QueuedMessages({
               <QueuedEditor
                 index={i}
                 withGrip={queue.length > 1}
-                attachments={m.attachments}
                 text={editing.text}
-                onChange={(text) => setEditing({ id: m.id, text })}
-                onSave={() => void api.editQueued(runId, m.id, editing.text).then(() => setEditing(undefined), failed)}
+                attachments={editing.attachments}
+                onChange={(text) => setEditing({ ...editing, text })}
+                onAttachmentsChange={(attachments) => setEditing({ ...editing, attachments })}
+                onSave={(attachments) => void api.editQueued(runId, m.id, editing.text, attachments).then(() => setEditing(undefined), failed)}
                 onCancel={() => setEditing(undefined)}
               />
             ) : (
@@ -263,7 +265,7 @@ export function QueuedMessages({
                   drag && drag.at === i + 1 && i === queue.length - 1 && (drag.ids || drag.from !== i) && "drop-after",
                 )}
                 actions={{
-                  edit: () => setEditing({ id: m.id, text: m.text }),
+                  edit: () => setEditing({ id: m.id, text: m.text, attachments: m.attachments }),
                   toggleStop: () => void api.setQueueStopAfter(runId, i === stopIndex ? null : m.id).catch(failed),
                   move: (to) => void api.moveQueued(runId, m.id, to).catch(failed),
                   sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),

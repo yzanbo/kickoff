@@ -213,6 +213,14 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   assert.equal(edited.body.queue.find((m: { id: string }) => m.id === queue[1].id).text, "3 を直した");
   assert.equal((await call("PATCH", `/api/runs/${runId}/queue/${queue[1].id}`, { text: "  " })).status, 400);
   assert.equal((await call("PATCH", `/api/runs/${runId}/queue/nope`, { text: "x" })).status, 404);
+  // 添付も置き換えられる（足す・外す）。添付があれば文は空にでき、文も添付もなくなるなら断る
+  const image = { id: randomUUID(), name: "a.png", mime: "image/png", size: 10 };
+  const withImage = await call("PATCH", `/api/runs/${runId}/queue/${queue[1].id}`, { text: "", attachments: [image] });
+  assert.deepEqual(withImage.body.queue.find((m: { id: string }) => m.id === queue[1].id).attachments, [image]);
+  assert.equal((await call("PATCH", `/api/runs/${runId}/queue/${queue[1].id}`, { text: "", attachments: [] })).status, 400);
+  // 添付を省けば今のまま（文だけ直す）。外して元に戻す
+  assert.deepEqual((await call("PATCH", `/api/runs/${runId}/queue/${queue[1].id}`, { text: "3 を直した" })).body.queue[0].attachments, [image]);
+  assert.deepEqual((await call("PATCH", `/api/runs/${runId}/queue/${queue[1].id}`, { text: "3 を直した", attachments: [] })).body.queue[0].attachments, []);
   assert.deepEqual((await call("DELETE", `/api/runs/${runId}/queue/${queue[0].id}`)).body, { queue: [{ ...moved.body.queue[0], text: "3 を直した" }] });
   assert.equal((await call("DELETE", `/api/runs/${runId}/queue/nope`)).status, 404);
   assert.equal((await call("POST", `/api/runs/${runId}/queue/nope/send`)).status, 404);
