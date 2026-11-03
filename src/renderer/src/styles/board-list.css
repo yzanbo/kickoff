@@ -147,3 +147,10 @@
   flex: none;
 }
 
+
+/* リスト表示のいちばん下の「アーカイブ済み」: 中を状態ごとに分ける（見出しはほかのまとまりと同じ ColumnHead） */
+.archived-list-state {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+}

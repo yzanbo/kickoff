@@ -23,7 +23,7 @@ import { byColumn, type BoardEntry } from "./boardColumns";
 import { useKanbanEntries } from "./useKanbanEntries";
 import { useKanbanFilters, useKanbanLanes, useWorktreeChoices } from "./useKanbanFilters";
 import { BoardShell } from "./BoardShell";
-import { DraftColumn, StateColumn } from "./StateColumn";
+import { ArchivedListSection, DraftColumn, StateColumn } from "./StateColumn";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
 import { useBoardRuns } from "./useBoardRuns";
 
@@ -212,8 +212,10 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
             {draftCards}
           </DraftColumn>
           {BOARD_COLUMNS.map((column) => (
-            <StateColumn key={column} column={column} entries={grouped.get(column) ?? []} foldKey={foldKey(column, "list")} render={cards.row} list />
+            <StateColumn key={column} column={column} entries={grouped.get(column) ?? []} foldKey={foldKey(column, "list")} render={cards.row} list foldArchived={false} />
           ))}
+          {/* アーカイブ済みは最後にまとめ、中を状態ごとに分ける */}
+          <ArchivedListSection entries={entries} foldKey={`kanban:${projectId ?? "all"}:list-archived`} render={cards.row} />
         </div>
       )}
     </BoardShell>
