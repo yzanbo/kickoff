@@ -1,3 +1,4 @@
+import { chatTitle } from "../../chatTitle";
 import { useEffect, useState, type ClipboardEvent, type DragEvent } from "react";
 import type { Attachment } from "../../../../core/types";
 import { api } from "../../api";
@@ -31,6 +32,17 @@ export function useComposerFiles() {
           setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))),
         );
     }
+  }
+
+  /** 別のチャットのやり取りを添付する（コアが記録を Markdown のファイルにして返す。チップはファイルと同じに出す） */
+  function addChat(run: { id: number; title: string | null }) {
+    const key = `${Date.now()}-${Math.random()}`;
+    const file = new File([], `チャット-${chatTitle(run.title)}.md`, { type: "text/markdown" });
+    setFiles((prev) => [...prev, { key, file }]);
+    api
+      .chatTranscript(run.id)
+      .then((attachment) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, attachment } : f))))
+      .catch((e: unknown) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))));
   }
 
   function removeFile(key: string) {
@@ -77,6 +89,7 @@ export function useComposerFiles() {
     files,
     dragging,
     addFiles,
+    addChat,
     removeFile,
     clear,
     onPaste,

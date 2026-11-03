@@ -184,8 +184,7 @@ function RunView({
   useEffect(() => {
     if (jumpTarget !== null && panelRef.current && jumpToEvent(panelRef.current, jumpTarget)) setJumpTarget(null);
   }, [jumpTarget, timeline.visible]);
-  // 自分の発言を書き直して送り直す（その発言から後ろを消して巻き戻す。作業中はできない）
-  // 送るときの設定は最新のものを使い、値（context）は作業中かどうかが変わるときだけ作り直す（流れの項目の memo を保つ）
+  // 自分の発言を書き直して送り直す（作業中はできない）。送る設定は最新のものを使い、値（context）は作業中かが変わるときだけ作り直す（memo を保つ）
   const rewindOptions = useRef(options.options);
   rewindOptions.current = options.options;
   const rewind = useMemo(
@@ -248,6 +247,7 @@ function RunView({
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
         <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stopAfter={queueStopAfter} busy={busy} />
         <Composer
+          chatContext={{ projectId: run.project_id, exclude: run.id }}
           options={options}
           busy={busy}
           placeholder={

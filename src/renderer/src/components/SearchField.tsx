@@ -1,5 +1,5 @@
 import { Search, X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { cx } from "../cx";
 
 /** チャットを名前で絞り込む検索欄（消すボタン付き）。検索語があるときの Esc は、パネルを閉じる Esc より先に検索語を消す */
@@ -10,12 +10,17 @@ export function SearchField({
   label,
   className,
   children,
+  autoFocus,
+  onKeyDown,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
   label: string;
   className?: string;
+  autoFocus?: boolean;
+  /** 候補の ↑↓・Enter（useListNavigation の onKeyDown）。Esc で文を消すのは欄が先に扱う */
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
   /** 欄の右端に置くもの（全文検索を開くボタンなど） */
   children?: ReactNode;
 }) {
@@ -27,13 +32,14 @@ export function SearchField({
         value={value}
         placeholder={placeholder}
         aria-label={label}
+        autoFocus={autoFocus}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Escape" && value) {
             e.stopPropagation();
             e.nativeEvent.stopImmediatePropagation();
             onChange("");
-          }
+          } else onKeyDown?.(e);
         }}
       />
       {value && (

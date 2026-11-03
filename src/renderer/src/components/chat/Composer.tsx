@@ -20,6 +20,7 @@ import { useComposerFiles } from "./useComposerFiles";
 import { usePromptHistory } from "./usePromptHistory";
 import { useComposerKeys } from "./composerKeys";
 import { appendBlock, type ComposerFill } from "./quoteComment";
+import { ChatContextButton } from "./ChatContextButton";
 
 interface Props {
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
@@ -33,10 +34,7 @@ interface Props {
   onStop?: () => void;
   /** 作業中だけ、送信ボタンの左に出すもの（送り方の切り替えなど） */
   busyControls?: ReactNode;
-  /**
-   * 作業中に送ったとき（渡さなければ、作業中は送れない）。mode はキーで決めたとき（⌘Enter = 伝える・⌘⇧Enter = ためておく）。
-   * なければ、チャット欄の切り替えのとおり
-   */
+  /** 作業中に送ったとき（渡さなければ作業中は送れない）。mode はキーで決めたとき（⌘Enter = 伝える・⌘⇧Enter = ためておく。なければ切り替えのとおり） */
   onQueue?: (text: string, attachments: Attachment[], mode?: QueueSendMode) => Promise<void>;
   /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
   onTextChange?: (text: string) => void;
@@ -48,6 +46,8 @@ interface Props {
   draftKey?: string;
   /** 外から入力欄に文を入れる口（発言の一覧の「入力欄に入れる」など。append なら書いている文の後ろに足す。入れたら文の終わりにピントを置く） */
   fillRef?: MutableRefObject<ComposerFill | null>;
+  /** 「チャットを添付」（ほかのチャットのやり取りを添付する）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
+  chatContext?: { projectId?: number; exclude?: number };
 }
 
 /** 入力欄を伸ばす上限（px。これを超えたら中でスクロールする） */
@@ -72,7 +72,7 @@ export class SendCancelled extends Error {}
  * チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付。
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget, history, draftKey, fillRef }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget, history, draftKey, fillRef, chatContext }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useStoredText(draftKey);
@@ -258,6 +258,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
               e.target.value = "";
             }}
           />
+          {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
           <DictationButton dictation={dictation} />
           {options && <RunOptionsBar state={options} />}
         </div>

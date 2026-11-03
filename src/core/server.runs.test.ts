@@ -665,6 +665,21 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   assert.deepEqual(store.listEvents(otherId).map((e) => e.type), ["user", "result"]);
 });
 
+test("チャットの記録の API: ほかのチャットのやり取りを Markdown の添付ファイルにして返す（そのまま添付として送れる）", async () => {
+  const { call, project, store, provider } = setup();
+  const source = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "前の話" })).body.id;
+  await until(() => store.getRun(source)?.status === "completed");
+  const res = await call("POST", `/api/runs/${source}/transcript`);
+  assert.equal(res.status, 201);
+  assert.equal(res.body.mime, "text/markdown");
+  assert.match(res.body.name, /^チャット-.+\.md$/);
+  // 別のチャットに添付として送ると、指示に記録のファイルのパスが添えられる
+  const target = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "続き", attachments: [res.body] })).body.id;
+  await until(() => store.getRun(target)?.status === "completed");
+  assert.match(provider.prompts.at(-1)!, /チャット-.+\.md/);
+  assert.equal((await call("POST", "/api/runs/99999/transcript")).status, 404);
+});
+
 test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。記録のない発言は 400", async () => {
   const { call, project, store, runner, provider } = setup();
   const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;

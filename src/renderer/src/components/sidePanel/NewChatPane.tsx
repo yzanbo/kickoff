@@ -119,6 +119,7 @@ export function NewChatPane({
         {ready && (
           <Composer
             key={projectId}
+            chatContext={{ projectId }}
             options={options}
             autoFocus
             onTextChange={onDraftChange}

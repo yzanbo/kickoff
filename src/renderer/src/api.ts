@@ -249,6 +249,8 @@ export const api = {
   /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。ファイルの変更は戻さない） */
   rewindRun: (runId: number, eventId: number, text: string, options: RunOptions = {}, restoreFiles = false) =>
     request<Run>("POST", `/api/runs/${runId}/rewind`, { event_id: eventId, text, options, restore_files: restoreFiles }),
+  /** 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて AI に読ませる） */
+  chatTranscript: (runId: number) => request<Attachment>("POST", `/api/runs/${runId}/transcript`),
   /** ファイルだけを、自分の発言を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけ） */
   rewindFiles: (runId: number, eventId: number, dryRun: boolean) =>
     request<FileRewindResult>("POST", `/api/runs/${runId}/rewind-files`, { event_id: eventId, dry_run: dryRun }),
