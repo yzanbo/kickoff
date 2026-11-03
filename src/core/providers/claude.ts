@@ -11,7 +11,7 @@ import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claud
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
 import { createCanUseTool } from "./claudeApprovals.js";
 import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
-import { createThinkingTimer, emitSdkMessage } from "./claudeMessages.js";
+import { createMessageState, emitSdkMessage } from "./claudeMessages.js";
 import { runHooks, toAllowedTools } from "./claudePolicy.js";
 import type { SelfInfo } from "../selfProtection.js";
 import { normalizeUsage } from "./claudeUsage.js";
@@ -156,9 +156,9 @@ export class ClaudeProvider implements AgentProvider {
       });
 
       // 思考の時間を測る（流れてくる途中経過で始まりと終わりを見る）
-      const thinkingTimer = createThinkingTimer();
+      const messageState = createMessageState();
       for await (const msg of q) {
-        const sid = emitSdkMessage(msg, cb, thinkingTimer);
+        const sid = emitSdkMessage(msg, cb, messageState);
         // メインの会話の最後のメッセージ（ここから分岐するときの位置）
         if ((msg.type === "assistant" || msg.type === "user") && msg.parent_tool_use_id === null && msg.uuid) lastMessageId = msg.uuid;
         if (sid) sessionId = sid;
