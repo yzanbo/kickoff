@@ -1,16 +1,15 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Run } from "../../../../core/types";
 import { cx } from "../../cx";
 import type { useRunRename } from "../../hooks/useRunRename";
 import { useProjects } from "../../projectsContext";
 import { ErrorText } from "../ErrorText";
-import { ChoiceMenu } from "../menus/ChoiceMenu";
-import { clampToViewport } from "../PopupMenu";
 import { CardMenu } from "../menus/CardMenu";
 import { SidePanel } from "../sidePanel/SidePanel";
 import { terminalTargets, type SidePanelController } from "../sidePanel/useSidePanel";
-import { BOARD_HEADER_LAYOUT_LABELS, BOARD_HEADER_LAYOUTS, useBoardHeaderLayout } from "./boardHeaderLayout";
+import { useBoardHeaderLayout } from "./boardHeaderLayout";
 import type { useCardMenu } from "./useBoardCards";
+import { useBoardHeaderLayoutMenu } from "./useBoardHeaderLayoutMenu";
 
 /**
  * ボード（カンバン・グループ）の共通の外枠: 見出し → 失敗の文 → ボードの中身と右側のパネル → カードの右クリックメニュー。
@@ -49,18 +48,14 @@ export function BoardShell({
   children: ReactNode;
 }) {
   const { projects } = useProjects();
-  const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
-  const [layoutMenu, setLayoutMenu] = useState<{ x: number; y: number } | null>(null);
+  const [headerLayout] = useBoardHeaderLayout();
+  const layoutMenu = useBoardHeaderLayoutMenu();
   const beside = headerLayout === "beside";
   // 見出しの右クリックで置き方を切り替える（入力欄の上ではふつうの右クリック＝貼り付けなどを残す）
   const top = (
     <div
       className="board-top"
-      onContextMenu={(e) => {
-        if ((e.target as HTMLElement).closest("input, textarea")) return;
-        e.preventDefault();
-        setLayoutMenu(clampToViewport(e.clientX, e.clientY, 220, 100));
-      }}
+      onContextMenu={layoutMenu.open}
     >
       {header}
       <ErrorText message={error} className="board-error" />
@@ -82,18 +77,7 @@ export function BoardShell({
         <SidePanel panel={panel} onNewChat={onNewChat} terminals={terminalTargets(projects, projectId)} />
       </div>
       {after}
-      {layoutMenu && (
-        <ChoiceMenu
-          x={layoutMenu.x}
-          y={layoutMenu.y}
-          title="見出しの置き方"
-          values={BOARD_HEADER_LAYOUTS}
-          labels={BOARD_HEADER_LAYOUT_LABELS}
-          value={headerLayout}
-          onPick={setHeaderLayout}
-          onClose={() => setLayoutMenu(null)}
-        />
-      )}
+      {layoutMenu.menu}
       {menu.at && <CardMenu {...menu.at} onOpenPanel={onOpenRun} onRename={rename.start} onClose={menu.close} onError={onError} />}
     </div>
   );

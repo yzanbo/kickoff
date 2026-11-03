@@ -16,6 +16,7 @@ import { TAB_MENU_WIDTH, TabMenu, tabMenuHeight } from "./TabMenu";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useTabDrag } from "./useTabDrag";
 import type { SidePanelController, TerminalTarget } from "./useSidePanel";
+import { useBoardHeaderLayoutMenu } from "../board/useBoardHeaderLayoutMenu";
 
 /**
  * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
@@ -85,6 +86,8 @@ export function SidePanel({
   );
 
   // パネルの閉じる・横幅いっぱい（ボードの右のパネルだけ。チャット欄は右上のレイアウトの開閉（LayoutToggles）で閉じるので、重ねて置かない）
+  // タブの列の何もないところの右クリックで、ボードの見出しの置き方を選ぶ（パネルを上まで伸ばすか。チャット欄では関係しないので出さない）
+  const layoutMenu = useBoardHeaderLayoutMenu();
   const controls = sidebar ? undefined : (
     <div className="panel-controls">
       {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
@@ -122,6 +125,7 @@ export function SidePanel({
       }}
       onTerminal={openTerminal}
       rename={rename}
+      onBarMenu={sidebar ? undefined : layoutMenu.open}
       onMenu={(key, e) => {
         e.preventDefault();
         setMenu({ key, ...clampToViewport(e.clientX, e.clientY, TAB_MENU_WIDTH, tabMenuHeight(leaves.length, tabs.some((t) => t.key === key && t.kind === "chat"))) });
@@ -172,6 +176,7 @@ export function SidePanel({
               </div>
             );
           })}
+        {layoutMenu.menu}
         {terminalMenu.at && (
           <TerminalTargetMenu
             {...terminalMenu.at}
