@@ -43,11 +43,8 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
   };
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
-  const summary = collapsed
-    ? `${busy ? "実行中 1 件 · " : ""}送信待ち ${queue.length} 件の追加があります`
-    : busy
-      ? `実行中 1 件 · 送信待ち ${queue.length} 件（いまの作業が終わったら順に送ります）`
-      : `送信待ち ${queue.length} 件（自動で送れませんでした。「すぐ送る」で送ってください）`;
+  // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）
+  const hint = !busy ? "自動で送れませんでした。行の「すぐ送る」で送れます" : collapsed ? "" : "終わったら順に送ります";
   return (
     <div className={cx("queued-messages", collapsed && "collapsed")} aria-label="送信待ちの指示">
       <div className="queued-head-row">
@@ -59,7 +56,8 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
           onClick={() => setCollapsed(!collapsed)}
         >
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
-          {summary}
+          <span className="queued-count">送信待ち {queue.length} 件</span>
+          {hint && <span className="queued-hint">{hint}</span>}
         </button>
         {/* 全体への操作は 2 件以上のときだけ（1 件のときは行の「すぐ送る」「消す」と同じで、その 1 件へのボタンに見えるため） */}
         {queue.length > 1 && (
@@ -71,7 +69,7 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
               onClick={() => void api.sendAllQueued(runId).catch(failed)}
             >
               <SendHorizontal size={12} aria-hidden />
-              {queue.length} 件をまとめて送る
+              まとめて送る
             </button>
             <button
               type="button"
@@ -89,7 +87,7 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
               }
             >
               <Trash2 size={12} aria-hidden />
-              {queue.length} 件すべて消す
+              すべて消す
             </button>
           </>
         )}
@@ -98,6 +96,8 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
         editing?.id === m.id ? (
           <QueuedEditor
             key={m.id}
+            index={i}
+            withGrip={queue.length > 1}
             attachments={m.attachments}
             text={editing.text}
             onChange={(text) => setEditing({ id: m.id, text })}
@@ -183,12 +183,18 @@ function QueuedAttachments({ attachments }: { attachments: Attachment[] }) {
 
 /** 待ちの指示を書き直す欄（Enter で保存・Shift+Enter で改行・Esc でやめる。添付も並べて出す） */
 function QueuedEditor({
+  index,
+  withGrip,
   attachments,
   text,
   onChange,
   onSave,
   onCancel,
 }: {
+  /** 送る順番（0 から。ほかの行と同じく番号を出す） */
+  index: number;
+  /** ほかの行につまみの印があるか（あれば同じ幅を空けて、番号の位置をそろえる） */
+  withGrip: boolean;
   /** その指示の添付（書き直している間も見られるよう、欄の左に出す。画像は押すと大きく表示） */
   attachments: Attachment[];
   text: string;
@@ -208,6 +214,10 @@ function QueuedEditor({
   };
   return (
     <div className="queued-row editing">
+      {withGrip && <span className="queued-grip queued-grip-space" aria-hidden />}
+      <span className="queued-index" aria-label={`${index + 1} 番目`}>
+        {index + 1}
+      </span>
       <QueuedAttachments attachments={attachments} />
       <textarea
         className="queued-editor"
