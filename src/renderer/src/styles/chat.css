@@ -144,6 +144,12 @@
   color: var(--muted);
 }
 
+/* 作業中の経過時間（桁が変わっても横に揺れないよう、数字の幅をそろえる） */
+.working-elapsed {
+  color: var(--extra-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .dots {
   display: inline-flex;
   gap: 4px;

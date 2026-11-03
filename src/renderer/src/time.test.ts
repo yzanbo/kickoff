@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatClock, formatDayTime, relativeTime, resetIn, resetInShort, shortRelativeTime } from "./time";
+import { formatClock, formatDayTime, formatElapsed, relativeTime, resetIn, resetInShort, shortRelativeTime } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -42,4 +42,14 @@ test("resetIn / resetInShort: 分・時間・日の単位で丸める。null な
 test("formatClock: 時刻だけ（2 桁）", () => {
   assert.equal(formatClock(new Date(2026, 0, 1, 14, 5).toISOString()), "14:05");
   assert.equal(formatClock(new Date(2026, 0, 1, 9, 0).toISOString()), "09:00");
+});
+
+test("formatElapsed: 秒・分秒・時間分（ちょうどのときは下の単位を付けない）", () => {
+  assert.equal(formatElapsed(0), "0秒");
+  assert.equal(formatElapsed(8_900), "8秒");
+  assert.equal(formatElapsed(60_000), "1分");
+  assert.equal(formatElapsed(83_000), "1分23秒");
+  assert.equal(formatElapsed(3_600_000), "1時間");
+  assert.equal(formatElapsed(3_900_000), "1時間5分");
+  assert.equal(formatElapsed(-5), "0秒");
 });
