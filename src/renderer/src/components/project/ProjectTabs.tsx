@@ -1,4 +1,4 @@
-import { Code2, SquareKanban, type LucideIcon } from "lucide-react";
+import { Code2, History, SquareKanban, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import type { Run } from "../../../../core/types";
 import { cx } from "../../cx";
@@ -24,6 +24,7 @@ export function useProjectTabsLayout() {
 const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
   { tab: "board", label: "ボード", icon: SquareKanban },
   { tab: "changes", label: "エディタ", icon: Code2 },
+  { tab: "history", label: "履歴", icon: History },
 ];
 
 /**
@@ -48,7 +49,8 @@ export function ProjectTabs({ projectId, tab, runs, changeCount, vertical = fals
         // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
         const selected = tab === t || (t === "board" && tab === "groups");
         const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
-        const count = t === "board" ? runs.length : changeCount;
+        // 数はボード（チャット）とエディタ（変更のあるファイル）だけ。履歴には出さない
+        const count = t === "board" ? runs.length : t === "changes" ? changeCount : 0;
         const countLabel = t === "board" ? `チャット ${count} 件` : `変更のあるファイル ${count} 件`;
         return (
           <a

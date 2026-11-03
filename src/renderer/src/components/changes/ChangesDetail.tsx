@@ -1,14 +1,12 @@
-import type { GitCommit, GitFileChange } from "../../../../core/types";
+import type { GitFileChange } from "../../../../core/types";
 import { DiffView } from "./DiffView";
 import { FileView } from "./FileView";
-import { HistoryMain } from "./HistoryMain";
 import type { ChangeKinds } from "./treeModel";
 import type { ChangesSelection, ChangesView } from "./useChangesSelection";
-import type { GitLogController } from "./useGitLog";
 import type { GitStatusController } from "./useGitStatus";
 
 /**
- * エディタタブの右側: 履歴ならコミットの表と詳細、検索の行や「編集」から開いたファイルは中身（FileView）、
+ * エディタタブの右側: 検索の行や「編集」から開いたファイルは中身（FileView）、
  * 変更のあるファイルは差分（DiffView）、エクスプローラーから選んだ変更のないファイルは中身、それ以外は案内
  */
 export function ChangesDetail({
@@ -16,9 +14,6 @@ export function ChangesDetail({
   projectId,
   repoPath,
   git,
-  log,
-  commit,
-  onSelectCommit,
   selection,
   change,
   kinds,
@@ -28,9 +23,6 @@ export function ChangesDetail({
   projectId: number;
   repoPath: string;
   git: GitStatusController;
-  log: GitLogController;
-  commit?: GitCommit;
-  onSelectCommit: (commit: GitCommit) => void;
   selection: ChangesSelection;
   /** 選んだファイルの差分（selectedChange。なければ中身を出す） */
   change?: { file: GitFileChange; staged: boolean };
@@ -50,9 +42,7 @@ export function ChangesDetail({
   });
   return (
     <div className="changes-diff">
-      {view === "history" ? (
-        <HistoryMain projectId={projectId} log={log} commit={commit} onSelect={onSelectCommit} />
-      ) : selected && (selected.line !== undefined || selected.edit) ? (
+      {selected && (selected.line !== undefined || selected.edit) ? (
         <FileView
           key={`${selected.path}:${selected.line ?? ""}:${selected.edit ? "edit" : ""}`}
           {...fileViewProps(selected.path)}

@@ -60,4 +60,4 @@ export function selectedChange(selected: Selection | undefined, groups: ChangeGr
 }
 
 /** エディタタブの左の表示（すべてのファイル・検索・変更・履歴） */
-export type ChangesView = "files" | "search" | "changes" | "history";
+export type ChangesView = "files" | "search" | "changes";

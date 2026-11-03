@@ -3,6 +3,7 @@ import { useBoardColumns } from "../components/board/BoardColumnsToggle";
 import { GroupBoard } from "../components/board/GroupBoard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
 import { ChangesTab } from "../components/changes/ChangesTab";
+import { HistoryTab } from "../components/changes/HistoryTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectHeader } from "../components/project/ProjectHeader";
@@ -13,7 +14,7 @@ import type { FileTarget, ProjectTab, ReopenRoute } from "../router";
 import { editorWorktreeKey } from "../storageKeys";
 import { WorktreeContext } from "../worktree/worktreeContext";
 
-/** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）をタブで */
+/** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・履歴（コミット）をタブで */
 export function ProjectPage({
   id,
   tab,
@@ -38,10 +39,10 @@ export function ProjectPage({
     if (tab === "board") setColumns("state");
     else if (tab === "groups") setColumns("groups");
   }, [tab, setColumns]);
-  // エディタタブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
+  // エディタ・履歴タブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
   const [worktree, setWorktree] = useStoredState<string | undefined>(editorWorktreeKey(id), (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
-  const git = useGitStatus(id, tab === "changes", worktree);
+  const git = useGitStatus(id, tab === "changes" || tab === "history", worktree);
   // タブの置き方（見出しの下に横並び / 左に縦並び。設定の「表示」）
   const [tabsLayout] = useProjectTabsLayout();
   // 開くファイルが別の作業場所のものなら、先にその作業場所へ切り替える（切り替わってから ChangesTab に渡す）
@@ -79,6 +80,11 @@ export function ProjectPage({
             // 別のプロジェクトを読み込んでいる途中・作業場所を切り替える前は渡さない
             openFile={!stale && openFile?.worktree === worktree ? openFile : undefined}
           />
+        </WorktreeContext.Provider>
+      )}
+      {tab === "history" && (
+        <WorktreeContext.Provider value={worktree}>
+          <HistoryTab key={worktree ?? ""} projectId={project.id} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
         </WorktreeContext.Provider>
       )}
       </div>

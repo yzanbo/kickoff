@@ -86,10 +86,11 @@ export const subagentsArchivedKey = (runId: number) => `kickoff:subagents-archiv
 export const chatDraftKey = (runId: number) => `kickoff:chat-draft:${runId}`;
 
 // エディタタブ（変更・履歴・ファイル）
-/** エディタタブの左端の表示（"files" / "search" / "changes" / "history"） */
+/** エディタタブの左端の表示（"files" / "search" / "changes"。以前の "history" は履歴のタブに移したので既定に戻る） */
 export const CHANGES_VIEW_KEY = "kickoff:changes-view";
 /** 変更の一覧を木で出すか（"1" なら木） */
 export const CHANGES_TREE_KEY = "kickoff:changes-tree";
+/** エディタタブ・履歴タブの左の一覧の幅 */
 export const CHANGES_LIST_WIDTH_KEY = "kickoff:changes-list-width";
 /** 差分の並べ方（"split" / "unified"） */
 export const DIFF_LAYOUT_KEY = "kickoff:diff-layout";

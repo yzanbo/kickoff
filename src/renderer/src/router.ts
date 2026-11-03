@@ -3,7 +3,7 @@ import { useWindowEvent } from "./hooks/useWindowEvent";
 
 // プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はエディタ（changes）でファイルとして見る
 // （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
-const PROJECT_TABS = ["board", "groups", "changes"] as const;
+const PROJECT_TABS = ["board", "groups", "changes", "history"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** エディタタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
