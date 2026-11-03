@@ -1,7 +1,8 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { MermaidDiagram, MermaidPlaceholder } from "./mermaid/MermaidDiagram";
-import { mermaidSource } from "./mermaid/mermaidSource";
+import { codeBlockOf } from "./mermaid/mermaidSource";
+import { CopyButton } from "./CopyButton";
 
 const link: Components["a"] = ({ href, children }) => (
   <a href={href} target="_blank" rel="noreferrer">
@@ -9,12 +10,24 @@ const link: Components["a"] = ({ href, children }) => (
   </a>
 );
 
-/** コードブロック。```mermaid は図にする（生成中は、書きかけの図を描かずに枠だけ出す） */
+/**
+ * コードブロック。上の帯に言語名とコピーのボタンを出す（ボタンはいつも出す）。
+ * ```mermaid は図にする（生成中は、書きかけの図を描かずに枠だけ出す）
+ */
 function codeBlock(streaming: boolean): Components["pre"] {
   return function CodeBlock({ node, ...props }) {
-    const source = mermaidSource(node);
-    if (source === undefined) return <pre {...props} />;
-    return streaming ? <MermaidPlaceholder /> : <MermaidDiagram code={source} />;
+    const block = codeBlockOf(node);
+    if (block?.language === "mermaid") return streaming ? <MermaidPlaceholder /> : <MermaidDiagram code={block.text} />;
+    if (!block) return <pre {...props} />;
+    return (
+      <div className="code-block">
+        <div className="code-block-head">
+          <span className="code-block-lang">{block.language}</span>
+          <CopyButton text={block.text} label="コードをコピー" className="code-block-copy" />
+        </div>
+        <pre {...props} />
+      </div>
+    );
   };
 }
 

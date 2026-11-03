@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Element } from "hast";
-import { mermaidSource } from "./mermaidSource";
+import { codeBlockOf, mermaidSource } from "./mermaidSource";
 
 const pre = (className: string[] | undefined, text: string): Element => ({
   type: "element",
@@ -16,4 +16,10 @@ test("```mermaid のコードブロックだけ、中身を取り出す（最後
   assert.equal(mermaidSource(pre(["language-ts"], "const a = 1\n")), undefined);
   assert.equal(mermaidSource(pre(undefined, "plain\n")), undefined);
   assert.equal(mermaidSource(undefined), undefined);
+});
+
+test("コードブロックの言語と中身を取り出す（言語がなければ空、コードブロックでなければ undefined）", () => {
+  assert.deepEqual(codeBlockOf(pre(["language-TS"], "const a = 1\n")), { language: "ts", text: "const a = 1" });
+  assert.deepEqual(codeBlockOf(pre(undefined, "npm run dev\n")), { language: "", text: "npm run dev" });
+  assert.equal(codeBlockOf(undefined), undefined);
 });
