@@ -1,5 +1,5 @@
 import { ArrowDown } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cx } from "../../cx";
 import { RUN_STATUS_LABELS } from "../RunStatus";
 import { useTicker } from "../../hooks/useTicker";
@@ -45,6 +45,9 @@ function lastResultIdOf(items: TimelineItem[]): number {
   }
   return 0;
 }
+
+/** 上の端からこの距離まで戻ったら、窓の外の前の項目を足す */
+const TOP_LOAD_PX = 200;
 
 /** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない） */
 const BOTTOM_SLACK_PX = 80;
@@ -126,6 +129,9 @@ function ThinkingWords({ since }: { since: string | null }) {
 export function RunTimeline({
   items,
   rel,
+  hidden = 0,
+  onShowMore,
+  onAtBottom,
   run,
   busy,
   agents = [],
@@ -145,6 +151,11 @@ export function RunTimeline({
   rel: (s: string) => string;
   run: Run;
   busy: boolean;
+  /** 窓の外（上）にあって描いていない項目の数と、それを足す操作（長いチャットでは最近の項目だけを描く） */
+  hidden?: number;
+  onShowMore?: () => void;
+  /** 一番下へ戻った（足した前の項目を外して、描く量を元に戻す） */
+  onAtBottom?: () => void;
   /** チャットのサブエージェント（実行中の数・長く動きのないもの・裏の作業の一覧から中身を開く） */
   agents?: SubagentEntry[];
   /** サブエージェントの中身をパネルのタブで開く */
@@ -176,6 +187,9 @@ export function RunTimeline({
   const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
   // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
+  // 窓の最初と最後の項目（前を足した・新しい発言が届いたを見分ける）
+  const firstKey = items[0]?.key;
+  const lastKey = items[items.length - 1]?.key;
   // 本当に動いているかの目安: 最後に何かが届いた時刻（記録・書いている途中の返答・サブエージェントの動き）。
   // Claude Code に問い合わせる手段はないので、1 秒ごとの描き直しで、長く動きがなければ知らせる
   // 何も届かない間も、動きの様子（「n 分動きがありません」）を進めるため、作業中は定期的に描き直す（流れの各項目は memo しているので軽い）
@@ -195,13 +209,30 @@ export function RunTimeline({
     if (!focus) return;
     if (!timelineRef.current || !jumpToEvent(timelineRef.current, focus)) return;
     stickToBottom.current = false;
-  }, [focus, items.length, stickToBottom]);
+  }, [focus, lastKey, stickToBottom]);
+
+  // 前の項目を足したら、読んでいた位置を動かさない（上に足した分だけ下げる）
+  const beforeMore = useRef<{ height: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = timelineRef.current;
+    const prev = beforeMore.current;
+    if (!el || !prev) return;
+    beforeMore.current = null;
+    el.scrollTop = prev.top + (el.scrollHeight - prev.height);
+  }, [firstKey]);
+  const showMore = () => {
+    const el = timelineRef.current;
+    if (!el || !onShowMore || beforeMore.current) return;
+    beforeMore.current = { height: el.scrollHeight, top: el.scrollTop };
+    onShowMore();
+  };
 
   // 一番下を見ているときだけ、新しい発言に合わせてスクロールする
   useEffect(() => {
     const el = timelineRef.current;
     if (el && stickToBottom.current && !focus) el.scrollTop = el.scrollHeight;
-  }, [items.length, approvals.length, live, focus, stickToBottom]);
+    // 窓（最近の項目だけ描く）は数が変わらないまま進むので、最後の項目で新しい発言を見分ける
+  }, [lastKey, approvals.length, live, focus, stickToBottom]);
 
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   useMarkSeen({ timelineRef, run, events, visible, away, slackPx: BOTTOM_SLACK_PX });
@@ -247,12 +278,20 @@ export function RunTimeline({
           const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_SLACK_PX;
           stickToBottom.current = atBottom;
           setAway(!atBottom);
+          if (atBottom) onAtBottom?.();
+          // 上の端の近くまで戻ったら、窓の外の前の項目を足す
+          if (hidden > 0 && el.scrollTop < TOP_LOAD_PX) showMore();
           const next = promptAbove(el);
           // 同じ発言のままなら前の値を残し、スクロールのたびに描き直さない
           setPinned((prev) => (prev?.id === next?.id ? prev : next));
         }}
       >
         <div className="timeline-inner">
+          {hidden > 0 && (
+            <button type="button" className="link-button timeline-more" onClick={showMore}>
+              以前の発言を表示（あと {hidden} 件）
+            </button>
+          )}
           <TimelineItems items={items} rel={rel} active={busy} />
           {live && (
             <div className="assistant live">

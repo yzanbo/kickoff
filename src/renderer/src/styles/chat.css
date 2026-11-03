@@ -132,6 +132,13 @@
   font-size: 15px;
 }
 
+/* 長いチャットで、窓の外（上）の前の発言を足すボタン（上の端まで戻っても足す） */
+.timeline-more {
+  align-self: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
 .run-composer {
   max-width: 852px;
   width: 100%;
