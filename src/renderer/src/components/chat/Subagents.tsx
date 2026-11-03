@@ -7,7 +7,9 @@ import { useDismiss } from "../../hooks/useDismiss";
 import { useStoredState } from "../../hooks/useStoredState";
 import { subagentsArchivedKey } from "../../storageKeys";
 import { modelDisplayName } from "../../models";
-import { collectSubagents, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "./subagentList";
+import { collectSubagents, type SubagentEntry } from "../../../../core/subagents";
+import { subagentStatusLabel } from "./subagentList";
+import { SubagentRecovery } from "./SubagentRecovery";
 import { ClaudeMark } from "../ClaudeMark";
 import { IconButton } from "../IconButton";
 
@@ -56,7 +58,9 @@ export function SubagentChip({
   const visible = entries.filter((s) => !archived.has(s.key)).reverse();
   const hidden = entries.filter((s) => archived.has(s.key)).reverse();
   const running = visible.filter((s) => s.status === "running").length;
-  const failed = visible.filter((s) => s.status === "failed").length;
+  // 通信の切断で止まったものは、作業の失敗と分けて数える（「再開」で続きから戻せる）
+  const failed = visible.filter((s) => s.status === "failed" && !s.network).length;
+  const network = visible.filter((s) => s.network).length;
   const finished = visible.filter((s) => s.status !== "running");
 
   const archive = (keys: string[]) => saveArchived(new Set([...archived, ...keys]));
@@ -89,9 +93,12 @@ export function SubagentChip({
           <span className="subagent-title">{s.description}</span>
           <span className="subagent-meta">
             {meta.join(" · ")}
-            {s.status !== "completed" && <span className={`subagent-status status-${s.status}`}> · {SUBAGENT_STATUS_LABELS[s.status]}</span>}
+            {s.status !== "completed" && (
+              <span className={`subagent-status status-${s.network ? "network" : s.status}`}> · {subagentStatusLabel(s)}</span>
+            )}
             {s.status === "running" && s.lastTool && <span> · {s.lastTool}</span>}
           </span>
+          {!isArchived && <SubagentRecovery runId={run.id} entry={s} />}
         </span>
         {isArchived ? (
           <IconButton
@@ -129,6 +136,7 @@ export function SubagentChip({
         {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
         {running > 0 && <span className="chip-running"> · {running} 件実行中</span>}
         {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}
+        {network > 0 && <span className="chip-network"> · {network} 件通信で中断</span>}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {open && (

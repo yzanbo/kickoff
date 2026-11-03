@@ -39,6 +39,11 @@
   min-width: 0;
 }
 
+.subagent-detail-head .subagent-recovery {
+  flex: none;
+  margin-left: auto;
+}
+
 .subagent-detail-name {
   overflow: hidden;
   font-weight: 600;

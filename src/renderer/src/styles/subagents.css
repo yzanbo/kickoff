@@ -52,6 +52,10 @@
   color: var(--ng);
 }
 
+.chip-network {
+  color: var(--warn);
+}
+
 .chip-chevron {
   color: var(--muted);
 }
@@ -196,6 +200,28 @@
 
 .subagent-status.status-running {
   color: var(--accent-bright);
+}
+
+/* 通信の切断で中断（作業の失敗ではないので、赤でなく注意の色） */
+.subagent-status.status-network {
+  color: var(--warn);
+}
+
+/* 止まったサブエージェントを戻すボタン（再開・やり直す。SubagentRecovery。一覧の行の下段・タブの見出しの右） */
+.subagent-recovery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.subagent-recovery .btn {
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.subagent-text .subagent-recovery {
+  margin-top: 6px;
 }
 
 /* ToDo のピルと一覧（TodoChip） */
