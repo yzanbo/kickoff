@@ -1,4 +1,5 @@
 import { MoreHorizontal } from "lucide-react";
+import { busyWithUnread } from "../../../../core/board";
 import { AGENT_STATE_LABELS, type AgentState, type Run } from "../../../../core/types";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
@@ -45,12 +46,14 @@ export function ChatRow({
   // hooks は、下の早い return（名前の変更中）より前に呼ぶ
   const selection = useChatSelection();
   const selected = selection?.has(run.id) ?? false;
+  // 作業中のまま、まだ見ていない返答がある（印に未読の点を重ね、名前を太字に）
+  const busyUnread = busyWithUnread(run, state);
   if (rename) {
     // 押しても開かず、ドラッグもしない（入力欄の文字を選べるように）
     return (
       <li>
         <div className={cx("chat-row", "renaming", active && "active")}>
-          <StatusSlot state={state} />
+          <StatusSlot state={state} unread={busyUnread} />
           <span className="chat-row-body">
             <ChatTitleInput run={run} editor={rename} />
           </span>
@@ -71,12 +74,12 @@ export function ChatRow({
           run.archived_at && "archived",
           active && "active",
           selected && "multi-selected",
-          (state === "needs_input" || state === "attention") && "is-unread",
+          (state === "needs_input" || state === "attention" || busyUnread) && "is-unread",
         )}
         data-run-id={run.id}
         aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
         href={href({ name: "run", projectId: run.project_id, runId: run.id })}
-        title={`${chatTitle(run.title)}（${AGENT_STATE_LABELS[state]}）`}
+        title={`${chatTitle(run.title)}（${AGENT_STATE_LABELS[state]}${busyUnread ? "・未読あり" : ""}）`}
         draggable
         onDragStart={(e) => startRunDrag(e, run.id)}
         onDoubleClick={(e) => {
@@ -97,7 +100,7 @@ export function ChatRow({
           openRun(run.project_id, run.id);
         }}
       >
-        <StatusSlot state={state} />
+        <StatusSlot state={state} unread={busyUnread} />
         <span className="chat-row-body">
           <span className="chat-row-line">
             <span className="chat-row-title">{chatTitle(run.title)}</span>

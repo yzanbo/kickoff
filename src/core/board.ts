@@ -14,6 +14,20 @@ export function agentStateOf(run: Run, hasPendingApproval: boolean): AgentState 
   return "done";
 }
 
+/**
+ * 未読にする「新しい結果」の記録か: AI の文章の返答（サブエージェントのものは除く）・作業の終わり・失敗。
+ * ツールの実行・考え中などの途中経過では未読にしない（作業中のチャットがずっと未読になるのを防ぐ）
+ */
+export function isUnreadEvent(event: { type: string; data: unknown }): boolean {
+  if (event.type === "text") return !(event.data as { sub?: boolean }).sub;
+  return event.type === "result" || event.type === "error";
+}
+
+/** 作業中のまま、まだ見ていない返答がある（作業中の印に未読の点を重ねる。カンバンの列・未読の数は作業中のまま） */
+export function busyWithUnread(run: Run, state: AgentState): boolean {
+  return run.attention && state === "running";
+}
+
 /** カンバンの列（AI の状態だけで決まる。失敗したものも、見るまでは未読） */
 export function boardColumnOf(state: AgentState): BoardColumn {
   if (state === "running") return "running";

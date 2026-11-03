@@ -10,6 +10,7 @@ import { CHAT_TITLE_MAX } from "../../chatTitle";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useRunStates } from "../../approvalsContext";
 import { StatusSlot } from "../StatusSlot";
+import { busyWithUnread } from "../../../../core/board";
 import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import type { SidePanelController } from "./useSidePanel";
@@ -72,6 +73,7 @@ export function PaneTabBar({
         // チャットのタブの状態（未読・失敗のタブは名前も太字にする。サイドバーの行と同じ）
         const chatRun = t.kind === "chat" ? chatRunOf(t) : undefined;
         const chatState = chatRun && stateOf(chatRun);
+        const busyUnread = Boolean(chatRun && chatState && busyWithUnread(chatRun, chatState));
         return (
           <PanelTab
             key={t.key}
@@ -84,11 +86,11 @@ export function PaneTabBar({
               insertAt === i && "split-insert-before",
               insertAt === pane.tabs.length && i === pane.tabs.length - 1 && "split-insert-after",
               drag.dragging === t.key && "split-dragging",
-              (chatState === "attention" || chatState === "failed") && "unread",
+              (chatState === "attention" || chatState === "failed" || busyUnread) && "unread",
             )}
             extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
             onSelect={() => panel.showTab(t.key)}
-            lead={chatState && <StatusSlot state={chatState} />}
+            lead={chatState && <StatusSlot state={chatState} unread={busyUnread} />}
             // チャットのタブは、名前のダブルクリックでその場で名前を変える（見出しには名前を出さない）
             onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Run) : undefined}
             editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Run), t.title ?? "") : undefined}

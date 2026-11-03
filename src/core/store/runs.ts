@@ -217,6 +217,15 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       if (run) onChange({ type: "run_event", project_id: run.project_id, event: saved });
       return saved;
     },
+    /** 未読にする「新しい結果」（board.ts の isUnreadEvent と同じもの）のうち、いちばん新しい記録の id（なければ 0） */
+    latestUnreadEventId(runId: number): number {
+      const row = db
+        .prepare(
+          "SELECT MAX(id) AS id FROM run_events WHERE run_id = ? AND ((type = 'text' AND COALESCE(json_extract(data, '$.sub'), 0) = 0) OR type IN ('result', 'error'))",
+        )
+        .get(runId) as { id: number | null };
+      return row.id ?? 0;
+    },
     /** 会話の記録を、別のチャットへ upToEventId まで写す（時刻もそのまま。分岐したチャット用。1 件ずつは知らせない） */
     copyEvents(fromRunId: number, toRunId: number, upToEventId: number): void {
       db.prepare(

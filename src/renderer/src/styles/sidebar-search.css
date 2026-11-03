@@ -80,6 +80,7 @@
 }
 
 .status-slot {
+  position: relative;
   display: grid;
   flex: none;
   place-items: center;
@@ -110,6 +111,18 @@
 
 .status-slot.state-needs_input {
   color: var(--dot-needs-input);
+}
+
+/* 作業中のまま、まだ見ていない返答がある: リングの右上に小さな緑の点（地の色の縁で、リングと分ける） */
+.status-unread-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--bg-sidebar);
+  border-radius: 50%;
+  background: var(--dot-attention);
 }
 
 .status-ring {

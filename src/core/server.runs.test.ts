@@ -7,6 +7,40 @@ import { test } from "node:test";
 import { MAX_AUTO_RESUMES, RESUME_PROMPT } from "./runReconnect.js";
 import { AUTH, setup, tempDir, until } from "./testing/testServer.js";
 
+test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
+  const { call, project, store, runner, provider } = setup();
+  // ツールの実行・サブエージェントの返答では未読にしない
+  provider.emits = [
+    { type: "tool_use", id: "t1", name: "Read", input: {} },
+    { type: "text", text: "サブの返答", sub: true },
+  ];
+  let release = provider.hold();
+  const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "やって" })).body.id;
+  await until(() => store.getRun(runId)?.status === "running" && store.listEvents(runId).some((e) => e.type === "tool_use"));
+  assert.equal(store.getRun(runId)?.attention, false);
+  release();
+  await until(() => !runner.isBusy(runId));
+  assert.equal((await call("POST", `/api/runs/${runId}/seen`)).body.attention, false);
+
+  // 作業中に AI の文章の返答が届いたら未読（作業中のまま）
+  provider.emits = [{ type: "text", text: "途中の返答" }];
+  release = provider.hold();
+  assert.equal((await call("POST", `/api/runs/${runId}/messages`, { text: "続けて" })).status, 200);
+  await until(() => store.getRun(runId)?.attention === true);
+  assert.equal(store.getRun(runId)?.status, "running");
+  const textId = store.listEvents(runId).findLast((e) => e.type === "text")!.id;
+  // 一番下まで見た（その返答まで）: 既読
+  assert.equal((await call("POST", `/api/runs/${runId}/seen`, { event_id: textId })).body.attention, false);
+  release();
+  await until(() => !runner.isBusy(runId));
+  // 終わった: 未読。終わりの結果より前までしか見ていなければ未読のまま、終わりまで見たら既読
+  assert.equal(store.getRun(runId)?.attention, true);
+  assert.equal((await call("POST", `/api/runs/${runId}/seen`, { event_id: textId })).body.attention, true);
+  const lastId = store.listEvents(runId).at(-1)!.id;
+  assert.equal((await call("POST", `/api/runs/${runId}/seen`, { event_id: lastId })).body.attention, false);
+  assert.equal((await call("POST", `/api/runs/${runId}/seen`, { event_id: "x" })).status, 400);
+});
+
 test("チャット・グループの API", async () => {
   const { call, project, store, runner } = setup();
   const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });

@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { ApprovalCenter } from "../approvals.js";
 import { Bus } from "../bus.js";
-import type { AgentProvider, ProviderRunResult } from "../providers/types.js";
+import type { AgentProvider, ProviderCallbacks, ProviderRunResult } from "../providers/types.js";
 import { Runner } from "../runner.js";
 import { createApp } from "../server.js";
 import { Store } from "../store.js";
@@ -31,12 +31,15 @@ class FakeProvider extends FakeProviderBase {
   resumes: (string | null)[] = [];
   /** これが 1 以上なら、次の実行を通信の切断で失敗させる（1 回ごとに減らす） */
   networkFailures = 0;
+  /** 実行の初めに記録する途中経過（返答・ツールの実行など。作業中の未読の確かめに使う） */
+  emits: Parameters<ProviderCallbacks["emit"]>[0][] = [];
   /** これがあれば、外から release するまで作業中のままにする（止められたら cancelled） */
   private gate: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, _cb: unknown, signal: AbortSignal): Promise<ProviderRunResult> {
+  async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit">, signal: AbortSignal): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
     this.resumes.push(params.resumeSessionId);
+    this.emits.forEach((event) => cb.emit(event));
     if (this.gate) {
       const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
       if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };
