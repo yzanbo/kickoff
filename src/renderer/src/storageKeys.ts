@@ -102,6 +102,9 @@ export const QUEUE_MODE_KEY = "kickoff:queue-mode";
 /** 送信待ちの一覧をたたんで「n 件の追加があります」だけにするか（"1" / "0"。どのチャットでも同じ） */
 export const QUEUE_COLLAPSED_KEY = "kickoff:queue-collapsed";
 
+/** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id。既定は "terminal"） */
+export const EXTERNAL_TERMINAL_KEY = "kickoff:external-terminal";
+
 // 埋め込みブラウザ
 /** 開発者ツールを出す場所（"right" / "bottom" / "window"） */
 export const BROWSER_DEVTOOLS_DOCK_KEY = "kickoff:browser-devtools-dock";

@@ -1,4 +1,4 @@
-import { Archive, Bell, Bot, Gauge, Palette, PlugZap, Puzzle, Smartphone } from "lucide-react";
+import { Archive, Bell, Bot, Gauge, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
 import { useTheme, type Theme } from "../../theme";
 import { BrowserExtensions } from "../BrowserExtensions";
 import { Segmented } from "../Segmented";
@@ -8,8 +8,9 @@ import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
 import { ConnectionSettings } from "./ConnectionSettings";
 import { NotificationSettings } from "./NotificationSettings";
+import { TerminalSettings } from "./TerminalSettings";
 
-export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "notifications" | "browser" | "mobile";
+export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "notifications" | "terminal" | "browser" | "mobile";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -18,6 +19,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "ai", label: "AI の既定", icon: Bot },
   { key: "chats", label: "チャット", icon: Archive },
   { key: "notifications", label: "通知", icon: Bell },
+  { key: "terminal", label: "ターミナル", icon: SquareTerminal },
   { key: "browser", label: "ブラウザの拡張機能", icon: Puzzle },
   { key: "mobile", label: "スマホ連携", icon: Smartphone },
 ];
@@ -34,6 +36,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
           {section === "ai" && <AiDefaultsSettings />}
           {section === "chats" && <ChatSettings />}
           {section === "notifications" && <NotificationSettings />}
+          {section === "terminal" && <TerminalSettings />}
           {section === "browser" && (
             <section className="section">
               <h2>ブラウザの拡張機能</h2>

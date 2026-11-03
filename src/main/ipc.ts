@@ -4,7 +4,7 @@ import { openInChrome } from "./browser.js";
 import { closeDevTools, openDevToolsIn, openDevToolsWindow } from "./browserDevtools.js";
 import { addExtensionFolder, importFromChrome, installFromWebStore, listExtensions, removeExtension } from "./browserExtensions.js";
 import { execFileAsync } from "../core/exec.js";
-import { existingFolder, knownExtension, webContentsId } from "./ipcArgs.js";
+import { existingFolder, externalTerminalArgs, installedTerminals, knownExtension, knownTerminal, webContentsId } from "./ipcArgs.js";
 import { registerTerminalIpc } from "./terminals.js";
 
 /** ネイティブのファイル・フォルダの選択（やめたら空） */
@@ -55,10 +55,12 @@ export function registerIpc(mainWindow: () => BrowserWindow | undefined) {
   ipcMain.handle("kickoff:open-path", async (_e, target: string) => {
     if (typeof target === "string" && path.isAbsolute(target)) await shell.openPath(target);
   });
-  // macOS のターミナル（Terminal.app）で、そのフォルダを開く（アプリの中のターミナルとは別の窓）
-  ipcMain.handle("kickoff:open-external-terminal", async (_e, dir: unknown) => {
-    await execFileAsync("open", ["-a", "Terminal", existingFolder(dir)]);
+  // 外部のターミナル（選んだアプリ。既定は Terminal.app）で、そのフォルダを開く（アプリの中のターミナルとは別の窓）
+  ipcMain.handle("kickoff:open-external-terminal", async (_e, dir: unknown, terminal?: unknown) => {
+    await execFileAsync("open", externalTerminalArgs(knownTerminal(terminal), existingFolder(dir)));
   });
+  // この Mac に入っている外部のターミナル（設定で選ぶ）
+  ipcMain.handle("kickoff:external-terminals", () => installedTerminals());
   // VS Code でファイルを開く（line があればその行へ）。VS Code がなければ失敗を返す
   ipcMain.handle("kickoff:open-in-vscode", async (_e, target: string, line?: number) => {
     if (typeof target !== "string" || !path.isAbsolute(target)) throw new Error("ファイルの場所が正しくありません");
