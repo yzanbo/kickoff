@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowUp, Check, ChevronRight, FileText, Pencil, SendHorizontal, Trash2, X } from "lucide-react";
-import { useState, type KeyboardEvent } from "react";
+import { ArrowDown, ArrowUp, Check, ChevronRight, FileText, GripVertical, Pencil, SendHorizontal, Trash2, X } from "lucide-react";
+import { useState, type DragEvent, type KeyboardEvent } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api, attachmentUrl } from "../../api";
 import { ImageViewer } from "../ImageViewer";
@@ -13,12 +13,33 @@ import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
  * 見出しに実行中と送信待ちの数、行に添付（画像はサムネイル）を出す。
+ * 行はドラッグでも並べ替えられる（↑↓ のボタンと同じ）。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
 export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
   const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
   // 書き直している指示（id と書いている途中の文）
   const [editing, setEditing] = useState<{ id: string; text: string }>();
+  // ドラッグで並べ替えている指示（from: 元の位置）と、入れる位置（at: 0〜件数。その位置の行の前に入れる）
+  const [drag, setDrag] = useState<{ id: string; from: number; at?: number }>();
+  /** ドラッグ中の行の上: 行の上半分なら前、下半分なら後ろに入れる位置にする */
+  const dragOver = (e: DragEvent<HTMLDivElement>, i: number) => {
+    if (!drag) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const rect = e.currentTarget.getBoundingClientRect();
+    const at = e.clientY < rect.top + rect.height / 2 ? i : i + 1;
+    if (at !== drag.at) setDrag({ ...drag, at });
+  };
+  const drop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (drag?.at !== undefined) {
+      // 移したあとの位置（元の位置より後ろへ入れるときは、自分が抜けた分だけ 1 つ前になる）
+      const index = drag.at > drag.from ? drag.at - 1 : drag.at;
+      if (index !== drag.from) void api.moveQueued(runId, drag.id, index).catch(failed);
+    }
+    setDrag(undefined);
+  };
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
   const summary = collapsed
@@ -48,7 +69,26 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
             onCancel={() => setEditing(undefined)}
           />
         ) : (
-        <div key={m.id} className="queued-row">
+        <div
+          key={m.id}
+          className={cx(
+            "queued-row",
+            drag?.id === m.id && "dragging",
+            drag && drag.at === i && drag.from !== i && drag.from !== i - 1 && "drop-before",
+            drag && drag.at === i + 1 && i === queue.length - 1 && drag.from !== i && "drop-after",
+          )}
+          draggable={queue.length > 1}
+          title={queue.length > 1 ? "ドラッグで並べ替え" : undefined}
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", m.text);
+            setDrag({ id: m.id, from: i });
+          }}
+          onDragOver={(e) => dragOver(e, i)}
+          onDrop={drop}
+          onDragEnd={() => setDrag(undefined)}
+        >
+          {queue.length > 1 && <GripVertical size={13} className="queued-grip" aria-hidden />}
           <QueuedAttachments attachments={m.attachments} />
           <span className="queued-text" title={m.text} onDoubleClick={() => setEditing({ id: m.id, text: m.text })}>
             {m.text || m.attachments.map((a) => a.name).join("、")}
