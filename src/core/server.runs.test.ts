@@ -154,3 +154,34 @@ test("自動のアーカイブ: 完了して日数がたったチャットだけ
   assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: 7 })).body.autoArchiveDays, 7);
   assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: null })).body.autoArchiveDays, null);
 });
+
+test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・すぐ送る。作業中でなければすぐ送る", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue`, {})).status, 400);
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "2" })).body, { queued: true });
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "3" })).body, { queued: true });
+  const queue = (await call("GET", `/api/runs/${runId}`)).body.queue as { id: string; text: string }[];
+  assert.deepEqual(queue.map((m) => m.text), ["2", "3"]);
+
+  const moved = await call("POST", `/api/runs/${runId}/queue/${queue[1].id}/move`, { index: 0 });
+  assert.deepEqual(moved.body.queue.map((m: { text: string }) => m.text), ["3", "2"]);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/nope/move`, { index: 0 })).status, 404);
+  assert.deepEqual((await call("DELETE", `/api/runs/${runId}/queue/${queue[0].id}`)).body, { queue: [moved.body.queue[0]] });
+  assert.equal((await call("DELETE", `/api/runs/${runId}/queue/nope`)).status, 404);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/nope/send`)).status, 404);
+
+  // すぐ送る: いまの作業を止めてから送る（送った指示も作業中のまま）
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/${queue[1].id}/send`)).body, { ok: true });
+  await until(() => provider.prompts.length === 2);
+  assert.equal(provider.prompts[1], "3");
+  assert.deepEqual(runner.queued(runId), []);
+  runner.cancel(runId);
+  await until(() => !runner.isBusy(runId));
+  release();
+  // 作業中でなければすぐ送る
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "4" })).body, { queued: false });
+  await until(() => provider.prompts.length === 3);
+});

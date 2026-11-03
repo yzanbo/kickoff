@@ -186,3 +186,42 @@
   height: 28px;
   border-radius: 50%;
 }
+
+/* 作業中に送った次の指示の待ちの列（QueuedMessages。チャット欄のすぐ上） */
+.queued-messages {
+  margin-bottom: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.queued-head {
+  padding: 2px 6px 4px;
+}
+
+.queued-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 0 2px 6px;
+  border-radius: var(--radius);
+}
+
+.queued-row:hover {
+  background: var(--bg-hover);
+}
+
+.queued-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queued-attach {
+  margin-right: 6px;
+  vertical-align: -1px;
+}

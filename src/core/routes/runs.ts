@@ -88,7 +88,7 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
 
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
-    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }) });
+    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id) });
   });
 
   // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
@@ -140,6 +140,7 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     const run = requireRun(store, c.req.param("id"));
     if (runner.isBusy(run.id)) throw new HttpError(409, "作業中のチャットは削除できません。中断してから行ってください");
     store.deleteRun(run.id);
+    runner.forgetQueued(run.id);
     return c.json({ ok: true });
   });
 
@@ -148,6 +149,36 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
     // 作業中のチャットには送れない（409）
     return c.json(await conflictOnError(() => runner.send(run.id, text, options, attachments)));
+  });
+
+  // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る）
+  app.post("/api/runs/:id/queue", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
+    return c.json(await conflictOnError(() => runner.queueMessage(run.id, text, options, attachments)));
+  });
+
+  // 待ちの列から消す
+  app.delete("/api/runs/:id/queue/:queueId", (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    if (!runner.removeQueued(run.id, c.req.param("queueId"))) throw new HttpError(404, "待ちの指示が見つかりません");
+    return c.json({ queue: runner.queued(run.id) });
+  });
+
+  // 待ちの列を並べ替える（index は移したあとの位置）
+  app.post("/api/runs/:id/queue/:queueId/move", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { index } = z.object({ index: z.number().int().min(0) }).parse(await c.req.json());
+    if (!runner.moveQueued(run.id, c.req.param("queueId"), index)) throw new HttpError(404, "待ちの指示が見つかりません");
+    return c.json({ queue: runner.queued(run.id) });
+  });
+
+  // 待ちの 1 件をすぐ送る（作業中なら、いまの作業を止めてから送る）
+  app.post("/api/runs/:id/queue/:queueId/send", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const sent = await conflictOnError(() => runner.sendQueuedNow(run.id, c.req.param("queueId")));
+    if (!sent) throw new HttpError(404, "待ちの指示が見つかりません");
+    return c.json({ ok: true });
   });
 
   // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中・まだ会話がなければ 409）

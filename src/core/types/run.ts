@@ -115,6 +115,15 @@ export interface SearchHit {
   created_at: string;
 }
 
+/** 作業中のチャットに送った、次の指示の待ちの列の 1 件（いまの作業が終わったら順に送る。保存しない） */
+export interface QueuedMessage {
+  id: string;
+  text: string;
+  attachments: Attachment[];
+  options: RunOptions;
+  created_at: string;
+}
+
 /** チャットの添付ファイル */
 export interface Attachment {
   id: string;

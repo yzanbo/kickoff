@@ -5,6 +5,7 @@ import type {
   ApprovalDecision,
   ModelOption,
   ProviderId,
+  QueuedMessage,
   Run,
   RunEvent,
   RunGroup,
@@ -44,6 +45,8 @@ interface RunDetail {
   run: Run;
   events: RunEvent[];
   approvals: Approval[];
+  /** 作業中に送った、次の指示の待ちの列 */
+  queue: QueuedMessage[];
 }
 
 interface ImportProjectInput {
@@ -205,6 +208,14 @@ export const api = {
     request<GitDiff>("GET", gitUrl(target, "/git/diff", { path: file.path, staged: staged ? "1" : "0", ...(file.old_path ? { old: file.old_path } : {}) })),
   deleteGroup: (groupId: number) => request<{ ok: true }>("DELETE", `/api/groups/${groupId}`),
   cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
+
+  // 作業中に送る次の指示の待ちの列（作業中でなければすぐ送る）
+  queueMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
+    request<{ queued: boolean }>("POST", `/api/runs/${runId}/queue`, { text, options, attachments }),
+  removeQueued: (runId: number, id: string) => request<{ queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue/${id}`),
+  moveQueued: (runId: number, id: string, index: number) =>
+    request<{ queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/${id}/move`, { index }),
+  sendQueuedNow: (runId: number, id: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/${id}/send`),
 
   // 承認依頼・質問
   approvals: () => request<Approval[]>("GET", "/api/approvals"),

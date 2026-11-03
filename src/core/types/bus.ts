@@ -3,7 +3,7 @@ import type { Approval } from "./approval.js";
 import type { AppSettings } from "./settings.js";
 import type { Project } from "./project.js";
 import type { PlanUsage } from "./provider.js";
-import type { Run, RunEvent, RunGroup, SubagentInfo } from "./run.js";
+import type { QueuedMessage, Run, RunEvent, RunGroup, SubagentInfo } from "./run.js";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
 export type BusEvent =
@@ -18,6 +18,8 @@ export type BusEvent =
   | { type: "run_delta"; project_id: number; run_id: number; text: string }
   /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */
   | { type: "run_subagent"; project_id: number; run_id: number; subagent: SubagentInfo }
+  /** 作業中のチャットに送った次の指示の待ちの列（変わるたびに全体を送る） */
+  | { type: "run_queue"; project_id: number; run_id: number; queue: QueuedMessage[] }
   | { type: "approval"; approval: Approval }
   | { type: "approval_resolved"; id: string; run_id: number }
   | { type: "settings"; settings: AppSettings }

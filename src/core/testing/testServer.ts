@@ -22,9 +22,24 @@ export const AUTH = { authorization: `Bearer ${TOKEN}` };
 class FakeProvider extends FakeProviderBase {
   /** 最後に動かした作業フォルダ（チャットの作業場所の確かめに使う） */
   lastCwd = "";
-  async run(params: { cwd: string }): Promise<ProviderRunResult> {
+  /** 渡した指示（順に） */
+  prompts: string[] = [];
+  /** これがあれば、外から release するまで作業中のままにする（止められたら cancelled） */
+  private gate: Promise<void> | null = null;
+  async run(params: { cwd: string; prompt: string }, _cb: unknown, signal: AbortSignal): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
+    this.prompts.push(params.prompt);
+    if (this.gate) {
+      const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
+      if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };
+    }
     return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
+  }
+  /** 次からの実行を、返した関数を呼ぶまで作業中のままにする */
+  hold(): () => void {
+    let release = () => {};
+    this.gate = new Promise((resolve) => (release = () => ((this.gate = null), resolve())));
+    return release;
   }
   /** チャット欄の / のコマンド（返すものと、調べた作業フォルダ） */
   commandList: SlashCommandOption[] = [];

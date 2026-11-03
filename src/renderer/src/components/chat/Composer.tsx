@@ -19,6 +19,8 @@ interface Props {
   trailing?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
   onStop?: () => void;
+  /** 作業中に送ったとき（待ちの列に入れる。渡さなければ、作業中は送れない） */
+  onQueue?: (text: string, attachments: Attachment[]) => Promise<void>;
   /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
   onTextChange?: (text: string) => void;
   /** / と @ の候補を出す作業場所（コマンド・ファイルをここから探す） */
@@ -40,7 +42,7 @@ interface PendingFile {
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
 
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onTextChange, suggestTarget }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, onTextChange, suggestTarget }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -86,14 +88,17 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   }
 
   const uploading = files.some((f) => !f.attachment && !f.error);
-  const canSend = (text.trim() || files.some((f) => f.attachment)) && !uploading && !sending && !busy;
+  // 作業中は、待ちの列に入れられるときだけ送れる
+  const queueing = Boolean(busy && onQueue);
+  const hasContent = Boolean(text.trim() || files.some((f) => f.attachment));
+  const canSend = hasContent && !uploading && !sending && (!busy || queueing);
 
   async function send() {
     if (!canSend) return;
     setSending(true);
     setError(undefined);
     try {
-      await onSend(
+      await (queueing ? onQueue! : onSend)(
         text.trim(),
         files.flatMap((f) => (f.attachment ? [f.attachment] : [])),
       );
@@ -200,12 +205,20 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
         </div>
         <div className="composer-actions">
         {trailing}
-        {busy && onStop ? (
+        {/* 作業中は中断。書いていれば、その横に待ちの列に入れるボタン */}
+        {busy && onStop && (
           <button className="send-button stop" title="中断" aria-label="中断" onClick={onStop}>
             <Square size={12} fill="currentColor" />
           </button>
-        ) : (
-          <button className="send-button" title="送信（Enter）" aria-label="送信" disabled={!canSend} onClick={() => void send()}>
+        )}
+        {(!busy || !onStop || (queueing && hasContent)) && (
+          <button
+            className="send-button"
+            title={queueing ? "待ちの列に入れる（Enter）。いまの作業が終わったら送ります" : "送信（Enter）"}
+            aria-label={queueing ? "待ちの列に入れる" : "送信"}
+            disabled={!canSend}
+            onClick={() => void send()}
+          >
             <ArrowUp size={17} strokeWidth={2.5} />
           </button>
         )}
