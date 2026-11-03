@@ -31,6 +31,91 @@
   background: color-mix(in srgb, var(--tone) 16%, transparent);
 }
 
+/* 状態ごとの数のボタン（押すと状態ごとのチャットの一覧。見出しはウィンドウのドラッグ領域なので no-drag） */
+.state-stats {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.state-stats-button {
+  display: inline-flex;
+  gap: 6px;
+  padding: 2px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.state-stats-button:hover .stat-state,
+.state-stats-button[aria-expanded="true"] .stat-state {
+  background: color-mix(in srgb, var(--tone) 28%, transparent);
+}
+
+.state-runs-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  width: min(380px, 80vw);
+  max-height: min(460px, 70vh);
+  padding: 10px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+}
+
+.state-runs-section + .state-runs-section {
+  margin-top: 8px;
+}
+
+.state-runs-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.state-runs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px 5px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.state-runs-row:hover {
+  background: var(--bg-hover);
+}
+
+.state-runs-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state-runs-project,
+.state-runs-time {
+  flex: none;
+  font-size: 11px;
+}
+
 .project-header {
   margin-bottom: 10px;
 }
