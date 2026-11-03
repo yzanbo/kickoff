@@ -60,12 +60,24 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     const timer = setTimeout(() => textChange.current?.(text), TEXT_CHANGE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [text]);
-  // 書いた分だけ高さを伸ばす（空なら 1 行。上限を超えたら中でスクロール）
+  // 書いた分だけ高さを伸ばす（空なら 1 行。上限を超えたら中でスクロール）。
+  // 文が変わったときに加えて、幅が変わったときも測り直す（パネルを開く途中など、狭い瞬間に測った高さが残って縦長にならないように）
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)}px`;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)}px`;
+    };
+    fit();
+    let width = el.clientWidth;
+    const observer = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      fit();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [text]);
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [sending, setSending] = useState(false);
