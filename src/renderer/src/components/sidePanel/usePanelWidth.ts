@@ -7,8 +7,11 @@ const DEFAULT_PANEL_WIDTH = 1127;
 const MIN_PANEL_WIDTH = 360;
 /** ボードとパネルの間隔（side-panel.css の .board-body.with-panel の gap） */
 const PANEL_GAP = 12;
-/** パネルの横に残るボードがこれより狭くなるなら、パネルでボードを覆う（列が 1 本も入らない細い帯を残さない） */
-const MIN_BOARD_WIDTH = 280;
+/**
+ * パネルの横に残るボードがこれより狭くなるなら、パネルでボードを覆う（列が 1 本も入らない細い帯を残さない）。
+ * 狭いボードは列を 1 本ずつめくる表示になる（board-columns.css の @container）ので、1 本が収まる幅にする
+ */
+const MIN_BOARD_WIDTH = 200;
 
 /** パネルの幅 width のとき、横に残るボードが狭すぎるか（そのときはボードを覆う） */
 function leavesNarrowBoard(bodyWidth: number, width: number): boolean {
@@ -40,7 +43,10 @@ export function usePanelWidth() {
   /** 狭くてボードを覆っているか（横幅いっぱいとは別。広がれば元の幅に戻る） */
   const covering = leavesNarrowBoard(bodyWidth, panelWidth);
 
-  /** パネルの左端をドラッグして幅を変える（ボードを覆うところまで広げられる。ボードが狭すぎる幅では覆う） */
+  /**
+   * パネルの左端をドラッグして幅を変える（ボードを覆うところまで広げられる）。ドラッグ中は指の位置どおりの幅にし
+   * （覆っている状態から右へ動かすと、すぐにボードが見えてくる）、離したときにボードが狭すぎる幅なら覆う
+   */
   const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!body) return;
     const right = body.getBoundingClientRect().right;
@@ -52,7 +58,7 @@ export function usePanelWidth() {
     startHorizontalDrag(e, {
       move: (clientX) => {
         width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(max, right - clientX)));
-        body.style.setProperty("--panel-w", leavesNarrowBoard(max, width) ? "100vw" : `${width}px`);
+        body.style.setProperty("--panel-w", `${width}px`);
       },
       end: () => {
         setResizing(false);
