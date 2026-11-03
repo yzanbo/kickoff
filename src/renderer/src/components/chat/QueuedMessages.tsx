@@ -1,20 +1,18 @@
-import { ArrowDown, ArrowUp, Check, ChevronRight, FileText, GripVertical, Pencil, SendHorizontal, Trash2, X } from "lucide-react";
-import { useState, type DragEvent, type KeyboardEvent } from "react";
-import type { Attachment, QueuedMessage } from "../../../../core/types";
-import { api, attachmentUrl } from "../../api";
-import { isPreviewable, viewerImagesOf } from "./AttachmentChip";
-import { ImageViewer } from "../ImageViewer";
+import { ChevronRight, SendHorizontal, Trash2 } from "lucide-react";
+import { useState, type DragEvent } from "react";
+import type { QueuedMessage } from "../../../../core/types";
+import { api } from "../../api";
+import { QueuedEditor, QueuedRow } from "./QueuedRow";
 import { confirmDialog } from "../../dialogs";
 import { cx } from "../../cx";
 import { reportFailure } from "../../runActions";
-import { IconButton } from "../IconButton";
 import { useStoredFlag } from "../../hooks/useStoredState";
 import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
 
 /**
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
- * 見出しに実行中と送信待ちの数、行に添付（画像はサムネイル）を出す。
+ * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
@@ -66,15 +64,18 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
             <button
               type="button"
               className="btn btn-sm btn-primary queued-head-btn"
+              aria-label="まとめて送る"
               title={`送信待ちの ${queue.length} 件を 1 つにまとめて、すぐ送る${busy ? "（いまの作業を止めてから送る）" : ""}`}
               onClick={() => void api.sendAllQueued(runId).catch(failed)}
             >
               <SendHorizontal size={12} aria-hidden />
-              まとめて送る
+              {/* 狭いときは文字を隠してアイコンだけにする（読み上げは aria-label） */}
+              <span className="queued-head-label">まとめて送る</span>
             </button>
             <button
               type="button"
               className="btn btn-sm queued-head-btn queued-clear"
+              aria-label="すべて消す"
               title={`送信待ちの ${queue.length} 件をすべて消す（確かめてから）`}
               onClick={() =>
                 void confirmDialog({
@@ -88,181 +89,54 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
               }
             >
               <Trash2 size={12} aria-hidden />
-              すべて消す
+              <span className="queued-head-label">すべて消す</span>
             </button>
           </>
         )}
       </div>
-      {!collapsed && queue.map((m, i) => (
-        editing?.id === m.id ? (
-          <QueuedEditor
-            key={m.id}
-            index={i}
-            withGrip={queue.length > 1}
-            attachments={m.attachments}
-            text={editing.text}
-            onChange={(text) => setEditing({ id: m.id, text })}
-            onSave={() => void api.editQueued(runId, m.id, editing.text).then(() => setEditing(undefined), failed)}
-            onCancel={() => setEditing(undefined)}
-          />
-        ) : (
-        <div
-          key={m.id}
-          className={cx(
-            "queued-row",
-            drag?.id === m.id && "dragging",
-            drag && drag.at === i && drag.from !== i && drag.from !== i - 1 && "drop-before",
-            drag && drag.at === i + 1 && i === queue.length - 1 && drag.from !== i && "drop-after",
+      {/* 増えてもチャット欄を押し上げすぎないよう、5 件ほどの高さを超えたら中でスクロールする */}
+      {!collapsed && (
+        <div className="queued-list">
+          {queue.map((m, i) =>
+            editing?.id === m.id ? (
+              <QueuedEditor
+                key={m.id}
+                index={i}
+                withGrip={queue.length > 1}
+                attachments={m.attachments}
+                text={editing.text}
+                onChange={(text) => setEditing({ id: m.id, text })}
+                onSave={() => void api.editQueued(runId, m.id, editing.text).then(() => setEditing(undefined), failed)}
+                onCancel={() => setEditing(undefined)}
+              />
+            ) : (
+              <QueuedRow
+                key={m.id}
+                message={m}
+                index={i}
+                count={queue.length}
+                busy={busy}
+                className={cx(
+                  "queued-row",
+                  drag?.id === m.id && "dragging",
+                  drag && drag.at === i && drag.from !== i && drag.from !== i - 1 && "drop-before",
+                  drag && drag.at === i + 1 && i === queue.length - 1 && drag.from !== i && "drop-after",
+                )}
+                actions={{
+                  edit: () => setEditing({ id: m.id, text: m.text }),
+                  move: (to) => void api.moveQueued(runId, m.id, to).catch(failed),
+                  sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),
+                  remove: () => void api.removeQueued(runId, m.id).catch(failed),
+                }}
+                onDragStart={() => setDrag({ id: m.id, from: i })}
+                onDragEnd={() => setDrag(undefined)}
+                onDragOver={(e) => dragOver(e, i)}
+                onDrop={drop}
+              />
+            ),
           )}
-          onDragOver={(e) => dragOver(e, i)}
-          onDrop={drop}
-          onDoubleClick={(e) => {
-            // ボタン・サムネイルのダブルクリックは除く
-            if ((e.target as HTMLElement).closest("button")) return;
-            setEditing({ id: m.id, text: m.text });
-          }}
-        >
-          {/* ドラッグはつまみからだけ（文は選んでコピーできるように、行全体はドラッグにしない） */}
-          {queue.length > 1 && (
-            <span
-              className="queued-grip"
-              draggable
-              title="ドラッグで並べ替え"
-              onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", m.text);
-                // 動かしている間の絵は、つまみだけでなく行全体にする
-                const row = e.currentTarget.parentElement;
-                if (row) {
-                  const r = row.getBoundingClientRect();
-                  e.dataTransfer.setDragImage(row, e.clientX - r.left, e.clientY - r.top);
-                }
-                setDrag({ id: m.id, from: i });
-              }}
-              onDragEnd={() => setDrag(undefined)}
-            >
-              <GripVertical size={13} aria-hidden />
-            </span>
-          )}
-          {/* 送る順番（1 が次に送るもの） */}
-          <span className="queued-index" aria-label={`${i + 1} 番目`}>
-            {i + 1}
-          </span>
-          <QueuedAttachments attachments={m.attachments} />
-          <span className="queued-text" title={m.text}>
-            {m.text || m.attachments.map((a) => a.name).join("、")}
-          </span>
-          <IconButton icon={Pencil} label="書き直す" title="書き直す（ダブルクリックでも）" size={13} onClick={() => setEditing({ id: m.id, text: m.text })} />
-          <IconButton icon={ArrowUp} label="上へ" size={13} disabled={i === 0} onClick={() => void api.moveQueued(runId, m.id, i - 1).catch(failed)} />
-          <IconButton
-            icon={ArrowDown}
-            label="下へ"
-            size={13}
-            disabled={i === queue.length - 1}
-            onClick={() => void api.moveQueued(runId, m.id, i + 1).catch(failed)}
-          />
-          <IconButton
-            icon={SendHorizontal}
-            label={busy ? "いまの作業を止めて、すぐ送る" : "すぐ送る"}
-            size={13}
-            onClick={() => void api.sendQueuedNow(runId, m.id).catch(failed)}
-          />
-          <IconButton icon={Trash2} label="待ちの列から消す" size={13} onClick={() => void api.removeQueued(runId, m.id).catch(failed)} />
         </div>
-        )
-      ))}
-    </div>
-  );
-}
-
-/** 待ちの指示の添付（画像は小さなサムネイルで、押すと大きく表示し、同じ行の画像は前後に移って見られる。それ以外はファイルの印と名前） */
-function QueuedAttachments({ attachments }: { attachments: Attachment[] }) {
-  // 大きく見ている画像（同じ行の画像の中の位置）
-  const [viewing, setViewing] = useState<number>();
-  if (attachments.length === 0) return null;
-  const images = attachments.filter((a) => isPreviewable(a.mime));
-  return (
-    <span className="queued-attachments">
-      {attachments.map((a) =>
-        isPreviewable(a.mime) ? (
-          <button
-            key={a.id}
-            type="button"
-            className="queued-thumb"
-            title={`${a.name}（大きく表示）`}
-            aria-label={`${a.name} を大きく表示`}
-            onClick={() => setViewing(images.indexOf(a))}
-          >
-            <img src={attachmentUrl(a)} alt="" />
-          </button>
-        ) : (
-          <span key={a.id} className="queued-file" title={a.name}>
-            <FileText size={12} aria-hidden />
-            {a.name}
-          </span>
-        ),
       )}
-      {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
-    </span>
-  );
-}
-
-/** 待ちの指示を書き直す欄（Enter で保存・Shift+Enter で改行・Esc でやめる。添付も並べて出す） */
-function QueuedEditor({
-  index,
-  withGrip,
-  attachments,
-  text,
-  onChange,
-  onSave,
-  onCancel,
-}: {
-  /** 送る順番（0 から。ほかの行と同じく番号を出す） */
-  index: number;
-  /** ほかの行につまみの印があるか（あれば同じ幅を空けて、番号の位置をそろえる） */
-  withGrip: boolean;
-  /** その指示の添付（書き直している間も見られるよう、欄の左に出す。画像は押すと大きく表示） */
-  attachments: Attachment[];
-  text: string;
-  onChange: (text: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
-}) {
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      onCancel();
-    } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
-      e.preventDefault();
-      onSave();
-    }
-  };
-  return (
-    <div className="queued-row editing">
-      {withGrip && <span className="queued-grip queued-grip-space" aria-hidden />}
-      <span className="queued-index" aria-label={`${index + 1} 番目`}>
-        {index + 1}
-      </span>
-      <QueuedAttachments attachments={attachments} />
-      <textarea
-        className="queued-editor"
-        value={text}
-        rows={Math.min(6, Math.max(1, text.split("\n").length))}
-        // 開いたら文の終わりから書き始める
-        ref={(el) => {
-          if (el && !el.dataset.ready) {
-            el.dataset.ready = "1";
-            el.focus();
-            el.setSelectionRange(el.value.length, el.value.length);
-          }
-        }}
-        aria-label="待ちの指示を書き直す"
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-      />
-      <IconButton icon={Check} label="保存" title="保存（Enter）" size={13} onClick={onSave} />
-      <IconButton icon={X} label="やめる" title="やめる（Esc）" size={13} onClick={onCancel} />
     </div>
   );
 }
