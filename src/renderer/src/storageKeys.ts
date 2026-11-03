@@ -105,6 +105,8 @@ export const editorWorktreeKey = (projectId: number) => `kickoff:editor-worktree
 export const QUEUE_MODE_KEY = "kickoff:queue-mode";
 /** 送信待ちの一覧をたたんで「n 件の追加があります」だけにするか（"1" / "0"。どのチャットでも同じ） */
 export const QUEUE_COLLAPSED_KEY = "kickoff:queue-collapsed";
+/** チャット欄をコンパクトに表示するか（"1" / "0"。設定の「表示」。どのチャット欄にも効く） */
+export const COMPOSER_COMPACT_KEY = "kickoff:composer-compact";
 
 /** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id。既定は "terminal"） */
 export const EXTERNAL_TERMINAL_KEY = "kickoff:external-terminal";

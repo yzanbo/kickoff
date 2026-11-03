@@ -3,7 +3,9 @@ import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type
 import type { Attachment } from "../../../../core/types";
 import { api, type GitTarget } from "../../api";
 import { errorMessage } from "../../errors";
-import { useStoredText } from "../../hooks/useStoredState";
+import { cx } from "../../cx";
+import { useSharedFlag, useStoredText } from "../../hooks/useStoredState";
+import { COMPOSER_COMPACT_KEY } from "../../storageKeys";
 import { AttachmentChip } from "./AttachmentChip";
 import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
@@ -58,6 +60,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useStoredText(draftKey);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
+  const [compact] = useSharedFlag(COMPOSER_COMPACT_KEY);
   // ↑↓ で前の発言を呼び出す
   const promptHistory = usePromptHistory({ prompts: history, text, setText, textareaRef });
   // / と @ の候補（Claude Code の VS Code 拡張と同じ）。呼び出した発言を出している間は出さない
@@ -87,7 +91,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [text]);
+  }, [text, compact]);
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [sending, setSending] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -173,7 +177,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
 
   return (
     <div
-      className={`composer ${dragging ? "dragging" : ""}`}
+      className={cx("composer", dragging && "dragging", compact && "compact")}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes("Files")) {
           e.preventDefault();
