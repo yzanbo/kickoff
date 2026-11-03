@@ -2,6 +2,7 @@ import { lazy, Suspense, type CSSProperties } from "react";
 import { cx } from "../../cx";
 import { BrowserPane } from "../browser/BrowserPane";
 import { RunPane } from "../chat/RunPane";
+import { NewChatContext } from "../chat/askInNewChat";
 import { SubagentPane } from "../chat/SubagentPane";
 import { NewChatPane } from "./NewChatPane";
 import type { PanelTab, SidePanelController } from "./useSidePanel";
@@ -43,6 +44,8 @@ export function PanelTabPage({
   return (
     <div className={cx("panel-tab-page", split && focused && "pane-focused")} hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
       {t.kind === "chat" ? (
+        // 送信待ちの指示を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
+        <NewChatContext.Provider value={panel.openNew}>
         <RunPane
           projectId={t.projectId}
           runId={t.id}
@@ -57,10 +60,12 @@ export function PanelTabPage({
             )
           }
         />
+        </NewChatContext.Provider>
       ) : t.kind === "new" ? (
         <NewChatPane
           projectId={t.projectId}
           group={t.group}
+          seed={t.seed}
           projects={panel.projects}
           onProjectChange={(projectId) => panel.updateTab(t.key, () => ({ ...t, projectId, group: undefined, groupName: undefined }))}
           onGroupChange={(group, groupName) => panel.updateTab(t.key, (x) => (x.kind === "new" ? { ...x, group, groupName } : x))}

@@ -1,7 +1,29 @@
-import { ArrowDownToLine, ArrowUpToLine, SendHorizontal, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, Pause, Play, SendHorizontal, Trash2, X } from "lucide-react";
+import { cx } from "../../cx";
 import { api } from "../../api";
 import { confirmDialog } from "../../dialogs";
 import { IconButton } from "../IconButton";
+
+/** 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。チャットごと） */
+export function QueuedModeButton({ runId, paused, busy, failed }: { runId: number; paused: boolean; busy: boolean; failed: (e: unknown) => void }) {
+  return (
+    <button
+      type="button"
+      className={cx("btn btn-sm queued-head-btn queued-mode", paused && "paused")}
+      aria-pressed={paused}
+      aria-label={paused ? "止めています（押すと、自動で送るに戻す）" : "自動で送ります（押すと、送らずに止めておく）"}
+      title={
+        paused
+          ? `いまの作業が終わっても送らずに止めておきます。行の「すぐ送る」で 1 件ずつ送れます。押すと、自動で送るに戻します${busy ? "" : "（先頭をすぐ送ります）"}`
+          : "いまの作業が終わったら、先頭から順に自動で送ります。押すと、送らずに止めておきます（移動の前などに）"
+      }
+      onClick={() => void api.setQueuePaused(runId, !paused).catch(failed)}
+    >
+      {paused ? <Pause size={12} aria-hidden /> : <Play size={12} aria-hidden />}
+      <span className="queued-head-label">{paused ? "止めています" : "自動で送る"}</span>
+    </button>
+  );
+}
 
 /**
  * 選んだ指示の並べ替え（いちばん上へ・いちばん下へ）。送る・消すとは意味が違うので、見出しの「自動で送る」のすぐ左に置く

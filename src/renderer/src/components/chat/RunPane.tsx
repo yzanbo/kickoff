@@ -237,7 +237,7 @@ function RunView({
           )}
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stopAfter={queueStopAfter} busy={busy} />
+        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stopAfter={queueStopAfter} busy={busy} newChatTarget={{ projectId: run.project_id, group: run.group_id ?? undefined }} />
         <Composer
           chatContext={{ projectId: run.project_id, exclude: run.id }}
           options={options}

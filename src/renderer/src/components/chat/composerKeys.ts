@@ -2,6 +2,15 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { permissionChoices } from "../../models";
 import type { RunOptionsState } from "./RunOptionsBar";
 
+/** 作業中に送るときの扱い（伝える = 止めずに、いまのやり取りに足す / ためておく = 終わったら送る） */
+export type QueueSendMode = "tell" | "queue";
+
+/** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり） */
+export const sendModeOf = (e: { metaKey: boolean; shiftKey: boolean }): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);
+
+/** 送信の Enter か（Shift+Enter は改行。⌘⇧Enter は送り方を決めた送信。日本語入力の変換を確定する Enter は除く） */
+export const isSendEnter = (e: KeyboardEvent) => e.key === "Enter" && (!e.shiftKey || e.metaKey) && !e.nativeEvent.isComposing && e.keyCode !== 229;
+
 /** 1 回目の Esc のあと、もう一度押すと中断する、と待つ時間 */
 const STOP_CONFIRM_MS = 2000;
 
