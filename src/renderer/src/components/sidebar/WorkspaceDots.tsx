@@ -57,14 +57,14 @@ export function WorkspaceDots({
           .map((c) => `${BOARD_COLUMN_LABELS[c]} ${counts[c]}`)
           .join("・");
         // 固定したプロジェクトの丸と、残りの丸の間に区切りを入れる
-        const divider = i > 0 && projects[i - 1].pinned > 0 && !p.pinned;
+        const divider = i > 0 && projects[i - 1].pinned && !p.pinned;
         return (
           <Fragment key={p.id}>
           {divider && <span className="workspace-dots-divider" role="separator" aria-hidden />}
           <button
             role="tab"
             aria-selected={i === index}
-            className={cx("workspace-dot", i === index && "active", p.pinned > 0 && "pinned", isArchived(p.id) && "archived", reorder.classFor(p.id))}
+            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", isArchived(p.id) && "archived", reorder.classFor(p.id))}
             style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties}
             title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}右クリックで固定・アーカイブ）`}
             onClick={() => onGo(i)}

@@ -48,17 +48,17 @@ test("チャット・グループの API", async () => {
   assert.equal((await call("PATCH", `/api/runs/${runId}`, { group_id: otherGroup.id })).status, 400);
   assert.equal((await call("PATCH", `/api/runs/${runId}`, { group_id: group.body.id })).body.group_id, group.body.id);
 
-  assert.equal((await call("POST", `/api/runs/${runId}/seen`)).body.attention, 0);
+  assert.equal((await call("POST", `/api/runs/${runId}/seen`)).body.attention, false);
   // 未読にする・既読にする: 印だけを変え、最後に動いた時刻（並び順）は変えない
-  const updatedAt = store.getRun(runId)?.updated_at;
-  assert.equal((await call("POST", `/api/runs/${runId}/unseen`)).body.attention, 1);
-  assert.equal(store.getRun(runId)?.updated_at, updatedAt);
-  assert.equal((await call("POST", `/api/runs/${runId}/seen`)).body.attention, 0);
-  assert.equal(store.getRun(runId)?.updated_at, updatedAt);
+  const activeAt = store.getRun(runId)?.active_at;
+  assert.equal((await call("POST", `/api/runs/${runId}/unseen`)).body.attention, true);
+  assert.equal(store.getRun(runId)?.active_at, activeAt);
+  assert.equal((await call("POST", `/api/runs/${runId}/seen`)).body.attention, false);
+  assert.equal(store.getRun(runId)?.active_at, activeAt);
   // サイドバーの上に固定する・やめる: 並び順（最後に動いた時刻）は変えない
-  assert.equal((await call("POST", `/api/runs/${runId}/pin`, { pinned: true })).body.pinned, 1);
-  assert.equal(store.getRun(runId)?.updated_at, updatedAt);
-  assert.equal((await call("POST", `/api/runs/${runId}/pin`, { pinned: false })).body.pinned, 0);
+  assert.equal((await call("POST", `/api/runs/${runId}/pin`, { pinned: true })).body.pinned, true);
+  assert.equal(store.getRun(runId)?.active_at, activeAt);
+  assert.equal((await call("POST", `/api/runs/${runId}/pin`, { pinned: false })).body.pinned, false);
   assert.equal((await call("POST", `/api/runs/${runId}/pin`, {})).status, 400);
   assert.ok((await call("POST", `/api/runs/${runId}/archive`)).body.archived_at);
   assert.equal((await call("GET", `/api/projects/${project.id}/runs`)).body.length, 0);

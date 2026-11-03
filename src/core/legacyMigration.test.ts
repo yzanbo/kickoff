@@ -69,8 +69,8 @@ test("古い v17 の DB を変換する: ID・番号の続き・以前の値の�
   const [a, b] = [store.getProject(1)!, store.getProject(2)!];
   assert.equal(a.hue, pickProjectHue([222]));
   assert.deepEqual(a.defaults, { model: "opus" });
-  assert.equal(a.updated_at, T(1));
-  assert.deepEqual([b.hue, b.pinned, b.archived_at, b.references], [222, 1, T(2), [{ path: "/tmp/spec", kind: "folder" }]]);
+  assert.equal(a.active_at, T(1));
+  assert.deepEqual([b.hue, b.pinned, b.archived_at, b.references], [222, true, T(2), [{ path: "/tmp/spec", kind: "folder" }]]);
   assert.equal(store.getProject(3), undefined);
 
   // チャット: 「セクションに合わせる」のものだけ、そのセクションの以前の既定に（選んであった推論の深さは残す）
@@ -83,8 +83,8 @@ test("古い v17 の DB を変換する: ID・番号の続き・以前の値の�
   assert.deepEqual(options(3), [null, "plan"]);
   const r4 = store.getRun(4)!;
   assert.deepEqual(
-    [r4.group_id, r4.attention, r4.pinned, r4.fast_mode, r4.worktree_path, r4.branch, r4.cost_usd, r4.num_turns, r4.context_tokens, r4.archived_at, r4.updated_at],
-    [1, 1, 1, 1, "/tmp/a-wt/feat", "feat", 1.25, 3, 1200, T(6), T(7)],
+    [r4.group_id, r4.attention, r4.pinned, r4.fast_mode, r4.worktree_path, r4.branch, r4.cost_usd, r4.num_turns, r4.context_tokens, r4.archived_at, r4.active_at],
+    [1, true, true, true, "/tmp/a-wt/feat", "feat", 1.25, 3, 1200, T(6), T(7)],
   );
   for (const key of ["phase", "task_id", "stage"]) assert.equal(key in r4, false, key);
   assert.deepEqual(store.listGroups(1).map((g) => [g.id, g.name]), [[1, "レビュー"]]);

@@ -71,7 +71,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   // スイムレーン: グループごとの段に、下書き・作業中・回答待ち・確認待ち・完了の列を並べる
   const entries: BoardEntry[] = board.shown
     .filter(board.search.matches)
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    .sort((a, b) => b.active_at.localeCompare(a.active_at))
     .map((run) => ({ run, state: stateOf(run) }));
 
   const header = (

@@ -99,8 +99,8 @@ export function ChatRow({
             {state === "running" ? (
               <RunningTime run={run} />
             ) : (
-              <span className="chat-row-time" title={formatDayTime(run.updated_at)}>
-                {shortRelativeTime(run.updated_at)}
+              <span className="chat-row-time" title={formatDayTime(run.active_at)}>
+                {shortRelativeTime(run.active_at)}
               </span>
             )}
           </span>
@@ -130,7 +130,7 @@ export function ChatRow({
 function RunningTime({ run }: { run: Run }) {
   useTicker(30_000);
   const activity = useRunActivity(run.id);
-  const since = run.turn_started_at ?? run.updated_at;
+  const since = run.turn_started_at ?? run.active_at;
   return (
     <span className="chat-row-time running" title={`${activity ?? "作業中"}\n始めた時刻: ${formatDayTime(since)}`}>
       {workingFor(since)}

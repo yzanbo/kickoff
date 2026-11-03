@@ -40,7 +40,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
     shown
       .filter((r) => (groupId === null ? r.group_id === null || !groupIds.has(r.group_id) : r.group_id === groupId))
       .filter(search.matches)
-      .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      .sort((a, b) => b.active_at.localeCompare(a.active_at));
 
   const removeGroup = async (group: RunGroup) => {
     if (await confirmDeleteGroup(group)) void guard(() => api.deleteGroup(group.id));

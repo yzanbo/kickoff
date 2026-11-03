@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { NewRun, Run, RunEvent, RunEventData, RunStatus, SearchHit } from "../types.js";
-import { touchProject, updateRow, type Notify, type Row } from "./common.js";
+import { bit, touchProject, updateRow, type Notify, type Row } from "./common.js";
 
 /** チャットの一覧の絞り込み */
 export interface RunFilter {
@@ -76,10 +76,18 @@ function snippetAround(text: string, keyword: string): { snippet: string; match_
   return { snippet, match_start: matchStart, match_end: matchStart + keyword.length };
 }
 
-/** DB の行をアプリの型に変換する */
+/** DB の行（真偽値は 0 / 1） */
+type RunRow = Omit<Run, "fast_mode" | "attention" | "pinned"> & { fast_mode: number; attention: number; pinned: number };
+
+/** DB の行をアプリの型に変換する（真偽値の列を boolean に） */
 function toRun(row: unknown): Run {
-  const { active_at, ...r } = row as Omit<Run, "updated_at"> & { active_at: string };
-  return { ...r, updated_at: active_at };
+  const r = row as RunRow;
+  return { ...r, fast_mode: r.fast_mode === 1, attention: r.attention === 1, pinned: r.pinned === 1 };
+}
+
+/** 変える項目を DB の列の値にする（真偽値は 0 / 1） */
+function toRunRow({ fast_mode, attention, ...rest }: RunPatch): Row {
+  return { ...rest, fast_mode: bit(fast_mode), attention: bit(attention) } as Row;
 }
 
 /** チャット（エージェントとの会話セッション）と、その記録（run_events）・検索 */
@@ -127,7 +135,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
           input.model,
           input.effort ?? null,
           input.permission_mode ?? "default",
-          input.fast_mode ? 1 : 0,
+          bit(input.fast_mode ?? false),
           input.group_id ?? null,
           input.worktree_path ?? "",
         );
@@ -137,7 +145,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       return run;
     },
     update(id: number, patch: RunPatch): Run {
-      updateRow(db, "runs", id, patch as Row, RUN_COLUMNS, true);
+      updateRow(db, "runs", id, toRunRow(patch), RUN_COLUMNS, true);
       const run = get(id)!;
       onChange({ type: "run", run });
       return run;
@@ -150,9 +158,9 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       onChange({ type: "run_deleted", id, project_id: run.project_id });
     },
     /** 確認待ち（未読）の印を付ける・外す。最後に動いた時刻（一覧の並び順）は変えない */
-    setAttention: (id: number, attention: boolean) => setColumn(id, "attention", attention ? 1 : 0),
+    setAttention: (id: number, attention: boolean) => setColumn(id, "attention", bit(attention)),
     /** サイドバーの上に固定する・やめる（最後に動いた時刻（並び順）は変えない） */
-    setPinned: (id: number, pinned: boolean) => setColumn(id, "pinned", pinned ? 1 : 0),
+    setPinned: (id: number, pinned: boolean) => setColumn(id, "pinned", bit(pinned)),
     /** チャットをグループへ移す（null でグループから外す）。並び順が変わらないよう更新日時は進めない */
     setGroup: (id: number, groupId: number | null) => setColumn(id, "group_id", groupId),
     /**

@@ -4,7 +4,7 @@ import type { Approval, Run } from "../../core/types";
 import { indexApprovals } from "./approvalsContext";
 
 const approval = (run_id: number) => ({ run_id }) as Approval;
-const run = (id: number, status: Run["status"]) => ({ id, status, attention: 0 }) as unknown as Run;
+const run = (id: number, status: Run["status"]) => ({ id, status, attention: false }) as unknown as Run;
 
 test("indexApprovals: 回答待ちの依頼があるチャットは回答待ち、依頼の数も引ける", () => {
   const states = indexApprovals([approval(1), approval(1), approval(3)]);

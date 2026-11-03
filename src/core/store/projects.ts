@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { pickProjectHue } from "../projectColors.js";
 import type { NewProject, Project, ProjectSummary } from "../types.js";
-import { parseJson, updateRow, type Notify, type Row } from "./common.js";
+import { bit, parseJson, updateRow, type Notify, type Row } from "./common.js";
 
 /** プロジェクトの変えられる項目 */
 export type ProjectPatch = Partial<NewProject> & {
@@ -24,20 +24,15 @@ const PROJECT_COLUMNS = [
   "hue",
 ] as const;
 
-/** DB の行（defaults・reference_paths は JSON 文字列）をアプリの型に変換する */
+/** DB の行（defaults・reference_paths は JSON 文字列、pinned は 0 / 1）をアプリの型に変換する */
 function toProject(row: unknown): Project {
-  const { reference_paths, defaults, active_at, ...r } = row as Omit<Project, "defaults" | "references" | "updated_at"> & {
+  const { reference_paths, defaults, pinned, ...r } = row as Omit<Project, "defaults" | "references" | "pinned"> & {
     defaults: string;
     reference_paths: string;
-    active_at: string;
+    pinned: number;
   };
-  const references = parseJson<Project["references"]>(reference_paths || "[]");
-  return {
-    ...r,
-    updated_at: active_at,
-    defaults: parseJson(defaults),
-    references: Array.isArray(references) ? references : [],
-  };
+  const references = parseJson<Project["references"]>(reference_paths);
+  return { ...r, pinned: pinned === 1, defaults: parseJson(defaults), references: Array.isArray(references) ? references : [] };
 }
 
 /** プロジェクト（projects 表。色・並び順・固定・アーカイブもここ） */
@@ -90,7 +85,7 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
       const { references, ...rest } = patch;
       const row: Row = {
         ...rest,
-        pinned: patch.pinned === undefined ? undefined : patch.pinned ? 1 : 0,
+        pinned: bit(patch.pinned),
         defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
         reference_paths: references === undefined ? undefined : JSON.stringify(references),
       } as Row;

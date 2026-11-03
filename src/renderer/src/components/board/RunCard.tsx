@@ -34,7 +34,7 @@ export function RunCardContent({ run, state, projectName, pending = 0, rename }:
         <StatusDot color={STATE_TONE[state]} />
         <span className="card-state">{AGENT_STATE_LABELS[state]}</span>
         {pending > 0 && <span className="card-pending">回答 {pending}件</span>}
-        <span className="card-time">{relativeTime(run.updated_at)}</span>
+        <span className="card-time">{relativeTime(run.active_at)}</span>
       </div>
     </>
   );
@@ -54,7 +54,7 @@ export function RunRowContent({ run, state, projectName, rename }: Props) {
           <span className="muted small">{AGENT_STATE_LABELS[state]}</span>
         </span>
       </div>
-      <span className="card-time">{relativeTime(run.updated_at)}</span>
+      <span className="card-time">{relativeTime(run.active_at)}</span>
     </>
   );
 }

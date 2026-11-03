@@ -10,6 +10,13 @@ export type Row = Record<string, SQLInputValue>;
 /** 変更の知らせ（SSE で画面に配る） */
 export type Notify = (e: BusEvent) => void;
 
+/** 真偽値を DB の 0 / 1 にする（変える項目の undefined は「変えない」のまま） */
+export function bit(value: boolean): 0 | 1;
+export function bit(value: boolean | undefined): 0 | 1 | undefined;
+export function bit(value: boolean | undefined) {
+  return value === undefined ? undefined : value ? 1 : 0;
+}
+
 /** 壊れた値は空（既定）に戻す */
 export function parseJson<T extends object>(text: string | null | undefined): T {
   try {

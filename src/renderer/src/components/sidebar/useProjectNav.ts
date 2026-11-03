@@ -40,7 +40,7 @@ export function useProjectNav(runs: Record<number, Run[]>) {
   const [showArchived, setShowArchived] = useStoredFlag(SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY);
   // 最近動いた順: チャット（アーカイブしたものを除く）が最後に動いた時刻。チャットがなければ作った時刻
   const [projectOrder, setProjectOrder] = useStoredChoice<ProjectOrder>(SIDEBAR_PROJECT_ORDER_KEY, PROJECT_ORDERS, "manual");
-  const lastActive = (p: ProjectSummary) => (runs[p.id] ?? []).find((r) => !r.archived_at)?.updated_at ?? p.created_at;
+  const lastActive = (p: ProjectSummary) => (runs[p.id] ?? []).find((r) => !r.archived_at)?.active_at ?? p.created_at;
   const visible = sidebarOrder(projects, projectOrder === "recent" ? lastActive : undefined);
   // 手動の並びのときだけ、ドラッグで並べ替えられる（しまったものは並べ替えない）
   const canReorder = projectOrder === "manual";
