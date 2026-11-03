@@ -213,6 +213,7 @@ export const api = {
   // 作業中に送る次の指示の待ちの列（作業中でなければすぐ送る）
   queueMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
     request<{ queued: boolean; id?: string }>("POST", `/api/runs/${runId}/queue`, { text, options, attachments }),
+  editQueued: (runId: number, id: string, text: string) => request<{ queue: QueuedMessage[] }>("PATCH", `/api/runs/${runId}/queue/${id}`, { text }),
   removeQueued: (runId: number, id: string) => request<{ queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue/${id}`),
   moveQueued: (runId: number, id: string, index: number) =>
     request<{ queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/${id}/move`, { index }),
