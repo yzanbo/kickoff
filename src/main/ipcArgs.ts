@@ -65,3 +65,36 @@ export function installedTerminals(home = os.homedir(), exists: (p: string) => b
     (t) => t.id === "terminal" || [`/Applications/${t.app}.app`, path.join(home, "Applications", `${t.app}.app`)].some(exists),
   ).map((t) => t.id);
 }
+
+/** Mac の通知の中身（タイトル・本文と、押したときに開くチャット） */
+export interface NotifyArgs {
+  title: string;
+  body: string;
+  /** 押したときに開くチャット（なければ Kickoff を前に出すだけ。テスト通知など） */
+  run?: { projectId: number; runId: number };
+}
+
+const positiveInt = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value > 0;
+
+/** 画面から届いた通知の指定か確かめる（長すぎる文は切る） */
+export function notifyArgs(value: unknown): NotifyArgs {
+  const v = (value ?? {}) as Record<string, unknown>;
+  if (typeof v.title !== "string" || !v.title.trim()) throw new Error("通知のタイトルがありません");
+  const body = typeof v.body === "string" ? v.body : "";
+  const run = positiveInt(v.projectId) && positiveInt(v.runId) ? { projectId: v.projectId, runId: v.runId } : undefined;
+  return { title: v.title.slice(0, 200), body: body.slice(0, 500), ...(run ? { run } : {}) };
+}
+
+/**
+ * 通知の ID（通知センターに残った通知を、アプリを起動し直したあとに押されても、そのチャットを開けるように埋め込む）。
+ * 同じ ID を使い回すと、前の通知が消えるときに新しい通知まで消えるので、毎回変える
+ */
+export function notificationIdOf(run: NotifyArgs["run"], now = Date.now()): string {
+  return run ? `kickoff-run:${run.projectId}:${run.runId}:${now}` : `kickoff:${now}`;
+}
+
+/** 通知の ID から、押したときに開くチャットを読み取る（チャットのものでなければ undefined） */
+export function runOfNotificationId(id: string): NotifyArgs["run"] {
+  const m = /^kickoff-run:(\d+):(\d+):/.exec(id);
+  return m ? { projectId: Number(m[1]), runId: Number(m[2]) } : undefined;
+}

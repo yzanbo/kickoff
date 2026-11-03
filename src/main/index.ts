@@ -10,6 +10,7 @@ import { hardenWebviews } from "./browser.js";
 import { loadSavedExtensions } from "./browserExtensions.js";
 import { setAppMenu } from "./appMenu.js";
 import { registerIpc } from "./ipc.js";
+import { registerNotifications } from "./notifications.js";
 import { allowAppMicrophone } from "./mediaPermission.js";
 import { registerShutdown } from "./shutdown.js";
 
@@ -76,6 +77,7 @@ if (!app.requestSingleInstanceLock()) {
     // チャット欄の音声入力: Kickoff の画面からのマイクだけ許す（埋め込みブラウザは別のセッションなので広げない）
     allowAppMicrophone(session.defaultSession, uiUrl);
     registerIpc(() => mainWindow);
+    registerNotifications(() => mainWindow);
     setAppMenu(() => mainWindow);
     createWindow(uiUrl);
     // 埋め込みブラウザの拡張機能（React DevTools など）を読み込む
