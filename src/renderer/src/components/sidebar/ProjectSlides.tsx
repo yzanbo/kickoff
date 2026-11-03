@@ -8,7 +8,8 @@ import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
 
 /**
- * 横スライド: 1 ページ = 1 プロジェクトのチャット一覧で、横スワイプ・下の丸・ショートカットで切り替える。
+ * スライド: 1 ページ = 1 プロジェクトのチャット一覧で、スワイプ・丸・ショートカットで切り替える。
+ * 横スライドは丸を下に並べて横にスワイプ、縦スライド（rail）は丸を左に縦に並べて縦にスワイプする。
  * waitingEmpty（自分待ちがないとき）・selectionBar は ProjectNav が作る
  */
 export function ProjectSlides({
@@ -27,9 +28,26 @@ export function ProjectSlides({
   selectionBar: ReactNode;
 }) {
   const { ordered, index, swipe, collapsedMap, waitingOnly, isArchived, reorder, go, projectMenu, pending, compact, compactProjects } = nav;
+  const rail = nav.layout === "rail";
+  const switcher = (
+    <div className="workspace-switcher">
+      <WorkspaceDots
+        projects={ordered}
+        index={index}
+        countsOf={(id) => stateCounts(runs[id] ?? [], pending)}
+        isArchived={isArchived}
+        reorder={reorder}
+        onGo={go}
+        onMenu={projectMenu.open}
+        onNewProject={onNewProject}
+      />
+    </div>
+  );
   return (
-    <div className={cx("workspaces", compact && "compact", compactProjects && "compact-projects")}>
+    <div className={cx("workspaces", rail && "rail", compact && "compact", compactProjects && "compact-projects")}>
       <ProjectListHead {...nav.head} />
+      <div className="workspace-body">
+      {rail && switcher}
       <div
         className="workspace-viewport"
         ref={swipe.viewportRef}
@@ -50,20 +68,10 @@ export function ProjectSlides({
           ))}
         </div>
       </div>
+      </div>
 
       {selectionBar}
-      <div className="workspace-switcher">
-        <WorkspaceDots
-          projects={ordered}
-          index={index}
-          countsOf={(id) => stateCounts(runs[id] ?? [], pending)}
-          isArchived={isArchived}
-          reorder={reorder}
-          onGo={go}
-          onMenu={projectMenu.open}
-          onNewProject={onNewProject}
-        />
-      </div>
+      {!rail && switcher}
       {projectMenu.element}
     </div>
   );

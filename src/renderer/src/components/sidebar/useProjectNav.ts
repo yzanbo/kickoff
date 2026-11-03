@@ -34,7 +34,7 @@ export function useProjectNav(runs: Record<number, Run[]>) {
   const { projects } = useProjects();
   const { pending } = useRunStates();
   // 横スライド / 縦並び
-  const [layout, changeLayout] = useStoredChoice<NavLayout>(SIDEBAR_LAYOUT_KEY, ["slide", "stack"], "slide");
+  const [layout, changeLayout] = useStoredChoice<NavLayout>(SIDEBAR_LAYOUT_KEY, ["slide", "stack", "rail"], "slide");
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
   // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
   const [showArchived, setShowArchived] = useStoredFlag(SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY);
@@ -86,7 +86,7 @@ export function useProjectNav(runs: Record<number, Run[]>) {
 
   /** 横スライドで切り替えたプロジェクトを、右側にも表示する（Arc・Zen Browser のスペースと同じ） */
   const showProject = (id: number) => {
-    if (layout !== "slide" || routeProject === id) return;
+    if (layout === "stack" || routeProject === id) return;
     const hash = lastHashes.current[id];
     if (hash) location.hash = hash;
     else navigate({ name: "project", id, tab: "board" });
@@ -108,14 +108,16 @@ export function useProjectNav(runs: Record<number, Run[]>) {
     setCurrentId(target.id);
     showProject(target.id);
   };
-  // トラックパッドの 2 本指スワイプ・タッチのドラッグで隣のプロジェクトへ
-  const swipe = useWorkspaceSwipe({ index, count: ordered.length, go, active: layout === "slide" });
+  // トラックパッドの 2 本指スワイプ・タッチのドラッグで隣のプロジェクトへ（縦スライドは縦方向で受け取る）
+  const swipe = useWorkspaceSwipe({ index, count: ordered.length, go, active: layout !== "stack", axis: layout === "rail" ? "y" : "x" });
 
-  // ショートカット: ⌥⌘← / ⌥⌘→ で前後、⌃1〜9 で n 番目
+  // ショートカット: ⌥⌘← / ⌥⌘→（縦スライドは ↑ / ↓ も）で前後、⌃1〜9 で n 番目
   useWindowEvent("keydown", (e) => {
-    if (e.metaKey && e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+    // 縦スライドでは ⌥⌘↑ / ⌥⌘↓ でも前後へ
+    const prevNext = layout === "rail" ? ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"] : ["ArrowLeft", "ArrowRight"];
+    if (e.metaKey && e.altKey && prevNext.includes(e.key)) {
       e.preventDefault();
-      go(index + (e.key === "ArrowRight" ? 1 : -1));
+      go(index + (e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1));
     } else if (e.ctrlKey && !e.metaKey && /^[1-9]$/.test(e.key)) {
       e.preventDefault();
       go(Number(e.key) - 1);
