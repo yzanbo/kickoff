@@ -517,6 +517,20 @@ test("待ちの列の API: 選んだものだけ、まとめて送る・消す�
   await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[2]], to: "bottom" });
   assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
   assert.equal((await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[0]], to: "middle" })).status, 400);
+  // ドラッグで落とした位置へまとめて移す: B と A を E の前へ（並びは列の順のまま）、null ならいちばん下
+  await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[0], ids[1]], before: ids[4] });
+  assert.deepEqual(texts(), ["D", "B", "A", "E", "C"]);
+  await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[3]], before: null });
+  assert.deepEqual(texts(), ["B", "A", "E", "C", "D"]);
+  await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[3], ids[2]], before: ids[1] });
+  assert.deepEqual(texts(), ["C", "D", "B", "A", "E"]);
+  // to と before の両方・どちらもなしは 400
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[0]], to: "top", before: null })).status, 400);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[0]] })).status, 400);
+  // 元の並び（B D A E C）に戻す
+  await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[2]], to: "bottom" });
+  await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[1]], to: "top" });
+  assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
   // A と E を消す
   assert.equal((await call("POST", `/api/runs/${runId}/queue/remove-many`, { ids: [ids[0], ids[4], "nai"] })).body.removed, 2);
   assert.deepEqual(texts(), ["B", "D", "C"]);

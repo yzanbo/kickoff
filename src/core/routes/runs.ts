@@ -237,11 +237,15 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json({ removed: runner.removeQueuedMany(run.id, ids), queue: runner.queued(run.id) });
   });
 
-  // 選んだ待ちの指示を、並びを保ったままいちばん上・いちばん下へまとめて移す
+  // 選んだ待ちの指示を、並びを保ったまままとめて移す（to: いちばん上・いちばん下 / before: その指示の前（null ならいちばん下）。ドラッグで落とした位置）
   app.post("/api/runs/:id/queue/move-many", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    const { ids, to } = queueIdsSchema.extend({ to: z.enum(["top", "bottom"]) }).parse(await c.req.json());
-    return c.json({ moved: runner.moveQueuedMany(run.id, ids, to), queue: runner.queued(run.id) });
+    const body = queueIdsSchema
+      .extend({ to: z.enum(["top", "bottom"]).optional(), before: z.string().min(1).max(100).nullable().optional() })
+      .refine((b) => (b.to === undefined) !== (b.before === undefined), "to か before のどちらか一方を指定してください")
+      .parse(await c.req.json());
+    const to = body.to ?? { before: body.before ?? null };
+    return c.json({ moved: runner.moveQueuedMany(run.id, body.ids, to), queue: runner.queued(run.id) });
   });
 
   // 待ちの 1 件をすぐ送る（作業中なら、いまの作業を止めてから送る）

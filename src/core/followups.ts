@@ -115,13 +115,18 @@ export class FollowupQueue {
     return list.length - next.length;
   }
 
-  /** いくつかを、並びを保ったまま列のいちばん上・いちばん下へまとめて移す（動いた数を返す） */
-  moveMany(runId: number, ids: string[], to: "top" | "bottom"): number {
+  /**
+   * いくつかを、並びを保ったまままとめて移す（動いた数を返す）。
+   * to: いちばん上・いちばん下、または { before: その指示の前（null・選んだものの中・列にない指示ならいちばん下） }（ドラッグで落とした位置）
+   */
+  moveMany(runId: number, ids: string[], to: "top" | "bottom" | { before: string | null }): number {
     const list = this.list(runId);
     const picked = list.filter((m) => ids.includes(m.id));
     if (picked.length === 0) return 0;
     const rest = list.filter((m) => !ids.includes(m.id));
-    this.set(runId, to === "top" ? [...picked, ...rest] : [...rest, ...picked]);
+    const at = to === "top" ? 0 : to === "bottom" ? rest.length : rest.findIndex((m) => m.id === to.before);
+    const index = at < 0 ? rest.length : at;
+    this.set(runId, [...rest.slice(0, index), ...picked, ...rest.slice(index)]);
     return picked.length;
   }
 
