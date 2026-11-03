@@ -193,7 +193,21 @@ export function QueuedMessages({
           <span className="queued-count">送信待ち {queue.length} 件</span>
           {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && <span className="queued-hint">{hint}</span>}
         </button>
-        {/* 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える） */}
+        {/* 溜まって中でスクロールするようになったら、すべて出す・縮めるを切り替えられる（一覧の見え方の操作なので、送る・消すの並びと分けて件数の隣に置く） */}
+        {!collapsed && (overflowing || expanded) && (
+          <button
+            type="button"
+            className="btn btn-sm queued-head-btn"
+            aria-label={expanded ? "縮めて表示" : "すべて表示"}
+            aria-expanded={expanded}
+            title={expanded ? "決めた高さに縮め、中でスクロールさせる" : `送信待ちの ${queue.length} 件をすべて表示する（中でスクロールさせない）`}
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? <ChevronsDownUp size={12} aria-hidden /> : <ChevronsUpDown size={12} aria-hidden />}
+            <span className="queued-head-label">{expanded ? "縮める" : "すべて表示"}</span>
+          </button>
+        )}
+        {/* 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。ここから右が送る・消すの操作） */}
         <button
           type="button"
           className={cx("btn btn-sm queued-head-btn queued-mode", paused && "paused")}
@@ -209,20 +223,6 @@ export function QueuedMessages({
           {paused ? <Pause size={12} aria-hidden /> : <Play size={12} aria-hidden />}
           <span className="queued-head-label">{paused ? "止めています" : "自動で送る"}</span>
         </button>
-        {/* 溜まって中でスクロールするようになったら、すべて出す・縮めるを切り替えられる */}
-        {!collapsed && (overflowing || expanded) && (
-          <button
-            type="button"
-            className="btn btn-sm queued-head-btn"
-            aria-label={expanded ? "縮めて表示" : "すべて表示"}
-            aria-expanded={expanded}
-            title={expanded ? "決めた高さに縮め、中でスクロールさせる" : `送信待ちの ${queue.length} 件をすべて表示する（中でスクロールさせない）`}
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? <ChevronsDownUp size={12} aria-hidden /> : <ChevronsUpDown size={12} aria-hidden />}
-            <span className="queued-head-label">{expanded ? "縮める" : "すべて表示"}</span>
-          </button>
-        )}
         <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} onClearSelection={clearSelection} failed={failed} />
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
