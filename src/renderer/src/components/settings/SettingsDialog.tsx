@@ -5,6 +5,7 @@ import { useTheme, type Theme } from "../../theme";
 import { Field } from "../Field";
 import { BrowserExtensions } from "../BrowserExtensions";
 import { Segmented } from "../Segmented";
+import { useProjectTabsLayout, type ProjectTabsLayout } from "../project/ProjectTabs";
 import { TabbedDialog, type DialogSection } from "../TabbedDialog";
 import { UsagePanel } from "../footer/UsagePanel";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
@@ -73,6 +74,7 @@ function DisplaySettings() {
   const [theme, setTheme] = useTheme();
   const [compactComposer, setCompactComposer] = useSharedFlag(COMPOSER_COMPACT_KEY);
   const [wideChat, setWideChat] = useSharedFlag(CHAT_WIDE_KEY);
+  const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   return (
     <section className="section">
       <h2>表示</h2>
@@ -111,6 +113,18 @@ function DisplaySettings() {
             options={[
               { value: "normal", label: "標準" },
               { value: "wide", label: "横幅いっぱい" },
+            ]}
+          />
+        </Field>
+        <Field label="プロジェクトのタブ" help="左に縦並びにすると、ボード・エディタのタブをアイコンだけにして本体の左に並べます。見出しの下の行がなくなるので、ボードやチャット欄の縦の幅が少し広がります。">
+          <Segmented<ProjectTabsLayout>
+            className="segmented theme-switch"
+            label="プロジェクトのタブの置き方"
+            value={tabsLayout}
+            onChange={setTabsLayout}
+            options={[
+              { value: "top", label: "上に横並び" },
+              { value: "side", label: "左に縦並び（アイコン）" },
             ]}
           />
         </Field>

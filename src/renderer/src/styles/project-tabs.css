@@ -33,3 +33,53 @@
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
+
+/*
+ * プロジェクトのタブを左に縦並び（アイコンだけ）にしたとき（設定の「表示」→「プロジェクトのタブ」）。
+ * 選んでいるタブは、横並びの下線の代わりに左の線と地の色で示す。数はアイコンの右上に小さく重ねる
+ */
+.tabs.project-side-tabs {
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  overflow: visible;
+  border-bottom: none;
+}
+
+.project-side-tabs .tab {
+  position: relative;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.project-side-tabs .tab.active {
+  border-left-color: var(--accent-bright);
+  background: var(--bg-elev);
+}
+
+.project-side-tabs .tab-count,
+.project-side-tabs .change-count {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 15px;
+  text-align: center;
+}
+
+/* チャットの数も、エディタの数（.change-count）と同じ丸いバッジにする（アイコンの右上で読めるように） */
+.project-side-tabs .tab-count {
+  color: var(--text);
+  background: var(--bg-active);
+}
