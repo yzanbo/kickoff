@@ -14,13 +14,15 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 3px;
 }
 
 /* 見出しの右のボタン（まとめて送る = 主な操作の色、すべて消す = 赤い枠と文字） */
 .queued-head-btn {
   flex: none;
   gap: 4px;
-  padding: 1px 8px;
+  height: 20px;
+  padding: 0 8px;
   font-size: 11px;
 }
 
@@ -40,7 +42,6 @@
   height: 22px;
 }
 
-/* 見出し（押すと一覧をたたむ・開く） */
 .queued-head {
   display: flex;
   flex: 1;
@@ -80,7 +81,6 @@
   white-space: nowrap;
 }
 
-/* たたんでいるときは見出しの 1 行だけ */
 .queued-messages.collapsed {
   padding-block: 4px;
 }
