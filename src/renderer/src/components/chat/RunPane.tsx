@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Approval, Project, Run, RunEvent } from "../../../../core/types";
+import type { Approval, Project, QueuedMessage, Run, RunEvent } from "../../../../core/types";
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
 import { BUSY_STATUSES } from "../RunStatus";
@@ -11,6 +11,7 @@ import { useRunOptions } from "./RunOptionsBar";
 import { RunTimeline } from "./RunTimeline";
 import { SubagentDetail } from "./SubagentDetail";
 import { SubagentChip, useSubagents } from "./Subagents";
+import { QueuedMessages } from "./QueuedMessages";
 import { TodoChip } from "./TodoChip";
 import { OpenSubagentContext } from "./Timeline";
 import { groupEvents, relativize } from "./timelineItems";
@@ -33,7 +34,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true, onOpenTerminal }: RunPaneProps) {
-  const { run, project, events, approvals, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャットの名前を知らせる（名前を変えたらタブもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -53,7 +54,7 @@ export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} live={live} focus={focus} onClose={onClose} onOpenTerminal={onOpenTerminal} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} live={live} focus={focus} onClose={onClose} onOpenTerminal={onOpenTerminal} />
   );
 }
 
@@ -62,6 +63,7 @@ function RunView({
   project,
   events,
   approvals,
+  queue,
   live,
   focus,
   onClose,
@@ -71,6 +73,7 @@ function RunView({
   project?: Project;
   events: RunEvent[];
   approvals: Approval[];
+  queue: QueuedMessage[];
   live: string;
   focus?: number;
   onClose: () => void;
@@ -100,6 +103,7 @@ function RunView({
       <RunHeader run={run} project={project} waiting={waiting} onClose={onClose} onOpenTerminal={onOpenTerminal} />
       <RunTimeline items={items} rel={rel} run={run} busy={busy} waiting={waiting} stopping={stopping} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
       <div className="run-composer">
+        <QueuedMessages runId={run.id} queue={queue} busy={busy} />
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
           <TodoChip events={events} />
@@ -112,10 +116,13 @@ function RunView({
         <Composer
           options={options}
           busy={busy}
-          placeholder={busy ? "エージェントが作業中です…" : "続けて指示する（Enter で送信、Shift+Enter で改行）"}
+          placeholder={busy ? "作業中です。送ると、いまの作業が終わったあとに送ります（Enter）" : "続けて指示する（Enter で送信、Shift+Enter で改行）"}
           onSend={async (text, attachments) => {
             stickToBottom.current = true;
             await api.sendMessage(run.id, text, options.options, attachments);
+          }}
+          onQueue={async (text, attachments) => {
+            await api.queueMessage(run.id, text, options.options, attachments);
           }}
           onStop={() => {
             setStopping(true);

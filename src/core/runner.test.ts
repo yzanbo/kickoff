@@ -247,3 +247,69 @@ test("手で圧縮すると /compact を送り、要約したことだけを残�
   assert.equal(after.result, before.result);
   assert.equal(after.context_tokens, 18_000);
 });
+
+/** 外から終わらせるまで作業中のままの台本（止められたら cancelled） */
+function gatedScript() {
+  const gates: (() => void)[] = [];
+  const script: Script = (params, _cb, signal) =>
+    new Promise((resolve) => {
+      gates.push(() => resolve({ status: "completed", sessionId: "s", turns: 1, result: params.prompt }));
+      signal.addEventListener("abort", () => resolve({ status: "cancelled", sessionId: "s" }), { once: true });
+    });
+  return { gates, script };
+}
+
+test("待ちの列: 作業中に送った指示は列に入り、終わったら順に送る", async () => {
+  const { gates, script } = gatedScript();
+  const { store, runner, provider, project, bus } = setup(script);
+  const published: number[] = [];
+  bus.subscribe((e) => e.type === "run_queue" && published.push(e.queue.length));
+  const run = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  assert.deepEqual(await runner.queueMessage(run.id, "2"), { queued: true });
+  await runner.queueMessage(run.id, "3");
+  assert.deepEqual(runner.queued(run.id).map((m) => m.text), ["2", "3"]);
+  // 並べ替え: 3 を先頭に
+  assert.equal(runner.moveQueued(run.id, runner.queued(run.id)[1].id, 0), true);
+  gates[0]();
+  await until(() => gates.length === 2);
+  assert.equal(provider.calls[1].prompt, "3");
+  assert.deepEqual(runner.queued(run.id).map((m) => m.text), ["2"]);
+  gates[1]();
+  await until(() => gates.length === 3);
+  gates[2]();
+  await until(() => store.getRun(run.id)?.status === "completed" && runner.queued(run.id).length === 0);
+  assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "3", "2"]);
+  assert.deepEqual(published, [1, 2, 2, 1, 0]);
+  // 作業中でなければすぐ送る
+  assert.deepEqual(await runner.queueMessage(run.id, "4"), { queued: false });
+  await until(() => gates.length === 4);
+  gates[3]();
+});
+
+test("待ちの列: 中断したら列に残し、「すぐ送る」はいまの作業を止めてからその指示を送る", async () => {
+  const { gates, script } = gatedScript();
+  const { store, runner, provider, project } = setup(script);
+  const run = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  await runner.queueMessage(run.id, "2");
+  runner.cancel(run.id);
+  await until(() => store.getRun(run.id)?.status === "cancelled");
+  await tick();
+  assert.deepEqual(runner.queued(run.id).map((m) => m.text), ["2"]);
+  // 止まっているチャットで「すぐ送る」→ そのまま送る
+  assert.equal(await runner.sendQueuedNow(run.id, runner.queued(run.id)[0].id), true);
+  await until(() => gates.length === 2);
+  // 作業中に「すぐ送る」→ 止めてから送る（ほかの待ちは残す）
+  await runner.queueMessage(run.id, "3");
+  await runner.queueMessage(run.id, "4");
+  assert.equal(await runner.sendQueuedNow(run.id, runner.queued(run.id)[1].id), true);
+  await until(() => gates.length === 3);
+  assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "2", "4"]);
+  assert.deepEqual(runner.queued(run.id).map((m) => m.text), ["3"]);
+  assert.equal(runner.removeQueued(run.id, runner.queued(run.id)[0].id), true);
+  assert.equal(runner.removeQueued(run.id, "nope"), false);
+  assert.equal(await runner.sendQueuedNow(run.id, "nope"), false);
+  gates[2]();
+  await until(() => store.getRun(run.id)?.status === "completed");
+});

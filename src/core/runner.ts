@@ -1,6 +1,8 @@
+import { errorMessage } from "./errors.js";
+import { FollowupQueue } from "./followups.js";
 import { executeRun, type ExecutionDeps, type QueueItem } from "./runExecution.js";
 import { resolveRunDefaults } from "./runDefaults.js";
-import type { Attachment, Run, RunOptions } from "./types.js";
+import type { Attachment, QueuedMessage, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
 import { withAttachmentNote } from "./uploads.js";
 
@@ -20,13 +22,22 @@ interface StartRunInput {
  * エージェントの実行を管理する。
  * 同時実行数の上限を超えた分は待機列に入れ、空きができしだい順に開始する。
  * 1 つの実行（Run）は 1 つの会話で、追加のメッセージを送ると同じセッションを続きから再開する。
+ * 作業中のチャットに送った次の指示は、チャットごとの待ちの列（followups）に入れ、作業が終わったら順に送る。
  * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は runExecution.ts
  */
 export class Runner {
   private readonly active = new Map<number, AbortController>();
   private readonly queue: QueueItem[] = [];
+  private readonly followups: FollowupQueue;
+  /** 「すぐ送る」で止めたチャット（止まったら、中断でも待ちの列の先頭を送る） */
+  private readonly interrupting = new Set<number>();
 
-  constructor(private readonly deps: ExecutionDeps & { usage: UsageMonitor }) {}
+  constructor(private readonly deps: ExecutionDeps & { usage: UsageMonitor }) {
+    this.followups = new FollowupQueue((runId, queue) => {
+      const run = deps.store.getRun(runId);
+      if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue });
+    });
+  }
 
   async start(input: StartRunInput): Promise<Run> {
     const { store, providers } = this.deps;
@@ -76,6 +87,69 @@ export class Runner {
     });
     this.enqueue({ runId: run.id, prompt: await this.promptWithAttachments(text, attachments) });
     return store.getRun(run.id)!;
+  }
+
+  /** 作業中のチャットの次の指示の待ちの列 */
+  queued(runId: number): QueuedMessage[] {
+    return this.followups.list(runId);
+  }
+
+  /**
+   * 次の指示を送る。作業中なら待ちの列に入れ（終わったら順に送る）、作業中でなければすぐ送る。
+   * queued: 列に入れたか
+   */
+  async queueMessage(runId: number, text: string, options: RunOptions = {}, attachments: Attachment[] = []): Promise<{ queued: boolean }> {
+    if (!this.deps.store.getRun(runId)) throw new Error("実行が見つかりません");
+    if (!this.isBusy(runId)) {
+      await this.send(runId, text, options, attachments);
+      return { queued: false };
+    }
+    this.followups.add(runId, text, options, attachments);
+    return { queued: true };
+  }
+
+  /** 待ちの列から消す（なければ false） */
+  removeQueued(runId: number, id: string): boolean {
+    return this.followups.remove(runId, id);
+  }
+
+  /** 待ちの列を並べ替える（なければ false） */
+  moveQueued(runId: number, id: string, index: number): boolean {
+    return this.followups.move(runId, id, index);
+  }
+
+  /**
+   * 待ちの 1 件をすぐ送る。作業中なら列の先頭に移していまの作業を止め、止まったら送る（なければ false）
+   */
+  async sendQueuedNow(runId: number, id: string): Promise<boolean> {
+    if (!this.followups.has(runId, id)) return false;
+    if (this.active.has(runId)) {
+      this.followups.move(runId, id, 0);
+      this.interrupting.add(runId);
+      this.active.get(runId)!.abort();
+      return true;
+    }
+    // 順番待ち（まだ始まっていない）なら取りやめてから送る
+    if (this.isBusy(runId)) this.cancel(runId);
+    const message = this.followups.take(runId, id)!;
+    await this.send(runId, message.text, message.options, message.attachments);
+    return true;
+  }
+
+  /** チャットを消したとき、待ちの列も消す */
+  forgetQueued(runId: number) {
+    this.followups.forget(runId);
+  }
+
+  /** 待ちの列の先頭を送る（送れなければ、理由をチャットに残す） */
+  private async sendNextQueued(runId: number) {
+    const next = this.followups.take(runId);
+    if (!next) return;
+    try {
+      await this.send(runId, next.text, next.options, next.attachments);
+    } catch (e) {
+      this.deps.store.addEvent(runId, { type: "error", message: `待ちの指示を送れませんでした: ${errorMessage(e)}` });
+    }
   }
 
   /**
@@ -165,6 +239,9 @@ export class Runner {
     } finally {
       this.active.delete(item.runId);
       void this.deps.usage.refresh();
+      // 終わったら、待ちの列の次の指示を送る（中断・失敗のときは列に残し、利用者が送るか決める。「すぐ送る」で止めたときは送る）
+      const interrupted = this.interrupting.delete(item.runId);
+      if (interrupted || this.deps.store.getRun(item.runId)?.status === "completed") void this.sendNextQueued(item.runId);
       this.pump();
     }
   }
