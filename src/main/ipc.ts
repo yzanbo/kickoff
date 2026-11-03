@@ -1,9 +1,10 @@
 import path from "node:path";
-import { app, dialog, ipcMain, shell, type BrowserWindow, type OpenDialogOptions } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
 import { openInChrome } from "./browser.js";
 import { closeDevTools, openDevToolsIn, openDevToolsWindow } from "./browserDevtools.js";
 import { addExtensionFolder, importFromChrome, installFromWebStore, listExtensions, removeExtension } from "./browserExtensions.js";
 import { execFileAsync } from "../core/exec.js";
+import { startDiagnostics } from "./diagnostics.js";
 import { existingFolder, externalTerminalArgs, installedTerminals, knownExtension, knownTerminal, webContentsId } from "./ipcArgs.js";
 import { registerTerminalIpc } from "./terminals.js";
 
@@ -32,6 +33,10 @@ export function registerIpc(mainWindow: () => BrowserWindow | undefined) {
   ipcMain.handle("kickoff:pick-references", () =>
     pickPaths({ properties: ["openFile", "openDirectory", "multiSelections"], title: "参照資料にするフォルダ・ファイルを選択", buttonLabel: "追加" }),
   );
+  // 性能の記録を取る（設定の「診断」から。メニューの「ヘルプ」と同じ。様子は kickoff:diagnostics で知らせる）
+  ipcMain.handle("kickoff:diagnostics-start", (e) => {
+    void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow());
+  });
   ipcMain.handle("kickoff:open-in-chrome", (_e, url: string) => openInChrome(String(url)));
   // 埋め込みブラウザの開発者ツール: 同じ画面の別の埋め込みブラウザの中（右・下）・別のウィンドウ・閉じる
   ipcMain.handle("kickoff:browser-devtools-in", (e, targetId: unknown, devtoolsId: unknown) => {

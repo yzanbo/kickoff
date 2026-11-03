@@ -1,0 +1,57 @@
+/* 性能の記録の様子（DiagnosticsIndicator。画面の右下。記録中も操作を続けられるよう、下の帯の上に浮かせる） */
+.diagnostics-indicator {
+  position: fixed;
+  right: var(--gutter);
+  bottom: 40px;
+  z-index: 900;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(520px, calc(100vw - 2 * var(--gutter)));
+  padding: 10px 10px 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  background: var(--bg-elev);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+}
+
+.diagnostics-indicator.recording .diagnostics-icon {
+  color: var(--warn);
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+.diagnostics-indicator.done .diagnostics-icon {
+  color: var(--ok);
+}
+
+.diagnostics-indicator.error .diagnostics-icon {
+  color: var(--ng);
+}
+
+.diagnostics-icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.diagnostics-body {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.diagnostics-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.diagnostics-path code {
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}

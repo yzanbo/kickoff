@@ -1,4 +1,4 @@
-import { Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
+import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
 import { useSharedFlag } from "../../hooks/useStoredState";
 import { CHAT_WIDE_KEY, COMPOSER_COMPACT_KEY } from "../../storageKeys";
 import { useTheme, type Theme } from "../../theme";
@@ -10,11 +10,12 @@ import { UsagePanel } from "../footer/UsagePanel";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
 import { ConnectionSettings } from "./ConnectionSettings";
+import { DiagnosticsSettings } from "./DiagnosticsSettings";
 import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
 import { VoiceSettings } from "./VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "voice" | "notifications" | "terminal" | "browser" | "mobile";
+export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -27,6 +28,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "terminal", label: "ターミナル", icon: SquareTerminal },
   { key: "browser", label: "ブラウザの拡張機能", icon: Puzzle },
   { key: "mobile", label: "スマホ連携", icon: Smartphone },
+  { key: "diagnostics", label: "診断", icon: Activity },
 ];
 
 /** アプリの設定（左下の歯車・⌘, から開く。プロジェクトの編集と同じ形のダイアログ） */
@@ -49,6 +51,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
               <BrowserExtensions />
             </section>
           )}
+          {section === "diagnostics" && <DiagnosticsSettings onClose={onClose} />}
           {section === "mobile" && (
             <section className="section">
               <h2>スマホ連携</h2>
