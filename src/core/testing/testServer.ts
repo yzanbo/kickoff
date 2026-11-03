@@ -100,7 +100,7 @@ class FakeProvider extends FakeProviderBase {
 
 export const tempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-server-test-"));
 
-export function setup() {
+export function setup(opts: { staticDir?: string } = {}) {
   const bus = new Bus();
   const store = new Store(":memory:", (e) => bus.publish(e));
   const approvals = new ApprovalCenter(bus);
@@ -151,7 +151,7 @@ export function setup() {
     findTools: async () => voiceFake.tools,
     fetch: () => voiceFake.download(),
   });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, staticDir: opts.staticDir });
   const project = store.createProject({ name: "p", repo_path: tempDir(), provider: "claude" });
 
   /** トークン付きで API を呼び、JSON の応答を返す */

@@ -37,6 +37,16 @@ async function assertIdle() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** 本番のアプリの中のプロセス（本体のあとに終わる Helper（GPU・ネットワーク・画面）や crashpad も）が残っているか */
+const hasBundleProcesses = () => {
+  try {
+    execFileSync("pgrep", ["-f", `${target}/Contents/`], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // 製品版の Kickoff の中のターミナルから流すと、製品版を終了したときにこのスクリプトも止められ、入れ替えの途中で終わることがある。
 // 印のない古い版の Kickoff のターミナル（TERM_PROGRAM だけ）も、どちらか分からないので止める。開発版（Kickoff Dev）のターミナルからは流してよい
 const terminalOf = process.env.KICKOFF_TERMINAL_OF ?? (process.env.TERM_PROGRAM === "Kickoff" ? "unknown" : undefined);
@@ -60,7 +70,14 @@ if (wasRunning) {
     console.error("本番の Kickoff が終了しませんでした。手で終了してから、もう一度実行してください");
     process.exit(1);
   }
+  // 本体のあとに終わる Helper も待つ（キャッシュを書いている途中で消さない・入れ替えない）
+  for (let i = 0; i < 20 && hasBundleProcesses(); i++) await sleep(250);
 }
+
+// 画面の HTTP キャッシュ（Chromium の Cache。チャット・設定・localStorage は別の場所なので消えない）を消し、
+// 入れ替えたあとの最初の起動で古い index.html・JS を使わせない（古い画面と新しいコアがかみ合わず、真っ暗になることがあった）。
+// いまのコアは画面のファイルを no-cache で返すが、それより前の版がキャッシュに残したものはここで消す
+rmSync(path.join(prodDir, "Cache"), { recursive: true, force: true });
 
 if (existsSync(target)) rmSync(target, { recursive: true, force: true });
 execFileSync("ditto", [built, target]);
