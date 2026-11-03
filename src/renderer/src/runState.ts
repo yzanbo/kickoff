@@ -9,14 +9,14 @@ export const approvalIndex = (approvals: readonly Pick<Approval, "run_id">[]): A
 /** チャットの状態（回答待ちの依頼があれば回答待ち。コアの agentStateOf を、回答待ちの一覧で引く） */
 export const runStateOf = (run: Run, approvals: ApprovalIndex): AgentState => agentStateOf(run, approvals.has(run.id));
 
-/** 数を出す状態（カンバンの列のうち完了を除いたもの。この順に並べる） */
+/** 数を出す状態（カンバンの列のうち既読を除いたもの。この順に並べる） */
 export const COUNTED_COLUMNS = ["running", "needs_input", "review"] as const;
 
-/** 状態ごとのチャット数（作業中・回答待ち・確認待ち） */
+/** 状態ごとのチャット数（作業中・回答待ち・未読） */
 export type StateCounts = Record<Exclude<BoardColumn, "done">, number>;
 
 /**
- * 状態ごとのチャット数。カンバンの列と同じ決め方（boardColumnOf）で数え、完了とアーカイブ済みは数えない。
+ * 状態ごとのチャット数。カンバンの列と同じ決め方（boardColumnOf）で数え、既読とアーカイブ済みは数えない。
  * サイドバーのプロジェクト・プロジェクトの画面の見出し・全プロジェクトの画面の見出しで同じ数になるよう、数えるのはここだけ
  */
 export function stateCounts(runs: readonly Run[], pending: ApprovalIndex): StateCounts {

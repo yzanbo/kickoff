@@ -20,7 +20,7 @@ import { StatusDot } from "../StatusDot";
 type CountedColumn = (typeof COUNTED_COLUMNS)[number];
 
 /**
- * ⌘⇧A: 作業中・回答待ち・確認待ちのチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形）。
+ * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形）。
  * 名前・プロジェクト名で絞り込め、↑↓・Enter で開く。開いている間もチャットの状態の変化に追いつく
  */
 export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
@@ -41,7 +41,7 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
     setRuns((prev) => (prev.some((r) => r.id === e.run.id) ? prev.map((r) => (r.id === e.run.id ? e.run : r)) : [e.run, ...prev]));
   });
 
-  // 状態ごとのまとまり（アーカイブしたもの・完了は除く。最近動いた順）と、↑↓ で移る平らな並び
+  // 状態ごとのまとまり（アーカイブしたもの・既読は除く。最近動いた順）と、↑↓ で移る平らな並び
   const { groups, items } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const byColumn = new Map<CountedColumn, Run[]>(COUNTED_COLUMNS.map((c) => [c, []]));
@@ -79,7 +79,7 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
         <input
           autoFocus
           value={query}
-          placeholder="作業中・回答待ち・確認待ちのチャットを絞り込む"
+          placeholder="作業中・回答待ち・未読のチャットを絞り込む"
           aria-label="作業中・待ちのチャットを絞り込む"
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={nav.onKeyDown}

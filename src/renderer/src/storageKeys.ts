@@ -33,7 +33,7 @@ export const SIDEBAR_LAST_HASH_KEY = "kickoff:last-hash-by-project";
 // サイドバーのチャットの並べ方（どのプロジェクトでも同じ）
 /** チャットのまとめ方（CHAT_GROUPINGS） */
 export const SIDEBAR_GROUPING_KEY = "kickoff:sidebar-grouping";
-/** 自分待ち（回答待ち・確認待ち）のチャットだけを出すか（"1" なら出す） */
+/** 自分待ち（回答待ち・未読）のチャットだけを出すか（"1" なら出す） */
 export const SIDEBAR_WAITING_ONLY_KEY = "kickoff:sidebar-waiting-only";
 /** チャットを 1 行で出すか（"1" なら 2 行目のブランチを隠す） */
 export const SIDEBAR_COMPACT_KEY = "kickoff:sidebar-compact";

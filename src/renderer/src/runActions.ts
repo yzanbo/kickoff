@@ -84,7 +84,7 @@ export async function confirmDeleteRuns(runs: Run[]): Promise<boolean> {
   return ok;
 }
 
-/** まとめて既読にする（確認待ちの印を消す。印のないものはそのまま） */
+/** まとめて既読にする（未読の印を消す。印のないものはそのまま） */
 export const markRunsSeen = (runs: Run[]) => eachRun(runs.filter((r) => r.attention), "既読に", (r) => api.markSeen(r.id));
 
 /** まとめてグループへ移す（null はグループなし。同じプロジェクトのチャットだけ） */

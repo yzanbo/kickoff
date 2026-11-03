@@ -188,7 +188,7 @@
   border: 1px dashed var(--border-strong);
 }
 
-/* 丸の角の件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 回答待ち、右下 = 確認待ち */
+/* 丸の角の件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 回答待ち、右下 = 未読 */
 .workspace-dot-count {
   position: absolute;
   display: grid;

@@ -25,7 +25,7 @@ export interface ExecutionDeps {
 export interface QueueItem {
   runId: number;
   prompt: string;
-  /** 会話の要約（/compact）。発言・結果としては残さず、確認待ちにもしない */
+  /** 会話の要約（/compact）。発言・結果としては残さず、未読にもしない */
   compact?: boolean;
 }
 
@@ -47,7 +47,8 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
     applyResult(store, runId, result, compact);
   } catch (e) {
     const message = errorMessage(e);
-    store.updateRun(runId, { status: "failed", error: message });
+    // 失敗も、見るまでは未読にする
+    store.updateRun(runId, { status: "failed", error: message, attention: true });
     store.addEvent(runId, { type: "error", message });
   }
 }
@@ -116,7 +117,7 @@ function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, signal
   };
 }
 
-/** 結果をチャットに反映する（状態・費用・回数・コンテキスト・確認待ち） */
+/** 結果をチャットに反映する（状態・費用・回数・コンテキスト・未読） */
 function applyResult(store: Store, runId: number, result: ProviderRunResult, compact: boolean) {
   const current = store.getRun(runId)!;
   store.updateRun(runId, {
@@ -133,7 +134,7 @@ function applyResult(store: Store, runId: number, result: ProviderRunResult, com
         ? // 要約したあとの大きさが分からないときは、次の応答まで空にしておく
           { context_tokens: null }
         : {}),
-    // 終わったら「確認待ち」にする（中断・要約のときは除く）。チャットを開くと消える
+    // 終わったら「未読」にする（中断・要約のときは除く）。チャットを開くと消える
     attention: compact || result.status === "cancelled" ? current.attention : true,
   });
   // 裏で動かしたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる

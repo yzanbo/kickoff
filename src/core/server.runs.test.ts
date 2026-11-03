@@ -127,7 +127,7 @@ test("チャット欄の / のコマンド: プロジェクトの作業場所で
   assert.equal((await call("GET", "/api/projects/999/commands")).status, 404);
 });
 
-test("自動のアーカイブ: 完了して日数がたったチャットだけをアーカイブする（確認待ち・固定はしない）。設定で日数を選ぶ", async () => {
+test("自動のアーカイブ: 完了して日数がたったチャットだけをアーカイブする（未読・固定はしない）。設定で日数を選ぶ", async () => {
   const { call, project, store } = setup();
   const finish = async (prompt: string) => {
     const run = (await call("POST", `/api/projects/${project.id}/runs`, { prompt })).body;

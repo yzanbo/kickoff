@@ -115,7 +115,7 @@ export class Store {
     this.runs.delete(id);
   }
 
-  /** 確認待ち（未読）の印を付ける・外す。最後に動いた時刻（一覧の並び順）は変えない */
+  /** 未読の印を付ける・外す。最後に動いた時刻（一覧の並び順）は変えない */
   setRunAttention(id: number, attention: boolean): Run {
     return this.runs.setAttention(id, attention);
   }
@@ -175,6 +175,8 @@ export class Store {
       this.updateRun(run.id, {
         status: "failed",
         error: "アプリの終了により中断しました。メッセージを送ると続きから再開できます。",
+        // まだ見ていないので未読にする
+        attention: true,
       });
     }
     return stale.length;

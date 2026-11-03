@@ -49,7 +49,7 @@ export function CardMenu({
       <MenuItem onSelect={() => onRename(run)}>
         <Pencil size={14} /> 名前を変更
       </MenuItem>
-      {/* 未読 = 確認待ちの印（サイドバーで太字になる。次に開くまで残る） */}
+      {/* 未読の印（サイドバーで太字になる。次に開くまで残る） */}
       {run.attention ? (
         <button role="menuitem" onClick={() => void act(() => api.markSeen(run.id))}>
           <MailOpen size={14} /> 既読にする

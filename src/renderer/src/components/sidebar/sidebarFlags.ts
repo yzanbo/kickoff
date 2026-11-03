@@ -12,7 +12,7 @@ export const useCompactProjects = () => useSharedFlag(SIDEBAR_PROJECT_COMPACT_KE
 /** アーカイブ済みのチャットを出すか（初めは出す） */
 export const useShowArchivedChats = () => useSharedFlag(SIDEBAR_SHOW_ARCHIVED_KEY, true);
 
-/** 自分が見る番か（カンバンの回答待ち・確認待ちの列と同じ） */
+/** 自分が見る番か（カンバンの回答待ち・未読の列と同じ） */
 export const isWaitingState = (state: AgentState) => {
   const column = boardColumnOf(state);
   return column === "needs_input" || column === "review";

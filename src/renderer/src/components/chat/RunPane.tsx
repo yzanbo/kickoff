@@ -64,7 +64,7 @@ export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run?.id, run?.title]);
 
-  // 開いて見たので「確認待ち」を消す（パネルに表示したとき・見ている間に作業が終わったとき）。
+  // 開いて見たので「未読」を消す（パネルに表示したとき・見ている間に作業が終わったとき）。
   // 右クリックの「未読にする」で付けた印は、表示したままでも消さず、次に開くまで残す
   useEffect(() => {
     if (visible && run?.attention) void api.markSeen(run.id).catch(() => {});

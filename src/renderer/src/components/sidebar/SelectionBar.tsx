@@ -63,7 +63,7 @@ export function SelectionBar({ selection, runs, groups }: { selection: ChatSelec
               <FolderInput size={13} /> 移動
             </button>
           )}
-          <button className="btn btn-sm" onClick={actions.seen} disabled={!unread} title={unread ? "確認待ちの印を消す" : "確認待ちのチャットはありません"}>
+          <button className="btn btn-sm" onClick={actions.seen} disabled={!unread} title={unread ? "未読の印を消す" : "未読のチャットはありません"}>
             <MailOpen size={13} /> 既読
           </button>
           <button className="btn btn-sm selection-bar-delete" onClick={actions.remove}>

@@ -129,7 +129,7 @@ test("返答の途中経過は配信だけされ、チャット名は AI が付�
   );
 });
 
-test("作業が終わると確認待ちになり、続けて送ると消える。中断では付かない", async () => {
+test("作業が終わると未読になり、続けて送ると消える。中断では付かない", async () => {
   // 2 回目の実行は、合図があるまで終わらせない
   let release!: () => void;
   const gate = new Promise<void>((r) => (release = r));
@@ -149,7 +149,7 @@ test("作業が終わると確認待ちになり、続けて送ると消える�
   release();
   await until(() => store.getRun(run.id)?.status === "completed" && store.getRun(run.id)?.attention === true);
 
-  // 中断したときは確認待ちを付けない
+  // 中断したときは未読を付けない
   store.updateRun(run.id, { attention: false });
   await runner.send(run.id, "もう一度");
   await until(() => store.getRun(run.id)?.status === "running");
@@ -210,7 +210,7 @@ test("同時実行数が上限なし（null）なら、順番待ちをせずに�
   await until(() => runs.every((r) => store.getRun(r.id)?.status === "cancelled"));
 });
 
-test("手で圧縮すると /compact を送り、要約したことだけを残す（発言・確認待ち・会話の回数には数えない）", async () => {
+test("手で圧縮すると /compact を送り、要約したことだけを残す（発言・未読・会話の回数には数えない）", async () => {
   const { store, runner, provider, project } = setup(async (params, cb) => {
     if (params.prompt === "/compact") {
       cb.emit({ type: "compact", trigger: "manual", pre_tokens: 120_000, post_tokens: 18_000 });

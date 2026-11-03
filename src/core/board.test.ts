@@ -10,22 +10,24 @@ function mk() {
   return { store, run };
 }
 
-test("エージェントの状態は 回答待ち → エラー → 作業中 → 確認待ち → 待機中 の優先順で決まる", () => {
+test("エージェントの状態は 回答待ち → エラー → 作業中 → 未読 → 既読 の優先順で決まる（失敗も見たら既読）", () => {
   const { store, run } = mk();
   assert.equal(agentStateOf(run, true), "needs_input");
   assert.equal(agentStateOf(run, false), "running");
   assert.equal(agentStateOf(store.updateRun(run.id, { status: "failed", attention: true }), false), "failed");
+  assert.equal(agentStateOf(store.updateRun(run.id, { status: "failed", attention: false }), false), "done");
   assert.equal(agentStateOf(store.updateRun(run.id, { status: "completed", attention: true }), false), "attention");
   assert.equal(agentStateOf(store.updateRun(run.id, { attention: false }), false), "done");
 });
 
-test("カンバンの列は AI の状態だけで決まる（作業中 → 回答待ち → 確認待ち（失敗も）→ 完了）", () => {
+test("カンバンの列は AI の状態だけで決まる（作業中 → 回答待ち → 未読（失敗も）→ 既読）", () => {
   const { store, run } = mk();
   assert.equal(boardColumnOf(agentStateOf(run, false)), "running");
   assert.equal(boardColumnOf(agentStateOf(run, true)), "needs_input");
   assert.equal(boardColumnOf(agentStateOf(store.updateRun(run.id, { status: "completed", attention: true }), false)), "review");
   assert.equal(boardColumnOf(agentStateOf(store.updateRun(run.id, { status: "failed", attention: true }), false)), "review");
   assert.equal(boardColumnOf(agentStateOf(store.updateRun(run.id, { status: "completed", attention: false }), false)), "done");
+  assert.equal(boardColumnOf(agentStateOf(store.updateRun(run.id, { status: "failed", attention: false }), false)), "done");
 });
 
 test("アーカイブしたチャットは一覧に出ず、削除すると会話の記録も消える", () => {

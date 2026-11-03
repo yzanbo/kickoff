@@ -216,7 +216,7 @@ export class Runner {
 
   /**
    * 会話を要約して、コンテキストを空ける（Claude Code の /compact を手で実行する）。
-   * 会話の記録には発言として残さず、要約したこと（compact イベント）だけが残る。終わっても確認待ちにしない
+   * 会話の記録には発言として残さず、要約したこと（compact イベント）だけが残る。終わっても未読にしない
    */
   async compact(runId: number): Promise<Run> {
     const { store } = this.deps;

@@ -14,7 +14,7 @@ import { isWaitingState } from "./sidebarFlags";
  * 上に固定したもの・グループごと・グループなし・アーカイブ済みに分ける
  */
 export function useWorkspaceRows({ runs, groups, searchAll }: { runs: Run[]; groups: RunGroup[]; searchAll: string }) {
-  // 自分待ち（回答待ち・確認待ち）だけを出すか（上の行の「自分待ち」で切り替える）
+  // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替える）
   const [waitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
