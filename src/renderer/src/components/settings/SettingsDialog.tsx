@@ -1,6 +1,6 @@
 import { Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
 import { useSharedFlag } from "../../hooks/useStoredState";
-import { COMPOSER_COMPACT_KEY } from "../../storageKeys";
+import { CHAT_WIDE_KEY, COMPOSER_COMPACT_KEY } from "../../storageKeys";
 import { useTheme, type Theme } from "../../theme";
 import { Field } from "../Field";
 import { BrowserExtensions } from "../BrowserExtensions";
@@ -69,6 +69,7 @@ function UsageSettings() {
 function DisplaySettings() {
   const [theme, setTheme] = useTheme();
   const [compactComposer, setCompactComposer] = useSharedFlag(COMPOSER_COMPACT_KEY);
+  const [wideChat, setWideChat] = useSharedFlag(CHAT_WIDE_KEY);
   return (
     <section className="section">
       <h2>表示</h2>
@@ -95,6 +96,18 @@ function DisplaySettings() {
             options={[
               { value: "normal", label: "標準" },
               { value: "compact", label: "コンパクト" },
+            ]}
+          />
+        </Field>
+        <Field label="チャットの横幅" help="広くすると、発言の流れとチャット欄を欄の横幅いっぱいまで広げます。チャットの見出しの ↔ でも切り替えられます。">
+          <Segmented<"normal" | "wide">
+            className="segmented theme-switch"
+            label="チャットの横幅"
+            value={wideChat ? "wide" : "normal"}
+            onChange={(v) => setWideChat(v === "wide")}
+            options={[
+              { value: "normal", label: "標準" },
+              { value: "wide", label: "横幅いっぱい" },
             ]}
           />
         </Field>
