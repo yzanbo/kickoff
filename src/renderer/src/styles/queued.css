@@ -95,6 +95,7 @@
 }
 
 .queued-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -106,16 +107,22 @@
   background: var(--bg-hover);
 }
 
-/* ドラッグで並べ替え: つまみの印、動かしている行は薄く、入る位置に線を出す */
-.queued-row[draggable="true"] {
-  position: relative;
+/* ドラッグで並べ替え: 左のつまみからだけ（文は選べる）。動かしている行は薄く、入る位置に線を出す */
+.queued-grip {
+  display: flex;
+  flex: none;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  margin-left: -6px;
+  border-radius: var(--radius);
+  color: var(--extra-muted);
   cursor: grab;
 }
 
-.queued-grip {
-  flex: none;
-  margin-left: -4px;
-  color: var(--extra-muted);
+.queued-grip:hover {
+  color: var(--text);
 }
 
 /* 送る順番の番号（1 が次に送るもの） */
@@ -130,9 +137,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 書き直している行: つまみの印と同じ幅を空け、番号を入力欄の 1 行目にそろえる */
+/* 書き直している行: つまみと同じ幅を空け（.queued-grip の幅）、番号を入力欄の 1 行目にそろえる */
 .queued-grip-space {
-  width: 13px;
+  cursor: default;
 }
 
 .queued-row.editing .queued-index {
@@ -165,6 +172,7 @@
 
 .queued-text {
   flex: 1;
+  cursor: text;
   min-width: 0;
   overflow: hidden;
   font-size: 13px;
