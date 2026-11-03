@@ -1,4 +1,4 @@
-import { Inbox, Play, RotateCcw, Square } from "lucide-react";
+import { CornerDownRight, Inbox, Play, RotateCcw, Square } from "lucide-react";
 import type { SubagentEntry } from "../../../../core/subagents";
 import { api } from "../../api";
 import { confirmDialog } from "../../dialogs";
@@ -15,7 +15,20 @@ import { HAND_OVER_NOW, resumeRequest, retryRequest } from "./subagentRelay";
  * メインのエージェントに頼む: 再開 = SendMessage で止まったところから続ける / やり直す = 同じ依頼で新しく立ち上げ直す。
  * メインが作業中なら止めずに伝え、作業中でなければすぐ送る（tell の API が決める）
  */
-export function SubagentActions({ runId, entry, busy, className }: { runId: number; entry: SubagentEntry; busy: boolean; className?: string }) {
+export function SubagentActions({
+  runId,
+  entry,
+  busy,
+  className,
+  onOpen,
+}: {
+  runId: number;
+  entry: SubagentEntry;
+  busy: boolean;
+  className?: string;
+  /** ほかのサブエージェントの中身を開く（やり直した回へ移る。行のキーを渡す） */
+  onOpen?: (key: string) => void;
+}) {
   if (entry.status === "running") {
     const stalled = busy && entry.agentId && activityOf(entry.lastActivityAt).level === "stalled";
     return stalled ? <StopStalled runId={runId} entry={entry} agentId={entry.agentId!} className={className} /> : null;
@@ -39,6 +52,23 @@ export function SubagentActions({ runId, entry, busy, className }: { runId: numb
         <span className="subagent-recovery-note">次に送る指示にも自動で添えます</span>
       </span>
     );
+  }
+  // 止まったあと、親が新しいサブエージェントでやり直したもの: 再開・やり直すは仕事が重なるので出さず、やり直した回へ案内する
+  const next = entry.supersededBy;
+  if (next) {
+    return onOpen ? (
+      <span className={cx("subagent-recovery", className)}>
+        <button
+          type="button"
+          className="btn"
+          title={`親のエージェントが「${next.description}」としてやり直しています。その中身を開きます`}
+          onClick={(e) => (e.stopPropagation(), onOpen(next.key))}
+        >
+          <CornerDownRight size={12} aria-hidden />
+          やり直した回を見る
+        </button>
+      </span>
+    ) : null;
   }
   if (!isSubagentHalted(entry)) return null;
   const send = (text: string, failure: string) => api.tellRun(runId, text, {}).catch(reportFailure(failure));

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { RunEvent } from "../../../../core/types";
 import { formatTokens } from "../../format";
 import { subagentReport, type SubagentEntry } from "../../../../core/subagents";
-import { subagentStatusLabel } from "./subagentList";
+import { subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 import { useTicker } from "../../hooks/useTicker";
 import { activityOf, activityText } from "./stall";
 import { SubagentActions } from "./SubagentActions";
@@ -22,12 +22,15 @@ export function SubagentView({
   events,
   rel,
   busy,
+  onOpen,
 }: {
   runId: number;
   entry: SubagentEntry;
   events: RunEvent[];
   rel: (s: string) => string;
   busy: boolean;
+  /** ほかのサブエージェントの中身を開く（やり直した回へ移る） */
+  onOpen?: (key: string) => void;
 }) {
   // メインのチャットの、このサブエージェントへの追加の指示を、サブエージェントの流れの自分の発言として混ぜる
   const items = useMemo(() => {
@@ -62,12 +65,12 @@ export function SubagentView({
       <header className="subagent-detail-head">
         <div className="subagent-detail-title">
           <span className="subagent-detail-name">{entry.description}</span>
-          <span className="muted small">
+          <span className="muted small" title={subagentStatusTitle(entry)}>
             {meta.filter(Boolean).join(" · ")}
             {activityLabel && <span className={activity?.level === "stalled" ? "activity-stalled" : undefined}> · {activityLabel}</span>}
           </span>
         </div>
-        <SubagentActions runId={runId} entry={entry} busy={busy} />
+        <SubagentActions runId={runId} entry={entry} busy={busy} onOpen={onOpen} />
       </header>
       <div className="subagent-detail-body timeline" ref={bodyRef}>
         <div className="timeline-inner">

@@ -214,6 +214,11 @@
 }
 
 /* 報告を送り、親の受け取りを待っている */
+/* 止まったが、親がもうやり直したもの（手を打たなくてよい） */
+.subagent-status.status-superseded {
+  color: var(--muted);
+}
+
 .subagent-status.status-awaiting,
 .chip-awaiting {
   color: var(--info);
