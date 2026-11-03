@@ -95,3 +95,25 @@ test("サブエージェントの報告: SubagentHandback の本文 → 終わ�
   ];
   assert.equal(subagentReport(entry(pointer), handbacks), "2 回目");
 });
+
+test("サブエージェント: 裏で動いているものの一覧から消えたら、報告を渡していれば完了・なければ中断にする（待つ形のものは一覧で判断しない）", () => {
+  const events = [
+    ev(1, "tool_use", { id: "bg1", name: "Agent", input: { description: "裏 1" } }),
+    ev(2, "subagent", { task_id: "a1", tool_use_id: "bg1", description: "裏 1", status: "running" }),
+    ev(3, "tool_result", { tool_use_id: "bg1", is_error: false, content: "Async agent launched successfully." }),
+    ev(4, "tool_use", { id: "h1", name: "SubagentHandback", parent: "bg1", input: { message: "報告" } }),
+    ev(5, "tool_use", { id: "bg2", name: "Agent", input: { description: "裏 2" } }),
+    ev(6, "subagent", { task_id: "a2", tool_use_id: "bg2", description: "裏 2", status: "running" }),
+    ev(7, "tool_result", { tool_use_id: "bg2", is_error: false, content: "Async agent launched successfully." }),
+    ev(8, "tool_use", { id: "fg1", name: "Agent", input: { description: "待つ形" } }),
+    ev(9, "subagent", { task_id: "a3", tool_use_id: "fg1", description: "待つ形", status: "running" }),
+  ];
+  // 一覧の知らせがなければ、これまでどおり作業中のまま
+  assert.deepEqual(collectSubagents(events, {}, true).map((s) => s.status), ["running", "running", "running"]);
+  // 一覧が空（裏の 2 件は消えた）: 報告を渡した 1 件目は完了、2 件目は中断。待つ形のものは作業中のまま
+  assert.deepEqual(collectSubagents(events, {}, true, new Set()).map((s) => s.status), ["completed", "stopped", "running"]);
+  // 2 件目がまだ一覧にあれば作業中
+  assert.deepEqual(collectSubagents(events, {}, true, new Set(["a2"])).map((s) => s.status), ["completed", "running", "running"]);
+  // Claude Code が終わった: 報告を渡したものは完了
+  assert.deepEqual(collectSubagents(events, {}, false).map((s) => s.status), ["completed", "stopped", "stopped"]);
+});

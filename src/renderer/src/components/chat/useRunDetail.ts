@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ApiRetryInfo, Approval, Project, QueuedMessage, ReconnectState, Run, RunEvent } from "../../../../core/types";
+import type { ApiRetryInfo, Approval, BackgroundState, Project, QueuedMessage, ReconnectState, Run, RunEvent } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { useServerEvent } from "../../events";
@@ -23,6 +23,8 @@ export function useRunDetail(runId: number, projectId: number) {
   // AI の API への通信を再試行しているところ（通信が切れたときなど）と、止まってつながるのを待っているところ
   const [retry, setRetry] = useState<ApiRetryInfo | null>(null);
   const [reconnect, setReconnect] = useState<ReconnectState | null>(null);
+  // 裏で動いている作業と、メインの返答が終わったか（作業中でなければ null）
+  const [background, setBackground] = useState<BackgroundState | null>(null);
   // 生成中の返答（確定すると text イベントとして届くので、そこで消す）
   const [live, setLive] = useState("");
   const [error, setError] = useState<string>();
@@ -37,6 +39,7 @@ export function useRunDetail(runId: number, projectId: number) {
     setQueueStopAfter(null);
     setRetry(null);
     setReconnect(null);
+    setBackground(null);
     setLive("");
     setError(undefined);
     api
@@ -50,6 +53,7 @@ export function useRunDetail(runId: number, projectId: number) {
         setQueuePaused(Boolean(d.queue_paused));
         setQueueStopAfter(d.queue_stop_after ?? null);
         setReconnect(d.reconnect ?? null);
+        setBackground(d.background ?? null);
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
     api
@@ -82,6 +86,8 @@ export function useRunDetail(runId: number, projectId: number) {
       setRetry(e.retry);
     } else if (e.type === "run_reconnect" && e.run_id === runId) {
       setReconnect(e.reconnect);
+    } else if (e.type === "run_background" && e.run_id === runId) {
+      setBackground(e.background);
     } else if (e.type === "run_queue" && e.run_id === runId) {
       setQueue(e.queue);
       setQueuePaused(e.paused);
@@ -93,5 +99,5 @@ export function useRunDetail(runId: number, projectId: number) {
     }
   });
 
-  return { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, live, error };
+  return { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, background, live, error };
 }

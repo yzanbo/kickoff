@@ -44,8 +44,11 @@ export function isSubagentTool(name: string): boolean {
  * チャットのサブエージェントの一覧を組み立てる。保存されたイベント（Task / Agent の呼び出しと結果、開始・終了の通知）と、
  * 画面にだけ届く途中経過（progress: トークン数・直近のツール）を合わせる。busy でなければ、終わっていないものは中断とみなす
  */
-export function collectSubagents(events: RunEvent[], progress: Record<string, SubagentInfo>, busy: boolean): SubagentEntry[] {
+export function collectSubagents(events: RunEvent[], progress: Record<string, SubagentInfo>, busy: boolean, live?: Set<string>): SubagentEntry[] {
   const map = new Map<string, SubagentEntry>();
+  // 裏で動かした（起動の知らせ・再開）サブエージェントと、いちばん新しく始まったあとに報告（SubagentHandback）を渡したか
+  const backgrounded = new Set<string>();
+  const handedBack = new Set<string>();
   // サブエージェントでないツール（Bash など）の呼び出し。以前の記録には、裏で動かしたコマンドのタスクも subagent として残っているので除く
   const otherTools = new Set<string>();
   // 作業 ID → 行のキー（起動した Agent / Task の呼び出し ID）。SendMessage で再開すると、作業 ID はそのままで、
@@ -55,6 +58,9 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
     if (e.type === "tool_use") {
       const d = e.data as { id: string; name: string; input?: { description?: string; subagent_type?: string; model?: string } };
       if (!isSubagentTool(d.name)) {
+        // サブエージェントが報告を渡した（終わりの知らせを取りこぼしても、終わったと分かる）
+        const parent = (e.data as { parent?: string }).parent;
+        if (d.name === "SubagentHandback" && parent) handedBack.add(parent);
         otherTools.add(d.id);
         continue;
       }
@@ -72,7 +78,8 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
       if (!entry) continue;
       entry.agentId ??= agentIdIn(d.content);
       // 裏で動かしたサブエージェントは、結果が「起動した」という知らせなので、まだ終わっていない（終わりは通知で届く）
-      if (!isBackgroundLaunch(d.content)) entry.status = d.is_error ? "failed" : "completed";
+      if (isBackgroundLaunch(d.content)) backgrounded.add(entry.key);
+      else entry.status = d.is_error ? "failed" : "completed";
     } else if (e.type === "subagent") {
       const d = e.data as unknown as SubagentInfo;
       const own = d.tool_use_id ?? d.task_id;
@@ -81,6 +88,11 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
       if (map.has(key) || !otherTools.has(own)) taskToKey.set(d.task_id, key);
       // 再開した回の知らせ（呼び出し ID が元の行と違う）は、完了のあとでも作業中に戻す
       const resumed = d.tool_use_id !== undefined && d.tool_use_id !== key;
+      if (d.status === "running") {
+        // 再開は必ず裏で動く。始まり直したので、前の回の報告は数えない
+        if (resumed) backgrounded.add(key);
+        handedBack.delete(key);
+      }
       const entry = map.get(key) ?? { key, description: d.description || "サブエージェント", status: d.status };
       map.set(key, {
         ...entry,
@@ -100,8 +112,13 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
     if (!entry || entry.status !== "running") continue;
     map.set(entry.key, { ...entry, tokens: p.tokens ?? entry.tokens, toolUses: p.tool_uses ?? entry.toolUses, lastTool: p.last_tool });
   }
-  // エージェントが止まっているのに終わっていないものは、中断されたとみなす
-  return [...map.values()].map((s) => (!busy && s.status === "running" ? { ...s, status: "stopped" } : s));
+  // 動いていないのに終わっていないもの: Claude Code が終わった、または裏で動いているものの一覧から消えた（終わりの知らせを取りこぼした）。
+  // 報告を渡していれば完了、なければ中断とみなす（一覧は裏で動かしたものだけなので、待つ形のものには使わない）
+  return [...map.values()].map((s) => {
+    if (s.status !== "running") return s;
+    const gone = !busy || (live !== undefined && backgrounded.has(s.key) && s.agentId !== undefined && !live.has(s.agentId));
+    return gone ? { ...s, status: handedBack.has(s.key) ? "completed" : "stopped" } : s;
+  });
 }
 
 /**

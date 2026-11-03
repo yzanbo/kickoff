@@ -4,7 +4,7 @@ import { executeRun, type ExecutionDeps, type QueueItem, type RunOutcome } from 
 import { RunReconnect } from "./runReconnect.js";
 import { resolveRunDefaults } from "./runDefaults.js";
 import { autoTitle, firstLine, promptWithAttachments } from "./runInput.js";
-import type { Attachment, QueuedMessage, ReconnectState, Run, RunOptions } from "./types.js";
+import type { Attachment, BackgroundState, QueuedMessage, ReconnectState, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
 
 interface StartRunInput {
@@ -38,6 +38,8 @@ export class Runner {
 
   /** 通信が切れて止まったチャットの再開 */
   private readonly reconnect: RunReconnect;
+  /** 作業中のチャットの、裏で動いている作業の様子（executeRun が書き、詳細の API で返す） */
+  private readonly background = new Map<number, BackgroundState>();
 
   constructor(
     private readonly deps: ExecutionDeps & {
@@ -59,6 +61,11 @@ export class Runner {
       send: (runId, text) => this.send(runId, text),
       ...deps.reconnect,
     });
+  }
+
+  /** 裏で動いている作業の様子（作業中でなければ null） */
+  backgroundState(runId: number): BackgroundState | null {
+    return this.background.get(runId) ?? null;
   }
 
   /** つながったら自動で再開するのを待っているか（null なら待っていない） */
@@ -321,7 +328,7 @@ export class Runner {
     this.active.set(item.runId, controller);
     let outcome: RunOutcome = { status: "failed", network: false };
     try {
-      outcome = await executeRun(this.deps, item, controller.signal);
+      outcome = await executeRun({ ...this.deps, background: this.background }, item, controller.signal);
     } finally {
       this.active.delete(item.runId);
       void this.deps.usage.refresh();

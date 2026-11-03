@@ -6,6 +6,7 @@ import {
   type SDKResultMessage,
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
+import { createBackgroundTracker } from "./claudeBackground.js";
 import { errorMessage } from "../errors.js";
 import { isNetworkError } from "../networkErrors.js";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claudeLabels.js";
@@ -164,6 +165,8 @@ export class ClaudeProvider implements AgentProvider {
 
       // 思考の時間を測る（流れてくる途中経過で始まりと終わりを見る）
       const messageState = createMessageState();
+      // 裏で動いている作業と、メインの返答が終わったか（変わったときだけ知らせる）
+      const trackBackground = createBackgroundTracker();
       for await (const msg of q) {
         // 通信の再試行: 画面に回数と次に送り直すまでの時間を知らせる（応答がない = 通信が切れている）
         if (msg.type === "system" && msg.subtype === "api_retry") {
@@ -175,6 +178,8 @@ export class ClaudeProvider implements AgentProvider {
           cb.retry?.(null);
         }
         const sid = emitSdkMessage(msg, cb, messageState);
+        const background = trackBackground(msg);
+        if (background) cb.background?.(background);
         // メインの会話の最後のメッセージ（ここから分岐するときの位置）
         if ((msg.type === "assistant" || msg.type === "user") && msg.parent_tool_use_id === null && msg.uuid) lastMessageId = msg.uuid;
         if (sid) sessionId = sid;

@@ -93,7 +93,7 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
 
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
-    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id), queue_stop_after: runner.queueStopAfter(run.id), reconnect: runner.reconnectState(run.id) });
+    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id), queue_stop_after: runner.queueStopAfter(run.id), reconnect: runner.reconnectState(run.id), background: runner.backgroundState(run.id) });
   });
 
   // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）

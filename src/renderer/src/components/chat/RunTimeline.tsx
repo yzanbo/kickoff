@@ -4,7 +4,8 @@ import { cx } from "../../cx";
 import { RUN_STATUS_LABELS } from "../RunStatus";
 import { useTicker } from "../../hooks/useTicker";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
-import type { Approval, Run, RunEvent } from "../../../../core/types";
+import type { Approval, BackgroundState, Run, RunEvent } from "../../../../core/types";
+import { backgroundWaitLabel } from "./backgroundLabel";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { ReconnectRow, RetryLabel, type Connection } from "./ConnectionStatus";
@@ -46,14 +47,17 @@ function lastResultIdOf(items: TimelineItem[]): number {
 const BOTTOM_SLACK_PX = 80;
 
 /** 作業中の行の文（止めている・通信を再試行している・順番待ち・返答を書いている・ツールを実行中・考えている） */
-function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean, runningAgents: number, connection: Connection): ReactNode {
+function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null): ReactNode {
   if (stopping) return "停止中…";
   if (connection.retry) return <RetryLabel retry={connection.retry} />;
   if (run.status === "queued") return "順番を待っています";
   if (live) return "返答を書いています";
   const last = items[items.length - 1];
   if (last?.kind === "tools" && !last.tools[last.tools.length - 1].result) return "ツールを実行中";
-  // 返答を書き終えたあと、裏のサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
+  // 返答を書き終えたあと、裏で動いている作業（サブエージェント・コマンド）の終わりを待っている（Claude Code が知らせる一覧で、種類と名前を出す）
+  const waitingBackground = backgroundWaitLabel(background);
+  if (waitingBackground) return waitingBackground;
+  // 一覧の知らせがない古い Claude Code: 返答を書き終えたあと、裏のサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
   if (runningAgents > 0 && last?.kind === "event" && last.event.type === "text") return `裏で動いているサブエージェント ${runningAgents} 件の終わりを待っています`;
   return <ThinkingWords since={lastActivityAt(last) ?? run.turn_started_at} />;
 }
@@ -92,6 +96,7 @@ export function RunTimeline({
   run,
   busy,
   runningAgents = 0,
+  background = null,
   connection,
   waiting,
   stopping,
@@ -108,6 +113,8 @@ export function RunTimeline({
   busy: boolean;
   /** 裏で動いているサブエージェントの数（返答を書き終えたあとも作業中のときに、その終わりを待っていると出す） */
   runningAgents?: number;
+  /** 裏で動いている作業と、メインの返答が終わったか（返答のあとに待っているものを、種類と名前で出す） */
+  background?: BackgroundState | null;
   /** 通信の再試行中・止まってつながるのを待っているところ */
   connection: Connection;
   waiting: boolean;
@@ -176,7 +183,7 @@ export function RunTimeline({
       : finishedWhileAway
         ? { label: run.status === "failed" ? "失敗しました" : "返答が届きました", tone: run.status === "failed" ? "failed" : "arrived" }
         : busy
-          ? { label: workingLabel(run, items, live, stopping, runningAgents, connection), tone: connection.retry ? "offline" : "working" }
+          ? { label: workingLabel(run, items, live, stopping, runningAgents, connection, background), tone: connection.retry ? "offline" : "working" }
           : { label: RUN_STATUS_LABELS[run.status], tone: run.status === "failed" ? "failed" : "idle" };
 
   return (
@@ -208,7 +215,7 @@ export function RunTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping, runningAgents, connection)}</Working>
+            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping, runningAgents, connection, background)}</Working>
           )}
           {/* 通信が切れて止まり、つながるのを待っている */}
           {!busy && connection.reconnect && <ReconnectRow runId={run.id} reconnect={connection.reconnect} />}

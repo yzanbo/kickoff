@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Approval, Project, QueuedMessage, Run, RunEvent } from "../../../../core/types";
+import type { Approval, BackgroundState, Project, QueuedMessage, Run, RunEvent } from "../../../../core/types";
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
 import { useSharedFlag } from "../../hooks/useStoredState";
@@ -14,6 +14,7 @@ import { RunHeader } from "./RunHeader";
 import { useRunOptions } from "./RunOptionsBar";
 import type { Connection } from "./ConnectionStatus";
 import { RunTimeline } from "./RunTimeline";
+import { countBackground } from "./backgroundLabel";
 import { SubagentChip, useSubagents } from "./Subagents";
 import { QueuedMessages } from "./QueuedMessages";
 import { TodoChip } from "./TodoChip";
@@ -55,7 +56,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onRunChange, visible = true, onOpenSubagent }: RunPaneProps) {
-  const { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, background, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャットの名前と状態（作業中・未読など）を知らせる（変わったらタブもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -68,7 +69,7 @@ export function RunPane({ projectId, runId, focus, onRunChange, visible = true, 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} background={background} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
   );
 }
 
@@ -81,6 +82,7 @@ function RunView({
   queuePaused,
   queueStopAfter,
   connection,
+  background,
   live,
   focus,
   visible,
@@ -97,6 +99,8 @@ function RunView({
   queueStopAfter: string | null;
   /** 通信の再試行中・つながるのを待っているところ */
   connection: Connection;
+  /** 裏で動いている作業と、メインの返答が終わったか */
+  background: BackgroundState | null;
   live: string;
   focus?: number;
   /** チャットを表示しているか（最新の結果を一番下まで見たら既読にする） */
@@ -109,19 +113,23 @@ function RunView({
     run.worktree_path || undefined,
   );
   const busy = BUSY_STATUSES.includes(run.status);
-  const subagents = useSubagents(run.id, events, busy);
-  // 裏で動いているサブエージェント（作業を止めると一緒に止まる）
+  const subagents = useSubagents(run.id, events, busy, background);
+  // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
-  /** 作業を止める前に、裏で動いているサブエージェントも止まることを確かめる（なければそのまま true） */
-  const confirmStopAgents = (action: string) =>
-    runningAgents === 0
+  /** 作業を止める前に、裏で動いているサブエージェント・コマンドも止まることを確かめる（なければそのまま true） */
+  const confirmStopAgents = (action: string) => {
+    const counted = countBackground(background);
+    const agents = background ? counted.agents : runningAgents;
+    const what = [agents > 0 ? `サブエージェント ${agents} 件` : null, counted.commands > 0 ? `コマンド ${counted.commands} 件` : null].filter(Boolean).join("・");
+    return !what
       ? Promise.resolve(true)
       : confirmDialog({
-          title: `裏で動いているサブエージェント ${runningAgents} 件も止まります`,
-          message: `${action}と、いまの作業と一緒に、裏で動いているサブエージェントも止まり、その報告は届きません。終わるまで待つときは、キャンセルして「ためておく」で送ってください。`,
+          title: `裏で動いている${what}も止まります`,
+          message: `${action}と、いまの作業と一緒に、裏で動いている${what}も止まり、サブエージェントの報告は届きません。終わるまで待つときは、キャンセルして「ためておく」で送ってください。`,
           confirmLabel: `${action}`,
           danger: true,
         });
+  };
   const busyNeighbors = useBusyNeighbors(run);
   // サブエージェントの中身は、パネルの新しいタブで開く（ツールのまとまりの「中身を見る」からは呼び出し ID だけが届く）
   const openSub = (toolUseId: string) => onOpenSubagent(toolUseId, subagents.find((s) => s.key === toolUseId)?.description ?? "サブエージェント");
@@ -189,7 +197,7 @@ function RunView({
         }
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
-      <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
+      <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
       <div className="run-composer">
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">

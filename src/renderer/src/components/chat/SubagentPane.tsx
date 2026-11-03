@@ -14,9 +14,9 @@ import { useRunDetail } from "./useRunDetail";
  * （サブエージェントは続きから始める）。メインが作業中なら送信待ちに入れ、終わったら届ける（割り込んで止めはしない）
  */
 export function SubagentPane({ projectId, runId, toolUseId }: { projectId: number; runId: number; toolUseId: string }) {
-  const { run, project, events, error } = useRunDetail(runId, projectId);
+  const { run, project, events, background, error } = useRunDetail(runId, projectId);
   const busy = run ? BUSY_STATUSES.includes(run.status) : false;
-  const subagents = useSubagents(runId, events, busy);
+  const subagents = useSubagents(runId, events, busy, background);
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   const entry = subagents.find((s) => s.key === toolUseId);

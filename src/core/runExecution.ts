@@ -10,7 +10,7 @@ import { isInside } from "./paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./chatPolicy.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./providers/types.js";
 import type { Store } from "./store.js";
-import type { Project, ProviderId, Run } from "./types.js";
+import type { BackgroundState, Project, ProviderId, Run } from "./types.js";
 import type { UploadStore } from "./uploads.js";
 
 /** 実行に使うもの（Runner から受け取る） */
@@ -20,6 +20,8 @@ export interface ExecutionDeps {
   providers: Record<ProviderId, AgentProvider>;
   uploads?: UploadStore;
   bus?: Bus;
+  /** 作業中のチャットの、裏で動いている作業の様子（チャットの詳細でも返すため、Runner が持つ） */
+  background?: Map<number, BackgroundState>;
 }
 
 /** 待機列の 1 件 */
@@ -61,9 +63,10 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
     store.addEvent(runId, { type: "error", message });
     return { status: "failed", network: false };
   } finally {
-    // 再試行の表示を消す（終わったので）
+    // 再試行・裏の作業の表示を消す（終わったので。Claude Code が終わると裏の作業も残らない）
     const run = store.getRun(runId);
     if (run) bus?.publish({ type: "run_retry", project_id: run.project_id, run_id: runId, retry: null });
+    if (deps.background?.delete(runId) && run) bus?.publish({ type: "run_background", project_id: run.project_id, run_id: runId, background: null });
   }
 }
 
@@ -95,7 +98,7 @@ function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: st
 }
 
 /** プロバイダーからの知らせ: 途中経過は配るだけ、イベントは記録、承認依頼は回答を待つ（待つ間は waiting） */
-function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, signal: AbortSignal, compact: boolean): ProviderCallbacks {
+function callbacksFor({ store, approvals, bus, background }: ExecutionDeps, run: Run, signal: AbortSignal, compact: boolean): ProviderCallbacks {
   const runId = run.id;
   const projectId = run.project_id;
   return {
@@ -104,6 +107,10 @@ function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, signal
     },
     retry: (retry) => {
       bus?.publish({ type: "run_retry", project_id: projectId, run_id: runId, retry });
+    },
+    background: (state) => {
+      background?.set(runId, state);
+      bus?.publish({ type: "run_background", project_id: projectId, run_id: runId, background: state });
     },
     stream: (text) => {
       bus?.publish({ type: "run_delta", project_id: projectId, run_id: runId, text });

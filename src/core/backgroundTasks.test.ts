@@ -30,3 +30,13 @@ test("いまの作業で裏で動かし、終わりの知らせがないサブ�
   ];
   assert.deepEqual(unfinishedBackgroundAgents(events), ["タグ付け"]);
 });
+
+test("報告を渡した（SubagentHandback）サブエージェントは、終わりの知らせがなくても終わったとみなす", () => {
+  const events = [
+    ev("user", { text: "いま" }),
+    ev("tool_use", { id: "a", name: "Agent", input: { description: "調査" } }),
+    ev("tool_result", { tool_use_id: "a", content: "Async agent launched successfully." }),
+    ev("tool_use", { id: "h", name: "SubagentHandback", parent: "a", input: { message: "報告" } }),
+  ];
+  assert.deepEqual(unfinishedBackgroundAgents(events), []);
+});

@@ -9,7 +9,7 @@ import type { AgentProvider, ProviderCallbacks, ProviderRunResult } from "../pro
 import { Runner } from "../runner.js";
 import { createApp } from "../server.js";
 import { Store } from "../store.js";
-import type { ProviderId, SlashCommandOption } from "../types.js";
+import type { BackgroundState, ProviderId, SlashCommandOption } from "../types.js";
 import { UploadStore } from "../uploads.js";
 import { ServiceUsageMonitor } from "../serviceUsage/index.js";
 import { VoiceService } from "../transcribe/service.js";
@@ -33,13 +33,16 @@ class FakeProvider extends FakeProviderBase {
   networkFailures = 0;
   /** 実行の初めに記録する途中経過（返答・ツールの実行など。作業中の未読の確かめに使う） */
   emits: Parameters<ProviderCallbacks["emit"]>[0][] = [];
+  /** 実行の初めに知らせる、裏で動いている作業の様子（裏の作業の表示の確かめに使う） */
+  background: BackgroundState | null = null;
   /** これがあれば、外から release するまで作業中のままにする（止められたら cancelled） */
   private gate: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit">, signal: AbortSignal): Promise<ProviderRunResult> {
+  async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background">, signal: AbortSignal): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
     this.resumes.push(params.resumeSessionId);
     this.emits.forEach((event) => cb.emit(event));
+    if (this.background) cb.background?.(this.background);
     if (this.gate) {
       const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
       if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };
