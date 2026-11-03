@@ -11,6 +11,7 @@ import { ConnectionPopover } from "./components/footer/ConnectionPopover";
 import { SearchPanel } from "./components/palette/SearchPanel";
 import { UsagePopover } from "./components/footer/UsagePopover";
 import { NewProjectDialog } from "./components/newProject/NewProjectDialog";
+import { OPEN_NEW_PROJECT_EVENT, type NewProjectRequest } from "./components/newProject/openNewProject";
 import { ProjectChat } from "./components/projectChat/ProjectChat";
 import { ProjectChatContext, useProjectChat } from "./components/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "./components/settings/SettingsDialog";
@@ -52,7 +53,8 @@ export function App() {
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）
   useRunNotifications({ enabled: notifyEnabled, projectName: projectsIndex.projectName, route });
   const sidebar = useSidebar();
-  const [creating, setCreating] = useState(false);
+  // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
+  const [creating, setCreating] = useState<NewProjectRequest | null>(null);
   const [palette, setPalette] = useState(false);
   // ⌘⇧A: 作業中・回答待ち・未読のチャットの一覧
   const [activeChats, setActiveChats] = useState(false);
@@ -71,7 +73,7 @@ export function App() {
   const startNewChat = () => {
     const projectId = routeProjectId(route) ?? loadCurrentProject() ?? projects[0]?.id;
     if (projectId) openNewChat(projectId);
-    else setCreating(true);
+    else setCreating({});
   };
 
   useAppShortcuts({
@@ -85,6 +87,7 @@ export function App() {
   // ボードの検索欄の横のボタンから、チャットの中の文言の全文検索を開く
   useWindowEvent(OPEN_CONTENT_SEARCH_EVENT, () => setSearching(true));
   // 部品から設定をその項目で開く（チャット欄のマイクから「音声入力」など。開いていれば、その項目に切り替える）
+  useWindowEvent(OPEN_NEW_PROJECT_EVENT, (e) => setCreating((e as CustomEvent<NewProjectRequest>).detail));
   useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
 
   return (
@@ -98,7 +101,7 @@ export function App() {
           sidebar={sidebar}
           onNewChat={startNewChat}
           onSearch={() => setPalette(true)}
-          onNewProject={() => setCreating(true)}
+          onNewProject={() => setCreating({})}
         />
         {/* 画面と、その下のパネル（ターミナル） */}
         <div className={`main-column ${bottomPanel.open && bottomPanel.maximized ? "bottom-maximized" : ""}`}>
@@ -114,7 +117,7 @@ export function App() {
               openFile={route.name === "project" ? route.file : undefined}
             />
           ) : (
-            <AllProjectsPage onNewProject={() => setCreating(true)} />
+            <AllProjectsPage onNewProject={() => setCreating({})} />
           )}
         </main>
         <BottomPanel panel={bottomPanel} />
@@ -133,11 +136,13 @@ export function App() {
         {creating && (
           <NewProjectDialog
             defaultParentDir={projectsDir}
-            onClose={() => setCreating(false)}
+            initialName={creating.name}
+            onClose={() => setCreating(null)}
             onCreated={(project) => {
-              setCreating(false);
+              setCreating(null);
               loadProjects();
-              openNewChat(project.id);
+              if (creating.onCreated) creating.onCreated(project);
+              else openNewChat(project.id);
             }}
           />
         )}

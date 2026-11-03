@@ -59,21 +59,49 @@
   color: var(--ng);
 }
 
-/* チャットのメニューの「プロジェクトを移動」: 右端に › を出す。押すと同じメニューの中身を移動先の一覧に替える（多ければ中でスクロール） */
+/* チャットのメニューの項目の入れ物（並びはメニューの grid のまま。横の一覧を閉じるための乗せた位置の受け口） */
+.menu-items {
+  display: contents;
+}
+
+/* チャットのメニューの「プロジェクトを変更」: 右端に › を出す。横に一覧を開いている間は、乗せたときと同じ色のまま */
 .menu .menu-submenu-chevron {
   margin-left: auto;
   color: var(--muted);
 }
 
-.menu-subview {
+.menu .menu-submenu.open {
+  background: var(--bg-hover);
+}
+
+/* 「プロジェクトを変更」の横に開く一覧（ProjectPickFlyout。: 検索欄・新規プロジェクト・一覧） */
+.project-pick {
+  width: 280px;
+  min-width: 0;
+}
+
+.menu .project-pick-search {
+  padding: 8px 10px 10px;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0;
+  font-size: 13px;
+  background: transparent;
+}
+
+.menu .project-pick-search:focus {
+  outline: none;
+}
+
+.project-pick-list {
   display: grid;
-  max-height: min(60vh, 420px);
+  max-height: min(50vh, 360px);
   overflow-y: auto;
 }
 
-.menu .menu-back {
-  font-size: 12px;
-  color: var(--muted);
+.project-pick-check {
+  flex: none;
+  color: var(--accent);
 }
 
 .menu-separator {
