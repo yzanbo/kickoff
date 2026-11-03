@@ -45,7 +45,7 @@
 | フォームの 1 行（名前・入力・補足） | `Field` |
 | 保存ボタンと結果 | `useSave` ＋ `SaveActions`（結果の文だけなら `ResultMessage`） |
 | 失敗の文 | `ErrorText`（空なら何も出さない） |
-| 文のコピー | `CopyButton`（コピーしたら、しばらくチェックの印。失敗はお知らせ。文以外（画像など）は `text` の代わりに `copy` でクリップボードに書く処理を渡す） |
+| 文のコピー | `CopyButton`（コピーしたら、しばらくチェックの印。失敗はお知らせ。文以外（画像など）は `text` の代わりに `copy` でクリップボードに書く処理を渡す）。AI の返答は書式付きでコピーする（`richCopy.ts` の `copyRich`。`micromark` ＋ `micromark-extension-gfm` で Markdown を HTML にし、text/html と text/plain（Markdown のまま）の両方を入れる。貼る先が書式を受け取れれば見出し・表・コードのまま。文中の HTML は文字として書く）: 作業の終わりの行の「返答をコピー」・返答の右クリックの「メッセージをコピー」（右クリックには「Markdown のままコピー」も並べる）。自分の発言は文のまま |
 | モデル・推論の深さ・権限モードの選択肢 | `ModelOptions` / `EffortOptions` / `PermissionOptions` |
 | 状態の点 | `StatusDot`（接続・ログイン・準備状況は `tone`（`toneOf`）、カンバンの列・チャットの状態は `color`（`tones.ts` の `COLUMN_TONE` / `STATE_TONE`）。点を `<span>` で手書きしない） |
 | CLI の状態カード | `StatusCard` / `GitHubStatusCard`。カードとその並びは `.card` / `.card-grid` |

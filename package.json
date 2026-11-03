@@ -41,6 +41,8 @@
     "lucide-react": "^1.66.0",
     "material-icon-theme": "^5.40.0",
     "mermaid": "^12.2.0",
+    "micromark": "^4.0.3",
+    "micromark-extension-gfm": "^3.0.0",
     "monaco-editor": "^0.57.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

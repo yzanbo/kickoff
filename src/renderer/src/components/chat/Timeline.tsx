@@ -15,6 +15,7 @@ import { TurnChanges } from "./TurnChanges";
 import type { FileChange } from "./turnFileChanges";
 import { ToolGroup } from "./ToolGroup";
 import { AssistantMessage, UserMessage } from "./MessageItems";
+import { copyRich } from "../../richCopy";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -105,7 +106,8 @@ function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
     <div className={cx("turn-footer event-note", data.status === "failed" && "error")}>
       {status && <span>{status}</span>}
       {worked && <span title={`${formatClock(event.created_at)} に終了`}>作業時間 {worked}</span>}
-      {turnText && <CopyButton text={turnText} label="返答をコピー" className="turn-action" />}
+      {/* 書式付き（見出し・表がほかのアプリでも崩れない）と Markdown の文の両方でコピーする */}
+      {turnText && <CopyButton copy={() => copyRich(turnText)} label="返答をコピー" className="turn-action" />}
       {/* 止めた・失敗した作業の終わりからは分岐できない（以前の記録には message_id が付いている） */}
       {data.message_id && data.status === "completed" && !busy && (
         <IconButton
