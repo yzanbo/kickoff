@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { Project, ProjectSummary, Run } from "../../../../core/types";
+import type { ProjectSummary, Run } from "../../../../core/types";
 import { cx } from "../../cx";
-import { baseName } from "../../format";
 import { useServerEvent } from "../../events";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { sidebarOrder } from "../../projectOrder";
@@ -40,12 +39,6 @@ export function terminalTargets(projects: ProjectSummary[], projectId?: number):
   return list.map((p) => ({ cwd: p.repo_path, label: p.name, projectId: p.id }));
 }
 
-/** チャットの作業場所（ワークツリーなら、そのフォルダ。なければプロジェクトの本体）でターミナルを開くときの場所 */
-export function terminalTargetOf(run: Pick<Run, "worktree_path">, project: Pick<Project, "id" | "name" | "repo_path">): TerminalTarget {
-  return run.worktree_path
-    ? { cwd: run.worktree_path, label: baseName(run.worktree_path), projectId: project.id }
-    : { cwd: project.repo_path, label: project.name, projectId: project.id };
-}
 
 const chatKey = (id: number) => `chat:${id}`;
 

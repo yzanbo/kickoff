@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ExternalLink, Pencil, SquareTerminal } from "lucide-react";
+import { Archive, ArchiveRestore, ExternalLink, Pencil } from "lucide-react";
 import type { Project, Run } from "../../../../core/types";
 import { CHAT_TITLE_MAX, chatTitle } from "../../chatTitle";
 import { useRunRename } from "../../hooks/useRunRename";
@@ -8,7 +8,6 @@ import { CloseButton, IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { ProjectChip } from "../ProjectChip";
 import { RUN_STATUS_LABELS, RunStatusIcon } from "../RunStatus";
-import { terminalTargetOf, type TerminalTarget } from "../sidePanel/useSidePanel";
 import { WorktreeChip } from "../WorktreeChip";
 
 /**
@@ -20,13 +19,11 @@ export function RunHeader({
   project,
   waiting,
   onClose,
-  onOpenTerminal,
 }: {
   run: Run;
   project?: Project;
   waiting: boolean;
   onClose: () => void;
-  onOpenTerminal?: (target: TerminalTarget) => void;
 }) {
   const rename = useRunRename();
   const external = useExternalTerminal();
@@ -60,18 +57,8 @@ export function RunHeader({
         </span>
         {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
         <span className="spacer" />
-        {/* 作業場所の道具（右に寄せ、名前・バッジと分ける） */}
+        {/* 作業場所の道具（右に寄せ、名前・バッジと分ける。アプリの中のターミナルはパネルのタブの列のボタンから） */}
         <span className="run-tools">
-        {/* チャットの作業場所（ワークツリーなら、そのフォルダ）でターミナルを開く */}
-        {onOpenTerminal && project && (
-          <IconButton
-            icon={SquareTerminal}
-            size={13}
-            label="作業場所でターミナルを開く"
-            title={`ターミナルを開く（${run.worktree_path || project.repo_path}）`}
-            onClick={() => onOpenTerminal(terminalTargetOf(run, project))}
-          />
-        )}
         {/* 外部のターミナル（アプリの外。設定で選んだアプリ）で、作業場所を開く */}
         {window.kickoff && project && (
           <IconButton

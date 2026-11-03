@@ -250,12 +250,19 @@
 
 /* ブラウザのタブ */
 
-.panel-tab-add {
+/* タブの列の右端の、新しいタブのボタン（新しいチャット・ブラウザ・ターミナル）。タブが多くて横にスクロールしても右端に残す */
+.panel-tab-adds {
+  position: sticky;
+  right: 0;
+  display: flex;
   flex: none;
-  margin: 2px 0 0 4px;
+  gap: 1px;
+  margin: 2px 0 0 auto;
+  padding-left: 4px;
+  background: var(--bg);
 }
 
-.panel-tab-add:hover {
+.panel-tab-adds .icon-button:hover {
   color: var(--text);
   background: var(--bg-elev);
 }
