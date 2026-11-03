@@ -134,3 +134,13 @@
 .split-hint-bottom {
   top: 50%;
 }
+
+/* チャットのタブの名前を変えている途中の入力欄（.inline-name より後ろで同じ詳細度にして勝たせる。タブの列はウィンドウのドラッグ領域なので no-drag） */
+input[type="text"].panel-tab-input {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  font-size: 12px;
+  -webkit-app-region: no-drag;
+}

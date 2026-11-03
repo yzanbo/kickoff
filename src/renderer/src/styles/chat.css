@@ -31,15 +31,7 @@
   container-type: inline-size;
 }
 
-.run-title-row h1 {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-/* 名前と同じ行のプロジェクト・作業場所のバッジ（狭いときは縮めて省略） */
+/* 見出しの行のプロジェクト・作業場所のバッジ（狭いときは縮めて省略） */
 .run-sub {
   display: flex;
   flex: 0 1 auto;
