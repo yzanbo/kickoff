@@ -3,6 +3,7 @@ import { useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "r
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { attachmentUrl } from "../../api";
 import { ImageViewer } from "../ImageViewer";
+import { useImageMenu } from "../imageViewer/useImageMenu";
 import { IconButton } from "../IconButton";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import { AttachmentGrid } from "./AttachmentGrid";
@@ -154,12 +155,14 @@ export function QueuedRow({
 /**
  * 送信待ちの添付。行では 1 つ目だけを小さく出し、2 つ以上なら数を重ねる（狭い欄でも 1 行に収め、文を読めるようにする）。
  * 書き直している間（all）は、すべてを並べて出す（折り返す）。画像は押すと大きく表示し、同じ指示の画像は ← / → で前後に移れる。
- * 画像以外はファイルの印と名前。乗せると、すべての添付の名前を出す
+ * 画像は右クリックでコピー・保存もできる。画像以外はファイルの印と名前。乗せると、すべての添付の名前を出す
  */
 export function QueuedAttachments({ attachments, all = false }: { attachments: Attachment[]; all?: boolean }) {
   // 大きく見ている画像（同じ指示の画像の中の位置）と、添付が複数のときに開く一覧（開いたボタンの位置）
   const [viewing, setViewing] = useState<number>();
   const [grid, setGrid] = useState<DOMRect>();
+  // 画像の右クリック（コピー・大きく表示・保存。行の右クリックのメニューには伝えない）
+  const imageMenu = useImageMenu();
   if (attachments.length === 0) return null;
   const images = attachments.filter((a) => isPreviewable(a.mime));
   // 行では、画像を先にして 1 つ目だけを出す
@@ -179,6 +182,7 @@ export function QueuedAttachments({ attachments, all = false }: { attachments: A
             title={openGrid ? `添付 ${attachments.length} 件を並べて表示` : `${a.name}（大きく表示${images.length > 1 ? `。ほかの画像へは ← / →` : ""}）`}
             aria-label={openGrid ? `添付 ${attachments.length} 件を並べて表示` : `${a.name} を大きく表示`}
             onClick={openGrid ?? (() => setViewing(images.indexOf(a)))}
+            onContextMenu={(e) => imageMenu.open(e, { src: attachmentUrl(a), name: a.name }, () => setViewing(images.indexOf(a)))}
           >
             <img src={attachmentUrl(a)} alt="" />
             {rest > 0 && (
@@ -200,6 +204,7 @@ export function QueuedAttachments({ attachments, all = false }: { attachments: A
           </span>
         ),
       )}
+      {imageMenu.element}
       {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
       {grid && <AttachmentGrid attachments={attachments} anchor={grid} onClose={() => setGrid(undefined)} />}
     </span>
