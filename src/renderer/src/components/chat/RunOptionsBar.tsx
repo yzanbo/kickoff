@@ -162,7 +162,7 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
         value={permission}
         icon={<Shield size={15} />}
         ariaLabel="権限モード"
-        title={`権限モード: ${PERMISSION_LABELS[permission]}`}
+        title={`権限モード: ${PERMISSION_LABELS[permission]}（入力欄で Shift+Tab を押すと順に切り替わる）`}
         disabled={disabled}
         groups={[
           {

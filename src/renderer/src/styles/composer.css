@@ -201,6 +201,14 @@
   box-shadow: inset 0 0 0 1px var(--accent-bright);
 }
 
+/* 作業中に Esc を 1 回押したとき: もう一度押すと中断する、と中断ボタンの横に出す（composerKeys.ts） */
+.composer-stop-hint {
+  align-self: center;
+  font-size: 12px;
+  color: var(--warn);
+  white-space: nowrap;
+}
+
 /*
  * コンパクト表示（設定の「表示」→「チャット欄」）: 文字・余白・下の道具を小さくして、縦の幅を抑える。
  * 送信・中断のボタン（context-meter.css）・推論の深さなどの選択（composer-select.css）は後ろのファイルにあるので、
