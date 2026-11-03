@@ -128,8 +128,10 @@
   font-size: 13px;
 }
 
+/* 列は細くなりすぎない幅を保ち、収まらない表は外枠（.markdown-table）の中で横にスクロールさせる */
 .markdown th,
 .markdown td {
+  min-width: 10em;
   padding: 5px 10px;
   border: 1px solid var(--border);
   text-align: left;
