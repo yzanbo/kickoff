@@ -45,11 +45,6 @@ export function RunHeader({
             <IconButton icon={Pencil} label="名前を変更" size={13} onClick={() => rename.start(run)} />
           </>
         )}
-        {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン）。名前と同じ行に置き、見出しを 1 行に収める */}
-        <span className="run-sub muted small">
-          {project && <ProjectChip id={project.id} name={project.name} linked />}
-          <WorktreeChip run={run} />
-        </span>
         {/* アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す */}
         <IconButton
           icon={run.archived_at ? ArchiveRestore : Archive}
@@ -58,6 +53,15 @@ export function RunHeader({
           label={run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
           onClick={() => void toggleArchiveRunNow(run)}
         />
+        {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン）。名前と同じ行に置き、見出しを 1 行に収める */}
+        <span className="run-sub muted small">
+          {project && <ProjectChip id={project.id} name={project.name} linked />}
+          <WorktreeChip run={run} />
+        </span>
+        {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
+        <span className="spacer" />
+        {/* 作業場所の道具（右に寄せ、名前・バッジと分ける） */}
+        <span className="run-tools">
         {/* チャットの作業場所（ワークツリーなら、そのフォルダ）でターミナルを開く */}
         {onOpenTerminal && project && (
           <IconButton
@@ -78,8 +82,7 @@ export function RunHeader({
             onClick={() => external.open(run.worktree_path || project.repo_path)}
           />
         )}
-        {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
-        <span className="spacer" />
+        </span>
         {/* ターン数と費用（狭いときは隠す） */}
         {(run.num_turns > 0 || run.cost_usd > 0) && (
           <span className="run-meta muted small">
