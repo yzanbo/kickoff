@@ -6,7 +6,7 @@ import { Field } from "../Field";
 import { BrowserExtensions } from "../BrowserExtensions";
 import { Segmented } from "../Segmented";
 import { BOARD_HEADER_LAYOUT_LABELS, useBoardHeaderLayout, type BoardHeaderLayout } from "../board/boardHeaderLayout";
-import { useProjectTabsLayout, type ProjectTabsLayout } from "../project/ProjectTabs";
+import { PROJECT_TABS_LAYOUT_LABELS, useProjectTabsLayout, type ProjectTabsLayout } from "../project/ProjectTabs";
 import { TabbedDialog, type DialogSection } from "../TabbedDialog";
 import { UsagePanel } from "../footer/UsagePanel";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
@@ -125,8 +125,8 @@ function DisplaySettings() {
             value={tabsLayout}
             onChange={setTabsLayout}
             options={[
-              { value: "top", label: "上に横並び" },
-              { value: "side", label: "左に縦並び（アイコン）" },
+              { value: "top", label: PROJECT_TABS_LAYOUT_LABELS.top },
+              { value: "side", label: PROJECT_TABS_LAYOUT_LABELS.side },
             ]}
           />
         </Field>
