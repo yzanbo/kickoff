@@ -78,20 +78,81 @@
   white-space: nowrap;
 }
 
-.image-viewer img,
+/* 見出しの操作（暗い背景の上なので、テーマによらず明るい色にする） */
+.image-viewer-head .icon-button {
+  flex: none;
+  color: rgb(255 255 255 / 75%);
+}
+
+.image-viewer-head .icon-button:hover {
+  color: #fff;
+  background: rgb(255 255 255 / 14%);
+}
+
+.image-viewer-head .icon-button:disabled:hover {
+  color: rgb(255 255 255 / 75%);
+  background: transparent;
+}
+
+.image-viewer-tools {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 倍率（%）と何枚目か（数字の幅で並びがずれないように） */
+.image-viewer-zoom,
+.image-viewer-count {
+  min-width: 5ch;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* 画像の枠（画面の残りいっぱい。画像は中央から --img-x / --img-y ずらし、--img-w / --img-h の大きさで出す） */
+.image-viewer-stage {
+  position: relative;
+  flex: 1;
+  align-self: stretch;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.image-viewer-stage.pannable {
+  cursor: grab;
+}
+
+.image-viewer-stage.dragging {
+  cursor: grabbing;
+}
+
+.image-viewer-stage img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--img-w, auto);
+  height: var(--img-h, auto);
+  max-width: none;
+  transform: translate(calc(-50% + var(--img-x, 0px)), calc(-50% + var(--img-y, 0px)));
+  user-select: none;
+}
+
+/* 読み込んで大きさが分かるまでは出さない（元の大きさで一瞬出ないように） */
+.image-viewer-stage img:not([style]) {
+  visibility: hidden;
+}
+
+.image-viewer-stage img,
 .mermaid-fullscreen {
-  max-width: 100%;
-  max-height: calc(100vh - 110px);
   border-radius: var(--radius);
   box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
 }
 
-.image-viewer img {
-  object-fit: contain;
-}
-
 /* Mermaid の図の全画面（図の大きさに合わせた枠。画面に収まらない図はスクロールする） */
 .mermaid-fullscreen {
+  max-width: 100%;
+  max-height: calc(100vh - 110px);
   padding: 24px;
   overflow: auto;
   background: var(--bg-sidebar);
