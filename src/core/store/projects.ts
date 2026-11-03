@@ -89,7 +89,8 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
         defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
         reference_paths: references === undefined ? undefined : JSON.stringify(references),
       } as Row;
-      updateRow(db, "projects", id, row, PROJECT_COLUMNS, true);
+      // 名前・色・固定・アーカイブなどの編集は「動いた」ではないので、最後に動いた時刻（active_at）は進めない（進めるのはチャットの動き: touchProject）
+      updateRow(db, "projects", id, row, PROJECT_COLUMNS, false);
       const project = get(id)!;
       onChange({ type: "project", project });
       return project;
