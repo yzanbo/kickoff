@@ -197,8 +197,42 @@
   background: var(--bg-elev);
 }
 
+/* 見出し（押すと一覧をたたむ・開く） */
 .queued-head {
-  padding: 2px 6px 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 2px 6px 4px 2px;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.queued-head:hover {
+  color: var(--text);
+}
+
+.queued-chevron {
+  flex: none;
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+
+/* たたんでいるときは見出しの 1 行だけ */
+.queued-messages.collapsed {
+  padding-block: 4px;
+}
+
+.queued-messages.collapsed .queued-head {
+  padding-bottom: 2px;
+}
+
+.queued-messages.collapsed .queued-chevron {
+  transform: none;
 }
 
 .queued-row {

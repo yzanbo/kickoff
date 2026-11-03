@@ -99,6 +99,8 @@ export const editorWorktreeKey = (projectId: number) => `kickoff:editor-worktree
 // チャット
 /** 作業中に送った指示の扱い（"queue" = いまの作業が終わったら送る / "interrupt" = いまの作業を止めてすぐ送る） */
 export const QUEUE_MODE_KEY = "kickoff:queue-mode";
+/** 送信待ちの一覧をたたんで「n 件の追加があります」だけにするか（"1" / "0"。どのチャットでも同じ） */
+export const QUEUE_COLLAPSED_KEY = "kickoff:queue-collapsed";
 
 // 埋め込みブラウザ
 /** 開発者ツールを出す場所（"right" / "bottom" / "window"） */

@@ -1,25 +1,42 @@
-import { ArrowDown, ArrowUp, FileText, SendHorizontal, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, FileText, SendHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api, attachmentUrl } from "../../api";
 import { ImageViewer } from "../ImageViewer";
+import { cx } from "../../cx";
 import { reportFailure } from "../../runActions";
 import { IconButton } from "../IconButton";
+import { useStoredFlag } from "../../hooks/useStoredState";
+import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
 
 /**
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
- * 見出しに実行中と送信待ちの数、行に添付（画像はサムネイル）を出す
+ * 見出しに実行中と送信待ちの数、行に添付（画像はサムネイル）を出す。
+ * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
 export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
+  const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
+  const summary = collapsed
+    ? `${busy ? "実行中 1 件 · " : ""}送信待ち ${queue.length} 件の追加があります`
+    : busy
+      ? `実行中 1 件 · 送信待ち ${queue.length} 件（いまの作業が終わったら順に送ります）`
+      : `送信待ち ${queue.length} 件（自動で送れませんでした。「すぐ送る」で送ってください）`;
   return (
-    <div className="queued-messages" aria-label="送信待ちの指示">
-      <div className="queued-head small muted">
-        {busy ? `実行中 1 件 · 送信待ち ${queue.length} 件（いまの作業が終わったら順に送ります）` : `送信待ち ${queue.length} 件（自動で送れませんでした。「すぐ送る」で送ってください）`}
-      </div>
-      {queue.map((m, i) => (
+    <div className={cx("queued-messages", collapsed && "collapsed")} aria-label="送信待ちの指示">
+      <button
+        type="button"
+        className="queued-head small muted"
+        aria-expanded={!collapsed}
+        title={collapsed ? "送信待ちの一覧を開く" : "送信待ちの一覧をたたむ"}
+        onClick={() => setCollapsed(!collapsed)}
+      >
+        <ChevronRight size={13} className="queued-chevron" aria-hidden />
+        {summary}
+      </button>
+      {!collapsed && queue.map((m, i) => (
         <div key={m.id} className="queued-row">
           <QueuedAttachments attachments={m.attachments} />
           <span className="queued-text" title={m.text}>
