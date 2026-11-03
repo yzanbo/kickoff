@@ -222,6 +222,8 @@ export const api = {
     request<EffortDefault>("GET", `/api/projects/${projectId}/effort-default?${new URLSearchParams({ ...(model ? { model } : {}), ...(worktree ? { worktree } : {}) })}`),
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
   forkRun: (runId: number, eventId: number) => request<Run>("POST", `/api/runs/${runId}/fork`, { event_id: eventId }),
+  /** 待ちの指示をすべて 1 つにまとめて、すぐ送る（作業中なら止めてから送る） */
+  sendAllQueued: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/send-all`),
   sendQueuedNow: (runId: number, id: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/${id}/send`),
 
   // 承認依頼・質問

@@ -237,3 +237,20 @@ test("既定の推論の深さの API: 作業フォルダの Claude Code の設�
   if (!process.env.CLAUDE_CODE_EFFORT_LEVEL) assert.deepEqual(body, { effort: "high", source: "local" });
   assert.equal((await call("GET", "/api/projects/999/effort-default")).status, 404);
 });
+
+test("待ちの列の API: まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めてから送る）", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/send-all`)).status, 404);
+  await call("POST", `/api/runs/${runId}/queue`, { text: "A" });
+  await call("POST", `/api/runs/${runId}/queue`, { text: "B" });
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/send-all`)).body, { ok: true });
+  await until(() => provider.prompts.length === 2);
+  assert.equal(provider.prompts[1], "A\n\nB");
+  assert.deepEqual(runner.queued(runId), []);
+  runner.cancel(runId);
+  await until(() => !runner.isBusy(runId));
+  release();
+});

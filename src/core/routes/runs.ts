@@ -182,6 +182,13 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json({ queue: runner.queued(run.id) });
   });
 
+  // 待ちの指示をすべて 1 つにまとめて、すぐ送る（作業中なら、いまの作業を止めてから送る）
+  app.post("/api/runs/:id/queue/send-all", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    if (!(await conflictOnError(() => runner.sendAllQueued(run.id)))) throw new HttpError(404, "待ちの指示がありません");
+    return c.json({ ok: true });
+  });
+
   // 待ちの 1 件をすぐ送る（作業中なら、いまの作業を止めてから送る）
   app.post("/api/runs/:id/queue/:queueId/send", async (c) => {
     const run = requireRun(store, c.req.param("id"));

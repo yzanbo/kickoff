@@ -9,12 +9,25 @@
   background: var(--bg-elev);
 }
 
+/* 見出しの行（左に開閉の見出し、右にまとめて送る） */
+.queued-head-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.queued-send-all {
+  flex: none;
+  gap: 4px;
+}
+
 /* 見出し（押すと一覧をたたむ・開く） */
 .queued-head {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: 4px;
-  width: 100%;
+  min-width: 0;
   padding: 2px 6px 4px 2px;
   border: none;
   font: inherit;

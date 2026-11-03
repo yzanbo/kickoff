@@ -48,6 +48,21 @@ export class FollowupQueue {
     return true;
   }
 
+  /** すべてを 1 つにまとめる（文は空行でつなぎ、添付は合わせ、選択は最後のもの。なければ何もしない） */
+  merge(runId: number): QueuedMessage | undefined {
+    const list = this.list(runId);
+    if (list.length === 0) return undefined;
+    const merged: QueuedMessage = {
+      ...list[list.length - 1],
+      id: list[0].id,
+      text: list.map((m) => m.text).filter(Boolean).join("\n\n"),
+      attachments: list.flatMap((m) => m.attachments),
+      created_at: list[0].created_at,
+    };
+    this.set(runId, [merged]);
+    return merged;
+  }
+
   /** 取り出す（id を省くと先頭） */
   take(runId: number, id?: string): QueuedMessage | undefined {
     const list = this.list(runId);

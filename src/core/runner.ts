@@ -144,6 +144,15 @@ export class Runner {
     return true;
   }
 
+  /**
+   * 待ちの指示をすべて 1 つにまとめて、すぐ送る（作業中なら止めてから送る）。待ちがなければ false
+   */
+  async sendAllQueued(runId: number): Promise<boolean> {
+    const merged = this.followups.merge(runId);
+    if (!merged) return false;
+    return this.sendQueuedNow(runId, merged.id);
+  }
+
   /** チャットを消したとき、待ちの列も消す */
   forgetQueued(runId: number) {
     this.followups.forget(runId);
