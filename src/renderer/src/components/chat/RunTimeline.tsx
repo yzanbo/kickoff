@@ -70,7 +70,9 @@ export function RunTimeline({
         {approvals.map((a) => (
           <ApprovalCard key={a.id} approval={a} />
         ))}
-        {busy && !waiting && !live && <Working>{run.status === "queued" ? "順番を待っています" : "考えています"}</Working>}
+        {busy && !waiting && !live && (
+          <Working since={run.status === "queued" ? null : run.turn_started_at}>{run.status === "queued" ? "順番を待っています" : "考えています"}</Working>
+        )}
       </div>
     </div>
   );

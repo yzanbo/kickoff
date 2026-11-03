@@ -6,7 +6,10 @@ export interface ToolCall {
   result?: RunEvent;
 }
 
-export type TimelineItem = { kind: "event"; key: string; event: RunEvent } | { kind: "tools"; key: string; tools: ToolCall[] };
+/** turnStart: 作業の終わり（result）に付ける、その作業を始めた時刻（直前の自分の発言の時刻。作業時間を出すため） */
+export type TimelineItem =
+  | { kind: "event"; key: string; event: RunEvent; turnStart?: string }
+  | { kind: "tools"; key: string; tools: ToolCall[] };
 
 /**
  * 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる）。
@@ -15,6 +18,7 @@ export type TimelineItem = { kind: "event"; key: string; event: RunEvent } | { k
 export function groupEvents(events: RunEvent[], parent?: string): TimelineItem[] {
   const items: TimelineItem[] = [];
   const byId = new Map<string, ToolCall>();
+  let turnStart: string | undefined;
   for (const e of events) {
     if (((e.data as { parent?: string }).parent ?? undefined) !== parent) continue;
     if (e.type === "tool_use") {
@@ -28,7 +32,11 @@ export function groupEvents(events: RunEvent[], parent?: string): TimelineItem[]
       if (call) call.result = e;
     } else if (e.type === "init" || e.type === "approval" || e.type === "thinking" || e.type === "subagent") {
       // 表示しない（thinking は既定で中身が空。サブエージェントはチャット欄の下の一覧で見せる）
+    } else if (e.type === "result") {
+      items.push({ kind: "event", key: `e${e.id}`, event: e, ...(turnStart ? { turnStart } : {}) });
+      turnStart = undefined;
     } else {
+      if (e.type === "user") turnStart ??= e.created_at;
       items.push({ kind: "event", key: `e${e.id}`, event: e });
     }
   }

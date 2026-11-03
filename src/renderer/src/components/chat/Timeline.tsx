@@ -3,6 +3,8 @@ import { createContext, useContext, type ReactNode } from "react";
 import type { Attachment, RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
 import { formatTokens } from "../../format";
+import { useTicker } from "../../hooks/useTicker";
+import { formatElapsed } from "../../time";
 import { cleanSubagentReport, isSubagentTool } from "./subagentList";
 import { summarizeTools, toolLabel, type TimelineItem, type ToolCall } from "./timelineItems";
 import { describeToolInput } from "./ApprovalCard";
@@ -21,13 +23,13 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
     item.kind === "tools" ? (
       <ToolGroup key={item.key} tools={item.tools} rel={rel} active={active && i === items.length - 1} />
     ) : (
-      <EventItem key={item.key} event={item.event} />
+      <EventItem key={item.key} event={item.event} turnStart={item.turnStart} />
     ),
   );
 }
 
-/** 「考えています」などの、エージェントが動いている印 */
-export function Working({ children }: { children: ReactNode }) {
+/** 「考えています」などの、エージェントが動いている印。since があれば、そこからの経過時間を添える（ツールの実行中も数える） */
+export function Working({ children, since }: { children: ReactNode; since?: string | null }) {
   return (
     <div className="working">
       <span className="dots" aria-hidden>
@@ -36,8 +38,15 @@ export function Working({ children }: { children: ReactNode }) {
         <span />
       </span>
       {children}
+      {since && <Elapsed since={since} />}
     </div>
   );
+}
+
+/** 経過時間（1 秒ごとに進める。描き直しをこの中だけに閉じる） */
+function Elapsed({ since }: { since: string }) {
+  useTicker(1000);
+  return <span className="working-elapsed">{formatElapsed(Date.now() - new Date(since).getTime())}</span>;
 }
 
 /** ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約する） */
@@ -138,8 +147,8 @@ const RESOLVED_LABELS: Record<string, string> = {
   answer: "質問に回答しました",
 };
 
-/** 発言・お知らせ 1 件 */
-function EventItem({ event }: { event: RunEvent }) {
+/** 発言・お知らせ 1 件（作業の終わりには、turnStart からの作業時間を出す） */
+function EventItem({ event, turnStart }: { event: RunEvent; turnStart?: string }) {
   const data = event.data as Record<string, unknown>;
   switch (event.type) {
     case "user": {
@@ -165,13 +174,16 @@ function EventItem({ event }: { event: RunEvent }) {
       );
     case "approval_resolved":
       return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
-    case "result":
-      if (data.status === "completed") return null;
+    case "result": {
+      const worked = turnStart ? `作業時間 ${formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime())}` : null;
+      if (data.status === "completed") return worked && <div className="event-note">{worked}</div>;
       return (
         <div className={cx("event-note", data.status === "failed" && "error")}>
           {data.status === "cancelled" ? "中断しました" : `失敗しました: ${String(data.text ?? "")}`}
+          {worked && `（${worked}）`}
         </div>
       );
+    }
     case "error":
       return <div className="event-note error">{String(data.message)}</div>;
     case "notice":

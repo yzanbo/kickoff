@@ -65,3 +65,12 @@ export function formatDayTime(iso: string, now = new Date()): string {
   if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}月${date.getDate()}日 ${clock}`;
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
 }
+
+/** かかった時間を短く（"8秒" / "1分23秒" / "1時間5分"）。作業中の経過時間・作業にかかった時間に使う */
+export function formatElapsed(ms: number): string {
+  const sec = Math.max(0, Math.floor(ms / 1000));
+  if (sec < 60) return `${sec}秒`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}分${sec % 60 ? `${sec % 60}秒` : ""}`;
+  return `${Math.floor(min / 60)}時間${min % 60 ? `${min % 60}分` : ""}`;
+}

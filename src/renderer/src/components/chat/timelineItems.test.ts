@@ -74,3 +74,18 @@ test("relativize: リポジトリの絶対パスを相対パスにする（リ�
   // 正規表現で意味のある文字を含むパス
   assert.equal(relativize("/x/app (1)/src/a.ts", "/x/app (1)"), "src/a.ts");
 });
+
+test("groupEvents: 作業の終わり（result）に、その作業を始めた自分の発言の時刻を付ける", () => {
+  const at = (id: number, type: string, time: string, data: object = {}) => ({ ...event(id, type, data), created_at: time });
+  const items = groupEvents([
+    at(1, "user", "2026-11-01T00:00:00Z", { text: "1 回目" }),
+    at(2, "result", "2026-11-01T00:01:23Z", { status: "completed" }),
+    at(3, "user", "2026-11-01T00:05:00Z", { text: "2 回目" }),
+    at(4, "user", "2026-11-01T00:05:10Z", { text: "追加" }),
+    at(5, "result", "2026-11-01T00:06:00Z", { status: "cancelled" }),
+    at(6, "result", "2026-11-01T00:07:00Z", { status: "completed" }),
+  ]);
+  const starts = items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnStart] : []));
+  // 続けて送ったときは最初の発言から数え、発言のない result には付けない
+  assert.deepEqual(starts, ["2026-11-01T00:00:00Z", "2026-11-01T00:05:00Z", undefined]);
+});
