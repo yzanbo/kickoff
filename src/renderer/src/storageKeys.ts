@@ -110,6 +110,8 @@ export const QUEUE_MODE_KEY = "kickoff:queue-mode";
 export const QUEUE_COLLAPSED_KEY = "kickoff:queue-collapsed";
 /** 送信待ちの一覧を、中でスクロールさせずにすべて出すか（"1" / "0"。どのチャットでも同じ） */
 export const QUEUE_EXPANDED_KEY = "kickoff:queue-expanded";
+/** 送信待ちの一覧の高さの上限（px。上端のつまみのドラッグで変える。どのチャットでも同じ） */
+export const QUEUE_HEIGHT_KEY = "kickoff:queue-height";
 /** チャット欄をコンパクトに表示するか（"1" / "0"。設定の「表示」。どのチャット欄にも効く） */
 export const COMPOSER_COMPACT_KEY = "kickoff:composer-compact";
 

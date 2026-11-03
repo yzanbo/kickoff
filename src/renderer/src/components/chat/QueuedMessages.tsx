@@ -1,5 +1,5 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type DragEvent } from "react";
+import { useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
 import type { QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
 import { QueuedHeadActions } from "./QueuedHeadActions";
@@ -7,13 +7,18 @@ import { QueuedEditor, QueuedRow } from "./QueuedRow";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { cx } from "../../cx";
 import { reportFailure } from "../../runActions";
-import { useStoredFlag } from "../../hooks/useStoredState";
-import { QUEUE_COLLAPSED_KEY, QUEUE_EXPANDED_KEY } from "../../storageKeys";
+import { startVerticalDrag } from "../../hooks/dragResize";
+import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
+import { QUEUE_COLLAPSED_KEY, QUEUE_EXPANDED_KEY, QUEUE_HEIGHT_KEY } from "../../storageKeys";
+
+/** 一覧の高さの上限の初め（5 件ほど）と、つまみで縮められる下限（1 件ほど） */
+const DEFAULT_LIST_HEIGHT = 150;
+const MIN_LIST_HEIGHT = 36;
 
 /**
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
- * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし（見出しの「すべて表示」でスクロールさせずにすべて出せる）、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
+ * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし（上端のつまみのドラッグで高さを変えられ、見出しの「すべて表示」でスクロールさせずにすべて出せる）、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
  * ⌘ / Shift ＋クリックで行を選ぶと、選んだものだけをまとめて送る・消す・いちばん上か下へ移せる（見出しと右クリック。Esc でやめる）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
@@ -24,6 +29,31 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
   const [expanded, setExpanded] = useStoredFlag(QUEUE_EXPANDED_KEY);
   const listRef = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
+  // 一覧の高さの上限（上端のつまみのドラッグで変える。ダブルクリックで元の高さ）
+  const [height, setHeight] = useStoredNumber(QUEUE_HEIGHT_KEY, DEFAULT_LIST_HEIGHT);
+  const [resizing, setResizing] = useState(false);
+  /** つまみのドラッグ: 上へ動かすほど高く（いま見えている高さから。上限は画面の高さの 6 割）。ドラッグ中は描き直さず、style だけ書き換える */
+  const startResize = (e: PointerEvent<HTMLElement>) => {
+    const list = listRef.current;
+    if (!list) return;
+    const startY = e.clientY;
+    const startHeight = list.clientHeight;
+    const max = Math.max(MIN_LIST_HEIGHT, Math.round(window.innerHeight * 0.6));
+    let next = startHeight;
+    setResizing(true);
+    startVerticalDrag(e, {
+      move: (clientY) => {
+        next = Math.round(Math.max(MIN_LIST_HEIGHT, Math.min(max, startHeight + startY - clientY)));
+        list.style.maxHeight = `${next}px`;
+      },
+      end: () => {
+        setResizing(false);
+        setHeight(next);
+        // 高さを決めたら、すべて表示はやめる（決めた高さで中をスクロールさせる）
+        setExpanded(false);
+      },
+    });
+  };
   // ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選ぶ（選んだものだけ、まとめて送る・消す・移す）。消えた指示は外す
   const [picked, setPicked] = useState<string[]>([]);
   const [anchor, setAnchor] = useState<string>();
@@ -84,13 +114,27 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
   useLayoutEffect(() => {
     const el = listRef.current;
     setOverflowing(Boolean(el && !expanded && el.scrollHeight > el.clientHeight + 1));
-  }, [queue, editing, collapsed, expanded]);
+  }, [queue, editing, collapsed, expanded, height]);
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
   // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）
   const hint = !busy ? "自動で送れませんでした。行の「すぐ送る」で送れます" : collapsed ? "" : "終わったら順に送ります";
   return (
-    <div className={cx("queued-messages", collapsed && "collapsed")} aria-label="送信待ちの指示">
+    <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
+      {!collapsed && (
+        <div
+          className="queued-resizer"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="送信待ちの一覧の高さ"
+          title="ドラッグで高さを変える（ダブルクリックで元に戻す）"
+          onPointerDown={startResize}
+          onDoubleClick={() => {
+            setHeight(DEFAULT_LIST_HEIGHT);
+            setExpanded(false);
+          }}
+        />
+      )}
       <div className="queued-head-row">
         <button
           type="button"
@@ -110,7 +154,7 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
             className="btn btn-sm queued-head-btn"
             aria-label={expanded ? "縮めて表示" : "すべて表示"}
             aria-expanded={expanded}
-            title={expanded ? "5 件ほどの高さに縮め、中でスクロールさせる" : `送信待ちの ${queue.length} 件をすべて表示する（中でスクロールさせない）`}
+            title={expanded ? "決めた高さに縮め、中でスクロールさせる" : `送信待ちの ${queue.length} 件をすべて表示する（中でスクロールさせない）`}
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? <ChevronsDownUp size={12} aria-hidden /> : <ChevronsUpDown size={12} aria-hidden />}
@@ -119,9 +163,9 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
         )}
         <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} onClearSelection={clearSelection} failed={failed} />
       </div>
-      {/* 増えてもチャット欄を押し上げすぎないよう、5 件ほどの高さを超えたら中でスクロールする */}
+      {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (
-        <div ref={listRef} className={cx("queued-list", expanded && "expanded")}>
+        <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : height }}>
           {queue.map((m, i) =>
             editing?.id === m.id ? (
               <QueuedEditor
