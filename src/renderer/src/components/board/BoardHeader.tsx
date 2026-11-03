@@ -1,6 +1,8 @@
 import { List, Rows3, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
+import { useStoredChoice } from "../../hooks/useStoredState";
+import { BOARD_VIEW_KEY } from "../../storageKeys";
 import { SearchField } from "../SearchField";
 import { Segmented } from "../Segmented";
 import { PanelToggle } from "../sidePanel/PanelToggle";
@@ -8,6 +10,11 @@ import type { SidePanelController } from "../sidePanel/useSidePanel";
 
 /** 表示の種類: ボード（状態の列）・リスト・スイムレーン（段ごとに状態の列。カンバンだけ） */
 export type BoardView = "board" | "list" | "lanes";
+
+/** 表示の種類（列を状態で分けるカンバン・グループのボード・全プロジェクトのボードで共通。列の分け方を切り替えてもそのまま） */
+export function useBoardView() {
+  return useStoredChoice<BoardView>(BOARD_VIEW_KEY, ["board", "list", "lanes"], "board");
+}
 
 interface Props {
   /** 見出し（アイコン・名前・件数）。プロジェクトのタブでは、タブの名前と重なるので出さない（全プロジェクトの画面だけ渡す） */

@@ -53,10 +53,8 @@ export const sidebarPinnedClosedKey = (projectId: number) => `kickoff:pinned-clo
 export const sidebarUngroupedClosedKey = (projectId: number) => `kickoff:ungrouped-closed:${projectId}`;
 
 // ボード（カンバン・グループ）
-/** カンバンの表示（"board" / "list" / "lanes"） */
+/** ボードの表示（"board" / "list" / "lanes"）。カンバン・グループのボードで共通（以前グループのボードだけで覚えていた kickoff:group-view は使わない） */
 export const BOARD_VIEW_KEY = "kickoff:board-view";
-/** グループのボードの表示（カンバンとは別に覚える） */
-export const GROUP_VIEW_KEY = "kickoff:group-view";
 /** プロジェクトのボードのスイムレーンの段の分け方 */
 export const BOARD_LANES_KEY = "kickoff:board-lanes";
 /** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える） */
