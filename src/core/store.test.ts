@@ -229,3 +229,17 @@ test("索引: チャットの一覧（プロジェクトごと）・作業場所
   assert.match(plansOf(() => store.runsInWorktree(project.id, "/tmp/demo-worktrees/a"))[0], /^SEARCH runs USING INDEX idx_runs_worktree \(project_id=\? AND worktree_path=\?\)$/);
   assert.match(plansOf(() => store.recoverInterruptedRuns())[0], /SEARCH runs USING INDEX idx_runs_active \(status=\?\)/);
 });
+
+test("プロジェクトの編集（名前・固定・アーカイブ）では、最後に動いた時刻（active_at）を進めない", () => {
+  const store = new Store(":memory:");
+  const project = store.createProject({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
+  store.db.prepare("UPDATE projects SET active_at = '2020-01-01T00:00:00.000Z' WHERE id = ?").run(project.id);
+  store.updateProject(project.id, { name: "renamed" });
+  store.updateProject(project.id, { pinned: true });
+  store.updateProject(project.id, { archived_at: "2026-01-01T00:00:00.000Z" });
+  const updated = store.getProject(project.id)!;
+  assert.equal(updated.name, "renamed");
+  assert.equal(updated.pinned, true);
+  assert.equal(updated.active_at, "2020-01-01T00:00:00.000Z");
+  store.close();
+});
