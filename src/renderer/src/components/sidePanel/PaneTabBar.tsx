@@ -32,6 +32,7 @@ export function PaneTabBar({
   onNewChat,
   onTerminal,
   onMenu,
+  onBarMenu,
   rename,
 }: {
   panel: SidePanelController;
@@ -48,6 +49,8 @@ export function PaneTabBar({
   onTerminal: (e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => void;
   /** タブの右クリック */
   onMenu: (tabKey: string, e: React.MouseEvent) => void;
+  /** タブの列の何もないところの右クリック（ボードの右のパネルだけ。見出しの置き方を選ぶ） */
+  onBarMenu?: (e: React.MouseEvent) => void;
   /** チャットのタブの名前をその場で変える（ダブルクリック・右クリックの「名前を変更」。パネル全体で 1 つ） */
   rename: ReturnType<typeof useRunRename>;
 }) {
@@ -64,6 +67,7 @@ export function PaneTabBar({
       role="tablist"
       inert={inert}
       onPointerDown={() => panel.focusPane(pane.id)}
+      onContextMenu={onBarMenu}
       {...drag.barProps(pane.id)}
     >
       {controls}
