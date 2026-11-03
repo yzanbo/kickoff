@@ -6,8 +6,16 @@ import { IconButton } from "./IconButton";
 /** コピーしたことを見せておく時間 */
 const COPIED_MS = 1500;
 
-/** 文をクリップボードにコピーするボタン（コピーしたら、しばらくチェックの印にする） */
-export function CopyButton({ text, label, className }: { text: string; label: string; className?: string }) {
+/**
+ * クリップボードにコピーするボタン（コピーしたら、しばらくチェックの印にする。失敗はお知らせ）。
+ * 文なら text、画像など文以外は copy（クリップボードに書く処理）を渡す
+ */
+export function CopyButton({
+  label,
+  className,
+  size = 13,
+  ...source
+}: { label: string; className?: string; size?: number } & ({ text: string } | { copy: () => Promise<void> })) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -18,11 +26,12 @@ export function CopyButton({ text, label, className }: { text: string; label: st
     <IconButton
       icon={copied ? Check : Copy}
       label={copied ? "コピーしました" : label}
-      size={13}
+      size={size}
       type="button"
       className={className}
       onClick={() => {
-        navigator.clipboard.writeText(text).then(() => setCopied(true), reportFailure("コピーできませんでした"));
+        const write = "copy" in source ? source.copy() : navigator.clipboard.writeText(source.text);
+        write.then(() => setCopied(true), reportFailure("コピーできませんでした"));
       }}
     />
   );

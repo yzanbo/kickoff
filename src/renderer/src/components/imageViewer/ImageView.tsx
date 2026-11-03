@@ -1,8 +1,10 @@
-import { Expand, Shrink, ZoomIn, ZoomOut } from "lucide-react";
+import { Download, Expand, Shrink, ZoomIn, ZoomOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { cx } from "../../cx";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
+import { CopyButton } from "../CopyButton";
 import { IconButton } from "../IconButton";
+import { copyImage, downloadImage } from "./imageFile";
 import { useImageZoom } from "./useImageZoom";
 import { ViewerHead } from "./ViewerHead";
 
@@ -18,7 +20,7 @@ const ZOOM_IN_KEYS = new Set(["=", "+", ";"]);
 /**
  * 画像 1 枚を、拡大・縮小・ドラッグで動かしながら見る（見出しと画像の枠）。
  * 開き直す・前後の画像へ移るたびに作り直すので、そのたびに「画面に合わせる」に戻る。
- * ⌘+ / ⌘- / ⌘0（画面に合わせる）。Esc は <dialog> に任せる
+ * ⌘+ / ⌘- / ⌘0（画面に合わせる）。見出しに画像のコピーと保存。Esc は <dialog> に任せる
  */
 export function ImageView({
   image,
@@ -67,6 +69,10 @@ export function ImageView({
             size={15}
             onClick={zoom.toggleActual}
           />
+        </span>
+        <span className="image-viewer-tools">
+          <CopyButton copy={() => copyImage(image.src)} label="画像をコピー" size={15} />
+          <IconButton icon={Download} label="画像を保存" title="画像を保存（ダウンロード）" size={15} onClick={() => downloadImage(image.src, image.name)} />
         </span>
         {actions}
       </ViewerHead>
