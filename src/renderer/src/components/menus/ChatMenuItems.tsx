@@ -1,20 +1,20 @@
-import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, Copy, FolderInput, Mail, MailOpen, PanelRight, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Archive, ArchiveRestore, ChevronRight, Copy, FolderInput, Mail, MailOpen, PanelRight, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
+import { useState, type MouseEvent, type ReactNode } from "react";
 import type { Run } from "../../../../core/types";
 import { api } from "../../api";
 import { chatTitle } from "../../chatTitle";
 import { confirmDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
-import { sidebarOrder } from "../../projectOrder";
-import { useProjects } from "../../projectsContext";
 import { openRun, useRoute } from "../../router";
 import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../../runActions";
+import { openNewProject } from "../newProject/openNewProject";
 import { MenuItem } from "../PopupMenu";
+import { ProjectPickFlyout } from "./ProjectPickFlyout";
 
 /**
  * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通）:
- * 開く・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除。
- * before / after: その場所だけの項目（タブの分割・閉じるなど）。「プロジェクトを移動」を押すと、同じメニューの中身を移動先の一覧に替える
+ * 開く・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを変更・アーカイブ・削除。
+ * before / after: その場所だけの項目（タブの分割・閉じるなど）。「プロジェクトを変更」に乗せる・押すと、横にプロジェクトの一覧（ProjectPickFlyout）を開く
  */
 export function ChatMenuItems({
   run,
@@ -35,7 +35,8 @@ export function ChatMenuItems({
   before?: ReactNode;
   after?: ReactNode;
 }) {
-  const [moving, setMoving] = useState(false);
+  // 「プロジェクトを変更」の項目（横に一覧を開いているとき）
+  const [moving, setMoving] = useState<HTMLElement | null>(null);
   const route = useRoute();
   // いま開いているチャットを移したら、移した先のプロジェクトで開き直す（元のボードからは消えるため）
   const viewing = route.name === "run" && route.runId === run.id;
@@ -44,9 +45,14 @@ export function ChatMenuItems({
     onClose();
     void fn().catch((e: unknown) => onError(errorMessage(e)));
   };
-  if (moving) return <ProjectMoveList run={run} onBack={() => setMoving(false)} onPick={(project) => act(() => moveRun(run, project, viewing))} />;
+  // ほかの項目に乗せたら横の一覧を閉じる
+  const onHover = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!moving || target.closest(".project-pick") || target.closest(".menu-submenu")) return;
+    if (target.closest("button")) setMoving(null);
+  };
   return (
-    <>
+    <div className="menu-items" onMouseOver={onHover}>
       {before}
       {onOpen && (
         <MenuItem onSelect={() => onOpen(run)}>
@@ -78,11 +84,40 @@ export function ChatMenuItems({
           <Copy size={14} /> セッション ID をコピー
         </MenuItem>
       )}
-      {/* 押してもメニューを閉じず、中身を移動先のプロジェクトの一覧に替える */}
-      <button role="menuitem" className="menu-submenu" onClick={() => setMoving(true)}>
-        <FolderInput size={14} /> プロジェクトを移動
+      {/* 乗せる・押す・→ で横にプロジェクトの一覧を開く（メニューは閉じない） */}
+      <button
+        role="menuitem"
+        className={moving ? "menu-submenu open" : "menu-submenu"}
+        aria-haspopup="menu"
+        aria-expanded={moving !== null}
+        onMouseEnter={(e) => setMoving(e.currentTarget)}
+        onClick={(e) => setMoving(e.currentTarget)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowRight") {
+            e.preventDefault();
+            setMoving(e.currentTarget);
+          }
+        }}
+      >
+        <FolderInput size={14} /> プロジェクトを変更
         <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
       </button>
+      {moving && (
+        <ProjectPickFlyout
+          anchor={moving}
+          current={run.project_id}
+          onPick={(project) => act(() => moveRun(run, project, viewing))}
+          onCreate={(name) => {
+            onClose();
+            // 作ったら、そのプロジェクトへこのチャットを移す（確かめてから）
+            openNewProject({ name, onCreated: (project) => void moveRun(run, project, viewing).catch((e: unknown) => onError(errorMessage(e))) });
+          }}
+          onBack={() => {
+            moving.focus();
+            setMoving(null);
+          }}
+        />
+      )}
       <div className="menu-separator" role="separator" />
       <MenuItem onSelect={() => act(() => toggleArchiveRun(run))}>
         {run.archived_at ? <ArchiveRestore size={14} /> : <Archive size={14} />} {run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
@@ -91,29 +126,6 @@ export function ChatMenuItems({
         <Trash2 size={14} /> 削除…
       </MenuItem>
       {after}
-    </>
-  );
-}
-
-/** 移動先のプロジェクトの一覧（サイドバーの並び。いまのプロジェクト・しまったプロジェクトは出さない）。先頭の「戻る」でメニューに戻る */
-function ProjectMoveList({ run, onBack, onPick }: { run: Run; onBack: () => void; onPick: (project: { id: number; name: string }) => void }) {
-  const { projects } = useProjects();
-  const ref = useRef<HTMLDivElement>(null);
-  // 中身を替えたら、先頭（戻る）にピントを置く（↑↓ で移れるように）
-  useEffect(() => ref.current?.querySelector("button")?.focus(), []);
-  const targets = sidebarOrder(projects).filter((p) => p.id !== run.project_id);
-  return (
-    <div ref={ref} className="menu-subview">
-      <button role="menuitem" className="menu-back" onClick={onBack}>
-        <ChevronLeft size={14} aria-hidden /> プロジェクトを移動
-      </button>
-      <div className="menu-separator" role="separator" />
-      {targets.length === 0 && <div className="menu-label">ほかのプロジェクトはありません</div>}
-      {targets.map((p) => (
-        <MenuItem key={p.id} onSelect={() => onPick(p)}>
-          <FolderInput size={14} /> {p.name}
-        </MenuItem>
-      ))}
     </div>
   );
 }

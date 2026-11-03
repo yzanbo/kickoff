@@ -7,6 +7,8 @@ import { ImportForm } from "./ImportForm";
 
 interface Props {
   defaultParentDir: string;
+  /** 名前の欄の初めの値 */
+  initialName?: string;
   onClose: () => void;
   onCreated: (project: Project) => void;
 }
@@ -14,7 +16,7 @@ interface Props {
 type Mode = "create" | "import";
 
 /** 新しいプロジェクト（新規作成 / 既存フォルダの取り込み） */
-export function NewProjectDialog({ defaultParentDir, onClose, onCreated }: Props) {
+export function NewProjectDialog({ defaultParentDir, initialName, onClose, onCreated }: Props) {
   const [mode, setMode] = useState<Mode>("create");
   // 入力の途中で閉じないよう、背景を押しても閉じない
   const { ref, close } = useModalDialog({ closeOnBackdrop: false });
@@ -34,7 +36,7 @@ export function NewProjectDialog({ defaultParentDir, onClose, onCreated }: Props
           ]}
         />
         {mode === "create" ? (
-          <CreateForm defaultParentDir={defaultParentDir} onCancel={close} onCreated={onCreated} />
+          <CreateForm defaultParentDir={defaultParentDir} initialName={initialName} onCancel={close} onCreated={onCreated} />
         ) : (
           <ImportForm onCancel={close} onCreated={onCreated} />
         )}

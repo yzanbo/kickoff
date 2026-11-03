@@ -17,8 +17,8 @@ function suggestFolderName(name: string): string {
     .replace(/^[-.]+|[-.]+$/g, "");
 }
 
-export function CreateForm({ defaultParentDir, onCancel, onCreated }: FormProps & { defaultParentDir: string }) {
-  const [name, setName] = useState("");
+export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCreated }: FormProps & { defaultParentDir: string; initialName?: string }) {
+  const [name, setName] = useState(initialName);
   const [idea, setIdea] = useState("");
   const [parentDir, setParentDir] = useState(defaultParentDir);
   const [folderName, setFolderName] = useState("");
