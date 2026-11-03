@@ -61,7 +61,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
         onPointerDown={sidebar.startResize}
         onDoubleClick={sidebar.resetWidth}
       />
-      {/* 一番上の行は macOS の信号機ボタンの行。そのすぐ右に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
+      {/* 一番上の行は macOS の信号機ボタンの行。右端に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
       <div className="sidebar-header">
         <button className="titlebar-toggle" title="サイドバーを閉じる（⌘B）" aria-label="サイドバーを閉じる" onClick={sidebar.toggle}>
           <PanelLeftClose size={14} strokeWidth={1.75} />
