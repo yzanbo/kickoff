@@ -138,14 +138,22 @@
   cursor: col-resize;
 }
 
-
 .panel-tabs {
   display: flex;
   flex: none;
   gap: 2px;
   padding: 6px var(--gutter) 0;
-  overflow-x: auto;
+  overflow: hidden;
   border-bottom: 1px solid var(--border);
+}
+
+/* タブの並び（タブが多いときは、ここだけを横にスクロールする。すぐ右の新しいタブのボタンは隠さない） */
+.panel-tab-strip {
+  display: flex;
+  flex: 0 1 auto;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
   scrollbar-width: none;
 }
 
@@ -247,35 +255,29 @@
   background: var(--bg-hover);
 }
 
-/* ブラウザのタブ */
-
-/* タブの列の右端の、新しいタブのボタン（新しいチャット・ブラウザ・ターミナル）。タブが多くて横にスクロールしても右端に残す */
-.panel-tab-adds {
-  position: sticky;
-  right: 0;
+/* タブの列のボタンのまとまり（タブのすぐ右の新しいタブ・右端のペインの分割） */
+.panel-bar-buttons {
   display: flex;
   flex: none;
   gap: 1px;
-  margin: 2px 0 0 auto;
-  padding-left: 4px;
-  background: var(--bg);
 }
 
-.panel-tab-adds .icon-button:hover {
+/* タブのすぐ右の、新しいタブのボタン（新しいチャット・ブラウザ・ターミナル） */
+.panel-tab-adds {
+  margin: 2px 0 0 4px;
+}
+
+.panel-bar-buttons .icon-button:hover {
   color: var(--text);
   background: var(--bg-elev);
 }
 
-/* 閉じる・横幅いっぱい。タブが多くて横にスクロールしても、左端に残す */
+/* 閉じる・横幅いっぱい（タブの列の左端。タブの並びだけが横にスクロールするので、いつも見える） */
 .panel-controls {
-  position: sticky;
-  left: 0;
-  z-index: 1;
   display: flex;
   flex: none;
   gap: 2px;
   margin: 2px 4px 0 0;
-  background: var(--bg);
 }
 
 .panel-control {

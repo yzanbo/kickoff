@@ -145,3 +145,9 @@ input[type="text"].panel-tab-input {
   font-size: 12px;
   -webkit-app-region: no-drag;
 }
+
+/* タブの列の右端の、ペインを分ける・閉じるボタン（新しいタブのボタンはタブのすぐ右。side-panel.css） */
+.panel-pane-tools {
+  margin: 2px 0 0 auto;
+  padding-left: 4px;
+}
