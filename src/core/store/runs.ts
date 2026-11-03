@@ -92,6 +92,9 @@ function keywordMatch(keyword: string): { from: string; where: string[]; params:
   return { from: "run_events e", where: ["e.text LIKE $pattern ESCAPE '\\'"], params: { pattern } };
 }
 
+/** ワークツリーで作業しているチャット（索引 idx_runs_worktree の条件と同じ式。書くと、その索引で引ける） */
+const IN_WORKTREE = "worktree_path <> ''";
+
 /** DB の行（真偽値は 0 / 1） */
 type RunRow = Omit<Run, "fast_mode" | "attention" | "pinned"> & { fast_mode: number; attention: number; pinned: number };
 
@@ -120,7 +123,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
     return run;
   };
   const inWorktree = (projectId: number, worktreePath: string): Run[] =>
-    db.prepare("SELECT * FROM runs WHERE project_id = ? AND worktree_path = ? ORDER BY id").all(projectId, worktreePath).map(toRun);
+    db.prepare(`SELECT * FROM runs WHERE project_id = ? AND worktree_path = ? AND ${IN_WORKTREE} ORDER BY id`).all(projectId, worktreePath).map(toRun);
 
   return {
     get,
@@ -197,12 +200,12 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       }
       return rows.length;
     },
-    /** その作業場所（ワークツリー）を使っているチャット */
+    /** その作業場所（ワークツリー）を使っているチャット（本体（空）は対象外） */
     inWorktree,
     /** ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻す（並び順は変えない） */
     clearWorktree(projectId: number, worktreePath: string): void {
       const runs = inWorktree(projectId, worktreePath);
-      db.prepare("UPDATE runs SET worktree_path = '' WHERE project_id = ? AND worktree_path = ?").run(projectId, worktreePath);
+      db.prepare(`UPDATE runs SET worktree_path = '' WHERE project_id = ? AND worktree_path = ? AND ${IN_WORKTREE}`).run(projectId, worktreePath);
       for (const run of runs) onChange({ type: "run", run: get(run.id)! });
     },
     addEvent(runId: number, event: RunEventData): RunEvent {
