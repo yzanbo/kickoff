@@ -41,6 +41,8 @@ export interface RunOutcome {
   network: boolean;
   /** 通信の切断で止まったサブエージェント（再開するときに、続きから再開するよう頼む） */
   stoppedAgents?: StoppedAgent[];
+  /** 使用枠の上限で止まった（枠が戻ったら、続けるかを聞く。resetsAt: 戻る時刻。分からなければ null） */
+  usageLimit?: { resetsAt: string | null };
 }
 
 /** 通信の切断で止まったサブエージェント（SendMessage の宛先と名前） */
@@ -68,7 +70,8 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
     const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, signal, compact), signal);
     const network = result.status === "failed" && Boolean(result.network);
     applyResult(store, runId, result, compact, since, network);
-    if (!network) return { status: result.status, network };
+    const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
+    if (!network) return { status: result.status, network, ...(usageLimit ? { usageLimit } : {}) };
     const stoppedAgents = networkStoppedSubagents(store.listEvents(runId), since).map((s) => ({ agentId: s.agentId!, description: s.description }));
     return { status: result.status, network, stoppedAgents };
   } catch (e) {

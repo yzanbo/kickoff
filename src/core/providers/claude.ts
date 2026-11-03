@@ -10,6 +10,7 @@ import { createBackgroundTracker } from "./claudeBackground.js";
 import { createInputChannel } from "./claudeInput.js";
 import { errorMessage } from "../errors.js";
 import { isNetworkError } from "../networkErrors.js";
+import { isUsageLimitError, resetTimeOf } from "../usageLimit.js";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claudeLabels.js";
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
 import { createCanUseTool } from "./claudeApprovals.js";
@@ -138,6 +139,11 @@ export class ClaudeProvider implements AgentProvider {
     let noResponse = false;
     /** 失敗が通信の切断によるものか */
     const network = (error: string | undefined) => noResponse || isNetworkError(error);
+    // 使用枠の上限で断られたか（rate_limit_event の rejected・返答のエラー）と、枠が戻る時刻
+    let limited = false;
+    let limitResetsAt: string | null = null;
+    /** 失敗が使用枠の上限によるものなら、枠が戻る時刻を添える */
+    const usageLimit = (error: string | undefined) => (limited || isUsageLimitError(error) ? { usageLimit: { resetsAt: limitResetsAt } } : {});
 
     // 入力はストリーミング（作業中に発言を足す・裏の作業を止めるため、返答が終わり裏の作業もなくなるまで開いておく）
     const input = createInputChannel(params.prompt);
@@ -182,6 +188,11 @@ export class ClaudeProvider implements AgentProvider {
           retrying = false;
           cb.retry?.(null);
         }
+        if (msg.type === "rate_limit_event" && msg.rate_limit_info.status === "rejected") {
+          limited = true;
+          limitResetsAt = resetTimeOf(msg.rate_limit_info.resetsAt) ?? limitResetsAt;
+        }
+        if (msg.type === "assistant" && msg.error === "rate_limit") limited = true;
         const sid = emitSdkMessage(msg, cb, messageState);
         const background = trackBackground(msg);
         if (background) {
@@ -206,7 +217,7 @@ export class ClaudeProvider implements AgentProvider {
     } catch (e) {
       if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
       const error = errorMessage(e);
-      return { status: "failed", sessionId, error, lastMessageId, network: network(error) };
+      return { status: "failed", sessionId, error, lastMessageId, network: network(error), ...usageLimit(error) };
     } finally {
       signal.removeEventListener("abort", onAbort);
       input.close(true);
@@ -235,7 +246,7 @@ export class ClaudeProvider implements AgentProvider {
       final.subtype === "success"
         ? final.result
         : final.errors?.join("\n") || ERROR_LABELS[final.subtype] || final.subtype;
-    return { ...common, status: "failed", error, network: network(error) };
+    return { ...common, status: "failed", error, network: network(error), ...usageLimit(error) };
   }
 
   /**

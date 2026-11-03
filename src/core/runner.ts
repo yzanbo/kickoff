@@ -1,12 +1,13 @@
-import { errorMessage } from "./errors.js";
 import { FollowupQueue } from "./followups.js";
 import type { RunControl } from "./providers/types.js";
 import { executeRun, type ExecutionDeps, type QueueItem, type RunOutcome } from "./runExecution.js";
+import { RunnerQueue } from "./runnerQueue.js";
 import { RunReconnect } from "./runReconnect.js";
+import { RunUsageLimit } from "./runUsageLimit.js";
 import { resolveRunDefaults } from "./runDefaults.js";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
 import { autoTitle, firstLine, promptWithAttachments } from "./runInput.js";
-import type { Attachment, BackgroundState, QueuedMessage, ReconnectState, Run, RunOptions } from "./types.js";
+import type { Attachment, BackgroundState, ReconnectState, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
 
 interface StartRunInput {
@@ -29,15 +30,17 @@ interface StartRunInput {
  * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は runExecution.ts、
  * 通信が切れて止まったときの再開の段取り（送信待ちを止める・つながったら再開・何度も止まったら聞く）は runReconnect.ts
  */
-export class Runner {
+export class Runner extends RunnerQueue {
   private readonly active = new Map<number, AbortController>();
   private readonly queue: QueueItem[] = [];
-  private readonly followups: FollowupQueue;
+  protected readonly followups: FollowupQueue;
   /** アプリを終えるところ（待ちの列を送らない） */
   private shuttingDown = false;
 
   /** 通信が切れて止まったチャットの再開 */
   private readonly reconnect: RunReconnect;
+  /** 使用枠の上限で止まったときの段取り（送信待ちを止め、枠が戻ったら続けるかを聞く。runUsageLimit.ts） */
+  private readonly usageLimit: RunUsageLimit;
   /** 作業中のチャットの、裏で動いている作業の様子（executeRun が書き、詳細の API で返す） */
   private readonly background = new Map<number, BackgroundState>();
   /** 作業中のチャットへの操作（止めずに発言を足す・裏の作業を止める。プロバイダーが渡す） */
@@ -48,8 +51,11 @@ export class Runner {
       usage: UsageMonitor;
       /** つながったかの確かめ方と間隔（テストで差し替える） */
       reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
+      /** 使用枠が戻ったかを確かめる時計と間隔（テストで差し替える） */
+      usageLimit?: { now?: () => number; checkMs?: number };
     },
   ) {
+    super();
     this.followups = new FollowupQueue(
       (runId, queue, paused, stopAfter) => {
         const run = deps.store.getRun(runId);
@@ -66,6 +72,15 @@ export class Runner {
       isBusy: (runId) => this.isBusy(runId),
       send: (runId, text) => this.send(runId, text),
       ...deps.reconnect,
+    });
+    this.usageLimit = new RunUsageLimit({
+      store: deps.store,
+      approvals: deps.approvals,
+      followups: this.followups,
+      isBusy: (runId) => this.isBusy(runId),
+      send: (runId, text) => this.send(runId, text),
+      usage: deps.usage,
+      ...deps.usageLimit,
     });
   }
 
@@ -120,7 +135,7 @@ export class Runner {
     if (!run) throw new Error("実行が見つかりません");
     if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから送ってください");
     // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）
-    this.reconnect.forget(runId);
+    this.forgetRecovery(runId);
     const { prompt, handover } = await this.prepare(runId, text, attachments);
     store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
@@ -147,38 +162,6 @@ export class Runner {
     return { prompt, handover: lost.length ? { handover: lost.map((s) => s.key) } : {} };
   }
 
-  /** 作業中のチャットの次の指示の待ちの列 */
-  queued(runId: number): QueuedMessage[] {
-    return this.followups.list(runId);
-  }
-
-  /**
-   * 次の指示を送る。作業中なら待ちの列に入れ（終わったら順に送る）、作業中でなければすぐ送る。
-   * queued: 列に入れたか、id: 列に入れたその指示の ID
-   */
-  async queueMessage(runId: number, text: string, options: RunOptions = {}, attachments: Attachment[] = []): Promise<{ queued: boolean; id?: string }> {
-    if (!this.deps.store.getRun(runId)) throw new Error("実行が見つかりません");
-    if (!this.isBusy(runId)) {
-      await this.send(runId, text, options, attachments);
-      return { queued: false };
-    }
-    const { id } = this.followups.add(runId, text, options, attachments);
-    return { queued: true, id };
-  }
-
-  /** 待ちの列から消す（なければ false） */
-  removeQueued = (runId: number, id: string): boolean => this.followups.remove(runId, id);
-
-  /** 待ちの指示の文を書き換える（なければ false。文も添付もなくなるなら断る） */
-  /** 待ちの指示を書き直す（attachments があれば添付も置き換える。文も添付もなくなるなら断る） */
-  editQueued(runId: number, id: string, text: string, attachments?: Attachment[]): boolean {
-    const message = this.followups.list(runId).find((m) => m.id === id);
-    if (!message) return false;
-    const nextAttachments = attachments ?? message.attachments;
-    if (!text.trim() && nextAttachments.length === 0) throw new Error("メッセージか添付ファイルが必要です");
-    return this.followups.edit(runId, id, text.trim(), nextAttachments);
-  }
-
   /**
    * 止めずに伝える: 作業中なら、いまのやり取りに発言を足す（メインのエージェントが、いまの手順の切れ目で読む。
    * 裏のサブエージェント・コマンドは動き続ける）。足せないとき（順番待ち・要約中など）は待ちの列に入れ（front なら先頭）、
@@ -196,7 +179,7 @@ export class Runner {
     const { prompt, handover } = await this.prepare(runId, text, attachments);
     if (control?.tell(prompt)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
-      this.reconnect.forget(runId);
+      this.forgetRecovery(runId);
       store.addEvent(runId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover });
       if (run.attention) store.setRunAttention(runId, false);
       return "told";
@@ -214,80 +197,16 @@ export class Runner {
     return true;
   }
 
-  /** 待ちの指示をすべて消す（消した数を返す） */
-  clearQueued = (runId: number): number => this.followups.clear(runId);
-
-  /** 待ちの指示をいくつかまとめて消す・いちばん上か下へまとめて移す（扱った数を返す） */
-  removeQueuedMany = (runId: number, ids: string[]): number => this.followups.removeMany(runId, ids);
-  moveQueuedMany = (runId: number, ids: string[], to: "top" | "bottom" | { before: string | null }): number => this.followups.moveMany(runId, ids, to);
-
-  /** 待ちの列を並べ替える（なければ false） */
-  moveQueued(runId: number, id: string, index: number): boolean {
-    return this.followups.move(runId, id, index);
-  }
-
-  /**
-   * 待ちの 1 件をすぐ送る。作業中なら止めずに伝え、伝えられなければ列の先頭に戻す（なければ false）
-   */
-  async sendQueuedNow(runId: number, id: string): Promise<boolean> {
-    const message = this.followups.take(runId, id);
-    if (!message) return false;
-    await this.tell(runId, message.text, message.options, message.attachments, { front: true });
-    return true;
-  }
-
-  /**
-   * 待ちの指示をすべて（ids を渡せばその指示だけ）1 つにまとめて、すぐ送る（作業中なら止めずに伝える）。送るものがなければ false
-   */
-  async sendAllQueued(runId: number, ids?: string[]): Promise<boolean> {
-    // 1 つにまとめた指示を列から取り出して送る（列に「まとめた 1 件」を一瞬出さない）
-    const merged = this.followups.merge(runId, { silent: true, ids });
-    if (!merged) return false;
-    return this.sendQueuedNow(runId, merged.id);
-  }
-
-  /** 「ここまで自動で送る」の印を付けた待ちの指示（なければ null） */
-  queueStopAfter(runId: number): string | null {
-    return this.followups.stopAfterOf(runId);
-  }
-
-  /** 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。id が列になければ false） */
-  setQueueStopAfter(runId: number, id: string | null): boolean {
-    return this.followups.setStopAfter(runId, id);
-  }
-
-  /** 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか */
-  queuePaused(runId: number): boolean {
-    return this.followups.isPaused(runId);
-  }
-
-  /**
-   * 待ちの列を止めておくかを切り替える（列が空なら止めない）。自動で送るに戻したとき、作業中でなければ先頭をすぐ送る。
-   * 止めておくかを返す
-   */
-  async setQueuePaused(runId: number, paused: boolean): Promise<boolean> {
-    const next = this.followups.setPaused(runId, paused);
-    if (!next && !this.isBusy(runId)) await this.sendNextQueued(runId);
-    return next;
-  }
-
   /** チャットを消したとき、待ちの列も消す */
   forgetQueued(runId: number) {
     this.followups.forget(runId);
-    this.reconnect.forget(runId);
+    this.forgetRecovery(runId);
   }
 
-  /** 待ちの列の先頭を送る（送れなければ、理由をチャットに残す） */
-  private async sendNextQueued(runId: number) {
-    // 止めておくチャットは、終わっても送らない（行の「すぐ送る」で 1 件ずつ送る）
-    if (this.followups.isPaused(runId)) return;
-    const next = this.followups.take(runId);
-    if (!next) return;
-    try {
-      await this.send(runId, next.text, next.options, next.attachments);
-    } catch (e) {
-      this.deps.store.addEvent(runId, { type: "error", message: `待ちの指示を送れませんでした: ${errorMessage(e)}` });
-    }
+  /** 自分で送った・チャットを消した: 通信・使用枠の上限で止まったあとの再開の段取り（待つ・聞く）をやめる */
+  private forgetRecovery(runId: number) {
+    this.reconnect.forget(runId);
+    this.usageLimit.forget(runId);
   }
 
   /**
@@ -321,6 +240,14 @@ export class Runner {
     return { running: this.active.size, queued: this.queue.length };
   }
 
+  protected hasRun(runId: number): boolean {
+    return this.deps.store.getRun(runId) !== undefined;
+  }
+
+  protected reportError(runId: number, message: string) {
+    this.deps.store.addEvent(runId, { type: "error", message });
+  }
+
   isBusy(runId: number): boolean {
     return this.active.has(runId) || this.queue.some((q) => q.runId === runId);
   }
@@ -329,6 +256,7 @@ export class Runner {
   shutdown() {
     this.shuttingDown = true;
     this.reconnect.shutdown();
+    this.usageLimit.shutdown();
     this.queue.length = 0;
     for (const controller of this.active.values()) controller.abort();
   }
@@ -357,8 +285,10 @@ export class Runner {
       this.active.delete(item.runId);
       void this.deps.usage.refresh();
       // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）。
-      // 通信が切れて止まったときは送らず、つながるのを待つ（送っても失敗して消えるため）
-      if (!this.shuttingDown && this.reconnect.finished(item.runId, outcome)) void this.sendNextQueued(item.runId);
+      // 通信が切れた・使用枠の上限で止まったときは送らず、つながる・枠が戻るのを待つ（送っても失敗して消えるため）
+      const network = this.reconnect.finished(item.runId, outcome);
+      const usage = this.usageLimit.finished(item.runId, outcome);
+      if (!this.shuttingDown && network && usage) void this.sendNextQueued(item.runId);
       this.pump();
     }
   }
