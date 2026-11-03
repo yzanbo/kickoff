@@ -73,8 +73,29 @@
   font-weight: 600;
 }
 
+/* タイムラインの枠（一番下へ戻るボタンを、スクロールする中身の上に重ねる） */
+.timeline-wrap {
+  position: relative;
+  display: grid;
+  min-height: 0;
+}
+
 .timeline {
   overflow-y: auto;
+}
+
+/* 上にスクロールしている間だけ出す、一番下へ戻るボタン（.icon-button より後ろの指定に勝つよう、枠の中で指定する） */
+.timeline-wrap .scroll-bottom {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  transform: translateX(-50%);
 }
 
 .timeline-inner {

@@ -87,12 +87,17 @@ function RunView({
   const items = useMemo(() => groupEvents(events), [events]);
   const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
   const waiting = approvals.length > 0;
+  // 停止を押して、止まるのを待っている（止まったら戻す）
+  const [stopping, setStopping] = useState(false);
+  useEffect(() => {
+    if (!busy) setStopping(false);
+  }, [busy]);
 
   return (
     <OpenSubagentContext.Provider value={setSubOpen}>
     <div className="run-page run-panel">
       <RunHeader run={run} project={project} waiting={waiting} onClose={onClose} onOpenTerminal={onOpenTerminal} />
-      <RunTimeline items={items} rel={rel} run={run} busy={busy} waiting={waiting} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
+      <RunTimeline items={items} rel={rel} run={run} busy={busy} waiting={waiting} stopping={stopping} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
       <div className="run-composer">
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
@@ -110,7 +115,10 @@ function RunView({
             stickToBottom.current = true;
             await api.sendMessage(run.id, text, options.options, attachments);
           }}
-          onStop={() => void api.cancelRun(run.id)}
+          onStop={() => {
+            setStopping(true);
+            void api.cancelRun(run.id).catch(() => setStopping(false));
+          }}
           trailing={<ContextMeter run={run} />}
           suggestTarget={{ projectId: run.project_id, worktree: run.worktree_path || undefined }}
         />

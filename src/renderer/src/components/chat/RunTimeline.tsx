@@ -1,13 +1,29 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { ArrowDown } from "lucide-react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import type { Approval, Run } from "../../../../core/types";
+import { IconButton } from "../IconButton";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 
+/** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない） */
+const BOTTOM_SLACK_PX = 80;
+
+/** 作業中の行の文（止めている・順番待ち・返答を書いている・ツールを実行中・考えている） */
+function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean): string {
+  if (stopping) return "停止中…";
+  if (run.status === "queued") return "順番を待っています";
+  if (live) return "返答を書いています";
+  const last = items[items.length - 1];
+  if (last?.kind === "tools" && !last.tools[last.tools.length - 1].result) return "ツールを実行中";
+  return "考えています";
+}
+
 /**
- * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・考え中の印）。
+ * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
  * 一番下を見ているときだけ、新しい発言に合わせてスクロールする（stickToBottom。送ったら親が true に戻す）。
+ * 上にスクロールしている間は、一番下へ戻るボタンを出す。
  * focus（検索結果から開いた発言）があれば、そこまでスクロールして一瞬強調する
  */
 export function RunTimeline({
@@ -16,6 +32,7 @@ export function RunTimeline({
   run,
   busy,
   waiting,
+  stopping,
   live,
   approvals,
   focus,
@@ -26,12 +43,16 @@ export function RunTimeline({
   run: Run;
   busy: boolean;
   waiting: boolean;
+  /** 停止を押して、止まるのを待っている */
+  stopping: boolean;
   live: string;
   approvals: Approval[];
   focus?: number;
   stickToBottom: RefObject<boolean>;
 }) {
   const timelineRef = useRef<HTMLDivElement>(null);
+  // 一番下から離れているか（一番下へ戻るボタンを出す）
+  const [away, setAway] = useState(false);
 
   // 検索結果から開いたときは、その発言までスクロールして一瞬強調する
   useEffect(() => {
@@ -51,29 +72,44 @@ export function RunTimeline({
     if (el && stickToBottom.current && !focus) el.scrollTop = el.scrollHeight;
   }, [items.length, approvals.length, live, focus, stickToBottom]);
 
+  function scrollToBottom() {
+    const el = timelineRef.current;
+    if (!el) return;
+    stickToBottom.current = true;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }
+
   return (
-    <div
-      className="timeline"
-      ref={timelineRef}
-      onScroll={(e) => {
-        const el = e.currentTarget;
-        stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-      }}
-    >
-      <div className="timeline-inner">
-        <TimelineItems items={items} rel={rel} active={busy} />
-        {live && (
-          <div className="assistant live">
-            <Markdown streaming>{live}</Markdown>
-          </div>
-        )}
-        {approvals.map((a) => (
-          <ApprovalCard key={a.id} approval={a} />
-        ))}
-        {busy && !waiting && !live && (
-          <Working since={run.status === "queued" ? null : run.turn_started_at}>{run.status === "queued" ? "順番を待っています" : "考えています"}</Working>
-        )}
+    <div className="timeline-wrap">
+      <div
+        className="timeline"
+        ref={timelineRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_SLACK_PX;
+          stickToBottom.current = atBottom;
+          setAway(!atBottom);
+        }}
+      >
+        <div className="timeline-inner">
+          <TimelineItems items={items} rel={rel} active={busy} />
+          {live && (
+            <div className="assistant live">
+              <Markdown streaming>{live}</Markdown>
+            </div>
+          )}
+          {approvals.map((a) => (
+            <ApprovalCard key={a.id} approval={a} />
+          ))}
+          {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
+          {busy && !waiting && (
+            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping)}</Working>
+          )}
+        </div>
       </div>
+      {away && (
+        <IconButton icon={ArrowDown} label="一番下までスクロール" size={15} type="button" className="scroll-bottom" onClick={scrollToBottom} />
+      )}
     </div>
   );
 }
