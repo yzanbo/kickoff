@@ -41,7 +41,7 @@ interface Props {
 }
 
 /**
- * チャットのカンバン。列（作業中・回答待ち・確認待ち・完了）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
+ * チャットのカンバン。列（作業中・回答待ち・未読・既読）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
  * カードの点はより細かい状態（順番待ち・エラーなど）。
  */
 export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Props) {

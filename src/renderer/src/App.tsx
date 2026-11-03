@@ -53,7 +53,7 @@ export function App() {
   const sidebar = useSidebar();
   const [creating, setCreating] = useState(false);
   const [palette, setPalette] = useState(false);
-  // ⌘⇧A: 作業中・回答待ち・確認待ちのチャットの一覧
+  // ⌘⇧A: 作業中・回答待ち・未読のチャットの一覧
   const [activeChats, setActiveChats] = useState(false);
   const [searching, setSearching] = useState(false);
   // 下の帯の接続・使用状況の詳細（その場に出すだけで、画面は移らない）

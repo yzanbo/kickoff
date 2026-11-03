@@ -97,7 +97,7 @@ export function GroupedChatRows({
 }
 
 function groupsOf(grouping: Exclude<ChatGrouping, "recent">, worktrees: GitWorktree[] | undefined, rows: BoardEntry[], renderRow: (row: BoardEntry) => ReactNode) {
-  // 状態は、ボードの列と同じ分け方（作業中・回答待ち・確認待ち・完了）
+  // 状態は、ボードの列と同じ分け方（作業中・回答待ち・未読・既読）
   if (grouping === "status") {
     return BOARD_COLUMNS.map((column) => {
       const group = rows.filter((r) => boardColumnOf(r.state) === column);

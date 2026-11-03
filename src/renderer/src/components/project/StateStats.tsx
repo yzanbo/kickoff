@@ -15,7 +15,7 @@ import { StatusDot } from "../StatusDot";
 type CountedColumn = (typeof COUNTED_COLUMNS)[number];
 
 /**
- * 画面の見出しの、状態ごとのチャット数（作業中・回答待ち・確認待ち。0 のものは出さない）。
+ * 画面の見出しの、状態ごとのチャット数（作業中・回答待ち・未読。0 のものは出さない）。
  * 数え方・並び・色はサイドバーのプロジェクトの数（HeadCounts）とカンバンの列にそろえる。
  * 押すと、状態ごとにまとめたチャットの一覧を開き、行を押すとそのチャットを開く。showProject なら行にプロジェクト名も出す（全プロジェクトの画面）
  */
@@ -26,7 +26,7 @@ export function StateStats({ runs, showProject = false }: { runs: Run[]; showPro
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(ref, () => setOpen(false), { enabled: open });
 
-  // 状態ごとのチャット（アーカイブしたものと完了は数えない。最近動いた順）
+  // 状態ごとのチャット（アーカイブしたものと既読は数えない。最近動いた順）
   const byColumn = new Map<CountedColumn, Run[]>(COUNTED_COLUMNS.map((c) => [c, []]));
   for (const run of runs) {
     if (run.archived_at) continue;

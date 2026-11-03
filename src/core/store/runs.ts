@@ -176,7 +176,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       db.prepare("DELETE FROM runs WHERE id = ?").run(id);
       onChange({ type: "run_deleted", id, project_id: run.project_id });
     },
-    /** 確認待ち（未読）の印を付ける・外す。最後に動いた時刻（一覧の並び順）は変えない */
+    /** 未読の印を付ける・外す。最後に動いた時刻（一覧の並び順）は変えない */
     setAttention: (id: number, attention: boolean) => setColumn(id, "attention", bit(attention)),
     /** サイドバーの上に固定する・やめる（最後に動いた時刻（並び順）は変えない） */
     setPinned: (id: number, pinned: boolean) => setColumn(id, "pinned", bit(pinned)),
@@ -184,7 +184,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
     setGroup: (id: number, groupId: number | null) => setColumn(id, "group_id", groupId),
     /**
      * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数を返す。
-     * 完了 = 終わっていて（完了・中断）、確認待ちの印がなく、固定していないもの（エラー・回答待ち・作業中・固定したものはしない）
+     * 完了 = 終わっていて（完了・中断）、未読の印がなく、固定していないもの（エラー・回答待ち・作業中・固定したものはしない）
      */
     archiveStale(days: number, now = new Date()): number {
       const before = new Date(now.getTime() - days * 86_400_000).toISOString();

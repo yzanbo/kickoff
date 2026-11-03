@@ -113,13 +113,13 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json(Object.keys(patch).length ? store.updateRun(run.id, patch) : store.getRun(run.id));
   });
 
-  // チャットを開いて確認した（確認待ちを消す）
+  // チャットを開いて確認した（未読を消す）
   app.post("/api/runs/:id/seen", (c) => {
     const run = requireRun(store, c.req.param("id"));
     return c.json(run.attention ? store.setRunAttention(run.id, false) : run);
   });
 
-  // 未読にする（確認待ちに戻す。次に開くまで残る）
+  // 未読にする（未読に戻す。次に開くまで残る）
   app.post("/api/runs/:id/unseen", (c) => {
     const run = requireRun(store, c.req.param("id"));
     return c.json(run.attention ? run : store.setRunAttention(run.id, true));

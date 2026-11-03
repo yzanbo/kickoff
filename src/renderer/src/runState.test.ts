@@ -17,23 +17,27 @@ test("runStateOf: 回答待ちの依頼があれば、作業中でも回答待�
   assert.equal(runStateOf(run(2, "running"), index), "running");
 });
 
-test("runStateOf: 依頼がなければ、チャットの状態どおり（失敗・確認待ち・完了）", () => {
+test("runStateOf: 依頼がなければ、チャットの状態どおり（失敗・未読・既読）", () => {
   const none = approvalIndex([]);
   assert.equal(runStateOf(run(1, "waiting"), none), "needs_input");
-  assert.equal(runStateOf(run(1, "failed"), none), "failed");
+  // 失敗も、見るまでは目立たせ（未読）、見たら既読
+  assert.equal(runStateOf(run(1, "failed", true), none), "failed");
+  assert.equal(runStateOf(run(1, "failed"), none), "done");
   assert.equal(runStateOf(run(1, "queued"), none), "running");
   assert.equal(runStateOf(run(1, "completed", true), none), "attention");
   assert.equal(runStateOf(run(1, "completed"), none), "done");
 });
 
-test("stateCounts: 作業中・回答待ち・確認待ちの数（カンバンの列と同じ決め方。完了とアーカイブ済みは数えない）", () => {
+test("stateCounts: 作業中・回答待ち・未読の数（カンバンの列と同じ決め方。既読とアーカイブ済みは数えない）", () => {
   const list = [
     run(1, "running"),
     run(2, "queued"),
     run(3, "waiting"),
     run(4, "completed", true),
-    run(5, "failed"),
+    run(5, "failed", true),
     run(6, "completed"),
+    // 見た失敗は既読なので数えない
+    run(9, "failed"),
     // 回答待ちの依頼がある（approvals から引く）
     run(7, "running"),
   ];

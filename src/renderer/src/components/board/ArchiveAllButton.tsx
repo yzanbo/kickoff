@@ -5,7 +5,7 @@ import { alertDialog, confirmDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
 import { IconButton } from "../IconButton";
 
-/** 「完了」の列の見出しに置く、列のチャットをすべてアーカイブするボタン（確かめてから。アーカイブ済みは数えない） */
+/** 「既読」の列の見出しに置く、列のチャットをすべてアーカイブするボタン（確かめてから。アーカイブ済みは数えない） */
 export function ArchiveAllButton({ runs }: { runs: Run[] }) {
   const targets = runs.filter((r) => !r.archived_at);
   if (targets.length === 0) return null;
@@ -13,11 +13,11 @@ export function ArchiveAllButton({ runs }: { runs: Run[] }) {
     <IconButton
       icon={Archive}
       size={13}
-      label="完了をすべてアーカイブ"
-      title={`完了の ${targets.length} 件をすべてアーカイブ`}
+      label="既読をすべてアーカイブ"
+      title={`既読の ${targets.length} 件をすべてアーカイブ`}
       onClick={async () => {
         const ok = await confirmDialog({
-          title: `完了の ${targets.length} 件をアーカイブしますか？`,
+          title: `既読の ${targets.length} 件をアーカイブしますか？`,
           message: "一覧から隠れます。会話の記録は残り、あとから戻せます。",
           confirmLabel: "すべてアーカイブ",
         });

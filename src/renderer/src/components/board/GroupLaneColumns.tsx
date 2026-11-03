@@ -5,7 +5,7 @@ import type { SidePanelController } from "../sidePanel/useSidePanel";
 import { byColumn, type BoardEntry } from "./boardColumns";
 import { DraftColumn, StateColumn } from "./StateColumn";
 
-/** グループのタブのスイムレーンで、1 つのグループの段に並べる列（下書き・作業中・回答待ち・確認待ち・完了） */
+/** グループのタブのスイムレーンで、1 つのグループの段に並べる列（下書き・作業中・回答待ち・未読・既読） */
 export function GroupLaneColumns({
   entries,
   foldKey,

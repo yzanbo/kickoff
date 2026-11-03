@@ -69,7 +69,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   // チャットの状態（回答待ちの依頼は App が持つ）
   const { stateOf } = useRunStates();
 
-  // スイムレーン: グループごとの段に、下書き・作業中・回答待ち・確認待ち・完了の列を並べる
+  // スイムレーン: グループごとの段に、下書き・作業中・回答待ち・未読・既読の列を並べる
   const entries: BoardEntry[] = board.shown
     .filter(board.search.matches)
     .sort((a, b) => b.active_at.localeCompare(a.active_at))

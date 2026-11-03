@@ -10,7 +10,9 @@ const runs = [
   run(2, { status: "queued" }),
   run(3, { status: "waiting" }),
   run(4, { status: "completed", attention: true }),
-  run(5, { status: "failed" }),
+  run(5, { status: "failed", attention: true }),
+  // 見た失敗は既読なので、自分待ちに入らない
+  run(9, { status: "failed" }),
   run(6, { status: "completed" }),
   // 回答待ちの依頼がある（approvals から引く）
   run(7, { status: "running" }),
@@ -19,7 +21,7 @@ const runs = [
 ];
 const pending = approvalIndex([{ run_id: 7 }]);
 
-test("isWaitingState: 自分が見る番は回答待ちと確認待ち（失敗したものも確認待ち）", () => {
+test("isWaitingState: 自分が見る番は回答待ちと未読（失敗したものも未読）", () => {
   assert.equal(isWaitingState("needs_input"), true);
   assert.equal(isWaitingState("attention"), true);
   assert.equal(isWaitingState("failed"), true);

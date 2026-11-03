@@ -28,7 +28,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   const { pending } = useRunStates();
   // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const { runs, groups } = useSidebarData(projects);
-  // 自分待ち（回答待ち・確認待ち）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
+  // 自分待ち（回答待ち・未読）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
   const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   // タグで絞り込んでいれば、出しているプロジェクトの分だけを数える（押して出る一覧と合わせる）
   const tagFilter = useProjectTagFilter();
@@ -82,7 +82,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
         <button
           className={cx("nav-row", waitingOnly && "active")}
           aria-pressed={waitingOnly}
-          title={waitingOnly ? "すべてのチャットを表示" : "回答待ち・確認待ちのチャットだけを表示"}
+          title={waitingOnly ? "すべてのチャットを表示" : "回答待ち・未読のチャットだけを表示"}
           onClick={() => setWaitingOnly(!waitingOnly)}
         >
           <Inbox size={15} /> 自分待ち

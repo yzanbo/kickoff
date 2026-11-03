@@ -43,7 +43,7 @@ export function WorkspaceHead({
   collapsed: boolean;
   onToggleCollapsed: () => void;
   chatCount: number;
-  /** 作業中・回答待ち・確認待ちのチャット数 */
+  /** 作業中・回答待ち・未読のチャット数 */
   counts: StateCounts;
   /** 状態の数を押して絞っている状態 */
   stateFilter: StateFilter | null;
