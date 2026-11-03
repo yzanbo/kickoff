@@ -4,6 +4,9 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
+import { ApprovalCenter } from "./approvals.js";
+import { Bus } from "./bus.js";
+import { Runner } from "./runner.js";
 import { MAX_AUTO_RESUMES, RESUME_PROMPT } from "./runReconnect.js";
 import { AUTH, setup, tempDir, until } from "./testing/testServer.js";
 
@@ -253,6 +256,21 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   // 作業中でなければすぐ送る
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "4" })).body, { queued: false });
   await until(() => provider.prompts.length === 2);
+});
+
+test("待ちの列は再起動しても残る: 読み戻した列は止めておき、作業が終わっても送らない", async () => {
+  const { call, project, runner, provider, store } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  await call("POST", `/api/runs/${runId}/queue`, { text: "2" });
+  await call("POST", `/api/runs/${runId}/queue`, { text: "3" });
+  // アプリを終えて起動し直したことにして、同じデータベースで作り直す
+  const restarted = new Runner({ store, approvals: new ApprovalCenter(new Bus()), providers: { claude: provider } as never, usage: {} as never });
+  assert.deepEqual(restarted.queued(runId).map((m) => m.text), ["2", "3"]);
+  assert.equal(restarted.queuePaused(runId), true);
+  release();
+  await until(() => !runner.isBusy(runId));
 });
 
 test("待ちの列を止めておく API: 終わっても送らず、すぐ送るで 1 件ずつ送れ、戻すと先頭をすぐ送る。空になると自動に戻る", async () => {

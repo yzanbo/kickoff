@@ -99,8 +99,21 @@ const SCHEMA_V2_PROJECT_TAGS = `
 ALTER TABLE projects ADD COLUMN tags TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags));
 `;
 
+/**
+ * v3: 送信待ちの指示（作業中のチャットに送った次の指示の待ちの列）を、再起動しても残す。チャットごとに 1 行で、
+ * 列の中身（QueuedMessage の JSON 配列）・止めておくか・「ここまで自動で送る」の印を丸ごと持つ。チャットを消すと一緒に消える
+ */
+const SCHEMA_V3_RUN_QUEUES = `
+CREATE TABLE run_queues (
+  run_id INTEGER PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
+  messages TEXT NOT NULL CHECK (json_valid(messages)),
+  paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1)),
+  stop_after TEXT
+) STRICT;
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2_PROJECT_TAGS];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2_PROJECT_TAGS, SCHEMA_V3_RUN_QUEUES];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

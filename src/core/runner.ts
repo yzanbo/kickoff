@@ -50,10 +50,14 @@ export class Runner {
       reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
     },
   ) {
-    this.followups = new FollowupQueue((runId, queue, paused, stopAfter) => {
-      const run = deps.store.getRun(runId);
-      if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused, stop_after: stopAfter });
-    });
+    this.followups = new FollowupQueue(
+      (runId, queue, paused, stopAfter) => {
+        const run = deps.store.getRun(runId);
+        if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused, stop_after: stopAfter });
+      },
+      // 再起動しても残す（読み戻した列は止めておく）
+      deps.store,
+    );
     this.reconnect = new RunReconnect({
       store: deps.store,
       approvals: deps.approvals,

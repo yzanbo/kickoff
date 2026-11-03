@@ -1,11 +1,19 @@
 import { randomUUID } from "node:crypto";
+import type { SavedQueue } from "./store/queues.js";
 import type { Attachment, QueuedMessage, RunOptions } from "./types.js";
+
+/** 送信待ちの保存先（Store の listQueues / saveQueue。省けば保存しない） */
+export interface QueuePersistence {
+  listQueues(): SavedQueue[];
+  saveQueue(queue: SavedQueue): void;
+}
 
 /**
  * 作業中のチャットに送った次の指示の待ちの列（チャットごと）。
  * いまの作業が終わったら、Runner が先頭から 1 件ずつ送る（止めておくチャットでは送らず、行の「すぐ送る」で 1 件ずつ送る）。
  * 「ここまで自動で送る」の印を付けた指示を送ったら、そこで止めておく（途中まで自動で送る）。
- * 保存はせず、アプリを終えると消える
+ * 変わるたびに DB に丸ごと書き（persistence）、起動したら読み戻す。前回の作業はアプリの終了で中断しているので、
+ * 読み戻した列は止めておく（勝手に送らない。見出しの「自動で送る」・行の「すぐ送る」で送る）
  */
 export class FollowupQueue {
   private readonly lists = new Map<number, QueuedMessage[]>();
@@ -15,7 +23,17 @@ export class FollowupQueue {
   private readonly stopAfter = new Map<number, string>();
 
   /** onChange: 列・止めておくか・「ここまで」の印が変わったとき（画面に配る） */
-  constructor(private readonly onChange: (runId: number, list: QueuedMessage[], paused: boolean, stopAfter: string | null) => void) {}
+  constructor(
+    private readonly onChange: (runId: number, list: QueuedMessage[], paused: boolean, stopAfter: string | null) => void,
+    private readonly persistence?: QueuePersistence,
+  ) {
+    for (const saved of persistence?.listQueues() ?? []) {
+      this.lists.set(saved.runId, saved.messages);
+      this.paused.add(saved.runId);
+      if (saved.stopAfter && saved.messages.some((m) => m.id === saved.stopAfter)) this.stopAfter.set(saved.runId, saved.stopAfter);
+      this.save(saved.runId);
+    }
+  }
 
   /** 「ここまで自動で送る」の印を付けた指示（なければ null） */
   stopAfterOf(runId: number): string | null {
@@ -102,8 +120,10 @@ export class FollowupQueue {
     // 「ここまで」の印をまとめた指示に付けていたら、まとめた 1 件に移す
     if (picked.some((m) => m.id === this.stopAfter.get(runId))) this.stopAfter.set(runId, merged.id);
     // silent: すぐ取り出すときは、まとめた 1 件を画面に知らせない（列に一瞬出さない）
-    if (silent) this.lists.set(runId, next);
-    else this.set(runId, next);
+    if (silent) {
+      this.lists.set(runId, next);
+      this.save(runId);
+    } else this.set(runId, next);
     return merged;
   }
 
@@ -160,6 +180,7 @@ export class FollowupQueue {
     this.lists.delete(runId);
     this.paused.delete(runId);
     this.stopAfter.delete(runId);
+    this.save(runId);
   }
 
   private set(runId: number, list: QueuedMessage[]) {
@@ -175,6 +196,12 @@ export class FollowupQueue {
   }
 
   private notify(runId: number) {
+    this.save(runId);
     this.onChange(runId, this.list(runId), this.paused.has(runId), this.stopAfterOf(runId));
+  }
+
+  /** いまの列を保存する（空なら消す） */
+  private save(runId: number) {
+    this.persistence?.saveQueue({ runId, messages: this.list(runId), paused: this.paused.has(runId), stopAfter: this.stopAfterOf(runId) });
   }
 }
