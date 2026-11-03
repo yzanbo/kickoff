@@ -172,7 +172,6 @@ function RunView({
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
       <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
       <div className="run-composer">
-        <QueuedMessages runId={run.id} queue={queue} busy={busy} />
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
           <PromptsChip events={events} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
@@ -183,6 +182,8 @@ function RunView({
             <span className="small warn-text">この作業場所では、ほかのチャット {busyNeighbors} 件も作業中です。同じファイルを触ると作業がぶつかることがあります。</span>
           )}
         </div>
+        {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
+        <QueuedMessages runId={run.id} queue={queue} busy={busy} />
         <Composer
           options={options}
           busy={busy}
