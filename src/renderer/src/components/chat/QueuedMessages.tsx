@@ -14,7 +14,7 @@ import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
  * 見出しに実行中と送信待ちの数、行に添付（画像はサムネイル）を出す。
- * 行はドラッグでも並べ替えられる（↑↓ のボタンと同じ）。見出しの右の「まとめて送る」は、すべてを 1 つにまとめてすぐ送り、ごみ箱はすべて消す（確かめてから）。
+ * 行はドラッグでも並べ替えられる（↑↓ のボタンと同じ）。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
 export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
@@ -61,33 +61,38 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
           {summary}
         </button>
-        <button
-          type="button"
-          className="btn btn-sm btn-primary queued-head-btn"
-          title={`送信待ちの ${queue.length} 件を 1 つにまとめて、すぐ送る${busy ? "（いまの作業を止めてから送る）" : ""}`}
-          onClick={() => void api.sendAllQueued(runId).catch(failed)}
-        >
-          <SendHorizontal size={12} aria-hidden />
-          まとめて送る
-        </button>
-        <button
-          type="button"
-          className="btn btn-sm queued-head-btn queued-clear"
-          title={`送信待ちの ${queue.length} 件をすべて消す（確かめてから）`}
-          onClick={() =>
-            void confirmDialog({
-              title: `送信待ちの ${queue.length} 件をすべて消しますか？`,
-              message: "消した指示は送られません。元に戻せません。",
-              confirmLabel: "すべて消す",
-              danger: true,
-            }).then(async (ok) => {
-              if (ok) await api.clearQueued(runId).catch(failed);
-            })
-          }
-        >
-          <Trash2 size={12} aria-hidden />
-          すべて消す
-        </button>
+        {/* 全体への操作は 2 件以上のときだけ（1 件のときは行の「すぐ送る」「消す」と同じで、その 1 件へのボタンに見えるため） */}
+        {queue.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary queued-head-btn"
+              title={`送信待ちの ${queue.length} 件を 1 つにまとめて、すぐ送る${busy ? "（いまの作業を止めてから送る）" : ""}`}
+              onClick={() => void api.sendAllQueued(runId).catch(failed)}
+            >
+              <SendHorizontal size={12} aria-hidden />
+              {queue.length} 件をまとめて送る
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm queued-head-btn queued-clear"
+              title={`送信待ちの ${queue.length} 件をすべて消す（確かめてから）`}
+              onClick={() =>
+                void confirmDialog({
+                  title: `送信待ちの ${queue.length} 件をすべて消しますか？`,
+                  message: "消した指示は送られません。元に戻せません。",
+                  confirmLabel: "すべて消す",
+                  danger: true,
+                }).then(async (ok) => {
+                  if (ok) await api.clearQueued(runId).catch(failed);
+                })
+              }
+            >
+              <Trash2 size={12} aria-hidden />
+              {queue.length} 件すべて消す
+            </button>
+          </>
+        )}
       </div>
       {!collapsed && queue.map((m, i) => (
         editing?.id === m.id ? (
