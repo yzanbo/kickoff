@@ -117,6 +117,12 @@
   background: none;
 }
 
+/* 表の外枠（幅の広い表は、欄からはみ出さずに横スクロールする） */
+.markdown-table {
+  margin: 0.55em 0;
+  overflow-x: auto;
+}
+
 .markdown table {
   border-collapse: collapse;
   font-size: 13px;

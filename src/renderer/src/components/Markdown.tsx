@@ -31,9 +31,16 @@ function codeBlock(streaming: boolean): Components["pre"] {
   };
 }
 
+/** 表。幅が広いときは外枠を横スクロールにして、欄からはみ出さないようにする */
+const table: Components["table"] = ({ node: _node, ...props }) => (
+  <div className="markdown-table">
+    <table {...props} />
+  </div>
+);
+
 // 描くたびに部品が作り直されないよう（図の状態が消えないよう）、外で作っておく
-const COMPONENTS: Components = { a: link, pre: codeBlock(false) };
-const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true) };
+const COMPONENTS: Components = { a: link, pre: codeBlock(false), table };
+const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true), table };
 
 /**
  * AI の発言などの Markdown 表示（HTML は描画しない）。```mermaid は図にする。
