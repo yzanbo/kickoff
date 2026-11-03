@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { unfinishedBackgroundAgents } from "./backgroundTasks.js";
 import type { ApprovalCenter } from "./approvals.js";
 import type { Bus } from "./bus.js";
 import { errorMessage } from "./errors.js";
@@ -135,6 +136,15 @@ function applyResult(store: Store, runId: number, result: ProviderRunResult, com
     // 終わったら「確認待ち」にする（中断・要約のときは除く）。チャットを開くと消える
     attention: compact || result.status === "cancelled" ? current.attention : true,
   });
+  // 裏で動かしたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる
+  // （Claude Code のプロセスが終わるため。見た目は進んでいるようで、実は止まっているのを防ぐ）
+  const stopped = compact ? [] : unfinishedBackgroundAgents(store.listEvents(runId));
+  if (stopped.length > 0) {
+    store.addEvent(runId, {
+      type: "notice",
+      message: `裏で動かしていたサブエージェント ${stopped.length} 件（${stopped.join("、")}）は、作業の終わりとともに止まりました。続けるときは、もう一度頼んでください。`,
+    });
+  }
   // 要約は compact イベントだけを残す（失敗したときは理由を残す）
   if (!compact || result.status !== "completed") {
     store.addEvent(runId, {

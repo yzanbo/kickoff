@@ -53,6 +53,13 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path)
   ];
   if (project.description.trim()) lines.push(`- 概要:\n${indent(project.description.trim())}`);
 
+  lines.push(
+    ``,
+    `## 作業の進め方`,
+    `- このチャットでは、返答を書き終えて作業が終わると、Claude Code のプロセスも終わります。裏で動かしたサブエージェント（Agent ツール）やコマンド（Bash の run_in_background）は、そこで止まり、報告も届きません。`,
+    `- サブエージェントは終わるまで待つ形（run_in_background: false）で動かしてください。裏で動かしたときは、終わりの知らせが届くまで待ってから返答を終えてください（「あとで報告します」と言って先に終えない）。`,
+  );
+
   if (project.references.length > 0) {
     lines.push(
       ``,
