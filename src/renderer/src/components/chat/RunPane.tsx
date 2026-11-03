@@ -7,7 +7,7 @@ import { CHAT_WIDE_KEY, chatDraftKey } from "../../storageKeys";
 import { FileLinkContext } from "../fileLinks/fileLinkContext";
 import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
-import { Composer, SendCancelled } from "./Composer";
+import { Composer, SendCancelled, type QueueSendMode } from "./Composer";
 import { confirmDialog } from "../../dialogs";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
@@ -33,12 +33,12 @@ import { useStoredChoice } from "../../hooks/useStoredState";
 import { QUEUE_MODE_KEY } from "../../storageKeys";
 import { Segmented, type SegmentOption } from "../Segmented";
 
-type QueueMode = "queue" | "interrupt";
+type QueueMode = QueueSendMode;
 
 /** 作業中に送ったときの扱いの選択肢（アイコンだけで出す） */
 const QUEUE_MODE_OPTIONS: SegmentOption<QueueMode>[] = [
-  { value: "queue", label: "ためておく（いまの作業が終わったら送る）", icon: ListPlus, iconOnly: true },
-  { value: "interrupt", label: "割り込む（いまの作業を止めてすぐ送る）", icon: Zap, iconOnly: true },
+  { value: "queue", label: "ためておく（いまの作業が終わったら送る。どちらを選んでいても ⌘⇧Enter でためておける）", icon: ListPlus, iconOnly: true },
+  { value: "interrupt", label: "割り込む（いまの作業を止めてすぐ送る。どちらを選んでいても ⌘Enter で割り込める）", icon: Zap, iconOnly: true },
 ];
 
 interface RunPaneProps {
@@ -213,17 +213,18 @@ function RunView({
           placeholder={
             busy
               ? queueMode === "interrupt"
-                ? "作業中です。送ると、いまの作業を止めてすぐ送ります（Enter）"
-                : "作業中です。送ると、いまの作業が終わったあとに送ります（Enter）"
+                ? "作業中です。Enter で割り込んですぐ送ります（⌘⇧Enter でためておく）"
+                : "作業中です。Enter でためておき、終わったら送ります（⌘Enter で割り込んですぐ送る）"
               : "続けて指示する（Enter で送信、Shift+Enter で改行）"
           }
           onSend={async (text, attachments) => {
             stickToBottom.current = true;
             await api.sendMessage(run.id, text, options.options, attachments);
           }}
-          onQueue={async (text, attachments) => {
-            // 割り込むときは、待ちの列を通さずに、いまの作業を止めてからすぐ送る（列に一瞬出さない）
-            if (queueMode === "interrupt") {
+          onQueue={async (text, attachments, mode = queueMode) => {
+            // 割り込むときは、待ちの列を通さずに、いまの作業を止めてからすぐ送る（列に一瞬出さない）。
+            // ⌘Enter / ⌘⇧Enter で送ったときは、切り替えに関係なくそのキーの送り方にする
+            if (mode === "interrupt") {
               if (!(await confirmStopAgents("割り込んで送る"))) throw new SendCancelled();
               await api.interrupt(run.id, text, options.options, attachments);
             }
