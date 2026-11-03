@@ -182,3 +182,108 @@
   color: var(--ng);
   background: color-mix(in srgb, var(--ng) 10%, transparent);
 }
+
+/* ターンの変更カード（TurnChanges）: その作業で変えたファイルの数と行の増減。開くとファイルの一覧で、押すとエディタタブで開く */
+.turn-changes {
+  width: fit-content;
+  min-width: min(360px, 100%);
+  max-width: 100%;
+  margin: 4px 0 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+
+.turn-changes > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 6px;
+  list-style: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.turn-changes > summary::-webkit-details-marker {
+  display: none;
+}
+
+.turn-changes > summary:hover {
+  color: var(--text);
+}
+
+.turn-changes[open] > summary .tool-chevron {
+  transform: rotate(90deg);
+}
+
+.turn-changes ul {
+  margin: 0;
+  padding: 0 4px 4px;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.turn-change-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: none;
+}
+
+button.turn-change-file {
+  cursor: pointer;
+}
+
+button.turn-change-file:hover {
+  background: var(--bg-hover);
+}
+
+.turn-change-name {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.turn-change-dir {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--extra-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.turn-change-tag {
+  flex: none;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.turn-change-counts {
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.turn-changes > summary .turn-change-counts {
+  margin-left: 0;
+}
+
+.turn-change-add {
+  color: var(--ok);
+}
+
+.turn-change-del {
+  color: var(--ng);
+}
