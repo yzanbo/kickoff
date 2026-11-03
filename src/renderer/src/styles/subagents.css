@@ -13,7 +13,8 @@
   display: none;
 }
 
-.subagent-chip-wrap {
+/* ピルと、押すと上に開く一覧（サブエージェント・ToDo で共通） */
+.chip-wrap {
   position: relative;
 }
 
@@ -55,7 +56,7 @@
   color: var(--muted);
 }
 
-.subagent-popover {
+.chip-popover {
   position: absolute;
   bottom: calc(100% + 8px);
   left: 0;
@@ -195,4 +196,43 @@
 
 .subagent-status.status-running {
   color: var(--accent-bright);
+}
+
+/* ToDo のピルと一覧（TodoChip） */
+.chip-icon {
+  color: var(--muted);
+}
+
+.todo-current {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.todo-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.todo-in_progress .todo-icon {
+  color: var(--accent);
+}
+
+.todo-completed .todo-icon {
+  color: var(--ok);
+}
+
+.todo-completed .todo-text {
+  color: var(--muted);
+  text-decoration: line-through;
 }
