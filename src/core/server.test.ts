@@ -1,9 +1,11 @@
 // API のテスト: 認証・リアルタイム配信（SSE）・サーバーの停止。ほかの領域は server.<領域>.test.ts（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { test } from "node:test";
 import { startHttpServer, stopHttpServer } from "./httpServer.js";
-import { AUTH, TOKEN, setup } from "./testing/testServer.js";
+import { AUTH, TOKEN, setup, tempDir } from "./testing/testServer.js";
 
 test("API はトークン（Bearer・Cookie）がないと 401。ペアリングで Cookie を渡す", async () => {
   const { app } = setup();
@@ -41,4 +43,23 @@ test("サーバーを止めるときは、開いたままのリアルタイム�
   const stopped = await Promise.race([stopHttpServer(server).then(() => "stopped"), new Promise((r) => setTimeout(() => r("timeout"), 2000))]);
   assert.equal(stopped, "stopped");
   await reader.cancel().catch(() => {});
+});
+
+test("画面のファイルは no-cache で返し（入れ替えたあとに古い画面を使わせない）、ない JS・CSS は 404、ほかのパスは index.html", async () => {
+  const dir = tempDir();
+  fs.writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>Kickoff</title>");
+  fs.mkdirSync(path.join(dir, "assets"));
+  fs.writeFileSync(path.join(dir, "assets", "index-abc.js"), "console.log(1)");
+  const { app } = setup({ staticDir: dir });
+  for (const url of ["/", "/assets/index-abc.js", "/projects/1"]) {
+    const res = await app.request(url);
+    assert.equal(res.status, 200, url);
+    assert.equal(res.headers.get("cache-control"), "no-cache", url);
+  }
+  assert.match(await (await app.request("/projects/1")).text(), /<title>Kickoff<\/title>/);
+  assert.equal((await app.request("/assets/index-old.js")).status, 404);
+  // API の応答は変えない
+  const api = await app.request("/api/status", { headers: AUTH });
+  assert.equal(api.status, 200);
+  assert.equal(api.headers.get("cache-control"), null);
 });

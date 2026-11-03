@@ -130,10 +130,18 @@ export function createApp(deps: ServerDeps): Hono {
   // ---- 画面（本番時） ----
   if (deps.staticDir && fs.existsSync(deps.staticDir)) {
     const root = path.relative(process.cwd(), deps.staticDir);
+    // 画面のファイルは毎回問い合わせさせる（no-cache）。serveStatic は Last-Modified だけを付けるので、そのままだと
+    // Chromium が経験則でキャッシュを新しいとみなし、アプリを入れ替えたあとの起動で古い index.html と古い JS を
+    // サーバーに問い合わせずに使う（新しいコアとかみ合わず、画面が真っ暗になることがあった）
+    app.use("/*", async (c, next) => {
+      await next();
+      c.res.headers.set("Cache-Control", "no-cache");
+    });
     app.use("/*", serveStatic({ root }));
-    // SPA のため、未知のパスは index.html を返す
+    // SPA のため、未知のパスは index.html を返す。ただし拡張子のあるパス（/assets/… の JS・CSS など）は 404 にする
+    // （HTML を JS として読み込ませて、原因の分からない失敗にしない）
     const indexHtml = fs.readFileSync(path.join(deps.staticDir, "index.html"), "utf8");
-    app.get("*", (c) => c.html(indexHtml));
+    app.get("*", (c) => (path.extname(c.req.path) ? c.notFound() : c.html(indexHtml)));
   }
 
   return app;
