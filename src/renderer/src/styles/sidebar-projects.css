@@ -7,6 +7,14 @@
   min-height: 0;
 }
 
+/* スライドの中身（縦スライドでは、左に丸の列・右にチャット一覧を並べる） */
+.workspace-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .workspace-viewport {
   flex: 1;
   min-height: 0;
@@ -207,4 +215,46 @@ button.project-switch:hover,
   height: 32px;
   margin-top: 0;
   padding-block: 0;
+}
+
+/* 縦スライド: 丸の列を左に縦に並べ、ページは縦に積んで縦にスライドする */
+.workspaces.rail .workspace-body {
+  flex-direction: row;
+}
+
+.workspaces.rail .workspace-viewport {
+  min-width: 0;
+  touch-action: pan-x;
+}
+
+.workspaces.rail .workspace-track {
+  flex-direction: column;
+}
+
+.workspaces.rail .workspace-page {
+  flex: 0 0 100%;
+  min-height: 0;
+}
+
+.workspaces.rail .workspace-switcher {
+  flex-direction: column;
+  width: 44px;
+  height: auto;
+  padding: 6px 0;
+  border-top: none;
+  border-right: 1px solid var(--border);
+}
+
+.workspaces.rail .workspace-dots {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.workspaces.rail .workspace-dots-divider {
+  width: 18px;
+  height: 1px;
+  margin: 2px 0;
 }

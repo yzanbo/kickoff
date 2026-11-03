@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, type PointerEvent, type WheelEvent } from "react";
 
-/** 横スワイプで隣へ移るのに必要な移動量（ページ幅に対する割合） */
+/** スワイプで隣へ移るのに必要な移動量（ページの幅・高さに対する割合） */
 const SWIPE_RATIO = 0.18;
 /** この時間ホイールのイベントが途切れたら、1 回のジェスチャー（慣性を含む）が終わったとみなす */
 const GESTURE_END_MS = 180;
@@ -12,10 +12,36 @@ const RISING_TO_RESTART = 2;
 const EDGE_PULL_MAX = 36;
 
 /**
- * サイドバーの横スライド: トラックパッドの 2 本指スワイプ・タッチのドラッグで、隣のプロジェクトへ切り替える。
+ * ページ（チャット一覧）がその向きにまだスクロールできるか（縦スライドでは、端まで来てから先の縦スワイプだけを切り替えに使う）
+ */
+function pageCanScroll(target: EventTarget | null, delta: number): boolean {
+  const page = (target as HTMLElement | null)?.closest?.(".workspace-page");
+  if (!page) return false;
+  return delta > 0 ? page.scrollTop + page.clientHeight < page.scrollHeight - 1 : page.scrollTop > 0;
+}
+
+/**
+ * サイドバーのスライド: トラックパッドの 2 本指スワイプ・タッチのドラッグで、隣のプロジェクトへ切り替える。
+ * axis が "x" なら横（横スライド）、"y" なら縦（縦スライド）。縦は一覧のスクロールと同じ向きなので、
+ * 一覧をスクロールしきった端から、続けて同じ向きにスワイプしたときだけ切り替える（スクロールの慣性では切り替えない）。
  * 指に追従させる間は React の再描画を挟まず、要素の transform を直接動かす
  */
-export function useWorkspaceSwipe({ index, count, go, active = true }: { index: number; count: number; go: (to: number) => void; active?: boolean }) {
+export function useWorkspaceSwipe({
+  index,
+  count,
+  go,
+  active = true,
+  axis = "x",
+}: {
+  index: number;
+  count: number;
+  go: (to: number) => void;
+  active?: boolean;
+  axis?: "x" | "y";
+}) {
+  const vertical = axis === "y";
+  // 縦スライドで、最後に一覧をスクロールした時刻（そのジェスチャーの続き・慣性は切り替えに使わない）
+  const lastScroll = useRef(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   // 1 回のスワイプの状態。committed: すでに切り替えた（次のスワイプが始まるまで、残りの慣性のイベントは無視する）
@@ -40,9 +66,9 @@ export function useWorkspaceSwipe({ index, count, go, active = true }: { index: 
       const track = trackRef.current;
       if (!track) return;
       track.classList.toggle("dragging", offset !== 0);
-      track.style.transform = `translateX(calc(${-index * 100}% - ${offset}px))`;
+      track.style.transform = `${vertical ? "translateY" : "translateX"}(calc(${-index * 100}% - ${offset}px))`;
     },
-    [index],
+    [index, vertical],
   );
 
   // 縦並びから横スライドに切り替えたとき（スライドの要素が新しくできたとき）も、いまのプロジェクトの位置に合わせる
@@ -50,7 +76,8 @@ export function useWorkspaceSwipe({ index, count, go, active = true }: { index: 
     if (active) place(0);
   }, [place, active]);
 
-  const width = () => viewportRef.current?.clientWidth ?? 260;
+  /** スワイプの向きのページの大きさ（横は幅、縦は高さ） */
+  const width = () => (vertical ? viewportRef.current?.clientHeight : viewportRef.current?.clientWidth) ?? 260;
   /** 端のプロジェクトより先へは、少しだけ動いて戻る（ゴムのような抵抗） */
   const resist = (offset: number) => {
     const atStart = index === 0 && offset < 0;
@@ -73,10 +100,22 @@ export function useWorkspaceSwipe({ index, count, go, active = true }: { index: 
     return false;
   };
 
-  // トラックパッドの 2 本指スワイプ（横方向のホイール）
+  // トラックパッドの 2 本指スワイプ（横スライドは横方向、縦スライドは縦方向のホイール）
   function onWheel(e: WheelEvent<HTMLDivElement>) {
     const g = gesture.current;
-    if (!g.active && Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; // 縦スクロールはそのまま
+    const delta = vertical ? e.deltaY : e.deltaX;
+    const cross = vertical ? e.deltaX : e.deltaY;
+    if (!g.active) {
+      if (Math.abs(delta) <= Math.abs(cross)) return; // 違う向きのスクロールはそのまま
+      if (vertical) {
+        const now = performance.now();
+        // 一覧がまだスクロールできる・スクロールの続き（慣性）なら、ふつうにスクロールさせる
+        if (pageCanScroll(e.target, delta) || now - lastScroll.current < GESTURE_END_MS) {
+          lastScroll.current = now;
+          return;
+        }
+      }
+    }
     g.active = true;
     clearTimeout(g.timer);
     g.timer = setTimeout(() => {
@@ -89,18 +128,18 @@ export function useWorkspaceSwipe({ index, count, go, active = true }: { index: 
     // 1 回のスワイプ（指を離したあとの慣性を含む）では 1 つだけ移る。切り替えたあとの慣性のイベントは無視し、
     // 移動量が続けて増えたら（慣性は小さくなっていく一方なので）次のスワイプとして受け付ける（2 回スワイプしたら 2 つ移る）
     if (g.committed) {
-      const abs = Math.abs(e.deltaX);
+      const abs = Math.abs(delta);
       g.rising = abs > g.prevAbs + 2 ? g.rising + 1 : 0;
       g.prevAbs = abs;
       if (performance.now() - g.committedAt < COOLDOWN_MS || g.rising < RISING_TO_RESTART) return;
       g.committed = false;
       g.total = 0;
     }
-    g.total += e.deltaX;
+    g.total += delta;
     if (commitIfFar(g.total)) {
       g.committed = true;
       g.committedAt = performance.now();
-      g.prevAbs = Math.abs(e.deltaX);
+      g.prevAbs = Math.abs(delta);
       g.rising = 0;
       return;
     }
@@ -108,7 +147,9 @@ export function useWorkspaceSwipe({ index, count, go, active = true }: { index: 
   }
 
   // スマホなどのタッチ・ドラッグ
-  const pointer = useRef<{ id: number; x: number; y: number; horizontal?: boolean } | null>(null);
+  // along: スワイプの向きに動かしているか（決まるまで undefined）。縦スライドでは、一覧がその向きにスクロールできるならスクロールに任せる
+  const pointer = useRef<{ id: number; x: number; y: number; along?: boolean } | null>(null);
+  const moved = (p: { x: number; y: number }, e: PointerEvent<HTMLDivElement>) => (vertical ? p.y - e.clientY : p.x - e.clientX);
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
     if (e.pointerType === "mouse") return;
     pointer.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
@@ -118,13 +159,16 @@ export function useWorkspaceSwipe({ index, count, go, active = true }: { index: 
     if (!p || p.id !== e.pointerId) return;
     const dx = p.x - e.clientX;
     const dy = p.y - e.clientY;
-    if (p.horizontal === undefined && Math.hypot(dx, dy) > 8) p.horizontal = Math.abs(dx) > Math.abs(dy);
-    if (p.horizontal) place(resist(dx));
+    if (p.along === undefined && Math.hypot(dx, dy) > 8) {
+      const alongAxis = vertical ? Math.abs(dy) > Math.abs(dx) : Math.abs(dx) > Math.abs(dy);
+      p.along = alongAxis && !(vertical && pageCanScroll(e.target, dy));
+    }
+    if (p.along) place(resist(moved(p, e)));
   }
   function onPointerUp(e: PointerEvent<HTMLDivElement>) {
     const p = pointer.current;
     if (!p || p.id !== e.pointerId) return;
-    if (p.horizontal && !commitIfFar(p.x - e.clientX)) place(0);
+    if (p.along && !commitIfFar(moved(p, e))) place(0);
     pointer.current = null;
   }
 

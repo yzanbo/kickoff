@@ -1,4 +1,4 @@
-import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GripVertical, Rows2, Rows3, Rows4 } from "lucide-react";
+import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GalleryVertical, GripVertical, Rows2, Rows3, Rows4, type LucideIcon } from "lucide-react";
 import { useSharedChoice } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
 import { CHAT_GROUPINGS, GROUPING_META, type ChatGrouping } from "./chatGroupings";
@@ -6,8 +6,16 @@ import { HeadAction, HeadMenu, HeadToggle } from "./HeadMenu";
 import { SIDEBAR_GROUPING_KEY } from "../../storageKeys";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "./sidebarFlags";
 
-/** slide: 1 プロジェクトずつ横にスライド / stack: すべてのプロジェクトを縦に並べる */
-export type NavLayout = "slide" | "stack";
+/** slide: 1 プロジェクトずつ横にスライド（丸は下） / rail: 1 プロジェクトずつ縦にスライド（丸は左に縦に並べる） / stack: すべてのプロジェクトを縦に並べる */
+export type NavLayout = "slide" | "stack" | "rail";
+
+/** 並べ方の表示（ボタンの値・メニューの項目） */
+const LAYOUT_META: Record<NavLayout, { icon: LucideIcon; short: string; label: string }> = {
+  stack: { icon: Rows3, short: "縦並び", label: "縦並び（すべてのプロジェクトを上から並べる）" },
+  slide: { icon: GalleryHorizontal, short: "スライド", label: "横スライド（1 つずつ。丸は下・横スワイプ）" },
+  rail: { icon: GalleryVertical, short: "縦スライド", label: "縦スライド（1 つずつ。丸は左・縦スワイプ）" },
+};
+const LAYOUTS: NavLayout[] = ["stack", "slide", "rail"];
 
 interface Props {
   layout: NavLayout;
@@ -24,8 +32,8 @@ interface Props {
 
 /**
  * プロジェクト一覧の上の見出し。何に効くかで 2 行に分け、どちらも設定の種類（ジャンル）ごとのボタンを並べる（1 つのボタンには 1 種類だけ。
- * 2 択のものは押すたびに切り替え（HeadToggle）、3 つ以上あるもの（まとめ方）はメニューから選ぶ（HeadMenu））:
- * プロジェクト = 並べ方（縦 / 横スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・アーカイブ（出すか）/
+ * 2 択のものは押すたびに切り替え（HeadToggle）、3 つ以上あるもの（並べ方・まとめ方）はメニューから選ぶ（HeadMenu））:
+ * プロジェクト = 並べ方（縦並び / 横スライド / 縦スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・アーカイブ（出すか）/
  * チャット = まとめ方・表示（行を 1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。チャットの設定はすべてのプロジェクトに効く。
  * 「表示」はプロジェクトのカードとチャットの行で別々に切り替える。
  * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行のアーカイブの右に、ほかと同じ形のボタン（HeadAction）で置く（プロジェクトの行には収まらないため）
@@ -52,14 +60,19 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
     <div className="project-list-head">
       <div className="project-list-row">
         <span className="project-list-row-label">プロジェクト</span>
-        <HeadToggle
+        <HeadMenu
           id="layout"
-          icon={layout === "stack" ? Rows3 : GalleryHorizontal}
+          icon={LAYOUT_META[layout].icon}
           label="並べ方"
-          value={layout === "stack" ? "縦並び" : "スライド"}
-          values={["縦並び", "スライド"]}
-          title="プロジェクトの並べ方（縦に並べる / 1 つずつ横にスライド）"
-          onToggle={() => onLayout(layout === "stack" ? "slide" : "stack")}
+          value={LAYOUT_META[layout].short}
+          values={LAYOUTS.map((l) => LAYOUT_META[l].short)}
+          title={`プロジェクトの並べ方（いまは「${LAYOUT_META[layout].label}」）`}
+          sections={[
+            {
+              label: "プロジェクトの並べ方",
+              items: LAYOUTS.map((l) => ({ ...radio, key: l, icon: LAYOUT_META[l].icon, label: LAYOUT_META[l].label, checked: l === layout, onSelect: () => onLayout(l) })),
+            },
+          ]}
         />
         <HeadToggle
           id="order"
