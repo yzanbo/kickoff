@@ -14,7 +14,7 @@ import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
  * 見出しに実行中と送信待ちの数、行に添付（画像はサムネイル）を出す。
- * 行はドラッグでも並べ替えられる（↑↓ のボタンと同じ）。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
+ * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
 export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
@@ -113,24 +113,42 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
             drag && drag.at === i && drag.from !== i && drag.from !== i - 1 && "drop-before",
             drag && drag.at === i + 1 && i === queue.length - 1 && drag.from !== i && "drop-after",
           )}
-          draggable={queue.length > 1}
-          title={queue.length > 1 ? "ドラッグで並べ替え" : undefined}
-          onDragStart={(e) => {
-            e.dataTransfer.effectAllowed = "move";
-            e.dataTransfer.setData("text/plain", m.text);
-            setDrag({ id: m.id, from: i });
-          }}
           onDragOver={(e) => dragOver(e, i)}
           onDrop={drop}
-          onDragEnd={() => setDrag(undefined)}
+          onDoubleClick={(e) => {
+            // ボタン・サムネイルのダブルクリックは除く
+            if ((e.target as HTMLElement).closest("button")) return;
+            setEditing({ id: m.id, text: m.text });
+          }}
         >
-          {queue.length > 1 && <GripVertical size={13} className="queued-grip" aria-hidden />}
+          {/* ドラッグはつまみからだけ（文は選んでコピーできるように、行全体はドラッグにしない） */}
+          {queue.length > 1 && (
+            <span
+              className="queued-grip"
+              draggable
+              title="ドラッグで並べ替え"
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", m.text);
+                // 動かしている間の絵は、つまみだけでなく行全体にする
+                const row = e.currentTarget.parentElement;
+                if (row) {
+                  const r = row.getBoundingClientRect();
+                  e.dataTransfer.setDragImage(row, e.clientX - r.left, e.clientY - r.top);
+                }
+                setDrag({ id: m.id, from: i });
+              }}
+              onDragEnd={() => setDrag(undefined)}
+            >
+              <GripVertical size={13} aria-hidden />
+            </span>
+          )}
           {/* 送る順番（1 が次に送るもの） */}
           <span className="queued-index" aria-label={`${i + 1} 番目`}>
             {i + 1}
           </span>
           <QueuedAttachments attachments={m.attachments} />
-          <span className="queued-text" title={m.text} onDoubleClick={() => setEditing({ id: m.id, text: m.text })}>
+          <span className="queued-text" title={m.text}>
             {m.text || m.attachments.map((a) => a.name).join("、")}
           </span>
           <IconButton icon={Pencil} label="書き直す" title="書き直す（ダブルクリックでも）" size={13} onClick={() => setEditing({ id: m.id, text: m.text })} />
@@ -223,7 +241,14 @@ function QueuedEditor({
         className="queued-editor"
         value={text}
         rows={Math.min(6, Math.max(1, text.split("\n").length))}
-        autoFocus
+        // 開いたら文の終わりから書き始める
+        ref={(el) => {
+          if (el && !el.dataset.ready) {
+            el.dataset.ready = "1";
+            el.focus();
+            el.setSelectionRange(el.value.length, el.value.length);
+          }
+        }}
         aria-label="待ちの指示を書き直す"
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
