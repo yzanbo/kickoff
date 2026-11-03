@@ -112,6 +112,8 @@ export const QUEUE_COLLAPSED_KEY = "kickoff:queue-collapsed";
 export const QUEUE_EXPANDED_KEY = "kickoff:queue-expanded";
 /** 送信待ちの一覧の高さの上限（px。上端のつまみのドラッグで変える。どのチャットでも同じ） */
 export const QUEUE_HEIGHT_KEY = "kickoff:queue-height";
+/** チャットの上に貼り付ける自分の指示を、1 行にたたまず全文で出すか（"1" なら全文。どのチャットでも同じ） */
+export const STICKY_PROMPT_EXPANDED_KEY = "kickoff:sticky-prompt-expanded";
 /** チャット欄をコンパクトに表示するか（"1" / "0"。設定の「表示」。どのチャット欄にも効く） */
 export const COMPOSER_COMPACT_KEY = "kickoff:composer-compact";
 
