@@ -1,0 +1,90 @@
+/*
+ * 一番下へ戻るボタン（chat.css の .scroll-bottom）に、いまの状態を添えた形。色はカンバンの列と同じ
+ * （作業中 = 青・回答待ち = 橙・返答が届いた = 緑・失敗 = 赤・終わっている = 控えめ）。
+ * 答えを待っている・返答が届いたとき（.attention）だけ、小さく上下して下へ誘う
+ */
+.timeline-wrap .scroll-bottom.guide {
+  --pill-tone: var(--extra-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  max-width: calc(100% - 24px);
+  height: 30px;
+  padding: 0 12px;
+  border-color: color-mix(in srgb, var(--pill-tone) 45%, var(--border));
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--pill-tone) 10%, var(--bg-elev));
+  cursor: pointer;
+}
+
+.timeline-wrap .scroll-bottom.guide.working {
+  --pill-tone: var(--dot-running);
+  color: var(--text);
+}
+
+.timeline-wrap .scroll-bottom.guide.failed {
+  --pill-tone: var(--dot-failed);
+  color: var(--text);
+}
+
+.timeline-wrap .scroll-bottom.guide.attention {
+  font-weight: 600;
+  color: var(--text);
+  background: color-mix(in srgb, var(--pill-tone) 22%, var(--bg-elev));
+  animation: scroll-guide-bob 1.6s ease-in-out infinite;
+}
+
+.timeline-wrap .scroll-bottom.guide.waiting {
+  --pill-tone: var(--dot-needs-input);
+}
+
+.timeline-wrap .scroll-bottom.guide.arrived {
+  --pill-tone: var(--dot-attention);
+}
+
+/* 状態の文（長い文は省く） */
+.scroll-bottom-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 作業中の点は、ボタンの中では小さく青に */
+.scroll-bottom.guide .dots {
+  gap: 3px;
+}
+
+.scroll-bottom.guide .dots span {
+  width: 4px;
+  height: 4px;
+  background: var(--dot-running);
+}
+
+.scroll-bottom.guide kbd {
+  padding: 0 4px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--bg-hover);
+}
+
+/* 下を指して小さく上下する（動きを減らす設定では動かさない） */
+@keyframes scroll-guide-bob {
+  50% {
+    transform: translate(-50%, 3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-wrap .scroll-bottom.guide.attention {
+    animation: none;
+  }
+}

@@ -1,10 +1,10 @@
 import { ArrowDown } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cx } from "../../cx";
+import { RUN_STATUS_LABELS } from "../RunStatus";
 import { useTicker } from "../../hooks/useTicker";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Approval, Run } from "../../../../core/types";
-import { IconButton } from "../IconButton";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { jumpToEvent } from "./jumpToEvent";
@@ -150,8 +150,15 @@ export function RunTimeline({
     scrollToBottom();
   });
 
-  // 一番下へ戻るボタンで知らせること（上を読んでいる間に、答えを待っている・作業が終わった）
-  const guide = waiting ? "回答を待っています" : finishedWhileAway ? "返答が届きました" : null;
+  // ボタンに出すいまの状態（上を読んでいる間も、このチャットがどうなっているかが分かるように）。
+  // 答えを待っている・その間に返答が届いたときは目立たせて下へ誘い、作業中はいまの段階、終わっていれば結果を出す
+  const pill: { label: ReactNode; tone: "waiting" | "arrived" | "working" | "idle" | "failed" } = waiting
+    ? { label: "回答を待っています", tone: "waiting" }
+    : finishedWhileAway
+      ? { label: run.status === "failed" ? "失敗しました" : "返答が届きました", tone: run.status === "failed" ? "failed" : "arrived" }
+      : busy
+        ? { label: workingLabel(run, items, live, stopping, runningAgents), tone: "working" }
+        : { label: RUN_STATUS_LABELS[run.status], tone: run.status === "failed" ? "failed" : "idle" };
 
   return (
     <div className="timeline-wrap">
@@ -200,22 +207,28 @@ export function RunTimeline({
           <span className="sticky-prompt-text">{pinned.text}</span>
         </button>
       )}
-      {away &&
-        (guide ? (
-          // 答えを待っている・作業が終わったときは、文を添えて目立たせ、下へ戻るよう誘う
-          <button
-            type="button"
-            className={cx("scroll-bottom guide", waiting && "waiting")}
-            title="一番下までスクロール（⌘↓）"
-            onClick={scrollToBottom}
-          >
+      {/* 一番下へ戻るボタン: いまの状態を添えて出す（答えを待っている・返答が届いたときは目立たせて誘う） */}
+      {away && (
+        <button
+          type="button"
+          className={cx("scroll-bottom guide", pill.tone, (pill.tone === "waiting" || pill.tone === "arrived") && "attention")}
+          title="一番下までスクロール（⌘↓）"
+          aria-label="一番下までスクロール"
+          onClick={scrollToBottom}
+        >
+          {pill.tone === "working" ? (
+            <span className="dots" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </span>
+          ) : (
             <ArrowDown size={14} aria-hidden />
-            {guide}
-            <kbd>⌘↓</kbd>
-          </button>
-        ) : (
-          <IconButton icon={ArrowDown} label="一番下までスクロール" title="一番下までスクロール（⌘↓）" size={15} type="button" className="scroll-bottom" onClick={scrollToBottom} />
-        ))}
+          )}
+          <span className="scroll-bottom-label">{pill.label}</span>
+          <kbd>⌘↓</kbd>
+        </button>
+      )}
     </div>
   );
 }
