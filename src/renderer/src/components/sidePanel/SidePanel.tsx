@@ -81,23 +81,22 @@ export function SidePanel({
     panelOpen,
   );
 
-  const controls = (
+  // パネルの閉じる・横幅いっぱい（ボードの右のパネルだけ。チャット欄は右上のレイアウトの開閉（LayoutToggles）で閉じるので、重ねて置かない）
+  const controls = sidebar ? undefined : (
     <div className="panel-controls">
       {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-      <button className="panel-control" title={sidebar ? "チャット欄を閉じる（⌥⌘B）" : "パネルを閉じる（Esc）"} aria-label="パネルを閉じる" onClick={close}>
+      <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
         <PanelRightClose size={15} />
       </button>
-      {!sidebar && (
-        <button
-          className="panel-control"
-          title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-          aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-          aria-pressed={maximized}
-          onClick={panel.toggleMaximized}
-        >
-          {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-        </button>
-      )}
+      <button
+        className="panel-control"
+        title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+        aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+        aria-pressed={maximized}
+        onClick={panel.toggleMaximized}
+      >
+        {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+      </button>
     </div>
   );
   /** ペインのタブの列（パネルの閉じる・横幅いっぱいは、左上のペインにだけ置く） */
