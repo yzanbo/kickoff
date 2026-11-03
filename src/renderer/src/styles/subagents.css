@@ -56,6 +56,11 @@
   color: var(--warn);
 }
 
+/* 実行中なのに長く動きがない（サブエージェントの行・タブの見出し・作業中の行。stall.ts） */
+.activity-stalled {
+  color: var(--warn);
+}
+
 .chip-chevron {
   color: var(--muted);
 }
@@ -285,4 +290,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* サブエージェントは名前を押すと中身をタブで開く */
+.link-button.background-task-name:hover {
+  text-decoration: underline;
 }

@@ -3,7 +3,9 @@ import type { RunEvent } from "../../../../core/types";
 import { formatTokens } from "../../format";
 import { subagentReport, type SubagentEntry } from "../../../../core/subagents";
 import { subagentStatusLabel } from "./subagentList";
-import { SubagentRecovery } from "./SubagentRecovery";
+import { useTicker } from "../../hooks/useTicker";
+import { activityOf, activityText } from "./stall";
+import { SubagentActions } from "./SubagentActions";
 import { relayedText } from "./subagentRelay";
 import { groupEvents } from "./timelineItems";
 import { Markdown } from "../Markdown";
@@ -49,6 +51,10 @@ export function SubagentView({
     if (el && entry.status === "running") el.scrollTop = el.scrollHeight;
   }, [items.length, entry.status]);
 
+  // 実行中は、最後に動いてからの時間を定期的に描き直す（長く動きがなければ知らせる）
+  useTicker(entry.status === "running" ? 15_000 : 3_600_000);
+  const activity = entry.status === "running" ? activityOf(entry.lastActivityAt) : null;
+  const activityLabel = activity ? activityText(activity, entry.pendingTool) : "";
   const meta = [entry.subagentType ?? "general-purpose", entry.tokens !== undefined ? `${formatTokens(entry.tokens)} tokens` : null, subagentStatusLabel(entry)];
 
   return (
@@ -56,9 +62,12 @@ export function SubagentView({
       <header className="subagent-detail-head">
         <div className="subagent-detail-title">
           <span className="subagent-detail-name">{entry.description}</span>
-          <span className="muted small">{meta.filter(Boolean).join(" · ")}</span>
+          <span className="muted small">
+            {meta.filter(Boolean).join(" · ")}
+            {activityLabel && <span className={activity?.level === "stalled" ? "activity-stalled" : undefined}> · {activityLabel}</span>}
+          </span>
         </div>
-        <SubagentRecovery runId={runId} entry={entry} />
+        <SubagentActions runId={runId} entry={entry} busy={busy} />
       </header>
       <div className="subagent-detail-body timeline" ref={bodyRef}>
         <div className="timeline-inner">

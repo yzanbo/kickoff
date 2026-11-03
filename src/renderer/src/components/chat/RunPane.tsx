@@ -200,13 +200,13 @@ function RunView({
         }
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
-      <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
+      <RunTimeline items={items} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
       <div className="run-composer">
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
           <PromptsChip events={events} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
           <TodoChip events={events} />
-          <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
+          <SubagentChip entries={subagents} run={run} busy={busy} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
           {/* 同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる） */}
           {busyNeighbors > 0 && (
             <span className="small warn-text">この作業場所では、ほかのチャット {busyNeighbors} 件も作業中です。同じファイルを触ると作業がぶつかることがあります。</span>

@@ -5,26 +5,35 @@ import { useServerEvent } from "../../events";
 import { formatTokens } from "../../format";
 import { useDismiss } from "../../hooks/useDismiss";
 import { useStoredState } from "../../hooks/useStoredState";
+import { useTicker } from "../../hooks/useTicker";
 import { subagentsArchivedKey } from "../../storageKeys";
 import { modelDisplayName } from "../../models";
 import { collectSubagents, type SubagentEntry } from "../../../../core/subagents";
 import { subagentStatusLabel } from "./subagentList";
-import { SubagentRecovery } from "./SubagentRecovery";
+import { activityOf, activityText, latestOf } from "./stall";
+import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "../ClaudeMark";
 import { IconButton } from "../IconButton";
 
 /** チャットのサブエージェントの一覧（途中経過はサーバーからのイベントで受け取る） */
 export function useSubagents(runId: number, events: RunEvent[], busy: boolean, background: BackgroundState | null = null): SubagentEntry[] {
   const [progress, setProgress] = useState<Record<string, SubagentInfo>>({});
-  useEffect(() => setProgress({}), [runId]);
+  // 途中経過が届いた時刻（作業 ID ごと。記録に残らないので、最後に動いた時刻に足す）
+  const [progressAt, setProgressAt] = useState<Record<string, string>>({});
+  useEffect(() => (setProgress({}), setProgressAt({})), [runId]);
   useServerEvent((e) => {
     if (e.type === "run_subagent" && e.run_id === runId) {
       // 作業 ID ごとに覚える（再開すると呼び出し ID が変わるため。行へのまとめ方は collectSubagents が決める）
       setProgress((prev) => ({ ...prev, [e.subagent.task_id]: e.subagent }));
+      setProgressAt((prev) => ({ ...prev, [e.subagent.task_id]: new Date().toISOString() }));
     }
   });
   // 裏で動いているものの一覧（Claude Code が知らせる。作業中だけ）にないサブエージェントは、もう動いていない
-  return collectSubagents(events, progress, busy, background ? new Set(background.tasks.map((t) => t.task_id)) : undefined);
+  const entries = collectSubagents(events, progress, busy, background ? new Set(background.tasks.map((t) => t.task_id)) : undefined);
+  return entries.map((s) => {
+    const at = s.agentId ? progressAt[s.agentId] : undefined;
+    return at && s.status === "running" ? { ...s, lastActivityAt: latestOf(s.lastActivityAt, at) } : s;
+  });
 }
 
 
@@ -34,15 +43,19 @@ export function useSubagents(runId: number, events: RunEvent[], busy: boolean, b
 export function SubagentChip({
   entries,
   run,
+  busy,
   models,
   onOpen,
 }: {
   entries: SubagentEntry[];
   run: Run;
+  busy: boolean;
   models: ModelOption[];
   onOpen: (entry: SubagentEntry) => void;
 }) {
   const [open, setOpen] = useState(false);
+  // 最後の動きの表示を進める（開いている間だけ）
+  useTicker(open ? 15_000 : 3_600_000);
   const [showArchived, setShowArchived] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
@@ -58,6 +71,8 @@ export function SubagentChip({
   const visible = entries.filter((s) => !archived.has(s.key)).reverse();
   const hidden = entries.filter((s) => archived.has(s.key)).reverse();
   const running = visible.filter((s) => s.status === "running").length;
+  // 実行中なのに長く動きがないもの（ピルにも出して、開かなくても気づけるようにする）
+  const stalled = visible.filter((s) => s.status === "running" && activityOf(s.lastActivityAt).level === "stalled").length;
   // 通信の切断で止まったものは、作業の失敗と分けて数える（「再開」で続きから戻せる）
   const failed = visible.filter((s) => s.status === "failed" && !s.network).length;
   const network = visible.filter((s) => s.network).length;
@@ -97,8 +112,9 @@ export function SubagentChip({
               <span className={`subagent-status status-${s.network ? "network" : s.status}`}> · {subagentStatusLabel(s)}</span>
             )}
             {s.status === "running" && s.lastTool && <span> · {s.lastTool}</span>}
+            {s.status === "running" && <ActivityNote entry={s} />}
           </span>
-          {!isArchived && <SubagentRecovery runId={run.id} entry={s} />}
+          {!isArchived && <SubagentActions runId={run.id} entry={s} busy={busy} />}
         </span>
         {isArchived ? (
           <IconButton
@@ -135,6 +151,7 @@ export function SubagentChip({
         )}
         {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
         {running > 0 && <span className="chip-running"> · {running} 件実行中</span>}
+        {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}
         {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}
         {network > 0 && <span className="chip-network"> · {network} 件通信で中断</span>}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
@@ -160,4 +177,12 @@ export function SubagentChip({
       )}
     </div>
   );
+}
+
+/** 実行中のサブエージェントの動きの様子（しばらく静か: 最後の動き / 長く動きがない: 注意の色）。動いていれば何も出さない */
+export function ActivityNote({ entry }: { entry: SubagentEntry }) {
+  const activity = activityOf(entry.lastActivityAt);
+  const text = activityText(activity, entry.pendingTool);
+  if (!text) return null;
+  return <span className={activity.level === "stalled" ? "activity-stalled" : undefined}> · {text}</span>;
 }

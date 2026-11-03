@@ -5,6 +5,8 @@ import { RUN_STATUS_LABELS } from "../RunStatus";
 import { useTicker } from "../../hooks/useTicker";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Approval, BackgroundState, Run, RunEvent } from "../../../../core/types";
+import type { SubagentEntry } from "../../../../core/subagents";
+import { activityOf, activityText, latestOf, stalledAgents, type Activity } from "./stall";
 import { backgroundWaitLabel } from "./backgroundLabel";
 import { BackgroundTasks } from "./BackgroundTasks";
 import { Markdown } from "../Markdown";
@@ -47,20 +49,50 @@ function lastResultIdOf(items: TimelineItem[]): number {
 /** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない） */
 const BOTTOM_SLACK_PX = 80;
 
-/** 作業中の行の文（止めている・通信を再試行している・順番待ち・返答を書いている・ツールを実行中・考えている） */
-function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null): ReactNode {
+/** 作業中のチャットの動きの様子（最後に何かが届いてからの時間と、長く動きのないサブエージェント） */
+interface RunActivity {
+  parent: Activity;
+  stalled: SubagentEntry[];
+}
+
+/** 作業中の行の文（止めている・通信を再試行している・順番待ち・返答を書いている・ツールを実行中・考えている）と、動きの様子 */
+function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: RunActivity): ReactNode {
   if (stopping) return "停止中…";
   if (connection.retry) return <RetryLabel retry={connection.retry} />;
   if (run.status === "queued") return "順番を待っています";
-  if (live) return "返答を書いています";
+  // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
+  if (activity.stalled.length > 0) return <StalledAgentsLabel agents={activity.stalled} />;
   const last = items[items.length - 1];
-  if (last?.kind === "tools" && !last.tools[last.tools.length - 1].result) return "ツールを実行中";
-  // 返答を書き終えたあと、裏で動いている作業（サブエージェント・コマンド）の終わりを待っている（Claude Code が知らせる一覧で、種類と名前を出す）
-  const waitingBackground = backgroundWaitLabel(background);
-  if (waitingBackground) return waitingBackground;
-  // 一覧の知らせがない古い Claude Code: 返答を書き終えたあと、裏のサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
-  if (runningAgents > 0 && last?.kind === "event" && last.event.type === "text") return `裏で動いているサブエージェント ${runningAgents} 件の終わりを待っています`;
-  return <ThinkingWords since={lastActivityAt(last) ?? run.turn_started_at} />;
+  const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : undefined;
+  const base = (() => {
+    if (live) return "返答を書いています";
+    if (pendingTool && !pendingTool.result) return "ツールを実行中";
+    // 返答を書き終えたあと、裏で動いている作業（サブエージェント・コマンド）の終わりを待っている（Claude Code が知らせる一覧で、種類と名前を出す）
+    const waitingBackground = backgroundWaitLabel(background);
+    if (waitingBackground) return waitingBackground;
+    // 一覧の知らせがない古い Claude Code: 返答を書き終えたあと、裏のサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
+    if (runningAgents > 0 && last?.kind === "event" && last.event.type === "text") return `裏で動いているサブエージェント ${runningAgents} 件の終わりを待っています`;
+    return null;
+  })();
+  const toolName = pendingTool && !pendingTool.result ? (pendingTool.use.data as { name?: string }).name : undefined;
+  const note = activityText(activity.parent, toolName);
+  return (
+    <>
+      {base ?? <ThinkingWords since={lastActivityAt(last) ?? run.turn_started_at} />}
+      {note && <span className={activity.parent.level === "stalled" ? "activity-stalled" : "muted"}> · {note}</span>}
+    </>
+  );
+}
+
+/** 長く動きのないサブエージェントを、作業中の行で知らせる（「サブエージェント『調査』が 12 分動いていません（ほか 1 件）」） */
+function StalledAgentsLabel({ agents }: { agents: SubagentEntry[] }) {
+  const [first] = agents;
+  const minutes = activityOf(first.lastActivityAt).minutes;
+  return (
+    <span className="activity-stalled">
+      サブエージェント「{first.description}」が {minutes} 分動いていません{agents.length > 1 ? `（ほか ${agents.length - 1} 件）` : ""}
+    </span>
+  );
 }
 
 /** いちばん最後に動いた時刻（最後の発言・ツールの結果）。考え始めた時刻として使う */
@@ -96,7 +128,8 @@ export function RunTimeline({
   rel,
   run,
   busy,
-  runningAgents = 0,
+  agents = [],
+  onOpenSubagent,
   background = null,
   connection,
   waiting,
@@ -112,8 +145,10 @@ export function RunTimeline({
   rel: (s: string) => string;
   run: Run;
   busy: boolean;
-  /** 裏で動いているサブエージェントの数（返答を書き終えたあとも作業中のときに、その終わりを待っていると出す） */
-  runningAgents?: number;
+  /** チャットのサブエージェント（実行中の数・長く動きのないもの・裏の作業の一覧から中身を開く） */
+  agents?: SubagentEntry[];
+  /** サブエージェントの中身をパネルのタブで開く */
+  onOpenSubagent?: (entry: SubagentEntry) => void;
   /** 裏で動いている作業と、メインの返答が終わったか（返答のあとに待っているものを、種類と名前で出す） */
   background?: BackgroundState | null;
   /** 通信の再試行中・止まってつながるのを待っているところ */
@@ -141,6 +176,17 @@ export function RunTimeline({
   const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
   // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
+  // 本当に動いているかの目安: 最後に何かが届いた時刻（記録・書いている途中の返答・サブエージェントの動き）。
+  // Claude Code に問い合わせる手段はないので、1 秒ごとの描き直しで、長く動きがなければ知らせる
+  const liveAt = useRef<string>(undefined);
+  useEffect(() => {
+    if (live) liveAt.current = new Date().toISOString();
+  }, [live]);
+  const runningAgents = agents.filter((s) => s.status === "running").length;
+  const activity: RunActivity = {
+    parent: activityOf(latestOf(events.at(-1)?.created_at, liveAt.current, run.turn_started_at, ...agents.filter((s) => s.status === "running").map((s) => s.lastActivityAt))),
+    stalled: busy ? stalledAgents(agents) : [],
+  };
 
   // 検索結果から開いたときは、その発言までスクロールして一瞬強調する
   useEffect(() => {
@@ -184,7 +230,7 @@ export function RunTimeline({
       : finishedWhileAway
         ? { label: run.status === "failed" ? "失敗しました" : "返答が届きました", tone: run.status === "failed" ? "failed" : "arrived" }
         : busy
-          ? { label: workingLabel(run, items, live, stopping, runningAgents, connection, background), tone: connection.retry ? "offline" : "working" }
+          ? { label: workingLabel(run, items, live, stopping, runningAgents, connection, background, activity), tone: connection.retry ? "offline" : "working" }
           : { label: RUN_STATUS_LABELS[run.status], tone: run.status === "failed" ? "failed" : "idle" };
 
   return (
@@ -216,10 +262,10 @@ export function RunTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping, runningAgents, connection, background)}</Working>
+            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping, runningAgents, connection, background, activity)}</Working>
           )}
           {/* 裏で動いている作業（1 件ずつ止められる） */}
-          {busy && <BackgroundTasks runId={run.id} background={background} />}
+          {busy && <BackgroundTasks runId={run.id} background={background} agents={agents} onOpen={onOpenSubagent} />}
           {/* 通信が切れて止まり、つながるのを待っている */}
           {!busy && connection.reconnect && <ReconnectRow runId={run.id} reconnect={connection.reconnect} />}
         </div>
