@@ -116,11 +116,15 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
 
   /**
    * 新しいチャットのタブを開く（ボードや列・グループの＋、サイドバーの＋など）。
-   * 同じ指定のまだ送っていないタブがあれば、それを表示する
+   * ブラウザ・ターミナルと同じく、押すたびに新しいタブを開く（書きかけの新しいチャットがあっても、もう 1 つ始められる）
    */
+  const lastNew = useRef<{ target: string; key: string; at: number }>(undefined);
   const openNew = (target: NewChatTarget) => {
-    // 指定ごとに決まったキーにして、続けて呼ばれても（開発時の二重実行でも）1 つにまとめる
-    const key = `new:${target.projectId}:${target.group ?? ""}`;
+    // 同じ指定でほぼ同時に呼ばれたとき（開発時の effect の二重実行）だけ 1 つにまとめる
+    const sig = `${target.projectId}:${target.group ?? ""}`;
+    const recent = lastNew.current;
+    const key = recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
+    lastNew.current = { target: sig, key, at: Date.now() };
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "new", ...target }]));
     reveal(key);
   };
