@@ -18,6 +18,7 @@ import { SuggestList } from "../suggest/SuggestList";
 import { useSuggest } from "../suggest/useSuggest";
 import { useComposerFiles } from "./useComposerFiles";
 import { usePromptHistory } from "./usePromptHistory";
+import { useComposerKeys } from "./composerKeys";
 
 interface Props {
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
@@ -192,7 +193,9 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   });
   useWindowEvent("blur", () => setHeldMode(undefined));
 
-  /** チャット欄の中（入力欄・下の道具）のキー: ⌘⇧Space で録音の開始・停止、録音中・文字起こし中の Esc でやめる */
+  const keys = useComposerKeys({ busy, onStop, options });
+
+  /** チャット欄の中のキー: ⌘⇧Space で録音の開始・停止、録音中の Esc でやめる。ほかは Esc 2 回で中断・Shift+Tab で権限モード（composerKeys.ts） */
   function onComposerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     trackHeld(e);
     if (e.code === "Space" && e.metaKey && e.shiftKey && !e.altKey && !e.ctrlKey) {
@@ -202,7 +205,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       e.preventDefault();
       e.stopPropagation();
       dictation.cancel();
-    }
+    } else keys.onKeyDown(e);
   }
 
   return (
@@ -261,8 +264,9 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
         {trailing}
         {busy && busyControls && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
         {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
+        {busy && onStop && keys.stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
         {busy && onStop && (
-          <button className="send-button stop" title="中断" aria-label="中断" onClick={onStop}>
+          <button className="send-button stop" title="中断（チャット欄で Esc を 2 回）" aria-label="中断" onClick={onStop}>
             <Square size={12} fill="currentColor" />
           </button>
         )}

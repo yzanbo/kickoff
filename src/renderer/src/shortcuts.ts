@@ -1,3 +1,4 @@
+import { focusChatComposer } from "./components/chat/composerKeys";
 import { useWindowEvent } from "./hooks/useWindowEvent";
 
 interface Actions {
@@ -12,7 +13,8 @@ interface Actions {
 /**
  * アプリ全体のショートカット: ⌘B サイドバーの開閉 / ⌘K 検索・移動 / ⌘F チャットを名前で探す /
  * ⌘⇧F チャットの中の文言を全文検索 / ⌘N / ⌘T 今のプロジェクトで新しいチャット（プロジェクト外なら新しいプロジェクト。⌘T はブラウザの「新しいタブ」と同じ手の動き。チャットは右のパネルのタブで開く） /
- * ⌘, 設定（Mac の環境設定と同じ）/ ⌘⇧A 作業中・回答待ち・未読のチャットの一覧（Chrome の「タブを検索」と同じキー）
+ * ⌘, 設定（Mac の環境設定と同じ）/ ⌘⇧A 作業中・回答待ち・未読のチャットの一覧（Chrome の「タブを検索」と同じキー）/
+ * ⌘L チャット欄にピントを移す（ピントのあるパネルのチャット欄を優先）
  */
 export function useAppShortcuts(actions: Actions) {
   useWindowEvent("keydown", (e) => {
@@ -47,6 +49,8 @@ export function useAppShortcuts(actions: Actions) {
     } else if (e.key === "n" || e.key === "t") {
       e.preventDefault();
       actions.newChat();
+    } else if (e.key === "l" && e.metaKey) {
+      if (focusChatComposer()) e.preventDefault();
     } else if (e.key === ",") {
       e.preventDefault();
       actions.openSettings();
