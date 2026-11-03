@@ -57,24 +57,6 @@ export function groupEvents(events: RunEvent[], parent?: string): TimelineItem[]
   return items;
 }
 
-const TOOL_LABELS: Record<string, string> = {
-  Read: "読む",
-  Write: "作成",
-  Edit: "編集",
-  MultiEdit: "編集",
-  NotebookEdit: "編集",
-  Bash: "コマンド",
-  Grep: "検索",
-  Glob: "ファイル検索",
-  WebSearch: "Web 検索",
-  WebFetch: "Web 取得",
-  TodoWrite: "ToDo",
-  AskUserQuestion: "質問",
-  Agent: "サブエージェント",
-  Task: "サブエージェント",
-  ToolSearch: "ツール検索",
-};
-
 export const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
 const SEARCH_TOOLS = new Set(["Grep", "Glob", "WebSearch"]);
 
@@ -112,12 +94,6 @@ export function summarizeTools(tools: ToolCall[]): string {
   ].filter((part): part is string => Boolean(part));
   if (parts.length <= 1) return parts[0] ?? "";
   return `${parts.slice(0, -1).join("、")} および ${parts[parts.length - 1]}`;
-}
-
-/** ツールの表示名（Kickoff のツールはまとめて「Kickoff」） */
-export function toolLabel(name: string): string {
-  if (name.startsWith("mcp__kickoff__")) return "Kickoff";
-  return TOOL_LABELS[name] ?? name;
 }
 
 /**

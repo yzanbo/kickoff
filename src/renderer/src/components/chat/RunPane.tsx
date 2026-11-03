@@ -13,7 +13,7 @@ import { SubagentDetail } from "./SubagentDetail";
 import { SubagentChip, useSubagents } from "./Subagents";
 import { QueuedMessages } from "./QueuedMessages";
 import { TodoChip } from "./TodoChip";
-import { OpenSubagentContext } from "./Timeline";
+import { OpenSubagentContext } from "./ToolGroup";
 import { userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";

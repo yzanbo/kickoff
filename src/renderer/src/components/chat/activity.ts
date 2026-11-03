@@ -1,5 +1,6 @@
 import type { RunEvent } from "../../../../core/types";
-import { EDIT_TOOLS, toolLabel } from "./timelineItems";
+import { EDIT_TOOLS } from "./timelineItems";
+import { describeTool } from "./toolDescribe";
 import { baseName } from "../../format";
 
 const SEARCH_TOOLS = new Set(["Grep", "Glob"]);
@@ -31,7 +32,7 @@ export function describeActivity(event: Pick<RunEvent, "type" | "data">): string
   else if (SEARCH_TOOLS.has(name)) text = `検索: ${clip(String(input.pattern ?? ""))}`;
   else if (name === "Agent" || name === "Task") text = `サブエージェントを起動: ${clip(String(input.description ?? ""))}`;
   else if (WEB_TOOLS.has(name)) text = "Web を調べています";
-  else text = `${toolLabel(name)} を使用`;
+  else text = clip(describeTool(name, input));
   return prefix + text;
 }
 
