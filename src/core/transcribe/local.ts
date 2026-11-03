@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { errorMessage } from "../errors.js";
 import { execFileAsync } from "../exec.js";
+import { CJK_CHAR } from "../types.js";
 import type { AudioInput, LocalOptions } from "./types.js";
 
 /** 文字起こしを打ち切るまでの時間（長い録音でも、ふつうは数十秒で終わる） */
@@ -59,8 +60,6 @@ export const whisperArgs = (opts: { model: string; wav: string; language: string
   opts.outBase,
 ];
 
-const CJK = /[　-ヿ㐀-鿿豈-﫿＀-￯]/;
-
 /**
  * whisper の出力（区切りごとの行）を 1 つの文にする。日本語・中国語どうしの継ぎ目は詰め、それ以外は空白でつなぐ。
  * 無音のときに出る「[BLANK_AUDIO]」などの印は除く
@@ -72,7 +71,7 @@ export function joinSegments(output: string): string {
     .filter(Boolean);
   return lines.reduce((acc, line) => {
     if (!acc) return line;
-    const glue = CJK.test(acc.at(-1)!) && CJK.test(line[0]) ? "" : " ";
+    const glue = CJK_CHAR.test(acc.at(-1)!) && CJK_CHAR.test(line[0]) ? "" : " ";
     return acc + glue + line;
   }, "");
 }
