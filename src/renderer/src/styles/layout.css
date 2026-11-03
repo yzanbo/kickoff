@@ -3,6 +3,8 @@
 /* 左: サイドバー / 真ん中: 画面と下のパネル / 右: プロジェクトのチャット欄（下のパネルより下まで） / 下: 帯 */
 .layout {
   display: grid;
+  /* いま見えているサイドバーの幅（閉じたら 0。右のチャット欄の幅の上限に使う） */
+  --sidebar-shown: var(--sidebar-w, 260px);
   grid-template-columns: var(--sidebar-w, 260px) minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
@@ -11,6 +13,7 @@
 
 /* サイドバーを閉じたとき（⌘B） */
 .layout.sidebar-collapsed {
+  --sidebar-shown: 0px;
   grid-template-columns: 0px minmax(0, 1fr) auto;
 }
 

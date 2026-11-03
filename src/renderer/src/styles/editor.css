@@ -14,6 +14,8 @@
   flex: none;
   flex-direction: column;
   width: 300px;
+  /* 狭いとき（チャット欄を広げた）も、右の差分・中身を残す（覚えた幅より優先） */
+  max-width: 50%;
   overflow-y: auto;
   border-right: 1px solid var(--border);
   background: var(--bg-sidebar);

@@ -88,15 +88,18 @@ export function SidePanel({
       <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
         <PanelRightClose size={15} />
       </button>
-      <button
-        className="panel-control"
-        title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-        aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-        aria-pressed={maximized}
-        onClick={panel.toggleMaximized}
-      >
-        {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-      </button>
+      {/* 狭くてボードを覆っているときは、切り替えても見た目が変わらないので出さない */}
+      {!panel.covering && (
+        <button
+          className="panel-control"
+          title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+          aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+          aria-pressed={maximized}
+          onClick={panel.toggleMaximized}
+        >
+          {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+        </button>
+      )}
     </div>
   );
   /** ペインのタブの列（パネルの閉じる・横幅いっぱいは、左上のペインにだけ置く） */
