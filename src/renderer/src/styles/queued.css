@@ -96,6 +96,18 @@
   color: var(--extra-muted);
 }
 
+/* 送る順番の番号（1 が次に送るもの） */
+.queued-index {
+  flex: none;
+  min-width: 16px;
+  margin-right: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .queued-row.dragging {
   opacity: 0.4;
 }
