@@ -36,6 +36,7 @@ import { QUEUE_MODE_KEY } from "../../storageKeys";
 import { Segmented, type SegmentOption } from "../Segmented";
 import { SelectionComment } from "./SelectionComment";
 import { confirmRewindSend, restoreFilesBefore } from "./rewindActions";
+import { RetryContext, useRetryActions } from "./FailedTurnActions";
 
 type QueueMode = QueueSendMode;
 
@@ -202,9 +203,11 @@ function RunView({
     }),
     [busy, run.id],
   );
-
+  // 失敗した作業の直す操作（続きから・深さを下げて・別のモデルで・巻き戻して再試行）
+  const retry = useRetryActions(run.id, events, busy, options, rewind.send);
   return (
     <FileLinkContext.Provider value={fileLinks}>
+    <RetryContext.Provider value={retry}>
     <OpenSubagentContext.Provider value={openSub}>
     <RewindContext.Provider value={rewind}>
     <div ref={panelRef} className={cx("run-page run-panel", finding && "finding", wide && "wide")}>
@@ -291,6 +294,7 @@ function RunView({
     </div>
     </RewindContext.Provider>
     </OpenSubagentContext.Provider>
+    </RetryContext.Provider>
     </FileLinkContext.Provider>
   );
 }

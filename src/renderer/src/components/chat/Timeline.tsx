@@ -16,6 +16,7 @@ import type { FileChange } from "./turnFileChanges";
 import { ToolGroup } from "./ToolGroup";
 import { AssistantMessage, UserMessage } from "./MessageItems";
 import { copyRich } from "../../richCopy";
+import { FailedTurnActions } from "./FailedTurnActions";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -86,6 +87,7 @@ function TurnEnd(props: TurnFooterProps & { turnChanges?: FileChange[] }) {
     <>
       {props.turnChanges && <TurnChanges files={props.turnChanges} />}
       <TurnFooter {...props} />
+      <FailedTurnActions resultId={props.event.id} />
     </>
   );
 }

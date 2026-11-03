@@ -287,3 +287,11 @@ button.turn-change-file:hover {
 .turn-change-del {
   color: var(--ng);
 }
+
+/* 失敗した作業の直す操作（FailedTurnActions）: 終わりの行の下に小さなボタンを並べる */
+.turn-retry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 6px;
+}
