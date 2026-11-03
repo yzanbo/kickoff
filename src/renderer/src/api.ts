@@ -264,7 +264,7 @@ export const api = {
     request<{ stop_after: string | null; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/stop-after`, { id }),
   /** 待ちの指示をすべて消す */
   clearQueued: (runId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue`),
-  /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めてから送る） */
+  /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */
   sendAllQueued: (runId: number, ids?: string[]) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/send-all`, ids ? { ids } : {}),
   /** 選んだ待ちの指示をまとめて消す */
   removeQueuedMany: (runId: number, ids: string[]) =>

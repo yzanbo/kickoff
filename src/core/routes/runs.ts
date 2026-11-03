@@ -236,7 +236,7 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json({ queue: runner.queued(run.id) });
   });
 
-  // 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら、いまの作業を止めてから送る）
+  // 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ列の先頭に戻す）
   app.post("/api/runs/:id/queue/send-all", async (c) => {
     const run = requireRun(store, c.req.param("id"));
     const { ids } = queueIdsSchema.partial().parse(await c.req.json().catch(() => ({})));
@@ -262,7 +262,7 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json({ moved: runner.moveQueuedMany(run.id, body.ids, to), queue: runner.queued(run.id) });
   });
 
-  // 待ちの 1 件をすぐ送る（作業中なら、いまの作業を止めてから送る）
+  // 待ちの 1 件をすぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ列の先頭に戻す）
   app.post("/api/runs/:id/queue/:queueId/send", async (c) => {
     const run = requireRun(store, c.req.param("id"));
     const sent = await conflictOnError(() => runner.sendQueuedNow(run.id, c.req.param("queueId")));
