@@ -222,6 +222,9 @@ export const api = {
     request<EffortDefault>("GET", `/api/projects/${projectId}/effort-default?${new URLSearchParams({ ...(model ? { model } : {}), ...(worktree ? { worktree } : {}) })}`),
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
   forkRun: (runId: number, eventId: number) => request<Run>("POST", `/api/runs/${runId}/fork`, { event_id: eventId }),
+  /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。ファイルの変更は戻さない） */
+  rewindRun: (runId: number, eventId: number, text: string, options: RunOptions = {}) =>
+    request<Run>("POST", `/api/runs/${runId}/rewind`, { event_id: eventId, text, options }),
   /** 割り込んで送る（作業中なら、待ちの列には入れずに、いまの作業を止めてからすぐ送る） */
   interrupt: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
     request<{ ok: true }>("POST", `/api/runs/${runId}/interrupt`, { text, options, attachments }),

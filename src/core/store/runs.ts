@@ -223,6 +223,12 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
         "INSERT INTO run_events (run_id, type, data, created_at) SELECT ?, type, data, created_at FROM run_events WHERE run_id = ? AND id <= ? ORDER BY id",
       ).run(toRunId, fromRunId, upToEventId);
     },
+    /** 会話の記録を、fromEventId から後ろ（fromEventId を含む）すべて消す（巻き戻し用。全文検索の索引はトリガーで追従する） */
+    deleteEventsFrom(runId: number, fromEventId: number): void {
+      db.prepare("DELETE FROM run_events WHERE run_id = ? AND id >= ?").run(runId, fromEventId);
+      const run = get(runId);
+      if (run) onChange({ type: "run_events_deleted", project_id: run.project_id, run_id: runId, from_event_id: fromEventId });
+    },
     listEvents(runId: number): RunEvent[] {
       const rows = db.prepare("SELECT * FROM run_events WHERE run_id = ? ORDER BY id ASC").all(runId) as unknown as EventRow[];
       return rows.map((r) => ({ ...r, data: JSON.parse(r.data) }));
