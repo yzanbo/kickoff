@@ -5,7 +5,10 @@ import { toggleArchiveRunNow } from "../../runActions";
 import { useExternalTerminal } from "../../externalTerminal";
 import { IconButton } from "../IconButton";
 import { ProjectChip } from "../ProjectChip";
-import { RUN_STATUS_LABELS, RunStatusIcon } from "../RunStatus";
+import { busyWithUnread } from "../../../../core/board";
+import { useRunStates } from "../../approvalsContext";
+import { RUN_STATUS_LABELS } from "../RunStatus";
+import { StatusSlot } from "../StatusSlot";
 import { WorktreeChip } from "../WorktreeChip";
 
 /**
@@ -25,6 +28,9 @@ export function RunHeader({
   tools?: ReactNode;
 }) {
   const external = useExternalTerminal();
+  // 状態の印はサイドバーの行・パネルのタブと同じもの（回答待ちの確認があれば回答待ち）
+  const { stateOf } = useRunStates();
+  const state = waiting ? "needs_input" : stateOf(run);
   return (
     <header className="run-header">
       <div className="run-title-row">
@@ -65,7 +71,7 @@ export function RunHeader({
           </span>
         )}
         <span className={`run-state state-${waiting ? "waiting" : run.status}`}>
-          <RunStatusIcon run={run} waiting={waiting} />
+          <StatusSlot state={state} unread={busyWithUnread(run, state)} />
           {RUN_STATUS_LABELS[waiting ? "waiting" : run.status]}
         </span>
       </div>
