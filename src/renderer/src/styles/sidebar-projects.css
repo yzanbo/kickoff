@@ -199,9 +199,10 @@ button.project-switch:hover,
   display: flex;
   flex: 1;
   justify-content: safe center;
-  gap: 6px;
+  gap: 10px;
   min-width: 0;
-  padding: 2px;
+  /* 丸の角の件数がはみ出しても切れないよう、まわりを空ける */
+  padding: 6px;
   overflow-x: auto;
   scrollbar-width: none;
 }

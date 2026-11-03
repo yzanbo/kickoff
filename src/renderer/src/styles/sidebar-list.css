@@ -188,25 +188,37 @@
   border: 1px dashed var(--border-strong);
 }
 
-/* 丸の右上: 自分待ち（回答待ちはオレンジ、確認待ちだけなら緑）。左上: 作業中（青） */
-.workspace-dot-badge,
-.workspace-dot-working {
+/* 丸の角の件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 回答待ち、右下 = 確認待ち */
+.workspace-dot-count {
   position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 9px;
-  height: 9px;
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
   border: 2px solid var(--bg-sidebar);
-  border-radius: 50%;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-dot-count.running {
+  top: -6px;
+  left: -6px;
+  background: var(--dot-running);
+}
+
+.workspace-dot-count.needs-input {
+  top: -6px;
+  right: -6px;
   background: var(--dot-needs-input);
 }
 
-.workspace-dot-badge.review {
+.workspace-dot-count.review {
+  right: -6px;
+  bottom: -6px;
   background: var(--dot-attention);
-}
-
-.workspace-dot-working {
-  right: auto;
-  left: -3px;
-  background: var(--dot-running);
 }
