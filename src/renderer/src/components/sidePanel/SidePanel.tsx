@@ -159,7 +159,7 @@ export function SidePanel({
             return (
               <div
                 key={id}
-                className={cx("split-pane", id === layout.focused && "focused", rect.y === 0 && "top-row", rect.y === 0 && rect.x + rect.w > 0.999 && "top-right")}
+                className={cx("split-pane", rect.y === 0 && "top-row", rect.y === 0 && rect.x + rect.w > 0.999 && "top-right")}
                 style={fracStyle(rect)}
                 onPointerDown={() => panel.focusPane(id)}
               >
@@ -191,6 +191,7 @@ export function SidePanel({
               active={pane.active === t.key}
               focused={pane.id === layout.focused}
               style={split && rect ? fracStyle(rect, true) : undefined}
+              split={split}
             />
           );
         })}

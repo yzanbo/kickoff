@@ -1,4 +1,5 @@
 import { lazy, Suspense, type CSSProperties } from "react";
+import { cx } from "../../cx";
 import { BrowserPane } from "../browser/BrowserPane";
 import { RunPane } from "../chat/RunPane";
 import { SubagentPane } from "../chat/SubagentPane";
@@ -22,6 +23,7 @@ export function PanelTabPage({
   active,
   focused,
   style,
+  split = false,
 }: {
   tab: PanelTab;
   panel: SidePanelController;
@@ -33,11 +35,13 @@ export function PanelTabPage({
   /** 自分のペインにピントがあるか */
   focused: boolean;
   style?: CSSProperties;
+  /** ペインを分けているか（分けているときだけ、ピントのあるペインをチャット欄の枠の色で示す） */
+  split?: boolean;
 }) {
   const visible = panelOpen && active;
   const focus = () => panel.focusPane(paneId);
   return (
-    <div className="panel-tab-page" hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
+    <div className={cx("panel-tab-page", split && focused && "pane-focused")} hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
       {t.kind === "chat" ? (
         <RunPane
           projectId={t.projectId}
