@@ -16,8 +16,10 @@ const api = {
   platform: process.platform,
   pickFolder: (title?: string): Promise<string | null> => ipcRenderer.invoke("kickoff:pick-folder", title),
   openPath: (target: string): Promise<void> => ipcRenderer.invoke("kickoff:open-path", target),
-  /** macOS のターミナル（Terminal.app）で、そのフォルダを開く */
-  openExternalTerminal: (dir: string): Promise<void> => ipcRenderer.invoke("kickoff:open-external-terminal", dir),
+  /** 外部のターミナル（terminal: アプリの id。省くと Terminal.app）で、そのフォルダを開く */
+  openExternalTerminal: (dir: string, terminal?: string): Promise<void> => ipcRenderer.invoke("kickoff:open-external-terminal", dir, terminal),
+  /** この Mac に入っている外部のターミナルの id */
+  externalTerminals: (): Promise<string[]> => ipcRenderer.invoke("kickoff:external-terminals"),
   /** VS Code でファイルを開く（line があればその行へ） */
   openInVSCode: (target: string, line?: number): Promise<void> => ipcRenderer.invoke("kickoff:open-in-vscode", target, line),
   /** 参照資料にするフォルダ・ファイルを選ぶ（複数可） */

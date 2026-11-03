@@ -62,3 +62,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
   projectsDir: "~/Documents",
   autoArchiveDays: null,
 };
+
+/** 外部のターミナルとして開けるアプリ（id は保存に使う。app は /Applications の中の名前。開き方はメインプロセスの ipcArgs.ts） */
+export const EXTERNAL_TERMINALS = [
+  { id: "terminal", label: "ターミナル（Terminal.app）", app: "Terminal" },
+  { id: "ghostty", label: "Ghostty", app: "Ghostty" },
+  { id: "iterm", label: "iTerm2", app: "iTerm" },
+  { id: "warp", label: "Warp", app: "Warp" },
+  { id: "wezterm", label: "WezTerm", app: "WezTerm" },
+  { id: "alacritty", label: "Alacritty", app: "Alacritty" },
+  { id: "kitty", label: "kitty", app: "kitty" },
+] as const;
+export type ExternalTerminalId = (typeof EXTERNAL_TERMINALS)[number]["id"];

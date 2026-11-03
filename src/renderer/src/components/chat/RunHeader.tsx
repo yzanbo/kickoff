@@ -2,7 +2,8 @@ import { Archive, ArchiveRestore, ExternalLink, Pencil, SquareTerminal } from "l
 import type { Project, Run } from "../../../../core/types";
 import { CHAT_TITLE_MAX, chatTitle } from "../../chatTitle";
 import { useRunRename } from "../../hooks/useRunRename";
-import { reportFailure, toggleArchiveRunNow } from "../../runActions";
+import { toggleArchiveRunNow } from "../../runActions";
+import { useExternalTerminal } from "../../externalTerminal";
 import { CloseButton, IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { ProjectChip } from "../ProjectChip";
@@ -28,6 +29,7 @@ export function RunHeader({
   onOpenTerminal?: (target: TerminalTarget) => void;
 }) {
   const rename = useRunRename();
+  const external = useExternalTerminal();
   const editor = rename.editorFor(run);
   return (
     <header className="run-header">
@@ -66,14 +68,14 @@ export function RunHeader({
             onClick={() => onOpenTerminal(terminalTargetOf(run, project))}
           />
         )}
-        {/* macOS のターミナル（アプリの外）で、作業場所を開く */}
+        {/* 外部のターミナル（アプリの外。設定で選んだアプリ）で、作業場所を開く */}
         {window.kickoff && project && (
           <IconButton
             icon={ExternalLink}
             size={13}
             label="外部のターミナルで作業場所を開く"
-            title={`外部のターミナル（Terminal.app）で開く（${run.worktree_path || project.repo_path}）`}
-            onClick={() => void window.kickoff?.openExternalTerminal(run.worktree_path || project.repo_path).catch(reportFailure("ターミナルを開けませんでした"))}
+            title={`${external.label}で開く（${run.worktree_path || project.repo_path}）。アプリは設定の「ターミナル」で選べます`}
+            onClick={() => external.open(run.worktree_path || project.repo_path)}
           />
         )}
         {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}

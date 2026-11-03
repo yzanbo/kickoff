@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { existingFolder, knownExtension, webContentsId } from "./ipcArgs.js";
+import { existingFolder, externalTerminalArgs, installedTerminals, knownExtension, knownTerminal, webContentsId } from "./ipcArgs.js";
 
 test("IPC の引数の検査: 対応している拡張機能のキーと、埋め込みブラウザの ID だけを通す", () => {
   assert.equal(knownExtension("react-devtools"), "react-devtools");
@@ -25,4 +25,15 @@ test("外部のターミナルで開くフォルダ: 絶対パスの、いまあ
   const file = path.join(dir, "a.txt");
   fs.writeFileSync(file, "x");
   assert.throws(() => existingFolder(file), /フォルダが見つかりません/);
+});
+
+test("外部のターミナル: 知らないものは Terminal.app、アプリごとの作業フォルダの渡し方、入っているものだけを出す", () => {
+  assert.equal(knownTerminal("ghostty"), "ghostty");
+  assert.equal(knownTerminal("nope"), "terminal");
+  assert.equal(knownTerminal(undefined), "terminal");
+  assert.deepEqual(externalTerminalArgs("terminal", "/w"), ["-a", "Terminal", "/w"]);
+  assert.deepEqual(externalTerminalArgs("ghostty", "/w"), ["-na", "Ghostty", "--args", "--working-directory=/w"]);
+  assert.deepEqual(externalTerminalArgs("iterm", "/w"), ["-a", "iTerm", "/w"]);
+  const present = new Set(["/Applications/Ghostty.app", "/h/Applications/Warp.app"]);
+  assert.deepEqual(installedTerminals("/h", (p) => present.has(p)), ["terminal", "ghostty", "warp"]);
 });

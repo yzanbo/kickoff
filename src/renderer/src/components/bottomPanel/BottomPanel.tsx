@@ -1,5 +1,5 @@
 import { Columns2, ExternalLink, Maximize2, Minimize2, Plus, SquareTerminal } from "lucide-react";
-import { reportFailure } from "../../runActions";
+import { useExternalTerminal } from "../../externalTerminal";
 import { cx } from "../../cx";
 import { CloseButton, IconButton } from "../IconButton";
 import { PanelTab } from "../sidePanel/PanelTab";
@@ -15,6 +15,7 @@ import type { BottomPanelController } from "./useBottomPanel";
 export function BottomPanel({ panel }: { panel: BottomPanelController }) {
   const { open, tabs, active, maximized, targets } = panel;
   const addMenu = useAnchoredMenu(".bottom-panel-add", TARGET_MENU_WIDTH, "right");
+  const external = useExternalTerminal();
   if (!panel.available) return null;
   // 外部のターミナルで開くフォルダ（開いているタブの最初のペイン。タブがなければ、開ける場所の先頭）
   const externalDir = tabs.find((t) => t.key === active)?.panes[0]?.cwd ?? targets[0]?.cwd;
@@ -73,8 +74,8 @@ export function BottomPanel({ panel }: { panel: BottomPanelController }) {
             icon={ExternalLink}
             size={13}
             label="外部のターミナルで開く"
-            title={`外部のターミナル（Terminal.app）で開く（${externalDir}）`}
-            onClick={() => void window.kickoff?.openExternalTerminal(externalDir).catch(reportFailure("ターミナルを開けませんでした"))}
+            title={`${external.label}で開く（${externalDir}）。アプリは設定の「ターミナル」で選べます`}
+            onClick={() => external.open(externalDir)}
           />
         )}
         {active && <IconButton icon={Columns2} size={14} label="ターミナルを分割" title="ターミナルを分割（⌘\）" onClick={panel.split} />}
