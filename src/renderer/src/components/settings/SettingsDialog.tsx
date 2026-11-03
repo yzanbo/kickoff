@@ -1,5 +1,8 @@
 import { Archive, Bell, Bot, Gauge, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
+import { useSharedFlag } from "../../hooks/useStoredState";
+import { COMPOSER_COMPACT_KEY } from "../../storageKeys";
 import { useTheme, type Theme } from "../../theme";
+import { Field } from "../Field";
 import { BrowserExtensions } from "../BrowserExtensions";
 import { Segmented } from "../Segmented";
 import { TabbedDialog, type DialogSection } from "../TabbedDialog";
@@ -62,20 +65,37 @@ function UsageSettings() {
 
 function DisplaySettings() {
   const [theme, setTheme] = useTheme();
+  const [compactComposer, setCompactComposer] = useSharedFlag(COMPOSER_COMPACT_KEY);
   return (
     <section className="section">
       <h2>表示</h2>
-      <Segmented<Theme>
-        className="segmented theme-switch"
-        label="テーマ"
-        value={theme}
-        onChange={setTheme}
-        options={[
-          { value: "dark", label: "ダーク" },
-          { value: "light", label: "ライト" },
-          { value: "system", label: "システムに合わせる" },
-        ]}
-      />
+      <div className="form">
+        <Field label="テーマ">
+          <Segmented<Theme>
+            className="segmented theme-switch"
+            label="テーマ"
+            value={theme}
+            onChange={setTheme}
+            options={[
+              { value: "dark", label: "ダーク" },
+              { value: "light", label: "ライト" },
+              { value: "system", label: "システムに合わせる" },
+            ]}
+          />
+        </Field>
+        <Field label="チャット欄" help="コンパクトにすると、チャット欄の文字・余白・下のボタンを小さくして、縦の幅を抑えます。">
+          <Segmented<"normal" | "compact">
+            className="segmented theme-switch"
+            label="チャット欄の大きさ"
+            value={compactComposer ? "compact" : "normal"}
+            onChange={(v) => setCompactComposer(v === "compact")}
+            options={[
+              { value: "normal", label: "標準" },
+              { value: "compact", label: "コンパクト" },
+            ]}
+          />
+        </Field>
+      </div>
     </section>
   );
 }

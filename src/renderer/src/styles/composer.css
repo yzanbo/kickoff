@@ -187,3 +187,58 @@
   height: 28px;
   border-radius: 50%;
 }
+
+/*
+ * コンパクト表示（設定の「表示」→「チャット欄」）: 文字・余白・下の道具を小さくして、縦の幅を抑える。
+ * 送信・中断のボタン（context-meter.css）・推論の深さなどの選択（composer-select.css）は後ろのファイルにあるので、
+ * .composer.compact を付けて詳細度で勝たせる
+ */
+.composer.compact {
+  border-radius: var(--radius-lg);
+}
+
+.composer.compact textarea {
+  min-height: 32px;
+  padding: 7px 12px 0;
+  font-size: 12px;
+  border-radius: 12px 12px 0 0;
+}
+
+.composer.compact .composer-bar {
+  gap: 6px;
+  padding: 0 6px 4px;
+}
+
+.composer.compact .option-button {
+  gap: 4px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.composer.compact .option-button svg,
+.composer.compact .attach-button svg {
+  width: 13px;
+  height: 13px;
+}
+
+.composer.compact .attach-button,
+.composer.compact .send-button,
+.composer.compact .context-ring-button {
+  width: 24px;
+  height: 24px;
+}
+
+.composer.compact .send-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.composer.compact .send-button.stop svg {
+  width: 10px;
+  height: 10px;
+}
+
+.composer.compact .view-toggle button {
+  padding: 2px 6px;
+}
