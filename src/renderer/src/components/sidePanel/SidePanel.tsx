@@ -191,7 +191,6 @@ export function SidePanel({
               active={pane.active === t.key}
               focused={pane.id === layout.focused}
               style={split && rect ? fracStyle(rect, true) : undefined}
-              onClose={close}
             />
           );
         })}
