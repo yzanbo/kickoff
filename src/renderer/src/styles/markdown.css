@@ -171,3 +171,8 @@
   text-decoration-style: solid;
   background: var(--bg-active);
 }
+
+/* 返答の中の画像は欄の幅に収める */
+.markdown img {
+  max-width: 100%;
+}

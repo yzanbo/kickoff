@@ -110,7 +110,9 @@
   min-height: 0;
 }
 
+/* チャット全体は横にスクロールさせない（幅のある表・コード・図は、その場所だけで横にスクロールする） */
 .timeline {
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -161,9 +163,11 @@
   margin-bottom: 6px;
 }
 
+/* 長い URL・パスなど、区切りのない文も欄の中で折り返す */
 .assistant {
   padding: 8px 0;
   line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 
 .assistant.sub {
