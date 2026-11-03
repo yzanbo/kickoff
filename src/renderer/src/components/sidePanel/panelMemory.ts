@@ -39,10 +39,11 @@ export function savePanel(memoryKey: string, state: PanelState) {
   listeners.forEach((l) => l());
 }
 
-// いま画面に出ているパネルの、タブを表示する・閉じる方法（サイドバーの下書きから使う）
+// いま画面に出ているパネルの、タブを表示する・閉じる・中身を変える方法（サイドバーの下書きから使う）
 interface PanelOpener {
   show: (tabKey: string) => void;
   close: (tabKey: string) => void;
+  update: (tabKey: string, change: (tab: PanelTab) => PanelTab) => void;
 }
 const openers = new Map<string, PanelOpener>();
 
@@ -94,6 +95,22 @@ export function openDraft(draft: SidebarDraft) {
       opener?.show(draft.key);
     }
   }, 50);
+}
+
+/** 下書きを指す値（ドラッグで渡す。どのボード・チャット欄の、どのタブか） */
+export type DraftRef = Pick<SidebarDraft, "memoryKey" | "key">;
+
+/**
+ * 下書きの作成先のグループを変える（サイドバーでグループへドラッグしたとき。undefined ならグループなし）。
+ * そのパネルが画面になければ、覚えている内容を書き換える
+ */
+export function setDraftGroup(draft: DraftRef, group: number | undefined, groupName: string | undefined) {
+  const change = (t: PanelTab): PanelTab => (t.kind === "new" && t.key === draft.key ? { ...t, group, groupName } : t);
+  const live = openers.get(draft.memoryKey);
+  if (live) return live.update(draft.key, change);
+  if (!panelMemory.has(draft.memoryKey)) return;
+  const s = loadPanel(draft.memoryKey);
+  savePanel(draft.memoryKey, { ...s, tabs: s.tabs.map(change) });
 }
 
 /** 下書きを消す（そのパネルが画面になければ、覚えている内容から消す） */

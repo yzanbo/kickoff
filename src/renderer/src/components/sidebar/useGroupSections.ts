@@ -4,6 +4,7 @@ import { api } from "../../api";
 import { cx } from "../../cx";
 import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useGroupMenu } from "../menus/GroupMenu";
+import { setDraftGroup } from "../sidePanel/panelMemory";
 
 /** サイドバーのグループ 1 つに渡す、見出しの操作の束（メニュー・名前の変更・ドロップ先・並べ替え） */
 export interface GroupSectionProps {
@@ -11,7 +12,7 @@ export interface GroupSectionProps {
   renaming: boolean;
   onRenameStart: () => void;
   onRenameEnd: () => void;
-  /** ドロップ先・並べ替えの見た目 */
+  /** ドロップ先・並べ替えの見た目（チャットと下書きを受け取る） */
   dropClass?: string;
   dropProps: Record<string, unknown>;
   dragProps: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
@@ -33,6 +34,8 @@ export function useGroupSections({ projectId, groups, runs }: { projectId: numbe
     runs,
     onReorder: (ids) => void api.reorderGroups(projectId, ids),
     onMoveRun: (run, groupId) => void api.setRunGroup(run.id, groupId),
+    // 送る前の新しいチャット（下書き）は、作成先のグループを変える（送ったときにそのグループに入る）
+    onMoveDraft: (draft, groupId) => setDraftGroup(draft, groupId ?? undefined, groups.find((g) => g.id === groupId)?.name),
   });
   return {
     sectionProps: (group: RunGroup): GroupSectionProps => ({

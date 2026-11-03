@@ -182,10 +182,18 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     if (nextTabs.length === 0) setPanelOpen(false);
   };
   const closeTab = (key: string) => closeMany([key]);
-  // サイドバーの下書きから、このパネルのタブを表示する・閉じるために登録する（いつも最新の関数を呼ぶ）
-  const openerRef = useRef({ show, close: closeTab });
-  openerRef.current = { show, close: closeTab };
-  useEffect(() => registerPanel(memoryKey, { show: (key) => openerRef.current.show(key), close: (key) => openerRef.current.close(key) }), [memoryKey]);
+  // サイドバーの下書きから、このパネルのタブを表示する・閉じる・作成先のグループを変えるために登録する（いつも最新の関数を呼ぶ）
+  const openerRef = useRef({ show, close: closeTab, update: updateTab });
+  openerRef.current = { show, close: closeTab, update: updateTab };
+  useEffect(
+    () =>
+      registerPanel(memoryKey, {
+        show: (key) => openerRef.current.show(key),
+        close: (key) => openerRef.current.close(key),
+        update: (key, change) => openerRef.current.update(key, change),
+      }),
+    [memoryKey],
+  );
 
   // 削除したチャットのタブ（そのチャットのサブエージェントのタブも）は閉じる（ボードのないチャット欄でも）
   useServerEvent((e) => {

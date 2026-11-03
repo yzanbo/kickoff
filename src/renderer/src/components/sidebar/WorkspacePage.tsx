@@ -16,7 +16,7 @@ import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
 import { useGroupSections } from "./useGroupSections";
-import { DraftRows } from "./DraftRows";
+import { DraftRows, useProjectDrafts } from "./DraftRows";
 import { RowSection } from "./RowSection";
 import { stateCounts } from "../../runState";
 import { useFoldAll, useShowArchivedChats } from "./sidebarFlags";
@@ -69,6 +69,15 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
   const sections = useGroupSections({ projectId: project.id, groups, runs });
+  // 送る前の新しいチャット（下書き）。作成先のグループの中に、グループなしはいちばん上に出す。
+  // 自分が続きを書くものなので「自分待ち」でも出す（検索・状態での絞り込み中は出さない）
+  const drafts = useProjectDrafts(
+    project.id,
+    groups.map((g) => g.id),
+  );
+  const showDrafts = !keyword && stateFilter === null;
+  // グループに入れた下書きがあれば、グループなしのチャットがなくても「グループなし」の見出しを出す（下書きを戻すドロップ先）
+  const groupedDrafts = showDrafts && groups.some((g) => drafts.inGroup(g.id).length > 0);
   // グループの開閉（グループごとに記憶）
   const groupClosed = useStoredFlagMap(SIDEBAR_GROUP_CLOSED_PREFIX);
   // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
@@ -145,8 +154,8 @@ export const WorkspacePage = memo(function WorkspacePage({
             />
           </div>
         )}
-        {/* 送る前の新しいチャット（下書き）。自分が続きを書くものなので「自分待ち」でも出す（検索・状態での絞り込み中は出さない） */}
-        {!keyword && stateFilter === null && <DraftRows projectId={project.id} />}
+        {/* グループなしの下書き（グループから戻すドロップ先にもする） */}
+        {showDrafts && <DraftRows drafts={drafts.top} drop={groups.length > 0 ? sections.ungroupedDrop.props : undefined} />}
         {pinnedRows.length > 0 && (
           <RowSection icon={Pin} label="固定" className="pinned" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
             <ul className="chat-rows">{pinnedRows.map(renderRow)}</ul>
@@ -154,8 +163,9 @@ export const WorkspacePage = memo(function WorkspacePage({
         )}
         {groups.map((group) => {
           const members = list.groupedRows(group.id);
-          // 検索中は、一致するチャットがないグループを隠す
-          if (filtering && members.length === 0) return null;
+          const groupDrafts = showDrafts ? drafts.inGroup(group.id) : [];
+          // 検索・自分待ちなどで絞り込んでいる間は、一致するチャットがないグループを隠す（下書きがあれば出す。自分が続きを書くもの）
+          if (filtering && members.length === 0 && groupDrafts.length === 0) return null;
           return (
             <CustomGroupSection
               key={group.id}
@@ -168,10 +178,11 @@ export const WorkspacePage = memo(function WorkspacePage({
               grouping={grouping}
               renderRow={renderRow}
               section={sections.sectionProps(group)}
+              drafts={groupDrafts}
             />
           );
         })}
-        {groups.length > 0 && ungroupedRows.length > 0 && (
+        {groups.length > 0 && (ungroupedRows.length > 0 || groupedDrafts) && (
           <UngroupedHead projectId={project.id} count={ungroupedRows.length} open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} drop={sections.ungroupedDrop} />
         )}
         {(filtering && rows.length === 0) || (visibleRows.length === 0 && groups.length > 0 && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 ? (
