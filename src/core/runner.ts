@@ -121,6 +121,11 @@ export class Runner {
     return this.followups.edit(runId, id, text.trim());
   }
 
+  /** 待ちの指示をすべて消す（消した数を返す） */
+  clearQueued(runId: number): number {
+    return this.followups.clear(runId);
+  }
+
   /** 待ちの列を並べ替える（なければ false） */
   moveQueued(runId: number, id: string, index: number): boolean {
     return this.followups.move(runId, id, index);

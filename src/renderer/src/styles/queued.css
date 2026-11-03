@@ -21,6 +21,10 @@
   gap: 4px;
 }
 
+.queued-head-row .queued-clear:hover {
+  color: var(--ng);
+}
+
 /* 見出し（押すと一覧をたたむ・開く） */
 .queued-head {
   display: flex;

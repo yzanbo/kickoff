@@ -75,6 +75,13 @@ export class FollowupQueue {
     return this.list(runId).some((m) => m.id === id);
   }
 
+  /** すべて消す（消した数を返す） */
+  clear(runId: number): number {
+    const count = this.list(runId).length;
+    if (count > 0) this.set(runId, []);
+    return count;
+  }
+
   /** チャットを消したとき（知らせない） */
   forget(runId: number) {
     this.lists.delete(runId);

@@ -3,6 +3,7 @@ import { useState, type DragEvent, type KeyboardEvent } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api, attachmentUrl } from "../../api";
 import { ImageViewer } from "../ImageViewer";
+import { confirmDialog } from "../../dialogs";
 import { cx } from "../../cx";
 import { reportFailure } from "../../runActions";
 import { IconButton } from "../IconButton";
@@ -13,7 +14,7 @@ import { QUEUE_COLLAPSED_KEY } from "../../storageKeys";
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
  * 見出しに実行中と送信待ちの数、行に添付（画像はサムネイル）を出す。
- * 行はドラッグでも並べ替えられる（↑↓ のボタンと同じ）。見出しの右の「まとめて送る」は、すべてを 1 つにまとめてすぐ送る。
+ * 行はドラッグでも並べ替えられる（↑↓ のボタンと同じ）。見出しの右の「まとめて送る」は、すべてを 1 つにまとめてすぐ送り、ごみ箱はすべて消す（確かめてから）。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
 export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
@@ -69,6 +70,23 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
           <SendHorizontal size={12} aria-hidden />
           まとめて送る
         </button>
+        <IconButton
+          icon={Trash2}
+          label="送信待ちをすべて消す"
+          title={`送信待ちの ${queue.length} 件をすべて消す（確かめてから）`}
+          size={13}
+          className="queued-clear"
+          onClick={() =>
+            void confirmDialog({
+              title: `送信待ちの ${queue.length} 件をすべて消しますか？`,
+              message: "消した指示は送られません。元に戻せません。",
+              confirmLabel: "すべて消す",
+              danger: true,
+            }).then(async (ok) => {
+              if (ok) await api.clearQueued(runId).catch(failed);
+            })
+          }
+        />
       </div>
       {!collapsed && queue.map((m, i) => (
         editing?.id === m.id ? (
