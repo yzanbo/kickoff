@@ -1,4 +1,4 @@
-import { ChevronUp, CornerDownLeft, MessageSquareText } from "lucide-react";
+import { ChevronUp, CornerDownLeft, History } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
@@ -7,9 +7,10 @@ import { formatMessageTime } from "../../time";
 import { IconButton } from "../IconButton";
 
 /**
- * チャット欄の上の「発言 12」（ToDo・サブエージェントと同じピルの列）。押すと、このチャットの自分の発言の一覧を上に開く。
- * 行を押すとその発言へ移って強調し、行の右のボタンで同じ文を入力欄に入れる（もう一度送る・少し直して送る）。
- * 一覧は会話の順（下ほど新しい）で、開いたらいちばん下（入力欄に近い新しい発言）を見せる
+ * チャット欄の上の「指示の履歴 12」（ToDo・サブエージェントと同じピルの列）。押すと、このチャットで自分が送った指示の一覧を上に開く。
+ * 呼び方は、入力欄の「続けて指示する」・「送信待ちの指示」にそろえる。
+ * 行を押すとその指示へ移って強調し、行の右のボタンで同じ文を入力欄に入れる（もう一度送る・少し直して送る）。
+ * 一覧は会話の順（下ほど新しい）で、開いたらいちばん下（入力欄に近い新しい指示）を見せる
  */
 export function PromptsChip({ events, onJump, onReuse }: { events: RunEvent[]; onJump: (eventId: number) => void; onReuse: (text: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -27,15 +28,15 @@ export function PromptsChip({ events, onJump, onReuse }: { events: RunEvent[]; o
         type="button"
         className={cx("composer-chip", open && "open")}
         aria-expanded={open}
-        title="このチャットの自分の発言の一覧（押すとその発言へ移る）"
+        title="このチャットで送った指示の履歴（行を押すとその指示へ移り、↵ で入力欄に入れる）"
         onClick={() => setOpen(!open)}
       >
-        <MessageSquareText size={14} className="chip-icon" aria-hidden />
-        発言 {prompts.length}
+        <History size={14} className="chip-icon" aria-hidden />
+        指示の履歴 {prompts.length}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {open && (
-        <div ref={listRef} className="chip-popover prompts-popover" role="dialog" aria-label="自分の発言の一覧">
+        <div ref={listRef} className="chip-popover prompts-popover" role="dialog" aria-label="指示の履歴">
           {prompts.map((e, i) => {
             const data = e.data as { text?: string; attachments?: { name: string }[] };
             const text = String(data.text ?? "").trim();
