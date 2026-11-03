@@ -196,7 +196,8 @@ export function RunTimeline({
             if (timelineRef.current) jumpToEvent(timelineRef.current, pinned.id);
           }}
         >
-          {pinned.text}
+          <span className="sticky-prompt-label">あなたの指示</span>
+          <span className="sticky-prompt-text">{pinned.text}</span>
         </button>
       )}
       {away &&
