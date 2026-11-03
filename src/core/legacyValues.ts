@@ -1,6 +1,6 @@
 // 以前（セクション・タスク・成果物があったころ）に保存した値の読み替え（Node 依存なし）。
-// 次の段で DB の変換に移すまで、読み替えはここの純粋関数に集め、読むところ（store/）から呼ぶ。
-import { PERMISSION_CHOICES, type AppSettings, type EffortLevel, type PermissionChoice, type ProjectDefaults } from "./types.js";
+// 古い系統の DB を変換するとき（legacyMigration.ts）だけ使う。読むところ（store/）では読み替えない。
+import { PERMISSION_CHOICES, type EffortLevel, type PermissionChoice, type ProjectDefaults } from "./types.js";
 
 /** 以前のセクション（DB の runs.phase に残っている値） */
 const LEGACY_SECTIONS = ["requirements", "schedule", "implementation", "testing", "deployment"] as const;
@@ -49,9 +49,9 @@ export function legacyRunOptions(row: { phase?: unknown; effort: EffortLevel | n
   return { effort: row.effort ?? LEGACY_SECTION_EFFORT[section], permission_mode: LEGACY_SECTION_PERMISSION[section] };
 }
 
-/** アプリの設定（以前の「セクションに合わせる」の権限モードは「毎回確認」として読む） */
-export function legacySettings(settings: AppSettings): AppSettings {
-  return isPermissionChoice(settings.defaultPermission) ? settings : { ...settings, defaultPermission: "default" };
+/** アプリの設定の 1 項目（JSON の文字列）。以前の「セクションに合わせる」の権限モードは「毎回確認」にする */
+export function legacySettingValue(key: string, value: string): string {
+  return key === "defaultPermission" && !isPermissionChoice(JSON.parse(value)) ? JSON.stringify("default") : value;
 }
 
 /**

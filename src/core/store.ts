@@ -36,7 +36,6 @@ export class Store {
     this.projects = createProjectStore(this.db, onChange);
     this.runs = createRunStore(this.db, onChange);
     this.groups = createGroupStore(this.db, onChange, this.runs.get);
-    this.projects.assignMissingHues();
   }
 
   close() {

@@ -1,5 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-import { legacySettings } from "../legacyValues.js";
 import { DEFAULT_SETTINGS, type AppSettings } from "../types.js";
 import type { Notify } from "./common.js";
 
@@ -8,7 +7,7 @@ export function createSettingsStore(db: DatabaseSync, onChange: Notify) {
   const get = (): AppSettings => {
     const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
     const stored = Object.fromEntries(rows.map((r) => [r.key, JSON.parse(r.value)]));
-    return legacySettings({ ...DEFAULT_SETTINGS, ...stored });
+    return { ...DEFAULT_SETTINGS, ...stored };
   };
   return {
     get,

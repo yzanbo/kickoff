@@ -10,8 +10,9 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const stamp = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 
 /**
- * スキーマの版を上げる前に、いまのデータベースを同じフォルダの backups/ に写す（kickoff-v<いまの版>-<日時>.db）。
- * 新しい版をインストールして初めて起動したときに、マイグレーションや新しい版の不具合でデータを戻せるように。
+ * スキーマの版を上げる前・古い系統（v17）から変換する前に、いまのデータベースを同じフォルダの backups/ に写す
+ * （kickoff-v<いまの版>-<日時>.db。呼ぶのは dbOpen.ts）。新しい版をインストールして初めて起動したときに、
+ * マイグレーション・変換や新しい版の不具合でデータを戻せるように。
  * 写すのは VACUUM INTO（WAL の書きかけも含めて崩れない）。新しいものから KEEP 件だけ残す
  */
 export function backupBeforeMigration(db: DatabaseSync, file: string, fromVersion: number, now = new Date()): string {

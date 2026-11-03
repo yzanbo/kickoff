@@ -1,5 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-import { legacyRunOptions } from "../legacyValues.js";
 import type { NewRun, Run, RunEvent, RunEventData, RunStatus, SearchHit } from "../types.js";
 import { touchProject, updateRow, type Notify, type Row } from "./common.js";
 
@@ -77,13 +76,10 @@ function snippetAround(text: string, keyword: string): { snippet: string; match_
   return { snippet, match_start: matchStart, match_end: matchStart + keyword.length };
 }
 
-/**
- * DB の行をアプリの型に変換する。使わなくなった列（セクション phase・タスク task_id・カンバンの列 stage）は返さず、
- * 以前の権限モード・推論の深さは phase を見て legacyValues で読み替える
- */
+/** DB の行をアプリの型に変換する */
 function toRun(row: unknown): Run {
   const { active_at, ...r } = row as Omit<Run, "updated_at"> & { active_at: string };
-  return { ...r, updated_at: active_at, ...legacyRunOptions({ effort: r.effort, permission_mode: r.permission_mode }) };
+  return { ...r, updated_at: active_at };
 }
 
 /** チャット（エージェントとの会話セッション）と、その記録（run_events）・検索 */

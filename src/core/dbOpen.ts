@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { backupBeforeMigration } from "./dbBackup.js";
+import { convertLegacyDatabase } from "./legacyMigration.js";
 import { inspectSchema, LEGACY_VERSION, migrate, SCHEMA_VERSION } from "./schema.js";
 
 /**
@@ -14,7 +15,7 @@ export function openDatabase(file: string): DatabaseSync {
     const from = state.kind === "current" ? state.version : state.kind === "legacy" ? LEGACY_VERSION : 0;
     const upgrading = state.kind === "legacy" || (from > 0 && from < SCHEMA_VERSION);
     if (file !== ":memory:" && upgrading) backupBeforeMigration(db, file, from);
-    if (state.kind === "legacy") throw new Error("古い系統のデータベースの変換は、まだできません");
+    if (state.kind === "legacy") convertLegacyDatabase(db);
     migrate(db);
     return db;
   } catch (e) {
