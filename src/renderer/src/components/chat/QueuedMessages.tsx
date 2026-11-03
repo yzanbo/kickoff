@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Pause, Play } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
 import type { QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
@@ -21,9 +21,11 @@ const MIN_LIST_HEIGHT = 36;
  * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし（上端のつまみのドラッグで高さを変えられ、見出しの「すべて表示」でスクロールさせずにすべて出せる）、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
  * ⌘ / Shift ＋クリックで行を選ぶと、選んだものだけをまとめて送る・消す・いちばん上か下へ移せる（見出しと右クリック。Esc でやめる）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
+ * 見出しの「自動で送る / 止めておく」で、いまの作業が終わったときに先頭を自動で送るか、送らずに止めておくかを切り替える
+ * （チャットごと。止めておくと、行の「すぐ送る」で 1 件ずつ送れる。送り終えて列が空になったら、自動で送るに戻る）。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
-export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: QueuedMessage[]; busy: boolean }) {
+export function QueuedMessages({ runId, queue, paused, busy }: { runId: number; queue: QueuedMessage[]; paused: boolean; busy: boolean }) {
   const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
   const [expanded, setExpanded] = useStoredFlag(QUEUE_EXPANDED_KEY);
@@ -118,7 +120,17 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
   // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）
-  const hint = !busy ? "自動で送れませんでした。行の「すぐ送る」で送れます" : collapsed ? "" : "終わったら順に送ります";
+  const hint = paused
+    ? collapsed
+      ? "止めています"
+      : busy
+        ? "終わっても送らずに止めておきます"
+        : "止めています。行の「すぐ送る」で 1 件ずつ送れます"
+    : !busy
+      ? "自動で送れませんでした。行の「すぐ送る」で送れます"
+      : collapsed
+        ? ""
+        : "終わったら順に送ります";
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
       {!collapsed && (
@@ -146,6 +158,22 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
           <span className="queued-count">送信待ち {queue.length} 件</span>
           {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && <span className="queued-hint">{hint}</span>}
+        </button>
+        {/* 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える） */}
+        <button
+          type="button"
+          className={cx("btn btn-sm queued-head-btn queued-mode", paused && "paused")}
+          aria-pressed={paused}
+          aria-label={paused ? "止めています（押すと、自動で送るに戻す）" : "自動で送ります（押すと、送らずに止めておく）"}
+          title={
+            paused
+              ? `いまの作業が終わっても送らずに止めておきます。行の「すぐ送る」で 1 件ずつ送れます。押すと、自動で送るに戻します${busy ? "" : "（先頭をすぐ送ります）"}`
+              : "いまの作業が終わったら、先頭から順に自動で送ります。押すと、送らずに止めておきます（移動の前などに）"
+          }
+          onClick={() => void api.setQueuePaused(runId, !paused).catch(failed)}
+        >
+          {paused ? <Pause size={12} aria-hidden /> : <Play size={12} aria-hidden />}
+          <span className="queued-head-label">{paused ? "止めています" : "自動で送る"}</span>
         </button>
         {/* 溜まって中でスクロールするようになったら、すべて出す・縮めるを切り替えられる */}
         {!collapsed && (overflowing || expanded) && (

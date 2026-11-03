@@ -16,6 +16,8 @@ export function useRunDetail(runId: number, projectId: number) {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   // 作業中に送った、次の指示の待ちの列
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
+  // 待ちの列を、終わっても自動で送らずに止めておくか
+  const [queuePaused, setQueuePaused] = useState(false);
   // 生成中の返答（確定すると text イベントとして届くので、そこで消す）
   const [live, setLive] = useState("");
   const [error, setError] = useState<string>();
@@ -26,6 +28,7 @@ export function useRunDetail(runId: number, projectId: number) {
     setRun(undefined);
     setEvents([]);
     setQueue([]);
+    setQueuePaused(false);
     setLive("");
     setError(undefined);
     api
@@ -36,6 +39,7 @@ export function useRunDetail(runId: number, projectId: number) {
         setEvents(d.events);
         setApprovals(d.approvals);
         setQueue(d.queue ?? []);
+        setQueuePaused(Boolean(d.queue_paused));
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
     api
@@ -62,6 +66,7 @@ export function useRunDetail(runId: number, projectId: number) {
       if (!BUSY_STATUSES.includes(e.run.status)) setLive("");
     } else if (e.type === "run_queue" && e.run_id === runId) {
       setQueue(e.queue);
+      setQueuePaused(e.paused);
     } else if (e.type === "approval" && e.approval.run_id === runId) {
       setApprovals((prev) => [...prev, e.approval]);
     } else if (e.type === "approval_resolved" && e.run_id === runId) {
@@ -69,5 +74,5 @@ export function useRunDetail(runId: number, projectId: number) {
     }
   });
 
-  return { run, project, events, approvals, queue, live, error };
+  return { run, project, events, approvals, queue, queuePaused, live, error };
 }

@@ -195,6 +195,42 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   await until(() => provider.prompts.length === 3);
 });
 
+test("待ちの列を止めておく API: 終わっても送らず、すぐ送るで 1 件ずつ送れ、戻すと先頭をすぐ送る。空になると自動に戻る", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  // 列が空なら止めない
+  assert.deepEqual((await call("PUT", `/api/runs/${runId}/queue/paused`, { paused: true })).body, { paused: false, queue: [] });
+  assert.equal((await call("PUT", `/api/runs/${runId}/queue/paused`, {})).status, 400);
+  assert.equal((await call("PUT", "/api/runs/999/queue/paused", { paused: true })).status, 404);
+  await call("POST", `/api/runs/${runId}/queue`, { text: "2" });
+  await call("POST", `/api/runs/${runId}/queue`, { text: "3" });
+  assert.equal((await call("PUT", `/api/runs/${runId}/queue/paused`, { paused: true })).body.paused, true);
+  assert.equal((await call("GET", `/api/runs/${runId}`)).body.queue_paused, true);
+
+  // 終わっても送らない
+  release();
+  await until(() => !runner.isBusy(runId));
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(provider.prompts.length, 1);
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["2", "3"]);
+
+  // すぐ送るで 1 件だけ送り、終わってもまた止まる
+  const [first] = runner.queued(runId);
+  await call("POST", `/api/runs/${runId}/queue/${first.id}/send`);
+  await until(() => provider.prompts.length === 2 && !runner.isBusy(runId));
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(provider.prompts.length, 2);
+  assert.equal(runner.queuePaused(runId), true);
+
+  // 自動で送るに戻すと、作業中でなければ先頭をすぐ送り、列が空になったら止めない状態に戻る
+  assert.deepEqual((await call("PUT", `/api/runs/${runId}/queue/paused`, { paused: false })).body, { paused: false, queue: [] });
+  await until(() => provider.prompts.length === 3);
+  assert.equal(provider.prompts[2], "3");
+  assert.equal(runner.queuePaused(runId), false);
+});
+
 test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {
   const { call, project, store, runner, provider } = setup();
   const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;

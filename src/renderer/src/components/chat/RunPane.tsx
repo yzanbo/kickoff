@@ -54,7 +54,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true }: RunPaneProps) {
-  const { run, project, events, approvals, queue, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, queuePaused, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャットの名前を知らせる（名前を変えたらタブもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -74,7 +74,7 @@ export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} live={live} focus={focus} onClose={onClose} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} live={live} focus={focus} onClose={onClose} />
   );
 }
 
@@ -84,6 +84,7 @@ function RunView({
   events,
   approvals,
   queue,
+  queuePaused,
   live,
   focus,
   onClose,
@@ -93,6 +94,8 @@ function RunView({
   events: RunEvent[];
   approvals: Approval[];
   queue: QueuedMessage[];
+  /** 待ちの列を、終わっても自動で送らずに止めておくか */
+  queuePaused: boolean;
   live: string;
   focus?: number;
   onClose: () => void;
@@ -183,7 +186,7 @@ function RunView({
           )}
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-        <QueuedMessages runId={run.id} queue={queue} busy={busy} />
+        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} busy={busy} />
         <Composer
           options={options}
           busy={busy}

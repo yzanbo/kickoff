@@ -35,9 +35,9 @@ export class Runner {
   private readonly interrupts = new Map<number, { text: string; options: RunOptions; attachments: Attachment[] }>();
 
   constructor(private readonly deps: ExecutionDeps & { usage: UsageMonitor }) {
-    this.followups = new FollowupQueue((runId, queue) => {
+    this.followups = new FollowupQueue((runId, queue, paused) => {
       const run = deps.store.getRun(runId);
-      if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue });
+      if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused });
     });
   }
 
@@ -170,6 +170,21 @@ export class Runner {
     return this.sendQueuedNow(runId, merged.id);
   }
 
+  /** 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか */
+  queuePaused(runId: number): boolean {
+    return this.followups.isPaused(runId);
+  }
+
+  /**
+   * 待ちの列を止めておくかを切り替える（列が空なら止めない）。自動で送るに戻したとき、作業中でなければ先頭をすぐ送る。
+   * 止めておくかを返す
+   */
+  async setQueuePaused(runId: number, paused: boolean): Promise<boolean> {
+    const next = this.followups.setPaused(runId, paused);
+    if (!next && !this.isBusy(runId)) await this.sendNextQueued(runId);
+    return next;
+  }
+
   /** チャットを消したとき、待ちの列も消す */
   forgetQueued(runId: number) {
     this.followups.forget(runId);
@@ -188,6 +203,8 @@ export class Runner {
       }
       return;
     }
+    // 止めておくチャットは、終わっても送らない（行の「すぐ送る」で 1 件ずつ送る）
+    if (this.followups.isPaused(runId)) return;
     const next = this.followups.take(runId);
     if (!next) return;
     try {
