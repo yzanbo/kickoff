@@ -18,7 +18,7 @@ export function createGroupStore(db: DatabaseSync, onChange: Notify, getRun: (id
       return group;
     },
     rename(id: number, name: string): RunGroup {
-      updateRow(db, "run_groups", id, { name }, ["name"]);
+      updateRow(db, "run_groups", id, { name }, ["name"], false);
       const group = get(id)!;
       onChange({ type: "group", group });
       return group;

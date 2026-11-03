@@ -39,18 +39,8 @@ test("アーカイブしたチャットは一覧に出ず、削除すると会�
   assert.equal(store.listEvents(run.id).length, 0);
 });
 
-test("以前のチャット（権限モードが phase）は、読むときにそのセクションの以前の既定に読み替える", () => {
-  const { store, run } = mk();
-  store.db.prepare("UPDATE runs SET phase = 'schedule', permission_mode = 'phase', effort = NULL WHERE id = ?").run(run.id);
-  assert.deepEqual(pick(store.getRun(run.id)!), { effort: "medium", permission_mode: "default" });
-  assert.deepEqual(pick(store.listRuns({ projectId: run.project_id })[0]), { effort: "medium", permission_mode: "default" });
-  // 新しいチャットは、推論の深さを決めていなければ指定しない（null のまま）
-  const fresh = mk();
-  assert.deepEqual(pick(fresh.store.getRun(fresh.run.id)!), { effort: null, permission_mode: "default" });
-  // 使わなくなった列（phase・task_id・stage）は返さない
-  for (const key of ["phase", "task_id", "stage"]) assert.equal(key in fresh.run, false, key);
+test("新しいチャットは、推論の深さを決めていなければ指定しない（null のまま）。使わなくなった列は返さない", () => {
+  const { run } = mk();
+  assert.deepEqual({ effort: run.effort, permission_mode: run.permission_mode }, { effort: null, permission_mode: "default" });
+  for (const key of ["phase", "task_id", "stage"]) assert.equal(key in run, false, key);
 });
-
-function pick(run: { effort: unknown; permission_mode: unknown }) {
-  return { effort: run.effort, permission_mode: run.permission_mode };
-}

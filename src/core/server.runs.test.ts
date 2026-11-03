@@ -44,7 +44,6 @@ test("チャット・グループの API", async () => {
   const renamed = await call("PATCH", `/api/runs/${runId}`, { title: "名前", stage: "todo", group_id: null });
   assert.equal(renamed.body.title, "名前");
   assert.equal("stage" in renamed.body, false);
-  assert.equal(store.db.prepare("SELECT stage FROM runs WHERE id = ?").get(runId)?.stage, null);
   assert.equal(renamed.body.group_id, null);
   assert.equal((await call("PATCH", `/api/runs/${runId}`, { group_id: otherGroup.id })).status, 400);
   assert.equal((await call("PATCH", `/api/runs/${runId}`, { group_id: group.body.id })).body.group_id, group.body.id);

@@ -20,17 +20,20 @@ export function parseJson<T extends object>(text: string | null | undefined): T 
   }
 }
 
-/** patch のうち allowed の列だけを UPDATE し、updated_at を進める。該当する列がなければ何もしない */
-export function updateRow(db: DatabaseSync, table: string, id: number, patch: Row, allowed: readonly string[]) {
+/**
+ * patch のうち allowed の列だけを UPDATE する。touch なら最後に動いた時刻（active_at。一覧の並び順）も進める。
+ * 該当する列がなければ何もしない
+ */
+export function updateRow(db: DatabaseSync, table: string, id: number, patch: Row, allowed: readonly string[], touch: boolean) {
   const keys = Object.keys(patch).filter((k) => allowed.includes(k) && patch[k] !== undefined);
   if (keys.length === 0) return;
-  const sets = keys.map((k) => `${k} = $${k}`).join(", ");
+  const sets = [...keys.map((k) => `${k} = $${k}`), ...(touch ? [`active_at = ${NOW}`] : [])].join(", ");
   const params: Row = { id };
   for (const k of keys) params[k] = patch[k];
-  db.prepare(`UPDATE ${table} SET ${sets}, updated_at = ${NOW} WHERE id = $id`).run(params);
+  db.prepare(`UPDATE ${table} SET ${sets} WHERE id = $id`).run(params);
 }
 
-/** チャットの作成時にプロジェクトの更新日時を進める（一覧の並び順用） */
+/** チャットの作成時にプロジェクトの最後に動いた時刻を進める（一覧の並び順用） */
 export function touchProject(db: DatabaseSync, id: number) {
-  db.prepare(`UPDATE projects SET updated_at = ${NOW} WHERE id = ?`).run(id);
+  db.prepare(`UPDATE projects SET active_at = ${NOW} WHERE id = ?`).run(id);
 }

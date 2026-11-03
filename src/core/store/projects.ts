@@ -25,31 +25,20 @@ const PROJECT_COLUMNS = [
   "hue",
 ] as const;
 
-/** 使わなくなった列（セクション・テスト・デプロイ・自動コミット・書き込み範囲・要件定義書の確定）。次の段で DB から消す */
-interface LegacyProjectColumns {
-  current_phase?: unknown;
-  test_command?: unknown;
-  deploy_instructions?: unknown;
-  auto_commit?: unknown;
-  write_scopes?: unknown;
-  requirements_confirmed_at?: unknown;
-}
-
-/** DB の行（defaults・reference_paths は JSON 文字列）をアプリの型に変換する。使わなくなった列は読まない */
+/** DB の行（defaults・reference_paths は JSON 文字列）をアプリの型に変換する */
 function toProject(row: unknown): Project {
-  const {
-    reference_paths,
-    defaults,
-    current_phase: _phase,
-    test_command: _test,
-    deploy_instructions: _deploy,
-    auto_commit: _commit,
-    write_scopes: _scopes,
-    requirements_confirmed_at: _confirmed,
-    ...r
-  } = row as Omit<Project, "defaults" | "references"> & LegacyProjectColumns & { defaults: string; reference_paths?: string };
+  const { reference_paths, defaults, active_at, ...r } = row as Omit<Project, "defaults" | "references" | "updated_at"> & {
+    defaults: string;
+    reference_paths: string;
+    active_at: string;
+  };
   const references = parseJson<Project["references"]>(reference_paths || "[]");
-  return { ...r, defaults: legacyProjectDefaults(parseJson(defaults)), references: Array.isArray(references) ? references : [] };
+  return {
+    ...r,
+    updated_at: active_at,
+    defaults: legacyProjectDefaults(parseJson(defaults)),
+    references: Array.isArray(references) ? references : [],
+  };
 }
 
 /** プロジェクト（projects 表。色・並び順・固定・アーカイブもここ） */
@@ -73,7 +62,7 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
     },
     /** 一覧（更新順）。費用・動いているチャットの数を添える */
     list(): ProjectSummary[] {
-      const projects = db.prepare("SELECT * FROM projects ORDER BY updated_at DESC").all().map(toProject);
+      const projects = db.prepare("SELECT * FROM projects ORDER BY active_at DESC").all().map(toProject);
       const runs = db
         .prepare(
           `SELECT project_id, SUM(cost_usd) AS cost,
@@ -117,7 +106,7 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
         defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
         reference_paths: references === undefined ? undefined : JSON.stringify(references),
       } as Row;
-      updateRow(db, "projects", id, row, PROJECT_COLUMNS);
+      updateRow(db, "projects", id, row, PROJECT_COLUMNS, true);
       const project = get(id)!;
       onChange({ type: "project", project });
       return project;

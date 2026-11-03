@@ -82,8 +82,8 @@ function snippetAround(text: string, keyword: string): { snippet: string; match_
  * 以前の権限モード・推論の深さは phase を見て legacyValues で読み替える
  */
 function toRun(row: unknown): Run {
-  const { phase, task_id: _task, stage: _stage, ...r } = row as Run & { phase: string; task_id: unknown; stage: unknown };
-  return { ...r, ...legacyRunOptions({ phase, effort: r.effort, permission_mode: r.permission_mode }) };
+  const { active_at, ...r } = row as Omit<Run, "updated_at"> & { active_at: string };
+  return { ...r, updated_at: active_at, ...legacyRunOptions({ effort: r.effort, permission_mode: r.permission_mode }) };
 }
 
 /** チャット（エージェントとの会話セッション）と、その記録（run_events）・検索 */
@@ -92,7 +92,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
     const row = db.prepare("SELECT * FROM runs WHERE id = ?").get(id);
     return row ? toRun(row) : undefined;
   };
-  /** 1 列だけ変えて、変更を知らせる（updated_at は進めない: 並び順を変えない操作に使う） */
+  /** 1 列だけ変えて、変更を知らせる（active_at は進めない: 並び順を変えない操作に使う） */
   const setColumn = (id: number, column: "attention" | "pinned" | "group_id", value: number | null): Run => {
     db.prepare(`UPDATE runs SET ${column} = ? WHERE id = ?`).run(value, id);
     const run = get(id)!;
@@ -120,9 +120,8 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewRun): Run {
       const { lastInsertRowid } = db
         .prepare(
-          // phase は使わなくなった列（NOT NULL なので、次の段で列を消すまで固定の値を入れる）
-          `INSERT INTO runs (project_id, phase, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
-           VALUES (?, 'implementation', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO runs (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           input.project_id,
@@ -142,7 +141,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       return run;
     },
     update(id: number, patch: RunPatch): Run {
-      updateRow(db, "runs", id, patch as Row, RUN_COLUMNS);
+      updateRow(db, "runs", id, patch as Row, RUN_COLUMNS, true);
       const run = get(id)!;
       onChange({ type: "run", run });
       return run;
@@ -168,7 +167,7 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       const before = new Date(now.getTime() - days * 86_400_000).toISOString();
       const rows = db
         .prepare(
-          "SELECT id FROM runs WHERE archived_at IS NULL AND status IN ('completed', 'cancelled') AND attention = 0 AND pinned = 0 AND updated_at < ?",
+          "SELECT id FROM runs WHERE archived_at IS NULL AND status IN ('completed', 'cancelled') AND attention = 0 AND pinned = 0 AND active_at < ?",
         )
         .all(before) as { id: number }[];
       const at = now.toISOString();
