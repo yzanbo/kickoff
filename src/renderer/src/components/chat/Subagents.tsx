@@ -17,8 +17,8 @@ export function useSubagents(runId: number, events: RunEvent[], busy: boolean): 
   useEffect(() => setProgress({}), [runId]);
   useServerEvent((e) => {
     if (e.type === "run_subagent" && e.run_id === runId) {
-      const key = e.subagent.tool_use_id ?? e.subagent.task_id;
-      setProgress((prev) => ({ ...prev, [key]: e.subagent }));
+      // 作業 ID ごとに覚える（再開すると呼び出し ID が変わるため。行へのまとめ方は collectSubagents が決める）
+      setProgress((prev) => ({ ...prev, [e.subagent.task_id]: e.subagent }));
     }
   });
   return collectSubagents(events, progress, busy);

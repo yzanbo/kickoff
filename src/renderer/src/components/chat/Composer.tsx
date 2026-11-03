@@ -19,7 +19,8 @@ import { useComposerFiles } from "./useComposerFiles";
 import { usePromptHistory } from "./usePromptHistory";
 
 interface Props {
-  options: RunOptionsState;
+  /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
+  options?: RunOptionsState;
   placeholder?: string;
   autoFocus?: boolean;
   busy?: boolean;
@@ -235,7 +236,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
             }}
           />
           <DictationButton dictation={dictation} />
-          <RunOptionsBar state={options} />
+          {options && <RunOptionsBar state={options} />}
         </div>
         <div className="composer-actions">
         {trailing}

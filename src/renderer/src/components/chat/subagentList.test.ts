@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { RunEvent } from "../../../../core/types.js";
-import { cleanSubagentReport, collectSubagents } from "./subagentList.js";
+import { cleanSubagentReport, collectSubagents, subagentReport } from "./subagentList.js";
 
 const ev = (id: number, type: RunEvent["type"], data: object): RunEvent =>
   ({ id, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;
@@ -57,4 +57,41 @@ test("裏で動かしたサブエージェントは、起動の知らせでは�
   ] as unknown as Parameters<typeof collectSubagents>[0];
   assert.equal(collectSubagents(events, {}, true)[0].status, "running");
   assert.equal(collectSubagents(events, {}, false)[0].status, "stopped");
+});
+
+test("サブエージェント: SendMessage で再開した回は、作業 ID で元の行にまとめ、作業中に戻して最新の報告に置き換える", () => {
+  const events = [
+    ev(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "調べもの" } }),
+    ev(2, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "調べもの", status: "running" }),
+    ev(3, "tool_result", { tool_use_id: "tu1", is_error: false, content: "Async agent launched successfully.\nagentId: a1 (internal ID)" }),
+    ev(4, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "", status: "completed", summary: "1 回目の報告" }),
+    ev(5, "tool_use", { id: "sm1", name: "SendMessage", input: { to: "a1" } }),
+    ev(6, "subagent", { task_id: "a1", tool_use_id: "sm1", description: "調べもの", status: "running" }),
+  ];
+  const resumed = collectSubagents(events, {}, true);
+  assert.deepEqual(resumed.map((s) => [s.key, s.description, s.status, s.agentId, s.summary]), [["tu1", "調べもの", "running", "a1", "1 回目の報告"]]);
+  // 途中経過は作業 ID で届く（呼び出し ID は SendMessage のもの）
+  const withProgress = collectSubagents(events, { a1: { task_id: "a1", tool_use_id: "sm1", description: "", status: "running", tokens: 500, last_tool: "Bash" } }, true);
+  assert.deepEqual([withProgress[0].tokens, withProgress[0].lastTool], [500, "Bash"]);
+  const done = collectSubagents([...events, ev(7, "subagent", { task_id: "a1", tool_use_id: "sm1", description: "", status: "completed", summary: "2 回目の報告" })], {}, false);
+  assert.deepEqual(done.map((s) => [s.status, s.summary]), [["completed", "2 回目の報告"]]);
+});
+
+test("サブエージェントの報告: SubagentHandback の本文 → 終わりの知らせの要約 → ツールの結果の順に探す", () => {
+  const base = [
+    ev(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "調べもの" } }),
+    ev(2, "tool_result", { tool_use_id: "tu1", is_error: false, content: "ツールの結果の報告" }),
+  ];
+  const entry = (summary?: string) => ({ key: "tu1", description: "調べもの", status: "completed" as const, summary });
+  assert.equal(subagentReport(entry(), base), "ツールの結果の報告");
+  assert.equal(subagentReport(entry("要約の報告"), base), "要約の報告");
+  // 要約が「別の知らせで届けた」という案内なら使わない
+  const pointer = "This agent's report was delivered to you as a message from \"a1\" (its SubagentHandback call).";
+  assert.equal(subagentReport(entry(pointer), [ev(1, "tool_use", { id: "tu1", name: "Agent", input: {} })]), undefined);
+  const handbacks = [
+    ...base,
+    ev(3, "tool_use", { id: "h1", name: "SubagentHandback", parent: "tu1", input: { message: "1 回目" } }),
+    ev(4, "tool_use", { id: "h2", name: "SubagentHandback", parent: "tu1", input: { message: "2 回目" } }),
+  ];
+  assert.equal(subagentReport(entry(pointer), handbacks), "2 回目");
 });

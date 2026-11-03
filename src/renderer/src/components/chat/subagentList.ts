@@ -15,7 +15,15 @@ export interface SubagentEntry {
   lastTool?: string;
   /** タイムラインで、この呼び出しを含むツールのまとまりへ移るための ID */
   toolUseEventId?: number;
+  /** Claude Code のサブエージェントの ID（作業 ID と同じ。SendMessage で続きを頼むときの宛先） */
+  agentId?: string;
+  /** いちばん新しい親への報告（終わりの知らせの要約。再開したら、その回の報告に置き換わる） */
+  summary?: string;
 }
+
+/** Agent / Task ツールの結果の文から、サブエージェントの ID を取り出す（以前の記録で、作業 ID の知らせが残っていないとき） */
+const agentIdIn = (content: unknown): string | undefined =>
+  typeof content === "string" ? /agentId:\s*([a-z0-9]+)/.exec(content)?.[1] : undefined;
 
 const SUBAGENT_TOOLS = new Set(["Task", "Agent"]);
 
@@ -40,6 +48,9 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
   const map = new Map<string, SubagentEntry>();
   // サブエージェントでないツール（Bash など）の呼び出し。以前の記録には、裏で動かしたコマンドのタスクも subagent として残っているので除く
   const otherTools = new Set<string>();
+  // 作業 ID → 行のキー（起動した Agent / Task の呼び出し ID）。SendMessage で再開すると、作業 ID はそのままで、
+  // 知らせの呼び出し ID は再開を頼んだ SendMessage のものになるので、作業 ID で元の行にまとめる
+  const taskToKey = new Map<string, string>();
   for (const e of events) {
     if (e.type === "tool_use") {
       const d = e.data as { id: string; name: string; input?: { description?: string; subagent_type?: string; model?: string } };
@@ -58,28 +69,36 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
     } else if (e.type === "tool_result") {
       const d = e.data as { tool_use_id: string; is_error: boolean; content?: unknown };
       const entry = map.get(d.tool_use_id);
+      if (!entry) continue;
+      entry.agentId ??= agentIdIn(d.content);
       // 裏で動かしたサブエージェントは、結果が「起動した」という知らせなので、まだ終わっていない（終わりは通知で届く）
-      if (entry && !isBackgroundLaunch(d.content)) entry.status = d.is_error ? "failed" : "completed";
+      if (!isBackgroundLaunch(d.content)) entry.status = d.is_error ? "failed" : "completed";
     } else if (e.type === "subagent") {
       const d = e.data as unknown as SubagentInfo;
-      const key = d.tool_use_id ?? d.task_id;
-      if (otherTools.has(key)) continue;
+      const own = d.tool_use_id ?? d.task_id;
+      const key = taskToKey.get(d.task_id) ?? own;
+      if (!map.has(key) && otherTools.has(key)) continue;
+      if (map.has(key) || !otherTools.has(own)) taskToKey.set(d.task_id, key);
+      // 再開した回の知らせ（呼び出し ID が元の行と違う）は、完了のあとでも作業中に戻す
+      const resumed = d.tool_use_id !== undefined && d.tool_use_id !== key;
       const entry = map.get(key) ?? { key, description: d.description || "サブエージェント", status: d.status };
       map.set(key, {
         ...entry,
         description: entry.description || d.description,
         subagentType: entry.subagentType ?? d.subagent_type,
-        status: d.status === "running" && entry.status !== "running" ? entry.status : d.status,
+        status: resumed || !(d.status === "running" && entry.status !== "running") ? d.status : entry.status,
         tokens: d.tokens ?? entry.tokens,
         toolUses: d.tool_uses ?? entry.toolUses,
         durationMs: d.duration_ms ?? entry.durationMs,
+        agentId: d.task_id || entry.agentId,
+        summary: d.summary ?? entry.summary,
       });
     }
   }
-  for (const [key, p] of Object.entries(progress)) {
-    const entry = map.get(key);
+  for (const p of Object.values(progress)) {
+    const entry = map.get(taskToKey.get(p.task_id) ?? p.tool_use_id ?? p.task_id);
     if (!entry || entry.status !== "running") continue;
-    map.set(key, { ...entry, tokens: p.tokens ?? entry.tokens, toolUses: p.tool_uses ?? entry.toolUses, lastTool: p.last_tool });
+    map.set(entry.key, { ...entry, tokens: p.tokens ?? entry.tokens, toolUses: p.tool_uses ?? entry.toolUses, lastTool: p.last_tool });
   }
   // エージェントが止まっているのに終わっていないものは、中断されたとみなす
   return [...map.values()].map((s) => (!busy && s.status === "running" ? { ...s, status: "stopped" } : s));
@@ -99,3 +118,28 @@ export function cleanSubagentReport(text: string): string {
     .join("\n")
     .trim();
 }
+
+/** 終わりの知らせの要約が、報告そのものでなく「報告は別の知らせ（SubagentHandback）で届けた」という案内か */
+const isHandbackPointer = (text: string) => /report was delivered to you as a message/i.test(text);
+
+/**
+ * サブエージェントの親への報告（いちばん新しいもの）。報告の渡し方は Claude Code の版・モデルで違うので、次の順に探す:
+ * 1. サブエージェントが呼んだ SubagentHandback の本文（再開したら、その回のもの）
+ * 2. 終わりの知らせの要約（「別の知らせで届けた」という案内は除く）
+ * 3. Agent / Task ツールの結果の文（以前の記録。裏で動かしたときの「起動した」という知らせは除く）
+ */
+export function subagentReport(entry: SubagentEntry, events: RunEvent[]): string | undefined {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i];
+    const d = e.data as { name?: string; parent?: string; input?: { message?: string } };
+    if (e.type === "tool_use" && d.parent === entry.key && d.name === "SubagentHandback" && d.input?.message) return d.input.message;
+  }
+  if (entry.summary && !isHandbackPointer(entry.summary)) return entry.summary;
+  const result = events.find((e) => {
+    const d = e.data as { tool_use_id?: string; parent?: string };
+    return e.type === "tool_result" && d.tool_use_id === entry.key && !d.parent;
+  });
+  const raw = (result?.data as { content?: string } | undefined)?.content;
+  return raw && !isBackgroundLaunch(raw) && !isHandbackPointer(raw) ? cleanSubagentReport(raw) : undefined;
+}
+
