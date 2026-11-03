@@ -1,6 +1,8 @@
 // API のテスト: チャット・グループ、添付・承認依頼・プロバイダー・使用枠、/ のコマンド、自動のアーカイブ（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 import { AUTH, setup, tempDir, until } from "./testing/testServer.js";
 
@@ -219,4 +221,14 @@ test("分岐の API: 作業の終わりの時点までの会話を新しいチ�
   assert.equal((await call("POST", `/api/runs/${runId}/fork`, { event_id: first.id })).status, 409);
   release();
   await until(() => !runner.isBusy(runId));
+});
+
+test("既定の推論の深さの API: 作業フォルダの Claude Code の設定から求める", async () => {
+  const { call, project } = setup();
+  fs.mkdirSync(path.join(project.repo_path, ".claude"), { recursive: true });
+  fs.writeFileSync(path.join(project.repo_path, ".claude", "settings.local.json"), JSON.stringify({ modelSettings: { "claude-opus-5": { effortLevel: "high" } } }));
+  const body = (await call("GET", `/api/projects/${project.id}/effort-default?model=claude-opus-5`)).body;
+  // 環境変数で決めている環境では、そちらが先になる
+  if (!process.env.CLAUDE_CODE_EFFORT_LEVEL) assert.deepEqual(body, { effort: "high", source: "local" });
+  assert.equal((await call("GET", "/api/projects/999/effort-default")).status, 404);
 });

@@ -91,7 +91,11 @@ function RunView({
   onClose: () => void;
   onOpenTerminal?: RunPaneProps["onOpenTerminal"];
 }) {
-  const options = useRunOptions({ model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: run.fast_mode });
+  const options = useRunOptions(
+    { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: run.fast_mode },
+    run.project_id,
+    run.worktree_path || undefined,
+  );
   const busy = BUSY_STATUSES.includes(run.status);
   const subagents = useSubagents(run.id, events, busy);
   const busyNeighbors = useBusyNeighbors(run);

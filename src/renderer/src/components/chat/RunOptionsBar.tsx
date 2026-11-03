@@ -1,7 +1,7 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { resolveRunDefaults } from "../../../../core/runDefaults";
-import { EFFORT_LABELS, PERMISSION_LABELS, type EffortLevel, type ModelOption, type PermissionChoice, type RunOptions } from "../../../../core/types";
+import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type ModelOption, type PermissionChoice, type RunOptions } from "../../../../core/types";
 import { api } from "../../api";
 import { cachedLoader } from "../../cachedLoader";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "../../models";
@@ -16,7 +16,7 @@ const loadModels = cachedLoader<ModelOption[]>(() => api.models("claude"), []);
  * 新しいチャットはプロジェクトの既定（なければ設定画面の既定）から始まり、ここでの変更はそのチャットだけに効く。
  * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始める。
  */
-export function useRunOptions(initial: RunOptions | undefined, projectId?: number) {
+export function useRunOptions(initial: RunOptions | undefined, projectId?: number, worktree?: string) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
@@ -46,6 +46,21 @@ export function useRunOptions(initial: RunOptions | undefined, projectId?: numbe
     if (fastMode && !current.supportsFastMode) setFastMode(false);
   }, [current, effort, permission, fastMode]);
 
+  // 深さを指定しないとき（既定）に、実際に使われる深さ（Claude Code の設定から。モデルを変えたら取り直す）
+  const modelId = current?.resolvedModel ?? model;
+  const [effortDefault, setEffortDefault] = useState<EffortDefault>();
+  useEffect(() => {
+    if (projectId === undefined) return;
+    let alive = true;
+    api
+      .effortDefault(projectId, modelId, worktree)
+      .then((d) => alive && setEffortDefault(d))
+      .catch(() => alive && setEffortDefault(undefined));
+    return () => {
+      alive = false;
+    };
+  }, [projectId, modelId, worktree]);
+
   // 推論の深さの null は「指定しない」（モデルの既定に任せる）
   const options: RunOptions = { model, effort, permission_mode: permission, fast_mode: fastMode };
   return {
@@ -59,17 +74,39 @@ export function useRunOptions(initial: RunOptions | undefined, projectId?: numbe
     setPermission,
     fastMode,
     setFastMode,
+    effortDefault,
     options,
   };
 }
 
 export type RunOptionsState = ReturnType<typeof useRunOptions>;
 
-/** 推論の深さを指定しないときの名前 */
-const EFFORT_DEFAULT_LABEL = "既定";
+/** 既定の深さが、どこで決まったか */
+const EFFORT_SOURCE_LABELS: Record<NonNullable<EffortDefault["source"]>, string> = {
+  env: "環境変数 CLAUDE_CODE_EFFORT_LEVEL",
+  local: "作業フォルダの .claude/settings.local.json",
+  project: "作業フォルダの .claude/settings.json",
+  user: "~/.claude/settings.json",
+};
 
-function effortLabel(effort: EffortLevel | null): string {
-  return effort ? (EFFORT_LABELS[effort] ?? effort) : EFFORT_DEFAULT_LABEL;
+/**
+ * 推論の深さを指定しないとき（既定）の名前。Claude Code の設定で決まる値を添える（「既定（最大）」）。
+ * 設定のどこにもなければ「既定（モデル任せ）」（モデルの既定で決まり、Kickoff からは値が分からない）
+ */
+function effortDefaultLabel(d: EffortDefault | undefined): string {
+  if (!d) return "既定";
+  return d.effort ? `既定（${EFFORT_LABELS[d.effort] ?? d.effort}）` : "既定（モデル任せ）";
+}
+
+/** 既定の深さの説明（メニューの項目の下に出す） */
+function effortDefaultDescription(d: EffortDefault | undefined): string {
+  if (d?.effort && d.source) return `指定しない（${EFFORT_SOURCE_LABELS[d.source]} の値を使う）`;
+  if (d) return "指定しない（Claude Code の設定にないので、モデルの既定を使う。値は分からない）";
+  return "指定せず、Claude Code の設定・モデルの既定に任せる";
+}
+
+function effortLabel(effort: EffortLevel | null, d: EffortDefault | undefined): string {
+  return effort ? (EFFORT_LABELS[effort] ?? effort) : effortDefaultLabel(d);
 }
 
 /** 権限モードの説明（一覧で名前の下に出す） */
@@ -83,7 +120,7 @@ const PERMISSION_HINTS: Partial<Record<PermissionChoice, string>> = {
 
 /** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード / ファストモード） */
 export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; disabled?: boolean }) {
-  const { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode } = state;
+  const { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode, effortDefault } = state;
   const efforts = effortsFor(current);
   const fastSupported = !current || current.supportsFastMode;
 
@@ -108,13 +145,13 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
         icon={<Brain size={15} />}
         ariaLabel="推論の深さ"
         // 狭いときはアイコンだけになるので、いまの値も説明に出す
-        title={`推論の深さ（effort）: ${effortLabel(effort)}`}
+        title={`推論の深さ（effort）: ${effortLabel(effort, effortDefault)}`}
         disabled={disabled}
         groups={[
           {
             label: "推論の深さ",
             items: [
-              { value: "", label: EFFORT_DEFAULT_LABEL, description: "指定せず、モデルの既定に任せる" },
+              { value: "", label: effortDefaultLabel(effortDefault), description: effortDefaultDescription(effortDefault) },
               ...efforts.map((level) => ({ value: level, label: EFFORT_LABELS[level] })),
             ],
           },
