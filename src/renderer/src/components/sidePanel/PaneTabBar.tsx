@@ -6,6 +6,9 @@ import { PanelTab } from "./PanelTab";
 import type { PaneLeaf, SplitDir } from "./paneLayout";
 import { tabLabel } from "./panelTabs";
 import { closeChatWithChoice } from "../chat/closeChat";
+import { CHAT_TITLE_MAX } from "../../chatTitle";
+import { useRunRename } from "../../hooks/useRunRename";
+import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import type { SidePanelController } from "./useSidePanel";
 
@@ -45,6 +48,8 @@ export function PaneTabBar({
   const insertAt = drag.insertAt(pane.id);
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
+  // チャットのタブの名前をその場で変える（ダブルクリック）
+  const rename = useRunRename();
   return (
     <div
       className={cx("panel-tabs", insertAt !== null && pane.tabs.length === 0 && "split-insert-bar")}
@@ -73,6 +78,9 @@ export function PaneTabBar({
             )}
             extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
             onSelect={() => panel.showTab(t.key)}
+            // チャットのタブは、名前のダブルクリックでその場で名前を変える（見出しには名前を出さない）
+            onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Run) : undefined}
+            editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Run), t.title ?? "") : undefined}
             // チャットのタブの ×: 表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）
             onClose={() =>
               t.kind === "chat" ? void closeChatWithChoice({ id: t.id, title: t.title ?? "" }, () => panel.closeTab(t.key)) : panel.closeTab(t.key)
@@ -102,4 +110,9 @@ export function PaneTabBar({
       </span>
     </div>
   );
+}
+
+/** 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前） */
+function withInitial(editor: { onSubmit: (name: string) => void; onCancel: () => void } | undefined, initial: string) {
+  return editor && { ...editor, initial, maxLength: CHAT_TITLE_MAX };
 }

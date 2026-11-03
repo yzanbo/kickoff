@@ -11,7 +11,6 @@ import { Composer, SendCancelled, type QueueSendMode } from "./Composer";
 import { confirmDialog } from "../../dialogs";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
-import { closeChatWithChoice } from "./closeChat";
 import { useRunOptions } from "./RunOptionsBar";
 import type { Connection } from "./ConnectionStatus";
 import { RunTimeline } from "./RunTimeline";
@@ -47,8 +46,6 @@ interface RunPaneProps {
   runId: number;
   /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   focus?: number;
-  /** パネルを閉じる */
-  onClose: () => void;
   /** チャットを読み込んだとき・名前が変わったとき（パネルのタブの名前に使う） */
   onRunChange?: (run: Run) => void;
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
@@ -56,7 +53,7 @@ interface RunPaneProps {
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true }: RunPaneProps) {
+export function RunPane({ projectId, runId, focus, onRunChange, visible = true }: RunPaneProps) {
   const { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャットの名前を知らせる（名前を変えたらタブもすぐ変わる）
@@ -77,7 +74,7 @@ export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} live={live} focus={focus} onClose={onClose} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} live={live} focus={focus} />
   );
 }
 
@@ -92,7 +89,6 @@ function RunView({
   connection,
   live,
   focus,
-  onClose,
 }: {
   run: Run;
   project?: Project;
@@ -107,7 +103,6 @@ function RunView({
   connection: Connection;
   live: string;
   focus?: number;
-  onClose: () => void;
 }) {
   const options = useRunOptions(
     { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: run.fast_mode },
@@ -194,7 +189,6 @@ function RunView({
             <IconButton icon={Search} size={13} label="このチャットの中を検索" aria-expanded={finding} onClick={() => setFinding(!finding)} />
           </>
         }
-        onClose={() => void closeChatWithChoice(run, onClose)}
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
       <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />

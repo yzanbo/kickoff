@@ -1,60 +1,34 @@
-import { Archive, ArchiveRestore, ExternalLink, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Project, Run } from "../../../../core/types";
-import { CHAT_TITLE_MAX, chatTitle } from "../../chatTitle";
-import { useRunRename } from "../../hooks/useRunRename";
 import { toggleArchiveRunNow } from "../../runActions";
 import { useExternalTerminal } from "../../externalTerminal";
-import { CloseButton, IconButton } from "../IconButton";
-import { InlineName } from "../InlineName";
+import { IconButton } from "../IconButton";
 import { ProjectChip } from "../ProjectChip";
 import { RUN_STATUS_LABELS, RunStatusIcon } from "../RunStatus";
 import { WorktreeChip } from "../WorktreeChip";
 
 /**
- * チャットの見出し: 閉じる・名前（ダブルクリックか鉛筆でその場で変更）・アーカイブ・作業場所のターミナル・状態と、
- * その下にプロジェクト・作業場所・ターン数・API 換算の行。waiting は確認（回答待ち）があるか
+ * チャットの見出し: プロジェクト・作業場所のバッジ、右に道具（検索・横幅・アーカイブ・外部のターミナル）・ターン数と API 換算・状態。
+ * 名前と閉じるはパネルのタブにあるので、ここには出さない（名前はタブのダブルクリックで変える）。waiting は確認（回答待ち）があるか
  */
 export function RunHeader({
   run,
   project,
   waiting,
   tools,
-  onClose,
 }: {
   run: Run;
   project?: Project;
   waiting: boolean;
   /** 右の道具の列の先頭に置くもの（チャットの中の検索・発言の目次） */
   tools?: ReactNode;
-  onClose: () => void;
 }) {
-  const rename = useRunRename();
   const external = useExternalTerminal();
-  const editor = rename.editorFor(run);
   return (
     <header className="run-header">
       <div className="run-title-row">
-        <CloseButton label="パネルを閉じる" title="閉じる（Esc）" size={15} onClick={onClose} />
-        {editor ? (
-          <InlineName initial={run.title} maxLength={CHAT_TITLE_MAX} className="run-title-input" onSubmit={editor.onSubmit} onCancel={editor.onCancel} />
-        ) : (
-          <>
-            <h1 title={`${run.title}（ダブルクリックで名前を変更）`} onDoubleClick={() => rename.start(run)}>
-              {chatTitle(run.title)}
-            </h1>
-            <IconButton icon={Pencil} label="名前を変更" size={13} onClick={() => rename.start(run)} />
-          </>
-        )}
-        {/* アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す */}
-        <IconButton
-          icon={run.archived_at ? ArchiveRestore : Archive}
-          size={13}
-          title={run.archived_at ? "アーカイブから戻す" : "アーカイブ（一覧から隠す。会話の記録は残ります）"}
-          label={run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
-          onClick={() => void toggleArchiveRunNow(run)}
-        />
-        {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン）。名前と同じ行に置き、見出しを 1 行に収める */}
+        {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン） */}
         <span className="run-sub muted small">
           {project && <ProjectChip id={project.id} name={project.name} linked />}
           <WorktreeChip run={run} />
@@ -64,6 +38,14 @@ export function RunHeader({
         {/* 作業場所の道具（右に寄せ、名前・バッジと分ける。アプリの中のターミナルはパネルのタブの列のボタンから） */}
         <span className="run-tools">
         {tools}
+        {/* アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す */}
+        <IconButton
+          icon={run.archived_at ? ArchiveRestore : Archive}
+          size={13}
+          title={run.archived_at ? "アーカイブから戻す" : "アーカイブ（一覧から隠す。会話の記録は残ります）"}
+          label={run.archived_at ? "アーカイブから戻す" : "アーカイブ"}
+          onClick={() => void toggleArchiveRunNow(run)}
+        />
         {/* 外部のターミナル（アプリの外。設定で選んだアプリ）で、作業場所を開く */}
         {window.kickoff && project && (
           <IconButton

@@ -45,7 +45,6 @@ export function PanelTabPage({
           runId={t.id}
           focus={t.focus}
           visible={visible}
-          onClose={onClose}
           onRunChange={(run) =>
             panel.updateTab(t.key, (x) => (x.kind === "chat" && x.title !== run.title ? { ...x, title: run.title } : x))
           }
