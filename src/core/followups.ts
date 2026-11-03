@@ -64,11 +64,11 @@ export class FollowupQueue {
     return true;
   }
 
-  /** 文を書き換える（なければ false） */
-  edit(runId: number, id: string, text: string): boolean {
+  /** 文を書き換える（attachments があれば添付も置き換える。なければ false） */
+  edit(runId: number, id: string, text: string, attachments?: Attachment[]): boolean {
     const list = this.list(runId);
     if (!list.some((m) => m.id === id)) return false;
-    this.set(runId, list.map((m) => (m.id === id ? { ...m, text } : m)));
+    this.set(runId, list.map((m) => (m.id === id ? { ...m, text, ...(attachments ? { attachments } : {}) } : m)));
     return true;
   }
 

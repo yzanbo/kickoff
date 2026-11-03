@@ -212,8 +212,13 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
   // 待ちの指示の文を書き換える
   app.patch("/api/runs/:id/queue/:queueId", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    const { text } = z.object({ text: z.string().max(50_000) }).parse(await c.req.json());
-    if (!(await badRequest(async () => runner.editQueued(run.id, c.req.param("queueId"), text)))) throw new HttpError(404, "待ちの指示が見つかりません");
+    // attachments: 添付を置き換える（足す・外す。省けば今のまま）
+    const { text, attachments } = z
+      .object({ text: z.string().max(50_000), attachments: z.array(attachmentSchema).max(20).optional() })
+      .parse(await c.req.json());
+    if (!(await badRequest(async () => runner.editQueued(run.id, c.req.param("queueId"), text, attachments)))) {
+      throw new HttpError(404, "待ちの指示が見つかりません");
+    }
     return c.json({ queue: runner.queued(run.id) });
   });
 

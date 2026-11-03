@@ -1,6 +1,6 @@
 /* ==== 送信待ちの指示の添付（QueuedMessages の行・書き直しの欄のサムネイルとファイル） ==== */
 
-/* 待ちの指示の添付（行では 1 つ目だけ。2 つ以上なら数を重ねる。書き直している間の .all はすべてを並べて折り返す） */
+/* 待ちの指示の添付（行では 1 つ目だけ。2 つ以上なら数を重ねる） */
 .queued-attachments {
   display: flex;
   flex: none;
@@ -9,10 +9,10 @@
   margin-right: 4px;
 }
 
-.queued-attachments.all {
-  flex-wrap: wrap;
-  max-width: none;
-  margin: 2px 0 4px;
+/* 書き直している間の添付（チャット欄と同じチップを並べ、× で外す。欄の中の余白は詰める） */
+.queued-editor-attachments.composer-attachments {
+  gap: 6px;
+  padding: 2px 0 6px;
 }
 
 .queued-thumb {
@@ -73,4 +73,10 @@
   flex: none;
   font-weight: 700;
   color: var(--text);
+}
+
+/* 書き直している間にファイルを持ってきたとき（落とすと添付に足す。チャット欄と同じ点線） */
+.queued-row.editing.file-over .queued-editor {
+  border-color: var(--accent);
+  border-style: dashed;
 }
