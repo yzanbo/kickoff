@@ -6,7 +6,7 @@
 
 - コメントと画面の文言は日本語、変数名・関数名は英語。
 - 書く前に、下の共有部品・hooks・補助関数で足りないか探す。同じ形を 2 か所目に書くことになったら、共有にしてから使う。
-- 保存されている形式は変えない。localStorage のキー名と値（`"1"` / `"0"` など）はそのまま使い、DB のスキーマは `src/core/schema.ts` の `MIGRATIONS` に追記して変える（既存の要素は書き換えない）。
+- 保存されている形式は変えない。localStorage のキー名と値（`"1"` / `"0"` など）はそのまま使い、DB のスキーマは `src/core/schema.ts` の `MIGRATIONS` に追記して変える（既存の要素は書き換えない）。表はすべて STRICT で、真偽値は `CHECK (x IN (0, 1))`、JSON は `CHECK (json_valid(x))`。値の一覧（状態・権限モードなど）は CHECK にしない（増やすたびに表を作り直すことになるため）。版は `PRAGMA application_id`（`KICK`）と `user_version`（100 ＋ 版）で持つ。古い系統（v17 まで）の DB は `legacyMigration.ts` で一度だけ変換する（ここは足さない）。
 - 1 ファイルが 300 行を超えたら分割を考える。
 - macOS のファイル名は大文字・小文字を区別しないので、部品（`FileTree.tsx`）と補助（`fileTree.ts`）のように、大文字・小文字だけが違う名前を付けない。
 
@@ -24,10 +24,10 @@
 
 - HTTP のルートは `routes/<機能>.ts` に `xxxRoutes(app, deps)` として書き、`server.ts` で登録する。登録の順は、認証のミドルウェアより後・画面の配信より前で、既存の順を崩さない。設定は `routes/settings.ts`、Git は `routes/git.ts`（状態・差分・操作・履歴・PR）/ `routes/files.ts`（ファイルの一覧・中身・検索・保存）/ `routes/worktrees.ts`。
 - 見つからないときの 404 は `routes/http.ts` の `requireProject` / `requireRun` / `requireGroupOf`（ほかのプロジェクトのグループを断る）などを使う。作業場所の解決は `requireWorktree(repo, worktree)`（null = 本体 / 400 / フォルダが消えていれば 404）と、ルート用の `requireWorkdir(c, project)`。外部コマンドの失敗を 400 にするのは `badRequest(fn)`（`FileConflictError` → 409 は `conflictOnError`）、Git の操作のあとに状態を返すのは `gitAction`。入力は zod で検証し（共通の形は `routes/schemas.ts` の `queryOf` / `optionalId` / `repoPath` / `folderPath` / `flag` / `branchName` / `groupName`）、失敗の 400 は `onError` に任せる。
-- 型と定数は `types.ts` を入口に `types/`（`settings` `project` `run` `approval` `provider` `git` `server` `store` `bus`。画面からは `core/types` のまま import する）。DB は `store.ts`（メソッド名を変えない委譲のファサード）＋ `store/`（表ごとに `(db, onChange)` を受ける）。Git の実行は `git.ts` を入口に `git/`（`exec`（`gitOutput`）`status` `files` `changes` `history` `worktrees`）。
+- 型と定数は `types.ts` を入口に `types/`（`settings` `project` `run` `approval` `provider` `git` `server` `store` `bus`。画面からは `core/types` のまま import する）。DB は `store.ts`（メソッド名を変えない委譲のファサード）＋ `store/`（表ごとに `(db, onChange)` を受ける）。DB を開く・版の判定・写し・古い DB の変換・`migrate` は `dbOpen.ts`。行と型の変換（真偽値の 0/1 と boolean、JSON）は各 store の `toRun` / `toProject` と `bit()` に集め、型と API は boolean で返す。並び順の時刻は `active_at`（最後に動いた時刻。チャットが動いたときに進み、固定・未読・グループ・名前の変更・プロジェクトの編集では進めない）。チャットのやり取りの全文検索は FTS5（trigram）の `run_event_search`（自分の発言と AI の返答だけ。トリガーで追従し、3 文字以上は MATCH、2 文字以下は LIKE）。Git の実行は `git.ts` を入口に `git/`（`exec`（`gitOutput`）`status` `files` `changes` `history` `worktrees`）。
 - Claude のプロバイダーは役割ごとに分けてある: 実行ファイルと環境変数 `claudeEnv`、参照資料を読み取り専用にするフックと Kickoff 自身を守るフック `claudePolicy`、SDK のメッセージの変換 `claudeMessages`、使用枠 `claudeUsage`、承認の問い合わせ（`canUseTool`）`claudeApprovals`、文言の定数 `claudeLabels`。1 回の実行（渡す値の組み立て・コールバック・結果の反映）は `runExecution.ts` の `executeRun` で、`Runner` は受付と待機列だけ。
 - AI への指示と、承認なしで使えるツール・コマンドは `chatPolicy.ts`（`CHAT_POLICY` と `buildSystemPrompt`。セクションごとの指示はなく、どのチャットも同じ）。推論の深さと権限モードの既定は `runDefaults.ts`（チャット → プロジェクトの既定 → アプリの設定の順。深さはどこにもなければ指定しない（モデルの既定）、権限は「毎回確認」）。
-- 例外の文は `src/core/errors.ts` の `errorMessage`。外部コマンドは `exec.ts` の `execFileAsync`、パスの包含判定・`~` の展開・リンクの解決は `paths.ts`（`isInside` / `expandHome` / `realPathLoose`）、期限付きのキャッシュは `ttlCache.ts`。テストからだけ使う補助は `testing/`（偽のプロバイダー `fakeProvider.ts`、API テストの準備 `testServer.ts`）。
+- 例外の文は `src/core/errors.ts` の `errorMessage`。外部コマンドは `exec.ts` の `execFileAsync`、パスの包含判定・`~` の展開・リンクの解決は `paths.ts`（`isInside` / `expandHome` / `realPathLoose`）、期限付きのキャッシュは `ttlCache.ts`。テストからだけ使う補助は `testing/`（偽のプロバイダー `fakeProvider.ts`、API テストの準備 `testServer.ts`、変換のテスト用の古い v17 の DDL `legacySchemaV17.ts`）。
 
 ## 画面の共有部品（手書きしない）
 
