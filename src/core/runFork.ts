@@ -10,8 +10,9 @@ import type { ProviderId, Run } from "./types.js";
 export async function forkRun(deps: { store: Store; providers: Record<ProviderId, AgentProvider> }, run: Run, eventId: number, cwd: string): Promise<Run> {
   const { store, providers } = deps;
   const event = store.listEvents(run.id).find((e) => e.id === eventId);
-  const point = event?.type === "result" ? (event.data as { session_id?: string; message_id?: string }) : undefined;
-  if (!point?.session_id || !point.message_id) throw new Error("この時点からは分岐できません");
+  const point = event?.type === "result" ? (event.data as { status?: string; session_id?: string; message_id?: string }) : undefined;
+  // 止めた・失敗した作業の終わり（以前の記録には message_id が付いている）からは分岐できない
+  if (point?.status !== "completed" || !point.session_id || !point.message_id) throw new Error("この時点からは分岐できません");
   const provider = providers[run.provider];
   if (!provider.fork) throw new Error(`${provider.label} は分岐に対応していません`);
   const sessionId = await provider.fork(point.session_id, point.message_id, cwd);

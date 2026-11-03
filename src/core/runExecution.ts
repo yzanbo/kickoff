@@ -143,7 +143,10 @@ function applyResult(store: Store, runId: number, result: ProviderRunResult, com
       text: result.status === "completed" ? result.result : result.error,
       cost_usd: result.costUsd,
       turns: result.turns,
-      ...(result.lastMessageId && result.sessionId ? { session_id: result.sessionId, message_id: result.lastMessageId } : {}),
+      // 分岐・巻き戻しの起点（最後まで終わったときだけ。止めた作業の最後のメッセージはセッションに残らないことがある）
+      ...(result.status === "completed" && result.lastMessageId && result.sessionId
+        ? { session_id: result.sessionId, message_id: result.lastMessageId }
+        : {}),
     });
   }
 }
