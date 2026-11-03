@@ -12,6 +12,8 @@ import { InlineName } from "../InlineName";
 import type { ChatGrouping } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { GroupToggle, pressedLeftOfName } from "./GroupToggle";
+import type { SidebarDraft } from "../sidePanel/panelMemory";
+import { DraftRows } from "./DraftRows";
 import type { GroupSectionProps } from "./useGroupSections";
 
 /**
@@ -29,6 +31,7 @@ export function CustomGroupSection({
   grouping,
   renderRow,
   section: { menu, renaming, onRenameStart, onRenameEnd, dropClass, dropProps, dragProps },
+  drafts = [],
 }: {
   projectId: number;
   group: RunGroup;
@@ -41,6 +44,8 @@ export function CustomGroupSection({
   renderRow: (row: BoardEntry) => ReactNode;
   /** 見出しの操作の束（useGroupSections の sectionProps） */
   section: GroupSectionProps;
+  /** このグループで始める、送る前の新しいチャット（下書き。中身のいちばん上に出す） */
+  drafts?: SidebarDraft[];
 }) {
   // 選んでいる = いまそのグループのボードを見ている
   const route = useRoute();
@@ -115,8 +120,11 @@ export function CustomGroupSection({
         )}
       </div>
       <Collapse open={!closed} indent>
+        <DraftRows drafts={drafts} />
         {members.length === 0 ? (
+          drafts.length > 0 ? null : (
           <p className="custom-group-empty">チャットをここへドラッグ</p>
+          )
         ) : grouping !== "recent" ? (
           // 並べ方でまとめているときは、グループの中も同じようにまとめる
           <div className="custom-group-grouped">

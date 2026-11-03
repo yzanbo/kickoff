@@ -1,17 +1,30 @@
 import { SquarePen, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
+import { startDraftDrag } from "../../groups";
 import { discardDraft, openDraft, useAllDrafts, type SidebarDraft } from "../sidePanel/panelMemory";
 
 /**
- * サイドバーのプロジェクトの、送る前の新しいチャット（ボードの右のパネル・プロジェクトのチャット欄で書いている途中）。
- * ボードの「下書き」の列と同じもの。押すとそのパネルで開き（別の画面のものは、その画面へ移ってから）、右クリックで開く・削除
+ * プロジェクトの下書きを、置く場所ごとに分ける（グループの中 / いちばん上）。
+ * いちばん上には、グループなしと、作成先のグループがもうないものを並べる
  */
-export function DraftRows({ projectId }: { projectId: number }) {
+export function useProjectDrafts(projectId: number, groupIds: number[]) {
   const drafts = useAllDrafts().filter((d) => d.projectId === projectId);
+  return {
+    top: drafts.filter((d) => d.group === undefined || !groupIds.includes(d.group)),
+    inGroup: (group: number) => drafts.filter((d) => d.group === group),
+  };
+}
+
+/**
+ * サイドバーのプロジェクトの、送る前の新しいチャット（ボードの右のパネル・プロジェクトのチャット欄で書いている途中）。
+ * ボードの「下書き」の列と同じもの。押すとそのパネルで開き（別の画面のものは、その画面へ移ってから）、右クリックで開く・削除。
+ * ドラッグしてグループ（・グループなし）へ落とすと、作成先のグループを変える（送ったときにそのグループに入る）
+ */
+export function DraftRows({ drafts, drop }: { drafts: SidebarDraft[]; drop?: Record<string, unknown> }) {
   if (drafts.length === 0) return null;
   return (
-    <ul className="chat-rows draft-rows">
+    <ul className="chat-rows draft-rows" {...drop}>
       {drafts.map((d) => (
         <DraftRow key={`${d.memoryKey}:${d.key}`} draft={d} />
       ))}
@@ -27,7 +40,9 @@ function DraftRow({ draft }: { draft: SidebarDraft }) {
       <button
         type="button"
         className="chat-row draft-row"
-        title={`${first ? "書きかけの新しいチャット" : "新しいチャット"}（未送信。右クリックで削除）`}
+        title={`${first ? "書きかけの新しいチャット" : "新しいチャット"}（未送信。ドラッグでグループへ移す・右クリックで削除）`}
+        draggable
+        onDragStart={(e) => startDraftDrag(e, draft)}
         onClick={() => openDraft(draft)}
         onContextMenu={(e) => {
           e.preventDefault();

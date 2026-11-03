@@ -30,10 +30,15 @@ export function useProjectChat(projectId: number | undefined) {
     panel.showTab(key);
   };
   // サイドバーの下書きからは、欄ごと開いて表示する（パネルの登録より後に登録して、こちらを優先する）
-  const actionsRef = useRef({ show: showTab, close: panel.closeTab });
-  actionsRef.current = { show: showTab, close: panel.closeTab };
+  const actionsRef = useRef({ show: showTab, close: panel.closeTab, update: panel.updateTab });
+  actionsRef.current = { show: showTab, close: panel.closeTab, update: panel.updateTab };
   useEffect(
-    () => registerPanel(`side:${projectId ?? "none"}`, { show: (key) => actionsRef.current.show(key), close: (key) => actionsRef.current.close(key) }),
+    () =>
+      registerPanel(`side:${projectId ?? "none"}`, {
+        show: (key) => actionsRef.current.show(key),
+        close: (key) => actionsRef.current.close(key),
+        update: (key, change) => actionsRef.current.update(key, change),
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [projectId],
   );

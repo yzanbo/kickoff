@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from "react";
 import type { Run, RunGroup } from "../../core/types";
 import { confirmDialog } from "./dialogs";
+import type { DraftRef } from "./components/sidePanel/panelMemory";
 
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
 /** サイドバーでグループ名を押したときの知らせ（すでに表示しているグループでも、もう一度ハイライトするため） */
@@ -20,6 +21,25 @@ export function startRunDrag(e: DragEvent, runId: number) {
 /** ドラッグ中のものがチャットか */
 function isRunDrag(e: DragEvent): boolean {
   return e.dataTransfer.types.includes(RUN_DRAG_TYPE);
+}
+
+/** 送る前の新しいチャット（下書き）をグループへドラッグするときのデータの種類 */
+const DRAFT_DRAG_TYPE = "application/x-kickoff-draft";
+
+/** 下書きのドラッグを始める（ドロップ先で、どのボード・チャット欄のどのタブかを受け取れるようにする） */
+export function startDraftDrag(e: DragEvent, draft: DraftRef) {
+  e.dataTransfer.setData(DRAFT_DRAG_TYPE, JSON.stringify({ memoryKey: draft.memoryKey, key: draft.key }));
+  e.dataTransfer.effectAllowed = "move";
+}
+
+/** ドロップされた下書き（下書きでなければ undefined） */
+function droppedDraft(e: DragEvent): DraftRef | undefined {
+  try {
+    const d = JSON.parse(e.dataTransfer.getData(DRAFT_DRAG_TYPE)) as Partial<DraftRef>;
+    return typeof d.memoryKey === "string" && typeof d.key === "string" ? { memoryKey: d.memoryKey, key: d.key } : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** 並べ替えのドラッグのデータの種類（グループ・プロジェクト） */
@@ -119,18 +139,21 @@ export function confirmDeleteGroup(group: RunGroup): Promise<boolean> {
 
 /**
  * グループ（とグループなし）をドロップ先にする（サイドバーとグループのボードで共通）。
- * チャットはそのグループへ移し（groupId が null ならグループから外す）、グループの見出しはその位置へ並べ替える
+ * チャットはそのグループへ移し（groupId が null ならグループから外す）、グループの見出しはその位置へ並べ替える。
+ * onMoveDraft があれば、送る前の新しいチャット（下書き）も受け取り、作成先のグループを変える（サイドバー）
  */
 export function useGroupDrop({
   groups,
   runs,
   onReorder,
   onMoveRun,
+  onMoveDraft,
 }: {
   groups: RunGroup[];
   runs: Run[];
   onReorder: (ids: number[]) => void;
   onMoveRun: (run: Run, groupId: number | null) => void;
+  onMoveDraft?: (draft: DraftRef, groupId: number | null) => void;
 }) {
   const reorder = useGroupReorder(
     groups.map((g) => g.id),
@@ -142,7 +165,7 @@ export function useGroupDrop({
   const dropProps = (groupId: number | null) => ({
     onDragOver: (e: DragEvent) => {
       if (reorder.over(e, groupId)) return;
-      if (!isRunDrag(e)) return;
+      if (!isRunDrag(e) && !(onMoveDraft && e.dataTransfer.types.includes(DRAFT_DRAG_TYPE))) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       setOver(groupId ?? "none");
@@ -156,6 +179,8 @@ export function useGroupDrop({
       setOver(undefined);
       if (reorder.drop(e, groupId)) return;
       e.preventDefault();
+      const draft = onMoveDraft && droppedDraft(e);
+      if (draft) return onMoveDraft(draft, groupId);
       const run = runs.find((r) => r.id === droppedRunId(e));
       if (run && run.group_id !== groupId) onMoveRun(run, groupId);
     },
