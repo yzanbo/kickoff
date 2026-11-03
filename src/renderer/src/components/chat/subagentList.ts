@@ -1,3 +1,4 @@
+import { isBackgroundLaunch } from "../../../../core/backgroundTasks";
 import type { RunEvent, SubagentInfo } from "../../../../core/types";
 
 /** 一覧の 1 行（Task / Agent ツールの呼び出しと、SDK のサブエージェントの通知をまとめたもの） */
@@ -55,9 +56,10 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
         toolUseEventId: e.id,
       });
     } else if (e.type === "tool_result") {
-      const d = e.data as { tool_use_id: string; is_error: boolean };
+      const d = e.data as { tool_use_id: string; is_error: boolean; content?: unknown };
       const entry = map.get(d.tool_use_id);
-      if (entry) entry.status = d.is_error ? "failed" : "completed";
+      // 裏で動かしたサブエージェントは、結果が「起動した」という知らせなので、まだ終わっていない（終わりは通知で届く）
+      if (entry && !isBackgroundLaunch(d.content)) entry.status = d.is_error ? "failed" : "completed";
     } else if (e.type === "subagent") {
       const d = e.data as unknown as SubagentInfo;
       const key = d.tool_use_id ?? d.task_id;

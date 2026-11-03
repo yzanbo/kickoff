@@ -49,3 +49,12 @@ test("サブエージェントの報告: 前置きと字下げを外す", () => 
   assert.equal(cleanSubagentReport(raw), "ありませんでした。\n\nファイルは変更していません。");
   assert.equal(cleanSubagentReport("そのままの報告"), "そのままの報告");
 });
+
+test("裏で動かしたサブエージェントは、起動の知らせでは完了にせず、作業が止まっていれば中断にする", () => {
+  const events = [
+    { id: 1, run_id: 1, type: "tool_use", data: { id: "a", name: "Agent", input: { description: "裏の作業" } }, created_at: "" },
+    { id: 2, run_id: 1, type: "tool_result", data: { tool_use_id: "a", is_error: false, content: "Async agent launched successfully." }, created_at: "" },
+  ] as unknown as Parameters<typeof collectSubagents>[0];
+  assert.equal(collectSubagents(events, {}, true)[0].status, "running");
+  assert.equal(collectSubagents(events, {}, false)[0].status, "stopped");
+});
