@@ -43,17 +43,24 @@ export function TagEditor({ project }: { project: Project }) {
     });
   };
 
-  /** 文（読点・カンマで区切って複数も）をタグとして足す。上限を超えるなら足さずに知らせる */
-  const add = (raw: string) => {
+  /** 文（読点・カンマで区切って複数も）をタグとして足す。上限を超えるなら足さずに知らせる（足せたら true） */
+  const add = (raw: string): boolean => {
     const parts = normalizeTags(raw.split(SEPARATORS));
-    if (parts.length === 0) return;
+    if (parts.length === 0) return true;
     const tooLong = parts.find((t) => t.length > MAX_TAG_LENGTH);
-    if (tooLong) return setError(`タグは ${MAX_TAG_LENGTH} 文字までです（「${tooLong.slice(0, 10)}…」）`);
+    if (tooLong) {
+      setError(`タグは ${MAX_TAG_LENGTH} 文字までです（「${tooLong.slice(0, 10)}…」）`);
+      return false;
+    }
     const next = normalizeTags([...tags, ...parts]);
-    if (next.length > MAX_TAGS) return setError(`タグは ${MAX_TAGS} 個までです`);
+    if (next.length > MAX_TAGS) {
+      setError(`タグは ${MAX_TAGS} 個までです`);
+      return false;
+    }
     setText("");
     setOpen(false);
     if (next.length !== tags.length) save(next);
+    return true;
   };
 
   // 候補: 入力中の文（新しいタグ）を先頭に、ほかのプロジェクトで使っているタグのうち、付けていなくて文を含むもの
@@ -65,7 +72,7 @@ export function TagEditor({ project }: { project: Project }) {
     const isNew = query !== "" && !known.includes(query) && !tags.includes(query);
     return [...(isNew ? [{ value: query, isNew: true }] : []), ...known.map((value) => ({ value, isNew: false }))];
   }, [open, query, projects, tags]);
-  const nav = useListNavigation(items, (item) => (item ? add(item.value) : add(text)));
+  const nav = useListNavigation(items, (item) => void add(item ? item.value : text));
   useEffect(() => nav.setIndex(0), [query, open]);
 
   const onChange = (value: string) => {
@@ -73,8 +80,8 @@ export function TagEditor({ project }: { project: Project }) {
     if (SEPARATORS.test(value)) {
       const parts = value.split(SEPARATORS);
       const rest = parts.pop() ?? "";
-      add(parts.join(","));
-      setText(rest);
+      // 足せなければ、打った文をそのまま残す（直せるように）
+      setText(add(parts.join(",")) ? rest : value);
       return;
     }
     setText(value);
@@ -94,7 +101,7 @@ export function TagEditor({ project }: { project: Project }) {
     }
     if (e.key === "Enter" && !e.nativeEvent.isComposing && items.length === 0) {
       e.preventDefault();
-      if (query) add(query);
+      if (query) void add(query);
       return;
     }
     nav.onKeyDown(e);
@@ -131,7 +138,7 @@ export function TagEditor({ project }: { project: Project }) {
                   // 押しても入力欄からピントを外さない（外すと候補が閉じる）
                   onMouseDown={(e) => e.preventDefault()}
                   onMouseEnter={() => nav.setIndex(i)}
-                  onClick={() => add(item.value)}
+                  onClick={() => void add(item.value)}
                 >
                   {item.isNew ? <Plus size={13} aria-hidden /> : <Tag size={13} aria-hidden />}
                   <span className="tag-suggest-name">{item.isNew ? `新しいタグ「${item.value}」` : item.value}</span>
