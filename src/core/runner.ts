@@ -111,9 +111,7 @@ export class Runner {
   }
 
   /** 待ちの列から消す（なければ false） */
-  removeQueued(runId: number, id: string): boolean {
-    return this.followups.remove(runId, id);
-  }
+  removeQueued = (runId: number, id: string): boolean => this.followups.remove(runId, id);
 
   /** 待ちの指示の文を書き換える（なければ false。文も添付もなくなるなら断る） */
   editQueued(runId: number, id: string, text: string): boolean {
@@ -140,9 +138,11 @@ export class Runner {
   }
 
   /** 待ちの指示をすべて消す（消した数を返す） */
-  clearQueued(runId: number): number {
-    return this.followups.clear(runId);
-  }
+  clearQueued = (runId: number): number => this.followups.clear(runId);
+
+  /** 待ちの指示をいくつかまとめて消す・いちばん上か下へまとめて移す（扱った数を返す） */
+  removeQueuedMany = (runId: number, ids: string[]): number => this.followups.removeMany(runId, ids);
+  moveQueuedMany = (runId: number, ids: string[], to: "top" | "bottom"): number => this.followups.moveMany(runId, ids, to);
 
   /** 待ちの列を並べ替える（なければ false） */
   moveQueued(runId: number, id: string, index: number): boolean {
@@ -161,11 +161,11 @@ export class Runner {
   }
 
   /**
-   * 待ちの指示をすべて 1 つにまとめて、すぐ送る（作業中なら止めてから送る）。待ちがなければ false
+   * 待ちの指示をすべて（ids を渡せばその指示だけ）1 つにまとめて、すぐ送る（作業中なら止めてから送る）。送るものがなければ false
    */
-  async sendAllQueued(runId: number): Promise<boolean> {
+  async sendAllQueued(runId: number, ids?: string[]): Promise<boolean> {
     // 1 つにまとめた指示を列から取り出して、割り込んで送る（列に「まとめた 1 件」を一瞬出さない）
-    const merged = this.followups.merge(runId, { silent: true });
+    const merged = this.followups.merge(runId, { silent: true, ids });
     if (!merged) return false;
     return this.sendQueuedNow(runId, merged.id);
   }

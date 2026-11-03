@@ -48,21 +48,44 @@ export class FollowupQueue {
     return true;
   }
 
-  /** すべてを 1 つにまとめる（文は空行でつなぎ、添付は合わせ、選択は最後のもの。なければ何もしない。silent なら画面に知らせない） */
-  merge(runId: number, { silent = false }: { silent?: boolean } = {}): QueuedMessage | undefined {
+  /**
+   * 1 つにまとめる（文は空行でつなぎ、添付は合わせ、選択は最後のもの。silent なら画面に知らせない）。
+   * ids を渡すとその指示だけを列の順にまとめ、まとめた 1 件は選んだうちの先頭の位置に置く（ほかの指示はそのまま）。なければ何もしない
+   */
+  merge(runId: number, { silent = false, ids }: { silent?: boolean; ids?: string[] } = {}): QueuedMessage | undefined {
     const list = this.list(runId);
-    if (list.length === 0) return undefined;
+    const picked = ids ? list.filter((m) => ids.includes(m.id)) : list;
+    if (picked.length === 0) return undefined;
     const merged: QueuedMessage = {
-      ...list[list.length - 1],
-      id: list[0].id,
-      text: list.map((m) => m.text).filter(Boolean).join("\n\n"),
-      attachments: list.flatMap((m) => m.attachments),
-      created_at: list[0].created_at,
+      ...picked[picked.length - 1],
+      id: picked[0].id,
+      text: picked.map((m) => m.text).filter(Boolean).join("\n\n"),
+      attachments: picked.flatMap((m) => m.attachments),
+      created_at: picked[0].created_at,
     };
+    const next = list.flatMap((m) => (m.id === merged.id ? [merged] : picked.includes(m) ? [] : [m]));
     // silent: すぐ取り出すときは、まとめた 1 件を画面に知らせない（列に一瞬出さない）
-    if (silent) this.lists.set(runId, [merged]);
-    else this.set(runId, [merged]);
+    if (silent) this.lists.set(runId, next);
+    else this.set(runId, next);
     return merged;
+  }
+
+  /** いくつかをまとめて消す（消した数を返す） */
+  removeMany(runId: number, ids: string[]): number {
+    const list = this.list(runId);
+    const next = list.filter((m) => !ids.includes(m.id));
+    if (next.length !== list.length) this.set(runId, next);
+    return list.length - next.length;
+  }
+
+  /** いくつかを、並びを保ったまま列のいちばん上・いちばん下へまとめて移す（動いた数を返す） */
+  moveMany(runId: number, ids: string[], to: "top" | "bottom"): number {
+    const list = this.list(runId);
+    const picked = list.filter((m) => ids.includes(m.id));
+    if (picked.length === 0) return 0;
+    const rest = list.filter((m) => !ids.includes(m.id));
+    this.set(runId, to === "top" ? [...picked, ...rest] : [...rest, ...picked]);
+    return picked.length;
   }
 
   /** 取り出す（id を省くと先頭） */
