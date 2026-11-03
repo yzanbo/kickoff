@@ -98,7 +98,7 @@ function QuestionCard({ approval }: { approval: Approval }) {
   return (
     <div className="approval-card question-card">
       <div className="approval-head">
-        <span className="approval-badge question">AI からの質問</span>
+        <span className="approval-badge question-badge">AI からの質問</span>
       </div>
       {questions.map((q) => (
         <fieldset key={q.question} className="question">
