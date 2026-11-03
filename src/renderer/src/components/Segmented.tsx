@@ -40,6 +40,7 @@ export function Segmented<T extends string>({
           role="radio"
           aria-checked={value === v}
           className={value === v ? "active" : ""}
+          data-value={v}
           title={iconOnly ? text : undefined}
           aria-label={iconOnly ? text : undefined}
           onClick={() => onChange(v)}

@@ -188,6 +188,19 @@
   border-radius: 50%;
 }
 
+/* 作業中の送り方の切り替え（伝える / ためておく）。⌘ / ⌘⇧ を押している間だけ、Enter で使われる方を光らせる
+   （Composer の heldMode。包みは並びに影響させない） */
+.busy-controls {
+  display: contents;
+}
+
+.busy-controls.held-tell .queue-mode button[data-value="tell"],
+.busy-controls.held-queue .queue-mode button[data-value="queue"] {
+  color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent-bright);
+}
+
 /*
  * コンパクト表示（設定の「表示」→「チャット欄」）: 文字・余白・下の道具を小さくして、縦の幅を抑える。
  * 送信・中断のボタン（context-meter.css）・推論の深さなどの選択（composer-select.css）は後ろのファイルにあるので、
