@@ -76,6 +76,22 @@ function snippetAround(text: string, keyword: string): { snippet: string; match_
   return { snippet, match_start: matchStart, match_end: matchStart + keyword.length };
 }
 
+/**
+ * キーワードの探し方。3 文字（コードポイント）以上は全文検索の索引（trigram）で部分一致を探す（" は 2 つに。% _ はそのまま）。
+ * 2 文字以下は trigram の索引が使えないので、生成列 text を LIKE で探す（% _ \ は文字として探す。大文字・小文字は ASCII だけ区別しない）
+ */
+function keywordMatch(keyword: string): { from: string; where: string[]; params: Row } {
+  if ([...keyword].length >= 3) {
+    return {
+      from: "run_event_search s JOIN run_events e ON e.id = s.rowid",
+      where: ["run_event_search MATCH $match"],
+      params: { match: `"${keyword.replaceAll('"', '""')}"` },
+    };
+  }
+  const pattern = `%${keyword.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  return { from: "run_events e", where: ["e.text LIKE $pattern ESCAPE '\\'"], params: { pattern } };
+}
+
 /** DB の行（真偽値は 0 / 1） */
 type RunRow = Omit<Run, "fast_mode" | "attention" | "pinned"> & { fast_mode: number; attention: number; pinned: number };
 
@@ -202,15 +218,11 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       const rows = db.prepare("SELECT * FROM run_events WHERE run_id = ? ORDER BY id ASC").all(runId) as unknown as EventRow[];
       return rows.map((r) => ({ ...r, data: JSON.parse(r.data) }));
     },
-    /**
-     * チャットのやり取り（自分の発言と AI の返答）をキーワードで検索する。新しい順。
-     * 大文字・小文字は区別しない（ASCII のみ。SQLite の LIKE の仕様）。
-     */
+    /** チャットのやり取り（自分の発言と AI の返答）をキーワードで検索する（部分一致・大文字と小文字を区別しない）。新しい順 */
     searchEvents(query: string, filter: { projectId?: number; runId?: number; limit?: number } = {}): SearchHit[] {
       const keyword = query.trim();
       if (!keyword) return [];
-      const where = ["e.type IN ('user', 'text')", "json_extract(e.data, '$.text') LIKE $pattern ESCAPE '\\'"];
-      const params: Row = { pattern: `%${keyword.replace(/[\\%_]/g, (c) => `\\${c}`)}%` };
+      const { from, where, params } = keywordMatch(keyword);
       if (filter.projectId !== undefined) {
         where.push("r.project_id = $project_id");
         params.project_id = filter.projectId;
@@ -221,9 +233,8 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       }
       const rows = db
         .prepare(
-          `SELECT e.id AS event_id, e.run_id, r.project_id, r.title AS run_title, e.type,
-                  json_extract(e.data, '$.text') AS text, e.created_at
-           FROM run_events e JOIN runs r ON r.id = e.run_id
+          `SELECT e.id AS event_id, e.run_id, r.project_id, r.title AS run_title, e.type, e.text, e.created_at
+           FROM ${from} JOIN runs r ON r.id = e.run_id
            WHERE ${where.join(" AND ")}
            ORDER BY e.id DESC LIMIT ${Math.min(filter.limit ?? 50, 200)}`,
         )
