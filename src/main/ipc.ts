@@ -1,11 +1,10 @@
 import path from "node:path";
 import { BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
-import { openInChrome } from "./browser.js";
 import { closeDevTools, openDevToolsIn, openDevToolsWindow } from "./browserDevtools.js";
 import { addExtensionFolder, importFromChrome, installFromWebStore, listExtensions, removeExtension } from "./browserExtensions.js";
 import { execFileAsync } from "../core/exec.js";
 import { startDiagnostics } from "./diagnostics.js";
-import { existingFolder, externalTerminalArgs, installedTerminals, knownExtension, knownTerminal, webContentsId } from "./ipcArgs.js";
+import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, knownBrowser, knownExtension, knownTerminal, webContentsId } from "./ipcArgs.js";
 import { registerTerminalIpc } from "./terminals.js";
 
 /** ネイティブのファイル・フォルダの選択（やめたら空） */
@@ -29,7 +28,17 @@ export function registerIpc(mainWindow: () => BrowserWindow | undefined) {
   ipcMain.handle("kickoff:diagnostics-start", (e) => {
     void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow());
   });
-  ipcMain.handle("kickoff:open-in-chrome", (_e, url: string) => openInChrome(String(url)));
+  // 外部のブラウザ（browser: アプリの id）でページを開く（url がなければアプリを開くだけ）。アプリが開けなければ、既定のブラウザで開く
+  ipcMain.handle("kickoff:open-in-browser", async (_e, url: unknown, browser?: unknown) => {
+    try {
+      await execFileAsync("open", externalBrowserArgs(knownBrowser(browser), url));
+    } catch (e) {
+      if (typeof url === "string" && /^https?:\/\//.test(url)) await shell.openExternal(url);
+      else throw e;
+    }
+  });
+  // この Mac に入っている外部のブラウザ（パネルのブラウザの ▾ で選ぶ）
+  ipcMain.handle("kickoff:external-browsers", () => installedBrowsers());
   // 埋め込みブラウザの開発者ツール: 同じ画面の別の埋め込みブラウザの中（右・下）・別のウィンドウ・閉じる
   ipcMain.handle("kickoff:browser-devtools-in", (e, targetId: unknown, devtoolsId: unknown) => {
     openDevToolsIn(e.sender, webContentsId(targetId), webContentsId(devtoolsId));

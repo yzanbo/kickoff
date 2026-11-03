@@ -1,5 +1,5 @@
 import { Columns2, ExternalLink, Maximize2, Minimize2, Plus, SquareTerminal } from "lucide-react";
-import { useExternalTerminal } from "../../externalTerminal";
+import { useExternalTerminal } from "../../externalApps";
 import { cx } from "../../cx";
 import { CloseButton, IconButton } from "../IconButton";
 import { PanelTab } from "../sidePanel/PanelTab";

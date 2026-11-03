@@ -17,6 +17,7 @@ import { useRunRename } from "../../hooks/useRunRename";
 import { useTabDrag } from "./useTabDrag";
 import type { SidePanelController, TerminalTarget } from "./useSidePanel";
 import { useBoardHeaderLayoutMenu } from "../board/useBoardHeaderLayoutMenu";
+import { useOpenWithMenu } from "./useOpenWithMenu";
 
 /**
  * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
@@ -72,6 +73,9 @@ export function SidePanel({
     terminalMenu.toggle(e, targetMenuHeight(terminalTargets.length));
   };
 
+  // ブラウザ・ターミナルの ▾（新しいタブ・外のアプリで開く・外のアプリを選ぶ）
+  const openWith = useOpenWithMenu({ panel, targets: terminalTargets, chatTarget });
+
   // ⌘\ で、ピントのあるペインを右に分ける（パネルの中にピントがあるとき。下のパネルの ⌘\ はそちらにピントがあるときだけ）
   useWindowEvent(
     "keydown",
@@ -126,6 +130,8 @@ export function SidePanel({
       onTerminal={openTerminal}
       rename={rename}
       onBarMenu={sidebar ? undefined : layoutMenu.open}
+      onOpenWith={openWith.open}
+      openWithShown={openWith.shown}
       onMenu={(key, e) => {
         e.preventDefault();
         setMenu({ key, ...clampToViewport(e.clientX, e.clientY, TAB_MENU_WIDTH, tabMenuHeight(leaves.length, tabs.some((t) => t.key === key && t.kind === "chat"))) });
@@ -177,6 +183,7 @@ export function SidePanel({
             );
           })}
         {layoutMenu.menu}
+        {openWith.menu}
         {terminalMenu.at && (
           <TerminalTargetMenu
             {...terminalMenu.at}

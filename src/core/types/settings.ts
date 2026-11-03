@@ -97,3 +97,15 @@ export const EXTERNAL_TERMINALS = [
   { id: "kitty", label: "kitty", app: "kitty" },
 ] as const;
 export type ExternalTerminalId = (typeof EXTERNAL_TERMINALS)[number]["id"];
+
+/** 外部のブラウザとして開けるアプリ（id は保存に使う。app は /Applications の中の名前。開き方はメインプロセスの ipcArgs.ts。Safari はいつも入っている） */
+export const EXTERNAL_BROWSERS = [
+  { id: "chrome", label: "Google Chrome", app: "Google Chrome" },
+  { id: "safari", label: "Safari", app: "Safari" },
+  { id: "arc", label: "Arc", app: "Arc" },
+  { id: "firefox", label: "Firefox", app: "Firefox" },
+  { id: "edge", label: "Microsoft Edge", app: "Microsoft Edge" },
+  { id: "brave", label: "Brave", app: "Brave Browser" },
+  { id: "vivaldi", label: "Vivaldi", app: "Vivaldi" },
+] as const;
+export type ExternalBrowserId = (typeof EXTERNAL_BROWSERS)[number]["id"];

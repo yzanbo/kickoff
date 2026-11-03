@@ -1,4 +1,4 @@
-import { Columns2, Globe, Rows2, SquarePen, SquareTerminal, X } from "lucide-react";
+import { ChevronDown, Columns2, Globe, Rows2, SquarePen, SquareTerminal, X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
@@ -14,6 +14,9 @@ import { busyWithUnread } from "../../../../core/board";
 import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import type { SidePanelController } from "./useSidePanel";
+
+/** ▾ のメニューの種類 */
+export type OpenWithKind = "browser" | "terminal";
 
 /**
  * 右のパネルの 1 つのペインのタブの列。左にパネルの閉じる・横幅いっぱい（controls。左上のペインだけ）、タブ、
@@ -34,6 +37,8 @@ export function PaneTabBar({
   onTerminal,
   onMenu,
   onBarMenu,
+  onOpenWith,
+  openWithShown,
   rename,
 }: {
   panel: SidePanelController;
@@ -50,6 +55,10 @@ export function PaneTabBar({
   onTerminal: (e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => void;
   /** タブの右クリック */
   onMenu: (tabKey: string, e: React.MouseEvent) => void;
+  /** ブラウザ・ターミナルの ▾（新しいタブ・外のアプリで開く・外のアプリを選ぶメニュー） */
+  onOpenWith: (kind: OpenWithKind, e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => void;
+  /** いま開いている ▾ のメニュー（aria-expanded に使う） */
+  openWithShown: OpenWithKind | null;
   /** タブの列の何もないところの右クリック（ボードの右のパネルだけ。見出しの置き方を選ぶ） */
   onBarMenu?: (e: React.MouseEvent) => void;
   /** チャットのタブの名前をその場で変える（ダブルクリック・右クリックの「名前を変更」。パネル全体で 1 つ） */
@@ -117,18 +126,45 @@ export function PaneTabBar({
       {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右） */}
       <span className="panel-bar-buttons panel-tab-adds">
         <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />
-        <IconButton icon={Globe} label="ブラウザを開く" size={14} onClick={() => panel.openBrowser()} />
+        {/* ブラウザ・ターミナルは、アイコンで新しいタブ、横の ▾ で外のアプリで開く・外のアプリを選ぶ（デスクトップアプリだけ） */}
+        <span className="panel-split-button">
+          <IconButton icon={Globe} label="ブラウザを開く" title="ブラウザを新しいタブで開く" size={14} onClick={() => panel.openBrowser()} />
+          {window.kickoff && (
+            <IconButton
+              icon={ChevronDown}
+              label="ブラウザの開き方"
+              title="新しいタブで開く・外のブラウザで開く・外のブラウザを選ぶ"
+              size={12}
+              className="panel-open-with panel-open-with-browser"
+              aria-haspopup="menu"
+              aria-expanded={openWithShown === "browser"}
+              onClick={(e) => onOpenWith("browser", e, pane)}
+            />
+          )}
+        </span>
         {terminals > 0 && (
-          <IconButton
-            icon={SquareTerminal}
-            label="ターミナルを開く"
-            title="ターミナルを開く（チャットを表示しているときは、その作業場所で開く）"
-            size={14}
-            className="panel-tab-terminal"
-            aria-haspopup={terminals > 1 ? "menu" : undefined}
-            aria-expanded={terminals > 1 ? terminalMenuOpen : undefined}
-            onClick={(e) => onTerminal(e, pane)}
-          />
+          <span className="panel-split-button">
+            <IconButton
+              icon={SquareTerminal}
+              label="ターミナルを開く"
+              title="ターミナルを新しいタブで開く（チャットを表示しているときは、その作業場所で開く）"
+              size={14}
+              className="panel-tab-terminal"
+              aria-haspopup={terminals > 1 ? "menu" : undefined}
+              aria-expanded={terminals > 1 ? terminalMenuOpen : undefined}
+              onClick={(e) => onTerminal(e, pane)}
+            />
+            <IconButton
+              icon={ChevronDown}
+              label="ターミナルの開き方"
+              title="新しいタブで開く・外のターミナルで開く・外のターミナルを選ぶ"
+              size={12}
+              className="panel-open-with panel-open-with-terminal"
+              aria-haspopup="menu"
+              aria-expanded={openWithShown === "terminal"}
+              onClick={(e) => onOpenWith("terminal", e, pane)}
+            />
+          </span>
         )}
       </span>
       {/* ペインを分ける・閉じる（右端） */}

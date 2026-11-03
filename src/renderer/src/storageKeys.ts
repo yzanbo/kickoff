@@ -124,6 +124,8 @@ export const CHAT_CLOSE_ACTION_KEY = "kickoff:chat-close-action";
 
 /** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id。既定は "terminal"） */
 export const EXTERNAL_TERMINAL_KEY = "kickoff:external-terminal";
+/** 外部のブラウザとして開くアプリ（EXTERNAL_BROWSERS の id。既定は "chrome"） */
+export const EXTERNAL_BROWSER_KEY = "kickoff:external-browser";
 
 // 埋め込みブラウザ
 /** 開発者ツールを出す場所（"right" / "bottom" / "window"） */

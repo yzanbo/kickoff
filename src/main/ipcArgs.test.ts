@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { existingFolder, externalTerminalArgs, installedTerminals, knownExtension, knownTerminal, notificationIdOf, notifyArgs, runOfNotificationId, webContentsId } from "./ipcArgs.js";
+import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, knownBrowser, knownExtension, knownTerminal, notificationIdOf, notifyArgs, runOfNotificationId, webContentsId } from "./ipcArgs.js";
 
 test("IPC の引数の検査: 対応している拡張機能のキーと、埋め込みブラウザの ID だけを通す", () => {
   assert.equal(knownExtension("react-devtools"), "react-devtools");
@@ -36,6 +36,16 @@ test("外部のターミナル: 知らないものは Terminal.app、アプリ�
   assert.deepEqual(externalTerminalArgs("iterm", "/w"), ["-a", "iTerm", "/w"]);
   const present = new Set(["/Applications/Ghostty.app", "/h/Applications/Warp.app"]);
   assert.deepEqual(installedTerminals("/h", (p) => present.has(p)), ["terminal", "ghostty", "warp"]);
+});
+
+test("外部のブラウザ: 知らないものは Chrome、ページは http(s) だけ渡し、なければアプリを開くだけ、入っているものだけを出す", () => {
+  assert.equal(knownBrowser("arc"), "arc");
+  assert.equal(knownBrowser("nope"), "chrome");
+  assert.deepEqual(externalBrowserArgs("brave", "https://example.com/"), ["-a", "Brave Browser", "https://example.com/"]);
+  assert.deepEqual(externalBrowserArgs("safari", "file:///etc/passwd"), ["-a", "Safari"]);
+  assert.deepEqual(externalBrowserArgs("chrome"), ["-a", "Google Chrome"]);
+  const present = new Set(["/Applications/Google Chrome.app", "/h/Applications/Arc.app"]);
+  assert.deepEqual(installedBrowsers("/h", (p) => present.has(p)), ["chrome", "safari", "arc"]);
 });
 
 test("通知の指定: タイトルは必須、長すぎる文は切り、チャットは両方の ID がそろったときだけ", () => {

@@ -89,7 +89,7 @@ export function PanelTabPage({
           url={t.url}
           onChange={({ url, title }) =>
             // 空のページのあいだは「新しいタブ」と表示する
-            panel.updateTab(t.key, (x) => (x.kind === "browser" ? { ...x, title: url === "about:blank" ? "" : title } : x))
+            panel.updateTab(t.key, (x) => (x.kind === "browser" ? { ...x, title: url === "about:blank" ? "" : title, current: url } : x))
           }
         />
       )}
