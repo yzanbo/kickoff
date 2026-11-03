@@ -30,7 +30,7 @@ export function ProjectSlides({
   const { ordered, index, swipe, collapsedMap, waitingOnly, isArchived, reorder, go, projectMenu, pending, compact, compactProjects } = nav;
   const rail = nav.layout === "rail";
   const switcher = (
-    <div className="workspace-switcher">
+    <div className="workspace-switcher" {...swipe.stripHandlers}>
       <WorkspaceDots
         projects={ordered}
         index={index}

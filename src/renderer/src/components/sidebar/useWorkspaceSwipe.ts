@@ -102,12 +102,28 @@ export function useWorkspaceSwipe({
 
   // トラックパッドの 2 本指スワイプ（横スライドは横方向、縦スライドは縦方向のホイール）
   function onWheel(e: WheelEvent<HTMLDivElement>) {
+    wheel(e, vertical ? e.deltaY : e.deltaX, vertical ? e.deltaX : e.deltaY, true);
+  }
+
+  /**
+   * 丸の帯（横スライドは下・縦スライドは左）の上の 2 本指スワイプ。
+   * 横スライドは横方向だけ（縦のホイールは帯の横スクロールに使う）、縦スライドは縦・横のどちらでも（右・下 = 次）
+   */
+  function onStripWheel(e: WheelEvent<HTMLDivElement>) {
+    if (vertical) {
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      wheel(e, delta, 0, false);
+    } else {
+      wheel(e, e.deltaX, e.deltaY, false);
+    }
+  }
+
+  /** delta: スワイプの向きの移動量、cross: 違う向きの移動量。inPage: ページ（一覧）の上か（縦スライドで、一覧のスクロールを先にする） */
+  function wheel(e: WheelEvent<HTMLDivElement>, delta: number, cross: number, inPage: boolean) {
     const g = gesture.current;
-    const delta = vertical ? e.deltaY : e.deltaX;
-    const cross = vertical ? e.deltaX : e.deltaY;
     if (!g.active) {
       if (Math.abs(delta) <= Math.abs(cross)) return; // 違う向きのスクロールはそのまま
-      if (vertical) {
+      if (vertical && inPage) {
         const now = performance.now();
         // 一覧がまだスクロールできる・スクロールの続き（慣性）なら、ふつうにスクロールさせる
         if (pageCanScroll(e.target, delta) || now - lastScroll.current < GESTURE_END_MS) {
@@ -175,6 +191,8 @@ export function useWorkspaceSwipe({
   return {
     viewportRef,
     trackRef,
+    /** 丸の帯（workspace-switcher）に渡す（帯の上のスワイプでも切り替える） */
+    stripHandlers: { onWheel: onStripWheel },
     /** スライドの枠（viewport）に渡す */
     handlers: {
       onWheel,
