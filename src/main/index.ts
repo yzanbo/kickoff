@@ -9,6 +9,7 @@ import { loadLoginShellPath } from "../core/shellEnv.js";
 import { hardenWebviews } from "./browser.js";
 import { loadSavedExtensions } from "./browserExtensions.js";
 import { registerIpc } from "./ipc.js";
+import { allowAppMicrophone } from "./mediaPermission.js";
 import { registerShutdown } from "./shutdown.js";
 
 // ビルド後の out/main を基準にする
@@ -71,6 +72,8 @@ if (!app.requestSingleInstanceLock()) {
       expirationDate: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
     });
 
+    // チャット欄の音声入力: Kickoff の画面からのマイクだけ許す（埋め込みブラウザは別のセッションなので広げない）
+    allowAppMicrophone(session.defaultSession, uiUrl);
     registerIpc(() => mainWindow);
     createWindow(uiUrl);
     // 埋め込みブラウザの拡張機能（React DevTools など）を読み込む
