@@ -32,6 +32,7 @@
 @import "./composer.css";
 @import "./dictation.css";
 @import "./queued.css";
+@import "./queued-head.css";
 @import "./queued-attachments.css";
 @import "./composer-select.css";
 @import "./subagents.css";

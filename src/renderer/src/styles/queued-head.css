@@ -1,0 +1,116 @@
+/* ==== 送信待ちの見出しの行（件数・すべて表示・並べ替え・自動で送る・まとめて送る・消す） ==== */
+.queued-head-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.queued-head-btn {
+  flex: none;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 11px;
+  /* 行の高さを文字の大きさにそろえる（既定の行の高さはボタンの内側より高く、文字が上に寄って見えるため） */
+  line-height: 1;
+}
+
+/*
+ * ここから右を操作にまとめる（左は件数と、一覧の見え方の「すべて表示 / 縮める」）。
+ * 選んでいるときは、並べ替え（いちばん上へ・いちばん下へ）→ 自動で送る → まとめて送る・消す の順
+ */
+.queued-head-moves,
+.queued-head-btn.queued-mode {
+  margin-left: auto;
+}
+
+.queued-head-moves {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.queued-head-moves + .queued-mode {
+  margin-left: 0;
+}
+
+/* 止めているとき（終わっても送らない）: 黄で目立たせる */
+.queued-head-btn.queued-mode.paused {
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+
+.queued-head-btn.queued-clear {
+  border-color: color-mix(in srgb, var(--ng) 55%, transparent);
+  color: var(--ng);
+  background: transparent;
+}
+
+.queued-head-btn.queued-clear:hover:not(:disabled) {
+  border-color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 12%, transparent);
+}
+
+.queued-head {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 1px 6px 1px 2px;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.queued-head:hover {
+  color: var(--text);
+}
+
+.queued-chevron {
+  flex: none;
+  transform: rotate(90deg);
+  transition: transform 0.15s;
+}
+
+.queued-count {
+  flex: none;
+  font-weight: 600;
+}
+
+.queued-hint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--extra-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queued-messages.collapsed {
+  padding-block: 4px;
+}
+
+.queued-messages.collapsed .queued-head {
+  padding-bottom: 2px;
+}
+
+.queued-messages.collapsed .queued-chevron {
+  transform: none;
+}
+
+/* 狭い欄: 案内と、見出しのボタンの文字を隠す（アイコンだけにする。読み上げは aria-label） */
+@container queued (max-width: 440px) {
+  .queued-hint,
+  .queued-head-label {
+    display: none;
+  }
+
+  .queued-head-btn {
+    padding-inline: 6px;
+  }
+}

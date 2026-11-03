@@ -3,7 +3,7 @@ import { Fragment, useLayoutEffect, useRef, useState, type DragEvent, type Point
 import { IconButton } from "../IconButton";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
-import { QueuedHeadActions } from "./QueuedHeadActions";
+import { QueuedHeadActions, QueuedMoveActions } from "./QueuedHeadActions";
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
@@ -207,6 +207,8 @@ export function QueuedMessages({
             <span className="queued-head-label">{expanded ? "縮める" : "すべて表示"}</span>
           </button>
         )}
+        {/* 選んだ指示の並べ替え（送る・消すとは分けて「自動で送る」のすぐ左に） */}
+        {selected.length > 0 && <QueuedMoveActions runId={runId} selected={selected} failed={failed} />}
         {/* 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。ここから右が送る・消すの操作） */}
         <button
           type="button"
