@@ -11,7 +11,7 @@ const stamp = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.ge
 
 /**
  * スキーマの版を上げる前・古い系統（v17）から変換する前に、いまのデータベースを同じフォルダの backups/ に写す
- * （kickoff-v<いまの版>-<日時>.db。呼ぶのは dbOpen.ts）。新しい版をインストールして初めて起動したときに、
+ * （kickoff-v<いまの PRAGMA user_version>-<日時>.db。古い系統は v17、いまの系統は v101 から。呼ぶのは dbOpen.ts）。新しい版をインストールして初めて起動したときに、
  * マイグレーション・変換や新しい版の不具合でデータを戻せるように。
  * 写すのは VACUUM INTO（WAL の書きかけも含めて崩れない）。新しいものから KEEP 件だけ残す
  */

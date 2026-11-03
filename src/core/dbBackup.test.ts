@@ -5,7 +5,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { backupBeforeMigration } from "./dbBackup.js";
-import { SCHEMA_VERSION, schemaVersion } from "./schema.js";
+import { SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
 import { Store } from "./store.js";
 import { createLegacyV17 } from "./testing/legacySchemaV17.js";
 
@@ -40,7 +40,7 @@ test("Store: 新しく作るデータベース・いまの版のデータベー�
   new Store(file).close();
   assert.ok(!fs.existsSync(path.join(dir, "backups")));
   const db = new DatabaseSync(file);
-  assert.equal((db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version, SCHEMA_VERSION);
+  assert.equal(userVersion(db), USER_VERSION_BASE + SCHEMA_VERSION);
   db.close();
   fs.rmSync(dir, { recursive: true, force: true });
 });
@@ -59,7 +59,7 @@ test("Store: 古い系統の DB を変換する前に写す（変換に失敗し
   assert.match(backups[0], /^kickoff-v17-/);
   // 元の DB は v17 のまま（表も行もそのまま）
   const db = new DatabaseSync(file);
-  assert.equal(schemaVersion(db), 17);
+  assert.equal(userVersion(db), 17);
   assert.equal(db.prepare("SELECT count(*) AS n FROM runs").get()?.n, 1);
   assert.deepEqual(
     db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map((r) => r.name),
