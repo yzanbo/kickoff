@@ -1,9 +1,10 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, SendHorizontal, Trash2 } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type DragEvent } from "react";
 import type { QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
+import { QueuedHeadActions } from "./QueuedHeadActions";
 import { QueuedEditor, QueuedRow } from "./QueuedRow";
-import { confirmDialog } from "../../dialogs";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { cx } from "../../cx";
 import { reportFailure } from "../../runActions";
 import { useStoredFlag } from "../../hooks/useStoredState";
@@ -13,6 +14,7 @@ import { QUEUE_COLLAPSED_KEY, QUEUE_EXPANDED_KEY } from "../../storageKeys";
  * 作業中に送った次の指示の待ちの列（チャット欄のすぐ上）。
  * いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。並べ替え・消す・すぐ送る（作業中なら止めてから送る）ができる。
  * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし（見出しの「すべて表示」でスクロールさせずにすべて出せる）、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
+ * ⌘ / Shift ＋クリックで行を選ぶと、選んだものだけをまとめて送る・消す・いちばん上か下へ移せる（見出しと右クリック。Esc でやめる）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
@@ -22,6 +24,40 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
   const [expanded, setExpanded] = useStoredFlag(QUEUE_EXPANDED_KEY);
   const listRef = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
+  // ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選ぶ（選んだものだけ、まとめて送る・消す・移す）。消えた指示は外す
+  const [picked, setPicked] = useState<string[]>([]);
+  const [anchor, setAnchor] = useState<string>();
+  const selected = queue.filter((m) => picked.includes(m.id)).map((m) => m.id);
+  const clearSelection = () => {
+    setPicked([]);
+    setAnchor(undefined);
+  };
+  /** 行のクリック（修飾キーがなければ、選んでいるものをやめるだけ） */
+  const selectRow = (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }, id: string) => {
+    if (e.shiftKey && anchor) {
+      const from = queue.findIndex((m) => m.id === anchor);
+      const to = queue.findIndex((m) => m.id === id);
+      const range = queue.slice(Math.min(from, to), Math.max(from, to) + 1).map((m) => m.id);
+      setPicked((prev) => [...new Set([...(e.metaKey || e.ctrlKey ? prev : []), ...range])]);
+    } else if (e.metaKey || e.ctrlKey || e.shiftKey) {
+      setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+      setAnchor(id);
+    } else if (selected.length > 0) {
+      clearSelection();
+    }
+  };
+  // Esc で選ぶのをやめる（パネルを閉じる Esc より先に受け取る）
+  useWindowEvent(
+    "keydown",
+    (e) => {
+      // メニュー・ダイアログが開いているときは、そちらを閉じる Esc に任せる
+      if (e.key !== "Escape" || document.querySelector("[role=menu], dialog[open]")) return;
+      e.stopPropagation();
+      clearSelection();
+    },
+    selected.length > 0,
+    true,
+  );
   // 書き直している指示（id と書いている途中の文）
   const [editing, setEditing] = useState<{ id: string; text: string }>();
   // ドラッグで並べ替えている指示（from: 元の位置）と、入れる位置（at: 0〜件数。その位置の行の前に入れる）
@@ -65,7 +101,7 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
         >
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
           <span className="queued-count">送信待ち {queue.length} 件</span>
-          {hint && <span className="queued-hint">{hint}</span>}
+          {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && <span className="queued-hint">{hint}</span>}
         </button>
         {/* 溜まって中でスクロールするようになったら、すべて出す・縮めるを切り替えられる */}
         {!collapsed && (overflowing || expanded) && (
@@ -81,41 +117,7 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
             <span className="queued-head-label">{expanded ? "縮める" : "すべて表示"}</span>
           </button>
         )}
-        {/* 全体への操作は 2 件以上のときだけ（1 件のときは行の「すぐ送る」「消す」と同じで、その 1 件へのボタンに見えるため） */}
-        {queue.length > 1 && (
-          <>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary queued-head-btn"
-              aria-label="まとめて送る"
-              title={`送信待ちの ${queue.length} 件を 1 つにまとめて、すぐ送る${busy ? "（いまの作業を止めてから送る）" : ""}`}
-              onClick={() => void api.sendAllQueued(runId).catch(failed)}
-            >
-              <SendHorizontal size={12} aria-hidden />
-              {/* 狭いときは文字を隠してアイコンだけにする（読み上げは aria-label） */}
-              <span className="queued-head-label">まとめて送る</span>
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm queued-head-btn queued-clear"
-              aria-label="すべて消す"
-              title={`送信待ちの ${queue.length} 件をすべて消す（確かめてから）`}
-              onClick={() =>
-                void confirmDialog({
-                  title: `送信待ちの ${queue.length} 件をすべて消しますか？`,
-                  message: "消した指示は送られません。元に戻せません。",
-                  confirmLabel: "すべて消す",
-                  danger: true,
-                }).then(async (ok) => {
-                  if (ok) await api.clearQueued(runId).catch(failed);
-                })
-              }
-            >
-              <Trash2 size={12} aria-hidden />
-              <span className="queued-head-label">すべて消す</span>
-            </button>
-          </>
-        )}
+        <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} onClearSelection={clearSelection} failed={failed} />
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、5 件ほどの高さを超えたら中でスクロールする */}
       {!collapsed && (
@@ -139,8 +141,16 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
                 index={i}
                 count={queue.length}
                 busy={busy}
+                selectedCount={selected.includes(m.id) ? selected.length : 0}
+                onSelect={(e) => selectRow(e, m.id)}
+                groupActions={{
+                  sendTogether: () => void api.sendAllQueued(runId, selected).then(clearSelection, failed),
+                  moveTo: (to) => void api.moveQueuedMany(runId, selected, to).catch(failed),
+                  remove: () => void api.removeQueuedMany(runId, selected).then(clearSelection, failed),
+                }}
                 className={cx(
                   "queued-row",
+                  selected.includes(m.id) && "selected",
                   drag?.id === m.id && "dragging",
                   drag && drag.at === i && drag.from !== i && drag.from !== i - 1 && "drop-before",
                   drag && drag.at === i + 1 && i === queue.length - 1 && drag.from !== i && "drop-after",

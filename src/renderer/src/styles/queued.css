@@ -17,7 +17,6 @@
   margin-bottom: 3px;
 }
 
-/* 見出しの右のボタン（まとめて送る = 主な操作の色、すべて消す = 赤い枠と文字） */
 .queued-head-btn {
   flex: none;
   gap: 4px;
@@ -67,7 +66,6 @@
   transition: transform 0.15s;
 }
 
-/* 見出しの件数と、後ろの短い案内（薄く、入りきらなければ省略） */
 .queued-count {
   flex: none;
   font-weight: 600;
@@ -117,6 +115,11 @@
   background: var(--bg-hover);
 }
 
+/* ⌘ / Shift ＋クリックで選んだ行 */
+.queued-row.selected {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
 /* ドラッグで並べ替え: 左のつまみからだけ（文は選べる）。動かしている行は薄く、入る位置に線を出す */
 .queued-grip {
   display: flex;
@@ -135,7 +138,6 @@
   color: var(--text);
 }
 
-/* 送る順番の番号（1 が次に送るもの） */
 .queued-index {
   flex: none;
   min-width: 16px;
@@ -224,7 +226,6 @@
   object-fit: cover;
 }
 
-/* ほかの添付の数（サムネイルの右下に重ねる） */
 .queued-thumb-count {
   position: absolute;
   right: -6px;
@@ -266,7 +267,6 @@
   color: var(--text);
 }
 
-/* 待ちの指示を書き直す欄 */
 .queued-row.editing {
   align-items: flex-start;
 }
