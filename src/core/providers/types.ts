@@ -21,6 +21,8 @@ export interface AgentProvider {
   commands?(cwd: string): Promise<SlashCommandOption[]>;
   /** 最初のメッセージから短いチャット名を作る */
   title?(text: string): Promise<string>;
+  /** 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装） */
+  fork?(sessionId: string, messageId: string, cwd: string): Promise<string>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
   run(params: ProviderRunParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderRunResult>;
 }
@@ -77,4 +79,6 @@ export interface ProviderRunResult {
   turns?: number;
   /** 最後の応答の時点で、コンテキストウィンドウに入っているトークン数とその上限 */
   context?: { tokens: number; window: number | null };
+  /** メインの会話の最後のメッセージの ID（ここから分岐するときの位置） */
+  lastMessageId?: string;
 }

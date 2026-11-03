@@ -140,6 +140,11 @@ export class Store {
     return this.runs.addEvent(runId, event);
   }
 
+  /** 会話の記録を、別のチャットへ upToEventId まで写す（時刻もそのまま。分岐したチャット用） */
+  copyEvents(fromRunId: number, toRunId: number, upToEventId: number): void {
+    this.runs.copyEvents(fromRunId, toRunId, upToEventId);
+  }
+
   listEvents(runId: number): RunEvent[] {
     return this.runs.listEvents(runId);
   }

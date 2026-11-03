@@ -1,11 +1,15 @@
-import { ChevronRight, Wrench } from "lucide-react";
+import { ChevronRight, GitBranch, Wrench } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 import type { Attachment, RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
 import { formatTokens } from "../../format";
 import { useTicker } from "../../hooks/useTicker";
 import { formatClock, formatElapsed } from "../../time";
+import { api } from "../../api";
+import { openRun } from "../../router";
+import { reportFailure } from "../../runActions";
 import { CopyButton } from "../CopyButton";
+import { IconButton } from "../IconButton";
 import { cleanSubagentReport, isSubagentTool } from "./subagentList";
 import { summarizeTools, toolLabel, type TimelineItem, type ToolCall } from "./timelineItems";
 import { describeToolInput } from "./ApprovalCard";
@@ -24,7 +28,7 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
     item.kind === "tools" ? (
       <ToolGroup key={item.key} tools={item.tools} rel={rel} active={active && i === items.length - 1} />
     ) : (
-      <EventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} />
+      <EventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} busy={active} />
     ),
   );
 }
@@ -158,11 +162,11 @@ function Thinking({ text, durationMs }: { text: string; durationMs?: number }) {
 }
 
 /**
- * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー。
- * 時刻に乗せると、終わった時刻を出す
+ * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー、ここから分岐。
+ * 時刻に乗せると、終わった時刻を出す。分岐は、その時点の会話の位置が分かるときだけ（作業中は出さない）
  */
-function TurnFooter({ event, turnStart, turnText }: { event: RunEvent; turnStart?: string; turnText?: string }) {
-  const data = event.data as { status?: string; text?: string };
+function TurnFooter({ event, turnStart, turnText, busy }: { event: RunEvent; turnStart?: string; turnText?: string; busy: boolean }) {
+  const data = event.data as { status?: string; text?: string; message_id?: string };
   const status =
     data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${String(data.text ?? "")}` : null;
   const worked = turnStart && formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
@@ -172,6 +176,22 @@ function TurnFooter({ event, turnStart, turnText }: { event: RunEvent; turnStart
       {status && <span>{status}</span>}
       {worked && <span title={`${formatClock(event.created_at)} に終了`}>作業時間 {worked}</span>}
       {turnText && <CopyButton text={turnText} label="返答をコピー" className="turn-action" />}
+      {data.message_id && !busy && (
+        <IconButton
+          icon={GitBranch}
+          label="ここから分岐"
+          title="ここから分岐（この時点までの会話で新しいチャットを始める。ファイルの変更は戻さない）"
+          size={13}
+          type="button"
+          className="turn-action"
+          onClick={() =>
+            void api
+              .forkRun(event.run_id, event.id)
+              .then((run) => openRun(run.project_id, run.id))
+              .catch(reportFailure("分岐できませんでした"))
+          }
+        />
+      )}
     </div>
   );
 }
@@ -184,7 +204,7 @@ const RESOLVED_LABELS: Record<string, string> = {
 };
 
 /** 発言・お知らせ 1 件（作業の終わりには、作業時間と返答のコピーを出す） */
-function EventItem({ event, turnStart, turnText }: { event: RunEvent; turnStart?: string; turnText?: string }) {
+function EventItem({ event, turnStart, turnText, busy }: { event: RunEvent; turnStart?: string; turnText?: string; busy: boolean }) {
   const data = event.data as Record<string, unknown>;
   switch (event.type) {
     case "user": {
@@ -213,7 +233,7 @@ function EventItem({ event, turnStart, turnText }: { event: RunEvent; turnStart?
     case "approval_resolved":
       return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
     case "result":
-      return <TurnFooter event={event} turnStart={turnStart} turnText={turnText} />;
+      return <TurnFooter event={event} turnStart={turnStart} turnText={turnText} busy={busy} />;
     case "error":
       return <div className="event-note error">{String(data.message)}</div>;
     case "notice":

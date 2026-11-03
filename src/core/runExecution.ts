@@ -143,6 +143,7 @@ function applyResult(store: Store, runId: number, result: ProviderRunResult, com
       text: result.status === "completed" ? result.result : result.error,
       cost_usd: result.costUsd,
       turns: result.turns,
+      ...(result.lastMessageId && result.sessionId ? { session_id: result.sessionId, message_id: result.lastMessageId } : {}),
     });
   }
 }

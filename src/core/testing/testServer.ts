@@ -33,7 +33,13 @@ class FakeProvider extends FakeProviderBase {
       const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
       if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };
     }
-    return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
+    return { status: "completed", sessionId: "s1", result: "ok", turns: 1, lastMessageId: `m${this.prompts.length}` };
+  }
+  /** 分岐したときの引数（会話・位置・作業フォルダ） */
+  forks: [string, string, string][] = [];
+  async fork(sessionId: string, messageId: string, cwd: string) {
+    this.forks.push([sessionId, messageId, cwd]);
+    return `fork-${this.forks.length}`;
   }
   /** 次からの実行を、返した関数を呼ぶまで作業中のままにする */
   hold(): () => void {

@@ -217,6 +217,12 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       if (run) onChange({ type: "run_event", project_id: run.project_id, event: saved });
       return saved;
     },
+    /** 会話の記録を、別のチャットへ upToEventId まで写す（時刻もそのまま。分岐したチャット用。1 件ずつは知らせない） */
+    copyEvents(fromRunId: number, toRunId: number, upToEventId: number): void {
+      db.prepare(
+        "INSERT INTO run_events (run_id, type, data, created_at) SELECT ?, type, data, created_at FROM run_events WHERE run_id = ? AND id <= ? ORDER BY id",
+      ).run(toRunId, fromRunId, upToEventId);
+    },
     listEvents(runId: number): RunEvent[] {
       const rows = db.prepare("SELECT * FROM run_events WHERE run_id = ? ORDER BY id ASC").all(runId) as unknown as EventRow[];
       return rows.map((r) => ({ ...r, data: JSON.parse(r.data) }));

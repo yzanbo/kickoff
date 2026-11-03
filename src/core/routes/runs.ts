@@ -5,6 +5,7 @@ import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_CHOICES } from "../types.js";
 import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject, requireRun, requireWorktree } from "./http.js";
 import { branchName, optionalId, queryOf } from "./schemas.js";
+import { forkRun } from "../runFork.js";
 
 const runOptionsSchema = z
   .object({
@@ -45,7 +46,7 @@ const messageInputSchema = z
   .refine((v) => v.text || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
 
 /** チャット（エージェントとの会話）: 始める・続ける・中断・名前や列の変更・アーカイブ・削除・検索 */
-export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
+export function runRoutes(app: Hono, { store, runner, approvals, providers }: ServerDeps) {
   // ?archived=1 でアーカイブしたチャットも含める
   // プロジェクトのチャット。アーカイブ済みも含めるときは、未アーカイブとアーカイブ済みを別々に上限まで取る
   // （アーカイブ済みが多くても、未アーカイブのチャットが一覧から落ちないように）
@@ -179,6 +180,16 @@ export function runRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
     const sent = await conflictOnError(() => runner.sendQueuedNow(run.id, c.req.param("queueId")));
     if (!sent) throw new HttpError(404, "待ちの指示が見つかりません");
     return c.json({ ok: true });
+  });
+
+  // 作業の終わり（result イベント）の時点から、新しいチャットに分岐する（作業中は 409、分岐できない時点は 400）
+  app.post("/api/runs/:id/fork", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { event_id } = z.object({ event_id: z.number().int() }).parse(await c.req.json());
+    if (runner.isBusy(run.id)) throw new HttpError(409, "作業中は分岐できません。終わってから行ってください");
+    const project = requireProject(store, String(run.project_id));
+    const forked = await badRequest(() => forkRun({ store, providers }, run, event_id, run.worktree_path || project.repo_path));
+    return c.json(forked, 201);
   });
 
   // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中・まだ会話がなければ 409）

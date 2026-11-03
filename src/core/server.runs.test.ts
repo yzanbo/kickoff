@@ -185,3 +185,36 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "4" })).body, { queued: false });
   await until(() => provider.prompts.length === 3);
 });
+
+test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => store.getRun(runId)?.status === "completed");
+  await call("POST", `/api/runs/${runId}/messages`, { text: "2" });
+  await until(() => !runner.isBusy(runId) && store.listEvents(runId).filter((e) => e.type === "result").length === 2);
+  const events = store.listEvents(runId);
+  const first = events.find((e) => e.type === "result")!;
+  assert.deepEqual([(first.data as { session_id?: string }).session_id, (first.data as { message_id?: string }).message_id], ["s1", "m1"]);
+
+  const forked = await call("POST", `/api/runs/${runId}/fork`, { event_id: first.id });
+  assert.equal(forked.status, 201);
+  assert.equal(forked.body.title, `${store.getRun(runId)!.title}（分岐）`);
+  assert.equal(forked.body.session_id, "fork-1");
+  assert.deepEqual(provider.forks, [["s1", "m1", project.repo_path]]);
+  // 写した記録は時刻もそのまま、最後に分岐した知らせ
+  const copied = store.listEvents(forked.body.id);
+  assert.deepEqual(copied.map((e) => e.type), ["user", "result", "notice"]);
+  assert.equal(copied[0].created_at, events[0].created_at);
+  assert.equal(store.listEvents(runId).length, events.length);
+
+  // 分岐できない時点・見つからないチャット
+  const user = events.find((e) => e.type === "user")!;
+  assert.deepEqual(await call("POST", `/api/runs/${runId}/fork`, { event_id: user.id }), { status: 400, body: { error: "この時点からは分岐できません" } });
+  assert.equal((await call("POST", "/api/runs/999/fork", { event_id: first.id })).status, 404);
+  // 作業中は分岐できない
+  const release = provider.hold();
+  await call("POST", `/api/runs/${runId}/messages`, { text: "3" });
+  assert.equal((await call("POST", `/api/runs/${runId}/fork`, { event_id: first.id })).status, 409);
+  release();
+  await until(() => !runner.isBusy(runId));
+});
