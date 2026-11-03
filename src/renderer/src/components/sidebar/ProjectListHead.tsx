@@ -5,7 +5,7 @@ import { CHAT_GROUPINGS, GROUPING_META, type ChatGrouping } from "./chatGrouping
 import { HeadAction, HeadMenu, HeadToggle } from "./HeadMenu";
 import { SIDEBAR_GROUPING_KEY } from "../../storageKeys";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "./sidebarFlags";
-import { TagFilterMenu } from "./TagFilterMenu";
+import { TagFilterRow } from "./TagFilterRow";
 
 /** slide: 1 プロジェクトずつ横にスライド（丸は下） / rail: 1 プロジェクトずつ縦にスライド（丸は左に縦に並べる） / stack: すべてのプロジェクトを縦に並べる */
 export type NavLayout = "slide" | "stack" | "rail";
@@ -34,7 +34,7 @@ interface Props {
 /**
  * プロジェクト一覧の上の見出し。何に効くかで 2 行に分け、どちらも設定の種類（ジャンル）ごとのボタンを並べる（1 つのボタンには 1 種類だけ。
  * 2 択のものは押すたびに切り替え（HeadToggle）、3 つ以上あるもの（並べ方・まとめ方）はメニューから選ぶ（HeadMenu））:
- * プロジェクト = 並べ方（縦並び / 横スライド / 縦スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・タグ（絞り込み。TagFilterMenu）・アーカイブ（出すか）/
+ * プロジェクト = 並べ方（縦並び / 横スライド / 縦スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・アーカイブ（出すか）/
  * チャット = まとめ方・表示（行を 1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。チャットの設定はすべてのプロジェクトに効く。
  * 「表示」はプロジェクトのカードとチャットの行で別々に切り替える。
  * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行のアーカイブの右に、ほかと同じ形のボタン（HeadAction）で置く（プロジェクトの行には収まらないため）
@@ -93,7 +93,6 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           title="プロジェクトのカード（1 行 = 名前だけ / 2 行 = チャット数も）"
           onToggle={() => setCompactProjects(!compactProjects)}
         />
-        <TagFilterMenu />
         {archiveToggle("archive-projects", "プロジェクト", showArchived, onShowArchived, `（${archivedCount} 件）`)}
       </div>
       <div className="project-list-row">
@@ -135,6 +134,8 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           onClick={() => fold.set(!fold.allCollapsed)}
         />
       </div>
+      {/* タグがあるときだけ、タグでの絞り込みの行（押すたびに付け外し） */}
+      <TagFilterRow />
     </div>
   );
 }

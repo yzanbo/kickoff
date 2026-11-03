@@ -21,7 +21,7 @@ interface HeadMenuSection {
 }
 
 /**
- * プロジェクト一覧の上の見出しの、選択肢が 3 つ以上ある設定（まとめ方・タグの絞り込み）のボタン（2 択のものは HeadToggle）。
+ * プロジェクト一覧の上の見出しの、選択肢が 3 つ以上ある設定（まとめ方）のボタン（2 択のものは HeadToggle）。
  * ボタンは 2 段で、上に種類の名前・下にいまの値を出し、押すとその種類の選択肢だけを出す。
  * 幅は、取りうる値（values）のうちいちばん長いものに合わせて固定する（選び直しても幅が変わらない）。
  * 狭いときは文字を隠してアイコンだけにする（@container。アイコンもいまの値を表すものを渡す）
@@ -34,7 +34,6 @@ export function HeadMenu({
   values,
   title,
   sections,
-  highlight = false,
 }: {
   id: string;
   /** いまの値を表すアイコン（狭いときに出す） */
@@ -47,15 +46,13 @@ export function HeadMenu({
   values: string[];
   title: string;
   sections: HeadMenuSection[];
-  /** 絞り込んでいるなど、ふだんと違う状態（アクセントの色で目立たせる） */
-  highlight?: boolean;
 }) {
   const buttonClass = `head-menu-${id}`;
   const menu = useAnchoredMenu(`.${buttonClass}`, 260);
   return (
     <>
       <button
-        className={cx("head-chip", buttonClass, menu.isOpen && "active", highlight && "filtering")}
+        className={cx("head-chip", buttonClass, menu.isOpen && "active")}
         title={title}
         aria-label={`${label}: ${value}`}
         aria-haspopup="menu"
