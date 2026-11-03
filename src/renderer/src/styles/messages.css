@@ -90,31 +90,43 @@
 /* 上に貼り付けておく自分の発言（読んでいる返答の元の発言。押すとその発言へ） */
 .sticky-prompt {
   position: absolute;
-  top: 8px;
-  left: 50%;
+  top: 0;
+  right: 0;
+  left: 0;
   z-index: 2;
-  display: -webkit-box;
-  width: min(796px, calc(100% - 2 * var(--gutter)));
-  padding: 6px 12px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* 中身は発言の流れ（.timeline-inner）と同じ幅にそろえる */
+  padding: 8px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
+  border: none;
+  border-bottom: 1px solid var(--border);
   font: inherit;
-  font-size: 12px;
-  line-height: 1.5;
   text-align: left;
-  white-space: pre-wrap;
-  color: var(--muted);
+  color: var(--text);
   background: var(--bg-elev);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+  box-shadow: 0 6px 12px -8px rgb(0 0 0 / 45%);
   cursor: pointer;
-  transform: translateX(-50%);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 .sticky-prompt:hover {
-  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.sticky-prompt-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sticky-prompt-text {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 /* チャットの中の検索（見出しのすぐ下の 1 行。開いている間は行を 1 つ足す） */
