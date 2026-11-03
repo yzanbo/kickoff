@@ -29,8 +29,11 @@ interface Props {
   onStop?: () => void;
   /** 作業中だけ、送信ボタンの左に出すもの（送り方の切り替えなど） */
   busyControls?: ReactNode;
-  /** 作業中に送ったとき（待ちの列に入れる。渡さなければ、作業中は送れない） */
-  onQueue?: (text: string, attachments: Attachment[]) => Promise<void>;
+  /**
+   * 作業中に送ったとき（渡さなければ、作業中は送れない）。mode はキーで決めたとき（⌘Enter = 割り込む・⌘⇧Enter = ためておく）。
+   * なければ、チャット欄の切り替えのとおり
+   */
+  onQueue?: (text: string, attachments: Attachment[], mode?: QueueSendMode) => Promise<void>;
   /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
   onTextChange?: (text: string) => void;
   /** / と @ の候補を出す作業場所（コマンド・ファイルをここから探す） */
@@ -49,8 +52,14 @@ const COMPOSER_MAX_HEIGHT = 240;
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
 const TEXT_CHANGE_DELAY_MS = 300;
 
-/** 送信の Enter か（Shift+Enter は改行。日本語入力の変換を確定する Enter は除く） */
-const isSendEnter = (e: KeyboardEvent) => e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229;
+/** 作業中に送るときの扱い（ためておく = 終わったら送る / 割り込む = いまの作業を止めてすぐ送る） */
+export type QueueSendMode = "queue" | "interrupt";
+
+/** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 割り込む（どちらでもなければ、チャット欄の切り替えのとおり） */
+const sendModeOf = (e: KeyboardEvent): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "interrupt") : undefined);
+
+/** 送信の Enter か（Shift+Enter は改行。⌘⇧Enter は送り方を決めた送信。日本語入力の変換を確定する Enter は除く） */
+const isSendEnter = (e: KeyboardEvent) => e.key === "Enter" && (!e.shiftKey || e.metaKey) && !e.nativeEvent.isComposing && e.keyCode !== 229;
 
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
@@ -133,14 +142,15 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   // 録音中は、送信で「起こした文を入れてそのまま送る」
   const canSend = (hasContent || dictation.recording) && ready;
 
-  /** 送る（body を渡せば、いまの文の代わりにそれを送る。音声入力で入れてそのまま送るとき） */
-  async function send(body?: string) {
+  /** 送る（body を渡せば、いまの文の代わりにそれを送る。音声入力で入れてそのまま送るとき。mode は作業中の送り方をキーで決めたとき） */
+  async function send(body?: string, mode?: QueueSendMode) {
     const message = (body ?? text).trim();
     if (!ready || !(message || attach.attachments.length > 0)) return;
     setSending(true);
     setError(undefined);
     try {
-      await (queueing ? onQueue! : onSend)(message, attach.attachments);
+      if (queueing) await onQueue!(message, attach.attachments, mode);
+      else await onSend(message, attach.attachments);
       setText("");
       attach.clear();
     } catch (e) {
@@ -151,7 +161,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   }
 
   /** 送信ボタン・Enter: 録音中なら、止めて起こした文を入れてから送る */
-  const submit = () => (dictation.recording ? void dictation.finish(true) : void send());
+  const submit = (mode?: QueueSendMode) => (dictation.recording ? void dictation.finish(true) : void send(undefined, mode));
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // 録音中の Enter・⌘Enter は、起こした文を入れてそのまま送る
@@ -165,7 +175,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     if (promptHistory.handleKey(e)) return;
     if (isSendEnter(e)) {
       e.preventDefault();
-      submit();
+      submit(sendModeOf(e));
     }
   }
 
@@ -258,7 +268,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
             }
             aria-label={dictation.recording ? "文字起こしして送信" : queueing ? "待ちの列に入れる" : "送信"}
             disabled={!canSend}
-            onClick={submit}
+            onClick={() => submit()}
           >
             <ArrowUp size={17} strokeWidth={2.5} />
           </button>
