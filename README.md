@@ -34,7 +34,7 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 | データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
 | ポート | 4317 | 4318 |
 
-データベースのスキーマの版を上げる前に、いまのデータベースを同じフォルダの `backups/` に写す（`kickoff-v<版>-<日時>.db`。新しいものから 5 件。`src/core/dbBackup.ts`）。新しい版を入れて不具合があったら、本番の Kickoff を終了し、`kickoff.db` をこの写しと入れ替えて、前の版のアプリで開く。
+データベースのスキーマの版を上げる前と、古い系統（v17 まで）のデータベースを新しいスキーマへ変換する前に、いまのデータベースを同じフォルダの `backups/` に写す（`kickoff-v<user_version>-<日時>.db`。新しいものから 5 件。`src/core/dbBackup.ts`）。新しい版を入れて不具合があったら、本番の Kickoff を終了し、`kickoff.db` をこの写しと入れ替えて、前の版のアプリで開く（変換の前の写しは `kickoff-v17-…`）。変換したあとのデータベースは、古い版のアプリでは開かない（古いアプリは何も流さず、そのまま使うと読み書きに失敗する）。
 
 開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/core/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
 
