@@ -1,8 +1,8 @@
-import { Archive, ArchiveRestore, Pencil, SquareTerminal } from "lucide-react";
+import { Archive, ArchiveRestore, ExternalLink, Pencil, SquareTerminal } from "lucide-react";
 import type { Project, Run } from "../../../../core/types";
 import { CHAT_TITLE_MAX, chatTitle } from "../../chatTitle";
 import { useRunRename } from "../../hooks/useRunRename";
-import { toggleArchiveRunNow } from "../../runActions";
+import { reportFailure, toggleArchiveRunNow } from "../../runActions";
 import { CloseButton, IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 import { ProjectChip } from "../ProjectChip";
@@ -59,6 +59,16 @@ export function RunHeader({
             label="作業場所でターミナルを開く"
             title={`ターミナルを開く（${run.worktree_path || project.repo_path}）`}
             onClick={() => onOpenTerminal(terminalTargetOf(run, project))}
+          />
+        )}
+        {/* macOS のターミナル（アプリの外）で、作業場所を開く */}
+        {window.kickoff && project && (
+          <IconButton
+            icon={ExternalLink}
+            size={13}
+            label="外部のターミナルで作業場所を開く"
+            title={`外部のターミナル（Terminal.app）で開く（${run.worktree_path || project.repo_path}）`}
+            onClick={() => void window.kickoff?.openExternalTerminal(run.worktree_path || project.repo_path).catch(reportFailure("ターミナルを開けませんでした"))}
           />
         )}
         {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
