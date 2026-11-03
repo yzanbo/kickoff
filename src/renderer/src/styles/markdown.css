@@ -142,3 +142,30 @@
   color: var(--muted);
 }
 
+/* 押すとエディタタブでファイルを開くチップ（インラインコードの見た目のまま、色と下線で押せると分かるようにする） */
+.markdown .file-link {
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  font: inherit;
+  color: var(--accent);
+  text-align: inherit;
+  overflow-wrap: anywhere;
+  background: none;
+  cursor: pointer;
+}
+
+.markdown .file-link:hover {
+  text-decoration: underline;
+}
+
+.markdown .file-link code {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.markdown .file-link:hover code {
+  text-decoration-style: solid;
+  background: var(--bg-active);
+}

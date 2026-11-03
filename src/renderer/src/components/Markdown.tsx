@@ -1,14 +1,33 @@
-import ReactMarkdown, { type Components } from "react-markdown";
+import { useContext, useMemo, type ReactNode } from "react";
+import ReactMarkdown, { type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { FileLinkContext } from "./fileLinks/fileLinkContext";
+import { remarkFileLinks } from "./fileLinks/fileRefs";
 import { MermaidDiagram, MermaidPlaceholder } from "./mermaid/MermaidDiagram";
 import { codeBlockOf } from "./mermaid/mermaidSource";
 import { CopyButton } from "./CopyButton";
 
-const link: Components["a"] = ({ href, children }) => (
-  <a href={href} target="_blank" rel="noreferrer">
-    {children}
-  </a>
-);
+/** リンク。チャットの作業場所のファイル（remarkFileLinks が data-file-path を付けたもの）は、押すとエディタタブで開く */
+const link: Components["a"] = ({ node, href, children }) => {
+  const path = node?.properties.dataFilePath;
+  if (typeof path === "string") return <FileLink path={path} line={Number(node?.properties.dataFileLine) || undefined}>{children}</FileLink>;
+  return (
+    <a href={href} target="_blank" rel="noreferrer">
+      {children}
+    </a>
+  );
+};
+
+/** 押すとエディタタブでファイルを開くチップ（中はインラインコードかリンクの文字） */
+function FileLink({ path, line, children }: { path: string; line?: number; children: ReactNode }) {
+  const links = useContext(FileLinkContext);
+  if (!links) return <>{children}</>;
+  return (
+    <button type="button" className="file-link" title={`エディタで開く: ${path}${line ? `（${line} 行目）` : ""}`} onClick={() => links.open({ path, ...(line ? { line } : {}) })}>
+      {children}
+    </button>
+  );
+}
 
 /**
  * コードブロック。上の帯に言語名とコピーのボタンを出す（ボタンはいつも出す）。
@@ -44,12 +63,15 @@ const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true), table 
 
 /**
  * AI の発言などの Markdown 表示（HTML は描画しない）。```mermaid は図にする。
+ * チャットのパネルの中（FileLinkContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
  * streaming: 生成中の返答
  */
 export function Markdown({ children, streaming = false }: { children: string; streaming?: boolean }) {
+  const links = useContext(FileLinkContext);
+  const remarkPlugins = useMemo<Options["remarkPlugins"]>(() => (links ? [remarkGfm, [remarkFileLinks, links.index]] : [remarkGfm]), [links]);
   return (
     <div className="markdown">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={streaming ? STREAMING_COMPONENTS : COMPONENTS}>
+      <ReactMarkdown remarkPlugins={remarkPlugins} components={streaming ? STREAMING_COMPONENTS : COMPONENTS}>
         {children}
       </ReactMarkdown>
     </div>

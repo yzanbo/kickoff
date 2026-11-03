@@ -3,6 +3,8 @@ import type { Approval, Project, QueuedMessage, Run, RunEvent } from "../../../.
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
 import { chatDraftKey } from "../../storageKeys";
+import { FileLinkContext } from "../fileLinks/fileLinkContext";
+import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
 import { Composer } from "./Composer";
 import { ContextMeter } from "./ContextMeter";
@@ -112,6 +114,8 @@ function RunView({
   const prompts = useMemo(() => userPrompts(events), [events]);
   const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
   const waiting = approvals.length > 0;
+  // 返答の中のファイルのパスを、押してエディタタブで開けるチップにする（作業場所のファイルだけ）
+  const fileLinks = useFileLinks(run, project?.repo_path);
   // 作業中に送ったときの扱い（ためておく / 割り込む。どのチャットでも同じ）
   const [queueMode, setQueueMode] = useStoredChoice<QueueMode>(QUEUE_MODE_KEY, ["queue", "interrupt"], "queue");
   // 停止を押して、止まるのを待っている（止まったら戻す）
@@ -139,6 +143,7 @@ function RunView({
   );
 
   return (
+    <FileLinkContext.Provider value={fileLinks}>
     <OpenSubagentContext.Provider value={setSubOpen}>
     <RewindContext.Provider value={rewind}>
     <div ref={panelRef} className={cx("run-page run-panel", finding && "finding")}>
@@ -209,5 +214,6 @@ function RunView({
     </div>
     </RewindContext.Provider>
     </OpenSubagentContext.Provider>
+    </FileLinkContext.Provider>
   );
 }
