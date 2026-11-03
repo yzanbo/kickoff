@@ -1,5 +1,6 @@
 // チャットのタイムラインの組み立て（イベント → 表示の単位）
 import type { RunEvent } from "../../../../core/types";
+import { changesOf, type EditCall, type FileChange } from "./turnFileChanges";
 
 export interface ToolCall {
   use: RunEvent;
@@ -8,11 +9,17 @@ export interface ToolCall {
 
 /**
  * 作業の終わり（result）に付けるもの。turnStart: その作業を始めた時刻（直前の自分の発言の時刻。作業時間を出すため）、
- * turnText: その作業での AI の返答をつないだ文（コピーのボタンに使う）
+ * turnText: その作業での AI の返答をつないだ文（コピーのボタンに使う）、turnChanges: その作業で変えたファイル（ターンの変更カード）
  */
 export type TimelineItem =
-  | { kind: "event"; key: string; event: RunEvent; turnStart?: string; turnText?: string }
+  | { kind: "event"; key: string; event: RunEvent; turnStart?: string; turnText?: string; turnChanges?: FileChange[] }
   | { kind: "tools"; key: string; tools: ToolCall[] };
+
+/**
+ * 作業の終わりごとの変えたファイル（作業の終わりの記録 → 一覧）。終わった作業の編集はもう変わらないので覚えておき、
+ * 返答が届くたびの組み立て直しで新しい配列を作らない（作業の終わりの行の memo が効くように）
+ */
+const turnChangesCache = new WeakMap<RunEvent, FileChange[]>();
 
 /** これより短い思考（中身なし）はタイムラインに出さない */
 const THINKING_MIN_MS = 2000;
@@ -26,7 +33,14 @@ export function groupEvents(events: RunEvent[], parent?: string): TimelineItem[]
   const byId = new Map<string, ToolCall>();
   let turnStart: string | undefined;
   let turnTexts: string[] = [];
+  // その作業の編集のツール（サブエージェントのものも含める。親の流れのときだけ数える）
+  let turnEdits = new Map<string, EditCall>();
   for (const e of events) {
+    if (parent === undefined) {
+      const d = e.data as { id?: string; name?: string; tool_use_id?: string };
+      if (e.type === "tool_use" && EDIT_TOOLS.has(d.name ?? "")) turnEdits.set(d.id!, { use: e });
+      else if (e.type === "tool_result" && d.tool_use_id && turnEdits.has(d.tool_use_id)) turnEdits.get(d.tool_use_id)!.result = e;
+    }
     if (((e.data as { parent?: string }).parent ?? undefined) !== parent) continue;
     if (e.type === "tool_use") {
       const call: ToolCall = { use: e };
@@ -45,9 +59,22 @@ export function groupEvents(events: RunEvent[], parent?: string): TimelineItem[]
       // 表示しない（サブエージェントはチャット欄の下の一覧で見せる）
     } else if (e.type === "result") {
       const turnText = turnTexts.join("\n\n");
-      items.push({ kind: "event", key: `e${e.id}`, event: e, ...(turnStart ? { turnStart } : {}), ...(turnText ? { turnText } : {}) });
+      let turnChanges = turnChangesCache.get(e);
+      if (!turnChanges) {
+        turnChanges = changesOf([...turnEdits.values()]);
+        turnChangesCache.set(e, turnChanges);
+      }
+      items.push({
+        kind: "event",
+        key: `e${e.id}`,
+        event: e,
+        ...(turnStart ? { turnStart } : {}),
+        ...(turnText ? { turnText } : {}),
+        ...(turnChanges.length ? { turnChanges } : {}),
+      });
       turnStart = undefined;
       turnTexts = [];
+      turnEdits = new Map();
     } else {
       if (e.type === "user") turnStart ??= e.created_at;
       if (e.type === "text") turnTexts.push(String((e.data as { text?: string }).text ?? ""));

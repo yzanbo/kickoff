@@ -11,6 +11,8 @@ import { reportFailure } from "../../runActions";
 import { CopyButton } from "../CopyButton";
 import { IconButton } from "../IconButton";
 import type { TimelineItem } from "./timelineItems";
+import { TurnChanges } from "./TurnChanges";
+import type { FileChange } from "./turnFileChanges";
 import { ToolGroup } from "./ToolGroup";
 import { AssistantMessage, UserMessage } from "./MessageItems";
 
@@ -25,7 +27,7 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
     item.kind === "tools" ? (
       <MemoToolGroup key={item.key} tools={item.tools} rel={rel} active={active && i === items.length - 1} />
     ) : (
-      <MemoEventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} busy={active} />
+      <MemoEventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} turnChanges={item.turnChanges} busy={active} />
     ),
   );
 }
@@ -77,11 +79,23 @@ function Thinking({ text, durationMs }: { text: string; durationMs?: number }) {
   );
 }
 
+/** 作業の終わり: その作業で変えたファイルのカード（あれば）と、終わりの行 */
+function TurnEnd(props: TurnFooterProps & { turnChanges?: FileChange[] }) {
+  return (
+    <>
+      {props.turnChanges && <TurnChanges files={props.turnChanges} />}
+      <TurnFooter {...props} />
+    </>
+  );
+}
+
+type TurnFooterProps = { event: RunEvent; turnStart?: string; turnText?: string; busy: boolean };
+
 /**
  * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー、ここから分岐。
  * 時刻に乗せると、終わった時刻を出す。分岐は、その時点の会話の位置が分かるときだけ（作業中は出さない）
  */
-function TurnFooter({ event, turnStart, turnText, busy }: { event: RunEvent; turnStart?: string; turnText?: string; busy: boolean }) {
+function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
   const data = event.data as { status?: string; text?: string; message_id?: string };
   const status =
     data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${String(data.text ?? "")}` : null;
@@ -123,7 +137,19 @@ const RESOLVED_LABELS: Record<string, string> = {
 /** 発言・お知らせ 1 件（作業の終わりには、作業時間と返答のコピーを出す） */
 const MemoEventItem = memo(EventItem);
 
-function EventItem({ event, turnStart, turnText, busy }: { event: RunEvent; turnStart?: string; turnText?: string; busy: boolean }) {
+function EventItem({
+  event,
+  turnStart,
+  turnText,
+  turnChanges,
+  busy,
+}: {
+  event: RunEvent;
+  turnStart?: string;
+  turnText?: string;
+  turnChanges?: FileChange[];
+  busy: boolean;
+}) {
   const data = event.data as Record<string, unknown>;
   switch (event.type) {
     case "user":
@@ -135,7 +161,7 @@ function EventItem({ event, turnStart, turnText, busy }: { event: RunEvent; turn
     case "approval_resolved":
       return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
     case "result":
-      return <TurnFooter event={event} turnStart={turnStart} turnText={turnText} busy={busy} />;
+      return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} busy={busy} />;
     case "error":
       return <div className="event-note error">{String(data.message)}</div>;
     case "notice":
