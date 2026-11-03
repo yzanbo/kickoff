@@ -91,12 +91,13 @@
   white-space: nowrap;
 }
 
+/* 畳んだとき: 見出しの行だけになるので、行を枠の上下の真ん中に置く（一覧との間の余白・見出しの下側だけの詰め物を外す） */
 .queued-messages.collapsed {
   padding-block: 4px;
 }
 
-.queued-messages.collapsed .queued-head {
-  padding-bottom: 2px;
+.queued-messages.collapsed .queued-head-row {
+  margin-bottom: 0;
 }
 
 .queued-messages.collapsed .queued-chevron {
