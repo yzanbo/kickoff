@@ -9,7 +9,10 @@ const call = (name: string, input: object = {}): ToolCall => ({
 });
 
 test("ツールのまとまりの要約: 編集・読み取りはファイルの数、それ以外は回数で 1 文にする", () => {
-  assert.equal(summarizeTools([call("Bash"), call("Bash"), call("Bash"), call("Bash"), call("TodoWrite"), call("WebFetch"), call("ToolSearch"), call("AskUserQuestion")]), "4個のコマンドを実行 および その他のツールを4回使用");
+  assert.equal(
+    summarizeTools([call("Bash"), call("Bash"), call("Bash"), call("Bash"), call("TodoWrite"), call("WebFetch"), call("ToolSearch"), call("AskUserQuestion")]),
+    "4個のコマンドを実行、1件のページを取得、ToDo を1件更新、ツールを1回検索 および 1件の質問",
+  );
   // 同じファイルを何度編集しても 1 個と数える
   assert.equal(
     summarizeTools([call("Edit", { file_path: "a.ts" }), call("Edit", { file_path: "a.ts" }), call("Write", { file_path: "b.ts" }), call("Read", { file_path: "a.ts" }), call("Grep"), call("Glob")]),
@@ -18,6 +21,15 @@ test("ツールのまとまりの要約: 編集・読み取りはファイルの
   assert.equal(summarizeTools([call("Agent"), call("Task")]), "サブエージェントを2件起動");
   assert.equal(summarizeTools([call("mcp__kickoff__create_task"), call("Bash")]), "1個のコマンドを実行 および Kickoff を1回使用");
   assert.equal(summarizeTools([]), "");
+});
+
+test("ツールのまとまりの要約: ToDo・ツール検索・スキル・ページの取得などを種類ごとに数え、分類できないものだけ「その他」", () => {
+  assert.equal(summarizeTools([call("TaskUpdate"), call("TaskUpdate"), call("TaskUpdate"), call("TaskUpdate")]), "ToDo を4件更新");
+  assert.equal(summarizeTools([call("ToolSearch"), call("TaskCreate"), call("TaskCreate"), call("ToolSearch")]), "ToDo を2件追加 および ツールを2回検索");
+  assert.equal(summarizeTools([call("Skill"), call("WebFetch"), call("WebFetch")]), "2件のページを取得 および スキルを1回使用");
+  assert.equal(summarizeTools([call("TaskList"), call("TaskGet")]), "ToDo を2回確認");
+  assert.equal(summarizeTools([call("TaskStop"), call("TaskOutput"), call("ExitPlanMode")]), "作業の様子を1回確認、作業を1件停止 および 計画を1回提示");
+  assert.equal(summarizeTools([call("mcp__github__get_issue"), call("Mystery"), call("Mystery")]), "MCP のツールを1回使用 および その他のツールを2回使用");
 });
 
 const event = (id: number, type: string, data: object = {}): RunEvent => ({ id, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;

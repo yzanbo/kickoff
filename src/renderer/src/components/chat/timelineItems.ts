@@ -58,38 +58,55 @@ export function groupEvents(events: RunEvent[], parent?: string): TimelineItem[]
 }
 
 export const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
-const SEARCH_TOOLS = new Set(["Grep", "Glob", "WebSearch"]);
+/** 回数で数えるツールの種類（並びは要約に出す順。先頭のコマンドの次に、ファイルの読み取りを挟む） */
+const COUNTED_KINDS = [
+  { tools: ["Bash"], text: (n: number) => `${n}個のコマンドを実行` },
+  { tools: ["Grep", "Glob", "WebSearch"], text: (n: number) => `${n}回検索` },
+  { tools: ["WebFetch"], text: (n: number) => `${n}件のページを取得` },
+  { tools: ["TaskCreate"], text: (n: number) => `ToDo を${n}件追加` },
+  { tools: ["TaskUpdate", "TodoWrite"], text: (n: number) => `ToDo を${n}件更新` },
+  { tools: ["TaskList", "TaskGet"], text: (n: number) => `ToDo を${n}回確認` },
+  { tools: ["ToolSearch"], text: (n: number) => `ツールを${n}回検索` },
+  { tools: ["Skill"], text: (n: number) => `スキルを${n}回使用` },
+  { tools: ["Agent", "Task"], text: (n: number) => `サブエージェントを${n}件起動` },
+  { tools: ["SendMessage"], text: (n: number) => `メッセージを${n}件送信` },
+  { tools: ["TaskOutput", "BashOutput", "Monitor"], text: (n: number) => `作業の様子を${n}回確認` },
+  { tools: ["TaskStop", "KillShell", "KillBash"], text: (n: number) => `作業を${n}件停止` },
+  { tools: ["AskUserQuestion"], text: (n: number) => `${n}件の質問` },
+  { tools: ["ExitPlanMode"], text: (n: number) => `計画を${n}回提示` },
+];
+const KIND_OF = new Map(COUNTED_KINDS.flatMap((kind, i) => kind.tools.map((name) => [name, i] as const)));
 
 /**
  * ツールのまとまりで何をしたかを 1 文にする（「2個のファイルを編集 および 3個のコマンドを実行」）。
- * 編集・読み取りはファイルの数、それ以外は回数で数える
+ * 編集・読み取りはファイルの数、それ以外は種類ごとの回数で数える（分類できないものだけ「その他」）
  */
 export function summarizeTools(tools: ToolCall[]): string {
   const edited = new Set<string>();
   const read = new Set<string>();
-  let commands = 0;
-  let searches = 0;
-  let subagents = 0;
+  const counts = COUNTED_KINDS.map(() => 0);
   let kickoff = 0;
+  let mcp = 0;
   let others = 0;
   for (const t of tools) {
     const { name, input = {} } = t.use.data as { name: string; input?: Record<string, unknown> };
     const file = String(input.file_path ?? input.notebook_path ?? t.use.id);
+    const kind = KIND_OF.get(name);
     if (EDIT_TOOLS.has(name)) edited.add(file);
     else if (name === "Read") read.add(file);
-    else if (name === "Bash") commands += 1;
-    else if (SEARCH_TOOLS.has(name)) searches += 1;
-    else if (name === "Agent" || name === "Task") subagents += 1;
+    else if (kind !== undefined) counts[kind] += 1;
     else if (name.startsWith("mcp__kickoff__")) kickoff += 1;
+    else if (name.startsWith("mcp__")) mcp += 1;
     else others += 1;
   }
+  const [commands, ...rest] = COUNTED_KINDS.map((kind, i) => (counts[i] > 0 ? kind.text(counts[i]) : ""));
   const parts = [
     edited.size > 0 && `${edited.size}個のファイルを編集`,
-    commands > 0 && `${commands}個のコマンドを実行`,
+    commands,
     read.size > 0 && `${read.size}個のファイルを読み取り`,
-    searches > 0 && `${searches}回検索`,
-    subagents > 0 && `サブエージェントを${subagents}件起動`,
+    ...rest,
     kickoff > 0 && `Kickoff を${kickoff}回使用`,
+    mcp > 0 && `MCP のツールを${mcp}回使用`,
     others > 0 && `その他のツールを${others}回使用`,
   ].filter((part): part is string => Boolean(part));
   if (parts.length <= 1) return parts[0] ?? "";
