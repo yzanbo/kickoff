@@ -49,6 +49,18 @@
   overflow: hidden;
 }
 
+/* 見出しの右の、作業場所の道具（ターミナル・外部のターミナル） */
+.run-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.run-tools:empty {
+  display: none;
+}
+
 /* 状態の前のターン数・費用 */
 .run-meta {
   display: flex;
