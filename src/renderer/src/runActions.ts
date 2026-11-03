@@ -25,7 +25,7 @@ export async function toggleArchiveRun(run: Pick<Run, "id" | "title" | "archived
 export const togglePinRun = (run: Pick<Run, "id" | "pinned">) => api.pinRun(run.id, !run.pinned);
 
 /** チャットを削除する（消したチャットの入力欄の書きかけの文も、localStorage に残さない） */
-async function deleteRun(runId: number) {
+export async function deleteRun(runId: number) {
   await api.deleteRun(runId);
   localStorage.removeItem(chatDraftKey(runId));
 }

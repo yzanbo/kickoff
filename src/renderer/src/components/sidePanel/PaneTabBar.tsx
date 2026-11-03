@@ -5,6 +5,7 @@ import { IconButton } from "../IconButton";
 import { PanelTab } from "./PanelTab";
 import type { PaneLeaf, SplitDir } from "./paneLayout";
 import { tabLabel } from "./panelTabs";
+import { closeChatWithChoice } from "../chat/closeChat";
 import type { TabDrag } from "./useTabDrag";
 import type { SidePanelController } from "./useSidePanel";
 
@@ -72,7 +73,10 @@ export function PaneTabBar({
             )}
             extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
             onSelect={() => panel.showTab(t.key)}
-            onClose={() => panel.closeTab(t.key)}
+            // チャットのタブの ×: 表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）
+            onClose={() =>
+              t.kind === "chat" ? void closeChatWithChoice({ id: t.id, title: t.title ?? "" }, () => panel.closeTab(t.key)) : panel.closeTab(t.key)
+            }
           />
         );
       })}

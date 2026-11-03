@@ -118,6 +118,8 @@ export const STICKY_PROMPT_EXPANDED_KEY = "kickoff:sticky-prompt-expanded";
 export const COMPOSER_COMPACT_KEY = "kickoff:composer-compact";
 /** チャット（発言の流れとチャット欄）を、欄の横幅いっぱいに広げるか（"1" なら広く。どのチャットでも同じ） */
 export const CHAT_WIDE_KEY = "kickoff:chat-wide";
+/** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除。未保存なら ask） */
+export const CHAT_CLOSE_ACTION_KEY = "kickoff:chat-close-action";
 
 /** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id。既定は "terminal"） */
 export const EXTERNAL_TERMINAL_KEY = "kickoff:external-terminal";
