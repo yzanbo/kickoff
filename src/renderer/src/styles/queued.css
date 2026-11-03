@@ -1,6 +1,7 @@
 /* ==== 送信待ちの指示（QueuedMessages。チャット欄のすぐ上（ピルの列の下）の待ちの列・たたむ・書き直す・添付のサムネイル） ==== */
 
 .queued-messages {
+  position: relative;
   /* 狭い欄では ↑↓ とボタンの文字を隠す（末尾の @container） */
   container: queued / inline-size;
   margin-bottom: 6px;
@@ -91,15 +92,35 @@
   transform: none;
 }
 
-/* 増えたら一覧の中でスクロールする（5 件ほど。チャット欄を押し上げすぎない。見出しの「すべて表示」で .expanded にすると上限を外す） */
+/*
+ * 増えたら一覧の中でスクロールする（チャット欄を押し上げすぎない）。高さの上限は画面が style で与える
+ * （初めは 5 件ほど。上端のつまみのドラッグで変え、見出しの「すべて表示」で外す）
+ */
 .queued-list {
-  max-height: 150px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.queued-list.expanded {
-  max-height: none;
+/* 上端のつまみ: 上へドラッグで一覧を高く、下へで低く（ダブルクリックで元の高さ）。乗せると線を出す */
+.queued-resizer {
+  position: absolute;
+  top: -5px;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  height: 8px;
+  cursor: row-resize;
+}
+
+.queued-resizer:hover,
+.queued-messages.resizing .queued-resizer {
+  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+}
+
+/* ドラッグ中は文字を選ばない */
+.queued-messages.resizing {
+  cursor: row-resize;
+  user-select: none;
 }
 
 .queued-row {
@@ -190,81 +211,6 @@
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* 待ちの指示の添付（行では 1 つ目だけ。2 つ以上なら数を重ねる。書き直している間の .all はすべてを並べて折り返す） */
-.queued-attachments {
-  display: flex;
-  flex: none;
-  gap: 4px;
-  max-width: 40%;
-  margin-right: 4px;
-}
-
-.queued-attachments.all {
-  flex-wrap: wrap;
-  max-width: none;
-  margin: 2px 0 4px;
-}
-
-.queued-thumb {
-  position: relative;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  cursor: zoom-in;
-}
-
-.queued-thumb img {
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  object-fit: cover;
-}
-
-.queued-thumb-count {
-  position: absolute;
-  right: -6px;
-  bottom: 0;
-  min-width: 15px;
-  padding: 0 3px;
-  border: 1px solid var(--bg-elev);
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 13px;
-  color: var(--text);
-  background: var(--bg-active);
-}
-
-.queued-file {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 3px;
-  max-width: 140px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  color: var(--muted);
-  background: var(--bg-hover);
-}
-
-.queued-file-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.queued-file-count {
-  flex: none;
-  font-weight: 700;
-  color: var(--text);
 }
 
 .queued-row.editing {
