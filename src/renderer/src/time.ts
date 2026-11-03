@@ -66,6 +66,26 @@ export function formatDayTime(iso: string, now = new Date()): string {
   return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
 }
 
+/**
+ * 発言の時刻: 今日なら時刻（"14:05"）、7 日以内なら曜日と時刻（"水曜 14:05"）、それより前は日付（"10月25日" / "2025/3/1"）。
+ * 乗せたときの title には、いつでも年月日と時刻を出す（formatFullDateTime）
+ */
+export function formatMessageTime(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = Math.round((day(now) - day(date)) / 86_400_000);
+  if (diff <= 0) return formatClock(iso);
+  if (diff < 7) return `${"日月火水木金土"[date.getDay()]}曜 ${formatClock(iso)}`;
+  if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}月${date.getDate()}日`;
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+/** 年月日と時刻（"2026/11/3 14:05"。乗せたときの title に） */
+export function formatFullDateTime(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${formatClock(iso)}`;
+}
+
 /** かかった時間を短く（"8秒" / "1分23秒" / "1時間5分"）。作業中の経過時間・作業にかかった時間に使う */
 export function formatElapsed(ms: number): string {
   const sec = Math.max(0, Math.floor(ms / 1000));
