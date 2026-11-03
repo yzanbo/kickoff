@@ -16,6 +16,8 @@ export const SIDEBAR_OPEN_KEY = "kickoff:sidebar";
 export const SIDEBAR_WIDTH_KEY = "kickoff:sidebar-width";
 /** プロジェクトの並べ方（"slide" / "stack"） */
 export const SIDEBAR_LAYOUT_KEY = "kickoff:sidebar-layout";
+/** プロジェクトのボードの列（"state" = 状態ごと / "groups" = 自分で作ったグループごと。ボードのタブを押したときに、最後に見た方を開く） */
+export const BOARD_COLUMNS_KEY = "kickoff:board-columns";
 /** プロジェクトの並び順（"manual" / "recent"） */
 export const SIDEBAR_PROJECT_ORDER_KEY = "kickoff:sidebar-project-order";
 /** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか（"1" なら出す） */

@@ -8,6 +8,7 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { ReopenRoute } from "../../router";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
+import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader } from "./BoardHeader";
 import { BoardLanes, groupOfLane } from "./BoardLanes";
 import { BoardShell } from "./BoardShell";
@@ -92,6 +93,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       view={view}
       onView={board.setView}
       lanesView
+      columns={<BoardColumnsToggle projectId={projectId} value="groups" />}
       panel={panel}
     />
   );

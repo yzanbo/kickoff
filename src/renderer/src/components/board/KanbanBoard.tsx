@@ -13,6 +13,7 @@ import { BOARD_VIEW_KEY } from "../../storageKeys";
 import { useProjectChatContext } from "../projectChat/useProjectChat";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { useSidePanel } from "../sidePanel/useSidePanel";
+import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader, type BoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
 import { useBoardFocus } from "./useBoardFocus";
@@ -155,6 +156,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
       view={view}
       onView={setView}
       lanesView
+      columns={projectId !== undefined && <BoardColumnsToggle projectId={projectId} value="state" />}
       viewOptions={
         view === "lanes" && (
           <select className="board-filter" aria-label="段の分け方" title="段の分け方" value={lanes} onChange={(e) => setLanes(e.target.value as BoardLane)}>

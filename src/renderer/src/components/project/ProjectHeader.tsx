@@ -3,11 +3,12 @@ import { confirmRestoreProject } from "../../projectOrder";
 import { href, type ProjectTab } from "../../router";
 import { ProjectSwitcher } from "./ProjectSwitcher";
 import { StateStats } from "./StateStats";
+import { useBoardColumns } from "../board/BoardColumnsToggle";
 import type { ProjectData } from "./useProjectData";
 
-const TAB_LABELS: Record<ProjectTab, string> = {
+/** タブの列に出すタブ（グループは「ボード」の中の列の切り替えにまとめたので出さない） */
+const TAB_LABELS: Partial<Record<ProjectTab, string>> = {
   board: "ボード",
-  groups: "グループ",
   changes: "エディタ",
 };
 
@@ -16,7 +17,8 @@ const TAB_LABELS: Record<ProjectTab, string> = {
  * タブの列（チャット・グループの件数、エディタは変更のあるファイルの数 changeCount）
  */
 export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: ProjectData; tab: ProjectTab; changeCount: number; onEdit: () => void }) {
-  const { project, runs, groups } = data;
+  const { project, runs } = data;
+  const [columns] = useBoardColumns();
   return (
   <header className="page-header project-header">
     <div className="project-title-row">
@@ -53,24 +55,28 @@ export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: Projec
     </div>
     <div className="project-tabs-row">
     <nav className="tabs" role="tablist">
-      {(Object.keys(TAB_LABELS) as ProjectTab[]).map((t) => (
+      {(Object.keys(TAB_LABELS) as ProjectTab[]).map((t) => {
+        // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
+        const selected = tab === t || (t === "board" && tab === "groups");
+        const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
+        return (
         <a
           key={t}
           role="tab"
-          aria-selected={tab === t}
-          className={`tab ${tab === t ? "active" : ""}`}
-          href={href({ name: "project", id: project.id, tab: t })}
+          aria-selected={selected}
+          className={`tab ${selected ? "active" : ""}`}
+          href={href({ name: "project", id: project.id, tab: target })}
         >
           {TAB_LABELS[t]}
           {t === "board" && runs.length > 0 && <span className="tab-count">{runs.length}</span>}
-          {t === "groups" && groups.length > 0 && <span className="tab-count">{groups.length}</span>}
           {t === "changes" && changeCount > 0 && (
             <span className="change-count" aria-label={`変更のあるファイル ${changeCount} 件`}>
               {changeCount}
             </span>
           )}
         </a>
-      ))}
+        );
+      })}
     </nav>
     </div>
   </header>
