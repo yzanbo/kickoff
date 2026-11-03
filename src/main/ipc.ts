@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
+import { BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from "electron";
 import { openInChrome } from "./browser.js";
 import { closeDevTools, openDevToolsIn, openDevToolsWindow } from "./browserDevtools.js";
 import { addExtensionFolder, importFromChrome, installFromWebStore, listExtensions, removeExtension } from "./browserExtensions.js";
@@ -14,17 +14,9 @@ async function pickPaths(options: OpenDialogOptions): Promise<string[]> {
   return result.canceled ? [] : result.filePaths;
 }
 
-/** 画面（preload）から呼ばれる IPC。mainWindow は通知を押したときに前面に出すウィンドウ */
+/** 画面（preload）から呼ばれる IPC。mainWindow は性能の記録を取るウィンドウ（通知は notifications.ts） */
 export function registerIpc(mainWindow: () => BrowserWindow | undefined) {
   registerTerminalIpc();
-  // 通知を押したとき: Kickoff を前面に出す
-  ipcMain.handle("kickoff:focus-window", () => {
-    const win = mainWindow();
-    if (!win) return;
-    if (win.isMinimized()) win.restore();
-    win.show();
-    app.focus({ steal: true });
-  });
   ipcMain.handle("kickoff:pick-folder", async (_e, title?: string) => {
     const [folder] = await pickPaths({ properties: ["openDirectory", "createDirectory"], title: typeof title === "string" ? title : "フォルダを選択" });
     return folder ?? null;

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { existingFolder, externalTerminalArgs, installedTerminals, knownExtension, knownTerminal, webContentsId } from "./ipcArgs.js";
+import { existingFolder, externalTerminalArgs, installedTerminals, knownExtension, knownTerminal, notificationIdOf, notifyArgs, runOfNotificationId, webContentsId } from "./ipcArgs.js";
 
 test("IPC の引数の検査: 対応している拡張機能のキーと、埋め込みブラウザの ID だけを通す", () => {
   assert.equal(knownExtension("react-devtools"), "react-devtools");
@@ -36,4 +36,25 @@ test("外部のターミナル: 知らないものは Terminal.app、アプリ�
   assert.deepEqual(externalTerminalArgs("iterm", "/w"), ["-a", "iTerm", "/w"]);
   const present = new Set(["/Applications/Ghostty.app", "/h/Applications/Warp.app"]);
   assert.deepEqual(installedTerminals("/h", (p) => present.has(p)), ["terminal", "ghostty", "warp"]);
+});
+
+test("通知の指定: タイトルは必須、長すぎる文は切り、チャットは両方の ID がそろったときだけ", () => {
+  assert.throws(() => notifyArgs({ title: " " }));
+  assert.throws(() => notifyArgs(null));
+  assert.deepEqual(notifyArgs({ title: "完了", body: "x".repeat(600), projectId: 5, runId: 14 }), {
+    title: "完了",
+    body: "x".repeat(500),
+    run: { projectId: 5, runId: 14 },
+  });
+  assert.deepEqual(notifyArgs({ title: "テスト", projectId: 5 }), { title: "テスト", body: "" });
+  assert.deepEqual(notifyArgs({ title: "テスト", projectId: 5, runId: -1 }), { title: "テスト", body: "" });
+});
+
+test("通知の ID: チャットを埋め込み、起動し直したあとに押されても読み戻せる（毎回変える）", () => {
+  const id = notificationIdOf({ projectId: 5, runId: 14 }, 1000);
+  assert.equal(id, "kickoff-run:5:14:1000");
+  assert.deepEqual(runOfNotificationId(id), { projectId: 5, runId: 14 });
+  assert.notEqual(notificationIdOf({ projectId: 5, runId: 14 }, 1001), id);
+  assert.equal(runOfNotificationId(notificationIdOf(undefined, 1000)), undefined);
+  assert.equal(runOfNotificationId("other"), undefined);
 });

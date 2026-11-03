@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { Run, RunStatus } from "../../core/types";
 import { chatTitle } from "./chatTitle";
 import { BUSY_STATUSES } from "./components/RunStatus";
@@ -7,7 +7,9 @@ import { openRun, type Route } from "./router";
 
 /**
  * チャットの完了・失敗・回答待ちを、Mac の通知で知らせる。押すと Kickoff が前面に出て、そのチャットを開く。
- * Kickoff を見ていて、そのチャットを開いているときは知らせない
+ * Kickoff を見ていて、そのチャットを開いているときは知らせない。
+ * デスクトップアプリではメインプロセスの通知で出す（画面を読み込み直しても・Kickoff を終えても通知センターに残り、
+ * 起動し直したあとに押されてもそのチャットを開ける）。スマホのブラウザなどでは、ブラウザの通知で出す
  */
 /** projectName: プロジェクト名の引き当て（ProjectsContext の projectName） */
 export function useRunNotifications({ enabled, projectName, route }: { enabled: boolean; projectName: (id: number) => string; route: Route }) {
@@ -19,16 +21,21 @@ export function useRunNotifications({ enabled, projectName, route }: { enabled: 
 
   const notify = (run: Pick<Run, "id" | "project_id">, title: string, body: string) => {
     const { enabled: on, route: current } = state.current;
-    if (!on || typeof Notification === "undefined") return;
+    if (!on || (!window.kickoff && typeof Notification === "undefined")) return;
     const viewing = document.hasFocus() && current.name === "run" && current.runId === run.id;
     if (viewing) return;
+    if (window.kickoff) {
+      void window.kickoff.notify({ title, body, projectId: run.project_id, runId: run.id });
+      return;
+    }
     const n = new Notification(title, { body, silent: false });
     n.onclick = () => {
-      void window.kickoff?.focusWindow();
       window.focus();
       openRun(run.project_id, run.id);
     };
   };
+  // メインプロセスの通知が押されたら、そのチャットを開く
+  useEffect(() => window.kickoff?.onOpenRun((projectId, runId) => openRun(projectId, runId)), []);
 
   useServerEvent((e) => {
     if (e.type === "run") {

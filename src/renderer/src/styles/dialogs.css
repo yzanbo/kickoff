@@ -112,3 +112,16 @@ dialog[open] {
 .tabbed-dialog-content .form {
   max-width: 560px;
 }
+
+/* 設定の「通知」: テスト通知を送る・Mac の通知の設定を開く・結果 */
+.notification-test {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.notification-test > p {
+  flex-basis: 100%;
+  margin: 0;
+}
