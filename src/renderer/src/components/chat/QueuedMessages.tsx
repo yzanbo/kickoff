@@ -1,5 +1,6 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Pause, Play } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Pause, Play, X } from "lucide-react";
+import { Fragment, useLayoutEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
+import { IconButton } from "../IconButton";
 import type { QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
 import { QueuedHeadActions } from "./QueuedHeadActions";
@@ -21,11 +22,25 @@ const MIN_LIST_HEIGHT = 36;
  * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし（上端のつまみのドラッグで高さを変えられ、見出しの「すべて表示」でスクロールさせずにすべて出せる）、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
  * ⌘ / Shift ＋クリックで行を選ぶと、選んだものだけをまとめて送る・消す・いちばん上か下へ移せる（見出しと右クリック。Esc でやめる）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
+ * 行の右クリックの「ここまで自動で送る」で、その指示を送ったら残りを止めておける（途中まで自動で送る。印の行の下に線を出す）。
  * 見出しの「自動で送る / 止めておく」で、いまの作業が終わったときに先頭を自動で送るか、送らずに止めておくかを切り替える
  * （チャットごと。止めておくと、行の「すぐ送る」で 1 件ずつ送れる。送り終えて列が空になったら、自動で送るに戻る）。
  * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
  */
-export function QueuedMessages({ runId, queue, paused, busy }: { runId: number; queue: QueuedMessage[]; paused: boolean; busy: boolean }) {
+export function QueuedMessages({
+  runId,
+  queue,
+  paused,
+  stopAfter,
+  busy,
+}: {
+  runId: number;
+  queue: QueuedMessage[];
+  paused: boolean;
+  /** 「ここまで自動で送る」の印を付けた指示（その指示を送ったら止めておく） */
+  stopAfter: string | null;
+  busy: boolean;
+}) {
   const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
   const [expanded, setExpanded] = useStoredFlag(QUEUE_EXPANDED_KEY);
@@ -119,6 +134,9 @@ export function QueuedMessages({ runId, queue, paused, busy }: { runId: number; 
   }, [queue, editing, collapsed, expanded, height]);
   if (queue.length === 0) return null;
   const failed = reportFailure("待ちの指示を操作できませんでした");
+  // 「ここまで自動で送る」の印の位置（なければ -1）
+  const stopIndex = stopAfter ? queue.findIndex((m) => m.id === stopAfter) : -1;
+  const clearStop = () => void api.setQueueStopAfter(runId, null).catch(failed);
   // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）
   const hint = paused
     ? collapsed
@@ -130,7 +148,9 @@ export function QueuedMessages({ runId, queue, paused, busy }: { runId: number; 
       ? "自動で送れませんでした。行の「すぐ送る」で送れます"
       : collapsed
         ? ""
-        : "終わったら順に送ります";
+        : stopIndex >= 0
+          ? `終わったら ${stopIndex + 1} 件目まで順に送り、そのあとは止めます`
+          : "終わったら順に送ります";
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
       {!collapsed && (
@@ -194,10 +214,10 @@ export function QueuedMessages({ runId, queue, paused, busy }: { runId: number; 
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (
         <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : height }}>
-          {queue.map((m, i) =>
-            editing?.id === m.id ? (
+          {queue.map((m, i) => (
+            <Fragment key={m.id}>
+            {editing?.id === m.id ? (
               <QueuedEditor
-                key={m.id}
                 index={i}
                 withGrip={queue.length > 1}
                 attachments={m.attachments}
@@ -208,12 +228,12 @@ export function QueuedMessages({ runId, queue, paused, busy }: { runId: number; 
               />
             ) : (
               <QueuedRow
-                key={m.id}
                 message={m}
                 index={i}
                 count={queue.length}
                 busy={busy}
                 selectedCount={selected.includes(m.id) ? selected.length : 0}
+                isStop={i === stopIndex}
                 onSelect={(e) => selectRow(e, m.id)}
                 groupActions={{
                   sendTogether: () => void api.sendAllQueued(runId, selected).then(clearSelection, failed),
@@ -229,6 +249,7 @@ export function QueuedMessages({ runId, queue, paused, busy }: { runId: number; 
                 )}
                 actions={{
                   edit: () => setEditing({ id: m.id, text: m.text }),
+                  toggleStop: () => void api.setQueueStopAfter(runId, i === stopIndex ? null : m.id).catch(failed),
                   move: (to) => void api.moveQueued(runId, m.id, to).catch(failed),
                   sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),
                   remove: () => void api.removeQueued(runId, m.id).catch(failed),
@@ -238,8 +259,16 @@ export function QueuedMessages({ runId, queue, paused, busy }: { runId: number; 
                 onDragOver={(e) => dragOver(e, i)}
                 onDrop={drop}
               />
-            ),
-          )}
+            )}
+            {/* 「ここまで自動で送る」: この行を送ったら止める線（最後の行なら、すべて送ったあとに来たものから止める） */}
+            {i === stopIndex && (
+              <div className="queued-stop-line" role="note">
+                <span>ここまで送ったら止めます</span>
+                <IconButton icon={X} size={11} label="ここで止めるのをやめる" onClick={clearStop} />
+              </div>
+            )}
+            </Fragment>
+          ))}
         </div>
       )}
     </div>

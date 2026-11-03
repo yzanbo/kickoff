@@ -4,15 +4,32 @@ import type { Attachment, QueuedMessage, RunOptions } from "./types.js";
 /**
  * 作業中のチャットに送った次の指示の待ちの列（チャットごと）。
  * いまの作業が終わったら、Runner が先頭から 1 件ずつ送る（止めておくチャットでは送らず、行の「すぐ送る」で 1 件ずつ送る）。
+ * 「ここまで自動で送る」の印を付けた指示を送ったら、そこで止めておく（途中まで自動で送る）。
  * 保存はせず、アプリを終えると消える
  */
 export class FollowupQueue {
   private readonly lists = new Map<number, QueuedMessage[]>();
   /** 終わっても自動で送らずに止めておくチャット（列が空になったら、自動で送るに戻す） */
   private readonly paused = new Set<number>();
+  /** 「ここまで自動で送る」の印を付けた指示（チャットごとに 1 つ。送ったら止めておく） */
+  private readonly stopAfter = new Map<number, string>();
 
-  /** onChange: 列・止めておくかが変わったとき（画面に配る） */
-  constructor(private readonly onChange: (runId: number, list: QueuedMessage[], paused: boolean) => void) {}
+  /** onChange: 列・止めておくか・「ここまで」の印が変わったとき（画面に配る） */
+  constructor(private readonly onChange: (runId: number, list: QueuedMessage[], paused: boolean, stopAfter: string | null) => void) {}
+
+  /** 「ここまで自動で送る」の印を付けた指示（なければ null） */
+  stopAfterOf(runId: number): string | null {
+    return this.stopAfter.get(runId) ?? null;
+  }
+
+  /** 「ここまで自動で送る」の印を付ける・外す（id が列になければ false） */
+  setStopAfter(runId: number, id: string | null): boolean {
+    if (id !== null && !this.has(runId, id)) return false;
+    if (id === null) this.stopAfter.delete(runId);
+    else this.stopAfter.set(runId, id);
+    this.notify(runId);
+    return true;
+  }
 
   /** 終わっても自動で送らずに止めておくか */
   isPaused(runId: number): boolean {
@@ -25,7 +42,7 @@ export class FollowupQueue {
     if (next === this.paused.has(runId)) return next;
     if (next) this.paused.add(runId);
     else this.paused.delete(runId);
-    this.onChange(runId, this.list(runId), next);
+    this.notify(runId);
     return next;
   }
 
@@ -82,6 +99,8 @@ export class FollowupQueue {
       created_at: picked[0].created_at,
     };
     const next = list.flatMap((m) => (m.id === merged.id ? [merged] : picked.includes(m) ? [] : [m]));
+    // 「ここまで」の印をまとめた指示に付けていたら、まとめた 1 件に移す
+    if (picked.some((m) => m.id === this.stopAfter.get(runId))) this.stopAfter.set(runId, merged.id);
     // silent: すぐ取り出すときは、まとめた 1 件を画面に知らせない（列に一瞬出さない）
     if (silent) this.lists.set(runId, next);
     else this.set(runId, next);
@@ -106,11 +125,17 @@ export class FollowupQueue {
     return picked.length;
   }
 
-  /** 取り出す（id を省くと先頭） */
+  /** 取り出す（id を省くと先頭）。「ここまで」の印を付けた指示なら、残りは止めておく */
   take(runId: number, id?: string): QueuedMessage | undefined {
     const list = this.list(runId);
     const message = id ? list.find((m) => m.id === id) : list[0];
-    if (message) this.set(runId, list.filter((m) => m !== message));
+    if (!message) return undefined;
+    const rest = list.filter((m) => m !== message);
+    if (this.stopAfter.get(runId) === message.id) {
+      this.stopAfter.delete(runId);
+      if (rest.length > 0) this.paused.add(runId);
+    }
+    this.set(runId, rest);
     return message;
   }
 
@@ -129,6 +154,7 @@ export class FollowupQueue {
   forget(runId: number) {
     this.lists.delete(runId);
     this.paused.delete(runId);
+    this.stopAfter.delete(runId);
   }
 
   private set(runId: number, list: QueuedMessage[]) {
@@ -137,6 +163,13 @@ export class FollowupQueue {
       // 送り終えた・消した: 次にためるときは、自動で送るから始める
       this.paused.delete(runId);
     } else this.lists.set(runId, list);
-    this.onChange(runId, list, this.paused.has(runId));
+    // 「ここまで」の印を付けた指示を消したら、印も外す
+    const stop = this.stopAfter.get(runId);
+    if (stop && !list.some((m) => m.id === stop)) this.stopAfter.delete(runId);
+    this.notify(runId);
+  }
+
+  private notify(runId: number) {
+    this.onChange(runId, this.list(runId), this.paused.has(runId), this.stopAfterOf(runId));
   }
 }

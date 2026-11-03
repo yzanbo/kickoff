@@ -56,7 +56,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true }: RunPaneProps) {
-  const { run, project, events, approvals, queue, queuePaused, retry, reconnect, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャットの名前を知らせる（名前を変えたらタブもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -76,7 +76,7 @@ export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} connection={{ retry, reconnect }} live={live} focus={focus} onClose={onClose} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} live={live} focus={focus} onClose={onClose} />
   );
 }
 
@@ -87,6 +87,7 @@ function RunView({
   approvals,
   queue,
   queuePaused,
+  queueStopAfter,
   connection,
   live,
   focus,
@@ -99,6 +100,8 @@ function RunView({
   queue: QueuedMessage[];
   /** 待ちの列を、終わっても自動で送らずに止めておくか */
   queuePaused: boolean;
+  /** 「ここまで自動で送る」の印を付けた待ちの指示 */
+  queueStopAfter: string | null;
   /** 通信の再試行中・つながるのを待っているところ */
   connection: Connection;
   live: string;
@@ -206,7 +209,7 @@ function RunView({
           )}
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} busy={busy} />
+        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stopAfter={queueStopAfter} busy={busy} />
         <Composer
           options={options}
           busy={busy}
