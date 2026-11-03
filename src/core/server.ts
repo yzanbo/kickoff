@@ -14,6 +14,7 @@ import type { UsageMonitor } from "./usage.js";
 import type { ApprovalCenter } from "./approvals.js";
 import type { Runner } from "./runner.js";
 import type { UploadStore } from "./uploads.js";
+import type { VoiceService } from "./transcribe/service.js";
 import { agentRoutes } from "./routes/agents.js";
 import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
@@ -23,6 +24,7 @@ import { projectRoutes } from "./routes/projects.js";
 import { runRoutes } from "./routes/runs.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { uploadRoutes } from "./routes/uploads.js";
+import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import type { ProviderId, ServerStatus } from "./types.js";
 
@@ -37,6 +39,8 @@ export interface ServerDeps {
   runner: Runner;
   approvals: ApprovalCenter;
   uploads: UploadStore;
+  /** 音声入力の文字起こしとモデルの管理 */
+  voice: VoiceService;
   /** ビルド済みの画面（本番時）。開発時は Vite が配信するので未指定 */
   staticDir?: string;
   /** 待ち受けているアドレスとポート（接続の詳細の表示用） */
@@ -100,6 +104,7 @@ export function createApp(deps: ServerDeps): Hono {
   gitRoutes(app, deps);
   filesRoutes(app, deps);
   worktreeRoutes(app, deps);
+  voiceRoutes(app, deps);
 
   // ---- リアルタイム配信（SSE） ----
   app.get("/api/events", (c) =>

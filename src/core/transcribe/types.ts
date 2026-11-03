@@ -1,0 +1,33 @@
+// 文字起こしの部品どうしで使う型（画面と共有する型は types/voice.ts）
+
+/** 画面から受け取った音声 */
+export interface AudioInput {
+  bytes: Uint8Array;
+  name: string;
+  /** MIME 型（audio/webm など） */
+  type: string;
+}
+
+/** この Mac で起こすときに渡す値（language は "auto" なら自動で判別） */
+export interface LocalOptions {
+  whisper: string;
+  ffmpeg: string;
+  /** モデルのファイル */
+  model: string;
+  language: string;
+}
+
+/** OpenAI（互換のサーバーも）で起こすときに渡す値 */
+export interface OpenAiOptions {
+  key: string;
+  /** 空なら https://api.openai.com/v1 */
+  baseUrl: string;
+  model: string;
+  language: string;
+}
+
+/** 文字起こしの方法ごとの処理（テストでは偽物に差し替える） */
+export interface TranscribeEngines {
+  local: (audio: AudioInput, opts: LocalOptions) => Promise<string>;
+  openai: (audio: AudioInput, opts: OpenAiOptions) => Promise<string>;
+}
