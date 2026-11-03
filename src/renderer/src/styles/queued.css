@@ -1,6 +1,5 @@
 /* ==== 送信待ちの指示（QueuedMessages。チャット欄のすぐ上の待ちの列・たたむ・書き直す・添付のサムネイル） ==== */
 
-/* 作業中に送った次の指示の待ちの列（QueuedMessages。チャット欄のすぐ上） */
 .queued-messages {
   /* 狭い欄では ↑↓ とボタンの文字を隠す（末尾の @container） */
   container: queued / inline-size;
@@ -11,7 +10,6 @@
   background: var(--bg-elev);
 }
 
-/* 見出しの行（左に開閉の見出し、右にまとめて送る） */
 .queued-head-row {
   display: flex;
   align-items: center;
@@ -37,7 +35,6 @@
   background: color-mix(in srgb, var(--ng) 12%, transparent);
 }
 
-/* 縦を取りすぎないよう、行の操作のボタンは小さく */
 .queued-messages .icon-button {
   width: 22px;
   height: 22px;
@@ -96,11 +93,15 @@
   transform: none;
 }
 
-/* 増えたら一覧の中でスクロールする（5 件ほど。チャット欄を押し上げすぎない） */
+/* 増えたら一覧の中でスクロールする（5 件ほど。チャット欄を押し上げすぎない。見出しの「すべて表示」で .expanded にすると上限を外す） */
 .queued-list {
   max-height: 150px;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.queued-list.expanded {
+  max-height: none;
 }
 
 .queued-row {
@@ -189,7 +190,7 @@
   white-space: nowrap;
 }
 
-/* 待ちの指示の添付（行では 1 つ目だけ。2 つ以上なら数を重ねる） */
+/* 待ちの指示の添付（行では 1 つ目だけ。2 つ以上なら数を重ねる。書き直している間の .all はすべてを並べて折り返す） */
 .queued-attachments {
   display: flex;
   flex: none;
@@ -198,7 +199,6 @@
   margin-right: 4px;
 }
 
-/* 書き直している間は、すべてを並べて折り返す */
 .queued-attachments.all {
   flex-wrap: wrap;
   max-width: none;
