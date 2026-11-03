@@ -30,28 +30,34 @@ button.chat-row {
 }
 
 .chat-row:hover,
-.chat-row-item:hover > .chat-row {
+.chat-row-item:hover > .chat-row,
+.chat-row-item:has(> .chat-row-actions.open) > .chat-row {
   background: var(--bg-elev);
 }
 
-/* 行に乗せたときに右端に出す、アーカイブ・削除（時刻の上に重ねる） */
+/* 行に乗せたとき・メニューを開いている間に右端に出す「…」（時刻の上に重ねる） */
 .chat-row-item {
   position: relative;
 }
 
+/* 隠している間も、Tab でピントを当てられるよう透明にするだけ（display: none だとピントが当たらない） */
 .chat-row-actions {
   position: absolute;
   top: 4px;
   right: 4px;
-  display: none;
+  display: flex;
   gap: 2px;
   border-radius: var(--radius-sm);
   background: var(--bg-elev);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .chat-row-item:hover > .chat-row-actions,
-.chat-row-actions:focus-within {
-  display: flex;
+.chat-row-actions:focus-within,
+.chat-row-actions.open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .chat-row-actions .icon-button {
@@ -59,11 +65,9 @@ button.chat-row {
   height: 22px;
 }
 
-.chat-row-actions .icon-button.danger:hover {
-  color: var(--ng);
-}
-
-.chat-row-item:hover .chat-row-time {
+.chat-row-item:hover .chat-row-time,
+.chat-row-item:has(.chat-row-actions:focus-within) .chat-row-time,
+.chat-row-item:has(.chat-row-actions.open) .chat-row-time {
   visibility: hidden;
 }
 
