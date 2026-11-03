@@ -75,7 +75,7 @@ export function ChatMenuItems({
       {/* 固定はサイドバーの、プロジェクトのいちばん上のまとまりに出す（アーカイブしたものは固定しない） */}
       {!run.archived_at && (
         <MenuItem onSelect={() => act(() => togglePinRun(run))}>
-          {run.pinned ? <PinOff size={14} /> : <Pin size={14} />} {run.pinned ? "固定をやめる" : "サイドバーの上に固定"}
+          {run.pinned ? <PinOff size={14} /> : <Pin size={14} />} {run.pinned ? "ピン留めを外す" : "ピン留め"}
         </MenuItem>
       )}
       {/* Claude Code で同じ会話を続けるとき（claude --resume <ID>）などに使う */}
