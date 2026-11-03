@@ -2,7 +2,6 @@ import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import { BOARD_COLUMNS, type BoardColumn, type Run, type RunGroup } from "../../../../core/types";
 import { useRunRename } from "../../hooks/useRunRename";
-import { useStoredChoice } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
 import { projectHue } from "../../projectColor";
 import { sidebarOrder } from "../../projectOrder";
@@ -10,13 +9,12 @@ import { useProjects } from "../../projectsContext";
 import { useProjectTagFilter } from "../../projectTagFilter";
 import { openRun, type ReopenRoute } from "../../router";
 import { useRunStates } from "../../approvalsContext";
-import { BOARD_VIEW_KEY } from "../../storageKeys";
 import { useProjectChatContext } from "../projectChat/useProjectChat";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { boardPanelKey } from "../sidePanel/panelMemory";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
-import { BoardHeader, type BoardView } from "./BoardHeader";
+import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
 import { useBoardFocus } from "./useBoardFocus";
 import { BOARD_LANE_LABELS, BoardLanes, type BoardLane } from "./BoardLanes";
@@ -63,7 +61,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   const rename = useRunRename(setError);
   // 絞り込み（アーカイブ・作業場所・名前）とボード／リスト／スイムレーン（覚えておく）
   const filters = useKanbanFilters();
-  const [view, setView] = useStoredChoice<BoardView>(BOARD_VIEW_KEY, ["board", "list", "lanes"], "board");
+  const [view, setView] = useBoardView();
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
   const { runs, loaded, fresh } = useBoardRuns(projectId, filters.archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める

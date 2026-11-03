@@ -5,11 +5,10 @@ import { useChatSearch } from "../../chatSearch";
 import { confirmDeleteGroup, useGroupDrop } from "../../groups";
 import { useActionError } from "../../hooks/useActionError";
 import { useRunRename } from "../../hooks/useRunRename";
-import { useStoredChoice } from "../../hooks/useStoredState";
-import { GROUP_SHOW_ARCHIVED_KEY, GROUP_VIEW_KEY } from "../../storageKeys";
+import { GROUP_SHOW_ARCHIVED_KEY } from "../../storageKeys";
 import { useGroupMenu } from "../menus/GroupMenu";
 import { archiveMatches, useArchiveFilter } from "./archiveFilter";
-import type { BoardView } from "./BoardHeader";
+import { useBoardView } from "./BoardHeader";
 import { useCardMenu } from "./useBoardCards";
 import { useBoardRuns } from "./useBoardRuns";
 
@@ -32,7 +31,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const menu = useCardMenu();
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
-  const [view, setView] = useStoredChoice<BoardView>(GROUP_VIEW_KEY, ["board", "list", "lanes"], "board");
+  const [view, setView] = useBoardView();
 
   const groupIds = new Set(groups.map((g) => g.id));
   /** そのグループ（null はグループなし）のチャット。アーカイブと検索で絞り、新しく動いた順 */
