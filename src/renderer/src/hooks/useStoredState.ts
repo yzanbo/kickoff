@@ -15,6 +15,27 @@ export function useStoredState<T>(key: string, decode: (raw: string | null) => T
   return [value, set] as const;
 }
 
+/**
+ * 書きかけの文（チャットごとの入力欄の下書きなど）。空にしたら消す（空の値を残さない）。
+ * key がなければ保存せず、ふつうの状態として持つ
+ */
+export function useStoredText(key: string | undefined) {
+  const read = (k: string | undefined) => (k ? (localStorage.getItem(k) ?? "") : "");
+  const [state, setState] = useState(() => ({ key, value: read(key) }));
+  const value = state.key === key ? state.value : read(key);
+  const set = useCallback(
+    (next: string) => {
+      if (key) {
+        if (next) localStorage.setItem(key, next);
+        else localStorage.removeItem(key);
+      }
+      setState({ key, value: next });
+    },
+    [key],
+  );
+  return [value, set] as const;
+}
+
 /** "1" / "0" で保存するオン・オフ */
 export function useStoredFlag(key: string, initial = false) {
   return useStoredState(

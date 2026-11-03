@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type
 import type { Attachment } from "../../../../core/types";
 import { api, type GitTarget } from "../../api";
 import { errorMessage } from "../../errors";
+import { useStoredText } from "../../hooks/useStoredState";
 import { AttachmentChip } from "./AttachmentChip";
 import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
@@ -30,6 +31,8 @@ interface Props {
   suggestTarget?: GitTarget;
   /** ↑↓ で呼び出す、このチャットで前に送った自分の発言（新しい順。新しいチャットの入力欄では渡さない） */
   history?: string[];
+  /** 書きかけの文を残す localStorage のキー（既存のチャットの chatDraftKey。新しいチャットはタブの draftText で残すので渡さない） */
+  draftKey?: string;
 }
 
 /** 入力欄を伸ばす上限（px。これを超えたら中でスクロールする） */
@@ -50,9 +53,10 @@ interface PendingFile {
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
 
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget, history }: Props) {
-  // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）
-  const [text, setText] = useState("");
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget, history, draftKey }: Props) {
+  // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
+  // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
+  const [text, setText] = useStoredText(draftKey);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // ↑↓ で前の発言を呼び出す
   const promptHistory = usePromptHistory({ prompts: history, text, setText, textareaRef });

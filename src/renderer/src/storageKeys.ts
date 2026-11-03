@@ -81,6 +81,8 @@ export const BOTTOM_PANEL_HEIGHT_KEY = "kickoff:bottom-panel-height";
 export const SUBAGENT_WIDTH_KEY = "kickoff:subagent-width";
 /** チャットごとの、アーカイブしたサブエージェント（呼び出し ID の JSON の配列） */
 export const subagentsArchivedKey = (runId: number) => `kickoff:subagents-archived:${runId}`;
+/** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
+export const chatDraftKey = (runId: number) => `kickoff:chat-draft:${runId}`;
 
 // エディタタブ（変更・履歴・ファイル）
 /** エディタタブの左端の表示（"files" / "search" / "changes" / "history"） */

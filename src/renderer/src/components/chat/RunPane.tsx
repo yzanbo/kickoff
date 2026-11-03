@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Approval, Project, QueuedMessage, Run, RunEvent } from "../../../../core/types";
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
+import { chatDraftKey } from "../../storageKeys";
 import { BUSY_STATUSES } from "../RunStatus";
 import { Composer } from "./Composer";
 import { ContextMeter } from "./ContextMeter";
@@ -164,6 +165,7 @@ function RunView({
           trailing={<ContextMeter run={run} />}
           suggestTarget={{ projectId: run.project_id, worktree: run.worktree_path || undefined }}
           history={prompts}
+          draftKey={chatDraftKey(run.id)}
         />
       </div>
       {openedSub && <SubagentDetail entry={openedSub} events={events} rel={rel} busy={busy} onClose={() => setSubOpen(undefined)} />}
