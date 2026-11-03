@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserPane } from "../browser/BrowserPane";
 import { RunPane } from "../chat/RunPane";
 import { NewChatPane } from "./NewChatPane";
+import { isTabVisible } from "./paneLayout";
 import type { PanelTab, SidePanelController } from "./useSidePanel";
 
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む
@@ -22,7 +23,8 @@ export function PanelTabPage({
   panelOpen: boolean;
   onClose: () => void;
 }) {
-  const active = panel.activeTab === t.key;
+  // 分割していれば、自分のペインで表示中のタブか
+  const active = isTabVisible(panel.layout, t.key);
   const visible = panelOpen && active;
   return (
     <div className="panel-tab-page" hidden={!active}>

@@ -14,6 +14,7 @@ import {
   paneOfTab,
   placeTab,
   reconcileLayout,
+  renameTab,
   setSplitSizes,
   singlePane,
   splitPane,
@@ -126,6 +127,13 @@ test("placeTab: どこかにあればそのペインで表示してピントを�
   assert.equal(shape(l3.root), `row(0.50:${FIRST_PANE}[*a,b] 0.50:p1[c,*d])`);
   assert.equal(activeTabOf(l3), "d");
   assert.ok(isTabVisible(l3, "a") && isTabVisible(l3, "d") && !isTabVisible(l3, "b"));
+});
+
+test("renameTab: 置き場所と表示中かはそのままでキーを変える", () => {
+  const l = splitPane(base(), FIRST_PANE, "row", "after", "p1", "c");
+  assert.equal(shape(renameTab(l, "c", "x").root), `row(0.50:${FIRST_PANE}[a,*b] 0.50:p1[*x])`);
+  assert.equal(shape(renameTab(l, "a", "y").root), `row(0.50:${FIRST_PANE}[y,*b] 0.50:p1[*c])`);
+  assert.equal(renameTab(l, "zzz", "x"), l);
 });
 
 test("focusPane: 同じペイン・知らないペインなら同じ配置を返す", () => {

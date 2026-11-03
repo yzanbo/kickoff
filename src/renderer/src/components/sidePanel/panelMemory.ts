@@ -1,12 +1,17 @@
 import { useSyncExternalStore } from "react";
 import { navigate } from "../../router";
+import { activeTabOf, closeLayoutTabs, reconcileLayout, singlePane, type PaneLayout } from "./paneLayout";
 import type { PanelTab } from "./useSidePanel";
 
-/** パネルの状態（ボードごと） */
+/**
+ * パネルの状態（ボードごと）。layout は分割の配置（タブのキーを指す）。分割を覚える前の形（layout なし）は、
+ * すべてのタブが入った 1 つのペイン（activeTab を表示中）として読む。activeTab はピントのあるペインの表示中のタブ
+ */
 interface PanelState {
   tabs: PanelTab[];
   activeTab: string | null;
   panelOpen: boolean;
+  layout?: PaneLayout;
 }
 
 /**
@@ -20,7 +25,13 @@ const EMPTY_PANEL: PanelState = { tabs: [], activeTab: null, panelOpen: false };
 const listeners = new Set<() => void>();
 let version = 0;
 
-export const loadPanel = (memoryKey: string) => panelMemory.get(memoryKey) ?? EMPTY_PANEL;
+/** 覚えている状態。配置は、いまのタブに合わせて直してから返す（消えたタブ・どのペインにもないタブがあっても壊れない） */
+export function loadPanel(memoryKey: string): Required<PanelState> {
+  const s = panelMemory.get(memoryKey) ?? EMPTY_PANEL;
+  const keys = s.tabs.map((t) => t.key);
+  const layout = s.layout ? reconcileLayout(s.layout, keys) : singlePane(keys, s.activeTab);
+  return { ...s, layout, activeTab: activeTabOf(layout) };
+}
 
 export function savePanel(memoryKey: string, state: PanelState) {
   panelMemory.set(memoryKey, state);
@@ -89,8 +100,9 @@ export function openDraft(draft: SidebarDraft) {
 export function discardDraft(draft: SidebarDraft) {
   const live = openers.get(draft.memoryKey);
   if (live) return live.close(draft.key);
-  const s = panelMemory.get(draft.memoryKey);
-  if (!s) return;
+  if (!panelMemory.has(draft.memoryKey)) return;
+  const s = loadPanel(draft.memoryKey);
   const tabs = s.tabs.filter((t) => t.key !== draft.key);
-  savePanel(draft.memoryKey, { tabs, activeTab: s.activeTab === draft.key ? (tabs[0]?.key ?? null) : s.activeTab, panelOpen: s.panelOpen && tabs.length > 0 });
+  const layout = closeLayoutTabs(s.layout, [draft.key]);
+  savePanel(draft.memoryKey, { tabs, layout, activeTab: activeTabOf(layout), panelOpen: s.panelOpen && tabs.length > 0 });
 }
