@@ -95,3 +95,18 @@ test("groupEvents: 作業の終わり（result）に、その作業を始めた�
   const texts = items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnText] : []));
   assert.deepEqual(texts, ["答え 1\n\n答え 2", undefined, undefined]);
 });
+
+test("groupEvents: 思考は、中身があるか 2 秒以上考えたものだけ出す（短い思考ではツールのまとまりを分けない）", () => {
+  const items = groupEvents([
+    event(1, "tool_use", { id: "a", name: "Read", input: {} }),
+    event(2, "thinking", { text: "", duration_ms: 800 }),
+    event(3, "tool_use", { id: "b", name: "Read", input: {} }),
+    event(4, "thinking", { text: "", duration_ms: 8_000 }),
+    event(5, "thinking", { text: "考えたこと" }),
+    event(6, "thinking", { text: "" }),
+  ]);
+  assert.deepEqual(
+    items.map((i) => (i.kind === "tools" ? `tools:${i.tools.length}` : i.event.id)),
+    ["tools:2", 4, 5],
+  );
+});
