@@ -8,6 +8,7 @@ import { Chevron } from "../Chevron";
 import { GROUP_PICK_MENU_WIDTH, GroupPickMenu, groupPickMenuHeight } from "../menus/GroupPickMenu";
 import { useAnchoredMenu } from "../menus/useAnchoredMenu";
 import { IconButton } from "../IconButton";
+import { ProjectTags } from "../ProjectTags";
 import { HeadCounts, type StateFilter } from "./HeadCounts";
 import { pressedLeftOfName } from "./GroupToggle";
 import { useProjectMenu } from "./ProjectMenu";
@@ -17,6 +18,7 @@ import type { StateCounts } from "../../runState";
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
  * 左の矢印（名前より左のどこでも）を押すと、選ばずに開閉だけする。カードのほかの部分（中のボタンを除く）を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（サイドバー全体で同じ）。
  * 出すのは、いつも使うものだけ: チャット一覧の開閉（矢印）・名前（押すとカンバン）・固定（固定しているかは色と塗りで分かる）・状態ごとのチャット数・新しいチャット（＋）。
+ * 名前の下の 2 行目に、チャット数とタグ（小さなチップ）を出す。
  * マウスを乗せたときだけ出す操作は作らない。ほかの操作（固定する・グループを作成など）は右クリックのメニュー、
  * すべてのプロジェクトに効く設定（チャットの並べ方など）は一覧の上の見出しの行に置く。
  * しまった（アーカイブした）プロジェクトは、ピンの代わりに戻すボタンを出す。
@@ -101,7 +103,11 @@ export function WorkspaceHead({
         >
           <span className="workspace-title-text">
             <span className="workspace-name">{project.name}</span>
-            <span className="workspace-sub">{chatCount} チャット</span>
+            {/* 2 行目: チャット数とタグ（カードを 1 行で表示のときは、行ごと出さない） */}
+            <span className="workspace-sub">
+              {chatCount} チャット
+              <ProjectTags tags={project.tags} />
+            </span>
           </span>
         </a>
         {project.archived_at ? (

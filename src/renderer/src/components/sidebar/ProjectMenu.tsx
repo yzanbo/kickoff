@@ -1,6 +1,7 @@
 import {
   Archive,
   ArchiveRestore,
+  Check,
   ChevronsDownUp,
   ChevronsUpDown,
   FolderOpen,
@@ -9,11 +10,16 @@ import {
   Pin,
   PinOff,
   SquarePen,
+  Tag,
+  Tags,
   Trash2,
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
+import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "../../../../core/projectTags";
 import type { ProjectSummary } from "../../../../core/types";
+import { alertDialog, promptDialog } from "../../dialogs";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "../../projectOrder";
+import { useProjects } from "../../projectsContext";
 import { openNewChat } from "../../router";
 import { ProjectEditDialog } from "../project/ProjectEditDialog";
 import type { ProjectSettingsSection } from "../projectSettings/ProjectSettings";
@@ -29,7 +35,8 @@ export interface ProjectMenuExtras {
 
 /**
  * プロジェクトの右クリックメニュー（サイドバーの見出しのカード・下の丸）。プロジェクトに対する操作をすべて、まとまりに分けて並べる:
- * このプロジェクト（新しいチャット・グループを作成・Finder。カンバンは名前を押せば開く）/ 整理（固定・開閉・アーカイブ）/ 編集・削除（プロジェクトの編集のダイアログ）。
+ * このプロジェクト（新しいチャット・グループを作成・Finder。カンバンは名前を押せば開く）/ 整理（固定・開閉・アーカイブ）/
+ * タグ（使っているタグの付け外しと、新しいタグ）/ 編集・削除（プロジェクトの編集のダイアログ）。
  * すべてのプロジェクトに効く設定（チャットの並べ方など）はここに入れず、一覧の上の見出しの行に置く。
  * 見出しのカードには、いつも使うもの（開閉・名前・状態ごとの数・＋）だけを常に出す。
  * open に右クリックのイベントを渡し、element を描く（メニューと編集のダイアログ）
@@ -64,8 +71,22 @@ export function useProjectMenu(projects: ProjectSummary[]) {
   };
 }
 
-/** メニューの高さの目安（画面の下にはみ出さない位置に出す。画面より高いときはメニューの中でスクロール） */
-const MENU_HEIGHT = 350;
+/** メニューの高さの目安（画面の下にはみ出さない位置に出す。画面より高いときはメニューの中でスクロール）。タグの項目の分は足す */
+const MENU_HEIGHT = 400;
+
+/** 新しいタグの名前を聞いて付ける（やめたら何もしない。上限を超えるならお知らせ） */
+async function addNewTag(project: ProjectSummary) {
+  if (project.tags.length >= MAX_TAGS) return alertDialog("タグを足せません", `1 つのプロジェクトに付けられるタグは ${MAX_TAGS} 個までです。`);
+  const name = await promptDialog({
+    title: `「${project.name}」に新しいタグを付ける`,
+    label: "タグの名前",
+    placeholder: "例: 仕事・プライベート・クライアント A",
+    confirmLabel: "付ける",
+  });
+  if (!name) return;
+  if (name.length > MAX_TAG_LENGTH) return alertDialog("タグを付けられません", `タグは ${MAX_TAG_LENGTH} 文字までです。`);
+  changeProject(project.id, { tags: normalizeTags([...project.tags, name]) });
+}
 
 function ProjectMenu({
   x,
@@ -82,7 +103,10 @@ function ProjectMenu({
   onEdit: (section?: ProjectSettingsSection) => void;
   onClose: () => void;
 }) {
-  const at = clampToViewport(x, y, 260, MENU_HEIGHT);
+  // 使っているタグ（ほかのプロジェクトの分も。押すたびに付け外す）
+  const { projects } = useProjects();
+  const tags = collectTags(projects);
+  const at = clampToViewport(x, y, 260, MENU_HEIGHT + Math.min(tags.length, 8) * 34);
   /** 押したらメニューを閉じてから行う */
   const item = (key: string, icon: ReactNode, label: string, run: () => void, opts: { danger?: boolean } = {}) => (
     <MenuItem key={key} danger={opts.danger} onSelect={run}>
@@ -114,6 +138,24 @@ function ProjectMenu({
         // アーカイブするときも戻すときも確かめる
         void (archived ? confirmRestoreProject(project) : confirmArchiveProject(project)),
       )}
+
+      <div className="menu-separator" role="separator" />
+      <div className="menu-label">タグ</div>
+      {tags.map((tag) => {
+        const on = project.tags.includes(tag);
+        return (
+          <MenuItem
+            key={`tag:${tag}`}
+            role="menuitemcheckbox"
+            checked={on}
+            onSelect={() => changeProject(project.id, { tags: on ? project.tags.filter((t) => t !== tag) : [...project.tags, tag] })}
+          >
+            <Tag size={14} /> <span className="project-switch-item">{tag}</span>
+            {on && <Check size={14} aria-hidden />}
+          </MenuItem>
+        );
+      })}
+      {item("new-tag", <Tags size={14} />, "新しいタグ…", () => void addNewTag(project))}
 
       <div className="menu-separator" role="separator" />
       {item("edit", <Pencil size={14} />, "編集…", () => onEdit())}

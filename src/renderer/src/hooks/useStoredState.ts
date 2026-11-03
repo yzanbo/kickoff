@@ -116,3 +116,26 @@ export function useSharedFlag(key: string, initial = false) {
 export function useSharedChoice<T extends string>(key: string, choices: readonly T[], initial: T) {
   return useSharedState<T>(key, (raw) => (choices.includes(raw as T) ? (raw as T) : initial), encodeChoice);
 }
+
+/** 文字列の配列を JSON で読む（壊れた値・文字でない要素は捨てる）。同じ文字列なら同じ配列を返す（useMemo などの依存が毎回変わらないように） */
+const listCache = new Map<string, string[]>();
+const decodeList = (raw: string | null): string[] => {
+  if (!raw) return [];
+  let list = listCache.get(raw);
+  if (!list) {
+    try {
+      const value: unknown = JSON.parse(raw);
+      list = Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+    } catch {
+      list = [];
+    }
+    listCache.set(raw, list);
+  }
+  return list;
+};
+const encodeList = (value: string[]) => JSON.stringify(value);
+
+/** 部品どうしでそろう、文字列の配列（JSON で保存。未保存なら空） */
+export function useSharedList(key: string) {
+  return useSharedState<string[]>(key, decodeList, encodeList);
+}
