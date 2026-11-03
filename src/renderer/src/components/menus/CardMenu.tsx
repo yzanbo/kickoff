@@ -5,6 +5,9 @@ import { errorMessage } from "../../errors";
 import { confirmDeleteRun, toggleArchiveRun, togglePinRun } from "../../runActions";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 
+/** メニューの幅（menu.css の .menu の min-width と同じ。項目が短いのでこの幅で出る。ボタンの右端にそろえて出すときに使う） */
+export const CARD_MENU_WIDTH = 200;
+
 /** チャットの右クリックメニュー（カンバンのカード・グループのボード・サイドバー）: 開く・名前を変更・既読 / 未読・サイドバーの上に固定・アーカイブ・削除 */
 export function CardMenu({
   x,
@@ -14,6 +17,7 @@ export function CardMenu({
   onRename,
   onClose,
   onError,
+  ignore,
 }: {
   x: number;
   y: number;
@@ -23,6 +27,8 @@ export function CardMenu({
   onRename: (run: Run) => void;
   onClose: () => void;
   onError: (message: string) => void;
+  /** 押しても外側のクリックとして閉じない要素（メニューを開くボタン。開閉はそちらで行う） */
+  ignore?: string;
 }) {
   const act = async (fn: () => Promise<unknown>) => {
     try {
@@ -33,10 +39,10 @@ export function CardMenu({
       onClose();
     }
   };
-  const at = clampToViewport(x, y, 220, 295);
+  const at = clampToViewport(x, y, CARD_MENU_WIDTH, 295);
 
   return (
-    <PopupMenu x={at.x} y={at.y} escape="pass" onClose={onClose}>
+    <PopupMenu x={at.x} y={at.y} escape="pass" ignore={ignore} onClose={onClose}>
       <MenuItem onSelect={() => onOpenPanel(run)}>
         <PanelRight size={14} /> 開く
       </MenuItem>

@@ -94,7 +94,9 @@ export const WorkspacePage = memo(function WorkspacePage({
       run={run}
       state={state}
       active={route.name === "run" && route.runId === run.id}
+      menuOpen={rowMenu?.run.id === run.id}
       onMenu={(at) => setRowMenu({ ...at, run })}
+      onCloseMenu={() => setRowMenu(null)}
       onRename={() => rename.start(run)}
       rename={rename.editorFor(run)}
     />
@@ -209,6 +211,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           onRename={rename.start}
           onClose={() => setRowMenu(null)}
           onError={(m) => void alertDialog("操作できませんでした", m)}
+          ignore=".chat-row-more"
         />
       )}
     </section>
