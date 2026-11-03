@@ -7,7 +7,7 @@ import { CHAT_WIDE_KEY, chatDraftKey } from "../../storageKeys";
 import { FileLinkContext } from "../fileLinks/fileLinkContext";
 import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
-import { Composer, SendCancelled, type QueueSendMode } from "./Composer";
+import { Composer, type QueueSendMode } from "./Composer";
 import { confirmDialog } from "../../dialogs";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
@@ -22,14 +22,14 @@ import { OpenSubagentContext } from "./ToolGroup";
 import { userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
-import { ListPlus, MoveHorizontal, Search, Zap } from "lucide-react";
+import { ListPlus, MessageSquarePlus, MoveHorizontal, Search } from "lucide-react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
 import { PromptsChip } from "./PromptsChip";
 import { jumpToEvent } from "./jumpToEvent";
 import { RewindContext } from "./MessageItems";
-import { useStoredChoice } from "../../hooks/useStoredState";
+import { useStoredState } from "../../hooks/useStoredState";
 import { QUEUE_MODE_KEY } from "../../storageKeys";
 import { Segmented, type SegmentOption } from "../Segmented";
 
@@ -37,9 +37,12 @@ type QueueMode = QueueSendMode;
 
 /** 作業中に送ったときの扱いの選択肢（アイコンだけで出す） */
 const QUEUE_MODE_OPTIONS: SegmentOption<QueueMode>[] = [
+  { value: "tell", label: "伝える（止めずに、いまのやり取りに足す。どちらを選んでいても ⌘Enter で伝えられる）", icon: MessageSquarePlus, iconOnly: true },
   { value: "queue", label: "ためておく（いまの作業が終わったら送る。どちらを選んでいても ⌘⇧Enter でためておける）", icon: ListPlus, iconOnly: true },
-  { value: "interrupt", label: "割り込む（いまの作業を止めてすぐ送る。どちらを選んでいても ⌘Enter で割り込める）", icon: Zap, iconOnly: true },
 ];
+
+/** 作業中に送ったときの扱いの保存の形（以前の「割り込む」= "interrupt" は、なくしたので「伝える」として読む） */
+const readQueueMode = (raw: string | null): QueueMode => (raw === "queue" ? "queue" : "tell");
 
 interface RunPaneProps {
   projectId: number;
@@ -142,8 +145,8 @@ function RunView({
   const waiting = approvals.length > 0;
   // 返答の中のファイルのパスを、押してエディタタブで開けるチップにする（作業場所のファイルだけ）
   const fileLinks = useFileLinks(run, project?.repo_path);
-  // 作業中に送ったときの扱い（ためておく / 割り込む。どのチャットでも同じ）
-  const [queueMode, setQueueMode] = useStoredChoice<QueueMode>(QUEUE_MODE_KEY, ["queue", "interrupt"], "queue");
+  // 作業中に送ったときの扱い（伝える / ためておく。どのチャットでも同じ）
+  const [queueMode, setQueueMode] = useStoredState<QueueMode>(QUEUE_MODE_KEY, readQueueMode, (mode) => mode);
   // 停止を押して、止まるのを待っている（止まったら戻す）
   const [stopping, setStopping] = useState(false);
   useEffect(() => {
@@ -216,9 +219,9 @@ function RunView({
           busy={busy}
           placeholder={
             busy
-              ? queueMode === "interrupt"
-                ? "作業中です。Enter で割り込んですぐ送ります（⌘⇧Enter でためておく）"
-                : "作業中です。Enter でためておき、終わったら送ります（⌘Enter で割り込んですぐ送る）"
+              ? queueMode === "tell"
+                ? "作業中です。Enter で、止めずにいまのやり取りに伝えます（⌘⇧Enter でためておく）"
+                : "作業中です。Enter でためておき、終わったら送ります（⌘Enter で止めずに伝える）"
               : "続けて指示する（Enter で送信、Shift+Enter で改行）"
           }
           onSend={async (text, attachments) => {
@@ -226,12 +229,10 @@ function RunView({
             await api.sendMessage(run.id, text, options.options, attachments);
           }}
           onQueue={async (text, attachments, mode = queueMode) => {
-            // 割り込むときは、待ちの列を通さずに、いまの作業を止めてからすぐ送る（列に一瞬出さない）。
+            // 伝える: 止めずに、いまのやり取りに足す（裏のサブエージェント・コマンドも動き続ける。足せなければ待ちの列へ）。
             // ⌘Enter / ⌘⇧Enter で送ったときは、切り替えに関係なくそのキーの送り方にする
-            if (mode === "interrupt") {
-              if (!(await confirmStopAgents("割り込んで送る"))) throw new SendCancelled();
-              await api.interrupt(run.id, text, options.options, attachments);
-            }
+            stickToBottom.current = true;
+            if (mode === "tell") await api.tellRun(run.id, text, options.options, attachments);
             else await api.queueMessage(run.id, text, options.options, attachments);
           }}
           busyControls={

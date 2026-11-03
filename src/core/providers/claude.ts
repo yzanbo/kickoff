@@ -7,6 +7,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createBackgroundTracker } from "./claudeBackground.js";
+import { createInputChannel } from "./claudeInput.js";
 import { errorMessage } from "../errors.js";
 import { isNetworkError } from "../networkErrors.js";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claudeLabels.js";
@@ -138,9 +139,11 @@ export class ClaudeProvider implements AgentProvider {
     /** 失敗が通信の切断によるものか */
     const network = (error: string | undefined) => noResponse || isNetworkError(error);
 
+    // 入力はストリーミング（作業中に発言を足す・裏の作業を止めるため、返答が終わり裏の作業もなくなるまで開いておく）
+    const input = createInputChannel(params.prompt);
     try {
       const q = query({
-        prompt: params.prompt,
+        prompt: input.messages,
         options: {
           cwd: params.cwd,
           additionalDirectories: params.additionalDirectories,
@@ -163,6 +166,8 @@ export class ClaudeProvider implements AgentProvider {
         },
       });
 
+      // 作業中の発言の足し方と、裏の作業の止め方を Runner に渡す
+      cb.control?.({ tell: (text) => input.push(text), stopTask: (taskId) => q.stopTask(taskId) });
       // 思考の時間を測る（流れてくる途中経過で始まりと終わりを見る）
       const messageState = createMessageState();
       // 裏で動いている作業と、メインの返答が終わったか（変わったときだけ知らせる）
@@ -179,7 +184,11 @@ export class ClaudeProvider implements AgentProvider {
         }
         const sid = emitSdkMessage(msg, cb, messageState);
         const background = trackBackground(msg);
-        if (background) cb.background?.(background);
+        if (background) {
+          cb.background?.(background);
+          // 返答を書き終え、裏の作業もなくなった: 入力を閉じて Claude Code を終わらせる（足した発言がまだ渡っていなければ閉じない）
+          if (background.replied && background.tasks.length === 0) input.close();
+        }
         // メインの会話の最後のメッセージ（ここから分岐するときの位置）
         if ((msg.type === "assistant" || msg.type === "user") && msg.parent_tool_use_id === null && msg.uuid) lastMessageId = msg.uuid;
         if (sid) sessionId = sid;
@@ -200,6 +209,8 @@ export class ClaudeProvider implements AgentProvider {
       return { status: "failed", sessionId, error, lastMessageId, network: network(error) };
     } finally {
       signal.removeEventListener("abort", onAbort);
+      input.close(true);
+      cb.control?.(null);
     }
 
     if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };

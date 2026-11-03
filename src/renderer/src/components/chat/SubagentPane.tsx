@@ -11,7 +11,7 @@ import { useRunDetail } from "./useRunDetail";
  * パネルのタブで開いたサブエージェントの中身（チャットのサブエージェントの一覧・ツールのまとまりの「中身を見る」から開く）。
  * 親のチャットの記録を読み、そのサブエージェントの分だけを出す（作業中は追記されていく）。
  * 下の入力欄から追加の指示を送れる: メインのエージェントに、SendMessage でこのサブエージェントへそのまま伝えてもらう
- * （サブエージェントは続きから始める）。メインが作業中なら送信待ちに入れ、終わったら届ける（割り込んで止めはしない）
+ * （サブエージェントは続きから始める）。メインが作業中なら止めずに伝え（いまの手順の切れ目で読む）、伝えられなければ送信待ちに入れる
  */
 export function SubagentPane({ projectId, runId, toolUseId }: { projectId: number; runId: number; toolUseId: string }) {
   const { run, project, events, background, error } = useRunDetail(runId, projectId);
@@ -23,9 +23,9 @@ export function SubagentPane({ projectId, runId, toolUseId }: { projectId: numbe
   if (!entry) return <div className="page muted">このサブエージェントは見つかりません（チャットを書き直した・巻き戻したときなど）</div>;
   const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
   const agentId = entry.agentId;
-  // 作業中でなければすぐ送り、作業中なら送信待ちに入れる（どちらも queue の API が決める）
-  const relay = async (text: string, attachments: Parameters<typeof api.queueMessage>[3]) => {
-    if (agentId) await api.queueMessage(run.id, relayMessage(agentId, entry.description, text), {}, attachments);
+  // 作業中でなければすぐ送り、作業中なら止めずに伝える（どちらも tell の API が決める）
+  const relay = async (text: string, attachments: Parameters<typeof api.tellRun>[3]) => {
+    if (agentId) await api.tellRun(run.id, relayMessage(agentId, entry.description, text), {}, attachments);
   };
   return (
     <div className="subagent-pane">
@@ -36,7 +36,7 @@ export function SubagentPane({ projectId, runId, toolUseId }: { projectId: numbe
             busy={busy}
             placeholder={
               busy
-                ? "メインのエージェントが作業中です。送ると送信待ちに入り、終わったらこのサブエージェントに伝えます"
+                ? "メインのエージェントが作業中です。止めずに伝え、手が空いたところでこのサブエージェントに渡してもらいます"
                 : "このサブエージェントに追加の指示（メインのエージェントから伝えます。Enter で送信）"
             }
             onSend={relay}

@@ -35,14 +35,22 @@ class FakeProvider extends FakeProviderBase {
   emits: Parameters<ProviderCallbacks["emit"]>[0][] = [];
   /** 実行の初めに知らせる、裏で動いている作業の様子（裏の作業の表示の確かめに使う） */
   background: BackgroundState | null = null;
+  /** 作業中に足された発言（止めずに伝える）と、止めた裏の作業。acceptTell が false なら足せない（入力が閉じている） */
+  told: string[] = [];
+  stoppedTasks: string[] = [];
+  acceptTell = true;
   /** これがあれば、外から release するまで作業中のままにする（止められたら cancelled） */
   private gate: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background">, signal: AbortSignal): Promise<ProviderRunResult> {
+  async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "control">, signal: AbortSignal): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
     this.resumes.push(params.resumeSessionId);
     this.emits.forEach((event) => cb.emit(event));
     if (this.background) cb.background?.(this.background);
+    cb.control?.({
+      tell: (text) => this.acceptTell && Boolean(this.told.push(text)),
+      stopTask: async (taskId) => void this.stoppedTasks.push(taskId),
+    });
     if (this.gate) {
       const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
       if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };

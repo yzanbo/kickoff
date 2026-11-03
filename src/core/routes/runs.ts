@@ -201,11 +201,17 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json({ queue: runner.queued(run.id) });
   });
 
-  // 割り込んで送る（作業中なら、待ちの列には入れずに、いまの作業を止めてからすぐ送る）
-  app.post("/api/runs/:id/interrupt", async (c) => {
+  // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）
+  app.post("/api/runs/:id/tell", async (c) => {
     const run = requireRun(store, c.req.param("id"));
     const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
-    await conflictOnError(() => runner.interrupt(run.id, text, options, attachments));
+    return c.json({ result: await conflictOnError(() => runner.tell(run.id, text, options, attachments)) });
+  });
+
+  // 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 404）
+  app.post("/api/runs/:id/background/:taskId/stop", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    if (!(await runner.stopBackgroundTask(run.id, c.req.param("taskId")))) throw new HttpError(404, "このチャットは作業中ではありません");
     return c.json({ ok: true });
   });
 

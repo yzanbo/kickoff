@@ -243,17 +243,16 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   assert.equal((await call("DELETE", `/api/runs/${runId}/queue/nope`)).status, 404);
   assert.equal((await call("POST", `/api/runs/${runId}/queue/nope/send`)).status, 404);
 
-  // すぐ送る: いまの作業を止めてから送る（送った指示も作業中のまま）
+  // すぐ送る: 作業中なら止めずに伝える（作業は止めない）
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/${queue[1].id}/send`)).body, { ok: true });
-  await until(() => provider.prompts.length === 2);
-  assert.equal(provider.prompts[1], "3 を直した");
+  assert.deepEqual(provider.told, ["3 を直した"]);
   assert.deepEqual(runner.queued(runId), []);
-  runner.cancel(runId);
-  await until(() => !runner.isBusy(runId));
+  assert.equal(runner.isBusy(runId), true);
   release();
+  await until(() => !runner.isBusy(runId));
   // 作業中でなければすぐ送る
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "4" })).body, { queued: false });
-  await until(() => provider.prompts.length === 3);
+  await until(() => provider.prompts.length === 2);
 });
 
 test("待ちの列を止めておく API: 終わっても送らず、すぐ送るで 1 件ずつ送れ、戻すと先頭をすぐ送る。空になると自動に戻る", async () => {
@@ -542,7 +541,7 @@ test("既定の推論の深さの API: 作業フォルダの Claude Code の設�
   assert.equal((await call("GET", "/api/projects/999/effort-default")).status, 404);
 });
 
-test("待ちの列の API: すべて消す・まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めてから送る）", async () => {
+test("待ちの列の API: すべて消す・まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めずに伝える）", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
   const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
@@ -555,12 +554,10 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
   await call("POST", `/api/runs/${runId}/queue`, { text: "A" });
   await call("POST", `/api/runs/${runId}/queue`, { text: "B" });
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/send-all`)).body, { ok: true });
-  await until(() => provider.prompts.length === 2);
-  assert.equal(provider.prompts[1], "A\n\nB");
+  assert.deepEqual(provider.told, ["A\n\nB"]);
   assert.deepEqual(runner.queued(runId), []);
-  runner.cancel(runId);
-  await until(() => !runner.isBusy(runId));
   release();
+  await until(() => !runner.isBusy(runId));
 });
 
 test("待ちの列の API: 選んだものだけ、まとめて送る・消す・いちばん上か下へ移す（ほかは並びを保つ）", async () => {
@@ -597,8 +594,7 @@ test("待ちの列の API: 選んだものだけ、まとめて送る・消す�
   assert.equal((await call("POST", `/api/runs/${runId}/queue/remove-many`, { ids: [] })).status, 400);
   // C と B だけをまとめて送る（列の順につなぐ）。D は残る
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/send-all`, { ids: [ids[2], ids[1]] })).body, { ok: true });
-  await until(() => provider.prompts.length === 2);
-  assert.equal(provider.prompts[1], "B\n\nC");
+  assert.deepEqual(provider.told, ["B\n\nC"]);
   assert.deepEqual(texts(), ["D"]);
   assert.equal((await call("POST", `/api/runs/${runId}/queue/send-all`, { ids: ["nai"] })).status, 404);
   // 残った D が止めたあとに送られないよう、列を空にしてから止める
@@ -608,27 +604,37 @@ test("待ちの列の API: 選んだものだけ、まとめて送る・消す�
   release();
 });
 
-test("割り込んで送る API: 待ちの列には入れず、いまの作業を止めてから、待ちの列より先に送る", async () => {
-  const { call, project, runner, provider } = setup();
+test("止めずに伝える API: 作業中なら止めずに足して自分の発言に残し、足せなければ待ちの列へ。作業中でなければすぐ送る", async () => {
+  const { call, project, runner, provider, store } = setup();
   const release = provider.hold();
   const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
-  await call("POST", `/api/runs/${runId}/queue`, { text: "待ち" });
-  // 割り込みの指示は、待ちの列に入らない
-  const seen: string[][] = [];
-  assert.deepEqual((await call("POST", `/api/runs/${runId}/interrupt`, { text: "割り込み" })).body, { ok: true });
-  seen.push(runner.queued(runId).map((m) => m.text));
-  await until(() => provider.prompts.length === 2);
-  assert.equal(provider.prompts[1], "割り込み");
-  assert.deepEqual(seen, [["待ち"]]);
-  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["待ち"]);
-  assert.equal((await call("POST", `/api/runs/${runId}/interrupt`, {})).status, 400);
-  runner.removeQueued(runId, runner.queued(runId)[0].id);
-  runner.cancel(runId);
-  await until(() => !runner.isBusy(runId));
+  // 作業中: 止めずに足す（待ちの列には入れない。作業も止めない）
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/tell`, { text: "ついでに" })).body, { result: "told" });
+  assert.deepEqual(provider.told, ["ついでに"]);
+  assert.deepEqual(runner.queued(runId), []);
+  assert.equal(runner.isBusy(runId), true);
+  assert.equal((store.listEvents(runId).findLast((e) => e.type === "user")?.data as { text?: string }).text, "ついでに");
+  assert.equal((await call("POST", `/api/runs/${runId}/tell`, {})).status, 400);
+  // 足せない（入力が閉じている）ときは待ちの列へ。行の「すぐ送る」で伝え直すときは先頭に戻す
+  provider.acceptTell = false;
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/tell`, { text: "あとで" })).body, { result: "queued" });
+  await call("POST", `/api/runs/${runId}/queue`, { text: "2 番目" });
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["あとで", "2 番目"]);
+  await call("POST", `/api/runs/${runId}/queue/${runner.queued(runId)[1].id}/send`);
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["2 番目", "あとで"]);
+  provider.acceptTell = true;
+  await call("POST", `/api/runs/${runId}/queue/${runner.queued(runId)[1].id}/send`);
+  assert.deepEqual(provider.told, ["ついでに", "あとで"]);
+  // 裏の作業を 1 つ止める
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/background/b1/stop`)).body, { ok: true });
+  assert.deepEqual(provider.stoppedTasks, ["b1"]);
+  await call("DELETE", `/api/runs/${runId}/queue`);
   release();
+  await until(() => !runner.isBusy(runId));
+  assert.equal((await call("POST", `/api/runs/${runId}/background/b1/stop`)).status, 404);
   // 作業中でなければ、すぐ送る
-  await call("POST", `/api/runs/${runId}/interrupt`, { text: "ふつう" });
-  await until(() => provider.prompts.length === 3);
-  assert.equal(provider.prompts[2], "ふつう");
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/tell`, { text: "ふつう" })).body, { result: "sent" });
+  await until(() => provider.prompts.length === 2);
+  assert.equal(provider.prompts[1], "ふつう");
 });

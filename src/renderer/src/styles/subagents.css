@@ -236,3 +236,27 @@
   color: var(--muted);
   text-decoration: line-through;
 }
+
+/* 裏で動いている作業の一覧（作業中の行の下。BackgroundTasks）。1 件ずつ止めるボタン付き */
+.background-tasks {
+  display: grid;
+  gap: 2px;
+  margin: -4px 0 8px;
+  padding: 0 0 0 22px;
+  list-style: none;
+}
+
+.background-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.background-task-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
