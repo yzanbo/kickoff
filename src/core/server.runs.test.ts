@@ -228,6 +228,21 @@ test("分岐の API: 作業の終わりの時点までの会話を新しいチ�
   await until(() => !runner.isBusy(runId));
 });
 
+test("巻き戻し・分岐は、止めた作業の終わりを起点にしない（その時点のメッセージはセッションに残らないことがある）", async () => {
+  const { call, project, store, provider } = setup();
+  const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => store.getRun(runId)?.status === "completed");
+  const completed = store.listEvents(runId).find((e) => e.type === "result")!;
+  // 以前の記録の形: 止めた作業の終わりにも message_id が付いている
+  store.addEvent(runId, { type: "user", text: "2" });
+  const cancelled = store.addEvent(runId, { type: "result", status: "cancelled", session_id: "s9", message_id: "m9" });
+  const third = store.addEvent(runId, { type: "user", text: "3" });
+  assert.equal((await call("POST", `/api/runs/${runId}/fork`, { event_id: cancelled.id })).status, 400);
+  assert.equal((await call("POST", `/api/runs/${runId}/rewind`, { event_id: third.id, text: "3 を書き直し" })).status, 200);
+  const data = completed.data as { session_id: string; message_id: string };
+  assert.deepEqual(provider.forks.at(-1), [data.session_id, data.message_id, project.repo_path]);
+});
+
 test("巻き戻しの API: 自分の発言の手前まで戻し、書き直した文で送り直す（添付は引き継ぐ）", async () => {
   const { call, project, store, runner, provider } = setup();
   const attachment = { id: randomUUID(), name: "a.txt", mime: "text/plain", size: 1 };

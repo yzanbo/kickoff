@@ -31,12 +31,13 @@ export async function rewindRun(
   const attachments = (target.data as { attachments?: Attachment[] }).attachments ?? [];
   if (!input.text && attachments.length === 0) throw new Error("メッセージか添付ファイルが必要です");
 
-  // その発言より前の、いちばん近い作業の終わり（分岐できる時点）。なければ最初から
+  // その発言より前の、いちばん近い、最後まで終わった作業の終わり（分岐できる時点）。なければ最初から。
+  // 止めた・失敗した作業の終わりの message_id はセッションに残っていないことがあり、そこからは分岐できないので飛ばす
   const point = events
     .slice(0, index)
     .reverse()
-    .map((e) => (e.type === "result" ? (e.data as { session_id?: string; message_id?: string }) : undefined))
-    .find((d) => d?.session_id && d.message_id);
+    .map((e) => (e.type === "result" ? (e.data as { status?: string; session_id?: string; message_id?: string }) : undefined))
+    .find((d) => d?.status === "completed" && d.session_id && d.message_id);
   let sessionId: string | null = null;
   if (point) {
     const provider = providers[run.provider];
