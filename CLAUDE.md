@@ -18,14 +18,14 @@
 - 汎用の hooks は `hooks/`。小さな共有の補助は直下のモジュール（`cx.ts` `errors.ts` `time.ts` `format.ts` `chatTitle.ts` `cachedLoader.ts` `models.ts` `usage.ts` `groups.ts` `projectOrder.ts` `theme.ts` など）。localStorage / sessionStorage のキー名は `storageKeys.ts` に集める（ID を含むものは関数。部品に文字列リテラルを書かない）。チャットの状態（作業中・回答待ちなど）は `runState.ts` の `runStateOf(run, index)` で決め、`index` は App が 1 回作って `approvalsContext.ts` の `useRunStates()`（`approvals` / `pending` / `stateOf(run)` / `pendingCount(runId)`）で配る（部品で `api.approvals()` を取り直さない）。プロジェクトの一覧は `projectsContext.ts` の `useProjects()`（`projects` / `projectsById` / `projectName(id)`。`projects.find((p) => p.id === …)?.name` を書かない）、いまのルートは `router.ts` の `useRoute()`（App が `useHashRoute()` で 1 回購読して `RouteContext` で配る）。いずれも props で 3 段以上中継しない。
 - 大きな部品は「状態と操作の hook（`useXxx`）」と「表示の部品」に分ける（例: `useSidePanel` ＋ `usePanelWidth` ＋ `SidePanel` / `PanelTabPage` / `AddTabMenu` / `PanelToggle` / `DraftCards`、`useSidebar` ＋ `Sidebar`、`useProjectNav` ＋ `ProjectStack` / `ProjectSlides`、`useWorkspaceRows` ＋ `WorkspacePage` / `UngroupedHead`、チャットのパネルの中身 `chat/RunPane` = `useRunDetail` ＋ `RunHeader` / `RunTimeline`、プロジェクトの画面 `pages/ProjectPage` = `project/useProjectData` ＋ `ProjectHeader`）。要素に渡す props の束も hook から返してよい（`panel.body`、`sidebar.layout`）。
 - 画面（ルート）を増やす前に、ダイアログや右のパネルで足りないか考える（設定は左下の歯車・⌘, から開くダイアログ）。
-- チャットに付いている情報（サブエージェントなど）は、チャット欄のすぐ上のピルの列（`.composer-chips`）に並べる。
+- チャットに付いている情報（サブエージェント・ToDo など）は、チャット欄のすぐ上のピルの列（`.composer-chips`）に並べる。押して上に開く一覧は `.chip-wrap` / `.chip-popover`。
 
 ### コア（`src/core`）
 
 - HTTP のルートは `routes/<機能>.ts` に `xxxRoutes(app, deps)` として書き、`server.ts` で登録する。登録の順は、認証のミドルウェアより後・画面の配信より前で、既存の順を崩さない。設定は `routes/settings.ts`、Git は `routes/git.ts`（状態・差分・操作・履歴・PR）/ `routes/files.ts`（ファイルの一覧・中身・検索・保存）/ `routes/worktrees.ts`。
 - 見つからないときの 404 は `routes/http.ts` の `requireProject` / `requireRun` / `requireGroupOf`（ほかのプロジェクトのグループを断る）などを使う。作業場所の解決は `requireWorktree(repo, worktree)`（null = 本体 / 400 / フォルダが消えていれば 404）と、ルート用の `requireWorkdir(c, project)`。外部コマンドの失敗を 400 にするのは `badRequest(fn)`（`FileConflictError` → 409 は `conflictOnError`）、Git の操作のあとに状態を返すのは `gitAction`。入力は zod で検証し（共通の形は `routes/schemas.ts` の `queryOf` / `optionalId` / `repoPath` / `folderPath` / `flag` / `branchName` / `groupName`）、失敗の 400 は `onError` に任せる。
 - 型と定数は `types.ts` を入口に `types/`（`settings` `project` `run` `approval` `provider` `git` `server` `store` `bus`。画面からは `core/types` のまま import する）。DB は `store.ts`（メソッド名を変えない委譲のファサード）＋ `store/`（表ごとに `(db, onChange)` を受ける）。DB を開く・版の判定・写し・古い DB の変換・`migrate` は `dbOpen.ts`。行と型の変換（真偽値の 0/1 と boolean、JSON）は各 store の `toRun` / `toProject` と `bit()` に集め、型と API は boolean で返す。並び順の時刻は `active_at`（最後に動いた時刻。チャットが動いたときに進み、固定・未読・グループ・名前の変更・プロジェクトの編集では進めない）。チャットのやり取りの全文検索は FTS5（trigram）の `run_event_search`（自分の発言と AI の返答だけ。トリガーで追従し、3 文字以上は MATCH、2 文字以下は LIKE）。Git の実行は `git.ts` を入口に `git/`（`exec`（`gitOutput`）`status` `files` `changes` `history` `worktrees`）。
-- Claude のプロバイダーは役割ごとに分けてある: 実行ファイルと環境変数 `claudeEnv`、参照資料を読み取り専用にするフックと Kickoff 自身を守るフック `claudePolicy`、SDK のメッセージの変換 `claudeMessages`、使用枠 `claudeUsage`、承認の問い合わせ（`canUseTool`）`claudeApprovals`、文言の定数 `claudeLabels`。1 回の実行（渡す値の組み立て・コールバック・結果の反映）は `runExecution.ts` の `executeRun` で、`Runner` は受付と待機列だけ。
+- Claude のプロバイダーは役割ごとに分けてある: 実行ファイルと環境変数 `claudeEnv`、参照資料を読み取り専用にするフックと Kickoff 自身を守るフック `claudePolicy`、SDK のメッセージの変換 `claudeMessages`、使用枠 `claudeUsage`、承認の問い合わせ（`canUseTool`）`claudeApprovals`、文言の定数 `claudeLabels`。1 回の実行（渡す値の組み立て・コールバック・結果の反映）は `runExecution.ts` の `executeRun` で、`Runner` は受付と待機列だけ。作業中のチャットに送った次の指示の待ちの列は `followups.ts`（保存しない。終わったら `Runner` が順に送る）、作業の終わりの時点からの分岐は `runFork.ts`（result イベントの `session_id` / `message_id` を使う）。
 - AI への指示と、承認なしで使えるツール・コマンドは `chatPolicy.ts`（`CHAT_POLICY` と `buildSystemPrompt`。セクションごとの指示はなく、どのチャットも同じ）。推論の深さと権限モードの既定は `runDefaults.ts`（チャット → プロジェクトの既定 → アプリの設定の順。深さはどこにもなければ指定しない（モデルの既定）、権限は「毎回確認」）。
 - 例外の文は `src/core/errors.ts` の `errorMessage`。外部コマンドは `exec.ts` の `execFileAsync`、パスの包含判定・`~` の展開・リンクの解決は `paths.ts`（`isInside` / `expandHome` / `realPathLoose`）、期限付きのキャッシュは `ttlCache.ts`。テストからだけ使う補助は `testing/`（偽のプロバイダー `fakeProvider.ts`、API テストの準備 `testServer.ts`、変換のテスト用の古い v17 の DDL `legacySchemaV17.ts`）。
 
@@ -44,6 +44,7 @@
 | フォームの 1 行（名前・入力・補足） | `Field` |
 | 保存ボタンと結果 | `useSave` ＋ `SaveActions`（結果の文だけなら `ResultMessage`） |
 | 失敗の文 | `ErrorText`（空なら何も出さない） |
+| 文のコピー | `CopyButton`（コピーしたら、しばらくチェックの印。失敗はお知らせ） |
 | モデル・推論の深さ・権限モードの選択肢 | `ModelOptions` / `EffortOptions` / `PermissionOptions` |
 | 状態の点 | `StatusDot`（接続・ログイン・準備状況は `tone`（`toneOf`）、カンバンの列・チャットの状態は `color`（`tones.ts` の `COLUMN_TONE` / `STATE_TONE`）。点を `<span>` で手書きしない） |
 | CLI の状態カード | `StatusCard` / `GitHubStatusCard`。カードとその並びは `.card` / `.card-grid` |

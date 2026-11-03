@@ -1,4 +1,5 @@
 import {
+  forkSession,
   query,
   type Options,
   type Query,
@@ -126,6 +127,8 @@ export class ClaudeProvider implements AgentProvider {
     let final: SDKResultMessage | undefined;
     // メインのエージェントの最後の応答で、コンテキストに入っていたトークン数
     let contextTokens: number | undefined;
+    // メインの会話の最後のメッセージの ID（分岐の位置。結果に残す）
+    let lastMessageId: string | undefined;
 
     try {
       const q = query({
@@ -156,6 +159,8 @@ export class ClaudeProvider implements AgentProvider {
       const thinkingTimer = createThinkingTimer();
       for await (const msg of q) {
         const sid = emitSdkMessage(msg, cb, thinkingTimer);
+        // メインの会話の最後のメッセージ（ここから分岐するときの位置）
+        if ((msg.type === "assistant" || msg.type === "user") && msg.parent_tool_use_id === null && msg.uuid) lastMessageId = msg.uuid;
         if (sid) sessionId = sid;
         if (msg.type === "result") final = msg;
         if (msg.type === "assistant" && msg.parent_tool_use_id === null) {
@@ -169,14 +174,14 @@ export class ClaudeProvider implements AgentProvider {
         }
       }
     } catch (e) {
-      if (signal.aborted) return { status: "cancelled", sessionId };
-      return { status: "failed", sessionId, error: errorMessage(e) };
+      if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
+      return { status: "failed", sessionId, error: errorMessage(e), lastMessageId };
     } finally {
       signal.removeEventListener("abort", onAbort);
     }
 
-    if (signal.aborted) return { status: "cancelled", sessionId };
-    if (!final) return { status: "failed", sessionId, error: "エージェントが結果を返さずに終了しました" };
+    if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
+    if (!final) return { status: "failed", sessionId, error: "エージェントが結果を返さずに終了しました", lastMessageId };
 
     // ファストモードを指定したのに使われなかった場合は、理由をチャットに残す
     if (params.fastMode && final.fast_mode_state !== "on" && final.fast_mode_disabled_reason) {
@@ -189,7 +194,7 @@ export class ClaudeProvider implements AgentProvider {
     // 上限は、使ったモデルのうちいちばん大きいコンテキストウィンドウ（サブエージェントの小さいモデルを除くため）
     const windows = Object.values(final.modelUsage ?? {}).map((m) => m.contextWindow).filter((w) => w > 0);
     const context = contextTokens === undefined ? undefined : { tokens: contextTokens, window: windows.length ? Math.max(...windows) : null };
-    const common = { sessionId: final.session_id ?? sessionId, costUsd: final.total_cost_usd, turns: final.num_turns, context };
+    const common = { sessionId: final.session_id ?? sessionId, costUsd: final.total_cost_usd, turns: final.num_turns, context, lastMessageId };
     if (final.subtype === "success" && !final.is_error) {
       return { ...common, status: "completed", result: final.result };
     }
@@ -198,6 +203,18 @@ export class ClaudeProvider implements AgentProvider {
         ? final.result
         : final.errors?.join("\n") || ERROR_LABELS[final.subtype] || final.subtype;
     return { ...common, status: "failed", error };
+  }
+
+  /**
+   * 会話を messageId の位置までで分け、新しいセッションにする（元のセッションは変えない）。
+   * cwd はそのセッションを動かした作業フォルダ（消えていれば、すべてのプロジェクトから探す）
+   */
+  async fork(sessionId: string, messageId: string, cwd: string): Promise<string> {
+    try {
+      return (await forkSession(sessionId, { dir: cwd, upToMessageId: messageId })).sessionId;
+    } catch {
+      return (await forkSession(sessionId, { upToMessageId: messageId })).sessionId;
+    }
   }
 
   /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */

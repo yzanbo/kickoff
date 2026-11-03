@@ -215,6 +215,8 @@ export const api = {
   removeQueued: (runId: number, id: string) => request<{ queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue/${id}`),
   moveQueued: (runId: number, id: string, index: number) =>
     request<{ queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/${id}/move`, { index }),
+  /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
+  forkRun: (runId: number, eventId: number) => request<Run>("POST", `/api/runs/${runId}/fork`, { event_id: eventId }),
   sendQueuedNow: (runId: number, id: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/${id}/send`),
 
   // 承認依頼・質問
