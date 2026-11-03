@@ -22,7 +22,6 @@ export function PanelTabPage({
   active,
   focused,
   style,
-  onClose,
 }: {
   tab: PanelTab;
   panel: SidePanelController;
@@ -34,7 +33,6 @@ export function PanelTabPage({
   /** 自分のペインにピントがあるか */
   focused: boolean;
   style?: CSSProperties;
-  onClose: () => void;
 }) {
   const visible = panelOpen && active;
   const focus = () => panel.focusPane(paneId);
@@ -62,7 +60,6 @@ export function PanelTabPage({
           projects={panel.projects}
           onProjectChange={(projectId) => panel.updateTab(t.key, () => ({ ...t, projectId, group: undefined, groupName: undefined }))}
           onGroupChange={(group, groupName) => panel.updateTab(t.key, (x) => (x.kind === "new" ? { ...x, group, groupName } : x))}
-          onClose={onClose}
           onCreated={(run) => panel.replaceWithChat(t.key, run)}
           onDraftChange={(text) => panel.updateTab(t.key, (x) => (x.kind === "new" && (x.draftText ?? "") !== text ? { ...x, draftText: text } : x))}
         />

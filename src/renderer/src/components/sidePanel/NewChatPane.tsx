@@ -6,7 +6,6 @@ import { useAsync } from "../../hooks/useAsync";
 import { useProjects } from "../../projectsContext";
 import { choiceDialog } from "../../dialogs";
 import { Composer, SendCancelled } from "../chat/Composer";
-import { CloseButton } from "../IconButton";
 import { ProjectChip } from "../ProjectChip";
 import { useRunOptions } from "../chat/RunOptionsBar";
 import { BUSY_STATUSES } from "../RunStatus";
@@ -22,7 +21,6 @@ interface Props {
   onProjectChange?: (projectId: number) => void;
   /** 作成先のグループを変えたとき・グループ名が分かったとき（タブの表示に使う） */
   onGroupChange?: (group: number | undefined, groupName: string | undefined) => void;
-  onClose: () => void;
   /** 最初のメッセージを送ってチャットができたとき（このタブをそのチャットに置き換える） */
   onCreated: (run: Run) => void;
   /** 書いている文が変わったとき（ボードの「下書き」のカードに出す） */
@@ -36,7 +34,6 @@ export function NewChatPane({
   projects,
   onProjectChange,
   onGroupChange,
-  onClose,
   onCreated,
   onDraftChange,
 }: Props) {
@@ -62,9 +59,8 @@ export function NewChatPane({
   return (
     <div className="run-page run-panel new-chat">
       <header className="run-header">
+        {/* 名前と閉じるはタブに出すので、見出しには出さない（いまのチャットの見出し RunHeader と同じ） */}
         <div className="run-title-row">
-          <CloseButton label="パネルを閉じる" title="閉じる（Esc）" size={15} onClick={onClose} />
-          <h1>新しいチャット</h1>
         <div className="run-sub muted small">
           {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
           {projects && projects.length > 1 && onProjectChange ? (
