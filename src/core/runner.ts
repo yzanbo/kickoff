@@ -153,17 +153,10 @@ export class Runner {
    * 待ちの 1 件をすぐ送る。作業中なら列の先頭に移していまの作業を止め、止まったら送る（なければ false）
    */
   async sendQueuedNow(runId: number, id: string): Promise<boolean> {
-    if (!this.followups.has(runId, id)) return false;
-    if (this.active.has(runId)) {
-      // 列の先頭に移して止める（止まったら、先頭から送る）
-      this.followups.move(runId, id, 0);
-      this.active.get(runId)!.abort();
-      return true;
-    }
-    // 順番待ち（まだ始まっていない）なら取りやめてから送る
-    if (this.isBusy(runId)) this.cancel(runId);
-    const message = this.followups.take(runId, id)!;
-    await this.send(runId, message.text, message.options, message.attachments);
+    // 列から取り出して、割り込んで送る（列の先頭に移してから送ると、一瞬いちばん上に動いて見えるため）
+    const message = this.followups.take(runId, id);
+    if (!message) return false;
+    await this.interrupt(runId, message.text, message.options, message.attachments);
     return true;
   }
 
@@ -171,7 +164,8 @@ export class Runner {
    * 待ちの指示をすべて 1 つにまとめて、すぐ送る（作業中なら止めてから送る）。待ちがなければ false
    */
   async sendAllQueued(runId: number): Promise<boolean> {
-    const merged = this.followups.merge(runId);
+    // 1 つにまとめた指示を列から取り出して、割り込んで送る（列に「まとめた 1 件」を一瞬出さない）
+    const merged = this.followups.merge(runId, { silent: true });
     if (!merged) return false;
     return this.sendQueuedNow(runId, merged.id);
   }
