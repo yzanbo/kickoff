@@ -3,6 +3,7 @@ import { api } from "./api";
 import { chatTitle } from "./chatTitle";
 import { alertDialog, confirmDialog } from "./dialogs";
 import { errorMessage } from "./errors";
+import { chatDraftKey } from "./storageKeys";
 
 /** 確かめてから、チャットをアーカイブする（アーカイブ済みなら戻す。どちらも確かめる。やめたら false） */
 export async function toggleArchiveRun(run: Pick<Run, "id" | "title" | "archived_at">): Promise<boolean> {
@@ -23,6 +24,12 @@ export async function toggleArchiveRun(run: Pick<Run, "id" | "title" | "archived
 /** チャットをサイドバーのプロジェクトの上に固定する（固定していればやめる） */
 export const togglePinRun = (run: Pick<Run, "id" | "pinned">) => api.pinRun(run.id, !run.pinned);
 
+/** チャットを削除する（消したチャットの入力欄の書きかけの文も、localStorage に残さない） */
+async function deleteRun(runId: number) {
+  await api.deleteRun(runId);
+  localStorage.removeItem(chatDraftKey(runId));
+}
+
 /** 確かめてから、チャットを削除する（やめたら false） */
 export async function confirmDeleteRun(run: Pick<Run, "id" | "title">): Promise<boolean> {
   const ok = await confirmDialog({
@@ -31,7 +38,7 @@ export async function confirmDeleteRun(run: Pick<Run, "id" | "title">): Promise<
     confirmLabel: "削除",
     danger: true,
   });
-  if (ok) await api.deleteRun(run.id);
+  if (ok) await deleteRun(run.id);
   return ok;
 }
 
@@ -73,7 +80,7 @@ export async function confirmDeleteRuns(runs: Run[]): Promise<boolean> {
     confirmLabel: "削除",
     danger: true,
   });
-  if (ok) await eachRun(runs, "削除", (r) => api.deleteRun(r.id));
+  if (ok) await eachRun(runs, "削除", (r) => deleteRun(r.id));
   return ok;
 }
 
