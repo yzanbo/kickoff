@@ -357,6 +357,37 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
   release();
 });
 
+test("待ちの列の API: 選んだものだけ、まとめて送る・消す・いちばん上か下へ移す（ほかは並びを保つ）", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  const ids: string[] = [];
+  for (const text of ["A", "B", "C", "D", "E"]) ids.push((await call("POST", `/api/runs/${runId}/queue`, { text })).body.id);
+  const texts = () => runner.queued(runId).map((m) => m.text);
+  // B と D をいちばん上へ、C をいちばん下へ
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[3], ids[1]], to: "top" })).body.moved, 2);
+  assert.deepEqual(texts(), ["B", "D", "A", "C", "E"]);
+  await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[2]], to: "bottom" });
+  assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[0]], to: "middle" })).status, 400);
+  // A と E を消す
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/remove-many`, { ids: [ids[0], ids[4], "nai"] })).body.removed, 2);
+  assert.deepEqual(texts(), ["B", "D", "C"]);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/remove-many`, { ids: [] })).status, 400);
+  // C と B だけをまとめて送る（列の順につなぐ）。D は残る
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/send-all`, { ids: [ids[2], ids[1]] })).body, { ok: true });
+  await until(() => provider.prompts.length === 2);
+  assert.equal(provider.prompts[1], "B\n\nC");
+  assert.deepEqual(texts(), ["D"]);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/send-all`, { ids: ["nai"] })).status, 404);
+  // 残った D が止めたあとに送られないよう、列を空にしてから止める
+  await call("DELETE", `/api/runs/${runId}/queue`);
+  runner.cancel(runId);
+  await until(() => !runner.isBusy(runId));
+  release();
+});
+
 test("割り込んで送る API: 待ちの列には入れず、いまの作業を止めてから、待ちの列より先に送る", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();

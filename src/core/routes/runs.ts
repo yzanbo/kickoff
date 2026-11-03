@@ -47,6 +47,9 @@ const messageInputSchema = z
   .refine((v) => v.text || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
 
 /** チャット（エージェントとの会話）: 始める・続ける・中断・名前や列の変更・アーカイブ・削除・検索 */
+/** 選んだ待ちの指示（送信待ちの複数選択） */
+const queueIdsSchema = z.object({ ids: z.array(z.string().min(1).max(100)).min(1).max(500) });
+
 export function runRoutes(app: Hono, { store, runner, approvals, providers }: ServerDeps) {
   // ?archived=1 でアーカイブしたチャットも含める
   // プロジェクトのチャット。アーカイブ済みも含めるときは、未アーカイブとアーカイブ済みを別々に上限まで取る
@@ -197,11 +200,26 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json({ queue: runner.queued(run.id) });
   });
 
-  // 待ちの指示をすべて 1 つにまとめて、すぐ送る（作業中なら、いまの作業を止めてから送る）
+  // 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら、いまの作業を止めてから送る）
   app.post("/api/runs/:id/queue/send-all", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    if (!(await conflictOnError(() => runner.sendAllQueued(run.id)))) throw new HttpError(404, "待ちの指示がありません");
+    const { ids } = queueIdsSchema.partial().parse(await c.req.json().catch(() => ({})));
+    if (!(await conflictOnError(() => runner.sendAllQueued(run.id, ids)))) throw new HttpError(404, "待ちの指示がありません");
     return c.json({ ok: true });
+  });
+
+  // 選んだ待ちの指示をまとめて消す
+  app.post("/api/runs/:id/queue/remove-many", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { ids } = queueIdsSchema.parse(await c.req.json());
+    return c.json({ removed: runner.removeQueuedMany(run.id, ids), queue: runner.queued(run.id) });
+  });
+
+  // 選んだ待ちの指示を、並びを保ったままいちばん上・いちばん下へまとめて移す
+  app.post("/api/runs/:id/queue/move-many", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { ids, to } = queueIdsSchema.extend({ to: z.enum(["top", "bottom"]) }).parse(await c.req.json());
+    return c.json({ moved: runner.moveQueuedMany(run.id, ids, to), queue: runner.queued(run.id) });
   });
 
   // 待ちの 1 件をすぐ送る（作業中なら、いまの作業を止めてから送る）
