@@ -13,6 +13,7 @@ import { SubagentChip, useSubagents } from "./Subagents";
 import { QueuedMessages } from "./QueuedMessages";
 import { TodoChip } from "./TodoChip";
 import { OpenSubagentContext } from "./Timeline";
+import { userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
 import { ListPlus, Zap } from "lucide-react";
@@ -100,6 +101,8 @@ function RunView({
   // 一番下を見ているか（送ったら true に戻し、新しい発言に合わせてスクロールする）
   const stickToBottom = useRef(true);
   const items = useMemo(() => groupEvents(events), [events]);
+  // チャット欄の ↑ で呼び出す、前に送った自分の発言
+  const prompts = useMemo(() => userPrompts(events), [events]);
   const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
   const waiting = approvals.length > 0;
   // 作業中に送ったときの扱い（ためておく / 割り込む。どのチャットでも同じ）
@@ -160,6 +163,7 @@ function RunView({
           }}
           trailing={<ContextMeter run={run} />}
           suggestTarget={{ projectId: run.project_id, worktree: run.worktree_path || undefined }}
+          history={prompts}
         />
       </div>
       {openedSub && <SubagentDetail entry={openedSub} events={events} rel={rel} busy={busy} onClose={() => setSubOpen(undefined)} />}
