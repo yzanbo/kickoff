@@ -28,7 +28,8 @@
   background: var(--accent);
 }
 
-.approval-badge.question {
+/* 質問のバッジ（質問の欄の .question と名前を分ける。重なると .question の padding: 0 でバッジの余白が消える） */
+.approval-badge.question-badge {
   background: var(--info);
 }
 
