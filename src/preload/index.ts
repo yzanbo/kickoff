@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { BrowserExtensionInfo } from "../core/types.js";
+import type { BrowserExtensionInfo, DiagnosticsState } from "../core/types.js";
 
 // 画面が preload から型を読めるように、コアの型をここからも出す
 export type { BrowserExtensionInfo };
@@ -33,6 +33,12 @@ const api = {
   closeDevTools: (targetId: number): Promise<void> => ipcRenderer.invoke("kickoff:browser-devtools-close", targetId),
   /** 開発者ツールの別のウィンドウを、利用者が閉じたとき。戻り値で受け取りをやめる */
   onDevToolsWindowClosed: (listener: (targetId: number) => void): (() => void) => subscribe("kickoff:browser-devtools-window-closed", listener),
+  /** 性能の記録（重いときに、その場で 10 秒の記録を取って保存する。メニューの「ヘルプ」からも始まる） */
+  diagnostics: {
+    start: (): Promise<void> => ipcRenderer.invoke("kickoff:diagnostics-start"),
+    /** 記録の様子（記録中・保存中・保存した・失敗）。戻り値で受け取りをやめる */
+    onState: (listener: (state: DiagnosticsState) => void): (() => void) => subscribe("kickoff:diagnostics", listener),
+  },
   /** Kickoff のウィンドウを前面に出す（通知を押したとき） */
   focusWindow: (): Promise<void> => ipcRenderer.invoke("kickoff:focus-window"),
   /** 内蔵ターミナル（右のパネルのタブ）。key はタブごとのキー */
