@@ -1,17 +1,26 @@
-import { Globe, Maximize2, Minimize2, PanelRightClose, SquarePen, SquareTerminal } from "lucide-react";
+import { Maximize2, Minimize2, PanelRightClose } from "lucide-react";
+import { useRef, useState } from "react";
 import { baseName } from "../../format";
 import { cx } from "../../cx";
-import { IconButton } from "../IconButton";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { useAnchoredMenu } from "../menus/useAnchoredMenu";
+import { clampToViewport } from "../PopupMenu";
 import { TARGET_MENU_WIDTH, targetMenuHeight, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
-import { PanelTab } from "./PanelTab";
+import { PaneSash, fracStyle } from "./PaneSash";
+import { PaneTabBar } from "./PaneTabBar";
+import { PanelEmpty } from "./PanelEmpty";
 import { PanelTabPage } from "./PanelTabPage";
-import { tabLabel } from "./panelTabs";
+import { layoutRects } from "./paneGeometry";
+import { focusedPane, leavesOf, type PaneLeaf } from "./paneLayout";
+import { TAB_MENU_WIDTH, TabMenu, tabMenuHeight } from "./TabMenu";
+import { useTabDrag } from "./useTabDrag";
 import type { SidePanelController, TerminalTarget } from "./useSidePanel";
 
 /**
  * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
- * タブの列の右端に、新しいチャット・ブラウザ・ターミナルのボタンを並べる（1 回で開く）。
+ * タブは上下・左右のペインに分けて並べられる（VS Code のエディターと同じ）。分けていないときは、タブの列 → 中身の 1 段。
+ * 分けているときは、中身の中にペインごとのタブの列と境目のつまみを、割合の位置で重ねる（タブの中身はいつも中身の直下に置き、作り直さない）。
+ * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
  * onNewChat: 「新しいチャット」を押したとき（どのプロジェクト・グループで始めるかはボードが決める）。
  * terminals: 開けるターミナル（terminalTargets。Mac のアプリでだけ出す）。チャットを開いているときは、そのチャットの作業場所で開く。
  * sidebar: プロジェクトのチャット欄として使うとき（開閉は欄が持つ。幅の変更・横幅いっぱいは欄の側で行うので出さない）
@@ -27,28 +36,107 @@ export function SidePanel({
   terminals: TerminalTarget[];
   sidebar?: { open: boolean; onClose: () => void };
 }) {
-  const { tabs, activeTab, maximized } = panel;
+  const { tabs, maximized, layout } = panel;
   const panelOpen = sidebar ? sidebar.open : panel.panelOpen;
   const close = sidebar ? sidebar.onClose : panel.close;
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
+  const asideRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const drag = useTabDrag(panel);
+  // タブの右クリックのメニュー
+  const [menu, setMenu] = useState<{ key: string; x: number; y: number } | null>(null);
+  // 境目をドラッグしている間（中身の上でポインターを奪われないようにする）
+  const [resizing, setResizing] = useState(false);
+  const leaves = leavesOf(layout.root);
+  const split = leaves.length > 1;
+  const { panes, sashes } = layoutRects(layout.root);
   // ターミナルの開く場所を選ぶメニュー（開く場所がいくつもあるとき。タブの列のボタン・タブがないときのボタンで共通）
   const terminalMenu = useAnchoredMenu(".panel-tab-terminal, .panel-empty-terminal", TARGET_MENU_WIDTH, "right");
-  /** 表示しているチャットの作業場所（ワークツリーならそのフォルダ、本体ならプロジェクトのフォルダ）。チャットでなければ undefined */
-  const chatTarget = (): TerminalTarget | undefined => {
-    const tab = tabs.find((t) => t.key === activeTab);
+  /** ペインで表示しているチャットの作業場所（ワークツリーならそのフォルダ、本体ならプロジェクトのフォルダ）。チャットでなければ undefined */
+  const chatTarget = (pane: PaneLeaf): TerminalTarget | undefined => {
+    const tab = tabs.find((t) => t.key === pane.active);
     if (tab?.kind !== "chat") return undefined;
     const run = panel.runs.find((r) => r.id === tab.id);
     if (run?.worktree_path) return { cwd: run.worktree_path, label: baseName(run.worktree_path), projectId: run.project_id };
     return terminalTargets.find((t) => t.projectId === tab.projectId);
   };
-  /** ターミナルを開く: チャットを表示していればその作業場所、開く場所が 1 つならそこ、いくつもあれば選ぶメニュー */
-  const openTerminal = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const target = chatTarget() ?? (terminalTargets.length === 1 ? terminalTargets[0] : undefined);
+  /** ターミナルを開く（押したペインに入れる）: チャットを表示していればその作業場所、開く場所が 1 つならそこ、いくつもあれば選ぶメニュー */
+  const openTerminal = (e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => {
+    panel.focusPane(pane.id);
+    const target = chatTarget(pane) ?? (terminalTargets.length === 1 ? terminalTargets[0] : undefined);
     if (target) return panel.openTerminal(target);
     terminalMenu.toggle(e, targetMenuHeight(terminalTargets.length));
   };
+
+  // ⌘\ で、ピントのあるペインを右に分ける（パネルの中にピントがあるとき。下のパネルの ⌘\ はそちらにピントがあるときだけ）
+  useWindowEvent(
+    "keydown",
+    (e) => {
+      if (!e.metaKey || e.altKey || e.ctrlKey || e.shiftKey || e.code !== "Backslash") return;
+      if (!asideRef.current?.contains(document.activeElement)) return;
+      e.preventDefault();
+      const pane = focusedPane(layout);
+      panel.splitPane(pane.id, "row", "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
+    },
+    panelOpen,
+  );
+
+  const controls = (
+    <div className="panel-controls">
+      {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
+      <button className="panel-control" title={sidebar ? "チャット欄を閉じる（⌥⌘B）" : "パネルを閉じる（Esc）"} aria-label="パネルを閉じる" onClick={close}>
+        <PanelRightClose size={15} />
+      </button>
+      {!sidebar && (
+        <button
+          className="panel-control"
+          title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+          aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+          aria-pressed={maximized}
+          onClick={panel.toggleMaximized}
+        >
+          {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+        </button>
+      )}
+    </div>
+  );
+  /** ペインのタブの列（パネルの閉じる・横幅いっぱいは、左上のペインにだけ置く） */
+  const bar = (pane: PaneLeaf) => (
+    <PaneTabBar
+      panel={panel}
+      pane={pane}
+      split={split}
+      inert={!panelOpen}
+      controls={pane.id === leaves[0].id ? controls : undefined}
+      drag={drag}
+      terminals={terminalTargets.length}
+      terminalMenuOpen={terminalMenu.isOpen}
+      onNewChat={() => {
+        panel.focusPane(pane.id);
+        onNewChat();
+      }}
+      onTerminal={openTerminal}
+      onMenu={(key, e) => {
+        e.preventDefault();
+        setMenu({ key, ...clampToViewport(e.clientX, e.clientY, TAB_MENU_WIDTH, tabMenuHeight(leaves.length)) });
+      }}
+    />
+  );
+  const empty = (pane: PaneLeaf) => (
+    <PanelEmpty
+      // ボードの分けていないパネルは、今までどおり案内の文（新しいチャットは見出しの「新規」から）。分けたペインには新しいチャットも出す
+      showNewChat={!!sidebar || split}
+      hasTerminals={terminalTargets.length > 0}
+      manyTerminals={terminalTargets.length > 1}
+      onNewChat={onNewChat}
+      onBrowser={() => panel.openBrowser()}
+      onTerminal={(e) => openTerminal(e, pane)}
+    />
+  );
+  const rectOf = new Map(panes.map((p) => [p.id, p.rect]));
+
   return (
-    <aside className={cx("board-panel", sidebar && "as-sidebar")} aria-hidden={!panelOpen}>
+    <aside ref={asideRef} className={cx("board-panel", sidebar && "as-sidebar")} aria-hidden={!panelOpen}>
       {!sidebar && (
         <div
           inert={!panelOpen}
@@ -60,81 +148,24 @@ export function SidePanel({
           onPointerDown={panel.startResize}
         />
       )}
-      <div className="panel-tabs" role="tablist" inert={!panelOpen}>
-        <div className="panel-controls">
-          {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-          <button className="panel-control" title={sidebar ? "チャット欄を閉じる（⌥⌘B）" : "パネルを閉じる（Esc）"} aria-label="パネルを閉じる" onClick={close}>
-            <PanelRightClose size={15} />
-          </button>
-          {!sidebar && (
-            <button
-              className="panel-control"
-              title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-              aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-              aria-pressed={maximized}
-              onClick={panel.toggleMaximized}
-            >
-              {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-            </button>
-          )}
-        </div>
-        {tabs.map((t) => {
-          const { Icon, iconClass, label } = tabLabel(t, panel.runs);
-          return (
-            <PanelTab
-              key={t.key}
-              active={activeTab === t.key}
-              icon={Icon}
-              iconClass={iconClass}
-              label={label}
-              title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : label}
-              onSelect={() => panel.showTab(t.key)}
-              onClose={() => panel.closeTab(t.key)}
-            />
-          );
-        })}
-        {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く */}
-        <span className="panel-tab-adds">
-          <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />
-          <IconButton icon={Globe} label="ブラウザを開く" size={14} onClick={() => panel.openBrowser()} />
-          {terminalTargets.length > 0 && (
-            <IconButton
-              icon={SquareTerminal}
-              label="ターミナルを開く"
-              title="ターミナルを開く（チャットを表示しているときは、その作業場所で開く）"
-              size={14}
-              className="panel-tab-terminal"
-              aria-haspopup={terminalTargets.length > 1 ? "menu" : undefined}
-              aria-expanded={terminalTargets.length > 1 ? terminalMenu.isOpen : undefined}
-              onClick={openTerminal}
-            />
-          )}
-        </span>
-      </div>
-      <div className="panel-content" inert={!panelOpen}>
-        {tabs.length === 0 && (
-          <div className="panel-empty">
-            {sidebar ? (
-              <button className="btn" onClick={onNewChat}>
-                <SquarePen size={14} /> 新しいチャット
-              </button>
-            ) : (
-              <p className="muted small">カードを押すと、ここにチャットが開きます。</p>
-            )}
-            <button className="btn" onClick={() => panel.openBrowser()}>
-              <Globe size={14} /> ブラウザを開く
-            </button>
-            {terminalTargets.length > 0 && (
-              <button
-                className="btn panel-empty-terminal"
-                aria-haspopup={terminalTargets.length > 1 ? "menu" : undefined}
-                onClick={openTerminal}
+      {!split && bar(leaves[0])}
+      <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing")} inert={!panelOpen}>
+        {!split && tabs.length === 0 && empty(leaves[0])}
+        {split &&
+          panes.map(({ id, rect }) => {
+            const pane = leaves.find((p) => p.id === id)!;
+            return (
+              <div
+                key={id}
+                className={cx("split-pane", id === layout.focused && "focused", rect.y === 0 && "top-row", rect.y === 0 && rect.x + rect.w > 0.999 && "top-right")}
+                style={fracStyle(rect)}
+                onPointerDown={() => panel.focusPane(id)}
               >
-                <SquareTerminal size={14} /> ターミナルを開く
-              </button>
-            )}
-          </div>
-        )}
+                {bar(pane)}
+                {pane.tabs.length === 0 && empty(pane)}
+              </div>
+            );
+          })}
         {terminalMenu.at && (
           <TerminalTargetMenu
             {...terminalMenu.at}
@@ -145,10 +176,47 @@ export function SidePanel({
           />
         )}
         {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
-        {tabs.map((t) => (
-          <PanelTabPage key={t.key} tab={t} panel={panel} panelOpen={panelOpen} onClose={close} />
-        ))}
+        {tabs.map((t) => {
+          const pane = leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0];
+          const rect = rectOf.get(pane.id);
+          return (
+            <PanelTabPage
+              key={t.key}
+              tab={t}
+              panel={panel}
+              panelOpen={panelOpen}
+              paneId={pane.id}
+              active={pane.active === t.key}
+              focused={pane.id === layout.focused}
+              style={split && rect ? fracStyle(rect, true) : undefined}
+              onClose={close}
+            />
+          );
+        })}
+        {split &&
+          sashes.map((s) => (
+            <PaneSash
+              key={`${s.path.join(".")}:${s.index}`}
+              sash={s}
+              root={layout.root}
+              container={contentRef}
+              onResize={panel.resizeSplit}
+              onEqualize={panel.equalizeSplit}
+              onResizing={setResizing}
+            />
+          ))}
+        {/* タブをドラッグしている間だけ、中身の上に透明の覆いを置き、落とす場所（端なら分けて置く範囲）を出す */}
+        {drag.dragging &&
+          panes.map(({ id, rect }) => {
+            const zone = drag.zoneOf(id);
+            return (
+              <div key={`cover:${id}`} className="split-drop-cover" style={split ? fracStyle(rect, true) : undefined} {...drag.coverProps(id)}>
+                {zone && <div className={`split-drop-hint split-hint-${zone}`} />}
+              </div>
+            );
+          })}
       </div>
+      {menu && <TabMenu panel={panel} tabKey={menu.key} x={menu.x} y={menu.y} onClose={() => setMenu(null)} />}
     </aside>
   );
 }

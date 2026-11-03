@@ -1,0 +1,136 @@
+/* ==== ボードの右のパネルのペインの分割（SidePanel・PaneTabBar・PaneSash・useTabDrag） ==== */
+
+/*
+ * 分けているときは、中身の中にペイン（タブの列と、タブがないときの画面）・タブの中身・境目のつまみを、割合の位置で重ねる。
+ * タブの中身はペインの外（中身の直下）にあり、ペインのタブの列の高さ（--split-tabs-h）だけ下げて置く
+ */
+.panel-content.split-view {
+  --split-tabs-h: 37px;
+
+  position: relative;
+}
+
+.split-pane {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.split-pane > .panel-tabs {
+  height: var(--split-tabs-h);
+}
+
+.split-pane > .panel-empty {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ピントのあるペイン（新しく開くタブが入る）は、タブの列の下線の色で控えめに示す */
+.split-pane.focused > .panel-tabs {
+  border-bottom-color: color-mix(in srgb, var(--info) 60%, var(--border));
+}
+
+.split-view > .panel-tab-page {
+  position: absolute;
+}
+
+/* 境目のつまみ: いつも 1px の線を出し、乗せる・ドラッグ中は青い 2px の線（.pane-resizer と同じ） */
+.split-sash {
+  position: absolute;
+  z-index: 3;
+}
+
+.split-sash-row {
+  width: 6px;
+  margin-left: -3px;
+  background: linear-gradient(var(--border), var(--border)) center / 1px 100% no-repeat;
+  cursor: col-resize;
+}
+
+.split-sash-column {
+  height: 6px;
+  margin-top: -3px;
+  background: linear-gradient(var(--border), var(--border)) center / 100% 1px no-repeat;
+  cursor: row-resize;
+}
+
+.split-sash-row:hover,
+.split-sash-row:active {
+  background: linear-gradient(var(--info), var(--info)) center / 2px 100% no-repeat;
+}
+
+.split-sash-column:hover,
+.split-sash-column:active {
+  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+}
+
+/* ドラッグ中は、中身（webview・ターミナル）にポインターを奪われず、文字も選ばない */
+.panel-content.resizing {
+  user-select: none;
+}
+
+.panel-content.resizing > .panel-tab-page {
+  pointer-events: none;
+}
+
+/* タブのドラッグ: 落とす位置の線（タブの前・後ろ。タブのない列は列ごと） */
+.panel-tab.split-insert-before {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.panel-tab.split-insert-after {
+  box-shadow: inset -2px 0 0 var(--accent);
+}
+
+.panel-tabs.split-insert-bar {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.panel-tab.split-dragging {
+  opacity: 0.5;
+}
+
+/* ドラッグ中だけ中身の上に置く透明の覆い（分けていなければ中身いっぱい） */
+.panel-content:has(> .split-drop-cover) {
+  position: relative;
+}
+
+.split-drop-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+
+.split-view > .split-drop-cover {
+  inset: auto;
+}
+
+/* 落とすと置かれる範囲（端なら半分、真ん中ならペインいっぱい） */
+.split-drop-hint {
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  pointer-events: none;
+}
+
+.split-hint-left {
+  right: 50%;
+}
+
+.split-hint-right {
+  left: 50%;
+}
+
+.split-hint-top {
+  bottom: 50%;
+}
+
+.split-hint-bottom {
+  top: 50%;
+}
