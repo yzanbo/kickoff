@@ -1,4 +1,4 @@
-import { Maximize2, Minimize2, PanelRightClose } from "lucide-react";
+import { FoldHorizontal, PanelRightClose, UnfoldHorizontal } from "lucide-react";
 import { useRef, useState } from "react";
 import { baseName } from "../../format";
 import { cx } from "../../cx";
@@ -94,7 +94,7 @@ export function SidePanel({
       <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
         <PanelRightClose size={15} />
       </button>
-      {/* 狭くてボードを覆っているときは、切り替えても見た目が変わらないので出さない */}
+      {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。狭くてボードを覆っているときは、切り替えても見た目が変わらないので出さない */}
       {!panel.covering && (
         <button
           className="panel-control"
@@ -103,7 +103,7 @@ export function SidePanel({
           aria-pressed={maximized}
           onClick={panel.toggleMaximized}
         >
-          {maximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          {maximized ? <FoldHorizontal size={15} /> : <UnfoldHorizontal size={15} />}
         </button>
       )}
     </div>
