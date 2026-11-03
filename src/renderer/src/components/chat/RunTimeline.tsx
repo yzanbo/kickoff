@@ -5,8 +5,28 @@ import type { Approval, Run } from "../../../../core/types";
 import { IconButton } from "../IconButton";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
+import { jumpToEvent } from "./jumpToEvent";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
+
+/**
+ * 画面の上に流れて見えなくなった、いちばん下の自分の発言（その返答を読んでいる）。
+ * どれも流れていなければ undefined
+ */
+function promptAbove(timeline: HTMLElement): { id: number; text: string } | undefined {
+  const top = timeline.getBoundingClientRect().top;
+  // 上端より上から始まる、いちばん下の吹き出し（それがまだ少しでも見えていれば、貼り付けない）
+  let found: HTMLElement | undefined;
+  for (const bubble of timeline.querySelectorAll<HTMLElement>(".bubble.user")) {
+    if (bubble.getBoundingClientRect().top >= top) break;
+    found = bubble;
+  }
+  if (found && found.getBoundingClientRect().bottom > top) return undefined;
+  const id = found ? Number(found.id.replace("ev-", "")) : NaN;
+  if (!found || !Number.isFinite(id)) return undefined;
+  const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
+  return text ? { id, text } : undefined;
+}
 
 /** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない） */
 const BOTTOM_SLACK_PX = 80;
@@ -75,17 +95,14 @@ export function RunTimeline({
   const timelineRef = useRef<HTMLDivElement>(null);
   // 一番下から離れているか（一番下へ戻るボタンを出す）
   const [away, setAway] = useState(false);
+  // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
+  const [pinned, setPinned] = useState<{ id: number; text: string }>();
 
   // 検索結果から開いたときは、その発言までスクロールして一瞬強調する
   useEffect(() => {
     if (!focus) return;
-    const target = document.getElementById(`ev-${focus}`);
-    if (!target) return;
+    if (!timelineRef.current || !jumpToEvent(timelineRef.current, focus)) return;
     stickToBottom.current = false;
-    target.scrollIntoView({ block: "center" });
-    target.classList.remove("flash");
-    void target.offsetWidth; // アニメーションをやり直すため
-    target.classList.add("flash");
   }, [focus, items.length, stickToBottom]);
 
   // 一番下を見ているときだけ、新しい発言に合わせてスクロールする
@@ -111,6 +128,9 @@ export function RunTimeline({
           const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_SLACK_PX;
           stickToBottom.current = atBottom;
           setAway(!atBottom);
+          const next = promptAbove(el);
+          // 同じ発言のままなら前の値を残し、スクロールのたびに描き直さない
+          setPinned((prev) => (prev?.id === next?.id ? prev : next));
         }}
       >
         <div className="timeline-inner">
@@ -129,6 +149,19 @@ export function RunTimeline({
           )}
         </div>
       </div>
+      {pinned && (
+        <button
+          type="button"
+          className="sticky-prompt"
+          title="この発言へ移る"
+          onClick={() => {
+            stickToBottom.current = false;
+            if (timelineRef.current) jumpToEvent(timelineRef.current, pinned.id);
+          }}
+        >
+          {pinned.text}
+        </button>
+      )}
       {away && (
         <IconButton icon={ArrowDown} label="一番下までスクロール" size={15} type="button" className="scroll-bottom" onClick={scrollToBottom} />
       )}

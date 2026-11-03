@@ -53,6 +53,10 @@ export function useRunDetail(runId: number, projectId: number) {
     } else if (e.type === "run_event" && e.event.run_id === runId) {
       setEvents((prev) => (prev.some((x) => x.id === e.event.id) ? prev : [...prev, e.event]));
       if (e.event.type !== "user") setLive("");
+    } else if (e.type === "run_events_deleted" && e.run_id === runId) {
+      // 巻き戻した: その発言から後ろを画面の記録からも消す
+      setEvents((prev) => prev.filter((x) => x.id < e.from_event_id));
+      setLive("");
     } else if (e.type === "run" && e.run.id === runId) {
       setRun(e.run);
       if (!BUSY_STATUSES.includes(e.run.status)) setLive("");
