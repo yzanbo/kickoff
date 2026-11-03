@@ -20,6 +20,7 @@ import type {
   GitLog,
   GitRefs,
   GitWorktree,
+  WorktreeRemovalInfo,
   GitHubStatus,
   GitStatus,
   PlanUsage,
@@ -188,8 +189,11 @@ export const api = {
   gitRefs: (target: GitTarget) => request<GitRefs>("GET", gitUrl(target, "/git/refs")),
   gitWorktrees: (projectId: number) => request<GitWorktree[]>("GET", `/api/projects/${projectId}/git/worktrees`),
   addWorktree: (projectId: number, branch: string) => request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees`, { branch }),
-  removeWorktree: (projectId: number, path: string, force = false) =>
-    request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force }),
+  removeWorktree: (projectId: number, path: string, force = false, deleteBranch = false) =>
+    request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force, deleteBranch }),
+  /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット） */
+  worktreeRemovalInfo: (projectId: number, path: string) =>
+    request<WorktreeRemovalInfo>("GET", `/api/projects/${projectId}/git/worktrees/info?path=${encodeURIComponent(path)}`),
   gitCommitDetail: (target: GitTarget, hash: string) => request<GitCommitDetail>("GET", gitUrl(target, `/git/commits/${hash}`)),
   gitCommitDiff: (target: GitTarget, hash: string, file: GitFileChange) =>
     request<GitDiff>("GET", gitUrl(target, `/git/commits/${hash}/diff`, { path: file.path, ...(file.old_path ? { old: file.old_path } : {}) })),
