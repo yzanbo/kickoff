@@ -1,4 +1,4 @@
-import { Archive, Bell, Bot, Gauge, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
+import { Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
 import { useSharedFlag } from "../../hooks/useStoredState";
 import { COMPOSER_COMPACT_KEY } from "../../storageKeys";
 import { useTheme, type Theme } from "../../theme";
@@ -12,8 +12,9 @@ import { ChatSettings } from "./ChatSettings";
 import { ConnectionSettings } from "./ConnectionSettings";
 import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
+import { VoiceSettings } from "./VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "notifications" | "terminal" | "browser" | "mobile";
+export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "voice" | "notifications" | "terminal" | "browser" | "mobile";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -21,6 +22,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "connection", label: "接続", icon: PlugZap },
   { key: "ai", label: "AI の既定", icon: Bot },
   { key: "chats", label: "チャット", icon: Archive },
+  { key: "voice", label: "音声入力", icon: Mic },
   { key: "notifications", label: "通知", icon: Bell },
   { key: "terminal", label: "ターミナル", icon: SquareTerminal },
   { key: "browser", label: "ブラウザの拡張機能", icon: Puzzle },
@@ -38,6 +40,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
           {section === "connection" && <ConnectionSettings />}
           {section === "ai" && <AiDefaultsSettings />}
           {section === "chats" && <ChatSettings />}
+          {section === "voice" && <VoiceSettings />}
           {section === "notifications" && <NotificationSettings />}
           {section === "terminal" && <TerminalSettings />}
           {section === "browser" && (
