@@ -31,6 +31,8 @@ class FakeProvider extends FakeProviderBase {
   resumes: (string | null)[] = [];
   /** これが 1 以上なら、次の実行を通信の切断で失敗させる（1 回ごとに減らす） */
   networkFailures = 0;
+  /** ここに入れた分だけ、次の実行を使用枠の上限で失敗させる（値は枠が戻る時刻。1 回ごとに先頭を使う） */
+  usageLimits: (string | null)[] = [];
   /** 実行の初めに記録する途中経過（返答・ツールの実行など。作業中の未読の確かめに使う） */
   emits: Parameters<ProviderCallbacks["emit"]>[0][] = [];
   /** 実行の初めに知らせる、裏で動いている作業の様子（裏の作業の表示の確かめに使う） */
@@ -54,6 +56,10 @@ class FakeProvider extends FakeProviderBase {
     if (this.gate) {
       const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
       if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };
+    }
+    if (this.usageLimits.length > 0) {
+      const resetsAt = this.usageLimits.shift()!;
+      return { status: "failed", sessionId: "s1", error: "Claude AI usage limit reached", usageLimit: { resetsAt } };
     }
     if (this.networkFailures > 0) {
       this.networkFailures--;
@@ -94,7 +100,16 @@ export function setup() {
   const providers = { claude: provider, codex: provider, gemini: provider } as Record<ProviderId, AgentProvider>;
   // 通信: online を false にすると AI の API に届かない（つながったかの確かめに使う）
   const network = { online: true };
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, reconnect: { check: async () => network.online, intervalMs: 5 } });
+  const runner = new Runner({
+    store,
+    approvals,
+    providers,
+    usage,
+    uploads,
+    bus,
+    reconnect: { check: async () => network.online, intervalMs: 5 },
+    usageLimit: { checkMs: 5 },
+  });
   // ほかのサービスは、ネットワークに出ない偽物にする
   let codexCalls = 0;
   const serviceUsage = new ServiceUsageMonitor(usage, [

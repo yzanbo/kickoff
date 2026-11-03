@@ -8,17 +8,19 @@ import { ErrorText } from "../ErrorText";
 /** ツール実行の承認依頼、AI からの質問（AskUserQuestion）、または通信の切断で何度再開しても続かなかったときの再開の確認 */
 export function ApprovalCard({ approval }: { approval: Approval }) {
   if (approval.kind === "question") return <QuestionCard approval={approval} />;
-  if (approval.kind === "reconnect") return <ReconnectCard approval={approval} />;
+  if (approval.kind === "reconnect" || approval.kind === "usage_limit") return <ReconnectCard approval={approval} />;
   return <PermissionCard approval={approval} />;
 }
 
 /** 自動の再開を何度試しても続かなかった: 再開するか（もう一度「続けて」を送る）、やめるか（失敗のまま） */
+/** 止まった作業を再開するかの確認（通信の切断で自動の再開が続かなかった・使用枠が戻った） */
 function ReconnectCard({ approval }: { approval: Approval }) {
   const { sending, error, resolve } = useResolve(approval.id);
+  const usage = approval.kind === "usage_limit";
   return (
     <div className="approval-card">
       <div className="approval-head">
-        <span className="approval-badge reconnect-badge">再開の確認</span>
+        <span className="approval-badge reconnect-badge">{usage ? "使用枠" : "再開の確認"}</span>
         <span className="approval-title">{approval.title}</span>
       </div>
       {approval.description && <p className="muted small">{approval.description}</p>}
@@ -26,7 +28,11 @@ function ReconnectCard({ approval }: { approval: Approval }) {
         <button className="btn btn-primary" disabled={sending} onClick={() => void resolve({ action: "allow" })}>
           再開する
         </button>
-        <button className="btn" disabled={sending} onClick={() => void resolve({ action: "deny" })} title="再開せずに止めたままにする（あとでメッセージを送ると、続きから再開します）">
+        <button className="btn" disabled={sending} onClick={() => void resolve({ action: "deny" })} title={
+            usage
+              ? "再開せずに止めたままにする（送信待ちも止めたまま。あとでメッセージを送ると、続きから再開します）"
+              : "再開せずに止めたままにする（あとでメッセージを送ると、続きから再開します）"
+          }>
           やめる
         </button>
       </div>

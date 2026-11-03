@@ -8,6 +8,7 @@ import { ApprovalCenter } from "./approvals.js";
 import { Bus } from "./bus.js";
 import { Runner } from "./runner.js";
 import { MAX_AUTO_RESUMES, RESUME_PROMPT } from "./runReconnect.js";
+import { USAGE_RESUME_PROMPT } from "./runUsageLimit.js";
 import { AUTH, setup, tempDir, until } from "./testing/testServer.js";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
@@ -456,6 +457,58 @@ test("通信の切断: 続けて何度も止まったら、再開するかを聞
   assert.equal((await call("POST", `/api/approvals/${ask.id}`, { action: "allow" })).status, 200);
   await until(() => provider.prompts.filter((p) => p === RESUME_PROMPT).length === MAX_AUTO_RESUMES + 1 && !runner.isBusy(runId));
   assert.equal(approvals.list({ runId }).length, 0);
+});
+
+test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるかを聞く（勝手に再開しない）。続けるで再開し、終わったら送信待ちを戻す", async () => {
+  const { call, project, runner, provider, approvals, store } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  await call("POST", `/api/runs/${runId}/queue`, { text: "次の指示" });
+  // 枠が戻る時刻はもう過ぎている（すぐ聞く）
+  provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
+  release();
+  await until(() => approvals.list({ runId }).length === 1);
+  const [ask] = approvals.list({ runId });
+  assert.equal(ask.kind, "usage_limit");
+  assert.match(ask.description ?? "", /送信待ちは、再開した作業が終わってから送ります/);
+  // 聞いている間は何も送らず、送信待ちは止めてある
+  assert.equal(provider.prompts.length, 1);
+  assert.equal(runner.queuePaused(runId), true);
+  assert.ok(store.listEvents(runId).some((e) => e.type === "notice" && /使用枠の上限に達したため止まりました/.test(JSON.stringify(e.data))));
+
+  // 続ける: 「続けて」を送り、終わったら送信待ちを戻して送る
+  assert.equal((await call("POST", `/api/approvals/${ask.id}`, { action: "allow" })).status, 200);
+  await until(() => provider.prompts.length === 3 && !runner.isBusy(runId));
+  assert.deepEqual(provider.prompts.slice(1), [USAGE_RESUME_PROMPT, "次の指示"]);
+  assert.equal(runner.queuePaused(runId), false);
+});
+
+test("使用枠の上限: 戻る前は聞かず、その間に自分で送ったら聞くのをやめる。やめるを選んだら送信待ちは止めたまま", async () => {
+  const { call, project, runner, provider, approvals } = setup();
+  // 枠が戻るのはまだ先
+  provider.usageLimits = [new Date(Date.now() + 3_600_000).toISOString()];
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => !runner.isBusy(runId));
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(approvals.list({ runId }).length, 0);
+  // 自分で送った: 待つのをやめる（送ったものは普通に動く）
+  await call("POST", `/api/runs/${runId}/messages`, { text: "自分で続ける" });
+  await until(() => provider.prompts.length === 2 && !runner.isBusy(runId));
+
+  // やめる: 送信待ちは止めたまま（自分で戻す）
+  const release = provider.hold();
+  await call("POST", `/api/runs/${runId}/messages`, { text: "2" });
+  await until(() => provider.prompts.length === 3);
+  await call("POST", `/api/runs/${runId}/queue`, { text: "あとで" });
+  provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
+  release();
+  await until(() => approvals.list({ runId }).length === 1);
+  await call("POST", `/api/approvals/${approvals.list({ runId })[0].id}`, { action: "deny" });
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(provider.prompts.length, 3);
+  assert.equal(runner.queuePaused(runId), true);
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["あとで"]);
 });
 
 test("通信の切断: 自動で再開しない設定・「自動で再開しない」・自分で送ったときは待たない", async () => {

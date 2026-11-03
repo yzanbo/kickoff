@@ -97,4 +97,6 @@ export interface ProviderRunResult {
   lastMessageId?: string;
   /** 失敗が通信の切断によるものか（つながったら自動で再開する） */
   network?: boolean;
+  /** 使用枠の上限で止まった（resetsAt: 枠が戻る時刻。Claude Code が知らせたときだけ） */
+  usageLimit?: { resetsAt: string | null };
 }
