@@ -212,3 +212,20 @@ test("プロジェクトの既定・参照資料は JSON で保存され、そ�
   assert.equal(store.findProjectByPath("/tmp/demo")?.id, project.id);
   assert.equal(store.findProjectByPath("/tmp/none"), undefined);
 });
+
+test("索引: チャットの一覧（プロジェクトごと）・作業場所の引き当て・起動時の復旧は索引を使う（EXPLAIN QUERY PLAN）", () => {
+  const { store, project } = setup();
+  const { db } = store;
+  // store が実際に投げる SQL を拾い、その実行計画を見る
+  const prepare = db.prepare.bind(db);
+  const issued: string[] = [];
+  db.prepare = (sql: string) => (issued.push(sql), prepare(sql));
+  const plansOf = (call: () => unknown) => {
+    issued.length = 0;
+    call();
+    return issued.map((sql) => (prepare(`EXPLAIN QUERY PLAN ${sql}`).all() as { detail: string }[]).map((r) => r.detail).join(" / "));
+  };
+  assert.match(plansOf(() => store.listRuns({ projectId: project.id }))[0], /^SEARCH runs USING INDEX idx_runs_project \(project_id=\? AND archived_at=\?\)$/);
+  assert.match(plansOf(() => store.runsInWorktree(project.id, "/tmp/demo-worktrees/a"))[0], /^SEARCH runs USING INDEX idx_runs_worktree \(project_id=\? AND worktree_path=\?\)$/);
+  assert.match(plansOf(() => store.recoverInterruptedRuns())[0], /SEARCH runs USING INDEX idx_runs_active \(status=\?\)/);
+});
