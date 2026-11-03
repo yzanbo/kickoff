@@ -35,10 +35,12 @@
   width: auto;
   /* 選んだ名前の長さに合わせる（いちばん長い選択肢の幅に広がらないように） */
   field-sizing: content;
-  padding: 0 2px;
+  padding: 0 16px 0 2px;
   border: none;
   color: inherit;
-  background: transparent;
+  background-color: transparent;
+  background-position: right 2px center;
+  background-size: 11px;
   cursor: pointer;
 }
 
@@ -49,7 +51,6 @@
 /* バッジのまま、どのプロジェクトで始めるかを選び直す（全プロジェクトのボードの新しいチャット） */
 .project-chip-select {
   max-width: none;
-  padding-right: 2px;
 }
 
 .new-chat-hero {

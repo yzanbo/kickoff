@@ -154,7 +154,9 @@
 
 .board-filter {
   width: auto;
-  padding: 3px 8px;
+  padding: 3px 24px 3px 9px;
+  background-position: right 8px center;
+  background-size: 12px;
   font-size: 12px;
 }
 
