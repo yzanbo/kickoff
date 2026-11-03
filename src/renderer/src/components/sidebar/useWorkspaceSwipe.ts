@@ -8,8 +8,6 @@ const GESTURE_END_MS = 180;
 const COOLDOWN_MS = 200;
 /** 切り替えたあと、移動量がこの回数続けて増えたら、慣性ではなく次のスワイプとみなす（慣性は小さくなっていく一方） */
 const RISING_TO_RESTART = 2;
-/** 端のプロジェクトより先へ引っ張れる最大量（px） */
-const EDGE_PULL_MAX = 36;
 
 /**
  * ページ（チャット一覧）がその向きにまだスクロールできるか（縦スライドでは、端まで来てから先の縦スワイプだけを切り替えに使う）
@@ -78,12 +76,11 @@ export function useWorkspaceSwipe({
 
   /** スワイプの向きのページの大きさ（横は幅、縦は高さ） */
   const width = () => (vertical ? viewportRef.current?.clientHeight : viewportRef.current?.clientWidth) ?? 260;
-  /** 端のプロジェクトより先へは、少しだけ動いて戻る（ゴムのような抵抗） */
+  /** 端のプロジェクトより先へは動かさない（動くと、移れないのに移れそうに見えるため） */
   const resist = (offset: number) => {
     const atStart = index === 0 && offset < 0;
     const atEnd = index === count - 1 && offset > 0;
-    if (!atStart && !atEnd) return offset;
-    return Math.sign(offset) * Math.min(EDGE_PULL_MAX, Math.abs(offset) / 4);
+    return atStart || atEnd ? 0 : offset;
   };
 
   /** 移動量がしきい値を超えたら、その場で隣へ切り替える */
