@@ -24,6 +24,13 @@
   position: relative;
 }
 
+/* 縦並びのプロジェクトの境界: 前のプロジェクトの中身との間に区切りの線と余白を入れる（見出しのラベルの直後は、ラベルが区切りになるので入れない） */
+.stack-item + .stack-item {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-strong);
+}
+
 .workspace-dot.drop-before::before,
 .workspace-dot.drop-after::after,
 .stack-item.drop-before::before,
