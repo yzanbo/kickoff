@@ -4,7 +4,7 @@ import type { Run } from "../../../../core/types";
 import { kanbanEntries } from "./useKanbanEntries";
 
 const run = (id: number, extra: Partial<Run> = {}) =>
-  ({ id, project_id: 1, worktree_path: "", archived_at: null, updated_at: `2026-01-0${id}`, title: `c${id}`, ...extra }) as Run;
+  ({ id, project_id: 1, worktree_path: "", archived_at: null, active_at: `2026-01-0${id}`, title: `c${id}`, ...extra }) as Run;
 const all = { archive: "all" as const, worktree: "all", matches: () => true };
 const stateOf = () => "done" as const;
 const ids = (list: { run: Run }[]) => list.map((e) => e.run.id);

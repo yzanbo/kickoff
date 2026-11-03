@@ -98,10 +98,10 @@ test("グループ: 作成順に並び、並べ替え・削除するとチャッ
     status: "completed",
     model: null,
   });
-  const before = store.getRun(run.id)!.updated_at;
+  const before = store.getRun(run.id)!.active_at;
   assert.equal(store.setRunGroup(run.id, a.id).group_id, a.id);
   // グループへ移しても、新しい順の並びは変わらない
-  assert.equal(store.getRun(run.id)!.updated_at, before);
+  assert.equal(store.getRun(run.id)!.active_at, before);
 
   store.reorderGroups(project.id, [b.id, a.id]);
   assert.deepEqual(store.listGroups(project.id).map((g) => g.name), ["調査", "コードレビュー"]);
@@ -166,12 +166,12 @@ test("ワークツリーのチャット: 作業場所で探し、片付けると
   assert.deepEqual(store.runsInWorktree(project.id, wt).map((r) => r.id), [inWt.id, inWt2.id]);
   assert.deepEqual(store.runsInWorktree(project.id, "/tmp/none"), []);
 
-  const before = store.getRun(inWt.id)!.updated_at;
+  const before = store.getRun(inWt.id)!.active_at;
   events.length = 0;
   store.clearRunWorktree(project.id, wt);
   assert.equal(store.getRun(inWt.id)!.worktree_path, "");
   assert.equal(store.getRun(inWt2.id)!.worktree_path, "");
-  assert.equal(store.getRun(inWt.id)!.updated_at, before);
+  assert.equal(store.getRun(inWt.id)!.active_at, before);
   // ほかのプロジェクト・本体のチャットは触らない
   assert.equal(store.getRun(otherWt.id)!.worktree_path, wt);
   assert.equal(store.getRun(inMain.id)!.worktree_path, "");
@@ -199,11 +199,11 @@ test("プロジェクトの既定・参照資料は JSON で保存され、そ�
   });
   assert.deepEqual(updated.defaults, { model: "haiku", effort: "high", permission: "auto", fastMode: true });
   assert.deepEqual(updated.references, references);
-  assert.equal(updated.pinned, 1);
+  assert.equal(updated.pinned, true);
   assert.equal(updated.hue, 222);
   // 読み直しても同じ。書いていない項目はそのまま
   const again = store.getProject(project.id)!;
-  assert.deepEqual({ ...again, updated_at: undefined }, { ...updated, updated_at: undefined });
+  assert.deepEqual({ ...again, active_at: undefined }, { ...updated, active_at: undefined });
   const partial = store.updateProject(project.id, { name: "renamed" });
   assert.equal(partial.name, "renamed");
   assert.deepEqual(partial.references, references);

@@ -21,7 +21,7 @@ export function useRunOptions(initial: RunOptions | undefined, projectId?: numbe
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
   const [permission, setPermission] = useState<PermissionChoice>(initial?.permission_mode ?? "default");
-  const [fastMode, setFastMode] = useState<boolean>(Boolean(initial?.fast_mode));
+  const [fastMode, setFastMode] = useState<boolean>(initial?.fast_mode ?? false);
 
   useEffect(() => {
     void loadModels().then(setModels);

@@ -24,7 +24,7 @@ export function kanbanEntries(runs: Run[], filters: KanbanFilterValues, stateOf:
     if (!filters.matches(run)) continue;
     list.push({ run, state: stateOf(run) });
   }
-  return list.sort((a, b) => b.run.updated_at.localeCompare(a.run.updated_at));
+  return list.sort((a, b) => b.run.active_at.localeCompare(a.run.active_at));
 }
 
 /** カンバンに出すチャットと、状態の列ごとの分け方（絞り込みが変わったときだけ計算し直す） */

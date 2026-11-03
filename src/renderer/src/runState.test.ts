@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Run } from "../../core/types";
 import { approvalIndex, runStateOf, stateCounts } from "./runState";
 
-const run = (id: number, status: Run["status"], attention = 0) => ({ id, status, attention }) as unknown as Run;
+const run = (id: number, status: Run["status"], attention = false) => ({ id, status, attention }) as unknown as Run;
 
 test("approvalIndex: 回答待ちの依頼があるチャットの ID の集まり（同じチャットの依頼が複数あっても 1 つ）", () => {
   const index = approvalIndex([{ run_id: 1 }, { run_id: 3 }, { run_id: 1 }]);
@@ -22,7 +22,7 @@ test("runStateOf: 依頼がなければ、チャットの状態どおり（失�
   assert.equal(runStateOf(run(1, "waiting"), none), "needs_input");
   assert.equal(runStateOf(run(1, "failed"), none), "failed");
   assert.equal(runStateOf(run(1, "queued"), none), "running");
-  assert.equal(runStateOf(run(1, "completed", 1), none), "attention");
+  assert.equal(runStateOf(run(1, "completed", true), none), "attention");
   assert.equal(runStateOf(run(1, "completed"), none), "done");
 });
 
@@ -31,7 +31,7 @@ test("stateCounts: 作業中・回答待ち・確認待ちの数（カンバン�
     run(1, "running"),
     run(2, "queued"),
     run(3, "waiting"),
-    run(4, "completed", 1),
+    run(4, "completed", true),
     run(5, "failed"),
     run(6, "completed"),
     // 回答待ちの依頼がある（approvals から引く）

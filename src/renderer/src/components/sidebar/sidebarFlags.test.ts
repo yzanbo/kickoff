@@ -4,12 +4,12 @@ import type { Run } from "../../../../core/types";
 import { approvalIndex } from "../../runState";
 import { isWaitingState, waitingRuns } from "./sidebarFlags";
 
-const run = (id: number, patch: Partial<Run> = {}): Run => ({ id, status: "completed", attention: 0, archived_at: null, ...patch }) as Run;
+const run = (id: number, patch: Partial<Run> = {}): Run => ({ id, status: "completed", attention: false, archived_at: null, ...patch }) as Run;
 const runs = [
   run(1, { status: "running" }),
   run(2, { status: "queued" }),
   run(3, { status: "waiting" }),
-  run(4, { status: "completed", attention: 1 }),
+  run(4, { status: "completed", attention: true }),
   run(5, { status: "failed" }),
   run(6, { status: "completed" }),
   // 回答待ちの依頼がある（approvals から引く）

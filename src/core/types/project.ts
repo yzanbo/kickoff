@@ -13,14 +13,15 @@ export interface Project {
   references: ProjectReference[];
   /** サイドバーでの並び順（小さいほど前） */
   position: number;
-  /** 上に固定している（SQLite の真偽値 0 / 1） */
-  pinned: number;
+  /** 上に固定している */
+  pinned: boolean;
   /** しまった日時（アーカイブ。null なら出す。サイドバー・切り替え・全プロジェクトの画面に出さない） */
   archived_at: string | null;
   /** プロジェクトの色（色相 0〜359。作ったときに、ほかと被らない色を選ぶ。編集で変えられる） */
   hue: number;
   created_at: string;
-  updated_at: string;
+  /** 最後に動いた時刻（変更したとき・チャットを作ったときに進む。一覧の並び順） */
+  active_at: string;
 }
 
 /**

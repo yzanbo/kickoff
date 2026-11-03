@@ -142,20 +142,20 @@ test("作業が終わると確認待ちになり、続けて送ると消える�
   });
   const run = await runner.start({ projectId: project.id, prompt: "x" });
   await until(() => store.getRun(run.id)?.status === "completed");
-  assert.equal(store.getRun(run.id)?.attention, 1);
+  assert.equal(store.getRun(run.id)?.attention, true);
 
   await runner.send(run.id, "続き");
-  assert.equal(store.getRun(run.id)?.attention, 0);
+  assert.equal(store.getRun(run.id)?.attention, false);
   release();
-  await until(() => store.getRun(run.id)?.status === "completed" && store.getRun(run.id)?.attention === 1);
+  await until(() => store.getRun(run.id)?.status === "completed" && store.getRun(run.id)?.attention === true);
 
   // 中断したときは確認待ちを付けない
-  store.updateRun(run.id, { attention: 0 });
+  store.updateRun(run.id, { attention: false });
   await runner.send(run.id, "もう一度");
   await until(() => store.getRun(run.id)?.status === "running");
   runner.cancel(run.id);
   await until(() => store.getRun(run.id)?.status === "cancelled");
-  assert.equal(store.getRun(run.id)?.attention, 0);
+  assert.equal(store.getRun(run.id)?.attention, false);
 });
 
 test("承認待ちの間は waiting になり、回答するとエージェントに結果が渡る", async () => {
@@ -242,7 +242,7 @@ test("手で圧縮すると /compact を送り、要約したことだけを残�
     added.map((e) => e.type),
     ["compact"],
   );
-  assert.equal(after.attention, 0);
+  assert.equal(after.attention, false);
   assert.equal(after.num_turns, before.num_turns);
   assert.equal(after.result, before.result);
   assert.equal(after.context_tokens, 18_000);

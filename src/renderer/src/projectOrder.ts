@@ -15,7 +15,7 @@ export type ProjectOrder = (typeof PROJECT_ORDERS)[number];
 export const sidebarOrder = (projects: ProjectSummary[], lastActive?: (p: ProjectSummary) => string) =>
   projects
     .filter((p) => !p.archived_at)
-    .sort((a, b) => b.pinned - a.pinned || (lastActive ? lastActive(b).localeCompare(lastActive(a)) : 0) || a.position - b.position || a.id - b.id);
+    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (lastActive ? lastActive(b).localeCompare(lastActive(a)) : 0) || a.position - b.position || a.id - b.id);
 
 /** しまった（アーカイブした）プロジェクト（名前順） */
 export const archivedProjects = (projects: ProjectSummary[]) => projects.filter((p) => p.archived_at).sort((a, b) => a.name.localeCompare(b.name));

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Run, RunGroup } from "../../../../core/types";
 import { dropProject, removeGroup, removeRun, upsertGroup, upsertRun } from "./sidebarData";
 
-const run = (id: number, project_id: number, updated_at: string) => ({ id, project_id, updated_at }) as Run;
+const run = (id: number, project_id: number, active_at: string) => ({ id, project_id, active_at }) as Run;
 const group = (id: number, project_id: number, position: number) => ({ id, project_id, position }) as RunGroup;
 
 test("upsertRun: 届いたチャットをそのプロジェクトに入れ、新しく動いた順に並べる（同じ ID は置き換え）", () => {

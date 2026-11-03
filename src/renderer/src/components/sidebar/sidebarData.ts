@@ -5,12 +5,12 @@ export type RunsByProject = Record<number, Run[]>;
 export type GroupsByProject = Record<number, RunGroup[]>;
 
 const byPosition = (a: RunGroup, b: RunGroup) => a.position - b.position || a.id - b.id;
-const byUpdated = (a: Run, b: Run) => b.updated_at.localeCompare(a.updated_at);
+const byActive = (a: Run, b: Run) => b.active_at.localeCompare(a.active_at);
 
 /** サーバーから届いたチャットを、そのプロジェクトの一覧に入れる（同じ ID は置き換え、新しく動いた順に並べ直す） */
 export function upsertRun(prev: RunsByProject, run: Run): RunsByProject {
   const list = prev[run.project_id] ?? [];
-  return { ...prev, [run.project_id]: [run, ...list.filter((r) => r.id !== run.id)].sort(byUpdated) };
+  return { ...prev, [run.project_id]: [run, ...list.filter((r) => r.id !== run.id)].sort(byActive) };
 }
 
 /** 削除されたチャットを一覧から消す */

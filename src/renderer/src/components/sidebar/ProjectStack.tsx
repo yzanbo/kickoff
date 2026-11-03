@@ -30,7 +30,7 @@ export function ProjectStack({
 }) {
   const { ordered, visible, isArchived, reorder, collapsedMap, waitingOnly, allSearch, showArchived, compact, compactProjects } = nav;
   // 固定したプロジェクト（並びの先頭にある）と、その後ろの最初のプロジェクト
-  const hasPinned = ordered.some((p) => p.pinned > 0 && !isArchived(p.id));
+  const hasPinned = ordered.some((p) => p.pinned && !isArchived(p.id));
   const firstUnpinned = ordered.findIndex((p) => !p.pinned && !isArchived(p.id));
   return (
     <div className={cx("workspaces", compact && "compact", compactProjects && "compact-projects")}>

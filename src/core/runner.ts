@@ -68,11 +68,11 @@ export class Runner {
     store.updateRun(run.id, {
       status: "queued",
       error: null,
-      attention: 0,
+      attention: false,
       model: options.model === undefined ? undefined : options.model,
       effort: options.effort === undefined ? undefined : options.effort,
       permission_mode: options.permission_mode ?? undefined,
-      fast_mode: options.fast_mode === undefined || options.fast_mode === null ? undefined : options.fast_mode ? 1 : 0,
+      fast_mode: options.fast_mode ?? undefined,
     });
     this.enqueue({ runId: run.id, prompt: await this.promptWithAttachments(text, attachments) });
     return store.getRun(run.id)!;

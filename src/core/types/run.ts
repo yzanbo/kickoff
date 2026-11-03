@@ -62,18 +62,18 @@ export interface Run {
   /** 推論の深さ（null なら指定しない＝モデルの既定） */
   effort: EffortLevel | null;
   permission_mode: PermissionChoice;
-  /** ファストモードを指定したか（SQLite の真偽値 0 / 1） */
-  fast_mode: number;
+  /** ファストモードを指定したか */
+  fast_mode: boolean;
   cost_usd: number;
   num_turns: number;
   result: string | null;
   error: string | null;
-  /** AI の作業が終わって、まだ開いて確認していない（SQLite の真偽値 0 / 1） */
-  attention: number;
+  /** AI の作業が終わって、まだ開いて確認していない */
+  attention: boolean;
   /** アーカイブした日時（null なら一覧に出す） */
   archived_at: string | null;
-  /** サイドバーのプロジェクトの上に固定したか（SQLite の真偽値 0 / 1） */
-  pinned: number;
+  /** サイドバーのプロジェクトの上に固定したか */
+  pinned: boolean;
   /** 自分で作ったグループ（null ならグループなし） */
   group_id: number | null;
   /** 作業場所（git のワークツリーのフォルダ。空ならプロジェクトのフォルダ＝本体） */
@@ -86,7 +86,8 @@ export interface Run {
   context_tokens: number | null;
   context_window: number | null;
   created_at: string;
-  updated_at: string;
+  /** 最後に動いた時刻（作った・送った・状態が変わったときに進む。一覧の並び順。印・固定・グループ・作業場所の変更では進めない） */
+  active_at: string;
 }
 
 /** チャットを自分でまとめるグループ（プロジェクトごと） */

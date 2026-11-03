@@ -111,11 +111,11 @@ export function WorkspaceHead({
           <IconButton
             icon={Pin}
             size={13}
-            className={cx("workspace-pin", project.pinned > 0 && "pinned")}
-            iconClassName={project.pinned > 0 ? "pin-filled" : undefined}
+            className={cx("workspace-pin", project.pinned && "pinned")}
+            iconClassName={project.pinned ? "pin-filled" : undefined}
             label={project.pinned ? `${project.name} の固定をやめる` : `${project.name} を上に固定`}
             title={project.pinned ? "上に固定しています（押すと固定をやめる）" : "上に固定"}
-            aria-pressed={project.pinned > 0}
+            aria-pressed={project.pinned}
             onClick={() => changeProject(project.id, { pinned: !project.pinned })}
           />
         )}

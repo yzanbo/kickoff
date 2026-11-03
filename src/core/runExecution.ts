@@ -70,7 +70,7 @@ function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: st
     model: run.model,
     effort: run.effort,
     permissionMode: run.permission_mode,
-    fastMode: Boolean(run.fast_mode),
+    fastMode: run.fast_mode,
     // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
     additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project)],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
@@ -133,7 +133,7 @@ function applyResult(store: Store, runId: number, result: ProviderRunResult, com
           { context_tokens: null }
         : {}),
     // 終わったら「確認待ち」にする（中断・要約のときは除く）。チャットを開くと消える
-    attention: compact || result.status === "cancelled" ? current.attention : 1,
+    attention: compact || result.status === "cancelled" ? current.attention : true,
   });
   // 要約は compact イベントだけを残す（失敗したときは理由を残す）
   if (!compact || result.status !== "completed") {
