@@ -28,6 +28,7 @@ import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
 import { PromptsChip } from "./PromptsChip";
 import { jumpToEvent } from "./jumpToEvent";
+import { useTimelineWindow } from "./useTimelineWindow";
 import { RewindContext } from "./MessageItems";
 import { useStoredState } from "../../hooks/useStoredState";
 import { QUEUE_MODE_KEY } from "../../storageKeys";
@@ -135,7 +136,13 @@ function RunView({
   };
   const busyNeighbors = useBusyNeighbors(run);
   // サブエージェントの中身は、パネルの新しいタブで開く（ツールのまとまりの「中身を見る」からは呼び出し ID だけが届く）
-  const openSub = (toolUseId: string) => onOpenSubagent(toolUseId, subagents.find((s) => s.key === toolUseId)?.description ?? "サブエージェント");
+  // 流れの項目に context で渡すので、描き直しのたびに作り直さない（作り直すと memo した項目がすべて描き直される）
+  const openSubRef = useRef({ onOpenSubagent, subagents });
+  openSubRef.current = { onOpenSubagent, subagents };
+  const openSub = useCallback((toolUseId: string) => {
+    const { onOpenSubagent: open, subagents: list } = openSubRef.current;
+    open(toolUseId, list.find((s) => s.key === toolUseId)?.description ?? "サブエージェント");
+  }, []);
   // 一番下を見ているか（送ったら true に戻し、新しい発言に合わせてスクロールする）
   const stickToBottom = useRef(true);
   const items = useMemo(() => groupEvents(events), [events]);
@@ -161,20 +168,31 @@ function RunView({
   const [finding, setFinding] = useState(false);
   // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
   const [wide, setWide] = useSharedFlag(CHAT_WIDE_KEY);
+  // 流れは最近の項目だけを描く（長いチャットでも軽くする）。検索中はすべて描く
+  const timeline = useTimelineWindow({ items, runId: run.id, focus, all: finding, stickToBottom });
+  // 移り先が窓の外なら、窓を広げて描いてから移る
+  const [jumpTarget, setJumpTarget] = useState<number | null>(null);
   const jump = (eventId: number) => {
     stickToBottom.current = false;
-    if (panelRef.current) jumpToEvent(panelRef.current, eventId);
+    if (!timeline.reveal(eventId)) setJumpTarget(eventId);
+    else if (panelRef.current) jumpToEvent(panelRef.current, eventId);
   };
+  useEffect(() => {
+    if (jumpTarget !== null && panelRef.current && jumpToEvent(panelRef.current, jumpTarget)) setJumpTarget(null);
+  }, [jumpTarget, timeline.visible]);
   // 自分の発言を書き直して送り直す（その発言から後ろを消して巻き戻す。作業中はできない）
+  // 送るときの設定は最新のものを使い、値（context）は作業中かどうかが変わるときだけ作り直す（流れの項目の memo を保つ）
+  const rewindOptions = useRef(options.options);
+  rewindOptions.current = options.options;
   const rewind = useMemo(
     () => ({
       busy,
       send: async (eventId: number, text: string) => {
         stickToBottom.current = true;
-        await api.rewindRun(run.id, eventId, text, options.options);
+        await api.rewindRun(run.id, eventId, text, rewindOptions.current);
       },
     }),
-    [busy, run.id, options.options],
+    [busy, run.id],
   );
 
   return (
@@ -202,7 +220,7 @@ function RunView({
         }
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
-      <RunTimeline items={items} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
+      <RunTimeline items={timeline.visible} hidden={timeline.hidden} onShowMore={timeline.showMore} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
       <div className="run-composer">
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
