@@ -1,5 +1,6 @@
 import { ArrowDown } from "lucide-react";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useTicker } from "../../hooks/useTicker";
 import type { Approval, Run } from "../../../../core/types";
 import { IconButton } from "../IconButton";
 import { Markdown } from "../Markdown";
@@ -11,13 +12,34 @@ import type { TimelineItem } from "./timelineItems";
 const BOTTOM_SLACK_PX = 80;
 
 /** 作業中の行の文（止めている・順番待ち・返答を書いている・ツールを実行中・考えている） */
-function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean): string {
+function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean): ReactNode {
   if (stopping) return "停止中…";
   if (run.status === "queued") return "順番を待っています";
   if (live) return "返答を書いています";
   const last = items[items.length - 1];
   if (last?.kind === "tools" && !last.tools[last.tools.length - 1].result) return "ツールを実行中";
-  return "考えています";
+  return <ThinkingWords since={lastActivityAt(last) ?? run.turn_started_at} />;
+}
+
+/** いちばん最後に動いた時刻（最後の発言・ツールの結果）。考え始めた時刻として使う */
+function lastActivityAt(item: TimelineItem | undefined): string | null {
+  if (!item) return null;
+  if (item.kind === "event") return item.event.created_at;
+  const call = item.tools[item.tools.length - 1];
+  return (call.result ?? call.use).created_at;
+}
+
+/** 考えている間の文を、考え始めてからの時間で変える（長く考えていることが分かるように） */
+const THINKING_WORDS: [number, string][] = [
+  [60_000, "じっくり考えています"],
+  [20_000, "まだ考えています"],
+  [0, "考えています"],
+];
+
+function ThinkingWords({ since }: { since: string | null }) {
+  useTicker(1000);
+  const ms = since ? Date.now() - new Date(since).getTime() : 0;
+  return <>{THINKING_WORDS.find(([after]) => ms >= after)![1]}</>;
 }
 
 /**
