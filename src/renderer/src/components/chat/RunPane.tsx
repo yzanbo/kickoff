@@ -3,7 +3,6 @@ import type { Approval, Project, QueuedMessage, Run, RunEvent } from "../../../.
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
 import { BUSY_STATUSES } from "../RunStatus";
-import type { TerminalTarget } from "../sidePanel/useSidePanel";
 import { Composer } from "./Composer";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
@@ -40,12 +39,10 @@ interface RunPaneProps {
   onRunChange?: (run: Run) => void;
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
   visible?: boolean;
-  /** このチャットの作業場所でターミナルを開く（右のパネルのタブ。Mac のアプリでだけ渡す） */
-  onOpenTerminal?: (target: TerminalTarget) => void;
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true, onOpenTerminal }: RunPaneProps) {
+export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true }: RunPaneProps) {
   const { run, project, events, approvals, queue, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャットの名前を知らせる（名前を変えたらタブもすぐ変わる）
@@ -66,7 +63,7 @@ export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} live={live} focus={focus} onClose={onClose} onOpenTerminal={onOpenTerminal} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} live={live} focus={focus} onClose={onClose} />
   );
 }
 
@@ -79,7 +76,6 @@ function RunView({
   live,
   focus,
   onClose,
-  onOpenTerminal,
 }: {
   run: Run;
   project?: Project;
@@ -89,7 +85,6 @@ function RunView({
   live: string;
   focus?: number;
   onClose: () => void;
-  onOpenTerminal?: RunPaneProps["onOpenTerminal"];
 }) {
   const options = useRunOptions(
     { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: run.fast_mode },
@@ -118,7 +113,7 @@ function RunView({
   return (
     <OpenSubagentContext.Provider value={setSubOpen}>
     <div className="run-page run-panel">
-      <RunHeader run={run} project={project} waiting={waiting} onClose={onClose} onOpenTerminal={onOpenTerminal} />
+      <RunHeader run={run} project={project} waiting={waiting} onClose={onClose} />
       <RunTimeline items={items} rel={rel} run={run} busy={busy} waiting={waiting} stopping={stopping} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
       <div className="run-composer">
         <QueuedMessages runId={run.id} queue={queue} busy={busy} />

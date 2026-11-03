@@ -1,9 +1,9 @@
-import { Globe, Maximize2, Minimize2, PanelRightClose, Plus, SquarePen, SquareTerminal } from "lucide-react";
+import { Globe, Maximize2, Minimize2, PanelRightClose, SquarePen, SquareTerminal } from "lucide-react";
+import { baseName } from "../../format";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { useAnchoredMenu } from "../menus/useAnchoredMenu";
 import { TARGET_MENU_WIDTH, targetMenuHeight, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
-import { AddTabMenu, addMenuHeight } from "./AddTabMenu";
 import { PanelTab } from "./PanelTab";
 import { PanelTabPage } from "./PanelTabPage";
 import { tabLabel } from "./panelTabs";
@@ -11,8 +11,9 @@ import type { SidePanelController, TerminalTarget } from "./useSidePanel";
 
 /**
  * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
- * onNewChat: タブの列の＋で「新しいチャット」を選んだとき（どのプロジェクト・グループで始めるかはボードが決める）。
- * terminals: タブの列の＋から開けるターミナル（terminalTargets。Mac のアプリでだけ出す）。
+ * タブの列の右端に、新しいチャット・ブラウザ・ターミナルのボタンを並べる（1 回で開く）。
+ * onNewChat: 「新しいチャット」を押したとき（どのプロジェクト・グループで始めるかはボードが決める）。
+ * terminals: 開けるターミナル（terminalTargets。Mac のアプリでだけ出す）。チャットを開いているときは、そのチャットの作業場所で開く。
  * sidebar: プロジェクトのチャット欄として使うとき（開閉は欄が持つ。幅の変更・横幅いっぱいは欄の側で行うので出さない）
  */
 export function SidePanel({
@@ -30,10 +31,22 @@ export function SidePanel({
   const panelOpen = sidebar ? sidebar.open : panel.panelOpen;
   const close = sidebar ? sidebar.onClose : panel.close;
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
-  // タブの列の＋のメニュー（新しいチャット・ブラウザ・ターミナル）
-  const addMenu = useAnchoredMenu(".panel-tab-add", 220);
-  // タブがないときの「ターミナルを開く」で、開く場所を選ぶメニュー（全プロジェクトのボード）
-  const terminalMenu = useAnchoredMenu(".panel-empty-terminal", TARGET_MENU_WIDTH, "right");
+  // ターミナルの開く場所を選ぶメニュー（開く場所がいくつもあるとき。タブの列のボタン・タブがないときのボタンで共通）
+  const terminalMenu = useAnchoredMenu(".panel-tab-terminal, .panel-empty-terminal", TARGET_MENU_WIDTH, "right");
+  /** 表示しているチャットの作業場所（ワークツリーならそのフォルダ、本体ならプロジェクトのフォルダ）。チャットでなければ undefined */
+  const chatTarget = (): TerminalTarget | undefined => {
+    const tab = tabs.find((t) => t.key === activeTab);
+    if (tab?.kind !== "chat") return undefined;
+    const run = panel.runs.find((r) => r.id === tab.id);
+    if (run?.worktree_path) return { cwd: run.worktree_path, label: baseName(run.worktree_path), projectId: run.project_id };
+    return terminalTargets.find((t) => t.projectId === tab.projectId);
+  };
+  /** ターミナルを開く: チャットを表示していればその作業場所、開く場所が 1 つならそこ、いくつもあれば選ぶメニュー */
+  const openTerminal = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const target = chatTarget() ?? (terminalTargets.length === 1 ? terminalTargets[0] : undefined);
+    if (target) return panel.openTerminal(target);
+    terminalMenu.toggle(e, targetMenuHeight(terminalTargets.length));
+  };
   return (
     <aside className={cx("board-panel", sidebar && "as-sidebar")} aria-hidden={!panelOpen}>
       {!sidebar && (
@@ -80,26 +93,24 @@ export function SidePanel({
             />
           );
         })}
-        <IconButton
-          icon={Plus}
-          label="新しいタブ"
-          title={terminalTargets.length > 0 ? "新しいタブ（チャット・ブラウザ・ターミナル）" : "新しいタブ（チャット・ブラウザ）"}
-          className="panel-tab-add"
-          aria-haspopup="menu"
-          aria-expanded={addMenu.isOpen}
-          onClick={(e) => addMenu.toggle(e, addMenuHeight(terminalTargets.length))}
-        />
+        {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く */}
+        <span className="panel-tab-adds">
+          <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />
+          <IconButton icon={Globe} label="ブラウザを開く" size={14} onClick={() => panel.openBrowser()} />
+          {terminalTargets.length > 0 && (
+            <IconButton
+              icon={SquareTerminal}
+              label="ターミナルを開く"
+              title="ターミナルを開く（チャットを表示しているときは、その作業場所で開く）"
+              size={14}
+              className="panel-tab-terminal"
+              aria-haspopup={terminalTargets.length > 1 ? "menu" : undefined}
+              aria-expanded={terminalTargets.length > 1 ? terminalMenu.isOpen : undefined}
+              onClick={openTerminal}
+            />
+          )}
+        </span>
       </div>
-      {addMenu.at && (
-        <AddTabMenu
-          {...addMenu.at}
-          onNewChat={onNewChat}
-          onBrowser={() => panel.openBrowser()}
-          terminals={terminalTargets}
-          onTerminal={panel.openTerminal}
-          onClose={addMenu.close}
-        />
-      )}
       <div className="panel-content" inert={!panelOpen}>
         {tabs.length === 0 && (
           <div className="panel-empty">
@@ -117,10 +128,7 @@ export function SidePanel({
               <button
                 className="btn panel-empty-terminal"
                 aria-haspopup={terminalTargets.length > 1 ? "menu" : undefined}
-                onClick={(e) => {
-                  if (terminalTargets.length === 1) return panel.openTerminal(terminalTargets[0]);
-                  terminalMenu.toggle(e, targetMenuHeight(terminalTargets.length));
-                }}
+                onClick={openTerminal}
               >
                 <SquareTerminal size={14} /> ターミナルを開く
               </button>
@@ -138,7 +146,7 @@ export function SidePanel({
         )}
         {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
         {tabs.map((t) => (
-          <PanelTabPage key={t.key} tab={t} panel={panel} panelOpen={panelOpen} onClose={close} terminalTargets={terminalTargets} />
+          <PanelTabPage key={t.key} tab={t} panel={panel} panelOpen={panelOpen} onClose={close} />
         ))}
       </div>
     </aside>
