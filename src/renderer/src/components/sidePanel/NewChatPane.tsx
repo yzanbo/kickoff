@@ -65,7 +65,6 @@ export function NewChatPane({
         <div className="run-title-row">
           <CloseButton label="パネルを閉じる" title="閉じる（Esc）" size={15} onClick={onClose} />
           <h1>新しいチャット</h1>
-        </div>
         <div className="run-sub muted small">
           {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
           {projects && projects.length > 1 && onProjectChange ? (
@@ -105,6 +104,7 @@ export function NewChatPane({
               </select>
             </label>
           )}
+        </div>
         </div>
       </header>
       <div className="timeline">

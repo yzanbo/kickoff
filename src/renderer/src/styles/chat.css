@@ -28,6 +28,7 @@
   align-items: center;
   gap: 8px;
   height: 36px;
+  container-type: inline-size;
 }
 
 .run-title-row h1 {
@@ -38,12 +39,29 @@
   text-overflow: ellipsis;
 }
 
+/* 名前と同じ行のプロジェクト・作業場所のバッジ（狭いときは縮めて省略） */
 .run-sub {
   display: flex;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 10px;
-  margin: -8px 0 6px;
-  padding-left: 2px;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 状態の前のターン数・費用 */
+.run-meta {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/* 見出しが狭いとき（右のパネル・チャット欄）は、ターン数・費用を隠して名前とバッジに幅を回す */
+@container (max-width: 560px) {
+  .run-meta {
+    display: none;
+  }
 }
 
 .run-sub a {
