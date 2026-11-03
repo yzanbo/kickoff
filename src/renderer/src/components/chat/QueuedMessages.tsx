@@ -63,19 +63,17 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
         </button>
         <button
           type="button"
-          className="btn btn-sm queued-send-all"
+          className="btn btn-sm btn-primary queued-head-btn"
           title={`送信待ちの ${queue.length} 件を 1 つにまとめて、すぐ送る${busy ? "（いまの作業を止めてから送る）" : ""}`}
           onClick={() => void api.sendAllQueued(runId).catch(failed)}
         >
           <SendHorizontal size={12} aria-hidden />
           まとめて送る
         </button>
-        <IconButton
-          icon={Trash2}
-          label="送信待ちをすべて消す"
+        <button
+          type="button"
+          className="btn btn-sm queued-head-btn queued-clear"
           title={`送信待ちの ${queue.length} 件をすべて消す（確かめてから）`}
-          size={13}
-          className="queued-clear"
           onClick={() =>
             void confirmDialog({
               title: `送信待ちの ${queue.length} 件をすべて消しますか？`,
@@ -86,7 +84,10 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
               if (ok) await api.clearQueued(runId).catch(failed);
             })
           }
-        />
+        >
+          <Trash2 size={12} aria-hidden />
+          すべて消す
+        </button>
       </div>
       {!collapsed && queue.map((m, i) => (
         editing?.id === m.id ? (
