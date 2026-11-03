@@ -271,12 +271,15 @@
   min-width: 0;
 }
 
+/* 書き直す欄は、折り返した行も含めて文の終わりまで見せる（中でスクロールさせない。ごく長い文だけ画面の 4 割で止める） */
 .queued-editor {
   width: 100%;
   min-width: 0;
+  max-height: 40vh;
   padding: 4px 6px;
   font-size: 13px;
   resize: none;
+  field-sizing: content;
 }
 
 /* 狭い欄: 案内・↑↓（並べ替えはつまみと右クリックで）・見出しのボタンの文字を隠す */
