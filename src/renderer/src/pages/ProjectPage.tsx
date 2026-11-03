@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useBoardColumns } from "../components/board/BoardColumnsToggle";
 import { GroupBoard } from "../components/board/GroupBoard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
 import { ChangesTab } from "../components/changes/ChangesTab";
@@ -27,6 +28,12 @@ export function ProjectPage({
 }) {
   const { data: shown, error } = useProjectData(id);
   const [editing, setEditing] = useState(false);
+  // ボードの列の分け方は、最後に見た方を覚える（サイドバーのグループから来たときも、次にボードのタブを押すとグループの列で開く）
+  const [, setColumns] = useBoardColumns();
+  useEffect(() => {
+    if (tab === "board") setColumns("state");
+    else if (tab === "groups") setColumns("groups");
+  }, [tab, setColumns]);
   // エディタタブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
   const [worktree, setWorktree] = useStoredState<string | undefined>(editorWorktreeKey(id), (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）

@@ -26,6 +26,8 @@ interface Props {
   lanesView?: boolean;
   /** 表示のまとまりで、表示の切り替えの後ろに置くもの（スイムレーンの段の分け方） */
   viewOptions?: ReactNode;
+  /** 表示のまとまりの先頭に置く、列の分け方の切り替え（プロジェクトのボードだけ。状態 / グループ） */
+  columns?: ReactNode;
   panel: SidePanelController;
 }
 
@@ -34,7 +36,7 @@ interface Props {
  * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
-export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, lanesView = false, viewOptions, panel }: Props) {
+export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, lanesView = false, viewOptions, columns, panel }: Props) {
   return (
     <div className="board-header">
       {heading && (
@@ -48,6 +50,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
       <div className="board-tools">
         {primary && <div className="board-tool-group">{primary}</div>}
         <div className="board-tool-group" role="group" aria-label="表示">
+          {columns}
           <Segmented
             className="view-toggle"
             label="表示の切り替え"
