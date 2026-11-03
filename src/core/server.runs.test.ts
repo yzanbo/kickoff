@@ -434,7 +434,8 @@ test("届かなかったサブエージェントの報告: 次に送る指示に
   assert.match(provider.prompts[1], /「調査」（ID: a1）の報告 ---\n見つけたのは 3 件/);
   const user = store.listEvents(runId).filter((e) => e.type === "user").at(-1)!;
   // 記録の自分の発言は、書いた文のまま（報告は印だけ）
-  assert.deepEqual(user.data, { text: "次", handover: ["tu1"] });
+  const { message_uuid: _id, ...userData } = user.data as { message_uuid?: string };
+  assert.deepEqual(userData, { text: "次", handover: ["tu1"] });
   await until(() => store.listEvents(runId).filter((e) => e.type === "result").length === 2);
   await call("POST", `/api/runs/${runId}/messages`, { text: "その次" });
   await until(() => provider.prompts.length === 3);
@@ -616,7 +617,10 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   assert.deepEqual(after.map((e) => e.type), ["user", "result", "notice", "user", "result"]);
   assert.deepEqual(after.slice(0, 2), before.slice(0, 2));
   assert.ok(after[2].id > firstResult.id && after[3].id > secondUser.id);
-  assert.deepEqual(after[3].data, { text: "2 を書き直し", attachments: [attachment] });
+  const { message_uuid, ...rewrittenData } = after[3].data as { message_uuid?: string };
+  assert.deepEqual(rewrittenData, { text: "2 を書き直し", attachments: [attachment] });
+  // 発言には Claude Code に渡した ID を残す（ファイルを戻すときの目印）
+  assert.equal(message_uuid, provider.promptIds[2]);
   // 消した発言は全文検索にも残らない
   assert.deepEqual(store.searchEvents("書き直し", { runId }).map((h) => h.event_id), [after[3].id]);
   assert.deepEqual(store.searchEvents("2", { runId }).map((h) => h.event_id), [after[3].id]);
@@ -659,6 +663,66 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   await until(() => !runner.isBusy(runId) && runner.queued(runId).length === 0);
   // ほかのチャットの記録は変わらない
   assert.deepEqual(store.listEvents(otherId).map((e) => e.type), ["user", "result"]);
+});
+
+test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。記録のない発言は 400", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => store.getRun(runId)?.status === "completed");
+  const [user] = store.listEvents(runId).filter((e) => e.type === "user");
+  const messageId = (user.data as { message_uuid: string }).message_uuid;
+  assert.equal(messageId, provider.promptIds[0]);
+
+  // 量だけを見る（戻さない・お知らせも残さない）
+  const dry = await call("POST", `/api/runs/${runId}/rewind-files`, { event_id: user.id, dry_run: true });
+  assert.deepEqual(dry.body, provider.rewindResult);
+  assert.deepEqual(provider.rewinds, [["s1", messageId, project.repo_path, true]]);
+  const events = store.listEvents(runId).length;
+  // 戻す: お知らせを残し、会話の記録は消さない
+  assert.equal((await call("POST", `/api/runs/${runId}/rewind-files`, { event_id: user.id })).status, 200);
+  // 本当に戻したときの結果には変わったファイルが付かないので、先に量を測ってから戻す
+  assert.deepEqual(provider.rewinds.slice(1).map((r) => r[3]), [true, false]);
+  const after = store.listEvents(runId);
+  assert.equal(after.length, events + 1);
+  assert.match(JSON.stringify(after.at(-1)!.data), /2 個のファイル: a\.ts、b\.ts/);
+
+  // 戻せない（Claude Code が断った）・記録のない発言・作業中
+  provider.rewindResult = { canRewind: false, error: "No file checkpoint found" };
+  assert.equal((await call("POST", `/api/runs/${runId}/rewind-files`, { event_id: user.id, dry_run: true })).status, 400);
+  const old = store.addEvent(runId, { type: "user", text: "以前の発言" });
+  assert.match((await call("POST", `/api/runs/${runId}/rewind-files`, { event_id: old.id })).body.error, /記録がない/);
+  provider.rewindResult = { canRewind: true, filesChanged: [] };
+  const release = provider.hold();
+  await call("POST", `/api/runs/${runId}/messages`, { text: "2" });
+  await until(() => runner.isBusy(runId));
+  assert.equal((await call("POST", `/api/runs/${runId}/rewind-files`, { event_id: user.id })).status, 409);
+  release();
+  await until(() => !runner.isBusy(runId));
+});
+
+test("巻き戻しの API: restore_files なら、分岐する前にファイルも戻す（ファイルの記録は元のセッションにあるため）", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => store.getRun(runId)?.status === "completed");
+  await call("POST", `/api/runs/${runId}/messages`, { text: "2" });
+  await until(() => !runner.isBusy(runId) && store.listEvents(runId).filter((e) => e.type === "result").length === 2);
+  const second = store.listEvents(runId).filter((e) => e.type === "user")[1];
+  const messageId = (second.data as { message_uuid: string }).message_uuid;
+  assert.equal((await call("POST", `/api/runs/${runId}/rewind`, { event_id: second.id, text: "2'", restore_files: true })).status, 200);
+  // 元のセッション（s1）で（量を測って）戻してから、分岐する
+  assert.deepEqual(provider.rewinds, [
+    ["s1", messageId, project.repo_path, true],
+    ["s1", messageId, project.repo_path, false],
+  ]);
+  assert.equal(provider.forks.length, 1);
+  await until(() => !runner.isBusy(runId) && provider.prompts.length === 3);
+  assert.ok(store.listEvents(runId).some((e) => e.type === "notice" && /ファイルもこの発言を送る前の状態に戻しました/.test(JSON.stringify(e.data))));
+  // 戻せなければ、何も消さずに 400
+  provider.rewindResult = { canRewind: false };
+  const count = store.listEvents(runId).length;
+  const third = store.listEvents(runId).filter((e) => e.type === "user")[1];
+  assert.equal((await call("POST", `/api/runs/${runId}/rewind`, { event_id: third.id, text: "x", restore_files: true })).status, 400);
+  assert.equal(store.listEvents(runId).length, count);
 });
 
 test("巻き戻しの API: 分岐に対応していないプロバイダーなら 400（最初の発言なら分岐しないので送れる）", async () => {

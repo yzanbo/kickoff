@@ -105,7 +105,10 @@ test("添付ファイルはパスがメッセージに書き添えられ、会�
   await until(() => store.getRun(run.id)?.status === "completed");
   assert.match(provider.calls[0].prompt, /spec\.md（text\/markdown/);
   assert.deepEqual(provider.calls[0].additionalDirectories, [uploadsDir]);
-  assert.deepEqual(store.listEvents(run.id)[0].data, { text: "読んで", attachments: [attachment] });
+  // 発言には、Claude Code に渡した ID も残す（ファイルを戻すときの目印）
+  const { message_uuid, ...data } = store.listEvents(run.id)[0].data as { message_uuid?: string };
+  assert.deepEqual(data, { text: "読んで", attachments: [attachment] });
+  assert.equal(message_uuid, provider.calls[0].promptId);
 });
 
 test("返答の途中経過は配信だけされ、チャット名は AI が付ける（ユーザーが変えていなければ）", async () => {

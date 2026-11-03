@@ -1,8 +1,7 @@
-import { Inbox, Pencil } from "lucide-react";
+import { History, Inbox, Pencil } from "lucide-react";
 import { createContext, useContext, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import type { Attachment, RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
-import { confirmDialog } from "../../dialogs";
 import { errorMessage } from "../../errors";
 import { ErrorText } from "../ErrorText";
 import { IconButton } from "../IconButton";
@@ -14,10 +13,15 @@ import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import { AttachmentChip } from "./AttachmentChip";
 
 /**
- * 自分の発言を書き直して送り直す（チャットの画面が渡す。サブエージェントの中身など、渡さない所では書き直せない）。
- * busy の間（作業中）は書き直せない
+ * 自分の発言を書き直して送り直す・ファイルだけ戻す（チャットの画面が渡す。サブエージェントの中身など、渡さない所ではできない）。
+ * busy の間（作業中）はできない。send は確かめ（会話だけ / ファイルも）を含み、やめたら false。
+ * restoreFiles はファイルだけを、その発言を送る前の状態に戻す（会話はそのまま）
  */
-export const RewindContext = createContext<{ busy: boolean; send: (eventId: number, text: string) => Promise<void> } | null>(null);
+export const RewindContext = createContext<{
+  busy: boolean;
+  send: (eventId: number, text: string) => Promise<boolean>;
+  restoreFiles: (eventId: number) => Promise<void>;
+} | null>(null);
 
 /** 自分の発言を折りたたむ高さ（これより高い発言は、ここまで出して下を薄くする） */
 const COLLAPSE_PX = 240;
@@ -28,7 +32,7 @@ const COLLAPSE_PX = 240;
  * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）
  */
 export function UserMessage({ event }: { event: RunEvent }) {
-  const data = event.data as { text?: string; attachments?: Attachment[]; handover?: string[] };
+  const data = event.data as { text?: string; attachments?: Attachment[]; handover?: string[]; message_uuid?: string };
   const text = String(data.text ?? "");
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
@@ -45,7 +49,15 @@ export function UserMessage({ event }: { event: RunEvent }) {
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
   const startEdit = rewind && !rewind.busy ? () => setDraft(text) : undefined;
-  const menu = useMessageMenu(text, startEdit && <MenuItem onSelect={startEdit}>書き直して送り直す</MenuItem>);
+  // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）
+  const restoreFiles = rewind && data.message_uuid ? () => void rewind.restoreFiles(event.id) : undefined;
+  const menu = useMessageMenu(
+    text,
+    <>
+      {startEdit && <MenuItem onSelect={startEdit}>書き直して送り直す</MenuItem>}
+      {restoreFiles && !rewind?.busy && <MenuItem onSelect={restoreFiles}>ファイルをこの発言の前に戻す</MenuItem>}
+    </>,
+  );
   return (
     <div className={cx("user-message", draft !== undefined && "editing")}>
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
@@ -61,16 +73,7 @@ export function UserMessage({ event }: { event: RunEvent }) {
             text={draft}
             onChange={setDraft}
             onCancel={() => setDraft(undefined)}
-            onSend={async () => {
-              const ok = await confirmDialog({
-                title: "この発言から書き直して送り直しますか？",
-                message: "この発言から後ろのやり取りは消えます。AI が変えたファイルは元に戻りません。",
-                confirmLabel: "送り直す",
-              });
-              if (!ok) return false;
-              await rewind.send(event.id, draft);
-              return true;
-            }}
+            onSend={() => rewind.send(event.id, draft)}
           />
         ) : (
           <div ref={bodyRef} className={cx("bubble-text", long && !expanded && "clamped")}>
@@ -103,6 +106,17 @@ export function UserMessage({ event }: { event: RunEvent }) {
             className="message-action"
             disabled={!startEdit}
             onClick={startEdit}
+          />
+        )}
+        {restoreFiles && (
+          <IconButton
+            icon={History}
+            size={13}
+            label="ファイルをこの発言の前に戻す"
+            title={rewind?.busy ? "作業中はファイルを戻せません" : "ファイルだけを、この発言を送る前の状態に戻す（会話はそのまま）"}
+            className="message-action"
+            disabled={rewind?.busy}
+            onClick={restoreFiles}
           />
         )}
       </div>

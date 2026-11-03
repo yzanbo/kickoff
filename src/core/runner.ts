@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { FollowupQueue } from "./followups.js";
 import type { RunControl } from "./providers/types.js";
 import { executeRun, type ExecutionDeps, type QueueItem, type RunOutcome } from "./runExecution.js";
@@ -122,9 +123,11 @@ export class Runner extends RunnerQueue {
       worktree_path: input.worktreePath ?? "",
     });
     const attachments = input.attachments ?? [];
-    store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}) });
+    // 発言の ID（Claude Code にも同じ ID で渡し、ファイルをこの発言の時点に戻すときの目印にする）
+    const messageUuid = randomUUID();
+    store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}), message_uuid: messageUuid });
     if (!input.title) void autoTitle(this.deps, run.id, input.prompt || attachments.map((a) => a.name).join("、"));
-    this.enqueue({ runId: run.id, prompt: await promptWithAttachments(this.deps, input.prompt, attachments) });
+    this.enqueue({ runId: run.id, prompt: await promptWithAttachments(this.deps, input.prompt, attachments), promptId: messageUuid });
     return store.getRun(run.id)!;
   }
 
@@ -137,7 +140,8 @@ export class Runner extends RunnerQueue {
     // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）
     this.forgetRecovery(runId);
     const { prompt, handover } = await this.prepare(runId, text, attachments);
-    store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover });
+    const messageUuid = randomUUID();
+    store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
     store.updateRun(run.id, {
       status: "queued",
@@ -148,7 +152,7 @@ export class Runner extends RunnerQueue {
       permission_mode: options.permission_mode ?? undefined,
       fast_mode: options.fast_mode ?? undefined,
     });
-    this.enqueue({ runId: run.id, prompt });
+    this.enqueue({ runId: run.id, prompt, promptId: messageUuid });
     return store.getRun(run.id)!;
   }
 
@@ -177,10 +181,11 @@ export class Runner extends RunnerQueue {
     }
     const control = this.controls.get(runId);
     const { prompt, handover } = await this.prepare(runId, text, attachments);
-    if (control?.tell(prompt)) {
+    const messageUuid = randomUUID();
+    if (control?.tell(prompt, messageUuid)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
       this.forgetRecovery(runId);
-      store.addEvent(runId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover });
+      store.addEvent(runId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
       if (run.attention) store.setRunAttention(runId, false);
       return "told";
     }

@@ -6,7 +6,7 @@ import { EFFORT_LEVELS, PERMISSION_CHOICES } from "../types.js";
 import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject, requireRun, requireWorktree } from "./http.js";
 import { branchName, optionalId, queryOf } from "./schemas.js";
 import { forkRun } from "../runFork.js";
-import { rewindRun, RunBusyError } from "../runRewind.js";
+import { rewindFiles, rewindRun, RunBusyError } from "../runRewind.js";
 
 const runOptionsSchema = z
   .object({
@@ -280,15 +280,28 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json(forked, 201);
   });
 
-  // 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。作業中は 409、巻き戻せない発言・プロバイダーは 400）
+  // 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。restore_files ならファイルも
+  // その発言を送る前の状態に戻す。作業中は 409、巻き戻せない発言・プロバイダー・ファイルを戻せないときは 400）
   app.post("/api/runs/:id/rewind", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    const { event_id, text, options } = z
-      .object({ event_id: z.number().int(), text: z.string().trim().max(50_000).default(""), options: runOptionsSchema })
+    const { event_id, text, options, restore_files } = z
+      .object({ event_id: z.number().int(), text: z.string().trim().max(50_000).default(""), options: runOptionsSchema, restore_files: z.boolean().default(false) })
       .parse(await c.req.json());
     const project = requireProject(store, String(run.project_id));
     const cwd = run.worktree_path || project.repo_path;
-    return c.json(await badRequest(() => rewindRun({ store, runner, providers }, run, { eventId: event_id, text, options, cwd }), RunBusyError));
+    return c.json(
+      await badRequest(() => rewindRun({ store, runner, providers }, run, { eventId: event_id, text, options, cwd, restoreFiles: restore_files }), RunBusyError),
+    );
+  });
+
+  // ファイルだけを、自分の発言を送る前の状態に戻す（会話はそのまま）。dry_run なら戻さずに、変わるファイルと行の増減だけを返す
+  // （作業中は 409、戻せない発言（ファイルの記録がない）・プロバイダーは 400）
+  app.post("/api/runs/:id/rewind-files", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { event_id, dry_run } = z.object({ event_id: z.number().int(), dry_run: z.boolean().default(false) }).parse(await c.req.json());
+    const project = requireProject(store, String(run.project_id));
+    const cwd = run.worktree_path || project.repo_path;
+    return c.json(await badRequest(() => rewindFiles({ store, runner, providers }, run, { eventId: event_id, cwd, dryRun: dry_run }), RunBusyError));
   });
 
   // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中・まだ会話がなければ 409）
