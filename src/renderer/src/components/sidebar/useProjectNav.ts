@@ -111,8 +111,14 @@ export function useProjectNav(runs: Record<number, Run[]>) {
   // トラックパッドの 2 本指スワイプ・タッチのドラッグで隣のプロジェクトへ（縦スライドは縦方向で受け取る）
   const swipe = useWorkspaceSwipe({ index, count: ordered.length, go, active: layout !== "stack", axis: layout === "rail" ? "y" : "x" });
 
-  // ショートカット: ⌥⌘← / ⌥⌘→（縦スライドは ↑ / ↓ も）で前後、⌃1〜9 で n 番目
+  // ショートカット: ⌥⌘← / ⌥⌘→（縦スライドは ↑ / ↓ も）・⌃Tab / ⌃⇧Tab で前後、⌃1〜9 で n 番目
   useWindowEvent("keydown", (e) => {
+    // ⌃Tab で次、⌃⇧Tab で前（ブラウザのタブと同じく、端まで来たら反対の端へ回る）
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key === "Tab") {
+      e.preventDefault();
+      if (ordered.length > 1) go((index + (e.shiftKey ? -1 : 1) + ordered.length) % ordered.length);
+      return;
+    }
     // 縦スライドでは ⌥⌘↑ / ⌥⌘↓ でも前後へ
     const prevNext = layout === "rail" ? ["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"] : ["ArrowLeft", "ArrowRight"];
     if (e.metaKey && e.altKey && prevNext.includes(e.key)) {
