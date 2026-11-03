@@ -274,7 +274,8 @@ export function QueuedEditor({
         <textarea
           className="queued-editor"
           value={text}
-          rows={Math.min(6, Math.max(1, text.split("\n").length))}
+          // 高さは文に合わせる（折り返した行も含めて全部見せる。CSS の field-sizing）
+          rows={1}
           // 開いたら文の終わりから書き始める
           ref={(el) => {
             if (el && !el.dataset.ready) {

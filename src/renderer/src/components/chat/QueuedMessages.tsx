@@ -133,6 +133,13 @@ export function QueuedMessages({
     }
     setDrag(undefined);
   };
+  // 書き直している行の高さ（文を中でスクロールさせず全部見せるため、一覧の高さの上限をこれより低くしない）
+  const [editHeight, setEditHeight] = useState(0);
+  useLayoutEffect(() => {
+    const row = editing ? listRef.current?.querySelector<HTMLElement>(".queued-row.editing") : null;
+    setEditHeight(row ? row.offsetHeight + 8 : 0);
+    row?.scrollIntoView({ block: "nearest" });
+  }, [editing?.id, editing?.text]);
   // 一覧の高さが上限を超えたか（超えたときだけ「すべて表示」を出す。すべて出している間は「縮める」を出したまま）
   useLayoutEffect(() => {
     const el = listRef.current;
@@ -219,7 +226,7 @@ export function QueuedMessages({
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (
-        <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : height }}>
+        <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(height, editHeight) }}>
           {queue.map((m, i) => (
             <Fragment key={m.id}>
             {editing?.id === m.id ? (
