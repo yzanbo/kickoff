@@ -67,6 +67,20 @@
   transition: transform 0.15s;
 }
 
+/* 見出しの件数と、後ろの短い案内（薄く、入りきらなければ省略） */
+.queued-count {
+  flex: none;
+  font-weight: 600;
+}
+
+.queued-hint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--extra-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* たたんでいるときは見出しの 1 行だけ */
 .queued-messages.collapsed {
   padding-block: 4px;
@@ -114,6 +128,15 @@
   color: var(--muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* 書き直している行: つまみの印と同じ幅を空け、番号を入力欄の 1 行目にそろえる */
+.queued-grip-space {
+  width: 13px;
+}
+
+.queued-row.editing .queued-index {
+  margin-top: 5px;
 }
 
 .queued-row.dragging {
