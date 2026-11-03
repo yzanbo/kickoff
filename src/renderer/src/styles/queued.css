@@ -16,21 +16,29 @@
   gap: 6px;
 }
 
-.queued-send-all {
+/* 見出しの右のボタン（まとめて送る = 主な操作の色、すべて消す = 赤い枠と文字） */
+.queued-head-btn {
   flex: none;
   gap: 4px;
   padding: 1px 8px;
   font-size: 11px;
 }
 
+.queued-head-btn.queued-clear {
+  border-color: color-mix(in srgb, var(--ng) 55%, transparent);
+  color: var(--ng);
+  background: transparent;
+}
+
+.queued-head-btn.queued-clear:hover:not(:disabled) {
+  border-color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 12%, transparent);
+}
+
 /* 縦を取りすぎないよう、行の操作のボタンは小さく */
 .queued-messages .icon-button {
   width: 22px;
   height: 22px;
-}
-
-.queued-head-row .queued-clear:hover {
-  color: var(--ng);
 }
 
 /* 見出し（押すと一覧をたたむ・開く） */
