@@ -3,7 +3,8 @@ import { app, dialog, ipcMain, shell, type BrowserWindow, type OpenDialogOptions
 import { openInChrome } from "./browser.js";
 import { closeDevTools, openDevToolsIn, openDevToolsWindow } from "./browserDevtools.js";
 import { addExtensionFolder, importFromChrome, installFromWebStore, listExtensions, removeExtension } from "./browserExtensions.js";
-import { knownExtension, webContentsId } from "./ipcArgs.js";
+import { execFileAsync } from "../core/exec.js";
+import { existingFolder, knownExtension, webContentsId } from "./ipcArgs.js";
 import { registerTerminalIpc } from "./terminals.js";
 
 /** ネイティブのファイル・フォルダの選択（やめたら空） */
@@ -53,6 +54,10 @@ export function registerIpc(mainWindow: () => BrowserWindow | undefined) {
   ipcMain.handle("kickoff:browser-extension-remove", (_e, extPath: string) => removeExtension(String(extPath)));
   ipcMain.handle("kickoff:open-path", async (_e, target: string) => {
     if (typeof target === "string" && path.isAbsolute(target)) await shell.openPath(target);
+  });
+  // macOS のターミナル（Terminal.app）で、そのフォルダを開く（アプリの中のターミナルとは別の窓）
+  ipcMain.handle("kickoff:open-external-terminal", async (_e, dir: unknown) => {
+    await execFileAsync("open", ["-a", "Terminal", existingFolder(dir)]);
   });
   // VS Code でファイルを開く（line があればその行へ）。VS Code がなければ失敗を返す
   ipcMain.handle("kickoff:open-in-vscode", async (_e, target: string, line?: number) => {
