@@ -179,11 +179,11 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     return c.json({ ok: true });
   });
 
-  // 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。列にない指示なら 404）
+  // 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。印はいくつでも。stop: false で外す・id: null ですべて外す。列にない指示なら 404）
   app.put("/api/runs/:id/queue/stop-after", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    const { id } = z.object({ id: z.string().min(1).max(100).nullable() }).parse(await c.req.json());
-    if (!runner.setQueueStopAfter(run.id, id)) throw new HttpError(404, "待ちの指示が見つかりません");
+    const { id, stop } = z.object({ id: z.string().min(1).max(100).nullable(), stop: z.boolean().default(true) }).parse(await c.req.json());
+    if (!runner.setQueueStopAfter(run.id, id, stop)) throw new HttpError(404, "待ちの指示が見つかりません");
     return c.json({ stop_after: runner.queueStopAfter(run.id), queue: runner.queued(run.id) });
   });
 

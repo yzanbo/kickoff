@@ -338,33 +338,43 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
   assert.equal(runner.queuePaused(runId), false);
 });
 
-test("「ここまで自動で送る」: 印を付けた指示まで順に送り、そのあとは止めておく。印の指示を消すと印も外れる", async () => {
+test("「ここまで自動で送る」: 印はいくつでも付けられ、印を付けた指示まで順に送って止める。自動に戻すと次の印まで送る。印の指示を消すと印も外れる", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
   const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
-  for (const text of ["2", "3", "4"]) await call("POST", `/api/runs/${runId}/queue`, { text });
-  const [, second] = runner.queued(runId);
+  for (const text of ["2", "3", "4", "5"]) await call("POST", `/api/runs/${runId}/queue`, { text });
+  const [, third, fourth, fifth] = runner.queued(runId);
   // 列にない指示には付けられない
   assert.equal((await call("PUT", `/api/runs/${runId}/queue/stop-after`, { id: "nope" })).status, 404);
   assert.equal((await call("PUT", `/api/runs/${runId}/queue/stop-after`, {})).status, 400);
-  assert.equal((await call("PUT", `/api/runs/${runId}/queue/stop-after`, { id: second.id })).body.stop_after, second.id);
-  assert.equal((await call("GET", `/api/runs/${runId}`)).body.queue_stop_after, second.id);
+  assert.deepEqual((await call("PUT", `/api/runs/${runId}/queue/stop-after`, { id: fourth.id })).body.stop_after, [fourth.id]);
+  assert.deepEqual((await call("PUT", `/api/runs/${runId}/queue/stop-after`, { id: third.id })).body.stop_after, [third.id, fourth.id]);
+  assert.deepEqual((await call("GET", `/api/runs/${runId}`)).body.queue_stop_after, [third.id, fourth.id]);
 
-  // 「3」を送り終えたら、「4」は送らずに止めておく
+  // 「3」を送り終えたら、残りは送らずに止めておく（「3」の印だけ外れる）
   release();
   await until(() => provider.prompts.length === 3 && !runner.isBusy(runId));
   await new Promise((r) => setTimeout(r, 30));
   assert.deepEqual(provider.prompts, ["1", "2", "3"]);
-  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["4"]);
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["4", "5"]);
   assert.equal(runner.queuePaused(runId), true);
-  assert.equal(runner.queueStopAfter(runId), null);
+  assert.deepEqual(runner.queueStopAfter(runId), [fourth.id]);
 
-  // 印を付けた指示を消したら、印も外れる
-  const [fourth] = runner.queued(runId);
-  await call("PUT", `/api/runs/${runId}/queue/stop-after`, { id: fourth.id });
-  await call("DELETE", `/api/runs/${runId}/queue/${fourth.id}`);
-  assert.equal(runner.queueStopAfter(runId), null);
+  // 自動で送るに戻すと、次の印（「4」）まで送って、また止める
+  await call("PUT", `/api/runs/${runId}/queue/paused`, { paused: false });
+  await until(() => provider.prompts.length === 4 && !runner.isBusy(runId));
+  await new Promise((r) => setTimeout(r, 30));
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["5"]);
+  assert.equal(runner.queuePaused(runId), true);
+  assert.deepEqual(runner.queueStopAfter(runId), []);
+
+  // 1 つずつ外せる・印を付けた指示を消したら、印も外れる
+  await call("PUT", `/api/runs/${runId}/queue/stop-after`, { id: fifth.id });
+  assert.deepEqual((await call("PUT", `/api/runs/${runId}/queue/stop-after`, { id: fifth.id, stop: false })).body.stop_after, []);
+  await call("PUT", `/api/runs/${runId}/queue/stop-after`, { id: fifth.id });
+  await call("DELETE", `/api/runs/${runId}/queue/${fifth.id}`);
+  assert.deepEqual(runner.queueStopAfter(runId), []);
 });
 
 test("通信の切断: 送信待ちを送らずに止めて、つながったら自動で再開し、終わったら送信待ちを戻して送る", async () => {

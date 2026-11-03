@@ -19,7 +19,7 @@ export function useRunDetail(runId: number, projectId: number) {
   // 待ちの列を、終わっても自動で送らずに止めておくか
   const [queuePaused, setQueuePaused] = useState(false);
   // 「ここまで自動で送る」の印を付けた待ちの指示
-  const [queueStopAfter, setQueueStopAfter] = useState<string | null>(null);
+  const [queueStopAfter, setQueueStopAfter] = useState<string[]>([]);
   // AI の API への通信を再試行しているところ（通信が切れたときなど）と、止まってつながるのを待っているところ
   const [retry, setRetry] = useState<ApiRetryInfo | null>(null);
   const [reconnect, setReconnect] = useState<ReconnectState | null>(null);
@@ -36,7 +36,7 @@ export function useRunDetail(runId: number, projectId: number) {
     setEvents([]);
     setQueue([]);
     setQueuePaused(false);
-    setQueueStopAfter(null);
+    setQueueStopAfter([]);
     setRetry(null);
     setReconnect(null);
     setBackground(null);
@@ -51,7 +51,7 @@ export function useRunDetail(runId: number, projectId: number) {
         setApprovals(d.approvals);
         setQueue(d.queue ?? []);
         setQueuePaused(Boolean(d.queue_paused));
-        setQueueStopAfter(d.queue_stop_after ?? null);
+        setQueueStopAfter(d.queue_stop_after ?? []);
         setReconnect(d.reconnect ?? null);
         setBackground(d.background ?? null);
       })

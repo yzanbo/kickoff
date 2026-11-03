@@ -80,14 +80,14 @@ export abstract class RunnerQueue {
     return this.sendQueuedNow(runId, merged.id);
   }
 
-  /** 「ここまで自動で送る」の印を付けた待ちの指示（なければ null） */
-  queueStopAfter(runId: number): string | null {
+  /** 「ここまで自動で送る」の印を付けた待ちの指示（列の順。いくつでも） */
+  queueStopAfter(runId: number): string[] {
     return this.followups.stopAfterOf(runId);
   }
 
-  /** 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。id が列になければ false） */
-  setQueueStopAfter(runId: number, id: string | null): boolean {
-    return this.followups.setStopAfter(runId, id);
+  /** 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。id が null ならすべて外す。id が列になければ false） */
+  setQueueStopAfter(runId: number, id: string | null, stop = true): boolean {
+    return this.followups.setStopAfter(runId, id, stop);
   }
 
   /** 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか */

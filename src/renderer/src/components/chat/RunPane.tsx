@@ -102,8 +102,8 @@ function RunView({
   queue: QueuedMessage[];
   /** 待ちの列を、終わっても自動で送らずに止めておくか */
   queuePaused: boolean;
-  /** 「ここまで自動で送る」の印を付けた待ちの指示 */
-  queueStopAfter: string | null;
+  /** 「ここまで自動で送る」の印を付けた待ちの指示（いくつでも） */
+  queueStopAfter: string[];
   /** 通信の再試行中・つながるのを待っているところ */
   connection: Connection;
   /** 裏で動いている作業と、メインの返答が終わったか */
