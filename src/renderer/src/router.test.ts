@@ -8,6 +8,7 @@ test("parse: ハッシュを画面に読む（タブなしはボード、知ら�
   assert.deepEqual(parse("#/nowhere"), { name: "allProjects" });
   assert.deepEqual(parse("#/projects/3"), { name: "project", id: 3, tab: "board" });
   assert.deepEqual(parse("#/projects/3/changes"), { name: "project", id: 3, tab: "changes" });
+  assert.deepEqual(parse("#/projects/3/history"), { name: "project", id: 3, tab: "history" });
   assert.deepEqual(parse("#/projects/3/unknown"), { name: "project", id: 3, tab: "board" });
   // なくした要件定義書・スケジュール・タスク・レポートのタブは、ボードに戻る
   for (const tab of ["requirements", "schedule", "tasks", "reports"]) {
@@ -44,6 +45,7 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "allProjects" },
     { name: "project", id: 1, tab: "board" },
     { name: "project", id: 1, tab: "changes" },
+    { name: "project", id: 1, tab: "history" },
     { name: "project", id: 1, tab: "groups", group: 5 },
     { name: "project", id: 1, tab: "changes", file: { path: "src/a b.ts", line: 3, worktree: "/x/app-worktrees/w" } },
     { name: "project", id: 1, tab: "changes", file: { path: "README.md" } },
