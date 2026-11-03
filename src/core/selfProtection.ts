@@ -77,6 +77,8 @@ export function evaluateSelfProtection(self: SelfInfo, toolName: string, input: 
 
   for (const key of FILE_TOOLS[toolName] ?? []) {
     const file = input[key];
+    // チャットの添付ファイル（保存先の uploads）は、Read で読むだけなら通す（画面は「Read ツールで読めます」と案内している）
+    if (toolName === "Read" && typeof file === "string" && isInside(path.join(self.dataDir, "uploads"), path.resolve(expandHome(file)))) continue;
     if (typeof file === "string" && file && isInside(self.dataDir, expandHome(file))) {
       return { decision: "deny", reason: join(who, `その保存先（${self.dataDir}）は読み書きできません`, dev) };
     }

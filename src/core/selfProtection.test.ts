@@ -49,6 +49,13 @@ test("evaluateSelfProtection: ファイルのツールで保存先を読み書�
   assert.equal(tool("Grep", { path: `${home}/Library/Application Support/Kickoff` }), "deny");
   assert.equal(tool("Read", { file_path: `${home}/Library/Application Support/Kickoff Dev/token` }), "pass");
   assert.equal(tool("Read", { file_path: "/Users/someone/repo/src/main.ts" }), "pass");
+  // チャットの添付ファイルは、Read で読むだけなら通す（書き込み・検索・外へ出る道は断る）
+  const upload = `${home}/Library/Application Support/Kickoff/uploads/4c9a0817/image.png`;
+  assert.equal(tool("Read", { file_path: upload }), "pass");
+  assert.equal(tool("Write", { file_path: upload }), "deny");
+  assert.equal(tool("Grep", { path: `${home}/Library/Application Support/Kickoff/uploads` }), "deny");
+  assert.equal(tool("Read", { file_path: `${home}/Library/Application Support/Kickoff/uploads/../kickoff.db` }), "deny");
+  assert.equal(tool("Read", { file_path: `${home}/Library/Application Support/Kickoff/uploads-x/a.png` }), "deny");
 });
 
 test("evaluateSelfProtection: 開発中（アプリ本体なし）は、本体の判定をしない", () => {
