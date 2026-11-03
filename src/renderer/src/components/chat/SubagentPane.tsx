@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { api } from "../../api";
 import { BUSY_STATUSES } from "../RunStatus";
 import { Composer } from "./Composer";
@@ -17,11 +18,13 @@ export function SubagentPane({ projectId, runId, toolUseId }: { projectId: numbe
   const { run, project, events, background, error } = useRunDetail(runId, projectId);
   const busy = run ? BUSY_STATUSES.includes(run.status) : false;
   const subagents = useSubagents(runId, events, busy, background);
+  // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
+  const repoPath = project?.repo_path;
+  const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   const entry = subagents.find((s) => s.key === toolUseId);
   if (!entry) return <div className="page muted">このサブエージェントは見つかりません（チャットを書き直した・巻き戻したときなど）</div>;
-  const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
   const agentId = entry.agentId;
   // 作業中でなければすぐ送り、作業中なら止めずに伝える（どちらも tell の API が決める）
   const relay = async (text: string, attachments: Parameters<typeof api.tellRun>[3]) => {

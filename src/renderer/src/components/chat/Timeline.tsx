@@ -1,5 +1,5 @@
 import { ChevronRight, GitBranch } from "lucide-react";
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import type { RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
 import { formatTokens } from "../../format";
@@ -19,14 +19,26 @@ import { AssistantMessage, UserMessage } from "./MessageItems";
  * active なら、最後のツールのまとまりを実行中として見せる
  */
 export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; rel: (s: string) => string; active: boolean }) {
+  // 各項目は memo して、変わっていない発言・ツールは描き直さない（作業中は返答が届くたびに流れ全体が描き直されるため。
+  // 長いチャットで Markdown を毎回解析し直すと、そのたびに 100ms ほどかかり、入力が重くなる）
   return items.map((item, i) =>
     item.kind === "tools" ? (
-      <ToolGroup key={item.key} tools={item.tools} rel={rel} active={active && i === items.length - 1} />
+      <MemoToolGroup key={item.key} tools={item.tools} rel={rel} active={active && i === items.length - 1} />
     ) : (
-      <EventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} busy={active} />
+      <MemoEventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} busy={active} />
     ),
   );
 }
+
+/** ツールのまとまり: 呼び出しと結果の記録が同じなら描き直さない（まとまりの配列は記録が増えるたびに作り直されるため、中身で比べる） */
+const MemoToolGroup = memo(
+  ToolGroup,
+  (a, b) =>
+    a.rel === b.rel &&
+    a.active === b.active &&
+    a.tools.length === b.tools.length &&
+    a.tools.every((t, i) => t.use === b.tools[i].use && t.result === b.tools[i].result),
+);
 
 /** 「考えています」などの、エージェントが動いている印。since があれば、そこからの経過時間を添える（ツールの実行中も数える） */
 export function Working({ children, since }: { children: ReactNode; since?: string | null }) {
@@ -109,6 +121,8 @@ const RESOLVED_LABELS: Record<string, string> = {
 };
 
 /** 発言・お知らせ 1 件（作業の終わりには、作業時間と返答のコピーを出す） */
+const MemoEventItem = memo(EventItem);
+
 function EventItem({ event, turnStart, turnText, busy }: { event: RunEvent; turnStart?: string; turnText?: string; busy: boolean }) {
   const data = event.data as Record<string, unknown>;
   switch (event.type) {

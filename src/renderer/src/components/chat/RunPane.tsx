@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Approval, BackgroundState, Project, QueuedMessage, Run, RunEvent } from "../../../../core/types";
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
@@ -141,7 +141,9 @@ function RunView({
   const items = useMemo(() => groupEvents(events), [events]);
   // チャット欄の ↑ で呼び出す、前に送った自分の発言
   const prompts = useMemo(() => userPrompts(events), [events]);
-  const rel = (s: string) => (project ? relativize(s, project.repo_path) : s);
+  // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
+  const repoPath = project?.repo_path;
+  const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
   const waiting = approvals.length > 0;
   // 返答の中のファイルのパスを、押してエディタタブで開けるチップにする（作業場所のファイルだけ）
   const fileLinks = useFileLinks(run, project?.repo_path);

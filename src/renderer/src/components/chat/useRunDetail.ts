@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ApiRetryInfo, Approval, BackgroundState, Project, QueuedMessage, ReconnectState, Run, RunEvent } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
@@ -65,20 +65,42 @@ export function useRunDetail(runId: number, projectId: number) {
     };
   }, [runId, projectId]);
 
+  // 書いている途中の返答は、細切れ（トークンごと）に届く。届くたびに描き直すと、長いチャットでは流れの描き直しが追いつかず
+  // 入力が重くなるので、1 フレームの間に届いた分をまとめて足す
+  const pendingDelta = useRef("");
+  const deltaFrame = useRef<number | null>(null);
+  const dropPendingDelta = () => {
+    if (deltaFrame.current !== null) cancelAnimationFrame(deltaFrame.current);
+    deltaFrame.current = null;
+    pendingDelta.current = "";
+  };
+  useEffect(() => dropPendingDelta, [runId]);
+
   useServerEvent((e) => {
     if (e.type === "run_delta" && e.run_id === runId) {
-      setLive((prev) => prev + e.text);
-      setRetry(null);
+      pendingDelta.current += e.text;
+      deltaFrame.current ??= requestAnimationFrame(() => {
+        const text = pendingDelta.current;
+        deltaFrame.current = null;
+        pendingDelta.current = "";
+        setLive((prev) => prev + text);
+        setRetry(null);
+      });
     } else if (e.type === "run_event" && e.event.run_id === runId) {
       setEvents((prev) => (prev.some((x) => x.id === e.event.id) ? prev : [...prev, e.event]));
-      if (e.event.type !== "user") setLive("");
+      if (e.event.type !== "user") {
+        dropPendingDelta();
+        setLive("");
+      }
     } else if (e.type === "run_events_deleted" && e.run_id === runId) {
       // 巻き戻した: その発言から後ろを画面の記録からも消す
       setEvents((prev) => prev.filter((x) => x.id < e.from_event_id));
+      dropPendingDelta();
       setLive("");
     } else if (e.type === "run" && e.run.id === runId) {
       setRun(e.run);
       if (!BUSY_STATUSES.includes(e.run.status)) {
+        dropPendingDelta();
         setLive("");
         setRetry(null);
       }
