@@ -14,6 +14,8 @@ export interface QueuedRowActions {
   edit: () => void;
   /** この指示のすぐあとの「ここまで送ったら止めます」を付ける・外す */
   toggleStop: () => void;
+  /** この指示のすぐ前の「ここまで送ったら止めます」を付ける・外す */
+  toggleStopBefore: () => void;
   move: (to: number) => void;
   sendNow: () => void;
   remove: () => void;
@@ -42,6 +44,7 @@ export function QueuedRow({
   selectedCount,
   dragCount = 1,
   isStop,
+  isStopBefore,
   onAsk,
   onSelect,
   groupActions,
@@ -62,6 +65,8 @@ export function QueuedRow({
   dragCount?: number;
   /** この指示のすぐあとに「ここまで送ったら止めます」があるか */
   isStop: boolean;
+  /** この指示のすぐ前に「ここまで送ったら止めます」があるか */
+  isStopBefore: boolean;
   /** 新しいチャットで聞く（文と添付を新しいチャットのタブに入れて開く。remove なら送信待ちから外す = 移す。選んでいれば選んだものすべて） */
   onAsk?: (remove: boolean) => void;
   /** 行のクリック（⌘ / Ctrl で 1 件ずつ、Shift で範囲を選ぶ） */
@@ -104,7 +109,7 @@ export function QueuedRow({
         if (window.getSelection()?.toString()) return;
         e.preventDefault();
         // 行は画面の下のほう（チャット欄のすぐ上）にあるので、メニューの大きさ（項目と区切り線で 400px ほど）を見て、下にはみ出すなら上へ寄せる
-        setMenu(clampToViewport(e.clientX, e.clientY, 300, 400));
+        setMenu(clampToViewport(e.clientX, e.clientY, 300, 450));
       }}
     >
       {/* ドラッグはつまみからだけ（文は選んでコピーできるように、行全体はドラッグにしない） */}
@@ -161,11 +166,22 @@ export function QueuedRow({
               </MenuItem>
             </>
           ) : (
-            // 1 件への操作（書き直す → 送る・止める → 並べ替え → 新しいチャットへ → 消す）
+            // 1 件への操作（書き直す → 送る → 止める（前・あと）→ 並べ替え → 新しいチャットへ → 消す）
             <>
               <MenuItem onSelect={actions.edit}>文を書き直す</MenuItem>
               <div className="menu-separator" role="separator" />
               <MenuItem onSelect={actions.sendNow}>{sendLabel}</MenuItem>
+              <div className="menu-separator" role="separator" />
+              <MenuItem
+                onSelect={actions.toggleStopBefore}
+                title={
+                  isStopBefore
+                    ? "この指示の前の「ここまで送ったら止めます」を外します"
+                    : "この指示の手前まで自動で送ったら、この指示から先は送らずに止めておきます（線はドラッグで動かせます）"
+                }
+              >
+                {isStopBefore ? "この指示の前で止めない" : "この指示の前で止める"}
+              </MenuItem>
               <MenuItem
                 onSelect={actions.toggleStop}
                 title={isStop ? "この指示のあとの「ここまで送ったら止めます」を外します" : "この指示まで自動で送ったら、残りは送らずに止めておきます（線はドラッグで動かせます）"}
