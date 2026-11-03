@@ -205,3 +205,55 @@
   font-size: 11px;
   color: var(--muted);
 }
+
+/* チャットの流れは押すとピントが入る（↑↓ でスクロールするため）が、枠は出さない */
+.timeline:focus {
+  outline: none;
+}
+
+/* 一番下へ戻るボタン（chat.css の .scroll-bottom）に文を添えて誘う形: 答えを待っている（黄）・上を読んでいる間に返答が届いた（緑） */
+.timeline-wrap .scroll-bottom.guide {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: 30px;
+  padding: 0 12px;
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-elev));
+  cursor: pointer;
+  animation: scroll-guide-bob 1.6s ease-in-out infinite;
+}
+
+.timeline-wrap .scroll-bottom.guide.waiting {
+  border-color: color-mix(in srgb, var(--warn) 70%, var(--border));
+  background: color-mix(in srgb, var(--warn) 24%, var(--bg-elev));
+}
+
+.scroll-bottom.guide kbd {
+  padding: 0 4px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 10px;
+  color: var(--muted);
+  background: var(--bg-hover);
+}
+
+/* 下を指して小さく上下する（動きを減らす設定では動かさない） */
+@keyframes scroll-guide-bob {
+  50% {
+    transform: translate(-50%, 3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-wrap .scroll-bottom.guide {
+    animation: none;
+  }
+}

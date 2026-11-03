@@ -1,6 +1,8 @@
 import { ArrowDown } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { cx } from "../../cx";
 import { useTicker } from "../../hooks/useTicker";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Approval, Run } from "../../../../core/types";
 import { IconButton } from "../IconButton";
 import { Markdown } from "../Markdown";
@@ -26,6 +28,15 @@ function promptAbove(timeline: HTMLElement): { id: number; text: string } | unde
   if (!found || !Number.isFinite(id)) return undefined;
   const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
   return text ? { id, text } : undefined;
+}
+
+/** いちばん新しい作業の終わり（result）のイベント ID（なければ 0） */
+function lastResultIdOf(items: TimelineItem[]): number {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (item.kind === "event" && item.event.type === "result") return item.event.id;
+  }
+  return 0;
 }
 
 /** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない） */
@@ -65,7 +76,8 @@ function ThinkingWords({ since }: { since: string | null }) {
 /**
  * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
  * 一番下を見ているときだけ、新しい発言に合わせてスクロールする（stickToBottom。送ったら親が true に戻す）。
- * 上にスクロールしている間は、一番下へ戻るボタンを出す。
+ * 上にスクロールしている間は、一番下へ戻るボタンを出す（⌘↓ でも戻る）。答えを待っているとき・その間に作業が終わったときは、
+ * ボタンに文を添えて目立たせ、下へ戻るよう誘う。
  * focus（検索結果から開いた発言）があれば、そこまでスクロールして一瞬強調する
  */
 export function RunTimeline({
@@ -95,6 +107,12 @@ export function RunTimeline({
   const timelineRef = useRef<HTMLDivElement>(null);
   // 一番下から離れているか（一番下へ戻るボタンを出す）
   const [away, setAway] = useState(false);
+  // 上を読んでいる間に作業が終わったか（一番下へ戻るボタンで知らせる。一番下へ戻ったら消す）
+  const lastResultId = lastResultIdOf(items);
+  const awayFromResult = useRef<number | null>(null);
+  if (!away) awayFromResult.current = null;
+  else awayFromResult.current ??= lastResultId;
+  const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
   // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
 
@@ -118,11 +136,25 @@ export function RunTimeline({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }
 
+  // ⌘↓ で一番下へ（このチャットの中にピントがあり、上を読んでいるとき。入力欄の中でも効く）
+  useWindowEvent("keydown", (e) => {
+    if (!away || !e.metaKey || e.altKey || e.ctrlKey || e.shiftKey || e.key !== "ArrowDown") return;
+    const panel = timelineRef.current?.closest(".run-panel");
+    if (!panel?.contains(document.activeElement)) return;
+    e.preventDefault();
+    scrollToBottom();
+  });
+
+  // 一番下へ戻るボタンで知らせること（上を読んでいる間に、答えを待っている・作業が終わった）
+  const guide = waiting ? "回答を待っています" : finishedWhileAway ? "返答が届きました" : null;
+
   return (
     <div className="timeline-wrap">
+      {/* 押すとピントが入り、↑↓・PageUp / PageDown・End でもスクロールできる（枠は出さない） */}
       <div
         className="timeline"
         ref={timelineRef}
+        tabIndex={-1}
         onScroll={(e) => {
           const el = e.currentTarget;
           const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_SLACK_PX;
@@ -162,9 +194,22 @@ export function RunTimeline({
           {pinned.text}
         </button>
       )}
-      {away && (
-        <IconButton icon={ArrowDown} label="一番下までスクロール" size={15} type="button" className="scroll-bottom" onClick={scrollToBottom} />
-      )}
+      {away &&
+        (guide ? (
+          // 答えを待っている・作業が終わったときは、文を添えて目立たせ、下へ戻るよう誘う
+          <button
+            type="button"
+            className={cx("scroll-bottom guide", waiting && "waiting")}
+            title="一番下までスクロール（⌘↓）"
+            onClick={scrollToBottom}
+          >
+            <ArrowDown size={14} aria-hidden />
+            {guide}
+            <kbd>⌘↓</kbd>
+          </button>
+        ) : (
+          <IconButton icon={ArrowDown} label="一番下までスクロール" title="一番下までスクロール（⌘↓）" size={15} type="button" className="scroll-bottom" onClick={scrollToBottom} />
+        ))}
     </div>
   );
 }
