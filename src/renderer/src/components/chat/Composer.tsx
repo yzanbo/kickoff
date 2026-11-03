@@ -1,5 +1,5 @@
 import { ArrowUp, Paperclip, Square } from "lucide-react";
-import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 import type { Attachment } from "../../../../core/types";
 import { api, type GitTarget } from "../../api";
 import { errorMessage } from "../../errors";
@@ -29,6 +29,9 @@ interface Props {
   suggestTarget?: GitTarget;
 }
 
+/** 入力欄を伸ばす上限（px。これを超えたら中でスクロールする） */
+const COMPOSER_MAX_HEIGHT = 240;
+
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
 const TEXT_CHANGE_DELAY_MS = 300;
 
@@ -56,6 +59,13 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     if (!textChange.current) return;
     const timer = setTimeout(() => textChange.current?.(text), TEXT_CHANGE_DELAY_MS);
     return () => clearTimeout(timer);
+  }, [text]);
+  // 書いた分だけ高さを伸ばす（空なら 1 行。上限を超えたら中でスクロール）
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)}px`;
   }, [text]);
   const [files, setFiles] = useState<PendingFile[]>([]);
   const [sending, setSending] = useState(false);
@@ -170,7 +180,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       <SuggestList suggest={suggest} />
       <textarea
         ref={textareaRef}
-        rows={3}
+        rows={1}
         value={text}
         onSelect={(e) => suggest.onCaret(e.currentTarget.selectionStart)}
         autoFocus={autoFocus}

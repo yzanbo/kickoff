@@ -112,7 +112,7 @@
   max-width: 852px;
   width: 100%;
   margin: 0 auto;
-  padding: 4px var(--gutter) 16px;
+  padding: 4px var(--gutter) 10px;
 }
 
 .bubble.user {
