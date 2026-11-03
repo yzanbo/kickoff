@@ -1,6 +1,7 @@
 import { ChevronRight, Wrench } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 import { cx } from "../../cx";
+import { BashOutput } from "./BashOutput";
 import { cleanSubagentReport, isSubagentTool } from "./subagentList";
 import { summarizeTools, type ToolCall } from "./timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
@@ -49,7 +50,11 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
   // ツール検索の `[tool_reference]` のような意味のない結果は出さない
   const content = r?.content ? visibleToolResult(r.content) : "";
   let detail: ReactNode = null;
-  if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
+  // コマンドは、コマンドと出力（失敗の知らせも）を 1 つの枠で出すので、下の結果の欄は使わない
+  const isCommand = name === "Bash" && typeof input.command === "string";
+  if (isCommand) {
+    detail = <BashOutput command={String(input.command)} result={r} rel={rel} />;
+  } else if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
     detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
   } else if (name === "Write" && typeof input.content === "string") {
     detail = <Diff before="" after={input.content} maxLines={40} />;
@@ -74,7 +79,7 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
         )}
       </summary>
       {detail}
-      {content && (r?.is_error || !detail) && (
+      {content && !isCommand && (r?.is_error || !detail) && (
         <pre className={cx("tool-output", r?.is_error && "error")}>
           {/* サブエージェントの結果は、Claude Code の前置きを外して報告の本文だけを見せる */}
           {rel(isSubagentTool(name) ? cleanSubagentReport(content) : content)}
