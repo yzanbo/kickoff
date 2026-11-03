@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Approval, Project, QueuedMessage, Run, RunEvent } from "../../../../core/types";
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
-import { chatDraftKey } from "../../storageKeys";
+import { useSharedFlag } from "../../hooks/useStoredState";
+import { CHAT_WIDE_KEY, chatDraftKey } from "../../storageKeys";
 import { FileLinkContext } from "../fileLinks/fileLinkContext";
 import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
@@ -21,7 +22,7 @@ import { OpenSubagentContext } from "./ToolGroup";
 import { userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
-import { ListPlus, Search, Zap } from "lucide-react";
+import { ListPlus, MoveHorizontal, Search, Zap } from "lucide-react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
@@ -148,6 +149,8 @@ function RunView({
   // 発言の一覧から、同じ文を入力欄に入れる
   const fillComposer = useRef<((text: string) => void) | null>(null);
   const [finding, setFinding] = useState(false);
+  // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
+  const [wide, setWide] = useSharedFlag(CHAT_WIDE_KEY);
   const jump = (eventId: number) => {
     stickToBottom.current = false;
     if (panelRef.current) jumpToEvent(panelRef.current, eventId);
@@ -168,12 +171,25 @@ function RunView({
     <FileLinkContext.Provider value={fileLinks}>
     <OpenSubagentContext.Provider value={setSubOpen}>
     <RewindContext.Provider value={rewind}>
-    <div ref={panelRef} className={cx("run-page run-panel", finding && "finding")}>
+    <div ref={panelRef} className={cx("run-page run-panel", finding && "finding", wide && "wide")}>
       <RunHeader
         run={run}
         project={project}
         waiting={waiting}
-        tools={<IconButton icon={Search} size={13} label="このチャットの中を検索" aria-expanded={finding} onClick={() => setFinding(!finding)} />}
+        tools={
+          <>
+            {/* 発言の流れとチャット欄を、標準の幅（読みやすい幅）と欄の横幅いっぱいで切り替える（どのチャットでも同じ） */}
+            <IconButton
+              icon={MoveHorizontal}
+              size={13}
+              label={wide ? "横幅を標準に戻す" : "横幅いっぱいに広げる"}
+              aria-pressed={wide}
+              className={cx(wide && "active")}
+              onClick={() => setWide(!wide)}
+            />
+            <IconButton icon={Search} size={13} label="このチャットの中を検索" aria-expanded={finding} onClick={() => setFinding(!finding)} />
+          </>
+        }
         onClose={onClose}
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}

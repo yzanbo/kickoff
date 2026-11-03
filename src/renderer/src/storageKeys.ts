@@ -116,6 +116,8 @@ export const QUEUE_HEIGHT_KEY = "kickoff:queue-height";
 export const STICKY_PROMPT_EXPANDED_KEY = "kickoff:sticky-prompt-expanded";
 /** チャット欄をコンパクトに表示するか（"1" / "0"。設定の「表示」。どのチャット欄にも効く） */
 export const COMPOSER_COMPACT_KEY = "kickoff:composer-compact";
+/** チャット（発言の流れとチャット欄）を、欄の横幅いっぱいに広げるか（"1" なら広く。どのチャットでも同じ） */
+export const CHAT_WIDE_KEY = "kickoff:chat-wide";
 
 /** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id。既定は "terminal"） */
 export const EXTERNAL_TERMINAL_KEY = "kickoff:external-terminal";
