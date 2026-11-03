@@ -9,6 +9,7 @@ import { IconButton } from "../IconButton";
 import { RunOptionsBar, type RunOptionsState } from "./RunOptionsBar";
 import { SuggestList } from "../suggest/SuggestList";
 import { useSuggest } from "../suggest/useSuggest";
+import { usePromptHistory } from "./usePromptHistory";
 
 interface Props {
   options: RunOptionsState;
@@ -27,6 +28,8 @@ interface Props {
   onTextChange?: (text: string) => void;
   /** / と @ の候補を出す作業場所（コマンド・ファイルをここから探す） */
   suggestTarget?: GitTarget;
+  /** ↑↓ で呼び出す、このチャットで前に送った自分の発言（新しい順。新しいチャットの入力欄では渡さない） */
+  history?: string[];
 }
 
 /** 入力欄を伸ばす上限（px。これを超えたら中でスクロールする） */
@@ -47,12 +50,14 @@ interface PendingFile {
 /** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
 export class SendCancelled extends Error {}
 
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget, history }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  // / と @ の候補（Claude Code の VS Code 拡張と同じ）
-  const suggest = useSuggest({ target: suggestTarget, text, setText, textareaRef });
+  // ↑↓ で前の発言を呼び出す
+  const promptHistory = usePromptHistory({ prompts: history, text, setText, textareaRef });
+  // / と @ の候補（Claude Code の VS Code 拡張と同じ）。呼び出した発言を出している間は出さない
+  const suggest = useSuggest({ target: suggestTarget, text, setText, textareaRef, paused: promptHistory.recalled });
   const textChange = useRef(onTextChange);
   textChange.current = onTextChange;
   useEffect(() => {
@@ -139,6 +144,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // 候補を出している間は、↑↓・Enter・Tab・Esc を候補の操作に使う
     if (suggest.handleKey(e)) return;
+    // 空の入力欄・呼び出した発言を出している間の ↑↓ は、前の発言の呼び出しに使う
+    if (promptHistory.handleKey(e)) return;
     // Enter で送信、Shift+Enter で改行。日本語入力の変換を確定する Enter では送らない
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
       e.preventDefault();

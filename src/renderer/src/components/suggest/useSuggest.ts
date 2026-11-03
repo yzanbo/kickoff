@@ -28,18 +28,21 @@ function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
 /**
  * チャット欄の / と @ の候補（Claude Code の VS Code 拡張と同じ）。
  * / は文の先頭で打ったとき、作業場所で使えるコマンド（スキルを含む）を出す。@ はどこでも、作業場所のファイルを出す。
- * ↑↓ で選び、Enter か Tab で入れる。Esc で閉じる。target がなければ出さない
+ * ↑↓ で選び、Enter か Tab で入れる。Esc で閉じる。target がなければ出さない（paused の間も出さない）
  */
 export function useSuggest({
   target,
   text,
   setText,
   textareaRef,
+  paused = false,
 }: {
   target: GitTarget | undefined;
   text: string;
   setText: (text: string) => void;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
+  /** 候補を出さない間（↑ で呼び出した前の発言を出している間。候補に ↑↓ を取られないように） */
+  paused?: boolean;
 }) {
   const [caret, setCaret] = useState(text.length);
   const [index, setIndex] = useState(0);
@@ -49,7 +52,7 @@ export function useSuggest({
   const [files, setFiles] = useState<string[]>();
 
   const trigger = target ? findTrigger(text, caret) : null;
-  const open = trigger !== null && dismissed !== trigger.start;
+  const open = !paused && trigger !== null && dismissed !== trigger.start;
   const targetKey = target === undefined ? "" : keyOf(target);
 
   // 候補を出すときに、はじめて一覧を取ってくる
