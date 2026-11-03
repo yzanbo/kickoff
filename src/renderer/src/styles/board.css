@@ -56,7 +56,23 @@
   background: var(--bg-elev);
 }
 
-.page-board > .board {
+/* 見出しの下の本体（左に縦並びのタブを置く設定のときは、その右）。ボード・エディタはこの中で縦に伸ばす */
+.project-main {
+  display: flex;
+  flex: 1;
+  gap: var(--gutter);
+  min-height: 0;
+}
+
+.project-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.project-content > .board {
   flex: 1;
   min-height: 0;
 }

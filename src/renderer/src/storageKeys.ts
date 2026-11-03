@@ -114,6 +114,8 @@ export const QUEUE_HEIGHT_KEY = "kickoff:queue-height";
 export const STICKY_PROMPT_EXPANDED_KEY = "kickoff:sticky-prompt-expanded";
 /** チャット欄をコンパクトに表示するか（"1" / "0"。設定の「表示」。どのチャット欄にも効く） */
 export const COMPOSER_COMPACT_KEY = "kickoff:composer-compact";
+/** プロジェクトの画面のタブ（ボード・エディタ）の置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */
+export const PROJECT_TABS_LAYOUT_KEY = "kickoff:project-tabs-layout";
 /** チャット（発言の流れとチャット欄）を、欄の横幅いっぱいに広げるか（"1" なら広く。どのチャットでも同じ） */
 export const CHAT_WIDE_KEY = "kickoff:chat-wide";
 /** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除。未保存なら ask） */

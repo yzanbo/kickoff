@@ -6,6 +6,7 @@ import { ChangesTab } from "../components/changes/ChangesTab";
 import { useGitStatus } from "../components/changes/useGitStatus";
 import { ProjectEditDialog } from "../components/project/ProjectEditDialog";
 import { ProjectHeader } from "../components/project/ProjectHeader";
+import { ProjectTabs, useProjectTabsLayout } from "../components/project/ProjectTabs";
 import { useProjectData } from "../components/project/useProjectData";
 import { useStoredState } from "../hooks/useStoredState";
 import type { FileTarget, ProjectTab, ReopenRoute } from "../router";
@@ -41,6 +42,8 @@ export function ProjectPage({
   const [worktree, setWorktree] = useStoredState<string | undefined>(editorWorktreeKey(id), (raw) => raw || undefined, (v) => v ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes", worktree);
+  // タブの置き方（見出しの下に横並び / 左に縦並び。設定の「表示」）
+  const [tabsLayout] = useProjectTabsLayout();
   // 開くファイルが別の作業場所のものなら、先にその作業場所へ切り替える（切り替わってから ChangesTab に渡す）
   useEffect(() => {
     if (openFile && openFile.worktree !== worktree) setWorktree(openFile.worktree);
@@ -56,6 +59,10 @@ export function ProjectPage({
   return (
     <div className={`page page-wide page-board ${stale ? "is-stale" : ""}`}>
       <ProjectHeader data={shown} tab={tab} changeCount={git.count} onEdit={() => setEditing(true)} />
+      {/* タブを左に縦並びにする設定のときは、本体の左にアイコンだけで並べる（見出しの下の行がなくなり、本体の縦の幅が増える） */}
+      <div className="project-main">
+      {tabsLayout === "side" && <ProjectTabs projectId={project.id} tab={tab} runs={shown.runs} changeCount={git.count} vertical />}
+      <div className="project-content">
 
       {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} groups={groups} />}
       {tab === "groups" && <GroupBoard projectId={project.id} groups={groups} focus={focus} highlight={highlightGroup} />}
@@ -74,6 +81,8 @@ export function ProjectPage({
           />
         </WorktreeContext.Provider>
       )}
+      </div>
+      </div>
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}
     </div>
   );
