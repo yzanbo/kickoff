@@ -9,6 +9,8 @@ import { useServerEvent } from "../../events";
 import { useListNavigation } from "../../hooks/useListNavigation";
 import { useModalDialog } from "../../hooks/useModalDialog";
 import { useProjects } from "../../projectsContext";
+import { useProjectTagFilter } from "../../projectTagFilter";
+import { TagFilterNotice } from "../TagFilterNotice";
 import { openRun } from "../../router";
 import { COUNTED_COLUMNS } from "../../runState";
 import { shortRelativeTime } from "../../time";
@@ -22,7 +24,9 @@ type CountedColumn = (typeof COUNTED_COLUMNS)[number];
  * 名前・プロジェクト名で絞り込め、↑↓・Enter で開く。開いている間もチャットの状態の変化に追いつく
  */
 export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
-  const { projectName } = useProjects();
+  const { projectName, projectsById } = useProjects();
+  // サイドバーの「タグ」で絞り込んでいれば、合うプロジェクトのチャットだけ
+  const tagFilter = useProjectTagFilter();
   const { stateOf } = useRunStates();
   const [query, setQuery] = useState("");
   const [runs, setRuns] = useState<Run[]>([]);
@@ -43,6 +47,8 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
     const byColumn = new Map<CountedColumn, Run[]>(COUNTED_COLUMNS.map((c) => [c, []]));
     for (const run of runs) {
       if (run.archived_at) continue;
+      const project = projectsById.get(run.project_id);
+      if (tagFilter.active && (!project || !tagFilter.matches(project))) continue;
       if (q && !`${chatTitle(run.title)} ${projectName(run.project_id)}`.toLowerCase().includes(q)) continue;
       byColumn.get(boardColumnOf(stateOf(run)) as CountedColumn)?.push(run);
     }
@@ -51,7 +57,8 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
       runs: byColumn.get(column)!.sort((a, b) => b.active_at.localeCompare(a.active_at)),
     })).filter((g) => g.runs.length > 0);
     return { groups, items: groups.flatMap((g) => g.runs) };
-  }, [runs, query, stateOf, projectName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
+  }, [runs, query, stateOf, projectName, projectsById, tagFilter.selected]);
 
   function go(run: Run | undefined) {
     if (!run) return;
@@ -77,9 +84,10 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={nav.onKeyDown}
         />
+        <TagFilterNotice filter={tagFilter} />
       </div>
       <ul className="palette-list" role="listbox">
-        {items.length === 0 && <li className="palette-empty">{query.trim() ? "見つかりません" : "作業中・待ちのチャットはありません"}</li>}
+        {items.length === 0 && <li className="palette-empty">{query.trim() ? "見つかりません" : tagFilter.active ? "タグで絞り込んだプロジェクトに、作業中・待ちのチャットはありません" : "作業中・待ちのチャットはありません"}</li>}
         {groups.map((g) => (
           <Fragment key={g.column}>
             <li className="palette-group" role="presentation">

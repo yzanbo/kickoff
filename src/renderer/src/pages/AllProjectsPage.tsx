@@ -1,4 +1,4 @@
-import { FolderGit2, Plus } from "lucide-react";
+import { FolderGit2, Plus, Tags } from "lucide-react";
 import { api } from "../api";
 import { useAsync } from "../hooks/useAsync";
 import { ProjectSwitcher } from "../components/project/ProjectSwitcher";
@@ -6,6 +6,8 @@ import { GitHubStatusCard, StatusCard } from "../components/StatusCard";
 import { KanbanBoard } from "../components/board/KanbanBoard";
 import { sidebarOrder } from "../projectOrder";
 import { useProjects } from "../projectsContext";
+import { tagLabel, useProjectTagFilter } from "../projectTagFilter";
+import { TagFilterNotice } from "../components/TagFilterNotice";
 import { useBoardRuns } from "../components/board/useBoardRuns";
 import { StateStats } from "../components/project/StateStats";
 
@@ -19,8 +21,10 @@ export function AllProjectsPage({ onNewProject }: Props) {
   const providers = useAsync(api.providers);
   const github = useAsync(api.github);
   const claude = providers.data?.find((p) => p.id === "claude");
-  // しまった（アーカイブした）プロジェクトは、全プロジェクトの画面に出さない
-  const shown = sidebarOrder(projects);
+  // しまった（アーカイブした）プロジェクトは、全プロジェクトの画面に出さない。サイドバーの「タグ」で絞り込んでいれば、合うものだけ
+  const tagFilter = useProjectTagFilter();
+  const all = sidebarOrder(projects);
+  const shown = all.filter(tagFilter.matches);
   const notReady = (!providers.loading && !claude?.loggedIn) || (!github.loading && !github.data?.loggedIn);
   // 状態ごとの数: すぐ下の全プロジェクトのカンバンと同じチャット（しまったプロジェクトの分は除く）を、プロジェクトの画面・サイドバーと同じ数え方で
   const { runs } = useBoardRuns(undefined, false, () => {});
@@ -33,6 +37,7 @@ export function AllProjectsPage({ onNewProject }: Props) {
           <h1>
             <ProjectSwitcher />
           </h1>
+          <TagFilterNotice filter={tagFilter} />
           <div className="project-stats">
             <StateStats runs={shownRuns} showProject />
           </div>
@@ -46,7 +51,16 @@ export function AllProjectsPage({ onNewProject }: Props) {
           </div>
         </section>
       )}
-      {shown.length === 0 ? (
+      {shown.length === 0 && all.length > 0 ? (
+        // タグで絞り込んで、合うプロジェクトがないとき
+        <div className="empty empty-hero">
+          <Tags size={28} />
+          <p>タグ「{tagFilter.selected.map(tagLabel).join("、")}」に合うプロジェクトはありません。</p>
+          <button className="btn" onClick={tagFilter.clear}>
+            絞り込みを外す
+          </button>
+        </div>
+      ) : shown.length === 0 ? (
         <div className="empty empty-hero">
           <FolderGit2 size={28} />
           <p>アイデアから始めましょう。新しいフォルダを作るか、既存のフォルダを取り込めます。</p>
