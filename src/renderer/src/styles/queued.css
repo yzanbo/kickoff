@@ -2,6 +2,8 @@
 
 /* 作業中に送った次の指示の待ちの列（QueuedMessages。チャット欄のすぐ上） */
 .queued-messages {
+  /* 狭い欄では ↑↓ とボタンの文字を隠す（末尾の @container） */
+  container: queued / inline-size;
   margin-bottom: 6px;
   padding: 3px 6px;
   border: 1px solid var(--border);
@@ -94,6 +96,13 @@
   transform: none;
 }
 
+/* 増えたら一覧の中でスクロールする（5 件ほど。チャット欄を押し上げすぎない） */
+.queued-list {
+  max-height: 150px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .queued-row {
   position: relative;
   display: flex;
@@ -180,21 +189,28 @@
   white-space: nowrap;
 }
 
-/* 待ちの指示の添付（画像は小さなサムネイル） */
+/* 待ちの指示の添付（行では 1 つ目だけ。2 つ以上なら数を重ねる） */
 .queued-attachments {
   display: flex;
   flex: none;
   gap: 4px;
-  max-width: 45%;
-  overflow: hidden;
+  max-width: 40%;
+  margin-right: 4px;
+}
+
+/* 書き直している間は、すべてを並べて折り返す */
+.queued-attachments.all {
+  flex-wrap: wrap;
+  max-width: none;
+  margin: 2px 0 4px;
 }
 
 .queued-thumb {
+  position: relative;
   flex: none;
   width: 24px;
   height: 24px;
   padding: 0;
-  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg);
@@ -204,7 +220,24 @@
 .queued-thumb img {
   width: 100%;
   height: 100%;
+  border-radius: inherit;
   object-fit: cover;
+}
+
+/* ほかの添付の数（サムネイルの右下に重ねる） */
+.queued-thumb-count {
+  position: absolute;
+  right: -6px;
+  bottom: 0;
+  min-width: 15px;
+  padding: 0 3px;
+  border: 1px solid var(--bg-elev);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  color: var(--text);
+  background: var(--bg-active);
 }
 
 .queued-file {
@@ -214,13 +247,23 @@
   gap: 3px;
   max-width: 140px;
   padding: 2px 6px;
-  overflow: hidden;
   border-radius: var(--radius-sm);
   font-size: 11px;
   color: var(--muted);
   background: var(--bg-hover);
+}
+
+.queued-file-name {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.queued-file-count {
+  flex: none;
+  font-weight: 700;
+  color: var(--text);
 }
 
 /* 待ちの指示を書き直す欄 */
@@ -228,10 +271,30 @@
   align-items: flex-start;
 }
 
-.queued-editor {
+.queued-editor-body {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.queued-editor {
+  width: 100%;
   min-width: 0;
   padding: 4px 6px;
   font-size: 13px;
   resize: none;
+}
+
+/* 狭い欄: 案内・↑↓（並べ替えはつまみと右クリックで）・見出しのボタンの文字を隠す */
+@container queued (max-width: 440px) {
+  .queued-hint,
+  .queued-row .queued-move,
+  .queued-head-label {
+    display: none;
+  }
+
+  .queued-head-btn {
+    padding-inline: 6px;
+  }
 }
