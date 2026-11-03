@@ -8,6 +8,7 @@ import { api } from "../../api";
 import { useSave } from "../../hooks/useSave";
 import { Field } from "../Field";
 import { SaveActions } from "../SaveActions";
+import { TagEditor } from "./TagEditor";
 
 export function BasicInfo({ project }: { project: Project }) {
   const pick = (p: Project) => ({ name: p.name, description: p.description });
@@ -22,6 +23,7 @@ export function BasicInfo({ project }: { project: Project }) {
       <h2>基本情報</h2>
       <div className="form">
         <ColorField project={project} />
+        <TagEditor project={project} />
         <Field label="プロジェクト名">
           <input type="text" value={draft.name} maxLength={100} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
         </Field>
