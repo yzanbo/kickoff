@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, Check, ChevronRight, FileText, GripVertical, Pencil
 import { useState, type DragEvent, type KeyboardEvent } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api, attachmentUrl } from "../../api";
+import { isPreviewable, viewerImagesOf } from "./AttachmentChip";
 import { ImageViewer } from "../ImageViewer";
 import { confirmDialog } from "../../dialogs";
 import { cx } from "../../cx";
@@ -174,17 +175,24 @@ export function QueuedMessages({ runId, queue, busy }: { runId: number; queue: Q
   );
 }
 
-const PREVIEWABLE = /^image\/(png|jpeg|gif|webp)$/;
-
-/** 待ちの指示の添付（画像は小さなサムネイルで、押すと大きく表示。それ以外はファイルの印と名前） */
+/** 待ちの指示の添付（画像は小さなサムネイルで、押すと大きく表示し、同じ行の画像は前後に移って見られる。それ以外はファイルの印と名前） */
 function QueuedAttachments({ attachments }: { attachments: Attachment[] }) {
-  const [viewing, setViewing] = useState<Attachment>();
+  // 大きく見ている画像（同じ行の画像の中の位置）
+  const [viewing, setViewing] = useState<number>();
   if (attachments.length === 0) return null;
+  const images = attachments.filter((a) => isPreviewable(a.mime));
   return (
     <span className="queued-attachments">
       {attachments.map((a) =>
-        PREVIEWABLE.test(a.mime) ? (
-          <button key={a.id} type="button" className="queued-thumb" title={`${a.name}（大きく表示）`} aria-label={`${a.name} を大きく表示`} onClick={() => setViewing(a)}>
+        isPreviewable(a.mime) ? (
+          <button
+            key={a.id}
+            type="button"
+            className="queued-thumb"
+            title={`${a.name}（大きく表示）`}
+            aria-label={`${a.name} を大きく表示`}
+            onClick={() => setViewing(images.indexOf(a))}
+          >
             <img src={attachmentUrl(a)} alt="" />
           </button>
         ) : (
@@ -194,7 +202,7 @@ function QueuedAttachments({ attachments }: { attachments: Attachment[] }) {
           </span>
         ),
       )}
-      {viewing && <ImageViewer src={attachmentUrl(viewing)} name={viewing.name} onClose={() => setViewing(undefined)} />}
+      {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
     </span>
   );
 }

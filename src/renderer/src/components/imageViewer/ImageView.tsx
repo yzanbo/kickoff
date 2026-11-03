@@ -20,7 +20,18 @@ const ZOOM_IN_KEYS = new Set(["=", "+", ";"]);
  * 開き直す・前後の画像へ移るたびに作り直すので、そのたびに「画面に合わせる」に戻る。
  * ⌘+ / ⌘- / ⌘0（画面に合わせる）。Esc は <dialog> に任せる
  */
-export function ImageView({ image, onClose, actions }: { image: ViewerImage; onClose: () => void; actions?: ReactNode }) {
+export function ImageView({
+  image,
+  onClose,
+  actions,
+  nav,
+}: {
+  image: ViewerImage;
+  onClose: () => void;
+  actions?: ReactNode;
+  /** 前後の画像へ移る操作と、何枚目か（何枚もあるとき） */
+  nav?: ReactNode;
+}) {
   const zoom = useImageZoom();
 
   useWindowEvent(
@@ -42,6 +53,7 @@ export function ImageView({ image, onClose, actions }: { image: ViewerImage; onC
   return (
     <>
       <ViewerHead name={image.name} onClose={onClose}>
+        {nav}
         <span className="image-viewer-tools">
           <IconButton icon={ZoomOut} label="縮小" title="縮小（⌘-）" size={15} onClick={zoom.zoomOut} />
           <span className="image-viewer-zoom" aria-live="polite" aria-label={`倍率 ${zoom.percent}%`}>
