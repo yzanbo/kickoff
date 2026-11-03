@@ -287,7 +287,7 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
   gates[3]();
 });
 
-test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送る」はいまの作業を止めてからその指示を送る", async () => {
+test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送る」は作業を止めない（伝えられなければ列の先頭に移す）", async () => {
   const { gates, script } = gatedScript();
   const { store, runner, provider, project } = setup(script);
   const run = await runner.start({ projectId: project.id, prompt: "1" });
@@ -297,16 +297,19 @@ test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送
   runner.cancel(run.id);
   await until(() => gates.length === 2);
   assert.deepEqual(runner.queued(run.id), []);
-  // 作業中に「すぐ送る」→ 止めてから送る（ほかの待ちは残す）
+  // 作業中に「すぐ送る」→ 止めずに伝える。この偽のプロバイダーは発言を足せないので、列の先頭に移す（作業は止めない）
   await runner.queueMessage(run.id, "3");
   await runner.queueMessage(run.id, "4");
   assert.equal(await runner.sendQueuedNow(run.id, runner.queued(run.id)[1].id), true);
-  await until(() => gates.length === 3);
-  assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "2", "4"]);
-  assert.deepEqual(runner.queued(run.id).map((m) => m.text), ["3"]);
-  assert.equal(runner.removeQueued(run.id, runner.queued(run.id)[0].id), true);
+  assert.deepEqual(runner.queued(run.id).map((m) => m.text), ["4", "3"]);
+  assert.equal(gates.length, 2);
+  assert.equal(runner.removeQueued(run.id, runner.queued(run.id)[1].id), true);
   assert.equal(runner.removeQueued(run.id, "nope"), false);
   assert.equal(await runner.sendQueuedNow(run.id, "nope"), false);
+  // 終わったら、先頭に移した指示を送る
+  gates[1]();
+  await until(() => gates.length === 3);
+  assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "2", "4"]);
   gates[2]();
   await until(() => store.getRun(run.id)?.status === "completed");
 });

@@ -6,6 +6,7 @@ import { useTicker } from "../../hooks/useTicker";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Approval, BackgroundState, Run, RunEvent } from "../../../../core/types";
 import { backgroundWaitLabel } from "./backgroundLabel";
+import { BackgroundTasks } from "./BackgroundTasks";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { ReconnectRow, RetryLabel, type Connection } from "./ConnectionStatus";
@@ -217,6 +218,8 @@ export function RunTimeline({
           {busy && !waiting && (
             <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping, runningAgents, connection, background)}</Working>
           )}
+          {/* 裏で動いている作業（1 件ずつ止められる） */}
+          {busy && <BackgroundTasks runId={run.id} background={background} />}
           {/* 通信が切れて止まり、つながるのを待っている */}
           {!busy && connection.reconnect && <ReconnectRow runId={run.id} reconnect={connection.reconnect} />}
         </div>

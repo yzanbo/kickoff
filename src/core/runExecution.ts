@@ -8,7 +8,7 @@ import { errorMessage } from "./errors.js";
 import { currentBranch } from "./git.js";
 import { isInside } from "./paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./chatPolicy.js";
-import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./providers/types.js";
+import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult, RunControl } from "./providers/types.js";
 import type { Store } from "./store.js";
 import type { BackgroundState, Project, ProviderId, Run } from "./types.js";
 import type { UploadStore } from "./uploads.js";
@@ -22,6 +22,8 @@ export interface ExecutionDeps {
   bus?: Bus;
   /** 作業中のチャットの、裏で動いている作業の様子（チャットの詳細でも返すため、Runner が持つ） */
   background?: Map<number, BackgroundState>;
+  /** 作業中のチャットへの操作（止めずに発言を足す・裏の作業を止める。Runner が持つ） */
+  controls?: Map<number, RunControl>;
 }
 
 /** 待機列の 1 件 */
@@ -66,6 +68,7 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
     // 再試行・裏の作業の表示を消す（終わったので。Claude Code が終わると裏の作業も残らない）
     const run = store.getRun(runId);
     if (run) bus?.publish({ type: "run_retry", project_id: run.project_id, run_id: runId, retry: null });
+    deps.controls?.delete(runId);
     if (deps.background?.delete(runId) && run) bus?.publish({ type: "run_background", project_id: run.project_id, run_id: runId, background: null });
   }
 }
@@ -98,7 +101,7 @@ function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: st
 }
 
 /** プロバイダーからの知らせ: 途中経過は配るだけ、イベントは記録、承認依頼は回答を待つ（待つ間は waiting） */
-function callbacksFor({ store, approvals, bus, background }: ExecutionDeps, run: Run, signal: AbortSignal, compact: boolean): ProviderCallbacks {
+function callbacksFor({ store, approvals, bus, background, controls }: ExecutionDeps, run: Run, signal: AbortSignal, compact: boolean): ProviderCallbacks {
   const runId = run.id;
   const projectId = run.project_id;
   return {
@@ -107,6 +110,10 @@ function callbacksFor({ store, approvals, bus, background }: ExecutionDeps, run:
     },
     retry: (retry) => {
       bus?.publish({ type: "run_retry", project_id: projectId, run_id: runId, retry });
+    },
+    control: (control) => {
+      if (control) controls?.set(runId, control);
+      else controls?.delete(runId);
     },
     background: (state) => {
       background?.set(runId, state);

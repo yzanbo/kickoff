@@ -73,7 +73,7 @@ export function QueuedRow({
   onDrop: (e: DragEvent<HTMLDivElement>) => void;
 }) {
   const [menu, setMenu] = useState<{ x: number; y: number }>();
-  const sendLabel = busy ? "いまの作業を止めて、すぐ送る" : "すぐ送る";
+  const sendLabel = busy ? "止めずに、いま伝える" : "すぐ送る";
   return (
     <>
     <div

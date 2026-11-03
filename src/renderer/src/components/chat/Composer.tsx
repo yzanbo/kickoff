@@ -31,7 +31,7 @@ interface Props {
   /** 作業中だけ、送信ボタンの左に出すもの（送り方の切り替えなど） */
   busyControls?: ReactNode;
   /**
-   * 作業中に送ったとき（渡さなければ、作業中は送れない）。mode はキーで決めたとき（⌘Enter = 割り込む・⌘⇧Enter = ためておく）。
+   * 作業中に送ったとき（渡さなければ、作業中は送れない）。mode はキーで決めたとき（⌘Enter = 伝える・⌘⇧Enter = ためておく）。
    * なければ、チャット欄の切り替えのとおり
    */
   onQueue?: (text: string, attachments: Attachment[], mode?: QueueSendMode) => Promise<void>;
@@ -53,11 +53,11 @@ const COMPOSER_MAX_HEIGHT = 240;
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
 const TEXT_CHANGE_DELAY_MS = 300;
 
-/** 作業中に送るときの扱い（ためておく = 終わったら送る / 割り込む = いまの作業を止めてすぐ送る） */
-export type QueueSendMode = "queue" | "interrupt";
+/** 作業中に送るときの扱い（伝える = 止めずに、いまのやり取りに足す / ためておく = 終わったら送る） */
+export type QueueSendMode = "tell" | "queue";
 
-/** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 割り込む（どちらでもなければ、チャット欄の切り替えのとおり） */
-const sendModeOf = (e: KeyboardEvent): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "interrupt") : undefined);
+/** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり） */
+const sendModeOf = (e: KeyboardEvent): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);
 
 /** 送信の Enter か（Shift+Enter は改行。⌘⇧Enter は送り方を決めた送信。日本語入力の変換を確定する Enter は除く） */
 const isSendEnter = (e: KeyboardEvent) => e.key === "Enter" && (!e.shiftKey || e.metaKey) && !e.nativeEvent.isComposing && e.keyCode !== 229;

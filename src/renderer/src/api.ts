@@ -248,9 +248,14 @@ export const api = {
   /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。ファイルの変更は戻さない） */
   rewindRun: (runId: number, eventId: number, text: string, options: RunOptions = {}) =>
     request<Run>("POST", `/api/runs/${runId}/rewind`, { event_id: eventId, text, options }),
-  /** 割り込んで送る（作業中なら、待ちの列には入れずに、いまの作業を止めてからすぐ送る） */
-  interrupt: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
-    request<{ ok: true }>("POST", `/api/runs/${runId}/interrupt`, { text, options, attachments }),
+  /**
+   * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）。
+   * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った
+   */
+  tellRun: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
+    request<{ result: "told" | "queued" | "sent" }>("POST", `/api/runs/${runId}/tell`, { text, options, attachments }),
+  /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
+  stopBackgroundTask: (runId: number, taskId: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/background/${encodeURIComponent(taskId)}/stop`),
   /** 待ちの列を、終わっても自動で送らずに止めておくか（戻すと、作業中でなければ先頭をすぐ送る） */
   setQueuePaused: (runId: number, paused: boolean) =>
     request<{ paused: boolean; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/paused`, { paused }),

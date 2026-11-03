@@ -60,6 +60,14 @@ export interface ApprovalRequest {
 /** プロバイダーから Kickoff へ通知する実行中イベント（DB にはこの形のまま保存される） */
 type AgentEvent = Exclude<RunEventData, { type: "user" | "approval" | "approval_resolved" | "result" }>;
 
+/** 作業中のチャットへの操作（ストリーミング入力が開いている間だけ） */
+export interface RunControl {
+  /** 作業を止めずに発言を足す（いまの手順の切れ目でメインのエージェントが読む）。入力が閉じていれば false */
+  tell(text: string): boolean;
+  /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
+  stopTask(taskId: string): Promise<void>;
+}
+
 export interface ProviderCallbacks {
   emit(event: AgentEvent): void;
   /** 返答の文字を生成されたそばから渡す（画面のストリーミング表示用。保存しない） */
@@ -71,6 +79,8 @@ export interface ProviderCallbacks {
   retry?(info: ApiRetryInfo | null): void;
   /** 裏で動いている作業・メインの返答が終わったかが変わったとき（保存しない） */
   background?(state: BackgroundState): void;
+  /** 作業中のチャットへの操作を渡す（終わったら null） */
+  control?(control: RunControl | null): void;
 }
 
 export interface ProviderRunResult {
