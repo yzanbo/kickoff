@@ -101,15 +101,53 @@
   white-space: nowrap;
 }
 
-/* 見出しの「タグ」: 絞り込んでいる間は、ひと目で分かるようアクセントの色にする */
-.head-chip.filtering {
+/* 見出しの 3 行目「タグ」（TagFilterRow）: タグの小さなボタンを折り返して並べ、押すたびに絞り込みを付け外しする */
+.tag-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 2 / -1;
+  align-items: center;
+  gap: 4px;
+  /* 見出しの格子の列の幅を、タグを 1 行に並べた幅で押し広げないよう、中身の幅を数えさせずに列の幅いっぱいに広げる */
+  width: 0;
+  min-width: 100%;
+  padding: 2px 0;
+}
+
+.tag-filter-pill {
+  max-width: 100%;
+  padding: 1px 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.tag-filter-pill:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.tag-filter-pill.untagged {
+  border-style: dashed;
+}
+
+/* 選んでいるタグ: アクセントの色で塗る（絞り込んでいることがひと目で分かる） */
+.tag-filter-pill.on {
   border-color: var(--accent);
+  color: var(--accent-bright);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
-.head-chip.filtering .head-chip-label,
-.head-chip.filtering .head-chip-icon {
-  color: var(--accent-bright);
+.tag-filter-clear {
+  width: 20px;
+  height: 20px;
 }
 
 /* 全プロジェクトの画面・⌘⇧A の、タグで絞り込んでいる印（押すと外す） */
@@ -138,4 +176,13 @@
   width: 20px;
   height: 20px;
   color: inherit;
+}
+
+/* タグが折り返したときも、行の名前「タグ」は 1 段目にそろえる */
+.tag-filter-row {
+  align-items: start;
+}
+
+.tag-filter-row .project-list-row-label {
+  padding-top: 4px;
 }
