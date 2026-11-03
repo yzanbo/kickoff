@@ -14,6 +14,8 @@
 }
 
 .palette-input input {
+  flex: 1;
+  min-width: 0;
   padding: 0;
   border: none;
   font-size: 15px;
@@ -69,3 +71,14 @@
   color: var(--muted);
 }
 
+
+/* ⌘⇧A の一覧の、状態ごとのまとまりの見出し（色はカンバンの列と同じ） */
+.palette-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
