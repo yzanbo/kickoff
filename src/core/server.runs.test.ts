@@ -348,6 +348,53 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   assert.equal(runner.reconnectState(runId), null);
 });
 
+test("通信の切断: 通信で止まったサブエージェントは、自動で再開するときに名前と ID を添えて続きから再開を頼む（自分で止めたものは頼まない）", async () => {
+  const { call, project, runner, provider, network, store } = setup();
+  network.online = false;
+  provider.networkFailures = 1;
+  // 裏で動かした 2 件: 調査は通信で親ごと止まり、レビューは自分で止めた
+  provider.emits = [
+    { type: "tool_use", id: "tu1", name: "Agent", input: { description: "調査", prompt: "調べて" } },
+    { type: "tool_result", tool_use_id: "tu1", content: "Async agent launched successfully.\nagentId: a1", is_error: false },
+    { type: "subagent", task_id: "a1", tool_use_id: "tu1", description: "調査", status: "running" },
+    { type: "tool_use", id: "tu2", name: "Agent", input: { description: "レビュー" } },
+    { type: "tool_result", tool_use_id: "tu2", content: "Async agent launched successfully.\nagentId: a2", is_error: false },
+    { type: "subagent", task_id: "a2", tool_use_id: "tu2", description: "レビュー", status: "stopped" },
+  ];
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => runner.reconnectState(runId) !== null);
+  provider.emits = [];
+  const events = store.listEvents(runId);
+  // 実行の終わりの記録に通信の切断の印。お知らせには、止まったサブエージェントの名前を添える
+  assert.ok(events.some((e) => e.type === "result" && (e.data as { network?: boolean }).network === true));
+  assert.ok(events.some((e) => e.type === "notice" && /通信で止まったサブエージェント 1 件（調査）/.test(JSON.stringify(e.data))));
+  // 作業の終わりとともに止まった、という（通信でないときの）お知らせは出さない
+  assert.ok(!events.some((e) => e.type === "notice" && /作業の終わりとともに止まりました/.test(JSON.stringify(e.data))));
+
+  network.online = true;
+  await until(() => provider.prompts.length === 2 && !runner.isBusy(runId));
+  const resume = provider.prompts[1];
+  assert.ok(resume.startsWith(RESUME_PROMPT));
+  assert.match(resume, /「調査」（ID: a1）/);
+  assert.doesNotMatch(resume, /a2/);
+});
+
+test("作業の終わり: 終わりの知らせがないまま止まったサブエージェントは、通信以外ならお知らせを残す", async () => {
+  const { call, project, provider, store } = setup();
+  provider.emits = [
+    { type: "tool_use", id: "tu1", name: "Agent", input: { description: "調査" } },
+    { type: "tool_result", tool_use_id: "tu1", content: "Async agent launched successfully.", is_error: false },
+  ];
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => store.getRun(runId)?.status === "completed");
+  assert.ok(store.listEvents(runId).some((e) => e.type === "notice" && /サブエージェント 1 件（調査）/.test(JSON.stringify(e.data))));
+  // 次の実行では、前の実行のものを数え直さない
+  provider.emits = [];
+  await call("POST", `/api/runs/${runId}/messages`, { text: "次" });
+  await until(() => store.listEvents(runId).filter((e) => e.type === "result").length === 2);
+  assert.equal(store.listEvents(runId).filter((e) => e.type === "notice" && /作業の終わりとともに/.test(JSON.stringify(e.data))).length, 1);
+});
+
 test("通信の切断: 続けて何度も止まったら、再開するかを聞き（回答待ち）、再開するで数え直して送る", async () => {
   const { call, project, runner, provider, network, approvals } = setup();
   network.online = true;

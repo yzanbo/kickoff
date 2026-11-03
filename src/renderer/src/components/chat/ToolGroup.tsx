@@ -2,7 +2,7 @@ import { ChevronRight, Wrench } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
 import { cx } from "../../cx";
 import { BashOutput } from "./BashOutput";
-import { cleanSubagentReport, isSubagentTool } from "./subagentList";
+import { cleanSubagentReport, isSubagentTool } from "../../../../core/subagents";
 import { summarizeTools, type ToolCall } from "./timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
 

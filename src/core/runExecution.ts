@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { unfinishedBackgroundAgents } from "./backgroundTasks.js";
 import type { ApprovalCenter } from "./approvals.js";
 import { isUnreadEvent } from "./board.js";
 import type { Bus } from "./bus.js";
@@ -10,6 +9,7 @@ import { isInside } from "./paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./chatPolicy.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult, RunControl } from "./providers/types.js";
 import type { Store } from "./store.js";
+import { networkStoppedSubagents, unfinishedSubagents } from "./subagents.js";
 import type { BackgroundState, Project, ProviderId, Run } from "./types.js";
 import type { UploadStore } from "./uploads.js";
 
@@ -39,6 +39,14 @@ export interface RunOutcome {
   status: "completed" | "failed" | "cancelled";
   /** 通信の切断で失敗した（つながったら自動で再開する） */
   network: boolean;
+  /** 通信の切断で止まったサブエージェント（再開するときに、続きから再開するよう頼む） */
+  stoppedAgents?: StoppedAgent[];
+}
+
+/** 通信の切断で止まったサブエージェント（SendMessage の宛先と名前） */
+export interface StoppedAgent {
+  agentId: string;
+  description: string;
 }
 
 /**
@@ -54,10 +62,15 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
     // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）
     const branch = await currentBranch(cwd);
     store.updateRun(runId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
+    // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
+    const since = store.listEvents(runId).at(-1)?.id ?? 0;
 
     const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, signal, compact), signal);
-    applyResult(store, runId, result, compact);
-    return { status: result.status, network: result.status === "failed" && Boolean(result.network) };
+    const network = result.status === "failed" && Boolean(result.network);
+    applyResult(store, runId, result, compact, since, network);
+    if (!network) return { status: result.status, network };
+    const stoppedAgents = networkStoppedSubagents(store.listEvents(runId), since).map((s) => ({ agentId: s.agentId!, description: s.description }));
+    return { status: result.status, network, stoppedAgents };
   } catch (e) {
     const message = errorMessage(e);
     // 失敗も、見るまでは未読にする
@@ -151,7 +164,7 @@ function callbacksFor({ store, approvals, bus, background, controls }: Execution
 }
 
 /** 結果をチャットに反映する（状態・費用・回数・コンテキスト・未読） */
-function applyResult(store: Store, runId: number, result: ProviderRunResult, compact: boolean) {
+function applyResult(store: Store, runId: number, result: ProviderRunResult, compact: boolean, since: number, network: boolean) {
   const current = store.getRun(runId)!;
   store.updateRun(runId, {
     status: result.status,
@@ -170,13 +183,14 @@ function applyResult(store: Store, runId: number, result: ProviderRunResult, com
     // 終わったら「未読」にする（中断・要約のときは除く）。最後の結果を一番下まで見ると消える
     attention: compact || result.status === "cancelled" ? current.attention : true,
   });
-  // 裏で動かしたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる
-  // （Claude Code のプロセスが終わるため。見た目は進んでいるようで、実は止まっているのを防ぐ）
-  const stopped = compact ? [] : unfinishedBackgroundAgents(store.listEvents(runId));
+  // この実行で始めたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる
+  // （Claude Code のプロセスが終わるため。見た目は進んでいるようで、実は止まっているのを防ぐ）。
+  // 通信の切断のときは、つながってから再開する段取り（runReconnect）が知らせる
+  const stopped = compact || network ? [] : unfinishedSubagents(store.listEvents(runId), since).map((s) => s.description);
   if (stopped.length > 0) {
     store.addEvent(runId, {
       type: "notice",
-      message: `裏で動かしていたサブエージェント ${stopped.length} 件（${stopped.join("、")}）は、作業の終わりとともに止まりました。続けるときは、もう一度頼んでください。`,
+      message: `サブエージェント ${stopped.length} 件（${stopped.join("、")}）は、作業の終わりとともに止まりました。続けるときは、サブエージェントの一覧の「再開」を押してください。`,
     });
   }
   // 要約は compact イベントだけを残す（失敗したときは理由を残す）
@@ -187,6 +201,7 @@ function applyResult(store: Store, runId: number, result: ProviderRunResult, com
       text: result.status === "completed" ? result.result : result.error,
       cost_usd: result.costUsd,
       turns: result.turns,
+      ...(network ? { network: true } : {}),
       // 分岐・巻き戻しの起点（最後まで終わったときだけ。止めた作業の最後のメッセージはセッションに残らないことがある）
       ...(result.status === "completed" && result.lastMessageId && result.sessionId
         ? { session_id: result.sessionId, message_id: result.lastMessageId }

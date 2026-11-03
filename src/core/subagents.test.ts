@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "../../../../core/types.js";
-import { cleanSubagentReport, collectSubagents, subagentReport } from "./subagentList.js";
+import type { RunEvent } from "./types.js";
+import { cleanSubagentReport, collectSubagents, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents.js";
 
 const ev = (id: number, type: RunEvent["type"], data: object): RunEvent =>
   ({ id, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;
@@ -116,4 +116,84 @@ test("サブエージェント: 裏で動いているものの一覧から消え
   assert.deepEqual(collectSubagents(events, {}, true, new Set(["a2"])).map((s) => s.status), ["completed", "running", "running"]);
   // Claude Code が終わった: 報告を渡したものは完了
   assert.deepEqual(collectSubagents(events, {}, false).map((s) => s.status), ["completed", "stopped", "stopped"]);
+});
+
+test("サブエージェント: API のエラー（通信の切断）で終わったものは、通信の切断で止まったとする（ほかの失敗・自分で止めたものは違う）", () => {
+  const events = [
+    ev(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "通信", prompt: "調べて" } }),
+    ev(2, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "通信", status: "running" }),
+    ev(3, "tool_use", { id: "tu2", name: "Agent", input: { description: "ほかの失敗" } }),
+    ev(4, "subagent", { task_id: "a2", tool_use_id: "tu2", description: "ほかの失敗", status: "running" }),
+    ev(5, "tool_use", { id: "tu3", name: "Agent", input: { description: "止めた" } }),
+    ev(6, "subagent", { task_id: "a3", tool_use_id: "tu3", description: "止めた", status: "running" }),
+    ev(7, "subagent", {
+      task_id: "a1",
+      tool_use_id: "tu1",
+      description: "",
+      status: "failed",
+      summary: "Agent terminated early due to an API error: API Error: Connection dropped (ECONNRESET).",
+    }),
+    ev(8, "subagent", { task_id: "a2", tool_use_id: "tu2", description: "", status: "failed", summary: "テストが通りませんでした" }),
+    ev(9, "subagent", { task_id: "a3", tool_use_id: "tu3", description: "", status: "stopped" }),
+  ];
+  const list = collectSubagents(events, {}, false);
+  assert.deepEqual(list.map((s) => [s.description, s.status, s.network, s.endEventId]), [
+    ["通信", "failed", true, 7],
+    ["ほかの失敗", "failed", false, 8],
+    ["止めた", "stopped", false, 9],
+  ]);
+  assert.equal(list[0].prompt, "調べて");
+  assert.deepEqual(networkStoppedSubagents(events, 0).map((s) => s.agentId), ["a1"]);
+  // 止まったのが sinceEventId 以前（前の実行）なら数えない
+  assert.deepEqual(networkStoppedSubagents(events, 7), []);
+});
+
+test("サブエージェント: 通信の切断で親ごと終わったときに動いていたものは、通信の切断で中断。再開したら印を外す", () => {
+  const events = [
+    ev(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "裏" } }),
+    ev(2, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "裏", status: "running" }),
+    ev(3, "tool_result", { tool_use_id: "tu1", is_error: false, content: "Async agent launched successfully." }),
+    ev(4, "result", { status: "failed", text: "API Error: Connection error.", network: true }),
+  ];
+  const [stopped] = collectSubagents(events, {}, false);
+  assert.deepEqual([stopped.status, stopped.network, stopped.endEventId], ["stopped", true, 4]);
+  assert.deepEqual(networkStoppedSubagents(events, 3).map((s) => s.agentId), ["a1"]);
+  // 以前の記録（network の印がない）でも、失敗の文で見分ける
+  const legacy = [...events.slice(0, 3), ev(4, "result", { status: "failed", text: "Unable to connect to API (ENOTFOUND)" })];
+  assert.equal(collectSubagents(legacy, {}, false)[0].network, true);
+  // 自分で止めた（中断）・通信以外の失敗なら、通信の印は付けない
+  assert.equal(collectSubagents([...events.slice(0, 3), ev(4, "result", { status: "cancelled" })], {}, false)[0].network, false);
+  // SendMessage で再開した: 作業中に戻り、通信の印も外れる。終わったら完了
+  const resumed = [
+    ...events,
+    ev(5, "user", { text: "続けて" }),
+    ev(6, "tool_use", { id: "sm1", name: "SendMessage", input: { to: "a1" } }),
+    ev(7, "subagent", { task_id: "a1", tool_use_id: "sm1", description: "裏", status: "running" }),
+  ];
+  const [again] = collectSubagents(resumed, {}, true);
+  assert.deepEqual([again.status, again.network, again.startEventId], ["running", undefined, 7]);
+  assert.deepEqual(networkStoppedSubagents(resumed, 0), []);
+});
+
+test("サブエージェント: 実行の終わりに終わっていないものは、その実行で始めた分だけ返す（報告を渡したもの・前の実行のものは除く）", () => {
+  const events = [
+    ev(1, "tool_use", { id: "old", name: "Agent", input: { description: "前の実行" } }),
+    ev(2, "tool_result", { tool_use_id: "old", is_error: false, content: "Async agent launched" }),
+    ev(3, "user", { text: "いま" }),
+    ev(4, "tool_use", { id: "a", name: "Agent", input: { description: "タグ付け" } }),
+    ev(5, "tool_result", { tool_use_id: "a", is_error: false, content: "Async agent launched successfully." }),
+    ev(6, "tool_use", { id: "b", name: "Agent", input: { description: "音声入力" } }),
+    ev(7, "tool_result", { tool_use_id: "b", is_error: false, content: "Async agent launched successfully." }),
+    ev(8, "subagent", { task_id: "tb", tool_use_id: "b", description: "", status: "completed" }),
+    ev(9, "tool_use", { id: "c", name: "Agent", input: { description: "報告済み" } }),
+    ev(10, "tool_result", { tool_use_id: "c", is_error: false, content: "Async agent launched successfully." }),
+    ev(11, "tool_use", { id: "h", name: "SubagentHandback", parent: "c", input: { message: "報告" } }),
+    // 「伝える」で足した発言のあとも、同じ実行の分として数える
+    ev(12, "user", { text: "伝えた" }),
+    ev(13, "tool_use", { id: "d", name: "Agent", input: { description: "待つ形" } }),
+  ];
+  assert.deepEqual(unfinishedSubagents(events, 3).map((s) => s.description), ["タグ付け", "待つ形"]);
+  // 自分で止めた（終わりの知らせがある）ものは、作業の終わりで止まったものではない
+  const stoppedByUser = [...events, ev(14, "subagent", { task_id: "ta", tool_use_id: "a", description: "", status: "stopped" })];
+  assert.deepEqual(unfinishedSubagents(stoppedByUser, 3).map((s) => s.description), ["待つ形"]);
 });

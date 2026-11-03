@@ -29,7 +29,7 @@ export function SubagentPane({ projectId, runId, toolUseId }: { projectId: numbe
   };
   return (
     <div className="subagent-pane">
-      <SubagentView entry={entry} events={events} rel={rel} busy={busy} />
+      <SubagentView runId={run.id} entry={entry} events={events} rel={rel} busy={busy} />
       <div className="run-composer subagent-composer">
         {agentId ? (
           <Composer

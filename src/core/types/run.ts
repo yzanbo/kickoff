@@ -192,7 +192,17 @@ export type RunEventData =
   | { type: "approval"; approval_id: string; kind: ApprovalKind; tool_name: string; title?: string }
   | { type: "approval_resolved"; approval_id: string; action: ApprovalDecision["action"] }
   /** 作業の終わり。session_id と message_id: その時点の会話の位置（ここから分岐するときに使う。分岐したチャットに写しても元の会話を指す） */
-  | { type: "result"; status: RunStatus; text?: string; cost_usd?: number; turns?: number; session_id?: string; message_id?: string }
+  | {
+      type: "result";
+      status: RunStatus;
+      text?: string;
+      cost_usd?: number;
+      turns?: number;
+      session_id?: string;
+      message_id?: string;
+      /** 通信の切断で失敗した（そのとき動いていたサブエージェントも通信で止まった） */
+      network?: boolean;
+    }
   | { type: "error"; message: string }
   | { type: "notice"; message: string }
   /** 会話を要約してコンテキストを空けた（manual: 手で圧縮 / auto: 上限に近づいて自動で）。前後のトークン数 */

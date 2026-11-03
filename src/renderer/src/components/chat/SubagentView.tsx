@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { RunEvent } from "../../../../core/types";
 import { formatTokens } from "../../format";
-import { SUBAGENT_STATUS_LABELS, subagentReport, type SubagentEntry } from "./subagentList";
+import { subagentReport, type SubagentEntry } from "../../../../core/subagents";
+import { subagentStatusLabel } from "./subagentList";
+import { SubagentRecovery } from "./SubagentRecovery";
 import { relayedText } from "./subagentRelay";
 import { groupEvents } from "./timelineItems";
 import { Markdown } from "../Markdown";
@@ -12,7 +14,19 @@ import { TimelineItems, Working } from "./Timeline";
  * タブから送った追加の指示（メインのチャットの自分の発言）は、送った時点の位置に自分の発言として出す。
  * 実行中は追記されていき、そのあいだは下までスクロールする
  */
-export function SubagentView({ entry, events, rel, busy }: { entry: SubagentEntry; events: RunEvent[]; rel: (s: string) => string; busy: boolean }) {
+export function SubagentView({
+  runId,
+  entry,
+  events,
+  rel,
+  busy,
+}: {
+  runId: number;
+  entry: SubagentEntry;
+  events: RunEvent[];
+  rel: (s: string) => string;
+  busy: boolean;
+}) {
   // メインのチャットの、このサブエージェントへの追加の指示を、サブエージェントの流れの自分の発言として混ぜる
   const items = useMemo(() => {
     const agentId = entry.agentId;
@@ -25,8 +39,7 @@ export function SubagentView({ entry, events, rel, busy }: { entry: SubagentEntr
       : events;
     return groupEvents(mixed, entry.key);
   }, [events, entry.key, entry.agentId]);
-  const call = events.find((e) => e.type === "tool_use" && (e.data as { id: string }).id === entry.key);
-  const prompt = (call?.data as { input?: { prompt?: string } } | undefined)?.input?.prompt;
+  const prompt = entry.prompt;
   const resultText = subagentReport(entry, events);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +49,7 @@ export function SubagentView({ entry, events, rel, busy }: { entry: SubagentEntr
     if (el && entry.status === "running") el.scrollTop = el.scrollHeight;
   }, [items.length, entry.status]);
 
-  const meta = [entry.subagentType ?? "general-purpose", entry.tokens !== undefined ? `${formatTokens(entry.tokens)} tokens` : null, SUBAGENT_STATUS_LABELS[entry.status]];
+  const meta = [entry.subagentType ?? "general-purpose", entry.tokens !== undefined ? `${formatTokens(entry.tokens)} tokens` : null, subagentStatusLabel(entry)];
 
   return (
     <div className="subagent-detail" aria-label={`サブエージェント: ${entry.description}`}>
@@ -45,6 +58,7 @@ export function SubagentView({ entry, events, rel, busy }: { entry: SubagentEntr
           <span className="subagent-detail-name">{entry.description}</span>
           <span className="muted small">{meta.filter(Boolean).join(" · ")}</span>
         </div>
+        <SubagentRecovery runId={runId} entry={entry} />
       </header>
       <div className="subagent-detail-body timeline" ref={bodyRef}>
         <div className="timeline-inner">

@@ -1,5 +1,5 @@
 // ツールの呼び出しを人が読める文にする（タイムラインのツールの行・実行中の表示・承認カードで共通）
-import { isSubagentTool } from "./subagentList";
+import { isSubagentTool } from "../../../../core/subagents";
 
 type Input = Record<string, unknown>;
 
