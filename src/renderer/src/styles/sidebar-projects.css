@@ -239,7 +239,8 @@ button.project-switch:hover,
 
 .workspaces.rail .workspace-switcher {
   flex-direction: column;
-  width: 44px;
+  /* 丸（28px）の左右に、角の件数（はみ出し 6px）と選んだときの拡大の分を空ける */
+  width: 52px;
   height: auto;
   padding: 6px 0;
   border-top: none;
@@ -248,6 +249,9 @@ button.project-switch:hover,
 
 .workspaces.rail .workspace-dots {
   flex-direction: column;
+  /* 帯の幅いっぱいに広げ、角の件数が切れないよう左右も空ける */
+  align-self: stretch;
+  padding: 8px 6px;
   justify-content: flex-start;
   align-items: center;
   overflow-x: hidden;
