@@ -9,7 +9,7 @@ import { useTicker } from "../../hooks/useTicker";
 import { subagentsArchivedKey } from "../../storageKeys";
 import { modelDisplayName } from "../../models";
 import { collectSubagents, type SubagentEntry } from "../../../../core/subagents";
-import { subagentStatusLabel } from "./subagentList";
+import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel } from "./subagentList";
 import { activityOf, activityText, latestOf } from "./stall";
 import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "../ClaudeMark";
@@ -79,6 +79,9 @@ export function SubagentChip({
   // 通信の切断で止まったものは、作業の失敗と分けて数える（「再開」で続きから戻せる）
   const failed = visible.filter((s) => s.status === "failed" && !s.network).length;
   const network = visible.filter((s) => s.network).length;
+  // 報告が親に届いたか（受け取り待ち・届いていない）。届いていないものは「報告を親に渡す」で渡し直せる
+  const awaiting = visible.filter((s) => s.status === "completed" && s.delivery === "pending").length;
+  const undelivered = visible.filter((s) => s.status === "completed" && s.delivery === "lost").length;
   const finished = visible.filter((s) => s.status !== "running");
 
   const archive = (keys: string[]) => saveArchived(new Set([...archived, ...keys]));
@@ -111,9 +114,7 @@ export function SubagentChip({
           <span className="subagent-title">{s.description}</span>
           <span className="subagent-meta">
             {meta.join(" · ")}
-            {s.status !== "completed" && (
-              <span className={`subagent-status status-${s.network ? "network" : s.status}`}> · {subagentStatusLabel(s)}</span>
-            )}
+            {showsSubagentStatus(s) && <span className={`subagent-status ${subagentStatusClass(s)}`}> · {subagentStatusLabel(s)}</span>}
             {s.status === "running" && s.lastTool && <span> · {s.lastTool}</span>}
             {s.status === "running" && <ActivityNote entry={s} />}
           </span>
@@ -157,6 +158,8 @@ export function SubagentChip({
         {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}
         {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}
         {network > 0 && <span className="chip-network"> · {network} 件通信で中断</span>}
+        {awaiting > 0 && <span className="chip-awaiting"> · {awaiting} 件受け取り待ち</span>}
+        {undelivered > 0 && <span className="chip-network"> · {undelivered} 件届かず</span>}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {open && (

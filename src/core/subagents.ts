@@ -34,6 +34,20 @@ export interface SubagentEntry {
   lastActivityAt?: string;
   /** 結果を待っているツール（呼んで、まだ結果が届いていない。長いコマンドを実行中など） */
   pendingTool?: string;
+  /**
+   * 報告が親に届いたか（完了したものだけ）: received = 親が受け取った（待つ形ならツールの結果が返った、裏で動かしたなら
+   * 報告のあとに親が動いた）/ pending = 報告を送ったが、親はまだ動いていない / lost = 親が動かないまま作業が終わった
+   */
+  delivery?: "received" | "pending" | "lost";
+  /** 親に届かなかった報告の本文（親に渡し直すときに使う） */
+  undeliveredReport?: string;
+  /** 1 回の返答で書ける量（出力のトークン数）の上限で止まった（失敗のときだけ） */
+  outputLimit?: boolean;
+}
+
+/** 失敗の文が、出力の上限（max_output_tokens）で止まったものか（通信の切断とは別。同じやり方では、再開しても同じところで止まる） */
+export function isOutputLimitError(message: string | null | undefined): boolean {
+  return Boolean(message) && /max_output_tokens|output token maximum/i.test(message!);
 }
 
 /** Agent / Task ツールの結果の文から、サブエージェントの ID を取り出す（以前の記録で、作業 ID の知らせが残っていないとき） */
@@ -64,6 +78,24 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
   // 通信の切断で止まったもの（行のキー）
   const network = new Set<string>();
   const markNetwork = (key: string, yes: boolean) => (yes ? network.add(key) : network.delete(key));
+  // 報告の受け渡し: 報告を送ってから親がまだ動いていないもの（行のキー → 送った記録）と、受け渡しの様子
+  const awaitingParent = new Set<string>();
+  const delivery = new Map<string, NonNullable<SubagentEntry["delivery"]>>();
+  const reported = (key: string) => {
+    if (delivery.get(key) === "received" || awaitingParent.has(key)) return;
+    awaitingParent.add(key);
+    delivery.set(key, "pending");
+  };
+  const settleAwaiting = (state: "received" | "lost") => {
+    for (const key of awaitingParent) delivery.set(key, state);
+    awaitingParent.clear();
+  };
+  // 親（メインのエージェント）が動いた記録か（サブエージェントの中の発言・ツールは除く）
+  const isParentActivity = (e: RunEvent) => {
+    if (e.type !== "text" && e.type !== "thinking" && e.type !== "tool_use") return false;
+    const d = e.data as { parent?: string; sub?: boolean };
+    return !d.parent && !d.sub;
+  };
   // サブエージェントの中の動き（parent = 起動した呼び出し ID）: 最後に動いた時刻と、結果を待っているツール
   const touch = (e: RunEvent) => {
     const d = e.data as { parent?: string; name?: string };
@@ -74,13 +106,18 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
   };
   for (const e of events) {
     if (e.type === "text" || e.type === "thinking" || e.type === "tool_result") touch(e);
+    // 報告を送ったあとに親が動いた: 親は報告を受け取っている（Claude Code は報告を親の次の手順の入力として渡す）
+    if (awaitingParent.size > 0 && isParentActivity(e)) settleAwaiting("received");
     if (e.type === "tool_use") {
       const d = e.data as { id: string; name: string; input?: { description?: string; subagent_type?: string; model?: string; prompt?: string } };
       if (!isSubagentTool(d.name)) {
         touch(e);
         // サブエージェントが報告を渡した（終わりの知らせを取りこぼしても、終わったと分かる）
         const parent = (e.data as { parent?: string }).parent;
-        if (d.name === "SubagentHandback" && parent) handedBack.add(parent);
+        if (d.name === "SubagentHandback" && parent) {
+          handedBack.add(parent);
+          if (map.has(parent)) reported(parent);
+        }
         otherTools.add(d.id);
         continue;
       }
@@ -106,6 +143,12 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
         entry.status = d.is_error ? "failed" : "completed";
         entry.endEventId = e.id;
         markNetwork(entry.key, d.is_error && typeof d.content === "string" && isNetworkError(d.content));
+        entry.outputLimit = d.is_error && typeof d.content === "string" && isOutputLimitError(d.content);
+        // 待つ形: ツールの結果として親に返った（報告を受け取っている）
+        if (!d.is_error) {
+          awaitingParent.delete(entry.key);
+          delivery.set(entry.key, "received");
+        }
       }
     } else if (e.type === "subagent") {
       const d = e.data as unknown as SubagentInfo;
@@ -120,11 +163,16 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
         if (resumed) {
           backgrounded.add(key);
           network.delete(key);
+          // 始まり直したので、前の回の受け渡しは数えない
+          awaitingParent.delete(key);
+          delivery.delete(key);
         }
         handedBack.delete(key);
       } else {
         // API のエラー（通信の切断）で終わった: Claude Code の知らせの要約に、そのエラーの文が入る
         markNetwork(key, d.status === "failed" && isNetworkError(d.summary));
+        // 完了の知らせ: 報告を送った（親が受け取ったかは、このあと親が動いたかで決める）
+        if (d.status === "completed" && (map.has(key) || !otherTools.has(own))) reported(key);
       }
       const entry = map.get(key) ?? { key, description: d.description || "サブエージェント", status: d.status };
       // 再開した回は、ここから始まり直す
@@ -143,8 +191,11 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
         durationMs: d.duration_ms ?? entry.durationMs,
         agentId: d.task_id || entry.agentId,
         summary: d.summary ?? entry.summary,
+        outputLimit: d.status === "failed" ? isOutputLimitError(d.summary) : undefined,
       });
     } else if (e.type === "result") {
+      // 報告を送ったのに、親が動かないまま作業が終わった: 報告は親に届いていない
+      settleAwaiting("lost");
       // 実行の終わり。通信の切断で失敗したら、そのとき動いていたものは通信で止まった。
       // それ以外の終わり方（自分で止めた・最後まで終わった）なら、動いていたものの通信の印は外す
       const d = e.data as { status?: string; text?: string; network?: boolean };
@@ -169,7 +220,12 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
       (!busy || (live !== undefined && backgrounded.has(s.key) && s.agentId !== undefined && !live.has(s.agentId)))
         ? { ...s, status: handedBack.has(s.key) ? "completed" : "stopped" }
         : s;
-    return settled.status === "failed" || settled.status === "stopped" ? { ...settled, network: network.has(s.key) } : settled;
+    if (settled.status === "failed" || settled.status === "stopped") return { ...settled, network: network.has(s.key) };
+    if (settled.status !== "completed") return settled;
+    // 受け渡し: 作業が終わっていて、まだ親が動いていなければ届いていない（作業中なら受け取り待ち）
+    const state = delivery.get(s.key) ?? "received";
+    const final = state === "pending" && !busy ? "lost" : state;
+    return final === "lost" ? { ...settled, delivery: final, undeliveredReport: subagentReport(settled, events) } : { ...settled, delivery: final };
   });
 }
 
