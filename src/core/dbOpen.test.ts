@@ -5,7 +5,9 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { openDatabase } from "./dbOpen.js";
-import { APPLICATION_ID, SCHEMA_VERSION, schemaVersion } from "./schema.js";
+import { APPLICATION_ID, LEGACY_VERSION, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
+import { Store } from "./store.js";
+import { createLegacyV17 } from "./testing/legacySchemaV17.js";
 
 const tempFile = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-open-")), "kickoff.db");
 const applicationId = (db: DatabaseSync) => (db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id;
@@ -14,12 +16,12 @@ test("openDatabase: 空の DB には、いまの系統の印（'KICK'）を付�
   const file = tempFile();
   const db = openDatabase(file);
   assert.equal(applicationId(db), APPLICATION_ID);
-  assert.equal(schemaVersion(db), SCHEMA_VERSION);
+  assert.equal(userVersion(db), USER_VERSION_BASE + SCHEMA_VERSION);
   assert.equal(db.prepare("PRAGMA integrity_check").get()?.integrity_check, "ok");
   db.exec("INSERT INTO run_event_search (run_event_search) VALUES ('integrity-check')");
   db.close();
   const again = openDatabase(file);
-  assert.equal(schemaVersion(again), SCHEMA_VERSION);
+  assert.equal(userVersion(again), USER_VERSION_BASE + SCHEMA_VERSION);
   // VACUUM INTO で写したもの（版を上げる前の写し・開発版の種）も、印が残るので開ける
   const copy = path.join(path.dirname(file), "copy.db");
   again.exec(`VACUUM INTO '${copy}'`);
@@ -34,7 +36,8 @@ test("openDatabase: Kickoff のものでない・対応していない版の DB 
   const cases: [string, string][] = [
     ["ほかのアプリの DB（印なし・版 0・表あり）", "CREATE TABLE notes (body TEXT); INSERT INTO notes VALUES ('x');"],
     ["古い系統の古い版", "CREATE TABLE projects (name TEXT); PRAGMA user_version = 12;"],
-    ["ほかのアプリの印", "CREATE TABLE t (x); PRAGMA application_id = 1234; PRAGMA user_version = 1;"],
+    ["ほかのアプリの印", "CREATE TABLE t (x); PRAGMA application_id = 1234; PRAGMA user_version = 101;"],
+    ["いまの系統の印で、版が 101 より前", `CREATE TABLE t (x); PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 1;`],
   ];
   for (const [name, sql] of cases) {
     const file = tempFile();
@@ -46,4 +49,27 @@ test("openDatabase: Kickoff のものでない・対応していない版の DB 
     assert.ok(fs.readFileSync(file).equals(before), name);
     assert.deepEqual(fs.readdirSync(path.dirname(file)), ["kickoff.db"], name);
   }
+});
+
+test("いまの系統の user_version は 100 ＋ 版なので、古いコードの migrate（17 未満のときだけ流す）は何もしない", () => {
+  /** 古いコードの migrate と同じループで、流すことになる以前の MIGRATIONS の番号 */
+  const legacyStepsFor = (db: DatabaseSync) => {
+    const steps: number[] = [];
+    for (let v = userVersion(db); v < LEGACY_VERSION; v++) steps.push(v);
+    return steps;
+  };
+  const created = openDatabase(tempFile());
+  assert.deepEqual(legacyStepsFor(created), []);
+  created.close();
+  // 古い系統の v17 から変換した DB も同じ
+  const file = tempFile();
+  const legacy = new DatabaseSync(file);
+  createLegacyV17(legacy);
+  legacy.close();
+  const converted = new Store(file);
+  assert.equal(userVersion(converted.db), USER_VERSION_BASE + SCHEMA_VERSION);
+  assert.deepEqual(legacyStepsFor(converted.db), []);
+  converted.close();
+  // 写しの名前の版は user_version のまま（古い系統の v17）
+  assert.match(fs.readdirSync(path.join(path.dirname(file), "backups"))[0], /^kickoff-v17-/);
 });

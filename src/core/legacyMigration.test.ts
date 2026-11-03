@@ -5,7 +5,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { pickProjectHue } from "./projectColors.js";
-import { APPLICATION_ID, SCHEMA_VERSION, schemaVersion } from "./schema.js";
+import { APPLICATION_ID, USER_VERSION_BASE, userVersion } from "./schema.js";
 import { Store } from "./store.js";
 import { createLegacyV17 } from "./testing/legacySchemaV17.js";
 
@@ -54,7 +54,8 @@ test("古い v17 の DB を変換する: ID・番号の続き・以前の値の�
   const store = new Store(file);
   const { db } = store;
   assert.equal((db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id, APPLICATION_ID);
-  assert.equal(schemaVersion(db), SCHEMA_VERSION);
+  // 変換した直後は、いまの系統の v1（user_version は 100 を足して 101）
+  assert.equal(userVersion(db), USER_VERSION_BASE + 1);
   assert.deepEqual(
     db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'run_event_search_%' ORDER BY name").all().map((r) => r.name),
     ["projects", "run_event_search", "run_events", "run_groups", "runs", "settings"],
@@ -117,7 +118,7 @@ test("古い v17 の DB の変換: 参照先のない行があれば変換せず
   db.close();
   assert.throws(() => new Store(file), /古いデータベース（v17）の変換に失敗しました。データは元のままです（参照先のない行が 1 件あります（runs の 6 → projects））/);
   const after = new DatabaseSync(file);
-  assert.equal(schemaVersion(after), 17);
+  assert.equal(userVersion(after), 17);
   assert.equal(after.prepare("SELECT count(*) AS n FROM runs").get()?.n, 5);
   assert.equal(after.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name LIKE 'legacy_%' OR name = 'run_event_search'").get()?.n, 0);
   after.close();

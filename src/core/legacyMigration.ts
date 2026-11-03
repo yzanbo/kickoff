@@ -4,7 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { errorMessage } from "./errors.js";
 import { isPermissionChoice, legacyProjectDefaults, legacyRunOptions, legacySettingValue } from "./legacyValues.js";
 import { pickProjectHue } from "./projectColors.js";
-import { APPLICATION_ID, LEGACY_VERSION, SCHEMA_V1 } from "./schema.js";
+import { APPLICATION_ID, LEGACY_VERSION, SCHEMA_V1, USER_VERSION_BASE } from "./schema.js";
 import { parseJson } from "./store/common.js";
 import type { EffortLevel } from "./types.js";
 
@@ -129,11 +129,11 @@ function convert(db: DatabaseSync) {
     const examples = broken.slice(0, 5).map((v) => `${v.table} の ${v.rowid} → ${v.parent}`);
     throw new Error(`参照先のない行が ${broken.length} 件あります（${examples.join("、")}）`);
   }
-  db.exec(`PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 1;`);
+  db.exec(`PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = ${USER_VERSION_BASE + 1};`);
 }
 
 /**
- * 古い v17 のデータベースを、1 つのトランザクションでいまの系統の v1 に変換する。失敗したら元のまま（ROLLBACK）で、分かる文の例外を投げる。
+ * 古い v17 のデータベースを、1 つのトランザクションでいまの系統の v1（user_version = USER_VERSION_BASE ＋ 1）に変換する。失敗したら元のまま（ROLLBACK）で、分かる文の例外を投げる。
  * 表を作り直す間だけ外部キーの検査を止め（トランザクションの外でしか切り替えられない）、最後に foreign_key_check で確かめる
  */
 export function convertLegacyDatabase(db: DatabaseSync) {

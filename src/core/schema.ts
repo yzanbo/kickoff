@@ -3,7 +3,7 @@ import type { DatabaseSync } from "node:sqlite";
 /** SQLite で今の時刻（ISO 8601・ミリ秒まで）を作る式 */
 export const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 
-/** Kickoff のデータベースの印（PRAGMA application_id。'KICK'）。これがあれば、いまの系統（user_version は 1 から） */
+/** Kickoff のデータベースの印（PRAGMA application_id。'KICK'）。これがあれば、いまの系統（user_version は USER_VERSION_BASE ＋ 版） */
 export const APPLICATION_ID = 0x4b49434b;
 
 /**
@@ -94,11 +94,17 @@ CREATE TRIGGER run_events_search_update AFTER UPDATE OF type, data ON run_events
 END;
 `;
 
-/** MIGRATIONS[n] でバージョン n → n+1 に上げる（いまの系統。変更は末尾に追記し、既存の要素は書き換えない） */
+/** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
 const MIGRATIONS = [SCHEMA_V1];
 
-/** いまのコードのスキーマの版 */
+/** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
+
+/**
+ * いまの系統の PRAGMA user_version は、この数に版を足して持つ（v1 = 101）。古い系統の版（〜17）と重ならないので、
+ * 古いコードの migrate（user_version が 17 未満のときだけ以前の MIGRATIONS を流す）は、変換したあとの DB に何もしない
+ */
+export const USER_VERSION_BASE = 100;
 
 /** 古い系統（application_id のない Kickoff）の最後の版。この版のデータベースだけを変換して引き継ぐ（legacyMigration.ts） */
 export const LEGACY_VERSION = 17;
@@ -106,36 +112,38 @@ export const LEGACY_VERSION = 17;
 const pragmaNumber = (db: DatabaseSync, name: "user_version" | "application_id") =>
   (db.prepare(`PRAGMA ${name}`).get() as Record<string, number>)[name];
 
-/** データベースのスキーマの版（PRAGMA user_version。作ったばかりなら 0） */
-export function schemaVersion(db: DatabaseSync): number {
+/** PRAGMA user_version そのもの（作ったばかりなら 0、古い系統は 17 まで、いまの系統は USER_VERSION_BASE ＋ 版） */
+export function userVersion(db: DatabaseSync): number {
   return pragmaNumber(db, "user_version");
 }
 
-/** データベースの系統と版。empty: 作ったばかり（空） / current: いまの系統 / legacy: 古い系統の v17（変換する） */
+/** データベースの系統と版。empty: 作ったばかり（空） / current: いまの系統の v<version> / legacy: 古い系統の v17（変換する） */
 export type SchemaState = { kind: "empty" } | { kind: "current"; version: number } | { kind: "legacy" };
 
 /** 開いたデータベースが何かを調べる（読むだけ）。Kickoff のものでない・対応していない版なら、データに触らずに例外を投げる */
 export function inspectSchema(db: DatabaseSync): SchemaState {
   const applicationId = pragmaNumber(db, "application_id");
-  const version = schemaVersion(db);
-  if (applicationId === APPLICATION_ID) return { kind: "current", version };
+  const raw = userVersion(db);
+  if (applicationId === APPLICATION_ID && raw > USER_VERSION_BASE) return { kind: "current", version: raw - USER_VERSION_BASE };
   if (applicationId === 0) {
     const { objects } = db.prepare("SELECT count(*) AS objects FROM sqlite_master").get() as { objects: number };
-    if (version === 0 && objects === 0) return { kind: "empty" };
-    if (version === LEGACY_VERSION) return { kind: "legacy" };
+    if (raw === 0 && objects === 0) return { kind: "empty" };
+    if (raw === LEGACY_VERSION) return { kind: "legacy" };
   }
   throw new Error(
-    `Kickoff のデータベースではないか、対応していない版のため開けません（application_id = ${applicationId}、user_version = ${version}）。データには触れていません`,
+    `Kickoff のデータベースではないか、対応していない版のため開けません（application_id = ${applicationId}、user_version = ${raw}）。データには触れていません`,
   );
 }
 
-/** スキーマのバージョン管理（PRAGMA user_version）。版ごとに 1 つのトランザクションで上げ、いまの系統の印を付ける */
+/** いまの系統の版を上げる。版ごとに 1 つのトランザクションで流し、いまの系統の印と user_version（USER_VERSION_BASE ＋ 版）を付ける */
 export function migrate(db: DatabaseSync) {
-  for (let v = schemaVersion(db); v < MIGRATIONS.length; v++) {
+  const state = inspectSchema(db);
+  if (state.kind === "legacy") throw new Error(`古い系統の v${LEGACY_VERSION} のデータベースは、変換してから版を上げます`);
+  for (let v = state.kind === "current" ? state.version : 0; v < MIGRATIONS.length; v++) {
     db.exec("BEGIN");
     try {
       db.exec(MIGRATIONS[v]);
-      db.exec(`PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = ${v + 1};`);
+      db.exec(`PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = ${USER_VERSION_BASE + v + 1};`);
       db.exec("COMMIT");
     } catch (e) {
       db.exec("ROLLBACK");
