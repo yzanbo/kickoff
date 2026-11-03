@@ -3,8 +3,32 @@ import type { ProviderCallbacks } from "./types.js";
 
 const TOOL_RESULT_LIMIT = 4000;
 
+/**
+ * 1 回の実行の間だけ持つ、思考の時間を測るための状態（メインのエージェントの分だけ）。
+ * 思考のブロックは、流れてくる途中経過（stream_event）で始まりと終わりが分かり、中身は後から届く assistant に入る
+ */
+export interface ThinkingTimer {
+  /** 思考のブロックを始めた時刻（ブロックの番号ごと） */
+  starts: Map<number, number>;
+  /** 終わった思考のかかった時間（届いた順。assistant の思考のブロックに順に割り当てる） */
+  durations: number[];
+}
+
+export const createThinkingTimer = (): ThinkingTimer => ({ starts: new Map(), durations: [] });
+
+/** 次の思考のかかった時間（終わりの知らせより先に中身が届いたら、まだ終わっていない最初の思考の始まりから数える） */
+function takeThinkingDuration(timer: ThinkingTimer, now: number): number | undefined {
+  const done = timer.durations.shift();
+  if (done !== undefined) return done;
+  const first = [...timer.starts.keys()].sort((a, b) => a - b)[0];
+  if (first === undefined) return undefined;
+  const start = timer.starts.get(first)!;
+  timer.starts.delete(first);
+  return now - start;
+}
+
 /** SDK のメッセージを Kickoff のイベントに変換する。init のときはセッション ID を返す */
-export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks): string | undefined {
+export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, timer: ThinkingTimer = createThinkingTimer(), now = Date.now()): string | undefined {
   switch (msg.type) {
     case "system":
       if (msg.subtype === "init") {
@@ -63,8 +87,13 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks): string |
           cb.emit({ type: "text", text: block.text, ...sub });
         } else if (block.type === "tool_use") {
           cb.emit({ type: "tool_use", id: block.id, name: block.name, input: block.input, ...sub });
-        } else if (block.type === "thinking" && block.thinking.trim()) {
-          cb.emit({ type: "thinking", text: block.thinking });
+        } else if (block.type === "thinking" || block.type === "redacted_thinking") {
+          // 中身が空（既定では思考の中身を返さない）でも、かかった時間が分かれば残す
+          const text = block.type === "thinking" ? block.thinking.trim() : "";
+          const duration = parent ? undefined : takeThinkingDuration(timer, now);
+          if (text || duration !== undefined) {
+            cb.emit({ type: "thinking", text, ...(duration !== undefined ? { duration_ms: duration } : {}), ...sub });
+          }
         }
       }
       return undefined;
@@ -92,16 +121,20 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks): string |
       return undefined;
     }
 
-    case "stream_event":
+    case "stream_event": {
       // メインのエージェントの文章だけを流す（サブエージェントの途中経過は出さない）
-      if (
-        msg.parent_tool_use_id === null &&
-        msg.event.type === "content_block_delta" &&
-        msg.event.delta.type === "text_delta"
-      ) {
-        cb.stream?.(msg.event.delta.text);
+      if (msg.parent_tool_use_id !== null) return undefined;
+      const event = msg.event;
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        cb.stream?.(event.delta.text);
+      } else if (event.type === "content_block_start" && (event.content_block.type === "thinking" || event.content_block.type === "redacted_thinking")) {
+        timer.starts.set(event.index, now);
+      } else if (event.type === "content_block_stop" && timer.starts.has(event.index)) {
+        timer.durations.push(now - timer.starts.get(event.index)!);
+        timer.starts.delete(event.index);
       }
       return undefined;
+    }
 
     default:
       return undefined;

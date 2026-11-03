@@ -128,7 +128,8 @@ export type RunEventData =
   | { type: "init"; model?: string; session_id: string; permission_mode?: string }
   /** sub: サブエージェントの発言。parent: そのサブエージェントを起動した Task / Agent ツールの呼び出し ID */
   | { type: "text"; text: string; sub?: boolean; parent?: string }
-  | { type: "thinking"; text: string }
+  /** 思考（text は既定では空）。duration_ms: 考えていた時間（メインのエージェントで、測れたときだけ） */
+  | { type: "thinking"; text: string; duration_ms?: number; sub?: boolean; parent?: string }
   | { type: "tool_use"; id: string; name: string; input: unknown; sub?: boolean; parent?: string }
   | { type: "tool_result"; tool_use_id: string; content: string; is_error: boolean; parent?: string }
   | { type: "approval"; approval_id: string; kind: ApprovalKind; tool_name: string; title?: string }

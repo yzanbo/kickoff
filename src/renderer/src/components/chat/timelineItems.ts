@@ -14,6 +14,9 @@ export type TimelineItem =
   | { kind: "event"; key: string; event: RunEvent; turnStart?: string; turnText?: string }
   | { kind: "tools"; key: string; tools: ToolCall[] };
 
+/** これより短い思考（中身なし）はタイムラインに出さない */
+const THINKING_MIN_MS = 2000;
+
 /**
  * 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる）。
  * parent を渡すとそのサブエージェントの中身だけ、渡さなければ親のエージェントの分だけを並べる
@@ -34,8 +37,12 @@ export function groupEvents(events: RunEvent[], parent?: string): TimelineItem[]
     } else if (e.type === "tool_result") {
       const call = byId.get((e.data as { tool_use_id: string }).tool_use_id);
       if (call) call.result = e;
-    } else if (e.type === "init" || e.type === "approval" || e.type === "thinking" || e.type === "subagent") {
-      // 表示しない（thinking は既定で中身が空。サブエージェントはチャット欄の下の一覧で見せる）
+    } else if (e.type === "thinking") {
+      // 中身があるか、しばらく考えたものだけ出す（短い思考でツールのまとまりを細切れにしない）
+      const { text, duration_ms } = e.data as { text?: string; duration_ms?: number };
+      if (text?.trim() || (duration_ms ?? 0) >= THINKING_MIN_MS) items.push({ kind: "event", key: `e${e.id}`, event: e });
+    } else if (e.type === "init" || e.type === "approval" || e.type === "subagent") {
+      // 表示しない（サブエージェントはチャット欄の下の一覧で見せる）
     } else if (e.type === "result") {
       const turnText = turnTexts.join("\n\n");
       items.push({ kind: "event", key: `e${e.id}`, event: e, ...(turnStart ? { turnStart } : {}), ...(turnText ? { turnText } : {}) });

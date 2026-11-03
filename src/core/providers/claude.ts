@@ -10,7 +10,7 @@ import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claud
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
 import { createCanUseTool } from "./claudeApprovals.js";
 import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
-import { emitSdkMessage } from "./claudeMessages.js";
+import { createThinkingTimer, emitSdkMessage } from "./claudeMessages.js";
 import { runHooks, toAllowedTools } from "./claudePolicy.js";
 import type { SelfInfo } from "../selfProtection.js";
 import { normalizeUsage } from "./claudeUsage.js";
@@ -152,8 +152,10 @@ export class ClaudeProvider implements AgentProvider {
         },
       });
 
+      // 思考の時間を測る（流れてくる途中経過で始まりと終わりを見る）
+      const thinkingTimer = createThinkingTimer();
       for await (const msg of q) {
-        const sid = emitSdkMessage(msg, cb);
+        const sid = emitSdkMessage(msg, cb, thinkingTimer);
         if (sid) sessionId = sid;
         if (msg.type === "result") final = msg;
         if (msg.type === "assistant" && msg.parent_tool_use_id === null) {

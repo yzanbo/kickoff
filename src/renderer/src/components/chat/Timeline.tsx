@@ -141,6 +141,22 @@ function Diff({ before, after, maxLines = 200 }: { before: string; after: string
   );
 }
 
+/** 思考の行（「8秒間思考しました」。中身があれば開いて読める） */
+function Thinking({ text, durationMs }: { text: string; durationMs?: number }) {
+  const label =
+    durationMs === undefined ? "思考しました" : `${formatElapsed(durationMs)}${durationMs < 3_600_000 ? "間" : ""}思考しました`;
+  if (!text.trim()) return <div className="event-note thinking">{label}</div>;
+  return (
+    <details className="event-note thinking">
+      <summary>
+        <ChevronRight size={13} className="tool-chevron" />
+        {label}
+      </summary>
+      <div className="thinking-body">{text}</div>
+    </details>
+  );
+}
+
 /**
  * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー。
  * 時刻に乗せると、終わった時刻を出す
@@ -192,6 +208,8 @@ function EventItem({ event, turnStart, turnText }: { event: RunEvent; turnStart?
           <Markdown>{String(data.text)}</Markdown>
         </div>
       );
+    case "thinking":
+      return <Thinking text={String(data.text ?? "")} durationMs={data.duration_ms as number | undefined} />;
     case "approval_resolved":
       return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
     case "result":
