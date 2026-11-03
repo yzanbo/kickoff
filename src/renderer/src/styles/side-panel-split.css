@@ -29,9 +29,10 @@
   overflow: hidden;
 }
 
-/* ピントのあるペイン（新しく開くタブが入る）は、タブの列の下線の色で控えめに示す */
-.split-pane.focused > .panel-tabs {
-  border-bottom-color: color-mix(in srgb, var(--info) 60%, var(--border));
+/* ピントのあるペイン（新しく開くタブが入る）は、分けているときだけ、そのペインのチャット欄の枠の色で控えめに示す
+   （タブの列の下線にはしない。チャット・新しいチャットのタブだけ。composer.css の枠より後ろ・詳細度が高いので勝つ） */
+.split-view > .panel-tab-page.pane-focused .composer {
+  border-color: color-mix(in srgb, var(--info) 60%, var(--border-strong));
 }
 
 .split-view > .panel-tab-page {
