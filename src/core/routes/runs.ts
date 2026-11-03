@@ -93,7 +93,7 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
 
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
-    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id), reconnect: runner.reconnectState(run.id) });
+    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id), queue_stop_after: runner.queueStopAfter(run.id), reconnect: runner.reconnectState(run.id) });
   });
 
   // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
@@ -174,6 +174,14 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     const run = requireRun(store, c.req.param("id"));
     if (!runner.stopReconnect(run.id)) throw new HttpError(404, "つながるのを待っていません");
     return c.json({ ok: true });
+  });
+
+  // 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。列にない指示なら 404）
+  app.put("/api/runs/:id/queue/stop-after", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { id } = z.object({ id: z.string().min(1).max(100).nullable() }).parse(await c.req.json());
+    if (!runner.setQueueStopAfter(run.id, id)) throw new HttpError(404, "待ちの指示が見つかりません");
+    return c.json({ stop_after: runner.queueStopAfter(run.id), queue: runner.queued(run.id) });
   });
 
   // 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか（戻したとき、作業中でなければ先頭をすぐ送る）

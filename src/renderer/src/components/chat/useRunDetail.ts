@@ -18,6 +18,8 @@ export function useRunDetail(runId: number, projectId: number) {
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   // 待ちの列を、終わっても自動で送らずに止めておくか
   const [queuePaused, setQueuePaused] = useState(false);
+  // 「ここまで自動で送る」の印を付けた待ちの指示
+  const [queueStopAfter, setQueueStopAfter] = useState<string | null>(null);
   // AI の API への通信を再試行しているところ（通信が切れたときなど）と、止まってつながるのを待っているところ
   const [retry, setRetry] = useState<ApiRetryInfo | null>(null);
   const [reconnect, setReconnect] = useState<ReconnectState | null>(null);
@@ -32,6 +34,7 @@ export function useRunDetail(runId: number, projectId: number) {
     setEvents([]);
     setQueue([]);
     setQueuePaused(false);
+    setQueueStopAfter(null);
     setRetry(null);
     setReconnect(null);
     setLive("");
@@ -45,6 +48,7 @@ export function useRunDetail(runId: number, projectId: number) {
         setApprovals(d.approvals);
         setQueue(d.queue ?? []);
         setQueuePaused(Boolean(d.queue_paused));
+        setQueueStopAfter(d.queue_stop_after ?? null);
         setReconnect(d.reconnect ?? null);
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
@@ -81,6 +85,7 @@ export function useRunDetail(runId: number, projectId: number) {
     } else if (e.type === "run_queue" && e.run_id === runId) {
       setQueue(e.queue);
       setQueuePaused(e.paused);
+      setQueueStopAfter(e.stop_after);
     } else if (e.type === "approval" && e.approval.run_id === runId) {
       setApprovals((prev) => [...prev, e.approval]);
     } else if (e.type === "approval_resolved" && e.run_id === runId) {
@@ -88,5 +93,5 @@ export function useRunDetail(runId: number, projectId: number) {
     }
   });
 
-  return { run, project, events, approvals, queue, queuePaused, retry, reconnect, live, error };
+  return { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, live, error };
 }

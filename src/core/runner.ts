@@ -46,9 +46,9 @@ export class Runner {
       reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
     },
   ) {
-    this.followups = new FollowupQueue((runId, queue, paused) => {
+    this.followups = new FollowupQueue((runId, queue, paused, stopAfter) => {
       const run = deps.store.getRun(runId);
-      if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused });
+      if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused, stop_after: stopAfter });
     });
     this.reconnect = new RunReconnect({
       store: deps.store,
@@ -200,6 +200,16 @@ export class Runner {
     const merged = this.followups.merge(runId, { silent: true, ids });
     if (!merged) return false;
     return this.sendQueuedNow(runId, merged.id);
+  }
+
+  /** 「ここまで自動で送る」の印を付けた待ちの指示（なければ null） */
+  queueStopAfter(runId: number): string | null {
+    return this.followups.stopAfterOf(runId);
+  }
+
+  /** 「ここまで自動で送る」の印を付ける・外す（その指示を送ったら止めておく。id が列になければ false） */
+  setQueueStopAfter(runId: number, id: string | null): boolean {
+    return this.followups.setStopAfter(runId, id);
   }
 
   /** 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか */

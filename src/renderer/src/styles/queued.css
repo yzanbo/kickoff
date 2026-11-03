@@ -145,6 +145,39 @@
   background: var(--bg-hover);
 }
 
+/* 「ここまで自動で送る」の線（この上の行を送ったら止める）。黄の線に文を重ねる */
+.queued-stop-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0;
+  padding-left: 28px;
+  font-size: 11px;
+  color: var(--warn);
+}
+
+.queued-stop-line::after {
+  flex: 1;
+  border-top: 1px dashed color-mix(in srgb, var(--warn) 60%, transparent);
+  content: "";
+  order: -1;
+  max-width: 12px;
+}
+
+.queued-stop-line::before {
+  flex: 1;
+  order: 1;
+  border-top: 1px dashed color-mix(in srgb, var(--warn) 60%, transparent);
+  content: "";
+}
+
+.queued-stop-line .icon-button {
+  order: 2;
+  width: 18px;
+  height: 18px;
+  color: var(--warn);
+}
+
 /* ⌘ / Shift ＋クリックで選んだ行 */
 .queued-row.selected {
   background: color-mix(in srgb, var(--accent) 18%, transparent);

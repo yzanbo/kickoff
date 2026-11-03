@@ -12,6 +12,8 @@ import { isPreviewable, viewerImagesOf } from "./AttachmentChip";
 /** 送信待ちの 1 行への操作（行のボタンと右クリックのメニューで共通） */
 export interface QueuedRowActions {
   edit: () => void;
+  /** 「ここまで自動で送る」の印を付ける・外す */
+  toggleStop: () => void;
   move: (to: number) => void;
   sendNow: () => void;
   remove: () => void;
@@ -28,6 +30,7 @@ export function QueuedRow({
   count,
   busy,
   selectedCount,
+  isStop,
   onSelect,
   groupActions,
   className,
@@ -43,6 +46,8 @@ export function QueuedRow({
   busy: boolean;
   /** 選ばれていれば、選んでいる数（0 なら選ばれていない）。2 件以上なら、右クリックのメニューは選んだもの全体への操作にする */
   selectedCount: number;
+  /** 「ここまで自動で送る」の印を付けた指示か */
+  isStop: boolean;
   /** 行のクリック（⌘ / Ctrl で 1 件ずつ、Shift で範囲を選ぶ） */
   onSelect: (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => void;
   /** 選んだもの全体への操作（右クリックのメニュー） */
@@ -137,6 +142,9 @@ export function QueuedRow({
             <>
               <MenuItem onSelect={actions.edit}>書き直す</MenuItem>
               <MenuItem onSelect={actions.sendNow}>{sendLabel}</MenuItem>
+              <MenuItem onSelect={actions.toggleStop} title="この指示を送ったら、残りは送らずに止めておく（途中まで自動で送る）">
+                {isStop ? "ここで止めるのをやめる" : "ここまで自動で送る"}
+              </MenuItem>
               {i > 0 && <MenuItem onSelect={() => actions.move(0)}>いちばん上へ</MenuItem>}
               {i > 0 && <MenuItem onSelect={() => actions.move(i - 1)}>上へ</MenuItem>}
               {i < count - 1 && <MenuItem onSelect={() => actions.move(i + 1)}>下へ</MenuItem>}
