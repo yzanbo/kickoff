@@ -80,7 +80,8 @@ function TurnFooter({ event, turnStart, turnText, busy }: { event: RunEvent; tur
       {status && <span>{status}</span>}
       {worked && <span title={`${formatClock(event.created_at)} に終了`}>作業時間 {worked}</span>}
       {turnText && <CopyButton text={turnText} label="返答をコピー" className="turn-action" />}
-      {data.message_id && !busy && (
+      {/* 止めた・失敗した作業の終わりからは分岐できない（以前の記録には message_id が付いている） */}
+      {data.message_id && data.status === "completed" && !busy && (
         <IconButton
           icon={GitBranch}
           label="ここから分岐"
