@@ -11,6 +11,7 @@ import { confirmDialog } from "../../dialogs";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
 import { useRunOptions } from "./RunOptionsBar";
+import type { Connection } from "./ConnectionStatus";
 import { RunTimeline } from "./RunTimeline";
 import { SubagentDetail } from "./SubagentDetail";
 import { SubagentChip, useSubagents } from "./Subagents";
@@ -54,7 +55,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible = true }: RunPaneProps) {
-  const { run, project, events, approvals, queue, queuePaused, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, queuePaused, retry, reconnect, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャットの名前を知らせる（名前を変えたらタブもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -74,7 +75,7 @@ export function RunPane({ projectId, runId, focus, onClose, onRunChange, visible
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} live={live} focus={focus} onClose={onClose} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} connection={{ retry, reconnect }} live={live} focus={focus} onClose={onClose} />
   );
 }
 
@@ -85,6 +86,7 @@ function RunView({
   approvals,
   queue,
   queuePaused,
+  connection,
   live,
   focus,
   onClose,
@@ -96,6 +98,8 @@ function RunView({
   queue: QueuedMessage[];
   /** 待ちの列を、終わっても自動で送らずに止めておくか */
   queuePaused: boolean;
+  /** 通信の再試行中・つながるのを待っているところ */
+  connection: Connection;
   live: string;
   focus?: number;
   onClose: () => void;
@@ -173,7 +177,7 @@ function RunView({
         onClose={onClose}
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
-      <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
+      <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
       <div className="run-composer">
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">

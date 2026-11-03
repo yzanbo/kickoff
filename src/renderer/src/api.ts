@@ -7,6 +7,7 @@ import type {
   ProviderId,
   EffortDefault,
   QueuedMessage,
+  ReconnectState,
   Run,
   RunEvent,
   RunGroup,
@@ -52,6 +53,8 @@ interface RunDetail {
   queue: QueuedMessage[];
   /** 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか */
   queue_paused?: boolean;
+  /** 通信が切れて止まり、つながったら自動で再開するのを待っているか */
+  reconnect?: ReconnectState | null;
 }
 
 interface ImportProjectInput {
@@ -271,6 +274,8 @@ export const api = {
 
   // 承認依頼・質問
   approvals: () => request<Approval[]>("GET", "/api/approvals"),
+  /** 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる */
+  stopReconnect: (runId: number) => request<{ ok: true }>("DELETE", `/api/runs/${runId}/reconnect`),
   resolveApproval: (id: string, decision: ApprovalDecision) =>
     request<{ ok: true }>("POST", `/api/approvals/${id}`, decision),
 };

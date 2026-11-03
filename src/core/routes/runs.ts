@@ -93,7 +93,7 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
 
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
-    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id) });
+    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id), reconnect: runner.reconnectState(run.id) });
   });
 
   // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
@@ -167,6 +167,13 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
   app.delete("/api/runs/:id/queue", (c) => {
     const run = requireRun(store, c.req.param("id"));
     return c.json({ removed: runner.clearQueued(run.id), queue: runner.queued(run.id) });
+  });
+
+  // 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる（待っていなければ 404）
+  app.delete("/api/runs/:id/reconnect", (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    if (!runner.stopReconnect(run.id)) throw new HttpError(404, "つながるのを待っていません");
+    return c.json({ ok: true });
   });
 
   // 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか（戻したとき、作業中でなければ先頭をすぐ送る）

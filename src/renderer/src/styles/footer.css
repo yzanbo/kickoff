@@ -44,6 +44,15 @@
   margin-left: -6px;
 }
 
+/* ネットワークにつながっていない（黄） */
+.footer-offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  color: var(--warn);
+}
+
 .footer-branch {
   margin-left: -10px;
   max-width: 220px;

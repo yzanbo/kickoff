@@ -118,3 +118,26 @@
   gap: 4px;
 }
 
+/* 通信が切れて止まり、つながるのを待っている行（流れのいちばん下。作業中の行の代わり） */
+.reconnect-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--border));
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+}
+
+.reconnect-row svg {
+  flex: none;
+  color: var(--warn);
+}
+
+/* 再開するかを聞くカードのバッジ */
+.approval-badge.reconnect-badge {
+  background: var(--warn);
+}

@@ -28,6 +28,12 @@
   color: var(--text);
 }
 
+/* 通信が切れている（再試行中・つながるのを待っている） */
+.timeline-wrap .scroll-bottom.guide.offline {
+  --pill-tone: var(--warn);
+  color: var(--text);
+}
+
 .timeline-wrap .scroll-bottom.guide.failed {
   --pill-tone: var(--dot-failed);
   color: var(--text);

@@ -7,6 +7,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { errorMessage } from "../errors.js";
+import { isNetworkError } from "../networkErrors.js";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./claudeLabels.js";
 import { EFFORT_LEVELS, type EffortLevel, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "../types.js";
 import { createCanUseTool } from "./claudeApprovals.js";
@@ -130,6 +131,11 @@ export class ClaudeProvider implements AgentProvider {
     let contextTokens: number | undefined;
     // メインの会話の最後のメッセージの ID（分岐の位置。結果に残す）
     let lastMessageId: string | undefined;
+    // 通信を再試行しているところか（返答が届き始めたら終わり）と、応答のないまま再試行したことがあるか（通信の切断の目印）
+    let retrying = false;
+    let noResponse = false;
+    /** 失敗が通信の切断によるものか */
+    const network = (error: string | undefined) => noResponse || isNetworkError(error);
 
     try {
       const q = query({
@@ -159,6 +165,15 @@ export class ClaudeProvider implements AgentProvider {
       // 思考の時間を測る（流れてくる途中経過で始まりと終わりを見る）
       const messageState = createMessageState();
       for await (const msg of q) {
+        // 通信の再試行: 画面に回数と次に送り直すまでの時間を知らせる（応答がない = 通信が切れている）
+        if (msg.type === "system" && msg.subtype === "api_retry") {
+          retrying = true;
+          if (msg.error_status === null) noResponse = true;
+          cb.retry?.({ attempt: msg.attempt, max_retries: msg.max_retries, retry_delay_ms: msg.retry_delay_ms, at: new Date().toISOString() });
+        } else if (retrying && (msg.type === "assistant" || msg.type === "stream_event")) {
+          retrying = false;
+          cb.retry?.(null);
+        }
         const sid = emitSdkMessage(msg, cb, messageState);
         // メインの会話の最後のメッセージ（ここから分岐するときの位置）
         if ((msg.type === "assistant" || msg.type === "user") && msg.parent_tool_use_id === null && msg.uuid) lastMessageId = msg.uuid;
@@ -176,13 +191,14 @@ export class ClaudeProvider implements AgentProvider {
       }
     } catch (e) {
       if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
-      return { status: "failed", sessionId, error: errorMessage(e), lastMessageId };
+      const error = errorMessage(e);
+      return { status: "failed", sessionId, error, lastMessageId, network: network(error) };
     } finally {
       signal.removeEventListener("abort", onAbort);
     }
 
     if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };
-    if (!final) return { status: "failed", sessionId, error: "エージェントが結果を返さずに終了しました", lastMessageId };
+    if (!final) return { status: "failed", sessionId, error: "エージェントが結果を返さずに終了しました", lastMessageId, network: noResponse };
 
     // ファストモードを指定したのに使われなかった場合は、理由をチャットに残す
     if (params.fastMode && final.fast_mode_state !== "on" && final.fast_mode_disabled_reason) {
@@ -203,7 +219,7 @@ export class ClaudeProvider implements AgentProvider {
       final.subtype === "success"
         ? final.result
         : final.errors?.join("\n") || ERROR_LABELS[final.subtype] || final.subtype;
-    return { ...common, status: "failed", error };
+    return { ...common, status: "failed", error, network: network(error) };
   }
 
   /**

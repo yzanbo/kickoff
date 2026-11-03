@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
+import { MAX_AUTO_RESUMES, RESUME_PROMPT } from "./runReconnect.js";
 import { AUTH, setup, tempDir, until } from "./testing/testServer.js";
 
 test("チャット・グループの API", async () => {
@@ -229,6 +230,86 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
   await until(() => provider.prompts.length === 3);
   assert.equal(provider.prompts[2], "3");
   assert.equal(runner.queuePaused(runId), false);
+});
+
+test("通信の切断: 送信待ちを送らずに止めて、つながったら自動で再開し、終わったら送信待ちを戻して送る", async () => {
+  const { call, project, runner, provider, network, store } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  await call("POST", `/api/runs/${runId}/queue`, { text: "次" });
+  // 作業中に通信が切れて失敗する
+  provider.networkFailures = 1;
+  network.online = false;
+  release();
+  await until(() => runner.reconnectState(runId) !== null);
+  assert.equal(store.getRun(runId)?.status, "failed");
+  assert.equal(runner.queuePaused(runId), true);
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["次"]);
+  assert.deepEqual((await call("GET", `/api/runs/${runId}`)).body.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES });
+  assert.ok(store.listEvents(runId).some((e) => e.type === "notice" && /自動で再開します/.test(JSON.stringify(e.data))));
+  // つながらない間は何も送らない（送信待ちも送らない）
+  await new Promise((r) => setTimeout(r, 30));
+  assert.deepEqual(provider.prompts, ["1"]);
+
+  // つながったら「続けて」を送り、終わったら止めておいた送信待ちを戻して送る
+  network.online = true;
+  await until(() => provider.prompts.includes(RESUME_PROMPT));
+  await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(runId));
+  assert.equal(runner.queuePaused(runId), false);
+  assert.equal(runner.reconnectState(runId), null);
+});
+
+test("通信の切断: 続けて何度も止まったら、再開するかを聞き（回答待ち）、再開するで数え直して送る", async () => {
+  const { call, project, runner, provider, network, approvals } = setup();
+  network.online = true;
+  // 最初の作業と、自動の再開の 3 回がすべて通信で失敗する
+  provider.networkFailures = 1 + MAX_AUTO_RESUMES;
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => approvals.list({ runId }).length === 1);
+  const [ask] = approvals.list({ runId });
+  assert.equal(ask.kind, "reconnect");
+  assert.equal(provider.prompts.filter((p) => p === RESUME_PROMPT).length, MAX_AUTO_RESUMES);
+  assert.equal(runner.reconnectState(runId), null);
+
+  // 再開する: すぐ「続けて」を送る（こんどは続く）
+  assert.equal((await call("POST", `/api/approvals/${ask.id}`, { action: "allow" })).status, 200);
+  await until(() => provider.prompts.filter((p) => p === RESUME_PROMPT).length === MAX_AUTO_RESUMES + 1 && !runner.isBusy(runId));
+  assert.equal(approvals.list({ runId }).length, 0);
+});
+
+test("通信の切断: 自動で再開しない設定・「自動で再開しない」・自分で送ったときは待たない", async () => {
+  const { call, project, runner, provider, network, store } = setup();
+  network.online = false;
+  // 設定で切ると、止まったことだけを知らせて待たない
+  await call("PUT", "/api/settings", { autoResumeOnReconnect: false });
+  provider.networkFailures = 1;
+  const a = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "a" })).body.id;
+  await until(() => store.getRun(a)?.status === "failed");
+  assert.equal(runner.reconnectState(a), null);
+  assert.equal((await call("DELETE", `/api/runs/${a}/reconnect`)).status, 404);
+
+  // 待っている間に「自動で再開しない」を押すと、つながっても送らない
+  await call("PUT", "/api/settings", { autoResumeOnReconnect: true });
+  provider.networkFailures = 1;
+  const b = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "b" })).body.id;
+  await until(() => runner.reconnectState(b) !== null);
+  assert.deepEqual((await call("DELETE", `/api/runs/${b}/reconnect`)).body, { ok: true });
+  network.online = true;
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(provider.prompts.includes(RESUME_PROMPT), false);
+
+  // 自分で送ったら、待つのをやめてそのまま送る
+  network.online = false;
+  provider.networkFailures = 1;
+  const c = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "c" })).body.id;
+  await until(() => runner.reconnectState(c) !== null);
+  await call("POST", `/api/runs/${c}/messages`, { text: "自分で続き" });
+  assert.equal(runner.reconnectState(c), null);
+  await until(() => !runner.isBusy(c));
+  network.online = true;
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(provider.prompts.includes(RESUME_PROMPT), false);
 });
 
 test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {

@@ -45,7 +45,8 @@ export function useRunNotifications({ enabled, projectName, route }: { enabled: 
       const a = e.approval;
       const project = state.current.projectName(a.project_id);
       const name = titles.current.get(a.run_id) || "チャット";
-      notify({ id: a.run_id, project_id: a.project_id }, `回答待ち: ${name}`, `${project} ・ AI が確認を待っています`);
+      const body = a.kind === "reconnect" ? "通信が切れて止まりました。再開するか選んでください" : "AI が確認を待っています";
+      notify({ id: a.run_id, project_id: a.project_id }, `回答待ち: ${name}`, `${project} ・ ${body}`);
     }
   });
 }

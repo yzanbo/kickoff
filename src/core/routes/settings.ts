@@ -18,6 +18,7 @@ const settingsSchema = z
     defaultPermission: z.enum(PERMISSION_CHOICES),
     defaultFastMode: z.boolean(),
     autoArchiveDays: z.number().int().min(1).max(365).nullable(),
+    autoResumeOnReconnect: z.boolean(),
     voiceEnabled: z.boolean(),
     voiceProvider: z.enum(VOICE_PROVIDERS),
     voiceLanguage,

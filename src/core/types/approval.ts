@@ -1,6 +1,7 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // エージェントからの承認依頼・質問と、ユーザーの回答
-export type ApprovalKind = "permission" | "question";
+/** permission: ツールの承認 / question: AI からの質問 / reconnect: 通信の切断で止まり、自動の再開を何度か試しても続かなかった（再開するかを聞く） */
+export type ApprovalKind = "permission" | "question" | "reconnect";
 
 export interface QuestionOption {
   label: string;

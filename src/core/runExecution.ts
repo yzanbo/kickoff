@@ -29,12 +29,19 @@ export interface QueueItem {
   compact?: boolean;
 }
 
+/** 1 回の実行の終わり方（Runner が次に何をするかを決める） */
+export interface RunOutcome {
+  status: "completed" | "failed" | "cancelled";
+  /** 通信の切断で失敗した（つながったら自動で再開する） */
+  network: boolean;
+}
+
 /**
  * 1 回の実行（待機列から取り出したもの）を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。
  * 失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
-export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact = false }: QueueItem, signal: AbortSignal): Promise<void> {
-  const { store, providers } = deps;
+export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact = false }: QueueItem, signal: AbortSignal): Promise<RunOutcome> {
+  const { store, providers, bus } = deps;
   try {
     const run = store.getRun(runId)!;
     const project = store.getProject(run.project_id)!;
@@ -45,11 +52,17 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, compact =
 
     const result = await providers[run.provider].run(buildRunParams(deps, run, project, cwd, prompt), callbacksFor(deps, run, signal), signal);
     applyResult(store, runId, result, compact);
+    return { status: result.status, network: result.status === "failed" && Boolean(result.network) };
   } catch (e) {
     const message = errorMessage(e);
     // 失敗も、見るまでは未読にする
     store.updateRun(runId, { status: "failed", error: message, attention: true });
     store.addEvent(runId, { type: "error", message });
+    return { status: "failed", network: false };
+  } finally {
+    // 再試行の表示を消す（終わったので）
+    const run = store.getRun(runId);
+    if (run) bus?.publish({ type: "run_retry", project_id: run.project_id, run_id: runId, retry: null });
   }
 }
 
@@ -87,6 +100,9 @@ function callbacksFor({ store, approvals, bus }: ExecutionDeps, run: Run, signal
   return {
     subagentProgress: (subagent) => {
       bus?.publish({ type: "run_subagent", project_id: projectId, run_id: runId, subagent });
+    },
+    retry: (retry) => {
+      bus?.publish({ type: "run_retry", project_id: projectId, run_id: runId, retry });
     },
     stream: (text) => {
       bus?.publish({ type: "run_delta", project_id: projectId, run_id: runId, text });
