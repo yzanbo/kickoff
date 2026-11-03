@@ -50,7 +50,7 @@ const chatKey = (id: number) => `chat:${id}`;
 
 
 interface Options {
-  /** パネルの状態を覚えておく名前（ボードごとに分ける。例: "kanban:all"・"groups:3"） */
+  /** パネルの状態を覚えておく名前（ボードは boardPanelKey。例: "kanban:all"・"kanban:3"、チャット欄は "side:3"） */
   memoryKey: string;
   /** ボードに出ているチャット（アーカイブされたチャットのタブを閉じるのに使う。ボードのないチャット欄では渡さない） */
   runs?: Run[];
