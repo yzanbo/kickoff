@@ -41,6 +41,24 @@ test("未読: 作業中も AI の文章の返答で未読にし、一番下ま�
   assert.equal((await call("POST", `/api/runs/${runId}/seen`, { event_id: "x" })).status, 400);
 });
 
+test("裏で動いている作業: 作業中はチャットの詳細で返し、SSE でも知らせ、作業が終わったら消す", async () => {
+  const { call, project, runner, provider, bus } = setup();
+  const seen: unknown[] = [];
+  bus.subscribe((e) => {
+    if (e.type === "run_background") seen.push(e.background);
+  });
+  const state = { tasks: [{ task_id: "b1", kind: "command" as const, description: "npm run dev" }], replied: true };
+  provider.background = state;
+  const release = provider.hold();
+  const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "動かして" })).body.id;
+  await until(() => runner.backgroundState(runId) !== null);
+  assert.deepEqual((await call("GET", `/api/runs/${runId}`)).body.background, state);
+  release();
+  await until(() => !runner.isBusy(runId));
+  assert.equal((await call("GET", `/api/runs/${runId}`)).body.background, null);
+  assert.deepEqual(seen, [state, null]);
+});
+
 test("チャット・グループの API", async () => {
   const { call, project, store, runner } = setup();
   const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });

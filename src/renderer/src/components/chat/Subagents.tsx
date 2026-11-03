@@ -1,6 +1,6 @@
 import { Archive, ArchiveRestore, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Run, type RunEvent, type SubagentInfo } from "../../../../core/types";
+import { EFFORT_LABELS, type BackgroundState, type EffortLevel, type ModelOption, type Run, type RunEvent, type SubagentInfo } from "../../../../core/types";
 import { useServerEvent } from "../../events";
 import { formatTokens } from "../../format";
 import { useDismiss } from "../../hooks/useDismiss";
@@ -12,7 +12,7 @@ import { ClaudeMark } from "../ClaudeMark";
 import { IconButton } from "../IconButton";
 
 /** チャットのサブエージェントの一覧（途中経過はサーバーからのイベントで受け取る） */
-export function useSubagents(runId: number, events: RunEvent[], busy: boolean): SubagentEntry[] {
+export function useSubagents(runId: number, events: RunEvent[], busy: boolean, background: BackgroundState | null = null): SubagentEntry[] {
   const [progress, setProgress] = useState<Record<string, SubagentInfo>>({});
   useEffect(() => setProgress({}), [runId]);
   useServerEvent((e) => {
@@ -21,7 +21,8 @@ export function useSubagents(runId: number, events: RunEvent[], busy: boolean): 
       setProgress((prev) => ({ ...prev, [e.subagent.task_id]: e.subagent }));
     }
   });
-  return collectSubagents(events, progress, busy);
+  // 裏で動いているものの一覧（Claude Code が知らせる。作業中だけ）にないサブエージェントは、もう動いていない
+  return collectSubagents(events, progress, busy, background ? new Set(background.tasks.map((t) => t.task_id)) : undefined);
 }
 
 

@@ -32,12 +32,17 @@ export function unfinishedBackgroundAgents(events: RunEvent[]): string[] {
     .map((e) => e.data as { tool_use_id: string; content?: unknown })
     .filter((d) => descriptions.has(d.tool_use_id) && isBackgroundLaunch(d.content))
     .map((d) => d.tool_use_id);
-  const finished = new Set(
-    turn
+  const finished = new Set([
+    ...turn
       .filter((e) => e.type === "subagent")
       .map((e) => e.data as { tool_use_id?: string; status?: string })
       .filter((d) => d.tool_use_id && d.status !== "running")
       .map((d) => d.tool_use_id!),
-  );
+    // 報告を渡した（SubagentHandback）サブエージェントも終わっている（終わりの知らせを取りこぼしても）
+    ...turn
+      .filter((e) => e.type === "tool_use" && (e.data as { name?: string }).name === "SubagentHandback")
+      .map((e) => (e.data as { parent?: string }).parent)
+      .filter((p): p is string => Boolean(p)),
+  ]);
   return launched.filter((id) => !finished.has(id)).map((id) => descriptions.get(id)!);
 }

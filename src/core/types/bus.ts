@@ -3,7 +3,7 @@ import type { Approval } from "./approval.js";
 import type { AppSettings } from "./settings.js";
 import type { Project } from "./project.js";
 import type { PlanUsage } from "./provider.js";
-import type { ApiRetryInfo, QueuedMessage, ReconnectState, Run, RunEvent, RunGroup, SubagentInfo } from "./run.js";
+import type { ApiRetryInfo, BackgroundState, QueuedMessage, ReconnectState, Run, RunEvent, RunGroup, SubagentInfo } from "./run.js";
 import type { VoiceDownload } from "./voice.js";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
@@ -23,6 +23,8 @@ export type BusEvent =
   | { type: "run_subagent"; project_id: number; run_id: number; subagent: SubagentInfo }
   /** AI の API への通信を再試行しているところ（null で終わり） */
   | { type: "run_retry"; project_id: number; run_id: number; retry: ApiRetryInfo | null }
+  /** 裏で動いている作業と、メインの返答が終わったか（null で作業が終わった） */
+  | { type: "run_background"; project_id: number; run_id: number; background: BackgroundState | null }
   /** 通信が切れて止まり、つながったら自動で再開するのを待っているか（null で待っていない） */
   | { type: "run_reconnect"; project_id: number; run_id: number; reconnect: ReconnectState | null }
   /** 作業中のチャットに送った次の指示の待ちの列（変わるたびに全体を送る） */

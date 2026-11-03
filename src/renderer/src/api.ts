@@ -8,6 +8,7 @@ import type {
   EffortDefault,
   QueuedMessage,
   ReconnectState,
+  BackgroundState,
   Run,
   RunEvent,
   RunGroup,
@@ -57,6 +58,8 @@ interface RunDetail {
   queue_stop_after?: string | null;
   /** 通信が切れて止まり、つながったら自動で再開するのを待っているか */
   reconnect?: ReconnectState | null;
+  /** 裏で動いている作業と、メインの返答が終わったか（作業中でなければ null） */
+  background?: BackgroundState | null;
 }
 
 interface ImportProjectInput {
