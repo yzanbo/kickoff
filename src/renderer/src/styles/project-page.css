@@ -32,8 +32,7 @@
   background: color-mix(in srgb, var(--tone) 16%, transparent);
 }
 
-/* 状態ごとの数のボタン（押すと状態ごとのチャットの一覧。見出しはウィンドウのドラッグ領域なので no-drag。
-   狭いときも縮めず、隣のフォルダのパスを省略させる） */
+/* 状態ごとの数のボタン（押すとチャットの一覧。見出しはドラッグ領域なので no-drag。狭くても縮めない） */
 .state-stats {
   position: relative;
   flex: none;
@@ -144,7 +143,6 @@
 .project-tabs-row .tab {
   margin-bottom: 0;
 }
-
 
 .project-title-row h1 {
   min-width: 0;

@@ -14,6 +14,11 @@
   max-width: 100%;
 }
 
+/* 右のパネル（狭い）では広めに使う */
+.run-panel .user-message {
+  max-width: 90%;
+}
+
 /* 長い発言は途中まで出し、下を薄くする（「もっと見る」で開く） */
 .bubble-text.clamped {
   max-height: 240px;
