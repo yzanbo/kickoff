@@ -3,13 +3,31 @@ import type { Attachment, QueuedMessage, RunOptions } from "./types.js";
 
 /**
  * 作業中のチャットに送った次の指示の待ちの列（チャットごと）。
- * いまの作業が終わったら、Runner が先頭から 1 件ずつ送る。保存はせず、アプリを終えると消える
+ * いまの作業が終わったら、Runner が先頭から 1 件ずつ送る（止めておくチャットでは送らず、行の「すぐ送る」で 1 件ずつ送る）。
+ * 保存はせず、アプリを終えると消える
  */
 export class FollowupQueue {
   private readonly lists = new Map<number, QueuedMessage[]>();
+  /** 終わっても自動で送らずに止めておくチャット（列が空になったら、自動で送るに戻す） */
+  private readonly paused = new Set<number>();
 
-  /** onChange: 列が変わったとき（画面に配る） */
-  constructor(private readonly onChange: (runId: number, list: QueuedMessage[]) => void) {}
+  /** onChange: 列・止めておくかが変わったとき（画面に配る） */
+  constructor(private readonly onChange: (runId: number, list: QueuedMessage[], paused: boolean) => void) {}
+
+  /** 終わっても自動で送らずに止めておくか */
+  isPaused(runId: number): boolean {
+    return this.paused.has(runId);
+  }
+
+  /** 止めておくかを切り替える（列が空なら止めない。変わらなければ知らせない） */
+  setPaused(runId: number, paused: boolean): boolean {
+    const next = paused && this.list(runId).length > 0;
+    if (next === this.paused.has(runId)) return next;
+    if (next) this.paused.add(runId);
+    else this.paused.delete(runId);
+    this.onChange(runId, this.list(runId), next);
+    return next;
+  }
 
   list(runId: number): QueuedMessage[] {
     return this.lists.get(runId) ?? [];
@@ -110,11 +128,15 @@ export class FollowupQueue {
   /** チャットを消したとき（知らせない） */
   forget(runId: number) {
     this.lists.delete(runId);
+    this.paused.delete(runId);
   }
 
   private set(runId: number, list: QueuedMessage[]) {
-    if (list.length === 0) this.lists.delete(runId);
-    else this.lists.set(runId, list);
-    this.onChange(runId, list);
+    if (list.length === 0) {
+      this.lists.delete(runId);
+      // 送り終えた・消した: 次にためるときは、自動で送るから始める
+      this.paused.delete(runId);
+    } else this.lists.set(runId, list);
+    this.onChange(runId, list, this.paused.has(runId));
   }
 }

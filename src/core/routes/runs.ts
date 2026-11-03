@@ -93,7 +93,7 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
 
   app.get("/api/runs/:id", (c) => {
     const run = requireRun(store, c.req.param("id"));
-    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id) });
+    return c.json({ run, events: store.listEvents(run.id), approvals: approvals.list({ runId: run.id }), queue: runner.queued(run.id), queue_paused: runner.queuePaused(run.id) });
   });
 
   // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
@@ -167,6 +167,13 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
   app.delete("/api/runs/:id/queue", (c) => {
     const run = requireRun(store, c.req.param("id"));
     return c.json({ removed: runner.clearQueued(run.id), queue: runner.queued(run.id) });
+  });
+
+  // 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか（戻したとき、作業中でなければ先頭をすぐ送る）
+  app.put("/api/runs/:id/queue/paused", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { paused } = z.object({ paused: z.boolean() }).parse(await c.req.json());
+    return c.json({ paused: await runner.setQueuePaused(run.id, paused), queue: runner.queued(run.id) });
   });
 
   // 待ちの列から消す

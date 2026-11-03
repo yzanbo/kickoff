@@ -50,6 +50,8 @@ interface RunDetail {
   approvals: Approval[];
   /** 作業中に送った、次の指示の待ちの列 */
   queue: QueuedMessage[];
+  /** 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか */
+  queue_paused?: boolean;
 }
 
 interface ImportProjectInput {
@@ -238,6 +240,9 @@ export const api = {
   /** 割り込んで送る（作業中なら、待ちの列には入れずに、いまの作業を止めてからすぐ送る） */
   interrupt: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
     request<{ ok: true }>("POST", `/api/runs/${runId}/interrupt`, { text, options, attachments }),
+  /** 待ちの列を、終わっても自動で送らずに止めておくか（戻すと、作業中でなければ先頭をすぐ送る） */
+  setQueuePaused: (runId: number, paused: boolean) =>
+    request<{ paused: boolean; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/paused`, { paused }),
   /** 待ちの指示をすべて消す */
   clearQueued: (runId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue`),
   /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めてから送る） */

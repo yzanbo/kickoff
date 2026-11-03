@@ -26,6 +26,13 @@
   font-size: 11px;
 }
 
+/* 止めているとき（終わっても送らない）: 黄で目立たせる */
+.queued-head-btn.queued-mode.paused {
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+
 .queued-head-btn.queued-clear {
   border-color: color-mix(in srgb, var(--ng) 55%, transparent);
   color: var(--ng);

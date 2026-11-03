@@ -22,7 +22,7 @@ export type BusEvent =
   /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */
   | { type: "run_subagent"; project_id: number; run_id: number; subagent: SubagentInfo }
   /** 作業中のチャットに送った次の指示の待ちの列（変わるたびに全体を送る） */
-  | { type: "run_queue"; project_id: number; run_id: number; queue: QueuedMessage[] }
+  | { type: "run_queue"; project_id: number; run_id: number; queue: QueuedMessage[]; /** 終わっても自動で送らずに止めておくか */ paused: boolean }
   | { type: "approval"; approval: Approval }
   | { type: "approval_resolved"; id: string; run_id: number }
   | { type: "settings"; settings: AppSettings }
