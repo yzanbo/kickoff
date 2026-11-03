@@ -23,7 +23,7 @@ import { ListPlus, Search, Zap } from "lucide-react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
-import { ChatOutline } from "./ChatOutline";
+import { PromptsChip } from "./PromptsChip";
 import { jumpToEvent } from "./jumpToEvent";
 import { RewindContext } from "./MessageItems";
 import { useStoredChoice } from "../../hooks/useStoredState";
@@ -125,6 +125,8 @@ function RunView({
   }, [busy]);
   // チャットの中の検索を開いているか・発言へ移る（目次から）
   const panelRef = useRef<HTMLDivElement>(null);
+  // 発言の一覧から、同じ文を入力欄に入れる
+  const fillComposer = useRef<((text: string) => void) | null>(null);
   const [finding, setFinding] = useState(false);
   const jump = (eventId: number) => {
     stickToBottom.current = false;
@@ -151,12 +153,7 @@ function RunView({
         run={run}
         project={project}
         waiting={waiting}
-        tools={
-          <>
-            <IconButton icon={Search} size={13} label="このチャットの中を検索" aria-expanded={finding} onClick={() => setFinding(!finding)} />
-            <ChatOutline events={events} onJump={jump} />
-          </>
-        }
+        tools={<IconButton icon={Search} size={13} label="このチャットの中を検索" aria-expanded={finding} onClick={() => setFinding(!finding)} />}
         onClose={onClose}
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
@@ -165,6 +162,7 @@ function RunView({
         <QueuedMessages runId={run.id} queue={queue} busy={busy} />
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
+          <PromptsChip events={events} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
           <TodoChip events={events} />
           <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => setSubOpen(s.key)} />
           {/* 同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる） */}
@@ -206,6 +204,7 @@ function RunView({
           }}
           trailing={<ContextMeter run={run} />}
           suggestTarget={{ projectId: run.project_id, worktree: run.worktree_path || undefined }}
+          fillRef={fillComposer}
           history={prompts}
           draftKey={chatDraftKey(run.id)}
         />
