@@ -15,18 +15,6 @@ export function nextActiveTab(tabs: readonly Pick<PanelTab, "key">[], closedKey:
   return rest[Math.min(index, rest.length - 1)]?.key ?? null;
 }
 
-/** いくつかのタブを順に閉じたあとの、残るタブと表示するタブ（1 つずつ閉じたのと同じ結果になる） */
-export function closeTabs<T extends Pick<PanelTab, "key">>(
-  tabs: readonly T[],
-  keys: readonly string[],
-  activeTab: string | null,
-): { tabs: T[]; activeTab: string | null } {
-  return keys.reduce(
-    (state, key) => ({ tabs: state.tabs.filter((t) => t.key !== key), activeTab: nextActiveTab(state.tabs, key, state.activeTab) }),
-    { tabs: [...tabs], activeTab },
-  );
-}
-
 /** ブラウザのタブに出すホスト名（URL として読めなければそのまま） */
 export function hostOf(url: string): string {
   try {

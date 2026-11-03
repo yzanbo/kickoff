@@ -144,6 +144,15 @@ export function placeTab(layout: PaneLayout, key: string): PaneLayout {
   return insert(layout, focusedPane(layout).id, key);
 }
 
+/** タブのキーを変える（送った新しいチャットのタブを、できたチャットのタブにするとき。置き場所と表示中かはそのまま） */
+export function renameTab(layout: PaneLayout, from: string, to: string): PaneLayout {
+  if (from === to || !paneOfTab(layout, from)) return layout;
+  const root = mapLeaves(layout.root, (p) =>
+    p.tabs.includes(from) ? { ...p, tabs: p.tabs.map((t) => (t === from ? to : t)), active: p.active === from ? to : p.active } : p,
+  );
+  return { ...layout, root: root ?? layout.root };
+}
+
 /** ピントをペインへ移す（同じなら同じ配置を返し、描き直さない） */
 export function focusPane(layout: PaneLayout, paneId: string): PaneLayout {
   return layout.focused === paneId || !findPane(layout, paneId) ? layout : { ...layout, focused: paneId };
