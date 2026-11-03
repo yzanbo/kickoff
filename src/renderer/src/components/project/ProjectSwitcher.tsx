@@ -23,7 +23,7 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
   const className = project ? "project-switch" : "project-switch all-projects";
   const identity = (
     <>
-      {!project && <LayoutGrid size={16} aria-hidden />}
+      {!project && <LayoutGrid size={14} aria-hidden />}
       <span className="project-switch-name">{project ? project.name : ALL_PROJECTS}</span>
     </>
   );
@@ -47,7 +47,7 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
         onClick={(e) => menu.toggle(e, 25 + (ordered.length + 1) * 34 + (archived.length > 0 ? 40 + archived.length * 34 : 0))}
       >
         {identity}
-        <ChevronDown size={16} aria-hidden />
+        <ChevronDown size={14} aria-hidden />
       </button>
       {menu.at && (
         <ProjectSwitchMenu
