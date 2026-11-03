@@ -56,8 +56,8 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path)
   lines.push(
     ``,
     `## 作業の進め方`,
-    `- このチャットでは、返答を書き終えて作業が終わると、Claude Code のプロセスも終わります。裏で動かしたサブエージェント（Agent ツール）やコマンド（Bash の run_in_background）は、そこで止まり、報告も届きません。`,
-    `- サブエージェントは終わるまで待つ形（run_in_background: false）で動かしてください。裏で動かしたときは、終わりの知らせが届くまで待ってから返答を終えてください（「あとで報告します」と言って先に終えない）。`,
+    `- 利用者が作業を中断したり、割り込んで次の指示を送ったりすると、いまの作業と一緒に、裏で動かしたサブエージェント（Agent ツール）やコマンド（Bash の run_in_background）も止まり、報告は届きません。`,
+    `- 急がない作業のサブエージェントは、終わるまで待つ形（run_in_background: false）で動かしてください。裏で動かしたときは、返答の最後に「動いている間は作業中のままなので、追加の指示は『ためておく』で送ってください」と添えてください。`,
   );
 
   if (project.references.length > 0) {
