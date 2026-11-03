@@ -48,8 +48,8 @@ export class FollowupQueue {
     return true;
   }
 
-  /** すべてを 1 つにまとめる（文は空行でつなぎ、添付は合わせ、選択は最後のもの。なければ何もしない） */
-  merge(runId: number): QueuedMessage | undefined {
+  /** すべてを 1 つにまとめる（文は空行でつなぎ、添付は合わせ、選択は最後のもの。なければ何もしない。silent なら画面に知らせない） */
+  merge(runId: number, { silent = false }: { silent?: boolean } = {}): QueuedMessage | undefined {
     const list = this.list(runId);
     if (list.length === 0) return undefined;
     const merged: QueuedMessage = {
@@ -59,7 +59,9 @@ export class FollowupQueue {
       attachments: list.flatMap((m) => m.attachments),
       created_at: list[0].created_at,
     };
-    this.set(runId, [merged]);
+    // silent: すぐ取り出すときは、まとめた 1 件を画面に知らせない（列に一瞬出さない）
+    if (silent) this.lists.set(runId, [merged]);
+    else this.set(runId, [merged]);
     return merged;
   }
 
