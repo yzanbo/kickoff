@@ -1,6 +1,6 @@
 import { ChevronRight, GitBranch, Wrench } from "lucide-react";
 import { createContext, useContext, type ReactNode } from "react";
-import type { Attachment, RunEvent } from "../../../../core/types";
+import type { RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
 import { formatTokens } from "../../format";
 import { useTicker } from "../../hooks/useTicker";
@@ -13,8 +13,7 @@ import { IconButton } from "../IconButton";
 import { cleanSubagentReport, isSubagentTool } from "./subagentList";
 import { summarizeTools, toolLabel, type TimelineItem, type ToolCall } from "./timelineItems";
 import { describeToolInput } from "./ApprovalCard";
-import { AttachmentChip } from "./AttachmentChip";
-import { Markdown } from "../Markdown";
+import { AssistantMessage, UserMessage } from "./MessageItems";
 
 /** タイムラインの Task / Agent の呼び出しから、そのサブエージェントの中身を開く */
 export const OpenSubagentContext = createContext<(toolUseId: string) => void>(() => {});
@@ -207,27 +206,10 @@ const RESOLVED_LABELS: Record<string, string> = {
 function EventItem({ event, turnStart, turnText, busy }: { event: RunEvent; turnStart?: string; turnText?: string; busy: boolean }) {
   const data = event.data as Record<string, unknown>;
   switch (event.type) {
-    case "user": {
-      const attachments = (data.attachments as Attachment[] | undefined) ?? [];
-      return (
-        <div className="bubble user" id={`ev-${event.id}`}>
-          {attachments.length > 0 && (
-            <div className="bubble-attachments">
-              {attachments.map((a) => (
-                <AttachmentChip key={a.id} attachment={a} />
-              ))}
-            </div>
-          )}
-          {String(data.text ?? "")}
-        </div>
-      );
-    }
+    case "user":
+      return <UserMessage event={event} />;
     case "text":
-      return (
-        <div className={cx("assistant", Boolean(data.sub) && "sub")} id={`ev-${event.id}`}>
-          <Markdown>{String(data.text)}</Markdown>
-        </div>
-      );
+      return <AssistantMessage event={event} />;
     case "thinking":
       return <Thinking text={String(data.text ?? "")} durationMs={data.duration_ms as number | undefined} />;
     case "approval_resolved":

@@ -118,8 +118,11 @@
   min-width: 0;
 }
 
-.run-panel .bubble.user {
+.run-panel .user-message {
   max-width: 90%;
+}
+
+.run-panel .bubble.user {
   overflow-wrap: anywhere;
 }
 

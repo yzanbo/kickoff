@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatClock, formatDayTime, formatElapsed, relativeTime, resetIn, resetInShort, shortRelativeTime } from "./time";
+import { formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatMessageTime, relativeTime, resetIn, resetInShort, shortRelativeTime } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -52,4 +52,14 @@ test("formatElapsed: 秒・分秒・時間分（ちょうどのときは下の�
   assert.equal(formatElapsed(3_600_000), "1時間");
   assert.equal(formatElapsed(3_900_000), "1時間5分");
   assert.equal(formatElapsed(-5), "0秒");
+});
+
+test("発言の時刻: 今日は時刻、7 日以内は曜日と時刻、それより前は日付", () => {
+  const now = new Date(2026, 10, 3, 23, 0); // 火曜
+  assert.equal(formatMessageTime(new Date(2026, 10, 3, 9, 5).toISOString(), now), "09:05");
+  assert.equal(formatMessageTime(new Date(2026, 10, 2, 21, 25).toISOString(), now), "月曜 21:25");
+  assert.equal(formatMessageTime(new Date(2026, 9, 28, 8, 0).toISOString(), now), "水曜 08:00");
+  assert.equal(formatMessageTime(new Date(2026, 9, 27, 8, 0).toISOString(), now), "10月27日");
+  assert.equal(formatMessageTime(new Date(2025, 2, 1, 9, 0).toISOString(), now), "2025/3/1");
+  assert.equal(formatFullDateTime(new Date(2026, 10, 3, 9, 5).toISOString()), "2026/11/3 09:05");
 });
