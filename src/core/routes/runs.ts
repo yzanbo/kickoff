@@ -6,6 +6,7 @@ import { EFFORT_LEVELS, PERMISSION_CHOICES } from "../types.js";
 import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject, requireRun, requireWorktree } from "./http.js";
 import { branchName, optionalId, queryOf } from "./schemas.js";
 import { forkRun } from "../runFork.js";
+import { rewindRun, RunBusyError } from "../runRewind.js";
 
 const runOptionsSchema = z
   .object({
@@ -219,6 +220,17 @@ export function runRoutes(app: Hono, { store, runner, approvals, providers }: Se
     const project = requireProject(store, String(run.project_id));
     const forked = await badRequest(() => forkRun({ store, providers }, run, event_id, run.worktree_path || project.repo_path));
     return c.json(forked, 201);
+  });
+
+  // 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。作業中は 409、巻き戻せない発言・プロバイダーは 400）
+  app.post("/api/runs/:id/rewind", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { event_id, text, options } = z
+      .object({ event_id: z.number().int(), text: z.string().trim().max(50_000).default(""), options: runOptionsSchema })
+      .parse(await c.req.json());
+    const project = requireProject(store, String(run.project_id));
+    const cwd = run.worktree_path || project.repo_path;
+    return c.json(await badRequest(() => rewindRun({ store, runner, providers }, run, { eventId: event_id, text, options, cwd }), RunBusyError));
   });
 
   // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中・まだ会話がなければ 409）

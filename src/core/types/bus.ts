@@ -14,6 +14,8 @@ export type BusEvent =
   | { type: "group"; group: RunGroup }
   | { type: "group_deleted"; id: number; project_id: number }
   | { type: "run_event"; project_id: number; event: RunEvent }
+  /** 会話の記録の from_event_id から後ろ（それを含む）を消した（巻き戻し。画面の記録からも消す） */
+  | { type: "run_events_deleted"; project_id: number; run_id: number; from_event_id: number }
   /** AI の返答の途中経過（保存しない。確定した文は run_event の text で届く） */
   | { type: "run_delta"; project_id: number; run_id: number; text: string }
   /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */

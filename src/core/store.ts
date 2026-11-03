@@ -145,6 +145,11 @@ export class Store {
     this.runs.copyEvents(fromRunId, toRunId, upToEventId);
   }
 
+  /** 会話の記録を、fromEventId から後ろ（fromEventId を含む）すべて消す（巻き戻し用） */
+  deleteEventsFrom(runId: number, fromEventId: number): void {
+    this.runs.deleteEventsFrom(runId, fromEventId);
+  }
+
   listEvents(runId: number): RunEvent[] {
     return this.runs.listEvents(runId);
   }

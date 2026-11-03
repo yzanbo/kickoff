@@ -24,11 +24,14 @@ class FakeProvider extends FakeProviderBase {
   lastCwd = "";
   /** 渡した指示（順に） */
   prompts: string[] = [];
+  /** 続きから再開した会話（順に。新しい会話なら null） */
+  resumes: (string | null)[] = [];
   /** これがあれば、外から release するまで作業中のままにする（止められたら cancelled） */
   private gate: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string }, _cb: unknown, signal: AbortSignal): Promise<ProviderRunResult> {
+  async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, _cb: unknown, signal: AbortSignal): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
+    this.resumes.push(params.resumeSessionId);
     if (this.gate) {
       const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
       if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };
