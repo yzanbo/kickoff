@@ -43,6 +43,11 @@ export function RunHeader({
             <IconButton icon={Pencil} label="名前を変更" size={13} onClick={() => rename.start(run)} />
           </>
         )}
+        {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン）。名前と同じ行に置き、見出しを 1 行に収める */}
+        <span className="run-sub muted small">
+          {project && <ProjectChip id={project.id} name={project.name} linked />}
+          <WorktreeChip run={run} />
+        </span>
         {/* アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す */}
         <IconButton
           icon={run.archived_at ? ArchiveRestore : Archive}
@@ -73,18 +78,17 @@ export function RunHeader({
         )}
         {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
         <span className="spacer" />
+        {/* ターン数と費用（狭いときは隠す） */}
+        {(run.num_turns > 0 || run.cost_usd > 0) && (
+          <span className="run-meta muted small">
+            {run.num_turns > 0 && <span>{run.num_turns} ターン</span>}
+            {run.cost_usd > 0 && <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${run.cost_usd.toFixed(2)}</span>}
+          </span>
+        )}
         <span className={`run-state state-${waiting ? "waiting" : run.status}`}>
           <RunStatusIcon run={run} waiting={waiting} />
           {RUN_STATUS_LABELS[waiting ? "waiting" : run.status]}
         </span>
-      </div>
-      <div className="run-sub muted small">
-        {/* どのプロジェクトのチャットかが一目でわかるよう、サイドバーと同じ色のバッジにする（押すとそのプロジェクトのカンバン） */}
-        {project && <ProjectChip id={project.id} name={project.name} linked />}
-        {/* 作業場所（ワークツリー）で作業しているチャット */}
-        <WorktreeChip run={run} />
-        {run.num_turns > 0 && <span>{run.num_turns} ターン</span>}
-        {run.cost_usd > 0 && <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${run.cost_usd.toFixed(2)}</span>}
       </div>
     </header>
   );
