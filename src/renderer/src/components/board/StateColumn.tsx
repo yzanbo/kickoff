@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { BOARD_COLUMN_LABELS, type BoardColumn } from "../../../../core/types";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type BoardColumn } from "../../../../core/types";
 import { ArchiveAllButton } from "./ArchiveAllButton";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
-import type { BoardEntry } from "./boardColumns";
+import { byColumn, type BoardEntry } from "./boardColumns";
 import { ColumnHead } from "./ColumnHead";
 import { COLUMN_TONE, DRAFT_TONE } from "./tones";
 
@@ -17,6 +17,7 @@ export function StateColumn({
   foldKey,
   render,
   list = false,
+  foldArchived = true,
 }: {
   column: BoardColumn;
   entries: BoardEntry[];
@@ -25,15 +26,19 @@ export function StateColumn({
   /** カード（ボード）・行（リスト）の描き方 */
   render: (entry: BoardEntry) => ReactNode;
   list?: boolean;
+  /** アーカイブ済みを列のいちばん下に畳んで出す（リスト表示では、最後の ArchivedListSection にまとめるので出さない） */
+  foldArchived?: boolean;
 }) {
   const [active, archived] = splitArchived(entries, (e) => e.run);
   const body = (
     <>
       {active.length === 0 && <p className="column-empty">なし</p>}
       {active.map(render)}
-      <ArchivedFold foldKey={foldKey} count={archived.length}>
-        {archived.map(render)}
-      </ArchivedFold>
+      {foldArchived && (
+        <ArchivedFold foldKey={foldKey} count={archived.length}>
+          {archived.map(render)}
+        </ArchivedFold>
+      )}
     </>
   );
   return (
@@ -64,6 +69,31 @@ export function DraftColumn({ count, list = false, children }: { count: number; 
     <section className={list ? "list-group" : "board-column"}>
       <ColumnHead label="下書き" tone={DRAFT_TONE} count={count} />
       {list ? body : <div className="column-cards">{body}</div>}
+    </section>
+  );
+}
+
+/**
+ * リスト表示のいちばん下の「アーカイブ済み」（初めは閉じていて、押すと開く）。中は、アーカイブしていないものと同じく
+ * 状態ごと（作業中・回答待ち・未読・既読）に分けて並べる。下書きはアーカイブできないので分けない
+ */
+export function ArchivedListSection({ entries, foldKey, render }: { entries: BoardEntry[]; foldKey: string; render: (entry: BoardEntry) => ReactNode }) {
+  const [, archived] = splitArchived(entries, (e) => e.run);
+  if (archived.length === 0) return null;
+  const grouped = byColumn(archived);
+  return (
+    <section className="list-group archived-list">
+      <ArchivedFold foldKey={foldKey} count={archived.length}>
+        {BOARD_COLUMNS.map((column) => {
+          const list = grouped.get(column) ?? [];
+          return (
+            <div key={column} className="archived-list-state">
+              <ColumnHead label={BOARD_COLUMN_LABELS[column]} tone={COLUMN_TONE[column]} count={list.length} />
+              {list.length === 0 ? <p className="column-empty">なし</p> : list.map(render)}
+            </div>
+          );
+        })}
+      </ArchivedFold>
     </section>
   );
 }
