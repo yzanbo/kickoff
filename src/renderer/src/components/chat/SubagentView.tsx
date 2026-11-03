@@ -1,25 +1,33 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { RunEvent } from "../../../../core/types";
 import { formatTokens } from "../../format";
-import { cleanSubagentReport, SUBAGENT_STATUS_LABELS, type SubagentEntry } from "./subagentList";
+import { SUBAGENT_STATUS_LABELS, subagentReport, type SubagentEntry } from "./subagentList";
+import { relayedText } from "./subagentRelay";
 import { groupEvents } from "./timelineItems";
 import { Markdown } from "../Markdown";
 import { TimelineItems, Working } from "./Timeline";
 
 /**
  * サブエージェントの中身（親からの依頼・発言・ツールの実行・親への報告）。パネルのタブで開く（SubagentPane）。
+ * タブから送った追加の指示（メインのチャットの自分の発言）は、送った時点の位置に自分の発言として出す。
  * 実行中は追記されていき、そのあいだは下までスクロールする
  */
 export function SubagentView({ entry, events, rel, busy }: { entry: SubagentEntry; events: RunEvent[]; rel: (s: string) => string; busy: boolean }) {
-  const items = useMemo(() => groupEvents(events, entry.key), [events, entry.key]);
+  // メインのチャットの、このサブエージェントへの追加の指示を、サブエージェントの流れの自分の発言として混ぜる
+  const items = useMemo(() => {
+    const agentId = entry.agentId;
+    const mixed = agentId
+      ? events.map((e) => {
+          if (e.type !== "user") return e;
+          const text = relayedText(String((e.data as { text?: string }).text ?? ""), agentId);
+          return text === undefined ? e : { ...e, data: { ...(e.data as object), text, parent: entry.key } };
+        })
+      : events;
+    return groupEvents(mixed, entry.key);
+  }, [events, entry.key, entry.agentId]);
   const call = events.find((e) => e.type === "tool_use" && (e.data as { id: string }).id === entry.key);
   const prompt = (call?.data as { input?: { prompt?: string } } | undefined)?.input?.prompt;
-  const result = events.find((e) => {
-    const d = e.data as { tool_use_id?: string; parent?: string };
-    return e.type === "tool_result" && d.tool_use_id === entry.key && !d.parent;
-  });
-  const rawResult = (result?.data as { content?: string } | undefined)?.content;
-  const resultText = rawResult ? cleanSubagentReport(rawResult) : undefined;
+  const resultText = subagentReport(entry, events);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   // 実行中は、新しい動きに合わせて下までスクロールする
