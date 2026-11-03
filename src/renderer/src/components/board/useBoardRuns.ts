@@ -15,6 +15,8 @@ export function useBoardRuns(projectId: number | undefined, showArchived: boolea
   const cacheKey = `${projectId ?? "all"}${showArchived ? ":archived" : ""}`;
   const fromCache = () => ({ key: cacheKey, runs: runsCache.get(cacheKey) ?? [], loaded: runsCache.has(cacheKey) });
   const [state, setState] = useState(fromCache);
+  // このボードを開いてから読み直したか（覚えている内容は、開いていない間の移動・作成を知らない。パネルが一覧にないタブを閉じるのは、読み直してから）
+  const [freshKey, setFreshKey] = useState<string | null>(null);
   // 切り替えた直後（まだ前のボードの状態のとき）も、覚えている内容を最初の描画から使う
   const current = state.key === cacheKey ? state : fromCache();
 
@@ -30,7 +32,11 @@ export function useBoardRuns(projectId: number | undefined, showArchived: boolea
     let alive = true;
     setState(fromCache());
     (projectId === undefined ? api.allRuns({ archived: showArchived }) : api.runs(projectId, { archived: showArchived }))
-      .then((list) => alive && setRuns(list))
+      .then((list) => {
+        if (!alive) return;
+        setRuns(list);
+        setFreshKey(cacheKey);
+      })
       .catch((e: unknown) => alive && onError(errorMessage(e)));
     return () => {
       alive = false;
@@ -45,10 +51,13 @@ export function useBoardRuns(projectId: number | undefined, showArchived: boolea
         // アーカイブしたチャットは、表示しているときだけ残す
         return e.run.archived_at && !showArchived ? rest : [e.run, ...rest];
       });
+    } else if (e.type === "run") {
+      // ほかのプロジェクトへ移したチャットは、このボードから外す
+      setRuns((prev) => (prev.some((r) => r.id === e.run.id) ? prev.filter((r) => r.id !== e.run.id) : prev));
     } else if (e.type === "run_deleted") {
       setRuns((prev) => prev.filter((r) => r.id !== e.id));
     }
   });
 
-  return { runs: current.runs, loaded: current.loaded, setRuns };
+  return { runs: current.runs, loaded: current.loaded, fresh: freshKey === cacheKey, setRuns };
 }

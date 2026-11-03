@@ -66,13 +66,12 @@ interface RunPaneProps {
 export function RunPane({ projectId, runId, focus, onRunChange, visible = true, onOpenSubagent }: RunPaneProps) {
   const { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, background, live, error } = useRunDetail(runId, projectId);
 
-  // パネルのタブに、チャットの名前と状態（作業中・未読など）を知らせる（変わったらタブもすぐ変わる）
+  // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyRun = useRef(onRunChange);
   notifyRun.current = onRunChange;
   useEffect(() => {
     if (run) notifyRun.current?.(run);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run?.id, run?.title, run?.status, run?.attention]);
+  }, [run]);
 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;

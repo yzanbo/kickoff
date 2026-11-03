@@ -52,10 +52,11 @@ export function PanelTabPage({
           focus={t.focus}
           visible={visible}
           onOpenSubagent={(toolUseId, title) => panel.openSubagent({ runId: t.id, projectId: t.projectId, toolUseId, title })}
+          // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
           onRunChange={(run) =>
             panel.updateTab(t.key, (x) =>
-              x.kind === "chat" && (x.title !== run.title || x.status !== run.status || x.attention !== run.attention)
-                ? { ...x, title: run.title, status: run.status, attention: run.attention }
+              x.kind === "chat" && x.run !== run
+                ? { ...x, title: run.title, status: run.status, attention: run.attention, projectId: run.project_id, run }
                 : x,
             )
           }

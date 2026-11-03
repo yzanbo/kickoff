@@ -15,6 +15,13 @@ test("upsertRun: 届いたチャットをそのプロジェクトに入れ、新
   assert.deepEqual(upsertRun({}, run(30, 3, "2026-01-01"))[3].map((r) => r.id), [30]);
 });
 
+test("upsertRun: ほかのプロジェクトへ移したチャットは、元のプロジェクトの一覧から外す", () => {
+  const prev = { 1: [run(10, 1, "2026-01-02"), run(11, 1, "2026-01-01")], 2: [run(20, 2, "2026-01-01")] };
+  const next = upsertRun(prev, run(11, 2, "2026-01-01"));
+  assert.deepEqual(next[1].map((r) => r.id), [10]);
+  assert.deepEqual(next[2].map((r) => r.id), [11, 20]);
+});
+
 test("removeRun: 削除されたチャットだけを消す（ほかのプロジェクトは触らない）", () => {
   const prev = { 1: [run(10, 1, "a"), run(11, 1, "b")], 2: [run(20, 2, "c")] };
   const next = removeRun(prev, 1, 10);

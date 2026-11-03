@@ -13,6 +13,7 @@ import { PanelTabPage } from "./PanelTabPage";
 import { layoutRects } from "./paneGeometry";
 import { focusedPane, leavesOf, type PaneLeaf } from "./paneLayout";
 import { TAB_MENU_WIDTH, TabMenu, tabMenuHeight } from "./TabMenu";
+import { useRunRename } from "../../hooks/useRunRename";
 import { useTabDrag } from "./useTabDrag";
 import type { SidePanelController, TerminalTarget } from "./useSidePanel";
 
@@ -45,6 +46,8 @@ export function SidePanel({
   const drag = useTabDrag(panel);
   // タブの右クリックのメニュー
   const [menu, setMenu] = useState<{ key: string; x: number; y: number } | null>(null);
+  // チャットのタブの名前をその場で変える（タブのダブルクリック・右クリックの「名前を変更」で共通）
+  const rename = useRunRename();
   // 境目をドラッグしている間（中身の上でポインターを奪われないようにする）
   const [resizing, setResizing] = useState(false);
   const leaves = leavesOf(layout.root);
@@ -118,9 +121,10 @@ export function SidePanel({
         onNewChat();
       }}
       onTerminal={openTerminal}
+      rename={rename}
       onMenu={(key, e) => {
         e.preventDefault();
-        setMenu({ key, ...clampToViewport(e.clientX, e.clientY, TAB_MENU_WIDTH, tabMenuHeight(leaves.length)) });
+        setMenu({ key, ...clampToViewport(e.clientX, e.clientY, TAB_MENU_WIDTH, tabMenuHeight(leaves.length, tabs.some((t) => t.key === key && t.kind === "chat"))) });
       }}
     />
   );
@@ -218,7 +222,7 @@ export function SidePanel({
             );
           })}
       </div>
-      {menu && <TabMenu panel={panel} tabKey={menu.key} x={menu.x} y={menu.y} onClose={() => setMenu(null)} />}
+      {menu && <TabMenu panel={panel} tabKey={menu.key} x={menu.x} y={menu.y} onRename={(run) => rename.start(run)} onClose={() => setMenu(null)} />}
     </aside>
   );
 }
