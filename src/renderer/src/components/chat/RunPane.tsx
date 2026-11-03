@@ -14,7 +14,6 @@ import { RunHeader } from "./RunHeader";
 import { useRunOptions } from "./RunOptionsBar";
 import type { Connection } from "./ConnectionStatus";
 import { RunTimeline } from "./RunTimeline";
-import { SubagentDetail } from "./SubagentDetail";
 import { SubagentChip, useSubagents } from "./Subagents";
 import { QueuedMessages } from "./QueuedMessages";
 import { TodoChip } from "./TodoChip";
@@ -50,10 +49,12 @@ interface RunPaneProps {
   onRunChange?: (run: Run) => void;
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
   visible?: boolean;
+  /** サブエージェントの中身を、パネルの新しいタブで開く */
+  onOpenSubagent: (toolUseId: string, title: string) => void;
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function RunPane({ projectId, runId, focus, onRunChange, visible = true }: RunPaneProps) {
+export function RunPane({ projectId, runId, focus, onRunChange, visible = true, onOpenSubagent }: RunPaneProps) {
   const { run, project, events, approvals, queue, queuePaused, queueStopAfter, retry, reconnect, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャットの名前と状態（作業中・未読など）を知らせる（変わったらタブもすぐ変わる）
@@ -67,7 +68,7 @@ export function RunPane({ projectId, runId, focus, onRunChange, visible = true }
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} live={live} focus={focus} visible={visible} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStopAfter={queueStopAfter} connection={{ retry, reconnect }} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
   );
 }
 
@@ -83,6 +84,7 @@ function RunView({
   live,
   focus,
   visible,
+  onOpenSubagent,
 }: {
   run: Run;
   project?: Project;
@@ -99,6 +101,7 @@ function RunView({
   focus?: number;
   /** チャットを表示しているか（最新の結果を一番下まで見たら既読にする） */
   visible: boolean;
+  onOpenSubagent: (toolUseId: string, title: string) => void;
 }) {
   const options = useRunOptions(
     { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: run.fast_mode },
@@ -120,9 +123,8 @@ function RunView({
           danger: true,
         });
   const busyNeighbors = useBusyNeighbors(run);
-  // 中身を見ているサブエージェント（Task / Agent の呼び出し ID）
-  const [subOpen, setSubOpen] = useState<string>();
-  const openedSub = subagents.find((s) => s.key === subOpen);
+  // サブエージェントの中身は、パネルの新しいタブで開く（ツールのまとまりの「中身を見る」からは呼び出し ID だけが届く）
+  const openSub = (toolUseId: string) => onOpenSubagent(toolUseId, subagents.find((s) => s.key === toolUseId)?.description ?? "サブエージェント");
   // 一番下を見ているか（送ったら true に戻し、新しい発言に合わせてスクロールする）
   const stickToBottom = useRef(true);
   const items = useMemo(() => groupEvents(events), [events]);
@@ -164,7 +166,7 @@ function RunView({
 
   return (
     <FileLinkContext.Provider value={fileLinks}>
-    <OpenSubagentContext.Provider value={setSubOpen}>
+    <OpenSubagentContext.Provider value={openSub}>
     <RewindContext.Provider value={rewind}>
     <div ref={panelRef} className={cx("run-page run-panel", finding && "finding", wide && "wide")}>
       <RunHeader
@@ -193,7 +195,7 @@ function RunView({
         <div className="composer-chips">
           <PromptsChip events={events} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
           <TodoChip events={events} />
-          <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => setSubOpen(s.key)} />
+          <SubagentChip entries={subagents} run={run} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
           {/* 同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる） */}
           {busyNeighbors > 0 && (
             <span className="small warn-text">この作業場所では、ほかのチャット {busyNeighbors} 件も作業中です。同じファイルを触ると作業がぶつかることがあります。</span>
@@ -247,7 +249,6 @@ function RunView({
           draftKey={chatDraftKey(run.id)}
         />
       </div>
-      {openedSub && <SubagentDetail entry={openedSub} events={events} rel={rel} busy={busy} onClose={() => setSubOpen(undefined)} />}
     </div>
     </RewindContext.Provider>
     </OpenSubagentContext.Provider>
