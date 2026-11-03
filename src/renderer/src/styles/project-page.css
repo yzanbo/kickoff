@@ -6,11 +6,11 @@
   gap: 10px;
 }
 
+/* 名前の行の右に並べる（ほかの部品と上下の中央をそろえるため、上の余白は付けない） */
 .project-stats {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
 }
 
 .stat {
