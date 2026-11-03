@@ -50,7 +50,7 @@ export function UserMessage({ event }: { event: RunEvent }) {
         {attachments.length > 0 && (
           <div className="bubble-attachments">
             {attachments.map((a) => (
-              <AttachmentChip key={a.id} attachment={a} />
+              <AttachmentChip key={a.id} attachment={a} siblings={attachments} />
             ))}
           </div>
         )}
