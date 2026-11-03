@@ -13,6 +13,7 @@ import { useRunStates } from "../../approvalsContext";
 import { BOARD_VIEW_KEY } from "../../storageKeys";
 import { useProjectChatContext } from "../projectChat/useProjectChat";
 import { DraftCards } from "../sidePanel/DraftCards";
+import { boardPanelKey } from "../sidePanel/panelMemory";
 import { useSidePanel } from "../sidePanel/useSidePanel";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader, type BoardView } from "./BoardHeader";
@@ -72,7 +73,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
 
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）
   const panel = useSidePanel({
-    memoryKey: `kanban:${projectId ?? "all"}`,
+    memoryKey: boardPanelKey(projectId),
     runs,
     // 一覧にないチャットのタブを閉じるのは、読み直してから（覚えている内容は古いことがある）
     loaded: fresh,

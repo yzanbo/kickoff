@@ -15,11 +15,15 @@ interface PanelState {
 }
 
 /**
- * ボードごとの、開いているタブとパネルの開閉。カンバンとグループのタブを切り替えると、ボードの部品は作り直されるので、
+ * ボードごとの、開いているタブとパネルの開閉。ボードとエディタなどのタブを切り替えると、ボードの部品は作り直されるので、
  * 戻ってきたときに元どおりにできるよう、ここに覚えておく（アプリを閉じるまで）。
- * キーは kanban:<プロジェクト | all> / groups:<プロジェクト> / side:<プロジェクト>（プロジェクトのチャット欄）
+ * キーは kanban:<プロジェクト | all>（ボード。列を状態で分けても・グループで分けても同じパネル。boardPanelKey）/
+ * side:<プロジェクト>（プロジェクトのチャット欄）
  */
 const panelMemory = new Map<string, PanelState>();
+
+/** ボード（カンバン・グループのボード）の右のパネルを覚える名前。列の分け方（状態 / グループ）を切り替えても、開閉・タブ・分割はそのまま */
+export const boardPanelKey = (projectId?: number) => `kanban:${projectId ?? "all"}`;
 const EMPTY_PANEL: PanelState = { tabs: [], activeTab: null, panelOpen: false };
 
 const listeners = new Set<() => void>();
@@ -83,8 +87,7 @@ export function openDraft(draft: SidebarDraft) {
   const live = openers.get(draft.memoryKey);
   if (live) return live.show(draft.key);
   const [kind, id] = draft.memoryKey.split(":");
-  if (kind === "groups") navigate({ name: "project", id: Number(id), tab: "groups" });
-  else if (kind === "kanban" && id === "all") navigate({ name: "allProjects" });
+  if (kind === "kanban" && id === "all") navigate({ name: "allProjects" });
   else navigate({ name: "project", id: Number(id), tab: "board" });
   // 移った先のパネルが出るのを待って開く（出なければあきらめる）
   let tries = 0;
