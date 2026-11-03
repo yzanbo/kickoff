@@ -19,6 +19,7 @@ import { useSuggest } from "../suggest/useSuggest";
 import { useComposerFiles } from "./useComposerFiles";
 import { usePromptHistory } from "./usePromptHistory";
 import { useComposerKeys } from "./composerKeys";
+import { appendBlock, type ComposerFill } from "./quoteComment";
 
 interface Props {
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
@@ -45,8 +46,8 @@ interface Props {
   history?: string[];
   /** 書きかけの文を残す localStorage のキー（既存のチャットの chatDraftKey。新しいチャットはタブの draftText で残すので渡さない） */
   draftKey?: string;
-  /** 外から入力欄に文を入れる口（発言の一覧の「入力欄に入れる」など。入れたら文の終わりにピントを置く） */
-  fillRef?: MutableRefObject<((text: string) => void) | null>;
+  /** 外から入力欄に文を入れる口（発言の一覧の「入力欄に入れる」など。append なら書いている文の後ろに足す。入れたら文の終わりにピントを置く） */
+  fillRef?: MutableRefObject<ComposerFill | null>;
 }
 
 /** 入力欄を伸ばす上限（px。これを超えたら中でスクロールする） */
@@ -86,7 +87,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       el.setSelectionRange(caret, caret);
     });
   };
-  if (fillRef) fillRef.current = (value: string) => fill(value);
+  if (fillRef) fillRef.current = (value, opts) => fill(opts?.append ? appendBlock(text, value) : value);
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
   const [compact] = useSharedFlag(COMPOSER_COMPACT_KEY);
   // ↑↓ で前の発言を呼び出す

@@ -8,6 +8,7 @@ import { FileLinkContext } from "../fileLinks/fileLinkContext";
 import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
 import { Composer, type QueueSendMode } from "./Composer";
+import type { ComposerFill } from "./quoteComment";
 import { confirmDialog } from "../../dialogs";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
@@ -33,6 +34,7 @@ import { RewindContext } from "./MessageItems";
 import { useStoredState } from "../../hooks/useStoredState";
 import { QUEUE_MODE_KEY } from "../../storageKeys";
 import { Segmented, type SegmentOption } from "../Segmented";
+import { SelectionComment } from "./SelectionComment";
 
 type QueueMode = QueueSendMode;
 
@@ -164,7 +166,7 @@ function RunView({
   // チャットの中の検索を開いているか・発言へ移る（目次から）
   const panelRef = useRef<HTMLDivElement>(null);
   // 発言の一覧から、同じ文を入力欄に入れる
-  const fillComposer = useRef<((text: string) => void) | null>(null);
+  const fillComposer = useRef<ComposerFill | null>(null);
   const [finding, setFinding] = useState(false);
   // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
   const [wide, setWide] = useSharedFlag(CHAT_WIDE_KEY);
@@ -219,6 +221,8 @@ function RunView({
           </>
         }
       />
+      {/* 返答の一部を選んでコメントし、チャット欄に添える */}
+      <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
       <RunTimeline items={timeline.visible} hidden={timeline.hidden} onShowMore={timeline.showMore} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
       <div className="run-composer">

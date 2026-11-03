@@ -1,0 +1,51 @@
+/* ==== 選んだ範囲へのコメント（SelectionComment）: 返答の一部を選ぶと出るボタンと、コメントを書く欄 ==== */
+
+.selection-comment {
+  position: fixed;
+  z-index: 40;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+}
+
+.selection-comment-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 0;
+  font-size: 12px;
+}
+
+.selection-comment.writing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 320px;
+  padding: 10px;
+}
+
+.selection-comment-quote {
+  max-height: 96px;
+  margin: 0;
+  padding: 2px 0 2px 10px;
+  overflow: auto;
+  border-left: 3px solid var(--border-strong);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.selection-comment textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  font-size: 13px;
+}
+
+.selection-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
