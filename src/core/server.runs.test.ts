@@ -258,3 +258,28 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
   await until(() => !runner.isBusy(runId));
   release();
 });
+
+test("割り込んで送る API: 待ちの列には入れず、いまの作業を止めてから、待ちの列より先に送る", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  await call("POST", `/api/runs/${runId}/queue`, { text: "待ち" });
+  // 割り込みの指示は、待ちの列に入らない
+  const seen: string[][] = [];
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/interrupt`, { text: "割り込み" })).body, { ok: true });
+  seen.push(runner.queued(runId).map((m) => m.text));
+  await until(() => provider.prompts.length === 2);
+  assert.equal(provider.prompts[1], "割り込み");
+  assert.deepEqual(seen, [["待ち"]]);
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["待ち"]);
+  assert.equal((await call("POST", `/api/runs/${runId}/interrupt`, {})).status, 400);
+  runner.removeQueued(runId, runner.queued(runId)[0].id);
+  runner.cancel(runId);
+  await until(() => !runner.isBusy(runId));
+  release();
+  // 作業中でなければ、すぐ送る
+  await call("POST", `/api/runs/${runId}/interrupt`, { text: "ふつう" });
+  await until(() => provider.prompts.length === 3);
+  assert.equal(provider.prompts[2], "ふつう");
+});
