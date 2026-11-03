@@ -1,5 +1,5 @@
 import { Columns2, Globe, Rows2, SquarePen, SquareTerminal, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { PanelTab } from "./PanelTab";
@@ -17,7 +17,8 @@ import type { SidePanelController } from "./useSidePanel";
 
 /**
  * 右のパネルの 1 つのペインのタブの列。左にパネルの閉じる・横幅いっぱい（controls。左上のペインだけ）、タブ、
- * 右端に新しいタブ（チャット・ブラウザ・ターミナル）と、右・下に分ける・ペインを閉じる（分けているときだけ）。
+ * タブのすぐ右に新しいタブ（チャット・ブラウザ・ターミナル）、右端に右・下に分ける・ペインを閉じる（分けているときだけ）。
+ * タブが多いときはタブの並びの中だけを横にスクロールし、新しいタブのボタンはいつもタブのすぐ右に見せる。
  * 押すとこのペインにピントを移す（新しく開くタブはここに入る）
  */
 export function PaneTabBar({
@@ -55,6 +56,11 @@ export function PaneTabBar({
   rename: ReturnType<typeof useRunRename>;
 }) {
   const insertAt = drag.insertAt(pane.id);
+  // 表示中のタブが並びの外（横にスクロールした先）にあれば、見えるところまで動かす（新しく開いたタブなど）
+  const stripRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    stripRef.current?.querySelector(".panel-tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [pane.active, pane.tabs.length]);
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
@@ -71,6 +77,7 @@ export function PaneTabBar({
       {...drag.barProps(pane.id)}
     >
       {controls}
+      <div ref={stripRef} className="panel-tab-strip">
       {pane.tabs.map((key, i) => {
         const t = panel.tabs.find((x) => x.key === key);
         if (!t) return null;
@@ -106,8 +113,9 @@ export function PaneTabBar({
           />
         );
       })}
-      {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く。続けて、ペインを分ける・閉じる */}
-      <span className="panel-tab-adds">
+      </div>
+      {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右） */}
+      <span className="panel-bar-buttons panel-tab-adds">
         <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />
         <IconButton icon={Globe} label="ブラウザを開く" size={14} onClick={() => panel.openBrowser()} />
         {terminals > 0 && (
@@ -122,6 +130,9 @@ export function PaneTabBar({
             onClick={(e) => onTerminal(e, pane)}
           />
         )}
+      </span>
+      {/* ペインを分ける・閉じる（右端） */}
+      <span className="panel-bar-buttons panel-pane-tools">
         <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />
         <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />
         {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（中のタブも閉じる）" size={15} onClick={() => panel.closePane(pane.id)} />}
