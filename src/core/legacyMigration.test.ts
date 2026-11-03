@@ -5,7 +5,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { pickProjectHue } from "./projectColors.js";
-import { APPLICATION_ID, USER_VERSION_BASE, userVersion } from "./schema.js";
+import { APPLICATION_ID, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
 import { Store } from "./store.js";
 import { createLegacyV17 } from "./testing/legacySchemaV17.js";
 
@@ -54,8 +54,8 @@ test("古い v17 の DB を変換する: ID・番号の続き・以前の値の�
   const store = new Store(file);
   const { db } = store;
   assert.equal((db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id, APPLICATION_ID);
-  // 変換した直後は、いまの系統の v1（user_version は 100 を足して 101）
-  assert.equal(userVersion(db), USER_VERSION_BASE + 1);
+  // v1 に変換したあと、いまの版まで上げる（user_version は 100 を足した数。v1 = 101）
+  assert.equal(userVersion(db), USER_VERSION_BASE + SCHEMA_VERSION);
   assert.deepEqual(
     db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'run_event_search_%' ORDER BY name").all().map((r) => r.name),
     ["projects", "run_event_search", "run_events", "run_groups", "runs", "settings"],
@@ -72,6 +72,8 @@ test("古い v17 の DB を変換する: ID・番号の続き・以前の値の�
   assert.deepEqual(a.defaults, { model: "opus" });
   assert.equal(a.active_at, T(1));
   assert.deepEqual([b.hue, b.pinned, b.archived_at, b.references], [222, true, T(2), [{ path: "/tmp/spec", kind: "folder" }]]);
+  // タグは v2 で足した列なので、空の配列
+  assert.deepEqual([a.tags, b.tags], [[], []]);
   assert.equal(store.getProject(3), undefined);
 
   // チャット: 「セクションに合わせる」のものだけ、そのセクションの以前の既定に（選んであった推論の深さは残す）

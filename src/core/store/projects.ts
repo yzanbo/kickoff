@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { pickProjectHue } from "../projectColors.js";
+import { normalizeTags } from "../projectTags.js";
 import type { NewProject, Project, ProjectSummary } from "../types.js";
 import { bit, parseJson, updateRow, type Notify, type Row } from "./common.js";
 
@@ -7,6 +8,7 @@ import { bit, parseJson, updateRow, type Notify, type Row } from "./common.js";
 export type ProjectPatch = Partial<NewProject> & {
   defaults?: Project["defaults"];
   references?: Project["references"];
+  tags?: string[];
   pinned?: boolean;
   archived_at?: string | null;
   hue?: number;
@@ -22,17 +24,27 @@ const PROJECT_COLUMNS = [
   "pinned",
   "archived_at",
   "hue",
+  "tags",
 ] as const;
 
-/** DB の行（defaults・reference_paths は JSON 文字列、pinned は 0 / 1）をアプリの型に変換する */
+/** DB の行（defaults・reference_paths・tags は JSON 文字列、pinned は 0 / 1）をアプリの型に変換する */
 function toProject(row: unknown): Project {
-  const { reference_paths, defaults, pinned, ...r } = row as Omit<Project, "defaults" | "references" | "pinned"> & {
+  const { reference_paths, defaults, pinned, tags, ...r } = row as Omit<Project, "defaults" | "references" | "pinned" | "tags"> & {
     defaults: string;
     reference_paths: string;
     pinned: number;
+    tags: string;
   };
   const references = parseJson<Project["references"]>(reference_paths);
-  return { ...r, pinned: pinned === 1, defaults: parseJson(defaults), references: Array.isArray(references) ? references : [] };
+  const tagList = parseJson<unknown[]>(tags);
+  return {
+    ...r,
+    pinned: pinned === 1,
+    defaults: parseJson(defaults),
+    references: Array.isArray(references) ? references : [],
+    // 壊れた値・文字でない要素は捨てる
+    tags: Array.isArray(tagList) ? normalizeTags(tagList.filter((t): t is string => typeof t === "string")) : [],
+  };
 }
 
 /** プロジェクト（projects 表。色・並び順・固定・アーカイブもここ） */
@@ -82,14 +94,15 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
       return project;
     },
     update(id: number, patch: ProjectPatch): Project {
-      const { references, ...rest } = patch;
+      const { references, tags, ...rest } = patch;
       const row: Row = {
         ...rest,
         pinned: bit(patch.pinned),
         defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
         reference_paths: references === undefined ? undefined : JSON.stringify(references),
+        tags: tags === undefined ? undefined : JSON.stringify(normalizeTags(tags)),
       } as Row;
-      // 名前・色・固定・アーカイブなどの編集は「動いた」ではないので、最後に動いた時刻（active_at）は進めない（進めるのはチャットの動き: touchProject）
+      // 名前・色・タグ・固定・アーカイブなどの編集は「動いた」ではないので、最後に動いた時刻（active_at）は進めない（進めるのはチャットの動き: touchProject）
       updateRow(db, "projects", id, row, PROJECT_COLUMNS, false);
       const project = get(id)!;
       onChange({ type: "project", project });

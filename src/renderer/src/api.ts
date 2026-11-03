@@ -123,7 +123,7 @@ export const api = {
     patch: Partial<
       Pick<
         Project,
-        "name" | "description" | "provider" | "defaults" | "references" | "hue"
+        "name" | "description" | "provider" | "defaults" | "references" | "hue" | "tags"
       >
     > & { pinned?: boolean; archived?: boolean },
   ) =>

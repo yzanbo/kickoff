@@ -94,8 +94,13 @@ CREATE TRIGGER run_events_search_update AFTER UPDATE OF type, data ON run_events
 END;
 `;
 
+/** v2: プロジェクトのタグ（文字の JSON 配列。既存の行は空の配列） */
+const SCHEMA_V2_PROJECT_TAGS = `
+ALTER TABLE projects ADD COLUMN tags TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags));
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2_PROJECT_TAGS];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
