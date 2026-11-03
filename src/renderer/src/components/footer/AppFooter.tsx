@@ -1,5 +1,6 @@
-import { GitBranch, Settings } from "lucide-react";
+import { GitBranch, Settings, WifiOff } from "lucide-react";
 import type { PlanUsage } from "../../../../core/types";
+import { useOnline } from "../../hooks/useOnline";
 import type { ConnectionState } from "../../hooks/useServerEvents";
 import { href } from "../../router";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "../../usage";
@@ -22,6 +23,7 @@ interface Props {
 
 /** 下の帯（左: 設定とサーバーとの接続・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。接続と使用状況は押すと詳細を出す */
 export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick, projectId }: Props) {
+  const online = useOnline();
   return (
     <footer className="app-footer">
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
@@ -29,6 +31,12 @@ export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, u
       <button className={`footer-button conn conn-${connection} ${connOpen ? "active" : ""}`} title="接続の詳細" aria-expanded={connOpen} onClick={onConnClick}>
         {CONNECTION_LABELS[connection]}
       </button>
+      {/* Wi-Fi が切れている（作業中のチャットは止まることがある。つながったら自動で再開する） */}
+      {!online && (
+        <span className="footer-offline" title="ネットワークにつながっていません。作業中のチャットが止まったら、つながったときに自動で再開します（設定の「チャット」）">
+          <WifiOff size={13} aria-hidden /> オフライン
+        </span>
+      )}
       {projectId !== undefined && <FooterBranch projectId={projectId} />}
       <span className="spacer" />
       {usage?.plan && (

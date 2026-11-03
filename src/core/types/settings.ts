@@ -47,6 +47,8 @@ export interface AppSettings {
   desktopNotifications: boolean;
   /** 新規プロジェクトの保存先（前回使ったフォルダ） */
   projectsDir: string;
+  /** 通信が切れて止まったチャットを、つながったら自動で再開するか（何度か続かなければ、再開するかを聞く） */
+  autoResumeOnReconnect: boolean;
   /** 完了したチャットを、この日数がたったら自動でアーカイブする（null ならしない） */
   autoArchiveDays: number | null;
   /** チャット欄の音声入力（マイクのボタン）を使うか */
@@ -75,6 +77,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   desktopNotifications: true,
   projectsDir: "~/Documents",
   autoArchiveDays: null,
+  autoResumeOnReconnect: true,
   voiceEnabled: false,
   voiceProvider: "local",
   voiceLanguage: "ja",

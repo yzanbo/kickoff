@@ -144,6 +144,23 @@ export interface Attachment {
   size: number;
 }
 
+/** AI の API への通信を Claude Code が再試行しているところ（通信が切れたときなど。保存しない） */
+export interface ApiRetryInfo {
+  attempt: number;
+  max_retries: number;
+  retry_delay_ms: number;
+  /** 知らせを受けた時刻（次に送り直すまでの残りを数える） */
+  at: string;
+}
+
+/** 通信が切れて止まったチャットの、つながったら自動で再開するのを待っている状態（保存しない） */
+export interface ReconnectState {
+  /** これまでに自動で再開した回数 */
+  attempts: number;
+  /** 自動で再開する回数の上限（超えたら人に聞く） */
+  max: number;
+}
+
 export type RunEventData =
   | { type: "user"; text: string; attachments?: Attachment[] }
   /** effort: 実際に使った推論の深さ（Claude Code が知らせたときだけ。null は深さを送らないモデル） */

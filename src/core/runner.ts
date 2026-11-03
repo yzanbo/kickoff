@@ -1,10 +1,11 @@
 import { errorMessage } from "./errors.js";
 import { FollowupQueue } from "./followups.js";
-import { executeRun, type ExecutionDeps, type QueueItem } from "./runExecution.js";
+import { executeRun, type ExecutionDeps, type QueueItem, type RunOutcome } from "./runExecution.js";
+import { RunReconnect } from "./runReconnect.js";
 import { resolveRunDefaults } from "./runDefaults.js";
-import type { Attachment, QueuedMessage, Run, RunOptions } from "./types.js";
+import { autoTitle, firstLine, promptWithAttachments } from "./runInput.js";
+import type { Attachment, QueuedMessage, ReconnectState, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
-import { withAttachmentNote } from "./uploads.js";
 
 interface StartRunInput {
   projectId: number;
@@ -23,7 +24,8 @@ interface StartRunInput {
  * 同時実行数の上限を超えた分は待機列に入れ、空きができしだい順に開始する。
  * 1 つの実行（Run）は 1 つの会話で、追加のメッセージを送ると同じセッションを続きから再開する。
  * 作業中のチャットに送った次の指示は、チャットごとの待ちの列（followups）に入れ、作業が終わったら（止めた・失敗したときも）順に送る。
- * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は runExecution.ts
+ * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は runExecution.ts、
+ * 通信が切れて止まったときの再開の段取り（送信待ちを止める・つながったら再開・何度も止まったら聞く）は runReconnect.ts
  */
 export class Runner {
   private readonly active = new Map<number, AbortController>();
@@ -34,11 +36,39 @@ export class Runner {
   /** 割り込んで送る指示（待ちの列には入れず、いまの作業が止まったらいちばん先に送る） */
   private readonly interrupts = new Map<number, { text: string; options: RunOptions; attachments: Attachment[] }>();
 
-  constructor(private readonly deps: ExecutionDeps & { usage: UsageMonitor }) {
+  /** 通信が切れて止まったチャットの再開 */
+  private readonly reconnect: RunReconnect;
+
+  constructor(
+    private readonly deps: ExecutionDeps & {
+      usage: UsageMonitor;
+      /** つながったかの確かめ方と間隔（テストで差し替える） */
+      reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
+    },
+  ) {
     this.followups = new FollowupQueue((runId, queue, paused) => {
       const run = deps.store.getRun(runId);
       if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused });
     });
+    this.reconnect = new RunReconnect({
+      store: deps.store,
+      approvals: deps.approvals,
+      bus: deps.bus,
+      followups: this.followups,
+      isBusy: (runId) => this.isBusy(runId),
+      send: (runId, text) => this.send(runId, text),
+      ...deps.reconnect,
+    });
+  }
+
+  /** つながったら自動で再開するのを待っているか（null なら待っていない） */
+  reconnectState(runId: number): ReconnectState | null {
+    return this.reconnect.state(runId);
+  }
+
+  /** つながったら自動で再開するのをやめる（待っていたら true） */
+  stopReconnect(runId: number): boolean {
+    return this.reconnect.stopWaiting(runId);
   }
 
   async start(input: StartRunInput): Promise<Run> {
@@ -65,8 +95,8 @@ export class Runner {
     });
     const attachments = input.attachments ?? [];
     store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}) });
-    if (!input.title) void this.autoTitle(run.id, input.prompt || attachments.map((a) => a.name).join("、"));
-    this.enqueue({ runId: run.id, prompt: await this.promptWithAttachments(input.prompt, attachments) });
+    if (!input.title) void autoTitle(this.deps, run.id, input.prompt || attachments.map((a) => a.name).join("、"));
+    this.enqueue({ runId: run.id, prompt: await promptWithAttachments(this.deps, input.prompt, attachments) });
     return store.getRun(run.id)!;
   }
 
@@ -76,6 +106,8 @@ export class Runner {
     const run = store.getRun(runId);
     if (!run) throw new Error("実行が見つかりません");
     if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから送ってください");
+    // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）
+    this.reconnect.forget(runId);
     store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}) });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
     store.updateRun(run.id, {
@@ -87,7 +119,7 @@ export class Runner {
       permission_mode: options.permission_mode ?? undefined,
       fast_mode: options.fast_mode ?? undefined,
     });
-    this.enqueue({ runId: run.id, prompt: await this.promptWithAttachments(text, attachments) });
+    this.enqueue({ runId: run.id, prompt: await promptWithAttachments(this.deps, text, attachments) });
     return store.getRun(run.id)!;
   }
 
@@ -188,6 +220,7 @@ export class Runner {
   /** チャットを消したとき、待ちの列も消す */
   forgetQueued(runId: number) {
     this.followups.forget(runId);
+    this.reconnect.forget(runId);
   }
 
   /** 待ちの列の先頭を送る（送れなければ、理由をチャットに残す） */
@@ -229,30 +262,6 @@ export class Runner {
     return store.getRun(run.id)!;
   }
 
-  /** チャット名を AI に付けてもらう（ユーザーが名前を変えていなければ置き換える） */
-  private async autoTitle(runId: number, text: string) {
-    const run = this.deps.store.getRun(runId);
-    const provider = run ? this.deps.providers[run.provider] : undefined;
-    if (!run || !provider?.title || !text.trim()) return;
-    try {
-      const title = await provider.title(text);
-      const latest = this.deps.store.getRun(runId);
-      if (title && latest && latest.title === run.title) this.deps.store.updateRun(runId, { title });
-    } catch {
-      // 付けられなくても困らない（最初の発言のまま）
-    }
-  }
-
-  /** 添付ファイルのパスをメッセージに書き添える（エージェントは Read ツールで読む） */
-  private async promptWithAttachments(text: string, attachments: Attachment[]): Promise<string> {
-    if (attachments.length === 0 || !this.deps.uploads) return text;
-    const files = [];
-    for (const attachment of attachments) {
-      const resolved = await this.deps.uploads.resolve(attachment.id);
-      if (resolved) files.push({ path: resolved.path, attachment });
-    }
-    return withAttachmentNote(text, files);
-  }
 
   cancel(runId: number) {
     const queued = this.queue.findIndex((q) => q.runId === runId);
@@ -276,6 +285,7 @@ export class Runner {
   /** アプリ終了時: 実行中のエージェントをすべて止める */
   shutdown() {
     this.shuttingDown = true;
+    this.reconnect.shutdown();
     this.queue.length = 0;
     for (const controller of this.active.values()) controller.abort();
   }
@@ -297,20 +307,17 @@ export class Runner {
   private async execute(item: QueueItem) {
     const controller = new AbortController();
     this.active.set(item.runId, controller);
+    let outcome: RunOutcome = { status: "failed", network: false };
     try {
-      await executeRun(this.deps, item, controller.signal);
+      outcome = await executeRun(this.deps, item, controller.signal);
     } finally {
       this.active.delete(item.runId);
       void this.deps.usage.refresh();
-      // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）
-      if (!this.shuttingDown) void this.sendNextQueued(item.runId);
-      else this.interrupts.delete(item.runId);
+      // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）。
+      // 通信が切れて止まったときは送らず、つながるのを待つ（送っても失敗して消えるため）
+      if (this.shuttingDown) this.interrupts.delete(item.runId);
+      else if (this.reconnect.finished(item.runId, outcome)) void this.sendNextQueued(item.runId);
       this.pump();
     }
   }
-}
-
-function firstLine(text: string): string {
-  const line = text.trim().split("\n")[0] ?? "";
-  return line.length > 60 ? `${line.slice(0, 60)}…` : line;
 }

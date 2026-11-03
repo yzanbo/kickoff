@@ -29,6 +29,8 @@ class FakeProvider extends FakeProviderBase {
   prompts: string[] = [];
   /** 続きから再開した会話（順に。新しい会話なら null） */
   resumes: (string | null)[] = [];
+  /** これが 1 以上なら、次の実行を通信の切断で失敗させる（1 回ごとに減らす） */
+  networkFailures = 0;
   /** これがあれば、外から release するまで作業中のままにする（止められたら cancelled） */
   private gate: Promise<void> | null = null;
   async run(params: { cwd: string; prompt: string; resumeSessionId: string | null }, _cb: unknown, signal: AbortSignal): Promise<ProviderRunResult> {
@@ -38,6 +40,10 @@ class FakeProvider extends FakeProviderBase {
     if (this.gate) {
       const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
       if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };
+    }
+    if (this.networkFailures > 0) {
+      this.networkFailures--;
+      return { status: "failed", sessionId: "s1", error: "API Error: Connection error.", network: true };
     }
     return { status: "completed", sessionId: "s1", result: "ok", turns: 1, lastMessageId: `m${this.prompts.length}` };
   }
@@ -72,7 +78,9 @@ export function setup() {
   const usage = { get: async () => ({ available: false }), refresh: async () => ({ available: false }) } as unknown as UsageMonitor;
   const provider = new FakeProvider();
   const providers = { claude: provider, codex: provider, gemini: provider } as Record<ProviderId, AgentProvider>;
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus });
+  // 通信: online を false にすると AI の API に届かない（つながったかの確かめに使う）
+  const network = { online: true };
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, reconnect: { check: async () => network.online, intervalMs: 5 } });
   // ほかのサービスは、ネットワークに出ない偽物にする
   let codexCalls = 0;
   const serviceUsage = new ServiceUsageMonitor(usage, [
@@ -117,7 +125,7 @@ export function setup() {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, voiceFake, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, voiceFake, network, approvals, codexCalls: () => codexCalls };
 }
 
 const tick = () => new Promise((r) => setTimeout(r, 10));

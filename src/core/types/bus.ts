@@ -3,7 +3,7 @@ import type { Approval } from "./approval.js";
 import type { AppSettings } from "./settings.js";
 import type { Project } from "./project.js";
 import type { PlanUsage } from "./provider.js";
-import type { QueuedMessage, Run, RunEvent, RunGroup, SubagentInfo } from "./run.js";
+import type { ApiRetryInfo, QueuedMessage, ReconnectState, Run, RunEvent, RunGroup, SubagentInfo } from "./run.js";
 import type { VoiceDownload } from "./voice.js";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
@@ -21,6 +21,10 @@ export type BusEvent =
   | { type: "run_delta"; project_id: number; run_id: number; text: string }
   /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */
   | { type: "run_subagent"; project_id: number; run_id: number; subagent: SubagentInfo }
+  /** AI の API への通信を再試行しているところ（null で終わり） */
+  | { type: "run_retry"; project_id: number; run_id: number; retry: ApiRetryInfo | null }
+  /** 通信が切れて止まり、つながったら自動で再開するのを待っているか（null で待っていない） */
+  | { type: "run_reconnect"; project_id: number; run_id: number; reconnect: ReconnectState | null }
   /** 作業中のチャットに送った次の指示の待ちの列（変わるたびに全体を送る） */
   | { type: "run_queue"; project_id: number; run_id: number; queue: QueuedMessage[]; /** 終わっても自動で送らずに止めておくか */ paused: boolean }
   | { type: "approval"; approval: Approval }

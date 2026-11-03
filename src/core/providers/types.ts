@@ -1,5 +1,5 @@
 import type { ChatPolicy } from "../chatPolicy.js";
-import type { ApprovalDecision, ApprovalKind, EffortLevel, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "../types.js";
+import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, EffortLevel, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "../types.js";
 
 /**
  * エージェント実行基盤の抽象化。
@@ -67,6 +67,8 @@ export interface ProviderCallbacks {
   /** サブエージェントの途中経過（保存しない） */
   subagentProgress?(info: SubagentInfo): void;
   requestApproval(request: ApprovalRequest, signal: AbortSignal): Promise<ApprovalDecision>;
+  /** AI の API への通信を再試行しているところ（通信が切れたときなど）。返答が届き始めたら null（保存しない） */
+  retry?(info: ApiRetryInfo | null): void;
 }
 
 export interface ProviderRunResult {
@@ -81,4 +83,6 @@ export interface ProviderRunResult {
   context?: { tokens: number; window: number | null };
   /** メインの会話の最後のメッセージの ID（ここから分岐するときの位置） */
   lastMessageId?: string;
+  /** 失敗が通信の切断によるものか（つながったら自動で再開する） */
+  network?: boolean;
 }

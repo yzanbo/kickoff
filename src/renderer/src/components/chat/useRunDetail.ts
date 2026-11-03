@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Approval, Project, QueuedMessage, Run, RunEvent } from "../../../../core/types";
+import type { ApiRetryInfo, Approval, Project, QueuedMessage, ReconnectState, Run, RunEvent } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
 import { useServerEvent } from "../../events";
@@ -18,6 +18,9 @@ export function useRunDetail(runId: number, projectId: number) {
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   // 待ちの列を、終わっても自動で送らずに止めておくか
   const [queuePaused, setQueuePaused] = useState(false);
+  // AI の API への通信を再試行しているところ（通信が切れたときなど）と、止まってつながるのを待っているところ
+  const [retry, setRetry] = useState<ApiRetryInfo | null>(null);
+  const [reconnect, setReconnect] = useState<ReconnectState | null>(null);
   // 生成中の返答（確定すると text イベントとして届くので、そこで消す）
   const [live, setLive] = useState("");
   const [error, setError] = useState<string>();
@@ -29,6 +32,8 @@ export function useRunDetail(runId: number, projectId: number) {
     setEvents([]);
     setQueue([]);
     setQueuePaused(false);
+    setRetry(null);
+    setReconnect(null);
     setLive("");
     setError(undefined);
     api
@@ -40,6 +45,7 @@ export function useRunDetail(runId: number, projectId: number) {
         setApprovals(d.approvals);
         setQueue(d.queue ?? []);
         setQueuePaused(Boolean(d.queue_paused));
+        setReconnect(d.reconnect ?? null);
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
     api
@@ -54,6 +60,7 @@ export function useRunDetail(runId: number, projectId: number) {
   useServerEvent((e) => {
     if (e.type === "run_delta" && e.run_id === runId) {
       setLive((prev) => prev + e.text);
+      setRetry(null);
     } else if (e.type === "run_event" && e.event.run_id === runId) {
       setEvents((prev) => (prev.some((x) => x.id === e.event.id) ? prev : [...prev, e.event]));
       if (e.event.type !== "user") setLive("");
@@ -63,7 +70,14 @@ export function useRunDetail(runId: number, projectId: number) {
       setLive("");
     } else if (e.type === "run" && e.run.id === runId) {
       setRun(e.run);
-      if (!BUSY_STATUSES.includes(e.run.status)) setLive("");
+      if (!BUSY_STATUSES.includes(e.run.status)) {
+        setLive("");
+        setRetry(null);
+      }
+    } else if (e.type === "run_retry" && e.run_id === runId) {
+      setRetry(e.retry);
+    } else if (e.type === "run_reconnect" && e.run_id === runId) {
+      setReconnect(e.reconnect);
     } else if (e.type === "run_queue" && e.run_id === runId) {
       setQueue(e.queue);
       setQueuePaused(e.paused);
@@ -74,5 +88,5 @@ export function useRunDetail(runId: number, projectId: number) {
     }
   });
 
-  return { run, project, events, approvals, queue, queuePaused, live, error };
+  return { run, project, events, approvals, queue, queuePaused, retry, reconnect, live, error };
 }
