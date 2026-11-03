@@ -10,7 +10,12 @@ const byActive = (a: Run, b: Run) => b.active_at.localeCompare(a.active_at);
 /** サーバーから届いたチャットを、そのプロジェクトの一覧に入れる（同じ ID は置き換え、新しく動いた順に並べ直す） */
 export function upsertRun(prev: RunsByProject, run: Run): RunsByProject {
   const list = prev[run.project_id] ?? [];
-  return { ...prev, [run.project_id]: [run, ...list.filter((r) => r.id !== run.id)].sort(byActive) };
+  const next = { ...prev, [run.project_id]: [run, ...list.filter((r) => r.id !== run.id)].sort(byActive) };
+  // ほかのプロジェクトへ移したチャットは、元のプロジェクトの一覧から外す
+  for (const [key, runs] of Object.entries(prev)) {
+    if (Number(key) !== run.project_id && runs.some((r) => r.id === run.id)) next[Number(key)] = runs.filter((r) => r.id !== run.id);
+  }
+  return next;
 }
 
 /** 削除されたチャットを一覧から消す */

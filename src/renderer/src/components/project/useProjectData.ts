@@ -45,7 +45,8 @@ export function useProjectData(id: number) {
   useServerEvent((e) => {
     const related =
       (e.type === "project" && e.project.id === id) ||
-      (e.type === "run" && e.run.project_id === id) ||
+      // ほかのプロジェクトへ移した（このプロジェクトの一覧にある）チャットも
+      (e.type === "run" && (e.run.project_id === id || Boolean(data?.runs.some((r) => r.id === e.run.id)))) ||
       (e.type === "run_deleted" && e.project_id === id) ||
       (e.type === "group" && e.group.project_id === id) ||
       (e.type === "group_deleted" && e.project_id === id);

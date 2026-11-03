@@ -133,6 +133,11 @@ export class Store {
     return this.runs.setGroup(id, groupId);
   }
 
+  /** チャットを別のプロジェクトへ移す（グループ・作業場所・ブランチは外す。並び順は変えない） */
+  moveRun(id: number, projectId: number): Run {
+    return this.runs.move(id, projectId);
+  }
+
   /** 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数を返す */
   archiveStaleRuns(days: number, now = new Date()): number {
     return this.runs.archiveStale(days, now);

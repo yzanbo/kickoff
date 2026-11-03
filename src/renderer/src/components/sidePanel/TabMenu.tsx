@@ -1,21 +1,43 @@
 import { ArrowRightLeft, Columns2, Rows2, X } from "lucide-react";
+import type { Run } from "../../../../core/types";
+import { alertDialog } from "../../dialogs";
+import { ChatMenuItems } from "../menus/ChatMenuItems";
 import { MenuItem, PopupMenu } from "../PopupMenu";
 import { leavesOf, paneOfTab } from "./paneLayout";
 import type { SidePanelController } from "./useSidePanel";
 
-/** タブの右クリックのメニューの、おおよその大きさ（画面からはみ出さない位置にするため） */
+/** タブの右クリックのメニューの、おおよその大きさ（画面からはみ出さない位置にするため。チャットのタブは項目が多い） */
 export const TAB_MENU_WIDTH = 220;
-export const tabMenuHeight = (panes: number) => 120 + (panes > 1 ? panes * 32 : 0);
+export const tabMenuHeight = (panes: number, chat: boolean) => 120 + (panes > 1 ? panes * 32 : 0) + (chat ? 270 : 0);
 
 /**
- * 右のパネルのタブの右クリックのメニュー: 右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼ぶ）、閉じる
+ * 右のパネルのタブの右クリックのメニュー: 右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼ぶ）、閉じる。
+ * チャットのタブには、サイドバーの行と同じチャットの項目（名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる
  */
-export function TabMenu({ panel, tabKey, x, y, onClose }: { panel: SidePanelController; tabKey: string; x: number; y: number; onClose: () => void }) {
+export function TabMenu({
+  panel,
+  tabKey,
+  x,
+  y,
+  onRename,
+  onClose,
+}: {
+  panel: SidePanelController;
+  tabKey: string;
+  x: number;
+  y: number;
+  /** チャットのタブの名前をその場で変え始める */
+  onRename: (run: Run) => void;
+  onClose: () => void;
+}) {
   const pane = paneOfTab(panel.layout, tabKey);
   if (!pane) return null;
   const panes = leavesOf(panel.layout.root);
-  return (
-    <PopupMenu x={x} y={y} label="タブのメニュー" onClose={onClose}>
+  const tab = panel.tabs.find((t) => t.key === tabKey);
+  // ボードの一覧にあればそれを、なければタブの中のチャットから届いたもの（まだ読み込んでいなければチャットの項目は出さない）
+  const run = tab?.kind === "chat" ? (panel.runs.find((r) => r.id === tab.id) ?? tab.run) : undefined;
+  const paneItems = (
+    <>
       <MenuItem onSelect={() => panel.splitPane(pane.id, "row", "after", tabKey)}>
         <Columns2 size={14} /> 右に分けて開く
       </MenuItem>
@@ -30,9 +52,41 @@ export function TabMenu({ panel, tabKey, x, y, onClose }: { panel: SidePanelCont
             </MenuItem>
           ),
         )}
-      <MenuItem onSelect={() => panel.closeTab(tabKey)}>
-        <X size={14} /> タブを閉じる
-      </MenuItem>
+    </>
+  );
+  const closeItem = (
+    // メニューの「閉じる」は聞かずに閉じる（× と違い、アーカイブ・削除はこのメニューの項目で選べる）
+    <MenuItem onSelect={() => panel.closeTab(tabKey)}>
+      <X size={14} /> タブを閉じる
+    </MenuItem>
+  );
+  return (
+    <PopupMenu x={x} y={y} label="タブのメニュー" onClose={onClose}>
+      {run ? (
+        <ChatMenuItems
+          run={run}
+          onRename={onRename}
+          onClose={onClose}
+          onError={(m) => void alertDialog("操作できませんでした", m)}
+          before={
+            <>
+              {paneItems}
+              <div className="menu-separator" role="separator" />
+            </>
+          }
+          after={
+            <>
+              <div className="menu-separator" role="separator" />
+              {closeItem}
+            </>
+          }
+        />
+      ) : (
+        <>
+          {paneItems}
+          {closeItem}
+        </>
+      )}
     </PopupMenu>
   );
 }

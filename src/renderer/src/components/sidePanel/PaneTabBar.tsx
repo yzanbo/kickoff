@@ -7,7 +7,7 @@ import type { PaneLeaf, SplitDir } from "./paneLayout";
 import { tabLabel } from "./panelTabs";
 import { closeChatWithChoice } from "../chat/closeChat";
 import { CHAT_TITLE_MAX } from "../../chatTitle";
-import { useRunRename } from "../../hooks/useRunRename";
+import type { useRunRename } from "../../hooks/useRunRename";
 import { useRunStates } from "../../approvalsContext";
 import { StatusSlot } from "../StatusSlot";
 import { busyWithUnread } from "../../../../core/board";
@@ -32,6 +32,7 @@ export function PaneTabBar({
   onNewChat,
   onTerminal,
   onMenu,
+  rename,
 }: {
   panel: SidePanelController;
   pane: PaneLeaf;
@@ -47,12 +48,12 @@ export function PaneTabBar({
   onTerminal: (e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => void;
   /** タブの右クリック */
   onMenu: (tabKey: string, e: React.MouseEvent) => void;
+  /** チャットのタブの名前をその場で変える（ダブルクリック・右クリックの「名前を変更」。パネル全体で 1 つ） */
+  rename: ReturnType<typeof useRunRename>;
 }) {
   const insertAt = drag.insertAt(pane.id);
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
-  // チャットのタブの名前をその場で変える（ダブルクリック）
-  const rename = useRunRename();
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
   const { stateOf } = useRunStates();
   const chatRunOf = (t: { id: number; status?: Run["status"]; attention?: boolean }) =>

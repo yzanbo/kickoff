@@ -186,6 +186,8 @@ export const api = {
   archiveRun: (runId: number, archived = true) => request<Run>("POST", `/api/runs/${runId}/archive`, { archived }),
   deleteRun: (runId: number) => request<{ ok: true }>("DELETE", `/api/runs/${runId}`),
   setRunGroup: (runId: number, groupId: number | null) => request<Run>("PATCH", `/api/runs/${runId}`, { group_id: groupId }),
+  /** チャットを別のプロジェクトへ移す（グループ・作業場所は外れ、移した先の本体で作業する。会話は続く） */
+  moveRun: (runId: number, projectId: number) => request<Run>("POST", `/api/runs/${runId}/move`, { project_id: projectId }),
   groups: (projectId: number) => request<RunGroup[]>("GET", `/api/projects/${projectId}/groups`),
   createGroup: (projectId: number, name: string) => request<RunGroup>("POST", `/api/projects/${projectId}/groups`, { name }),
   renameGroup: (groupId: number, name: string) => request<RunGroup>("PATCH", `/api/groups/${groupId}`, { name }),

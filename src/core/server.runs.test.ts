@@ -143,6 +143,34 @@ test("チャット・グループの API", async () => {
   assert.equal(store.getRun(runId), undefined);
 });
 
+test("チャットを別のプロジェクトへ移す: グループ・作業場所・ブランチを外し、並び順は変えない。作業中・知らないプロジェクトは断る", async () => {
+  const { call, project, store, runner } = setup();
+  const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const group = (await call("POST", `/api/projects/${project.id}/groups`, { name: "g" })).body;
+  const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "こんにちは", group_id: group.id })).body.id;
+  await until(() => !runner.isBusy(runId));
+  const activeAt = store.getRun(runId)?.active_at;
+
+  assert.equal((await call("POST", `/api/runs/${runId}/move`, { project_id: 999 })).status, 404);
+  assert.equal((await call("POST", `/api/runs/${runId}/move`, {})).status, 400);
+  const moved = await call("POST", `/api/runs/${runId}/move`, { project_id: other.id });
+  assert.equal(moved.status, 200);
+  assert.equal(moved.body.project_id, other.id);
+  assert.equal(moved.body.group_id, null);
+  assert.equal(moved.body.worktree_path, "");
+  assert.equal(moved.body.branch, "");
+  assert.equal(moved.body.active_at, activeAt);
+  assert.equal((await call("GET", `/api/projects/${project.id}/runs`)).body.length, 0);
+  assert.equal((await call("GET", `/api/projects/${other.id}/runs`)).body.length, 1);
+  // 同じプロジェクトへの移動はそのまま返す
+  assert.equal((await call("POST", `/api/runs/${runId}/move`, { project_id: other.id })).body.project_id, other.id);
+
+  // 作業中は断る
+  await call("POST", `/api/runs/${runId}/messages`, { text: "続き" });
+  if (runner.isBusy(runId)) assert.equal((await call("POST", `/api/runs/${runId}/move`, { project_id: project.id })).status, 409);
+  await until(() => !runner.isBusy(runId));
+});
+
 test("添付・承認依頼・プロバイダー・使用枠の API", async () => {
   const { app, call } = setup();
   assert.deepEqual(await call("POST", "/api/uploads"), { status: 400, body: { error: "ファイルがありません" } });

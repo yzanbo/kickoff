@@ -183,6 +183,16 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
     /** チャットをグループへ移す（null でグループから外す）。並び順が変わらないよう更新日時は進めない */
     setGroup: (id: number, groupId: number | null) => setColumn(id, "group_id", groupId),
     /**
+     * チャットを別のプロジェクトへ移す。グループ・作業場所（ワークツリー）・最後に作業したブランチは元のプロジェクトのものなので外す
+     * （作業場所は移った先の本体になる）。並び順が変わらないよう更新日時は進めない
+     */
+    move(id: number, projectId: number): Run {
+      db.prepare("UPDATE runs SET project_id = ?, group_id = NULL, worktree_path = '', branch = '' WHERE id = ?").run(projectId, id);
+      const run = get(id)!;
+      onChange({ type: "run", run });
+      return run;
+    },
+    /**
      * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数を返す。
      * 完了 = 終わっていて（完了・中断）、未読の印がなく、固定していないもの（エラー・回答待ち・作業中・固定したものはしない）
      */

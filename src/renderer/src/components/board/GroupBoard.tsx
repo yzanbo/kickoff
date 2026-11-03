@@ -37,7 +37,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   const board = useGroupBoard({ projectId, groups });
   const { view, menu, rename, over, dropProps } = board;
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
-  const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs: board.runs, loaded: board.loaded, holdEsc: menu.isOpen });
+  const panel = useSidePanel({ memoryKey: `groups:${projectId}`, runs: board.runs, loaded: board.fresh, holdEsc: menu.isOpen });
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {

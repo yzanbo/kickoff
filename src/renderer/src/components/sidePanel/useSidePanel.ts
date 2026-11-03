@@ -21,7 +21,8 @@ export interface NewChatTarget {
 export type PanelTab =
   /** title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる） */
   /** status / attention: タブの中のチャットから届いた最新の状態（ボードの一覧にないチャットでも、タブに状態の印を出すため） */
-  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; status?: Run["status"]; attention?: boolean }
+  /** run: タブの中のチャットから届いた最新のチャット（右クリックのメニューの固定・アーカイブ・セッション ID などに使う） */
+  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; status?: Run["status"]; attention?: boolean; run?: Run }
   /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す）。seed: 初めに入力欄に入れるもの（送信待ちの指示から始めたとき） */
   | ({ key: string; kind: "new"; groupName?: string; draftText?: string; seed?: NewChatSeed } & NewChatTarget)
   /** チャットの中のサブエージェントの中身（toolUseId: Task / Agent の呼び出し ID。title: タブに出す名前） */
