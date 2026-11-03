@@ -7,7 +7,7 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Approval, BackgroundState, Run, RunEvent } from "../../../../core/types";
 import type { SubagentEntry } from "../../../../core/subagents";
 import { activityOf, activityText, latestOf, stalledAgents, type Activity } from "./stall";
-import { backgroundWaitLabel } from "./backgroundLabel";
+import { backgroundWaitLabel, countBackground } from "./backgroundLabel";
 import { BackgroundTasks } from "./BackgroundTasks";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
@@ -58,7 +58,7 @@ interface RunActivity {
 /** 作業中の行の文（止めている・通信を再試行している・順番待ち・返答を書いている・ツールを実行中・考えている）と、動きの様子 */
 function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: RunActivity): ReactNode {
   if (stopping) return "停止中…";
-  if (connection.retry) return <RetryLabel retry={connection.retry} />;
+  if (connection.retry) return <RetryLabel retry={connection.retry} agents={Math.max(runningAgents, countBackground(background).agents)} />;
   if (run.status === "queued") return "順番を待っています";
   // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
   if (activity.stalled.length > 0) return <StalledAgentsLabel agents={activity.stalled} />;
