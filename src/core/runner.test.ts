@@ -287,19 +287,16 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
   gates[3]();
 });
 
-test("待ちの列: 中断したら列に残し、「すぐ送る」はいまの作業を止めてからその指示を送る", async () => {
+test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送る」はいまの作業を止めてからその指示を送る", async () => {
   const { gates, script } = gatedScript();
   const { store, runner, provider, project } = setup(script);
   const run = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => gates.length === 1);
   await runner.queueMessage(run.id, "2");
+  // 止めても、待ちの次の指示を送る
   runner.cancel(run.id);
-  await until(() => store.getRun(run.id)?.status === "cancelled");
-  await tick();
-  assert.deepEqual(runner.queued(run.id).map((m) => m.text), ["2"]);
-  // 止まっているチャットで「すぐ送る」→ そのまま送る
-  assert.equal(await runner.sendQueuedNow(run.id, runner.queued(run.id)[0].id), true);
   await until(() => gates.length === 2);
+  assert.deepEqual(runner.queued(run.id), []);
   // 作業中に「すぐ送る」→ 止めてから送る（ほかの待ちは残す）
   await runner.queueMessage(run.id, "3");
   await runner.queueMessage(run.id, "4");
@@ -312,4 +309,16 @@ test("待ちの列: 中断したら列に残し、「すぐ送る」はいまの
   assert.equal(await runner.sendQueuedNow(run.id, "nope"), false);
   gates[2]();
   await until(() => store.getRun(run.id)?.status === "completed");
+});
+
+test("待ちの列: アプリを終えるときは送らない", async () => {
+  const { gates, script } = gatedScript();
+  const { runner, provider, project } = setup(script);
+  const run = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  await runner.queueMessage(run.id, "2");
+  runner.shutdown();
+  await until(() => !runner.isBusy(run.id));
+  await tick();
+  assert.equal(provider.calls.length, 1);
 });

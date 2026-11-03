@@ -22,15 +22,15 @@ interface StartRunInput {
  * エージェントの実行を管理する。
  * 同時実行数の上限を超えた分は待機列に入れ、空きができしだい順に開始する。
  * 1 つの実行（Run）は 1 つの会話で、追加のメッセージを送ると同じセッションを続きから再開する。
- * 作業中のチャットに送った次の指示は、チャットごとの待ちの列（followups）に入れ、作業が終わったら順に送る。
+ * 作業中のチャットに送った次の指示は、チャットごとの待ちの列（followups）に入れ、作業が終わったら（止めた・失敗したときも）順に送る。
  * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は runExecution.ts
  */
 export class Runner {
   private readonly active = new Map<number, AbortController>();
   private readonly queue: QueueItem[] = [];
   private readonly followups: FollowupQueue;
-  /** 「すぐ送る」で止めたチャット（止まったら、中断でも待ちの列の先頭を送る） */
-  private readonly interrupting = new Set<number>();
+  /** アプリを終えるところ（待ちの列を送らない） */
+  private shuttingDown = false;
 
   constructor(private readonly deps: ExecutionDeps & { usage: UsageMonitor }) {
     this.followups = new FollowupQueue((runId, queue) => {
@@ -124,8 +124,8 @@ export class Runner {
   async sendQueuedNow(runId: number, id: string): Promise<boolean> {
     if (!this.followups.has(runId, id)) return false;
     if (this.active.has(runId)) {
+      // 列の先頭に移して止める（止まったら、先頭から送る）
       this.followups.move(runId, id, 0);
-      this.interrupting.add(runId);
       this.active.get(runId)!.abort();
       return true;
     }
@@ -213,6 +213,7 @@ export class Runner {
 
   /** アプリ終了時: 実行中のエージェントをすべて止める */
   shutdown() {
+    this.shuttingDown = true;
     this.queue.length = 0;
     for (const controller of this.active.values()) controller.abort();
   }
@@ -239,9 +240,8 @@ export class Runner {
     } finally {
       this.active.delete(item.runId);
       void this.deps.usage.refresh();
-      // 終わったら、待ちの列の次の指示を送る（中断・失敗のときは列に残し、利用者が送るか決める。「すぐ送る」で止めたときは送る）
-      const interrupted = this.interrupting.delete(item.runId);
-      if (interrupted || this.deps.store.getRun(item.runId)?.status === "completed") void this.sendNextQueued(item.runId);
+      // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）
+      if (!this.shuttingDown) void this.sendNextQueued(item.runId);
       this.pump();
     }
   }
