@@ -71,6 +71,26 @@ test("プロジェクトを上に固定する・しまう（アーカイブ）�
   assert.equal(restored.pinned, false);
 });
 
+test("プロジェクトのタグ: 前後の空白と重複を除いて置き換える。長さ・数の上限を超えたら 400", async () => {
+  const { call, project, store } = setup();
+  assert.deepEqual(project.tags, []);
+  const tagged = (await call("PATCH", `/api/projects/${project.id}`, { tags: [" 仕事 ", "クライアント A", "仕事"] })).body;
+  assert.deepEqual(tagged.tags, ["仕事", "クライアント A"]);
+  assert.deepEqual((await call("GET", "/api/projects")).body[0].tags, ["仕事", "クライアント A"]);
+  // タグを変えても、最後に動いた時刻（一覧の並び順）は進めない
+  assert.equal(tagged.active_at, project.active_at);
+  // ほかの項目だけを変えても、タグはそのまま
+  assert.deepEqual((await call("PATCH", `/api/projects/${project.id}`, { name: "q" })).body.tags, ["仕事", "クライアント A"]);
+  for (const tags of [["x".repeat(31)], ["  "], Array.from({ length: 21 }, (_, i) => `t${i}`), "仕事"]) {
+    assert.equal((await call("PATCH", `/api/projects/${project.id}`, { tags })).status, 400, JSON.stringify(tags));
+  }
+  // 重複を除いて 20 個なら受け付ける
+  const many = Array.from({ length: 20 }, (_, i) => `t${i}`);
+  assert.deepEqual((await call("PATCH", `/api/projects/${project.id}`, { tags: [...many, "t0"] })).body.tags, many);
+  assert.deepEqual((await call("PATCH", `/api/projects/${project.id}`, { tags: [] })).body.tags, []);
+  assert.deepEqual(store.getProject(project.id)?.tags, []);
+});
+
 test("プロジェクトの色: 一覧の色だけに変えられる", async () => {
   const { call, project } = setup();
   assert.ok(typeof project.hue === "number");

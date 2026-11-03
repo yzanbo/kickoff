@@ -5,7 +5,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { openDatabase } from "./dbOpen.js";
-import { APPLICATION_ID, LEGACY_VERSION, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
+import { APPLICATION_ID, LEGACY_VERSION, SCHEMA_V1, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
 import { Store } from "./store.js";
 import { createLegacyV17 } from "./testing/legacySchemaV17.js";
 
@@ -72,4 +72,20 @@ test("いまの系統の user_version は 100 ＋ 版なので、古いコード
   converted.close();
   // 写しの名前の版は user_version のまま（古い系統の v17）
   assert.match(fs.readdirSync(path.join(path.dirname(file), "backups"))[0], /^kickoff-v17-/);
+});
+
+test("openDatabase: いまの系統の v1 の DB は、写してから版を上げ、既存のプロジェクトのタグは空の配列になる", () => {
+  const file = tempFile();
+  const v1 = new DatabaseSync(file);
+  v1.exec(SCHEMA_V1);
+  v1.exec(`PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = ${USER_VERSION_BASE + 1};`);
+  v1.exec("INSERT INTO projects (name, repo_path, hue) VALUES ('p', '/tmp/p', 0)");
+  v1.close();
+  const store = new Store(file);
+  assert.equal(userVersion(store.db), USER_VERSION_BASE + SCHEMA_VERSION);
+  assert.deepEqual(store.listProjects()[0].tags, []);
+  // タグの列も JSON かを確かめる
+  assert.throws(() => store.db.exec("UPDATE projects SET tags = 'x'"), /CHECK constraint failed/);
+  store.close();
+  assert.match(fs.readdirSync(path.join(path.dirname(file), "backups"))[0], /^kickoff-v101-/);
 });

@@ -19,6 +19,8 @@ export interface Project {
   archived_at: string | null;
   /** プロジェクトの色（色相 0〜359。作ったときに、ほかと被らない色を選ぶ。編集で変えられる） */
   hue: number;
+  /** タグ（仕事・プライベートなど。前後の空白を除き、重複なし。サイドバー・全プロジェクトの画面の絞り込みに使う） */
+  tags: string[];
   created_at: string;
   /** 最後に動いた時刻（変更したとき・チャットを作ったときに進む。一覧の並び順） */
   active_at: string;

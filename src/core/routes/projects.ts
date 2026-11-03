@@ -8,6 +8,7 @@ import { EFFORT_LEVELS, PERMISSION_CHOICES, PROVIDER_IDS, type Project, type Pro
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../workspace.js";
 import { badRequest, HttpError, requireProject } from "./http.js";
 import { PROJECT_HUES } from "../projectColors.js";
+import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "../projectTags.js";
 
 const newProjectSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -32,6 +33,12 @@ const projectPatchSchema = z
     provider: z.enum(PROVIDER_IDS),
     // プロジェクトの色（色の一覧から選ぶ）
     hue: z.number().int().refine((h) => (PROJECT_HUES as readonly number[]).includes(h), "色は一覧から選んでください"),
+    // タグ（送った内容で置き換える。前後の空白・重複は除く）
+    tags: z
+      .array(z.string().trim().min(1).max(MAX_TAG_LENGTH))
+      .max(MAX_TAGS * 5)
+      .transform(normalizeTags)
+      .refine((tags) => tags.length <= MAX_TAGS, `タグは ${MAX_TAGS} 個までです`),
     // 上に固定する・しまう（アーカイブ）
     pinned: z.boolean(),
     archived: z.boolean(),
