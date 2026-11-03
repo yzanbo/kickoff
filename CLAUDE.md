@@ -37,7 +37,7 @@
 | アイコンだけのボタン | `IconButton` / `CloseButton` / `RefreshButton`（`label` が aria-label と title になる。`<button className="icon-button">` を手で書かない） |
 | モーダル | `useModalDialog`（入力中に閉じたくないフォームは `closeOnBackdrop: false`） |
 | 左に項目・右に内容のダイアログ | `TabbedDialog`（プロジェクトの編集・設定） |
-| 確認・入力・お知らせのダイアログ | `confirmDialog` / `promptDialog` / `alertDialog`、3 つ以上から選ぶときは `choiceDialog`（`dialogs.tsx`）。送る前の確かめでやめたら、`Composer` の `onSend` で `SendCancelled` を投げる（書いた文を残し、失敗の文も出さない） |
+| 確認・入力・お知らせのダイアログ | `confirmDialog` / `promptDialog` / `alertDialog`、3 つ以上から選ぶときは `choiceDialog`（`dialogs.tsx`。「次からはこれにする」のチェックを添えるなら `choiceDialogWithRemember`。取り消せない選択肢は `danger`）。送る前の確かめでやめたら、`Composer` の `onSend` で `SendCancelled` を投げる（書いた文を残し、失敗の文も出さない） |
 | ポップオーバー | `PopoverHeader`。外側クリックと Esc で閉じるのは `useDismiss`（`escape`: `stop` = いちばん上だけ閉じる / `pass` = ほかの Esc にも伝える / `none`） |
 | 右クリック・「…」・＋のメニュー | `PopupMenu` ＋ `clampToViewport`。項目は `MenuItem`（閉じてから実行。`role` / `checked` / `danger` / `title`）。開いたら先頭にピントを置き ↑↓ で移るのは `useMenuKeys` で、`PopupMenu` が既定で効かせる（部品側で重ねて呼ばない）。ボタンの下（右寄せも）に出すメニューの位置・開閉・`ignore` は `menus/useAnchoredMenu(buttonSelector, width, align)`（開いているときに押したら閉じる）、カードの右クリックは `board/useCardMenu` |
 | 選択肢から 1 つ選ぶボタンの組 | `Segmented`（見た目は className で決める。数を出すなら選択肢の `badge`） |
@@ -65,6 +65,7 @@
 | ツールのまとまりの要約 | `summarizeTools`（「2個のファイルを編集 および 3個のコマンドを実行」。ToDo・ツール検索なども種類ごとに数え、分類できないものだけ「その他」） |
 | ツールの呼び出しの表示 | `chat/toolDescribe.ts`（ツールごとの文。「ToDo を追加: 確認 1」。生の JSON を出さない。承認カードは `describeApprovalInput`）、まとまりと 1 件は `chat/ToolGroup.tsx`、コマンドの出力は `BashOutput`（「$ コマンド」と出力を 1 つの枠に。終了コードは `bashResult.ts`） |
 | チャットの発言 | 自分の発言・返答は `chat/MessageItems.tsx`（長文の折りたたみ・時刻 `formatMessageTime`・コピー・右クリックのメニュー・吹き出しの中で書き直して送り直す `RewindContext`（`POST /api/runs/:id/rewind`。止めた作業の終わりは起点にしない））。発言へ移って強調するのは `jumpToEvent`。上を読んでいる間の一番下へ戻るボタン（`RunTimeline`。⌘↓ でも戻る。読んでいる文に重ならないよう右下の隅に置き、目立たせないときは少し薄く）は、答えを待っているとき・その間に返答が届いたときに文を添えて目立たせる。読んでいる返答の元の自分の指示は、流れの上端に貼り付ける `StickyPrompt`（初めは 1 行にたたみ、右の矢印で全文。`kickoff:sticky-prompt-expanded`。押すとその発言へ移る）。チャットの中の検索は `ChatFind`（CSS Custom Highlight API。DOM を書き換えない。チャットの見出しの `tools`）、自分が送った指示の履歴はチャット欄の上のピル `PromptsChip`（「指示の履歴 n」。行でその指示へ移り、右のボタンで入力欄に入れる = `Composer` の `fillRef`）。返答の中のファイルのパスは `components/fileLinks/`（`FileLinkContext` があるときだけチップにし、押すと `openProjectFile` でエディタタブを開く） |
+| チャットの ✕ | 見出しの ✕ とタブの × は `chat/closeChat.ts` の `closeChatWithChoice`（表示だけ消す・アーカイブ・削除を選んでから閉じる。既定は `kickoff:chat-close-action`（`ask` / `close` / `archive` / `delete`、未保存なら毎回聞く）で、設定の「チャット」と、聞いたときの「次からはこれにする」で変える。削除は既定にしても毎回確かめる。Esc・タブのメニューの「閉じる」は聞かずに閉じる） |
 | 名前をその場で変える | `InlineName`（グループ名など）、チャット名は `useRunRename` ＋ `ChatTitleInput`（サイドバーの行はダブルクリックでも始める）。名前の変更にダイアログは使わない |
 | ボードの見出し | `BoardHeader`。道具は概念ごとのまとまりに入れる（左: 主な操作（新規）→ 表示 → 整える（グループを作成） → 探す・絞り込む / 右: パネルの開閉。ブラウザ・ターミナルは見出しに置かず、パネルのタブの列の右端のボタン（新しいチャット・ブラウザ・ターミナル。ターミナルはチャットを表示していればその作業場所で開く）と、タブがないときのパネルの画面から開く） |
 | プロジェクトのチャット欄 | 画面の右端の、どのタブでも開ける欄（`useProjectChat` ＋ `ProjectChat`。中身はボードの右のパネルと同じタブ（`SidePanel` の `sidebar`。チャット・ブラウザ・ターミナル）。App のレイアウトの 3 列目に置き、下のパネル（ターミナル）より下まで伸ばす。開閉は右上のレイアウトの開閉（`LayoutToggles`。左のサイドバー・下のパネル・チャット欄を VS Code と同じく並べる）か ⌥⌘B。開閉・表示中のチャットはプロジェクトごと、幅は `useDragWidth`（`side: "right"`））。ボードの右のパネル（カードを開く）とは別のもの |

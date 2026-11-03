@@ -1,4 +1,8 @@
+import { useStoredChoice } from "../../hooks/useStoredState";
+import { CHAT_CLOSE_ACTION_KEY } from "../../storageKeys";
+import { CHAT_CLOSE_ACTION_LABELS, CHAT_CLOSE_ACTIONS, type ChatCloseAction } from "../chat/closeChat";
 import { Field } from "../Field";
+import { Segmented } from "../Segmented";
 import { SaveActions } from "../SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
 
@@ -12,9 +16,11 @@ const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
   { value: 30, label: "30 日" },
 ];
 
-/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・通信が切れて止まったときの自動の再開） */
+/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・通信が切れて止まったときの自動の再開・✕ を押したときの扱い） */
 export function ChatSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
+  // ✕ を押したときの扱い（この Mac の画面の設定なので、選んだらすぐ反映する）
+  const [closeAction, setCloseAction] = useStoredChoice<ChatCloseAction>(CHAT_CLOSE_ACTION_KEY, CHAT_CLOSE_ACTIONS, "ask");
   if (!draft) return null;
   return (
     <section className="section">
@@ -54,6 +60,20 @@ export function ChatSettings() {
         disabled={!dirty}
         onSave={() => saveFields({ autoArchiveDays: draft.autoArchiveDays, autoResumeOnReconnect: draft.autoResumeOnReconnect })}
       />
+      <div className="form">
+        <Field
+          label="チャットの ✕ を押したとき"
+          help="チャットの見出しの ✕ とタブの × に効きます（選んだらすぐ反映）。毎回聞くときは、表示だけ消す・アーカイブ・削除から選び、「次からはこれにする」でここを変えられます。削除は取り消せないので、既定にしても毎回確かめます。"
+        >
+          <Segmented<ChatCloseAction>
+            className="segmented theme-switch"
+            label="チャットの ✕ を押したとき"
+            value={closeAction}
+            onChange={setCloseAction}
+            options={CHAT_CLOSE_ACTIONS.map((value) => ({ value, label: CHAT_CLOSE_ACTION_LABELS[value] }))}
+          />
+        </Field>
+      </div>
     </section>
   );
 }

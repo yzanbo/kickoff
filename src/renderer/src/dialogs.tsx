@@ -30,14 +30,16 @@ interface PromptOptions {
 interface ChoiceOptions {
   title: string;
   message?: string;
-  /** キャンセルのほかに並べる選択肢（左から順に。primary はいちばんおすすめのもの） */
-  choices: { value: string; label: string; primary?: boolean }[];
+  /** キャンセルのほかに並べる選択肢（左から順に。primary はいちばんおすすめのもの、danger は取り消せない操作（赤）） */
+  choices: { value: string; label: string; primary?: boolean; danger?: boolean }[];
+  /** 「次からはこれにする」のチェックの文（あれば出す。選んだときにチェックしていたかを返す） */
+  remember?: string;
 }
 
 type Request =
   | ({ kind: "confirm"; resolve: (ok: boolean) => void } & ConfirmOptions)
   | ({ kind: "prompt"; resolve: (value: string | null) => void } & PromptOptions)
-  | ({ kind: "choice"; resolve: (value: string | null) => void } & ChoiceOptions);
+  | ({ kind: "choice"; resolve: (value: string | null, remember: boolean) => void } & ChoiceOptions);
 
 let show: ((req: Request) => void) | undefined;
 
@@ -70,10 +72,22 @@ export function choiceDialog<T extends string>(options: Omit<ChoiceOptions, "cho
   });
 }
 
+/** 3 つ以上から選ぶダイアログに「次からはこれにする」のチェックを添える（選んだものと、チェックしていたか。やめたら null） */
+export function choiceDialogWithRemember<T extends string>(
+  options: Omit<ChoiceOptions, "choices" | "remember"> & { choices: { value: T; label: string; primary?: boolean; danger?: boolean }[]; remember: string },
+): Promise<{ value: T; remember: boolean } | null> {
+  return new Promise((resolve) => {
+    if (!show) return resolve(null);
+    show({ kind: "choice", resolve: (value, remember) => resolve(value === null ? null : { value: value as T, remember }), ...options });
+  });
+}
+
 /** App に 1 つだけ置く（ダイアログを表示する場所） */
 export function DialogHost() {
   const [req, setReq] = useState<Request | null>(null);
   const [value, setValue] = useState("");
+  // 「次からはこれにする」のチェック
+  const [remember, setRemember] = useState(false);
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,6 +95,7 @@ export function DialogHost() {
   useEffect(() => {
     show = (next) => {
       setValue(next.kind === "prompt" ? (next.initial ?? "") : "");
+      setRemember(false);
       setReq(next);
     };
     return () => {
@@ -105,7 +120,7 @@ export function DialogHost() {
   const finish = (ok: boolean, choice?: string) => {
     if (!req) return;
     if (req.kind === "confirm") req.resolve(ok);
-    else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null);
+    else if (req.kind === "choice") req.resolve(ok ? (choice ?? null) : null, remember);
     else req.resolve(ok && value.trim() ? value.trim() : null);
     setReq(null);
     ref.current?.close();
@@ -148,6 +163,12 @@ export function DialogHost() {
             />
           </label>
         )}
+        {req.kind === "choice" && req.remember && (
+          <label className="check app-dialog-remember">
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+            <span>{req.remember}</span>
+          </label>
+        )}
         <div className="app-dialog-actions">
           {!(req.kind === "confirm" && req.hideCancel) && (
             <button ref={cancelRef} type="button" className="btn" onClick={() => finish(false)}>
@@ -156,7 +177,7 @@ export function DialogHost() {
           )}
           {req.kind === "choice" ? (
             req.choices.map((c) => (
-              <button key={c.value} type="button" className={`btn ${c.primary ? "btn-primary" : ""}`} onClick={() => finish(true, c.value)}>
+              <button key={c.value} type="button" className={`btn ${c.primary ? "btn-primary" : c.danger ? "btn-danger" : ""}`} onClick={() => finish(true, c.value)}>
                 {c.label}
               </button>
             ))

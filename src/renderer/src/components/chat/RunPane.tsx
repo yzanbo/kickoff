@@ -11,6 +11,7 @@ import { Composer, SendCancelled, type QueueSendMode } from "./Composer";
 import { confirmDialog } from "../../dialogs";
 import { ContextMeter } from "./ContextMeter";
 import { RunHeader } from "./RunHeader";
+import { closeChatWithChoice } from "./closeChat";
 import { useRunOptions } from "./RunOptionsBar";
 import type { Connection } from "./ConnectionStatus";
 import { RunTimeline } from "./RunTimeline";
@@ -193,7 +194,7 @@ function RunView({
             <IconButton icon={Search} size={13} label="このチャットの中を検索" aria-expanded={finding} onClick={() => setFinding(!finding)} />
           </>
         }
-        onClose={onClose}
+        onClose={() => void closeChatWithChoice(run, onClose)}
       />
       {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
       <RunTimeline items={items} rel={rel} run={run} busy={busy} runningAgents={runningAgents} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} />
