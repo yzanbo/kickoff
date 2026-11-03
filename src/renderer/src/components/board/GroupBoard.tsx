@@ -138,10 +138,20 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
         </div>
       ) : (
         <div className="board-list">
-          <GroupSections projectId={projectId} groups={groups} board={board} panel={panel} cards={cards} highlight={highlight} list />
-          <section className="list-group group-add-row">
-            <GroupCreateForm board={board} />
-          </section>
+          <GroupSections
+            projectId={projectId}
+            groups={groups}
+            board={board}
+            panel={panel}
+            cards={cards}
+            highlight={highlight}
+            list
+            beforeUngrouped={
+              <section className="list-group group-add-row">
+                <GroupCreateForm board={board} />
+              </section>
+            }
+          />
         </div>
       )}
     </BoardShell>
