@@ -213,3 +213,18 @@
 .event-note.error {
   color: var(--ng);
 }
+
+/* 作業の終わりの行（作業時間・返答のコピー） */
+.turn-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.turn-footer .turn-action {
+  width: 22px;
+  height: 22px;
+  color: var(--extra-muted);
+}

@@ -4,7 +4,8 @@ import type { Attachment, RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
 import { formatTokens } from "../../format";
 import { useTicker } from "../../hooks/useTicker";
-import { formatElapsed } from "../../time";
+import { formatClock, formatElapsed } from "../../time";
+import { CopyButton } from "../CopyButton";
 import { cleanSubagentReport, isSubagentTool } from "./subagentList";
 import { summarizeTools, toolLabel, type TimelineItem, type ToolCall } from "./timelineItems";
 import { describeToolInput } from "./ApprovalCard";
@@ -23,7 +24,7 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
     item.kind === "tools" ? (
       <ToolGroup key={item.key} tools={item.tools} rel={rel} active={active && i === items.length - 1} />
     ) : (
-      <EventItem key={item.key} event={item.event} turnStart={item.turnStart} />
+      <EventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} />
     ),
   );
 }
@@ -140,6 +141,25 @@ function Diff({ before, after, maxLines = 200 }: { before: string; after: string
   );
 }
 
+/**
+ * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー。
+ * 時刻に乗せると、終わった時刻を出す
+ */
+function TurnFooter({ event, turnStart, turnText }: { event: RunEvent; turnStart?: string; turnText?: string }) {
+  const data = event.data as { status?: string; text?: string };
+  const status =
+    data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${String(data.text ?? "")}` : null;
+  const worked = turnStart && formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
+  if (!status && !worked && !turnText) return null;
+  return (
+    <div className={cx("turn-footer event-note", data.status === "failed" && "error")}>
+      {status && <span>{status}</span>}
+      {worked && <span title={`${formatClock(event.created_at)} に終了`}>作業時間 {worked}</span>}
+      {turnText && <CopyButton text={turnText} label="返答をコピー" className="turn-action" />}
+    </div>
+  );
+}
+
 const RESOLVED_LABELS: Record<string, string> = {
   allow: "許可しました",
   allow_always: "常に許可しました",
@@ -147,8 +167,8 @@ const RESOLVED_LABELS: Record<string, string> = {
   answer: "質問に回答しました",
 };
 
-/** 発言・お知らせ 1 件（作業の終わりには、turnStart からの作業時間を出す） */
-function EventItem({ event, turnStart }: { event: RunEvent; turnStart?: string }) {
+/** 発言・お知らせ 1 件（作業の終わりには、作業時間と返答のコピーを出す） */
+function EventItem({ event, turnStart, turnText }: { event: RunEvent; turnStart?: string; turnText?: string }) {
   const data = event.data as Record<string, unknown>;
   switch (event.type) {
     case "user": {
@@ -174,16 +194,8 @@ function EventItem({ event, turnStart }: { event: RunEvent; turnStart?: string }
       );
     case "approval_resolved":
       return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
-    case "result": {
-      const worked = turnStart ? `作業時間 ${formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime())}` : null;
-      if (data.status === "completed") return worked && <div className="event-note">{worked}</div>;
-      return (
-        <div className={cx("event-note", data.status === "failed" && "error")}>
-          {data.status === "cancelled" ? "中断しました" : `失敗しました: ${String(data.text ?? "")}`}
-          {worked && `（${worked}）`}
-        </div>
-      );
-    }
+    case "result":
+      return <TurnFooter event={event} turnStart={turnStart} turnText={turnText} />;
     case "error":
       return <div className="event-note error">{String(data.message)}</div>;
     case "notice":
