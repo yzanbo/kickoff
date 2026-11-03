@@ -19,6 +19,7 @@ import { loadCurrentProject, saveCurrentProject } from "./currentProject";
 import { loadLastHashes, saveLastHashes, type LastHashes } from "./lastHashes";
 import type { NavLayout } from "./ProjectListHead";
 import { useProjectMenu } from "./ProjectMenu";
+import { useAllDrafts } from "../sidePanel/panelMemory";
 import { foldAll, useCompactProjects, useCompactRows, useShowArchivedChats, waitingRuns } from "./sidebarFlags";
 import { useProjectReorder } from "./useProjectReorder";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
@@ -49,11 +50,12 @@ export function useProjectNav(runs: Record<number, Run[]>) {
   // 手動の並びのときだけ、ドラッグで並べ替えられる（しまったものは並べ替えない）
   const canReorder = projectOrder === "manual";
   const archived = archivedProjects(projects).filter(tagFilter.matches);
-  // 自分待ちだけを出すときは、自分待ちのチャットがあるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
+  // 自分待ちだけを出すときは、自分待ちのチャットか、送る前の新しいチャット（下書き）があるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
-  const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], pending).length > 0;
+  const drafts = useAllDrafts();
+  const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
   const [searchAll, setSearchAll] = useState("");
   const allSearch = useChatSearch(layout === "stack" ? searchAll : "");
