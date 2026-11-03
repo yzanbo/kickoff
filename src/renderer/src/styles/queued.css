@@ -1,5 +1,4 @@
 /* ==== 送信待ちの指示（QueuedMessages。チャット欄のすぐ上（ピルの列の下）の待ちの列・たたむ・書き直す・添付のサムネイル） ==== */
-
 .queued-messages {
   position: relative;
   /* 狭い欄では ↑↓ とボタンの文字を隠す（末尾の @container） */
@@ -28,6 +27,11 @@
   line-height: 1;
 }
 
+/* ここから右を送る・消すの操作にまとめる（左は件数と、一覧の見え方の「すべて表示 / 縮める」） */
+.queued-head-btn.queued-mode {
+  margin-left: auto;
+}
+
 /* 止めているとき（終わっても送らない）: 黄で目立たせる */
 .queued-head-btn.queued-mode.paused {
   border-color: color-mix(in srgb, var(--warn) 60%, transparent);
@@ -53,7 +57,7 @@
 
 .queued-head {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   align-items: center;
   gap: 4px;
   min-width: 0;
