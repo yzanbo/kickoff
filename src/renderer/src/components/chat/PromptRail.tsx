@@ -1,15 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { cx } from "../../cx";
+import { useDismiss } from "../../hooks/useDismiss";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { adjacentPrompt, currentPrompt, promptTops, railWindow } from "./promptNav";
 import type { PromptEntry } from "./promptHistory";
 
 /**
  * チャットの目次: 流れの右端に、自分の指示を 1 つずつ目盛りで並べる（いま読んでいるところの指示を濃く）。
- * 乗せると指示の初めの行の一覧に広がり、押すとその指示へ移る。⌘⌥↑ / ↓ で前後の指示へ（このチャットにピントがあるとき）。
+ * 押すと指示の初めの行の一覧に広がり（乗せただけでは広げない。流れの右側を押すときに一覧が出てきて邪魔だったため）、一覧の行を押すとその指示へ移って閉じる
+ * （閉じているときの目盛りは、どこを押しても一覧を開くだけ。うっかり押して読んでいる場所が動かないように）。外を押す・Esc で閉じる。
+ * ⌘⌥↑ / ↓ で前後の指示へ（このチャットにピントがあるとき）。
  * 目盛りは流れの高さ（の 6 割）に収まるだけ出す（railWindow。PC ごとの画面の高さ・欄の高さに合わせ、変わったら測り直す）。
- * 収まらないときは、いま読んでいる指示を真ん中に前後を出し、上下に隠れた数（「↑ 140」）を添える（押すと隠れた側のすぐ隣の指示へ）。
- * 乗せて広げた一覧は中でスクロールできるので、間引かずにすべての指示を出し、いま読んでいる指示を真ん中に見せる
+ * 収まらないときは、いま読んでいる指示を真ん中に前後を出し、上下に隠れた数（「↑ 140」）を添える。
+ * 広げた一覧は中でスクロールできるので、間引かずにすべての指示を出し、いま読んでいる指示を真ん中に見せる
  */
 export function PromptRail({ root, prompts, onJump }: { root: RefObject<HTMLElement | null>; prompts: PromptEntry[]; onJump: (eventId: number) => void }) {
   const [current, setCurrent] = useState<number>();
@@ -84,9 +87,16 @@ export function PromptRail({ root, prompts, onJump }: { root: RefObject<HTMLElem
     true,
   );
 
-  // 一覧に広げているか（乗せた・キーでピントが入った）。広げている間はすべての指示を出す
+  // 一覧に広げているか（押したとき）。広げている間はすべての指示を出す。外を押す・Esc で閉じる
   const [open, setOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+  useDismiss(navRef, () => setOpen(false), { enabled: open });
+  /** 閉じているときは一覧を開くだけ、開いているときはその指示へ移って閉じる */
+  const press = (id: number) => {
+    if (!open) return setOpen(true);
+    setOpen(false);
+    jump(id);
+  };
   // 広げたら、いま読んでいるところの指示を一覧の真ん中に見せる（すべて出すので、遠くの指示でも見える位置まで動かす）
   useLayoutEffect(() => {
     if (!open) return;
@@ -104,21 +114,18 @@ export function PromptRail({ root, prompts, onJump }: { root: RefObject<HTMLElem
   return (
     <nav
       ref={navRef}
-      className="prompt-rail"
-      aria-label="指示の目次（⌘⌥↑ / ↓ で前後の指示へ）"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={(e) => !e.currentTarget.contains(document.activeElement) && setOpen(false)}
-      onFocus={(e) => e.target.matches(":focus-visible") && setOpen(true)}
-      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && !e.currentTarget.matches(":hover") && setOpen(false)}
+      className={cx("prompt-rail", open && "open")}
+      aria-label="指示の目次（押すと一覧を開く。⌘⌥↑ / ↓ で前後の指示へ）"
+      title={open ? undefined : "指示の目次（押すと一覧を開く）"}
     >
       <div className="prompt-rail-list">
         {start > 0 && (
-          <button type="button" className="prompt-rail-more" title={`前の指示 ${start} 件（押すとすぐ上の指示へ）`} onClick={() => jump(prompts[start - 1].id)}>
+          <button type="button" className="prompt-rail-more" title={`前の指示 ${start} 件（押すと一覧を開く）`} aria-expanded={open} onClick={() => setOpen(true)}>
             ↑ {start}
           </button>
         )}
         {shown.map((p, i) => (
-          <button key={p.id} type="button" className={cx("prompt-rail-item", p.id === current && "current")} aria-current={p.id === current || undefined} onClick={() => jump(p.id)}>
+          <button key={p.id} type="button" className={cx("prompt-rail-item", p.id === current && "current")} aria-current={p.id === current || undefined} aria-expanded={open ? undefined : false} onClick={() => press(p.id)}>
             <span className="prompt-rail-label">
               <span className="prompt-index">{start + i + 1}</span>
               <span className="prompt-text">{p.label}</span>
@@ -127,7 +134,7 @@ export function PromptRail({ root, prompts, onJump }: { root: RefObject<HTMLElem
           </button>
         ))}
         {hiddenAfter > 0 && (
-          <button type="button" className="prompt-rail-more" title={`後の指示 ${hiddenAfter} 件（押すとすぐ下の指示へ）`} onClick={() => jump(prompts[end].id)}>
+          <button type="button" className="prompt-rail-more" title={`後の指示 ${hiddenAfter} 件（押すと一覧を開く）`} aria-expanded={open} onClick={() => setOpen(true)}>
             ↓ {hiddenAfter}
           </button>
         )}

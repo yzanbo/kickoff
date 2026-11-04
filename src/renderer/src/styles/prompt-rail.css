@@ -1,4 +1,4 @@
-/* チャットの目次（PromptRail）: 流れの右端（スクロールバーの内側）に、自分の指示を 1 つずつ目盛りで並べる。乗せると指示の一覧に広がる */
+/* チャットの目次（PromptRail）: 流れの右端（スクロールバーの内側）に、自分の指示を 1 つずつ目盛りで並べる。押すと指示の一覧に広がる（乗せただけでは広げない） */
 .prompt-rail {
   position: absolute;
   top: 50%;
@@ -58,9 +58,17 @@
   min-width: 0;
 }
 
-/* 乗せた・ピントがあるとき: 指示の初めの行の一覧に広げる（多ければ中でスクロール） */
-.prompt-rail:hover .prompt-rail-list,
-.prompt-rail:has(:focus-visible) .prompt-rail-list {
+/* 閉じているときに乗せたら、押せると分かるよう目盛りを少し濃くする（一覧には広げない） */
+.prompt-rail:not(.open):hover .prompt-rail-tick {
+  background: color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.prompt-rail:not(.open):hover .prompt-rail-item.current .prompt-rail-tick {
+  background: var(--accent);
+}
+
+/* 押して開いたとき: 指示の初めの行の一覧に広げる（多ければ中でスクロール） */
+.prompt-rail.open .prompt-rail-list {
   width: min(300px, 70cqw);
   padding: 4px;
   overflow-y: auto;
@@ -69,14 +77,13 @@
   box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
 }
 
-.prompt-rail:hover .prompt-rail-item,
-.prompt-rail:has(:focus-visible) .prompt-rail-item {
+.prompt-rail.open .prompt-rail-item {
   gap: 8px;
   height: auto;
   padding: 4px 6px;
 }
 
-/* 上下に隠れた指示の数（「↑ 140」。高さは promptNav.ts の RAIL_MORE_PX）。押すと隠れた側のすぐ隣の指示へ */
+/* 上下に隠れた指示の数（「↑ 140」。高さは promptNav.ts の RAIL_MORE_PX）。押すと一覧を開く */
 .prompt-rail-more {
   flex: none;
   height: 18px;
@@ -97,20 +104,18 @@
   background: var(--bg-hover);
 }
 
-.prompt-rail:hover .prompt-rail-more,
-.prompt-rail:has(:focus-visible) .prompt-rail-more {
+.prompt-rail.open .prompt-rail-more {
   height: 24px;
   padding: 0 6px;
   font-size: 11px;
   text-align: left;
 }
 
-.prompt-rail:hover .prompt-rail-label,
-.prompt-rail:has(:focus-visible) .prompt-rail-label {
+.prompt-rail.open .prompt-rail-label {
   display: flex;
 }
 
-.prompt-rail-item:hover {
+.prompt-rail.open .prompt-rail-item:hover {
   color: var(--text);
   background: var(--bg-hover);
 }
