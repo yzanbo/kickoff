@@ -1,13 +1,12 @@
-import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useRef, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
-import { startHorizontalDrag } from "@/hooks/dragResize";
+import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { SIDEBAR_OPEN, SIDEBAR_WIDTH } from "@/lib/storageKeys";
 
 /** サイドバーの幅は 200〜480px（狭くしすぎ・広げすぎを防ぐ） */
-function clampWidth(width: number): number {
-  return Math.round(Math.max(200, Math.min(480, width)));
-}
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 480;
 
 export type SidebarController = ReturnType<typeof useSidebar>;
 
@@ -17,38 +16,22 @@ export type SidebarController = ReturnType<typeof useSidebar>;
  */
 export function useSidebar() {
   const [open, setOpen] = useSetting(SIDEBAR_OPEN);
-  const [storedWidth, setWidth] = useSetting(SIDEBAR_WIDTH);
-  const width = clampWidth(storedWidth);
-  const [resizing, setResizing] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
-
-  const startResize = (e: PointerEvent<HTMLDivElement>) => {
-    const layout = layoutRef.current;
-    if (!layout) return;
-    let next = width;
-    startHorizontalDrag(e, {
-      move: (clientX) => {
-        next = clampWidth(clientX);
-        // ドラッグ中は再描画せず、CSS の変数だけを書き換えて指に追従させる
-        layout.style.setProperty("--sidebar-w", `${next}px`);
-      },
-      end: () => {
-        setResizing(false);
-        setWidth(next);
-      },
-    });
-    setResizing(true);
-  };
+  // ドラッグ中は再描画せず、画面全体を並べる要素の CSS の変数だけを書き換えて指に追従させる
+  const resize = useDragSize({ setting: SIDEBAR_WIDTH, min: MIN_WIDTH, max: MAX_WIDTH, write: "--sidebar-w", target: () => layoutRef.current });
+  const width = Math.round(Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, resize.size)));
 
   return {
     open,
     toggle: () => setOpen(!open),
-    startResize,
-    resetWidth: () => setWidth(SIDEBAR_WIDTH.initial),
+    /** サイドバー本体に付ける（ドラッグを始めたときの幅を測る） */
+    paneRef: resize.paneRef,
+    /** 右端のつまみに渡す */
+    resizeHandle: resize.handle,
     /** サイドバーと画面全体を並べる要素に渡す */
     layout: {
       ref: layoutRef,
-      className: cx("layout", !open && "sidebar-collapsed", resizing && "resizing-sidebar"),
+      className: cx("layout", !open && "sidebar-collapsed", resize.resizing && "resizing-sidebar"),
       style: { "--sidebar-w": `${width}px` } as CSSProperties,
     },
   };

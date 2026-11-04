@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { GitCommit } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { useDragWidth } from "@/hooks/useDragWidth";
+import { useDragSize } from "@/hooks/useDragSize";
 import { CHANGES_LIST_WIDTH } from "@/lib/storageKeys";
 import { WorktreePicker } from "@/features/worktree/WorktreePicker";
 import { ErrorText } from "@/ui/ErrorText";
@@ -33,7 +33,7 @@ export function HistoryTab({
   const commit = picked?.projectId === projectId ? picked.commit : undefined;
   const setCommit = (next: GitCommit) => setPicked({ projectId, commit: next });
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。エディタタブの一覧と同じ幅を覚える）
-  const list = useDragWidth({ setting: CHANGES_LIST_WIDTH });
+  const list = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;
@@ -47,7 +47,7 @@ export function HistoryTab({
         <WorktreePicker projectId={projectId} value={worktree} onChange={onWorktreeChange} version={git.version} />
       </div>
       <div className={cx("changes", list.resizing && "resizing")}>
-        <aside ref={list.paneRef} className="changes-list" style={{ width: list.width }} aria-label="履歴">
+        <aside ref={list.paneRef} className="changes-list" style={{ width: list.size }} aria-label="履歴">
           <HistorySidebar
             projectId={projectId}
             log={log}

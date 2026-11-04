@@ -1,5 +1,5 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause, SendHorizontal } from "lucide-react";
-import { Fragment, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import type { QueueState } from "@shared/types";
 import { api } from "@/api";
 import { QueuedHeadActions, QueuedModeButton, QueuedMoveActions, QueuedStopButton } from "./QueuedHeadActions";
@@ -14,7 +14,7 @@ import { nextQueuedText, queuedHint } from "./queuedHint";
 import type { NewChatTarget } from "@/features/panel/usePanel";
 import { cx } from "@/lib/cx";
 import { reportFailure } from "@/ui/dialogs";
-import { startVerticalDrag } from "@/hooks/dragResize";
+import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { QUEUE_COLLAPSED, QUEUE_EXPANDED, QUEUE_HEIGHT } from "@/lib/storageKeys";
 
@@ -56,31 +56,22 @@ export function QueuedMessages({
   const [expanded, setExpanded] = useSetting(QUEUE_EXPANDED);
   const listRef = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
-  // 一覧の高さの上限（上端のつまみのドラッグで変える。ダブルクリックで元の高さ）
-  const [height, setHeight] = useSetting(QUEUE_HEIGHT);
-  const [resizing, setResizing] = useState(false);
-  /** つまみのドラッグ: 上へ動かすほど高く（いま見えている高さから。上限は画面の高さの 6 割）。ドラッグ中は描き直さず、style だけ書き換える */
-  const startResize = (e: PointerEvent<HTMLElement>) => {
-    const list = listRef.current;
-    if (!list) return;
-    const startY = e.clientY;
-    const startHeight = list.clientHeight;
-    const max = Math.max(MIN_LIST_HEIGHT, Math.round(window.innerHeight * 0.6));
-    let next = startHeight;
-    setResizing(true);
-    startVerticalDrag(e, {
-      move: (clientY) => {
-        next = Math.round(Math.max(MIN_LIST_HEIGHT, Math.min(max, startHeight + startY - clientY)));
-        list.style.maxHeight = `${next}px`;
-      },
-      end: () => {
-        setResizing(false);
-        setHeight(next);
-        // 高さを決めたら、すべて表示はやめる（決めた高さで中をスクロールさせる）
-        setExpanded(false);
-      },
-    });
-  };
+  /**
+   * 一覧の高さの上限（上端のつまみのドラッグで変える。上へ動かすほど高く、いま見えている高さから。上限は画面の高さの 6 割。
+   * ダブルクリックで元の高さ）。ドラッグ中は描き直さず、style だけ書き換える。高さを決めたら、すべて表示はやめる（決めた高さで中をスクロールさせる）
+   */
+  const resize = useDragSize({
+    setting: QUEUE_HEIGHT,
+    axis: "y",
+    edge: "start",
+    min: MIN_LIST_HEIGHT,
+    max: () => Math.max(MIN_LIST_HEIGHT, Math.round(window.innerHeight * 0.6)),
+    write: "maxHeight",
+    pane: listRef,
+    onChange: () => setExpanded(false),
+  });
+  const height = resize.size;
+  const resizing = resize.resizing;
   // ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選ぶ（選んだものだけ、まとめて送る・消す・移す。Esc でやめる）
   const { selected, selectRow, clearSelection } = useQueueSelection(messages);
   const failed = reportFailure("待ちの指示を操作できませんでした");
@@ -135,18 +126,7 @@ export function QueuedMessages({
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
       {!collapsed && (
-        <div
-          className="queued-resizer"
-          role="separator"
-          aria-orientation="horizontal"
-          aria-label="送信待ちの一覧の高さ"
-          title="ドラッグで高さを変える（ダブルクリックで元に戻す）"
-          onPointerDown={startResize}
-          onDoubleClick={() => {
-            setHeight(QUEUE_HEIGHT.initial);
-            setExpanded(false);
-          }}
-        />
+        <div className="queued-resizer" aria-label="送信待ちの一覧の高さ" {...resize.handle} />
       )}
       {/* 見出しの行にドラッグして落とすと、いちばん上へ（1 件目の上の一時停止よりも上） */}
       <div className="queued-head-row" onDragOver={dnd.overTop} onDrop={dnd.drop}>

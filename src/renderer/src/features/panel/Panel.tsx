@@ -48,7 +48,8 @@ export function Panel({
   const panelOpen = sidebar ? sidebar.open : panel.panelOpen;
   const close = sidebar ? sidebar.onClose : panel.close;
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
-  const asideRef = useRef<HTMLElement>(null);
+  // パネルそのもの（ピントがパネルの中にあるか・左端のつまみのドラッグを始めたときの幅）
+  const asideRef = panel.paneRef;
   const contentRef = useRef<HTMLDivElement>(null);
   const drag = useTabDrag(panel);
   // タブの右クリックのメニュー
@@ -180,15 +181,7 @@ export function Panel({
   return (
     <aside ref={asideRef} className={cx("board-panel", sidebar && "as-sidebar", sidebar?.className)} aria-hidden={!panelOpen}>
       {!sidebar && (
-        <div
-          inert={!panelOpen}
-          className="panel-resizer"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="パネルの幅を変える"
-          title="ドラッグで幅を変える"
-          onPointerDown={panel.startResize}
-        />
+        <div inert={!panelOpen} className="panel-resizer" aria-label="パネルの幅を変える" {...panel.resizeHandle} />
       )}
       {!split && bar(leaves[0])}
       <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing")} inert={!panelOpen}>

@@ -1,5 +1,5 @@
 import type { CSSProperties, RefObject } from "react";
-import { startHorizontalDrag, startVerticalDrag } from "@/hooks/dragResize";
+import { startPointerDrag } from "@/hooks/useDragSize";
 import { resizeAt, type FracRect, type Sash } from "./paneGeometry";
 import type { PaneNode } from "./paneLayout";
 
@@ -56,8 +56,7 @@ export function PaneSash({
       end: () => onResizing(false),
     };
     onResizing(true);
-    if (row) startHorizontalDrag(e, handlers);
-    else startVerticalDrag(e, handlers);
+    startPointerDrag(e, row ? "x" : "y", handlers);
   };
 
   return (

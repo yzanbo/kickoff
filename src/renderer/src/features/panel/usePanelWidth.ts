@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { startHorizontalDrag } from "@/hooks/dragResize";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { PANEL_MAXIMIZED, PANEL_WIDTH } from "@/lib/storageKeys";
 
@@ -27,10 +27,25 @@ function leavesNarrowBoard(bodyWidth: number, width: number): boolean {
  * bodyRef と style は、ボードとパネルを並べる要素（usePanel の body）に渡す
  */
 export function usePanelWidth() {
-  const [panelWidth, setPanelWidth] = useSetting(PANEL_WIDTH);
-  const [resizing, setResizing] = useState(false);
   // 横幅いっぱい（ボードを覆う）。戻すと、元の幅に戻る
   const [maximized, setMaximized] = useSetting(PANEL_MAXIMIZED);
+  const [body, setBody] = useState<HTMLDivElement | null>(null);
+  /**
+   * パネルの左端をドラッグして幅を変える（ボードを覆うところまで広げられる）。いま見えている幅から始め（横幅いっぱい・覆っているときは
+   * その幅から。ドラッグすると横幅いっぱいは解除）、ドラッグ中は指の位置どおりの幅にし（覆っている状態から右へ動かすと、すぐにボードが見えてくる）、
+   * 離したときにボードが狭すぎる幅なら覆う。ダブルクリックで初めの幅に戻す
+   */
+  const resize = useDragSize({
+    setting: PANEL_WIDTH,
+    edge: "start",
+    min: MIN_PANEL_WIDTH,
+    keep: 0,
+    write: "--panel-w",
+    target: () => body,
+    onStart: () => maximized && setMaximized(false),
+  });
+  const panelWidth = resize.size;
+  const resizing = resize.resizing;
   /**
    * 横幅いっぱいを切り替えて、パネルの幅が動いている途中か。開閉と違い、右端は動かず左端だけが伸び縮みするので、その間は中身を
    * 枠の幅に合わせて並べ直す（開き終えたときの幅のまま左端にそろえると、広げるときは中身が左端と一緒に滑り、戻すときは右側が空いた）
@@ -38,7 +53,6 @@ export function usePanelWidth() {
   const [stretching, setStretching] = useState(false);
   const stretchTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(stretchTimer.current), []);
-  const [body, setBody] = useState<HTMLDivElement | null>(null);
   const [bodyWidth, setBodyWidth] = useState(0);
 
   useEffect(() => {
@@ -52,30 +66,6 @@ export function usePanelWidth() {
 
   /** 狭くてボードを覆っているか（横幅いっぱいとは別。広がれば元の幅に戻る） */
   const covering = leavesNarrowBoard(bodyWidth, panelWidth);
-
-  /**
-   * パネルの左端をドラッグして幅を変える（ボードを覆うところまで広げられる）。ドラッグ中は指の位置どおりの幅にし
-   * （覆っている状態から右へ動かすと、すぐにボードが見えてくる）、離したときにボードが狭すぎる幅なら覆う
-   */
-  const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!body) return;
-    const right = body.getBoundingClientRect().right;
-    const max = body.clientWidth;
-    // 横幅いっぱい・覆っているときは、今の幅からドラッグを始める（ドラッグすると横幅いっぱいは解除）
-    let width = maximized || covering ? max : panelWidth;
-    if (maximized) setMaximized(false);
-    setResizing(true);
-    startHorizontalDrag(e, {
-      move: (clientX) => {
-        width = Math.round(Math.max(MIN_PANEL_WIDTH, Math.min(max, right - clientX)));
-        body.style.setProperty("--panel-w", `${width}px`);
-      },
-      end: () => {
-        setResizing(false);
-        setPanelWidth(width);
-      },
-    });
-  };
 
   /** 横にボードを残せるいちばん広いパネルの幅（覆っているときに「元の幅に戻す」で縮める幅） */
   const fitWidth = Math.floor(bodyWidth - PANEL_GAP - MIN_BOARD_WIDTH);
@@ -94,7 +84,7 @@ export function usePanelWidth() {
       if (maximized || covering) {
         if (!canRestore) return;
         if (maximized) setMaximized(false);
-        if (covering) setPanelWidth(fitWidth);
+        if (covering) resize.setSize(fitWidth);
       } else {
         setMaximized(true);
       }
@@ -105,7 +95,10 @@ export function usePanelWidth() {
     stretching,
     resizing,
     bodyRef: setBody,
-    startResize,
+    /** パネル（タブの列と中身の入れ物）に付ける（ドラッグを始めたときの幅を測る） */
+    paneRef: resize.paneRef,
+    /** 左端のつまみに渡す */
+    resizeHandle: resize.handle,
     /**
      * 横幅いっぱい・覆うときは、CSS 側の上限（ボードの幅）まで広げる。
      * --panel-shown は開き終えたときのパネルの幅（side-panel.css の列の幅と同じ計算）。開閉で列の幅が動いている間も、中身はこの幅のまま置いて

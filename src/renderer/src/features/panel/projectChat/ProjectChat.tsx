@@ -18,7 +18,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
       ref={width.paneRef}
       className={cx("project-chat", chat.open && "open", width.resizing && "resizing")}
       // 開閉は幅の動きで見せる（中身は開いたときの幅のまま。動いている間に中身の並びが崩れないように）
-      style={{ "--chat-w": `${width.width}px` } as CSSProperties}
+      style={{ "--chat-w": `${width.size}px` } as CSSProperties}
       inert={!chat.open}
       aria-hidden={!chat.open}
       aria-label="プロジェクトのチャット"

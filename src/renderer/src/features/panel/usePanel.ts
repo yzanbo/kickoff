@@ -256,7 +256,9 @@ export function usePanel({ memoryKey, scope, surface = "board", holdEsc = false,
     close,
     toggle: () => (panelOpen ? close() : reopen()),
     toggleMaximized: size.toggleMaximized,
-    startResize: size.startResize,
+    /** パネル（aside）に付ける（左端のつまみのドラッグを始めたときの幅を測る） */
+    paneRef: size.paneRef,
+    resizeHandle: size.resizeHandle,
     // ペインを閉じても、サイドバーに出ているチャットのタブは閉じずに一覧のペインへ戻す（表示だけ消したことにしない）
     ...paneActions(layout, changeLayout, closeMany, isLinkedTab),
     /** 送る前の新しいチャットのタブ（ボードの列・グループに下書きとして出す） */
