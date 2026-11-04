@@ -15,6 +15,7 @@ import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import { useGroupNames } from "../../groupNames";
 import type { SidePanelController } from "./useSidePanel";
+import { shownActiveOf } from "./panelKinds";
 import { OTHER_CLUSTER, clusterHue, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useSharedList } from "../../hooks/useStoredState";
 import { PANEL_TAB_CLUSTERS_COLLAPSED_KEY } from "../../storageKeys";
@@ -74,13 +75,16 @@ export function PaneTabBar({
   rename: ReturnType<typeof useRunRename>;
 }) {
   const insertAt = drag.insertAt(pane.id);
+  // 見せている表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ）
+  const active = shownActiveOf(pane, panel.isKindShown);
+  const showChat = panel.kinds.has("chat");
   // 表示中のタブが並びの外（横にスクロールした先）にあれば、見えるところまで動かす（新しく開いたタブなど）
   const stripRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     stripRef.current?.querySelector(".panel-tab.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [pane.active, pane.tabs.length]);
+  }, [active, pane.tabs.length]);
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
-  const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
+  const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (active ?? undefined) : undefined);
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
   const { stateOf } = useRunStates();
   // チャットのタブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
@@ -88,16 +92,17 @@ export function PaneTabBar({
   const chatRunOf = (t: { id: number; status?: Run["status"]; attention?: boolean }) =>
     panel.runs.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, attention: Boolean(t.attention) } as Run) : undefined);
   // まとめ方を選んでいれば、まとまりごとに並べ替えて見せる（display は見た目の並び。タブの中身が残っているものだけ）
-  const [grouping] = useTabGrouping();
+  const [grouping] = useTabGrouping(panel.surface);
   const { clusterOf, clusterOfRun, order } = useTabClusters(panel, grouping);
-  const known = pane.tabs.filter((key) => panel.tabs.some((t) => t.key === key));
-  const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf, order);
+  // 欄で隠している種類のタブは並べない（閉じずに残す）。チャットを隠しているときは、タブのないグループの札も出さない
+  const known = pane.tabs.filter(panel.isKindShown);
+  const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf, showChat ? order : []);
   // タブを畳んだまとまり（すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない
   const [collapsed, setCollapsed] = useSharedList(PANEL_TAB_CLUSTERS_COLLAPSED_KEY);
   const toggleCollapsed = (key: string) => setCollapsed(toggleClusterCollapsed(key, collapsed));
   // アーカイブ済みのまとまりは、サイドバーと同じく初めは畳んでおく
   const isCollapsed = (key: string) => isClusterCollapsed(key, collapsed);
-  const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c.key), pane.active);
+  const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c.key), active);
   const display = clusters ? clusters.flatMap(shownTabs) : known;
   // 自分で作ったグループの札のドラッグで、グループの並びを入れ替える（サイドバー・グループのボードも同じ並びになる）
   const clusterReorder = useClusterReorder(clusters);
@@ -143,7 +148,7 @@ export function PaneTabBar({
     return (
       <PanelTab
         key={t.key}
-        active={pane.active === t.key}
+        active={active === t.key}
         icon={Icon}
         iconClass={iconClass}
         label={label}
@@ -180,7 +185,7 @@ export function PaneTabBar({
     >
       {controls}
       {/* まとめないときは、タブの列の左端（横にスクロールしても動かない位置）に「チャット」の札 */}
-      {!clusters && allRuns.length > 0 && (
+      {!clusters && showChat && allRuns.length > 0 && (
         <TabClusterHead
           cluster={{ key: "all", label: "チャット", title: "このパネルのチャット", tabs: known }}
           runs={allRuns}
@@ -220,8 +225,10 @@ export function PaneTabBar({
       </div>
       {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右） */}
       <span className="panel-bar-buttons panel-tab-adds">
-        <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />
+        {/* 欄で隠している種類のボタンは出さない（表示するタブはタブの列の左の「表示するタブ」で選ぶ） */}
+        {showChat && <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />}
         {/* ブラウザ・ターミナルは、アイコンで新しいタブ、横の ▾ で外のアプリで開く・外のアプリを選ぶ（デスクトップアプリだけ） */}
+        {panel.kinds.has("browser") && (
         <span className="panel-split-button">
           <IconButton icon={Globe} label="ブラウザを開く" title="ブラウザを新しいタブで開く" size={14} onClick={() => panel.openBrowser()} />
           {window.kickoff && (
@@ -237,7 +244,8 @@ export function PaneTabBar({
             />
           )}
         </span>
-        {terminals > 0 && (
+        )}
+        {panel.kinds.has("terminal") && terminals > 0 && (
           <span className="panel-split-button">
             <IconButton
               icon={SquareTerminal}

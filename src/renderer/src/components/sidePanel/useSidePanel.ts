@@ -1,53 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ProjectSummary, Run } from "../../../../core/types";
+import type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
 import { cx } from "../../cx";
 import { useServerEvent } from "../../events";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
-import { sidebarOrder } from "../../projectOrder";
 import { paneActions } from "./paneActions";
 import { activeTabOf, closeLayoutTabs, isTabVisible, placeTab, reconcileLayout, renameTab, type PaneLayout } from "./paneLayout";
 import { chatKey, syncLinkedTabs, type LinkState } from "./linkedTabs";
 import { loadPanel, registerPanel, savePanel } from "./panelMemory";
+import { kindOfTab, usePanelKinds, type PanelSurface } from "./panelKinds";
 import { useLinkedRuns, type LinkScope } from "./useLinkedRuns";
 import { newTabKey } from "./tabKeys";
 import { usePanelWidth } from "./usePanelWidth";
 import type { NewChatSeed } from "../chat/askInNewChat";
 
-/** 新しいチャットを始めるときの指定（どのプロジェクト・グループで始めるか） */
-export interface NewChatTarget {
-  projectId: number;
-  group?: number;
-}
-
-/** 右側のパネルのタブ（チャット・新しいチャット・サブエージェント・ブラウザ・ターミナル） */
-export type PanelTab =
-  /** title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる） */
-  /** status / attention: タブの中のチャットから届いた最新の状態（ボードの一覧にないチャットでも、タブに状態の印を出すため） */
-  /** run: タブの中のチャットから届いた最新のチャット（右クリックのメニューの固定・アーカイブ・セッション ID などに使う） */
-  | { key: string; kind: "chat"; id: number; projectId: number; focus?: number; title?: string; status?: Run["status"]; attention?: boolean; run?: Run }
-  /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す）。seed: 初めに入力欄に入れるもの（送信待ちの指示から始めたとき） */
-  | ({ key: string; kind: "new"; groupName?: string; draftText?: string; seed?: NewChatSeed } & NewChatTarget)
-  /** チャットの中のサブエージェントの中身（toolUseId: Task / Agent の呼び出し ID。title: タブに出す名前） */
-  | { key: string; kind: "subagent"; runId: number; projectId: number; toolUseId: string; title: string }
-  /** url は開いたときのページ（webview の初めの src）、current はいま表示しているページ（外のブラウザで開くときに渡す） */
-  | { key: string; kind: "browser"; url: string; title: string; current?: string }
-  /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。key は裏のシェルのキーにも使う */
-  | { key: string; kind: "terminal"; cwd: string; label: string };
-
-/** 内蔵ターミナルを開く場所（タブの列の＋のメニューに出す） */
-export interface TerminalTarget {
-  cwd: string;
-  label: string;
-  /** どのプロジェクトのターミナルか */
-  projectId: number;
-}
-
-/** ボードのタブの列の＋から開けるターミナル（プロジェクトのボードはそのプロジェクトの本体、全プロジェクトのボードは各プロジェクト） */
-export function terminalTargets(projects: ProjectSummary[], projectId?: number): TerminalTarget[] {
-  const list = projectId === undefined ? sidebarOrder(projects) : projects.filter((p) => p.id === projectId);
-  return list.map((p) => ({ cwd: p.repo_path, label: p.name, projectId: p.id }));
-}
-
+export type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
+export { terminalTargets } from "./panelTypes";
 
 interface Options {
   /** パネルの状態を覚えておく名前（ボードは boardPanelKey。例: "kanban:all"・"kanban:3"、チャット欄は "side:3"） */
@@ -57,6 +25,8 @@ interface Options {
    * （チャットができる・アーカイブして隠す・別のプロジェクトへ移すと、タブも増減する。アーカイブ済みはサイドバーと共通の表示の切り替えに従う）
    */
   scope: LinkScope;
+  /** どの欄か（表示するタブの種類・タブのまとめ方を欄ごとに覚える。初めはボードの右のパネル） */
+  surface?: PanelSurface;
   /** true の間は Esc でパネルを閉じない（メニューが開いているときなど） */
   holdEsc?: boolean;
   /** 全プロジェクトのボードでは、新しいチャットのプロジェクトを選べるようにする */
@@ -72,7 +42,9 @@ export type SidePanelController = ReturnType<typeof useSidePanel>;
  * タブは上下・左右のペインに分けて並べられる（配置は paneLayout の木。新しく開くタブは、ピントのあるペインに入る）。
  * 表示は SidePanel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）・DraftCards（列の下書き）で行う
  */
-export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCreated }: Options) {
+export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = false, projects, onCreated }: Options) {
+  // 欄で表示するタブの種類（隠した種類のタブは閉じずに残す。隠している種類のタブを自分で開いたら、その種類を出す）
+  const kinds = usePanelKinds(surface);
   // パネルを閉じてもタブは残し、次に開いたときに戻す
   const saved = () => loadPanel(memoryKey);
   const [tabs, setTabs] = useState<PanelTab[]>(() => saved().tabs);
@@ -121,6 +93,7 @@ export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCr
   const open = (run: Pick<Run, "id" | "project_id"> & Partial<Pick<Run, "title">>, focus?: number) => {
     const key = chatKey(run.id);
     const tab: PanelTab = { key, kind: "chat", id: run.id, projectId: run.project_id, focus, title: run.title };
+    kinds.show("chat");
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev.map((t) => (t.key === key && focus ? tab : t)) : [...prev, tab]));
     // 表示だけ消していたチャットも、開けばまたタブに出す。サイドバーの一覧にないチャット（隠しているアーカイブ済みなど）は、閉じるまで残す
     setLinks((l) => {
@@ -143,6 +116,7 @@ export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCr
     const key = !seed && recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
     lastNew.current = { target: sig, key, at: Date.now() };
     const tab: PanelTab = { key, kind: "new", ...target, ...(seed ? { seed, draftText: seed.text } : {}) };
+    kinds.show("chat");
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, tab]));
     reveal(key);
   };
@@ -150,6 +124,7 @@ export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCr
   /** サブエージェントの中身をタブで開く（同じサブエージェントのタブがあればそこへ） */
   const openSubagent = ({ runId, projectId, toolUseId, title }: { runId: number; projectId: number; toolUseId: string; title: string }) => {
     const key = `subagent:${runId}:${toolUseId}`;
+    kinds.show("chat");
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "subagent", runId, projectId, toolUseId, title }]));
     reveal(key);
   };
@@ -157,6 +132,7 @@ export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCr
   /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
   const openBrowser = (url = "") => {
     const key = `browser:${Date.now()}`;
+    kinds.show("browser");
     setTabs((prev) => [...prev, { key, kind: "browser", url, title: "" }]);
     reveal(key);
   };
@@ -164,6 +140,7 @@ export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCr
   /** 内蔵ターミナルの新しいタブを開く（cwd のフォルダでシェルを始める） */
   const openTerminal = ({ cwd, label }: TerminalTarget) => {
     const key = newTabKey("terminal");
+    kinds.show("terminal");
     setTabs((prev) => [...prev, { key, kind: "terminal", cwd, label }]);
     reveal(key);
   };
@@ -183,7 +160,7 @@ export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCr
   const reopen = () => setPanelOpen(true);
 
   /**
-   * タブを閉じる。表示中のタブならそのペインの隣のタブへ。空になったペインは消し、最後のタブならパネルも閉じる。
+   * タブを閉じる。表示中のタブならそのペインの隣のタブへ。空になったペインは消し、見せている最後のタブならパネルも閉じる。
    * ターミナルはシェルも止める。base はペインを閉じたあとの配置など、閉じる前に変えておいた配置。
    * dismiss: 利用者が閉じた（表示だけ消す）チャットは、サイドバーとの連動で出し直さないよう覚える（アーカイブ・削除で閉じるときは覚えない）
    */
@@ -201,7 +178,8 @@ export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCr
     if (nextTabs.length === tabs.length && base === layout) return;
     setTabs(nextTabs);
     setLayout(closeLayoutTabs(base, keys));
-    if (nextTabs.length === 0) setPanelOpen(false);
+    // 見せているタブがなくなったらパネルも閉じる（隠した種類のタブ・連動したチャットのタブが残っていても）
+    if (!nextTabs.some((t) => kinds.has(kindOfTab(t)))) setPanelOpen(false);
   };
   /** タブを閉じる（dismiss: false はアーカイブ・削除のあと。サイドバーに出ている間は連動でまた出る） */
   const closeTab = (key: string, { dismiss = true }: { dismiss?: boolean } = {}) => closeMany([key], layout, dismiss);
@@ -250,8 +228,18 @@ export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCr
   /** パネルでこのタブを見せているか（分割していれば、どれかのペインで表示中） */
   const isShowingTab = (key: string) => panelOpen && isTabVisible(layout, key);
 
+  /** そのタブの種類をこの欄で見せているか */
+  const isKindShown = (key: string) => {
+    const t = tabs.find((x) => x.key === key);
+    return t !== undefined && kinds.has(kindOfTab(t));
+  };
+
   return {
     tabs,
+    surface,
+    /** 表示するタブの種類（タブの列の「表示するタブ」） */
+    kinds,
+    isKindShown,
     activeTab,
     /** 分割の配置（直したもの） */
     layout,

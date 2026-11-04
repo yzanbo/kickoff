@@ -21,7 +21,7 @@ export const useProjectChatContext = () => useContext(ProjectChatContext);
 export function useProjectChat(projectId: number | undefined) {
   const openMap = useStoredFlagMap(PROJECT_CHAT_OPEN_PREFIX);
   const open = projectId !== undefined && openMap.get(projectId);
-  const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}`, scope: projectId ?? null });
+  const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}`, scope: projectId ?? null, surface: "side" });
   const width = useDragWidth({ storageKey: PROJECT_CHAT_WIDTH_KEY, initial: 367, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
 
   /** 欄を開いて、そのタブを表示する（ボード・サイドバーの下書きを押したとき） */
@@ -43,10 +43,10 @@ export function useProjectChat(projectId: number | undefined) {
     [projectId],
   );
 
-  /** 開閉。開くときにタブがなければ、新しいチャットを開く */
+  /** 開閉。開くときに見せているタブがなく、チャットを表示する欄なら、新しいチャットを開く（初めはブラウザ・ターミナルだけなので開かない） */
   const toggle = () => {
     if (projectId === undefined) return;
-    if (!open && panel.tabs.length === 0) panel.openNew({ projectId });
+    if (!open && panel.kinds.has("chat") && !panel.tabs.some((t) => panel.isKindShown(t.key))) panel.openNew({ projectId });
     openMap.set(projectId, !open);
   };
 

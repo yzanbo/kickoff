@@ -20,6 +20,8 @@ import { useBoardHeaderLayoutMenu } from "../board/useBoardHeaderLayoutMenu";
 import { useOpenWithMenu } from "./useOpenWithMenu";
 import { TabArchiveToggle } from "./TabArchiveToggle";
 import { TabGroupingButton } from "./TabGroupingButton";
+import { TabKindsButton } from "./TabKindsButton";
+import { shownActiveOf } from "./panelKinds";
 
 /**
  * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
@@ -28,7 +30,9 @@ import { TabGroupingButton } from "./TabGroupingButton";
  * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
  * onNewChat: 「新しいチャット」を押したとき（どのプロジェクト・グループで始めるかはボードが決める）。
  * terminals: 開けるターミナル（terminalTargets。Mac のアプリでだけ出す）。チャットを開いているときは、そのチャットの作業場所で開く。
- * sidebar: プロジェクトのチャット欄として使うとき（開閉は欄が持つ。幅の変更・横幅いっぱいは欄の側で行うので出さない）
+ * sidebar: 欄（画面の右端のチャット欄・フッター）として使うとき（開閉は欄が持つ。幅の変更・横幅いっぱいは欄の側で行うので出さない。
+ * controls は欄の道具（フッターの最大化・閉じるなど）で、タブの列の左の道具の後ろに並べる）。
+ * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）
  */
 export function SidePanel({
   panel,
@@ -39,7 +43,7 @@ export function SidePanel({
   panel: SidePanelController;
   onNewChat: () => void;
   terminals: TerminalTarget[];
-  sidebar?: { open: boolean; onClose: () => void };
+  sidebar?: { open: boolean; onClose: () => void; controls?: React.ReactNode; className?: string };
 }) {
   const { tabs, maximized, layout } = panel;
   const panelOpen = sidebar ? sidebar.open : panel.panelOpen;
@@ -57,11 +61,14 @@ export function SidePanel({
   const leaves = leavesOf(layout.root);
   const split = leaves.length > 1;
   const { panes, sashes } = layoutRects(layout.root);
+  /** ペインで見せる表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ） */
+  const shown = (pane: PaneLeaf) => shownActiveOf(pane, panel.isKindShown);
+  const anyShown = (keys: readonly string[]) => keys.some(panel.isKindShown);
   // ターミナルの開く場所を選ぶメニュー（開く場所がいくつもあるとき。タブの列のボタン・タブがないときのボタンで共通）
   const terminalMenu = useAnchoredMenu(".panel-tab-terminal, .panel-empty-terminal", TARGET_MENU_WIDTH, "right");
   /** ペインで表示しているチャットの作業場所（ワークツリーならそのフォルダ、本体ならプロジェクトのフォルダ）。チャットでなければ undefined */
   const chatTarget = (pane: PaneLeaf): TerminalTarget | undefined => {
-    const tab = tabs.find((t) => t.key === pane.active);
+    const tab = tabs.find((t) => t.key === shown(pane));
     if (tab?.kind !== "chat") return undefined;
     const run = panel.runs.find((r) => r.id === tab.id);
     if (run?.worktree_path) return { cwd: run.worktree_path, label: baseName(run.worktree_path), projectId: run.project_id };
@@ -99,8 +106,11 @@ export function SidePanel({
   // タブのまとめ方（まとめない・グループ別・作業場所別）とアーカイブ済みを出すか（サイドバーと共通）は、パネルを閉じるボタンのすぐ右（チャット欄は閉じるボタンがないので、この 2 つだけ）
   const controls = sidebar ? (
     <div className="panel-controls">
-      <TabGroupingButton />
-      <TabArchiveToggle />
+      <TabGroupingButton surface={panel.surface} />
+      <TabKindsButton panel={panel} />
+      {/* アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
+      {panel.kinds.has("chat") && <TabArchiveToggle />}
+      {sidebar.controls}
     </div>
   ) : (
     <div className="panel-controls">
@@ -108,8 +118,10 @@ export function SidePanel({
       <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
         <PanelRightClose size={15} />
       </button>
-      <TabGroupingButton />
-      <TabArchiveToggle />
+      <TabGroupingButton surface={panel.surface} />
+      <TabKindsButton panel={panel} />
+      {/* アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
+      {panel.kinds.has("chat") && <TabArchiveToggle />}
       {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。狭くてボードを覆っているときは、切り替えても見た目が変わらないので出さない */}
       {!panel.covering && (
         <button
@@ -154,6 +166,7 @@ export function SidePanel({
     <PanelEmpty
       // ボードの分けていないパネルは、今までどおり案内の文（新しいチャットは見出しの「新規」から）。分けたペインには新しいチャットも出す
       showNewChat={!!sidebar || split}
+      kinds={panel.kinds}
       hasTerminals={terminalTargets.length > 0}
       manyTerminals={terminalTargets.length > 1}
       onNewChat={onNewChat}
@@ -164,7 +177,7 @@ export function SidePanel({
   const rectOf = new Map(panes.map((p) => [p.id, p.rect]));
 
   return (
-    <aside ref={asideRef} className={cx("board-panel", sidebar && "as-sidebar")} aria-hidden={!panelOpen}>
+    <aside ref={asideRef} className={cx("board-panel", sidebar && "as-sidebar", sidebar?.className)} aria-hidden={!panelOpen}>
       {!sidebar && (
         <div
           inert={!panelOpen}
@@ -178,7 +191,7 @@ export function SidePanel({
       )}
       {!split && bar(leaves[0])}
       <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing")} inert={!panelOpen}>
-        {!split && tabs.length === 0 && empty(leaves[0])}
+        {!split && !anyShown(leaves[0].tabs) && empty(leaves[0])}
         {split &&
           panes.map(({ id, rect }) => {
             const pane = leaves.find((p) => p.id === id)!;
@@ -190,7 +203,7 @@ export function SidePanel({
                 onPointerDown={() => panel.focusPane(id)}
               >
                 {bar(pane)}
-                {pane.tabs.length === 0 && empty(pane)}
+                {!anyShown(pane.tabs) && empty(pane)}
               </div>
             );
           })}
@@ -212,7 +225,8 @@ export function SidePanel({
         {tabs.map((t) => {
           const pane = leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0];
           const rect = rectOf.get(pane.id);
-          if (pane.active === t.key) mountedTabs.current.add(t.key);
+          const active = shown(pane) === t.key;
+          if (active) mountedTabs.current.add(t.key);
           else if (t.kind === "chat" && !mountedTabs.current.has(t.key)) return null;
           return (
             <PanelTabPage
@@ -221,7 +235,7 @@ export function SidePanel({
               panel={panel}
               panelOpen={panelOpen}
               paneId={pane.id}
-              active={pane.active === t.key}
+              active={active}
               focused={pane.id === layout.focused}
               style={split && rect ? fracStyle(rect, true) : undefined}
               split={split}

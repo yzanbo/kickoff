@@ -84,6 +84,12 @@ export const boardArchivedOpenKey = (foldKey: string) => `kickoff:board-archived
 export const PANEL_WIDTH_KEY = "kickoff:panel-width";
 /** 右のパネルのタブの列のまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別。未保存ならまとめない） */
 export const PANEL_TAB_GROUPING_KEY = "kickoff:panel-tab-grouping";
+/**
+ * 右のパネルの欄ごとのタブのまとめ方（ボードの右のパネルは PANEL_TAB_GROUPING_KEY のまま。右端のチャット欄・フッターは別に覚える。値は同じ "none" / "group" / "worktree"）
+ */
+export const panelTabGroupingKey = (surface: "board" | "side" | "bottom") => (surface === "board" ? PANEL_TAB_GROUPING_KEY : `${PANEL_TAB_GROUPING_KEY}:${surface}`);
+/** 欄ごとの、表示するタブの種類（"chat" / "browser" / "terminal" の JSON の配列。未保存なら欄ごとの既定。1 つは残す） */
+export const panelTabKindsKey = (surface: "board" | "side" | "bottom") => `kickoff:panel-tab-kinds:${surface}`;
 /** 右のパネルのタブのまとまりのうち、タブを畳んでいるもの（まとまりのキーの JSON の配列。すべてのパネル・ペインで共通） */
 export const PANEL_TAB_CLUSTERS_COLLAPSED_KEY = "kickoff:panel-tab-clusters-collapsed";
 /** 右のパネルを横幅いっぱいにしているか（"1" / "0"） */

@@ -3,16 +3,17 @@ import { cx } from "../../cx";
 import { ChoiceMenu } from "../menus/ChoiceMenu";
 import { useAnchoredMenu } from "../menus/useAnchoredMenu";
 import { TAB_GROUPING_LABELS, TAB_GROUPINGS } from "./tabClusters";
+import type { PanelSurface } from "./panelKinds";
 import { useTabGrouping } from "./useTabClusters";
 
 const MENU_WIDTH = 200;
 
 /**
  * タブの列のまとめ方を選ぶボタン（パネルを閉じるボタンのすぐ右）。押すと下にメニューを開き、
- * まとめない・グループ別・作業場所別から選ぶ。まとめているときはボタンをアクセントの色にする
+ * まとめない・グループ別・作業場所別から選ぶ（欄ごとに覚える）。まとめているときはボタンをアクセントの色にする
  */
-export function TabGroupingButton() {
-  const [grouping, setGrouping] = useTabGrouping();
+export function TabGroupingButton({ surface }: { surface: PanelSurface }) {
+  const [grouping, setGrouping] = useTabGrouping(surface);
   const menu = useAnchoredMenu(".panel-tab-grouping", MENU_WIDTH);
   const label = `タブのまとめ方: ${TAB_GROUPING_LABELS[grouping]}`;
   return (
