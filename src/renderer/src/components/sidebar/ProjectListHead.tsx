@@ -1,9 +1,8 @@
 import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GalleryVertical, GripVertical, Rows2, Rows3, Rows4, type LucideIcon } from "lucide-react";
-import { useSharedChoice } from "../../hooks/useStoredState";
 import type { ProjectOrder } from "../../projectOrder";
-import { CHAT_GROUPINGS, GROUPING_META, type ChatGrouping } from "./chatGroupings";
-import { HeadAction, HeadMenu, HeadToggle } from "./HeadMenu";
-import { SIDEBAR_GROUPING_KEY } from "../../storageKeys";
+import { CHAT_SECTIONS, ORDER_META, SECTIONS_META, useChatLayout } from "./chatGroupings";
+import { HeadMenu, HeadToggle } from "./HeadMenu";
+import { IconButton } from "../IconButton";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "./sidebarFlags";
 import { TagFilterRow } from "./TagFilterRow";
 
@@ -35,12 +34,14 @@ interface Props {
  * プロジェクト一覧の上の見出し。何に効くかで 2 行に分け、どちらも設定の種類（ジャンル）ごとのボタンを並べる（1 つのボタンには 1 種類だけ。
  * 2 択のものは押すたびに切り替え（HeadToggle）、3 つ以上あるもの（並べ方・まとめ方）はメニューから選ぶ（HeadMenu））:
  * プロジェクト = 並べ方（縦並び / 横スライド / 縦スライド）・並び順（手動 / 最近動いた順）・表示（カードを 1 行 / 2 行）・アーカイブ（出すか）/
- * チャット = まとめ方・表示（行を 1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。チャットの設定はすべてのプロジェクトに効く。
+ * チャット = まとめ方（まとめない / グループ / 作業場所）・並び順（新しい順 / 状態別）・表示（行を 1 行 / 2 行）・アーカイブ（出すか。プロジェクトの行と同じく右端）。
+ * チャットの設定はすべてのプロジェクトに効く。まとめ方（外側の見出し）と並び順（その中の並び）は別の種類の設定なので、別のボタンにする。
  * 「表示」はプロジェクトのカードとチャットの行で別々に切り替える。
- * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行のアーカイブの右に、ほかと同じ形のボタン（HeadAction）で置く（プロジェクトの行には収まらないため）
+ * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行の名前のすぐ右に、小さなアイコンのボタンで置く
+ * （ボタンを 5 つ並べる幅はないため。以前はアーカイブの右に同じ形のボタンで置いていたが、並び順を足して収まらなくなった）
  */
 export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
-  const [grouping, setGrouping] = useSharedChoice<ChatGrouping>(SIDEBAR_GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  const { sections, setSections, order: chatOrder, setOrder: setChatOrder } = useChatLayout();
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
   const [compactProjects, setCompactProjects] = useCompactProjects();
@@ -96,20 +97,40 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         {archiveToggle("archive-projects", "プロジェクト", showArchived, onShowArchived, `（${archivedCount} 件）`)}
       </div>
       <div className="project-list-row">
-        <span className="project-list-row-label">チャット</span>
+        <span className="project-list-row-label">
+          チャット
+          {/* 開いているものがあれば閉じる、すべて閉じていれば開く（すべてのプロジェクトと中のまとまり） */}
+          <IconButton
+            icon={fold.allCollapsed ? ChevronsUpDown : ChevronsDownUp}
+            label={fold.allCollapsed ? "すべてのプロジェクトを開く" : "すべてのプロジェクトを閉じる"}
+            title={fold.allCollapsed ? "すべてのプロジェクトと中のまとまりを開く" : "すべてのプロジェクトと中のまとまりを閉じる"}
+            size={13}
+            className="project-list-fold"
+            onClick={() => fold.set(!fold.allCollapsed)}
+          />
+        </span>
         <HeadMenu
           id="grouping"
-          icon={GROUPING_META[grouping].icon}
+          icon={SECTIONS_META[sections].icon}
           label="まとめ方"
-          value={GROUPING_META[grouping].short}
-          values={CHAT_GROUPINGS.map((g) => GROUPING_META[g].short)}
-          title={`チャットのまとめ方（すべてのプロジェクト。いまは「${GROUPING_META[grouping].label}」）`}
+          value={SECTIONS_META[sections].short}
+          values={CHAT_SECTIONS.map((g) => SECTIONS_META[g].short)}
+          title={`チャットのまとめ方（すべてのプロジェクト。いまは「${SECTIONS_META[sections].label}」）`}
           sections={[
             {
               label: "チャットのまとめ方",
-              items: CHAT_GROUPINGS.map((g) => ({ ...radio, key: g, icon: GROUPING_META[g].icon, label: GROUPING_META[g].label, checked: g === grouping, onSelect: () => setGrouping(g) })),
+              items: CHAT_SECTIONS.map((g) => ({ ...radio, key: g, icon: SECTIONS_META[g].icon, label: SECTIONS_META[g].label, checked: g === sections, onSelect: () => setSections(g) })),
             },
           ]}
+        />
+        <HeadToggle
+          id="chat-order"
+          icon={ORDER_META[chatOrder].icon}
+          label="並び順"
+          value={ORDER_META[chatOrder].short}
+          values={[ORDER_META.recent.short, ORDER_META.status.short]}
+          title="チャットの並び順（新しい順 / 状態別 = 作業中・回答待ち・未読・既読の見出しに分ける。まとめ方の見出しの中で並べる）"
+          onToggle={() => setChatOrder(chatOrder === "recent" ? "status" : "recent")}
         />
         <HeadToggle
           id="rows"
@@ -122,17 +143,6 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         />
         {/* アーカイブはプロジェクトの行と同じく右端 */}
         {archiveToggle("archive-chats", "チャット", showArchivedChats, setShowArchivedChats)}
-        {/* 開いているものがあれば閉じる、すべて閉じていれば開く（ほかのボタンと同じ形。下の段は押すとどうなるか） */}
-        <HeadAction
-          id="fold"
-          icon={fold.allCollapsed ? ChevronsUpDown : ChevronsDownUp}
-          caption="すべて"
-          action={fold.allCollapsed ? "開く" : "閉じる"}
-          actions={["閉じる", "開く"]}
-          label={fold.allCollapsed ? "すべてのプロジェクトを開く" : "すべてのプロジェクトを閉じる"}
-          title={fold.allCollapsed ? "すべてのプロジェクトと中のまとまりを開く" : "すべてのプロジェクトと中のまとまりを閉じる"}
-          onClick={() => fold.set(!fold.allCollapsed)}
-        />
       </div>
       {/* タグがあるときだけ、タグでの絞り込みの行（押すたびに付け外し） */}
       <TagFilterRow />

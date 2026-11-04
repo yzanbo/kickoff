@@ -37,8 +37,12 @@ export const SIDEBAR_PROJECT_COLLAPSED_PREFIX = "kickoff:collapsed:";
 export const SIDEBAR_LAST_HASH_KEY = "kickoff:last-hash-by-project";
 
 // サイドバーのチャットの並べ方（どのプロジェクトでも同じ）
-/** チャットのまとめ方（CHAT_GROUPINGS） */
+/** 以前のチャットのまとめ方（recent / status / worktree）。新しい 2 つの設定がまだないときの初めの値に読み替えるだけ（chatGroupings.ts） */
 export const SIDEBAR_GROUPING_KEY = "kickoff:sidebar-grouping";
+/** チャットのまとめ方（CHAT_SECTIONS: none / group / worktree） */
+export const SIDEBAR_CHAT_SECTIONS_KEY = "kickoff:sidebar-chat-sections";
+/** チャットの並び順（CHAT_ORDERS: recent / status） */
+export const SIDEBAR_CHAT_ORDER_KEY = "kickoff:sidebar-chat-order";
 /** 自分待ち（回答待ち・未読）のチャットだけを出すか（"1" なら出す） */
 export const SIDEBAR_WAITING_ONLY_KEY = "kickoff:sidebar-waiting-only";
 /** チャットを 1 行で出すか（"1" なら 2 行目のブランチを隠す） */

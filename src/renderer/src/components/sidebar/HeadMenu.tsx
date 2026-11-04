@@ -117,39 +117,6 @@ export function HeadToggle({
   );
 }
 
-/**
- * 設定ではなく操作のボタン（すべて閉じる / 開くなど）。見た目はほかと同じ 2 段で、上に何に効くか・下に押すと何をするかを出す
- * （狭いときはほかと同じくアイコンだけ）。label・title は操作そのものを言う
- */
-export function HeadAction({
-  id,
-  icon,
-  caption,
-  action,
-  actions,
-  label,
-  title,
-  onClick,
-}: {
-  id: string;
-  icon: LucideIcon;
-  /** 上の段（何に効くか） */
-  caption: string;
-  /** 下の段（押すと何をするか） */
-  action: string;
-  /** 下の段に出しうる文（幅はいちばん長いものに合わせる） */
-  actions: string[];
-  label: string;
-  title: string;
-  onClick: () => void;
-}) {
-  return (
-    <button className={`head-chip head-action-${id}`} title={title} aria-label={label} onClick={onClick}>
-      <ChipFace icon={icon} label={caption} value={action} values={actions} />
-    </button>
-  );
-}
-
 /** ボタンの中身: 狭いときのアイコンと、上に種類の名前・下にいまの値 */
 function ChipFace({ icon: Icon, label, value, values }: { icon: LucideIcon; label: string; value: string; values: string[] }) {
   return (
