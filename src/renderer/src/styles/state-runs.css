@@ -36,7 +36,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 5px 6px 5px 20px;
+  padding: 3px 6px 3px 2px;
   border: none;
   border-radius: var(--radius);
   font: inherit;
@@ -49,6 +49,11 @@
 
 .state-runs-row:hover {
   background: var(--bg-hover);
+}
+
+/* 行の状態の印（StatusSlot。見出しの点の真下に置く）。作業中のまま未読の緑の点の縁は、一覧の地の色にする（サイドバーの地の色だと縁が浮く） */
+.state-runs-row .status-unread-badge {
+  border-color: var(--bg-elev);
 }
 
 .state-runs-title {
