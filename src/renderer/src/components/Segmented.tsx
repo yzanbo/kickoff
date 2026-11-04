@@ -8,6 +8,8 @@ export interface SegmentOption<T extends string> {
   icon?: LucideIcon;
   /** アイコンだけで見せる（label は読み上げと、マウスを乗せたときの説明 HoverTip に使う。「名前（説明）」なら見出しと説明に分ける） */
   iconOnly?: boolean;
+  /** 文字で見せるときの、マウスを乗せたときの説明（「名前（説明）」なら見出しと説明に分ける） */
+  tip?: string;
   /** 右上に出す数（0 なら出さない。変更のあるファイルの数など） */
   badge?: number;
 }
@@ -34,7 +36,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div className={className} role="radiogroup" aria-label={label}>
-      {options.map(({ value: v, label: text, icon: Icon, iconOnly, badge }) => (
+      {options.map(({ value: v, label: text, icon: Icon, iconOnly, tip, badge }) => (
         <button
           key={v}
           type="button"
@@ -42,7 +44,7 @@ export function Segmented<T extends string>({
           aria-checked={value === v}
           className={value === v ? "active" : ""}
           data-value={v}
-          {...(iconOnly ? tipProps(text) : {})}
+          {...(iconOnly ? tipProps(text) : tip ? tipProps(tip) : {})}
           aria-label={iconOnly ? text : undefined}
           onClick={() => onChange(v)}
         >

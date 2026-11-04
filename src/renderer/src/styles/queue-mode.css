@@ -22,11 +22,16 @@
 
 .view-toggle.queue-mode button {
   justify-content: center;
-  width: 30px;
-  padding: 0;
+  /* 押すと送るボタンに見えないよう、アイコンに文字を添えた切り替えにする（Enter の送り方を選ぶもの） */
+  gap: 4px;
+  min-width: 0;
+  padding: 0 10px 0 8px;
   border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
   color: var(--extra-muted);
 }
+
 
 .view-toggle.queue-mode button:hover {
   color: var(--text);
@@ -69,6 +74,17 @@
 }
 
 .composer.compact .view-toggle.queue-mode button {
-  width: 26px;
-  padding: 0;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+/* チャット欄がとても狭いとき（composer.css の @container と同じ入れ物）は文字を隠し、アイコンだけにする（説明はマウスを乗せたときに出る） */
+@container (max-width: 420px) {
+  .view-toggle.queue-mode .btn-label {
+    display: none;
+  }
+
+  .view-toggle.queue-mode button {
+    padding: 0 8px;
+  }
 }
