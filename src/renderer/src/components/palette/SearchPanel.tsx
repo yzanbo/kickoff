@@ -1,10 +1,10 @@
 import { Bot, Search, User } from "lucide-react";
-import { useEffect, useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import type { SearchHit } from "../../../../core/types";
 import { api } from "../../api";
 import { chatTitle } from "../../chatTitle";
 import { cx } from "../../cx";
-import { projectHue } from "../../projectColor";
+import { ProjectMark } from "../ProjectMark";
 import { sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { useListNavigation } from "../../hooks/useListNavigation";
@@ -101,11 +101,10 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
                 role="radio"
                 aria-checked={scope === value}
                 className={cx("palette-project", scope === value && "active")}
-                style={project ? ({ "--ws-hue": `${projectHue(project)}` } as CSSProperties) : undefined}
                 title={project === projectId ? `${name}（このプロジェクト）` : name}
                 onClick={() => setScope(value)}
               >
-                {project && <span className="palette-project-dot" aria-hidden />}
+                {project && <ProjectMark project={{ id: project, name }} />}
                 <span className="palette-project-name">{name}</span>
                 {/* いま開いているプロジェクトには、補足として小さく添える */}
                 {project === projectId && project !== undefined && <span className="palette-project-note">このプロジェクト</span>}

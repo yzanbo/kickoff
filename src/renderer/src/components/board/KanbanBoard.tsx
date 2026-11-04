@@ -1,9 +1,8 @@
 import { Plus, SquareKanban } from "lucide-react";
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { BOARD_COLUMNS, type BoardColumn, type Run, type RunGroup } from "../../../../core/types";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useTicker } from "../../hooks/useTicker";
-import { projectHue } from "../../projectColor";
 import { sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { useProjectTagFilter } from "../../projectTagFilter";
@@ -113,14 +112,12 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     panel.openNew({ projectId: target });
   }
 
-  /** カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える。全プロジェクトのボードではプロジェクトの色と名前を付ける） */
+  /** カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える。全プロジェクトのボードではプロジェクトのバッジ（印と名前）を付ける） */
   const cards = useBoardCards({
     panel,
     rename,
     menu,
     onOpen: open,
-    classFor: () => (allProjects ? "with-project" : undefined),
-    style: (run) => (allProjects ? ({ "--ws-hue": `${projectHue(run.project_id)}` } as CSSProperties) : undefined),
     projectName: (run) => (allProjects ? projectName(run.project_id) : undefined),
   });
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない）。いちばん左の「下書き」の列に出す

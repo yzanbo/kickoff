@@ -5,6 +5,7 @@ import { cx } from "../../cx";
 import { changeProject, confirmRestoreProject } from "../../projectOrder";
 import { href, navigate, openNewChat } from "../../router";
 import { Chevron } from "../Chevron";
+import { ProjectMark } from "../ProjectMark";
 import { GROUP_PICK_MENU_WIDTH, GroupPickMenu, groupPickMenuHeight } from "../menus/GroupPickMenu";
 import { useAnchoredMenu } from "../menus/useAnchoredMenu";
 import { IconButton } from "../IconButton";
@@ -81,7 +82,7 @@ export function WorkspaceHead({
         }}
         {...headDrag}
       >
-        {/* 開閉の矢印（プロジェクトの色。押すと、選んでいてもいなくても開閉だけする） */}
+        {/* 開閉の矢印（ほかの開閉の矢印と同じ灰色。押すと、選んでいてもいなくても開閉だけする） */}
         <button
           className="workspace-toggle"
           aria-expanded={!collapsed}
@@ -101,6 +102,8 @@ export function WorkspaceHead({
             press();
           }}
         >
+          {/* プロジェクトの色は、この印だけに出す（画面の見出しの名前・バッジと同じ） */}
+          <ProjectMark project={project} size="md" />
           <span className="workspace-title-text">
             <span className="workspace-name">{project.name}</span>
             {/* 2 行目: チャット数とタグ（カードを 1 行で表示のときは、行ごと出さない） */}

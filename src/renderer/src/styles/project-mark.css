@@ -1,0 +1,39 @@
+/*
+ * プロジェクトの印（ProjectMark）。プロジェクトの色の角丸の四角に頭文字。色は横スライドの丸（sidebar-list.css の .workspace-dot）と同じ。
+ * プロジェクトの色を出すのはこの印だけ（名前・見出しの地・矢印は色付けしない）
+ */
+.project-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 5px;
+  font-weight: 700;
+  line-height: 1;
+  color: hsl(var(--ws-hue, 150) 60% 72%);
+  background: hsl(var(--ws-hue, 150) 35% 22%);
+}
+
+.project-mark.sm {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  font-size: 9px;
+}
+
+.project-mark.md {
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+}
+
+:root[data-theme="light"] .project-mark {
+  color: hsl(var(--ws-hue, 150) 55% 32%);
+  background: hsl(var(--ws-hue, 150) 55% 90%);
+}
+
+/* 全プロジェクト: どのプロジェクトの色でもない灰色 */
+.project-mark.all-projects,
+:root[data-theme="light"] .project-mark.all-projects {
+  color: var(--muted);
+  background: var(--bg-active);
+}

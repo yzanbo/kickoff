@@ -46,54 +46,29 @@
   scrollbar-gutter: stable;
 }
 
+/*
+ * サイドバーのプロジェクトの見出し。プロジェクトの色は名前の前の印（ProjectMark）だけに出し、カードは控えめな灰色の地にする
+ * （以前はプロジェクトの色の地と色付きの矢印で、画面の見出し・バッジなどほかの場所の出し方とそろっていなかった）
+ */
 .workspace-head {
   display: flex;
   align-items: center;
   gap: 4px;
   margin-bottom: 8px;
   padding: 6px 4px 6px 4px;
+  border: 1px solid transparent;
   border-radius: 10px;
+  background: var(--bg-elev);
   /* 外枠の中を押すとカンバンを開く */
   cursor: pointer;
 }
 
-/* プロジェクトの色のカード（サイドバーのプロジェクトの見出し・プロジェクトの画面の名前） */
-.workspace-head,
-.project-switch {
-  border: 1px solid hsl(var(--ws-hue, 150) 30% 24%);
-  background: hsl(var(--ws-hue, 150) 25% 13%);
+.workspace-head:hover {
+  background: var(--bg-hover);
 }
 
-.workspace-head:hover,
-.workspace-head.active,
-button.project-switch:hover,
-.project-switch[aria-expanded="true"] {
-  border-color: hsl(var(--ws-hue, 150) 40% 34%);
-  background: hsl(var(--ws-hue, 150) 28% 16%);
-}
-
-:root[data-theme="light"] .workspace-head,
-:root[data-theme="light"] .project-switch {
-  border-color: hsl(var(--ws-hue, 150) 40% 82%);
-  background: hsl(var(--ws-hue, 150) 50% 96%);
-}
-
-:root[data-theme="light"] .workspace-head:hover,
-:root[data-theme="light"] .workspace-head.active,
-:root[data-theme="light"] button.project-switch:hover,
-:root[data-theme="light"] .project-switch[aria-expanded="true"] {
-  border-color: hsl(var(--ws-hue, 150) 45% 70%);
-  background: hsl(var(--ws-hue, 150) 55% 93%);
-}
-
-/* サイドバーのプロジェクトのカードは、枠の線を出さない（背景の色だけで見せる。画面の見出しの名前のカードは枠を残す） */
-.workspace-head,
-.workspace-head:hover,
-.workspace-head.active,
-:root[data-theme="light"] .workspace-head,
-:root[data-theme="light"] .workspace-head:hover,
-:root[data-theme="light"] .workspace-head.active {
-  border-color: transparent;
+.workspace-head.active {
+  background: var(--bg-active);
 }
 
 .workspace-title {
@@ -119,7 +94,7 @@ button.project-switch:hover,
   text-overflow: ellipsis;
 }
 
-/* プロジェクトの開閉の矢印（プロジェクトの色。カードを押しても開閉するので、ボタンらしい背景は付けない） */
+/* プロジェクトの開閉の矢印（ほかの開閉の矢印と同じ灰色。カードを押しても開閉するので、ボタンらしい背景は付けない） */
 .workspace-toggle {
   display: grid;
   flex: none;
@@ -128,23 +103,14 @@ button.project-switch:hover,
   height: 24px;
   padding: 0;
   border: none;
-  color: hsl(var(--ws-hue, 150) 55% 65%);
+  color: var(--muted);
   background: transparent;
   cursor: pointer;
 }
 
 .workspace-toggle:hover,
 .workspace-toggle:focus-visible {
-  color: hsl(var(--ws-hue, 150) 70% 82%);
-}
-
-:root[data-theme="light"] .workspace-toggle {
-  color: hsl(var(--ws-hue, 150) 50% 40%);
-}
-
-:root[data-theme="light"] .workspace-toggle:hover,
-:root[data-theme="light"] .workspace-toggle:focus-visible {
-  color: hsl(var(--ws-hue, 150) 60% 28%);
+  color: var(--text);
 }
 
 .workspace-name {
