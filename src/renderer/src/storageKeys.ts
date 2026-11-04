@@ -22,6 +22,8 @@ export const BOARD_COLUMNS_KEY = "kickoff:board-columns";
 export const SIDEBAR_PROJECT_ORDER_KEY = "kickoff:sidebar-project-order";
 /** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか（"1" なら出す） */
 export const SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:sidebar-show-archived-projects";
+/** ⌘⇧A（作業中・待ちのチャットの一覧）に、アーカイブ済みのプロジェクトのチャットも出すか（初めは出さない） */
+export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:active-chats-show-archived-projects";
 /** プロジェクトのタグでの絞り込み（選んだタグの JSON の文字列配列。"" はタグのないプロジェクト。空・未保存なら絞り込まない）。
  * サイドバー・全プロジェクトの画面・⌘⇧A・プロジェクトの切り替えで共通（useProjectTagFilter） */
 export const PROJECT_TAG_FILTER_KEY = "kickoff:project-tag-filter";
