@@ -60,9 +60,8 @@
   border: none;
 }
 
-.question legend {
+.question-title {
   margin-bottom: 8px;
-  padding: 0;
   font-weight: 600;
 }
 
@@ -114,9 +113,6 @@
   font-weight: 500;
 }
 
-.question-other {
-  gap: 4px;
-}
 
 /* 通信が切れて止まり、つながるのを待っている行（流れのいちばん下。作業中の行の代わり） */
 .reconnect-row {

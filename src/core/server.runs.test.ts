@@ -197,13 +197,13 @@ test("チャットを別のプロジェクトへ移す: グループ・作業場
 });
 
 test("添付・承認依頼・プロバイダー・使用枠の API", async () => {
-  const { app, call } = setup();
+  const { app, call, approvals, project } = setup();
   assert.deepEqual(await call("POST", "/api/uploads"), { status: 400, body: { error: "ファイルがありません" } });
   const form = new FormData();
   form.append("file", new File(["hello"], "a.txt", { type: "text/plain" }));
   const uploaded = await app.request("/api/uploads", { method: "POST", headers: AUTH, body: form });
   assert.equal(uploaded.status, 201);
-  const [saved] = (await uploaded.json()) as { id: string; name: string }[];
+  const [saved] = (await uploaded.json()) as { id: string; name: string; mime: string; size: number }[];
   assert.equal(saved.name, "a.txt");
   // 画像と PDF 以外はダウンロードさせる
   const file = await app.request(`/api/uploads/${saved.id}?mime=text/plain`, { headers: AUTH });
@@ -219,6 +219,24 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
     body: { error: "この依頼はすでに回答済みか、中断されています" },
   });
   assert.equal((await call("POST", "/api/approvals/nope", { action: "maybe" })).status, 400);
+
+  // AI からの質問の「その他」に添えた添付は、回答の文にパスを書き添えて渡す（見つからない添付は書かない）
+  const question = approvals.request(
+    { runId: 1, projectId: project.id },
+    { kind: "question", toolName: "AskUserQuestion", input: { questions: [] }, canRemember: false },
+    new AbortController().signal,
+  );
+  const answered = await call("POST", `/api/approvals/${question.approval.id}`, {
+    action: "answer",
+    answers: { Q: "この画像のように" },
+    attachments: { Q: [saved, { id: randomUUID(), name: "missing.png", mime: "image/png", size: 1 }] },
+  });
+  assert.equal(answered.status, 200);
+  const decision = await question.decision;
+  assert.equal(decision.action, "answer");
+  const text = decision.action === "answer" ? String(decision.answers.Q) : "";
+  assert.match(text, /^この画像のように\n\n回答に添えた添付ファイル（回答の一部です。Read ツールで開いて中身を確かめてから進めてください）:\n- .+a\.txt（text\/plain, 5 B）$/);
+  assert.equal(decision.action === "answer" && "attachments" in decision, false);
 
   assert.equal((await call("GET", "/api/providers")).body.length, 3);
   assert.deepEqual((await call("GET", "/api/providers/claude/models")).body, []);
