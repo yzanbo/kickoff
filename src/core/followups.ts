@@ -30,8 +30,11 @@ export class FollowupQueue {
     private readonly persistence?: QueuePersistence,
   ) {
     for (const saved of persistence?.listQueues() ?? []) {
-      this.lists.set(saved.runId, saved.messages);
-      this.paused.add(saved.runId);
+      // すべて送ったあとの印だけが残った空の列は、印だけを読み戻す（止めておく指示がないので、止めておくにはしない）
+      if (saved.messages.length > 0) {
+        this.lists.set(saved.runId, saved.messages);
+        this.paused.add(saved.runId);
+      }
       if (saved.stops.length > 0) this.stops.set(saved.runId, normalizeStops(saved.stops, saved.messages.length));
       this.save(saved.runId);
     }

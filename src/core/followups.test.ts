@@ -35,6 +35,34 @@ test("送信待ち: 変わるたびに保存し、作り直す（再起動する
   assert.equal(store.listQueues()[0].paused, true);
 });
 
+test("送信待ち: 「ここまで送ったら止めます」の印は、動かした・すべて送ったあとも再起動で読み戻す", () => {
+  const { store, run } = setup();
+  const queue = new FollowupQueue(() => {}, store);
+  const [, b, c] = ["a", "b", "c"].map((t) => queue.add(run.id, t, {}, []));
+  // a | b c の c をいちばん上へ（線を越える → c a | b）
+  queue.setStops(run.id, [1]);
+  queue.move(run.id, c.id, 0);
+  assert.deepEqual(new FollowupQueue(() => {}, store).stopsOf(run.id), [2]);
+  // ドラッグで b を線のすぐ上へ落とす（c a b |）
+  queue.moveMany(run.id, [b.id], { before: b.id, belowStop: false });
+  assert.deepEqual(new FollowupQueue(() => {}, store).stopsOf(run.id), [3]);
+
+  // すべて送ったあとの印（次に来た指示の前で止める）も、列が空のまま残す
+  queue.setStops(run.id, [3]);
+  for (let i = 0; i < 3; i++) queue.take(run.id);
+  assert.deepEqual(queue.stopsOf(run.id), [0]);
+  const restarted = new FollowupQueue(() => {}, store);
+  assert.deepEqual(restarted.stopsOf(run.id), [0]);
+  // 止めておく指示はないので、止めておくにはしない。次に来た指示の前で止まる
+  assert.equal(restarted.isPaused(run.id), false);
+  restarted.add(run.id, "d", {}, []);
+  assert.equal(restarted.takeNext(run.id), undefined);
+  assert.equal(restarted.isPaused(run.id), true);
+  // すべて消したら、保存からも消える
+  restarted.clear(run.id);
+  assert.deepEqual(store.listQueues(), []);
+});
+
 test("送信待ち: 印は指示とは別の位置で持ち、線をまたがない並べ替えでは動かない。先頭の上の印で止まり、自動に戻すとその印を越える", () => {
   const { store, run } = setup();
   const queue = new FollowupQueue(() => {}, store);

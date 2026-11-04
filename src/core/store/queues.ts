@@ -15,7 +15,7 @@ export interface SavedQueue {
 /** 送信待ちの指示の保存（followups.ts の FollowupQueue が、変わるたびに丸ごと書く。画面への知らせは FollowupQueue が出す） */
 export function createQueueStore(db: DatabaseSync) {
   return {
-    /** 保存したすべての列（起動したときに読み戻す。壊れた行は読み飛ばす） */
+    /** 保存したすべての列（起動したときに読み戻す。壊れた行は読み飛ばす。すべて送ったあとの印だけが残った空の列も読む） */
     list(): SavedQueue[] {
       const rows = db.prepare("SELECT run_id, messages, paused, stop_after FROM run_queues").all() as {
         run_id: number;
@@ -25,13 +25,18 @@ export function createQueueStore(db: DatabaseSync) {
       }[];
       return rows.flatMap((row) => {
         const messages = JSON.parse(row.messages) as unknown;
-        if (!Array.isArray(messages) || messages.length === 0) return [];
-        return [{ runId: row.run_id, messages: messages as QueuedMessage[], paused: row.paused === 1, stops: decodeStops(row.stop_after, messages as QueuedMessage[]) }];
+        if (!Array.isArray(messages)) return [];
+        const stops = decodeStops(row.stop_after, messages as QueuedMessage[]);
+        if (messages.length === 0 && stops.length === 0) return [];
+        return [{ runId: row.run_id, messages: messages as QueuedMessage[], paused: row.paused === 1, stops }];
       });
     },
-    /** 列を丸ごと書く（空なら消す。もうないチャットの列は書かない） */
+    /**
+     * 列を丸ごと書く（指示も印もなければ消す。もうないチャットの列は書かない）。
+     * すべて送ったあとの印（次に来た指示の前で止める）は、列が空でも残す（再起動しても止まる所を覚えておく）
+     */
     save(queue: SavedQueue) {
-      if (queue.messages.length === 0) {
+      if (queue.messages.length === 0 && queue.stops.length === 0) {
         db.prepare("DELETE FROM run_queues WHERE run_id = ?").run(queue.runId);
         return;
       }
