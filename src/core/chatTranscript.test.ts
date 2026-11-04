@@ -27,5 +27,5 @@ test("チャットの記録: 自分の発言・AI の返答を順に並べ、作
   assert.doesNotMatch(md, /サブの返答|考え中|ok/);
   // 変えたファイルは作業ごとに数え直す（2 回目の作業には添えない）
   assert.equal(md.match(/この作業で変えたファイル/g)?.length, 1);
-  assert.equal(transcriptFileName({ ...run, title: "a/b:c" } as Run), "チャット-a b c.md");
+  assert.equal(transcriptFileName({ ...run, title: "a/b:c" } as Run), "チャット履歴-a b c.md");
 });

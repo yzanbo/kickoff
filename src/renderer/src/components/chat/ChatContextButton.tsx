@@ -16,7 +16,8 @@ import { SearchField } from "../SearchField";
 const MAX_ROWS = 50;
 
 /**
- * チャット欄の「チャットを添付」: ほかのチャットを選ぶと、そのやり取りの記録を添付する（AI が読んで、前の話の続きや参考にする）。
+ * チャット欄の「ほかのチャットを参照」: ほかのチャットを選ぶと、そのやり取りの記録（チャット履歴）をファイルにして添え、AI に読ませる（前の話の続きや参考にする）。
+ * 「添付」「取り込む」だと何が付くのか・このチャットに混ぜるのかが分かりにくいので、読ませるだけだと分かる「参照」と呼ぶ。
  * いまのチャット（exclude）は出さない。同じプロジェクトのものを先に、最近動いた順に並べ、名前で絞り込める（↑↓・Enter で選ぶ）
  */
 export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: number; exclude?: number; onPick: (run: Run) => void }) {
@@ -50,16 +51,16 @@ export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: 
     <span className="chip-wrap" ref={ref}>
       <IconButton
         icon={MessagesSquare}
-        label="チャットを添付"
-        title="ほかのチャットのやり取りを添付する（AI が読んで、前の話の続きや参考にします）"
+        label="ほかのチャットを参照"
+        title="ほかのチャットを参照（そのやり取りを AI に読ませて、前の話の続きや参考にします）"
         aria-expanded={open}
         type="button"
         onClick={() => setOpen(!open)}
       />
       {open && (
         <div className="chip-popover chat-context-popover">
-          <PopoverHeader title="添付するチャット" onClose={() => setOpen(false)} />
-          <SearchField autoFocus value={query} onChange={setQuery} onKeyDown={nav.onKeyDown} placeholder="チャット名で探す" label="添付するチャットを探す" />
+          <PopoverHeader title="参照するチャット" onClose={() => setOpen(false)} />
+          <SearchField autoFocus value={query} onChange={setQuery} onKeyDown={nav.onKeyDown} placeholder="チャット名で探す" label="参照するチャットを探す" />
           {!runs ? (
             <p className="muted small">読み込み中…</p>
           ) : items.length === 0 ? (

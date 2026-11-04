@@ -191,7 +191,7 @@
   cursor: pointer;
 }
 
-/* チャット欄の「チャットを添付」の一覧（ChatContextButton。枠は .chip-popover） */
+/* チャット欄の「ほかのチャットを参照」の一覧（ChatContextButton。枠は .chip-popover） */
 .chat-context-popover .chat-search {
   margin: 4px 0 6px;
 }

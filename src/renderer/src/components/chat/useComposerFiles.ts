@@ -34,10 +34,10 @@ export function useComposerFiles() {
     }
   }
 
-  /** 別のチャットのやり取りを添付する（コアが記録を Markdown のファイルにして返す。チップはファイルと同じに出す） */
+  /** 別のチャットを参照する: そのやり取りを添付する（コアが記録を Markdown のファイルにして返す。チップはファイルと同じに出す） */
   function addChat(run: { id: number; title: string | null }) {
     const key = `${Date.now()}-${Math.random()}`;
-    const file = new File([], `チャット-${chatTitle(run.title)}.md`, { type: "text/markdown" });
+    const file = new File([], `チャット履歴-${chatTitle(run.title)}.md`, { type: "text/markdown" });
     setFiles((prev) => [...prev, { key, file }]);
     api
       .chatTranscript(run.id)
