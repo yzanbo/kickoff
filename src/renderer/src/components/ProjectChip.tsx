@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { cx } from "../cx";
+import { projectHueStyle } from "../projectColor";
 import { href } from "../router";
 import { ProjectMark } from "./ProjectMark";
 
 /**
- * プロジェクトのバッジ（プロジェクトの印 ProjectMark ＋ 名前。色は印だけに出し、札そのものは控えめな灰色）。
+ * プロジェクトのバッジ（プロジェクトの印 ProjectMark ＋ 名前 ＋ プロジェクトの色の薄い地。サイドバーの見出し・画面の見出しの名前と同じ出し方）。
  * linked: 押すとそのプロジェクトのカンバンを開く（チャットの見出しなど）。children: 名前の代わりに置くもの（選択欄など）
  */
 export function ProjectChip({
@@ -21,7 +22,7 @@ export function ProjectChip({
   children?: ReactNode;
 }) {
   const chip = (
-    <span className={cx("project-chip", className)} title={`プロジェクト: ${name}`}>
+    <span className={cx("project-chip", className)} style={projectHueStyle(id)} title={`プロジェクト: ${name}`}>
       <ProjectMark project={{ id, name }} />
       {children ?? name}
     </span>

@@ -47,8 +47,8 @@
 }
 
 /*
- * サイドバーのプロジェクトの見出し。プロジェクトの色は名前の前の印（ProjectMark）だけに出し、カードは控えめな灰色の地にする
- * （以前はプロジェクトの色の地と色付きの矢印で、画面の見出し・バッジなどほかの場所の出し方とそろっていなかった）
+ * サイドバーのプロジェクトの見出し。名前の前の印（ProjectMark）＋ プロジェクトの色の薄い地（地の色は project-mark.css で、画面の見出しの名前・バッジと共通）。
+ * 開閉の矢印は灰色（以前は矢印もプロジェクトの色で、画面の見出し・バッジなどほかの場所の出し方とそろっていなかった）
  */
 .workspace-head {
   display: flex;
@@ -58,17 +58,8 @@
   padding: 6px 4px 6px 4px;
   border: 1px solid transparent;
   border-radius: 10px;
-  background: var(--bg-elev);
   /* 外枠の中を押すとカンバンを開く */
   cursor: pointer;
-}
-
-.workspace-head:hover {
-  background: var(--bg-hover);
-}
-
-.workspace-head.active {
-  background: var(--bg-active);
 }
 
 .workspace-title {

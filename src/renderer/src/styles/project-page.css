@@ -89,8 +89,8 @@
 }
 
 /*
- * プロジェクトの画面の名前（押すとプロジェクトを切り替える）。プロジェクトの色は頭の印（ProjectMark）だけに出し、札は控えめな灰色にする
- * （以前はサイドバーの見出しと同じプロジェクトの色の地にしていて、ほかの場所の出し方とそろっていなかった）
+ * プロジェクトの画面の名前（押すとプロジェクトを切り替える）。印（ProjectMark）＋ 名前 ＋ プロジェクトの色の薄い地
+ * （地と枠の色は project-mark.css で、サイドバーの見出し・バッジと共通）
  */
 .project-switch {
   display: inline-flex;
@@ -98,26 +98,11 @@
   gap: 6px;
   max-width: 100%;
   padding: 3px 9px 3px 4px;
-  border: 1px solid var(--border-strong);
+  border-width: 1px;
+  border-style: solid;
   border-radius: 8px;
   font: inherit;
   color: inherit;
-  background: var(--bg-elev);
-}
-
-button.project-switch:hover,
-.project-switch[aria-expanded="true"] {
-  border-color: var(--extra-muted);
-  background: var(--bg-hover);
-}
-
-:root[data-theme="light"] .project-switch {
-  border-color: var(--border);
-}
-
-:root[data-theme="light"] button.project-switch:hover,
-:root[data-theme="light"] .project-switch[aria-expanded="true"] {
-  border-color: var(--extra-muted);
 }
 
 button.project-switch {

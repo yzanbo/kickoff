@@ -1,6 +1,6 @@
 /*
  * プロジェクトの印（ProjectMark）。プロジェクトの色の角丸の四角に頭文字。色は横スライドの丸（sidebar-list.css の .workspace-dot）と同じ。
- * プロジェクトの色を出すのはこの印だけ（名前・見出しの地・矢印は色付けしない）
+ * 名前は普通の文字色、開閉の矢印は灰色のまま（色は印と、下の札の薄い地で出す）
  */
 .project-mark {
   display: inline-grid;
@@ -36,4 +36,65 @@
 :root[data-theme="light"] .project-mark.all-projects {
   color: var(--muted);
   background: var(--bg-active);
+}
+
+/*
+ * プロジェクトの名前を出す札の地（サイドバーの見出し・画面の見出しの名前・バッジ）。どれも「印 ＋ 名前 ＋ プロジェクトの色の薄い地」にそろえる。
+ * 色は要素（か親）の --ws-hue。ここより後ろのファイルの各部品の規則では、地と枠の色を書かない（ここが負けるため）
+ */
+.workspace-head,
+.project-switch,
+.project-chip {
+  border-color: hsl(var(--ws-hue, 150) 30% 24%);
+  background: hsl(var(--ws-hue, 150) 25% 13%);
+}
+
+.workspace-head:hover,
+.workspace-head.active,
+button.project-switch:hover,
+.project-switch[aria-expanded="true"],
+.project-chip-link:hover .project-chip {
+  border-color: hsl(var(--ws-hue, 150) 40% 34%);
+  background: hsl(var(--ws-hue, 150) 28% 16%);
+}
+
+:root[data-theme="light"] .workspace-head,
+:root[data-theme="light"] .project-switch,
+:root[data-theme="light"] .project-chip {
+  border-color: hsl(var(--ws-hue, 150) 40% 82%);
+  background: hsl(var(--ws-hue, 150) 50% 96%);
+}
+
+:root[data-theme="light"] .workspace-head:hover,
+:root[data-theme="light"] .workspace-head.active,
+:root[data-theme="light"] button.project-switch:hover,
+:root[data-theme="light"] .project-switch[aria-expanded="true"],
+:root[data-theme="light"] .project-chip-link:hover .project-chip {
+  border-color: hsl(var(--ws-hue, 150) 45% 70%);
+  background: hsl(var(--ws-hue, 150) 55% 93%);
+}
+
+/* サイドバーの見出しは枠の線を出さない（地の色だけで見せる） */
+.workspace-head,
+.workspace-head:hover,
+.workspace-head.active,
+:root[data-theme="light"] .workspace-head,
+:root[data-theme="light"] .workspace-head:hover,
+:root[data-theme="light"] .workspace-head.active {
+  border-color: transparent;
+}
+
+/* 全プロジェクトの画面の見出しは、どのプロジェクトの色でもない灰色 */
+.project-switch.all-projects,
+:root[data-theme="light"] .project-switch.all-projects {
+  border-color: var(--border-strong);
+  background: var(--bg-elev);
+}
+
+button.project-switch.all-projects:hover,
+.project-switch.all-projects[aria-expanded="true"],
+:root[data-theme="light"] button.project-switch.all-projects:hover,
+:root[data-theme="light"] .project-switch.all-projects[aria-expanded="true"] {
+  border-color: var(--extra-muted);
+  background: var(--bg-hover);
 }

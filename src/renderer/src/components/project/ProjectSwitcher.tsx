@@ -1,6 +1,7 @@
 import { Check, ChevronDown } from "lucide-react";
 import type { ProjectSummary } from "../../../../core/types";
 import { archivedProjects, sidebarOrder } from "../../projectOrder";
+import { projectHueStyle } from "../../projectColor";
 import { useProjects } from "../../projectsContext";
 import { navigate, type ProjectTab } from "../../router";
 import { MenuItem, PopupMenu } from "../PopupMenu";
@@ -11,27 +12,35 @@ import { ProjectMark } from "../ProjectMark";
 const ALL_PROJECTS = "全プロジェクト";
 
 /**
- * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。プロジェクトの印（ProjectMark）＋ 名前で、色は印だけに出す（サイドバー・バッジと同じ出し方）。
+ * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。プロジェクトの印（ProjectMark）＋ 名前 ＋ プロジェクトの色の薄い地（サイドバー・バッジと同じ出し方。全プロジェクトは灰色）。
  * project がなければ全プロジェクト。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
  * （全プロジェクトから選んだときはカンバン）。しまった（アーカイブした）プロジェクトは下の「アーカイブ済み」に分けて出す。プロジェクトがなければ押せない
  */
 export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: number; name: string }; tab?: ProjectTab }) {
   const { projects } = useProjects();
   const menu = useAnchoredMenu(".project-switch", 260);
-  const className = "project-switch";
+  const className = project ? "project-switch" : "project-switch all-projects";
+  const hue = project ? projectHueStyle(project.id) : undefined;
   const identity = (
     <>
       <ProjectMark project={project} size="md" />
       <span className="project-switch-name">{project ? project.name : ALL_PROJECTS}</span>
     </>
   );
-  if (projects.length === 0) return <span className={className}>{identity}</span>;
+  if (projects.length === 0) {
+    return (
+      <span className={className} style={hue}>
+        {identity}
+      </span>
+    );
+  }
   const ordered = sidebarOrder(projects);
   const archived = archivedProjects(projects);
   return (
     <>
       <button
         className={className}
+        style={hue}
         title="プロジェクトを切り替える"
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
