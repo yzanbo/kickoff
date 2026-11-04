@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import type { GitWorktree } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
-import { refreshWorktrees, useWorktreeList } from "./worktreeBranches";
+import { useWorktrees, worktreesStore } from "@/stores/worktrees";
 
 /** ワークツリーの短い名前（ブランチ名。なければフォルダ名） */
 export const worktreeLabel = (w: Pick<GitWorktree, "branch" | "path">) => w.branch ?? baseName(w.path);
@@ -24,8 +24,8 @@ export function WorktreePicker({
   version: number;
 }) {
   // プロジェクトで共通の一覧（変更の一覧を取り直したら、古くなっていれば取り直す）
-  const worktrees = useWorktreeList(projectId);
-  useEffect(() => refreshWorktrees(projectId), [projectId, version]);
+  const worktrees = useWorktrees(projectId);
+  useEffect(() => worktreesStore.ensure(projectId), [projectId, version]);
   useEffect(() => {
     if (worktrees && value && !worktrees.some((w) => w.path === value && !w.main)) onChange(undefined);
   }, [worktrees, value, onChange]);

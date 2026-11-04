@@ -9,11 +9,11 @@ import { Composer, SendCancelled } from "@/features/chat/composer/Composer";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "@/features/worktree/WorkplacePicker";
-import { invalidateWorktrees } from "@/features/worktree/worktreeBranches";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { ComposerFill } from "@/features/chat/messages/quoteComment";
 import { currentChats, useChats } from "@/stores/chats";
 import { groupNameIn, useGroups } from "@/stores/groups";
+import { worktreesStore } from "@/stores/worktrees";
 
 interface Props {
   projectId: number;
@@ -184,7 +184,7 @@ export function NewChatPane({
                 ...(target.kind === "existing" ? { worktree_path: target.path } : target.kind === "new" ? { new_worktree_branch: target.branch } : {}),
               });
               // 新しいワークツリーを作ったときは、ブランチの一覧をすぐ取り直す
-              if (target.kind === "new") invalidateWorktrees(projectId);
+              if (target.kind === "new") worktreesStore.invalidate(projectId);
               onCreated(chat);
             }}
           />

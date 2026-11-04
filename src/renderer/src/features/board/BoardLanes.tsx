@@ -7,7 +7,7 @@ import type { SettingValue } from "@/lib/storage";
 import { ProjectMark } from "@/features/project/ProjectMark";
 import { useProjects } from "@/app/projectsContext";
 import { boardLaneClosed, type PROJECT_BOARD_LANES } from "@/lib/storageKeys";
-import { useWorktreeLists } from "@/features/worktree/worktreeBranches";
+import { useWorktreesOf } from "@/stores/worktrees";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type ChatWorkplace } from "@/features/worktree/workplace";
 import { GroupToggle } from "@/ui/GroupToggle";
 import type { BoardEntry } from "@/features/chatList/boardColumns";
@@ -187,7 +187,7 @@ export function BoardLanes({
 }) {
   const closed = useSettingFamily(boardLaneClosed);
   // 作業場所で分けるときは、プロジェクトごとのワークツリーの一覧からブランチ名を引く
-  const worktreesOf = useWorktreeLists(kind === "worktree" ? entries.map((e) => e.chat.project_id) : []);
+  const worktreesOf = useWorktreesOf(kind === "worktree" ? entries.map((e) => e.chat.project_id) : []);
   const { projectName } = useProjects();
   const lanes = lanesOf(kind, entries, drafts, projects, groups, showEmpty, worktreesOf, projectName);
   return (

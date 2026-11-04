@@ -4,7 +4,7 @@ import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/app/projectsContext";
 import { panelTabGrouping } from "@/lib/storageKeys";
 import { workplaceOf } from "@/features/worktree/workplace";
-import { useWorktreeLists } from "@/features/worktree/worktreeBranches";
+import { useWorktreesOf } from "@/stores/worktrees";
 import { OTHER_CLUSTER, type ClusterOf, type ClusterSeed, type TabGrouping } from "./tabClusters";
 import type { PanelSurface } from "@/features/panel/state/panelKinds";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
@@ -40,7 +40,7 @@ export function useTabClusters(
   const terminalProjects = [...projectsById.values()]
     .filter((p) => terminalCwds.some((cwd) => cwd === p.repo_path || cwd.startsWith(`${p.repo_path}-worktrees/`)))
     .map((p) => p.id);
-  const worktrees = useWorktreeLists(grouping === "worktree" ? [...projectIds, ...terminalProjects] : []);
+  const worktrees = useWorktreesOf(grouping === "worktree" ? [...projectIds, ...terminalProjects] : []);
   const chatOf = (id: number, fallback?: Chat) => panel.chats.find((r) => r.id === id) ?? fallback;
   const many = projectIds.length > 1;
   const named = (projectId: number, c: ClusterOf): ClusterOf => (many ? { ...c, label: `${projectName(projectId)} · ${c.label}` } : c);

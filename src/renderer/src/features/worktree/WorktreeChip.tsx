@@ -1,7 +1,7 @@
 import { GitBranch } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { useChatWorkplace } from "./worktreeBranches";
+import { useChatWorkplace } from "./useWorkplace";
 
 /**
  * チャットが作業しているブランチの印（すべてのチャットに出す）。ワークツリーで作業しているチャットは色を付け、本体のチャットは控えめにする。

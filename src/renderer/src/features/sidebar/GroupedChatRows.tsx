@@ -6,7 +6,7 @@ import type { BoardEntry } from "@/features/chatList/boardColumns";
 import { COLUMN_TONE } from "@/features/chat/tones";
 import { useSettingFamily } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
-import { useWorktreeList } from "@/features/worktree/worktreeBranches";
+import { useWorktrees } from "@/stores/worktrees";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type ChatWorkplace } from "@/features/worktree/workplace";
 import type { ChatOrder } from "./chatGroupings";
 import { Collapse } from "@/ui/Collapse";
@@ -89,7 +89,7 @@ export function GroupedChatRows({
   scope?: number | "archived";
 }) {
   const closed = useSettingFamily(sidebarSectionClosed);
-  const worktrees = useWorktreeList(projectId);
+  const worktrees = useWorktrees(projectId);
   const scopeKey = scope === undefined ? "" : scope === "archived" ? "archived:" : `g${scope}:`;
   const idOf = (key: string) => `${projectId}:${scopeKey}${key}`;
   const state = {
