@@ -107,15 +107,15 @@ function DisplaySettings() {
             ]}
           />
         </Field>
-        <Field label="チャットの横幅" help="広くすると、発言の流れとチャット欄を欄の横幅いっぱいまで広げます。チャットの見出しの ↔ でも切り替えられます。">
+        <Field label="チャットの文の幅" help="広げると、パネルの大きさはそのままで、発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます（パネルが狭いときは変わりません）。チャットの見出しの行のボタンでも切り替えられます。">
           <Segmented<"normal" | "wide">
             className="segmented theme-switch"
-            label="チャットの横幅"
+            label="チャットの文の幅"
             value={wideChat ? "wide" : "normal"}
             onChange={(v) => setWideChat(v === "wide")}
             options={[
               { value: "normal", label: "標準" },
-              { value: "wide", label: "横幅いっぱい" },
+              { value: "wide", label: "広げる" },
             ]}
           />
         </Field>
