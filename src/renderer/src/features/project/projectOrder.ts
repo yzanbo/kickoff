@@ -1,4 +1,4 @@
-import type { Project } from "@shared/types";
+import type { Chat, Project } from "@shared/types";
 import { api } from "@/api";
 import type { SettingValue } from "@/lib/storage";
 import type { SIDEBAR_PROJECT_ORDER } from "@/lib/storageKeys";
@@ -17,6 +17,16 @@ export const sidebarOrder = (projects: Project[], lastActive?: (p: Project) => s
   projects
     .filter((p) => !p.archived_at)
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (lastActive ? lastActive(b).localeCompare(lastActive(a)) : 0) || a.position - b.position || a.id - b.id);
+
+/**
+ * 「最近動いた順」のサイドバーの並び: 固定したものが先、そのあとプロジェクトのチャット（アーカイブしたものを除く）が最後に動いた順
+ * （チャットがなければ作った時刻）。chats は最後に動いた順（店の一覧の並び）
+ */
+export function recentOrder(projects: Project[], chats: readonly Chat[]): Project[] {
+  const latest = new Map<number, string>();
+  for (const chat of chats) if (!chat.archived_at && !latest.has(chat.project_id)) latest.set(chat.project_id, chat.active_at);
+  return sidebarOrder(projects, (p) => latest.get(p.id) ?? p.created_at);
+}
 
 /** しまった（アーカイブした）プロジェクト（名前順） */
 export const archivedProjects = (projects: Project[]) => projects.filter((p) => p.archived_at).sort((a, b) => a.name.localeCompare(b.name));

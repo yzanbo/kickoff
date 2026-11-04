@@ -115,6 +115,15 @@ export function useChats({ projectId, archived = false, enabled = true }: ChatQu
   };
 }
 
+/**
+ * アーカイブしていないチャットの一覧から選んだ値（select の結果が変わったときだけ描き直す。結果は文字・数など、同じ中身なら === になるもの。
+ * プロジェクトの最近動いた順など、一覧が変わっても結果が変わらないことの多いものを読むとき）。enabled でなければ読まず、undefined
+ */
+export function useChatsValue<T extends string | number>(select: (chats: Chat[]) => T, enabled = true): T | undefined {
+  useStoreStatus(activeChats, { active: enabled });
+  return useSyncExternalStore(subscribeChats, () => (enabled ? select(chatsView(undefined, false)) : undefined));
+}
+
 /** いまの一覧（部品の外・操作の途中で読むとき。読み込みは頼まない） */
 export const currentChats = ({ projectId, archived = false }: Omit<ChatQuery, "enabled"> = {}): Chat[] => chatsView(projectId, archived);
 

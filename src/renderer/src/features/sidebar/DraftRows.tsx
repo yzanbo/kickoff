@@ -1,4 +1,5 @@
 import { SquarePen, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -6,9 +7,10 @@ import { startDraftDrag } from "@/features/group/groups";
 import { discardDraft, openDraft, useAllDrafts, type SidebarDraft } from "@/features/panel/state/panelMemory";
 import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
 
-/** プロジェクトの下書き（すべてのボード・チャット欄の分。どのグループに置くかは bucketChats で分ける） */
+/** プロジェクトの下書き（すべてのボード・チャット欄の分。どのグループに置くかは bucketChats で分ける。下書きが変わるまでは同じ配列） */
 export function useProjectDrafts(projectId: number): SidebarDraft[] {
-  return useAllDrafts().filter((d) => d.projectId === projectId);
+  const all = useAllDrafts();
+  return useMemo(() => all.filter((d) => d.projectId === projectId), [all, projectId]);
 }
 
 /**
