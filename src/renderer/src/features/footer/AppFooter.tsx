@@ -2,7 +2,7 @@ import { GitBranch, Settings, WifiOff } from "lucide-react";
 import { useOnline } from "@/hooks/useOnline";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { href } from "@/app/router";
-import { FIVE_HOUR_IDLE, planName, weeklyModel, type usePlanUsage } from "@/features/usage/usage";
+import { FIVE_HOUR_IDLE, planName, type usePlanUsage } from "@/features/usage/usage";
 import { useMainBranch } from "@/features/worktree/useWorkplace";
 import type { SettingsSection } from "@/features/settings/SettingsDialog";
 import { CONNECTION_LABELS, ConnectionPopover } from "./ConnectionPopover";
@@ -74,9 +74,9 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
         >
           <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
           <UsageMeter window={usage.seven_day} inline />
-          {/* モデル別の週枠（Fable など）。フッターでは短く「Fable」と表示する */}
+          {/* モデル別の週枠（Fable など）。1 行表示では短く「Fable」と出す（usageWindowLabel） */}
           {usage.model_weekly.map((w) => (
-            <UsageMeter key={w.key} window={{ ...w, label: weeklyModel(w.label) ?? w.label }} inline />
+            <UsageMeter key={w.key} window={w} inline />
           ))}
         </button>
       ) : (

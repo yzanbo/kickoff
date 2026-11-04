@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatMessageTime, relativeTime, resetIn, resetInShort, shortRelativeTime } from "./time";
+import { formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatMessageTime, relativeTime, resetInShort, shortRelativeTime } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -27,7 +27,7 @@ test("relativeTime: たった今・分前・時間前、1 日より前は日付"
   assert.match(relativeTime(ago(3 * 86400)), /^\d{1,2}\/\d{1,2}$/);
 });
 
-test("resetIn / resetInShort: 分・時間・日の単位で丸める。null なら null", () => {
+test("resetInShort: 分・時間・日の単位で丸める。null なら null", () => {
   const now = Date.parse("2026-11-03T00:00:00Z");
   const after = (min: number) => new Date(now + min * 60_000).toISOString();
   assert.equal(resetInShort(after(12), now), "12分後");
@@ -35,8 +35,7 @@ test("resetIn / resetInShort: 分・時間・日の単位で丸める。null な
   assert.equal(resetInShort(after(3 * 24 * 60), now), "3日後");
   // 過ぎていれば 0 分
   assert.equal(resetInShort(after(-30), now), "0分後");
-  assert.equal(resetIn(after(12), now), "12分後にリセット");
-  assert.equal(resetIn(null, now), null);
+  assert.equal(resetInShort(null, now), null);
 });
 
 test("formatClock: 時刻だけ（2 桁）", () => {

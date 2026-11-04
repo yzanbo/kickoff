@@ -5,15 +5,15 @@ import { useProviders } from "@/stores/providers";
 import { cx } from "@/lib/cx";
 import { useAction } from "@/hooks/useAction";
 import { formatTokens } from "@/lib/format";
-import { resetIn } from "@/lib/time";
-import { planLabel, usageLevel, usageUnavailableText, useSharedPlanUsage, weeklyModel } from "@/features/usage/usage";
+import { planLabel, usageLevel, usageUnavailableText, useSharedPlanUsage } from "@/features/usage/usage";
+import { UsageBar, UsageMeter } from "@/features/usage/UsageMeter";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ErrorText } from "@/ui/ErrorText";
 import { RefreshButton } from "@/ui/IconButton";
 import { Popover, usePopover } from "@/ui/Popover";
 import { COMPACTING_LABEL } from "@/features/chat/status/workingLabel";
 
-/** 使用率の色（70% から注意、90% から警告） */
+/** 丸いメーターの色（70% から注意、90% から警告） */
 const TONES = { normal: "ok", warning: "warn", critical: "danger" } as const;
 const tone = (pct: number) => TONES[usageLevel(pct)];
 
@@ -71,10 +71,8 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
                 </span>
               )}
             </div>
-            {/* どれだけ使っているかを、数字だけでなく棒でも見せる */}
-            <div className="context-bar" role="img" aria-label={`${pct}% 使用`}>
-              <span className={`context-bar-fill tone-${tone(pct)}`} style={{ width: `${pct}%` }} />
-            </div>
+            {/* どれだけ使っているかを、数字だけでなく棒でも見せる（使用枠と同じバー） */}
+            <UsageBar percent={pct} label="コンテキストウィンドウの使用率" valueText={`${pct}% 使用`} />
             <div className="context-sub">セッションコスト: ${chat.cost_usd.toFixed(2)}（API 換算）</div>
             {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
             <div className="context-compact">
@@ -109,7 +107,8 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
             ) : !usage.available ? (
               <p className="context-sub">{usageUnavailableText(usage)}</p>
             ) : (
-              windows.map((w) => <UsageBar key={w.key} window={w} />)
+              // 使用枠は、下の帯の使用状況の詳細と同じメーター
+              windows.map((w) => <UsageMeter key={w.key} window={w} />)
             )}
             {usage?.extra_usage !== undefined && usage.extra_usage !== null && (
               <div className="context-row">
@@ -121,28 +120,6 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
           </section>
         </Popover>
       )}
-    </div>
-  );
-}
-
-/** 使用枠の 1 行（"週間  25% 使用済み · 3日後にリセット" と横棒） */
-function UsageBar({ window: w }: { window: UsageWindow }) {
-  const pct = Math.round(w.utilization ?? 0);
-  const reset = resetIn(w.resets_at);
-  // 「週（Fable）」は 「週 · Fable」と書く
-  const model = weeklyModel(w.label);
-  const label = model ? `週 · ${model}` : w.label === "週" ? "週間" : w.label;
-  return (
-    <div className="context-usage">
-      <div className="context-row">
-        <span className="context-sub">{label}</span>
-        <span>
-          <strong>{pct}%</strong> 使用済み{reset && <span className="context-sub"> · {reset}</span>}
-        </span>
-      </div>
-      <div className="context-bar">
-        <span className={`context-bar-fill tone-${tone(pct)}`} style={{ width: `${pct}%` }} />
-      </div>
     </div>
   );
 }

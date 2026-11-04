@@ -43,12 +43,6 @@ export function resetInShort(resetsAt: string | null, now = Date.now()): string 
   return `${min}分後`;
 }
 
-/** リセットまでの残り（"3日後にリセット" / "5時間後にリセット" / "12分後にリセット"） */
-export function resetIn(resetsAt: string | null, now = Date.now()): string | null {
-  const short = resetInShort(resetsAt, now);
-  return short && `${short}にリセット`;
-}
-
 /** 時刻だけ（"14:05"） */
 export function formatClock(iso: string): string {
   return new Date(iso).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
