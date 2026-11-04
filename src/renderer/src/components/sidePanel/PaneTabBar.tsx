@@ -13,6 +13,7 @@ import { StatusSlot } from "../StatusSlot";
 import { busyWithUnread } from "../../../../core/board";
 import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
+import { useGroupNames } from "../../groupNames";
 import type { SidePanelController } from "./useSidePanel";
 
 /** ▾ のメニューの種類 */
@@ -74,6 +75,8 @@ export function PaneTabBar({
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
   const { stateOf } = useRunStates();
+  // チャットのタブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
+  const groupName = useGroupNames(panel.tabs.flatMap((t) => (t.kind === "chat" ? [t.projectId] : [])));
   const chatRunOf = (t: { id: number; status?: Run["status"]; attention?: boolean }) =>
     panel.runs.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, attention: Boolean(t.attention) } as Run) : undefined);
   return (
@@ -90,11 +93,13 @@ export function PaneTabBar({
       {pane.tabs.map((key, i) => {
         const t = panel.tabs.find((x) => x.key === key);
         if (!t) return null;
-        const { Icon, iconClass, label } = tabLabel(t, panel.runs);
+        const { Icon, iconClass, label, group: newGroup } = tabLabel(t, panel.runs);
         // チャットのタブの状態（未読・失敗のタブは名前も太字にする。サイドバーの行と同じ）
         const chatRun = t.kind === "chat" ? chatRunOf(t) : undefined;
         const chatState = chatRun && stateOf(chatRun);
         const busyUnread = Boolean(chatRun && chatState && busyWithUnread(chatRun, chatState));
+        // どのグループのチャットか（ボードの一覧になければ、タブの中のチャットから届いたもの）
+        const group = t.kind === "chat" ? groupName(t.projectId, (panel.runs.find((r) => r.id === t.id) ?? t.run)?.group_id) : newGroup;
         return (
           <PanelTab
             key={t.key}
@@ -102,7 +107,8 @@ export function PaneTabBar({
             icon={Icon}
             iconClass={iconClass}
             label={label}
-            title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : label}
+            group={group}
+            title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : group ? `${label}（グループ: ${group}）` : label}
             className={cx(
               insertAt === i && "split-insert-before",
               insertAt === pane.tabs.length && i === pane.tabs.length - 1 && "split-insert-after",

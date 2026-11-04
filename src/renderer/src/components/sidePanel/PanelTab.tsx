@@ -13,6 +13,7 @@ export function PanelTab({
   icon: Icon,
   iconClass,
   label,
+  group,
   title,
   className,
   extra,
@@ -26,6 +27,8 @@ export function PanelTab({
   icon: LucideIcon;
   iconClass?: string;
   label: string;
+  /** チャットのグループ名（名前の後ろに控えめに添える。グループなしなら出さない） */
+  group?: string;
   /** 名前にマウスを乗せたときの説明（なければ名前） */
   title?: string;
   className?: string;
@@ -50,6 +53,7 @@ export function PanelTab({
         <button className="panel-tab-label" onClick={onSelect} onDoubleClick={onRename} title={onRename ? `${title ?? label}（ダブルクリックで名前を変更）` : (title ?? label)}>
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           <span>{label}</span>
+          {group && <span className="panel-tab-group">{group}</span>}
         </button>
       )}
       {/* 名前を変えている間は、入力欄の ✓ / ✕ と並ばないよう閉じるを隠す */}
