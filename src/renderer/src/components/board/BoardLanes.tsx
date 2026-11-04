@@ -152,8 +152,11 @@ export function BoardLanes({
   drafts = [],
   groups = [],
   showEmpty = false,
+  list = false,
   laneProps,
 }: {
+  /** 段の中をリストで並べる（リスト表示。段の中の状態のまとまりを縦に並べる） */
+  list?: boolean;
   kind: BoardLane;
   /** 自分で作ったグループ（グループで段に分けるとき） */
   groups?: RunGroup[];
@@ -191,7 +194,7 @@ export function BoardLanes({
                 <span className="board-lane-count">{lane.entries.length}</span>
               </button>
             </div>
-            {open && <div className="board-columns lane-columns">{renderColumns(lane.entries, lane.key, lane.draft)}</div>}
+            {open && <div className={list ? "lane-list" : "board-columns lane-columns"}>{renderColumns(lane.entries, lane.key, lane.draft)}</div>}
           </section>
         );
       })}
