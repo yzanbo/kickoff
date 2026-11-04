@@ -2,7 +2,8 @@
 import * as monaco from "./monacoEditor";
 import EditorWorker from "monaco-editor/editor/editor.worker.js?worker";
 import { useEffect, useRef } from "react";
-import { useAppliedTheme, type AppliedTheme } from "@/app/theme";
+import { useAppliedTheme } from "@/hooks/useAppliedTheme";
+import type { AppliedTheme } from "@/lib/appliedTheme";
 
 // 補完・型チェックの裏の処理（言語ごとのワーカー）は使わない。差分の計算などの基本のワーカーだけ
 self.MonacoEnvironment = { getWorker: () => new EditorWorker() };

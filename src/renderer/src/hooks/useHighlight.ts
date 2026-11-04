@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { highlightLines, type CodeToken } from "@/lib/highlight";
-import { useAppliedTheme } from "@/app/theme";
+import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 
 /**
  * コードの行ごとの色（VS Code と同じ配色。ダーク・ライトに合わせる）。

@@ -1,6 +1,6 @@
 import { Code, Eye, Maximize2, SquareDashed, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { useAppliedTheme } from "@/app/theme";
+import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { IconButton } from "@/ui/IconButton";
 import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
 import { cachedMermaid, renderMermaid } from "./renderMermaid";

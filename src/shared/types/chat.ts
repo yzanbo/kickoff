@@ -53,7 +53,7 @@ export const BOARD_COLUMN_LABELS: Record<BoardColumn, string> = {
 
 /**
  * エージェント自身の状態（状態の分け方に合わせる）。
- * needs_input: 承認・回答待ち / failed: 失敗してまだ見ていない / running: 作業中 / attention: 終わってまだ見ていない（未読）/ done: 見た（既読）
+ * needs_input: 承認・回答待ち / failed: 失敗してまだ見ていない / running: 作業中 / unread: 終わってまだ見ていない（未読）/ read: 見た（既読）
  */
 const AGENT_STATES = ["needs_input", "failed", "unread", "running", "read"] as const;
 export type AgentState = (typeof AGENT_STATES)[number];
@@ -66,7 +66,7 @@ export const AGENT_STATE_LABELS: Record<AgentState, string> = {
   read: "既読",
 };
 
-/** チャットの状態（いまの作業、なければ最後の作業の終わり方）。承認・質問の回答待ちは状態に持たず、回答待ちの一覧から決める（chatStateOf） */
+/** チャットの状態（いまの作業、なければ最後の作業の終わり方）。承認・質問の回答待ちは状態に持たず、回答待ちの一覧から決める（shared/chat/state.ts の agentStateOf） */
 export const CHAT_STATUSES = ["running", "completed", "failed", "cancelled"] as const;
 export type ChatStatus = (typeof CHAT_STATUSES)[number];
 export interface Chat {

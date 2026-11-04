@@ -20,7 +20,7 @@ export interface StartChatInput {
 }
 
 /**
- * 新しいチャットを作り、最初の発言を記録する（実行の待機列に入れるのは Runner）。prompt は添付のパスを書き添えた、AI に渡す文。
+ * 新しいチャットを作り、最初の発言を記録する（動かすのは Runner）。prompt は添付のパスを書き添えた、AI に渡す文。
  * messageUuid は発言の ID（Claude Code にも同じ ID で渡し、ファイルをこの発言の時点に戻すときの目印にする）
  */
 export async function createChat(deps: ExecutionDeps, input: StartChatInput) {

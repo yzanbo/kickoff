@@ -1,6 +1,6 @@
 import manifest from "material-icon-theme/dist/material-icons.json";
 import { languageOf } from "@/lib/highlight";
-import type { AppliedTheme } from "@/app/theme";
+import type { AppliedTheme } from "@/lib/appliedTheme";
 
 /**
  * フォルダ・ファイルのアイコン（VS Code の Material Icon Theme と同じ）。

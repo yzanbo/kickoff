@@ -1,5 +1,5 @@
 import type { MermaidConfig } from "mermaid";
-import type { AppliedTheme } from "@/app/theme";
+import type { AppliedTheme } from "@/lib/appliedTheme";
 
 /** 図に使える文字数・線の数の上限（超えたら図にせず、コードのまま出す） */
 const MAX_TEXT_SIZE = 20_000;

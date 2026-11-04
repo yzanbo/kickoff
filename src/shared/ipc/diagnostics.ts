@@ -1,4 +1,4 @@
-// 性能の記録（アプリのメニュー「ヘルプ → 性能の記録を取る」・設定の「診断」。メインプロセスの main/diagnostics.ts が取る）
+// 性能の記録（アプリのメニュー「ヘルプ → 性能の記録を取る」・設定の「診断」。メインプロセスの main/diagnostics/diagnostics.ts が取る）
 
 /** 記録の様子（メインプロセスから画面へ知らせる。画面の隅の印に出す） */
 export type DiagnosticsState =

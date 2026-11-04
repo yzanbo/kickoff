@@ -5,7 +5,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import { useEffect, useRef } from "react";
 import { errorMessage } from "@shared/errors";
-import { useAppliedTheme } from "@/app/theme";
+import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { terminalFont, terminalTheme } from "./terminalTheme";
 
 /** シェルが終わったときに出す文 */
