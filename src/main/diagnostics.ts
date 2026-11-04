@@ -3,14 +3,35 @@ import path from "node:path";
 import { app, shell, type BrowserWindow, type WebContents } from "electron";
 import type { DiagnosticsFolders, DiagnosticsState } from "../core/types.js";
 import { errorMessage } from "../core/errors.js";
+import { startMainRecording } from "./diagnosticsMain.js";
 import { diagnosticsFolderName, perSecond, RENDERER_PROBE, topSelfTime, type CpuProfile, type Metrics } from "./profileSummary.js";
+import { RENDERER_COLLECT, RENDERER_OBSERVE, summarizeFrames, summarizeInteractions, type RendererTimings } from "./rendererTiming.js";
 
 /** 記録する長さ（秒）。重いと感じる操作をその間に続けてもらう */
 export const DIAGNOSTICS_SECONDS = 10;
 
-/** 記録を保存するフォルダ（データの保存先の diagnostics/。開発版と製品版で別） */
+/**
+ * 記録を保存するフォルダ（macOS のログの場所 ~/Library/Logs/<アプリ名>/diagnostics/。開発版と製品版で別）。
+ * 以前はデータの保存先（Application Support）に置いていたが、そこはエージェントから読めない（Kickoff 自身を守るため）ので、
+ * 場所をチャットに貼っても読んでもらえなかった。ログの場所なら、貼るだけで読める
+ */
 export function diagnosticsRoot(): string {
-  return path.join(app.getPath("userData"), "diagnostics");
+  return path.join(app.getPath("home"), "Library", "Logs", app.getName(), "diagnostics");
+}
+
+/** 以前の保存先（データの保存先の diagnostics/）に残っている記録を、いまの保存先へ移す（起動したときに 1 回） */
+export async function moveLegacyDiagnostics(): Promise<void> {
+  const legacy = path.join(app.getPath("userData"), "diagnostics");
+  const entries = await fs.readdir(legacy, { withFileTypes: true }).catch(() => null);
+  if (!entries) return;
+  await fs.mkdir(diagnosticsRoot(), { recursive: true });
+  for (const e of entries) {
+    if (!e.isDirectory()) continue;
+    // 同じ名前（同じ日時）の記録がもうあれば、移さずに残す
+    await fs.rename(path.join(legacy, e.name), path.join(diagnosticsRoot(), e.name)).catch(() => {});
+  }
+  // 空になったら消す（残ったものがあれば消さない）
+  await fs.rmdir(legacy).catch(() => {});
 }
 
 /** 最近の記録として返す数 */
@@ -59,6 +80,7 @@ export async function startDiagnostics(win: BrowserWindow | undefined): Promise<
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(path.join(dir, "summary.json"), JSON.stringify(result.summary, null, 2));
     await fs.writeFile(path.join(dir, "profile.cpuprofile"), JSON.stringify(result.profile));
+    if (result.mainProfile) await fs.writeFile(path.join(dir, "main.cpuprofile"), JSON.stringify(result.mainProfile));
     const { renderer, perSecond: rate } = result.summary;
     notify({
       state: "done",
@@ -86,7 +108,12 @@ async function capture(wc: WebContents, seconds: number) {
   try {
     await send("Performance.enable");
     const before = await metrics();
-    const probe = await send<{ result: { value?: string } }>("Runtime.evaluate", { expression: RENDERER_PROBE, returnByValue: true });
+    const evaluate = async (expression: string) =>
+      JSON.parse((await send<{ result: { value?: string } }>("Runtime.evaluate", { expression, returnByValue: true })).result.value ?? "{}") as Record<string, unknown>;
+    const page = await evaluate(RENDERER_PROBE);
+    // 操作の遅れ（キー入力などが画面に出るまで）と長いフレームを、記録の間だけ画面で集める
+    await evaluate(RENDERER_OBSERVE);
+    const stopMain = await startMainRecording(app.getPath("userData"));
     // プロセスごとの CPU は「前に測ってからの使用率」なので、記録の始めに一度測っておく
     app.getAppMetrics();
     await send("Profiler.enable");
@@ -95,8 +122,13 @@ async function capture(wc: WebContents, seconds: number) {
     await send("Profiler.start");
     await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
     const { profile } = await send<{ profile: CpuProfile }>("Profiler.stop");
+    const main = await stopMain();
     const after = await metrics();
-    const page = JSON.parse(probe.result.value ?? "{}") as Record<string, unknown>;
+    const timings = (await evaluate(RENDERER_COLLECT)) as unknown as RendererTimings;
+    // ごみ集め（GC）をしてから測り直す。GC のあとも残るメモリ・ノードが多ければ、どこかで持ち続けている（漏れ）
+    await send("HeapProfiler.collectGarbage");
+    const afterGc = await metrics();
+    const appMetrics = app.getAppMetrics();
     const summary = {
       capturedAt: new Date().toISOString(),
       app: { name: app.getName(), version: app.getVersion(), packaged: app.isPackaged, electron: process.versions.electron },
@@ -110,10 +142,23 @@ async function capture(wc: WebContents, seconds: number) {
         heapTotalMB: Math.round((after.JSHeapTotalSize ?? 0) / 1048576),
         eventListeners: Math.round(after.JSEventListeners ?? 0),
         documents: Math.round(after.Documents ?? 0),
+        /** GC のあとのメモリ（MB） */
+        heapAfterGcMB: Math.round((afterGc.JSHeapUsedSize ?? 0) / 1048576),
+        /** GC のあとのノード（テキストも含む）と、文書に付いているノードの数。差が大きければ、外したノードを持ち続けている目安 */
+        nodesAfterGc: Math.round(afterGc.Nodes ?? 0),
+        attachedNodes: timings.attachedNodes,
+        detachedNodesApprox: Math.max(0, Math.round(afterGc.Nodes ?? 0) - timings.attachedNodes),
       },
       perSecond: perSecond(before, after, seconds),
+      /** 記録の間の操作（キー入力・クリックなど）で、16ms 以上かかったもの。inputDelay = 処理が始まるまで待たされた時間 */
+      interactions: summarizeInteractions(timings.events ?? []),
+      /** 50ms 以上かかったフレームと、その中で時間を使ったスクリプト */
+      longFrames: summarizeFrames(timings.frames ?? []),
+      longTasks: { count: timings.longTasks ?? 0, totalMs: timings.longTaskMs ?? 0 },
+      /** メインプロセス（コアのサーバー・DB も同じ）。CPU プロファイルは main.cpuprofile */
+      main: main.summary,
       // 記録した間のプロセスごとの CPU（%）とメモリ（MB）。Tab が画面、Browser がメインプロセス（コアのサーバーも同じプロセス）
-      processes: app.getAppMetrics().map((p) => ({
+      processes: appMetrics.map((p) => ({
         type: p.type,
         name: p.name ?? "",
         pid: p.pid,
@@ -122,7 +167,7 @@ async function capture(wc: WebContents, seconds: number) {
       })),
       hotspots: topSelfTime(profile, 40),
     };
-    return { summary, profile };
+    return { summary, profile, mainProfile: main.profile };
   } finally {
     try {
       dbg.detach();
