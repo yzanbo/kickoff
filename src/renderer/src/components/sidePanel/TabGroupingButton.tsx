@@ -9,13 +9,13 @@ import { useTabGrouping } from "./useTabClusters";
 const MENU_WIDTH = 200;
 
 /**
- * タブの列のまとめ方を選ぶボタン（パネルを閉じるボタンのすぐ右）。押すと下にメニューを開き、
+ * タブの列のまとめ方（見出しはサイドバーと同じ「チャットのまとめ方」）を選ぶボタン（パネルを閉じるボタンのすぐ右）。押すと下にメニューを開き、
  * まとめない・グループ別・作業場所別から選ぶ（欄ごとに覚える）。まとめているときはボタンをアクセントの色にする
  */
 export function TabGroupingButton({ surface }: { surface: PanelSurface }) {
   const [grouping, setGrouping] = useTabGrouping(surface);
   const menu = useAnchoredMenu(".panel-tab-grouping", MENU_WIDTH);
-  const label = `タブのまとめ方: ${TAB_GROUPING_LABELS[grouping]}`;
+  const label = `チャットのまとめ方: ${TAB_GROUPING_LABELS[grouping]}`;
   return (
     <>
       <button
@@ -33,7 +33,7 @@ export function TabGroupingButton({ surface }: { surface: PanelSurface }) {
         <ChoiceMenu
           x={menu.at.x}
           y={menu.at.y}
-          title="タブのまとめ方"
+          title="チャットのまとめ方"
           values={TAB_GROUPINGS}
           labels={TAB_GROUPING_LABELS}
           value={grouping}
