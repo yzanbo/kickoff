@@ -150,3 +150,33 @@
   font-family: var(--mono);
 }
 
+/* マウスを乗せたときの説明（HoverTip。popover で top layer に出すので、ダイアログの上にも出る。位置は画面が style で与える） */
+.hover-tip {
+  position: fixed;
+  inset: auto;
+  max-width: 280px;
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  pointer-events: none;
+}
+
+.hover-tip:popover-open {
+  display: grid;
+  gap: 2px;
+}
+
+.hover-tip-title {
+  font-weight: 600;
+}
+
+.hover-tip-text {
+  color: var(--muted);
+  white-space: pre-line;
+}

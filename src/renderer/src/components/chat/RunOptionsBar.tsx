@@ -182,12 +182,11 @@ export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; dis
         aria-pressed={fastMode}
         aria-label="ファストモード"
         disabled={disabled || !fastSupported}
-        title={
+        data-tip-title={`ファストモード${!fastSupported ? "" : fastMode ? ": オン" : ": オフ"}`}
+        data-tip={
           !fastSupported
-            ? "ファストモード: このモデルは対応していません"
-            : fastMode
-              ? "ファストモード: オン（応答が速くなる代わりに、追加の使用枠から消費）"
-              : "ファストモード: オフ"
+            ? "このモデルは対応していません。対応しているモデルを選ぶと使えます"
+            : `応答が速くなる代わりに、追加の使用枠から消費します。押すと${fastMode ? "オフ" : "オン"}にします`
         }
         onClick={() => setFastMode(!fastMode)}
       >

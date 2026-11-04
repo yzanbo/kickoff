@@ -16,6 +16,7 @@ import { ProjectChat } from "./components/projectChat/ProjectChat";
 import { ProjectChatContext, useProjectChat } from "./components/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "./components/settings/SettingsDialog";
 import { DiagnosticsIndicator } from "./components/diagnostics/DiagnosticsIndicator";
+import { HoverTip } from "./components/HoverTip";
 import { OPEN_SETTINGS_EVENT } from "./components/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "./components/sidebar/Sidebar";
 import { loadCurrentProject } from "./components/sidebar/currentProject";
@@ -149,6 +150,8 @@ export function App() {
         {settings && <SettingsDialog key={settings} initial={settings} onClose={() => setSettings(null)} />}
         {/* 性能の記録の様子（メニューの「ヘルプ」・設定の「診断」から始まる） */}
         <DiagnosticsIndicator />
+        {/* マウスを乗せたときの説明（data-tip を付けた要素。アプリ全体で 1 つ） */}
+        <HoverTip />
         {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}
         <SidebarOpenButton sidebar={sidebar} />
         {/* 右上のレイアウトの開閉（ドラッグ領域より優先されるよう、開くボタンと同じく後ろに置く） */}

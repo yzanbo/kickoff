@@ -41,6 +41,7 @@
 | ポップオーバー | `PopoverHeader`。外側クリックと Esc で閉じるのは `useDismiss`（`escape`: `stop` = いちばん上だけ閉じる / `pass` = ほかの Esc にも伝える / `none`） |
 | 右クリック・「…」・＋のメニュー | `PopupMenu` ＋ `clampToViewport`。選択肢から 1 つ選ぶだけのメニュー（見出し・選んでいるものにチェック）は `menus/ChoiceMenu`（開発者ツールの場所・ボードの見出しの置き方（`useBoardHeaderLayoutMenu`）・プロジェクトのタブの置き方）。項目は `MenuItem`（閉じてから実行。`role` / `checked` / `danger` / `title`）。開いたら先頭にピントを置き ↑↓ で移るのは `useMenuKeys` で、`PopupMenu` が既定で効かせる（部品側で重ねて呼ばない）。ボタンの下（右寄せも）に出すメニューの位置・開閉・`ignore` は `menus/useAnchoredMenu(buttonSelector, width, align)`（開いているときに押したら閉じる）、カードの右クリックは `board/useCardMenu` |
 | 選択肢から 1 つ選ぶボタンの組 | `Segmented`（見た目は className で決める。数を出すなら選択肢の `badge`） |
+| マウスを乗せたときの説明 | 要素に `data-tip`（説明）と `data-tip-title`（見出し。省ける）を付けると、アプリ全体で 1 つの `HoverTip`（App が置く）が 0.35 秒ほどで上（入らなければ下）に出す（OS の title より早く、見出しと説明を分けて読める。popover の top layer なのでダイアログの上にも出る）。「名前（説明）」の文は `tipProps(label)` で分ける（`Segmented` のアイコンだけの選択肢はこれ）。title と重ねて付けない（説明が 2 つ出る） |
 | 名前で絞り込む検索欄 | `SearchField`。候補の ↑↓・Enter は `useListNavigation` |
 | フォームの 1 行（名前・入力・補足） | `Field` |
 | 保存ボタンと結果 | `useSave` ＋ `SaveActions`（結果の文だけなら `ResultMessage`） |
