@@ -146,10 +146,12 @@ function insert(layout: PaneLayout, paneId: string, key: string, index?: number)
 }
 
 /**
- * タブを開く: すでにどこかのペインにあれば、そのペインで表示してピントを移す。なければピントのあるペインに足して表示する
+ * タブを開く: すでにどこかのペインにあれば、そのペインで表示してピントを移す（もうそうなっていれば同じ配置を返す）。
+ * なければピントのあるペインに足して表示する
  */
 export function placeTab(layout: PaneLayout, key: string): PaneLayout {
   const at = paneOfTab(layout, key);
+  if (at?.active === key && layout.focused === at.id) return layout;
   if (at) return { ...layout, root: mapLeaves(layout.root, (p) => (p.id === at.id ? { ...p, active: key } : p)) ?? layout.root, focused: at.id };
   return insert(layout, focusedPane(layout).id, key);
 }

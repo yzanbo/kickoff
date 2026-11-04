@@ -6,7 +6,8 @@ import { DRAFT_TONE } from "@/features/chat/tones";
 import { ArchiveAllButton } from "./ArchiveAllButton";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
 import { ColumnHead } from "./ColumnHead";
-import { DraftCards, type BoardDraft } from "./DraftCards";
+import { DraftCards } from "./DraftCards";
+import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 
 /** カード（ボード）・行（リスト）の描き方 */
 type RenderChat = (chat: Chat) => ReactNode;
@@ -23,7 +24,7 @@ export function StateColumn({
   list = false,
   foldArchived = true,
 }: {
-  column: ChatBucket<BoardDraft>;
+  column: ChatBucket<PanelDraft>;
   /** アーカイブ済みのまとまりの開閉を覚える場所（ボード。列は列のまとまりのキーで分ける） */
   foldPlace?: string;
   render: RenderChat;
@@ -55,7 +56,7 @@ export function StateColumn({
  * いちばん左の「下書き」の列（まだ送っていない新しいチャット。AI はまだ何もしていない）。
  * 新しいチャットは見出しの「新規」から始めるので、列に＋は置かない
  */
-export function DraftColumn({ drafts, list = false }: { drafts: readonly BoardDraft[]; list?: boolean }) {
+export function DraftColumn({ drafts, list = false }: { drafts: readonly PanelDraft[]; list?: boolean }) {
   const body = (
     <>
       <DraftCards drafts={drafts} />
@@ -74,7 +75,7 @@ export function DraftColumn({ drafts, list = false }: { drafts: readonly BoardDr
  * ボードの列: いちばん左に下書き、続けて状態の列（columns は bucketChats の状態のまとまり。ボードと段の中で共通）。
  * アーカイブ済みのまとまりの開閉は、foldPlace（ボード）と列のキーで覚える
  */
-export function StateColumns({ columns, drafts, foldPlace, render }: { columns: readonly ChatBucket<BoardDraft>[]; drafts: readonly BoardDraft[]; foldPlace: string; render: RenderChat }) {
+export function StateColumns({ columns, drafts, foldPlace, render }: { columns: readonly ChatBucket<PanelDraft>[]; drafts: readonly PanelDraft[]; foldPlace: string; render: RenderChat }) {
   return (
     <>
       <DraftColumn drafts={drafts} />
@@ -96,8 +97,8 @@ export function ListSections({
   archivedKey,
   render,
 }: {
-  columns: readonly ChatBucket<BoardDraft>[];
-  drafts: readonly BoardDraft[];
+  columns: readonly ChatBucket<PanelDraft>[];
+  drafts: readonly PanelDraft[];
   foldPlace: string;
   archivedKey: string;
   render: RenderChat;
@@ -117,8 +118,8 @@ export function ListSections({
  * リスト表示のいちばん下の「アーカイブ済み」（初めは閉じていて、押すと開く）。中は、アーカイブしていないものと同じく
  * 状態ごと（作業中・回答待ち・未読・既読）に分けて並べる。下書きはアーカイブできないので分けない
  */
-function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns: readonly ChatBucket<BoardDraft>[]; foldPlace: string; foldKey: string; render: RenderChat }) {
-  const archivedOf = (c: ChatBucket<BoardDraft>) => splitArchived(c.chats)[1];
+function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns: readonly ChatBucket<PanelDraft>[]; foldPlace: string; foldKey: string; render: RenderChat }) {
+  const archivedOf = (c: ChatBucket<PanelDraft>) => splitArchived(c.chats)[1];
   const count = columns.reduce((n, c) => n + archivedOf(c).length, 0);
   if (count === 0) return null;
   return (

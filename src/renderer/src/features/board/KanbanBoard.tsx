@@ -6,10 +6,7 @@ import { useTicker } from "@/hooks/useTicker";
 import { useProjects } from "@/stores/projects";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { openChat, type ReopenRoute } from "@/app/router";
-import { useProjectChatContext } from "@/features/panel/projectChat/useProjectChat";
-import { boardDrafts } from "./DraftCards";
-import { boardPanelKey } from "@/features/panel/state/panelMemory";
-import { usePanel } from "@/features/panel/usePanel";
+import { useBoardPanel } from "@/features/panel/board/useBoardPanel";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
@@ -60,11 +57,10 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
   // カードの右クリックメニュー
   const menu = useCardMenu();
 
-  // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）
-  const panel = usePanel({
-    memoryKey: boardPanelKey(projectId),
-    // チャットのタブはサイドバーの一覧にそろえる（全プロジェクトのボードはすべてのプロジェクト）
-    scope: projectId ?? "all",
+  // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ。チャットのタブはサイドバーの一覧にそろえる）と、
+  // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない。いちばん左の「下書き」の列に出す）
+  const { panel, drafts } = useBoardPanel({
+    projectId,
     holdEsc: menu.isOpen,
     projects: allProjects ? projects : undefined,
     // 新しいチャットを送ったら、プロジェクトのボードでは URL もそのチャットにする
@@ -111,10 +107,6 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
     onOpen: open,
     projectName: (chat) => (allProjects ? projectName(chat.project_id) : undefined),
   });
-  // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない）。いちばん左の「下書き」の列に出す
-  const chat = useProjectChatContext();
-  const sideDrafts = chat && projectId !== undefined && chat.projectId === projectId ? boardDrafts(chat.panel, chat.showTab) : [];
-  const drafts = [...boardDrafts(panel), ...sideDrafts];
   // 状態の列（段に分けるときは、段（作業場所・グループ・プロジェクト）ごとに状態の列。段には、その段に入る作成先の下書きも入る）
   const buckets = useChatBuckets(shown, {
     by: split ? [lanes, "status"] : "status",
@@ -124,7 +116,7 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
     keepEmpty: keepColumns,
   });
   /** 段・アーカイブ済みのまとまりの開閉を覚える場所（ボードごと。列・段はまとまりのキーで分ける） */
-  const foldPlace = `board:${boardPanelKey(projectId)}`;
+  const foldPlace = `board:${panel.key}`;
 
   const header = (
     <BoardHeader

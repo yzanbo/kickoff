@@ -5,15 +5,13 @@ import { cx } from "@/lib/cx";
 import { GROUP_FLASH_EVENT } from "@/features/group/groups";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import type { ReopenRoute } from "@/app/router";
-import { boardPanelKey } from "@/features/panel/state/panelMemory";
-import { usePanel } from "@/features/panel/usePanel";
+import { useBoardPanel } from "@/features/panel/board/useBoardPanel";
 import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader } from "./BoardHeader";
 import { BoardLanes, LaneSelect, type BoardLane } from "./BoardLanes";
 import { BoardShell } from "./BoardShell";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
-import { boardDrafts } from "./DraftCards";
 import { GroupCreateForm } from "./GroupCreateForm";
 import { GroupSections } from "./GroupSections";
 import { StateColumns } from "./StateColumn";
@@ -40,8 +38,8 @@ interface Props {
 export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   const board = useGroupBoard({ projectId, groups });
   const { view, split, menu, rename, over, dropProps } = board;
-  // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
-  const panel = usePanel({ memoryKey: boardPanelKey(projectId), scope: projectId, holdEsc: menu.isOpen });
+  // カンバンと同じく、カードを押すと右側から出てくるパネルで開く（下書きもカンバンと同じく、このボードのパネルとチャット欄のもの）
+  const { panel, drafts } = useBoardPanel({ projectId, holdEsc: menu.isOpen });
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {
@@ -72,7 +70,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   const cards = useBoardCards({ panel, rename, menu, onOpen: panel.open, drag: { hint: "ドラッグでグループを移す" } });
   // グループごとのまとまり（自分で作ったグループ → グループなし。チャットのないグループも出す）。段に分けるときは、その中を状態の列に分ける
   // （列・段には、そのグループで始める下書きも入る）
-  const buckets = useChatBuckets(board.shown, { by: ["group", "status"], project: projectId, drafts: boardDrafts(panel), keepEmpty: true });
+  const buckets = useChatBuckets(board.shown, { by: ["group", "status"], project: projectId, drafts, keepEmpty: true });
   /** アーカイブ済み・段の開閉を覚える場所（ボードごと） */
   const foldPlace = `board:groups:${projectId}`;
 

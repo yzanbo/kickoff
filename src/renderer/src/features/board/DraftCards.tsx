@@ -2,26 +2,12 @@ import { SquarePen, Trash2 } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import type { PanelController } from "@/features/panel/usePanel";
-import type { DraftTarget } from "@/features/chatList/buckets";
+import { discardDraft, openDraft, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
 
-/** ボードに出す下書き（送る前の新しいチャット。どのパネルのどのタブか。作成先でまとまりに分ける） */
-export interface BoardDraft extends DraftTarget {
-  key: string;
-  text: string;
-  panel: PanelController;
-  /** 押したときにタブを表示する方法（プロジェクトのチャット欄の下書きは、欄を開いてから表示する） */
-  show: (key: string) => void;
-}
-
-/** パネルの下書きを、ボードに出す形にする（show を省けば、そのパネルでタブを表示する） */
-export const boardDrafts = (panel: PanelController, show: (key: string) => void = panel.showTab): BoardDraft[] =>
-  panel.drafts.map((d) => ({ ...d.target, key: d.key, text: d.text, panel, show }));
-
-/** 列・グループに出す、送る前の新しいチャット（パネルで入力中）の下書き */
-export function DraftCards({ drafts }: { drafts: readonly BoardDraft[] }) {
-  return drafts.map((d) => <DraftCard key={`${d.panel.surface}:${d.key}`} text={d.text} active={d.panel.isShowingTab(d.key)} onOpen={() => d.show(d.key)} onDelete={() => d.panel.closeTab(d.key)} />);
+/** 列・グループに出す、送る前の新しいチャット（パネル・チャット欄で入力中）の下書き（押すとその欄で開き、表示中なら選択中に見せる） */
+export function DraftCards({ drafts }: { drafts: readonly PanelDraft[] }) {
+  return drafts.map((d) => <DraftCard key={`${d.panel}:${d.key}`} text={d.text} active={d.showing} onOpen={() => openDraft(d)} onDelete={() => discardDraft(d)} />);
 }
 
 /** 下書きのカード。書いている途中の文があれば、その初めの数行を出す。押すとそのタブを表示し、右クリックで開く・削除を選べる */

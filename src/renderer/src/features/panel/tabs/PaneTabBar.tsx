@@ -264,7 +264,7 @@ export function PaneTabBar({
       <span className="panel-bar-buttons panel-pane-tools">
         <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />
         <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />
-        {split && <IconButton icon={X} label="ペインを閉じる" title={panel.linked ? "ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" : "ペインを閉じる（中のタブも閉じる）"} size={15} onClick={() => panel.closePane(pane.id)} />}
+        {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" size={15} onClick={() => panel.closePane(pane.id)} />}
       </span>
     </div>
   );

@@ -13,7 +13,7 @@ import { SIDEBAR_LAST_HASHES, SIDEBAR_LAYOUT, SIDEBAR_PROJECT_ORDER, SIDEBAR_SHO
 import { projectKey } from "@/features/chatList/bucketHeads";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
 import { useProjectMenu } from "@/features/project/ProjectMenu";
-import { useAllDrafts } from "@/features/panel/state/panelMemory";
+import { useAllDrafts } from "@/features/panel/state/panelDrafts";
 import { useCompactProjects, useCompactRows, useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
 import { useProjectReorder } from "./useProjectReorder";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";

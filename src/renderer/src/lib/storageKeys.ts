@@ -1,6 +1,6 @@
 /**
  * 画面が localStorage（一部は sessionStorage）に保存するもの（表示の設定・開閉・幅・書きかけの文など）の一覧。読み書きは lib/storage.ts
- * （React からは hooks/useSetting.ts の useSetting / useSettingFamily）。
+ * （React からは hooks/useSetting.ts の useSetting。ID ごとのものは useSetting(family(id))）。
  * - ここが唯一の一覧: ここに宣言していない kickoff: のキーは、起動したときに消す（なくした機能の古いキーを残さない）
  * - キー名と保存する値（"1" / "0" など）は変えない（利用者の表示の好みを残すため）
  * - プロジェクト・チャット・グループなどの ID を、キーか値に含むものは ids を付ける（DB を作り直したら、起動したときに捨てる。

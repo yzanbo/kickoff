@@ -1,7 +1,7 @@
 // 画面の表示の設定（開閉・切り替え・幅・書きかけの文など）を localStorage / sessionStorage に保存する仕組み。
 // 保存するものは lib/storageKeys.ts でだけ宣言し（キー・値の形・初めの値・ID を含むか）、読み書きはすべてここを通す。
 // 同じ設定を読むものどうし（部品も、React の外も）で値がそろう（書いたら、その設定を見ているものすべてに知らせる）。
-// React からは hooks/useSetting.ts の useSetting / useSettingFamily で読む
+// React からは hooks/useSetting.ts の useSetting で読む（ID ごとの設定は useSetting(family(id))）
 
 /** 値の形（保存する文字との行き来と、未保存・読めない値のときの初めの値） */
 export interface Shape<T> {

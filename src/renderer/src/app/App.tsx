@@ -15,7 +15,7 @@ import { SearchPanel } from "@/features/palette/SearchPanel";
 import { NewProjectDialog } from "@/features/project/new/NewProjectDialog";
 import { OPEN_NEW_PROJECT_EVENT, type NewProjectRequest } from "@/features/project/new/openNewProject";
 import { ProjectChat } from "@/features/panel/projectChat/ProjectChat";
-import { ProjectChatContext, useProjectChat } from "@/features/panel/projectChat/useProjectChat";
+import { useProjectChat } from "@/features/panel/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "@/features/settings/SettingsDialog";
 import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicator";
 import { HoverTip } from "@/ui/HoverTip";
@@ -34,7 +34,7 @@ import { useChatHistory } from "./useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
 import { setProjectHues } from "@/features/project/projectColor";
-import { forgetDraftsOfMissingProjects } from "@/features/panel/state/panelMemory";
+import { forgetDraftsOfMissingProjects } from "@/features/panel/state/panelDrafts";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 
 export function App() {
@@ -98,7 +98,6 @@ export function App() {
     <PlanUsageContext.Provider value={planUsage}>
       <RouteContext.Provider value={route}>
       <ChatStatesContext.Provider value={chatStates}>
-      <ProjectChatContext.Provider value={chat}>
       <div {...sidebar.layout}>
         <Sidebar
           sidebar={sidebar}
@@ -164,7 +163,6 @@ export function App() {
           />
         )}
       </div>
-      </ProjectChatContext.Provider>
       </ChatStatesContext.Provider>
       </RouteContext.Provider>
     </PlanUsageContext.Provider>

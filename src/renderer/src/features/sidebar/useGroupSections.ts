@@ -4,7 +4,7 @@ import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { confirmDeleteGroup, useGroupDrop } from "@/features/group/groups";
 import { useGroupMenu } from "@/features/group/GroupMenu";
-import { setDraftGroup } from "@/features/panel/state/panelMemory";
+import { setDraftGroup } from "@/features/panel/state/panelDrafts";
 
 /** サイドバーのグループ 1 つに渡す、見出しの操作の束（メニュー・名前の変更・ドロップ先・並べ替え） */
 export interface GroupSectionProps {
