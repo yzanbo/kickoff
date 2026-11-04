@@ -151,7 +151,8 @@ export function QueuedMessages({
         onRemove={() => void api.setQueueStops(runId, stops.filter((x) => x !== k)).catch(failed)}
       />
     );
-  // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）
+  // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）。
+  // 畳んでいても、どこで止まるか（「ここまで送ったら止めます」の印）が分かるよう、短い文で出す
   const hint = paused
     ? collapsed
       ? "止めています"
@@ -159,13 +160,17 @@ export function QueuedMessages({
         ? "終わっても送らずに止めておきます"
         : "止めています。行の「すぐ送る」で 1 件ずつ送れます"
     : !busy
-      ? "自動で送れませんでした。行の「すぐ送る」で送れます"
-      : collapsed
-        ? ""
-        : stopIndex === 0
-          ? "終わっても送らずに止めます（1 件目の上で止める印）"
-          : stopIndex > 0
-          ? `終わったら ${stopIndex} 件目まで順に送り、そのあとは止めます`
+      ? collapsed
+        ? "自動で送れませんでした"
+        : "自動で送れませんでした。行の「すぐ送る」で送れます"
+      : stopIndex === 0
+        ? collapsed
+          ? "次は送らずに止めます"
+          : "終わっても送らずに止めます（1 件目の上で止める印）"
+        : stopIndex > 0
+          ? collapsed
+            ? `あと ${stopIndex} 件送ったら止めます`
+            : `終わったら ${stopIndex} 件目まで順に送り、そのあとは止めます`
           : "終わったら順に送ります";
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
@@ -188,7 +193,7 @@ export function QueuedMessages({
           type="button"
           className="queued-head small muted"
           aria-expanded={!collapsed}
-          title={collapsed ? "送信待ちの一覧を開く" : "送信待ちの一覧をたたむ"}
+          title={`${collapsed ? "送信待ちの一覧を開く" : "送信待ちの一覧をたたむ"}${hint ? `（${hint}）` : ""}`}
           onClick={() => setCollapsed(!collapsed)}
         >
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
