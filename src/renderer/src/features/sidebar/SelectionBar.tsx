@@ -1,6 +1,7 @@
 import { Archive, ArchiveRestore, FolderInput, MailOpen, Trash2, X } from "lucide-react";
 import type { Chat, ChatGroup } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { isCancelKey } from "@/lib/keys";
 import { confirmArchiveChats, confirmDeleteChats, markChatsSeen, moveChatsToGroup } from "@/features/chat/chatActions";
 import { GroupPickMenu } from "@/features/group/GroupPickMenu";
 import type { Placement } from "@/lib/floating";
@@ -26,7 +27,7 @@ export function SelectionBar({ selection, chats, groups }: { selection: ChatSele
 
   // Esc で選ぶのをやめる（入力欄・ダイアログ・メニューの中の Esc は、そちらに任せる）
   useWindowEvent("keydown", (e) => {
-    if (e.key !== "Escape" || selection.ids.size === 0 || e.defaultPrevented) return;
+    if (!isCancelKey(e) || selection.ids.size === 0 || e.defaultPrevented) return;
     const target = e.target as HTMLElement | null;
     if (target?.closest("input, textarea, [role=dialog], [role=menu]")) return;
     selection.clear();

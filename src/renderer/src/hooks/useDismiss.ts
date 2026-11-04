@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { isComposing } from "@/lib/keys";
 
 interface DismissOptions {
   /** false の間は何もしない（開いているときだけ有効にする） */
@@ -54,7 +55,8 @@ export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObje
       dismiss.current();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      // 日本語入力の変換をやめる Esc では閉じない（検索欄で変換をやめただけで、一覧が閉じないように）
+      if (e.key !== "Escape" || isComposing(e)) return;
       if (escape === "stop") e.stopImmediatePropagation();
       dismiss.current();
     };

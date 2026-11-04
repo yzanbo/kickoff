@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { GitStatus } from "@shared/types";
 import type { ActionState } from "@/hooks/useAction";
 import { confirmDialog } from "@/ui/dialogs";
+import { isKey } from "@/lib/keys";
 import type { GitStatusController } from "./useGitStatus";
 
 /** コミットの欄の操作（実行中は、ほかの操作のボタンも押せなくする） */
@@ -69,7 +70,7 @@ export function CommitBox({
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && e.metaKey) {
+          if (isKey(e, "Enter", { meta: true })) {
             e.preventDefault();
             void commit();
           }

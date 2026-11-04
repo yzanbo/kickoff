@@ -1,8 +1,9 @@
 import { History, Inbox, Pencil } from "lucide-react";
-import { createContext, useContext, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useAction } from "@/hooks/useAction";
+import { useEditKeys } from "@/hooks/useEditKeys";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
 import { reportFailure } from "@/ui/dialogs";
@@ -193,16 +194,7 @@ function BubbleEditor({
       if (await onSend()) onCancel();
     });
   };
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      onCancel();
-    } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
-      e.preventDefault();
-      void send();
-    }
-  };
+  const keys = useEditKeys({ onSubmit: () => void send(), onCancel });
   return (
     <div className="bubble-editor">
       <textarea
@@ -218,7 +210,7 @@ function BubbleEditor({
           }
         }}
         onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
+        {...keys.keyProps}
       />
       <ErrorText message={action.error} />
       <div className="bubble-editor-actions">

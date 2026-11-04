@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { cx } from "@/lib/cx";
+import { isCancelKey } from "@/lib/keys";
 import { IconButton } from "./IconButton";
 
 /** チャットを名前で絞り込む検索欄（消すボタン付き）。検索語があるときの Esc は、パネルを閉じる Esc より先に検索語を消す */
@@ -36,7 +37,7 @@ export function SearchField({
         autoFocus={autoFocus}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Escape" && value) {
+          if (isCancelKey(e) && value) {
             e.stopPropagation();
             e.nativeEvent.stopImmediatePropagation();
             onChange("");

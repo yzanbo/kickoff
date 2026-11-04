@@ -1,6 +1,7 @@
 import { MessageSquareQuote } from "lucide-react";
 import { useRef, useState, type RefObject } from "react";
 import { useDismiss } from "@/hooks/useDismiss";
+import { useEditKeys } from "@/hooks/useEditKeys";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { quoteComment } from "./quoteComment";
 
@@ -58,13 +59,16 @@ export function SelectionComment({ root, onAdd }: { root: RefObject<HTMLElement 
   // 流れをスクロールしたら位置がずれるので消す（コメントを書いている間は残す）
   useWindowEvent("scroll", () => !writing && setPicked(undefined), true, true);
   useDismiss(boxRef, close, { enabled: Boolean(picked) });
-
-  if (!picked) return null;
   const add = () => {
+    if (!picked) return;
     onAdd(quoteComment(picked.text, comment));
     window.getSelection()?.removeAllRanges();
     close();
   };
+  // Enter で添える・Shift+Enter で改行（Esc は外側のクリックと同じく useDismiss が閉じる）
+  const keys = useEditKeys({ onSubmit: add });
+
+  if (!picked) return null;
   return (
     <div ref={boxRef} className={writing ? "selection-comment writing" : "selection-comment"} style={{ left: picked.x, top: picked.y }}>
       {writing ? (
@@ -76,12 +80,7 @@ export function SelectionComment({ root, onAdd }: { root: RefObject<HTMLElement 
             value={comment}
             placeholder="この部分へのコメント（空なら引用だけ添えます）"
             onChange={(e) => setComment(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                add();
-              }
-            }}
+            {...keys.keyProps}
           />
           <div className="selection-comment-actions">
             <button type="button" className="btn" onClick={close}>

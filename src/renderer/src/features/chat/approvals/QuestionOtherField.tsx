@@ -1,5 +1,6 @@
 import { Paperclip } from "lucide-react";
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef } from "react";
+import { useEditKeys } from "@/hooks/useEditKeys";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -37,12 +38,8 @@ export function QuestionOtherField({
   const key = `${files.attachments.map((a) => a.id).join(",")}|${files.uploading}`;
   useEffect(() => onFiles({ attachments: files.attachments, uploading: files.uploading }), [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // 変換中の Enter は確定に使う（送らない）
-    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing || e.keyCode === 229) return;
-    e.preventDefault();
-    onSubmit();
-  };
+  // Enter で回答する（変換中の Enter は確定に使い、送らない）・Shift+Enter で改行
+  const keys = useEditKeys({ onSubmit });
   return (
     <div className={cx("question-other-field", files.dragging && "file-over")} {...files.dropProps}>
       {files.files.length > 0 && (
@@ -59,7 +56,7 @@ export function QuestionOtherField({
           title="Enter で回答・Shift+Enter で改行。画像は貼り付け・ドラッグ・📎 で添付できます"
           onFocus={onFocus}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
+          {...keys.keyProps}
           onPaste={(e) => {
             onFocus();
             files.onPaste(e);

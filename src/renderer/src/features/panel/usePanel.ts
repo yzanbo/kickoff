@@ -10,6 +10,7 @@ import { useLinkedTabs } from "@/features/panel/state/useLinkedChats";
 import { panelKey, SURFACES, type PanelScope, type PanelSurface } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { chatKey, kindOfTab, tabChat } from "@/features/panel/tabs/tabKinds";
+import { isComposing } from "@/lib/keys";
 
 export type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 export { terminalTargets } from "@/features/panel/tabs/panelTypes";
@@ -54,11 +55,11 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
   const chats = useLinkedTabs(key, scope, kinds.has("chat"));
   const actions = useMemo(() => panelActions(key), [key]);
 
-  // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先）
+  // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先。日本語入力の変換をやめる Esc では閉じない）
   useWindowEvent(
     "keydown",
     (e) => {
-      if (e.key === "Escape" && !document.querySelector("dialog[open]")) actions.close();
+      if (e.key === "Escape" && !isComposing(e) && !document.querySelector("dialog[open]")) actions.close();
     },
     panelOpen && SURFACES[surface].closeOnEsc && !holdEsc,
   );

@@ -2,6 +2,7 @@ import { ChevronUp, CornerDownLeft, History } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
+import { isKey } from "@/lib/keys";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { formatMessageTime } from "@/lib/time";
@@ -59,7 +60,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; 
 
   // ⌃R: 開いて絞り込みの欄にピントを置く（開いていれば 1 つ前の一致へ）
   useWindowEvent("keydown", (e) => {
-    if (!e.ctrlKey || e.metaKey || e.altKey || e.key.toLowerCase() !== "r") return;
+    if (!isKey(e, "r", { ctrl: true })) return;
     if (!ref.current?.closest(".chat-panel")?.contains(document.activeElement)) return;
     e.preventDefault();
     if (!open) setOpen(true);
@@ -89,7 +90,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; 
             onChange={setQuery}
             onKeyDown={(e) => {
               // ⌘Enter はその指示へ移る（Enter は入力欄に入れる）
-              if (e.key === "Enter" && e.metaKey && !e.nativeEvent.isComposing) {
+              if (isKey(e, "Enter", { meta: true })) {
                 e.preventDefault();
                 jump(items[nav.index]);
               } else nav.onKeyDown(e);

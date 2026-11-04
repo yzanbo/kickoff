@@ -1,6 +1,6 @@
 import { Check, Paperclip, SendHorizontal, X } from "lucide-react";
-import { useRef, useState, type KeyboardEvent } from "react";
-import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { useRef } from "react";
+import { useEditKeys } from "@/hooks/useEditKeys";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -57,25 +57,10 @@ export function QueuedEditor({
     if (send) onSaveAndSend(all);
     else onSave(all);
   };
-  // ⌘ を押している間（⌘Enter で「保存していま送る」になることを、そのボタンを光らせて示す）
-  const [held, setHeld] = useState(false);
-  useWindowEvent("keyup", (e) => {
-    if (!e.metaKey) setHeld(false);
-  });
-  useWindowEvent("blur", () => setHeld(false));
+  // Enter で保存・⌘Enter で保存していま送る（チャット欄の ⌘Enter =「いま」と同じ）・Esc でやめる。
+  // ⌘ を押している間は、⌘Enter で使われる「保存していま送る」のボタンを光らせる
+  const keys = useEditKeys({ onSubmit: ({ meta }) => save(meta), onCancel });
   const sendLabel = busy ? "保存していま送る（止めずに、いまのやり取りに足す）" : "保存していま送る";
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    setHeld(e.metaKey && !e.shiftKey && !e.ctrlKey && !e.altKey);
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      onCancel();
-    } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
-      e.preventDefault();
-      // ⌘Enter は保存していま送る（チャット欄の ⌘Enter =「いま」と同じ）
-      save(e.metaKey);
-    }
-  };
   const hasAttachments = attachments.length > 0 || files.files.length > 0;
   return (
     <div className={cx("queued-row editing", files.dragging && "file-over")} data-id={id} {...files.dropProps}>
@@ -109,7 +94,7 @@ export function QueuedEditor({
           }}
           aria-label="待ちの指示を書き直す"
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
+          {...keys.keyProps}
           onPaste={files.onPaste}
         />
       </div>
@@ -137,7 +122,7 @@ export function QueuedEditor({
         label={sendLabel}
         title={files.uploading ? "アップロードが終わるまでお待ちください" : `${sendLabel}（⌘Enter）`}
         size={13}
-        className={cx("queued-editor-send", held && "held")}
+        className={cx("queued-editor-send", keys.heldMeta && "held")}
         disabled={files.uploading}
         onClick={() => save(true)}
       />

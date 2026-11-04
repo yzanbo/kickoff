@@ -1,6 +1,7 @@
 import { CaseSensitive, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { cx } from "@/lib/cx";
+import { consumeKey, hasModifiers, isCancelKey, isComposing } from "@/lib/keys";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_FIND_CASE } from "@/lib/storageKeys";
 import { CloseButton, IconButton } from "@/ui/IconButton";
@@ -102,9 +103,9 @@ export function ChatFind({
         aria-label="このチャットの中を検索"
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
-          if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+          if (isComposing(e)) return;
           // ⌥⌘C: 大文字・小文字を区別するかを切り替える（⌥ を押すと文字が変わるので、キーの位置で見る）
-          if (e.metaKey && e.altKey && !e.ctrlKey && !e.shiftKey && e.code === "KeyC") {
+          if (e.code === "KeyC" && hasModifiers(e, { meta: true, alt: true })) {
             e.preventDefault();
             setCaseSensitive(!caseSensitive);
             return;
@@ -112,10 +113,9 @@ export function ChatFind({
           if (e.key === "Enter" || e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
             go(e.key === "ArrowUp" || (e.key === "Enter" && e.shiftKey) ? -1 : 1);
-          } else if (e.key === "Escape") {
+          } else if (isCancelKey(e)) {
             // パネルを閉じる Esc より先に、検索をやめる（文を消して印を外し、チャット欄にピントを戻す）
-            e.stopPropagation();
-            e.nativeEvent.stopImmediatePropagation();
+            consumeKey(e);
             setQuery("");
             onDone();
           }

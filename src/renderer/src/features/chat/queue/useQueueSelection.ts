@@ -1,6 +1,7 @@
 import type { QueuedMessage } from "@shared/types";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { isCancelKey } from "@/lib/keys";
 
 /**
  * 送信待ちの行の複数選択（決まりは useMultiSelect: ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を足す。範囲は列の順）。
@@ -15,7 +16,7 @@ export function useQueueSelection(queue: QueuedMessage[]) {
     "keydown",
     (e) => {
       // メニュー・ダイアログが開いているときは、そちらを閉じる Esc に任せる
-      if (e.key !== "Escape" || document.querySelector("[role=menu], dialog[open]")) return;
+      if (!isCancelKey(e) || document.querySelector("[role=menu], dialog[open]")) return;
       e.stopPropagation();
       select.clear();
     },

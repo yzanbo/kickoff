@@ -1,6 +1,7 @@
 import { Check, Plus } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Project } from "@shared/types";
+import { isComposing } from "@/lib/keys";
 import { sidebarOrder } from "./projectOrder";
 import { useProjects } from "@/stores/projects";
 
@@ -74,7 +75,7 @@ export function ProjectPickFlyout({
         aria-label="プロジェクトを検索または作成"
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+          if (e.key !== "Enter" || isComposing(e)) return;
           e.preventDefault();
           if (shown[0]) pick(shown[0]);
           else if (words) onCreate(query.trim());
