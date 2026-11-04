@@ -3,7 +3,7 @@ import type { Approval, BackgroundState, Project, QueuedMessage, Run, RunEvent }
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
 import { useSharedFlag } from "../../hooks/useStoredState";
-import { CHAT_WIDE_KEY, chatDraftKey, STICKY_PROMPT_HIDDEN_KEY } from "../../storageKeys";
+import { chatDraftKey, STICKY_PROMPT_HIDDEN_KEY } from "../../storageKeys";
 import { FileLinkContext } from "../fileLinks/fileLinkContext";
 import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
@@ -23,7 +23,8 @@ import { OpenSubagentContext } from "./ToolGroup";
 import { promptEntries, userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
-import { MoveHorizontal, PanelTop, TriangleAlert } from "lucide-react";
+import { PanelTop, TriangleAlert } from "lucide-react";
+import { TextWidthToggle, useWideText } from "./TextWidthToggle";
 import { IconButton } from "../IconButton";
 import { cx } from "../../cx";
 import { ChatFind } from "./ChatFind";
@@ -154,8 +155,8 @@ function RunView({
   const fillComposer = useRef<ComposerFill | null>(null);
   // ⌘F でこのチャットの中の検索欄（見出しの行にいつもある）にピントを移す（ピントがこのチャットにあるとき）
   useChatFindKey(panelRef);
-  // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
-  const [wide, setWide] = useSharedFlag(CHAT_WIDE_KEY);
+  // 文の幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
+  const [wide] = useWideText();
   // 上に置く指示の帯を出さないか（見出しの行のボタンと設定の「表示」で切り替える。どのチャットでも同じ）
   const [stickyHidden, setStickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
@@ -205,15 +206,8 @@ function RunView({
         project={project}
         tools={
           <>
-          {/* 発言の流れとチャット欄を、標準の幅（読みやすい幅）と欄の横幅いっぱいで切り替える（設定の「表示」と同じ値。どのチャットでも同じ） */}
-          <IconButton
-            icon={MoveHorizontal}
-            size={13}
-            label={wide ? "チャットの横幅を標準に戻す" : "チャットを横幅いっぱいに広げる"}
-            aria-pressed={wide}
-            className={cx(wide && "active")}
-            onClick={() => setWide(!wide)}
-          />
+          {/* 文の幅（パネルの大きさは変えず、発言の流れとチャット欄の幅の上限を外す。パネルが狭くて変わらないときは押せない） */}
+          <TextWidthToggle panel={panelRef} />
           {/* 上に置く指示の帯の表示・非表示（出しているかは色で示す） */}
           <IconButton
             icon={PanelTop}
