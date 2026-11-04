@@ -1,27 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  activeTabOf,
-  closeLayoutTabs,
-  closePane,
-  FIRST_PANE,
-  focusPane,
-  homePane,
-  isTabVisible,
-  leavesOf,
-  moveTab,
-  nextActiveTab,
-  normalize,
-  paneOfTab,
-  placeTab,
-  reconcileLayout,
-  renameTab,
-  returnToHome,
-  singlePane,
-  splitPane,
-  type PaneLayout,
-  type PaneNode,
-} from "./paneLayout";
+import { activeTabOf, FIRST_PANE, homePane, isTabVisible, leavesOf, nextActiveTab, normalize, paneOfTab, singlePane, type PaneLayout, type PaneNode } from "./paneTree";
+import { closeLayoutTabs, closePane, focusPane, moveTab, placeTab, reconcileLayout, renameTab, returnToHome, splitPane } from "./paneLayout";
 import { equalizeSplit, setSplitSizes } from "./paneSizes";
 
 const pane = (id: string, tabs: string[], active: string | null = tabs[0] ?? null): PaneNode => ({ type: "pane", id, tabs, active });

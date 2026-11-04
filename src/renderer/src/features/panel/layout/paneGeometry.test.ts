@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { dropZoneAt, insertIndexAt, layoutRects, resizeAt, splitOfZone } from "./paneGeometry";
-import type { PaneNode } from "./paneLayout";
+import type { PaneNode } from "./paneTree";
 
 const leaf = (id: string): PaneNode => ({ type: "pane", id, tabs: [], active: null });
 

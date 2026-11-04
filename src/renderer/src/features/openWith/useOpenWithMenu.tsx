@@ -4,7 +4,7 @@ import type { ExternalBrowserId, ExternalTerminalId } from "@shared/types";
 import { anchorPlacement, type Placement } from "@/lib/floating";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";
-import { findPane, type PaneLeaf } from "@/features/panel/layout/paneLayout";
+import { findPane, type PaneLeaf } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
 import { useExternalBrowser, useExternalTerminal } from "./externalApps";
 import { browserPageOf, terminalTargetOf } from "./openTargets";

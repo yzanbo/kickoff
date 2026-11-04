@@ -1,7 +1,7 @@
 import { useSetting } from "@/hooks/useSetting";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { panelTabKinds } from "@/lib/storageKeys";
-import type { PaneLeaf } from "@/features/panel/layout/paneLayout";
+import type { PaneLeaf } from "@/features/panel/layout/paneTree";
 import { SURFACES, type PanelSurface } from "@/features/panel/surfaces";
 
 /** 表示を切り替えるタブの種類（チャットには、新しいチャット・サブエージェントのタブも入る） */

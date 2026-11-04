@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Project, Chat } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { isTabVisible, type PaneLeaf } from "@/features/panel/layout/paneLayout";
+import { isTabVisible, type PaneLeaf } from "@/features/panel/layout/paneTree";
 import { panelActions } from "@/features/panel/state/panelActions";
 import { shownActiveOf, usePanelKinds } from "@/features/panel/state/panelKinds";
 import { isLinkedTab } from "@/features/panel/state/panelState";

@@ -1,4 +1,4 @@
-import { normalizeSizes, type PaneLayout, type PaneNode } from "./paneLayout";
+import { normalizeSizes, type PaneLayout, type PaneNode } from "./paneTree";
 
 /** 右のパネルの分割の割合（境目のつまみのドラッグ・ダブルクリック。配置の木は paneLayout.ts） */
 

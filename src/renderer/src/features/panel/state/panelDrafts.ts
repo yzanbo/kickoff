@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/app/router";
 import type { DraftTarget } from "@/features/chatList/buckets";
-import { isTabVisible } from "@/features/panel/layout/paneLayout";
+import { isTabVisible } from "@/features/panel/layout/paneTree";
 import { panelScreen } from "@/features/panel/surfaces";
 import { panelActions } from "./panelActions";
 import { allPanels, dispatchPanel, isPanelMounted, panelsVersion, subscribePanels } from "./panelStore";

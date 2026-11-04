@@ -4,7 +4,7 @@ import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
 import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
-import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneLayout";
+import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
 
 /**

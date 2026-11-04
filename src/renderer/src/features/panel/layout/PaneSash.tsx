@@ -1,7 +1,7 @@
 import type { CSSProperties, RefObject } from "react";
 import { startPointerDrag } from "@/hooks/useDragSize";
 import { resizeAt, type FracRect, type Sash } from "./paneGeometry";
-import type { PaneNode } from "./paneLayout";
+import type { PaneNode } from "./paneTree";
 
 /** パネル全体に対する割合の位置を、絶対配置の style にする（top・height から tabs を引くと、タブの列の下の中身の位置） */
 export function fracStyle(r: FracRect, tabs = false): CSSProperties {

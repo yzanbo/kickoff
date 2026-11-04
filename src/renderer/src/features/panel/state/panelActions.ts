@@ -1,6 +1,7 @@
 import type { Chat } from "@shared/types";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
-import { focusPane, moveTab, returnToHome, splitPane, type PaneLayout, type SplitDir, type SplitSide } from "@/features/panel/layout/paneLayout";
+import type { PaneLayout, SplitDir, SplitSide } from "@/features/panel/layout/paneTree";
+import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/layout/paneLayout";
 import { equalizeSplit, setSplitSizes } from "@/features/panel/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
