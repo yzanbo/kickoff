@@ -2,7 +2,7 @@ import { ChevronDown, Globe, SquarePen, SquareTerminal, type LucideIcon } from "
 import type { ButtonHTMLAttributes, MouseEvent } from "react";
 import { IconButton } from "@/ui/IconButton";
 import type { OpenWithKind } from "@/features/openWith/useOpenWithMenu";
-import type { PaneLeaf } from "@/features/panel/layout/paneLayout";
+import type { PaneLeaf } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
 
 /**

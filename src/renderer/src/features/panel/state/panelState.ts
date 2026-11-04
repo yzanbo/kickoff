@@ -1,6 +1,7 @@
 import type { Chat } from "@shared/types";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
-import { closeLayoutTabs, closePane, placeTab, reconcileLayout, renameTab, singlePane, type PaneLayout } from "@/features/panel/layout/paneLayout";
+import { singlePane, type PaneLayout } from "@/features/panel/layout/paneTree";
+import { closeLayoutTabs, closePane, placeTab, reconcileLayout, renameTab } from "@/features/panel/layout/paneLayout";
 import { closedLinks, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } from "./linkedTabs";
 
 /**

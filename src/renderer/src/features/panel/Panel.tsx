@@ -8,7 +8,7 @@ import { PanelEmpty } from "./PanelEmpty";
 import { PanelTools, type PanelFrame } from "./PanelTools";
 import { PanelTabPage } from "@/features/panel/tabs/PanelTabPage";
 import { layoutRects } from "@/features/panel/layout/paneGeometry";
-import { focusedPane, homePane, leavesOf, type PaneLeaf } from "@/features/panel/layout/paneLayout";
+import { focusedPane, homePane, leavesOf, type PaneLeaf } from "@/features/panel/layout/paneTree";
 import { TabMenu } from "@/features/panel/tabs/TabMenu";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTabDrag } from "@/features/panel/layout/useTabDrag";

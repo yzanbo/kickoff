@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Chat } from "@shared/types";
-import { FIRST_PANE, leavesOf, splitPane, type PaneNode } from "@/features/panel/layout/paneLayout";
+import { FIRST_PANE, leavesOf, type PaneNode } from "@/features/panel/layout/paneTree";
+import { splitPane } from "@/features/panel/layout/paneLayout";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { emptyPanel, isLinkedTab, panelReducer, type PanelAction, type PanelRules, type PanelState } from "./panelState";
 

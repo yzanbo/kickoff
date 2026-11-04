@@ -1,4 +1,4 @@
-import type { PaneNode, SplitDir } from "./paneLayout";
+import type { PaneNode, SplitDir } from "./paneTree";
 
 /** パネル全体を 1 としたときの位置と大きさ（割合） */
 export interface FracRect {
