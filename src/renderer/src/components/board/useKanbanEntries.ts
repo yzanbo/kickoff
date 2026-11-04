@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { AgentState, Run } from "../../../../core/types";
-import { byColumn, type BoardEntry } from "./boardColumns";
+import type { BoardEntry } from "./boardColumns";
 import { archiveMatches, type ArchiveFilter } from "./archiveFilter";
 
 /** 絞り込みの値（useKanbanFilters の一部。matches は名前の検索） */
@@ -27,7 +27,7 @@ export function kanbanEntries(runs: Run[], filters: KanbanFilterValues, stateOf:
   return list.sort((a, b) => b.run.active_at.localeCompare(a.run.active_at));
 }
 
-/** カンバンに出すチャットと、状態の列ごとの分け方（絞り込みが変わったときだけ計算し直す） */
+/** カンバンに出すチャット（絞り込みが変わったときだけ計算し直す。状態の列ごとの分け方は、ボード・段・リストのそれぞれで byColumn） */
 export function useKanbanEntries({
   runs,
   filters,
@@ -45,6 +45,5 @@ export function useKanbanEntries({
     () => kanbanEntries(runs, { archive, worktree, matches }, stateOf, projectIds),
     [runs, archive, worktree, matches, stateOf, projectIds],
   );
-  const grouped = useMemo(() => byColumn(entries), [entries]);
-  return { entries, grouped };
+  return { entries };
 }

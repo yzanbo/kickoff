@@ -38,6 +38,11 @@
   overflow-y: auto;
 }
 
+/* リストを段に分けたときの段の中（スクロールは段の並び .board-lanes に任せる） */
+.lane-list {
+  flex: none;
+}
+
 .list-group {
   position: relative;
   margin-bottom: 12px;

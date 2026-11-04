@@ -61,6 +61,9 @@ export const BOARD_VIEW_KEY = "kickoff:board-view";
 export const BOARD_LANES_KEY = "kickoff:board-lanes";
 /** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える） */
 export const BOARD_LANES_ALL_KEY = "kickoff:board-lanes-all";
+/** カンバンのリスト表示の段の分け方（"none" = 段に分けない（初め）か、スイムレーンと同じ分け方。プロジェクトのボード / 全プロジェクトのボードで別に覚える） */
+export const BOARD_LIST_LANES_KEY = "kickoff:board-list-lanes";
+export const BOARD_LIST_LANES_ALL_KEY = "kickoff:board-list-lanes-all";
 /** カンバンのアーカイブでの絞り込み（"1" / "0" / "archived"。decodeArchiveFilter） */
 export const BOARD_SHOW_ARCHIVED_KEY = "kickoff:show-archived";
 /** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える。形式は同じ） */
