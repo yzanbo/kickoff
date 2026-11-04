@@ -86,6 +86,15 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json({ ok: true });
   });
 
+  // 選んだ待ちの指示を、送らずに 1 件にまとめる（列の順に空行でつなぎ、添付も合わせる。選んだうちのいちばん上の位置に残る）
+  app.post("/api/runs/:id/queue/merge", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { ids } = queueIdsSchema.parse(await c.req.json());
+    const merged = runner.mergeQueued(run.id, ids);
+    if (!merged) throw new HttpError(400, "まとめるには、送信待ちの指示を 2 件以上選んでください");
+    return c.json({ id: merged.id, queue: runner.queued(run.id) });
+  });
+
   // 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めておくのをやめ、「ここまで」の印を外す。作業中なら終わってから）
   app.post("/api/runs/:id/queue/send-in-order", async (c) => {
     const run = requireRun(store, c.req.param("id"));
