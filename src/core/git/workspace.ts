@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { errorMessage } from "@shared/errors";
-import { gitOutput } from "./index.js";
+import { gitOutput } from "./exec.js";
+import { hasRef } from "./status.js";
 import { expandHome } from "../system/paths.js";
 import type { FolderInspection } from "@shared/types";
 
@@ -83,7 +84,7 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
   if (!root) return result;
   result.is_git = true;
   result.git_root = await fs.realpath(root).catch(() => root);
-  result.has_commits = Boolean(await git(target, ["rev-parse", "--verify", "HEAD"]).catch(() => null));
+  result.has_commits = await hasRef(target, "HEAD");
   result.branch = (await git(target, ["branch", "--show-current"]).catch(() => "")) || null;
   result.remote_url = (await git(target, ["remote", "get-url", "origin"]).catch(() => "")) || null;
   result.dirty = Boolean(await git(target, ["status", "--porcelain"]).catch(() => ""));

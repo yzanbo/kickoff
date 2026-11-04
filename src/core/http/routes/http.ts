@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { errorMessage } from "@shared/errors";
-import { gitStatus, listWorktrees } from "../../git/index.js";
+import { findWorktree, gitStatus } from "../../git/index.js";
 import type { Store } from "../../db/store.js";
 import type { GitWorktree, Project } from "@shared/types";
 
@@ -47,7 +47,7 @@ export function requireGroupOf(store: Store, groupId: number, projectId: number)
  */
 export async function requireWorktree(repo: string, worktree: string | undefined): Promise<GitWorktree | null> {
   if (!worktree) return null;
-  const found = (await listWorktrees(repo)).find((w) => w.path === worktree);
+  const found = await findWorktree(repo, worktree);
   if (!found) throw new HttpError(400, "このプロジェクトのワークツリーではありません");
   if (found.prunable) throw new HttpError(404, "作業場所のフォルダが見つかりません（ワークツリーが消された可能性があります）");
   return found;

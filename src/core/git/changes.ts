@@ -2,7 +2,7 @@
 import type { GitDiff } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { assertInside } from "./files.js";
-import { gitStatus } from "./status.js";
+import { gitStatus, hasRef, listRemotes } from "./status.js";
 
 /** 差分を返す上限（これより大きければ途中で切る） */
 const MAX_DIFF_CHARS = 400_000;
@@ -46,10 +46,7 @@ export async function stagePaths(repo: string, paths: string[]): Promise<void> {
 /** ステージを取り消す（作業中の中身はそのまま。コミットがまだないリポジトリでは索引から外す） */
 export async function unstagePaths(repo: string, paths: string[]): Promise<void> {
   await assertAllInside(repo, paths);
-  const hasHead = await gitOutput(repo, ["rev-parse", "--verify", "-q", "HEAD"]).then(
-    () => true,
-    () => false,
-  );
+  const hasHead = await hasRef(repo, "HEAD");
   await gitOutput(repo, hasHead ? ["restore", "--staged", "--", ...paths] : ["rm", "-r", "-q", "--cached", "--", ...paths]);
 }
 
@@ -93,7 +90,6 @@ export async function pullBranch(repo: string): Promise<void> {
 
 /** リモートの情報を取ってくる（作業中のファイルは変えない。遅れている数を出すのに使う。origin がなければ何もしない） */
 export async function fetchRemote(repo: string): Promise<void> {
-  const remotes = await gitOutput(repo, ["remote"]);
-  if (!remotes.trim()) return;
+  if ((await listRemotes(repo)).length === 0) return;
   await gitOutput(repo, ["fetch", "-q", "--prune"], [], 120_000);
 }

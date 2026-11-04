@@ -1,8 +1,9 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { errorMessage } from "@shared/errors";
-import { addWorktree, finishWorktree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
+import { addWorktree, findWorktree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
+import type { Project } from "@shared/types";
 import { badRequest, HttpError, requireProject } from "./http.js";
 import { branchName, folderPath, jsonBody } from "./schemas.js";
 
@@ -36,16 +37,30 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json(await badRequest(() => worktreeRemovalInfo(project.repo_path, path)));
   });
 
+  /**
+   * ワークツリーを消し（deleteBranch ならブランチも）、消えたら、そこで作業していたチャットの続きを本体で進める
+   * （ブランチを消すところで失敗しても、ワークツリーが消えていればチャットは本体に戻す）。失敗は 400
+   */
+  const removeAndRelease = async (project: Project, path: string, opts: { force?: boolean; deleteBranch?: boolean }) => {
+    try {
+      const worktrees = await removeWorktree(project.repo_path, path, opts);
+      store.chats.clearWorktree(project.id, path);
+      return worktrees;
+    } catch (e) {
+      // 一覧も取れなければ、消えたか分からないので戻さない
+      const gone = await findWorktree(project.repo_path, path).then((w) => !w, () => false);
+      if (gone) store.chats.clearWorktree(project.id, path);
+      throw new HttpError(400, errorMessage(e));
+    }
+  };
+
   app.post("/api/projects/:id/git/worktrees/remove", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const { path, force, deleteBranch } = z
       .object({ path: folderPath, force: z.boolean().default(false), deleteBranch: z.boolean().default(false) })
       .parse(await jsonBody(c));
     assertIdle(project.id, path, "消し");
-    const worktrees = await badRequest(() => removeWorktree(project.repo_path, path, force, deleteBranch));
-    // そこで作業していたチャットは、続きを本体で進める（片付けと同じ）
-    store.chats.clearWorktree(project.id, path);
-    return c.json(worktrees);
+    return c.json(await removeAndRelease(project, path, { force, deleteBranch }));
   });
 
   // PR がマージされたワークツリーを片付ける（ワークツリーと手元のブランチを消す）
@@ -53,16 +68,6 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
     const project = requireProject(store, c.req.param("id"));
     const { path } = z.object({ path: folderPath }).parse(await jsonBody(c));
     assertIdle(project.id, path, "片付け");
-    try {
-      const worktrees = await finishWorktree(project.repo_path, path);
-      // そこで作業していたチャットは、続きを本体で進める
-      store.chats.clearWorktree(project.id, path);
-      return c.json(worktrees);
-    } catch (e) {
-      // ブランチを消すところで失敗しても、ワークツリーが消えていれば、チャットは本体に戻す
-      const remaining = await listWorktrees(project.repo_path).catch(() => null);
-      if (remaining && !remaining.some((w) => w.path === path)) store.chats.clearWorktree(project.id, path);
-      throw new HttpError(400, errorMessage(e));
-    }
+    return c.json(await removeAndRelease(project, path, { deleteBranch: true }));
   });
 }

@@ -1,4 +1,4 @@
-// 作業ツリーの状態（git status）といまのブランチ
+// 作業ツリーの状態（git status）・いまのブランチ・リモートの一覧・参照（HEAD・ブランチ）があるか
 import type { GitChangeKind, GitFileChange, GitStatus } from "@shared/types";
 import { gitOutput } from "./exec.js";
 
@@ -7,11 +7,15 @@ export const kindOf = (code: string): GitChangeKind => (KINDS.has(code as GitCha
 /** 競合している状態（両方で変更・片方で削除など） */
 const CONFLICTS = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
 
+/** 追いかけているブランチとの進み・遅れ（「[ahead 1, behind 2]」の形。git status の見出し・for-each-ref の upstream:track で同じ） */
+export function parseAheadBehind(text: string): { ahead: number; behind: number } {
+  return { ahead: Number(/ahead (\d+)/.exec(text)?.[1] ?? 0), behind: Number(/behind (\d+)/.exec(text)?.[1] ?? 0) };
+}
+
 /** `## main...origin/main [ahead 1, behind 2]` からブランチと進み・遅れを読む */
 function parseBranch(line: string): { branch: string | null; upstream: string | null; ahead: number; behind: number } {
   const text = line.replace(/^## /, "");
-  const ahead = Number(/ahead (\d+)/.exec(text)?.[1] ?? 0);
-  const behind = Number(/behind (\d+)/.exec(text)?.[1] ?? 0);
+  const { ahead, behind } = parseAheadBehind(text);
   // コミットがまだないとき: "No commits yet on main"（古い git は "Initial commit on main"）
   const initial = /^(?:No commits yet|Initial commit) on (.+)$/.exec(text);
   if (initial) return { branch: initial[1], upstream: null, ahead, behind };
@@ -54,11 +58,21 @@ export async function gitStatus(repo: string): Promise<GitStatus> {
     () => false,
   );
   if (!inside) return { repo: false };
-  const [raw, remotes] = await Promise.all([
-    gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"]),
-    gitOutput(repo, ["remote"]),
-  ]);
-  return { ...parseGitStatus(raw), has_origin: remotes.split("\n").includes("origin") };
+  const [raw, remotes] = await Promise.all([gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"]), listRemotes(repo)]);
+  return { ...parseGitStatus(raw), has_origin: remotes.includes("origin") };
+}
+
+/** リモートの名前の一覧（origin など。なければ空） */
+export async function listRemotes(repo: string): Promise<string[]> {
+  return (await gitOutput(repo, ["remote"])).split("\n").filter(Boolean);
+}
+
+/** その参照（HEAD・refs/heads/<ブランチ> など）があるか。HEAD がなければ、まだコミットがない */
+export function hasRef(repo: string, ref: string): Promise<boolean> {
+  return gitOutput(repo, ["rev-parse", "--verify", "-q", ref]).then(
+    () => true,
+    () => false,
+  );
 }
 
 /** いまのブランチ名（ブランチから外れている・Git でないフォルダなら空） */
