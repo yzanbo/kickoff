@@ -18,7 +18,7 @@ export function RunHeader({
 }: {
   run: Run;
   project?: Project;
-  /** 右の道具の列の先頭に置くもの（チャットの中の検索・発言の目次） */
+  /** 右の道具の列の先頭に置くもの（チャットの中の検索） */
   tools?: ReactNode;
 }) {
   const groupName = useGroupName(run.project_id, run.group_id);

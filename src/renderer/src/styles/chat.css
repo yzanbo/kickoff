@@ -86,8 +86,6 @@
   position: relative;
   display: grid;
   min-height: 0;
-  /* 右端の指示の目次を、流れの幅で出し分ける（末尾の @container timeline） */
-  container: timeline / inline-size;
 }
 
 /* チャット全体は横にスクロールさせない（幅のある表・コード・図は、その場所だけで横にスクロールする） */
