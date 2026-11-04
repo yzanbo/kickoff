@@ -19,7 +19,10 @@ const SEVERITY_LABELS: Record<Severity, string | null> = {
 interface Props {
   window: UsageWindow;
   compact?: boolean;
-  /** フッター用の 1 行表示（ラベル・バー・値を横に並べる） */
+  /**
+   * フッター用の 1 行表示（ラベル・バー・値を横に並べる）。「残りわずか」「上限間近」の文は並べない（バーの色と % で分かり、
+   * 帯の幅を取るため）。マウスを乗せたときの説明と読み上げには残す
+   */
   inline?: boolean;
   /** 枠が始まっていないときの説明 */
   idleText?: string;
@@ -58,7 +61,6 @@ export function UsageMeter({ window: w, compact, inline, idleText }: Props) {
             ↻{resetShort}
           </span>
         )}
-        {status && <span className="meter-status">{status}</span>}
       </span>
     );
   }
