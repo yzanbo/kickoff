@@ -1,11 +1,4 @@
 import { PROJECT_HUES, pickProjectHue } from "@shared/project/colors";
-import type { SettingValue } from "@/lib/storage";
-import { panelTabGrouping } from "@/lib/storageKeys";
-
-/** 右のパネルのタブの列のまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別） */
-export type TabGrouping = SettingValue<typeof panelTabGrouping.shape>;
-export const TAB_GROUPINGS = panelTabGrouping.shape.choices;
-export const TAB_GROUPING_LABELS: Record<TabGrouping, string> = { none: "まとめない", group: "グループ別", worktree: "作業場所別" };
 
 /** タブが入るまとまり（key が同じタブを 1 つにまとめる。label はまとまりの頭に出す名前、title はマウスを乗せたときの説明） */
 export interface ClusterOf {

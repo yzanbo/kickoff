@@ -13,15 +13,13 @@ import { useProjects } from "@/stores/projects";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
 import { openChat } from "@/app/router";
-import { COUNTED_COLUMNS } from "@/features/chat/chatState";
+import { COUNTED_COLUMNS, type CountedColumn } from "@/features/chat/chatState";
 import { shortRelativeTime } from "@/lib/time";
 import { COLUMN_TONE, DRAFT_TONE } from "@/features/chat/tones";
 import { openDraft, useAllDrafts, type SidebarDraft } from "@/features/panel/state/panelMemory";
 import { StatusDot } from "@/ui/StatusDot";
 import { ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/lib/storageKeys";
 import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
-
-type CountedColumn = (typeof COUNTED_COLUMNS)[number];
 
 /** 一覧の 1 行: チャットか、送る前の新しいチャット（下書き） */
 type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: SidebarDraft };

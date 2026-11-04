@@ -3,7 +3,7 @@ import { cx } from "@/lib/cx";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { IconButton } from "@/ui/IconButton";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { TAB_GROUPING_LABELS, TAB_GROUPINGS } from "@/features/panel/clusters/tabClusters";
+import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import type { PanelSurface } from "@/features/panel/state/panelKinds";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 
@@ -14,7 +14,7 @@ import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 export function TabGroupingButton({ surface }: { surface: PanelSurface }) {
   const [grouping, setGrouping] = useTabGrouping(surface);
   const menu = useContextMenu();
-  const label = `チャットのまとめ方: ${TAB_GROUPING_LABELS[grouping]}`;
+  const label = `チャットのまとめ方: ${CHAT_GROUPING_LABELS[grouping]}`;
   return (
     <>
       <IconButton
@@ -32,8 +32,8 @@ export function TabGroupingButton({ surface }: { surface: PanelSurface }) {
         <ChoiceMenu
           at={menu.menu.at}
           title="チャットのまとめ方"
-          values={TAB_GROUPINGS}
-          labels={TAB_GROUPING_LABELS}
+          values={CHAT_GROUPINGS}
+          labels={CHAT_GROUPING_LABELS}
           value={grouping}
           ignore=".panel-tab-grouping"
           onPick={setGrouping}

@@ -98,8 +98,8 @@ export const PROJECT_TABS_LAYOUT = defineSetting("kickoff:project-tabs-layout", 
 export const PANEL_WIDTH = defineSetting("kickoff:panel-width", number(1127));
 /** 右のパネルを横幅いっぱいにしているか */
 export const PANEL_MAXIMIZED = defineSetting("kickoff:panel-maximized", flag());
-/** 欄（board = ボードの右のパネル / side = 右端のチャット欄 / bottom = フッター）ごとの、タブの列のまとめ方 */
-export const panelTabGrouping = defineSettingFamily("kickoff:panel-tab-grouping:", choice(["none", "group", "worktree"], "none"));
+/** 欄（board = ボードの右のパネル / side = 右端のチャット欄 / bottom = フッター）ごとの、タブの列のまとめ方（選べる値はサイドバーのまとめ方と同じ） */
+export const panelTabGrouping = defineSettingFamily("kickoff:panel-tab-grouping:", choice(SIDEBAR_CHAT_SECTIONS.choices, "none"));
 /** 欄ごとの、表示するタブの種類（chat / browser / terminal。空なら欄ごとの既定） */
 export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", list());
 /** タブを畳んでいるまとまり（まとまりのキー。プロジェクト・グループの ID を含む。すべてのパネル・ペインで共通） */
