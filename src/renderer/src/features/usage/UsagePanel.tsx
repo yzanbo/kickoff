@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ServiceUsage } from "@shared/types";
 import { api } from "@/api";
-import { useActionError } from "@/hooks/useActionError";
+import { useAction } from "@/hooks/useAction";
 import { formatClock } from "@/lib/time";
 import { FIVE_HOUR_IDLE, planLabel } from "./usage";
 import { ErrorText } from "@/ui/ErrorText";
@@ -17,32 +17,28 @@ const POLL_MS = 5 * 60_000;
  */
 export function UsagePanel() {
   const [services, setServices] = useState<ServiceUsage[]>();
-  const [refreshing, setRefreshing] = useState(false);
-  const { error, guard } = useActionError();
+  // 開いている間の取り直しは失敗だけを出し、「更新」は押せなくして「更新中…」を出す
+  const action = useAction<"refresh">();
 
   useEffect(() => {
-    const load = () => void guard(async () => setServices(await api.usageServices()));
+    const load = () => void action.guard(async () => setServices(await api.usageServices()));
     load();
     const timer = setInterval(load, POLL_MS);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refresh = async () => {
-    setRefreshing(true);
-    await guard(async () => setServices(await api.refreshUsageServices()));
-    setRefreshing(false);
-  };
+  const refresh = () => action.run("refresh", async () => setServices(await api.refreshUsageServices()));
 
   return (
     <section className="section">
       <div className="section-head">
         <h2>使用状況</h2>
-        <button className="btn" disabled={refreshing} onClick={() => void refresh()}>
-          {refreshing ? "更新中…" : "更新"}
+        <button className="btn" disabled={action.busy !== null} onClick={() => void refresh()}>
+          {action.busy === "refresh" ? "更新中…" : "更新"}
         </button>
       </div>
-      <ErrorText message={error} />
+      <ErrorText message={action.error} />
       {!services ? (
         <p className="muted">取得中…</p>
       ) : (

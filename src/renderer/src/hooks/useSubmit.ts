@@ -1,22 +1,15 @@
-import { useState } from "react";
-import { errorMessage } from "@shared/errors";
+import { useAction } from "./useAction";
 
 /**
- * フォームの送信中かどうかと、失敗の文（プロジェクトの作成・取り込みなど）。
- * 送れたら閉じるフォーム向けで、成功しても submitting は戻さない（閉じるまでに二重に送らないため）。失敗したら戻して押し直せるようにする
+ * フォームの送信中かどうかと、失敗の文（プロジェクトの作成・取り込み・回答など。useAction の、送れたら閉じるフォーム向けの形）。
+ * 成功しても submitting は戻さない（閉じる・消えるまでに二重に送らないため）。失敗したら戻して押し直せるようにする
  */
 export function useSubmit() {
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
-  const submit = async (action: () => Promise<unknown>) => {
-    setSubmitting(true);
-    setError(undefined);
-    try {
-      await action();
-    } catch (e) {
-      setError(errorMessage(e));
-      setSubmitting(false);
-    }
+  const action = useAction<"submit">();
+  return {
+    submitting: action.busy !== null,
+    error: action.error,
+    setError: action.setError,
+    submit: (send: () => Promise<unknown>) => action.run("submit", send, { keepBusy: true }),
   };
-  return { submitting, error, setError, submit };
 }

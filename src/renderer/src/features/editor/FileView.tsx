@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "@/api";
 import { cx } from "@/lib/cx";
 import { confirmDialog } from "@/ui/dialogs";
-import { errorMessage } from "@shared/errors";
+import { useAction } from "@/hooks/useAction";
 import { useHighlight } from "@/hooks/useHighlight";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
 import { CodeLine } from "@/ui/CodeLine";
@@ -45,8 +45,8 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
   const [base, setBase] = useState<{ content: string; hash: string } | null>(null);
   const [wantEdit, setWantEdit] = useState(initialEditing);
   const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ text: string; error?: boolean }>();
+  // 保存している間と、その結果（保存しました・失敗の理由）
+  const saving = useAction<"save">();
   const [editorKey, setEditorKey] = useState(0);
   const getValue = useRef<(() => string) | null>(null);
 
@@ -62,42 +62,42 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
 
   const changeDirty = (next: boolean) => {
     setDirty(next);
-    if (next) setMessage(undefined);
+    if (next) saving.reset();
     onDirtyChange?.(next);
   };
 
-  const save = async (content: string, force = false): Promise<void> => {
-    if (!base) return;
-    setSaving(true);
-    setMessage(undefined);
-    try {
-      const { hash } = await api.saveProjectFile(target, path, content, force ? null : base.hash);
-      setBase({ content, hash });
-      setMessage({ text: "保存しました" });
-      onSaved?.();
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        const overwrite = await confirmDialog({
-          title: "ほかでファイルが変わっています",
-          message: "開いたあとで、エージェントなどがこのファイルを変えました。上書きすると、その変更は消えます。",
-          confirmLabel: "上書きする",
-          danger: true,
-        });
-        if (overwrite) return save(content, true);
-        setMessage({ text: "保存していません（ほかでの変更を確かめてください）", error: true });
-      } else {
-        setMessage({ text: errorMessage(e), error: true });
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
+  // 開いたときの指紋と比べて保存する。ほかで変わっていれば、上書きするか聞いてから指紋なしで保存し直す
+  const save = (content: string) =>
+    base &&
+    saving.run(
+      "save",
+      async () => {
+        const write = (hash: string | null) => api.saveProjectFile(target, path, content, hash);
+        let saved: { hash: string };
+        try {
+          saved = await write(base.hash);
+        } catch (e) {
+          if (!(e instanceof ApiError && e.status === 409)) throw e;
+          const overwrite = await confirmDialog({
+            title: "ほかでファイルが変わっています",
+            message: "開いたあとで、エージェントなどがこのファイルを変えました。上書きすると、その変更は消えます。",
+            confirmLabel: "上書きする",
+            danger: true,
+          });
+          if (!overwrite) throw new Error("保存していません（ほかでの変更を確かめてください）");
+          saved = await write(null);
+        }
+        setBase({ content, hash: saved.hash });
+        onSaved?.();
+      },
+      { done: "保存しました" },
+    );
 
   const stopEditing = async () => {
     if (dirty && !(await confirmDialog({ title: "保存していない変更を捨てますか？", confirmLabel: "捨てる", danger: true }))) return;
     setBase(null);
     changeDirty(false);
-    setMessage(undefined);
+    saving.reset();
     loaded.reload();
   };
 
@@ -108,7 +108,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
     setBase({ content: current.file.content, hash: current.file.hash });
     setEditorKey((n) => n + 1);
     changeDirty(false);
-    setMessage(undefined);
+    saving.reset();
   };
 
   // 編集している間に、ほかでファイルが変わった
@@ -127,8 +127,8 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
         <span className="diff-path" title={path}>
           {path}
         </span>
-        <span className={cx("diff-state", message?.error && "error")}>
-          {message?.text ??
+        <span className={cx("diff-state", saving.error && "error")}>
+          {saving.result?.text ??
             (base ? (dirty ? "編集中・未保存" : "編集中") : `${line !== undefined ? `${line} 行目・` : ""}${changed ? "変更あり" : "変更なし"}`)}
         </span>
         <span className="spacer" />
@@ -139,8 +139,8 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
         )}
         {base ? (
           <>
-            <button className="btn btn-sm btn-primary" disabled={!dirty || saving} title="保存（⌘S）" onClick={() => getValue.current && void save(getValue.current())}>
-              <Save size={13} aria-hidden /> {saving ? "保存中…" : "保存"}
+            <button className="btn btn-sm btn-primary" disabled={!dirty || saving.busy !== null} title="保存（⌘S）" onClick={() => getValue.current && void save(getValue.current())}>
+              <Save size={13} aria-hidden /> {saving.busy ? "保存中…" : "保存"}
             </button>
             <button className="btn btn-sm" onClick={() => void stopEditing()}>
               <X size={13} aria-hidden /> 編集をやめる

@@ -3,7 +3,7 @@ import type { ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import { confirmDeleteGroup, useGroupDrop } from "@/features/group/groups";
-import { useActionError } from "@/hooks/useActionError";
+import { useAction } from "@/hooks/useAction";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { GROUP_BOARD_ARCHIVE_FILTER } from "@/lib/storageKeys";
 import { useGroupMenu } from "@/features/group/GroupMenu";
@@ -22,7 +22,7 @@ export type GroupBoardState = ReturnType<typeof useGroupBoard>;
 export function useGroupBoard({ projectId, groups }: { projectId: number; groups: ChatGroup[] }) {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
-  const { error, setError, guard } = useActionError();
+  const { error, setError, guard } = useAction();
   const [archive, setArchive] = useArchiveFilter(GROUP_BOARD_ARCHIVE_FILTER);
   const { chats, loaded, error: loadError } = useChats({ projectId, archived: archive !== "active" });
   const shown = chats.filter((r) => archiveMatches(r, archive));

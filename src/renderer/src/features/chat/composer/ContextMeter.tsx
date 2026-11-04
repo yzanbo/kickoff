@@ -4,7 +4,7 @@ import type { Chat, UsageWindow } from "@shared/types";
 import { api } from "@/api";
 import { useProviders } from "@/stores/providers";
 import { cx } from "@/lib/cx";
-import { errorMessage } from "@shared/errors";
+import { useAction } from "@/hooks/useAction";
 import { formatTokens } from "@/lib/format";
 import { useDismiss } from "@/hooks/useDismiss";
 import { resetIn } from "@/lib/time";
@@ -45,15 +45,9 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
 
   // 手で圧縮する（作業中・まだ会話がないときはできない）。終わると compact イベントとコンテキストの大きさが届く
   const canCompact = Boolean(chat.session_id) && chat.status !== "running";
-  const [compactError, setCompactError] = useState<string>();
-  const compact = async () => {
-    setCompactError(undefined);
-    try {
-      await api.compactChat(chat.id);
-    } catch (e) {
-      setCompactError(errorMessage(e));
-    }
-  };
+  // 手で圧縮する操作の失敗（始めたら、終わるまでは圧縮中の弧で知らせる）
+  const compactAction = useAction<"compact">();
+  const compact = () => compactAction.run("compact", () => api.compactChat(chat.id));
 
   return (
     <div ref={ref} className="context-meter">
@@ -97,7 +91,7 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
                 <Shrink size={13} /> {compacting ? "圧縮中…" : "会話を圧縮"}
               </button>
             </div>
-            <ErrorText message={compactError} />
+            <ErrorText message={compactAction.error} />
           </section>
 
           <section className="context-section">

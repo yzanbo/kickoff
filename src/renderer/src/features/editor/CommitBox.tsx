@@ -1,8 +1,12 @@
 import { ArrowDown, ArrowUp, Check, UploadCloud } from "lucide-react";
 import { useState } from "react";
 import type { GitStatus } from "@shared/types";
+import type { ActionState } from "@/hooks/useAction";
 import { confirmDialog } from "@/ui/dialogs";
 import type { GitStatusController } from "./useGitStatus";
+
+/** コミットの欄の操作（実行中は、ほかの操作のボタンも押せなくする） */
+export type CommitBusy = "commit" | "push" | "pull";
 
 /**
  * 「変更」の上のコミットの欄（VS Code と同じ）。メッセージを書いて「コミット」（⌘Enter）。
@@ -12,21 +16,21 @@ import type { GitStatusController } from "./useGitStatus";
 export function CommitBox({
   status,
   git,
-  guard,
+  action,
 }: {
   status: Extract<GitStatus, { repo: true }>;
   git: GitStatusController;
-  /** 失敗を一覧の上に出す（useActionError の guard） */
-  guard: (action: () => Promise<unknown>) => Promise<boolean>;
+  /** 実行中と失敗（失敗は一覧の上に出す。親の useAction） */
+  action: ActionState<CommitBusy>;
 }) {
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState<"commit" | "push" | "pull">();
+  const { busy } = action;
   const changes = [...status.conflicts, ...status.unstaged];
   const canCommit = status.staged.length > 0 || changes.length > 0;
 
   const commit = async () => {
     if (busy || !canCommit) return;
-    if (!message.trim()) return void guard(() => Promise.reject(new Error("コミットのメッセージを入れてください")));
+    if (!message.trim()) return action.setError("コミットのメッセージを入れてください");
     const stageAll = status.staged.length === 0;
     if (
       stageAll &&
@@ -37,28 +41,20 @@ export function CommitBox({
       }))
     )
       return;
-    setBusy("commit");
-    await guard(async () => {
+    await action.run("commit", async () => {
       if (stageAll) await git.act("stage", changes.map((f) => f.path));
       await git.commit(message);
       setMessage("");
     });
-    setBusy(undefined);
   };
 
   const push = async () => {
-    if (busy) return;
-    setBusy("push");
-    await guard(() => git.push());
-    setBusy(undefined);
+    if (!busy) await action.run("push", () => git.push());
   };
 
   // リモートより遅れていれば、早送りで取り込む（GitHub でマージした PR を手元に入れるときなど）
   const pull = async () => {
-    if (busy) return;
-    setBusy("pull");
-    await guard(() => git.pull());
-    setBusy(undefined);
+    if (!busy) await action.run("pull", () => git.pull());
   };
 
   // プッシュするもの: 進んでいるコミット、またはまだ公開していないブランチ（origin があるとき）

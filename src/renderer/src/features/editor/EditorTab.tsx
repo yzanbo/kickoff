@@ -2,7 +2,8 @@ import { Files, GitBranch, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
-import { useActionError } from "@/hooks/useActionError";
+import { useAction } from "@/hooks/useAction";
+import type { CommitBusy } from "./CommitBox";
 import { useDragWidth } from "@/hooks/useDragWidth";
 import { useSetting } from "@/hooks/useSetting";
 import { navigate, type FileTarget } from "@/app/router";
@@ -55,7 +56,8 @@ export function EditorTab({
   const files = useProjectFiles(projectId, view === "files" && Boolean(status?.repo), git.version);
   const kinds = useMemo(() => changeKinds(status), [status]);
   const search = useProjectSearch(projectId);
-  const actionError = useActionError();
+  // 変更の一覧の操作（ステージ・コミット・プッシュなど）の実行中と失敗（表示を切り替えても残す）
+  const gitAction = useAction<CommitBusy>();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
   const list = useDragWidth({ setting: CHANGES_LIST_WIDTH });
   // チャットの返答のファイルのチップから来たとき: エクスプローラーでそのファイルを選び（行があればその行へ）、
@@ -122,7 +124,7 @@ export function EditorTab({
         ) : view === "files" ? (
           <FilesPane rootName={rootName} git={git} files={files} kinds={kinds} folders={folders} selected={selected?.path} onSelect={(path) => void setSelected({ path })} />
         ) : (
-          <ChangesPane status={status} git={git} groups={groups} empty={empty} actionError={actionError} selected={selected} onSelect={(next) => void setSelected(next)} />
+          <ChangesPane status={status} git={git} groups={groups} empty={empty} action={gitAction} selected={selected} onSelect={(next) => void setSelected(next)} />
         )}
       </aside>
       <div className="pane-resizer" aria-label="一覧の幅を変える" {...list.handle} />

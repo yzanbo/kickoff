@@ -2,7 +2,7 @@ import type { GitWorktree } from "@shared/types";
 import { api } from "@/api";
 import { promptDialog } from "@/ui/dialogs";
 import { baseName } from "@/lib/format";
-import { useActionError } from "@/hooks/useActionError";
+import { useAction } from "@/hooks/useAction";
 import { worktreesStore } from "@/stores/worktrees";
 import { worktreeLabel } from "./WorktreePicker";
 import { confirmRemoveWorktree } from "./removeWorktree";
@@ -10,7 +10,7 @@ import type { GitLogController } from "@/features/history/useGitLog";
 
 /** 履歴の左の一覧のワークツリーの操作（作る・消す）。失敗の文は error に出す */
 export function useWorktreeActions(projectId: number, log: GitLogController) {
-  const worktreeError = useActionError();
+  const worktreeError = useAction();
   const repoName = log.worktrees?.[0] ? baseName(log.worktrees[0].path) : "";
 
   // ワークツリーを作る（ブランチの名前を聞く。なければいまのコミットから作る）

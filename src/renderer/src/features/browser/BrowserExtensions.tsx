@@ -1,8 +1,7 @@
 import { Download, FolderOpen, Puzzle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { BrowserExtensionInfo } from "../../../../preload";
-import { errorMessage } from "@shared/errors";
-import type { ResultText } from "@/hooks/useSave";
+import { useAction } from "@/hooks/useAction";
 import { IconButton } from "@/ui/IconButton";
 import { ResultMessage } from "@/ui/SaveActions";
 
@@ -16,8 +15,8 @@ const SOURCE_LABELS: Record<BrowserExtensionInfo["source"], string> = {
 export function BrowserExtensions() {
   const api = window.kickoff?.browserExtensions;
   const [list, setList] = useState<BrowserExtensionInfo[]>([]);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<ResultText>();
+  const action = useAction<"remove" | "install" | "import" | "folder">();
+  const busy = action.busy;
 
   useEffect(() => {
     void api?.list().then(setList);
@@ -25,18 +24,9 @@ export function BrowserExtensions() {
 
   if (!api) return <p className="muted small">ブラウザの拡張機能はデスクトップアプリでのみ設定できます。</p>;
 
-  async function run(label: string, fn: () => Promise<BrowserExtensionInfo[]>, done: string) {
-    setBusy(label);
-    setMessage(undefined);
-    try {
-      setList(await fn());
-      setMessage({ kind: "ok", text: done });
-    } catch (e) {
-      setMessage({ kind: "error", text: errorMessage(e) });
-    } finally {
-      setBusy(null);
-    }
-  }
+  /** 拡張機能を足す・外す（そのあとの一覧が返る。終わったら結果の文を出す） */
+  const run = (name: NonNullable<typeof busy>, fn: () => Promise<BrowserExtensionInfo[]>, done: string) =>
+    action.run(name, async () => setList(await fn()), { done });
 
   const hasReact = list.some((e) => /react developer tools/i.test(e.name));
 
@@ -84,7 +74,7 @@ export function BrowserExtensions() {
           <FolderOpen size={14} /> フォルダを指定…
         </button>
       </div>
-      <ResultMessage result={message} as="p" className="small" />
+      <ResultMessage result={action.result} as="p" className="small" />
     </div>
   );
 }
