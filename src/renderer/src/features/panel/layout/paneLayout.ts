@@ -1,5 +1,3 @@
-import { nextActiveTab } from "@/features/panel/tabs/panelTabs";
-
 /**
  * 右のパネルの分割の配置（VS Code のエディターのグループと同じ）。葉 = ペイン、枝 = 分割の木で、タブの中身は持たずキーだけを指す。
  * どの操作も新しい配置を返す純粋関数（state の updater から呼ぶ）
@@ -65,6 +63,17 @@ export const focusedPane = (layout: PaneLayout): PaneLeaf => findPane(layout, la
  */
 export const homePane = (layout: PaneLayout): PaneLeaf => (layout.home ? findPane(layout, layout.home) : undefined) ?? leavesOf(layout.root)[0];
 
+/**
+ * タブを閉じたあとに表示するタブ。閉じたのが表示中のタブなら、同じ位置に来たタブ（最後なら 1 つ前）。
+ * ほかのタブを閉じたなら表示中のまま。タブがなくなれば null
+ */
+export function nextActiveTab(tabs: readonly string[], closedKey: string, activeTab: string | null): string | null {
+  if (activeTab !== closedKey) return activeTab;
+  const index = tabs.indexOf(closedKey);
+  const rest = tabs.filter((t) => t !== closedKey);
+  return rest[Math.min(index, rest.length - 1)] ?? null;
+}
+
 /** ピントのあるペインの表示中のタブ（今までの「表示中のタブ」と同じ意味） */
 export const activeTabOf = (layout: PaneLayout): string | null => focusedPane(layout).active;
 
@@ -129,7 +138,7 @@ function detach(layout: PaneLayout, key: string, keep?: string): PaneLayout {
     if (p.id !== source.id) return p;
     const tabs = p.tabs.filter((t) => t !== key);
     if (tabs.length === 0 && many && p.id !== keep) return null;
-    return { ...p, tabs, active: nextActiveTab(p.tabs.map((t) => ({ key: t })), key, p.active) };
+    return { ...p, tabs, active: nextActiveTab(p.tabs, key, p.active) };
   });
   return withFocus(normalize(root ?? layout.root), layout);
 }

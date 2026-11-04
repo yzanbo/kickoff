@@ -2,14 +2,14 @@ import { useMemo } from "react";
 import type { Project, Chat } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { isTabVisible } from "@/features/panel/layout/paneLayout";
-import { chatKey } from "@/features/panel/state/linkedTabs";
 import { panelActions } from "@/features/panel/state/panelActions";
-import { kindOfTab, usePanelKinds } from "@/features/panel/state/panelKinds";
+import { usePanelKinds } from "@/features/panel/state/panelKinds";
 import { isLinkedTab } from "@/features/panel/state/panelState";
 import { useMountedPanel, usePanelState } from "@/features/panel/state/panelStore";
 import { useLinkedTabs } from "@/features/panel/state/useLinkedChats";
 import { panelKey, SURFACES, type PanelScope, type PanelSurface } from "@/features/panel/surfaces";
-import type { NewChatTarget, TerminalTarget } from "@/features/panel/tabs/panelTypes";
+import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
+import { chatKey, kindOfTab, tabChat } from "@/features/panel/tabs/tabKinds";
 
 export type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 export { terminalTargets } from "@/features/panel/tabs/panelTypes";
@@ -83,6 +83,8 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
     layout,
     panelOpen,
     chats,
+    /** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの） */
+    chatOf: (tab: PanelTab | undefined) => tabChat(tab, chats),
     projects,
     /** 開けるターミナルの場所（Mac のアプリでなければ空） */
     terminals: window.kickoff?.terminal ? terminals : NO_TERMINALS,

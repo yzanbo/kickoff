@@ -1,7 +1,6 @@
 import type { Chat } from "@shared/types";
+import { chatTab } from "@/features/panel/tabs/tabKinds";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
-
-export const chatKey = (id: number) => `chat:${id}`;
 
 /** サイドバーと連動したチャットのタブの覚え（パネルごと） */
 export interface LinkState {
@@ -48,9 +47,7 @@ export function syncLinkedTabs(tabs: readonly PanelTab[], linked: readonly Chat[
   const keep = new Set([...linkedIds, ...extra]);
   const kept = tabs.filter((t) => t.kind !== "chat" || keep.has(t.id));
   const present = new Set(kept.flatMap((t) => (t.kind === "chat" ? [t.id] : [])));
-  const added: PanelTab[] = linked
-    .filter((r) => !present.has(r.id) && !dismissed.has(r.id))
-    .map((r) => ({ key: chatKey(r.id), kind: "chat", id: r.id, projectId: r.project_id, title: r.title }));
+  const added = linked.filter((r) => !present.has(r.id) && !dismissed.has(r.id)).map((r) => chatTab(r));
   const nextTabs = kept.length === tabs.length && added.length === 0 ? tabs : [...kept, ...added];
   // 表示だけ消したチャットも、一覧から外れたら忘れる（次に一覧へ戻ったら、また出す）
   const nextDismissed = links.dismissed.filter((id) => linkedIds.has(id));

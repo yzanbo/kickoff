@@ -4,9 +4,8 @@ import { focusPane, moveTab, returnToHome, splitPane, type PaneLayout, type Spli
 import { equalizeSplit, setSplitSizes } from "@/features/panel/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
-import { newTabKey } from "@/features/panel/tabs/tabKeys";
-import { chatKey } from "./linkedTabs";
-import { kindOfTab, readKinds, showKind } from "./panelKinds";
+import { browserTab, chatTab, kindOfTab, newChatTab, newTabKey, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
+import { readKinds, showKind } from "./panelKinds";
 import type { PanelAction, TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf } from "./panelStore";
 
@@ -37,35 +36,30 @@ export function panelActions(key: string) {
     const recent = lastNew.get(key);
     const tabKey = !seed && recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
     lastNew.set(key, { target: sig, key: tabKey, at: Date.now() });
-    openTab({ key: tabKey, kind: "new", ...target, ...(seed ? { seed, draftText: seed.text } : {}) });
+    openTab(newChatTab(target, seed, tabKey));
   };
 
-  /** 内蔵ターミナルの新しいタブを開く（cwd のフォルダでシェルを始める） */
-  const openTerminal = ({ cwd, label }: TerminalTarget) => openTab({ key: newTabKey("terminal"), kind: "terminal", cwd, label });
+  /** 内蔵ターミナルの新しいタブを開く（開く場所のフォルダでシェルを始める） */
+  const openTerminal = (target: TerminalTarget) => openTab(terminalTab(target));
 
   const setOpen = (open: boolean) => dispatch({ type: "setOpen", open });
 
   return {
     /** チャットをタブで開く（開いていればそのタブへ）。focus は検索結果から開いたときに、スクロールして強調する発言 */
     open: (chat: Pick<Chat, "id" | "project_id"> & Partial<Pick<Chat, "title">>, focus?: number) =>
-      openTab(
-        { key: chatKey(chat.id), kind: "chat", id: chat.id, projectId: chat.project_id, focus, title: chat.title },
-        focus ? { kind: "chat", fields: { focus, title: chat.title, projectId: chat.project_id, status: undefined, unread: undefined, chat: undefined } } : undefined,
-      ),
+      openTab(chatTab(chat, focus), focus ? { kind: "chat", fields: { focus, title: chat.title, projectId: chat.project_id, chat: undefined } } : undefined),
     openNew,
     /** サブエージェントの中身をタブで開く（同じサブエージェントのタブがあればそこへ） */
-    openSubagent: ({ chatId, projectId, toolUseId, title }: { chatId: number; projectId: number; toolUseId: string; title: string }) =>
-      openTab({ key: `subagent:${chatId}:${toolUseId}`, kind: "subagent", chatId, projectId, toolUseId, title }),
+    openSubagent: (target: Parameters<typeof subagentTab>[0]) => openTab(subagentTab(target)),
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
-    openBrowser: (url = "") => openTab({ key: `browser:${Date.now()}`, kind: "browser", url, title: "" }),
+    openBrowser: (url = "") => openTab(browserTab(url)),
     openTerminal,
     /** 開いているタブを表示する（タブ・下書きを押したとき。ないタブなら何もしない） */
     showTab: (tabKey: string) => dispatch({ type: "show", key: tabKey }),
     /** タブの中身を変える（新しいチャットのプロジェクト・グループ、ブラウザのタイトルなど。その種類のタブだけ） */
     patchTab: (tabKey: string, patch: TabPatch) => dispatch({ type: "patch", key: tabKey, ...patch }),
     /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
-    replaceWithChat: (tabKey: string, chat: Chat) =>
-      dispatch({ type: "replace", key: tabKey, tab: { key: chatKey(chat.id), kind: "chat", id: chat.id, projectId: chat.project_id, title: chat.title } }),
+    replaceWithChat: (tabKey: string, chat: Chat) => dispatch({ type: "replace", key: tabKey, tab: chatTab(chat) }),
     /**
      * タブを閉じる（表示中のタブならそのペインの隣のタブへ。空になったペインは消す）。dismiss: false はアーカイブ・削除のあと
      * （サイドバーに出ている間は連動でまた出る）。ふだんは表示だけ消したことにして、連動で出し直さない

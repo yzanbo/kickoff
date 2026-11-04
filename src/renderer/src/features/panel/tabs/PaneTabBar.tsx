@@ -4,7 +4,7 @@ import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { PanelTab } from "./PanelTab";
 import type { PaneLeaf, SplitDir } from "@/features/panel/layout/paneLayout";
-import { tabLabel } from "./panelTabs";
+import { specOf } from "./tabKinds";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { CHAT_TITLE_MAX } from "@/features/chat/chatTitle";
 import type { useChatRename } from "@/features/chat/useChatRename";
@@ -90,11 +90,9 @@ export function PaneTabBar({
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (active ?? undefined) : undefined);
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
   const { stateOf } = useChatStates();
-  // チャットのタブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
-  const groupsOf = useGroupsOf(panel.tabs.flatMap((t) => (t.kind === "chat" ? [t.projectId] : [])));
+  // タブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
+  const groupsOf = useGroupsOf(panel.tabs.flatMap((t) => specOf(t).projectOf(t) ?? []));
   const groupName = (projectId: number, groupId: number | null | undefined) => groupNameIn(groupsOf(projectId), groupId);
-  const tabChatOf = (t: { id: number; status?: Chat["status"]; unread?: boolean }) =>
-    panel.chats.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, unread: Boolean(t.unread) } as Chat) : undefined);
   // まとめ方を選んでいれば、まとまりごとに並べ替えて見せる（display は見た目の並び。タブの中身が残っているものだけ）
   const [grouping] = useTabGrouping(panel.surface);
   const { clusterOf, clusterOfChat, seeds, projectOrder } = useTabClusters(panel, grouping);
@@ -125,11 +123,7 @@ export function PaneTabBar({
    */
   const clusterChats = (c: TabCluster): Chat[] | undefined => {
     if (c.key === OTHER_CLUSTER.key) return undefined;
-    const open = c.tabs.flatMap((key) => {
-      const t = panel.tabs.find((x) => x.key === key);
-      const chat = t?.kind === "chat" ? (panel.chats.find((r) => r.id === t.id) ?? t.chat) : undefined;
-      return chat ? [chat] : [];
-    });
+    const open = c.tabs.flatMap((key) => panel.chatOf(panel.tabs.find((x) => x.key === key)) ?? []);
     return [...open, ...panel.chats.filter((r) => !open.some((o) => o.id === r.id) && clusterOfChat(r).key === c.key)];
   };
   /**
@@ -144,36 +138,32 @@ export function PaneTabBar({
    */
   const allChats = (() => {
     if (clusters) return [];
-    const open = known.flatMap((key) => {
-      const t = panel.tabs.find((x) => x.key === key);
-      const chat = t?.kind === "chat" ? (panel.chats.find((r) => r.id === t.id) ?? t.chat) : undefined;
-      return chat ? [chat] : [];
-    });
+    const open = known.flatMap((key) => panel.chatOf(panel.tabs.find((x) => x.key === key)) ?? []);
     return [...open, ...panel.chats.filter((r) => !open.some((o) => o.id === r.id))].filter((r) => !r.archived_at);
   })();
   /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
   const tab = (key: string, i: number) => {
     const t = panel.tabs.find((x) => x.key === key);
     if (!t) return null;
-    const { Icon, iconClass, label, group: newGroup } = tabLabel(t, panel.chats);
-    // チャットのタブの状態（未読・失敗のタブは名前も太字にする。サイドバーの行と同じ）
-    const tabChat = t.kind === "chat" ? tabChatOf(t) : undefined;
+    const spec = specOf(t);
+    // チャットのタブのチャット（ボードの一覧になければ、タブの中のチャットから届いたもの）と状態（未読・失敗のタブは名前も太字にする。サイドバーの行と同じ）
+    const tabChat = panel.chatOf(t);
     const chatState = tabChat && stateOf(tabChat);
     const busyUnread = Boolean(tabChat && chatState && busyWithUnread(tabChat, chatState));
-    // どのグループのチャットか（ボードの一覧になければ、タブの中のチャットから届いたもの）
+    const label = spec.label(t, tabChat);
     // 分けたペイン（一覧のペインでない）のサイドバーと連動したチャットは、× で一覧のペインへ戻す
     const backHome = !home && panel.isLinkedTab(t.key);
-    const group = t.kind === "chat" ? groupName(t.projectId, (panel.chats.find((r) => r.id === t.id) ?? t.chat)?.group_id) : newGroup;
+    const group = spec.groupName?.(t, tabChat, groupName);
     return (
       <PanelTab
         key={t.key}
         active={active === t.key}
-        icon={Icon}
-        iconClass={iconClass}
+        icon={spec.icon}
+        iconClass={spec.iconClass}
         label={label}
         // グループ別にまとめているときは、まとまりの頭にグループ名が出るので、タブには添えない（名前を省かずに見せる）
         group={grouping === "group" ? undefined : group}
-        title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : group ? `${label}（グループ: ${group}）` : label}
+        title={spec.hint?.(t) ?? (group ? `${label}（グループ: ${group}）` : label)}
         className={cx(
           insertAt === i && "split-insert-before",
           insertAt === display.length && i === display.length - 1 && "split-insert-after",
@@ -193,7 +183,7 @@ export function PaneTabBar({
           backHome
             ? panel.returnToHome(t.key)
             : t.kind === "chat"
-              ? void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: (panel.chats.find((r) => r.id === t.id) ?? t.chat)?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }))
+              ? void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: tabChat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }))
               : panel.closeTab(t.key)
         }
       />
