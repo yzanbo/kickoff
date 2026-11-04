@@ -50,6 +50,7 @@ export function useTabClusters(
       title: name ? `グループ: ${name}` : "グループに入っていないチャット",
       projectId,
       groupId: groupId ?? null,
+      groupName: name,
     });
   };
   const byWorkplace = (projectId: number, run: Pick<Run, "worktree_path" | "branch">): ClusterOf => {

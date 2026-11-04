@@ -14,6 +14,8 @@ export interface ClusterOf {
   projectId?: number;
   /** グループ別のまとまりのグループ（null = グループなし。作業場所別では持たない） */
   groupId?: number | null;
+  /** そのグループの名前（プロジェクト名を添えない、削除の確かめに出す名前） */
+  groupName?: string;
 }
 
 /** ブラウザなど、どのグループ・作業場所にも入らないタブのまとまり（いちばん後ろに置く） */

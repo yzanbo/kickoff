@@ -128,7 +128,7 @@ function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
 }
 
 /** グループの削除を確かめる（中のチャットは消えず、グループなしに戻る） */
-export function confirmDeleteGroup(group: RunGroup): Promise<boolean> {
+export function confirmDeleteGroup(group: Pick<RunGroup, "name">): Promise<boolean> {
   return confirmDialog({
     title: `グループ「${group.name}」を削除しますか？`,
     message: "中のチャットは消えず、グループなしに戻ります。",
