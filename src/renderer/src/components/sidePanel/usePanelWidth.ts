@@ -78,11 +78,27 @@ export function usePanelWidth() {
     });
   };
 
+  /** 横にボードを残せるいちばん広いパネルの幅（覆っているときに「元の幅に戻す」で縮める幅） */
+  const fitWidth = Math.floor(bodyWidth - PANEL_GAP - MIN_BOARD_WIDTH);
+  /** 元の幅に戻せるか（覆っているときは、ボードが残る幅まで縮める。それでもパネルの最小の幅に足りないほど狭ければ戻せない） */
+  const canRestore = !covering || fitWidth >= MIN_PANEL_WIDTH;
+
   return {
     maximized,
     covering,
+    canRestore,
+    /**
+     * 横幅いっぱい ⇔ 元の幅。見た目どおりに切り替える: 横幅いっぱい・覆っているときは元の幅に戻し（覚えた幅のままでは覆うなら、
+     * ボードが残る幅まで縮める）、それ以外は横幅いっぱいにする
+     */
     toggleMaximized: () => {
-      setMaximized(!maximized);
+      if (maximized || covering) {
+        if (!canRestore) return;
+        if (maximized) setMaximized(false);
+        if (covering) setPanelWidth(fitWidth);
+      } else {
+        setMaximized(true);
+      }
       setStretching(true);
       window.clearTimeout(stretchTimer.current);
       stretchTimer.current = window.setTimeout(() => setStretching(false), STRETCH_MS);

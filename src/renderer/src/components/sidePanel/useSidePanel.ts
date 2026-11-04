@@ -244,9 +244,10 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
     /** 分割の配置（直したもの） */
     layout,
     panelOpen,
-    maximized: size.maximized,
-    /** 横に残るボードが狭すぎて、パネルでボードを覆っているか（横幅いっぱいの切り替えは出さない） */
-    covering: size.covering,
+    /** パネルが横幅いっぱいに見えているか（横幅いっぱいにした・横に残るボードが狭すぎてボードを覆っている） */
+    panelFull: size.maximized || size.covering,
+    /** 元の幅に戻せるか（覆っていて、ボードを残すとパネルの最小の幅に足りないほど狭いときは戻せない） */
+    canRestoreWidth: size.canRestore,
     /** サイドバーに出ているチャット（タブのチャットの状態・まとまりの数・状態ごとの一覧に使う） */
     runs,
     /** アーカイブ済みのチャットもタブに出しているか（サイドバーと共通） */
