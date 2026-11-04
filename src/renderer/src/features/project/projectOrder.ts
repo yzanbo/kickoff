@@ -1,11 +1,12 @@
 import type { Project } from "@shared/types";
 import { api } from "@/api";
+import type { SettingValue } from "@/lib/storage";
+import type { SIDEBAR_PROJECT_ORDER } from "@/lib/storageKeys";
 import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
 
 /** サイドバーのプロジェクトの並べ方: 手動（ドラッグで並べ替えた順）/ 最近動いた順 */
-export const PROJECT_ORDERS = ["manual", "recent"] as const;
-export type ProjectOrder = (typeof PROJECT_ORDERS)[number];
+export type ProjectOrder = SettingValue<typeof SIDEBAR_PROJECT_ORDER>;
 
 /**
  * サイドバーに出すプロジェクトの並び: 上に固定したものを先に、そのあとドラッグで並べ替えた順（同じなら作成順）。

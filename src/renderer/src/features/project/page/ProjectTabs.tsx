@@ -5,22 +5,22 @@ import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { stateCounts } from "@/features/chat/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/StateCornerCounts";
-import { useSharedChoice } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
+import type { SettingValue } from "@/lib/storage";
 import { href, type ProjectTab } from "@/app/router";
-import { PROJECT_TABS_LAYOUT_KEY } from "@/lib/storageKeys";
+import { PROJECT_TABS_LAYOUT } from "@/lib/storageKeys";
 import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { clampToViewport } from "@/ui/PopupMenu";
 
 /** タブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。縦の幅を本体に回せる） */
-export type ProjectTabsLayout = "top" | "side";
-const LAYOUTS: readonly ProjectTabsLayout[] = ["top", "side"];
+export type ProjectTabsLayout = SettingValue<typeof PROJECT_TABS_LAYOUT>;
 /** 置き方の名前（設定の「表示」と、タブの右クリックのメニューで共通） */
 export const PROJECT_TABS_LAYOUT_LABELS: Record<ProjectTabsLayout, string> = { top: "上に横並び", side: "左に縦並び（アイコン）" };
 
 /** タブの置き方（設定の「表示」で選ぶ。どのプロジェクトでも同じ。初めは左に縦並び（選んだことがなければ、入れたばかりでも縦並び）） */
 export function useProjectTabsLayout() {
-  return useSharedChoice<ProjectTabsLayout>(PROJECT_TABS_LAYOUT_KEY, LAYOUTS, "side");
+  return useSetting(PROJECT_TABS_LAYOUT);
 }
 
 /** タブの数を取り直している最中か（ボード = チャットの一覧・エディタ = Git の状態。数の代わりに更新中の印を出す） */
@@ -115,7 +115,7 @@ export function ProjectTabs({
           x={menu.x}
           y={menu.y}
           title="タブの置き方"
-          values={LAYOUTS}
+          values={PROJECT_TABS_LAYOUT.choices}
           labels={PROJECT_TABS_LAYOUT_LABELS}
           value={layout}
           onPick={setLayout}

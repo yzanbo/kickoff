@@ -1,16 +1,16 @@
 import type { Chat } from "@shared/types";
 import { useGroupNames, useProjectGroups } from "@/features/group/groupNames";
-import { useSharedChoice } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/app/projectsContext";
-import { panelTabGroupingKey } from "@/lib/storageKeys";
+import { panelTabGrouping } from "@/lib/storageKeys";
 import { workplaceOf } from "@/features/worktree/workplace";
 import { useWorktreeLists } from "@/features/worktree/worktreeBranches";
-import { OTHER_CLUSTER, TAB_GROUPINGS, type ClusterOf, type ClusterSeed, type TabGrouping } from "./tabClusters";
+import { OTHER_CLUSTER, type ClusterOf, type ClusterSeed, type TabGrouping } from "./tabClusters";
 import type { PanelSurface } from "@/features/panel/state/panelKinds";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
 /** タブの列のまとめ方（欄ごと: ボードの右のパネル・右端のチャット欄・フッターで別々に覚える。欄の中のペインでは共通。初めはまとめない） */
-export const useTabGrouping = (surface: PanelSurface) => useSharedChoice<TabGrouping>(panelTabGroupingKey(surface), TAB_GROUPINGS, "none");
+export const useTabGrouping = (surface: PanelSurface) => useSetting(panelTabGrouping(surface));
 
 /** タブのプロジェクト（ブラウザはどのプロジェクトにも入らない） */
 const projectOfTab = (t: PanelTab): number | undefined => (t.kind === "browser" || t.kind === "terminal" ? undefined : t.projectId);

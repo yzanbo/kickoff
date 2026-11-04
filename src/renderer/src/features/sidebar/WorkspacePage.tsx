@@ -4,9 +4,9 @@ import { BOARD_COLUMN_LABELS, type AgentState, type Project, type Chat, type Cha
 import { api } from "@/api";
 import { alertDialog } from "@/ui/dialogs";
 import { useChatRename } from "@/features/chat/useChatRename";
-import { useStoredFlag, useStoredFlagMap } from "@/hooks/useStoredState";
+import { useSetting, useSettingFamily } from "@/hooks/useSetting";
 import { projectHue } from "@/features/project/projectColor";
-import { SIDEBAR_GROUP_CLOSED_PREFIX, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "@/lib/storageKeys";
+import { sidebarArchivedOpen, sidebarGroupClosed, sidebarPinnedClosed, sidebarUngroupedClosed } from "@/lib/storageKeys";
 import { openNewChat, openChat, routeProjectId, useRoute } from "@/app/router";
 import { ChatMenu } from "@/features/chat/ChatMenu";
 import { InlineName } from "@/ui/InlineName";
@@ -62,9 +62,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   const list = useWorkspaceRows({ chats, groups, searchAll });
   const { waitingOnly, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, allRows, visibleRows, pinnedRows, rows, archivedMatches, ungroupedRows } = list;
   // 開閉の記憶: アーカイブ済み・固定（プロジェクトごと）
-  const [archivedOpen, setArchivedOpen] = useStoredFlag(sidebarArchivedOpenKey(project.id));
+  const [archivedOpen, setArchivedOpen] = useSetting(sidebarArchivedOpen(project.id));
   const toggleArchived = () => setArchivedOpen(!archivedOpen);
-  const [pinnedClosed, setPinnedClosed] = useStoredFlag(sidebarPinnedClosedKey(project.id));
+  const [pinnedClosed, setPinnedClosed] = useSetting(sidebarPinnedClosed(project.id));
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
   const [rowMenu, setRowMenu] = useState<{ x: number; y: number; chat: Chat } | null>(null);
 
@@ -90,9 +90,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 見出しの下に並べる行: グループでまとめているときはグループなしのものだけ、それ以外はすべて（固定したものを除く）
   const mainRows = byGroup ? ungroupedRows : rows;
   // グループの開閉（グループごとに記憶）
-  const groupClosed = useStoredFlagMap(SIDEBAR_GROUP_CLOSED_PREFIX);
+  const groupClosed = useSettingFamily(sidebarGroupClosed);
   // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
-  const [ungroupedClosed, setUngroupedClosed] = useStoredFlag(sidebarUngroupedClosedKey(project.id));
+  const [ungroupedClosed, setUngroupedClosed] = useSetting(sidebarUngroupedClosed(project.id));
   const toggleUngrouped = () => setUngroupedClosed(!ungroupedClosed);
   // 見出しの行の「すべて閉じる / 開く」: 中のまとまり（グループ・グループなし・固定・アーカイブ済み）もそろえる
   useFoldAll((closed) => {

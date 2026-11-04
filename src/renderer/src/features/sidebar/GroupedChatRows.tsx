@@ -4,14 +4,14 @@ import { boardColumnOf } from "@shared/chat/state";
 import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type GitWorktree } from "@shared/types";
 import type { BoardEntry } from "@/features/chatList/boardColumns";
 import { COLUMN_TONE } from "@/features/chat/tones";
-import { useStoredFlagMap } from "@/hooks/useStoredState";
+import { useSettingFamily } from "@/hooks/useSetting";
 import { cx } from "@/lib/cx";
 import { useWorktreeList } from "@/features/worktree/worktreeBranches";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type ChatWorkplace } from "@/features/worktree/workplace";
 import type { ChatOrder } from "./chatGroupings";
 import { Collapse } from "@/ui/Collapse";
 import { GroupToggle } from "@/ui/GroupToggle";
-import { SIDEBAR_SECTION_CLOSED_PREFIX } from "@/lib/storageKeys";
+import { sidebarSectionClosed } from "@/lib/storageKeys";
 import { useFoldAll } from "@/features/chatList/chatListFlags";
 
 /** まとまりの開閉（プロジェクト・並べ方・まとまりごとに覚える。検索中は開いて見せる） */
@@ -67,7 +67,7 @@ function Group({
 /**
  * サイドバーのチャットを、まとめ方（作業場所）・並び順（状態別）で見出しに分けて出す（まとめない × 新しい順は分けないので使わない）。
  * sections = worktree なら作業場所ごとの見出しに分け、order = status なら（作業場所の中でも）状態ごとの見出しに分ける。
- * まとまりはそれぞれ開閉でき、プロジェクト・グループ・まとまりごとに覚える（以前の「状態」「作業場所」のまとまりの開閉もそのまま読む）。
+ * まとまりはそれぞれ開閉でき、プロジェクト・グループ・まとまりごとに覚える。
  * forceOpen（検索中）のときはすべて開く。グループなしだけでなく、自分で作ったグループの中・アーカイブ済みの中でも同じようにまとめる
  */
 export function GroupedChatRows({
@@ -88,13 +88,13 @@ export function GroupedChatRows({
   /** 自分で作ったグループの中・アーカイブ済みの中でまとめるとき、そのまとまり（開閉をまとまりごとに覚える。なければグループなし） */
   scope?: number | "archived";
 }) {
-  const closed = useStoredFlagMap(SIDEBAR_SECTION_CLOSED_PREFIX);
+  const closed = useSettingFamily(sidebarSectionClosed);
   const worktrees = useWorktreeList(projectId);
   const scopeKey = scope === undefined ? "" : scope === "archived" ? "archived:" : `g${scope}:`;
   const idOf = (key: string) => `${projectId}:${scopeKey}${key}`;
   const state = {
     isClosed: (key: string) => closed.get(idOf(key)),
-    toggle: (key: string) => closed.toggle(idOf(key)),
+    toggle: (key: string) => closed.set(idOf(key), !closed.get(idOf(key))),
     set: (key: string, on: boolean) => closed.set(idOf(key), on),
     forceOpen,
   };

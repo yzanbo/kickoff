@@ -1,8 +1,9 @@
 import { List, Rows2, Rows4, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "@/features/chat/chatSearch";
-import { useSharedFlag, useStoredChoice } from "@/hooks/useStoredState";
-import { BOARD_LIST_COMPACT_KEY, BOARD_VIEW_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import type { SettingValue } from "@/lib/storage";
+import { BOARD_LIST_COMPACT, BOARD_SPLIT, BOARD_VIEW } from "@/lib/storageKeys";
 import { SearchField } from "@/ui/SearchField";
 import { Segmented } from "@/ui/Segmented";
 import { PanelToggle } from "@/features/panel/PanelToggle";
@@ -10,25 +11,16 @@ import type { PanelController } from "@/features/panel/usePanel";
 import { useBoardHeaderLayout } from "./boardHeaderLayout";
 
 /** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
-export type BoardView = "board" | "list";
+export type BoardView = SettingValue<typeof BOARD_VIEW>;
 
 /**
- * 保存の形（kickoff:board-view）: board / list と、それぞれを段（スイムレーン）に分ける lanes（= ボードを段に分ける。以前の「スイムレーン」の表示）/ list-lanes。
- * 以前は表示の切り替えの 3 つ目がスイムレーンだったので、lanes はそのまま「ボード ＋ 段に分ける」として読む
- */
-type StoredView = "board" | "list" | "lanes" | "list-lanes";
-const STORED_VIEWS: readonly StoredView[] = ["board", "list", "lanes", "list-lanes"];
-
-/**
- * 表示の種類と、段に分けるか（列を状態で分けるカンバン・グループのボード・全プロジェクトのボードで共通。列の分け方を切り替えてもそのまま）。
+ * 表示の種類と、段（スイムレーン）に分けるか（列を状態で分けるカンバン・グループのボード・全プロジェクトのボードで共通。列の分け方を切り替えてもそのまま）。
  * 段の分け方（作業場所・グループ・プロジェクト）はボードとリストで共通（useKanbanLanes）で、表示を切り替えても段に分けたまま
  */
 export function useBoardView() {
-  const [stored, setStored] = useStoredChoice<StoredView>(BOARD_VIEW_KEY, STORED_VIEWS, "board");
-  const view: BoardView = stored === "list" || stored === "list-lanes" ? "list" : "board";
-  const split = stored === "lanes" || stored === "list-lanes";
-  const store = (v: BoardView, s: boolean) => setStored(v === "list" ? (s ? "list-lanes" : "list") : s ? "lanes" : "board");
-  return { view, split, setView: (v: BoardView) => store(v, split), setSplit: (s: boolean) => store(view, s) };
+  const [view, setView] = useSetting(BOARD_VIEW);
+  const [split, setSplit] = useSetting(BOARD_SPLIT);
+  return { view, split, setView, setSplit };
 }
 
 /**
@@ -36,7 +28,7 @@ export function useBoardView() {
  * すべてのボード（カンバン・グループ・全プロジェクト）で共通で、見出しの切り替えと行の描き方（useBoardCards）でそろう
  */
 export function useBoardListCompact() {
-  return useSharedFlag(BOARD_LIST_COMPACT_KEY);
+  return useSetting(BOARD_LIST_COMPACT);
 }
 
 interface Props {

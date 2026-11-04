@@ -1,10 +1,11 @@
-import { CURRENT_PROJECT_KEY } from "@/lib/storageKeys";
+import { readSetting, writeSetting } from "@/lib/storage";
+import { CURRENT_PROJECT } from "@/lib/storageKeys";
 
-/** サイドバーで最後に選んでいたプロジェクト（⌘N の新しいチャットの作成先にも使う） */
+/** サイドバーで最後に選んでいたプロジェクト（⌘N の新しいチャットの作成先にも使う。まだなければ undefined） */
 export function loadCurrentProject(): number | undefined {
-  return Number(localStorage.getItem(CURRENT_PROJECT_KEY)) || undefined;
+  return readSetting(CURRENT_PROJECT) || undefined;
 }
 
 export function saveCurrentProject(id: number) {
-  localStorage.setItem(CURRENT_PROJECT_KEY, String(id));
+  writeSetting(CURRENT_PROJECT, id);
 }

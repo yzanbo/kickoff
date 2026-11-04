@@ -3,8 +3,8 @@ import { boardColumnOf } from "@shared/chat/state";
 import type { Chat, ChatGroup } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { useChatSearch } from "@/features/chat/chatSearch";
-import { useSharedFlag } from "@/hooks/useStoredState";
-import { SIDEBAR_WAITING_ONLY_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
 import type { StateFilter } from "./HeadCounts";
 import { isWaitingState } from "@/features/chatList/chatListFlags";
 
@@ -15,7 +15,7 @@ import { isWaitingState } from "@/features/chatList/chatListFlags";
  */
 export function useWorkspaceRows({ chats, groups, searchAll }: { chats: Chat[]; groups: ChatGroup[]; searchAll: string }) {
   // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替える）
-  const [waitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
+  const [waitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
   const [query, setQuery] = useState("");
   const { keyword, matches } = useChatSearch(query || searchAll);

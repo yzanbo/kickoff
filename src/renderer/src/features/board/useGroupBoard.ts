@@ -5,7 +5,7 @@ import { useChatSearch } from "@/features/chat/chatSearch";
 import { confirmDeleteGroup, useGroupDrop } from "@/features/group/groups";
 import { useActionError } from "@/hooks/useActionError";
 import { useChatRename } from "@/features/chat/useChatRename";
-import { GROUP_SHOW_ARCHIVED_KEY } from "@/lib/storageKeys";
+import { GROUP_BOARD_ARCHIVE_FILTER } from "@/lib/storageKeys";
 import { useGroupMenu } from "@/features/group/GroupMenu";
 import { archiveMatches, useArchiveFilter } from "./archiveFilter";
 import { useBoardView } from "./BoardHeader";
@@ -23,7 +23,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const { error, setError, guard } = useActionError();
-  const [archive, setArchive] = useArchiveFilter(GROUP_SHOW_ARCHIVED_KEY);
+  const [archive, setArchive] = useArchiveFilter(GROUP_BOARD_ARCHIVE_FILTER);
   const { chats, loaded } = useBoardChats(projectId, archive !== "active", setError);
   const shown = chats.filter((r) => archiveMatches(r, archive));
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする

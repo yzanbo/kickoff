@@ -1,5 +1,5 @@
-import { useSharedList } from "@/hooks/useStoredState";
-import { panelTabKindsKey } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { panelTabKinds } from "@/lib/storageKeys";
 import type { PaneLeaf } from "@/features/panel/layout/paneLayout";
 import type { PanelTab } from "@/features/panel/usePanel";
 
@@ -43,7 +43,7 @@ export function shownActiveOf(pane: PaneLeaf, visible: (key: string) => boolean)
 
 /** 欄で表示するタブの種類（タブの列の「表示するタブ」で切り替え、欄ごとに覚える） */
 export function usePanelKinds(surface: PanelSurface) {
-  const [stored, setStored] = useSharedList(panelTabKindsKey(surface));
+  const [stored, setStored] = useSetting(panelTabKinds(surface));
   const kinds = decodeKinds(stored, surface);
   return {
     kinds,

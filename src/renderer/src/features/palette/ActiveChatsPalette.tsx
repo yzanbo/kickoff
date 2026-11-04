@@ -8,7 +8,7 @@ import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
 import { useServerEvent } from "@/api/events";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useModalDialog } from "@/hooks/useModalDialog";
-import { useStoredFlag } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/app/projectsContext";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
@@ -19,7 +19,7 @@ import { shortRelativeTime } from "@/lib/time";
 import { COLUMN_TONE, DRAFT_TONE } from "@/features/chat/tones";
 import { openDraft, useAllDrafts, type SidebarDraft } from "@/features/panel/state/panelMemory";
 import { StatusDot } from "@/ui/StatusDot";
-import { ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS_KEY } from "@/lib/storageKeys";
+import { ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/lib/storageKeys";
 import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
 
 type CountedColumn = (typeof COUNTED_COLUMNS)[number];
@@ -47,7 +47,7 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
   const dialog = useModalDialog();
   const drafts = useAllDrafts();
   const [project, setProject] = useState<ProjectFilterValue>("all");
-  const [showArchived, setShowArchived] = useStoredFlag(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS_KEY);
+  const [showArchived, setShowArchived] = useSetting(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS);
 
   useEffect(() => {
     void api.allChats().then(setChats).catch(() => {});

@@ -1,16 +1,17 @@
 import { boardColumnOf } from "@shared/chat/state";
-import { useSharedFlag } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { storedIds, writeSetting } from "@/lib/storage";
 import { chatStateOf, type ApprovalIndex } from "@/features/chat/chatState";
-import { SIDEBAR_COMPACT_KEY, SIDEBAR_PROJECT_COMPACT_KEY, SIDEBAR_SECTION_CLOSED_PREFIX, SIDEBAR_SHOW_ARCHIVED_KEY } from "@/lib/storageKeys";
+import { SIDEBAR_COMPACT, SIDEBAR_PROJECT_COMPACT, SIDEBAR_SHOW_ARCHIVED, sidebarSectionClosed } from "@/lib/storageKeys";
 import type { AgentState, Chat } from "@shared/types";
 
-/** チャットを 1 行で出すか（初めは 1 行。どの部品でも同じ初期値になるよう、ここから読む） */
-export const useCompactRows = () => useSharedFlag(SIDEBAR_COMPACT_KEY, true);
+/** チャットを 1 行で出すか（初めは 1 行） */
+export const useCompactRows = () => useSetting(SIDEBAR_COMPACT);
 /** プロジェクトのカードを 1 行で出すか（初めは 2 行。チャットの行とは別に切り替える） */
-export const useCompactProjects = () => useSharedFlag(SIDEBAR_PROJECT_COMPACT_KEY, false);
+export const useCompactProjects = () => useSetting(SIDEBAR_PROJECT_COMPACT);
 /** アーカイブ済みのチャットを出すか（初めは出す） */
-export const useShowArchivedChats = () => useSharedFlag(SIDEBAR_SHOW_ARCHIVED_KEY, true);
+export const useShowArchivedChats = () => useSetting(SIDEBAR_SHOW_ARCHIVED);
 
 /** 自分が見る番か（カンバンの回答待ち・未読の列と同じ） */
 export const isWaitingState = (state: AgentState) => {
@@ -28,9 +29,7 @@ const FOLD_ALL_EVENT = "kickoff:sidebar-fold-all";
  * 描かれている部品には知らせ（useFoldAll）で伝え、開くときは、描かれていないまとまり（閉じたプロジェクトの中など）の覚えている値も開いたにする
  */
 export function foldAll(collapsed: boolean) {
-  if (!collapsed) {
-    for (const key of Object.keys(localStorage)) if (key.startsWith(SIDEBAR_SECTION_CLOSED_PREFIX)) localStorage.setItem(key, "0");
-  }
+  if (!collapsed) for (const id of storedIds(sidebarSectionClosed)) writeSetting(sidebarSectionClosed(id), false);
   window.dispatchEvent(new CustomEvent<boolean>(FOLD_ALL_EVENT, { detail: collapsed }));
 }
 

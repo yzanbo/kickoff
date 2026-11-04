@@ -2,8 +2,9 @@ import { Check, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 import type { Approval, Attachment, Question } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { useSharedChoice } from "@/hooks/useStoredState";
-import { QUESTION_LAYOUT_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import type { SettingValue } from "@/lib/storage";
+import { QUESTION_LAYOUT } from "@/lib/storageKeys";
 import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
 import { QuestionOtherField, type OtherFiles } from "./QuestionOtherField";
@@ -13,8 +14,7 @@ const OTHER = "__other__";
 const SKIP_MESSAGE = "ユーザーはこの質問をスキップしました。推測できる範囲で進めてください。";
 
 /** 質問がいくつもあるときの出し方: 1 問ずつ進める/ すべて並べる */
-type QuestionLayout = "steps" | "all";
-const LAYOUTS: readonly QuestionLayout[] = ["steps", "all"];
+type QuestionLayout = SettingValue<typeof QUESTION_LAYOUT>;
 
 /**
  * AI からの質問（AskUserQuestion）。選択肢と「その他」（複数行・画像などの添付）で答える。
@@ -23,7 +23,7 @@ const LAYOUTS: readonly QuestionLayout[] = ["steps", "all"];
 export function QuestionCard({ approval }: { approval: Approval }) {
   const questions = (approval.input.questions as Question[] | undefined) ?? [];
   const { sending, error, resolve } = useResolve(approval.id);
-  const [layout, setLayout] = useSharedChoice<QuestionLayout>(QUESTION_LAYOUT_KEY, LAYOUTS, "steps");
+  const [layout, setLayout] = useSetting(QUESTION_LAYOUT);
   const stepped = layout === "steps" && questions.length > 1;
   const [step, setStep] = useState(0);
   const current = Math.min(step, questions.length - 1);

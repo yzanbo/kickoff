@@ -1,19 +1,12 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
-import { NEW_CHAT_DRAFTS_KEY } from "@/lib/storageKeys";
+import { installMemoryStorage } from "@/lib/memoryStorage";
+import { NEW_CHAT_DRAFTS } from "@/lib/storageKeys";
 import { readSavedDrafts, writeDrafts } from "./draftPersistence";
 import type { PanelTab } from "@/features/panel/usePanel";
 
-// テスト用の localStorage（Node にはないので、文字列の Map で代わりにする）
-const store = new Map<string, string>();
-Object.assign(globalThis, {
-  localStorage: {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
-    removeItem: (k: string) => void store.delete(k),
-  },
-});
-beforeEach(() => store.clear());
+const { local } = installMemoryStorage();
+beforeEach(() => local.clear());
 
 const draft = (key: string, text?: string): PanelTab => ({ key, kind: "new", projectId: 1, group: 2, groupName: "実装", draftText: text });
 
@@ -31,12 +24,12 @@ test("下書きの保存: 新しいチャットのタブだけをパネルごと
 test("下書きの保存: 下書きがなくなったらキーごと消す", () => {
   writeDrafts([["kanban:1", [draft("new:a")]]]);
   writeDrafts([["kanban:1", []]]);
-  assert.equal(store.has(NEW_CHAT_DRAFTS_KEY), false);
+  assert.equal(local.getItem(NEW_CHAT_DRAFTS.key), null);
 });
 
 test("下書きの保存: 壊れた値・形の違うものは読まない", () => {
-  store.set(NEW_CHAT_DRAFTS_KEY, "{");
+  local.setItem(NEW_CHAT_DRAFTS.key, "{");
   assert.equal(readSavedDrafts().size, 0);
-  store.set(NEW_CHAT_DRAFTS_KEY, JSON.stringify({ "kanban:1": [{ key: "new:a", kind: "new" }, { kind: "chat" }], "side:2": "x" }));
+  local.setItem(NEW_CHAT_DRAFTS.key, JSON.stringify({ "kanban:1": [{ key: "new:a", kind: "new" }, { kind: "chat" }], "side:2": "x" }));
   assert.equal(readSavedDrafts().size, 0);
 });

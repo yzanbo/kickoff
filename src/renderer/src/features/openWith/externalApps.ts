@@ -1,14 +1,11 @@
 // アプリの外で開く（外部のターミナル: Terminal.app・Ghostty など / 外部のブラウザ: Chrome・Safari・Arc など）。
-// 選んでいるアプリはどの部品にもすぐ伝わり（useSharedChoice）、この Mac に入っているアプリはアプリ全体で 1 回だけ調べる
+// 選んでいるアプリはどの部品にもすぐ伝わり（useSetting）、この Mac に入っているアプリはアプリ全体で 1 回だけ調べる
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, type ExternalBrowserId, type ExternalTerminalId } from "@shared/types";
 import { cachedLoader } from "@/lib/cachedLoader";
 import { useAsync } from "@/hooks/useAsync";
-import { useSharedChoice } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { reportFailure } from "@/features/chat/chatActions";
-import { EXTERNAL_BROWSER_KEY, EXTERNAL_TERMINAL_KEY } from "@/lib/storageKeys";
-
-const TERMINAL_IDS = EXTERNAL_TERMINALS.map((t) => t.id);
-const BROWSER_IDS = EXTERNAL_BROWSERS.map((b) => b.id);
+import { EXTERNAL_BROWSER, EXTERNAL_TERMINAL } from "@/lib/storageKeys";
 
 /** 外部のターミナルの表示名 */
 export const terminalLabel = (id: ExternalTerminalId) => EXTERNAL_TERMINALS.find((t) => t.id === id)?.label ?? id;
@@ -31,7 +28,7 @@ function choicesOf<T extends string>(all: readonly { id: T }[], installed: T[] |
  * 開けなければお知らせで出す
  */
 export function useExternalTerminal() {
-  const [terminal, setTerminal] = useSharedChoice<ExternalTerminalId>(EXTERNAL_TERMINAL_KEY, TERMINAL_IDS, "terminal");
+  const [terminal, setTerminal] = useSetting(EXTERNAL_TERMINAL);
   const installed = useAsync(loadTerminals);
   const open = (dir: string, app: ExternalTerminalId = terminal) =>
     void window.kickoff?.openExternalTerminal(dir, app).catch(reportFailure("ターミナルを開けませんでした"));
@@ -50,7 +47,7 @@ export function useExternalTerminal() {
  * url がなければアプリを開くだけ。開けなければお知らせで出す
  */
 export function useExternalBrowser() {
-  const [browser, setBrowser] = useSharedChoice<ExternalBrowserId>(EXTERNAL_BROWSER_KEY, BROWSER_IDS, "chrome");
+  const [browser, setBrowser] = useSetting(EXTERNAL_BROWSER);
   const installed = useAsync(loadBrowsers);
   const open = (url?: string, app: ExternalBrowserId = browser) =>
     void window.kickoff?.openInBrowser(url, app).catch(reportFailure("ブラウザを開けませんでした"));

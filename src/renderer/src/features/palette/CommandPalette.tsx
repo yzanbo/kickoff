@@ -6,10 +6,10 @@ import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useModalDialog } from "@/hooks/useModalDialog";
-import { useSharedList } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/app/projectsContext";
 import { navigate, type Route } from "@/app/router";
-import { COMMAND_PALETTE_TARGETS_KEY } from "@/lib/storageKeys";
+import { COMMAND_PALETTE_TARGETS } from "@/lib/storageKeys";
 
 interface Item {
   key: string;
@@ -84,7 +84,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const dialog = useModalDialog();
   // 探す対象（複数選べる。開き直しても覚えておく。1 つは必ず残す）
-  const [stored, setStored] = useSharedList(COMMAND_PALETTE_TARGETS_KEY);
+  const [stored, setStored] = useSetting(COMMAND_PALETTE_TARGETS);
   const valid = stored.filter(isTarget);
   const targets = valid.length > 0 ? valid : DEFAULT_TARGETS;
   const targetKey = targets.join(",");

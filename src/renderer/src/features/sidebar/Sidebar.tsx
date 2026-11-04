@@ -1,13 +1,13 @@
 import { Inbox, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
 import { cx } from "@/lib/cx";
-import { useSharedFlag } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/app/projectsContext";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { useChatStates } from "@/app/chatStatesContext";
 import { href, useRoute } from "@/app/router";
 import { ProjectNav } from "./ProjectNav";
-import { SIDEBAR_WAITING_ONLY_KEY } from "@/lib/storageKeys";
+import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
 import { waitingChats } from "@/features/chatList/chatListFlags";
 import type { SidebarController } from "./useSidebar";
 import { useSidebarData } from "./useSidebarData";
@@ -29,7 +29,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const { chats, groups } = useSidebarData(projects);
   // 自分待ち（回答待ち・未読）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
-  const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
+  const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
   // タグで絞り込んでいれば、出しているプロジェクトの分だけを数える（押して出る一覧と合わせる）
   const tagFilter = useProjectTagFilter();
   const waitingCount = sidebarOrder(projects)

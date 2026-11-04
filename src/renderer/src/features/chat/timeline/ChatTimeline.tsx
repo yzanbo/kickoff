@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { CHAT_STATUS_LABELS } from "@/features/chat/chatStatus";
-import { useSharedFlag } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { useTicker } from "@/hooks/useTicker";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
@@ -17,7 +17,7 @@ import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
 import { ScrollBottomPill, type ScrollPillTone } from "./ScrollBottomPill";
-import { STICKY_PROMPT_HIDDEN_KEY } from "@/lib/storageKeys";
+import { STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 
 /**
  * 窓の外の項目を足し始める、端からの距離（画面の高さに対する割合と、最低限の px）。
@@ -111,7 +111,7 @@ export function ChatTimeline({
   const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
   // 上に貼り付けておく自分の発言（読んでいる返答の元の発言。いつも出しておき、スクロールに合わせて中身を変える）
   // （見出しの行のボタン・設定の「表示」で出さないこともできる）
-  const [stickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
+  const [stickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
   const pinnedAttachments = useMemo(() => (pinned ? promptAttachments(events, pinned.id) : []), [pinned, events]);
   // 自分の指示の並び（帯の ↑ / ↓ を押せるか）

@@ -1,29 +1,28 @@
 import { useRef, useState, type PointerEvent } from "react";
+import type { Setting } from "@/lib/storage";
 import { startHorizontalDrag } from "./dragResize";
-import { useStoredNumber } from "./useStoredState";
+import { useSetting } from "./useSetting";
 
 /**
- * 欄の幅を、境目のつまみのドラッグで変える（ダブルクリックで元の幅。覚えておく）。
+ * 欄の幅を、境目のつまみのドラッグで変える（setting に覚える。ダブルクリックで setting の初めの幅に戻す）。
  * side: "left" = 左の欄（つまみは右端）/ "right" = 右の欄（つまみは左端）。
  * 幅は min から、反対側を keep だけ残すところまで。paneRef を欄に、handle をつまみに渡す
  */
 export function useDragWidth({
-  storageKey,
-  initial,
+  setting,
   min = 200,
   keep = 320,
   side = "left",
   cssVar,
 }: {
-  storageKey: string;
-  initial: number;
+  setting: Setting<number>;
   min?: number;
   keep?: number;
   side?: "left" | "right";
   /** ドラッグ中に書き換える CSS 変数（開閉の動きのために幅を変数で持つ欄。なければ width を書き換える） */
   cssVar?: string;
 }) {
-  const [width, setWidth] = useStoredNumber(storageKey, initial);
+  const [width, setWidth] = useSetting(setting);
   const [resizing, setResizing] = useState(false);
   const paneRef = useRef<HTMLElement>(null);
 
@@ -58,7 +57,7 @@ export function useDragWidth({
       "aria-orientation": "vertical" as const,
       title: "ドラッグで幅を変える（ダブルクリックで元に戻す）",
       onPointerDown: start,
-      onDoubleClick: () => setWidth(initial),
+      onDoubleClick: () => setWidth(setting.initial),
     },
   };
 }

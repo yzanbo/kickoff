@@ -1,16 +1,16 @@
 import { useState } from "react";
 import type { Chat } from "@shared/types";
 import { useChatSearch } from "@/features/chat/chatSearch";
-import { useStoredChoice } from "@/hooks/useStoredState";
-import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { ALL_PROJECTS_BOARD_LANES, BOARD_ARCHIVE_FILTER, PROJECT_BOARD_LANES } from "@/lib/storageKeys";
 import { workplaceOf } from "@/features/worktree/workplace";
 import { useWorktreeLists } from "@/features/worktree/worktreeBranches";
-import { BOARD_LANES, type BoardLane } from "./BoardLanes";
+import type { BoardLane } from "./BoardLanes";
 import { useArchiveFilter } from "./archiveFilter";
 
 /** カンバンの絞り込み（アーカイブ（覚えておく）・作業場所・名前の検索） */
 export function useKanbanFilters() {
-  const [archive, setArchive] = useArchiveFilter(BOARD_SHOW_ARCHIVED_KEY);
+  const [archive, setArchive] = useArchiveFilter(BOARD_ARCHIVE_FILTER);
   // 作業場所（ワークツリー）での絞り込み（"all" はすべて、"" は本体）
   const [worktree, setWorktree] = useState("all");
   const [query, setQuery] = useState("");
@@ -36,13 +36,13 @@ const KANBAN_LANES: BoardLane[] = ["worktree", "group", "project"];
 /**
  * スイムレーンの段の分け方。プロジェクトで分けるのは全プロジェクトのボード、グループで分けるのはプロジェクトのボードだけ。
  * 全プロジェクトのボードは別に覚え、初めはプロジェクト（プロジェクト別のカンバン）。プロジェクトのボードは初めは作業場所
- * （以前の「セクション」（phase）を覚えていたら、初めの値に戻る）
+ * （そのボードで選べない分け方を覚えていたら、初めの値）
  */
 export function useKanbanLanes(allProjects: boolean) {
   const options = KANBAN_LANES.filter((l) => (allProjects ? l !== "group" : l !== "project"));
-  const fallback: BoardLane = allProjects ? "project" : "worktree";
-  const [choice, setLanes] = useStoredChoice<BoardLane>(allProjects ? BOARD_LANES_ALL_KEY : BOARD_LANES_KEY, BOARD_LANES, fallback);
-  const lanes: BoardLane = options.includes(choice) ? choice : fallback;
+  const setting = allProjects ? ALL_PROJECTS_BOARD_LANES : PROJECT_BOARD_LANES;
+  const [choice, setLanes] = useSetting(setting);
+  const lanes: BoardLane = options.includes(choice) ? choice : setting.initial;
   return { lanes, options, setLanes };
 }
 

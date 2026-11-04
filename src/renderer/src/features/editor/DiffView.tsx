@@ -6,15 +6,14 @@ import { cx } from "@/lib/cx";
 import type { CodeToken } from "@/lib/highlight";
 import { useHighlight } from "@/hooks/useHighlight";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
-import { useStoredChoice } from "@/hooks/useStoredState";
-import { DIFF_LAYOUT_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { DIFF_LAYOUT } from "@/lib/storageKeys";
 import { CodeLine } from "@/ui/CodeLine";
 import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
 import { parseDiff, toSplitRows, type DiffLine } from "./parseDiff";
 import { useGitTarget } from "@/features/worktree/worktreeContext";
 
-type DiffLayout = "split" | "unified";
 
 /** ファイルの状態の名前（差分の見出しに出す） */
 export const CHANGE_LABELS: Record<GitFileChange["kind"], string> = {
@@ -49,7 +48,7 @@ export function DiffView({
   /** コミットでの差分を出すとき（履歴から開いたとき）。staged は使わない */
   commit?: string;
 }) {
-  const [layout, setLayout] = useStoredChoice<DiffLayout>(DIFF_LAYOUT_KEY, ["split", "unified"], "unified");
+  const [layout, setLayout] = useSetting(DIFF_LAYOUT);
   const { target, key: at } = useGitTarget(projectId);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
   // 取り直している間は、前の差分を出しておく（同じファイルのとき。ちらつかないように）

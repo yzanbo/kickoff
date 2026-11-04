@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Approval, Project, Chat, ChatEvent, ChatLive } from "@shared/types";
 import { api } from "@/api";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
-import { useSharedFlag } from "@/hooks/useStoredState";
-import { chatDraftKey, STICKY_PROMPT_HIDDEN_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { chatDraft, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
 import { Composer } from "@/features/chat/composer/Composer";
@@ -147,7 +147,7 @@ function ChatView({
   // 文の幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
   const [wide] = useWideText();
   // 上に置く指示の帯を出さないか（見出しの行のボタンと設定の「表示」で切り替える。どのチャットでも同じ）
-  const [stickyHidden, setStickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
+  const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
   const timeline = useTimelineWindow({ items, chatId: chat.id, focus, stickToBottom });
   // 移り先が窓の外なら、窓を広げて描いてから移る
@@ -281,7 +281,7 @@ function ChatView({
           suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path || undefined }}
           fillRef={fillComposer}
           history={prompts}
-          draftKey={chatDraftKey(chat.id)}
+          draft={chatDraft(chat.id)}
         />
       </div>
     </div>

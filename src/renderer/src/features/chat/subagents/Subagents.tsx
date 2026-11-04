@@ -5,9 +5,9 @@ import { confirmDialog } from "@/ui/dialogs";
 import { useServerEvent } from "@/api/events";
 import { formatTokens } from "@/lib/format";
 import { useDismiss } from "@/hooks/useDismiss";
-import { useStoredState } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { useTicker } from "@/hooks/useTicker";
-import { subagentsArchivedKey } from "@/lib/storageKeys";
+import { subagentsArchived } from "@/lib/storageKeys";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { collectSubagents, type SubagentEntry } from "@shared/chat/subagents";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
@@ -63,11 +63,8 @@ export function SubagentChip({
   const [showArchived, setShowArchived] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
-  const [archived, saveArchived] = useStoredState(
-    subagentsArchivedKey(chat.id),
-    (raw) => new Set(JSON.parse(raw ?? "[]") as string[]),
-    (keys) => JSON.stringify([...keys]),
-  );
+  const [archivedKeys, saveArchived] = useSetting(subagentsArchived(chat.id));
+  const archived = useMemo(() => new Set(archivedKeys), [archivedKeys]);
   // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
   useDismiss(ref, () => setOpen(false), { enabled: open, ignore: "dialog" });
 
@@ -94,14 +91,12 @@ export function SubagentChip({
       message: "一覧から隠れます。「アーカイブ済みを表示」で出し、戻せます。",
       confirmLabel: "アーカイブ",
     });
-    if (ok) saveArchived(new Set([...archived, ...keys]));
+    if (ok) saveArchived([...new Set([...archived, ...keys])]);
   };
   const restore = async (key: string) => {
     const ok = await confirmDialog({ title: "このサブエージェントを一覧に戻しますか？", message: "アーカイブから戻し、一覧に、また出るようになります。", confirmLabel: "戻す" });
     if (!ok) return;
-    const next = new Set(archived);
-    next.delete(key);
-    saveArchived(next);
+    saveArchived(archivedKeys.filter((k) => k !== key));
   };
 
   const renderRow = (s: SubagentEntry, isArchived: boolean) => {

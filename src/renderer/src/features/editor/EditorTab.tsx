@@ -4,9 +4,9 @@ import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
 import { useActionError } from "@/hooks/useActionError";
 import { useDragWidth } from "@/hooks/useDragWidth";
-import { useStoredChoice } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { navigate, type FileTarget } from "@/app/router";
-import { CHANGES_LIST_WIDTH_KEY, CHANGES_VIEW_KEY } from "@/lib/storageKeys";
+import { CHANGES_LIST_WIDTH, CHANGES_VIEW } from "@/lib/storageKeys";
 import { WorktreePicker } from "@/features/worktree/WorktreePicker";
 import { ErrorText } from "@/ui/ErrorText";
 import { Segmented } from "@/ui/Segmented";
@@ -15,7 +15,7 @@ import { ChangesPane } from "./ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
 import { changeKinds, parentFolders } from "./treeModel";
-import { selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
+import { selectedChange, useChangesSelection } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
@@ -47,7 +47,7 @@ export function EditorTab({
 }) {
   const rootName = baseName(worktree ?? repoPath);
   const { status } = git;
-  const [view, setView] = useStoredChoice<ChangesView>(CHANGES_VIEW_KEY, ["files", "search", "changes"], "files");
+  const [view, setView] = useSetting(CHANGES_VIEW);
   const selection = useChangesSelection();
   const { selected, setSelected } = selection;
   // エクスプローラーで開いているフォルダ（表示を切り替えても残す）
@@ -57,7 +57,7 @@ export function EditorTab({
   const search = useProjectSearch(projectId);
   const actionError = useActionError();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
-  const list = useDragWidth({ storageKey: CHANGES_LIST_WIDTH_KEY, initial: 246 });
+  const list = useDragWidth({ setting: CHANGES_LIST_WIDTH });
   // チャットの返答のファイルのチップから来たとき: エクスプローラーでそのファイルを選び（行があればその行へ）、
   // 上のフォルダを開いて、URL からは外す（同じファイルをもう一度押しても開けるように）
   useEffect(() => {

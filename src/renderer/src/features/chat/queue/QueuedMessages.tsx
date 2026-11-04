@@ -15,11 +15,10 @@ import type { NewChatTarget } from "@/features/panel/usePanel";
 import { cx } from "@/lib/cx";
 import { reportFailure } from "@/features/chat/chatActions";
 import { startVerticalDrag } from "@/hooks/dragResize";
-import { useSharedFlag, useSharedNumber } from "@/hooks/useStoredState";
-import { QUEUE_COLLAPSED_KEY, QUEUE_EXPANDED_KEY, QUEUE_HEIGHT_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { QUEUE_COLLAPSED, QUEUE_EXPANDED, QUEUE_HEIGHT } from "@/lib/storageKeys";
 
 /** 一覧の高さの上限の初め（5 件ほど）と、つまみで縮められる下限（1 件ほど） */
-const DEFAULT_LIST_HEIGHT = 150;
 const MIN_LIST_HEIGHT = 36;
 
 /**
@@ -52,13 +51,13 @@ export function QueuedMessages({
   busy: boolean;
 }) {
   const { messages, paused, stops, waiting_edit: waitingEdit } = queue;
-  const [collapsed, setCollapsed] = useSharedFlag(QUEUE_COLLAPSED_KEY, true);
+  const [collapsed, setCollapsed] = useSetting(QUEUE_COLLAPSED);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
-  const [expanded, setExpanded] = useSharedFlag(QUEUE_EXPANDED_KEY);
+  const [expanded, setExpanded] = useSetting(QUEUE_EXPANDED);
   const listRef = useRef<HTMLDivElement>(null);
   const [overflowing, setOverflowing] = useState(false);
   // 一覧の高さの上限（上端のつまみのドラッグで変える。ダブルクリックで元の高さ）
-  const [height, setHeight] = useSharedNumber(QUEUE_HEIGHT_KEY, DEFAULT_LIST_HEIGHT);
+  const [height, setHeight] = useSetting(QUEUE_HEIGHT);
   const [resizing, setResizing] = useState(false);
   /** つまみのドラッグ: 上へ動かすほど高く（いま見えている高さから。上限は画面の高さの 6 割）。ドラッグ中は描き直さず、style だけ書き換える */
   const startResize = (e: PointerEvent<HTMLElement>) => {
@@ -144,7 +143,7 @@ export function QueuedMessages({
           title="ドラッグで高さを変える（ダブルクリックで元に戻す）"
           onPointerDown={startResize}
           onDoubleClick={() => {
-            setHeight(DEFAULT_LIST_HEIGHT);
+            setHeight(QUEUE_HEIGHT.initial);
             setExpanded(false);
           }}
         />

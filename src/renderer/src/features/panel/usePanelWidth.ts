@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { startHorizontalDrag } from "@/hooks/dragResize";
-import { useStoredFlag, useStoredNumber } from "@/hooks/useStoredState";
-import { PANEL_MAXIMIZED_KEY, PANEL_WIDTH_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { PANEL_MAXIMIZED, PANEL_WIDTH } from "@/lib/storageKeys";
 
-const DEFAULT_PANEL_WIDTH = 1127;
 const MIN_PANEL_WIDTH = 360;
 /** ボードとパネルの間隔（side-panel.css の .board-body.with-panel の gap） */
 const PANEL_GAP = 12;
@@ -28,10 +27,10 @@ function leavesNarrowBoard(bodyWidth: number, width: number): boolean {
  * bodyRef と style は、ボードとパネルを並べる要素（usePanel の body）に渡す
  */
 export function usePanelWidth() {
-  const [panelWidth, setPanelWidth] = useStoredNumber(PANEL_WIDTH_KEY, DEFAULT_PANEL_WIDTH);
+  const [panelWidth, setPanelWidth] = useSetting(PANEL_WIDTH);
   const [resizing, setResizing] = useState(false);
   // 横幅いっぱい（ボードを覆う）。戻すと、元の幅に戻る
-  const [maximized, setMaximized] = useStoredFlag(PANEL_MAXIMIZED_KEY);
+  const [maximized, setMaximized] = useSetting(PANEL_MAXIMIZED);
   /**
    * 横幅いっぱいを切り替えて、パネルの幅が動いている途中か。開閉と違い、右端は動かず左端だけが伸び縮みするので、その間は中身を
    * 枠の幅に合わせて並べ直す（開き終えたときの幅のまま左端にそろえると、広げるときは中身が左端と一緒に滑り、戻すときは右側が空いた）

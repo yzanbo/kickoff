@@ -1,5 +1,7 @@
 import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GalleryVertical, GripVertical, Rows2, Rows3, Rows4, type LucideIcon } from "lucide-react";
 import type { ProjectOrder } from "@/features/project/projectOrder";
+import type { SettingValue } from "@/lib/storage";
+import type { SIDEBAR_LAYOUT } from "@/lib/storageKeys";
 import { CHAT_SECTIONS, ORDER_META, SECTIONS_META, useChatLayout } from "./chatGroupings";
 import { HeadMenu, HeadToggle } from "./HeadMenu";
 import { IconButton } from "@/ui/IconButton";
@@ -7,7 +9,7 @@ import { useCompactProjects, useCompactRows, useShowArchivedChats } from "@/feat
 import { TagFilterRow } from "./TagFilterRow";
 
 /** slide: 1 プロジェクトずつ横にスライド（丸は下） / rail: 1 プロジェクトずつ縦にスライド（丸は左に縦に並べる） / stack: すべてのプロジェクトを縦に並べる */
-export type NavLayout = "slide" | "stack" | "rail";
+export type NavLayout = SettingValue<typeof SIDEBAR_LAYOUT>;
 
 /** 並べ方の表示（ボタンの値・メニューの項目） */
 const LAYOUT_META: Record<NavLayout, { icon: LucideIcon; short: string; label: string }> = {

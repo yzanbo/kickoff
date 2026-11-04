@@ -1,15 +1,15 @@
 import { CircleDot, Folder } from "lucide-react";
-import { useSharedChoice } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { navigate } from "@/app/router";
-import { BOARD_COLUMNS_KEY } from "@/lib/storageKeys";
+import type { SettingValue } from "@/lib/storage";
+import { PROJECT_BOARD_COLUMNS } from "@/lib/storageKeys";
 import { Segmented } from "@/ui/Segmented";
 
-export type BoardColumns = "state" | "groups";
-const BOARD_COLUMNS_CHOICES: readonly BoardColumns[] = ["state", "groups"];
+export type BoardColumns = SettingValue<typeof PROJECT_BOARD_COLUMNS>;
 
 /** プロジェクトのボードの列の分け方（最後に見た方。ボードのタブのリンク先に使う） */
 export function useBoardColumns() {
-  return useSharedChoice<BoardColumns>(BOARD_COLUMNS_KEY, BOARD_COLUMNS_CHOICES, "state");
+  return useSetting(PROJECT_BOARD_COLUMNS);
 }
 
 /**

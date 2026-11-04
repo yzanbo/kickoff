@@ -1,8 +1,8 @@
 import { createLucideIcon, MoveHorizontal } from "lucide-react";
 import { useEffect, useState, type RefObject } from "react";
 import { cx } from "@/lib/cx";
-import { useSharedFlag } from "@/hooks/useStoredState";
-import { CHAT_WIDE_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { CHAT_WIDE } from "@/lib/storageKeys";
 import { IconButton } from "@/ui/IconButton";
 
 /** 発言の流れ・チャット欄の幅の上限（chat.css の .timeline-inner の max-width と同じ）。流れがこれより狭ければ、広げても変わらない */
@@ -21,7 +21,7 @@ const MoveHorizontalIn = createLucideIcon("move-horizontal-in", [
 
 /** 文の幅を広げるか（設定の「表示」→「チャットの文の幅」と同じ値。どのチャットでも同じ） */
 export function useWideText() {
-  return useSharedFlag(CHAT_WIDE_KEY);
+  return useSetting(CHAT_WIDE);
 }
 
 /**

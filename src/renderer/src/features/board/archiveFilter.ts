@@ -1,14 +1,11 @@
 import type { Chat } from "@shared/types";
-import { useStoredState } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
+import type { Setting, SettingValue } from "@/lib/storage";
+import type { BOARD_ARCHIVE_FILTER } from "@/lib/storageKeys";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 
 /** アーカイブでの絞り込み（all: すべて / active: 未アーカイブ / archived: アーカイブ済み）。カンバンとグループのボードで共通 */
-export type ArchiveFilter = "all" | "active" | "archived";
-
-/** 保存の形式は、2 択だったころのまま（"1" = すべて、"0" = 未アーカイブ）。アーカイブ済みだけは "archived" */
-// 保存していなければ「すべてのチャット」（"1"）。"0" は未アーカイブだけ
-export const decodeArchiveFilter = (raw: string | null): ArchiveFilter => (raw === null || raw === "1" ? "all" : raw === "archived" ? "archived" : "active");
-export const encodeArchiveFilter = (value: ArchiveFilter): string => (value === "all" ? "1" : value === "archived" ? "archived" : "0");
+export type ArchiveFilter = SettingValue<typeof BOARD_ARCHIVE_FILTER>;
 
 /**
  * ボードの絞り込みの値（純粋関数）。アーカイブ済みを出すかはサイドバー・右のパネルのタブと共通の設定（shown）で決め、
@@ -19,11 +16,11 @@ export const linkedArchiveFilter = (shown: boolean, stored: ArchiveFilter): Arch
 /**
  * アーカイブでの絞り込み。サイドバー・右のパネルのタブと連動する（kickoff:sidebar-show-archived）: 「すべて」「アーカイブ済み」を選ぶと
  * どこでもアーカイブ済みを出し、「未アーカイブ」を選ぶとどこでも隠す（サイドバー・タブで切り替えても、ボードも同じになる）。
- * 「アーカイブ済みだけ」はボードの中だけの絞り込みとして、ボードごとに key で覚える（保存の形は "1" / "0" / "archived" のまま）
+ * 「アーカイブ済みだけ」はボードの中だけの絞り込みとして、ボードごとに setting で覚える（カンバン・グループのボード）
  */
-export function useArchiveFilter(key: string): [ArchiveFilter, (value: ArchiveFilter) => void] {
+export function useArchiveFilter(setting: Setting<ArchiveFilter>): [ArchiveFilter, (value: ArchiveFilter) => void] {
   const [shown, setShown] = useShowArchivedChats();
-  const [stored, setStored] = useStoredState<ArchiveFilter>(key, decodeArchiveFilter, encodeArchiveFilter);
+  const [stored, setStored] = useSetting(setting);
   const set = (value: ArchiveFilter) => {
     setStored(value);
     setShown(value !== "active");

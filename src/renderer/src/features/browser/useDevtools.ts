@@ -2,12 +2,13 @@ import type { WebviewTag } from "electron";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { startVerticalDrag } from "@/hooks/dragResize";
 import { useDragWidth } from "@/hooks/useDragWidth";
-import { useStoredChoice, useStoredNumber } from "@/hooks/useStoredState";
-import { BROWSER_DEVTOOLS_DOCK_KEY, BROWSER_DEVTOOLS_HEIGHT_KEY, BROWSER_DEVTOOLS_WIDTH_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import type { SettingValue } from "@/lib/storage";
+import { BROWSER_DEVTOOLS_DOCK, BROWSER_DEVTOOLS_HEIGHT, BROWSER_DEVTOOLS_WIDTH } from "@/lib/storageKeys";
 
 /** 開発者ツールを出す場所: 右・下（ブラウザのタブの中）・別のウィンドウ */
-export const DEVTOOLS_DOCKS = ["right", "bottom", "window"] as const;
-export type DevtoolsDock = (typeof DEVTOOLS_DOCKS)[number];
+export const DEVTOOLS_DOCKS = BROWSER_DEVTOOLS_DOCK.choices;
+export type DevtoolsDock = SettingValue<typeof BROWSER_DEVTOOLS_DOCK>;
 
 export const DEVTOOLS_DOCK_LABELS: Record<DevtoolsDock, string> = {
   right: "右に表示",
@@ -15,7 +16,6 @@ export const DEVTOOLS_DOCK_LABELS: Record<DevtoolsDock, string> = {
   window: "別のウィンドウで表示",
 };
 
-const DEFAULT_HEIGHT = 300;
 const MIN_HEIGHT = 140;
 
 /**
@@ -25,13 +25,13 @@ const MIN_HEIGHT = 140;
  * 前に出していたものはメインプロセスが閉じる。右と下の入れ替えは開き直さず、同じ入れ物の並べ方だけを変える
  */
 export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
-  const [dock, setDock] = useStoredChoice<DevtoolsDock>(BROWSER_DEVTOOLS_DOCK_KEY, DEVTOOLS_DOCKS, "window");
+  const [dock, setDock] = useSetting(BROWSER_DEVTOOLS_DOCK);
   // いま出している場所（null は閉じている）。タブの中の入れ物は開くたびに作り直す（key。一度使った入れ物は使い回せない）
   const [shown, setShown] = useState<DevtoolsDock | null>(null);
   const [embedKey, setEmbedKey] = useState(0);
   const devtoolsRef = useRef<WebviewTag | null>(null);
-  const width = useDragWidth({ storageKey: BROWSER_DEVTOOLS_WIDTH_KEY, initial: 420, min: 260, keep: 240, side: "right" });
-  const [height, setHeight] = useStoredNumber(BROWSER_DEVTOOLS_HEIGHT_KEY, DEFAULT_HEIGHT);
+  const width = useDragWidth({ setting: BROWSER_DEVTOOLS_WIDTH, min: 260, keep: 240, side: "right" });
+  const [height, setHeight] = useSetting(BROWSER_DEVTOOLS_HEIGHT);
   const [resizingHeight, setResizingHeight] = useState(false);
   const embedded = shown === "right" || shown === "bottom";
 
@@ -137,7 +137,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     height,
     resizing: width.resizing || resizingHeight,
     startResizeHeight,
-    resetHeight: () => setHeight(DEFAULT_HEIGHT),
+    resetHeight: () => setHeight(BROWSER_DEVTOOLS_HEIGHT.initial),
     toggle: () => (shown ? close() : openAt(dock)),
     /** 出す場所を選ぶ（選んだ場所で開く。開いていれば、その場所へ移す） */
     changeDock: (next: DevtoolsDock) => {

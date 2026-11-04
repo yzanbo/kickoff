@@ -3,11 +3,12 @@ import { api } from "@/api";
 import { chatTitle } from "./chatTitle";
 import { choiceDialogWithRemember } from "@/ui/dialogs";
 import { confirmDeleteChat, deleteChat, reportFailure, toggleArchiveChat } from "./chatActions";
-import { CHAT_CLOSE_ACTION_KEY } from "@/lib/storageKeys";
+import { readSetting, writeSetting, type SettingValue } from "@/lib/storage";
+import { CHAT_CLOSE_ACTION } from "@/lib/storageKeys";
 
 /** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除） */
-export const CHAT_CLOSE_ACTIONS = ["ask", "close", "archive", "delete"] as const;
-export type ChatCloseAction = (typeof CHAT_CLOSE_ACTIONS)[number];
+export const CHAT_CLOSE_ACTIONS = CHAT_CLOSE_ACTION.choices;
+export type ChatCloseAction = SettingValue<typeof CHAT_CLOSE_ACTION>;
 
 export const CHAT_CLOSE_ACTION_LABELS: Record<ChatCloseAction, string> = {
   ask: "毎回聞く",
@@ -15,12 +16,6 @@ export const CHAT_CLOSE_ACTION_LABELS: Record<ChatCloseAction, string> = {
   archive: "アーカイブする",
   delete: "削除する",
 };
-
-/** いまの既定（設定の「チャット」で変える。未保存・知らない値なら毎回聞く） */
-function storedCloseAction(): ChatCloseAction {
-  const raw = localStorage.getItem(CHAT_CLOSE_ACTION_KEY);
-  return CHAT_CLOSE_ACTIONS.includes(raw as ChatCloseAction) ? (raw as ChatCloseAction) : "ask";
-}
 
 /**
  * チャットの ✕（見出しの ✕・タブの ×）: 表示だけ消すか、アーカイブするか、削除するかを選んでから閉じる。
@@ -32,7 +27,8 @@ export async function closeChatWithChoice(
   chat: Pick<Chat, "id" | "title"> & Partial<Pick<Chat, "archived_at">>,
   close: (action: Exclude<ChatCloseAction, "ask">) => void,
 ) {
-  let action = storedCloseAction();
+  // いまの既定（設定の「チャット」で変える。未保存なら毎回聞く）
+  let action = readSetting(CHAT_CLOSE_ACTION);
   let confirmed = false;
   if (action === "ask") {
     const archived = Boolean(chat.archived_at);
@@ -50,7 +46,7 @@ export async function closeChatWithChoice(
     action = picked.value;
     // 選んだ時点で確かめたことにする（削除をもう一度聞かない）
     confirmed = true;
-    if (picked.remember) localStorage.setItem(CHAT_CLOSE_ACTION_KEY, picked.value);
+    if (picked.remember) writeSetting(CHAT_CLOSE_ACTION, picked.value);
   }
   try {
     if (action === "archive") {

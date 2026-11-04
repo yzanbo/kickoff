@@ -4,9 +4,10 @@ import type { Attachment } from "@shared/types";
 import type { GitTarget } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { cx } from "@/lib/cx";
-import { useSharedFlag, useStoredText } from "@/hooks/useStoredState";
+import { useOptionalSetting, useSetting } from "@/hooks/useSetting";
+import type { Setting } from "@/lib/storage";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { COMPOSER_COMPACT_KEY } from "@/lib/storageKeys";
+import { COMPOSER_COMPACT } from "@/lib/storageKeys";
 import { PendingFileChips } from "@/features/chat/attachments/PendingFileChips";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
@@ -49,8 +50,8 @@ interface Props {
   suggestTarget?: GitTarget;
   /** ↑↓ で呼び出す、このチャットで前に送った自分の発言（新しい順。新しいチャットの入力欄では渡さない） */
   history?: string[];
-  /** 書きかけの文を残す localStorage のキー（既存のチャットの chatDraftKey。新しいチャットはタブの draftText で残すので渡さない） */
-  draftKey?: string;
+  /** 書きかけの文を残す設定（既存のチャットの chatDraft。新しいチャットはタブの draftText で残すので渡さない） */
+  draft?: Setting<string>;
   /** 外から入力欄に文を入れる口（発言の一覧の「入力欄に入れる」など。append なら書いている文の後ろに足す。入れたら文の終わりにピントを置く） */
   fillRef?: MutableRefObject<ComposerFill | null>;
   /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
@@ -70,10 +71,10 @@ export class SendCancelled extends Error {}
 /** 停止中に Esc を押したとき（もう止めているので何もしない） */
 const ignoreStop = () => {};
 
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draftKey, fillRef, chatContext }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, fillRef, chatContext }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
-  const [text, setText] = useStoredText(draftKey);
+  const [text, setText] = useOptionalSetting(draft, "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   /** 文を入れて、キャレットを caret に置く（描き直して高さが合ってから） */
   const fill = (value: string, caret = value.length, focus = true) => {
@@ -93,7 +94,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       if (opts?.attachments) attach.addAttachments(opts.attachments);
     };
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
-  const [compact] = useSharedFlag(COMPOSER_COMPACT_KEY);
+  const [compact] = useSetting(COMPOSER_COMPACT);
   // ↑↓ で前の発言を呼び出す
   const promptHistory = usePromptHistory({ prompts: history, text, setText, textareaRef });
   // / と @ の候補（Claude Code の VS Code 拡張と同じ）。呼び出した発言を出している間は出さない
