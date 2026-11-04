@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowUpToLine, Merge, OctagonPause, Pause, Play, SendHorizontal, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, Merge, OctagonPause, Pause, Pencil, Play, SendHorizontal, Trash2, X } from "lucide-react";
 import { cx } from "../../cx";
 import { api } from "../../api";
 import { confirmDialog } from "../../dialogs";
@@ -67,7 +67,7 @@ export function QueuedMoveActions({ runId, selected, failed }: { runId: number; 
 /**
  * 送信待ちの見出しの右の、全体・選んだものへの操作。
  * 選んでいなければ「すべて送る」（すべてを 1 つにまとめてすぐ送る）と「すべて消す」（2 件以上のときだけ。1 件なら行のボタンと同じになるため）、
- * 選んでいれば「まとめて送る」（選んだものだけを 1 つにまとめてすぐ送る）・消す・選ぶのをやめる（並べ替えは QueuedMoveActions）
+ * 選んでいれば「書き直す」（選んだ指示の書き直す欄をまとめて開く）・「まとめて送る」（選んだものだけを 1 つにまとめてすぐ送る）・消す・選ぶのをやめる（並べ替えは QueuedMoveActions）
  */
 export function QueuedHeadActions({
   runId,
@@ -76,6 +76,7 @@ export function QueuedHeadActions({
   busy,
   holds,
   onClearSelection,
+  onEditSelected,
   failed,
 }: {
   runId: number;
@@ -86,6 +87,8 @@ export function QueuedHeadActions({
   selected: string[];
   busy: boolean;
   onClearSelection: () => void;
+  /** 選んだ指示の書き直す欄をまとめて開く（いくつでも同時に書き直せる） */
+  onEditSelected: () => void;
   failed: (e: unknown) => void;
 }) {
   // 作業中は止めずに、いまのやり取りに伝える（Runner の tell。メインのエージェントがいまの手順の切れ目で読む）
@@ -95,6 +98,16 @@ export function QueuedHeadActions({
     const done = () => onClearSelection();
     return (
       <>
+        <button
+          type="button"
+          className="btn btn-sm queued-head-btn"
+          aria-label={`選んだ ${n} 件を書き直す`}
+          title={`選んだ ${n} 件の書き直す欄をまとめて開く（1 件ずつ保存・やめるができる）`}
+          onClick={onEditSelected}
+        >
+          <Pencil size={12} aria-hidden />
+          <span className="queued-head-label">書き直す</span>
+        </button>
         {/* 送らずに、選んだ指示を 1 件にまとめる（列の順に空行でつなぐ。選んだうちのいちばん上の位置に残る） */}
         {n > 1 && (
           <button

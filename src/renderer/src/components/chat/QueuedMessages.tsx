@@ -1,12 +1,13 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause } from "lucide-react";
 import { Fragment, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
-import type { Attachment, QueuedMessage } from "../../../../core/types";
+import type { QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
 import { QueuedHeadActions, QueuedModeButton, QueuedMoveActions, QueuedStopButton } from "./QueuedHeadActions";
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
 import { QueuedStopLine } from "./QueuedStopLine";
 import { useQueueDrag } from "./useQueueDrag";
+import { useQueuedEdits } from "./useQueuedEdits";
 import { useAskInNewChat } from "./askInNewChat";
 import { nextQueuedText, queuedHint } from "./queuedHint";
 import type { NewChatTarget } from "../sidePanel/useSidePanel";
@@ -115,25 +116,22 @@ export function QueuedMessages({
     selected.length > 0,
     true,
   );
-  // 書き直している指示（id と書いている途中の文）
-  const [editing, setEditing] = useState<{ id: string; text: string; attachments: Attachment[] }>();
   const failed = reportFailure("待ちの指示を操作できませんでした");
   // ドラッグ: 指示の並べ替えと、「ここまで送ったら止めます」の印の移動
   const dnd = useQueueDrag(runId, queue, stops, failed);
   // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
   const ask = useAskInNewChat(runId, queue, newChatTarget);
-  // 書き直している行の高さ（文を中でスクロールさせず全部見せるため、一覧の高さの上限をこれより低くしない）
-  const [editHeight, setEditHeight] = useState(0);
-  useLayoutEffect(() => {
-    const row = editing ? listRef.current?.querySelector<HTMLElement>(".queued-row.editing") : null;
-    setEditHeight(row ? row.offsetHeight + 8 : 0);
-    row?.scrollIntoView({ block: "nearest" });
-  }, [editing?.id, editing?.text]);
+  // 書き直す欄（いくつでも同時に開ける。指示ごとに書いている途中の文を持つ）
+  const edit = useQueuedEdits(runId, queue, listRef, failed);
+  const editSelected = () => {
+    edit.start(queue.filter((q) => selected.includes(q.id)));
+    clearSelection();
+  };
   // 一覧の高さが上限を超えたか（超えたときだけ「すべて表示」を出す。すべて出している間は「縮める」を出したまま）
   useLayoutEffect(() => {
     const el = listRef.current;
     setOverflowing(Boolean(el && !expanded && el.scrollHeight > el.clientHeight + 1));
-  }, [queue, editing, collapsed, expanded, height]);
+  }, [queue, edit.edits, collapsed, expanded, height]);
   if (queue.length === 0) return null;
   // 次に止まる位置（いちばん上の印。なければ -1）。行の右クリックの「この指示のあとで止める」は、その行のすぐあとの印を付け外しする
   const stopIndex = stops.length > 0 ? stops[0] : -1;
@@ -163,9 +161,6 @@ export function QueuedMessages({
   const stopHint = !paused && busy && stopIndex >= 0;
   // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
   const next = collapsed ? nextQueuedText(queue[0]) : "";
-  /** 書き直しを保存する。send なら続けていま送る（行の「すぐ送る」と同じ。作業中なら止めずに伝える。⌘Enter・書き直す欄の送るボタン） */
-  const saveEdit = (id: string, text: string, attachments: Attachment[], send: boolean) =>
-    void api.editQueued(runId, id, text, attachments).then(() => (send ? api.sendQueuedNow(runId, id) : undefined)).then(() => setEditing(undefined), failed);
 
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
@@ -221,27 +216,28 @@ export function QueuedMessages({
         <QueuedStopButton runId={runId} stops={stops} failed={failed} onAdded={() => setCollapsed(false)} />
         {/* 選んでいるときは、行と同じ 2 つのまとまり: 並べ替え（いちばん上へ・下へ）｜ 選んだものへの操作（まとめて送る・消す・選ぶのをやめる） */}
         {selected.length > 0 && <QueuedMoveActions runId={runId} selected={selected} failed={failed} />}
-        <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} failed={failed} />
+        <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} onEditSelected={editSelected} failed={failed} />
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (
-        <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(height, editHeight) }}>
+        <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(height, edit.editHeight) }}>
           {queue.map((m, i) => (
             <Fragment key={m.id}>
             {/* 「ここまで送ったら止めます」: この行の前で止める印（1 件目の上にも置ける） */}
             {stopLine(i)}
-            {editing?.id === m.id ? (
+            {edit.edits[m.id] ? (
               <QueuedEditor
+                id={m.id}
                 index={i}
                 withGrip={queue.length > 1}
                 busy={busy}
-                text={editing.text}
-                attachments={editing.attachments}
-                onChange={(text) => setEditing({ ...editing, text })}
-                onAttachmentsChange={(attachments) => setEditing({ ...editing, attachments })}
-                onSave={(attachments) => saveEdit(m.id, editing.text, attachments, false)}
-                onSaveAndSend={(attachments) => saveEdit(m.id, editing.text, attachments, true)}
-                onCancel={() => setEditing(undefined)}
+                text={edit.edits[m.id].text}
+                attachments={edit.edits[m.id].attachments}
+                onChange={(text) => edit.update(m.id, { text })}
+                onAttachmentsChange={(attachments) => edit.update(m.id, { attachments })}
+                onSave={(attachments) => edit.save(m.id, attachments, false)}
+                onSaveAndSend={(attachments) => edit.save(m.id, attachments, true)}
+                onCancel={() => edit.cancel(m.id)}
               />
             ) : (
               <QueuedRow
@@ -262,6 +258,7 @@ export function QueuedMessages({
                 }
                 onSelect={(e) => selectRow(e, m.id)}
                 groupActions={{
+                  edit: editSelected,
                   sendTogether: () => void api.sendAllQueued(runId, selected).then(clearSelection, failed),
                   merge: () => void api.mergeQueued(runId, selected).then(clearSelection, failed),
                   moveTo: (to) => void api.moveQueuedMany(runId, selected, to).catch(failed),
@@ -275,7 +272,7 @@ export function QueuedMessages({
                   dnd.rowMark(i) && `drop-${dnd.rowMark(i)}`,
                 )}
                 actions={{
-                  edit: () => setEditing({ id: m.id, text: m.text, attachments: m.attachments }),
+                  edit: () => edit.start([m]),
                   toggleStop: () => toggleStop(m.id, i),
                   toggleStopBefore: () => toggleStopBefore(i),
                   move: (to) => void api.moveQueued(runId, m.id, to).catch(failed),

@@ -59,7 +59,7 @@ export function QueuedRow({
   /** 行のクリック（⌘ / Ctrl で 1 件ずつ、Shift で範囲を選ぶ） */
   onSelect: (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => void;
   /** 選んだもの全体への操作（右クリックのメニュー） */
-  groupActions: { sendTogether: () => void; merge: () => void; moveTo: (to: "top" | "bottom") => void; remove: () => void };
+  groupActions: { edit: () => void; sendTogether: () => void; merge: () => void; moveTo: (to: "top" | "bottom") => void; remove: () => void };
   className: string;
   actions: QueuedRowActions;
   onDragStart: () => void;
@@ -140,8 +140,12 @@ export function QueuedRow({
       {menu && (
         <PopupMenu x={menu.x} y={menu.y} label="送信待ちの指示の操作" onClose={() => setMenu(undefined)}>
           {selectedCount > 1 ? (
-            // 選んだもの全体への操作（送る → 並べ替え → 新しいチャットへ → 消す）
+            // 選んだもの全体への操作（書き直す → 送る → 並べ替え → 新しいチャットへ → 消す）
             <>
+              <MenuItem onSelect={groupActions.edit} title="選んだ指示の書き直す欄をまとめて開きます（1 件ずつ保存・やめるができます）">
+                選んだ {selectedCount} 件を書き直す
+              </MenuItem>
+              <div className="menu-separator" role="separator" />
               <MenuItem onSelect={groupActions.sendTogether}>選んだ {selectedCount} 件をまとめて送る</MenuItem>
               <MenuItem onSelect={groupActions.merge} title="送らずに 1 つの指示にまとめます（列の順に空行でつなぎ、添付も合わせます）">
                 選んだ {selectedCount} 件を 1 つにまとめる
