@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { api } from "@/api";
 import { Composer } from "@/features/chat/composer/Composer";
-import { useSubagents } from "./Subagents";
+import { useSubagents } from "./useSubagents";
 import { relayMessage } from "@shared/chat/prompts";
 import { SubagentView } from "./SubagentView";
 import { relativize } from "@/features/chat/timeline/timelineItems";

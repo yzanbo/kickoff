@@ -1,20 +1,15 @@
 import { History, Inbox, Pencil } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { useAction } from "@/hooks/useAction";
-import { useEditKeys } from "@/hooks/useEditKeys";
-import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
-import { reportFailure } from "@/ui/dialogs";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
 import { CopyButton } from "@/ui/CopyButton";
-import { Markdown } from "@/ui/markdown/Markdown";
-import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
-import { useContextMenu } from "@/ui/useContextMenu";
+import { MenuItem } from "@/ui/PopupMenu";
 import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
-import { copyRich } from "@/lib/richCopy";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { BubbleEditor } from "./BubbleEditor";
+import { useMessageMenu } from "./useMessageMenu";
 
 /** 自分の発言を折りたたむ高さ（これより高い発言は、ここまで出して下を薄くする） */
 const COLLAPSE_PX = 240;
@@ -113,103 +108,6 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
         )}
       </div>
       {menu.element}
-    </div>
-  );
-}
-
-/** AI の返答 1 つ（右クリックで、この返答だけをコピーできる） */
-export function AssistantMessage({ event }: { event: ChatEventOf<"text"> }) {
-  const data = event.data;
-  const text = data.text;
-  const menu = useMessageMenu(text, undefined, { rich: true });
-  return (
-    <>
-      <div className={cx("assistant", Boolean(data.parent) && "sub")} id={`ev-${event.id}`} onContextMenu={menu.open}>
-        <Markdown>{text}</Markdown>
-      </div>
-      {menu.element}
-    </>
-  );
-}
-
-/**
- * 発言の右クリックのメニュー（メッセージをコピー。文を選んでいれば、選んだ文のコピーも）。
- * rich（AI の返答）なら「メッセージをコピー」は書式付き（ほかのアプリに貼っても見出し・表が崩れない）で、Markdown のままのコピーも並べる。
- * リンク・入力欄・コードブロックの上などでは、Electron の既定のメニューに任せず、この 1 つにそろえる
- */
-function useMessageMenu(text: string, extra?: ReactNode, { rich = false }: { rich?: boolean } = {}): { open: (e: MouseEvent) => void; element: ReactNode } {
-  // 開いたときに選んでいた文（その発言の中で選んでいれば）
-  const menu = useContextMenu<string>();
-  const at = menu.menu;
-  const copy = (value: string) => void navigator.clipboard.writeText(value).catch(reportFailure("コピーできませんでした"));
-  const copyFormatted = (value: string) => void copyRich(value).catch(reportFailure("コピーできませんでした"));
-  return {
-    open: (e) => {
-      if (!text) return;
-      // 発言の中で選んでいる文（ほかの発言にまたがる選択は、この発言の分だけでなく全体をそのまま使う）
-      const selection = window.getSelection();
-      const selected = selection && !selection.isCollapsed && e.currentTarget.contains(selection.anchorNode) ? selection.toString() : "";
-      menu.open(e, selected);
-    },
-    element: at && (
-      <PopupMenu at={at.at} label="発言の操作" onClose={menu.close}>
-        {at.value && <MenuItem onSelect={() => copy(at.value)}>選んだ文をコピー</MenuItem>}
-        <MenuItem onSelect={() => (rich ? copyFormatted(text) : copy(text))}>メッセージをコピー</MenuItem>
-        {rich && <MenuItem onSelect={() => copy(text)}>Markdown のままコピー</MenuItem>}
-        {extra}
-      </PopupMenu>
-    ),
-  };
-}
-
-/** 吹き出しの中の書き直しの欄（Enter で送り直す・Shift+Enter で改行・Esc でやめる）。onSend は確かめてやめたら false */
-function BubbleEditor({
-  text,
-  onChange,
-  onCancel,
-  onSend,
-}: {
-  text: string;
-  onChange: (text: string) => void;
-  onCancel: () => void;
-  onSend: () => Promise<boolean>;
-}) {
-  // 送り直している間と、送れなかった理由
-  const action = useAction<"send">();
-  const sending = action.busy !== null;
-  const send = async () => {
-    if (!text.trim() || sending) return;
-    await action.run("send", async () => {
-      if (await onSend()) onCancel();
-    });
-  };
-  const keys = useEditKeys({ onSubmit: () => void send(), onCancel });
-  return (
-    <div className="bubble-editor">
-      <textarea
-        value={text}
-        rows={Math.min(12, Math.max(2, text.split("\n").length))}
-        aria-label="発言を書き直す"
-        // 開いたら文の終わりから書き始める
-        ref={(el) => {
-          if (el && !el.dataset.ready) {
-            el.dataset.ready = "1";
-            el.focus();
-            el.setSelectionRange(el.value.length, el.value.length);
-          }
-        }}
-        onChange={(e) => onChange(e.target.value)}
-        {...keys.keyProps}
-      />
-      <ErrorText message={action.error} />
-      <div className="bubble-editor-actions">
-        <button type="button" className="btn btn-sm" disabled={sending} onClick={onCancel}>
-          やめる
-        </button>
-        <button type="button" className="btn btn-sm btn-primary" disabled={sending || !text.trim()} onClick={() => void send()}>
-          {sending ? "送信中…" : "送り直す"}
-        </button>
-      </div>
     </div>
   );
 }

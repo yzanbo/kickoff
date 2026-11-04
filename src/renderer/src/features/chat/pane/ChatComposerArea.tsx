@@ -13,7 +13,7 @@ import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { PromptsChip } from "@/features/chat/prompts/PromptsChip";
 import { QueuedMessages } from "@/features/chat/queue/QueuedMessages";
 import { TodoChip } from "@/features/chat/status/TodoChip";
-import { SubagentChip } from "@/features/chat/subagents/Subagents";
+import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import type { useChatSend } from "./useChatSend";
 
 /**
