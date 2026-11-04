@@ -95,7 +95,7 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
       {models.length > 0 && (
         <button
           type="button"
-          className="btn"
+          className="btn turn-retry-model"
           title="別のモデルで、続きから再試行します（チャット欄のモデルも変わります）"
           aria-haspopup="menu"
           aria-expanded={Boolean(menu)}
@@ -119,7 +119,8 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
         </button>
       )}
       {menu && (
-        <PopupMenu x={menu.x} y={menu.y} label="再試行するモデル" onClose={() => setMenu(undefined)}>
+        // 開いているときにボタンを押したら閉じる（外側のクリックとして閉じると、続くクリックで開き直していた）
+        <PopupMenu x={menu.x} y={menu.y} label="再試行するモデル" ignore=".turn-retry-model" onClose={() => setMenu(undefined)}>
           {models.map((m) => (
             <MenuItem key={m.value} onSelect={() => retry({ model: m.value })}>
               {m.label}
