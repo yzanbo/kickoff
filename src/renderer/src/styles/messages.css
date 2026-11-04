@@ -135,9 +135,13 @@
 
 .sticky-prompt-label {
   flex: none;
+  /* 文の 1 行目の並びにそろえる（移るボタンの 2px ＋ 文 13px と見出し 11px の行の高さの差） */
+  padding-top: 4px;
+  margin-right: 4px;
   font-size: 11px;
   font-weight: 600;
   color: var(--muted);
+  cursor: pointer;
 }
 
 .sticky-prompt-text {
@@ -159,6 +163,18 @@
 
 .sticky-prompt-toggle {
   flex: none;
+}
+
+/* 指示の添付（1 つ目だけ）。帯の高さを変えないよう、文の 1 行目の高さに収める */
+.sticky-prompt .attach-peek {
+  margin-top: 2px;
+  /* 右下に重ねた数（+n）が文にかからないように */
+  margin-right: 6px;
+}
+
+.sticky-prompt .attach-peek-thumb {
+  width: 20px;
+  height: 20px;
 }
 
 /* チャットの中の検索（見出しのすぐ下の 1 行。開いている間は行を 1 つ足す） */

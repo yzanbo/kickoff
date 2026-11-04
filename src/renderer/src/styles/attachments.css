@@ -114,8 +114,77 @@
   margin-top: 8px;
 }
 
-/* 送信待ちの行で、複数の添付をまとめたファイルの印は押せる（一覧を開く） */
-.queued-attachments button.queued-file {
+/* 1 行に収める添付 AttachmentPeek（送信待ちの行・上に貼り付ける指示の帯。1 つ目だけ。2 つ以上なら数を重ねる） */
+.attach-peek {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  max-width: 40%;
+  margin-right: 4px;
+}
+
+.attach-peek-thumb {
+  position: relative;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  cursor: zoom-in;
+}
+
+.attach-peek-thumb img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.attach-peek-count {
+  position: absolute;
+  right: -6px;
+  bottom: 0;
+  min-width: 15px;
+  padding: 0 3px;
+  border: 1px solid var(--bg-elev);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  color: var(--text);
+  background: var(--bg-active);
+}
+
+.attach-peek-file {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  max-width: 140px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--bg-hover);
+}
+
+.attach-peek-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-peek-file-count {
+  flex: none;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* 複数の添付をまとめたファイルの印は押せる（一覧を開く） */
+.attach-peek button.attach-peek-file {
   border: none;
   font: inherit;
   font-size: 11px;
