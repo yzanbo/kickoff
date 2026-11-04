@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
+import type { Chat } from "@shared/types";
 import { publishServerEvent } from "@/api/events";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { readSetting, writeSetting } from "@/lib/storage";
@@ -93,6 +94,15 @@ test("隠している種類のタブ（チャットを隠した欄の下書き�
   actions.showTab(draft);
   assert.deepEqual(readSetting(panelTabKinds("bottom")), ["chat", "terminal"]);
   assert.equal(panelStateOf("bottom:12").open, true);
+});
+
+test("開いているチャットを検索から（focus 付きで）開き直しても、タブを作り直さず、名前とタブの中のチャットは残す", () => {
+  const actions = panelActions("kanban:13");
+  actions.open({ id: 130, project_id: 13, title: "調べもの" });
+  const loaded = { id: 130, project_id: 13, title: "調べもの", status: "completed" } as Chat;
+  actions.patchTab("chat:130", { kind: "chat", fields: { chat: loaded } });
+  actions.open({ id: 130, project_id: 13 }, 42);
+  assert.deepEqual(panelStateOf("kanban:13").tabs, [{ key: "chat:130", kind: "chat", id: 130, projectId: 13, title: "調べもの", chat: loaded, focus: 42 }]);
 });
 
 test("削除したチャットのタブは、画面に出ていない欄でも閉じる（そのチャットのサブエージェントのタブも）", () => {
