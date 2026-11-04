@@ -29,6 +29,23 @@
   pointer-events: none;
 }
 
+/* まとまりの中の表示中のタブ: 上端の線と枠をまとまりの色にする（どのまとまりの、どのタブを見ているかが分かるように） */
+.panel-tab-group .panel-tab.active {
+  border-color: hsl(var(--group-hue) 45% 45%);
+}
+
+.panel-tab-group .panel-tab.active::after {
+  background: hsl(var(--group-hue) 65% 60%);
+}
+
+.panel-tab-group.plain .panel-tab.active {
+  border-color: var(--border-strong);
+}
+
+.panel-tab-group.plain .panel-tab.active::after {
+  background: var(--accent-bright);
+}
+
 .panel-tab-group + .panel-tab-group {
   margin-left: 6px;
 }

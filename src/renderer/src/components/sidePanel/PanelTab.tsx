@@ -54,7 +54,7 @@ export function PanelTab({
         <button className="panel-tab-label" onClick={onSelect} onDoubleClick={onRename} title={onRename ? `${title ?? label}（ダブルクリックで名前を変更）` : (title ?? label)}>
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           <span>{label}</span>
-          {group && <span className="panel-tab-group">{group}</span>}
+          {group && <span className="panel-tab-group-name">{group}</span>}
         </button>
       )}
       {/* 名前を変えている間は、入力欄の ✓ / ✕ と並ばないよう閉じるを隠す */}
