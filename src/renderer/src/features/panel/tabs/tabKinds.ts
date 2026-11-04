@@ -51,8 +51,8 @@ export const subagentTab = ({ chatId, projectId, toolUseId, title }: { chatId: n
   title,
 });
 
-/** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く） */
-export const browserTab = (url = ""): TabOf<"browser"> => ({ key: `browser:${Date.now()}`, kind: "browser", url, title: "" });
+/** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
+export const browserTab = (url = ""): TabOf<"browser"> => ({ key: newTabKey("browser"), kind: "browser", url, title: "" });
 
 /** ターミナルのタブ（開く場所のフォルダでシェルを始める。どのプロジェクトの作業場所かも覚える） */
 export const terminalTab = ({ cwd, label, projectId }: TerminalTarget): TabOf<"terminal"> => ({ key: newTabKey("terminal"), kind: "terminal", cwd, label, projectId });

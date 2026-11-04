@@ -10,11 +10,13 @@ const chat = (id: number, extra: Partial<Chat> = {}) => ({ id, project_id: 1, ti
 const head = (key: string): BucketHead => ({ key, kind: "group", label: key });
 const target = { cwd: "/repo/a", label: "a", projectId: 3 };
 
-test("タブのキー: チャット・サブエージェントは中身から決まり（同じものは 1 つのタブ）、新しいチャット・ターミナルは開くたびに別のキー", () => {
+test("タブのキー: チャット・サブエージェントは中身から決まり（同じものは 1 つのタブ）、新しいチャット・ブラウザ・ターミナルは開くたびに別のキー", () => {
   assert.equal(chatTab(chat(5)).key, chatTab(chat(5)).key);
   assert.equal(subagentTab({ chatId: 5, projectId: 1, toolUseId: "t1", title: "調査" }).key, "subagent:5:t1");
   assert.notEqual(newChatTab({ projectId: 1 }).key, newChatTab({ projectId: 1 }).key);
   assert.notEqual(terminalTab(target).key, terminalTab(target).key);
+  // ブラウザも、同じ瞬間に 2 つ開いても重ならない（以前は時刻だけで、続けて開くと同じキーになることがあった）
+  assert.notEqual(browserTab().key, browserTab().key);
   // ターミナルはどのプロジェクトの作業場所かも覚える（あとでフォルダから逆算しない）
   assert.equal(terminalTab(target).projectId, 3);
 });
