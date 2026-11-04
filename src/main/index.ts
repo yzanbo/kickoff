@@ -15,6 +15,7 @@ import { registerIpc } from "./ipc.js";
 import { registerNotifications } from "./notifications.js";
 import { allowAppMicrophone } from "./mediaPermission.js";
 import { registerShutdown } from "./shutdown.js";
+import { logLaunch, startupLog, watchChildProcesses, watchWindowLoad } from "./startupLog.js";
 
 // ビルド後の out/main を基準にする
 const outDir = path.join(import.meta.dirname, "..");
@@ -27,6 +28,9 @@ const devUrl = process.env.ELECTRON_RENDERER_URL;
 // データの保存先は、同じ環境のヘッドレス起動（daemon）とそろえる
 app.setName(env.name);
 app.setPath("userData", path.join(app.getPath("appData"), env.name));
+// 起動の記録（~/Library/Logs/<アプリ名>/startup.log。入れ替えた直後だけ画面が出ないことの原因を追うため）
+logLaunch();
+watchChildProcesses();
 // 開発のデータがまだなければ、本番のデータから一度だけ写す（起動中の印を作る前に）
 if (!app.isPackaged) seedDevData(path.join(app.getPath("appData"), APP_ENVS.production.name), app.getPath("userData"));
 
@@ -52,7 +56,9 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(async () => {
+    startupLog("whenReady");
     loadLoginShellPath();
+    startupLog("ログインシェルの PATH を読みました");
     void moveLegacyDiagnostics();
     try {
       core = await startCore({
@@ -61,7 +67,9 @@ if (!app.requestSingleInstanceLock()) {
         staticDir: devUrl ? undefined : path.join(outDir, "renderer"),
       });
       setDiagnosticsCore(core);
+      startupLog(`コアを起動しました ${core.localUrl}`);
     } catch (e) {
+      startupLog(`コアを起動できません: ${errorMessage(e)}`);
       dialog.showErrorBox("Kickoff を起動できません", `コアの起動に失敗しました（ポート ${port}）。\n${errorMessage(e)}`);
       app.quit();
       return;
@@ -78,6 +86,7 @@ if (!app.requestSingleInstanceLock()) {
       expirationDate: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
     });
 
+    startupLog("認証の Cookie を設定しました");
     // チャット欄の音声入力: Kickoff の画面からのマイクだけ許す（埋め込みブラウザは別のセッションなので広げない）
     allowAppMicrophone(session.defaultSession, uiUrl);
     registerIpc(() => mainWindow);
@@ -118,6 +127,7 @@ function createWindow(url: string) {
     if (/^https?:\/\//.test(target)) void shell.openExternal(target);
     return { action: "deny" };
   });
+  watchWindowLoad(mainWindow.webContents, url);
   void mainWindow.loadURL(url);
   mainWindow.on("closed", () => {
     mainWindow = undefined;
