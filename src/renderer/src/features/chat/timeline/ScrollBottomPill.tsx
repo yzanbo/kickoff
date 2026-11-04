@@ -5,8 +5,7 @@ import type { Chat, ChatEvent, ChatLive } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { CHAT_STATUS_LABELS } from "@/features/chat/chatStatus";
 import { lastResultIdOf } from "@/features/chat/status/workingLabel";
-
-type ScrollPillTone = "waiting" | "arrived" | "working" | "idle" | "failed" | "offline";
+import { scrollPillOf, type ScrollPillTone } from "./scrollPill";
 
 /**
  * 一番下へ戻るボタンに出すいまの状態（上を読んでいる間も、このチャットがどうなっているかが分かるように）。
@@ -38,12 +37,16 @@ export function useScrollPill({
   if (!away) awayFromResult.current = null;
   else awayFromResult.current ??= lastResultId;
   const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
-  const failed = chat.status === "failed";
-  if (waiting) return { label: "回答を待っています", tone: "waiting" };
-  if (!busy && live.reconnect) return { label: "通信待ち（つながったら自動で再開）", tone: "offline" };
-  if (finishedWhileAway) return { label: failed ? "失敗しました" : "返答が届きました", tone: failed ? "failed" : "arrived" };
-  if (busy) return { label: working, tone: live.retry ? "offline" : "working" };
-  return { label: CHAT_STATUS_LABELS[chat.status], tone: failed ? "failed" : "idle" };
+  return scrollPillOf({
+    waiting,
+    reconnecting: Boolean(live.reconnect),
+    finishedWhileAway,
+    busy,
+    retrying: Boolean(live.retry),
+    failed: chat.status === "failed",
+    working,
+    statusLabel: CHAT_STATUS_LABELS[chat.status],
+  });
 }
 
 /**
