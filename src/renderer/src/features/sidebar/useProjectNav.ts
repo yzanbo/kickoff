@@ -10,7 +10,7 @@ import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { navigate, routeProjectId, useRoute } from "@/app/router";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { SIDEBAR_LAST_HASHES, SIDEBAR_LAYOUT, SIDEBAR_PROJECT_ORDER, SIDEBAR_SHOW_ARCHIVED_PROJECTS, SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
-import { projectKey } from "@/features/chatList/buckets";
+import { projectKey } from "@/features/chatList/bucketHeads";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
 import { useProjectMenu } from "@/features/project/ProjectMenu";
 import { useAllDrafts } from "@/features/panel/state/panelMemory";

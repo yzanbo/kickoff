@@ -3,7 +3,8 @@ import { test } from "node:test";
 import type { Chat, ChatGroup, GitWorktree, Project } from "@shared/types";
 import { approvalIndex } from "@/features/chat/chatState";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
-import { bucketChats, chatHead, draftHead, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
+import { chatHead, draftHead } from "./bucketHeads";
+import { bucketChats, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
 
 const chat = (id: number, patch: Partial<Chat> = {}): Chat =>
   ({
