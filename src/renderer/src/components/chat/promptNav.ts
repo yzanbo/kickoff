@@ -48,3 +48,19 @@ export function currentPrompt(ids: number[], tops: Map<number, number>, line: nu
   }
   return current;
 }
+
+/** 目次の目盛り 1 本の高さ（px）と、前後に隠れた数の行（「↑ 140」）の高さ */
+export const RAIL_TICK_PX = 12;
+export const RAIL_MORE_PX = 18;
+
+/**
+ * 目次に出す目盛りの範囲（いま読んでいる指示を真ん中に、高さ height に収まるだけ。end は含まない）。
+ * すべて収まればすべて、収まらなければ前後に隠れた数の行の分を引いて、いまの指示の前後を出す（最低 5 本）
+ */
+export function railWindow(count: number, current: number, height: number): { start: number; end: number } {
+  if (count * RAIL_TICK_PX <= height) return { start: 0, end: count };
+  const capacity = Math.min(count, Math.max(5, Math.floor((height - 2 * RAIL_MORE_PX) / RAIL_TICK_PX)));
+  const center = current < 0 ? count - 1 : current;
+  const start = Math.max(0, Math.min(count - capacity, center - Math.floor(capacity / 2)));
+  return { start, end: start + capacity };
+}
