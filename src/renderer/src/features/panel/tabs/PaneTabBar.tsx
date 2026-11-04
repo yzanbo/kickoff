@@ -98,13 +98,13 @@ export function PaneTabBar({
     panel.chats.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, unread: Boolean(t.unread) } as Chat) : undefined);
   // まとめ方を選んでいれば、まとまりごとに並べ替えて見せる（display は見た目の並び。タブの中身が残っているものだけ）
   const [grouping] = useTabGrouping(panel.surface);
-  const { clusterOf, clusterOfChat, order } = useTabClusters(panel, grouping);
+  const { clusterOf, clusterOfChat, seeds, projectOrder } = useTabClusters(panel, grouping);
   // 欄で隠している種類のタブは並べない（閉じずに残す）。チャットを隠しているときは、タブのないグループの札も出さない
   const known = pane.tabs.filter(panel.isKindShown);
-  // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない（並び順だけ使う）
-  const seeds = !showChat ? [] : home ? order : order.map((o) => ({ ...o, keepEmpty: false }));
+  // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない
+  const shownSeeds = showChat && home ? seeds : [];
   // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
-  const clusters = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, seeds);
+  const clusters = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, shownSeeds, projectOrder);
   // タブを畳んだまとまり（すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない
   const [collapsed, setCollapsed] = useSetting(PANEL_TAB_CLUSTERS_COLLAPSED);
   const toggleCollapsed = (key: string) => setCollapsed(toggleClusterCollapsed(key, collapsed));
@@ -209,7 +209,7 @@ export function PaneTabBar({
       {/* まとめないときは、タブの列の左端（横にスクロールしても動かない位置）に「チャット」の札 */}
       {!clusters && showChat && home && allChats.length > 0 && (
         <TabClusterHead
-          cluster={{ key: "all", label: "チャット", title: "このパネルのチャット", tabs: known }}
+          cluster={{ key: "all", kind: "all", label: "チャット", title: "このパネルのチャット", tabs: known }}
           chats={allChats}
           onOpen={(chat) => panel.open(chat)}
           all
