@@ -91,7 +91,7 @@ export function createApp(deps: ServerDeps): Hono {
       host: deps.listen?.host ?? "127.0.0.1",
       port: deps.listen?.port ?? Number(new URL(c.req.url).port),
       remote_enabled: settings.remoteEnabled,
-      agents: { ...runner.stats(), max: settings.maxConcurrentRuns },
+      agents: runner.stats(),
     };
     return c.json(status);
   });

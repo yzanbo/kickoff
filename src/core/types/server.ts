@@ -10,7 +10,7 @@ export interface ServerStatus {
   /** スマホなど、ほかの端末からの接続を許可しているか */
   remote_enabled: boolean;
   /** max: 同時に実行するエージェント数の上限（null なら上限なし） */
-  agents: { running: number; queued: number; max: number | null };
+  agents: { running: number };
 }
 
 export interface GitHubStatus {

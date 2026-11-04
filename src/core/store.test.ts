@@ -48,9 +48,9 @@ test("実行イベントは JSON で保存され、順番どおりに読み出�
 
 test("設定は既定値とマージされる", () => {
   const { store } = setup();
-  assert.equal(store.getSettings().maxConcurrentRuns, 2);
-  store.updateSettings({ maxConcurrentRuns: 4 });
-  assert.equal(store.getSettings().maxConcurrentRuns, 4);
+  assert.equal(store.getSettings().autoArchiveDays, null);
+  store.updateSettings({ autoArchiveDays: 4 });
+  assert.equal(store.getSettings().autoArchiveDays, 4);
   assert.equal(store.getSettings().defaultProvider, "claude");
 });
 

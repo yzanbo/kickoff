@@ -12,7 +12,8 @@ export type SecretKey = "openaiTranscribeKey";
 export function createSettingsStore(db: DatabaseSync, onChange: Notify) {
   const get = (): AppSettings => {
     const rows = db.prepare("SELECT key, value FROM settings WHERE key NOT LIKE ? || '%'").all(SECRET_PREFIX) as { key: string; value: string }[];
-    const stored = Object.fromEntries(rows.map((r) => [r.key, JSON.parse(r.value)]));
+    // なくした設定（以前の版で保存したキー）は返さない
+    const stored = Object.fromEntries(rows.filter((r) => r.key in DEFAULT_SETTINGS).map((r) => [r.key, JSON.parse(r.value)]));
     return { ...DEFAULT_SETTINGS, ...stored };
   };
   return {

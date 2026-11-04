@@ -27,8 +27,6 @@ export const PERMISSION_LABELS: Record<PermissionChoice, string> = {
   plan: "計画のみ",
 };
 export interface AppSettings {
-  /** 同時に実行するエージェント数の上限（プランの使用枠を守るため）。null なら上限なし */
-  maxConcurrentRuns: number | null;
   /** 新規プロジェクトの既定プロバイダー */
   defaultProvider: ProviderId;
   /** 新しいチャットの既定のモデル（Claude） */
@@ -66,7 +64,6 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  maxConcurrentRuns: 2,
   defaultProvider: "claude",
   claudeModel: "opus",
   defaultEffort: null,

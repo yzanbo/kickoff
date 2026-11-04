@@ -5,18 +5,16 @@ import { AUTH, setup, tempDir } from "./testing/testServer.js";
 
 test("設定・プロジェクトの API", async () => {
   const { app, call, project, store } = setup();
-  assert.equal((await call("PUT", "/api/settings", { maxConcurrentRuns: 3 })).body.maxConcurrentRuns, 3);
-  const invalid = await call("PUT", "/api/settings", { maxConcurrentRuns: 99 });
+  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: 3 })).body.autoArchiveDays, 3);
+  const invalid = await call("PUT", "/api/settings", { autoArchiveDays: 999 });
   assert.equal(invalid.status, 400);
   assert.equal(invalid.body.error, "入力が正しくありません");
-  assert.equal((await call("GET", "/api/settings")).body.maxConcurrentRuns, 3);
+  assert.equal((await call("GET", "/api/settings")).body.autoArchiveDays, 3);
   const status = await call("GET", "/api/status");
   assert.equal(status.body.version, "0.1.0");
-  assert.equal(status.body.agents.max, 3);
-  // 上限なしは null で保存する
-  assert.equal((await call("PUT", "/api/settings", { maxConcurrentRuns: null })).body.maxConcurrentRuns, null);
-  assert.equal((await call("GET", "/api/status")).body.agents.max, null);
-  await call("PUT", "/api/settings", { maxConcurrentRuns: 3 });
+  assert.deepEqual(status.body.agents, { running: 0 });
+  // しないは null で保存する
+  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: null })).body.autoArchiveDays, null);
 
   assert.deepEqual(
     (await call("GET", "/api/projects")).body.map((p: { id: number }) => p.id),

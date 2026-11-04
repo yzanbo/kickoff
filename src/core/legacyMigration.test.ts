@@ -64,7 +64,9 @@ test("古い v17 の DB を変換する: ID・番号の続き・以前の値の�
 
   // 設定: 「セクションに合わせる」は「毎回確認」に。ほかはそのまま
   const settings = store.getSettings();
-  assert.deepEqual([settings.defaultPermission, settings.claudeModel, settings.maxConcurrentRuns], ["default", "opus", 3]);
+  assert.deepEqual([settings.defaultPermission, settings.claudeModel], ["default", "opus"]);
+  // なくした設定（同時に実行するエージェント数）は返さない
+  assert.equal("maxConcurrentRuns" in settings, false);
 
   // プロジェクト: ID・最後に動いた時刻・固定・アーカイブ・参照資料はそのまま。色のないものに色を付け、既定から以前の値を除く
   const [a, b] = [store.getProject(1)!, store.getProject(2)!];
