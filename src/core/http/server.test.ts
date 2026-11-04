@@ -77,4 +77,18 @@ test("画面のファイルは no-cache で返し（入れ替えたあとに古�
   const api = await app.request("/api/status", { headers: AUTH });
   assert.equal(api.status, 200);
   assert.equal(api.headers.get("cache-control"), null);
+  // 知らない API は index.html ではなく JSON の 404
+  for (const method of ["GET", "POST"]) {
+    const unknown = await app.request("/api/no-such-api", { method, headers: AUTH });
+    assert.equal(unknown.status, 404, method);
+    assert.deepEqual(await unknown.json(), { error: "API が見つかりません" }, method);
+  }
+});
+
+test("知らない API は JSON の 404（画面を配信していないときも）。トークンがなければ先に 401", async () => {
+  const { app } = setup();
+  const res = await app.request("/api/no-such-api", { headers: AUTH });
+  assert.equal(res.status, 404);
+  assert.deepEqual(await res.json(), { error: "API が見つかりません" });
+  assert.equal((await app.request("/api/no-such-api")).status, 401);
 });
