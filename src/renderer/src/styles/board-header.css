@@ -56,7 +56,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 18px;
-  margin-left: 8px;
   /* 行の先頭の区切り線を切り取る（ピントの枠は切らない） */
   overflow: clip;
   overflow-clip-margin: 4px;
@@ -64,6 +63,11 @@
 
 .board-tools-end {
   margin-left: auto;
+}
+
+/* 名前（全プロジェクトの画面だけ）があるときだけ、道具との間を少し広げる（名前のないプロジェクトの画面では、道具をボード・パネルの左端にそろえる） */
+.board-title ~ .board-tools:not(.board-tools-end) {
+  margin-left: 8px;
 }
 
 .board-title {

@@ -13,6 +13,12 @@
     gap var(--panel-motion-duration) var(--panel-motion-ease);
 }
 
+/* パネルがボードを覆う（横幅いっぱい・ボードが狭すぎる）ときは、見えないボードとの間隔も消す（左に余白が二重に残らないように） */
+.board-body.with-panel.panel-full {
+  grid-template-columns: 0px 100%;
+  gap: 0;
+}
+
 .board-body.with-panel {
   /* パネルはカンバンを覆うところまで広げられる（間隔の分だけ引く） */
   grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 560px), calc(100% - 12px));
