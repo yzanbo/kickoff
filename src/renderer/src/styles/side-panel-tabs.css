@@ -224,15 +224,47 @@
   min-width: 120px;
 }
 
+/* 名前の札。角に状態ごとのチャット数を重ねる（StateCornerCounts）ので、札そのものは切り取らず、名前の文だけを省略する */
 .panel-tab-cluster-name {
+  position: relative;
+  min-width: 0;
   padding: 1px 7px;
-  overflow: hidden;
   border-radius: 999px;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: #fff;
   background: hsl(var(--group-hue) 45% 42%);
+  --corner-offset: -7px;
+}
+
+/* 札は低く、下にまとまりの線があるので、数の丸を少し小さくし、下へのはみ出しを抑える（列の下端で切れないように） */
+.panel-tab-cluster-name .corner-count {
+  min-width: 14px;
+  height: 14px;
+  font-size: 8.5px;
+}
+
+/* 角に数がある側は、名前の文字に重ならないよう札の余白を広げる */
+.panel-tab-cluster-name:has(.corner-count.running, .corner-count.needs-input) {
+  padding-left: 11px;
+}
+
+.panel-tab-cluster-name:has(.corner-count.review) {
+  padding-right: 11px;
+}
+
+.panel-tab-cluster-name .corner-count:is(.running, .review) {
+  top: -5px;
+}
+
+.panel-tab-cluster-name .corner-count.needs-input {
+  bottom: -3px;
+}
+
+.panel-tab-cluster-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .panel-tab-group.plain .panel-tab-cluster-name {

@@ -9,6 +9,8 @@ import { closeChatWithChoice } from "../chat/closeChat";
 import { CHAT_TITLE_MAX } from "../../chatTitle";
 import type { useRunRename } from "../../hooks/useRunRename";
 import { useRunStates } from "../../approvalsContext";
+import { stateCounts } from "../../runState";
+import { StateCornerCounts, stateCountsSummary } from "../StateCornerCounts";
 import { StatusSlot } from "../StatusSlot";
 import { busyWithUnread } from "../../../../core/board";
 import type { Run } from "../../../../core/types";
@@ -78,7 +80,7 @@ export function PaneTabBar({
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
-  const { stateOf } = useRunStates();
+  const { stateOf, pending } = useRunStates();
   // チャットのタブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
   const groupName = useGroupNames(panel.tabs.flatMap((t) => (t.kind === "chat" ? [t.projectId] : [])));
   const chatRunOf = (t: { id: number; status?: Run["status"]; attention?: boolean }) =>
@@ -144,11 +146,24 @@ export function PaneTabBar({
         ? clusters.map((c) => {
             // まとまりごとに 1 つの枠に入れ、色の付いた名前の札・薄い地・下の線で、どこからどこまでが 1 つのまとまりかを見せる（ブラウザのタブのグループと同じ）
             const hue = clusterHue(c.key);
+            // まとまりのチャットの状態ごとの数（サイドバーのプロジェクトの丸と同じく、名前の札の角に重ねる）
+            const counts = stateCounts(
+              c.tabs.flatMap((key) => {
+                const t = panel.tabs.find((x) => x.key === key);
+                const run = t?.kind === "chat" ? chatRunOf(t) : undefined;
+                return run ? [run] : [];
+              }),
+              pending,
+            );
+            const summary = stateCountsSummary(counts);
             return (
               <div key={c.key} className={cx("panel-tab-group", hue === null && "plain")} style={hue === null ? undefined : ({ "--group-hue": hue } as CSSProperties)}>
-                {/* まとまりの頭の名前（グループ名・ブランチ）と、中のタブの数 */}
-                <span className="panel-tab-cluster" title={c.title}>
-                  <span className="panel-tab-cluster-name">{c.label}</span>
+                {/* まとまりの頭の名前（グループ名・ブランチ。角に状態ごとのチャット数）と、中のタブの数 */}
+                <span className="panel-tab-cluster" title={summary ? `${c.title ?? c.label}（${summary}）` : c.title}>
+                  <span className="panel-tab-cluster-name">
+                    <span className="panel-tab-cluster-text">{c.label}</span>
+                    <StateCornerCounts counts={counts} />
+                  </span>
                   <span className="panel-tab-cluster-count">{c.tabs.length}</span>
                 </span>
                 {c.tabs.map((key) => tab(key, display.indexOf(key)))}
