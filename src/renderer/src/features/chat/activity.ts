@@ -17,14 +17,14 @@ const clip = (text: string, max = 40) => {
  * 作業の手がかりにならないもの（ツールの結果など）は null
  */
 export function describeActivity(event: Pick<ChatEvent, "type" | "data">): string | null {
-  const data = event.data as Record<string, unknown>;
-  if (event.type === "thinking") return "考えています";
-  if (event.type === "text") return data.sub ? "サブエージェントが返答を書いています" : "返答を書いています";
-  if (event.type === "approval") return "承認を待っています";
-  if (event.type !== "tool_use") return null;
-  const name = String(data.name ?? "");
-  const input = (data.input ?? {}) as Record<string, unknown>;
-  const prefix = data.sub ? "サブエージェント: " : "";
+  const e = event as ChatEvent;
+  if (e.type === "thinking") return "考えています";
+  if (e.type === "text") return e.data.parent ? "サブエージェントが返答を書いています" : "返答を書いています";
+  if (e.type === "approval") return "承認を待っています";
+  if (e.type !== "tool_use") return null;
+  const name = e.data.name;
+  const input = (e.data.input ?? {}) as Record<string, unknown>;
+  const prefix = e.data.parent ? "サブエージェント: " : "";
   let text: string;
   if (EDIT_TOOLS.has(name)) text = `ファイルを編集: ${fileName(input.file_path ?? input.notebook_path)}`;
   else if (name === "Read") text = `ファイルを読み取り: ${fileName(input.file_path)}`;

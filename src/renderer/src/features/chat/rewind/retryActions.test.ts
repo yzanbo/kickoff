@@ -11,7 +11,7 @@ test("失敗の直す操作: いちばん新しい作業が失敗で終わった
   assert.equal(failedTurnOf([...base, ev(3, "result", { status: "completed" })]), undefined);
   assert.equal(failedTurnOf([...base, ev(3, "result", { status: "cancelled" })]), undefined);
   assert.equal(failedTurnOf([...base, ev(3, "result", { status: "failed", network: true })]), undefined);
-  assert.equal(failedTurnOf([...base, ev(3, "result", { status: "failed", text: "Claude AI usage limit reached" })]), undefined);
+  assert.equal(failedTurnOf([...base, ev(3, "result", { status: "failed", text: "Claude AI usage limit reached", usage_limit: { resets_at: null } })]), undefined);
   assert.equal(failedTurnOf([...base, ev(3, "result", { status: "failed" }), ev(4, "user", { text: "次" })]), undefined);
   // 終わりのあとのお知らせは見ない
   assert.equal(failedTurnOf([...base, ev(3, "result", { status: "failed" }), ev(4, "notice", { message: "…" })])?.resultId, 3);

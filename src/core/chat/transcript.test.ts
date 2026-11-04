@@ -13,7 +13,7 @@ test("チャットの記録: 自分の発言・AI の返答を順に並べ、作
     ev(2, "thinking", { text: "考え中" }),
     ev(3, "tool_use", { id: "t1", name: "Edit", input: { file_path: "/r/src/Login.tsx" } }),
     ev(4, "tool_result", { tool_use_id: "t1", content: "ok" }),
-    ev(5, "text", { text: "サブの返答", sub: true, parent: "x" }),
+    ev(5, "text", { text: "サブの返答", parent: "x" }),
     ev(6, "text", { text: "直しました。" }),
     ev(7, "result", { status: "completed" }),
     ev(8, "user", { text: "次も" }),
@@ -30,7 +30,7 @@ test("チャットの記録: 自分の発言・AI の返答を順に並べ、作
   assert.equal(transcriptFileName({ ...chat, title: "a/b:c" } as Chat), "チャット履歴-a b c.md");
 });
 
-test("チャットの記録: AI からの質問に答えた内容を、質問ごとに入れる（答えのない以前の記録・スキップは入れない）", () => {
+test("チャットの記録: AI からの質問に答えた内容を、質問ごとに入れる（スキップは入れない）", () => {
   const md = chatTranscript(chat, project, [
     ev(1, "approval_resolved", {
       approval_id: "x",
@@ -39,7 +39,6 @@ test("チャットの記録: AI からの質問に答えた内容を、質問ご
       answers: { "好きな色は？": "この色", "好きな季節は？": ["春", "秋"] },
       attachments: { "好きな色は？": [{ id: "a", name: "色.png", mime: "image/png", size: 1 }] },
     }),
-    ev(2, "approval_resolved", { approval_id: "y", action: "answer" }),
     ev(3, "approval_resolved", { approval_id: "z", action: "deny", kind: "question" }),
   ]);
   assert.match(md, /## 自分（質問への回答・.+）\n\n- 好きな色は？ → この色（添付: 色\.png）\n- 好きな季節は？ → 春、秋/);

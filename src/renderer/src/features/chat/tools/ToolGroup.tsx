@@ -12,9 +12,9 @@ export const OpenSubagentContext = createContext<(toolUseId: string) => void>(()
 /** ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約する） */
 export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
   const summary = summarizeTools(tools);
-  const failed = tools.filter((t) => (t.result?.data as { is_error?: boolean } | undefined)?.is_error).length;
+  const failed = tools.filter((t) => t.result?.data.is_error).length;
   const last = tools[tools.length - 1];
-  const lastData = last.use.data as { name: string; input?: Record<string, unknown> };
+  const lastData = { name: last.use.data.name, input: last.use.data.input as Record<string, unknown> | undefined };
   const running = active && !last.result;
 
   return (
@@ -44,9 +44,10 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
 
 /** ツールの呼び出し 1 件（開くと編集内容・結果を出す） */
 function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string }) {
-  const { id, name, input = {} } = call.use.data as { id: string; name: string; input?: Record<string, unknown> };
+  const { id, name } = call.use.data;
+  const input = (call.use.data.input ?? {}) as Record<string, unknown>;
   const openSubagent = useContext(OpenSubagentContext);
-  const r = call.result?.data as { content?: string; is_error?: boolean } | undefined;
+  const r = call.result?.data;
   // ツール検索の `[tool_reference]` のような意味のない結果は出さない
   const content = r?.content ? visibleToolResult(r.content) : "";
   let detail: ReactNode = null;

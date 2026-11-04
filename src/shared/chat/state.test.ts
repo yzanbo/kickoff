@@ -32,7 +32,7 @@ test("カンバンの列は AI の状態だけで決まる（作業中 → 回�
 
 test("アーカイブしたチャットは一覧に出ず、削除すると会話の記録も消える", () => {
   const { store, chat } = mk();
-  store.events.add(chat.id, { type: "user", text: "x" });
+  store.events.add(chat.id, { type: "user", text: "x" , message_uuid: "u7" });
   store.chats.update(chat.id, { archived_at: new Date().toISOString() });
   assert.equal(store.chats.list().length, 0);
   assert.equal(store.chats.list({ includeArchived: true }).length, 1);

@@ -38,8 +38,9 @@ export function SubagentView({
     const mixed = agentId
       ? events.map((e) => {
           if (e.type !== "user") return e;
-          const text = relayedText(String((e.data as { text?: string }).text ?? ""), agentId);
-          return text === undefined ? e : { ...e, data: { ...(e.data as object), text, parent: entry.key } };
+          const text = relayedText(e.data.text, agentId);
+          // メインに頼んで伝えた指示は、サブエージェントの流れに自分の発言として混ぜる（parent でこのサブエージェントのものにする）
+          return text === undefined ? e : ({ ...e, data: { ...e.data, text, parent: entry.key } } as ChatEvent);
         })
       : events;
     return groupEvents(mixed, entry.key);

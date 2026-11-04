@@ -1,5 +1,5 @@
 // カンバンとステータス表示の決め方（コア・画面の両方で使う。Node 依存を持ち込まないこと）
-import type { AgentState, BoardColumn, Chat } from "@shared/types";
+import type { AgentState, BoardColumn, Chat, ChatEvent } from "@shared/types";
 
 /**
  * チャットのエージェントの状態優先順位:
@@ -18,8 +18,8 @@ export function agentStateOf(chat: Chat, hasPendingApproval: boolean): AgentStat
  * 未読にする「新しい結果」の記録か: AI の文章の返答（サブエージェントのものは除く）・作業の終わり・失敗。
  * ツールの実行・考え中などの途中経過では未読にしない（作業中のチャットがずっと未読になるのを防ぐ）
  */
-export function isUnreadEvent(event: { type: string; data: unknown }): boolean {
-  if (event.type === "text") return !(event.data as { sub?: boolean }).sub;
+export function isUnreadEvent(event: ChatEvent): boolean {
+  if (event.type === "text") return !event.data.parent;
   return event.type === "result" || event.type === "error";
 }
 

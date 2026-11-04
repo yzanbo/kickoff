@@ -16,7 +16,7 @@ test("未読: 作業中も AI の文章の返答で未読にし、一番下ま�
   // ツールの実行・サブエージェントの返答では未読にしない
   provider.emits = [
     { type: "tool_use", id: "t1", name: "Read", input: {} },
-    { type: "text", text: "サブの返答", sub: true },
+    { type: "text", text: "サブの返答", parent: "t1" },
   ];
   let release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "やって" })).body.id;
@@ -776,9 +776,9 @@ test("巻き戻し・分岐は、止めた作業の終わりを起点にしな�
   await until(() => store.chats.get(chatId)?.status === "completed");
   const completed = store.events.list(chatId).find((e) => e.type === "result")!;
   // 以前の記録の形: 止めた作業の終わりにも message_id が付いている
-  store.events.add(chatId, { type: "user", text: "2" });
+  store.events.add(chatId, { type: "user", text: "2" , message_uuid: "u1" });
   const cancelled = store.events.add(chatId, { type: "result", status: "cancelled", session_id: "s9", message_id: "m9" });
-  const third = store.events.add(chatId, { type: "user", text: "3" });
+  const third = store.events.add(chatId, { type: "user", text: "3" , message_uuid: "u2" });
   assert.equal((await call("POST", `/api/chats/${chatId}/fork`, { event_id: cancelled.id })).status, 400);
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: third.id, text: "3 を書き直し" })).status, 200);
   const data = completed.data as { session_id: string; message_id: string };
@@ -871,12 +871,12 @@ test("チャットの記録の API: ほかのチャットのやり取りを Mark
   assert.equal((await call("POST", "/api/chats/99999/transcript")).status, 404);
 });
 
-test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。記録のない発言は 400", async () => {
+test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。戻せない・作業中は断る", async () => {
   const { call, project, store, runner, provider } = setup();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   const [user] = store.events.list(chatId).filter((e) => e.type === "user");
-  const messageId = (user.data as { message_uuid: string }).message_uuid;
+  const messageId = user.type === "user" ? user.data.message_uuid : "";
   assert.equal(messageId, provider.promptIds[0]);
 
   // 量だけを見る（戻さない・お知らせも残さない）
@@ -892,11 +892,9 @@ test("ファイルを戻す API: 自分の発言を送る前の状態にファ�
   assert.equal(after.length, events + 1);
   assert.match(JSON.stringify(after.at(-1)!.data), /2 個のファイル: a\.ts、b\.ts/);
 
-  // 戻せない（Claude Code が断った）・記録のない発言・作業中
+  // 戻せない（Claude Code が断った）・作業中
   provider.rewindResult = { can_rewind: false, error: "No file checkpoint found" };
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id, dry_run: true })).status, 400);
-  const old = store.events.add(chatId, { type: "user", text: "以前の発言" });
-  assert.match((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: old.id })).body.error, /記録がない/);
   provider.rewindResult = { can_rewind: true, files_changed: [] };
   const release = provider.hold();
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });

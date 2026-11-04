@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { groupEvents } from "@/features/chat/timeline/timelineItems";
-import { changesOf, lineDelta } from "./turnFileChanges";
+import { changesOf, lineDelta, type EditCall } from "./turnFileChanges";
 
 let id = 0;
 const ev = (type: ChatEvent["type"], data: object): ChatEvent => ({ id: ++id, chat_id: 1, type, data, created_at: "2026-11-04T00:00:00Z" }) as unknown as ChatEvent;
@@ -28,15 +28,15 @@ test("ターンの変更: ファイルごとにまとめ、失敗したものは
     ...call("w2", "Write", { file_path: "/r/old.md", content: "1\n" }, { content: "The file /r/old.md has been updated." }),
     ...call("bad", "Edit", { file_path: "/r/b.ts", old_string: "a", new_string: "b" }, { is_error: true, content: "String not found" }),
   ];
-  const calls = [];
-  for (let i = 0; i < events.length; i += 2) calls.push({ use: events[i], result: events[i + 1] });
+  const calls: EditCall[] = [];
+  for (let i = 0; i < events.length; i += 2) calls.push({ use: events[i] as ChatEventOf<"tool_use">, result: events[i + 1] as ChatEventOf<"tool_result"> });
   assert.deepEqual(changesOf(calls), [
     { path: "/r/a.ts", added: 2, removed: 2 },
     { path: "/r/new.md", added: 3, removed: 0, write: "created" },
     { path: "/r/old.md", added: 1, removed: 0, write: "rewritten" },
   ]);
   // 結果がまだないものは数えない
-  assert.deepEqual(changesOf([{ use: events[0] }]), []);
+  assert.deepEqual(changesOf([{ use: events[0] as ChatEventOf<"tool_use"> }]), []);
 });
 
 test("ターンの変更: タイムラインの作業の終わりに、その作業で変えたファイルを付ける（サブエージェントの変更も含める）", () => {

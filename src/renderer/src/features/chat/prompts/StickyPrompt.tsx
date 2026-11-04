@@ -95,7 +95,7 @@ export function readingPrompt(timeline: HTMLElement): { id: number; text: string
 /** 貼り付けた指示（記録の ID）の添付（なければ空） */
 export function promptAttachments(events: ChatEvent[], id: number): Attachment[] {
   const event = events.find((e) => e.id === id);
-  return (event?.data as { attachments?: Attachment[] } | undefined)?.attachments ?? NO_ATTACHMENTS;
+  return (event?.type === "user" ? event.data.attachments : undefined) ?? NO_ATTACHMENTS;
 }
 
 const NO_ATTACHMENTS: Attachment[] = [];

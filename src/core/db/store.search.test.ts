@@ -6,7 +6,8 @@ function setup() {
   const store = new Store(":memory:");
   const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
   const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "検索", status: "completed", model: null });
-  const say = (text: string, type: "user" | "text" = "text", chatId = chat.id) => store.events.add(chatId, { type, text }).id;
+  const say = (text: string, type: "user" | "text" = "text", chatId = chat.id) =>
+    store.events.add(chatId, type === "user" ? { type, text, message_uuid: `u-${text}` } : { type, text }).id;
   /** 見つかった発言の ID（新しい順） */
   const ids = (query: string, filter?: Parameters<Store["events"]["search"]>[1]) => store.events.search(query, filter).map((h) => h.event_id);
   /** 全文検索の索引が中身（発言の文）と合っているか（合っていなければ例外） */

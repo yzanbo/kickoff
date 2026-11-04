@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { groupEvents, relativize, summarizeTools, type ToolCall } from "./timelineItems";
 
 let nextId = 1;
 const call = (name: string, input: object = {}): ToolCall => ({
-  use: { id: nextId++, chat_id: 1, type: "tool_use", data: { id: `tu${nextId}`, name, input }, created_at: "2026-11-01T00:00:00Z" } as unknown as ChatEvent,
+  use: { id: nextId++, chat_id: 1, type: "tool_use", data: { id: `tu${nextId}`, name, input }, created_at: "2026-11-01T00:00:00Z" } as unknown as ChatEventOf<"tool_use">,
 });
 
 test("ツールのまとまりの要約: 編集・読み取りはファイルの数、それ以外は回数で 1 文にする", () => {
@@ -41,7 +41,7 @@ test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果�
     event(3, "tool_use", { id: "a", name: "Read", input: {} }),
     event(4, "tool_result", { tool_use_id: "a", content: "ok" }),
     event(5, "tool_use", { id: "b", name: "Bash", input: {} }),
-    event(6, "thinking"),
+    event(6, "thinking", { text: "" }),
     event(7, "text", { text: "できました" }),
     event(8, "tool_use", { id: "c", name: "Edit", input: {} }),
     // 対応する呼び出しがない結果は捨てる
@@ -92,7 +92,7 @@ test("groupEvents: 作業の終わり（result）に、その作業を始めた�
   const items = groupEvents([
     at(1, "user", "2026-11-01T00:00:00Z", { text: "1 回目" }),
     at(10, "text", "2026-11-01T00:00:30Z", { text: "答え 1" }),
-    at(11, "text", "2026-11-01T00:00:40Z", { text: "サブ", sub: true, parent: "x" }),
+    at(11, "text", "2026-11-01T00:00:40Z", { text: "サブ", parent: "x" }),
     at(12, "text", "2026-11-01T00:00:50Z", { text: "答え 2" }),
     at(2, "result", "2026-11-01T00:01:23Z", { status: "completed" }),
     at(3, "user", "2026-11-01T00:05:00Z", { text: "2 回目" }),

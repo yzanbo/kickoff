@@ -1,6 +1,6 @@
 import { History, Inbox, Pencil } from "lucide-react";
 import { createContext, useContext, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
-import type { Attachment, ChatEvent } from "@shared/types";
+import type { ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { errorMessage } from "@shared/errors";
 import { ErrorText } from "@/ui/ErrorText";
@@ -32,9 +32,9 @@ const COLLAPSE_PX = 240;
  * 吹き出しの下に、時刻（今日は時刻・7 日以内は曜日・それより前は日付）・コピー・書き直しのボタンを出す。右クリックでも同じ操作。
  * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）
  */
-export function UserMessage({ event }: { event: ChatEvent }) {
-  const data = event.data as { text?: string; attachments?: Attachment[]; handover?: string[]; message_uuid?: string };
-  const text = String(data.text ?? "");
+export function UserMessage({ event }: { event: ChatEventOf<"user"> }) {
+  const data = event.data;
+  const text = data.text;
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
   const attachments = data.attachments ?? [];
@@ -127,13 +127,13 @@ export function UserMessage({ event }: { event: ChatEvent }) {
 }
 
 /** AI の返答 1 つ（右クリックで、この返答だけをコピーできる） */
-export function AssistantMessage({ event }: { event: ChatEvent }) {
-  const data = event.data as { text?: string; sub?: boolean };
-  const text = String(data.text ?? "");
+export function AssistantMessage({ event }: { event: ChatEventOf<"text"> }) {
+  const data = event.data;
+  const text = data.text;
   const menu = useMessageMenu(text, undefined, { rich: true });
   return (
     <>
-      <div className={cx("assistant", Boolean(data.sub) && "sub")} id={`ev-${event.id}`} onContextMenu={menu.open}>
+      <div className={cx("assistant", Boolean(data.parent) && "sub")} id={`ev-${event.id}`} onContextMenu={menu.open}>
         <Markdown>{text}</Markdown>
       </div>
       {menu.element}

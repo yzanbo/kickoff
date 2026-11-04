@@ -173,15 +173,19 @@ function callbacksFor({ store, approvals, bus, background, controls, compacting 
       });
       const answer = await decision;
       // AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付）も残す（画面は「質問への回答」の吹き出しで出す）
-      store.events.add(chatId, {
-        type: "approval_resolved",
-        approval_id: approval.id,
-        action: answer.action,
-        kind: approval.kind,
-        ...(answer.action === "answer"
-          ? { answers: answer.plain ?? answer.answers, ...(answer.attachments ? { attachments: answer.attachments } : {}) }
-          : {}),
-      });
+      store.events.add(
+        chatId,
+        answer.action === "answer"
+          ? {
+              type: "approval_resolved",
+              approval_id: approval.id,
+              kind: approval.kind,
+              action: "answer",
+              answers: answer.plain ?? answer.answers,
+              ...(answer.attachments ? { attachments: answer.attachments } : {}),
+            }
+          : { type: "approval_resolved", approval_id: approval.id, kind: approval.kind, action: answer.action },
+      );
       return answer;
     },
   };
@@ -222,9 +226,8 @@ function applyResult(store: Store, chatId: number, result: ProviderTurnResult, c
       type: "result",
       status: result.status,
       text: result.status === "completed" ? result.result : result.error,
-      cost_usd: result.costUsd,
-      turns: result.turns,
       ...(network ? { network: true } : {}),
+      ...(result.usageLimit ? { usage_limit: { resets_at: result.usageLimit.resetsAt ?? null } } : {}),
       // 分岐・巻き戻しの起点（最後まで終わったときだけ。止めた作業の最後のメッセージはセッションに残らないことがある）
       ...(result.status === "completed" && result.lastMessageId && result.sessionId
         ? { session_id: result.sessionId, message_id: result.lastMessageId }

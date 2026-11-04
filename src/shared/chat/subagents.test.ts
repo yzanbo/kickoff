@@ -204,8 +204,8 @@ test("サブエージェント: 最後に動いた時刻と、結果を待って
   const events = [
     at(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "調査" } }, "2026-11-03T12:00:00Z"),
     at(2, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "調査", status: "running" }, "2026-11-03T12:00:01Z"),
-    at(3, "text", { text: "調べます", sub: true, parent: "tu1" }, "2026-11-03T12:01:00Z"),
-    at(4, "tool_use", { id: "b1", name: "Bash", input: { command: "npm test" }, sub: true, parent: "tu1" }, "2026-11-03T12:02:00Z"),
+    at(3, "text", { text: "調べます", parent: "tu1" }, "2026-11-03T12:01:00Z"),
+    at(4, "tool_use", { id: "b1", name: "Bash", input: { command: "npm test" }, parent: "tu1" }, "2026-11-03T12:02:00Z"),
   ];
   const [running] = collectSubagents(events, {}, true);
   assert.deepEqual([running.lastActivityAt, running.pendingTool], ["2026-11-03T12:02:00Z", "Bash"]);
@@ -237,7 +237,7 @@ test("サブエージェントの報告の受け渡し: 待つ形はツールの
   const received = [...sent, ev(5, "text", { text: "報告を読みました" })];
   assert.equal(collectSubagents(received, {}, false)[0].delivery, "received");
   // サブエージェントの中の発言は、親の動きに数えない
-  assert.equal(collectSubagents([...sent, ev(5, "text", { text: "中", sub: true, parent: "bg" })], {}, true)[0].delivery, "pending");
+  assert.equal(collectSubagents([...sent, ev(5, "text", { text: "中", parent: "bg" })], {}, true)[0].delivery, "pending");
   // 親が動かないまま作業が終わった: 届いていない（親に渡し直す報告の本文も持つ）
   const lost = [...sent, ev(5, "result", { status: "cancelled" })];
   const [gone] = collectSubagents(lost, {}, false);

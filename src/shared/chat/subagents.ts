@@ -94,22 +94,17 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
     awaitingParent.clear();
   };
   // 親（メインのエージェント）が動いた記録か（サブエージェントの中の発言・ツールは除く）
-  const isParentActivity = (e: ChatEvent) => {
-    if (e.type !== "text" && e.type !== "thinking" && e.type !== "tool_use") return false;
-    const d = e.data as { parent?: string; sub?: boolean };
-    return !d.parent && !d.sub;
-  };
+  const isParentActivity = (e: ChatEvent) => (e.type === "text" || e.type === "thinking" || e.type === "tool_use") && !e.data.parent;
   // サブエージェントの中の動き（parent = 起動した呼び出し ID）: 最後に動いた時刻と、結果を待っているツール
-  const touch = (e: ChatEvent) => {
-    const d = e.data as { parent?: string; name?: string };
-    const entry = d.parent ? map.get(d.parent) : undefined;
+  const touch = (e: Extract<ChatEvent, { type: "text" | "thinking" | "tool_use" | "tool_result" }>) => {
+    const entry = e.data.parent ? map.get(e.data.parent) : undefined;
     if (!entry) return;
     entry.lastActivityAt = e.created_at;
-    entry.pendingTool = e.type === "tool_use" ? d.name : undefined;
+    entry.pendingTool = e.type === "tool_use" ? e.data.name : undefined;
   };
   for (const e of events) {
     // 届かなかった報告を、利用者の次の指示に添えて渡した（reportHandover.ts）: 受け取ったとみなす
-    for (const key of e.type === "user" ? ((e.data as { handover?: string[] }).handover ?? []) : []) {
+    for (const key of e.type === "user" ? (e.data.handover ?? []) : []) {
       awaitingParent.delete(key);
       delivery.set(key, "received");
     }
@@ -117,11 +112,12 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
     // 報告を送ったあとに親が動いた: 親は報告を受け取っている（Claude Code は報告を親の次の手順の入力として渡す）
     if (awaitingParent.size > 0 && isParentActivity(e)) settleAwaiting("received");
     if (e.type === "tool_use") {
-      const d = e.data as { id: string; name: string; input?: { description?: string; subagent_type?: string; model?: string; prompt?: string } };
+      const d = e.data;
+      const input = d.input as { description?: string; subagent_type?: string; model?: string; prompt?: string } | undefined;
       if (!isSubagentTool(d.name)) {
         touch(e);
         // サブエージェントが報告を渡した（終わりの知らせを取りこぼしても、終わったと分かる）
-        const parent = (e.data as { parent?: string }).parent;
+        const parent = d.parent;
         if (d.name === "SubagentHandback" && parent) {
           handedBack.add(parent);
           if (map.has(parent)) reported(parent);
@@ -131,17 +127,17 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       }
       map.set(d.id, {
         key: d.id,
-        description: d.input?.description ?? "サブエージェント",
-        subagentType: d.input?.subagent_type,
-        model: d.input?.model,
-        prompt: d.input?.prompt,
+        description: input?.description ?? "サブエージェント",
+        subagentType: input?.subagent_type,
+        model: input?.model,
+        prompt: input?.prompt,
         status: "running",
         toolUseEventId: e.id,
         startEventId: e.id,
         lastActivityAt: e.created_at,
       });
     } else if (e.type === "tool_result") {
-      const d = e.data as { tool_use_id: string; is_error: boolean; content?: unknown };
+      const d = e.data;
       const entry = map.get(d.tool_use_id);
       if (!entry) continue;
       entry.agentId ??= agentIdIn(d.content);
@@ -159,7 +155,7 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
         }
       }
     } else if (e.type === "subagent") {
-      const d = e.data as unknown as SubagentInfo;
+      const d = e.data;
       const own = d.tool_use_id ?? d.task_id;
       const key = taskToKey.get(d.task_id) ?? own;
       if (!map.has(key) && otherTools.has(key)) continue;
@@ -206,7 +202,7 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       settleAwaiting("lost");
       // 実行の終わり。通信の切断で失敗したら、そのとき動いていたものは通信で止まった。
       // それ以外の終わり方（自分で止めた・最後まで終わった）なら、動いていたものの通信の印は外す
-      const d = e.data as { status?: string; text?: string; network?: boolean };
+      const d = e.data;
       const byNetwork = d.status === "failed" && (d.network === true || isNetworkError(d.text));
       for (const entry of map.values()) {
         if (entry.status !== "running") continue;
@@ -285,15 +281,13 @@ const isHandbackPointer = (text: string) => /report was delivered to you as a me
 export function subagentReport(entry: SubagentEntry, events: ChatEvent[]): string | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i];
-    const d = e.data as { name?: string; parent?: string; input?: { message?: string } };
-    if (e.type === "tool_use" && d.parent === entry.key && d.name === "SubagentHandback" && d.input?.message) return d.input.message;
+    if (e.type !== "tool_use" || e.data.parent !== entry.key || e.data.name !== "SubagentHandback") continue;
+    const message = (e.data.input as { message?: string } | undefined)?.message;
+    if (message) return message;
   }
   if (entry.summary && !isHandbackPointer(entry.summary)) return entry.summary;
-  const result = events.find((e) => {
-    const d = e.data as { tool_use_id?: string; parent?: string };
-    return e.type === "tool_result" && d.tool_use_id === entry.key && !d.parent;
-  });
-  const raw = (result?.data as { content?: string } | undefined)?.content;
+  const result = events.find((e): e is Extract<ChatEvent, { type: "tool_result" }> => e.type === "tool_result" && e.data.tool_use_id === entry.key && !e.data.parent);
+  const raw = result?.data.content;
   return raw && !isBackgroundLaunch(raw) && !isHandbackPointer(raw) ? cleanSubagentReport(raw) : undefined;
 }
 
