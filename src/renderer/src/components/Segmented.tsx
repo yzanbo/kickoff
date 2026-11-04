@@ -1,11 +1,12 @@
 import type { LucideIcon } from "lucide-react";
+import { tipProps } from "./HoverTip";
 
 export interface SegmentOption<T extends string> {
   value: T;
   label: string;
   /** 文字の前に出すアイコン */
   icon?: LucideIcon;
-  /** アイコンだけで見せる（label は読み上げとマウスを乗せたときの説明に使う） */
+  /** アイコンだけで見せる（label は読み上げと、マウスを乗せたときの説明 HoverTip に使う。「名前（説明）」なら見出しと説明に分ける） */
   iconOnly?: boolean;
   /** 右上に出す数（0 なら出さない。変更のあるファイルの数など） */
   badge?: number;
@@ -41,7 +42,7 @@ export function Segmented<T extends string>({
           aria-checked={value === v}
           className={value === v ? "active" : ""}
           data-value={v}
-          title={iconOnly ? text : undefined}
+          {...(iconOnly ? tipProps(text) : {})}
           aria-label={iconOnly ? text : undefined}
           onClick={() => onChange(v)}
         >
