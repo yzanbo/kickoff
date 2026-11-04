@@ -1,56 +1,60 @@
 import { Fragment, type ReactNode } from "react";
-import type { Chat, ChatGroup } from "@shared/types";
-import { useChatStates } from "@/app/chatStatesContext";
+import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { DraftCards } from "./DraftCards";
+import type { ChatBucket } from "@/features/chatList/buckets";
 import type { PanelController } from "@/features/panel/usePanel";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
+import { DraftCards, type BoardDraft } from "./DraftCards";
 import { GroupColumnHead } from "./GroupColumnHead";
-import type { useBoardCards } from "./useBoardCards";
 import type { GroupBoardState } from "./useGroupBoard";
 
 /**
- * グループのボードの、グループごとの列（ボード）・まとまり（リスト）。ボードは「グループなし」が先頭、
+ * グループのボードの、グループごとの列（ボード）・まとまり（リスト）。buckets は bucketChats のグループのまとまり（自分で作ったグループ → グループなし。
+ * もうないグループのチャット・下書きはグループなしに入る）。ボードは「グループなし」が先頭、
  * リストはスイムレーンと同じく、自分で作ったグループのあとのいちばん下（beforeUngrouped はその直前に置くもの。グループを作成）。
  * 列はドロップ先（チャットを移す・グループを並べ替える）で、サイドバーから来たグループはハイライトする。
- * アーカイブ済みは、グループのいちばん下の閉じたまとまりに分ける（件数はアーカイブしていないものだけ）
+ * アーカイブ済みは、グループのいちばん下の閉じたまとまりに分ける（件数はアーカイブしていないものだけ。開閉はボードとリストで共通）
  */
 export function GroupSections({
   projectId,
-  groups,
+  buckets,
   board,
   panel,
-  cards,
+  render,
+  foldScope,
   highlight,
   list = false,
   beforeUngrouped,
 }: {
   projectId: number;
-  groups: ChatGroup[];
+  buckets: readonly ChatBucket<BoardDraft>[];
   board: GroupBoardState;
   panel: PanelController;
-  cards: ReturnType<typeof useBoardCards>;
+  /** カード（ボード）・行（リスト）の描き方 */
+  render: (chat: Chat) => ReactNode;
+  /** アーカイブ済みのまとまりの開閉を覚える名前（ボードごと） */
+  foldScope: string;
   /** 目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlight?: number;
   list?: boolean;
   beforeUngrouped?: ReactNode;
 }) {
-  const { stateOf } = useChatStates();
   const { over, reorder, dropProps } = board;
-  const sections: (ChatGroup | null)[] = list ? [...groups, null] : [null, ...groups];
-  const render = list ? cards.row : cards.card;
-  return sections.map((g) => {
+  const ungrouped = buckets.filter((b) => b.kind === "ungrouped");
+  const groups = buckets.filter((b) => b.kind === "group");
+  const sections = list ? [...groups, ...ungrouped] : [...ungrouped, ...groups];
+  return sections.map((bucket) => {
+    const g = bucket.group ?? null;
     const key = g?.id ?? "none";
-    const [members, archived] = splitArchived(board.membersOf(g?.id ?? null), (r) => r);
-    const item = (chat: Chat) => render({ chat, state: stateOf(chat) });
+    const [members, archived] = splitArchived(bucket.chats);
     const body = (
       <>
         {/* その列（グループ）で入力中の新しいチャット */}
-        <DraftCards panel={panel} filter={(t) => t.projectId === projectId && (t.group ?? null) === (g?.id ?? null)} />
+        <DraftCards drafts={bucket.drafts} />
         {members.length === 0 && <p className="column-empty">{g ? "チャットをここへドラッグ" : "なし"}</p>}
-        {members.map(item)}
-        <ArchivedFold foldKey={`groups:${projectId}:${list ? "list" : "board"}:${key}`} count={archived.length}>
-          {archived.map(item)}
+        {members.map(render)}
+        <ArchivedFold foldKey={`${foldScope}:${bucket.key}/archived`} count={archived.length}>
+          {archived.map(render)}
         </ArchivedFold>
       </>
     );

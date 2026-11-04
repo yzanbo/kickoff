@@ -6,8 +6,8 @@ import { boardArchivedOpen } from "@/lib/storageKeys";
 import { RowSection } from "@/ui/RowSection";
 
 /** 未アーカイブとアーカイブ済みに分ける（並びはそのまま） */
-export function splitArchived<T>(list: T[], chatOf: (item: T) => Pick<Chat, "archived_at">): [T[], T[]] {
-  return [list.filter((item) => !chatOf(item).archived_at), list.filter((item) => chatOf(item).archived_at)];
+export function splitArchived<T extends Pick<Chat, "archived_at">>(list: readonly T[]): [T[], T[]] {
+  return [list.filter((chat) => !chat.archived_at), list.filter((chat) => chat.archived_at)];
 }
 
 /**

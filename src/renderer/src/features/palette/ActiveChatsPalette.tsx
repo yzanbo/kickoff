@@ -1,7 +1,6 @@
 import { Activity } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "react";
-import { boardColumnOf } from "@shared/chat/state";
-import { BOARD_COLUMN_LABELS, type Chat } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
 import { useChats } from "@/stores/chats";
@@ -13,9 +12,9 @@ import { useProjects } from "@/stores/projects";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
 import { openChat } from "@/app/router";
-import { COUNTED_COLUMNS, type CountedColumn } from "@/features/chat/chatState";
 import { shortRelativeTime } from "@/lib/time";
-import { COLUMN_TONE, DRAFT_TONE } from "@/features/chat/tones";
+import { DRAFT_TONE } from "@/features/chat/tones";
+import { bucketTone, chatsByState } from "@/features/chatList/StateChatsPopover";
 import { openDraft, useAllDrafts, type SidebarDraft } from "@/features/panel/state/panelMemory";
 import { StatusDot } from "@/ui/StatusDot";
 import { ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/lib/storageKeys";
@@ -38,7 +37,7 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
   const { projects, projectName, projectsById } = useProjects();
   // サイドバーの「タグ」で絞り込んでいれば、合うプロジェクトのチャットだけ
   const tagFilter = useProjectTagFilter();
-  const { stateOf } = useChatStates();
+  const { pending } = useChatStates();
   const [query, setQuery] = useState("");
   // すべてのプロジェクトのチャット（開いている間も、状態の変化・削除に追いつく）
   const { chats } = useChats();
@@ -57,7 +56,12 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
       return !tagFilter.active || tagFilter.matches(p);
     };
     const matches = (title: string, projectId: number) => inFilter(projectId) && (!q || `${title} ${projectName(projectId)}`.toLowerCase().includes(q));
-    const baseChats = chats.filter((chat) => !chat.archived_at && COUNTED_COLUMNS.includes(boardColumnOf(stateOf(chat)) as CountedColumn) && matches(chatTitle(chat.title), chat.project_id));
+    // 状態ごとのまとまり（作業中・回答待ち・未読。アーカイブしたもの・既読は入れない。中は最後に動いた順）
+    const sections = chatsByState(
+      chats.filter((chat) => matches(chatTitle(chat.title), chat.project_id)),
+      pending,
+    );
+    const baseChats = sections.flatMap((s) => s.chats);
     const baseDrafts = drafts.filter((d) => matches(draftTitle(d), d.projectId));
     // プロジェクトごとの数と、選択肢（サイドバーの並び → アーカイブ済み。チャットのあるものと、選んでいるもの）
     const counts = new Map<number, number>();
@@ -70,26 +74,21 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
       .map((p) => ({ id: p.id, name: p.name, count: counts.get(p.id) ?? 0, archived: Boolean(p.archived_at) }));
     const inProject = (projectId: number) => selected === "all" || projectId === selected;
 
-    const byColumn = new Map<CountedColumn, Chat[]>(COUNTED_COLUMNS.map((c) => [c, []]));
-    for (const chat of baseChats) if (inProject(chat.project_id)) byColumn.get(boardColumnOf(stateOf(chat)) as CountedColumn)!.push(chat);
     const draftItems: Item[] = baseDrafts
       .filter((d) => inProject(d.projectId))
       .map((draft) => ({ kind: "draft", key: `draft:${draft.memoryKey}:${draft.key}`, draft }));
     const groups = [
       { key: "draft", label: "下書き", tone: DRAFT_TONE, items: draftItems },
-      ...COUNTED_COLUMNS.map((column) => ({
-        key: column,
-        label: BOARD_COLUMN_LABELS[column],
-        tone: COLUMN_TONE[column],
-        items: byColumn
-          .get(column)!
-          .sort((a, b) => b.active_at.localeCompare(a.active_at))
-          .map((chat): Item => ({ kind: "chat", key: `chat:${chat.id}`, chat })),
+      ...sections.map((section) => ({
+        key: section.key,
+        label: section.label,
+        tone: bucketTone(section),
+        items: section.chats.filter((chat) => inProject(chat.project_id)).map((chat): Item => ({ kind: "chat", key: `chat:${chat.id}`, chat })),
       })),
     ].filter((g) => g.items.length > 0);
     return { groups, items: groups.flatMap((g) => g.items), total: baseChats.length + baseDrafts.length, options, selected };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
-  }, [chats, drafts, query, stateOf, projects, projectName, projectsById, tagFilter.selected, project, showArchived]);
+  }, [chats, drafts, query, pending, projects, projectName, projectsById, tagFilter.selected, project, showArchived]);
   const archivedCount = useMemo(() => projects.filter((p) => p.archived_at && (!tagFilter.active || tagFilter.matches(p))).length,
     // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
     [projects, tagFilter.selected]);

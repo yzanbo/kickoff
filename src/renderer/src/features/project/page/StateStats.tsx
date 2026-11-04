@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { openChat } from "@/app/router";
-import { SECTION_LABELS, SECTION_TONES, StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
+import { StateChatsPopover, bucketTone, chatsByState } from "@/features/chatList/StateChatsPopover";
 import { usePopover } from "@/ui/Popover";
 
 /**
@@ -11,18 +11,18 @@ import { usePopover } from "@/ui/Popover";
  * 押すと、状態ごとにまとめたチャットの一覧（StateChatsPopover）を開き、行を押すとそのチャットを開く。showProject なら行にプロジェクト名も出す（全プロジェクトの画面）
  */
 export function StateStats({ chats, showProject = false }: { chats: Chat[]; showProject?: boolean }) {
-  const { stateOf } = useChatStates();
+  const { pending } = useChatStates();
   const popover = usePopover<HTMLDivElement>();
 
-  const sections = chatsByState(chats, stateOf);
+  const sections = chatsByState(chats, pending);
   if (sections.length === 0) return null;
 
   return (
     <div ref={popover.anchor} className="state-stats">
       <button type="button" className="state-stats-button" aria-expanded={popover.open} title="状態ごとのチャットを一覧する" onClick={popover.toggle}>
-        {sections.map(({ column, chats: list }) => (
-          <span key={column} className="stat stat-state" style={{ "--tone": SECTION_TONES[column] } as CSSProperties}>
-            {SECTION_LABELS[column]} {list.length}
+        {sections.map((section) => (
+          <span key={section.key} className="stat stat-state" style={{ "--tone": bucketTone(section) } as CSSProperties}>
+            {section.label} {section.chats.length}
           </span>
         ))}
       </button>

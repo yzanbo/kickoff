@@ -1,7 +1,6 @@
 import { FolderPlus, Plus } from "lucide-react";
 import { useEffect } from "react";
 import type { ChatGroup } from "@shared/types";
-import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { GROUP_FLASH_EVENT } from "@/features/group/groups";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
@@ -11,12 +10,13 @@ import { usePanel } from "@/features/panel/usePanel";
 import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader } from "./BoardHeader";
-import { BoardLanes, groupOfLane, LaneSelect, type BoardLane } from "./BoardLanes";
+import { BoardLanes, LaneSelect, type BoardLane } from "./BoardLanes";
 import { BoardShell } from "./BoardShell";
-import type { BoardEntry } from "@/features/chatList/boardColumns";
+import { useChatBuckets } from "@/features/chatList/useChatBuckets";
+import { boardDrafts } from "./DraftCards";
 import { GroupCreateForm } from "./GroupCreateForm";
 import { GroupSections } from "./GroupSections";
-import { GroupLaneColumns } from "./GroupLaneColumns";
+import { StateColumns } from "./StateColumn";
 import { useBoardCards } from "./useBoardCards";
 import { useBoardFocus } from "./useBoardFocus";
 import { useGroupBoard } from "./useGroupBoard";
@@ -70,14 +70,11 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
 
   /** カード・リストの行で共通: クリックで右側に開く、ドラッグでグループを移す、右クリックでメニュー */
   const cards = useBoardCards({ panel, rename, menu, onOpen: panel.open, drag: { hint: "ドラッグでグループを移す" } });
-  // チャットの状態（回答待ちの依頼は App が持つ）
-  const { stateOf } = useChatStates();
-
-  // スイムレーン: グループごとの段に、下書き・作業中・回答待ち・未読・既読の列を並べる
-  const entries: BoardEntry[] = board.shown
-    .filter(board.search.matches)
-    .sort((a, b) => b.active_at.localeCompare(a.active_at))
-    .map((chat) => ({ chat, state: stateOf(chat) }));
+  // グループごとのまとまり（自分で作ったグループ → グループなし。チャットのないグループも出す）。段に分けるときは、その中を状態の列に分ける
+  // （列・段には、そのグループで始める下書きも入る）
+  const buckets = useChatBuckets(board.shown, { by: ["group", "status"], project: projectId, drafts: boardDrafts(panel), keepEmpty: true });
+  /** アーカイブ済み・段の開閉を覚える名前（ボードごと） */
+  const foldScope = `groups:${projectId}`;
 
   const header = (
     <BoardHeader
@@ -120,23 +117,18 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       {view === "board" && split ? (
         // 段（グループ）へカードをドラッグすると、そのグループへ移す
         <BoardLanes
-          kind="group"
-          boardKey={`groups:${projectId}`}
-          entries={entries}
-          projects={[]}
-          groups={groups}
-          showEmpty
-          laneProps={(key) => {
-            const groupId = groupOfLane(key);
+          lanes={buckets}
+          boardKey={foldScope}
+          laneProps={(lane) => {
+            const groupId = lane.group?.id ?? null;
             return { ...dropProps(groupId), className: cx(over === (groupId ?? "none") && "drop-target") };
           }}
-          renderColumns={(list, key) => (
-            <GroupLaneColumns entries={list} foldKey={`groups:${projectId}:${key}`} groupId={groupOfLane(key)} projectId={projectId} panel={panel} renderCard={cards.card} />
-          )}
-        />
+        >
+          {(lane) => <StateColumns columns={lane.children ?? []} drafts={lane.drafts} foldScope={foldScope} render={cards.card} />}
+        </BoardLanes>
       ) : view === "board" ? (
         <div className="board-columns">
-          <GroupSections projectId={projectId} groups={groups} board={board} panel={panel} cards={cards} highlight={highlight} />
+          <GroupSections projectId={projectId} buckets={buckets} board={board} panel={panel} render={cards.card} foldScope={foldScope} highlight={highlight} />
           <section className="board-column group-add-column">
             <GroupCreateForm board={board} />
           </section>
@@ -145,10 +137,11 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
         <div className="board-list">
           <GroupSections
             projectId={projectId}
-            groups={groups}
+            buckets={buckets}
             board={board}
             panel={panel}
-            cards={cards}
+            render={cards.row}
+            foldScope={foldScope}
             highlight={highlight}
             list
             beforeUngrouped={

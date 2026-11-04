@@ -1,31 +1,33 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AgentState, Chat } from "@shared/types";
+import type { Chat } from "@shared/types";
+import { approvalIndex } from "@/features/chat/chatState";
 import { chatsByState } from "./StateChatsPopover";
 
-const chat = (id: number, state: AgentState, archived = false) =>
-  ({ id, active_at: `2026-11-0${id}T00:00:00Z`, archived_at: archived ? "2026-11-01T00:00:00Z" : null, state }) as unknown as Chat & { state: AgentState };
-const chats = [chat(1, "running"), chat(2, "read"), chat(3, "read", true), chat(4, "needs_input")];
-const stateOf = (r: Chat) => (r as Chat & { state: AgentState }).state;
+const chat = (id: number, patch: Partial<Chat> = {}) =>
+  ({ id, project_id: 1, status: "completed", unread: false, pinned: false, archived_at: null, active_at: `2026-11-0${id}T00:00:00Z`, ...patch }) as Chat;
+const chats = [chat(1, { status: "running" }), chat(2), chat(3, { archived_at: "2026-11-01T00:00:00Z" }), chat(4, { status: "running" }), chat(5)];
+// 4 は回答待ちの依頼がある
+const pending = approvalIndex([{ chat_id: 4 }]);
 
-test("runsByState: 初めは作業中・回答待ち・未読だけ（既読・アーカイブ済みは入れない）", () => {
+test("chatsByState: 初めは作業中・回答待ち・未読だけ（既読・アーカイブ済みは入れない）", () => {
   assert.deepEqual(
-    chatsByState(chats, stateOf).map((s) => [s.column, s.chats.map((r) => r.id)]),
+    chatsByState(chats, pending).map((s) => [s.key, s.chats.map((r) => r.id)]),
     [
-      ["running", [1]],
-      ["needs_input", [4]],
+      ["status:running", [1]],
+      ["status:needs_input", [4]],
     ],
   );
 });
 
-test("runsByState: all なら既読と、いちばん下にアーカイブ済みも並べる", () => {
+test("chatsByState: all なら既読と、いちばん下にアーカイブ済みも並べる（中は最後に動いた順）", () => {
   assert.deepEqual(
-    chatsByState(chats, stateOf, { all: true }).map((s) => [s.column, s.chats.map((r) => r.id)]),
+    chatsByState(chats, pending, { all: true }).map((s) => [s.key, s.label, s.chats.map((r) => r.id)]),
     [
-      ["running", [1]],
-      ["needs_input", [4]],
-      ["read", [2]],
-      ["archived", [3]],
+      ["status:running", "作業中", [1]],
+      ["status:needs_input", "回答待ち", [4]],
+      ["status:read", "既読", [5, 2]],
+      ["archived", "アーカイブ済み", [3]],
     ],
   );
 });

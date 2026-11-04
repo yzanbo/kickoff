@@ -10,8 +10,8 @@ import { useStoreStatus } from "./useStore";
 /** 空の一覧（描くたびに作らない。書き換えない） */
 export const NO_CHATS: Chat[] = Object.freeze([]) as unknown as Chat[];
 
-/** 最後に動いた順（同じなら新しく作った順。サーバーの一覧と同じ並び） */
-const byActive = (a: Chat, b: Chat) => b.active_at.localeCompare(a.active_at) || b.id - a.id;
+/** 最後に動いた順（同じなら新しく作った順。サーバーの一覧と同じ並び。まとまりの中の並びもこれ） */
+export const byActive = (a: Chat, b: Chat) => b.active_at.localeCompare(a.active_at) || b.id - a.id;
 
 /** 届いたチャットを一覧に入れる（同じ ID は置き換え、最後に動いた順の位置へ） */
 export function upsertChat(list: readonly Chat[], chat: Chat): Chat[] {

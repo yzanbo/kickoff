@@ -17,7 +17,8 @@ export type GroupBoardState = ReturnType<typeof useGroupBoard>;
 /**
  * グループのボードの状態と操作: グループを作る・名前を変える・削除する（「…」メニュー）、列へのドロップ（チャットを移す・列を並べ替える）、
  * 名前の検索、アーカイブでの絞り込みとボード / リスト / スイムレーンの切り替え（どちらもカンバンとは別に覚える）、失敗の文。
- * チャットはカンバンと同じくチャットの店（useChats）から読み、アーカイブ済みを出すときはそれも読み込む（chats は読み込んだすべて、shown は絞り込んだもの）
+ * チャットはカンバンと同じくチャットの店（useChats）から読み、アーカイブ済みを出すときはそれも読み込む
+ * （chats は読み込んだすべて、shown はアーカイブと名前の検索で絞り込んだもの。グループの列・段への分け方は bucketChats）
  */
 export function useGroupBoard({ projectId, groups }: { projectId: number; groups: ChatGroup[] }) {
   const [creating, setCreating] = useState(false);
@@ -25,22 +26,14 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const { error, setError, guard } = useAction();
   const [archive, setArchive] = useArchiveFilter(GROUP_BOARD_ARCHIVE_FILTER);
   const { chats, loaded, error: loadError } = useChats({ projectId, archived: archive !== "active" });
-  const shown = chats.filter((r) => archiveMatches(r, archive));
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useChatRename(setError);
   const menu = useCardMenu();
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
+  const shown = chats.filter((r) => archiveMatches(r, archive) && search.matches(r));
   // 表示（ボード / リスト）と、段（グループ）に分けるか
   const { view, split, setView, setSplit } = useBoardView();
-
-  const groupIds = new Set(groups.map((g) => g.id));
-  /** そのグループ（null はグループなし）のチャット。アーカイブと検索で絞り、新しく動いた順 */
-  const membersOf = (groupId: number | null) =>
-    shown
-      .filter((r) => (groupId === null ? r.group_id === null || !groupIds.has(r.group_id) : r.group_id === groupId))
-      .filter(search.matches)
-      .sort((a, b) => b.active_at.localeCompare(a.active_at));
 
   const removeGroup = async (group: ChatGroup) => {
     if (await confirmDeleteGroup(group)) void guard(() => api.deleteGroup(group.id));
@@ -76,8 +69,6 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
     split,
     setView,
     setSplit,
-    search,
-    membersOf,
     groupMenu,
     reorder,
     over,
