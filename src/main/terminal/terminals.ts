@@ -1,9 +1,8 @@
 import { statSync } from "node:fs";
 import os from "node:os";
-import headless from "@xterm/headless";
-import serialize from "@xterm/addon-serialize";
 import { app, ipcMain, type WebContents } from "electron";
 import * as pty from "node-pty";
+import { TerminalOutput } from "./output.js";
 
 /**
  * 内蔵ターミナル（右のパネルのタブ）のシェル。画面とは IPC だけでつなぎ、Kickoff のサーバー（スマホから届く）は通さない。
@@ -13,18 +12,10 @@ import * as pty from "node-pty";
 
 interface Session {
   pty: pty.IPty;
-  screen: InstanceType<typeof headless.Terminal>;
-  serializer: InstanceType<typeof serialize.SerializeAddon>;
+  /** 裏の端末と、画面へまとめて送る出力（output.ts） */
+  output: TerminalOutput;
   owner: WebContents;
-  /** 画面へまだ送っていない出力（細かく届くので、まとめて送る） */
-  pending: string;
-  flushTimer?: ReturnType<typeof setTimeout>;
 }
-
-/** 出力をまとめて送るまでの時間 */
-const FLUSH_MS = 8;
-/** 裏の端末に残す行数（つなぎ直したときに遡れる分） */
-const SCROLLBACK = 5000;
 
 const sessions = new Map<string, Session>();
 
@@ -54,35 +45,25 @@ function shellEnv(): Record<string, string> {
   return env;
 }
 
-function flush(key: string, session: Session) {
-  session.flushTimer = undefined;
-  if (!session.pending || session.owner.isDestroyed()) return;
-  session.owner.send("kickoff:terminal-data", key, session.pending);
-  session.pending = "";
-}
-
 function start(key: string, cwd: string, cols: number, rows: number, owner: WebContents): Session {
   const shell = process.env.SHELL || "/bin/zsh";
   const proc = pty.spawn(shell, ["-l"], { name: "xterm-256color", cols, rows, cwd, env: shellEnv() });
-  const screen = new headless.Terminal({ cols, rows, scrollback: SCROLLBACK, allowProposedApi: true });
-  const serializer = new serialize.SerializeAddon();
-  screen.loadAddon(serializer);
-  const session: Session = { pty: proc, screen, serializer, owner, pending: "" };
+  // 出力は、いまつないでいる画面へ送る（つなぎ直すと owner が変わる）
+  const output = new TerminalOutput((data) => {
+    if (!session.owner.isDestroyed()) session.owner.send("kickoff:terminal-data", key, data);
+  }, { cols, rows });
+  const session: Session = { pty: proc, output, owner };
   // 止めたあと（タブを閉じた・開き直した）に届いたものは捨てる
   const current = () => sessions.get(key) === session;
   proc.onData((data) => {
-    if (!current()) return;
-    screen.write(data);
-    session.pending += data;
-    session.flushTimer ??= setTimeout(() => flush(key, session), FLUSH_MS);
+    if (current()) output.write(data);
   });
   // シェルが自分で終わったとき（exit など）。タブは残し、画面に知らせる
   proc.onExit(({ exitCode }) => {
     if (!current()) return;
-    clearTimeout(session.flushTimer);
-    flush(key, session);
+    output.flush();
     sessions.delete(key);
-    screen.dispose();
+    output.dispose();
     if (!session.owner.isDestroyed()) session.owner.send("kickoff:terminal-exit", key, exitCode);
   });
   sessions.set(key, session);
@@ -93,8 +74,7 @@ function kill(key: string) {
   const session = sessions.get(key);
   if (!session) return;
   sessions.delete(key);
-  clearTimeout(session.flushTimer);
-  session.screen.dispose();
+  session.output.dispose();
   try {
     session.pty.kill();
   } catch {
@@ -128,29 +108,25 @@ export function registerTerminalIpc() {
    * タブを表示したとき: そのキーのシェルがあれば、いまの画面の内容を返す（つなぎ直す）。なければ cwd で新しく始める。
    * created は新しく始めたか
    */
-  ipcMain.handle("kickoff:terminal-open", (e, key: unknown, cwd: unknown, cols: unknown, rows: unknown) => {
+  ipcMain.handle("kickoff:terminal-open", async (e, key: unknown, cwd: unknown, cols: unknown, rows: unknown) => {
     if (typeof key !== "string" || !key) throw new Error("ターミナルの指定が正しくありません");
     const existing = sessions.get(key);
     if (existing) {
       // 別の画面（読み直したあとなど）からつなぎ直したときも、その画面が消えたらシェルを止められるように見張る
       existing.owner = e.sender;
       watchOwner(e.sender);
-      flush(key, existing);
-      return { snapshot: existing.serializer.serialize(), created: false };
+      // 画面は返事が届くまでの出力を捨てるので、まだ送っていない出力も snapshot に入れて返す
+      return { snapshot: await existing.output.snapshot(), created: false };
     }
     const missing = typeof cwd === "string" && cwd !== "" && !isDirectory(cwd);
     const dir = typeof cwd === "string" && isDirectory(cwd) ? cwd : os.homedir();
     watchOwner(e.sender);
     const session = start(key, dir, clampSize(cols, 80), clampSize(rows, 24), e.sender);
     // 作業場所のフォルダが見つからず（ワークツリーが消されたなど）ホームで開いたときは、画面の先頭でそう知らせる。
-    // 画面はこの返事が届くまでの出力を捨てるので、知らせとして送らず、最初の画面の内容（snapshot）として返す
-    // （裏の端末にも書いておき、つなぎ直したときにも出す）
-    if (missing) {
-      const note = `\x1b[33m作業場所のフォルダが見つからないため、ホームフォルダで開きました（${cwd}）\x1b[0m\r\n`;
-      session.screen.write(note);
-      return { snapshot: note, created: true };
-    }
-    return { snapshot: "", created: true };
+    // 画面はこの返事が届くまでの出力を捨てるので、知らせとして送らず、最初の画面の内容（snapshot）に入れて返す
+    // （裏の端末に書くので、つなぎ直したときにも出る）
+    if (missing) session.output.write(`\x1b[33m作業場所のフォルダが見つからないため、ホームフォルダで開きました（${cwd}）\x1b[0m\r\n`);
+    return { snapshot: await session.output.snapshot(), created: true };
   });
   ipcMain.on("kickoff:terminal-write", (_e, key: unknown, data: unknown) => {
     if (typeof key === "string" && typeof data === "string") sessions.get(key)?.pty.write(data);
@@ -162,7 +138,7 @@ export function registerTerminalIpc() {
     const r = clampSize(rows, session.pty.rows);
     if (c === session.pty.cols && r === session.pty.rows) return;
     session.pty.resize(c, r);
-    session.screen.resize(c, r);
+    session.output.resize(c, r);
   });
   // タブを閉じたとき
   ipcMain.handle("kickoff:terminal-close", (_e, key: unknown) => {
