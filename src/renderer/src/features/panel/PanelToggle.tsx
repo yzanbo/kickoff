@@ -11,7 +11,7 @@ export function PanelToggle({ panel }: { panel: PanelController }) {
       title={panelOpen ? "右側のパネルを閉じる（Esc）" : "右側のパネルを開く"}
       aria-label={panelOpen ? "右側のパネルを閉じる" : "右側のパネルを開く"}
       aria-pressed={panelOpen}
-      onClick={panel.toggle}
+      onClick={() => panel.toggle()}
     >
       {panelOpen ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
       {!panelOpen && tabs.length > 0 && <span className="panel-toggle-count">{tabs.length}</span>}

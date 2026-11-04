@@ -53,13 +53,7 @@ export function PanelTabPage({
           visible={visible}
           onOpenSubagent={(toolUseId, title) => panel.openSubagent({ chatId: t.id, projectId: t.projectId, toolUseId, title })}
           // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
-          onChatChange={(chat) =>
-            panel.updateTab(t.key, (x) =>
-              x.kind === "chat" && x.chat !== chat
-                ? { ...x, title: chat.title, status: chat.status, unread: chat.unread, projectId: chat.project_id, chat }
-                : x,
-            )
-          }
+          onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, status: chat.status, unread: chat.unread, projectId: chat.project_id, chat } })}
         />
         </NewChatContext.Provider>
       ) : t.kind === "new" ? (
@@ -70,10 +64,11 @@ export function PanelTabPage({
           draftText={t.draftText}
           visible={visible}
           projects={panel.projects}
-          onProjectChange={(projectId) => panel.updateTab(t.key, () => ({ ...t, projectId, group: undefined, groupName: undefined }))}
-          onGroupChange={(group, groupName) => panel.updateTab(t.key, (x) => (x.kind === "new" ? { ...x, group, groupName } : x))}
+          onProjectChange={(projectId) => panel.patchTab(t.key, { kind: "new", fields: { projectId, group: undefined, groupName: undefined } })}
+          onGroupChange={(group, groupName) => panel.patchTab(t.key, { kind: "new", fields: { group, groupName } })}
           onCreated={(chat) => panel.replaceWithChat(t.key, chat)}
-          onDraftChange={(text) => panel.updateTab(t.key, (x) => (x.kind === "new" && (x.draftText ?? "") !== text ? { ...x, draftText: text } : x))}
+          // 空の文は覚えない（書き始める前と同じ形のまま）
+          onDraftChange={(text) => panel.patchTab(t.key, { kind: "new", fields: { draftText: text || undefined } })}
         />
       ) : t.kind === "subagent" ? (
         <SubagentPane
@@ -89,10 +84,8 @@ export function PanelTabPage({
       ) : (
         <BrowserPane
           url={t.url}
-          onChange={({ url, title }) =>
-            // 空のページのあいだは「新しいタブ」と表示する
-            panel.updateTab(t.key, (x) => (x.kind === "browser" ? { ...x, title: url === "about:blank" ? "" : title, current: url } : x))
-          }
+          // 空のページのあいだは「新しいタブ」と表示する
+          onChange={({ url, title }) => panel.patchTab(t.key, { kind: "browser", fields: { title: url === "about:blank" ? "" : title, current: url } })}
         />
       )}
     </div>

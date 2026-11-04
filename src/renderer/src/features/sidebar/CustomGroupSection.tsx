@@ -12,7 +12,7 @@ import { InlineName } from "@/ui/InlineName";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { pressedLeftOfName } from "@/ui/GroupToggle";
 import { FoldHead } from "@/ui/FoldHead";
-import type { SidebarDraft } from "@/features/panel/state/panelMemory";
+import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { DraftRows } from "./DraftRows";
 import type { GroupSectionProps } from "./useGroupSections";
 
@@ -34,7 +34,7 @@ export function CustomGroupSection({
   projectId: number;
   group: ChatGroup;
   /** グループのチャット（絞り込みを通したもの）と、このグループで始める下書き（中身のいちばん上に出す） */
-  bucket: ChatBucket<SidebarDraft>;
+  bucket: ChatBucket<PanelDraft>;
   closed: boolean;
   onSetClosed: (closed: boolean) => void;
   /** 検索・絞り込みの間（並べ方のまとまりを開いて見せる） */

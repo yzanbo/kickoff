@@ -4,7 +4,7 @@ import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { IconButton } from "@/ui/IconButton";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
-import type { PanelSurface } from "@/features/panel/state/panelKinds";
+import type { PanelSurface } from "@/features/panel/surfaces";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 
 /**

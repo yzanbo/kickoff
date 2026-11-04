@@ -30,7 +30,7 @@ import { IconButton } from "@/ui/IconButton";
  * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
  * onNewChat: 「新しいチャット」を押したとき（どのプロジェクト・グループで始めるかはボードが決める）。
  * terminals: 開けるターミナル（terminalTargets。Mac のアプリでだけ出す）。チャットを開いているときは、そのチャットの作業場所で開く。
- * sidebar: 欄（画面の右端のチャット欄・フッター）として使うとき（開閉は欄が持つ。幅の変更・横幅いっぱいは欄の側で行うので出さない。
+ * sidebar: 欄（画面の右端のチャット欄・フッター）として使うとき（幅の変更・横幅いっぱいは欄の側で行うので出さない。
  * controls は欄の道具（フッターの最大化・閉じるなど）で、タブの列の左の道具の後ろに並べる）。
  * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）
  */
@@ -43,11 +43,9 @@ export function Panel({
   panel: PanelController;
   onNewChat: () => void;
   terminals: TerminalTarget[];
-  sidebar?: { open: boolean; onClose: () => void; controls?: React.ReactNode; className?: string };
+  sidebar?: { controls?: React.ReactNode; className?: string };
 }) {
-  const { tabs, panelFull, layout } = panel;
-  const panelOpen = sidebar ? sidebar.open : panel.panelOpen;
-  const close = sidebar ? sidebar.onClose : panel.close;
+  const { tabs, panelFull, layout, panelOpen } = panel;
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
   // パネルそのもの（ピントがパネルの中にあるか・左端のつまみのドラッグを始めたときの幅）
   const asideRef = panel.paneRef;
@@ -119,7 +117,7 @@ export function Panel({
   ) : (
     <div className="panel-controls">
       {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-      <IconButton icon={PanelRightClose} size={15} className="panel-control" label="パネルを閉じる" keys="Esc" onClick={close} />
+      <IconButton icon={PanelRightClose} size={15} className="panel-control" label="パネルを閉じる" keys="Esc" onClick={panel.close} />
       <TabKindsButton panel={panel} />
       {/* まとめ方・アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
       {panel.kinds.has("chat") && <TabGroupingButton surface={panel.surface} />}
@@ -144,8 +142,8 @@ export function Panel({
       panel={panel}
       pane={pane}
       split={split}
-      // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていない・連動しない欄では、どのペインも一覧として扱う
-      home={!split || !panel.linked || pane.id === homeId}
+      // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていなければ、そのペインが一覧
+      home={!split || pane.id === homeId}
       inert={!panelOpen}
       controls={pane.id === leaves[0].id ? controls : undefined}
       drag={drag}

@@ -9,7 +9,7 @@ import type { PROJECT_BOARD_LANES } from "@/lib/storageKeys";
 import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import { FoldHead } from "@/ui/FoldHead";
-import type { BoardDraft } from "./DraftCards";
+import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 
 /**
  * スイムレーンの段の分け方（列はどれも状態）。カンバンでは 作業場所・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
@@ -41,7 +41,7 @@ export function LaneSelect({ value, options, onChange }: { value: BoardLane | "n
 }
 
 /** 段の見出しの印と名前（グループ・プロジェクト・作業場所。作業場所は見出しをサイドバーと同じ workplaceOf で出し、種類を添える） */
-function LaneTitle({ lane, showProject }: { lane: ChatBucket<BoardDraft>; showProject: boolean }) {
+function LaneTitle({ lane, showProject }: { lane: ChatBucket<PanelDraft>; showProject: boolean }) {
   const { projectName } = useProjects();
   const { place } = lane;
   if (place) {
@@ -79,7 +79,7 @@ export function BoardLanes({
   laneProps,
   children,
 }: {
-  lanes: readonly ChatBucket<BoardDraft>[];
+  lanes: readonly ChatBucket<PanelDraft>[];
   /** 段の開閉を覚える場所（ボードごと） */
   foldPlace: string;
   /** 段の中をリストで並べる（リスト表示。段の中の状態のまとまりを縦に並べる） */
@@ -87,9 +87,9 @@ export function BoardLanes({
   /** 作業場所の段に、どのプロジェクトのものかを添える（いくつかのプロジェクトが並ぶボード） */
   showProject?: boolean;
   /** 段の要素に付けるもの（ドロップ先にするなど） */
-  laneProps?: (lane: ChatBucket<BoardDraft>) => { className?: string } & Record<string, unknown>;
+  laneProps?: (lane: ChatBucket<PanelDraft>) => { className?: string } & Record<string, unknown>;
   /** 段の中身 */
-  children: (lane: ChatBucket<BoardDraft>) => ReactNode;
+  children: (lane: ChatBucket<PanelDraft>) => ReactNode;
 }) {
   const folds = useFolds(
     foldPlace,

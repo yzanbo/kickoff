@@ -14,16 +14,16 @@ import { openChat } from "@/app/router";
 import { shortRelativeTime } from "@/lib/time";
 import { DRAFT_TONE } from "@/features/chat/tones";
 import { bucketTone, chatsByState } from "@/features/chatList/StateChatsPopover";
-import { openDraft, useAllDrafts, type SidebarDraft } from "@/features/panel/state/panelMemory";
+import { openDraft, useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { StatusDot } from "@/ui/StatusDot";
 import { ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/lib/storageKeys";
 import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
 
 /** 一覧の 1 行: チャットか、送る前の新しいチャット（下書き） */
-type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: SidebarDraft };
+type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: PanelDraft };
 
 /** 下書きの名前（書いた文の 1 行目。まだ書いていなければ「新しいチャット」） */
-const draftTitle = (draft: SidebarDraft) => draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE;
+const draftTitle = (draft: PanelDraft) => draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE;
 
 /**
  * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形）。
@@ -74,7 +74,7 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
 
     const draftItems: Item[] = baseDrafts
       .filter((d) => inProject(d.projectId))
-      .map((draft) => ({ kind: "draft", key: `draft:${draft.memoryKey}:${draft.key}`, draft }));
+      .map((draft) => ({ kind: "draft", key: `draft:${draft.panel}:${draft.key}`, draft }));
     const groups = [
       { key: "draft", label: "下書き", tone: DRAFT_TONE, items: draftItems },
       ...sections.map((section) => ({

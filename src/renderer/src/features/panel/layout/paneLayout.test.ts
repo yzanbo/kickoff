@@ -128,6 +128,8 @@ test("placeTab: どこかにあればそのペインで表示してピントを�
   assert.equal(shape(l3.root), `row(0.50:${FIRST_PANE}[*a,b] 0.50:p1[c,*d])`);
   assert.equal(activeTabOf(l3), "d");
   assert.ok(isTabVisible(l3, "a") && isTabVisible(l3, "d") && !isTabVisible(l3, "b"));
+  // もうそのペインで表示していて、ピントもあれば同じ配置
+  assert.equal(placeTab(l3, "d"), l3);
 });
 
 test("renameTab: 置き場所と表示中かはそのままでキーを変える", () => {

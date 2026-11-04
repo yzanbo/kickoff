@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { useProjects } from "@/stores/projects";
 import { Panel } from "@/features/panel/Panel";
-import { terminalTargets } from "@/features/panel/usePanel";
+import { terminalTargets, usePanel } from "@/features/panel/usePanel";
 import type { ProjectChatController } from "./useProjectChat";
 
 /**
@@ -10,8 +10,7 @@ import type { ProjectChatController } from "./useProjectChat";
  * ＋からチャット・ブラウザ・ターミナルを開ける。左端のつまみで幅を変える。閉じても要素は残し（幅 0）、書きかけの文章をなくさない
  */
 export function ProjectChat({ chat }: { chat: ProjectChatController }) {
-  const { width, projectId, panel } = chat;
-  const { projects } = useProjects();
+  const { width, projectId } = chat;
   if (projectId === undefined) return null;
   return (
     <aside
@@ -25,13 +24,15 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
     >
       <div className="pane-resizer project-chat-resizer" aria-label="チャット欄の幅を変える" {...width.handle} />
       <div className="project-chat-inner">
-        <Panel
-          panel={panel}
-          onNewChat={() => panel.openNew({ projectId })}
-          terminals={terminalTargets(projects, projectId)}
-          sidebar={{ open: chat.open, onClose: chat.close }}
-        />
+        <ProjectChatPanel projectId={projectId} />
       </div>
     </aside>
   );
+}
+
+/** チャット欄の中身（プロジェクトのタブ。開いているかは欄の殻 useProjectChat と同じ店から読む） */
+function ProjectChatPanel({ projectId }: { projectId: number }) {
+  const { projects } = useProjects();
+  const panel = usePanel({ surface: "side", scope: projectId });
+  return <Panel panel={panel} onNewChat={() => panel.openNew({ projectId })} terminals={terminalTargets(projects, projectId)} sidebar={{}} />;
 }

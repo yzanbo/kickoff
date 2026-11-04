@@ -4,7 +4,8 @@ import { cx } from "@/lib/cx";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import type { PanelController } from "@/features/panel/usePanel";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
-import { DraftCards, type BoardDraft } from "./DraftCards";
+import { DraftCards } from "./DraftCards";
+import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { GroupColumnHead } from "./GroupColumnHead";
 import type { GroupBoardState } from "./useGroupBoard";
 
@@ -27,7 +28,7 @@ export function GroupSections({
   beforeUngrouped,
 }: {
   projectId: number;
-  buckets: readonly ChatBucket<BoardDraft>[];
+  buckets: readonly ChatBucket<PanelDraft>[];
   board: GroupBoardState;
   panel: PanelController;
   /** カード（ボード）・行（リスト）の描き方 */

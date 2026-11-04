@@ -1,7 +1,7 @@
 import { useState, type DragEvent } from "react";
 import type { Chat, ChatGroup } from "@shared/types";
 import { confirmDialog } from "@/ui/dialogs";
-import type { DraftRef } from "@/features/panel/state/panelMemory";
+import type { DraftRef } from "@/features/panel/state/panelDrafts";
 
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
 /** サイドバーでグループ名を押したときの知らせ（すでに表示しているグループでも、もう一度ハイライトするため） */
@@ -28,7 +28,7 @@ const DRAFT_DRAG_TYPE = "application/x-kickoff-draft";
 
 /** 下書きのドラッグを始める（ドロップ先で、どのボード・チャット欄のどのタブかを受け取れるようにする） */
 export function startDraftDrag(e: DragEvent, draft: DraftRef) {
-  e.dataTransfer.setData(DRAFT_DRAG_TYPE, JSON.stringify({ memoryKey: draft.memoryKey, key: draft.key }));
+  e.dataTransfer.setData(DRAFT_DRAG_TYPE, JSON.stringify({ panel: draft.panel, key: draft.key }));
   e.dataTransfer.effectAllowed = "move";
 }
 
@@ -36,7 +36,7 @@ export function startDraftDrag(e: DragEvent, draft: DraftRef) {
 function droppedDraft(e: DragEvent): DraftRef | undefined {
   try {
     const d = JSON.parse(e.dataTransfer.getData(DRAFT_DRAG_TYPE)) as Partial<DraftRef>;
-    return typeof d.memoryKey === "string" && typeof d.key === "string" ? { memoryKey: d.memoryKey, key: d.key } : undefined;
+    return typeof d.panel === "string" && typeof d.key === "string" ? { panel: d.panel, key: d.key } : undefined;
   } catch {
     return undefined;
   }

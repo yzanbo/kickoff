@@ -1,54 +1,27 @@
-import { createContext, useContext, useEffect, useRef } from "react";
 import { useDragSize } from "@/hooks/useDragSize";
-import { useSettingFamily } from "@/hooks/useSetting";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { PROJECT_CHAT_WIDTH, projectChatOpen } from "@/lib/storageKeys";
-import { registerPanel } from "@/features/panel/state/panelMemory";
-import { usePanel } from "@/features/panel/usePanel";
+import { PROJECT_CHAT_WIDTH } from "@/lib/storageKeys";
+import { panelActions } from "@/features/panel/state/panelActions";
+import { usePanelOpen } from "@/features/panel/state/panelStore";
+import { panelKey } from "@/features/panel/surfaces";
 
 export type ProjectChatController = ReturnType<typeof useProjectChat>;
 
-/** プロジェクトのチャット欄（App が持つ）。ボードが、欄で書いている途中の新しいチャットも「下書き」に出すのに使う */
-export const ProjectChatContext = createContext<ProjectChatController | null>(null);
-export const useProjectChatContext = () => useContext(ProjectChatContext);
-
 /**
- * プロジェクトのチャット欄（画面の右端。どのタブでも開ける。Cursor・VS Code の右のチャットと同じ）の状態。
- * 中身はボードの右のパネルと同じタブ（チャット・新しいチャット・ブラウザ・ターミナル。usePanel）。
- * 開いているかはプロジェクトごと（localStorage）、タブはプロジェクトごと（アプリを閉じるまで）、幅はアプリ全体で覚える。⌥⌘B で開閉。
+ * プロジェクトのチャット欄（画面の右端。どのタブでも開ける。Cursor・VS Code の右のチャットと同じ）の殻: 開閉・幅・⌥⌘B。App が持つ。
+ * 中身はボードの右のパネルと同じタブ（チャット・新しいチャット・ブラウザ・ターミナル。ProjectChat の中の usePanel）。
+ * 開いているかはプロジェクトごと（localStorage）、タブはプロジェクトごと（アプリを閉じるまで）、幅はアプリ全体で覚える。
  * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。projectId がない画面（全プロジェクト）では出さない
  */
 export function useProjectChat(projectId: number | undefined) {
-  const openMap = useSettingFamily(projectChatOpen);
-  const open = projectId !== undefined && openMap.get(projectId);
-  const panel = usePanel({ memoryKey: `side:${projectId ?? "none"}`, scope: projectId ?? null, surface: "side" });
+  const key = projectId === undefined ? undefined : panelKey("side", projectId);
+  const open = usePanelOpen(key);
   // 幅（左端のつまみのドラッグ。真ん中に 480px は残す）
   const width = useDragSize({ setting: PROJECT_CHAT_WIDTH, edge: "start", min: 320, keep: 480, write: "--chat-w" });
 
-  /** 欄を開いて、そのタブを表示する（ボード・サイドバーの下書きを押したとき） */
-  const showTab = (key: string) => {
-    if (projectId !== undefined) openMap.set(projectId, true);
-    panel.showTab(key);
-  };
-  // サイドバーの下書きからは、欄ごと開いて表示する（パネルの登録より後に登録して、こちらを優先する）
-  const actionsRef = useRef({ show: showTab, close: panel.closeTab, update: panel.updateTab });
-  actionsRef.current = { show: showTab, close: panel.closeTab, update: panel.updateTab };
-  useEffect(
-    () =>
-      registerPanel(`side:${projectId ?? "none"}`, {
-        show: (key) => actionsRef.current.show(key),
-        close: (key) => actionsRef.current.close(key),
-        update: (key, change) => actionsRef.current.update(key, change),
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectId],
-  );
-
-  /** 開閉。開くときに見せているタブがなく、チャットを表示する欄なら、新しいチャットを開く（初めはブラウザ・ターミナルだけなので開かない） */
+  /** 開閉（開くときに見せているタブがなく、チャットを表示する欄なら、新しいチャットを開く。初めはブラウザ・ターミナルだけなので開かない） */
   const toggle = () => {
-    if (projectId === undefined) return;
-    if (!open && panel.kinds.has("chat") && !panel.tabs.some((t) => panel.isKindShown(t.key))) panel.openNew({ projectId });
-    openMap.set(projectId, !open);
+    if (key) panelActions(key).toggle();
   };
 
   useWindowEvent(
@@ -62,13 +35,5 @@ export function useProjectChat(projectId: number | undefined) {
     projectId !== undefined,
   );
 
-  return {
-    projectId,
-    open,
-    toggle,
-    showTab,
-    close: () => projectId !== undefined && openMap.set(projectId, false),
-    panel,
-    width,
-  };
+  return { projectId, open, toggle, width };
 }

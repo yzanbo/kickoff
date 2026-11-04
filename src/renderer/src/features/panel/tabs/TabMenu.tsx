@@ -9,7 +9,7 @@ import type { PanelController } from "@/features/panel/usePanel";
 
 /**
  * 右のパネルのタブの右クリックのメニュー: 右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
- * サイドバーと連動した欄では一覧のペインに「（一覧）」と添える）、分けたペインのサイドバーと連動したチャットは一覧のペインに戻す、閉じる。
+ * 一覧のペインに「（一覧）」と添える）、分けたペインのサイドバーと連動したチャットは一覧のペインに戻す、閉じる。
  * チャットのタブには、サイドバーの行と同じチャットの項目（名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる
  */
 export function TabMenu({
@@ -33,7 +33,7 @@ export function TabMenu({
   const tab = panel.tabs.find((t) => t.key === tabKey);
   // ボードの一覧にあればそれを、なければタブの中のチャットから届いたもの（まだ読み込んでいなければチャットの項目は出さない）
   const chat = tab?.kind === "chat" ? (panel.chats.find((r) => r.id === tab.id) ?? tab.chat) : undefined;
-  const homeId = panel.linked && panes.length > 1 ? homePane(panel.layout).id : undefined;
+  const homeId = panes.length > 1 ? homePane(panel.layout).id : undefined;
   // 分けたペインにある、サイドバーと連動したチャット（× と同じく、一覧のペインへ戻せる）
   const canReturn = homeId !== undefined && pane.id !== homeId && panel.isLinkedTab(tabKey);
   const paneItems = (

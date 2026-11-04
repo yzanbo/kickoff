@@ -9,7 +9,7 @@ import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import { isWaitingState, useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useSetting } from "@/hooks/useSetting";
 import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
-import type { SidebarDraft } from "@/features/panel/state/panelMemory";
+import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { useChatLayout, type ChatOrder } from "./chatGroupings";
 import { useProjectDrafts } from "./DraftRows";
 import type { ChatGrouping } from "@/features/chatList/chatGrouping";
@@ -23,7 +23,7 @@ const levelsOf = (grouping: ChatGrouping, order: ChatOrder): BucketBy[] => [
 /** チャットのないグループも出す（グループなしは出すかを見出しの決まりで決めるので、いつも作っておく）。絞り込み中は一致するものだけ */
 const KEEP_GROUPS = (head: BucketHead) => head.kind === "group" || head.kind === "ungrouped";
 const KEEP_UNGROUPED = (head: BucketHead) => head.kind === "ungrouped";
-const NO_DRAFTS: SidebarDraft[] = [];
+const NO_DRAFTS: PanelDraft[] = [];
 
 /**
  * サイドバーの 1 プロジェクトのチャットの行の絞り込みと分け方（分けるのは bucketChats）。

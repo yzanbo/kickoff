@@ -7,7 +7,7 @@ import type { BucketHead } from "@/features/chatList/buckets";
 import { chatHead, draftHead, groupHeads, workplaceHead } from "@/features/chatList/bucketHeads";
 import { useBucketContext } from "@/features/chatList/useChatBuckets";
 import { OTHER_CLUSTER } from "./tabClusters";
-import type { PanelSurface } from "@/features/panel/state/panelKinds";
+import type { PanelSurface } from "@/features/panel/surfaces";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
 /** タブの列のまとめ方（欄ごと: ボードの右のパネル・右端のチャット欄・フッターで別々に覚える。欄の中のペインでは共通。初めはまとめない） */
