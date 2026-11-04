@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, knownBrowser, knownExtension, knownTerminal, notificationIdOf, notifyArgs, chatOfNotificationId, webContentsId } from "./ipcArgs.js";
+import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, knownBrowser, knownExtension, knownTerminal, notificationIdOf, notifyArgs, chatOfNotificationId, vscodeFileUrl, webContentsId } from "./ipcArgs.js";
 
 test("IPC の引数の検査: 対応している拡張機能のキーと、埋め込みブラウザの ID だけを通す", () => {
   assert.equal(knownExtension("react-devtools"), "react-devtools");
@@ -46,6 +46,16 @@ test("外部のブラウザ: 知らないものは Chrome、ページは http(s)
   assert.deepEqual(externalBrowserArgs("chrome"), ["-a", "Google Chrome"]);
   const present = new Set(["/Applications/Google Chrome.app", "/h/Applications/Arc.app"]);
   assert.deepEqual(installedBrowsers("/h", (p) => present.has(p)), ["chrome", "safari", "arc"]);
+});
+
+test("VS Code で開く URL: パスを区切りごとに符号化し（# と ? も）、行は正の数のときだけ添える", () => {
+  assert.equal(vscodeFileUrl("/repo/src/a.ts"), "vscode://file/repo/src/a.ts");
+  assert.equal(vscodeFileUrl("/repo/src/a.ts", 12), "vscode://file/repo/src/a.ts:12");
+  assert.equal(vscodeFileUrl("/repo/src/a.ts", 0), "vscode://file/repo/src/a.ts");
+  // 以前は encodeURI で、# と ? が URL の断片・問い合わせとして読まれて開けなかった
+  assert.equal(vscodeFileUrl("/repo/#notes/what?.md", 3), "vscode://file/repo/%23notes/what%3F.md:3");
+  assert.equal(vscodeFileUrl("/repo/仕様 書/a b.md"), "vscode://file/repo/%E4%BB%95%E6%A7%98%20%E6%9B%B8/a%20b.md");
+  assert.equal(new URL(vscodeFileUrl("/repo/#notes/what?.md")).hash, "");
 });
 
 test("通知の指定: タイトルは必須、長すぎる文は切り、チャットは両方の ID がそろったときだけ", () => {
