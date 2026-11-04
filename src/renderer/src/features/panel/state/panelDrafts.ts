@@ -2,6 +2,7 @@ import { useMemo, useSyncExternalStore } from "react";
 import { navigate } from "@/app/router";
 import type { DraftTarget } from "@/features/chatList/buckets";
 import { isTabVisible } from "@/features/panel/layout/paneLayout";
+import { panelScreen } from "@/features/panel/surfaces";
 import { allPanels, dispatchPanel, isPanelMounted, panelsVersion, subscribePanels } from "./panelStore";
 
 /**
@@ -58,11 +59,8 @@ export function usePanelDrafts(panels: readonly string[]): PanelDraft[] {
 
 /** 下書きを開く。その欄が画面になければ、その画面（ボード・チャット欄ならそのプロジェクト）へ移ってから開く */
 export function openDraft(draft: DraftRef) {
-  if (!isPanelMounted(draft.panel)) {
-    const [kind, id] = draft.panel.split(":");
-    if (kind === "kanban" && id === "all") navigate({ name: "allProjects" });
-    else navigate({ name: "project", id: Number(id), tab: "board" });
-  }
+  const screen = isPanelMounted(draft.panel) ? undefined : panelScreen(draft.panel);
+  if (screen) navigate(screen);
   dispatchPanel(draft.panel, { type: "show", key: draft.key });
 }
 
