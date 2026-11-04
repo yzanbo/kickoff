@@ -15,6 +15,22 @@ const IDLE_LIVE: ChatLive = {
 };
 
 /**
+ * 届いた作業中の様子のうち、中身の変わっていないものは前のものを使う（chat_live はどれかが変わるたびに丸ごと届くので、
+ * 裏の作業などを見て記録をたどる計算（useSubagents など）を、変わっていないのにやり直さないため）
+ */
+function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
+  const keep = <T,>(a: T, b: T): T => (JSON.stringify(a) === JSON.stringify(b) ? a : b);
+  return {
+    queue: keep(prev.queue, next.queue),
+    background: keep(prev.background, next.background),
+    retry: keep(prev.retry, next.retry),
+    reconnect: keep(prev.reconnect, next.reconnect),
+    compacting: next.compacting,
+    stopping: next.stopping,
+  };
+}
+
+/**
  * チャットの中身（チャット・プロジェクト・イベント・確認・作業中の様子・書いている途中の返答）を取り、サーバーのイベントで追いかける。
  * 作業中の様子（送信待ち・裏の作業・再試行・再接続待ち・圧縮中・停止中）はコアが持つ形（ChatLive）のまま受け、SSE の chat_live で丸ごと置き換える。
  * チャットを切り替えると読み直す（chat が undefined の間は読み込み中。error は読み込みの失敗）
@@ -92,7 +108,7 @@ export function useChatDetail(chatId: number, projectId: number) {
       setChat(e.chat);
       if (e.chat.status !== "running") clearStreaming();
     } else if (e.type === "chat_live" && e.chat_id === chatId) {
-      setLive(e.live);
+      setLive((prev) => keepUnchanged(prev, e.live));
     } else if (e.type === "approval" && e.approval.chat_id === chatId) {
       setApprovals((prev) => [...prev, e.approval]);
     } else if (e.type === "approval_resolved" && e.chat_id === chatId) {
