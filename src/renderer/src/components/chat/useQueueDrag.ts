@@ -76,6 +76,8 @@ export function useQueueDrag(runId: number, queue: QueuedMessage[], stops: numbe
       if (e.clientY < rect.top + rect.height / 2) overAt(e, i, true);
       else overAt(e, i + 1, false);
     },
+    /** 見出しの行の上: いちばん上（1 件目の上の印の線よりも上。線の上半分を狙わなくても、いちばん上へ落とせる） */
+    overTop: (e: DragEvent<HTMLElement>) => overAt(e, 0, false),
     /** 印の線の上: 上半分なら線の上、下半分なら線の下 */
     overStop: (e: DragEvent<HTMLElement>, k: number) => {
       const rect = e.currentTarget.getBoundingClientRect();
