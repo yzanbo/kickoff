@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { app, type BrowserWindow, type WebContents } from "electron";
-import type { DiagnosticsState } from "../core/types.js";
+import { app, shell, type BrowserWindow, type WebContents } from "electron";
+import type { DiagnosticsFolders, DiagnosticsState } from "../core/types.js";
 import { errorMessage } from "../core/errors.js";
 import { diagnosticsFolderName, perSecond, RENDERER_PROBE, topSelfTime, type CpuProfile, type Metrics } from "./profileSummary.js";
 
@@ -11,6 +11,29 @@ export const DIAGNOSTICS_SECONDS = 10;
 /** 記録を保存するフォルダ（データの保存先の diagnostics/。開発版と製品版で別） */
 export function diagnosticsRoot(): string {
   return path.join(app.getPath("userData"), "diagnostics");
+}
+
+/** 最近の記録として返す数 */
+const RECENT_RECORDS = 5;
+
+/** 保存先と、最近の記録のフォルダ（フォルダ名は日時なので、名前の逆順 = 新しい順）。まだ記録がなければ records は空 */
+export async function diagnosticsFolders(): Promise<DiagnosticsFolders> {
+  const root = diagnosticsRoot();
+  const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
+  const records = entries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort()
+    .reverse()
+    .slice(0, RECENT_RECORDS)
+    .map((name) => path.join(root, name));
+  return { root, records };
+}
+
+/** 保存先のフォルダを Finder で開く（まだなければ作る） */
+export async function openDiagnosticsRoot(): Promise<void> {
+  await fs.mkdir(diagnosticsRoot(), { recursive: true });
+  await shell.openPath(diagnosticsRoot());
 }
 
 let running = false;

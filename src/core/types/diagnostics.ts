@@ -17,3 +17,9 @@ export interface DiagnosticsDigest {
   scriptMsPerSec: number;
   layoutMsPerSec: number;
 }
+
+/** 性能の記録の保存先（設定の「診断」に出す。root はまとめて入れるフォルダ、records は記録ごとのフォルダ（新しい順）） */
+export interface DiagnosticsFolders {
+  root: string;
+  records: string[];
+}
