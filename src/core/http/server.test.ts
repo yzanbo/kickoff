@@ -1,4 +1,4 @@
-// API のテスト: 認証・リアルタイム配信（SSE）・サーバーの停止。ほかの領域は server.<領域>.test.ts（共通の準備は testing/testServer.ts）
+// API のテスト: 認証・本文の読み取り・リアルタイム配信（SSE）・サーバーの停止・画面の配信。ほかの領域は server.<領域>.test.ts（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -18,6 +18,21 @@ test("API はトークン（Bearer・Cookie）がないと 401。ペアリング
   const paired = await app.request(`/pair?token=${TOKEN}`);
   assert.equal(paired.status, 302);
   assert.match(paired.headers.get("set-cookie") ?? "", /^kickoff_token=t+;/);
+});
+
+test("本文が JSON として読めない・必須の本文が空なら 400（読み取りの失敗を 500 にしない）。省ける項目だけなら本文なしで呼べる", async () => {
+  const { app, project } = setup();
+  const send = (method: string, url: string, body: string) => app.request(url, { method, headers: { ...AUTH, "content-type": "application/json" }, body });
+  const broken = await send("POST", `/api/projects/${project.id}/chats`, "{text:");
+  assert.equal(broken.status, 400);
+  assert.deepEqual(await broken.json(), { error: "本文が JSON として読めません" });
+  assert.equal((await send("PUT", "/api/settings", "not json")).status, 400);
+  // 必須の項目がある本文を空で送る
+  const empty = await send("POST", `/api/projects/${project.id}/groups`, "");
+  assert.equal(empty.status, 400);
+  assert.equal((await empty.json()).error, "入力が正しくありません");
+  // 省ける項目だけの本文は、空でも受け付ける
+  assert.equal((await send("PUT", "/api/settings", "")).status, 200);
 });
 
 test("リアルタイム配信（SSE）は、つないだらすぐ最初の行を送る", async () => {

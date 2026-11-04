@@ -4,7 +4,7 @@ import { errorMessage } from "@shared/errors";
 import { addWorktree, finishWorktree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
 import { badRequest, HttpError, requireProject } from "./http.js";
-import { branchName, folderPath } from "./schemas.js";
+import { branchName, folderPath, jsonBody } from "./schemas.js";
 
 /** ワークツリー（一覧・作る・消す・PR のあとの片付け。置き場所の案は path?branch= で） */
 export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
@@ -18,7 +18,7 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
 
   app.post("/api/projects/:id/git/worktrees", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { branch } = z.object({ branch: branchName }).parse(await c.req.json());
+    const { branch } = z.object({ branch: branchName }).parse(await jsonBody(c));
     return c.json(await badRequest(() => addWorktree(project.repo_path, branch)), 201);
   });
 
@@ -40,7 +40,7 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
     const project = requireProject(store, c.req.param("id"));
     const { path, force, deleteBranch } = z
       .object({ path: folderPath, force: z.boolean().default(false), deleteBranch: z.boolean().default(false) })
-      .parse(await c.req.json());
+      .parse(await jsonBody(c));
     assertIdle(project.id, path, "消し");
     const worktrees = await badRequest(() => removeWorktree(project.repo_path, path, force, deleteBranch));
     // そこで作業していたチャットは、続きを本体で進める（片付けと同じ）
@@ -51,7 +51,7 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
   // PR がマージされたワークツリーを片付ける（ワークツリーと手元のブランチを消す）
   app.post("/api/projects/:id/git/worktrees/finish", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { path } = z.object({ path: folderPath }).parse(await c.req.json());
+    const { path } = z.object({ path: folderPath }).parse(await jsonBody(c));
     assertIdle(project.id, path, "片付け");
     try {
       const worktrees = await finishWorktree(project.repo_path, path);

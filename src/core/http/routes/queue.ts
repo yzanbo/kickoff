@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { badRequest, conflictOnError, HttpError, requireChat } from "./http.js";
-import { attachmentSchema, messageInputSchema } from "./schemas.js";
+import { attachmentSchema, messageInputSchema, jsonBody } from "./schemas.js";
 import type { QueueAddResult, QueueMergeResult } from "@shared/types";
 
 /** 選んだ待ちの指示（送信待ちの複数選択） */
@@ -18,7 +18,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す）
   app.post("/api/chats/:id/queue", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const body = await c.req.json();
+    const body = await jsonBody(c);
     const { text, options, attachments } = messageInputSchema.parse(body);
     const { hold } = z.object({ hold: z.boolean().optional() }).parse(body);
     const added = await conflictOnError(() => runner.queueMessage(chat.id, text, options, attachments, { hold }));
@@ -36,7 +36,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // その指示のすぐあとに「ここまで送ったら止めます」の印を付ける・外す（右クリックの「この指示のあとで止める」。stop: false で外す・id: null ですべて外す。列にない指示なら 404）
   app.put("/api/chats/:id/queue/stop-after", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { id, stop } = z.object({ id: z.string().min(1).max(100).nullable(), stop: z.boolean().default(true) }).parse(await c.req.json());
+    const { id, stop } = z.object({ id: z.string().min(1).max(100).nullable(), stop: z.boolean().default(true) }).parse(await jsonBody(c));
     if (!runner.setQueueStopAfter(chat.id, id, stop)) throw notFound();
     return c.json(runner.queueState(chat.id));
   });
@@ -44,7 +44,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 印の位置をまとめて置き換える（印のドラッグ・×。0 = 1 件目の上、n = n 件目のあと。列の長さに収める）
   app.put("/api/chats/:id/queue/stops", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { stops } = z.object({ stops: z.array(z.number().int().min(0)).max(200) }).parse(await c.req.json());
+    const { stops } = z.object({ stops: z.array(z.number().int().min(0)).max(200) }).parse(await jsonBody(c));
     runner.setQueueStops(chat.id, stops);
     return c.json(runner.queueState(chat.id));
   });
@@ -52,7 +52,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか（戻したとき、作業中でなければ先頭をすぐ送る）
   app.put("/api/chats/:id/queue/paused", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { paused } = z.object({ paused: z.boolean() }).parse(await c.req.json());
+    const { paused } = z.object({ paused: z.boolean() }).parse(await jsonBody(c));
     await runner.setQueuePaused(chat.id, paused);
     return c.json(runner.queueState(chat.id));
   });
@@ -61,7 +61,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 開いている間は持ち時間より短い間隔で知らせ直す（途絶えたら外れて送る。列にない指示は数えない）
   app.put("/api/chats/:id/queue/editing", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { ids } = z.object({ ids: z.array(z.string().min(1).max(100)).max(500) }).parse(await c.req.json());
+    const { ids } = z.object({ ids: z.array(z.string().min(1).max(100)).max(500) }).parse(await jsonBody(c));
     runner.setQueueEditing(chat.id, ids);
     return c.json(runner.queueState(chat.id));
   });
@@ -79,7 +79,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     // attachments: 添付を置き換える（足す・外す。省けば今のまま）
     const { text, attachments } = z
       .object({ text: z.string().max(50_000), attachments: z.array(attachmentSchema).max(20).optional() })
-      .parse(await c.req.json());
+      .parse(await jsonBody(c));
     if (!(await badRequest(async () => runner.editQueued(chat.id, c.req.param("queueId"), text, attachments)))) throw notFound();
     return c.json(runner.queueState(chat.id));
   });
@@ -87,7 +87,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 待ちの列を並べ替える（index は移したあとの位置）
   app.post("/api/chats/:id/queue/:queueId/move", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { index } = z.object({ index: z.number().int().min(0) }).parse(await c.req.json());
+    const { index } = z.object({ index: z.number().int().min(0) }).parse(await jsonBody(c));
     if (!runner.moveQueued(chat.id, c.req.param("queueId"), index)) throw notFound();
     return c.json(runner.queueState(chat.id));
   });
@@ -95,7 +95,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える。伝えられなければ列の先頭に戻す）
   app.post("/api/chats/:id/queue/send-all", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { ids } = queueIdsSchema.partial().parse(await c.req.json().catch(() => ({})));
+    const { ids } = queueIdsSchema.partial().parse(await jsonBody(c));
     if (!(await conflictOnError(() => runner.sendAllQueued(chat.id, ids)))) throw new HttpError(404, "待ちの指示がありません");
     return c.json(runner.queueState(chat.id));
   });
@@ -103,7 +103,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 選んだ待ちの指示を、送らずに 1 件にまとめる（列の順に空行でつなぎ、添付も合わせる。選んだうちのいちばん上の位置に残る）
   app.post("/api/chats/:id/queue/merge", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { ids } = queueIdsSchema.parse(await c.req.json());
+    const { ids } = queueIdsSchema.parse(await jsonBody(c));
     const merged = runner.mergeQueued(chat.id, ids);
     if (!merged) throw new HttpError(400, "まとめるには、送信待ちの指示を 2 件以上選んでください");
     const result: QueueMergeResult = { ...runner.queueState(chat.id), id: merged.id };
@@ -120,7 +120,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 選んだ待ちの指示をまとめて消す
   app.post("/api/chats/:id/queue/remove-many", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { ids } = queueIdsSchema.parse(await c.req.json());
+    const { ids } = queueIdsSchema.parse(await jsonBody(c));
     runner.removeQueuedMany(chat.id, ids);
     return c.json(runner.queueState(chat.id));
   });
@@ -132,7 +132,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     const body = queueIdsSchema
       .extend({ to: z.enum(["top", "bottom"]).optional(), before: z.string().min(1).max(100).nullable().optional(), below_stop: z.boolean().optional() })
       .refine((b) => (b.to === undefined) !== (b.before === undefined), "to か before のどちらか一方を指定してください")
-      .parse(await c.req.json());
+      .parse(await jsonBody(c));
     const to = body.to ?? { before: body.before ?? null, belowStop: body.below_stop };
     runner.moveQueuedMany(chat.id, body.ids, to);
     return c.json(runner.queueState(chat.id));

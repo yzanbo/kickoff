@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { requireGroup, requireProject } from "./http.js";
-import { groupName } from "./schemas.js";
+import { groupName, jsonBody } from "./schemas.js";
 
 /** チャットのグループ */
 export function groupRoutes(app: Hono, { store }: ServerDeps) {
@@ -10,19 +10,19 @@ export function groupRoutes(app: Hono, { store }: ServerDeps) {
 
   app.post("/api/projects/:id/groups", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { name } = z.object({ name: groupName }).parse(await c.req.json());
+    const { name } = z.object({ name: groupName }).parse(await jsonBody(c));
     return c.json(store.groups.create(project.id, name), 201);
   });
 
   app.put("/api/projects/:id/groups/order", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { ids } = z.object({ ids: z.array(z.number().int()) }).parse(await c.req.json());
+    const { ids } = z.object({ ids: z.array(z.number().int()) }).parse(await jsonBody(c));
     return c.json(store.groups.reorder(project.id, ids));
   });
 
   app.patch("/api/groups/:id", async (c) => {
     const group = requireGroup(store, c.req.param("id"));
-    const { name } = z.object({ name: groupName }).parse(await c.req.json());
+    const { name } = z.object({ name: groupName }).parse(await jsonBody(c));
     return c.json(store.groups.rename(group.id, name));
   });
 

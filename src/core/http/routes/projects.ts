@@ -7,6 +7,7 @@ import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
 import { badRequest, HttpError, requireProject } from "./http.js";
+import { jsonBody } from "./schemas.js";
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 
@@ -65,7 +66,7 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
   app.get("/api/projects", (c) => c.json(store.projects.list()));
 
   app.post("/api/projects", async (c) => {
-    const input = newProjectSchema.parse(await c.req.json());
+    const input = newProjectSchema.parse(await jsonBody(c));
     const repoPath = await badRequest(() => createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, idea: input.idea }));
     const project = store.projects.create({ name: input.name, description: input.idea, repo_path: repoPath, provider: providerOf(input.provider) });
     store.settings.update({ projects_dir: input.parent_dir });
@@ -81,7 +82,7 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
   });
 
   app.post("/api/projects/import", async (c) => {
-    const input = importProjectSchema.parse(await c.req.json());
+    const input = importProjectSchema.parse(await jsonBody(c));
     const repoPath = await badRequest(() => prepareImportedWorkspace(input.path, input.init_git));
     const existing = store.projects.findByPath(repoPath);
     if (existing) throw new HttpError(409, `このフォルダは「${existing.name}」として登録済みです`);
@@ -93,7 +94,7 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   app.patch("/api/projects/:id", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { reference_paths, archived, ...patch } = projectPatchSchema.parse(await c.req.json());
+    const { reference_paths, archived, ...patch } = projectPatchSchema.parse(await jsonBody(c));
     return c.json(
       store.projects.update(project.id, {
         ...patch,
@@ -105,7 +106,7 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   // サイドバーでのプロジェクトの並び順
   app.put("/api/projects/order", async (c) => {
-    const { ids } = z.object({ ids: z.array(z.number().int()).max(500) }).parse(await c.req.json());
+    const { ids } = z.object({ ids: z.array(z.number().int()).max(500) }).parse(await jsonBody(c));
     store.projects.reorder(ids);
     return c.json({ ok: true });
   });

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { findWhisperModel } from "../../voice/models.js";
 import { badRequest, HttpError } from "./http.js";
-import { voiceLanguage } from "./schemas.js";
+import { voiceLanguage, jsonBody } from "./schemas.js";
 
 /** 受け取る音声の大きさの上限（OpenAI の文字起こしの API と同じ 25MB） */
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
@@ -48,7 +48,7 @@ export function voiceRoutes(app: Hono, { voice }: ServerDeps) {
 
   // OpenAI の API キー（空なら消す）。キーそのものは返さず、保存したかだけを返す
   app.put("/api/voice/openai-key", async (c) => {
-    const { key } = keySchema.parse(await c.req.json());
+    const { key } = keySchema.parse(await jsonBody(c));
     return c.json(voice.saveOpenAiKey(key));
   });
 }
