@@ -6,6 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { openDatabase } from "./dbOpen.js";
 import { APPLICATION_ID, LEGACY_VERSION, SCHEMA_V1, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
+import { PROJECT_HUES } from "./projectColors.js";
 import { Store } from "./store.js";
 import { createLegacyV17 } from "./testing/legacySchemaV17.js";
 
@@ -88,4 +89,24 @@ test("openDatabase: いまの系統の v1 の DB は、写してから版を上�
   assert.throws(() => store.db.exec("UPDATE projects SET tags = 'x'"), /CHECK constraint failed/);
   store.close();
   assert.match(fs.readdirSync(path.join(path.dirname(file), "backups"))[0], /^kickoff-v101-/);
+});
+
+test("openDatabase: 色を足す前（v3 まで）のグループには、開いたときにプロジェクトごとに並び順で被らない色を付ける", () => {
+  const file = tempFile();
+  const v1 = new DatabaseSync(file);
+  v1.exec(SCHEMA_V1);
+  v1.exec(`PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = ${USER_VERSION_BASE + 1};`);
+  v1.exec("INSERT INTO projects (id, name, repo_path, hue) VALUES (1, 'p', '/tmp/p', 0), (2, 'q', '/tmp/q', 28)");
+  v1.exec("INSERT INTO run_groups (project_id, name, position) VALUES (1, 'a', 0), (1, 'b', 1), (1, 'c', 2), (2, 'x', 0)");
+  v1.close();
+  const store = new Store(file);
+  const hues = store.listGroups(1).map((g) => g.hue);
+  assert.equal(new Set(hues).size, 3);
+  assert.ok(hues.every((h) => (PROJECT_HUES as readonly number[]).includes(h)));
+  // 別のプロジェクトのグループとは別に数える（そのプロジェクトの最初のグループと同じ色から）
+  assert.equal(store.listGroups(2)[0].hue, hues[0]);
+  // 新しく作るグループも、同じプロジェクトのほかのグループと被らない
+  assert.ok(!hues.includes(store.createGroup(1, "d").hue));
+  assert.throws(() => store.db.exec("UPDATE run_groups SET hue = 400"), /CHECK constraint failed/);
+  store.close();
 });

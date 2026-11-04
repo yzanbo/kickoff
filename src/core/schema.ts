@@ -112,8 +112,17 @@ CREATE TABLE run_queues (
 ) STRICT;
 `;
 
+/**
+ * v4: グループの色（色相。プロジェクトの色と同じ 10 色から、同じプロジェクトのほかのグループと被らない色を作ったときに選ぶ）。
+ * 右のパネルのタブのまとまりの色に使う（以前は名前のキーから決めていて、同じプロジェクトのグループどうしで色が被った）。
+ * いまあるグループは NULL で足し、開いたときにグループの店（store/groups.ts の assignMissingHues）が並び順に被らない色を付ける
+ */
+const SCHEMA_V4_GROUP_HUES = `
+ALTER TABLE run_groups ADD COLUMN hue INTEGER CHECK (hue IS NULL OR hue BETWEEN 0 AND 359);
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2_PROJECT_TAGS, SCHEMA_V3_RUN_QUEUES];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2_PROJECT_TAGS, SCHEMA_V3_RUN_QUEUES, SCHEMA_V4_GROUP_HUES];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

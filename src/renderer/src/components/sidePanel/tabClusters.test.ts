@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { OTHER_CLUSTER, clusterHue, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs } from "./tabClusters.js";
+import { OTHER_CLUSTER, clusterHue, clusterHues, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs } from "./tabClusters.js";
 
 test("タブのまとめ方: 初めて出てくる順にまとめ、その他はいちばん後ろ。まとまりの中はペインの並びのまま", () => {
   const of: Record<string, string> = { a: "g1", b: "other", c: "g2", d: "g1", e: "g2" };
@@ -48,10 +48,26 @@ test("タブのまとめ方: 見た目の並びで落とす位置を、ペイン
   assert.equal(paneIndexOf(4, display, pane), 4);
 });
 
-test("タブのまとめ方: まとまりの色はキーから決まり（いつも同じ）、その他は色なし", () => {
-  assert.equal(clusterHue("p5:g7"), clusterHue("p5:g7"));
-  assert.equal(typeof clusterHue("p5:g7"), "number");
-  assert.equal(clusterHue(OTHER_CLUSTER.key), null);
+test("タブのまとめ方: まとまりの色は、グループなら覚えた色、ほかはキーから決まり（いつも同じ）、その他は色なし", () => {
+  assert.equal(clusterHue({ key: "p5:w1" }), clusterHue({ key: "p5:w1" }));
+  assert.equal(typeof clusterHue({ key: "p5:w1" }), "number");
+  assert.equal(clusterHue({ key: "p5:g7", hue: 262 }), 262);
+  assert.equal(clusterHue(OTHER_CLUSTER), null);
+});
+
+test("タブのまとめ方: 同じ列のまとまりの色は被らない（グループの覚えた色を先に取り、被ったものは空いている色へ）", () => {
+  // キーから決まる色がグループの色と同じになるまとまりを作る
+  const fixed = clusterHue({ key: "p5:pinned" })!;
+  const hues = clusterHues([{ key: "p5:pinned" }, { key: "p5:g1", hue: fixed }, { key: "p5:g2", hue: 0 }, OTHER_CLUSTER]);
+  assert.equal(hues.get("p5:g1"), fixed);
+  assert.equal(hues.get("p5:g2"), 0);
+  assert.notEqual(hues.get("p5:pinned"), fixed);
+  assert.notEqual(hues.get("p5:pinned"), 0);
+  assert.equal(hues.get(OTHER_CLUSTER.key), null);
+  // 10 色より多くても、すべてに色が付く（使い切ったら被ってよい）
+  const many = clusterHues(Array.from({ length: 12 }, (_, i) => ({ key: `k${i}` })));
+  assert.equal(new Set([...many.values()].slice(0, 10)).size, 10);
+  assert.equal(many.size, 12);
 });
 
 test("タブのまとめ方: 畳んだまとまりは、ペインで表示中のタブだけを残す", () => {
