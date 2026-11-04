@@ -76,11 +76,14 @@
   background: var(--border-strong);
 }
 
-/* まとまりの頭: まとまりの色の丸い札（左 = 名前・右 = 畳む / 開く）。札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す） */
+/*
+ * まとまりの頭: まとまりの色の丸い札（左 = 名前・右 = 畳む / 開く）。札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す）。
+ * 札の中身（2〜3 文字まで残す名前 ＋ 畳む / 開く）より細くはしない（以前は min-width: 0 で中身より細く縮み、右の「‹」が札の外にはみ出して隣のタブに隠れていた）
+ */
 .panel-tab-cluster {
   display: flex;
   flex: 0 1 auto;
-  min-width: 0;
+  min-width: min-content;
   align-items: center;
   max-width: 160px;
   padding: 0 4px;
@@ -98,8 +101,13 @@
  */
 .panel-tab-cluster-pill {
   position: relative;
-  display: flex;
-  min-width: 0;
+  /*
+   * 名前の列は 2〜3 文字ぶん（名前の min-width と同じ）より細くせず、余れば名前を省かずに見せる。
+   * 札のいちばん細い幅（min-content）は、この列の下限 ＋ 畳む / 開く になる（flex では名前の文字の幅まで数えて、細くできなかった）
+   */
+  display: grid;
+  grid-template-columns: minmax(calc(2.5em + 14px), auto) auto;
+  min-width: min-content;
   align-items: stretch;
   border-radius: 999px;
   font-weight: 600;
