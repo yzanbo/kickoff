@@ -2,7 +2,7 @@ import type { Run } from "../../../../core/types";
 import { api } from "../../api";
 import { chatTitle } from "../../chatTitle";
 import { choiceDialogWithRemember } from "../../dialogs";
-import { confirmDeleteRun, deleteRun, reportFailure } from "../../runActions";
+import { confirmDeleteRun, deleteRun, reportFailure, toggleArchiveRun } from "../../runActions";
 import { CHAT_CLOSE_ACTION_KEY } from "../../storageKeys";
 
 /** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除） */
@@ -24,7 +24,7 @@ function storedCloseAction(): ChatCloseAction {
 
 /**
  * チャットの ✕（見出しの ✕・タブの ×）: 表示だけ消すか、アーカイブするか、削除するかを選んでから閉じる。
- * 既定を決めていればそのとおりにする（削除は取り消せないので、既定でも確かめる）。
+ * 既定を決めていればそのとおりにする（アーカイブ・削除は、既定でも確かめる）。
  * 聞いたときに「次からはこれにする」を付ければ、それを既定にする。close はパネル・タブを閉じる処理で、選んだ扱いを渡す
  * （サイドバーと連動したタブは、表示だけ消したときだけ出し直さないよう覚える。アーカイブ・削除はサイドバーの一覧に合わせて増減する）
  */
@@ -54,7 +54,12 @@ export async function closeChatWithChoice(
   }
   try {
     if (action === "archive") {
-      if (!run.archived_at) await api.archiveRun(run.id, true);
+      // 既定をアーカイブにしていても、アーカイブは必ず確かめる（いま聞いた選択肢で選んだときは、それを確かめたことにする）。
+      // やめたら閉じない
+      if (!run.archived_at) {
+        if (confirmed) await api.archiveRun(run.id, true);
+        else if (!(await toggleArchiveRun({ id: run.id, title: run.title, archived_at: null }))) return;
+      }
     } else if (action === "delete") {
       if (confirmed) await deleteRun(run.id);
       else if (!(await confirmDeleteRun(run))) return;

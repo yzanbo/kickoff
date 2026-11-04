@@ -1,6 +1,7 @@
 import { Archive, ArchiveRestore, ChevronUp } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EFFORT_LABELS, type BackgroundState, type EffortLevel, type ModelOption, type Run, type RunEvent, type SubagentInfo } from "../../../../core/types";
+import { confirmDialog } from "../../dialogs";
 import { useServerEvent } from "../../events";
 import { formatTokens } from "../../format";
 import { useDismiss } from "../../hooks/useDismiss";
@@ -67,7 +68,8 @@ export function SubagentChip({
     (raw) => new Set(JSON.parse(raw ?? "[]") as string[]),
     (keys) => JSON.stringify([...keys]),
   );
-  useDismiss(ref, () => setOpen(false), { enabled: open });
+  // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
+  useDismiss(ref, () => setOpen(false), { enabled: open, ignore: "dialog" });
 
   if (entries.length === 0) return null;
   // 新しいものを上に
@@ -85,8 +87,18 @@ export function SubagentChip({
   const undelivered = visible.filter((s) => s.status === "completed" && s.delivery === "lost").length;
   const finished = visible.filter((s) => s.status !== "running");
 
-  const archive = (keys: string[]) => saveArchived(new Set([...archived, ...keys]));
-  const restore = (key: string) => {
+  // アーカイブ・戻すは、どこから押しても必ず確かめる（チャットのアーカイブと同じ）
+  const archive = async (keys: string[]) => {
+    const ok = await confirmDialog({
+      title: keys.length === 1 ? "このサブエージェントをアーカイブしますか？" : `完了した ${keys.length} 件のサブエージェントをアーカイブしますか？`,
+      message: "一覧から隠れます。「アーカイブ済みを表示」で出し、戻せます。",
+      confirmLabel: "アーカイブ",
+    });
+    if (ok) saveArchived(new Set([...archived, ...keys]));
+  };
+  const restore = async (key: string) => {
+    const ok = await confirmDialog({ title: "このサブエージェントを一覧に戻しますか？", message: "アーカイブから戻し、一覧に、また出るようになります。", confirmLabel: "戻す" });
+    if (!ok) return;
     const next = new Set(archived);
     next.delete(key);
     saveArchived(next);
@@ -138,7 +150,7 @@ export function SubagentChip({
             title="一覧に戻す"
             className="subagent-row-action"
             type="button"
-            onClick={(e) => (e.stopPropagation(), restore(s.key))}
+            onClick={(e) => (e.stopPropagation(), void restore(s.key))}
           />
         ) : (
           s.status !== "running" && (
@@ -148,7 +160,7 @@ export function SubagentChip({
               title="アーカイブ"
               className="subagent-row-action"
               type="button"
-              onClick={(e) => (e.stopPropagation(), archive([s.key]))}
+              onClick={(e) => (e.stopPropagation(), void archive([s.key]))}
             />
           )
         )}
@@ -175,7 +187,7 @@ export function SubagentChip({
       </button>
       {open && (
         <div className="chip-popover" role="dialog" aria-label="サブエージェント">
-          <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => archive(finished.map((s) => s.key))}>
+          <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void archive(finished.map((s) => s.key))}>
             <Archive size={15} aria-hidden />
             完了したサブエージェントをアーカイブ
             {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
