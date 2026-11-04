@@ -91,14 +91,15 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json({ removed: runner.removeQueuedMany(run.id, ids), queue: runner.queued(run.id) });
   });
 
-  // 選んだ待ちの指示を、並びを保ったまままとめて移す（to: いちばん上・いちばん下 / before: その指示の前（null ならいちばん下）。ドラッグで落とした位置）
+  // 選んだ待ちの指示を、並びを保ったまままとめて移す（to: いちばん上・いちばん下 / before: その指示の前（null ならいちばん下）。ドラッグで落とした位置。
+  // below_stop: その位置に「ここまで送ったら止めます」の線があれば、線の下に入れるか（省けば下）。線は動かしていない指示の側に残る）
   app.post("/api/runs/:id/queue/move-many", async (c) => {
     const run = requireRun(store, c.req.param("id"));
     const body = queueIdsSchema
-      .extend({ to: z.enum(["top", "bottom"]).optional(), before: z.string().min(1).max(100).nullable().optional() })
+      .extend({ to: z.enum(["top", "bottom"]).optional(), before: z.string().min(1).max(100).nullable().optional(), below_stop: z.boolean().optional() })
       .refine((b) => (b.to === undefined) !== (b.before === undefined), "to か before のどちらか一方を指定してください")
       .parse(await c.req.json());
-    const to = body.to ?? { before: body.before ?? null };
+    const to = body.to ?? { before: body.before ?? null, belowStop: body.below_stop };
     return c.json({ moved: runner.moveQueuedMany(run.id, body.ids, to), queue: runner.queued(run.id) });
   });
 

@@ -146,7 +146,8 @@ export function QueuedMessages({
         dragging={dnd.drag?.stop === k}
         onDragStart={() => dnd.startStop(k)}
         onDragEnd={dnd.end}
-        onDragOver={(e) => dnd.overAt(e, k)}
+        dropMark={dnd.stopMark(k)}
+        onDragOver={(e) => dnd.overStop(e, k)}
         onDrop={dnd.drop}
         onRemove={() => void api.setQueueStops(runId, stops.filter((x) => x !== k)).catch(failed)}
       />
@@ -266,8 +267,7 @@ export function QueuedMessages({
                   selected.includes(m.id) && "selected",
                   (dnd.drag?.id === m.id || dnd.drag?.ids?.includes(m.id)) && "dragging",
                   // 入る位置の線（動かしても変わらないところには出さない）
-                  dnd.dropBefore(i) && "drop-before",
-                  dnd.dropAfterLast(i) && "drop-after",
+                  dnd.rowMark(i) && `drop-${dnd.rowMark(i)}`,
                 )}
                 actions={{
                   edit: () => setEditing({ id: m.id, text: m.text, attachments: m.attachments }),
@@ -277,7 +277,7 @@ export function QueuedMessages({
                   sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),
                   remove: () => void api.removeQueued(runId, m.id).catch(failed),
                 }}
-                onDragStart={() => dnd.startMessage(m.id, i, selected.includes(m.id) && selected.length > 1 ? selected : undefined)}
+                onDragStart={() => dnd.startMessage(m.id, selected.includes(m.id) && selected.length > 1 ? selected : undefined)}
                 onDragEnd={dnd.end}
                 onDragOver={(e) => dnd.overRow(e, i)}
                 onDrop={dnd.drop}

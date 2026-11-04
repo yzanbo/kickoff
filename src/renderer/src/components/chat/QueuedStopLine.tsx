@@ -8,6 +8,7 @@ import { IconButton } from "../IconButton";
  */
 export function QueuedStopLine({
   dragging,
+  dropMark,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -15,6 +16,8 @@ export function QueuedStopLine({
   onRemove,
 }: {
   dragging: boolean;
+  /** 指示をこの線のすぐ上・下に落とすときの、落とす位置の線 */
+  dropMark?: "before" | "after";
   onDragStart: () => void;
   onDragEnd: () => void;
   onDragOver: (e: DragEvent<HTMLDivElement>) => void;
@@ -22,7 +25,7 @@ export function QueuedStopLine({
   onRemove: () => void;
 }) {
   return (
-    <div className={cx("queued-stop-line", dragging && "dragging")} role="note" onDragOver={onDragOver} onDrop={onDrop}>
+    <div className={cx("queued-stop-line", dragging && "dragging", dropMark && `drop-${dropMark}`)} role="note" onDragOver={onDragOver} onDrop={onDrop}>
       <span
         className="queued-grip queued-stop-grip"
         draggable

@@ -81,6 +81,15 @@
   opacity: 0.4;
 }
 
+/* 指示を線のすぐ上・下に落とす（線の上なら送ってから止める側、下なら止めたあとの側に入る） */
+.queued-stop-line.drop-before {
+  box-shadow: 0 -2px 0 var(--accent-bright);
+}
+
+.queued-stop-line.drop-after {
+  box-shadow: 0 2px 0 var(--accent-bright);
+}
+
 .queued-stop-line::before {
   flex: 1;
   order: 1;

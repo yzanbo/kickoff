@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { normalizeStops, remapStops } from "./queueStops.js";
+import { moveToSlot, normalizeStops, remapStops, type QueueSlot } from "./queueStops.js";
 import type { SavedQueue } from "./store/queues.js";
 import type { Attachment, QueuedMessage, RunOptions } from "./types.js";
 
@@ -120,14 +120,24 @@ export class FollowupQueue {
     return true;
   }
 
-  /** 並べ替える（index は移したあとの位置。範囲の外は端に寄せる。なければ false） */
+  /**
+   * 並べ替える（index は移したあとの位置。範囲の外は端に寄せる。なければ false）。
+   * 印の線は動かしていない指示の側に残し、動かした指示だけが線を越える（いちばん上・下へ移しても、1 件目の上・いちばん下の線は端に残る）。
+   * 1 つ上・下へ移すとき、すぐ隣が線なら、並びは変えずに線だけを越える（見た目の 1 行ぶん動かす）
+   */
   move(runId: number, id: string, index: number): boolean {
-    const list = [...this.list(runId)];
+    const list = this.list(runId);
     const from = list.findIndex((m) => m.id === id);
     if (from < 0) return false;
-    const [message] = list.splice(from, 1);
-    list.splice(Math.max(0, Math.min(list.length, index)), 0, message);
-    this.set(runId, list);
+    const to = Math.max(0, Math.min(list.length - 1, index));
+    if (to === from) return true;
+    const stops = this.stopsOf(runId);
+    const crossed = to === from - 1 ? from : to === from + 1 ? from + 1 : -1;
+    if (stops.includes(crossed)) {
+      this.setStops(runId, stops.map((k) => (k === crossed ? (to < from ? from + 1 : from) : k)));
+      return true;
+    }
+    this.moveTo(runId, [id], to < from ? { at: to, belowStop: true } : { at: to + 1, belowStop: false });
     return true;
   }
 
@@ -166,17 +176,26 @@ export class FollowupQueue {
 
   /**
    * いくつかを、並びを保ったまままとめて移す（動いた数を返す）。
-   * to: いちばん上・いちばん下、または { before: その指示の前（null・選んだものの中・列にない指示ならいちばん下） }（ドラッグで落とした位置）
+   * to: いちばん上・いちばん下、または { before: その指示の前（null・列にない指示ならいちばん下）, belowStop: その位置に印の線があれば線の下に入れるか（省けば下） }
+   * （ドラッグで落とした位置）。印の線は動かしていない指示の側に残し、動かした指示だけが線を越える（move と同じ）
    */
-  moveMany(runId: number, ids: string[], to: "top" | "bottom" | { before: string | null }): number {
+  moveMany(runId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }): number {
     const list = this.list(runId);
-    const picked = list.filter((m) => ids.includes(m.id));
-    if (picked.length === 0) return 0;
-    const rest = list.filter((m) => !ids.includes(m.id));
-    const at = to === "top" ? 0 : to === "bottom" ? rest.length : rest.findIndex((m) => m.id === to.before);
-    const index = at < 0 ? rest.length : at;
-    this.set(runId, [...rest.slice(0, index), ...picked, ...rest.slice(index)]);
-    return picked.length;
+    const count = list.filter((m) => ids.includes(m.id)).length;
+    if (count === 0) return 0;
+    const before = typeof to === "object" && to.before !== null ? list.findIndex((m) => m.id === to.before) : -1;
+    const slot: QueueSlot =
+      to === "top" ? { at: 0, belowStop: true } : to === "bottom" ? { at: list.length, belowStop: false } : { at: before < 0 ? list.length : before, belowStop: to.belowStop ?? true };
+    this.moveTo(runId, ids, slot);
+    return count;
+  }
+
+  /** 指示を見た目の並びのすき間へ動かし、印の線もそれに合わせる（queueStops.ts の moveToSlot） */
+  private moveTo(runId: number, ids: string[], slot: QueueSlot) {
+    const moved = moveToSlot(this.list(runId), this.stopsOf(runId), ids, slot);
+    this.lists.set(runId, moved.list);
+    this.putStops(runId, moved.stops);
+    this.notify(runId);
   }
 
   /** 取り出す（id を省くと先頭。止めておくかは見ない。印は前の指示が減った分だけ上に寄り、すべて送ったら列の上に残る） */

@@ -845,6 +845,19 @@ test("待ちの列の API: 選んだものだけ、まとめて送る・消す�
   await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[2]], to: "bottom" });
   await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[1]], to: "top" });
   assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
+  // 止める線のある位置へ落とす: below_stop: false なら線の上（B D | A E C の C を A の前・線の上へ → B D C | A E）。ほかの指示は線の同じ側に残る
+  await call("PUT", `/api/runs/${runId}/queue/stops`, { stops: [2] });
+  await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[2]], before: ids[0], below_stop: false });
+  assert.deepEqual(texts(), ["B", "D", "C", "A", "E"]);
+  assert.deepEqual(runner.queueStops(runId), [3]);
+  // いちばん上へ移しても、線の上の B・D は線の上のまま（E が線を越えて上へ）
+  await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[4]], to: "top" });
+  assert.deepEqual(texts(), ["E", "B", "D", "C", "A"]);
+  assert.deepEqual(runner.queueStops(runId), [4]);
+  // 元に戻す（線を外し、B D A E C に）
+  await call("PUT", `/api/runs/${runId}/queue/stops`, { stops: [] });
+  for (const i of [1, 3, 0, 4, 2]) await call("POST", `/api/runs/${runId}/queue/move-many`, { ids: [ids[i]], to: "bottom" });
+  assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
   // A と E を消す
   assert.equal((await call("POST", `/api/runs/${runId}/queue/remove-many`, { ids: [ids[0], ids[4], "nai"] })).body.removed, 2);
   assert.deepEqual(texts(), ["B", "D", "C"]);
