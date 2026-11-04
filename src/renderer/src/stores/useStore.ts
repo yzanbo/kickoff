@@ -8,6 +8,13 @@ interface UseOptions {
   active?: boolean;
 }
 
+/** 値を 1 つ持つ店の様子（値・読み込みの様子が変わったら描き直す） */
+export function useStore<T>(store: Store<T>, { active = true }: UseOptions = {}): StoreState<T> {
+  const state = useSyncExternalStore(store.subscribe, store.get);
+  useEffect(() => (active ? store.retain() : undefined), [store, active]);
+  return state;
+}
+
 /**
  * 値を読まずに、読み込みの様子（届いたか・読み込み中か・失敗の文）だけを読む。
  * 値が変わっても、様子が変わらなければ描き直さない（値は別の選び方で読む部品のため。チャットの一覧など）

@@ -2,9 +2,9 @@ import { Check, Sparkles, SquareTerminal } from "lucide-react";
 import { type ReactNode } from "react";
 import { PROVIDER_IDS, type AppSettings, type Project, type ProviderId, type ProviderStatus } from "@shared/types";
 import { api } from "@/api";
-import { useAsync } from "@/hooks/useAsync";
 import { useActionError } from "@/hooks/useActionError";
 import { accountLine } from "@/features/usage/usage";
+import { useProviders } from "@/stores/providers";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ErrorText } from "@/ui/ErrorText";
 import { StatusDot, type StatusTone } from "@/ui/StatusDot";
@@ -19,7 +19,7 @@ const PROVIDER_META: Record<ProviderId, { icon: ReactNode; cli: string }> = {
 
 /** AI: どの AI を使うか（カード）と、その AI の既定 */
 export function AiSection({ project, app }: { project: Project; app: AppSettings | undefined }) {
-  const providers = useAsync(api.providers);
+  const providers = useProviders();
   const { error, guard } = useActionError();
   const choose = (id: ProviderId) => guard(() => api.updateProject(project.id, { provider: id }));
 

@@ -1,6 +1,5 @@
 import type { EffortLevel, PermissionMode } from "@shared/types";
-import { api } from "@/api";
-import { useAsync } from "@/hooks/useAsync";
+import { useModels } from "@/stores/providers";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions } from "@/features/chat/options/AiOptions";
 import { Field } from "@/ui/Field";
@@ -10,20 +9,20 @@ import { useSettingsDraft } from "./useSettingsDraft";
 /** 設定: 新しいチャットの AI の既定（モデル・推論の深さ・権限モード・ファストモード） */
 export function AiDefaultsSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
-  const models = useAsync(() => api.models("claude"));
+  const models = useModels("claude");
   if (!draft) return null;
   const defaults = draft.chat_defaults;
   /** 既定の選択の 1 項目を変える（保存するまでは下書き） */
   const setDefault = (patch: Partial<typeof defaults>) => setDraft({ ...draft, chat_defaults: { ...defaults, ...patch } });
-  const currentModel = models.data?.find((m) => m.value === defaults.model);
+  const currentModel = models.find((m) => m.value === defaults.model);
   return (
     <section className="section">
       <h2>AI の既定</h2>
       <p className="muted small">新しいチャットはこの設定から始まります。チャット欄で変えた内容は、そのチャットだけに効きます。</p>
       <div className="form">
-        <Field label={`モデル（${modelDisplayName(models.data ?? [], defaults.model ?? "")}）`}>
+        <Field label={`モデル（${modelDisplayName(models, defaults.model ?? "")}）`}>
           <select value={defaults.model ?? ""} onChange={(e) => setDefault({ model: e.target.value })}>
-            <ModelOptions models={models.data ?? []} value={defaults.model} />
+            <ModelOptions models={models} value={defaults.model} />
           </select>
         </Field>
         <Field label="推論の深さ（effort）">

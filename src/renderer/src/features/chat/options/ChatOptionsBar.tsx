@@ -1,15 +1,12 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
-import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type ModelOption, type PermissionMode, type ChatOptions } from "@shared/types";
+import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type PermissionMode, type ChatOptions } from "@shared/types";
 import { api } from "@/api";
-import { cachedLoader } from "@/lib/cachedLoader";
+import { useModels } from "@/stores/providers";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { OptionMenu } from "@/ui/OptionMenu";
-
-// モデル一覧はアプリ全体で 1 回だけ取得する
-const loadModels = cachedLoader<ModelOption[]>(() => api.models("claude"), []);
 
 /**
  * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
@@ -17,14 +14,14 @@ const loadModels = cachedLoader<ModelOption[]>(() => api.models("claude"), []);
  * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始める。
  */
 export function useChatOptions(initial: ChatOptions | undefined, projectId?: number, worktree?: string) {
-  const [models, setModels] = useState<ModelOption[]>([]);
+  // モデルの一覧（アプリ全体で 1 回だけ取る）
+  const models = useModels("claude");
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
   const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
   const [fastMode, setFastMode] = useState<boolean>(initial?.fast_mode ?? false);
 
   useEffect(() => {
-    void loadModels().then(setModels);
     if (!initial) {
       void Promise.all([api.settings(), projectId === undefined ? undefined : api.project(projectId)]).then(([s, project]) => {
         const d = resolveChatOptions(s, project?.chat_defaults);

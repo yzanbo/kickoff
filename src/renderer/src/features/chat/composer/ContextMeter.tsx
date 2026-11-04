@@ -1,8 +1,8 @@
 import { Shrink } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { ProviderStatus, Chat, UsageWindow } from "@shared/types";
+import { useRef, useState } from "react";
+import type { Chat, UsageWindow } from "@shared/types";
 import { api } from "@/api";
-import { cachedLoader } from "@/lib/cachedLoader";
+import { useProviders } from "@/stores/providers";
 import { cx } from "@/lib/cx";
 import { errorMessage } from "@shared/errors";
 import { formatTokens } from "@/lib/format";
@@ -13,10 +13,6 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ErrorText } from "@/ui/ErrorText";
 import { RefreshButton } from "@/ui/IconButton";
 import { COMPACTING_LABEL } from "@/features/chat/status/workingLabel";
-
-// ログイン中のアカウントは、アプリ全体で 1 回だけ取得する
-const loadProviders = cachedLoader<ProviderStatus[]>(api.providers, []);
-
 
 /** 使用率の色（70% から注意、90% から警告） */
 const TONES = { normal: "ok", warning: "warn", critical: "danger" } as const;
@@ -30,17 +26,14 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
 export function ContextMeter({ chat, compacting = false }: { chat: Chat; compacting?: boolean }) {
   const planUsage = useSharedPlanUsage();
   const [open, setOpen] = useState(false);
-  const [account, setAccount] = useState<string>();
+  // ログイン中のアカウント（開いたときに取り直す。届くまでは前に取ったもの）
+  const account = useProviders({ active: open }).data?.find((p) => p.id === "claude")?.account;
   const ref = useRef<HTMLDivElement>(null);
 
   // まだ数値が届いていないとき（新しいチャット・要約の直後など）は 0% として出す
   const tokens = chat.context_tokens ?? 0;
   const windowSize = chat.context_window;
   const pct = windowSize ? Math.min(100, Math.round((tokens / windowSize) * 100)) : 0;
-
-  useEffect(() => {
-    if (open) void loadProviders().then((list) => setAccount(list.find((p) => p.id === "claude")?.account));
-  }, [open]);
 
   // 開いている間は、ポップオーバーの外のクリック・Esc で閉じる（メーターのボタンは中なので、そちらは押すたびに開閉する）
   useDismiss(ref, () => setOpen(false), { enabled: open });
