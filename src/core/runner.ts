@@ -37,6 +37,11 @@ export class Runner extends RunnerQueue {
   private readonly controls = new Map<number, RunControl>();
   /** 止めるよう頼んで、終わるのを待っているチャット（runStopping.ts） */
   private readonly stopping: RunStopping;
+  /**
+   * 送る準備をしているチャット（send で作業中かを確かめてから、指示を組み立てて順番待ちに入れるまで）。作業中として数える。
+   * 組み立ての間（await）に別の送信（送信待ちの自動送信と「いま」など）が割り込むと、同じチャットを 2 つ同時に動かし、片方の指示が会話から消えていた
+   */
+  private readonly preparing = new Set<number>();
 
   constructor(
     private readonly deps: ExecutionDeps & {
@@ -119,9 +124,20 @@ export class Runner extends RunnerQueue {
     const run = store.getRun(runId);
     if (!run) throw new Error("実行が見つかりません");
     if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから送ってください");
+    // 順番待ちに入れるまで作業中として数える（組み立ての間に届いた送信は、作業中のチャットへの送信として扱われる）
+    this.preparing.add(runId);
+    let prepared: Awaited<ReturnType<typeof followupPrompt>>;
+    try {
+      prepared = await followupPrompt(this.deps, runId, text, attachments);
+    } catch (e) {
+      this.preparing.delete(runId);
+      // 送れなかった間に届いた指示（待ちの列）は取り残さない
+      void this.sendNextQueued(runId);
+      throw e;
+    }
     // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）
     this.forgetRecovery(runId);
-    const { prompt, handover } = await followupPrompt(this.deps, runId, text, attachments);
+    const { prompt, handover } = prepared;
     const messageUuid = randomUUID();
     store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
@@ -134,6 +150,8 @@ export class Runner extends RunnerQueue {
       permission_mode: options.permission_mode ?? undefined,
       fast_mode: options.fast_mode ?? undefined,
     });
+    // 順番待ちに入れたら作業中（this.queue / this.active）として数えられるので、準備の印は外す
+    this.preparing.delete(runId);
     this.enqueue({ runId: run.id, prompt, promptId: messageUuid });
     return store.getRun(run.id)!;
   }
@@ -151,9 +169,10 @@ export class Runner extends RunnerQueue {
       await this.send(runId, text, options, attachments);
       return "sent";
     }
-    const control = this.controls.get(runId);
     const { prompt, handover } = await followupPrompt(this.deps, runId, text, attachments);
     const messageUuid = randomUUID();
+    // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す
+    const control = this.controls.get(runId);
     if (control?.tell(prompt, messageUuid)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
       this.forgetRecovery(runId);
@@ -163,6 +182,8 @@ export class Runner extends RunnerQueue {
     }
     const { id } = this.followups.add(runId, text, options, attachments);
     if (front) this.followups.move(runId, id, 0);
+    // 組み立てている間に作業が終わっていたら、終わったときの自動送信はもう済んでいるので、ここで送る（列に取り残さない）
+    if (!this.isBusy(runId)) void this.sendNextQueued(runId);
     return "queued";
   }
 
@@ -236,7 +257,7 @@ export class Runner extends RunnerQueue {
   }
 
   isBusy(runId: number): boolean {
-    return this.active.has(runId) || this.queue.some((q) => q.runId === runId);
+    return this.active.has(runId) || this.preparing.has(runId) || this.queue.some((q) => q.runId === runId);
   }
 
   /** アプリ終了時: 実行中のエージェントをすべて止める */

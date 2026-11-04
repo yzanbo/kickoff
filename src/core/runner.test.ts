@@ -354,3 +354,57 @@ test("待ちの列: アプリを終えるときは送らない", async () => {
   await tick();
   assert.equal(provider.calls.length, 1);
 });
+
+test("送信待ちを送っている途中に「いま」で送っても、同じチャットを 2 つ同時に動かさず、どちらの指示も渡る", async () => {
+  let running = 0;
+  let maxRunning = 0;
+  const { store, runner, provider, project } = setup(async () => {
+    running++;
+    maxRunning = Math.max(maxRunning, running);
+    await tick();
+    running--;
+    return { status: "completed", sessionId: "s1" };
+  });
+  const run = await runner.start({ projectId: project.id, prompt: "最初" });
+  await until(() => store.getRun(run.id)?.status === "completed");
+  // 送信待ちの次の指示を送っている（送る準備の途中）ところへ、「いま」で送る
+  const results = await Promise.allSettled([runner.send(run.id, "送信待ちの指示"), runner.tell(run.id, "いまの指示")]);
+  assert.deepEqual(
+    results.map((r) => r.status),
+    ["fulfilled", "fulfilled"],
+  );
+  await until(() => !runner.isBusy(run.id) && provider.calls.length === 3);
+  assert.equal(maxRunning, 1);
+  // どちらの指示も、別々の実行として Claude Code に渡っている
+  assert.match(provider.calls[1].prompt, /送信待ちの指示/);
+  assert.match(provider.calls[2].prompt, /いまの指示/);
+  assert.deepEqual(
+    store
+      .listEvents(run.id)
+      .filter((e) => e.type === "user")
+      .map((e) => (e.data as { text: string }).text),
+    ["最初", "送信待ちの指示", "いまの指示"],
+  );
+});
+
+test("作業が終わるのと同時に「いま」で送って待ちの列に入ったときも、取り残さずに送る", async () => {
+  let release: (() => void) | undefined;
+  let calls = 0;
+  const { store, runner, provider, project } = setup(async (_p, cb) => {
+    if (++calls > 1) return { status: "completed", sessionId: "s1" };
+    // 作業中に足せる口はあるが、返答を書き終えて閉じている（足せない）
+    cb.control?.({ tell: () => false, stopTask: async () => {} });
+    await new Promise<void>((r) => (release = r));
+    cb.control?.(null);
+    return { status: "completed", sessionId: "s1" };
+  });
+  const run = await runner.start({ projectId: project.id, prompt: "最初" });
+  await until(() => runner.isBusy(run.id) && release !== undefined);
+  const told = runner.tell(run.id, "いまの指示");
+  // 指示を組み立てている間に作業が終わる
+  release!();
+  assert.equal(await told, "queued");
+  await until(() => provider.calls.length === 2 && !runner.isBusy(run.id));
+  assert.match(provider.calls[1].prompt, /いまの指示/);
+  assert.equal(store.getRun(run.id)?.status, "completed");
+});
