@@ -10,18 +10,17 @@ import { AttachmentPeek } from "./AttachmentPeek";
 /**
  * チャットの上に置く、いま読んでいる返答の元の自分の指示。いつも出し、流れに重ねずに流れの上の段に置く（スクロールに合わせて中身を変える）。
  * 初めは 1 行にたたみ（長い指示で縦をとらないように）、右の矢印で全文を出す（長ければ中でスクロール。開閉はどのチャットでも同じに覚える）。
- * 指示の文を押すと、その発言へ移る。右の ↑ / ↓ で前・次の指示へ移る（⌘⌥↑ / ↓ と同じ）。添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）
+ * 押して何かが起きるのは、右の ↑ / ↓（前・次の指示へ。⌘⌥↑ / ↓ と同じ）・開閉の矢印・添付だけ（見出しと文は押しても何もしない。以前は押すとその発言へ移っていた）。
+ * 添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）
  */
 export function StickyPrompt({
   text,
   attachments,
-  onJump,
   onPrev,
   onNext,
 }: {
   text: string;
   attachments: Attachment[];
-  onJump: () => void;
   /** 前・次の指示へ移る（ないときは押せない。⌘⌥↑ / ↓ と同じ） */
   onPrev?: () => void;
   onNext?: () => void;
@@ -41,16 +40,16 @@ export function StickyPrompt({
   }, [text, expanded]);
   return (
     <div className={cx("sticky-prompt", expanded && "expanded")}>
-      {/* 見出しも押すとその発言へ（添付は送信待ちの行と同じく文の前。押すと大きく表示するので、移るボタンの外に置く） */}
-      <span className="sticky-prompt-label" aria-hidden onClick={onJump}>
+      {/* 見出しと文は押しても何もしない（添付は送信待ちの行と同じく文の前） */}
+      <span className="sticky-prompt-label" aria-hidden>
         指示
       </span>
       <AttachmentPeek attachments={attachments} />
-      <button type="button" className="sticky-prompt-jump" title="この発言へ移る" aria-label={`指示: ${text}`} onClick={onJump}>
+      <span className="sticky-prompt-body" aria-label={`指示: ${text}`}>
         <span ref={textRef} className="sticky-prompt-text">
           {text}
         </span>
-      </button>
+      </span>
       {/* 前・次の指示へ（開閉の矢印と見分けるため、移る向きの矢印） */}
       <span className="sticky-prompt-nav">
         <IconButton icon={ArrowUp} label="前の指示へ" title="前の指示へ（⌘⌥↑）" size={14} disabled={!onPrev} onClick={onPrev} />

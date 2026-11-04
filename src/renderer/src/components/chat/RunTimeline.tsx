@@ -284,10 +284,6 @@ export function RunTimeline({
         <StickyPrompt
           text={pinned.text}
           attachments={pinnedAttachments}
-          onJump={() => {
-            stickToBottom.current = false;
-            if (timelineRef.current) jumpToEvent(timelineRef.current, pinned.id);
-          }}
           onPrev={onPromptStep && pinnedAt > 0 ? () => onPromptStep(-1, pinned.id) : undefined}
           onNext={onPromptStep && pinnedAt >= 0 && pinnedAt < promptIds.length - 1 ? () => onPromptStep(1, pinned.id) : undefined}
         />

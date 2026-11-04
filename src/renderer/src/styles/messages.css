@@ -112,35 +112,25 @@
   background: var(--bg-elev);
 }
 
-.sticky-prompt:hover {
-  background: var(--bg-hover);
-}
-
-/* 見出しと指示の文（押すとその発言へ）。たたんでいる間は 1 行に並べて省く */
-.sticky-prompt-jump {
+/* 指示の文（押しても何もしない）。たたんでいる間は 1 行に並べて省く */
+.sticky-prompt-body {
   display: flex;
   flex: 1;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
   padding: 2px 0;
-  border: none;
-  font: inherit;
-  text-align: left;
   color: var(--text);
-  background: none;
-  cursor: pointer;
 }
 
 .sticky-prompt-label {
   flex: none;
-  /* 文の 1 行目の並びにそろえる（移るボタンの 2px ＋ 文 13px と見出し 11px の行の高さの差） */
+  /* 文の 1 行目の並びにそろえる（文の枠の 2px ＋ 文 13px と見出し 11px の行の高さの差） */
   padding-top: 4px;
   margin-right: 4px;
   font-size: 11px;
   font-weight: 600;
   color: var(--muted);
-  cursor: pointer;
 }
 
 .sticky-prompt-text {
