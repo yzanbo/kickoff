@@ -1,5 +1,6 @@
 import type { HighlighterCore, LanguageRegistration } from "shiki/core";
 import type { AppliedTheme } from "@/lib/appliedTheme";
+import { findHeredocs } from "@/lib/heredoc";
 
 /** 色付きの断片（fontStyle は 1: 斜体 / 2: 太字 / 4: 下線 の足し算） */
 export interface CodeToken {
@@ -64,5 +65,21 @@ export async function highlightLines(code: string, lang: string | undefined, the
   const highlighter = await loadHighlighter();
   if (!highlighter.getLoadedLanguages().includes(lang)) await highlighter.loadLanguage((await LANGUAGES[lang]()).default);
   const { tokens } = highlighter.codeToTokens(code, { lang, theme: theme === "dark" ? "dark-plus" : "light-plus" });
-  return tokens.map((line) => line.map(({ content, color, fontStyle }) => ({ content, color, fontStyle })));
+  const lines = tokens.map((line) => line.map(({ content, color, fontStyle }) => ({ content, color, fontStyle })));
+  return lang === "shellscript" ? recolorHeredocs(code, lines, theme) : lines;
+}
+
+/**
+ * シェルの heredoc の本文（python3 - <<'EOF' … EOF など）は、シェルの文法では文字列の色 1 色になるので、
+ * 言語の分かるものは、その言語で色を付け直す（どの言語かは lib/heredoc.ts）
+ */
+async function recolorHeredocs(code: string, lines: CodeToken[][], theme: AppliedTheme): Promise<CodeToken[][]> {
+  const source = code.split("\n");
+  for (const { start, end, lang } of findHeredocs(source)) {
+    if (!lang || end === start) continue;
+    const body = await highlightLines(source.slice(start, end).join("\n"), lang, theme);
+    // 行の数が合うときだけ入れ替える（ほかの本文の行の番号がずれないように）
+    if (body?.length === end - start) lines.splice(start, end - start, ...body);
+  }
+  return lines;
 }

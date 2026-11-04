@@ -67,7 +67,7 @@
 ## ツール（`tools/`）
 
 - ツールの呼び出しは人が読める文にする（`toolDescribe.ts`。「ToDo を追加: 確認 1」。生の JSON を出さない。承認カードは `describeApprovalInput`）。まとまりと 1 件は `ToolGroup`（閉じた状態の要約は `summarizeTools`: 「2個のファイルを編集 および 3個のコマンドを実行」。で、分類できないものだけ「その他」）。サブエージェントの呼び出しには「中身を見る」。
-- コマンドの出力は `BashOutput`（「$ コマンド」と出力を 1 つの枠に。終了コードは `bashResult.ts`）。
+- コマンドの出力は `BashOutput`（「$ コマンド」と出力を 1 つの枠に。終了コードは `bashResult.ts`）。コマンドはシェルの文法で色を付け（`HighlightedCode` の `shellscript`。heredoc の本文は、言語が分かればその言語で）、出力は色を付けない。色付けは、その呼び出しを一度開いてから始める（`ToolItem` の `opened`。閉じたままの呼び出しが多くても重くしない）。
 - ターンの変更カード（`TurnChanges`）: 作業の終わりの行の上に、その作業で変えたファイル（「3 個のファイルを変更 +7 −1」）。開くとファイルの一覧で、押すと `FileLinkContext` の `open` でエディタタブに開く（変わっていれば差分）。作業場所の外のファイルは押せない行。数え方は純粋関数の `turnFileChanges.ts`（`changesOf` / `lineDelta`。Edit・MultiEdit は置き換えの前後を最長共通部分列で比べ、Write は「新規」「書き直し」（書き直しは足した行だけ）、NotebookEdit は足した行。失敗した・結果がまだないものは数えない。サブエージェントの変更も含める）。
 
 ## 作業中の様子（`status/`）
@@ -135,7 +135,7 @@
 
 ## 承認と質問（`approvals/`）
 
-- 回答待ちのカードは `ApprovalCard`（ツールの承認・`question` は `QuestionCard`・`reconnect` / `usage_limit` は `ReconnectCard`）。回答を送るのは `useResolve`（`useResolveApproval.ts`。送れたらカードごと消えるので送信中のまま）。承認カードの入力は `describeApprovalInput`。
+- 回答待ちのカードは `ApprovalCard`（ツールの承認・`question` は `QuestionCard`・`reconnect` / `usage_limit` は `ReconnectCard`）。回答を送るのは `useResolve`（`useResolveApproval.ts`。送れたらカードごと消えるので送信中のまま）。承認カードの入力は `describeApprovalInput`（Bash のコマンドは、実行のあとの欄と同じく色を付ける）。
 - AI からの質問（`QuestionCard`。AskUserQuestion。）: 選択肢は枠で囲まず細い区切り線で並べた行で、丸の代わりに番号の箱（選ぶと青・複数選ぶ質問はチェック。キーの 1〜9 でも選べる）。最後の行は鉛筆の箱と枠のない「その他の回答」の欄 `QuestionOtherField`（チャット欄と同じく書いた分だけ伸び、Enter で回答・次へ／Shift+Enter で改行。📎・貼り付け・ドラッグで添付でき、アップロード中は回答させない。文がなく添付だけでも答えられる。ドラッグで添付したときも「その他」を選ぶ）。
 - 質問が 2 つ以上なら、見出しの「1 問ずつ / すべて」で出し方を切り替える（`QUESTION_LAYOUT`。初めは 1 問ずつ）。1 問ずつは上に質問の見出しを並べていまの位置と答えたものを示し、1 つ選ぶ質問は選ぶと次へ進む。最後は「回答する」。すべては番号だけを付け（薄い見出しは出さない。見出しは質問が 1 つのときだけ）、質問どうしを 1px の濃い境界線で分ける。見出しの矢印でたたむと、いまの質問の 1 行だけになる。1 問ずつ・たたんでも欄は作り直さずに隠す（書いた文・添付を残す）。質問の文・説明は AI の改行のまま出す。
 - 「その他」の添付は回答の `attachments`（質問ごと）で送り、コアが回答の文にパスと Read ツールで開くよう書き添えてから Claude Code に渡す（AskUserQuestion の回答は文字だけなので）。答えた内容は記録 `approval_resolved` に残り、`QuestionAnswerMessage` で出す。

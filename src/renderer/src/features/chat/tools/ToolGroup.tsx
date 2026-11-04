@@ -1,5 +1,5 @@
 import { ChevronRight, Wrench } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { BashOutput } from "./BashOutput";
@@ -46,6 +46,8 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
   const input = (call.use.data.input ?? {}) as Record<string, unknown>;
   // Task / Agent の呼び出しから、そのサブエージェントの中身をパネルのタブで開く（チャットの画面の中だけ）
   const pane = useOptionalChatPane();
+  // 一度でも開いたか（コマンドの色付けは、開いてから始める。閉じたままの呼び出しが多くても重くしない）
+  const [opened, setOpened] = useState(false);
   const r = call.result?.data;
   // ツール検索の `[tool_reference]` のような意味のない結果は出さない
   const content = r?.content ? visibleToolResult(r.content) : "";
@@ -53,14 +55,14 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
   // コマンドは、コマンドと出力（失敗の知らせも）を 1 つの枠で出すので、下の結果の欄は使わない
   const isCommand = name === "Bash" && typeof input.command === "string";
   if (isCommand) {
-    detail = <BashOutput command={String(input.command)} result={r} rel={rel} />;
+    detail = <BashOutput command={String(input.command)} result={r} rel={rel} highlight={opened} />;
   } else if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
     detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
   } else if (name === "Write" && typeof input.content === "string") {
     detail = <Diff before="" after={input.content} maxLines={40} />;
   }
   return (
-    <details className={cx("tool-call", r?.is_error && "error")}>
+    <details className={cx("tool-call", r?.is_error && "error")} onToggle={(e) => e.currentTarget.open && setOpened(true)}>
       <summary>
         <span className="tool-name">{toolLabel(name)}</span>
         <span className="tool-arg">{rel(describeToolInput(name, input))}</span>
