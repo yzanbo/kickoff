@@ -15,6 +15,7 @@ import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { IconButton } from "@/ui/IconButton";
 import { Popover, usePopover } from "@/ui/Popover";
+import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 
 /** チャットのサブエージェントの一覧（途中経過はサーバーからのイベントで受け取る） */
 export function useSubagents(chatId: number, events: ChatEvent[], busy: boolean, background: BackgroundState | null = null): SubagentEntry[] {
@@ -42,23 +43,17 @@ export function useSubagents(chatId: number, events: ChatEvent[], busy: boolean,
 
 
 /**
- * チャット欄の下の「サブエージェント N 件」。押すと一覧が開き、行を押すとそのサブエージェントの中身を開く
+ * チャット欄の下の「サブエージェント N 件」。押すと一覧が開き、行を押すとそのサブエージェントの中身をパネルのタブで開く
  */
-export function SubagentChip({
-  entries,
-  chat,
-  busy,
-  models,
-  onOpen,
-}: {
-  entries: SubagentEntry[];
-  chat: Chat;
-  busy: boolean;
-  models: ModelOption[];
-  onOpen: (entry: SubagentEntry) => void;
-}) {
+export function SubagentChip({ entries, chat, busy, models }: { entries: SubagentEntry[]; chat: Chat; busy: boolean; models: ModelOption[] }) {
   const popover = usePopover();
   const { open, setOpen } = popover;
+  const pane = useChatPane();
+  /** 中身を開いて、一覧を閉じる（key = 一覧の行のキー） */
+  const openRow = (key: string) => {
+    pane.openSubagent(key);
+    setOpen(false);
+  };
   // 最後の動きの表示を進める（開いている間だけ）
   useTicker(open ? 15_000 : 3_600_000);
   const [showArchived, setShowArchived] = useState(false);
@@ -110,8 +105,8 @@ export function SubagentChip({
         role="button"
         tabIndex={0}
         className={`subagent-row status-${s.status} ${isArchived ? "archived" : ""}`}
-        onClick={() => (onOpen(s), setOpen(false))}
-        onKeyDown={(e) => e.key === "Enter" && (onOpen(s), setOpen(false))}
+        onClick={() => openRow(s.key)}
+        onKeyDown={(e) => e.key === "Enter" && openRow(s.key)}
       >
         <span className={`subagent-icon ${s.status === "running" ? "spinning" : ""}`}>
           <ClaudeMark size={16} />
@@ -130,8 +125,7 @@ export function SubagentChip({
               entry={s}
               busy={busy}
               onOpen={(key) => {
-                const target = entries.find((x) => x.key === key);
-                if (target) (onOpen(target), setOpen(false));
+                if (entries.some((x) => x.key === key)) openRow(key);
               }}
             />
           )}

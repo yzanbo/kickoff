@@ -39,7 +39,7 @@ export function useAppShortcuts(actions: Actions) {
     } else if (e.key === "f") {
       e.preventDefault();
       // ⌘F: チャットを名前で探す。ボードがあればその検索欄へ、なければ ⌘K の移動パネル（チャット名で探せる）。
-      // ピントがチャットの中にあるときは、そのチャットの中の検索が先に受け取る（chat/useChatFindKey.ts）
+      // ピントがチャットの中にあるときは、そのチャットの中の検索が先に受け取る（chat/find/ChatFind.tsx）
       const boardSearch = document.querySelector<HTMLInputElement>("main .board-search input");
       if (boardSearch) {
         boardSearch.focus();

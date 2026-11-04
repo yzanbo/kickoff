@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type RefObject } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { itemIndexOfEvent, revealRange, TIMELINE_WINDOW, windowStart, type WindowRange } from "./timelineWindow";
 import type { TimelineItem } from "./timelineItems";
+import type { TimelineScroll } from "./timelineScroll";
 
 /**
  * チャットの流れの窓（最近の項目だけを描く。timelineWindow.ts）。
@@ -14,12 +15,13 @@ export function useTimelineWindow({
   items,
   chatId,
   focus,
-  stickToBottom,
+  scroll,
 }: {
   items: TimelineItem[];
   chatId: number;
   focus?: number;
-  stickToBottom: RefObject<boolean>;
+  /** 一番下に付いていくか（付いていく間に新しい項目が届いたら、窓を元の大きさに戻す） */
+  scroll: TimelineScroll;
 }) {
   const [shown, setShown] = useState(TIMELINE_WINDOW);
   // 移り先の前後を描いているとき（null = 最新から shown 件）
@@ -29,8 +31,8 @@ export function useTimelineWindow({
     setRange(null);
   }, [chatId]);
   useEffect(() => {
-    if (stickToBottom.current) setShown((s) => Math.min(s, TIMELINE_WINDOW));
-  }, [items.length, stickToBottom]);
+    if (scroll.following()) setShown((s) => Math.min(s, TIMELINE_WINDOW));
+  }, [items.length, scroll]);
 
   const total = items.length;
   const start = range ? Math.min(range.start, total) : windowStart(total, shown);
@@ -52,6 +54,8 @@ export function useTimelineWindow({
 
   return {
     visible,
+    /** 流れ全体の最後の項目（窓で途中を描いていても、作業中の文はいまの状態で決める） */
+    last: items.at(-1),
     /** 窓の外（上）にある項目の数 */
     hidden: start,
     /** 窓の外（下）にある項目の数（途中の一部分を描いているとき） */
@@ -86,3 +90,6 @@ export function useTimelineWindow({
     },
   };
 }
+
+/** 流れの窓（描く範囲と、それを動かす操作） */
+export type TimelineWindow = ReturnType<typeof useTimelineWindow>;

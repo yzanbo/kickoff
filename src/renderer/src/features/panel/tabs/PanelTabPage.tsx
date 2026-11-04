@@ -2,7 +2,6 @@ import { lazy, Suspense, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BrowserPane } from "@/features/browser/BrowserPane";
 import { ChatPane } from "@/features/chat/pane/ChatPane";
-import { NewChatContext } from "@/features/chat/queue/askInNewChat";
 import { SubagentPane } from "@/features/chat/subagents/SubagentPane";
 import { NewChatPane } from "./NewChatPane";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
@@ -27,17 +26,16 @@ interface PageProps<T extends PanelTab> {
  */
 const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>) => ReactNode } = {
   chat: ({ tab: t, panel, visible }) => (
-    // 送信待ちの指示を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
-    <NewChatContext.Provider value={panel.openNew}>
-      <ChatPane
-        chatId={t.id}
-        focus={t.focus}
-        visible={visible}
-        onOpenSubagent={(toolUseId, title) => panel.openSubagent({ chatId: t.id, projectId: t.projectId, toolUseId, title })}
-        // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
-        onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, projectId: chat.project_id, chat } })}
-      />
-    </NewChatContext.Provider>
+    <ChatPane
+      chatId={t.id}
+      focus={t.focus}
+      visible={visible}
+      onOpenSubagent={(toolUseId, title) => panel.openSubagent({ chatId: t.id, projectId: t.projectId, toolUseId, title })}
+      // 送信待ちの指示を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
+      onOpenNew={panel.openNew}
+      // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
+      onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, projectId: chat.project_id, chat } })}
+    />
   ),
   new: ({ tab: t, panel, visible }) => (
     <NewChatPane

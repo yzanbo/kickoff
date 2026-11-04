@@ -1,8 +1,9 @@
 import { MessageSquareQuote } from "lucide-react";
-import { useRef, useState, type RefObject } from "react";
+import { useRef, useState } from "react";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useEditKeys } from "@/hooks/useEditKeys";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { quoteComment } from "./quoteComment";
 
 /** 選んだ範囲（文と、ボタンを出す位置） */
@@ -39,7 +40,8 @@ function pickedIn(root: HTMLElement | null): Picked | undefined {
  * 押すとコメントを書く欄を開く。「入力欄に添える」で、選んだ文の引用とコメントをチャット欄の文の後ろに足す
  * （送るのは自分で。ほかの指示と一緒に送れる）。Enter で添える・Shift+Enter で改行・Esc でやめる
  */
-export function SelectionComment({ root, onAdd }: { root: RefObject<HTMLElement | null>; onAdd: (block: string) => void }) {
+export function SelectionComment() {
+  const { root, fillComposer } = useChatPane();
   const [picked, setPicked] = useState<Picked>();
   const [writing, setWriting] = useState(false);
   const [comment, setComment] = useState("");
@@ -61,7 +63,7 @@ export function SelectionComment({ root, onAdd }: { root: RefObject<HTMLElement 
   useDismiss(boxRef, close, { enabled: Boolean(picked) });
   const add = () => {
     if (!picked) return;
-    onAdd(quoteComment(picked.text, comment));
+    fillComposer(quoteComment(picked.text, comment), { append: true });
     window.getSelection()?.removeAllRanges();
     close();
   };
