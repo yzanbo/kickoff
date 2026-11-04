@@ -20,6 +20,7 @@ export function PanelTab({
   extra,
   onSelect,
   onClose,
+  closeLabel,
   onRename,
   editor,
   lead,
@@ -36,6 +37,8 @@ export function PanelTab({
   extra?: HTMLAttributes<HTMLDivElement>;
   onSelect: () => void;
   onClose: () => void;
+  /** 閉じるボタンの名前（なければ「〜 のタブを閉じる」。分けたペインのチャットは「一覧のペインに戻す」） */
+  closeLabel?: string;
   /** アイコンの代わりに名前の前に置くもの（チャットのタブの状態の印） */
   lead?: ReactNode;
   /** 名前のダブルクリックで名前を変え始める */
@@ -59,7 +62,7 @@ export function PanelTab({
       )}
       {/* 名前を変えている間は、入力欄の ✓ / ✕ と並ばないよう閉じるを隠す */}
       {!editor && (
-        <CloseButton label={`${label} のタブを閉じる`} size={12} className="panel-tab-close" onClick={onClose} />
+        <CloseButton label={closeLabel ?? `${label} のタブを閉じる`} size={12} className="panel-tab-close" onClick={onClose} />
       )}
     </div>
   );

@@ -5,7 +5,7 @@ import { cx } from "../../cx";
 import { useServerEvent } from "../../events";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { paneActions } from "./paneActions";
-import { activeTabOf, closeLayoutTabs, isTabVisible, placeTab, reconcileLayout, renameTab, type PaneLayout } from "./paneLayout";
+import { activeTabOf, closeLayoutTabs, isTabVisible, placeTab, reconcileLayout, renameTab, returnToHome, type PaneLayout } from "./paneLayout";
 import { chatKey, syncLinkedTabs, type LinkState } from "./linkedTabs";
 import { loadPanel, registerPanel, savePanel } from "./panelMemory";
 import { kindOfTab, usePanelKinds, type PanelSurface } from "./panelKinds";
@@ -39,7 +39,8 @@ export type SidePanelController = ReturnType<typeof useSidePanel>;
 
 /**
  * ボードの右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）の状態と操作。カンバンとグループのボードで共通。
- * タブは上下・左右のペインに分けて並べられる（配置は paneLayout の木。新しく開くタブは、ピントのあるペインに入る）。
+ * タブは上下・左右のペインに分けて並べられる（配置は paneLayout の木。自分で開くタブはピントのあるペインに、
+ * サイドバーと連動して自動で足すチャットのタブは一覧のペイン（homePane。分けた元のペイン）に入る）。
  * 表示は SidePanel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）・DraftCards（列の下書き）で行う
  */
 export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = false, projects, onCreated }: Options) {
@@ -65,6 +66,13 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
   }
   // 配置といまのタブが食い違っても（どのペインにもないタブなど）壊れないよう、直したものを使う
   const layout = useMemo(() => reconcileLayout(rawLayout, tabs.map((t) => t.key)), [rawLayout, tabs]);
+  /**
+   * 配置を変える。いまのタブに合わせて直した配置から変える（サイドバーと連動して自動で足したタブは、state の配置にはまだ入っていない。
+   * 直さずに変えると、そのタブを移す・分ける操作が「どのペインにもないタブ」として何もしなかった）
+   */
+  const tabKeys = useRef<string[]>([]);
+  tabKeys.current = tabs.map((t) => t.key);
+  const changeLayout = (fn: (l: PaneLayout) => PaneLayout) => setLayout((l) => fn(reconcileLayout(l, tabKeys.current)));
   /** ピントのあるペインの表示中のタブ（分割する前の「表示中のタブ」と同じ意味） */
   const activeTab = activeTabOf(layout);
   useEffect(() => {
@@ -78,7 +86,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
 
   /** タブを表示する（どこかのペインにあればそこで、なければピントのあるペインに足す）。ピントもそのペインへ */
   const reveal = (key: string) => {
-    setLayout((l) => placeTab(l, key));
+    changeLayout((l) => placeTab(l, key));
     setPanelOpen(true);
   };
   /** 開いているタブを表示する（タブ・下書きを押したとき。ないタブなら何もしない） */
@@ -152,7 +160,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
   const replaceWithChat = (key: string, run: Run) => {
     const chat: PanelTab = { key: chatKey(run.id), kind: "chat", id: run.id, projectId: run.project_id, title: run.title };
     updateTab(key, () => chat);
-    setLayout((l) => renameTab(l, key, chat.key));
+    changeLayout((l) => renameTab(l, key, chat.key));
     onCreated?.(run);
   };
 
@@ -228,6 +236,12 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
   /** パネルでこのタブを見せているか（分割していれば、どれかのペインで表示中） */
   const isShowingTab = (key: string) => panelOpen && isTabVisible(layout, key);
 
+  /** サイドバーに出ているチャットのタブか（連動しない欄では runs が空なので、いつも false） */
+  const isLinkedTab = (key: string) => {
+    const t = tabs.find((x) => x.key === key);
+    return t?.kind === "chat" && runs.some((r) => r.id === t.id);
+  };
+
   /** そのタブの種類をこの欄で見せているか */
   const isKindShown = (key: string) => {
     const t = tabs.find((x) => x.key === key);
@@ -243,6 +257,8 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
     activeTab,
     /** 分割の配置（直したもの） */
     layout,
+    /** サイドバーと連動しているか（連動した欄では、一覧のペインにだけチャットのタブを自動で足す） */
+    linked: scope !== null,
     panelOpen,
     /** パネルが横幅いっぱいに見えているか（横幅いっぱいにした・横に残るボードが狭すぎてボードを覆っている） */
     panelFull: size.maximized || size.covering,
@@ -261,13 +277,18 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
     /** タブを表示する（タブ・下書きを押したとき） */
     showTab: show,
     closeTab,
+    /** タブを一覧のペインへ戻す（分けたペインで、サイドバーと連動したチャットのタブを閉じたとき。表示だけ消したことにはしない） */
+    returnToHome: (key: string) => changeLayout((l) => returnToHome(l, key)),
+    /** サイドバーに出ているチャットのタブか（ペインを閉じても一覧のペインへ戻すもの） */
+    isLinkedTab,
     updateTab,
     replaceWithChat,
     close,
     toggle: () => (panelOpen ? close() : reopen()),
     toggleMaximized: size.toggleMaximized,
     startResize: size.startResize,
-    ...paneActions(layout, setLayout, closeMany),
+    // ペインを閉じても、サイドバーに出ているチャットのタブは閉じずに一覧のペインへ戻す（表示だけ消したことにしない）
+    ...paneActions(layout, changeLayout, closeMany, isLinkedTab),
     /** 送る前の新しいチャットのタブ（ボードの列・グループに下書きとして出す） */
     drafts: tabs.flatMap((t) =>
       t.kind === "new" ? [{ key: t.key, text: t.draftText ?? "", target: { projectId: t.projectId, group: t.group } }] : [],

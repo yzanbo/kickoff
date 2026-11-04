@@ -38,6 +38,7 @@ export function PaneTabBar({
   panel,
   pane,
   split,
+  home,
   inert,
   controls,
   drag,
@@ -55,6 +56,11 @@ export function PaneTabBar({
   pane: PaneLeaf;
   /** ペインを分けているか（ペインを閉じるボタンを出す） */
   split: boolean;
+  /**
+   * 一覧のペインか（サイドバーと連動して自動で足すチャットのタブが入るペイン）。一覧のペインだけ、タブのないグループの札・「チャット」の札を出し、
+   * 札の数をサイドバーの数にする。分けたほかのペインは自分で置いたタブだけの列なので、札はタブのあるまとまりだけ・数はそのペインのタブの数
+   */
+  home: boolean;
   inert?: boolean;
   controls?: ReactNode;
   drag: TabDrag;
@@ -96,7 +102,9 @@ export function PaneTabBar({
   const { clusterOf, clusterOfRun, order } = useTabClusters(panel, grouping);
   // 欄で隠している種類のタブは並べない（閉じずに残す）。チャットを隠しているときは、タブのないグループの札も出さない
   const known = pane.tabs.filter(panel.isKindShown);
-  const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf, showChat ? order : []);
+  // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない（並び順だけ使う）
+  const seeds = !showChat ? [] : home ? order : order.map((o) => ({ ...o, keepEmpty: false }));
+  const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf, seeds);
   // タブを畳んだまとまり（すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない
   const [collapsed, setCollapsed] = useSharedList(PANEL_TAB_CLUSTERS_COLLAPSED_KEY);
   const toggleCollapsed = (key: string) => setCollapsed(toggleClusterCollapsed(key, collapsed));
@@ -119,8 +127,12 @@ export function PaneTabBar({
     });
     return [...open, ...panel.runs.filter((r) => !open.some((o) => o.id === r.id) && clusterOfRun(r).key === c.key)];
   };
-  /** 札の右の数: サイドバーの見出しと同じく、そのまとまりに入るサイドバーのチャットの数（表示だけ消したタブも数え、下書き・ブラウザは数えない）。「その他」はタブの数 */
-  const clusterCount = (c: TabCluster) => (c.key === OTHER_CLUSTER.key ? c.tabs.length : panel.runs.filter((r) => clusterOfRun(r).key === c.key).length);
+  /**
+   * 札の右の数: 一覧のペインでは、サイドバーの見出しと同じく、そのまとまりに入るサイドバーのチャットの数（表示だけ消したタブも数え、下書き・ブラウザは数えない）。
+   * 「その他」と分けたペインでは、そのペインのタブの数
+   */
+  const clusterCount = (c: TabCluster) =>
+    c.key === OTHER_CLUSTER.key || !home ? c.tabs.length : panel.runs.filter((r) => clusterOfRun(r).key === c.key).length;
   /**
    * まとめないときの「チャット」の札に出すチャット: タブで開いているチャットと、ボードの一覧のチャットすべて
    * （まとめているときと同じく、作業中・回答待ち・未読をひと目で分かるように。チャットが 1 つもなければ札を出さない）
@@ -144,6 +156,8 @@ export function PaneTabBar({
     const chatState = chatRun && stateOf(chatRun);
     const busyUnread = Boolean(chatRun && chatState && busyWithUnread(chatRun, chatState));
     // どのグループのチャットか（ボードの一覧になければ、タブの中のチャットから届いたもの）
+    // 分けたペイン（一覧のペインでない）のサイドバーと連動したチャットは、× で一覧のペインへ戻す
+    const backHome = !home && panel.isLinkedTab(t.key);
     const group = t.kind === "chat" ? groupName(t.projectId, (panel.runs.find((r) => r.id === t.id) ?? t.run)?.group_id) : newGroup;
     return (
       <PanelTab
@@ -167,9 +181,15 @@ export function PaneTabBar({
         // チャットのタブは、名前のダブルクリックでその場で名前を変える（見出しには名前を出さない）
         onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Run) : undefined}
         editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Run), t.title ?? "") : undefined}
-        // チャットのタブの ×: 表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）
+        // チャットのタブの ×: 表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）。
+        // 分けたペインのサイドバーと連動したチャットは、聞かずに一覧のペインへ戻す（ペインを閉じたときと同じ。アーカイブ・削除は右クリックから）
+        closeLabel={backHome ? `${label} を一覧のペインに戻す` : undefined}
         onClose={() =>
-          t.kind === "chat" ? void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: (panel.runs.find((r) => r.id === t.id) ?? t.run)?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" })) : panel.closeTab(t.key)
+          backHome
+            ? panel.returnToHome(t.key)
+            : t.kind === "chat"
+              ? void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: (panel.runs.find((r) => r.id === t.id) ?? t.run)?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }))
+              : panel.closeTab(t.key)
         }
       />
     );
@@ -185,7 +205,7 @@ export function PaneTabBar({
     >
       {controls}
       {/* まとめないときは、タブの列の左端（横にスクロールしても動かない位置）に「チャット」の札 */}
-      {!clusters && showChat && allRuns.length > 0 && (
+      {!clusters && showChat && home && allRuns.length > 0 && (
         <TabClusterHead
           cluster={{ key: "all", label: "チャット", title: "このパネルのチャット", tabs: known }}
           runs={allRuns}
@@ -274,7 +294,7 @@ export function PaneTabBar({
       <span className="panel-bar-buttons panel-pane-tools">
         <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />
         <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />
-        {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（中のタブも閉じる）" size={15} onClick={() => panel.closePane(pane.id)} />}
+        {split && <IconButton icon={X} label="ペインを閉じる" title={panel.linked ? "ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" : "ペインを閉じる（中のタブも閉じる）"} size={15} onClick={() => panel.closePane(pane.id)} />}
       </span>
     </div>
   );

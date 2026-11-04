@@ -7,6 +7,7 @@ import {
   equalizeSplit,
   FIRST_PANE,
   focusPane,
+  homePane,
   isTabVisible,
   leavesOf,
   moveTab,
@@ -15,6 +16,7 @@ import {
   placeTab,
   reconcileLayout,
   renameTab,
+  returnToHome,
   setSplitSizes,
   singlePane,
   splitPane,
@@ -179,10 +181,12 @@ test("setSplitSizes / equalizeSplit: path の分割の割合を変え、等分�
   assert.equal(equalizeSplit(l3, [0]), l3);
 });
 
-test("reconcileLayout: 消えたタブを外し、どこにもないタブはピントのあるペインに足す", () => {
+test("reconcileLayout: 消えたタブを外し、どこにもないタブは一覧のペインに足す（ピントのある分けたペインには足さない）", () => {
   const l1 = splitPane(base(), FIRST_PANE, "row", "after", "p1", "c");
+  assert.equal(l1.focused, "p1");
   const r = reconcileLayout(l1, ["a", "c", "d"]);
-  assert.equal(shape(r.root), `row(0.50:${FIRST_PANE}[*a] 0.50:p1[*c,d])`);
+  assert.equal(shape(r.root), `row(0.50:${FIRST_PANE}[*a,d] 0.50:p1[*c])`);
+  assert.equal(r.focused, "p1");
   // ペインのタブがすべて消えたら、そのペインを詰める
   const gone = reconcileLayout(l1, ["a", "b"]);
   assert.equal(shape(gone.root), `${FIRST_PANE}[a,*b]`);
@@ -197,4 +201,45 @@ test("reconcileLayout: 消えたタブを外し、どこにもないタブはピ
   // もとから空のペインは残す
   const empty = splitPane(base(), FIRST_PANE, "row", "after", "p1");
   assert.equal(shape(reconcileLayout(empty, ["a", "b", "c"]).root), shape(empty.root));
+});
+
+test("homePane: 分けた元のペインを覚える。左・上に分けても移らず、閉じたら左上のペイン", () => {
+  assert.equal(homePane(base()).id, FIRST_PANE);
+  const left = splitPane(base(), FIRST_PANE, "row", "before", "p1", "a");
+  assert.equal(homePane(left).id, FIRST_PANE);
+  assert.equal(shape(reconcileLayout(left, ["a", "b", "c", "d"]).root), `row(0.50:p1[*a] 0.50:${FIRST_PANE}[*b,c,d])`);
+  // 分けたペインをさらに分けても、一覧のペインは変わらない
+  const more = splitPane(left, "p1", "column", "after", "p2");
+  assert.equal(homePane(more).id, FIRST_PANE);
+  // 一覧のペインを閉じたら、残ったペインの左上が一覧のペイン
+  const closed = closePane(more, FIRST_PANE);
+  assert.equal(homePane(closed.layout).id, "p1");
+  // ほかの操作でも覚えを残す
+  assert.equal(moveTab(more, "a", "p2").home, FIRST_PANE);
+  assert.equal(placeTab(more, "z").home, FIRST_PANE);
+  assert.equal(closeLayoutTabs(more, ["b"]).home, FIRST_PANE);
+});
+
+test("closePane: keep のタブ（サイドバーと連動したチャット）は閉じずに一覧のペインへ戻す", () => {
+  const l1 = splitPane(splitPane(base(), FIRST_PANE, "row", "after", "p1", "c"), "p1", "column", "after", "p2");
+  const l2 = moveTab(l1, "b", "p1");
+  const r = closePane(l2, "p1", (k) => k === "c");
+  assert.deepEqual(r.closed, ["b"]);
+  assert.equal(shape(r.layout.root), `row(0.50:${FIRST_PANE}[*a,c] 0.50:p2[])`);
+  // 一覧のペインを閉じたら、新しい一覧のペイン（左上）へ
+  const h = closePane(splitPane(base(), FIRST_PANE, "row", "after", "p1", "c"), FIRST_PANE, (k) => k !== "a");
+  assert.deepEqual(h.closed, ["a"]);
+  assert.equal(shape(h.layout.root), "p1[*c,b]");
+});
+
+test("returnToHome: 一覧のペインの後ろへ戻す（一覧の表示中のタブ・ピントは変えない）。空になったペインは消す", () => {
+  const l1 = moveTab(splitPane(base(), FIRST_PANE, "row", "after", "p1", "c"), "a", "p1");
+  const r = returnToHome(l1, "c");
+  assert.equal(shape(r.root), `row(0.50:${FIRST_PANE}[*b,c] 0.50:p1[*a])`);
+  assert.equal(r.focused, "p1");
+  const gone = returnToHome(r, "a");
+  assert.equal(shape(gone.root), `${FIRST_PANE}[*b,c,a]`);
+  // 一覧のペインのタブ・知らないタブでは何もしない
+  assert.equal(returnToHome(r, "b"), r);
+  assert.equal(returnToHome(r, "zzz"), r);
 });

@@ -28,10 +28,14 @@ export interface PaneSplit {
 
 export type PaneNode = PaneLeaf | PaneSplit;
 
-/** 配置の木と、ピントのあるペイン（最後に押した・操作したペイン。新しく開くタブはここに入れる） */
+/**
+ * 配置の木と、ピントのあるペイン（最後に押した・操作したペイン。自分で開くタブはここに入れる）と、一覧のペイン
+ * （サイドバーと連動して自動で足すチャットのタブを入れるペイン。分けた元のペイン。なければ・もうなければ左上のペイン。homePane）
+ */
 export interface PaneLayout {
   root: PaneNode;
   focused: string;
+  home?: string;
 }
 
 /** 分けていないときの、最初のペインの ID */
@@ -54,6 +58,12 @@ export const paneOfTab = (layout: PaneLayout, key: string): PaneLeaf | undefined
 
 /** ピントのあるペイン（なければ先頭） */
 export const focusedPane = (layout: PaneLayout): PaneLeaf => findPane(layout, layout.focused) ?? leavesOf(layout.root)[0];
+
+/**
+ * 一覧のペイン: サイドバーと連動して自動で足すチャットのタブが入るペイン（分けたペインには自動で足さない）。
+ * 覚えたペインがなければ（分けていない・閉じた）左上のペイン
+ */
+export const homePane = (layout: PaneLayout): PaneLeaf => (layout.home ? findPane(layout, layout.home) : undefined) ?? leavesOf(layout.root)[0];
 
 /** ピントのあるペインの表示中のタブ（今までの「表示中のタブ」と同じ意味） */
 export const activeTabOf = (layout: PaneLayout): string | null => focusedPane(layout).active;
@@ -101,10 +111,10 @@ export function normalize(node: PaneNode): PaneNode {
   return { ...node, children, sizes: normalizeSizes(sizes) };
 }
 
-/** ピントのあるペインがなくなっていたら先頭へ */
-function withFocus(root: PaneNode, focused: string): PaneLayout {
+/** 新しい木にする。ピントのあるペインがなくなっていたら先頭へ（一覧のペインの覚えはそのまま。なくなっていれば homePane が左上にする） */
+function withFocus(root: PaneNode, layout: PaneLayout): PaneLayout {
   const leaves = leavesOf(root);
-  return { root, focused: leaves.some((p) => p.id === focused) ? focused : leaves[0].id };
+  return { ...layout, root, focused: leaves.some((p) => p.id === layout.focused) ? layout.focused : leaves[0].id };
 }
 
 /**
@@ -121,7 +131,7 @@ function detach(layout: PaneLayout, key: string, keep?: string): PaneLayout {
     if (tabs.length === 0 && many && p.id !== keep) return null;
     return { ...p, tabs, active: nextActiveTab(p.tabs.map((t) => ({ key: t })), key, p.active) };
   });
-  return withFocus(normalize(root ?? layout.root), layout.focused);
+  return withFocus(normalize(root ?? layout.root), layout);
 }
 
 /** タブをペインの index の位置（なければ最後）に入れて表示し、ピントもそこへ移す */
@@ -132,7 +142,7 @@ function insert(layout: PaneLayout, paneId: string, key: string, index?: number)
     tabs.splice(index === undefined ? tabs.length : Math.max(0, Math.min(index, tabs.length)), 0, key);
     return { ...p, tabs, active: key };
   });
-  return { root: root ?? layout.root, focused: paneId };
+  return { ...layout, root: root ?? layout.root, focused: paneId };
 }
 
 /**
@@ -140,7 +150,7 @@ function insert(layout: PaneLayout, paneId: string, key: string, index?: number)
  */
 export function placeTab(layout: PaneLayout, key: string): PaneLayout {
   const at = paneOfTab(layout, key);
-  if (at) return { root: mapLeaves(layout.root, (p) => (p.id === at.id ? { ...p, active: key } : p)) ?? layout.root, focused: at.id };
+  if (at) return { ...layout, root: mapLeaves(layout.root, (p) => (p.id === at.id ? { ...p, active: key } : p)) ?? layout.root, focused: at.id };
   return insert(layout, focusedPane(layout).id, key);
 }
 
@@ -170,6 +180,19 @@ export function moveTab(layout: PaneLayout, key: string, paneId: string, index?:
   // 同じペインの中で後ろへ移すときは、自分を抜いた分だけ前にずれる
   if (source.id === target.id && at !== undefined && at > source.tabs.indexOf(key)) at -= 1;
   return insert(detach(layout, key, paneId), paneId, key, at);
+}
+
+/**
+ * タブを一覧のペインへ戻す（分けたペインで、サイドバーと連動したチャットのタブを閉じたとき）。一覧のペインでは後ろに足すだけで、
+ * 表示中のタブ・ピントは変えない（戻したチャットに一覧の表示を奪わせない）。元のペインが空になったら消して詰める。一覧のペインにあれば何もしない
+ */
+export function returnToHome(layout: PaneLayout, key: string): PaneLayout {
+  const source = paneOfTab(layout, key);
+  if (!source || source.id === homePane(layout).id) return layout;
+  const detached = detach(layout, key);
+  const home = homePane(detached).id;
+  const root = mapLeaves(detached.root, (p) => (p.id === home ? { ...p, tabs: [...p.tabs, key], active: p.active ?? key } : p));
+  return { ...detached, root: root ?? detached.root };
 }
 
 /** 木の中のペインを、新しいペインと並べた分割に置き換える（同じ向きの親があれば、その中に並べる） */
@@ -202,7 +225,8 @@ export function splitPane(layout: PaneLayout, paneId: string, dir: SplitDir, sid
   // 元のペインが消えた（移したタブのペインが別で、空になった）場合でも、分ける先のペインは keep で残っている
   const fresh: PaneLeaf = { type: "pane", id: newId, tabs: tabKey && paneOfTab(layout, tabKey) ? [tabKey] : [], active: null };
   fresh.active = fresh.tabs[0] ?? null;
-  return { root: normalize(splitLeaf(base.root, paneId, dir, side, fresh)), focused: newId };
+  // 分ける前の一覧のペインを覚えておく（左・上に分けても、一覧のペインが新しいペインに移らないように）
+  return { root: normalize(splitLeaf(base.root, paneId, dir, side, fresh)), focused: newId, home: homePane(layout).id };
 }
 
 /**
@@ -213,8 +237,11 @@ export function closeLayoutTabs(layout: PaneLayout, keys: readonly string[]): Pa
   return keys.reduce((l, key) => detach(l, key), layout);
 }
 
-/** ペインを閉じる（最後の 1 つは閉じない）。中にあったタブのキーを closed で返す（呼び出し側でタブも閉じる） */
-export function closePane(layout: PaneLayout, paneId: string): { layout: PaneLayout; closed: string[] } {
+/**
+ * ペインを閉じる（最後の 1 つは閉じない）。中にあったタブのうち keep のもの（サイドバーと連動したチャット）は一覧のペインへ戻し
+ * （一覧のペインを閉じたときは、残ったペインの左上が新しい一覧のペイン）、残りのキーを closed で返す（呼び出し側でタブも閉じる）
+ */
+export function closePane(layout: PaneLayout, paneId: string, keep: (key: string) => boolean = () => false): { layout: PaneLayout; closed: string[] } {
   const pane = findPane(layout, paneId);
   const leaves = leavesOf(layout.root);
   if (!pane || leaves.length <= 1) return { layout, closed: [] };
@@ -222,7 +249,13 @@ export function closePane(layout: PaneLayout, paneId: string): { layout: PaneLay
   // ピントは閉じたペインの隣（並び順で前、先頭なら次）へ
   const index = leaves.findIndex((p) => p.id === paneId);
   const neighbor = leaves[index > 0 ? index - 1 : 1].id;
-  return { layout: { root, focused: layout.focused === paneId ? neighbor : layout.focused }, closed: pane.tabs };
+  let next: PaneLayout = { ...layout, root, focused: layout.focused === paneId ? neighbor : layout.focused };
+  const back = pane.tabs.filter(keep);
+  if (back.length > 0) {
+    const home = homePane(next).id;
+    next = { ...next, root: mapLeaves(next.root, (p) => (p.id === home ? { ...p, tabs: [...p.tabs, ...back], active: p.active ?? back[0] } : p)) ?? next.root };
+  }
+  return { layout: next, closed: pane.tabs.filter((t) => !back.includes(t)) };
 }
 
 /** path（根から子の番号をたどる）の分割の割合を変える。sizes の数が合わなければそのまま */
@@ -245,7 +278,9 @@ export function equalizeSplit(layout: PaneLayout, path: readonly number[]): Pane
 
 /**
  * 覚えていた配置を、いまのタブに合わせて直す: ないタブのキーは外し（2 つのペインにあれば先のほうだけ残す）、
- * どのペインにもないタブはピントのあるペインに足す。表示中のタブ・ピントのあるペインがなくなっていれば先頭にする
+ * どのペインにもないタブ（サイドバーと連動して自動で足したチャットなど）は一覧のペインに足す（自分で開くタブは placeTab でピントのあるペインに入る。
+ * 以前はここもピントのあるペインで、1 つのタブだけを見せるために分けたペインに、ほかのチャットが流れ込んでいた）。
+ * 表示中のタブ・ピントのあるペインがなくなっていれば先頭にする
  */
 export function reconcileLayout(layout: PaneLayout, keys: readonly string[]): PaneLayout {
   const exists = new Set(keys);
@@ -259,10 +294,10 @@ export function reconcileLayout(layout: PaneLayout, keys: readonly string[]): Pa
     const same = tabs.length === p.tabs.length && (p.active === null ? tabs.length === 0 : tabs.includes(p.active));
     return same ? p : { ...p, tabs, active: p.active !== null && tabs.includes(p.active) ? p.active : (tabs[0] ?? null) };
   });
-  let fixed = root ? withFocus(normalize(root), layout.focused) : singlePane([], null);
+  let fixed = root ? withFocus(normalize(root), layout) : singlePane([], null);
   const missing = keys.filter((k) => !seen.has(k));
   if (missing.length > 0) {
-    const target = focusedPane(fixed).id;
+    const target = homePane(fixed).id;
     fixed = {
       ...fixed,
       root: mapLeaves(fixed.root, (p) => (p.id === target ? { ...p, tabs: [...p.tabs, ...missing], active: p.active ?? missing[0] } : p)) ?? fixed.root,
