@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { href, parse, routeProjectId, type Route } from "./router";
+import { boardTabOf, href, parse, routeProjectId, type Route } from "./router";
 
 test("parse: ハッシュを画面に読む（タブなしはボード、知らないタブはボード、知らない形は全プロジェクト）", () => {
   assert.deepEqual(parse(""), { name: "allProjects" });
@@ -65,4 +65,13 @@ test("routeProjectId: プロジェクトの画面・新しいチャット・チ�
   assert.equal(routeProjectId({ name: "newChat", projectId: 5 }), 5);
   assert.equal(routeProjectId({ name: "chat", projectId: 6, chatId: 1 }), 6);
   assert.equal(routeProjectId({ name: "allProjects" }), undefined);
+});
+
+test("boardTabOf: チャット・新しいチャットの URL では、最後に見たボードの列の分け方で開く（グループの＋から来た新しいチャットはグループのボード）", () => {
+  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "state"), "board");
+  // グループのボードで開いたチャットの URL でも、カンバンに切り替えない
+  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "groups"), "groups");
+  assert.equal(boardTabOf({ name: "newChat", projectId: 1 }, "groups"), "groups");
+  assert.equal(boardTabOf({ name: "newChat", projectId: 1, group: 3 }, "state"), "groups");
+  assert.equal(boardTabOf({ name: "newChat", projectId: 1 }, "state"), "board");
 });

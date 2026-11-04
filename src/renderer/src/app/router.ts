@@ -124,12 +124,21 @@ export function navigate(route: Route, options: { replace?: boolean } = {}) {
 export const REOPEN_EVENT = "kickoff:reopen";
 export type ReopenRoute = Extract<Route, { name: "chat" } | { name: "newChat" }>;
 
-/** チャットを開く（プロジェクトのカンバンへ移り、右側のパネルで開く） */
+/**
+ * チャット・新しいチャットの URL で出すプロジェクトのボード（どちらのボードも同じ右のパネルで開く）: サイドバーのグループの＋から来た新しいチャットは
+ * グループのボード、ほかは最後に見たボードの列の分け方（columns。グループのボードで開いたチャットの URL でも、グループのボードのまま）
+ */
+export function boardTabOf(route: ReopenRoute, columns: "state" | "groups"): ProjectTab {
+  if (route.name === "newChat" && route.group) return "groups";
+  return columns === "groups" ? "groups" : "board";
+}
+
+/** チャットを開く（プロジェクトのボードへ移り、右側のパネルで開く） */
 export function openChat(projectId: number, chatId: number, focus?: number, options: { replace?: boolean } = {}) {
   navigate({ name: "chat", projectId, chatId, ...(focus ? { focus } : {}) }, options);
 }
 
-/** 新しいチャットを始める（プロジェクトのカンバンへ移り、右側のパネルで始める） */
+/** 新しいチャットを始める（プロジェクトのボードへ移り、右側のパネルで始める） */
 export function openNewChat(projectId: number, target: { group?: number } = {}) {
   navigate({ name: "newChat", projectId, ...target });
 }
