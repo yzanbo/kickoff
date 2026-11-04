@@ -1,5 +1,5 @@
 import type { Mermaid } from "mermaid";
-import type { AppliedTheme } from "@/app/theme";
+import type { AppliedTheme } from "@/lib/appliedTheme";
 import { mermaidConfig } from "./mermaidConfig";
 
 /** 描いた図（SVG）を覚えておく数（同じ図を開き直したとき・タブを切り替えたときに、描き直さない） */

@@ -1,5 +1,5 @@
 import type { ITheme } from "@xterm/xterm";
-import type { AppliedTheme } from "@/app/theme";
+import type { AppliedTheme } from "@/lib/appliedTheme";
 
 // 16 色は VS Code の Dark+ / Light+ のターミナルと同じ（コードの色付けとそろえる）
 const DARK_ANSI = {

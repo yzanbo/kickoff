@@ -1,13 +1,12 @@
 import { useContext, useMemo, type ReactNode } from "react";
 import ReactMarkdown, { type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
-import { remarkFileLinks } from "@/features/fileLinks/fileRefs";
+import { MarkdownFileLinksContext } from "./markdownFileLinks";
 import { MermaidDiagram, MermaidPlaceholder } from "@/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/ui/markdown/mermaid/mermaidSource";
 import { CopyButton } from "@/ui/CopyButton";
 
-/** リンク。チャットの作業場所のファイル（remarkFileLinks が data-file-path を付けたもの）は、押すとエディタタブで開く */
+/** リンク。ファイルのパス（MarkdownFileLinks の remark のプラグインが data-file-path を付けたもの）は、押して開けるチップにする */
 const link: Components["a"] = ({ node, href, children }) => {
   const path = node?.properties.dataFilePath;
   if (typeof path === "string") return <FileLink path={path} line={Number(node?.properties.dataFileLine) || undefined}>{children}</FileLink>;
@@ -20,10 +19,10 @@ const link: Components["a"] = ({ node, href, children }) => {
 
 /** 押すとエディタタブでファイルを開くチップ（中はインラインコードかリンクの文字） */
 function FileLink({ path, line, children }: { path: string; line?: number; children: ReactNode }) {
-  const links = useContext(FileLinkContext);
+  const links = useContext(MarkdownFileLinksContext);
   if (!links) return <>{children}</>;
   return (
-    <button type="button" className="file-link" title={`エディタで開く: ${path}${line ? `（${line} 行目）` : ""}`} onClick={() => links.open({ path, ...(line ? { line } : {}) })}>
+    <button type="button" className="file-link" title={`エディタで開く: ${path}${line ? `（${line} 行目）` : ""}`} onClick={() => links.open(path, line)}>
       {children}
     </button>
   );
@@ -63,12 +62,12 @@ const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true), table 
 
 /**
  * AI の発言などの Markdown 表示（HTML は描画しない）。```mermaid は図にする。
- * チャットのパネルの中（FileLinkContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
+ * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
  * streaming: 生成中の返答
  */
 export function Markdown({ children, streaming = false }: { children: string; streaming?: boolean }) {
-  const links = useContext(FileLinkContext);
-  const remarkPlugins = useMemo<Options["remarkPlugins"]>(() => (links ? [remarkGfm, [remarkFileLinks, links.index]] : [remarkGfm]), [links]);
+  const links = useContext(MarkdownFileLinksContext);
+  const remarkPlugins = useMemo<Options["remarkPlugins"]>(() => (links ? [remarkGfm, links.remarkPlugin] : [remarkGfm]), [links]);
   return (
     <div className="markdown">
       <ReactMarkdown remarkPlugins={remarkPlugins} components={streaming ? STREAMING_COMPONENTS : COMPONENTS}>

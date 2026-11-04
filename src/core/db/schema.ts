@@ -129,7 +129,7 @@ export const SCHEMA_VERSION = MIGRATIONS.length;
 
 /**
  * PRAGMA user_version は、この数に版を足して持つ（v1 = 201）。2026-11 の作り直しより前（リリース前）の系統は 100 ＋ 版（101〜）で、
- * その DB は引き継がずに消して作り直す（prerelease.ts）
+ * その DB は引き継がずに消して作り直す（open.ts の discardPrereleaseData）
  */
 export const USER_VERSION_BASE = 200;
 

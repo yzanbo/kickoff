@@ -1,5 +1,5 @@
 import type { HighlighterCore, LanguageRegistration } from "shiki/core";
-import type { AppliedTheme } from "@/app/theme";
+import type { AppliedTheme } from "@/lib/appliedTheme";
 
 /** 色付きの断片（fontStyle は 1: 斜体 / 2: 太字 / 4: 下線 の足し算） */
 export interface CodeToken {

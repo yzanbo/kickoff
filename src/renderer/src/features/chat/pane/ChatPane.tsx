@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
+import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { SelectionComment } from "@/features/chat/messages/SelectionComment";
@@ -71,7 +71,7 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
   const [pillDock, setPillDock] = useState<HTMLSpanElement | null>(null);
   return (
-    <FileLinkContext.Provider value={view.fileLinks}>
+    <FileLinksProvider value={view.fileLinks}>
       <ChatPaneContext.Provider value={pane}>
         <div ref={pane.root} className={cx("chat-page chat-panel", wide && "wide")}>
           <ChatHeader chat={chat} project={project} tools={<ChatHeaderTools items={view.items} version={view.timeline.visible} />} />
@@ -107,6 +107,6 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
           />
         </div>
       </ChatPaneContext.Provider>
-    </FileLinkContext.Provider>
+    </FileLinksProvider>
   );
 }

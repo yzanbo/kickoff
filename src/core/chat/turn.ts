@@ -24,8 +24,8 @@ export interface ExecutionDeps {
   bus?: Bus;
 }
 
-/** 待機列の 1 件 */
-export interface QueueItem {
+/** 1 回の実行の依頼（送った指示。すぐ動かす） */
+export interface TurnRequest {
   chatId: number;
   prompt: string;
   /** 指示の ID（自分の発言の記録の message_uuid。ファイルを戻すときの目印） */
@@ -52,11 +52,11 @@ export interface StoppedAgent {
 }
 
 /**
- * 1 回の実行（待機列から取り出したもの）を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。
+ * 1 回の実行を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。
  * 作業中の様子（裏の作業・再試行・圧縮中・作業中のチャットへの操作）はチャットの runtime に書く（画面には runtime が配る）。
  * 失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
-export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false }: QueueItem, signal: AbortSignal): Promise<TurnOutcome> {
+export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { store, providers } = deps;
   try {
     const chat = store.chats.get(chatId)!;

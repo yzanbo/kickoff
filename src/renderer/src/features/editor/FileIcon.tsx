@@ -1,6 +1,6 @@
 import { File, Folder, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useAppliedTheme } from "@/app/theme";
+import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 
 type IconUrl = (name: string, dir: boolean, open: boolean, theme: "dark" | "light") => string | undefined;
 

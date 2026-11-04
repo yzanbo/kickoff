@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { executeTurn, type ExecutionDeps, type QueueItem, type TurnOutcome } from "./turn.js";
+import { executeTurn, type ExecutionDeps, type TurnRequest, type TurnOutcome } from "./turn.js";
 import { RunnerQueue } from "./runnerQueue.js";
 import { ChatRuntimes } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
@@ -213,7 +213,7 @@ export class Runner extends RunnerQueue {
   }
 
   /** 送った指示をすぐ動かす（同時に動かす数は決めない） */
-  private async execute(item: QueueItem) {
+  private async execute(item: TurnRequest) {
     const runtime = this.runtimes.get(item.chatId);
     const controller = new AbortController();
     runtime.turn = controller;
