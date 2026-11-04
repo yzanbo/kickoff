@@ -96,13 +96,13 @@
   margin-top: 8px;
 }
 
-/* 上に貼り付けておく自分の発言（読んでいる返答の元の発言。押すとその発言へ） */
+/*
+ * 上に置いておく自分の発言（読んでいる返答の元の発言。押すとその発言へ）。いつも出すので、流れに重ねずに流れの上の段に置く
+ * （重ねると、いちばん上を見ているときに最初の発言が帯の下に隠れる。段は chat.css の .timeline-wrap）
+ */
 .sticky-prompt {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
   z-index: 2;
+  grid-row: 1;
   display: flex;
   align-items: flex-start;
   gap: 4px;
@@ -110,7 +110,6 @@
   padding: 6px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
   border-bottom: 1px solid var(--border);
   background: var(--bg-elev);
-  box-shadow: 0 6px 12px -8px rgb(0 0 0 / 45%);
 }
 
 .sticky-prompt:hover {
@@ -163,6 +162,11 @@
 
 .sticky-prompt-toggle {
   flex: none;
+}
+
+/* 1 行に収まるときの開閉の矢印の場所取り（見えない。↑ / ↓ の位置をそろえるため） */
+.sticky-prompt-toggle.placeholder {
+  visibility: hidden;
 }
 
 /* 前・次の指示へ（帯の右端。開閉の矢印の手前） */

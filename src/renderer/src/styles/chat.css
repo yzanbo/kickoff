@@ -53,6 +53,11 @@
   display: none;
 }
 
+/* 見出しの行の、指示の帯の表示・非表示（出しているときはアクセントの色） */
+.run-sticky-toggle.on {
+  color: var(--accent-bright);
+}
+
 /* 状態の前のターン数・費用 */
 .run-meta {
   display: flex;
@@ -82,14 +87,17 @@
 }
 
 /* タイムラインの枠（一番下へ戻るボタンを、スクロールする中身の上に重ねる） */
+/* 上の段に指示の帯（.sticky-prompt。出さないときは高さ 0）、下の段に発言の流れ */
 .timeline-wrap {
   position: relative;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
 }
 
 /* チャット全体は横にスクロールさせない（幅のある表・コード・図は、その場所だけで横にスクロールする） */
 .timeline {
+  grid-row: 2;
   overflow-x: hidden;
   overflow-y: auto;
 }
