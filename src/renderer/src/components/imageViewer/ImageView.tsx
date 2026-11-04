@@ -57,22 +57,22 @@ export function ImageView({
       <ViewerHead name={image.name} onClose={onClose}>
         {nav}
         <span className="image-viewer-tools">
-          <IconButton icon={ZoomOut} label="縮小" title="縮小（⌘-）" size={15} onClick={zoom.zoomOut} />
+          <IconButton icon={ZoomOut} label="縮小" title="縮小（⌘-）" size={16} onClick={zoom.zoomOut} />
           <span className="image-viewer-zoom" aria-live="polite" aria-label={`倍率 ${zoom.percent}%`}>
             {zoom.percent}%
           </span>
-          <IconButton icon={ZoomIn} label="拡大" title="拡大（⌘+）" size={15} onClick={zoom.zoomIn} />
+          <IconButton icon={ZoomIn} label="拡大" title="拡大（⌘+）" size={16} onClick={zoom.zoomIn} />
           <IconButton
             icon={zoom.fitted ? Expand : Shrink}
             label={zoom.fitted ? "100%（実寸）で表示" : "画面に合わせる"}
             title={zoom.fitted ? "100%（実寸）で表示（ダブルクリックでも）" : "画面に合わせる（⌘0・ダブルクリックでも）"}
-            size={15}
+            size={16}
             onClick={zoom.toggleActual}
           />
         </span>
         <span className="image-viewer-tools">
-          <CopyButton copy={() => copyImage(image.src)} label="画像をコピー" size={15} />
-          <IconButton icon={Download} label="画像を保存" title="画像を保存（ダウンロード）" size={15} onClick={() => downloadImage(image.src, image.name)} />
+          <CopyButton copy={() => copyImage(image.src)} label="画像をコピー" size={16} />
+          <IconButton icon={Download} label="画像を保存" title="画像を保存（ダウンロード）" size={16} onClick={() => downloadImage(image.src, image.name)} />
         </span>
         {actions}
       </ViewerHead>
