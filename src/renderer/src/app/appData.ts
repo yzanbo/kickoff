@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Approval, BusEvent, Project } from "@shared/types";
 import { api } from "@/api";
-import { useServerEvents } from "@/api/useServerEvents";
+import { useServerConnection } from "@/api/useServerConnection";
 import { publishServerEvent } from "@/api/events";
 
 /**
@@ -31,7 +31,7 @@ export function useAppData(onEvent: (event: BusEvent) => void) {
     api.approvals().then(setApprovals).catch(() => {});
   }, [loadProjects]);
 
-  const connection = useServerEvents((event) => {
+  const connection = useServerConnection((event) => {
     onEvent(event);
     publishServerEvent(event);
     switch (event.type) {

@@ -5,6 +5,7 @@ import { findWhisperModel } from "../../voice/models.js";
 import { Invalid, NotFound } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { voiceLanguage } from "./schemas.js";
+import type { Transcription } from "@shared/types";
 
 /** 受け取る音声の大きさの上限（OpenAI の文字起こしの API と同じ 25MB） */
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
@@ -30,7 +31,8 @@ export function voiceRoutes(app: Hono, { voice }: ServerDeps) {
     const language = typeof body.language === "string" && body.language ? voiceLanguage.parse(body.language) : undefined;
     const audio = { bytes: new Uint8Array(await file.arrayBuffer()), name: file.name || "audio.webm", type: file.type };
     // 準備ができていない（未設定・モデルがない）・コマンドや API の失敗は、理由を 400 で返す
-    return c.json({ text: await voice.transcribe(audio, language) });
+    const transcription: Transcription = { text: await voice.transcribe(audio, language) };
+    return c.json(transcription);
   });
 
   app.get("/api/voice", async (c) => c.json(await voice.status()));

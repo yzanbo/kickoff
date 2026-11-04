@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ChatOptionsPatch } from "@shared/types";
+import type { ChatOptionsPatch, MessageBody, NewChatBody, QueueMessageBody } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
@@ -78,7 +78,7 @@ const hasContent = (v: { text: string; attachments: unknown[] }) => Boolean(v.te
 const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必要です" };
 
 /** 続けて送る・止めずに伝える指示 */
-export const messageInputSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED);
+export const messageInputSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<MessageBody>;
 
 /** 新しいチャットの最初の指示。作業場所は、いまあるワークツリーのフォルダか、新しく作るワークツリーのブランチ名（どちらもなければ本体） */
 export const newChatSchema = z
@@ -88,7 +88,7 @@ export const newChatSchema = z
     worktree_path: folderPath.optional(),
     new_worktree_branch: branchName.optional(),
   })
-  .refine(hasContent, CONTENT_REQUIRED);
+  .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<NewChatBody>;
 
 /** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す） */
-export const queueMessageSchema = z.object({ ...messageShape, hold: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED);
+export const queueMessageSchema = z.object({ ...messageShape, hold: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;

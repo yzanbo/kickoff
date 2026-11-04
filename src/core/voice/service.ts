@@ -1,5 +1,5 @@
 import type { Store } from "../db/store.js";
-import type { BusEvent, VoiceStatus } from "@shared/types";
+import type { BusEvent, SecretSaved, VoiceStatus } from "@shared/types";
 import { ModelDownloads } from "./downloads.js";
 import { transcribeLocal } from "./local.js";
 import { modelFile, WHISPER_MODELS } from "./models.js";
@@ -81,7 +81,7 @@ export class VoiceService {
   }
 
   /** OpenAI の API キーを保存する（空なら消す）。保存したかだけを返す */
-  saveOpenAiKey(key: string): { saved: boolean } {
+  saveOpenAiKey(key: string): SecretSaved {
     this.store.secrets.set("openai_transcribe_key", key.trim());
     return { saved: this.keySaved() };
   }

@@ -1,7 +1,7 @@
 import { GitBranch, Settings, WifiOff } from "lucide-react";
 import type { PlanUsage } from "@shared/types";
 import { useOnline } from "@/hooks/useOnline";
-import type { ConnectionState } from "@/api/useServerEvents";
+import type { ConnectionState } from "@/api/useServerConnection";
 import { href } from "@/app/router";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "@/features/usage/usage";
 import { useMainBranch } from "@/features/worktree/worktreeBranches";

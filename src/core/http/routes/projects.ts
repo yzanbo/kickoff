@@ -4,7 +4,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
-import { PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
+import { PROVIDER_IDS, type ImportProjectBody, type NewProjectBody, type Project, type ProjectPatch, type ProviderId } from "@shared/types";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
@@ -20,7 +20,7 @@ const newProjectSchema = z.object({
   parent_dir: z.string().trim().min(1),
   folder_name: z.string().trim().min(1).max(100),
   provider: z.enum(PROVIDER_IDS).optional(),
-});
+}) satisfies z.ZodType<NewProjectBody>;
 
 const importProjectSchema = z.object({
   path: z.string().trim().min(1),
@@ -28,7 +28,7 @@ const importProjectSchema = z.object({
   description: projectDescription.default(""),
   init_git: z.boolean().default(false),
   provider: z.enum(PROVIDER_IDS).optional(),
-});
+}) satisfies z.ZodType<ImportProjectBody>;
 
 const projectPatchSchema = z
   .object({
@@ -51,7 +51,7 @@ const projectPatchSchema = z
     // 送った内容で置き換える（書いていない項目はアプリ全体の設定に従う）
     chat_defaults: chatDefaultsSchema.partial().strict(),
   })
-  .partial();
+  .partial() satisfies z.ZodType<ProjectPatch>;
 
 /** プロジェクト（作成・取り込み・設定の変更・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
 export function projectRoutes(app: Hono, { store }: ServerDeps) {

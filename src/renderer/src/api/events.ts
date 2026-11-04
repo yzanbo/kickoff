@@ -4,7 +4,7 @@ import type { BusEvent } from "@shared/types";
 type Listener = (event: BusEvent) => void;
 const listeners = new Set<Listener>();
 
-/** App が受け取ったサーバーイベントを各画面に配る */
+/** App が受け取ったサーバーイベント（useServerConnection）を各画面に配る */
 export function publishServerEvent(event: BusEvent) {
   for (const listener of listeners) listener(event);
 }

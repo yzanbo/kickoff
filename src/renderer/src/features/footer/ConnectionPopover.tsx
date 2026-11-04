@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useDismiss } from "@/hooks/useDismiss";
-import type { ConnectionState } from "@/api/useServerEvents";
+import type { ConnectionState } from "@/api/useServerConnection";
 import { accountLine } from "@/features/usage/usage";
 import { ErrorText } from "@/ui/ErrorText";
 import { PopoverHeader } from "@/ui/PopoverHeader";

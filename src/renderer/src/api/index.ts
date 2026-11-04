@@ -1,270 +1,38 @@
-import type { AppSettings, Attachment, Approval, ApprovalDecision, ModelOption, ProviderId, EffortDefault, Chat, ChatDetail, ChatGroup, ChatOptionsPatch, QueueAddResult, QueueMergeResult, QueueState, SearchHit, ServerStatus, FileContent, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitWorktree, WorktreeRemovalInfo, GitHubStatus, GitStatus, PlanUsage, ServiceUsage, SlashCommandOption, Project, ProjectFiles, PullRequestInfo, ProjectSearchQuery, ProjectSearchResult, ProviderStatus, VoiceStatus, FolderInspection, FileRewindResult } from "@shared/types";
-
-interface NewProjectInput {
-  name: string;
-  /** 説明（README の「アイデア」にも書く。取り込み・編集の description と同じ） */
-  description: string;
-  parent_dir: string;
-  folder_name: string;
-}
-
-interface ImportProjectInput {
-  path: string;
-  name: string;
-  description: string;
-  init_git: boolean;
-}
-
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-/** API を呼ぶ（失敗は ApiError。返すもののない応答（204）は undefined） */
-async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method,
-    headers: body === undefined ? undefined : { "content-type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    credentials: "same-origin",
-  });
-  if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
-  }
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
-}
-
-/** multipart（FormData）で送る（添付ファイル・音声） */
-async function postForm<T>(url: string, form: FormData): Promise<T> {
-  const res = await fetch(url, { method: "POST", body: form, credentials: "same-origin" });
-  if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
-  }
-  return (await res.json()) as T;
-}
-
-/** Git・ファイル・検索の操作先（プロジェクトの番号だけなら本体。worktree があればそのワークツリー） */
-export type GitTarget = number | { projectId: number; worktree?: string };
-
-function gitUrl(target: GitTarget, path: string, params: Record<string, string> = {}) {
-  const { projectId, worktree } = typeof target === "number" ? { projectId: target, worktree: undefined } : target;
-  const query = new URLSearchParams({ ...params, ...(worktree ? { worktree } : {}) }).toString();
-  return `/api/projects/${projectId}${path}${query ? `?${query}` : ""}`;
-}
+// サーバー（コアの HTTP API）の窓口。資源ごとの関数（api/<資源>.ts。コアの http/routes/<資源>.ts と対応する）を
+// 1 つにまとめて出す（呼ぶ側は api.xxx(...)。名前が重なると後のもので上書きされるので、重ならないことを index.test.ts で確かめる）。
+// 通信の土台（失敗・クエリの組み立て）は http.ts、SSE の接続は useServerConnection.ts（App で 1 回）、受け取ったイベントを各画面へ配るのは events.ts
+import { approvalsApi } from "./approvals";
+import { chatsApi } from "./chats";
+import { filesApi } from "./files";
+import { gitApi } from "./git";
+import { groupsApi } from "./groups";
+import { projectsApi } from "./projects";
+import { providersApi } from "./providers";
+import { queueApi } from "./queue";
+import { settingsApi } from "./settings";
+import { turnsApi } from "./turns";
+import { uploadsApi } from "./uploads";
+import { usageApi } from "./usage";
+import { voiceApi } from "./voice";
+import { worktreesApi } from "./worktrees";
 
 export const api = {
-  settings: () => request<AppSettings>("GET", "/api/settings"),
-  updateSettings: (patch: Partial<AppSettings>) => request<AppSettings>("PUT", "/api/settings", patch),
-  providers: () => request<ProviderStatus[]>("GET", "/api/providers"),
-  github: () => request<GitHubStatus>("GET", "/api/github"),
-  status: () => request<ServerStatus>("GET", "/api/status"),
-  usage: () => request<PlanUsage>("GET", "/api/usage"),
-  refreshUsage: () => request<PlanUsage>("POST", "/api/usage/refresh"),
-  /** サービスごとの使用状況（設定の「使用状況」） */
-  usageServices: () => request<ServiceUsage[]>("GET", "/api/usage/services"),
-  refreshUsageServices: () => request<ServiceUsage[]>("POST", "/api/usage/services/refresh"),
-  projects: () => request<Project[]>("GET", "/api/projects"),
-  project: (id: number) => request<Project>("GET", `/api/projects/${id}`),
-  createProject: (input: NewProjectInput) => request<Project>("POST", "/api/projects", input),
-  importProject: (input: ImportProjectInput) => request<Project>("POST", "/api/projects/import", input),
-  inspectWorkspace: (path: string) =>
-    request<FolderInspection>("GET", `/api/workspace/inspect?path=${encodeURIComponent(path)}`),
-  updateProject: (
-    id: number,
-    patch: Partial<
-      Pick<
-        Project,
-        "name" | "description" | "provider" | "chat_defaults" | "reference_paths" | "hue" | "tags"
-      >
-    > & { pinned?: boolean; archived?: boolean },
-  ) =>
-    request<Project>("PATCH", `/api/projects/${id}`, patch),
-  deleteProject: (id: number) => request<void>("DELETE", `/api/projects/${id}`),
-  /** サイドバーでのプロジェクトの並び順（並べたあとの一覧が返る） */
-  reorderProjects: (ids: number[]) => request<Project[]>("PUT", "/api/projects/order", { ids }),
-  models: (provider: ProviderId) => request<ModelOption[]>("GET", `/api/providers/${provider}/models`),
-
-  // 実行（エージェントとの会話）
-  /** archived: アーカイブしたチャットも含める */
-  chats: (projectId: number, opts: { archived?: boolean } = {}) =>
-    request<Chat[]>("GET", `/api/projects/${projectId}/chats${opts.archived ? "?archived=1" : ""}`),
-  allChats: (opts: { archived?: boolean } = {}) => request<Chat[]>("GET", `/api/chats?limit=300${opts.archived ? "&archived=1" : ""}`),
-  search: (q: string, scope: { projectId?: number; chatId?: number } = {}) => {
-    const params = new URLSearchParams({ q });
-    if (scope.projectId !== undefined) params.set("project_id", String(scope.projectId));
-    if (scope.chatId !== undefined) params.set("chat_id", String(scope.chatId));
-    return request<SearchHit[]>("GET", `/api/search?${params}`);
-  },
-  startChat: (
-    projectId: number,
-    input: {
-      text: string;
-      options: ChatOptionsPatch;
-      attachments?: Attachment[];
-      group_id?: number;
-      /** 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体） */
-      worktree_path?: string;
-      new_worktree_branch?: string;
-    },
-  ) => request<Chat>("POST", `/api/projects/${projectId}/chats`, input),
-  /** チャットの詳細（記録・回答待ち・作業中の様子。作業中の様子は SSE の chat_live で追いかける） */
-  chatDetail: (id: number) => request<ChatDetail>("GET", `/api/chats/${id}`),
-  sendMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = []) =>
-    request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments }),
-
-  /** 添付ファイルをアップロードする */
-  upload: async (file: File): Promise<Attachment> => {
-    const form = new FormData();
-    form.append("file", file);
-    const [saved] = await postForm<Attachment[]>("/api/uploads", form);
-    return saved;
-  },
-  renameChat: (chatId: number, title: string) => request<Chat>("PATCH", `/api/chats/${chatId}`, { title }),
-  /** eventId: 一番下まで見た記録（それより新しい返答があれば、未読のまま） */
-  markSeen: (chatId: number, eventId?: number) => request<Chat>("POST", `/api/chats/${chatId}/seen`, eventId === undefined ? undefined : { event_id: eventId }),
-  markUnseen: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/unseen`),
-  /** 名前・グループ・固定・アーカイブはどれも PATCH（プロジェクトと同じ形） */
-  pinChat: (chatId: number, pinned: boolean) => request<Chat>("PATCH", `/api/chats/${chatId}`, { pinned }),
-  compactChat: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/compact`),
-  archiveChat: (chatId: number, archived = true) => request<Chat>("PATCH", `/api/chats/${chatId}`, { archived }),
-  deleteChat: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}`),
-  setChatGroup: (chatId: number, groupId: number | null) => request<Chat>("PATCH", `/api/chats/${chatId}`, { group_id: groupId }),
-  /** チャットを別のプロジェクトへ移す（グループ・作業場所は外れ、移した先の本体で作業する。会話は続く） */
-  moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
-  groups: (projectId: number) => request<ChatGroup[]>("GET", `/api/projects/${projectId}/groups`),
-  createGroup: (projectId: number, name: string) => request<ChatGroup>("POST", `/api/projects/${projectId}/groups`, { name }),
-  renameGroup: (groupId: number, name: string) => request<ChatGroup>("PATCH", `/api/groups/${groupId}`, { name }),
-  reorderGroups: (projectId: number, ids: number[]) => request<ChatGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
-  gitStatus: (target: GitTarget) => request<GitStatus>("GET", gitUrl(target, "/git/status")),
-  /** ステージ・ステージの取り消し・変更を元に戻す（終わったあとの状態を返す） */
-  gitAction: (target: GitTarget, action: "stage" | "unstage" | "discard", paths: string[]) =>
-    request<GitStatus>("POST", gitUrl(target, `/git/${action}`), { paths }),
-  gitCommit: (target: GitTarget, message: string) => request<GitStatus>("POST", gitUrl(target, "/git/commit"), { message }),
-  gitPush: (target: GitTarget) => request<GitStatus>("POST", gitUrl(target, "/git/push")),
-  gitPull: (target: GitTarget) => request<GitStatus>("POST", gitUrl(target, "/git/pull")),
-  gitFetch: (target: GitTarget) => request<GitStatus>("POST", gitUrl(target, "/git/fetch")),
-  /** 作業場所のブランチの PR（なければ null）と、PR を作る（まだプッシュしていなければ先にプッシュする） */
-  pullRequest: (target: GitTarget) => request<PullRequestInfo | null>("GET", gitUrl(target, "/git/pr")),
-  createPullRequest: (target: GitTarget) => request<PullRequestInfo>("POST", gitUrl(target, "/git/pr")),
-  gitLog: (target: GitTarget, skip = 0) => request<GitLog>("GET", gitUrl(target, "/git/log", { skip: String(skip) })),
-  gitRefs: (target: GitTarget) => request<GitRefs>("GET", gitUrl(target, "/git/refs")),
-  gitWorktrees: (projectId: number) => request<GitWorktree[]>("GET", `/api/projects/${projectId}/git/worktrees`),
-  addWorktree: (projectId: number, branch: string) => request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees`, { branch }),
-  /** ワークツリーを消す（force: コミットしていない変更があっても。deleteBranch: ブランチも消す = PR がマージされたあとの片付け）。残った一覧が返る */
-  removeWorktree: (projectId: number, path: string, force = false, deleteBranch = false) =>
-    request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force, delete_branch: deleteBranch }),
-  /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット） */
-  worktreeRemovalInfo: (projectId: number, path: string) =>
-    request<WorktreeRemovalInfo>("GET", `/api/projects/${projectId}/git/worktrees/info?path=${encodeURIComponent(path)}`),
-  gitCommitDetail: (target: GitTarget, hash: string) => request<GitCommitDetail>("GET", gitUrl(target, `/git/commits/${hash}`)),
-  gitCommitDiff: (target: GitTarget, hash: string, file: GitFileChange) =>
-    request<GitDiff>("GET", gitUrl(target, `/git/commits/${hash}/diff`, { path: file.path, ...(file.old_path ? { old: file.old_path } : {}) })),
-  projectFiles: (target: GitTarget) => request<ProjectFiles>("GET", gitUrl(target, "/files")),
-  /** チャット欄の / で出すコマンド（作業場所のプロジェクトのコマンド・スキルも含む） */
-  slashCommands: (target: GitTarget) => request<SlashCommandOption[]>("GET", gitUrl(target, "/commands")),
-  /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
-  saveProjectFile: (target: GitTarget, path: string, content: string, baseHash: string | null) =>
-    request<{ hash: string }>("PUT", gitUrl(target, "/file"), { path, content, base_hash: baseHash }),
-  searchProject: (target: GitTarget, { query, case_sensitive: caseSensitive, whole_word: wholeWord, regex }: ProjectSearchQuery) =>
-    request<ProjectSearchResult>(
-      "GET",
-      gitUrl(target, "/search", { q: query, case: caseSensitive ? "1" : "0", word: wholeWord ? "1" : "0", regex: regex ? "1" : "0" }),
-    ),
-  projectFile: (target: GitTarget, path: string) => request<FileContent>("GET", gitUrl(target, "/file", { path })),
-  gitDiff: (target: GitTarget, file: GitFileChange, staged: boolean) =>
-    request<GitDiff>("GET", gitUrl(target, "/git/diff", { path: file.path, staged: staged ? "1" : "0", ...(file.old_path ? { old: file.old_path } : {}) })),
-  deleteGroup: (groupId: number) => request<void>("DELETE", `/api/groups/${groupId}`),
-  cancelChat: (chatId: number) => request<void>("POST", `/api/chats/${chatId}/cancel`),
-
-  // 作業中に送る次の指示の待ちの列（送信待ち）。応答はどれも、変えたあとの送信待ち（QueueState）
-  /** 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す） */
-  queueMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], hold = false) =>
-    request<QueueAddResult>("POST", `/api/chats/${chatId}/queue`, { text, options, attachments, ...(hold ? { hold } : {}) }),
-  /** attachments: 添付を置き換える（省けば今のまま） */
-  editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
-    request<QueueState>("PATCH", `/api/chats/${chatId}/queue/${id}`, attachments ? { text, attachments } : { text }),
-  removeQueued: (chatId: number, id: string) => request<QueueState>("DELETE", `/api/chats/${chatId}/queue/${id}`),
-  moveQueued: (chatId: number, id: string, index: number) => request<QueueState>("POST", `/api/chats/${chatId}/queue/${id}/move`, { index }),
-  /** 推論の深さを指定しないとき（既定）に Claude Code が使う深さ（設定から求める） */
-  effortDefault: (projectId: number, model: string | null, worktree?: string) =>
-    request<EffortDefault>("GET", `/api/projects/${projectId}/effort-default?${new URLSearchParams({ ...(model ? { model } : {}), ...(worktree ? { worktree } : {}) })}`),
-  /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
-  forkChat: (chatId: number, eventId: number) => request<Chat>("POST", `/api/chats/${chatId}/fork`, { event_id: eventId }),
-  /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。ファイルの変更は戻さない） */
-  rewindChat: (chatId: number, eventId: number, text: string, options: ChatOptionsPatch = {}, restoreFiles = false) =>
-    request<Chat>("POST", `/api/chats/${chatId}/rewind`, { event_id: eventId, text, options, restore_files: restoreFiles }),
-  /** 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて AI に読ませる） */
-  chatTranscript: (chatId: number) => request<Attachment>("POST", `/api/chats/${chatId}/transcript`),
-  /** ファイルだけを、自分の発言を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけ） */
-  rewindFiles: (chatId: number, eventId: number, dryRun: boolean) =>
-    request<FileRewindResult>("POST", `/api/chats/${chatId}/rewind-files`, { event_id: eventId, dry_run: dryRun }),
-  /**
-   * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）。
-   * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った
-   */
-  tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = []) =>
-    request<{ result: "told" | "queued" | "sent" }>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments }),
-  /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
-  stopBackgroundTask: (chatId: number, taskId: string) => request<void>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),
-  /** 待ちの列を、終わっても自動で送らずに止めておくか（戻すと、作業中でなければ先頭をすぐ送る） */
-  setQueuePaused: (chatId: number, paused: boolean) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/paused`, { paused }),
-  /** その指示のすぐあとに一時停止の印を付ける・外す（右クリックの「この指示のあとで止める」。id が null ならすべて外す） */
-  setQueueStopAfter: (chatId: number, id: string | null, stop = true) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/stop-after`, { id, stop }),
-  /** 印の位置をまとめて置き換える（印のドラッグ・×。0 = 1 件目の上、n = n 件目のあと） */
-  setQueueStops: (chatId: number, stops: number[]) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/stops`, { stops }),
-  /** 画面でいま書き直している待ちの指示（丸ごと置き換え。空なら外す）。次に送る指示なら、書き直しが終わるまで送らない */
-  setQueueEditing: (chatId: number, ids: string[]) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/editing`, { ids }),
-  /** 待ちの指示をすべて消す */
-  clearQueued: (chatId: number) => request<QueueState>("DELETE", `/api/chats/${chatId}/queue`),
-  /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */
-  sendAllQueued: (chatId: number, ids?: string[]) => request<QueueState>("POST", `/api/chats/${chatId}/queue/send-all`, ids ? { ids } : {}),
-  /** 選んだ待ちの指示を、送らずに 1 件にまとめる（2 件以上） */
-  mergeQueued: (chatId: number, ids: string[]) => request<QueueMergeResult>("POST", `/api/chats/${chatId}/queue/merge`, { ids }),
-  /** 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めておくのをやめ、印を外す） */
-  sendQueuedInOrder: (chatId: number) => request<QueueState>("POST", `/api/chats/${chatId}/queue/send-in-order`),
-  /** 選んだ待ちの指示をまとめて消す */
-  removeQueuedMany: (chatId: number, ids: string[]) => request<QueueState>("POST", `/api/chats/${chatId}/queue/remove-many`, { ids }),
-  /**
-   * 選んだ待ちの指示を、並びを保ったまままとめて移す（いちばん上・いちばん下、または { before: その指示の前（null ならいちばん下）,
-   * belowStop: その位置に止める線があれば線の下に入れるか }）
-   */
-  moveQueuedMany: (chatId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }) =>
-    request<QueueState>(
-      "POST",
-      `/api/chats/${chatId}/queue/move-many`,
-      typeof to === "string" ? { ids, to } : { ids, before: to.before, ...(to.belowStop === undefined ? {} : { below_stop: to.belowStop }) },
-    ),
-  sendQueuedNow: (chatId: number, id: string) => request<QueueState>("POST", `/api/chats/${chatId}/queue/${id}/send`),
-
-  // 音声入力（文字起こし・準備の状態・この Mac のモデル・OpenAI の API キー）
-  /** 録った音声を文にする（language を省けば設定の言語） */
-  transcribe: (audio: Blob, language?: string) => {
-    const form = new FormData();
-    form.append("file", audio, `voice.${audio.type.includes("mp4") ? "m4a" : "webm"}`);
-    if (language) form.append("language", language);
-    return postForm<{ text: string }>("/api/transcribe", form);
-  },
-  voiceStatus: () => request<VoiceStatus>("GET", "/api/voice"),
-  downloadVoiceModel: (id: string) => request<VoiceStatus>("POST", `/api/voice/models/${encodeURIComponent(id)}/download`),
-  deleteVoiceModel: (id: string) => request<VoiceStatus>("DELETE", `/api/voice/models/${encodeURIComponent(id)}`),
-  /** OpenAI の API キーを保存する（空なら消す）。キーは返らず、保存したかだけ */
-  saveOpenAiKey: (key: string) => request<{ saved: boolean }>("PUT", "/api/voice/openai-key", { key }),
-
-  // 承認依頼・質問
-  approvals: () => request<Approval[]>("GET", "/api/approvals"),
-  /** 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる */
-  stopReconnect: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/reconnect`),
-  resolveApproval: (id: string, decision: ApprovalDecision) => request<void>("POST", `/api/approvals/${id}`, decision),
+  ...settingsApi,
+  ...projectsApi,
+  ...chatsApi,
+  ...turnsApi,
+  ...queueApi,
+  ...groupsApi,
+  ...uploadsApi,
+  ...approvalsApi,
+  ...providersApi,
+  ...usageApi,
+  ...gitApi,
+  ...filesApi,
+  ...worktreesApi,
+  ...voiceApi,
 };
 
-/** 添付ファイルを画面で開く・表示するための URL */
-export function attachmentUrl(a: Attachment): string {
-  return `/api/uploads/${a.id}?mime=${encodeURIComponent(a.mime)}`;
-}
+export { ApiError } from "./http";
+export { attachmentUrl } from "./uploads";
+export type { GitTarget } from "./workdir";
