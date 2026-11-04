@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { execFileAsync } from "../system/exec.js";
+import { runCommand } from "../system/exec.js";
+import { gitOutput } from "./exec.js";
 
 /** 新しいワークツリーへ、本体から写すフォルダ（Git で無視していて、作り直すのに時間がかかるもの） */
 const CARRY_DIRS = ["node_modules"];
@@ -17,13 +18,13 @@ export async function prepareWorktree(repo: string, target: string): Promise<str
     const to = path.join(target, dir);
     if (!(await fs.stat(from).catch(() => null))?.isDirectory()) continue;
     if (await fs.stat(to).catch(() => null)) continue;
-    const ignored = await execFileAsync("git", ["-C", repo, "check-ignore", "-q", dir]).then(
+    const ignored = await gitOutput(repo, ["check-ignore", "-q", dir]).then(
       () => true,
       () => false,
     );
     if (!ignored) continue;
     try {
-      await execFileAsync("cp", ["-c", "-R", from, to], { timeout: 120_000 });
+      await runCommand("cp", ["-c", "-R", from, to], { timeout: 120_000 });
       carried.push(dir);
     } catch (e) {
       console.warn(`[worktree] ${dir} を写せませんでした`, e);

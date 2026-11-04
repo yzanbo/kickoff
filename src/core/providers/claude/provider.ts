@@ -20,7 +20,7 @@ import { turnHooks, toAllowedTools } from "./policy.js";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
-import { execFileAsync } from "../../system/exec.js";
+import { runCommand } from "../../system/exec.js";
 
 export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;
@@ -37,7 +37,7 @@ export class ClaudeProvider implements AgentProvider {
       return { ...base, installed: false, logged_in: false, detail: "Claude Code のバイナリが見つかりません" };
     }
     try {
-      const { stdout } = await execFileAsync(this.executable, ["auth", "status"], { env: agentEnv(), timeout: 20_000 });
+      const stdout = await runCommand(this.executable, ["auth", "status"], { env: agentEnv(), timeout: 20_000 });
       const info = JSON.parse(stdout) as { loggedIn?: boolean; authMethod?: string; email?: string; subscriptionType?: string };
       // プランは種類（Max の段階を区別しない "max"）より、アカウントの表示名（"Ultra"・"Max 20x" など）を出す
       const plan = info.subscriptionType ? ((await readPlanDisplayName()) ?? info.subscriptionType) : undefined;
