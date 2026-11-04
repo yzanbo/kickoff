@@ -209,6 +209,10 @@
   white-space: nowrap;
 }
 
+.composer-stop-hint.stopping {
+  color: var(--muted);
+}
+
 /*
  * コンパクト表示（設定の「表示」→「チャット欄」）: 文字・余白・下の道具を小さくして、縦の幅を抑える。
  * 送信・中断のボタン（context-meter.css）・推論の深さなどの選択（composer-select.css）は後ろのファイルにあるので、

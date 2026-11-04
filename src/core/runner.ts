@@ -4,6 +4,7 @@ import type { RunControl } from "./providers/types.js";
 import { executeRun, type ExecutionDeps, type QueueItem, type RunOutcome } from "./runExecution.js";
 import { RunnerQueue } from "./runnerQueue.js";
 import { RunReconnect } from "./runReconnect.js";
+import { RunStopping } from "./runStopping.js";
 import { RunUsageLimit } from "./runUsageLimit.js";
 import { resolveRunDefaults } from "./runDefaults.js";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
@@ -46,6 +47,8 @@ export class Runner extends RunnerQueue {
   private readonly background = new Map<number, BackgroundState>();
   /** 作業中のチャットへの操作（止めずに発言を足す・裏の作業を止める。プロバイダーが渡す） */
   private readonly controls = new Map<number, RunControl>();
+  /** 止めるよう頼んで、終わるのを待っているチャット（runStopping.ts） */
+  private readonly stopping: RunStopping;
 
   constructor(
     private readonly deps: ExecutionDeps & {
@@ -57,6 +60,7 @@ export class Runner extends RunnerQueue {
     },
   ) {
     super();
+    this.stopping = new RunStopping(deps);
     this.followups = new FollowupQueue(
       (runId, queue, paused, stops) => {
         const run = deps.store.getRun(runId);
@@ -237,7 +241,15 @@ export class Runner extends RunnerQueue {
       this.deps.store.updateRun(runId, { status: "cancelled" });
       return;
     }
-    this.active.get(runId)?.abort();
+    const controller = this.active.get(runId);
+    if (!controller) return;
+    this.stopping.begin(runId);
+    controller.abort();
+  }
+
+  /** 止めるよう頼んで、終わるのを待っているところか */
+  isStopping(runId: number): boolean {
+    return this.stopping.has(runId);
   }
 
   /** 実行中・順番待ちのエージェントの数（接続の詳細の表示用） */
@@ -288,6 +300,7 @@ export class Runner extends RunnerQueue {
       outcome = await executeRun({ ...this.deps, background: this.background, controls: this.controls }, item, controller.signal);
     } finally {
       this.active.delete(item.runId);
+      this.stopping.end(item.runId);
       void this.deps.usage.refresh();
       // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）。
       // 通信が切れた・使用枠の上限で止まったときは送らず、つながる・枠が戻るのを待つ（送っても失敗して消えるため）

@@ -166,3 +166,14 @@
   color: var(--bg);
   background: var(--text);
 }
+
+/* 停止を頼んで止まるのを待っている間: 押せないが薄くせず、回る印を出す */
+.send-button.stop.stopping:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+
+.send-button.stop.stopping .spinner {
+  border-color: color-mix(in srgb, var(--bg) 30%, transparent);
+  border-top-color: var(--bg);
+}

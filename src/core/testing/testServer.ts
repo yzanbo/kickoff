@@ -43,6 +43,8 @@ class FakeProvider extends FakeProviderBase {
   acceptTell = true;
   /** これがあれば、外から release するまで作業中のままにする（止められたら cancelled） */
   private gate: Promise<void> | null = null;
+  /** これがあれば、止められてもすぐには終わらない（サブエージェント・裏のコマンドが終わるのを待つ Claude Code の代わり） */
+  slowStop: Promise<void> | null = null;
   async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "control">, signal: AbortSignal): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
@@ -56,7 +58,10 @@ class FakeProvider extends FakeProviderBase {
     });
     if (this.gate) {
       const aborted = new Promise<"aborted">((resolve) => signal.addEventListener("abort", () => resolve("aborted"), { once: true }));
-      if ((await Promise.race([this.gate, aborted])) === "aborted") return { status: "cancelled", sessionId: "s1" };
+      if ((await Promise.race([this.gate, aborted])) === "aborted") {
+        await this.slowStop;
+        return { status: "cancelled", sessionId: "s1" };
+      }
     }
     if (this.usageLimits.length > 0) {
       const resetsAt = this.usageLimits.shift()!;

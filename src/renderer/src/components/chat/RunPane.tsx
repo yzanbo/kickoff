@@ -51,7 +51,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onRunChange, visible = true, onOpenSubagent }: RunPaneProps) {
-  const { run, project, events, approvals, queue, queuePaused, queueStops, retry, reconnect, background, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, queuePaused, queueStops, retry, reconnect, background, stopping, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -63,7 +63,7 @@ export function RunPane({ projectId, runId, focus, onRunChange, visible = true, 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} connection={{ retry, reconnect }} background={background} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} connection={{ retry, reconnect }} background={background} stopping={stopping} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
   );
 }
 
@@ -77,6 +77,7 @@ function RunView({
   queueStops,
   connection,
   background,
+  stopping: stopRequested,
   live,
   focus,
   visible,
@@ -95,6 +96,8 @@ function RunView({
   connection: Connection;
   /** 裏で動いている作業と、メインの返答が終わったか */
   background: BackgroundState | null;
+  /** 停止を頼んで、作業が終わるのを待っているか（コアが持つ。ほかの画面から止めたときも） */
+  stopping: boolean;
   live: string;
   focus?: number;
   /** チャットを表示しているか（最新の結果を一番下まで見たら既読にする） */
@@ -135,11 +138,12 @@ function RunView({
   // 作業中に送ったときの扱い（伝える / ためておく。どのチャットでも同じ）
   const [queueMode, setQueueMode] = useQueueMode();
   const composerTexts = queueModeTexts(busy, queue.length > 0, queueMode);
-  // 停止を押して、止まるのを待っている（止まったら戻す）
-  const [stopping, setStopping] = useState(false);
+  // 停止を押して、止まるのを待っている（押してからコアの知らせが届くまでの間も含める。止まったら戻す）
+  const [stopClicked, setStopClicked] = useState(false);
   useEffect(() => {
-    if (!busy) setStopping(false);
+    if (!busy) setStopClicked(false);
   }, [busy]);
+  const stopping = busy && (stopClicked || stopRequested);
   // チャットの中の検索を開いているか・発言へ移る（目次から）
   const panelRef = useRef<HTMLDivElement>(null);
   // 発言の一覧から、同じ文を入力欄に入れる
@@ -261,11 +265,12 @@ function RunView({
             else await api.queueMessage(run.id, text, options.options, attachments);
           }}
           busyControls={<QueueModeToggle busy={busy} value={queueMode} onChange={setQueueMode} />}
+          stopping={stopping}
           onStop={() =>
             void confirmStopAgents(background, runningAgents, "中断する").then((ok) => {
               if (!ok) return;
-              setStopping(true);
-              void api.cancelRun(run.id).catch(() => setStopping(false));
+              setStopClicked(true);
+              void api.cancelRun(run.id).catch(() => setStopClicked(false));
             })
           }
           trailing={<ContextMeter run={run} />}

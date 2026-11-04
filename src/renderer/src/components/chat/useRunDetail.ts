@@ -25,6 +25,8 @@ export function useRunDetail(runId: number, projectId: number) {
   const [reconnect, setReconnect] = useState<ReconnectState | null>(null);
   // 裏で動いている作業と、メインの返答が終わったか（作業中でなければ null）
   const [background, setBackground] = useState<BackgroundState | null>(null);
+  // 停止を頼んで、作業が終わるのを待っているか（サブエージェント・裏のコマンドごと終わるまで数秒かかる）
+  const [stopping, setStopping] = useState(false);
   // 生成中の返答（確定すると text イベントとして届くので、そこで消す）
   const [live, setLive] = useState("");
   const [error, setError] = useState<string>();
@@ -40,6 +42,7 @@ export function useRunDetail(runId: number, projectId: number) {
     setRetry(null);
     setReconnect(null);
     setBackground(null);
+    setStopping(false);
     setLive("");
     setError(undefined);
     api
@@ -54,6 +57,7 @@ export function useRunDetail(runId: number, projectId: number) {
         setQueueStops(d.queue_stops ?? []);
         setReconnect(d.reconnect ?? null);
         setBackground(d.background ?? null);
+        setStopping(Boolean(d.stopping));
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
     api
@@ -110,6 +114,8 @@ export function useRunDetail(runId: number, projectId: number) {
       setReconnect(e.reconnect);
     } else if (e.type === "run_background" && e.run_id === runId) {
       setBackground(e.background);
+    } else if (e.type === "run_stopping" && e.run_id === runId) {
+      setStopping(e.stopping);
     } else if (e.type === "run_queue" && e.run_id === runId) {
       setQueue(e.queue);
       setQueuePaused(e.paused);
@@ -121,5 +127,5 @@ export function useRunDetail(runId: number, projectId: number) {
     }
   });
 
-  return { run, project, events, approvals, queue, queuePaused, queueStops, retry, reconnect, background, live, error };
+  return { run, project, events, approvals, queue, queuePaused, queueStops, retry, reconnect, background, stopping, live, error };
 }

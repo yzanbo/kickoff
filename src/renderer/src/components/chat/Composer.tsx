@@ -33,6 +33,8 @@ interface Props {
   trailing?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
   onStop?: () => void;
+  /** 停止を頼んで、止まるのを待っている（停止ボタンを「停止中…」にして、押し直せないようにする） */
+  stopping?: boolean;
   /** 作業中（と queueWhileIdle のとき）だけ、送信ボタンの左に出すもの（送り方の切り替えなど） */
   busyControls?: ReactNode;
   /** 作業中に送ったとき（渡さなければ作業中は送れない）。mode はキーで決めたとき（⌘Enter = 伝える・⌘⇧Enter = ためておく。なければ切り替えのとおり） */
@@ -68,7 +70,10 @@ export class SendCancelled extends Error {}
  * チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付。
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draftKey, fillRef, chatContext }: Props) {
+/** 停止中に Esc を押したとき（もう止めているので何もしない） */
+const ignoreStop = () => {};
+
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draftKey, fillRef, chatContext }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useStoredText(draftKey);
@@ -195,7 +200,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   });
   useWindowEvent("blur", () => setHeldMode(undefined));
 
-  const keys = useComposerKeys({ busy, onStop, options });
+  // 停止中の Esc は何もしない（パネルを閉じる Esc にも渡さない）
+  const keys = useComposerKeys({ busy, onStop: stopping ? ignoreStop : onStop, options });
 
   /** チャット欄の中のキー: ⌘⇧Space で録音の開始・停止、録音中の Esc でやめる。ほかは Esc 2 回で中断・Shift+Tab で権限モード（composerKeys.ts） */
   function onComposerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -267,10 +273,18 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
         {trailing}
         {queueing && busyControls && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
         {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
-        {busy && onStop && keys.stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
+        {busy && onStop && !stopping && keys.stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
+        {busy && onStop && stopping && <span className="composer-stop-hint stopping">停止中…</span>}
         {busy && onStop && (
-          <button className="send-button stop" title="中断（チャット欄で Esc を 2 回）" aria-label="中断" onClick={onStop}>
-            <Square size={12} fill="currentColor" />
+          <button
+            className={cx("send-button stop", stopping && "stopping")}
+            title={stopping ? "停止中…（サブエージェント・裏のコマンドが終わるのを待っています）" : "中断（チャット欄で Esc を 2 回）"}
+            aria-label={stopping ? "停止中" : "中断"}
+            aria-busy={stopping || undefined}
+            disabled={stopping}
+            onClick={onStop}
+          >
+            {stopping ? <span className="spinner" aria-hidden /> : <Square size={12} fill="currentColor" />}
           </button>
         )}
         {(!busy || !onStop || (queueing && (hasContent || dictation.recording))) && (

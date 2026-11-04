@@ -63,6 +63,31 @@ test("裏で動いている作業: 作業中はチャットの詳細で返し、
   assert.deepEqual(seen, [state, null]);
 });
 
+test("停止: 止めるよう頼んでから作業が終わるまでは、詳細と SSE で停止中を知らせる", async () => {
+  const { call, project, runner, provider, bus } = setup();
+  const seen: boolean[] = [];
+  bus.subscribe((e) => {
+    if (e.type === "run_stopping") seen.push(e.stopping);
+  });
+  provider.hold();
+  let finish = () => {};
+  provider.slowStop = new Promise((resolve) => (finish = resolve));
+  const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "動かして" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  assert.equal((await call("GET", `/api/runs/${runId}`)).body.stopping, false);
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/cancel`)).body, { ok: true });
+  // 2 回押しても知らせは 1 回
+  await call("POST", `/api/runs/${runId}/cancel`);
+  assert.equal((await call("GET", `/api/runs/${runId}`)).body.stopping, true);
+  assert.equal(runner.isBusy(runId), true);
+  finish();
+  await until(() => !runner.isBusy(runId));
+  const detail = (await call("GET", `/api/runs/${runId}`)).body;
+  assert.equal(detail.stopping, false);
+  assert.equal(detail.run.status, "cancelled");
+  assert.deepEqual(seen, [true, false]);
+});
+
 test("チャット・グループの API", async () => {
   const { call, project, store, runner } = setup();
   const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });
