@@ -1,15 +1,14 @@
-import { ChevronDown, Globe, SquarePen, SquareTerminal } from "lucide-react";
-import type { MouseEvent } from "react";
+import { ChevronDown, Globe, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import type { ButtonHTMLAttributes, MouseEvent } from "react";
 import { IconButton } from "@/ui/IconButton";
+import type { OpenWithKind } from "@/features/openWith/useOpenWithMenu";
 import type { PaneLeaf } from "@/features/panel/layout/paneLayout";
 import type { PanelController } from "@/features/panel/usePanel";
 
-/** ▾ のメニューの種類 */
-export type OpenWithKind = "browser" | "terminal";
-
 /**
  * ペインのタブの列の、タブのすぐ右の新しいタブのボタン（チャット・ブラウザ・ターミナル）。
- * ブラウザ・ターミナルは、アイコンで新しいタブ、横の ▾ で外のアプリで開くメニュー（2 つを 1 つのボタンに見せる .panel-split-button）
+ * ブラウザ・ターミナルは、アイコンで新しいタブ、横の ▾ で外のアプリで開くメニュー（2 つを 1 つのボタンに見せる .panel-split-button）。
+ * 欄で隠している種類のボタンは出さない（表示するタブはタブの列の左の「表示するタブ」で選ぶ）
  */
 export function PanelTabAdds({
   panel,
@@ -33,53 +32,48 @@ export function PanelTabAdds({
   /** いま開いている ▾ のメニュー（aria-expanded に使う） */
   openWithShown: OpenWithKind | null;
 }) {
-  const showChat = panel.kinds.has("chat");
+  /** アイコン ＋ ▾ の組（▾ はデスクトップアプリだけ） */
+  const split = (kind: OpenWithKind, icon: { icon: LucideIcon; label: string; title: string } & ButtonHTMLAttributes<HTMLButtonElement>, caret: { label: string; title: string }) => (
+    <span className="panel-split-button">
+      <IconButton size={14} {...icon} />
+      {window.kickoff && (
+        <IconButton
+          icon={ChevronDown}
+          label={caret.label}
+          title={caret.title}
+          size={12}
+          className={`panel-open-with panel-open-with-${kind}`}
+          aria-haspopup="menu"
+          aria-expanded={openWithShown === kind}
+          onClick={(e) => onOpenWith(kind, e, pane)}
+        />
+      )}
+    </span>
+  );
   return (
     <span className="panel-bar-buttons panel-tab-adds">
-      {/* 欄で隠している種類のボタンは出さない（表示するタブはタブの列の左の「表示するタブ」で選ぶ） */}
-      {showChat && <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />}
-      {/* ブラウザ・ターミナルは、アイコンで新しいタブ、横の ▾ で外のアプリで開く・外のアプリを選ぶ（デスクトップアプリだけ） */}
-      {panel.kinds.has("browser") && (
-        <span className="panel-split-button">
-          <IconButton icon={Globe} label="ブラウザを開く" title="ブラウザを新しいタブで開く" size={14} onClick={() => panel.openBrowser()} />
-          {window.kickoff && (
-            <IconButton
-              icon={ChevronDown}
-              label="ブラウザの開き方"
-              title="新しいタブで開く・外のブラウザで開く・外のブラウザを選ぶ"
-              size={12}
-              className="panel-open-with panel-open-with-browser"
-              aria-haspopup="menu"
-              aria-expanded={openWithShown === "browser"}
-              onClick={(e) => onOpenWith("browser", e, pane)}
-            />
-          )}
-        </span>
-      )}
-      {panel.kinds.has("terminal") && terminals > 0 && (
-        <span className="panel-split-button">
-          <IconButton
-            icon={SquareTerminal}
-            label="ターミナルを開く"
-            title="ターミナルを新しいタブで開く（チャットを表示しているときは、その作業場所で開く）"
-            size={14}
-            className="panel-tab-terminal"
-            aria-haspopup={terminals > 1 ? "menu" : undefined}
-            aria-expanded={terminals > 1 ? terminalMenuOpen : undefined}
-            onClick={(e) => onTerminal(e, pane)}
-          />
-          <IconButton
-            icon={ChevronDown}
-            label="ターミナルの開き方"
-            title="新しいタブで開く・外のターミナルで開く・外のターミナルを選ぶ"
-            size={12}
-            className="panel-open-with panel-open-with-terminal"
-            aria-haspopup="menu"
-            aria-expanded={openWithShown === "terminal"}
-            onClick={(e) => onOpenWith("terminal", e, pane)}
-          />
-        </span>
-      )}
+      {panel.kinds.has("chat") && <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />}
+      {panel.kinds.has("browser") &&
+        split(
+          "browser",
+          { icon: Globe, label: "ブラウザを開く", title: "ブラウザを新しいタブで開く", onClick: () => panel.openBrowser() },
+          { label: "ブラウザの開き方", title: "新しいタブで開く・外のブラウザで開く・外のブラウザを選ぶ" },
+        )}
+      {panel.kinds.has("terminal") &&
+        terminals > 0 &&
+        split(
+          "terminal",
+          {
+            icon: SquareTerminal,
+            label: "ターミナルを開く",
+            title: "ターミナルを新しいタブで開く（チャットを表示しているときは、その作業場所で開く）",
+            className: "panel-tab-terminal",
+            "aria-haspopup": terminals > 1 ? "menu" : undefined,
+            "aria-expanded": terminals > 1 ? terminalMenuOpen : undefined,
+            onClick: (e) => onTerminal(e, pane),
+          },
+          { label: "ターミナルの開き方", title: "新しいタブで開く・外のターミナルで開く・外のターミナルを選ぶ" },
+        )}
     </span>
   );
 }

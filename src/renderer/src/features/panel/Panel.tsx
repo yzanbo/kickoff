@@ -1,9 +1,7 @@
 import { useRef, useState } from "react";
-import { baseName } from "@/lib/format";
 import { cx } from "@/lib/cx";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";
 import { PaneSash, fracStyle } from "@/features/panel/layout/PaneSash";
 import { PaneTabBar } from "@/features/panel/tabs/PaneTabBar";
 import { PanelEmpty } from "./PanelEmpty";
@@ -14,10 +12,9 @@ import { focusedPane, homePane, leavesOf, type PaneLeaf } from "@/features/panel
 import { TabMenu } from "@/features/panel/tabs/TabMenu";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTabDrag } from "@/features/panel/layout/useTabDrag";
-import type { PanelController, TerminalTarget } from "./usePanel";
+import type { PanelController } from "./usePanel";
 import { useBoardHeaderLayoutMenu } from "@/features/board/useBoardHeaderLayoutMenu";
 import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
-import { shownActiveOf } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "./surfaces";
 import { specOf } from "@/features/panel/tabs/tabKinds";
 
@@ -47,29 +44,9 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const split = leaves.length > 1;
   const homeId = homePane(layout).id;
   const { panes, sashes } = layoutRects(layout.root);
-  /** ペインで見せる表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ） */
-  const shown = (pane: PaneLeaf) => shownActiveOf(pane, panel.isKindShown);
   const anyShown = (keys: readonly string[]) => keys.some(panel.isKindShown);
-  // ターミナルの開く場所を選ぶメニュー（開く場所がいくつもあるとき。タブの列のボタン・タブがないときのボタンで共通）
-  const terminalMenu = useContextMenu({ align: "end" });
-  /** ペインで表示しているチャットの作業場所（ワークツリーならそのフォルダ、本体ならプロジェクトのフォルダ）。チャットでなければ undefined */
-  const chatTarget = (pane: PaneLeaf): TerminalTarget | undefined => {
-    const tab = tabs.find((t) => t.key === shown(pane));
-    if (tab?.kind !== "chat") return undefined;
-    const chat = panel.chatOf(tab);
-    if (chat?.worktree_path) return { cwd: chat.worktree_path, label: baseName(chat.worktree_path), projectId: chat.project_id };
-    return terminals.find((t) => t.projectId === (chat?.project_id ?? tab.projectId));
-  };
-  /** ターミナルを開く（押したペインに入れる）: チャットを表示していればその作業場所、開く場所が 1 つならそこ、いくつもあれば選ぶメニュー */
-  const openTerminal = (e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => {
-    panel.focusPane(pane.id);
-    const target = chatTarget(pane) ?? (terminals.length === 1 ? terminals[0] : undefined);
-    if (target) return panel.openTerminal(target);
-    terminalMenu.toggle(e);
-  };
-
-  // ブラウザ・ターミナルの ▾（新しいタブ・外のアプリで開く・外のアプリを選ぶ）
-  const openWith = useOpenWithMenu({ panel, targets: terminals, chatTarget });
+  // ブラウザ・ターミナルを開く（ターミナルの開く場所の決め方と、開く場所を選ぶメニュー・▾ のメニュー）
+  const openWith = useOpenWithMenu(panel);
 
   // ⌘\ で、ピントのあるペインを右に分ける（パネルの中にピントがあるとき。下のパネルの ⌘\ はそちらにピントがあるときだけ）
   useWindowEvent(
@@ -100,12 +77,12 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
       controls={pane.id === leaves[0].id ? <PanelTools panel={panel} frame={frame} /> : undefined}
       drag={drag}
       terminals={terminals.length}
-      terminalMenuOpen={terminalMenu.isOpen}
+      terminalMenuOpen={openWith.picking}
       onNewChat={() => {
         panel.focusPane(pane.id);
         panel.startNewChat();
       }}
-      onTerminal={openTerminal}
+      onTerminal={openWith.openTerminal}
       rename={rename}
       onBarMenu={rules.layoutMenu ? layoutMenu.open : undefined}
       onOpenWith={openWith.open}
@@ -122,7 +99,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
       manyTerminals={terminals.length > 1}
       onNewChat={panel.startNewChat}
       onBrowser={() => panel.openBrowser()}
-      onTerminal={(e) => openTerminal(e, pane)}
+      onTerminal={(e) => openWith.openTerminal(e, pane)}
     />
   );
   const rectOf = new Map(panes.map((p) => [p.id, p.rect]));
@@ -150,15 +127,6 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
           })}
         {layoutMenu.menu}
         {openWith.menu}
-        {terminalMenu.menu && (
-          <TerminalTargetMenu
-            at={terminalMenu.menu.at}
-            targets={terminals}
-            ignore=".panel-tab-terminal, .panel-empty-terminal"
-            onPick={panel.openTerminal}
-            onClose={terminalMenu.close}
-          />
-        )}
         {/*
           タブを切り替えても入力中の文章やスクロール位置が残るよう、一度表示したタブは保持する。
           チャットのタブはサイドバーと連動して自動で増えるので、中身は初めて表示したときに作る（見ていないチャットまで読み込まない）
@@ -166,7 +134,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
         {tabs.map((t) => {
           const pane = leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0];
           const rect = rectOf.get(pane.id);
-          const active = shown(pane) === t.key;
+          const active = panel.shownTabOf(pane) === t.key;
           if (active) mountedTabs.current.add(t.key);
           else if (specOf(t).lazy && !mountedTabs.current.has(t.key)) return null;
           return (

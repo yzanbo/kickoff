@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import type { Project, Chat } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { isTabVisible } from "@/features/panel/layout/paneLayout";
+import { isTabVisible, type PaneLeaf } from "@/features/panel/layout/paneLayout";
 import { panelActions } from "@/features/panel/state/panelActions";
-import { usePanelKinds } from "@/features/panel/state/panelKinds";
+import { shownActiveOf, usePanelKinds } from "@/features/panel/state/panelKinds";
 import { isLinkedTab } from "@/features/panel/state/panelState";
 import { useMountedPanel, usePanelState } from "@/features/panel/state/panelStore";
 import { useLinkedTabs } from "@/features/panel/state/useLinkedChats";
@@ -65,6 +65,11 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
 
   /** 欄でこのタブを見せているか（分割していれば、どれかのペインで表示中） */
   const isShowingTab = (tabKey: string) => panelOpen && isTabVisible(layout, tabKey);
+  /** そのタブの種類をこの欄で見せているか */
+  const isKindShown = (tabKey: string) => {
+    const t = tabs.find((x) => x.key === tabKey);
+    return t !== undefined && kinds.has(kindOfTab(t));
+  };
 
   return {
     ...actions,
@@ -74,11 +79,9 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
     surface,
     /** 表示するタブの種類（タブの列の「表示するタブ」） */
     kinds,
-    /** そのタブの種類をこの欄で見せているか */
-    isKindShown: (tabKey: string) => {
-      const t = tabs.find((x) => x.key === tabKey);
-      return t !== undefined && kinds.has(kindOfTab(t));
-    },
+    isKindShown,
+    /** ペインで見せる表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ。なければ null = 空のペイン） */
+    shownTabOf: (pane: PaneLeaf) => shownActiveOf(pane, isKindShown),
     /** 分割の配置 */
     layout,
     panelOpen,
