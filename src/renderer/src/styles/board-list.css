@@ -84,26 +84,30 @@
   border: 1px dashed var(--border-strong);
 }
 
-/* 送る前の新しいチャット（パネルで入力中）を、その列・グループに下書きとして出す */
+/*
+ * 送る前の新しいチャット（パネルで入力中）を、その列・グループに下書きとして出す。
+ * ほかのチャットのカード（.board-card）と同じ色・枠にする（以前は緑の点線と緑の地で、ほかのカードより目立ちすぎていた）
+ */
 .draft-card {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
   width: 100%;
-  padding: 10px 12px;
-  border: 1px dashed var(--accent-bright);
-  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font: inherit;
   font-size: 13px;
   text-align: left;
-  color: var(--accent-bright);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--muted);
+  background: var(--bg-elev);
   cursor: pointer;
 }
 
 .draft-card:hover {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
 }
 
 .draft-card-head {

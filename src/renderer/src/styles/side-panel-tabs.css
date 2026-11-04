@@ -182,7 +182,8 @@
 }
 
 .board-card.selected,
-.list-row.selected {
+.list-row.selected,
+.draft-card.selected {
   border-color: var(--accent);
   background: var(--bg-hover);
 }
