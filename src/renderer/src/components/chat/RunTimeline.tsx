@@ -59,6 +59,7 @@ export function RunTimeline({
   stickToBottom,
   events,
   visible,
+  onPromptStep,
 }: {
   items: TimelineItem[];
   /** 流れ全体の最後の項目（窓で途中を描いていても、作業中の文はいまの状態で決める） */
@@ -94,6 +95,8 @@ export function RunTimeline({
   events: RunEvent[];
   /** チャットを表示しているか（パネルの裏のタブ・閉じたパネルは見ていない） */
   visible: boolean;
+  /** 上に貼り付けた指示の帯の ↑ / ↓: 貼り付けた指示（from）の前・次の指示へ移る */
+  onPromptStep?: (dir: -1 | 1, from: number) => void;
 }) {
   const timelineRef = useRef<HTMLDivElement>(null);
   // 一番下から離れているか（一番下へ戻るボタンを出す）
@@ -107,6 +110,9 @@ export function RunTimeline({
   // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
   const pinnedAttachments = useMemo(() => (pinned ? promptAttachments(events, pinned.id) : []), [pinned, events]);
+  // 自分の指示の並び（帯の ↑ / ↓ を押せるか）
+  const promptIds = useMemo(() => events.filter((e) => e.type === "user").map((e) => e.id), [events]);
+  const pinnedAt = pinned ? promptIds.indexOf(pinned.id) : -1;
   const stickyHeight = useRef(STICKY_PROMPT_HEIGHT); // 貼り付けた帯の高さ（その下端を、指示が見えているかの線にする）
   // 窓の最初と最後の項目（前を足した・新しい発言が届いたを見分ける）
   const firstKey = items[0]?.key;
@@ -274,6 +280,8 @@ export function RunTimeline({
             stickToBottom.current = false;
             if (timelineRef.current) jumpToEvent(timelineRef.current, pinned.id);
           }}
+          onPrev={onPromptStep && pinnedAt > 0 ? () => onPromptStep(-1, pinned.id) : undefined}
+          onNext={onPromptStep && pinnedAt >= 0 && pinnedAt < promptIds.length - 1 ? () => onPromptStep(1, pinned.id) : undefined}
         />
       )}
       {/* 一番下へ戻るボタン: いまの状態を添えて出す（答えを待っている・返答が届いたときは目立たせて誘う） */}
