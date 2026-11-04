@@ -63,11 +63,14 @@ export class Runner extends RunnerQueue {
       deps.store.queues,
     );
     this.editHolds = new QueueEditHolds((chatId) => this.editHoldsChanged(chatId), deps.editHoldTtlMs);
+    // 止まったときにこちらで止めた送信待ち（通信の切断・使用枠の上限のどちらで止めても 1 つで覚え、続けて別の理由で止まっても引き継ぐ）
+    const heldQueues = new Set<number>();
     this.reconnect = new ChatReconnect({
       store: deps.store,
       approvals: deps.approvals,
       bus: deps.bus,
       followups: this.followups,
+      heldQueues,
       isBusy: (chatId) => this.isBusy(chatId),
       send: (chatId, text) => this.send(chatId, text),
       ...deps.reconnect,
@@ -76,6 +79,7 @@ export class Runner extends RunnerQueue {
       store: deps.store,
       approvals: deps.approvals,
       followups: this.followups,
+      heldQueues,
       isBusy: (chatId) => this.isBusy(chatId),
       send: (chatId, text) => this.send(chatId, text),
       usage: deps.usage,
@@ -208,6 +212,8 @@ export class Runner extends RunnerQueue {
 
   /** 自分で送った・チャットを消した: 通信・使用枠の上限で止まったあとの再開の段取り（待つ・聞く）をやめる */
   private forgetRecovery(chatId: number) {
+    // 再開の段取りが送っているところなら、自分で送ったものではない（止めた送信待ちは 1 つで覚えているので、どちらの段取りも忘れない）
+    if (this.reconnect.isResuming(chatId) || this.usageLimit.isResuming(chatId)) return;
     this.reconnect.forget(chatId);
     this.usageLimit.forget(chatId);
   }

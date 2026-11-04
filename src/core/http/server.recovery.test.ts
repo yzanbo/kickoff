@@ -169,3 +169,59 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
   await new Promise((r) => setTimeout(r, 30));
   assert.equal(provider.prompts.includes(RESUME_PROMPT), false);
 });
+
+test("通信の切断のあとに使用枠の上限で止まっても、止めた送信待ちは再開した作業が最後まで終わったら戻して送る", async () => {
+  const { call, project, runner, provider, network, approvals } = setup();
+  const release = provider.hold();
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
+  // 通信が切れて止まる: 送信待ちを止めて、つながるのを待つ
+  provider.networkFailures = 1;
+  network.online = false;
+  release();
+  await until(() => runner.reconnectState(chatId) !== null);
+  assert.equal(runner.queuePaused(chatId), true);
+
+  // つながって自動で再開したら、こんどは使用枠の上限で止まる（枠が戻る時刻はもう過ぎている）
+  provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
+  network.online = true;
+  await until(() => approvals.list({ chatId }).length === 1);
+  const [ask] = approvals.list({ chatId });
+  assert.equal(ask.kind, "usage_limit");
+  // 送信待ちは止めたまま、使用枠の段取りが引き継ぐ（再開した作業が終わったら送ると伝える）
+  assert.equal(runner.queuePaused(chatId), true);
+  assert.match(ask.description ?? "", /送信待ちは、再開した作業が終わってから送ります/);
+
+  // 続ける: 最後まで終わったら、止めておいた送信待ちを戻して送る
+  await call("POST", `/api/approvals/${ask.id}`, { action: "allow" });
+  await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
+  assert.deepEqual(provider.prompts.slice(1), [RESUME_PROMPT, USAGE_RESUME_PROMPT, "次"]);
+  assert.equal(runner.queuePaused(chatId), false);
+});
+
+test("使用枠の上限のあとに通信の切断で止まっても、止めた送信待ちを自分で止めたものとみなさず、つながったら自動で再開する", async () => {
+  const { call, project, runner, provider, network, approvals, store } = setup();
+  const release = provider.hold();
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
+  // 使用枠の上限で止まる: 送信待ちを止めて、続けるかを聞く
+  provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
+  release();
+  await until(() => approvals.list({ chatId }).length === 1);
+
+  // 続けると答えたら、こんどは通信が切れて止まる
+  provider.networkFailures = 1;
+  network.online = false;
+  await call("POST", `/api/approvals/${approvals.list({ chatId })[0].id}`, { action: "allow" });
+  await until(() => runner.reconnectState(chatId) !== null);
+  assert.equal(runner.queuePaused(chatId), true);
+  assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /つながったら自動で再開します/.test(JSON.stringify(e.data))));
+
+  // つながったら自動で再開し、最後まで終わったら送信待ちを戻して送る
+  network.online = true;
+  await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
+  assert.deepEqual(provider.prompts.slice(1), [USAGE_RESUME_PROMPT, RESUME_PROMPT, "次"]);
+  assert.equal(runner.queuePaused(chatId), false);
+});

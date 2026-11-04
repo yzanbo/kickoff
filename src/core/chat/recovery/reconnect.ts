@@ -41,8 +41,6 @@ export class ChatReconnect {
   private readonly attempts = new Map<number, number>();
   /** 再開するかを聞いているチャット（取り下げるため） */
   private readonly asks = new Map<number, AbortController>();
-  /** 通信で止まったときに、こちらで止めた送信待ち（再開して終わったら戻す） */
-  private readonly heldQueues = new Set<number>();
   /** 自動で再開している途中（自分で送ったときと見分ける） */
   private readonly resuming = new Set<number>();
   /** 通信の切断で止まり、まだ再開を頼んでいないサブエージェント（作業 ID → 名前。続けて止まったら足していく） */
@@ -54,6 +52,8 @@ export class ChatReconnect {
       approvals: ApprovalCenter;
       bus?: Bus;
       followups: FollowupQueue;
+      /** 止まったときに、こちらで止めた送信待ち（再開して終わったら戻す。使用枠の上限の段取りと 1 つを使う） */
+      heldQueues: Set<number>;
       isBusy: (chatId: number) => boolean;
       send: (chatId: number, text: string) => Promise<unknown>;
       /** AI の API に届くか（テストで差し替える） */
@@ -86,16 +86,21 @@ export class ChatReconnect {
     }
     // 通信以外で終わった（最後まで・止めた・ほかの失敗）: 止まったサブエージェントの再開は頼まない（一覧の「再開」で戻せる）
     this.stoppedAgents.delete(chatId);
+    this.attempts.delete(chatId);
+    // 最後まで終わった: 止めておいた送信待ちを戻す
     if (outcome.status === "completed") {
-      // 最後まで終わった: 数え直し、止めておいた送信待ちを戻す
-      this.attempts.delete(chatId);
-      if (this.heldQueues.delete(chatId)) this.deps.followups.setPaused(chatId, false);
-    } else {
-      // 止めた・ほかの理由で失敗した: 自動の再開はやめる（送信待ちは止めたまま。自分で戻せる）
-      this.attempts.delete(chatId);
-      this.heldQueues.delete(chatId);
+      if (this.deps.heldQueues.delete(chatId)) this.deps.followups.setPaused(chatId, false);
+    } else if (!outcome.usageLimit) {
+      // 止めた・ほかの理由で失敗した: 自動の再開はやめる（送信待ちは止めたまま。自分で戻せる）。
+      // 使用枠の上限で止まったときは、止めた送信待ちを使用枠の段取りが引き継ぐ（ここで忘れると、戻す者がいなくなる）
+      this.deps.heldQueues.delete(chatId);
     }
     return true;
+  }
+
+  /** 再開の指示を送っている途中か（そこから届いた送信は、自分で送ったものとして扱わない） */
+  isResuming(chatId: number): boolean {
+    return this.resuming.has(chatId);
   }
 
   /** 自分でメッセージを送った・止めた・チャットを消した: 待つのも聞くのもやめる */
@@ -104,7 +109,7 @@ export class ChatReconnect {
     this.stopWaiting(chatId);
     this.attempts.delete(chatId);
     this.stoppedAgents.delete(chatId);
-    this.heldQueues.delete(chatId);
+    this.deps.heldQueues.delete(chatId);
     this.asks.get(chatId)?.abort();
   }
 
@@ -123,12 +128,12 @@ export class ChatReconnect {
     const { store, followups } = this.deps;
     const chat = store.chats.get(chatId);
     if (!chat) return;
-    // 送信待ちを自分で止めていたら、自動では何も送らない（移動の前などに止めている）
-    const pausedByUser = followups.isPaused(chatId) && !this.heldQueues.has(chatId);
+    // 送信待ちを自分で止めていたら、自動では何も送らない（移動の前などに止めている。使用枠の段取りが止めたものは自分で止めたものではない）
+    const pausedByUser = followups.isPaused(chatId) && !this.deps.heldQueues.has(chatId);
     // 送信待ちは送らずに止めておく（通信が切れたまま送ると、次々に失敗して消えるため）
     if (!pausedByUser && followups.list(chatId).length > 0 && !followups.isPaused(chatId)) {
       followups.setPaused(chatId, true);
-      this.heldQueues.add(chatId);
+      this.deps.heldQueues.add(chatId);
     }
     const agents = this.agentsNote(chatId);
     if (pausedByUser || !store.settings.get().auto_resume_on_reconnect) {
@@ -194,7 +199,7 @@ export class ChatReconnect {
       this.attempts.delete(chatId);
       // 再開する: 数え直して、すぐ「続けて」を送る（また止まったら、つながるのを待つところから）
       if (answer.action === "allow" && !controller.signal.aborted) void this.resume(chatId, { count: false });
-      else this.heldQueues.delete(chatId);
+      else this.deps.heldQueues.delete(chatId);
     });
   }
 
