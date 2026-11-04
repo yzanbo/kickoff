@@ -1,5 +1,5 @@
 // 店（createStore.ts・keyedStore.ts。形は storeTypes.ts）を React から読む hooks。描いている間はその値を購読し、使っている間は読み込みを頼む（retain）
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { EMPTY_STATE, type KeyedStore, type Store, type StoreState } from "./storeTypes";
 
 interface UseOptions {
@@ -46,18 +46,33 @@ export function useKeyedStore<K extends string | number, T>(store: KeyedStore<K,
 
 /**
  * key ごとの店の、いくつかの key の様子を引く関数（グループ名を引くタブの列・作業場所で段に分けるボードなど）。
- * どれかの key が変わると描き直し、返す関数も新しくなる（memo の deps に入れてよい）
+ * 渡した key のどれかの様子が変わったときだけ描き直し、返す関数も新しくなる（memo の deps に入れてよい）。
+ * ほかの key が変わっても描き直さない（返す関数はほかの key も引けるが、変わっても知らせない。読み込みも頼まない）
  */
 export function useKeyedStores<K extends string | number, T>(store: KeyedStore<K, T>, keys: readonly K[], { active = true }: UseOptions = {}): (key: K) => StoreState<T> {
-  const version = useSyncExternalStore(store.subscribeAll, store.version);
   const unique = [...new Set(keys)];
   const id = unique.map(String).sort().join("\n");
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const offs = unique.map((key) => store.subscribe(key, listener));
+      return () => offs.forEach((off) => off());
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 読む key は id が変わったときだけ数え直す
+    [store, id],
+  );
+  // 渡した key の様子の組（どれかが変わったときだけ別のものになる）
+  const last = useRef<StoreState<T>[]>([]);
+  const states = useSyncExternalStore(subscribe, () => {
+    const next = unique.map((key) => store.get(key));
+    if (next.length === last.current.length && next.every((s, i) => s === last.current[i])) return last.current;
+    return (last.current = next);
+  });
   useEffect(() => {
     if (!active || !id) return;
     const releases = unique.map((key) => store.retain(key));
     return () => releases.forEach((release) => release());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 読む key は id が変わったときだけ数え直す
   }, [store, id, active]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 店が変わるたびに（version）新しい関数にする
-  return useMemo(() => (key: K) => store.get(key), [store, version]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 渡した key の様子が変わるたびに（states）新しい関数にする
+  return useMemo(() => (key: K) => store.get(key), [store, states]);
 }

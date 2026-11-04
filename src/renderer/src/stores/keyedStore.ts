@@ -33,17 +33,13 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
   const { load, reduce, reloadOn, dropOn, maxAge, refreshOnFocus } = options;
   const entries = new Map<K, Entry<T>>();
   const listeners = new Map<K, Set<() => void>>();
-  const allListeners = new Set<() => void>();
   // 使っている部品の数（key ごと。値を捨てて作り直しても数は残す）
   const users = new Map<K, number>();
-  let version = 0;
 
   const inUse = (key: K) => (users.get(key) ?? 0) > 0;
 
   function notify(key: K) {
-    version++;
     for (const listener of [...(listeners.get(key) ?? [])]) listener();
-    for (const listener of [...allListeners]) listener();
   }
 
   function entryOf(key: K): Entry<T> {
@@ -206,11 +202,6 @@ export function createKeyedStore<K extends string | number, T>(options: KeyedSto
         if (set.size === 0 && listeners.get(key) === set) listeners.delete(key);
       };
     },
-    subscribeAll(listener) {
-      allListeners.add(listener);
-      return () => void allListeners.delete(listener);
-    },
-    version: () => version,
     retain(key) {
       users.set(key, (users.get(key) ?? 0) + 1);
       ensure(key);
