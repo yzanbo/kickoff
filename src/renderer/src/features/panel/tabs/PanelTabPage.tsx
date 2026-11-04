@@ -30,7 +30,6 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
     // 送信待ちの指示を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
     <NewChatContext.Provider value={panel.openNew}>
       <ChatPane
-        projectId={t.projectId}
         chatId={t.id}
         focus={t.focus}
         visible={visible}
@@ -57,7 +56,6 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   ),
   subagent: ({ tab: t, panel }) => (
     <SubagentPane
-      projectId={t.projectId}
       chatId={t.chatId}
       toolUseId={t.toolUseId}
       onOpenSubagent={(toolUseId, title) => panel.openSubagent({ chatId: t.chatId, projectId: t.projectId, toolUseId, title })}

@@ -14,18 +14,16 @@ import { useChatDetail } from "@/features/chat/pane/useChatDetail";
  * （サブエージェントは続きから始める）。メインが作業中なら止めずに伝え（いまの手順の切れ目で読む）、伝えられなければ送信待ちに入れる
  */
 export function SubagentPane({
-  projectId,
   chatId,
   toolUseId,
   onOpenSubagent,
 }: {
-  projectId: number;
   chatId: number;
   toolUseId: string;
   /** 同じチャットのほかのサブエージェントを、パネルのタブで開く（やり直した回へ移る） */
   onOpenSubagent: (toolUseId: string, title: string) => void;
 }) {
-  const { chat, project, events, live, error } = useChatDetail(chatId, projectId);
+  const { chat, project, events, live, error } = useChatDetail(chatId);
   const busy = chat ? chat.status === "running" : false;
   const subagents = useSubagents(chatId, events, busy, live.background);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする

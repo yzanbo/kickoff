@@ -37,7 +37,6 @@ import { confirmRewindSend, restoreFilesBefore } from "@/features/chat/rewind/re
 import { RetryContext, useRetryActions } from "@/features/chat/rewind/FailedTurnActions";
 
 interface ChatPaneProps {
-  projectId: number;
   chatId: number;
   /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   focus?: number;
@@ -50,8 +49,8 @@ interface ChatPaneProps {
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function ChatPane({ projectId, chatId, focus, onChatChange, visible = true, onOpenSubagent }: ChatPaneProps) {
-  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId, projectId);
+export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenSubagent }: ChatPaneProps) {
+  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyChat = useRef(onChatChange);
