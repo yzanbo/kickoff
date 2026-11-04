@@ -34,7 +34,7 @@
 
 | 用途 | 使うもの |
 |---|---|
-| アイコンだけのボタン | `IconButton` / `CloseButton` / `RefreshButton`（`label` が aria-label と title になる。`<button className="icon-button">` を手で書かない） |
+| アイコンだけのボタン | `IconButton` / `CloseButton` / `RefreshButton`（`label` が aria-label と title になる。`<button className="icon-button">` も、アイコンだけの `<button>` も手で書かない（タブの × も `CloseButton`）。大きさを変えるときは className で `width` / `height` だけを上書きし、真ん中寄せ（`.icon-button` の `display: inline-grid; place-items: center; padding: 0`）は崩さない） |
 | モーダル | `useModalDialog`（入力中に閉じたくないフォームは `closeOnBackdrop: false`） |
 | 左に項目・右に内容のダイアログ | `TabbedDialog`（プロジェクトの編集・設定） |
 | 確認・入力・お知らせのダイアログ | `confirmDialog` / `promptDialog` / `alertDialog`、3 つ以上から選ぶときは `choiceDialog`（`dialogs.tsx`。「次からはこれにする」のチェックを添えるなら `choiceDialogWithRemember`。取り消せない選択肢は `danger`）。送る前の確かめでやめたら、`Composer` の `onSend` で `SendCancelled` を投げる（書いた文を残し、失敗の文も出さない） |
@@ -120,6 +120,8 @@
 - 置き場所: 規則はその機能のファイル（部品が `components/<機能>/` にあるなら同じ名前のファイル）。複数の画面で使う部品は `buttons-forms.css` か `menu.css`。新しいファイルは `index.css` の該当する位置に `@import` を足す（`base` より後ろ、汎用の部品はそれを使う画面より前）。基底を上書きする `@media` / `@container` は、その基底と同じファイルの基底より後ろに置く（`mobile.css` には、後ろのファイルの基底に負けるものを置かない）。
 - 既存のクラスを使う。同じ宣言のブロックを増やさず、共通のクラスにまとめる（例: `.card`）。ただし、1 行で省略する 3 点セット（`overflow: hidden` `text-overflow: ellipsis` `white-space: nowrap`）は CSS の定型句なので、共通クラスにせず各規則に書いてよい（共通クラスを `base.css` に置くと、間の規則との勝ち負けが変わる）。
 - 同じ詳細度で後ろにあるルール（`.icon-button` など）に上書きされて効かない指定を書かない。足したら計算後のスタイルで確かめる。
+- ボタンは、ブラウザの既定の余白（`padding: 1px 6px`）・行の高さ・文字の大きさを持っている。大きさを決めたボタン（アイコンだけ・丸・ピルの中の小さな ×・▾ など）には必ず `padding: 0` を書き、中身は `display: grid; place-items: center`（文字と並べるなら `inline-flex; align-items: center; justify-content: center`）で真ん中に置く。余白を残すと、幅を 20px などに狭めたときに中身の幅がアイコンより狭くなり、アイコンが右へはみ出して真ん中からずれる（タグの絞り込みの ×・パネルのタブの × で 2px ずれていた）。`margin` の負の値や `top` で見た目だけ合わせない。アイコンだけのボタンは `IconButton` を使えばこの形になる（`.icon-button` に `padding: 0` を入れてある）
+- 2 つのボタンを 1 つに見せる組（アイコン ＋ ▾ など）は、乗せたときの地を外側の入れ物に付け、中の各ボタンの地は透明にする（それぞれに地を付けると、別々に光って 2 つのボタンに見える。`.panel-split-button`）
 - 使わなくなったクラスの CSS は消す。消すときは、名前を組み立てて付けるクラス（`sec-` `state-` `tone-` `status-` `meter-` `conn-` `task-status-` `priority-` `provider-` `drop-` `inspection-` `line-`、PR の状態の `open` / `merged` / `closed`）に気をつける。
 - 新しいクラス名は、既存のものと重ならないか `styles/` 全体を検索してから付ける（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
 - プロジェクトの画面はどのタブでも同じ横幅（`.page-wide` は上限なし）。タブで幅を変えない。
@@ -155,6 +157,7 @@
 
 - 型は `npm run typecheck`（`tsc --noEmit --noUnusedLocals`。使っていない import と変数も残さない）、テストは `npm test`。使っていない export・ファイル・依存は `npm run knip`（knip。入口と CLI スクリプトは `knip.json` の `entry`）で見て、`export` を外すか消す（テストからだけ使うものは残す）。
 - API のルートを変えたら、その領域の `src/core/server.<領域>.test.ts` にテストを足す（認証・SSE・停止 = `server.test.ts` / プロジェクト・固定・色 = `server.projects.test.ts` / チャット・グループ・添付・承認依頼・プロバイダー・使用枠・`/` のコマンド・自動アーカイブ = `server.runs.test.ts` / Git・ワークツリー = `server.git.test.ts` / サービスごとの使用状況 = `server.usage.test.ts` / 音声入力（文字起こし・モデル・OpenAI のキー）= `server.voice.test.ts`）。サーバーの組み立て・偽のプロバイダー・トークン付きの呼び出し・`until` は `src/core/testing/testServer.ts` の `setup()` などを使い、テストごとに書き直さない。
+- ボタンの見た目を足した・変えたら、開発版で `node scripts/ui-audit-buttons.mjs [#/hash ...]` を流し、アイコンがボタンの真ん中からずれているものがないか確かめる（ずれていれば class・大きさ・ずれ・余白を出し、終わりのコードを 1 にする）。
 - 画面の変更は、開発アプリ（`KICKOFF_REMOTE_DEBUG=9333 npm run dev`。CDP のポートは 9333。名前は「Kickoff Dev」、データは `Kickoff Dev`、コアのポートは 4318 で、インストールしたアプリ（本番）とは別。`appEnv.ts`）で実際に動かして確かめる。本番のデータ・アプリには触らない。見た目を変えないはずの変更は、変更の前後で DOM と計算後のスタイルを比べる（`node scripts/ui-snapshot.mjs take <名前> [#/hash]` で記録し、`diff <前> <後>` で比べる。同じ localStorage の状態から同じ順で画面を開く。CSS の順は `css <名前>` で記録して比べる）。
 - core や main を変えたあとに開発アプリを再起動するときは、Electron のメインプロセスにだけ `kill -TERM` を送る（pkill でまとめて止めると、ディスクに書かれていない localStorage が消える）。その前に `/api/status` で実行中のチャットがないことを確かめる。
 - 利用者の localStorage を書き換えて確かめたら、元の値に戻す。
