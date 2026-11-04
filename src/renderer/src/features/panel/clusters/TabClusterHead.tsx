@@ -76,15 +76,17 @@ export function TabClusterHead({
     const name = await promptDialog({ title: "新しいグループ", label: "グループ名", placeholder: "例: コードレビュー", confirmLabel: "作成" });
     if (name?.trim()) await api.createGroup(projectId, name.trim()).catch(reportFailure("グループを作成できませんでした"));
   };
-  const groupId = cluster.groupId;
+  // 自分で作ったグループの札（グループ別のとき）か、グループなしの札か
+  const group = cluster.group;
+  const byGroup = cluster.kind === "group" || cluster.kind === "ungrouped";
   const deleteGroup = async () => {
-    if (typeof groupId !== "number") return;
-    if (await confirmDeleteGroup({ name: cluster.groupName ?? cluster.label })) await api.deleteGroup(groupId).catch(reportFailure("グループを削除できませんでした"));
+    if (!group) return;
+    if (await confirmDeleteGroup({ name: group.name })) await api.deleteGroup(group.id).catch(reportFailure("グループを削除できませんでした"));
   };
   const counts = chats ? stateCounts(chats, pending) : undefined;
   // このまとまりで始める新しいチャット（グループ別のまとまりだけ。グループなしならグループを付けない）
-  const newChatTarget = projectId !== undefined && cluster.groupId !== undefined && onNewChat ? { projectId, group: cluster.groupId ?? undefined } : undefined;
-  const newChatLabel = cluster.groupId === null ? "グループなしで新しいチャット" : `「${cluster.groupName ?? cluster.label}」で新しいチャット`;
+  const newChatTarget = projectId !== undefined && byGroup && onNewChat ? { projectId, group: group?.id } : undefined;
+  const newChatLabel = group ? `「${group.name}」で新しいチャット` : "グループなしで新しいチャット";
   const countTitle = chats ? `チャット ${count} 件（サイドバーの見出しと同じ数）` : `タブ ${count} 個`;
   const summary = counts ? stateCountsSummary(counts) : "";
   const title = summary ? `${cluster.title ?? cluster.label}（${summary}）` : cluster.title;
@@ -128,11 +130,11 @@ export function TabClusterHead({
           <MenuItem onSelect={() => void createGroup()} title="このプロジェクトに、自分で使うグループを作ります">
             新しいグループを作成…
           </MenuItem>
-          {typeof groupId === "number" && (
+          {group && (
             <>
               <div className="menu-separator" role="separator" />
               <MenuItem danger onSelect={() => void deleteGroup()} title="グループを消します（中のチャットは消えず、グループなしに戻ります）">
-                「{cluster.groupName ?? cluster.label}」を削除…
+                「{group.name}」を削除…
               </MenuItem>
             </>
           )}
