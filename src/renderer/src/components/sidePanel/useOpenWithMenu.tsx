@@ -6,7 +6,7 @@ import { clampToViewport } from "../PopupMenu";
 import { TARGET_MENU_WIDTH, targetMenuHeight, TerminalTargetMenu } from "../terminal/TerminalTargetMenu";
 import { OPEN_WITH_MENU_WIDTH, OpenWithMenu, openWithMenuHeight } from "./OpenWithMenu";
 import type { PaneLeaf } from "./paneLayout";
-import type { OpenWithKind } from "./PaneTabBar";
+import type { OpenWithKind } from "./PanelTabAdds";
 import type { SidePanelController, TerminalTarget } from "./useSidePanel";
 
 /** ▾ を押したボタンのセレクタ（外側のクリックとして閉じず、ボタンの側で開閉する） */

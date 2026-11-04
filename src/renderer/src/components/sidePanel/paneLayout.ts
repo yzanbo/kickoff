@@ -84,7 +84,7 @@ function mapLeaves(node: PaneNode, fn: (leaf: PaneLeaf) => PaneLeaf | null): Pan
 }
 
 /** 割合を足して 1 になるようにそろえる */
-function normalizeSizes(sizes: number[]): number[] {
+export function normalizeSizes(sizes: number[]): number[] {
   const total = sizes.reduce((a, b) => a + b, 0);
   return total > 0 ? sizes.map((s) => s / total) : sizes.map(() => 1 / sizes.length);
 }
@@ -256,24 +256,6 @@ export function closePane(layout: PaneLayout, paneId: string, keep: (key: string
     next = { ...next, root: mapLeaves(next.root, (p) => (p.id === home ? { ...p, tabs: [...p.tabs, ...back], active: p.active ?? back[0] } : p)) ?? next.root };
   }
   return { layout: next, closed: pane.tabs.filter((t) => !back.includes(t)) };
-}
-
-/** path（根から子の番号をたどる）の分割の割合を変える。sizes の数が合わなければそのまま */
-export function setSplitSizes(layout: PaneLayout, path: readonly number[], sizes: readonly number[]): PaneLayout {
-  const visit = (node: PaneNode, depth: number): PaneNode => {
-    if (node.type === "pane") return node;
-    if (depth === path.length) return sizes.length === node.children.length ? { ...node, sizes: normalizeSizes([...sizes]) } : node;
-    return { ...node, children: node.children.map((c, i) => (i === path[depth] ? visit(c, depth + 1) : c)) };
-  };
-  return { ...layout, root: visit(layout.root, 0) };
-}
-
-/** path の分割を等分に戻す */
-export function equalizeSplit(layout: PaneLayout, path: readonly number[]): PaneLayout {
-  let node: PaneNode | undefined = layout.root;
-  for (const i of path) node = node?.type === "split" ? node.children[i] : undefined;
-  if (node?.type !== "split") return layout;
-  return setSplitSizes(layout, path, node.children.map(() => 1));
 }
 
 /**

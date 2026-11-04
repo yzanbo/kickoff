@@ -171,7 +171,8 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
                     {item.kind === "draft" ? (
                       <>
                         <span className="palette-label">{draftTitle(item.draft)}</span>
-                        <span className="palette-hint">{projectName(item.draft.projectId)} · 未送信</span>
+                        {/* 「下書き」のまとまりの見出しの下に並ぶので、プロジェクト名だけを添える */}
+                        <span className="palette-hint">{projectName(item.draft.projectId)}</span>
                       </>
                     ) : (
                       <>

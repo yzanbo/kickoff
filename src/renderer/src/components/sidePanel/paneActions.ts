@@ -1,4 +1,5 @@
-import { closePane, equalizeSplit, focusPane, moveTab, setSplitSizes, splitPane, type PaneLayout, type SplitDir, type SplitSide } from "./paneLayout";
+import { closePane, focusPane, moveTab, splitPane, type PaneLayout, type SplitDir, type SplitSide } from "./paneLayout";
+import { equalizeSplit, setSplitSizes } from "./paneSizes";
 import { newTabKey } from "./tabKeys";
 
 /**

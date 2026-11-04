@@ -41,7 +41,7 @@ function DraftRow({ draft }: { draft: SidebarDraft }) {
       <button
         type="button"
         className="chat-row draft-row"
-        title={`${first ? "書きかけの新しいチャット" : "新しいチャット"}（未送信。ドラッグでグループへ移す・右クリックで削除）`}
+        title="下書き（ドラッグでグループへ移す・右クリックで削除）"
         draggable
         onDragStart={(e) => startDraftDrag(e, draft)}
         onClick={() => openDraft(draft)}

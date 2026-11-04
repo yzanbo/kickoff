@@ -1,4 +1,4 @@
-import { ChevronDown, Columns2, Globe, Rows2, SquarePen, SquareTerminal, X } from "lucide-react";
+import { Columns2, Rows2, X } from "lucide-react";
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
@@ -22,9 +22,7 @@ import { PANEL_TAB_CLUSTERS_COLLAPSED_KEY } from "../../storageKeys";
 import { TabClusterHead } from "./TabClusterHead";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
 import { useClusterReorder } from "./useClusterReorder";
-
-/** ▾ のメニューの種類 */
-export type OpenWithKind = "browser" | "terminal";
+import { PanelTabAdds, type OpenWithKind } from "./PanelTabAdds";
 
 /**
  * 右のパネルの 1 つのペインのタブの列。左にパネルの閉じる・横幅いっぱい（controls。左上のペインだけ）、タブ、
@@ -247,52 +245,16 @@ export function PaneTabBar({
         : display.map(tab)}
       </div>
       {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右） */}
-      <span className="panel-bar-buttons panel-tab-adds">
-        {/* 欄で隠している種類のボタンは出さない（表示するタブはタブの列の左の「表示するタブ」で選ぶ） */}
-        {showChat && <IconButton icon={SquarePen} label="新しいチャット" size={14} onClick={onNewChat} />}
-        {/* ブラウザ・ターミナルは、アイコンで新しいタブ、横の ▾ で外のアプリで開く・外のアプリを選ぶ（デスクトップアプリだけ） */}
-        {panel.kinds.has("browser") && (
-        <span className="panel-split-button">
-          <IconButton icon={Globe} label="ブラウザを開く" title="ブラウザを新しいタブで開く" size={14} onClick={() => panel.openBrowser()} />
-          {window.kickoff && (
-            <IconButton
-              icon={ChevronDown}
-              label="ブラウザの開き方"
-              title="新しいタブで開く・外のブラウザで開く・外のブラウザを選ぶ"
-              size={12}
-              className="panel-open-with panel-open-with-browser"
-              aria-haspopup="menu"
-              aria-expanded={openWithShown === "browser"}
-              onClick={(e) => onOpenWith("browser", e, pane)}
-            />
-          )}
-        </span>
-        )}
-        {panel.kinds.has("terminal") && terminals > 0 && (
-          <span className="panel-split-button">
-            <IconButton
-              icon={SquareTerminal}
-              label="ターミナルを開く"
-              title="ターミナルを新しいタブで開く（チャットを表示しているときは、その作業場所で開く）"
-              size={14}
-              className="panel-tab-terminal"
-              aria-haspopup={terminals > 1 ? "menu" : undefined}
-              aria-expanded={terminals > 1 ? terminalMenuOpen : undefined}
-              onClick={(e) => onTerminal(e, pane)}
-            />
-            <IconButton
-              icon={ChevronDown}
-              label="ターミナルの開き方"
-              title="新しいタブで開く・外のターミナルで開く・外のターミナルを選ぶ"
-              size={12}
-              className="panel-open-with panel-open-with-terminal"
-              aria-haspopup="menu"
-              aria-expanded={openWithShown === "terminal"}
-              onClick={(e) => onOpenWith("terminal", e, pane)}
-            />
-          </span>
-        )}
-      </span>
+      <PanelTabAdds
+        panel={panel}
+        pane={pane}
+        terminals={terminals}
+        terminalMenuOpen={terminalMenuOpen}
+        onNewChat={onNewChat}
+        onTerminal={onTerminal}
+        onOpenWith={onOpenWith}
+        openWithShown={openWithShown}
+      />
       {/* ペインを分ける・閉じる（右端） */}
       <span className="panel-bar-buttons panel-pane-tools">
         <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />

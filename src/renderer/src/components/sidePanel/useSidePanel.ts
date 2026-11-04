@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { ProjectSummary, Run } from "../../../../core/types";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
 import { cx } from "../../cx";
 import { useServerEvent } from "../../events";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { paneActions } from "./paneActions";
-import { activeTabOf, closeLayoutTabs, isTabVisible, placeTab, reconcileLayout, renameTab, returnToHome, type PaneLayout } from "./paneLayout";
-import { chatKey, syncLinkedTabs, type LinkState } from "./linkedTabs";
-import { loadPanel, registerPanel, savePanel } from "./panelMemory";
+import { closeLayoutTabs, isTabVisible, placeTab, renameTab, returnToHome, type PaneLayout } from "./paneLayout";
+import { chatKey, syncLinkedTabs } from "./linkedTabs";
+import { registerPanel } from "./panelMemory";
+import { usePanelState } from "./usePanelState";
 import { kindOfTab, usePanelKinds, type PanelSurface } from "./panelKinds";
 import { useLinkedRuns, type LinkScope } from "./useLinkedRuns";
 import { newTabKey } from "./tabKeys";
@@ -46,38 +47,8 @@ export type SidePanelController = ReturnType<typeof useSidePanel>;
 export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = false, projects, onCreated }: Options) {
   // 欄で表示するタブの種類（隠した種類のタブは閉じずに残す。隠している種類のタブを自分で開いたら、その種類を出す）
   const kinds = usePanelKinds(surface);
-  // パネルを閉じてもタブは残し、次に開いたときに戻す
-  const saved = () => loadPanel(memoryKey);
-  const [tabs, setTabs] = useState<PanelTab[]>(() => saved().tabs);
-  // 分割の配置（タブのキーを指す木と、ピントのあるペイン）
-  const [rawLayout, setLayout] = useState<PaneLayout>(() => saved().layout);
-  const [panelOpen, setPanelOpen] = useState(() => saved().panelOpen);
-  // サイドバーと連動したチャットのタブの覚え（表示だけ消したもの・一覧にないのに開いたもの）
-  const [links, setLinks] = useState<LinkState>(() => saved().links);
-  // 同じ部品のまま別のボード（プロジェクト）に切り替わったら、そのボードで覚えている状態に戻す
-  const [shownKey, setShownKey] = useState(memoryKey);
-  if (shownKey !== memoryKey) {
-    const next = saved();
-    setShownKey(memoryKey);
-    setTabs(next.tabs);
-    setLayout(next.layout);
-    setPanelOpen(next.panelOpen);
-    setLinks(next.links);
-  }
-  // 配置といまのタブが食い違っても（どのペインにもないタブなど）壊れないよう、直したものを使う
-  const layout = useMemo(() => reconcileLayout(rawLayout, tabs.map((t) => t.key)), [rawLayout, tabs]);
-  /**
-   * 配置を変える。いまのタブに合わせて直した配置から変える（サイドバーと連動して自動で足したタブは、state の配置にはまだ入っていない。
-   * 直さずに変えると、そのタブを移す・分ける操作が「どのペインにもないタブ」として何もしなかった）
-   */
-  const tabKeys = useRef<string[]>([]);
-  tabKeys.current = tabs.map((t) => t.key);
-  const changeLayout = (fn: (l: PaneLayout) => PaneLayout) => setLayout((l) => fn(reconcileLayout(l, tabKeys.current)));
-  /** ピントのあるペインの表示中のタブ（分割する前の「表示中のタブ」と同じ意味） */
-  const activeTab = activeTabOf(layout);
-  useEffect(() => {
-    if (shownKey === memoryKey) savePanel(memoryKey, { tabs, activeTab, panelOpen, layout, links });
-  }, [memoryKey, shownKey, tabs, activeTab, panelOpen, layout, links]);
+  // タブ・分割の配置・開閉・連動の覚え（ボードごとに覚え、切り替えたら戻す。usePanelState.ts）
+  const { tabs, setTabs, layout, setLayout, changeLayout, activeTab, panelOpen, setPanelOpen, links, setLinks, current } = usePanelState(memoryKey);
   // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える）
   const linked = useLinkedRuns(scope);
   const runs = linked.runs;
@@ -213,7 +184,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
 
   // チャットのタブをサイドバーの一覧にそろえる（読み直してから。一覧から外れたタブは閉じ、まだないチャットはタブを足す）
   useEffect(() => {
-    if (!linked.fresh || shownKey !== memoryKey) return;
+    if (!linked.fresh || !current) return;
     const next = syncLinkedTabs(tabs, runs, links);
     if (next.links !== links) setLinks(next.links);
     if (next.tabs === tabs) return;
@@ -222,7 +193,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
     setTabs(next.tabs);
     if (gone.length > 0) setLayout((l) => closeLayoutTabs(l, gone.map((t) => t.key)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runs, linked.fresh, links, shownKey, memoryKey]);
+  }, [runs, linked.fresh, links, current, memoryKey]);
 
   // Esc でパネルを閉じる（メニューやダイアログが開いていればそちらを優先）
   useWindowEvent(
