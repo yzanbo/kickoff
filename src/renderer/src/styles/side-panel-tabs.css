@@ -163,3 +163,49 @@
   background: var(--bg-elev);
 }
 
+
+/* タブのまとめ方のボタン（パネルを閉じるボタンのすぐ右）。まとめているときはアクセントの色 */
+.panel-control.panel-tab-grouping.on {
+  color: var(--accent-bright);
+}
+
+/*
+ * タブをまとめているときの、まとまりの頭の名前（グループ名・ブランチ）と中のタブの数（ブラウザのタブのグループと同じ）。
+ * 2 つ目からのまとまりは、左に区切り線を入れて前のまとまりと分ける
+ */
+.panel-tab-cluster {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+  max-width: 120px;
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* まとめているときは、まとまりの名前の分だけタブが細くなりすぎないよう、名前が読める幅より縮めず、並びの中を横にスクロールさせる */
+.panel-tab-strip.grouped .panel-tab {
+  min-width: 120px;
+}
+
+.panel-tab-cluster:not(:first-child) {
+  margin-left: 4px;
+  border-left: 1px solid var(--border);
+}
+
+.panel-tab-cluster-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-tab-cluster-count {
+  flex: none;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  background: var(--bg-elev);
+}

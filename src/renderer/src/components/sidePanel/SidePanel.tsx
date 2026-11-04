@@ -18,6 +18,7 @@ import { useTabDrag } from "./useTabDrag";
 import type { SidePanelController, TerminalTarget } from "./useSidePanel";
 import { useBoardHeaderLayoutMenu } from "../board/useBoardHeaderLayoutMenu";
 import { useOpenWithMenu } from "./useOpenWithMenu";
+import { TabGroupingButton } from "./TabGroupingButton";
 
 /**
  * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
@@ -89,15 +90,21 @@ export function SidePanel({
     panelOpen,
   );
 
-  // パネルの閉じる・横幅いっぱい（ボードの右のパネルだけ。チャット欄は右上のレイアウトの開閉（LayoutToggles）で閉じるので、重ねて置かない）
+  // パネルの閉じる・タブのまとめ方・横幅いっぱい（閉じる・横幅いっぱいはボードの右のパネルだけ。チャット欄は右上のレイアウトの開閉（LayoutToggles）で閉じるので、重ねて置かない）
   // タブの列の何もないところの右クリックで、ボードの見出しの置き方を選ぶ（横幅いっぱいか、ボードの上だけにしてパネルを上まで伸ばすか。チャット欄では関係しないので出さない）
   const layoutMenu = useBoardHeaderLayoutMenu();
-  const controls = sidebar ? undefined : (
+  // タブのまとめ方（まとめない・グループ別・作業場所別）は、パネルを閉じるボタンのすぐ右（チャット欄は閉じるボタンがないので、これだけ）
+  const controls = sidebar ? (
+    <div className="panel-controls">
+      <TabGroupingButton />
+    </div>
+  ) : (
     <div className="panel-controls">
       {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
       <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
         <PanelRightClose size={15} />
       </button>
+      <TabGroupingButton />
       {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。狭くてボードを覆っているときは、切り替えても見た目が変わらないので出さない */}
       {!panel.covering && (
         <button
