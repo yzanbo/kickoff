@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
-import type { Attachment, ChatEvent } from "@shared/types";
+import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
 import { STICKY_PROMPT_EXPANDED } from "@/lib/storageKeys";
@@ -91,11 +91,3 @@ export function readingPrompt(timeline: HTMLElement): { id: number; text: string
   const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
   return { id, text };
 }
-
-/** 貼り付けた指示（記録の ID）の添付（なければ空） */
-export function promptAttachments(events: ChatEvent[], id: number): Attachment[] {
-  const event = events.find((e) => e.id === id);
-  return (event?.type === "user" ? event.data.attachments : undefined) ?? NO_ATTACHMENTS;
-}
-
-const NO_ATTACHMENTS: Attachment[] = [];

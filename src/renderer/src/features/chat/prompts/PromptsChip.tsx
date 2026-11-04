@@ -1,6 +1,5 @@
 import { ChevronUp, CornerDownLeft, History } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { isKey } from "@/lib/keys";
 import { useListNavigation } from "@/hooks/useListNavigation";
@@ -9,7 +8,7 @@ import { formatMessageTime } from "@/lib/time";
 import { IconButton } from "@/ui/IconButton";
 import { Popover } from "@/ui/Popover";
 import { SearchField } from "@/ui/SearchField";
-import { promptEntries, type PromptEntry } from "./promptHistory";
+import type { PromptEntry } from "./promptHistory";
 
 /**
  * チャット欄の上の「指示の履歴 12」（ToDo・サブエージェントと同じピルの列）。押すと、このチャットで自分が送った指示の一覧を上に開く。
@@ -19,12 +18,11 @@ import { promptEntries, type PromptEntry } from "./promptHistory";
  * 上の欄で絞り込め、↑↓ で選んで Enter で入力欄に入れる・⌘Enter でその指示へ移る。
  * チャットにピントがあるときの ⌃R でも開く（シェルの履歴の検索と同じ。開いている間の ⌃R は 1 つ前の一致へ）
  */
-export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; onJump: (eventId: number) => void; onReuse: (text: string) => void }) {
+export function PromptsChip({ prompts, onJump, onReuse }: { prompts: PromptEntry[]; onJump: (eventId: number) => void; onReuse: (text: string) => void }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
-  const prompts = useMemo(() => promptEntries(events), [events]);
   // 行に出す番号（会話の中で何番目の指示か。絞り込んでも変えない）
   const numbers = useMemo(() => new Map(prompts.map((p, i) => [p.id, i + 1])), [prompts]);
   const items = useMemo(() => {

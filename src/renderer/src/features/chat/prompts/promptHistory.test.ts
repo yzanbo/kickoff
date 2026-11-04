@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ChatEvent } from "@shared/types";
-import { historyMove, userPrompts, type HistoryInput } from "./promptHistory";
+import { historyMove, promptBefore, promptListOf, type HistoryInput } from "./promptHistory";
 
 let nextId = 1;
 const event = (type: string, data: object): ChatEvent => ({ id: nextId++, chat_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as ChatEvent;
@@ -15,8 +15,26 @@ test("前の発言: 自分の発言だけを新しい順に。添付だけの発
     event("user", { text: "", attachments: [{ id: "a", name: "a.png", mime: "image/png", size: 1 }] }),
     event("user", { text: "三つ目" }),
   ];
-  assert.deepEqual(userPrompts(events), ["三つ目", "二つ目", "一つ目"]);
-  assert.deepEqual(userPrompts([]), []);
+  assert.deepEqual(promptListOf(events).recalls, ["三つ目", "二つ目", "一つ目"]);
+  assert.deepEqual(promptListOf([]).recalls, []);
+});
+
+test("指示の一覧: 自分の発言を会話の順に（添付だけならファイル名）。同じ記録の配列なら作り直さない", () => {
+  const events = [
+    event("user", { text: " 調べて " }),
+    event("text", { text: "AI の返答" }),
+    event("user", { text: "", attachments: [{ id: "a", name: "a.png", mime: "image/png", size: 1 }] }),
+    event("result", { status: "completed" }),
+  ];
+  const list = promptListOf(events);
+  assert.deepEqual(list.entries.map((p) => [p.text, p.label]), [["調べて", "調べて"], ["", "a.png"]]);
+  assert.deepEqual(list.ids, [events[0].id, events[2].id]);
+  assert.equal(list.byId.get(events[2].id)?.attachments.length, 1);
+  assert.equal(promptListOf(events), list);
+  assert.notEqual(promptListOf([...events]), list);
+  // その作業を始めた指示（作業の終わりの記録より前の、いちばん新しい指示）
+  assert.equal(promptBefore(list, events[3].id)?.id, events[2].id);
+  assert.equal(promptBefore(list, events[0].id), undefined);
 });
 
 const prompts = ["新しい", "1行目\n2行目", "古い"];
