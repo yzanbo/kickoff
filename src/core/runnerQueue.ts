@@ -87,6 +87,18 @@ export abstract class RunnerQueue {
     return this.sendQueuedNow(runId, merged.id);
   }
 
+  /**
+   * 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（まとめない）。止めている・「ここまで」の印があっても最後まで送るよう、
+   * 止めておくのをやめて印を外す。作業中でなければ先頭をすぐ送り、あとは終わるたびに次を送る（作業中なら、いまの作業が終わってから）。
+   * 送るものがなければ false
+   */
+  async sendQueuedInOrder(runId: number): Promise<boolean> {
+    if (this.followups.list(runId).length === 0) return false;
+    this.followups.setStops(runId, []);
+    await this.setQueuePaused(runId, false);
+    return true;
+  }
+
   /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと） */
   queueStops(runId: number): number[] {
     return this.followups.stopsOf(runId);

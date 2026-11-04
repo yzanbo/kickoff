@@ -3,6 +3,7 @@ import { cx } from "../../cx";
 import { api } from "../../api";
 import { confirmDialog } from "../../dialogs";
 import { IconButton } from "../IconButton";
+import { SendAllMenu } from "./SendAllMenu";
 
 /** 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。チャットごと） */
 export function QueuedModeButton({ runId, paused, busy, failed }: { runId: number; paused: boolean; busy: boolean; failed: (e: unknown) => void }) {
@@ -48,11 +49,14 @@ export function QueuedHeadActions({
   count,
   selected,
   busy,
+  holds,
   onClearSelection,
   failed,
 }: {
   runId: number;
   count: number;
+  /** 止めている・「ここまで送ったら止めます」の印がある */
+  holds: boolean;
   /** 選んでいる指示（列の順） */
   selected: string[];
   busy: boolean;
@@ -99,17 +103,8 @@ export function QueuedHeadActions({
   if (count < 2) return null;
   return (
     <>
-      <button
-        type="button"
-        className="btn btn-sm btn-primary queued-head-btn"
-        aria-label="すべて送る"
-        title={`送信待ちの ${count} 件をすべて 1 つにまとめて、すぐ送る${stopping}。一部だけ送るときは、⌘ / Shift ＋クリックで選んでから「まとめて送る」`}
-        onClick={() => void api.sendAllQueued(runId).catch(failed)}
-      >
-        <SendHorizontal size={12} aria-hidden />
-        {/* 狭いときは文字を隠してアイコンだけにする（読み上げは aria-label） */}
-        <span className="queued-head-label">すべて送る</span>
-      </button>
+      {/* 押すと、まとめて 1 件で送るか・1 件ずつ順に送るかを選ぶ */}
+      <SendAllMenu runId={runId} count={count} busy={busy} holds={holds} failed={failed} />
       <button
         type="button"
         className="btn btn-sm queued-head-btn queued-clear"

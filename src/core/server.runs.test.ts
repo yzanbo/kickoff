@@ -388,6 +388,27 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
   assert.equal(runner.queuePaused(runId), false);
 });
 
+test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発言として順に送り、止めておく・「ここまで」の印があっても最後まで送る", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/send-in-order`)).status, 404);
+  assert.equal((await call("POST", "/api/runs/999/queue/send-in-order")).status, 404);
+  for (const text of ["2", "3", "4"]) await call("POST", `/api/runs/${runId}/queue`, { text });
+  await call("PUT", `/api/runs/${runId}/queue/paused`, { paused: true });
+  await call("PUT", `/api/runs/${runId}/queue/stops`, { stops: [1] });
+  release();
+  await until(() => !runner.isBusy(runId));
+
+  assert.deepEqual((await call("POST", `/api/runs/${runId}/queue/send-in-order`)).body, { ok: true });
+  assert.equal(runner.queuePaused(runId), false);
+  assert.deepEqual(runner.queueStops(runId), []);
+  await until(() => provider.prompts.length === 4 && runner.queued(runId).length === 0 && !runner.isBusy(runId));
+  // 1 つにまとめず、1 件ずつ別々の発言として送る
+  assert.deepEqual(provider.prompts.slice(1), ["2", "3", "4"]);
+});
+
 test("「ここまで送ったら止めます」: 印は列の中の位置で持ち、いくつでも・1 件目の上にも置ける。印まで送って止め、自動に戻すと次の印まで送る", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();

@@ -86,6 +86,13 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json({ ok: true });
   });
 
+  // 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めておくのをやめ、「ここまで」の印を外す。作業中なら終わってから）
+  app.post("/api/runs/:id/queue/send-in-order", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    if (!(await conflictOnError(() => runner.sendQueuedInOrder(run.id)))) throw new HttpError(404, "待ちの指示がありません");
+    return c.json({ ok: true });
+  });
+
   // 選んだ待ちの指示をまとめて消す
   app.post("/api/runs/:id/queue/remove-many", async (c) => {
     const run = requireRun(store, c.req.param("id"));

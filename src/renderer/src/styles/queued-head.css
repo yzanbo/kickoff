@@ -136,3 +136,24 @@
     padding-inline: 6px;
   }
 }
+
+/* 「すべて送る」のメニュー（SendAllMenu。SendAllMenu の MENU_WIDTH と同じ幅）: 送り方の名前と、何が起きるかの短い説明 */
+.send-all-menu {
+  width: 300px;
+}
+
+/* 説明が折り返してもアイコンを縮めない（文字の左端をそろえる） */
+.send-all-menu svg {
+  flex: none;
+}
+
+.send-all-option {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.send-all-note {
+  font-size: 11px;
+  color: var(--muted);
+}
