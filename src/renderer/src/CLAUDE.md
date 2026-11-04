@@ -9,7 +9,7 @@
 | `app/` | App・ルーター（`router.ts`）・全体の context（`chatStatesContext.ts`）・アプリ全体のショートカット（`shortcuts.ts`）・通知（`notifications.ts`）・テーマ（`theme.ts`）・右上のレイアウトの開閉（`LayoutToggles`）・⌘[ / ⌘]（`useChatHistory`）・起動したときの保存の片付け（`prepareStorage.ts`） |
 | `api/` | サーバーとのやり取り（下の「API」） |
 | `stores/` | 画面全体で 1 つずつ持つサーバーのデータ（下の「データ」） |
-| `lib/` | React に依存しない小さな補助（`cx` `time` `format` `url` `keys` `floating` `highlight` `richCopy` `valueCell`、保存の `storage` とその一覧 `storageKeys`） |
+| `lib/` | React に依存しない小さな補助（`cx` `time` `format` `url` `keys` `floating` `highlight` `languages` `richCopy` `valueCell`、保存の `storage` とその一覧 `storageKeys`） |
 | `hooks/` | ドメインを知らない hooks |
 | `ui/` | ドメインを知らない部品（下の「共有部品」） |
 | `features/<領域>/` | 領域ごとの部品と hooks |
@@ -64,7 +64,7 @@
 - フォーム: 1 行は `Field`（入力欄が 1 つなら label、いくつも並ぶなら `as="div"`）、説明付きのチェックは `CheckField`、名前で絞り込む欄は `SearchField`、その場で名前を変えるのは `InlineName`、失敗の文は `ErrorText`（空なら何も出さない）、結果の文は `ResultMessage`。
 - 1 つを選ぶボタンの組: `Segmented`（見た目は className。数は `badge`、説明は `tip`、キーは `keys`、アイコンだけなら `iconOnly`）。
 - 開閉: まとまりの見出しは `FoldHead` / `FoldSection`（`look`: `row` / `group` / `section` / `lane`）、開閉の矢印は `GroupToggle` / `Chevron`、高さをなめらかに変えるのは `Collapse`、開閉の記憶は `useFold` / `useFolds`。
-- そのほか: コピーは `CopyButton`（文は `text`、画像などは `copy`）、AI の返答の書式付きコピーは `lib/richCopy.ts` の `copyRich`、状態の点は `StatusDot`（接続・準備は `tone`（`toneOf`）、列・チャットの状態は `color`。点を `<span>` で手書きしない）、CLI の状態は `StatusCard` / `GitHubStatusCard`、Markdown は `Markdown`（Mermaid のコードブロックは図にする `MermaidDiagram`。生成中は `streaming` で書きかけの図を描かない）、コードの色付けは `useHighlight` ＋ `CodeLine`（言語は `languageOf`。Shiki は使うときだけ読み込む）、画像を大きく見るのは `ImageViewer`（下）。
+- そのほか: コピーは `CopyButton`（文は `text`、画像などは `copy`）、AI の返答の書式付きコピーは `lib/richCopy.ts` の `copyRich`、状態の点は `StatusDot`（接続・準備は `tone`（`toneOf`）、列・チャットの状態は `color`。点を `<span>` で手書きしない）、CLI の状態は `StatusCard` / `GitHubStatusCard`、Markdown は `Markdown`（Mermaid のコードブロックは図にする `MermaidDiagram`。生成中は `streaming` で書きかけの図を描かない）、コードの色付けは `useHighlight` ＋ `CodeLine`（言語の名前を渡す。ファイルなら `lib/languages.ts` の `languageOf(パス)`。Shiki は使うときだけ読み込む）、画像を大きく見るのは `ImageViewer`（下）。
 
 ### 画像を大きく見る（`ui/imageViewer/`）
 

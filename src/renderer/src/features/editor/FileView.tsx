@@ -5,7 +5,7 @@ import { cx } from "@/lib/cx";
 import { confirmDialog } from "@/ui/dialogs";
 import { useAction } from "@/hooks/useAction";
 import { useHighlight } from "@/hooks/useHighlight";
-import { languageOf } from "@/lib/highlight";
+import { languageOf } from "@/lib/languages";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
 import { CodeLine } from "@/ui/CodeLine";
 import { ErrorText } from "@/ui/ErrorText";
