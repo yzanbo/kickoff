@@ -20,6 +20,7 @@ import { useSharedList } from "../../hooks/useStoredState";
 import { PANEL_TAB_CLUSTERS_COLLAPSED_KEY } from "../../storageKeys";
 import { TabClusterHead } from "./TabClusterHead";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
+import { useClusterReorder } from "./useClusterReorder";
 
 /** ▾ のメニューの種類 */
 export type OpenWithKind = "browser" | "terminal";
@@ -96,6 +97,8 @@ export function PaneTabBar({
   const toggleCollapsed = (key: string) => setCollapsed(collapsed.includes(key) ? collapsed.filter((k) => k !== key) : [...collapsed, key]);
   const shownTabs = (c: TabCluster) => visibleClusterTabs(c, collapsed.includes(c.key), pane.active);
   const display = clusters ? clusters.flatMap(shownTabs) : known;
+  // 自分で作ったグループの札のドラッグで、グループの並びを入れ替える（サイドバー・グループのボードも同じ並びになる）
+  const clusterReorder = useClusterReorder(clusters);
   /**
    * まとまり（グループ・作業場所）のチャット: タブで開いているチャットと、ボードの一覧のうち同じまとまりに入るもの（タブで開いていないものも）。
    * 「その他」はチャットが入らないので undefined（札を押せない）
@@ -190,8 +193,9 @@ export function PaneTabBar({
             return (
               <div
                 key={c.key}
-                className={cx("panel-tab-group", hue === null && "plain", collapsed.includes(c.key) && "collapsed")}
+                className={cx("panel-tab-group", hue === null && "plain", collapsed.includes(c.key) && "collapsed", clusterReorder.classFor(c))}
                 style={hue === null ? undefined : ({ "--group-hue": hue } as CSSProperties)}
+                {...clusterReorder.dropProps(c)}
               >
                 <TabClusterHead
                   cluster={c}
@@ -200,6 +204,7 @@ export function PaneTabBar({
                   onNewChat={(target) => panel.openNew(target)}
                   collapsed={collapsed.includes(c.key)}
                   onToggleCollapsed={c.tabs.length > 0 ? () => toggleCollapsed(c.key) : undefined}
+                  dragProps={clusterReorder.handle(c)}
                 />
                 {shownTabs(c).map((key) => tab(key, display.indexOf(key)))}
               </div>

@@ -26,6 +26,7 @@ const EDGE = 8;
  * まとめないときも、タブの列の左端に「チャット」の札（all）として置き、パネルのチャット全体の状態ごとの数と一覧を出す（タブの数は出さない）。
  * 札の右クリック（プロジェクトの分かるまとまりだけ）: このグループで新しいチャット（グループ別のとき）・新しいグループを作成・
  * このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
+ * 自分で作ったグループの札はつかんで並べ替えられる（dragProps。サイドバーのグループの並びも同じに変わる）。
  * 札の右のタブの数は、まとまりのタブを畳む・開くボタン（onToggleCollapsed。ブラウザのタブのグループを畳むのと同じ。右クリックにも同じ項目）
  */
 export function TabClusterHead({
@@ -37,6 +38,7 @@ export function TabClusterHead({
   popoverTitle = `${cluster.label}のチャット`,
   collapsed = false,
   onToggleCollapsed,
+  dragProps,
 }: {
   cluster: TabCluster;
   runs: Run[] | undefined;
@@ -48,6 +50,8 @@ export function TabClusterHead({
   /** まとまりのタブを畳んでいるか（表示中のタブだけを残す） */
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  /** 札をつかんでグループの並びを入れ替える（自分で作ったグループだけ。useClusterReorder の handle） */
+  dragProps?: { draggable: boolean; onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
 }) {
   const { stateOf, pending } = useRunStates();
   const [at, setAt] = useState<CSSProperties | null>(null);
@@ -90,7 +94,7 @@ export function TabClusterHead({
     setAt({ top: r.bottom + 6, left: Math.max(EDGE, Math.min(r.left, window.innerWidth - width - EDGE)) });
   };
   return (
-    <span ref={ref} className={cx("panel-tab-cluster", all && "all")} onContextMenu={openMenu}>
+    <span ref={ref} className={cx("panel-tab-cluster", all && "all", dragProps && "draggable")} onContextMenu={openMenu} {...dragProps}>
       {runs ? (
         <button type="button" className="panel-tab-cluster-name" title={`${title ?? cluster.label}。押すと状態ごとのチャットを一覧する`} aria-expanded={at !== null} onClick={toggle}>
           {name}

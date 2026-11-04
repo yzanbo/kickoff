@@ -77,6 +77,8 @@ export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dr
   };
 
   return {
+    /** いま動かしているもの（つかんでいなければ undefined） */
+    dragging,
     /** つかむところ（グループの見出し・プロジェクトのアイコンなど）に付ける */
     handle: (id: number) => ({
       onDragStart: (e: DragEvent) => {
