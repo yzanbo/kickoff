@@ -32,26 +32,15 @@
 }
 
 /*
- * 表示中のタブ: 地を明るくし、上端に色の線（Chrome・VS Code と同じ）、名前を太字にする。まとまりの薄い地の中でも見分けられるように、
- * まとまりの下の線より上に重ねて線を切り、タブが中身とつながって見えるようにする（z-index）
+ * 表示中のタブ: 地を明るくし、上と左右を同じ太さ（1px）の色の枠で囲み、名前を太字にする。
+ * 以前は枠の上に 2px の色の線を重ねていて、上だけ太く、角の丸みとも合わずに見えた。
+ * まとまりの薄い地の中でも見分けられるように、まとまりの下の線より上に重ねて線を切り、タブが中身とつながって見えるようにする（z-index）
  */
 .panel-tab.active {
   z-index: 1;
-  border-color: var(--border);
+  border-color: color-mix(in srgb, var(--accent-bright) 55%, var(--border));
   color: var(--text);
   background: var(--bg-hover);
-}
-
-.panel-tab.active::after {
-  content: "";
-  position: absolute;
-  top: -1px;
-  right: 4px;
-  left: 4px;
-  height: 2px;
-  border-radius: 0 0 2px 2px;
-  background: var(--accent-bright);
-  pointer-events: none;
 }
 
 .panel-tab.active .panel-tab-label span:not(.status-slot, .panel-tab-group-name) {
