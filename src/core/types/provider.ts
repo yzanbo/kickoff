@@ -46,7 +46,7 @@ export interface ServiceUsage {
   /** 表示名（"Claude Code" など） */
   label: string;
   status: "ok" | "unavailable" | "error";
-  /** 契約プラン（"max"・"plus"・"free" など。わからなければ null） */
+  /** 契約プラン（"Ultra"・"Max 20x"（Claude はアカウントの表示名）・"max"・"plus"・"free" など。わからなければ null） */
   plan: string | null;
   /** ログインしているアカウント（メールアドレス・GitHub のユーザー名。わからなければ null） */
   account: string | null;
