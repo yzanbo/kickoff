@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { archiveMatches, decodeArchiveFilter, encodeArchiveFilter, type ArchiveFilter } from "./archiveFilter";
+import { archiveMatches, decodeArchiveFilter, encodeArchiveFilter, linkedArchiveFilter, type ArchiveFilter } from "./archiveFilter";
 
 test("decodeArchiveFilter: 保存されている形式（\"1\" = すべて / \"0\" = アーカイブしていないもの / \"archived\" = アーカイブ済み）をそのまま読む", () => {
   // 何も保存していなければ「すべて」（今までと同じ初期値）
@@ -25,4 +25,12 @@ test("archiveMatches: すべて = どちらも出す / 未アーカイブ = ア�
   assert.deepEqual([archiveMatches(active, "all"), archiveMatches(archived, "all")], [true, true]);
   assert.deepEqual([archiveMatches(active, "active"), archiveMatches(archived, "active")], [true, false]);
   assert.deepEqual([archiveMatches(active, "archived"), archiveMatches(archived, "archived")], [false, true]);
+});
+
+test("linkedArchiveFilter: サイドバーと共通の設定で隠していれば未アーカイブ、出していればボードで覚えた「アーカイブ済みだけ」かすべて", () => {
+  assert.equal(linkedArchiveFilter(false, "all"), "active");
+  assert.equal(linkedArchiveFilter(false, "archived"), "active");
+  assert.equal(linkedArchiveFilter(true, "archived"), "archived");
+  assert.equal(linkedArchiveFilter(true, "active"), "all");
+  assert.equal(linkedArchiveFilter(true, "all"), "all");
 });
