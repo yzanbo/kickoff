@@ -9,20 +9,16 @@ export function queuedHint({
   busy,
   collapsed,
   stopIndex,
-  editingNext = false,
-  ready = false,
+  readyForEdit = false,
 }: {
   paused: boolean;
   busy: boolean;
   collapsed: boolean;
   stopIndex: number;
-  /** 次に送る指示（1 件目）を書き直している（書き直しが終わるまで自動で送らない。一覧をたたむと書き直しは捨てるので、開いているときだけ） */
-  editingNext?: boolean;
-  /** 作業は終わり、コアが書き直しが終わるのを待っている（送信の準備ができている） */
-  ready?: boolean;
+  /** 次に送る指示（1 件目）を書き直していて、作業は終わり、コアが書き直しが終わるのを待っている（送信の準備ができている） */
+  readyForEdit?: boolean;
 }): string {
-  if (editingNext && ready) return "次の指示の送信準備ができています。書き直しを保存すると送ります";
-  if (editingNext && busy && !paused && stopIndex !== 0) return "1 件目の書き直しが終わるまで、次は送りません";
+  if (readyForEdit) return "次の指示の送信準備ができています。書き直しを保存すると送ります";
   if (paused) return collapsed ? "止めています" : busy ? "終わっても送らずに止めておきます" : "止めています。行の「すぐ送る」で 1 件ずつ送れます";
   if (!busy) return collapsed ? "自動で送れませんでした" : "自動で送れませんでした。行の「すぐ送る」で送れます";
   if (stopIndex === 0) return collapsed ? "1 件目の前で一時停止" : "終わっても送らずに一時停止します（1 件目の上に一時停止）";

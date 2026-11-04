@@ -158,11 +158,10 @@ export function QueuedMessages({
         onRemove={() => void api.setQueueStops(runId, stops.filter((x) => x !== k)).catch(failed)}
       />
     );
-  // 次に送る指示（1 件目）を書き直している: 書き直しが終わる（保存・やめる・一覧をたたむ）まで、コアは自動で送らない（useQueuedEdits が知らせる）
-  const editingNext = !collapsed && Boolean(edit.edits[queue[0].id]) && !paused && stopIndex !== 0;
-  // 作業は終わり、コアが書き直しが終わるのを待っている（送信の準備ができている。送れなかったなど、ほかの理由で止まっているときは出さない）
-  const readyForEdit = editingNext && waitingEdit && !busy;
-  const hint = queuedHint({ paused, busy, collapsed, stopIndex, editingNext, ready: readyForEdit });
+  // 次に送る指示（1 件目）を書き直していて、作業は終わり、コアが書き直しが終わる（保存・やめる・一覧をたたむ）のを待っている = 送信の準備ができている。
+  // 案内は見出しに 1 か所だけ出す（送れなかったなど、ほかの理由で止まっているとき・作業中は出さない）
+  const readyForEdit = !collapsed && Boolean(edit.edits[queue[0].id]) && waitingEdit && !busy && !paused;
+  const hint = queuedHint({ paused, busy, collapsed, stopIndex, readyForEdit });
   // 一時停止の印があって、案内がその止める位置を伝えているとき（queuedHint の印の分かれ道と同じ条件）。
   // 止める印と同じ色・同じアイコンで、畳んでいてもひと目で止める予定があると分かるようにする
   const stopHint = !paused && busy && stopIndex >= 0;
@@ -201,8 +200,8 @@ export function QueuedMessages({
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
           <span className="queued-count">送信待ち {queue.length} 件</span>
           {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && (
-              <span className={cx("queued-hint", stopHint && !editingNext && "stop", readyForEdit && "ready")}>
-                {stopHint && !editingNext && <OctagonPause size={12} aria-hidden />}
+              <span className={cx("queued-hint", stopHint && "stop", readyForEdit && "ready")}>
+                {stopHint && <OctagonPause size={12} aria-hidden />}
                 {readyForEdit && <SendHorizontal size={12} aria-hidden />}
                 {hint}
               </span>
@@ -243,7 +242,7 @@ export function QueuedMessages({
                 index={i}
                 withGrip={queue.length > 1}
                 busy={busy}
-                holdNote={i === 0 && readyForEdit ? "ready" : i === 0 && editingNext && busy ? "waiting" : undefined}
+                ready={i === 0 && readyForEdit}
                 text={edit.edits[m.id].text}
                 attachments={edit.edits[m.id].attachments}
                 onChange={(text) => edit.update(m.id, { text })}
