@@ -63,6 +63,24 @@ test("裏で動いている作業: 作業中はチャットの詳細で返し、
   assert.deepEqual(seen, [state, null]);
 });
 
+test("圧縮: 圧縮している間はチャットの詳細で始めた時刻を返し、SSE でも知らせ、作業が終わったら消す", async () => {
+  const { call, project, runner, provider, bus } = setup();
+  const seen: (string | null)[] = [];
+  bus.subscribe((e) => {
+    if (e.type === "run_compacting") seen.push(e.since);
+  });
+  provider.compacting = true;
+  const release = provider.hold();
+  const runId: number = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "続けて" })).body.id;
+  await until(() => runner.compactingSince(runId) !== null);
+  const since = (await call("GET", `/api/runs/${runId}`)).body.compacting;
+  assert.equal(typeof since, "string");
+  release();
+  await until(() => !runner.isBusy(runId));
+  assert.equal((await call("GET", `/api/runs/${runId}`)).body.compacting, null);
+  assert.deepEqual(seen, [since, null]);
+});
+
 test("停止: 止めるよう頼んでから作業が終わるまでは、詳細と SSE で停止中を知らせる", async () => {
   const { call, project, runner, provider, bus } = setup();
   const seen: boolean[] = [];

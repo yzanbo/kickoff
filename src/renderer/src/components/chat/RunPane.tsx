@@ -53,7 +53,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onRunChange, visible = true, onOpenSubagent }: RunPaneProps) {
-  const { run, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, compacting, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -65,7 +65,7 @@ export function RunPane({ projectId, runId, focus, onRunChange, visible = true, 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} queueWaitingEdit={queueWaitingEdit} connection={{ retry, reconnect }} background={background} stopping={stopping} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} queueWaitingEdit={queueWaitingEdit} connection={{ retry, reconnect }} background={background} stopping={stopping} compacting={compacting} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
   );
 }
 
@@ -81,6 +81,7 @@ function RunView({
   connection,
   background,
   stopping: stopRequested,
+  compacting: compactingSince,
   live,
   focus,
   visible,
@@ -103,6 +104,8 @@ function RunView({
   background: BackgroundState | null;
   /** 停止を頼んで、作業が終わるのを待っているか（コアが持つ。ほかの画面から止めたときも） */
   stopping: boolean;
+  /** 会話を圧縮している最中なら、始めた時刻 */
+  compacting: string | null;
   live: string;
   focus?: number;
   /** チャットを表示しているか（最新の結果を一番下まで見たら既読にする） */
@@ -149,6 +152,8 @@ function RunView({
     if (!busy) setStopClicked(false);
   }, [busy]);
   const stopping = busy && (stopClicked || stopRequested);
+  // 会話を圧縮している最中（作業中の行・チャット欄のメーターで知らせる）
+  const compacting = busy && compactingSince !== null;
   // チャットの中の検索を開いているか・発言へ移る（指示の履歴・⌘⌥↑ / ↓ から）
   const panelRef = useRef<HTMLDivElement>(null);
   // 発言の一覧から、同じ文を入力欄に入れる
@@ -235,7 +240,7 @@ function RunView({
       />
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}
       <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
-      <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} pillDock={pillDock} />
+      <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} compacting={compacting} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} pillDock={pillDock} />
       <div className="run-composer">
         {/*
           同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる）。押して開くピルの列とは役割が違うので、
@@ -290,7 +295,7 @@ function RunView({
               void api.cancelRun(run.id).catch(() => setStopClicked(false));
             })
           }
-          trailing={<ContextMeter run={run} />}
+          trailing={<ContextMeter run={run} compacting={compacting} />}
           suggestTarget={{ projectId: run.project_id, worktree: run.worktree_path || undefined }}
           fillRef={fillComposer}
           history={prompts}

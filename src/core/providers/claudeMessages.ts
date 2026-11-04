@@ -16,9 +16,18 @@ export interface MessageState {
   starts: Map<number, number>;
   /** 終わった思考のかかった時間（届いた順。assistant の思考のブロックに順に割り当てる） */
   durations: number[];
+  /** 会話を圧縮している最中か（Claude Code の status の知らせ） */
+  compacting: boolean;
 }
 
-export const createMessageState = (): MessageState => ({ otherTasks: new Set(), starts: new Map(), durations: [] });
+export const createMessageState = (): MessageState => ({ otherTasks: new Set(), starts: new Map(), durations: [], compacting: false });
+
+/** 圧縮している最中かが変わったときだけ知らせる */
+function setCompacting(state: MessageState, cb: ProviderCallbacks, active: boolean) {
+  if (state.compacting === active) return;
+  state.compacting = active;
+  cb.compacting?.(active);
+}
 
 /** 次の思考のかかった時間（終わりの知らせより先に中身が届いたら、まだ終わっていない最初の思考の始まりから数える） */
 function takeThinkingDuration(state: MessageState, now: number): number | undefined {
@@ -44,7 +53,16 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
       // 会話の要約（手で圧縮したとき・上限に近づいて自動で圧縮されたとき）
       if (msg.subtype === "compact_boundary") {
         const { trigger, pre_tokens, post_tokens } = msg.compact_metadata;
+        setCompacting(state, cb, false);
         cb.emit({ type: "compact", trigger, pre_tokens, ...(post_tokens !== undefined ? { post_tokens } : {}) });
+        return undefined;
+      }
+      // いまの段階（圧縮中・API に問い合わせ中）。圧縮の始まりと終わりを画面に知らせ、失敗したら理由を残す
+      if (msg.subtype === "status") {
+        setCompacting(state, cb, msg.status === "compacting");
+        if (msg.compact_result === "failed") {
+          cb.emit({ type: "notice", message: `会話の圧縮に失敗しました${msg.compact_error ? `（${msg.compact_error}）` : ""}` });
+        }
         return undefined;
       }
       // サブエージェント: 開始と終了は記録し、途中経過（トークン数・直近のツール）は画面にだけ流す。

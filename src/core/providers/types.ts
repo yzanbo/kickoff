@@ -83,6 +83,8 @@ export interface ProviderCallbacks {
   retry?(info: ApiRetryInfo | null): void;
   /** 裏で動いている作業・メインの返答が終わったかが変わったとき（保存しない） */
   background?(state: BackgroundState): void;
+  /** 会話を圧縮（要約）し始めた・終わった（手で圧縮したときも、上限に近づいて自動で圧縮されたときも。保存しない） */
+  compacting?(active: boolean): void;
   /** 作業中のチャットへの操作を渡す（終わったら null） */
   control?(control: RunControl | null): void;
 }

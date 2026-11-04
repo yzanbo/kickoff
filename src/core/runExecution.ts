@@ -24,6 +24,8 @@ export interface ExecutionDeps {
   background?: Map<number, BackgroundState>;
   /** 作業中のチャットへの操作（止めずに発言を足す・裏の作業を止める。Runner が持つ） */
   controls?: Map<number, RunControl>;
+  /** 会話を圧縮している最中のチャットと、圧縮を始めた時刻（チャットの詳細でも返すため、Runner が持つ） */
+  compacting?: Map<number, string>;
 }
 
 /** 待機列の 1 件 */
@@ -88,6 +90,7 @@ export async function executeRun(deps: ExecutionDeps, { runId, prompt, promptId,
     if (run) bus?.publish({ type: "run_retry", project_id: run.project_id, run_id: runId, retry: null });
     deps.controls?.delete(runId);
     if (deps.background?.delete(runId) && run) bus?.publish({ type: "run_background", project_id: run.project_id, run_id: runId, background: null });
+    if (deps.compacting?.delete(runId) && run) bus?.publish({ type: "run_compacting", project_id: run.project_id, run_id: runId, since: null });
   }
 }
 
@@ -120,7 +123,7 @@ function buildRunParams(deps: ExecutionDeps, run: Run, project: Project, cwd: st
 }
 
 /** プロバイダーからの知らせ: 途中経過は配るだけ、イベントは記録、承認依頼は回答を待つ（待つ間は waiting） */
-function callbacksFor({ store, approvals, bus, background, controls }: ExecutionDeps, run: Run, signal: AbortSignal, compact: boolean): ProviderCallbacks {
+function callbacksFor({ store, approvals, bus, background, controls, compacting }: ExecutionDeps, run: Run, signal: AbortSignal, compact: boolean): ProviderCallbacks {
   const runId = run.id;
   const projectId = run.project_id;
   return {
@@ -137,6 +140,12 @@ function callbacksFor({ store, approvals, bus, background, controls }: Execution
     background: (state) => {
       background?.set(runId, state);
       bus?.publish({ type: "run_background", project_id: projectId, run_id: runId, background: state });
+    },
+    compacting: (active) => {
+      const since = active ? new Date().toISOString() : null;
+      if (since) compacting?.set(runId, since);
+      else compacting?.delete(runId);
+      bus?.publish({ type: "run_compacting", project_id: projectId, run_id: runId, since });
     },
     stream: (text) => {
       bus?.publish({ type: "run_delta", project_id: projectId, run_id: runId, text });

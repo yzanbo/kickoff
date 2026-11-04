@@ -65,6 +65,8 @@ interface RunDetail {
   background?: BackgroundState | null;
   /** 停止を頼んで、作業が終わるのを待っているか */
   stopping?: boolean;
+  /** 会話を圧縮している最中なら、始めた時刻 */
+  compacting?: string | null;
 }
 
 interface ImportProjectInput {

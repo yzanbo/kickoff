@@ -37,6 +37,8 @@ class FakeProvider extends FakeProviderBase {
   emits: Parameters<ProviderCallbacks["emit"]>[0][] = [];
   /** 実行の初めに知らせる、裏で動いている作業の様子（裏の作業の表示の確かめに使う） */
   background: BackgroundState | null = null;
+  /** true なら実行の初めに、会話を圧縮し始めたと知らせる（終わりは知らせない。作業の終わりで消えるかの確かめに使う） */
+  compacting = false;
   /** 作業中に足された発言（止めずに伝える）と、止めた裏の作業。acceptTell が false なら足せない（入力が閉じている） */
   told: string[] = [];
   stoppedTasks: string[] = [];
@@ -45,13 +47,14 @@ class FakeProvider extends FakeProviderBase {
   private gate: Promise<void> | null = null;
   /** これがあれば、止められてもすぐには終わらない（サブエージェント・裏のコマンドが終わるのを待つ Claude Code の代わり） */
   slowStop: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "control">, signal: AbortSignal): Promise<ProviderRunResult> {
+  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "control">, signal: AbortSignal): Promise<ProviderRunResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);
     this.resumes.push(params.resumeSessionId);
     this.emits.forEach((event) => cb.emit(event));
     if (this.background) cb.background?.(this.background);
+    if (this.compacting) cb.compacting?.(true);
     cb.control?.({
       tell: (text) => this.acceptTell && Boolean(this.told.push(text)),
       stopTask: async (taskId) => void this.stoppedTasks.push(taskId),

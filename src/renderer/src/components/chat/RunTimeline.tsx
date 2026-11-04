@@ -54,6 +54,7 @@ export function RunTimeline({
   connection,
   waiting,
   stopping,
+  compacting,
   live,
   approvals,
   focus,
@@ -89,6 +90,8 @@ export function RunTimeline({
   waiting: boolean;
   /** 停止を押して、止まるのを待っている */
   stopping: boolean;
+  /** 会話を圧縮している最中 */
+  compacting: boolean;
   live: string;
   approvals: Approval[];
   focus?: number;
@@ -221,7 +224,7 @@ export function RunTimeline({
       : finishedWhileAway
         ? { label: run.status === "failed" ? "失敗しました" : "返答が届きました", tone: run.status === "failed" ? "failed" : "arrived" }
         : busy
-          ? { label: workingLabel(run, lastItem, live, stopping, runningAgents, connection, background, activity), tone: connection.retry ? "offline" : "working" }
+          ? { label: workingLabel(run, lastItem, live, stopping, compacting, runningAgents, connection, background, activity), tone: connection.retry ? "offline" : "working" }
           : { label: RUN_STATUS_LABELS[run.status], tone: run.status === "failed" ? "failed" : "idle" };
 
   return (
@@ -272,7 +275,7 @@ export function RunTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, lastItem, live, stopping, runningAgents, connection, background, activity)}</Working>
+            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, lastItem, live, stopping, compacting, runningAgents, connection, background, activity)}</Working>
           )}
           {/* 裏で動いている作業（1 件ずつ止められる） */}
           {busy && <BackgroundTasks runId={run.id} background={background} agents={agents} onOpen={onOpenSubagent} />}

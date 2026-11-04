@@ -25,6 +25,8 @@ export type BusEvent =
   | { type: "run_retry"; project_id: number; run_id: number; retry: ApiRetryInfo | null }
   /** 裏で動いている作業と、メインの返答が終わったか（null で作業が終わった） */
   | { type: "run_background"; project_id: number; run_id: number; background: BackgroundState | null }
+  /** 会話を圧縮している最中か（since: 圧縮を始めた時刻。null で終わった） */
+  | { type: "run_compacting"; project_id: number; run_id: number; since: string | null }
   /** 停止を頼んで、作業が終わるのを待っているか（false で終わった） */
   | { type: "run_stopping"; project_id: number; run_id: number; stopping: boolean }
   /** 通信が切れて止まり、つながったら自動で再開するのを待っているか（null で待っていない） */

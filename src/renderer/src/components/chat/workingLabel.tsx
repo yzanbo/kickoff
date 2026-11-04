@@ -13,11 +13,13 @@ export interface RunActivity {
   stalled: SubagentEntry[];
 }
 
-/** 作業中の行の文（止めている・通信を再試行している・順番待ち・返答を書いている・ツールを実行中・考えている）と、動きの様子 */
-export function workingLabel(run: Run, last: TimelineItem | undefined, live: string, stopping: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: RunActivity): ReactNode {
+/** 作業中の行の文（止めている・通信を再試行している・順番待ち・会話を圧縮している・返答を書いている・ツールを実行中・考えている）と、動きの様子 */
+export function workingLabel(run: Run, last: TimelineItem | undefined, live: string, stopping: boolean, compacting: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: RunActivity): ReactNode {
   if (stopping) return "停止中…";
   if (connection.retry) return <RetryLabel retry={connection.retry} agents={Math.max(runningAgents, countBackground(background).agents)} />;
   if (run.status === "queued") return "順番を待っています";
+  // 会話を要約して、コンテキストを空けている（手で圧縮した・上限に近づいて自動で。終わると続きを始める）
+  if (compacting) return COMPACTING_LABEL;
   // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
   if (activity.stalled.length > 0) return <StalledAgentsLabel agents={activity.stalled} />;
   const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : undefined;
@@ -40,6 +42,9 @@ export function workingLabel(run: Run, last: TimelineItem | undefined, live: str
     </>
   );
 }
+
+/** 会話を圧縮している間の文（作業中の行・一番下へ戻るボタン・チャット欄のメーター） */
+export const COMPACTING_LABEL = "会話を圧縮しています";
 
 /** 長く動きのないサブエージェントを、作業中の行で知らせる（「サブエージェント『調査』が 12 分動いていません（ほか 1 件）」） */
 function StalledAgentsLabel({ agents }: { agents: SubagentEntry[] }) {

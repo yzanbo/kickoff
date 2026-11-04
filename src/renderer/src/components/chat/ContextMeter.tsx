@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ProviderStatus, Run, UsageWindow } from "../../../../core/types";
 import { api } from "../../api";
 import { cachedLoader } from "../../cachedLoader";
+import { cx } from "../../cx";
 import { errorMessage } from "../../errors";
 import { formatTokens } from "../../format";
 import { useDismiss } from "../../hooks/useDismiss";
@@ -12,6 +13,7 @@ import { ClaudeMark } from "../ClaudeMark";
 import { ErrorText } from "../ErrorText";
 import { RefreshButton } from "../IconButton";
 import { BUSY_STATUSES } from "../RunStatus";
+import { COMPACTING_LABEL } from "./workingLabel";
 
 // ログイン中のアカウントは、アプリ全体で 1 回だけ取得する
 const loadProviders = cachedLoader<ProviderStatus[]>(api.providers, []);
@@ -24,8 +26,9 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
 /**
  * チャット欄の右下の丸いメーター: コンテキストウィンドウの使用率。
  * 押すと、コンテキストの詳細とプランの使用枠を出す（もう一度押す・ポップオーバーの外を押す・Esc で閉じる。マウスを乗せただけでは出さない）。
+ * 会話を圧縮している間（手で圧縮した・上限に近づいて自動で）は、弧を回して知らせる（終わるとコンテキストの大きさが届き、弧が縮む）。
  */
-export function ContextMeter({ run }: { run: Run }) {
+export function ContextMeter({ run, compacting = false }: { run: Run; compacting?: boolean }) {
   const planUsage = useSharedPlanUsage();
   const [open, setOpen] = useState(false);
   const [account, setAccount] = useState<string>();
@@ -49,7 +52,6 @@ export function ContextMeter({ run }: { run: Run }) {
     : [];
 
   // 手で圧縮する（作業中・まだ会話がないときはできない）。終わると compact イベントとコンテキストの大きさが届く
-  const compacting = run.status === "queued" || run.status === "running";
   const canCompact = Boolean(run.session_id) && !BUSY_STATUSES.includes(run.status);
   const [compactError, setCompactError] = useState<string>();
   const compact = async () => {
@@ -66,12 +68,13 @@ export function ContextMeter({ run }: { run: Run }) {
       <button
         type="button"
         className="context-ring-button"
-        aria-label={`コンテキストウィンドウ ${pct}% 使用`}
+        aria-label={compacting ? `${COMPACTING_LABEL}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用`}
+        aria-busy={compacting || undefined}
         aria-expanded={open}
-        title={open ? "閉じる" : "コンテキストと使用枠の詳細を表示"}
+        title={open ? "閉じる" : compacting ? `${COMPACTING_LABEL}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストと使用枠の詳細を表示"}
         onClick={() => setOpen(!open)}
       >
-        <Ring pct={pct} />
+        <Ring pct={pct} compacting={compacting} />
       </button>
       {open && (
         <div className="context-popover" role="dialog" aria-label="コンテキストウィンドウと使用枠">
@@ -161,19 +164,22 @@ function UsageBar({ window: w }: { window: UsageWindow }) {
   );
 }
 
-/** 丸い進み具合（使用率に合わせて弧が伸びる） */
-function Ring({ pct }: { pct: number }) {
+/** 圧縮している間に回す弧の長さ（%） */
+const COMPACTING_ARC = 28;
+
+/** 丸い進み具合（使用率に合わせて弧が伸びる。圧縮している間は、短い弧をアクセントの色で回す（使用率が高いときは弧がほぼ一周で、回しても分かりにくいため）） */
+function Ring({ pct, compacting }: { pct: number; compacting: boolean }) {
   const r = 7;
   const c = 2 * Math.PI * r;
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" className={`context-ring tone-${tone(pct)}`} aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 18 18" className={cx("context-ring", `tone-${tone(pct)}`, compacting && "compacting")} aria-hidden>
       <circle cx="9" cy="9" r={r} className="context-ring-track" />
       <circle
         cx="9"
         cy="9"
         r={r}
         className="context-ring-fill"
-        strokeDasharray={`${(c * pct) / 100} ${c}`}
+        strokeDasharray={`${(c * (compacting ? COMPACTING_ARC : pct)) / 100} ${c}`}
         transform="rotate(-90 9 9)"
       />
     </svg>
