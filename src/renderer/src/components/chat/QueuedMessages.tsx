@@ -143,12 +143,15 @@ export function QueuedMessages({
   const stopLine = (k: number) =>
     stops.includes(k) && (
       <QueuedStopLine
+        at={k}
+        count={queue.length}
         dragging={dnd.drag?.stop === k}
         onDragStart={() => dnd.startStop(k)}
         onDragEnd={dnd.end}
         dropMark={dnd.stopMark(k)}
         onDragOver={(e) => dnd.overStop(e, k)}
         onDrop={dnd.drop}
+        onMove={(to) => void api.setQueueStops(runId, [...stops.filter((x) => x !== k), to]).catch(failed)}
         onRemove={() => void api.setQueueStops(runId, stops.filter((x) => x !== k)).catch(failed)}
       />
     );
