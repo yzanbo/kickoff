@@ -2,8 +2,7 @@ import { randomUUID } from "node:crypto";
 import { executeTurn, type ExecutionDeps, type QueueItem, type TurnOutcome } from "./turn.js";
 import { RunnerQueue } from "./runnerQueue.js";
 import { ChatRuntimes } from "./runtime.js";
-import { ChatReconnect } from "./recovery/reconnect.js";
-import { ChatUsageLimit } from "./recovery/usageLimit.js";
+import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, type StartChatInput } from "./input.js";
 import type { Attachment, Chat, ChatLive, ChatOptionsPatch } from "@shared/types";
 import type { UsageMonitor } from "../usage/planUsage.js";
@@ -15,17 +14,15 @@ import type { UsageMonitor } from "../usage/planUsage.js";
  * チャットごとの作業中の状態（動かしている実行・送信待ちの列・裏の作業・再試行・圧縮中・停止中）は runtime.ts の ChatRuntime に 1 つずつ持ち、
  * 変わったらまとめて画面に配る（SSE の chat_live）。作業中のチャットに送った次の指示は送信待ちの列に入れ、作業が終わったら（止めた・失敗したときも）順に送る。
  * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は turn.ts、
- * 通信が切れて止まったときの再開の段取り（送信待ちを止める・つながったら再開・何度も止まったら聞く）は recovery/
+ * 通信の切断・使用枠の上限で止まったときの再開の段取り（送信待ちを止める・待つ・聞く・再開する）は recovery/
  */
 export class Runner extends RunnerQueue {
   protected readonly runtimes: ChatRuntimes;
   /** アプリを終えるところ（待ちの列を送らない） */
   private shuttingDown = false;
 
-  /** 通信が切れて止まったチャットの再開 */
-  private readonly reconnect: ChatReconnect;
-  /** 使用枠の上限で止まったときの段取り（送信待ちを止め、枠が戻ったら続けるかを聞く。usageLimit.ts） */
-  private readonly usageLimit: ChatUsageLimit;
+  /** 通信の切断・使用枠の上限で止まったあとの再開の段取り */
+  private readonly recovery: ChatRecovery;
 
   constructor(
     private readonly deps: ExecutionDeps & {
@@ -45,30 +42,16 @@ export class Runner extends RunnerQueue {
       bus: deps.bus,
       editTtlMs: deps.editHoldTtlMs,
       onEditsChanged: (chatId) => this.editsChanged(chatId),
-      reconnectOf: (chatId) => this.reconnect.state(chatId),
     });
-    const queueOf = (chatId: number) => this.runtimes.get(chatId).queue;
-    // 止まったときにこちらで止めた送信待ち（通信の切断・使用枠の上限のどちらで止めても 1 つで覚え、続けて別の理由で止まっても引き継ぐ）
-    const heldQueues = new Set<number>();
-    this.reconnect = new ChatReconnect({
+    this.recovery = new ChatRecovery({
       store: deps.store,
       approvals: deps.approvals,
-      queueOf,
-      changed: (chatId) => this.runtimes.publish(chatId),
-      heldQueues,
-      isBusy: (chatId) => this.isBusy(chatId),
-      send: (chatId, text) => this.send(chatId, text),
-      ...deps.reconnect,
-    });
-    this.usageLimit = new ChatUsageLimit({
-      store: deps.store,
-      approvals: deps.approvals,
-      queueOf,
-      heldQueues,
+      runtimes: this.runtimes,
       isBusy: (chatId) => this.isBusy(chatId),
       send: (chatId, text) => this.send(chatId, text),
       usage: deps.usage,
-      ...deps.usageLimit,
+      reconnect: deps.reconnect,
+      usageLimit: deps.usageLimit,
     });
   }
 
@@ -79,7 +62,7 @@ export class Runner extends RunnerQueue {
 
   /** つながったら自動で再開するのをやめる（待っていたら true） */
   stopReconnect(chatId: number): boolean {
-    return this.reconnect.stopWaiting(chatId);
+    return this.recovery.stopWaiting(chatId);
   }
 
   async start(input: StartChatInput): Promise<Chat> {
@@ -169,12 +152,9 @@ export class Runner extends RunnerQueue {
     this.runtimes.forget(chatId);
   }
 
-  /** 自分で送った・チャットを消した: 通信・使用枠の上限で止まったあとの再開の段取り（待つ・聞く）をやめる */
+  /** 自分で送った・チャットを消した: 通信・使用枠の上限で止まったあとの再開の段取り（待つ・聞く）をやめる（再開の段取りが送ったものなら続ける） */
   private forgetRecovery(chatId: number) {
-    // 再開の段取りが送っているところなら、自分で送ったものではない（止めた送信待ちは 1 つで覚えているので、どちらの段取りも忘れない）
-    if (this.reconnect.isResuming(chatId) || this.usageLimit.isResuming(chatId)) return;
-    this.reconnect.forget(chatId);
-    this.usageLimit.forget(chatId);
+    this.recovery.forget(chatId);
   }
 
   /**
@@ -223,8 +203,7 @@ export class Runner extends RunnerQueue {
   /** アプリ終了時: 実行中のエージェントをすべて止める */
   shutdown() {
     this.shuttingDown = true;
-    this.reconnect.shutdown();
-    this.usageLimit.shutdown();
+    this.recovery.shutdown();
     for (const runtime of this.runtimes.running()) runtime.turn?.abort();
   }
 
@@ -243,9 +222,7 @@ export class Runner extends RunnerQueue {
       void this.deps.usage.refresh();
       // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）。
       // 通信が切れた・使用枠の上限で止まったときは送らず、つながる・枠が戻るのを待つ（送っても失敗して消えるため）
-      const network = this.reconnect.finished(item.chatId, outcome);
-      const usage = this.usageLimit.finished(item.chatId, outcome);
-      if (!this.shuttingDown && network && usage) void this.sendNextQueued(item.chatId);
+      if (this.recovery.finished(item.chatId, outcome) && !this.shuttingDown) void this.sendNextQueued(item.chatId);
     }
   }
 }
