@@ -18,7 +18,8 @@
   right: calc(var(--gutter) + 8px);
   left: auto;
   transform: none;
-  border-color: color-mix(in srgb, var(--pill-tone) 45%, var(--border));
+  /* 枠の太さと形もここで決める（流れに浮かせたときの chat.css の .timeline-wrap .scroll-bottom はピルの列に置くと効かず、ボタンの既定の 2px の立体の枠になっていた） */
+  border: 1px solid color-mix(in srgb, var(--pill-tone) 45%, var(--border));
   border-radius: 999px;
   font: inherit;
   font-size: 12px;
