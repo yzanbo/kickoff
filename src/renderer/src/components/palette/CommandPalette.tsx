@@ -1,62 +1,129 @@
-import { FolderGit2, MessageSquare, Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import type { Run } from "../../../../core/types";
+import { Bot, FolderGit2, MessageSquare, Plus, Search, User } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import type { Run, SearchHit } from "../../../../core/types";
 import { api } from "../../api";
 import { chatTitle } from "../../chatTitle";
+import { cx } from "../../cx";
 import { useListNavigation } from "../../hooks/useListNavigation";
 import { useModalDialog } from "../../hooks/useModalDialog";
+import { useSharedList } from "../../hooks/useStoredState";
 import { useProjects } from "../../projectsContext";
 import { navigate, type Route } from "../../router";
+import { COMMAND_PALETTE_TARGETS_KEY } from "../../storageKeys";
 
 interface Item {
   key: string;
-  label: string;
+  label: ReactNode;
+  /** 絞り込みに使う文 */
+  text: string;
   hint: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   route: Route;
 }
 
-/** ⌘K: プロジェクトとチャットを名前で探して移動する */
+/** 探す対象。チャットの中の文言は全文検索（⌘⇧F と同じ API）で、入力したときだけ探す */
+type Target = "project" | "chat" | "message";
+const TARGETS: { value: Target; label: string }[] = [
+  { value: "project", label: "プロジェクト" },
+  { value: "chat", label: "チャット" },
+  { value: "message", label: "チャット内の文言" },
+];
+const DEFAULT_TARGETS: Target[] = ["project", "chat"];
+const isTarget = (t: string): t is Target => TARGETS.some((x) => x.value === t);
+
+/** 全文検索の 1 件を、⌘K の行にする（押すとその発言へ移って強調する） */
+function messageItem(hit: SearchHit, projectName: (id: number) => string): Item {
+  return {
+    key: `m-${hit.event_id}`,
+    label: (
+      <>
+        {hit.snippet.slice(0, hit.match_start)}
+        <mark>{hit.snippet.slice(hit.match_start, hit.match_end)}</mark>
+        {hit.snippet.slice(hit.match_end)}
+      </>
+    ),
+    text: hit.snippet,
+    hint: `${chatTitle(hit.run_title)} · ${projectName(hit.project_id)}`,
+    icon: hit.type === "user" ? <User size={15} aria-label="自分" /> : <Bot size={15} aria-label="AI" />,
+    route: { name: "run", projectId: hit.project_id, runId: hit.run_id, focus: hit.event_id },
+  };
+}
+
+/** チャットの中の文言: 入力が止まったら全文検索する（対象に入れていないときは探さない） */
+function useMessageSearch(query: string, enabled: boolean) {
+  const [hits, setHits] = useState<SearchHit[]>([]);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const q = query.trim();
+    if (!enabled || !q) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    let alive = true;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      api
+        .search(q, {})
+        .then((r) => alive && setHits(r))
+        .catch(() => alive && setHits([]))
+        .finally(() => alive && setSearching(false));
+    }, 200);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [query, enabled]);
+  return { hits, searching };
+}
+
+/** ⌘K: プロジェクトとチャットを名前で（選べばチャットの中の文言でも）探して移動する */
 export function CommandPalette({ onClose }: { onClose: () => void }) {
-  const { projects } = useProjects();
+  const { projects, projectName } = useProjects();
   const [query, setQuery] = useState("");
   const [runs, setRuns] = useState<Run[]>([]);
   const dialog = useModalDialog();
+  // 探す対象（複数選べる。開き直しても覚えておく。1 つは必ず残す）
+  const [stored, setStored] = useSharedList(COMMAND_PALETTE_TARGETS_KEY);
+  const valid = stored.filter(isTarget);
+  const targets = valid.length > 0 ? valid : DEFAULT_TARGETS;
+  const targetKey = targets.join(",");
+  const toggleTarget = (t: Target) => {
+    const next = TARGETS.map((x) => x.value).filter((x) => (x === t ? !targets.includes(t) : targets.includes(x)));
+    if (next.length > 0) setStored(next);
+  };
+  const { hits, searching } = useMessageSearch(query, targets.includes("message"));
 
   useEffect(() => {
     void api.allRuns().then(setRuns).catch(() => {});
   }, []);
 
   const items = useMemo<Item[]>(() => {
-    const names = new Map(projects.map((p) => [p.id, p.name]));
-    const all: Item[] = [
-      ...projects.map((p) => ({
-        key: `new-${p.id}`,
-        label: `${p.name} で新しいチャット`,
-        hint: "新規",
-        icon: <Plus size={15} />,
-        route: { name: "newChat", projectId: p.id } as Route,
-      })),
-      ...projects.map((p) => ({
-        key: `p-${p.id}`,
-        label: p.name,
-        hint: "プロジェクト",
-        icon: <FolderGit2 size={15} />,
-        route: { name: "project", id: p.id, tab: "board" } as Route,
-      })),
-      ...runs.map((r) => ({
-        key: `r-${r.id}`,
-        label: chatTitle(r.title),
-        hint: names.get(r.project_id) ?? "",
-        icon: <MessageSquare size={15} />,
-        route: { name: "run", projectId: r.project_id, runId: r.id } as Route,
-      })),
-    ];
     const q = query.trim().toLowerCase();
-    // 何も入力していないときは、新規作成よりチャットとプロジェクトを先に出す
-    const filtered = q ? all.filter((i) => `${i.label} ${i.hint}`.toLowerCase().includes(q)) : all.filter((i) => !i.key.startsWith("new-"));
-    return filtered.slice(0, 50);
-  }, [projects, runs, query]);
+    const named: Item[] = [];
+    if (targets.includes("project")) {
+      // 新しいチャットはプロジェクトの操作なので、プロジェクトを探していて何か入力したときだけ
+      if (q) {
+        for (const p of projects) {
+          const label = `${p.name} で新しいチャット`;
+          named.push({ key: `new-${p.id}`, label, text: label, hint: "新規", icon: <Plus size={15} />, route: { name: "newChat", projectId: p.id } });
+        }
+      }
+      for (const p of projects) {
+        named.push({ key: `p-${p.id}`, label: p.name, text: p.name, hint: "プロジェクト", icon: <FolderGit2 size={15} />, route: { name: "project", id: p.id, tab: "board" } });
+      }
+    }
+    if (targets.includes("chat")) {
+      for (const r of runs) {
+        const title = chatTitle(r.title);
+        named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), icon: <MessageSquare size={15} />, route: { name: "run", projectId: r.project_id, runId: r.id } });
+      }
+    }
+    const filtered = q ? named.filter((i) => `${i.text} ${i.hint}`.toLowerCase().includes(q)) : named;
+    // 名前で見つかったものを先に、続けてチャットの中の文言（それぞれ 50 件まで）
+    return [...filtered.slice(0, 50), ...hits.map((h) => messageItem(h, projectName))];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, runs, query, hits, targetKey, projectName]);
 
   function go(item: Item | undefined) {
     if (!item) return;
@@ -64,25 +131,43 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     navigate(item.route);
   }
   const nav = useListNavigation(items, go);
-  useEffect(() => nav.setIndex(0), [query]);
+  useEffect(() => nav.setIndex(0), [query, targetKey]);
 
+  const placeholder = `${TARGETS.filter((t) => targets.includes(t.value))
+    .map((t) => t.label)
+    .join("・")}を検索`;
   return (
     <dialog ref={dialog.ref} className="palette" onClose={onClose} {...dialog.backdropProps}>
       <div className="palette-input">
         <Search size={16} className="muted" />
-        <input
-          autoFocus
-          value={query}
-          placeholder="チャット・プロジェクトを検索"
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={nav.onKeyDown}
-        />
+        <input autoFocus value={query} placeholder={placeholder} onChange={(e) => setQuery(e.target.value)} onKeyDown={nav.onKeyDown} />
+        {searching && <span className="spinner" aria-label="検索中" />}
+      </div>
+      {/* 探す対象（複数選べる。押すたびに付け外し。⌘⇧A のプロジェクトの絞り込みと同じピル） */}
+      <div className="palette-filters">
+        <div className="palette-projects" role="group" aria-label="探す対象">
+          {TARGETS.map((t) => {
+            const on = targets.includes(t.value);
+            return (
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={on}
+                className={cx("palette-project", on && "active")}
+                title={on ? (targets.length > 1 ? `${t.label}を探す対象から外す` : "探す対象は 1 つ以上選びます") : `${t.label}も探す`}
+                onClick={() => toggleTarget(t.value)}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <ul className="palette-list" role="listbox">
-        {items.length === 0 && <li className="palette-empty">見つかりません</li>}
+        {items.length === 0 && !searching && <li className="palette-empty">見つかりません</li>}
         {items.map((item, i) => (
           <li key={item.key} role="option" aria-selected={i === nav.index}>
-            <button className={`palette-item ${i === nav.index ? "active" : ""}`} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
+            <button className={cx("palette-item", i === nav.index && "active")} onMouseEnter={() => nav.setIndex(i)} onClick={() => go(item)}>
               {item.icon}
               <span className="palette-label">{item.label}</span>
               <span className="palette-hint">{item.hint}</span>
