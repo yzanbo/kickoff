@@ -40,7 +40,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
     .filter(tagFilter.matches)
     .reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
   // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
-  const selection = useChatSelectionState(new Set(Object.values(chats).flatMap((list) => list.map((r) => r.id))));
+  const selection = useChatSelectionState(Object.values(chats).flatMap((list) => list.map((r) => r.id)));
   // ↑↓ でチャットを移る（サイドバーにピントがあるとき。Enter で開く。Shift を押しながらで選ぶものに足す）
   useWindowEvent("keydown", (e) => {
     if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.metaKey || e.altKey || e.ctrlKey) return;

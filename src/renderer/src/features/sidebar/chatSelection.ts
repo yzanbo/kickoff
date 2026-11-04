@@ -1,16 +1,17 @@
 import { createContext, useContext, useState } from "react";
 import type { Placement } from "@/lib/floating";
+import { useMultiSelect } from "@/hooks/useMultiSelect";
 
 /**
- * サイドバーで選んだチャット（⌘ を押しながらクリックで足す・外す、Shift で前に選んだものからの範囲。ふつうのクリックで解く）。
+ * サイドバーで選んだチャット（決まりは useMultiSelect: ⌘ を押しながらクリックで足す・外す、Shift で前に選んだものからの範囲を足す。
+ * ふつうのクリックで解く。範囲は画面の並び順）。
  * 選んだものは、下のまとめて操作する欄（SelectionBar）と右クリックのメニューで、まとめてアーカイブ・移動・既読・削除する
  */
 export interface ChatSelection {
-  ids: Set<number>;
+  ids: ReadonlySet<number>;
   has: (id: number) => boolean;
-  toggle: (id: number) => void;
-  /** 前に選んだもの（なければこれだけ）からこれまでを、画面の並び順で選ぶ */
-  range: (id: number) => void;
+  /** 行のクリック（⌘ / Shift なら選んで true。修飾キーがなければ選ぶのをやめて false） */
+  click: (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }, id: number) => boolean;
   /** 選んでいるものに足す（キーボードの Shift+↑↓） */
   add: (id: number) => void;
   clear: () => void;
@@ -31,44 +32,16 @@ export const visibleRows = () =>
 const rowIds = () => visibleRows().map((el) => Number(el.dataset.chatId));
 
 /** 選んでいる状態（existing: いまあるチャット。消えたものは選択から外す） */
-export function useChatSelectionState(existing: Set<number>): ChatSelection {
-  const [picked, setPicked] = useState<Set<number>>(new Set());
-  const [anchor, setAnchor] = useState<number | null>(null);
+export function useChatSelectionState(existing: readonly number[]): ChatSelection {
+  const select = useMultiSelect(existing, rowIds);
   const [menuAt, setMenuAt] = useState<Placement | null>(null);
-  const ids = new Set([...picked].filter((id) => existing.has(id)));
   return {
-    ids,
-    has: (id) => ids.has(id),
-    toggle: (id) => {
-      // 続けて押しても取りこぼさないよう、いまの値から足す・外す
-      setPicked((prev) => {
-        const next = new Set([...prev].filter((x) => existing.has(x)));
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        return next;
-      });
-      setAnchor(id);
-    },
-    range: (id) => {
-      const order = rowIds();
-      const from = anchor !== null ? order.indexOf(anchor) : -1;
-      const to = order.indexOf(id);
-      if (from < 0 || to < 0) {
-        setPicked(new Set([id]));
-        setAnchor(id);
-        return;
-      }
-      const [a, b] = from < to ? [from, to] : [to, from];
-      setPicked(new Set([...ids, ...order.slice(a, b + 1)]));
-    },
-    add: (id) => {
-      // 続けて呼んでも取りこぼさないよう、いまの値に足す
-      setPicked((prev) => new Set([...[...prev].filter((x) => existing.has(x)), id]));
-      if (anchor === null) setAnchor(id);
-    },
+    ids: select.ids,
+    has: select.has,
+    click: select.click,
+    add: select.add,
     clear: () => {
-      if (ids.size > 0) setPicked(new Set());
-      setAnchor(null);
+      select.clear();
       setMenuAt(null);
     },
     openMenu: setMenuAt,
