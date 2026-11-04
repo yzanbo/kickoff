@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { CHAT_STATUS_LABELS } from "@/features/chat/chatStatus";
 import { useSetting } from "@/hooks/useSetting";
 import { useTicker } from "@/hooks/useTicker";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
+import type { Approval, Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, latestOf, stalledAgents } from "@/features/chat/status/stall";
 import { lastResultIdOf, workingLabel, type ChatActivity } from "@/features/chat/status/workingLabel";
@@ -12,7 +12,8 @@ import { Markdown } from "@/ui/markdown/Markdown";
 import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
 import { ReconnectRow } from "@/features/chat/status/ConnectionStatus";
 import { jumpToEvent } from "./jumpToEvent";
-import { promptAttachments, readingPrompt, StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
+import { readingPrompt, StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
+import { promptListOf } from "@/features/chat/prompts/promptHistory";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
@@ -28,6 +29,8 @@ const LOAD_AHEAD_MIN_PX = 600;
 
 /** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない） */
 const BOTTOM_SLACK_PX = 80;
+
+const NO_ATTACHMENTS: Attachment[] = [];
 
 /**
  * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
@@ -113,9 +116,10 @@ export function ChatTimeline({
   // （見出しの行のボタン・設定の「表示」で出さないこともできる）
   const [stickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
-  const pinnedAttachments = useMemo(() => (pinned ? promptAttachments(events, pinned.id) : []), [pinned, events]);
-  // 自分の指示の並び（帯の ↑ / ↓ を押せるか）
-  const promptIds = useMemo(() => events.filter((e) => e.type === "user").map((e) => e.id), [events]);
+  // 自分の指示の並び（帯の ↑ / ↓ を押せるか）と、貼り付けた指示の添付
+  const prompts = promptListOf(events);
+  const promptIds = prompts.ids;
+  const pinnedAttachments = (pinned && prompts.byId.get(pinned.id)?.attachments) || NO_ATTACHMENTS;
   const pinnedAt = pinned ? promptIds.indexOf(pinned.id) : -1;
   // 読んでいる指示を確かめ直す（同じ発言のままなら前の値を残し、スクロールのたびに描き直さない）
   const updatePinned = () => {

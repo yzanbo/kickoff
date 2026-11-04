@@ -18,7 +18,7 @@ import { SubagentChip, useSubagents } from "@/features/chat/subagents/Subagents"
 import { QueuedMessages } from "@/features/chat/queue/QueuedMessages";
 import { TodoChip } from "@/features/chat/status/TodoChip";
 import { OpenSubagentContext } from "@/features/chat/tools/ToolGroup";
-import { promptEntries, userPrompts } from "@/features/chat/prompts/promptHistory";
+import { promptListOf } from "@/features/chat/prompts/promptHistory";
 import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems";
 import { useChatDetail } from "./useChatDetail";
 import { PanelTop, TriangleAlert } from "lucide-react";
@@ -122,10 +122,8 @@ function ChatView({
   // 一番下を見ているか（送ったら true に戻し、新しい発言に合わせてスクロールする）
   const stickToBottom = useRef(true);
   const items = useMemo(() => groupEvents(events), [events]);
-  // チャット欄の ↑ で呼び出す、前に送った自分の発言
-  const prompts = useMemo(() => userPrompts(events), [events]);
-  // 自分の指示の一覧（⌘⌥↑ / ↓ で移る）
-  const entries = useMemo(() => promptEntries(events), [events]);
+  // 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓ で移る・チャット欄の ↑ で前に送った発言を呼び出す。記録が変わったときだけ作り直す）
+  const prompts = promptListOf(events);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
   const repoPath = project?.repo_path;
   const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
@@ -162,7 +160,7 @@ function ChatView({
     if (jumpTarget !== null && panelRef.current && jumpToEvent(panelRef.current, jumpTarget)) setJumpTarget(null);
   }, [jumpTarget, timeline.visible]);
   // ⌘⌥↑ / ↓ で前後の指示へ
-  const promptNav = usePromptKeys(panelRef, entries, jump);
+  const promptNav = usePromptKeys(panelRef, prompts.ids, jump);
   // 自分の発言を書き直して送り直す（作業中はできない）。送る設定は最新のものを使い、値（context）は作業中かが変わるときだけ作り直す（memo を保つ）
   const rewindOptions = useRef(options.options);
   rewindOptions.current = options.options;
@@ -235,7 +233,7 @@ function ChatView({
         )}
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
-          <PromptsChip events={events} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
+          <PromptsChip prompts={prompts.entries} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
           <TodoChip events={events} />
           <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
           {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
@@ -279,7 +277,7 @@ function ChatView({
           trailing={<ContextMeter chat={chat} compacting={live.compacting !== null} />}
           suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path || undefined }}
           fillRef={fillComposer}
-          history={prompts}
+          history={prompts.recalls}
           draft={chatDraft(chat.id)}
         />
       </div>

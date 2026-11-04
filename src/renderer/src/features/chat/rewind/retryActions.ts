@@ -1,5 +1,6 @@
 // 失敗した作業の直す操作（続きから・深さを下げて・別のモデルで・巻き戻して再試行）の判定（純粋関数）
-import { EFFORT_LEVELS, type EffortLevel, type ChatEvent, type ChatEventOf } from "@shared/types";
+import { EFFORT_LEVELS, type EffortLevel, type ChatEvent } from "@shared/types";
+import { promptBefore, promptListOf } from "@/features/chat/prompts/promptHistory";
 
 /** 直す操作を出す失敗の作業: いちばん新しい作業の終わりが失敗で、そのあと発言していないもの（その作業の終わりの記録と、元の自分の発言） */
 export interface FailedTurn {
@@ -19,8 +20,8 @@ export function failedTurnOf(events: ChatEvent[]): FailedTurn | undefined {
     if (e.type !== "result") continue;
     // 通信の切断・使用枠の上限で止まったものは、それぞれの仕組み（つながったら再開・枠が戻ったら聞く）に任せる
     if (e.data.status !== "failed" || e.data.network || e.data.usage_limit) return undefined;
-    const prompt = events.slice(0, i).reverse().find((x): x is ChatEventOf<"user"> => x.type === "user");
-    return { resultId: e.id, ...(prompt ? { prompt: { eventId: prompt.id, text: prompt.data.text } } : {}) };
+    const prompt = promptBefore(promptListOf(events), e.id);
+    return { resultId: e.id, ...(prompt ? { prompt: { eventId: prompt.id, text: prompt.text } } : {}) };
   }
   return undefined;
 }

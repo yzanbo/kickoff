@@ -1,17 +1,16 @@
 import { useRef, type RefObject } from "react";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { adjacentPrompt, promptTops } from "./promptNav";
-import type { PromptEntry } from "./promptHistory";
 
 /**
  * 前後の自分の指示へ移る: ⌘⌥↑ / ↓（このチャットにピントがあるときだけ。縦スライドのプロジェクトの切り替えより先に受け取る）と、
  * 上に貼り付けた指示の帯の ↑ / ↓（`go` を返す）。前に移った先がまだ画面に見えていれば、その前後へ（いちばん下で上端まで送れない指示でも先へ進める）。
  * なければ、帯からは貼り付けた指示の前後へ、キーからは位置で決める
  */
-export function usePromptKeys(root: RefObject<HTMLElement | null>, prompts: PromptEntry[], onJump: (eventId: number) => void) {
+export function usePromptKeys(root: RefObject<HTMLElement | null>, promptIds: number[], onJump: (eventId: number) => void) {
   const lastJump = useRef<number>(undefined);
   const idsRef = useRef<number[]>([]);
-  idsRef.current = prompts.map((p) => p.id);
+  idsRef.current = promptIds;
   /** dir の向きの指示へ移る（from: 貼り付けた指示。その前後へ移る。省けば位置で決める） */
   const go = (dir: -1 | 1, from?: number) => {
     const timeline = root.current?.querySelector<HTMLElement>(".timeline");

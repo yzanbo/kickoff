@@ -1,20 +1,62 @@
-import type { ChatEvent, ChatEventOf } from "@shared/types";
+import type { Attachment, ChatEvent, ChatEventOf } from "@shared/types";
 
 /**
- * チャット欄の ↑↓ で呼び出す、前に送った自分の発言。
+ * 自分の指示（発言）の一覧と、チャット欄の ↑↓ で前に送った発言を呼び出す決まり。
+ * 一覧は記録から promptListOf で 1 回だけ作り、指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・↑↓ の呼び出し・失敗した作業の巻き戻しで共通に使う。
  * 判定はここの純粋関数に集め、Composer は usePromptHistory からキーを渡すだけにする
  */
 
-/** チャットのイベントから、自分の発言を新しい順に（文のない添付だけの発言は除き、続けて同じ文は 1 つにまとめる） */
-export function userPrompts(events: ChatEvent[]): string[] {
-  const prompts: string[] = [];
-  for (const e of events) {
-    if (e.type !== "user") continue;
-    const text = e.data.text.trim();
-    if (!text || prompts[prompts.length - 1] === text) continue;
-    prompts.push(text);
-  }
-  return prompts.reverse();
+/** 自分の指示の一覧の 1 行 */
+export interface PromptEntry {
+  /** 記録の ID */
+  id: number;
+  /** 送った文（前後の空白を除く。添付だけなら空） */
+  text: string;
+  /** 一覧に出す名前（文。添付だけならファイル名） */
+  label: string;
+  at: string;
+  attachments: Attachment[];
+}
+
+/** 記録から作った自分の指示の一覧 */
+export interface PromptList {
+  /** 会話の順 */
+  entries: PromptEntry[];
+  /** 記録の ID の並び（会話の順） */
+  ids: number[];
+  /** 記録の ID → 指示 */
+  byId: ReadonlyMap<number, PromptEntry>;
+  /** チャット欄の ↑↓ で呼び出す文（新しい順。文のない添付だけの指示は除き、続けて同じ文は 1 つにまとめる） */
+  recalls: string[];
+}
+
+const NO_ATTACHMENTS: Attachment[] = [];
+
+// 記録の配列ごとの一覧（記録が増える・消えるたびに配列が替わるので、そのときだけ作り直す。読む所がいくつあっても 1 回）
+const lists = new WeakMap<readonly ChatEvent[], PromptList>();
+
+/** チャットの記録から、自分の指示の一覧（同じ記録の配列なら、作り直さずに同じものを返す） */
+export function promptListOf(events: readonly ChatEvent[]): PromptList {
+  const hit = lists.get(events);
+  if (hit) return hit;
+  const entries = events
+    .filter((e): e is ChatEventOf<"user"> => e.type === "user")
+    .map((e): PromptEntry => {
+      const data = e.data;
+      const text = data.text.trim();
+      const attachments = data.attachments ?? NO_ATTACHMENTS;
+      return { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments };
+    });
+  const recalls: string[] = [];
+  for (const p of entries) if (p.text && recalls[recalls.length - 1] !== p.text) recalls.push(p.text);
+  const list: PromptList = { entries, ids: entries.map((p) => p.id), byId: new Map(entries.map((p) => [p.id, p])), recalls: recalls.reverse() };
+  lists.set(events, list);
+  return list;
+}
+
+/** その記録より前の、いちばん新しい自分の指示（その作業を始めた指示。なければ undefined） */
+export function promptBefore(list: PromptList, eventId: number): PromptEntry | undefined {
+  return list.entries.findLast((p) => p.id < eventId);
 }
 
 export interface HistoryInput {
@@ -60,25 +102,4 @@ export function historyMove({ key, prompts, index, text, selectionStart, selecti
   // いちばん新しい発言を越えたら、呼び出す前の空の入力欄に戻す
   const restored = next >= 0 ? prompts[next] : "";
   return { index: next, text: restored, caret: restored.length };
-}
-
-/** 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓）の 1 行 */
-export interface PromptEntry {
-  id: number;
-  /** 送った文（添付だけなら空） */
-  text: string;
-  /** 一覧に出す名前（文。添付だけならファイル名） */
-  label: string;
-  at: string;
-}
-
-/** チャットのイベントから、自分の指示を会話の順に */
-export function promptEntries(events: ChatEvent[]): PromptEntry[] {
-  return events
-    .filter((e): e is ChatEventOf<"user"> => e.type === "user")
-    .map((e) => {
-      const data = e.data;
-      const text = data.text.trim();
-      return { id: e.id, text, label: text || (data.attachments ?? []).map((a) => a.name).join("、"), at: e.created_at };
-    });
 }
