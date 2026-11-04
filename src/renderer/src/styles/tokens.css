@@ -10,6 +10,8 @@
   --bg-active: #434645; /* surface3: 自分の吹き出し・選択中 */
   --border: #252b2a;
   --border-strong: #2f3534; /* borderAccent */
+  /* 中のまとまりを分ける濃い区切り線（送信待ちとチャット欄・AI からの質問どうし）。文字の色から作るので、ライトでもそのまま濃く見える */
+  --divider-strong: color-mix(in srgb, var(--text) 30%, transparent);
   --text: #fafafa;
   --muted: #a1a5a4;
   --extra-muted: #717574;

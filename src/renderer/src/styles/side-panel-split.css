@@ -38,7 +38,7 @@
 
 /* 送信待ちとつなげた入力欄は、上の辺を区切り線のままにする（queued.css） */
 .split-view > .panel-tab-page.pane-focused .queued-messages + .composer {
-  border-top-color: var(--border);
+  border-top-color: var(--divider-strong);
 }
 
 .split-view > .panel-tab-page {
