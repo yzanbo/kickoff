@@ -1,4 +1,4 @@
-import { createLucideIcon } from "lucide-react";
+import { createLucideIcon, MoveHorizontal } from "lucide-react";
 import { useEffect, useState, type RefObject } from "react";
 import { cx } from "../../cx";
 import { useSharedFlag } from "../../hooks/useStoredState";
@@ -9,14 +9,14 @@ import { IconButton } from "../IconButton";
 const TEXT_MAX_WIDTH = 820;
 
 /**
- * 文の幅のアイコン: 左右に矢印の付いた文の行（パネルの「横幅いっぱい」の ⇔ と形を分ける。パネルの大きさではなく、中の文の幅を変えるため）
+ * 文の幅を標準に戻すアイコン: 真ん中へ向かう左右の矢印（広げるときの MoveHorizontal ↔ を内向きにした形。
+ * パネルの「横幅いっぱい」の FoldHorizontal（真ん中の点線付き）と形を分ける）
  */
-const TextWidth = createLucideIcon("text-width", [
-  ["path", { d: "M8 7h8", key: "l1" }],
-  ["path", { d: "M8 12h8", key: "l2" }],
-  ["path", { d: "M8 17h5", key: "l3" }],
-  ["path", { d: "m5 9-3 3 3 3", key: "al" }],
-  ["path", { d: "m19 9 3 3-3 3", key: "ar" }],
+const MoveHorizontalIn = createLucideIcon("move-horizontal-in", [
+  ["path", { d: "M2 12h8", key: "ll" }],
+  ["path", { d: "m6 8 4 4-4 4", key: "al" }],
+  ["path", { d: "M22 12h-8", key: "lr" }],
+  ["path", { d: "m18 8-4 4 4 4", key: "ar" }],
 ]);
 
 /** 文の幅を広げるか（設定の「表示」→「チャットの文の幅」と同じ値。どのチャットでも同じ） */
@@ -44,7 +44,7 @@ export function TextWidthToggle({ panel }: { panel: RefObject<HTMLElement | null
   const label = wide ? "文の幅を標準に戻す" : "文の幅を広げる";
   return (
     <IconButton
-      icon={TextWidth}
+      icon={wide ? MoveHorizontalIn : MoveHorizontal}
       size={14}
       label={label}
       title={roomy ? label : "パネルが狭いため変わりません"}
