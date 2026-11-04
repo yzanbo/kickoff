@@ -57,6 +57,14 @@ export function QuestionCard({ approval }: { approval: Approval }) {
     else setStep(current + 1);
   };
 
+  /** 「その他」を選ぶ（選んでいなければ。1 つ選ぶ質問ではほかの選択を外す） */
+  const pickOther = (q: Question) =>
+    setSelected((prev) => {
+      const before = prev[q.question] ?? [];
+      if (before.includes(OTHER)) return prev;
+      return { ...prev, [q.question]: q.multiSelect ? [...before, OTHER] : [OTHER] };
+    });
+
   const toggle = (q: Question, label: string, index: number) => {
     const before = selected[q.question] ?? [];
     const after = !q.multiSelect ? [label] : before.includes(label) ? before.filter((l) => l !== label) : [...before, label];
@@ -131,7 +139,8 @@ export function QuestionCard({ approval }: { approval: Approval }) {
           <div key={q.question} className="question" role="group" aria-labelledby={`${approval.id}-q${index}`} hidden={folded || (stepped && index !== current)}>
             <div className="question-title" id={`${approval.id}-q${index}`}>
               {!stepped && questions.length > 1 && <span className="question-number">{index + 1}</span>}
-              {!stepped && <span className="question-header">{q.header}</span>}
+              {/* 見出し（短い名前）は質問が 1 つのときだけ。1 問ずつは上の並び、すべては番号で足りる */}
+              {questions.length === 1 && q.header && <span className="question-header">{q.header}</span>}
               <span className="question-text">{q.question}</span>
             </div>
             <div className="question-options">
@@ -167,7 +176,11 @@ export function QuestionCard({ approval }: { approval: Approval }) {
                     value={other[q.question] ?? ""}
                     onFocus={() => !picked.includes(OTHER) && toggle(q, OTHER, index)}
                     onChange={(text) => setOther((prev) => ({ ...prev, [q.question]: text }))}
-                    onFiles={(files) => setOtherFiles((prev) => ({ ...prev, [q.question]: files }))}
+                    onFiles={(files) => {
+                    setOtherFiles((prev) => ({ ...prev, [q.question]: files }));
+                    // ドラッグで添付したとき（欄に入らずに添付した）も「その他」を選ぶ（選ばないと添付が回答に入らない）
+                    if (files.attachments.length > 0 || files.uploading) pickOther(q);
+                  }}
                     // 1 問ずつなら次の質問へ（最後なら回答）、すべて並べているなら回答
                     onSubmit={stepped ? next : answer}
                 />
