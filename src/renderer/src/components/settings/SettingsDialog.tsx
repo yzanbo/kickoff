@@ -107,7 +107,7 @@ function DisplaySettings() {
             ]}
           />
         </Field>
-        <Field label="チャットの横幅" help="広くすると、発言の流れとチャット欄を欄の横幅いっぱいまで広げます。">
+        <Field label="チャットの横幅" help="広くすると、発言の流れとチャット欄を欄の横幅いっぱいまで広げます。チャットの見出しの ↔ でも切り替えられます。">
           <Segmented<"normal" | "wide">
             className="segmented theme-switch"
             label="チャットの横幅"

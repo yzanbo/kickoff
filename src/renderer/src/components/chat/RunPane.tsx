@@ -23,7 +23,7 @@ import { OpenSubagentContext } from "./ToolGroup";
 import { promptEntries, userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
-import { PanelTop, TriangleAlert } from "lucide-react";
+import { MoveHorizontal, PanelTop, TriangleAlert } from "lucide-react";
 import { IconButton } from "../IconButton";
 import { cx } from "../../cx";
 import { ChatFind } from "./ChatFind";
@@ -155,7 +155,7 @@ function RunView({
   // ⌘F でこのチャットの中の検索欄（見出しの行にいつもある）にピントを移す（ピントがこのチャットにあるとき）
   useChatFindKey(panelRef);
   // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
-  const [wide] = useSharedFlag(CHAT_WIDE_KEY);
+  const [wide, setWide] = useSharedFlag(CHAT_WIDE_KEY);
   // 上に置く指示の帯を出さないか（見出しの行のボタンと設定の「表示」で切り替える。どのチャットでも同じ）
   const [stickyHidden, setStickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
@@ -204,11 +204,16 @@ function RunView({
         run={run}
         project={project}
         tools={
-          /*
-            このチャットの中の検索欄（いつも見出しの行にあり、⌘F でここにピントが入る）。横幅（標準 / 横幅いっぱい）は設定の「表示」で選ぶ
-            （以前は見出しに ↔ を置いていたが、パネルの横幅いっぱいの ↔ と紛らわしく、ふつうの幅のパネルでは押しても変わらなかった）
-          */
           <>
+          {/* 発言の流れとチャット欄を、標準の幅（読みやすい幅）と欄の横幅いっぱいで切り替える（設定の「表示」と同じ値。どのチャットでも同じ） */}
+          <IconButton
+            icon={MoveHorizontal}
+            size={13}
+            label={wide ? "チャットの横幅を標準に戻す" : "チャットを横幅いっぱいに広げる"}
+            aria-pressed={wide}
+            className={cx(wide && "active")}
+            onClick={() => setWide(!wide)}
+          />
           {/* 上に置く指示の帯の表示・非表示（出しているかは色で示す） */}
           <IconButton
             icon={PanelTop}
@@ -218,6 +223,7 @@ function RunView({
             className={cx("run-sticky-toggle", !stickyHidden && "on")}
             onClick={() => setStickyHidden(!stickyHidden)}
           />
+          {/* このチャットの中の検索欄（いつも見出しの行にあり、⌘F でここにピントが入る） */}
           <ChatFind
             root={panelRef}
             items={items}
