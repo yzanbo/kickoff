@@ -161,7 +161,7 @@
   padding: 4px var(--gutter) var(--gutter);
 }
 
-/* 左端の幅を変えるつまみ。上に貼り付く自分の指示（z-index 2）・チャットの目次（4）より上に置き、乗せたときの線を隠さない */
+/* 左端の幅を変えるつまみ。上に貼り付く自分の指示（z-index 2）より上に置き、乗せたときの線を隠さない */
 .panel-resizer {
   position: absolute;
   top: 0;

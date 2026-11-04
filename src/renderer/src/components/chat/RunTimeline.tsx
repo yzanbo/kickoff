@@ -59,7 +59,6 @@ export function RunTimeline({
   stickToBottom,
   events,
   visible,
-  children,
 }: {
   items: TimelineItem[];
   /** 流れ全体の最後の項目（窓で途中を描いていても、作業中の文はいまの状態で決める） */
@@ -95,8 +94,6 @@ export function RunTimeline({
   events: RunEvent[];
   /** チャットを表示しているか（パネルの裏のタブ・閉じたパネルは見ていない） */
   visible: boolean;
-  /** 流れの上に重ねるもの（右端の指示の目次） */
-  children?: ReactNode;
 }) {
   const timelineRef = useRef<HTMLDivElement>(null);
   // 一番下から離れているか（一番下へ戻るボタンを出す）
@@ -269,7 +266,6 @@ export function RunTimeline({
           )}
         </div>
       </div>
-      {children}
       {pinned && (
         <StickyPrompt
           text={pinned.text}

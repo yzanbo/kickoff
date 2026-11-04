@@ -28,7 +28,7 @@ import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
 import { PromptsChip } from "./PromptsChip";
-import { PromptRail } from "./PromptRail";
+import { usePromptKeys } from "./usePromptKeys";
 import { jumpToEvent } from "./jumpToEvent";
 import { useTimelineWindow } from "./useTimelineWindow";
 import { RewindContext } from "./MessageItems";
@@ -130,7 +130,7 @@ function RunView({
   const items = useMemo(() => groupEvents(events), [events]);
   // チャット欄の ↑ で呼び出す、前に送った自分の発言
   const prompts = useMemo(() => userPrompts(events), [events]);
-  // チャットの目次（流れの右端）に並べる指示
+  // 自分の指示の一覧（⌘⌥↑ / ↓ で移る）
   const entries = useMemo(() => promptEntries(events), [events]);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
   const repoPath = project?.repo_path;
@@ -147,7 +147,7 @@ function RunView({
     if (!busy) setStopClicked(false);
   }, [busy]);
   const stopping = busy && (stopClicked || stopRequested);
-  // チャットの中の検索を開いているか・発言へ移る（目次から）
+  // チャットの中の検索を開いているか・発言へ移る（指示の履歴・⌘⌥↑ / ↓ から）
   const panelRef = useRef<HTMLDivElement>(null);
   // 発言の一覧から、同じ文を入力欄に入れる
   const fillComposer = useRef<ComposerFill | null>(null);
@@ -168,6 +168,8 @@ function RunView({
   useEffect(() => {
     if (jumpTarget !== null && panelRef.current && jumpToEvent(panelRef.current, jumpTarget)) setJumpTarget(null);
   }, [jumpTarget, timeline.visible]);
+  // ⌘⌥↑ / ↓ で前後の指示へ
+  usePromptKeys(panelRef, entries, jump);
   // 自分の発言を書き直して送り直す（作業中はできない）。送る設定は最新のものを使い、値（context）は作業中かが変わるときだけ作り直す（memo を保つ）
   const rewindOptions = useRef(options.options);
   rewindOptions.current = options.options;
@@ -226,9 +228,7 @@ function RunView({
           onClose={() => setFinding(false)}
         />
       )}
-      <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible}>
-        <PromptRail root={panelRef} prompts={entries} onJump={jump} />
-      </RunTimeline>
+      <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
       <div className="run-composer">
         {/*
           同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる）。押して開くピルの列とは役割が違うので、

@@ -62,7 +62,7 @@ export function historyMove({ key, prompts, index, text, selectionStart, selecti
   return { index: next, text: restored, caret: restored.length };
 }
 
-/** 自分の指示の一覧（指示の履歴・チャットの目次）の 1 行 */
+/** 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓）の 1 行 */
 export interface PromptEntry {
   id: number;
   /** 送った文（添付だけなら空） */
