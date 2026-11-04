@@ -1,4 +1,4 @@
-// API のテスト: 認証・本文の読み取り・リアルタイム配信（SSE）・サーバーの停止・画面の配信。ほかの領域は server.<領域>.test.ts（共通の準備は testing/testServer.ts）
+// API のテスト: 認証・本文の読み取り・URL の :id の引き当て・リアルタイム配信（SSE）・サーバーの停止・画面の配信。ほかの領域は server.<領域>.test.ts（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -33,6 +33,19 @@ test("本文が JSON として読めない・必須の本文が空なら 400（�
   assert.equal((await empty.json()).error, "入力が正しくありません");
   // 省ける項目だけの本文は、空でも受け付ける
   assert.equal((await send("PUT", "/api/settings", "")).status, 200);
+});
+
+test("URL の :id は正の整数でなければ 400（クエリの ID と同じ）、なければ 404。どのルートも同じ引き当て", async () => {
+  const { call, project } = setup();
+  for (const url of ["/api/projects/abc", "/api/projects/1.5", "/api/projects/0", "/api/chats/x", "/api/projects/abc/git/status", "/api/projects/-1/chats"]) {
+    assert.deepEqual(await call("GET", url), { status: 400, body: { error: "ID の指定が正しくありません" } }, url);
+  }
+  assert.equal((await call("PATCH", "/api/groups/x", { name: "g" })).status, 400);
+  assert.equal((await call("POST", "/api/chats/x/queue", { text: "a" })).status, 400);
+  assert.deepEqual(await call("GET", "/api/projects/999/git/status"), { status: 404, body: { error: "プロジェクトが見つかりません" } });
+  assert.deepEqual(await call("DELETE", "/api/groups/999"), { status: 404, body: { error: "グループが見つかりません" } });
+  assert.deepEqual(await call("POST", "/api/chats/999/cancel"), { status: 404, body: { error: "チャットが見つかりません" } });
+  assert.equal((await call("GET", `/api/projects/${project.id}`)).status, 200);
 });
 
 test("リアルタイム配信（SSE）は、つないだらすぐ最初の行を送る", async () => {

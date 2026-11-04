@@ -15,16 +15,18 @@ import type { ApprovalCenter } from "../chat/approvals.js";
 import type { Runner } from "../chat/runner.js";
 import type { UploadStore } from "../chat/uploads.js";
 import type { VoiceService } from "../voice/service.js";
-import { agentRoutes } from "./routes/agents.js";
+import { approvalRoutes } from "./routes/approvals.js";
+import { chatRoutes } from "./routes/chats.js";
 import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
 import { projectRoutes } from "./routes/projects.js";
-import { chatRoutes } from "./routes/chats.js";
-import { chatMoveRoutes } from "./routes/chatMove.js";
+import { providerRoutes } from "./routes/providers.js";
 import { queueRoutes } from "./routes/queue.js";
 import { settingsRoutes } from "./routes/settings.js";
+import { turnRoutes } from "./routes/turns.js";
 import { uploadRoutes } from "./routes/uploads.js";
+import { usageRoutes } from "./routes/usage.js";
 import { voiceRoutes } from "./routes/voice.js";
 import { worktreeRoutes } from "./routes/worktrees.js";
 import type { ProviderId, ServerStatus } from "@shared/types";
@@ -96,15 +98,17 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json(status);
   });
 
-  // ---- 機能ごとの API（http/routes/ に分けている。登録の順は変えない） ----
+  // ---- 機能ごとの API（http/routes/ に分けている。登録の順は変えない。:id の引き当ては lookups.ts、失敗の種類は errors.ts） ----
   settingsRoutes(app, deps);
   projectRoutes(app, deps);
   chatRoutes(app, deps);
-  chatMoveRoutes(app, deps);
+  turnRoutes(app, deps);
   queueRoutes(app, deps);
   groupRoutes(app, deps);
   uploadRoutes(app, deps);
-  agentRoutes(app, deps);
+  approvalRoutes(app, deps);
+  providerRoutes(app, deps);
+  usageRoutes(app, deps);
   gitRoutes(app, deps);
   filesRoutes(app, deps);
   worktreeRoutes(app, deps);

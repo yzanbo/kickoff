@@ -7,8 +7,8 @@ import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
 import { Conflict, Invalid } from "../errors.js";
-import { requireProject } from "./http.js";
-import { jsonBody } from "./schemas.js";
+import { jsonBody } from "../input.js";
+import { lookups } from "../lookups.js";
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 
@@ -61,6 +61,7 @@ const projectPatchSchema = z
 
 /** プロジェクト（作成・取り込み・設定の変更・並び順・管理から外す） */
 export function projectRoutes(app: Hono, { store }: ServerDeps) {
+  const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
   const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
 
@@ -91,10 +92,10 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
     return c.json(project, 201);
   });
 
-  app.get("/api/projects/:id", (c) => c.json(requireProject(store, c.req.param("id"))));
+  app.get("/api/projects/:id", withProject, (c) => c.json(c.var.project));
 
-  app.patch("/api/projects/:id", async (c) => {
-    const project = requireProject(store, c.req.param("id"));
+  app.patch("/api/projects/:id", withProject, async (c) => {
+    const { project } = c.var;
     const { reference_paths, archived, ...patch } = projectPatchSchema.parse(await jsonBody(c));
     return c.json(
       store.projects.update(project.id, {
@@ -113,9 +114,8 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
   });
 
   // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない
-  app.delete("/api/projects/:id", (c) => {
-    const project = requireProject(store, c.req.param("id"));
-    store.projects.delete(project.id);
+  app.delete("/api/projects/:id", withProject, (c) => {
+    store.projects.delete(c.var.project.id);
     return c.json({ ok: true });
   });
 }
