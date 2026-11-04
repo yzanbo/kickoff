@@ -2,9 +2,10 @@
  * 一番下へ戻るボタン（chat.css の .scroll-bottom）に、いまの状態を添えた形。色はカンバンの列と同じ
  * （作業中 = 青・回答待ち = 橙・返答が届いた = 緑・失敗 = 赤・終わっている = 控えめ）。
  * 答えを待っている・返答が届いたとき（.attention）だけ、小さく上下して下へ誘う。
- * 読んでいる文に重ならないよう、真ん中ではなく右下の隅に置き、目立たせる必要がないときは少し薄くする（乗せると濃く）
+ * 入る幅があればチャット欄の上のピルの列の右端に置き（.composer-chips-dock）、入らなければ読んでいる文に重ならないよう流れの右下の隅に浮かせる。
+ * 目立たせる必要がないときは少し薄くする（乗せると濃く）。流れに浮かせる位置は chat.css の .timeline-wrap .scroll-bottom（同じ詳細度でここが後ろなので、幅などはここが勝つ）
  */
-.timeline-wrap .scroll-bottom.guide {
+.scroll-bottom.guide {
   --pill-tone: var(--extra-muted);
   display: inline-flex;
   align-items: center;
@@ -30,40 +31,40 @@
   transition: opacity 0.15s;
 }
 
-.timeline-wrap .scroll-bottom.guide:hover,
-.timeline-wrap .scroll-bottom.guide:focus-visible,
-.timeline-wrap .scroll-bottom.guide.attention {
+.scroll-bottom.guide:hover,
+.scroll-bottom.guide:focus-visible,
+.scroll-bottom.guide.attention {
   opacity: 1;
 }
 
-.timeline-wrap .scroll-bottom.guide.working {
+.scroll-bottom.guide.working {
   --pill-tone: var(--dot-running);
   color: var(--text);
 }
 
 /* 通信が切れている（再試行中・つながるのを待っている） */
-.timeline-wrap .scroll-bottom.guide.offline {
+.scroll-bottom.guide.offline {
   --pill-tone: var(--warn);
   color: var(--text);
 }
 
-.timeline-wrap .scroll-bottom.guide.failed {
+.scroll-bottom.guide.failed {
   --pill-tone: var(--dot-failed);
   color: var(--text);
 }
 
-.timeline-wrap .scroll-bottom.guide.attention {
+.scroll-bottom.guide.attention {
   font-weight: 600;
   color: var(--text);
   background: color-mix(in srgb, var(--pill-tone) 22%, var(--bg-elev));
   animation: scroll-guide-bob 1.6s ease-in-out infinite;
 }
 
-.timeline-wrap .scroll-bottom.guide.waiting {
+.scroll-bottom.guide.waiting {
   --pill-tone: var(--dot-needs-input);
 }
 
-.timeline-wrap .scroll-bottom.guide.arrived {
+.scroll-bottom.guide.arrived {
   --pill-tone: var(--dot-attention);
 }
 
@@ -103,7 +104,23 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .timeline-wrap .scroll-bottom.guide.attention {
+  .scroll-bottom.guide.attention {
     animation: none;
   }
+}
+
+/* ピルの列の右端に置いたとき（右寄せでほかのピルと間を空ける。浮かせたときの幅の上限は外す） */
+.composer-chips-dock {
+  display: flex;
+  margin-left: auto;
+}
+
+.composer-chips-dock:empty {
+  display: none;
+}
+
+/* 高さはほかのピル（.composer-chip）と同じにする（列の高さを変えず、流れが動かないように） */
+.composer-chips-dock .scroll-bottom.guide {
+  height: 26px;
+  max-width: none;
 }

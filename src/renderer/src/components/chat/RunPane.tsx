@@ -153,6 +153,8 @@ function RunView({
   const panelRef = useRef<HTMLDivElement>(null);
   // 発言の一覧から、同じ文を入力欄に入れる
   const fillComposer = useRef<ComposerFill | null>(null);
+  // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
+  const [pillDock, setPillDock] = useState<HTMLSpanElement | null>(null);
   // ⌘F でこのチャットの中の検索欄（見出しの行にいつもある）にピントを移す（ピントがこのチャットにあるとき）
   useChatFindKey(panelRef);
   // 文の幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
@@ -233,7 +235,7 @@ function RunView({
       />
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}
       <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
-      <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} />
+      <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} pillDock={pillDock} />
       <div className="run-composer">
         {/*
           同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる）。押して開くピルの列とは役割が違うので、
@@ -250,6 +252,8 @@ function RunView({
           <PromptsChip events={events} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
           <TodoChip events={events} />
           <SubagentChip entries={subagents} run={run} busy={busy} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
+          {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
+          <span ref={setPillDock} className="composer-chips-dock" />
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
         <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stops={queueStops} waitingEdit={queueWaitingEdit} busy={busy} newChatTarget={{ projectId: run.project_id, group: run.group_id ?? undefined }} />
