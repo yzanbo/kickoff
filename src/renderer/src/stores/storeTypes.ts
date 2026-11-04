@@ -39,10 +39,6 @@ export interface KeyedStore<K, T> {
   get(key: K): StoreState<T>;
   /** その key の様子が変わったら listener を呼ぶ。やめるときは返り値を呼ぶ */
   subscribe(key: K, listener: () => void): () => void;
-  /** どれかの key の様子が変わったら listener を呼ぶ（いくつかの key を読む部品のため） */
-  subscribeAll(listener: () => void): () => void;
-  /** どれかの key の様子が変わるたびに増える数 */
-  version(): number;
   /** 使い始める（まだない・古ければ読み込む）。使い終わったら返り値を呼ぶ（失敗の自動の取り直し・つながったとき・ウィンドウに戻ったときは、使っている値だけを取り直す） */
   retain(key: K): () => void;
   /** まだない・古ければ読み込む（失敗したばかりなら、自動の取り直しを待つ） */
