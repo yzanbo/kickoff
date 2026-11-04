@@ -34,7 +34,8 @@ export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, 
     // 「その他」に添えた添付は、回答の文にパスを書き添えてから渡す（Claude Code には文字の回答しか渡せない）
     if (decision.action === "answer" && decision.attachments) {
       const { attachments, ...rest } = decision;
-      decision = { ...rest, answers: await answersWithAttachments(uploads, rest.answers, attachments) };
+      // AI には添付のパスを書き添えた回答を渡し、チャットの記録には選んだままの回答と添付を残す
+      decision = { ...rest, answers: await answersWithAttachments(uploads, rest.answers, attachments), plain: rest.answers, attachments };
     }
     if (!approvals.resolve(c.req.param("id"), decision)) throw new HttpError(404, "この依頼はすでに回答済みか、中断されています");
     return c.json({ ok: true });

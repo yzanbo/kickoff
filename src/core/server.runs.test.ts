@@ -236,7 +236,9 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   assert.equal(decision.action, "answer");
   const text = decision.action === "answer" ? String(decision.answers.Q) : "";
   assert.match(text, /^この画像のように\n\n回答に添えた添付ファイル（回答の一部です。Read ツールで開いて中身を確かめてから進めてください）:\n- .+a\.txt（text\/plain, 5 B）$/);
-  assert.equal(decision.action === "answer" && "attachments" in decision, false);
+  // チャットの記録には、選んだままの回答と添付を残す（AI に渡すのは上の、パスを書き添えた回答）
+  assert.deepEqual(decision.action === "answer" ? decision.plain : undefined, { Q: "この画像のように" });
+  assert.equal(decision.action === "answer" ? decision.attachments?.Q.length : 0, 2);
 
   assert.equal((await call("GET", "/api/providers")).body.length, 3);
   assert.deepEqual((await call("GET", "/api/providers/claude/models")).body, []);

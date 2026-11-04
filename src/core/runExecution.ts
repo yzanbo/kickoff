@@ -160,7 +160,16 @@ function callbacksFor({ store, approvals, bus, background, controls }: Execution
       });
       store.updateRun(runId, { status: "waiting" });
       const answer = await decision;
-      store.addEvent(runId, { type: "approval_resolved", approval_id: approval.id, action: answer.action });
+      // AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付）も残す（画面は「質問への回答」の吹き出しで出す）
+      store.addEvent(runId, {
+        type: "approval_resolved",
+        approval_id: approval.id,
+        action: answer.action,
+        kind: approval.kind,
+        ...(answer.action === "answer"
+          ? { answers: answer.plain ?? answer.answers, ...(answer.attachments ? { attachments: answer.attachments } : {}) }
+          : {}),
+      });
       if (!signal.aborted && approvals.list({ runId }).length === 0) {
         store.updateRun(runId, { status: "running" });
       }

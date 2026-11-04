@@ -29,3 +29,19 @@ test("チャットの記録: 自分の発言・AI の返答を順に並べ、作
   assert.equal(md.match(/この作業で変えたファイル/g)?.length, 1);
   assert.equal(transcriptFileName({ ...run, title: "a/b:c" } as Run), "チャット履歴-a b c.md");
 });
+
+test("チャットの記録: AI からの質問に答えた内容を、質問ごとに入れる（答えのない以前の記録・スキップは入れない）", () => {
+  const md = chatTranscript(run, project, [
+    ev(1, "approval_resolved", {
+      approval_id: "x",
+      action: "answer",
+      kind: "question",
+      answers: { "好きな色は？": "この色", "好きな季節は？": ["春", "秋"] },
+      attachments: { "好きな色は？": [{ id: "a", name: "色.png", mime: "image/png", size: 1 }] },
+    }),
+    ev(2, "approval_resolved", { approval_id: "y", action: "answer" }),
+    ev(3, "approval_resolved", { approval_id: "z", action: "deny", kind: "question" }),
+  ]);
+  assert.match(md, /## 自分（質問への回答・.+）\n\n- 好きな色は？ → この色（添付: 色\.png）\n- 好きな季節は？ → 春、秋/);
+  assert.equal(md.match(/質問への回答/g)?.length, 1);
+});

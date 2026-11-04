@@ -196,7 +196,18 @@ export type RunEventData =
   | { type: "tool_use"; id: string; name: string; input: unknown; sub?: boolean; parent?: string }
   | { type: "tool_result"; tool_use_id: string; content: string; is_error: boolean; parent?: string }
   | { type: "approval"; approval_id: string; kind: ApprovalKind; tool_name: string; title?: string }
-  | { type: "approval_resolved"; approval_id: string; action: ApprovalDecision["action"] }
+  /**
+   * kind: 何への回答か（以前の記録にはない）。answers / attachments: AI からの質問に答えた内容（選んだままの回答と「その他」に添えた添付。
+   * 画面は自分の発言と同じ吹き出しで「質問への回答」として出す）
+   */
+  | {
+      type: "approval_resolved";
+      approval_id: string;
+      action: ApprovalDecision["action"];
+      kind?: ApprovalKind;
+      answers?: Record<string, string | string[]>;
+      attachments?: Record<string, Attachment[]>;
+    }
   /** 作業の終わり。session_id と message_id: その時点の会話の位置（ここから分岐するときに使う。分岐したチャットに写しても元の会話を指す） */
   | {
       type: "result";

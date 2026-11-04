@@ -15,6 +15,7 @@ import { TurnChanges } from "./TurnChanges";
 import type { FileChange } from "./turnFileChanges";
 import { ToolGroup } from "./ToolGroup";
 import { AssistantMessage, UserMessage } from "./MessageItems";
+import { QuestionAnswerMessage } from "./QuestionAnswerMessage";
 import { copyRich } from "../../richCopy";
 import { FailedTurnActions } from "./FailedTurnActions";
 
@@ -163,6 +164,9 @@ function EventItem({
     case "thinking":
       return <Thinking text={String(data.text ?? "")} durationMs={data.duration_ms as number | undefined} />;
     case "approval_resolved":
+      // AI からの質問に答えた内容は、自分の発言と同じ吹き出しで「質問への回答」として出す（以前の記録は答えの中身がないので一言だけ）
+      if (data.answers) return <QuestionAnswerMessage event={event} />;
+      if (data.kind === "question" && data.action === "deny") return <div className="event-note">質問をスキップしました</div>;
       return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
     case "result":
       return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} busy={busy} />;

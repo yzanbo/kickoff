@@ -34,6 +34,14 @@ export function chatTranscript(run: Run, project: Project, events: RunEvent[]): 
     if (e.type === "user") {
       const files = d.attachments?.length ? `\n\n（添付: ${d.attachments.map((a) => a.name).join("、")}）` : "";
       lines.push("", `## 自分（${stamp(e.created_at)}）`, "", `${String(d.text ?? "").trim()}${files}`);
+    } else if (e.type === "approval_resolved" && (e.data as { answers?: unknown }).answers) {
+      // AI からの質問に答えた内容（選んだままの回答と添付の名前）
+      const r = e.data as { answers: Record<string, string | string[]>; attachments?: Record<string, Attachment[]> };
+      const items = Object.entries(r.answers).map(([q, a]) => {
+        const files = r.attachments?.[q]?.length ? `（添付: ${r.attachments[q].map((f) => f.name).join("、")}）` : "";
+        return `- ${q} → ${Array.isArray(a) ? a.join("、") : a}${files}`;
+      });
+      lines.push("", `## 自分（質問への回答・${stamp(e.created_at)}）`, "", ...items);
     } else if (e.type === "text" && !d.parent && !d.sub && d.text?.trim()) {
       lines.push("", "## AI", "", d.text.trim());
     } else if (e.type === "tool_use" && d.name && EDIT_TOOLS.has(d.name)) {
