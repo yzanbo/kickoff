@@ -219,10 +219,10 @@ export function QueuedMessages({
             <span className="queued-head-label">{expanded ? "縮める" : "すべて表示"}</span>
           </button>
         )}
-        {/* 選んだ指示の並べ替え（送る・消すとは分けて「自動で送る」のすぐ左に） */}
-        {selected.length > 0 && <QueuedMoveActions runId={runId} selected={selected} failed={failed} />}
-        {/* 終わったら自動で送るか、送らずに止めておくか（ここから右が送る・消すの操作） */}
+        {/* 終わったら自動で送るか、送らずに止めておくか（列全体の設定。ここから右が操作） */}
         <QueuedModeButton runId={runId} paused={paused} busy={busy} failed={failed} />
+        {/* 選んでいるときは、行と同じ 2 つのまとまり: 並べ替え（いちばん上へ・下へ）｜ 選んだものへの操作（まとめて送る・消す・選ぶのをやめる） */}
+        {selected.length > 0 && <QueuedMoveActions runId={runId} selected={selected} failed={failed} />}
         <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} onClearSelection={clearSelection} failed={failed} />
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
