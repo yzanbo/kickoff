@@ -12,7 +12,7 @@ import { useRunStates } from "../../approvalsContext";
 import { useProjectChatContext } from "../projectChat/useProjectChat";
 import { DraftCards } from "../sidePanel/DraftCards";
 import { boardPanelKey } from "../sidePanel/panelMemory";
-import { useSidePanel } from "../sidePanel/useSidePanel";
+import { useSidePanel, type NewChatTarget } from "../sidePanel/useSidePanel";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
@@ -127,12 +127,17 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   const chat = useProjectChatContext();
   const sideDrafts = chat && projectId !== undefined && chat.projectId === projectId ? chat.panel : null;
   const draftCount = panel.drafts.length + (sideDrafts?.drafts.length ?? 0);
-  const draftCards = (
+  /** 下書きのカード（filter があれば、その作成先のものだけ。スイムレーンの段ごと） */
+  const draftCardsOf = (filter?: (target: NewChatTarget) => boolean) => (
     <>
-      <DraftCards panel={panel} />
-      {sideDrafts && chat && <DraftCards panel={sideDrafts} onShow={chat.showTab} />}
+      <DraftCards panel={panel} filter={filter} />
+      {sideDrafts && chat && <DraftCards panel={sideDrafts} filter={filter} onShow={chat.showTab} />}
     </>
   );
+  const draftCards = draftCardsOf();
+  /** スイムレーン: 下書きの作成先と、段に入る下書きの数 */
+  const draftTargets = [...panel.drafts, ...(sideDrafts?.drafts ?? [])].map((d) => d.target);
+  const draftsIn = (filter: (target: NewChatTarget) => boolean) => draftTargets.filter(filter).length;
   /** アーカイブ済みのまとまりの開閉を覚える名前（ボード・段・列ごと） */
   const foldKey = (column: BoardColumn, laneKey = "") => `kanban:${projectId ?? "all"}:${laneKey}:${column}`;
   /** 状態の列（ボード・スイムレーンの段。アーカイブ済みは列のいちばん下の閉じたまとまりに分け、見出しの件数はアーカイブしていないものだけ） */
@@ -184,21 +189,20 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : view === "lanes" ? (
-        // 段に分ける: 段ごとに状態の列を並べる。下書きはまだ段が決まらないので、あるときだけ上に置く
+        // 段に分ける: 段ごとに、ボードと同じく下書き（その段に入る作成先のもの）→ 状態の列を並べる
         <BoardLanes
           kind={lanes}
           boardKey={`${projectId ?? "all"}`}
           entries={entries}
           projects={projects}
           groups={groups}
-          renderColumns={columns}
-          before={
-            draftCount > 0 && (
-              <div className="board-columns lane-columns">
-                <DraftColumn count={draftCount}>{draftCards}</DraftColumn>
-              </div>
-            )
-          }
+          drafts={draftTargets}
+          renderColumns={(list, laneKey, draft) => (
+            <>
+              <DraftColumn count={draftsIn(draft)}>{draftCardsOf(draft)}</DraftColumn>
+              {columns(list, laneKey)}
+            </>
+          )}
         />
       ) : view === "board" ? (
         <div className="board-columns">

@@ -24,19 +24,36 @@ export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   project: "プロジェクト",
 };
 
+/** 下書き（送る前の新しいチャット）の作成先 */
+export interface DraftTarget {
+  projectId: number;
+  group?: number;
+}
+
 interface Lane {
   key: string;
   head: ReactNode;
   entries: BoardEntry[];
+  /** この段に入れる下書きか（下書きは段のいちばん左の列に出す） */
+  draft: (target: DraftTarget) => boolean;
 }
+
+/** どの段にも入れない（下書きの入る段がない） */
+const noDraft = () => false;
 
 /** チャットを段に分ける（段の並び: 作業場所は本体が先、プロジェクトはボードの並び） */
 /** グループで分けるときの段の名前（"g12" のようなグループ、"none" はグループなし）から、グループの ID を取り出す */
 export const groupOfLane = (laneKey: string): number | null => (laneKey === "none" ? null : Number(laneKey.slice(1)));
 
+/**
+ * チャットと下書きを段に分ける（段の並び: 作業場所は本体が先、プロジェクトはボードの並び）。
+ * 下書きは作成先の段に入れる（グループ = そのグループ・プロジェクト = そのプロジェクト・作業場所 = そのプロジェクトの本体。
+ * 新しいチャットは本体で始まり、作業場所は送るときに選ぶため）。下書きだけの段も出す
+ */
 function lanesOf(
   kind: BoardLane,
   entries: BoardEntry[],
+  drafts: DraftTarget[],
   projects: ProjectSummary[],
   groups: RunGroup[],
   showEmpty: boolean,
@@ -47,25 +64,29 @@ function lanesOf(
     // 自分で作ったグループを並び順のまま先に、グループなし（まだ整理していないもの）を最後に。サイドバーと同じ並び
     // （showEmpty のときは、チャットのないグループも出す）
     const ids = new Set(groups.map((g) => g.id));
+    const inNone = (group: number | null | undefined) => group == null || !ids.has(group);
     const lanes: Lane[] = [];
     for (const g of groups) {
       const list = entries.filter((e) => e.run.group_id === g.id);
-      if (list.length > 0 || showEmpty) lanes.push({ key: `g${g.id}`, head: <LaneTitle mark={<Folder size={14} className="muted" />} label={g.name} />, entries: list });
+      const draft = (t: DraftTarget) => t.group === g.id;
+      if (list.length > 0 || showEmpty || drafts.some(draft)) lanes.push({ key: `g${g.id}`, head: <LaneTitle mark={<Folder size={14} className="muted" />} label={g.name} />, entries: list, draft });
     }
-    const rest = entries.filter((e) => e.run.group_id === null || !ids.has(e.run.group_id));
-    if (rest.length > 0 || showEmpty) lanes.push({ key: "none", head: <LaneTitle mark={<Folder size={14} className="muted" />} label="グループなし" />, entries: rest });
+    const rest = entries.filter((e) => inNone(e.run.group_id));
+    const draft = (t: DraftTarget) => inNone(t.group);
+    if (rest.length > 0 || showEmpty || drafts.some(draft)) lanes.push({ key: "none", head: <LaneTitle mark={<Folder size={14} className="muted" />} label="グループなし" />, entries: rest, draft });
     return lanes;
   }
   if (kind === "project") {
     return projects.flatMap((p) => {
       const list = entries.filter((e) => e.run.project_id === p.id);
-      if (list.length === 0) return [];
+      const draft = (t: DraftTarget) => t.projectId === p.id;
+      if (list.length === 0 && !drafts.some(draft)) return [];
       const mark = (
         <span className="project-chip-mark" style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties} aria-hidden>
           {initialOf(p.name)}
         </span>
       );
-      return [{ key: `p${p.id}`, head: <LaneTitle mark={mark} label={p.name} />, entries: list }];
+      return [{ key: `p${p.id}`, head: <LaneTitle mark={mark} label={p.name} />, entries: list, draft }];
     });
   }
   // 作業場所（プロジェクトと作業場所の組。本体が先。見出しはサイドバーと同じ workplaceOf）
@@ -76,6 +97,12 @@ function lanesOf(
     const hit = byPlace.get(key);
     if (hit) hit.entries.push(e);
     else byPlace.set(key, { projectId: e.run.project_id, place, entries: [e] });
+  }
+  // 下書きのあるプロジェクトの本体の段（チャットがなくても出す）
+  for (const projectId of new Set(drafts.map((d) => d.projectId))) {
+    const place = workplaceOf({ worktree_path: "", branch: "" }, worktreesOf(projectId));
+    const key = `${projectId}\u0000${place.key}`;
+    if (!byPlace.has(key)) byPlace.set(key, { projectId, place, entries: [] });
   }
   return [...byPlace.entries()]
     .sort(([, a], [, b]) => a.projectId - b.projectId || compareWorkplaces(a.place, b.place))
@@ -94,6 +121,7 @@ function lanesOf(
           />
         ),
         entries: list,
+        draft: place.kind === "main" ? (t: DraftTarget) => t.projectId === projectId : noDraft,
       };
     });
 }
@@ -112,6 +140,7 @@ function LaneTitle({ mark, label, extra, title }: { mark: ReactNode; label: stri
 
 /**
  * ボードを段（スイムレーン）に分けて出す。段ごとに、状態の列（renderColumns）を横に並べる。
+ * 下書きはボードの表示と同じく、段の中のいちばん左の列に出す（renderColumns に段の下書きの見分け方を渡す）。
  * 段は見出しで開閉でき、ボードと分け方ごとに覚える
  */
 export function BoardLanes({
@@ -120,7 +149,7 @@ export function BoardLanes({
   entries,
   projects,
   renderColumns,
-  before,
+  drafts = [],
   groups = [],
   showEmpty = false,
   laneProps,
@@ -136,19 +165,18 @@ export function BoardLanes({
   boardKey: string;
   entries: BoardEntry[];
   projects: ProjectSummary[];
-  /** 段の中の列（laneKey は段の名前。グループで分けるときは groupOfLane でグループに直せる） */
-  renderColumns: (entries: BoardEntry[], laneKey: string) => ReactNode;
-  /** 段の前に置くもの（下書き） */
-  before?: ReactNode;
+  /** 段の中の列（laneKey は段の名前。グループで分けるときは groupOfLane でグループに直せる。draft はこの段に入れる下書きか） */
+  renderColumns: (entries: BoardEntry[], laneKey: string, draft: (target: DraftTarget) => boolean) => ReactNode;
+  /** 下書きの作成先（下書きだけの段も出すため） */
+  drafts?: DraftTarget[];
 }) {
   const closed = useStoredFlagMap(BOARD_LANE_CLOSED_PREFIX);
   // 作業場所で分けるときは、プロジェクトごとのワークツリーの一覧からブランチ名を引く
   const worktreesOf = useWorktreeLists(kind === "worktree" ? entries.map((e) => e.run.project_id) : []);
   const { projectName } = useProjects();
-  const lanes = lanesOf(kind, entries, projects, groups, showEmpty, worktreesOf, projectName);
+  const lanes = lanesOf(kind, entries, drafts, projects, groups, showEmpty, worktreesOf, projectName);
   return (
     <div className="board-lanes">
-      {before}
       {lanes.length === 0 && <p className="column-empty">チャットはありません</p>}
       {lanes.map((lane) => {
         const id = `${boardKey}:${kind}:${lane.key}`;
@@ -163,7 +191,7 @@ export function BoardLanes({
                 <span className="board-lane-count">{lane.entries.length}</span>
               </button>
             </div>
-            {open && <div className="board-columns lane-columns">{renderColumns(lane.entries, lane.key)}</div>}
+            {open && <div className="board-columns lane-columns">{renderColumns(lane.entries, lane.key, lane.draft)}</div>}
           </section>
         );
       })}
