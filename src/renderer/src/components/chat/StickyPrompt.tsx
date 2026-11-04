@@ -46,13 +46,17 @@ export function StickyPrompt({ text, onJump }: { text: string; onJump: () => voi
   );
 }
 
+/** 貼り付けた指示の帯の高さが分からないとき（まだ出していない）の目安（1 行にたたんだ高さ） */
+export const STICKY_PROMPT_HEIGHT = 37;
+
 /**
- * 画面の上に流れて見えなくなった、いちばん下の自分の発言（その返答を読んでいる）。
- * どれも流れていなければ undefined
+ * 画面の上に流れて見えなくなった、いちばん下の自分の発言（その返答を読んでいる）。どれも流れていなければ undefined。
+ * cover は上に貼り付ける帯の高さで、帯の下端を「見えている」かどうかの線にする（上端を線にすると、次の指示の吹き出しが
+ * 帯の下に入り込んでも帯を出したままになり、吹き出しが隠れていた。帯の下端まで来たら帯を引っ込める）
  */
-export function promptAbove(timeline: HTMLElement): { id: number; text: string } | undefined {
-  const top = timeline.getBoundingClientRect().top;
-  // 上端より上から始まる、いちばん下の吹き出し（それがまだ少しでも見えていれば、貼り付けない）
+export function promptAbove(timeline: HTMLElement, cover = 0): { id: number; text: string } | undefined {
+  const top = timeline.getBoundingClientRect().top + cover;
+  // 線より上から始まる、いちばん下の吹き出し（それがまだ少しでも線の下に見えていれば、貼り付けない）
   let found: HTMLElement | undefined;
   for (const bubble of timeline.querySelectorAll<HTMLElement>(".bubble.user")) {
     if (bubble.getBoundingClientRect().top >= top) break;
