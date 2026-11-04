@@ -7,23 +7,9 @@ import { RunnerQueue } from "./runnerQueue.js";
 import { RunReconnect } from "./runReconnect.js";
 import { RunStopping } from "./runStopping.js";
 import { RunUsageLimit } from "./runUsageLimit.js";
-import { resolveRunDefaults } from "./runDefaults.js";
-import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
-import { autoTitle, firstLine, promptWithAttachments } from "./runInput.js";
+import { createRun, followupPrompt, type StartRunInput } from "./runInput.js";
 import type { Attachment, BackgroundState, ReconnectState, Run, RunOptions } from "./types.js";
 import type { UsageMonitor } from "./usage.js";
-
-interface StartRunInput {
-  projectId: number;
-  prompt: string;
-  title?: string;
-  options?: RunOptions;
-  attachments?: Attachment[];
-  /** 自分で作ったグループ（グループの＋から始めたとき） */
-  groupId?: number;
-  /** 作業場所（ワークツリーのフォルダ。省略なら本体） */
-  worktreePath?: string;
-}
 
 /**
  * エージェントの実行を管理する。
@@ -122,34 +108,9 @@ export class Runner extends RunnerQueue {
   }
 
   async start(input: StartRunInput): Promise<Run> {
-    const { store, providers } = this.deps;
-    const project = store.getProject(input.projectId);
-    if (!project) throw new Error("プロジェクトが見つかりません");
-    if (!providers[project.provider].implemented) throw new Error(`${providers[project.provider].label} はまだ使えません`);
-
-    // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
-    const defaults = resolveRunDefaults(store.getSettings(), project.defaults);
-    const options = input.options ?? {};
-    const model = options.model ?? (project.provider === "claude" ? defaults.model || null : null);
-    const run = store.createRun({
-      project_id: project.id,
-      provider: project.provider,
-      title: input.title ?? firstLine(input.prompt),
-      status: "queued",
-      model,
-      effort: options.effort === undefined ? defaults.effort : options.effort,
-      permission_mode: options.permission_mode ?? defaults.permission,
-      fast_mode: options.fast_mode ?? defaults.fastMode,
-      group_id: input.groupId ?? null,
-      worktree_path: input.worktreePath ?? "",
-    });
-    const attachments = input.attachments ?? [];
-    // 発言の ID（Claude Code にも同じ ID で渡し、ファイルをこの発言の時点に戻すときの目印にする）
-    const messageUuid = randomUUID();
-    store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}), message_uuid: messageUuid });
-    if (!input.title) void autoTitle(this.deps, run.id, input.prompt || attachments.map((a) => a.name).join("、"));
-    this.enqueue({ runId: run.id, prompt: await promptWithAttachments(this.deps, input.prompt, attachments), promptId: messageUuid });
-    return store.getRun(run.id)!;
+    const { run, prompt, messageUuid } = await createRun(this.deps, input);
+    this.enqueue({ runId: run.id, prompt, promptId: messageUuid });
+    return this.deps.store.getRun(run.id)!;
   }
 
   /** 終了した会話に追加の指示を送り、続きから再開する */
@@ -160,7 +121,7 @@ export class Runner extends RunnerQueue {
     if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから送ってください");
     // 自分で送った: つながったら再開する・再開するかを聞くのをやめる（自動の再開から送ったときは続ける）
     this.forgetRecovery(runId);
-    const { prompt, handover } = await this.prepare(runId, text, attachments);
+    const { prompt, handover } = await followupPrompt(this.deps, runId, text, attachments);
     const messageUuid = randomUUID();
     store.addEvent(run.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
@@ -178,16 +139,6 @@ export class Runner extends RunnerQueue {
   }
 
   /**
-   * 続きの指示の下ごしらえ: 添付のパスと、親に届かなかったサブエージェントの報告を添える（前の作業が報告を受け取る前に
-   * 終わっていたとき。送るまで残っている報告を、次の自然な機会に渡す）。handover は自分の発言の記録に足す
-   */
-  private async prepare(runId: number, text: string, attachments: Attachment[]) {
-    const lost = undeliveredReports(this.deps.store.listEvents(runId));
-    const prompt = withUndeliveredReports(await promptWithAttachments(this.deps, text, attachments), lost);
-    return { prompt, handover: lost.length ? { handover: lost.map((s) => s.key) } : {} };
-  }
-
-  /**
    * 止めずに伝える: 作業中なら、いまのやり取りに発言を足す（メインのエージェントが、いまの手順の切れ目で読む。
    * 裏のサブエージェント・コマンドは動き続ける）。足せないとき（順番待ち・要約中など）は待ちの列に入れ（front なら先頭）、
    * 作業中でなければすぐ送る。モデルなどの選択は、作業の途中では変えられないので次に送るときから効く
@@ -201,7 +152,7 @@ export class Runner extends RunnerQueue {
       return "sent";
     }
     const control = this.controls.get(runId);
-    const { prompt, handover } = await this.prepare(runId, text, attachments);
+    const { prompt, handover } = await followupPrompt(this.deps, runId, text, attachments);
     const messageUuid = randomUUID();
     if (control?.tell(prompt, messageUuid)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる

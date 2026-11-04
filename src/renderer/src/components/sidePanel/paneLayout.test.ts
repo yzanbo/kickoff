@@ -4,7 +4,6 @@ import {
   activeTabOf,
   closeLayoutTabs,
   closePane,
-  equalizeSplit,
   FIRST_PANE,
   focusPane,
   homePane,
@@ -17,12 +16,12 @@ import {
   reconcileLayout,
   renameTab,
   returnToHome,
-  setSplitSizes,
   singlePane,
   splitPane,
   type PaneLayout,
   type PaneNode,
 } from "./paneLayout";
+import { equalizeSplit, setSplitSizes } from "./paneSizes";
 
 const pane = (id: string, tabs: string[], active: string | null = tabs[0] ?? null): PaneNode => ({ type: "pane", id, tabs, active });
 
