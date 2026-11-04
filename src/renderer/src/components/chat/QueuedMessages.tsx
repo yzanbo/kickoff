@@ -28,7 +28,7 @@ const MIN_LIST_HEIGHT = 36;
  * 見出しに送信待ちの数、行に添付（1 つ目のサムネイルと、ほかの数）を出す。5 件ほどを超えたら一覧の中でスクロールし（上端のつまみのドラッグで高さを変えられ、見出しの「すべて表示」でスクロールさせずにすべて出せる）、狭い欄では ↑↓ とボタンの文字を隠す（右クリックのメニューに同じ操作がある）。
  * ⌘ / Shift ＋クリックで行を選ぶと、選んだものだけをまとめて送る・消す・いちばん上か下へ移せる（見出しと右クリック。Esc でやめる）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
- * 「ここまで送ったら止めます」の線（指示とは別の行。ドラッグで動かせ、1 件目の上にも置ける）まで自動で送ったら、残りは止めておく。
+ * 一時停止の線（指示とは別の行。ドラッグで動かせ、1 件目の上にも置ける）まで自動で送ったら、残りは止めておく。
  * 行の右クリックの「この指示のあとで止める」でも付けられる。
  * 見出しの「自動で送る / 止めておく」で、いまの作業が終わったときに先頭を自動で送るか、送らずに止めておくかを切り替える
  * （チャットごと。止めておくと、行の「すぐ送る」で 1 件ずつ送れる。送り終えて列が空になったら、自動で送るに戻る）。
@@ -48,7 +48,7 @@ export function QueuedMessages({
   newChatTarget: NewChatTarget;
   queue: QueuedMessage[];
   paused: boolean;
-  /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも） */
+  /** 一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも） */
   stops: number[];
   busy: boolean;
 }) {
@@ -117,7 +117,7 @@ export function QueuedMessages({
     true,
   );
   const failed = reportFailure("待ちの指示を操作できませんでした");
-  // ドラッグ: 指示の並べ替えと、「ここまで送ったら止めます」の印の移動
+  // ドラッグ: 指示の並べ替えと、一時停止の印の移動
   const dnd = useQueueDrag(runId, queue, stops, failed);
   // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
   const ask = useAskInNewChat(runId, queue, newChatTarget);
@@ -156,7 +156,7 @@ export function QueuedMessages({
       />
     );
   const hint = queuedHint({ paused, busy, collapsed, stopIndex });
-  // 「ここまで送ったら止めます」の印があって、案内がその止める位置を伝えているとき（queuedHint の印の分かれ道と同じ条件）。
+  // 一時停止の印があって、案内がその止める位置を伝えているとき（queuedHint の印の分かれ道と同じ条件）。
   // 止める印と同じ色・同じアイコンで、畳んでいてもひと目で止める予定があると分かるようにする
   const stopHint = !paused && busy && stopIndex >= 0;
   // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
@@ -178,7 +178,7 @@ export function QueuedMessages({
           }}
         />
       )}
-      {/* 見出しの行にドラッグして落とすと、いちばん上へ（1 件目の上の「ここまで送ったら止めます」よりも上） */}
+      {/* 見出しの行にドラッグして落とすと、いちばん上へ（1 件目の上の一時停止よりも上） */}
       <div className="queued-head-row" onDragOver={dnd.overTop} onDrop={dnd.drop}>
         <button
           type="button"
@@ -223,7 +223,7 @@ export function QueuedMessages({
         <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(height, edit.editHeight) }}>
           {queue.map((m, i) => (
             <Fragment key={m.id}>
-            {/* 「ここまで送ったら止めます」: この行の前で止める印（1 件目の上にも置ける） */}
+            {/* 一時停止: この行の前で止める印（1 件目の上にも置ける） */}
             {stopLine(i)}
             {edit.edits[m.id] ? (
               <QueuedEditor
