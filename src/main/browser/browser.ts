@@ -1,4 +1,6 @@
-import { app, session, shell, type Session, type WebContents } from "electron";
+import { app, session, type Session, type WebContents } from "electron";
+import { openLinksExternally } from "../app/externalLinks.js";
+import { isEmbeddableUrl } from "../app/urls.js";
 
 // 埋め込みブラウザ（<webview>）のセッションと安全設定。開発者ツールは devtools.ts、拡張機能は extensions.ts
 
@@ -20,14 +22,9 @@ export function hardenWebviews() {
       webPreferences.contextIsolation = true;
       webPreferences.sandbox = true;
       params.partition = BROWSER_PARTITION;
-      if (params.src && !/^(https?:|about:blank)/.test(params.src)) event.preventDefault();
+      if (params.src && !isEmbeddableUrl(params.src)) event.preventDefault();
     });
     // 埋め込みブラウザ内の新しいウィンドウは、外部のブラウザで開く
-    if (contents.getType() === "webview") {
-      contents.setWindowOpenHandler(({ url }) => {
-        if (/^https?:\/\//.test(url)) void shell.openExternal(url);
-        return { action: "deny" };
-      });
-    }
+    if (contents.getType() === "webview") openLinksExternally(contents);
   });
 }

@@ -8,6 +8,20 @@ export interface CpuProfile {
   timeDeltas: number[];
 }
 
+/** Chrome の開発者ツールのプロトコルの命令を送る関数（画面はデバッガの sendCommand、メインプロセスは inspector の post） */
+export type ProtocolSend = (method: string, params?: object) => Promise<unknown>;
+
+/** CPU プロファイルで、いま実行している関数を記録する間隔（マイクロ秒。1 ミリ秒ごと） */
+const SAMPLING_INTERVAL_US = 1000;
+
+/** CPU プロファイルを取り始める（画面とメインプロセスで同じ取り方）。返した関数で止めて、プロファイルを返す */
+export async function startCpuProfile(send: ProtocolSend): Promise<() => Promise<CpuProfile>> {
+  await send("Profiler.enable");
+  await send("Profiler.setSamplingInterval", { interval: SAMPLING_INTERVAL_US });
+  await send("Profiler.start");
+  return async () => ((await send("Profiler.stop")) as { profile: CpuProfile }).profile;
+}
+
 /** 時間を使った関数（自分の中で使った時間。呼んだ先の時間は含まない） */
 export interface ProfileHotspot {
   /** 関数の名前（無名なら (anonymous)、(program) は描画など JavaScript の外、(idle) は空き時間） */

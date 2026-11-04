@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { diagnosticsFolderName, perSecond, topSelfTime, type CpuProfile } from "./profileSummary.js";
+import { diagnosticsFolderName, perSecond, startCpuProfile, topSelfTime, type CpuProfile } from "./profileSummary.js";
 
 test("性能の記録: 自分の中で時間を使った関数を、同じ関数ごとにまとめて多い順に並べる（空き時間は数えない）", () => {
   const profile: CpuProfile = {
@@ -26,4 +26,14 @@ test("性能の記録: 1 秒あたりの処理の時間と、保存するフォ�
   const after = { ScriptDuration: 3, LayoutDuration: 0.7, RecalcStyleDuration: 0.1, TaskDuration: 5, LayoutCount: 300 };
   assert.deepEqual(perSecond(before, after, 10), { scriptMs: 200, layoutMs: 20, styleMs: 0, taskMs: 300, layoutCount: 20 });
   assert.equal(diagnosticsFolderName(new Date(2026, 10, 3, 22, 5, 9)), "20261103-220509");
+});
+
+test("CPU プロファイル: 画面とメインプロセスで同じ命令で取り（1 ミリ秒ごと）、止めたらプロファイルを返す", async () => {
+  const sent: [string, object | undefined][] = [];
+  const profile: CpuProfile = { nodes: [], samples: [], timeDeltas: [] };
+  const stop = await startCpuProfile(async (method, params) => (sent.push([method, params]), method === "Profiler.stop" ? { profile } : {}));
+  assert.deepEqual(sent.map(([m]) => m), ["Profiler.enable", "Profiler.setSamplingInterval", "Profiler.start"]);
+  assert.deepEqual(sent[1][1], { interval: 1000 });
+  assert.equal(await stop(), profile);
+  assert.equal(sent.at(-1)?.[0], "Profiler.stop");
 });

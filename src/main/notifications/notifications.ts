@@ -1,6 +1,7 @@
 // Mac の通知（メインプロセスの Notification）。画面を読み込み直しても・Kickoff を終えても通知センターに残り、押すとそのチャットを開く
-import { app, Notification, shell, type BrowserWindow } from "electron";
+import { Notification, shell } from "electron";
 import type { NotifyRequest, NotifyResult } from "@shared/ipc";
+import { mainWindow, showMainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { chatOfNotificationId, notificationIdOf } from "./notificationIds.js";
 
@@ -21,20 +22,13 @@ const BODY_MAX = 500;
 const NOTIFICATION_SETTINGS_URL = "x-apple.systempreferences:com.apple.Notifications-Settings.extension";
 
 /** 通知（IPC の notifications）。押したら Kickoff を前に出し、チャットのものなら画面にそのチャットを開かせる */
-export function notificationHandlers(mainWindow: () => BrowserWindow | undefined): IpcHandlers["notifications"] {
+export function notificationHandlers(): IpcHandlers["notifications"] {
   const live: Notification[] = [];
-  const focus = () => {
-    const win = mainWindow();
-    if (!win) return;
-    if (win.isMinimized()) win.restore();
-    win.show();
-    app.focus({ steal: true });
-  };
   const keep = (n: Notification) => {
     live.push(n);
     if (live.length > KEEP) live.shift();
     n.on("click", () => {
-      focus();
+      showMainWindow();
       const chat = chatOfNotificationId(n.id);
       if (chat) sendEvent(mainWindow()?.webContents, "notifications", "onOpenChat", chat.projectId, chat.chatId);
     });
