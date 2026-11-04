@@ -238,6 +238,7 @@ export function PaneTabBar({
                   onToggleCollapsed={c.tabs.length > 0 ? () => toggleCollapsed(c.key) : undefined}
                   dragProps={clusterReorder.handle(c)}
                   count={clusterCount(c)}
+                  hidden={c.tabs.length - shownTabs(c).length}
                 />
                 {shownTabs(c).map((key) => tab(key, display.indexOf(key)))}
               </div>

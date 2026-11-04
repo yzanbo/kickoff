@@ -76,15 +76,13 @@
   background: var(--border-strong);
 }
 
-/* まとまりの頭: 名前はまとまりの色の札、横に中のタブの数 */
-/* 札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す） */
+/* まとまりの頭: まとまりの色の丸い札（左 = 名前・右 = 畳む / 開く）。札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す） */
 .panel-tab-cluster {
   display: flex;
   flex: 0 1 auto;
   min-width: 0;
-  gap: 4px;
   align-items: center;
-  max-width: 140px;
+  max-width: 160px;
   padding: 0 4px;
   font-size: 11px;
   color: var(--muted);
@@ -94,11 +92,15 @@
   flex-shrink: 2;
 }
 
-/* 名前の札。角に状態ごとのチャット数を重ねる（StateCornerCounts）ので、札そのものは切り取らず、名前の文だけを省略する */
-.panel-tab-cluster-name {
+/*
+ * 1 つの丸い札を、名前と畳む / 開くの 2 つに区切る（2 つのボタンを 1 つに見せる組なので、色の地は札に付け、中のボタンは透明にして、乗せた方だけ明るくする）。
+ * 角に状態ごとのチャット数を重ねる（StateCornerCounts）ので、札そのものは切り取らず、名前の文だけを省略する
+ */
+.panel-tab-cluster-pill {
   position: relative;
+  display: flex;
   min-width: 0;
-  padding: 1px 7px;
+  align-items: stretch;
   border-radius: 999px;
   font-weight: 600;
   color: #fff;
@@ -106,41 +108,75 @@
   --corner-offset: -7px;
 }
 
+/* 名前は 2〜3 文字までは残す（狭いときは中のタブを先に細くする。1 文字まで縮むと何のまとまりか分からなかった） */
+.panel-tab-cluster-name {
+  min-width: calc(2.5em + 14px);
+  padding: 1px 7px;
+  border-radius: 999px 0 0 999px;
+}
+
+/* 区切らない札（畳むボタンのないまとまり）は名前だけで丸く */
+.panel-tab-cluster-pill:not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
+  border-radius: 999px;
+}
+
+/* 右側: 開いているときは「‹」、畳んでいるときは「+3」（隠れているタブの数）。名前とは細い縦線で区切る */
+.panel-tab-cluster-fold {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  padding: 0 6px 0 5px;
+  border: none;
+  border-left: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 0 999px 999px 0;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
 /* 札は低く、下にまとまりの線があるので、数の丸を少し小さくし、下へのはみ出しを抑える（列の下端で切れないように） */
-.panel-tab-cluster-name .corner-count {
+.panel-tab-cluster-pill .corner-count {
   min-width: 14px;
   height: 14px;
   font-size: 8.5px;
 }
 
-/* 角に数がある側は、名前の文字に重ならないよう札の余白を広げる */
-.panel-tab-cluster-name:has(.corner-count.running, .corner-count.needs-input) {
+/* 角に数がある側は、文字に重ならないよう札の余白を広げる（左上・左下 = 名前の左、右上 = いちばん右の区切り） */
+.panel-tab-cluster-pill:has(.corner-count.running, .corner-count.needs-input) .panel-tab-cluster-name {
   padding-left: 11px;
 }
 
-.panel-tab-cluster-name:has(.corner-count.review) {
+.panel-tab-cluster-pill:has(.corner-count.review) .panel-tab-cluster-fold,
+.panel-tab-cluster-pill:has(.corner-count.review):not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
   padding-right: 11px;
 }
 
-.panel-tab-cluster-name .corner-count:is(.running, .review) {
+.panel-tab-cluster-pill .corner-count:is(.running, .review) {
   top: -5px;
 }
 
-.panel-tab-cluster-name .corner-count.needs-input {
+.panel-tab-cluster-pill .corner-count.needs-input {
   bottom: -3px;
 }
 
-/* 押せる札（グループ・作業場所。状態ごとのチャットの一覧を開く） */
+/* 押せる名前（グループ・作業場所。状態ごとのチャットの一覧を開く）と畳む / 開く: 乗せた方・開いている方だけ明るく */
 button.panel-tab-cluster-name {
   border: none;
   font: inherit;
   font-weight: 600;
+  color: inherit;
+  background: transparent;
   cursor: pointer;
 }
 
 button.panel-tab-cluster-name:hover,
-button.panel-tab-cluster-name[aria-expanded="true"] {
-  background: hsl(var(--group-hue) 50% 50%);
+button.panel-tab-cluster-name[aria-expanded="true"],
+.panel-tab-cluster-fold:hover {
+  background: rgb(255 255 255 / 16%);
 }
 
 /* 札から開く一覧は、タブの列に切り取られないよう画面に固定する（位置は TabClusterHead が札の下に決める） */
@@ -159,43 +195,25 @@ button.panel-tab-cluster-name[aria-expanded="true"] {
   white-space: nowrap;
 }
 
-.panel-tab-group.plain .panel-tab-cluster-name {
+/*
+ * 畳んだまとまり（Chrome と同じ）: 隠れたタブだけになったら、まとまりの薄い地と下の線を消して札だけを残す
+ * （表示中のタブを残しているときは、そのタブがどのまとまりかが分かるよう地と線を残す）
+ */
+.panel-tab-group.collapsed:not(:has(.panel-tab)) {
+  background: transparent;
+}
+
+.panel-tab-group.collapsed:not(:has(.panel-tab))::after {
+  display: none;
+}
+
+.panel-tab-group.plain .panel-tab-cluster-pill {
   color: var(--muted);
   background: var(--bg-elev);
 }
 
-.panel-tab-cluster-count {
-  flex: none;
-  min-width: 16px;
-  padding: 0 4px;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-/* タブの数は、まとまりのタブを畳む・開くボタン（矢印と数。畳んでいれば → 、開いていれば ↓） */
-.panel-tab-cluster-fold {
-  display: inline-flex;
-  gap: 1px;
-  align-items: center;
-  justify-content: center;
-  height: 18px;
-  padding: 0 4px 0 2px;
-  border: none;
-  border-radius: var(--radius-sm);
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  cursor: pointer;
-}
-
-.panel-tab-cluster-fold:hover {
-  color: var(--text);
-  background: var(--bg-hover);
-}
-
-/* 畳んだまとまり: 札と数だけ（表示中のタブがあればそれだけ）を残し、数を少し濃くして、隠しているタブがあると分かるようにする */
-.panel-tab-group.collapsed .panel-tab-cluster-fold {
-  color: var(--text);
+.panel-tab-group.plain .panel-tab-cluster-fold {
+  border-left-color: var(--border-strong);
 }
 
 /* まとめないときの「チャット」の札（まとまりの色はないので、その他と同じ控えめな地。押すと状態ごとのチャットの一覧） */
@@ -205,7 +223,7 @@ button.panel-tab-cluster-name[aria-expanded="true"] {
   padding: 0 6px 0 6px;
 }
 
-.panel-tab-cluster.all .panel-tab-cluster-name {
+.panel-tab-cluster.all .panel-tab-cluster-pill {
   color: var(--muted);
   background: var(--bg-elev);
 }
