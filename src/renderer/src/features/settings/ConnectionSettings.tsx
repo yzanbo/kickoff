@@ -1,12 +1,12 @@
-import { api } from "@/api";
-import { useAsync } from "@/hooks/useAsync";
+import { githubStore, providersStore, useGitHubStatus, useProviders } from "@/stores/providers";
 import { ErrorText } from "@/ui/ErrorText";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
 
 /** 設定: AI エージェントと GitHub の CLI のログイン状態 */
 export function ConnectionSettings() {
-  const providers = useAsync(api.providers);
-  const github = useAsync(api.github);
+  // 開くたびに確かめ直す（届くまでは前に確かめた内容を出す）
+  const providers = useProviders();
+  const github = useGitHubStatus();
   return (
     <section className="section">
       <div className="section-head">
@@ -14,8 +14,8 @@ export function ConnectionSettings() {
         <button
           className="btn"
           onClick={() => {
-            providers.reload();
-            github.reload();
+            void providersStore.reload();
+            void githubStore.reload();
           }}
         >
           再確認

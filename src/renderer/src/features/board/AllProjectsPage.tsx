@@ -1,6 +1,4 @@
 import { FolderGit2, Plus, Tags } from "lucide-react";
-import { api } from "@/api";
-import { useAsync } from "@/hooks/useAsync";
 import { ProjectSwitcher } from "@/features/project/page/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
 import { KanbanBoard } from "./KanbanBoard";
@@ -9,6 +7,7 @@ import { useProjects } from "@/app/projectsContext";
 import { tagLabel, useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
 import { useChats } from "@/stores/chats";
+import { useGitHubStatus, useProviders } from "@/stores/providers";
 import { StateStats } from "@/features/project/page/StateStats";
 
 interface Props {
@@ -18,8 +17,8 @@ interface Props {
 /** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
 export function AllProjectsPage({ onNewProject }: Props) {
   const { projects } = useProjects();
-  const providers = useAsync(api.providers);
-  const github = useAsync(api.github);
+  const providers = useProviders();
+  const github = useGitHubStatus();
   const claude = providers.data?.find((p) => p.id === "claude");
   // しまった（アーカイブした）プロジェクトは、全プロジェクトの画面に出さない。サイドバーの「タグ」で絞り込んでいれば、合うものだけ
   const tagFilter = useProjectTagFilter();

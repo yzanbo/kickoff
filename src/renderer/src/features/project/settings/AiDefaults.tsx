@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionMode, type Project, type ChatOptionsPatch } from "@shared/types";
 import { api } from "@/api";
-import { useAsync } from "@/hooks/useAsync";
+import { useModels } from "@/stores/providers";
 import { useSave } from "@/hooks/useSave";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions } from "@/features/chat/options/AiOptions";
@@ -12,7 +12,7 @@ import { SaveActions } from "@/ui/SaveActions";
 const INHERIT = "__inherit__";
 
 export function AiDefaults({ project, app }: { project: Project; app: AppSettings | undefined }) {
-  const models = useAsync(() => api.models("claude"));
+  const models = useModels("claude");
   const [draft, setDraft] = useState<ChatOptionsPatch>(project.chat_defaults);
   const save = useSave();
   useEffect(() => setDraft(project.chat_defaults), [project.chat_defaults]);
@@ -26,7 +26,7 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
   };
   const keys = ["model", "effort", "permission_mode", "fast_mode"] as const;
   const dirty = keys.some((k) => JSON.stringify(draft[k]) !== JSON.stringify(project.chat_defaults[k]));
-  const list = models.data ?? [];
+  const list = models;
   const currentModel = list.find((m) => m.value === (draft.model ?? app?.chat_defaults.model));
 
   // アプリの設定の値（「アプリの設定に従う」の横に出す）

@@ -3,7 +3,7 @@ import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { confirmDialog } from "@/ui/dialogs";
 import { useActionError } from "@/hooks/useActionError";
-import { setVoiceStatus } from "@/features/dictation/voiceStatus";
+import { voiceStatusStore } from "@/stores/voice";
 import { ErrorText } from "@/ui/ErrorText";
 
 /** モデルの大きさ（1000MB からは GB） */
@@ -20,11 +20,11 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
   const action = useActionError();
   if (!models) return <p className="muted small">読み込み中…</p>;
 
-  const download = (m: VoiceModelInfo) => action.guard(async () => setVoiceStatus(await api.downloadVoiceModel(m.id)));
+  const download = (m: VoiceModelInfo) => action.guard(async () => voiceStatusStore.set(await api.downloadVoiceModel(m.id)));
   const remove = async (m: VoiceModelInfo) => {
     const downloading = Boolean(m.download && !m.download.error);
     if (!downloading && !(await confirmDialog({ title: `モデル（${m.label}）を削除しますか？`, message: "使うときは、もう一度ダウンロードします。", confirmLabel: "削除", danger: true }))) return;
-    await action.guard(async () => setVoiceStatus(await api.deleteVoiceModel(m.id)));
+    await action.guard(async () => voiceStatusStore.set(await api.deleteVoiceModel(m.id)));
   };
 
   return (

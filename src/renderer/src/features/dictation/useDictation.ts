@@ -4,7 +4,7 @@ import { errorMessage } from "@shared/errors";
 import { openSettings } from "@/features/settings/openSettings";
 import { micErrorMessage } from "./dictationText";
 import { startRecording, type Recording } from "./recorder";
-import { refreshVoiceStatus, useVoiceStatus } from "./voiceStatus";
+import { useVoiceStatus, voiceStatusStore } from "@/stores/voice";
 
 /** 音声入力の状態（録音の準備中 → 録音中 → 文字起こし中 → 入れたら idle。失敗したら error で、録った音声があれば起こし直せる） */
 export type DictationState =
@@ -21,7 +21,7 @@ export type Dictation = ReturnType<typeof useDictation>;
  * onText に起こした文を渡す（send なら、入れてそのまま送る）。準備ができていなければ、設定の「音声入力」を開く
  */
 export function useDictation({ onText }: { onText: (text: string, send: boolean) => void }) {
-  const status = useVoiceStatus();
+  const status = useVoiceStatus().data;
   const [state, setState] = useState<DictationState>({ kind: "idle" });
   const recording = useRef<Recording | null>(null);
   // 始める・やめる・閉じるたびに進める（マイクや文字起こしを待つ間にやめた・閉じたら、届いたものを捨てる）
@@ -56,7 +56,7 @@ export function useDictation({ onText }: { onText: (text: string, send: boolean)
     const id = ++attempt.current;
     setState({ kind: "starting" });
     // 準備ができていなければ（取ってある状態が古いこともあるので取り直して確かめ）、設定を開いて案内する
-    const fresh = status?.ready ? status : await refreshVoiceStatus().catch(() => undefined);
+    const fresh = status?.ready ? status : await voiceStatusStore.reload().catch(() => undefined);
     if (id !== attempt.current) return;
     if (!fresh?.ready) {
       setState({ kind: "idle" });

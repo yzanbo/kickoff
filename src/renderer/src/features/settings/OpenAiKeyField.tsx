@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "@/api";
 import { useSave } from "@/hooks/useSave";
-import { refreshVoiceStatus } from "@/features/dictation/voiceStatus";
+import { voiceStatusStore } from "@/stores/voice";
 import { ResultMessage } from "@/ui/SaveActions";
 
 /**
@@ -15,7 +15,7 @@ export function OpenAiKeyField({ saved }: { saved: boolean | undefined }) {
     save.run(async () => {
       await api.saveOpenAiKey(value);
       setKey("");
-      await refreshVoiceStatus();
+      await voiceStatusStore.reload();
     });
   return (
     <div className="field">

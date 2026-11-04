@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { OPENAI_TRANSCRIBE_MODELS, VOICE_LANGUAGES, type AppSettings, type VoiceProvider, type VoiceStatus } from "@shared/types";
-import { refreshVoiceStatus, useVoiceStatus } from "@/features/dictation/voiceStatus";
+import { useVoiceStatus, voiceStatusStore } from "@/stores/voice";
+import { ErrorText } from "@/ui/ErrorText";
 import { Field } from "@/ui/Field";
 import { RefreshButton } from "@/ui/IconButton";
 import { SaveActions } from "@/ui/SaveActions";
@@ -16,7 +16,8 @@ const OPENAI_MODEL_LIST_ID = "voice-openai-models";
 /** 設定: チャット欄の音声入力（使うか・文字起こしの方法・言語・この Mac のモデル / OpenAI のキー） */
 export function VoiceSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
-  const status = useVoiceStatus();
+  const voice = useVoiceStatus();
+  const status = voice.data;
   if (!draft) return null;
   const set = (patch: Partial<AppSettings>) => setDraft({ ...draft, ...patch });
   return (
@@ -57,7 +58,7 @@ export function VoiceSettings() {
         </Field>
         {draft.voice_provider === "local" ? (
           <>
-            <LocalTools status={status} />
+            <LocalTools status={status} checking={voice.loading} error={voice.error} />
             <div className="field">
               <span className="field-label">モデル</span>
               <VoiceModelList models={status?.local.models} selected={draft.voice_model} onSelect={(voiceModel) => set({ voice_model: voiceModel })} />
@@ -116,27 +117,21 @@ function VoiceReadiness({ status, dirty }: { status: VoiceStatus | undefined; di
   );
 }
 
-/** この Mac の whisper-cli・ffmpeg が見つかるか（なければ brew の案内） */
-function LocalTools({ status }: { status: VoiceStatus | undefined }) {
-  const [checking, setChecking] = useState(false);
-  const recheck = () => {
-    setChecking(true);
-    void refreshVoiceStatus()
-      .catch(() => {})
-      .finally(() => setChecking(false));
-  };
+/** この Mac の whisper-cli・ffmpeg が見つかるか（なければ brew の案内）。checking は準備の状態を取り直している間 */
+function LocalTools({ status, checking, error }: { status: VoiceStatus | undefined; checking: boolean; error: string | undefined }) {
   const tool = (path: string | null | undefined) => (status === undefined ? "確認中…" : path ?? "見つかりません");
   const missing = status && (!status.local.whisper || !status.local.ffmpeg);
   return (
     <div className="field">
       <span className="field-label voice-tools-head">
         この Mac の準備
-        <RefreshButton label="もう一度確かめる" busy={checking} onClick={recheck} type="button" />
+        <RefreshButton label="もう一度確かめる" busy={checking} onClick={() => void voiceStatusStore.reload()} type="button" />
       </span>
       <div className="card-grid voice-tools">
         <StatusCard title="whisper-cli（whisper.cpp）" ok={status ? Boolean(status.local.whisper) : undefined} detail={tool(status?.local.whisper)} />
         <StatusCard title="ffmpeg" ok={status ? Boolean(status.local.ffmpeg) : undefined} detail={tool(status?.local.ffmpeg)} />
       </div>
+      <ErrorText message={error} />
       {missing && (
         <span className="field-help">
           ターミナルで <code>brew install whisper-cpp ffmpeg</code> を実行してから、もう一度確かめてください。

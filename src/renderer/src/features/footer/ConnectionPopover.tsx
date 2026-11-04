@@ -1,6 +1,7 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
+import { githubStore, providersStore, useGitHubStatus, useProviders } from "@/stores/providers";
 import { useDismiss } from "@/hooks/useDismiss";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { accountLine } from "@/features/usage/usage";
@@ -31,9 +32,27 @@ const timeText = (t: number | string) => new Date(t).toLocaleString("ja-JP", { m
 /** 左下の接続の表示を押したときに、左下から出る詳細（画面は移らない） */
 export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  // 接続の状態が変わったら取り直す（取り直している間も前の内容を出しておく）
-  const { data, loading, error, reload } = useAsync(() => Promise.all([api.status(), api.providers(), api.github()]), [state]);
-  const [server, providers, github] = data ?? [];
+  // 接続の状態が変わったら取り直す（取り直している間も前の内容を出しておく）。プロバイダー・GitHub は店から（開くたびに確かめ直す）
+  const status = useAsync(() => api.status(), [state]);
+  const providerState = useProviders();
+  const githubState = useGitHubStatus();
+  const shownState = useRef(state);
+  useEffect(() => {
+    if (shownState.current === state) return;
+    shownState.current = state;
+    void providersStore.reload();
+    void githubStore.reload();
+  }, [state]);
+  const reload = () => {
+    status.reload();
+    void providersStore.reload();
+    void githubStore.reload();
+  };
+  const server = status.data;
+  const providers = providerState.data;
+  const github = githubState.data;
+  const loading = status.loading || providerState.loading || githubState.loading;
+  const error = status.error ?? providerState.error ?? githubState.error;
 
   // 外側のクリック・Esc で閉じる（左下の表示自体はそちらで開閉する）
   useDismiss(ref, onClose, { ignore: ".conn", escape: "pass" });
