@@ -63,7 +63,7 @@ export function ChatSettings() {
       <div className="form">
         <Field
           label="チャットの ✕ を押したとき"
-          help="チャットの見出しの ✕ とタブの × に効きます（選んだらすぐ反映）。毎回聞くときは、表示だけ消す・アーカイブ・削除から選び、「次からはこれにする」でここを変えられます。削除は取り消せないので、既定にしても毎回確かめます。"
+          help="チャットのタブの × に効きます（選んだらすぐ反映）。毎回聞くときは、表示だけ消す・アーカイブ・削除から選び、「次からはこれにする」でここを変えられます。削除は取り消せないので、既定にしても毎回確かめます。"
         >
           <Segmented<ChatCloseAction>
             className="segmented theme-switch"

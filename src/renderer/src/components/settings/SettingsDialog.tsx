@@ -131,12 +131,12 @@ function DisplaySettings() {
           />
         </Field>
         <Field
-          label="ボードの見出し"
-          help="パネルを上まで伸ばすと、ボードでチャットのパネルを開いたとき、パネルを上端まで伸ばして見出しの右側を覆います（見出しはボードの側だけに出ます）。チャットの縦の幅が広がります。見出しの右クリックでも切り替えられます。"
+          label="ボードのツールバー"
+          help="ボードの上の、新規・表示・グループの作成・検索などが並ぶ帯の置き方です。パネルを上まで伸ばすと、ボードでチャットのパネルを開いたとき、パネルを上端まで伸ばしてツールバーの右側を覆います（ツールバーはボードの側だけに出ます）。チャットの縦の幅が広がります。ツールバーの何もないところの右クリックでも切り替えられます。"
         >
           <Segmented<BoardHeaderLayout>
             className="segmented theme-switch"
-            label="ボードの見出しの置き方"
+            label="ボードのツールバーの置き方"
             value={headerLayout}
             onChange={setHeaderLayout}
             options={[
