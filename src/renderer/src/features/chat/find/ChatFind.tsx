@@ -127,6 +127,7 @@ export function ChatFind({
           } else if (isCancelKey(e)) {
             // パネルを閉じる Esc より先に、検索をやめる（文を消して印を外し、チャット欄にピントを戻す）
             consumeKey(e);
+            e.nativeEvent.stopImmediatePropagation();
             setQuery("");
             focusComposer();
           }
