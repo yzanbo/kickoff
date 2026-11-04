@@ -1,5 +1,5 @@
 import { Activity } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { boardColumnOf } from "../../../../core/board";
 import { BOARD_COLUMN_LABELS, type Run } from "../../../../core/types";
 import { api } from "../../api";
@@ -8,6 +8,8 @@ import { chatTitle } from "../../chatTitle";
 import { useServerEvent } from "../../events";
 import { useListNavigation } from "../../hooks/useListNavigation";
 import { useModalDialog } from "../../hooks/useModalDialog";
+import { useStoredFlag } from "../../hooks/useStoredState";
+import { archivedProjects, sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { useProjectTagFilter } from "../../projectTagFilter";
 import { TagFilterNotice } from "../TagFilterNotice";
@@ -17,6 +19,8 @@ import { shortRelativeTime } from "../../time";
 import { COLUMN_TONE, DRAFT_TONE } from "../board/tones";
 import { openDraft, useAllDrafts, type SidebarDraft } from "../sidePanel/panelMemory";
 import { StatusDot } from "../StatusDot";
+import { ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS_KEY } from "../../storageKeys";
+import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
 
 type CountedColumn = (typeof COUNTED_COLUMNS)[number];
 
@@ -29,10 +33,12 @@ const draftTitle = (draft: SidebarDraft) => draft.text.trim().split("\n")[0] || 
 /**
  * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形）。
  * 送る前の新しいチャット（下書き。サイドバー・ボードの「下書き」と同じもの）も、いちばん上に並べる。
- * 名前・プロジェクト名で絞り込め、↑↓・Enter で開く。開いている間もチャットの状態の変化に追いつく
+ * 名前・プロジェクト名で絞り込め、↑↓・Enter で開く。開いている間もチャットの状態の変化に追いつく。
+ * 入力欄の下の行で、プロジェクトでも絞り込める（すべて / プロジェクトごと。Tab / Shift+Tab でも切り替え。開くたびに「すべて」から）。
+ * アーカイブ済みのプロジェクトのチャットは、行の右端の切り替えで出す（初めは隠す。覚えておく）
  */
 export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
-  const { projectName, projectsById } = useProjects();
+  const { projects, projectName, projectsById } = useProjects();
   // サイドバーの「タグ」で絞り込んでいれば、合うプロジェクトのチャットだけ
   const tagFilter = useProjectTagFilter();
   const { stateOf } = useRunStates();
@@ -40,6 +46,8 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
   const [runs, setRuns] = useState<Run[]>([]);
   const dialog = useModalDialog();
   const drafts = useAllDrafts();
+  const [project, setProject] = useState<ProjectFilterValue>("all");
+  const [showArchived, setShowArchived] = useStoredFlag(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS_KEY);
 
   useEffect(() => {
     void api.allRuns().then(setRuns).catch(() => {});
@@ -50,21 +58,33 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
     setRuns((prev) => (prev.some((r) => r.id === e.run.id) ? prev.map((r) => (r.id === e.run.id ? e.run : r)) : [e.run, ...prev]));
   });
 
-  // 状態ごとのまとまり（下書き → 作業中・回答待ち・未読。アーカイブしたもの・既読は除く。最近動いた順）と、↑↓ で移る平らな並び
-  const { groups, items } = useMemo(() => {
+  // 状態ごとのまとまり（下書き → 作業中・回答待ち・未読。アーカイブしたもの・既読は除く。最近動いた順）と、↑↓ で移る平らな並び。
+  // プロジェクトの絞り込みの選択肢には、ほかの絞り込み（文字・タグ・アーカイブ済みのプロジェクト）を通ったものの数を添える
+  const { groups, items, total, options, selected } = useMemo(() => {
     const q = query.trim().toLowerCase();
     const inFilter = (projectId: number) => {
-      const project = projectsById.get(projectId);
-      return !tagFilter.active || (project !== undefined && tagFilter.matches(project));
+      const p = projectsById.get(projectId);
+      if (!p || (p.archived_at && !showArchived)) return false;
+      return !tagFilter.active || tagFilter.matches(p);
     };
+    const matches = (title: string, projectId: number) => inFilter(projectId) && (!q || `${title} ${projectName(projectId)}`.toLowerCase().includes(q));
+    const baseRuns = runs.filter((run) => !run.archived_at && COUNTED_COLUMNS.includes(boardColumnOf(stateOf(run)) as CountedColumn) && matches(chatTitle(run.title), run.project_id));
+    const baseDrafts = drafts.filter((d) => matches(draftTitle(d), d.projectId));
+    // プロジェクトごとの数と、選択肢（サイドバーの並び → アーカイブ済み。チャットのあるものと、選んでいるもの）
+    const counts = new Map<number, number>();
+    for (const id of [...baseRuns.map((r) => r.project_id), ...baseDrafts.map((d) => d.projectId)]) counts.set(id, (counts.get(id) ?? 0) + 1);
+    const ordered = [...sidebarOrder(projects), ...(showArchived ? archivedProjects(projects) : [])];
+    // 選んでいたプロジェクトが隠れた（アーカイブ済みを隠した・タグで外れた）ら「すべて」に戻す
+    const selected: ProjectFilterValue = project !== "all" && inFilter(project) ? project : "all";
+    const options: ProjectFilterOption[] = ordered
+      .filter((p) => inFilter(p.id) && ((counts.get(p.id) ?? 0) > 0 || p.id === selected))
+      .map((p) => ({ id: p.id, name: p.name, count: counts.get(p.id) ?? 0, archived: Boolean(p.archived_at) }));
+    const inProject = (projectId: number) => selected === "all" || projectId === selected;
+
     const byColumn = new Map<CountedColumn, Run[]>(COUNTED_COLUMNS.map((c) => [c, []]));
-    for (const run of runs) {
-      if (run.archived_at || !inFilter(run.project_id)) continue;
-      if (q && !`${chatTitle(run.title)} ${projectName(run.project_id)}`.toLowerCase().includes(q)) continue;
-      byColumn.get(boardColumnOf(stateOf(run)) as CountedColumn)?.push(run);
-    }
-    const draftItems: Item[] = drafts
-      .filter((d) => inFilter(d.projectId) && (!q || `${draftTitle(d)} ${projectName(d.projectId)}`.toLowerCase().includes(q)))
+    for (const run of baseRuns) if (inProject(run.project_id)) byColumn.get(boardColumnOf(stateOf(run)) as CountedColumn)!.push(run);
+    const draftItems: Item[] = baseDrafts
+      .filter((d) => inProject(d.projectId))
       .map((draft) => ({ kind: "draft", key: `draft:${draft.memoryKey}:${draft.key}`, draft }));
     const groups = [
       { key: "draft", label: "下書き", tone: DRAFT_TONE, items: draftItems },
@@ -78,9 +98,12 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
           .map((run): Item => ({ kind: "run", key: `run:${run.id}`, run })),
       })),
     ].filter((g) => g.items.length > 0);
-    return { groups, items: groups.flatMap((g) => g.items) };
+    return { groups, items: groups.flatMap((g) => g.items), total: baseRuns.length + baseDrafts.length, options, selected };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
-  }, [runs, drafts, query, stateOf, projectName, projectsById, tagFilter.selected]);
+  }, [runs, drafts, query, stateOf, projects, projectName, projectsById, tagFilter.selected, project, showArchived]);
+  const archivedCount = useMemo(() => projects.filter((p) => p.archived_at && (!tagFilter.active || tagFilter.matches(p))).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
+    [projects, tagFilter.selected]);
 
   function go(item: Item | undefined) {
     if (!item) return;
@@ -89,7 +112,16 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
     else openRun(item.run.project_id, item.run.id);
   }
   const nav = useListNavigation(items, go);
-  useEffect(() => nav.setIndex(0), [query]);
+  useEffect(() => nav.setIndex(0), [query, selected, showArchived]);
+  // 入力欄の Tab / Shift+Tab でプロジェクトの絞り込みを順に切り替える（ほかのキーは一覧の ↑↓・Enter）
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Tab" && !e.metaKey && !e.altKey && !e.ctrlKey) {
+      e.preventDefault();
+      setProject(cycleProjectFilter(selected, options, e.shiftKey));
+      return;
+    }
+    nav.onKeyDown(e);
+  };
   // ↑↓ で選んだ行が見えるようにスクロールする
   useEffect(() => {
     dialog.ref.current?.querySelector(".palette-item.active")?.scrollIntoView({ block: "nearest" });
@@ -105,12 +137,21 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
           placeholder="下書き・作業中・回答待ち・未読のチャットを絞り込む"
           aria-label="作業中・待ちのチャットを絞り込む"
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={nav.onKeyDown}
+          onKeyDown={onKeyDown}
         />
         <TagFilterNotice filter={tagFilter} />
       </div>
+      <PaletteProjectFilter
+        value={selected}
+        total={total}
+        options={options}
+        onChange={setProject}
+        archivedCount={archivedCount}
+        showArchived={showArchived}
+        onToggleArchived={() => setShowArchived(!showArchived)}
+      />
       <ul className="palette-list" role="listbox">
-        {items.length === 0 && <li className="palette-empty">{query.trim() ? "見つかりません" : tagFilter.active ? "タグで絞り込んだプロジェクトに、作業中・待ちのチャットはありません" : "作業中・待ちのチャットはありません"}</li>}
+        {items.length === 0 && <li className="palette-empty">{query.trim() ? "見つかりません" : selected !== "all" ? "このプロジェクトに作業中・待ちのチャットはありません" : tagFilter.active ? "タグで絞り込んだプロジェクトに、作業中・待ちのチャットはありません" : "作業中・待ちのチャットはありません"}</li>}
         {groups.map((g) => (
           <Fragment key={g.key}>
             <li className="palette-group" role="presentation">
