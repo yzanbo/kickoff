@@ -45,9 +45,12 @@ export function panelActions(key: string) {
   const setOpen = (open: boolean) => dispatch({ type: "setOpen", open });
 
   return {
-    /** チャットをタブで開く（開いていればそのタブへ）。focus は検索結果から開いたときに、スクロールして強調する発言 */
+    /**
+     * チャットをタブで開く（開いていればそのタブへ）。focus は検索結果から開いたときに、スクロールして強調する発言
+     * （開いていたタブは作り直さず、強調する発言だけを変える。名前・タブの中のチャットから届いたものは残す）
+     */
     open: (chat: Pick<Chat, "id" | "project_id"> & Partial<Pick<Chat, "title">>, focus?: number) =>
-      openTab(chatTab(chat, focus), focus ? { kind: "chat", fields: { focus, title: chat.title, projectId: chat.project_id, chat: undefined } } : undefined),
+      openTab(chatTab(chat, focus), focus ? { kind: "chat", fields: { focus } } : undefined),
     openNew,
     /** サブエージェントの中身をタブで開く（同じサブエージェントのタブがあればそこへ） */
     openSubagent: (target: Parameters<typeof subagentTab>[0]) => openTab(subagentTab(target)),
