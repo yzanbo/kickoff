@@ -1,31 +1,41 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { THEME_KEY } from "@/lib/storageKeys";
 
 export type Theme = "dark" | "light" | "system";
 
-export function loadTheme(): Theme {
+function loadTheme(): Theme {
   const v = localStorage.getItem(THEME_KEY);
   return v === "light" || v === "system" ? v : "dark";
 }
 
-/** テーマ（既定はダーク）。<html data-theme> に反映する */
-export function applyTheme(theme: Theme) {
-  const dark = theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+const darkScheme = () => matchMedia("(prefers-color-scheme: dark)");
+
+/** テーマ（既定はダーク）。<html data-theme> に反映する（system は OS のダーク・ライトに合わせる） */
+function applyTheme(theme: Theme) {
+  const dark = theme === "dark" || (theme === "system" && darkScheme().matches);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
 }
 
+/**
+ * 起動したときに 1 回: 覚えているテーマを出し、「システムに合わせる」なら OS のダーク・ライトの切り替えにも付いていく。
+ * （以前は設定の「表示」を開いている間だけ OS の切り替えを見ていて、閉じると付いていかなかった）
+ */
+export function startTheme() {
+  applyTheme(loadTheme());
+  darkScheme().addEventListener("change", () => {
+    if (loadTheme() === "system") applyTheme("system");
+  });
+}
+
+/** 設定の「表示」のテーマ。選んだらすぐ画面に出して覚える */
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(loadTheme);
-  useEffect(() => {
-    localStorage.setItem(THEME_KEY, theme);
-    applyTheme(theme);
-    if (theme !== "system") return;
-    const mq = matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => applyTheme("system");
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, [theme]);
-  return [theme, setTheme] as const;
+  const change = (next: Theme) => {
+    localStorage.setItem(THEME_KEY, next);
+    setTheme(next);
+    applyTheme(next);
+  };
+  return [theme, change] as const;
 }
 
 /** いま画面に出ているテーマ（「システムに合わせる」も、ダーク・ライトのどちらかにしたもの） */
