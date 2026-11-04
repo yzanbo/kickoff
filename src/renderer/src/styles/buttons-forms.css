@@ -27,12 +27,13 @@ input[type="text"].inline-name {
   font-size: 13px;
 }
 
-/* アイコンだけのボタン（IconButton / CloseButton / RefreshButton。label が aria-label と title になる） */
+/* アイコンだけのボタン（IconButton / CloseButton / RefreshButton。label が aria-label と title になる）。余白 0 はブラウザの既定（左右 6px）を消すため（狭めたボタンでアイコンが右へずれていた） */
 .icon-button {
   display: inline-grid;
   place-items: center;
   width: 26px;
   height: 26px;
+  padding: 0;
   border: none;
   border-radius: 6px;
   color: var(--muted);

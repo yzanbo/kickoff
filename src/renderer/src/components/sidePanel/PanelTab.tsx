@@ -1,6 +1,7 @@
-import { X, type LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "../../cx";
+import { CloseButton } from "../IconButton";
 import { InlineName } from "../InlineName";
 
 /**
@@ -58,9 +59,7 @@ export function PanelTab({
       )}
       {/* 名前を変えている間は、入力欄の ✓ / ✕ と並ばないよう閉じるを隠す */}
       {!editor && (
-        <button className="panel-tab-close" aria-label={`${label} のタブを閉じる`} onClick={onClose}>
-          <X size={12} />
-        </button>
+        <CloseButton label={`${label} のタブを閉じる`} size={12} className="panel-tab-close" onClick={onClose} />
       )}
     </div>
   );
