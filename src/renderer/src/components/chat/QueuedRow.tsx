@@ -139,11 +139,16 @@ export function QueuedRow({
       <span className="queued-text" title={m.text}>
         {m.text || m.attachments.map((a) => a.name).join("、")}
       </span>
-      <IconButton icon={Pencil} label="文を書き直す" title="文を書き直す（ダブルクリックでも）" size={13} onClick={actions.edit} />
-      <IconButton icon={ArrowUp} label="1 つ上へ移動" size={13} className="queued-move" disabled={i === 0} onClick={() => actions.move(i - 1)} />
-      <IconButton icon={ArrowDown} label="1 つ下へ移動" size={13} className="queued-move" disabled={i === count - 1} onClick={() => actions.move(i + 1)} />
-      <IconButton icon={SendHorizontal} label={sendLabel} size={13} onClick={actions.sendNow} />
-      <IconButton icon={Trash2} label="送信待ちから消す" size={13} onClick={actions.remove} />
+      {/* 右の操作は 2 つのまとまり: 並べ替え（↑↓。狭い欄では隠し、つまみ・右クリックに任せる）｜ この指示への操作（書き直す・送る・消す） */}
+      <span className="queued-row-moves">
+        <IconButton icon={ArrowUp} label="1 つ上へ移動" size={13} disabled={i === 0} onClick={() => actions.move(i - 1)} />
+        <IconButton icon={ArrowDown} label="1 つ下へ移動" size={13} disabled={i === count - 1} onClick={() => actions.move(i + 1)} />
+      </span>
+      <span className="queued-row-actions">
+        <IconButton icon={Pencil} label="文を書き直す" title="文を書き直す（ダブルクリックでも）" size={13} onClick={actions.edit} />
+        <IconButton icon={SendHorizontal} label={sendLabel} size={13} onClick={actions.sendNow} />
+        <IconButton icon={Trash2} label="送信待ちから消す" size={13} onClick={actions.remove} />
+      </span>
     </div>
       {/* メニューは行の外に置く（行のダブルクリック・右クリックがメニューの中に効かないように） */}
       {menu && (

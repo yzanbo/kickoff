@@ -18,21 +18,19 @@
 
 /*
  * ここから右を操作にまとめる（左は件数と、一覧の見え方の「すべて表示 / 縮める」）。
- * 選んでいるときは、並べ替え（いちばん上へ・いちばん下へ）→ 自動で送る → まとめて送る・消す の順
+ * 自動で送る（列全体の設定）→ 選んでいるときは、行と同じく 並べ替え（いちばん上へ・いちばん下へ）｜ まとめて送る・消す・選ぶのをやめる の順
  */
-.queued-head-moves,
 .queued-head-btn.queued-mode {
   margin-left: auto;
 }
 
+/* 並べ替えのまとまり: 右の送る・消すと縦線で区切る（行の ↑↓ と同じ） */
 .queued-head-moves {
   display: flex;
   flex: none;
   gap: 2px;
-}
-
-.queued-head-moves + .queued-mode {
-  margin-left: 0;
+  padding-right: 6px;
+  border-right: 1px solid var(--border);
 }
 
 /* 止めているとき（終わっても送らない）: 黄で目立たせる */

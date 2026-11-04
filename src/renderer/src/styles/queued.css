@@ -109,6 +109,24 @@
   width: 22px;
 }
 
+/*
+ * 行・止める線の右の操作の 2 つのまとまり: 並べ替え（↑↓）｜ この指示への操作（書き直す・送る・消す）。
+ * 間を縦線で区切り、行と止める線で同じ列にそろえる
+ */
+.queued-row-moves,
+.queued-row-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.queued-row-moves {
+  padding-right: 4px;
+  margin-right: 2px;
+  border-right: 1px solid var(--border);
+}
+
 .queued-stop-line .icon-button {
   color: var(--warn);
 }
@@ -227,8 +245,7 @@
 
 /* 狭い欄: 行の ↑↓ を隠す（並べ替えはつまみと右クリックで。見出しは queued-head.css） */
 @container queued (max-width: 440px) {
-  .queued-row .queued-move,
-  .queued-stop-line .queued-move {
+  .queued-row-moves {
     display: none;
   }
 }

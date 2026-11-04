@@ -26,7 +26,7 @@ export function QueuedModeButton({ runId, paused, busy, failed }: { runId: numbe
 }
 
 /**
- * 選んだ指示の並べ替え（いちばん上へ・いちばん下へ）。送る・消すとは意味が違うので、見出しの「自動で送る」のすぐ左に置く
+ * 選んだ指示の並べ替え（いちばん上へ・いちばん下へ）。行の ↑↓ と同じく、送る・消すのまとまりの左に区切って置く
  */
 export function QueuedMoveActions({ runId, selected, failed }: { runId: number; selected: string[]; failed: (e: unknown) => void }) {
   const n = selected.length;
