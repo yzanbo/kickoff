@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Chat } from "@shared/types";
+import { makeChat } from "@shared/testing/factories";
 import { approvalIndex } from "@/features/chat/chatState";
 import { chatsByState } from "./StateChatsPopover";
 
-const chat = (id: number, patch: Partial<Chat> = {}) =>
-  ({ id, project_id: 1, status: "completed", unread: false, pinned: false, archived_at: null, active_at: `2026-11-0${id}T00:00:00Z`, ...patch }) as Chat;
+const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-0${id}T00:00:00Z`, ...patch });
 const chats = [chat(1, { status: "running" }), chat(2), chat(3, { archived_at: "2026-11-01T00:00:00Z" }), chat(4, { status: "running" }), chat(5)];
 // 4 は回答待ちの依頼がある
 const pending = approvalIndex([{ chat_id: 4 }]);

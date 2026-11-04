@@ -1,27 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Chat, ChatGroup, GitWorktree, Project } from "@shared/types";
+import type { Chat, ChatGroup, GitWorktree } from "@shared/types";
+import { makeChat, makeGroup, makeProject } from "@shared/testing/factories";
 import { approvalIndex } from "@/features/chat/chatState";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
 import { chatHead, draftHead } from "./bucketHeads";
 import { bucketChats, sortBuckets, type BucketHead, type ChatBucket } from "./buckets";
 
-const chat = (id: number, patch: Partial<Chat> = {}): Chat =>
-  ({
-    id,
-    project_id: 1,
-    group_id: null,
-    worktree_path: null,
-    branch: null,
-    status: "completed",
-    unread: false,
-    pinned: false,
-    archived_at: null,
-    active_at: `2026-11-${String(id).padStart(2, "0")}T00:00:00Z`,
-    ...patch,
-  }) as Chat;
-const group = (id: number, position: number, projectId = 1): ChatGroup => ({ id, project_id: projectId, name: `G${id}`, position, hue: 0, created_at: "" });
-const project = (id: number): Project => ({ id, name: `P${id}` }) as Project;
+// 並び順は id の順（新しいほど大きい）
+const chat = (id: number, patch: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-11-${String(id).padStart(2, "0")}T00:00:00Z`, ...patch });
+const group = (id: number, position: number, projectId = 1) => makeGroup(id, { position, project_id: projectId });
+const project = (id: number) => makeProject(id, { name: `P${id}` });
 const worktree = (path: string, branch: string, main = false): GitWorktree => ({ path, branch, head: "abc1234", main, locked: false, prunable: false });
 
 const pending = approvalIndex([]);
