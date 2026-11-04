@@ -22,6 +22,7 @@ import { isSendEnter, sendModeOf, useComposerKeys, type QueueSendMode } from "./
 export type { QueueSendMode } from "./composerKeys";
 import { appendBlock, type ComposerFill } from "./quoteComment";
 import { ChatContextButton } from "./ChatContextButton";
+import { queueModeTexts } from "./QueueModeToggle";
 
 interface Props {
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
@@ -271,7 +272,13 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
         </div>
         <div className="composer-actions">
         {trailing}
-        {queueing && busyControls && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
+        {queueing && busyControls && (
+          <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>
+            {busyControls}
+            {/* ⌘ / ⌘⇧ を押している間は、Enter でどう送るかを切り替えのすぐ上に青い札で添える（並びを動かさない。押している方のボタンも青く光る） */}
+            {heldMode && <span className="composer-held-hint">Enter で{queueModeTexts(Boolean(busy), true, heldMode).sendLabel}</span>}
+          </span>
+        )}
         {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
         {busy && onStop && !stopping && keys.stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
         {busy && onStop && stopping && <span className="composer-stop-hint stopping">停止中…</span>}

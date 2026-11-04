@@ -30,6 +30,7 @@
 @import "./prompt-rail.css";
 @import "./new-chat.css";
 @import "./composer.css";
+@import "./queue-mode.css";
 @import "./dictation.css";
 @import "./queued.css";
 @import "./queued-head.css";
