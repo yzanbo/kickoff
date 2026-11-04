@@ -2,7 +2,7 @@ import { Check, Plus } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Project } from "@shared/types";
 import { sidebarOrder } from "./projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 
 /** 横に開く一覧の幅（位置の計算と CSS で同じ値） */
 const FLYOUT_WIDTH = 280;

@@ -19,7 +19,7 @@ import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/pr
 import type { Project } from "@shared/types";
 import { alertDialog, promptDialog } from "@/ui/dialogs";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { openNewChat } from "@/app/router";
 import { ProjectEditDialog } from "@/features/project/settings/ProjectEditDialog";
 import type { ProjectSettingsSection } from "@/features/project/settings/ProjectSettings";

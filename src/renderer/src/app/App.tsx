@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useAppData } from "./appData";
+import { publishServerEvent } from "@/api/events";
+import { useServerConnection } from "@/api/useServerConnection";
+import { useApprovals } from "@/stores/approvals";
+import { addProject, useProjects } from "@/stores/projects";
+import { useAppSettings } from "@/stores/settings";
 import { OPEN_CONTENT_SEARCH_EVENT } from "@/features/chat/chatSearch";
 import { AppFooter } from "@/features/footer/AppFooter";
 import { BottomPanel } from "@/features/panel/bottom/BottomPanel";
@@ -32,7 +36,6 @@ import { useChatHistory } from "./useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
 import { setProjectHues } from "@/features/project/projectColor";
-import { indexProjects, ProjectsContext } from "./projectsContext";
 import { forgetDraftsOfMissingProjects } from "@/features/panel/state/panelMemory";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 
@@ -42,17 +45,22 @@ export function App() {
   // ⌘[ / ⌘] で、前に開いたチャット・次のチャットへ
   useChatHistory(route);
   const planUsage = usePlanUsage();
-  const { projects, approvals, projectsDir, notifyEnabled, loadProjects, connection } = useAppData(planUsage.onEvent);
+  // サーバーとつなぎ、届いた知らせを各画面と店（stores/）に配る（ここで 1 回だけ）
+  const connection = useServerConnection(publishServerEvent);
+  // アプリ全体で使うデータ（プロジェクト・回答待ち・設定）は店から読む（要る部品も、props で中継せずに店から読む）
+  const { projects, projectName, loaded: projectsLoaded } = useProjects();
+  const approvals = useApprovals();
+  const appSettings = useAppSettings().data;
   // プロジェクトの色（DB に覚えた色）を、色を使う部品が読めるようにする（描く前に入れる）
   setProjectHues(projects);
-  // プロジェクトの一覧と名前の引き当て（props で中継せず、要る部品が useProjects で読む）
-  const projectsIndex = useMemo(() => indexProjects(projects), [projects]);
-  // 消したプロジェクトの下書き（再起動しても残すもの）を片付ける
-  useEffect(() => forgetDraftsOfMissingProjects(new Set(projects.map((p) => p.id))), [projects]);
+  // 消したプロジェクトの下書き（再起動しても残すもの）を片付ける（一覧が届いてから）
+  useEffect(() => {
+    if (projectsLoaded) forgetDraftsOfMissingProjects(new Set(projects.map((p) => p.id)));
+  }, [projects, projectsLoaded]);
   // 回答待ちの依頼からチャットの状態を引く（approvals を中継せず、要る部品が useChatStates で読む）
   const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
-  // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）
-  useChatNotifications({ enabled: notifyEnabled, projectName: projectsIndex.projectName, route });
+  // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え。設定が届くまでは知らせる）
+  useChatNotifications({ enabled: appSettings?.desktop_notifications ?? true, projectName, route });
   const sidebar = useSidebar();
   // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
   const [creating, setCreating] = useState<NewProjectRequest | null>(null);
@@ -94,7 +102,6 @@ export function App() {
   return (
     <PlanUsageContext.Provider value={planUsage}>
       <RouteContext.Provider value={route}>
-      <ProjectsContext.Provider value={projectsIndex}>
       <ChatStatesContext.Provider value={chatStates}>
       <ProjectChatContext.Provider value={chat}>
       <div {...sidebar.layout}>
@@ -136,12 +143,12 @@ export function App() {
         />
         {creating && (
           <NewProjectDialog
-            defaultParentDir={projectsDir}
+            defaultParentDir={appSettings?.projects_dir ?? "~/Documents"}
             initialName={creating.name}
             onClose={() => setCreating(null)}
             onCreated={(project) => {
               setCreating(null);
-              loadProjects();
+              addProject(project);
               if (creating.onCreated) creating.onCreated(project);
               else openNewChat(project.id);
             }}
@@ -177,7 +184,6 @@ export function App() {
       </div>
       </ProjectChatContext.Provider>
       </ChatStatesContext.Provider>
-      </ProjectsContext.Provider>
       </RouteContext.Provider>
     </PlanUsageContext.Provider>
   );

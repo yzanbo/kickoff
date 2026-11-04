@@ -5,7 +5,7 @@ import { cx } from "@/lib/cx";
 import { useSettingFamily } from "@/hooks/useSetting";
 import type { SettingValue } from "@/lib/storage";
 import { ProjectMark } from "@/features/project/ProjectMark";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { boardLaneClosed, type PROJECT_BOARD_LANES } from "@/lib/storageKeys";
 import { useWorktreesOf } from "@/stores/worktrees";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type ChatWorkplace } from "@/features/worktree/workplace";

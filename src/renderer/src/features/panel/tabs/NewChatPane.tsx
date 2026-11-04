@@ -2,8 +2,7 @@ import { Folder, SquarePen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Project, Chat } from "@shared/types";
 import { api } from "@/api";
-import { useAsync } from "@/hooks/useAsync";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { choiceDialog } from "@/ui/dialogs";
 import { Composer, SendCancelled } from "@/features/chat/composer/Composer";
 import { ProjectChip } from "@/features/project/ProjectChip";
@@ -49,9 +48,9 @@ export function NewChatPane({
   onCreated,
   onDraftChange,
 }: Props) {
-  const { projectName } = useProjects();
+  const { projectName, projectsById, loaded: projectsLoaded } = useProjects();
   const options = useChatOptions(undefined, projectId);
-  const project = useAsync(() => api.project(projectId), [projectId]);
+  const project = projectsById.get(projectId);
   const chats = useChats({ projectId });
   // 作業場所（初めは本体。並行して進めたいときにワークツリーを選ぶ）
   const [place, setPlace] = useState<Workplace>({ kind: "main" });
@@ -67,7 +66,7 @@ export function NewChatPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupName]);
 
-  const ready = !project.loading && (chats.loaded || chats.error !== undefined);
+  const ready = projectsLoaded && (chats.loaded || chats.error !== undefined);
   // 入力欄ができたら 1 回だけ、書きかけていた文（なければ送信待ちの指示から始めたときの文）と添付を入れる（送るのは自分で）。
   // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
   const fillComposer = useRef<ComposerFill | null>(null);
@@ -102,7 +101,7 @@ export function NewChatPane({
               </select>
             </ProjectChip>
           ) : (
-            project.data && <ProjectChip id={project.data.id} name={project.data.name} linked />
+            project && <ProjectChip id={project.id} name={project.name} linked />
           )}
           <WorkplacePicker projectId={projectId} value={place} onChange={setPlace} />
           {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
@@ -135,7 +134,7 @@ export function NewChatPane({
           <div className="new-chat-icon">
             <SquarePen size={22} />
           </div>
-          <h1>{project.data?.name ?? ""}</h1>
+          <h1>{project?.name ?? ""}</h1>
           <p className="muted">調べもの・設計・実装・テストなど、AI に頼みたいことを書いて始めます</p>
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
           {seed && <p className="muted small">送信待ちの指示を入力欄に入れました。直して送れます（作成先のグループは上で選べます）</p>}

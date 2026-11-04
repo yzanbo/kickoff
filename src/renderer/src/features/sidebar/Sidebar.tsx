@@ -2,7 +2,7 @@ import { Inbox, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } f
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
 import { sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { useChatStates } from "@/app/chatStatesContext";
 import { href, useRoute } from "@/app/router";

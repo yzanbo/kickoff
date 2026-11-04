@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Project, Chat, ChatGroup } from "@shared/types";
-import { api } from "@/api";
-import { errorMessage } from "@shared/errors";
-import { useServerEvent } from "@/api/events";
 import { useChats } from "@/stores/chats";
 import { groupsStore, NO_GROUPS } from "@/stores/groups";
+import { useProjects } from "@/stores/projects";
 import { useKeyedStore } from "@/stores/useStore";
 
 /** プロジェクト画面に出すもの（プロジェクト・チャット・グループ） */
@@ -14,55 +12,31 @@ export interface ProjectData {
   groups: ChatGroup[];
 }
 
-/** プロジェクトごとの直前のプロジェクト（プロジェクトを切り替えたときに、すぐ出すため） */
-const projectCache = new Map<number, Project>();
-
 /**
- * プロジェクト画面のデータ。プロジェクトを取り、サーバーのイベントで取り直す（チャットとグループは店から読む）。
- * 一度開いたプロジェクトは、切り替えたときにすぐ出す（裏で読み直す。「読み込み中」を挟んでちらつかないように）。
- * data が別のプロジェクトのもの（data.project.id !== id）の間は、画面の側で前の画面を薄くして出す
+ * プロジェクト画面のデータ（プロジェクト・チャット・グループの店から読む。どれも知らせで直るので、取り直さない）。
+ * まだ届いていないもの（初めて開くプロジェクトのグループなど）があれば、届くまで前に出していたプロジェクトの画面を返す
+ * （画面の側で、data.project.id !== id の間は薄くして出す）。loading はどれかを読み込んでいる最中（タブの数の代わりに更新中の印を出す）
  */
 export function useProjectData(id: number) {
-  const [project, setProject] = useState<Project | undefined>(() => projectCache.get(id));
-  const [error, setError] = useState<string>();
-  // 取り直している最中か（タブの数の代わりに更新中の印を出す）。続けて呼ばれても、すべて終わるまで true
-  const [loading, setLoading] = useState(false);
-  const inFlight = useRef(0);
-
-  const load = useCallback(async () => {
-    inFlight.current++;
-    setLoading(true);
-    try {
-      const next = await api.project(id);
-      projectCache.set(id, next);
-      setProject(next);
-      setError(undefined);
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      if (--inFlight.current === 0) setLoading(false);
-    }
-  }, [id]);
-
+  const { projectsById, loaded: projectsLoaded } = useProjects();
+  const project = projectsById.get(id);
+  const chats = useChats({ projectId: id });
+  const groups = useKeyedStore(groupsStore, id);
+  const ready = project !== undefined && chats.loaded && groups.loaded;
+  const current = useMemo(
+    () => (ready ? { project, chats: chats.chats, groups: groups.data ?? NO_GROUPS } : undefined),
+    [ready, project, chats.chats, groups.data],
+  );
+  // 前に出していたプロジェクトの画面（切り替えた直後、まだ届いていないものがある間に薄くして出す）
+  const [last, setLast] = useState(current);
   useEffect(() => {
-    // 覚えていればそれを出す。初めてのプロジェクトは、読み終わるまで前の画面を薄くして残す
-    const cached = projectCache.get(id);
-    if (cached) setProject(cached);
-    void load();
-  }, [id, load]);
-
-  useServerEvent((e) => {
-    if (e.type === "project" && e.project.id === id) void load();
-  });
-
-  // 切り替えた直後も、覚えている内容があれば最初の描画から使う（前のプロジェクトが一瞬映らないように）
-  const shown = project?.id === id ? project : (projectCache.get(id) ?? project);
-  // チャットとグループは、出しているプロジェクトのもの（前のプロジェクトを薄くして出している間は、そのプロジェクトのもの）
-  const chats = useChats({ projectId: shown?.id ?? id });
-  const groups = useKeyedStore(groupsStore, shown?.id ?? id);
+    if (current) setLast(current);
+  }, [current]);
+  // 一覧が届いたのに見つからないプロジェクト（消した・URL の番号が違う）は、前の画面を出さずに知らせる
+  const missing = projectsLoaded && !project;
   return {
-    data: shown && { project: shown, chats: chats.chats, groups: groups.data ?? NO_GROUPS },
-    error: error ?? chats.error ?? groups.error,
-    loading: loading || chats.loading || groups.loading,
+    data: missing ? undefined : (current ?? last),
+    error: missing ? "プロジェクトが見つかりません" : (chats.error ?? groups.error),
+    loading: chats.loading || groups.loading,
   };
 }

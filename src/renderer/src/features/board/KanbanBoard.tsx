@@ -4,7 +4,7 @@ import { BOARD_COLUMNS, type BoardColumn, type Chat, type ChatGroup } from "@sha
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTicker } from "@/hooks/useTicker";
 import { sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { openChat, type ReopenRoute } from "@/app/router";
 import { useChatStates } from "@/app/chatStatesContext";

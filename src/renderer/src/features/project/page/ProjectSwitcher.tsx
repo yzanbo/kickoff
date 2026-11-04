@@ -2,7 +2,7 @@ import { Check, ChevronDown } from "lucide-react";
 import type { Project } from "@shared/types";
 import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
 import { projectHueStyle } from "@/features/project/projectColor";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { navigate, type ProjectTab } from "@/app/router";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useAnchoredMenu } from "@/ui/useAnchoredMenu";

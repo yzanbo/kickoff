@@ -6,7 +6,7 @@ import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
 import { ProjectMark } from "@/features/project/ProjectMark";
 import { sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { openChat } from "@/app/router";

@@ -9,7 +9,7 @@ import { useListNavigation } from "@/hooks/useListNavigation";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { useSetting } from "@/hooks/useSetting";
 import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
 import { openChat } from "@/app/router";

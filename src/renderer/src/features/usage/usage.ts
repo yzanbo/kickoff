@@ -1,33 +1,27 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { BusEvent, PlanUsage } from "@shared/types";
+import { createContext, useCallback, useContext, useState } from "react";
+import type { PlanUsage } from "@shared/types";
 import { api } from "@/api";
 import { useTicker } from "@/hooks/useTicker";
+import { usageStore } from "@/stores/usage";
+import { useStore } from "@/stores/useStore";
 
-/** プランの使用枠。初回は API から取得し、以降はサーバーからのイベントで更新する */
+/** プランの使用枠（使用枠の店 stores/usage.ts。初回は API から取得し、以降はサーバーからのイベントで更新する）と、手で取り直す操作 */
 export function usePlanUsage() {
-  const [usage, setUsage] = useState<PlanUsage>();
+  const usage = useStore(usageStore).data;
   const [refreshing, setRefreshing] = useState(false);
   // リセットまでの残り時間の表示を進めるための再描画
   useTicker(60_000);
 
-  useEffect(() => {
-    api.usage().then(setUsage).catch(() => {});
-  }, []);
-
-  const onEvent = useCallback((e: BusEvent) => {
-    if (e.type === "usage") setUsage(e.usage);
-  }, []);
-
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      setUsage(await api.refreshUsage());
+      usageStore.set(await api.refreshUsage());
     } finally {
       setRefreshing(false);
     }
   }, []);
 
-  return { usage, onEvent, refresh, refreshing };
+  return { usage, refresh, refreshing };
 }
 
 /** アプリ全体で 1 つの使用枠を共有する（チャット欄のコンテキストの表示などから使う） */

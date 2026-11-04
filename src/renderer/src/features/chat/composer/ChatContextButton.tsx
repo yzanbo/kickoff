@@ -6,7 +6,7 @@ import { useChats } from "@/stores/chats";
 import { cx } from "@/lib/cx";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useListNavigation } from "@/hooks/useListNavigation";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { relativeTime } from "@/lib/time";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";

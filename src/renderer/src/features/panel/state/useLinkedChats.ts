@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Chat } from "@shared/types";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { NO_CHATS, useChats } from "@/stores/chats";
 

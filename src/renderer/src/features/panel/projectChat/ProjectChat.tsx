@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { cx } from "@/lib/cx";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { Panel } from "@/features/panel/Panel";
 import { terminalTargets } from "@/features/panel/usePanel";
 import type { ProjectChatController } from "./useProjectChat";
