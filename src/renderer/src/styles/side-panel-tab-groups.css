@@ -28,6 +28,32 @@
   margin-left: 6px;
 }
 
+/* 自分で作ったグループの札をつかんで並べ替えているとき: 動かしているまとまりは薄く、入る位置（前・後ろ）に縦の線（::after は下の線に使っているので ::before） */
+.panel-tab-group.group-dragging {
+  opacity: 0.45;
+}
+
+.panel-tab-group.drop-before::before,
+.panel-tab-group.drop-after::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+/* 枠の内側の端に引く（いちばん左のまとまりでも、タブの並びの横スクロールで切り取られないように） */
+.panel-tab-group.drop-before::before {
+  left: 0;
+}
+
+.panel-tab-group.drop-after::before {
+  right: 0;
+}
+
 .panel-tab-group.plain {
   background: transparent;
 }
