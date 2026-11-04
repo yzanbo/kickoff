@@ -4,6 +4,7 @@ import { describeApprovalInput } from "@/features/chat/tools/toolDescribe";
 import { QuestionCard } from "./QuestionCard";
 import { useResolve } from "./useResolveApproval";
 import { ErrorText } from "@/ui/ErrorText";
+import { HighlightedCode } from "@/ui/HighlightedCode";
 
 /** ツール実行の承認依頼、AI からの質問（AskUserQuestion）、または通信の切断で何度再開しても続かなかったときの再開の確認 */
 export function ApprovalCard({ approval }: { approval: Approval }) {
@@ -54,7 +55,14 @@ function PermissionCard({ approval }: { approval: Approval }) {
         <span className="approval-title">{approval.title ?? `${approval.tool_name} の実行`}</span>
       </div>
       {description && <p className="muted small">{description}</p>}
-      <pre className="approval-command">{describeApprovalInput(approval.tool_name, approval.input)}</pre>
+      <pre className="approval-command">
+        {/* コマンドは、実行のあとの欄と同じくシェルの文法で色を付ける */}
+        {approval.tool_name === "Bash" ? (
+          <HighlightedCode code={describeApprovalInput(approval.tool_name, approval.input)} lang="shellscript" />
+        ) : (
+          describeApprovalInput(approval.tool_name, approval.input)
+        )}
+      </pre>
       {denying ? (
         <div className="approval-deny">
           <input
