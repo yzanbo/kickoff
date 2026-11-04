@@ -5,7 +5,12 @@
 .panel-tab-group {
   position: relative;
   display: flex;
-  flex: none;
+  /*
+   * タブが多いときは、まとまりも中のタブと一緒に細くなる。タブは入れ物（container）にしていて中身の幅を数えないので、
+   * どこまで細くできるかは、タブの数（--cluster-tabs。いちばん細いタブ 36px ＋ 間 2px）と、縮めた札の分（80px）で決める
+   */
+  flex: 0 1 auto;
+  min-width: calc(var(--cluster-tabs, 0) * 38px + 80px);
   gap: 2px;
   padding: 0 3px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
@@ -63,9 +68,11 @@
 }
 
 /* まとまりの頭: 名前はまとまりの色の札、横に中のタブの数 */
+/* 札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す） */
 .panel-tab-cluster {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   gap: 4px;
   align-items: center;
   max-width: 140px;
@@ -74,9 +81,8 @@
   color: var(--muted);
 }
 
-/* まとめているときは、まとまりの名前の分だけタブが細くなりすぎないよう、名前が読める幅より縮めず、並びの中を横にスクロールさせる */
-.panel-tab-strip.grouped .panel-tab {
-  min-width: 120px;
+.panel-tab-group .panel-tab {
+  flex-shrink: 2;
 }
 
 /* 名前の札。角に状態ごとのチャット数を重ねる（StateCornerCounts）ので、札そのものは切り取らず、名前の文だけを省略する */

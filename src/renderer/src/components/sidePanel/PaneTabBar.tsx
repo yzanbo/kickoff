@@ -194,7 +194,8 @@ export function PaneTabBar({
               <div
                 key={c.key}
                 className={cx("panel-tab-group", hue === null && "plain", collapsed.includes(c.key) && "collapsed", clusterReorder.classFor(c))}
-                style={hue === null ? undefined : ({ "--group-hue": hue } as CSSProperties)}
+                // --cluster-tabs: 見せているタブの数（まとまりをどこまで細くできるかを CSS で決める）
+                style={{ ...(hue === null ? {} : { "--group-hue": hue }), "--cluster-tabs": shownTabs(c).length } as CSSProperties}
                 {...clusterReorder.dropProps(c)}
               >
                 <TabClusterHead

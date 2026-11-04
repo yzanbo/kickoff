@@ -101,6 +101,7 @@
  *   --tone       状態ごとのチャット数の色（サイドバー HeadCounts.tsx・画面の見出し StateStats.tsx）
  *   --ws-hue     プロジェクトの色相（ProjectChip.tsx・ProjectSwitcher.tsx・WorkspacePage.tsx・WorkspaceDots.tsx・KanbanBoard.tsx・BoardLanes.tsx・BasicInfo.tsx）
  *   --diagram-w  Mermaid の図の幅（MermaidDiagram.tsx）
+ *   --group-hue  右のパネルのタブのまとまりの色相・--cluster-tabs そのまとまりで見せているタブの数（PaneTabBar.tsx）
  *   --img-w --img-h --img-x --img-y  画像を大きく見るときの画像の大きさと、中央からのずれ（imageViewer/useImageZoom.ts）
  * 逆に、上の :root の値を getComputedStyle で読んでいるコードもある（名前を変えるときは一緒に直す）:
  *   mermaidConfig.ts（--text --bg --bg-sidebar --bg-hover --bg-elev --bg-active --muted --accent-bright --info --warn --ok --ng --dot-needs-input --sec-*）
