@@ -6,8 +6,8 @@ import { Store } from "../db/store.js";
 
 function project(references: { path: string; kind: "folder" | "file" }[] = []) {
   const store = new Store(":memory:");
-  const p = store.createProject({ name: "a", description: "メモアプリ", repo_path: "/tmp/a", provider: "claude" });
-  return store.updateProject(p.id, { references });
+  const p = store.projects.create({ name: "a", description: "メモアプリ", repo_path: "/tmp/a", provider: "claude" });
+  return store.projects.update(p.id, { reference_paths: references });
 }
 
 test("どのチャットも同じ権限: Git の読み取りとテスト・ビルドは承認なし、ファイルの編集は権限モードに任せる", () => {

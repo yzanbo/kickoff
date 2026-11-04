@@ -25,8 +25,8 @@ export function SearchView({ search, selected, onSelect }: Props) {
   // 結果を出したときの探し方で印を付ける（打っている途中の文字ではなく）
   const pattern = useMemo(() => (result ? searchPattern(result.query) : null), [result]);
   const toggles = [
-    { key: "caseSensitive", icon: CaseSensitive, label: "大文字と小文字を区別する" },
-    { key: "wholeWord", icon: WholeWord, label: "単語単位で探す" },
+    { key: "case_sensitive", icon: CaseSensitive, label: "大文字と小文字を区別する" },
+    { key: "whole_word", icon: WholeWord, label: "単語単位で探す" },
     { key: "regex", icon: Regex, label: "正規表現を使う" },
   ] as const;
 

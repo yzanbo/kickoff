@@ -1,4 +1,4 @@
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 import { api } from "@/api";
 import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
@@ -12,20 +12,20 @@ export type ProjectOrder = (typeof PROJECT_ORDERS)[number];
  * lastActive を渡すと、固定したものの次は最近動いた順（サイドバーの「最近動いた順」）。
  * しまった（アーカイブした）プロジェクトは出さない（切り替え・全プロジェクトの画面でも同じ）
  */
-export const sidebarOrder = (projects: ProjectSummary[], lastActive?: (p: ProjectSummary) => string) =>
+export const sidebarOrder = (projects: Project[], lastActive?: (p: Project) => string) =>
   projects
     .filter((p) => !p.archived_at)
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || (lastActive ? lastActive(b).localeCompare(lastActive(a)) : 0) || a.position - b.position || a.id - b.id);
 
 /** しまった（アーカイブした）プロジェクト（名前順） */
-export const archivedProjects = (projects: ProjectSummary[]) => projects.filter((p) => p.archived_at).sort((a, b) => a.name.localeCompare(b.name));
+export const archivedProjects = (projects: Project[]) => projects.filter((p) => p.archived_at).sort((a, b) => a.name.localeCompare(b.name));
 
 /** 上に固定する・やめる、しまう・戻す、タグを付け外す（右クリックのメニュー・見出しのピン・戻すボタンで共通。失敗はお知らせのダイアログで出す） */
 export const changeProject = (id: number, patch: { pinned?: boolean; archived?: boolean; tags?: string[] }) =>
   void api.updateProject(id, patch).catch((e: unknown) => alertDialog("変更できませんでした", errorMessage(e)));
 
 /** 確かめてから、プロジェクトをアーカイブから戻す（やめたら何もしない） */
-export async function confirmRestoreProject(project: Pick<ProjectSummary, "id" | "name">) {
+export async function confirmRestoreProject(project: Pick<Project, "id" | "name">) {
   const ok = await confirmDialog({
     title: `プロジェクト「${project.name}」をアーカイブから戻しますか？`,
     message: "サイドバー・プロジェクトの切り替え・全プロジェクトの画面に、また出るようになります。",
@@ -35,7 +35,7 @@ export async function confirmRestoreProject(project: Pick<ProjectSummary, "id" |
 }
 
 /** 確かめてから、プロジェクトをアーカイブする（やめたら何もしない） */
-export async function confirmArchiveProject(project: Pick<ProjectSummary, "id" | "name">) {
+export async function confirmArchiveProject(project: Pick<Project, "id" | "name">) {
   const ok = await confirmDialog({
     title: `プロジェクト「${project.name}」をアーカイブしますか？`,
     message:

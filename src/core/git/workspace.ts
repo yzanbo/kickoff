@@ -3,9 +3,7 @@ import path from "node:path";
 import { errorMessage } from "@shared/errors";
 import { gitOutput } from "./index.js";
 import { expandHome } from "../system/paths.js";
-import type { WorkspaceInspection } from "@shared/types";
-
-export type { WorkspaceInspection };
+import type { FolderInspection } from "@shared/types";
 
 const git = async (cwd: string, args: string[]) => (await gitOutput(cwd, args)).trim();
 
@@ -59,35 +57,35 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
   return fs.realpath(repo);
 }
 
-export async function inspectWorkspace(rawPath: string): Promise<WorkspaceInspection> {
+export async function inspectWorkspace(rawPath: string): Promise<FolderInspection> {
   const target = path.resolve(expandHome(rawPath.trim()));
-  const result: WorkspaceInspection = {
+  const result: FolderInspection = {
     path: target,
     exists: false,
-    isDirectory: false,
-    isGit: false,
-    gitRoot: null,
-    hasCommits: false,
+    is_directory: false,
+    is_git: false,
+    git_root: null,
+    has_commits: false,
     branch: null,
-    remoteUrl: null,
+    remote_url: null,
     dirty: false,
-    suggestedName: path.basename(target),
+    suggested_name: path.basename(target),
   };
   const stat = await fs.stat(target).catch(() => null);
   if (!stat) return result;
   result.exists = true;
-  result.isDirectory = stat.isDirectory();
-  if (!result.isDirectory) return result;
+  result.is_directory = stat.isDirectory();
+  if (!result.is_directory) return result;
   // macOS の /tmp → /private/tmp などのシンボリックリンクを解決し、git のルートと比較できるようにする
   result.path = await fs.realpath(target);
 
   const root = await git(target, ["rev-parse", "--show-toplevel"]).catch(() => null);
   if (!root) return result;
-  result.isGit = true;
-  result.gitRoot = await fs.realpath(root).catch(() => root);
-  result.hasCommits = Boolean(await git(target, ["rev-parse", "--verify", "HEAD"]).catch(() => null));
+  result.is_git = true;
+  result.git_root = await fs.realpath(root).catch(() => root);
+  result.has_commits = Boolean(await git(target, ["rev-parse", "--verify", "HEAD"]).catch(() => null));
   result.branch = (await git(target, ["branch", "--show-current"]).catch(() => "")) || null;
-  result.remoteUrl = (await git(target, ["remote", "get-url", "origin"]).catch(() => "")) || null;
+  result.remote_url = (await git(target, ["remote", "get-url", "origin"]).catch(() => "")) || null;
   result.dirty = Boolean(await git(target, ["status", "--porcelain"]).catch(() => ""));
   return result;
 }
@@ -99,22 +97,22 @@ export async function inspectWorkspace(rawPath: string): Promise<WorkspaceInspec
  */
 export async function prepareImportedWorkspace(rawPath: string, initGit: boolean): Promise<string> {
   const info = await inspectWorkspace(rawPath);
-  if (!info.exists || !info.isDirectory) throw new Error(`フォルダが見つかりません: ${info.path}`);
+  if (!info.exists || !info.is_directory) throw new Error(`フォルダが見つかりません: ${info.path}`);
   const real = info.path;
-  if (info.isGit && info.gitRoot !== real) {
-    throw new Error(`このフォルダは git リポジトリの一部です。ルートのフォルダを指定してください: ${info.gitRoot}`);
+  if (info.is_git && info.git_root !== real) {
+    throw new Error(`このフォルダは git リポジトリの一部です。ルートのフォルダを指定してください: ${info.git_root}`);
   }
-  if (info.isGit && info.hasCommits) return real;
+  if (info.is_git && info.has_commits) return real;
 
   if (!initGit) {
     throw new Error(
-      info.isGit
+      info.is_git
         ? "コミットがまだありません。最初のコミットを作成することに同意してください"
         : "git で管理されていません。git リポジトリとして初期化することに同意してください",
     );
   }
   try {
-    if (!info.isGit) await git(real, ["init", "-b", "main"]);
+    if (!info.is_git) await git(real, ["init", "-b", "main"]);
     await git(real, ["add", "-A"]);
     await git(real, ["commit", "--allow-empty", "-m", "chore: Kickoff に取り込み"]);
   } catch (e) {

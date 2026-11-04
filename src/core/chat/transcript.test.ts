@@ -4,7 +4,7 @@ import type { Project, Chat, ChatEvent } from "@shared/types";
 import { chatTranscript, transcriptFileName } from "./transcript.js";
 
 const ev = (id: number, type: ChatEvent["type"], data: object): ChatEvent => ({ id, chat_id: 1, type, data, created_at: "2026-11-04T01:02:00Z" }) as unknown as ChatEvent;
-const chat = { id: 1, title: "ログイン画面の修正", worktree_path: "", branch: "main", created_at: "2026-11-04T01:00:00Z" } as Chat;
+const chat = { id: 1, title: "ログイン画面の修正", worktree_path: null, branch: "main", created_at: "2026-11-04T01:00:00Z" } as Chat;
 const project = { name: "Demo", repo_path: "/r" } as Project;
 
 test("チャットの記録: 自分の発言・AI の返答を順に並べ、作業ごとに変えたファイルと失敗を添える（ツールの出力・サブエージェントの発言は入れない）", () => {

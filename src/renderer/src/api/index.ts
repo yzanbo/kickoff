@@ -1,44 +1,4 @@
-import type {
-  AppSettings,
-  Attachment,
-  Approval,
-  ApprovalDecision,
-  ModelOption,
-  ProviderId,
-  EffortDefault,
-  QueuedMessage,
-  ReconnectState,
-  BackgroundState,
-  Chat,
-  ChatEvent,
-  ChatGroup,
-  ChatOptions,
-  SearchHit,
-  ServerStatus,
-  FileContent,
-  GitCommitDetail,
-  GitDiff,
-  GitFileChange,
-  GitLog,
-  GitRefs,
-  GitWorktree,
-  WorktreeRemovalInfo,
-  GitHubStatus,
-  GitStatus,
-  PlanUsage,
-  ServiceUsage,
-  SlashCommandOption,
-  Project,
-  ProjectFiles,
-  PullRequestInfo,
-  ProjectSearchQuery,
-  ProjectSearchResult,
-  ProjectSummary,
-  ProviderStatus,
-  VoiceStatus,
-  WorkspaceInspection,
-  FileRewindResult,
-} from "@shared/types";
+import type { AppSettings, Attachment, Approval, ApprovalDecision, ModelOption, ProviderId, EffortDefault, QueuedMessage, ReconnectState, BackgroundState, Chat, ChatEvent, ChatGroup, ChatOptionsPatch, SearchHit, ServerStatus, FileContent, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitWorktree, WorktreeRemovalInfo, GitHubStatus, GitStatus, PlanUsage, ServiceUsage, SlashCommandOption, Project, ProjectFiles, PullRequestInfo, ProjectSearchQuery, ProjectSearchResult, ProviderStatus, VoiceStatus, FolderInspection, FileRewindResult } from "@shared/types";
 
 interface NewProjectInput {
   name: string;
@@ -129,18 +89,18 @@ export const api = {
   /** サービスごとの使用状況（設定の「使用状況」） */
   usageServices: () => request<ServiceUsage[]>("GET", "/api/usage/services"),
   refreshUsageServices: () => request<ServiceUsage[]>("POST", "/api/usage/services/refresh"),
-  projects: () => request<ProjectSummary[]>("GET", "/api/projects"),
+  projects: () => request<Project[]>("GET", "/api/projects"),
   project: (id: number) => request<Project>("GET", `/api/projects/${id}`),
   createProject: (input: NewProjectInput) => request<Project>("POST", "/api/projects", input),
   importProject: (input: ImportProjectInput) => request<Project>("POST", "/api/projects/import", input),
   inspectWorkspace: (path: string) =>
-    request<WorkspaceInspection>("GET", `/api/workspace/inspect?path=${encodeURIComponent(path)}`),
+    request<FolderInspection>("GET", `/api/workspace/inspect?path=${encodeURIComponent(path)}`),
   updateProject: (
     id: number,
     patch: Partial<
       Pick<
         Project,
-        "name" | "description" | "provider" | "defaults" | "references" | "hue" | "tags"
+        "name" | "description" | "provider" | "chat_defaults" | "reference_paths" | "hue" | "tags"
       >
     > & { pinned?: boolean; archived?: boolean },
   ) =>
@@ -164,7 +124,7 @@ export const api = {
     projectId: number,
     input: {
       prompt: string;
-      options: ChatOptions;
+      options: ChatOptionsPatch;
       attachments?: Attachment[];
       group_id?: number;
       /** 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体） */
@@ -173,7 +133,7 @@ export const api = {
     },
   ) => request<Chat>("POST", `/api/projects/${projectId}/chats`, input),
   run: (id: number) => request<ChatDetail>("GET", `/api/chats/${id}`),
-  sendMessage: (chatId: number, text: string, options: ChatOptions, attachments: Attachment[] = []) =>
+  sendMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = []) =>
     request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments }),
 
   /** 添付ファイルをアップロードする */
@@ -229,7 +189,7 @@ export const api = {
   /** ファイルを保存する（baseHash は開いたときの指紋。ほかで変わっていれば 409。null なら上書き） */
   saveProjectFile: (target: GitTarget, path: string, content: string, baseHash: string | null) =>
     request<{ hash: string }>("PUT", gitUrl(target, "/file"), { path, content, base_hash: baseHash }),
-  searchProject: (target: GitTarget, { query, caseSensitive, wholeWord, regex }: ProjectSearchQuery) =>
+  searchProject: (target: GitTarget, { query, case_sensitive: caseSensitive, whole_word: wholeWord, regex }: ProjectSearchQuery) =>
     request<ProjectSearchResult>(
       "GET",
       gitUrl(target, "/search", { q: query, case: caseSensitive ? "1" : "0", word: wholeWord ? "1" : "0", regex: regex ? "1" : "0" }),
@@ -241,7 +201,7 @@ export const api = {
   cancelChat: (chatId: number) => request<{ ok: true }>("POST", `/api/chats/${chatId}/cancel`),
 
   // 作業中に送る次の指示の待ちの列（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す）
-  queueMessage: (chatId: number, text: string, options: ChatOptions, attachments: Attachment[] = [], hold = false) =>
+  queueMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], hold = false) =>
     request<{ queued: boolean; id?: string }>("POST", `/api/chats/${chatId}/queue`, { text, options, attachments, ...(hold ? { hold } : {}) }),
   /** attachments: 添付を置き換える（省けば今のまま） */
   editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
@@ -255,7 +215,7 @@ export const api = {
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
   forkChat: (chatId: number, eventId: number) => request<Chat>("POST", `/api/chats/${chatId}/fork`, { event_id: eventId }),
   /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。ファイルの変更は戻さない） */
-  rewindChat: (chatId: number, eventId: number, text: string, options: ChatOptions = {}, restoreFiles = false) =>
+  rewindChat: (chatId: number, eventId: number, text: string, options: ChatOptionsPatch = {}, restoreFiles = false) =>
     request<Chat>("POST", `/api/chats/${chatId}/rewind`, { event_id: eventId, text, options, restore_files: restoreFiles }),
   /** 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて AI に読ませる） */
   chatTranscript: (chatId: number) => request<Attachment>("POST", `/api/chats/${chatId}/transcript`),
@@ -266,7 +226,7 @@ export const api = {
    * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）。
    * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った
    */
-  tellChat: (chatId: number, text: string, options: ChatOptions, attachments: Attachment[] = []) =>
+  tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = []) =>
     request<{ result: "told" | "queued" | "sent" }>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments }),
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
   stopBackgroundTask: (chatId: number, taskId: string) => request<{ ok: true }>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),

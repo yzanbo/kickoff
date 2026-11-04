@@ -3,7 +3,6 @@ import type { ApiRetryInfo, Approval, BackgroundState, Project, QueuedMessage, R
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useServerEvent } from "@/api/events";
-import { BUSY_STATUSES } from "@/features/chat/chatStatus";
 
 /**
  * チャットの中身（チャット・プロジェクト・イベント・確認・待ちの列・生成中の返答）を取り、サーバーのイベントで追いかける。
@@ -111,7 +110,7 @@ export function useChatDetail(chatId: number, projectId: number) {
       setLive("");
     } else if (e.type === "chat" && e.chat.id === chatId) {
       setChat(e.chat);
-      if (!BUSY_STATUSES.includes(e.chat.status)) {
+      if (e.chat.status !== "running") {
         dropPendingDelta();
         setLive("");
         setRetry(null);

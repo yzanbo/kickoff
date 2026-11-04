@@ -1,6 +1,6 @@
 import { Folder, SquarePen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { ProjectSummary, Chat } from "@shared/types";
+import type { Project, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useProjects } from "@/app/projectsContext";
@@ -8,7 +8,6 @@ import { choiceDialog } from "@/ui/dialogs";
 import { Composer, SendCancelled } from "@/features/chat/composer/Composer";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
-import { BUSY_STATUSES } from "@/features/chat/chatStatus";
 import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "@/features/worktree/WorkplacePicker";
 import { invalidateWorktrees } from "@/features/worktree/worktreeBranches";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
@@ -25,7 +24,7 @@ interface Props {
   /** いま見えているか（見えていないタブに文を戻すときは、入力欄にピントを移さない） */
   visible?: boolean;
   /** 全プロジェクトのボードでは、どのプロジェクトで始めるかを選べるようにする */
-  projects?: ProjectSummary[];
+  projects?: Project[];
   onProjectChange?: (projectId: number) => void;
   /** 作成先のグループを変えたとき・グループ名が分かったとき（タブの表示に使う） */
   onGroupChange?: (group: number | undefined, groupName: string | undefined) => void;
@@ -195,5 +194,5 @@ export function NewChatPane({
 /** その作業場所（本体・いまあるワークツリー）で、作業中のチャットがあるか。新しく作るワークツリーなら、まだない */
 function isBusyAt(chats: Chat[], place: Workplace): boolean {
   const path = place.kind === "existing" ? place.path : place.kind === "main" ? "" : null;
-  return path !== null && chats.some((r) => r.worktree_path === path && BUSY_STATUSES.includes(r.status));
+  return path !== null && chats.some((r) => r.worktree_path === path && r.status === "running");
 }

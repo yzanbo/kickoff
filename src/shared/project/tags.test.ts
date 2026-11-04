@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { collectTags, matchesTags, normalizeTags, UNTAGGED } from "@shared/project/tags";
+import { collectTags, matchesTags, normalizeTags, UNTAGGED } from "./tags";
 
 test("normalizeTags: 前後の空白・空・重複を除き、最初に出てきた順のまま", () => {
   assert.deepEqual(normalizeTags([" 仕事", "", "プライベート ", "仕事", "  "]), ["仕事", "プライベート"]);

@@ -5,16 +5,16 @@ import { AUTH, setup, tempDir } from "../testing/testServer.js";
 
 test("設定・プロジェクトの API", async () => {
   const { app, call, project, store } = setup();
-  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: 3 })).body.autoArchiveDays, 3);
-  const invalid = await call("PUT", "/api/settings", { autoArchiveDays: 999 });
+  assert.equal((await call("PUT", "/api/settings", { auto_archive_days: 3 })).body.auto_archive_days, 3);
+  const invalid = await call("PUT", "/api/settings", { auto_archive_days: 999 });
   assert.equal(invalid.status, 400);
   assert.equal(invalid.body.error, "入力が正しくありません");
-  assert.equal((await call("GET", "/api/settings")).body.autoArchiveDays, 3);
+  assert.equal((await call("GET", "/api/settings")).body.auto_archive_days, 3);
   const status = await call("GET", "/api/status");
   assert.equal(status.body.version, "0.1.0");
   assert.deepEqual(status.body.agents, { running: 0 });
   // しないは null で保存する
-  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: null })).body.autoArchiveDays, null);
+  assert.equal((await call("PUT", "/api/settings", { auto_archive_days: null })).body.auto_archive_days, null);
 
   assert.deepEqual(
     (await call("GET", "/api/projects")).body.map((p: { id: number }) => p.id),
@@ -27,18 +27,18 @@ test("設定・プロジェクトの API", async () => {
   const patched = await call("PATCH", `/api/projects/${project.id}`, { name: "q", write_scopes: { requirements: ["docs"] } });
   assert.equal(patched.body.name, "q");
   assert.equal(patched.body.write_scopes, undefined);
-  const missing = await call("PATCH", `/api/projects/${project.id}`, { references: [{ path: "/no/such/kickoff/path" }] });
+  const missing = await call("PATCH", `/api/projects/${project.id}`, { reference_paths: [{ path: "/no/such/kickoff/path" }] });
   assert.deepEqual(missing, { status: 400, body: { error: "見つかりません: /no/such/kickoff/path" } });
-  const refs = await call("PATCH", `/api/projects/${project.id}`, { references: [{ path: project.repo_path }, { path: project.repo_path }] });
-  assert.deepEqual(refs.body.references, [{ path: project.repo_path, kind: "folder" }]);
+  const refs = await call("PATCH", `/api/projects/${project.id}`, { reference_paths: [{ path: project.repo_path }, { path: project.repo_path }] });
+  assert.deepEqual(refs.body.reference_paths, [{ path: project.repo_path, kind: "folder" }]);
 
-  const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   // 一覧は更新順。サイドバーの並び順は position で持つ
   assert.deepEqual((await call("PUT", "/api/projects/order", { ids: [other.id, project.id] })).body, { ok: true });
   const positions = new Map((await call("GET", "/api/projects")).body.map((p: { id: number; position: number }) => [p.id, p.position]));
   assert.deepEqual([positions.get(other.id), positions.get(project.id)], [1, 2]);
   assert.deepEqual((await call("DELETE", `/api/projects/${other.id}`)).body, { ok: true });
-  assert.equal(store.getProject(other.id), undefined);
+  assert.equal(store.projects.get(other.id), undefined);
 
   const inspected = await call("GET", `/api/workspace/inspect?path=${encodeURIComponent(project.repo_path)}`);
   assert.equal(inspected.status, 200);
@@ -75,8 +75,6 @@ test("プロジェクトのタグ: 前後の空白と重複を除いて置き換
   const tagged = (await call("PATCH", `/api/projects/${project.id}`, { tags: [" 仕事 ", "クライアント A", "仕事"] })).body;
   assert.deepEqual(tagged.tags, ["仕事", "クライアント A"]);
   assert.deepEqual((await call("GET", "/api/projects")).body[0].tags, ["仕事", "クライアント A"]);
-  // タグを変えても、最後に動いた時刻（一覧の並び順）は進めない
-  assert.equal(tagged.active_at, project.active_at);
   // ほかの項目だけを変えても、タグはそのまま
   assert.deepEqual((await call("PATCH", `/api/projects/${project.id}`, { name: "q" })).body.tags, ["仕事", "クライアント A"]);
   for (const tags of [["x".repeat(31)], ["  "], Array.from({ length: 21 }, (_, i) => `t${i}`), "仕事"]) {
@@ -86,7 +84,7 @@ test("プロジェクトのタグ: 前後の空白と重複を除いて置き換
   const many = Array.from({ length: 20 }, (_, i) => `t${i}`);
   assert.deepEqual((await call("PATCH", `/api/projects/${project.id}`, { tags: [...many, "t0"] })).body.tags, many);
   assert.deepEqual((await call("PATCH", `/api/projects/${project.id}`, { tags: [] })).body.tags, []);
-  assert.deepEqual(store.getProject(project.id)?.tags, []);
+  assert.deepEqual(store.projects.get(project.id)?.tags, []);
 });
 
 test("プロジェクトの色: 一覧の色だけに変えられる", async () => {

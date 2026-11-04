@@ -50,5 +50,5 @@ export function effortsFor(model: ModelOption | undefined): readonly EffortLevel
 
 /** そのモデルで選べる権限モード（Auto mode は対応しているモデルだけ。モデルが分からなければすべて） */
 export function permissionChoices(model: ModelOption | undefined): PermissionMode[] {
-  return PERMISSION_MODES.filter((p) => p !== "auto" || !model || model.supportsAutoMode);
+  return PERMISSION_MODES.filter((p) => p !== "auto" || !model || model.supports_auto_mode);
 }

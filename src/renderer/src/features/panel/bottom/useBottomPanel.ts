@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 import { startVerticalDrag } from "@/hooks/dragResize";
 import { useStoredNumber } from "@/hooks/useStoredState";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
@@ -23,7 +23,7 @@ export type BottomPanelController = ReturnType<typeof useBottomPanel>;
  * タブはほかの欄と同じく上下・左右のペインに分けられる（フッターにピントがあるときの ⌘\ で右に分ける）。
  * Esc では閉じない（ターミナルの中で使うため）。シェルはメインプロセスで動き続けるので、閉じても・ほかのプロジェクトに移っても残る
  */
-export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], projects: ProjectSummary[]) {
+export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], projects: Project[]) {
   const panel = usePanel({
     memoryKey: `bottom:${scope}`,
     scope,

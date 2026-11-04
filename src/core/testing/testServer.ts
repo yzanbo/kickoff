@@ -80,7 +80,7 @@ class FakeProvider extends FakeProviderBase {
   forks: [string, string, string][] = [];
   /** ファイルを戻した呼び出し（会話・発言の ID・作業フォルダ・dryRun）と、返す結果 */
   rewinds: [string, string, string, boolean][] = [];
-  rewindResult: FileRewindResult = { canRewind: true, filesChanged: ["/r/a.ts", "/r/b.ts"], insertions: 3, deletions: 1 };
+  rewindResult: FileRewindResult = { can_rewind: true, files_changed: ["/r/a.ts", "/r/b.ts"], insertions: 3, deletions: 1 };
   async rewindFiles(sessionId: string, messageId: string, cwd: string, dryRun: boolean) {
     this.rewinds.push([sessionId, messageId, cwd, dryRun]);
     return this.rewindResult;
@@ -162,7 +162,7 @@ export function setup(opts: { staticDir?: string } = {}) {
     fetch: () => voiceFake.download(),
   });
   const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, staticDir: opts.staticDir });
-  const project = store.createProject({ name: "p", repo_path: tempDir(), provider: "claude" });
+  const project = store.projects.create({ name: "p", repo_path: tempDir(), provider: "claude" });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {

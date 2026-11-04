@@ -20,7 +20,8 @@ export function kanbanEntries(chats: Chat[], filters: KanbanFilterValues, stateO
   for (const chat of chats) {
     if (projectIds && !projectIds.has(chat.project_id)) continue;
     if (!archiveMatches(chat, filters.archive)) continue;
-    if (filters.worktree !== "all" && chat.worktree_path !== filters.worktree) continue;
+    // 作業場所の絞り込みの値は、本体が "" （選択欄の値）
+    if (filters.worktree !== "all" && (chat.worktree_path ?? "") !== filters.worktree) continue;
     if (!filters.matches(chat)) continue;
     list.push({ chat, state: stateOf(chat) });
   }

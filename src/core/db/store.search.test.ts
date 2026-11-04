@@ -4,11 +4,11 @@ import { Store } from "./store.js";
 
 function setup() {
   const store = new Store(":memory:");
-  const project = store.createProject({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
-  const chat = store.createChat({ project_id: project.id, provider: "claude", title: "検索", status: "completed", model: null });
-  const say = (text: string, type: "user" | "text" = "text", chatId = chat.id) => store.addEvent(chatId, { type, text }).id;
+  const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "検索", status: "completed", model: null });
+  const say = (text: string, type: "user" | "text" = "text", chatId = chat.id) => store.events.add(chatId, { type, text }).id;
   /** 見つかった発言の ID（新しい順） */
-  const ids = (query: string, filter?: Parameters<Store["searchEvents"]>[1]) => store.searchEvents(query, filter).map((h) => h.event_id);
+  const ids = (query: string, filter?: Parameters<Store["events"]["search"]>[1]) => store.events.search(query, filter).map((h) => h.event_id);
   /** 全文検索の索引が中身（発言の文）と合っているか（合っていなければ例外） */
   const checkIndex = () => store.db.exec("INSERT INTO chat_event_search (chat_event_search) VALUES ('integrity-check')");
   return { store, project, chat, say, ids, checkIndex };
@@ -25,7 +25,7 @@ test("検索: 日本語は 2 文字（LIKE）でも 3 文字以上（全文検�
   assert.deepEqual(ids("できるように"), [a]);
   assert.deepEqual(ids("の索引は"), [b]);
   assert.deepEqual(ids("見つからない語"), []);
-  const [hit] = store.searchEvents("できるように");
+  const [hit] = store.events.search("できるように");
   assert.equal(hit.snippet.slice(hit.match_start, hit.match_end), "できるように");
   assert.equal(hit.type, "user");
 });
@@ -54,23 +54,23 @@ test("検索: 大文字・小文字を区別せず、% _ \" \\ は文字とし�
 
 test("検索: 自分の発言と AI の返答だけを探し、消したチャット・プロジェクトの発言は出ない（索引も追従する）", () => {
   const { store, project, chat, say, ids, checkIndex } = setup();
-  store.addEvent(chat.id, { type: "tool_use", id: "t1", name: "Read", input: { text: "消える予定の語" } });
-  store.addEvent(chat.id, { type: "thinking", text: "消える予定の語" });
+  store.events.add(chat.id, { type: "tool_use", id: "t1", name: "Read", input: { text: "消える予定の語" } });
+  store.events.add(chat.id, { type: "thinking", text: "消える予定の語" });
   const kept = say("消える予定の語（残る）");
-  const other = store.createChat({ project_id: project.id, provider: "claude", title: "消す", status: "completed", model: null });
+  const other = store.chats.create({ project_id: project.id, provider: "claude", title: "消す", status: "completed", model: null });
   say("消える予定の語", "user", other.id);
   assert.deepEqual(ids("消える予定"), [kept + 1, kept]);
-  store.deleteChat(other.id);
+  store.chats.delete(other.id);
   assert.deepEqual(ids("消える予定"), [kept]);
   assert.deepEqual(ids("消え"), [kept]);
   checkIndex();
 
-  const second = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
-  const chat2 = store.createChat({ project_id: second.id, provider: "claude", title: "別", status: "completed", model: null });
+  const second = store.projects.create({ name: "other", repo_path: "/tmp/other", provider: "claude" });
+  const chat2 = store.chats.create({ project_id: second.id, provider: "claude", title: "別", status: "completed", model: null });
   say("別のプロジェクトの発言", "text", chat2.id);
   assert.equal(ids("別のプロジェクト").length, 1);
   assert.deepEqual(ids("別のプロジェクト", { projectId: project.id }), []);
-  store.deleteProject(second.id);
+  store.projects.delete(second.id);
   assert.deepEqual(ids("別のプロジェクト"), []);
   checkIndex();
 

@@ -62,14 +62,14 @@ export interface StoppedAgent {
 export async function executeTurn(deps: ExecutionDeps, { chatId, prompt, promptId, compact = false }: QueueItem, signal: AbortSignal): Promise<TurnOutcome> {
   const { store, providers, bus } = deps;
   try {
-    const chat = store.getChat(chatId)!;
-    const project = store.getProject(chat.project_id)!;
+    const chat = store.chats.get(chatId)!;
+    const project = store.projects.get(chat.project_id)!;
     const cwd = await resolveWorkdir(chat, project);
     // 作業しているブランチを覚えておく（ワークツリーを片付けたあとも、どのブランチの作業だったか分かるように。外れていれば前のまま）
     const branch = await currentBranch(cwd);
-    store.updateChat(chatId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
+    store.chats.update(chatId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
-    const since = store.listEvents(chatId).at(-1)?.id ?? 0;
+    const since = store.events.list(chatId).at(-1)?.id ?? 0;
 
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
@@ -80,17 +80,17 @@ export async function executeTurn(deps: ExecutionDeps, { chatId, prompt, promptI
     applyResult(store, chatId, result, compact, since, network);
     const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
     if (!network) return { status: result.status, network, ...(usageLimit ? { usageLimit } : {}) };
-    const stoppedAgents = networkStoppedSubagents(store.listEvents(chatId), since).map((s) => ({ agentId: s.agentId!, description: s.description }));
+    const stoppedAgents = networkStoppedSubagents(store.events.list(chatId), since).map((s) => ({ agentId: s.agentId!, description: s.description }));
     return { status: result.status, network, stoppedAgents };
   } catch (e) {
     const message = errorMessage(e);
     // 失敗も、見るまでは未読にする
-    store.updateChat(chatId, { status: "failed", error: message, unread: true });
-    store.addEvent(chatId, { type: "error", message });
+    store.chats.update(chatId, { status: "failed", error: message, unread: true });
+    store.events.add(chatId, { type: "error", message });
     return { status: "failed", network: false };
   } finally {
     // 再試行・裏の作業の表示を消す（終わったので。Claude Code が終わると裏の作業も残らない）
-    const chat = store.getChat(chatId);
+    const chat = store.chats.get(chatId);
     if (chat) bus?.publish({ type: "chat_retry", project_id: chat.project_id, chat_id: chatId, retry: null });
     deps.controls?.delete(chatId);
     if (deps.background?.delete(chatId) && chat) bus?.publish({ type: "chat_background", project_id: chat.project_id, chat_id: chatId, background: null });
@@ -122,7 +122,7 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
     additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project)],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
-    readOnlyPaths: project.references.map((r) => r.path).filter((p) => !isInside(cwd, p)),
+    readOnlyPaths: project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p)),
   };
 }
 
@@ -155,26 +155,25 @@ function callbacksFor({ store, approvals, bus, background, controls, compacting 
       bus?.publish({ type: "chat_delta", project_id: projectId, chat_id: chatId, text });
     },
     emit: (event) => {
-      if (event.type === "init" && event.session_id !== store.getChat(chatId)?.session_id) {
-        store.updateChat(chatId, { session_id: event.session_id });
+      if (event.type === "init" && event.session_id !== store.chats.get(chatId)?.session_id) {
+        store.chats.update(chatId, { session_id: event.session_id });
       }
-      const saved = store.addEvent(chatId, event);
+      const saved = store.events.add(chatId, event);
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
-      if (!compact && isUnreadEvent(saved) && !store.getChat(chatId)?.unread) store.setChatUnread(chatId, true);
+      if (!compact && isUnreadEvent(saved) && !store.chats.get(chatId)?.unread) store.chats.setUnread(chatId, true);
     },
     requestApproval: async (req, approvalSignal) => {
       const { approval, decision } = approvals.request({ chatId, projectId }, req, approvalSignal);
-      store.addEvent(chatId, {
+      store.events.add(chatId, {
         type: "approval",
         approval_id: approval.id,
         kind: approval.kind,
         tool_name: approval.tool_name,
         title: approval.title,
       });
-      store.updateChat(chatId, { status: "waiting" });
       const answer = await decision;
       // AI からの質問に答えたときは、何と答えたか（選んだままの回答と添付）も残す（画面は「質問への回答」の吹き出しで出す）
-      store.addEvent(chatId, {
+      store.events.add(chatId, {
         type: "approval_resolved",
         approval_id: approval.id,
         action: answer.action,
@@ -183,9 +182,6 @@ function callbacksFor({ store, approvals, bus, background, controls, compacting 
           ? { answers: answer.plain ?? answer.answers, ...(answer.attachments ? { attachments: answer.attachments } : {}) }
           : {}),
       });
-      if (!signal.aborted && approvals.list({ chatId }).length === 0) {
-        store.updateChat(chatId, { status: "running" });
-      }
       return answer;
     },
   };
@@ -193,14 +189,13 @@ function callbacksFor({ store, approvals, bus, background, controls, compacting 
 
 /** 結果をチャットに反映する（状態・費用・回数・コンテキスト・未読） */
 function applyResult(store: Store, chatId: number, result: ProviderTurnResult, compact: boolean, since: number, network: boolean) {
-  const current = store.getChat(chatId)!;
-  store.updateChat(chatId, {
+  const current = store.chats.get(chatId)!;
+  store.chats.update(chatId, {
     status: result.status,
     session_id: result.sessionId ?? current.session_id,
     cost_usd: current.cost_usd + (result.costUsd ?? 0),
     // 要約は会話の回数・最後の回答に数えない
     num_turns: current.num_turns + (compact ? 0 : (result.turns ?? 0)),
-    result: compact ? current.result : (result.result ?? current.result),
     error: result.error ?? null,
     ...(result.context
       ? { context_tokens: result.context.tokens, context_window: result.context.window ?? current.context_window }
@@ -214,16 +209,16 @@ function applyResult(store: Store, chatId: number, result: ProviderTurnResult, c
   // この実行で始めたサブエージェントが終わっていなければ、作業の終わりとともに止まったことを知らせる
   // （Claude Code のプロセスが終わるため。見た目は進んでいるようで、実は止まっているのを防ぐ）。
   // 通信の切断のときは、つながってから再開する段取り（reconnect）が知らせる
-  const stopped = compact || network ? [] : unfinishedSubagents(store.listEvents(chatId), since).map((s) => s.description);
+  const stopped = compact || network ? [] : unfinishedSubagents(store.events.list(chatId), since).map((s) => s.description);
   if (stopped.length > 0) {
-    store.addEvent(chatId, {
+    store.events.add(chatId, {
       type: "notice",
       message: `サブエージェント ${stopped.length} 件（${stopped.join("、")}）は、作業の終わりとともに止まりました。続けるときは、サブエージェントの一覧の「再開」を押してください。`,
     });
   }
   // 要約は compact イベントだけを残す（失敗したときは理由を残す）
   if (!compact || result.status !== "completed") {
-    store.addEvent(chatId, {
+    store.events.add(chatId, {
       type: "result",
       status: result.status,
       text: result.status === "completed" ? result.result : result.error,
@@ -240,5 +235,5 @@ function applyResult(store: Store, chatId: number, result: ProviderTurnResult, c
 
 /** 参照資料を読めるようにするフォルダ（ファイルはそのフォルダ）。重複は除く */
 function referenceDirectories(project: Project): string[] {
-  return [...new Set(project.references.map((r) => (r.kind === "folder" ? r.path : path.dirname(r.path))))];
+  return [...new Set(project.reference_paths.map((r) => (r.kind === "folder" ? r.path : path.dirname(r.path))))];
 }

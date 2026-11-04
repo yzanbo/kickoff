@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { moveToSlot, normalizeStops, remapStops, type QueueSlot } from "@shared/chat/queueStops";
 import type { SavedQueue } from "../db/queues.js";
-import type { Attachment, QueuedMessage, ChatOptions } from "@shared/types";
+import type { Attachment, QueuedMessage, ChatOptionsPatch } from "@shared/types";
 
-/** 送信待ちの保存先（Store の listQueues / saveQueue。省けば保存しない） */
+/** 送信待ちの保存先（Store の queues。省けば保存しない） */
 export interface QueuePersistence {
-  listQueues(): SavedQueue[];
-  saveQueue(queue: SavedQueue): void;
+  list(): SavedQueue[];
+  save(queue: SavedQueue): void;
 }
 
 /**
@@ -29,7 +29,7 @@ export class FollowupQueue {
     private readonly onChange: (chatId: number, list: QueuedMessage[], paused: boolean, stops: number[]) => void,
     private readonly persistence?: QueuePersistence,
   ) {
-    for (const saved of persistence?.listQueues() ?? []) {
+    for (const saved of persistence?.list() ?? []) {
       // すべて送ったあとの印だけが残った空の列は、印だけを読み戻す（止めておく指示がないので、止めておくにはしない）
       if (saved.messages.length > 0) {
         this.lists.set(saved.chatId, saved.messages);
@@ -101,7 +101,7 @@ export class FollowupQueue {
     return this.lists.get(chatId) ?? [];
   }
 
-  add(chatId: number, text: string, options: ChatOptions, attachments: Attachment[]): QueuedMessage {
+  add(chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[]): QueuedMessage {
     const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString() };
     this.set(chatId, [...this.list(chatId), message]);
     return message;
@@ -256,6 +256,6 @@ export class FollowupQueue {
 
   /** いまの列を保存する（空なら消す） */
   private save(chatId: number) {
-    this.persistence?.saveQueue({ chatId, messages: this.list(chatId), paused: this.paused.has(chatId), stops: this.stopsOf(chatId) });
+    this.persistence?.save({ chatId, messages: this.list(chatId), paused: this.paused.has(chatId), stops: this.stopsOf(chatId) });
   }
 }

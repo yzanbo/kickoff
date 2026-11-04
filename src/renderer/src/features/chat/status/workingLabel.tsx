@@ -17,7 +17,6 @@ export interface ChatActivity {
 export function workingLabel(chat: Chat, last: TimelineItem | undefined, live: string, stopping: boolean, compacting: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: ChatActivity): ReactNode {
   if (stopping) return "停止中…";
   if (connection.retry) return <RetryLabel retry={connection.retry} agents={Math.max(runningAgents, countBackground(background).agents)} />;
-  if (chat.status === "queued") return "順番を待っています";
   // 会話を要約して、コンテキストを空けている（手で圧縮した・上限に近づいて自動で。終わると続きを始める）
   if (compacting) return COMPACTING_LABEL;
   // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる

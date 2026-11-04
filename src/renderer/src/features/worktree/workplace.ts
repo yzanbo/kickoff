@@ -30,7 +30,7 @@ export interface ChatWorkplace {
 
 /**
  * チャットの作業場所とブランチ（ブランチの印・作業場所でまとめたときの見出し・段で共通）。
- * ブランチ名はいまのワークツリーの一覧から引き、見つからないとき（片付けた・消した）は、チャットが最後に作業したブランチ（runs.branch）を出す
+ * ブランチ名はいまのワークツリーの一覧から引き、見つからないとき（片付けた・消した）は、チャットが最後に作業したブランチ（chats.branch）を出す
  */
 export function workplaceOf(chat: Pick<Chat, "worktree_path" | "branch">, list: GitWorktree[] | undefined): ChatWorkplace {
   const path = chat.worktree_path;
@@ -56,7 +56,7 @@ export function workplaceOf(chat: Pick<Chat, "worktree_path" | "branch">, list: 
       title: `最後に作業したブランチ: ${chat.branch}\n作業場所: 本体（いまのブランチは ${mainBranch}。ワークツリーを片付けたあとなど）`,
     };
   }
-  const name = mainBranch ?? chat.branch;
+  const name = mainBranch ?? chat.branch ?? "";
   return { key: "", kind: "main", name, title: `ブランチ: ${name || "不明"}\n作業場所: 本体` };
 }
 

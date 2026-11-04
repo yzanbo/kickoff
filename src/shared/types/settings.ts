@@ -1,6 +1,7 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 // プロバイダー・推論の深さ・権限モードの定数と、アプリ全体の設定
-import type { VoiceProvider } from "@shared/types/voice";
+import type { ChatOptions } from "./chat";
+import type { VoiceProvider } from "./voice";
 
 export const PROVIDER_IDS = ["claude", "codex", "gemini"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
@@ -28,59 +29,50 @@ export const PERMISSION_LABELS: Record<PermissionMode, string> = {
 };
 export interface AppSettings {
   /** 新規プロジェクトの既定プロバイダー */
-  defaultProvider: ProviderId;
-  /** 新しいチャットの既定のモデル（Claude） */
-  claudeModel: string;
-  /** 新しいチャットの既定の推論の深さ（null なら指定しない＝モデルの既定） */
-  defaultEffort: EffortLevel | null;
-  /** 新しいチャットの既定の権限モード */
-  defaultPermission: PermissionMode;
-  /** 新しいチャットで既定でファストモードを使うか */
-  defaultFastMode: boolean;
+  default_provider: ProviderId;
+  /** 新しいチャットの既定の選択（モデルは既定のプロバイダーのもの。推論の深さの null は指定しない＝モデルの既定） */
+  chat_defaults: ChatOptions;
   /** スマホなど他端末からのアクセスを許可（LAN に公開） */
-  remoteEnabled: boolean;
+  remote_enabled: boolean;
   /** ntfy のトピック URL（空なら通知しない） */
-  ntfyUrl: string;
+  ntfy_url: string;
   /** チャットの完了・失敗・回答待ちを Mac の通知で知らせる */
-  desktopNotifications: boolean;
+  desktop_notifications: boolean;
   /** 新規プロジェクトの保存先（前回使ったフォルダ） */
-  projectsDir: string;
+  projects_dir: string;
   /** 通信が切れて止まったチャットを、つながったら自動で再開するか（何度か続かなければ、再開するかを聞く） */
-  autoResumeOnReconnect: boolean;
+  auto_resume_on_reconnect: boolean;
   /** 完了したチャットを、この日数がたったら自動でアーカイブする（null ならしない） */
-  autoArchiveDays: number | null;
+  auto_archive_days: number | null;
   /** チャット欄の音声入力（マイクのボタン）を使うか */
-  voiceEnabled: boolean;
+  voice_enabled: boolean;
   /** 文字起こしの方法（この Mac / OpenAI） */
-  voiceProvider: VoiceProvider;
+  voice_provider: VoiceProvider;
   /** 話す言語（"auto" なら自動で判別。VOICE_LANGUAGES） */
-  voiceLanguage: string;
+  voice_language: string;
   /** この Mac で使う whisper のモデルの id（voice/models.ts の WHISPER_MODELS） */
-  voiceModel: string;
+  voice_model: string;
   /** OpenAI 互換のサーバーの URL（空なら https://api.openai.com/v1）。API キーは設定とは別に保存し、ここには入れない */
-  voiceOpenaiBaseUrl: string;
+  voice_openai_base_url: string;
   /** OpenAI の文字起こしのモデル */
-  voiceOpenaiModel: string;
+  voice_openai_model: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  defaultProvider: "claude",
-  claudeModel: "opus",
-  defaultEffort: null,
-  defaultPermission: "default",
-  defaultFastMode: false,
-  remoteEnabled: false,
-  ntfyUrl: "",
-  desktopNotifications: true,
-  projectsDir: "~/Documents",
-  autoArchiveDays: null,
-  autoResumeOnReconnect: true,
-  voiceEnabled: false,
-  voiceProvider: "local",
-  voiceLanguage: "ja",
-  voiceModel: "large-v3-turbo-q5_0",
-  voiceOpenaiBaseUrl: "",
-  voiceOpenaiModel: "gpt-4o-transcribe",
+  default_provider: "claude",
+  chat_defaults: { model: "opus", effort: null, permission_mode: "default", fast_mode: false },
+  remote_enabled: false,
+  ntfy_url: "",
+  desktop_notifications: true,
+  projects_dir: "~/Documents",
+  auto_archive_days: null,
+  auto_resume_on_reconnect: true,
+  voice_enabled: false,
+  voice_provider: "local",
+  voice_language: "ja",
+  voice_model: "large-v3-turbo-q5_0",
+  voice_openai_base_url: "",
+  voice_openai_model: "gpt-4o-transcribe",
 };
 
 /** 外部のターミナルとして開けるアプリ（id は保存に使う。app は /Applications の中の名前。開き方はメインプロセスの ipcArgs.ts） */

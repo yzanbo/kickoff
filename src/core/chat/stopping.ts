@@ -27,7 +27,7 @@ export class ChatStopping {
   }
 
   private publish(chatId: number, stopping: boolean) {
-    const chat = this.deps.store.getChat(chatId);
+    const chat = this.deps.store.chats.get(chatId);
     if (chat) this.deps.bus?.publish({ type: "chat_stopping", project_id: chat.project_id, chat_id: chatId, stopping });
   }
 }

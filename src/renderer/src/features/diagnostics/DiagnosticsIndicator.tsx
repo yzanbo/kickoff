@@ -1,6 +1,6 @@
 import { Activity } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { DiagnosticsState } from "@shared/types";
+import type { DiagnosticsState } from "@shared/ipc/diagnostics";
 import { useTicker } from "@/hooks/useTicker";
 import { ErrorText } from "@/ui/ErrorText";
 import { CloseButton } from "@/ui/IconButton";

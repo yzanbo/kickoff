@@ -1,6 +1,6 @@
-import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
-import { isNetworkError } from "@shared/chat/networkErrors";
-import { markSuperseded } from "@shared/chat/subagentSupersede";
+import { isBackgroundLaunch } from "./backgroundTasks";
+import { isNetworkError } from "./networkErrors";
+import { markSuperseded } from "./subagentSupersede";
 import type { ChatEvent, SubagentInfo } from "@shared/types";
 
 // サブエージェントの一覧の組み立て（画面の一覧・タブと、コアの作業の終わりのお知らせ・通信が戻ったときの再開で共有する。Node 依存なし）

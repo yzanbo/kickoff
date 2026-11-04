@@ -10,9 +10,9 @@ const CHECK_MS = 60 * 60_000;
  */
 export function startAutoArchive(store: Store, bus: Bus): () => void {
   const check = () => {
-    const days = store.getSettings().autoArchiveDays;
+    const days = store.settings.get().auto_archive_days;
     if (!days) return;
-    const count = store.archiveStaleChats(days);
+    const count = store.chats.archiveStale(days);
     if (count > 0) console.log(`[core] 完了から ${days} 日たったチャットを ${count} 件アーカイブしました`);
   };
   check();

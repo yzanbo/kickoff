@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
-import { BUSY_STATUSES } from "@/features/chat/chatStatus";
 import { useServerEvent } from "@/api/events";
 import { useActionError } from "@/hooks/useActionError";
 
@@ -29,7 +28,7 @@ export function useBusyNeighbors(chat: Pick<Chat, "id" | "project_id" | "worktre
   });
   let count = 0;
   for (const other of chats.values()) {
-    if (other.id !== chat.id && other.worktree_path === chat.worktree_path && BUSY_STATUSES.includes(other.status)) count++;
+    if (other.id !== chat.id && other.worktree_path === chat.worktree_path && other.status === "running") count++;
   }
   return count;
 }

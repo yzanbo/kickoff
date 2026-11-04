@@ -96,7 +96,7 @@ const MAX_LINE_CHARS = 400;
  * プロジェクトのファイルの中を探す（git grep。.gitignore で無視しているもの・バイナリは除く。未追加のファイルは含める）。
  * 正規表現の書き方が正しくなければ失敗する
  */
-export async function searchProject(repo: string, { query, caseSensitive, wholeWord, regex }: ProjectSearchQuery): Promise<ProjectSearchResult> {
+export async function searchProject(repo: string, { query, case_sensitive: caseSensitive, whole_word: wholeWord, regex }: ProjectSearchQuery): Promise<ProjectSearchResult> {
   const result: ProjectSearchResult = { files: [], total: 0, truncated: false };
   if (!query) return result;
   const args = ["grep", "-n", "--column", "-I", "--untracked", "-z", `--max-count=${MAX_MATCHES_PER_FILE}`];

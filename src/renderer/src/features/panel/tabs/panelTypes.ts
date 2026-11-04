@@ -1,4 +1,4 @@
-import type { ProjectSummary, Chat } from "@shared/types";
+import type { Project, Chat } from "@shared/types";
 import { sidebarOrder } from "@/features/project/projectOrder";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 
@@ -32,7 +32,7 @@ export interface TerminalTarget {
 }
 
 /** ボードのタブの列の＋から開けるターミナル（プロジェクトのボードはそのプロジェクトの本体、全プロジェクトのボードは各プロジェクト） */
-export function terminalTargets(projects: ProjectSummary[], projectId?: number): TerminalTarget[] {
+export function terminalTargets(projects: Project[], projectId?: number): TerminalTarget[] {
   const list = projectId === undefined ? sidebarOrder(projects) : projects.filter((p) => p.id === projectId);
   return list.map((p) => ({ cwd: p.repo_path, label: p.name, projectId: p.id }));
 }

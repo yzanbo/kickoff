@@ -84,7 +84,7 @@ export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Pro
         <div className="conn-row-title">AI・ツール（Mac の CLI のログインを使用）</div>
         <ToolRow
           name="Claude Code"
-          ok={claude ? claude.installed && claude.loggedIn : undefined}
+          ok={claude ? claude.installed && claude.logged_in : undefined}
           detail={claude ? accountLine(claude) || claude.detail : "確認中…"}
         />
         {[codex, gemini].map(
@@ -93,14 +93,14 @@ export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Pro
               <ToolRow
                 key={p.id}
                 name={p.label}
-                ok={p.implemented ? p.loggedIn : null}
+                ok={p.implemented ? p.logged_in : null}
                 detail={p.implemented ? p.detail : p.installed ? "CLI はインストール済み・対応予定" : "対応予定"}
               />
             ),
         )}
         <ToolRow
           name="GitHub CLI（gh）"
-          ok={github ? github.installed && github.loggedIn : undefined}
+          ok={github ? github.installed && github.logged_in : undefined}
           detail={github ? (github.account ? `${github.account} でログイン済み` : github.detail) : "確認中…"}
         />
       </section>

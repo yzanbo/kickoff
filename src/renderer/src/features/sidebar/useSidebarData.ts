@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useServerEvent } from "@/api/events";
@@ -13,7 +13,7 @@ const RETRY_MS = 5000;
  * 全プロジェクトの分を先に読み込み、以降はサーバーからのイベントで更新する。
  * 読み込みに失敗したプロジェクトは errors に記録し、しばらくして取り直す（失敗したまま空にしない）
  */
-export function useSidebarData(projects: ProjectSummary[]) {
+export function useSidebarData(projects: Project[]) {
   const [chats, setChats] = useState<ChatsByProject>({});
   const [groups, setGroups] = useState<GroupsByProject>({});
   const [errors, setErrors] = useState<Record<number, string>>({});

@@ -5,14 +5,14 @@ import { Store } from "../db/store.js";
 
 function setup() {
   const store = new Store(":memory:");
-  const project = store.createProject({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
-  const chat = store.createChat({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
+  const project = store.projects.create({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
   return { store, chat };
 }
 
 test("送信待ち: 変わるたびに保存し、作り直す（再起動する）と読み戻して止めておく。「ここまで」の印も残す", () => {
   const { store, chat } = setup();
-  const queue = new FollowupQueue(() => {}, store);
+  const queue = new FollowupQueue(() => {}, store.queues);
   const first = queue.add(chat.id, "1 つ目", { model: "opus" }, [{ id: "u1", name: "a.png", mime: "image/png", size: 10 }]);
   const second = queue.add(chat.id, "2 つ目", {}, []);
   queue.add(chat.id, "3 つ目", {}, []);
@@ -21,7 +21,7 @@ test("送信待ち: 変わるたびに保存し、作り直す（再起動する
   assert.equal(queue.isPaused(chat.id), false);
 
   // 再起動: 同じデータベースから読み戻す
-  const restarted = new FollowupQueue(() => {}, store);
+  const restarted = new FollowupQueue(() => {}, store.queues);
   assert.deepEqual(
     restarted.list(chat.id).map((m) => m.text),
     ["2 つ目", "1 つ目", "3 つ目"],
@@ -32,26 +32,26 @@ test("送信待ち: 変わるたびに保存し、作り直す（再起動する
   // 「1 つ目」（2 件目）のあとの印は、位置で残る
   assert.deepEqual(restarted.stopsOf(chat.id), [2]);
   // 止めたことも保存する（もう一度再起動しても止めたまま）
-  assert.equal(store.listQueues()[0].paused, true);
+  assert.equal(store.queues.list()[0].paused, true);
 });
 
 test("送信待ち: 「ここまで送ったら止めます」の印は、動かした・すべて送ったあとも再起動で読み戻す", () => {
   const { store, chat } = setup();
-  const queue = new FollowupQueue(() => {}, store);
+  const queue = new FollowupQueue(() => {}, store.queues);
   const [, b, c] = ["a", "b", "c"].map((t) => queue.add(chat.id, t, {}, []));
   // a | b c の c をいちばん上へ（線を越える → c a | b）
   queue.setStops(chat.id, [1]);
   queue.move(chat.id, c.id, 0);
-  assert.deepEqual(new FollowupQueue(() => {}, store).stopsOf(chat.id), [2]);
+  assert.deepEqual(new FollowupQueue(() => {}, store.queues).stopsOf(chat.id), [2]);
   // ドラッグで b を線のすぐ上へ落とす（c a b |）
   queue.moveMany(chat.id, [b.id], { before: b.id, belowStop: false });
-  assert.deepEqual(new FollowupQueue(() => {}, store).stopsOf(chat.id), [3]);
+  assert.deepEqual(new FollowupQueue(() => {}, store.queues).stopsOf(chat.id), [3]);
 
   // すべて送ったあとの印（次に来た指示の前で止める）も、列が空のまま残す
   queue.setStops(chat.id, [3]);
   for (let i = 0; i < 3; i++) queue.take(chat.id);
   assert.deepEqual(queue.stopsOf(chat.id), [0]);
-  const restarted = new FollowupQueue(() => {}, store);
+  const restarted = new FollowupQueue(() => {}, store.queues);
   assert.deepEqual(restarted.stopsOf(chat.id), [0]);
   // 止めておく指示はないので、止めておくにはしない。次に来た指示の前で止まる
   assert.equal(restarted.isPaused(chat.id), false);
@@ -60,17 +60,17 @@ test("送信待ち: 「ここまで送ったら止めます」の印は、動か
   assert.equal(restarted.isPaused(chat.id), true);
   // すべて消したら、保存からも消える
   restarted.clear(chat.id);
-  assert.deepEqual(store.listQueues(), []);
+  assert.deepEqual(store.queues.list(), []);
 });
 
 test("送信待ち: 印は指示とは別の位置で持ち、線をまたがない並べ替えでは動かない。先頭の上の印で止まり、自動に戻すとその印を越える", () => {
   const { store, chat } = setup();
-  const queue = new FollowupQueue(() => {}, store);
+  const queue = new FollowupQueue(() => {}, store.queues);
   const [a, b, c] = ["a", "b", "c"].map((t) => queue.add(chat.id, t, {}, []));
   // 1 件目の上と 2 件目のあと
   queue.setStops(chat.id, [2, 0, 2]);
   assert.deepEqual(queue.stopsOf(chat.id), [0, 2]);
-  assert.deepEqual(new FollowupQueue(() => {}, store).stopsOf(chat.id), [0, 2]);
+  assert.deepEqual(new FollowupQueue(() => {}, store.queues).stopsOf(chat.id), [0, 2]);
   // 線をまたがない並べ替え（| a b | c の b をいちばん上へ）では動かない
   queue.move(chat.id, b.id, 0);
   assert.deepEqual(queue.stopsOf(chat.id), [0, 2]);
@@ -148,22 +148,22 @@ test("送信待ち: 指示を動かすと、動かした指示だけが印の線
 
 test("送信待ち: 空になった・チャットを消したら保存からも消える", () => {
   const { store, chat } = setup();
-  const queue = new FollowupQueue(() => {}, store);
+  const queue = new FollowupQueue(() => {}, store.queues);
   const message = queue.add(chat.id, "1 つ目", {}, []);
   queue.take(chat.id, message.id);
-  assert.equal(store.listQueues().length, 0);
+  assert.equal(store.queues.list().length, 0);
 
   queue.add(chat.id, "2 つ目", {}, []);
-  store.deleteChat(chat.id);
+  store.chats.delete(chat.id);
   queue.forget(chat.id);
-  assert.equal(store.listQueues().length, 0);
+  assert.equal(store.queues.list().length, 0);
   // もうないチャットの列は書かない
   queue.add(chat.id, "3 つ目", {}, []);
-  assert.equal(store.listQueues().length, 0);
+  assert.equal(store.queues.list().length, 0);
 });
 
 test("送信待ち: 保存先を渡さなければ保存しない", () => {
   const { store, chat } = setup();
   new FollowupQueue(() => {}).add(chat.id, "1 つ目", {}, []);
-  assert.equal(store.listQueues().length, 0);
+  assert.equal(store.queues.list().length, 0);
 });

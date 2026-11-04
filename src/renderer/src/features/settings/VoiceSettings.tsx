@@ -28,18 +28,18 @@ export function VoiceSettings() {
       <VoiceReadiness status={status} dirty={dirty} />
       <div className="form">
         <label className="check">
-          <input type="checkbox" checked={draft.voiceEnabled} onChange={(e) => set({ voiceEnabled: e.target.checked })} />
+          <input type="checkbox" checked={draft.voice_enabled} onChange={(e) => set({ voice_enabled: e.target.checked })} />
           <span>
             チャット欄で音声入力を使う
             <span className="field-help">オフのときにマイクのボタンを押すと、この設定を開きます。</span>
           </span>
         </label>
-        <Field label="文字起こしの方法" help={draft.voiceProvider === "local" ? "この Mac の中で文字にします（音声を外に送りません）。whisper.cpp とモデルが要ります。" : "OpenAI の API に音声を送って文字にします（API の料金がかかります）。"}>
+        <Field label="文字起こしの方法" help={draft.voice_provider === "local" ? "この Mac の中で文字にします（音声を外に送りません）。whisper.cpp とモデルが要ります。" : "OpenAI の API に音声を送って文字にします（API の料金がかかります）。"}>
           <Segmented<VoiceProvider>
             className="segmented"
             label="文字起こしの方法"
-            value={draft.voiceProvider}
-            onChange={(voiceProvider) => set({ voiceProvider })}
+            value={draft.voice_provider}
+            onChange={(voiceProvider) => set({ voice_provider: voiceProvider })}
             options={[
               { value: "local", label: "この Mac" },
               { value: "openai", label: "OpenAI" },
@@ -47,7 +47,7 @@ export function VoiceSettings() {
           />
         </Field>
         <Field label="話す言語" help="決まった言語で話すなら、指定したほうが正確です。">
-          <select value={draft.voiceLanguage} onChange={(e) => set({ voiceLanguage: e.target.value })}>
+          <select value={draft.voice_language} onChange={(e) => set({ voice_language: e.target.value })}>
             {VOICE_LANGUAGES.map((l) => (
               <option key={l.value} value={l.value}>
                 {l.label}
@@ -55,22 +55,22 @@ export function VoiceSettings() {
             ))}
           </select>
         </Field>
-        {draft.voiceProvider === "local" ? (
+        {draft.voice_provider === "local" ? (
           <>
             <LocalTools status={status} />
             <div className="field">
               <span className="field-label">モデル</span>
-              <VoiceModelList models={status?.local.models} selected={draft.voiceModel} onSelect={(voiceModel) => set({ voiceModel })} />
+              <VoiceModelList models={status?.local.models} selected={draft.voice_model} onSelect={(voiceModel) => set({ voice_model: voiceModel })} />
             </div>
           </>
         ) : (
           <>
-            <OpenAiKeyField saved={status?.openai.keySaved} />
+            <OpenAiKeyField saved={status?.openai.key_saved} />
             <Field label="Base URL（任意）" help="OpenAI 互換のサーバーを使うときだけ入れます。空なら https://api.openai.com/v1 です。">
-              <input type="url" value={draft.voiceOpenaiBaseUrl} placeholder="https://api.openai.com/v1" onChange={(e) => set({ voiceOpenaiBaseUrl: e.target.value })} />
+              <input type="url" value={draft.voice_openai_base_url} placeholder="https://api.openai.com/v1" onChange={(e) => set({ voice_openai_base_url: e.target.value })} />
             </Field>
             <Field label="モデル" help="gpt-4o-transcribe が正確です。gpt-4o-mini-transcribe は安く、whisper-1 は以前からのモデルです。">
-              <input list={OPENAI_MODEL_LIST_ID} value={draft.voiceOpenaiModel} onChange={(e) => set({ voiceOpenaiModel: e.target.value })} />
+              <input list={OPENAI_MODEL_LIST_ID} value={draft.voice_openai_model} onChange={(e) => set({ voice_openai_model: e.target.value })} />
               <datalist id={OPENAI_MODEL_LIST_ID}>
                 {OPENAI_TRANSCRIBE_MODELS.map((m) => (
                   <option key={m} value={m} />
@@ -85,12 +85,12 @@ export function VoiceSettings() {
         disabled={!dirty}
         onSave={() =>
           saveFields({
-            voiceEnabled: draft.voiceEnabled,
-            voiceProvider: draft.voiceProvider,
-            voiceLanguage: draft.voiceLanguage,
-            voiceModel: draft.voiceModel,
-            voiceOpenaiBaseUrl: draft.voiceOpenaiBaseUrl.trim(),
-            voiceOpenaiModel: draft.voiceOpenaiModel.trim(),
+            voice_enabled: draft.voice_enabled,
+            voice_provider: draft.voice_provider,
+            voice_language: draft.voice_language,
+            voice_model: draft.voice_model,
+            voice_openai_base_url: draft.voice_openai_base_url.trim(),
+            voice_openai_model: draft.voice_openai_model.trim(),
           })
         }
       />

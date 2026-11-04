@@ -30,7 +30,7 @@ export function SuggestList({ suggest }: { suggest: SuggestController }) {
               <>
                 <SquareSlash size={14} aria-hidden />
                 <span className="suggest-name">/{item.command.name}</span>
-                {item.command.argumentHint && <span className="suggest-hint">{item.command.argumentHint}</span>}
+                {item.command.argument_hint && <span className="suggest-hint">{item.command.argument_hint}</span>}
                 <span className="suggest-desc">{item.command.description}</span>
               </>
             ) : (

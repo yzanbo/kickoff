@@ -80,7 +80,7 @@ export class ChatUsageLimit {
 
   private async onLimit(chatId: number, reportedReset: string | null) {
     const { store, followups } = this.deps;
-    if (!store.getChat(chatId)) return;
+    if (!store.chats.get(chatId)) return;
     // 送信待ちは送らずに止めておく（自分で止めていたものはそのまま）
     if (followups.list(chatId).length > 0 && !followups.isPaused(chatId)) {
       followups.setPaused(chatId, true);
@@ -89,13 +89,13 @@ export class ChatUsageLimit {
     const resetAt = reportedReset ?? (await this.resetFromUsage());
     const held = this.heldQueues.has(chatId) ? "送信待ちは止めてあります。" : "";
     if (!resetAt) {
-      store.addEvent(chatId, {
+      store.events.add(chatId, {
         type: "notice",
         message: `使用枠の上限に達したため止まりました。枠が戻る時刻が分からないため、戻ったらメッセージを送ると続きから再開できます。${held}`,
       });
       return;
     }
-    store.addEvent(chatId, {
+    store.events.add(chatId, {
       type: "notice",
       message: `使用枠の上限に達したため止まりました。${clockOf(resetAt)} に枠が戻ったら、続けるかを確かめます。${held}`,
     });
@@ -127,7 +127,7 @@ export class ChatUsageLimit {
   /** 続けるかを聞く（承認のカードと同じ回答待ち。Mac の通知も出る）。その間に自分で再開していたら聞かない */
   private ask(chatId: number) {
     const { store, approvals, isBusy } = this.deps;
-    const chat = store.getChat(chatId);
+    const chat = store.chats.get(chatId);
     if (!chat || chat.status !== "failed" || isBusy(chatId) || this.asks.has(chatId)) return;
     const controller = new AbortController();
     this.asks.set(chatId, controller);
@@ -158,7 +158,7 @@ export class ChatUsageLimit {
     try {
       await send(chatId, USAGE_RESUME_PROMPT);
     } catch (e) {
-      store.addEvent(chatId, { type: "error", message: `再開できませんでした: ${errorMessage(e)}` });
+      store.events.add(chatId, { type: "error", message: `再開できませんでした: ${errorMessage(e)}` });
     } finally {
       this.resuming.delete(chatId);
     }

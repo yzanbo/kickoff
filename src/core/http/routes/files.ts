@@ -28,7 +28,7 @@ export function filesRoutes(app: Hono, { store }: ServerDeps) {
       .parse({ q: c.req.query("q"), case: c.req.query("case"), word: c.req.query("word"), regex: c.req.query("regex") });
     const dir = await requireWorkdir(c, project);
     try {
-      return c.json(await searchProject(dir, { query: query.q, caseSensitive: query.case, wholeWord: query.word, regex: query.regex }));
+      return c.json(await searchProject(dir, { query: query.q, case_sensitive: query.case, whole_word: query.word, regex: query.regex }));
     } catch {
       throw new HttpError(400, query.regex ? "正規表現の書き方が正しくありません" : "検索できませんでした");
     }

@@ -15,7 +15,7 @@ const sameFiles = (a: ProjectFiles, b: ProjectFiles) => a.truncated === b.trunca
  * 押したらその作業場所のファイルをエディタタブで開く。作業が終わるたびに一覧を読み直す（新しく作ったファイルもチップにする）。
  * 一覧が読めない（フォルダが消えたなど）間は undefined（チップにしない）
  */
-export function useFileLinks(chat: { project_id: number; worktree_path: string; status: string }, repoPath: string | undefined): FileLinks | undefined {
+export function useFileLinks(chat: { project_id: number; worktree_path: string | null; status: string }, repoPath: string | undefined): FileLinks | undefined {
   const projectId = chat.project_id;
   const worktree = chat.worktree_path || undefined;
   const root = worktree ?? repoPath;

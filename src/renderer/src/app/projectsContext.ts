@@ -1,16 +1,16 @@
 import { createContext, useContext } from "react";
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 
 /** アプリ全体のプロジェクトの一覧と、ID からの引き当て（App が読み込むたびに作り直す） */
 export interface ProjectsIndex {
   /** すべてのプロジェクト（しまったものも含む。並びは API のまま） */
-  projects: ProjectSummary[];
-  projectsById: ReadonlyMap<number, ProjectSummary>;
+  projects: Project[];
+  projectsById: ReadonlyMap<number, Project>;
   /** プロジェクト名（まだ分からなければ空） */
   projectName: (id: number) => string;
 }
 
-export function indexProjects(projects: ProjectSummary[]): ProjectsIndex {
+export function indexProjects(projects: Project[]): ProjectsIndex {
   const projectsById = new Map(projects.map((p) => [p.id, p]));
   return { projects, projectsById, projectName: (id) => projectsById.get(id)?.name ?? "" };
 }

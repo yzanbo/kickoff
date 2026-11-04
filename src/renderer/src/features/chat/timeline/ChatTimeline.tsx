@@ -275,7 +275,7 @@ export function ChatTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={chat.status === "queued" ? null : chat.turn_started_at}>{workingLabel(chat, lastItem, live, stopping, compacting, runningAgents, connection, background, activity)}</Working>
+            <Working since={chat.turn_started_at}>{workingLabel(chat, lastItem, live, stopping, compacting, runningAgents, connection, background, activity)}</Working>
           )}
           {/* 裏で動いている作業（1 件ずつ止められる） */}
           {busy && <BackgroundTasks chatId={chat.id} background={background} agents={agents} onOpen={onOpenSubagent} />}

@@ -40,13 +40,13 @@ test("git 未管理のフォルダは同意がなければ取り込まず、同�
   fs.writeFileSync(path.join(dir, "index.html"), "<h1>hi</h1>");
 
   const before = await inspectWorkspace(dir);
-  assert.equal(before.isGit, false);
+  assert.equal(before.is_git, false);
   await assert.rejects(prepareImportedWorkspace(dir, false), /同意/);
 
   assert.equal(await prepareImportedWorkspace(dir, true), dir);
   const after = await inspectWorkspace(dir);
-  assert.equal(after.isGit, true);
-  assert.equal(after.hasCommits, true);
+  assert.equal(after.is_git, true);
+  assert.equal(after.has_commits, true);
   assert.equal(after.dirty, false);
 });
 
@@ -62,7 +62,7 @@ test("コミット済みのリポジトリはそのまま取り込み、サブ�
   // シンボリックリンク経由（/tmp → /private/tmp）でもルートとして認識する
   const viaLink = path.join(os.tmpdir(), path.relative(fs.realpathSync(os.tmpdir()), dir));
   const info = await inspectWorkspace(viaLink);
-  assert.equal(info.gitRoot, info.path);
+  assert.equal(info.git_root, info.path);
   assert.equal(info.dirty, true);
   assert.equal(info.branch, "main");
   assert.equal(await prepareImportedWorkspace(dir, false), dir);

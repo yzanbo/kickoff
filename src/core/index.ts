@@ -40,7 +40,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const bus = new Bus();
   if (discardPrereleaseData(opts.dataDir)) console.log("[core] リリース前の版の保存データ（データベース・backups・uploads）を消し、新しく作り直しました");
   const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
-  const recovered = store.recoverInterruptedChats();
+  const recovered = store.chats.recoverInterrupted("アプリの終了により中断しました。メッセージを送ると続きから再開できます。");
   if (recovered > 0) console.log(`[core] 中断された実行を ${recovered} 件復旧しました`);
 
   const token = loadOrCreateToken(opts.dataDir);

@@ -62,7 +62,7 @@ export function CommitBox({
   };
 
   // プッシュするもの: 進んでいるコミット、またはまだ公開していないブランチ（origin があるとき）
-  const publish = !status.upstream && status.hasOrigin && status.branch !== null;
+  const publish = !status.upstream && status.has_origin && status.branch !== null;
   return (
     <div className="commit-box">
       <textarea

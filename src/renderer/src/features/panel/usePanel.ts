@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { ProjectSummary, Chat } from "@shared/types";
+import type { Project, Chat } from "@shared/types";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { cx } from "@/lib/cx";
 import { useServerEvent } from "@/api/events";
@@ -31,7 +31,7 @@ interface Options {
   /** true の間は Esc でパネルを閉じない（メニューが開いているときなど） */
   holdEsc?: boolean;
   /** 全プロジェクトのボードでは、新しいチャットのプロジェクトを選べるようにする */
-  projects?: ProjectSummary[];
+  projects?: Project[];
   /** 新しいチャットができたとき（URL をそのチャットにするなど） */
   onCreated?: (chat: Chat) => void;
 }

@@ -1,9 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { Chat, ChatGroup } from "@shared/types";
 import { pickProjectHue } from "@shared/project/colors";
-import { updateRow, type Notify } from "./common.js";
+import type { Notify } from "./common.js";
 
-/** チャットを自分でまとめるグループ（プロジェクトごと）。getChat は、消したグループの中のチャットの変更を知らせるのに使う */
+/** チャットを自分でまとめるグループ（chat_groups の表。プロジェクトごと）。getChat は、消したグループの中のチャットの変更を知らせるのに使う */
 export function createGroupStore(db: DatabaseSync, onChange: Notify, getChat: (id: number) => Chat | undefined) {
   const get = (id: number): ChatGroup | undefined => db.prepare("SELECT * FROM chat_groups WHERE id = ?").get(id) as unknown as ChatGroup | undefined;
   const list = (projectId: number): ChatGroup[] =>
@@ -11,7 +11,6 @@ export function createGroupStore(db: DatabaseSync, onChange: Notify, getChat: (i
   /** そのプロジェクトのほかのグループと被らない色（プロジェクトの色と同じ選び方: いちばん使われていない色、同じならいちばん離れた色） */
   const freeHue = (projectId: number) =>
     pickProjectHue((db.prepare("SELECT hue FROM chat_groups WHERE project_id = ?").all(projectId) as { hue: number }[]).map((r) => r.hue));
-  /** 色のないグループ（v4 で色を足す前に作ったもの）に、プロジェクトごとに並び順で被らない色を付ける（開いたときに 1 回） */
   return {
     get,
     list,
@@ -25,7 +24,7 @@ export function createGroupStore(db: DatabaseSync, onChange: Notify, getChat: (i
       return group;
     },
     rename(id: number, name: string): ChatGroup {
-      updateRow(db, "chat_groups", id, { name }, ["name"], false);
+      db.prepare("UPDATE chat_groups SET name = ? WHERE id = ?").run(name, id);
       const group = get(id)!;
       onChange({ type: "group", group });
       return group;
@@ -38,7 +37,7 @@ export function createGroupStore(db: DatabaseSync, onChange: Notify, getChat: (i
       for (const group of groups) onChange({ type: "group", group });
       return groups;
     },
-    /** グループを消す。中のチャットは消さず、グループなしに戻す */
+    /** グループを消す。中のチャットは消さず、グループなしに戻す（外部キーの ON DELETE SET NULL） */
     delete(id: number) {
       const group = get(id);
       if (!group) return;

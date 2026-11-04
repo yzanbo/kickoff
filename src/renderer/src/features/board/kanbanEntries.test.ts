@@ -4,7 +4,7 @@ import type { Chat } from "@shared/types";
 import { kanbanEntries } from "./useKanbanEntries";
 
 const chat = (id: number, extra: Partial<Chat> = {}) =>
-  ({ id, project_id: 1, worktree_path: "", archived_at: null, active_at: `2026-01-0${id}`, title: `c${id}`, ...extra }) as Chat;
+  ({ id, project_id: 1, worktree_path: null, archived_at: null, active_at: `2026-01-0${id}`, title: `c${id}`, ...extra }) as Chat;
 const all = { archive: "all" as const, worktree: "all", matches: () => true };
 const stateOf = () => "read" as const;
 const ids = (list: { chat: Chat }[]) => list.map((e) => e.chat.id);

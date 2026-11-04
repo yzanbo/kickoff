@@ -28,7 +28,7 @@ export function NotificationSettings() {
       <h2>通知</h2>
       <div className="form">
         <label className="check">
-          <input type="checkbox" checked={draft.desktopNotifications} onChange={(e) => setDraft({ ...draft, desktopNotifications: e.target.checked })} />
+          <input type="checkbox" checked={draft.desktop_notifications} onChange={(e) => setDraft({ ...draft, desktop_notifications: e.target.checked })} />
           <span>
             Mac の通知で知らせる
             <span className="field-help">
@@ -49,10 +49,10 @@ export function NotificationSettings() {
           </div>
         )}
         <Field label="ntfy のトピック URL（任意）" help="承認待ち・完了・失敗をスマホに通知します（M5 で対応）。">
-          <input type="url" value={draft.ntfyUrl} placeholder="https://ntfy.sh/your-topic" onChange={(e) => setDraft({ ...draft, ntfyUrl: e.target.value })} />
+          <input type="url" value={draft.ntfy_url} placeholder="https://ntfy.sh/your-topic" onChange={(e) => setDraft({ ...draft, ntfy_url: e.target.value })} />
         </Field>
       </div>
-      <SaveActions save={save} disabled={!dirty} onSave={() => saveFields({ desktopNotifications: draft.desktopNotifications, ntfyUrl: draft.ntfyUrl.trim() })} />
+      <SaveActions save={save} disabled={!dirty} onSave={() => saveFields({ desktop_notifications: draft.desktop_notifications, ntfy_url: draft.ntfy_url.trim() })} />
     </section>
   );
 }

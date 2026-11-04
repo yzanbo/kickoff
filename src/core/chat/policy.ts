@@ -63,12 +63,12 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path)
     `- ただし、サブエージェントが 1 回の返答で書ける量の上限（終わりの知らせに max_output_tokens・output token maximum とある）で止まったときは、通信のエラーではありません。同じやり方で続けると同じところでまた止まるので、「報告は短くまとめる」「大きなファイルは何回かに分けて書く」と添えて、SendMessage で 1 回だけ続きを頼んでください。それでも止まったら、利用者に伝えてください。`,
   );
 
-  if (project.references.length > 0) {
+  if (project.reference_paths.length > 0) {
     lines.push(
       ``,
       `## 参照資料`,
       `このプロジェクトでは、次のフォルダ・ファイルを参照資料として読めます。必要に応じて Read / Glob / Grep で読んでください（書き込みはできません）。`,
-      ...project.references.map((r) => `- ${r.path}${r.kind === "folder" ? "/（フォルダ）" : "（ファイル）"}`),
+      ...project.reference_paths.map((r) => `- ${r.path}${r.kind === "folder" ? "/（フォルダ）" : "（ファイル）"}`),
     );
   }
   return lines.join("\n");

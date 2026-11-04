@@ -27,8 +27,8 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   // （アーカイブ済みが多くても、未アーカイブのチャットが一覧から落ちないように）
   app.get("/api/projects/:id/chats", (c) => {
     const projectId = requireProject(store, c.req.param("id")).id;
-    const active = store.listChats({ projectId, limit: 300 });
-    const archived = c.req.query("archived") === "1" ? store.listChats({ projectId, limit: 300, onlyArchived: true }) : [];
+    const active = store.chats.list({ projectId, limit: 300 });
+    const archived = c.req.query("archived") === "1" ? store.chats.list({ projectId, limit: 300, onlyArchived: true }) : [];
     return c.json([...active, ...archived].sort((a, b) => b.id - a.id));
   });
 
@@ -53,18 +53,18 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
     const { q, project_id, chat_id, limit } = z
       .object({ q: z.string().max(1000).default(""), project_id: optionalId, chat_id: optionalId, limit: optionalId })
       .parse({ q: queryOf(c, "q"), project_id: queryOf(c, "project_id"), chat_id: queryOf(c, "chat_id"), limit: queryOf(c, "limit") });
-    return c.json(store.searchEvents(q, { projectId: project_id, chatId: chat_id, limit }));
+    return c.json(store.events.search(q, { projectId: project_id, chatId: chat_id, limit }));
   });
 
   // 全プロジェクトのチャット（⌘K の検索・移動用）。件数は 1000 まで
   app.get("/api/chats", (c) => {
     const { limit } = z.object({ limit: z.coerce.number().int().positive().default(300) }).parse({ limit: queryOf(c, "limit") });
-    return c.json(store.listChats({ limit: Math.min(limit, 1000), includeArchived: c.req.query("archived") === "1" }));
+    return c.json(store.chats.list({ limit: Math.min(limit, 1000), includeArchived: c.req.query("archived") === "1" }));
   });
 
   app.get("/api/chats/:id", (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    return c.json({ chat, events: store.listEvents(chat.id), approvals: approvals.list({ chatId: chat.id }), queue: runner.queued(chat.id), queue_paused: runner.queuePaused(chat.id), queue_stops: runner.queueStops(chat.id), queue_waiting_edit: runner.queueWaitingForEdit(chat.id), reconnect: runner.reconnectState(chat.id), background: runner.backgroundState(chat.id), compacting: runner.compactingSince(chat.id), stopping: runner.isStopping(chat.id) });
+    return c.json({ chat, events: store.events.list(chat.id), approvals: approvals.list({ chatId: chat.id }), queue: runner.queued(chat.id), queue_paused: runner.queuePaused(chat.id), queue_stops: runner.queueStops(chat.id), queue_waiting_edit: runner.queueWaitingForEdit(chat.id), reconnect: runner.reconnectState(chat.id), background: runner.backgroundState(chat.id), compacting: runner.compactingSince(chat.id), stopping: runner.isStopping(chat.id) });
   });
 
   // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
@@ -79,9 +79,9 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
       .parse(await c.req.json());
     if (group_id !== undefined) {
       if (group_id !== null) requireGroupOf(store, group_id, chat.project_id);
-      store.setChatGroup(chat.id, group_id);
+      store.chats.setGroup(chat.id, group_id);
     }
-    return c.json(Object.keys(patch).length ? store.updateChat(chat.id, patch) : store.getChat(chat.id));
+    return c.json(Object.keys(patch).length ? store.chats.update(chat.id, patch) : store.chats.get(chat.id));
   });
 
   // 確認した（未読を消す）。event_id = 画面で一番下まで見た記録。それより新しい返答が届いていれば、まだ見ていないので消さない
@@ -89,21 +89,21 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   app.post("/api/chats/:id/seen", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
     const { event_id } = z.object({ event_id: z.number().int().optional() }).parse(await c.req.json().catch(() => ({})));
-    if (!chat.unread || (event_id !== undefined && store.latestUnreadEventId(chat.id) > event_id)) return c.json(chat);
-    return c.json(store.setChatUnread(chat.id, false));
+    if (!chat.unread || (event_id !== undefined && store.events.latestUnreadId(chat.id) > event_id)) return c.json(chat);
+    return c.json(store.chats.setUnread(chat.id, false));
   });
 
   // 未読にする（未読に戻す。次に開くまで残る）
   app.post("/api/chats/:id/unseen", (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    return c.json(chat.unread ? chat : store.setChatUnread(chat.id, true));
+    return c.json(chat.unread ? chat : store.chats.setUnread(chat.id, true));
   });
 
   // サイドバーの上に固定する・やめる
   app.post("/api/chats/:id/pin", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
     const { pinned } = z.object({ pinned: z.boolean() }).parse(await c.req.json());
-    return c.json(store.setChatPinned(chat.id, pinned));
+    return c.json(store.chats.setPinned(chat.id, pinned));
   });
 
   // アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す
@@ -111,14 +111,14 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
     const chat = requireChat(store, c.req.param("id"));
     const { archived } = z.object({ archived: z.boolean().default(true) }).parse(await c.req.json().catch(() => ({})));
     if (archived && runner.isBusy(chat.id)) throw new HttpError(409, "作業中のチャットはアーカイブできません。中断してから行ってください");
-    return c.json(store.updateChat(chat.id, { archived_at: archived ? new Date().toISOString() : null }));
+    return c.json(store.chats.update(chat.id, { archived_at: archived ? new Date().toISOString() : null }));
   });
 
   // 削除（会話の記録も消える）
   app.delete("/api/chats/:id", (c) => {
     const chat = requireChat(store, c.req.param("id"));
     if (runner.isBusy(chat.id)) throw new HttpError(409, "作業中のチャットは削除できません。中断してから行ってください");
-    store.deleteChat(chat.id);
+    store.chats.delete(chat.id);
     runner.forgetQueued(chat.id);
     return c.json({ ok: true });
   });

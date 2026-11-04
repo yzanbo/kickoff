@@ -1,53 +1,42 @@
 import type { DatabaseSync } from "node:sqlite";
 import { pickProjectHue } from "@shared/project/colors";
 import { normalizeTags } from "@shared/project/tags";
-import type { NewProject, Project, ProjectSummary } from "@shared/types";
-import { bit, parseJson, updateRow, type Notify, type Row } from "./common.js";
+import type { Project } from "@shared/types";
+import { bit, updateRow, type Notify, type Row } from "./common.js";
+import type { NewProject } from "./types.js";
+
+/** プロジェクトの変えられる列（型と UPDATE の対象をここ 1 つで決める） */
+const PROJECT_COLUMNS = ["name", "description", "repo_path", "provider", "hue", "pinned", "archived_at", "tags", "chat_defaults", "reference_paths"] as const satisfies readonly (keyof Project)[];
 
 /** プロジェクトの変えられる項目 */
-export type ProjectPatch = Partial<NewProject> & {
-  defaults?: Project["defaults"];
-  references?: Project["references"];
-  tags?: string[];
-  pinned?: boolean;
-  archived_at?: string | null;
-  hue?: number;
+export type ProjectPatch = Partial<Pick<Project, (typeof PROJECT_COLUMNS)[number]>>;
+
+/** DB の行（JSON の列は文字列、pinned は 0 / 1） */
+type ProjectRow = Omit<Project, "pinned" | "tags" | "chat_defaults" | "reference_paths"> & {
+  pinned: number;
+  tags: string;
+  chat_defaults: string;
+  reference_paths: string;
 };
 
-const PROJECT_COLUMNS = [
-  "name",
-  "description",
-  "repo_path",
-  "provider",
-  "defaults",
-  "reference_paths",
-  "pinned",
-  "archived_at",
-  "hue",
-  "tags",
-] as const;
-
-/** DB の行（defaults・reference_paths・tags は JSON 文字列、pinned は 0 / 1）をアプリの型に変換する */
+/** DB の行をアプリの型にする（JSON の列の形は CHECK で守ってある） */
 function toProject(row: unknown): Project {
-  const { reference_paths, defaults, pinned, tags, ...r } = row as Omit<Project, "defaults" | "references" | "pinned" | "tags"> & {
-    defaults: string;
-    reference_paths: string;
-    pinned: number;
-    tags: string;
-  };
-  const references = parseJson<Project["references"]>(reference_paths);
-  const tagList = parseJson<unknown[]>(tags);
-  return {
-    ...r,
-    pinned: pinned === 1,
-    defaults: parseJson(defaults),
-    references: Array.isArray(references) ? references : [],
-    // 壊れた値・文字でない要素は捨てる
-    tags: Array.isArray(tagList) ? normalizeTags(tagList.filter((t): t is string => typeof t === "string")) : [],
-  };
+  const r = row as ProjectRow;
+  return { ...r, pinned: r.pinned === 1, tags: JSON.parse(r.tags), chat_defaults: JSON.parse(r.chat_defaults), reference_paths: JSON.parse(r.reference_paths) };
 }
 
-/** プロジェクト（projects 表。色・並び順・固定・アーカイブもここ） */
+/** 変える項目を DB の列の値にする */
+function toProjectRow({ pinned, tags, chat_defaults, reference_paths, ...rest }: ProjectPatch): Row {
+  return {
+    ...rest,
+    pinned: bit(pinned),
+    tags: tags === undefined ? undefined : JSON.stringify(normalizeTags(tags)),
+    chat_defaults: chat_defaults === undefined ? undefined : JSON.stringify(chat_defaults),
+    reference_paths: reference_paths === undefined ? undefined : JSON.stringify(reference_paths),
+  } as Row;
+}
+
+/** プロジェクト（projects の表。色・並び順・固定・アーカイブもここ） */
 export function createProjectStore(db: DatabaseSync, onChange: Notify) {
   const get = (id: number): Project | undefined => {
     const row = db.prepare("SELECT * FROM projects WHERE id = ?").get(id);
@@ -55,22 +44,8 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
   };
   return {
     get,
-    /** 一覧（更新順）。費用・動いているチャットの数を添える */
-    list(): ProjectSummary[] {
-      const projects = db.prepare("SELECT * FROM projects ORDER BY active_at DESC").all().map(toProject);
-      const chats = db
-        .prepare(
-          `SELECT project_id, SUM(cost_usd) AS cost,
-             SUM(CASE WHEN status IN ('queued','running','waiting') THEN 1 ELSE 0 END) AS active
-           FROM chats GROUP BY project_id`,
-        )
-        .all() as { project_id: number; cost: number; active: number }[];
-
-      return projects.map((p) => {
-        const r = chats.find((x) => x.project_id === p.id);
-        return { ...p, total_cost_usd: r?.cost ?? 0, active_chats: r?.active ?? 0 };
-      });
-    },
+    /** すべて（サイドバーの並び順） */
+    list: (): Project[] => db.prepare("SELECT * FROM projects ORDER BY position, id").all().map(toProject),
     findByPath(repoPath: string): Project | undefined {
       const row = db.prepare("SELECT * FROM projects WHERE repo_path = ?").get(repoPath);
       return row ? toProject(row) : undefined;
@@ -94,16 +69,7 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
       return project;
     },
     update(id: number, patch: ProjectPatch): Project {
-      const { references, tags, ...rest } = patch;
-      const row: Row = {
-        ...rest,
-        pinned: bit(patch.pinned),
-        defaults: patch.defaults === undefined ? undefined : JSON.stringify(patch.defaults),
-        reference_paths: references === undefined ? undefined : JSON.stringify(references),
-        tags: tags === undefined ? undefined : JSON.stringify(normalizeTags(tags)),
-      } as Row;
-      // 名前・色・タグ・固定・アーカイブなどの編集は「動いた」ではないので、最後に動いた時刻（active_at）は進めない（進めるのはチャットの動き: touchProject）
-      updateRow(db, "projects", id, row, PROJECT_COLUMNS, false);
+      updateRow(db, "projects", id, toProjectRow(patch), PROJECT_COLUMNS);
       const project = get(id)!;
       onChange({ type: "project", project });
       return project;

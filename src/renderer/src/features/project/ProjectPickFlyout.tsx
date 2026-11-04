@@ -1,6 +1,6 @@
 import { Check, Plus } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 import { sidebarOrder } from "./projectOrder";
 import { useProjects } from "@/app/projectsContext";
 
@@ -24,7 +24,7 @@ export function ProjectPickFlyout({
   anchor: HTMLElement;
   /** いまのプロジェクト（チェックを付け、選んでも何もしない） */
   current: number;
-  onPick: (project: ProjectSummary) => void;
+  onPick: (project: Project) => void;
   /** 新しいプロジェクトを作る（検索欄に書いた名前を渡す） */
   onCreate: (name: string) => void;
   /** ← で一覧を閉じて項目に戻る */
@@ -47,7 +47,7 @@ export function ProjectPickFlyout({
 
   const words = query.trim().toLowerCase();
   const shown = sidebarOrder(projects).filter((p) => !words || p.name.toLowerCase().includes(words));
-  const pick = (project: ProjectSummary) => (project.id === current ? onBack() : onPick(project));
+  const pick = (project: Project) => (project.id === current ? onBack() : onPick(project));
 
   return (
     <div

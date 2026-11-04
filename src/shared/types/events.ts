@@ -1,10 +1,10 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { Approval } from "@shared/types/approval";
-import type { AppSettings } from "@shared/types/settings";
-import type { Project } from "@shared/types/project";
-import type { PlanUsage } from "@shared/types/provider";
-import type { ApiRetryInfo, BackgroundState, QueuedMessage, ReconnectState, Chat, ChatEvent, ChatGroup, SubagentInfo } from "@shared/types/chat";
-import type { VoiceDownload } from "@shared/types/voice";
+import type { Approval } from "./approval";
+import type { AppSettings } from "./settings";
+import type { Project } from "./project";
+import type { PlanUsage } from "./provider";
+import type { ApiRetryInfo, BackgroundState, QueuedMessage, ReconnectState, Chat, ChatEvent, ChatGroup, SubagentInfo } from "./chat";
+import type { VoiceDownload } from "./voice";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
 export type BusEvent =

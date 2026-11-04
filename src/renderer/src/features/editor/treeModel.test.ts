@@ -27,7 +27,7 @@ test("ファイルは未ステージ・競合を優先し、フォルダには�
     repo: true,
     branch: "main",
     upstream: null,
-    hasOrigin: false,
+    has_origin: false,
     ahead: 0,
     behind: 0,
     staged: [{ path: "src/a.ts", kind: "A" }],

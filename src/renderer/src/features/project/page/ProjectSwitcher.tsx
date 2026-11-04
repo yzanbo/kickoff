@@ -1,5 +1,5 @@
 import { Check, ChevronDown } from "lucide-react";
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
 import { projectHueStyle } from "@/features/project/projectColor";
 import { useProjects } from "@/app/projectsContext";
@@ -76,11 +76,11 @@ function ProjectSwitchMenu({
 }: {
   x: number;
   y: number;
-  projects: ProjectSummary[];
+  projects: Project[];
   /** 開くボタンのセレクタ（押したらボタンの側で閉じる） */
   ignore: string;
   /** しまった（アーカイブした）プロジェクト */
-  archived: ProjectSummary[];
+  archived: Project[];
   /** いまのプロジェクト（なければ全プロジェクト） */
   currentId?: number;
   /** 選んだプロジェクト（undefined は全プロジェクト） */
