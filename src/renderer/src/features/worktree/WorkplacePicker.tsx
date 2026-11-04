@@ -7,6 +7,9 @@ import { worktreeLabel } from "./WorktreePicker";
 /** 新しいチャットの作業場所（本体・いまあるワークツリー・新しく作るワークツリー） */
 export type Workplace = { kind: "main" } | { kind: "existing"; path: string } | { kind: "new"; branch: string };
 
+/** 作業場所のフォルダ（チャットの worktree_path と同じ形。null = 本体、undefined = 新しく作るワークツリーで、まだない） */
+export const workplacePath = (place: Workplace): string | null | undefined => (place.kind === "existing" ? place.path : place.kind === "main" ? null : undefined);
+
 const NEW = "__new__";
 
 /** 新しいワークツリーのブランチ名を聞く（作業場所の選択と、作業中の作業場所に送るときの確かめで共通）。やめたら null */

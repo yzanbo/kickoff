@@ -63,3 +63,13 @@ export function workplaceOf(chat: Pick<Chat, "worktree_path" | "branch">, list: 
 /** 作業場所でまとめるときの並び: 本体 → ワークツリー（名前順）→ フォルダなし → 以前のブランチ */
 const KIND_ORDER: Record<WorkplaceKind, number> = { main: 0, worktree: 1, missing: 2, past: 3 };
 export const compareWorkplaces = (a: ChatWorkplace, b: ChatWorkplace) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.name.localeCompare(b.name);
+
+/**
+ * 同じ作業場所（worktreePath。null = 本体）で作業中のチャットの数（except のチャットは数えない）。
+ * 同じフォルダで同時に作業すると、ファイルがぶつかることがあるので知らせるのに使う（チャットの画面・新しいチャットで共通）
+ */
+export function countBusyAt(chats: readonly Pick<Chat, "id" | "worktree_path" | "status">[], worktreePath: string | null, except?: number): number {
+  let count = 0;
+  for (const chat of chats) if (chat.id !== except && chat.worktree_path === worktreePath && chat.status === "running") count++;
+  return count;
+}

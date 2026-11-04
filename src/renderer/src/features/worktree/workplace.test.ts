@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { GitWorktree } from "@shared/types";
-import { compareWorkplaces, workplaceOf } from "./workplace";
+import type { Chat, GitWorktree } from "@shared/types";
+import { compareWorkplaces, countBusyAt, workplaceOf } from "./workplace";
 
 const wt = (path: string, branch: string | null, extra: Partial<GitWorktree> = {}): GitWorktree => ({
   path,
@@ -69,4 +69,13 @@ test("作業場所の並び: 本体 → ワークツリー（名前順）→ フ
     workplaceOf({ worktree_path: null, branch: null }, list),
   ];
   assert.deepEqual(places.sort(compareWorkplaces).map((p) => p.kind), ["main", "worktree", "missing", "past"]);
+});
+
+test("countBusyAt: 同じ作業場所（null = 本体）で作業中のチャットだけを数え、いまのチャットは数えない", () => {
+  const chat = (id: number, worktree_path: string | null, status: Chat["status"]) => ({ id, worktree_path, status });
+  const chats = [chat(1, null, "running"), chat(2, null, "running"), chat(3, null, "completed"), chat(4, "/repo-worktrees/feat-a", "running")];
+  assert.equal(countBusyAt(chats, null), 2);
+  assert.equal(countBusyAt(chats, null, 1), 1);
+  assert.equal(countBusyAt(chats, "/repo-worktrees/feat-a"), 1);
+  assert.equal(countBusyAt(chats, "/repo-worktrees/other"), 0);
 });
