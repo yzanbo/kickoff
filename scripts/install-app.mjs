@@ -23,14 +23,17 @@ const isRunning = () => {
   }
 };
 
-/** 本番の Kickoff で、実行中・順番待ちのチャットがあればやめる（終了するとチャットが止まるため） */
+/**
+ * 本番の Kickoff で、実行中のチャットがあればやめる（終了するとチャットが止まるため）。
+ * 順番待ち（agents.queued）はもうないので数えない（以前は running と足していて、queued がない版では NaN になり、実行中でも止まらなかった）
+ */
 async function assertIdle() {
   if (!isRunning()) return;
   const token = readFileSync(path.join(prodDir, "token"), "utf8").trim();
   const res = await fetch(`http://127.0.0.1:${prodPort}/api/status`, { headers: { authorization: `Bearer ${token}` } });
   const { agents } = await res.json();
-  if (agents.running + agents.queued > 0) {
-    console.error(`本番の Kickoff で実行中のチャットがあります（実行中 ${agents.running}・順番待ち ${agents.queued}）。終わってからもう一度実行してください`);
+  if (agents.running > 0) {
+    console.error(`本番の Kickoff で実行中のチャットがあります（${agents.running} 件）。終わってからもう一度実行してください`);
     process.exit(1);
   }
 }
