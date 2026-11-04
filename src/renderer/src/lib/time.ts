@@ -88,3 +88,33 @@ export function formatElapsed(ms: number): string {
   if (min < 60) return `${min}分${sec % 60 ? `${sec % 60}秒` : ""}`;
   return `${Math.floor(min / 60)}時間${min % 60 ? `${min % 60}分` : ""}`;
 }
+
+/** 秒まで出す時刻（"08:34:12"） */
+const clockWithSeconds = (date: Date) => date.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const sameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+/** 日付の部分（今年なら "11/4"、ほかの年は "2025/11/4"） */
+const shortDay = (date: Date, now: Date) =>
+  date.getFullYear() === now.getFullYear() ? `${date.getMonth() + 1}/${date.getDate()}` : `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+
+/** 処理の時刻（秒まで。ツールの実行・思考など）: 今日なら時刻だけ（"08:34:12"）、別の日なら日付も（"11/4 08:34:12" / "2025/11/4 08:34:12"） */
+export function formatStamp(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  return sameDay(date, now) ? clockWithSeconds(date) : `${shortDay(date, now)} ${clockWithSeconds(date)}`;
+}
+
+/**
+ * 処理の時間の範囲（"08:34:12 – 08:36:40"）。終わりが始まりと同じ日なら終わりには日付を付けず、日をまたいだら付ける。
+ * 始まりと終わりが同じ秒なら 1 つだけ（"08:34:12"）
+ */
+export function formatStampRange(start: string, end: string, now = new Date()): string {
+  const from = new Date(start);
+  const to = new Date(end);
+  if (sameDay(from, to) && clockWithSeconds(from) === clockWithSeconds(to)) return formatStamp(start, now);
+  return `${formatStamp(start, now)} – ${sameDay(from, to) ? clockWithSeconds(to) : `${shortDay(to, now)} ${clockWithSeconds(to)}`}`;
+}
+
+/** 年月日と秒までの時刻（"2026/11/5 08:34:12"。処理の時刻に乗せたときの title に） */
+export function formatFullStamp(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${clockWithSeconds(date)}`;
+}

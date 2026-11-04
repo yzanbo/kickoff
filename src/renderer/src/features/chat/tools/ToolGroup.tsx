@@ -6,14 +6,19 @@ import { BashOutput } from "./BashOutput";
 import { cleanSubagentReport, isSubagentTool } from "@shared/chat/subagents";
 import { summarizeTools, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
+import { CallTime, GroupTime } from "./ToolTime";
 
-/** ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約する） */
+/**
+ * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
+ * active: いまの作業の中のまとまり（作業中のチャットで、結果の届いていない呼び出しを実行中として見せる）
+ */
 export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
   const summary = summarizeTools(tools);
   const failed = tools.filter((t) => t.result?.data.is_error).length;
-  const last = tools[tools.length - 1];
-  const lastData = { name: last.use.data.name, input: last.use.data.input as Record<string, unknown> | undefined };
-  const running = active && !last.result;
+  // 実行中の呼び出し（並べて呼んだものは、結果の届いていないうちいちばん後ろ）
+  const current = active ? tools.findLast((t) => !t.result) : undefined;
+  const currentData = current && { name: current.use.data.name, input: current.use.data.input as Record<string, unknown> | undefined };
+  const running = currentData !== undefined;
 
   return (
     <details
@@ -25,23 +30,24 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
         <ChevronRight size={14} className="tool-chevron" />
         <Wrench size={13} className="muted" />
         <span className="tool-summary">{summary}</span>
-        {running ? (
-          <span className="tool-current">{rel(describeTool(lastData.name, lastData.input ?? {}))}</span>
+        {currentData ? (
+          <span className="tool-current">{rel(describeTool(currentData.name, currentData.input ?? {}))}</span>
         ) : (
           failed > 0 && <span className="tool-failed">{failed} 件失敗</span>
         )}
+        <GroupTime tools={tools} running={running} />
       </summary>
       <div className="tool-calls">
         {tools.map((t) => (
-          <ToolItem key={t.use.id} call={t} rel={rel} />
+          <ToolItem key={t.use.id} call={t} rel={rel} running={active && !t.result} />
         ))}
       </div>
     </details>
   );
 }
 
-/** ツールの呼び出し 1 件（開くと編集内容・結果を出す） */
-function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string }) {
+/** ツールの呼び出し 1 件（右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: 結果を待っている（作業中のチャットのいまの作業） */
+function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => string; running: boolean }) {
   const { id, name } = call.use.data;
   const input = (call.use.data.input ?? {}) as Record<string, unknown>;
   // Task / Agent の呼び出しから、そのサブエージェントの中身をパネルのタブで開く（チャットの画面の中だけ）
@@ -66,7 +72,6 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
       <summary>
         <span className="tool-name">{toolLabel(name)}</span>
         <span className="tool-arg">{rel(describeToolInput(name, input))}</span>
-        {!call.result && <span className="spinner small" aria-label="実行中" />}
         {isSubagentTool(name) && pane && (
           <button
             type="button"
@@ -79,6 +84,7 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
             中身を見る
           </button>
         )}
+        <CallTime call={call} running={running} />
       </summary>
       {detail}
       {content && !isCommand && (r?.is_error || !detail) && (

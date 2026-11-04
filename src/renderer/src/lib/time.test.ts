@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatMessageTime, relativeTime, resetInShort, shortRelativeTime } from "./time";
+import { formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, relativeTime, resetInShort, shortRelativeTime } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -61,4 +61,21 @@ test("発言の時刻: 今日は時刻、7 日以内は曜日と時刻、それ�
   assert.equal(formatMessageTime(new Date(2026, 9, 27, 8, 0).toISOString(), now), "10月27日");
   assert.equal(formatMessageTime(new Date(2025, 2, 1, 9, 0).toISOString(), now), "2025/3/1");
   assert.equal(formatFullDateTime(new Date(2026, 10, 3, 9, 5).toISOString()), "2026/11/3 09:05");
+});
+
+test("処理の時刻: 今日は時刻だけ（秒まで）、別の日は日付も、去年より前は年も", () => {
+  const now = new Date(2026, 10, 5, 12, 0);
+  assert.equal(formatStamp(new Date(2026, 10, 5, 8, 34, 12).toISOString(), now), "08:34:12");
+  assert.equal(formatStamp(new Date(2026, 10, 4, 23, 58, 1).toISOString(), now), "11/4 23:58:01");
+  assert.equal(formatStamp(new Date(2025, 2, 1, 9, 0, 5).toISOString(), now), "2025/3/1 09:00:05");
+  assert.equal(formatFullStamp(new Date(2026, 10, 5, 8, 34, 12).toISOString()), "2026/11/5 08:34:12");
+});
+
+test("処理の時間の範囲: 同じ日なら終わりは時刻だけ、日をまたいだら終わりにも日付", () => {
+  const now = new Date(2026, 10, 5, 12, 0);
+  const at = (d: number, h: number, m: number, s: number) => new Date(2026, 10, d, h, m, s).toISOString();
+  assert.equal(formatStampRange(at(5, 8, 34, 12), at(5, 8, 36, 40), now), "08:34:12 – 08:36:40");
+  assert.equal(formatStampRange(at(3, 8, 34, 12), at(3, 9, 0, 0), now), "11/3 08:34:12 – 09:00:00");
+  assert.equal(formatStampRange(at(4, 23, 58, 1), at(5, 0, 3, 12), now), "11/4 23:58:01 – 11/5 00:03:12");
+  assert.equal(formatStampRange(at(5, 8, 34, 12), at(5, 8, 34, 12), now), "08:34:12");
 });

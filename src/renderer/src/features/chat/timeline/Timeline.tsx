@@ -3,8 +3,8 @@ import { memo, type ReactNode } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
-import { useTicker } from "@/hooks/useTicker";
-import { formatClock, formatElapsed } from "@/lib/time";
+import { formatClock, formatElapsed, formatFullStamp, formatStamp } from "@/lib/time";
+import { Elapsed } from "@/features/chat/status/Elapsed";
 import { api } from "@/api";
 import { openChat } from "@/app/router";
 import { reportFailure } from "@/ui/dialogs";
@@ -22,14 +22,16 @@ import { FailedTurnActions } from "@/features/chat/rewind/FailedTurnActions";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
- * active なら、最後のツールのまとまりを実行中として見せる
+ * active（作業中）なら、いまの作業（最後の作業の終わりより後）の結果の届いていないツールを実行中として見せる
+ * （前の作業で中断したまま結果のない呼び出しは、実行中にしない）
  */
 export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; rel: (s: string) => string; active: boolean }) {
+  const floor = active ? items.findLastIndex((item) => item.kind === "event" && item.event.type === "result") : items.length;
   // 各項目は memo して、変わっていない発言・ツールは描き直さない（作業中は返答が届くたびに流れ全体が描き直されるため。
   // 長いチャットで Markdown を毎回解析し直すと、そのたびに 100ms ほどかかり、入力が重くなる）
   return items.map((item, i) =>
     item.kind === "tools" ? (
-      <MemoToolGroup key={item.key} tools={item.tools} rel={rel} active={active && i === items.length - 1} />
+      <MemoToolGroup key={item.key} tools={item.tools} rel={rel} active={i > floor} />
     ) : (
       <MemoEventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} turnChanges={item.turnChanges} busy={active} />
     ),
@@ -56,27 +58,37 @@ export function Working({ children, since }: { children: ReactNode; since?: stri
         <span />
       </span>
       {children}
-      {since && <Elapsed since={since} />}
+      {since && <Elapsed since={since} className="working-elapsed" />}
     </div>
   );
 }
 
-/** 経過時間（1 秒ごとに進める。描き直しをこの中だけに閉じる） */
-function Elapsed({ since }: { since: string }) {
-  useTicker(1000);
-  return <span className="working-elapsed">{formatElapsed(Date.now() - new Date(since).getTime())}</span>;
-}
-
-/** 思考の行（「8秒間思考しました」。中身があれば開いて読める） */
-function Thinking({ text, durationMs }: { text: string; durationMs?: number }) {
+/**
+ * 思考の行（「8秒間思考しました」。中身があれば開いて読める）。後ろに考え始めた時刻
+ * （記録は考え終えたときに残るので、かかった時間を引く。乗せると年月日と考え終えた時刻）
+ */
+function Thinking({ text, durationMs, at }: { text: string; durationMs?: number; at: string }) {
   const label =
     durationMs === undefined ? "思考しました" : `${formatElapsed(durationMs)}${durationMs < 3_600_000 ? "間" : ""}思考しました`;
-  if (!text.trim()) return <div className="event-note thinking">{label}</div>;
+  const start = new Date(Date.parse(at) - (durationMs ?? 0)).toISOString();
+  const time = (
+    <span className="event-time" title={`開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(at)}`}>
+      {formatStamp(start)}
+    </span>
+  );
+  if (!text.trim())
+    return (
+      <div className="event-note thinking">
+        {label}
+        {time}
+      </div>
+    );
   return (
     <details className="event-note thinking">
       <summary>
         <ChevronRight size={13} className="tool-chevron" />
         {label}
+        {time}
       </summary>
       <div className="thinking-body">{text}</div>
     </details>
@@ -161,7 +173,7 @@ function EventItem({
     case "text":
       return <AssistantMessage event={event} />;
     case "thinking":
-      return <Thinking text={event.data.text} durationMs={event.data.duration_ms} />;
+      return <Thinking text={event.data.text} durationMs={event.data.duration_ms} at={event.created_at} />;
     case "approval_resolved": {
       // AI からの質問に答えた内容は、自分の発言と同じ吹き出しで「質問への回答」として出す
       const data = event.data;
