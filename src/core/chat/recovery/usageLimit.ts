@@ -32,8 +32,6 @@ export class ChatUsageLimit {
   private readonly waiting = new Map<number, number>();
   /** 続けるかを聞いているチャット（取り下げるため） */
   private readonly asks = new Map<number, AbortController>();
-  /** 上限で止まったときに、こちらで止めた送信待ち（再開して終わったら戻す） */
-  private readonly heldQueues = new Set<number>();
   /** 続けると答えて送っている途中（自分で送ったときと見分ける） */
   private readonly resuming = new Set<number>();
   private timer: ReturnType<typeof setInterval> | undefined;
@@ -43,6 +41,8 @@ export class ChatUsageLimit {
       store: Store;
       approvals: ApprovalCenter;
       followups: FollowupQueue;
+      /** 止まったときに、こちらで止めた送信待ち（再開して終わったら戻す。通信の切断の段取りと 1 つを使う） */
+      heldQueues: Set<number>;
       isBusy: (chatId: number) => boolean;
       send: (chatId: number, text: string) => Promise<unknown>;
       /** 枠の使い方（Claude Code が戻る時刻を知らせなかったときに使う） */
@@ -59,16 +59,23 @@ export class ChatUsageLimit {
       void this.onLimit(chatId, outcome.usageLimit.resetsAt);
       return false;
     }
+    // 通信の切断で止まったときは、止めた送信待ちを通信の段取りが引き継ぐ（ここで忘れると、戻す者がいなくなる）
+    if (outcome.network) return true;
     // 最後まで終わった: 止めておいた送信待ちを戻す。止めた・ほかの理由で失敗した: 止めたまま（自分で戻せる）
-    if (this.heldQueues.delete(chatId) && outcome.status === "completed") this.deps.followups.setPaused(chatId, false);
+    if (this.deps.heldQueues.delete(chatId) && outcome.status === "completed") this.deps.followups.setPaused(chatId, false);
     return true;
+  }
+
+  /** 続けると答えて送っている途中か（そこから届いた送信は、自分で送ったものとして扱わない） */
+  isResuming(chatId: number): boolean {
+    return this.resuming.has(chatId);
   }
 
   /** 自分でメッセージを送った・止めた・チャットを消した: 待つのも聞くのもやめる */
   forget(chatId: number) {
     if (this.resuming.has(chatId)) return;
     this.waiting.delete(chatId);
-    this.heldQueues.delete(chatId);
+    this.deps.heldQueues.delete(chatId);
     this.asks.get(chatId)?.abort();
     this.stopTimerIfIdle();
   }
@@ -81,13 +88,13 @@ export class ChatUsageLimit {
   private async onLimit(chatId: number, reportedReset: string | null) {
     const { store, followups } = this.deps;
     if (!store.chats.get(chatId)) return;
-    // 送信待ちは送らずに止めておく（自分で止めていたものはそのまま）
+    // 送信待ちは送らずに止めておく（自分で止めていたものはそのまま。通信の段取りが止めていたものは、そのまま引き継ぐ）
     if (followups.list(chatId).length > 0 && !followups.isPaused(chatId)) {
       followups.setPaused(chatId, true);
-      this.heldQueues.add(chatId);
+      this.deps.heldQueues.add(chatId);
     }
     const resetAt = reportedReset ?? (await this.resetFromUsage());
-    const held = this.heldQueues.has(chatId) ? "送信待ちは止めてあります。" : "";
+    const held = this.deps.heldQueues.has(chatId) ? "送信待ちは止めてあります。" : "";
     if (!resetAt) {
       store.events.add(chatId, {
         type: "notice",
@@ -138,7 +145,7 @@ export class ChatUsageLimit {
         toolName: "usage_limit",
         input: {},
         title: "使用枠が戻りました",
-        description: `使用枠の上限で止まっていた作業を、続きから再開しますか？${this.heldQueues.has(chatId) ? "止めておいた送信待ちは、再開した作業が終わってから送ります。" : ""}`,
+        description: `使用枠の上限で止まっていた作業を、続きから再開しますか？${this.deps.heldQueues.has(chatId) ? "止めておいた送信待ちは、再開した作業が終わってから送ります。" : ""}`,
         canRemember: false,
       },
       controller.signal,
@@ -147,7 +154,7 @@ export class ChatUsageLimit {
       this.asks.delete(chatId);
       if (answer.action === "allow" && !controller.signal.aborted) void this.resume(chatId);
       // やめる: 送信待ちは止めたまま（自分で戻す・メッセージを送ると続きから再開できる）
-      else this.heldQueues.delete(chatId);
+      else this.deps.heldQueues.delete(chatId);
     });
   }
 
