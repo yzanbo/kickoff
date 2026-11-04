@@ -15,13 +15,13 @@ import type { Chat } from "@shared/types";
 import type { TabDrag } from "@/features/panel/layout/useTabDrag";
 import { groupNameIn, useGroupsOf } from "@/stores/groups";
 import type { PanelController } from "@/features/panel/usePanel";
-import { shownActiveOf } from "@/features/panel/state/panelKinds";
 import { OTHER_CLUSTER, clusterHues, clusterTabs, paneIndexOf, visibleClusterTabs, type TabCluster } from "@/features/panel/clusters/tabClusters";
 import { useFolds } from "@/hooks/useFold";
 import { TabClusterHead } from "@/features/panel/clusters/TabClusterHead";
 import { useTabClusters, useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 import { useClusterReorder } from "@/features/panel/clusters/useClusterReorder";
-import { PanelTabAdds, type OpenWithKind } from "./PanelTabAdds";
+import { PanelTabAdds } from "./PanelTabAdds";
+import type { OpenWithKind } from "@/features/openWith/useOpenWithMenu";
 
 /**
  * 右のパネルの 1 つのペインのタブの列。左にパネルの閉じる・横幅いっぱい（controls。左上のペインだけ）、タブ、
@@ -79,7 +79,7 @@ export function PaneTabBar({
 }) {
   const insertAt = drag.insertAt(pane.id);
   // 見せている表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ）
-  const active = shownActiveOf(pane, panel.isKindShown);
+  const active = panel.shownTabOf(pane);
   const showChat = panel.kinds.has("chat");
   // 表示中のタブが並びの外（横にスクロールした先）にあれば、見えるところまで動かす（新しく開いたタブなど）
   const stripRef = useRef<HTMLDivElement>(null);
