@@ -1,33 +1,4 @@
-/* ==== プロジェクトの各タブの中身（全文検索の探す範囲・危険な操作） ==== */
-
-/* 全文検索の「探す範囲」: ボタンの組の枠は並びに影響させず、各ボタンをチップにする */
-.search-scope-options {
-  display: contents;
-}
-
-.search-scope-options button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font: inherit;
-  font-size: 13px;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.search-scope-options button:hover {
-  color: var(--text);
-}
-
-.search-scope-options button.active {
-  border-color: var(--border-strong);
-  color: var(--text);
-  background: var(--bg-hover);
-}
+/* ==== プロジェクトの各タブの中身（危険な操作） ==== */
 
 .danger-zone {
   padding-top: 16px;
