@@ -5,25 +5,24 @@ import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
-import { attachmentSchema, branchName, optionalId, chatOptionsSchema } from "./schemas.js";
+import { newChatSchema, optionalId } from "./schemas.js";
 import type { ChatDetail } from "@shared/types";
 
-// 本文が空でも、添付があれば送れる
-const chatInputSchema = z
+/** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
+const chatPatchSchema = z
   .object({
-    prompt: z.string().trim().max(50_000).default(""),
-    options: chatOptionsSchema,
-    attachments: z.array(attachmentSchema).max(20).default([]),
-    group_id: z.number().int().optional(),
-    // 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体）
-    worktree_path: z.string().max(2000).optional(),
-    new_worktree_branch: branchName.optional(),
+    title: z.string().trim().min(1).max(100),
+    group_id: z.number().int().nullable(),
+    // サイドバーの上に固定する・やめる（並び順は変えない）
+    pinned: z.boolean(),
+    // アーカイブ（一覧から隠す。会話の記録は残る）・戻す。作業中はアーカイブできない
+    archived: z.boolean(),
   })
-  .refine((v) => v.prompt || v.attachments.length > 0, { message: "メッセージか添付ファイルが必要です" });
+  .partial();
 
 /**
- * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・名前やグループの変更・既読・固定・アーカイブ・別のプロジェクトへの移動・削除・検索。
- * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts
+ * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
+ * 送る・伝える・止める・分岐・巻き戻しは routes/turns.ts。変えたら、変えたあとのチャットを返す（削除は 204）
  */
 export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
@@ -40,12 +39,12 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
 
   app.post("/api/projects/:id/chats", withProject, async (c) => {
     const { project } = c.var;
-    const input = chatInputSchema.parse(await jsonBody(c));
+    const input = newChatSchema.parse(await jsonBody(c));
     if (input.group_id !== undefined) requireGroupOf(store, input.group_id, project.id);
     const worktreePath = await resolveWorktree(project.repo_path, input.worktree_path, input.new_worktree_branch);
     const created = await runner.start({
       projectId: project.id,
-      prompt: input.prompt,
+      prompt: input.text,
       options: input.options,
       attachments: input.attachments,
       groupId: input.group_id,
@@ -75,21 +74,19 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     return c.json(detail);
   });
 
-  // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
+  // チャットの名前・グループ・固定・アーカイブを変える（カンバンの列は AI の状態で決まるので変えない）。
+  // 確かめ（ほかのプロジェクトのグループ・作業中のアーカイブ）を先にすべて済ませてから変える（途中まで変えて断らない）
   app.patch("/api/chats/:id", withChat, async (c) => {
     const { chat } = c.var;
-    const { group_id, ...patch } = z
-      .object({
-        title: z.string().trim().min(1).max(100),
-        group_id: z.number().int().nullable(),
-      })
-      .partial()
-      .parse(await jsonBody(c));
-    if (group_id !== undefined) {
-      if (group_id !== null) requireGroupOf(store, group_id, chat.project_id);
-      store.chats.setGroup(chat.id, group_id);
-    }
-    return c.json(Object.keys(patch).length ? store.chats.update(chat.id, patch) : store.chats.get(chat.id));
+    const { title, group_id, pinned, archived } = chatPatchSchema.parse(await jsonBody(c));
+    if (group_id !== undefined && group_id !== null) requireGroupOf(store, group_id, chat.project_id);
+    if (archived) runner.requireIdle(chat.id, "アーカイブ");
+    if (group_id !== undefined) store.chats.setGroup(chat.id, group_id);
+    if (pinned !== undefined) store.chats.setPinned(chat.id, pinned);
+    // しまったままもう一度しまっても、しまった日時は変えない（プロジェクトと同じ）
+    const archivedAt = archived === undefined ? undefined : archived ? (chat.archived_at ?? new Date().toISOString()) : null;
+    if (title !== undefined || archivedAt !== undefined) store.chats.update(chat.id, { title, archived_at: archivedAt });
+    return c.json(store.chats.get(chat.id));
   });
 
   // 確認した（未読を消す）。event_id = 画面で一番下まで見た記録。それより新しい返答が届いていれば、まだ見ていないので消さない
@@ -105,20 +102,6 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
   app.post("/api/chats/:id/unseen", withChat, (c) => {
     const { chat } = c.var;
     return c.json(chat.unread ? chat : store.chats.setUnread(chat.id, true));
-  });
-
-  // サイドバーの上に固定する・やめる
-  app.post("/api/chats/:id/pin", withChat, async (c) => {
-    const { pinned } = z.object({ pinned: z.boolean() }).parse(await jsonBody(c));
-    return c.json(store.chats.setPinned(c.var.chat.id, pinned));
-  });
-
-  // アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す
-  app.post("/api/chats/:id/archive", withChat, async (c) => {
-    const { chat } = c.var;
-    const { archived } = z.object({ archived: z.boolean().default(true) }).parse(await jsonBody(c));
-    if (archived) runner.requireIdle(chat.id, "アーカイブ");
-    return c.json(store.chats.update(chat.id, { archived_at: archived ? new Date().toISOString() : null }));
   });
 
   /**
@@ -140,7 +123,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     runner.requireIdle(chat.id, "削除");
     store.chats.delete(chat.id);
     runner.forget(chat.id);
-    return c.json({ ok: true });
+    return c.body(null, 204);
   });
 }
 

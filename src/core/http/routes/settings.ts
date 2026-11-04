@@ -2,9 +2,9 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
-import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, VOICE_PROVIDERS, type AppSettings } from "@shared/types";
+import { PROVIDER_IDS, VOICE_PROVIDERS, type AppSettings } from "@shared/types";
 import { jsonBody } from "../input.js";
-import { voiceLanguage } from "./schemas.js";
+import { chatDefaultsSchema, voiceLanguage } from "./schemas.js";
 
 const settingsSchema = z
   .object({
@@ -14,12 +14,7 @@ const settingsSchema = z
     desktop_notifications: z.boolean(),
     projects_dir: z.string().min(1).max(500),
     // 送った内容で置き換える（4 つとも送る）
-    chat_defaults: z.object({
-      model: z.string().min(1).max(100),
-      effort: z.enum(EFFORT_LEVELS).nullable(),
-      permission_mode: z.enum(PERMISSION_MODES),
-      fast_mode: z.boolean(),
-    }),
+    chat_defaults: chatDefaultsSchema,
     auto_archive_days: z.number().int().min(1).max(365).nullable(),
     auto_resume_on_reconnect: z.boolean(),
     voice_enabled: z.boolean(),

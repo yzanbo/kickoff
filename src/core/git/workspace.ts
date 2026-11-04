@@ -24,7 +24,8 @@ interface NewWorkspace {
   parentDir: string;
   folderName: string;
   name: string;
-  idea: string;
+  /** プロジェクトの説明（README の「アイデア」に書く） */
+  description: string;
 }
 
 /**
@@ -45,7 +46,8 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
   await fs.mkdir(repo, { recursive: true });
   try {
     await git(repo, ["init", "-b", "main"]);
-    const readme = `# ${input.name.trim()}\n\n${input.idea.trim() ? `## アイデア\n\n${input.idea.trim()}\n` : ""}`;
+    const idea = input.description.trim();
+    const readme = `# ${input.name.trim()}\n\n${idea ? `## アイデア\n\n${idea}\n` : ""}`;
     await fs.writeFile(path.join(repo, "README.md"), readme, "utf8");
     await git(repo, ["add", "README.md"]);
     await git(repo, ["commit", "-m", "chore: Kickoff でプロジェクトを作成"]);

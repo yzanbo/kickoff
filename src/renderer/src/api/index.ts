@@ -2,7 +2,8 @@ import type { AppSettings, Attachment, Approval, ApprovalDecision, ModelOption, 
 
 interface NewProjectInput {
   name: string;
-  idea: string;
+  /** 説明（README の「アイデア」にも書く。取り込み・編集の description と同じ） */
+  description: string;
   parent_dir: string;
   folder_name: string;
 }
@@ -23,6 +24,7 @@ export class ApiError extends Error {
   }
 }
 
+/** API を呼ぶ（失敗は ApiError。返すもののない応答（204）は undefined） */
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method,
@@ -34,6 +36,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -83,8 +86,9 @@ export const api = {
     > & { pinned?: boolean; archived?: boolean },
   ) =>
     request<Project>("PATCH", `/api/projects/${id}`, patch),
-  deleteProject: (id: number) => request<{ ok: true }>("DELETE", `/api/projects/${id}`),
-  reorderProjects: (ids: number[]) => request<{ ok: true }>("PUT", "/api/projects/order", { ids }),
+  deleteProject: (id: number) => request<void>("DELETE", `/api/projects/${id}`),
+  /** サイドバーでのプロジェクトの並び順（並べたあとの一覧が返る） */
+  reorderProjects: (ids: number[]) => request<Project[]>("PUT", "/api/projects/order", { ids }),
   models: (provider: ProviderId) => request<ModelOption[]>("GET", `/api/providers/${provider}/models`),
 
   // 実行（エージェントとの会話）
@@ -101,7 +105,7 @@ export const api = {
   startChat: (
     projectId: number,
     input: {
-      prompt: string;
+      text: string;
       options: ChatOptionsPatch;
       attachments?: Attachment[];
       group_id?: number;
@@ -126,10 +130,11 @@ export const api = {
   /** eventId: 一番下まで見た記録（それより新しい返答があれば、未読のまま） */
   markSeen: (chatId: number, eventId?: number) => request<Chat>("POST", `/api/chats/${chatId}/seen`, eventId === undefined ? undefined : { event_id: eventId }),
   markUnseen: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/unseen`),
-  pinChat: (chatId: number, pinned: boolean) => request<Chat>("POST", `/api/chats/${chatId}/pin`, { pinned }),
+  /** 名前・グループ・固定・アーカイブはどれも PATCH（プロジェクトと同じ形） */
+  pinChat: (chatId: number, pinned: boolean) => request<Chat>("PATCH", `/api/chats/${chatId}`, { pinned }),
   compactChat: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/compact`),
-  archiveChat: (chatId: number, archived = true) => request<Chat>("POST", `/api/chats/${chatId}/archive`, { archived }),
-  deleteChat: (chatId: number) => request<{ ok: true }>("DELETE", `/api/chats/${chatId}`),
+  archiveChat: (chatId: number, archived = true) => request<Chat>("PATCH", `/api/chats/${chatId}`, { archived }),
+  deleteChat: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}`),
   setChatGroup: (chatId: number, groupId: number | null) => request<Chat>("PATCH", `/api/chats/${chatId}`, { group_id: groupId }),
   /** チャットを別のプロジェクトへ移す（グループ・作業場所は外れ、移した先の本体で作業する。会話は続く） */
   moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
@@ -148,14 +153,13 @@ export const api = {
   /** 作業場所のブランチの PR（なければ null）と、PR を作る（まだプッシュしていなければ先にプッシュする） */
   pullRequest: (target: GitTarget) => request<PullRequestInfo | null>("GET", gitUrl(target, "/git/pr")),
   createPullRequest: (target: GitTarget) => request<PullRequestInfo>("POST", gitUrl(target, "/git/pr")),
-  /** PR がマージされたワークツリーを片付ける（ワークツリーと手元のブランチを消す） */
-  finishWorktree: (projectId: number, path: string) => request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/finish`, { path }),
   gitLog: (target: GitTarget, skip = 0) => request<GitLog>("GET", gitUrl(target, "/git/log", { skip: String(skip) })),
   gitRefs: (target: GitTarget) => request<GitRefs>("GET", gitUrl(target, "/git/refs")),
   gitWorktrees: (projectId: number) => request<GitWorktree[]>("GET", `/api/projects/${projectId}/git/worktrees`),
   addWorktree: (projectId: number, branch: string) => request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees`, { branch }),
+  /** ワークツリーを消す（force: コミットしていない変更があっても。deleteBranch: ブランチも消す = PR がマージされたあとの片付け）。残った一覧が返る */
   removeWorktree: (projectId: number, path: string, force = false, deleteBranch = false) =>
-    request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force, deleteBranch }),
+    request<GitWorktree[]>("POST", `/api/projects/${projectId}/git/worktrees/remove`, { path, force, delete_branch: deleteBranch }),
   /** ワークツリーを消す前の確かめ（コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミット） */
   worktreeRemovalInfo: (projectId: number, path: string) =>
     request<WorktreeRemovalInfo>("GET", `/api/projects/${projectId}/git/worktrees/info?path=${encodeURIComponent(path)}`),
@@ -176,8 +180,8 @@ export const api = {
   projectFile: (target: GitTarget, path: string) => request<FileContent>("GET", gitUrl(target, "/file", { path })),
   gitDiff: (target: GitTarget, file: GitFileChange, staged: boolean) =>
     request<GitDiff>("GET", gitUrl(target, "/git/diff", { path: file.path, staged: staged ? "1" : "0", ...(file.old_path ? { old: file.old_path } : {}) })),
-  deleteGroup: (groupId: number) => request<{ ok: true }>("DELETE", `/api/groups/${groupId}`),
-  cancelChat: (chatId: number) => request<{ ok: true }>("POST", `/api/chats/${chatId}/cancel`),
+  deleteGroup: (groupId: number) => request<void>("DELETE", `/api/groups/${groupId}`),
+  cancelChat: (chatId: number) => request<void>("POST", `/api/chats/${chatId}/cancel`),
 
   // 作業中に送る次の指示の待ちの列（送信待ち）。応答はどれも、変えたあとの送信待ち（QueueState）
   /** 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す） */
@@ -208,7 +212,7 @@ export const api = {
   tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = []) =>
     request<{ result: "told" | "queued" | "sent" }>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments }),
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
-  stopBackgroundTask: (chatId: number, taskId: string) => request<{ ok: true }>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),
+  stopBackgroundTask: (chatId: number, taskId: string) => request<void>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),
   /** 待ちの列を、終わっても自動で送らずに止めておくか（戻すと、作業中でなければ先頭をすぐ送る） */
   setQueuePaused: (chatId: number, paused: boolean) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/paused`, { paused }),
   /** その指示のすぐあとに一時停止の印を付ける・外す（右クリックの「この指示のあとで止める」。id が null ならすべて外す） */
@@ -256,9 +260,8 @@ export const api = {
   // 承認依頼・質問
   approvals: () => request<Approval[]>("GET", "/api/approvals"),
   /** 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる */
-  stopReconnect: (chatId: number) => request<{ ok: true }>("DELETE", `/api/chats/${chatId}/reconnect`),
-  resolveApproval: (id: string, decision: ApprovalDecision) =>
-    request<{ ok: true }>("POST", `/api/approvals/${id}`, decision),
+  stopReconnect: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/reconnect`),
+  resolveApproval: (id: string, decision: ApprovalDecision) => request<void>("POST", `/api/approvals/${id}`, decision),
 };
 
 /** 添付ファイルを画面で開く・表示するための URL */

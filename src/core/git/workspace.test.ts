@@ -14,7 +14,7 @@ test("フォルダ名は安全な文字だけにする", () => {
 
 test("新規プロジェクトのフォルダを git リポジトリとして初期化し、最初のコミットを作る", async () => {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-ws-"));
-  const repo = await createWorkspace({ parentDir: parent, folderName: "todo", name: "Todo", idea: "やることを管理したい" });
+  const repo = await createWorkspace({ parentDir: parent, folderName: "todo", name: "Todo", description: "やることを管理したい" });
 
   assert.equal(repo, fs.realpathSync(path.join(parent, "todo")));
   assert.match(fs.readFileSync(path.join(repo, "README.md"), "utf8"), /やることを管理したい/);
@@ -28,7 +28,7 @@ test("空でない既存フォルダには作らない", async () => {
   const parent = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-ws-"));
   fs.mkdirSync(path.join(parent, "taken"));
   fs.writeFileSync(path.join(parent, "taken", "x.txt"), "x");
-  await assert.rejects(createWorkspace({ parentDir: parent, folderName: "taken", name: "x", idea: "" }), /空ではありません/);
+  await assert.rejects(createWorkspace({ parentDir: parent, folderName: "taken", name: "x", description: "" }), /空ではありません/);
 });
 
 function tmpDir() {

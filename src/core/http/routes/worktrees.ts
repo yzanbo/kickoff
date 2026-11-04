@@ -2,13 +2,12 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { addWorktree, findWorktree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
-import type { Project } from "@shared/types";
 import { Conflict } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
 import { branchName, folderPath } from "./schemas.js";
 
-/** ワークツリー（一覧・作る・消す・PR のあとの片付け。置き場所の案は path?branch= で） */
+/** ワークツリー（一覧・作る・消す。置き場所の案は path?branch= で）。PR がマージされたあとの片付けは、ブランチも消す（delete_branch）「消す」 */
 export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
   const { withProject } = lookups(store);
 
@@ -24,10 +23,10 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json(await addWorktree(c.var.project.repo_path, branch), 201);
   });
 
-  /** 作業中のチャットがあるうちは消さない・片付けない（作業中のフォルダが消えてしまう） */
-  const assertIdle = (projectId: number, path: string, verb: string) => {
+  /** 作業中のチャットがあるうちは消さない（作業中のフォルダが消えてしまう） */
+  const assertIdle = (projectId: number, path: string) => {
     if (store.chats.inWorktree(projectId, path).some((r) => runner.isBusy(r.id))) {
-      throw new Conflict(`このワークツリーで作業中のチャットがあります。終わってから${verb}てください`);
+      throw new Conflict("このワークツリーで作業中のチャットがあります。終わってから消してください");
     }
   };
 
@@ -38,36 +37,25 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
   });
 
   /**
-   * ワークツリーを消し（deleteBranch ならブランチも）、消えたら、そこで作業していたチャットの続きを本体で進める
-   * （ブランチを消すところで失敗しても、ワークツリーが消えていればチャットは本体に戻す）
+   * ワークツリーを消す（force: コミットしていない変更があっても消す。delete_branch: 取り出していたブランチも消す = PR がマージされたあとの片付け）。
+   * 消えたら、そこで作業していたチャットの続きを本体で進める（ブランチを消すところで失敗しても、ワークツリーが消えていればチャットは本体に戻す）。
+   * 残ったワークツリーの一覧を返す
    */
-  const removeAndRelease = async (project: Project, path: string, opts: { force?: boolean; deleteBranch?: boolean }) => {
+  app.post("/api/projects/:id/git/worktrees/remove", withProject, async (c) => {
+    const { project } = c.var;
+    const { path, force, delete_branch } = z
+      .object({ path: folderPath, force: z.boolean().default(false), delete_branch: z.boolean().default(false) })
+      .parse(await jsonBody(c));
+    assertIdle(project.id, path);
     try {
-      const worktrees = await removeWorktree(project.repo_path, path, opts);
+      const worktrees = await removeWorktree(project.repo_path, path, { force, deleteBranch: delete_branch });
       store.chats.clearWorktree(project.id, path);
-      return worktrees;
+      return c.json(worktrees);
     } catch (e) {
       // 一覧も取れなければ、消えたか分からないので戻さない
       const gone = await findWorktree(project.repo_path, path).then((w) => !w, () => false);
       if (gone) store.chats.clearWorktree(project.id, path);
       throw e;
     }
-  };
-
-  app.post("/api/projects/:id/git/worktrees/remove", withProject, async (c) => {
-    const { project } = c.var;
-    const { path, force, deleteBranch } = z
-      .object({ path: folderPath, force: z.boolean().default(false), deleteBranch: z.boolean().default(false) })
-      .parse(await jsonBody(c));
-    assertIdle(project.id, path, "消し");
-    return c.json(await removeAndRelease(project, path, { force, deleteBranch }));
-  });
-
-  // PR がマージされたワークツリーを片付ける（ワークツリーと手元のブランチを消す）
-  app.post("/api/projects/:id/git/worktrees/finish", withProject, async (c) => {
-    const { project } = c.var;
-    const { path } = z.object({ path: folderPath }).parse(await jsonBody(c));
-    assertIdle(project.id, path, "片付け");
-    return c.json(await removeAndRelease(project, path, { deleteBranch: true }));
   });
 }

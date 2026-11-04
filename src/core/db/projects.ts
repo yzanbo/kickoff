@@ -42,10 +42,11 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
     const row = db.prepare("SELECT * FROM projects WHERE id = ?").get(id);
     return row ? toProject(row) : undefined;
   };
+  const list = (): Project[] => db.prepare("SELECT * FROM projects ORDER BY position, id").all().map(toProject);
   return {
     get,
     /** すべて（サイドバーの並び順） */
-    list: (): Project[] => db.prepare("SELECT * FROM projects ORDER BY position, id").all().map(toProject),
+    list,
     findByPath(repoPath: string): Project | undefined {
       const row = db.prepare("SELECT * FROM projects WHERE repo_path = ?").get(repoPath);
       return row ? toProject(row) : undefined;
@@ -74,14 +75,15 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
       onChange({ type: "project", project });
       return project;
     },
-    /** サイドバーでのプロジェクトの並び順を ids の順にする */
-    reorder(ids: number[]) {
+    /** サイドバーでのプロジェクトの並び順を ids の順にする（並べたあとの一覧を返す） */
+    reorder(ids: number[]): Project[] {
       const stmt = db.prepare("UPDATE projects SET position = ? WHERE id = ?");
       ids.forEach((id, i) => stmt.run(i + 1, id));
       for (const id of ids) {
         const project = get(id);
         if (project) onChange({ type: "project", project });
       }
+      return list();
     },
     delete(id: number) {
       db.prepare("DELETE FROM projects WHERE id = ?").run(id);
