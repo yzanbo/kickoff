@@ -1,5 +1,6 @@
-import { Check, Paperclip, X } from "lucide-react";
-import { useRef, type KeyboardEvent } from "react";
+import { Check, Paperclip, SendHorizontal, X } from "lucide-react";
+import { useRef, useState, type KeyboardEvent } from "react";
+import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Attachment } from "../../../../core/types";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
@@ -8,23 +9,28 @@ import { PendingFileChips } from "./PendingFileChips";
 import { useComposerFiles } from "./useComposerFiles";
 
 /**
- * 送信待ちの指示を書き直す欄（Enter で保存・Shift+Enter で改行・Esc でやめる）。
+ * 送信待ちの指示を書き直す欄（Enter で保存・⌘Enter で保存していま送る（チャット欄の「いま」と同じ。作業中なら止めずにいまのやり取りに足す）・
+ * Shift+Enter で改行・Esc でやめる）。⌘ を押している間は、⌘Enter で使われる「保存していま送る」のボタンを青く光らせる（チャット欄と同じ）。
  * 添付は上にすべて並べ、× で外せる。📎・貼り付け・ドラッグ＆ドロップで足せる（チャット欄と同じく、選んだ時点でアップロードする）
  */
 export function QueuedEditor({
   index,
   withGrip,
+  busy,
   text,
   attachments,
   onChange,
   onAttachmentsChange,
   onSave,
+  onSaveAndSend,
   onCancel,
 }: {
   /** 送る順番（0 から。ほかの行と同じく番号を出す） */
   index: number;
   /** ほかの行につまみの印があるか（あれば同じ幅を空けて、番号の位置をそろえる） */
   withGrip: boolean;
+  /** 作業中か（「いま送る」の説明を変える。作業中は止めずにいまのやり取りに足す） */
+  busy: boolean;
   text: string;
   /** 残しておく添付（外したものは除いたもの） */
   attachments: Attachment[];
@@ -32,22 +38,36 @@ export function QueuedEditor({
   onAttachmentsChange: (attachments: Attachment[]) => void;
   /** 保存する添付（残したもの ＋ 足してアップロードできたもの） */
   onSave: (attachments: Attachment[]) => void;
+  /** 保存して、いま送る（⌘Enter） */
+  onSaveAndSend: (attachments: Attachment[]) => void;
   onCancel: () => void;
 }) {
   const files = useComposerFiles();
   const inputRef = useRef<HTMLInputElement>(null);
   // アップロードの途中は保存しない（足した添付が抜け落ちないように）
-  const save = () => {
-    if (!files.uploading) onSave([...attachments, ...files.attachments]);
+  const save = (send = false) => {
+    if (files.uploading) return;
+    const all = [...attachments, ...files.attachments];
+    if (send) onSaveAndSend(all);
+    else onSave(all);
   };
+  // ⌘ を押している間（⌘Enter で「保存していま送る」になることを、そのボタンを光らせて示す）
+  const [held, setHeld] = useState(false);
+  useWindowEvent("keyup", (e) => {
+    if (!e.metaKey) setHeld(false);
+  });
+  useWindowEvent("blur", () => setHeld(false));
+  const sendLabel = busy ? "保存していま送る（止めずに、いまのやり取りに足す）" : "保存していま送る";
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    setHeld(e.metaKey && !e.shiftKey && !e.ctrlKey && !e.altKey);
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
       onCancel();
     } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
       e.preventDefault();
-      save();
+      // ⌘Enter は保存していま送る（チャット欄の ⌘Enter =「いま」と同じ）
+      save(e.metaKey);
     }
   };
   const hasAttachments = attachments.length > 0 || files.files.length > 0;
@@ -104,7 +124,16 @@ export function QueuedEditor({
         title={files.uploading ? "アップロードが終わるまでお待ちください" : "保存（Enter）"}
         size={13}
         disabled={files.uploading}
-        onClick={save}
+        onClick={() => save()}
+      />
+      <IconButton
+        icon={SendHorizontal}
+        label={sendLabel}
+        title={files.uploading ? "アップロードが終わるまでお待ちください" : `${sendLabel}（⌘Enter）`}
+        size={13}
+        className={cx("queued-editor-send", held && "held")}
+        disabled={files.uploading}
+        onClick={() => save(true)}
       />
       <IconButton icon={X} label="やめる" title="やめる（Esc）" size={13} onClick={onCancel} />
     </div>

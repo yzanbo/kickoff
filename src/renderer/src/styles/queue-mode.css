@@ -43,30 +43,18 @@
 }
 
 /*
- * ⌘ / ⌘⇧ を押している間（Composer の heldMode）: Enter で使われる方を、選んでいる方（灰の地）とは別の青で示す。
- * 押している間は切り替えのすぐ上に「Enter で〜」の札を添える（.composer-held-hint。並びは動かさない）
+ * ⌘ / ⌘⇧ を押している間（Composer の heldMode）: Enter で使われる方を、選んでいる方（灰の地）とは別の青で示す
+ * （以前は切り替えの上に「Enter で〜」の札も添えていたが、文が長く邪魔だったのでやめた。ボタンが光るだけにする）
  */
 .busy-controls.held-tell .queue-mode button[data-value="tell"],
-.busy-controls.held-queue .queue-mode button[data-value="queue"] {
+.busy-controls.held-queue .queue-mode button[data-value="queue"],
+/* 送信待ちの書き直す欄でも、⌘ を押している間は ⌘Enter で使われる「保存していま送る」を同じ青で光らせる（QueuedEditor） */
+.icon-button.queued-editor-send.held {
   color: var(--info);
   background: color-mix(in srgb, var(--info) 22%, transparent);
   box-shadow: inset 0 0 0 1px var(--info);
 }
 
-.composer-held-hint {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 6px);
-  z-index: 2;
-  padding: 2px 8px;
-  border: 1px solid color-mix(in srgb, var(--info) 55%, transparent);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  color: var(--info);
-  white-space: nowrap;
-  background: var(--bg-elev);
-  pointer-events: none;
-}
 
 /* コンパクト表示（composer.css の末尾と同じく .composer.compact で詳細度を上げる） */
 .composer.compact .view-toggle.queue-mode {
