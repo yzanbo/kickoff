@@ -8,11 +8,11 @@ import { useServerEvent } from "../../events";
 const runsCache = new Map<string, Run[]>();
 
 /**
- * カンバンに出すチャット。projectId がなければ全プロジェクト。
+ * カンバンに出すチャット。projectId がなければ（undefined）全プロジェクト、null なら読まない（連動しないパネル）。
  * 一度開いたボードの内容は覚えておき、切り替えた最初の描画から出す（裏で読み直す。ちらつかないように）
  */
-export function useBoardRuns(projectId: number | undefined, showArchived: boolean, onError: (message: string) => void) {
-  const cacheKey = `${projectId ?? "all"}${showArchived ? ":archived" : ""}`;
+export function useBoardRuns(projectId: number | undefined | null, showArchived: boolean, onError: (message: string) => void) {
+  const cacheKey = `${projectId === null ? "none" : (projectId ?? "all")}${showArchived ? ":archived" : ""}`;
   const fromCache = () => ({ key: cacheKey, runs: runsCache.get(cacheKey) ?? [], loaded: runsCache.has(cacheKey) });
   const [state, setState] = useState(fromCache);
   // このボードを開いてから読み直したか（覚えている内容は、開いていない間の移動・作成を知らない。パネルが一覧にないタブを閉じるのは、読み直してから）
@@ -31,6 +31,7 @@ export function useBoardRuns(projectId: number | undefined, showArchived: boolea
   useEffect(() => {
     let alive = true;
     setState(fromCache());
+    if (projectId === null) return;
     (projectId === undefined ? api.allRuns({ archived: showArchived }) : api.runs(projectId, { archived: showArchived }))
       .then((list) => {
         if (!alive) return;
@@ -45,6 +46,7 @@ export function useBoardRuns(projectId: number | undefined, showArchived: boolea
   }, [projectId, showArchived]);
 
   useServerEvent((e) => {
+    if (projectId === null) return;
     if (e.type === "run" && (projectId === undefined || e.run.project_id === projectId)) {
       setRuns((prev) => {
         const rest = prev.filter((r) => r.id !== e.run.id);

@@ -6,7 +6,9 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { sidebarOrder } from "../../projectOrder";
 import { paneActions } from "./paneActions";
 import { activeTabOf, closeLayoutTabs, isTabVisible, placeTab, reconcileLayout, renameTab, type PaneLayout } from "./paneLayout";
+import { chatKey, syncLinkedTabs, type LinkState } from "./linkedTabs";
 import { loadPanel, registerPanel, savePanel } from "./panelMemory";
+import { useLinkedRuns, type LinkScope } from "./useLinkedRuns";
 import { newTabKey } from "./tabKeys";
 import { usePanelWidth } from "./usePanelWidth";
 import type { NewChatSeed } from "../chat/askInNewChat";
@@ -47,15 +49,14 @@ export function terminalTargets(projects: ProjectSummary[], projectId?: number):
 }
 
 
-const chatKey = (id: number) => `chat:${id}`;
-
-
 interface Options {
   /** パネルの状態を覚えておく名前（ボードは boardPanelKey。例: "kanban:all"・"kanban:3"、チャット欄は "side:3"） */
   memoryKey: string;
-  /** ボードに出ているチャット（アーカイブされたチャットのタブを閉じるのに使う。ボードのないチャット欄では渡さない） */
-  runs?: Run[];
-  loaded?: boolean;
+  /**
+   * サイドバーと連動する範囲（プロジェクト・全プロジェクト "all"。null なら連動しない）。チャットのタブは、サイドバーに出ているチャットにそろえる
+   * （チャットができる・アーカイブして隠す・別のプロジェクトへ移すと、タブも増減する。アーカイブ済みはサイドバーと共通の表示の切り替えに従う）
+   */
+  scope: LinkScope;
   /** true の間は Esc でパネルを閉じない（メニューが開いているときなど） */
   holdEsc?: boolean;
   /** 全プロジェクトのボードでは、新しいチャットのプロジェクトを選べるようにする */
@@ -64,8 +65,6 @@ interface Options {
   onCreated?: (run: Run) => void;
 }
 
-const NO_RUNS: Run[] = [];
-
 export type SidePanelController = ReturnType<typeof useSidePanel>;
 
 /**
@@ -73,13 +72,15 @@ export type SidePanelController = ReturnType<typeof useSidePanel>;
  * タブは上下・左右のペインに分けて並べられる（配置は paneLayout の木。新しく開くタブは、ピントのあるペインに入る）。
  * 表示は SidePanel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）・DraftCards（列の下書き）で行う
  */
-export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEsc = false, projects, onCreated }: Options) {
+export function useSidePanel({ memoryKey, scope, holdEsc = false, projects, onCreated }: Options) {
   // パネルを閉じてもタブは残し、次に開いたときに戻す
   const saved = () => loadPanel(memoryKey);
   const [tabs, setTabs] = useState<PanelTab[]>(() => saved().tabs);
   // 分割の配置（タブのキーを指す木と、ピントのあるペイン）
   const [rawLayout, setLayout] = useState<PaneLayout>(() => saved().layout);
   const [panelOpen, setPanelOpen] = useState(() => saved().panelOpen);
+  // サイドバーと連動したチャットのタブの覚え（表示だけ消したもの・一覧にないのに開いたもの）
+  const [links, setLinks] = useState<LinkState>(() => saved().links);
   // 同じ部品のまま別のボード（プロジェクト）に切り替わったら、そのボードで覚えている状態に戻す
   const [shownKey, setShownKey] = useState(memoryKey);
   if (shownKey !== memoryKey) {
@@ -88,14 +89,18 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     setTabs(next.tabs);
     setLayout(next.layout);
     setPanelOpen(next.panelOpen);
+    setLinks(next.links);
   }
   // 配置といまのタブが食い違っても（どのペインにもないタブなど）壊れないよう、直したものを使う
   const layout = useMemo(() => reconcileLayout(rawLayout, tabs.map((t) => t.key)), [rawLayout, tabs]);
   /** ピントのあるペインの表示中のタブ（分割する前の「表示中のタブ」と同じ意味） */
   const activeTab = activeTabOf(layout);
   useEffect(() => {
-    if (shownKey === memoryKey) savePanel(memoryKey, { tabs, activeTab, panelOpen, layout });
-  }, [memoryKey, shownKey, tabs, activeTab, panelOpen, layout]);
+    if (shownKey === memoryKey) savePanel(memoryKey, { tabs, activeTab, panelOpen, layout, links });
+  }, [memoryKey, shownKey, tabs, activeTab, panelOpen, layout, links]);
+  // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える）
+  const linked = useLinkedRuns(scope);
+  const runs = linked.runs;
   // 幅と横幅いっぱい（ボードを覆う）
   const size = usePanelWidth();
 
@@ -117,6 +122,12 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     const key = chatKey(run.id);
     const tab: PanelTab = { key, kind: "chat", id: run.id, projectId: run.project_id, focus, title: run.title };
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev.map((t) => (t.key === key && focus ? tab : t)) : [...prev, tab]));
+    // 表示だけ消していたチャットも、開けばまたタブに出す。サイドバーの一覧にないチャット（隠しているアーカイブ済みなど）は、閉じるまで残す
+    setLinks((l) => {
+      const dismissed = l.dismissed.filter((id) => id !== run.id);
+      const extra = scope !== null && !runs.some((r) => r.id === run.id) && !l.extra.includes(run.id) ? [...l.extra, run.id] : l.extra;
+      return dismissed.length === l.dismissed.length && extra === l.extra ? l : { dismissed, extra };
+    });
     reveal(key);
   };
 
@@ -173,10 +184,17 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
 
   /**
    * タブを閉じる。表示中のタブならそのペインの隣のタブへ。空になったペインは消し、最後のタブならパネルも閉じる。
-   * ターミナルはシェルも止める。base はペインを閉じたあとの配置など、閉じる前に変えておいた配置
+   * ターミナルはシェルも止める。base はペインを閉じたあとの配置など、閉じる前に変えておいた配置。
+   * dismiss: 利用者が閉じた（表示だけ消す）チャットは、サイドバーとの連動で出し直さないよう覚える（アーカイブ・削除で閉じるときは覚えない）
    */
-  const closeMany = (keys: string[], base: PaneLayout = layout) => {
+  const closeMany = (keys: string[], base: PaneLayout = layout, dismiss = true) => {
     const closing = new Set(keys);
+    const closedChats = tabs.flatMap((t) => (closing.has(t.key) && t.kind === "chat" ? [t.id] : []));
+    if (closedChats.length > 0)
+      setLinks((l) => ({
+        dismissed: dismiss ? [...new Set([...l.dismissed, ...closedChats.filter((id) => runs.some((r) => r.id === id))])] : l.dismissed,
+        extra: l.extra.filter((id) => !closedChats.includes(id)),
+      }));
     for (const t of tabs) if (closing.has(t.key) && t.kind === "terminal") void window.kickoff?.terminal.close(t.key);
     // 次の状態は純粋関数で決め、state の更新は updater の外で行う（updater の中の副作用は StrictMode で 2 回走る）
     const nextTabs = tabs.filter((t) => !closing.has(t.key));
@@ -185,7 +203,8 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     setLayout(closeLayoutTabs(base, keys));
     if (nextTabs.length === 0) setPanelOpen(false);
   };
-  const closeTab = (key: string) => closeMany([key]);
+  /** タブを閉じる（dismiss: false はアーカイブ・削除のあと。サイドバーに出ている間は連動でまた出る） */
+  const closeTab = (key: string, { dismiss = true }: { dismiss?: boolean } = {}) => closeMany([key], layout, dismiss);
   // サイドバーの下書きから、このパネルのタブを表示する・閉じる・作成先のグループを変えるために登録する（いつも最新の関数を呼ぶ）
   const openerRef = useRef({ show, close: closeTab, update: updateTab });
   openerRef.current = { show, close: closeTab, update: updateTab };
@@ -203,15 +222,21 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
   useServerEvent((e) => {
     if (e.type !== "run_deleted") return;
     const gone = tabs.filter((t) => t.key === chatKey(e.id) || (t.kind === "subagent" && t.runId === e.id));
-    if (gone.length > 0) closeMany(gone.map((t) => t.key));
+    if (gone.length > 0) closeMany(gone.map((t) => t.key), layout, false);
   });
 
-  // 削除・アーカイブされたチャットのタブは閉じる
+  // チャットのタブをサイドバーの一覧にそろえる（読み直してから。一覧から外れたタブは閉じ、まだないチャットはタブを足す）
   useEffect(() => {
-    const gone = tabs.filter((t) => t.kind === "chat" && !runs.some((r) => r.id === t.id));
-    if (loaded && gone.length > 0) closeMany(gone.map((t) => t.key));
+    if (!linked.fresh || shownKey !== memoryKey) return;
+    const next = syncLinkedTabs(tabs, runs, links);
+    if (next.links !== links) setLinks(next.links);
+    if (next.tabs === tabs) return;
+    const kept = new Set(next.tabs.map((t) => t.key));
+    const gone = tabs.filter((t) => !kept.has(t.key));
+    setTabs(next.tabs);
+    if (gone.length > 0) setLayout((l) => closeLayoutTabs(l, gone.map((t) => t.key)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runs, loaded]);
+  }, [runs, linked.fresh, links, shownKey, memoryKey]);
 
   // Esc でパネルを閉じる（メニューやダイアログが開いていればそちらを優先）
   useWindowEvent(
@@ -234,7 +259,10 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     maximized: size.maximized,
     /** 横に残るボードが狭すぎて、パネルでボードを覆っているか（横幅いっぱいの切り替えは出さない） */
     covering: size.covering,
+    /** サイドバーに出ているチャット（タブのチャットの状態・まとまりの数・状態ごとの一覧に使う） */
     runs,
+    /** アーカイブ済みのチャットもタブに出しているか（サイドバーと共通） */
+    showArchived: linked.showArchived,
     projects,
     open,
     openNew,
@@ -258,8 +286,6 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     isShowingTab,
     /** パネルでこのチャットを表示しているか（カードを選択中として見せる。分割していれば、どれかのペインで） */
     isShowing: (runId: number) => isShowingTab(chatKey(runId)),
-    /** このチャットをタブで開いているか */
-    hasTab: (runId: number) => tabs.some((t) => t.key === chatKey(runId)),
     /** ボードとパネルを並べる要素に渡す */
     body: {
       ref: size.bodyRef,

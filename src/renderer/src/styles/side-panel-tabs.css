@@ -186,11 +186,6 @@
   height: 100%;
 }
 
-.board-card.in-tab,
-.list-row.in-tab {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
-}
-
 .board-card.selected,
 .list-row.selected,
 .draft-card.selected {
@@ -229,6 +224,7 @@
   justify-content: center;
   width: 28px;
   height: 26px;
+  padding: 0;
   border: none;
   border-radius: var(--radius-sm);
   color: var(--muted);
@@ -242,7 +238,7 @@
 }
 
 
-/* タブのまとめ方のボタン（パネルを閉じるボタンのすぐ右）。まとめているときはアクセントの色 */
-.panel-control.panel-tab-grouping.on {
+/* タブのまとめ方・アーカイブ済みを出すかのボタン（パネルを閉じるボタンのすぐ右）。まとめている・出しているときはアクセントの色 */
+.panel-control.on {
   color: var(--accent-bright);
 }

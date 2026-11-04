@@ -22,7 +22,9 @@ const projectOfTab = (t: PanelTab): number | undefined => (t.kind === "browser" 
  * いくつかのプロジェクトのタブが並ぶとき（全プロジェクトのボード）は、名前の前にプロジェクト名を添える。
  * clusterOfRun はチャットがどのまとまりに入るか（タブで開いていないチャットも。まとまりの札から開く状態ごとの一覧に使う）。
  * order はグループ別のとき先に並べるまとまり: サイドバーと連動させ、プロジェクトごとに自分で作ったグループをサイドバーと同じ並びで
- * （チャットのタブがなくても札を出す。作ったグループがすぐタブの列にも出る）、そのあとに「グループなし」（タブがあるときだけ）
+ * （チャットのタブがなくても札を出す。作ったグループがすぐタブの列にも出る）、そのあとに「グループなし」（タブがあるときだけ）。
+ * サイドバーと同じく、固定したチャットは「固定」（いちばん前）、アーカイブ済みは「アーカイブ済み」（後ろ）に抜き出す
+ * （グループ・作業場所の札の数がサイドバーの見出しの数と同じになる。どちらのまとめ方でも）
  */
 export function useTabClusters(
   panel: SidePanelController,
@@ -68,27 +70,31 @@ export function useTabClusters(
     return OTHER_CLUSTER;
   };
 
-  const clusterOfRun = (run: Run): ClusterOf => (grouping === "group" ? byGroup(run.project_id, run.group_id) : byWorkplace(run.project_id, run));
+  // サイドバーと同じく抜き出すまとまり（固定・アーカイブ済み）
+  const pinnedCluster = (projectId: number): ClusterOf =>
+    named(projectId, { key: `p${projectId}:pinned`, label: "固定", title: "固定したチャット（サイドバーの「固定」と同じ）", projectId });
+  const archivedCluster = (projectId: number): ClusterOf =>
+    named(projectId, { key: `p${projectId}:archived`, label: "アーカイブ済み", title: "アーカイブ済みのチャット（サイドバーの「アーカイブ済み」と同じ）", projectId });
+  /** チャットの入るまとまり。アーカイブ済み → 固定 → グループ（作業場所）の順に決める（サイドバーの分け方と同じ） */
+  const ofRun = (projectId: number, run: Run | undefined): ClusterOf => {
+    if (run?.archived_at) return archivedCluster(projectId);
+    if (run?.pinned) return pinnedCluster(projectId);
+    return grouping === "group" ? byGroup(projectId, run?.group_id) : byWorkplace(projectId, run ?? { worktree_path: "", branch: "" });
+  };
+  const clusterOfRun = (run: Run): ClusterOf => ofRun(run.project_id, run);
   const clusterOf = (key: string): ClusterOf => {
     const t = panel.tabs.find((x) => x.key === key);
     if (!t || t.kind === "browser") return OTHER_CLUSTER;
-    if (grouping === "group") {
-      if (t.kind === "terminal") return OTHER_CLUSTER;
-      if (t.kind === "new") return byGroup(t.projectId, t.group);
-      const run = t.kind === "chat" ? runOf(t.id, t.run) : runOf(t.runId);
-      return byGroup(t.projectId, run?.group_id);
-    }
-    if (t.kind === "terminal") return terminalWorkplace(t.cwd);
-    if (t.kind === "new") return byWorkplace(t.projectId, { worktree_path: "", branch: "" });
-    const run = t.kind === "chat" ? runOf(t.id, t.run) : runOf(t.runId);
-    return byWorkplace(t.projectId, run ?? { worktree_path: "", branch: "" });
+    if (t.kind === "terminal") return grouping === "group" ? OTHER_CLUSTER : terminalWorkplace(t.cwd);
+    if (t.kind === "new") return grouping === "group" ? byGroup(t.projectId, t.group) : byWorkplace(t.projectId, { worktree_path: "", branch: "" });
+    return ofRun(t.projectId, t.kind === "chat" ? runOf(t.id, t.run) : runOf(t.runId));
   };
-  const order: ClusterSeed[] =
-    grouping === "group"
-      ? projectIds.flatMap((id) => [
-          ...groupsOf(id).map((g) => ({ cluster: byGroup(id, g.id), keepEmpty: true })),
-          { cluster: byGroup(id, null), keepEmpty: false },
-        ])
-      : [];
+  const order: ClusterSeed[] = projectIds.flatMap((id) => [
+    { cluster: pinnedCluster(id), keepEmpty: false },
+    ...(grouping === "group"
+      ? [...groupsOf(id).map((g) => ({ cluster: byGroup(id, g.id), keepEmpty: true })), { cluster: byGroup(id, null), keepEmpty: false }]
+      : []),
+    { cluster: archivedCluster(id), keepEmpty: false, tail: true },
+  ]);
   return { clusterOf, clusterOfRun, order };
 }

@@ -27,7 +27,8 @@ const EDGE = 8;
  * 札の右クリック（プロジェクトの分かるまとまりだけ）: このグループで新しいチャット（グループ別のとき）・新しいグループを作成・
  * このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
  * 自分で作ったグループの札はつかんで並べ替えられる（dragProps。サイドバーのグループの並びも同じに変わる）。
- * 札の右のタブの数は、まとまりのタブを畳む・開くボタン（onToggleCollapsed。ブラウザのタブのグループを畳むのと同じ。右クリックにも同じ項目）
+ * 札の右の数は、まとまりのタブを畳む・開くボタン（onToggleCollapsed。ブラウザのタブのグループを畳むのと同じ。右クリックにも同じ項目）。
+ * 数はサイドバーの見出しと同じ数え方のチャットの数（count。表示だけ消したタブ・下書きは数えない）で、渡さなければタブの数
  */
 export function TabClusterHead({
   cluster,
@@ -39,6 +40,7 @@ export function TabClusterHead({
   collapsed = false,
   onToggleCollapsed,
   dragProps,
+  count = cluster.tabs.length,
 }: {
   cluster: TabCluster;
   runs: Run[] | undefined;
@@ -52,6 +54,8 @@ export function TabClusterHead({
   onToggleCollapsed?: () => void;
   /** 札をつかんでグループの並びを入れ替える（自分で作ったグループだけ。useClusterReorder の handle） */
   dragProps?: { draggable: boolean; onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
+  /** 札の右に出す数（サイドバーの見出しと同じ、まとまりのチャットの数） */
+  count?: number;
 }) {
   const { stateOf, pending } = useRunStates();
   const [at, setAt] = useState<CSSProperties | null>(null);
@@ -78,6 +82,7 @@ export function TabClusterHead({
     if (await confirmDeleteGroup({ name: cluster.groupName ?? cluster.label })) await api.deleteGroup(groupId).catch(reportFailure("グループを削除できませんでした"));
   };
   const counts = runs ? stateCounts(runs, pending) : undefined;
+  const countTitle = runs ? `チャット ${count} 件（サイドバーの見出しと同じ数）` : `タブ ${count} 個`;
   const summary = counts ? stateCountsSummary(counts) : "";
   const title = summary ? `${cluster.title ?? cluster.label}（${summary}）` : cluster.title;
   const name = (
@@ -110,15 +115,15 @@ export function TabClusterHead({
             type="button"
             className="panel-tab-cluster-count panel-tab-cluster-fold"
             aria-expanded={!collapsed}
-            title={collapsed ? `タブ ${cluster.tabs.length} 個を表示する` : `タブ ${cluster.tabs.length} 個を畳む（表示中のタブは残す）`}
+            title={`${countTitle}。押すとタブを${collapsed ? "表示する" : "畳む（表示中のタブは残す）"}`}
             onClick={onToggleCollapsed}
           >
             <Chevron open={!collapsed} size={11} />
-            {cluster.tabs.length}
+            {count}
           </button>
         ) : (
-          <span className="panel-tab-cluster-count" title={`タブ ${cluster.tabs.length} 個`}>
-            {cluster.tabs.length}
+          <span className="panel-tab-cluster-count" title={countTitle}>
+            {count}
           </span>
         ))}
       {menu && projectId !== undefined && (

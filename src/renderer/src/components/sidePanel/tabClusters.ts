@@ -26,28 +26,33 @@ export interface TabCluster extends ClusterOf {
   tabs: string[];
 }
 
-/** 先に並べるまとまり（グループ別のとき、サイドバーと同じグループの並び）。keepEmpty ならタブがなくても札だけ出す */
+/**
+ * 並びを決めておくまとまり（サイドバーと同じ並び: 固定 → グループ → グループなし → アーカイブ済み）。keepEmpty ならタブがなくても札だけ出す。
+ * tail なら、ほかのまとまりのあと（「その他」の前）に置く（アーカイブ済み）
+ */
 export interface ClusterSeed {
   cluster: ClusterOf;
   keepEmpty: boolean;
+  tail?: boolean;
 }
 
 /**
  * ペインのタブ（並び順のキー）を、まとまりごとに分ける。order のまとまりを先にその順で並べ（keepEmpty ならタブがなくても出す）、
- * order にないまとまりは、そのまとまりのタブが初めて出てくる順に続け、「その他」はいちばん後ろ。
+ * order にないまとまりは、そのまとまりのタブが初めて出てくる順に続け、order の tail のまとまり、「その他」の順に後ろへ置く。
  * まとまりの中はペインの並びのまま（並べ替えても、まとまりの中の順が変わるだけ）
  */
 export function clusterTabs(keys: readonly string[], clusterOf: (key: string) => ClusterOf, order: readonly ClusterSeed[] = []): TabCluster[] {
   const clusters = new Map<string, TabCluster>();
-  for (const { cluster } of order) clusters.set(cluster.key, { ...cluster, tabs: [] });
+  for (const { cluster } of order.filter((o) => !o.tail)) clusters.set(cluster.key, { ...cluster, tabs: [] });
+  const tails = new Map(order.filter((o) => o.tail).map((o) => [o.cluster.key, { ...o.cluster, tabs: [] as string[] }]));
   for (const key of keys) {
     const c = clusterOf(key);
-    const found = clusters.get(c.key);
+    const found = clusters.get(c.key) ?? tails.get(c.key);
     if (found) found.tabs.push(key);
     else clusters.set(c.key, { ...c, tabs: [key] });
   }
   const keep = new Set(order.filter((o) => o.keepEmpty).map((o) => o.cluster.key));
-  const list = [...clusters.values()].filter((c) => c.tabs.length > 0 || keep.has(c.key));
+  const list = [...clusters.values(), ...tails.values()].filter((c) => c.tabs.length > 0 || keep.has(c.key));
   return [...list.filter((c) => c.key !== OTHER_CLUSTER.key), ...list.filter((c) => c.key === OTHER_CLUSTER.key)];
 }
 
@@ -77,4 +82,21 @@ export function clusterHue(key: string): number | null {
   let hash = 0;
   for (const ch of key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   return PROJECT_HUES[hash % PROJECT_HUES.length];
+}
+
+/** 初めは畳んでおくまとまり（アーカイブ済み。サイドバーの「アーカイブ済み」も初めは閉じている） */
+const foldedByDefault = (key: string) => key.endsWith(":archived");
+
+/**
+ * まとまりを畳んでいるか。stored は kickoff:panel-tab-clusters-collapsed の値（畳んだまとまりのキー）。
+ * 初めは畳んでおくまとまりだけは逆に、開いたときに `open:<キー>` を覚える（覚えていなければ畳む）
+ */
+export function isClusterCollapsed(key: string, stored: readonly string[]): boolean {
+  return foldedByDefault(key) ? !stored.includes(`open:${key}`) : stored.includes(key);
+}
+
+/** まとまりを畳む ⇄ 開くに切り替えたあとの stored */
+export function toggleClusterCollapsed(key: string, stored: readonly string[]): string[] {
+  const mark = foldedByDefault(key) ? `open:${key}` : key;
+  return stored.includes(mark) ? stored.filter((k) => k !== mark) : [...stored, mark];
 }

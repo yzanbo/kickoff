@@ -18,6 +18,7 @@ import { useTabDrag } from "./useTabDrag";
 import type { SidePanelController, TerminalTarget } from "./useSidePanel";
 import { useBoardHeaderLayoutMenu } from "../board/useBoardHeaderLayoutMenu";
 import { useOpenWithMenu } from "./useOpenWithMenu";
+import { TabArchiveToggle } from "./TabArchiveToggle";
 import { TabGroupingButton } from "./TabGroupingButton";
 
 /**
@@ -93,10 +94,13 @@ export function SidePanel({
   // パネルの閉じる・タブのまとめ方・横幅いっぱい（閉じる・横幅いっぱいはボードの右のパネルだけ。チャット欄は右上のレイアウトの開閉（LayoutToggles）で閉じるので、重ねて置かない）
   // タブの列の何もないところの右クリックで、ボードの見出しの置き方を選ぶ（横幅いっぱいか、ボードの上だけにしてパネルを上まで伸ばすか。チャット欄では関係しないので出さない）
   const layoutMenu = useBoardHeaderLayoutMenu();
-  // タブのまとめ方（まとめない・グループ別・作業場所別）は、パネルを閉じるボタンのすぐ右（チャット欄は閉じるボタンがないので、これだけ）
+  // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
+  const mountedTabs = useRef(new Set<string>());
+  // タブのまとめ方（まとめない・グループ別・作業場所別）とアーカイブ済みを出すか（サイドバーと共通）は、パネルを閉じるボタンのすぐ右（チャット欄は閉じるボタンがないので、この 2 つだけ）
   const controls = sidebar ? (
     <div className="panel-controls">
       <TabGroupingButton />
+      <TabArchiveToggle />
     </div>
   ) : (
     <div className="panel-controls">
@@ -105,6 +109,7 @@ export function SidePanel({
         <PanelRightClose size={15} />
       </button>
       <TabGroupingButton />
+      <TabArchiveToggle />
       {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。狭くてボードを覆っているときは、切り替えても見た目が変わらないので出さない */}
       {!panel.covering && (
         <button
@@ -200,10 +205,15 @@ export function SidePanel({
             onClose={terminalMenu.close}
           />
         )}
-        {/* タブを切り替えても入力中の文章やスクロール位置が残るよう、開いているタブはすべて保持する */}
+        {/*
+          タブを切り替えても入力中の文章やスクロール位置が残るよう、一度表示したタブは保持する。
+          チャットのタブはサイドバーと連動して自動で増えるので、中身は初めて表示したときに作る（見ていないチャットまで読み込まない）
+        */}
         {tabs.map((t) => {
           const pane = leaves.find((p) => p.tabs.includes(t.key)) ?? leaves[0];
           const rect = rectOf.get(pane.id);
+          if (pane.active === t.key) mountedTabs.current.add(t.key);
+          else if (t.kind === "chat" && !mountedTabs.current.has(t.key)) return null;
           return (
             <PanelTabPage
               key={t.key}

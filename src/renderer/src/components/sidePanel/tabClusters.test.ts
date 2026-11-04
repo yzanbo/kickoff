@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { OTHER_CLUSTER, clusterHue, clusterTabs, paneIndexOf, visibleClusterTabs } from "./tabClusters.js";
+import { OTHER_CLUSTER, clusterHue, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs } from "./tabClusters.js";
 
 test("タブのまとめ方: 初めて出てくる順にまとめ、その他はいちばん後ろ。まとまりの中はペインの並びのまま", () => {
   const of: Record<string, string> = { a: "g1", b: "other", c: "g2", d: "g1", e: "g2" };
@@ -61,4 +61,32 @@ test("タブのまとめ方: 畳んだまとまりは、ペインで表示中の
   // 表示中のタブがほかのまとまりにあれば、すべて隠す
   assert.deepEqual(visibleClusterTabs(cluster, true, "x"), []);
   assert.deepEqual(visibleClusterTabs(cluster, true, null), []);
+});
+
+test("タブのまとめ方: tail のまとまり（アーカイブ済み）は、ほかのまとまりのあと・その他の前に置く", () => {
+  const of: Record<string, string> = { a: "archived", b: "other", c: "w1", d: "pinned" };
+  const order = [
+    { cluster: { key: "pinned", label: "固定" }, keepEmpty: false },
+    { cluster: { key: "archived", label: "アーカイブ済み" }, keepEmpty: false, tail: true },
+  ];
+  const clusters = clusterTabs(["a", "b", "c", "d"], (k) => (of[k] === "other" ? OTHER_CLUSTER : { key: of[k], label: of[k] }), order);
+  assert.deepEqual(
+    clusters.map((c) => c.key),
+    ["pinned", "w1", "archived", "other"],
+  );
+  // タブのない tail のまとまりは出さない
+  assert.deepEqual(
+    clusterTabs(["c"], (k) => ({ key: of[k], label: of[k] }), order).map((c) => c.key),
+    ["w1"],
+  );
+});
+
+test("タブのまとまりの畳み: アーカイブ済みは初めは畳み、開いたら open: で覚える。ほかは畳んだときだけ覚える", () => {
+  assert.equal(isClusterCollapsed("p1:archived", []), true);
+  assert.equal(isClusterCollapsed("p1:g2", []), false);
+  const opened = toggleClusterCollapsed("p1:archived", []);
+  assert.deepEqual(opened, ["open:p1:archived"]);
+  assert.equal(isClusterCollapsed("p1:archived", opened), false);
+  assert.deepEqual(toggleClusterCollapsed("p1:archived", opened), []);
+  assert.deepEqual(toggleClusterCollapsed("p1:g2", []), ["p1:g2"]);
 });
