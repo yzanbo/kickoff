@@ -10,6 +10,7 @@ import {
   isTabVisible,
   leavesOf,
   moveTab,
+  nextActiveTab,
   normalize,
   paneOfTab,
   placeTab,
@@ -243,4 +244,20 @@ test("returnToHome: 一覧のペインの後ろへ戻す（一覧の表示中の
   // 一覧のペインのタブ・知らないタブでは何もしない
   assert.equal(returnToHome(r, "b"), r);
   assert.equal(returnToHome(r, "zzz"), r);
+});
+
+test("nextActiveTab: 表示中のタブを閉じたら、同じ位置に来たタブ（最後なら 1 つ前）", () => {
+  const tabs = ["a", "b", "c"];
+  assert.equal(nextActiveTab(tabs, "b", "b"), "c");
+  assert.equal(nextActiveTab(tabs, "c", "c"), "b");
+  assert.equal(nextActiveTab(tabs, "a", "a"), "b");
+});
+
+test("nextActiveTab: ほかのタブを閉じたなら表示中のまま。最後の 1 つを閉じたら null", () => {
+  const tabs = ["a", "b", "c"];
+  assert.equal(nextActiveTab(tabs, "a", "c"), "c");
+  assert.equal(nextActiveTab(tabs, "b", null), null);
+  assert.equal(nextActiveTab(["a"], "a", "a"), null);
+  // 一覧にないキーでも落ちない
+  assert.equal(nextActiveTab(tabs, "zzz", "zzz"), null);
 });

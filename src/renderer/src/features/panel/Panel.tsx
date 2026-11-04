@@ -19,6 +19,7 @@ import { useBoardHeaderLayoutMenu } from "@/features/board/useBoardHeaderLayoutM
 import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
 import { shownActiveOf } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "./surfaces";
+import { specOf } from "@/features/panel/tabs/tabKinds";
 
 /**
  * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは SURFACES と、殻が渡す frame）。
@@ -55,9 +56,9 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const chatTarget = (pane: PaneLeaf): TerminalTarget | undefined => {
     const tab = tabs.find((t) => t.key === shown(pane));
     if (tab?.kind !== "chat") return undefined;
-    const chat = panel.chats.find((r) => r.id === tab.id);
+    const chat = panel.chatOf(tab);
     if (chat?.worktree_path) return { cwd: chat.worktree_path, label: baseName(chat.worktree_path), projectId: chat.project_id };
-    return terminals.find((t) => t.projectId === tab.projectId);
+    return terminals.find((t) => t.projectId === (chat?.project_id ?? tab.projectId));
   };
   /** ターミナルを開く（押したペインに入れる）: チャットを表示していればその作業場所、開く場所が 1 つならそこ、いくつもあれば選ぶメニュー */
   const openTerminal = (e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => {
@@ -167,7 +168,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
           const rect = rectOf.get(pane.id);
           const active = shown(pane) === t.key;
           if (active) mountedTabs.current.add(t.key);
-          else if (t.kind === "chat" && !mountedTabs.current.has(t.key)) return null;
+          else if (specOf(t).lazy && !mountedTabs.current.has(t.key)) return null;
           return (
             <PanelTabPage
               key={t.key}

@@ -3,14 +3,11 @@ import { readSetting, writeSetting } from "@/lib/storage";
 import { panelTabKinds } from "@/lib/storageKeys";
 import type { PaneLeaf } from "@/features/panel/layout/paneLayout";
 import { SURFACES, type PanelSurface } from "@/features/panel/surfaces";
-import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 
 /** 表示を切り替えるタブの種類（チャットには、新しいチャット・サブエージェントのタブも入る） */
 export type PanelKind = "chat" | "browser" | "terminal";
 export const PANEL_KINDS: readonly PanelKind[] = ["chat", "browser", "terminal"];
 export const PANEL_KIND_LABELS: Record<PanelKind, string> = { chat: "チャット", browser: "ブラウザ", terminal: "ターミナル" };
-
-export const kindOfTab = (t: PanelTab): PanelKind => (t.kind === "browser" ? "browser" : t.kind === "terminal" ? "terminal" : "chat");
 
 /** 保存した値を読む（知らない値は捨て、何もなければ欄の既定 SURFACES の defaultKinds） */
 export function decodeKinds(stored: readonly string[], surface: PanelSurface): readonly PanelKind[] {

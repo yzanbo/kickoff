@@ -8,7 +8,7 @@ import { emptyPanel, isLinkedTab, panelReducer, type PanelAction, type PanelRule
 const chat = (id: number) => ({ id, project_id: 1, title: `チャット${id}` }) as Chat;
 const chatTab = (id: number): Extract<PanelTab, { kind: "chat" }> => ({ key: `chat:${id}`, kind: "chat", id, projectId: 1, title: `チャット${id}` });
 const newTab = (key: string): PanelTab => ({ key, kind: "new", projectId: 1 });
-const terminal = (key: string): PanelTab => ({ key, kind: "terminal", cwd: "/tmp", label: "tmp" });
+const terminal = (key: string): PanelTab => ({ key, kind: "terminal", cwd: "/tmp", label: "tmp", projectId: 1 });
 
 /** 見せる種類（既定はすべて）と、最後のタブを閉じたら閉じるか */
 const rules = (closeWhenEmpty = true, shows: PanelRules["shows"] = () => true): PanelRules => ({ shows, closeWhenEmpty });

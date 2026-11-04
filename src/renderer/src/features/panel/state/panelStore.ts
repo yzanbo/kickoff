@@ -2,9 +2,10 @@ import { useEffect, useSyncExternalStore } from "react";
 import { subscribeServerEvent } from "@/api/events";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
+import { kindOfTab, specOf } from "@/features/panel/tabs/tabKinds";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { readSavedDrafts, writeDrafts } from "./draftPersistence";
-import { kindOfTab, readKinds } from "./panelKinds";
+import { readKinds } from "./panelKinds";
 import { emptyPanel, panelReducer, type PanelAction, type PanelRules, type PanelState } from "./panelState";
 
 /**
@@ -54,10 +55,8 @@ function rulesOf(key: string): PanelRules {
   return { shows: (t) => kinds.includes(kindOfTab(t)), closeWhenEmpty: SURFACES[at.surface].closeWhenEmpty };
 }
 
-/** 閉じたタブの後始末（ターミナルはシェルも止める。ブラウザの開発者ツールは、webview がなくなるときに BrowserPane が閉じる） */
-function dispose(tab: PanelTab) {
-  if (tab.kind === "terminal") void globalThis.window?.kickoff?.terminal.close(tab.key);
-}
+/** 閉じたタブの後始末（種類の表の dispose。ターミナルはシェルも止める） */
+const dispose = (tab: PanelTab) => specOf(tab).dispose?.(tab);
 
 /**
  * 欄の状態を変える（panelReducer）。閉じたタブの後始末をし、下書きのタブ・開いているか（覚える欄だけ）を保存して、読んでいる部品に知らせる。
@@ -115,7 +114,7 @@ export const isPanelMounted = (key: string) => mounted.has(key);
 subscribeServerEvent((e) => {
   if (e.type !== "chat_deleted") return;
   for (const [key, state] of [...states]) {
-    const gone = state.tabs.filter((t) => (t.kind === "chat" && t.id === e.id) || (t.kind === "subagent" && t.chatId === e.id));
+    const gone = state.tabs.filter((t) => specOf(t).chatIdOf?.(t) === e.id);
     if (gone.length > 0) dispatchPanel(key, { type: "close", keys: gone.map((t) => t.key), dismiss: false });
   }
 });
