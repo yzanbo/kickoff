@@ -7,18 +7,18 @@ import { adoptDatabase, prepareStorage } from "./prepareStorage";
 
 const { local, session } = installMemoryStorage();
 
-/** ID を含むもの（グループの開閉・下書き・書きかけの文・最後に開いた画面）と、含まないもの（テーマ・送り方）を覚えておく */
+/** ID を含むもの（まとまりの開閉・下書き・書きかけの文・最後に開いた画面）と、含まないもの（テーマ・送り方）を覚えておく */
 function rememberSome() {
-  local.setItem("kickoff:group-closed:3", "1");
+  local.setItem("kickoff:fold:sidebar:p1/g3", "0");
   local.setItem("kickoff:new-chat-drafts", JSON.stringify({ "kanban:1": [{ key: "new:a", kind: "new", projectId: 1 }] }));
   local.setItem("kickoff:chat-draft:7", "書きかけ");
-  local.setItem("kickoff:panel-tab-clusters-collapsed", JSON.stringify(["p1:g2"]));
+  local.setItem("kickoff:fold:panel:p1/g2", "0");
   session.setItem("kickoff:last-hash-by-project", JSON.stringify({ 1: "#/projects/1" }));
   local.setItem("kickoff:theme", "light");
   local.setItem("kickoff:queue-mode", "queue");
 }
 
-const ID_KEYS = ["kickoff:group-closed:3", "kickoff:new-chat-drafts", "kickoff:chat-draft:7", "kickoff:panel-tab-clusters-collapsed"];
+const ID_KEYS = ["kickoff:fold:sidebar:p1/g3", "kickoff:new-chat-drafts", "kickoff:chat-draft:7", "kickoff:fold:panel:p1/g2"];
 
 /** /api/status の答え（ms だけ遅らせる。null ならつながらない） */
 function serveStatus(databaseId: string | null, ms = 0) {

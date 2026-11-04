@@ -73,8 +73,8 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   // グループごとのまとまり（自分で作ったグループ → グループなし。チャットのないグループも出す）。段に分けるときは、その中を状態の列に分ける
   // （列・段には、そのグループで始める下書きも入る）
   const buckets = useChatBuckets(board.shown, { by: ["group", "status"], project: projectId, drafts: boardDrafts(panel), keepEmpty: true });
-  /** アーカイブ済み・段の開閉を覚える名前（ボードごと） */
-  const foldScope = `groups:${projectId}`;
+  /** アーカイブ済み・段の開閉を覚える場所（ボードごと） */
+  const foldPlace = `board:groups:${projectId}`;
 
   const header = (
     <BoardHeader
@@ -118,17 +118,17 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
         // 段（グループ）へカードをドラッグすると、そのグループへ移す
         <BoardLanes
           lanes={buckets}
-          boardKey={foldScope}
+          foldPlace={foldPlace}
           laneProps={(lane) => {
             const groupId = lane.group?.id ?? null;
             return { ...dropProps(groupId), className: cx(over === (groupId ?? "none") && "drop-target") };
           }}
         >
-          {(lane) => <StateColumns columns={lane.children ?? []} drafts={lane.drafts} foldScope={foldScope} render={cards.card} />}
+          {(lane) => <StateColumns columns={lane.children ?? []} drafts={lane.drafts} foldPlace={foldPlace} render={cards.card} />}
         </BoardLanes>
       ) : view === "board" ? (
         <div className="board-columns">
-          <GroupSections projectId={projectId} buckets={buckets} board={board} panel={panel} render={cards.card} foldScope={foldScope} highlight={highlight} />
+          <GroupSections projectId={projectId} buckets={buckets} board={board} panel={panel} render={cards.card} foldPlace={foldPlace} highlight={highlight} />
           <section className="board-column group-add-column">
             <GroupCreateForm board={board} />
           </section>
@@ -141,7 +141,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
             board={board}
             panel={panel}
             render={cards.row}
-            foldScope={foldScope}
+            foldPlace={foldPlace}
             highlight={highlight}
             list
             beforeUngrouped={

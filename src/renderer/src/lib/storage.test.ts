@@ -10,6 +10,7 @@ import {
   forgetIdSettings,
   list,
   number,
+  optionalFlag,
   pruneUndeclared,
   readSetting,
   record,
@@ -37,6 +38,20 @@ const HASHES = defineSetting("kickoff:t-hashes", record((v): v is string => type
 const CURRENT = defineSetting("kickoff:t-current", number(0), { ids: true });
 const groupClosed = defineSettingFamily("kickoff:t-group-closed:", flag(), { ids: true });
 const surfaceMode = defineSettingFamily("kickoff:t-surface:", choice(["none", "group"], "none"));
+const folds = defineSettingFamily("kickoff:t-fold:", optionalFlag());
+
+test("値の形: optionalFlag は \"1\" / \"0\" と、まだ決めていない（undefined。書くとキーごと消す）", () => {
+  assert.equal(readSetting(folds("a")), undefined);
+  writeSetting(folds("a"), false);
+  assert.equal(local.getItem("kickoff:t-fold:a"), "0");
+  assert.equal(readSetting(folds("a")), false);
+  writeSetting(folds("a"), true);
+  assert.equal(local.getItem("kickoff:t-fold:a"), "1");
+  local.setItem("kickoff:t-fold:b", "open");
+  assert.equal(readSetting(folds("b")), undefined);
+  writeSetting(folds("a"), undefined);
+  assert.equal(local.getItem("kickoff:t-fold:a"), null);
+});
 
 test("値の形: 未保存・読めない値は初めの値。保存する文字はキー名と同じく、今までの形のまま（\"1\" / \"0\"、\"open\" / \"closed\" など）", () => {
   assert.equal(readSetting(OPEN), true);

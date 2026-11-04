@@ -21,7 +21,7 @@ export function GroupSections({
   board,
   panel,
   render,
-  foldScope,
+  foldPlace,
   highlight,
   list = false,
   beforeUngrouped,
@@ -32,8 +32,8 @@ export function GroupSections({
   panel: PanelController;
   /** カード（ボード）・行（リスト）の描き方 */
   render: (chat: Chat) => ReactNode;
-  /** アーカイブ済みのまとまりの開閉を覚える名前（ボードごと） */
-  foldScope: string;
+  /** アーカイブ済みのまとまりの開閉を覚える場所（ボード） */
+  foldPlace: string;
   /** 目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlight?: number;
   list?: boolean;
@@ -53,7 +53,7 @@ export function GroupSections({
         <DraftCards drafts={bucket.drafts} />
         {members.length === 0 && <p className="column-empty">{g ? "チャットをここへドラッグ" : "なし"}</p>}
         {members.map(render)}
-        <ArchivedFold foldKey={`${foldScope}:${bucket.key}/archived`} count={archived.length}>
+        <ArchivedFold place={foldPlace} foldKey={`${bucket.key}/archived`} count={archived.length}>
           {archived.map(render)}
         </ArchivedFold>
       </>

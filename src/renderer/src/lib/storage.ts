@@ -58,6 +58,11 @@ export function flag(initial = false, [on, off]: readonly [on: string, off: stri
   return { initial, decode: (raw) => (raw === on ? true : raw === off ? false : undefined), encode: (value) => (value ? on : off) };
 }
 
+/** オン・オフか、まだ決めていないか（"1" / "0"。未保存は undefined = 使う側の初めの値。undefined を書くとキーごと消す） */
+export function optionalFlag(): Shape<boolean | undefined> {
+  return { initial: undefined, decode: (raw) => (raw === "1" ? true : raw === "0" ? false : undefined), encode: (value) => (value === undefined ? null : value ? "1" : "0") };
+}
+
 /** 決まった文字列のどれか（知らない値は初めの値） */
 export function choice<const T extends string>(choices: readonly T[], initial: NoInfer<T>): ChoiceShape<T> {
   return { initial, choices, decode: (raw) => (choices.includes(raw as T) ? (raw as T) : undefined), encode: (value) => value };

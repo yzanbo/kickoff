@@ -3,13 +3,10 @@ import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import { COLUMN_TONE } from "@/features/chat/tones";
-import { useSetting } from "@/hooks/useSetting";
+import { useFold } from "@/hooks/useFold";
 import { cx } from "@/lib/cx";
 import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
-import { Collapse } from "@/ui/Collapse";
-import { GroupToggle } from "@/ui/GroupToggle";
-import { sidebarSectionClosed } from "@/lib/storageKeys";
-import { useFoldAll } from "@/features/chatList/chatListFlags";
+import { FoldSection } from "@/ui/FoldHead";
 
 /** まとまりの見出しの印（状態 = 列の色の点 / 作業場所 = ブランチ。ワークツリーは色付き、フォルダなし・以前のブランチは薄く） */
 function BucketMark({ bucket }: { bucket: ChatBucket }) {
@@ -24,32 +21,25 @@ function BucketMark({ bucket }: { bucket: ChatBucket }) {
  * 中の段があれば（作業場所の中を状態別に分けるとき）、その見出しのまとまりを並べる。開閉はまとまりのキーで覚え、forceOpen（検索中）は開いて見せる
  */
 function Section({ bucket, renderRow, forceOpen }: { bucket: ChatBucket; renderRow: (chat: Chat) => ReactNode; forceOpen: boolean }) {
-  const [closed, setClosed] = useSetting(sidebarSectionClosed(bucket.key));
-  const open = forceOpen || !closed;
-  const toggle = () => setClosed(!closed);
-  // 見出しの行の「すべて閉じる / 開く」
-  useFoldAll(setClosed);
+  // 開閉はまとまりのキーで覚える（見出しの行の「すべて閉じる / 開く」にも従う）
+  const fold = useFold("sidebar", bucket.key, { forceOpen });
+  const label = (
+    <>
+      <BucketMark bucket={bucket} />
+      <span className="status-group-label">{bucket.label}</span>
+      {bucket.place && <span className="status-group-extra">{WORKPLACE_KIND_LABELS[bucket.place.kind]}</span>}
+    </>
+  );
   return (
-    <div className="status-group">
-      <div className="status-group-head" title={bucket.title}>
-        <GroupToggle open={open} onToggle={toggle} />
-        <button className="status-group-name" aria-expanded={open} onClick={toggle}>
-          <BucketMark bucket={bucket} />
-          <span className="status-group-label">{bucket.label}</span>
-          {bucket.place && <span className="status-group-extra">{WORKPLACE_KIND_LABELS[bucket.place.kind]}</span>}
-          <span className="status-group-count">{bucket.chats.length}</span>
-        </button>
-      </div>
-      <Collapse open={open} indent>
-        {bucket.children ? (
-          <div className="custom-group-grouped">
-            <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={forceOpen} />
-          </div>
-        ) : (
-          <ul className="chat-rows">{bucket.chats.map(renderRow)}</ul>
-        )}
-      </Collapse>
-    </div>
+    <FoldSection look="section" title={bucket.title} open={fold.open} onToggle={fold.toggle} label={label} count={bucket.chats.length}>
+      {bucket.children ? (
+        <div className="custom-group-grouped">
+          <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={forceOpen} />
+        </div>
+      ) : (
+        <ul className="chat-rows">{bucket.chats.map(renderRow)}</ul>
+      )}
+    </FoldSection>
   );
 }
 
