@@ -1,6 +1,7 @@
 import { Group, Ungroup } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
+import { IconButton } from "@/ui/IconButton";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { TAB_GROUPING_LABELS, TAB_GROUPINGS } from "@/features/panel/clusters/tabClusters";
 import type { PanelSurface } from "@/features/panel/state/panelKinds";
@@ -16,17 +17,17 @@ export function TabGroupingButton({ surface }: { surface: PanelSurface }) {
   const label = `チャットのまとめ方: ${TAB_GROUPING_LABELS[grouping]}`;
   return (
     <>
-      <button
+      <IconButton
         type="button"
+        icon={grouping === "none" ? Ungroup : Group}
+        size={15}
         className={cx("panel-control panel-tab-grouping", grouping !== "none" && "on")}
+        label={label}
         title={`${label}（まとめない・グループ別・作業場所別から選ぶ）`}
-        aria-label={label}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
         onClick={menu.toggle}
-      >
-        {grouping === "none" ? <Ungroup size={15} /> : <Group size={15} />}
-      </button>
+      />
       {menu.menu && (
         <ChoiceMenu
           at={menu.menu.at}

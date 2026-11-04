@@ -89,8 +89,11 @@
   user-select: none;
 }
 
-/* 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置） */
-.titlebar-toggle {
+/*
+ * 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置）。IconButton なので、
+ * 後ろの .icon-button（buttons-forms.css）に勝つよう .icon-button と重ねて書く
+ */
+.icon-button.titlebar-toggle {
   /*
    * 信号機ボタン（1 つの枠 14×16px・丸は直径 12px・20px 間隔。左上 14px,14px から並ぶので
    * 中心の高さは約 22px、右端は約 68px）と同じ行・同じ高さ・同じくらいの大きさにする
@@ -116,9 +119,14 @@
   position: fixed;
 }
 
-.titlebar-toggle:hover {
+.icon-button.titlebar-toggle:hover {
   color: var(--text);
   background: var(--bg-elev);
+}
+
+/* 信号機ボタンに合わせて線を少し細くする */
+.icon-button.titlebar-toggle svg {
+  stroke-width: 1.75;
 }
 
 /*

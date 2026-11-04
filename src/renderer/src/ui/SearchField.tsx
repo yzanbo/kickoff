@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-react";
 import type { KeyboardEvent, ReactNode } from "react";
 import { cx } from "@/lib/cx";
+import { IconButton } from "./IconButton";
 
 /** チャットを名前で絞り込む検索欄（消すボタン付き）。検索語があるときの Esc は、パネルを閉じる Esc より先に検索語を消す */
 export function SearchField({
@@ -43,9 +44,7 @@ export function SearchField({
         }}
       />
       {value && (
-        <button className="chat-search-clear" aria-label="検索を解除" onClick={() => onChange("")}>
-          <X size={12} />
-        </button>
+        <IconButton icon={X} size={12} className="chat-search-clear" label="検索を解除" keys="Esc" onClick={() => onChange("")} />
       )}
       {children}
     </div>

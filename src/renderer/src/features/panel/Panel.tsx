@@ -21,6 +21,7 @@ import { TabArchiveToggle } from "@/features/panel/tabs/TabArchiveToggle";
 import { TabGroupingButton } from "@/features/panel/tabs/TabGroupingButton";
 import { TabKindsButton } from "@/features/panel/tabs/TabKindsButton";
 import { shownActiveOf } from "@/features/panel/state/panelKinds";
+import { IconButton } from "@/ui/IconButton";
 
 /**
  * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
@@ -118,25 +119,23 @@ export function Panel({
   ) : (
     <div className="panel-controls">
       {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-      <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
-        <PanelRightClose size={15} />
-      </button>
+      <IconButton icon={PanelRightClose} size={15} className="panel-control" label="パネルを閉じる" keys="Esc" onClick={close} />
       <TabKindsButton panel={panel} />
       {/* まとめ方・アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
       {panel.kinds.has("chat") && <TabGroupingButton surface={panel.surface} />}
       {panel.kinds.has("chat") && <TabArchiveToggle />}
       {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
           ボードが残る幅まで縮める。サイドバー・チャット欄を開いて狭くなっても隠さない） */}
-      <button
+      <IconButton
+        icon={panelFull ? FoldHorizontal : UnfoldHorizontal}
+        size={15}
         className="panel-control"
-        title={panelFull ? (panel.canRestoreWidth ? "元の幅に戻す" : "画面が狭いため、元の幅に戻せません") : "横幅いっぱいに広げる"}
-        aria-label={panelFull ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+        label={panelFull ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+        title={panelFull ? (panel.canRestoreWidth ? "元の幅に戻す" : "元の幅に戻す（画面が狭いため、元の幅に戻せません）") : "横幅いっぱいに広げる"}
         aria-pressed={panelFull}
         disabled={panelFull && !panel.canRestoreWidth}
         onClick={panel.toggleMaximized}
-      >
-        {panelFull ? <FoldHorizontal size={15} /> : <UnfoldHorizontal size={15} />}
-      </button>
+      />
     </div>
   );
   /** ペインのタブの列（パネルの閉じる・横幅いっぱいは、左上のペインにだけ置く） */

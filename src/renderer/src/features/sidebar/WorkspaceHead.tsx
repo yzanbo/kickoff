@@ -1,10 +1,9 @@
-import { ArchiveRestore, Pin, Plus } from "lucide-react";
+import { ArchiveRestore, ChevronDown, ChevronRight, Pin, Plus } from "lucide-react";
 import type { DragEvent } from "react";
 import type { Project, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { changeProject, confirmRestoreProject } from "@/features/project/projectOrder";
 import { href, navigate, openNewChat } from "@/app/router";
-import { Chevron } from "@/ui/Chevron";
 import { ProjectMark } from "@/features/project/ProjectMark";
 import { GroupPickMenu } from "@/features/group/GroupPickMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -83,15 +82,15 @@ export function WorkspaceHead({
         {...headDrag}
       >
         {/* 開閉の矢印（ほかの開閉の矢印と同じ灰色。押すと、選んでいてもいなくても開閉だけする） */}
-        <button
+        <IconButton
+          icon={collapsed ? ChevronRight : ChevronDown}
+          size={15}
           className="workspace-toggle"
           aria-expanded={!collapsed}
-          aria-label={collapsed ? `${project.name} のチャット一覧を開く` : `${project.name} のチャット一覧を閉じる`}
+          label={collapsed ? `${project.name} のチャット一覧を開く` : `${project.name} のチャット一覧を閉じる`}
           title={collapsed ? "チャット一覧を開く" : "チャット一覧を閉じる"}
           onClick={onToggleCollapsed}
-        >
-          <Chevron open={!collapsed} size={15} />
-        </button>
+        />
         <a
           className="workspace-title"
           href={href({ name: "project", id: project.id, tab: "board" })}

@@ -9,6 +9,7 @@ import { useAppSettings } from "@/stores/settings";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { OptionMenu } from "@/ui/OptionMenu";
+import { IconButton } from "@/ui/IconButton";
 
 /**
  * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
@@ -177,22 +178,21 @@ export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; d
         ]}
         onChange={setPermission}
       />
-      <button
+      <IconButton
         type="button"
+        icon={Zap}
+        size={15}
         className={`fast-toggle ${fastMode ? "on" : ""}`}
         aria-pressed={fastMode}
-        aria-label="ファストモード"
-        disabled={disabled || !fastSupported}
-        data-tip-title={`ファストモード${!fastSupported ? "" : fastMode ? ": オン" : ": オフ"}`}
-        data-tip={
+        label="ファストモード"
+        title={
           !fastSupported
-            ? "このモデルは対応していません。対応しているモデルを選ぶと使えます"
-            : `応答が速くなる代わりに、追加の使用枠から消費します。押すと${fastMode ? "オフ" : "オン"}にします`
+            ? "ファストモード（このモデルは対応していません。対応しているモデルを選ぶと使えます）"
+            : `ファストモード: ${fastMode ? "オン" : "オフ"}（応答が速くなる代わりに、追加の使用枠から消費します。押すと${fastMode ? "オフ" : "オン"}にします）`
         }
+        disabled={disabled || !fastSupported}
         onClick={() => setFastMode(!fastMode)}
-      >
-        <Zap size={15} fill={fastMode ? "currentColor" : "none"} />
-      </button>
+      />
     </div>
   );
 }

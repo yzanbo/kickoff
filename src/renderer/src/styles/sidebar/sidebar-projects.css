@@ -85,8 +85,8 @@
   text-overflow: ellipsis;
 }
 
-/* プロジェクトの開閉の矢印（ほかの開閉の矢印と同じ灰色。カードを押しても開閉するので、ボタンらしい背景は付けない） */
-.workspace-toggle {
+/* プロジェクトの開閉の矢印（ほかの開閉の矢印と同じ灰色。カードを押しても開閉するので、ボタンらしい背景は付けない。後ろの .icon-button に勝つよう重ねて書く） */
+.icon-button.workspace-toggle {
   display: grid;
   flex: none;
   place-items: center;
@@ -99,9 +99,10 @@
   cursor: pointer;
 }
 
-.workspace-toggle:hover,
-.workspace-toggle:focus-visible {
+.icon-button.workspace-toggle:hover,
+.icon-button.workspace-toggle:focus-visible {
   color: var(--text);
+  background: transparent;
 }
 
 .workspace-name {
