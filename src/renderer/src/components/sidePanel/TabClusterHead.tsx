@@ -7,7 +7,7 @@ import { confirmDeleteGroup } from "../../groups";
 import { reportFailure } from "../../runActions";
 import { MenuItem, PopupMenu, clampToViewport } from "../PopupMenu";
 import { cx } from "../../cx";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { useDismiss } from "../../hooks/useDismiss";
 import { stateCounts } from "../../runState";
 import { StateCornerCounts, stateCountsSummary } from "../StateCornerCounts";
@@ -28,7 +28,9 @@ const EDGE = 8;
  * このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
  * 自分で作ったグループの札はつかんで並べ替えられる（dragProps。サイドバーのグループの並びも同じに変わる）。
  * 札は左右 2 つに区切った 1 つの丸い札: 左 = 名前（押すと一覧）、右 = タブを畳む・開く（onToggleCollapsed。ブラウザのタブのグループを畳むのと同じ。右クリックにも同じ項目）。
- * 右側は、開いているときは「‹」（札へ畳む向き）、畳んでいるときは「+3」（隠れているタブの数 hidden。表示中のタブだけ残していて隠れたものがなければ「›」）。
+ * 右側は、開いているときは「‹」（札へ畳む向き）、畳んでいるときは「3」（まとまりのタブの数 tabCount。表示中のタブを残しているかに関係なく同じ形。
+ * 以前は「+3」（隠れているタブの数）と、隠れたものがないときの「›」を使い分けていたが、選んでいるかで形が変わり、
+ * 「+」は表示中のタブを残しているときに「ほかにもある」と読めて合わなかった）。
  * 以前は札の外に「› 3 / ⌄ 3」（矢印とチャットの数）を置いていて、横に並ぶ列では向きが開閉に結びつかず、角の状態ごとの数とも数字が並んで分かりにくかった。
  * count はサイドバーの見出しと同じ数え方のチャットの数（表示だけ消したタブ・下書きは数えない。札の説明に出す）
  */
@@ -43,7 +45,7 @@ export function TabClusterHead({
   onToggleCollapsed,
   dragProps,
   count = cluster.tabs.length,
-  hidden = 0,
+  tabCount = cluster.tabs.length,
 }: {
   cluster: TabCluster;
   runs: Run[] | undefined;
@@ -59,8 +61,8 @@ export function TabClusterHead({
   dragProps?: { draggable: boolean; onDragStart: (e: React.DragEvent) => void; onDragEnd: () => void };
   /** 札の説明に出す数（サイドバーの見出しと同じ、まとまりのチャットの数） */
   count?: number;
-  /** 畳んで隠れているタブの数（畳んだときに札の右側に「+n」で出す） */
-  hidden?: number;
+  /** まとまりのタブの数（畳んだときに札の右側に出す。表示中のタブも数える） */
+  tabCount?: number;
 }) {
   const { stateOf, pending } = useRunStates();
   const [at, setAt] = useState<CSSProperties | null>(null);
@@ -119,11 +121,11 @@ export function TabClusterHead({
             type="button"
             className="panel-tab-cluster-fold"
             aria-expanded={!collapsed}
-            aria-label={collapsed ? `タブを表示する（${hidden} 個を隠しています）` : "タブを畳む"}
-            title={collapsed ? `タブを表示する（${hidden} 個を隠しています）` : "タブを畳む（表示中のタブは残す）"}
+            aria-label={collapsed ? `タブを表示する（${tabCount} 個のタブを畳んでいます）` : "タブを畳む"}
+            title={collapsed ? `タブを表示する（${tabCount} 個のタブを畳んでいます）` : "タブを畳む（表示中のタブは残す）"}
             onClick={onToggleCollapsed}
           >
-            {!collapsed ? <ChevronLeft size={12} aria-hidden /> : hidden > 0 ? `+${hidden}` : <ChevronRight size={12} aria-hidden />}
+            {collapsed ? tabCount : <ChevronLeft size={12} aria-hidden />}
           </button>
         )}
         {counts && <StateCornerCounts counts={counts} />}
