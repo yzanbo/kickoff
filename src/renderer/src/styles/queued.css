@@ -3,11 +3,24 @@
   position: relative;
   /* 狭い欄では ↑↓ とボタンの文字を隠す（末尾の @container） */
   container: queued / inline-size;
-  margin-bottom: 6px;
-  padding: 3px 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  /* 入力欄とつなげて 1 枚の枠に見せる: 枠は入力欄と同じ色・角で、下の辺は入力欄の上の辺（区切り線）に任せる */
+  padding: 4px 8px 3px;
+  border: 1px solid var(--border-strong);
+  border-bottom: none;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   background: var(--bg-elev);
+}
+
+.queued-messages:has(+ .composer.compact) {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* つなげた入力欄: 上の角を落とし、上の辺は薄い区切り線にする（ピントがあっても区切り線のまま） */
+.queued-messages + .composer,
+.queued-messages + .composer:focus-within {
+  border-top-color: var(--border);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .queued-messages .icon-button {

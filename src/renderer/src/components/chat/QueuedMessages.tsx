@@ -8,6 +8,7 @@ import { QueuedRow } from "./QueuedRow";
 import { QueuedStopLine } from "./QueuedStopLine";
 import { useQueueDrag } from "./useQueueDrag";
 import { useAskInNewChat } from "./askInNewChat";
+import { nextQueuedText, queuedHint } from "./queuedHint";
 import type { NewChatTarget } from "../sidePanel/useSidePanel";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { cx } from "../../cx";
@@ -30,7 +31,8 @@ const MIN_LIST_HEIGHT = 36;
  * 行の右クリックの「この指示のあとで止める」でも付けられる。
  * 見出しの「自動で送る / 止めておく」で、いまの作業が終わったときに先頭を自動で送るか、送らずに止めておくかを切り替える
  * （チャットごと。止めておくと、行の「すぐ送る」で 1 件ずつ送れる。送り終えて列が空になったら、自動で送るに戻る）。
- * 見出しを押すとたたみ、「送信待ち n 件の追加があります」の 1 行だけにする（ためるほど縦に長くなるため。どのチャットでも同じに覚える）
+ * 初めは畳み、「送信待ち n 件・止める位置・次: 次に送る指示の初めの行」の 1 行だけにする（ためるほど流れが狭くなるため。見出しを押すと開き、どのチャットでも同じに覚える）。
+ * 入力欄のすぐ上に区切り線だけでつなげ、1 枚の枠に見せる（queued.css）
  */
 export function QueuedMessages({
   runId,
@@ -49,7 +51,7 @@ export function QueuedMessages({
   stops: number[];
   busy: boolean;
 }) {
-  const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY);
+  const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY, true);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
   const [expanded, setExpanded] = useStoredFlag(QUEUE_EXPANDED_KEY);
   const listRef = useRef<HTMLDivElement>(null);
@@ -155,27 +157,9 @@ export function QueuedMessages({
         onRemove={() => void api.setQueueStops(runId, stops.filter((x) => x !== k)).catch(failed)}
       />
     );
-  // 見出し: 件数と、短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）。
-  // 畳んでいても、どこで止まるか（「ここまで送ったら止めます」の印）が分かるよう、短い文で出す
-  const hint = paused
-    ? collapsed
-      ? "止めています"
-      : busy
-        ? "終わっても送らずに止めておきます"
-        : "止めています。行の「すぐ送る」で 1 件ずつ送れます"
-    : !busy
-      ? collapsed
-        ? "自動で送れませんでした"
-        : "自動で送れませんでした。行の「すぐ送る」で送れます"
-      : stopIndex === 0
-        ? collapsed
-          ? "次は送らずに止めます"
-          : "終わっても送らずに止めます（1 件目の上で止める印）"
-        : stopIndex > 0
-          ? collapsed
-            ? `あと ${stopIndex} 件送ったら止めます`
-            : `終わったら ${stopIndex} 件目まで順に送り、そのあとは止めます`
-          : "終わったら順に送ります";
+  const hint = queuedHint({ paused, busy, collapsed, stopIndex });
+  // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
+  const next = collapsed ? nextQueuedText(queue[0]) : "";
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
       {!collapsed && (
@@ -204,6 +188,7 @@ export function QueuedMessages({
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
           <span className="queued-count">送信待ち {queue.length} 件</span>
           {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && <span className="queued-hint">{hint}</span>}
+          {next && <span className="queued-next">次: {next}</span>}
         </button>
         {/* 溜まって中でスクロールするようになったら、すべて出す・縮めるを切り替えられる（一覧の見え方の操作なので、送る・消すの並びと分けて件数の隣に置く） */}
         {!collapsed && (overflowing || expanded) && (
