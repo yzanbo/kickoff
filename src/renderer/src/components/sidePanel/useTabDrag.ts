@@ -44,8 +44,11 @@ export function useTabDrag(panel: SidePanelController) {
       // dragstart の次の回に出す覆いより後に片付ける
       onDragEnd: () => setTimeout(reset, 0),
     }),
-    /** タブの列に付ける（落とすとそのペインの、その位置へ移す） */
-    barProps: (paneId: string) => ({
+    /**
+     * タブの列に付ける（落とすとそのペインの、その位置へ移す）。toPaneIndex: 見た目の並びの位置をペインの並びの位置に直す
+     * （タブをまとめて並べ替えて見せているとき。印の位置 insertAt は見た目の並びのまま）
+     */
+    barProps: (paneId: string, toPaneIndex: (index: number) => number = (i) => i) => ({
       onDragOver: (e: DragEvent<HTMLElement>) => {
         if (!accepts(e)) return;
         e.preventDefault();
@@ -63,7 +66,7 @@ export function useTabDrag(panel: SidePanelController) {
       onDrop: (e: DragEvent<HTMLElement>) => {
         if (!accepts(e) || !dragging) return;
         e.preventDefault();
-        panel.moveTab(dragging, paneId, insert?.paneId === paneId ? insert.index : undefined);
+        panel.moveTab(dragging, paneId, insert?.paneId === paneId ? toPaneIndex(insert.index) : undefined);
         reset();
       },
     }),

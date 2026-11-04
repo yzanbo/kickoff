@@ -1,5 +1,5 @@
 import { ChevronDown, Columns2, Globe, Rows2, SquarePen, SquareTerminal, X } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, type ReactNode } from "react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { PanelTab } from "./PanelTab";
@@ -15,6 +15,8 @@ import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import { useGroupNames } from "../../groupNames";
 import type { SidePanelController } from "./useSidePanel";
+import { clusterTabs, paneIndexOf } from "./tabClusters";
+import { useTabClusters, useTabGrouping } from "./useTabClusters";
 
 /** ▾ のメニューの種類 */
 export type OpenWithKind = "browser" | "terminal";
@@ -23,7 +25,9 @@ export type OpenWithKind = "browser" | "terminal";
  * 右のパネルの 1 つのペインのタブの列。左にパネルの閉じる・横幅いっぱい（controls。左上のペインだけ）、タブ、
  * タブのすぐ右に新しいタブ（チャット・ブラウザ・ターミナル）、右端に右・下に分ける・ペインを閉じる（分けているときだけ）。
  * タブが多いときはタブの並びの中だけを横にスクロールし、新しいタブのボタンはいつもタブのすぐ右に見せる。
- * 押すとこのペインにピントを移す（新しく開くタブはここに入る）
+ * 押すとこのペインにピントを移す（新しく開くタブはここに入る）。
+ * タブのまとめ方（useTabGrouping。グループ別・作業場所別）を選んでいるときは、まとまりごとに頭に名前を付けて並べる
+ * （ブラウザのタブのグループと同じ。まとまりの中はペインの並びのまま。ドラッグで落とす位置は見た目の並びからペインの並びに直す）
  */
 export function PaneTabBar({
   panel,
@@ -79,6 +83,52 @@ export function PaneTabBar({
   const groupName = useGroupNames(panel.tabs.flatMap((t) => (t.kind === "chat" ? [t.projectId] : [])));
   const chatRunOf = (t: { id: number; status?: Run["status"]; attention?: boolean }) =>
     panel.runs.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, attention: Boolean(t.attention) } as Run) : undefined);
+  // まとめ方を選んでいれば、まとまりごとに並べ替えて見せる（display は見た目の並び。タブの中身が残っているものだけ）
+  const [grouping] = useTabGrouping();
+  const clusterOf = useTabClusters(panel, grouping);
+  const known = pane.tabs.filter((key) => panel.tabs.some((t) => t.key === key));
+  const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf);
+  const display = clusters ? clusters.flatMap((c) => c.tabs) : known;
+  /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
+  const tab = (key: string, i: number) => {
+    const t = panel.tabs.find((x) => x.key === key);
+    if (!t) return null;
+    const { Icon, iconClass, label, group: newGroup } = tabLabel(t, panel.runs);
+    // チャットのタブの状態（未読・失敗のタブは名前も太字にする。サイドバーの行と同じ）
+    const chatRun = t.kind === "chat" ? chatRunOf(t) : undefined;
+    const chatState = chatRun && stateOf(chatRun);
+    const busyUnread = Boolean(chatRun && chatState && busyWithUnread(chatRun, chatState));
+    // どのグループのチャットか（ボードの一覧になければ、タブの中のチャットから届いたもの）
+    const group = t.kind === "chat" ? groupName(t.projectId, (panel.runs.find((r) => r.id === t.id) ?? t.run)?.group_id) : newGroup;
+    return (
+      <PanelTab
+        key={t.key}
+        active={pane.active === t.key}
+        icon={Icon}
+        iconClass={iconClass}
+        label={label}
+        // グループ別にまとめているときは、まとまりの頭にグループ名が出るので、タブには添えない（名前を省かずに見せる）
+        group={grouping === "group" ? undefined : group}
+        title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : group ? `${label}（グループ: ${group}）` : label}
+        className={cx(
+          insertAt === i && "split-insert-before",
+          insertAt === display.length && i === display.length - 1 && "split-insert-after",
+          drag.dragging === t.key && "split-dragging",
+          (chatState === "attention" || chatState === "failed" || busyUnread) && "unread",
+        )}
+        extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
+        onSelect={() => panel.showTab(t.key)}
+        lead={chatState && <StatusSlot state={chatState} unread={busyUnread} />}
+        // チャットのタブは、名前のダブルクリックでその場で名前を変える（見出しには名前を出さない）
+        onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Run) : undefined}
+        editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Run), t.title ?? "") : undefined}
+        // チャットのタブの ×: 表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）
+        onClose={() =>
+          t.kind === "chat" ? void closeChatWithChoice({ id: t.id, title: t.title ?? "" }, () => panel.closeTab(t.key)) : panel.closeTab(t.key)
+        }
+      />
+    );
+  };
   return (
     <div
       className={cx("panel-tabs", insertAt !== null && pane.tabs.length === 0 && "split-insert-bar")}
@@ -86,48 +136,22 @@ export function PaneTabBar({
       inert={inert}
       onPointerDown={() => panel.focusPane(pane.id)}
       onContextMenu={onBarMenu}
-      {...drag.barProps(pane.id)}
+      {...drag.barProps(pane.id, (i) => paneIndexOf(i, display, pane.tabs))}
     >
       {controls}
-      <div ref={stripRef} className="panel-tab-strip">
-      {pane.tabs.map((key, i) => {
-        const t = panel.tabs.find((x) => x.key === key);
-        if (!t) return null;
-        const { Icon, iconClass, label, group: newGroup } = tabLabel(t, panel.runs);
-        // チャットのタブの状態（未読・失敗のタブは名前も太字にする。サイドバーの行と同じ）
-        const chatRun = t.kind === "chat" ? chatRunOf(t) : undefined;
-        const chatState = chatRun && stateOf(chatRun);
-        const busyUnread = Boolean(chatRun && chatState && busyWithUnread(chatRun, chatState));
-        // どのグループのチャットか（ボードの一覧になければ、タブの中のチャットから届いたもの）
-        const group = t.kind === "chat" ? groupName(t.projectId, (panel.runs.find((r) => r.id === t.id) ?? t.run)?.group_id) : newGroup;
-        return (
-          <PanelTab
-            key={t.key}
-            active={pane.active === t.key}
-            icon={Icon}
-            iconClass={iconClass}
-            label={label}
-            group={group}
-            title={t.kind === "browser" ? t.url : t.kind === "terminal" ? t.cwd : group ? `${label}（グループ: ${group}）` : label}
-            className={cx(
-              insertAt === i && "split-insert-before",
-              insertAt === pane.tabs.length && i === pane.tabs.length - 1 && "split-insert-after",
-              drag.dragging === t.key && "split-dragging",
-              (chatState === "attention" || chatState === "failed" || busyUnread) && "unread",
-            )}
-            extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
-            onSelect={() => panel.showTab(t.key)}
-            lead={chatState && <StatusSlot state={chatState} unread={busyUnread} />}
-            // チャットのタブは、名前のダブルクリックでその場で名前を変える（見出しには名前を出さない）
-            onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Run) : undefined}
-            editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Run), t.title ?? "") : undefined}
-            // チャットのタブの ×: 表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）
-            onClose={() =>
-              t.kind === "chat" ? void closeChatWithChoice({ id: t.id, title: t.title ?? "" }, () => panel.closeTab(t.key)) : panel.closeTab(t.key)
-            }
-          />
-        );
-      })}
+      <div ref={stripRef} className={cx("panel-tab-strip", clusters && "grouped")}>
+      {clusters
+        ? clusters.map((c) => (
+            <Fragment key={c.key}>
+              {/* まとまりの頭の名前（グループ名・ブランチ）と、中のタブの数 */}
+              <span className="panel-tab-cluster" title={c.title}>
+                <span className="panel-tab-cluster-name">{c.label}</span>
+                <span className="panel-tab-cluster-count">{c.tabs.length}</span>
+              </span>
+              {c.tabs.map((key) => tab(key, display.indexOf(key)))}
+            </Fragment>
+          ))
+        : display.map(tab)}
       </div>
       {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右） */}
       <span className="panel-bar-buttons panel-tab-adds">
