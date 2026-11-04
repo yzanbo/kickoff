@@ -8,7 +8,7 @@ import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/app/projectsContext";
 import { tagLabel, useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
-import { useBoardChats } from "./useBoardChats";
+import { useChats } from "@/stores/chats";
 import { StateStats } from "@/features/project/page/StateStats";
 
 interface Props {
@@ -27,7 +27,7 @@ export function AllProjectsPage({ onNewProject }: Props) {
   const shown = all.filter(tagFilter.matches);
   const notReady = (!providers.loading && !claude?.logged_in) || (!github.loading && !github.data?.logged_in);
   // 状態ごとの数: すぐ下の全プロジェクトのカンバンと同じチャット（しまったプロジェクトの分は除く）を、プロジェクトの画面・サイドバーと同じ数え方で
-  const { chats } = useBoardChats(undefined, false, () => {});
+  const { chats } = useChats();
   const shownChats = chats.filter((r) => shown.some((p) => p.id === r.project_id));
 
   return (

@@ -1,33 +1,14 @@
-import { useEffect, useState } from "react";
 import type { Chat } from "@shared/types";
-import { api } from "@/api";
-import { useServerEvent } from "@/api/events";
-import { useActionError } from "@/hooks/useActionError";
+import { useChats } from "@/stores/chats";
 
 /**
  * 同じ作業場所（本体・同じワークツリー）で作業中の、ほかのチャットの数。
- * 同じフォルダで同時に作業すると、ファイルがぶつかることがあるので知らせるのに使う
+ * 同じフォルダで同時に作業すると、ファイルがぶつかることがあるので知らせるのに使う（一覧はチャットの店。取れなければ 0）
  */
 export function useBusyNeighbors(chat: Pick<Chat, "id" | "project_id" | "worktree_path">): number {
-  const [chats, setChats] = useState<Map<number, Pick<Chat, "id" | "status" | "worktree_path">>>(new Map());
-  // 取れなくても知らせを出さないだけなので、失敗は記録するにとどめる
-  const { guard } = useActionError();
-  useEffect(() => {
-    let alive = true;
-    void guard(async () => {
-      const list = await api.chats(chat.project_id);
-      if (alive) setChats(new Map(list.map((r) => [r.id, r])));
-    });
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chat.project_id]);
-  useServerEvent((e) => {
-    if (e.type === "chat" && e.chat.project_id === chat.project_id) setChats((prev) => new Map(prev).set(e.chat.id, e.chat));
-  });
+  const { chats } = useChats({ projectId: chat.project_id });
   let count = 0;
-  for (const other of chats.values()) {
+  for (const other of chats) {
     if (other.id !== chat.id && other.worktree_path === chat.worktree_path && other.status === "running") count++;
   }
   return count;
