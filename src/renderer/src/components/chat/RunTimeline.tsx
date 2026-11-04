@@ -6,43 +6,21 @@ import { useTicker } from "../../hooks/useTicker";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Approval, BackgroundState, Run, RunEvent } from "../../../../core/types";
 import type { SubagentEntry } from "../../../../core/subagents";
-import { activityOf, activityText, latestOf, stalledAgents, type Activity } from "./stall";
-import { backgroundWaitLabel, countBackground } from "./backgroundLabel";
+import { activityOf, latestOf, stalledAgents } from "./stall";
+import { workingLabel, type RunActivity } from "./workingLabel";
 import { BackgroundTasks } from "./BackgroundTasks";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
-import { ReconnectRow, RetryLabel, type Connection } from "./ConnectionStatus";
+import { ReconnectRow, type Connection } from "./ConnectionStatus";
 import { jumpToEvent } from "./jumpToEvent";
-import { StickyPrompt } from "./StickyPrompt";
+import { promptAbove, StickyPrompt } from "./StickyPrompt";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
 
-/**
- * 画面の上に流れて見えなくなった、いちばん下の自分の発言（その返答を読んでいる）。
- * どれも流れていなければ undefined
- */
-function promptAbove(timeline: HTMLElement): { id: number; text: string } | undefined {
-  const top = timeline.getBoundingClientRect().top;
-  // 上端より上から始まる、いちばん下の吹き出し（それがまだ少しでも見えていれば、貼り付けない）
-  let found: HTMLElement | undefined;
-  for (const bubble of timeline.querySelectorAll<HTMLElement>(".bubble.user")) {
-    if (bubble.getBoundingClientRect().top >= top) break;
-    found = bubble;
-  }
-  if (found && found.getBoundingClientRect().bottom > top) return undefined;
-  const id = found ? Number(found.id.replace("ev-", "")) : NaN;
-  if (!found || !Number.isFinite(id)) return undefined;
-  const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
-  return text ? { id, text } : undefined;
-}
-
 /** いちばん新しい作業の終わり（result）のイベント ID（なければ 0） */
-function lastResultIdOf(items: TimelineItem[]): number {
-  for (let i = items.length - 1; i >= 0; i--) {
-    const item = items[i];
-    if (item.kind === "event" && item.event.type === "result") return item.event.id;
-  }
+function lastResultIdOf(events: RunEvent[]): number {
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].type === "result") return events[i].id;
   return 0;
 }
 
@@ -51,73 +29,6 @@ const TOP_LOAD_PX = 200;
 
 /** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない） */
 const BOTTOM_SLACK_PX = 80;
-
-/** 作業中のチャットの動きの様子（最後に何かが届いてからの時間と、長く動きのないサブエージェント） */
-interface RunActivity {
-  parent: Activity;
-  stalled: SubagentEntry[];
-}
-
-/** 作業中の行の文（止めている・通信を再試行している・順番待ち・返答を書いている・ツールを実行中・考えている）と、動きの様子 */
-function workingLabel(run: Run, items: TimelineItem[], live: string, stopping: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: RunActivity): ReactNode {
-  if (stopping) return "停止中…";
-  if (connection.retry) return <RetryLabel retry={connection.retry} agents={Math.max(runningAgents, countBackground(background).agents)} />;
-  if (run.status === "queued") return "順番を待っています";
-  // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
-  if (activity.stalled.length > 0) return <StalledAgentsLabel agents={activity.stalled} />;
-  const last = items[items.length - 1];
-  const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : undefined;
-  const base = (() => {
-    if (live) return "返答を書いています";
-    if (pendingTool && !pendingTool.result) return "ツールを実行中";
-    // 返答を書き終えたあと、裏で動いている作業（サブエージェント・コマンド）の終わりを待っている（Claude Code が知らせる一覧で、種類と名前を出す）
-    const waitingBackground = backgroundWaitLabel(background);
-    if (waitingBackground) return waitingBackground;
-    // 一覧の知らせがない古い Claude Code: 返答を書き終えたあと、裏のサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
-    if (runningAgents > 0 && last?.kind === "event" && last.event.type === "text") return `裏で動いているサブエージェント ${runningAgents} 件の終わりを待っています`;
-    return null;
-  })();
-  const toolName = pendingTool && !pendingTool.result ? (pendingTool.use.data as { name?: string }).name : undefined;
-  const note = activityText(activity.parent, toolName);
-  return (
-    <>
-      {base ?? <ThinkingWords since={lastActivityAt(last) ?? run.turn_started_at} />}
-      {note && <span className={activity.parent.level === "stalled" ? "activity-stalled" : "muted"}> · {note}</span>}
-    </>
-  );
-}
-
-/** 長く動きのないサブエージェントを、作業中の行で知らせる（「サブエージェント『調査』が 12 分動いていません（ほか 1 件）」） */
-function StalledAgentsLabel({ agents }: { agents: SubagentEntry[] }) {
-  const [first] = agents;
-  const minutes = activityOf(first.lastActivityAt).minutes;
-  return (
-    <span className="activity-stalled">
-      サブエージェント「{first.description}」が {minutes} 分動いていません{agents.length > 1 ? `（ほか ${agents.length - 1} 件）` : ""}
-    </span>
-  );
-}
-
-/** いちばん最後に動いた時刻（最後の発言・ツールの結果）。考え始めた時刻として使う */
-function lastActivityAt(item: TimelineItem | undefined): string | null {
-  if (!item) return null;
-  if (item.kind === "event") return item.event.created_at;
-  const call = item.tools[item.tools.length - 1];
-  return (call.result ?? call.use).created_at;
-}
-
-/** 考えている間の文を、考え始めてからの時間で変える（長く考えていることが分かるように） */
-const THINKING_WORDS: [number, string][] = [
-  [60_000, "じっくり考えています"],
-  [20_000, "まだ考えています"],
-  [0, "考えています"],
-];
-
-function ThinkingWords({ since }: { since: string | null }) {
-  useTicker(1000);
-  const ms = since ? Date.now() - new Date(since).getTime() : 0;
-  return <>{THINKING_WORDS.find(([after]) => ms >= after)![1]}</>;
-}
 
 /**
  * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
@@ -128,9 +39,13 @@ function ThinkingWords({ since }: { since: string | null }) {
  */
 export function RunTimeline({
   items,
+  lastItem,
   rel,
   hidden = 0,
   onShowMore,
+  after = 0,
+  onShowLater,
+  onLatest,
   onAtBottom,
   run,
   busy,
@@ -149,12 +64,18 @@ export function RunTimeline({
   children,
 }: {
   items: TimelineItem[];
+  /** 流れ全体の最後の項目（窓で途中を描いていても、作業中の文はいまの状態で決める） */
+  lastItem: TimelineItem | undefined;
   rel: (s: string) => string;
   run: Run;
   busy: boolean;
   /** 窓の外（上）にあって描いていない項目の数と、それを足す操作（長いチャットでは最近の項目だけを描く） */
   hidden?: number;
   onShowMore?: () => void;
+  /** 窓の外（下）にあって描いていない項目の数（検索などで途中の一部分を描いているとき）と、それを足す操作・最新の窓に戻す操作 */
+  after?: number;
+  onShowLater?: () => void;
+  onLatest?: () => void;
   /** 一番下へ戻った（足した前の項目を外して、描く量を元に戻す） */
   onAtBottom?: () => void;
   /** チャットのサブエージェント（実行中の数・長く動きのないもの・裏の作業の一覧から中身を開く） */
@@ -183,7 +104,7 @@ export function RunTimeline({
   // 一番下から離れているか（一番下へ戻るボタンを出す）
   const [away, setAway] = useState(false);
   // 上を読んでいる間に作業が終わったか（一番下へ戻るボタンで知らせる。一番下へ戻ったら消す）
-  const lastResultId = lastResultIdOf(items);
+  const lastResultId = lastResultIdOf(events);
   const awayFromResult = useRef<number | null>(null);
   if (!away) awayFromResult.current = null;
   else awayFromResult.current ??= lastResultId;
@@ -240,10 +161,23 @@ export function RunTimeline({
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   useMarkSeen({ timelineRef, run, events, visible, away, slackPx: BOTTOM_SLACK_PX });
 
+  // 途中の一部分を描いているときに一番下へ戻る: 最新の窓に戻して、描いてから一番下へ
+  const toLatest = useRef(false);
+  useLayoutEffect(() => {
+    const el = timelineRef.current;
+    if (!el || !toLatest.current || after > 0) return;
+    toLatest.current = false;
+    el.scrollTop = el.scrollHeight;
+  }, [lastKey, after]);
   function scrollToBottom() {
     const el = timelineRef.current;
     if (!el) return;
     stickToBottom.current = true;
+    if (after > 0) {
+      toLatest.current = true;
+      onLatest?.();
+      return;
+    }
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }
 
@@ -266,7 +200,7 @@ export function RunTimeline({
       : finishedWhileAway
         ? { label: run.status === "failed" ? "失敗しました" : "返答が届きました", tone: run.status === "failed" ? "failed" : "arrived" }
         : busy
-          ? { label: workingLabel(run, items, live, stopping, runningAgents, connection, background, activity), tone: connection.retry ? "offline" : "working" }
+          ? { label: workingLabel(run, lastItem, live, stopping, runningAgents, connection, background, activity), tone: connection.retry ? "offline" : "working" }
           : { label: RUN_STATUS_LABELS[run.status], tone: run.status === "failed" ? "failed" : "idle" };
 
   return (
@@ -278,12 +212,16 @@ export function RunTimeline({
         tabIndex={-1}
         onScroll={(e) => {
           const el = e.currentTarget;
-          const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_SLACK_PX;
+          const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+          // 途中の一部分を描いているときは、下の端まで来ても最新ではない
+          const atBottom = after === 0 && fromBottom < BOTTOM_SLACK_PX;
           stickToBottom.current = atBottom;
           setAway(!atBottom);
           if (atBottom) onAtBottom?.();
           // 上の端の近くまで戻ったら、窓の外の前の項目を足す
           if (hidden > 0 && el.scrollTop < TOP_LOAD_PX) showMore();
+          // 下の端の近くまで来たら、窓の外の後ろの項目を足す（下に足すので、読んでいた位置は動かない）
+          if (after > 0 && fromBottom < TOP_LOAD_PX) onShowLater?.();
           const next = promptAbove(el);
           // 同じ発言のままなら前の値を残し、スクロールのたびに描き直さない
           setPinned((prev) => (prev?.id === next?.id ? prev : next));
@@ -296,6 +234,13 @@ export function RunTimeline({
             </button>
           )}
           <TimelineItems items={items} rel={rel} active={busy} />
+          {/* 途中の一部分を描いているときは、最新の分（書いている途中の返答・確認のカード・作業中の行）は出さない（一番下へ戻るボタンで最新へ） */}
+          {after > 0 ? (
+            <button type="button" className="link-button timeline-more" onClick={() => onShowLater?.()}>
+              以降の発言を表示（あと {after} 件）
+            </button>
+          ) : (
+            <>
           {live && (
             <div className="assistant live">
               <Markdown streaming>{live}</Markdown>
@@ -306,12 +251,14 @@ export function RunTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, items, live, stopping, runningAgents, connection, background, activity)}</Working>
+            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, lastItem, live, stopping, runningAgents, connection, background, activity)}</Working>
           )}
           {/* 裏で動いている作業（1 件ずつ止められる） */}
           {busy && <BackgroundTasks runId={run.id} background={background} agents={agents} onOpen={onOpenSubagent} />}
           {/* 通信が切れて止まり、つながるのを待っている */}
           {!busy && connection.reconnect && <ReconnectRow runId={run.id} reconnect={connection.reconnect} />}
+            </>
+          )}
         </div>
       </div>
       {children}

@@ -159,8 +159,8 @@ function RunView({
   const [finding, setFinding] = useState(false);
   // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
   const [wide, setWide] = useSharedFlag(CHAT_WIDE_KEY);
-  // 流れは最近の項目だけを描く（長いチャットでも軽くする）。検索中はすべて描く
-  const timeline = useTimelineWindow({ items, runId: run.id, focus, all: finding, stickToBottom });
+  // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
+  const timeline = useTimelineWindow({ items, runId: run.id, focus, stickToBottom });
   // 移り先が窓の外なら、窓を広げて描いてから移る
   const [jumpTarget, setJumpTarget] = useState<number | null>(null);
   const jump = (eventId: number) => {
@@ -220,8 +220,19 @@ function RunView({
       />
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}
       <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
-      {finding && <ChatFind root={panelRef} version={items} onJump={() => (stickToBottom.current = false)} onClose={() => setFinding(false)} />}
-      <RunTimeline items={timeline.visible} hidden={timeline.hidden} onShowMore={timeline.showMore} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible}>
+      {finding && (
+        <ChatFind
+          root={panelRef}
+          items={items}
+          version={timeline.visible}
+          onGoto={(eventId) => {
+            stickToBottom.current = false;
+            timeline.reveal(eventId);
+          }}
+          onClose={() => setFinding(false)}
+        />
+      )}
+      <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible}>
         <PromptRail root={panelRef} prompts={entries} onJump={jump} />
       </RunTimeline>
       <div className="run-composer">

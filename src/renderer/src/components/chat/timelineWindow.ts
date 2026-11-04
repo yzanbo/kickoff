@@ -22,3 +22,23 @@ export function windowStart(total: number, shown: number, mustInclude?: number):
   if (mustInclude === undefined || mustInclude < 0 || mustInclude >= start) return start;
   return Math.max(0, mustInclude - CONTEXT_BEFORE);
 }
+
+/** 移り先から最新までがこれより多ければ、そこから最新までは描かず、移り先の前後だけを描く（窓を途中の一部分にする） */
+export const MAX_TAIL = 400;
+
+/** 描く範囲（start から end の手前まで。end が null なら最新まで） */
+export interface WindowRange {
+  start: number;
+  end: number | null;
+}
+
+/**
+ * 移り先（index）を描く範囲。少し前から描き、最新まで近ければ最新まで、遠ければ移り先のあと TIMELINE_WINDOW 件まで
+ * （検索で古い発言へ移っても、そこから最新までをすべて描かない。数万件のチャットで画面が落ちないように）
+ */
+export function revealRange(total: number, index: number): WindowRange {
+  const start = Math.max(0, index - CONTEXT_BEFORE);
+  // 最新まで描くときは、ふだんの窓（最新から TIMELINE_WINDOW 件）より短くしない（移り先を画面の真ん中に置けるように）
+  if (total - start <= MAX_TAIL) return { start: Math.max(0, Math.min(start, total - TIMELINE_WINDOW)), end: null };
+  return { start, end: Math.min(total, index + TIMELINE_WINDOW) };
+}

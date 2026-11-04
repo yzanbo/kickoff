@@ -45,3 +45,22 @@ export function StickyPrompt({ text, onJump }: { text: string; onJump: () => voi
     </div>
   );
 }
+
+/**
+ * 画面の上に流れて見えなくなった、いちばん下の自分の発言（その返答を読んでいる）。
+ * どれも流れていなければ undefined
+ */
+export function promptAbove(timeline: HTMLElement): { id: number; text: string } | undefined {
+  const top = timeline.getBoundingClientRect().top;
+  // 上端より上から始まる、いちばん下の吹き出し（それがまだ少しでも見えていれば、貼り付けない）
+  let found: HTMLElement | undefined;
+  for (const bubble of timeline.querySelectorAll<HTMLElement>(".bubble.user")) {
+    if (bubble.getBoundingClientRect().top >= top) break;
+    found = bubble;
+  }
+  if (found && found.getBoundingClientRect().bottom > top) return undefined;
+  const id = found ? Number(found.id.replace("ev-", "")) : NaN;
+  if (!found || !Number.isFinite(id)) return undefined;
+  const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
+  return text ? { id, text } : undefined;
+}
