@@ -69,3 +69,26 @@
   margin: 4px 6px;
   font-size: 12px;
 }
+
+/* いちばん下の新しいチャットのボタン（タブのまとまりの札から開いたとき）。一覧と線で分け、行と同じ高さで押しやすく */
+.state-runs-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 6px;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--accent-bright);
+  background: transparent;
+  cursor: pointer;
+}
+
+.state-runs-new:hover {
+  background: var(--bg-hover);
+}
