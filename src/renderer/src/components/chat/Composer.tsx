@@ -33,10 +33,14 @@ interface Props {
   trailing?: ReactNode;
   onSend: (text: string, attachments: Attachment[]) => Promise<void>;
   onStop?: () => void;
-  /** 作業中だけ、送信ボタンの左に出すもの（送り方の切り替えなど） */
+  /** 作業中（と queueWhileIdle のとき）だけ、送信ボタンの左に出すもの（送り方の切り替えなど） */
   busyControls?: ReactNode;
   /** 作業中に送ったとき（渡さなければ作業中は送れない）。mode はキーで決めたとき（⌘Enter = 伝える・⌘⇧Enter = ためておく。なければ切り替えのとおり） */
   onQueue?: (text: string, attachments: Attachment[], mode?: QueueSendMode) => Promise<void>;
+  /** 作業していなくても、送るときに onQueue と busyControls（すぐ送る / ためておく）を使う（止めている送信待ちがあるとき） */
+  queueWhileIdle?: boolean;
+  /** 送信ボタンの名前（送り方で変わるとき。省けば既定の文） */
+  sendLabel?: string;
   /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
   onTextChange?: (text: string) => void;
   /** / と @ の候補を出す作業場所（コマンド・ファイルをここから探す） */
@@ -64,7 +68,7 @@ export class SendCancelled extends Error {}
  * チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付。
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, busyControls, onTextChange, suggestTarget, history, draftKey, fillRef, chatContext }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draftKey, fillRef, chatContext }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useStoredText(draftKey);
@@ -136,8 +140,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     },
   });
 
-  // 作業中は、待ちの列に入れられるときだけ送れる
-  const queueing = Boolean(busy && onQueue);
+  // 作業中は、待ちの列に入れられるときだけ送れる（送信待ちがあるときは、作業していなくても送り方を選ぶ）
+  const queueing = Boolean((busy || queueWhileIdle) && onQueue);
   const hasContent = Boolean(text.trim() || attach.attachments.length > 0);
   const ready = !attach.uploading && !sending && (!busy || queueing);
   // 録音中は、送信で「起こした文を入れてそのまま送る」
@@ -180,7 +184,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     }
   }
 
-  // ⌘ / ⌘⇧ を押している間だけ、その送り方（⌘Enter = 伝える・⌘⇧Enter = ためておく）のボタンを光らせる（作業中だけ。
+  // ⌘ / ⌘⇧ を押している間だけ、その送り方（⌘Enter = 伝える・⌘⇧Enter = ためておく）のボタンを光らせる（作業中・送信待ちがあるときだけ。
   // 押しているキーでどちらになるかを、送る前に目で確かめられるように。選んでいる送り方そのものは変えない）
   const [heldMode, setHeldMode] = useState<QueueSendMode>();
   const trackHeld = (e: { metaKey: boolean; shiftKey: boolean; ctrlKey: boolean; altKey: boolean }) =>
@@ -261,7 +265,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
         </div>
         <div className="composer-actions">
         {trailing}
-        {busy && busyControls && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
+        {queueing && busyControls && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
         {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
         {busy && onStop && keys.stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
         {busy && onStop && (
@@ -275,11 +279,13 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
             title={
               dictation.recording
                 ? "録音を止めて、文字起こしした文を入れてそのまま送る（Enter）"
-                : queueing
-                  ? "待ちの列に入れる（Enter）。いまの作業が終わったら送ります"
-                  : "送信（Enter）"
+                : sendLabel
+                  ? `${sendLabel}（Enter）`
+                  : queueing
+                    ? "待ちの列に入れる（Enter）。いまの作業が終わったら送ります"
+                    : "送信（Enter）"
             }
-            aria-label={dictation.recording ? "文字起こしして送信" : queueing ? "待ちの列に入れる" : "送信"}
+            aria-label={dictation.recording ? "文字起こしして送信" : (sendLabel ?? (queueing ? "待ちの列に入れる" : "送信"))}
             disabled={!canSend}
             onClick={() => submit()}
           >

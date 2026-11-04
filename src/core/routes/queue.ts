@@ -12,11 +12,13 @@ const queueIdsSchema = z.object({ ids: z.array(z.string().min(1).max(100)).min(1
  * 止めておく・「ここまで送ったら止めます」の印
  */
 export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
-  // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る）
+  // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す）
   app.post("/api/runs/:id/queue", async (c) => {
     const run = requireRun(store, c.req.param("id"));
-    const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
-    return c.json(await conflictOnError(() => runner.queueMessage(run.id, text, options, attachments)));
+    const body = await c.req.json();
+    const { text, options, attachments } = messageInputSchema.parse(body);
+    const { hold } = z.object({ hold: z.boolean().optional() }).parse(body);
+    return c.json(await conflictOnError(() => runner.queueMessage(run.id, text, options, attachments, { hold })));
   });
 
   // 待ちの指示をすべて消す
