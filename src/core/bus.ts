@@ -18,4 +18,9 @@ export class Bus {
     this.emitter.on("event", listener);
     return () => this.emitter.off("event", listener);
   }
+
+  /** いま購読しているものの数（ほとんどは画面の SSE。性能の記録で、増え続けていないかを見る） */
+  listenerCount(): number {
+    return this.emitter.listenerCount("event");
+  }
 }

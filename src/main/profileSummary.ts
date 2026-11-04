@@ -80,5 +80,15 @@ export const RENDERER_PROBE = `JSON.stringify({
   timelines: [...document.querySelectorAll(".timeline-inner")].map((t) => t.children.length),
   chatPanels: document.querySelectorAll(".run-panel").length,
   panelTabs: document.querySelectorAll(".panel-tab").length,
+  // 隠れていても作り直さずに残している中身（タブ・ペイン）。多いほど、描き直し・メモリが重くなる
+  tabPages: document.querySelectorAll(".panel-tab-page").length,
+  composers: document.querySelectorAll(".composer textarea").length,
+  webviews: document.querySelectorAll("webview").length,
+  terminals: document.querySelectorAll(".xterm").length,
+  editors: document.querySelectorAll(".monaco-editor").length,
+  diagrams: document.querySelectorAll(".mermaid-diagram, svg[id^=mermaid]").length,
+  styleSheets: document.styleSheets.length,
+  styleElements: document.querySelectorAll("style").length,
+  highlights: typeof CSS !== "undefined" && CSS.highlights ? CSS.highlights.size : 0,
   visible: document.visibilityState,
 })`;

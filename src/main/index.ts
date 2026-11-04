@@ -9,6 +9,8 @@ import { loadLoginShellPath } from "../core/shellEnv.js";
 import { hardenWebviews } from "./browser.js";
 import { loadSavedExtensions } from "./browserExtensions.js";
 import { setAppMenu } from "./appMenu.js";
+import { moveLegacyDiagnostics } from "./diagnostics.js";
+import { setDiagnosticsCore } from "./diagnosticsMain.js";
 import { registerIpc } from "./ipc.js";
 import { registerNotifications } from "./notifications.js";
 import { allowAppMicrophone } from "./mediaPermission.js";
@@ -51,12 +53,14 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(async () => {
     loadLoginShellPath();
+    void moveLegacyDiagnostics();
     try {
       core = await startCore({
         dataDir: app.getPath("userData"),
         port,
         staticDir: devUrl ? undefined : path.join(outDir, "renderer"),
       });
+      setDiagnosticsCore(core);
     } catch (e) {
       dialog.showErrorBox("Kickoff を起動できません", `コアの起動に失敗しました（ポート ${port}）。\n${errorMessage(e)}`);
       app.quit();
