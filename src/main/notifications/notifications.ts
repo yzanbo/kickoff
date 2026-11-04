@@ -1,12 +1,8 @@
 // Mac の通知（メインプロセスの Notification）。画面を読み込み直しても・Kickoff を終えても通知センターに残り、押すとそのチャットを開く
-import { app, ipcMain, Notification, shell, type BrowserWindow } from "electron";
-import { notificationIdOf, notifyArgs, chatOfNotificationId, type NotifyArgs } from "../ipc/ipcArgs.js";
-
-/** 通知を出した結果（届かなかったら理由。Mac の設定で許可していないときなど） */
-export interface NotifyResult {
-  ok: boolean;
-  error?: string;
-}
+import { app, Notification, shell, type BrowserWindow } from "electron";
+import type { NotifyRequest, NotifyResult } from "@shared/ipc";
+import { sendEvent, type IpcHandlers } from "../ipc/register.js";
+import { chatOfNotificationId, notificationIdOf } from "./notificationIds.js";
 
 /**
  * 押したときの知らせを受けるために参照を持っておく通知の数。参照をなくした通知は通知センターから消えるので、
@@ -17,11 +13,15 @@ const KEEP = 50;
 /** 通知の「show」「failed」を待つ上限（どちらも来なくても画面を待たせない） */
 const SHOW_TIMEOUT_MS = 5000;
 
+/** 長すぎる文は切る（通知センターでは収まらない） */
+const TITLE_MAX = 200;
+const BODY_MAX = 500;
+
 /** Mac の「システム設定 → 通知」 */
 const NOTIFICATION_SETTINGS_URL = "x-apple.systempreferences:com.apple.Notifications-Settings.extension";
 
-/** 通知の IPC（出す・Mac の通知の設定を開く）。押したら Kickoff を前に出し、チャットのものなら画面にそのチャットを開かせる */
-export function registerNotifications(mainWindow: () => BrowserWindow | undefined) {
+/** 通知（IPC の notifications）。押したら Kickoff を前に出し、チャットのものなら画面にそのチャットを開かせる */
+export function notificationHandlers(mainWindow: () => BrowserWindow | undefined): IpcHandlers["notifications"] {
   const live: Notification[] = [];
   const focus = () => {
     const win = mainWindow();
@@ -36,7 +36,7 @@ export function registerNotifications(mainWindow: () => BrowserWindow | undefine
     n.on("click", () => {
       focus();
       const chat = chatOfNotificationId(n.id);
-      if (chat) mainWindow()?.webContents.send("kickoff:open-chat", chat.projectId, chat.chatId);
+      if (chat) sendEvent(mainWindow()?.webContents, "notifications", "onOpenChat", chat.projectId, chat.chatId);
     });
   };
   // 前回までに出して、まだ通知センターに残っているものも、押したらそのチャットを開けるようにする
@@ -44,14 +44,16 @@ export function registerNotifications(mainWindow: () => BrowserWindow | undefine
     .then((list) => list.slice(-KEEP).forEach(keep))
     .catch(() => undefined);
 
-  ipcMain.handle("kickoff:notify", (_e, raw: unknown) => show(notifyArgs(raw), keep));
-  ipcMain.handle("kickoff:open-notification-settings", () => shell.openExternal(NOTIFICATION_SETTINGS_URL));
+  return {
+    notify: (_e, request) => show(request, keep),
+    openSettings: () => shell.openExternal(NOTIFICATION_SETTINGS_URL),
+  };
 }
 
 /** 通知を出し、出せたか（Mac の設定で許可していなければ、その理由）を返す */
-function show({ title, body, chat }: NotifyArgs, keep: (n: Notification) => void): Promise<NotifyResult> {
+function show({ title, body, chat }: NotifyRequest, keep: (n: Notification) => void): Promise<NotifyResult> {
   if (!Notification.isSupported()) return Promise.resolve({ ok: false, error: "この環境では通知を使えません" });
-  const n = new Notification({ id: notificationIdOf(chat), title, body, silent: false });
+  const n = new Notification({ id: notificationIdOf(chat), title: title.slice(0, TITLE_MAX), body: body.slice(0, BODY_MAX), silent: false });
   keep(n);
   return new Promise((resolve) => {
     n.once("show", () => resolve({ ok: true }));

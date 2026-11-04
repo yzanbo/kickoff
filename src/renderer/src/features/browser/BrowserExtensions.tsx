@@ -1,6 +1,6 @@
 import { Download, FolderOpen, Puzzle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { BrowserExtensionInfo } from "../../../../preload";
+import { KNOWN_EXTENSIONS, type BrowserExtensionInfo, type KnownExtensionKey } from "@shared/ipc";
 import { useAction } from "@/hooks/useAction";
 import { IconButton } from "@/ui/IconButton";
 import { ResultMessage } from "@/ui/SaveActions";
@@ -10,6 +10,9 @@ const SOURCE_LABELS: Record<BrowserExtensionInfo["source"], string> = {
   "chrome-profile": "Chrome から取り込み",
   folder: "フォルダを指定",
 };
+
+/** ボタン 1 つで取得・取り込みできる拡張機能 */
+const REACT_DEVTOOLS: KnownExtensionKey = "react-devtools";
 
 /** 埋め込みブラウザの拡張機能（設定画面） */
 export function BrowserExtensions() {
@@ -28,7 +31,8 @@ export function BrowserExtensions() {
   const run = (name: NonNullable<typeof busy>, fn: () => Promise<BrowserExtensionInfo[]>, done: string) =>
     action.run(name, async () => setList(await fn()), { done });
 
-  const hasReact = list.some((e) => /react developer tools/i.test(e.name));
+  const reactName = KNOWN_EXTENSIONS[REACT_DEVTOOLS].name.toLowerCase();
+  const hasReact = list.some((e) => e.name.toLowerCase().includes(reactName));
 
   return (
     <div className="ext-settings">
@@ -62,10 +66,10 @@ export function BrowserExtensions() {
       <div className="ext-actions">
         {!hasReact && (
           <>
-            <button className="btn" disabled={busy !== null} onClick={() => void run("install", () => api.install("react-devtools"), "React DevTools を追加しました")}>
+            <button className="btn" disabled={busy !== null} onClick={() => void run("install", () => api.install(REACT_DEVTOOLS), "React DevTools を追加しました")}>
               <Download size={14} /> {busy === "install" ? "取得中…" : "React DevTools をウェブストアから取得"}
             </button>
-            <button className="btn" disabled={busy !== null} onClick={() => void run("import", () => api.importFromChrome("react-devtools"), "Chrome の React DevTools を取り込みました")}>
+            <button className="btn" disabled={busy !== null} onClick={() => void run("import", () => api.importFromChrome(REACT_DEVTOOLS), "Chrome の React DevTools を取り込みました")}>
               Chrome から取り込む
             </button>
           </>

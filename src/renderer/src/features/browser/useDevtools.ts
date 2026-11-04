@@ -47,7 +47,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
   // 別のウィンドウを利用者が閉じたら、閉じた状態にする
   useEffect(
     () =>
-      window.kickoff?.onDevToolsWindowClosed((targetId) => {
+      window.kickoff?.devtools.onWindowClosed((targetId) => {
         if (targetId === viewId()) setShown((now) => (now === "window" ? null : now));
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,7 +60,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     return () => {
       try {
         const id = view?.getWebContentsId();
-        if (id !== undefined) void window.kickoff?.closeDevTools(id);
+        if (id !== undefined) void window.kickoff?.devtools.close(id);
       } catch {
         // すでになくなっている
       }
@@ -76,7 +76,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
       const id = viewId();
       if (done || id === undefined) return;
       done = true;
-      void window.kickoff?.openDevToolsIn(id, holder.getWebContentsId()).catch(() => setShown(null));
+      void window.kickoff?.devtools.openIn(id, holder.getWebContentsId()).catch(() => setShown(null));
     };
     holder.addEventListener("dom-ready", attach);
     return () => {
@@ -91,7 +91,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     if (id === undefined) return;
     if (where === "window") {
       setShown("window");
-      void window.kickoff?.openDevToolsWindow(id).catch(() => setShown(null));
+      void window.kickoff?.devtools.openWindow(id).catch(() => setShown(null));
     } else {
       // タブの中に出していれば並べ方だけを変え、そうでなければ入れ物を作り直して表示する
       if (!embedded) setEmbedKey((k) => k + 1);
@@ -101,7 +101,7 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
 
   const close = () => {
     const id = viewId();
-    if (id !== undefined) void window.kickoff?.closeDevTools(id);
+    if (id !== undefined) void window.kickoff?.devtools.close(id);
     setShown(null);
   };
 

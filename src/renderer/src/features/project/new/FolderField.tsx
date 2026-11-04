@@ -31,7 +31,7 @@ export function FolderField({
             type="button"
             className="btn"
             onClick={async () => {
-              const picked = await window.kickoff?.pickFolder(pickerTitle);
+              const picked = await window.kickoff?.dialog.pickFolder(pickerTitle);
               if (picked) onChange(picked);
             }}
           >

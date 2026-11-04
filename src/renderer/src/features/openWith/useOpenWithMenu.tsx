@@ -1,6 +1,6 @@
 import { Globe, SquareTerminal, type LucideIcon } from "lucide-react";
 import type { MouseEvent } from "react";
-import type { ExternalBrowserId, ExternalTerminalId } from "@shared/types";
+import type { ExternalBrowserId, ExternalTerminalId } from "@shared/ipc";
 import { anchorPlacement, type Placement } from "@/lib/floating";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";

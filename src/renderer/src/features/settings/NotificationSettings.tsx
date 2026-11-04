@@ -16,8 +16,10 @@ export function NotificationSettings() {
     await test.run(
       "send",
       async () => {
-        const result = await native.notify({ title: "Kickoff のテスト通知", body: "チャットの完了・失敗・回答待ちは、このように知らせます" }).catch((e: unknown) => ({ ok: false, error: errorMessage(e) }));
-        if (!result.ok) throw new Error(`通知を出せませんでした（${result.error ?? "理由は不明"}）。Mac の通知の設定で Kickoff を許可してください`);
+        const result = await native.notifications
+          .notify({ title: "Kickoff のテスト通知", body: "チャットの完了・失敗・回答待ちは、このように知らせます" })
+          .catch((e: unknown) => ({ ok: false as const, error: errorMessage(e) }));
+        if (!result.ok) throw new Error(`通知を出せませんでした（${result.error || "理由は不明"}）。Mac の通知の設定で Kickoff を許可してください`);
       },
       { done: "テスト通知を送りました。画面の右上に出ないときは、Mac の通知の設定で Kickoff を許可してください" },
     );
@@ -38,7 +40,7 @@ export function NotificationSettings() {
             <button type="button" className="btn" disabled={test.busy !== null} onClick={() => void sendTest()}>
               {test.busy ? "送信中…" : "テスト通知を送る"}
             </button>
-            <button type="button" className="link-button" onClick={() => void native.openNotificationSettings()}>
+            <button type="button" className="link-button" onClick={() => void native.notifications.openSettings()}>
               Mac の通知の設定を開く
             </button>
             <ResultMessage result={test.result} as="p" className="small" />

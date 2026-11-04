@@ -112,7 +112,7 @@ function ProjectMenu({
       <div className="menu-label">このプロジェクト</div>
       {item("new", <SquarePen size={14} />, "新しいチャット", () => openNewChat(project.id))}
       {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}
-      {window.kickoff && item("finder", <FolderOpen size={14} />, "Finder で開く", () => void window.kickoff?.openPath(project.repo_path))}
+      {window.kickoff && item("finder", <FolderOpen size={14} />, "Finder で開く", () => void window.kickoff?.externalApps.openPath(project.repo_path))}
 
       <div className="menu-separator" role="separator" />
       <div className="menu-label">整理</div>

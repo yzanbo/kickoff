@@ -1,6 +1,6 @@
 // アプリの外で開く（外部のターミナル: Terminal.app・Ghostty など / 外部のブラウザ: Chrome・Safari・Arc など）。
 // 選んでいるアプリはどの部品にもすぐ伝わり（useSetting）、この Mac に入っているアプリはアプリ全体で 1 回だけ調べる
-import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, type ExternalBrowserId, type ExternalTerminalId } from "@shared/types";
+import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, type ExternalBrowserId, type ExternalTerminalId } from "@shared/ipc";
 import { useSetting } from "@/hooks/useSetting";
 import { createStore } from "@/stores/createStore";
 import { useStore } from "@/stores/useStore";
@@ -14,8 +14,8 @@ const browserLabel = (id: ExternalBrowserId) => EXTERNAL_BROWSERS.find((b) => b.
 const appName = (list: readonly { id: string; app: string }[], id: string) => list.find((a) => a.id === id)?.app ?? id;
 
 // この Mac に入っているアプリ（アプリ全体で 1 回だけ調べる。調べられなければ、次に使うときに調べ直す。デスクトップアプリでなければ既定のものだけ）
-const installedTerminals = createStore({ load: async () => ((await window.kickoff?.externalTerminals()) ?? ["terminal"]) as ExternalTerminalId[] });
-const installedBrowsers = createStore({ load: async () => ((await window.kickoff?.externalBrowsers()) ?? ["chrome"]) as ExternalBrowserId[] });
+const installedTerminals = createStore({ load: async (): Promise<ExternalTerminalId[]> => (await window.kickoff?.externalApps.terminals()) ?? ["terminal"] });
+const installedBrowsers = createStore({ load: async (): Promise<ExternalBrowserId[]> => (await window.kickoff?.externalApps.browsers()) ?? ["chrome"] });
 
 /** 一覧のうち、入っているもの（選んでいるものは、入っていなくても出す。missing で見分ける） */
 function choicesOf<T extends string>(all: readonly { id: T }[], installed: T[] | undefined, current: T, label: (id: T) => string) {
@@ -32,7 +32,7 @@ export function useExternalTerminal() {
   const [terminal, setTerminal] = useSetting(EXTERNAL_TERMINAL);
   const installed = useStore(installedTerminals);
   const open = (dir: string, app: ExternalTerminalId = terminal) =>
-    void window.kickoff?.openExternalTerminal(dir, app).catch(reportFailure("ターミナルを開けませんでした"));
+    void window.kickoff?.externalApps.openTerminal(dir, app).catch(reportFailure("ターミナルを開けませんでした"));
   return {
     terminal,
     setTerminal,
@@ -51,7 +51,7 @@ export function useExternalBrowser() {
   const [browser, setBrowser] = useSetting(EXTERNAL_BROWSER);
   const installed = useStore(installedBrowsers);
   const open = (url?: string, app: ExternalBrowserId = browser) =>
-    void window.kickoff?.openInBrowser(url, app).catch(reportFailure("ブラウザを開けませんでした"));
+    void window.kickoff?.externalApps.openBrowser(url, app).catch(reportFailure("ブラウザを開けませんでした"));
   return {
     browser,
     setBrowser,

@@ -1,4 +1,5 @@
 import { BrowserWindow, webContents, type WebContents } from "electron";
+import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 
 // 埋め込みブラウザ（<webview>）の開発者ツール。どこに出しているかは画面の側で持つ（Electron の知らせは遅れて届く）
 
@@ -30,7 +31,7 @@ function resetDevTools(target: WebContents) {
   if (target.isDevToolsOpened()) target.closeDevTools();
 }
 
-export function openDevToolsIn(host: WebContents, targetId: number, devtoolsId: number) {
+function openDevToolsIn(host: WebContents, targetId: number, devtoolsId: number) {
   const target = targetOf(host, targetId);
   const devtools = webContents.fromId(devtoolsId);
   if (!isOurWebview(host, devtools)) throw new Error("開発者ツールを開けません");
@@ -42,9 +43,9 @@ export function openDevToolsIn(host: WebContents, targetId: number, devtoolsId: 
 /**
  * 埋め込みブラウザの開発者ツールを、別のウィンドウで開く。一度タブの中に表示すると Electron の既定の別ウィンドウは開かなくなるので、
  * 開発者ツール用のウィンドウをこちらで作り、その中に表示する（Electron の説明どおりのやり方）。
- * 利用者がウィンドウを閉じたら、開発者ツールも閉じて画面に知らせる（kickoff:browser-devtools-window-closed）
+ * 利用者がウィンドウを閉じたら、開発者ツールも閉じて画面に知らせる（devtools.onWindowClosed）
  */
-export function openDevToolsWindow(host: WebContents, targetId: number) {
+function openDevToolsWindow(host: WebContents, targetId: number) {
   const target = targetOf(host, targetId);
   resetDevTools(target);
   const win = new BrowserWindow({ width: 1000, height: 720, title: "開発者ツール", backgroundColor: "#202124" });
@@ -56,13 +57,20 @@ export function openDevToolsWindow(host: WebContents, targetId: number) {
     if (devtoolsWindows.get(targetId) !== win) return;
     devtoolsWindows.delete(targetId);
     if (!target.isDestroyed() && target.isDevToolsOpened()) target.closeDevTools();
-    if (!host.isDestroyed()) host.send("kickoff:browser-devtools-window-closed", targetId);
+    sendEvent(host, "devtools", "onWindowClosed", targetId);
   });
 }
 
 /** 開発者ツールを閉じる（別のウィンドウも） */
-export function closeDevTools(host: WebContents, targetId: number) {
+function closeDevTools(host: WebContents, targetId: number) {
   const target = webContents.fromId(targetId);
   if (!target) return closeDevToolsWindow(targetId);
   if (isOurWebview(host, target)) resetDevTools(target);
 }
+
+/** 埋め込みブラウザの開発者ツール（IPC の devtools）。どちらも、頼んできた画面の中の埋め込みブラウザに限る */
+export const devtoolsHandlers: IpcHandlers["devtools"] = {
+  openIn: (e, targetId, devtoolsId) => openDevToolsIn(e.sender, targetId, devtoolsId),
+  openWindow: (e, targetId) => openDevToolsWindow(e.sender, targetId),
+  close: (e, targetId) => closeDevTools(e.sender, targetId),
+};

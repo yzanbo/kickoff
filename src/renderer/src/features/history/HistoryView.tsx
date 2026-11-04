@@ -100,8 +100,8 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
             onClick={() => onPick(w.head)}
             actions={
               <>
-                {window.kickoff && <IconButton icon={FolderOpen} label="Finder で開く" size={14} onClick={() => void window.kickoff?.openPath(w.path)} />}
-                {window.kickoff && <IconButton icon={Code2} label="VS Code で開く" size={14} onClick={() => void window.kickoff?.openInVSCode(w.path)} />}
+                {window.kickoff && <IconButton icon={FolderOpen} label="Finder で開く" size={14} onClick={() => void window.kickoff?.externalApps.openPath(w.path)} />}
+                {window.kickoff && <IconButton icon={Code2} label="VS Code で開く" size={14} onClick={() => void window.kickoff?.externalApps.openInVSCode(w.path)} />}
                 {!w.main && <IconButton icon={Trash2} label="ワークツリーを消す" size={14} onClick={() => void worktreeActions.removeWorktree(w)} />}
               </>
             }

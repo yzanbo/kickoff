@@ -133,7 +133,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
         </span>
         <span className="spacer" />
         {window.kickoff && (
-          <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void window.kickoff?.openInVSCode(`${worktree ?? repoPath}/${path}`, line)}>
+          <button className="btn btn-sm" title="VS Code でこのファイルを開く" onClick={() => void window.kickoff?.externalApps.openInVSCode(`${worktree ?? repoPath}/${path}`, line)}>
             <ExternalLink size={13} aria-hidden /> VS Code で開く
           </button>
         )}
