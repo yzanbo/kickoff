@@ -1,5 +1,5 @@
 import { ArrowUp, Paperclip, Square } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
 import type { Attachment } from "../../../../core/types";
 import type { GitTarget } from "../../api";
 import { errorMessage } from "../../errors";
@@ -58,9 +58,6 @@ interface Props {
   chatContext?: { projectId?: number; exclude?: number };
 }
 
-/** 入力欄を伸ばす上限（px。これを超えたら中でスクロールする） */
-const COMPOSER_MAX_HEIGHT = 240;
-
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
 const TEXT_CHANGE_DELAY_MS = 300;
 
@@ -108,25 +105,9 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     const timer = setTimeout(() => textChange.current?.(text), TEXT_CHANGE_DELAY_MS);
     return () => clearTimeout(timer);
   }, [text]);
-  // 書いた分だけ高さを伸ばす（空なら 1 行。上限を超えたら中でスクロール）。
-  // 文が変わったときに加えて、幅が変わったときも測り直す（パネルを開く途中など、狭い瞬間に測った高さが残って縦長にならないように）
-  useLayoutEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    const fit = () => {
-      el.style.height = "auto";
-      el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)}px`;
-    };
-    fit();
-    let width = el.clientWidth;
-    const observer = new ResizeObserver(() => {
-      if (el.clientWidth === width) return;
-      width = el.clientWidth;
-      fit();
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [text, compact]);
+  // 書いた分だけ高さを伸ばすのは CSS（composer.css の field-sizing: content と max-height）に任せる。
+  // 以前はキーを押すたびに高さを auto に戻して scrollHeight を測っていて、そのたびにページ全体のレイアウトをその場でやり直させていた
+  // （長いチャットで画面の要素が多いと、1 文字ごとに数十 ms かかり、文字入力が遅くなった原因の 1 つ）
   const attach = useComposerFiles();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
