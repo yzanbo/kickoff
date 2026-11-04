@@ -7,6 +7,7 @@ import { createProviders } from "./providers/index.js";
 import { currentSelf } from "./chat/guard/selfProtection.js";
 import { createApp } from "./http/server.js";
 import { Store } from "./db/store.js";
+import { DB_FILE, discardPrereleaseData } from "./db/open.js";
 import { ServiceUsageMonitor } from "./usage/services/index.js";
 import { UsageMonitor } from "./usage/planUsage.js";
 import { ApprovalCenter } from "./chat/approvals.js";
@@ -37,7 +38,8 @@ export interface Core {
 export async function startCore(opts: CoreOptions): Promise<Core> {
   fs.mkdirSync(opts.dataDir, { recursive: true });
   const bus = new Bus();
-  const store = new Store(path.join(opts.dataDir, "kickoff.db"), (e) => bus.publish(e));
+  if (discardPrereleaseData(opts.dataDir)) console.log("[core] リリース前の版の保存データ（データベース・backups・uploads）を消し、新しく作り直しました");
+  const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
   const recovered = store.recoverInterruptedRuns();
   if (recovered > 0) console.log(`[core] 中断された実行を ${recovered} 件復旧しました`);
 
