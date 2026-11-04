@@ -3,21 +3,22 @@ import path from "node:path";
 import { app, BrowserWindow, shell, type WebContents } from "electron";
 import type { DiagnosticsFolders, DiagnosticsState } from "@shared/ipc";
 import { errorMessage } from "@shared/errors";
+import { logsDir } from "../app/logs.js";
+import { mainWindow } from "../app/window.js";
 import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { startMainRecording } from "./mainProcess.js";
-import { diagnosticsFolderName, perSecond, RENDERER_PROBE, topSelfTime, type CpuProfile, type Metrics } from "./profileSummary.js";
+import { diagnosticsFolderName, perSecond, RENDERER_PROBE, startCpuProfile, topSelfTime, type Metrics } from "./profileSummary.js";
 import { RENDERER_COLLECT, RENDERER_OBSERVE, summarizeFrames, summarizeInteractions, type RendererTimings } from "./rendererTiming.js";
 
 /** 記録する長さ（秒）。重いと感じる操作をその間に続けてもらう */
 export const DIAGNOSTICS_SECONDS = 10;
 
 /**
- * 記録を保存するフォルダ（macOS のログの場所 ~/Library/Logs/<アプリ名>/diagnostics/。開発版と製品版で別）。
- * 以前はデータの保存先（Application Support）に置いていたが、そこはエージェントから読めない（Kickoff 自身を守るため）ので、
- * 場所をチャットに貼っても読んでもらえなかった。ログの場所なら、貼るだけで読める
+ * 記録を保存するフォルダ（ログの場所の diagnostics/。app/logs.ts）。
+ * 以前はデータの保存先（Application Support）に置いていたが、そこはエージェントから読めないので、場所をチャットに貼っても読んでもらえなかった
  */
-export function diagnosticsRoot(): string {
-  return path.join(app.getPath("home"), "Library", "Logs", app.getName(), "diagnostics");
+function diagnosticsRoot(): string {
+  return path.join(logsDir(), "diagnostics");
 }
 
 /** 以前の保存先（データの保存先の diagnostics/）に残っている記録を、いまの保存先へ移す（起動したときに 1 回） */
@@ -59,13 +60,11 @@ export async function openDiagnosticsRoot(): Promise<void> {
 }
 
 /** 性能の記録（IPC の diagnostics）。記録を取るのは、頼んできた画面のウィンドウ（なければメインのウィンドウ） */
-export function diagnosticsHandlers(mainWindow: () => BrowserWindow | undefined): IpcHandlers["diagnostics"] {
-  return {
-    start: (e) => void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow()),
-    folders: () => diagnosticsFolders(),
-    openRoot: () => openDiagnosticsRoot(),
-  };
-}
+export const diagnosticsHandlers: IpcHandlers["diagnostics"] = {
+  start: (e) => void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow()),
+  folders: () => diagnosticsFolders(),
+  openRoot: () => openDiagnosticsRoot(),
+};
 
 let running = false;
 
@@ -126,12 +125,9 @@ async function capture(wc: WebContents, seconds: number) {
     const stopMain = await startMainRecording(app.getPath("userData"));
     // プロセスごとの CPU は「前に測ってからの使用率」なので、記録の始めに一度測っておく
     app.getAppMetrics();
-    await send("Profiler.enable");
-    // 1 ミリ秒ごとに、いま実行している関数を記録する
-    await send("Profiler.setSamplingInterval", { interval: 1000 });
-    await send("Profiler.start");
+    const stopProfile = await startCpuProfile(send);
     await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-    const { profile } = await send<{ profile: CpuProfile }>("Profiler.stop");
+    const profile = await stopProfile();
     const main = await stopMain();
     const after = await metrics();
     const timings = (await evaluate(RENDERER_COLLECT)) as unknown as RendererTimings;

@@ -3,7 +3,7 @@ import inspector from "node:inspector";
 import path from "node:path";
 import { monitorEventLoopDelay } from "node:perf_hooks";
 import type { Core } from "../../core/index.js";
-import { topSelfTime, type CpuProfile } from "./profileSummary.js";
+import { startCpuProfile, topSelfTime, type CpuProfile } from "./profileSummary.js";
 
 // 性能の記録（diagnostics.ts）のうち、メインプロセス（コアの HTTP サーバー・DB・エージェントの実行も同じプロセス）の分。
 // 画面が速くても、ここが詰まると SSE の知らせ・API の応答が遅れ、画面全体が遅く見える
@@ -56,9 +56,7 @@ export async function startMainRecording(dataDir: string) {
   session.connect();
   const post = <T = unknown>(method: string, params: object = {}) =>
     new Promise<T>((resolve, reject) => session.post(method, params, (err, result) => (err ? reject(err) : resolve(result as T))));
-  await post("Profiler.enable");
-  await post("Profiler.setSamplingInterval", { interval: 1000 });
-  await post("Profiler.start");
+  const stopProfile = await startCpuProfile(post);
   // 画面へ送った知らせ（SSE）の種類ごとの数と大きさ。大きな知らせが何度も届くと、画面でも受け取って描き直すのが重い
   const sent = new Map<string, { count: number; bytes: number }>();
   const unsubscribe = core?.bus.subscribe((e) => {
@@ -77,7 +75,7 @@ export async function startMainRecording(dataDir: string) {
     loop.disable();
     let profile: CpuProfile | undefined;
     try {
-      profile = (await post<{ profile: CpuProfile }>("Profiler.stop")).profile;
+      profile = await stopProfile();
     } finally {
       session.disconnect();
     }

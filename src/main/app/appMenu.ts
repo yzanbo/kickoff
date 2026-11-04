@@ -1,11 +1,12 @@
-import { Menu, type BrowserWindow } from "electron";
+import { Menu } from "electron";
 import { DIAGNOSTICS_SECONDS, openDiagnosticsRoot, startDiagnostics } from "../diagnostics/diagnostics.js";
+import { mainWindow } from "./window.js";
 
 /**
  * アプリのメニュー。Electron の既定のメニュー（アプリ・ファイル・編集・表示・ウィンドウ）と同じものに、
  * ヘルプの「性能の記録を取る」を足す（重いときに、再起動せずその場で記録を取るため。表示の「開発者ツールの切り替え」も残る）
  */
-export function setAppMenu(mainWindow: () => BrowserWindow | undefined) {
+export function setAppMenu() {
   const menu = Menu.buildFromTemplate([
     { role: "appMenu" },
     { role: "fileMenu" },

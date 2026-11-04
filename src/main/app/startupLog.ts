@@ -1,10 +1,11 @@
 // 起動の記録（~/Library/Logs/<アプリ名>/startup.log）。アプリを入れ替えた直後の初回だけ画面が出ないことがあり、
 // macOS の記録では画面の中で何が起きたか分からなかったため、起動の各段階・画面の読み込み・失敗をアプリ自身が書き残す。
-// エージェントからも読める場所（データの保存先 Application Support は selfProtection.ts で読めない）に置く
+// エージェントからも読めるログの場所（logs.ts）に置く
 import { appendFileSync, mkdirSync, renameSync, statSync } from "node:fs";
 import path from "node:path";
 import { app, type WebContents } from "electron";
 import { errorMessage } from "@shared/errors";
+import { logsDir } from "./logs.js";
 
 /** これを超えたら 1 世代だけ残して新しく書き始める */
 const MAX_BYTES = 512 * 1024;
@@ -16,7 +17,7 @@ const startedAt = Date.now();
 
 function logFile(): string {
   if (!file) {
-    const dir = path.join(app.getPath("home"), "Library", "Logs", app.getName());
+    const dir = logsDir();
     mkdirSync(dir, { recursive: true });
     file = path.join(dir, "startup.log");
     try {
