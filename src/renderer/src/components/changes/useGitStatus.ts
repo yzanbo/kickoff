@@ -23,13 +23,17 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   const [status, setStatus] = useState<{ key: string; value: GitStatus }>();
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
+  // 変わったかもしれないと知ってから（開いた・ウィンドウに戻った・チャットが動いた・取り直しのボタン）、結果が届くまで（タブの数の代わりに更新中の印を出す）。
+  // 一定の間隔の取り直しでは立てない（5 秒ごとに印がちらつくため）
+  const [refreshing, setRefreshing] = useState(false);
   // 取り直すたびに増やす（差分も取り直すため）。古い応答で上書きしないためにも使う
   const [version, setVersion] = useState(0);
   const latest = useRef(0);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (quiet = false) => {
     const request = ++latest.current;
     setLoading(true);
+    if (!quiet) setRefreshing(true);
     try {
       const value = await api.gitStatus(target);
       if (request !== latest.current) return;
@@ -39,7 +43,10 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
     } catch (e) {
       if (request === latest.current) setError(errorMessage(e));
     } finally {
-      if (request === latest.current) setLoading(false);
+      if (request === latest.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
@@ -50,7 +57,7 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
 
   useEffect(() => {
     if (!active) return;
-    const timer = setInterval(() => void refresh(), POLL_MS);
+    const timer = setInterval(() => void refresh(true), POLL_MS);
     return () => clearInterval(timer);
   }, [active, refresh]);
 
@@ -60,6 +67,8 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   useServerEvent((e) => {
     if (e.type !== "run" || e.run.project_id !== projectId) return;
     clearTimeout(runTimer.current);
+    // 待っている間も更新中の印を出す（チャットが動いた = ファイルが変わったかもしれない）
+    setRefreshing(true);
     runTimer.current = setTimeout(() => void refresh(), RUN_DELAY_MS);
   });
   useEffect(() => () => clearTimeout(runTimer.current), []);
@@ -68,6 +77,8 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   const apply = async (request: Promise<GitStatus>) => {
     const value = await request;
     latest.current++;
+    setLoading(false);
+    setRefreshing(false);
     setStatus({ key, value });
     setVersion((v) => v + 1);
   };
@@ -80,7 +91,7 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   const fetchRemote = () => apply(api.gitFetch(target)).catch((e: unknown) => setError(errorMessage(e)));
   useEffect(() => {
     if (!active) return;
-    const timer = setInterval(() => void api.gitFetch(target).then(() => refresh(), () => undefined), FETCH_MS);
+    const timer = setInterval(() => void api.gitFetch(target).then(() => refresh(true), () => undefined), FETCH_MS);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, key]);
@@ -88,7 +99,7 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
   // 別のプロジェクトに切り替えた直後は、前のプロジェクトの状態を出さない
   const value = status?.key === key ? status.value : undefined;
   const count = value?.repo ? value.staged.length + value.unstaged.length + value.conflicts.length : 0;
-  return { status: value, error, loading, version, refresh, act, commit, push, pull, fetchRemote, count };
+  return { status: value, error, loading, refreshing, version, refresh: () => refresh(), act, commit, push, pull, fetchRemote, count };
 }
 
 export type GitStatusController = ReturnType<typeof useGitStatus>;

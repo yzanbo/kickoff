@@ -48,6 +48,39 @@
   text-align: center;
 }
 
+/* エディタのタブの変更のあるファイルの数は、灰色だと目立たないので、チャットの状態の色（青・緑・オレンジ）と被らない紫の地に白い字にする */
+.tab .change-count {
+  color: #fff;
+  background: var(--sec-schedule);
+}
+
+/*
+ * タブの数を取り直している最中の印（VS Code のバッジと同じく、数の代わりに回る輪）。
+ * 横並びは名前の後ろ、縦並びは数と同じアイコンの右上に重ねる
+ */
+.tab-refreshing {
+  display: inline-grid;
+  place-items: center;
+  margin-left: 6px;
+}
+
+.tab-refreshing .spinner {
+  width: 11px;
+  height: 11px;
+  border-width: 1.5px;
+}
+
+.project-side-tabs .tab-refreshing {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 15px;
+  height: 15px;
+  margin-left: 0;
+  border-radius: 999px;
+  background: var(--bg-elev);
+}
+
 /* ボードのタブの角の数（StateCornerCounts）は、タブの角に少しだけはみ出させる */
 .project-side-tabs .tab {
   --corner-offset: -4px;

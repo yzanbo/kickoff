@@ -3,7 +3,7 @@ import { IconButton } from "../IconButton";
 import { confirmRestoreProject } from "../../projectOrder";
 import type { ProjectTab } from "../../router";
 import { ProjectSwitcher } from "./ProjectSwitcher";
-import { ProjectTabs, useProjectTabsLayout } from "./ProjectTabs";
+import { ProjectTabs, useProjectTabsLayout, type TabRefreshing } from "./ProjectTabs";
 import { StateStats } from "./StateStats";
 import type { ProjectData } from "./useProjectData";
 
@@ -11,7 +11,19 @@ import type { ProjectData } from "./useProjectData";
  * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・フォルダの場所・状態ごとのチャット数と、
  * タブの列（チャットの件数、エディタは変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）
  */
-export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: ProjectData; tab: ProjectTab; changeCount: number; onEdit: () => void }) {
+export function ProjectHeader({
+  data,
+  tab,
+  changeCount,
+  refreshing,
+  onEdit,
+}: {
+  data: ProjectData;
+  tab: ProjectTab;
+  changeCount: number;
+  refreshing: TabRefreshing;
+  onEdit: () => void;
+}) {
   const { project, runs } = data;
   const [layout] = useProjectTabsLayout();
   return (
@@ -49,7 +61,7 @@ export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: Projec
     </div>
     {layout === "top" && (
       <div className="project-tabs-row">
-        <ProjectTabs projectId={project.id} tab={tab} runs={runs} changeCount={changeCount} />
+        <ProjectTabs projectId={project.id} tab={tab} runs={runs} changeCount={changeCount} refreshing={refreshing} />
       </div>
     )}
   </header>
