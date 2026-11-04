@@ -3,6 +3,7 @@ import { useState } from "react";
 import { cx } from "../../cx";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import type { NewChatTarget, SidePanelController } from "./useSidePanel";
+import { NEW_CHAT_TITLE } from "../../chatTitle";
 
 /**
  * 列・グループに出す、送る前の新しいチャット（パネルで入力中）の下書き（filter がなければすべて）。
@@ -40,7 +41,7 @@ function DraftCard({ text, active, onOpen, onDelete }: { text: string; active: b
       >
         <span className="draft-card-head">
           <SquarePen size={13} aria-hidden />
-          {written ? "書きかけ（未送信）" : "新しいチャット（未送信）"}
+          {written ? "書きかけ（未送信）" : `${NEW_CHAT_TITLE}（未送信）`}
         </span>
         {written && <span className="draft-card-text">{written}</span>}
       </button>

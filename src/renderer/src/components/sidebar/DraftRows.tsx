@@ -3,6 +3,7 @@ import { useState } from "react";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 import { startDraftDrag } from "../../groups";
 import { discardDraft, openDraft, useAllDrafts, type SidebarDraft } from "../sidePanel/panelMemory";
+import { NEW_CHAT_TITLE } from "../../chatTitle";
 
 /**
  * プロジェクトの下書きを、置く場所ごとに分ける（グループの中 / いちばん上）。
@@ -54,7 +55,7 @@ function DraftRow({ draft }: { draft: SidebarDraft }) {
         </span>
         <span className="chat-row-body">
           <span className="chat-row-line">
-            <span className="chat-row-title">{first || "新しいチャット"}</span>
+            <span className="chat-row-title">{first || NEW_CHAT_TITLE}</span>
             <span className="chat-row-time">下書き</span>
           </span>
         </span>

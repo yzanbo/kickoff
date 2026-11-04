@@ -5,3 +5,6 @@ export const CHAT_TITLE_MAX = 100;
 export function chatTitle(title: string | null | undefined): string {
   return title || "無題のチャット";
 }
+
+/** 送る前の新しいチャット（下書き）の名前（タブ・サイドバー・ボードに出すので短く） */
+export const NEW_CHAT_TITLE = "new チャット";
