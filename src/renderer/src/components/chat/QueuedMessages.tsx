@@ -163,6 +163,10 @@ export function QueuedMessages({
   const stopHint = !paused && busy && stopIndex >= 0;
   // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
   const next = collapsed ? nextQueuedText(queue[0]) : "";
+  /** 書き直しを保存する。send なら続けていま送る（行の「すぐ送る」と同じ。作業中なら止めずに伝える。⌘Enter・書き直す欄の送るボタン） */
+  const saveEdit = (id: string, text: string, attachments: Attachment[], send: boolean) =>
+    void api.editQueued(runId, id, text, attachments).then(() => (send ? api.sendQueuedNow(runId, id) : undefined)).then(() => setEditing(undefined), failed);
+
   return (
     <div className={cx("queued-messages", collapsed && "collapsed", resizing && "resizing")} aria-label="送信待ちの指示">
       {!collapsed && (
@@ -229,11 +233,13 @@ export function QueuedMessages({
               <QueuedEditor
                 index={i}
                 withGrip={queue.length > 1}
+                busy={busy}
                 text={editing.text}
                 attachments={editing.attachments}
                 onChange={(text) => setEditing({ ...editing, text })}
                 onAttachmentsChange={(attachments) => setEditing({ ...editing, attachments })}
-                onSave={(attachments) => void api.editQueued(runId, m.id, editing.text, attachments).then(() => setEditing(undefined), failed)}
+                onSave={(attachments) => saveEdit(m.id, editing.text, attachments, false)}
+                onSaveAndSend={(attachments) => saveEdit(m.id, editing.text, attachments, true)}
                 onCancel={() => setEditing(undefined)}
               />
             ) : (
