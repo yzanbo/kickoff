@@ -65,7 +65,7 @@ interface Props {
  * 右に パネルの開閉（ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
 export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, columns, panel }: Props) {
-  // ツールバーを「ボードの上だけ」に置いてパネルを開いているときは、パネルが上端まで伸びてそのタブの列の左端に閉じるがあるので、
+  // ツールバーを「パネル優先」にしてパネルを開いているときは、パネルが上端まで伸びてそのタブの列の左端に閉じるがあるので、
   // ツールバーの右端の開閉は出さない（すぐ隣に同じボタンが 2 つ並んでいた）。閉じているときは開くために出す
   const [headerLayout] = useBoardHeaderLayout();
   const showToggle = !(headerLayout === "beside" && panel.panelOpen);
