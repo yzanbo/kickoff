@@ -52,7 +52,8 @@ export function useExternalTerminal() {
 export function useExternalBrowser() {
   const [browser, setBrowser] = useSharedChoice<ExternalBrowserId>(EXTERNAL_BROWSER_KEY, BROWSER_IDS, "chrome");
   const installed = useAsync(loadBrowsers);
-  const open = (url?: string) => void window.kickoff?.openInBrowser(url, browser).catch(reportFailure("ブラウザを開けませんでした"));
+  const open = (url?: string, app: ExternalBrowserId = browser) =>
+    void window.kickoff?.openInBrowser(url, app).catch(reportFailure("ブラウザを開けませんでした"));
   return {
     browser,
     setBrowser,

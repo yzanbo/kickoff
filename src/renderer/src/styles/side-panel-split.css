@@ -158,18 +158,36 @@ input[type="text"].panel-tab-input {
   padding-left: 4px;
 }
 
-/* タブの列のブラウザ・ターミナル: アイコン（新しいタブ）と細い ▾（開き方のメニュー）を 1 つのまとまりにする */
+/*
+ * タブの列のブラウザ・ターミナル: アイコン（新しいタブ）と細い ▾（開き方のメニュー）を 1 つのボタンに見せる。
+ * どちらに乗せても・メニューを開いている間も、2 つをつなげた 1 つの地で光らせる（以前はそれぞれの地が別々に光り、2 つのボタンに見えた）
+ */
 .panel-split-button {
   display: inline-flex;
   align-items: center;
+  border-radius: 6px;
+}
+
+.panel-split-button:hover,
+.panel-split-button:has(.panel-open-with[aria-expanded="true"]) {
+  background: var(--bg-hover);
+}
+
+.panel-split-button .icon-button,
+.panel-split-button .icon-button:hover {
+  background: transparent;
+}
+
+.panel-split-button:hover .icon-button,
+.panel-split-button .panel-open-with[aria-expanded="true"] {
+  color: var(--text);
 }
 
 .panel-split-button .panel-open-with {
-  width: 14px;
-  margin-left: -3px;
+  width: 16px;
 }
 
-.panel-split-button .panel-open-with[aria-expanded="true"] {
-  color: var(--text);
-  background: var(--bg-hover);
+/* アイコンの部分を少し詰め、▾ と合わせて 1 つのボタンの幅に見せる */
+.panel-split-button .icon-button:first-child {
+  width: 24px;
 }

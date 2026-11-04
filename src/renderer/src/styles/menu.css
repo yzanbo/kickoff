@@ -16,13 +16,6 @@
   width: 240px;
 }
 
-/* 項目の右に控えめに添える文（「外部で開く」のアプリの名前） */
-.menu .menu-hint {
-  flex: none;
-  font-size: 12px;
-  color: var(--muted);
-}
-
 .group-pick-menu .muted-item {
   border-top: 1px solid var(--border);
   color: var(--muted);
