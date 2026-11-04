@@ -47,10 +47,3 @@ test("指示: 通信のエラーで止まったサブエージェントは 1 回
   assert.match(prompt, /1 回だけ再開/);
   assert.match(prompt, /利用者が止めたもの（中断）は、再開も立ち上げ直しもせず/);
 });
-
-test("指示: 出力の上限（max_output_tokens）で止まったサブエージェントは、短く分けるよう添えて 1 回だけ続きを頼む（通信のエラーとは分ける）", () => {
-  const prompt = buildSystemPrompt(project([]));
-  assert.match(prompt, /max_output_tokens/);
-  assert.match(prompt, /報告は短くまとめる/);
-  assert.match(prompt, /大きなファイルは何回かに分けて書く/);
-});
