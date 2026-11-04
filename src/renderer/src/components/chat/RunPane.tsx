@@ -23,7 +23,7 @@ import { OpenSubagentContext } from "./ToolGroup";
 import { promptEntries, userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
-import { MoveHorizontal, Search } from "lucide-react";
+import { MoveHorizontal, Search, TriangleAlert } from "lucide-react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
@@ -227,15 +227,21 @@ function RunView({
         <PromptRail root={panelRef} prompts={entries} onJump={jump} />
       </RunTimeline>
       <div className="run-composer">
+        {/*
+          同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる）。押して開くピルの列とは役割が違うので、
+          ピルに混ぜず、その上の 1 行に分ける（以前はピルの横に並べていて、ピルの一つに見えた・狭いと折り返してピルの間に入った）
+        */}
+        {busyNeighbors > 0 && (
+          <p className="composer-notice small warn-text">
+            <TriangleAlert size={13} aria-hidden />
+            <span>この作業場所では、ほかのチャット {busyNeighbors} 件も作業中です。同じファイルを触ると作業がぶつかることがあります。</span>
+          </p>
+        )}
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
           <PromptsChip events={events} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
           <TodoChip events={events} />
           <SubagentChip entries={subagents} run={run} busy={busy} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
-          {/* 同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる） */}
-          {busyNeighbors > 0 && (
-            <span className="small warn-text">この作業場所では、ほかのチャット {busyNeighbors} 件も作業中です。同じファイルを触ると作業がぶつかることがあります。</span>
-          )}
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
         <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stops={queueStops} busy={busy} newChatTarget={{ projectId: run.project_id, group: run.group_id ?? undefined }} />

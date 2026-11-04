@@ -257,3 +257,17 @@
 .composer.compact .view-toggle button {
   padding: 2px 6px;
 }
+
+/* チャット欄の上（ピルの列のさらに上）に分けて出す知らせ（同じ作業場所で、ほかのチャットも作業中など）。押して開くピルとは役割が違うので混ぜない */
+.composer-notice {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  padding: 0 2px 6px;
+  line-height: 1.45;
+}
+
+.composer-notice svg {
+  flex: none;
+}
