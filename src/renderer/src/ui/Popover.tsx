@@ -36,7 +36,7 @@ interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
 /**
  * 押すと開く一覧・詳細（チャット欄の上のピル・下の帯の接続と使用状況・状態ごとのチャットなど）。
  * 基準の要素の下（上）に出し、描いてから大きさを測って画面の中に収める。開いている間は基準の要素を追い（送信待ちが増えてピルが動いた、など）、
- * 基準の要素が消えた・押せなくなった（パネルを閉じた・裏のスライドになった）ら閉じる。外側のクリック・Esc で閉じる。
+ * 基準の要素が消えた・隠れた（表示していないタブになった）・押せなくなった（パネルを閉じた・裏のスライドになった）ら閉じる。外側のクリック・Esc で閉じる。
  * top layer に出すので、中を切り取る枠（タブの列・送信待ちの一覧）やコンテナクエリの枠の中から開いても、切れずに画面を基準に置ける
  */
 export function Popover({
@@ -64,7 +64,8 @@ export function Popover({
     ref,
     () => {
       const el = anchor.current;
-      if (!el?.isConnected || el.closest("[inert]")) {
+      // 基準の要素が消えた・隠れた（表示していないタブになった）・押せなくなった（パネルを閉じた）ら閉じる
+      if (!el?.isConnected || el.getClientRects().length === 0 || el.closest("[inert]")) {
         close.current();
         return null;
       }
