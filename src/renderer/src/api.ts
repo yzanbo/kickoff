@@ -61,6 +61,8 @@ interface RunDetail {
   reconnect?: ReconnectState | null;
   /** 裏で動いている作業と、メインの返答が終わったか（作業中でなければ null） */
   background?: BackgroundState | null;
+  /** 停止を頼んで、作業が終わるのを待っているか */
+  stopping?: boolean;
 }
 
 interface ImportProjectInput {
