@@ -1,15 +1,14 @@
 import { Folder, Plus } from "lucide-react";
 import type { ReactNode } from "react";
-import type { ChatGroup } from "@shared/types";
+import type { Chat, ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { flashGroup } from "@/features/group/groups";
 import { navigate, openNewChat, useRoute } from "@/app/router";
-import type { BoardEntry } from "@/features/chatList/boardColumns";
+import type { ChatBucket } from "@/features/chatList/buckets";
 import { Collapse } from "@/ui/Collapse";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
-import type { ChatOrder } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { GroupToggle, pressedLeftOfName } from "@/ui/GroupToggle";
 import type { SidebarDraft } from "@/features/panel/state/panelMemory";
@@ -17,37 +16,33 @@ import { DraftRows } from "./DraftRows";
 import type { GroupSectionProps } from "./useGroupSections";
 
 /**
- * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身）。
+ * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身。bucket は bucketChats のグループのまとまりで、中の段があれば状態ごとに分ける）。
  * 左の矢印を押すと開閉する。見出しのほかの部分を押すと、選んでいて開いていれば閉じ、それ以外は選び直して開く（そのグループのボードを開いてハイライトする。サイドバー全体で同じ）。
  * 名前のダブルクリックで名前を変える・ドラッグで並べ替える・チャットをドロップしてグループへ移す・右クリックでメニュー
  */
 export function CustomGroupSection({
   projectId,
   group,
-  members,
+  bucket,
   closed,
   onSetClosed,
   filtering,
-  order,
   renderRow,
   section: { menu, renaming, onRenameStart, onRenameEnd, dropClass, dropProps, dragProps },
-  drafts = [],
 }: {
   projectId: number;
   group: ChatGroup;
-  members: BoardEntry[];
+  /** グループのチャット（絞り込みを通したもの）と、このグループで始める下書き（中身のいちばん上に出す） */
+  bucket: ChatBucket<SidebarDraft>;
   closed: boolean;
   onSetClosed: (closed: boolean) => void;
   /** 検索・絞り込みの間（並べ方のまとまりを開いて見せる） */
   filtering: boolean;
-  /** 中の並び順（状態別なら状態ごとの見出しに分ける） */
-  order: ChatOrder;
-  renderRow: (row: BoardEntry) => ReactNode;
+  renderRow: (chat: Chat) => ReactNode;
   /** 見出しの操作の束（useGroupSections の sectionProps） */
   section: GroupSectionProps;
-  /** このグループで始める、送る前の新しいチャット（下書き。中身のいちばん上に出す） */
-  drafts?: SidebarDraft[];
 }) {
+  const { chats: members, drafts } = bucket;
   // 選んでいる = いまそのグループのボードを見ている
   const route = useRoute();
   const selected = route.name === "project" && route.id === projectId && route.tab === "groups" && route.group === group.id;
@@ -126,10 +121,10 @@ export function CustomGroupSection({
           drafts.length > 0 ? null : (
           <p className="custom-group-empty">チャットをここへドラッグ</p>
           )
-        ) : order === "status" ? (
+        ) : bucket.children ? (
           // 状態別のときは、グループの中を状態ごとの見出しに分ける
           <div className="custom-group-grouped">
-            <GroupedChatRows sections="none" order={order} projectId={projectId} scope={group.id} rows={members} renderRow={renderRow} forceOpen={filtering} />
+            <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={filtering} />
           </div>
         ) : (
           <ul className="chat-rows custom-group-rows">{members.map(renderRow)}</ul>
