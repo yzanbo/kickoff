@@ -15,6 +15,7 @@ import { Runner } from "./chat/runner.js";
 import { UploadStore } from "./chat/uploads.js";
 import { startAutoArchive } from "./chat/autoArchive.js";
 import { VoiceService } from "./voice/service.js";
+import type { DatabaseStats } from "./db/stats.js";
 
 interface CoreOptions {
   dataDir: string;
@@ -28,9 +29,10 @@ export interface Core {
   port: number;
   token: string;
   localUrl: string;
-  store: Store;
+  /** 変更の知らせ（性能の記録で、画面へ送った知らせ・つないでいる SSE を数える） */
   bus: Bus;
-  approvals: ApprovalCenter;
+  /** 性能の記録（メインプロセスの診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */
+  databaseStats(): DatabaseStats;
   close(): Promise<void>;
 }
 
@@ -84,9 +86,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     port: opts.port,
     token,
     localUrl: `http://127.0.0.1:${opts.port}`,
-    store,
     bus,
-    approvals,
+    databaseStats: () => store.stats(),
     close: async () => {
       runner.shutdown();
       voice.downloads.stopAll();

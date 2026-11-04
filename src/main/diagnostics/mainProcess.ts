@@ -1,7 +1,6 @@
-import fs from "node:fs";
 import inspector from "node:inspector";
-import path from "node:path";
 import { monitorEventLoopDelay } from "node:perf_hooks";
+import { errorMessage } from "@shared/errors";
 import type { Core } from "../../core/index.js";
 import { startCpuProfile, topSelfTime, type CpuProfile } from "./profileSummary.js";
 
@@ -20,28 +19,13 @@ const LOOP_RESOLUTION_MS = 10;
 
 const mb = (bytes: number) => Math.round((bytes / 1048576) * 10) / 10;
 
-/** DB の大きさと、記録の多いチャット（長く続けたチャットほど、開く・描くのが重くなる） */
-function dbStats(dataDir: string) {
-  const size = (name: string) => {
-    try {
-      return mb(fs.statSync(path.join(dataDir, name)).size);
-    } catch {
-      return 0;
-    }
-  };
-  const files = { dbMB: size("kickoff.db"), walMB: size("kickoff.db-wal") };
-  if (!core) return files;
+/** DB の大きさと、記録の多いチャット（集計はコアの databaseStats）。取れなければ理由 */
+function dbStats() {
+  if (!core) return null;
   try {
-    const db = core.store.db;
-    const count = (sql: string) => Number((db.prepare(sql).get() as { n: number }).n);
-    const busiest = db
-      .prepare(
-        "SELECT e.chat_id AS id, COUNT(*) AS events, r.title AS title, r.status AS status FROM chat_events e JOIN chats r ON r.id = e.chat_id GROUP BY e.chat_id ORDER BY events DESC LIMIT 5",
-      )
-      .all() as { id: number; events: number; title: string | null; status: string }[];
-    return { ...files, chats: count("SELECT COUNT(*) AS n FROM chats"), events: count("SELECT COUNT(*) AS n FROM chat_events"), busiestChats: busiest };
+    return core.databaseStats();
   } catch (e) {
-    return { ...files, error: String(e) };
+    return { error: errorMessage(e) };
   }
 }
 
@@ -49,7 +33,7 @@ function dbStats(dataDir: string) {
  * メインプロセスの記録を始める（CPU プロファイル・イベントループの遅れ・コアが画面へ送った知らせの数と量）。
  * 返した関数で止めて、まとめと CPU プロファイルを返す
  */
-export async function startMainRecording(dataDir: string) {
+export async function startMainRecording() {
   const loop = monitorEventLoopDelay({ resolution: LOOP_RESOLUTION_MS });
   loop.enable();
   const session = new inspector.Session();
@@ -92,7 +76,7 @@ export async function startMainRecording(dataDir: string) {
       sentEvents: [...sent.entries()]
         .map(([type, s]) => ({ type, count: s.count, kb: Math.round(s.bytes / 1024) }))
         .sort((a, b) => b.kb - a.kb),
-      db: dbStats(dataDir),
+      db: dbStats(),
       // 記録そのもの（プロファイルを止める inspector の呼び出し）は除く
       hotspots: profile ? topSelfTime(profile, 31).filter((h) => !h.where.startsWith("node:inspector")).slice(0, 30) : [],
     };

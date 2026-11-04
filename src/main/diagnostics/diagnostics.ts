@@ -122,7 +122,7 @@ async function capture(wc: WebContents, seconds: number) {
     const page = await evaluate(RENDERER_PROBE);
     // 操作の遅れ（キー入力などが画面に出るまで）と長いフレームを、記録の間だけ画面で集める
     await evaluate(RENDERER_OBSERVE);
-    const stopMain = await startMainRecording(app.getPath("userData"));
+    const stopMain = await startMainRecording();
     // プロセスごとの CPU は「前に測ってからの使用率」なので、記録の始めに一度測っておく
     app.getAppMetrics();
     const stopProfile = await startCpuProfile(send);
