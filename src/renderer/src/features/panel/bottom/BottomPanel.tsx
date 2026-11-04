@@ -4,6 +4,7 @@ import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/stores/projects";
 import { Panel } from "@/features/panel/Panel";
 import type { BottomPanelController } from "./useBottomPanel";
+import { IconButton } from "@/ui/IconButton";
 
 /**
  * フッター（画面の下のパネル。VS Code の「パネル」と同じ）。中身は右のパネル・右端のチャット欄と同じタブ（Panel）で、
@@ -37,19 +38,15 @@ export function BottomPanel({ bottom }: { bottom: BottomPanelController }) {
             className: "in-footer",
             controls: (
               <>
-                <button
+                <IconButton
                   type="button"
+                  icon={maximized ? Minimize2 : Maximize2}
                   className="panel-control"
-                  title={maximized ? "元の高さに戻す" : "フッターを最大化"}
-                  aria-label={maximized ? "元の高さに戻す" : "フッターを最大化"}
+                  label={maximized ? "元の高さに戻す" : "フッターを最大化"}
                   aria-pressed={maximized}
                   onClick={bottom.toggleMaximized}
-                >
-                  {maximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                </button>
-                <button type="button" className="panel-control" title="フッターを閉じる（⌃` / ⌘J）" aria-label="フッターを閉じる" onClick={bottom.close}>
-                  <PanelBottomClose size={15} />
-                </button>
+                />
+                <IconButton type="button" icon={PanelBottomClose} size={15} className="panel-control" label="フッターを閉じる" keys="⌃` / ⌘J" onClick={bottom.close} />
               </>
             ),
           }}

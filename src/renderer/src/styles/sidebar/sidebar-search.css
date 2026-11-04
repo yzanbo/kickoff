@@ -31,7 +31,8 @@
   outline: none;
 }
 
-.chat-search-clear {
+/* 検索欄の右端の小さなボタン（IconButton。後ろの .icon-button に勝つよう重ねて書く） */
+.icon-button.chat-search-clear {
   display: grid;
   place-items: center;
   width: 18px;
@@ -44,7 +45,7 @@
   cursor: pointer;
 }
 
-.chat-search-content {
+.icon-button.chat-search-content {
   display: grid;
   place-items: center;
   width: 20px;
@@ -57,12 +58,12 @@
   cursor: pointer;
 }
 
-.chat-search-content:hover {
+.icon-button.chat-search-content:hover {
   color: var(--text);
   background: var(--bg-hover);
 }
 
-.chat-search-clear:hover {
+.icon-button.chat-search-clear:hover {
   color: var(--text);
   background: var(--bg-hover);
 }

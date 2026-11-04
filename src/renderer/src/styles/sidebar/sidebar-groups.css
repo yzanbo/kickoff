@@ -99,8 +99,8 @@
   color: var(--muted);
 }
 
-/* サイドバーの開閉の矢印（どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない） */
-.custom-group-toggle {
+/* サイドバーの開閉の矢印（GroupToggle。どのまとまりも同じ大きさ。行を押しても開閉するので、ボタンらしい背景は付けない。後ろの .icon-button に勝つよう重ねて書く） */
+.icon-button.custom-group-toggle {
   display: grid;
   flex: none;
   place-items: center;
@@ -124,9 +124,10 @@
   cursor: pointer;
 }
 
-.custom-group-toggle:hover,
-.custom-group-toggle:focus-visible {
+.icon-button.custom-group-toggle:hover,
+.icon-button.custom-group-toggle:focus-visible {
   color: var(--text);
+  background: transparent;
 }
 
 .custom-group-name {

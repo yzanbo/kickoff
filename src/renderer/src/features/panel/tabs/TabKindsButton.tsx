@@ -1,4 +1,5 @@
 import { Check, Eye } from "lucide-react";
+import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { PANEL_KINDS, PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
@@ -17,17 +18,17 @@ export function TabKindsButton({ panel }: { panel: PanelController }) {
   const label = `表示するタブ: ${kinds.kinds.map((k) => PANEL_KIND_LABELS[k]).join("・")}`;
   return (
     <>
-      <button
+      <IconButton
         type="button"
+        icon={Eye}
+        size={15}
         className={`panel-control panel-tab-kinds-${panel.surface}`}
+        label={label}
         title={`${label}（チャット・ブラウザ・ターミナルから選ぶ）`}
-        aria-label={label}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
         onClick={menu.toggle}
-      >
-        <Eye size={15} />
-      </button>
+      />
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="表示するタブ" ignore={selector} onClose={menu.close}>
           <div className="menu-label">表示するタブ</div>

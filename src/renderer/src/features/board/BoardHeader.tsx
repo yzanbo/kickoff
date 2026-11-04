@@ -9,6 +9,7 @@ import { Segmented } from "@/ui/Segmented";
 import { PanelToggle } from "@/features/panel/PanelToggle";
 import type { PanelController } from "@/features/panel/usePanel";
 import { useBoardHeaderLayout } from "./boardHeaderLayout";
+import { IconButton } from "@/ui/IconButton";
 
 /** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
 export type BoardView = SettingValue<typeof BOARD_VIEW>;
@@ -131,9 +132,7 @@ function BoardSearch({ query, onChange }: { query: string; onChange: (query: str
   return (
     <SearchField className="board-search" value={query} onChange={onChange} placeholder="チャット名で検索（⌘F）" label="このボードのチャットを名前で検索">
       {/* チャットの中の文言を探すときは、全文検索のパネルへ */}
-      <button className="chat-search-content" title="チャットの中の文言を検索（⌘⇧F）" aria-label="チャットの中の文言を検索" onClick={openContentSearch}>
-        <TextSearch size={13} />
-      </button>
+      <IconButton icon={TextSearch} size={13} className="chat-search-content" label="チャットの中の文言を検索" keys="⌘⇧F" onClick={openContentSearch} />
     </SearchField>
   );
 }

@@ -14,6 +14,7 @@ import { useGroupsOf } from "@/stores/groups";
 import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { IconButton } from "@/ui/IconButton";
 
 interface Props {
   sidebar: SidebarController;
@@ -64,9 +65,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
       <div className="sidebar-resizer" aria-label="サイドバーの幅を変える" {...sidebar.resizeHandle} />
       {/* 一番上の行は macOS の信号機ボタンの行。右端に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
       <div className="sidebar-header">
-        <button className="titlebar-toggle" title="サイドバーを閉じる（⌘B）" aria-label="サイドバーを閉じる" onClick={sidebar.toggle}>
-          <PanelLeftClose size={14} strokeWidth={1.75} />
-        </button>
+        <IconButton icon={PanelLeftClose} className="titlebar-toggle" label="サイドバーを閉じる" keys="⌘B" onClick={sidebar.toggle} />
       </div>
       <div className="nav-rows">
         <button className="nav-row" onClick={onNewChat} title="新しいチャット（⌘N）">
@@ -104,8 +103,6 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
 export function SidebarOpenButton({ sidebar }: { sidebar: SidebarController }) {
   if (sidebar.open) return null;
   return (
-    <button className="titlebar-toggle floating" title="サイドバーを開く（⌘B）" aria-label="サイドバーを開く" onClick={sidebar.toggle}>
-      <PanelLeftOpen size={14} strokeWidth={1.75} />
-    </button>
+    <IconButton icon={PanelLeftOpen} className="titlebar-toggle floating" label="サイドバーを開く" keys="⌘B" onClick={sidebar.toggle} />
   );
 }

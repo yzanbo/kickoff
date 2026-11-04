@@ -1,6 +1,6 @@
-import type { LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, type LucideIcon } from "lucide-react";
 import type { MouseEvent } from "react";
-import { Chevron } from "./Chevron";
+import { IconButton } from "./IconButton";
 
 /**
  * サイドバーのまとまり（自分で作ったグループ・グループなし・固定・アーカイブ済み・並べ方のまとまり）の開閉のボタン。
@@ -9,9 +9,7 @@ import { Chevron } from "./Chevron";
 export function GroupToggle({ open, onToggle, icon: Icon, iconSize = 13 }: { open: boolean; onToggle: () => void; icon?: LucideIcon; iconSize?: number }) {
   return (
     <>
-      <button type="button" className="custom-group-toggle" aria-expanded={open} title={open ? "閉じる" : "開く"} onClick={onToggle}>
-        <Chevron open={open} />
-      </button>
+      <IconButton type="button" icon={open ? ChevronDown : ChevronRight} size={12} className="custom-group-toggle" label={open ? "閉じる" : "開く"} aria-expanded={open} onClick={onToggle} />
       {Icon && <Icon size={iconSize} className="custom-group-icon" aria-hidden />}
     </>
   );

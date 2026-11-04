@@ -131,6 +131,11 @@
   color: var(--warn);
 }
 
+/* オンのときは稲妻を塗る */
+.fast-toggle.on svg {
+  fill: currentColor;
+}
+
 .fast-toggle:disabled {
   opacity: 0.35;
   cursor: default;
