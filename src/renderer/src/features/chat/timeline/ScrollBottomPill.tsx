@@ -1,9 +1,50 @@
 import { ArrowDown } from "lucide-react";
-import { useLayoutEffect, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import type { Chat, ChatEvent, ChatLive } from "@shared/types";
 import { cx } from "@/lib/cx";
+import { CHAT_STATUS_LABELS } from "@/features/chat/chatStatus";
+import { lastResultIdOf } from "@/features/chat/status/workingLabel";
 
-export type ScrollPillTone = "waiting" | "arrived" | "working" | "idle" | "failed" | "offline";
+type ScrollPillTone = "waiting" | "arrived" | "working" | "idle" | "failed" | "offline";
+
+/**
+ * 一番下へ戻るボタンに出すいまの状態（上を読んでいる間も、このチャットがどうなっているかが分かるように）。
+ * 答えを待っている・上を読んでいる間に返答が届いた（失敗した）ときは目立たせて下へ誘い、作業中はいまの段階（working。作業中の行と同じ文）、
+ * 終わっていれば結果を出す。通信が切れている（再試行中・つながるのを待っている）ときは黄にする
+ */
+export function useScrollPill({
+  away,
+  waiting,
+  busy,
+  chat,
+  live,
+  events,
+  working,
+}: {
+  /** 一番下から離れているか */
+  away: boolean;
+  /** 答えを待っているか（確認のカードがある） */
+  waiting: boolean;
+  busy: boolean;
+  chat: Chat;
+  live: ChatLive;
+  events: ChatEvent[];
+  working: ReactNode | null;
+}): { label: ReactNode; tone: ScrollPillTone } {
+  // 上を読んでいる間に作業が終わったか（離れたときのいちばん新しい作業の終わりと比べる。一番下へ戻ったら消す）
+  const lastResultId = lastResultIdOf(events);
+  const awayFromResult = useRef<number | null>(null);
+  if (!away) awayFromResult.current = null;
+  else awayFromResult.current ??= lastResultId;
+  const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
+  const failed = chat.status === "failed";
+  if (waiting) return { label: "回答を待っています", tone: "waiting" };
+  if (!busy && live.reconnect) return { label: "通信待ち（つながったら自動で再開）", tone: "offline" };
+  if (finishedWhileAway) return { label: failed ? "失敗しました" : "返答が届きました", tone: failed ? "failed" : "arrived" };
+  if (busy) return { label: working, tone: live.retry ? "offline" : "working" };
+  return { label: CHAT_STATUS_LABELS[chat.status], tone: failed ? "failed" : "idle" };
+}
 
 /**
  * 一番下へ戻るボタン（上を読んでいる間だけ出す。いまの状態を添え、答えを待っている・返答が届いたときは目立たせて下へ誘う）。
