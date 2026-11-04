@@ -2,13 +2,10 @@ import { ArrowRightLeft, Columns2, Rows2, Undo2, X } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
+import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneLayout";
 import type { PanelController } from "@/features/panel/usePanel";
-
-/** タブの右クリックのメニューの、おおよその大きさ（画面からはみ出さない位置にするため。チャットのタブは項目が多い） */
-export const TAB_MENU_WIDTH = 220;
-export const tabMenuHeight = (panes: number, chat: boolean) => 120 + (panes > 1 ? panes * 32 : 0) + (chat ? 270 : 0);
 
 /**
  * 右のパネルのタブの右クリックのメニュー: 右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
@@ -18,15 +15,14 @@ export const tabMenuHeight = (panes: number, chat: boolean) => 120 + (panes > 1 
 export function TabMenu({
   panel,
   tabKey,
-  x,
-  y,
+  at,
   onRename,
   onClose,
 }: {
   panel: PanelController;
   tabKey: string;
-  x: number;
-  y: number;
+  /** 置く場所（右クリックの位置） */
+  at: Placement;
   /** チャットのタブの名前をその場で変え始める */
   onRename: (chat: Chat) => void;
   onClose: () => void;
@@ -72,7 +68,7 @@ export function TabMenu({
     </>
   );
   return (
-    <PopupMenu x={x} y={y} label="タブのメニュー" onClose={onClose}>
+    <PopupMenu at={at} label="タブのメニュー" onClose={onClose}>
       {chat ? (
         <ChatMenuItems
           chat={chat}

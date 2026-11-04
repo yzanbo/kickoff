@@ -1,6 +1,7 @@
 import { SquarePen, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import type { Placement } from "@/lib/floating";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { startDraftDrag } from "@/features/group/groups";
 import { discardDraft, openDraft, useAllDrafts, type SidebarDraft } from "@/features/panel/state/panelMemory";
 import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
@@ -34,7 +35,7 @@ export function DraftRows({ drafts, drop }: { drafts: SidebarDraft[]; drop?: Rec
 }
 
 function DraftRow({ draft }: { draft: SidebarDraft }) {
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const menu = useContextMenu();
   const first = draft.text.trim().split("\n")[0] ?? "";
   return (
     <li className="chat-row-item">
@@ -45,10 +46,7 @@ function DraftRow({ draft }: { draft: SidebarDraft }) {
         draggable
         onDragStart={(e) => startDraftDrag(e, draft)}
         onClick={() => openDraft(draft)}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu({ x: e.clientX, y: e.clientY });
-        }}
+        onContextMenu={menu.open}
       >
         <span className="status-slot draft-slot" aria-hidden>
           <SquarePen size={12} />
@@ -60,15 +58,14 @@ function DraftRow({ draft }: { draft: SidebarDraft }) {
           </span>
         </span>
       </button>
-      {menu && <DraftMenu {...menu} onOpen={() => openDraft(draft)} onDelete={() => discardDraft(draft)} onClose={() => setMenu(null)} />}
+      {menu.menu && <DraftMenu at={menu.menu.at} onOpen={() => openDraft(draft)} onDelete={() => discardDraft(draft)} onClose={menu.close} />}
     </li>
   );
 }
 
-function DraftMenu({ x, y, onOpen, onDelete, onClose }: { x: number; y: number; onOpen: () => void; onDelete: () => void; onClose: () => void }) {
-  const at = clampToViewport(x, y, 200, 100);
+function DraftMenu({ at, onOpen, onDelete, onClose }: { at: Placement; onOpen: () => void; onDelete: () => void; onClose: () => void }) {
   return (
-    <PopupMenu x={at.x} y={at.y} label="下書きの操作" onClose={onClose}>
+    <PopupMenu at={at} label="下書きの操作" onClose={onClose}>
       <MenuItem onSelect={onOpen}>
         <SquarePen size={14} /> 開く
       </MenuItem>

@@ -1,17 +1,14 @@
 import { createContext, useContext, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/lib/cx";
+import type { Placement } from "@/lib/floating";
 import { useDismiss } from "@/hooks/useDismiss";
+import { useFloating } from "@/hooks/useFloating";
 import { useMenuKeys } from "@/hooks/useMenuKeys";
 
-/** メニューが画面の端からはみ出さないよう寄せた位置（width・height はおおよそのメニューの大きさ） */
-export function clampToViewport(x: number, y: number, width: number, height: number) {
-  return { x: Math.min(x, window.innerWidth - width), y: Math.min(y, window.innerHeight - height) };
-}
-
 interface Props {
-  x: number;
-  y: number;
+  /** 置く場所（右クリックの位置、または開いたボタンの下。useContextMenu が決める）。描いてから大きさを測って画面の中に収める */
+  at: Placement;
   /** "menu" に加えるクラス */
   className?: string;
   label?: string;
@@ -24,16 +21,19 @@ interface Props {
 }
 
 /**
- * 右クリック・「…」で開くメニュー。外側のクリック・Esc で閉じる。開いたら先頭の項目にピントを置き、↑↓ で項目を移る（useMenuKeys）。
- * サイドバーの横スライド（transform）の中から開いても位置がずれないよう、body の直下に出す
+ * 右クリック・「…」で開くメニュー。外側のクリック・Esc で閉じる。開いたらメニューそのものにピントを置き、↑↓ で項目を移る（useMenuKeys）。
+ * 開いたあとに自分の大きさを測って画面の中に収め、中身の大きさが変わったら置き直す（呼ぶ側で大きさを見積もらない）。
+ * top layer に出すので、ポップオーバー・ダイアログの中から開いても上に出る。サイドバーの横スライド（transform）の中から開いても
+ * 位置がずれず、文字の大きさなども開いた場所に影響されないよう、body の直下に出す
  */
-export function PopupMenu({ x, y, className, label, escape = "stop", ignore, onClose, children }: Props) {
+export function PopupMenu({ at, className, label, escape = "stop", ignore, onClose, children }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(ref, onClose, { escape, ignore });
   useMenuKeys(ref);
+  useFloating(ref, () => at);
   return createPortal(
     <MenuCloseContext.Provider value={onClose}>
-      <div ref={ref} className={className ? `menu ${className}` : "menu"} style={{ left: x, top: y }} role="menu" aria-label={label}>
+      <div ref={ref} popover="manual" className={cx("menu", className)} role="menu" aria-label={label}>
         {children}
       </div>
     </MenuCloseContext.Provider>,

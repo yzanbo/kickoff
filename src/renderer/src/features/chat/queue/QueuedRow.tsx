@@ -1,8 +1,9 @@
 import { ArrowDown, ArrowUp, GripVertical, Pencil, SendHorizontal, Trash2 } from "lucide-react";
-import { useState, type DragEvent, type MouseEvent } from "react";
+import type { DragEvent, MouseEvent } from "react";
 import type { QueuedMessage } from "@shared/types";
 import { IconButton } from "@/ui/IconButton";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { startQueueDragGhost } from "./queueDragImage";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
 
@@ -67,7 +68,8 @@ export function QueuedRow({
   onDragOver: (e: DragEvent<HTMLDivElement>) => void;
   onDrop: (e: DragEvent<HTMLDivElement>) => void;
 }) {
-  const [menu, setMenu] = useState<{ x: number; y: number }>();
+  // 右クリックのメニュー（行は画面の下のほう（チャット欄のすぐ上）にあるので、下に入らなければ上へ寄せる。PopupMenu が大きさを測って収める）
+  const menu = useContextMenu();
   // 作業中は止めずに、いまのやり取りに伝える（作業していなければ、すぐ送る）
   const sendLabel = busy ? "いま送る（作業は止めない）" : "いますぐ送る";
   return (
@@ -94,9 +96,7 @@ export function QueuedRow({
       onContextMenu={(e: MouseEvent) => {
         // 文を選んでいるときは、コピーのための既定のメニューに任せる
         if (window.getSelection()?.toString()) return;
-        e.preventDefault();
-        // 行は画面の下のほう（チャット欄のすぐ上）にあるので、メニューの大きさ（項目と区切り線で 400px ほど）を見て、下にはみ出すなら上へ寄せる
-        setMenu(clampToViewport(e.clientX, e.clientY, 300, 450));
+        menu.open(e);
       }}
     >
       {/* ドラッグはつまみからだけ（文は選んでコピーできるように、行全体はドラッグにしない） */}
@@ -137,8 +137,8 @@ export function QueuedRow({
       </span>
     </div>
       {/* メニューは行の外に置く（行のダブルクリック・右クリックがメニューの中に効かないように） */}
-      {menu && (
-        <PopupMenu x={menu.x} y={menu.y} label="送信待ちの指示の操作" onClose={() => setMenu(undefined)}>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="送信待ちの指示の操作" onClose={menu.close}>
           {selectedCount > 1 ? (
             // 選んだもの全体への操作（書き直す → 送る → 並べ替え → 新しいチャットへ → 消す）
             <>

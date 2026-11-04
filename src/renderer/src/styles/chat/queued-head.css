@@ -169,7 +169,7 @@
   }
 }
 
-/* 「すべて送る」のメニュー（SendAllMenu。SendAllMenu の MENU_WIDTH と同じ幅）: 送り方の名前と、何が起きるかの短い説明 */
+/* 「すべて送る」のメニュー（SendAllMenu）: 送り方の名前と、何が起きるかの短い説明 */
 .send-all-menu {
   width: 300px;
 }

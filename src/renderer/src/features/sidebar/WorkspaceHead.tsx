@@ -6,8 +6,8 @@ import { changeProject, confirmRestoreProject } from "@/features/project/project
 import { href, navigate, openNewChat } from "@/app/router";
 import { Chevron } from "@/ui/Chevron";
 import { ProjectMark } from "@/features/project/ProjectMark";
-import { GROUP_PICK_MENU_WIDTH, GroupPickMenu, groupPickMenuHeight } from "@/features/group/GroupPickMenu";
-import { useAnchoredMenu } from "@/ui/useAnchoredMenu";
+import { GroupPickMenu } from "@/features/group/GroupPickMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { IconButton } from "@/ui/IconButton";
 import { ProjectTags } from "@/features/project/ProjectTags";
 import { HeadCounts, type StateFilter } from "./HeadCounts";
@@ -54,7 +54,7 @@ export function WorkspaceHead({
   headDrag?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
 }) {
   // ＋を押したときの、作成先のグループを選ぶメニュー
-  const pickMenu = useAnchoredMenu(".workspace-new-chat", GROUP_PICK_MENU_WIDTH);
+  const pickMenu = useContextMenu();
   const projectMenu = useProjectMenu([project]);
   /**
    * カードの矢印以外を押したとき（サイドバー全体で同じ）: 選んでいて開いていれば閉じる。
@@ -140,15 +140,15 @@ export function WorkspaceHead({
           onClick={(e) => {
             // グループがあれば、どこに作るかを選んでもらう（開いているときに押したら閉じる）
             if (groups.length === 0) return openNewChat(project.id);
-            pickMenu.toggle(e, groupPickMenuHeight(groups.length));
+            pickMenu.toggle(e);
           }}
         />
       </div>
-      {pickMenu.at && (
+      {pickMenu.menu && (
         <GroupPickMenu
-          {...pickMenu.at}
+          at={pickMenu.menu.at}
           groups={groups}
-          ignore={pickMenu.ignore}
+          ignore=".workspace-new-chat"
           onPick={(group) => openNewChat(project.id, group ? { group } : {})}
           onClose={pickMenu.close}
         />

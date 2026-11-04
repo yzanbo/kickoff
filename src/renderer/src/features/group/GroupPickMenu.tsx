@@ -1,26 +1,21 @@
 import { Folder, Inbox, SquarePen } from "lucide-react";
 import type { ChatGroup } from "@shared/types";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
-
-/** メニューの幅と、グループの数から決まるおおよその高さ（画面からはみ出さない位置にするため） */
-export const GROUP_PICK_MENU_WIDTH = 230;
-export const groupPickMenuHeight = (groups: number) => 60 + groups * 34;
+import type { Placement } from "@/lib/floating";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 
 /**
  * グループを選ぶメニュー（新しいチャットの作成先・まとめて選んだチャットの移動先）。
  * group が undefined なら「グループなし」
  */
 export function GroupPickMenu({
-  x,
-  y,
+  at,
   groups,
   ignore,
   title = "新しいチャットの作成先",
   onPick,
   onClose,
 }: {
-  x: number;
-  y: number;
+  at: Placement;
   groups: ChatGroup[];
   /** 開くボタンのセレクタ（押したらボタンの側で閉じる） */
   ignore?: string;
@@ -29,11 +24,8 @@ export function GroupPickMenu({
   onPick: (group: number | undefined) => void;
   onClose: () => void;
 }) {
-
-  const at = clampToViewport(x, y, GROUP_PICK_MENU_WIDTH, groupPickMenuHeight(groups.length));
-
   return (
-    <PopupMenu x={at.x} y={at.y} className="group-pick-menu" label={title} ignore={ignore} onClose={onClose}>
+    <PopupMenu at={at} className="group-pick-menu" label={title} ignore={ignore} onClose={onClose}>
       <div className="menu-label">
         <SquarePen size={12} aria-hidden /> {title}
       </div>

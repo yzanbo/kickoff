@@ -4,8 +4,9 @@ import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder"
 import { projectHueStyle } from "@/features/project/projectColor";
 import { useProjects } from "@/stores/projects";
 import { navigate, type ProjectTab } from "@/app/router";
+import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
-import { useAnchoredMenu } from "@/ui/useAnchoredMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { ProjectMark } from "@/features/project/ProjectMark";
 
 /** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */
@@ -18,7 +19,7 @@ const ALL_PROJECTS = "全プロジェクト";
  */
 export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: number; name: string }; tab?: ProjectTab }) {
   const { projects } = useProjects();
-  const menu = useAnchoredMenu(".project-switch", 260);
+  const menu = useContextMenu();
   const className = project ? "project-switch" : "project-switch all-projects";
   const hue = project ? projectHueStyle(project.id) : undefined;
   const identity = (
@@ -44,18 +45,18 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
         title="プロジェクトを切り替える"
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
-        onClick={(e) => menu.toggle(e, 25 + (ordered.length + 1) * 34 + (archived.length > 0 ? 40 + archived.length * 34 : 0))}
+        onClick={menu.toggle}
       >
         {identity}
         <ChevronDown size={14} aria-hidden />
       </button>
-      {menu.at && (
+      {menu.menu && (
         <ProjectSwitchMenu
-          {...menu.at}
+          at={menu.menu.at}
           projects={ordered}
           archived={archived}
           currentId={project?.id}
-          ignore={menu.ignore}
+          ignore=".project-switch"
           onPick={(id) => navigate(id === undefined ? { name: "allProjects" } : { name: "project", id, tab: project ? tab : "board" })}
           onClose={menu.close}
         />
@@ -65,8 +66,7 @@ export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: nu
 }
 
 function ProjectSwitchMenu({
-  x,
-  y,
+  at,
   projects,
   archived,
   currentId,
@@ -74,8 +74,7 @@ function ProjectSwitchMenu({
   onPick,
   onClose,
 }: {
-  x: number;
-  y: number;
+  at: Placement;
   projects: Project[];
   /** 開くボタンのセレクタ（押したらボタンの側で閉じる） */
   ignore: string;
@@ -95,7 +94,7 @@ function ProjectSwitchMenu({
     </MenuItem>
   );
   return (
-    <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore={ignore} onClose={onClose}>
+    <PopupMenu at={at} className="project-switch-menu" label="プロジェクトを切り替える" ignore={ignore} onClose={onClose}>
       {item(undefined, ALL_PROJECTS)}
       <div className="menu-separator" role="separator" />
       {projects.map((p) => item(p.id, p.name))}

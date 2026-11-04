@@ -1,9 +1,10 @@
 import { ArrowDown, ArrowUp, GripVertical, OctagonPause, Trash2 } from "lucide-react";
-import { useState, type DragEvent, type MouseEvent } from "react";
+import type { DragEvent } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { startQueueDragGhost } from "./queueDragImage";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 
 /**
  * 一時停止の印（送信待ちの指示とは別の行）。送信待ちの行と同じ扱いで動かせる:
@@ -37,7 +38,7 @@ export function QueuedStopLine({
   onMove: (to: number) => void;
   onRemove: () => void;
 }) {
-  const [menu, setMenu] = useState<{ x: number; y: number }>();
+  const menu = useContextMenu();
   return (
     <>
       <div
@@ -45,10 +46,7 @@ export function QueuedStopLine({
         role="note"
         onDragOver={onDragOver}
         onDrop={onDrop}
-        onContextMenu={(e: MouseEvent) => {
-          e.preventDefault();
-          setMenu(clampToViewport(e.clientX, e.clientY, 260, 200));
-        }}
+        onContextMenu={menu.open}
       >
         <span
           className="queued-grip queued-stop-grip"
@@ -81,8 +79,8 @@ export function QueuedStopLine({
           <IconButton icon={Trash2} label="この一時停止を外す" size={13} onClick={onRemove} />
         </span>
       </div>
-      {menu && (
-        <PopupMenu x={menu.x} y={menu.y} label="一時停止の操作" onClose={() => setMenu(undefined)}>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="一時停止の操作" onClose={menu.close}>
           {at > 0 && <MenuItem onSelect={() => onMove(0)}>いちばん上へ移動</MenuItem>}
           {at > 0 && <MenuItem onSelect={() => onMove(at - 1)}>1 つ上へ移動</MenuItem>}
           {at < count && <MenuItem onSelect={() => onMove(at + 1)}>1 つ下へ移動</MenuItem>}

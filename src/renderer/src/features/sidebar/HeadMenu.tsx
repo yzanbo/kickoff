@@ -1,8 +1,9 @@
 import { Check, type LucideIcon } from "lucide-react";
 import { Fragment } from "react";
 import { cx } from "@/lib/cx";
+import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
-import { useAnchoredMenu } from "@/ui/useAnchoredMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 
 /** メニューの 1 項目（radio はどれか 1 つ、checkbox はオン・オフ） */
 interface HeadMenuItem {
@@ -48,7 +49,7 @@ export function HeadMenu({
   sections: HeadMenuSection[];
 }) {
   const buttonClass = `head-menu-${id}`;
-  const menu = useAnchoredMenu(`.${buttonClass}`, 260);
+  const menu = useContextMenu();
   return (
     <>
       <button
@@ -57,18 +58,18 @@ export function HeadMenu({
         aria-label={`${label}: ${value}`}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
-        onClick={(e) => menu.toggle(e, 40 + sections.reduce((n, s) => n + s.items.length * 34 + (s.label ? 24 : 0), 0))}
+        onClick={menu.toggle}
       >
         <ChipFace icon={Icon} label={label} value={value} values={values} />
       </button>
-      {menu.at && <Menu {...menu.at} label={label} ignore={menu.ignore} sections={sections} onClose={menu.close} />}
+      {menu.menu && <Menu at={menu.menu.at} label={label} ignore={`.${buttonClass}`} sections={sections} onClose={menu.close} />}
     </>
   );
 }
 
-function Menu({ x, y, label, ignore, sections, onClose }: { x: number; y: number; label: string; ignore: string; sections: HeadMenuSection[]; onClose: () => void }) {
+function Menu({ at, label, ignore, sections, onClose }: { at: Placement; label: string; ignore: string; sections: HeadMenuSection[]; onClose: () => void }) {
   return (
-    <PopupMenu x={x} y={y} label={label} ignore={ignore} onClose={onClose}>
+    <PopupMenu at={at} label={label} ignore={ignore} onClose={onClose}>
       {sections.map((section, i) => (
         <Fragment key={section.label ?? i}>
           {i > 0 && <div className="menu-separator" role="separator" />}

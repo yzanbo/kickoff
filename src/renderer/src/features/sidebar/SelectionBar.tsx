@@ -1,10 +1,11 @@
 import { Archive, ArchiveRestore, FolderInput, MailOpen, Trash2, X } from "lucide-react";
-import { useState } from "react";
 import type { Chat, ChatGroup } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { confirmArchiveChats, confirmDeleteChats, markChatsSeen, moveChatsToGroup } from "@/features/chat/chatActions";
 import { GroupPickMenu } from "@/features/group/GroupPickMenu";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import type { Placement } from "@/lib/floating";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import type { ChatSelection } from "./chatSelection";
 
 /**
@@ -12,7 +13,8 @@ import type { ChatSelection } from "./chatSelection";
  * アーカイブ（どれもアーカイブ済みなら戻す）・グループへ移す（同じプロジェクトのものだけのとき）・既読にする・削除。Esc で選ぶのをやめる
  */
 export function SelectionBar({ selection, chats, groups }: { selection: ChatSelection; chats: Record<number, Chat[]>; groups: Record<number, ChatGroup[]> }) {
-  const [moveAt, setMoveAt] = useState<{ x: number; y: number } | null>(null);
+  // 移動先のグループを選ぶメニュー（欄の「移動」はボタンの上に、右クリックのメニューの「グループへ移す」はそのメニューと同じ場所に開く）
+  const moveMenu = useContextMenu({ side: "above", gap: 8 });
   const picked = Object.values(chats)
     .flat()
     .filter((r) => selection.has(r.id));
@@ -36,7 +38,6 @@ export function SelectionBar({ selection, chats, groups }: { selection: ChatSele
     archive: () => void confirmArchiveChats(picked).then((ok) => ok && done()),
     seen: () => void markChatsSeen(picked).then(done),
     remove: () => void confirmDeleteChats(picked).then((ok) => ok && done()),
-    move: (at: { x: number; y: number }) => setMoveAt(at),
   };
   return (
     <>
@@ -52,14 +53,7 @@ export function SelectionBar({ selection, chats, groups }: { selection: ChatSele
             {allArchived ? <ArchiveRestore size={13} /> : <Archive size={13} />} {allArchived ? "戻す" : "アーカイブ"}
           </button>
           {moveGroups && (
-            <button
-              className="btn btn-sm selection-bar-move"
-              onClick={(e) => {
-                if (moveAt) return setMoveAt(null);
-                const r = e.currentTarget.getBoundingClientRect();
-                actions.move({ x: r.left, y: r.top - 8 - (60 + moveGroups.length * 34) });
-              }}
-            >
+            <button className="btn btn-sm selection-bar-move" onClick={moveMenu.toggle}>
               <FolderInput size={13} /> 移動
             </button>
           )}
@@ -71,25 +65,25 @@ export function SelectionBar({ selection, chats, groups }: { selection: ChatSele
           </button>
         </div>
       </div>
-      {moveAt && moveGroups && (
+      {moveMenu.menu && moveGroups && (
         <GroupPickMenu
-          {...moveAt}
+          at={moveMenu.menu.at}
           groups={moveGroups}
           title="移動先のグループ"
           ignore=".selection-bar-move"
           onPick={(group) => void moveChatsToGroup(picked, group ?? null).then(done)}
-          onClose={() => setMoveAt(null)}
+          onClose={moveMenu.close}
         />
       )}
       {selection.menuAt && (
         <SelectionMenu
-          {...selection.menuAt}
+          at={selection.menuAt}
           count={picked.length}
           allArchived={allArchived}
           unread={unread}
           canMove={Boolean(moveGroups)}
           onArchive={actions.archive}
-          onMove={() => selection.menuAt && actions.move(selection.menuAt)}
+          onMove={() => selection.menuAt && moveMenu.openAt(selection.menuAt)}
           onSeen={actions.seen}
           onDelete={actions.remove}
           onClear={done}
@@ -102,8 +96,7 @@ export function SelectionBar({ selection, chats, groups }: { selection: ChatSele
 
 /** 選んだチャットを右クリックしたときのメニュー（まとめて操作） */
 function SelectionMenu({
-  x,
-  y,
+  at,
   count,
   allArchived,
   unread,
@@ -115,8 +108,7 @@ function SelectionMenu({
   onClear,
   onClose,
 }: {
-  x: number;
-  y: number;
+  at: Placement;
   count: number;
   allArchived: boolean;
   unread: boolean;
@@ -128,9 +120,8 @@ function SelectionMenu({
   onClear: () => void;
   onClose: () => void;
 }) {
-  const at = clampToViewport(x, y, 230, 230);
   return (
-    <PopupMenu x={at.x} y={at.y} label={`${count} 件のチャットの操作`} onClose={onClose}>
+    <PopupMenu at={at} label={`${count} 件のチャットの操作`} onClose={onClose}>
       <div className="menu-label">{count} 件を選択中</div>
       <MenuItem onSelect={onArchive}>
         {allArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />} {allArchived ? "まとめてアーカイブから戻す" : "まとめてアーカイブ"}

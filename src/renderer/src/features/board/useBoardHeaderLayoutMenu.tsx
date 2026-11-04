@@ -1,6 +1,6 @@
-import { useState, type MouseEvent } from "react";
+import type { MouseEvent } from "react";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
-import { clampToViewport } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { BOARD_HEADER_LAYOUT_LABELS, BOARD_HEADER_LAYOUTS, useBoardHeaderLayout } from "./boardHeaderLayout";
 
 /**
@@ -10,22 +10,20 @@ import { BOARD_HEADER_LAYOUT_LABELS, BOARD_HEADER_LAYOUTS, useBoardHeaderLayout 
  */
 export function useBoardHeaderLayoutMenu() {
   const [layout, setLayout] = useBoardHeaderLayout();
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const choice = useContextMenu();
   const open = (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest("input, textarea, .panel-tab")) return;
-    e.preventDefault();
-    setAt(clampToViewport(e.clientX, e.clientY, 220, 100));
+    choice.open(e);
   };
-  const menu = at && (
+  const menu = choice.menu && (
     <ChoiceMenu
-      x={at.x}
-      y={at.y}
+      at={choice.menu.at}
       title="ボードツールバーの置き方"
       values={BOARD_HEADER_LAYOUTS}
       labels={BOARD_HEADER_LAYOUT_LABELS}
       value={layout}
       onPick={setLayout}
-      onClose={() => setAt(null)}
+      onClose={choice.close}
     />
   );
   return { open, menu };

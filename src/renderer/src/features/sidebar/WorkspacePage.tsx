@@ -24,6 +24,7 @@ import { UngroupedHead } from "./UngroupedHead";
 import { useWorkspaceRows } from "./useWorkspaceRows";
 import { WorkspaceHead } from "./WorkspaceHead";
 import { Collapse } from "@/ui/Collapse";
+import type { Placement } from "@/lib/floating";
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -66,7 +67,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   const toggleArchived = () => setArchivedOpen(!archivedOpen);
   const [pinnedClosed, setPinnedClosed] = useSetting(sidebarPinnedClosed(project.id));
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
-  const [rowMenu, setRowMenu] = useState<{ x: number; y: number; chat: Chat } | null>(null);
+  const [rowMenu, setRowMenu] = useState<{ at: Placement; chat: Chat } | null>(null);
 
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
@@ -117,7 +118,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       state={state}
       active={route.name === "chat" && route.chatId === chat.id}
       menuOpen={rowMenu?.chat.id === chat.id}
-      onMenu={(at) => setRowMenu({ ...at, chat })}
+      onMenu={(at) => setRowMenu({ at, chat })}
       onCloseMenu={() => setRowMenu(null)}
       onRename={() => rename.start(chat)}
       rename={rename.editorFor(chat)}
@@ -242,7 +243,8 @@ export const WorkspacePage = memo(function WorkspacePage({
       {sections.menuElement}
       {rowMenu && (
         <ChatMenu
-          {...rowMenu}
+          at={rowMenu.at}
+          chat={rowMenu.chat}
           onOpenPanel={(chat) => openChat(chat.project_id, chat.id)}
           onRename={rename.start}
           onClose={() => setRowMenu(null)}

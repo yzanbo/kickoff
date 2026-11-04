@@ -2,9 +2,9 @@ import { Globe, SquareTerminal } from "lucide-react";
 import { useState, type MouseEvent } from "react";
 import { useExternalBrowser, useExternalTerminal } from "./externalApps";
 import type { ExternalTerminalId } from "@shared/types";
-import { clampToViewport } from "@/ui/PopupMenu";
-import { TARGET_MENU_WIDTH, targetMenuHeight, TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";
-import { OPEN_WITH_MENU_WIDTH, OpenWithMenu, openWithMenuHeight } from "./OpenWithMenu";
+import { anchorPlacement, type Placement } from "@/lib/floating";
+import { TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";
+import { OpenWithMenu } from "./OpenWithMenu";
 import type { PaneLeaf } from "@/features/panel/layout/paneLayout";
 import type { OpenWithKind } from "@/features/panel/tabs/PanelTabAdds";
 import type { PanelController, TerminalTarget } from "@/features/panel/usePanel";
@@ -30,16 +30,15 @@ export function useOpenWithMenu({
 }) {
   const browser = useExternalBrowser();
   const terminal = useExternalTerminal();
-  const [shown, setShown] = useState<{ kind: OpenWithKind; pane: PaneLeaf; x: number; y: number } | null>(null);
+  const [shown, setShown] = useState<{ kind: OpenWithKind; pane: PaneLeaf; at: Placement } | null>(null);
   // ターミナルを開く場所を選ぶメニュー（開く場所がいくつもあるとき。tab = 新しいタブ / external = 外のターミナル）
-  const [pick, setPick] = useState<{ mode: "tab" | "external"; app?: ExternalTerminalId; x: number; y: number } | null>(null);
+  const [pick, setPick] = useState<{ mode: "tab" | "external"; app?: ExternalTerminalId; at: Placement } | null>(null);
 
   const open = (kind: OpenWithKind, e: MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => {
     if (shown?.kind === kind && shown.pane.id === pane.id) return setShown(null);
     panel.focusPane(pane.id);
-    const r = e.currentTarget.getBoundingClientRect();
-    const apps = kind === "browser" ? browser.choices.length : terminal.choices.length;
-    setShown({ kind, pane, ...clampToViewport(r.right - OPEN_WITH_MENU_WIDTH, r.bottom + 4, OPEN_WITH_MENU_WIDTH, openWithMenuHeight(apps)) });
+    // ▾ の右端にそろえて、その下に出す
+    setShown({ kind, pane, at: anchorPlacement(e.currentTarget, { align: "end" }) });
   };
 
   /** 押したペインで表示中のブラウザのタブのページ */
@@ -49,18 +48,17 @@ export function useOpenWithMenu({
   };
 
   /** ターミナルを開く（新しいタブ・外のターミナル）。場所はアイコンと同じ決め方で、決まらなければ選ぶメニューを同じ位置に出す */
-  const openTerminalIn = (mode: "tab" | "external", pane: PaneLeaf, at: { x: number; y: number }, app?: ExternalTerminalId) => {
+  const openTerminalIn = (mode: "tab" | "external", pane: PaneLeaf, at: Placement, app?: ExternalTerminalId) => {
     const target = chatTarget(pane) ?? (targets.length === 1 ? targets[0] : undefined);
     if (target) return mode === "tab" ? panel.openTerminal(target) : terminal.open(target.cwd, app);
-    setPick({ mode, app, ...clampToViewport(at.x, at.y, TARGET_MENU_WIDTH, targetMenuHeight(targets.length)) });
+    setPick({ mode, app, at });
   };
 
   const menu = (
     <>
       {shown?.kind === "browser" && (
         <OpenWithMenu
-          x={shown.x}
-          y={shown.y}
+          at={shown.at}
           ignore={CARET}
           icon={Globe}
           title="ブラウザの開き方"
@@ -77,26 +75,24 @@ export function useOpenWithMenu({
       )}
       {shown?.kind === "terminal" && (
         <OpenWithMenu
-          x={shown.x}
-          y={shown.y}
+          at={shown.at}
           ignore={CARET}
           icon={SquareTerminal}
           title="ターミナルの開き方"
           newTab="新しいタブで開く"
           apps={terminal.choices}
           current={terminal.terminal}
-          onNewTab={() => openTerminalIn("tab", shown.pane, shown)}
+          onNewTab={() => openTerminalIn("tab", shown.pane, shown.at)}
           onOpenIn={(app) => {
             terminal.setTerminal(app);
-            openTerminalIn("external", shown.pane, shown, app);
+            openTerminalIn("external", shown.pane, shown.at, app);
           }}
           onClose={() => setShown(null)}
         />
       )}
       {pick && (
         <TerminalTargetMenu
-          x={pick.x}
-          y={pick.y}
+          at={pick.at}
           targets={targets}
           ignore={CARET}
           onPick={(t) => (pick.mode === "tab" ? panel.openTerminal(t) : terminal.open(t.cwd, pick.app))}

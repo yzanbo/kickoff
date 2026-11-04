@@ -4,7 +4,8 @@ import { api } from "@/api";
 import { useChatStates } from "@/app/chatStatesContext";
 import { promptDialog, reportFailure } from "@/ui/dialogs";
 import { confirmDeleteGroup } from "@/features/group/groups";
-import { MenuItem, PopupMenu, clampToViewport } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { cx } from "@/lib/cx";
 import { ChevronLeft } from "lucide-react";
 import { useDismiss } from "@/hooks/useDismiss";
@@ -68,14 +69,13 @@ export function TabClusterHead({
   const ref = useRef<HTMLSpanElement>(null);
   useDismiss(ref, () => setAt(null), { enabled: at !== null });
   // 札の右クリックのメニュー（プロジェクトの分かるまとまりだけ。「その他」「チャット」の札では出さない）
-  const [menu, setMenu] = useState<{ x: number; y: number }>();
+  const menu = useContextMenu();
   const projectId = cluster.projectId;
   const openMenu = (e: React.MouseEvent) => {
     if (projectId === undefined) return;
     // タブの列の何もないところの右クリック（ツールバーの置き方のメニュー）に渡さない
-    e.preventDefault();
     e.stopPropagation();
-    setMenu(clampToViewport(e.clientX, e.clientY, 240, 170));
+    menu.open(e);
   };
   const createGroup = async () => {
     if (projectId === undefined) return;
@@ -129,8 +129,8 @@ export function TabClusterHead({
         )}
         {counts && <StateCornerCounts counts={counts} />}
       </span>
-      {menu && projectId !== undefined && (
-        <PopupMenu x={menu.x} y={menu.y} label={`「${cluster.label}」の操作`} onClose={() => setMenu(undefined)}>
+      {menu.menu && projectId !== undefined && (
+        <PopupMenu at={menu.menu.at} label={`「${cluster.label}」の操作`} onClose={menu.close}>
           {onToggleCollapsed && cluster.tabs.length > 0 && (
             <>
               <MenuItem onSelect={onToggleCollapsed}>{collapsed ? "タブを表示する" : "タブを畳む"}</MenuItem>

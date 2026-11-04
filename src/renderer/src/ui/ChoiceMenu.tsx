@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "./PopupMenu";
 
 /**
@@ -6,8 +7,7 @@ import { MenuItem, PopupMenu } from "./PopupMenu";
  * 選ぶとメニューを閉じてから onPick を呼ぶ
  */
 export function ChoiceMenu<T extends string>({
-  x,
-  y,
+  at,
   title,
   values,
   labels,
@@ -16,8 +16,8 @@ export function ChoiceMenu<T extends string>({
   onPick,
   onClose,
 }: {
-  x: number;
-  y: number;
+  /** 置く場所（useContextMenu の menu.at） */
+  at: Placement;
   /** メニューの見出し（aria-label にも使う） */
   title: string;
   values: readonly T[];
@@ -29,7 +29,7 @@ export function ChoiceMenu<T extends string>({
   onClose: () => void;
 }) {
   return (
-    <PopupMenu x={x} y={y} label={title} ignore={ignore} onClose={onClose}>
+    <PopupMenu at={at} label={title} ignore={ignore} onClose={onClose}>
       <div className="menu-label">{title}</div>
       {values.map((v) => (
         <MenuItem key={v} role="menuitemradio" checked={v === value} onSelect={() => onPick(v)}>

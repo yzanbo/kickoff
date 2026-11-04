@@ -9,14 +9,15 @@ import type { BoardEntry } from "@/features/chatList/boardColumns";
 import { useBoardListCompact } from "./BoardHeader";
 import { ChatCardContent, ChatRowContent } from "./ChatCard";
 import { chatCardProps } from "./chatCardProps";
+import type { Placement } from "@/lib/floating";
 
 /** カードの右クリックメニューの状態（どこに・どのチャットの） */
-export type ChatMenuAt = { x: number; y: number; chat: Chat };
+export type ChatMenuAt = { at: Placement; chat: Chat };
 
 /** カードの右クリックメニュー（開いている間はパネルを Esc で閉じない: usePanel の holdEsc に isOpen を渡す） */
 export function useCardMenu() {
   const [at, setAt] = useState<ChatMenuAt | null>(null);
-  return { at, isOpen: at !== null, open: (where: { x: number; y: number }, chat: Chat) => setAt({ ...where, chat }), close: () => setAt(null) };
+  return { at, isOpen: at !== null, open: (where: Placement, chat: Chat) => setAt({ at: where, chat }), close: () => setAt(null) };
 }
 
 interface Options {

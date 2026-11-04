@@ -9,7 +9,8 @@ import { reportFailure } from "@/ui/dialogs";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
 import { CopyButton } from "@/ui/CopyButton";
 import { Markdown } from "@/ui/markdown/Markdown";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { AttachmentChip } from "@/features/chat/attachments/AttachmentChip";
 import { copyRich } from "@/lib/richCopy";
 
@@ -147,21 +148,22 @@ export function AssistantMessage({ event }: { event: ChatEventOf<"text"> }) {
  * リンク・入力欄・コードブロックの上などでは、Electron の既定のメニューに任せず、この 1 つにそろえる
  */
 function useMessageMenu(text: string, extra?: ReactNode, { rich = false }: { rich?: boolean } = {}): { open: (e: MouseEvent) => void; element: ReactNode } {
-  const [at, setAt] = useState<{ x: number; y: number; selected: string }>();
+  // 開いたときに選んでいた文（その発言の中で選んでいれば）
+  const menu = useContextMenu<string>();
+  const at = menu.menu;
   const copy = (value: string) => void navigator.clipboard.writeText(value).catch(reportFailure("コピーできませんでした"));
   const copyFormatted = (value: string) => void copyRich(value).catch(reportFailure("コピーできませんでした"));
   return {
     open: (e) => {
       if (!text) return;
-      e.preventDefault();
       // 発言の中で選んでいる文（ほかの発言にまたがる選択は、この発言の分だけでなく全体をそのまま使う）
       const selection = window.getSelection();
       const selected = selection && !selection.isCollapsed && e.currentTarget.contains(selection.anchorNode) ? selection.toString() : "";
-      setAt({ ...clampToViewport(e.clientX, e.clientY, 200, 80), selected });
+      menu.open(e, selected);
     },
     element: at && (
-      <PopupMenu x={at.x} y={at.y} label="発言の操作" onClose={() => setAt(undefined)}>
-        {at.selected && <MenuItem onSelect={() => copy(at.selected)}>選んだ文をコピー</MenuItem>}
+      <PopupMenu at={at.at} label="発言の操作" onClose={menu.close}>
+        {at.value && <MenuItem onSelect={() => copy(at.value)}>選んだ文をコピー</MenuItem>}
         <MenuItem onSelect={() => (rich ? copyFormatted(text) : copy(text))}>メッセージをコピー</MenuItem>
         {rich && <MenuItem onSelect={() => copy(text)}>Markdown のままコピー</MenuItem>}
         {extra}
