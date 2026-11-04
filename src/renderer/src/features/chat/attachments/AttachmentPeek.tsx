@@ -28,7 +28,8 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
   const rest = attachments.length - shown.length;
   const names = attachments.map((a) => a.name).join("\n");
   // 行で複数の添付を 1 つにまとめているときは、まず一覧を開き、そこから全画面へ（1 つだけなら、すぐ全画面）
-  const openGrid = rest > 0 ? () => setGrid(true) : undefined;
+  // 開いているときに押したら閉じる（以前は外側のクリックとして閉じたあと、続くクリックで開き直していた）
+  const openGrid = rest > 0 ? () => setGrid((open) => !open) : undefined;
   return (
     <span className="attach-peek" title={`添付 ${attachments.length} 件\n${names}`}>
       {shown.map((a) =>
@@ -39,6 +40,7 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
             type="button"
             className="attach-peek-thumb"
             title={openGrid ? `添付 ${attachments.length} 件を並べて表示` : `${a.name}（大きく表示${images.length > 1 ? `。ほかの画像へは ← / →` : ""}）`}
+            aria-expanded={openGrid ? grid : undefined}
             aria-label={openGrid ? `添付 ${attachments.length} 件を並べて表示` : `${a.name} を大きく表示`}
             onClick={openGrid ?? (() => setViewing(images.indexOf(a)))}
             onContextMenu={(e) => imageMenu.open(e, { src: attachmentUrl(a), name: a.name }, () => setViewing(images.indexOf(a)))}
