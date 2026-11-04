@@ -5,7 +5,10 @@ import { alertDialog, confirmDialog } from "./dialogs";
 import { errorMessage } from "./errors";
 import { chatDraftKey } from "./storageKeys";
 
-/** 確かめてから、チャットをアーカイブする（アーカイブ済みなら戻す。どちらも確かめる。やめたら false） */
+/**
+ * 確かめてから、チャットをアーカイブする（アーカイブ済みなら戻す。どちらも確かめる。やめたら false）。
+ * アーカイブ・戻すはどこから押しても必ず確かめる（確かめずにアーカイブする操作は置かない）
+ */
 export async function toggleArchiveRun(run: Pick<Run, "id" | "title" | "archived_at">): Promise<boolean> {
   const name = chatTitle(run.title);
   const ok = await confirmDialog(
@@ -92,6 +95,3 @@ export const moveRunsToGroup = (runs: Run[], groupId: number | null) => eachRun(
 
 /** 失敗をお知らせのダイアログで知らせる（操作の catch に渡す） */
 export const reportFailure = (title: string) => (e: unknown) => alertDialog(title, errorMessage(e));
-
-/** 確かめずに、チャットをアーカイブする（アーカイブ済みなら戻す。チャットの見出しのボタン。失敗はお知らせで出す） */
-export const toggleArchiveRunNow = (run: Pick<Run, "id" | "archived_at">) => api.archiveRun(run.id, !run.archived_at).catch(reportFailure("アーカイブできませんでした"));
