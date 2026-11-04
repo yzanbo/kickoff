@@ -211,14 +211,15 @@
   background: var(--dot-running);
 }
 
-.workspace-dot-count.needs-input {
+/* 右上 = 未読（いちばん目に入る右上に、見るべき結果の数）、左下 = 回答待ち */
+.workspace-dot-count.review {
   top: -6px;
   right: -6px;
-  background: var(--dot-needs-input);
+  background: var(--dot-attention);
 }
 
-.workspace-dot-count.review {
-  right: -6px;
+.workspace-dot-count.needs-input {
   bottom: -6px;
-  background: var(--dot-attention);
+  left: -6px;
+  background: var(--dot-needs-input);
 }
