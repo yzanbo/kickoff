@@ -5,8 +5,8 @@ import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { useDragWidth } from "@/hooks/useDragWidth";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
-import { useStoredFlag } from "@/hooks/useStoredState";
-import { COMMIT_FILES_LIST_KEY, COMMIT_FILES_WIDTH_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { COMMIT_FILES_LIST, COMMIT_FILES_WIDTH } from "@/lib/storageKeys";
 import { formatDayTime } from "@/lib/time";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
@@ -31,9 +31,9 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
   const [file, setFile] = useState<GitFileChange>();
   const [tab, setTab] = useState<CommitTab>("changes");
   // 変わったファイルを木で出すか（初めは木。Fork と同じ）
-  const [list, setList] = useStoredFlag(COMMIT_FILES_LIST_KEY);
+  const [list, setList] = useSetting(COMMIT_FILES_LIST);
   // 左のファイルの一覧の幅（境目をドラッグで変える。ダブルクリックで元に戻す）
-  const filesPane = useDragWidth({ storageKey: COMMIT_FILES_WIDTH_KEY, initial: 260, min: 160 });
+  const filesPane = useDragWidth({ setting: COMMIT_FILES_WIDTH, min: 160 });
 
   // 読み込んだら 1 つ目のファイルを選ぶ（別のコミットに変わったら、読み込むまで外す）
   useEffect(() => setFile(detail?.files[0]), [detail]);

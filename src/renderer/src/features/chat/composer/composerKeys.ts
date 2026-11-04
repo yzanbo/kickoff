@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { permissionChoices } from "@/features/chat/options/models";
 import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
+import type { SettingValue } from "@/lib/storage";
+import type { QUEUE_MODE } from "@/lib/storageKeys";
 
-/** 作業中に送るときの扱い（伝える = 止めずに、いまのやり取りに足す / ためておく = 終わったら送る） */
-export type QueueSendMode = "tell" | "queue";
+/** 作業中に送るときの扱い（tell = 伝える（止めずに、いまのやり取りに足す）/ queue = ためておく（終わったら送る）） */
+export type QueueSendMode = SettingValue<typeof QUEUE_MODE>;
 
 /** 作業中の送り方をキーで決める: ⌘⇧Enter = ためておく、⌘Enter = 伝える（どちらでもなければ、チャット欄の切り替えのとおり） */
 export const sendModeOf = (e: { metaKey: boolean; shiftKey: boolean }): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);

@@ -1,10 +1,8 @@
 import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { cx } from "@/lib/cx";
 import { startHorizontalDrag } from "@/hooks/dragResize";
-import { useStoredState } from "@/hooks/useStoredState";
-import { SIDEBAR_OPEN_KEY, SIDEBAR_WIDTH_KEY } from "@/lib/storageKeys";
-
-const DEFAULT_WIDTH = 294;
+import { useSetting } from "@/hooks/useSetting";
+import { SIDEBAR_OPEN, SIDEBAR_WIDTH } from "@/lib/storageKeys";
 
 /** サイドバーの幅は 200〜480px（狭くしすぎ・広げすぎを防ぐ） */
 function clampWidth(width: number): number {
@@ -18,8 +16,9 @@ export type SidebarController = ReturnType<typeof useSidebar>;
  * 表示は Sidebar（サイドバー本体）・SidebarOpenButton（閉じているときの開くボタン）で行う
  */
 export function useSidebar() {
-  const [open, setOpen] = useStoredState(SIDEBAR_OPEN_KEY, (raw) => raw !== "closed", (on) => (on ? "open" : "closed"));
-  const [width, setWidth] = useStoredState(SIDEBAR_WIDTH_KEY, (raw) => clampWidth(Number(raw) || DEFAULT_WIDTH), String);
+  const [open, setOpen] = useSetting(SIDEBAR_OPEN);
+  const [storedWidth, setWidth] = useSetting(SIDEBAR_WIDTH);
+  const width = clampWidth(storedWidth);
   const [resizing, setResizing] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +44,7 @@ export function useSidebar() {
     open,
     toggle: () => setOpen(!open),
     startResize,
-    resetWidth: () => setWidth(DEFAULT_WIDTH),
+    resetWidth: () => setWidth(SIDEBAR_WIDTH.initial),
     /** サイドバーと画面全体を並べる要素に渡す */
     layout: {
       ref: layoutRef,

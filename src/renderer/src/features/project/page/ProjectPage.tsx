@@ -10,9 +10,9 @@ import { ProjectHeader } from "./ProjectHeader";
 import { ProjectTabs, useProjectTabsLayout } from "./ProjectTabs";
 import { useProjectData } from "./useProjectData";
 import { useBusyBadge } from "@/hooks/useBusyBadge";
-import { useStoredState } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import type { FileTarget, ProjectTab, ReopenRoute } from "@/app/router";
-import { editorWorktreeKey } from "@/lib/storageKeys";
+import { editorWorktree } from "@/lib/storageKeys";
 import { WorktreeContext } from "@/features/worktree/worktreeContext";
 
 /** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・履歴（コミット）をタブで */
@@ -41,7 +41,9 @@ export function ProjectPage({
     else if (tab === "groups") setColumns("groups");
   }, [tab, setColumns]);
   // エディタ・履歴タブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
-  const [worktree, setWorktree] = useStoredState<string | undefined>(editorWorktreeKey(id), (raw) => raw || undefined, (v) => v ?? "");
+  const [storedWorktree, storeWorktree] = useSetting(editorWorktree(id));
+  const worktree = storedWorktree || undefined;
+  const setWorktree = (path: string | undefined) => storeWorktree(path ?? "");
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes" || tab === "history", worktree);
   // タブの数を取り直している最中（更新を知ってから結果が届くまで、数の代わりに更新中の印を出す）

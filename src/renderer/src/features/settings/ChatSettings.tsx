@@ -1,5 +1,5 @@
-import { useStoredChoice } from "@/hooks/useStoredState";
-import { CHAT_CLOSE_ACTION_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { CHAT_CLOSE_ACTION } from "@/lib/storageKeys";
 import { CHAT_CLOSE_ACTION_LABELS, CHAT_CLOSE_ACTIONS, type ChatCloseAction } from "@/features/chat/closeChat";
 import { Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
@@ -20,7 +20,7 @@ const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
 export function ChatSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
   // ✕ を押したときの扱い（この Mac の画面の設定なので、選んだらすぐ反映する）
-  const [closeAction, setCloseAction] = useStoredChoice<ChatCloseAction>(CHAT_CLOSE_ACTION_KEY, CHAT_CLOSE_ACTIONS, "ask");
+  const [closeAction, setCloseAction] = useSetting(CHAT_CLOSE_ACTION);
   if (!draft) return null;
   return (
     <section className="section">

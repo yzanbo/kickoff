@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { GitCommit } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useDragWidth } from "@/hooks/useDragWidth";
-import { CHANGES_LIST_WIDTH_KEY } from "@/lib/storageKeys";
+import { CHANGES_LIST_WIDTH } from "@/lib/storageKeys";
 import { WorktreePicker } from "@/features/worktree/WorktreePicker";
 import { ErrorText } from "@/ui/ErrorText";
 import { HistoryMain } from "./HistoryMain";
@@ -33,7 +33,7 @@ export function HistoryTab({
   const commit = picked?.projectId === projectId ? picked.commit : undefined;
   const setCommit = (next: GitCommit) => setPicked({ projectId, commit: next });
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。エディタタブの一覧と同じ幅を覚える）
-  const list = useDragWidth({ storageKey: CHANGES_LIST_WIDTH_KEY, initial: 246 });
+  const list = useDragWidth({ setting: CHANGES_LIST_WIDTH });
 
   if (!status) {
     return git.error ? <ErrorText message={git.error} /> : <p className="muted small">読み込み中…</p>;

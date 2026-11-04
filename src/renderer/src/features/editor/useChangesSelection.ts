@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import type { GitFileChange } from "@shared/types";
+import type { SettingValue } from "@/lib/storage";
+import type { CHANGES_VIEW } from "@/lib/storageKeys";
 import { confirmDialog } from "@/ui/dialogs";
 
 /**
@@ -59,5 +61,5 @@ export function selectedChange(selected: Selection | undefined, groups: ChangeGr
   return staged && { file: staged, staged: true };
 }
 
-/** エディタタブの左の表示（すべてのファイル・検索・変更・履歴） */
-export type ChangesView = "files" | "search" | "changes";
+/** エディタタブの左の表示（すべてのファイル・検索・変更） */
+export type ChangesView = SettingValue<typeof CHANGES_VIEW>;

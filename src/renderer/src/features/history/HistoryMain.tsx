@@ -2,14 +2,11 @@ import { useRef, useState } from "react";
 import type { GitCommit } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { startVerticalDrag } from "@/hooks/dragResize";
-import { useStoredNumber } from "@/hooks/useStoredState";
-import { HISTORY_SPLIT_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { HISTORY_SPLIT } from "@/lib/storageKeys";
 import { CommitTable } from "./CommitTable";
 import { CommitView } from "./CommitView";
 import type { GitLogController } from "./useGitLog";
-
-/** 上のコミットの表の高さ（割合。下はコミットの詳細） */
-const DEFAULT_SPLIT = 43;
 
 /** 履歴の右側（Fork と同じ: 上にコミットの表、下に選んだコミットの詳細。境目はドラッグで動かせる） */
 export function HistoryMain({
@@ -23,7 +20,8 @@ export function HistoryMain({
   commit?: GitCommit;
   onSelect: (commit: GitCommit) => void;
 }) {
-  const [split, setSplit] = useStoredNumber(HISTORY_SPLIT_KEY, DEFAULT_SPLIT);
+  // 上のコミットの表の高さ（割合 %。下はコミットの詳細）
+  const [split, setSplit] = useSetting(HISTORY_SPLIT);
   const [resizing, setResizing] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
@@ -60,7 +58,7 @@ export function HistoryMain({
         aria-label="コミットの表の高さを変える"
         title="ドラッグで高さを変える（ダブルクリックで元に戻す）"
         onPointerDown={startResize}
-        onDoubleClick={() => setSplit(DEFAULT_SPLIT)}
+        onDoubleClick={() => setSplit(HISTORY_SPLIT.initial)}
       />
       <div className="history-detail">
         {commit ? (

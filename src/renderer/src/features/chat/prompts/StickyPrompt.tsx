@@ -2,8 +2,8 @@ import { ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Attachment, ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { useSharedFlag } from "@/hooks/useStoredState";
-import { STICKY_PROMPT_EXPANDED_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { STICKY_PROMPT_EXPANDED } from "@/lib/storageKeys";
 import { IconButton } from "@/ui/IconButton";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
 
@@ -25,7 +25,7 @@ export function StickyPrompt({
   onPrev?: () => void;
   onNext?: () => void;
 }) {
-  const [expanded, setExpanded] = useSharedFlag(STICKY_PROMPT_EXPANDED_KEY);
+  const [expanded, setExpanded] = useSetting(STICKY_PROMPT_EXPANDED);
   const textRef = useRef<HTMLSpanElement>(null);
   // 1 行に収まらないか（収まるなら開閉の矢印を押せなくする）。欄の幅が変わったら測り直す
   const [overflowing, setOverflowing] = useState(false);

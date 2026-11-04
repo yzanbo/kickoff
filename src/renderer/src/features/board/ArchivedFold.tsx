@@ -1,8 +1,8 @@
 import { Archive } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
-import { useStoredFlag } from "@/hooks/useStoredState";
-import { boardArchivedOpenKey } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { boardArchivedOpen } from "@/lib/storageKeys";
 import { RowSection } from "@/ui/RowSection";
 
 /** 未アーカイブとアーカイブ済みに分ける（並びはそのまま） */
@@ -15,7 +15,7 @@ export function splitArchived<T>(list: T[], chatOf: (item: T) => Pick<Chat, "arc
  * 開いているかは、ボード・段・列ごとに覚える（foldKey）。中のカードは薄く出す（.archived）
  */
 export function ArchivedFold({ foldKey, count, children }: { foldKey: string; count: number; children: ReactNode }) {
-  const [open, setOpen] = useStoredFlag(boardArchivedOpenKey(foldKey));
+  const [open, setOpen] = useSetting(boardArchivedOpen(foldKey));
   if (count === 0) return null;
   return (
     <RowSection icon={Archive} label="アーカイブ済み" count={count} open={open} onToggle={() => setOpen(!open)} indent={false}>

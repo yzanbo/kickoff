@@ -2,10 +2,11 @@ import { Folder, GitBranch } from "lucide-react";
 import type { ReactNode } from "react";
 import type { GitWorktree, Project, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { useStoredFlagMap } from "@/hooks/useStoredState";
+import { useSettingFamily } from "@/hooks/useSetting";
+import type { SettingValue } from "@/lib/storage";
 import { ProjectMark } from "@/features/project/ProjectMark";
 import { useProjects } from "@/app/projectsContext";
-import { BOARD_LANE_CLOSED_PREFIX } from "@/lib/storageKeys";
+import { boardLaneClosed, type PROJECT_BOARD_LANES } from "@/lib/storageKeys";
 import { useWorktreeLists } from "@/features/worktree/worktreeBranches";
 import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type ChatWorkplace } from "@/features/worktree/workplace";
 import { GroupToggle } from "@/ui/GroupToggle";
@@ -15,8 +16,7 @@ import type { BoardEntry } from "@/features/chatList/boardColumns";
  * スイムレーンの段の分け方（列はどれも状態）。カンバンでは 作業場所・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
  * グループのタブではグループで分ける
  */
-export const BOARD_LANES = ["worktree", "group", "project"] as const;
-export type BoardLane = (typeof BOARD_LANES)[number];
+export type BoardLane = SettingValue<typeof PROJECT_BOARD_LANES>;
 
 export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
   worktree: "作業場所（ブランチ）",
@@ -185,7 +185,7 @@ export function BoardLanes({
   /** 下書きの作成先（下書きだけの段も出すため） */
   drafts?: DraftTarget[];
 }) {
-  const closed = useStoredFlagMap(BOARD_LANE_CLOSED_PREFIX);
+  const closed = useSettingFamily(boardLaneClosed);
   // 作業場所で分けるときは、プロジェクトごとのワークツリーの一覧からブランチ名を引く
   const worktreesOf = useWorktreeLists(kind === "worktree" ? entries.map((e) => e.chat.project_id) : []);
   const { projectName } = useProjects();
@@ -200,8 +200,8 @@ export function BoardLanes({
         return (
           <section key={lane.key} {...extra} className={cx("board-lane", extra.className)}>
             <div className="board-lane-head">
-              <GroupToggle open={open} onToggle={() => closed.toggle(id)} />
-              <button className="board-lane-name" aria-expanded={open} onClick={() => closed.toggle(id)}>
+              <GroupToggle open={open} onToggle={() => closed.set(id, open)} />
+              <button className="board-lane-name" aria-expanded={open} onClick={() => closed.set(id, open)}>
                 {lane.head}
                 <span className="board-lane-count">{lane.entries.length}</span>
               </button>

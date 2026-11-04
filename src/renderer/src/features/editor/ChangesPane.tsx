@@ -1,8 +1,8 @@
 import { ArrowDown, ArrowUp, GitBranch, List, ListTree } from "lucide-react";
 import type { GitStatus } from "@shared/types";
 import type { useActionError } from "@/hooks/useActionError";
-import { useStoredFlag } from "@/hooks/useStoredState";
-import { CHANGES_TREE_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { CHANGES_TREE } from "@/lib/storageKeys";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
 import { ChangeGroup, type GitAction } from "./ChangeGroup";
@@ -32,7 +32,7 @@ export function ChangesPane({
   onSelect: (next: Selection) => void;
 }) {
   // 変更の一覧を、フォルダの木で出すか（VS Code の「ツリーで表示 / 一覧で表示」）
-  const [changesTree, setChangesTree] = useStoredFlag(CHANGES_TREE_KEY, true);
+  const [changesTree, setChangesTree] = useSetting(CHANGES_TREE);
   // 「ステージされている変更」「変更」に渡すもの
   const groupProps = {
     tree: changesTree,

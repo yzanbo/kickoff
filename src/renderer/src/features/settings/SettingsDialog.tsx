@@ -1,6 +1,6 @@
 import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
-import { useSharedFlag } from "@/hooks/useStoredState";
-import { CHAT_WIDE_KEY, COMPOSER_COMPACT_KEY, STICKY_PROMPT_HIDDEN_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { CHAT_WIDE, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -73,9 +73,9 @@ function UsageSettings() {
 
 function DisplaySettings() {
   const [theme, setTheme] = useTheme();
-  const [compactComposer, setCompactComposer] = useSharedFlag(COMPOSER_COMPACT_KEY);
-  const [wideChat, setWideChat] = useSharedFlag(CHAT_WIDE_KEY);
-  const [stickyHidden, setStickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
+  const [compactComposer, setCompactComposer] = useSetting(COMPOSER_COMPACT);
+  const [wideChat, setWideChat] = useSetting(CHAT_WIDE);
+  const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
   return (

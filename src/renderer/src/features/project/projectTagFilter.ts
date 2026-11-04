@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { collectTags, matchesTags, UNTAGGED } from "@shared/project/tags";
 import type { Project } from "@shared/types";
-import { useSharedList } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/app/projectsContext";
-import { PROJECT_TAG_FILTER_KEY } from "@/lib/storageKeys";
+import { PROJECT_TAG_FILTER } from "@/lib/storageKeys";
 
 export type ProjectTagFilter = ReturnType<typeof useProjectTagFilter>;
 
@@ -17,7 +17,7 @@ export const tagLabel = (tag: string) => (tag === UNTAGGED ? "タグなし" : ta
  */
 export function useProjectTagFilter() {
   const { projects } = useProjects();
-  const [stored, setStored] = useSharedList(PROJECT_TAG_FILTER_KEY);
+  const [stored, setStored] = useSetting(PROJECT_TAG_FILTER);
   // 使っているタグ（しまったプロジェクトの分も含む。名前順）
   const tags = useMemo(() => collectTags(projects), [projects]);
   const selected = useMemo(() => stored.filter((t) => t === UNTAGGED || tags.includes(t)), [stored, tags]);

@@ -1,162 +1,162 @@
 /**
- * localStorage（一部は sessionStorage）のキー名の一覧。
- * 保存されている形式は変えない: キー名も値（"1" / "0"、"open" / "closed" など）もそのまま使う（CLAUDE.md）。
- * プロジェクト・チャットなどの ID を含むキーは関数で組み立てる。値の読み書きは hooks/useStoredState から
+ * 画面が localStorage（一部は sessionStorage）に保存するもの（表示の設定・開閉・幅・書きかけの文など）の一覧。読み書きは lib/storage.ts
+ * （React からは hooks/useSetting.ts の useSetting / useSettingFamily）。
+ * - 保存するものは、すべてここで宣言する
+ * - キー名と保存する値（"1" / "0" など）は変えない（利用者の表示の好みを残すため）
+ * - ID ごとのもの（プロジェクト・チャット・グループごとの開閉など）は defineSettingFamily（キーは頭 ＋ ID）
  */
+import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/types";
+import { choice, defineSetting, defineSettingFamily, flag, list, number, record, text } from "./storage";
+
+const isString = (value: unknown): value is string => typeof value === "string";
 
 // テーマ・現在のプロジェクト
-/** テーマ（"dark" / "light" / "system"） */
-export const THEME_KEY = "kickoff:theme";
-/** サイドバーで最後に選んでいたプロジェクトの ID */
-export const CURRENT_PROJECT_KEY = "kickoff:current-project";
+/** テーマ（dark / light / system = システムに合わせる） */
+export const THEME = defineSetting("kickoff:theme", choice(["dark", "light", "system"], "dark"));
+/** サイドバーで最後に選んでいたプロジェクトの ID（0 = まだない。⌘N の新しいチャットの作成先にも使う） */
+export const CURRENT_PROJECT = defineSetting("kickoff:current-project", number(0));
 
 // サイドバー本体
-/** サイドバーの開閉（"open" / "closed"） */
-export const SIDEBAR_OPEN_KEY = "kickoff:sidebar";
-export const SIDEBAR_WIDTH_KEY = "kickoff:sidebar-width";
-/** プロジェクトの並べ方（"slide" / "stack"） */
-export const SIDEBAR_LAYOUT_KEY = "kickoff:sidebar-layout";
-/** プロジェクトのボードの列（"state" = 状態ごと / "groups" = 自分で作ったグループごと。ボードのタブを押したときに、最後に見た方を開く） */
-export const BOARD_COLUMNS_KEY = "kickoff:board-columns";
-/** プロジェクトの並び順（"manual" / "recent"） */
-export const SIDEBAR_PROJECT_ORDER_KEY = "kickoff:sidebar-project-order";
-/** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか（"1" なら出す） */
-export const SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:sidebar-show-archived-projects";
-/** ⌘⇧A（作業中・待ちのチャットの一覧）に、アーカイブ済みのプロジェクトのチャットも出すか（初めは出さない） */
-export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS_KEY = "kickoff:active-chats-show-archived-projects";
-/** ⌘K で探す対象（プロジェクト・チャット・チャットの中の文言。JSON の文字列配列。未保存ならプロジェクトとチャット） */
-export const COMMAND_PALETTE_TARGETS_KEY = "kickoff:command-palette-targets";
-/** AI からの質問が複数あるときの出し方（"steps" = 1 問ずつ / "all" = すべて並べる。未保存なら 1 問ずつ） */
-export const QUESTION_LAYOUT_KEY = "kickoff:question-layout";
-/** プロジェクトのタグでの絞り込み（選んだタグの JSON の文字列配列。"" はタグのないプロジェクト。空・未保存なら絞り込まない）。
- * サイドバー・全プロジェクトの画面・⌘⇧A・プロジェクトの切り替えで共通（useProjectTagFilter） */
-export const PROJECT_TAG_FILTER_KEY = "kickoff:project-tag-filter";
-/** プロジェクトごとの、チャット一覧を閉じているか（"1" なら閉じている。後ろにプロジェクトの ID） */
-export const SIDEBAR_PROJECT_COLLAPSED_PREFIX = "kickoff:collapsed:";
-/** プロジェクトごとに最後に見ていた画面（URL）。sessionStorage に JSON で */
-export const SIDEBAR_LAST_HASH_KEY = "kickoff:last-hash-by-project";
+/** サイドバーを開いているか（"open" / "closed"） */
+export const SIDEBAR_OPEN = defineSetting("kickoff:sidebar", flag(true, ["open", "closed"]));
+export const SIDEBAR_WIDTH = defineSetting("kickoff:sidebar-width", number(294));
+/** プロジェクトの並べ方（stack = 縦並び / slide = 横スライド / rail = 縦スライド） */
+export const SIDEBAR_LAYOUT = defineSetting("kickoff:sidebar-layout", choice(["slide", "stack", "rail"], "slide"));
+/** プロジェクトの並び順（manual = 手動 / recent = 最近動いた順） */
+export const SIDEBAR_PROJECT_ORDER = defineSetting("kickoff:sidebar-project-order", choice(["manual", "recent"], "manual"));
+/** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか */
+export const SIDEBAR_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:sidebar-show-archived-projects", flag());
+/** プロジェクトのカードを 1 行で出すか（名前だけにして、チャット数の行を隠す） */
+export const SIDEBAR_PROJECT_COMPACT = defineSetting("kickoff:sidebar-project-compact", flag());
+/** プロジェクトごとの、チャット一覧を閉じているか */
+export const sidebarProjectCollapsed = defineSettingFamily("kickoff:collapsed:", flag());
+/** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
+export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { session: true });
+/** プロジェクトのタグでの絞り込み（選んだタグ。"" はタグのないプロジェクト。空なら絞り込まない。サイドバー・全プロジェクトの画面・⌘⇧A で共通） */
+export const PROJECT_TAG_FILTER = defineSetting("kickoff:project-tag-filter", list());
 
 // サイドバーのチャットの並べ方（どのプロジェクトでも同じ）
-/** 以前のチャットのまとめ方（recent / status / worktree）。新しい 2 つの設定がまだないときの初めの値に読み替えるだけ（chatGroupings.ts） */
-export const SIDEBAR_GROUPING_KEY = "kickoff:sidebar-grouping";
-/** チャットのまとめ方（CHAT_SECTIONS: none / group / worktree） */
-export const SIDEBAR_CHAT_SECTIONS_KEY = "kickoff:sidebar-chat-sections";
-/** チャットの並び順（CHAT_ORDERS: recent / status） */
-export const SIDEBAR_CHAT_ORDER_KEY = "kickoff:sidebar-chat-order";
-/** 自分待ち（回答待ち・未読）のチャットだけを出すか（"1" なら出す） */
-export const SIDEBAR_WAITING_ONLY_KEY = "kickoff:sidebar-waiting-only";
-/** チャットを 1 行で出すか（"1" なら 2 行目のブランチを隠す） */
-export const SIDEBAR_COMPACT_KEY = "kickoff:sidebar-compact";
-/** プロジェクトのカードを 1 行で出すか（"1" なら名前だけにして、チャット数の行を隠す） */
-export const SIDEBAR_PROJECT_COMPACT_KEY = "kickoff:sidebar-project-compact";
-/** アーカイブ済みのチャットを一覧の下に出すか（"1" なら出す。ボードの絞り込みとは別） */
-export const SIDEBAR_SHOW_ARCHIVED_KEY = "kickoff:sidebar-show-archived";
-/** 並べ方でまとめたまとまり（状態・作業場所）ごとの、閉じているか（後ろに <プロジェクト>:<並べ方>:<まとまり>） */
-export const SIDEBAR_SECTION_CLOSED_PREFIX = "kickoff:sidebar-group-closed:";
-/** 自分で作ったグループごとの、閉じているか（後ろにグループの ID） */
-export const SIDEBAR_GROUP_CLOSED_PREFIX = "kickoff:group-closed:";
+/** チャットのまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別） */
+export const SIDEBAR_CHAT_SECTIONS = defineSetting("kickoff:sidebar-chat-sections", choice(["none", "group", "worktree"], "group"));
+/** チャットの並び順（recent = 新しい順 / status = 状態別） */
+export const SIDEBAR_CHAT_ORDER = defineSetting("kickoff:sidebar-chat-order", choice(["recent", "status"], "recent"));
+/** 自分待ち（回答待ち・未読）のチャットだけを出すか */
+export const SIDEBAR_WAITING_ONLY = defineSetting("kickoff:sidebar-waiting-only", flag());
+/** チャットを 1 行で出すか（2 行目のブランチを隠す） */
+export const SIDEBAR_COMPACT = defineSetting("kickoff:sidebar-compact", flag(true));
+/** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブ・ボードの絞り込みで共通） */
+export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archived", flag(true));
+/** まとめたまとまり（状態・作業場所）ごとの、閉じているか（ID は <プロジェクト>:<グループ・アーカイブ済み>:<まとまり>） */
+export const sidebarSectionClosed = defineSettingFamily("kickoff:sidebar-group-closed:", flag());
+/** 自分で作ったグループごとの、閉じているか */
+export const sidebarGroupClosed = defineSettingFamily("kickoff:group-closed:", flag());
 /** プロジェクトごとの「アーカイブ済み」のまとまりを開いているか */
-export const sidebarArchivedOpenKey = (projectId: number) => `kickoff:archived-open:${projectId}`;
+export const sidebarArchivedOpen = defineSettingFamily("kickoff:archived-open:", flag());
 /** プロジェクトごとの「固定」のまとまりを閉じているか */
-export const sidebarPinnedClosedKey = (projectId: number) => `kickoff:pinned-closed:${projectId}`;
+export const sidebarPinnedClosed = defineSettingFamily("kickoff:pinned-closed:", flag());
 /** プロジェクトごとの「グループなし」を閉じているか */
-export const sidebarUngroupedClosedKey = (projectId: number) => `kickoff:ungrouped-closed:${projectId}`;
+export const sidebarUngroupedClosed = defineSettingFamily("kickoff:ungrouped-closed:", flag());
+
+// パレット
+/** ⌘K で探す対象（project / chat / message。空ならプロジェクトとチャット） */
+export const COMMAND_PALETTE_TARGETS = defineSetting("kickoff:command-palette-targets", list());
+/** ⌘⇧A（作業中・待ちのチャットの一覧）に、アーカイブ済みのプロジェクトのチャットも出すか */
+export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:active-chats-show-archived-projects", flag());
 
 // ボード（カンバン・グループ）
-/** ボードの表示（"board" / "list"、段に分けるなら "lanes"（ボード）/ "list-lanes"（リスト））。カンバン・グループのボードで共通（以前グループのボードだけで覚えていた kickoff:group-view は使わない。"lanes" は以前の「スイムレーン」の表示と同じ） */
-export const BOARD_VIEW_KEY = "kickoff:board-view";
-/** ボードのリスト表示の行を 1 行にまとめるか（"1" = 1 行 / "0"・未保存 = 2 行。すべてのボードで共通） */
-export const BOARD_LIST_COMPACT_KEY = "kickoff:board-list-compact";
-/** プロジェクトのボードの段（スイムレーン）の分け方（ボード・リストで共通。段に分けるかは BOARD_VIEW_KEY） */
-export const BOARD_LANES_KEY = "kickoff:board-lanes";
-/** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える） */
-export const BOARD_LANES_ALL_KEY = "kickoff:board-lanes-all";
-/** カンバンのアーカイブでの絞り込み（"1" / "0" / "archived"。decodeArchiveFilter） */
-export const BOARD_SHOW_ARCHIVED_KEY = "kickoff:show-archived";
-/** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える。形式は同じ） */
-export const GROUP_SHOW_ARCHIVED_KEY = "kickoff:group-show-archived";
-/** スイムレーンの段ごとの、閉じているか（後ろに <ボード>:<分け方>:<段>） */
-export const BOARD_LANE_CLOSED_PREFIX = "kickoff:board-lane-closed:";
-/** ボードの列・まとまりごとの「アーカイブ済み」を開いているか */
-export const boardArchivedOpenKey = (foldKey: string) => `kickoff:board-archived-open:${foldKey}`;
+/** プロジェクトのボードの列（state = 状態ごと / groups = 自分で作ったグループごと。ボードのタブを押したときに、最後に見た方を開く） */
+export const PROJECT_BOARD_COLUMNS = defineSetting("kickoff:board-columns", choice(["state", "groups"], "state"));
+/** ボードの表示（board = 列を横に並べる / list = まとまりを縦に並べる。カンバン・グループのボードで共通） */
+export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "list"], "board"));
+/** ボードを段（スイムレーン）に分けるか（ボード・リストで共通。分け方は PROJECT_BOARD_LANES・ALL_PROJECTS_BOARD_LANES） */
+export const BOARD_SPLIT = defineSetting("kickoff:board-split", flag());
+/** ボードのリスト表示の行を 1 行にまとめるか（すべてのボードで共通。初めは 2 行） */
+export const BOARD_LIST_COMPACT = defineSetting("kickoff:board-list-compact", flag());
+/** プロジェクトのボードの段の分け方（worktree = 作業場所 / group = グループ / project = プロジェクト） */
+export const PROJECT_BOARD_LANES = defineSetting("kickoff:board-lanes", choice(["worktree", "group", "project"], "worktree"));
+/** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える。初めはプロジェクト別） */
+export const ALL_PROJECTS_BOARD_LANES = defineSetting("kickoff:board-lanes-all", choice(PROJECT_BOARD_LANES.choices, "project"));
+/** カンバンのアーカイブでの絞り込み（all = すべて / active = 未アーカイブ / archived = アーカイブ済みだけ） */
+export const BOARD_ARCHIVE_FILTER = defineSetting("kickoff:show-archived", choice(["all", "active", "archived"], "all"));
+/** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える） */
+export const GROUP_BOARD_ARCHIVE_FILTER = defineSetting("kickoff:group-show-archived", choice(BOARD_ARCHIVE_FILTER.choices, "all"));
+/** 段ごとの、閉じているか（ID は <ボード>:<分け方>:<段>） */
+export const boardLaneClosed = defineSettingFamily("kickoff:board-lane-closed:", flag());
+/** ボードの列・まとまりごとの「アーカイブ済み」を開いているか（ID はボード・段・列） */
+export const boardArchivedOpen = defineSettingFamily("kickoff:board-archived-open:", flag());
+/** ボードツールバーの置き方（top = 常時表示 / beside = パネル優先。設定の「表示」） */
+export const BOARD_HEADER_LAYOUT = defineSetting("kickoff:board-header-layout", choice(["top", "beside"], "top"));
+/** プロジェクトの画面のタブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */
+export const PROJECT_TABS_LAYOUT = defineSetting("kickoff:project-tabs-layout", choice(["top", "side"], "side"));
 
 // 右のパネル・チャット欄・下のパネル
-export const PANEL_WIDTH_KEY = "kickoff:panel-width";
-/** 右のパネルのタブの列のまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別。未保存ならまとめない） */
-export const PANEL_TAB_GROUPING_KEY = "kickoff:panel-tab-grouping";
-/**
- * 右のパネルの欄ごとのタブのまとめ方（ボードの右のパネルは PANEL_TAB_GROUPING_KEY のまま。右端のチャット欄・フッターは別に覚える。値は同じ "none" / "group" / "worktree"）
- */
-export const panelTabGroupingKey = (surface: "board" | "side" | "bottom") => (surface === "board" ? PANEL_TAB_GROUPING_KEY : `${PANEL_TAB_GROUPING_KEY}:${surface}`);
-/** 欄ごとの、表示するタブの種類（"chat" / "browser" / "terminal" の JSON の配列。未保存なら欄ごとの既定。1 つは残す） */
-export const panelTabKindsKey = (surface: "board" | "side" | "bottom") => `kickoff:panel-tab-kinds:${surface}`;
-/** 右のパネルのタブのまとまりのうち、タブを畳んでいるもの（まとまりのキーの JSON の配列。すべてのパネル・ペインで共通） */
-export const PANEL_TAB_CLUSTERS_COLLAPSED_KEY = "kickoff:panel-tab-clusters-collapsed";
-/** 右のパネルを横幅いっぱいにしているか（"1" / "0"） */
-export const PANEL_MAXIMIZED_KEY = "kickoff:panel-maximized";
-/** プロジェクトごとの、右のチャット欄を開いているか（後ろにプロジェクトの ID） */
-export const PROJECT_CHAT_OPEN_PREFIX = "kickoff:project-chat-open:";
-export const PROJECT_CHAT_WIDTH_KEY = "kickoff:project-chat-width";
-export const BOTTOM_PANEL_HEIGHT_KEY = "kickoff:bottom-panel-height";
-
-// チャットの中身
-/** チャットごとの、アーカイブしたサブエージェント（呼び出し ID の JSON の配列） */
-export const subagentsArchivedKey = (chatId: number) => `kickoff:subagents-archived:${chatId}`;
-/** 送る前の新しいチャット（下書きのタブ）。パネル（ボード・チャット欄）ごとのタブの JSON（`{ [パネル]: タブ[] }`）。送った・閉じたら消える */
-export const NEW_CHAT_DRAFTS_KEY = "kickoff:new-chat-drafts";
-/** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
-export const chatDraftKey = (chatId: number) => `kickoff:chat-draft:${chatId}`;
-
-// エディタタブ（変更・履歴・ファイル）
-/** エディタタブの左端の表示（"files" / "search" / "changes"。以前の "history" は履歴のタブに移したので既定に戻る） */
-export const CHANGES_VIEW_KEY = "kickoff:changes-view";
-/** 変更の一覧を木で出すか（"1" なら木） */
-export const CHANGES_TREE_KEY = "kickoff:changes-tree";
-/** エディタタブ・履歴タブの左の一覧の幅 */
-export const CHANGES_LIST_WIDTH_KEY = "kickoff:changes-list-width";
-/** 差分の並べ方（"split" / "unified"） */
-export const DIFF_LAYOUT_KEY = "kickoff:diff-layout";
-/** コミットの詳細の変わったファイルを一覧で出すか（"1" なら一覧。初めは木） */
-export const COMMIT_FILES_LIST_KEY = "kickoff:commit-files-tree";
-export const COMMIT_FILES_WIDTH_KEY = "kickoff:commit-files-width";
-/** 履歴の上のコミットの表の高さ（割合） */
-export const HISTORY_SPLIT_KEY = "kickoff:history-split";
-/** プロジェクトごとの、エディタタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
-export const editorWorktreeKey = (projectId: number) => `kickoff:editor-worktree:${projectId}`;
+export const PANEL_WIDTH = defineSetting("kickoff:panel-width", number(1127));
+/** 右のパネルを横幅いっぱいにしているか */
+export const PANEL_MAXIMIZED = defineSetting("kickoff:panel-maximized", flag());
+/** 欄（board = ボードの右のパネル / side = 右端のチャット欄 / bottom = フッター）ごとの、タブの列のまとめ方 */
+export const panelTabGrouping = defineSettingFamily("kickoff:panel-tab-grouping:", choice(["none", "group", "worktree"], "none"));
+/** 欄ごとの、表示するタブの種類（chat / browser / terminal。空なら欄ごとの既定） */
+export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", list());
+/** タブを畳んでいるまとまり（まとまりのキー。プロジェクト・グループの ID を含む。すべてのパネル・ペインで共通） */
+export const PANEL_TAB_CLUSTERS_COLLAPSED = defineSetting("kickoff:panel-tab-clusters-collapsed", list());
+/** プロジェクトごとの、右のチャット欄を開いているか */
+export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag());
+export const PROJECT_CHAT_WIDTH = defineSetting("kickoff:project-chat-width", number(367));
+export const BOTTOM_PANEL_HEIGHT = defineSetting("kickoff:bottom-panel-height", number(198));
+/** 送る前の新しいチャット（下書きのタブ）。パネルごとのタブ（{ [パネル]: タブ[] }。中身は panel/state/draftPersistence.ts が確かめる）。送った・閉じたら消える */
+export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record());
 
 // チャット
-/** 作業中に送った指示の扱い（"queue" = いまの作業が終わったら送る / "interrupt" = いまの作業を止めてすぐ送る） */
-export const QUEUE_MODE_KEY = "kickoff:queue-mode";
-/** 送信待ちの一覧をたたんで「n 件の追加があります」だけにするか（"1" / "0"。どのチャットでも同じ） */
-export const QUEUE_COLLAPSED_KEY = "kickoff:queue-collapsed";
-/** 送信待ちの一覧を、中でスクロールさせずにすべて出すか（"1" / "0"。どのチャットでも同じ） */
-export const QUEUE_EXPANDED_KEY = "kickoff:queue-expanded";
+/** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
+export const chatDraft = defineSettingFamily("kickoff:chat-draft:", text());
+/** チャットごとの、アーカイブしたサブエージェント（呼び出し ID） */
+export const subagentsArchived = defineSettingFamily("kickoff:subagents-archived:", list());
+/** 作業中・送信待ちがあるときに送った指示の扱い（queue = あとで（送信待ちに足す）/ tell = いま（止めずに伝える）） */
+export const QUEUE_MODE = defineSetting("kickoff:queue-mode", choice(["queue", "tell"], "tell"));
+/** 送信待ちの一覧をたたんで 1 行にするか（どのチャットでも同じ） */
+export const QUEUE_COLLAPSED = defineSetting("kickoff:queue-collapsed", flag(true));
+/** 送信待ちの一覧を、中でスクロールさせずにすべて出すか（どのチャットでも同じ） */
+export const QUEUE_EXPANDED = defineSetting("kickoff:queue-expanded", flag());
 /** 送信待ちの一覧の高さの上限（px。上端のつまみのドラッグで変える。どのチャットでも同じ） */
-export const QUEUE_HEIGHT_KEY = "kickoff:queue-height";
-/** チャットの上に貼り付ける自分の指示を、1 行にたたまず全文で出すか（"1" なら全文。どのチャットでも同じ） */
-export const STICKY_PROMPT_EXPANDED_KEY = "kickoff:sticky-prompt-expanded";
-/** チャットの上に貼り付ける自分の指示の帯を出さないか（"1" なら出さない。未保存なら出す。設定の「表示」。どのチャットでも同じ） */
-export const STICKY_PROMPT_HIDDEN_KEY = "kickoff:sticky-prompt-hidden";
-/** チャット欄をコンパクトに表示するか（"1" / "0"。設定の「表示」。どのチャット欄にも効く） */
-export const COMPOSER_COMPACT_KEY = "kickoff:composer-compact";
-/** プロジェクトの画面のタブ（ボード・エディタ）の置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */
-export const PROJECT_TABS_LAYOUT_KEY = "kickoff:project-tabs-layout";
-/** ボードツールバーの置き方（top = 常時表示 / beside = パネル優先（右のパネルを開いたら、パネルを上端まで伸ばしてツールバーの右側を覆う）。設定の「表示」） */
-export const BOARD_HEADER_LAYOUT_KEY = "kickoff:board-header-layout";
-/** チャット（発言の流れとチャット欄）を、欄の横幅いっぱいに広げるか（"1" なら広く。どのチャットでも同じ） */
-export const CHAT_WIDE_KEY = "kickoff:chat-wide";
-/** チャットの中の検索で、大文字・小文字を区別するか（"1" / "0"。初めは区別しない） */
-export const CHAT_FIND_CASE_KEY = "kickoff:chat-find-case-sensitive";
-/** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除。未保存なら ask） */
-export const CHAT_CLOSE_ACTION_KEY = "kickoff:chat-close-action";
+export const QUEUE_HEIGHT = defineSetting("kickoff:queue-height", number(150));
+/** 上に貼り付ける自分の指示を、1 行にたたまず全文で出すか（どのチャットでも同じ） */
+export const STICKY_PROMPT_EXPANDED = defineSetting("kickoff:sticky-prompt-expanded", flag());
+/** 上に貼り付ける自分の指示の帯を出さないか（設定の「表示」。どのチャットでも同じ） */
+export const STICKY_PROMPT_HIDDEN = defineSetting("kickoff:sticky-prompt-hidden", flag());
+/** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く） */
+export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag());
+/** チャットの文の幅を広げるか（どのチャットでも同じ） */
+export const CHAT_WIDE = defineSetting("kickoff:chat-wide", flag());
+/** チャットの中の検索で、大文字・小文字を区別するか（どのチャットでも同じ） */
+export const CHAT_FIND_CASE = defineSetting("kickoff:chat-find-case-sensitive", flag());
+/** AI からの質問が複数あるときの出し方（steps = 1 問ずつ / all = すべて並べる） */
+export const QUESTION_LAYOUT = defineSetting("kickoff:question-layout", choice(["steps", "all"], "steps"));
+/** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除） */
+export const CHAT_CLOSE_ACTION = defineSetting("kickoff:chat-close-action", choice(["ask", "close", "archive", "delete"], "ask"));
 
-/** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id。既定は "terminal"） */
-export const EXTERNAL_TERMINAL_KEY = "kickoff:external-terminal";
-/** 外部のブラウザとして開くアプリ（EXTERNAL_BROWSERS の id。既定は "chrome"） */
-export const EXTERNAL_BROWSER_KEY = "kickoff:external-browser";
+// エディタ・履歴のタブ
+/** エディタタブの左端の表示（files = すべてのファイル / search = 検索 / changes = 変更） */
+export const CHANGES_VIEW = defineSetting("kickoff:changes-view", choice(["files", "search", "changes"], "files"));
+/** 変更の一覧を木で出すか */
+export const CHANGES_TREE = defineSetting("kickoff:changes-tree", flag(true));
+/** エディタタブ・履歴タブの左の一覧の幅 */
+export const CHANGES_LIST_WIDTH = defineSetting("kickoff:changes-list-width", number(246));
+/** 差分の並べ方（split = 左右に並べる / unified = 1 列） */
+export const DIFF_LAYOUT = defineSetting("kickoff:diff-layout", choice(["split", "unified"], "unified"));
+/** コミットの詳細の変わったファイルを一覧で出すか（初めは木） */
+export const COMMIT_FILES_LIST = defineSetting("kickoff:commit-files-tree", flag());
+export const COMMIT_FILES_WIDTH = defineSetting("kickoff:commit-files-width", number(260));
+/** 履歴の上のコミットの表の高さ（割合 %） */
+export const HISTORY_SPLIT = defineSetting("kickoff:history-split", number(43));
+/** プロジェクトごとの、エディタタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
+export const editorWorktree = defineSettingFamily("kickoff:editor-worktree:", text());
 
-// 埋め込みブラウザ
-/** 開発者ツールを出す場所（"right" / "bottom" / "window"） */
-export const BROWSER_DEVTOOLS_DOCK_KEY = "kickoff:browser-devtools-dock";
-export const BROWSER_DEVTOOLS_WIDTH_KEY = "kickoff:browser-devtools-width";
-export const BROWSER_DEVTOOLS_HEIGHT_KEY = "kickoff:browser-devtools-height";
+// 外のアプリ・埋め込みブラウザ
+/** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id） */
+export const EXTERNAL_TERMINAL = defineSetting("kickoff:external-terminal", choice(EXTERNAL_TERMINALS.map((t) => t.id), "terminal"));
+/** 外部のブラウザとして開くアプリ（EXTERNAL_BROWSERS の id） */
+export const EXTERNAL_BROWSER = defineSetting("kickoff:external-browser", choice(EXTERNAL_BROWSERS.map((b) => b.id), "chrome"));
+/** 開発者ツールを出す場所（right / bottom / window = 別のウィンドウ） */
+export const BROWSER_DEVTOOLS_DOCK = defineSetting("kickoff:browser-devtools-dock", choice(["right", "bottom", "window"], "window"));
+export const BROWSER_DEVTOOLS_WIDTH = defineSetting("kickoff:browser-devtools-width", number(420));
+export const BROWSER_DEVTOOLS_HEIGHT = defineSetting("kickoff:browser-devtools-height", number(300));

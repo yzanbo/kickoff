@@ -17,8 +17,8 @@ import { useGroupNames } from "@/features/group/groupNames";
 import type { PanelController } from "@/features/panel/usePanel";
 import { shownActiveOf } from "@/features/panel/state/panelKinds";
 import { OTHER_CLUSTER, clusterHues, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs, type TabCluster } from "@/features/panel/clusters/tabClusters";
-import { useSharedList } from "@/hooks/useStoredState";
-import { PANEL_TAB_CLUSTERS_COLLAPSED_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { PANEL_TAB_CLUSTERS_COLLAPSED } from "@/lib/storageKeys";
 import { TabClusterHead } from "@/features/panel/clusters/TabClusterHead";
 import { useTabClusters, useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 import { useClusterReorder } from "@/features/panel/clusters/useClusterReorder";
@@ -105,7 +105,7 @@ export function PaneTabBar({
   // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
   const clusters = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, seeds);
   // タブを畳んだまとまり（すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない
-  const [collapsed, setCollapsed] = useSharedList(PANEL_TAB_CLUSTERS_COLLAPSED_KEY);
+  const [collapsed, setCollapsed] = useSetting(PANEL_TAB_CLUSTERS_COLLAPSED);
   const toggleCollapsed = (key: string) => setCollapsed(toggleClusterCollapsed(key, collapsed));
   // アーカイブ済みのまとまりは、サイドバーと同じく初めは畳んでおく
   const isCollapsed = (key: string) => isClusterCollapsed(key, collapsed);

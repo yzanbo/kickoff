@@ -3,7 +3,8 @@ import { api } from "@/api";
 import { chatTitle } from "./chatTitle";
 import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
-import { chatDraftKey } from "@/lib/storageKeys";
+import { writeSetting } from "@/lib/storage";
+import { chatDraft } from "@/lib/storageKeys";
 
 /**
  * 確かめてから、チャットをアーカイブする（アーカイブ済みなら戻す。どちらも確かめる。やめたら false）。
@@ -27,10 +28,10 @@ export async function toggleArchiveChat(chat: Pick<Chat, "id" | "title" | "archi
 /** チャットをサイドバーのプロジェクトの上に固定する（固定していればやめる） */
 export const togglePinChat = (chat: Pick<Chat, "id" | "pinned">) => api.pinChat(chat.id, !chat.pinned);
 
-/** チャットを削除する（消したチャットの入力欄の書きかけの文も、localStorage に残さない） */
+/** チャットを削除する（消したチャットの入力欄の書きかけの文も残さない） */
 export async function deleteChat(chatId: number) {
   await api.deleteChat(chatId);
-  localStorage.removeItem(chatDraftKey(chatId));
+  writeSetting(chatDraft(chatId), "");
 }
 
 /** 確かめてから、チャットを削除する（やめたら false） */

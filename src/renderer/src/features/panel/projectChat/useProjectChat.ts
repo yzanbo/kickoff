@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useRef } from "react";
 import { useDragWidth } from "@/hooks/useDragWidth";
-import { useStoredFlagMap } from "@/hooks/useStoredState";
+import { useSettingFamily } from "@/hooks/useSetting";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { PROJECT_CHAT_OPEN_PREFIX, PROJECT_CHAT_WIDTH_KEY } from "@/lib/storageKeys";
+import { PROJECT_CHAT_WIDTH, projectChatOpen } from "@/lib/storageKeys";
 import { registerPanel } from "@/features/panel/state/panelMemory";
 import { usePanel } from "@/features/panel/usePanel";
 
@@ -19,10 +19,10 @@ export const useProjectChatContext = () => useContext(ProjectChatContext);
  * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。projectId がない画面（全プロジェクト）では出さない
  */
 export function useProjectChat(projectId: number | undefined) {
-  const openMap = useStoredFlagMap(PROJECT_CHAT_OPEN_PREFIX);
+  const openMap = useSettingFamily(projectChatOpen);
   const open = projectId !== undefined && openMap.get(projectId);
   const panel = usePanel({ memoryKey: `side:${projectId ?? "none"}`, scope: projectId ?? null, surface: "side" });
-  const width = useDragWidth({ storageKey: PROJECT_CHAT_WIDTH_KEY, initial: 367, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
+  const width = useDragWidth({ setting: PROJECT_CHAT_WIDTH, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
 
   /** 欄を開いて、そのタブを表示する（ボード・サイドバーの下書きを押したとき） */
   const showTab = (key: string) => {

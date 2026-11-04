@@ -1,6 +1,6 @@
 import { ListPlus, MessageSquarePlus } from "lucide-react";
-import { useSharedChoice } from "@/hooks/useStoredState";
-import { QUEUE_MODE_KEY } from "@/lib/storageKeys";
+import { useSetting } from "@/hooks/useSetting";
+import { QUEUE_MODE } from "@/lib/storageKeys";
 import { Segmented, type SegmentOption } from "@/ui/Segmented";
 import type { QueueSendMode } from "./composerKeys";
 
@@ -29,13 +29,8 @@ const IDLE_OPTIONS: SegmentOption<QueueSendMode>[] = [
   { value: "tell", label: "いま", icon: MessageSquarePlus, tip: "いま送る（送信待ちより先に、いま送ります）", keys: "⌘Enter" },
 ];
 
-const QUEUE_MODES: readonly QueueSendMode[] = ["queue", "tell"];
-
-/**
- * 作業中・送信待ちがあるときに送ったときの扱い（いま / あとで。どのチャットでも同じで、分割したペインのチャット欄どうしでもそろう）。
- * 知らない値（以前の「割り込む」= "interrupt" など）・未保存なら「いま」（伝える）
- */
-export const useQueueMode = () => useSharedChoice<QueueSendMode>(QUEUE_MODE_KEY, QUEUE_MODES, "tell");
+/** 作業中・送信待ちがあるときに送ったときの扱い（いま / あとで。どのチャットでも同じで、分割したペインのチャット欄どうしでもそろう。初めは「いま」） */
+export const useQueueMode = () => useSetting(QUEUE_MODE);
 
 /** チャット欄の送り方の切り替え（あとで / いま。作業中と、送信待ちを止めているときで説明だけ変える） */
 export function QueueModeToggle({ busy, value, onChange }: { busy: boolean; value: QueueSendMode; onChange: (mode: QueueSendMode) => void }) {

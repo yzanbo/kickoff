@@ -179,7 +179,7 @@ src/
     app/               App・ルーター・全体の context（プロジェクト・チャットの状態・ルート）・ショートカット・通知・テーマ・レイアウトの開閉
     api/               サーバーとのやり取り（http・資源ごとの関数・SSE）
     stores/            画面全体で 1 つずつ持つデータ（チャット・グループ・ワークツリー・音声の準備など。1 つの仕組み createStore で作る）
-    lib/               React に依存しない小さな補助（cx・time・format・url・highlight・richCopy・保存キー storageKeys）
+    lib/               React に依存しない小さな補助（cx・time・format・url・highlight・richCopy・表示の設定の保存 storage と、その唯一の一覧 storageKeys）
     hooks/             ドメインを知らない hooks（保存・取得・ドラッグ・Esc など）
     ui/                ドメインを知らない部品（IconButton・Segmented・PopupMenu・dialogs・Field・Markdown・ImageViewer など）
     features/          ドメインごとの部品と hooks

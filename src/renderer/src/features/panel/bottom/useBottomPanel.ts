@@ -1,15 +1,14 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { Project } from "@shared/types";
 import { startVerticalDrag } from "@/hooks/dragResize";
-import { useStoredNumber } from "@/hooks/useStoredState";
+import { useSetting } from "@/hooks/useSetting";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { BOTTOM_PANEL_HEIGHT_KEY } from "@/lib/storageKeys";
+import { BOTTOM_PANEL_HEIGHT } from "@/lib/storageKeys";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
 
 /** どの画面のパネルか（プロジェクトの ID。全プロジェクトの画面は "all"） */
 type BottomScope = number | "all";
 
-const DEFAULT_HEIGHT = 198;
 const MIN_HEIGHT = 120;
 /** 上の画面に残す高さ */
 const KEEP_ABOVE = 120;
@@ -33,7 +32,7 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], pr
     projects: scope === "all" ? projects : undefined,
   });
   const [maximized, setMaximized] = useState(false);
-  const [height, setHeight] = useStoredNumber(BOTTOM_PANEL_HEIGHT_KEY, DEFAULT_HEIGHT);
+  const [height, setHeight] = useSetting(BOTTOM_PANEL_HEIGHT);
   const [resizing, setResizing] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
   const available = Boolean(window.kickoff);
@@ -97,7 +96,7 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], pr
     },
     toggleMaximized: () => setMaximized((m) => !m),
     startResize,
-    resetHeight: () => setHeight(DEFAULT_HEIGHT),
+    resetHeight: () => setHeight(BOTTOM_PANEL_HEIGHT.initial),
     /** パネルの要素に渡す */
     // 開閉は高さの動きで見せる（中身は開いたときの高さのまま。ターミナルが動いている間に何度も大きさを変えないように）
     panelProps: {
