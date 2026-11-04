@@ -127,6 +127,8 @@ export class ClaudeProvider implements AgentProvider {
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
     signal.addEventListener("abort", onAbort, { once: true });
+    // 渡されたときにもう止められていたら、知らせは来ないのでここで止める
+    if (signal.aborted) onAbort();
 
     const canUseTool = createCanUseTool(cb);
 
