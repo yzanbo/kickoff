@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ChevronUp } from "lucide-react";
+import { Archive, ArchiveRestore } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
@@ -13,7 +13,8 @@ import { activityOf, activityText } from "@/features/chat/status/stall";
 import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { IconButton } from "@/ui/IconButton";
-import { Popover, usePopover } from "@/ui/Popover";
+import { usePopover } from "@/ui/Popover";
+import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 
 /**
@@ -130,43 +131,44 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   };
 
   return (
-    <div className="chip-wrap">
-      <button ref={popover.anchor} type="button" className={`composer-chip ${open ? "open" : ""}`} aria-expanded={open} onClick={popover.toggle}>
-        {running > 0 && (
-          <span className="chip-mark">
-            <ClaudeMark size={13} />
-          </span>
-        )}
-        {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
-        {running > 0 && <span className="chip-running"> · {running} 件実行中</span>}
-        {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}
-        {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}
-        {network > 0 && <span className="chip-network"> · {network} 件通信で中断</span>}
-        {awaiting > 0 && <span className="chip-awaiting"> · {awaiting} 件受け取り待ち</span>}
-        {undelivered > 0 && <span className="chip-network"> · {undelivered} 件届かず</span>}
-        <ChevronUp size={13} className="chip-chevron" aria-hidden />
-      </button>
-      {open && (
-        // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
-        <Popover anchor={popover.anchor} side="above" gap={8} label="サブエージェント" className="chip-popover" ignore="dialog" onClose={popover.close}>
-          <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void archive(finished.map((s) => s.key))}>
-            <Archive size={15} aria-hidden />
-            完了したサブエージェントをアーカイブ
-            {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
-          </button>
-          {visible.length === 0 && <p className="muted small subagent-empty">表示中のサブエージェントはありません</p>}
-          {visible.map((s) => renderRow(s, false))}
-          {hidden.length > 0 && (
-            <>
-              <button type="button" className="subagent-archived-toggle" onClick={() => setShowArchived(!showArchived)}>
-                {showArchived ? "アーカイブ済みを隠す" : `アーカイブ済み ${hidden.length} 件を表示`}
-              </button>
-              {showArchived && hidden.map((s) => renderRow(s, true))}
-            </>
+    // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
+    <ComposerChip
+      popover={popover}
+      chip={
+        <>
+          {running > 0 && (
+            <span className="chip-mark">
+              <ClaudeMark size={13} />
+            </span>
           )}
-        </Popover>
+          {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
+          {running > 0 && <span className="chip-running"> · {running} 件実行中</span>}
+          {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}
+          {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}
+          {network > 0 && <span className="chip-network"> · {network} 件通信で中断</span>}
+          {awaiting > 0 && <span className="chip-awaiting"> · {awaiting} 件受け取り待ち</span>}
+          {undelivered > 0 && <span className="chip-network"> · {undelivered} 件届かず</span>}
+        </>
+      }
+      label="サブエージェント"
+      ignore="dialog"
+    >
+      <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void archive(finished.map((s) => s.key))}>
+        <Archive size={15} aria-hidden />
+        完了したサブエージェントをアーカイブ
+        {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
+      </button>
+      {visible.length === 0 && <p className="muted small subagent-empty">表示中のサブエージェントはありません</p>}
+      {visible.map((s) => renderRow(s, false))}
+      {hidden.length > 0 && (
+        <>
+          <button type="button" className="subagent-archived-toggle" onClick={() => setShowArchived(!showArchived)}>
+            {showArchived ? "アーカイブ済みを隠す" : `アーカイブ済み ${hidden.length} 件を表示`}
+          </button>
+          {showArchived && hidden.map((s) => renderRow(s, true))}
+        </>
       )}
-    </div>
+    </ComposerChip>
   );
 }
 

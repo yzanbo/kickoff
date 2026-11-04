@@ -1,4 +1,4 @@
-import { ChevronUp, CornerDownLeft, History } from "lucide-react";
+import { CornerDownLeft, History } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { isKey } from "@/lib/keys";
@@ -7,7 +7,8 @@ import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
 import { formatMessageTime } from "@/lib/time";
 import { IconButton } from "@/ui/IconButton";
-import { Popover } from "@/ui/Popover";
+import { usePopover } from "@/ui/Popover";
+import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { SearchField } from "@/ui/SearchField";
 import type { PromptEntry } from "./promptHistory";
 
@@ -21,10 +22,10 @@ import type { PromptEntry } from "./promptHistory";
  */
 export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
   const pane = useChatPane();
-  const [open, setOpen] = useState(false);
+  const popover = usePopover();
+  const { open, setOpen } = popover;
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
   // 行に出す番号（会話の中で何番目の指示か。絞り込んでも変えない）
   const numbers = useMemo(() => new Map(prompts.map((p, i) => [p.id, i + 1])), [prompts]);
   const items = useMemo(() => {
@@ -73,58 +74,56 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
 
   if (prompts.length === 0) return null;
   return (
-    <div ref={ref} className="chip-wrap">
-      <button
-        ref={button}
-        type="button"
-        className={cx("composer-chip", open && "open")}
-        aria-expanded={open}
-        title="このチャットで送った指示の履歴（⌃R。行を押すとその指示へ移り、↵ で入力欄に入れる）"
-        onClick={() => (open ? close() : setOpen(true))}
-      >
-        <History size={14} className="chip-icon" aria-hidden />
-        指示の履歴 {prompts.length}
-        <ChevronUp size={13} className="chip-chevron" aria-hidden />
-      </button>
-      {open && (
-        <Popover anchor={button} side="above" gap={8} label="指示の履歴" className="chip-popover prompts-popover" onClose={close}>
-          <SearchField
-            autoFocus
-            value={query}
-            onChange={setQuery}
-            onKeyDown={(e) => {
-              // ⌘Enter はその指示へ移る（Enter は入力欄に入れる）
-              if (isKey(e, "Enter", { meta: true })) {
-                e.preventDefault();
-                jump(items[nav.index]);
-              } else nav.onKeyDown(e);
-            }}
-            placeholder="指示を探す（Enter で入力欄に入れる・⌘Enter でその指示へ移る）"
-            label="指示の履歴を探す"
-          />
-          {items.length === 0 && <p className="muted small">合う指示はありません</p>}
-          {items.map((p, index) => {
-            return (
-              <div key={p.id} className={cx("prompt-row", index === nav.index && "active")} onMouseEnter={() => nav.setIndex(index)}>
-                <button type="button" className="prompt-jump" title={p.label} onClick={() => jump(p)}>
-                  <span className="prompt-index">{numbers.get(p.id)}</span>
-                  <span className="prompt-text">{p.label}</span>
-                  <time className="prompt-time">{formatMessageTime(p.at)}</time>
-                </button>
-                {p.text && (
-                  <IconButton
-                    icon={CornerDownLeft}
-                    size={13}
-                    label="入力欄に入れる"
-                    title="この文を入力欄に入れる（そのまま・少し直して送り直せる）"
-                    onClick={() => reuse(p)}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </Popover>
-      )}
-    </div>
+    <ComposerChip
+      ref={ref}
+      popover={popover}
+      chip={
+        <>
+          <History size={14} className="chip-icon" aria-hidden />
+          指示の履歴 {prompts.length}
+        </>
+      }
+      title="このチャットで送った指示の履歴（⌃R。行を押すとその指示へ移り、↵ で入力欄に入れる）"
+      label="指示の履歴"
+      className="prompts-popover"
+      onToggle={() => (open ? close() : setOpen(true))}
+      onClose={close}
+    >
+      <SearchField
+        autoFocus
+        value={query}
+        onChange={setQuery}
+        onKeyDown={(e) => {
+          // ⌘Enter はその指示へ移る（Enter は入力欄に入れる）
+          if (isKey(e, "Enter", { meta: true })) {
+            e.preventDefault();
+            jump(items[nav.index]);
+          } else nav.onKeyDown(e);
+        }}
+        placeholder="指示を探す（Enter で入力欄に入れる・⌘Enter でその指示へ移る）"
+        label="指示の履歴を探す"
+      />
+      {items.length === 0 && <p className="muted small">合う指示はありません</p>}
+      {items.map((p, index) => {
+        return (
+          <div key={p.id} className={cx("prompt-row", index === nav.index && "active")} onMouseEnter={() => nav.setIndex(index)}>
+            <button type="button" className="prompt-jump" title={p.label} onClick={() => jump(p)}>
+              <span className="prompt-index">{numbers.get(p.id)}</span>
+              <span className="prompt-text">{p.label}</span>
+              <time className="prompt-time">{formatMessageTime(p.at)}</time>
+            </button>
+            {p.text && (
+              <IconButton
+                icon={CornerDownLeft}
+                size={13}
+                label="入力欄に入れる"
+                title="この文を入力欄に入れる（そのまま・少し直して送り直せる）"
+                onClick={() => reuse(p)}
+              />
+            )}
+          </div>
+        );
+      })}
+    </ComposerChip>
   );
 }
