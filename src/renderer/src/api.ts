@@ -280,12 +280,15 @@ export const api = {
   /** 選んだ待ちの指示をまとめて消す */
   removeQueuedMany: (runId: number, ids: string[]) =>
     request<{ removed: number; queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/remove-many`, { ids }),
-  /** 選んだ待ちの指示を、並びを保ったまままとめて移す（いちばん上・いちばん下、または { before: その指示の前（null ならいちばん下） }） */
-  moveQueuedMany: (runId: number, ids: string[], to: "top" | "bottom" | { before: string | null }) =>
+  /**
+   * 選んだ待ちの指示を、並びを保ったまままとめて移す（いちばん上・いちばん下、または { before: その指示の前（null ならいちばん下）,
+   * belowStop: その位置に止める線があれば線の下に入れるか }）
+   */
+  moveQueuedMany: (runId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }) =>
     request<{ moved: number; queue: QueuedMessage[] }>(
       "POST",
       `/api/runs/${runId}/queue/move-many`,
-      typeof to === "string" ? { ids, to } : { ids, before: to.before },
+      typeof to === "string" ? { ids, to } : { ids, before: to.before, ...(to.belowStop === undefined ? {} : { below_stop: to.belowStop }) },
     ),
   sendQueuedNow: (runId: number, id: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/${id}/send`),
 
