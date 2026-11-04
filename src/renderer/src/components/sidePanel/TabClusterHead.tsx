@@ -7,6 +7,7 @@ import { confirmDeleteGroup } from "../../groups";
 import { reportFailure } from "../../runActions";
 import { MenuItem, PopupMenu, clampToViewport } from "../PopupMenu";
 import { cx } from "../../cx";
+import { Chevron } from "../Chevron";
 import { useDismiss } from "../../hooks/useDismiss";
 import { stateCounts } from "../../runState";
 import { StateCornerCounts, stateCountsSummary } from "../StateCornerCounts";
@@ -24,7 +25,8 @@ const EDGE = 8;
  * runs が undefined の「その他」（ブラウザなど）は押せない札。まとまりはプロジェクトごとなので、一覧の行にプロジェクト名は出さない。
  * まとめないときも、タブの列の左端に「チャット」の札（all）として置き、パネルのチャット全体の状態ごとの数と一覧を出す（タブの数は出さない）。
  * 札の右クリック（プロジェクトの分かるまとまりだけ）: このグループで新しいチャット（グループ別のとき）・新しいグループを作成・
- * このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）
+ * このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
+ * 札の右のタブの数は、まとまりのタブを畳む・開くボタン（onToggleCollapsed。ブラウザのタブのグループを畳むのと同じ。右クリックにも同じ項目）
  */
 export function TabClusterHead({
   cluster,
@@ -33,6 +35,8 @@ export function TabClusterHead({
   onNewChat,
   all = false,
   popoverTitle = `${cluster.label}のチャット`,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   cluster: TabCluster;
   runs: Run[] | undefined;
@@ -41,6 +45,9 @@ export function TabClusterHead({
   onNewChat?: (target: NewChatTarget) => void;
   all?: boolean;
   popoverTitle?: string;
+  /** まとまりのタブを畳んでいるか（表示中のタブだけを残す） */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }) {
   const { stateOf, pending } = useRunStates();
   const [at, setAt] = useState<CSSProperties | null>(null);
@@ -54,7 +61,7 @@ export function TabClusterHead({
     // タブの列の何もないところの右クリック（ツールバーの置き方のメニュー）に渡さない
     e.preventDefault();
     e.stopPropagation();
-    setMenu(clampToViewport(e.clientX, e.clientY, 240, 130));
+    setMenu(clampToViewport(e.clientX, e.clientY, 240, 170));
   };
   const createGroup = async () => {
     if (projectId === undefined) return;
@@ -93,13 +100,31 @@ export function TabClusterHead({
           {name}
         </span>
       )}
-      {!all && (
-        <span className="panel-tab-cluster-count" title={`タブ ${cluster.tabs.length} 個`}>
-          {cluster.tabs.length}
-        </span>
-      )}
+      {!all &&
+        (onToggleCollapsed ? (
+          <button
+            type="button"
+            className="panel-tab-cluster-count panel-tab-cluster-fold"
+            aria-expanded={!collapsed}
+            title={collapsed ? `タブ ${cluster.tabs.length} 個を表示する` : `タブ ${cluster.tabs.length} 個を畳む（表示中のタブは残す）`}
+            onClick={onToggleCollapsed}
+          >
+            <Chevron open={!collapsed} size={11} />
+            {cluster.tabs.length}
+          </button>
+        ) : (
+          <span className="panel-tab-cluster-count" title={`タブ ${cluster.tabs.length} 個`}>
+            {cluster.tabs.length}
+          </span>
+        ))}
       {menu && projectId !== undefined && (
         <PopupMenu x={menu.x} y={menu.y} label={`「${cluster.label}」の操作`} onClose={() => setMenu(undefined)}>
+          {onToggleCollapsed && cluster.tabs.length > 0 && (
+            <>
+              <MenuItem onSelect={onToggleCollapsed}>{collapsed ? "タブを表示する" : "タブを畳む"}</MenuItem>
+              <div className="menu-separator" role="separator" />
+            </>
+          )}
           {cluster.groupId !== undefined && onNewChat && (
             <MenuItem onSelect={() => onNewChat({ projectId, group: cluster.groupId ?? undefined })}>
               {cluster.groupId === null ? "グループなしで新しいチャット" : `「${cluster.label}」で新しいチャット`}

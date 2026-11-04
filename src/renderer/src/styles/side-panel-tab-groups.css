@@ -131,6 +131,32 @@ button.panel-tab-cluster-name[aria-expanded="true"] {
   text-align: center;
 }
 
+/* タブの数は、まとまりのタブを畳む・開くボタン（矢印と数。畳んでいれば → 、開いていれば ↓） */
+.panel-tab-cluster-fold {
+  display: inline-flex;
+  gap: 1px;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 4px 0 2px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.panel-tab-cluster-fold:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* 畳んだまとまり: 札と数だけ（表示中のタブがあればそれだけ）を残し、数を少し濃くして、隠しているタブがあると分かるようにする */
+.panel-tab-group.collapsed .panel-tab-cluster-fold {
+  color: var(--text);
+}
+
 /* まとめないときの「チャット」の札（まとまりの色はないので、その他と同じ控えめな地。押すと状態ごとのチャットの一覧） */
 .panel-tab-cluster.all {
   padding: 0 6px 0 6px;

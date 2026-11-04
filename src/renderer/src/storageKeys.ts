@@ -82,6 +82,8 @@ export const boardArchivedOpenKey = (foldKey: string) => `kickoff:board-archived
 export const PANEL_WIDTH_KEY = "kickoff:panel-width";
 /** 右のパネルのタブの列のまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別。未保存ならまとめない） */
 export const PANEL_TAB_GROUPING_KEY = "kickoff:panel-tab-grouping";
+/** 右のパネルのタブのまとまりのうち、タブを畳んでいるもの（まとまりのキーの JSON の配列。すべてのパネル・ペインで共通） */
+export const PANEL_TAB_CLUSTERS_COLLAPSED_KEY = "kickoff:panel-tab-clusters-collapsed";
 /** 右のパネルを横幅いっぱいにしているか（"1" / "0"） */
 export const PANEL_MAXIMIZED_KEY = "kickoff:panel-maximized";
 /** プロジェクトごとの、右のチャット欄を開いているか（後ろにプロジェクトの ID） */
