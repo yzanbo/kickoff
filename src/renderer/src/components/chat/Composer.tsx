@@ -76,8 +76,9 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   const [text, setText] = useStoredText(draftKey);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   /** 文を入れて、キャレットを caret に置く（描き直して高さが合ってから） */
-  const fill = (value: string, caret = value.length) => {
+  const fill = (value: string, caret = value.length, focus = true) => {
     setText(value);
+    if (!focus) return;
     requestAnimationFrame(() => {
       const el = textareaRef.current;
       if (!el) return;
@@ -87,7 +88,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   };
   if (fillRef)
     fillRef.current = (value, opts) => {
-      fill(opts?.append ? appendBlock(text, value) : value);
+      fill(opts?.append ? appendBlock(text, value) : value, undefined, opts?.focus);
       // 添付も入れる（送信待ちの指示を新しいチャットで聞くとき。アップロード済みのものをそのまま使う）
       if (opts?.attachments) attach.addAttachments(opts.attachments);
     };

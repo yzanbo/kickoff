@@ -67,6 +67,8 @@ export function PanelTabPage({
           projectId={t.projectId}
           group={t.group}
           seed={t.seed}
+          draftText={t.draftText}
+          visible={visible}
           projects={panel.projects}
           onProjectChange={(projectId) => panel.updateTab(t.key, () => ({ ...t, projectId, group: undefined, groupName: undefined }))}
           onGroupChange={(group, groupName) => panel.updateTab(t.key, (x) => (x.kind === "new" ? { ...x, group, groupName } : x))}
