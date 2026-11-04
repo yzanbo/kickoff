@@ -130,3 +130,19 @@ button.panel-tab-cluster-name[aria-expanded="true"] {
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
+
+/* まとめないときの「チャット」の札（まとまりの色はないので、その他と同じ控えめな地。押すと状態ごとのチャットの一覧） */
+.panel-tab-cluster.all {
+  padding: 0 6px 0 6px;
+}
+
+.panel-tab-cluster.all .panel-tab-cluster-name {
+  color: var(--muted);
+  background: var(--bg-elev);
+}
+
+.panel-tab-cluster.all button.panel-tab-cluster-name:hover,
+.panel-tab-cluster.all button.panel-tab-cluster-name[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--bg-hover);
+}

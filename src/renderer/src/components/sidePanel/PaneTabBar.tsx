@@ -103,6 +103,19 @@ export function PaneTabBar({
     });
     return [...open, ...panel.runs.filter((r) => !open.some((o) => o.id === r.id) && clusterOfRun(r).key === c.key)];
   };
+  /**
+   * まとめないときの「チャット」の札に出すチャット: タブで開いているチャットと、ボードの一覧のチャットすべて
+   * （まとめているときと同じく、作業中・回答待ち・未読をひと目で分かるように。チャットが 1 つもなければ札を出さない）
+   */
+  const allRuns = (() => {
+    if (clusters) return [];
+    const open = known.flatMap((key) => {
+      const t = panel.tabs.find((x) => x.key === key);
+      const run = t?.kind === "chat" ? (panel.runs.find((r) => r.id === t.id) ?? t.run) : undefined;
+      return run ? [run] : [];
+    });
+    return [...open, ...panel.runs.filter((r) => !open.some((o) => o.id === r.id))].filter((r) => !r.archived_at);
+  })();
   /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
   const tab = (key: string, i: number) => {
     const t = panel.tabs.find((x) => x.key === key);
@@ -153,6 +166,16 @@ export function PaneTabBar({
       {...drag.barProps(pane.id, (i) => paneIndexOf(i, display, pane.tabs))}
     >
       {controls}
+      {/* まとめないときは、タブの列の左端（横にスクロールしても動かない位置）に「チャット」の札 */}
+      {!clusters && allRuns.length > 0 && (
+        <TabClusterHead
+          cluster={{ key: "all", label: "チャット", title: "このパネルのチャット", tabs: known }}
+          runs={allRuns}
+          onOpen={(run) => panel.open(run)}
+          all
+          popoverTitle="状態ごとのチャット"
+        />
+      )}
       <div ref={stripRef} className={cx("panel-tab-strip", clusters && "grouped")}>
       {clusters
         ? clusters.map((c) => {
