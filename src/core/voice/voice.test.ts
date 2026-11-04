@@ -1,11 +1,10 @@
-// 文字起こしの純粋関数（コマンドの引数・出力の整形・OpenAI の応答とエラー・準備の確かめ・コマンドの探し方）
+// 文字起こしの純粋関数（コマンドの引数・出力の整形・OpenAI の応答とエラー・準備の確かめ。コマンドの探し方は system/exec.test.ts）
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { audioExtension, commandFailure, ffmpegArgs, joinSegments, whisperArgs } from "./local.js";
 import { modelFile, modelUrl, WHISPER_MODELS } from "./models.js";
 import { openAiFailure, parseTranscription, transcribeOpenAi, transcriptionForm, transcriptionUrl } from "./openai.js";
 import { voiceUnreadyReason } from "./readiness.js";
-import { findExecutable, searchDirs } from "./tools.js";
 
 const audio = { bytes: new Uint8Array([1, 2]), name: "voice.webm", type: "audio/webm;codecs=opus" };
 
@@ -78,11 +77,4 @@ test("準備の確かめ: オフ → 方法ごとに足りないもの（キー 
   assert.match(voiceUnreadyReason({ ...base, modelDownloaded: false }) ?? "", /モデル（base）をダウンロード/);
   assert.match(voiceUnreadyReason({ ...base, settings: { ...base.settings, voice_provider: "openai" } }) ?? "", /API キー/);
   assert.equal(voiceUnreadyReason({ ...base, settings: { ...base.settings, voice_provider: "openai" }, tools: { whisper: null, ffmpeg: null }, keySaved: true }), null);
-});
-
-test("コマンドの探し方: PATH の順、なければ Homebrew の場所。名前は今の名前を先に", () => {
-  assert.deepEqual(searchDirs("/usr/bin:/opt/homebrew/bin"), ["/usr/bin", "/opt/homebrew/bin", "/usr/local/bin"]);
-  const files = new Set(["/opt/homebrew/bin/whisper-cpp", "/usr/local/bin/whisper-cli"]);
-  assert.equal(findExecutable(["whisper-cli", "whisper-cpp"], ["/opt/homebrew/bin", "/usr/local/bin"], (f) => files.has(f)), "/usr/local/bin/whisper-cli");
-  assert.equal(findExecutable(["ffmpeg"], ["/opt/homebrew/bin"], (f) => files.has(f)), null);
 });

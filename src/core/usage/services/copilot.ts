@@ -1,5 +1,5 @@
 import type { ServiceUsage, UsageWindow } from "@shared/types";
-import { execFileAsync } from "../../system/exec.js";
+import { nonInteractiveEnv, runCommand } from "../../system/exec.js";
 import { defineFetcher, fetchJsonOr, isoFromDate, usageResult, usageWindow } from "./common.js";
 
 const result = usageResult({ id: "copilot", label: "GitHub Copilot" });
@@ -56,8 +56,7 @@ export function parseCopilotUsage(body: CopilotUserResponse): ServiceUsage {
 /** gh のログイン（トークン）。gh がない・未ログインなら null */
 async function ghToken(): Promise<string | null> {
   try {
-    const { stdout } = await execFileAsync("gh", ["auth", "token"], { timeout: 10_000, env: { ...process.env, GH_PROMPT_DISABLED: "1" } });
-    return stdout.trim() || null;
+    return (await runCommand("gh", ["auth", "token"], { timeout: 10_000, env: nonInteractiveEnv() })).trim() || null;
   } catch {
     return null;
   }

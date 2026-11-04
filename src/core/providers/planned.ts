@@ -1,6 +1,6 @@
 import type { ProviderId, ProviderStatus } from "@shared/types";
 import type { AgentProvider, ProviderTurnResult } from "./types.js";
-import { execFileAsync } from "../system/exec.js";
+import { runCommand } from "../system/exec.js";
 
 /**
  * まだ Kickoff から使えない（対応予定の）プロバイダー。状態の表示のため、CLI が入っているかだけ確かめる。
@@ -40,7 +40,7 @@ export class PlannedProvider implements AgentProvider {
 /** `<command> --version` の 1 行目（見つからなければ null） */
 async function cliVersion(command: string): Promise<string | null> {
   try {
-    const { stdout } = await execFileAsync(command, ["--version"], { timeout: 5000 });
+    const stdout = await runCommand(command, ["--version"], { timeout: 5000 });
     return stdout.trim().split("\n")[0]?.slice(0, 60) || "バージョン不明";
   } catch {
     return null;

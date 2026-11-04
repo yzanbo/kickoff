@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "n
 import os from "node:os";
 import path from "node:path";
 import type { ServiceUsage, UsageWindow } from "@shared/types";
+import { findExecutable } from "../../system/exec.js";
 import { defineFetcher, emailOf, fetchJson, fetchJsonOr, isExpired, isoFromDate, jwtClaims, readJsonFile, usageResult, usageWindow } from "./common.js";
 
 const result = usageResult({ id: "gemini", label: "Gemini" });
@@ -66,7 +67,7 @@ function geminiClient(): { id: string; secret: string } | null {
   if (process.env.GEMINI_OAUTH_CLIENT_ID && process.env.GEMINI_OAUTH_CLIENT_SECRET) {
     return { id: process.env.GEMINI_OAUTH_CLIENT_ID, secret: process.env.GEMINI_OAUTH_CLIENT_SECRET };
   }
-  const bin = (process.env.PATH ?? "").split(":").map((dir) => path.join(dir, "gemini")).find((p) => existsSync(p));
+  const bin = findExecutable(["gemini"]);
   if (!bin) return null;
   // gemini の実体（node_modules/@google/gemini-cli/...）から、パッケージのフォルダをたどる
   let dir = path.dirname(realpathSync(bin));

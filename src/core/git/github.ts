@@ -1,35 +1,38 @@
 import { errorMessage } from "@shared/errors";
-import { execFileAsync } from "../system/exec.js";
+import { CommandError, nonInteractiveEnv, runCommand } from "../system/exec.js";
 import type { GitHubStatus, PullRequestInfo } from "@shared/types";
+
+const GH_MISSING = "gh が見つかりません。`brew install gh` でインストールしてください";
+
+/** gh を実行する（認証などを聞かれても待たない。失敗は CommandError） */
+const runGh = (args: string[], opts: { cwd?: string; timeout: number }) => runCommand("gh", args, { ...opts, env: nonInteractiveEnv() });
 
 /** gh CLI のインストール・ログイン状態（push と PR 作成に使う） */
 export async function githubStatus(): Promise<GitHubStatus> {
   try {
-    await execFileAsync("gh", ["--version"], { timeout: 10_000 });
+    await runGh(["--version"], { timeout: 10_000 });
   } catch {
-    return { installed: false, logged_in: false, detail: "gh が見つかりません。`brew install gh` でインストールしてください" };
+    return { installed: false, logged_in: false, detail: GH_MISSING };
   }
   try {
-    const { stdout } = await execFileAsync("gh", ["api", "user", "--jq", ".login"], { timeout: 20_000 });
-    const account = stdout.trim();
+    const account = (await runGh(["api", "user", "--jq", ".login"], { timeout: 20_000 })).trim();
     return { installed: true, logged_in: true, account, detail: `${account} でログイン済み` };
   } catch {
     return { installed: true, logged_in: false, detail: "未ログインです。ターミナルで `gh auth login` を実行してください" };
   }
 }
 
-/** gh を実行する（失敗したら gh の説明を文にする。認証などを聞かれても待たない） */
+/** 作業場所で gh を実行する（失敗したら、よくある理由は分かる文にする。ほかは gh の説明のまま） */
 async function gh(cwd: string, args: string[]): Promise<string> {
   try {
-    const { stdout } = await execFileAsync("gh", args, { cwd, timeout: 60_000, env: { ...process.env, GH_PROMPT_DISABLED: "1", GIT_TERMINAL_PROMPT: "0" } });
-    return stdout;
+    return await runGh(args, { cwd, timeout: 60_000 });
   } catch (e) {
-    const err = e as { code?: unknown; stderr?: unknown };
-    if (err.code === "ENOENT") throw new Error("gh が見つかりません。`brew install gh` でインストールしてください");
-    const detail = typeof err.stderr === "string" ? err.stderr.trim() : "";
-    if (/known GitHub host/i.test(detail)) throw new Error("プッシュ先が GitHub ではないので、PR は作れません");
-    if (/gh auth login/i.test(detail)) throw new Error("GitHub にログインしていません。ターミナルで `gh auth login` を実行してください");
-    throw detail ? new Error(detail) : e;
+    if (e instanceof CommandError) {
+      if (e.code === "ENOENT") throw new Error(GH_MISSING);
+      if (/known GitHub host/i.test(e.stderr)) throw new Error("プッシュ先が GitHub ではないので、PR は作れません");
+      if (/gh auth login/i.test(e.stderr)) throw new Error("GitHub にログインしていません。ターミナルで `gh auth login` を実行してください");
+    }
+    throw e;
   }
 }
 

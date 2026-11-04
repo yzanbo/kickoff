@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { searchDirs } from "./exec.js";
 
 /**
  * Finder から起動した macOS アプリはログインシェルの PATH を引き継がない。
@@ -21,7 +22,6 @@ export function loadLoginShellPath(): void {
     }
   } catch {
     // 取得できなくても致命的ではない（よく使う場所だけ補う）
-    const fallback = ["/opt/homebrew/bin", "/usr/local/bin", `${process.env.HOME}/.local/bin`];
-    process.env.PATH = [...new Set([...(process.env.PATH ?? "").split(":"), ...fallback])].filter(Boolean).join(":");
+    process.env.PATH = searchDirs().join(":");
   }
 }

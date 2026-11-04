@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { errorMessage } from "@shared/errors";
-import { execFileAsync } from "../system/exec.js";
+import { runCommand, stderrOf } from "../system/exec.js";
 import { CJK_CHAR } from "@shared/types";
 import type { AudioInput, LocalOptions } from "./types.js";
 
@@ -76,10 +76,9 @@ export function joinSegments(output: string): string {
   }, "");
 }
 
-/** whisper-cli が失敗したときの文（標準エラーの最後の行を添える） */
+/** ffmpeg・whisper-cli が失敗したときの文（標準エラーの最後の行を添える。長い出力の要点。なければ例外の文） */
 export function commandFailure(tool: string, e: unknown): string {
-  const stderr = (e as { stderr?: string }).stderr?.trim().split("\n").at(-1);
-  return `${tool} が失敗しました: ${stderr || errorMessage(e)}`;
+  return `${tool} が失敗しました: ${stderrOf(e).split("\n").at(-1) || errorMessage(e)}`;
 }
 
 /** この Mac の whisper-cli で起こす（ffmpeg で wav にしてから。一時ファイルは必ず消す） */
@@ -90,14 +89,11 @@ export async function transcribeLocal(audio: AudioInput, opts: LocalOptions): Pr
     const wav = path.join(dir, "audio.wav");
     const outBase = path.join(dir, "result");
     await fs.promises.writeFile(input, audio.bytes);
-    await execFileAsync(opts.ffmpeg, ffmpegArgs(input, wav), { timeout: TIMEOUT_MS }).catch((e: unknown) => {
+    await runCommand(opts.ffmpeg, ffmpegArgs(input, wav), { timeout: TIMEOUT_MS }).catch((e: unknown) => {
       throw new Error(commandFailure("ffmpeg", e));
     });
     const threads = Math.max(1, Math.min(8, os.availableParallelism() - 2));
-    await execFileAsync(opts.whisper, whisperArgs({ model: opts.model, wav, language: opts.language, outBase, threads }), {
-      timeout: TIMEOUT_MS,
-      maxBuffer: 16 * 1024 * 1024,
-    }).catch((e: unknown) => {
+    await runCommand(opts.whisper, whisperArgs({ model: opts.model, wav, language: opts.language, outBase, threads }), { timeout: TIMEOUT_MS }).catch((e: unknown) => {
       throw new Error(commandFailure("whisper-cli", e));
     });
     return joinSegments(await fs.promises.readFile(`${outBase}.txt`, "utf8"));
