@@ -1,5 +1,5 @@
 // 作業ツリーの状態（git status）といまのブランチ
-import type { GitChangeKind, GitFileChange, GitStatus } from "../types.js";
+import type { GitChangeKind, GitFileChange, GitStatus } from "@shared/types";
 import { gitOutput } from "./exec.js";
 
 const KINDS = new Set<GitChangeKind>(["M", "A", "D", "R", "C", "T"]);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { errorMessage } from "../errors";
+import { errorMessage } from "@shared/errors";
 
 /**
  * フォームの送信中かどうかと、失敗の文（プロジェクトの作成・取り込みなど）。

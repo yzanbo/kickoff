@@ -1,6 +1,6 @@
-import type { ProviderId, ProviderStatus } from "../types.js";
+import type { ProviderId, ProviderStatus } from "@shared/types";
 import type { AgentProvider, ProviderRunResult } from "./types.js";
-import { execFileAsync } from "../exec.js";
+import { execFileAsync } from "../system/exec.js";
 
 /**
  * まだ Kickoff から使えない（対応予定の）プロバイダー。状態の表示のため、CLI が入っているかだけ確かめる。

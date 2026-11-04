@@ -1,8 +1,8 @@
 // Electron なしでコアだけを起動する（開発・動作確認用。保存先とポートは開発用: appEnv.ts）
-import { APP_ENVS, appDataDir } from "./appEnv.js";
-import { seedDevData } from "./devData.js";
+import { APP_ENVS, appDataDir } from "./system/appEnv.js";
+import { seedDevData } from "./system/devData.js";
 import { startCore } from "./index.js";
-import { loadLoginShellPath } from "./shellEnv.js";
+import { loadLoginShellPath } from "./system/shellEnv.js";
 
 loadLoginShellPath();
 

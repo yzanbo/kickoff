@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App";
-import "./styles/index.css";
+import { App } from "@/app/App";
+import "@/styles/index.css";
 
 // 入力欄以外にファイルを落としたとき、ウィンドウがそのファイルを開いてしまわないようにする
 window.addEventListener("dragover", (e) => e.preventDefault());

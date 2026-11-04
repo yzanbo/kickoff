@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { errorMessage } from "../errors";
+import { errorMessage } from "@shared/errors";
 
 /** 保存などの結果の文（成功・失敗） */
 export type ResultText = { kind: "ok" | "error"; text: string };

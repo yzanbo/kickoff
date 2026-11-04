@@ -1,5 +1,5 @@
-import type { ChatPolicy } from "../chatPolicy.js";
-import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "../types.js";
+import type { ChatPolicy } from "../chat/policy.js";
+import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "@shared/types";
 
 /**
  * エージェント実行基盤の抽象化。

@@ -1,5 +1,5 @@
 // 作業ツリーの変更（差分・ステージ・コミット・プッシュ・プル・フェッチ）
-import type { GitDiff } from "../types.js";
+import type { GitDiff } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { assertInside } from "./files.js";
 import { gitStatus } from "./status.js";

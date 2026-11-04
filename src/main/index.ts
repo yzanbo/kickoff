@@ -1,21 +1,21 @@
 import path from "node:path";
 import { app, BrowserWindow, dialog, session, shell } from "electron";
-import { APP_ENVS } from "../core/appEnv.js";
-import { seedDevData } from "../core/devData.js";
-import { AUTH_COOKIE } from "../core/auth.js";
-import { errorMessage } from "../core/errors.js";
+import { APP_ENVS } from "../core/system/appEnv.js";
+import { seedDevData } from "../core/system/devData.js";
+import { AUTH_COOKIE } from "../core/http/auth.js";
+import { errorMessage } from "@shared/errors";
 import { startCore, type Core } from "../core/index.js";
-import { loadLoginShellPath } from "../core/shellEnv.js";
-import { hardenWebviews } from "./browser.js";
-import { loadSavedExtensions } from "./browserExtensions.js";
-import { setAppMenu } from "./appMenu.js";
-import { moveLegacyDiagnostics } from "./diagnostics.js";
-import { setDiagnosticsCore } from "./diagnosticsMain.js";
-import { registerIpc } from "./ipc.js";
-import { registerNotifications } from "./notifications.js";
-import { allowAppMicrophone } from "./mediaPermission.js";
-import { registerShutdown } from "./shutdown.js";
-import { logLaunch, startupLog, watchChildProcesses, watchWindowLoad } from "./startupLog.js";
+import { loadLoginShellPath } from "../core/system/shellEnv.js";
+import { hardenWebviews } from "./browser/browser.js";
+import { loadSavedExtensions } from "./browser/extensions.js";
+import { setAppMenu } from "./app/appMenu.js";
+import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
+import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
+import { registerIpc } from "./ipc/ipc.js";
+import { registerNotifications } from "./notifications/notifications.js";
+import { allowAppMicrophone } from "./app/mediaPermission.js";
+import { registerShutdown } from "./app/shutdown.js";
+import { logLaunch, startupLog, watchChildProcesses, watchWindowLoad } from "./app/startupLog.js";
 
 // ビルド後の out/main を基準にする
 const outDir = path.join(import.meta.dirname, "..");

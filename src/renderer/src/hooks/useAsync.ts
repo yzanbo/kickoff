@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { errorMessage } from "../errors";
+import { errorMessage } from "@shared/errors";
 
 /** 非同期の読み込み状態をまとめて扱う */
 export function useAsync<T>(load: () => Promise<T>, deps: unknown[] = []) {
