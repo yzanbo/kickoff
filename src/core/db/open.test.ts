@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { DB_FILE, discardPrereleaseData, openDatabase } from "./open.js";
 import { APPLICATION_ID, SCHEMA_VERSION, USER_VERSION_BASE, userVersion } from "./schema.js";
+import { tempDir } from "../testing/tempDir.js";
 
-const tempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-open-"));
 const applicationId = (db: DatabaseSync) => (db.prepare("PRAGMA application_id").get() as { application_id: number }).application_id;
 
 /** sql を流しただけのデータベースを作る（Kickoff の印・版は sql の中で付ける） */

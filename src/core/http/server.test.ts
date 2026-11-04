@@ -5,7 +5,8 @@ import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { test } from "node:test";
 import { startHttpServer, stopHttpServer } from "./httpServer.js";
-import { AUTH, TOKEN, setup, tempDir } from "../testing/testServer.js";
+import { AUTH, TOKEN, setup } from "../testing/testServer.js";
+import { tempDir } from "../testing/tempDir.js";
 
 test("API はトークン（Bearer・Cookie）がないと 401。ペアリングで Cookie を渡す", async () => {
   const { app } = setup();

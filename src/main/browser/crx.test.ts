@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { crxZipOffset, unpackCrx } from "./crx";
+import { tempDir } from "../../core/testing/tempDir.js";
 
 test("CRX3 のヘッダーを読み飛ばして中身を展開し、_metadata は除く", async () => {
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-crx-"));
+  const work = tempDir();
   fs.mkdirSync(path.join(work, "src", "_metadata"), { recursive: true });
   fs.writeFileSync(path.join(work, "src", "manifest.json"), '{"name":"Test","version":"1.0","manifest_version":3}');
   fs.writeFileSync(path.join(work, "src", "_metadata", "verified_contents.json"), "{}");

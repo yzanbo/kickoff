@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { claudeEffortDefault } from "./effortDefault.js";
+import { tempDir } from "../../testing/tempDir.js";
 
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-effort-"));
+const tmp = () => tempDir();
 const write = (dir: string, file: string, value: unknown) => {
   fs.mkdirSync(path.join(dir, ".claude"), { recursive: true });
   fs.writeFileSync(path.join(dir, ".claude", file), typeof value === "string" ? value : JSON.stringify(value));

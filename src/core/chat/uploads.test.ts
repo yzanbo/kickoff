@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { test } from "node:test";
 import { MAX_UPLOAD_BYTES, UploadStore, safeFileName, withAttachmentNote } from "./uploads.js";
+import { tempDir } from "../testing/tempDir.js";
 
-const dir = () => fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-up-"));
+const dir = () => tempDir();
 
 test("添付ファイルを保存して ID から取り出せる", async () => {
   const store = new UploadStore(dir());

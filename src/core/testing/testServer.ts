@@ -1,22 +1,18 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
-import assert from "node:assert/strict";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { ApprovalCenter } from "../chat/approvals.js";
-import { Bus } from "../bus.js";
-import type { AgentProvider, ProviderCallbacks, ProviderTurnResult } from "../providers/types.js";
-import { Runner } from "../chat/runner.js";
+import type { ProviderCallbacks, ProviderTurnResult } from "../providers/types.js";
 import { createApp } from "../http/server.js";
-import { Store } from "../db/store.js";
-import type { ApiRetryInfo, BackgroundState, FileRewindResult, ProviderId, SlashCommandOption } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, FileRewindResult, SlashCommandOption } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
 import type { VoiceTools } from "../voice/tools.js";
 import type { AudioInput, LocalOptions, OpenAiOptions } from "../voice/types.js";
-import type { UsageMonitor } from "../usage/planUsage.js";
 import { FakeProviderBase } from "./fakeProvider.js";
+import "./gitRepo.js";
+import { tempDir } from "./tempDir.js";
+import { setupCore } from "./testCore.js";
+
+export { until } from "./testCore.js";
 
 export const TOKEN = "t".repeat(32);
 export const AUTH = { authorization: `Bearer ${TOKEN}` };
@@ -109,25 +105,16 @@ class FakeProvider extends FakeProviderBase {
   }
 }
 
-export const tempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-server-test-"));
-
+/**
+ * 偽のプロバイダーで API のアプリを組み立てる（一時フォルダは、そのテストが終わったら消える）。
+ * Git の名前は、設定していない環境でもコミットできるよう testing/gitRepo.ts が環境変数で渡す
+ */
 export function setup(opts: { staticDir?: string } = {}) {
-  const bus = new Bus();
-  const store = new Store(":memory:", (e) => bus.publish(e));
-  const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(tempDir());
-  const usage = { get: async () => ({ available: false }), refresh: async () => ({ available: false }) } as unknown as UsageMonitor;
-  const provider = new FakeProvider();
-  const providers = { claude: provider, codex: provider, gemini: provider } as Record<ProviderId, AgentProvider>;
   // 通信: online を false にすると AI の API に届かない（つながったかの確かめに使う）
   const network = { online: true };
-  const runner = new Runner({
-    store,
-    approvals,
-    providers,
-    usage,
+  const { bus, store, approvals, providers, usage, runner, provider, project } = setupCore(new FakeProvider(), {
     uploads,
-    bus,
     reconnect: { check: async () => network.online, intervalMs: 5 },
     usageLimit: { checkMs: 5 },
     // 書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
@@ -165,7 +152,6 @@ export function setup(opts: { staticDir?: string } = {}) {
     fetch: () => voiceFake.download(),
   });
   const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, staticDir: opts.staticDir });
-  const project = store.projects.create({ name: "p", repo_path: tempDir(), provider: "claude" });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -180,8 +166,3 @@ export function setup(opts: { staticDir?: string } = {}) {
   return { app, store, bus, runner, project, call, provider, voiceFake, network, approvals, codexCalls: () => codexCalls };
 }
 
-const tick = () => new Promise((r) => setTimeout(r, 10));
-export async function until(cond: () => boolean) {
-  for (let i = 0; i < 200 && !cond(); i++) await tick();
-  assert.ok(cond(), "条件を満たしませんでした");
-}

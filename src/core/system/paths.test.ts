@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { expandHome, isInside, realPathLoose } from "./paths.js";
+import { tempDir } from "../testing/tempDir.js";
 
 test("isInside: 中（自身を含む）か外か。'..' で始まる名前のフォルダは外と見なさない", () => {
   const cases: [string, string, boolean][] = [
@@ -35,7 +36,7 @@ test("expandHome: ~ と ~/ だけをホームフォルダにする", () => {
 });
 
 test("realPathLoose: あるところまでリンクを解決し、まだないファイルは親から組み立てる", () => {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-paths-")));
+  const root = tempDir({ real: true });
   fs.mkdirSync(path.join(root, "real"));
   fs.symlinkSync(path.join(root, "real"), path.join(root, "link"));
   assert.equal(realPathLoose(path.join(root, "link")), path.join(root, "real"));

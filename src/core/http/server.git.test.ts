@@ -4,7 +4,9 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import { setup, tempDir, until } from "../testing/testServer.js";
+import { setup, until } from "../testing/testServer.js";
+import { gitIn, gitRepo } from "../testing/gitRepo.js";
+import { tempDir } from "../testing/tempDir.js";
 
 test("Git の変更の API（状態と、ファイルごとの差分）", async () => {
   const { call, project } = setup();
@@ -12,13 +14,7 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body, { repo: false });
   assert.deepEqual(await call("GET", `/api/projects/${project.id}/git/worktrees`), { status: 200, body: [] });
 
-  const repo = project.repo_path;
-  const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo });
-  git("init", "-b", "main");
-  fs.writeFileSync(path.join(repo, "a.txt"), "one\n");
-  fs.writeFileSync(path.join(repo, "b.txt"), "bee\n");
-  git("add", ".");
-  git("commit", "-m", "init");
+  const { dir: repo, git } = gitRepo({ dir: project.repo_path, files: { "a.txt": "one\n", "b.txt": "bee\n" } });
   fs.writeFileSync(path.join(repo, "a.txt"), "one\ntwo\n");
   fs.writeFileSync(path.join(repo, "b.txt"), "bee!\n");
   git("add", "b.txt");
@@ -155,15 +151,15 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   const removed = (await call("POST", `${wtUrl}/remove`, { path: wt.path, force: true })).body;
   assert.equal(removed.length, 1);
   assert.equal(fs.existsSync(wt.path), false);
-  fs.rmSync(path.dirname(wt.path), { recursive: true, force: true });
 
   // プル: ほかの手元から押されたコミットを、早送りで取り込む
   const other = tempDir();
   execFileSync("git", ["clone", "-q", remote, other]);
   fs.writeFileSync(path.join(other, "from-other.txt"), "x\n");
-  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "add", "."], { cwd: other });
-  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "ほかから"], { cwd: other });
-  execFileSync("git", ["push", "-q"], { cwd: other });
+  const gitOther = gitIn(other);
+  gitOther("add", ".");
+  gitOther("commit", "-q", "-m", "ほかから");
+  gitOther("push", "-q");
   // フェッチで、遅れている数がわかる
   assert.equal((await call("POST", `/api/projects/${project.id}/git/fetch`)).body.behind, 1);
   const pulled = await call("POST", `/api/projects/${project.id}/git/pull`);
@@ -174,12 +170,7 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
 
 test("チャットの作業場所: 新しいワークツリーを作って、その中でエージェントを動かす。Git の操作も作業場所ごと", async () => {
   const { call, project, store, provider } = setup();
-  const repo = project.repo_path;
-  const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo });
-  git("init", "-q", "-b", "main");
-  fs.writeFileSync(path.join(repo, "a.txt"), "a\n");
-  git("add", ".");
-  git("commit", "-q", "-m", "init");
+  const { dir: repo } = gitRepo({ dir: project.repo_path, files: { "a.txt": "a\n" } });
 
   // 本体（指定なし）
   const main = (await call("POST", `/api/projects/${project.id}/chats`, { text: "本体で" })).body;
@@ -228,8 +219,8 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   // 消す前の確かめ: コミットしていない変更・このブランチにしかないコミット。ブランチも一緒に消せる
   const wt = (await call("POST", `/api/projects/${project.id}/git/worktrees`, { branch: "feat/d" })).body.find((w: { branch: string }) => w.branch === "feat/d").path;
   fs.writeFileSync(path.join(wt, "d.txt"), "d\n");
-  execFileSync("git", ["add", "d.txt"], { cwd: wt });
-  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-m", "d"], { cwd: wt });
+  gitIn(wt)("add", "d.txt");
+  gitIn(wt)("commit", "-q", "-m", "d");
   fs.writeFileSync(path.join(wt, "e.txt"), "e\n");
   const info = await call("GET", `/api/projects/${project.id}/git/worktrees/info?path=${encodeURIComponent(wt)}`);
   assert.deepEqual(info.body, { branch: "feat/d", changes: 1, unpushed: 0, only_here: 1, pushed: false, has_remote: false });
@@ -258,5 +249,4 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal((await call("POST", removeUrl, { path: gone.worktree_path, delete_branch: true })).status, 200);
   assert.equal(store.chats.get(gone.id)?.worktree_path, null);
   assert.equal(store.chats.get(gone.id)?.branch, "feat/c");
-  fs.rmSync(path.dirname(worktree), { recursive: true, force: true });
 });

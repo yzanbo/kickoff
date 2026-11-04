@@ -1,18 +1,17 @@
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, vscodeFileUrl } from "./openCommands.js";
+import { tempDir } from "../../core/testing/tempDir.js";
 
 test("外部のターミナルで開くフォルダ: いまあるフォルダだけ", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-open-"));
+  const dir = tempDir();
   assert.equal(existingFolder(dir), dir);
   assert.throws(() => existingFolder(path.join(dir, "nope")), /フォルダが見つかりません/);
   const file = path.join(dir, "a.txt");
   fs.writeFileSync(file, "x");
   assert.throws(() => existingFolder(file), /フォルダが見つかりません/);
-  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 test("外部のターミナル: アプリごとの作業フォルダの渡し方、入っているものだけを出す", () => {

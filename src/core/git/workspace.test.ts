@@ -5,6 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace, toFolderName } from "./workspace.js";
+import { gitRepo } from "../testing/gitRepo.js";
+import { tempDir } from "../testing/tempDir.js";
 
 test("フォルダ名は安全な文字だけにする", () => {
   assert.equal(toFolderName("My Todo App"), "my-todo-app");
@@ -13,7 +15,7 @@ test("フォルダ名は安全な文字だけにする", () => {
 });
 
 test("新規プロジェクトのフォルダを git リポジトリとして初期化し、最初のコミットを作る", async () => {
-  const parent = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-ws-"));
+  const parent = tempDir();
   const repo = await createWorkspace({ parentDir: parent, folderName: "todo", name: "Todo", description: "やることを管理したい" });
 
   assert.equal(repo, fs.realpathSync(path.join(parent, "todo")));
@@ -25,18 +27,14 @@ test("新規プロジェクトのフォルダを git リポジトリとして初
 });
 
 test("空でない既存フォルダには作らない", async () => {
-  const parent = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-ws-"));
+  const parent = tempDir();
   fs.mkdirSync(path.join(parent, "taken"));
   fs.writeFileSync(path.join(parent, "taken", "x.txt"), "x");
   await assert.rejects(createWorkspace({ parentDir: parent, folderName: "taken", name: "x", description: "" }), /空ではありません/);
 });
 
-function tmpDir() {
-  return fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-imp-")));
-}
-
 test("git 未管理のフォルダは同意がなければ取り込まず、同意すれば初期化して既存ファイルをコミットする", async () => {
-  const dir = tmpDir();
+  const dir = tempDir({ real: true });
   fs.writeFileSync(path.join(dir, "index.html"), "<h1>hi</h1>");
 
   const before = await inspectWorkspace(dir);
@@ -51,12 +49,8 @@ test("git 未管理のフォルダは同意がなければ取り込まず、同�
 });
 
 test("コミット済みのリポジトリはそのまま取り込み、サブフォルダは拒否する", async () => {
-  const dir = tmpDir();
-  execFileSync("git", ["init", "-b", "main"], { cwd: dir });
-  fs.mkdirSync(path.join(dir, "src"));
-  fs.writeFileSync(path.join(dir, "src", "a.ts"), "export {}");
-  execFileSync("git", ["add", "-A"], { cwd: dir });
-  execFileSync("git", ["commit", "-m", "init"], { cwd: dir });
+  // 以前はここで Git の名前を渡さずにコミットしていて、名前を設定していない環境では落ちた（gitRepo が渡す）
+  const { dir } = gitRepo({ dir: tempDir({ real: true }), files: { "src/a.ts": "export {}" } });
   fs.writeFileSync(path.join(dir, "wip.txt"), "作業中");
 
   // シンボリックリンク経由（/tmp → /private/tmp）でもルートとして認識する
