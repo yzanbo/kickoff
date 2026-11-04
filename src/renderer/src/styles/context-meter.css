@@ -43,6 +43,16 @@
   stroke: var(--dot-failed);
 }
 
+/* 会話を圧縮している間: 短い弧をアクセントの色で回す（使用率の色より後ろに置いて勝たせる。弧の長さの変化はなめらかにしない） */
+.context-ring.compacting {
+  animation: spin 0.9s linear infinite;
+}
+
+.context-ring.compacting .context-ring-fill {
+  stroke: var(--accent);
+  transition: none;
+}
+
 .context-popover {
   position: absolute;
   right: -8px;

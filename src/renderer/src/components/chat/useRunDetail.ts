@@ -29,6 +29,8 @@ export function useRunDetail(runId: number, projectId: number) {
   const [background, setBackground] = useState<BackgroundState | null>(null);
   // 停止を頼んで、作業が終わるのを待っているか（サブエージェント・裏のコマンドごと終わるまで数秒かかる）
   const [stopping, setStopping] = useState(false);
+  // 会話を圧縮している最中なら、始めた時刻（手で圧縮したときも、上限に近づいて自動で圧縮されたときも）
+  const [compacting, setCompacting] = useState<string | null>(null);
   // 生成中の返答（確定すると text イベントとして届くので、そこで消す）
   const [live, setLive] = useState("");
   const [error, setError] = useState<string>();
@@ -46,6 +48,7 @@ export function useRunDetail(runId: number, projectId: number) {
     setReconnect(null);
     setBackground(null);
     setStopping(false);
+    setCompacting(null);
     setLive("");
     setError(undefined);
     api
@@ -62,6 +65,7 @@ export function useRunDetail(runId: number, projectId: number) {
         setReconnect(d.reconnect ?? null);
         setBackground(d.background ?? null);
         setStopping(Boolean(d.stopping));
+        setCompacting(d.compacting ?? null);
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
     api
@@ -111,6 +115,7 @@ export function useRunDetail(runId: number, projectId: number) {
         dropPendingDelta();
         setLive("");
         setRetry(null);
+        setCompacting(null);
       }
     } else if (e.type === "run_retry" && e.run_id === runId) {
       setRetry(e.retry);
@@ -118,6 +123,8 @@ export function useRunDetail(runId: number, projectId: number) {
       setReconnect(e.reconnect);
     } else if (e.type === "run_background" && e.run_id === runId) {
       setBackground(e.background);
+    } else if (e.type === "run_compacting" && e.run_id === runId) {
+      setCompacting(e.since);
     } else if (e.type === "run_stopping" && e.run_id === runId) {
       setStopping(e.stopping);
     } else if (e.type === "run_queue" && e.run_id === runId) {
@@ -132,5 +139,5 @@ export function useRunDetail(runId: number, projectId: number) {
     }
   });
 
-  return { run, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, live, error };
+  return { run, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, compacting, live, error };
 }

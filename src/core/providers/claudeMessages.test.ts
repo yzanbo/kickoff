@@ -62,3 +62,24 @@ test("タスク: サブエージェント（local_agent・種類のない古い 
   );
   assert.deepEqual(progress, []);
 });
+
+test("圧縮: status の知らせで圧縮の始まりと終わりを 1 回ずつ知らせ、失敗したら理由を残す", () => {
+  const { events, cb } = recorder();
+  const changes: boolean[] = [];
+  cb.compacting = (active) => changes.push(active);
+  const state = createMessageState();
+  const status = (s: string | null, extra: object = {}) => ({ type: "system", subtype: "status", status: s, ...extra }) as unknown as SDKMessage;
+  emitSdkMessage(status("requesting"), cb, state);
+  emitSdkMessage(status("compacting"), cb, state);
+  emitSdkMessage(status("compacting"), cb, state);
+  emitSdkMessage(status(null, { compact_result: "failed", compact_error: "too long" }), cb, state);
+  // 圧縮の区切りが先に届いたときも終わりとして扱い、そのあとの status では重ねて知らせない
+  emitSdkMessage(status("compacting"), cb, state);
+  emitSdkMessage({ type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "auto", pre_tokens: 150_000, post_tokens: 20_000 } } as unknown as SDKMessage, cb, state);
+  emitSdkMessage(status(null, { compact_result: "success" }), cb, state);
+  assert.deepEqual(changes, [true, false, true, false]);
+  assert.deepEqual(events, [
+    { type: "notice", message: "会話の圧縮に失敗しました（too long）" },
+    { type: "compact", trigger: "auto", pre_tokens: 150_000, post_tokens: 20_000 },
+  ]);
+});

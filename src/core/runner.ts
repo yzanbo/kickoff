@@ -35,6 +35,8 @@ export class Runner extends RunnerQueue {
   private readonly background = new Map<number, BackgroundState>();
   /** 作業中のチャットへの操作（止めずに発言を足す・裏の作業を止める。プロバイダーが渡す） */
   private readonly controls = new Map<number, RunControl>();
+  /** 会話を圧縮している最中のチャットと、始めた時刻（executeRun が書き、詳細の API で返す） */
+  private readonly compacting = new Map<number, string>();
   /** 止めるよう頼んで、終わるのを待っているチャット（runStopping.ts） */
   private readonly stopping: RunStopping;
   /**
@@ -100,6 +102,11 @@ export class Runner extends RunnerQueue {
   /** 裏で動いている作業の様子（作業中でなければ null） */
   backgroundState(runId: number): BackgroundState | null {
     return this.background.get(runId) ?? null;
+  }
+
+  /** 会話を圧縮している最中なら、始めた時刻（していなければ null） */
+  compactingSince(runId: number): string | null {
+    return this.compacting.get(runId) ?? null;
   }
 
   /** つながったら自動で再開するのを待っているか（null なら待っていない） */
@@ -288,7 +295,7 @@ export class Runner extends RunnerQueue {
     this.active.set(item.runId, controller);
     let outcome: RunOutcome = { status: "failed", network: false };
     try {
-      outcome = await executeRun({ ...this.deps, background: this.background, controls: this.controls }, item, controller.signal);
+      outcome = await executeRun({ ...this.deps, background: this.background, controls: this.controls, compacting: this.compacting }, item, controller.signal);
     } finally {
       this.active.delete(item.runId);
       this.stopping.end(item.runId);
