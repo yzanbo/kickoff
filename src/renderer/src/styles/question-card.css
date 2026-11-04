@@ -257,3 +257,37 @@
   background: var(--bg-active);
   vertical-align: 1px;
 }
+
+/* 質問に答えた内容（QuestionAnswerMessage）: 自分の吹き出しの中に、上に「質問への回答」、質問ごとに質問の文（小さく薄く）と答え */
+.question-answer .bubble.user {
+  white-space: normal;
+}
+
+.question-answer-label {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.question-answer-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.question-answer-item dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.question-answer-item dd {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+}
+
+.question-answer-item dd.bubble-attachments {
+  margin: 6px 0 0;
+}

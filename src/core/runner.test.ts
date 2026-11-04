@@ -175,6 +175,32 @@ test("承認待ちの間は waiting になり、回答するとエージェン�
   await until(() => store.getRun(run.id)?.status === "completed");
   assert.deepEqual(received, { action: "answer", answers: { 何を作る: "Todo" } });
   assert.equal(approvals.list().length, 0);
+  // 何と答えたかを記録に残す（画面は「質問への回答」の吹き出しで出す）
+  const resolved = store.listEvents(run.id).find((e) => e.type === "approval_resolved");
+  assert.deepEqual(resolved?.data, { approval_id: pending.id, action: "answer", kind: "question", answers: { 何を作る: "Todo" } });
+});
+
+test("質問の「その他」に添付して答えたら、記録には選んだままの回答と添付を残す（AI には添付のパスを書き添えた回答を渡す）", async () => {
+  let received: unknown;
+  const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {
+    received = await cb.requestApproval({ kind: "question", toolName: "AskUserQuestion", input: { questions: [] }, canRemember: false }, signal);
+    return { status: "completed", sessionId: "s" };
+  });
+  const run = await runner.start({ projectId: project.id, prompt: "q" });
+  await until(() => store.getRun(run.id)?.status === "waiting");
+  const [pending] = approvals.list({ runId: run.id });
+  const attachment = { id: "a1", name: "色.png", mime: "image/png", size: 10 };
+  approvals.resolve(pending.id, { action: "answer", answers: { 好きな色: "この色（/path/色.png）" }, plain: { 好きな色: "この色" }, attachments: { 好きな色: [attachment] } });
+  await until(() => store.getRun(run.id)?.status === "completed");
+  assert.deepEqual((received as { answers: unknown }).answers, { 好きな色: "この色（/path/色.png）" });
+  const resolved = store.listEvents(run.id).find((e) => e.type === "approval_resolved");
+  assert.deepEqual(resolved?.data, {
+    approval_id: pending.id,
+    action: "answer",
+    kind: "question",
+    answers: { 好きな色: "この色" },
+    attachments: { 好きな色: [attachment] },
+  });
 });
 
 test("同時実行数の上限を超えた分は待機し、中断すると承認待ちも片付く", async () => {
