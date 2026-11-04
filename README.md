@@ -3,7 +3,8 @@
 個人のアプリ開発を、AI エージェントとのチャットで進めるための Mac デスクトップアプリ（自分専用）。プロジェクトごとに、作業場所（git のワークツリー）・グループ・状態でチャットを並べ、並行して進める。
 
 - 要件: [docs/requirements.md](docs/requirements.md)
-- 実装計画: [docs/plan.md](docs/plan.md)
+- 設計（語彙・スキーマ・構成）: [docs/architecture.md](docs/architecture.md)
+- 実装計画（初期のもの）: [docs/plan.md](docs/plan.md)
 
 ## 前提
 
@@ -26,7 +27,7 @@ npm run knip       # 使っていない export・ファイル・依存を調べ�
 node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）の画面の DOM と計算後のスタイルを記録する。diff <前> <後> で比べ、css <名前> で CSS の規則の順を記録する
 ```
 
-インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/core/appEnv.ts`）。
+インストールしたアプリ（本番）と開発（`npm run dev` / `npm run daemon`）は、名前・保存先・ポートを分けてあり、同時に動かせる（`src/core/system/appEnv.ts`）。
 
 | | 本番（`/Applications/Kickoff.app`） | 開発 |
 |---|---|---|
@@ -34,9 +35,9 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 | データ | `~/Library/Application Support/Kickoff/` | `~/Library/Application Support/Kickoff Dev/` |
 | ポート | 4317 | 4318 |
 
-データベースのスキーマの版を上げる前と、古い系統（v17 まで）のデータベースを新しいスキーマへ変換する前に、いまのデータベースを同じフォルダの `backups/` に写す（`kickoff-v<user_version>-<日時>.db`。新しいものから 5 件。`src/core/dbBackup.ts`）。新しい版を入れて不具合があったら、本番の Kickoff を終了し、`kickoff.db` をこの写しと入れ替えて、前の版のアプリで開く（変換の前の写しは `kickoff-v17-…`）。変換したあとのデータベースは、古い版のアプリでは開かない（古いアプリは何も流さず、そのまま使うと読み書きに失敗する）。
+データベースの版は `PRAGMA application_id`（'KICK'）と `user_version`（200 ＋ 版）で持つ（`src/core/db/schema.ts`）。リリース前の版（2026-11 の作り直しより前）の DB は引き継がない: 新しい版を初めて起動したとき、その DB（`kickoff.db` と `-wal` / `-shm`）と `backups/`・`uploads/` を消して、空の DB から始める（`src/core/db/open.ts` の `discardPrereleaseData`。音声入力のモデル・ログインのトークンは残す）。このアプリより新しい版の DB・Kickoff のものでない DB は、触らずに起動をやめる。
 
-開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/core/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
+開発のデータは、初めて起動したときに本番のデータから一度だけ写す（`src/core/system/devData.ts`）。そのあとは別々のデータになる。本番のデータで試し直したいときは、開発アプリを止めて `Kickoff Dev` のフォルダを消してから起動する。
 
 `npm install` のあと（postinstall）に、開発用の Electron.app の名前とアイコンを「Kickoff Dev」に書き換える（`scripts/dev-app-identity.mjs`。Dock やメニューバーに「Electron」と出ないように）。アイコンを作り直したら `node scripts/dev-app-identity.mjs` で当て直し、開発アプリを起動し直す。
 
@@ -44,12 +45,15 @@ node scripts/ui-snapshot.mjs take <名前> [#/hash]   # 開発版（CDP 9333）�
 
 | ディレクトリ | 役割 |
 |---|---|
-| `src/core` | Electron に依存しない中核（HTTP API・SQLite・エージェント実行）。デスクトップ画面・スマホ・将来のネイティブアプリが同じ API を使う。型は `types/`、DB は `store/`、Git は `git/`、API は `routes/`、テスト専用の補助は `testing/` |
-| `src/main` | Electron のメインプロセス（コアの起動、ウィンドウ、ネイティブダイアログ） |
-| `src/preload` | 画面に公開する最小限のネイティブ機能 |
-| `src/renderer` | 画面（React）。部品は `components/<機能>/`、CSS は `styles/`（機能ごとのファイルを `index.css` の `@import` の順でつなぐ） |
+| `src/shared` | どのプロセスからも使う型（`types/`）と純粋な関数（`chat/` `project/`）、IPC の取り決め（`ipc/`）、テストのデータ（`testing/`）。Node・DOM・Electron・React に依存しない（import は `@shared/…`） |
+| `src/core` | Electron に依存しない中核。DB（`db/`）・HTTP API（`http/`）・チャットの実行（`chat/`）・プロバイダー（`providers/`）・Git（`git/`）・使用状況（`usage/`）・音声入力（`voice/`）・外部コマンドとパス（`system/`）。デスクトップ画面・スマホ・将来のネイティブアプリが同じ API を使う |
+| `src/main` | Electron のメインプロセス（起動と終了 `app/`・IPC `ipc/`・埋め込みブラウザ・ターミナル・通知・性能の記録） |
+| `src/preload` | 画面に公開する最小限のネイティブ機能（`@shared/ipc` の取り決めから作る） |
+| `src/renderer` | 画面（React）。`app/`・`api/`・`stores/`・`lib/`・`hooks/`・`ui/`・`features/<領域>/`、CSS は `styles/`（領域ごとのサブフォルダを `index.css` の `@import` の順でつなぐ。import は `@/…`） |
 | `build` | アプリのアイコン（元の絵は本番 `icon.svg`・開発版 `icon-dev.svg`） |
-| `scripts` | アイコンの作成・開発用の Electron.app の書き換え |
+| `scripts` | 製品版の入れ替え（`install-app`）・アイコンの作成・開発用の Electron.app の書き換え・開発版の画面の点検（`ui-audit-buttons`・`ui-snapshot`） |
+
+設計（語彙・スキーマ・構成）は [docs/architecture.md](docs/architecture.md)、書き方の決まりは `CLAUDE.md`（ルートと各フォルダ）。
 
 | 環境変数 | 説明 |
 |---|---|

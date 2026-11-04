@@ -1,0 +1,165 @@
+# チャット（`features/chat`）
+
+チャット全般（状態・操作・名前・メニュー・状態の印）と、1 つのチャットの画面。チャット欄の音声入力（`features/dictation/`）と返答のファイルのチップ（`features/fileLinks/`）もここに書く。まとめ方・数え方は `features/chatList/CLAUDE.md`、タブの入れ物は `features/panel/CLAUDE.md`。
+
+| フォルダ | 中身 |
+|---|---|
+| 直下 | 状態（`chatState.ts`・色 `tones.ts`・印 `StatusSlot`）・操作（`chatActions.ts`）・名前（`chatTitle.ts`・`useChatRename` ＋ `ChatTitleInput`）・右クリックのメニュー（`ChatMenu` / `ChatMenuItems`）・✕（`closeChat.ts`）・名前で探す（`chatSearch.ts`）・いまの作業の短い文（`chatActivity.ts` / `activity.ts`） |
+| `pane/` | 1 つのチャットの画面（`ChatPane` → `ChatView`・`useChatView`・`useChatDetail`・`chatPaneContext.ts`・見出し・キー `chatHotkeys.ts`・チャット欄の場所 `ChatComposerArea`・送り方 `useChatSend`） |
+| `timeline/` | 流れ（窓・スクロール・一番下へ戻るボタン・既読・発言へ移る） |
+| `messages/` | 自分の発言・AI の返答・質問への回答・選んだ範囲へのコメント |
+| `tools/` | ツールの呼び出しの表示・コマンドの出力・ターンの変更カード |
+| `status/` | 作業中の行の文・動きの目安・裏の作業・通信の切断・ToDo |
+| `composer/` | チャット欄（`Composer`・右下の操作・上のピル・キー・送り方の切り替え・`/` と `@` の候補・ほかのチャットを参照） |
+| `options/` | モデル・推論の深さ・権限モード・ファストモード |
+| `attachments/` | 添付（📎・選んだばかりの添付・送った添付・画像を大きく見る） |
+| `queue/` | 送信待ち |
+| `subagents/` | サブエージェントの一覧とタブ |
+| `approvals/` | 承認・AI からの質問・再開の確かめ |
+| `prompts/` | 自分の指示の一覧（指示の履歴・上に貼り付ける指示・前後の指示へ） |
+| `find/` | チャットの中の検索 |
+| `rewind/` | 巻き戻し・ファイルを戻す・失敗した作業の直す操作 |
+
+## 状態と未読
+
+- 状態は `chatStateOf(chat, pending)`（`@shared/chat/state.ts` の `agentStateOf` を回答待ちの一覧で引く）、カンバンの列は `boardColumnOf`（作業中・回答待ち・未読・既読。人は動かさない）。色は `tones.ts` の `COLUMN_TONE` / `STATE_TONE`。
+- 行の先頭の状態の印は `StatusSlot`（作業中 = 回るリング・回答待ち = 琥珀色の！・未読 = 緑の点・エラー = 赤の点・既読 = 薄い点）。作業中のまま未読のもの（`busyWithUnread`）は、列・数は作業中のまま、リングに緑の点を重ね（`unread`）、名前を太字・カードに「未読あり」。
+- 未読にする「新しい結果」は AI の文章の返答（サブエージェントのものは除く）・作業の終わり・失敗（`isUnreadEvent`。ツールの実行などの途中経過では付けない）で、作業中でも返答が届けば付ける（コア）。
+- 印を消すのは、チャットを表示していて・Kickoff が前にあり・流れの一番下が見えているとき（`timeline/useMarkSeen.ts`。新しい結果が届いた・一番下まで来た・表示した・Kickoff に戻ったときに確かめる）。`api.markSeen(chatId, eventId)` に一番下まで見た記録の ID を渡し、それより新しい結果があれば消さない（メニューの「既読にする」は ID なしでそのまま消す）。印の付け外しでは最後に動いた時刻（一覧の並び順）を変えない。見ている間に「未読にする」で付けた印は、次に上のどれかが起きるまで残す。
+
+## 操作・名前・メニュー
+
+- アーカイブ・削除などは `chatActions.ts`（`toggleArchiveChat` / `confirmArchiveChats` / `confirmDeleteChat` / `confirmDeleteChats` / `markChatsSeen` / `moveChatsToGroup` / `togglePinChat`。まとめての操作で断られたものは最後にまとめて知らせる。削除したチャットの書きかけの文 `chatDraft` も消す）。
+- 名前をその場で変えるのは `useChatRename` ＋ `ChatTitleInput`（ダイアログは使わない。`onError` を省くとお知らせで出す）。上限は `CHAT_TITLE_MAX`。
+- 右クリックのメニューの項目は `ChatMenuItems` 1 つ（開く（タブでは出さない）・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを変更・アーカイブ・削除。場所だけの項目は `before` / `after`）。サイドバーの行・ボードのカードは `ChatMenu`、パネルのタブは `TabMenu` から使う。
+- 「プロジェクトを変更」は乗せる・押す・→ で項目の横に `ProjectPickFlyout`（`features/project/CLAUDE.md`）を開き、確かめてから `api.moveChat`（グループ・作業場所・ブランチは外れ、作業場所は移した先の本体。並び順は変えない。作業中は 409。会話は resume で続く）。いま開いているチャットを移したら、移した先で開き直す。移したチャットはチャットの店の知らせで元の一覧から外れる。
+- チャットのタブの ✕ は `closeChatWithChoice`（表示だけ消す・アーカイブ・削除を選んでから閉じる。既定は `CHAT_CLOSE_ACTION`（`ask` / `close` / `archive` / `delete`）で、設定の「チャット」と、聞いたときの「次からはこれにする」で変える。アーカイブ・削除は既定にしても毎回確かめる）。Esc・タブのメニューの「閉じる」は聞かずに閉じる。
+
+## 1 つのチャットの画面（`pane/`）
+
+- `ChatPane` が中身を読み（`useChatDetail`）、読めたら `ChatView`（チャットごとに作り直す）を描く。状態と操作は `useChatView`、`ChatView` は描くだけ。チャットはいつもパネルのタブの中に開く。
+- `useChatDetail` はチャット・記録・回答待ち・作業中の様子（`ChatLive`。送信待ち・裏の作業・再試行・再接続待ち・圧縮中・停止中）を読み、SSE で追う（作業中の様子は `chat_live` で丸ごと置き換え、中身の変わらない部分は前のものを使う `keepUnchanged`）。読み込みの最中に届いた知らせは届いた中身にもう一度当て、SSE をつなぎ直したら取り直す（決まりは純粋関数の `chatDetail.ts`）。別のプロジェクトへ移しても読み直さない。
+- 子の部品（流れの項目・ピル・送信待ち・検索・質問のカードなど）への操作は `ChatPaneContext`（`ChatPaneActions`: `openSubagent` / `rewind` / `restoreFiles` / `retry` / `jumpTo` / `reveal` / `stepPrompt` / `fillComposer` / `focusComposer` / `askInNewChat`）1 つで配る。props で中継しない・クラス名で DOM を探さない。`ChatView` がチャットごとに 1 回だけ作り、描き直しても同じもの（memo した項目を描き直させない）。変わる様子（失敗した作業の直し方）は `state` に置き、`useChatPaneState` で読む。画面の外でも描く部品（発言・ツールのまとまり。サブエージェントのタブでも使う）は `useOptionalChatPane`（外では書き直し・再試行・中身を見るを出さない）。
+- チャットのキー（⌘↓・⌘⌥↑ / ↓・⌃R・⌘F）は `useChatHotkey`（`chatHotkeys.ts`）で、ピントがそのチャットにあるときだけ受け取る（⌘F は、どこにもピントがなく最後に押したのがそのチャットのときも）。隠れているタブ・閉じたパネルのチャットでは受け取らない。捕捉で先に受け取り、アプリ全体の ⌘F・縦スライドのプロジェクトの切り替えより優先する。
+
+### 見出し
+
+- `ChatHeader` にはプロジェクト・作業場所・グループのバッジ（`ProjectChip`・`WorktreeChip`・`.chat-group-chip`）と、右に道具・ターン数と API 換算を出す。名前・閉じる・状態の印はタブにあるので出さない（名前はタブのダブルクリックで変える）。確かめずにアーカイブするボタンは置かない。
+- 右の道具（`ChatHeaderTools`）は左から、文の幅（`TextWidthToggle`）・上に貼り付ける指示の表示（`.chat-sticky-toggle`。出しているときはアクセントの色。`STICKY_PROMPT_HIDDEN` で設定の「表示」と共通）・チャットの中の検索欄（`ChatFind`）。
+- 文の幅（標準 / 広げる。`CHAT_WIDE`・`useWideText`、設定の「表示」→「チャットの文の幅」と共通）はパネルの大きさを変えず、発言の流れ・チャット欄・上に貼り付ける指示の幅の上限（820px）を外す（`.chat-page.wide`。`messages.css` の末尾）。パネルの「横幅いっぱい」と見分けられるよう、呼び名は「文の幅を広げる / 文の幅を標準に戻す」、アイコンは標準のときは外向きの ↔（`MoveHorizontal`）、広げているときは内向きの → ←（`createLucideIcon` で作った `MoveHorizontalIn`）にし、パネルの `UnfoldHorizontal` / `FoldHorizontal` と形を分ける。パネルが上限より狭いときは押しても変わらないので、押せなくして「パネルが狭いため変わりません」と出す（幅は `ResizeObserver` で測り直す）。
+
+## 流れ（`timeline/`）
+
+- 組み立ては `timelineItems.ts` の `groupEvents`（連続するツールの実行を 1 つのまとまりにし、結果は呼び出しにぶら下げる。作業の終わりの項目に `turnStart`・`turnText`・`turnChanges` を付ける。終わった作業の分は作業の終わりの記録ごとに覚え、配列を作り直さない）。描くのは `ChatTimeline`（スクロール `useTimelineScroll`・上に貼り付ける指示 `useStickyPrompt`・作業中の文 `useWorkingStatus`・流れの終わり `TimelineEnd`）と `Timeline.tsx`（項目は memo）。
+- 窓: 描くのは最近の項目だけ（`timelineWindow.ts` の `TIMELINE_WINDOW`（120）と `useTimelineWindow`）。上の端に近づく（画面の高さの 1.5 倍の手前。端に着いてから足すとトラックパッドの慣性が端で止まる）・「以前の発言を表示」で前を足し、読んでいた位置はブラウザのスクロールアンカーに任せる（合っていないときだけ JS で直す。書き換えると慣性のスクロールが止まる。一番下にいるときは足さない）。一番下へ戻った・一番下で新しい項目が届いたら元の大きさに戻す。窓は大きさが一定のまま進むので、新しい発言の見分けは項目の数ではなく最後の項目のキーで行う。
+- 検索結果から開いた発言・指示の履歴から移る先が窓の外なら、その前後を描く範囲にしてから移る（`revealRange`。最新まで `MAX_TAIL`（400）件以内なら最新まで、遠ければ途中の一部分だけを描き、下の端・「以降の発言を表示」で後ろを足し、一番下へ戻るボタン・⌘↓ で最新の窓に戻す `latest`）。途中を描いている間は、書いている途中の返答・確認のカード・作業中の行を出さない。
+- スクロールの持ち主は `useTimelineScrollHandle`（`following` = 一番下に付いていくか。送った・一番下へ戻ったら付き、上へスクロールした・発言へ移ったら離れる。`BOTTOM_SLACK_PX`）。発言へ移って強調するのは `jumpToEvent`（`.flash`。色はアクセントの緑。黄は検索で見つかった文字と注意の色なので使わない）。移ったら流れにピントを置く。
+- 一番下へ戻るボタン（`ScrollBottomPill`。⌘↓ でも戻る）: 上を読んでいる間だけ出し、いまの状態を添える（決め方は純粋関数の `scrollPill.ts` の `scrollPillOf`: 答えを待っている → つながるのを待っている（黄）→ 上を読んでいる間に返答が届いた・失敗した → 作業中（作業中の行と同じ文。再試行中は黄）→ 終わっている）。待っているとき・返答が届いたときは目立たせる。枠はサイドバー・カンバンの状態の点と同じ色そのもの（作業中 `--dot-running`・回答待ち `--dot-needs-input`・未読 `--dot-unread`。終わっているときだけ控えめな灰色）。置き場所はチャット欄の上のピルの列（`.composer-chips`）の右端の `.composer-chips-dock`（`ChatPane` が `pillDock` で渡し、`createPortal` で置く。高さはピルと同じ 26px）で、ピルがない・ピルの幅の合計とボタンの幅が列に入らないときは流れの右下に浮かせる（列を 1 行増やすと流れの高さが変わって画面が動くため。入るかは置き場所によらない幅で決めるので行き来しない。幅は `ResizeObserver`、ピルの増減は `MutationObserver` で測り直す。置き場所が空のときは `:has()` で列ごと隠す）。
+
+## 発言（`messages/`）
+
+- 自分の発言は `UserMessage`（長文の折りたたみ「もっと見る / たたむ」・時刻 `formatMessageTime`（乗せると年月日）・コピー・書き直し。右クリックでも同じ操作）、AI の返答は `AssistantMessage`。右クリックは `useMessageMenu`（「メッセージをコピー」。返答は書式付き `copyRich`（Markdown を HTML にし、text/html と text/plain（Markdown のまま）の両方を入れる。貼る先が書式を受け取れれば見出し・表・コードのまま。文中の HTML は文字として書く）で、「Markdown のままコピー」も並べる。自分の発言は文のまま。リンク・コードブロックの上でもこの 1 つにそろえる）。作業の終わりの行には「返答をコピー」（書式付き）と「ここから分岐」（`api.forkChat`。止めた・失敗した作業の終わりからは分岐できない）。
+- 書き直しは吹き出しの中の `BubbleEditor` で直して送り直す（その発言から後ろを消して巻き戻す。`ChatPaneActions.rewind` → `api.rewindChat`）。その発言のあとに AI が変えたファイルがあれば「会話だけ戻して送り直す / ファイルも戻して送り直す」を選ぶ（`rewind/rewindActions.ts` の `confirmRewindSend`）。ファイルだけ戻すのは吹き出しの下・右クリックの「ファイルをこの発言の前に戻す」（`restoreFilesBefore`。戻すファイルと「戻すと +a −b 行」を見せて確かめる。`api.rewindFiles` を先に dry run）。戻るのは Claude Code の編集のツールで変えたファイルだけ（コマンド・アプリの外で変えたものは戻らない）。書き直し・ファイルを戻すのはチャットの画面の中だけで、作業中はできない。
+- 自分の発言に、届かなかったサブエージェントの報告を添えたときは、吹き出しの下に「サブエージェントの報告 n 件を添えました」（記録の `handover`）。
+- AI からの質問に答えた内容は `QuestionAnswerMessage`（自分の発言と同じ吹き出しに「質問への回答」と添え、質問ごとに質問の文と答え・添付を並べる。スキップは「質問をスキップしました」）。
+- 選んだ範囲へのコメント（`SelectionComment`）: AI の返答 1 つの中で文を選ぶと上に「コメント」のボタン、押すとコメントの欄。「入力欄に添える」（Enter）で、選んだ文の引用（`> …`）とコメントをチャット欄の文の後ろに空行を挟んで足す（`quoteComment.ts` の `quoteComment` / `appendBlock`、足すのは `fillComposer` の `append`）。送るのは自分で。
+
+## ツール（`tools/`）
+
+- ツールの呼び出しは人が読める文にする（`toolDescribe.ts`。「ToDo を追加: 確認 1」。生の JSON を出さない。承認カードは `describeApprovalInput`）。まとまりと 1 件は `ToolGroup`（閉じた状態の要約は `summarizeTools`: 「2個のファイルを編集 および 3個のコマンドを実行」。で、分類できないものだけ「その他」）。サブエージェントの呼び出しには「中身を見る」。
+- コマンドの出力は `BashOutput`（「$ コマンド」と出力を 1 つの枠に。終了コードは `bashResult.ts`）。
+- ターンの変更カード（`TurnChanges`）: 作業の終わりの行の上に、その作業で変えたファイル（「3 個のファイルを変更 +7 −1」）。開くとファイルの一覧で、押すと `FileLinkContext` の `open` でエディタタブに開く（変わっていれば差分）。作業場所の外のファイルは押せない行。数え方は純粋関数の `turnFileChanges.ts`（`changesOf` / `lineDelta`。Edit・MultiEdit は置き換えの前後を最長共通部分列で比べ、Write は「新規」「書き直し」（書き直しは足した行だけ）、NotebookEdit は足した行。失敗した・結果がまだないものは数えない。サブエージェントの変更も含める）。
+
+## 作業中の様子（`status/`）
+
+- 作業中の行の文は `workingLabel`（止めている・通信を再試行している・会話を圧縮している・返答を書いている・ツールを実行中・考えている）で、作業中の行と一番下へ戻るボタンの両方に使う（`useWorkingStatus` が 1 回だけ組み立てる）。返答を書き終えて裏の作業を待っているときは「返答は終わりました。裏で動いているサブエージェント 1 件（調査）とコマンド 1 件（npm run dev）の終わりを待っています」（`backgroundLabel.ts`）。
+- 本当に動いているかは、最後に何かが届いた時刻で見る（Claude Code に問い合わせる手段はない。`stall.ts` の `activityOf` / `activityText`）。1 分静かなら「最後の動き n 分前」、`STALL_MS`（10 分）動きがなければ「n 分動きがありません（Bash の結果待ち）」と注意の色（`.activity-stalled`）。作業中の行は記録・書いている途中の返答・実行中のサブエージェントのいちばん新しい時刻、サブエージェントは中の発言・ツール・知らせ（`lastActivityAt` / `pendingTool`）と途中経過の時刻で決め、作業中は `useTicker` で描き直す。長く動きのないサブエージェントは作業中の行（「サブエージェント『調査』が 12 分動いていません」）・ピル（「n 件動きなし」）・一覧の行・タブの見出しで知らせる。
+- 裏で動いている作業の一覧（`BackgroundTasks`。作業中の行の下）は 1 件ずつ止められる（`api.stopBackgroundTask`。チャット全体は止めない。サブエージェントは報告が届かなくなるので確かめる）。サブエージェントは名前を押すと中身をタブで開き、最後の動きを添える（作業 ID で一覧の行と結びつける）。
+- 中断は、裏で動いているサブエージェント・コマンドも止まることを確かめてから（`confirmStopAgents`。止めると Claude Code のプロセスごと終わる）。止めるよう頼んでから終わるまでは停止中（`ChatLive.stopping`）で、停止ボタンを回る印にして押せなくし（Esc でも止め直さない）、横に「停止中…」を出す。
+- 通信が切れて再試行している間は作業中の行・一番下へ戻るボタンに「接続が切れています。再試行 n/m」（`RetryLabel`。動いていたサブエージェントも止まっている可能性を添える）。再試行しきって、つながるのを待っている間は作業中の行の代わりに `ReconnectRow`（通信で止まったサブエージェントも続きから再開することを添える `reconnectLabel`。「自動で再開しない」で `api.stopReconnect`）。何度再開しても続かなかったとき・使用枠の上限で止まって枠が戻ったときは、承認と同じ回答待ちのカード（`ReconnectCard`）で続けるかを聞く。
+- 会話の圧縮中（`ChatLive.compacting`。手でも自動でも）は、作業中の行・一番下へ戻るボタンを「会話を圧縮しています」（`COMPACTING_LABEL`）にし、チャット欄の丸いメーター（`ContextMeter`）は短い弧をアクセントの色で回す（使用率が高いと弧がほぼ一周で、回しても分かりにくいため）。終わると記録の「ここまでの会話を要約しました」が残る。
+- ToDo はチャット欄の上のピル（`TodoChip`。「ToDo 2/5」。押すと一覧。組み立ては `todoList.ts` の `collectTodos`: TodoWrite は毎回すべて、TaskCreate / TaskUpdate は 1 件ずつ）。
+
+## 失敗した作業の直す操作（`rewind/`）
+
+いちばん新しい作業が失敗で終わったとき（そのあと発言していない。通信の切断・使用枠の上限はそれぞれの仕組みに任せて除く。`retryActions.ts` の `failedTurnOf`）、終わりの行の下に `FailedTurnActions` を並べる: 続きから再試行（`RETRY_PROMPT` をいまの選択で送る `retryTurn`）・深さを下げて再試行（`lowerEffort`。そのモデルで選べる中で 1 段下げる。決まっていなければ既定の深さから、既定も分からなければ中。最も低ければ出さない）・別のモデルで再試行（モデルの一覧のメニュー。下に収まらなければボタンの上に開く。新しいモデルで選べない深さは指定しないにする）・巻き戻して再試行（その作業を始めた発言から、同じ文で送り直す。確かめは巻き戻しと同じ）。深さ・モデルを変えたときはチャット欄の選択も同じに変える。選択肢は `useRetryChoices` が作り（モデルの一覧はあとから届くので、届いたら作り直す）、`ChatPaneState.retry` に入れる。
+
+## チャット欄（`composer/`・`options/`・`attachments/`）
+
+- 上から、流れ → 同じ作業場所で作業中のほかのチャットの知らせ（`.composer-notice`。注意の色と ⚠。`useBusyNeighbors`。押して開くピルの列に混ぜない）→ チャットの情報のピル（`.composer-chips`。指示の履歴・ToDo・サブエージェント・一番下へ戻るボタンの置き場所）→ 送信待ち（次に送るもの）→ 入力欄（いま書いているもの）の順（`ChatComposerArea`）。ピルは `ComposerChip`（押すと上に一覧を開き、もう一度押す・外を押す・Esc で閉じる。`.chip-wrap` / `.chip-popover`）。
+- `Composer`: Enter で送信・Shift+Enter で改行。送る処理は `useComposerSend`（アップロードの途中・送っている途中は送らない。送る前の確かめでやめたら `SendCancelled`）、右下の操作（中断・送信・送り方の切り替え・メーター）は `ComposerActions`。外から動かす口は `handleRef`（`ComposerHandle` の `fill` / `focus`。`fill` の `append`・`attachments`・`focus: false`）。既存のチャットの書きかけの文は `chatDraft(chatId)` に残す。
+- 高さは CSS で伸ばす（`composer.css` の `.composer textarea` の `field-sizing: content` と `max-height: 240px`。空なら 1 行、上限を超えたら中でスクロール）。コンパクト表示（`COMPOSER_COMPACT`。設定の「表示」→「チャット欄」）は `Composer` に `compact` のクラスを付けて文字・余白・下の道具を小さくする（`composer.css` の末尾。後ろのファイルの送信ボタンなどには `.composer.compact` で詳細度で勝たせる）。
+- よく使うキー（`composerKeys.ts`）: 作業中の Esc を 2 回で中断（1 回目は中断ボタンの横に「もう一度 Esc で中断」`.composer-stop-hint` を 2 秒出すだけ。Esc はパネルを閉じるのにも使うので、うっかり止めないため。作業中でなければパネルを閉じる Esc に任せる）・入力欄の Shift+Tab で権限モードを順に切り替える（`permissionChoices` のうち、そのモデルで選べるもの）・⌘L でチャット欄にピントを移す（`focusChatComposer`。ピントのあるパネル → ピントのあるペイン → 見えている最初のチャット欄の順。`app/shortcuts.ts` から呼ぶ）。録音中の Esc・候補の一覧の Esc など、先に扱ったキーは見ない。入力欄が空のときの ↑↓ は前に送った自分の発言を呼び出す（`usePromptHistory`。判定は `prompts/promptHistory.ts` の `historyMove`）。
+- `/` と `@`: `suggestTarget`（作業場所）を渡すと出る（`suggest/` の `useSuggest` ＋ `SuggestList`、照らし合わせは `suggestMatch.ts`）。`/` は文の先頭で Claude Code のコマンド・スキル（ターミナル専用のものはコアが除く）、`@` は作業場所のファイル。↑↓・Enter / Tab・Esc。一覧はキーごとの店で持つ。
+- モデル・推論の深さ・権限モード・ファストモードは入力欄の下の `ChatOptionsBar`（状態は `useChatOptions`）。新しいチャットはプロジェクトの既定（なければ設定の既定。`withDefaults`）から始まり、ここでの変更はそのチャットだけに効く。新しいチャットでプロジェクトを替えたら、そのプロジェクトの既定に当て直す。既存のチャットはそのチャットの選択から始める。深さを指定しないときは、Claude Code が実際に使う深さを「既定（最大）」のように添える（どこにもなければ「既定（モデル任せ）」。`api.effortDefault`）。選択肢の部品は `ModelOptions` / `EffortOptions` / `PermissionOptions`、選べる値は `options/models.ts` の `effortsFor` / `permissionChoices` / `groupModels`。
+- 添付は `useComposerFiles`（📎 `AttachButton`・ドラッグ＆ドロップ・貼り付け。選んだ時点でアップロードし、送信を待たせない）。選んだばかりの添付は `PendingFileChips`（× で外す。チップの大きさは保存したあとの大きさ）、送った添付は `AttachmentChips`（画像は押すと大きく表示し、同じ発言の画像は ← / → で前後へ `viewerImagesOf`。画像以外はアプリの中でダウンロード）、1 行に収める添付は `AttachmentPeek`（1 つ目だけを小さく出し、2 つ以上なら数を重ね、押すと並べて表示 `AttachmentGrid`。送信待ちの行・上に貼り付ける指示の帯）。画像の右クリック（コピー・大きく表示・保存）は `useAttachmentViewer`。
+- ほかのチャットを参照（`ChatContextButton`。📎 の隣。`Composer` の `chatContext` を渡したときだけ。既存のチャットと新しいチャットの両方）: 読ませるだけだと分かるよう「参照」と呼ぶ（「添付」は何が付くのか、「取り込む」はこのチャットに混ぜるように聞こえる）。一覧（見出し「参照するチャット」）はアーカイブ済みも含めて同じプロジェクトを先に最近動いた順、名前で絞り込み（`SearchField` の `onKeyDown` ＋ `useListNavigation`）。選ぶと `useComposerFiles` の `addChat` → `api.chatTranscript` で、そのチャットのやり取りを Markdown の添付ファイル（`チャット履歴-<チャット名>.md`。自分の発言・メインの AI の返答を古い順に、作業ごとに変えたファイルと失敗・中断を添える）にして添え、ほかの添付と同じく AI が Read で読む（送る指示は膨らまない）。
+
+### 作業中の送り方（いま / あとで）
+
+- 作業中に送るときの扱いは、チャット欄の切り替え（`QueueModeToggle`。左から「あとで」（リストのアイコン。送信待ちに足す）/「いま」（吹き出しのアイコン。いまのやり取りへ追加の指示として送る。送信待ちを止めているときは送信待ちより先に送る））。`QUEUE_MODE`（`queue` / `tell`）で、初めは「いま」。いつ送るかの対で短く見せ、「送信待ちに追加」「いまのやり取りに追加指示」のような長い言い方は説明（`Segmented` の `tip`。ショートカットは `keys`）に回す。押すと送られるボタンに見えないよう、送るの矢印は使わず、アイコンに文字を添えた切り替えにする（とても狭い欄（420px 以下）ではアイコンだけ）。見た目は隣の丸いボタンと同じ高さ 28px の丸いピルで、選んでいる方は一段明るい丸い地・選んでいない方は薄い文字（`styles/chat/queue-mode.css` の `.view-toggle.queue-mode`）。
+- キーでも決められる（⌘Enter = いま・⌘⇧Enter = あとで。`sendModeOf` → `onQueue` の `mode`）。チャット欄で ⌘ / ⌘⇧ を押している間だけ、Enter で使われる方のボタンを選んでいる方とは別の青で光らせる（`heldMode`。`.busy-controls.held-tell` / `held-queue` と `Segmented` のボタンの `data-value`。選んでいる送り方は変えない）。
+- 「いま」は作業を止めずにいまのやり取りに足す（`api.tellChat`。メインのエージェントがいまの手順の切れ目で読む。裏のサブエージェント・コマンドは動き続ける。足せないとき（順番待ち・要約中など）は待ちの列へ、作業中でなければすぐ送る）。止めたいときは停止を押す。
+- 作業していなくても送信待ちが残っている（止めている）ときは、同じ切り替えを「すぐ送る / ためておく」として出す（`queueWhileIdle`。すぐ送る = 送信待ちより先にいま送る、ためておく = 送信待ちの最後に足す `api.queueMessage` の `hold`）。案内と送信ボタンの名前は `queueModeTexts`。
+
+## 送信待ち（`queue/`）
+
+作業中に送った次の指示の待ちの列（`QueuedMessages`）。いまの作業が終わったら（止めた・失敗したときも）先頭から順に送る。状態は `ChatLive.queue`（`QueueState`: `messages` / `paused` / `stops` / `waiting_edit`）で、変える API の応答も同じ形。操作の失敗は `queueFailed`（お知らせ）。
+
+- 置き場所と見た目: ピルの列の下・入力欄のすぐ上。入力欄とは区切り線だけでつなげて 1 枚の枠に見せる（`queued.css` の `.queued-messages + .composer`。区切り線は 1px のまま、濃い色 `--divider-strong`。分割したペインのピントの色も両方に付ける）。
+- 初めは畳んで 1 行にする（`QUEUE_COLLAPSED`。どのチャットでも同じ）。1 行には件数・止める位置などの短い案内・「次: 次に送る指示の初めの行」を出し、狭ければ「次:」から省く（`queuedHint.ts` の `queuedHint` / `nextQueuedText`）。止める予定（「1 件目のあとで一時停止」）は一時停止の線と同じ注意の色 `--warn` と同じアイコン（`OctagonPause`）で出す（`.queued-hint.stop`）。
+- 見出し: `QueuedModeButton`（`queued-mode`。「自動で送る / 止めています」。チャットごとの `api.setQueuePaused`。止めておくと終わっても送らず、行の「すぐ送る」で 1 件ずつ送る。自動に戻すと、作業中でなければ先頭をすぐ送る。列が空になったら自動に戻る）、そのすぐ右の「一時停止」（`QueuedStopButton`。線と同じ注意の色 `.queued-add-stop`。押した結果ではなく、列に挟む物の名前で呼ぶ）で一時停止をいちばん上（位置 0）に挟む（たたんでいれば一覧を開いて線を見せる。1 件目の上にもう印があれば押せない）。件数のすぐ後ろ（左寄せ）に「すべて表示」（`QUEUE_EXPANDED`。一覧の見え方の操作なので、送る・消すと分ける）。右に、すべて送る（`SendAllMenu`。ボタンの上に開くメニューで「まとめて 1 件で送る」= 1 つの指示につなげていま送る `api.sendAllQueued`（作業中なら止めずに伝える）/「1 件ずつ順に送る」= 別々の指示として終わるたびに次を送る `api.sendQueuedInOrder`（止めておくのをやめ、印も外して最後まで送る））・すべて消す（2 件以上のとき）。
+- 選ぶ: ⌘ / Shift ＋クリックで行を選ぶ（`useQueueSelection`。決まりは `useMultiSelect`、範囲は列の順。Esc でやめる）。選んでいるときは見出しの右に、並べ替え（いちばん上へ・いちばん下へ。`QueuedMoveActions`）｜ 書き直す・1 つにまとめる・まとめて送る・消す・選ぶのをやめる（`QueuedHeadActions`）。
+- 1 つにまとめる（見出しと行の右クリック。2 件以上）: 送らずに 1 件にする（`api.mergeQueued`。選んだ順ではなく列の順に空行でつなぎ、添付も合わせ、選んだうちのいちばん上の位置に残す。印は `remapStops` で合わせる）。
+- 一時停止の印（`QueuedStopLine`）: 指示に付けず、列の中の位置で持つ独立した行（0 = 1 件目の上、n = n 件目のあと。いくつでも置ける。前の指示を送った・消した・まとめた分だけ上に寄る）。自動で送る次の指示の上に印があれば送らずに止め（印は残る）、自動で送るに戻すとその印を越えて次の印まで送る。すべて送ったあとの印は、次に来た指示の前で止める。線は送信待ちの行と同じ扱いで動かす: 左のつまみのドラッグ・右の ↑↓（指示 1 件ぶん。書き直す・送るの位置は `.queued-stop-space` で空ける）・右クリック（いちばん上へ・1 つ上へ・1 つ下へ・いちばん下へ・外す）・ごみ箱で外す（どれも `api.setQueueStops` で丸ごと置き換え）。行の右クリックの「この指示のあとに一時停止を挟む / あとの一時停止を外す」は `api.setQueueStopAfter`、「この指示の前に…」は `api.setQueueStops`（1 件目では列のいちばん上）。純粋関数は `@shared/chat/queueStops.ts`（`normalizeStops` / `remapStops` / `moveToSlot`。コアの並べ替えと、画面の「動かすと変わるか」で共通）。
+- 並べ替え: 指示を動かすときは、印の線を見た目の並びの 1 行として扱い、動かした指示だけが線の上下を移る（動かしていない指示は線の同じ側に残る）。いちばん上・下へ移しても 1 件目の上・いちばん下の線は端に残り、行の ↑↓ はすぐ隣が線なら並びを変えずに線だけを越える。ドラッグ（`useQueueDrag`）は落とす位置が線のすぐ上か下かで決める（行の上半分 = その行の前で上の線の下、下半分 = 後ろで下の線の上、線の上では上半分 = 線の上・下半分 = 線の下。見出しの行 `.queued-head-row` に落とすといちばん上 = 1 件目の上の線よりも上 `overTop`。落とす位置の線もその側に出す。`api.moveQueuedMany` の `belowStop`）。選んだ行のつまみをドラッグすると、選んだものを並びを保ったまままとめて動かす。入る位置の線は左端に丸を付け、一覧の上下の余白で端でも切らない。
+- ドラッグの絵は、つかんだ行（線）の半透明の写しで、つかんだところがカーソルの下にあるまま付いて動く（`queueDragImage.ts` の `startQueueDragGhost`。ブラウザの既定の絵は透明にし、送信待ちの枠と同じ入れ物 `.queued-messages.queued-drag-ghost` に写した行を画面のいちばん上に重ねて `dragover` で動かす。透けるので下の入る位置の線も見える。まとめて動かすときは右上に「n 件」。もとの行は薄くする）。
+- 行（`QueuedRow`）: つまみ・番号・添付（`AttachmentPeek`）・文・操作。右の操作は 2 つのまとまりに分けて縦線で区切る: 並べ替え `.queued-row-moves`（↑↓）｜ その指示への操作 `.queued-row-actions`（書き直す・送る・消す）。狭い欄では ↑↓ とボタンの文字を隠す（右クリックに同じ操作）。文は選んでコピーでき、ダブルクリックで書き直す。右クリックのメニューは、書き直す → 送る → 止める（前・あと）→ 並べ替え（「いちばん上へ移動」「1 つ上へ移動」など）→ 新しいチャットへ → 消す（「送信待ちから消す」）の順に区切り線で分ける（行が画面の下にあるので、メニューは測って上へ寄る）。選んでいる行の右クリックは、選んだもの全体への操作になる。
+- 新しいチャットで聞く（送信待ちに残す）/ 新しいチャットに移す（送信待ちから外す）: 文（列の順に空行でつなぐ）と添付（アップロード済みのものをそのまま）を新しいチャットのタブの入力欄に入れて開く（`askInNewChat.ts` の `seedOf` / `useAskInNewChat` → `ChatPaneActions.askInNewChat`。パネルの `openNew(target, seed)` でタブの `seed` になり、`NewChatPane` が `fill` の `attachments` で入れる）。作成先は元のチャットと同じプロジェクト・グループで、新しいチャットの見出しで選び直せる。送るのは自分で。
+- 一覧の高さの上限は上端のつまみ `.queued-resizer` のドラッグで変え（`QUEUE_HEIGHT`、ダブルクリックで 5 件ほどに戻す）、書き直している行の高さの合計（画面の 6 割まで）より低くしない。
+- 書き直す欄（`QueuedEditor`）はいくつでも同時に開ける（`useQueuedEdits`。指示ごとに書いている途中の文と添付を持ち、保存・やめるはその 1 件だけを閉じる。列から消えた指示の欄は閉じる。選んでいるときは見出しの「書き直す」・右クリックの「選んだ n 件を書き直す」でまとめて開く）。Enter で保存・⌘Enter で保存していま送る（`api.sendQueuedNow`。作業中なら止めずに伝える。欄の右の送るボタンも同じで、⌘ を押している間は青く光らせる `.queued-editor-send.held`）。折り返した行も含めて文の終わりまで見せる（`field-sizing: content`。画面の 4 割まで）。添付は × で外し、📎・貼り付け・ドラッグ＆ドロップで足せる（`useComposerFiles`・`PendingFileChips`。保存は `api.editQueued` の `attachments` で置き換え。アップロードの途中は保存しない）。
+- 次に送る指示（1 件目）を書き直している間は、作業が終わっても自動で送らずに書き直しが終わる（保存・やめる・一覧をたたむ）のを待つ: 開いている欄の指示を `api.setQueueEditing` で丸ごと知らせ、開いている間は持ち時間 `EDIT_HOLD_TTL_MS`（20 秒）の 1/4 ごとに知らせ直す。画面を閉じた・落ちたときは持ち時間で外れて送る（勝手に止まったままにしない）。欄ごと消えた（チャットを閉じた・切り替えた）ときも外す。一覧をたたむと書き直しの欄を閉じ、書いている途中の文も捨てる（`discardAll`。見えないところで止め続けないため）。作業が終わって書き直しを待っているとき（`waiting_edit`）だけ、見出しの案内 1 か所に「次の指示の送信準備ができています。書き直しを保存すると送ります」とアクセントの色で伝える（`queuedHint` の `readyForEdit`）。
+
+## サブエージェント（`subagents/`）
+
+- 一覧（`useSubagents`。途中経過は SSE の `chat_subagent`）は、チャット欄の上のピル `SubagentChip`（「サブエージェント N 件」）。行・ツールのまとまりの「中身を見る」から、パネルの新しいタブで開く（`ChatPaneActions.openSubagent` → パネルの `openSubagent`、タブの種類 `subagent`、中身は `SubagentPane` ＋ `SubagentView`。同じサブエージェントならそのタブへ。チャットを消したら一緒に閉じる）。アーカイブした行は `subagentsArchived(chatId)`。
+- 一覧の組み立ては、コアと共有の `@shared/chat/subagents.ts`（`collectSubagents` / `subagentReport` と、コアの作業の終わりのお知らせ `unfinishedSubagents`・通信が戻ったときの再開 `networkStoppedSubagents` で同じ数え方にする）。表示名・状態の文だけ画面の `subagentList.ts`。行は作業 ID でまとめる（SendMessage で再開すると、知らせの呼び出し ID が再開を頼んだ SendMessage のものになるため）。報告の本文は `subagentReport`。裏で動かしたものは一覧から消えたら終わったとみなし（報告を渡していれば完了、なければ中断）、起動の知らせ（`isBackgroundLaunch`）を完了と数えない。
+- タブの下の入力欄から追加の指示を送れる。Kickoff から直接は送れないので、メインのエージェントに SendMessage でそのまま伝えてもらう（文の形は `@shared/chat/prompts.ts` の `relayMessage`、タブの流れには `relayedText` で自分の発言として混ぜる。`api.tellChat` で送り、メインが作業中なら止めずに伝える。伝えられなければ送信待ち）。
+- 状態の文（`subagentStatusLabel`・乗せたときの説明 `subagentStatusTitle`・色 `subagentStatusClass`）:
+  - 通信の切断で止まったもの（`network`。API のエラーで失敗した・通信で親ごと終わったときに動いていた）は「通信の切断で中断」と注意の色（ピルの数も失敗と分ける）。
+  - 出力の上限（`isOutputLimitError`）で止まったものは「失敗（出力の上限）」。再開・やり直すの頼みには「報告は短く・大きなファイルは分けて」と添える（`resumeRequest` / `retryRequest` の `outputLimit`）。
+  - 完了は、報告が親に届いたかで分ける（`delivery`。待つ形は親のツールに結果が返ったら、裏で動かしたものは報告のあとに親が動いたら受け取った = 完了）。親がまだ動いていなければ「報告済み（親の受け取り待ち）」、親が動かないまま作業が終わったら「報告が親に届いていません」と注意の色。届かなかった報告はコアが次に送る指示に本文を自動で添えて渡し、受け取った = 完了になる。待たずに渡すなら行の「いま親に渡す」（`HAND_OVER_NOW` を `api.tellChat`。本文はコアが添える）。ピルにも「n 件受け取り待ち」「n 件届かず」。
+  - 止まったあとに親が同じ仕事を新しいサブエージェントでやり直したもの（`supersededBy`。判定は `@shared/chat/subagentSupersede.ts` の `markSuperseded`。決まりは `src/shared/CLAUDE.md`）は「やり直し済み」と控えめな色。止まった理由とやり直した回の名前は title、「やり直した回を見る」でその回のタブを開く。再開・やり直すを出さず、ピルの失敗の数・通信が戻ったときの再開にも数えない。
+- 止まった（失敗・中断）行とタブの見出しには「再開」（SendMessage で止まったところから続ける）と「やり直す」（同じ依頼で最初から。確かめてから）を置く（`SubagentActions`。文は `resumeRequest` / `retryRequest`、メインには `api.tellChat` で伝える）。実行中なのに長く動きのないものは「止める」（作業中だけ。確かめてから `api.stopBackgroundTask`。止めたら再開・やり直すで戻せる）。
+- 作業中にサブエージェントだけが通信のエラー・出力の上限で止まったときは、システムプロンプトで 1 回だけ SendMessage で続きから再開させる（ほかの失敗・利用者が止めたものは再開せず伝える。コア）。
+
+## 承認と質問（`approvals/`）
+
+- 回答待ちのカードは `ApprovalCard`（ツールの承認・`question` は `QuestionCard`・`reconnect` / `usage_limit` は `ReconnectCard`）。回答を送るのは `useResolve`（`useResolveApproval.ts`。送れたらカードごと消えるので送信中のまま）。承認カードの入力は `describeApprovalInput`。
+- AI からの質問（`QuestionCard`。AskUserQuestion。）: 選択肢は枠で囲まず細い区切り線で並べた行で、丸の代わりに番号の箱（選ぶと青・複数選ぶ質問はチェック。キーの 1〜9 でも選べる）。最後の行は鉛筆の箱と枠のない「その他の回答」の欄 `QuestionOtherField`（チャット欄と同じく書いた分だけ伸び、Enter で回答・次へ／Shift+Enter で改行。📎・貼り付け・ドラッグで添付でき、アップロード中は回答させない。文がなく添付だけでも答えられる。ドラッグで添付したときも「その他」を選ぶ）。
+- 質問が 2 つ以上なら、見出しの「1 問ずつ / すべて」で出し方を切り替える（`QUESTION_LAYOUT`。初めは 1 問ずつ）。1 問ずつは上に質問の見出しを並べていまの位置と答えたものを示し、1 つ選ぶ質問は選ぶと次へ進む。最後は「回答する」。すべては番号だけを付け（薄い見出しは出さない。見出しは質問が 1 つのときだけ）、質問どうしを 1px の濃い境界線で分ける。見出しの矢印でたたむと、いまの質問の 1 行だけになる。1 問ずつ・たたんでも欄は作り直さずに隠す（書いた文・添付を残す）。質問の文・説明は AI の改行のまま出す。
+- 「その他」の添付は回答の `attachments`（質問ごと）で送り、コアが回答の文にパスと Read ツールで開くよう書き添えてから Claude Code に渡す（AskUserQuestion の回答は文字だけなので）。答えた内容は記録 `approval_resolved` に残り、`QuestionAnswerMessage` で出す。
+
+## 指示の一覧（`prompts/`）
+
+- 自分の指示の一覧は記録から `promptListOf` で 1 回だけ作り、指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・↑↓ の呼び出し・失敗した作業の巻き戻しで共通に使う。
+- 指示の履歴（`PromptsChip`。チャット欄の上のピル「指示の履歴 n」）: 行でその指示へ移って強調し、右のボタンで入力欄に入れる（`fillComposer`）。一覧は会話の順で、開いたらいちばん下を見せる。上の欄で絞り込み、↑↓ で選んで Enter で入力欄に入れる・⌘Enter でその指示へ移る。チャットにピントがあるときの ⌃R でも開き（シェルの履歴の検索と同じ）、開いている間の ⌃R は 1 つ前の一致へ。閉じたらチャット欄にピントを戻す。
+- 前後の指示へは ⌘⌥↑ / ↓（`usePromptKeys`。チャットにピントがあるときだけ、捕捉で先に受け取り、縦スライドのプロジェクトの切り替えより優先する）。前に移った先がまだ見えていればその前後へ、なければ位置で決める（判定は純粋関数の `promptNav.ts` の `adjacentPrompt`）。
+- 上に貼り付ける指示（`StickyPrompt` ＋ `useStickyPrompt`）: 読んでいる返答の元の自分の指示（流れの上端より上から始まるいちばん下の吹き出し。いちばん上を見ているときは最初の吹き出し。`readingPrompt`）を、流れに重ねずに流れの上の段に置き、いつも出す（`chat.css` の `.timeline-wrap` の `grid-template-rows`。列は `grid-template-columns: minmax(0, 1fr)` で枠の幅に固定する。既定の auto では、1 行にたたんだ長い指示の幅まで列が広がり、流れごと右へはみ出した）。見出しは「指示」で、すぐ右に ↑ / ↓（前・次の指示へ。⌘⌥↑ / ↓ と同じ数え方。移る向きの矢印 `ArrowUp` / `ArrowDown`）、その右に開閉の矢印（初めは 1 行にたたみ、全文は `STICKY_PROMPT_EXPANDED`。1 行に収まるときも場所を取ったまま押せなくする）、添付は `AttachmentPeek`（帯の高さは変えない）。押して何かが起きるのは ↑ / ↓・開閉・添付だけで、見出しと文は押しても何もしない（乗せても地の色を変えない）。スクロールと描いた項目の変化で確かめ直し、同じ発言のままなら描き直さない。帯を出すかは見出しの行のボタンと設定の「表示」→「上に貼り付ける指示」（`STICKY_PROMPT_HIDDEN`）。
+
+## チャットの中の検索（`find/`）
+
+`ChatFind`。チャットの見出しの行の右にいつも置く検索欄で、ふだんは細く、ピントが入る・文を入れると広げ、件数・前後・大文字小文字・消すは文を入れたときだけ出す。狭い見出し（`@container` 420px 以下）では虫眼鏡だけにして、押す・⌘F で広げる。⌘F でこの欄にピントを移して文を選ぶ（`useChatHotkey`）。Esc で文を消してチャット欄にピントを戻す。↑ / Shift+Enter で前、↓ / Enter で次（初めて移るときはいちばん新しい一致へ）。
+
+- 探すのは記録から（`chatFindMatches.ts` の `findMatches`。自分の発言とメインの AI の返答）で、移るときにその発言の前後だけを描く（`reveal`）。流れをすべて描かない。印は描いている範囲だけに CSS Custom Highlight API で付け（`::highlight(chat-find)`）、DOM を書き換えない。閉じたツールのまとまり・思考の中は探さない。
+- 打った文は前後の空白も削らずに探す（半角・全角の空白も）。右の「Aa」（⌥⌘C。`CHAT_FIND_CASE`。入れているときは `.find-option.on`）で大文字・小文字を区別する。照らし合わせは記録と画面の印で共通の `matchOffsets`。
+
+## 音声入力（`features/dictation/`）
+
+- チャット欄の下の道具のマイク `DictationButton` ＋ `useDictation`（1 回押して話し、もう一度押すと文字起こしして、キャレットの位置（選んでいればその範囲）に入れる。入れ方は純粋関数の `insertDictation`（英字とくっつくときだけ空白を補う））。録音は `recorder.ts`（`getUserMedia` ＋ `MediaRecorder`）、マイクの失敗の文は `micErrorMessage`。
+- 録音中は赤く経過時間、文字起こし中は「文字起こし中…」、失敗は `DictationError`（`ErrorText` と、録った音声で起こし直す「もう一度」）。録音中の送信ボタン・Enter・⌘Enter は、入れてそのまま送る。⌘⇧Space（チャット欄にピントがあるときだけ。`DICTATION_SHORTCUT`）で開始・停止、Esc でやめる。
+- 準備の状態は店の `useVoiceStatus`（設定の変更で取り直し、ダウンロードの進み具合はその場で直す）で、準備ができていなければ押したときに設定の「音声入力」を開く（`openSettings("voice")`）。設定は `features/settings/CLAUDE.md`。
+
+## 返答のファイルのチップ（`features/fileLinks/`）
+
+返答の中のファイルのパスは、チャットのパネルの中（`ChatPane` が `FileLinksProvider` で `FileLinkContext` と、ui の Markdown が読む `MarkdownFileLinksContext` を入れる）だけチップにし、押すと `openProjectFile` でエディタタブを開く（`useFileLinks`。チャットの作業場所のファイルの一覧を読み、作業が終わるたびに読み直す。一覧が読めない間はチップにしない）。判定と Markdown の木の書き換え（`remarkFileLinks`）は純粋関数の `fileRefs.ts`（作業場所のファイルの一覧にあるものだけ。インラインコード・リンク先・地の文の絶対パス）。

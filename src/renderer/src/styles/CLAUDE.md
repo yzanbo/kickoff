@@ -1,0 +1,40 @@
+# CSS（`src/renderer/src/styles`）の決まり
+
+機能ごとのファイルを、`index.css` の `@import` の順（＝カスケードの順）で 1 つにつなぐ。中身は領域ごとのサブフォルダ（`base/` `ui/` `sidebar/` `chatList/` `project/` `palette/` `chat/` `footer/` `board/` `panel/` `browser/` `editor/` `terminal/`）。
+
+## ファイルと順
+
+- `index.css` には `@import` 以外を書かない。1 ファイル 300 行以内。
+- 順（いまの `index.css`。変えるときはカスケードの勝ち負けが変わることに気をつける）:
+  `base/tokens`（変数。末尾に、画面のコードが inline style / `setProperty` で与える変数の一覧）→ `base/base`（body と `.muted` `.small` `.error` などの小さな共有クラス。後ろの部品に負ける前提で先頭側）→ `base/layout`（全体の並び・ドラッグ領域・`.pane-resizer`）→ `ui/popover`（`Popover`）→ `sidebar/`（`sidebar` 枠・上のメニュー行 → `sidebar-rows` チャットの行・選択バー → `sidebar-search` 検索欄・行の状態の印 → `sidebar-groups` 自分で作ったグループ → `sidebar-sections` まとまりの見出し・`Collapse` → `sidebar-projects` プロジェクトのカード → `sidebar-head` `ProjectListHead` → `sidebar-list` 縦並び・並べ替え・横スライドの丸 → `sidebar-counts` `HeadCounts`）→ `ui/status`（状態の印・角の数 `.corner-count`）→ `chatList/state-chats`（`StateChatsPopover`）→ `ui/buttons-forms`（`.btn` `.icon-button` `.link-button`・`InlineName`・入力欄）→ `project/project-tags`（タグ。サイドバーとダイアログで使うので `.icon-button` より後ろの共有の位置）→ `project/project-mark`（印と札の地）→ `ui/dialogs`（共通の枠・`TabbedDialog`）→ `project/project-edit` → `ui/app-dialogs`（確認・入力・選択）→ `project/new-project` → `palette/palette` → `palette/search` → `project/project-page`（枠・見出し・タブの行）→ `project/project-tabs` → `ui/cards`（`.card` `.card-grid`・状態カード）→ `chat/`（`chat` 見出し・流れ → `chat-tools` → `messages` → `chat-find` → `selection-comment` → `scroll-bottom` → `new-chat` → `composer` → `queue-mode` → `dictation` → `queued` → `queued-head` → `queued-attachments` → `composer-select` → `subagents` → `subagents-drawer`（裏の作業の一覧）→ `context-meter` → `attachments`）→ `ui/image-viewer` → `chat/approval` → `chat/question-card` → `ui/markdown` → `footer/`（`usage-meter` → `footer` → `diagnostics`）→ `base/mobile` → `board/`（`board` → `board-header` → `board-columns` → `board-cards`）→ `panel/`（`side-panel` → `side-panel-tabs` → `side-panel-tab-groups` → `side-panel-split`）→ `browser/browser` → `board/board-list`（拡張機能の一覧・リスト表示）→ `ui/menu`（`PopupMenu` の中身）→ `base/scrollbar` → `base/focus` → `editor/`（`editor` → `editor-explorer` → `editor-changes` → `editor-history` → `editor-history-sidebar` → `editor-chips`（作業場所の行・ブランチの印・PR））→ `terminal/terminal` → `panel/bottom-panel` → `panel/project-chat` → `ui/color-swatch`。
+
+## 置き場所
+
+- 規則はその機能のファイルに書く（部品が `features/<領域>/` にあるなら、同じ領域のサブフォルダ）。複数の画面で使う部品は `ui/buttons-forms.css` か `ui/menu.css`。
+- 新しいファイルは `index.css` の該当する位置に `@import` を足す（`base/base` より後ろ、汎用の部品はそれを使う画面より前）。
+- 基底を上書きする `@media` / `@container` は、その基底と同じファイルの基底より後ろに置く（`base/mobile.css` には、後ろのファイルの基底に負けるものを置かない）。
+
+## 書き方
+
+- 既存のクラスを使う。同じ宣言のブロックを増やさず、共通のクラスにまとめる（例: `.card`）。ただし、1 行で省略する 3 点セット（`overflow: hidden` `text-overflow: ellipsis` `white-space: nowrap`）は CSS の定型句なので、共通クラスにせず各規則に書いてよい（共通クラスを `base/base.css` に置くと、間の規則との勝ち負けが変わる）。
+- 同じ詳細度で後ろにあるルール（`.icon-button` など）に上書きされて効かない指定を書かない。足したら計算後のスタイルで確かめる。
+- ボタンは、ブラウザの既定の余白（`padding: 1px 6px`）・行の高さ・文字の大きさを持っている。大きさを決めたボタン（アイコンだけ・丸・ピルの中の小さな ×・▾ など）には必ず `padding: 0` を書き、中身は `display: grid; place-items: center`（文字と並べるなら `inline-flex; align-items: center; justify-content: center`）で真ん中に置く。余白を残すと、幅を狭めたときに中身の幅がアイコンより狭くなり、アイコンが右へはみ出して真ん中からずれる。`margin` の負の値や `top` で見た目だけ合わせない。アイコンだけのボタンは `IconButton` を使えばこの形になる（`.icon-button` は `display: inline-grid; place-items: center; padding: 0`）。大きさを変えるときは className で `width` / `height` だけを上書きし、真ん中寄せは崩さない。
+- 2 つのボタンを 1 つに見せる組（アイコン ＋ ▾ など）は、乗せたときの地を外側の入れ物に付け、中の各ボタンの地は透明にする（それぞれに地を付けると、別々に光って 2 つのボタンに見える。`.panel-split-button`）。
+- 使わなくなったクラスの CSS は消す。消すときは、名前を組み立てて付けるクラスに気をつける（いまの頭: `state-` `status-` `tone-` `meter-` `conn-` `drop-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、PR の状態の `open` / `merged` / `closed`（`.pr-chip`）、一番下へ戻るボタンの状態 `waiting` / `arrived` / `working` / `idle` / `failed` / `offline`）。
+- 新しいクラス名は、既存のものと重ならないか `styles/` 全体を検索してから付ける（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
+- 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾の一覧に書き、使う側は必要なら `var(--x, 既定値)` で受ける。`getComputedStyle` で読まれている変数（Mermaid の配色・ターミナル・エディタ）は、名前を変えるときに読む側も直す。
+- プロジェクトの名前の札の地と枠の色は `project/project-mark.css` に 1 か所で持つ（`features/project/CLAUDE.md`）。
+
+## 大きさと余白
+
+- 欄の左右の余白は `--gutter`（8px）にそろえる（左のサイドバー・真ん中の画面・右のチャット欄・パネル）。個別の数値を書かない。
+- プロジェクトの画面はどのタブでも同じ横幅（`.page-wide` は上限なし）。タブで幅を変えない。
+- 真ん中の画面の幅は、ウィンドウより欄の幅（右のチャット欄・ボードの右のパネル）で変わる。狭いときの並べ方は `@media` ではなく `@container` で書く（ボードのツールバーは `.board` の幅、列は `board-main` の幅。チャットの見出しの検索欄も `@container`）。
+- 欄・パネルの開閉の動きは `--panel-motion-duration` / `--panel-motion-ease` にそろえる（左のサイドバー・ボードの右のパネル・右のチャット欄・下のパネル）。開閉で大きさが動く欄は、中身を開いたときの大きさのまま置いて切り取る（動いている間に中身を並べ直さない）。ボードの右のパネルの決まりは `features/panel/CLAUDE.md`。
+
+## Electron のドラッグ領域
+
+- ドラッグ領域（`.chat-header` `.page-header` `.sidebar-header`・チャット欄 / 下のパネルのタブの列 `.board-panel.as-sidebar .panel-tabs`）の中で操作するもの（ボタン・リンク・入力欄・選択欄）には `-webkit-app-region: no-drag` を付ける。付けないと、押してもウィンドウのドラッグになって効かない（JS のクリックでは再現しないので、計算後のスタイルで確かめる）。
+- ドラッグ領域は後に書いた要素が優先されるので、閉じたサイドバーの「開く」ボタン・右上のレイアウトの開閉は DOM のいちばん後ろに置く。
+- 外側のクリックで閉じるもの（ポップオーバー・メニュー）が開いている間は、`<html data-dismissable>` でドラッグ領域を止める（`base/layout.css`。ドラッグ領域を押すとページにクリックが届かず、閉じなかったため）。
+- ピルの中に置く選択欄は `.pill-select`（枠と背景はピルに任せる）。

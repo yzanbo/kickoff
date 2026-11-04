@@ -241,3 +241,19 @@ src/
 ## 7. 調べて見つけた不具合
 
 直すものは、リファクタとは別のコミット（`fix:`）にする。共通化で自然に消えるものは、その段で消えたことを確かめる。最後の報告に、直したもの・残したものを一覧にする。
+
+## 8. 到達点（2026-11-05）
+
+6. の手順はすべて終えた（main に約 100 コミット。プッシュはしていない）。設計から変えた所・足した所:
+
+- 作業中の様子は `ChatLive`（`shared/types/chatLive.ts`）1 つにし、SSE は `chat_live` 1 種類で配る（書いている途中の返答 `chat_delta` とサブエージェントの途中経過 `chat_subagent` は回数が多いので別のまま）。チャットごとの状態はコアの `chat/runtime.ts` の `ChatRuntime` が持つ。
+- 止まったあとの再開（通信の切断・使用枠の上限）は `core/chat/recovery/` の 1 つの仕組み（流れ `recovery.ts`・理由ごとの違い `rules.ts`）。AI へ送る定型文は `shared/chat/prompts.ts`。
+- HTTP の失敗は `core/http/errors.ts` の `Invalid` / `NotFound` / `Conflict` を投げ、`onError` で応答にする。`:id` の引き当ては `core/http/lookups.ts` のミドルウェア。変えたら資源を返し、返すものがなければ 204。
+- 画面のデータは `stores/` の `createStore` / `createKeyedStore`（チャット・グループ・ワークツリー・プロジェクト・回答待ち・設定・使用枠・音声・プロバイダー）。表示の設定は `lib/storageKeys.ts` の `defineSetting` と `useSetting`（宣言していないキーは起動したときに消し、DB の `database_id` が変わったら ID 入りのキーを捨てる）。
+- 汎用の部品: `ui/Popover`、自分で測って画面に収める `PopupMenu` と `useContextMenu`、`hooks/useDragSize`、`hooks/useFold` と `ui/FoldHead`、`hooks/useAction`、`hooks/useMultiSelect`。チャットのまとめ方は `features/chatList/` の `bucketChats`。パネルの欄の違いは `features/panel/surfaces.ts` の `SURFACES`、タブの種類の違いは `tabs/tabKinds.ts` の `TAB_KINDS`、状態の変え方は `state/panelState.ts` の reducer。チャットの画面の操作は `features/chat/pane/chatPaneContext.ts` の 1 つの context。
+- IPC は `shared/ipc/contract.ts` の表 `NATIVE_API` 1 つから、preload の `window.kickoff`・画面の型・main の型付きの登録（送り手と引数の確かめ）を作る。
+- テストのデータは `shared/testing/factories.ts`、一時フォルダ・Git の作業場所・コアの準備は `core/testing/`。
+- CLAUDE.md はルートを決まりだけにし、説明は各フォルダの `CLAUDE.md` に分けた。
+
+やらなかったこと（次の候補）: 添付の表（いまは uploads/ のファイルだけで、チャットを消しても添付は残る）、使っていない設定（`remote_enabled`・`ntfy_url`・`default_provider` の画面）の整理、アーカイブ済みのチャットをプロジェクトごとに読むこと、最新の結果だけを使う取得の手書き（Git の状態・チャットの詳細・検索）の共通化。
+
