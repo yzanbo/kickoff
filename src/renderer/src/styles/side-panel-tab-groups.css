@@ -191,6 +191,8 @@ button.panel-tab-cluster-name[aria-expanded="true"] {
 
 /* まとめないときの「チャット」の札（まとまりの色はないので、その他と同じ控えめな地。押すと状態ごとのチャットの一覧） */
 .panel-tab-cluster.all {
+  /* タブの並びの外に置く札なので、タブと一緒には縮めない */
+  flex: none;
   padding: 0 6px 0 6px;
 }
 
