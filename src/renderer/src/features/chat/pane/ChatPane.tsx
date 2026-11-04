@@ -8,7 +8,7 @@ import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
 import { Composer } from "@/features/chat/composer/Composer";
 import { QueueModeToggle, queueModeTexts, useQueueMode } from "@/features/chat/composer/QueueModeToggle";
-import type { ComposerFill } from "@/features/chat/messages/quoteComment";
+import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { ChatHeader } from "./ChatHeader";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
@@ -136,7 +136,7 @@ function ChatView({
   // チャットの中の検索を開いているか・発言へ移る（指示の履歴・⌘⌥↑ / ↓ から）
   const panelRef = useRef<HTMLDivElement>(null);
   // 発言の一覧から、同じ文を入力欄に入れる
-  const fillComposer = useRef<ComposerFill | null>(null);
+  const composer = useRef<ComposerHandle | null>(null);
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
   const [pillDock, setPillDock] = useState<HTMLSpanElement | null>(null);
   // ⌘F でこのチャットの中の検索欄（見出しの行にいつもある）にピントを移す（ピントがこのチャットにあるとき）
@@ -218,7 +218,7 @@ function ChatView({
         }
       />
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}
-      <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
+      <SelectionComment root={panelRef} onAdd={(block) => composer.current?.fill(block, { append: true })} />
       <ChatTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} chat={chat} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} live={live} waiting={waiting} streaming={streaming} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} pillDock={pillDock} />
       <div className="chat-composer">
         {/*
@@ -233,7 +233,7 @@ function ChatView({
         )}
         {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
         <div className="composer-chips">
-          <PromptsChip prompts={prompts.entries} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
+          <PromptsChip prompts={prompts.entries} onJump={jump} onReuse={(text) => composer.current?.fill(text)} />
           <TodoChip events={events} />
           <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
           {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
@@ -276,7 +276,7 @@ function ChatView({
           }
           trailing={<ContextMeter chat={chat} compacting={live.compacting !== null} />}
           suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path || undefined }}
-          fillRef={fillComposer}
+          handleRef={composer}
           history={prompts.recalls}
           draft={chatDraft(chat.id)}
         />

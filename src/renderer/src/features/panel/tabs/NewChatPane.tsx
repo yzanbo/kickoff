@@ -4,14 +4,15 @@ import type { Project, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
 import { choiceDialog } from "@/ui/dialogs";
-import { Composer, SendCancelled } from "@/features/chat/composer/Composer";
+import { Composer } from "@/features/chat/composer/Composer";
+import { SendCancelled } from "@/features/chat/composer/useComposerSend";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { askNewWorktreeBranch, WorkplacePicker, workplacePath, type Workplace } from "@/features/worktree/WorkplacePicker";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { countBusyAt } from "@/features/worktree/workplace";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
-import type { ComposerFill } from "@/features/chat/messages/quoteComment";
+import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { currentChats, useChats } from "@/stores/chats";
 import { groupNameIn, useGroups } from "@/stores/groups";
 import { worktreesStore } from "@/stores/worktrees";
@@ -71,7 +72,7 @@ export function NewChatPane({
   const ready = projectsLoaded && (chats.loaded || chats.error !== undefined);
   // 入力欄ができたら 1 回だけ、書きかけていた文（なければ送信待ちの指示から始めたときの文）と添付を入れる（送るのは自分で）。
   // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
-  const fillComposer = useRef<ComposerFill | null>(null);
+  const composer = useRef<ComposerHandle | null>(null);
   const initialText = useRef(draftText);
   const seeded = useRef(false);
   const visibleRef = useRef(visible);
@@ -81,7 +82,7 @@ export function NewChatPane({
     const text = initialText.current ?? seed?.text;
     if (!text && !seed) return;
     seeded.current = true;
-    fillComposer.current?.(text ?? "", { attachments: seed?.attachments, focus: visibleRef.current });
+    composer.current?.fill(text ?? "", { attachments: seed?.attachments, focus: visibleRef.current });
   }, [ready, seed]);
 
   return (
@@ -152,7 +153,7 @@ export function NewChatPane({
             options={options}
             autoFocus
             onTextChange={onDraftChange}
-            fillRef={fillComposer}
+            handleRef={composer}
             // 新しいワークツリーはまだないので、本体から探す
             suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
             placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"

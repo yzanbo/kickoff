@@ -1,8 +1,6 @@
-import { ArrowUp, Square } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useRef, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
 import type { Attachment } from "@shared/types";
 import type { GitTarget } from "@/api";
-import { errorMessage } from "@shared/errors";
 import { cx } from "@/lib/cx";
 import { useOptionalSetting, useSetting } from "@/hooks/useSetting";
 import type { Setting } from "@/lib/storage";
@@ -19,10 +17,12 @@ import { ChatOptionsBar, type ChatOptionsState } from "@/features/chat/options/C
 import { SuggestList } from "@/features/chat/composer/suggest/SuggestList";
 import { useSuggest } from "@/features/chat/composer/suggest/useSuggest";
 import { useComposerFiles } from "@/features/chat/attachments/useComposerFiles";
+import { appendBlock } from "@/features/chat/messages/quoteComment";
 import { usePromptHistory } from "./usePromptHistory";
 import { isSendEnter, sendModeOf, useComposerKeys, type QueueSendMode } from "./composerKeys";
-export type { QueueSendMode } from "./composerKeys";
-import { appendBlock, type ComposerFill } from "@/features/chat/messages/quoteComment";
+import type { ComposerHandle } from "./composerHandle";
+import { ComposerActions } from "./ComposerActions";
+import { useComposerSend } from "./useComposerSend";
 import { ChatContextButton } from "./ChatContextButton";
 
 interface Props {
@@ -53,8 +53,8 @@ interface Props {
   history?: string[];
   /** 書きかけの文を残す設定（既存のチャットの chatDraft。新しいチャットはタブの draftText で残すので渡さない） */
   draft?: Setting<string>;
-  /** 外から入力欄に文を入れる口（発言の一覧の「入力欄に入れる」など。append なら書いている文の後ろに足す。入れたら文の終わりにピントを置く） */
-  fillRef?: MutableRefObject<ComposerFill | null>;
+  /** 外からチャット欄を動かす口（文を入れる・ピントを移す。発言の一覧の「入力欄に入れる」など） */
+  handleRef?: MutableRefObject<ComposerHandle | null>;
   /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
   chatContext?: { projectId?: number; exclude?: number };
 }
@@ -62,21 +62,20 @@ interface Props {
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
 const TEXT_CHANGE_DELAY_MS = 300;
 
-/** onSend で投げると、送るのをやめたことになる（書いた文は残し、失敗の文も出さない。確かめのダイアログでやめたときなど） */
-export class SendCancelled extends Error {}
-
-/**
- * チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付。
- * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））
- */
 /** 停止中に Esc を押したとき（もう止めているので何もしない） */
 const ignoreStop = () => {};
 
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, fillRef, chatContext }: Props) {
+/**
+ * チャットの入力欄（Enter で送信・Shift+Enter で改行。📎・ドラッグ＆ドロップ・貼り付けでファイルを添付。
+ * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
+ * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
+ */
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const attach = useComposerFiles();
   /** 文を入れて、キャレットを caret に置く（描き直して高さが合ってから） */
   const fill = (value: string, caret = value.length, focus = true) => {
     setText(value);
@@ -88,11 +87,14 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       el.setSelectionRange(caret, caret);
     });
   };
-  if (fillRef)
-    fillRef.current = (value, opts) => {
-      fill(opts?.append ? appendBlock(text, value) : value, undefined, opts?.focus);
-      // 添付も入れる（送信待ちの指示を新しいチャットで聞くとき。アップロード済みのものをそのまま使う）
-      if (opts?.attachments) attach.addAttachments(opts.attachments);
+  if (handleRef)
+    handleRef.current = {
+      fill: (value, opts) => {
+        fill(opts?.append ? appendBlock(text, value) : value, undefined, opts?.focus);
+        // 添付も入れる（送信待ちの指示を新しいチャットで聞くとき。アップロード済みのものをそのまま使う）
+        if (opts?.attachments) attach.addAttachments(opts.attachments);
+      },
+      focus: () => textareaRef.current?.focus(),
     };
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
   const [compact] = useSetting(COMPOSER_COMPACT);
@@ -110,9 +112,18 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   // 書いた分だけ高さを伸ばすのは CSS（composer.css の field-sizing: content と max-height）に任せる。
   // 以前はキーを押すたびに高さを auto に戻して scrollHeight を測っていて、そのたびにページ全体のレイアウトをその場でやり直させていた
   // （長いチャットで画面の要素が多いと、1 文字ごとに数十 ms かかり、文字入力が遅くなった原因の 1 つ）
-  const attach = useComposerFiles();
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string>();
+  const sender = useComposerSend({
+    text,
+    files: attach,
+    busy,
+    queueWhileIdle,
+    onSend,
+    onQueue,
+    onSent: () => {
+      setText("");
+      attach.clear();
+    },
+  });
   // 音声入力: 起こした文をキャレットの位置（選んでいればその範囲）に入れる。send なら、入れてそのまま送る
   const dictation = useDictation({
     onText: (spoken, sendNow) => {
@@ -121,40 +132,17 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       const inserted = insertDictation(value, el?.selectionStart ?? value.length, el?.selectionEnd ?? value.length, spoken);
       if (sendNow) {
         setText(inserted.text);
-        void send(inserted.text);
+        void sender.send(inserted.text);
       } else {
         fill(inserted.text, inserted.caret);
       }
     },
   });
-
-  // 作業中は、待ちの列に入れられるときだけ送れる（送信待ちがあるときは、作業していなくても送り方を選ぶ）
-  const queueing = Boolean((busy || queueWhileIdle) && onQueue);
-  const hasContent = Boolean(text.trim() || attach.attachments.length > 0);
-  const ready = !attach.uploading && !sending && (!busy || queueing);
   // 録音中は、送信で「起こした文を入れてそのまま送る」
-  const canSend = (hasContent || dictation.recording) && ready;
-
-  /** 送る（body を渡せば、いまの文の代わりにそれを送る。音声入力で入れてそのまま送るとき。mode は作業中の送り方をキーで決めたとき） */
-  async function send(body?: string, mode?: QueueSendMode) {
-    const message = (body ?? text).trim();
-    if (!ready || !(message || attach.attachments.length > 0)) return;
-    setSending(true);
-    setError(undefined);
-    try {
-      if (queueing) await onQueue!(message, attach.attachments, mode);
-      else await onSend(message, attach.attachments);
-      setText("");
-      attach.clear();
-    } catch (e) {
-      if (!(e instanceof SendCancelled)) setError(errorMessage(e));
-    } finally {
-      setSending(false);
-    }
-  }
+  const canSend = (sender.hasContent || dictation.recording) && sender.ready;
 
   /** 送信ボタン・Enter: 録音中なら、止めて起こした文を入れてから送る */
-  const submit = (mode?: QueueSendMode) => (dictation.recording ? void dictation.finish(true) : void send(undefined, mode));
+  const submit = (mode?: QueueSendMode) => (dictation.recording ? void dictation.finish(true) : void sender.send(undefined, mode));
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // 録音中の Enter・⌘Enter は、起こした文を入れてそのまま送る
@@ -228,52 +216,25 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
           <DictationButton dictation={dictation} />
           {options && <ChatOptionsBar state={options} />}
         </div>
-        <div className="composer-actions">
-        {trailing}
-        {queueing && busyControls && (
-          <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>
-            {busyControls}
-          </span>
-        )}
-        {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
-        {busy && onStop && !stopping && keys.stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
-        {busy && onStop && stopping && <span className="composer-stop-hint stopping">停止中…</span>}
-        {busy && onStop && (
-          <button
-            className={cx("send-button stop", stopping && "stopping")}
-            title={stopping ? "停止中…（サブエージェント・裏のコマンドが終わるのを待っています）" : "中断（チャット欄で Esc を 2 回）"}
-            aria-label={stopping ? "停止中" : "中断"}
-            aria-busy={stopping || undefined}
-            disabled={stopping}
-            onClick={onStop}
-          >
-            {stopping ? <span className="spinner" aria-hidden /> : <Square size={12} fill="currentColor" />}
-          </button>
-        )}
-        {(!busy || !onStop || (queueing && (hasContent || dictation.recording))) && (
-          <button
-            className="send-button"
-            title={
-              dictation.recording
-                ? "録音を止めて、文字起こしした文を入れてそのまま送る（Enter）"
-                : sendLabel
-                  ? `${sendLabel}（Enter）`
-                  : queueing
-                    ? "待ちの列に入れる（Enter）。いまの作業が終わったら送ります"
-                    : "送信（Enter）"
-            }
-            aria-label={dictation.recording ? "文字起こしして送信" : (sendLabel ?? (queueing ? "待ちの列に入れる" : "送信"))}
-            disabled={!canSend}
-            onClick={() => submit()}
-          >
-            <ArrowUp size={17} strokeWidth={2.5} />
-          </button>
-        )}
-        </div>
+        <ComposerActions
+          busy={busy}
+          stopping={stopping}
+          stopArmed={keys.stopArmed}
+          onStop={onStop}
+          queueing={sender.queueing}
+          heldMode={heldMode}
+          busyControls={busyControls}
+          trailing={trailing}
+          canSend={canSend}
+          recording={dictation.recording}
+          hasContent={sender.hasContent}
+          sendLabel={sendLabel}
+          onSubmit={() => submit()}
+        />
       </div>
       {attach.dragging && <div className="drop-hint">ここにドロップして添付</div>}
       <DictationError dictation={dictation} />
-      <ErrorText message={error} className="composer-error" />
+      <ErrorText message={sender.error} className="composer-error" />
     </div>
   );
 }
