@@ -8,7 +8,7 @@ import type { ProjectReorder } from "./useProjectReorder";
 
 /**
  * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・右クリックでメニュー）。
- * 左上の青い点は作業中、右上の点は自分待ち（回答待ちはオレンジ、未読だけなら緑）。選んでいるプロジェクトの丸は、スクロールして見えるところに出す
+ * 丸の角に状態ごとの件数を出す（左上 = 作業中（青）・右上 = 未読（緑）・左下 = 回答待ち（オレンジ））。選んでいるプロジェクトの丸は、スクロールして見えるところに出す
  */
 export function WorkspaceDots({
   projects,
@@ -74,7 +74,7 @@ export function WorkspaceDots({
             {...reorder.dropProps(p.id)}
           >
             {initialOf(p.name)}
-            {/* 状態ごとの件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 回答待ち、右下 = 未読 */}
+            {/* 状態ごとの件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 未読、左下 = 回答待ち */}
             {counts.running > 0 && (
               <span className="workspace-dot-count running" aria-label={`作業中 ${counts.running} 件`}>
                 {counts.running}
