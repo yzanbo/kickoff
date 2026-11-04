@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { cx } from "../../cx";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
-import { adjacentPrompt, currentPrompt, promptTops } from "./promptNav";
+import { adjacentPrompt, currentPrompt, promptTops, railWindow } from "./promptNav";
 import type { PromptEntry } from "./promptHistory";
 
 /**
  * チャットの目次: 流れの右端に、自分の指示を 1 つずつ目盛りで並べる（いま読んでいるところの指示を濃く）。
- * 乗せると指示の初めの行の一覧に広がり、押すとその指示へ移る。⌘⌥↑ / ↓ で前後の指示へ（このチャットにピントがあるとき）
+ * 乗せると指示の初めの行の一覧に広がり、押すとその指示へ移る。⌘⌥↑ / ↓ で前後の指示へ（このチャットにピントがあるとき）。
+ * 目盛りは流れの高さ（の 6 割）に収まるだけ出す（railWindow。PC ごとの画面の高さ・欄の高さに合わせ、変わったら測り直す）。
+ * 収まらないときは、いま読んでいる指示を真ん中に前後を出し、上下に隠れた数（「↑ 140」）を添える（押すと隠れた側のすぐ隣の指示へ）
  */
 export function PromptRail({ root, prompts, onJump }: { root: RefObject<HTMLElement | null>; prompts: PromptEntry[]; onJump: (eventId: number) => void }) {
   const [current, setCurrent] = useState<number>();
@@ -17,6 +19,19 @@ export function PromptRail({ root, prompts, onJump }: { root: RefObject<HTMLElem
   idsRef.current = ids;
 
   const timelineOf = () => root.current?.querySelector<HTMLElement>(".timeline") ?? null;
+  // 目盛りを並べられる高さ（流れの高さの 6 割。.prompt-rail の max-height と同じ）。流れの大きさが変わったら測り直す
+  const [railHeight, setRailHeight] = useState(0);
+  useEffect(() => {
+    const timeline = timelineOf();
+    if (!timeline) return;
+    // 一覧の枠線（上下 1px）の分を引く
+    const measure = () => setRailHeight(Math.floor(timeline.clientHeight * 0.6) - 2);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(timeline);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prompts.length >= 2]);
   /** 前に移った先が、まだ画面に見えているならその ID */
   const anchorOf = (timeline: HTMLElement, tops: Map<number, number>) => {
     const top = lastJump.current === undefined ? undefined : tops.get(lastJump.current);
@@ -69,6 +84,9 @@ export function PromptRail({ root, prompts, onJump }: { root: RefObject<HTMLElem
   );
 
   if (prompts.length < 2) return null;
+  const { start, end } = railWindow(prompts.length, prompts.findIndex((p) => p.id === current), railHeight);
+  const shown = prompts.slice(start, end);
+  const hiddenAfter = prompts.length - end;
   return (
     <nav
       className="prompt-rail"
@@ -77,15 +95,25 @@ export function PromptRail({ root, prompts, onJump }: { root: RefObject<HTMLElem
       onMouseEnter={(e) => e.currentTarget.querySelector(".prompt-rail-item.current")?.scrollIntoView({ block: "nearest" })}
     >
       <div className="prompt-rail-list">
-        {prompts.map((p, i) => (
+        {start > 0 && (
+          <button type="button" className="prompt-rail-more" title={`前の指示 ${start} 件（押すとすぐ上の指示へ）`} onClick={() => jump(prompts[start - 1].id)}>
+            ↑ {start}
+          </button>
+        )}
+        {shown.map((p, i) => (
           <button key={p.id} type="button" className={cx("prompt-rail-item", p.id === current && "current")} aria-current={p.id === current || undefined} onClick={() => jump(p.id)}>
             <span className="prompt-rail-label">
-              <span className="prompt-index">{i + 1}</span>
+              <span className="prompt-index">{start + i + 1}</span>
               <span className="prompt-text">{p.label}</span>
             </span>
             <span className="prompt-rail-tick" aria-hidden />
           </button>
         ))}
+        {hiddenAfter > 0 && (
+          <button type="button" className="prompt-rail-more" title={`後の指示 ${hiddenAfter} 件（押すとすぐ下の指示へ）`} onClick={() => jump(prompts[end].id)}>
+            ↓ {hiddenAfter}
+          </button>
+        )}
       </div>
     </nav>
   );

@@ -21,10 +21,11 @@
 
 .prompt-rail-item {
   display: flex;
-  flex: 0 1 12px;
+  flex: none;
   align-items: center;
   justify-content: flex-end;
-  min-height: 3px;
+  /* 目盛り 1 本の高さ（promptNav.ts の RAIL_TICK_PX。収まる本数の計算と合わせる） */
+  height: 12px;
   padding: 0 2px;
   border: none;
   border-radius: var(--radius-sm);
@@ -70,9 +71,38 @@
 
 .prompt-rail:hover .prompt-rail-item,
 .prompt-rail:has(:focus-visible) .prompt-rail-item {
-  flex: none;
   gap: 8px;
+  height: auto;
   padding: 4px 6px;
+}
+
+/* 上下に隠れた指示の数（「↑ 140」。高さは promptNav.ts の RAIL_MORE_PX）。押すと隠れた側のすぐ隣の指示へ */
+.prompt-rail-more {
+  flex: none;
+  height: 18px;
+  padding: 0 2px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--extra-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.prompt-rail-more:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.prompt-rail:hover .prompt-rail-more,
+.prompt-rail:has(:focus-visible) .prompt-rail-more {
+  height: 24px;
+  padding: 0 6px;
+  font-size: 11px;
+  text-align: left;
 }
 
 .prompt-rail:hover .prompt-rail-label,
