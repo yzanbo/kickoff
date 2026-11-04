@@ -1,9 +1,9 @@
 import { useState, type CSSProperties } from "react";
-import type { Project } from "@shared/types";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { BOTTOM_PANEL_HEIGHT } from "@/lib/storageKeys";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
+import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 
 /** どの画面のパネルか（プロジェクトの ID。全プロジェクトの画面は "all"） */
 type BottomScope = number | "all";
@@ -21,14 +21,15 @@ export type BottomPanelController = ReturnType<typeof useBottomPanel>;
  * タブはほかの欄と同じく上下・左右のペインに分けられる（フッターにピントがあるときの ⌘\ で右に分ける）。
  * Esc では閉じない（ターミナルの中で使うため）。シェルはメインプロセスで動き続けるので、閉じても・ほかのプロジェクトに移っても残る
  */
-export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], projects: Project[]) {
+export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
+  // 全プロジェクトの画面では、新しいチャットのプロジェクトを選べるようにする（全プロジェクトのボードと同じく、しまったものを除き、タグの絞り込みに合うもの）
+  const { visible } = useVisibleProjects();
   const panel = usePanel({
     memoryKey: `bottom:${scope}`,
     scope,
     surface: "bottom",
     holdEsc: true,
-    // 全プロジェクトの画面では、新しいチャットのプロジェクトを選べるようにする
-    projects: scope === "all" ? projects : undefined,
+    projects: scope === "all" ? visible : undefined,
   });
   const [maximized, setMaximized] = useState(false);
   // 上の端をドラッグして高さを変える（いま見えている高さから。最大化していればやめる。ダブルクリックで元の高さ）
