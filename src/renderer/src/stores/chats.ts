@@ -54,7 +54,7 @@ export function selectChats(active: readonly Chat[] | undefined, archived: reado
 }
 
 /** 同じチャットが同じ順に並んでいるか（中身の変わらない見え方は、前の配列のまま返す） */
-export const sameItems = <T>(a: readonly T[], b: readonly T[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+const sameItems = <T>(a: readonly T[], b: readonly T[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
 // 見え方（プロジェクト × アーカイブ済みを含めるか）ごとの、直前の結果
 const views = new Map<string, { active: Chat[] | undefined; archived: Chat[] | undefined; chats: Chat[] }>();
@@ -104,7 +104,8 @@ const NOT_LOADED: ChatList = { chats: NO_CHATS, loaded: false, loading: false, e
 export function useChats({ projectId, archived = false, enabled = true }: ChatQuery = {}): ChatList {
   const active = useStoreStatus(activeChats, { active: enabled });
   const old = useStoreStatus(archivedChats, { active: enabled && archived });
-  const chats = useSyncExternalStore(subscribeChats, () => chatsView(projectId, archived));
+  // 読まない間は、一覧が変わっても描き直さない
+  const chats = useSyncExternalStore(subscribeChats, () => (enabled ? chatsView(projectId, archived) : NO_CHATS));
   if (!enabled) return NOT_LOADED;
   return {
     chats,
