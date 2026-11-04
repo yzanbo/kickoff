@@ -106,10 +106,16 @@ function useSharedState<T>(key: string, decode: (raw: string | null) => T, encod
 
 const encodeFlag = (on: boolean) => (on ? "1" : "0");
 const encodeChoice = (value: string) => value;
+const encodeNumber = (value: number) => String(value);
 
 /** 部品どうしでそろう "1" / "0" */
 export function useSharedFlag(key: string, initial = false) {
   return useSharedState(key, (raw) => (raw === null ? initial : raw === "1"), encodeFlag);
+}
+
+/** 部品どうしでそろう数（未保存・0・数でない値なら initial） */
+export function useSharedNumber(key: string, initial: number) {
+  return useSharedState(key, (raw) => Number(raw) || initial, encodeNumber);
 }
 
 /** 部品どうしでそろう、決まった文字列のどれか（知らない値・未保存なら initial） */
