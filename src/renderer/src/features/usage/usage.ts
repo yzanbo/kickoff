@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useState } from "react";
-import type { PlanUsage } from "@shared/types";
+import type { PlanUsage, UsageWindow } from "@shared/types";
 import { api } from "@/api";
 import { useTicker } from "@/hooks/useTicker";
 import { usageStore } from "@/stores/usage";
@@ -47,6 +47,16 @@ export function usageLevel(pct: number): "normal" | "warning" | "critical" {
 /** モデル別の週枠（「週（Fable）」）なら、そのモデル名 */
 export function weeklyModel(label: string): string | undefined {
   return /^週（(.+)）$/.exec(label)?.[1];
+}
+
+/**
+ * 使用枠の名前（下の帯・使用状況・チャット欄のコンテキストの詳細・設定で同じ付け方）: モデル別の週枠（「週（Fable）」）は「週 · Fable」、
+ * ほかはそのまま（「5時間」「週」）。short（下の帯の 1 行表示）では、モデル別の週枠をモデル名だけ（「Fable」）にする
+ */
+export function usageWindowLabel(w: Pick<UsageWindow, "label">, short = false): string {
+  const model = weeklyModel(w.label);
+  if (!model) return w.label;
+  return short ? model : `週 · ${model}`;
 }
 
 /** CLI のログイン情報の 1 行（"you@example.com ・ Max プラン"）。どちらも分からなければ空 */

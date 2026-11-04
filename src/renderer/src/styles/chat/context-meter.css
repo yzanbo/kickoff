@@ -103,11 +103,6 @@
   background: var(--bg-hover);
 }
 
-.context-usage {
-  display: grid;
-  gap: 6px;
-}
-
 .context-row {
   display: flex;
   justify-content: space-between;
@@ -122,28 +117,6 @@
 .context-compact {
   display: flex;
   margin-top: -4px;
-}
-
-.context-bar {
-  height: 4px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--bg-hover);
-}
-
-.context-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: 2px;
-  background: var(--ok);
-}
-
-.context-bar-fill.tone-warn {
-  background: var(--warn);
-}
-
-.context-bar-fill.tone-danger {
-  background: var(--dot-failed);
 }
 
 .send-button {

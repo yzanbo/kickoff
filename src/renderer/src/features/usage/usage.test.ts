@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { PlanUsage } from "@shared/types";
-import { accountLine, planLabel, planName, usageLevel, weeklyModel } from "./usage";
+import { accountLine, planLabel, planName, usageLevel, usageWindowLabel, weeklyModel } from "./usage";
 
 test("usageLevel: 70% から注意、90% から警告（まだ届いていない 0% は通常）", () => {
   assert.equal(usageLevel(0), "normal");
@@ -32,4 +32,11 @@ test("weeklyModel: モデル別の週枠の見出しからモデル名を取る"
   assert.equal(weeklyModel("週（Fable）"), "Fable");
   assert.equal(weeklyModel("週"), undefined);
   assert.equal(weeklyModel("5 時間"), undefined);
+});
+
+test("usageWindowLabel: モデル別の週枠は「週 · Fable」（1 行表示ではモデル名だけ）。ほかはそのまま", () => {
+  assert.equal(usageWindowLabel({ label: "週（Fable）" }), "週 · Fable");
+  assert.equal(usageWindowLabel({ label: "週（Fable）" }, true), "Fable");
+  assert.equal(usageWindowLabel({ label: "週" }), "週");
+  assert.equal(usageWindowLabel({ label: "5時間" }, true), "5時間");
 });

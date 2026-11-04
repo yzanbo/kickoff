@@ -1,9 +1,14 @@
-/* ==== 使用枠メーター ==== */
+/* ==== 使用枠メーター（UsageMeter）と使用率のバー（UsageBar。チャット欄のコンテキストウィンドウでも使う） ==== */
 
 .meter {
-  --meter-fill: var(--info);
   display: grid;
   gap: 6px;
+}
+
+/* 色はバー自身にも付ける（段階のクラスはメーターとバーの両方に付く。バーだけで使うときのため） */
+.meter,
+.meter-track {
+  --meter-fill: var(--info);
 }
 
 .meter-idle {
