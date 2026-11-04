@@ -193,6 +193,8 @@ export function NewChatPane({
 
 /** その作業場所（本体・いまあるワークツリー）で、作業中のチャットがあるか。新しく作るワークツリーなら、まだない */
 function isBusyAt(chats: Chat[], place: Workplace): boolean {
-  const path = place.kind === "existing" ? place.path : place.kind === "main" ? "" : null;
-  return path !== null && chats.some((r) => r.worktree_path === path && r.status === "running");
+  if (place.kind === "new") return false;
+  // 本体のチャットの作業場所は null（空の文字ではない）
+  const path = place.kind === "existing" ? place.path : null;
+  return chats.some((r) => r.worktree_path === path && r.status === "running");
 }
