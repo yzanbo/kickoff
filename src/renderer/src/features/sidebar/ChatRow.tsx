@@ -92,10 +92,8 @@ export function ChatRow({
         }}
         onClick={(e) => {
           e.preventDefault();
-          // ⌘ を押しながら: 選ぶ・外す / Shift: 前に選んだものからの範囲（どちらも開かない）
-          if (selection && (e.metaKey || e.ctrlKey)) return selection.toggle(chat.id);
-          if (selection && e.shiftKey) return selection.range(chat.id);
-          selection?.clear();
+          // ⌘ を押しながら: 選ぶ・外す / Shift: 前に選んだものからの範囲を足す（どちらも開かない）。ふつうのクリックは選ぶのをやめて開く
+          if (selection?.click(e, chat.id)) return;
           // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
           openChat(chat.project_id, chat.id);
         }}
