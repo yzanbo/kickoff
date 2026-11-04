@@ -1,13 +1,13 @@
 import { Globe, SquareTerminal, type LucideIcon } from "lucide-react";
 import type { MouseEvent } from "react";
 import type { ExternalBrowserId, ExternalTerminalId } from "@shared/types";
-import { baseName } from "@/lib/format";
 import { anchorPlacement, type Placement } from "@/lib/floating";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";
 import { findPane, type PaneLeaf } from "@/features/panel/layout/paneLayout";
-import type { PanelController, TerminalTarget } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 import { useExternalBrowser, useExternalTerminal } from "./externalApps";
+import { browserPageOf, terminalTargetOf } from "./openTargets";
 import { OpenWithMenu } from "./OpenWithMenu";
 
 /** ▾ のメニューの種類 */
@@ -29,9 +29,9 @@ interface OpenWithChoice {
 
 /**
  * パネルのタブの列のブラウザ・ターミナルを開く操作と、▾ のメニュー（新しいタブで開く・「外部で開く」のアプリを押すとそのアプリで開く。次からの既定にもする）。
- * ターミナルを開く場所はアイコン・タブがないときのボタン・▾ のどれも同じ決め方（terminalTargetOf: 押したペインでチャットを表示していればその作業場所 →
+ * ターミナルを開く場所はアイコン・タブがないときのボタン・▾ のどれも同じ決め方（openTargets の terminalTargetOf: 押したペインでチャットを表示していればその作業場所 →
  * 開く場所が 1 つならそこ）で、決まらなければ開く場所を選ぶメニューを出す（1 つのメニューを、新しいタブ・外のターミナルで共通に使う）。
- * 外のブラウザでは、押したペインで表示中のブラウザのタブのページを開く（なければアプリを開くだけ）。
+ * 外のブラウザでは、押したペインで見せている表示中のブラウザのタブのページを開く（なければアプリを開くだけ。browserPageOf）。
  * openTerminal をターミナルのアイコンに、open を ▾ に渡し、menu を描く
  */
 export function useOpenWithMenu(panel: PanelController) {
@@ -43,28 +43,17 @@ export function useOpenWithMenu(panel: PanelController) {
   // ターミナルを開く場所を選ぶメニュー（tab = 新しいタブ / external = 外のターミナル。icon = アイコン・タブがないときのボタンから開いた）
   const picker = useContextMenu<{ mode: "tab" | "external"; app?: ExternalTerminalId; icon: boolean }>();
 
-  /** ペインの表示中のタブ */
-  const activeTab = (paneId: string) => {
-    const key = findPane(panel.layout, paneId)?.active;
+  /** ペインで見せている表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ） */
+  const shownTab = (paneId: string) => {
+    const pane = findPane(panel.layout, paneId);
+    const key = pane && panel.shownTabOf(pane);
     return panel.tabs.find((t) => t.key === key);
-  };
-
-  /** ターミナルを開く場所（ワークツリーならそのフォルダ、本体ならプロジェクトのフォルダ）。決まらなければ undefined（選ぶメニューを出す） */
-  const terminalTargetOf = (pane: PaneLeaf): TerminalTarget | undefined => {
-    const tab = panel.tabs.find((t) => t.key === panel.shownTabOf(pane));
-    if (tab?.kind === "chat") {
-      const chat = panel.chatOf(tab);
-      if (chat?.worktree_path) return { cwd: chat.worktree_path, label: baseName(chat.worktree_path), projectId: chat.project_id };
-      const main = targets.find((t) => t.projectId === (chat?.project_id ?? tab.projectId));
-      if (main) return main;
-    }
-    return targets.length === 1 ? targets[0] : undefined;
   };
 
   /** ターミナルを開く（新しいタブ・外のターミナル）。場所が決まらなければ、開く場所を選ぶメニューを at に出す */
   const openTerminalIn = (paneId: string, mode: "tab" | "external", at: Placement, app?: ExternalTerminalId, icon = false) => {
-    const pane = findPane(panel.layout, paneId);
-    const target = pane && terminalTargetOf(pane);
+    const shown = shownTab(paneId);
+    const target = terminalTargetOf(shown, panel.chatOf(shown), targets);
     if (!target) return picker.openAt(at, { mode, app, icon });
     if (mode === "tab") panel.openTerminal(target);
     else terminal.open(target.cwd, app);
@@ -91,8 +80,7 @@ export function useOpenWithMenu(panel: PanelController) {
   /** ▾ のメニューの中身 */
   const choiceOf = (kind: OpenWithKind, paneId: string, at: Placement): OpenWithChoice => {
     if (kind === "browser") {
-      const tab = activeTab(paneId);
-      const url = tab?.kind === "browser" ? (tab.current ?? tab.url) : undefined;
+      const url = browserPageOf(shownTab(paneId));
       return {
         icon: Globe,
         title: "ブラウザの開き方",
