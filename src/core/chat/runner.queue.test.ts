@@ -1,0 +1,130 @@
+// 実行の受付（Runner）のテスト: 作業中に送った指示の待ちの列（終わったら順に送る・止めた・失敗した・アプリを終える・「いま」と重なったとき）
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { NotFound } from "../http/errors.js";
+import { gatedScript, ScriptedProvider, type Script } from "../testing/fakeProvider.js";
+import { setupCore, tick, until } from "../testing/testCore.js";
+
+const setup = (script: Script) => setupCore(new ScriptedProvider(script));
+
+test("待ちの列: 作業中に送った指示は列に入り、終わったら順に送る", async () => {
+  const { gates, script } = gatedScript();
+  const { store, runner, provider, project, bus } = setup(script);
+  const published: number[] = [];
+  bus.subscribe((e) => e.type === "chat_live" && published.push(e.live.queue.messages.length));
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  assert.equal((await runner.queueMessage(chat.id, "2")).queued, true);
+  await runner.queueMessage(chat.id, "3");
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["2", "3"]);
+  // 並べ替え: 3 を先頭に
+  runner.moveQueued(chat.id, runner.live(chat.id).queue.messages[1].id, 0);
+  gates[0]();
+  await until(() => gates.length === 2);
+  assert.equal(provider.calls[1].prompt, "3");
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["2"]);
+  gates[1]();
+  await until(() => gates.length === 3);
+  gates[2]();
+  await until(() => store.chats.get(chat.id)?.status === "completed" && runner.live(chat.id).queue.messages.length === 0);
+  assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "3", "2"]);
+  assert.deepEqual(published, [1, 2, 2, 1, 0]);
+  // 作業中でなければすぐ送る
+  assert.deepEqual(await runner.queueMessage(chat.id, "4"), { queued: false, id: null });
+  await until(() => gates.length === 4);
+  gates[3]();
+});
+
+test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送る」は作業を止めない（伝えられなければ列の先頭に移す）", async () => {
+  const { gates, script } = gatedScript();
+  const { store, runner, provider, project } = setup(script);
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  await runner.queueMessage(chat.id, "2");
+  // 止めても、待ちの次の指示を送る
+  runner.cancel(chat.id);
+  await until(() => gates.length === 2);
+  assert.deepEqual(runner.live(chat.id).queue.messages, []);
+  // 作業中に「すぐ送る」→ 止めずに伝える。この偽のプロバイダーは発言を足せないので、列の先頭に移す（作業は止めない）
+  await runner.queueMessage(chat.id, "3");
+  await runner.queueMessage(chat.id, "4");
+  await runner.sendQueuedNow(chat.id, runner.live(chat.id).queue.messages[1].id);
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["4", "3"]);
+  assert.equal(gates.length, 2);
+  runner.removeQueued(chat.id, runner.live(chat.id).queue.messages[1].id);
+  // 列にない指示は 404
+  assert.throws(() => runner.removeQueued(chat.id, "nope"), NotFound);
+  await assert.rejects(runner.sendQueuedNow(chat.id, "nope"), NotFound);
+  // 終わったら、先頭に移した指示を送る
+  gates[1]();
+  await until(() => gates.length === 3);
+  assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "2", "4"]);
+  gates[2]();
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+});
+
+test("待ちの列: アプリを終えるときは送らない", async () => {
+  const { gates, script } = gatedScript();
+  const { runner, provider, project } = setup(script);
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  await runner.queueMessage(chat.id, "2");
+  runner.shutdown();
+  await until(() => !runner.isBusy(chat.id));
+  await tick();
+  assert.equal(provider.calls.length, 1);
+});
+
+test("送信待ちを送っている途中に「いま」で送っても、同じチャットを 2 つ同時に動かさず、どちらの指示も渡る", async () => {
+  let running = 0;
+  let maxRunning = 0;
+  const { store, runner, provider, project } = setup(async () => {
+    running++;
+    maxRunning = Math.max(maxRunning, running);
+    await tick();
+    running--;
+    return { status: "completed", sessionId: "s1" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "最初" });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  // 送信待ちの次の指示を送っている（送る準備の途中）ところへ、「いま」で送る
+  const results = await Promise.allSettled([runner.send(chat.id, "送信待ちの指示"), runner.tell(chat.id, "いまの指示")]);
+  assert.deepEqual(
+    results.map((r) => r.status),
+    ["fulfilled", "fulfilled"],
+  );
+  await until(() => !runner.isBusy(chat.id) && provider.calls.length === 3);
+  assert.equal(maxRunning, 1);
+  // どちらの指示も、別々の実行として Claude Code に渡っている
+  assert.match(provider.calls[1].prompt, /送信待ちの指示/);
+  assert.match(provider.calls[2].prompt, /いまの指示/);
+  assert.deepEqual(
+    store.events
+      .list(chat.id)
+      .filter((e) => e.type === "user")
+      .map((e) => (e.data as { text: string }).text),
+    ["最初", "送信待ちの指示", "いまの指示"],
+  );
+});
+
+test("作業が終わるのと同時に「いま」で送って待ちの列に入ったときも、取り残さずに送る", async () => {
+  let release: (() => void) | undefined;
+  let calls = 0;
+  const { store, runner, provider, project } = setup(async (_p, cb) => {
+    if (++calls > 1) return { status: "completed", sessionId: "s1" };
+    // 作業中に足せる口はあるが、返答を書き終えて閉じている（足せない）
+    cb.control?.({ tell: () => false, stopTask: async () => {} });
+    await new Promise<void>((r) => (release = r));
+    cb.control?.(null);
+    return { status: "completed", sessionId: "s1" };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "最初" });
+  await until(() => runner.isBusy(chat.id) && release !== undefined);
+  const told = runner.tell(chat.id, "いまの指示");
+  // 指示を組み立てている間に作業が終わる
+  release!();
+  assert.equal(await told, "queued");
+  await until(() => provider.calls.length === 2 && !runner.isBusy(chat.id));
+  assert.match(provider.calls[1].prompt, /いまの指示/);
+  assert.equal(store.chats.get(chat.id)?.status, "completed");
+});
