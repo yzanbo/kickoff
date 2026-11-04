@@ -68,8 +68,8 @@ export function useTabClusters(
   const terminalWorkplace = (cwd: string): ClusterOf => {
     for (const id of [...projectIds, ...terminalProjects]) {
       const p = projectsById.get(id);
-      if (p?.repo_path === cwd) return byWorkplace(id, { worktree_path: "", branch: "" });
-      if (worktrees(id)?.some((w) => !w.main && w.path === cwd)) return byWorkplace(id, { worktree_path: cwd, branch: "" });
+      if (p?.repo_path === cwd) return byWorkplace(id, { worktree_path: null, branch: null });
+      if (worktrees(id)?.some((w) => !w.main && w.path === cwd)) return byWorkplace(id, { worktree_path: cwd, branch: null });
     }
     return OTHER_CLUSTER;
   };
@@ -83,14 +83,14 @@ export function useTabClusters(
   const ofChat = (projectId: number, chat: Chat | undefined): ClusterOf => {
     if (chat?.archived_at) return archivedCluster(projectId);
     if (chat?.pinned) return pinnedCluster(projectId);
-    return grouping === "group" ? byGroup(projectId, chat?.group_id) : byWorkplace(projectId, chat ?? { worktree_path: "", branch: "" });
+    return grouping === "group" ? byGroup(projectId, chat?.group_id) : byWorkplace(projectId, chat ?? { worktree_path: null, branch: null });
   };
   const clusterOfChat = (chat: Chat): ClusterOf => ofChat(chat.project_id, chat);
   const clusterOf = (key: string): ClusterOf => {
     const t = panel.tabs.find((x) => x.key === key);
     if (!t || t.kind === "browser") return OTHER_CLUSTER;
     if (t.kind === "terminal") return grouping === "group" ? OTHER_CLUSTER : terminalWorkplace(t.cwd);
-    if (t.kind === "new") return grouping === "group" ? byGroup(t.projectId, t.group) : byWorkplace(t.projectId, { worktree_path: "", branch: "" });
+    if (t.kind === "new") return grouping === "group" ? byGroup(t.projectId, t.group) : byWorkplace(t.projectId, { worktree_path: null, branch: null });
     return ofChat(t.projectId, t.kind === "chat" ? chatOf(t.id, t.chat) : chatOf(t.chatId));
   };
   const order: ClusterSeed[] = projectIds.flatMap((id) => [

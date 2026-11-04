@@ -23,7 +23,7 @@ function parseBranch(line: string): { branch: string | null; upstream: string | 
 /** `git status --porcelain=v1 -z --branch` の出力を読む */
 export function parseGitStatus(raw: string): Extract<GitStatus, { repo: true }> {
   const records = raw.split("\0");
-  const status: Extract<GitStatus, { repo: true }> = { repo: true, branch: null, upstream: null, hasOrigin: false, ahead: 0, behind: 0, staged: [], unstaged: [], conflicts: [] };
+  const status: Extract<GitStatus, { repo: true }> = { repo: true, branch: null, upstream: null, has_origin: false, ahead: 0, behind: 0, staged: [], unstaged: [], conflicts: [] };
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
     if (!record) continue;
@@ -58,7 +58,7 @@ export async function gitStatus(repo: string): Promise<GitStatus> {
     gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"]),
     gitOutput(repo, ["remote"]),
   ]);
-  return { ...parseGitStatus(raw), hasOrigin: remotes.split("\n").includes("origin") };
+  return { ...parseGitStatus(raw), has_origin: remotes.split("\n").includes("origin") };
 }
 
 /** いまのブランチ名（ブランチから外れている・Git でないフォルダなら空） */

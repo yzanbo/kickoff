@@ -110,7 +110,7 @@ test("Git の変更の API（状態と、ファイルごとの差分）", async 
   execFileSync("git", ["init", "-q", "--bare", "-b", "main", remote]);
   git("remote", "add", "origin", remote);
   st = (await call("POST", `/api/projects/${project.id}/git/push`)).body;
-  assert.equal(st.hasOrigin, true);
+  assert.equal(st.has_origin, true);
   assert.equal(st.upstream, "origin/main");
   assert.equal(st.ahead, 0);
   assert.match(execFileSync("git", ["log", "--oneline", "-1"], { cwd: remote }).toString(), /b を直す/);
@@ -182,8 +182,8 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
 
   // 本体（指定なし）
   const main = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "本体で" })).body;
-  assert.equal(main.worktree_path, "");
-  await until(() => store.getChat(main.id)?.status === "completed");
+  assert.equal(main.worktree_path, null);
+  await until(() => store.chats.get(main.id)?.status === "completed");
   assert.equal(provider.lastCwd, repo);
 
   // 新しいワークツリー
@@ -191,7 +191,7 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(created.status, 201);
   const worktree = created.body.worktree_path;
   assert.ok(worktree.endsWith(path.join(`${path.basename(fs.realpathSync(repo))}-worktrees`, "feat-a")));
-  await until(() => store.getChat(created.body.id)?.status === "completed");
+  await until(() => store.chats.get(created.body.id)?.status === "completed");
   assert.equal(provider.lastCwd, worktree);
 
   // いまあるワークツリーを選ぶ・知らないフォルダは断る
@@ -212,11 +212,11 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(finished.status, 200);
   assert.equal(finished.body.length, 1);
   // そこで作業していたチャットは、本体に戻る。作業したブランチの名前は残す
-  assert.equal(store.getChat(created.body.id)?.worktree_path, "");
-  assert.equal(store.getChat(created.body.id)?.branch, "feat/a");
-  assert.equal(store.getChat(main.id)?.branch, "main");
+  assert.equal(store.chats.get(created.body.id)?.worktree_path, null);
+  assert.equal(store.chats.get(created.body.id)?.branch, "feat/a");
+  assert.equal(store.chats.get(main.id)?.branch, "main");
   // いまの作業を始めた時刻（作業中のチャットの経過時間に使う）
-  assert.ok(store.getChat(main.id)?.turn_started_at);
+  assert.ok(store.chats.get(main.id)?.turn_started_at);
   assert.equal(fs.existsSync(worktree), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/a"], { cwd: repo }).toString().trim(), "");
 
@@ -227,7 +227,7 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-m", "d"], { cwd: wt });
   fs.writeFileSync(path.join(wt, "e.txt"), "e\n");
   const info = await call("GET", `/api/projects/${project.id}/git/worktrees/info?path=${encodeURIComponent(wt)}`);
-  assert.deepEqual(info.body, { branch: "feat/d", changes: 1, unpushed: 0, onlyHere: 1, pushed: false, hasRemote: false });
+  assert.deepEqual(info.body, { branch: "feat/d", changes: 1, unpushed: 0, only_here: 1, pushed: false, has_remote: false });
   // 変更があると force なしでは消せない。force とブランチを消す指定で、フォルダもブランチも消える
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt })).status, 400);
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt, force: true, deleteBranch: true })).status, 200);
@@ -236,22 +236,22 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
 
   // エディタタブの履歴から消したときも、チャットは本体に戻る（ブランチの名前は残す）
   const other = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "別の作業", new_worktree_branch: "feat/b" })).body;
-  await until(() => store.getChat(other.id)?.status === "completed");
+  await until(() => store.chats.get(other.id)?.status === "completed");
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: other.worktree_path })).status, 200);
-  assert.equal(store.getChat(other.id)?.worktree_path, "");
-  assert.equal(store.getChat(other.id)?.branch, "feat/b");
+  assert.equal(store.chats.get(other.id)?.worktree_path, null);
+  assert.equal(store.chats.get(other.id)?.branch, "feat/b");
 
   // アプリの外でフォルダを消したワークツリー: 続きを送ると分かる文で失敗し、片付けると Git の記録を消してチャットは本体に戻る
   const gone = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "消える所", new_worktree_branch: "feat/c" })).body;
-  await until(() => store.getChat(gone.id)?.status === "completed");
+  await until(() => store.chats.get(gone.id)?.status === "completed");
   fs.rmSync(gone.worktree_path, { recursive: true, force: true });
   // フォルダが消えた作業場所の Git の操作は 404（「Git で管理されていません」と紛らわしく出さない）
   assert.equal((await call("GET", `/api/projects/${project.id}/git/status?worktree=${encodeURIComponent(gone.worktree_path)}`)).status, 404);
   assert.equal((await call("POST", `/api/chats/${gone.id}/messages`, { text: "続き" })).status, 200);
-  await until(() => store.getChat(gone.id)?.status === "failed");
-  assert.match(store.getChat(gone.id)?.error ?? "", /作業場所のフォルダが見つかりません/);
+  await until(() => store.chats.get(gone.id)?.status === "failed");
+  assert.match(store.chats.get(gone.id)?.error ?? "", /作業場所のフォルダが見つかりません/);
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: gone.worktree_path })).status, 200);
-  assert.equal(store.getChat(gone.id)?.worktree_path, "");
-  assert.equal(store.getChat(gone.id)?.branch, "feat/c");
+  assert.equal(store.chats.get(gone.id)?.worktree_path, null);
+  assert.equal(store.chats.get(gone.id)?.branch, "feat/c");
   fs.rmSync(path.dirname(worktree), { recursive: true, force: true });
 });

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Chat, ChatStatus } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
-import { BUSY_STATUSES } from "@/features/chat/chatStatus";
 import { useServerEvent } from "@/api/events";
 import { openChat, type Route } from "./router";
 
@@ -43,7 +42,7 @@ export function useChatNotifications({ enabled, projectName, route }: { enabled:
       titles.current.set(chat.id, chat.title);
       const prev = last.current.get(chat.id);
       last.current.set(chat.id, chat.status);
-      if (!prev || !BUSY_STATUSES.includes(prev) || BUSY_STATUSES.includes(chat.status)) return;
+      if (!prev || prev !== "running" || chat.status === "running") return;
       const project = state.current.projectName(chat.project_id);
       const name = chatTitle(chat.title);
       if (chat.status === "completed") notify(chat, `✓ 完了: ${name}`, `${project} ・ AI の作業が終わりました`);

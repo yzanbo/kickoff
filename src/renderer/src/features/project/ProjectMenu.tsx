@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
 import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 import { alertDialog, promptDialog } from "@/ui/dialogs";
 import { changeProject, confirmArchiveProject, confirmRestoreProject } from "./projectOrder";
 import { useProjects } from "@/app/projectsContext";
@@ -41,7 +41,7 @@ export interface ProjectMenuExtras {
  * 見出しのカードには、いつも使うもの（開閉・名前・状態ごとの数・＋）だけを常に出す。
  * open に右クリックのイベントを渡し、element を描く（メニューと編集のダイアログ）
  */
-export function useProjectMenu(projects: ProjectSummary[]) {
+export function useProjectMenu(projects: Project[]) {
   const [menu, setMenu] = useState<{ x: number; y: number; id: number; extras?: ProjectMenuExtras } | null>(null);
   const [editing, setEditing] = useState<{ id: number; section?: ProjectSettingsSection } | null>(null);
   // 編集中に保存した内容も出るよう、いまのプロジェクトを引き直す
@@ -49,7 +49,7 @@ export function useProjectMenu(projects: ProjectSummary[]) {
   const menuProject = menu && find(menu.id);
   const editingProject = editing && find(editing.id);
   return {
-    open: (e: MouseEvent, project: ProjectSummary, extras?: ProjectMenuExtras) => {
+    open: (e: MouseEvent, project: Project, extras?: ProjectMenuExtras) => {
       e.preventDefault();
       setMenu({ x: e.clientX, y: e.clientY, id: project.id, extras });
     },
@@ -75,7 +75,7 @@ export function useProjectMenu(projects: ProjectSummary[]) {
 const MENU_HEIGHT = 400;
 
 /** 新しいタグの名前を聞いて付ける（やめたら何もしない。上限を超えるならお知らせ） */
-async function addNewTag(project: ProjectSummary) {
+async function addNewTag(project: Project) {
   if (project.tags.length >= MAX_TAGS) return alertDialog("タグを足せません", `1 つのプロジェクトに付けられるタグは ${MAX_TAGS} 個までです。`);
   const name = await promptDialog({
     title: `「${project.name}」に新しいタグを付ける`,
@@ -98,7 +98,7 @@ function ProjectMenu({
 }: {
   x: number;
   y: number;
-  project: ProjectSummary;
+  project: Project;
   extras?: ProjectMenuExtras;
   onEdit: (section?: ProjectSettingsSection) => void;
   onClose: () => void;
@@ -108,8 +108,8 @@ function ProjectMenu({
   const tags = collectTags(projects);
   const at = clampToViewport(x, y, 260, MENU_HEIGHT + Math.min(tags.length, 8) * 34);
   /** 押したらメニューを閉じてから行う */
-  const item = (key: string, icon: ReactNode, label: string, chat: () => void, opts: { danger?: boolean } = {}) => (
-    <MenuItem key={key} danger={opts.danger} onSelect={chat}>
+  const item = (key: string, icon: ReactNode, label: string, run: () => void, opts: { danger?: boolean } = {}) => (
+    <MenuItem key={key} danger={opts.danger} onSelect={run}>
       {icon} {label}
     </MenuItem>
   );

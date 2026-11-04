@@ -4,12 +4,12 @@ import type { AgentState, BoardColumn, Chat } from "@shared/types";
 /**
  * チャットのエージェントの状態優先順位:
  * 回答待ち → エラー → 作業中 → 未読 → 既読。
- * 失敗したものも、見るまで（attention がある間）はエラーとして目立たせ、見たら既読にする
+ * 失敗したものも、見るまで（unread がある間）はエラーとして目立たせ、見たら既読にする
  */
 export function agentStateOf(chat: Chat, hasPendingApproval: boolean): AgentState {
-  if (hasPendingApproval || chat.status === "waiting") return "needs_input";
+  if (hasPendingApproval) return "needs_input";
   if (chat.status === "failed" && chat.unread) return "failed";
-  if (chat.status === "running" || chat.status === "queued") return "running";
+  if (chat.status === "running") return "running";
   if (chat.unread) return "unread";
   return "read";
 }

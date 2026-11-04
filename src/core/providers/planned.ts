@@ -25,7 +25,7 @@ export class PlannedProvider implements AgentProvider {
       label: this.label,
       implemented: false,
       installed: version !== null,
-      loggedIn: false,
+      logged_in: false,
       detail: version
         ? `${this.command} CLI（${version}）はインストール済み。Kickoff からの利用は今後対応予定です`
         : `${this.command} CLI は見つかりませんでした。Kickoff からの利用は今後対応予定です`,

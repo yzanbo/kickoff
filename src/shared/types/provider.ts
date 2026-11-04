@@ -1,5 +1,5 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { ProviderId } from "@shared/types/settings";
+import type { ProviderId } from "./settings";
 
 // 外部 CLI（Claude Code など）の状態・コマンド・使用枠
 export interface ProviderStatus {
@@ -7,7 +7,7 @@ export interface ProviderStatus {
   label: string;
   implemented: boolean;
   installed: boolean;
-  loggedIn: boolean;
+  logged_in: boolean;
   account?: string;
   plan?: string;
   detail: string;
@@ -18,7 +18,7 @@ export interface SlashCommandOption {
   name: string;
   description: string;
   /** 引数のヒント（"<file>" など。なければ空） */
-  argumentHint: string;
+  argument_hint: string;
 }
 
 /** サブスクリプションの使用枠（5 時間・週など）の 1 区分 */
@@ -77,9 +77,9 @@ export interface PlanUsage {
 
 /** ファイルを戻した結果（canRewind: 戻せる・戻せたか。filesChanged: 変わるファイル。insertions / deletions: 行の増減） */
 export interface FileRewindResult {
-  canRewind: boolean;
+  can_rewind: boolean;
   error?: string;
-  filesChanged?: string[];
+  files_changed?: string[];
   insertions?: number;
   deletions?: number;
 }

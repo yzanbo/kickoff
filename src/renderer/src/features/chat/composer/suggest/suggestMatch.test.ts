@@ -14,7 +14,7 @@ test("/ は文の先頭だけ、@ はどこでも（カーソルの前で打っ�
 });
 
 test("コマンドは名前の始まり → 名前に含む → 説明に含むの順", () => {
-  const c = (name: string, description = "") => ({ name, description, argumentHint: "" });
+  const c = (name: string, description = "") => ({ name, description, argument_hint: "" });
   const list = [c("pr-comments", "PR のコメント"), c("review", "コードを見直す"), c("compact"), c("init", "review の準備")];
   assert.deepEqual(matchCommands(list, "re").map((x) => x.name), ["review", "init"]);
   assert.deepEqual(matchCommands(list, "").map((x) => x.name), ["compact", "init", "pr-comments", "review"]);

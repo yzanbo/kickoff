@@ -14,7 +14,7 @@ subscribeServerEvent((e) => {
       activities.set(e.event.chat_id, text);
       notify();
     }
-  } else if (e.type === "chat" && e.chat.status !== "running" && e.chat.status !== "queued" && activities.delete(e.chat.id)) {
+  } else if (e.type === "chat" && e.chat.status !== "running" && activities.delete(e.chat.id)) {
     notify();
   }
 });

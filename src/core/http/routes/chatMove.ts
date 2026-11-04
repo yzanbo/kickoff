@@ -14,6 +14,6 @@ export function chatMoveRoutes(app: Hono, { store, runner }: ServerDeps) {
     const project = requireProject(store, String(project_id));
     if (project.id === chat.project_id) return c.json(chat);
     if (runner.isBusy(chat.id)) throw new HttpError(409, "作業中のチャットは移動できません。中断してから行ってください");
-    return c.json(store.moveChat(chat.id, project.id));
+    return c.json(store.chats.move(chat.id, project.id));
   });
 }

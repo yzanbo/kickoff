@@ -17,19 +17,19 @@ export class HttpError extends Error {
 // URL の id からプロジェクト・グループ・チャットを取り出す（見つからなければ 404）
 
 export function requireProject(store: Store, idParam: string) {
-  const project = store.getProject(Number(idParam));
+  const project = store.projects.get(Number(idParam));
   if (!project) throw new HttpError(404, "プロジェクトが見つかりません");
   return project;
 }
 
 export function requireGroup(store: Store, idParam: string) {
-  const group = store.getGroup(Number(idParam));
+  const group = store.groups.get(Number(idParam));
   if (!group) throw new HttpError(404, "グループが見つかりません");
   return group;
 }
 
 export function requireChat(store: Store, idParam: string) {
-  const chat = store.getChat(Number(idParam));
+  const chat = store.chats.get(Number(idParam));
   if (!chat) throw new HttpError(404, "実行が見つかりません");
   return chat;
 }

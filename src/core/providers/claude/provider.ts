@@ -34,7 +34,7 @@ export class ClaudeProvider implements AgentProvider {
   async status(): Promise<ProviderStatus> {
     const base = { id: this.id, label: this.label, implemented: true };
     if (!this.executable) {
-      return { ...base, installed: false, loggedIn: false, detail: "Claude Code のバイナリが見つかりません" };
+      return { ...base, installed: false, logged_in: false, detail: "Claude Code のバイナリが見つかりません" };
     }
     try {
       const { stdout } = await execFileAsync(this.executable, ["auth", "status"], { env: agentEnv(), timeout: 20_000 });
@@ -44,7 +44,7 @@ export class ClaudeProvider implements AgentProvider {
       return {
         ...base,
         installed: true,
-        loggedIn: Boolean(info.loggedIn),
+        logged_in: Boolean(info.loggedIn),
         account: info.email,
         plan,
         detail: info.loggedIn
@@ -52,7 +52,7 @@ export class ClaudeProvider implements AgentProvider {
           : "未ログインです。ターミナルで `claude` を起動してログインしてください",
       };
     } catch (e) {
-      return { ...base, installed: true, loggedIn: false, detail: `ログイン状態を取得できませんでした: ${errorMessage(e)}` };
+      return { ...base, installed: true, logged_in: false, detail: `ログイン状態を取得できませんでした: ${errorMessage(e)}` };
     }
   }
 
@@ -75,12 +75,12 @@ export class ClaudeProvider implements AgentProvider {
         .filter((m) => m.value !== "default")
         .map((m) => ({
           value: m.value,
-          ...(m.resolvedModel ? { resolvedModel: m.resolvedModel } : {}),
+          ...(m.resolvedModel ? { resolved_model: m.resolvedModel } : {}),
           label: m.displayName,
           description: m.description,
           efforts: (m.supportedEffortLevels ?? []).filter((e): e is EffortLevel => EFFORT_LEVELS.includes(e)),
-          supportsAutoMode: Boolean(m.supportsAutoMode),
-          supportsFastMode: Boolean(m.supportsFastMode),
+          supports_auto_mode: Boolean(m.supportsAutoMode),
+          supports_fast_mode: Boolean(m.supportsFastMode),
         }));
     });
   }
@@ -95,7 +95,7 @@ export class ClaudeProvider implements AgentProvider {
         (await q.supportedCommands())
           // __ で始まるものは Claude Code の内部用
           .filter((c) => !TERMINAL_ONLY_COMMANDS.has(c.name) && !c.name.startsWith("_"))
-          .map((c) => ({ name: c.name, description: c.description, argumentHint: c.argumentHint ?? "" }))
+          .map((c) => ({ name: c.name, description: c.description, argument_hint: c.argumentHint ?? "" }))
           .sort((a, b) => a.name.localeCompare(b.name)),
       { cwd, settingSources: ["user", "project", "local"] },
     );
@@ -269,7 +269,14 @@ export class ClaudeProvider implements AgentProvider {
 
   /** ファイルを、会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに量だけ）。発言は送らずにセッションを開いて頼む */
   async rewindFiles(sessionId: string, messageId: string, cwd: string, dryRun: boolean): Promise<FileRewindResult> {
-    return this.withIdleSession((q) => q.rewindFiles(messageId, { dryRun }), { cwd, resume: sessionId, enableFileCheckpointing: true });
+    const result = await this.withIdleSession((q) => q.rewindFiles(messageId, { dryRun }), { cwd, resume: sessionId, enableFileCheckpointing: true });
+    return {
+      can_rewind: result.canRewind,
+      ...(result.error ? { error: result.error } : {}),
+      ...(result.filesChanged ? { files_changed: result.filesChanged } : {}),
+      ...(result.insertions !== undefined ? { insertions: result.insertions } : {}),
+      ...(result.deletions !== undefined ? { deletions: result.deletions } : {}),
+    };
   }
 
   /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */

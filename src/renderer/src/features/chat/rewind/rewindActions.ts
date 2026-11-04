@@ -9,7 +9,7 @@ import { reportFailure } from "@/features/chat/chatActions";
  * 足した行を戻すと消えるので、行の増減はターンの変更カードとは逆になる）
  */
 function describe(r: FileRewindResult): string {
-  const names = (r.filesChanged ?? []).map((p) => p.slice(p.lastIndexOf("/") + 1));
+  const names = (r.files_changed ?? []).map((p) => p.slice(p.lastIndexOf("/") + 1));
   const list = names.length > 8 ? `${names.slice(0, 8).join("、")} ほか ${names.length - 8} 個` : names.join("、");
   return `${names.length} 個のファイル（${list}。戻すと +${r.insertions ?? 0} −${r.deletions ?? 0} 行）`;
 }
@@ -29,7 +29,7 @@ async function preview(chatId: number, eventId: number): Promise<FileRewindResul
 export async function confirmRewindSend(chatId: number, eventId: number): Promise<{ restoreFiles: boolean } | null> {
   const files = await preview(chatId, eventId);
   const title = "この発言から書き直して送り直しますか？";
-  if (files && (files.filesChanged?.length ?? 0) > 0) {
+  if (files && (files.files_changed?.length ?? 0) > 0) {
     const choice = await choiceDialog({
       title,
       message: `この発言から後ろのやり取りは消えます。この発言のあとに AI が変えた ${describe(files)}も、この発言を送る前の状態に戻せます。${NOT_RESTORED}`,
@@ -59,7 +59,7 @@ export async function restoreFilesBefore(chatId: number, eventId: number): Promi
   } catch (e) {
     return fail(e);
   }
-  if ((files.filesChanged?.length ?? 0) === 0) {
+  if ((files.files_changed?.length ?? 0) === 0) {
     await alertDialog("戻すファイルはありません", "この発言を送ったあとに、AI が編集のツールで変えたファイルはありません。");
     return;
   }

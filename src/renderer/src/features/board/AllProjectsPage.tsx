@@ -25,7 +25,7 @@ export function AllProjectsPage({ onNewProject }: Props) {
   const tagFilter = useProjectTagFilter();
   const all = sidebarOrder(projects);
   const shown = all.filter(tagFilter.matches);
-  const notReady = (!providers.loading && !claude?.loggedIn) || (!github.loading && !github.data?.loggedIn);
+  const notReady = (!providers.loading && !claude?.logged_in) || (!github.loading && !github.data?.logged_in);
   // 状態ごとの数: すぐ下の全プロジェクトのカンバンと同じチャット（しまったプロジェクトの分は除く）を、プロジェクトの画面・サイドバーと同じ数え方で
   const { chats } = useBoardChats(undefined, false, () => {});
   const shownChats = chats.filter((r) => shown.some((p) => p.id === r.project_id));
@@ -46,7 +46,7 @@ export function AllProjectsPage({ onNewProject }: Props) {
       {notReady && (
         <section className="section">
           <div className="card-grid">
-            <StatusCard title="Claude Code" ok={providers.loading ? undefined : Boolean(claude?.loggedIn)} detail={providers.error ?? claude?.detail ?? "確認中…"} />
+            <StatusCard title="Claude Code" ok={providers.loading ? undefined : Boolean(claude?.logged_in)} detail={providers.error ?? claude?.detail ?? "確認中…"} />
             <GitHubStatusCard github={github} />
           </div>
         </section>

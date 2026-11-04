@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isNetworkError } from "@shared/chat/networkErrors";
+import { isNetworkError } from "./networkErrors";
 
 test("isNetworkError: 通信の切断・名前の引けない・時間切れを見分け、ほかの失敗は通信のせいにしない", () => {
   for (const message of [

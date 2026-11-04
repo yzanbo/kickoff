@@ -13,7 +13,7 @@ export type SaveState = ReturnType<typeof useSave>;
 export function useSave() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<ResultText>();
-  const chat = async (action: () => Promise<unknown>): Promise<boolean> => {
+  const run = async (action: () => Promise<unknown>): Promise<boolean> => {
     setSaving(true);
     setMessage(undefined);
     try {
@@ -27,5 +27,5 @@ export function useSave() {
       setSaving(false);
     }
   };
-  return { saving, message, error: message?.kind === "error" ? message.text : undefined, chat };
+  return { saving, message, error: message?.kind === "error" ? message.text : undefined, run };
 }

@@ -27,11 +27,11 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
     void loadModels().then(setModels);
     if (!initial) {
       void Promise.all([api.settings(), projectId === undefined ? undefined : api.project(projectId)]).then(([s, project]) => {
-        const d = resolveChatOptions(s, project?.defaults);
+        const d = resolveChatOptions(s, project?.chat_defaults);
         setModel((m) => m ?? d.model);
         setEffort(d.effort);
-        setPermission(d.permission);
-        setFastMode(d.fastMode);
+        setPermission(d.permission_mode);
+        setFastMode(d.fast_mode);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -42,12 +42,12 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   useEffect(() => {
     if (!current) return;
     if (effort && !current.efforts.includes(effort)) setEffort(null);
-    if (permission === "auto" && !current.supportsAutoMode) setPermission("default");
-    if (fastMode && !current.supportsFastMode) setFastMode(false);
+    if (permission === "auto" && !current.supports_auto_mode) setPermission("default");
+    if (fastMode && !current.supports_fast_mode) setFastMode(false);
   }, [current, effort, permission, fastMode]);
 
   // 深さを指定しないとき（既定）に、実際に使われる深さ（Claude Code の設定から。モデルを変えたら取り直す）
-  const modelId = current?.resolvedModel ?? model;
+  const modelId = current?.resolved_model ?? model;
   const [effortDefault, setEffortDefault] = useState<EffortDefault>();
   useEffect(() => {
     if (projectId === undefined) return;
@@ -122,7 +122,7 @@ const PERMISSION_HINTS: Partial<Record<PermissionMode, string>> = {
 export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; disabled?: boolean }) {
   const { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode, effortDefault } = state;
   const efforts = effortsFor(current);
-  const fastSupported = !current || current.supportsFastMode;
+  const fastSupported = !current || current.supports_fast_mode;
 
   return (
     <div className="chat-options">

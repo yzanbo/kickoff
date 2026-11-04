@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { searchPattern, splitMatches } from "./searchMatch";
 
-const q = (query: string, opts: Partial<{ caseSensitive: boolean; wholeWord: boolean; regex: boolean }> = {}) =>
-  searchPattern({ query, caseSensitive: false, wholeWord: false, regex: false, ...opts });
+const q = (query: string, opts: Partial<{ case_sensitive: boolean; whole_word: boolean; regex: boolean }> = {}) =>
+  searchPattern({ query, case_sensitive: false, whole_word: false, regex: false, ...opts });
 
 test("検索の指定（大文字と小文字・単語単位・正規表現）どおりに、見つかった部分を分ける", () => {
   assert.deepEqual(splitMatches("Hello hello", q("hello")), [
@@ -11,11 +11,11 @@ test("検索の指定（大文字と小文字・単語単位・正規表現）�
     { text: " ", match: false },
     { text: "hello", match: true },
   ]);
-  assert.deepEqual(splitMatches("Hello hello", q("hello", { caseSensitive: true })), [
+  assert.deepEqual(splitMatches("Hello hello", q("hello", { case_sensitive: true })), [
     { text: "Hello ", match: false },
     { text: "hello", match: true },
   ]);
-  assert.deepEqual(splitMatches("shell ell", q("ell", { wholeWord: true })), [
+  assert.deepEqual(splitMatches("shell ell", q("ell", { whole_word: true })), [
     { text: "shell ", match: false },
     { text: "ell", match: true },
   ]);

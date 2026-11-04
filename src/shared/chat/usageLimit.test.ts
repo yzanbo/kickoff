@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { PlanUsage, UsageWindow } from "@shared/types";
-import { exhaustedResetOf, isUsageLimitError, resetTimeOf } from "@shared/chat/usageLimit";
+import { exhaustedResetOf, isUsageLimitError, resetTimeOf } from "./usageLimit";
 
 test("使用枠の上限: 失敗の文の見分けと、枠が戻る時刻（秒・ミリ秒）", () => {
   assert.equal(isUsageLimitError("Claude AI usage limit reached|1762240800"), true);

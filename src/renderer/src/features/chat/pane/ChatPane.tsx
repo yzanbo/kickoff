@@ -6,7 +6,6 @@ import { useSharedFlag } from "@/hooks/useStoredState";
 import { chatDraftKey, STICKY_PROMPT_HIDDEN_KEY } from "@/lib/storageKeys";
 import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
-import { BUSY_STATUSES } from "@/features/chat/chatStatus";
 import { Composer } from "@/features/chat/composer/Composer";
 import { QueueModeToggle, queueModeTexts, useQueueMode } from "@/features/chat/composer/QueueModeToggle";
 import type { ComposerFill } from "@/features/chat/messages/quoteComment";
@@ -117,7 +116,7 @@ function ChatView({
     chat.project_id,
     chat.worktree_path || undefined,
   );
-  const busy = BUSY_STATUSES.includes(chat.status);
+  const busy = chat.status === "running";
   const subagents = useSubagents(chat.id, events, busy, background);
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;

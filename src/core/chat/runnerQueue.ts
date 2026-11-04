@@ -1,7 +1,7 @@
 import { errorMessage } from "@shared/errors";
 import type { FollowupQueue } from "./queue.js";
 import type { QueueEditHolds } from "@shared/chat/queueEditHolds";
-import type { Attachment, QueuedMessage, Chat, ChatOptions } from "@shared/types";
+import type { Attachment, QueuedMessage, Chat, ChatOptionsPatch } from "@shared/types";
 
 /**
  * Runner の、作業中のチャットに送った次の指示の待ちの列（queue.ts）を扱う窓口。列そのものの出し入れは FollowupQueue で、
@@ -17,8 +17,8 @@ export abstract class RunnerQueue {
   /** 待ちの列の様子（書き直しを待っているかも）が変わったので、画面に配り直す */
   protected abstract queueChanged(chatId: number): void;
   abstract isBusy(chatId: number): boolean;
-  abstract send(chatId: number, text: string, options?: ChatOptions, attachments?: Attachment[]): Promise<Chat>;
-  abstract tell(chatId: number, text: string, options?: ChatOptions, attachments?: Attachment[], opts?: { front?: boolean }): Promise<"told" | "sent" | "queued">;
+  abstract send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[]): Promise<Chat>;
+  abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: { front?: boolean }): Promise<"told" | "sent" | "queued">;
   /** チャットがあるか */
   protected abstract hasChat(chatId: number): boolean;
   /** 送れなかった理由をチャットに残す */
@@ -36,7 +36,7 @@ export abstract class RunnerQueue {
   async queueMessage(
     chatId: number,
     text: string,
-    options: ChatOptions = {},
+    options: ChatOptionsPatch = {},
     attachments: Attachment[] = [],
     { hold = false }: { hold?: boolean } = {},
   ): Promise<{ queued: boolean; id?: string }> {

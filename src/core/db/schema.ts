@@ -7,8 +7,9 @@ export const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 export const APPLICATION_ID = 0x4b49434b;
 
 /**
- * v1 のスキーマ（すべて STRICT。真偽値は 0 / 1、JSON の列は json_valid で確かめる）。
- * 会話の記録のうち、自分の発言と AI の返答（type が user / text）の文は生成列 text に出し、
+ * v1 のスキーマ（docs/architecture.md の「3. スキーマ」）。すべて STRICT。真偽値は 0 / 1、JSON の列は json_valid と json_type で形を確かめる。
+ * 値の一覧（状態など）は CHECK にしない（増やすたびに表を作り直すことになるため）。
+ * 会話の記録のうち、自分の発言とメインの AI の返答（type が user / サブエージェントでない text）の文は生成列 text に出し、
  * 全文検索の索引 chat_event_search（trigram で部分一致）はビュー chat_event_texts を中身にして、トリガーで追従させる
  */
 export const SCHEMA_V1 = `
@@ -16,50 +17,57 @@ CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL CHECK (json_valid(value))
 ) STRICT;
+CREATE TABLE secrets (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL CHECK (value <> '')
+) STRICT;
+CREATE TABLE meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+) STRICT;
+INSERT INTO meta (key, value) VALUES ('database_id', lower(hex(randomblob(16))));
 CREATE TABLE projects (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
+  name TEXT NOT NULL CHECK (name <> ''),
   description TEXT NOT NULL DEFAULT '',
-  repo_path TEXT NOT NULL,
-  provider TEXT NOT NULL DEFAULT 'claude',
+  repo_path TEXT NOT NULL UNIQUE,
+  provider TEXT NOT NULL,
   hue INTEGER NOT NULL CHECK (hue BETWEEN 0 AND 359),
-  position INTEGER NOT NULL DEFAULT 0,
+  position INTEGER NOT NULL,
   pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
+  tags TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags) AND json_type(tags) = 'array'),
+  chat_defaults TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(chat_defaults) AND json_type(chat_defaults) = 'object'),
+  reference_paths TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(reference_paths) AND json_type(reference_paths) = 'array'),
   archived_at TEXT,
-  defaults TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(defaults)),
-  reference_paths TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(reference_paths)),
-  tags TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags)),
-  created_at TEXT NOT NULL DEFAULT (${NOW}),
-  active_at TEXT NOT NULL DEFAULT (${NOW})
+  created_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
 CREATE TABLE chat_groups (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  position INTEGER NOT NULL DEFAULT 0,
+  name TEXT NOT NULL CHECK (name <> ''),
   hue INTEGER NOT NULL CHECK (hue BETWEEN 0 AND 359),
+  position INTEGER NOT NULL,
   created_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
-CREATE INDEX idx_chat_groups_project ON chat_groups(project_id);
+CREATE INDEX idx_chat_groups_project ON chat_groups(project_id, position);
 CREATE TABLE chats (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   group_id INTEGER REFERENCES chat_groups(id) ON DELETE SET NULL,
   title TEXT NOT NULL DEFAULT '',
   provider TEXT NOT NULL,
-  worktree_path TEXT NOT NULL DEFAULT '',
-  branch TEXT NOT NULL DEFAULT '',
   model TEXT,
   effort TEXT,
   permission_mode TEXT NOT NULL,
   fast_mode INTEGER NOT NULL DEFAULT 0 CHECK (fast_mode IN (0, 1)),
+  worktree_path TEXT CHECK (worktree_path <> ''),
+  branch TEXT CHECK (branch <> ''),
   status TEXT NOT NULL,
+  error TEXT,
   session_id TEXT,
   turn_started_at TEXT,
-  result TEXT,
-  error TEXT,
   cost_usd REAL NOT NULL DEFAULT 0 CHECK (cost_usd >= 0),
-  num_turns INTEGER NOT NULL DEFAULT 0,
+  num_turns INTEGER NOT NULL DEFAULT 0 CHECK (num_turns >= 0),
   context_tokens INTEGER,
   context_window INTEGER,
   unread INTEGER NOT NULL DEFAULT 0 CHECK (unread IN (0, 1)),
@@ -68,19 +76,31 @@ CREATE TABLE chats (
   created_at TEXT NOT NULL DEFAULT (${NOW}),
   active_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
-CREATE INDEX idx_chats_project ON chats(project_id, archived_at);
-CREATE INDEX idx_chats_worktree ON chats(project_id, worktree_path) WHERE worktree_path <> '';
+CREATE INDEX idx_chats_project ON chats(project_id, archived_at, active_at);
+CREATE INDEX idx_chats_worktree ON chats(project_id, worktree_path) WHERE worktree_path IS NOT NULL;
 CREATE INDEX idx_chats_group ON chats(group_id) WHERE group_id IS NOT NULL;
-CREATE INDEX idx_chats_active ON chats(status) WHERE status IN ('queued', 'running', 'waiting');
+CREATE INDEX idx_chats_running ON chats(status) WHERE status = 'running';
+CREATE TRIGGER chats_group_project_insert BEFORE INSERT ON chats
+WHEN new.group_id IS NOT NULL AND (SELECT project_id FROM chat_groups WHERE id = new.group_id) IS NOT new.project_id
+BEGIN
+  SELECT RAISE(ABORT, 'chat group belongs to another project');
+END;
+CREATE TRIGGER chats_group_project_update BEFORE UPDATE OF group_id, project_id ON chats
+WHEN new.group_id IS NOT NULL AND (SELECT project_id FROM chat_groups WHERE id = new.group_id) IS NOT new.project_id
+BEGIN
+  SELECT RAISE(ABORT, 'chat group belongs to another project');
+END;
 CREATE TABLE chat_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
-  data TEXT NOT NULL CHECK (json_valid(data)),
+  data TEXT NOT NULL CHECK (json_valid(data) AND json_type(data) = 'object'),
   created_at TEXT NOT NULL DEFAULT (${NOW}),
-  text TEXT GENERATED ALWAYS AS (CASE WHEN type IN ('user', 'text') THEN json_extract(data, '$.text') END) VIRTUAL
+  text TEXT GENERATED ALWAYS AS (
+    CASE WHEN type = 'user' OR (type = 'text' AND json_extract(data, '$.parent') IS NULL) THEN json_extract(data, '$.text') END
+  ) VIRTUAL
 ) STRICT;
-CREATE INDEX idx_chat_events_chat ON chat_events(chat_id);
+CREATE INDEX idx_chat_events_chat ON chat_events(chat_id, id);
 CREATE VIEW chat_event_texts AS SELECT id, text FROM chat_events WHERE text IS NOT NULL;
 CREATE VIRTUAL TABLE chat_event_search USING fts5(text, content = 'chat_event_texts', content_rowid = 'id', tokenize = 'trigram');
 CREATE TRIGGER chat_events_search_insert AFTER INSERT ON chat_events WHEN new.text IS NOT NULL BEGIN
@@ -95,9 +115,9 @@ CREATE TRIGGER chat_events_search_update AFTER UPDATE OF type, data ON chat_even
 END;
 CREATE TABLE chat_queues (
   chat_id INTEGER PRIMARY KEY REFERENCES chats(id) ON DELETE CASCADE,
-  messages TEXT NOT NULL CHECK (json_valid(messages)),
-  paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1)),
-  stop_after TEXT
+  messages TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(messages) AND json_type(messages) = 'array'),
+  stops TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(stops) AND json_type(stops) = 'array'),
+  paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1))
 ) STRICT;
 `;
 

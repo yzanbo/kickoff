@@ -121,7 +121,7 @@ export class ChatReconnect {
 
   private onNetworkFailure(chatId: number) {
     const { store, followups } = this.deps;
-    const chat = store.getChat(chatId);
+    const chat = store.chats.get(chatId);
     if (!chat) return;
     // 送信待ちを自分で止めていたら、自動では何も送らない（移動の前などに止めている）
     const pausedByUser = followups.isPaused(chatId) && !this.heldQueues.has(chatId);
@@ -131,8 +131,8 @@ export class ChatReconnect {
       this.heldQueues.add(chatId);
     }
     const agents = this.agentsNote(chatId);
-    if (pausedByUser || !store.getSettings().autoResumeOnReconnect) {
-      store.addEvent(chatId, {
+    if (pausedByUser || !store.settings.get().auto_resume_on_reconnect) {
+      store.events.add(chatId, {
         type: "notice",
         message: `通信が切れたため止まりました。つながってからメッセージを送ると、続きから再開できます。${agents ? `${agents}は、サブエージェントの一覧の「再開」で続きから再開できます。` : ""}`,
       });
@@ -143,7 +143,7 @@ export class ChatReconnect {
       this.ask(chatId, chat.project_id, attempts);
       return;
     }
-    store.addEvent(chatId, {
+    store.events.add(chatId, {
       type: "notice",
       message:
         (attempts === 0
@@ -159,14 +159,14 @@ export class ChatReconnect {
   private async resume(chatId: number, { count = true }: { count?: boolean } = {}) {
     const { store, isBusy, send } = this.deps;
     this.publish(chatId);
-    const chat = store.getChat(chatId);
+    const chat = store.chats.get(chatId);
     if (!chat || chat.status !== "failed" || isBusy(chatId)) return;
     if (count) this.attempts.set(chatId, (this.attempts.get(chatId) ?? 0) + 1);
     this.resuming.add(chatId);
     try {
       await send(chatId, resumePrompt(this.agentsToResume(chatId)));
     } catch (e) {
-      store.addEvent(chatId, { type: "error", message: `自動で再開できませんでした: ${errorMessage(e)}` });
+      store.events.add(chatId, { type: "error", message: `自動で再開できませんでした: ${errorMessage(e)}` });
     } finally {
       this.resuming.delete(chatId);
     }
@@ -213,7 +213,7 @@ export class ChatReconnect {
   private agentsToResume(chatId: number): StoppedAgent[] {
     const known = this.stoppedAgents.get(chatId);
     if (!known) return [];
-    const halted = new Set(networkStoppedSubagents(this.deps.store.listEvents(chatId), 0).map((s) => s.agentId));
+    const halted = new Set(networkStoppedSubagents(this.deps.store.events.list(chatId), 0).map((s) => s.agentId));
     return [...known].filter(([agentId]) => halted.has(agentId)).map(([agentId, description]) => ({ agentId, description }));
   }
 
@@ -224,7 +224,7 @@ export class ChatReconnect {
   }
 
   private publish(chatId: number) {
-    const chat = this.deps.store.getChat(chatId);
+    const chat = this.deps.store.chats.get(chatId);
     if (chat) this.deps.bus?.publish({ type: "chat_reconnect", project_id: chat.project_id, chat_id: chatId, reconnect: this.state(chatId) });
   }
 }

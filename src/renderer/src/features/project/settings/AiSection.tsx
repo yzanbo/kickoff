@@ -60,14 +60,14 @@ export function ProviderCard({
   onSelect: () => void;
 }) {
   const meta = PROVIDER_META[id];
-  const ready = status?.implemented && status.installed && status.loggedIn;
+  const ready = status?.implemented && status.installed && status.logged_in;
   const state: { tone: StatusTone; text: string } = !status
     ? { tone: "pending", text: "確認中…" }
     : !status.implemented
       ? { tone: "na", text: status.installed ? "CLI はインストール済み" : "CLI 未インストール" }
       : !status.installed
         ? { tone: "ng", text: "CLI が見つかりません" }
-        : status.loggedIn
+        : status.logged_in
           ? { tone: "ok", text: "ログイン済み" }
           : { tone: "ng", text: `未ログイン（${meta.cli} でログイン）` };
   return (

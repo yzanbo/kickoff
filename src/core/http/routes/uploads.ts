@@ -10,7 +10,7 @@ export function uploadRoutes(app: Hono, { uploads, store }: ServerDeps) {
   app.post("/api/chats/:id/transcript", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
     const project = requireProject(store, String(chat.project_id));
-    const text = chatTranscript(chat, project, store.listEvents(chat.id));
+    const text = chatTranscript(chat, project, store.events.list(chat.id));
     const attachment = await badRequest(() => uploads.save({ name: transcriptFileName(chat), type: "text/markdown", bytes: new TextEncoder().encode(text) }));
     return c.json(attachment, 201);
   });

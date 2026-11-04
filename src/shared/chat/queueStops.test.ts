@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decodeStops, encodeStops, moveToSlot, normalizeStops, remapStops } from "@shared/chat/queueStops";
+import { moveToSlot, normalizeStops, remapStops } from "./queueStops";
 import type { QueuedMessage } from "@shared/types";
 
 const m = (id: string) => ({ id }) as QueuedMessage;
@@ -21,17 +21,6 @@ test("印の位置: 並べ替えでは動かず、前の指示を送った・消
   assert.deepEqual(remapStops([a, b, c, d], [a, b, d], [3]), [2]);
   // すべて送った: 最後のあとの印は、列の上（次に来た指示の前）に残る
   assert.deepEqual(remapStops([a], [], [1]), [0]);
-});
-
-test("印の保存: 位置の配列で書き、印を指示に付けていたころの形（ID・ID の配列）も読める", () => {
-  assert.equal(encodeStops([]), null);
-  assert.equal(encodeStops([0, 2]), "[0,2]");
-  assert.deepEqual(decodeStops("[0,2]", [a, b, c]), [0, 2]);
-  assert.deepEqual(decodeStops("b", [a, b, c]), [2]);
-  assert.deepEqual(decodeStops('["a","c"]', [a, b, c]), [1, 3]);
-  assert.deepEqual(decodeStops('["gone"]', [a]), []);
-  assert.deepEqual(decodeStops("[broken", [a]), []);
-  assert.deepEqual(decodeStops(null, [a]), []);
 });
 
 // 見た目の並び（"|" が印の線）にして比べる

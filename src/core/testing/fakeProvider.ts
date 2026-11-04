@@ -8,7 +8,7 @@ export abstract class FakeProviderBase implements AgentProvider {
   readonly implemented = true;
 
   async status(): Promise<ProviderStatus> {
-    return { id: this.id, label: this.label, implemented: true, installed: true, loggedIn: true, detail: "" };
+    return { id: this.id, label: this.label, implemented: true, installed: true, logged_in: true, detail: "" };
   }
 
   abstract run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult>;

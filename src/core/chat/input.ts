@@ -3,14 +3,14 @@ import { randomUUID } from "node:crypto";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { ExecutionDeps } from "./turn.js";
-import type { Attachment, ChatOptions } from "@shared/types";
+import type { Attachment, ChatOptionsPatch } from "@shared/types";
 import { withAttachmentNote } from "./uploads.js";
 
 export interface StartChatInput {
   projectId: number;
   prompt: string;
   title?: string;
-  options?: ChatOptions;
+  options?: ChatOptionsPatch;
   attachments?: Attachment[];
   /** 自分で作ったグループ（グループの＋から始めたとき） */
   groupId?: number;
@@ -24,29 +24,24 @@ export interface StartChatInput {
  */
 export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
   const { store, providers } = deps;
-  const project = store.getProject(input.projectId);
+  const project = store.projects.get(input.projectId);
   if (!project) throw new Error("プロジェクトが見つかりません");
   if (!providers[project.provider].implemented) throw new Error(`${providers[project.provider].label} はまだ使えません`);
 
   // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
-  const defaults = resolveChatOptions(store.getSettings(), project.defaults);
-  const options = input.options ?? {};
-  const model = options.model ?? (project.provider === "claude" ? defaults.model || null : null);
-  const chat = store.createChat({
+  const options = resolveChatOptions(store.settings.get(), project.chat_defaults, input.options);
+  const chat = store.chats.create({
     project_id: project.id,
     provider: project.provider,
     title: input.title ?? firstLine(input.prompt),
-    status: "queued",
-    model,
-    effort: options.effort === undefined ? defaults.effort : options.effort,
-    permission_mode: options.permission_mode ?? defaults.permission,
-    fast_mode: options.fast_mode ?? defaults.fastMode,
+    status: "running",
+    ...options,
     group_id: input.groupId ?? null,
-    worktree_path: input.worktreePath ?? "",
+    worktree_path: input.worktreePath || null,
   });
   const attachments = input.attachments ?? [];
   const messageUuid = randomUUID();
-  store.addEvent(chat.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}), message_uuid: messageUuid });
+  store.events.add(chat.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}), message_uuid: messageUuid });
   if (!input.title) void autoTitle(deps, chat.id, input.prompt || attachments.map((a) => a.name).join("、"));
   return { chat, prompt: await promptWithAttachments(deps, input.prompt, attachments), messageUuid };
 }
@@ -56,7 +51,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
  * 終わっていたとき。送るまで残っている報告を、次の自然な機会に渡す）。handover は自分の発言の記録に足す
  */
 export async function followupPrompt(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
-  const lost = undeliveredReports(deps.store.listEvents(chatId));
+  const lost = undeliveredReports(deps.store.events.list(chatId));
   const prompt = withUndeliveredReports(await promptWithAttachments(deps, text, attachments), lost);
   return { prompt, handover: lost.length ? { handover: lost.map((s) => s.key) } : {} };
 }
@@ -69,13 +64,13 @@ function firstLine(text: string): string {
 
 /** チャット名を AI に付けてもらう（ユーザーが名前を変えていなければ置き換える） */
 async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, text: string) {
-  const chat = store.getChat(chatId);
+  const chat = store.chats.get(chatId);
   const provider = chat ? providers[chat.provider] : undefined;
   if (!chat || !provider?.title || !text.trim()) return;
   try {
     const title = await provider.title(text);
-    const latest = store.getChat(chatId);
-    if (title && latest && latest.title === chat.title) store.updateChat(chatId, { title });
+    const latest = store.chats.get(chatId);
+    if (title && latest && latest.title === chat.title) store.chats.update(chatId, { title });
   } catch {
     // 付けられなくても困らない（最初の発言のまま）
   }

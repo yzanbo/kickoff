@@ -33,7 +33,7 @@ export interface VoiceModelInfo {
   id: string;
   label: string;
   /** おおよその大きさ（MB） */
-  sizeMb: number;
+  size_mb: number;
   /** 速さ・日本語の向き不向きの説明 */
   note: string;
   recommended: boolean;
@@ -57,6 +57,6 @@ export interface VoiceStatus {
   };
   openai: {
     /** API キーを保存してあるか（キーそのものは返さない） */
-    keySaved: boolean;
+    key_saved: boolean;
   };
 }

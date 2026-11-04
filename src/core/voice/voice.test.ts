@@ -71,13 +71,13 @@ test("OpenAI: 応答から文を取り出し、失敗は状態コードごとに
 
 test("準備の確かめ: オフ → 方法ごとに足りないもの（キー / コマンド / モデル）の順に理由を返す", () => {
   const tools = { whisper: "/w", ffmpeg: "/f" };
-  const base = { settings: { voiceEnabled: true, voiceProvider: "local" as const, voiceModel: "base" }, tools, modelDownloaded: true, keySaved: false };
+  const base = { settings: { voice_enabled: true, voice_provider: "local" as const, voice_model: "base" }, tools, modelDownloaded: true, keySaved: false };
   assert.equal(voiceUnreadyReason(base), null);
-  assert.match(voiceUnreadyReason({ ...base, settings: { ...base.settings, voiceEnabled: false } }) ?? "", /オフ/);
+  assert.match(voiceUnreadyReason({ ...base, settings: { ...base.settings, voice_enabled: false } }) ?? "", /オフ/);
   assert.match(voiceUnreadyReason({ ...base, tools: { whisper: null, ffmpeg: null } }) ?? "", /whisper-cli と ffmpeg が見つかりません/);
   assert.match(voiceUnreadyReason({ ...base, modelDownloaded: false }) ?? "", /モデル（base）をダウンロード/);
-  assert.match(voiceUnreadyReason({ ...base, settings: { ...base.settings, voiceProvider: "openai" } }) ?? "", /API キー/);
-  assert.equal(voiceUnreadyReason({ ...base, settings: { ...base.settings, voiceProvider: "openai" }, tools: { whisper: null, ffmpeg: null }, keySaved: true }), null);
+  assert.match(voiceUnreadyReason({ ...base, settings: { ...base.settings, voice_provider: "openai" } }) ?? "", /API キー/);
+  assert.equal(voiceUnreadyReason({ ...base, settings: { ...base.settings, voice_provider: "openai" }, tools: { whisper: null, ffmpeg: null }, keySaved: true }), null);
 });
 
 test("コマンドの探し方: PATH の順、なければ Homebrew の場所。名前は今の名前を先に", () => {

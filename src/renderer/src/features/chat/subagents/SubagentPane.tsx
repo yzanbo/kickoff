@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { api } from "@/api";
-import { BUSY_STATUSES } from "@/features/chat/chatStatus";
 import { Composer } from "@/features/chat/composer/Composer";
 import { useSubagents } from "./Subagents";
 import { relayMessage } from "./subagentRelay";
@@ -27,7 +26,7 @@ export function SubagentPane({
   onOpenSubagent: (toolUseId: string, title: string) => void;
 }) {
   const { chat, project, events, background, error } = useChatDetail(chatId, projectId);
-  const busy = chat ? BUSY_STATUSES.includes(chat.status) : false;
+  const busy = chat ? chat.status === "running" : false;
   const subagents = useSubagents(chatId, events, busy, background);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
   const repoPath = project?.repo_path;

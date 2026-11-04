@@ -1,7 +1,7 @@
 import type { ProjectSearchQuery } from "@shared/types";
 
 /** 検索の指定と同じ探し方の正規表現（結果の行で、見つかった部分に印を付けるのに使う。作れなければ null） */
-export function searchPattern({ query, caseSensitive, wholeWord, regex }: ProjectSearchQuery): RegExp | null {
+export function searchPattern({ query, case_sensitive: caseSensitive, whole_word: wholeWord, regex }: ProjectSearchQuery): RegExp | null {
   if (!query) return null;
   let source = regex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   if (wholeWord) source = `\\b(?:${source})\\b`;

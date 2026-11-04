@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 import { indexProjects } from "./projectsContext";
 
-const project = (id: number, name: string) => ({ id, name }) as ProjectSummary;
+const project = (id: number, name: string) => ({ id, name }) as Project;
 
 test("indexProjects: ID から引け、名前が分からなければ空にする", () => {
   const index = indexProjects([project(1, "A"), project(2, "B")]);

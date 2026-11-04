@@ -24,7 +24,7 @@ export type GitStatus =
       /** 追いかけているリモートのブランチ（例: origin/main。まだなければ null） */
       upstream: string | null;
       /** プッシュ先のリモート（origin）があるか */
-      hasOrigin: boolean;
+      has_origin: boolean;
       ahead: number;
       behind: number;
       /** ステージされている変更 */
@@ -69,9 +69,9 @@ export interface FileContent {
 export interface ProjectSearchQuery {
   query: string;
   /** 大文字と小文字を区別する */
-  caseSensitive: boolean;
+  case_sensitive: boolean;
   /** 単語単位で探す */
-  wholeWord: boolean;
+  whole_word: boolean;
   /** 正規表現として探す */
   regex: boolean;
 }
@@ -117,7 +117,7 @@ export interface GitLog {
 export interface GitCommitDetail extends GitCommit {
   body: string;
   committer: string;
-  committedAt: string;
+  committed_at: string;
   files: GitFileChange[];
 }
 
@@ -153,11 +153,11 @@ export interface WorktreeRemovalInfo {
   /** どのリモートにもないコミットの数（リモートがなければ 0） */
   unpushed: number;
   /** このブランチにしかない（ほかのブランチにもリモートにもない）コミットの数。ブランチも消すとなくなる */
-  onlyHere: number;
+  only_here: number;
   /** リモートの追跡先があるか（一度でもプッシュしたか） */
   pushed: boolean;
   /** リポジトリにリモートがあるか（なければプッシュの話はしない） */
-  hasRemote: boolean;
+  has_remote: boolean;
 }
 
 /** ブランチの PR（GitHub。gh で調べる） */
@@ -166,5 +166,5 @@ export interface PullRequestInfo {
   url: string;
   title: string;
   state: "OPEN" | "MERGED" | "CLOSED";
-  isDraft: boolean;
+  is_draft: boolean;
 }

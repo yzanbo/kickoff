@@ -12,9 +12,9 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
   const info = await api.worktreeRemovalInfo(projectId, worktree.path);
   const notes = [
     info.changes > 0 && `・コミットしていない変更が ${info.changes} ファイルあります。消すとなくなります。`,
-    info.hasRemote && info.branch && !info.pushed && "・このブランチは、まだ GitHub にプッシュしていません。",
-    info.hasRemote && info.unpushed > 0 && `・GitHub にプッシュしていないコミットが ${info.unpushed} 件あります。`,
-    info.onlyHere > 0 && `・このブランチにしかないコミットが ${info.onlyHere} 件あります。ブランチも消すと、これらのコミットもなくなります。`,
+    info.has_remote && info.branch && !info.pushed && "・このブランチは、まだ GitHub にプッシュしていません。",
+    info.has_remote && info.unpushed > 0 && `・GitHub にプッシュしていないコミットが ${info.unpushed} 件あります。`,
+    info.only_here > 0 && `・このブランチにしかないコミットが ${info.only_here} 件あります。ブランチも消すと、これらのコミットもなくなります。`,
   ].filter((note): note is string => Boolean(note));
   const message = [
     `${worktree.path} のフォルダを消します。ここで作業していたチャットは、続きを本体で進めます。`,
@@ -22,7 +22,7 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
     ...(notes.length > 0 ? ["", "注意:", ...notes] : []),
   ].join("\n");
   // ブランチを消しても失うものがなければ「ブランチも消す」、あれば「ワークツリーだけ消す」をすすめる
-  const safeToDeleteBranch = info.onlyHere === 0 && info.unpushed === 0;
+  const safeToDeleteBranch = info.only_here === 0 && info.unpushed === 0;
   const choice = await choiceDialog({
     title: `ワークツリー「${label}」を消しますか？`,
     message,
@@ -35,10 +35,10 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
   });
   if (!choice) return null;
   const deleteBranch = choice === "both";
-  if (deleteBranch && info.onlyHere > 0) {
+  if (deleteBranch && info.only_here > 0) {
     const ok = await confirmDialog({
       title: `ブランチ「${info.branch}」も消しますか？`,
-      message: `このブランチにしかないコミットが ${info.onlyHere} 件あります。ブランチを消すと、これらのコミットは元に戻せません。`,
+      message: `このブランチにしかないコミットが ${info.only_here} 件あります。ブランチを消すと、これらのコミットは元に戻せません。`,
       confirmLabel: "コミットごと消す",
       danger: true,
     });

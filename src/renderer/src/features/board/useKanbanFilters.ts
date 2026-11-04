@@ -20,7 +20,7 @@ export function useKanbanFilters() {
 
 /** 絞り込みの候補: ワークツリーの作業場所（ブランチ名で出し、フォルダが消えたものは「フォルダなし」と添える） */
 export function useWorktreeChoices(chats: Chat[]) {
-  const worktreeChats = chats.filter((r) => r.worktree_path);
+  const worktreeChats = chats.filter((r): r is Chat & { worktree_path: string } => r.worktree_path !== null);
   const worktreesOf = useWorktreeLists(worktreeChats.map((r) => r.project_id));
   return [...new Map(worktreeChats.map((r) => [r.worktree_path, r])).values()]
     .map((r) => {

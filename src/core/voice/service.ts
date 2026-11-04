@@ -40,17 +40,17 @@ export class VoiceService {
     );
   }
 
-  private keySaved = () => Boolean(this.store.getSecret("openaiTranscribeKey"));
+  private keySaved = () => Boolean(this.store.secrets.get("openai_transcribe_key"));
 
   /** 準備の状態（設定の「音声入力」・マイクのボタン） */
   async status(): Promise<VoiceStatus> {
-    const settings = this.store.getSettings();
+    const settings = this.store.settings.get();
     const tools = await this.findTools();
     const keySaved = this.keySaved();
-    const reason = voiceUnreadyReason({ settings, tools, modelDownloaded: this.downloads.isDownloaded(settings.voiceModel), keySaved });
+    const reason = voiceUnreadyReason({ settings, tools, modelDownloaded: this.downloads.isDownloaded(settings.voice_model), keySaved });
     return {
-      enabled: settings.voiceEnabled,
-      provider: settings.voiceProvider,
+      enabled: settings.voice_enabled,
+      provider: settings.voice_provider,
       ready: reason === null,
       reason,
       local: {
@@ -61,27 +61,27 @@ export class VoiceService {
           download: this.downloads.state(m.id),
         })),
       },
-      openai: { keySaved },
+      openai: { key_saved: keySaved },
     };
   }
 
   /** 音声を文にする（language を省けば設定の言語。準備ができていなければ、その理由で失敗する） */
   async transcribe(audio: AudioInput, language?: string): Promise<string> {
-    const settings = this.store.getSettings();
+    const settings = this.store.settings.get();
     const tools = await this.findTools();
-    const key = this.store.getSecret("openaiTranscribeKey") ?? "";
-    const reason = voiceUnreadyReason({ settings, tools, modelDownloaded: this.downloads.isDownloaded(settings.voiceModel), keySaved: Boolean(key) });
+    const key = this.store.secrets.get("openai_transcribe_key") ?? "";
+    const reason = voiceUnreadyReason({ settings, tools, modelDownloaded: this.downloads.isDownloaded(settings.voice_model), keySaved: Boolean(key) });
     if (reason) throw new Error(reason);
-    const lang = language ?? settings.voiceLanguage;
-    if (settings.voiceProvider === "openai") {
-      return this.engines.openai(audio, { key, baseUrl: settings.voiceOpenaiBaseUrl, model: settings.voiceOpenaiModel, language: lang });
+    const lang = language ?? settings.voice_language;
+    if (settings.voice_provider === "openai") {
+      return this.engines.openai(audio, { key, baseUrl: settings.voice_openai_base_url, model: settings.voice_openai_model, language: lang });
     }
-    return this.engines.local(audio, { whisper: tools.whisper!, ffmpeg: tools.ffmpeg!, model: modelFile(this.modelsDir, settings.voiceModel), language: lang });
+    return this.engines.local(audio, { whisper: tools.whisper!, ffmpeg: tools.ffmpeg!, model: modelFile(this.modelsDir, settings.voice_model), language: lang });
   }
 
   /** OpenAI の API キーを保存する（空なら消す）。保存したかだけを返す */
   saveOpenAiKey(key: string): { saved: boolean } {
-    this.store.setSecret("openaiTranscribeKey", key.trim());
+    this.store.secrets.set("openai_transcribe_key", key.trim());
     return { saved: this.keySaved() };
   }
 }

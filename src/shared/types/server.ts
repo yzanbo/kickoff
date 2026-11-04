@@ -9,13 +9,15 @@ export interface ServerStatus {
   port: number;
   /** スマホなど、ほかの端末からの接続を許可しているか */
   remote_enabled: boolean;
-  /** max: 同時に実行するエージェント数の上限（null なら上限なし） */
+  /** 作業中のチャットの数 */
   agents: { running: number };
+  /** DB を作ったときに決めた ID（画面が覚えている ID 入りの表示の状態を、DB を作り直したら捨てる目印） */
+  database_id: string;
 }
 
 export interface GitHubStatus {
   installed: boolean;
-  loggedIn: boolean;
+  logged_in: boolean;
   account?: string;
   detail: string;
 }

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { ModelOption } from "@shared/types";
 import { groupModels, modelDisplayName, splitModelLabel } from "./models";
 
-const m = (value: string, label: string): ModelOption => ({ value, label, description: "", efforts: [], supportsAutoMode: true, supportsFastMode: false });
+const m = (value: string, label: string): ModelOption => ({ value, label, description: "", efforts: [], supports_auto_mode: true, supports_fast_mode: false });
 
 test("モデルをファミリーごとにまとめ、Fable → Opus → Sonnet → Haiku、新しいバージョン順に並べる", () => {
   const groups = groupModels([

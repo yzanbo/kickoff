@@ -84,14 +84,15 @@ export function createApp(deps: ServerDeps): Hono {
 
   // 画面の左下の「接続」の詳細
   app.get("/api/status", (c) => {
-    const settings = store.getSettings();
+    const settings = store.settings.get();
     const status: ServerStatus = {
       version: VERSION,
       started_at: STARTED_AT,
       host: deps.listen?.host ?? "127.0.0.1",
       port: deps.listen?.port ?? Number(new URL(c.req.url).port),
-      remote_enabled: settings.remoteEnabled,
+      remote_enabled: settings.remote_enabled,
       agents: runner.stats(),
+      database_id: store.databaseId,
     };
     return c.json(status);
   });

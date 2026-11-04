@@ -1,5 +1,5 @@
 // 止まった（失敗・中断）サブエージェントが、あとで親のエージェントにやり直されたか（Node 依存なし。collectSubagents から使う）
-import type { SubagentEntry } from "@shared/chat/subagents";
+import type { SubagentEntry } from "./subagents";
 
 /** 似ているとみなす度合い（説明と依頼文の両方がこれ以上） */
 const SIMILAR = 0.5;

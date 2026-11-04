@@ -110,12 +110,12 @@ export function WorktreeBar({
   const value = pr?.value;
   return (
     <div className="worktree-bar">
-      {!status.hasOrigin ? (
+      {!status.has_origin ? (
         <span className="muted">プッシュ先（origin）がないので、PR は作れません</span>
       ) : value ? (
         <>
           <span className={cx("pr-chip", value.state.toLowerCase())} title={value.title}>
-            <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{value.isDraft ? "下書き" : PR_STATE_LABELS[value.state]}
+            <GitPullRequest size={12} aria-hidden /> PR #{value.number}・{value.is_draft ? "下書き" : PR_STATE_LABELS[value.state]}
           </span>
           <button className="btn btn-sm" onClick={() => window.open(value.url)}>
             <ExternalLink size={12} aria-hidden /> PR を開く
@@ -133,7 +133,7 @@ export function WorktreeBar({
           </button>
         )
       )}
-      {status.hasOrigin && <RefreshButton label="PR の状態を取り直す" busy={busy === "load"} onClick={() => void load()} />}
+      {status.has_origin && <RefreshButton label="PR の状態を取り直す" busy={busy === "load"} onClick={() => void load()} />}
       <IconButton icon={Trash2} label="ワークツリーを消す" title="このワークツリーを消す（ブランチも消すかを選べます）" disabled={Boolean(busy)} onClick={() => void remove()} />
       <ErrorText message={error} />
     </div>

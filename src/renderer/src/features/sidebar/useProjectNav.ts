@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ProjectSummary, Chat, ChatGroup } from "@shared/types";
+import type { Project, Chat, ChatGroup } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "@/hooks/useStoredState";
@@ -42,7 +42,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const [showArchived, setShowArchived] = useStoredFlag(SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY);
   // 最近動いた順: チャット（アーカイブしたものを除く）が最後に動いた時刻。チャットがなければ作った時刻
   const [projectOrder, setProjectOrder] = useStoredChoice<ProjectOrder>(SIDEBAR_PROJECT_ORDER_KEY, PROJECT_ORDERS, "manual");
-  const lastActive = (p: ProjectSummary) => (chats[p.id] ?? []).find((r) => !r.archived_at)?.active_at ?? p.created_at;
+  const lastActive = (p: Project) => (chats[p.id] ?? []).find((r) => !r.archived_at)?.active_at ?? p.created_at;
   // タグでの絞り込み（見出しの「タグ」。合わないプロジェクトは、固定・しまったものも含めて出さない）
   const tagFilter = useProjectTagFilter();
   const sorted = sidebarOrder(projects, projectOrder === "recent" ? lastActive : undefined);
@@ -55,12 +55,12 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
   const drafts = useAllDrafts();
-  const hasWaiting = (p: ProjectSummary) => waitingChats(chats[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
+  const hasWaiting = (p: Project) => waitingChats(chats[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
   const [searchAll, setSearchAll] = useState("");
   const allSearch = useChatSearch(layout === "stack" ? searchAll : "");
   const [showArchivedChats] = useShowArchivedChats();
-  const hasMatch = (p: ProjectSummary) => (chats[p.id] ?? []).some((r) => (!r.archived_at || showArchivedChats) && allSearch.matches(r));
+  const hasMatch = (p: Project) => (chats[p.id] ?? []).some((r) => (!r.archived_at || showArchivedChats) && allSearch.matches(r));
   const base = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const ordered = allSearch.keyword ? base.filter(hasMatch) : base;
   const isArchived = (id: number) => archived.some((p) => p.id === id);

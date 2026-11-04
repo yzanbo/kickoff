@@ -8,7 +8,7 @@ import { ChatReconnect } from "./recovery/reconnect.js";
 import { ChatStopping } from "./stopping.js";
 import { ChatUsageLimit } from "./recovery/usageLimit.js";
 import { createChat, followupPrompt, type StartChatInput } from "./input.js";
-import type { Attachment, BackgroundState, ReconnectState, Chat, ChatOptions } from "@shared/types";
+import type { Attachment, BackgroundState, ReconnectState, Chat, ChatOptionsPatch } from "@shared/types";
 import type { UsageMonitor } from "../usage/planUsage.js";
 
 /**
@@ -60,7 +60,7 @@ export class Runner extends RunnerQueue {
     this.followups = new FollowupQueue(
       (chatId) => this.queueChanged(chatId),
       // 再起動しても残す（読み戻した列は止めておく）
-      deps.store,
+      deps.store.queues,
     );
     this.editHolds = new QueueEditHolds((chatId) => this.editHoldsChanged(chatId), deps.editHoldTtlMs);
     this.reconnect = new ChatReconnect({
@@ -85,7 +85,7 @@ export class Runner extends RunnerQueue {
 
   /** 待ちの列の様子を画面に配る（列・止めておくか・一時停止の位置・書き直しを待っているか） */
   protected queueChanged(chatId: number) {
-    const chat = this.deps.store.getChat(chatId);
+    const chat = this.deps.store.chats.get(chatId);
     if (!chat) return;
     this.deps.bus?.publish({
       type: "chat_queue",
@@ -121,13 +121,13 @@ export class Runner extends RunnerQueue {
   async start(input: StartChatInput): Promise<Chat> {
     const { chat, prompt, messageUuid } = await createChat(this.deps, input);
     void this.execute({ chatId: chat.id, prompt, promptId: messageUuid });
-    return this.deps.store.getChat(chat.id)!;
+    return this.deps.store.chats.get(chat.id)!;
   }
 
   /** 終了した会話に追加の指示を送り、続きから再開する */
-  async send(chatId: number, text: string, options: ChatOptions = {}, attachments: Attachment[] = []): Promise<Chat> {
+  async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = []): Promise<Chat> {
     const { store } = this.deps;
-    const chat = store.getChat(chatId);
+    const chat = store.chats.get(chatId);
     if (!chat) throw new Error("実行が見つかりません");
     if (this.isBusy(chatId)) throw new Error("エージェントが作業中です。終わってから送ってください");
     // 動かし始めるまで作業中として数える（組み立ての間に届いた送信は、作業中のチャットへの送信として扱われる）
@@ -145,21 +145,18 @@ export class Runner extends RunnerQueue {
     this.forgetRecovery(chatId);
     const { prompt, handover } = prepared;
     const messageUuid = randomUUID();
-    store.addEvent(chat.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
+    store.events.add(chat.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
-    store.updateChat(chat.id, {
-      status: "queued",
+    store.chats.update(chat.id, {
+      status: "running",
       error: null,
       unread: false,
-      model: options.model === undefined ? undefined : options.model,
-      effort: options.effort === undefined ? undefined : options.effort,
-      permission_mode: options.permission_mode ?? undefined,
-      fast_mode: options.fast_mode ?? undefined,
+      ...options,
     });
     // 動かし始めたら作業中（this.active）として数えられるので、準備の印は外す
     this.preparing.delete(chatId);
     void this.execute({ chatId: chat.id, prompt, promptId: messageUuid });
-    return store.getChat(chat.id)!;
+    return store.chats.get(chat.id)!;
   }
 
   /**
@@ -167,9 +164,9 @@ export class Runner extends RunnerQueue {
    * 裏のサブエージェント・コマンドは動き続ける）。足せないとき（始まる前・要約中など）は待ちの列に入れ（front なら先頭）、
    * 作業中でなければすぐ送る。モデルなどの選択は、作業の途中では変えられないので次に送るときから効く
    */
-  async tell(chatId: number, text: string, options: ChatOptions = {}, attachments: Attachment[] = [], { front = false } = {}): Promise<"told" | "sent" | "queued"> {
+  async tell(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { front = false } = {}): Promise<"told" | "sent" | "queued"> {
     const { store } = this.deps;
-    const chat = store.getChat(chatId);
+    const chat = store.chats.get(chatId);
     if (!chat) throw new Error("実行が見つかりません");
     if (!this.isBusy(chatId)) {
       await this.send(chatId, text, options, attachments);
@@ -182,8 +179,8 @@ export class Runner extends RunnerQueue {
     if (control?.tell(prompt, messageUuid)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
       this.forgetRecovery(chatId);
-      store.addEvent(chatId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
-      if (chat.unread) store.setChatUnread(chatId, false);
+      store.events.add(chatId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
+      if (chat.unread) store.chats.setUnread(chatId, false);
       return "told";
     }
     const { id } = this.followups.add(chatId, text, options, attachments);
@@ -221,13 +218,13 @@ export class Runner extends RunnerQueue {
    */
   async compact(chatId: number): Promise<Chat> {
     const { store } = this.deps;
-    const chat = store.getChat(chatId);
+    const chat = store.chats.get(chatId);
     if (!chat) throw new Error("実行が見つかりません");
     if (this.isBusy(chatId)) throw new Error("エージェントが作業中です。終わってから圧縮してください");
     if (!chat.session_id) throw new Error("まだ会話がないので、圧縮できません");
-    store.updateChat(chat.id, { status: "queued", error: null });
+    store.chats.update(chat.id, { status: "running", error: null });
     void this.execute({ chatId: chat.id, prompt: "/compact", compact: true });
-    return store.getChat(chat.id)!;
+    return store.chats.get(chat.id)!;
   }
 
 
@@ -249,11 +246,11 @@ export class Runner extends RunnerQueue {
   }
 
   protected hasChat(chatId: number): boolean {
-    return this.deps.store.getChat(chatId) !== undefined;
+    return this.deps.store.chats.get(chatId) !== undefined;
   }
 
   protected reportError(chatId: number, message: string) {
-    this.deps.store.addEvent(chatId, { type: "error", message });
+    this.deps.store.events.add(chatId, { type: "error", message });
   }
 
   isBusy(chatId: number): boolean {

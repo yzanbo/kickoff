@@ -64,7 +64,7 @@ export async function gitCommitDetail(repo: string, hash: string): Promise<GitCo
   const changes = parent
     ? await gitOutput(repo, ["diff", "--name-status", "-M", "-z", parent, commit.hash])
     : await gitOutput(repo, ["diff-tree", "--root", "--no-commit-id", "-r", "-M", "--name-status", "-z", commit.hash]);
-  return { ...commit, body: body.join("\0").trim(), committer, committedAt, files: parseNameStatus(changes) };
+  return { ...commit, body: body.join("\0").trim(), committer, committed_at: committedAt, files: parseNameStatus(changes) };
 }
 
 /** コミットでの 1 つのファイルの差分（1 つ目の親との差。最初のコミットは空との差） */

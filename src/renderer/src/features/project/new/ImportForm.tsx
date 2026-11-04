@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import type { WorkspaceInspection } from "@shared/types";
+import type { FolderInspection } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useSubmit } from "@/hooks/useSubmit";
@@ -11,7 +11,7 @@ import type { FormProps } from "./NewProjectDialog";
 
 export function ImportForm({ onCancel, onCreated }: FormProps) {
   const [folder, setFolder] = useState("");
-  const [inspection, setInspection] = useState<WorkspaceInspection>();
+  const [inspection, setInspection] = useState<FolderInspection>();
   const [inspecting, setInspecting] = useState(false);
   const [name, setName] = useState("");
   const [nameEdited, setNameEdited] = useState(false);
@@ -40,15 +40,15 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
   }, [folder]);
 
   useEffect(() => {
-    if (inspection && !nameEdited) setName(inspection.suggestedName);
+    if (inspection && !nameEdited) setName(inspection.suggested_name);
   }, [inspection, nameEdited]);
 
-  const isSubfolder = Boolean(inspection?.isGit && inspection.gitRoot && inspection.gitRoot !== inspection.path);
-  const needsInit = Boolean(inspection?.isDirectory && !isSubfolder && (!inspection.isGit || !inspection.hasCommits));
+  const isSubfolder = Boolean(inspection?.is_git && inspection.git_root && inspection.git_root !== inspection.path);
+  const needsInit = Boolean(inspection?.is_directory && !isSubfolder && (!inspection.is_git || !inspection.has_commits));
   const blocked =
     !inspection ||
     !inspection.exists ||
-    !inspection.isDirectory ||
+    !inspection.is_directory ||
     isSubfolder ||
     Boolean(inspection.registered_project_id) ||
     (needsInit && !initGit);
@@ -68,7 +68,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
         <InspectionPanel
           info={inspection}
           isSubfolder={isSubfolder}
-          onUseRoot={() => inspection.gitRoot && setFolder(inspection.gitRoot)}
+          onUseRoot={() => inspection.git_root && setFolder(inspection.git_root)}
         />
       )}
 
@@ -76,7 +76,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
         <label className="check">
           <input type="checkbox" checked={initGit} onChange={(e) => setInitGit(e.target.checked)} />
           <span>
-            {inspection?.isGit ? "既存のファイルで最初のコミットを作成する" : "git リポジトリとして初期化し、既存のファイルで最初のコミットを作成する"}
+            {inspection?.is_git ? "既存のファイルで最初のコミットを作成する" : "git リポジトリとして初期化し、既存のファイルで最初のコミットを作成する"}
             <span className="field-help">
               フォルダ内のファイルがすべてコミットされます。秘密情報などがあれば、先に .gitignore に追加してください。
             </span>

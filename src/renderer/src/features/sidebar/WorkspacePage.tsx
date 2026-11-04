@@ -1,6 +1,6 @@
 import { Archive, Folder, Pin, Plus } from "lucide-react";
 import { memo, useState } from "react";
-import { BOARD_COLUMN_LABELS, type AgentState, type ProjectSummary, type Chat, type ChatGroup } from "@shared/types";
+import { BOARD_COLUMN_LABELS, type AgentState, type Project, type Chat, type ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { alertDialog } from "@/ui/dialogs";
 import { useChatRename } from "@/features/chat/useChatRename";
@@ -36,7 +36,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   headDrag,
   searchAll = "",
 }: {
-  project: ProjectSummary;
+  project: Project;
   chats: Chat[];
   groups: ChatGroup[];
   hidden: boolean;

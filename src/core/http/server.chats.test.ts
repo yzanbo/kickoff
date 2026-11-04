@@ -20,8 +20,8 @@ test("未読: 作業中も AI の文章の返答で未読にし、一番下ま�
   ];
   let release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "やって" })).body.id;
-  await until(() => store.getChat(chatId)?.status === "running" && store.listEvents(chatId).some((e) => e.type === "tool_use"));
-  assert.equal(store.getChat(chatId)?.unread, false);
+  await until(() => store.chats.get(chatId)?.status === "running" && store.events.list(chatId).some((e) => e.type === "tool_use"));
+  assert.equal(store.chats.get(chatId)?.unread, false);
   release();
   await until(() => !runner.isBusy(chatId));
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`)).body.unread, false);
@@ -30,17 +30,17 @@ test("未読: 作業中も AI の文章の返答で未読にし、一番下ま�
   provider.emits = [{ type: "text", text: "途中の返答" }];
   release = provider.hold();
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "続けて" })).status, 200);
-  await until(() => store.getChat(chatId)?.unread === true);
-  assert.equal(store.getChat(chatId)?.status, "running");
-  const textId = store.listEvents(chatId).findLast((e) => e.type === "text")!.id;
+  await until(() => store.chats.get(chatId)?.unread === true);
+  assert.equal(store.chats.get(chatId)?.status, "running");
+  const textId = store.events.list(chatId).findLast((e) => e.type === "text")!.id;
   // 一番下まで見た（その返答まで）: 既読
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`, { event_id: textId })).body.unread, false);
   release();
   await until(() => !runner.isBusy(chatId));
   // 終わった: 未読。終わりの結果より前までしか見ていなければ未読のまま、終わりまで見たら既読
-  assert.equal(store.getChat(chatId)?.unread, true);
+  assert.equal(store.chats.get(chatId)?.unread, true);
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`, { event_id: textId })).body.unread, true);
-  const lastId = store.listEvents(chatId).at(-1)!.id;
+  const lastId = store.events.list(chatId).at(-1)!.id;
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`, { event_id: lastId })).body.unread, false);
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`, { event_id: "x" })).status, 400);
 });
@@ -108,7 +108,7 @@ test("停止: 止めるよう頼んでから作業が終わるまでは、詳細
 
 test("チャット・グループの API", async () => {
   const { call, project, store, runner } = setup();
-  const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const group = await call("POST", `/api/projects/${project.id}/groups`, { name: "g" });
   assert.equal(group.status, 201);
   // グループの色は、同じプロジェクトのほかのグループと被らない色を作ったときに選ぶ
@@ -127,7 +127,7 @@ test("チャット・グループの API", async () => {
   assert.equal(started.status, 201);
   const chatId: number = started.body.id;
   await until(() => !runner.isBusy(chatId));
-  assert.equal(store.getChat(chatId)?.group_id, group.body.id);
+  assert.equal(store.chats.get(chatId)?.group_id, group.body.id);
 
   assert.equal((await call("GET", `/api/projects/${project.id}/chats`)).body.length, 1);
   assert.equal((await call("GET", "/api/chats")).body.length, 1);
@@ -157,14 +157,14 @@ test("チャット・グループの API", async () => {
 
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`)).body.unread, false);
   // 未読にする・既読にする: 印だけを変え、最後に動いた時刻（並び順）は変えない
-  const activeAt = store.getChat(chatId)?.active_at;
+  const activeAt = store.chats.get(chatId)?.active_at;
   assert.equal((await call("POST", `/api/chats/${chatId}/unseen`)).body.unread, true);
-  assert.equal(store.getChat(chatId)?.active_at, activeAt);
+  assert.equal(store.chats.get(chatId)?.active_at, activeAt);
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`)).body.unread, false);
-  assert.equal(store.getChat(chatId)?.active_at, activeAt);
+  assert.equal(store.chats.get(chatId)?.active_at, activeAt);
   // サイドバーの上に固定する・やめる: 並び順（最後に動いた時刻）は変えない
   assert.equal((await call("POST", `/api/chats/${chatId}/pin`, { pinned: true })).body.pinned, true);
-  assert.equal(store.getChat(chatId)?.active_at, activeAt);
+  assert.equal(store.chats.get(chatId)?.active_at, activeAt);
   assert.equal((await call("POST", `/api/chats/${chatId}/pin`, { pinned: false })).body.pinned, false);
   assert.equal((await call("POST", `/api/chats/${chatId}/pin`, {})).status, 400);
   assert.ok((await call("POST", `/api/chats/${chatId}/archive`)).body.archived_at);
@@ -184,20 +184,20 @@ test("チャット・グループの API", async () => {
   assert.equal((await call("PATCH", `/api/groups/${group.body.id}`, { name: "h" })).body.name, "h");
   assert.equal((await call("GET", `/api/projects/${project.id}/groups`)).body.length, 1);
   assert.deepEqual((await call("DELETE", `/api/groups/${group.body.id}`)).body, { ok: true });
-  assert.equal(store.getChat(chatId)?.group_id, null);
+  assert.equal(store.chats.get(chatId)?.group_id, null);
   assert.deepEqual(await call("PATCH", "/api/groups/999", { name: "x" }), { status: 404, body: { error: "グループが見つかりません" } });
 
   assert.deepEqual((await call("DELETE", `/api/chats/${chatId}`)).body, { ok: true });
-  assert.equal(store.getChat(chatId), undefined);
+  assert.equal(store.chats.get(chatId), undefined);
 });
 
 test("チャットを別のプロジェクトへ移す: グループ・作業場所・ブランチを外し、並び順は変えない。作業中・知らないプロジェクトは断る", async () => {
   const { call, project, store, runner } = setup();
-  const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const group = (await call("POST", `/api/projects/${project.id}/groups`, { name: "g" })).body;
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "こんにちは", group_id: group.id })).body.id;
   await until(() => !runner.isBusy(chatId));
-  const activeAt = store.getChat(chatId)?.active_at;
+  const activeAt = store.chats.get(chatId)?.active_at;
 
   assert.equal((await call("POST", `/api/chats/${chatId}/move`, { project_id: 999 })).status, 404);
   assert.equal((await call("POST", `/api/chats/${chatId}/move`, {})).status, 400);
@@ -205,8 +205,8 @@ test("チャットを別のプロジェクトへ移す: グループ・作業場
   assert.equal(moved.status, 200);
   assert.equal(moved.body.project_id, other.id);
   assert.equal(moved.body.group_id, null);
-  assert.equal(moved.body.worktree_path, "");
-  assert.equal(moved.body.branch, "");
+  assert.equal(moved.body.worktree_path, null);
+  assert.equal(moved.body.branch, null);
   assert.equal(moved.body.active_at, activeAt);
   assert.equal((await call("GET", `/api/projects/${project.id}/chats`)).body.length, 0);
   assert.equal((await call("GET", `/api/projects/${other.id}/chats`)).body.length, 1);
@@ -272,7 +272,7 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
 
 test("チャット欄の / のコマンド: プロジェクトの作業場所で調べる。プロジェクトがなければ 404", async () => {
   const { call, project, provider } = setup();
-  provider.commandList = [{ name: "review", description: "コードを見直す", argumentHint: "" }];
+  provider.commandList = [{ name: "review", description: "コードを見直す", argument_hint: "" }];
   const res = await call("GET", `/api/projects/${project.id}/commands`);
   assert.equal(res.status, 200);
   assert.deepEqual(res.body, provider.commandList);
@@ -284,30 +284,30 @@ test("自動のアーカイブ: 完了して日数がたったチャットだけ
   const { call, project, store } = setup();
   const finish = async (prompt: string) => {
     const chat = (await call("POST", `/api/projects/${project.id}/chats`, { prompt })).body;
-    await until(() => store.getChat(chat.id)?.status === "completed");
+    await until(() => store.chats.get(chat.id)?.status === "completed");
     return chat.id as number;
   };
   const done = await finish("終わったもの");
   const pinned = await finish("固定したもの");
   const unread = await finish("まだ見ていないもの");
-  store.setChatUnread(done, false);
-  store.setChatUnread(pinned, false);
-  store.setChatPinned(pinned, true);
-  store.setChatUnread(unread, true);
+  store.chats.setUnread(done, false);
+  store.chats.setUnread(pinned, false);
+  store.chats.setPinned(pinned, true);
+  store.chats.setUnread(unread, true);
 
   // まだ日数がたっていなければ、何もしない
-  assert.equal(store.archiveStaleChats(7), 0);
+  assert.equal(store.chats.archiveStale(7), 0);
   // 8 日後: 完了して確認済みのものだけ
-  assert.equal(store.archiveStaleChats(7, new Date(Date.now() + 8 * 86_400_000)), 1);
-  assert.ok(store.getChat(done)?.archived_at);
-  assert.equal(store.getChat(pinned)?.archived_at, null);
-  assert.equal(store.getChat(unread)?.archived_at, null);
+  assert.equal(store.chats.archiveStale(7, new Date(Date.now() + 8 * 86_400_000)), 1);
+  assert.ok(store.chats.get(done)?.archived_at);
+  assert.equal(store.chats.get(pinned)?.archived_at, null);
+  assert.equal(store.chats.get(unread)?.archived_at, null);
 
   // 設定（初めはしない。1〜365 日）
-  assert.equal((await call("GET", "/api/settings")).body.autoArchiveDays, null);
-  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: 0 })).status, 400);
-  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: 7 })).body.autoArchiveDays, 7);
-  assert.equal((await call("PUT", "/api/settings", { autoArchiveDays: null })).body.autoArchiveDays, null);
+  assert.equal((await call("GET", "/api/settings")).body.auto_archive_days, null);
+  assert.equal((await call("PUT", "/api/settings", { auto_archive_days: 0 })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { auto_archive_days: 7 })).body.auto_archive_days, 7);
+  assert.equal((await call("PUT", "/api/settings", { auto_archive_days: null })).body.auto_archive_days, null);
 });
 
 test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・すぐ送る。作業中でなければすぐ送る", async () => {
@@ -541,11 +541,11 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   network.online = false;
   release();
   await until(() => runner.reconnectState(chatId) !== null);
-  assert.equal(store.getChat(chatId)?.status, "failed");
+  assert.equal(store.chats.get(chatId)?.status, "failed");
   assert.equal(runner.queuePaused(chatId), true);
   assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["次"]);
   assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES, agents: [] });
-  assert.ok(store.listEvents(chatId).some((e) => e.type === "notice" && /自動で再開します/.test(JSON.stringify(e.data))));
+  assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /自動で再開します/.test(JSON.stringify(e.data))));
   // つながらない間は何も送らない（送信待ちも送らない）
   await new Promise((r) => setTimeout(r, 30));
   assert.deepEqual(provider.prompts, ["1"]);
@@ -576,7 +576,7 @@ test("通信の切断: 通信で止まったサブエージェントは、自動
   provider.emits = [];
   // つながるのを待っている間は、続きから再開を頼むサブエージェントの名前も返す（画面の待っている行に添える）
   assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.reconnect.agents, ["調査"]);
-  const events = store.listEvents(chatId);
+  const events = store.events.list(chatId);
   // 実行の終わりの記録に通信の切断の印。お知らせには、止まったサブエージェントの名前を添える
   assert.ok(events.some((e) => e.type === "result" && (e.data as { network?: boolean }).network === true));
   assert.ok(events.some((e) => e.type === "notice" && /通信で止まったサブエージェント 1 件（調査）/.test(JSON.stringify(e.data))));
@@ -598,13 +598,13 @@ test("作業の終わり: 終わりの知らせがないまま止まったサブ
     { type: "tool_result", tool_use_id: "tu1", content: "Async agent launched successfully.", is_error: false },
   ];
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
-  await until(() => store.getChat(chatId)?.status === "completed");
-  assert.ok(store.listEvents(chatId).some((e) => e.type === "notice" && /サブエージェント 1 件（調査）/.test(JSON.stringify(e.data))));
+  await until(() => store.chats.get(chatId)?.status === "completed");
+  assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /サブエージェント 1 件（調査）/.test(JSON.stringify(e.data))));
   // 次の実行では、前の実行のものを数え直さない
   provider.emits = [];
   await call("POST", `/api/chats/${chatId}/messages`, { text: "次" });
-  await until(() => store.listEvents(chatId).filter((e) => e.type === "result").length === 2);
-  assert.equal(store.listEvents(chatId).filter((e) => e.type === "notice" && /作業の終わりとともに/.test(JSON.stringify(e.data))).length, 1);
+  await until(() => store.events.list(chatId).filter((e) => e.type === "result").length === 2);
+  assert.equal(store.events.list(chatId).filter((e) => e.type === "notice" && /作業の終わりとともに/.test(JSON.stringify(e.data))).length, 1);
 });
 
 test("届かなかったサブエージェントの報告: 次に送る指示に本文を添えて渡し、自分の発言に印を残す（渡したら次からは添えない）", async () => {
@@ -617,17 +617,17 @@ test("届かなかったサブエージェントの報告: 次に送る指示に
     { type: "subagent", task_id: "a1", tool_use_id: "tu1", description: "", status: "completed", summary: "見つけたのは 3 件" },
   ];
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
-  await until(() => store.getChat(chatId)?.status === "completed");
+  await until(() => store.chats.get(chatId)?.status === "completed");
   provider.emits = [];
   await call("POST", `/api/chats/${chatId}/messages`, { text: "次" });
   await until(() => provider.prompts.length === 2);
   assert.ok(provider.prompts[1].startsWith("次\n"));
   assert.match(provider.prompts[1], /「調査」（ID: a1）の報告 ---\n見つけたのは 3 件/);
-  const user = store.listEvents(chatId).filter((e) => e.type === "user").at(-1)!;
+  const user = store.events.list(chatId).filter((e) => e.type === "user").at(-1)!;
   // 記録の自分の発言は、書いた文のまま（報告は印だけ）
   const { message_uuid: _id, ...userData } = user.data as { message_uuid?: string };
   assert.deepEqual(userData, { text: "次", handover: ["tu1"] });
-  await until(() => store.listEvents(chatId).filter((e) => e.type === "result").length === 2);
+  await until(() => store.events.list(chatId).filter((e) => e.type === "result").length === 2);
   await call("POST", `/api/chats/${chatId}/messages`, { text: "その次" });
   await until(() => provider.prompts.length === 3);
   assert.equal(provider.prompts[2], "その次");
@@ -667,7 +667,7 @@ test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるか
   // 聞いている間は何も送らず、送信待ちは止めてある
   assert.equal(provider.prompts.length, 1);
   assert.equal(runner.queuePaused(chatId), true);
-  assert.ok(store.listEvents(chatId).some((e) => e.type === "notice" && /使用枠の上限に達したため止まりました/.test(JSON.stringify(e.data))));
+  assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /使用枠の上限に達したため止まりました/.test(JSON.stringify(e.data))));
 
   // 続ける: 「続けて」を送り、終わったら送信待ちを戻して送る
   assert.equal((await call("POST", `/api/approvals/${ask.id}`, { action: "allow" })).status, 200);
@@ -707,15 +707,15 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
   const { call, project, runner, provider, network, store } = setup();
   network.online = false;
   // 設定で切ると、止まったことだけを知らせて待たない
-  await call("PUT", "/api/settings", { autoResumeOnReconnect: false });
+  await call("PUT", "/api/settings", { auto_resume_on_reconnect: false });
   provider.networkFailures = 1;
   const a = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "a" })).body.id;
-  await until(() => store.getChat(a)?.status === "failed");
+  await until(() => store.chats.get(a)?.status === "failed");
   assert.equal(runner.reconnectState(a), null);
   assert.equal((await call("DELETE", `/api/chats/${a}/reconnect`)).status, 404);
 
   // 待っている間に「自動で再開しない」を押すと、つながっても送らない
-  await call("PUT", "/api/settings", { autoResumeOnReconnect: true });
+  await call("PUT", "/api/settings", { auto_resume_on_reconnect: true });
   provider.networkFailures = 1;
   const b = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "b" })).body.id;
   await until(() => runner.reconnectState(b) !== null);
@@ -740,23 +740,23 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
 test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {
   const { call, project, store, runner, provider } = setup();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
-  await until(() => store.getChat(chatId)?.status === "completed");
+  await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
-  await until(() => !runner.isBusy(chatId) && store.listEvents(chatId).filter((e) => e.type === "result").length === 2);
-  const events = store.listEvents(chatId);
+  await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
+  const events = store.events.list(chatId);
   const first = events.find((e) => e.type === "result")!;
   assert.deepEqual([(first.data as { session_id?: string }).session_id, (first.data as { message_id?: string }).message_id], ["s1", "m1"]);
 
   const forked = await call("POST", `/api/chats/${chatId}/fork`, { event_id: first.id });
   assert.equal(forked.status, 201);
-  assert.equal(forked.body.title, `${store.getChat(chatId)!.title}（分岐）`);
+  assert.equal(forked.body.title, `${store.chats.get(chatId)!.title}（分岐）`);
   assert.equal(forked.body.session_id, "fork-1");
   assert.deepEqual(provider.forks, [["s1", "m1", project.repo_path]]);
   // 写した記録は時刻もそのまま、最後に分岐した知らせ
-  const copied = store.listEvents(forked.body.id);
+  const copied = store.events.list(forked.body.id);
   assert.deepEqual(copied.map((e) => e.type), ["user", "result", "notice"]);
   assert.equal(copied[0].created_at, events[0].created_at);
-  assert.equal(store.listEvents(chatId).length, events.length);
+  assert.equal(store.events.list(chatId).length, events.length);
 
   // 分岐できない時点・見つからないチャット
   const user = events.find((e) => e.type === "user")!;
@@ -773,12 +773,12 @@ test("分岐の API: 作業の終わりの時点までの会話を新しいチ�
 test("巻き戻し・分岐は、止めた作業の終わりを起点にしない（その時点のメッセージはセッションに残らないことがある）", async () => {
   const { call, project, store, provider } = setup();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
-  await until(() => store.getChat(chatId)?.status === "completed");
-  const completed = store.listEvents(chatId).find((e) => e.type === "result")!;
+  await until(() => store.chats.get(chatId)?.status === "completed");
+  const completed = store.events.list(chatId).find((e) => e.type === "result")!;
   // 以前の記録の形: 止めた作業の終わりにも message_id が付いている
-  store.addEvent(chatId, { type: "user", text: "2" });
-  const cancelled = store.addEvent(chatId, { type: "result", status: "cancelled", session_id: "s9", message_id: "m9" });
-  const third = store.addEvent(chatId, { type: "user", text: "3" });
+  store.events.add(chatId, { type: "user", text: "2" });
+  const cancelled = store.events.add(chatId, { type: "result", status: "cancelled", session_id: "s9", message_id: "m9" });
+  const third = store.events.add(chatId, { type: "user", text: "3" });
   assert.equal((await call("POST", `/api/chats/${chatId}/fork`, { event_id: cancelled.id })).status, 400);
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: third.id, text: "3 を書き直し" })).status, 200);
   const data = completed.data as { session_id: string; message_id: string };
@@ -789,10 +789,10 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   const { call, project, store, runner, provider } = setup();
   const attachment = { id: randomUUID(), name: "a.txt", mime: "text/plain", size: 1 };
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
-  await until(() => store.getChat(chatId)?.status === "completed");
+  await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2", attachments: [attachment] });
-  await until(() => !runner.isBusy(chatId) && store.listEvents(chatId).filter((e) => e.type === "result").length === 2);
-  const before = store.listEvents(chatId);
+  await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
+  const before = store.events.list(chatId);
   const [firstUser, secondUser] = before.filter((e) => e.type === "user");
   const firstResult = before.find((e) => e.type === "result")!;
 
@@ -804,7 +804,7 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   assert.deepEqual(provider.forks, [["s1", "m1", project.repo_path]]);
   await until(() => !runner.isBusy(chatId) && provider.prompts.length === 3);
   assert.equal(provider.resumes[2], "fork-1");
-  const after = store.listEvents(chatId);
+  const after = store.events.list(chatId);
   assert.deepEqual(after.map((e) => e.type), ["user", "result", "notice", "user", "result"]);
   assert.deepEqual(after.slice(0, 2), before.slice(0, 2));
   assert.ok(after[2].id > firstResult.id && after[3].id > secondUser.id);
@@ -813,8 +813,8 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   // 発言には Claude Code に渡した ID を残す（ファイルを戻すときの目印）
   assert.equal(message_uuid, provider.promptIds[2]);
   // 消した発言は全文検索にも残らない
-  assert.deepEqual(store.searchEvents("書き直し", { chatId }).map((h) => h.event_id), [after[3].id]);
-  assert.deepEqual(store.searchEvents("2", { chatId }).map((h) => h.event_id), [after[3].id]);
+  assert.deepEqual(store.events.search("書き直し", { chatId }).map((h) => h.event_id), [after[3].id]);
+  assert.deepEqual(store.events.search("2", { chatId }).map((h) => h.event_id), [after[3].id]);
 
   // 最初の発言を巻き戻す: 分岐せず、セッションを空にして最初から
   const forks = provider.forks.length;
@@ -825,17 +825,17 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   assert.equal(provider.forks.length, forks);
   assert.equal(provider.resumes[3], null);
   assert.equal(provider.prompts[3], "やり直し");
-  assert.deepEqual(store.listEvents(chatId).map((e) => e.type), ["notice", "user", "result"]);
+  assert.deepEqual(store.events.list(chatId).map((e) => e.type), ["notice", "user", "result"]);
 
   // 自分の発言でない・ほかのチャットのイベント・見つからないチャットは断る
-  const events = store.listEvents(chatId);
+  const events = store.events.list(chatId);
   const result = events.find((e) => e.type === "result")!;
   const user = events.find((e) => e.type === "user")!;
   const notMine = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: result.id, text: "x" });
   assert.deepEqual(notMine, { status: 400, body: { error: "自分の発言のところからだけ巻き戻せます" } });
   const otherId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "別" })).body.id;
   await until(() => !runner.isBusy(otherId));
-  const otherUser = store.listEvents(otherId).find((e) => e.type === "user")!;
+  const otherUser = store.events.list(otherId).find((e) => e.type === "user")!;
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: otherUser.id, text: "x" })).status, 400);
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { text: "x" })).status, 400);
   assert.equal((await call("POST", "/api/chats/999/rewind", { event_id: user.id, text: "x" })).status, 404);
@@ -846,27 +846,27 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   const release = provider.hold();
   await call("POST", `/api/chats/${chatId}/messages`, { text: "3" });
   await call("POST", `/api/chats/${chatId}/queue`, { text: "待ち" });
-  const busyEvents = store.listEvents(chatId).length;
+  const busyEvents = store.events.list(chatId).length;
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: user.id, text: "x" })).status, 409);
-  assert.equal(store.listEvents(chatId).length, busyEvents);
+  assert.equal(store.events.list(chatId).length, busyEvents);
   assert.equal(runner.queued(chatId).length, 1);
   release();
   await until(() => !runner.isBusy(chatId) && runner.queued(chatId).length === 0);
   // ほかのチャットの記録は変わらない
-  assert.deepEqual(store.listEvents(otherId).map((e) => e.type), ["user", "result"]);
+  assert.deepEqual(store.events.list(otherId).map((e) => e.type), ["user", "result"]);
 });
 
 test("チャットの記録の API: ほかのチャットのやり取りを Markdown の添付ファイルにして返す（そのまま添付として送れる）", async () => {
   const { call, project, store, provider } = setup();
   const source = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "前の話" })).body.id;
-  await until(() => store.getChat(source)?.status === "completed");
+  await until(() => store.chats.get(source)?.status === "completed");
   const res = await call("POST", `/api/chats/${source}/transcript`);
   assert.equal(res.status, 201);
   assert.equal(res.body.mime, "text/markdown");
   assert.match(res.body.name, /^チャット履歴-.+\.md$/);
   // 別のチャットに添付として送ると、指示に記録のファイルのパスが添えられる
   const target = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "続き", attachments: [res.body] })).body.id;
-  await until(() => store.getChat(target)?.status === "completed");
+  await until(() => store.chats.get(target)?.status === "completed");
   assert.match(provider.prompts.at(-1)!, /チャット履歴-.+\.md/);
   assert.equal((await call("POST", "/api/chats/99999/transcript")).status, 404);
 });
@@ -874,8 +874,8 @@ test("チャットの記録の API: ほかのチャットのやり取りを Mark
 test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。記録のない発言は 400", async () => {
   const { call, project, store, runner, provider } = setup();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
-  await until(() => store.getChat(chatId)?.status === "completed");
-  const [user] = store.listEvents(chatId).filter((e) => e.type === "user");
+  await until(() => store.chats.get(chatId)?.status === "completed");
+  const [user] = store.events.list(chatId).filter((e) => e.type === "user");
   const messageId = (user.data as { message_uuid: string }).message_uuid;
   assert.equal(messageId, provider.promptIds[0]);
 
@@ -883,21 +883,21 @@ test("ファイルを戻す API: 自分の発言を送る前の状態にファ�
   const dry = await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id, dry_run: true });
   assert.deepEqual(dry.body, provider.rewindResult);
   assert.deepEqual(provider.rewinds, [["s1", messageId, project.repo_path, true]]);
-  const events = store.listEvents(chatId).length;
+  const events = store.events.list(chatId).length;
   // 戻す: お知らせを残し、会話の記録は消さない
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id })).status, 200);
   // 本当に戻したときの結果には変わったファイルが付かないので、先に量を測ってから戻す
   assert.deepEqual(provider.rewinds.slice(1).map((r) => r[3]), [true, false]);
-  const after = store.listEvents(chatId);
+  const after = store.events.list(chatId);
   assert.equal(after.length, events + 1);
   assert.match(JSON.stringify(after.at(-1)!.data), /2 個のファイル: a\.ts、b\.ts/);
 
   // 戻せない（Claude Code が断った）・記録のない発言・作業中
-  provider.rewindResult = { canRewind: false, error: "No file checkpoint found" };
+  provider.rewindResult = { can_rewind: false, error: "No file checkpoint found" };
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: user.id, dry_run: true })).status, 400);
-  const old = store.addEvent(chatId, { type: "user", text: "以前の発言" });
+  const old = store.events.add(chatId, { type: "user", text: "以前の発言" });
   assert.match((await call("POST", `/api/chats/${chatId}/rewind-files`, { event_id: old.id })).body.error, /記録がない/);
-  provider.rewindResult = { canRewind: true, filesChanged: [] };
+  provider.rewindResult = { can_rewind: true, files_changed: [] };
   const release = provider.hold();
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
   await until(() => runner.isBusy(chatId));
@@ -909,10 +909,10 @@ test("ファイルを戻す API: 自分の発言を送る前の状態にファ�
 test("巻き戻しの API: restore_files なら、分岐する前にファイルも戻す（ファイルの記録は元のセッションにあるため）", async () => {
   const { call, project, store, runner, provider } = setup();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
-  await until(() => store.getChat(chatId)?.status === "completed");
+  await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
-  await until(() => !runner.isBusy(chatId) && store.listEvents(chatId).filter((e) => e.type === "result").length === 2);
-  const second = store.listEvents(chatId).filter((e) => e.type === "user")[1];
+  await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
+  const second = store.events.list(chatId).filter((e) => e.type === "user")[1];
   const messageId = (second.data as { message_uuid: string }).message_uuid;
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: second.id, text: "2'", restore_files: true })).status, 200);
   // 元のセッション（s1）で（量を測って）戻してから、分岐する
@@ -922,13 +922,13 @@ test("巻き戻しの API: restore_files なら、分岐する前にファイル
   ]);
   assert.equal(provider.forks.length, 1);
   await until(() => !runner.isBusy(chatId) && provider.prompts.length === 3);
-  assert.ok(store.listEvents(chatId).some((e) => e.type === "notice" && /ファイルもこの発言を送る前の状態に戻しました/.test(JSON.stringify(e.data))));
+  assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /ファイルもこの発言を送る前の状態に戻しました/.test(JSON.stringify(e.data))));
   // 戻せなければ、何も消さずに 400
-  provider.rewindResult = { canRewind: false };
-  const count = store.listEvents(chatId).length;
-  const third = store.listEvents(chatId).filter((e) => e.type === "user")[1];
+  provider.rewindResult = { can_rewind: false };
+  const count = store.events.list(chatId).length;
+  const third = store.events.list(chatId).filter((e) => e.type === "user")[1];
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: third.id, text: "x", restore_files: true })).status, 400);
-  assert.equal(store.listEvents(chatId).length, count);
+  assert.equal(store.events.list(chatId).length, count);
 });
 
 test("巻き戻しの API: 分岐に対応していないプロバイダーなら 400（最初の発言なら分岐しないので送れる）", async () => {
@@ -936,12 +936,12 @@ test("巻き戻しの API: 分岐に対応していないプロバイダーな�
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
   await until(() => !runner.isBusy(chatId));
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
-  await until(() => !runner.isBusy(chatId) && store.listEvents(chatId).filter((e) => e.type === "result").length === 2);
-  const [firstUser, secondUser] = store.listEvents(chatId).filter((e) => e.type === "user");
+  await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
+  const [firstUser, secondUser] = store.events.list(chatId).filter((e) => e.type === "user");
   Object.assign(provider, { fork: undefined });
   const res = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: secondUser.id, text: "x" });
   assert.deepEqual(res, { status: 400, body: { error: "Fake は巻き戻しに対応していません" } });
-  assert.equal(store.listEvents(chatId).length, 4);
+  assert.equal(store.events.list(chatId).length, 4);
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: firstUser.id, text: "y" })).status, 200);
   await until(() => !runner.isBusy(chatId));
 });
@@ -1042,7 +1042,7 @@ test("止めずに伝える API: 作業中なら止めずに足して自分の�
   assert.deepEqual(provider.told, ["ついでに"]);
   assert.deepEqual(runner.queued(chatId), []);
   assert.equal(runner.isBusy(chatId), true);
-  assert.equal((store.listEvents(chatId).findLast((e) => e.type === "user")?.data as { text?: string }).text, "ついでに");
+  assert.equal((store.events.list(chatId).findLast((e) => e.type === "user")?.data as { text?: string }).text, "ついでに");
   assert.equal((await call("POST", `/api/chats/${chatId}/tell`, {})).status, 400);
   // 足せない（入力が閉じている）ときは待ちの列へ。行の「すぐ送る」で伝え直すときは先頭に戻す
   provider.acceptTell = false;

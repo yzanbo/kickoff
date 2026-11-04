@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { app, shell, type BrowserWindow, type WebContents } from "electron";
-import type { DiagnosticsFolders, DiagnosticsState } from "@shared/types";
+import type { DiagnosticsFolders, DiagnosticsState } from "@shared/ipc/diagnostics";
 import { errorMessage } from "@shared/errors";
 import { startMainRecording } from "./mainProcess.js";
 import { diagnosticsFolderName, perSecond, RENDERER_PROBE, topSelfTime, type CpuProfile, type Metrics } from "./profileSummary.js";

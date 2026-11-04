@@ -11,7 +11,7 @@ export function ResultMessage({ result, as: Tag = "span", className }: { result:
 export function SaveActions({ save, disabled, onSave }: { save: SaveState; disabled?: boolean; onSave: () => Promise<unknown> }) {
   return (
     <div className="form-actions">
-      <button className="btn btn-primary" disabled={disabled || save.saving} onClick={() => void save.chat(onSave)}>
+      <button className="btn btn-primary" disabled={disabled || save.saving} onClick={() => void save.run(onSave)}>
         {save.saving ? "保存中…" : "保存"}
       </button>
       <ResultMessage result={save.message} />

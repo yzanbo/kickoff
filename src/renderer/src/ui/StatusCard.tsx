@@ -26,5 +26,5 @@ export function StatusCard({ title, ok, detail, badge }: Props) {
 
 /** GitHub CLI（gh）の状態（全プロジェクトの画面の準備状況と設定で共通） */
 export function GitHubStatusCard({ github }: { github: { loading: boolean; data?: GitHubStatus; error?: string } }) {
-  return <StatusCard title="GitHub CLI（gh）" ok={github.loading ? undefined : Boolean(github.data?.loggedIn)} detail={github.error ?? github.data?.detail ?? "確認中…"} />;
+  return <StatusCard title="GitHub CLI（gh）" ok={github.loading ? undefined : Boolean(github.data?.logged_in)} detail={github.error ?? github.data?.detail ?? "確認中…"} />;
 }

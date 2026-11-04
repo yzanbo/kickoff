@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Approval, BusEvent, ProjectSummary } from "@shared/types";
+import type { Approval, BusEvent, Project } from "@shared/types";
 import { api } from "@/api";
 import { useServerEvents } from "@/api/useServerEvents";
 import { publishServerEvent } from "@/api/events";
@@ -9,7 +9,7 @@ import { publishServerEvent } from "@/api/events";
  * 受け取ったイベントは onEvent と、各画面（useServerEvent）にも配る
  */
 export function useAppData(onEvent: (event: BusEvent) => void) {
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [projectsDir, setProjectsDir] = useState("~/Documents");
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせるか（設定で切り替え）
@@ -24,8 +24,8 @@ export function useAppData(onEvent: (event: BusEvent) => void) {
     api
       .settings()
       .then((s) => {
-        setProjectsDir(s.projectsDir);
-        setNotifyEnabled(s.desktopNotifications);
+        setProjectsDir(s.projects_dir);
+        setNotifyEnabled(s.desktop_notifications);
       })
       .catch(() => {});
     api.approvals().then(setApprovals).catch(() => {});
@@ -37,7 +37,6 @@ export function useAppData(onEvent: (event: BusEvent) => void) {
     switch (event.type) {
       case "project":
       case "project_deleted":
-      case "chat":
         loadProjects();
         break;
       case "approval":
@@ -47,8 +46,8 @@ export function useAppData(onEvent: (event: BusEvent) => void) {
         setApprovals((prev) => prev.filter((a) => a.id !== event.id));
         break;
       case "settings":
-        setProjectsDir(event.settings.projectsDir);
-        setNotifyEnabled(event.settings.desktopNotifications);
+        setProjectsDir(event.settings.projects_dir);
+        setNotifyEnabled(event.settings.desktop_notifications);
         break;
     }
   });

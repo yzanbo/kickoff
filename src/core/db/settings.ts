@@ -2,22 +2,20 @@ import type { DatabaseSync } from "node:sqlite";
 import { DEFAULT_SETTINGS, type AppSettings } from "@shared/types";
 import type { Notify } from "./common.js";
 
-/** 秘密の値（API キーなど）のキーの頭。同じ表に置くが、設定（get・画面への配信）には含めない */
-const SECRET_PREFIX = "secret:";
+/** 秘密の値の名前（secrets の表） */
+export type SecretKey = "openai_transcribe_key";
 
-/** 秘密の値の名前 */
-export type SecretKey = "openaiTranscribeKey";
-
-/** アプリ全体の設定（settings 表。キーごとに JSON で持ち、既定とマージして返す） */
+/** アプリ全体の設定（settings の表。キーごとに JSON で持ち、既定とマージして返す） */
 export function createSettingsStore(db: DatabaseSync, onChange: Notify) {
   const get = (): AppSettings => {
-    const rows = db.prepare("SELECT key, value FROM settings WHERE key NOT LIKE ? || '%'").all(SECRET_PREFIX) as { key: string; value: string }[];
-    // なくした設定（以前の版で保存したキー）は返さない
-    const stored = Object.fromEntries(rows.filter((r) => r.key in DEFAULT_SETTINGS).map((r) => [r.key, JSON.parse(r.value)]));
-    return { ...DEFAULT_SETTINGS, ...stored };
+    const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
+    // 知らないキー（なくした設定）は返さない
+    const stored = Object.fromEntries(rows.filter((r) => r.key in DEFAULT_SETTINGS).map((r) => [r.key, JSON.parse(r.value)])) as Partial<AppSettings>;
+    return { ...DEFAULT_SETTINGS, ...stored, chat_defaults: { ...DEFAULT_SETTINGS.chat_defaults, ...stored.chat_defaults } };
   };
   return {
     get,
+    /** 送った項目だけを変える（chat_defaults は丸ごと置き換える） */
     update(patch: Partial<AppSettings>): AppSettings {
       const stmt = db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
       for (const [key, value] of Object.entries(patch)) {
@@ -27,18 +25,26 @@ export function createSettingsStore(db: DatabaseSync, onChange: Notify) {
       onChange({ type: "settings", settings });
       return settings;
     },
-    /** 秘密の値（なければ null。画面には返さない） */
-    secret(key: SecretKey): string | null {
-      const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(SECRET_PREFIX + key) as { value: string } | undefined;
-      return row ? (JSON.parse(row.value) as string) : null;
+  };
+}
+
+/** 秘密の値（API キーなど。secrets の表。設定の一覧・画面への配信には含めない） */
+export function createSecretStore(db: DatabaseSync) {
+  return {
+    /** なければ null */
+    get(key: SecretKey): string | null {
+      const row = db.prepare("SELECT value FROM secrets WHERE key = ?").get(key) as { value: string } | undefined;
+      return row?.value ?? null;
     },
-    /** 秘密の値を保存する（空なら消す） */
-    setSecret(key: SecretKey, value: string) {
-      if (value) {
-        db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(SECRET_PREFIX + key, JSON.stringify(value));
-      } else {
-        db.prepare("DELETE FROM settings WHERE key = ?").run(SECRET_PREFIX + key);
-      }
+    /** 保存する（空なら消す） */
+    set(key: SecretKey, value: string) {
+      if (value) db.prepare("INSERT INTO secrets (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, value);
+      else db.prepare("DELETE FROM secrets WHERE key = ?").run(key);
     },
   };
+}
+
+/** DB を作ったときに決めた ID（meta の表。画面が覚えている ID 入りの表示の状態を、DB を作り直したら捨てる目印） */
+export function readDatabaseId(db: DatabaseSync): string {
+  return (db.prepare("SELECT value FROM meta WHERE key = 'database_id'").get() as { value: string }).value;
 }

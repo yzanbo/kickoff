@@ -1,5 +1,6 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { EffortLevel, PermissionMode, ProviderId } from "@shared/types/settings";
+import type { ChatOptionsPatch } from "./chat";
+import type { ProviderId } from "./settings";
 
 export interface Project {
   id: number;
@@ -8,9 +9,9 @@ export interface Project {
   repo_path: string;
   provider: ProviderId;
   /** このプロジェクトの既定（書いていない項目はアプリ全体の設定に従う） */
-  defaults: ProjectDefaults;
+  chat_defaults: ChatOptionsPatch;
   /** 参照資料（AI がいつでも読めるフォルダ・ファイル。絶対パス） */
-  references: ProjectReference[];
+  reference_paths: ProjectReference[];
   /** サイドバーでの並び順（小さいほど前） */
   position: number;
   /** 上に固定している */
@@ -22,20 +23,8 @@ export interface Project {
   /** タグ（仕事・プライベートなど。前後の空白を除き、重複なし。サイドバー・全プロジェクトの画面の絞り込みに使う） */
   tags: string[];
   created_at: string;
-  /** 最後に動いた時刻（変更したとき・チャットを作ったときに進む。一覧の並び順） */
-  active_at: string;
 }
 
-/**
- * プロジェクトごとの既定。キーがなければアプリ全体の設定に従う。
- * effort の null は「指定しない（モデルの既定）」。
- */
-export interface ProjectDefaults {
-  model?: string;
-  effort?: EffortLevel | null;
-  permission?: PermissionMode;
-  fastMode?: boolean;
-}
 
 /** 参照資料の 1 件（AI は読むだけで、書き込めない） */
 export interface ProjectReference {
@@ -43,21 +32,17 @@ export interface ProjectReference {
   kind: "folder" | "file";
 }
 
-export interface ProjectSummary extends Project {
-  total_cost_usd: number;
-  active_chats: number;
-}
 /** 既存フォルダの点検結果（取り込みダイアログ用） */
-export interface WorkspaceInspection {
+export interface FolderInspection {
   path: string;
   exists: boolean;
-  isDirectory: boolean;
-  isGit: boolean;
-  gitRoot: string | null;
-  hasCommits: boolean;
+  is_directory: boolean;
+  is_git: boolean;
+  git_root: string | null;
+  has_commits: boolean;
   branch: string | null;
-  remoteUrl: string | null;
+  remote_url: string | null;
   dirty: boolean;
-  suggestedName: string;
+  suggested_name: string;
   registered_project_id?: number | null;
 }

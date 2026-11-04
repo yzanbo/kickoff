@@ -30,7 +30,7 @@ export function ConnectionSettings() {
             <StatusCard
               key={p.id}
               title={p.label}
-              ok={p.implemented ? p.loggedIn : null}
+              ok={p.implemented ? p.logged_in : null}
               badge={p.implemented ? undefined : "対応予定"}
               detail={
                 <>

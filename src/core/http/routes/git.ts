@@ -86,7 +86,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
   app.get("/api/projects/:id/git/pr", async (c) => {
     const dir = await requireWorkdir(c, requireProject(store, c.req.param("id")));
     const status = await gitStatus(dir);
-    if (!status.repo || !status.branch || !status.hasOrigin) return c.json(null);
+    if (!status.repo || !status.branch || !status.has_origin) return c.json(null);
     const branch = status.branch;
     return c.json(await badRequest(() => pullRequestFor(dir, branch)));
   });

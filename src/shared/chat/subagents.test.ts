@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ChatEvent } from "@shared/types";
-import { cleanSubagentReport, collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "@shared/chat/subagents";
+import { cleanSubagentReport, collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "./subagents";
 
 const ev = (id: number, type: ChatEvent["type"], data: object): ChatEvent =>
   ({ id, chat_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as ChatEvent;

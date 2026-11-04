@@ -31,8 +31,8 @@ export function ChatSettings() {
           help="終わって既読になったチャットを、最後に動いてからこの日数がたったら、一覧からしまいます。未読・回答待ち・作業中・失敗した・固定したチャットはしまいません。会話の記録は残り、アーカイブ済みから戻せます。"
         >
           <select
-            value={draft.autoArchiveDays ?? ""}
-            onChange={(e) => setDraft({ ...draft, autoArchiveDays: e.target.value ? Number(e.target.value) : null })}
+            value={draft.auto_archive_days ?? ""}
+            onChange={(e) => setDraft({ ...draft, auto_archive_days: e.target.value ? Number(e.target.value) : null })}
           >
             {ARCHIVE_CHOICES.map((c) => (
               <option key={c.label} value={c.value ?? ""}>
@@ -44,8 +44,8 @@ export function ChatSettings() {
         <label className="check">
           <input
             type="checkbox"
-            checked={draft.autoResumeOnReconnect}
-            onChange={(e) => setDraft({ ...draft, autoResumeOnReconnect: e.target.checked })}
+            checked={draft.auto_resume_on_reconnect}
+            onChange={(e) => setDraft({ ...draft, auto_resume_on_reconnect: e.target.checked })}
           />
           <span>
             通信が切れて止まったら、つながったときに自動で再開する
@@ -58,7 +58,7 @@ export function ChatSettings() {
       <SaveActions
         save={save}
         disabled={!dirty}
-        onSave={() => saveFields({ autoArchiveDays: draft.autoArchiveDays, autoResumeOnReconnect: draft.autoResumeOnReconnect })}
+        onSave={() => saveFields({ auto_archive_days: draft.auto_archive_days, auto_resume_on_reconnect: draft.auto_resume_on_reconnect })}
       />
       <div className="form">
         <Field

@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { z } from "zod";
+import type { ChatOptionsPatch } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
 
 // ルートで共通に使う zod の形（入力の検証に失敗したときの 400 は server.ts の onError が返す）
@@ -31,11 +32,11 @@ export const chatOptionsSchema = z
   .object({
     model: z.string().max(100).nullable(),
     effort: z.enum(EFFORT_LEVELS).nullable(),
-    permission_mode: z.enum(PERMISSION_MODES).nullable(),
-    fast_mode: z.boolean().nullable(),
+    permission_mode: z.enum(PERMISSION_MODES),
+    fast_mode: z.boolean(),
   })
   .partial()
-  .default({});
+  .default({}) satisfies z.ZodType<ChatOptionsPatch>;
 
 /** 添付（アップロード済みのファイル） */
 export const attachmentSchema = z.object({

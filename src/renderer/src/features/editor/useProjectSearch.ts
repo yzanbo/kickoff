@@ -7,19 +7,19 @@ import { useGitTarget } from "@/features/worktree/worktreeContext";
 /** 打つのが止まってから探すまでの時間 */
 const DEBOUNCE_MS = 300;
 
-type SearchOption = "caseSensitive" | "wholeWord" | "regex";
+type SearchOption = "case_sensitive" | "whole_word" | "regex";
 
 /** プロジェクトのファイルの中を探す（VS Code の検索と同じく、打つと探し直す。表示を切り替えても残す） */
 export function useProjectSearch(projectId: number) {
   const { target, key } = useGitTarget(projectId);
   const [query, setQuery] = useState("");
-  const [options, setOptions] = useState<Record<SearchOption, boolean>>({ caseSensitive: false, wholeWord: false, regex: false });
+  const [options, setOptions] = useState<Record<SearchOption, boolean>>({ case_sensitive: false, whole_word: false, regex: false });
   const [result, setResult] = useState<{ query: ProjectSearchQuery; value: ProjectSearchResult }>();
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
   const latest = useRef(0);
 
-  const chat = useCallback(
+  const run = useCallback(
     async (search: ProjectSearchQuery) => {
       const request = ++latest.current;
       setLoading(true);
@@ -47,9 +47,9 @@ export function useProjectSearch(projectId: number) {
       setLoading(false);
       return;
     }
-    const timer = setTimeout(() => void chat({ query, ...options }), DEBOUNCE_MS);
+    const timer = setTimeout(() => void run({ query, ...options }), DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query, options, chat]);
+  }, [query, options, run]);
 
   return {
     query,
@@ -60,7 +60,7 @@ export function useProjectSearch(projectId: number) {
     result,
     error,
     loading,
-    rerun: () => query && void chat(current),
+    rerun: () => query && void run(current),
   };
 }
 

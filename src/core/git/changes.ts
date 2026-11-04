@@ -82,7 +82,7 @@ export async function pushBranch(repo: string): Promise<void> {
     await gitOutput(repo, ["push", "-q"], [], 120_000);
     return;
   }
-  if (!status.hasOrigin) throw new Error("プッシュ先のリモート（origin）がありません");
+  if (!status.has_origin) throw new Error("プッシュ先のリモート（origin）がありません");
   await gitOutput(repo, ["push", "-q", "-u", "origin", status.branch], [], 120_000);
 }
 

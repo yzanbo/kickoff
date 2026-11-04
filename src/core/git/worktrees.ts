@@ -71,9 +71,9 @@ export async function worktreeRemovalInfo(repo: string, target: string): Promise
     branch,
     changes: changes.split("\n").filter(Boolean).length,
     unpushed: Number(unpushed.trim()) || 0,
-    onlyHere: Number(onlyHere.trim()) || 0,
+    only_here: Number(onlyHere.trim()) || 0,
     pushed: Boolean(upstream.trim()),
-    hasRemote: Boolean(remotes.trim()),
+    has_remote: Boolean(remotes.trim()),
   };
 }
 

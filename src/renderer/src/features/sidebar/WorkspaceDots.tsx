@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, type CSSProperties, type MouseEvent } from "react";
-import type { ProjectSummary } from "@shared/types";
+import type { Project } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { initialOf, projectHue } from "@/features/project/projectColor";
 import type { StateCounts } from "@/features/chat/chatState";
@@ -21,7 +21,7 @@ export function WorkspaceDots({
   onMenu,
   onNewProject,
 }: {
-  projects: ProjectSummary[];
+  projects: Project[];
   /** 選んでいるプロジェクトの位置 */
   index: number;
   /** プロジェクトごとの、作業中・回答待ち・未読のチャット数 */
@@ -32,7 +32,7 @@ export function WorkspaceDots({
   reorder: ProjectReorder;
   onGo: (index: number) => void;
   /** 右クリック（プロジェクトのメニューを開く） */
-  onMenu: (e: MouseEvent, project: ProjectSummary) => void;
+  onMenu: (e: MouseEvent, project: Project) => void;
   onNewProject: () => void;
 }) {
   const dotsRef = useRef<HTMLDivElement>(null);

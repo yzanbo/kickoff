@@ -7,8 +7,9 @@ import { isWaitingState, waitingChats } from "./chatListFlags";
 const chat = (id: number, patch: Partial<Chat> = {}): Chat => ({ id, status: "completed", unread: false, archived_at: null, ...patch }) as Chat;
 const chats = [
   chat(1, { status: "running" }),
-  chat(2, { status: "queued" }),
-  chat(3, { status: "waiting" }),
+  chat(2, { status: "running" }),
+  // 回答待ちの依頼がある（approvals から引く）
+  chat(3, { status: "running" }),
   chat(4, { status: "completed", unread: true }),
   chat(5, { status: "failed", unread: true }),
   // 見た失敗は既読なので、自分待ちに入らない
@@ -17,9 +18,9 @@ const chats = [
   // 回答待ちの依頼がある（approvals から引く）
   chat(7, { status: "running" }),
   // アーカイブ済みは数えない
-  chat(8, { status: "waiting", archived_at: "2026-01-01T00:00:00Z" }),
+  chat(8, { status: "running", archived_at: "2026-01-01T00:00:00Z" }),
 ];
-const pending = approvalIndex([{ chat_id: 7 }]);
+const pending = approvalIndex([{ chat_id: 3 }, { chat_id: 7 }, { chat_id: 8 }]);
 
 test("isWaitingState: 自分が見る番は回答待ちと未読（失敗したものも未読）", () => {
   assert.equal(isWaitingState("needs_input"), true);

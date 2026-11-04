@@ -21,32 +21,6 @@ export function remapStops(prev: QueuedMessage[], next: QueuedMessage[], stops: 
 }
 
 /**
- * 保存した印を読む（stop_after の列）。いまの形は位置の JSON の配列。印を指示に付けていたころの形
- * （指示の ID そのまま・ID の JSON の配列）は、その指示のすぐあとの位置にする
- */
-export function decodeStops(raw: string | null, messages: QueuedMessage[]): number[] {
-  if (!raw) return [];
-  let items: unknown[] = [raw];
-  if (raw.startsWith("[")) {
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      items = Array.isArray(parsed) ? parsed : [];
-    } catch {
-      items = [];
-    }
-  }
-  const stops = items.flatMap((x) => {
-    if (typeof x === "number") return [x];
-    const index = typeof x === "string" ? messages.findIndex((m) => m.id === x) : -1;
-    return index >= 0 ? [index + 1] : [];
-  });
-  return normalizeStops(stops, messages.length);
-}
-
-/** 印を保存する形（位置の JSON の配列。なければ null） */
-export const encodeStops = (stops: number[]): string | null => (stops.length === 0 ? null : JSON.stringify(stops));
-
-/**
  * 指示を動かす先（印の線も並んだ見た目の並びの中の、すき間）。at は動かす前の並びでの位置（0〜件数。その位置の指示の前）、
  * belowStop はその位置に印があるとき、印の下（true）に入れるか上（false）に入れるか
  */

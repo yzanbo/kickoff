@@ -27,7 +27,7 @@ test("文字起こし（この Mac）: コマンド・モデルがなければ 4
   const { app, call, bus, voiceFake } = setup();
   const events: BusEvent[] = [];
   bus.subscribe((e) => events.push(e));
-  await call("PUT", "/api/settings", { voiceEnabled: true, voiceProvider: "local", voiceModel: "base", voiceLanguage: "ja" });
+  await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "local", voice_model: "base", voice_language: "ja" });
   voiceFake.tools = { whisper: null, ffmpeg: "/fake/ffmpeg" };
   const missing = await transcribe(app);
   assert.equal(missing.status, 400);
@@ -89,7 +89,7 @@ test("文字起こし（OpenAI）: キーがなければ 400、保存したら O
   const { app, call, bus, voiceFake } = setup();
   const events: string[] = [];
   bus.subscribe((e) => events.push(JSON.stringify(e)));
-  await call("PUT", "/api/settings", { voiceEnabled: true, voiceProvider: "openai", voiceOpenaiModel: "whisper-1", voiceOpenaiBaseUrl: "https://example.test/v1" });
+  await call("PUT", "/api/settings", { voice_enabled: true, voice_provider: "openai", voice_openai_model: "whisper-1", voice_openai_base_url: "https://example.test/v1" });
   const noKey = await transcribe(app);
   assert.equal(noKey.status, 400);
   assert.match(noKey.body.error, /API キーがありません/);
@@ -103,20 +103,20 @@ test("文字起こし（OpenAI）: キーがなければ 400、保存したら O
 
   const settings = await call("GET", "/api/settings");
   const status = await call("GET", "/api/voice");
-  assert.equal(status.body.openai.keySaved, true);
+  assert.equal(status.body.openai.key_saved, true);
   for (const text of [JSON.stringify(settings.body), JSON.stringify(status.body), ...events]) assert.ok(!text.includes("sk-secret"), text);
 
   assert.deepEqual((await call("PUT", "/api/voice/openai-key", { key: "" })).body, { saved: false });
-  assert.equal((await call("GET", "/api/voice")).body.openai.keySaved, false);
+  assert.equal((await call("GET", "/api/voice")).body.openai.key_saved, false);
 });
 
 test("設定: 音声入力の項目を検証する（知らない方法・モデル・http(s) 以外の URL は 400）", async () => {
   const { call } = setup();
-  assert.equal((await call("PUT", "/api/settings", { voiceProvider: "google" })).status, 400);
-  assert.equal((await call("PUT", "/api/settings", { voiceModel: "huge" })).status, 400);
-  assert.equal((await call("PUT", "/api/settings", { voiceOpenaiBaseUrl: "file:///etc" })).status, 400);
-  assert.equal((await call("PUT", "/api/settings", { voiceLanguage: "auto" })).status, 200);
+  assert.equal((await call("PUT", "/api/settings", { voice_provider: "google" })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { voice_model: "huge" })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { voice_openai_base_url: "file:///etc" })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { voice_language: "auto" })).status, 200);
   const defaults = (await call("GET", "/api/settings")).body;
-  assert.equal(defaults.voiceEnabled, false);
-  assert.equal(defaults.voiceModel, "large-v3-turbo-q5_0");
+  assert.equal(defaults.voice_enabled, false);
+  assert.equal(defaults.voice_model, "large-v3-turbo-q5_0");
 });

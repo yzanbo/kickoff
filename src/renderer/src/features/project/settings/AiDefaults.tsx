@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionMode, type Project, type ProjectDefaults } from "@shared/types";
+import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionMode, type Project, type ChatOptionsPatch } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useSave } from "@/hooks/useSave";
@@ -13,25 +13,25 @@ const INHERIT = "__inherit__";
 
 export function AiDefaults({ project, app }: { project: Project; app: AppSettings | undefined }) {
   const models = useAsync(() => api.models("claude"));
-  const [draft, setDraft] = useState<ProjectDefaults>(project.defaults);
+  const [draft, setDraft] = useState<ChatOptionsPatch>(project.chat_defaults);
   const save = useSave();
-  useEffect(() => setDraft(project.defaults), [project.defaults]);
+  useEffect(() => setDraft(project.chat_defaults), [project.chat_defaults]);
 
   /** キーを消すと、アプリの設定に従う */
-  const set = <K extends keyof ProjectDefaults>(key: K, value: ProjectDefaults[K] | typeof INHERIT) => {
+  const set = <K extends keyof ChatOptionsPatch>(key: K, value: ChatOptionsPatch[K] | typeof INHERIT) => {
     const next = { ...draft };
     if (value === INHERIT) delete next[key];
-    else next[key] = value as ProjectDefaults[K];
+    else next[key] = value as ChatOptionsPatch[K];
     setDraft(next);
   };
-  const keys = ["model", "effort", "permission", "fastMode"] as const;
-  const dirty = keys.some((k) => JSON.stringify(draft[k]) !== JSON.stringify(project.defaults[k]));
+  const keys = ["model", "effort", "permission_mode", "fast_mode"] as const;
+  const dirty = keys.some((k) => JSON.stringify(draft[k]) !== JSON.stringify(project.chat_defaults[k]));
   const list = models.data ?? [];
-  const currentModel = list.find((m) => m.value === (draft.model ?? app?.claudeModel));
+  const currentModel = list.find((m) => m.value === (draft.model ?? app?.chat_defaults.model));
 
   // アプリの設定の値（「アプリの設定に従う」の横に出す）
-  const appEffort = app ? (app.defaultEffort ? EFFORT_LABELS[app.defaultEffort] : EFFORT_UNSET_LABEL) : "…";
-  const appPermission = app ? PERMISSION_LABELS[app.defaultPermission] : "…";
+  const appEffort = app ? (app.chat_defaults.effort ? EFFORT_LABELS[app.chat_defaults.effort] : EFFORT_UNSET_LABEL) : "…";
+  const appPermission = app ? PERMISSION_LABELS[app.chat_defaults.permission_mode] : "…";
 
   return (
     <div className="ai-defaults">
@@ -42,7 +42,7 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
       <div className="form">
         <Field label="モデル">
           <select value={draft.model ?? INHERIT} onChange={(e) => set("model", e.target.value)}>
-            <option value={INHERIT}>アプリの設定に従う（{app ? modelDisplayName(list, app.claudeModel) : "…"}）</option>
+            <option value={INHERIT}>アプリの設定に従う（{app ? modelDisplayName(list, app.chat_defaults.model ?? "") : "…"}）</option>
             <ModelOptions models={list} value={draft.model} />
           </select>
         </Field>
@@ -57,24 +57,24 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
           </select>
         </Field>
         <Field label="権限モード">
-          <select value={draft.permission ?? INHERIT} onChange={(e) => set("permission", e.target.value as PermissionMode | typeof INHERIT)}>
+          <select value={draft.permission_mode ?? INHERIT} onChange={(e) => set("permission_mode", e.target.value as PermissionMode | typeof INHERIT)}>
             <option value={INHERIT}>アプリの設定に従う（{appPermission}）</option>
             <PermissionOptions model={currentModel} />
           </select>
         </Field>
         <Field label="ファストモード">
           <select
-            value={draft.fastMode === undefined ? INHERIT : draft.fastMode ? "on" : "off"}
-            onChange={(e) => set("fastMode", e.target.value === INHERIT ? INHERIT : e.target.value === "on")}
+            value={draft.fast_mode === undefined ? INHERIT : draft.fast_mode ? "on" : "off"}
+            onChange={(e) => set("fast_mode", e.target.value === INHERIT ? INHERIT : e.target.value === "on")}
           >
-            <option value={INHERIT}>アプリの設定に従う（{app ? (app.defaultFastMode ? "使う" : "使わない") : "…"}）</option>
-            <option value="on" disabled={currentModel ? !currentModel.supportsFastMode : false}>
-              使う{currentModel && !currentModel.supportsFastMode ? "（このモデルは対応していません）" : ""}
+            <option value={INHERIT}>アプリの設定に従う（{app ? (app.chat_defaults.fast_mode ? "使う" : "使わない") : "…"}）</option>
+            <option value="on" disabled={currentModel ? !currentModel.supports_fast_mode : false}>
+              使う{currentModel && !currentModel.supports_fast_mode ? "（このモデルは対応していません）" : ""}
             </option>
             <option value="off">使わない</option>
           </select>
         </Field>
-        <SaveActions save={save} disabled={!dirty} onSave={() => api.updateProject(project.id, { defaults: draft })} />
+        <SaveActions save={save} disabled={!dirty} onSave={() => api.updateProject(project.id, { chat_defaults: draft })} />
       </div>
     </div>
   );

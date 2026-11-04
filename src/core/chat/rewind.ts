@@ -1,7 +1,7 @@
 import type { AgentProvider } from "../providers/types.js";
 import type { Runner } from "./runner.js";
 import type { Store } from "../db/store.js";
-import type { Attachment, FileRewindResult, ProviderId, Chat, ChatOptions } from "@shared/types";
+import type { Attachment, FileRewindResult, ProviderId, Chat, ChatOptionsPatch } from "@shared/types";
 
 /** 作業中なので巻き戻せない（ルートで 409） */
 export class ChatBusyError extends Error {
@@ -21,11 +21,11 @@ export class ChatBusyError extends Error {
 export async function rewindChat(
   deps: { store: Store; runner: Runner; providers: Record<ProviderId, AgentProvider> },
   chat: Chat,
-  input: { eventId: number; text: string; options: ChatOptions; cwd: string; restoreFiles?: boolean },
+  input: { eventId: number; text: string; options: ChatOptionsPatch; cwd: string; restoreFiles?: boolean },
 ): Promise<Chat> {
   const { store, runner, providers } = deps;
   if (runner.isBusy(chat.id)) throw new ChatBusyError();
-  const events = store.listEvents(chat.id);
+  const events = store.events.list(chat.id);
   const index = events.findIndex((e) => e.id === input.eventId);
   const target = events[index];
   if (target?.type !== "user") throw new Error("自分の発言のところからだけ巻き戻せます");
@@ -51,10 +51,10 @@ export async function rewindChat(
   if (runner.isBusy(chat.id)) throw new ChatBusyError();
 
   runner.clearQueued(chat.id);
-  store.deleteEventsFrom(chat.id, target.id);
+  store.events.deleteFrom(chat.id, target.id);
   // コンテキストの大きさは、次の応答まで分からない
-  store.updateChat(chat.id, { session_id: sessionId, context_tokens: null });
-  store.addEvent(chat.id, {
+  store.chats.update(chat.id, { session_id: sessionId, context_tokens: null });
+  store.events.add(chat.id, {
     type: "notice",
     message: restored
       ? `この発言から巻き戻して送り直しました（ファイルもこの発言を送る前の状態に戻しました: ${restoredSummary(restored)}）`
@@ -65,7 +65,7 @@ export async function rewindChat(
 
 /** 戻したファイル（「2 個のファイル: README.md、a.ts」。多ければ頭の 5 個） */
 function restoredSummary(r: FileRewindResult): string {
-  const names = (r.filesChanged ?? []).map((p) => p.slice(p.lastIndexOf("/") + 1));
+  const names = (r.files_changed ?? []).map((p) => p.slice(p.lastIndexOf("/") + 1));
   if (names.length === 0) return "変わったファイルはありませんでした";
   return `${names.length} 個のファイル: ${names.slice(0, 5).join("、")}${names.length > 5 ? " ほか" : ""}`;
 }
@@ -83,7 +83,7 @@ export async function rewindFiles(
 ): Promise<FileRewindResult> {
   const { store, runner, providers } = deps;
   if (runner.isBusy(chat.id)) throw new ChatBusyError();
-  const target = store.listEvents(chat.id).find((e) => e.id === input.eventId);
+  const target = store.events.list(chat.id).find((e) => e.id === input.eventId);
   if (target?.type !== "user") throw new Error("自分の発言のところからだけ戻せます");
   const messageId = (target.data as { message_uuid?: string }).message_uuid;
   const provider = providers[chat.provider];
@@ -91,12 +91,12 @@ export async function rewindFiles(
   if (!messageId || !chat.session_id) throw new Error("この発言のときのファイルの記録がないため、ファイルは戻せません（戻せるのは、この機能を入れたあとに送った発言からです）");
   // 本当に戻したときの結果には、変わったファイルが付かないので、先に量を測っておく
   const preview = await provider.rewindFiles(chat.session_id, messageId, input.cwd, true);
-  if (!preview.canRewind) throw new Error(`ファイルを戻せませんでした${preview.error ? `: ${preview.error}` : ""}`);
+  if (!preview.can_rewind) throw new Error(`ファイルを戻せませんでした${preview.error ? `: ${preview.error}` : ""}`);
   if (input.dryRun) return preview;
   const done = await provider.rewindFiles(chat.session_id, messageId, input.cwd, false);
-  if (!done.canRewind) throw new Error(`ファイルを戻せませんでした${done.error ? `: ${done.error}` : ""}`);
-  const result = { ...preview, ...done, filesChanged: preview.filesChanged, insertions: preview.insertions, deletions: preview.deletions };
-  store.addEvent(chat.id, { type: "notice", message: `ファイルを、この発言を送る前の状態に戻しました（${restoredSummary(result)}。会話はそのまま）` });
+  if (!done.can_rewind) throw new Error(`ファイルを戻せませんでした${done.error ? `: ${done.error}` : ""}`);
+  const result = { ...preview, ...done, filesChanged: preview.files_changed, insertions: preview.insertions, deletions: preview.deletions };
+  store.events.add(chat.id, { type: "notice", message: `ファイルを、この発言を送る前の状態に戻しました（${restoredSummary(result)}。会話はそのまま）` });
   return result;
 }
 

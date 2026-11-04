@@ -41,7 +41,7 @@ function setup(script: Script, uploads?: UploadStore) {
     uploads,
     bus,
   });
-  const project = store.createProject({ name: "p", repo_path: "/tmp", provider: "claude" });
+  const project = store.projects.create({ name: "p", repo_path: "/tmp", provider: "claude" });
   return { store, approvals, runner, provider, project, bus };
 }
 
@@ -59,28 +59,28 @@ test("実行するとイベントが記録され、続きのメッセージは�
   });
 
   const chat = await runner.start({ projectId: project.id, prompt: "こんにちは", options: { model: "sonnet", effort: "low" } });
-  await until(() => store.getChat(chat.id)?.status === "completed");
-  assert.equal(store.getChat(chat.id)?.session_id, "s1");
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.equal(store.chats.get(chat.id)?.session_id, "s1");
   assert.equal(provider.calls[0].model, "sonnet");
   assert.equal(provider.calls[0].effort, "low");
   // チャット欄の指定はそのチャットだけに効き、設定の既定は変わらない
-  assert.equal(store.getSettings().claudeModel, "opus");
+  assert.equal(store.settings.get().chat_defaults.model, "opus");
 
   await runner.send(chat.id, "続き", { permission_mode: "plan" });
-  await until(() => store.getChat(chat.id)?.num_turns === 2);
+  await until(() => store.chats.get(chat.id)?.num_turns === 2);
   assert.equal(provider.calls[1].resumeSessionId, "s1");
   assert.equal(provider.calls[1].permissionMode, "plan");
   assert.deepEqual(
-    store.listEvents(chat.id).map((e) => e.type),
+    store.events.list(chat.id).map((e) => e.type),
     ["user", "init", "text", "result", "user", "init", "text", "result"],
   );
 });
 
 test("チャット欄で指定がなければ設定の既定（モデル・深さ・権限・ファストモード）を使う", async () => {
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
-  store.updateSettings({ claudeModel: "fable", defaultEffort: "high", defaultPermission: "auto", defaultFastMode: true });
+  store.settings.update({ chat_defaults: { model: "fable", effort: "high", permission_mode: "auto", fast_mode: true } });
   const chat = await runner.start({ projectId: project.id, prompt: "x" });
-  await until(() => store.getChat(chat.id)?.status === "completed");
+  await until(() => store.chats.get(chat.id)?.status === "completed");
   const call = provider.calls[0];
   assert.deepEqual([call.model, call.effort, call.permissionMode, call.fastMode], ["fable", "high", "auto", true]);
 });
@@ -88,10 +88,10 @@ test("チャット欄で指定がなければ設定の既定（モデル・深�
 test("どこでも決めていなければ、推論の深さは指定せず（null）、権限モードは毎回確認。指示と権限はどのチャットも同じ", async () => {
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
   const chat = await runner.start({ projectId: project.id, prompt: "x" });
-  await until(() => store.getChat(chat.id)?.status === "completed");
+  await until(() => store.chats.get(chat.id)?.status === "completed");
   const call = provider.calls[0];
   assert.deepEqual([call.effort, call.permissionMode], [null, "default"]);
-  assert.deepEqual([store.getChat(chat.id)?.effort, store.getChat(chat.id)?.permission_mode], [null, "default"]);
+  assert.deepEqual([store.chats.get(chat.id)?.effort, store.chats.get(chat.id)?.permission_mode], [null, "default"]);
   assert.ok(call.policy.allowedCommands.includes("git status"));
   assert.ok(!call.systemPrompt.includes("mcp__kickoff__"));
 });
@@ -102,11 +102,11 @@ test("添付ファイルはパスがメッセージに書き添えられ、会�
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }), uploads);
   const attachment = await uploads.save({ name: "spec.md", type: "text/markdown", bytes: new TextEncoder().encode("# 仕様") });
   const chat = await runner.start({ projectId: project.id, prompt: "読んで", attachments: [attachment] });
-  await until(() => store.getChat(chat.id)?.status === "completed");
+  await until(() => store.chats.get(chat.id)?.status === "completed");
   assert.match(provider.calls[0].prompt, /spec\.md（text\/markdown/);
   assert.deepEqual(provider.calls[0].additionalDirectories, [uploadsDir]);
   // 発言には、Claude Code に渡した ID も残す（ファイルを戻すときの目印）
-  const { message_uuid, ...data } = store.listEvents(chat.id)[0].data as { message_uuid?: string };
+  const { message_uuid, ...data } = store.events.list(chat.id)[0].data as { message_uuid?: string };
   assert.deepEqual(data, { text: "読んで", attachments: [attachment] });
   assert.equal(message_uuid, provider.calls[0].promptId);
 });
@@ -123,11 +123,11 @@ test("返答の途中経過は配信だけされ、チャット名は AI が付�
   bus.subscribe((e) => e.type === "chat_delta" && deltas.push(e.text));
 
   const chat = await runner.start({ projectId: project.id, prompt: "とても長い依頼文" });
-  await until(() => store.getChat(chat.id)?.status === "completed" && store.getChat(chat.id)?.title === "挨拶");
+  await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.title === "挨拶");
   assert.deepEqual(deltas, ["こん", "にちは"]);
   // 途中経過は保存しない
   assert.deepEqual(
-    store.listEvents(chat.id).map((e) => e.type),
+    store.events.list(chat.id).map((e) => e.type),
     ["user", "text", "result"],
   );
 });
@@ -144,21 +144,21 @@ test("作業が終わると未読になり、続けて送ると消える。中�
     return { status: signal.aborted ? "cancelled" : "completed", sessionId: "s" };
   });
   const chat = await runner.start({ projectId: project.id, prompt: "x" });
-  await until(() => store.getChat(chat.id)?.status === "completed");
-  assert.equal(store.getChat(chat.id)?.unread, true);
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.equal(store.chats.get(chat.id)?.unread, true);
 
   await runner.send(chat.id, "続き");
-  assert.equal(store.getChat(chat.id)?.unread, false);
+  assert.equal(store.chats.get(chat.id)?.unread, false);
   release();
-  await until(() => store.getChat(chat.id)?.status === "completed" && store.getChat(chat.id)?.unread === true);
+  await until(() => store.chats.get(chat.id)?.status === "completed" && store.chats.get(chat.id)?.unread === true);
 
   // 中断したときは未読を付けない
-  store.updateChat(chat.id, { unread: false });
+  store.chats.update(chat.id, { unread: false });
   await runner.send(chat.id, "もう一度");
-  await until(() => store.getChat(chat.id)?.status === "running");
+  await until(() => store.chats.get(chat.id)?.status === "running");
   runner.cancel(chat.id);
-  await until(() => store.getChat(chat.id)?.status === "cancelled");
-  assert.equal(store.getChat(chat.id)?.unread, false);
+  await until(() => store.chats.get(chat.id)?.status === "cancelled");
+  assert.equal(store.chats.get(chat.id)?.unread, false);
 });
 
 test("送った直後（作業場所を調べている間）に止めても、プロバイダーを動かさずに中断で終わる", async () => {
@@ -170,12 +170,12 @@ test("送った直後（作業場所を調べている間）に止めても、�
   });
   const chat = await runner.start({ projectId: project.id, prompt: "x" });
   runner.cancel(chat.id);
-  await until(() => store.getChat(chat.id)?.status === "cancelled");
+  await until(() => store.chats.get(chat.id)?.status === "cancelled");
   assert.equal(calls, 0);
   assert.equal(runner.isBusy(chat.id), false);
 });
 
-test("承認待ちの間は waiting になり、回答するとエージェントに結果が渡る", async () => {
+test("承認待ちの間は作業中のまま回答待ちの一覧に入り、回答するとエージェントに結果が渡る", async () => {
   let received: unknown;
   const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {
     received = await cb.requestApproval({ kind: "question", toolName: "AskUserQuestion", input: { questions: [] }, canRemember: false }, signal);
@@ -183,14 +183,15 @@ test("承認待ちの間は waiting になり、回答するとエージェン�
   });
 
   const chat = await runner.start({ projectId: project.id, prompt: "q" });
-  await until(() => store.getChat(chat.id)?.status === "waiting");
+  await until(() => approvals.list({ chatId: chat.id }).length === 1);
+  assert.equal(store.chats.get(chat.id)?.status, "running");
   const [pending] = approvals.list({ chatId: chat.id });
   assert.ok(approvals.resolve(pending.id, { action: "answer", answers: { 何を作る: "Todo" } }));
-  await until(() => store.getChat(chat.id)?.status === "completed");
+  await until(() => store.chats.get(chat.id)?.status === "completed");
   assert.deepEqual(received, { action: "answer", answers: { 何を作る: "Todo" } });
   assert.equal(approvals.list().length, 0);
   // 何と答えたかを記録に残す（画面は「質問への回答」の吹き出しで出す）
-  const resolved = store.listEvents(chat.id).find((e) => e.type === "approval_resolved");
+  const resolved = store.events.list(chat.id).find((e) => e.type === "approval_resolved");
   assert.deepEqual(resolved?.data, { approval_id: pending.id, action: "answer", kind: "question", answers: { 何を作る: "Todo" } });
 });
 
@@ -201,13 +202,13 @@ test("質問の「その他」に添付して答えたら、記録には選ん�
     return { status: "completed", sessionId: "s" };
   });
   const chat = await runner.start({ projectId: project.id, prompt: "q" });
-  await until(() => store.getChat(chat.id)?.status === "waiting");
+  await until(() => approvals.list({ chatId: chat.id }).length === 1);
   const [pending] = approvals.list({ chatId: chat.id });
   const attachment = { id: "a1", name: "色.png", mime: "image/png", size: 10 };
   approvals.resolve(pending.id, { action: "answer", answers: { 好きな色: "この色（/path/色.png）" }, plain: { 好きな色: "この色" }, attachments: { 好きな色: [attachment] } });
-  await until(() => store.getChat(chat.id)?.status === "completed");
+  await until(() => store.chats.get(chat.id)?.status === "completed");
   assert.deepEqual((received as { answers: unknown }).answers, { 好きな色: "この色（/path/色.png）" });
-  const resolved = store.listEvents(chat.id).find((e) => e.type === "approval_resolved");
+  const resolved = store.events.list(chat.id).find((e) => e.type === "approval_resolved");
   assert.deepEqual(resolved?.data, {
     approval_id: pending.id,
     action: "answer",
@@ -224,17 +225,17 @@ test("送った指示は数に関係なくすぐ動き、中断すると承認�
   });
 
   const chats = await Promise.all(["a", "b", "c"].map((prompt) => runner.start({ projectId: project.id, prompt })));
-  await until(() => chats.every((r) => store.getChat(r.id)?.status === "waiting"));
+  await until(() => chats.every((r) => approvals.list({ chatId: r.id }).length === 1));
   assert.equal(runner.stats().running, 3);
 
   runner.cancel(chats[0].id);
-  await until(() => store.getChat(chats[0].id)?.status === "cancelled");
+  await until(() => store.chats.get(chats[0].id)?.status === "cancelled");
   assert.deepEqual(
     approvals.list().map((x) => x.chat_id).sort(),
     [chats[1].id, chats[2].id].sort(),
   );
   for (const r of chats.slice(1)) runner.cancel(r.id);
-  await until(() => chats.every((r) => store.getChat(r.id)?.status === "cancelled"));
+  await until(() => chats.every((r) => store.chats.get(r.id)?.status === "cancelled"));
 });
 
 test("手で圧縮すると /compact を送り、要約したことだけを残す（発言・未読・会話の回数には数えない）", async () => {
@@ -250,28 +251,27 @@ test("手で圧縮すると /compact を送り、要約したことだけを残�
   });
 
   // まだ会話がないチャットは圧縮できない
-  const fresh = store.createChat({ project_id: project.id, provider: "claude", title: "t", status: "completed", model: null });
+  const fresh = store.chats.create({ project_id: project.id, provider: "claude", title: "t", status: "completed", model: null });
   await assert.rejects(runner.compact(fresh.id), /まだ会話がない/);
 
   const chat = await runner.start({ projectId: project.id, prompt: "こんにちは" });
-  await until(() => store.getChat(chat.id)?.status === "completed");
-  store.setChatUnread(chat.id, false);
-  const before = store.getChat(chat.id)!;
-  const eventsBefore = store.listEvents(chat.id).length;
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  store.chats.setUnread(chat.id, false);
+  const before = store.chats.get(chat.id)!;
+  const eventsBefore = store.events.list(chat.id).length;
 
   await runner.compact(chat.id);
-  await until(() => !runner.isBusy(chat.id) && store.getChat(chat.id)?.status === "completed");
-  const after = store.getChat(chat.id)!;
+  await until(() => !runner.isBusy(chat.id) && store.chats.get(chat.id)?.status === "completed");
+  const after = store.chats.get(chat.id)!;
   assert.equal(provider.calls.at(-1)?.prompt, "/compact");
   assert.equal(provider.calls.at(-1)?.resumeSessionId, "s1");
-  const added = store.listEvents(chat.id).slice(eventsBefore);
+  const added = store.events.list(chat.id).slice(eventsBefore);
   assert.deepEqual(
     added.map((e) => e.type),
     ["compact"],
   );
   assert.equal(after.unread, false);
   assert.equal(after.num_turns, before.num_turns);
-  assert.equal(after.result, before.result);
   assert.equal(after.context_tokens, 18_000);
 });
 
@@ -305,7 +305,7 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
   gates[1]();
   await until(() => gates.length === 3);
   gates[2]();
-  await until(() => store.getChat(chat.id)?.status === "completed" && runner.queued(chat.id).length === 0);
+  await until(() => store.chats.get(chat.id)?.status === "completed" && runner.queued(chat.id).length === 0);
   assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "3", "2"]);
   assert.deepEqual(published, [1, 2, 2, 1, 0]);
   // 作業中でなければすぐ送る
@@ -338,7 +338,7 @@ test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送
   await until(() => gates.length === 3);
   assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "2", "4"]);
   gates[2]();
-  await until(() => store.getChat(chat.id)?.status === "completed");
+  await until(() => store.chats.get(chat.id)?.status === "completed");
 });
 
 test("待ちの列: アプリを終えるときは送らない", async () => {
@@ -364,7 +364,7 @@ test("送信待ちを送っている途中に「いま」で送っても、同�
     return { status: "completed", sessionId: "s1" };
   });
   const chat = await runner.start({ projectId: project.id, prompt: "最初" });
-  await until(() => store.getChat(chat.id)?.status === "completed");
+  await until(() => store.chats.get(chat.id)?.status === "completed");
   // 送信待ちの次の指示を送っている（送る準備の途中）ところへ、「いま」で送る
   const results = await Promise.allSettled([runner.send(chat.id, "送信待ちの指示"), runner.tell(chat.id, "いまの指示")]);
   assert.deepEqual(
@@ -377,8 +377,8 @@ test("送信待ちを送っている途中に「いま」で送っても、同�
   assert.match(provider.calls[1].prompt, /送信待ちの指示/);
   assert.match(provider.calls[2].prompt, /いまの指示/);
   assert.deepEqual(
-    store
-      .listEvents(chat.id)
+    store.events
+      .list(chat.id)
       .filter((e) => e.type === "user")
       .map((e) => (e.data as { text: string }).text),
     ["最初", "送信待ちの指示", "いまの指示"],
@@ -404,5 +404,5 @@ test("作業が終わるのと同時に「いま」で送って待ちの列に�
   assert.equal(await told, "queued");
   await until(() => provider.calls.length === 2 && !runner.isBusy(chat.id));
   assert.match(provider.calls[1].prompt, /いまの指示/);
-  assert.equal(store.getChat(chat.id)?.status, "completed");
+  assert.equal(store.chats.get(chat.id)?.status, "completed");
 });

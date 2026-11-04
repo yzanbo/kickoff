@@ -12,7 +12,6 @@ import { planLabel, usageLevel, usageUnavailableText, useSharedPlanUsage, weekly
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ErrorText } from "@/ui/ErrorText";
 import { RefreshButton } from "@/ui/IconButton";
-import { BUSY_STATUSES } from "@/features/chat/chatStatus";
 import { COMPACTING_LABEL } from "@/features/chat/status/workingLabel";
 
 // ログイン中のアカウントは、アプリ全体で 1 回だけ取得する
@@ -52,7 +51,7 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
     : [];
 
   // 手で圧縮する（作業中・まだ会話がないときはできない）。終わると compact イベントとコンテキストの大きさが届く
-  const canCompact = Boolean(chat.session_id) && !BUSY_STATUSES.includes(chat.status);
+  const canCompact = Boolean(chat.session_id) && chat.status !== "running";
   const [compactError, setCompactError] = useState<string>();
   const compact = async () => {
     setCompactError(undefined);

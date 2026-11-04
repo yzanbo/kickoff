@@ -43,14 +43,14 @@ const projectPatchSchema = z
     pinned: z.boolean(),
     archived: z.boolean(),
     // 参照資料（パスだけ送ればよい。種類はサーバーで調べる）
-    references: z.array(z.object({ path: z.string().trim().min(1).max(1000) })).max(50),
+    reference_paths: z.array(z.object({ path: z.string().trim().min(1).max(1000) })).max(50),
     // 送った内容で置き換える（書いていない項目はアプリ全体の設定に従う）
-    defaults: z
+    chat_defaults: z
       .object({
         model: z.string().min(1).max(100),
         effort: z.enum(EFFORT_LEVELS).nullable(),
-        permission: z.enum(PERMISSION_MODES),
-        fastMode: z.boolean(),
+        permission_mode: z.enum(PERMISSION_MODES),
+        fast_mode: z.boolean(),
       })
       .partial()
       .strict(),
@@ -60,15 +60,15 @@ const projectPatchSchema = z
 /** プロジェクト（作成・取り込み・設定の変更・並び順・管理から外す） */
 export function projectRoutes(app: Hono, { store }: ServerDeps) {
   // 指定がなければ、設定の既定のプロバイダー
-  const providerOf = (provider?: ProviderId) => provider ?? store.getSettings().defaultProvider;
+  const providerOf = (provider?: ProviderId) => provider ?? store.settings.get().default_provider;
 
-  app.get("/api/projects", (c) => c.json(store.listProjects()));
+  app.get("/api/projects", (c) => c.json(store.projects.list()));
 
   app.post("/api/projects", async (c) => {
     const input = newProjectSchema.parse(await c.req.json());
     const repoPath = await badRequest(() => createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, idea: input.idea }));
-    const project = store.createProject({ name: input.name, description: input.idea, repo_path: repoPath, provider: providerOf(input.provider) });
-    store.updateSettings({ projectsDir: input.parent_dir });
+    const project = store.projects.create({ name: input.name, description: input.idea, repo_path: repoPath, provider: providerOf(input.provider) });
+    store.settings.update({ projects_dir: input.parent_dir });
     return c.json(project, 201);
   });
 
@@ -76,16 +76,16 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
   app.get("/api/workspace/inspect", async (c) => {
     const { path } = z.object({ path: z.string().trim().min(1).max(1000) }).parse({ path: c.req.query("path") });
     const info = await inspectWorkspace(path);
-    const registered = info.gitRoot ? store.findProjectByPath(info.gitRoot) : store.findProjectByPath(info.path);
+    const registered = info.git_root ? store.projects.findByPath(info.git_root) : store.projects.findByPath(info.path);
     return c.json({ ...info, registered_project_id: registered?.id ?? null });
   });
 
   app.post("/api/projects/import", async (c) => {
     const input = importProjectSchema.parse(await c.req.json());
     const repoPath = await badRequest(() => prepareImportedWorkspace(input.path, input.init_git));
-    const existing = store.findProjectByPath(repoPath);
+    const existing = store.projects.findByPath(repoPath);
     if (existing) throw new HttpError(409, `このフォルダは「${existing.name}」として登録済みです`);
-    const project = store.createProject({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
+    const project = store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
     return c.json(project, 201);
   });
 
@@ -93,11 +93,11 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   app.patch("/api/projects/:id", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { references, archived, ...patch } = projectPatchSchema.parse(await c.req.json());
+    const { reference_paths, archived, ...patch } = projectPatchSchema.parse(await c.req.json());
     return c.json(
-      store.updateProject(project.id, {
+      store.projects.update(project.id, {
         ...patch,
-        ...(references ? { references: resolveReferences(references) } : {}),
+        ...(reference_paths ? { reference_paths: resolveReferences(reference_paths) } : {}),
         ...(archived === undefined ? {} : { archived_at: archived ? (project.archived_at ?? new Date().toISOString()) : null }),
       }),
     );
@@ -106,22 +106,22 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
   // サイドバーでのプロジェクトの並び順
   app.put("/api/projects/order", async (c) => {
     const { ids } = z.object({ ids: z.array(z.number().int()).max(500) }).parse(await c.req.json());
-    store.reorderProjects(ids);
+    store.projects.reorder(ids);
     return c.json({ ok: true });
   });
 
   // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない
   app.delete("/api/projects/:id", (c) => {
     const project = requireProject(store, c.req.param("id"));
-    store.deleteProject(project.id);
+    store.projects.delete(project.id);
     return c.json({ ok: true });
   });
 }
 
 /** 参照資料のパスを絶対パスにそろえ（~ はホームフォルダ）、フォルダかファイルかを調べる。見つからなければ 400 */
-function resolveReferences(input: { path: string }[]): Project["references"] {
+function resolveReferences(input: { path: string }[]): Project["reference_paths"] {
   const seen = new Set<string>();
-  const out: Project["references"] = [];
+  const out: Project["reference_paths"] = [];
   for (const { path: raw } of input) {
     const abs = path.resolve(expandHome(raw));
     if (seen.has(abs)) continue;

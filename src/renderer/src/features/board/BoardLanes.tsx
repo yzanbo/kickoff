@@ -1,6 +1,6 @@
 import { Folder, GitBranch } from "lucide-react";
 import type { ReactNode } from "react";
-import type { GitWorktree, ProjectSummary, ChatGroup } from "@shared/types";
+import type { GitWorktree, Project, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useStoredFlagMap } from "@/hooks/useStoredState";
 import { ProjectMark } from "@/features/project/ProjectMark";
@@ -71,7 +71,7 @@ function lanesOf(
   kind: BoardLane,
   entries: BoardEntry[],
   drafts: DraftTarget[],
-  projects: ProjectSummary[],
+  projects: Project[],
   groups: ChatGroup[],
   showEmpty: boolean,
   worktreesOf: (projectId: number) => GitWorktree[] | undefined,
@@ -112,7 +112,7 @@ function lanesOf(
   }
   // 下書きのあるプロジェクトの本体の段（チャットがなくても出す）
   for (const projectId of new Set(drafts.map((d) => d.projectId))) {
-    const place = workplaceOf({ worktree_path: "", branch: "" }, worktreesOf(projectId));
+    const place = workplaceOf({ worktree_path: null, branch: null }, worktreesOf(projectId));
     const key = `${projectId}\u0000${place.key}`;
     if (!byPlace.has(key)) byPlace.set(key, { projectId, place, entries: [] });
   }
@@ -179,7 +179,7 @@ export function BoardLanes({
   /** 段の開閉を覚える名前（ボードごと） */
   boardKey: string;
   entries: BoardEntry[];
-  projects: ProjectSummary[];
+  projects: Project[];
   /** 段の中の列（laneKey は段の名前。グループで分けるときは groupOfLane でグループに直せる。draft はこの段に入れる下書きか） */
   renderColumns: (entries: BoardEntry[], laneKey: string, draft: (target: DraftTarget) => boolean) => ReactNode;
   /** 下書きの作成先（下書きだけの段も出すため） */

@@ -38,7 +38,7 @@ export function VoiceModelList({ models, selected, onSelect }: { models: VoiceMo
               <input type="radio" name="voice-model" checked={m.id === selected} onChange={() => onSelect(m.id)} />
               <span className="voice-model-name">{m.label}</span>
               {m.recommended && <span className="badge voice-model-recommended">おすすめ</span>}
-              <span className="muted small">{formatSize(m.sizeMb)}</span>
+              <span className="muted small">{formatSize(m.size_mb)}</span>
             </label>
             <p className="field-help voice-model-note">{m.note}</p>
             <div className="voice-model-actions">

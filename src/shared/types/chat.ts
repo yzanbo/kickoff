@@ -1,18 +1,18 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { ApprovalDecision, ApprovalKind } from "@shared/types/approval";
-import type { EffortLevel, PermissionMode, ProviderId } from "@shared/types/settings";
+import type { ApprovalDecision, ApprovalKind } from "./approval";
+import type { EffortLevel, PermissionMode, ProviderId } from "./settings";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
 /** チャット欄で選べるモデル */
 export interface ModelOption {
   value: string;
   /** 別名（opus など）が指すモデルの ID（claude-opus-5-5 など。分からなければなし） */
-  resolvedModel?: string;
+  resolved_model?: string;
   label: string;
   description: string;
   efforts: EffortLevel[];
-  supportsAutoMode: boolean;
-  supportsFastMode: boolean;
+  supports_auto_mode: boolean;
+  supports_fast_mode: boolean;
 }
 
 /**
@@ -26,11 +26,16 @@ export interface EffortDefault {
 
 /** 実行ごとに選べるオプション（チャット欄の選択） */
 export interface ChatOptions {
-  model?: string | null;
-  effort?: EffortLevel | null;
-  permission_mode?: PermissionMode | null;
-  fast_mode?: boolean | null;
+  /** モデル（null ならプロバイダーの既定） */
+  model: string | null;
+  /** 推論の深さ（null なら指定しない＝モデルの既定） */
+  effort: EffortLevel | null;
+  permission_mode: PermissionMode;
+  fast_mode: boolean;
 }
+
+/** 選択の一部（送るとき・送信待ち・プロジェクトの既定）。書いていない項目は、次の段（送るとき → プロジェクト → アプリ）に従う */
+export type ChatOptionsPatch = Partial<ChatOptions>;
 
 /**
  * カンバンの列。人は動かさず、AI の状態から決まる（boardColumnOf）:
@@ -62,7 +67,9 @@ export const AGENT_STATE_LABELS: Record<AgentState, string> = {
   read: "既読",
 };
 
-export type ChatStatus = "queued" | "running" | "waiting" | "completed" | "failed" | "cancelled";
+/** チャットの状態（いまの作業、なければ最後の作業の終わり方）。承認・質問の回答待ちは状態に持たず、回答待ちの一覧から決める（chatStateOf） */
+export const CHAT_STATUSES = ["running", "completed", "failed", "cancelled"] as const;
+export type ChatStatus = (typeof CHAT_STATUSES)[number];
 export interface Chat {
   id: number;
   project_id: number;
@@ -78,7 +85,7 @@ export interface Chat {
   fast_mode: boolean;
   cost_usd: number;
   num_turns: number;
-  result: string | null;
+  /** 最後の作業が失敗したときの理由（なければ null） */
   error: string | null;
   /** AI の作業が終わって、まだ開いて確認していない */
   unread: boolean;
@@ -88,10 +95,10 @@ export interface Chat {
   pinned: boolean;
   /** 自分で作ったグループ（null ならグループなし） */
   group_id: number | null;
-  /** 作業場所（git のワークツリーのフォルダ。空ならプロジェクトのフォルダ＝本体） */
-  worktree_path: string;
-  /** 最後に送ったときに作業していたブランチ（ワークツリーを片付けても残す。分からなければ空） */
-  branch: string;
+  /** 作業場所（git のワークツリーのフォルダ。null ならプロジェクトのフォルダ＝本体） */
+  worktree_path: string | null;
+  /** 最後に送ったときに作業していたブランチ（ワークツリーを片付けても残す。分からなければ null） */
+  branch: string | null;
   /** いまの作業（最後に送ったもの）を始めた時刻（まだ一度も動いていなければ null） */
   turn_started_at: string | null;
   /** 最後の応答の時点でコンテキストに入っていたトークン数と、その上限（まだ応答がなければ null） */
@@ -134,7 +141,7 @@ export interface QueuedMessage {
   id: string;
   text: string;
   attachments: Attachment[];
-  options: ChatOptions;
+  options: ChatOptionsPatch;
   created_at: string;
 }
 
