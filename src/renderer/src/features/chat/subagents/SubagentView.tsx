@@ -6,7 +6,7 @@ import { subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 import { useTicker } from "@/hooks/useTicker";
 import { activityOf, activityText } from "@/features/chat/status/stall";
 import { SubagentActions } from "./SubagentActions";
-import { relayedText } from "./subagentRelay";
+import { relayedText } from "@shared/chat/prompts";
 import { groupEvents } from "@/features/chat/timeline/timelineItems";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { TimelineItems, Working } from "@/features/chat/timeline/Timeline";

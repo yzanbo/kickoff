@@ -1,7 +1,8 @@
 // API のテスト: 止まったあとの再開（通信の切断・使用枠の上限。共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MAX_AUTO_RESUMES, RESUME_PROMPT, USAGE_RESUME_PROMPT } from "../chat/recovery/rules.js";
+import { MAX_AUTO_RESUMES } from "../chat/recovery/rules.js";
+import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import { setup, until } from "../testing/testServer.js";
 
 test("通信の切断: 送信待ちを送らずに止めて、つながったら自動で再開し、終わったら送信待ちを戻して送る", async () => {

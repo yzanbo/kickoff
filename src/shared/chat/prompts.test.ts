@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { relayedText, relayMessage, resumeRequest, retryRequest } from "./subagentRelay";
+import { relayedText, relayMessage, RESUME_PROMPT, resumePrompt, resumeRequest, retryRequest } from "./prompts";
 
 test("サブエージェントへの追加の指示: 宛先の ID が合うときだけ、本文を取り出す", () => {
   const message = relayMessage("a1b2", "調べもの", "ついでに README も見て\n2 行目");
@@ -28,4 +28,12 @@ test("再開の頼み: 出力の上限で止まったものは、短く分ける
   assert.match(resumeRequest("a1", "調べもの", { outputLimit: true }), /報告は短くまとめる/);
   assert.match(retryRequest({ description: "調べもの", outputLimit: true }), /報告は短くまとめる/);
   assert.doesNotMatch(retryRequest({ description: "調べもの" }), /報告は短くまとめる/);
+});
+
+test("通信が戻って自動で再開する指示: 止まったサブエージェントがあれば、名前と ID を添えて続きから再開を頼む", () => {
+  assert.equal(resumePrompt([]), RESUME_PROMPT);
+  const prompt = resumePrompt([{ agentId: "a1", description: "調査" }]);
+  assert.ok(prompt.startsWith(RESUME_PROMPT));
+  assert.match(prompt, /SendMessage/);
+  assert.match(prompt, /- 「調査」（ID: a1）/);
 });

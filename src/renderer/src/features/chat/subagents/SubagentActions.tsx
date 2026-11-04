@@ -6,7 +6,7 @@ import { reportFailure } from "@/features/chat/chatActions";
 import { cx } from "@/lib/cx";
 import { activityOf } from "@/features/chat/status/stall";
 import { isSubagentHalted } from "./subagentList";
-import { HAND_OVER_NOW, resumeRequest, retryRequest } from "./subagentRelay";
+import { HAND_OVER_NOW, resumeRequest, retryRequest } from "@shared/chat/prompts";
 
 /**
  * サブエージェントの行・タブの見出しの操作。実行中なのに長く動きがないものは「止める」（Claude Code の stopTask。作業中だけ。

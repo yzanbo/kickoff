@@ -6,7 +6,8 @@ import { effortsFor, groupModels } from "@/features/chat/options/models";
 import { reportFailure } from "@/features/chat/chatActions";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
-import { failedTurnOf, lowerEffort, RETRY_PROMPT, type FailedTurn } from "./retryActions";
+import { failedTurnOf, lowerEffort, type FailedTurn } from "./retryActions";
+import { RETRY_PROMPT } from "@shared/chat/prompts";
 import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 
 /** 失敗した作業の直す操作（チャットの画面が渡す。サブエージェントの中身など、渡さない所では出さない） */
