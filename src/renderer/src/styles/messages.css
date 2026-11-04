@@ -154,16 +154,12 @@
   flex: none;
 }
 
-/* 1 行に収まるときの開閉の矢印の場所取り（見えない。↑ / ↓ の位置をそろえるため） */
-.sticky-prompt-toggle.placeholder {
-  visibility: hidden;
-}
-
-/* 前・次の指示へ（帯の右端。開閉の矢印の手前） */
+/* 前・次の指示へ（見出し「指示」のすぐ右。文・添付の前に置き、位置を動かさない） */
 .sticky-prompt-nav {
   display: flex;
   flex: none;
   gap: 2px;
+  margin-right: 4px;
 }
 
 /* 指示の添付（1 つ目だけ）。帯の高さを変えないよう、文の 1 行目の高さに収める */

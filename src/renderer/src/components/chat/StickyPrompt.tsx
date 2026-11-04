@@ -10,7 +10,7 @@ import { AttachmentPeek } from "./AttachmentPeek";
 /**
  * チャットの上に置く、いま読んでいる返答の元の自分の指示。いつも出し、流れに重ねずに流れの上の段に置く（スクロールに合わせて中身を変える）。
  * 初めは 1 行にたたみ（長い指示で縦をとらないように）、右の矢印で全文を出す（長ければ中でスクロール。開閉はどのチャットでも同じに覚える）。
- * 押して何かが起きるのは、右の ↑ / ↓（前・次の指示へ。⌘⌥↑ / ↓ と同じ）・開閉の矢印・添付だけ（見出しと文は押しても何もしない。以前は押すとその発言へ移っていた）。
+ * 押して何かが起きるのは、見出しのすぐ右の ↑ / ↓（前・次の指示へ。⌘⌥↑ / ↓ と同じ）・開閉の矢印・添付だけ（見出しと文は押しても何もしない。以前は押すとその発言へ移っていた）。
  * 添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）
  */
 export function StickyPrompt({
@@ -44,19 +44,19 @@ export function StickyPrompt({
       <span className="sticky-prompt-label" aria-hidden>
         指示
       </span>
+      {/* 前・次の指示へ（見出しのすぐ右。文の長さ・添付・開閉の矢印の有無で位置が動かない。開閉の矢印と見分けるため、移る向きの矢印） */}
+      <span className="sticky-prompt-nav">
+        <IconButton icon={ArrowUp} label="前の指示へ" title="前の指示へ（⌘⌥↑）" size={14} disabled={!onPrev} onClick={onPrev} />
+        <IconButton icon={ArrowDown} label="次の指示へ" title="次の指示へ（⌘⌥↓）" size={14} disabled={!onNext} onClick={onNext} />
+      </span>
       <AttachmentPeek attachments={attachments} />
       <span className="sticky-prompt-body" aria-label={`指示: ${text}`}>
         <span ref={textRef} className="sticky-prompt-text">
           {text}
         </span>
       </span>
-      {/* 前・次の指示へ（開閉の矢印と見分けるため、移る向きの矢印） */}
-      <span className="sticky-prompt-nav">
-        <IconButton icon={ArrowUp} label="前の指示へ" title="前の指示へ（⌘⌥↑）" size={14} disabled={!onPrev} onClick={onPrev} />
-        <IconButton icon={ArrowDown} label="次の指示へ" title="次の指示へ（⌘⌥↓）" size={14} disabled={!onNext} onClick={onNext} />
-      </span>
-      {/* 1 行に収まるときも場所だけは取っておく（開閉の矢印の有無で ↑ / ↓ の位置が左右に動かないように） */}
-      {overflowing || expanded ? (
+      {/* 全文の開閉（1 行に収まらないときだけ。↑ / ↓ は見出しのすぐ右にあるので、出ても位置は動かない） */}
+      {(overflowing || expanded) && (
         <IconButton
           icon={expanded ? ChevronUp : ChevronDown}
           label={expanded ? "1 行にたたむ" : "指示の全文を表示"}
@@ -65,8 +65,6 @@ export function StickyPrompt({
           className="sticky-prompt-toggle"
           onClick={() => setExpanded(!expanded)}
         />
-      ) : (
-        <span className="icon-button sticky-prompt-toggle placeholder" aria-hidden />
       )}
     </div>
   );
