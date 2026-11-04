@@ -11,7 +11,7 @@ test("チャットの中の検索: 自分の発言と AI の返答から、流�
     item(1, "user", { text: "Kickoff の画面を直して" }),
     item(2, "text", { text: "画面を確認します。画面は…" }),
     item(3, "thinking", { text: "画面" }),
-    item(4, "text", { text: "サブの画面", sub: true }),
+    item(4, "text", { text: "サブの画面", parent: "agent1" }),
     { kind: "tools", key: "t5", tools: [] },
     item(6, "text", { text: "KICKOFF" }),
   ];

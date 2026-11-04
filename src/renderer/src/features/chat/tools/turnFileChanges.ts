@@ -1,5 +1,5 @@
 // 1 回の作業（ターン）で変えたファイルの数え方（ターンの変更カード。純粋関数）
-import type { ChatEvent } from "@shared/types";
+import type { ChatEventOf } from "@shared/types";
 
 /** ターンで変えたファイル 1 つ */
 export interface FileChange {
@@ -14,8 +14,8 @@ export interface FileChange {
 
 /** 編集のツールの呼び出しと、その結果 */
 export interface EditCall {
-  use: ChatEvent;
-  result?: ChatEvent;
+  use: ChatEventOf<"tool_use">;
+  result?: ChatEventOf<"tool_result">;
 }
 
 const lines = (text: string) => (text === "" ? [] : text.replace(/\n$/, "").split("\n"));
@@ -59,8 +59,9 @@ type EditInput = {
 export function changesOf(calls: EditCall[]): FileChange[] {
   const byPath = new Map<string, FileChange>();
   for (const { use, result } of calls) {
-    if (!result || (result.data as { is_error?: boolean }).is_error) continue;
-    const { name, input } = use.data as { name: string; input?: EditInput };
+    if (!result || result.data.is_error) continue;
+    const name = use.data.name;
+    const input = use.data.input as EditInput | undefined;
     const path = input?.file_path ?? input?.notebook_path;
     if (!path) continue;
     const change = byPath.get(path) ?? { path, added: 0, removed: 0 };
@@ -73,7 +74,7 @@ export function changesOf(calls: EditCall[]): FileChange[] {
     else if (name === "MultiEdit") for (const edit of input?.edits ?? []) add(lineDelta(edit.old_string ?? "", edit.new_string ?? ""));
     else if (name === "NotebookEdit") add({ added: lines(input?.new_source ?? "").length, removed: 0 });
     else if (name === "Write") {
-      const created = /created/i.test(String((result.data as { content?: unknown }).content ?? ""));
+      const created = /created/i.test(result.data.content);
       // 前に Edit したファイルを書き直したら、それまでの数は意味がなくなるので書き直しにする
       change.write = created && !change.write ? "created" : "rewritten";
       change.added = lines(input?.content ?? "").length;

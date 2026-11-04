@@ -1,6 +1,6 @@
 import { ChevronRight, GitBranch } from "lucide-react";
 import { memo, type ReactNode } from "react";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
 import { useTicker } from "@/hooks/useTicker";
@@ -93,16 +93,15 @@ function TurnEnd(props: TurnFooterProps & { turnChanges?: FileChange[] }) {
   );
 }
 
-type TurnFooterProps = { event: ChatEvent; turnStart?: string; turnText?: string; busy: boolean };
+type TurnFooterProps = { event: ChatEventOf<"result">; turnStart?: string; turnText?: string; busy: boolean };
 
 /**
  * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー、ここから分岐。
  * 時刻に乗せると、終わった時刻を出す。分岐は、その時点の会話の位置が分かるときだけ（作業中は出さない）
  */
 function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
-  const data = event.data as { status?: string; text?: string; message_id?: string };
-  const status =
-    data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${String(data.text ?? "")}` : null;
+  const data = event.data;
+  const status = data.status === "cancelled" ? "中断しました" : data.status === "failed" ? `失敗しました: ${data.text ?? ""}` : null;
   const worked = turnStart && formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
   if (!status && !worked && !turnText) return null;
   return (
@@ -155,28 +154,29 @@ function EventItem({
   turnChanges?: FileChange[];
   busy: boolean;
 }) {
-  const data = event.data as Record<string, unknown>;
   switch (event.type) {
     case "user":
       return <UserMessage event={event} />;
     case "text":
       return <AssistantMessage event={event} />;
     case "thinking":
-      return <Thinking text={String(data.text ?? "")} durationMs={data.duration_ms as number | undefined} />;
-    case "approval_resolved":
-      // AI からの質問に答えた内容は、自分の発言と同じ吹き出しで「質問への回答」として出す（以前の記録は答えの中身がないので一言だけ）
-      if (data.answers) return <QuestionAnswerMessage event={event} />;
+      return <Thinking text={event.data.text} durationMs={event.data.duration_ms} />;
+    case "approval_resolved": {
+      // AI からの質問に答えた内容は、自分の発言と同じ吹き出しで「質問への回答」として出す
+      const data = event.data;
+      if (data.action === "answer") return <QuestionAnswerMessage event={event} data={data} />;
       if (data.kind === "question" && data.action === "deny") return <div className="event-note">質問をスキップしました</div>;
-      return <div className="event-note">{RESOLVED_LABELS[String(data.action)] ?? "回答済み"}</div>;
+      return <div className="event-note">{RESOLVED_LABELS[data.action] ?? "回答済み"}</div>;
+    }
     case "result":
       return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} busy={busy} />;
     case "error":
-      return <div className="event-note error">{String(data.message)}</div>;
+      return <div className="event-note error">{event.data.message}</div>;
     case "notice":
-      return <div className="event-note">{String(data.message)}</div>;
+      return <div className="event-note">{event.data.message}</div>;
     case "compact": {
       // 手で圧縮したとき・上限に近づいて自動で圧縮されたとき
-      const { trigger, pre_tokens, post_tokens } = data as { trigger: "manual" | "auto"; pre_tokens: number; post_tokens?: number };
+      const { trigger, pre_tokens, post_tokens } = event.data;
       return (
         <div className="event-note">
           ここまでの会話を要約しました（{trigger === "auto" ? "自動" : "手動"}・{formatTokens(pre_tokens)}

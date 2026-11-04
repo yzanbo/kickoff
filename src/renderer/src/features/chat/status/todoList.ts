@@ -25,10 +25,23 @@ export function collectTodos(events: ChatEvent[]): TodoItem[] {
   const pendingCreate = new Map<string, { content: string; activeForm?: string }>();
   let last: "write" | "task" | null = null;
   for (const e of events) {
-    const data = e.data as { name?: string; input?: Record<string, unknown>; id?: string; parent?: string; tool_use_id?: string; content?: string; is_error?: boolean };
-    if (data.parent) continue;
-    if (e.type === "tool_use" && data.name === "TodoWrite") {
-      const todos = Array.isArray(data.input?.todos) ? (data.input.todos as Record<string, unknown>[]) : [];
+    // サブエージェントの ToDo は数えない
+    if (e.type === "tool_result") {
+      if (e.data.parent || !pendingCreate.has(e.data.tool_use_id)) continue;
+      const created = pendingCreate.get(e.data.tool_use_id)!;
+      pendingCreate.delete(e.data.tool_use_id);
+      const id = /Task #(\w+)/.exec(e.data.content)?.[1];
+      if (!e.data.is_error && id) {
+        tasks.set(id, { key: `t${id}`, ...created, status: "pending" });
+        last = "task";
+      }
+      continue;
+    }
+    if (e.type !== "tool_use" || e.data.parent) continue;
+    const { name } = e.data;
+    const input = (e.data.input ?? {}) as Record<string, unknown>;
+    if (name === "TodoWrite") {
+      const todos = Array.isArray(input.todos) ? (input.todos as Record<string, unknown>[]) : [];
       written = todos.map((t, i) => ({
         key: `w${i}`,
         content: String(t.content ?? ""),
@@ -36,30 +49,22 @@ export function collectTodos(events: ChatEvent[]): TodoItem[] {
         status: asStatus(t.status),
       }));
       last = "write";
-    } else if (e.type === "tool_use" && data.name === "TaskCreate" && data.id) {
-      pendingCreate.set(data.id, {
-        content: String(data.input?.subject ?? data.input?.description ?? ""),
-        activeForm: typeof data.input?.activeForm === "string" ? data.input.activeForm : undefined,
+    } else if (name === "TaskCreate") {
+      pendingCreate.set(e.data.id, {
+        content: String(input.subject ?? input.description ?? ""),
+        activeForm: typeof input.activeForm === "string" ? input.activeForm : undefined,
       });
-    } else if (e.type === "tool_result" && data.tool_use_id && pendingCreate.has(data.tool_use_id)) {
-      const created = pendingCreate.get(data.tool_use_id)!;
-      pendingCreate.delete(data.tool_use_id);
-      const id = /Task #(\w+)/.exec(String(data.content ?? ""))?.[1];
-      if (!data.is_error && id) {
-        tasks.set(id, { key: `t${id}`, ...created, status: "pending" });
-        last = "task";
-      }
-    } else if (e.type === "tool_use" && data.name === "TaskUpdate") {
-      const id = String(data.input?.taskId ?? "");
+    } else if (name === "TaskUpdate") {
+      const id = String(input.taskId ?? "");
       const task = tasks.get(id);
       if (!task) continue;
-      if (data.input?.status === "deleted") tasks.delete(id);
+      if (input.status === "deleted") tasks.delete(id);
       else {
         tasks.set(id, {
           ...task,
-          ...(typeof data.input?.subject === "string" ? { content: data.input.subject } : {}),
-          ...(typeof data.input?.activeForm === "string" ? { activeForm: data.input.activeForm } : {}),
-          ...(data.input?.status ? { status: asStatus(data.input.status) } : {}),
+          ...(typeof input.subject === "string" ? { content: input.subject } : {}),
+          ...(typeof input.activeForm === "string" ? { activeForm: input.activeForm } : {}),
+          ...(input.status ? { status: asStatus(input.status) } : {}),
         });
       }
       last = "task";

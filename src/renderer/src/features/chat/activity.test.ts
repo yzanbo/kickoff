@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { describeActivity, workingFor } from "./activity";
 
-const tool = (name: string, input: Record<string, unknown>, sub = false) => ({ type: "tool_use" as const, data: { id: "t", name, input, ...(sub ? { sub } : {}) } });
+const tool = (name: string, input: Record<string, unknown>, sub = false) => ({ type: "tool_use" as const, data: { id: "t", name, input, ...(sub ? { parent: "agent1" } : {}) } });
 
 test("いまの作業: ツールの呼び出しを短い文にする", () => {
   assert.equal(describeActivity(tool("Edit", { file_path: "/repo/src/App.tsx" })), "ファイルを編集: App.tsx");

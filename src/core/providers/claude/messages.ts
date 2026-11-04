@@ -111,7 +111,7 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
     case "assistant": {
       // サブエージェントの発言は、どのサブエージェントのものかを残す（画面でその中身を見られるように）
       const parent = msg.parent_tool_use_id ?? undefined;
-      const sub = parent ? { sub: true, parent } : {};
+      const sub = parent ? { parent } : {};
       for (const block of msg.message.content) {
         if (block.type === "text" && block.text.trim()) {
           cb.emit({ type: "text", text: block.text, ...sub });

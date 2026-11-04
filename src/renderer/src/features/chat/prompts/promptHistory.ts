@@ -1,4 +1,4 @@
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent, ChatEventOf } from "@shared/types";
 
 /**
  * チャット欄の ↑↓ で呼び出す、前に送った自分の発言。
@@ -10,7 +10,7 @@ export function userPrompts(events: ChatEvent[]): string[] {
   const prompts: string[] = [];
   for (const e of events) {
     if (e.type !== "user") continue;
-    const text = (e.data as { text?: string }).text?.trim();
+    const text = e.data.text.trim();
     if (!text || prompts[prompts.length - 1] === text) continue;
     prompts.push(text);
   }
@@ -75,10 +75,10 @@ export interface PromptEntry {
 /** チャットのイベントから、自分の指示を会話の順に */
 export function promptEntries(events: ChatEvent[]): PromptEntry[] {
   return events
-    .filter((e) => e.type === "user")
+    .filter((e): e is ChatEventOf<"user"> => e.type === "user")
     .map((e) => {
-      const data = e.data as { text?: string; attachments?: { name: string }[] };
-      const text = String(data.text ?? "").trim();
+      const data = e.data;
+      const text = data.text.trim();
       return { id: e.id, text, label: text || (data.attachments ?? []).map((a) => a.name).join("、"), at: e.created_at };
     });
 }

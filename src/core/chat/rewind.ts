@@ -1,7 +1,7 @@
 import type { AgentProvider } from "../providers/types.js";
 import type { Runner } from "./runner.js";
 import type { Store } from "../db/store.js";
-import type { Attachment, FileRewindResult, ProviderId, Chat, ChatOptionsPatch } from "@shared/types";
+import type { FileRewindResult, ProviderId, Chat, ChatOptionsPatch } from "@shared/types";
 
 /** 作業中なので巻き戻せない（ルートで 409） */
 export class ChatBusyError extends Error {
@@ -29,7 +29,7 @@ export async function rewindChat(
   const index = events.findIndex((e) => e.id === input.eventId);
   const target = events[index];
   if (target?.type !== "user") throw new Error("自分の発言のところからだけ巻き戻せます");
-  const attachments = (target.data as { attachments?: Attachment[] }).attachments ?? [];
+  const attachments = target.data.attachments ?? [];
   if (!input.text && attachments.length === 0) throw new Error("メッセージか添付ファイルが必要です");
 
   // その発言より前の、いちばん近い、最後まで終わった作業の終わり（分岐できる時点）。なければ最初から。
@@ -37,7 +37,7 @@ export async function rewindChat(
   const point = events
     .slice(0, index)
     .reverse()
-    .map((e) => (e.type === "result" ? (e.data as { status?: string; session_id?: string; message_id?: string }) : undefined))
+    .map((e) => (e.type === "result" ? e.data : undefined))
     .find((d) => d?.status === "completed" && d.session_id && d.message_id);
   // ファイルも戻す: 分岐すると新しいセッションになり、ファイルの記録は元のセッションにしか残らないので先に戻す
   const restored = input.restoreFiles ? await rewindFiles(deps, chat, { eventId: target.id, cwd: input.cwd, dryRun: false }) : undefined;
@@ -72,7 +72,7 @@ function restoredSummary(r: FileRewindResult): string {
 
 /**
  * ファイルを、自分の発言を送る前の状態に戻す（会話はそのまま）。dryRun なら戻さずに、変わるファイルと行の増減だけを返す。
- * 戻せるのは、ファイルの記録を取り始めてから送った発言（記録の message_uuid があるもの）で、Claude Code の編集のツールで変えたファイルだけ
+ * 戻せるのは、Claude Code の編集のツールで変えたファイルだけ
  * （コマンドで変えたもの・アプリの外で変えたものは戻らない）。戻したら、チャットにお知らせを残す。
  * 作業中なら ChatBusyError（409）、戻せない発言・プロバイダーなら Error（400）
  */
@@ -85,10 +85,10 @@ export async function rewindFiles(
   if (runner.isBusy(chat.id)) throw new ChatBusyError();
   const target = store.events.list(chat.id).find((e) => e.id === input.eventId);
   if (target?.type !== "user") throw new Error("自分の発言のところからだけ戻せます");
-  const messageId = (target.data as { message_uuid?: string }).message_uuid;
   const provider = providers[chat.provider];
   if (!provider.rewindFiles) throw new Error(`${provider.label} はファイルを戻すのに対応していません`);
-  if (!messageId || !chat.session_id) throw new Error("この発言のときのファイルの記録がないため、ファイルは戻せません（戻せるのは、この機能を入れたあとに送った発言からです）");
+  if (!chat.session_id) throw new Error("この発言のときのファイルの記録がないため、ファイルは戻せません");
+  const messageId = target.data.message_uuid;
   // 本当に戻したときの結果には、変わったファイルが付かないので、先に量を測っておく
   const preview = await provider.rewindFiles(chat.session_id, messageId, input.cwd, true);
   if (!preview.can_rewind) throw new Error(`ファイルを戻せませんでした${preview.error ? `: ${preview.error}` : ""}`);

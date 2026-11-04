@@ -3,7 +3,9 @@ import type { Approval } from "./approval";
 import type { AppSettings } from "./settings";
 import type { Project } from "./project";
 import type { PlanUsage } from "./provider";
-import type { ApiRetryInfo, BackgroundState, QueuedMessage, ReconnectState, Chat, ChatEvent, ChatGroup, SubagentInfo } from "./chat";
+import type { QueuedMessage, Chat, ChatGroup } from "./chat";
+import type { ChatEvent, SubagentInfo } from "./chatEvent";
+import type { ApiRetryInfo, BackgroundState, ReconnectState } from "./chatLive";
 import type { VoiceDownload } from "./voice";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */

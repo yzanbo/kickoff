@@ -1,10 +1,10 @@
 // チャットのタイムラインの組み立て（イベント → 表示の単位）
-import type { ChatEvent } from "@shared/types";
+import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { changesOf, type EditCall, type FileChange } from "@/features/chat/tools/turnFileChanges";
 
 export interface ToolCall {
-  use: ChatEvent;
-  result?: ChatEvent;
+  use: ChatEventOf<"tool_use">;
+  result?: ChatEventOf<"tool_result">;
 }
 
 /**
@@ -20,6 +20,9 @@ export type TimelineItem =
  * 返答が届くたびの組み立て直しで新しい配列を作らない（作業の終わりの行の memo が効くように）
  */
 const turnChangesCache = new WeakMap<ChatEvent, FileChange[]>();
+
+/** サブエージェントの中の記録なら、そのサブエージェントを起動した呼び出し ID（メインの記録・parent のない種類は undefined） */
+const parentOf = (e: ChatEvent): string | undefined => ("parent" in e.data ? e.data.parent : undefined);
 
 /** これより短い思考（中身なし）はタイムラインに出さない */
 const THINKING_MIN_MS = 2000;
@@ -37,24 +40,23 @@ export function groupEvents(events: ChatEvent[], parent?: string): TimelineItem[
   let turnEdits = new Map<string, EditCall>();
   for (const e of events) {
     if (parent === undefined) {
-      const d = e.data as { id?: string; name?: string; tool_use_id?: string };
-      if (e.type === "tool_use" && EDIT_TOOLS.has(d.name ?? "")) turnEdits.set(d.id!, { use: e });
-      else if (e.type === "tool_result" && d.tool_use_id && turnEdits.has(d.tool_use_id)) turnEdits.get(d.tool_use_id)!.result = e;
+      if (e.type === "tool_use" && EDIT_TOOLS.has(e.data.name)) turnEdits.set(e.data.id, { use: e });
+      else if (e.type === "tool_result" && turnEdits.has(e.data.tool_use_id)) turnEdits.get(e.data.tool_use_id)!.result = e;
     }
-    if (((e.data as { parent?: string }).parent ?? undefined) !== parent) continue;
+    if (parentOf(e) !== parent) continue;
     if (e.type === "tool_use") {
       const call: ToolCall = { use: e };
-      byId.set((e.data as { id: string }).id, call);
+      byId.set(e.data.id, call);
       const last = items[items.length - 1];
       if (last?.kind === "tools") last.tools.push(call);
       else items.push({ kind: "tools", key: `t${e.id}`, tools: [call] });
     } else if (e.type === "tool_result") {
-      const call = byId.get((e.data as { tool_use_id: string }).tool_use_id);
+      const call = byId.get(e.data.tool_use_id);
       if (call) call.result = e;
     } else if (e.type === "thinking") {
       // 中身があるか、しばらく考えたものだけ出す（短い思考でツールのまとまりを細切れにしない）
-      const { text, duration_ms } = e.data as { text?: string; duration_ms?: number };
-      if (text?.trim() || (duration_ms ?? 0) >= THINKING_MIN_MS) items.push({ kind: "event", key: `e${e.id}`, event: e });
+      const { text, duration_ms } = e.data;
+      if (text.trim() || (duration_ms ?? 0) >= THINKING_MIN_MS) items.push({ kind: "event", key: `e${e.id}`, event: e });
     } else if (e.type === "init" || e.type === "approval" || e.type === "subagent") {
       // 表示しない（サブエージェントはチャット欄の下の一覧で見せる）
     } else if (e.type === "result") {
@@ -77,7 +79,7 @@ export function groupEvents(events: ChatEvent[], parent?: string): TimelineItem[
       turnEdits = new Map();
     } else {
       if (e.type === "user") turnStart ??= e.created_at;
-      if (e.type === "text") turnTexts.push(String((e.data as { text?: string }).text ?? ""));
+      if (e.type === "text") turnTexts.push(e.data.text);
       items.push({ kind: "event", key: `e${e.id}`, event: e });
     }
   }
@@ -116,7 +118,8 @@ export function summarizeTools(tools: ToolCall[]): string {
   let mcp = 0;
   let others = 0;
   for (const t of tools) {
-    const { name, input = {} } = t.use.data as { name: string; input?: Record<string, unknown> };
+    const name = t.use.data.name;
+    const input = (t.use.data.input ?? {}) as Record<string, unknown>;
     const file = String(input.file_path ?? input.notebook_path ?? t.use.id);
     const kind = KIND_OF.get(name);
     if (EDIT_TOOLS.has(name)) edited.add(file);

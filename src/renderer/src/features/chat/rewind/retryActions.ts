@@ -1,6 +1,5 @@
 // 失敗した作業の直す操作（続きから・深さを下げて・別のモデルで・巻き戻して再試行）の判定（純粋関数）
-import { EFFORT_LEVELS, type EffortLevel, type ChatEvent } from "@shared/types";
-import { isUsageLimitError } from "@shared/chat/usageLimit";
+import { EFFORT_LEVELS, type EffortLevel, type ChatEvent, type ChatEventOf } from "@shared/types";
 
 /** 続きから再試行するときに送る指示（自分の発言として残す） */
 export const RETRY_PROMPT = "（再試行）さきほどの作業は途中で失敗しました。止まったところから、作業を続けてください。";
@@ -21,10 +20,10 @@ export function failedTurnOf(events: ChatEvent[]): FailedTurn | undefined {
     const e = events[i];
     if (e.type === "user") return undefined;
     if (e.type !== "result") continue;
-    const d = e.data as { status?: string; text?: string; network?: boolean };
-    if (d.status !== "failed" || d.network || isUsageLimitError(d.text)) return undefined;
-    const prompt = events.slice(0, i).reverse().find((x) => x.type === "user");
-    return { resultId: e.id, ...(prompt ? { prompt: { eventId: prompt.id, text: String((prompt.data as { text?: string }).text ?? "") } } : {}) };
+    // 通信の切断・使用枠の上限で止まったものは、それぞれの仕組み（つながったら再開・枠が戻ったら聞く）に任せる
+    if (e.data.status !== "failed" || e.data.network || e.data.usage_limit) return undefined;
+    const prompt = events.slice(0, i).reverse().find((x): x is ChatEventOf<"user"> => x.type === "user");
+    return { resultId: e.id, ...(prompt ? { prompt: { eventId: prompt.id, text: prompt.data.text } } : {}) };
   }
   return undefined;
 }

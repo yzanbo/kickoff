@@ -39,7 +39,7 @@ test("実行イベントは JSON で保存され、順番どおりに読み出�
     status: "running",
     model: null,
   });
-  store.events.add(chat.id, { type: "user", text: "こんにちは" });
+  store.events.add(chat.id, { type: "user", text: "こんにちは" , message_uuid: "u4" });
   store.events.add(chat.id, { type: "tool_use", id: "t1", name: "Read", input: { file_path: "a.ts" } });
 
   const events = store.events.list(chat.id);
@@ -65,10 +65,10 @@ test("チャットのやり取りをキーワードで検索できる（範囲�
     store.chats.create({ project_id: projectId, provider: "claude", title, status: "completed", model: null });
   const a = mk(project.id, "ログインの相談");
   const b = mk(other.id, "別プロジェクト");
-  store.events.add(a.id, { type: "user", text: "ログイン方式は OAuth にしたい" });
+  store.events.add(a.id, { type: "user", text: "ログイン方式は OAuth にしたい" , message_uuid: "u5" });
   store.events.add(a.id, { type: "text", text: "OAuth なら GitHub ログインが手軽です。100% 対応できます。" });
   store.events.add(a.id, { type: "tool_use", id: "t", name: "Read", input: { file_path: "oauth.md" } });
-  store.events.add(b.id, { type: "user", text: "oauth の話" });
+  store.events.add(b.id, { type: "user", text: "oauth の話" , message_uuid: "u6" });
 
   const all = store.events.search("oauth");
   assert.equal(all.length, 3);

@@ -28,10 +28,11 @@ export function findMatches(items: TimelineItem[], query: string, caseSensitive 
   if (!query) return [];
   const matches: ChatFindMatch[] = [];
   for (const item of items) {
-    if (item.kind !== "event" || (item.event.type !== "user" && item.event.type !== "text")) continue;
-    const data = item.event.data as { text?: string; sub?: boolean };
-    if (data.sub) continue;
-    matchOffsets(String(data.text ?? ""), query, caseSensitive).forEach((_, nth) => matches.push({ eventId: item.event.id, nth }));
+    if (item.kind !== "event") continue;
+    const e = item.event;
+    // 自分の発言とメインの AI の返答だけ（サブエージェントの返答は除く）
+    if (e.type !== "user" && !(e.type === "text" && !e.data.parent)) continue;
+    matchOffsets(e.data.text, query, caseSensitive).forEach((_, nth) => matches.push({ eventId: item.event.id, nth }));
   }
   return matches;
 }

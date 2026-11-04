@@ -32,7 +32,7 @@ export function workingLabel(chat: Chat, last: TimelineItem | undefined, live: s
     if (runningAgents > 0 && last?.kind === "event" && last.event.type === "text") return `裏で動いているサブエージェント ${runningAgents} 件の終わりを待っています`;
     return null;
   })();
-  const toolName = pendingTool && !pendingTool.result ? (pendingTool.use.data as { name?: string }).name : undefined;
+  const toolName = pendingTool && !pendingTool.result ? pendingTool.use.data.name : undefined;
   const note = activityText(activity.parent, toolName);
   return (
     <>

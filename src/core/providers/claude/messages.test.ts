@@ -41,7 +41,7 @@ test("思考: サブエージェントの思考は測らず、中身があれば
   emitSdkMessage(stream({ type: "content_block_start", index: 0, content_block: { type: "thinking", thinking: "" } }, "tu1"), cb, timer, 1_000);
   emitSdkMessage(assistant([{ type: "thinking", thinking: "考え", signature: "s" }], "tu1"), cb, timer, 2_000);
   emitSdkMessage(assistant([{ type: "thinking", thinking: "", signature: "s" }], "tu1"), cb, timer, 2_000);
-  assert.deepEqual(events, [{ type: "thinking", text: "考え", sub: true, parent: "tu1" }]);
+  assert.deepEqual(events, [{ type: "thinking", text: "考え", parent: "tu1" }]);
 });
 
 test("タスク: サブエージェント（local_agent・種類のない古い CLI）だけを記録し、裏のコマンドなどの開始・途中経過・終了は除く", () => {

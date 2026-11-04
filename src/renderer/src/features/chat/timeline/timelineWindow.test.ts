@@ -4,7 +4,8 @@ import type { ChatEvent } from "@shared/types";
 import { itemIndexOfEvent, MAX_TAIL, revealRange, TIMELINE_WINDOW, windowStart } from "./timelineWindow";
 import type { TimelineItem } from "./timelineItems";
 
-const ev = (id: number) => ({ id }) as unknown as ChatEvent;
+// 種類を問わない記録（位置を探すだけなので、中身は見ない）
+const ev = <T extends ChatEvent>(id: number) => ({ id }) as unknown as T;
 
 test("流れの窓: 最近の shown 件を描き、移り先が窓の外なら、その少し前から描く", () => {
   assert.equal(windowStart(500, 120), 380);

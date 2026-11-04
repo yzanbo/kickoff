@@ -10,8 +10,8 @@ import type { ProviderId, Chat } from "@shared/types";
 export async function forkChat(deps: { store: Store; providers: Record<ProviderId, AgentProvider> }, chat: Chat, eventId: number, cwd: string): Promise<Chat> {
   const { store, providers } = deps;
   const event = store.events.list(chat.id).find((e) => e.id === eventId);
-  const point = event?.type === "result" ? (event.data as { status?: string; session_id?: string; message_id?: string }) : undefined;
-  // 止めた・失敗した作業の終わり（以前の記録には message_id が付いている）からは分岐できない
+  const point = event?.type === "result" ? event.data : undefined;
+  // 最後まで終わった作業の終わりからだけ分岐できる（止めた・失敗した作業の最後のメッセージはセッションに残らないことがある）
   if (point?.status !== "completed" || !point.session_id || !point.message_id) throw new Error("この時点からは分岐できません");
   const provider = providers[chat.provider];
   if (!provider.fork) throw new Error(`${provider.label} は分岐に対応していません`);
