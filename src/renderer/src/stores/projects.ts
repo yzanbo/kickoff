@@ -31,13 +31,22 @@ export interface ProjectsIndex {
   projectName: (id: number) => string;
   /** 一覧が届いたか（届く前は、見つからなくても「ない」と決めない） */
   loaded: boolean;
+  /** 一覧が届いて、もうないとわかったプロジェクトか（消した・URL の番号が違う。一覧が届く前と undefined は false） */
+  missing: (id: number | undefined) => boolean;
   /** 一覧を読めなかった理由（読めたら undefined。読めるまで自動で取り直す） */
   error?: string;
 }
 
 export function indexProjects(projects: Project[], loaded = true, error?: string): ProjectsIndex {
   const projectsById = new Map(projects.map((p) => [p.id, p]));
-  return { projects, projectsById, projectName: (id) => projectsById.get(id)?.name ?? "", loaded, error };
+  return {
+    projects,
+    projectsById,
+    projectName: (id) => projectsById.get(id)?.name ?? "",
+    loaded,
+    missing: (id) => id !== undefined && loaded && !projectsById.has(id),
+    error,
+  };
 }
 
 const NO_PROJECTS: Project[] = [];

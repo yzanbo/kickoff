@@ -47,7 +47,7 @@ export function App() {
   // サーバーとつなぎ、届いた知らせを各画面と店（stores/）に配る（ここで 1 回だけ）
   const connection = useServerConnection(publishServerEvent);
   // アプリ全体で使うデータ（プロジェクト・回答待ち・設定）は店から読む（要る部品も、props で中継せずに店から読む）
-  const { projects, projectName, loaded: projectsLoaded } = useProjects();
+  const { projects, projectName, missing: missingProject, loaded: projectsLoaded } = useProjects();
   const approvals = useApprovals();
   const appSettings = useAppSettings().data;
   // プロジェクトの色（DB に覚えた色）を、色を使う部品が読めるようにする（描く前に入れる）
@@ -69,17 +69,22 @@ export function App() {
   const [searching, setSearching] = useState(false);
   // 設定のダイアログ（開いている項目。null なら閉じている）
   const [settings, setSettings] = useState<SettingsSection | null>(null);
+  // URL のプロジェクト。もうないとわかったもの（消した・URL の番号が違う）は、ないものとする
+  // （チャット欄・下のパネル・下の帯に出さず、そのプロジェクトのワークツリー・グループなどを読みに行かない）
+  const routeProject = routeProjectId(route);
+  const projectId = missingProject(routeProject) ? undefined : routeProject;
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
   // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。プロジェクトの画面でだけ出す）
-  const chat = useProjectChat(routeProjectId(route));
-  const bottomPanel = useBottomPanel(routeProjectId(route) ?? "all", terminalTargets(projects, routeProjectId(route)));
+  const chat = useProjectChat(projectId);
+  const bottomPanel = useBottomPanel(projectId ?? "all", terminalTargets(projects, projectId));
   // チャット・新しいチャットの URL では、最後に見たボード（カンバン / グループのボード）のパネルで開く
   const [boardColumns] = useBoardColumns();
 
-  /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める */
+  /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める（もうないプロジェクトは飛ばす） */
   const startNewChat = () => {
-    const projectId = routeProjectId(route) ?? loadCurrentProject() ?? projects[0]?.id;
-    if (projectId) openNewChat(projectId);
+    const current = loadCurrentProject();
+    const target = projectId ?? (missingProject(current) ? undefined : current) ?? projects[0]?.id;
+    if (target) openNewChat(target);
     else setCreating({});
   };
 
@@ -128,7 +133,7 @@ export function App() {
         <BottomPanel bottom={bottomPanel} />
         </div>
         <ProjectChat chat={chat} />
-        <AppFooter onOpenSettings={setSettings} connection={connection} planUsage={planUsage} projectId={routeProjectId(route)} />
+        <AppFooter onOpenSettings={setSettings} connection={connection} planUsage={planUsage} projectId={projectId} />
         {creating && (
           <NewProjectDialog
             defaultParentDir={appSettings?.projects_dir ?? "~/Documents"}
@@ -161,7 +166,7 @@ export function App() {
         {searching && (
           <SearchPanel
             chatId={route.name === "chat" ? route.chatId : undefined}
-            projectId={routeProjectId(route)}
+            projectId={projectId}
             onClose={() => setSearching(false)}
           />
         )}

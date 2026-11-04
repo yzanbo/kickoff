@@ -11,18 +11,12 @@ import { ProjectTabs, useProjectTabsLayout } from "./ProjectTabs";
 import { useProjectData } from "./useProjectData";
 import { useBusyBadge } from "@/hooks/useBusyBadge";
 import { useSetting } from "@/hooks/useSetting";
+import { useProjects } from "@/stores/projects";
 import type { FileTarget, ProjectTab, ReopenRoute } from "@/app/router";
 import { editorWorktree } from "@/lib/storageKeys";
 import { WorktreeContext } from "@/features/worktree/worktreeContext";
 
-/** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・履歴（コミット）をタブで */
-export function ProjectPage({
-  id,
-  tab,
-  focus,
-  highlightGroup,
-  openFile,
-}: {
+interface ProjectPageProps {
   id: number;
   tab: ProjectTab;
   /** カンバンの右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
@@ -31,7 +25,17 @@ export function ProjectPage({
   highlightGroup?: number;
   /** エディタタブで開くファイル（チャットの返答のファイルのチップから） */
   openFile?: FileTarget;
-}) {
+}
+
+/** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・履歴（コミット）をタブで */
+export function ProjectPage(props: ProjectPageProps) {
+  // 一覧が届いたのに見つからないプロジェクト（消した・URL の番号が違う）は、前の画面を出さずに知らせるだけにする
+  // （中身の部品を出さないので、そのプロジェクトのグループ・Git の状態を読みに行かない）
+  if (useProjects().missing(props.id)) return <div className="page error">プロジェクトが見つかりません</div>;
+  return <ProjectPageBody {...props} />;
+}
+
+function ProjectPageBody({ id, tab, focus, highlightGroup, openFile }: ProjectPageProps) {
   const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
   // ボードの列の分け方は、最後に見た方を覚える（サイドバーのグループから来たときも、次にボードのタブを押すとグループの列で開く）
