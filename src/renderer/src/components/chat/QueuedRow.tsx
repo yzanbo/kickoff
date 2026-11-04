@@ -3,6 +3,7 @@ import { useState, type DragEvent, type MouseEvent } from "react";
 import type { QueuedMessage } from "../../../../core/types";
 import { IconButton } from "../IconButton";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
+import { setQueueDragImage } from "./queueDragImage";
 import { AttachmentPeek } from "./AttachmentPeek";
 
 /** 送信待ちの 1 行への操作（行のボタンと右クリックのメニューで共通） */
@@ -15,16 +16,6 @@ export interface QueuedRowActions {
   move: (to: number) => void;
   sendNow: () => void;
   remove: () => void;
-}
-
-/** まとめて動かすときのドラッグの絵（「n 件を移動」の札。絵を写したらすぐ消す） */
-function setCountDragImage(dataTransfer: DataTransfer, count: number) {
-  const badge = document.createElement("div");
-  badge.className = "queued-drag-badge";
-  badge.textContent = `${count} 件を移動`;
-  document.body.appendChild(badge);
-  dataTransfer.setDragImage(badge, 12, 12);
-  setTimeout(() => badge.remove(), 0);
 }
 
 /**
@@ -117,13 +108,9 @@ export function QueuedRow({
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("text/plain", m.text);
-            // 動かしている間の絵は、つまみだけでなく行全体にする（まとめて動かすときは「n 件を移動」の札）
-            const row = e.currentTarget.parentElement;
-            if (dragCount > 1) setCountDragImage(e.dataTransfer, dragCount);
-            else if (row) {
-              const r = row.getBoundingClientRect();
-              e.dataTransfer.setDragImage(row, e.clientX - r.left, e.clientY - r.top);
-            }
+            // 動かしている間の絵は、カーソルの右下の小さな札（入る位置の線に被せない。まとめて動かすときは「n 件を移動」）
+            if (dragCount > 1) setQueueDragImage(e.dataTransfer, `${dragCount} 件を移動`, "many");
+            else setQueueDragImage(e.dataTransfer, `${i + 1}. ${m.text.trim().split("\n")[0] || "添付だけの指示"}`, "row");
             onDragStart();
           }}
           onDragEnd={onDragEnd}

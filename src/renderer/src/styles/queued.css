@@ -33,6 +33,8 @@
  * （初めは 5 件ほど。上端のつまみのドラッグで変え、見出しの「すべて表示」で外す）
  */
 .queued-list {
+  /* いちばん上・下に入るときの線と丸（行の端から 4px はみ出す）を、中でスクロールさせる枠で切らないための余白 */
+  padding-block: 4px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -188,40 +190,66 @@
 }
 
 /* まとめて動かすときのドラッグの絵（画面の外で描いて、ドラッグの絵に写す） */
-.queued-drag-badge {
+.queued-drag-image {
   position: fixed;
-  top: -100px;
-  left: -100px;
-  padding: 4px 10px;
+  top: -200px;
+  left: -400px;
+  /* 透明の余白の分だけ、札をカーソルから右下へずらす（入る位置の線に被せない） */
+  padding: 14px 0 0 18px;
+}
+
+/* ドラッグの絵の札: 1 件は文の初めの行（ふつうの地）・まとめて動かすときはアクセント・止める印は黄 */
+.queued-drag-badge {
+  max-width: 280px;
+  padding: 3px 10px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
   border-radius: 999px;
   font-size: 12px;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--bg-elev);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+}
+
+.queued-drag-badge.many {
+  border-color: var(--accent);
   font-weight: 600;
   color: var(--accent-text);
   background: var(--accent);
+}
+
+.queued-drag-badge.stop {
+  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
+  color: var(--warn);
 }
 
 .queued-row.dragging {
   opacity: 0.4;
 }
 
+/* 入る位置の線: 左端に丸を付けて、行の境目の線と見分けやすくする（行の上に重ね、ほかの行を押し動かさない） */
 .queued-row.drop-before::before,
 .queued-row.drop-after::after {
   position: absolute;
   right: 4px;
-  left: 4px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--accent-bright);
+  left: 2px;
+  z-index: 1;
+  height: 8px;
+  background:
+    radial-gradient(circle at 4px 50%, var(--accent-bright) 3px, transparent 3.5px),
+    linear-gradient(var(--accent-bright), var(--accent-bright)) 0 50% / 100% 2px no-repeat;
   content: "";
   pointer-events: none;
 }
 
 .queued-row.drop-before::before {
-  top: -1px;
+  top: -4px;
 }
 
 .queued-row.drop-after::after {
-  bottom: -1px;
+  bottom: -4px;
 }
 
 .queued-text {

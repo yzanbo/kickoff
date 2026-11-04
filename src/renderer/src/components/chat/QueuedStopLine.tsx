@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, GripVertical, Trash2 } from "lucide-react";
 import { useState, type DragEvent, type MouseEvent } from "react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
+import { setQueueDragImage } from "./queueDragImage";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
 
 /**
@@ -56,11 +57,7 @@ export function QueuedStopLine({
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("text/plain", "ここまで送ったら止めます");
-            const line = e.currentTarget.parentElement;
-            if (line) {
-              const r = line.getBoundingClientRect();
-              e.dataTransfer.setDragImage(line, e.clientX - r.left, e.clientY - r.top);
-            }
+            setQueueDragImage(e.dataTransfer, "ここまで送ったら止めます", "stop");
             onDragStart();
           }}
           onDragEnd={onDragEnd}
