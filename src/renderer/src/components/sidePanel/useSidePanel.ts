@@ -263,7 +263,8 @@ export function useSidePanel({ memoryKey, runs = NO_RUNS, loaded = false, holdEs
     /** ボードとパネルを並べる要素に渡す */
     body: {
       ref: size.bodyRef,
-      className: cx("board-body", panelOpen && "with-panel", size.resizing && "resizing"),
+      // 覆っているときは間隔を消す（ドラッグ中は指の位置どおりの幅にするので付けない）
+      className: cx("board-body", panelOpen && "with-panel", (size.maximized || size.covering) && !size.resizing && "panel-full", size.resizing && "resizing"),
       style: size.style,
     },
   };
