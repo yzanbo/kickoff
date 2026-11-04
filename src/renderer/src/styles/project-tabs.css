@@ -49,8 +49,8 @@
   text-align: center;
 }
 
-/* チャットの数も、エディタの数（.change-count）と同じ丸いバッジにする（アイコンの右上で読めるように） */
+/* 未読のチャットの数も、エディタの数（.change-count）と同じ丸いバッジにする（アイコンの右上で読めるように）。色は未読の点と同じ緑 */
 .project-side-tabs .tab-count {
-  color: var(--text);
-  background: var(--bg-active);
+  color: #fff;
+  background: var(--dot-attention);
 }

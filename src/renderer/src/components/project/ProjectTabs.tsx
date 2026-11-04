@@ -1,7 +1,9 @@
 import { Code2, History, SquareKanban, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import type { Run } from "../../../../core/types";
+import { useRunStates } from "../../approvalsContext";
 import { cx } from "../../cx";
+import { stateCounts } from "../../runState";
 import { useSharedChoice } from "../../hooks/useStoredState";
 import { href, type ProjectTab } from "../../router";
 import { PROJECT_TABS_LAYOUT_KEY } from "../../storageKeys";
@@ -28,13 +30,17 @@ const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
 ];
 
 /**
- * プロジェクトの画面のタブ（ボード・エディタ）。ボードにはチャットの数、エディタには変更のあるファイルの数を添える。
+ * プロジェクトの画面のタブ（ボード・エディタ）。ボードには未読のチャットの数（作業中のまま未読のものは数えない。サイドバーの「未読」の数と同じ stateCounts）、
+ * エディタには変更のあるファイルの数を添える。
  * vertical: 左に縦並び（アイコンだけ。名前と数は title と aria-label）。右クリックで置き方（横並び / 縦並び）を切り替える
  */
 export function ProjectTabs({ projectId, tab, runs, changeCount, vertical = false }: { projectId: number; tab: ProjectTab; runs: Run[]; changeCount: number; vertical?: boolean }) {
   const [columns] = useBoardColumns();
   const [layout, setLayout] = useProjectTabsLayout();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  // 未読のチャット（カンバンの「未読」の列と同じ。作業中のまま未読のもの・アーカイブ済みは数えない）
+  const { pending } = useRunStates();
+  const unread = stateCounts(runs, pending).review;
   return (
     <nav
       className={cx("tabs", vertical && "project-side-tabs")}
@@ -49,16 +55,16 @@ export function ProjectTabs({ projectId, tab, runs, changeCount, vertical = fals
         // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
         const selected = tab === t || (t === "board" && tab === "groups");
         const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
-        // 数はボード（チャット）とエディタ（変更のあるファイル）だけ。履歴には出さない
-        const count = t === "board" ? runs.length : t === "changes" ? changeCount : 0;
-        const countLabel = t === "board" ? `チャット ${count} 件` : `変更のあるファイル ${count} 件`;
+        // 数はボード（未読のチャット）とエディタ（変更のあるファイル）だけ。履歴には出さない
+        const count = t === "board" ? unread : t === "changes" ? changeCount : 0;
+        const countLabel = t === "board" ? `未読のチャット ${count} 件` : `変更のあるファイル ${count} 件`;
         return (
           <a
             key={t}
             role="tab"
             aria-selected={selected}
             aria-label={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : undefined}
-            title={vertical ? label : undefined}
+            title={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : t === "board" && count > 0 ? countLabel : undefined}
             className={`tab ${selected ? "active" : ""}`}
             href={href({ name: "project", id: projectId, tab: target })}
           >
