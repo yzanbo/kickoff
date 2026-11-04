@@ -117,7 +117,15 @@ export function MermaidDiagram({ code }: { code: string }) {
 function FullscreenDiagram({ svg, onClose }: { svg: string; onClose: () => void }) {
   const zoom = useDiagramZoom(() => fullscreenWidth(svg));
   return (
-    <ImageViewer name="Mermaid の図" onClose={onClose} actions={<ZoomButtons zoom={zoom} />}>
+    <ImageViewer
+      name="Mermaid の図"
+      onClose={onClose}
+      actions={
+        <span className="image-viewer-tools">
+          <ZoomButtons zoom={zoom} />
+        </span>
+      }
+    >
       <div className="mermaid-fullscreen">
         <SvgHost svg={svg} css={SIZED_CSS} width={zoom.width ?? fullscreenWidth(svg)} />
       </div>

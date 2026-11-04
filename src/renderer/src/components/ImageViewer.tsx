@@ -37,7 +37,8 @@ export function ImageViewer({
   actions?: ReactNode;
   children?: ReactNode;
 }) {
-  const dialog = useModalDialog();
+  // 開いた直後はダイアログ自体にピントを置く（最初のボタンにピントの枠が出て、そこだけずれて見えないように）
+  const dialog = useModalDialog({ focusSelf: true });
   const list = children !== undefined ? [] : (images ?? (src ? [{ src, name }] : []));
   const [current, setCurrent] = useState(() => Math.min(Math.max(0, index), Math.max(0, list.length - 1)));
   const image = list[current];
@@ -62,6 +63,7 @@ export function ImageViewer({
     <dialog
       ref={dialog.ref}
       className="image-viewer"
+      tabIndex={-1}
       aria-label={image?.name ?? name}
       onClose={onClose}
       {...dialog.backdropProps}
@@ -78,7 +80,7 @@ export function ImageViewer({
           nav={
             many && (
               <span className="image-viewer-tools">
-                <IconButton icon={ChevronLeft} label="前の画像" title="前の画像（←）" size={15} disabled={current === 0} onClick={() => go(-1)} />
+                <IconButton icon={ChevronLeft} label="前の画像" title="前の画像（←）" size={16} disabled={current === 0} onClick={() => go(-1)} />
                 <span className="image-viewer-count" aria-label={`${list.length} 枚中 ${current + 1} 枚目`}>
                   {current + 1} / {list.length}
                 </span>
@@ -86,7 +88,7 @@ export function ImageViewer({
                   icon={ChevronRight}
                   label="次の画像"
                   title="次の画像（→）"
-                  size={15}
+                  size={16}
                   disabled={current === list.length - 1}
                   onClick={() => go(1)}
                 />
