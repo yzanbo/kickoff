@@ -1,5 +1,6 @@
 import { File, SquareSlash } from "lucide-react";
 import { cx } from "@/lib/cx";
+import { PathParts } from "@/ui/PathParts";
 import type { SuggestController } from "./useSuggest";
 
 /** チャット欄の上に出す / と @ の候補（押すか Enter・Tab で入れる） */
@@ -36,8 +37,7 @@ export function SuggestList({ suggest }: { suggest: SuggestController }) {
             ) : (
               <>
                 <File size={14} aria-hidden />
-                <span className="suggest-name">{item.path.slice(item.path.lastIndexOf("/") + 1)}</span>
-                <span className="suggest-desc">{item.path.includes("/") ? item.path.slice(0, item.path.lastIndexOf("/")) : ""}</span>
+                <PathParts path={item.path} nameClass="suggest-name" dirClass="suggest-desc" />
               </>
             )}
           </button>

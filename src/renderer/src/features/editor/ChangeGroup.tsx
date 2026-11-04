@@ -2,9 +2,11 @@ import { Minus, Plus, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { GitFileChange } from "@shared/types";
 import { cx } from "@/lib/cx";
+import { baseName } from "@/lib/format";
 import { confirmDialog } from "@/ui/dialogs";
 import { Chevron } from "@/ui/Chevron";
 import { IconButton } from "@/ui/IconButton";
+import { PathParts } from "@/ui/PathParts";
 import { CHANGE_LABELS } from "./DiffView";
 import { FileIcon } from "./FileIcon";
 import { FileTree } from "./FileTree";
@@ -27,7 +29,7 @@ interface Props {
 
 /** 元に戻す前に確かめる（取り消せないので） */
 async function confirmDiscard(paths: string[]): Promise<boolean> {
-  const name = paths[0].slice(paths[0].lastIndexOf("/") + 1);
+  const name = baseName(paths[0]);
   return confirmDialog({
     title: paths.length === 1 ? `「${name}」の変更を元に戻しますか？` : `${paths.length} 個のファイルの変更を元に戻しますか？`,
     message: "この操作は取り消せません。まだ Git に追加していない新しいファイルは消えます。",
@@ -97,8 +99,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
         ) : (
           <ul className="change-files">
             {files.map((file) => {
-              const slash = file.path.lastIndexOf("/");
-              const name = file.path.slice(slash + 1);
+              const name = baseName(file.path);
               const isSelected = selected?.staged === staged && selected.path === file.path;
               return (
                 <li key={file.path} className="change-item">
@@ -109,8 +110,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
                     onClick={() => onSelect({ path: file.path, staged })}
                   >
                     <FileIcon name={name} />
-                    <span className={cx("change-name", file.kind === "D" && "deleted")}>{name}</span>
-                    {slash > 0 && <span className="change-dir">{file.path.slice(0, slash)}</span>}
+                    <PathParts path={file.path} nameClass={cx("change-name", file.kind === "D" && "deleted")} dirClass="change-dir" />
                     <span className="change-kind" data-kind={file.kind} aria-label={CHANGE_LABELS[file.kind]}>
                       {file.kind}
                     </span>

@@ -1,5 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { useContext } from "react";
+import { baseName } from "@/lib/format";
+import { PathParts } from "@/ui/PathParts";
 import { FileIcon } from "@/features/editor/FileIcon";
 import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
 import type { FileChange } from "./turnFileChanges";
@@ -33,13 +35,11 @@ export function TurnChanges({ files }: { files: FileChange[] }) {
       <ul>
         {files.map((f) => {
           const rel = root && f.path.startsWith(root) ? f.path.slice(root.length) : undefined;
-          const name = f.path.slice(f.path.lastIndexOf("/") + 1);
-          const dir = (rel ?? f.path).slice(0, -name.length).replace(/\/$/, "");
           const body = (
             <>
-              <FileIcon name={name} />
-              <span className="turn-change-name">{name}</span>
-              {dir && <span className="turn-change-dir">{dir}</span>}
+              <FileIcon name={baseName(f.path)} />
+              {/* フォルダは作業場所からの相対（作業場所の外なら絶対パスのまま） */}
+              <PathParts path={rel ?? f.path} nameClass="turn-change-name" dirClass="turn-change-dir" />
               {f.write && <span className="turn-change-tag">{f.write === "created" ? "新規" : "書き直し"}</span>}
               <Counts added={f.added} removed={f.removed} />
             </>

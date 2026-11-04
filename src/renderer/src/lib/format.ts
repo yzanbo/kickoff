@@ -5,6 +5,17 @@ export function baseName(path: string): string {
   return path.slice(path.lastIndexOf("/") + 1);
 }
 
+/**
+ * パスを、最後の名前とその親フォルダに分ける（一覧で「名前」と「場所」を分けて見せる）。
+ * "src/a/b.ts" → { name: "b.ts", dir: "src/a" }。区切りがなければフォルダは空、ルートの直下ならフォルダは "/"。末尾の / は除いて分ける
+ */
+export function splitPath(path: string): { name: string; dir: string } {
+  const trimmed = path.length > 1 ? path.replace(/\/+$/, "") : path;
+  const i = trimmed.lastIndexOf("/");
+  if (i < 0) return { name: trimmed, dir: "" };
+  return { name: trimmed.slice(i + 1), dir: i === 0 ? "/" : trimmed.slice(0, i) };
+}
+
 /** 246000 → "246k"、1000000 → "1m" */
 export function formatTokens(n: number): string {
   if (n < 1000) return String(n);
