@@ -94,5 +94,3 @@ export const markChatsSeen = (chats: Chat[]) => eachChat(chats.filter((r) => r.u
 /** まとめてグループへ移す（null はグループなし。同じプロジェクトのチャットだけ） */
 export const moveChatsToGroup = (chats: Chat[], groupId: number | null) => eachChat(chats, "移動", (r) => api.setChatGroup(r.id, groupId));
 
-/** 失敗をお知らせのダイアログで知らせる（操作の catch に渡す） */
-export const reportFailure = (title: string) => (e: unknown) => alertDialog(title, errorMessage(e));

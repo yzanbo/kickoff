@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { errorMessage } from "@shared/errors";
 
 /**
  * アプリ全体で使う確認・入力のダイアログ（OS 標準の confirm / prompt の代わり）。
@@ -55,6 +56,9 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
 export function alertDialog(title: string, message?: string): Promise<void> {
   return confirmDialog({ title, message, hideCancel: true }).then(() => undefined);
 }
+
+/** 失敗をお知らせのダイアログで知らせる（操作の catch に渡す） */
+export const reportFailure = (title: string) => (e: unknown) => alertDialog(title, errorMessage(e));
 
 /** 入力のダイアログ。決定すれば入力した文字（前後の空白は除く）、キャンセルなら null */
 export function promptDialog(options: PromptOptions): Promise<string | null> {

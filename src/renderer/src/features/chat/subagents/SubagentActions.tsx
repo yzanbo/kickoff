@@ -1,8 +1,7 @@
 import { CornerDownRight, Inbox, Play, RotateCcw, Square } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { api } from "@/api";
-import { confirmDialog } from "@/ui/dialogs";
-import { reportFailure } from "@/features/chat/chatActions";
+import { confirmDialog, reportFailure } from "@/ui/dialogs";
 import { cx } from "@/lib/cx";
 import { activityOf } from "@/features/chat/status/stall";
 import { isSubagentHalted } from "./subagentList";

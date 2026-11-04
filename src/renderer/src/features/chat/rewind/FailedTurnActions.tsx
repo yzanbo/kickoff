@@ -3,7 +3,7 @@ import { createContext, useContext, useMemo, useRef, useState } from "react";
 import { EFFORT_LABELS, type EffortLevel, type ChatEvent } from "@shared/types";
 import { api } from "@/api";
 import { effortsFor, groupModels } from "@/features/chat/options/models";
-import { reportFailure } from "@/features/chat/chatActions";
+import { reportFailure } from "@/ui/dialogs";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { failedTurnOf, lowerEffort, type FailedTurn } from "./retryActions";

@@ -1,8 +1,8 @@
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
 import { chatTitle } from "./chatTitle";
-import { choiceDialogWithRemember } from "@/ui/dialogs";
-import { confirmDeleteChat, deleteChat, reportFailure, toggleArchiveChat } from "./chatActions";
+import { choiceDialogWithRemember, reportFailure } from "@/ui/dialogs";
+import { confirmDeleteChat, deleteChat, toggleArchiveChat } from "./chatActions";
 import { readSetting, writeSetting, type SettingValue } from "@/lib/storage";
 import { CHAT_CLOSE_ACTION } from "@/lib/storageKeys";
 
