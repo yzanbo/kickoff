@@ -3,9 +3,10 @@ import type { Store } from "../db/store.js";
 import type { TurnControl } from "../providers/types.js";
 import { ChatQueue, type QueuePersistence } from "./queue.js";
 import { QueueEdits } from "./queueEdits.js";
-import type { ApiRetryInfo, BackgroundState, ChatLive, QueueState, ReconnectState } from "@shared/types";
+import { createRecoveryState, reconnectStateOf, type RecoveryState } from "./recovery/state.js";
+import type { ApiRetryInfo, BackgroundState, ChatLive, QueueState } from "@shared/types";
 
-/** ChatRuntime がそのまま持つ、画面に配る様子（送信待ちの列は queue、再接続待ちは再開の段取りから組み立てる） */
+/** ChatRuntime がそのまま持つ、画面に配る様子（送信待ちの列は queue、再接続待ちは recovery から組み立てる） */
 interface LiveFields {
   background: BackgroundState | null;
   retry: ApiRetryInfo | null;
@@ -33,6 +34,8 @@ export class ChatRuntime {
   readonly queue: ChatQueue;
   /** 画面で書き直している送信待ちの指示（自動で送る次の指示なら、書き直しが終わるまで送らない） */
   readonly edits: QueueEdits;
+  /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
+  readonly recovery: RecoveryState = createRecoveryState();
   private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false };
 
   constructor(
@@ -72,10 +75,10 @@ export class ChatRuntime {
     return { ...this.queue.snapshot(), waiting_edit: this.fields.waitingEdit };
   }
 
-  /** 画面に配る形（reconnect: つながったら自動で再開するのを待っているところ） */
-  live(reconnect: ReconnectState | null): ChatLive {
+  /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
+  live(): ChatLive {
     const { background, retry, compacting, stopping } = this.fields;
-    return { queue: this.queueState(), background, retry, reconnect, compacting, stopping };
+    return { queue: this.queueState(), background, retry, reconnect: reconnectStateOf(this.recovery), compacting, stopping };
   }
 
   /** チャットを消したとき（書き直しの持ち時間の待ちを止める） */
@@ -99,8 +102,6 @@ export class ChatRuntimes {
       editTtlMs?: number;
       /** 書き直している送信待ちの指示が変わった・外れた */
       onEditsChanged: (chatId: number) => void;
-      /** つながったら自動で再開するのを待っているところ（再開の段取りが持つ） */
-      reconnectOf: (chatId: number) => ReconnectState | null;
     },
   ) {
     for (const saved of deps.store.queues.list()) this.get(saved.chatId).queue.restore(saved);
@@ -120,6 +121,11 @@ export class ChatRuntimes {
     return runtime;
   }
 
+  /** チャットの作業中の状態（まだなければ undefined。作らない） */
+  peek(chatId: number): ChatRuntime | undefined {
+    return this.runtimes.get(chatId);
+  }
+
   /** 作業中か（まだ状態がなければ作業していない） */
   isBusy(chatId: number): boolean {
     return this.runtimes.get(chatId)?.busy ?? false;
@@ -127,7 +133,7 @@ export class ChatRuntimes {
 
   /** 画面に配る作業中の様子（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(chatId: number): ChatLive {
-    return this.get(chatId).live(this.deps.reconnectOf(chatId));
+    return this.get(chatId).live();
   }
 
   /** 作業中の様子を画面に配り直す（チャットがもうなければ配らない） */
@@ -136,9 +142,14 @@ export class ChatRuntimes {
     if (chat) this.deps.bus?.publish({ type: "chat_live", project_id: chat.project_id, chat_id: chatId, live: this.live(chatId) });
   }
 
+  /** すべてのチャットの作業中の状態 */
+  all(): ChatRuntime[] {
+    return [...this.runtimes.values()];
+  }
+
   /** 実行中のチャット（動かしているもの。送る準備の途中は数えない） */
   running(): ChatRuntime[] {
-    return [...this.runtimes.values()].filter((r) => r.turn !== null);
+    return this.all().filter((r) => r.turn !== null);
   }
 
   /** チャットを消したとき（知らせない） */
