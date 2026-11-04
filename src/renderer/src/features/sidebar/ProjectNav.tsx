@@ -9,7 +9,7 @@ import { SelectionBar } from "./SelectionBar";
 import { useProjectNav } from "./useProjectNav";
 
 interface Props {
-  /** プロジェクトごとのチャット（アーカイブ済みは一覧の下に出すときだけ含む。stores/chats.ts）とグループ（useSidebarData） */
+  /** プロジェクトごとのチャット（アーカイブ済みは一覧の下に出すときだけ含む）とグループ（どちらも店 stores/ から） */
   chats: Record<number, Chat[]>;
   groups: Record<number, ChatGroup[]>;
   onNewProject: () => void;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Project, Chat, ChatGroup } from "@shared/types";
+import type { Project, Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import { useSetting, useSettingFamily } from "@/hooks/useSetting";
@@ -23,9 +23,6 @@ import { useAllDrafts } from "@/features/panel/state/panelMemory";
 import { foldAll, useCompactProjects, useCompactRows, useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
 import { useProjectReorder } from "./useProjectReorder";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
-
-/** グループのないプロジェクトに渡す空の一覧（描くたびに作らない） */
-export const NO_GROUPS: ChatGroup[] = [];
 
 /**
  * サイドバーのプロジェクトの並びの状態と操作（並べ方・並び順・しまったものを出すか・自分待ちだけ・検索・

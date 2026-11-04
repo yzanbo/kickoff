@@ -24,8 +24,7 @@ import { BoardShell } from "./BoardShell";
 import { ArchivedListSection, DraftColumn, StateColumn } from "./StateColumn";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
 import { useChats } from "@/stores/chats";
-
-const NO_GROUPS: ChatGroup[] = [];
+import { NO_GROUPS } from "@/stores/groups";
 
 interface Props {
   /** 未指定なら全プロジェクトのボード（カードにプロジェクト名を出す） */

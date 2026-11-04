@@ -13,6 +13,7 @@ import { invalidateWorktrees } from "@/features/worktree/worktreeBranches";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { ComposerFill } from "@/features/chat/messages/quoteComment";
 import { currentChats, useChats } from "@/stores/chats";
+import { groupNameIn, useGroups } from "@/stores/groups";
 
 interface Props {
   projectId: number;
@@ -57,8 +58,9 @@ export function NewChatPane({
   useEffect(() => setPlace({ kind: "main" }), [projectId]);
   // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる）
   const busyHere = isBusyAt(chats.chats, place);
-  const groups = useAsync(() => api.groups(projectId), [projectId]);
-  const groupName = groups.data?.find((g) => g.id === group)?.name;
+  // 作成先のグループ（作る・名前を変える・消すと、サーバーの知らせで選択肢も直る）
+  const groups = useGroups(projectId);
+  const groupName = groupNameIn(groups, group);
   // グループ名が分かったら、タブにも出す
   useEffect(() => {
     if (groupName) onGroupChange?.(group, groupName);
@@ -104,7 +106,7 @@ export function NewChatPane({
           )}
           <WorkplacePicker projectId={projectId} value={place} onChange={setPlace} />
           {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
-          {groups.data && groups.data.length > 0 && onGroupChange && (
+          {groups.length > 0 && onGroupChange && (
             <label className={`new-chat-group ${group ? "has-group" : ""}`} title="作成先のグループ">
               <Folder size={12} aria-hidden />
               <select
@@ -113,11 +115,11 @@ export function NewChatPane({
                 value={group ?? ""}
                 onChange={(e) => {
                   const next = e.target.value ? Number(e.target.value) : undefined;
-                  onGroupChange(next, groups.data?.find((g) => g.id === next)?.name);
+                  onGroupChange(next, groupNameIn(groups, next));
                 }}
               >
                 <option value="">グループなし</option>
-                {groups.data.map((g) => (
+                {groups.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
                   </option>

@@ -4,9 +4,10 @@ import type { Chat, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { SearchField } from "@/ui/SearchField";
 import { ProjectListHead } from "./ProjectListHead";
-import { NO_GROUPS, type ProjectNavController } from "./useProjectNav";
+import type { ProjectNavController } from "./useProjectNav";
 import { WorkspacePage } from "./WorkspacePage";
 import { NO_CHATS } from "@/stores/chats";
+import { NO_GROUPS } from "@/stores/groups";
 
 /**
  * 縦並び: 見出しの行・すべてのプロジェクトをまたぐ検索欄・プロジェクトのカードの列・下の「新しいプロジェクト」。
