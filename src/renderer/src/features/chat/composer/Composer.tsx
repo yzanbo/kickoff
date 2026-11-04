@@ -1,4 +1,4 @@
-import { ArrowUp, Paperclip, Square } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type ReactNode } from "react";
 import type { Attachment } from "@shared/types";
 import type { GitTarget } from "@/api";
@@ -9,9 +9,9 @@ import type { Setting } from "@/lib/storage";
 import { useHeldMeta } from "@/hooks/useHeldMeta";
 import { consumeKey, hasModifiers, isCancelKey } from "@/lib/keys";
 import { COMPOSER_COMPACT } from "@/lib/storageKeys";
+import { AttachButton } from "@/features/chat/attachments/AttachButton";
 import { PendingFileChips } from "@/features/chat/attachments/PendingFileChips";
 import { ErrorText } from "@/ui/ErrorText";
-import { IconButton } from "@/ui/IconButton";
 import { DictationButton, DictationError } from "@/features/dictation/DictationButton";
 import { insertDictation } from "@/features/dictation/dictationText";
 import { useDictation } from "@/features/dictation/useDictation";
@@ -113,7 +113,6 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   const attach = useComposerFiles();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
-  const inputRef = useRef<HTMLInputElement>(null);
   // 音声入力: 起こした文をキャレットの位置（選んでいればその範囲）に入れる。send なら、入れてそのまま送る
   const dictation = useDictation({
     onText: (spoken, sendNow) => {
@@ -224,25 +223,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       />
       <div className="composer-bar">
         <div className="composer-tools">
-          <IconButton
-            icon={Paperclip}
-            label="ファイルを添付"
-            title="ファイルを添付（ドラッグ＆ドロップ・貼り付けでも可）"
-            size={16}
-            className="attach-button"
-            type="button"
-            onClick={() => inputRef.current?.click()}
-          />
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            hidden
-            onChange={(e) => {
-              if (e.target.files) attach.addFiles(e.target.files);
-              e.target.value = "";
-            }}
-          />
+          <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
           <DictationButton dictation={dictation} />
           {options && <ChatOptionsBar state={options} />}

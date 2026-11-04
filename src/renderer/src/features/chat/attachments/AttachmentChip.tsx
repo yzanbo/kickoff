@@ -1,8 +1,7 @@
 import type { Attachment } from "@shared/types";
-import { useState } from "react";
 import { attachmentUrl } from "@/api";
-import { ImageViewer, type ViewerImage } from "@/ui/imageViewer/ImageViewer";
-import { useImageMenu } from "@/ui/imageViewer/useImageMenu";
+import type { ViewerImage } from "@/ui/imageViewer/ImageViewer";
+import { useAttachmentViewer } from "./useAttachmentViewer";
 
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -38,10 +37,13 @@ export function AttachmentChip({
   uploading?: boolean;
   onRemove?: () => void;
 }) {
-  const [viewing, setViewing] = useState(false);
-  const imageMenu = useImageMenu();
   const isImage = isPreviewable(attachment.mime);
   const src = previewUrl ?? (attachment.id ? attachmentUrl(attachment as Attachment) : undefined);
+  // 大きく見る画像: 同じ発言の画像（押した画像から前後へ）。並びにない（選んだばかりの添付など）なら、この 1 枚だけ
+  const siblingImages = siblings ? viewerImagesOf(siblings) : [];
+  const at = siblingImages.findIndex((image) => image.src === src);
+  const viewer = useAttachmentViewer(at >= 0 ? siblingImages : src ? [{ src, name: attachment.name }] : []);
+  const index = Math.max(0, at);
   const body = (
     <>
       {isImage && src ? <img className="attachment-thumb" src={src} alt="" /> : <span className="attachment-icon">📄</span>}
@@ -55,8 +57,8 @@ export function AttachmentChip({
     <span className={`attachment ${uploading ? "uploading" : ""}`}>
       {isImage && src ? (
         <button type="button" className="attachment-link attachment-open" title="大きく表示" aria-label={`${attachment.name} を大きく表示`}
-          onClick={() => setViewing(true)}
-          onContextMenu={(e) => imageMenu.open(e, { src, name: attachment.name }, () => setViewing(true))}
+          onClick={() => viewer.open(index)}
+          onContextMenu={(e) => viewer.menu(e, index)}
         >
           {body}
         </button>
@@ -72,16 +74,23 @@ export function AttachmentChip({
           ×
         </button>
       )}
-      {imageMenu.element}
-      {viewing && src && <AttachmentViewer src={src} name={attachment.name} siblings={siblings} onClose={() => setViewing(false)} />}
+      {viewer.element}
     </span>
   );
 }
 
-/** 添付の画像を大きく見る（同じ発言の画像があれば、押した画像から前後に移って見られる） */
-function AttachmentViewer({ src, name, siblings, onClose }: { src: string; name: string; siblings?: Attachment[]; onClose: () => void }) {
-  const images = siblings ? viewerImagesOf(siblings) : [];
-  const index = images.findIndex((image) => image.src === src);
-  if (index < 0) return <ImageViewer src={src} name={name} onClose={onClose} />;
-  return <ImageViewer images={images} index={index} onClose={onClose} />;
+/**
+ * 送った・保存した添付の並び（発言の吹き出し・質問への回答・送信待ちの書き直し）。画像は押すと大きく表示し、同じ並びの画像は ← / → で前後へ。
+ * onRemove を渡すと × で外せる（選んだばかりの添付と同じ枠に入れる）
+ */
+export function AttachmentChips({ attachments, onRemove }: { attachments: Attachment[]; onRemove?: (attachment: Attachment) => void }) {
+  return attachments.map((a) =>
+    onRemove ? (
+      <span key={a.id} className="composer-attachment">
+        <AttachmentChip attachment={a} siblings={attachments} onRemove={() => onRemove(a)} />
+      </span>
+    ) : (
+      <AttachmentChip key={a.id} attachment={a} siblings={attachments} />
+    ),
+  );
 }

@@ -1,10 +1,10 @@
-import { Check, Paperclip, SendHorizontal, X } from "lucide-react";
-import { useRef } from "react";
+import { Check, SendHorizontal, X } from "lucide-react";
 import { useEditKeys } from "@/hooks/useEditKeys";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
-import { AttachmentChip } from "@/features/chat/attachments/AttachmentChip";
+import { AttachButton } from "@/features/chat/attachments/AttachButton";
+import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 import { PendingFileChips } from "@/features/chat/attachments/PendingFileChips";
 import { useComposerFiles } from "@/features/chat/attachments/useComposerFiles";
 
@@ -49,7 +49,6 @@ export function QueuedEditor({
   onCancel: () => void;
 }) {
   const files = useComposerFiles();
-  const inputRef = useRef<HTMLInputElement>(null);
   // アップロードの途中は保存しない（足した添付が抜け落ちないように）
   const save = (send = false) => {
     if (files.uploading) return;
@@ -71,11 +70,7 @@ export function QueuedEditor({
       <div className="queued-editor-body">
         {hasAttachments && (
           <div className="composer-attachments queued-editor-attachments">
-            {attachments.map((a) => (
-              <span key={a.id} className="composer-attachment">
-                <AttachmentChip attachment={a} siblings={attachments} onRemove={() => onAttachmentsChange(attachments.filter((x) => x.id !== a.id))} />
-              </span>
-            ))}
+            <AttachmentChips attachments={attachments} onRemove={(a) => onAttachmentsChange(attachments.filter((x) => x.id !== a.id))} />
             <PendingFileChips files={files.files} onRemove={files.removeFile} />
           </div>
         )}
@@ -98,17 +93,7 @@ export function QueuedEditor({
           onPaste={files.onPaste}
         />
       </div>
-      <IconButton icon={Paperclip} label="ファイルを添付" title="ファイルを添付（貼り付け・ドラッグ＆ドロップでも）" size={13} onClick={() => inputRef.current?.click()} />
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        hidden
-        onChange={(e) => {
-          if (e.target.files) files.addFiles(e.target.files);
-          e.target.value = "";
-        }}
-      />
+      <AttachButton size={13} onFiles={files.addFiles} />
       <IconButton
         icon={Check}
         label="保存"
