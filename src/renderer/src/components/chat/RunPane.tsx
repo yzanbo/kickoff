@@ -194,7 +194,6 @@ function RunView({
       <RunHeader
         run={run}
         project={project}
-        waiting={waiting}
         tools={
           <>
             {/* 発言の流れとチャット欄を、標準の幅（読みやすい幅）と欄の横幅いっぱいで切り替える（どのチャットでも同じ） */}

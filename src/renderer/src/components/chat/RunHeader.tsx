@@ -4,31 +4,22 @@ import type { Project, Run } from "../../../../core/types";
 import { toggleArchiveRunNow } from "../../runActions";
 import { IconButton } from "../IconButton";
 import { ProjectChip } from "../ProjectChip";
-import { busyWithUnread } from "../../../../core/board";
-import { useRunStates } from "../../approvalsContext";
-import { RUN_STATUS_LABELS } from "../RunStatus";
-import { StatusSlot } from "../StatusSlot";
 import { WorktreeChip } from "../WorktreeChip";
 
 /**
- * チャットの見出し: プロジェクト・作業場所のバッジ、右に道具（検索・横幅・アーカイブ・外部のターミナル）・ターン数と API 換算・状態。
- * 名前と閉じるはパネルのタブにあるので、ここには出さない（名前はタブのダブルクリックで変える）。waiting は確認（回答待ち）があるか
+ * チャットの見出し: プロジェクト・作業場所のバッジ、右に道具（検索・横幅・アーカイブ）・ターン数と API 換算。
+ * 名前・閉じる・状態の印（作業中・回答待ちなど）はパネルのタブにあるので、ここには出さない（名前はタブのダブルクリックで変える）
  */
 export function RunHeader({
   run,
   project,
-  waiting,
   tools,
 }: {
   run: Run;
   project?: Project;
-  waiting: boolean;
   /** 右の道具の列の先頭に置くもの（チャットの中の検索・発言の目次） */
   tools?: ReactNode;
 }) {
-  // 状態の印はサイドバーの行・パネルのタブと同じもの（回答待ちの確認があれば回答待ち）
-  const { stateOf } = useRunStates();
-  const state = waiting ? "needs_input" : stateOf(run);
   return (
     <header className="run-header">
       <div className="run-title-row">
@@ -58,10 +49,6 @@ export function RunHeader({
             {run.cost_usd > 0 && <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${run.cost_usd.toFixed(2)}</span>}
           </span>
         )}
-        <span className={`run-state state-${waiting ? "waiting" : run.status}`}>
-          <StatusSlot state={state} unread={busyWithUnread(run, state)} />
-          {RUN_STATUS_LABELS[waiting ? "waiting" : run.status]}
-        </span>
       </div>
     </header>
   );
