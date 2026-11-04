@@ -1,5 +1,5 @@
 import type { Chat } from "@shared/types";
-import { useGroupNames, useProjectGroups } from "@/features/group/groupNames";
+import { groupNameIn, useGroupsOf } from "@/stores/groups";
 import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/app/projectsContext";
 import { panelTabGrouping } from "@/lib/storageKeys";
@@ -33,8 +33,8 @@ export function useTabClusters(
 ): { clusterOf: (key: string) => ClusterOf; clusterOfChat: (chat: Chat) => ClusterOf; order: ClusterSeed[] } {
   const { projectsById, projectName } = useProjects();
   const projectIds = [...new Set(panel.tabs.flatMap((t) => projectOfTab(t) ?? []))];
-  const groupName = useGroupNames(grouping === "group" ? projectIds : []);
-  const groupsOf = useProjectGroups(grouping === "group" ? projectIds : []);
+  // 自分で作ったグループ（サイドバーと同じ並び）
+  const groupsOf = useGroupsOf(grouping === "group" ? projectIds : []);
   // ターミナルのフォルダから引くプロジェクト（本体のフォルダか、その隣のワークツリーの置き場 <名前>-worktrees/ の中）
   const terminalCwds = panel.tabs.flatMap((t) => (t.kind === "terminal" ? [t.cwd] : []));
   const terminalProjects = [...projectsById.values()]
@@ -46,7 +46,7 @@ export function useTabClusters(
   const named = (projectId: number, c: ClusterOf): ClusterOf => (many ? { ...c, label: `${projectName(projectId)} · ${c.label}` } : c);
 
   const byGroup = (projectId: number, groupId: number | null | undefined): ClusterOf => {
-    const name = groupId ? groupName(projectId, groupId) : undefined;
+    const name = groupId ? groupNameIn(groupsOf(projectId), groupId) : undefined;
     // 自分で作ったグループは覚えた色（同じプロジェクトのほかのグループと被らない色）
     const hue = groupId ? groupsOf(projectId).find((g) => g.id === groupId)?.hue : undefined;
     return named(projectId, {

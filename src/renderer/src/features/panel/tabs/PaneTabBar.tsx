@@ -13,7 +13,7 @@ import { StatusSlot } from "@/features/chat/StatusSlot";
 import { busyWithUnread } from "@shared/chat/state";
 import type { Chat } from "@shared/types";
 import type { TabDrag } from "@/features/panel/layout/useTabDrag";
-import { useGroupNames } from "@/features/group/groupNames";
+import { groupNameIn, useGroupsOf } from "@/stores/groups";
 import type { PanelController } from "@/features/panel/usePanel";
 import { shownActiveOf } from "@/features/panel/state/panelKinds";
 import { OTHER_CLUSTER, clusterHues, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs, type TabCluster } from "@/features/panel/clusters/tabClusters";
@@ -92,7 +92,8 @@ export function PaneTabBar({
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
   const { stateOf } = useChatStates();
   // チャットのタブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
-  const groupName = useGroupNames(panel.tabs.flatMap((t) => (t.kind === "chat" ? [t.projectId] : [])));
+  const groupsOf = useGroupsOf(panel.tabs.flatMap((t) => (t.kind === "chat" ? [t.projectId] : [])));
+  const groupName = (projectId: number, groupId: number | null | undefined) => groupNameIn(groupsOf(projectId), groupId);
   const tabChatOf = (t: { id: number; status?: Chat["status"]; unread?: boolean }) =>
     panel.chats.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, unread: Boolean(t.unread) } as Chat) : undefined);
   // まとめ方を選んでいれば、まとまりごとに並べ替えて見せる（display は見た目の並び。タブの中身が残っているものだけ）

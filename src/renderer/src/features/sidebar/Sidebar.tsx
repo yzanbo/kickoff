@@ -10,8 +10,8 @@ import { ProjectNav } from "./ProjectNav";
 import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
 import { useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
 import { useChatsByProject } from "@/stores/chats";
+import { useGroupsOf } from "@/stores/groups";
 import type { SidebarController } from "./useSidebar";
-import { useSidebarData } from "./useSidebarData";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 
@@ -30,7 +30,8 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   // すべてのプロジェクトのチャット（アーカイブ済みは、一覧の下に出すときだけ）とグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
   const [showArchivedChats] = useShowArchivedChats();
   const chats = useChatsByProject({ archived: showArchivedChats });
-  const { groups } = useSidebarData(projects);
+  const groupsOf = useGroupsOf(projects.map((p) => p.id));
+  const groups = Object.fromEntries(projects.map((p) => [p.id, groupsOf(p.id)]));
   // 自分待ち（回答待ち・未読）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
   const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
   // タグで絞り込んでいれば、出しているプロジェクトの分だけを数える（押して出る一覧と合わせる）

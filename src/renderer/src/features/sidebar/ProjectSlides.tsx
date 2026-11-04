@@ -3,10 +3,11 @@ import type { Chat, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { ProjectListHead } from "./ProjectListHead";
 import { stateCounts } from "@/features/chat/chatState";
-import { NO_GROUPS, type ProjectNavController } from "./useProjectNav";
+import type { ProjectNavController } from "./useProjectNav";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
 import { NO_CHATS } from "@/stores/chats";
+import { NO_GROUPS } from "@/stores/groups";
 
 /**
  * スライド: 1 ページ = 1 プロジェクトのチャット一覧で、スワイプ・丸・ショートカットで切り替える。

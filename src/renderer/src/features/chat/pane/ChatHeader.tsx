@@ -1,7 +1,7 @@
 import { Folder } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Project, Chat } from "@shared/types";
-import { useGroupName } from "@/features/group/groupNames";
+import { useGroupName } from "@/stores/groups";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 
