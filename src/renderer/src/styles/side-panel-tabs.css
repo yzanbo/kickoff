@@ -14,6 +14,7 @@
 }
 
 .panel-tab {
+  position: relative;
   display: flex;
   flex: 0 1 180px;
   align-items: center;
@@ -34,6 +35,28 @@
   border-color: var(--border);
   color: var(--text);
   background: var(--bg-hover);
+}
+
+/*
+ * タブとタブの境目（Chrome と同じ細い縦線。タブの間の隙間の真ん中に、高さの半分ほどで引く）。
+ * 表示中・マウスを乗せたタブは地の色で分かるので、その両側の線は消す
+ */
+.panel-tab + .panel-tab::before {
+  content: "";
+  position: absolute;
+  top: 25%;
+  bottom: 25%;
+  left: -2px;
+  width: 1px;
+  background: var(--divider-strong);
+  pointer-events: none;
+}
+
+.panel-tab.active::before,
+.panel-tab:hover::before,
+.panel-tab.active + .panel-tab::before,
+.panel-tab:hover + .panel-tab::before {
+  opacity: 0;
 }
 
 .panel-tab-label {
