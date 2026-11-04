@@ -46,6 +46,14 @@ export interface SubagentEntry {
   outputLimit?: boolean;
   /** 止まったあとに、親が同じ仕事をやり直した新しいサブエージェント（subagentSupersede.ts） */
   supersededBy?: { key: string; description: string };
+  /** 入れ子のとき、このサブエージェントを起動したサブエージェント（行のキー）。メインのエージェントが起動したものは undefined */
+  parentKey?: string;
+  /** 行のキーのほかに、このサブエージェントの記録の parent に入る呼び出し ID（SendMessage で再開した回は、その SendMessage の ID） */
+  aliases?: string[];
+  /** 初めに起動した時刻 */
+  startedAt?: string;
+  /** いちばん新しい回が止まった時刻（終わりの知らせ・ツールの結果・通信で親が失敗した結果。作業中・分からなければ undefined） */
+  endedAt?: string;
 }
 
 /** 失敗の文が、出力の上限（max_output_tokens）で止まったものか（通信の切断とは別。同じやり方では、再開しても同じところで止まる） */
@@ -78,6 +86,9 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
   // 作業 ID → 行のキー（起動した Agent / Task の呼び出し ID）。SendMessage で再開すると、作業 ID はそのままで、
   // 知らせの呼び出し ID は再開を頼んだ SendMessage のものになるので、作業 ID で元の行にまとめる
   const taskToKey = new Map<string, string>();
+  // 再開した回の呼び出し ID → 行のキー（その回の中の記録の parent は、再開を頼んだ SendMessage の ID になりうる）
+  const aliasToKey = new Map<string, string>();
+  const keyOf = (id: string) => aliasToKey.get(id) ?? id;
   // 通信の切断で止まったもの（行のキー）
   const network = new Set<string>();
   const markNetwork = (key: string, yes: boolean) => (yes ? network.add(key) : network.delete(key));
@@ -95,12 +106,23 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
   };
   // 親（メインのエージェント）が動いた記録か（サブエージェントの中の発言・ツールは除く）
   const isParentActivity = (e: ChatEvent) => (e.type === "text" || e.type === "thinking" || e.type === "tool_use") && !e.data.parent;
+  // 入れ子の子孫の動きは、祖先のサブエージェントも動いているとみなす（子の結果を待っている間に「動きがない」としない）
+  const bubble = (entry: SubagentEntry, at: string) => {
+    let up = entry.parentKey;
+    for (let depth = 0; up !== undefined && depth < 32; depth++) {
+      const ancestor = map.get(up);
+      if (!ancestor) break;
+      if (ancestor.lastActivityAt === undefined || Date.parse(at) > Date.parse(ancestor.lastActivityAt)) ancestor.lastActivityAt = at;
+      up = ancestor.parentKey;
+    }
+  };
   // サブエージェントの中の動き（parent = 起動した呼び出し ID）: 最後に動いた時刻と、結果を待っているツール
   const touch = (e: Extract<ChatEvent, { type: "text" | "thinking" | "tool_use" | "tool_result" }>) => {
-    const entry = e.data.parent ? map.get(e.data.parent) : undefined;
+    const entry = e.data.parent ? map.get(keyOf(e.data.parent)) : undefined;
     if (!entry) return;
     entry.lastActivityAt = e.created_at;
     entry.pendingTool = e.type === "tool_use" ? e.data.name : undefined;
+    bubble(entry, e.created_at);
   };
   for (const e of events) {
     // 届かなかった報告を、利用者の次の指示に添えて渡した（reportHandover.ts）: 受け取ったとみなす
@@ -117,7 +139,7 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       if (!isSubagentTool(d.name)) {
         touch(e);
         // サブエージェントが報告を渡した（終わりの知らせを取りこぼしても、終わったと分かる）
-        const parent = d.parent;
+        const parent = d.parent === undefined ? undefined : keyOf(d.parent);
         if (d.name === "SubagentHandback" && parent) {
           handedBack.add(parent);
           if (map.has(parent)) reported(parent);
@@ -125,6 +147,8 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
         otherTools.add(d.id);
         continue;
       }
+      // 入れ子: サブエージェントが起動したサブエージェント（起動したほうは、子の結果を待っている）
+      touch(e);
       map.set(d.id, {
         key: d.id,
         description: input?.description ?? "サブエージェント",
@@ -135,6 +159,8 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
         toolUseEventId: e.id,
         startEventId: e.id,
         lastActivityAt: e.created_at,
+        startedAt: e.created_at,
+        ...(d.parent === undefined ? {} : { parentKey: keyOf(d.parent) }),
       });
     } else if (e.type === "tool_result") {
       const d = e.data;
@@ -146,6 +172,7 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       else {
         entry.status = d.is_error ? "failed" : "completed";
         entry.endEventId = e.id;
+        entry.endedAt = e.created_at;
         markNetwork(entry.key, d.is_error && typeof d.content === "string" && isNetworkError(d.content));
         entry.outputLimit = d.is_error && typeof d.content === "string" && isOutputLimitError(d.content);
         // 待つ形: ツールの結果として親に返った（報告を受け取っている）
@@ -160,6 +187,12 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       const key = taskToKey.get(d.task_id) ?? own;
       if (!map.has(key) && otherTools.has(key)) continue;
       if (map.has(key) || !otherTools.has(own)) taskToKey.set(d.task_id, key);
+      // 再開した回の呼び出し ID（SendMessage）を、元の行のものとして覚える
+      if (d.tool_use_id !== undefined && d.tool_use_id !== key && map.has(key) && !aliasToKey.has(d.tool_use_id)) {
+        aliasToKey.set(d.tool_use_id, key);
+        const entry = map.get(key)!;
+        entry.aliases = [...(entry.aliases ?? []), d.tool_use_id];
+      }
       // 再開した回の知らせ（呼び出し ID が元の行と違う）は、完了のあとでも作業中に戻す
       const resumed = d.tool_use_id !== undefined && d.tool_use_id !== key;
       if (d.status === "running") {
@@ -181,10 +214,12 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       const entry = map.get(key) ?? { key, description: d.description || "サブエージェント", status: d.status };
       // 再開した回は、ここから始まり直す
       const restarted = d.status === "running" && resumed;
-      map.set(key, {
+      const next: SubagentEntry = {
         ...entry,
         startEventId: restarted ? e.id : (entry.startEventId ?? e.id),
         endEventId: d.status === "running" ? (restarted ? undefined : entry.endEventId) : e.id,
+        startedAt: entry.startedAt ?? e.created_at,
+        endedAt: d.status === "running" ? (restarted ? undefined : entry.endedAt) : e.created_at,
         lastActivityAt: e.created_at,
         pendingTool: restarted ? undefined : entry.pendingTool,
         description: entry.description || d.description,
@@ -196,7 +231,9 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
         agentId: d.task_id || entry.agentId,
         summary: d.summary ?? entry.summary,
         outputLimit: d.status === "failed" ? isOutputLimitError(d.summary) : undefined,
-      });
+      };
+      map.set(key, next);
+      bubble(next, e.created_at);
     } else if (e.type === "result") {
       // 報告を送ったのに、親が動かないまま作業が終わった: 報告は親に届いていない
       settleAwaiting("lost");
@@ -207,7 +244,10 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
       for (const entry of map.values()) {
         if (entry.status !== "running") continue;
         markNetwork(entry.key, byNetwork);
-        if (byNetwork) entry.endEventId = e.id;
+        if (byNetwork) {
+          entry.endEventId = e.id;
+          entry.endedAt = e.created_at;
+        }
       }
     }
   }
