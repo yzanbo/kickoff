@@ -29,7 +29,8 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatNotifications } from "./notifications";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
-import { openNewChat, RouteContext, routeProjectId, useHashRoute } from "./router";
+import { boardTabOf, openNewChat, RouteContext, routeProjectId, useHashRoute } from "./router";
+import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { useChatHistory } from "./useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
@@ -72,6 +73,8 @@ export function App() {
   // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。プロジェクトの画面でだけ出す）
   const chat = useProjectChat(routeProjectId(route));
   const bottomPanel = useBottomPanel(routeProjectId(route) ?? "all", terminalTargets(projects, routeProjectId(route)));
+  // チャット・新しいチャットの URL では、最後に見たボード（カンバン / グループのボード）のパネルで開く
+  const [boardColumns] = useBoardColumns();
 
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める */
   const startNewChat = () => {
@@ -109,11 +112,11 @@ export function App() {
         <div className={`main-column ${bottomPanel.open && bottomPanel.maximized ? "bottom-maximized" : ""}`}>
         <main className="main">
           {route.name === "project" || route.name === "chat" || route.name === "newChat" ? (
-            // チャット・新しいチャットはプロジェクトのカンバンの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
+            // チャット・新しいチャットはプロジェクトのボードの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
             <ProjectPage
               id={route.name === "project" ? route.id : route.projectId}
-              // サイドバーのグループの＋から来たときは、グループのタブで始める
-              tab={route.name === "project" ? route.tab : route.name === "newChat" && route.group ? "groups" : "board"}
+              // 最後に見たボードで開く（サイドバーのグループの＋から来たときは、グループのボードで始める）
+              tab={route.name === "project" ? route.tab : boardTabOf(route, boardColumns)}
               focus={route.name === "project" ? undefined : route}
               highlightGroup={route.name === "project" ? route.group : undefined}
               openFile={route.name === "project" ? route.file : undefined}

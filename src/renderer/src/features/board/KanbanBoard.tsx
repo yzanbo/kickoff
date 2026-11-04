@@ -1,16 +1,14 @@
 import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState } from "react";
-import type { Chat } from "@shared/types";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTicker } from "@/hooks/useTicker";
 import { useProjects } from "@/stores/projects";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
-import { openChat, type ReopenRoute } from "@/app/router";
+import type { ReopenRoute } from "@/app/router";
 import { useBoardPanel } from "@/features/panel/board/useBoardPanel";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
-import { useBoardFocus } from "./useBoardFocus";
 import { BoardLanes, LaneSelect } from "./BoardLanes";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import type { BucketHead } from "@/features/chatList/buckets";
@@ -59,28 +57,8 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
 
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ。チャットのタブはサイドバーの一覧にそろえる）と、
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない。いちばん左の「下書き」の列に出す）
-  const { panel, drafts, frame, body } = useBoardPanel({
-    projectId,
-    holdEsc: menu.isOpen,
-    projects: allProjects ? projects : undefined,
-    // 新しいチャットを送ったら、プロジェクトのボードでは URL もそのチャットにする
-    onCreated: (chat) => !allProjects && openChat(chat.project_id, chat.id, undefined, { replace: true }),
-  });
-  /** カードから開く。プロジェクトのボードでは URL もそのチャットにする（サイドバーで強調され、戻る・進むで行き来できる） */
-  const open = (chat: Chat) => {
-    panel.open(chat);
-    if (!allProjects) openChat(chat.project_id, chat.id, undefined, { replace: true });
-  };
-
-  // サイドバー・検索などから開いたチャット・新しいチャットを、パネルで開く
-  useBoardFocus(
-    focus,
-    (target) => {
-      if (target.name === "chat") panel.open({ id: target.chatId, project_id: target.projectId }, target.focus);
-      else panel.openNew({ projectId: target.projectId, group: target.group });
-    },
-    !allProjects,
-  );
+  // カードから開く（open）・新しいチャットを送ると、プロジェクトのボードでは URL もそのチャットにする。サイドバー・検索などから開いたもの（focus）もパネルで開く
+  const { panel, drafts, frame, body, open } = useBoardPanel({ projectId, holdEsc: menu.isOpen, projects: allProjects ? projects : undefined, focus });
 
 
   // 絞り込んだチャット。全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない

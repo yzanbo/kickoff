@@ -16,7 +16,6 @@ import { GroupCreateForm } from "./GroupCreateForm";
 import { GroupSections } from "./GroupSections";
 import { StateColumns } from "./StateColumn";
 import { useBoardCards } from "./useBoardCards";
-import { useBoardFocus } from "./useBoardFocus";
 import { useGroupBoard } from "./useGroupBoard";
 
 /** グループのボードの段の分け方（グループだけ） */
@@ -38,13 +37,9 @@ interface Props {
 export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   const board = useGroupBoard({ projectId, groups });
   const { view, split, menu, rename, over, dropProps } = board;
-  // カンバンと同じく、カードを押すと右側から出てくるパネルで開く（下書きもカンバンと同じく、このボードのパネルとチャット欄のもの）
-  const { panel, drafts, frame, body } = useBoardPanel({ projectId, holdEsc: menu.isOpen });
-
-  // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
-  useBoardFocus(focus, (target) => {
-    if (target.name === "newChat") panel.openNew({ projectId, group: target.group });
-  });
+  // カンバンと同じく、カードを押すと右側から出てくるパネルで開き、URL もそのチャットにする（下書きもカンバンと同じく、このボードのパネルとチャット欄のもの）。
+  // サイドバー・検索から開いたチャット、サイドバーのグループの＋から来た新しいチャットも右側に開く（同じ＋を押し直したときも）
+  const { panel, drafts, frame, body, open } = useBoardPanel({ projectId, holdEsc: menu.isOpen, focus, tab: "groups" });
 
   // サイドバーで選んだグループが見えるところまでスクロールする
   useEffect(() => {
@@ -67,7 +62,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   });
 
   /** カード・リストの行で共通: クリックで右側に開く、ドラッグでグループを移す、右クリックでメニュー */
-  const cards = useBoardCards({ panel, rename, menu, onOpen: panel.open, drag: { hint: "ドラッグでグループを移す" } });
+  const cards = useBoardCards({ panel, rename, menu, onOpen: open, drag: { hint: "ドラッグでグループを移す" } });
   // グループごとのまとまり（自分で作ったグループ → グループなし。チャットのないグループも出す）。段に分けるときは、その中を状態の列に分ける
   // （列・段には、そのグループで始める下書きも入る）
   const buckets = useChatBuckets(board.shown, { by: ["group", "status"], project: projectId, drafts, keepEmpty: true });
@@ -107,7 +102,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       frame={frame}
       body={body}
       menu={menu}
-      onOpenChat={panel.open}
+      onOpenChat={open}
       rename={rename}
       onError={board.setError}
       after={board.groupMenu.menu}
