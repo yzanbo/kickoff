@@ -1,4 +1,5 @@
 import { PanelBottomClose, PanelRightClose, type LucideIcon } from "lucide-react";
+import type { Route } from "@/app/router";
 import type { SettingFamily } from "@/lib/storage";
 import { projectChatOpen } from "@/lib/storageKeys";
 import type { PanelKind } from "./state/panelKinds";
@@ -83,4 +84,14 @@ export function parsePanelKey(key: string): { surface: PanelSurface; scope: Pane
   if (at < 0 || !surface) return undefined;
   if (rest === "all") return { surface, scope: "all" };
   return Number.isInteger(id) && id > 0 ? { surface, scope: id } : undefined;
+}
+
+/**
+ * その欄が出る画面（画面に出ていない欄の下書きを開くとき、ここへ移ってから開く）: 全プロジェクトの欄は全プロジェクトの画面、
+ * プロジェクトの欄（ボードの右のパネル・チャット欄・フッター）はそのプロジェクトのボード。知らない形なら undefined
+ */
+export function panelScreen(key: string): Route | undefined {
+  const at = parsePanelKey(key);
+  if (!at) return undefined;
+  return at.scope === "all" ? { name: "allProjects" } : { name: "project", id: at.scope, tab: "board" };
 }
