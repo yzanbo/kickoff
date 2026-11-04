@@ -14,6 +14,7 @@ import { useComposerFiles } from "./useComposerFiles";
  * 添付は上にすべて並べ、× で外せる。📎・貼り付け・ドラッグ＆ドロップで足せる（チャット欄と同じく、選んだ時点でアップロードする）
  */
 export function QueuedEditor({
+  id,
   index,
   withGrip,
   busy,
@@ -25,6 +26,8 @@ export function QueuedEditor({
   onSaveAndSend,
   onCancel,
 }: {
+  /** 書き直している指示の ID（いくつも開いているとき、開いたばかりの欄を見えるところへ動かすのに使う） */
+  id: string;
   /** 送る順番（0 から。ほかの行と同じく番号を出す） */
   index: number;
   /** ほかの行につまみの印があるか（あれば同じ幅を空けて、番号の位置をそろえる） */
@@ -72,7 +75,7 @@ export function QueuedEditor({
   };
   const hasAttachments = attachments.length > 0 || files.files.length > 0;
   return (
-    <div className={cx("queued-row editing", files.dragging && "file-over")} {...files.dropProps}>
+    <div className={cx("queued-row editing", files.dragging && "file-over")} data-id={id} {...files.dropProps}>
       {withGrip && <span className="queued-grip queued-grip-space" aria-hidden />}
       <span className="queued-index" aria-label={`${index + 1} 番目`}>
         {index + 1}
