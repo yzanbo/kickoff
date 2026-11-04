@@ -6,6 +6,7 @@ import { errorMessage } from "@shared/errors";
 import type { BrowserExtensionInfo } from "@shared/types";
 import { browserSession } from "./browser.js";
 import { unpackCrx } from "./crx.js";
+import { isManagedExtensionDir } from "./extensionDirs.js";
 import { KNOWN_EXTENSIONS, type KnownExtensionKey } from "../ipc/ipcArgs.js";
 
 // 埋め込みブラウザの拡張機能（React DevTools など）: ウェブストアから取る・Chrome から写す・展開済みのフォルダを読む
@@ -93,8 +94,9 @@ export async function removeExtension(extPath: string): Promise<BrowserExtension
   const manual = await readManualList();
   if (manual.includes(extPath)) {
     await fs.writeFile(manualListFile(), JSON.stringify(manual.filter((p) => p !== extPath), null, 2));
-  } else if (extPath.startsWith(extensionsDir())) {
-    await fs.rm(extPath, { recursive: true, force: true });
+  } else if (isManagedExtensionDir(extensionsDir(), extPath)) {
+    // 画面から届いたパスは、保存先のすぐ下のフォルダのときだけ消す（".." を含むパスで保存先の外を消さない）
+    await fs.rm(path.resolve(extPath), { recursive: true, force: true });
   }
   return listExtensions();
 }
