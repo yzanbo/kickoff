@@ -93,10 +93,13 @@
   border-style: dashed;
 }
 
-/* 書いた分だけ伸びる（高さは Composer が決める。空なら 1 行で、縦を取りすぎない） */
+/* 書いた分だけ伸びる（空なら 1 行。案内が折り返せばその分。上限を超えたら中でスクロール）。
+   高さはブラウザに任せる（JS で scrollHeight を測ると、1 文字ごとにページ全体のレイアウトをやり直させてしまう） */
 .composer textarea {
   display: block;
+  field-sizing: content;
   min-height: 42px;
+  max-height: 240px;
   padding: 12px 14px 2px;
   font-size: 14px;
   border: none;
