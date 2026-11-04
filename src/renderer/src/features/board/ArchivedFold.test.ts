@@ -8,7 +8,7 @@ test("splitArchived: アーカイブしていないものと、アーカイブ�
     { id: 2, archived_at: "2026-01-01T00:00:00Z" },
     { id: 3, archived_at: null },
   ];
-  const [active, archived] = splitArchived(items, (item) => item);
+  const [active, archived] = splitArchived(items);
   assert.deepEqual(
     active.map((i) => i.id),
     [1, 3],
@@ -17,5 +17,5 @@ test("splitArchived: アーカイブしていないものと、アーカイブ�
     archived.map((i) => i.id),
     [2],
   );
-  assert.deepEqual(splitArchived([], (item: { archived_at: string | null }) => item), [[], []]);
+  assert.deepEqual(splitArchived([]), [[], []]);
 });

@@ -59,7 +59,7 @@ export function TabClusterHead({
   /** まとまりのタブの数（畳んだときに札の右側に出す。表示中のタブも数える） */
   tabCount?: number;
 }) {
-  const { stateOf, pending } = useChatStates();
+  const { pending } = useChatStates();
   // 札を押すと開く、まとまりのチャットの一覧（札の下に出す。タブの列に切り取られないよう top layer に出る）
   const popover = usePopover<HTMLSpanElement>();
   // 札の右クリックのメニュー（プロジェクトの分かるまとまりだけ。「その他」「チャット」の札では出さない）
@@ -143,7 +143,7 @@ export function TabClusterHead({
           title={popoverTitle}
           anchor={popover.anchor}
           // まとまりのチャットをすべて（既読・アーカイブ済みも）状態ごとに並べる
-          sections={chatsByState(chats, stateOf, { all: true })}
+          sections={chatsByState(chats, pending, { all: true })}
           emptyText="チャットはありません"
           // グループのまとまり（グループ別のとき）では、そのグループに new チャットを足すボタンも置く（札の右クリックの項目と同じ）
           newChat={newChatTarget && { label: newChatLabel, onSelect: () => onNewChat?.(newChatTarget) }}

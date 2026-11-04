@@ -70,7 +70,7 @@ export function ProjectPage({
       {tabsLayout === "side" && <ProjectTabs projectId={project.id} tab={tab} chats={shown.chats} changeCount={git.count} refreshing={refreshing} vertical />}
       <div className="project-content">
 
-      {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} groups={groups} />}
+      {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} />}
       {tab === "groups" && <GroupBoard projectId={project.id} groups={groups} focus={focus} highlight={highlightGroup} />}
       {tab === "changes" && (
         <WorktreeContext.Provider value={worktree}>

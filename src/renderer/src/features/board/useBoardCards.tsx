@@ -5,7 +5,6 @@ import { cx } from "@/lib/cx";
 import { startChatDrag } from "@/features/group/groups";
 import type { useChatRename } from "@/features/chat/useChatRename";
 import type { PanelController } from "@/features/panel/usePanel";
-import type { BoardEntry } from "@/features/chatList/boardColumns";
 import { useBoardListCompact } from "./BoardHeader";
 import { ChatCardContent, ChatRowContent } from "./ChatCard";
 import { chatCardProps } from "./chatCardProps";
@@ -36,7 +35,7 @@ interface Options {
  * パネルで表示中なら selected（チャットはどれもサイドバーと連動してタブにあるので、タブで開いているかの印は付けない）
  */
 export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, style, projectName }: Options) {
-  const { pendingCount } = useChatStates();
+  const { pendingCount, stateOf } = useChatStates();
   // リストの行を 1 行にまとめるか（見出しの切り替えとそろう）
   const [compactRows] = useBoardListCompact();
   // ドラッグしている途中のチャット（薄く出す）
@@ -62,15 +61,15 @@ export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, sty
     cardProps,
     cardClass,
     /** ボードのカード */
-    card: ({ chat, state }: BoardEntry) => (
+    card: (chat: Chat) => (
       <article key={chat.id} className={cx("board-card", cardClass(chat))} {...cardProps(chat)}>
-        <ChatCardContent chat={chat} state={state} projectName={projectName?.(chat)} pending={pendingCount(chat.id)} rename={rename.editorFor(chat)} />
+        <ChatCardContent chat={chat} state={stateOf(chat)} projectName={projectName?.(chat)} pending={pendingCount(chat.id)} rename={rename.editorFor(chat)} />
       </article>
     ),
     /** リストの行 */
-    row: ({ chat, state }: BoardEntry) => (
+    row: (chat: Chat) => (
       <div key={chat.id} className={cx("list-row", compactRows && "compact", cardClass(chat))} {...cardProps(chat)}>
-        <ChatRowContent chat={chat} state={state} projectName={projectName?.(chat)} rename={rename.editorFor(chat)} />
+        <ChatRowContent chat={chat} state={stateOf(chat)} projectName={projectName?.(chat)} rename={rename.editorFor(chat)} />
       </div>
     ),
   };

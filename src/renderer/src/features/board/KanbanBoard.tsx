@@ -1,30 +1,29 @@
 import { Plus, SquareKanban } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
-import { BOARD_COLUMNS, type BoardColumn, type Chat, type ChatGroup } from "@shared/types";
+import { useMemo, useState } from "react";
+import type { Chat } from "@shared/types";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTicker } from "@/hooks/useTicker";
 import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/stores/projects";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { openChat, type ReopenRoute } from "@/app/router";
-import { useChatStates } from "@/app/chatStatesContext";
 import { useProjectChatContext } from "@/features/panel/projectChat/useProjectChat";
-import { DraftCards } from "./DraftCards";
+import { boardDrafts } from "./DraftCards";
 import { boardPanelKey } from "@/features/panel/state/panelMemory";
-import { usePanel, type NewChatTarget } from "@/features/panel/usePanel";
+import { usePanel } from "@/features/panel/usePanel";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
 import { useBoardFocus } from "./useBoardFocus";
 import { BoardLanes, LaneSelect } from "./BoardLanes";
-import { byColumn, type BoardEntry } from "@/features/chatList/boardColumns";
-import { useKanbanEntries } from "./useKanbanEntries";
+import { useChatBuckets } from "@/features/chatList/useChatBuckets";
+import type { BucketHead } from "@/features/chatList/buckets";
+import { useKanbanChats } from "./useKanbanChats";
 import { useKanbanFilters, useKanbanLanes, useWorktreeChoices } from "./useKanbanFilters";
 import { BoardShell } from "./BoardShell";
-import { ArchivedListSection, DraftColumn, StateColumn } from "./StateColumn";
+import { ListSections, StateColumns } from "./StateColumn";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
 import { useChats } from "@/stores/chats";
-import { NO_GROUPS } from "@/stores/groups";
 
 interface Props {
   /** 未指定なら全プロジェクトのボード（カードにプロジェクト名を出す） */
@@ -33,15 +32,16 @@ interface Props {
   title?: string;
   /** 右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
-  /** 自分で作ったグループ（スイムレーンをグループで分けるとき。プロジェクトのボードだけ） */
-  groups?: ChatGroup[];
 }
+
+/** 状態の列は、チャットがなくてもすべて出す（段・グループはチャットか下書きのあるものだけ） */
+const keepColumns = (head: BucketHead) => head.kind === "status";
 
 /**
  * チャットのカンバン。列（作業中・回答待ち・未読・既読）は AI の状態から自動で決まり、人は動かさない（boardColumnOf）。
  * カードの点はより細かい状態（順番待ち・エラーなど）。
  */
-export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Props) {
+export function KanbanBoard({ projectId, title, focus }: Props) {
   const allProjects = projectId === undefined;
   // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトを除いたサイドバーの並び（名前の引き当てはどのボードでも全プロジェクトから）。
   // サイドバーの「タグ」で絞り込んでいれば、合うプロジェクトだけ
@@ -52,8 +52,6 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
     [allList, allProjects, tagFilter.selected],
   );
-  // チャットの状態と回答待ちの数（回答待ちの依頼は App が持つ）
-  const { stateOf } = useChatStates();
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useChatRename(setError);
@@ -95,10 +93,10 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   );
 
 
-  // 絞り込んだチャット（新しく動いた順）。全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない
+  // 絞り込んだチャット。全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない
   const projectIds = useMemo(() => (allProjects ? new Set(projects.map((p) => p.id)) : undefined), [allProjects, projects]);
-  const { entries } = useKanbanEntries({ chats, filters: { ...filters, matches: filters.search.matches }, stateOf, projectIds });
-  const total = entries.length;
+  const shown = useKanbanChats({ chats, filters: { ...filters, matches: filters.search.matches }, projectIds });
+  const total = shown.length;
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
 
@@ -121,42 +119,18 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   });
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない）。いちばん左の「下書き」の列に出す
   const chat = useProjectChatContext();
-  const sideDrafts = chat && projectId !== undefined && chat.projectId === projectId ? chat.panel : null;
-  const draftCount = panel.drafts.length + (sideDrafts?.drafts.length ?? 0);
-  /** 下書きのカード（filter があれば、その作成先のものだけ。スイムレーンの段ごと） */
-  const draftCardsOf = (filter?: (target: NewChatTarget) => boolean) => (
-    <>
-      <DraftCards panel={panel} filter={filter} />
-      {sideDrafts && chat && <DraftCards panel={sideDrafts} filter={filter} onShow={chat.showTab} />}
-    </>
-  );
-  const draftCards = draftCardsOf();
-  /** スイムレーン: 下書きの作成先と、段に入る下書きの数 */
-  const draftTargets = [...panel.drafts, ...(sideDrafts?.drafts ?? [])].map((d) => d.target);
-  const draftsIn = (filter: (target: NewChatTarget) => boolean) => draftTargets.filter(filter).length;
-  /** アーカイブ済みのまとまりの開閉を覚える名前（ボード・段・列ごと） */
-  const foldKey = (column: BoardColumn, laneKey = "") => `kanban:${projectId ?? "all"}:${laneKey}:${column}`;
-  /** 状態の列（ボード・スイムレーンの段。アーカイブ済みは列のいちばん下の閉じたまとまりに分け、見出しの件数はアーカイブしていないものだけ） */
-  const columns = (list: BoardEntry[], laneKey?: string) => {
-    const grouped = byColumn(list);
-    return BOARD_COLUMNS.map((column) => <StateColumn key={column} column={column} entries={grouped.get(column) ?? []} foldKey={foldKey(column, laneKey)} render={cards.card} />);
-  };
-
-  /** リスト表示のまとまり（下書き → 状態ごと → いちばん下にアーカイブ済みをまとめ、中を状態ごとに分ける）。段に分けるときは段ごと */
-  const listSections = (list: BoardEntry[], laneKey: string, count: number, drafts: ReactNode) => {
-    const grouped = byColumn(list);
-    return (
-      <>
-        <DraftColumn count={count} list>
-          {drafts}
-        </DraftColumn>
-        {BOARD_COLUMNS.map((column) => (
-          <StateColumn key={column} column={column} entries={grouped.get(column) ?? []} foldKey={foldKey(column, laneKey)} render={cards.row} list foldArchived={false} />
-        ))}
-        <ArchivedListSection entries={list} foldKey={`kanban:${projectId ?? "all"}:${laneKey}-archived`} render={cards.row} />
-      </>
-    );
-  };
+  const sideDrafts = chat && projectId !== undefined && chat.projectId === projectId ? boardDrafts(chat.panel, chat.showTab) : [];
+  const drafts = [...boardDrafts(panel), ...sideDrafts];
+  // 状態の列（段に分けるときは、段（作業場所・グループ・プロジェクト）ごとに状態の列。段には、その段に入る作成先の下書きも入る）
+  const buckets = useChatBuckets(shown, {
+    by: split ? [lanes, "status"] : "status",
+    project: projectId,
+    projects: allProjects ? projects : undefined,
+    drafts,
+    keepEmpty: keepColumns,
+  });
+  /** アーカイブ済みのまとまりの開閉を覚える名前（ボードごと。列・段はまとまりのキーで分ける） */
+  const foldScope = boardPanelKey(projectId);
 
   const header = (
     <BoardHeader
@@ -198,41 +172,25 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     <BoardShell header={header} error={error ?? loadError} panel={panel} onNewChat={() => newChat()} projectId={projectId} menu={menu} onOpenChat={open} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
-      ) : view === "board" && split ? (
-        // 段に分ける: 段ごとに、ボードと同じく下書き（その段に入る作成先のもの）→ 状態の列を並べる
-        <BoardLanes
-          kind={lanes}
-          boardKey={`${projectId ?? "all"}`}
-          entries={entries}
-          projects={projects}
-          groups={groups}
-          drafts={draftTargets}
-          renderColumns={(list, laneKey, draft) => (
-            <>
-              <DraftColumn count={draftsIn(draft)}>{draftCardsOf(draft)}</DraftColumn>
-              {columns(list, laneKey)}
-            </>
-          )}
-        />
+      ) : split ? (
+        // 段に分ける: 段ごとに、ボードと同じく下書き（その段に入る作成先のもの）→ 状態の列を並べる（リストなら 下書き → 状態のまとまり → アーカイブ済み を縦に）
+        <BoardLanes lanes={buckets} list={view === "list"} boardKey={foldScope} showProject={projects.length > 1}>
+          {(lane) =>
+            view === "board" ? (
+              <StateColumns columns={lane.children ?? []} drafts={lane.drafts} foldScope={foldScope} render={cards.card} />
+            ) : (
+              <ListSections columns={lane.children ?? []} drafts={lane.drafts} foldScope={foldScope} archivedKey={`${lane.key}/archived`} render={cards.row} />
+            )
+          }
+        </BoardLanes>
       ) : view === "board" ? (
         <div className="board-columns">
-          <DraftColumn count={draftCount}>{draftCards}</DraftColumn>
-          {columns(entries)}
+          <StateColumns columns={buckets} drafts={drafts} foldScope={foldScope} render={cards.card} />
         </div>
-      ) : split ? (
-        // リストを段に分ける: 段ごとに、下書き（その段に入る作成先のもの）→ 状態のまとまり → アーカイブ済み を縦に並べる
-        <BoardLanes
-          kind={lanes}
-          list
-          boardKey={`${projectId ?? "all"}`}
-          entries={entries}
-          projects={projects}
-          groups={groups}
-          drafts={draftTargets}
-          renderColumns={(list, laneKey, draft) => listSections(list, laneKey, draftsIn(draft), draftCardsOf(draft))}
-        />
       ) : (
-        <div className="board-list">{listSections(entries, "list", draftCount, draftCards)}</div>
+        <div className="board-list">
+          <ListSections columns={buckets} drafts={drafts} foldScope={foldScope} archivedKey="archived" render={cards.row} />
+        </div>
       )}
     </BoardShell>
   );
