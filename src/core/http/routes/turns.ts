@@ -7,6 +7,7 @@ import { chatOptionsSchema, messageInputSchema, messageText } from "./schemas.js
 import { forkChat } from "../../chat/fork.js";
 import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import { workdirOf } from "../../chat/workdir.js";
+import type { TellResult } from "@shared/types";
 
 /**
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
@@ -26,7 +27,8 @@ export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) 
   // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）
   app.post("/api/chats/:id/tell", withChat, async (c) => {
     const { text, options, attachments } = messageInputSchema.parse(await jsonBody(c));
-    return c.json({ result: await runner.tell(c.var.chat.id, text, options, attachments) });
+    const told: TellResult = { result: await runner.tell(c.var.chat.id, text, options, attachments) };
+    return c.json(told);
   });
 
   app.post("/api/chats/:id/cancel", withChat, (c) => {

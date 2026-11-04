@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { isInside } from "../system/paths.js";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
-import type { FileContent, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "@shared/types";
+import type { FileContent, ProjectFiles, ProjectSearchQuery, ProjectSearchResult, SavedFile } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { gitStatus } from "./status.js";
 
@@ -59,7 +59,7 @@ async function resolveInside(repo: string, file: string): Promise<string> {
  * ファイルを保存する（いまあるファイルだけ）。baseHash は開いたときの指紋で、いまの中身と違えば上書きせずに
  * 409 にする（開いたあとで、ほかで（エージェントなどが）変えていた。エージェントの作業を消さないため）。null なら確かめずに上書きする
  */
-export async function writeProjectFile(repo: string, file: string, content: string, baseHash: string | null): Promise<{ hash: string }> {
+export async function writeProjectFile(repo: string, file: string, content: string, baseHash: string | null): Promise<SavedFile> {
   const real = await resolveInside(repo, file);
   if (!(await fs.stat(real)).isFile()) throw new Invalid("ファイルではありません");
   if (baseHash !== null && hashOf(await fs.readFile(real)) !== baseHash) {

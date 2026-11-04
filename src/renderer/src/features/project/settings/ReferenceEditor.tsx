@@ -21,7 +21,7 @@ export function ReferenceEditor({ project }: { project: Project }) {
   const { saving, error, run } = useSave();
   const refs = project.reference_paths;
 
-  const save = (next: Pick<ProjectReference, "path">[]) => run(() => api.updateProject(project.id, { reference_paths: next as ProjectReference[] }));
+  const save = (next: Pick<ProjectReference, "path">[]) => run(() => api.updateProject(project.id, { reference_paths: next }));
 
   const add = async (paths: string[]) => {
     const fresh = paths.map((p) => p.trim()).filter((p) => p && !refs.some((r) => r.path === p));

@@ -6,7 +6,7 @@ import { jsonBody, queryOf } from "../input.js";
 import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
 import { newChatSchema, optionalId } from "./schemas.js";
-import type { ChatDetail } from "@shared/types";
+import type { ChatDetail, ChatPatch } from "@shared/types";
 
 /** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
 const chatPatchSchema = z
@@ -18,7 +18,7 @@ const chatPatchSchema = z
     // アーカイブ（一覧から隠す。会話の記録は残る）・戻す。作業中はアーカイブできない
     archived: z.boolean(),
   })
-  .partial();
+  .partial() satisfies z.ZodType<ChatPatch>;
 
 /**
  * チャット（エージェントとの会話）の資源: 一覧・始める・詳細・変更（名前・グループ・固定・アーカイブ）・既読・別のプロジェクトへの移動・削除・検索。
