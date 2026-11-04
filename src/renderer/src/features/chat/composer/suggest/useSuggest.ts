@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type RefObject } from "react";
 import type { SlashCommandOption } from "@shared/types";
 import { api, type GitTarget } from "@/api";
+import { stepIndex } from "@/hooks/useListNavigation";
 import { createKeyedStore } from "@/stores/keyedStore";
 import { useKeyedStore } from "@/stores/useStore";
 import { findTrigger, matchCommands, matchFiles } from "./suggestMatch";
@@ -101,7 +102,7 @@ export function useSuggest({
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       const step = e.key === "ArrowDown" ? 1 : -1;
-      setIndex((i) => (i + step + items.length) % items.length);
+      setIndex((i) => stepIndex(i, step, items.length));
       return true;
     }
     if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {

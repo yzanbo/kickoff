@@ -1,15 +1,26 @@
 import { useState, type KeyboardEvent } from "react";
 
-/** 入力欄の ↑↓ で候補を選び、Enter で決める（変換中の Enter は除く）。候補が変わったら、呼ぶ側で setIndex(0) する */
+/**
+ * ↑↓ で選ぶ位置を 1 つ動かす。アプリ全体の候補・メニュー・選択欄で同じ決まり: 端では回り込む（最後の次は先頭、先頭の前は最後。
+ * macOS のメニューと同じ）。まだ選んでいなければ（index が範囲の外）、↓ で先頭・↑ で最後。候補がなければ -1
+ */
+export function stepIndex(index: number, step: 1 | -1, count: number): number {
+  if (count <= 0) return -1;
+  if (index < 0 || index >= count) return step > 0 ? 0 : count - 1;
+  return (index + step + count) % count;
+}
+
+/**
+ * 入力欄の ↑↓ で候補を選び（端では回り込む。stepIndex）、Enter で決める（変換中の Enter は除く）。
+ * 候補が変わったら、呼ぶ側で setIndex(0) する
+ */
 export function useListNavigation<T>(items: T[], onPick: (item: T | undefined) => void) {
   const [index, setIndex] = useState(0);
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      setIndex((i) => Math.min(i + 1, items.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setIndex((i) => Math.max(i - 1, 0));
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      setIndex((i) => stepIndex(i, step, items.length));
     } else if (e.key === "Enter" && !e.nativeEvent.isComposing) {
       e.preventDefault();
       onPick(items[index]);

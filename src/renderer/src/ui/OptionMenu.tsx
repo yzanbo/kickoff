@@ -1,5 +1,6 @@
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { stepIndex } from "@/hooks/useListNavigation";
 import { Popover } from "./Popover";
 
 interface OptionItem<T extends string> {
@@ -31,7 +32,7 @@ interface Props<T extends string> {
 
 /**
  * チャット欄の選択（アイコン・名前・▾ のボタンで、押すと上に一覧が開く）。
- * ↑↓ で選び、Enter で決定、Esc・外側のクリックで閉じる。
+ * ↑↓ で選び（端では回り込む。stepIndex）、Enter で決定、Esc・外側のクリックで閉じる。
  */
 export function OptionMenu<T extends string>({ value, display, icon, groups, ariaLabel, title, disabled, className, onChange }: Props<T>) {
   const [open, setOpen] = useState(false);
@@ -70,9 +71,8 @@ export function OptionMenu<T extends string>({ value, display, icon, groups, ari
       setOpen(false);
     } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      const step = e.key === "ArrowDown" ? 1 : -1;
-      // 選んでいるもの（cursor）が押せない項目なら、↓ で先頭・↑ で最後から（以前は ↑ で最後から 2 つ目に移っていた）
-      const next = items[index < 0 ? (step > 0 ? 0 : items.length - 1) : (index + step + items.length) % items.length];
+      // 選んでいるもの（cursor）が押せない項目なら、↓ で先頭・↑ で最後から
+      const next = items[stepIndex(index, e.key === "ArrowDown" ? 1 : -1, items.length)];
       if (next) setCursor(next.value);
     } else if (e.key === "Enter") {
       e.preventDefault();
