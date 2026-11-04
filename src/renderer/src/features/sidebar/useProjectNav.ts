@@ -5,9 +5,8 @@ import { useChatSearch } from "@/features/chat/chatSearch";
 import { useSetting } from "@/hooks/useSetting";
 import { foldAll, useFolds } from "@/hooks/useFold";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/stores/projects";
-import { useProjectTagFilter } from "@/features/project/projectTagFilter";
+import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { navigate, routeProjectId, useRoute } from "@/app/router";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { SIDEBAR_LAST_HASHES, SIDEBAR_LAYOUT, SIDEBAR_PROJECT_ORDER, SIDEBAR_SHOW_ARCHIVED_PROJECTS, SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
@@ -29,19 +28,14 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const { pending } = useChatStates();
   // 横スライド / 縦並び
   const [layout, changeLayout] = useSetting(SIDEBAR_LAYOUT);
-  // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
   // しまった（アーカイブした）プロジェクトは、下の行の切り替えで出したときだけ、いちばん下に並べる（並べ替えはできない）
   const [showArchived, setShowArchived] = useSetting(SIDEBAR_SHOW_ARCHIVED_PROJECTS);
-  // 最近動いた順: チャット（アーカイブしたものを除く）が最後に動いた時刻。チャットがなければ作った時刻
+  // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順 / 最近動いた順）と、タグでの絞り込み（見出しの「タグ」。
+  // 合わないプロジェクトは、固定・しまったものも含めて出さない）。sorted は絞り込む前のしまっていないもの
   const [projectOrder, setProjectOrder] = useSetting(SIDEBAR_PROJECT_ORDER);
-  const lastActive = (p: Project) => (chats[p.id] ?? []).find((r) => !r.archived_at)?.active_at ?? p.created_at;
-  // タグでの絞り込み（見出しの「タグ」。合わないプロジェクトは、固定・しまったものも含めて出さない）
-  const tagFilter = useProjectTagFilter();
-  const sorted = sidebarOrder(projects, projectOrder === "recent" ? lastActive : undefined);
-  const visible = tagFilter.active ? sorted.filter(tagFilter.matches) : sorted;
+  const { active: sorted, visible, archived, tagFilter } = useVisibleProjects();
   // 手動の並びのときだけ、ドラッグで並べ替えられる（しまったものは並べ替えない）
   const canReorder = projectOrder === "manual";
-  const archived = archivedProjects(projects).filter(tagFilter.matches);
   // 自分待ちだけを出すときは、自分待ちのチャットか、送る前の新しいチャット（下書き）があるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
   const [compact] = useCompactRows();

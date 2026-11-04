@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { Chat } from "@shared/types";
-import { useProjectTagFilter } from "@/features/project/projectTagFilter";
-import { useProjects } from "@/stores/projects";
+import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { NO_CHATS, useChats } from "@/stores/chats";
 
@@ -16,16 +15,14 @@ export type LinkScope = number | "all" | null;
  */
 export function useLinkedChats(scope: LinkScope): { chats: Chat[]; loaded: boolean; showArchived: boolean } {
   const [showArchived] = useShowArchivedChats();
-  const { projectsById } = useProjects();
-  const tagFilter = useProjectTagFilter();
+  // 全プロジェクトのときに出すプロジェクト（サイドバーと同じ: しまったものを除き、タグの絞り込みに合うもの）
+  const { visible } = useVisibleProjects();
   const list = useChats({ projectId: scope === "all" || scope === null ? undefined : scope, archived: showArchived, enabled: scope !== null });
   const chats = useMemo(() => {
     if (scope === null) return NO_CHATS;
     if (scope !== "all") return list.chats;
-    return list.chats.filter((r) => {
-      const p = projectsById.get(r.project_id);
-      return p !== undefined && !p.archived_at && tagFilter.matches(p);
-    });
-  }, [scope, list.chats, projectsById, tagFilter]);
+    const shown = new Set(visible.map((p) => p.id));
+    return list.chats.filter((r) => shown.has(r.project_id));
+  }, [scope, list.chats, visible]);
   return { chats, loaded: list.loaded, showArchived };
 }
