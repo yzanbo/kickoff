@@ -6,7 +6,7 @@ import { alertDialog } from "@/ui/dialogs";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useFold, useFolds } from "@/hooks/useFold";
 import { projectHue } from "@/features/project/projectColor";
-import { archivedKey, groupKey, pinnedKey } from "@/features/chatList/buckets";
+import { archivedKey, groupKey, pinnedKey } from "@/features/chatList/bucketHeads";
 import { openNewChat, openChat, routeProjectId, useRoute } from "@/app/router";
 import { useChatStates } from "@/app/chatStatesContext";
 import { ChatMenu } from "@/features/chat/ChatMenu";
