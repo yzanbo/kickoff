@@ -3,7 +3,8 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { findWhisperModel } from "../../voice/models.js";
 import { Invalid, NotFound } from "../errors.js";
-import { voiceLanguage, jsonBody } from "./schemas.js";
+import { jsonBody } from "../input.js";
+import { voiceLanguage } from "./schemas.js";
 
 /** 受け取る音声の大きさの上限（OpenAI の文字起こしの API と同じ 25MB） */
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;

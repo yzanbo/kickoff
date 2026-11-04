@@ -13,6 +13,7 @@ import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subag
 import type { Project, ProviderId, Chat } from "@shared/types";
 import type { UploadStore } from "./uploads.js";
 import type { ChatRuntime } from "./runtime.js";
+import { workdirOf } from "./workdir.js";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
@@ -91,9 +92,9 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
   }
 }
 
-/** 作業場所: チャットのワークツリー → プロジェクトのフォルダ（本体）。フォルダが消えていれば（ワークツリーをアプリの外で消したときなど）分かる文で止める */
+/** 作業場所（workdirOf）。フォルダが消えていれば（ワークツリーをアプリの外で消したときなど）分かる文で止める */
 async function resolveWorkdir(chat: Chat, project: Project): Promise<string> {
-  const cwd = chat.worktree_path || project.repo_path;
+  const cwd = workdirOf(chat, project);
   const isDir = await fs.stat(cwd).then((s) => s.isDirectory(), () => false);
   if (!isDir) throw new Error(`作業場所のフォルダが見つかりません（${cwd}）。ワークツリーが消された可能性があります。新しいチャットで作業場所を選び直してください`);
   return cwd;

@@ -1,5 +1,6 @@
 // 別のチャットの内容を、いまのチャットに読み込ませるための記録（Markdown。添付ファイルとして渡し、AI が Read で読む。Node 依存なし）
 import type { Project, Chat, ChatEvent } from "@shared/types";
+import { workdirOf } from "./workdir.js";
 
 /** ファイルを変える編集のツール（変えたファイルを作業ごとに書き添える） */
 const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
@@ -19,7 +20,7 @@ const relative = (file: string, root: string) => (file.startsWith(`${root}/`) ? 
  * 変えたファイルと、失敗・中断したことを添える）。ツールの細かい出力・考えている途中・サブエージェントの中の発言は入れない
  */
 export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]): string {
-  const root = chat.worktree_path || project.repo_path;
+  const root = workdirOf(chat, project);
   const lines = [
     `# チャット「${chat.title || "無題のチャット"}」の記録`,
     "",

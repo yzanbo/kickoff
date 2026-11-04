@@ -3,7 +3,8 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, VOICE_PROVIDERS, type AppSettings } from "@shared/types";
-import { voiceLanguage, jsonBody } from "./schemas.js";
+import { jsonBody } from "../input.js";
+import { voiceLanguage } from "./schemas.js";
 
 const settingsSchema = z
   .object({

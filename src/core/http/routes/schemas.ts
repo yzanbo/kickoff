@@ -1,27 +1,8 @@
-import type { Context } from "hono";
 import { z } from "zod";
 import type { ChatOptionsPatch } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
-import { Invalid } from "../errors.js";
 
-// ルートで共通に使う zod の形（入力の検証に失敗したときの 400 は server.ts の onError が返す）
-
-/** URL の ?name= の値（なければ・空なら指定なし） */
-export const queryOf = (c: Context, name: string): string | undefined => c.req.query(name) || undefined;
-
-/**
- * 本文（JSON）を読む（形は呼ぶ側が zod で確かめる）。空の本文は {}（省ける項目だけのルートは本文なしで呼べ、必須の項目があれば検証で 400）。
- * JSON として読めなければ 400（読み取りの例外をそのまま 500 にしない）。本文はここ以外で読まない
- */
-export async function jsonBody(c: Context): Promise<unknown> {
-  const text = await c.req.text();
-  if (!text.trim()) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Invalid("本文が JSON として読めません");
-  }
-}
+// ルートで共通に使う zod の形（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
 
 /** ?project_id= などの、省略できる ID（数でなければ 400。NaN を SQL に入れない） */
 export const optionalId = z.coerce.number().int().positive().optional();
