@@ -279,6 +279,8 @@ export const api = {
   clearQueued: (runId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue`),
   /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */
   sendAllQueued: (runId: number, ids?: string[]) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/send-all`, ids ? { ids } : {}),
+  /** 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めておくのをやめ、印を外す） */
+  sendQueuedInOrder: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/send-in-order`),
   /** 選んだ待ちの指示をまとめて消す */
   removeQueuedMany: (runId: number, ids: string[]) =>
     request<{ removed: number; queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/remove-many`, { ids }),

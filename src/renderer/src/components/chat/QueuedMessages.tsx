@@ -208,7 +208,7 @@ export function QueuedMessages({
         <QueuedModeButton runId={runId} paused={paused} busy={busy} failed={failed} />
         {/* 選んでいるときは、行と同じ 2 つのまとまり: 並べ替え（いちばん上へ・下へ）｜ 選んだものへの操作（まとめて送る・消す・選ぶのをやめる） */}
         {selected.length > 0 && <QueuedMoveActions runId={runId} selected={selected} failed={failed} />}
-        <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} onClearSelection={clearSelection} failed={failed} />
+        <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} failed={failed} />
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (
