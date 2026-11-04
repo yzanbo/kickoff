@@ -241,7 +241,7 @@
   margin-top: 6px;
   padding-top: 12px;
   /* 太さは選択肢の行の区切りと同じ 1px のまま、色を濃くして、質問どうしの境目をはっきりさせる */
-  border-top: 1px solid color-mix(in srgb, var(--text) 30%, transparent);
+  border-top: 1px solid var(--divider-strong);
 }
 
 .question-number {
