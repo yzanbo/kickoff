@@ -54,8 +54,12 @@ export function panelActions(key: string) {
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => openTab(browserTab(url)),
     openTerminal,
-    /** 開いているタブを表示する（タブ・下書きを押したとき。ないタブなら何もしない） */
-    showTab: (tabKey: string) => dispatch({ type: "show", key: tabKey }),
+    /** 開いているタブを表示する（タブ・下書きを押したとき。隠している種類のタブなら、その種類を出す。ないタブなら何もしない） */
+    showTab: (tabKey: string) => {
+      const tab = panelStateOf(key).tabs.find((t) => t.key === tabKey);
+      if (tab && at) showKind(at.surface, kindOfTab(tab));
+      dispatch({ type: "show", key: tabKey });
+    },
     /** タブの中身を変える（新しいチャットのプロジェクト・グループ、ブラウザのタイトルなど。その種類のタブだけ） */
     patchTab: (tabKey: string, patch: TabPatch) => dispatch({ type: "patch", key: tabKey, ...patch }),
     /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
