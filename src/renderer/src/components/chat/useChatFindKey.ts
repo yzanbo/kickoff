@@ -20,11 +20,11 @@ function watchPresses() {
 }
 
 /**
- * ⌘F: このチャットの中の検索を開く（開いていれば検索欄にピントを戻して選ぶ）。
+ * ⌘F: このチャットの中の検索欄（見出しの行にいつもある）にピントを移し、文を選ぶ。
  * ピントがこのチャットの中にあるとき、またはどこにもピントがなく最後に押したのがこのチャットのとき。
  * アプリ全体の ⌘F（ボードのチャット名の検索欄へ）より先に、捕捉で受け取る
  */
-export function useChatFindKey(root: RefObject<HTMLElement | null>, open: () => void) {
+export function useChatFindKey(root: RefObject<HTMLElement | null>) {
   useEffect(watchPresses, []);
   useWindowEvent(
     "keydown",
@@ -36,13 +36,13 @@ export function useChatFindKey(root: RefObject<HTMLElement | null>, open: () => 
       // 隠れているタブ・閉じたパネルのチャットでは開かない
       if (!el || !el.offsetParent || el.closest("[inert]")) return;
       if (!(el.contains(active) || (nothingFocused && lastPressed === el))) return;
+      const input = el.querySelector<HTMLInputElement>(".chat-find input");
+      if (!input) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      open();
-      // もう開いていれば、検索欄にピントを戻して打ち直せるようにする（開いたばかりなら autoFocus が効く）
-      const input = el.querySelector<HTMLInputElement>(".chat-find input");
-      input?.focus();
-      input?.select();
+      // 見出しの行の検索欄にピントを移し、前に打った文を選んで打ち直せるようにする
+      input.focus();
+      input.select();
     },
     true,
     true,

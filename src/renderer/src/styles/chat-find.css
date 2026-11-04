@@ -1,0 +1,72 @@
+/* ==== チャットの中の検索（ChatFind。チャットの見出しの行） ==== */
+
+/*
+ * チャットの中の検索（見出しの行の右にいつも置く入力欄。⌘F でピントが入る）。ふだんは細く、ピントが入る・文を入れると広げ、
+ * 件数・前後・大文字小文字は文を入れたときだけ出す。狭い見出し（右端のチャット欄など）では虫眼鏡だけにして、押す・⌘F で広げる
+ */
+.chat-find {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 26px;
+  padding: 0 4px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  cursor: text;
+}
+
+.chat-find:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+
+.chat-find input {
+  width: 140px;
+  min-width: 0;
+  padding: 0 4px;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: transparent;
+  outline: none;
+  transition: width var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.chat-find:focus-within input,
+.chat-find.active input {
+  width: 200px;
+}
+
+@container (max-width: 420px) {
+  .chat-find:not(:focus-within, .active) {
+    padding: 0 6px;
+    border-color: transparent;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .chat-find:not(:focus-within, .active) input {
+    width: 0;
+    padding: 0;
+  }
+
+  .chat-find:focus-within input,
+  .chat-find.active input {
+    width: 120px;
+  }
+}
+
+.chat-find-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+::highlight(chat-find) {
+  background-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+::highlight(chat-find-current) {
+  color: #000;
+  background-color: var(--warn);
+}
