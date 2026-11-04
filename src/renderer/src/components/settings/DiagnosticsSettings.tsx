@@ -1,4 +1,6 @@
 import { Activity } from "lucide-react";
+import { useAsync } from "../../hooks/useAsync";
+import { DiagnosticsPath } from "../diagnostics/DiagnosticsPath";
 
 /**
  * 診断: 重いときに、再起動せずその場で性能の記録を取る（10 秒）。押すと設定を閉じ、記録の間も操作を続けられる
@@ -6,6 +8,8 @@ import { Activity } from "lucide-react";
  */
 export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
   const available = Boolean(window.kickoff);
+  // 保存先と最近の記録（新しい順）。デスクトップアプリでだけ取れる
+  const folders = useAsync(async () => (await window.kickoff?.diagnostics.folders()) ?? null);
   return (
     <section className="section">
       <h2>診断</h2>
@@ -29,6 +33,21 @@ export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
           </button>
           {!available && <p className="muted small">デスクトップアプリでだけ使えます</p>}
         </div>
+        {folders.data && (
+          <div className="field">
+            <span className="field-label">保存先</span>
+            <DiagnosticsPath dir={folders.data.root} onOpen={() => void window.kickoff?.diagnostics.openRoot()} />
+            <span className="field-help">記録ごとに、日時の名前のフォルダ（summary.json と、Chrome の開発者ツールで開ける profile.cpuprofile）を作ります。</span>
+          </div>
+        )}
+        {folders.data && folders.data.records.length > 0 && (
+          <div className="field">
+            <span className="field-label">最近の記録（新しい順）</span>
+            {folders.data.records.map((dir) => (
+              <DiagnosticsPath key={dir} dir={dir} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

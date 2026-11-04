@@ -1,10 +1,10 @@
-import { Activity, FolderOpen } from "lucide-react";
+import { Activity } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { DiagnosticsState } from "../../../../core/types";
 import { useTicker } from "../../hooks/useTicker";
-import { CopyButton } from "../CopyButton";
 import { ErrorText } from "../ErrorText";
-import { CloseButton, IconButton } from "../IconButton";
+import { CloseButton } from "../IconButton";
+import { DiagnosticsPath } from "./DiagnosticsPath";
 
 /**
  * 性能の記録の様子（画面の右下の小さな印）。記録はメニューの「ヘルプ → 性能の記録を取る」か設定の「診断」から始まり、
@@ -54,11 +54,7 @@ function DiagnosticsMessage({ state }: { state: DiagnosticsState }) {
           <span className="muted small">
             画面の要素 {s.domNodes.toLocaleString()} 個 · メモリ {s.heapMB} MB · 1 秒あたり JavaScript {s.scriptMsPerSec} ms・レイアウト {s.layoutMsPerSec} ms
           </span>
-          <span className="diagnostics-path">
-            <code title={state.dir}>{state.dir}</code>
-            <CopyButton label="保存先をコピー" text={state.dir} />
-            <IconButton icon={FolderOpen} size={13} label="Finder で開く" onClick={() => void window.kickoff?.openPath(state.dir)} />
-          </span>
+          <DiagnosticsPath dir={state.dir} />
         </>
       );
     }

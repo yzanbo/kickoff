@@ -1,6 +1,5 @@
-import fs from "node:fs/promises";
-import { Menu, shell, type BrowserWindow } from "electron";
-import { DIAGNOSTICS_SECONDS, diagnosticsRoot, startDiagnostics } from "./diagnostics.js";
+import { Menu, type BrowserWindow } from "electron";
+import { DIAGNOSTICS_SECONDS, openDiagnosticsRoot, startDiagnostics } from "./diagnostics.js";
 
 /**
  * アプリのメニュー。Electron の既定のメニュー（アプリ・ファイル・編集・表示・ウィンドウ）と同じものに、
@@ -17,13 +16,7 @@ export function setAppMenu(mainWindow: () => BrowserWindow | undefined) {
       role: "help",
       submenu: [
         { label: `性能の記録を取る（${DIAGNOSTICS_SECONDS} 秒）`, click: () => void startDiagnostics(mainWindow()) },
-        {
-          label: "性能の記録の保存先を開く",
-          click: async () => {
-            await fs.mkdir(diagnosticsRoot(), { recursive: true });
-            await shell.openPath(diagnosticsRoot());
-          },
-        },
+        { label: "性能の記録の保存先を開く", click: () => void openDiagnosticsRoot() },
       ],
     },
   ]);

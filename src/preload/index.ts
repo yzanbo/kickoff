@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { BrowserExtensionInfo, DiagnosticsState } from "../core/types.js";
+import type { BrowserExtensionInfo, DiagnosticsFolders, DiagnosticsState } from "../core/types.js";
 
 // 画面が preload から型を読めるように、コアの型をここからも出す
 export type { BrowserExtensionInfo };
@@ -39,6 +39,10 @@ const api = {
   /** 性能の記録（重いときに、その場で 10 秒の記録を取って保存する。メニューの「ヘルプ」からも始まる） */
   diagnostics: {
     start: (): Promise<void> => ipcRenderer.invoke("kickoff:diagnostics-start"),
+    /** 保存先と最近の記録のフォルダ（新しい順） */
+    folders: (): Promise<DiagnosticsFolders> => ipcRenderer.invoke("kickoff:diagnostics-folders"),
+    /** 保存先を Finder で開く（まだなければ作る） */
+    openRoot: (): Promise<void> => ipcRenderer.invoke("kickoff:diagnostics-open-root"),
     /** 記録の様子（記録中・保存中・保存した・失敗）。戻り値で受け取りをやめる */
     onState: (listener: (state: DiagnosticsState) => void): (() => void) => subscribe("kickoff:diagnostics", listener),
   },

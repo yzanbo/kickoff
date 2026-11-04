@@ -3,7 +3,7 @@ import { BrowserWindow, dialog, ipcMain, shell, type OpenDialogOptions } from "e
 import { closeDevTools, openDevToolsIn, openDevToolsWindow } from "./browserDevtools.js";
 import { addExtensionFolder, importFromChrome, installFromWebStore, listExtensions, removeExtension } from "./browserExtensions.js";
 import { execFileAsync } from "../core/exec.js";
-import { startDiagnostics } from "./diagnostics.js";
+import { diagnosticsFolders, openDiagnosticsRoot, startDiagnostics } from "./diagnostics.js";
 import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, knownBrowser, knownExtension, knownTerminal, webContentsId } from "./ipcArgs.js";
 import { registerTerminalIpc } from "./terminals.js";
 
@@ -28,6 +28,9 @@ export function registerIpc(mainWindow: () => BrowserWindow | undefined) {
   ipcMain.handle("kickoff:diagnostics-start", (e) => {
     void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow());
   });
+  // 性能の記録の保存先と最近の記録（設定の「診断」に出す）・保存先を Finder で開く
+  ipcMain.handle("kickoff:diagnostics-folders", () => diagnosticsFolders());
+  ipcMain.handle("kickoff:diagnostics-open-root", () => openDiagnosticsRoot());
   // 外部のブラウザ（browser: アプリの id）でページを開く（url がなければアプリを開くだけ）。アプリが開けなければ、既定のブラウザで開く
   ipcMain.handle("kickoff:open-in-browser", async (_e, url: unknown, browser?: unknown) => {
     try {
