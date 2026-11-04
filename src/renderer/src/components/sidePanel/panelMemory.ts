@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { navigate } from "../../router";
 import { activeTabOf, closeLayoutTabs, reconcileLayout, singlePane, type PaneLayout } from "./paneLayout";
+import { readSavedDrafts, writeDrafts } from "./draftPersistence";
 import type { PanelTab } from "./useSidePanel";
 
 /**
@@ -16,11 +17,14 @@ interface PanelState {
 
 /**
  * ボードごとの、開いているタブとパネルの開閉。ボードとエディタなどのタブを切り替えると、ボードの部品は作り直されるので、
- * 戻ってきたときに元どおりにできるよう、ここに覚えておく（アプリを閉じるまで）。
+ * 戻ってきたときに元どおりにできるよう、ここに覚えておく（アプリを閉じるまで。送る前の新しいチャットのタブだけは
+ * draftPersistence で localStorage にも残し、起動したら閉じたパネルのタブとして戻す）。
  * キーは kanban:<プロジェクト | all>（ボード。列を状態で分けても・グループで分けても同じパネル。boardPanelKey）/
  * side:<プロジェクト>（プロジェクトのチャット欄）
  */
-const panelMemory = new Map<string, PanelState>();
+const panelMemory = new Map<string, PanelState>(
+  [...readSavedDrafts()].map(([memoryKey, tabs]) => [memoryKey, { tabs, activeTab: null, panelOpen: false }]),
+);
 
 /** ボード（カンバン・グループのボード）の右のパネルを覚える名前。列の分け方（状態 / グループ）を切り替えても、開閉・タブ・分割はそのまま */
 export const boardPanelKey = (projectId?: number) => `kanban:${projectId ?? "all"}`;
@@ -39,6 +43,7 @@ export function loadPanel(memoryKey: string): Required<PanelState> {
 
 export function savePanel(memoryKey: string, state: PanelState) {
   panelMemory.set(memoryKey, state);
+  writeDrafts([...panelMemory].map(([k, s]) => [k, s.tabs]));
   version++;
   listeners.forEach((l) => l());
 }
@@ -77,9 +82,7 @@ export function useAllDrafts(): SidebarDraft[] {
     },
     () => version,
   );
-  return [...panelMemory].flatMap(([memoryKey, s]) =>
-    s.tabs.flatMap((t) => (t.kind === "new" ? [{ memoryKey, key: t.key, projectId: t.projectId, group: t.group, text: t.draftText ?? "" }] : [])),
-  );
+  return draftsSnapshot();
 }
 
 /** 下書きを開く。そのパネルが画面になければ、そのボード（チャット欄ならそのプロジェクト）へ移ってから開く */
@@ -125,4 +128,21 @@ export function discardDraft(draft: SidebarDraft) {
   const tabs = s.tabs.filter((t) => t.key !== draft.key);
   const layout = closeLayoutTabs(s.layout, [draft.key]);
   savePanel(draft.memoryKey, { tabs, layout, activeTab: activeTabOf(layout), panelOpen: s.panelOpen && tabs.length > 0 });
+}
+
+/**
+ * もうないプロジェクトの下書きを消す（下書きは再起動しても残すので、プロジェクトを消したあとも残り続けないように）。
+ * 一覧がまだ届いていない（空の）ときは何もしない
+ */
+export function forgetDraftsOfMissingProjects(projectIds: ReadonlySet<number>) {
+  if (projectIds.size === 0) return;
+  draftsSnapshot()
+    .filter((d) => !projectIds.has(d.projectId))
+    .forEach(discardDraft);
+}
+
+function draftsSnapshot(): SidebarDraft[] {
+  return [...panelMemory].flatMap(([memoryKey, s]) =>
+    s.tabs.flatMap((t) => (t.kind === "new" ? [{ memoryKey, key: t.key, projectId: t.projectId, group: t.group, text: t.draftText ?? "" }] : [])),
+  );
 }

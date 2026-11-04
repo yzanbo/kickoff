@@ -20,6 +20,10 @@ interface Props {
   group?: number;
   /** 初めに入力欄に入れるもの（送信待ちの指示を新しいチャットで聞くとき。文と添付） */
   seed?: NewChatSeed;
+  /** 書きかけていた文（ボードを開き直した・アプリを再起動したときに入力欄へ戻す） */
+  draftText?: string;
+  /** いま見えているか（見えていないタブに文を戻すときは、入力欄にピントを移さない） */
+  visible?: boolean;
   /** 全プロジェクトのボードでは、どのプロジェクトで始めるかを選べるようにする */
   projects?: ProjectSummary[];
   onProjectChange?: (projectId: number) => void;
@@ -36,6 +40,8 @@ export function NewChatPane({
   projectId,
   group,
   seed,
+  draftText,
+  visible = true,
   projects,
   onProjectChange,
   onGroupChange,
@@ -60,13 +66,19 @@ export function NewChatPane({
   }, [groupName]);
 
   const ready = !project.loading && !runs.loading;
-  // 送信待ちの指示から始めたときは、入力欄ができたら文と添付を入れる（1 回だけ。送るのは自分で）
+  // 入力欄ができたら 1 回だけ、書きかけていた文（なければ送信待ちの指示から始めたときの文）と添付を入れる（送るのは自分で）。
+  // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
   const fillComposer = useRef<ComposerFill | null>(null);
+  const initialText = useRef(draftText);
   const seeded = useRef(false);
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
   useEffect(() => {
-    if (!ready || !seed || seeded.current) return;
+    if (!ready || seeded.current) return;
+    const text = initialText.current ?? seed?.text;
+    if (!text && !seed) return;
     seeded.current = true;
-    fillComposer.current?.(seed.text, { attachments: seed.attachments });
+    fillComposer.current?.(text ?? "", { attachments: seed?.attachments, focus: visibleRef.current });
   }, [ready, seed]);
 
   return (

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppData } from "./appData";
 import { OPEN_CONTENT_SEARCH_EVENT } from "./chatSearch";
 import { AppFooter } from "./components/footer/AppFooter";
@@ -34,6 +34,7 @@ import { applyTheme, loadTheme } from "./theme";
 import { PlanUsageContext, usePlanUsage } from "./usage";
 import { setProjectHues } from "./projectColor";
 import { indexProjects, ProjectsContext } from "./projectsContext";
+import { forgetDraftsOfMissingProjects } from "./components/sidePanel/panelMemory";
 import { ApprovalsContext, indexApprovals } from "./approvalsContext";
 
 applyTheme(loadTheme());
@@ -49,6 +50,8 @@ export function App() {
   setProjectHues(projects);
   // プロジェクトの一覧と名前の引き当て（props で中継せず、要る部品が useProjects で読む）
   const projectsIndex = useMemo(() => indexProjects(projects), [projects]);
+  // 消したプロジェクトの下書き（再起動しても残すもの）を片付ける
+  useEffect(() => forgetDraftsOfMissingProjects(new Set(projects.map((p) => p.id))), [projects]);
   // 回答待ちの依頼からチャットの状態を引く（approvals を中継せず、要る部品が useRunStates で読む）
   const runStates = useMemo(() => indexApprovals(approvals), [approvals]);
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）

@@ -21,9 +21,9 @@ export function quoteComment(selection: string, comment: string): string {
 
 /**
  * 外から入力欄に文を入れる（Composer の fillRef。append: 書いている文の後ろに空行を挟んで足す。なければ置き換える。
- * attachments: アップロード済みの添付も足す）
+ * attachments: アップロード済みの添付も足す。focus: false なら入力欄にピントを移さない（隠れているタブに書きかけを戻すとき））
  */
-export type ComposerFill = (text: string, opts?: { append?: boolean; attachments?: Attachment[] }) => void;
+export type ComposerFill = (text: string, opts?: { append?: boolean; attachments?: Attachment[]; focus?: boolean }) => void;
 
 /** チャット欄の文の後ろに足す（書いている文があれば空行を挟む） */
 export function appendBlock(current: string, block: string): string {
