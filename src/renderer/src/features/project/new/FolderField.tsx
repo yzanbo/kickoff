@@ -1,3 +1,5 @@
+import { Field } from "@/ui/Field";
+
 /** フォルダのパスの入力欄（アプリでは「選択…」で Finder から選べる） */
 export function FolderField({
   label,
@@ -13,8 +15,7 @@ export function FolderField({
   autoFocus?: boolean;
 }) {
   return (
-    <div className="field">
-      <span className="field-label">{label}</span>
+    <Field as="div" label={label}>
       <div className="input-row">
         <input
           type="text"
@@ -38,6 +39,6 @@ export function FolderField({
           </button>
         )}
       </div>
-    </div>
+    </Field>
   );
 }

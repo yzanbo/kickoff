@@ -40,12 +40,8 @@
   color: var(--muted);
 }
 
+/* 確認・入力・選択のダイアログのボタンの行（並べ方は .dialog-actions） */
 .app-dialog-actions {
-  display: flex;
-  /* 入りきらないときは、はみ出さずに折り返す */
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
   margin-top: 4px;
 }
 
@@ -74,10 +70,20 @@
   font-size: 17px;
 }
 
+/* ダイアログ・フォームの下のボタンの行（DialogActions。右に寄せ、入りきらないときは、はみ出さずに折り返す） */
 .dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* 左に寄せる行（設定の保存のボタンと結果の文。SaveActions） */
+.dialog-actions.start {
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
 }
 
 /* 「次からはこれにする」のチェック（選択肢のボタンの上） */

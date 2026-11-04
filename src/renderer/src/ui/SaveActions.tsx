@@ -1,6 +1,7 @@
 import { cx } from "@/lib/cx";
 import type { ResultText } from "@/hooks/useAction";
 import type { SaveState } from "@/hooks/useSave";
+import { DialogActions } from "./DialogActions";
 
 /** 結果の文（成功は success、失敗は error の色） */
 export function ResultMessage({ result, as: Tag = "span", className }: { result: ResultText | undefined; as?: "span" | "p"; className?: string }) {
@@ -11,11 +12,11 @@ export function ResultMessage({ result, as: Tag = "span", className }: { result:
 /** フォームの下の保存ボタンと結果（保存中…・保存しました・失敗の理由） */
 export function SaveActions({ save, disabled, onSave }: { save: SaveState; disabled?: boolean; onSave: () => Promise<unknown> }) {
   return (
-    <div className="form-actions">
+    <DialogActions align="start">
       <button className="btn btn-primary" disabled={disabled || save.saving} onClick={() => void save.run(onSave)}>
         {save.saving ? "保存中…" : "保存"}
       </button>
       <ResultMessage result={save.message} />
-    </div>
+    </DialogActions>
   );
 }

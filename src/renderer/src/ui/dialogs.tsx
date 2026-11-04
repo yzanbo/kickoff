@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@shared/errors";
+import { DialogActions } from "./DialogActions";
+import { CheckField } from "./Field";
 
 /**
  * アプリ全体で使う確認・入力のダイアログ（OS 標準の confirm / prompt の代わり）。
@@ -167,18 +169,8 @@ export function DialogHost() {
             />
           </label>
         )}
-        {req.kind === "choice" && req.remember && (
-          <label className="check app-dialog-remember">
-            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-            <span>{req.remember}</span>
-          </label>
-        )}
-        <div className="app-dialog-actions">
-          {!(req.kind === "confirm" && req.hideCancel) && (
-            <button ref={cancelRef} type="button" className="btn" onClick={() => finish(false)}>
-              キャンセル
-            </button>
-          )}
+        {req.kind === "choice" && req.remember && <CheckField className="app-dialog-remember" label={req.remember} checked={remember} onChange={setRemember} />}
+        <DialogActions className="app-dialog-actions" cancelRef={cancelRef} onCancel={req.kind === "confirm" && req.hideCancel ? undefined : () => finish(false)}>
           {req.kind === "choice" ? (
             req.choices.map((c) => (
               <button key={c.value} type="button" className={`btn ${c.primary ? "btn-primary" : c.danger ? "btn-danger" : ""}`} onClick={() => finish(true, c.value)}>
@@ -195,7 +187,7 @@ export function DialogHost() {
               {confirmLabel}
             </button>
           )}
-        </div>
+        </DialogActions>
       </form>
     </dialog>
   );

@@ -1,7 +1,7 @@
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_CLOSE_ACTION } from "@/lib/storageKeys";
 import { CHAT_CLOSE_ACTION_LABELS, CHAT_CLOSE_ACTIONS, type ChatCloseAction } from "@/features/chat/closeChat";
-import { Field } from "@/ui/Field";
+import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { SaveActions } from "@/ui/SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
@@ -41,19 +41,12 @@ export function ChatSettings() {
             ))}
           </select>
         </Field>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={draft.auto_resume_on_reconnect}
-            onChange={(e) => setDraft({ ...draft, auto_resume_on_reconnect: e.target.checked })}
-          />
-          <span>
-            通信が切れて止まったら、つながったときに自動で再開する
-            <span className="field-help">
-              作業中に Wi-Fi が切れるなどして止まったチャットに、つながったら「続けて」を送ります。続けて 3 回止まったら、再開するかをチャットの中で聞きます。止まっている間、送信待ちの指示は送らずに止めておきます。
-            </span>
-          </span>
-        </label>
+        <CheckField
+          label="通信が切れて止まったら、つながったときに自動で再開する"
+          help="作業中に Wi-Fi が切れるなどして止まったチャットに、つながったら「続けて」を送ります。続けて 3 回止まったら、再開するかをチャットの中で聞きます。止まっている間、送信待ちの指示は送らずに止めておきます。"
+          checked={draft.auto_resume_on_reconnect}
+          onChange={(on) => setDraft({ ...draft, auto_resume_on_reconnect: on })}
+        />
       </div>
       <SaveActions
         save={save}

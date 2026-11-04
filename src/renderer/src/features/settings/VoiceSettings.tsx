@@ -1,7 +1,7 @@
 import { OPENAI_TRANSCRIBE_MODELS, VOICE_LANGUAGES, type AppSettings, type VoiceProvider, type VoiceStatus } from "@shared/types";
 import { useVoiceStatus, voiceStatusStore } from "@/stores/voice";
 import { ErrorText } from "@/ui/ErrorText";
-import { Field } from "@/ui/Field";
+import { CheckField, Field } from "@/ui/Field";
 import { RefreshButton } from "@/ui/IconButton";
 import { SaveActions } from "@/ui/SaveActions";
 import { Segmented } from "@/ui/Segmented";
@@ -28,13 +28,12 @@ export function VoiceSettings() {
       </p>
       <VoiceReadiness status={status} dirty={dirty} />
       <div className="form">
-        <label className="check">
-          <input type="checkbox" checked={draft.voice_enabled} onChange={(e) => set({ voice_enabled: e.target.checked })} />
-          <span>
-            チャット欄で音声入力を使う
-            <span className="field-help">オフのときにマイクのボタンを押すと、この設定を開きます。</span>
-          </span>
-        </label>
+        <CheckField
+          label="チャット欄で音声入力を使う"
+          help="オフのときにマイクのボタンを押すと、この設定を開きます。"
+          checked={draft.voice_enabled}
+          onChange={(on) => set({ voice_enabled: on })}
+        />
         <Field label="文字起こしの方法" help={draft.voice_provider === "local" ? "この Mac の中で文字にします（音声を外に送りません）。whisper.cpp とモデルが要ります。" : "OpenAI の API に音声を送って文字にします（API の料金がかかります）。"}>
           <Segmented<VoiceProvider>
             className="segmented"
@@ -59,10 +58,9 @@ export function VoiceSettings() {
         {draft.voice_provider === "local" ? (
           <>
             <LocalTools status={status} checking={voice.loading} error={voice.error} />
-            <div className="field">
-              <span className="field-label">モデル</span>
+            <Field as="div" label="モデル">
               <VoiceModelList models={status?.local.models} selected={draft.voice_model} onSelect={(voiceModel) => set({ voice_model: voiceModel })} />
-            </div>
+            </Field>
           </>
         ) : (
           <>
@@ -122,21 +120,28 @@ function LocalTools({ status, checking, error }: { status: VoiceStatus | undefin
   const tool = (path: string | null | undefined) => (status === undefined ? "確認中…" : path ?? "見つかりません");
   const missing = status && (!status.local.whisper || !status.local.ffmpeg);
   return (
-    <div className="field">
-      <span className="field-label voice-tools-head">
-        この Mac の準備
-        <RefreshButton label="もう一度確かめる" busy={checking} onClick={() => void voiceStatusStore.reload()} type="button" />
-      </span>
+    <Field
+      as="div"
+      labelClassName="voice-tools-head"
+      label={
+        <>
+          この Mac の準備
+          <RefreshButton label="もう一度確かめる" busy={checking} onClick={() => void voiceStatusStore.reload()} type="button" />
+        </>
+      }
+      help={
+        missing && (
+          <>
+            ターミナルで <code>brew install whisper-cpp ffmpeg</code> を実行してから、もう一度確かめてください。
+          </>
+        )
+      }
+    >
       <div className="card-grid voice-tools">
         <StatusCard title="whisper-cli（whisper.cpp）" ok={status ? Boolean(status.local.whisper) : undefined} detail={tool(status?.local.whisper)} />
         <StatusCard title="ffmpeg" ok={status ? Boolean(status.local.ffmpeg) : undefined} detail={tool(status?.local.ffmpeg)} />
       </div>
       <ErrorText message={error} />
-      {missing && (
-        <span className="field-help">
-          ターミナルで <code>brew install whisper-cpp ffmpeg</code> を実行してから、もう一度確かめてください。
-        </span>
-      )}
-    </div>
+    </Field>
   );
 }

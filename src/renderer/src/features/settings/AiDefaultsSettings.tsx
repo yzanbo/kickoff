@@ -2,7 +2,7 @@ import type { EffortLevel, PermissionMode } from "@shared/types";
 import { useModels } from "@/stores/providers";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { EFFORT_UNSET_LABEL, EffortOptions, ModelOptions, PermissionOptions } from "@/features/chat/options/AiOptions";
-import { Field } from "@/ui/Field";
+import { CheckField, Field } from "@/ui/Field";
 import { SaveActions } from "@/ui/SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
 
@@ -39,21 +39,18 @@ export function AiDefaultsSettings() {
             <PermissionOptions model={currentModel} />
           </select>
         </Field>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={defaults.fast_mode}
-            disabled={currentModel ? !currentModel.supports_fast_mode : false}
-            onChange={(e) => setDefault({ fast_mode: e.target.checked })}
-          />
-          <span>
-            ファストモードを使う
-            <span className="field-help">
+        <CheckField
+          label="ファストモードを使う"
+          help={
+            <>
               応答が速くなる代わりに、Claude のプランの追加の使用枠（extra usage）から消費されます。追加の使用枠が無効な場合は通常の速度で動き、チャットに理由が表示されます。
               {currentModel && !currentModel.supports_fast_mode && "（このモデルは対応していません）"}
-            </span>
-          </span>
-        </label>
+            </>
+          }
+          checked={defaults.fast_mode}
+          disabled={currentModel ? !currentModel.supports_fast_mode : false}
+          onChange={(on) => setDefault({ fast_mode: on })}
+        />
       </div>
       <SaveActions
         save={save}

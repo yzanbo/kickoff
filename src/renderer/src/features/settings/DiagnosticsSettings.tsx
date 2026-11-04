@@ -1,6 +1,7 @@
 import { Activity } from "lucide-react";
 import { useAsync } from "@/hooks/useAsync";
 import { DiagnosticsPath } from "@/features/diagnostics/DiagnosticsPath";
+import { Field } from "@/ui/Field";
 
 /**
  * 診断: 重いときに、再起動せずその場で性能の記録を取る（10 秒）。押すと設定を閉じ、記録の間も操作を続けられる
@@ -34,19 +35,20 @@ export function DiagnosticsSettings({ onClose }: { onClose: () => void }) {
           {!available && <p className="muted small">デスクトップアプリでだけ使えます</p>}
         </div>
         {folders.data && (
-          <div className="field">
-            <span className="field-label">保存先</span>
+          <Field
+            as="div"
+            label="保存先"
+            help="記録ごとに、日時の名前のフォルダ（summary.json と、Chrome の開発者ツールで開ける profile.cpuprofile（画面）・main.cpuprofile（メインプロセス））を作ります。"
+          >
             <DiagnosticsPath dir={folders.data.root} onOpen={() => void window.kickoff?.diagnostics.openRoot()} />
-            <span className="field-help">記録ごとに、日時の名前のフォルダ（summary.json と、Chrome の開発者ツールで開ける profile.cpuprofile（画面）・main.cpuprofile（メインプロセス））を作ります。</span>
-          </div>
+          </Field>
         )}
         {folders.data && folders.data.records.length > 0 && (
-          <div className="field">
-            <span className="field-label">最近の記録（新しい順）</span>
+          <Field as="div" label="最近の記録（新しい順）">
             {folders.data.records.map((dir) => (
               <DiagnosticsPath key={dir} dir={dir} />
             ))}
-          </div>
+          </Field>
         )}
       </div>
     </section>

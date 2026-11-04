@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "@/api";
 import { useSave } from "@/hooks/useSave";
 import { voiceStatusStore } from "@/stores/voice";
+import { Field } from "@/ui/Field";
 import { ResultMessage } from "@/ui/SaveActions";
 
 /**
@@ -18,10 +19,11 @@ export function OpenAiKeyField({ saved }: { saved: boolean | undefined }) {
       await voiceStatusStore.reload();
     });
   return (
-    <div className="field">
-      <span className="field-label">
-        OpenAI の API キー {saved && <span className="badge">保存済み</span>}
-      </span>
+    <Field
+      as="div"
+      label={<>OpenAI の API キー {saved && <span className="badge">保存済み</span>}</>}
+      help="キーはこの Mac の Kickoff の中だけに保存し、画面には二度と表示しません。"
+    >
       <div className="input-row">
         <input
           type="password"
@@ -40,8 +42,7 @@ export function OpenAiKeyField({ saved }: { saved: boolean | undefined }) {
           </button>
         )}
       </div>
-      <span className="field-help">キーはこの Mac の Kickoff の中だけに保存し、画面には二度と表示しません。</span>
       <ResultMessage result={save.message} />
-    </div>
+    </Field>
   );
 }
