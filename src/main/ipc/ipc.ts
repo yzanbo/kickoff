@@ -4,7 +4,7 @@ import { closeDevTools, openDevToolsIn, openDevToolsWindow } from "../browser/de
 import { addExtensionFolder, importFromChrome, installFromWebStore, listExtensions, removeExtension } from "../browser/extensions.js";
 import { execFileAsync } from "../../core/system/exec.js";
 import { diagnosticsFolders, openDiagnosticsRoot, startDiagnostics } from "../diagnostics/diagnostics.js";
-import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, knownBrowser, knownExtension, knownTerminal, webContentsId } from "./ipcArgs.js";
+import { existingFolder, externalBrowserArgs, externalTerminalArgs, installedBrowsers, installedTerminals, knownBrowser, knownExtension, knownTerminal, vscodeFileUrl, webContentsId } from "./ipcArgs.js";
 import { registerTerminalIpc } from "../terminal/terminals.js";
 
 /** ネイティブのファイル・フォルダの選択（やめたら空） */
@@ -73,7 +73,6 @@ export function registerIpc(mainWindow: () => BrowserWindow | undefined) {
   // VS Code でファイルを開く（line があればその行へ）。VS Code がなければ失敗を返す
   ipcMain.handle("kickoff:open-in-vscode", async (_e, target: string, line?: number) => {
     if (typeof target !== "string" || !path.isAbsolute(target)) throw new Error("ファイルの場所が正しくありません");
-    const position = typeof line === "number" && line > 0 ? `:${Math.floor(line)}` : "";
-    await shell.openExternal(`vscode://file${encodeURI(target)}${position}`);
+    await shell.openExternal(vscodeFileUrl(target, line));
   });
 }

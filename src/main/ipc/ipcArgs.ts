@@ -82,6 +82,15 @@ export function externalBrowserArgs(id: ExternalBrowserId, url?: unknown): strin
   return typeof url === "string" && /^https?:\/\//.test(url) ? ["-a", app, url] : ["-a", app];
 }
 
+/**
+ * VS Code でファイル（line があればその行）を開く URL（vscode://file/<パス>:<行>）。パスは区切り（/）ごとに符号化する
+ * （encodeURI は # と ? を符号化しないので、それを含むパスが URL の断片・問い合わせとして読まれ、開けなかった）
+ */
+export function vscodeFileUrl(target: string, line?: number): string {
+  const position = typeof line === "number" && line > 0 ? `:${Math.floor(line)}` : "";
+  return `vscode://file${target.split("/").map(encodeURIComponent).join("/")}${position}`;
+}
+
 /** この Mac に入っている外部のブラウザ（Safari はいつも入っている） */
 export function installedBrowsers(home = os.homedir(), exists: (p: string) => boolean = fs.existsSync): ExternalBrowserId[] {
   return installedApps(EXTERNAL_BROWSERS, "safari", home, exists);
