@@ -108,7 +108,10 @@
 }
 
 .queued-stop-label {
+  display: flex;
   flex: none;
+  gap: 4px;
+  align-items: center;
   margin-left: 4px;
 }
 

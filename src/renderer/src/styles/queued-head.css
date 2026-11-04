@@ -89,6 +89,16 @@
   white-space: nowrap;
 }
 
+/* 止める予定を伝える案内（「1 件目のあとで止めます」）: 「ここまで送ったら止めます」の印と同じ色とアイコンで、ひと目で分かるように */
+.queued-hint.stop {
+  color: var(--warn);
+}
+
+.queued-hint.stop svg {
+  margin-right: 3px;
+  vertical-align: -1px;
+}
+
 /* 畳んだ 1 行の「次: 次に送る指示」（いちばん先に省く。件数と止める位置は残す） */
 .queued-next {
   flex: 1 1 auto;
