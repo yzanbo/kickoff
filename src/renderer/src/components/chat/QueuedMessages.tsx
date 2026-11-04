@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause, SendHorizontal } from "lucide-react";
 import { Fragment, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import type { QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
@@ -40,6 +40,7 @@ export function QueuedMessages({
   queue,
   paused,
   stops,
+  waitingEdit,
   busy,
   newChatTarget,
 }: {
@@ -50,6 +51,8 @@ export function QueuedMessages({
   paused: boolean;
   /** 一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも） */
   stops: number[];
+  /** コアが、次の指示の書き直しが終わるのを待っている（作業は終わり、送信の準備ができている） */
+  waitingEdit: boolean;
   busy: boolean;
 }) {
   const [collapsed, setCollapsed] = useStoredFlag(QUEUE_COLLAPSED_KEY, true);
@@ -155,7 +158,11 @@ export function QueuedMessages({
         onRemove={() => void api.setQueueStops(runId, stops.filter((x) => x !== k)).catch(failed)}
       />
     );
-  const hint = queuedHint({ paused, busy, collapsed, stopIndex });
+  // 次に送る指示（1 件目）を書き直している: 書き直しが終わる（保存・やめる・一覧をたたむ）まで、コアは自動で送らない（useQueuedEdits が知らせる）
+  const editingNext = !collapsed && Boolean(edit.edits[queue[0].id]) && !paused && stopIndex !== 0;
+  // 作業は終わり、コアが書き直しが終わるのを待っている（送信の準備ができている。送れなかったなど、ほかの理由で止まっているときは出さない）
+  const readyForEdit = editingNext && waitingEdit && !busy;
+  const hint = queuedHint({ paused, busy, collapsed, stopIndex, editingNext, ready: readyForEdit });
   // 一時停止の印があって、案内がその止める位置を伝えているとき（queuedHint の印の分かれ道と同じ条件）。
   // 止める印と同じ色・同じアイコンで、畳んでいてもひと目で止める予定があると分かるようにする
   const stopHint = !paused && busy && stopIndex >= 0;
@@ -185,13 +192,18 @@ export function QueuedMessages({
           className="queued-head small muted"
           aria-expanded={!collapsed}
           title={`${collapsed ? "送信待ちの一覧を開く" : "送信待ちの一覧をたたむ"}${hint ? `（${hint}）` : ""}`}
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => {
+            // たたむときは書き直しをやめ、書いている途中の文も捨てる（見えないところで書き直し中のまま、次の指示を止め続けないため）
+            if (!collapsed) edit.discardAll();
+            setCollapsed(!collapsed);
+          }}
         >
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
           <span className="queued-count">送信待ち {queue.length} 件</span>
           {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && (
-              <span className={cx("queued-hint", stopHint && "stop")}>
-                {stopHint && <OctagonPause size={12} aria-hidden />}
+              <span className={cx("queued-hint", stopHint && !editingNext && "stop", readyForEdit && "ready")}>
+                {stopHint && !editingNext && <OctagonPause size={12} aria-hidden />}
+                {readyForEdit && <SendHorizontal size={12} aria-hidden />}
                 {hint}
               </span>
             )}
@@ -231,6 +243,7 @@ export function QueuedMessages({
                 index={i}
                 withGrip={queue.length > 1}
                 busy={busy}
+                holdNote={i === 0 && readyForEdit ? "ready" : i === 0 && editingNext && busy ? "waiting" : undefined}
                 text={edit.edits[m.id].text}
                 attachments={edit.edits[m.id].attachments}
                 onChange={(text) => edit.update(m.id, { text })}

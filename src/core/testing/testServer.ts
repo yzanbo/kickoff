@@ -124,6 +124,8 @@ export function setup(opts: { staticDir?: string } = {}) {
     bus,
     reconnect: { check: async () => network.online, intervalMs: 5 },
     usageLimit: { checkMs: 5 },
+    // 書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
+    editHoldTtlMs: 300,
   });
   // ほかのサービスは、ネットワークに出ない偽物にする
   let codexCalls = 0;

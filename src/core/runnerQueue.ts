@@ -1,5 +1,6 @@
 import { errorMessage } from "./errors.js";
 import type { FollowupQueue } from "./followups.js";
+import type { QueueEditHolds } from "./queueEditHolds.js";
 import type { Attachment, QueuedMessage, Run, RunOptions } from "./types.js";
 
 /**
@@ -9,6 +10,12 @@ import type { Attachment, QueuedMessage, Run, RunOptions } from "./types.js";
  */
 export abstract class RunnerQueue {
   protected abstract readonly followups: FollowupQueue;
+  /** 画面でいま書き直している送信待ちの指示（自動で送る次の指示なら、書き直しが終わるまで送らない。queueEditHolds.ts） */
+  protected abstract readonly editHolds: QueueEditHolds;
+  /** 次の指示を書き直していたので、送らずに書き直しが終わるのを待っているチャット */
+  protected readonly waitingForEdit = new Set<number>();
+  /** 待ちの列の様子（書き直しを待っているかも）が変わったので、画面に配り直す */
+  protected abstract queueChanged(runId: number): void;
   abstract isBusy(runId: number): boolean;
   abstract send(runId: number, text: string, options?: RunOptions, attachments?: Attachment[]): Promise<Run>;
   abstract tell(runId: number, text: string, options?: RunOptions, attachments?: Attachment[], opts?: { front?: boolean }): Promise<"told" | "sent" | "queued">;
@@ -138,8 +145,40 @@ export abstract class RunnerQueue {
     return next;
   }
 
+  /**
+   * 画面で書き直している送信待ちの指示を丸ごと置き換える（書き直す欄を開いている指示。空なら外す）。
+   * 開いている間、画面は持ち時間（EDIT_HOLD_TTL_MS）より短い間隔で知らせ直す
+   */
+  setQueueEditing(runId: number, ids: string[]) {
+    this.editHolds.set(runId, ids.filter((id) => this.followups.has(runId, id)));
+  }
+
+  /** 次の指示の書き直しが終わるのを待っているか（作業は終わり、送信の準備ができている。画面の案内に使う） */
+  queueWaitingForEdit(runId: number): boolean {
+    return this.waitingForEdit.has(runId);
+  }
+
+  /** 書き直しを待っているかを切り替える（変わったら画面に配る） */
+  private setWaitingForEdit(runId: number, waiting: boolean) {
+    if (waiting === this.waitingForEdit.has(runId)) return;
+    if (waiting) this.waitingForEdit.add(runId);
+    else this.waitingForEdit.delete(runId);
+    this.queueChanged(runId);
+  }
+
+  /** 書き直している指示が変わった・外れた: 書き直しが終わるのを待っていたなら、いま送る（作業中なら、終わったときに送る） */
+  protected editHoldsChanged(runId: number) {
+    if (!this.waitingForEdit.has(runId) || this.isBusy(runId)) return;
+    void this.sendNextQueued(runId);
+  }
+
   /** 待ちの列の先頭を送る（送れなければ、理由をチャットに残す） */
   protected async sendNextQueued(runId: number) {
+    // 自動で送る次の指示を画面で書き直している間は送らず、書き直しが終わる（保存・やめる・欄を閉じる）のを待つ
+    const head = this.followups.list(runId)[0];
+    const holds = Boolean(head && !this.followups.isPaused(runId) && this.editHolds.isHeld(runId, head.id));
+    this.setWaitingForEdit(runId, holds);
+    if (holds) return;
     // 止めておくチャットは、終わっても送らない（行の「すぐ送る」で 1 件ずつ送る）。先頭の上に印があれば、ここで止めておく
     const next = this.followups.takeNext(runId);
     if (!next) return;

@@ -51,7 +51,7 @@ interface RunPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function RunPane({ projectId, runId, focus, onRunChange, visible = true, onOpenSubagent }: RunPaneProps) {
-  const { run, project, events, approvals, queue, queuePaused, queueStops, retry, reconnect, background, stopping, live, error } = useRunDetail(runId, projectId);
+  const { run, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, live, error } = useRunDetail(runId, projectId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyRun = useRef(onRunChange);
@@ -63,7 +63,7 @@ export function RunPane({ projectId, runId, focus, onRunChange, visible = true, 
   if (error) return <div className="page error">{error}</div>;
   if (!run) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} connection={{ retry, reconnect }} background={background} stopping={stopping} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
+    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} queueWaitingEdit={queueWaitingEdit} connection={{ retry, reconnect }} background={background} stopping={stopping} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
   );
 }
 
@@ -75,6 +75,7 @@ function RunView({
   queue,
   queuePaused,
   queueStops,
+  queueWaitingEdit,
   connection,
   background,
   stopping: stopRequested,
@@ -92,6 +93,8 @@ function RunView({
   queuePaused: boolean;
   /** 一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと） */
   queueStops: number[];
+  /** 次の指示の書き直しが終わるのを待っている（作業は終わり、送信の準備ができている） */
+  queueWaitingEdit: boolean;
   /** 通信の再試行中・つながるのを待っているところ */
   connection: Connection;
   /** 裏で動いている作業と、メインの返答が終わったか */
@@ -244,7 +247,7 @@ function RunView({
           <SubagentChip entries={subagents} run={run} busy={busy} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stops={queueStops} busy={busy} newChatTarget={{ projectId: run.project_id, group: run.group_id ?? undefined }} />
+        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stops={queueStops} waitingEdit={queueWaitingEdit} busy={busy} newChatTarget={{ projectId: run.project_id, group: run.group_id ?? undefined }} />
         <Composer
           chatContext={{ projectId: run.project_id, exclude: run.id }}
           options={options}
