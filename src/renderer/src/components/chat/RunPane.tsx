@@ -23,9 +23,8 @@ import { OpenSubagentContext } from "./ToolGroup";
 import { promptEntries, userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
-import { MoveHorizontal, Search, TriangleAlert } from "lucide-react";
+import { TriangleAlert } from "lucide-react";
 import { cx } from "../../cx";
-import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
 import { PromptsChip } from "./PromptsChip";
 import { usePromptKeys } from "./usePromptKeys";
@@ -152,11 +151,10 @@ function RunView({
   const panelRef = useRef<HTMLDivElement>(null);
   // 発言の一覧から、同じ文を入力欄に入れる
   const fillComposer = useRef<ComposerFill | null>(null);
-  const [finding, setFinding] = useState(false);
-  // ⌘F でこのチャットの中の検索を開く（ピントがこのチャットにあるとき）
-  useChatFindKey(panelRef, () => setFinding(true));
+  // ⌘F でこのチャットの中の検索欄（見出しの行にいつもある）にピントを移す（ピントがこのチャットにあるとき）
+  useChatFindKey(panelRef);
   // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
-  const [wide, setWide] = useSharedFlag(CHAT_WIDE_KEY);
+  const [wide] = useSharedFlag(CHAT_WIDE_KEY);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
   const timeline = useTimelineWindow({ items, runId: run.id, focus, stickToBottom });
   // 移り先が窓の外なら、窓を広げて描いてから移る
@@ -198,39 +196,29 @@ function RunView({
     <RetryContext.Provider value={retry}>
     <OpenSubagentContext.Provider value={openSub}>
     <RewindContext.Provider value={rewind}>
-    <div ref={panelRef} className={cx("run-page run-panel", finding && "finding", wide && "wide")}>
+    <div ref={panelRef} className={cx("run-page run-panel", wide && "wide")}>
       <RunHeader
         run={run}
         project={project}
         tools={
-          <>
-            {/* 発言の流れとチャット欄を、標準の幅（読みやすい幅）と欄の横幅いっぱいで切り替える（どのチャットでも同じ） */}
-            <IconButton
-              icon={MoveHorizontal}
-              size={13}
-              label={wide ? "横幅を標準に戻す" : "横幅いっぱいに広げる"}
-              aria-pressed={wide}
-              className={cx(wide && "active")}
-              onClick={() => setWide(!wide)}
-            />
-            <IconButton icon={Search} size={13} label="このチャットの中を検索" title="このチャットの中を検索（⌘F）" aria-expanded={finding} onClick={() => setFinding(!finding)} />
-          </>
+          /*
+            このチャットの中の検索欄（いつも見出しの行にあり、⌘F でここにピントが入る）。横幅（標準 / 横幅いっぱい）は設定の「表示」で選ぶ
+            （以前は見出しに ↔ を置いていたが、パネルの横幅いっぱいの ↔ と紛らわしく、ふつうの幅のパネルでは押しても変わらなかった）
+          */
+          <ChatFind
+            root={panelRef}
+            items={items}
+            version={timeline.visible}
+            onGoto={(eventId) => {
+              stickToBottom.current = false;
+              timeline.reveal(eventId);
+            }}
+            onDone={() => panelRef.current?.querySelector<HTMLTextAreaElement>(".run-composer textarea")?.focus()}
+          />
         }
       />
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}
       <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
-      {finding && (
-        <ChatFind
-          root={panelRef}
-          items={items}
-          version={timeline.visible}
-          onGoto={(eventId) => {
-            stickToBottom.current = false;
-            timeline.reveal(eventId);
-          }}
-          onClose={() => setFinding(false)}
-        />
-      )}
       <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} />
       <div className="run-composer">
         {/*

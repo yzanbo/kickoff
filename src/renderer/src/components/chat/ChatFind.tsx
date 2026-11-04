@@ -12,7 +12,7 @@ const HIGHLIGHT = "chat-find";
 const CURRENT = "chat-find-current";
 
 /**
- * チャットの中の検索。自分の発言と AI の返答から探して印を付け、↑ / Shift+Enter で前（古い方）、↓ / Enter で次へ移る。
+ * チャットの中の検索。チャットの見出しの行にいつも置き、⌘F（useChatFindKey）でピントが入る。Esc で文を消してチャット欄に戻る。自分の発言と AI の返答から探して印を付け、↑ / Shift+Enter で前（古い方）、↓ / Enter で次へ移る。
  * 探すのは記録から（findMatches）で、流れ（最近の項目だけを描く窓）をすべて描かない。移るときに、その発言を描くよう窓を動かす（onGoto）。
  * 初めて移るときは、いちばん新しい一致へ。印は描いている範囲の文に CSS Custom Highlight API で付け、DOM は書き換えない（React の描画とぶつからない）。
  * 閉じたツールのまとまり・思考の中は探さない（見えていない文に印を付けないように）。
@@ -23,7 +23,7 @@ export function ChatFind({
   items,
   version,
   onGoto,
-  onClose,
+  onDone,
 }: {
   /** 印を付ける範囲（タイムラインの中身） */
   root: RefObject<HTMLElement | null>;
@@ -33,8 +33,10 @@ export function ChatFind({
   version: unknown;
   /** その発言へ移る（一番下への追従をやめ、窓の外なら窓を動かす） */
   onGoto: (eventId: number) => void;
-  onClose: () => void;
+  /** Esc で検索をやめたあと（文を消し、チャット欄にピントを戻す） */
+  onDone: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [caseSensitive, setCaseSensitive] = useStoredFlag(CHAT_FIND_CASE_KEY);
   // 長いチャットでも打つのが遅れないよう、探すのは入力に遅れて（空白も探す文字なので削らない）
@@ -88,13 +90,15 @@ export function ChatFind({
   };
 
   return (
-    <div className="chat-find" role="search">
-      <Search size={13} className="muted" aria-hidden />
+    // 欄のどこを押しても入力欄にピント（虫眼鏡も。狭い見出しでは虫眼鏡だけになり、押す・⌘F で広がる）
+    <div className={cx("chat-find", query && "active")} role="search" onPointerDown={(e) => e.target === e.currentTarget && (e.preventDefault(), inputRef.current?.focus())}>
+      <Search size={13} className="muted" aria-hidden onPointerDown={(e) => (e.preventDefault(), inputRef.current?.focus())} />
       <input
+        ref={inputRef}
         type="text"
         value={query}
-        autoFocus
-        placeholder="このチャットの中を検索"
+        placeholder="このチャットを検索"
+        title="このチャットの中を検索（⌘F）"
         aria-label="このチャットの中を検索"
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => {
@@ -109,13 +113,17 @@ export function ChatFind({
             e.preventDefault();
             go(e.key === "ArrowUp" || (e.key === "Enter" && e.shiftKey) ? -1 : 1);
           } else if (e.key === "Escape") {
-            // パネルを閉じる Esc より先に、検索を閉じる
+            // パネルを閉じる Esc より先に、検索をやめる（文を消して印を外し、チャット欄にピントを戻す）
             e.stopPropagation();
             e.nativeEvent.stopImmediatePropagation();
-            onClose();
+            setQuery("");
+            onDone();
           }
         }}
       />
+      {/* 件数・前後・大文字小文字は、文を入れたときだけ出す（ふだんは見出しの行をすっきりさせる） */}
+      {query && (
+        <>
       <IconButton
         icon={CaseSensitive}
         label="大文字と小文字を区別する"
@@ -130,7 +138,9 @@ export function ChatFind({
       </span>
       <IconButton icon={ChevronUp} label="前を探す" title="前を探す（Shift+Enter）" size={14} disabled={matches.length === 0} onClick={() => go(-1)} />
       <IconButton icon={ChevronDown} label="次を探す" title="次を探す（Enter）" size={14} disabled={matches.length === 0} onClick={() => go(1)} />
-      <CloseButton label="検索を閉じる" title="閉じる（Esc）" size={14} onClick={onClose} />
+      <CloseButton label="検索の文を消す" title="消す（Esc）" size={14} onClick={() => (setQuery(""), inputRef.current?.focus())} />
+        </>
+      )}
     </div>
   );
 }

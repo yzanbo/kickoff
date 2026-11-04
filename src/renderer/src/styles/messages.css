@@ -177,45 +177,6 @@
   height: 20px;
 }
 
-/* チャットの中の検索（見出しのすぐ下の 1 行。開いている間は行を 1 つ足す） */
-.run-page.finding {
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-}
-
-.chat-find {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px var(--gutter);
-  border-bottom: 1px solid var(--border);
-}
-
-.chat-find input {
-  flex: 1;
-  min-width: 0;
-  padding: 4px 6px;
-  border: none;
-  font: inherit;
-  font-size: 13px;
-  color: inherit;
-  background: transparent;
-  outline: none;
-}
-
-.chat-find-count {
-  flex: none;
-  font-variant-numeric: tabular-nums;
-}
-
-::highlight(chat-find) {
-  background-color: color-mix(in srgb, var(--warn) 35%, transparent);
-}
-
-::highlight(chat-find-current) {
-  color: #000;
-  background-color: var(--warn);
-}
-
 /* 自分の発言の一覧（チャット欄の上のピル「発言 n」から上に開く。行を押すとその発言へ、右のボタンで入力欄に入れる） */
 .prompt-row {
   display: flex;
