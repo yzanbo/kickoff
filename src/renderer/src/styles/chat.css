@@ -91,6 +91,8 @@
 .timeline-wrap {
   position: relative;
   display: grid;
+  /* 列は枠の幅に固定する（既定の auto だと、上に貼り付ける指示の 1 行の長い文に合わせて列が広がり、流れごと右へはみ出した） */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
 }
