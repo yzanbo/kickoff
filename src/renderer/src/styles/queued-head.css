@@ -89,6 +89,29 @@
   white-space: nowrap;
 }
 
+/* 畳んだ 1 行の「次: 次に送る指示」（いちばん先に省く。件数と止める位置は残す） */
+.queued-next {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 畳んだ 1 行の止める位置などの案内は省かない（短い文なので、先に「次: …」を省く） */
+.queued-messages.collapsed .queued-hint {
+  flex: none;
+}
+
+/* 畳んだ 1 行の区切り（件数 · 案内 · 次: …） */
+.queued-messages.collapsed .queued-hint::before,
+.queued-next::before {
+  content: "·";
+  margin-right: 4px;
+  color: var(--extra-muted);
+}
+
 /* 畳んだとき: 見出しの行だけになるので、行を枠の上下の真ん中に置く（一覧との間の余白・見出しの下側だけの詰め物を外す） */
 .queued-messages.collapsed {
   padding-block: 4px;
@@ -104,7 +127,7 @@
 
 /* 狭い欄: 案内と、見出しのボタンの文字を隠す（アイコンだけにする。読み上げは aria-label） */
 @container queued (max-width: 440px) {
-  .queued-hint,
+  .queued-messages:not(.collapsed) .queued-hint,
   .queued-head-label {
     display: none;
   }
