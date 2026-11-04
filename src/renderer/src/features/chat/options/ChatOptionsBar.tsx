@@ -6,7 +6,7 @@ import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
 import { useModels } from "@/stores/providers";
 import { useAppSettings } from "@/stores/settings";
-import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";
+import { effortsFor, groupModels, modelDisplayName, permissionChoices, withDefaults } from "./models";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { OptionMenu } from "@/ui/OptionMenu";
 import { IconButton } from "@/ui/IconButton";
@@ -14,7 +14,8 @@ import { IconButton } from "@/ui/IconButton";
 /**
  * チャット欄で選ぶモデル・推論の深さ・権限モード・ファストモード。
  * 新しいチャットはプロジェクトの既定（なければ設定画面の既定）から始まり、ここでの変更はそのチャットだけに効く。
- * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始める。
+ * 新しいチャットでプロジェクトを替えたら（全プロジェクトのボード）、そのプロジェクトの既定に当て直す。
+ * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始め、既定は当てない（別のプロジェクトへ移しても、チャットの選択のまま）。
  */
 export function useChatOptions(initial: ChatOptions | undefined, projectId?: number, worktree?: string) {
   // モデルの一覧（アプリ全体で 1 回だけ取る）
@@ -24,19 +25,26 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
   const [fastMode, setFastMode] = useState<boolean>(initial?.fast_mode ?? false);
 
-  // 新しいチャットは、設定とプロジェクトが届いたら 1 回だけ、その既定から始める（どちらも店から。あとで既定を変えても、選び直したものは変えない）
+  // 新しいチャットは、設定とプロジェクトが届いたら、その既定から始める（どちらも店から。あとで既定を変えても、選び直したものは変えない）。
+  // 既定を当てたプロジェクト（"app" = プロジェクトなし）を覚え、プロジェクトが替わったら当て直す
   const settings = useAppSettings().data;
   const { projectsById, loaded: projectsLoaded } = useProjects();
   const project = projectId === undefined ? undefined : projectsById.get(projectId);
-  const defaulted = useRef(Boolean(initial));
+  const fresh = useRef(!initial).current;
+  const defaultedFor = useRef<number | "app" | null>(null);
   useEffect(() => {
-    if (defaulted.current || !settings || (projectId !== undefined && !projectsLoaded)) return;
-    defaulted.current = true;
-    const d = resolveChatOptions(settings, project?.chat_defaults);
-    setModel((m) => m ?? d.model);
-    setEffort(d.effort);
-    setPermission(d.permission_mode);
-    setFastMode(d.fast_mode);
+    const target = projectId ?? "app";
+    if (!fresh || defaultedFor.current === target || !settings || (projectId !== undefined && !projectsLoaded)) return;
+    // 開いて初めて当てるときは、既定が届く前に選んだモデルを残す
+    const first = defaultedFor.current === null;
+    defaultedFor.current = target;
+    const next = withDefaults({ model, effort, permission_mode: permission, fast_mode: fastMode }, resolveChatOptions(settings, project?.chat_defaults), first);
+    setModel(next.model);
+    setEffort(next.effort);
+    setPermission(next.permission_mode);
+    setFastMode(next.fast_mode);
+    // 選んでいる値が変わっても当て直さない（プロジェクトと既定が届いたときだけ）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, projectId, projectsLoaded, project]);
 
   const current = models.find((m) => m.value === model);

@@ -1,4 +1,4 @@
-import { EFFORT_LEVELS, PERMISSION_MODES, type EffortLevel, type ModelOption, type PermissionMode } from "@shared/types";
+import { EFFORT_LEVELS, PERMISSION_MODES, type ChatOptions, type EffortLevel, type ModelOption, type PermissionMode } from "@shared/types";
 
 /** 一覧での並び順（性能の高い順） */
 const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku"];
@@ -51,4 +51,12 @@ export function effortsFor(model: ModelOption | undefined): readonly EffortLevel
 /** そのモデルで選べる権限モード（Auto mode は対応しているモデルだけ。モデルが分からなければすべて） */
 export function permissionChoices(model: ModelOption | undefined): PermissionMode[] {
   return PERMISSION_MODES.filter((p) => p !== "auto" || !model || model.supports_auto_mode);
+}
+
+/**
+ * 新しいチャットの選択に既定（設定とプロジェクトの既定を重ねたもの）を当てる。
+ * keepModel: 既定が届く前に自分で選んだモデルは残す（開いて初めて当てるとき）。プロジェクトを替えたときは、そのプロジェクトの既定にすべて当て直す
+ */
+export function withDefaults(current: ChatOptions, defaults: ChatOptions, keepModel: boolean): ChatOptions {
+  return { ...defaults, model: keepModel ? (current.model ?? defaults.model) : defaults.model };
 }

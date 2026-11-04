@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ModelOption } from "@shared/types";
-import { groupModels, modelDisplayName, splitModelLabel } from "./models";
+import type { ChatOptions, ModelOption } from "@shared/types";
+import { groupModels, modelDisplayName, splitModelLabel, withDefaults } from "./models";
 
 const m = (value: string, label: string): ModelOption => ({ value, label, description: "", efforts: [], supports_auto_mode: true, supports_fast_mode: false });
 
@@ -30,4 +30,12 @@ test("閉じた状態の表示名と、名前の分解", () => {
   assert.deepEqual(splitModelLabel("Fable 5"), { family: "Fable", version: "5.0" });
   assert.equal(modelDisplayName([m("opus", "Opus 5.5")], "opus"), "Opus 5.5");
   assert.equal(modelDisplayName([], "opus"), "opus");
+});
+
+test("withDefaults: 初めて当てるときは、既定が届く前に選んだモデルを残す。プロジェクトを替えたときは、すべてそのプロジェクトの既定にする", () => {
+  const defaults: ChatOptions = { model: "opus", effort: "high", permission_mode: "acceptEdits", fast_mode: true };
+  const picked: ChatOptions = { model: "fable", effort: null, permission_mode: "default", fast_mode: false };
+  assert.deepEqual(withDefaults(picked, defaults, true), { ...defaults, model: "fable" });
+  assert.deepEqual(withDefaults({ ...picked, model: null }, defaults, true), defaults);
+  assert.deepEqual(withDefaults(picked, defaults, false), defaults);
 });
