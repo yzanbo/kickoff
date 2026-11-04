@@ -15,9 +15,9 @@ const LAYOUTS: readonly ProjectTabsLayout[] = ["top", "side"];
 /** 置き方の名前（設定の「表示」と、タブの右クリックのメニューで共通） */
 export const PROJECT_TABS_LAYOUT_LABELS: Record<ProjectTabsLayout, string> = { top: "上に横並び", side: "左に縦並び（アイコン）" };
 
-/** タブの置き方（設定の「表示」で選ぶ。どのプロジェクトでも同じ） */
+/** タブの置き方（設定の「表示」で選ぶ。どのプロジェクトでも同じ。初めは左に縦並び（選んだことがなければ、入れたばかりでも縦並び）） */
 export function useProjectTabsLayout() {
-  return useSharedChoice<ProjectTabsLayout>(PROJECT_TABS_LAYOUT_KEY, LAYOUTS, "top");
+  return useSharedChoice<ProjectTabsLayout>(PROJECT_TABS_LAYOUT_KEY, LAYOUTS, "side");
 }
 
 /** タブの列に出すタブ（グループは「ボード」の中の列の切り替えにまとめたので出さない） */
