@@ -90,7 +90,7 @@ export function SidePanel({
   );
 
   // パネルの閉じる・横幅いっぱい（ボードの右のパネルだけ。チャット欄は右上のレイアウトの開閉（LayoutToggles）で閉じるので、重ねて置かない）
-  // タブの列の何もないところの右クリックで、ボードの見出しの置き方を選ぶ（パネルを上まで伸ばすか。チャット欄では関係しないので出さない）
+  // タブの列の何もないところの右クリックで、ボードの見出しの置き方を選ぶ（横幅いっぱいか、ボードの上だけにしてパネルを上まで伸ばすか。チャット欄では関係しないので出さない）
   const layoutMenu = useBoardHeaderLayoutMenu();
   const controls = sidebar ? undefined : (
     <div className="panel-controls">
