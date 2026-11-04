@@ -25,3 +25,58 @@
   margin-left: auto;
 }
 
+/*
+ * 状態ごとのチャット数を角に重ねる小さな丸（StateCornerCounts。サイドバーのプロジェクトの丸・プロジェクトの画面の左のボードのタブ）。
+ * 左上 = 作業中（青）・右上 = 未読（緑。いちばん目に入る右上に、見るべき結果の数）・左下 = 回答待ち（オレンジ）。
+ * 置く要素は position: relative。縁の色は後ろの地に合わせて --corner-ring（初めは --bg）、はみ出す量は --corner-offset
+ */
+.corner-counts {
+  display: contents;
+}
+
+.corner-count {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border: 2px solid var(--corner-ring, var(--bg));
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.corner-count.running {
+  top: var(--corner-offset, -6px);
+  left: var(--corner-offset, -6px);
+  background: var(--dot-running);
+}
+
+.corner-count.review {
+  top: var(--corner-offset, -6px);
+  right: var(--corner-offset, -6px);
+  background: var(--dot-attention);
+}
+
+.corner-count.needs-input {
+  bottom: var(--corner-offset, -6px);
+  left: var(--corner-offset, -6px);
+  background: var(--dot-needs-input);
+}
+
+/* 角に重ねず、文の後ろに並べる（横並びのタブ） */
+.corner-counts.inline {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.corner-counts.inline .corner-count {
+  position: static;
+  border: none;
+}

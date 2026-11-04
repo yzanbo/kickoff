@@ -4,6 +4,7 @@ import type { Run } from "../../../../core/types";
 import { useRunStates } from "../../approvalsContext";
 import { cx } from "../../cx";
 import { stateCounts } from "../../runState";
+import { StateCornerCounts, stateCountsSummary } from "../StateCornerCounts";
 import { useSharedChoice } from "../../hooks/useStoredState";
 import { href, type ProjectTab } from "../../router";
 import { PROJECT_TABS_LAYOUT_KEY } from "../../storageKeys";
@@ -30,7 +31,8 @@ const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
 ];
 
 /**
- * プロジェクトの画面のタブ（ボード・エディタ）。ボードには未読のチャットの数（作業中のまま未読のものは数えない。サイドバーの「未読」の数と同じ stateCounts）、
+ * プロジェクトの画面のタブ（ボード・エディタ）。ボードには状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
+ * 縦並びはアイコンの角に重ね（左上 = 作業中・右上 = 未読・左下 = 回答待ち）、横並びは名前の後ろに並べる。作業中のまま未読のものは未読に数えない）、
  * エディタには変更のあるファイルの数を添える。
  * vertical: 左に縦並び（アイコンだけ。名前と数は title と aria-label）。右クリックで置き方（横並び / 縦並び）を切り替える
  */
@@ -38,9 +40,10 @@ export function ProjectTabs({ projectId, tab, runs, changeCount, vertical = fals
   const [columns] = useBoardColumns();
   const [layout, setLayout] = useProjectTabsLayout();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-  // 未読のチャット（カンバンの「未読」の列と同じ。作業中のまま未読のもの・アーカイブ済みは数えない）
+  // 状態ごとのチャット数（カンバンの列と同じ数え方。アーカイブ済みは数えない）
   const { pending } = useRunStates();
-  const unread = stateCounts(runs, pending).review;
+  const counts = stateCounts(runs, pending);
+  const countsText = stateCountsSummary(counts);
   return (
     <nav
       className={cx("tabs", vertical && "project-side-tabs")}
@@ -55,9 +58,9 @@ export function ProjectTabs({ projectId, tab, runs, changeCount, vertical = fals
         // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
         const selected = tab === t || (t === "board" && tab === "groups");
         const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
-        // 数はボード（未読のチャット）とエディタ（変更のあるファイル）だけ。履歴には出さない
-        const count = t === "board" ? unread : t === "changes" ? changeCount : 0;
-        const countLabel = t === "board" ? `未読のチャット ${count} 件` : `変更のあるファイル ${count} 件`;
+        // 数はボード（状態ごとのチャット）とエディタ（変更のあるファイル）だけ。履歴には出さない
+        const count = t === "board" ? (countsText ? 1 : 0) : t === "changes" ? changeCount : 0;
+        const countLabel = t === "board" ? countsText : `変更のあるファイル ${count} 件`;
         return (
           <a
             key={t}
@@ -69,7 +72,7 @@ export function ProjectTabs({ projectId, tab, runs, changeCount, vertical = fals
             href={href({ name: "project", id: projectId, tab: target })}
           >
             {vertical ? <Icon size={18} aria-hidden /> : label}
-            {t === "board" && count > 0 && <span className="tab-count">{count}</span>}
+            {t === "board" && <StateCornerCounts counts={counts} inline={!vertical} />}
             {t === "changes" && count > 0 && (
               <span className="change-count" aria-label={vertical ? undefined : countLabel}>
                 {count}
