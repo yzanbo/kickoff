@@ -18,7 +18,7 @@ export interface ProjectData {
  * （画面の側で、data.project.id !== id の間は薄くして出す）。loading はどれかを読み込んでいる最中（タブの数の代わりに更新中の印を出す）
  */
 export function useProjectData(id: number) {
-  const { projectsById, loaded: projectsLoaded, error: projectsError } = useProjects();
+  const { projectsById, error: projectsError } = useProjects();
   const project = projectsById.get(id);
   const chats = useChats({ projectId: id });
   const groups = useKeyedStore(groupsStore, id);
@@ -32,11 +32,9 @@ export function useProjectData(id: number) {
   useEffect(() => {
     if (current) setLast(current);
   }, [current]);
-  // 一覧が届いたのに見つからないプロジェクト（消した・URL の番号が違う）は、前の画面を出さずに知らせる
-  const missing = projectsLoaded && !project;
   return {
-    data: missing ? undefined : (current ?? last),
-    error: missing ? "プロジェクトが見つかりません" : (projectsError ?? chats.error ?? groups.error),
+    data: current ?? last,
+    error: projectsError ?? chats.error ?? groups.error,
     loading: chats.loading || groups.loading,
   };
 }
