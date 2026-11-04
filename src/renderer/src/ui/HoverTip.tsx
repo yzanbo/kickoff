@@ -8,6 +8,7 @@ const MARGIN = 8;
 
 interface Tip {
   title?: string;
+  /** 説明（空なら見出しとキーだけ） */
   text: string;
   /** ショートカットのキー（見出しの右に出す） */
   keys?: string;
@@ -40,10 +41,11 @@ export function HoverTip() {
       if (!el) return;
       target.current = el;
       timer.current = window.setTimeout(() => {
-        const text = el.getAttribute("data-tip");
-        if (!text || !el.isConnected) return;
+        const text = el.getAttribute("data-tip") ?? "";
+        const title = el.getAttribute("data-tip-title") ?? undefined;
+        if ((!text && !title) || !el.isConnected) return;
         setTip({
-          title: el.getAttribute("data-tip-title") ?? undefined,
+          title,
           text,
           keys: el.getAttribute("data-tip-keys") ?? undefined,
           anchor: el.getBoundingClientRect(),
@@ -94,16 +96,17 @@ export function HoverTip() {
           {tip.keys && <kbd className="hover-tip-keys">{tip.keys}</kbd>}
         </span>
       )}
-      {tip && <span className="hover-tip-text">{tip.text}</span>}
+      {tip?.text && <span className="hover-tip-text">{tip.text}</span>}
     </div>
   );
 }
 
 /**
- * 「名前（説明）」の形の文を、見出しと説明に分けて data-tip の属性にする（アイコンだけの選択肢の label をそのまま使う）。
- * 括弧がなければ全体を説明にする
+ * 「名前（説明）」の形の文を、見出しと説明に分けて data-tip の属性にする（アイコンだけの選択肢・ボタンの label をそのまま使う）。
+ * 括弧がなければ全体を説明にする。keys（ショートカット）を渡したときは、括弧がなければ全体を見出しにして、その右にキーを出す
  */
-export function tipProps(label: string): { "data-tip": string; "data-tip-title"?: string } {
+export function tipProps(label: string, keys?: string): { "data-tip": string; "data-tip-title"?: string; "data-tip-keys"?: string } {
   const m = /^(.+?)（(.+)）$/s.exec(label);
-  return m ? { "data-tip-title": m[1], "data-tip": m[2] } : { "data-tip": label };
+  if (m) return { "data-tip-title": m[1], "data-tip": m[2], ...(keys && { "data-tip-keys": keys }) };
+  return keys ? { "data-tip-title": label, "data-tip": "", "data-tip-keys": keys } : { "data-tip": label };
 }
