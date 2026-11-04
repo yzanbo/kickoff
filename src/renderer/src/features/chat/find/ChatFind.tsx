@@ -1,7 +1,7 @@
 import { CaseSensitive, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { cx } from "@/lib/cx";
-import { useStoredFlag } from "@/hooks/useStoredState";
+import { useSharedFlag } from "@/hooks/useStoredState";
 import { CHAT_FIND_CASE_KEY } from "@/lib/storageKeys";
 import { CloseButton, IconButton } from "@/ui/IconButton";
 import { findMatches, matchOffsets } from "./chatFindMatches";
@@ -38,7 +38,7 @@ export function ChatFind({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
-  const [caseSensitive, setCaseSensitive] = useStoredFlag(CHAT_FIND_CASE_KEY);
+  const [caseSensitive, setCaseSensitive] = useSharedFlag(CHAT_FIND_CASE_KEY);
   // 長いチャットでも打つのが遅れないよう、探すのは入力に遅れて（空白も探す文字なので削らない）
   const needle = useDeferredValue(query);
   const matches = useMemo(() => findMatches(items, needle, caseSensitive), [items, needle, caseSensitive]);
