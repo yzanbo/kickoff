@@ -194,6 +194,21 @@
   display: contents;
 }
 
+/*
+ * 選んでいる送り方（伝える / ためておく・すぐ送る / ためておく）: 選んでいる方は緑の塗りと枠、選んでいない方は薄くして、
+ * どちらを選んでいるかを一目で分かるようにする（ふつうの .view-toggle の塗りだけでは入力欄の地と見分けにくかった）。
+ * .view-toggle の規則（後ろの board-header.css）に勝つよう 2 つのクラスで指す
+ */
+.view-toggle.queue-mode button {
+  color: var(--extra-muted);
+}
+
+.view-toggle.queue-mode button.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-bright) 55%, transparent);
+}
+
 .busy-controls.held-tell .queue-mode button[data-value="tell"],
 .busy-controls.held-queue .queue-mode button[data-value="queue"] {
   color: var(--accent-bright);
