@@ -27,7 +27,8 @@ export function QueuedModeButton({ runId, paused, busy, failed }: { runId: numbe
 }
 
 /**
- * 「ここまで送ったら止めます」の印を、いちばん上（1 件目の上 = 位置 0）に置く。置いたあとは、線のつまみのドラッグ・↑↓ で止める位置へ動かす。
+ * 「一時停止」（自動で送るのを一度止める位置。以前の一時停止の印）を、いちばん上（1 件目の上 = 位置 0）に挟む。
+ * 名前は、押した結果（「今の分で止める」など）ではなく、列に挟む物の名前で呼ぶ。置いたあとは、線のつまみのドラッグ・↑↓ で止める位置へ動かす。
  * もう 1 件目の上に印があれば押せない。onAdded は置いたあと（たたんでいれば一覧を開いて線を見せる）
  */
 export function QueuedStopButton({ runId, stops, failed, onAdded }: { runId: number; stops: number[]; failed: (e: unknown) => void; onAdded: () => void }) {
@@ -37,16 +38,16 @@ export function QueuedStopButton({ runId, stops, failed, onAdded }: { runId: num
       type="button"
       className="btn btn-sm queued-head-btn queued-add-stop"
       disabled={atTop}
-      aria-label="「ここまで送ったら止めます」の印をいちばん上に置く"
+      aria-label="一時停止をいちばん上に挟む"
       title={
         atTop
-          ? "1 件目の上にもう「ここまで送ったら止めます」の印があります（線をドラッグ・↑↓ で動かせます）"
-          : "「ここまで送ったら止めます」の印をいちばん上（1 件目の上）に置く。線をドラッグ・↑↓ で、止めたい位置へ動かせます"
+          ? "1 件目の上にもう一時停止があります（線をドラッグ・↑↓ で動かせます）"
+          : "自動で送るのを一度止める位置（一時停止）を、列のいちばん上に挟みます。線をドラッグ・↑↓ で、止めたい位置へ動かせます"
       }
       onClick={() => void api.setQueueStops(runId, [0, ...stops]).then(onAdded, failed)}
     >
       <OctagonPause size={12} aria-hidden />
-      <span className="queued-head-label">止める印</span>
+      <span className="queued-head-label">一時停止</span>
     </button>
   );
 }
@@ -81,7 +82,7 @@ export function QueuedHeadActions({
 }: {
   runId: number;
   count: number;
-  /** 止めている・「ここまで送ったら止めます」の印がある */
+  /** 止めている・一時停止の印がある */
   holds: boolean;
   /** 選んでいる指示（列の順） */
   selected: string[];

@@ -22,7 +22,7 @@ export function SendAllMenu({
   runId: number;
   count: number;
   busy: boolean;
-  /** 止めている・「ここまで送ったら止めます」の印がある（1 件ずつ送るときは外して最後まで送る） */
+  /** 止めている・一時停止の印がある（1 件ずつ送るときは外して最後まで送る） */
   holds: boolean;
   failed: (e: unknown) => void;
 }) {
@@ -75,7 +75,7 @@ export function SendAllMenu({
               <span>1 件ずつ順に送る</span>
               <span className="send-all-note">
                 {busy ? "別々の指示として、いまの作業が終わったら 1 件ずつ順に送ります" : "別々の指示として、1 件目をいま送り、終わるたびに次を送ります"}
-                {holds ? "（止める設定・印は外して最後まで）" : ""}
+                {holds ? "（止めている設定・一時停止は外して最後まで）" : ""}
               </span>
             </span>
           </MenuItem>

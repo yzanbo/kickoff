@@ -90,7 +90,7 @@ function RunView({
   queue: QueuedMessage[];
   /** 待ちの列を、終わっても自動で送らずに止めておくか */
   queuePaused: boolean;
-  /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと） */
+  /** 一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと） */
   queueStops: number[];
   /** 通信の再試行中・つながるのを待っているところ */
   connection: Connection;

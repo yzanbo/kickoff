@@ -9,9 +9,9 @@ import { AttachmentPeek } from "./AttachmentPeek";
 /** 送信待ちの 1 行への操作（行のボタンと右クリックのメニューで共通） */
 export interface QueuedRowActions {
   edit: () => void;
-  /** この指示のすぐあとの「ここまで送ったら止めます」を付ける・外す */
+  /** この指示のすぐあとの一時停止を付ける・外す */
   toggleStop: () => void;
-  /** この指示のすぐ前の「ここまで送ったら止めます」を付ける・外す */
+  /** この指示のすぐ前の一時停止を付ける・外す */
   toggleStopBefore: () => void;
   move: (to: number) => void;
   sendNow: () => void;
@@ -50,9 +50,9 @@ export function QueuedRow({
   selectedCount: number;
   /** この行のつまみからドラッグしたときに動く数（選んだ行をつかむと、選んだものをまとめて動かす） */
   dragCount?: number;
-  /** この指示のすぐあとに「ここまで送ったら止めます」があるか */
+  /** この指示のすぐあとに一時停止があるか */
   isStop: boolean;
-  /** この指示のすぐ前に「ここまで送ったら止めます」があるか */
+  /** この指示のすぐ前に一時停止があるか */
   isStopBefore: boolean;
   /** 新しいチャットで聞く（文と添付を新しいチャットのタブに入れて開く。remove なら送信待ちから外す = 移す。選んでいれば選んだものすべて） */
   onAsk?: (remove: boolean) => void;
@@ -170,17 +170,17 @@ export function QueuedRow({
                 onSelect={actions.toggleStopBefore}
                 title={
                   isStopBefore
-                    ? "この指示の前の「ここまで送ったら止めます」を外します"
-                    : "この指示の手前まで自動で送ったら、この指示から先は送らずに止めておきます（線はドラッグで動かせます）"
+                    ? "この指示の前の一時停止を外します"
+                    : "この指示の前に一時停止を挟みます。手前まで自動で送ったら、この指示から先は送らずに止めておきます（線はドラッグで動かせます）"
                 }
               >
-                {isStopBefore ? "この指示の前で止めない" : "この指示の前で止める"}
+                {isStopBefore ? "この指示の前の一時停止を外す" : "この指示の前に一時停止を挟む"}
               </MenuItem>
               <MenuItem
                 onSelect={actions.toggleStop}
-                title={isStop ? "この指示のあとの「ここまで送ったら止めます」を外します" : "この指示まで自動で送ったら、残りは送らずに止めておきます（線はドラッグで動かせます）"}
+                title={isStop ? "この指示のあとの一時停止を外します" : "この指示のあとに一時停止を挟みます。この指示まで自動で送ったら、残りは送らずに止めておきます（線はドラッグで動かせます）"}
               >
-                {isStop ? "この指示のあとで止めない" : "この指示のあとで止める"}
+                {isStop ? "この指示のあとの一時停止を外す" : "この指示のあとに一時停止を挟む"}
               </MenuItem>
               {count > 1 && <div className="menu-separator" role="separator" />}
               {i > 0 && <MenuItem onSelect={() => actions.move(0)}>いちばん上へ移動</MenuItem>}
