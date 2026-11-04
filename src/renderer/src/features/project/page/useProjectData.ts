@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Project, Run, RunGroup } from "@shared/types";
+import type { Project, Chat, ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useServerEvent } from "@/api/events";
@@ -7,8 +7,8 @@ import { useServerEvent } from "@/api/events";
 /** プロジェクト画面に出すもの（プロジェクト・チャット・グループ） */
 export interface ProjectData {
   project: Project;
-  runs: Run[];
-  groups: RunGroup[];
+  chats: Chat[];
+  groups: ChatGroup[];
 }
 
 /** プロジェクトごとの直前のデータ（プロジェクトを切り替えたときに、すぐ出すため） */
@@ -30,8 +30,8 @@ export function useProjectData(id: number) {
     inFlight.current++;
     setLoading(true);
     try {
-      const [project, runs, groups] = await Promise.all([api.project(id), api.runs(id), api.groups(id)]);
-      const next = { project, runs, groups };
+      const [project, chats, groups] = await Promise.all([api.project(id), api.chats(id), api.groups(id)]);
+      const next = { project, chats, groups };
       projectCache.set(id, next);
       setData(next);
       setError(undefined);
@@ -53,8 +53,8 @@ export function useProjectData(id: number) {
     const related =
       (e.type === "project" && e.project.id === id) ||
       // ほかのプロジェクトへ移した（このプロジェクトの一覧にある）チャットも
-      (e.type === "run" && (e.run.project_id === id || Boolean(data?.runs.some((r) => r.id === e.run.id)))) ||
-      (e.type === "run_deleted" && e.project_id === id) ||
+      (e.type === "chat" && (e.chat.project_id === id || Boolean(data?.chats.some((r) => r.id === e.chat.id)))) ||
+      (e.type === "chat_deleted" && e.project_id === id) ||
       (e.type === "group" && e.group.project_id === id) ||
       (e.type === "group_deleted" && e.project_id === id);
     if (related) void load();

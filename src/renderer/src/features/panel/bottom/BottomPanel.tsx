@@ -2,11 +2,11 @@ import { Maximize2, Minimize2, PanelBottomClose } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/app/projectsContext";
-import { SidePanel } from "@/features/panel/Panel";
+import { Panel } from "@/features/panel/Panel";
 import type { BottomPanelController } from "./useBottomPanel";
 
 /**
- * フッター（画面の下のパネル。VS Code の「パネル」と同じ）。中身は右のパネル・右端のチャット欄と同じタブ（SidePanel）で、
+ * フッター（画面の下のパネル。VS Code の「パネル」と同じ）。中身は右のパネル・右端のチャット欄と同じタブ（Panel）で、
  * 初めはターミナルとブラウザを出す（タブの列の「表示するタブ」でチャットも出せる）。上の端のつまみで高さを変える。
  * 閉じても要素は残し（高さ 0）、もう一度開いたら同じ画面に戻る
  */
@@ -35,7 +35,7 @@ export function BottomPanel({ bottom }: { bottom: BottomPanelController }) {
           onPointerDown={bottom.startResize}
           onDoubleClick={bottom.resetHeight}
         />
-        <SidePanel
+        <Panel
           panel={panel}
           onNewChat={() => newChatProject !== undefined && panel.openNew({ projectId: newChatProject })}
           terminals={targets}

@@ -1,5 +1,5 @@
 // 失敗した作業の直す操作（続きから・深さを下げて・別のモデルで・巻き戻して再試行）の判定（純粋関数）
-import { EFFORT_LEVELS, type EffortLevel, type RunEvent } from "@shared/types";
+import { EFFORT_LEVELS, type EffortLevel, type ChatEvent } from "@shared/types";
 import { isUsageLimitError } from "@shared/chat/usageLimit";
 
 /** 続きから再試行するときに送る指示（自分の発言として残す） */
@@ -16,7 +16,7 @@ export interface FailedTurn {
  * いちばん新しい作業が、直す操作を出す失敗で終わっていればその作業（なければ undefined）。
  * 通信の切断（つながったら自動で再開する）・使用枠の上限（枠が戻ったら聞く）は、それぞれの仕組みに任せるので除く
  */
-export function failedTurnOf(events: RunEvent[]): FailedTurn | undefined {
+export function failedTurnOf(events: ChatEvent[]): FailedTurn | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i];
     if (e.type === "user") return undefined;

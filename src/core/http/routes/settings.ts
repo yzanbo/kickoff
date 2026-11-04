@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
-import { EFFORT_LEVELS, PERMISSION_CHOICES, PROVIDER_IDS, VOICE_PROVIDERS } from "@shared/types";
+import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, VOICE_PROVIDERS } from "@shared/types";
 import { voiceLanguage } from "./schemas.js";
 
 const settingsSchema = z
@@ -14,7 +14,7 @@ const settingsSchema = z
     projectsDir: z.string().min(1).max(500),
     claudeModel: z.string().min(1).max(100),
     defaultEffort: z.enum(EFFORT_LEVELS).nullable(),
-    defaultPermission: z.enum(PERMISSION_CHOICES),
+    defaultPermission: z.enum(PERMISSION_MODES),
     defaultFastMode: z.boolean(),
     autoArchiveDays: z.number().int().min(1).max(365).nullable(),
     autoResumeOnReconnect: z.boolean(),

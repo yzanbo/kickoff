@@ -48,7 +48,7 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
   const kinds = useMemo(() => kindMaps(files), [files]);
   const openFolders = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
 
-  const run = async (action: GitAction, paths: string[]) => {
+  const chat = async (action: GitAction, paths: string[]) => {
     if (paths.length === 0) return;
     if (action === "discard" && !(await confirmDiscard(paths))) return;
     onAction(action, paths);
@@ -56,11 +56,11 @@ export function ChangeGroup({ title, files, staged, tree, selected, onSelect, on
   // 行・フォルダ・まとまりの操作（paths はその中のファイル）
   const buttons = (paths: string[], scope: string) =>
     staged ? (
-      <IconButton icon={Minus} label={`${scope}のステージを取り消す`} size={14} onClick={() => void run("unstage", paths)} />
+      <IconButton icon={Minus} label={`${scope}のステージを取り消す`} size={14} onClick={() => void chat("unstage", paths)} />
     ) : (
       <>
-        <IconButton icon={Undo2} label={`${scope}の変更を元に戻す`} size={14} onClick={() => void run("discard", paths)} />
-        <IconButton icon={Plus} label={`${scope}をステージする`} size={14} onClick={() => void run("stage", paths)} />
+        <IconButton icon={Undo2} label={`${scope}の変更を元に戻す`} size={14} onClick={() => void chat("discard", paths)} />
+        <IconButton icon={Plus} label={`${scope}をステージする`} size={14} onClick={() => void chat("stage", paths)} />
       </>
     );
   const pathsUnder = (node: TreeNode) => (node.dir ? files.filter((f) => f.path.startsWith(node.path + "/")).map((f) => f.path) : [node.path]);

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { groupEvents, relativize, summarizeTools, type ToolCall } from "./timelineItems";
 
 let nextId = 1;
 const call = (name: string, input: object = {}): ToolCall => ({
-  use: { id: nextId++, run_id: 1, type: "tool_use", data: { id: `tu${nextId}`, name, input }, created_at: "2026-11-01T00:00:00Z" } as unknown as RunEvent,
+  use: { id: nextId++, chat_id: 1, type: "tool_use", data: { id: `tu${nextId}`, name, input }, created_at: "2026-11-01T00:00:00Z" } as unknown as ChatEvent,
 });
 
 test("ツールのまとまりの要約: 編集・読み取りはファイルの数、それ以外は回数で 1 文にする", () => {
@@ -32,7 +32,7 @@ test("ツールのまとまりの要約: ToDo・ツール検索・スキル・�
   assert.equal(summarizeTools([call("mcp__github__get_issue"), call("Mystery"), call("Mystery")]), "MCP のツールを1回使用 および その他のツールを2回使用");
 });
 
-const event = (id: number, type: string, data: object = {}): RunEvent => ({ id, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;
+const event = (id: number, type: string, data: object = {}): ChatEvent => ({ id, chat_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as ChatEvent;
 
 test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果は呼び出しにぶら下げる。init・thinking などは出さない", () => {
   const items = groupEvents([

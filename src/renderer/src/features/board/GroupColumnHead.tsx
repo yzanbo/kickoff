@@ -1,5 +1,5 @@
 import { Folder, Plus } from "lucide-react";
-import type { RunGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/types";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
 import type { GroupBoardState } from "./useGroupBoard";
@@ -9,7 +9,7 @@ import type { GroupBoardState } from "./useGroupBoard";
  * 見出しをドラッグしてグループを並べ替え、名前のダブルクリックで名前を変え、右クリック・「…」でメニュー。
  * onNewChat: ＋でそのグループに新しいチャットを始める
  */
-export function GroupColumnHead({ group, count, board, onNewChat }: { group: RunGroup | null; count: number; board: GroupBoardState; onNewChat: () => void }) {
+export function GroupColumnHead({ group, count, board, onNewChat }: { group: ChatGroup | null; count: number; board: GroupBoardState; onNewChat: () => void }) {
   if (!group) {
     return (
       <header className="column-head">

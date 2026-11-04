@@ -1,5 +1,5 @@
 import { Folder, Inbox, SquarePen } from "lucide-react";
-import type { RunGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/types";
 import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
 
 /** メニューの幅と、グループの数から決まるおおよその高さ（画面からはみ出さない位置にするため） */
@@ -21,7 +21,7 @@ export function GroupPickMenu({
 }: {
   x: number;
   y: number;
-  groups: RunGroup[];
+  groups: ChatGroup[];
   /** 開くボタンのセレクタ（押したらボタンの側で閉じる） */
   ignore?: string;
   /** メニューの見出し */

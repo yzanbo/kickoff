@@ -1,13 +1,13 @@
 /* ==== チャット画面 ==== */
 
-.run-page {
+.chat-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
 }
 
-.run-header {
+.chat-header {
   /* macOS の信号機ボタンの高さ分を上に空け、見出し自体は 36px */
   padding: 22px var(--gutter) 0;
   border-bottom: 1px solid var(--border);
@@ -15,15 +15,15 @@
 }
 
 /* 見出しはウィンドウのドラッグ領域なので、操作するものは外す（外さないと押してもウィンドウのドラッグになる） */
-.run-header a,
-.run-header button,
-.run-header input,
-.run-header select,
-.run-header label {
+.chat-header a,
+.chat-header button,
+.chat-header input,
+.chat-header select,
+.chat-header label {
   -webkit-app-region: no-drag;
 }
 
-.run-title-row {
+.chat-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -32,7 +32,7 @@
 }
 
 /* 見出しの行のプロジェクト・作業場所のバッジ（狭いときは縮めて省略） */
-.run-sub {
+.chat-sub {
   display: flex;
   flex: 0 1 auto;
   align-items: center;
@@ -42,24 +42,24 @@
 }
 
 /* 見出しの右の、作業場所の道具（ターミナル・外部のターミナル） */
-.run-tools {
+.chat-tools {
   display: flex;
   flex: none;
   align-items: center;
   gap: 2px;
 }
 
-.run-tools:empty {
+.chat-tools:empty {
   display: none;
 }
 
 /* 見出しの行の、指示の帯の表示・非表示（出しているときはアクセントの色） */
-.run-sticky-toggle.on {
+.chat-sticky-toggle.on {
   color: var(--accent-bright);
 }
 
 /* 状態の前のターン数・費用 */
-.run-meta {
+.chat-meta {
   display: flex;
   flex: none;
   gap: 8px;
@@ -68,21 +68,21 @@
 
 /* 見出しが狭いとき（右のパネル・チャット欄）は、ターン数・費用を隠して名前とバッジに幅を回す */
 @container (max-width: 560px) {
-  .run-meta {
+  .chat-meta {
     display: none;
   }
 }
 
-.run-sub a {
+.chat-sub a {
   color: var(--muted);
 }
 
-.run-sub a:hover {
+.chat-sub a:hover {
   color: var(--text);
 }
 
 /* 新しいチャットは見出しが短いので、中央の案内を少し上げる */
-.run-page.new-chat {
+.chat-page.new-chat {
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
@@ -135,7 +135,7 @@
   font-size: 12px;
 }
 
-.run-composer {
+.chat-composer {
   max-width: 852px;
   width: 100%;
   margin: 0 auto;

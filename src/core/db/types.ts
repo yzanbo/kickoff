@@ -1,6 +1,6 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { EffortLevel, PermissionChoice, ProviderId } from "@shared/types/settings";
-import type { RunStatus } from "@shared/types/chat";
+import type { EffortLevel, PermissionMode, ProviderId } from "@shared/types/settings";
+import type { ChatStatus } from "@shared/types/chat";
 
 // Store に渡す作成時の入力（DB の行の形ではなく、省略できる項目は既定で埋める）
 
@@ -11,14 +11,14 @@ export interface NewProject {
   provider: ProviderId;
 }
 
-export interface NewRun {
+export interface NewChat {
   project_id: number;
   provider: ProviderId;
   title: string;
-  status: RunStatus;
+  status: ChatStatus;
   model: string | null;
   effort?: EffortLevel | null;
-  permission_mode?: PermissionChoice;
+  permission_mode?: PermissionMode;
   fast_mode?: boolean;
   group_id?: number | null;
   /** 作業場所（ワークツリーのフォルダ。省略・空なら本体） */

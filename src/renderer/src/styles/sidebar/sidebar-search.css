@@ -94,8 +94,8 @@
   border-radius: 50%;
 }
 
-.state-attention .status-dot-mark {
-  background: var(--dot-attention);
+.state-unread .status-dot-mark {
+  background: var(--dot-unread);
 }
 
 .state-failed .status-dot-mark {
@@ -104,7 +104,7 @@
   background: var(--dot-failed);
 }
 
-.state-done .status-dot-mark {
+.state-read .status-dot-mark {
   background: var(--extra-muted);
   opacity: 0.3;
 }
@@ -122,7 +122,7 @@
   height: 7px;
   border: 1.5px solid var(--bg-sidebar);
   border-radius: 50%;
-  background: var(--dot-attention);
+  background: var(--dot-unread);
 }
 
 .status-ring {

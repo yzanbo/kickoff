@@ -11,7 +11,7 @@ const POLL_MS = 5000;
 /** 変更のタブを開いている間に、リモートの情報を取ってくる間隔（VS Code の自動フェッチと同じ考え方） */
 const FETCH_MS = 3 * 60_000;
 /** チャットが動いたあと、取り直すまで待つ時間（続けて届く知らせをまとめる） */
-const RUN_DELAY_MS = 1500;
+const CHAT_ACTIVITY_DELAY_MS = 1500;
 
 /**
  * プロジェクトのフォルダの Git の状態。開いたとき・ウィンドウに戻ってきたとき・このプロジェクトのチャットが動いたときに取り直す。
@@ -63,15 +63,15 @@ export function useGitStatus(projectId: number, active: boolean, worktree?: stri
 
   useWindowEvent("focus", () => void refresh());
 
-  const runTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const chatActivityTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useServerEvent((e) => {
-    if (e.type !== "run" || e.run.project_id !== projectId) return;
-    clearTimeout(runTimer.current);
+    if (e.type !== "chat" || e.chat.project_id !== projectId) return;
+    clearTimeout(chatActivityTimer.current);
     // 待っている間も更新中の印を出す（チャットが動いた = ファイルが変わったかもしれない）
     setRefreshing(true);
-    runTimer.current = setTimeout(() => void refresh(), RUN_DELAY_MS);
+    chatActivityTimer.current = setTimeout(() => void refresh(), CHAT_ACTIVITY_DELAY_MS);
   });
-  useEffect(() => () => clearTimeout(runTimer.current), []);
+  useEffect(() => () => clearTimeout(chatActivityTimer.current), []);
 
   /** 操作のあとの状態をそのまま出す（取り直しを待たない） */
   const apply = async (request: Promise<GitStatus>) => {

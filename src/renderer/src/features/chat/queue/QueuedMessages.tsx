@@ -36,7 +36,7 @@ const MIN_LIST_HEIGHT = 36;
  * 入力欄のすぐ上に区切り線だけでつなげ、1 枚の枠に見せる（queued.css）
  */
 export function QueuedMessages({
-  runId,
+  chatId,
   queue,
   paused,
   stops,
@@ -44,7 +44,7 @@ export function QueuedMessages({
   busy,
   newChatTarget,
 }: {
-  runId: number;
+  chatId: number;
   /** 「新しいチャットで聞く」で作るチャットのプロジェクト・グループ（元のチャットと同じ） */
   newChatTarget: NewChatTarget;
   queue: QueuedMessage[];
@@ -89,11 +89,11 @@ export function QueuedMessages({
   const { selected, selectRow, clearSelection } = useQueueSelection(queue);
   const failed = reportFailure("待ちの指示を操作できませんでした");
   // ドラッグ: 指示の並べ替えと、一時停止の印の移動
-  const dnd = useQueueDrag(runId, queue, stops, failed);
+  const dnd = useQueueDrag(chatId, queue, stops, failed);
   // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
-  const ask = useAskInNewChat(runId, queue, newChatTarget);
+  const ask = useAskInNewChat(chatId, queue, newChatTarget);
   // 書き直す欄（いくつでも同時に開ける。指示ごとに書いている途中の文を持つ）
-  const edit = useQueuedEdits(runId, queue, listRef, failed);
+  const edit = useQueuedEdits(chatId, queue, listRef, failed);
   const editSelected = () => {
     edit.start(queue.filter((q) => selected.includes(q.id)));
     clearSelection();
@@ -106,10 +106,10 @@ export function QueuedMessages({
   if (queue.length === 0) return null;
   // 次に止まる位置（いちばん上の印。なければ -1）。行の右クリックの「この指示のあとで止める」は、その行のすぐあとの印を付け外しする
   const stopIndex = stops.length > 0 ? stops[0] : -1;
-  const toggleStop = (id: string, i: number) => void api.setQueueStopAfter(runId, id, !stops.includes(i + 1)).catch(failed);
+  const toggleStop = (id: string, i: number) => void api.setQueueStopAfter(chatId, id, !stops.includes(i + 1)).catch(failed);
   // 指示のすぐ前（位置 i）の印を付け外しする（1 件目の上にも置ける）
   const toggleStopBefore = (i: number) =>
-    void api.setQueueStops(runId, stops.includes(i) ? stops.filter((x) => x !== i) : [...stops, i].sort((a, b) => a - b)).catch(failed);
+    void api.setQueueStops(chatId, stops.includes(i) ? stops.filter((x) => x !== i) : [...stops, i].sort((a, b) => a - b)).catch(failed);
   /** 印の線（指示とは別の行。ドラッグでほかの位置へ移し、× で外す） */
   const stopLine = (k: number) =>
     stops.includes(k) && (
@@ -122,8 +122,8 @@ export function QueuedMessages({
         dropMark={dnd.stopMark(k)}
         onDragOver={(e) => dnd.overStop(e, k)}
         onDrop={dnd.drop}
-        onMove={(to) => void api.setQueueStops(runId, [...stops.filter((x) => x !== k), to]).catch(failed)}
-        onRemove={() => void api.setQueueStops(runId, stops.filter((x) => x !== k)).catch(failed)}
+        onMove={(to) => void api.setQueueStops(chatId, [...stops.filter((x) => x !== k), to]).catch(failed)}
+        onRemove={() => void api.setQueueStops(chatId, stops.filter((x) => x !== k)).catch(failed)}
       />
     );
   // 次に送る指示（1 件目）を書き直していて、作業は終わり、コアが書き直しが終わる（保存・やめる・一覧をたたむ）のを待っている = 送信の準備ができている。
@@ -191,11 +191,11 @@ export function QueuedMessages({
           </button>
         )}
         {/* 終わったら自動で送るか、送らずに止めておくか（列全体の設定。ここから右が操作） */}
-        <QueuedModeButton runId={runId} paused={paused} busy={busy} failed={failed} />
-        <QueuedStopButton runId={runId} stops={stops} failed={failed} onAdded={() => setCollapsed(false)} />
+        <QueuedModeButton chatId={chatId} paused={paused} busy={busy} failed={failed} />
+        <QueuedStopButton chatId={chatId} stops={stops} failed={failed} onAdded={() => setCollapsed(false)} />
         {/* 選んでいるときは、行と同じ 2 つのまとまり: 並べ替え（いちばん上へ・下へ）｜ 選んだものへの操作（まとめて送る・消す・選ぶのをやめる） */}
-        {selected.length > 0 && <QueuedMoveActions runId={runId} selected={selected} failed={failed} />}
-        <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} onEditSelected={editSelected} failed={failed} />
+        {selected.length > 0 && <QueuedMoveActions chatId={chatId} selected={selected} failed={failed} />}
+        <QueuedHeadActions chatId={chatId} count={queue.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} onEditSelected={editSelected} failed={failed} />
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (
@@ -239,10 +239,10 @@ export function QueuedMessages({
                 onSelect={(e) => selectRow(e, m.id)}
                 groupActions={{
                   edit: editSelected,
-                  sendTogether: () => void api.sendAllQueued(runId, selected).then(clearSelection, failed),
-                  merge: () => void api.mergeQueued(runId, selected).then(clearSelection, failed),
-                  moveTo: (to) => void api.moveQueuedMany(runId, selected, to).catch(failed),
-                  remove: () => void api.removeQueuedMany(runId, selected).then(clearSelection, failed),
+                  sendTogether: () => void api.sendAllQueued(chatId, selected).then(clearSelection, failed),
+                  merge: () => void api.mergeQueued(chatId, selected).then(clearSelection, failed),
+                  moveTo: (to) => void api.moveQueuedMany(chatId, selected, to).catch(failed),
+                  remove: () => void api.removeQueuedMany(chatId, selected).then(clearSelection, failed),
                 }}
                 className={cx(
                   "queued-row",
@@ -255,9 +255,9 @@ export function QueuedMessages({
                   edit: () => edit.start([m]),
                   toggleStop: () => toggleStop(m.id, i),
                   toggleStopBefore: () => toggleStopBefore(i),
-                  move: (to) => void api.moveQueued(runId, m.id, to).catch(failed),
-                  sendNow: () => void api.sendQueuedNow(runId, m.id).catch(failed),
-                  remove: () => void api.removeQueued(runId, m.id).catch(failed),
+                  move: (to) => void api.moveQueued(chatId, m.id, to).catch(failed),
+                  sendNow: () => void api.sendQueuedNow(chatId, m.id).catch(failed),
+                  remove: () => void api.removeQueued(chatId, m.id).catch(failed),
                 }}
                 onDragStart={() => dnd.startMessage(m.id, selected.includes(m.id) && selected.length > 1 ? selected : undefined)}
                 onDragEnd={dnd.end}

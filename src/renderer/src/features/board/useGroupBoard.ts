@@ -1,33 +1,33 @@
 import { useState } from "react";
-import type { RunGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import { confirmDeleteGroup, useGroupDrop } from "@/features/group/groups";
 import { useActionError } from "@/hooks/useActionError";
-import { useRunRename } from "@/features/chat/useChatRename";
+import { useChatRename } from "@/features/chat/useChatRename";
 import { GROUP_SHOW_ARCHIVED_KEY } from "@/lib/storageKeys";
 import { useGroupMenu } from "@/features/group/GroupMenu";
 import { archiveMatches, useArchiveFilter } from "./archiveFilter";
 import { useBoardView } from "./BoardHeader";
 import { useCardMenu } from "./useBoardCards";
-import { useBoardRuns } from "./useBoardChats";
+import { useBoardChats } from "./useBoardChats";
 
 export type GroupBoardState = ReturnType<typeof useGroupBoard>;
 
 /**
  * グループのボードの状態と操作: グループを作る・名前を変える・削除する（「…」メニュー）、列へのドロップ（チャットを移す・列を並べ替える）、
  * 名前の検索、アーカイブでの絞り込みとボード / リスト / スイムレーンの切り替え（どちらもカンバンとは別に覚える）、失敗の文。
- * チャットはカンバンと同じく useBoardRuns で読み、アーカイブ済みを出すときはそれも読み込む（runs は読み込んだすべて、shown は絞り込んだもの）
+ * チャットはカンバンと同じく useBoardChats で読み、アーカイブ済みを出すときはそれも読み込む（runs は読み込んだすべて、shown は絞り込んだもの）
  */
-export function useGroupBoard({ projectId, groups }: { projectId: number; groups: RunGroup[] }) {
+export function useGroupBoard({ projectId, groups }: { projectId: number; groups: ChatGroup[] }) {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const { error, setError, guard } = useActionError();
   const [archive, setArchive] = useArchiveFilter(GROUP_SHOW_ARCHIVED_KEY);
-  const { runs, loaded } = useBoardRuns(projectId, archive !== "active", setError);
-  const shown = runs.filter((r) => archiveMatches(r, archive));
+  const { chats, loaded } = useBoardChats(projectId, archive !== "active", setError);
+  const shown = chats.filter((r) => archiveMatches(r, archive));
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
-  const rename = useRunRename(setError);
+  const rename = useChatRename(setError);
   const menu = useCardMenu();
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
@@ -42,7 +42,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
       .filter(search.matches)
       .sort((a, b) => b.active_at.localeCompare(a.active_at));
 
-  const removeGroup = async (group: RunGroup) => {
+  const removeGroup = async (group: ChatGroup) => {
     if (await confirmDeleteGroup(group)) void guard(() => api.deleteGroup(group.id));
   };
   // グループの「…」メニュー（右クリックでも開く）
@@ -50,13 +50,13 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   // 列をドロップ先にする。チャットはその列のグループへ、グループの列はその位置へ並べ替える
   const { reorder, over, dropProps } = useGroupDrop({
     groups,
-    runs,
+    chats,
     onReorder: (ids) => void guard(() => api.reorderGroups(projectId, ids)),
-    onMoveRun: (run, groupId) => void guard(() => api.setRunGroup(run.id, groupId)),
+    onMoveChat: (chat, groupId) => void guard(() => api.setChatGroup(chat.id, groupId)),
   });
 
   return {
-    runs,
+    chats,
     loaded,
     shown,
     archive,
@@ -85,7 +85,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
       setCreating(false);
       void guard(() => api.createGroup(projectId, name));
     },
-    renameGroup: (group: RunGroup, name: string) => {
+    renameGroup: (group: ChatGroup, name: string) => {
       setRenaming(undefined);
       void guard(() => api.renameGroup(group.id, name));
     },

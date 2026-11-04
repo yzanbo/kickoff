@@ -24,7 +24,7 @@ import { useSidebar } from "@/features/sidebar/useSidebar";
 import { terminalTargets } from "@/features/panel/usePanel";
 import { DialogHost } from "@/ui/dialogs";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { useRunNotifications } from "./notifications";
+import { useChatNotifications } from "./notifications";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { openNewChat, RouteContext, routeProjectId, useHashRoute } from "./router";
@@ -35,7 +35,7 @@ import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
 import { setProjectHues } from "@/features/project/projectColor";
 import { indexProjects, ProjectsContext } from "./projectsContext";
 import { forgetDraftsOfMissingProjects } from "@/features/panel/state/panelMemory";
-import { ApprovalsContext, indexApprovals } from "./chatStatesContext";
+import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 
 applyTheme(loadTheme());
 
@@ -52,10 +52,10 @@ export function App() {
   const projectsIndex = useMemo(() => indexProjects(projects), [projects]);
   // 消したプロジェクトの下書き（再起動しても残すもの）を片付ける
   useEffect(() => forgetDraftsOfMissingProjects(new Set(projects.map((p) => p.id))), [projects]);
-  // 回答待ちの依頼からチャットの状態を引く（approvals を中継せず、要る部品が useRunStates で読む）
-  const runStates = useMemo(() => indexApprovals(approvals), [approvals]);
+  // 回答待ちの依頼からチャットの状態を引く（approvals を中継せず、要る部品が useChatStates で読む）
+  const chatStates = useMemo(() => indexApprovals(approvals), [approvals]);
   // チャットの完了・失敗・回答待ちを Mac の通知で知らせる（設定で切り替え）
-  useRunNotifications({ enabled: notifyEnabled, projectName: projectsIndex.projectName, route });
+  useChatNotifications({ enabled: notifyEnabled, projectName: projectsIndex.projectName, route });
   const sidebar = useSidebar();
   // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
   const [creating, setCreating] = useState<NewProjectRequest | null>(null);
@@ -98,7 +98,7 @@ export function App() {
     <PlanUsageContext.Provider value={planUsage}>
       <RouteContext.Provider value={route}>
       <ProjectsContext.Provider value={projectsIndex}>
-      <ApprovalsContext.Provider value={runStates}>
+      <ChatStatesContext.Provider value={chatStates}>
       <ProjectChatContext.Provider value={chat}>
       <div {...sidebar.layout}>
         <Sidebar
@@ -110,7 +110,7 @@ export function App() {
         {/* 画面と、その下のパネル（ターミナル） */}
         <div className={`main-column ${bottomPanel.open && bottomPanel.maximized ? "bottom-maximized" : ""}`}>
         <main className="main">
-          {route.name === "project" || route.name === "run" || route.name === "newChat" ? (
+          {route.name === "project" || route.name === "chat" || route.name === "newChat" ? (
             // チャット・新しいチャットはプロジェクトのカンバンの右側のパネルで開く（同じ要素のままなので、開いているタブは残る）
             <ProjectPage
               id={route.name === "project" ? route.id : route.projectId}
@@ -172,14 +172,14 @@ export function App() {
         {activeChats && <ActiveChatsPalette onClose={() => setActiveChats(false)} />}
         {searching && (
           <SearchPanel
-            runId={route.name === "run" ? route.runId : undefined}
+            chatId={route.name === "chat" ? route.chatId : undefined}
             projectId={routeProjectId(route)}
             onClose={() => setSearching(false)}
           />
         )}
       </div>
       </ProjectChatContext.Provider>
-      </ApprovalsContext.Provider>
+      </ChatStatesContext.Provider>
       </ProjectsContext.Provider>
       </RouteContext.Provider>
     </PlanUsageContext.Provider>

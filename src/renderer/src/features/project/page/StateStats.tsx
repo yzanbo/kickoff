@@ -1,39 +1,39 @@
 import { useRef, useState, type CSSProperties } from "react";
-import type { Run } from "@shared/types";
-import { useRunStates } from "@/app/chatStatesContext";
+import type { Chat } from "@shared/types";
+import { useChatStates } from "@/app/chatStatesContext";
 import { useDismiss } from "@/hooks/useDismiss";
-import { openRun } from "@/app/router";
-import { SECTION_LABELS, SECTION_TONES, StateRunsPopover, runsByState } from "@/features/chatList/StateChatsPopover";
+import { openChat } from "@/app/router";
+import { SECTION_LABELS, SECTION_TONES, StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
 
 /**
  * 画面の見出しの、状態ごとのチャット数（作業中・回答待ち・未読。0 のものは出さない）。
  * 数え方・並び・色はサイドバーのプロジェクトの数（HeadCounts）とカンバンの列にそろえる。
- * 押すと、状態ごとにまとめたチャットの一覧（StateRunsPopover）を開き、行を押すとそのチャットを開く。showProject なら行にプロジェクト名も出す（全プロジェクトの画面）
+ * 押すと、状態ごとにまとめたチャットの一覧（StateChatsPopover）を開き、行を押すとそのチャットを開く。showProject なら行にプロジェクト名も出す（全プロジェクトの画面）
  */
-export function StateStats({ runs, showProject = false }: { runs: Run[]; showProject?: boolean }) {
-  const { stateOf } = useRunStates();
+export function StateStats({ chats, showProject = false }: { chats: Chat[]; showProject?: boolean }) {
+  const { stateOf } = useChatStates();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(ref, () => setOpen(false), { enabled: open });
 
-  const sections = runsByState(runs, stateOf);
+  const sections = chatsByState(chats, stateOf);
   if (sections.length === 0) return null;
 
   return (
     <div ref={ref} className="state-stats">
       <button type="button" className="state-stats-button" aria-expanded={open} title="状態ごとのチャットを一覧する" onClick={() => setOpen(!open)}>
-        {sections.map(({ column, runs: list }) => (
+        {sections.map(({ column, chats: list }) => (
           <span key={column} className="stat stat-state" style={{ "--tone": SECTION_TONES[column] } as CSSProperties}>
             {SECTION_LABELS[column]} {list.length}
           </span>
         ))}
       </button>
       {open && (
-        <StateRunsPopover
+        <StateChatsPopover
           title="状態ごとのチャット"
           sections={sections}
           showProject={showProject}
-          onOpen={(run) => openRun(run.project_id, run.id)}
+          onOpen={(chat) => openChat(chat.project_id, chat.id)}
           onClose={() => setOpen(false)}
         />
       )}

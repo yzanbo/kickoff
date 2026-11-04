@@ -19,7 +19,7 @@ export function ScrollBottomPill({
 }: {
   tone: ScrollPillTone;
   label: ReactNode;
-  /** ピルの列の右端の置き場所（RunPane の .composer-chips-dock） */
+  /** ピルの列の右端の置き場所（ChatPane の .composer-chips-dock） */
   dock: HTMLElement | null;
   onClick: () => void;
 }) {

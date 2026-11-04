@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
-import type { useRunRename } from "@/features/chat/useChatRename";
+import type { useChatRename } from "@/features/chat/useChatRename";
 import { useProjects } from "@/app/projectsContext";
 import { ErrorText } from "@/ui/ErrorText";
-import { CardMenu } from "@/features/chat/ChatMenu";
-import { SidePanel } from "@/features/panel/Panel";
-import { terminalTargets, type SidePanelController } from "@/features/panel/usePanel";
+import { ChatMenu } from "@/features/chat/ChatMenu";
+import { Panel } from "@/features/panel/Panel";
+import { terminalTargets, type PanelController } from "@/features/panel/usePanel";
 import { useBoardHeaderLayout } from "./boardHeaderLayout";
 import type { useCardMenu } from "./useBoardCards";
 import { useBoardHeaderLayoutMenu } from "./useBoardHeaderLayoutMenu";
@@ -24,7 +24,7 @@ export function BoardShell({
   onNewChat,
   projectId,
   menu,
-  onOpenRun,
+  onOpenChat,
   rename,
   onError,
   after,
@@ -34,15 +34,15 @@ export function BoardShell({
   /** BoardHeader */
   header: ReactNode;
   error?: string;
-  panel: SidePanelController;
+  panel: PanelController;
   /** タブの列の＋の「新しいチャット」 */
   onNewChat: () => void;
   /** ターミナルの開く場所（プロジェクトのボードはそのプロジェクトの本体。未指定なら全プロジェクト） */
   projectId?: number;
   menu: ReturnType<typeof useCardMenu>;
   /** メニューの「開く」 */
-  onOpenRun: (run: Run) => void;
-  rename: ReturnType<typeof useRunRename>;
+  onOpenChat: (chat: Chat) => void;
+  rename: ReturnType<typeof useChatRename>;
   onError: (message: string) => void;
   after?: ReactNode;
   children: ReactNode;
@@ -74,11 +74,11 @@ export function BoardShell({
         ) : (
           main
         )}
-        <SidePanel panel={panel} onNewChat={onNewChat} terminals={terminalTargets(projects, projectId)} />
+        <Panel panel={panel} onNewChat={onNewChat} terminals={terminalTargets(projects, projectId)} />
       </div>
       {after}
       {layoutMenu.menu}
-      {menu.at && <CardMenu {...menu.at} onOpenPanel={onOpenRun} onRename={rename.start} onClose={menu.close} onError={onError} />}
+      {menu.at && <ChatMenu {...menu.at} onOpenPanel={onOpenChat} onRename={rename.start} onClose={menu.close} onError={onError} />}
     </div>
   );
 }

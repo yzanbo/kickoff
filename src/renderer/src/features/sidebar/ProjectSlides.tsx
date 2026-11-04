@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Run, RunGroup } from "@shared/types";
+import type { Chat, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { ProjectListHead } from "./ProjectListHead";
 import { stateCounts } from "@/features/chat/chatState";
@@ -14,15 +14,15 @@ import { WorkspacePage } from "./WorkspacePage";
  */
 export function ProjectSlides({
   nav,
-  runs,
+  chats,
   groups,
   onNewProject,
   waitingEmpty,
   selectionBar,
 }: {
   nav: ProjectNavController;
-  runs: Record<number, Run[]>;
-  groups: Record<number, RunGroup[]>;
+  chats: Record<number, Chat[]>;
+  groups: Record<number, ChatGroup[]>;
   onNewProject: () => void;
   waitingEmpty: ReactNode;
   selectionBar: ReactNode;
@@ -34,7 +34,7 @@ export function ProjectSlides({
       <WorkspaceDots
         projects={ordered}
         index={index}
-        countsOf={(id) => stateCounts(runs[id] ?? [], pending)}
+        countsOf={(id) => stateCounts(chats[id] ?? [], pending)}
         isArchived={isArchived}
         reorder={reorder}
         onGo={go}
@@ -59,7 +59,7 @@ export function ProjectSlides({
             <WorkspacePage
               key={p.id}
               project={p}
-              runs={runs[p.id] ?? []}
+              chats={chats[p.id] ?? []}
               groups={groups[p.id] ?? NO_GROUPS}
               hidden={i !== index}
               collapsed={!waitingOnly && collapsedMap.get(p.id)}

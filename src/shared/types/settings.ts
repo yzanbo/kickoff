@@ -17,10 +17,10 @@ export const EFFORT_LABELS: Record<EffortLevel, string> = {
 };
 
 /** 権限モード（Claude Code の permissionMode と同じ意味。ファイルの編集を自動で承認するかもこれだけで決まる） */
-export const PERMISSION_CHOICES = ["default", "acceptEdits", "auto", "plan"] as const;
-export type PermissionChoice = (typeof PERMISSION_CHOICES)[number];
+export const PERMISSION_MODES = ["default", "acceptEdits", "auto", "plan"] as const;
+export type PermissionMode = (typeof PERMISSION_MODES)[number];
 
-export const PERMISSION_LABELS: Record<PermissionChoice, string> = {
+export const PERMISSION_LABELS: Record<PermissionMode, string> = {
   default: "毎回確認",
   acceptEdits: "編集を自動承認",
   auto: "Auto mode",
@@ -34,7 +34,7 @@ export interface AppSettings {
   /** 新しいチャットの既定の推論の深さ（null なら指定しない＝モデルの既定） */
   defaultEffort: EffortLevel | null;
   /** 新しいチャットの既定の権限モード */
-  defaultPermission: PermissionChoice;
+  defaultPermission: PermissionMode;
   /** 新しいチャットで既定でファストモードを使うか */
   defaultFastMode: boolean;
   /** スマホなど他端末からのアクセスを許可（LAN に公開） */
@@ -55,7 +55,7 @@ export interface AppSettings {
   voiceProvider: VoiceProvider;
   /** 話す言語（"auto" なら自動で判別。VOICE_LANGUAGES） */
   voiceLanguage: string;
-  /** この Mac で使う whisper のモデルの id（transcribe/models.ts の WHISPER_MODELS） */
+  /** この Mac で使う whisper のモデルの id（voice/models.ts の WHISPER_MODELS） */
   voiceModel: string;
   /** OpenAI 互換のサーバーの URL（空なら https://api.openai.com/v1）。API キーは設定とは別に保存し、ここには入れない */
   voiceOpenaiBaseUrl: string;

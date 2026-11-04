@@ -35,7 +35,7 @@
 }
 
 /* どのグループのチャットか（新しいチャットの見出しのグループの選択と同じアクセントの色。形はブランチの印と同じ小さなピル） */
-.run-group-chip {
+.chat-group-chip {
   display: inline-flex;
   flex: 0 1 auto;
   align-items: center;
@@ -53,7 +53,7 @@
   color: var(--accent-bright);
 }
 
-.run-group-chip svg {
+.chat-group-chip svg {
   flex: none;
 }
 

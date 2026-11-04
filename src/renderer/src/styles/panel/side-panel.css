@@ -130,34 +130,34 @@
 }
 
 /* パネル内のチャットは余白を詰め、長いタイトルや本文でパネルの幅を広げない */
-.run-panel {
+.chat-panel {
   grid-template-columns: minmax(0, 1fr);
   width: 100%;
   min-width: 0;
 }
 
-.run-panel .run-header {
+.chat-panel .chat-header {
   padding-top: 4px;
 }
 
-.run-panel .run-title-row,
-.run-panel .run-sub {
+.chat-panel .chat-title-row,
+.chat-panel .chat-sub {
   min-width: 0;
 }
 
-.run-panel .bubble.user {
+.chat-panel .bubble.user {
   overflow-wrap: anywhere;
 }
 
-.run-panel .composer-tools {
+.chat-panel .composer-tools {
   min-width: 0;
 }
 
-.run-panel .timeline-inner {
+.chat-panel .timeline-inner {
   padding: 16px var(--gutter) 20px;
 }
 
-.run-panel .run-composer {
+.chat-panel .chat-composer {
   padding: 4px var(--gutter) var(--gutter);
 }
 

@@ -24,7 +24,7 @@ export function ProjectHeader({
   refreshing: TabRefreshing;
   onEdit: () => void;
 }) {
-  const { project, runs } = data;
+  const { project, chats } = data;
   const [layout] = useProjectTabsLayout();
   return (
   <header className="page-header project-header">
@@ -56,12 +56,12 @@ export function ProjectHeader({
       </button>
       <div className="project-stats">
         {project.archived_at && <span className="stat stat-archived">アーカイブ済み</span>}
-        <StateStats runs={runs} />
+        <StateStats chats={chats} />
       </div>
     </div>
     {layout === "top" && (
       <div className="project-tabs-row">
-        <ProjectTabs projectId={project.id} tab={tab} runs={runs} changeCount={changeCount} refreshing={refreshing} />
+        <ProjectTabs projectId={project.id} tab={tab} chats={chats} changeCount={changeCount} refreshing={refreshing} />
       </div>
     )}
   </header>

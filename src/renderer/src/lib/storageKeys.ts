@@ -101,11 +101,11 @@ export const BOTTOM_PANEL_HEIGHT_KEY = "kickoff:bottom-panel-height";
 
 // チャットの中身
 /** チャットごとの、アーカイブしたサブエージェント（呼び出し ID の JSON の配列） */
-export const subagentsArchivedKey = (runId: number) => `kickoff:subagents-archived:${runId}`;
+export const subagentsArchivedKey = (chatId: number) => `kickoff:subagents-archived:${chatId}`;
 /** 送る前の新しいチャット（下書きのタブ）。パネル（ボード・チャット欄）ごとのタブの JSON（`{ [パネル]: タブ[] }`）。送った・閉じたら消える */
 export const NEW_CHAT_DRAFTS_KEY = "kickoff:new-chat-drafts";
 /** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
-export const chatDraftKey = (runId: number) => `kickoff:chat-draft:${runId}`;
+export const chatDraftKey = (chatId: number) => `kickoff:chat-draft:${chatId}`;
 
 // エディタタブ（変更・履歴・ファイル）
 /** エディタタブの左端の表示（"files" / "search" / "changes"。以前の "history" は履歴のタブに移したので既定に戻る） */

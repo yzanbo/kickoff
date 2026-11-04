@@ -7,14 +7,14 @@ import type { PaneLeaf, SplitDir } from "@/features/panel/layout/paneLayout";
 import { tabLabel } from "./panelTabs";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { CHAT_TITLE_MAX } from "@/features/chat/chatTitle";
-import type { useRunRename } from "@/features/chat/useChatRename";
-import { useRunStates } from "@/app/chatStatesContext";
+import type { useChatRename } from "@/features/chat/useChatRename";
+import { useChatStates } from "@/app/chatStatesContext";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { busyWithUnread } from "@shared/chat/state";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import type { TabDrag } from "@/features/panel/layout/useTabDrag";
 import { useGroupNames } from "@/features/group/groupNames";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 import { shownActiveOf } from "@/features/panel/state/panelKinds";
 import { OTHER_CLUSTER, clusterHues, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs, type TabCluster } from "@/features/panel/clusters/tabClusters";
 import { useSharedList } from "@/hooks/useStoredState";
@@ -50,7 +50,7 @@ export function PaneTabBar({
   openWithShown,
   rename,
 }: {
-  panel: SidePanelController;
+  panel: PanelController;
   pane: PaneLeaf;
   /** ペインを分けているか（ペインを閉じるボタンを出す） */
   split: boolean;
@@ -76,7 +76,7 @@ export function PaneTabBar({
   /** タブの列の何もないところの右クリック（ボードの右のパネルだけ。見出しの置き方を選ぶ） */
   onBarMenu?: (e: React.MouseEvent) => void;
   /** チャットのタブの名前をその場で変える（ダブルクリック・右クリックの「名前を変更」。パネル全体で 1 つ） */
-  rename: ReturnType<typeof useRunRename>;
+  rename: ReturnType<typeof useChatRename>;
 }) {
   const insertAt = drag.insertAt(pane.id);
   // 見せている表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ）
@@ -90,14 +90,14 @@ export function PaneTabBar({
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (active ?? undefined) : undefined);
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
-  const { stateOf } = useRunStates();
+  const { stateOf } = useChatStates();
   // チャットのタブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
   const groupName = useGroupNames(panel.tabs.flatMap((t) => (t.kind === "chat" ? [t.projectId] : [])));
-  const chatRunOf = (t: { id: number; status?: Run["status"]; attention?: boolean }) =>
-    panel.runs.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, attention: Boolean(t.attention) } as Run) : undefined);
+  const tabChatOf = (t: { id: number; status?: Chat["status"]; unread?: boolean }) =>
+    panel.chats.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, unread: Boolean(t.unread) } as Chat) : undefined);
   // まとめ方を選んでいれば、まとまりごとに並べ替えて見せる（display は見た目の並び。タブの中身が残っているものだけ）
   const [grouping] = useTabGrouping(panel.surface);
-  const { clusterOf, clusterOfRun, order } = useTabClusters(panel, grouping);
+  const { clusterOf, clusterOfChat, order } = useTabClusters(panel, grouping);
   // 欄で隠している種類のタブは並べない（閉じずに残す）。チャットを隠しているときは、タブのないグループの札も出さない
   const known = pane.tabs.filter(panel.isKindShown);
   // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない（並び順だけ使う）
@@ -119,47 +119,47 @@ export function PaneTabBar({
    * まとまり（グループ・作業場所）のチャット: タブで開いているチャットと、ボードの一覧のうち同じまとまりに入るもの（タブで開いていないものも）。
    * 「その他」はチャットが入らないので undefined（札を押せない）
    */
-  const clusterRuns = (c: TabCluster): Run[] | undefined => {
+  const clusterChats = (c: TabCluster): Chat[] | undefined => {
     if (c.key === OTHER_CLUSTER.key) return undefined;
     const open = c.tabs.flatMap((key) => {
       const t = panel.tabs.find((x) => x.key === key);
-      const run = t?.kind === "chat" ? (panel.runs.find((r) => r.id === t.id) ?? t.run) : undefined;
-      return run ? [run] : [];
+      const chat = t?.kind === "chat" ? (panel.chats.find((r) => r.id === t.id) ?? t.chat) : undefined;
+      return chat ? [chat] : [];
     });
-    return [...open, ...panel.runs.filter((r) => !open.some((o) => o.id === r.id) && clusterOfRun(r).key === c.key)];
+    return [...open, ...panel.chats.filter((r) => !open.some((o) => o.id === r.id) && clusterOfChat(r).key === c.key)];
   };
   /**
    * 札の右の数: 一覧のペインでは、サイドバーの見出しと同じく、そのまとまりに入るサイドバーのチャットの数（表示だけ消したタブも数え、下書き・ブラウザは数えない）。
    * 「その他」と分けたペインでは、そのペインのタブの数
    */
   const clusterCount = (c: TabCluster) =>
-    c.key === OTHER_CLUSTER.key || !home ? c.tabs.length : panel.runs.filter((r) => clusterOfRun(r).key === c.key).length;
+    c.key === OTHER_CLUSTER.key || !home ? c.tabs.length : panel.chats.filter((r) => clusterOfChat(r).key === c.key).length;
   /**
    * まとめないときの「チャット」の札に出すチャット: タブで開いているチャットと、ボードの一覧のチャットすべて
    * （まとめているときと同じく、作業中・回答待ち・未読をひと目で分かるように。チャットが 1 つもなければ札を出さない）
    */
-  const allRuns = (() => {
+  const allChats = (() => {
     if (clusters) return [];
     const open = known.flatMap((key) => {
       const t = panel.tabs.find((x) => x.key === key);
-      const run = t?.kind === "chat" ? (panel.runs.find((r) => r.id === t.id) ?? t.run) : undefined;
-      return run ? [run] : [];
+      const chat = t?.kind === "chat" ? (panel.chats.find((r) => r.id === t.id) ?? t.chat) : undefined;
+      return chat ? [chat] : [];
     });
-    return [...open, ...panel.runs.filter((r) => !open.some((o) => o.id === r.id))].filter((r) => !r.archived_at);
+    return [...open, ...panel.chats.filter((r) => !open.some((o) => o.id === r.id))].filter((r) => !r.archived_at);
   })();
   /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
   const tab = (key: string, i: number) => {
     const t = panel.tabs.find((x) => x.key === key);
     if (!t) return null;
-    const { Icon, iconClass, label, group: newGroup } = tabLabel(t, panel.runs);
+    const { Icon, iconClass, label, group: newGroup } = tabLabel(t, panel.chats);
     // チャットのタブの状態（未読・失敗のタブは名前も太字にする。サイドバーの行と同じ）
-    const chatRun = t.kind === "chat" ? chatRunOf(t) : undefined;
-    const chatState = chatRun && stateOf(chatRun);
-    const busyUnread = Boolean(chatRun && chatState && busyWithUnread(chatRun, chatState));
+    const tabChat = t.kind === "chat" ? tabChatOf(t) : undefined;
+    const chatState = tabChat && stateOf(tabChat);
+    const busyUnread = Boolean(tabChat && chatState && busyWithUnread(tabChat, chatState));
     // どのグループのチャットか（ボードの一覧になければ、タブの中のチャットから届いたもの）
     // 分けたペイン（一覧のペインでない）のサイドバーと連動したチャットは、× で一覧のペインへ戻す
     const backHome = !home && panel.isLinkedTab(t.key);
-    const group = t.kind === "chat" ? groupName(t.projectId, (panel.runs.find((r) => r.id === t.id) ?? t.run)?.group_id) : newGroup;
+    const group = t.kind === "chat" ? groupName(t.projectId, (panel.chats.find((r) => r.id === t.id) ?? t.chat)?.group_id) : newGroup;
     return (
       <PanelTab
         key={t.key}
@@ -174,14 +174,14 @@ export function PaneTabBar({
           insertAt === i && "split-insert-before",
           insertAt === display.length && i === display.length - 1 && "split-insert-after",
           drag.dragging === t.key && "split-dragging",
-          (chatState === "attention" || chatState === "failed" || busyUnread) && "unread",
+          (chatState === "unread" || chatState === "failed" || busyUnread) && "unread",
         )}
         extra={{ ...drag.tabProps(t.key), onContextMenu: (e) => onMenu(t.key, e) }}
         onSelect={() => panel.showTab(t.key)}
         lead={chatState && <StatusSlot state={chatState} unread={busyUnread} />}
         // チャットのタブは、名前のダブルクリックでその場で名前を変える（見出しには名前を出さない）
-        onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Run) : undefined}
-        editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Run), t.title ?? "") : undefined}
+        onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Chat) : undefined}
+        editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Chat), t.title ?? "") : undefined}
         // チャットのタブの ×: 表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）。
         // 分けたペインのサイドバーと連動したチャットは、聞かずに一覧のペインへ戻す（ペインを閉じたときと同じ。アーカイブ・削除は右クリックから）
         closeLabel={backHome ? `${label} を一覧のペインに戻す` : undefined}
@@ -189,7 +189,7 @@ export function PaneTabBar({
           backHome
             ? panel.returnToHome(t.key)
             : t.kind === "chat"
-              ? void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: (panel.runs.find((r) => r.id === t.id) ?? t.run)?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }))
+              ? void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: (panel.chats.find((r) => r.id === t.id) ?? t.chat)?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }))
               : panel.closeTab(t.key)
         }
       />
@@ -206,11 +206,11 @@ export function PaneTabBar({
     >
       {controls}
       {/* まとめないときは、タブの列の左端（横にスクロールしても動かない位置）に「チャット」の札 */}
-      {!clusters && showChat && home && allRuns.length > 0 && (
+      {!clusters && showChat && home && allChats.length > 0 && (
         <TabClusterHead
           cluster={{ key: "all", label: "チャット", title: "このパネルのチャット", tabs: known }}
-          runs={allRuns}
-          onOpen={(run) => panel.open(run)}
+          chats={allChats}
+          onOpen={(chat) => panel.open(chat)}
           all
           popoverTitle="状態ごとのチャット"
         />
@@ -230,8 +230,8 @@ export function PaneTabBar({
               >
                 <TabClusterHead
                   cluster={c}
-                  runs={clusterRuns(c)}
-                  onOpen={(run) => panel.open(run)}
+                  chats={clusterChats(c)}
+                  onOpen={(chat) => panel.open(chat)}
                   onNewChat={(target) => panel.openNew(target)}
                   collapsed={isCollapsed(c.key)}
                   onToggleCollapsed={c.tabs.length > 0 ? () => toggleCollapsed(c.key) : undefined}

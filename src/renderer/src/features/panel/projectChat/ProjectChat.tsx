@@ -1,12 +1,12 @@
 import type { CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { useProjects } from "@/app/projectsContext";
-import { SidePanel } from "@/features/panel/Panel";
+import { Panel } from "@/features/panel/Panel";
 import { terminalTargets } from "@/features/panel/usePanel";
 import type { ProjectChatController } from "./useProjectChat";
 
 /**
- * プロジェクトのチャット欄（画面の右端。下のパネルより下まで）。中身はボードの右のパネルと同じタブ（SidePanel）で、
+ * プロジェクトのチャット欄（画面の右端。下のパネルより下まで）。中身はボードの右のパネルと同じタブ（Panel）で、
  * ＋からチャット・ブラウザ・ターミナルを開ける。左端のつまみで幅を変える。閉じても要素は残し（幅 0）、書きかけの文章をなくさない
  */
 export function ProjectChat({ chat }: { chat: ProjectChatController }) {
@@ -25,7 +25,7 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
     >
       <div className="pane-resizer project-chat-resizer" aria-label="チャット欄の幅を変える" {...width.handle} />
       <div className="project-chat-inner">
-        <SidePanel
+        <Panel
           panel={panel}
           onNewChat={() => panel.openNew({ projectId })}
           terminals={terminalTargets(projects, projectId)}

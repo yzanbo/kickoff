@@ -1,11 +1,11 @@
 import { useEffect, useSyncExternalStore } from "react";
-import type { RunGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { subscribeServerEvent } from "@/api/events";
 
 // プロジェクトごとのグループの一覧（タブ・チャットの見出しにグループ名を出すため）。
 // タブ・見出しがいくつあっても、取りに行くのはプロジェクトごとに 1 回。作る・名前を変える・消すはサーバーの知らせで直す
-const cache = new Map<number, RunGroup[]>();
+const cache = new Map<number, ChatGroup[]>();
 const loading = new Set<number>();
 const listeners = new Set<() => void>();
 let version = 0;
@@ -44,7 +44,7 @@ function load(projectId: number) {
   loading.add(projectId);
   api
     .groups(projectId)
-    .catch(() => [] as RunGroup[])
+    .catch(() => [] as ChatGroup[])
     .then((list) => {
       cache.set(projectId, list);
       loading.delete(projectId);
@@ -73,7 +73,7 @@ export function useGroupNames(projectIds: number[]): (projectId: number, groupId
 }
 
 /** いくつかのプロジェクトのグループを、サイドバーと同じ並び（position の順）で引く（読み込み中は空）。一覧が変わると描き直す */
-export function useProjectGroups(projectIds: number[]): (projectId: number) => RunGroup[] {
+export function useProjectGroups(projectIds: number[]): (projectId: number) => ChatGroup[] {
   useLoadGroups(projectIds);
   return (projectId) => [...(cache.get(projectId) ?? [])].sort((a, b) => a.position - b.position);
 }

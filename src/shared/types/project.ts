@@ -1,5 +1,5 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
-import type { EffortLevel, PermissionChoice, ProviderId } from "@shared/types/settings";
+import type { EffortLevel, PermissionMode, ProviderId } from "@shared/types/settings";
 
 export interface Project {
   id: number;
@@ -33,7 +33,7 @@ export interface Project {
 export interface ProjectDefaults {
   model?: string;
   effort?: EffortLevel | null;
-  permission?: PermissionChoice;
+  permission?: PermissionMode;
   fastMode?: boolean;
 }
 
@@ -45,7 +45,7 @@ export interface ProjectReference {
 
 export interface ProjectSummary extends Project {
   total_cost_usd: number;
-  active_runs: number;
+  active_chats: number;
 }
 /** 既存フォルダの点検結果（取り込みダイアログ用） */
 export interface WorkspaceInspection {

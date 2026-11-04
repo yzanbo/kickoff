@@ -1,6 +1,6 @@
 import { ChevronUp, CornerDownLeft, History } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useListNavigation } from "@/hooks/useListNavigation";
@@ -18,7 +18,7 @@ import { promptEntries, type PromptEntry } from "./promptHistory";
  * 上の欄で絞り込め、↑↓ で選んで Enter で入力欄に入れる・⌘Enter でその指示へ移る。
  * チャットにピントがあるときの ⌃R でも開く（シェルの履歴の検索と同じ。開いている間の ⌃R は 1 つ前の一致へ）
  */
-export function PromptsChip({ events, onJump, onReuse }: { events: RunEvent[]; onJump: (eventId: number) => void; onReuse: (text: string) => void }) {
+export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; onJump: (eventId: number) => void; onReuse: (text: string) => void }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: RunEvent[]; o
   }, [prompts, query]);
   const close = () => {
     // 絞り込みの欄にピントがあれば、チャット欄に戻す（欄が消えてピントが外れると、次の Esc でパネルが閉じる）
-    if (ref.current?.contains(document.activeElement)) ref.current.closest(".run-panel")?.querySelector<HTMLElement>(".composer textarea")?.focus();
+    if (ref.current?.contains(document.activeElement)) ref.current.closest(".chat-panel")?.querySelector<HTMLElement>(".composer textarea")?.focus();
     setOpen(false);
     setQuery("");
   };
@@ -61,7 +61,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: RunEvent[]; o
   // ⌃R: 開いて絞り込みの欄にピントを置く（開いていれば 1 つ前の一致へ）
   useWindowEvent("keydown", (e) => {
     if (!e.ctrlKey || e.metaKey || e.altKey || e.key.toLowerCase() !== "r") return;
-    if (!ref.current?.closest(".run-panel")?.contains(document.activeElement)) return;
+    if (!ref.current?.closest(".chat-panel")?.contains(document.activeElement)) return;
     e.preventDefault();
     if (!open) setOpen(true);
     else nav.setIndex((i) => Math.max(i - 1, 0));

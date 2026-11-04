@@ -26,7 +26,7 @@
   --dot-needs-input: #db932e;
   --dot-failed: #f7796d;
   --dot-running: #5caaf6;
-  --dot-attention: #35c264;
+  --dot-unread: #35c264;
   /* 色分けの色（以前のセクションの色。Mermaid の図・コミットの線・ワークツリーの印などで使う） */
   --sec-requirements: #3987e5;
   --sec-schedule: #9085e9;
@@ -80,7 +80,7 @@
   --dot-needs-input: #b37824;
   --dot-failed: #f12e2f;
   --dot-running: #268ae0;
-  --dot-attention: #299f51;
+  --dot-unread: #299f51;
   --sec-requirements: #2a78d6;
   --sec-schedule: #6250d6;
   --sec-implementation: #eb6834;
@@ -95,7 +95,7 @@
 /*
  * 画面のコード（inline style / setProperty）が与える CSS 変数。ここでは定義せず、使う側は必要なら var(--x, 既定値) で受ける。
  *   --sidebar-w  左のサイドバーの幅（useSidebar.ts）
- *   --panel-w    ボードの右のパネルの幅（useSidePanel.ts）
+ *   --panel-w    ボードの右のパネルの幅（usePanel.ts）
  *   --bottom-h   下のパネルの高さ（useBottomPanel.ts）
  *   --chat-w     プロジェクトのチャット欄の幅（useProjectChat.ts・ProjectChat.tsx）
  *   --depth      ファイルの木の段の深さ（FileTree.tsx）

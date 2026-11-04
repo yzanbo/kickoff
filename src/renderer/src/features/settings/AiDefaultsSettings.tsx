@@ -1,4 +1,4 @@
-import type { EffortLevel, PermissionChoice } from "@shared/types";
+import type { EffortLevel, PermissionMode } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { modelDisplayName } from "@/features/chat/options/models";
@@ -33,7 +33,7 @@ export function AiDefaultsSettings() {
           </select>
         </Field>
         <Field label="権限モード" help="参照資料への書き込みは、どのモードでも断ります。">
-          <select value={draft.defaultPermission} onChange={(e) => setDraft({ ...draft, defaultPermission: e.target.value as PermissionChoice })}>
+          <select value={draft.defaultPermission} onChange={(e) => setDraft({ ...draft, defaultPermission: e.target.value as PermissionMode })}>
             <PermissionOptions model={currentModel} />
           </select>
         </Field>

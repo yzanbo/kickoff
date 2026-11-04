@@ -2,16 +2,16 @@ import fs from "node:fs";
 import type { Hono } from "hono";
 import type { ServerDeps } from "../server.js";
 import { chatTranscript, transcriptFileName } from "../../chat/transcript.js";
-import { badRequest, HttpError, requireProject, requireRun } from "./http.js";
+import { badRequest, HttpError, requireProject, requireChat } from "./http.js";
 
 /** 添付ファイル（受け取り・画面での表示） */
 export function uploadRoutes(app: Hono, { uploads, store }: ServerDeps) {
   // 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて、AI に読ませる）
-  app.post("/api/runs/:id/transcript", async (c) => {
-    const run = requireRun(store, c.req.param("id"));
-    const project = requireProject(store, String(run.project_id));
-    const text = chatTranscript(run, project, store.listEvents(run.id));
-    const attachment = await badRequest(() => uploads.save({ name: transcriptFileName(run), type: "text/markdown", bytes: new TextEncoder().encode(text) }));
+  app.post("/api/chats/:id/transcript", async (c) => {
+    const chat = requireChat(store, c.req.param("id"));
+    const project = requireProject(store, String(chat.project_id));
+    const text = chatTranscript(chat, project, store.listEvents(chat.id));
+    const attachment = await badRequest(() => uploads.save({ name: transcriptFileName(chat), type: "text/markdown", bytes: new TextEncoder().encode(text) }));
     return c.json(attachment, 201);
   });
 

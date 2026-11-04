@@ -20,7 +20,7 @@ interface QueueDrag {
 type DropMark = { kind: "row" | "stop"; index: number; side: "before" | "after" };
 
 /** 送信待ちの行・印の線のドラッグ（並べ替え・印の移動）と、落とす位置の線を出すか */
-export function useQueueDrag(runId: number, queue: QueuedMessage[], stops: number[], failed: (e: unknown) => void) {
+export function useQueueDrag(chatId: number, queue: QueuedMessage[], stops: number[], failed: (e: unknown) => void) {
   const [drag, setDrag] = useState<QueueDrag>();
   /** 落とす位置を at（印の線があればその上か下）にする */
   const overAt = (e: DragEvent<HTMLElement>, at: number, below: boolean) => {
@@ -59,11 +59,11 @@ export function useQueueDrag(runId: number, queue: QueuedMessage[], stops: numbe
     if (!d || d.at === undefined || !changes(d)) return;
     if (d.stop !== undefined) {
       // 印を動かす（1 件目の上にも置ける）
-      void api.setQueueStops(runId, [...stops.filter((k) => k !== d.stop), d.at]).catch(failed);
+      void api.setQueueStops(chatId, [...stops.filter((k) => k !== d.stop), d.at]).catch(failed);
       return;
     }
     // 指示を動かす（1 件でも、選んだものをまとめてでも）: 落とした位置の行の前へ。印の線があれば、その上か下か
-    void api.moveQueuedMany(runId, moving(d), { before: queue[d.at]?.id ?? null, belowStop: d.below ?? true }).catch(failed);
+    void api.moveQueuedMany(chatId, moving(d), { before: queue[d.at]?.id ?? null, belowStop: d.below ?? true }).catch(failed);
   };
   return {
     drag,

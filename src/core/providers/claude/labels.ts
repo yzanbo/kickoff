@@ -1,4 +1,4 @@
-// Claude Code のコマンド・理由・失敗の文言（claude.ts から分けた定数だけのモジュール）
+// Claude Code のコマンド・理由・失敗の文言（provider.ts から分けた定数だけのモジュール）
 
 /** ターミナルの画面でしか意味のないコマンド（Kickoff の画面には同じ働きのものがあるか、使えない）。チャット欄の / には出さない */
 export const TERMINAL_ONLY_COMMANDS = new Set([

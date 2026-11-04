@@ -2,7 +2,7 @@ import { Check, Eye } from "lucide-react";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useAnchoredMenu } from "@/ui/useAnchoredMenu";
 import { PANEL_KINDS, PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 
 const MENU_WIDTH = 200;
 
@@ -11,7 +11,7 @@ const MENU_WIDTH = 200;
  * 押すと下にチェックのメニューを開き、押すたびに付け外しする（欄ごとに覚える。最後の 1 つは外せない）。
  * 隠した種類のタブは閉じずに残すので、表示に戻すと元どおり出る
  */
-export function TabKindsButton({ panel }: { panel: SidePanelController }) {
+export function TabKindsButton({ panel }: { panel: PanelController }) {
   const { kinds } = panel;
   // 欄ごとにボタンを分ける（ほかの欄のボタンを押したときは、こちらのメニューを外側のクリックとして閉じる）
   const selector = `.panel-tab-kinds-${panel.surface}`;

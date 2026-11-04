@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ApiRetryInfo, Approval, BackgroundState, Project, QueuedMessage, ReconnectState, Run, RunEvent } from "@shared/types";
+import type { ApiRetryInfo, Approval, BackgroundState, Project, QueuedMessage, ReconnectState, Chat, ChatEvent } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useServerEvent } from "@/api/events";
@@ -9,10 +9,10 @@ import { BUSY_STATUSES } from "@/features/chat/chatStatus";
  * チャットの中身（チャット・プロジェクト・イベント・確認・待ちの列・生成中の返答）を取り、サーバーのイベントで追いかける。
  * チャットを切り替えると読み直す（run が undefined の間は読み込み中。error は読み込みの失敗）
  */
-export function useRunDetail(runId: number, projectId: number) {
-  const [run, setRun] = useState<Run>();
+export function useChatDetail(chatId: number, projectId: number) {
+  const [chat, setChat] = useState<Chat>();
   const [project, setProject] = useState<Project>();
-  const [events, setEvents] = useState<RunEvent[]>([]);
+  const [events, setEvents] = useState<ChatEvent[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   // 作業中に送った、次の指示の待ちの列
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
@@ -36,9 +36,9 @@ export function useRunDetail(runId: number, projectId: number) {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    // 切り替えを素早く繰り返しても、前のチャットの応答で上書きされないように（useBoardRuns と同じ alive の形）
+    // 切り替えを素早く繰り返しても、前のチャットの応答で上書きされないように（useBoardChats と同じ alive の形）
     let alive = true;
-    setRun(undefined);
+    setChat(undefined);
     setEvents([]);
     setQueue([]);
     setQueuePaused(false);
@@ -52,10 +52,10 @@ export function useRunDetail(runId: number, projectId: number) {
     setLive("");
     setError(undefined);
     api
-      .run(runId)
+      .run(chatId)
       .then((d) => {
         if (!alive) return;
-        setRun(d.run);
+        setChat(d.chat);
         setEvents(d.events);
         setApprovals(d.approvals);
         setQueue(d.queue ?? []);
@@ -75,7 +75,7 @@ export function useRunDetail(runId: number, projectId: number) {
     return () => {
       alive = false;
     };
-  }, [runId, projectId]);
+  }, [chatId, projectId]);
 
   // 書いている途中の返答は、細切れ（トークンごと）に届く。届くたびに描き直すと、長いチャットでは流れの描き直しが追いつかず
   // 入力が重くなるので、1 フレームの間に届いた分をまとめて足す
@@ -86,10 +86,10 @@ export function useRunDetail(runId: number, projectId: number) {
     deltaFrame.current = null;
     pendingDelta.current = "";
   };
-  useEffect(() => dropPendingDelta, [runId]);
+  useEffect(() => dropPendingDelta, [chatId]);
 
   useServerEvent((e) => {
-    if (e.type === "run_delta" && e.run_id === runId) {
+    if (e.type === "chat_delta" && e.chat_id === chatId) {
       pendingDelta.current += e.text;
       deltaFrame.current ??= requestAnimationFrame(() => {
         const text = pendingDelta.current;
@@ -98,46 +98,46 @@ export function useRunDetail(runId: number, projectId: number) {
         setLive((prev) => prev + text);
         setRetry(null);
       });
-    } else if (e.type === "run_event" && e.event.run_id === runId) {
+    } else if (e.type === "chat_event" && e.event.chat_id === chatId) {
       setEvents((prev) => (prev.some((x) => x.id === e.event.id) ? prev : [...prev, e.event]));
       if (e.event.type !== "user") {
         dropPendingDelta();
         setLive("");
       }
-    } else if (e.type === "run_events_deleted" && e.run_id === runId) {
+    } else if (e.type === "chat_events_deleted" && e.chat_id === chatId) {
       // 巻き戻した: その発言から後ろを画面の記録からも消す
       setEvents((prev) => prev.filter((x) => x.id < e.from_event_id));
       dropPendingDelta();
       setLive("");
-    } else if (e.type === "run" && e.run.id === runId) {
-      setRun(e.run);
-      if (!BUSY_STATUSES.includes(e.run.status)) {
+    } else if (e.type === "chat" && e.chat.id === chatId) {
+      setChat(e.chat);
+      if (!BUSY_STATUSES.includes(e.chat.status)) {
         dropPendingDelta();
         setLive("");
         setRetry(null);
         setCompacting(null);
       }
-    } else if (e.type === "run_retry" && e.run_id === runId) {
+    } else if (e.type === "chat_retry" && e.chat_id === chatId) {
       setRetry(e.retry);
-    } else if (e.type === "run_reconnect" && e.run_id === runId) {
+    } else if (e.type === "chat_reconnect" && e.chat_id === chatId) {
       setReconnect(e.reconnect);
-    } else if (e.type === "run_background" && e.run_id === runId) {
+    } else if (e.type === "chat_background" && e.chat_id === chatId) {
       setBackground(e.background);
-    } else if (e.type === "run_compacting" && e.run_id === runId) {
+    } else if (e.type === "chat_compacting" && e.chat_id === chatId) {
       setCompacting(e.since);
-    } else if (e.type === "run_stopping" && e.run_id === runId) {
+    } else if (e.type === "chat_stopping" && e.chat_id === chatId) {
       setStopping(e.stopping);
-    } else if (e.type === "run_queue" && e.run_id === runId) {
+    } else if (e.type === "chat_queue" && e.chat_id === chatId) {
       setQueue(e.queue);
       setQueuePaused(e.paused);
       setQueueStops(e.stops);
       setQueueWaitingEdit(Boolean(e.waiting_edit));
-    } else if (e.type === "approval" && e.approval.run_id === runId) {
+    } else if (e.type === "approval" && e.approval.chat_id === chatId) {
       setApprovals((prev) => [...prev, e.approval]);
-    } else if (e.type === "approval_resolved" && e.run_id === runId) {
+    } else if (e.type === "approval_resolved" && e.chat_id === chatId) {
       setApprovals((prev) => prev.filter((a) => a.id !== e.id));
     }
   });
 
-  return { run, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, compacting, live, error };
+  return { chat, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, compacting, live, error };
 }

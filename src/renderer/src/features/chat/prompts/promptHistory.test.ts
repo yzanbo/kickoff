@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { historyMove, userPrompts, type HistoryInput } from "./promptHistory";
 
 let nextId = 1;
-const event = (type: string, data: object): RunEvent => ({ id: nextId++, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;
+const event = (type: string, data: object): ChatEvent => ({ id: nextId++, chat_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as ChatEvent;
 
 test("前の発言: 自分の発言だけを新しい順に。添付だけの発言は除き、続けて同じ文は 1 つにまとめる", () => {
   const events = [

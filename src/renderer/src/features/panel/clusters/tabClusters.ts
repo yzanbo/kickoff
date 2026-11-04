@@ -16,7 +16,7 @@ export interface ClusterOf {
   groupId?: number | null;
   /** そのグループの名前（プロジェクト名を添えない、削除の確かめに出す名前） */
   groupName?: string;
-  /** 決まった色（自分で作ったグループの色 RunGroup.hue。なければキーから決める） */
+  /** 決まった色（自分で作ったグループの色 ChatGroup.hue。なければキーから決める） */
   hue?: number;
 }
 
@@ -76,7 +76,7 @@ export function paneIndexOf(displayIndex: number, display: readonly string[], pa
 }
 
 /**
- * まとまりの好みの色（色相）。自分で作ったグループは覚えた色（RunGroup.hue。作ったときに同じプロジェクトのほかのグループと被らない色を選んである）、
+ * まとまりの好みの色（色相）。自分で作ったグループは覚えた色（ChatGroup.hue。作ったときに同じプロジェクトのほかのグループと被らない色を選んである）、
  * ほか（固定・グループなし・アーカイブ済み・作業場所）はキーから決める（並びが変わっても同じ色。プロジェクトの色と同じ 10 色から）。
  * 「その他」は色を付けない（null）
  */

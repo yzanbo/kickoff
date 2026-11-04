@@ -4,11 +4,11 @@ import { useSharedFlag } from "@/hooks/useStoredState";
 import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/app/projectsContext";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
-import { useRunStates } from "@/app/chatStatesContext";
+import { useChatStates } from "@/app/chatStatesContext";
 import { href, useRoute } from "@/app/router";
 import { ProjectNav } from "./ProjectNav";
 import { SIDEBAR_WAITING_ONLY_KEY } from "@/lib/storageKeys";
-import { waitingRuns } from "@/features/chatList/chatListFlags";
+import { waitingChats } from "@/features/chatList/chatListFlags";
 import type { SidebarController } from "./useSidebar";
 import { useSidebarData } from "./useSidebarData";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
@@ -25,18 +25,18 @@ interface Props {
 export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   const route = useRoute();
   const { projects } = useProjects();
-  const { pending } = useRunStates();
+  const { pending } = useChatStates();
   // すべてのプロジェクトのチャットとグループ（スライドしたときにすぐ見えるよう、しまったプロジェクトの分も先に読み込む）
-  const { runs, groups } = useSidebarData(projects);
+  const { chats, groups } = useSidebarData(projects);
   // 自分待ち（回答待ち・未読）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
   const [waitingOnly, setWaitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   // タグで絞り込んでいれば、出しているプロジェクトの分だけを数える（押して出る一覧と合わせる）
   const tagFilter = useProjectTagFilter();
   const waitingCount = sidebarOrder(projects)
     .filter(tagFilter.matches)
-    .reduce((n, p) => n + waitingRuns(runs[p.id] ?? [], pending).length, 0);
+    .reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
   // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
-  const selection = useChatSelectionState(new Set(Object.values(runs).flatMap((list) => list.map((r) => r.id))));
+  const selection = useChatSelectionState(new Set(Object.values(chats).flatMap((list) => list.map((r) => r.id))));
   // ↑↓ でチャットを移る（サイドバーにピントがあるとき。Enter で開く。Shift を押しながらで選ぶものに足す）
   useWindowEvent("keydown", (e) => {
     if ((e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.metaKey || e.altKey || e.ctrlKey) return;
@@ -51,8 +51,8 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
     next.focus();
     next.scrollIntoView({ block: "nearest" });
     if (e.shiftKey) {
-      if (current >= 0) selection.add(Number(rows[current].dataset.runId));
-      selection.add(Number(next.dataset.runId));
+      if (current >= 0) selection.add(Number(rows[current].dataset.chatId));
+      selection.add(Number(next.dataset.chatId));
     }
   });
   return (
@@ -94,7 +94,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
       </div>
       <nav className="sidebar-section" aria-label="プロジェクトとチャット">
         <ChatSelectionContext.Provider value={selection}>
-          <ProjectNav runs={runs} groups={groups} onNewProject={onNewProject} />
+          <ProjectNav chats={chats} groups={groups} onNewProject={onNewProject} />
         </ChatSelectionContext.Provider>
       </nav>
     </aside>

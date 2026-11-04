@@ -31,13 +31,13 @@ export function seedOf(queue: QueuedMessage[], ids: string[]): NewChatSeed {
  * 作成先は元のチャットと同じプロジェクト・グループ（新しいチャットの見出しで選び直せる）。
  * remove: 送信待ちから外す（新しいチャットへ移す）/ 外さない（元のチャットでも、このあと送る）
  */
-export function useAskInNewChat(runId: number, queue: QueuedMessage[], target: NewChatTarget) {
+export function useAskInNewChat(chatId: number, queue: QueuedMessage[], target: NewChatTarget) {
   const openNew = useContext(NewChatContext);
   if (!openNew) return undefined;
   return (ids: string[], remove: boolean) => {
     openNew(target, seedOf(queue, ids));
     if (!remove) return;
     const fail = reportFailure("送信待ちから外せませんでした");
-    void (ids.length === 1 ? api.removeQueued(runId, ids[0]) : api.removeQueuedMany(runId, ids)).catch(fail);
+    void (ids.length === 1 ? api.removeQueued(chatId, ids[0]) : api.removeQueuedMany(chatId, ids)).catch(fail);
   };
 }

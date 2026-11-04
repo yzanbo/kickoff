@@ -4,8 +4,8 @@ import type { AgentState, BoardColumn } from "@shared/types";
 export const COLUMN_TONE: Record<BoardColumn, string> = {
   running: "var(--dot-running)",
   needs_input: "var(--dot-needs-input)",
-  review: "var(--dot-attention)",
-  done: "var(--extra-muted)",
+  unread: "var(--dot-unread)",
+  read: "var(--extra-muted)",
 };
 
 /** 「下書き」の列の色（まだ送っていない。AI は何もしていない） */
@@ -16,6 +16,6 @@ export const STATE_TONE: Record<AgentState, string> = {
   needs_input: "var(--dot-needs-input)",
   failed: "var(--dot-failed)",
   running: "var(--dot-running)",
-  attention: "var(--dot-attention)",
-  done: "var(--extra-muted)",
+  unread: "var(--dot-unread)",
+  read: "var(--extra-muted)",
 };

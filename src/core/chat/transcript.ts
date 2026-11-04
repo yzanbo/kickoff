@@ -1,5 +1,5 @@
 // 別のチャットの内容を、いまのチャットに読み込ませるための記録（Markdown。添付ファイルとして渡し、AI が Read で読む。Node 依存なし）
-import type { Attachment, Project, Run, RunEvent } from "@shared/types";
+import type { Attachment, Project, Chat, ChatEvent } from "@shared/types";
 
 /** ファイルを変える編集のツール（変えたファイルを作業ごとに書き添える） */
 const EDIT_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"]);
@@ -18,13 +18,13 @@ const relative = (file: string, root: string) => (file.startsWith(`${root}/`) ? 
  * チャットのやり取りを Markdown にする（自分の発言・AI の返答（メインのエージェントのもの）を古い順に。作業ごとに、
  * 変えたファイルと、失敗・中断したことを添える）。ツールの細かい出力・考えている途中・サブエージェントの中の発言は入れない
  */
-export function chatTranscript(run: Run, project: Project, events: RunEvent[]): string {
-  const root = run.worktree_path || project.repo_path;
+export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]): string {
+  const root = chat.worktree_path || project.repo_path;
   const lines = [
-    `# チャット「${run.title || "無題のチャット"}」の記録`,
+    `# チャット「${chat.title || "無題のチャット"}」の記録`,
     "",
-    `- プロジェクト: ${project.name}（${root}${run.branch ? `・ブランチ ${run.branch}` : ""}）`,
-    `- 作成: ${stamp(run.created_at)}`,
+    `- プロジェクト: ${project.name}（${root}${chat.branch ? `・ブランチ ${chat.branch}` : ""}）`,
+    `- 作成: ${stamp(chat.created_at)}`,
     "",
     "このファイルは、別のチャットのやり取りを参照のために書き出したものです。自分（利用者）の発言と AI の返答を古い順に並べ、作業ごとに変えたファイルを添えています。ツールの細かい出力は入れていません。",
   ];
@@ -59,7 +59,7 @@ export function chatTranscript(run: Run, project: Project, events: RunEvent[]): 
 }
 
 /** 添付にするときのファイル名（「チャット履歴-名前.md」。ファイル名に使えない文字は除く） */
-export function transcriptFileName(run: Run): string {
-  const title = (run.title || "無題のチャット").replace(/[\\/:*?"<>|\n\r\t]+/g, " ").trim().slice(0, 60);
+export function transcriptFileName(chat: Chat): string {
+  const title = (chat.title || "無題のチャット").replace(/[\\/:*?"<>|\n\r\t]+/g, " ").trim().slice(0, 60);
   return `チャット履歴-${title}.md`;
 }

@@ -1,8 +1,8 @@
 import { Archive, ArchiveRestore, FolderInput, MailOpen, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import type { Run, RunGroup } from "@shared/types";
+import type { Chat, ChatGroup } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { confirmArchiveRuns, confirmDeleteRuns, markRunsSeen, moveRunsToGroup } from "@/features/chat/chatActions";
+import { confirmArchiveChats, confirmDeleteChats, markChatsSeen, moveChatsToGroup } from "@/features/chat/chatActions";
 import { GroupPickMenu } from "@/features/group/GroupPickMenu";
 import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import type { ChatSelection } from "./chatSelection";
@@ -11,16 +11,16 @@ import type { ChatSelection } from "./chatSelection";
  * サイドバーで複数選んだチャットを、まとめて操作する欄（選んでいるときだけ、一覧の下に出す）と、選んだ行の右クリックのメニュー。
  * アーカイブ（どれもアーカイブ済みなら戻す）・グループへ移す（同じプロジェクトのものだけのとき）・既読にする・削除。Esc で選ぶのをやめる
  */
-export function SelectionBar({ selection, runs, groups }: { selection: ChatSelection; runs: Record<number, Run[]>; groups: Record<number, RunGroup[]> }) {
+export function SelectionBar({ selection, chats, groups }: { selection: ChatSelection; chats: Record<number, Chat[]>; groups: Record<number, ChatGroup[]> }) {
   const [moveAt, setMoveAt] = useState<{ x: number; y: number } | null>(null);
-  const picked = Object.values(runs)
+  const picked = Object.values(chats)
     .flat()
     .filter((r) => selection.has(r.id));
   const projectIds = new Set(picked.map((r) => r.project_id));
   // グループへ移せるのは、同じプロジェクトのチャットだけを選んでいるとき
   const moveGroups = projectIds.size === 1 ? (groups[[...projectIds][0]] ?? []) : null;
   const allArchived = picked.length > 0 && picked.every((r) => r.archived_at);
-  const unread = picked.some((r) => r.attention);
+  const unread = picked.some((r) => r.unread);
 
   // Esc で選ぶのをやめる（入力欄・ダイアログ・メニューの中の Esc は、そちらに任せる）
   useWindowEvent("keydown", (e) => {
@@ -33,9 +33,9 @@ export function SelectionBar({ selection, runs, groups }: { selection: ChatSelec
   if (picked.length === 0) return null;
   const done = () => selection.clear();
   const actions = {
-    archive: () => void confirmArchiveRuns(picked).then((ok) => ok && done()),
-    seen: () => void markRunsSeen(picked).then(done),
-    remove: () => void confirmDeleteRuns(picked).then((ok) => ok && done()),
+    archive: () => void confirmArchiveChats(picked).then((ok) => ok && done()),
+    seen: () => void markChatsSeen(picked).then(done),
+    remove: () => void confirmDeleteChats(picked).then((ok) => ok && done()),
     move: (at: { x: number; y: number }) => setMoveAt(at),
   };
   return (
@@ -77,7 +77,7 @@ export function SelectionBar({ selection, runs, groups }: { selection: ChatSelec
           groups={moveGroups}
           title="移動先のグループ"
           ignore=".selection-bar-move"
-          onPick={(group) => void moveRunsToGroup(picked, group ?? null).then(done)}
+          onPick={(group) => void moveChatsToGroup(picked, group ?? null).then(done)}
           onClose={() => setMoveAt(null)}
         />
       )}

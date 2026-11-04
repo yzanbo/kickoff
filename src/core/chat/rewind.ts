@@ -1,10 +1,10 @@
 import type { AgentProvider } from "../providers/types.js";
 import type { Runner } from "./runner.js";
 import type { Store } from "../db/store.js";
-import type { Attachment, FileRewindResult, ProviderId, Run, RunOptions } from "@shared/types";
+import type { Attachment, FileRewindResult, ProviderId, Chat, ChatOptions } from "@shared/types";
 
 /** 作業中なので巻き戻せない（ルートで 409） */
-export class RunBusyError extends Error {
+export class ChatBusyError extends Error {
   constructor() {
     super("作業中は巻き戻せません。終わってから（または中断してから）行ってください");
   }
@@ -16,16 +16,16 @@ export class RunBusyError extends Error {
  * （なければ最初の発言なので、セッションを空にして最初から）、その発言から後ろの記録を消してから、ふつうの送信と同じ流れで送る。
  * 添付は元の発言のものを引き継ぐ。restoreFiles なら、分岐する前にファイルもその発言を送る前の状態に戻す（rewindFiles。
  * ファイルの記録は元のセッションにあるため、先に戻す）。
- * 作業中なら RunBusyError（409）、巻き戻せない発言・プロバイダー・ファイルを戻せないなら Error（400）を投げる
+ * 作業中なら ChatBusyError（409）、巻き戻せない発言・プロバイダー・ファイルを戻せないなら Error（400）を投げる
  */
-export async function rewindRun(
+export async function rewindChat(
   deps: { store: Store; runner: Runner; providers: Record<ProviderId, AgentProvider> },
-  run: Run,
-  input: { eventId: number; text: string; options: RunOptions; cwd: string; restoreFiles?: boolean },
-): Promise<Run> {
+  chat: Chat,
+  input: { eventId: number; text: string; options: ChatOptions; cwd: string; restoreFiles?: boolean },
+): Promise<Chat> {
   const { store, runner, providers } = deps;
-  if (runner.isBusy(run.id)) throw new RunBusyError();
-  const events = store.listEvents(run.id);
+  if (runner.isBusy(chat.id)) throw new ChatBusyError();
+  const events = store.listEvents(chat.id);
   const index = events.findIndex((e) => e.id === input.eventId);
   const target = events[index];
   if (target?.type !== "user") throw new Error("自分の発言のところからだけ巻き戻せます");
@@ -40,27 +40,27 @@ export async function rewindRun(
     .map((e) => (e.type === "result" ? (e.data as { status?: string; session_id?: string; message_id?: string }) : undefined))
     .find((d) => d?.status === "completed" && d.session_id && d.message_id);
   // ファイルも戻す: 分岐すると新しいセッションになり、ファイルの記録は元のセッションにしか残らないので先に戻す
-  const restored = input.restoreFiles ? await rewindFiles(deps, run, { eventId: target.id, cwd: input.cwd, dryRun: false }) : undefined;
+  const restored = input.restoreFiles ? await rewindFiles(deps, chat, { eventId: target.id, cwd: input.cwd, dryRun: false }) : undefined;
   let sessionId: string | null = null;
   if (point) {
-    const provider = providers[run.provider];
+    const provider = providers[chat.provider];
     if (!provider.fork) throw new Error(`${provider.label} は巻き戻しに対応していません`);
     sessionId = await provider.fork(point.session_id!, point.message_id!, input.cwd);
   }
   // 分岐している間に送られていたら、記録を消さずにやめる
-  if (runner.isBusy(run.id)) throw new RunBusyError();
+  if (runner.isBusy(chat.id)) throw new ChatBusyError();
 
-  runner.clearQueued(run.id);
-  store.deleteEventsFrom(run.id, target.id);
+  runner.clearQueued(chat.id);
+  store.deleteEventsFrom(chat.id, target.id);
   // コンテキストの大きさは、次の応答まで分からない
-  store.updateRun(run.id, { session_id: sessionId, context_tokens: null });
-  store.addEvent(run.id, {
+  store.updateChat(chat.id, { session_id: sessionId, context_tokens: null });
+  store.addEvent(chat.id, {
     type: "notice",
     message: restored
       ? `この発言から巻き戻して送り直しました（ファイルもこの発言を送る前の状態に戻しました: ${restoredSummary(restored)}）`
       : "この発言から巻き戻して送り直しました（ファイルの変更は戻していません）",
   });
-  return runner.send(run.id, input.text, input.options, attachments);
+  return runner.send(chat.id, input.text, input.options, attachments);
 }
 
 /** 戻したファイル（「2 個のファイル: README.md、a.ts」。多ければ頭の 5 個） */
@@ -74,29 +74,29 @@ function restoredSummary(r: FileRewindResult): string {
  * ファイルを、自分の発言を送る前の状態に戻す（会話はそのまま）。dryRun なら戻さずに、変わるファイルと行の増減だけを返す。
  * 戻せるのは、ファイルの記録を取り始めてから送った発言（記録の message_uuid があるもの）で、Claude Code の編集のツールで変えたファイルだけ
  * （コマンドで変えたもの・アプリの外で変えたものは戻らない）。戻したら、チャットにお知らせを残す。
- * 作業中なら RunBusyError（409）、戻せない発言・プロバイダーなら Error（400）
+ * 作業中なら ChatBusyError（409）、戻せない発言・プロバイダーなら Error（400）
  */
 export async function rewindFiles(
   deps: { store: Store; runner: Runner; providers: Record<ProviderId, AgentProvider> },
-  run: Run,
+  chat: Chat,
   input: { eventId: number; cwd: string; dryRun: boolean },
 ): Promise<FileRewindResult> {
   const { store, runner, providers } = deps;
-  if (runner.isBusy(run.id)) throw new RunBusyError();
-  const target = store.listEvents(run.id).find((e) => e.id === input.eventId);
+  if (runner.isBusy(chat.id)) throw new ChatBusyError();
+  const target = store.listEvents(chat.id).find((e) => e.id === input.eventId);
   if (target?.type !== "user") throw new Error("自分の発言のところからだけ戻せます");
   const messageId = (target.data as { message_uuid?: string }).message_uuid;
-  const provider = providers[run.provider];
+  const provider = providers[chat.provider];
   if (!provider.rewindFiles) throw new Error(`${provider.label} はファイルを戻すのに対応していません`);
-  if (!messageId || !run.session_id) throw new Error("この発言のときのファイルの記録がないため、ファイルは戻せません（戻せるのは、この機能を入れたあとに送った発言からです）");
+  if (!messageId || !chat.session_id) throw new Error("この発言のときのファイルの記録がないため、ファイルは戻せません（戻せるのは、この機能を入れたあとに送った発言からです）");
   // 本当に戻したときの結果には、変わったファイルが付かないので、先に量を測っておく
-  const preview = await provider.rewindFiles(run.session_id, messageId, input.cwd, true);
+  const preview = await provider.rewindFiles(chat.session_id, messageId, input.cwd, true);
   if (!preview.canRewind) throw new Error(`ファイルを戻せませんでした${preview.error ? `: ${preview.error}` : ""}`);
   if (input.dryRun) return preview;
-  const done = await provider.rewindFiles(run.session_id, messageId, input.cwd, false);
+  const done = await provider.rewindFiles(chat.session_id, messageId, input.cwd, false);
   if (!done.canRewind) throw new Error(`ファイルを戻せませんでした${done.error ? `: ${done.error}` : ""}`);
   const result = { ...preview, ...done, filesChanged: preview.filesChanged, insertions: preview.insertions, deletions: preview.deletions };
-  store.addEvent(run.id, { type: "notice", message: `ファイルを、この発言を送る前の状態に戻しました（${restoredSummary(result)}。会話はそのまま）` });
+  store.addEvent(chat.id, { type: "notice", message: `ファイルを、この発言を送る前の状態に戻しました（${restoredSummary(result)}。会話はそのまま）` });
   return result;
 }
 

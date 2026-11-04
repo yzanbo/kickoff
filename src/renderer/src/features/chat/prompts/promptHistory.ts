@@ -1,4 +1,4 @@
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 
 /**
  * チャット欄の ↑↓ で呼び出す、前に送った自分の発言。
@@ -6,7 +6,7 @@ import type { RunEvent } from "@shared/types";
  */
 
 /** チャットのイベントから、自分の発言を新しい順に（文のない添付だけの発言は除き、続けて同じ文は 1 つにまとめる） */
-export function userPrompts(events: RunEvent[]): string[] {
+export function userPrompts(events: ChatEvent[]): string[] {
   const prompts: string[] = [];
   for (const e of events) {
     if (e.type !== "user") continue;
@@ -73,7 +73,7 @@ export interface PromptEntry {
 }
 
 /** チャットのイベントから、自分の指示を会話の順に */
-export function promptEntries(events: RunEvent[]): PromptEntry[] {
+export function promptEntries(events: ChatEvent[]): PromptEntry[] {
   return events
     .filter((e) => e.type === "user")
     .map((e) => {

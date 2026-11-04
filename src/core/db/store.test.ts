@@ -20,25 +20,25 @@ test("プロジェクトを作成すると既定値が入り、変更が通知�
 
 test("中断された実行は起動時に失敗扱いになる", () => {
   const { store, project } = setup();
-  const run = store.createRun({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
+  const chat = store.createChat({ project_id: project.id, provider: "claude", title: "A", status: "running", model: null });
 
-  assert.equal(store.recoverInterruptedRuns(), 1);
-  assert.equal(store.getRun(run.id)?.status, "failed");
+  assert.equal(store.recoverInterruptedChats(), 1);
+  assert.equal(store.getChat(chat.id)?.status, "failed");
 });
 
 test("実行イベントは JSON で保存され、順番どおりに読み出せる", () => {
   const { store, project } = setup();
-  const run = store.createRun({
+  const chat = store.createChat({
     project_id: project.id,
     provider: "claude",
     title: "壁打ち",
     status: "running",
     model: null,
   });
-  store.addEvent(run.id, { type: "user", text: "こんにちは" });
-  store.addEvent(run.id, { type: "tool_use", id: "t1", name: "Read", input: { file_path: "a.ts" } });
+  store.addEvent(chat.id, { type: "user", text: "こんにちは" });
+  store.addEvent(chat.id, { type: "tool_use", id: "t1", name: "Read", input: { file_path: "a.ts" } });
 
-  const events = store.listEvents(run.id);
+  const events = store.listEvents(chat.id);
   assert.deepEqual(
     events.map((e) => e.type),
     ["user", "tool_use"],
@@ -58,7 +58,7 @@ test("チャットのやり取りをキーワードで検索できる（範囲�
   const { store, project } = setup();
   const other = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
   const mk = (projectId: number, title: string) =>
-    store.createRun({ project_id: projectId, provider: "claude", title, status: "completed", model: null });
+    store.createChat({ project_id: projectId, provider: "claude", title, status: "completed", model: null });
   const a = mk(project.id, "ログインの相談");
   const b = mk(other.id, "別プロジェクト");
   store.addEvent(a.id, { type: "user", text: "ログイン方式は OAuth にしたい" });
@@ -68,7 +68,7 @@ test("チャットのやり取りをキーワードで検索できる（範囲�
 
   const all = store.searchEvents("oauth");
   assert.equal(all.length, 3);
-  assert.equal(all[0].run_title, "別プロジェクト");
+  assert.equal(all[0].chat_title, "別プロジェクト");
 
   const inProject = store.searchEvents("OAuth", { projectId: project.id });
   assert.deepEqual(
@@ -82,7 +82,7 @@ test("チャットのやり取りをキーワードで検索できる（範囲�
   assert.equal(store.searchEvents("100%").length, 1);
   assert.equal(store.searchEvents("%").length, 1);
   assert.equal(store.searchEvents("", {}).length, 0);
-  assert.equal(store.searchEvents("ログイン", { runId: b.id }).length, 0);
+  assert.equal(store.searchEvents("ログイン", { chatId: b.id }).length, 0);
 });
 
 test("グループ: 作成順に並び、並べ替え・削除するとチャットはグループなしに戻る", () => {
@@ -91,25 +91,25 @@ test("グループ: 作成順に並び、並べ替え・削除するとチャッ
   const b = store.createGroup(project.id, "調査");
   assert.deepEqual(store.listGroups(project.id).map((g) => g.name), ["コードレビュー", "調査"]);
 
-  const run = store.createRun({
+  const chat = store.createChat({
     project_id: project.id,
     provider: "claude",
     title: "レビュー依頼",
     status: "completed",
     model: null,
   });
-  const before = store.getRun(run.id)!.active_at;
-  assert.equal(store.setRunGroup(run.id, a.id).group_id, a.id);
+  const before = store.getChat(chat.id)!.active_at;
+  assert.equal(store.setChatGroup(chat.id, a.id).group_id, a.id);
   // グループへ移しても、新しい順の並びは変わらない
-  assert.equal(store.getRun(run.id)!.active_at, before);
+  assert.equal(store.getChat(chat.id)!.active_at, before);
 
   store.reorderGroups(project.id, [b.id, a.id]);
   assert.deepEqual(store.listGroups(project.id).map((g) => g.name), ["調査", "コードレビュー"]);
 
   events.length = 0;
   store.deleteGroup(a.id);
-  assert.equal(store.getRun(run.id)!.group_id, null);
-  assert.deepEqual(events.map((e) => e.type), ["run", "group_deleted"]);
+  assert.equal(store.getChat(chat.id)!.group_id, null);
+  assert.deepEqual(events.map((e) => e.type), ["chat", "group_deleted"]);
 });
 
 test("プロジェクトの既定は JSON で保存され、壊れていなければそのまま読める", () => {
@@ -128,58 +128,58 @@ test("プロジェクトの並び順: 作った順に付き、並べ替えられ
 });
 
 /** チャットを 1 つ作る（テストの既定: 要件定義・完了） */
-function mkRun(store: Store, projectId: number, title: string, extra: Partial<Parameters<Store["createRun"]>[0]> = {}) {
-  return store.createRun({ project_id: projectId, provider: "claude", title, status: "completed", model: null, ...extra });
+function mkChat(store: Store, projectId: number, title: string, extra: Partial<Parameters<Store["createChat"]>[0]> = {}) {
+  return store.createChat({ project_id: projectId, provider: "claude", title, status: "completed", model: null, ...extra });
 }
 
 test("チャットの一覧: アーカイブ済みを含める・だけ・状態・件数で絞り込める（新しい順）", () => {
   const { store, project } = setup();
   const other = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
-  const a = mkRun(store, project.id, "a");
-  const b = mkRun(store, project.id, "b", { status: "running" });
-  const c = mkRun(store, project.id, "c", { status: "failed" });
-  const d = mkRun(store, other.id, "d");
-  store.updateRun(c.id, { archived_at: new Date().toISOString() });
-  const ids = (runs: { id: number }[]) => runs.map((r) => r.id);
+  const a = mkChat(store, project.id, "a");
+  const b = mkChat(store, project.id, "b", { status: "running" });
+  const c = mkChat(store, project.id, "c", { status: "failed" });
+  const d = mkChat(store, other.id, "d");
+  store.updateChat(c.id, { archived_at: new Date().toISOString() });
+  const ids = (chats: { id: number }[]) => chats.map((r) => r.id);
 
   // 既定はアーカイブしていないものだけ。新しい順
-  assert.deepEqual(ids(store.listRuns()), [d.id, b.id, a.id]);
-  assert.deepEqual(ids(store.listRuns({ projectId: project.id })), [b.id, a.id]);
-  assert.deepEqual(ids(store.listRuns({ projectId: project.id, includeArchived: true })), [c.id, b.id, a.id]);
-  assert.deepEqual(ids(store.listRuns({ projectId: project.id, onlyArchived: true })), [c.id]);
+  assert.deepEqual(ids(store.listChats()), [d.id, b.id, a.id]);
+  assert.deepEqual(ids(store.listChats({ projectId: project.id })), [b.id, a.id]);
+  assert.deepEqual(ids(store.listChats({ projectId: project.id, includeArchived: true })), [c.id, b.id, a.id]);
+  assert.deepEqual(ids(store.listChats({ projectId: project.id, onlyArchived: true })), [c.id]);
   // 状態（アーカイブ済みは含めない限り出ない）
-  assert.deepEqual(ids(store.listRuns({ statuses: ["running", "failed"] })), [b.id]);
-  assert.deepEqual(ids(store.listRuns({ statuses: ["running", "failed"], includeArchived: true })), [c.id, b.id]);
-  assert.deepEqual(ids(store.listRuns({ statuses: [] })), [d.id, b.id, a.id]);
+  assert.deepEqual(ids(store.listChats({ statuses: ["running", "failed"] })), [b.id]);
+  assert.deepEqual(ids(store.listChats({ statuses: ["running", "failed"], includeArchived: true })), [c.id, b.id]);
+  assert.deepEqual(ids(store.listChats({ statuses: [] })), [d.id, b.id, a.id]);
   // 件数
-  assert.deepEqual(ids(store.listRuns({ limit: 2 })), [d.id, b.id]);
+  assert.deepEqual(ids(store.listChats({ limit: 2 })), [d.id, b.id]);
 });
 
 test("ワークツリーのチャット: 作業場所で探し、片付けると本体に戻る（並び順は変えず、変更を知らせる）", () => {
   const { store, project, events } = setup();
   const other = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
   const wt = "/tmp/demo-worktrees/feat-a";
-  const inWt = mkRun(store, project.id, "a", { worktree_path: wt });
-  const inWt2 = mkRun(store, project.id, "b", { worktree_path: wt });
-  const inMain = mkRun(store, project.id, "c");
-  const otherWt = mkRun(store, other.id, "d", { worktree_path: wt });
-  assert.deepEqual(store.runsInWorktree(project.id, wt).map((r) => r.id), [inWt.id, inWt2.id]);
-  assert.deepEqual(store.runsInWorktree(project.id, "/tmp/none"), []);
+  const inWt = mkChat(store, project.id, "a", { worktree_path: wt });
+  const inWt2 = mkChat(store, project.id, "b", { worktree_path: wt });
+  const inMain = mkChat(store, project.id, "c");
+  const otherWt = mkChat(store, other.id, "d", { worktree_path: wt });
+  assert.deepEqual(store.chatsInWorktree(project.id, wt).map((r) => r.id), [inWt.id, inWt2.id]);
+  assert.deepEqual(store.chatsInWorktree(project.id, "/tmp/none"), []);
 
-  const before = store.getRun(inWt.id)!.active_at;
+  const before = store.getChat(inWt.id)!.active_at;
   events.length = 0;
-  store.clearRunWorktree(project.id, wt);
-  assert.equal(store.getRun(inWt.id)!.worktree_path, "");
-  assert.equal(store.getRun(inWt2.id)!.worktree_path, "");
-  assert.equal(store.getRun(inWt.id)!.active_at, before);
+  store.clearChatWorktree(project.id, wt);
+  assert.equal(store.getChat(inWt.id)!.worktree_path, "");
+  assert.equal(store.getChat(inWt2.id)!.worktree_path, "");
+  assert.equal(store.getChat(inWt.id)!.active_at, before);
   // ほかのプロジェクト・本体のチャットは触らない
-  assert.equal(store.getRun(otherWt.id)!.worktree_path, wt);
-  assert.equal(store.getRun(inMain.id)!.worktree_path, "");
-  assert.deepEqual(events.map((e) => e.type === "run" && e.run.id), [inWt.id, inWt2.id]);
-  assert.deepEqual(store.runsInWorktree(project.id, wt), []);
+  assert.equal(store.getChat(otherWt.id)!.worktree_path, wt);
+  assert.equal(store.getChat(inMain.id)!.worktree_path, "");
+  assert.deepEqual(events.map((e) => e.type === "chat" && e.chat.id), [inWt.id, inWt2.id]);
+  assert.deepEqual(store.chatsInWorktree(project.id, wt), []);
   // もう一度片付けても何も知らせない
   events.length = 0;
-  store.clearRunWorktree(project.id, wt);
+  store.clearChatWorktree(project.id, wt);
   assert.deepEqual(events, []);
 });
 
@@ -225,9 +225,9 @@ test("索引: チャットの一覧（プロジェクトごと）・作業場所
     call();
     return issued.map((sql) => (prepare(`EXPLAIN QUERY PLAN ${sql}`).all() as { detail: string }[]).map((r) => r.detail).join(" / "));
   };
-  assert.match(plansOf(() => store.listRuns({ projectId: project.id }))[0], /^SEARCH runs USING INDEX idx_runs_project \(project_id=\? AND archived_at=\?\)$/);
-  assert.match(plansOf(() => store.runsInWorktree(project.id, "/tmp/demo-worktrees/a"))[0], /^SEARCH runs USING INDEX idx_runs_worktree \(project_id=\? AND worktree_path=\?\)$/);
-  assert.match(plansOf(() => store.recoverInterruptedRuns())[0], /SEARCH runs USING INDEX idx_runs_active \(status=\?\)/);
+  assert.match(plansOf(() => store.listChats({ projectId: project.id }))[0], /^SEARCH chats USING INDEX idx_chats_project \(project_id=\? AND archived_at=\?\)$/);
+  assert.match(plansOf(() => store.chatsInWorktree(project.id, "/tmp/demo-worktrees/a"))[0], /^SEARCH chats USING INDEX idx_chats_worktree \(project_id=\? AND worktree_path=\?\)$/);
+  assert.match(plansOf(() => store.recoverInterruptedChats())[0], /SEARCH chats USING INDEX idx_chats_active \(status=\?\)/);
 });
 
 test("プロジェクトの編集（名前・固定・アーカイブ）では、最後に動いた時刻（active_at）を進めない", () => {

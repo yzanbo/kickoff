@@ -1,6 +1,6 @@
 import { ArchiveRestore, Pin, Plus } from "lucide-react";
 import type { DragEvent } from "react";
-import type { ProjectSummary, RunGroup } from "@shared/types";
+import type { ProjectSummary, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { changeProject, confirmRestoreProject } from "@/features/project/projectOrder";
 import { href, navigate, openNewChat } from "@/app/router";
@@ -39,7 +39,7 @@ export function WorkspaceHead({
   headDrag,
 }: {
   project: ProjectSummary;
-  groups: RunGroup[];
+  groups: ChatGroup[];
   active: boolean;
   collapsed: boolean;
   onToggleCollapsed: () => void;

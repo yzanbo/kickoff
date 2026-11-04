@@ -1,7 +1,7 @@
 import { Code2, History, SquareKanban, type LucideIcon } from "lucide-react";
 import { useState } from "react";
-import type { Run } from "@shared/types";
-import { useRunStates } from "@/app/chatStatesContext";
+import type { Chat } from "@shared/types";
+import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { stateCounts } from "@/features/chat/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/StateCornerCounts";
@@ -25,7 +25,7 @@ export function useProjectTabsLayout() {
 
 /** タブの数を取り直している最中か（ボード = チャットの一覧・エディタ = Git の状態。数の代わりに更新中の印を出す） */
 export interface TabRefreshing {
-  runs: boolean;
+  chats: boolean;
   changes: boolean;
 }
 
@@ -45,14 +45,14 @@ const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
 export function ProjectTabs({
   projectId,
   tab,
-  runs,
+  chats,
   changeCount,
   refreshing,
   vertical = false,
 }: {
   projectId: number;
   tab: ProjectTab;
-  runs: Run[];
+  chats: Chat[];
   changeCount: number;
   refreshing: TabRefreshing;
   vertical?: boolean;
@@ -61,8 +61,8 @@ export function ProjectTabs({
   const [layout, setLayout] = useProjectTabsLayout();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   // 状態ごとのチャット数（カンバンの列と同じ数え方。アーカイブ済みは数えない）
-  const { pending } = useRunStates();
-  const counts = stateCounts(runs, pending);
+  const { pending } = useChatStates();
+  const counts = stateCounts(chats, pending);
   const countsText = stateCountsSummary(counts);
   return (
     <nav
@@ -93,7 +93,7 @@ export function ProjectTabs({
           >
             {vertical ? <Icon size={18} aria-hidden /> : label}
             {/* 取り直している最中は数の代わりに更新中の印（終わったら数に戻す） */}
-            {(t === "board" && refreshing.runs) || (t === "changes" && refreshing.changes) ? (
+            {(t === "board" && refreshing.chats) || (t === "changes" && refreshing.changes) ? (
               <span className="tab-refreshing" role="status" aria-label="更新中" title="更新中…">
                 <span className="spinner" aria-hidden />
               </span>

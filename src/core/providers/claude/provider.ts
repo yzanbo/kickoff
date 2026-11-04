@@ -16,10 +16,10 @@ import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOptio
 import { createCanUseTool } from "./approvals.js";
 import { agentEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
-import { runHooks, toAllowedTools } from "./policy.js";
+import { turnHooks, toAllowedTools } from "./policy.js";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
-import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "../types.js";
+import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
 import { execFileAsync } from "../../system/exec.js";
 
 export class ClaudeProvider implements AgentProvider {
@@ -123,7 +123,7 @@ export class ClaudeProvider implements AgentProvider {
     }
   }
 
-  async run(params: ProviderRunParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderRunResult> {
+  async run(params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult> {
     const abortController = new AbortController();
     const onAbort = () => abortController.abort();
     signal.addEventListener("abort", onAbort, { once: true });
@@ -168,7 +168,7 @@ export class ClaudeProvider implements AgentProvider {
           abortController,
           env: agentEnv(),
           pathToClaudeCodeExecutable: this.executable,
-          hooks: runHooks(params, this.self),
+          hooks: turnHooks(params, this.self),
           includePartialMessages: true,
           // 編集の前のファイルを取っておく（巻き戻しで、自分の発言の時点のファイルに戻せるように）
           enableFileCheckpointing: true,

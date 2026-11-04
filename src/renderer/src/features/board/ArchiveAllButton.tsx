@@ -1,13 +1,13 @@
 import { Archive } from "lucide-react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { api } from "@/api";
 import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
 import { IconButton } from "@/ui/IconButton";
 
 /** 「既読」の列の見出しに置く、列のチャットをすべてアーカイブするボタン（確かめてから。アーカイブ済みは数えない） */
-export function ArchiveAllButton({ runs }: { runs: Run[] }) {
-  const targets = runs.filter((r) => !r.archived_at);
+export function ArchiveAllButton({ chats }: { chats: Chat[] }) {
+  const targets = chats.filter((r) => !r.archived_at);
   if (targets.length === 0) return null;
   return (
     <IconButton
@@ -23,7 +23,7 @@ export function ArchiveAllButton({ runs }: { runs: Run[] }) {
         });
         if (!ok) return;
         try {
-          await Promise.all(targets.map((r) => api.archiveRun(r.id)));
+          await Promise.all(targets.map((r) => api.archiveChat(r.id)));
         } catch (e) {
           await alertDialog("アーカイブできませんでした", errorMessage(e));
         }

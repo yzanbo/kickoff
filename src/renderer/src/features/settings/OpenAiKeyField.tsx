@@ -12,7 +12,7 @@ export function OpenAiKeyField({ saved }: { saved: boolean | undefined }) {
   const [key, setKey] = useState("");
   const save = useSave();
   const store = (value: string) =>
-    save.run(async () => {
+    save.chat(async () => {
       await api.saveOpenAiKey(value);
       setKey("");
       await refreshVoiceStatus();

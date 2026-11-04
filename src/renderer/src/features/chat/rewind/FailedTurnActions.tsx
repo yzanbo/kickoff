@@ -1,13 +1,13 @@
 import { Brain, ChevronDown, History, RotateCcw } from "lucide-react";
 import { createContext, useContext, useMemo, useRef, useState } from "react";
-import { EFFORT_LABELS, type EffortLevel, type RunEvent } from "@shared/types";
+import { EFFORT_LABELS, type EffortLevel, type ChatEvent } from "@shared/types";
 import { api } from "@/api";
 import { effortsFor, groupModels } from "@/features/chat/options/models";
 import { reportFailure } from "@/features/chat/chatActions";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { failedTurnOf, lowerEffort, RETRY_PROMPT, type FailedTurn } from "./retryActions";
-import type { RunOptionsState } from "@/features/chat/options/ChatOptionsBar";
+import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 
 /** 失敗した作業の直す操作（チャットの画面が渡す。サブエージェントの中身など、渡さない所では出さない） */
 interface RetryActions {
@@ -28,10 +28,10 @@ export const RetryContext = createContext<RetryActions | null>(null);
  * （そのあとの送信も、変えた選択のまま）
  */
 export function useRetryActions(
-  runId: number,
-  events: RunEvent[],
+  chatId: number,
+  events: ChatEvent[],
   busy: boolean,
-  options: RunOptionsState,
+  options: ChatOptionsState,
   rewindSend: ((eventId: number, text: string) => Promise<boolean>) | undefined,
 ): RetryActions | null {
   const failed = useMemo(() => (busy ? undefined : failedTurnOf(events)), [events, busy]);
@@ -60,7 +60,7 @@ export function useRetryActions(
         next.effort = change.effort;
         o.setEffort(change.effort);
       }
-      void api.sendMessage(runId, RETRY_PROMPT, next).catch(reportFailure("再試行できませんでした"));
+      void api.sendMessage(chatId, RETRY_PROMPT, next).catch(reportFailure("再試行できませんでした"));
     };
     const prompt = failed.prompt;
     return {
@@ -70,7 +70,7 @@ export function useRetryActions(
       retry,
       ...(prompt && rewindSend ? { rewind: () => void rewindSend(prompt.eventId, prompt.text).catch(reportFailure("巻き戻せませんでした")) } : {}),
     };
-  }, [failed, lower, current, allModels, runId, rewindSend]);
+  }, [failed, lower, current, allModels, chatId, rewindSend]);
 }
 
 /** 失敗した作業の終わりの行の下に出す直す操作（いちばん新しい作業が失敗で終わったときだけ） */

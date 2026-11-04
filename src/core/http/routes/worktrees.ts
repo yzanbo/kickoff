@@ -24,7 +24,7 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
 
   /** 作業中のチャットがあるうちは消さない・片付けない（作業中のフォルダが消えてしまう） */
   const assertIdle = (projectId: number, path: string, verb: string) => {
-    if (store.runsInWorktree(projectId, path).some((r) => runner.isBusy(r.id))) {
+    if (store.chatsInWorktree(projectId, path).some((r) => runner.isBusy(r.id))) {
       throw new HttpError(409, `このワークツリーで作業中のチャットがあります。終わってから${verb}てください`);
     }
   };
@@ -44,7 +44,7 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
     assertIdle(project.id, path, "消し");
     const worktrees = await badRequest(() => removeWorktree(project.repo_path, path, force, deleteBranch));
     // そこで作業していたチャットは、続きを本体で進める（片付けと同じ）
-    store.clearRunWorktree(project.id, path);
+    store.clearChatWorktree(project.id, path);
     return c.json(worktrees);
   });
 
@@ -56,12 +56,12 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
     try {
       const worktrees = await finishWorktree(project.repo_path, path);
       // そこで作業していたチャットは、続きを本体で進める
-      store.clearRunWorktree(project.id, path);
+      store.clearChatWorktree(project.id, path);
       return c.json(worktrees);
     } catch (e) {
       // ブランチを消すところで失敗しても、ワークツリーが消えていれば、チャットは本体に戻す
       const remaining = await listWorktrees(project.repo_path).catch(() => null);
-      if (remaining && !remaining.some((w) => w.path === path)) store.clearRunWorktree(project.id, path);
+      if (remaining && !remaining.some((w) => w.path === path)) store.clearChatWorktree(project.id, path);
       throw new HttpError(400, errorMessage(e));
     }
   });

@@ -8,7 +8,7 @@ import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/app/projectsContext";
 import { tagLabel, useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
-import { useBoardRuns } from "./useBoardChats";
+import { useBoardChats } from "./useBoardChats";
 import { StateStats } from "@/features/project/page/StateStats";
 
 interface Props {
@@ -27,8 +27,8 @@ export function AllProjectsPage({ onNewProject }: Props) {
   const shown = all.filter(tagFilter.matches);
   const notReady = (!providers.loading && !claude?.loggedIn) || (!github.loading && !github.data?.loggedIn);
   // 状態ごとの数: すぐ下の全プロジェクトのカンバンと同じチャット（しまったプロジェクトの分は除く）を、プロジェクトの画面・サイドバーと同じ数え方で
-  const { runs } = useBoardRuns(undefined, false, () => {});
-  const shownRuns = runs.filter((r) => shown.some((p) => p.id === r.project_id));
+  const { chats } = useBoardChats(undefined, false, () => {});
+  const shownChats = chats.filter((r) => shown.some((p) => p.id === r.project_id));
 
   return (
     <div className="page page-wide page-board">
@@ -39,7 +39,7 @@ export function AllProjectsPage({ onNewProject }: Props) {
           </h1>
           <TagFilterNotice filter={tagFilter} />
           <div className="project-stats">
-            <StateStats runs={shownRuns} showProject />
+            <StateStats chats={shownChats} showProject />
           </div>
         </div>
       </header>

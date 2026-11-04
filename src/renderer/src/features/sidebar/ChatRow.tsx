@@ -1,15 +1,15 @@
 import { MoreHorizontal } from "lucide-react";
 import { busyWithUnread } from "@shared/chat/state";
-import { AGENT_STATE_LABELS, type AgentState, type Run } from "@shared/types";
+import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
-import { startRunDrag } from "@/features/group/groups";
-import type { RunTitleEditor } from "@/features/chat/useChatRename";
-import { href, openRun } from "@/app/router";
+import { startChatDrag } from "@/features/group/groups";
+import type { ChatTitleEditor } from "@/features/chat/useChatRename";
+import { href, openChat } from "@/app/router";
 import { formatDayTime, shortRelativeTime } from "@/lib/time";
 import { workingFor } from "@/features/chat/activity";
 import { useTicker } from "@/hooks/useTicker";
-import { useRunActivity } from "@/features/chat/chatActivity";
+import { useChatActivity } from "@/features/chat/chatActivity";
 import { useChatSelection } from "./chatSelection";
 import { CARD_MENU_WIDTH } from "@/features/chat/ChatMenu";
 import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
@@ -22,7 +22,7 @@ import { WorktreeChip } from "@/features/worktree/WorktreeChip";
  * 右クリックか、乗せると右端に出る「…」でメニュー（複数選んでいればまとめて操作））
  */
 export function ChatRow({
-  run,
+  chat,
   state,
   active,
   menuOpen = false,
@@ -31,7 +31,7 @@ export function ChatRow({
   onRename,
   rename,
 }: {
-  run: Run;
+  chat: Chat;
   state: AgentState;
   active: boolean;
   /** この行のメニューを開いているか（「…」を出したままにし、もう一度押すと閉じる） */
@@ -41,13 +41,13 @@ export function ChatRow({
   /** ダブルクリックで名前をその場で変え始める */
   onRename: () => void;
   /** 名前をその場で変えている途中のとき */
-  rename?: RunTitleEditor;
+  rename?: ChatTitleEditor;
 }) {
   // hooks は、下の早い return（名前の変更中）より前に呼ぶ
   const selection = useChatSelection();
-  const selected = selection?.has(run.id) ?? false;
+  const selected = selection?.has(chat.id) ?? false;
   // 作業中のまま、まだ見ていない返答がある（印に未読の点を重ね、名前を太字に）
-  const busyUnread = busyWithUnread(run, state);
+  const busyUnread = busyWithUnread(chat, state);
   if (rename) {
     // 押しても開かず、ドラッグもしない（入力欄の文字を選べるように）
     return (
@@ -55,7 +55,7 @@ export function ChatRow({
         <div className={cx("chat-row", "renaming", active && "active")}>
           <StatusSlot state={state} unread={busyUnread} />
           <span className="chat-row-body">
-            <ChatTitleInput run={run} editor={rename} />
+            <ChatTitleInput chat={chat} editor={rename} />
           </span>
         </div>
       </li>
@@ -71,17 +71,17 @@ export function ChatRow({
       <a
         className={cx(
           "chat-row",
-          run.archived_at && "archived",
+          chat.archived_at && "archived",
           active && "active",
           selected && "multi-selected",
-          (state === "needs_input" || state === "attention" || busyUnread) && "is-unread",
+          (state === "needs_input" || state === "unread" || busyUnread) && "is-unread",
         )}
-        data-run-id={run.id}
+        data-chat-id={chat.id}
         aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
-        href={href({ name: "run", projectId: run.project_id, runId: run.id })}
-        title={`${chatTitle(run.title)}（${AGENT_STATE_LABELS[state]}${busyUnread ? "・未読あり" : ""}）`}
+        href={href({ name: "chat", projectId: chat.project_id, chatId: chat.id })}
+        title={`${chatTitle(chat.title)}（${AGENT_STATE_LABELS[state]}${busyUnread ? "・未読あり" : ""}）`}
         draggable
-        onDragStart={(e) => startRunDrag(e, run.id)}
+        onDragStart={(e) => startChatDrag(e, chat.id)}
         onDoubleClick={(e) => {
           e.preventDefault();
           onRename();
@@ -93,27 +93,27 @@ export function ChatRow({
         onClick={(e) => {
           e.preventDefault();
           // ⌘ を押しながら: 選ぶ・外す / Shift: 前に選んだものからの範囲（どちらも開かない）
-          if (selection && (e.metaKey || e.ctrlKey)) return selection.toggle(run.id);
-          if (selection && e.shiftKey) return selection.range(run.id);
+          if (selection && (e.metaKey || e.ctrlKey)) return selection.toggle(chat.id);
+          if (selection && e.shiftKey) return selection.range(chat.id);
           selection?.clear();
           // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
-          openRun(run.project_id, run.id);
+          openChat(chat.project_id, chat.id);
         }}
       >
         <StatusSlot state={state} unread={busyUnread} />
         <span className="chat-row-body">
           <span className="chat-row-line">
-            <span className="chat-row-title">{chatTitle(run.title)}</span>
+            <span className="chat-row-title">{chatTitle(chat.title)}</span>
             {state === "running" ? (
-              <RunningTime run={run} />
+              <RunningTime chat={chat} />
             ) : (
-              <span className="chat-row-time" title={formatDayTime(run.active_at)}>
-                {shortRelativeTime(run.active_at)}
+              <span className="chat-row-time" title={formatDayTime(chat.active_at)}>
+                {shortRelativeTime(chat.active_at)}
               </span>
             )}
           </span>
           <span className="chat-row-meta">
-            <WorktreeChip run={run} />
+            <WorktreeChip chat={chat} />
           </span>
         </span>
       </a>
@@ -140,10 +140,10 @@ export function ChatRow({
 }
 
 /** 作業中のチャットの時刻の代わりに出す経過時間（「作業中 3分」）。マウスを乗せると、いまの作業（ファイルの編集・コマンドの実行など） */
-function RunningTime({ run }: { run: Run }) {
+function RunningTime({ chat }: { chat: Chat }) {
   useTicker(30_000);
-  const activity = useRunActivity(run.id);
-  const since = run.turn_started_at ?? run.active_at;
+  const activity = useChatActivity(chat.id);
+  const since = chat.turn_started_at ?? chat.active_at;
   return (
     <span className="chat-row-time running" title={`${activity ?? "作業中"}\n始めた時刻: ${formatDayTime(since)}`}>
       {workingFor(since)}

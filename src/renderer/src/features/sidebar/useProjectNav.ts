@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { ProjectSummary, Run, RunGroup } from "@shared/types";
-import { useRunStates } from "@/app/chatStatesContext";
+import type { ProjectSummary, Chat, ChatGroup } from "@shared/types";
+import { useChatStates } from "@/app/chatStatesContext";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import { useSharedFlag, useStoredChoice, useStoredFlag, useStoredFlagMap } from "@/hooks/useStoredState";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
@@ -20,21 +20,21 @@ import { loadLastHashes, saveLastHashes, type LastHashes } from "./lastHashes";
 import type { NavLayout } from "./ProjectListHead";
 import { useProjectMenu } from "@/features/project/ProjectMenu";
 import { useAllDrafts } from "@/features/panel/state/panelMemory";
-import { foldAll, useCompactProjects, useCompactRows, useShowArchivedChats, waitingRuns } from "@/features/chatList/chatListFlags";
+import { foldAll, useCompactProjects, useCompactRows, useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
 import { useProjectReorder } from "./useProjectReorder";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 /** グループのないプロジェクトに渡す空の一覧（描くたびに作らない） */
-export const NO_GROUPS: RunGroup[] = [];
+export const NO_GROUPS: ChatGroup[] = [];
 
 /**
  * サイドバーのプロジェクトの並びの状態と操作（並べ方・並び順・しまったものを出すか・自分待ちだけ・検索・
  * いま選んでいるプロジェクトと切り替え・ショートカット・スワイプ・すべて閉じる / 開く）。表示は ProjectNav（ProjectStack / ProjectSlides）
  */
-export function useProjectNav(runs: Record<number, Run[]>) {
+export function useProjectNav(chats: Record<number, Chat[]>) {
   const route = useRoute();
   const { projects } = useProjects();
-  const { pending } = useRunStates();
+  const { pending } = useChatStates();
   // 横スライド / 縦並び
   const [layout, changeLayout] = useStoredChoice<NavLayout>(SIDEBAR_LAYOUT_KEY, ["slide", "stack", "rail"], "slide");
   // サイドバーでの並び順（上に固定したもの → ドラッグで並べ替えた順。同じなら作成順）。
@@ -42,7 +42,7 @@ export function useProjectNav(runs: Record<number, Run[]>) {
   const [showArchived, setShowArchived] = useStoredFlag(SIDEBAR_SHOW_ARCHIVED_PROJECTS_KEY);
   // 最近動いた順: チャット（アーカイブしたものを除く）が最後に動いた時刻。チャットがなければ作った時刻
   const [projectOrder, setProjectOrder] = useStoredChoice<ProjectOrder>(SIDEBAR_PROJECT_ORDER_KEY, PROJECT_ORDERS, "manual");
-  const lastActive = (p: ProjectSummary) => (runs[p.id] ?? []).find((r) => !r.archived_at)?.active_at ?? p.created_at;
+  const lastActive = (p: ProjectSummary) => (chats[p.id] ?? []).find((r) => !r.archived_at)?.active_at ?? p.created_at;
   // タグでの絞り込み（見出しの「タグ」。合わないプロジェクトは、固定・しまったものも含めて出さない）
   const tagFilter = useProjectTagFilter();
   const sorted = sidebarOrder(projects, projectOrder === "recent" ? lastActive : undefined);
@@ -55,12 +55,12 @@ export function useProjectNav(runs: Record<number, Run[]>) {
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
   const drafts = useAllDrafts();
-  const hasWaiting = (p: ProjectSummary) => waitingRuns(runs[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
+  const hasWaiting = (p: ProjectSummary) => waitingChats(chats[p.id] ?? [], pending).length > 0 || drafts.some((d) => d.projectId === p.id);
   // すべてのプロジェクトをまたぐ検索（縦並びの上の欄）: 一致するチャットがあるプロジェクトだけを並べ、一覧も開いて見せる
   const [searchAll, setSearchAll] = useState("");
   const allSearch = useChatSearch(layout === "stack" ? searchAll : "");
   const [showArchivedChats] = useShowArchivedChats();
-  const hasMatch = (p: ProjectSummary) => (runs[p.id] ?? []).some((r) => (!r.archived_at || showArchivedChats) && allSearch.matches(r));
+  const hasMatch = (p: ProjectSummary) => (chats[p.id] ?? []).some((r) => (!r.archived_at || showArchivedChats) && allSearch.matches(r));
   const base = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const ordered = allSearch.keyword ? base.filter(hasMatch) : base;
   const isArchived = (id: number) => archived.some((p) => p.id === id);

@@ -6,7 +6,7 @@ import { BOARD_LIST_COMPACT_KEY, BOARD_VIEW_KEY } from "@/lib/storageKeys";
 import { SearchField } from "@/ui/SearchField";
 import { Segmented } from "@/ui/Segmented";
 import { PanelToggle } from "@/features/panel/PanelToggle";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 import { useBoardHeaderLayout } from "./boardHeaderLayout";
 
 /** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
@@ -56,7 +56,7 @@ interface Props {
   viewOptions?: ReactNode;
   /** 表示のまとまりの先頭に置く、列の分け方の切り替え（プロジェクトのボードだけ。状態 / グループ） */
   columns?: ReactNode;
-  panel: SidePanelController;
+  panel: PanelController;
 }
 
 /**

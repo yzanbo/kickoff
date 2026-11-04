@@ -29,7 +29,7 @@ export function StateColumn({
   /** アーカイブ済みを列のいちばん下に畳んで出す（リスト表示では、最後の ArchivedListSection にまとめるので出さない） */
   foldArchived?: boolean;
 }) {
-  const [active, archived] = splitArchived(entries, (e) => e.run);
+  const [active, archived] = splitArchived(entries, (e) => e.chat);
   const body = (
     <>
       {active.length === 0 && <p className="column-empty">なし</p>}
@@ -47,7 +47,7 @@ export function StateColumn({
         label={BOARD_COLUMN_LABELS[column]}
         tone={COLUMN_TONE[column]}
         count={active.length}
-        action={column === "done" ? <ArchiveAllButton runs={active.map((e) => e.run)} /> : undefined}
+        action={column === "read" ? <ArchiveAllButton chats={active.map((e) => e.chat)} /> : undefined}
       />
       {list ? body : <div className="column-cards">{body}</div>}
     </section>
@@ -78,7 +78,7 @@ export function DraftColumn({ count, list = false, children }: { count: number; 
  * 状態ごと（作業中・回答待ち・未読・既読）に分けて並べる。下書きはアーカイブできないので分けない
  */
 export function ArchivedListSection({ entries, foldKey, render }: { entries: BoardEntry[]; foldKey: string; render: (entry: BoardEntry) => ReactNode }) {
-  const [, archived] = splitArchived(entries, (e) => e.run);
+  const [, archived] = splitArchived(entries, (e) => e.chat);
   if (archived.length === 0) return null;
   const grouped = byColumn(archived);
   return (

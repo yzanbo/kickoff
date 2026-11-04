@@ -38,14 +38,14 @@
     padding: 20px var(--page-x) 48px;
   }
 
-  .run-header,
+  .chat-header,
   .timeline-inner,
-  .run-composer {
+  .chat-composer {
     padding-left: 14px;
     padding-right: 14px;
   }
 
-  .run-header {
+  .chat-header {
     padding-top: 12px;
   }
 

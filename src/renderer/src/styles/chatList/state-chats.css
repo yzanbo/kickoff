@@ -1,8 +1,8 @@
 /*
- * 状態ごとにまとめたチャットの一覧（StateRunsPopover）。画面の見出しの状態ごとの数（StateStats）と、
+ * 状態ごとにまとめたチャットの一覧（StateChatsPopover）。画面の見出しの状態ごとの数（StateStats）と、
  * 右のパネルのタブのまとまりの名前の札から開く。置き場所（absolute / fixed）は開く側で決める
  */
-.state-runs-popover {
+.state-chats-popover {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
@@ -17,11 +17,11 @@
   box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
 }
 
-.state-runs-section + .state-runs-section {
+.state-chats-section + .state-chats-section {
   margin-top: 8px;
 }
 
-.state-runs-head {
+.state-chats-head {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -31,7 +31,7 @@
   font-weight: 600;
 }
 
-.state-runs-row {
+.state-chats-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -47,16 +47,16 @@
   cursor: pointer;
 }
 
-.state-runs-row:hover {
+.state-chats-row:hover {
   background: var(--bg-hover);
 }
 
 /* 行の状態の印（StatusSlot。見出しの点の真下に置く）。作業中のまま未読の緑の点の縁は、一覧の地の色にする（サイドバーの地の色だと縁が浮く） */
-.state-runs-row .status-unread-badge {
+.state-chats-row .status-unread-badge {
   border-color: var(--bg-elev);
 }
 
-.state-runs-title {
+.state-chats-title {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -64,19 +64,19 @@
   white-space: nowrap;
 }
 
-.state-runs-project,
-.state-runs-time {
+.state-chats-project,
+.state-chats-time {
   flex: none;
   font-size: 11px;
 }
 
-.state-runs-empty {
+.state-chats-empty {
   margin: 4px 6px;
   font-size: 12px;
 }
 
 /* いちばん下の新しいチャットのボタン（タブのまとまりの札から開いたとき）。一覧と線で分け、行と同じ高さで押しやすく */
-.state-runs-new {
+.state-chats-new {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -94,6 +94,6 @@
   cursor: pointer;
 }
 
-.state-runs-new:hover {
+.state-chats-new:hover {
   background: var(--bg-hover);
 }

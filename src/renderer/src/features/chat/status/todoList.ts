@@ -1,5 +1,5 @@
 // チャットの ToDo（エージェントが TodoWrite / TaskCreate・TaskUpdate で付けた作業の一覧）
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 
 export type TodoStatus = "pending" | "in_progress" | "completed";
 
@@ -19,7 +19,7 @@ const asStatus = (value: unknown): TodoStatus => (value === "in_progress" || val
  * TodoWrite は毎回すべてを書き直す（最後のものが今の一覧）。TaskCreate は 1 件ずつ足し（番号は結果の「Task #3」から）、
  * TaskUpdate は番号で状態を変える（deleted は消す）。TodoWrite と Task の両方があれば、後に使った方を見る
  */
-export function collectTodos(events: RunEvent[]): TodoItem[] {
+export function collectTodos(events: ChatEvent[]): TodoItem[] {
   let written: TodoItem[] = [];
   const tasks = new Map<string, TodoItem>();
   const pendingCreate = new Map<string, { content: string; activeForm?: string }>();

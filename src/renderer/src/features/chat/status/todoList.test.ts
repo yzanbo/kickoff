@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { collectTodos } from "./todoList";
 
 let nextId = 1;
-const ev = (type: string, data: object) => ({ id: nextId++, run_id: 1, type, data, created_at: "2026-11-03T00:00:00Z" }) as unknown as RunEvent;
+const ev = (type: string, data: object) => ({ id: nextId++, chat_id: 1, type, data, created_at: "2026-11-03T00:00:00Z" }) as unknown as ChatEvent;
 const use = (name: string, input: object, id = `u${nextId}`) => ev("tool_use", { id, name, input });
 
 test("ToDo: TodoWrite は最後に書いたものが今の一覧", () => {

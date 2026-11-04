@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { itemIndexOfEvent, MAX_TAIL, revealRange, TIMELINE_WINDOW, windowStart } from "./timelineWindow";
 import type { TimelineItem } from "./timelineItems";
 
-const ev = (id: number) => ({ id }) as unknown as RunEvent;
+const ev = (id: number) => ({ id }) as unknown as ChatEvent;
 
 test("流れの窓: 最近の shown 件を描き、移り先が窓の外なら、その少し前から描く", () => {
   assert.equal(windowStart(500, 120), 380);

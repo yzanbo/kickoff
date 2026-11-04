@@ -14,22 +14,22 @@ export class ReconnectWatcher {
       /** 確かめる間隔 */
       intervalMs: number;
       /** つながった: 待っていたチャット（待つのをやめてから渡す） */
-      onOnline: (runIds: number[]) => void;
+      onOnline: (chatIds: number[]) => void;
     },
   ) {}
 
-  has(runId: number): boolean {
-    return this.waiting.has(runId);
+  has(chatId: number): boolean {
+    return this.waiting.has(chatId);
   }
 
-  add(runId: number) {
-    this.waiting.add(runId);
+  add(chatId: number) {
+    this.waiting.add(chatId);
     this.schedule();
   }
 
   /** 待つのをやめる（待っていたら true） */
-  remove(runId: number): boolean {
-    return this.waiting.delete(runId);
+  remove(chatId: number): boolean {
+    return this.waiting.delete(chatId);
   }
 
   stop() {
@@ -50,9 +50,9 @@ export class ReconnectWatcher {
     if (this.waiting.size === 0 || this.stopped) return;
     const online = await this.opts.check().catch(() => false);
     if (online && !this.stopped && this.waiting.size > 0) {
-      const runIds = [...this.waiting];
+      const chatIds = [...this.waiting];
       this.waiting.clear();
-      this.opts.onOnline(runIds);
+      this.opts.onOnline(chatIds);
     } else {
       this.schedule();
     }

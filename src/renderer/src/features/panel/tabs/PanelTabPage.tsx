@@ -1,11 +1,11 @@
 import { lazy, Suspense, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { BrowserPane } from "@/features/browser/BrowserPane";
-import { RunPane } from "@/features/chat/pane/ChatPane";
+import { ChatPane } from "@/features/chat/pane/ChatPane";
 import { NewChatContext } from "@/features/chat/queue/askInNewChat";
 import { SubagentPane } from "@/features/chat/subagents/SubagentPane";
 import { NewChatPane } from "./NewChatPane";
-import type { PanelTab, SidePanelController } from "@/features/panel/usePanel";
+import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
 // xterm.js は、ターミナルのタブを開いたときだけ読み込む
 const TerminalPane = lazy(() => import("@/features/terminal/TerminalPane"));
@@ -27,7 +27,7 @@ export function PanelTabPage({
   split = false,
 }: {
   tab: PanelTab;
-  panel: SidePanelController;
+  panel: PanelController;
   panelOpen: boolean;
   /** タブが入っているペイン */
   paneId: string;
@@ -46,17 +46,17 @@ export function PanelTabPage({
       {t.kind === "chat" ? (
         // 送信待ちの指示を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
         <NewChatContext.Provider value={panel.openNew}>
-        <RunPane
+        <ChatPane
           projectId={t.projectId}
-          runId={t.id}
+          chatId={t.id}
           focus={t.focus}
           visible={visible}
-          onOpenSubagent={(toolUseId, title) => panel.openSubagent({ runId: t.id, projectId: t.projectId, toolUseId, title })}
+          onOpenSubagent={(toolUseId, title) => panel.openSubagent({ chatId: t.id, projectId: t.projectId, toolUseId, title })}
           // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
-          onRunChange={(run) =>
+          onChatChange={(chat) =>
             panel.updateTab(t.key, (x) =>
-              x.kind === "chat" && x.run !== run
-                ? { ...x, title: run.title, status: run.status, attention: run.attention, projectId: run.project_id, run }
+              x.kind === "chat" && x.chat !== chat
+                ? { ...x, title: chat.title, status: chat.status, unread: chat.unread, projectId: chat.project_id, chat }
                 : x,
             )
           }
@@ -72,15 +72,15 @@ export function PanelTabPage({
           projects={panel.projects}
           onProjectChange={(projectId) => panel.updateTab(t.key, () => ({ ...t, projectId, group: undefined, groupName: undefined }))}
           onGroupChange={(group, groupName) => panel.updateTab(t.key, (x) => (x.kind === "new" ? { ...x, group, groupName } : x))}
-          onCreated={(run) => panel.replaceWithChat(t.key, run)}
+          onCreated={(chat) => panel.replaceWithChat(t.key, chat)}
           onDraftChange={(text) => panel.updateTab(t.key, (x) => (x.kind === "new" && (x.draftText ?? "") !== text ? { ...x, draftText: text } : x))}
         />
       ) : t.kind === "subagent" ? (
         <SubagentPane
           projectId={t.projectId}
-          runId={t.runId}
+          chatId={t.chatId}
           toolUseId={t.toolUseId}
-          onOpenSubagent={(toolUseId, title) => panel.openSubagent({ runId: t.runId, projectId: t.projectId, toolUseId, title })}
+          onOpenSubagent={(toolUseId, title) => panel.openSubagent({ chatId: t.chatId, projectId: t.projectId, toolUseId, title })}
         />
       ) : t.kind === "terminal" ? (
         <Suspense fallback={<div className="page muted">読み込み中…</div>}>

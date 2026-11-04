@@ -1,13 +1,13 @@
 import { FolderPlus, Plus } from "lucide-react";
 import { useEffect } from "react";
-import type { RunGroup } from "@shared/types";
-import { useRunStates } from "@/app/chatStatesContext";
+import type { ChatGroup } from "@shared/types";
+import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { GROUP_FLASH_EVENT } from "@/features/group/groups";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import type { ReopenRoute } from "@/app/router";
 import { boardPanelKey } from "@/features/panel/state/panelMemory";
-import { useSidePanel } from "@/features/panel/usePanel";
+import { usePanel } from "@/features/panel/usePanel";
 import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader } from "./BoardHeader";
@@ -26,7 +26,7 @@ const GROUP_LANES: readonly BoardLane[] = ["group"];
 
 interface Props {
   projectId: number;
-  groups: RunGroup[];
+  groups: ChatGroup[];
   /** サイドバーのグループの＋から来たとき: そのグループで新しいチャットを始める */
   focus?: ReopenRoute;
   /** サイドバーのグループ名から来たとき: そのグループを表示して、背景と枠を少しのあいだハイライトする（1 秒ほどで消える。押し直すたびにやり直す。広がる光の動きは付けない） */
@@ -41,7 +41,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   const board = useGroupBoard({ projectId, groups });
   const { view, split, menu, rename, over, dropProps } = board;
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
-  const panel = useSidePanel({ memoryKey: boardPanelKey(projectId), scope: projectId, holdEsc: menu.isOpen });
+  const panel = usePanel({ memoryKey: boardPanelKey(projectId), scope: projectId, holdEsc: menu.isOpen });
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {
@@ -71,13 +71,13 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   /** カード・リストの行で共通: クリックで右側に開く、ドラッグでグループを移す、右クリックでメニュー */
   const cards = useBoardCards({ panel, rename, menu, onOpen: panel.open, drag: { hint: "ドラッグでグループを移す" } });
   // チャットの状態（回答待ちの依頼は App が持つ）
-  const { stateOf } = useRunStates();
+  const { stateOf } = useChatStates();
 
   // スイムレーン: グループごとの段に、下書き・作業中・回答待ち・未読・既読の列を並べる
   const entries: BoardEntry[] = board.shown
     .filter(board.search.matches)
     .sort((a, b) => b.active_at.localeCompare(a.active_at))
-    .map((run) => ({ run, state: stateOf(run) }));
+    .map((chat) => ({ chat, state: stateOf(chat) }));
 
   const header = (
     <BoardHeader
@@ -112,7 +112,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       onNewChat={() => panel.openNew({ projectId })}
       projectId={projectId}
       menu={menu}
-      onOpenRun={panel.open}
+      onOpenChat={panel.open}
       rename={rename}
       onError={board.setError}
       after={board.groupMenu.menu}

@@ -16,13 +16,13 @@ import { HAND_OVER_NOW, resumeRequest, retryRequest } from "./subagentRelay";
  * メインが作業中なら止めずに伝え、作業中でなければすぐ送る（tell の API が決める）
  */
 export function SubagentActions({
-  runId,
+  chatId,
   entry,
   busy,
   className,
   onOpen,
 }: {
-  runId: number;
+  chatId: number;
   entry: SubagentEntry;
   busy: boolean;
   className?: string;
@@ -31,7 +31,7 @@ export function SubagentActions({
 }) {
   if (entry.status === "running") {
     const stalled = busy && entry.agentId && activityOf(entry.lastActivityAt).level === "stalled";
-    return stalled ? <StopStalled runId={runId} entry={entry} agentId={entry.agentId!} className={className} /> : null;
+    return stalled ? <StopStalled chatId={chatId} entry={entry} agentId={entry.agentId!} className={className} /> : null;
   }
   // 報告を送ったのに親に届かなかった: 次の指示に添えて渡すが、待たずにいま渡すこともできる（本文はコアが添える）
   if (entry.status === "completed" && entry.delivery === "lost" && entry.undeliveredReport) {
@@ -43,7 +43,7 @@ export function SubagentActions({
           title="次の指示を待たずに、届いていなかった報告をメインのエージェントにいま渡します（渡さなくても、次に送る指示に自動で添えます）"
           onClick={(e) => {
             e.stopPropagation();
-            void api.tellRun(runId, HAND_OVER_NOW, {}).catch(reportFailure("報告を渡せませんでした"));
+            void api.tellChat(chatId, HAND_OVER_NOW, {}).catch(reportFailure("報告を渡せませんでした"));
           }}
         >
           <Inbox size={12} aria-hidden />
@@ -71,7 +71,7 @@ export function SubagentActions({
     ) : null;
   }
   if (!isSubagentHalted(entry)) return null;
-  const send = (text: string, failure: string) => api.tellRun(runId, text, {}).catch(reportFailure(failure));
+  const send = (text: string, failure: string) => api.tellChat(chatId, text, {}).catch(reportFailure(failure));
   const resume = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (entry.agentId) void send(resumeRequest(entry.agentId, entry.description, { outputLimit: entry.outputLimit }), "再開を頼めませんでした");
@@ -102,7 +102,7 @@ export function SubagentActions({
 }
 
 /** 長く動きのないサブエージェントを止める（報告は届かなくなるので確かめる。止めたら一覧の「再開」「やり直す」で戻せる） */
-function StopStalled({ runId, entry, agentId, className }: { runId: number; entry: SubagentEntry; agentId: string; className?: string }) {
+function StopStalled({ chatId, entry, agentId, className }: { chatId: number; entry: SubagentEntry; agentId: string; className?: string }) {
   const stop = async (e: React.MouseEvent) => {
     e.stopPropagation();
     const ok = await confirmDialog({
@@ -111,7 +111,7 @@ function StopStalled({ runId, entry, agentId, className }: { runId: number; entr
       confirmLabel: "止める",
       danger: true,
     });
-    if (ok) await api.stopBackgroundTask(runId, agentId).catch(reportFailure("サブエージェントを止められませんでした"));
+    if (ok) await api.stopBackgroundTask(chatId, agentId).catch(reportFailure("サブエージェントを止められませんでした"));
   };
   return (
     <span className={cx("subagent-recovery", className)}>

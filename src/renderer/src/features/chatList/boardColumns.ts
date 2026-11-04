@@ -1,7 +1,7 @@
 import { boardColumnOf } from "@shared/chat/state";
-import { BOARD_COLUMNS, type AgentState, type BoardColumn, type Run } from "@shared/types";
+import { BOARD_COLUMNS, type AgentState, type BoardColumn, type Chat } from "@shared/types";
 
-export type BoardEntry = { run: Run; state: AgentState };
+export type BoardEntry = { chat: Chat; state: AgentState };
 
 /** チャットを状態の列に分ける（並びはそのまま） */
 export function byColumn(entries: BoardEntry[]) {

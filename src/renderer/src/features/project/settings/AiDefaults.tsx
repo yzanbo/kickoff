@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionChoice, type Project, type ProjectDefaults } from "@shared/types";
+import { EFFORT_LABELS, PERMISSION_LABELS, type AppSettings, type EffortLevel, type PermissionMode, type Project, type ProjectDefaults } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useSave } from "@/hooks/useSave";
@@ -57,7 +57,7 @@ export function AiDefaults({ project, app }: { project: Project; app: AppSetting
           </select>
         </Field>
         <Field label="権限モード">
-          <select value={draft.permission ?? INHERIT} onChange={(e) => set("permission", e.target.value as PermissionChoice | typeof INHERIT)}>
+          <select value={draft.permission ?? INHERIT} onChange={(e) => set("permission", e.target.value as PermissionMode | typeof INHERIT)}>
             <option value={INHERIT}>アプリの設定に従う（{appPermission}）</option>
             <PermissionOptions model={currentModel} />
           </select>

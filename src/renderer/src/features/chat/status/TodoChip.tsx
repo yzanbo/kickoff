@@ -1,6 +1,6 @@
 import { CheckCircle2, ChevronUp, Circle, CircleDot, ListTodo } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useDismiss } from "@/hooks/useDismiss";
 import { collectTodos, type TodoStatus } from "./todoList";
@@ -12,7 +12,7 @@ const STATUS_LABELS: Record<TodoStatus, string> = { pending: "未着手", in_pro
  * チャット欄の上の「ToDo 2/5」。エージェントが付けた作業の一覧の進み具合を出し、押すと一覧が開く。
  * 作業中のものがあれば、その作業中の言い方を添える
  */
-export function TodoChip({ events }: { events: RunEvent[] }) {
+export function TodoChip({ events }: { events: ChatEvent[] }) {
   const todos = useMemo(() => collectTodos(events), [events]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);

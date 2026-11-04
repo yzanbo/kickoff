@@ -1,20 +1,20 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { NewRun, Run, RunEvent, RunEventData, RunStatus, SearchHit } from "@shared/types";
+import type { NewChat, Chat, ChatEvent, ChatEventData, ChatStatus, SearchHit } from "@shared/types";
 import { bit, touchProject, updateRow, type Notify, type Row } from "./common.js";
 
 /** チャットの一覧の絞り込み */
-export interface RunFilter {
+export interface ChatFilter {
   projectId?: number;
-  statuses?: RunStatus[];
+  statuses?: ChatStatus[];
   limit?: number;
   includeArchived?: boolean;
   onlyArchived?: boolean;
 }
 
 /** チャットの変えられる項目 */
-export type RunPatch = Partial<
+export type ChatPatch = Partial<
   Pick<
-    Run,
+    Chat,
     | "title"
     | "status"
     | "session_id"
@@ -26,7 +26,7 @@ export type RunPatch = Partial<
     | "num_turns"
     | "result"
     | "error"
-    | "attention"
+    | "unread"
     | "archived_at"
     | "context_tokens"
     | "context_window"
@@ -35,10 +35,10 @@ export type RunPatch = Partial<
   >
 >;
 
-const RUN_COLUMNS = [
+const CHAT_COLUMNS = [
   "branch",
   "turn_started_at",
-  "attention",
+  "unread",
   "archived_at",
   "context_tokens",
   "context_window",
@@ -57,8 +57,8 @@ const RUN_COLUMNS = [
 
 interface EventRow {
   id: number;
-  run_id: number;
-  type: RunEvent["type"];
+  chat_id: number;
+  type: ChatEvent["type"];
   data: string;
   created_at: string;
 }
@@ -83,51 +83,51 @@ function snippetAround(text: string, keyword: string): { snippet: string; match_
 function keywordMatch(keyword: string): { from: string; where: string[]; params: Row } {
   if ([...keyword].length >= 3) {
     return {
-      from: "run_event_search s JOIN run_events e ON e.id = s.rowid",
-      where: ["run_event_search MATCH $match"],
+      from: "chat_event_search s JOIN chat_events e ON e.id = s.rowid",
+      where: ["chat_event_search MATCH $match"],
       params: { match: `"${keyword.replaceAll('"', '""')}"` },
     };
   }
   const pattern = `%${keyword.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-  return { from: "run_events e", where: ["e.text LIKE $pattern ESCAPE '\\'"], params: { pattern } };
+  return { from: "chat_events e", where: ["e.text LIKE $pattern ESCAPE '\\'"], params: { pattern } };
 }
 
-/** ワークツリーで作業しているチャット（索引 idx_runs_worktree の条件と同じ式。書くと、その索引で引ける） */
+/** ワークツリーで作業しているチャット（索引 idx_chats_worktree の条件と同じ式。書くと、その索引で引ける） */
 const IN_WORKTREE = "worktree_path <> ''";
 
 /** DB の行（真偽値は 0 / 1） */
-type RunRow = Omit<Run, "fast_mode" | "attention" | "pinned"> & { fast_mode: number; attention: number; pinned: number };
+type ChatDbRow = Omit<Chat, "fast_mode" | "unread" | "pinned"> & { fast_mode: number; unread: number; pinned: number };
 
 /** DB の行をアプリの型に変換する（真偽値の列を boolean に） */
-function toRun(row: unknown): Run {
-  const r = row as RunRow;
-  return { ...r, fast_mode: r.fast_mode === 1, attention: r.attention === 1, pinned: r.pinned === 1 };
+function toChat(row: unknown): Chat {
+  const r = row as ChatDbRow;
+  return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1 };
 }
 
 /** 変える項目を DB の列の値にする（真偽値は 0 / 1） */
-function toRunRow({ fast_mode, attention, ...rest }: RunPatch): Row {
-  return { ...rest, fast_mode: bit(fast_mode), attention: bit(attention) } as Row;
+function toChatRow({ fast_mode, unread, ...rest }: ChatPatch): Row {
+  return { ...rest, fast_mode: bit(fast_mode), unread: bit(unread) } as Row;
 }
 
-/** チャット（エージェントとの会話セッション）と、その記録（run_events）・検索 */
-export function createRunStore(db: DatabaseSync, onChange: Notify) {
-  const get = (id: number): Run | undefined => {
-    const row = db.prepare("SELECT * FROM runs WHERE id = ?").get(id);
-    return row ? toRun(row) : undefined;
+/** チャット（エージェントとの会話セッション）と、その記録（chat_events）・検索 */
+export function createChatStore(db: DatabaseSync, onChange: Notify) {
+  const get = (id: number): Chat | undefined => {
+    const row = db.prepare("SELECT * FROM chats WHERE id = ?").get(id);
+    return row ? toChat(row) : undefined;
   };
   /** 1 列だけ変えて、変更を知らせる（active_at は進めない: 並び順を変えない操作に使う） */
-  const setColumn = (id: number, column: "attention" | "pinned" | "group_id", value: number | null): Run => {
-    db.prepare(`UPDATE runs SET ${column} = ? WHERE id = ?`).run(value, id);
-    const run = get(id)!;
-    onChange({ type: "run", run });
-    return run;
+  const setColumn = (id: number, column: "unread" | "pinned" | "group_id", value: number | null): Chat => {
+    db.prepare(`UPDATE chats SET ${column} = ? WHERE id = ?`).run(value, id);
+    const chat = get(id)!;
+    onChange({ type: "chat", chat });
+    return chat;
   };
-  const inWorktree = (projectId: number, worktreePath: string): Run[] =>
-    db.prepare(`SELECT * FROM runs WHERE project_id = ? AND worktree_path = ? AND ${IN_WORKTREE} ORDER BY id`).all(projectId, worktreePath).map(toRun);
+  const inWorktree = (projectId: number, worktreePath: string): Chat[] =>
+    db.prepare(`SELECT * FROM chats WHERE project_id = ? AND worktree_path = ? AND ${IN_WORKTREE} ORDER BY id`).all(projectId, worktreePath).map(toChat);
 
   return {
     get,
-    list(filter: RunFilter = {}): Run[] {
+    list(filter: ChatFilter = {}): Chat[] {
       const where: string[] = filter.onlyArchived ? ["archived_at IS NOT NULL"] : filter.includeArchived ? [] : ["archived_at IS NULL"];
       const params: Row = {};
       if (filter.projectId !== undefined) {
@@ -137,13 +137,13 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       if (filter.statuses?.length) {
         where.push(`status IN (${filter.statuses.map((s) => `'${s}'`).join(",")})`);
       }
-      const sql = `SELECT * FROM runs ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY id DESC LIMIT ${filter.limit ?? 100}`;
-      return db.prepare(sql).all(params).map(toRun);
+      const sql = `SELECT * FROM chats ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY id DESC LIMIT ${filter.limit ?? 100}`;
+      return db.prepare(sql).all(params).map(toChat);
     },
-    create(input: NewRun): Run {
+    create(input: NewChat): Chat {
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO runs (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
@@ -158,26 +158,26 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
           input.group_id ?? null,
           input.worktree_path ?? "",
         );
-      const run = get(Number(lastInsertRowid))!;
-      touchProject(db, run.project_id);
-      onChange({ type: "run", run });
-      return run;
+      const chat = get(Number(lastInsertRowid))!;
+      touchProject(db, chat.project_id);
+      onChange({ type: "chat", chat });
+      return chat;
     },
-    update(id: number, patch: RunPatch): Run {
-      updateRow(db, "runs", id, toRunRow(patch), RUN_COLUMNS, true);
-      const run = get(id)!;
-      onChange({ type: "run", run });
-      return run;
+    update(id: number, patch: ChatPatch): Chat {
+      updateRow(db, "chats", id, toChatRow(patch), CHAT_COLUMNS, true);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
     },
     /** チャットを完全に削除する（会話の記録も消える） */
     delete(id: number) {
-      const run = get(id);
-      if (!run) return;
-      db.prepare("DELETE FROM runs WHERE id = ?").run(id);
-      onChange({ type: "run_deleted", id, project_id: run.project_id });
+      const chat = get(id);
+      if (!chat) return;
+      db.prepare("DELETE FROM chats WHERE id = ?").run(id);
+      onChange({ type: "chat_deleted", id, project_id: chat.project_id });
     },
     /** 未読の印を付ける・外す。最後に動いた時刻（一覧の並び順）は変えない */
-    setAttention: (id: number, attention: boolean) => setColumn(id, "attention", bit(attention)),
+    setUnread: (id: number, unread: boolean) => setColumn(id, "unread", bit(unread)),
     /** サイドバーの上に固定する・やめる（最後に動いた時刻（並び順）は変えない） */
     setPinned: (id: number, pinned: boolean) => setColumn(id, "pinned", bit(pinned)),
     /** チャットをグループへ移す（null でグループから外す）。並び順が変わらないよう更新日時は進めない */
@@ -186,11 +186,11 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
      * チャットを別のプロジェクトへ移す。グループ・作業場所（ワークツリー）・最後に作業したブランチは元のプロジェクトのものなので外す
      * （作業場所は移った先の本体になる）。並び順が変わらないよう更新日時は進めない
      */
-    move(id: number, projectId: number): Run {
-      db.prepare("UPDATE runs SET project_id = ?, group_id = NULL, worktree_path = '', branch = '' WHERE id = ?").run(projectId, id);
-      const run = get(id)!;
-      onChange({ type: "run", run });
-      return run;
+    move(id: number, projectId: number): Chat {
+      db.prepare("UPDATE chats SET project_id = ?, group_id = NULL, worktree_path = '', branch = '' WHERE id = ?").run(projectId, id);
+      const chat = get(id)!;
+      onChange({ type: "chat", chat });
+      return chat;
     },
     /**
      * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数を返す。
@@ -200,13 +200,13 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
       const before = new Date(now.getTime() - days * 86_400_000).toISOString();
       const rows = db
         .prepare(
-          "SELECT id FROM runs WHERE archived_at IS NULL AND status IN ('completed', 'cancelled') AND attention = 0 AND pinned = 0 AND active_at < ?",
+          "SELECT id FROM chats WHERE archived_at IS NULL AND status IN ('completed', 'cancelled') AND unread = 0 AND pinned = 0 AND active_at < ?",
         )
         .all(before) as { id: number }[];
       const at = now.toISOString();
       for (const { id } of rows) {
-        db.prepare("UPDATE runs SET archived_at = ? WHERE id = ?").run(at, id);
-        onChange({ type: "run", run: get(id)! });
+        db.prepare("UPDATE chats SET archived_at = ? WHERE id = ?").run(at, id);
+        onChange({ type: "chat", chat: get(id)! });
       }
       return rows.length;
     },
@@ -214,46 +214,46 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
     inWorktree,
     /** ワークツリーを片付けたあと、そこで作業していたチャットの作業場所を本体に戻す（並び順は変えない） */
     clearWorktree(projectId: number, worktreePath: string): void {
-      const runs = inWorktree(projectId, worktreePath);
-      db.prepare(`UPDATE runs SET worktree_path = '' WHERE project_id = ? AND worktree_path = ? AND ${IN_WORKTREE}`).run(projectId, worktreePath);
-      for (const run of runs) onChange({ type: "run", run: get(run.id)! });
+      const chats = inWorktree(projectId, worktreePath);
+      db.prepare(`UPDATE chats SET worktree_path = '' WHERE project_id = ? AND worktree_path = ? AND ${IN_WORKTREE}`).run(projectId, worktreePath);
+      for (const chat of chats) onChange({ type: "chat", chat: get(chat.id)! });
     },
-    addEvent(runId: number, event: RunEventData): RunEvent {
+    addEvent(chatId: number, event: ChatEventData): ChatEvent {
       const { type, ...data } = event;
-      const { lastInsertRowid } = db.prepare("INSERT INTO run_events (run_id, type, data) VALUES (?, ?, ?)").run(runId, type, JSON.stringify(data));
-      const row = db.prepare("SELECT * FROM run_events WHERE id = ?").get(Number(lastInsertRowid)) as unknown as EventRow;
-      const saved: RunEvent = { ...row, data: JSON.parse(row.data) };
-      const run = get(runId);
-      if (run) onChange({ type: "run_event", project_id: run.project_id, event: saved });
+      const { lastInsertRowid } = db.prepare("INSERT INTO chat_events (chat_id, type, data) VALUES (?, ?, ?)").run(chatId, type, JSON.stringify(data));
+      const row = db.prepare("SELECT * FROM chat_events WHERE id = ?").get(Number(lastInsertRowid)) as unknown as EventRow;
+      const saved: ChatEvent = { ...row, data: JSON.parse(row.data) };
+      const chat = get(chatId);
+      if (chat) onChange({ type: "chat_event", project_id: chat.project_id, event: saved });
       return saved;
     },
-    /** 未読にする「新しい結果」（board.ts の isUnreadEvent と同じもの）のうち、いちばん新しい記録の id（なければ 0） */
-    latestUnreadEventId(runId: number): number {
+    /** 未読にする「新しい結果」（state.ts の isUnreadEvent と同じもの）のうち、いちばん新しい記録の id（なければ 0） */
+    latestUnreadEventId(chatId: number): number {
       const row = db
         .prepare(
-          "SELECT MAX(id) AS id FROM run_events WHERE run_id = ? AND ((type = 'text' AND COALESCE(json_extract(data, '$.sub'), 0) = 0) OR type IN ('result', 'error'))",
+          "SELECT MAX(id) AS id FROM chat_events WHERE chat_id = ? AND ((type = 'text' AND COALESCE(json_extract(data, '$.sub'), 0) = 0) OR type IN ('result', 'error'))",
         )
-        .get(runId) as { id: number | null };
+        .get(chatId) as { id: number | null };
       return row.id ?? 0;
     },
     /** 会話の記録を、別のチャットへ upToEventId まで写す（時刻もそのまま。分岐したチャット用。1 件ずつは知らせない） */
-    copyEvents(fromRunId: number, toRunId: number, upToEventId: number): void {
+    copyEvents(fromChatId: number, toChatId: number, upToEventId: number): void {
       db.prepare(
-        "INSERT INTO run_events (run_id, type, data, created_at) SELECT ?, type, data, created_at FROM run_events WHERE run_id = ? AND id <= ? ORDER BY id",
-      ).run(toRunId, fromRunId, upToEventId);
+        "INSERT INTO chat_events (chat_id, type, data, created_at) SELECT ?, type, data, created_at FROM chat_events WHERE chat_id = ? AND id <= ? ORDER BY id",
+      ).run(toChatId, fromChatId, upToEventId);
     },
     /** 会話の記録を、fromEventId から後ろ（fromEventId を含む）すべて消す（巻き戻し用。全文検索の索引はトリガーで追従する） */
-    deleteEventsFrom(runId: number, fromEventId: number): void {
-      db.prepare("DELETE FROM run_events WHERE run_id = ? AND id >= ?").run(runId, fromEventId);
-      const run = get(runId);
-      if (run) onChange({ type: "run_events_deleted", project_id: run.project_id, run_id: runId, from_event_id: fromEventId });
+    deleteEventsFrom(chatId: number, fromEventId: number): void {
+      db.prepare("DELETE FROM chat_events WHERE chat_id = ? AND id >= ?").run(chatId, fromEventId);
+      const chat = get(chatId);
+      if (chat) onChange({ type: "chat_events_deleted", project_id: chat.project_id, chat_id: chatId, from_event_id: fromEventId });
     },
-    listEvents(runId: number): RunEvent[] {
-      const rows = db.prepare("SELECT * FROM run_events WHERE run_id = ? ORDER BY id ASC").all(runId) as unknown as EventRow[];
+    listEvents(chatId: number): ChatEvent[] {
+      const rows = db.prepare("SELECT * FROM chat_events WHERE chat_id = ? ORDER BY id ASC").all(chatId) as unknown as EventRow[];
       return rows.map((r) => ({ ...r, data: JSON.parse(r.data) }));
     },
     /** チャットのやり取り（自分の発言と AI の返答）をキーワードで検索する（部分一致・大文字と小文字を区別しない）。新しい順 */
-    searchEvents(query: string, filter: { projectId?: number; runId?: number; limit?: number } = {}): SearchHit[] {
+    searchEvents(query: string, filter: { projectId?: number; chatId?: number; limit?: number } = {}): SearchHit[] {
       const keyword = query.trim();
       if (!keyword) return [];
       const { from, where, params } = keywordMatch(keyword);
@@ -261,14 +261,14 @@ export function createRunStore(db: DatabaseSync, onChange: Notify) {
         where.push("r.project_id = $project_id");
         params.project_id = filter.projectId;
       }
-      if (filter.runId !== undefined) {
-        where.push("e.run_id = $run_id");
-        params.run_id = filter.runId;
+      if (filter.chatId !== undefined) {
+        where.push("e.chat_id = $chat_id");
+        params.chat_id = filter.chatId;
       }
       const rows = db
         .prepare(
-          `SELECT e.id AS event_id, e.run_id, r.project_id, r.title AS run_title, e.type, e.text, e.created_at
-           FROM ${from} JOIN runs r ON r.id = e.run_id
+          `SELECT e.id AS event_id, e.chat_id, r.project_id, r.title AS chat_title, e.type, e.text, e.created_at
+           FROM ${from} JOIN chats r ON r.id = e.chat_id
            WHERE ${where.join(" AND ")}
            ORDER BY e.id DESC LIMIT ${Math.min(filter.limit ?? 50, 200)}`,
         )

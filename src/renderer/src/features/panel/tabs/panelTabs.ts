@@ -1,5 +1,5 @@
 import { Bot, Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
 import { normalizeUrl } from "@/lib/url";
 import type { PanelTab } from "@/features/panel/usePanel";
@@ -28,14 +28,14 @@ export function hostOf(url: string): string {
  * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し、
  * ブラウザは地球儀、新しいチャットはペン、ターミナルは端末の印にする
  */
-export function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string; group?: string } {
+export function tabLabel(t: PanelTab, chats: Chat[]): { Icon: LucideIcon; iconClass?: string; label: string; group?: string } {
   if (t.kind === "browser") return { Icon: Globe, label: t.title || (t.url ? hostOf(t.url) : "新しいタブ") };
   if (t.kind === "terminal") return { Icon: SquareTerminal, label: `ターミナル · ${t.label}` };
   if (t.kind === "subagent") return { Icon: Bot, iconClass: "muted", label: t.title };
   // 作成先のグループ名は名前の後ろに控えめに添える（PanelTab の group。送ったあとのチャットのタブも同じ）
   if (t.kind === "new") return { Icon: SquarePen, label: NEW_CHAT_TITLE, group: t.groupName };
   // ボードの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
-  const run = runs.find((r) => r.id === t.id);
-  const title = run?.title ?? t.title;
+  const chat = chats.find((r) => r.id === t.id);
+  const title = chat?.title ?? t.title;
   return { Icon: MessageSquare, iconClass: "muted", label: title === undefined ? "チャット" : chatTitle(title) };
 }

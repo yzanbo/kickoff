@@ -1,5 +1,5 @@
 import type { DragEvent, KeyboardEvent, MouseEvent } from "react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 
 /**
@@ -7,8 +7,8 @@ import { chatTitle } from "@/features/chat/chatTitle";
  * クリック・Enter = チャットを開く / 右クリック = メニュー / ドラッグ = 移す（グループのボード。移し先はボードごと）。
  * カードの中のボタンを押したときは開かない
  */
-export function runCardProps(
-  run: Run,
+export function chatCardProps(
+  chat: Chat,
   {
     dragHint,
     onOpen,
@@ -31,7 +31,7 @@ export function runCardProps(
   return {
     role: "button",
     tabIndex: 0,
-    "aria-label": `チャット「${chatTitle(run.title)}」を開く${dragHint ? `（${dragHint}）` : ""}`,
+    "aria-label": `チャット「${chatTitle(chat.title)}」を開く${dragHint ? `（${dragHint}）` : ""}`,
     draggable: Boolean(onDragStart) && !editing,
     onDragStart,
     onDragEnd,

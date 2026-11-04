@@ -1,30 +1,30 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { kanbanEntries } from "./useKanbanEntries";
 
-const run = (id: number, extra: Partial<Run> = {}) =>
-  ({ id, project_id: 1, worktree_path: "", archived_at: null, active_at: `2026-01-0${id}`, title: `c${id}`, ...extra }) as Run;
+const chat = (id: number, extra: Partial<Chat> = {}) =>
+  ({ id, project_id: 1, worktree_path: "", archived_at: null, active_at: `2026-01-0${id}`, title: `c${id}`, ...extra }) as Chat;
 const all = { archive: "all" as const, worktree: "all", matches: () => true };
-const stateOf = () => "done" as const;
-const ids = (list: { run: Run }[]) => list.map((e) => e.run.id);
+const stateOf = () => "read" as const;
+const ids = (list: { chat: Chat }[]) => list.map((e) => e.chat.id);
 
 test("kanbanEntries: 新しく動いた順に並べ、状態を付ける", () => {
-  const list = kanbanEntries([run(1), run(3), run(2)], all, () => "running");
+  const list = kanbanEntries([chat(1), chat(3), chat(2)], all, () => "running");
   assert.deepEqual(ids(list), [3, 2, 1]);
   assert.equal(list[0].state, "running");
 });
 
 test("kanbanEntries: アーカイブ済みだけ・作業場所・名前で絞る", () => {
-  const runs = [run(1, { archived_at: "x" }), run(2, { worktree_path: "/wt" }), run(3), run(4)];
-  assert.deepEqual(ids(kanbanEntries(runs, { ...all, archive: "archived" }, stateOf)), [1]);
-  assert.deepEqual(ids(kanbanEntries(runs, { ...all, worktree: "/wt" }, stateOf)), [2]);
-  assert.deepEqual(ids(kanbanEntries(runs, { ...all, worktree: "" }, stateOf)), [4, 3, 1]);
-  assert.deepEqual(ids(kanbanEntries(runs, { ...all, matches: (r) => r.title === "c4" }, stateOf)), [4]);
+  const chats = [chat(1, { archived_at: "x" }), chat(2, { worktree_path: "/wt" }), chat(3), chat(4)];
+  assert.deepEqual(ids(kanbanEntries(chats, { ...all, archive: "archived" }, stateOf)), [1]);
+  assert.deepEqual(ids(kanbanEntries(chats, { ...all, worktree: "/wt" }, stateOf)), [2]);
+  assert.deepEqual(ids(kanbanEntries(chats, { ...all, worktree: "" }, stateOf)), [4, 3, 1]);
+  assert.deepEqual(ids(kanbanEntries(chats, { ...all, matches: (r) => r.title === "c4" }, stateOf)), [4]);
 });
 
 test("kanbanEntries: 全プロジェクトのボードでは、出すプロジェクト以外のチャットを除く", () => {
-  const runs = [run(1, { project_id: 1 }), run(2, { project_id: 2 })];
-  assert.deepEqual(ids(kanbanEntries(runs, all, stateOf, new Set([2]))), [2]);
-  assert.deepEqual(ids(kanbanEntries(runs, all, stateOf)), [2, 1]);
+  const chats = [chat(1, { project_id: 1 }), chat(2, { project_id: 2 })];
+  assert.deepEqual(ids(kanbanEntries(chats, all, stateOf, new Set([2]))), [2]);
+  assert.deepEqual(ids(kanbanEntries(chats, all, stateOf)), [2, 1]);
 });

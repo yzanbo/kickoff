@@ -5,7 +5,7 @@ import type { StateCounts } from "@/features/chat/chatState";
 /** 角に出す順（左上 = 作業中・右上 = 未読・左下 = 回答待ち）と、class 名 */
 const CORNERS = [
   ["running", "running"],
-  ["review", "review"],
+  ["unread", "unread"],
   ["needs_input", "needs-input"],
 ] as const;
 

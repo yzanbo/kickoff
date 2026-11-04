@@ -7,7 +7,7 @@ import { TARGET_MENU_WIDTH, targetMenuHeight, TerminalTargetMenu } from "@/featu
 import { OPEN_WITH_MENU_WIDTH, OpenWithMenu, openWithMenuHeight } from "./OpenWithMenu";
 import type { PaneLeaf } from "@/features/panel/layout/paneLayout";
 import type { OpenWithKind } from "@/features/panel/tabs/PanelTabAdds";
-import type { SidePanelController, TerminalTarget } from "@/features/panel/usePanel";
+import type { PanelController, TerminalTarget } from "@/features/panel/usePanel";
 
 /** ▾ を押したボタンのセレクタ（外側のクリックとして閉じず、ボタンの側で開閉する） */
 const CARET = ".panel-open-with";
@@ -23,7 +23,7 @@ export function useOpenWithMenu({
   targets,
   chatTarget,
 }: {
-  panel: SidePanelController;
+  panel: PanelController;
   targets: TerminalTarget[];
   /** ペインで表示しているチャットの作業場所（チャットでなければ undefined） */
   chatTarget: (pane: PaneLeaf) => TerminalTarget | undefined;

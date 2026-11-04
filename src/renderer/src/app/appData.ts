@@ -37,7 +37,7 @@ export function useAppData(onEvent: (event: BusEvent) => void) {
     switch (event.type) {
       case "project":
       case "project_deleted":
-      case "run":
+      case "chat":
         loadProjects();
         break;
       case "approval":

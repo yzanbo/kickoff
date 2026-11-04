@@ -1,37 +1,37 @@
 import { useState, type CSSProperties, type DragEvent } from "react";
-import type { Run } from "@shared/types";
-import { useRunStates } from "@/app/chatStatesContext";
+import type { Chat } from "@shared/types";
+import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
-import { startRunDrag } from "@/features/group/groups";
-import type { useRunRename } from "@/features/chat/useChatRename";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import { startChatDrag } from "@/features/group/groups";
+import type { useChatRename } from "@/features/chat/useChatRename";
+import type { PanelController } from "@/features/panel/usePanel";
 import type { BoardEntry } from "@/features/chatList/boardColumns";
 import { useBoardListCompact } from "./BoardHeader";
-import { RunCardContent, RunRowContent } from "./ChatCard";
-import { runCardProps } from "./chatCardProps";
+import { ChatCardContent, ChatRowContent } from "./ChatCard";
+import { chatCardProps } from "./chatCardProps";
 
 /** カードの右クリックメニューの状態（どこに・どのチャットの） */
-export type CardMenuAt = { x: number; y: number; run: Run };
+export type ChatMenuAt = { x: number; y: number; chat: Chat };
 
-/** カードの右クリックメニュー（開いている間はパネルを Esc で閉じない: useSidePanel の holdEsc に isOpen を渡す） */
+/** カードの右クリックメニュー（開いている間はパネルを Esc で閉じない: usePanel の holdEsc に isOpen を渡す） */
 export function useCardMenu() {
-  const [at, setAt] = useState<CardMenuAt | null>(null);
-  return { at, isOpen: at !== null, open: (where: { x: number; y: number }, run: Run) => setAt({ ...where, run }), close: () => setAt(null) };
+  const [at, setAt] = useState<ChatMenuAt | null>(null);
+  return { at, isOpen: at !== null, open: (where: { x: number; y: number }, chat: Chat) => setAt({ ...where, chat }), close: () => setAt(null) };
 }
 
 interface Options {
-  panel: SidePanelController;
-  rename: ReturnType<typeof useRunRename>;
+  panel: PanelController;
+  rename: ReturnType<typeof useChatRename>;
   menu: ReturnType<typeof useCardMenu>;
   /** カードを押したとき（パネルで開く。プロジェクトのボードは URL も変える） */
-  onOpen: (run: Run) => void;
+  onOpen: (chat: Chat) => void;
   /** ドラッグで移せるボード（グループのボード）だけ。hint は読み上げの「（ドラッグで…）」 */
   drag?: { hint: string };
   /** ボードごとのカードのクラス（プロジェクト名つきなど。共通の archived の後・selected より前に付く） */
-  classFor?: (run: Run) => string | false | undefined;
-  style?: (run: Run) => CSSProperties | undefined;
+  classFor?: (chat: Chat) => string | false | undefined;
+  style?: (chat: Chat) => CSSProperties | undefined;
   /** 全プロジェクトのボードでは、カードにプロジェクト名を出す */
-  projectName?: (run: Run) => string | undefined;
+  projectName?: (chat: Chat) => string | undefined;
 }
 
 /**
@@ -41,41 +41,41 @@ interface Options {
  * パネルで表示中なら selected（チャットはどれもサイドバーと連動してタブにあるので、タブで開いているかの印は付けない）
  */
 export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, style, projectName }: Options) {
-  const { pendingCount } = useRunStates();
+  const { pendingCount } = useChatStates();
   // リストの行を 1 行にまとめるか（見出しの切り替えとそろう）
   const [compactRows] = useBoardListCompact();
   // ドラッグしている途中のチャット（薄く出す）
-  const [dragRun, setDragRun] = useState<number>();
-  const cardProps = (run: Run) => ({
-    ...runCardProps(run, {
+  const [dragChat, setDragChat] = useState<number>();
+  const cardProps = (chat: Chat) => ({
+    ...chatCardProps(chat, {
       dragHint: drag?.hint,
-      onOpen: () => onOpen(run),
-      onMenu: (at) => menu.open(at, run),
+      onOpen: () => onOpen(chat),
+      onMenu: (at) => menu.open(at, chat),
       onDragStart: drag
         ? (e: DragEvent) => {
-            startRunDrag(e, run.id);
-            setDragRun(run.id);
+            startChatDrag(e, chat.id);
+            setDragChat(chat.id);
           }
         : undefined,
-      onDragEnd: drag ? () => setDragRun(undefined) : undefined,
-      editing: Boolean(rename.editorFor(run)),
+      onDragEnd: drag ? () => setDragChat(undefined) : undefined,
+      editing: Boolean(rename.editorFor(chat)),
     }),
-    style: style?.(run),
+    style: style?.(chat),
   });
-  const cardClass = (run: Run) => cx(run.archived_at && "archived", classFor?.(run), dragRun === run.id && "dragging", panel.isShowing(run.id) && "selected");
+  const cardClass = (chat: Chat) => cx(chat.archived_at && "archived", classFor?.(chat), dragChat === chat.id && "dragging", panel.isShowing(chat.id) && "selected");
   return {
     cardProps,
     cardClass,
     /** ボードのカード */
-    card: ({ run, state }: BoardEntry) => (
-      <article key={run.id} className={cx("board-card", cardClass(run))} {...cardProps(run)}>
-        <RunCardContent run={run} state={state} projectName={projectName?.(run)} pending={pendingCount(run.id)} rename={rename.editorFor(run)} />
+    card: ({ chat, state }: BoardEntry) => (
+      <article key={chat.id} className={cx("board-card", cardClass(chat))} {...cardProps(chat)}>
+        <ChatCardContent chat={chat} state={state} projectName={projectName?.(chat)} pending={pendingCount(chat.id)} rename={rename.editorFor(chat)} />
       </article>
     ),
     /** リストの行 */
-    row: ({ run, state }: BoardEntry) => (
-      <div key={run.id} className={cx("list-row", compactRows && "compact", cardClass(run))} {...cardProps(run)}>
-        <RunRowContent run={run} state={state} projectName={projectName?.(run)} rename={rename.editorFor(run)} />
+    row: ({ chat, state }: BoardEntry) => (
+      <div key={chat.id} className={cx("list-row", compactRows && "compact", cardClass(chat))} {...cardProps(chat)}>
+        <ChatRowContent chat={chat} state={state} projectName={projectName?.(chat)} rename={rename.editorFor(chat)} />
       </div>
     ),
   };

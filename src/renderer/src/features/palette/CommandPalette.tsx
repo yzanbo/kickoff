@@ -1,6 +1,6 @@
 import { Bot, FolderGit2, MessageSquare, Plus, Search, User } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { Run, SearchHit } from "@shared/types";
+import type { Chat, SearchHit } from "@shared/types";
 import { api } from "@/api";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
@@ -43,9 +43,9 @@ function messageItem(hit: SearchHit, projectName: (id: number) => string): Item 
       </>
     ),
     text: hit.snippet,
-    hint: `${chatTitle(hit.run_title)} · ${projectName(hit.project_id)}`,
+    hint: `${chatTitle(hit.chat_title)} · ${projectName(hit.project_id)}`,
     icon: hit.type === "user" ? <User size={15} aria-label="自分" /> : <Bot size={15} aria-label="AI" />,
-    route: { name: "run", projectId: hit.project_id, runId: hit.run_id, focus: hit.event_id },
+    route: { name: "chat", projectId: hit.project_id, chatId: hit.chat_id, focus: hit.event_id },
   };
 }
 
@@ -81,7 +81,7 @@ function useMessageSearch(query: string, enabled: boolean) {
 export function CommandPalette({ onClose }: { onClose: () => void }) {
   const { projects, projectName } = useProjects();
   const [query, setQuery] = useState("");
-  const [runs, setRuns] = useState<Run[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
   const dialog = useModalDialog();
   // 探す対象（複数選べる。開き直しても覚えておく。1 つは必ず残す）
   const [stored, setStored] = useSharedList(COMMAND_PALETTE_TARGETS_KEY);
@@ -95,7 +95,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
   const { hits, searching } = useMessageSearch(query, targets.includes("message"));
 
   useEffect(() => {
-    void api.allRuns().then(setRuns).catch(() => {});
+    void api.allChats().then(setChats).catch(() => {});
   }, []);
 
   const items = useMemo<Item[]>(() => {
@@ -114,16 +114,16 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       }
     }
     if (targets.includes("chat")) {
-      for (const r of runs) {
+      for (const r of chats) {
         const title = chatTitle(r.title);
-        named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), icon: <MessageSquare size={15} />, route: { name: "run", projectId: r.project_id, runId: r.id } });
+        named.push({ key: `r-${r.id}`, label: title, text: title, hint: projectName(r.project_id), icon: <MessageSquare size={15} />, route: { name: "chat", projectId: r.project_id, chatId: r.id } });
       }
     }
     const filtered = q ? named.filter((i) => `${i.text} ${i.hint}`.toLowerCase().includes(q)) : named;
     // 名前で見つかったものを先に、続けてチャットの中の文言（それぞれ 50 件まで）
     return [...filtered.slice(0, 50), ...hits.map((h) => messageItem(h, projectName))];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, runs, query, hits, targetKey, projectName]);
+  }, [projects, chats, query, hits, targetKey, projectName]);
 
   function go(item: Item | undefined) {
     if (!item) return;

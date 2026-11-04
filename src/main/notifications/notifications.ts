@@ -1,6 +1,6 @@
 // Mac の通知（メインプロセスの Notification）。画面を読み込み直しても・Kickoff を終えても通知センターに残り、押すとそのチャットを開く
 import { app, ipcMain, Notification, shell, type BrowserWindow } from "electron";
-import { notificationIdOf, notifyArgs, runOfNotificationId, type NotifyArgs } from "../ipc/ipcArgs.js";
+import { notificationIdOf, notifyArgs, chatOfNotificationId, type NotifyArgs } from "../ipc/ipcArgs.js";
 
 /** 通知を出した結果（届かなかったら理由。Mac の設定で許可していないときなど） */
 export interface NotifyResult {
@@ -35,8 +35,8 @@ export function registerNotifications(mainWindow: () => BrowserWindow | undefine
     if (live.length > KEEP) live.shift();
     n.on("click", () => {
       focus();
-      const run = runOfNotificationId(n.id);
-      if (run) mainWindow()?.webContents.send("kickoff:open-run", run.projectId, run.runId);
+      const chat = chatOfNotificationId(n.id);
+      if (chat) mainWindow()?.webContents.send("kickoff:open-chat", chat.projectId, chat.chatId);
     });
   };
   // 前回までに出して、まだ通知センターに残っているものも、押したらそのチャットを開けるようにする
@@ -49,9 +49,9 @@ export function registerNotifications(mainWindow: () => BrowserWindow | undefine
 }
 
 /** 通知を出し、出せたか（Mac の設定で許可していなければ、その理由）を返す */
-function show({ title, body, run }: NotifyArgs, keep: (n: Notification) => void): Promise<NotifyResult> {
+function show({ title, body, chat }: NotifyArgs, keep: (n: Notification) => void): Promise<NotifyResult> {
   if (!Notification.isSupported()) return Promise.resolve({ ok: false, error: "この環境では通知を使えません" });
-  const n = new Notification({ id: notificationIdOf(run), title, body, silent: false });
+  const n = new Notification({ id: notificationIdOf(chat), title, body, silent: false });
   keep(n);
   return new Promise((resolve) => {
     n.once("show", () => resolve({ ok: true }));

@@ -12,7 +12,7 @@ export function startAutoArchive(store: Store, bus: Bus): () => void {
   const check = () => {
     const days = store.getSettings().autoArchiveDays;
     if (!days) return;
-    const count = store.archiveStaleRuns(days);
+    const count = store.archiveStaleChats(days);
     if (count > 0) console.log(`[core] 完了から ${days} 日たったチャットを ${count} 件アーカイブしました`);
   };
   check();

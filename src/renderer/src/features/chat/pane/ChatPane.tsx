@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Approval, BackgroundState, Project, QueuedMessage, Run, RunEvent } from "@shared/types";
+import type { Approval, BackgroundState, Project, QueuedMessage, Chat, ChatEvent } from "@shared/types";
 import { api } from "@/api";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { useSharedFlag } from "@/hooks/useStoredState";
@@ -11,10 +11,10 @@ import { Composer } from "@/features/chat/composer/Composer";
 import { QueueModeToggle, queueModeTexts, useQueueMode } from "@/features/chat/composer/QueueModeToggle";
 import type { ComposerFill } from "@/features/chat/messages/quoteComment";
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
-import { RunHeader } from "./ChatHeader";
-import { useRunOptions } from "@/features/chat/options/ChatOptionsBar";
+import { ChatHeader } from "./ChatHeader";
+import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import type { Connection } from "@/features/chat/status/ConnectionStatus";
-import { RunTimeline } from "@/features/chat/timeline/ChatTimeline";
+import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
 import { confirmStopAgents } from "@/features/chat/status/backgroundLabel";
 import { SubagentChip, useSubagents } from "@/features/chat/subagents/Subagents";
 import { QueuedMessages } from "@/features/chat/queue/QueuedMessages";
@@ -22,7 +22,7 @@ import { TodoChip } from "@/features/chat/status/TodoChip";
 import { OpenSubagentContext } from "@/features/chat/tools/ToolGroup";
 import { promptEntries, userPrompts } from "@/features/chat/prompts/promptHistory";
 import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems";
-import { useRunDetail } from "./useChatDetail";
+import { useChatDetail } from "./useChatDetail";
 import { PanelTop, TriangleAlert } from "lucide-react";
 import { TextWidthToggle, useWideText } from "./TextWidthToggle";
 import { IconButton } from "@/ui/IconButton";
@@ -38,13 +38,13 @@ import { SelectionComment } from "@/features/chat/messages/SelectionComment";
 import { confirmRewindSend, restoreFilesBefore } from "@/features/chat/rewind/rewindActions";
 import { RetryContext, useRetryActions } from "@/features/chat/rewind/FailedTurnActions";
 
-interface RunPaneProps {
+interface ChatPaneProps {
   projectId: number;
-  runId: number;
+  chatId: number;
   /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   focus?: number;
   /** チャットを読み込んだとき・名前が変わったとき（パネルのタブの名前に使う） */
-  onRunChange?: (run: Run) => void;
+  onChatChange?: (chat: Chat) => void;
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
   visible?: boolean;
   /** サブエージェントの中身を、パネルの新しいタブで開く */
@@ -52,25 +52,25 @@ interface RunPaneProps {
 }
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
-export function RunPane({ projectId, runId, focus, onRunChange, visible = true, onOpenSubagent }: RunPaneProps) {
-  const { run, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, compacting, live, error } = useRunDetail(runId, projectId);
+export function ChatPane({ projectId, chatId, focus, onChatChange, visible = true, onOpenSubagent }: ChatPaneProps) {
+  const { chat, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, compacting, live, error } = useChatDetail(chatId, projectId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
-  const notifyRun = useRef(onRunChange);
-  notifyRun.current = onRunChange;
+  const notifyChat = useRef(onChatChange);
+  notifyChat.current = onChatChange;
   useEffect(() => {
-    if (run) notifyRun.current?.(run);
-  }, [run]);
+    if (chat) notifyChat.current?.(chat);
+  }, [chat]);
 
   if (error) return <div className="page error">{error}</div>;
-  if (!run) return <div className="page muted">読み込み中…</div>;
+  if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
-    <RunView run={run} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} queueWaitingEdit={queueWaitingEdit} connection={{ retry, reconnect }} background={background} stopping={stopping} compacting={compacting} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
+    <ChatView chat={chat} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} queueWaitingEdit={queueWaitingEdit} connection={{ retry, reconnect }} background={background} stopping={stopping} compacting={compacting} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
   );
 }
 
-function RunView({
-  run,
+function ChatView({
+  chat,
   project,
   events,
   approvals,
@@ -87,9 +87,9 @@ function RunView({
   visible,
   onOpenSubagent,
 }: {
-  run: Run;
+  chat: Chat;
   project?: Project;
-  events: RunEvent[];
+  events: ChatEvent[];
   approvals: Approval[];
   queue: QueuedMessage[];
   /** 待ちの列を、終わっても自動で送らずに止めておくか */
@@ -112,16 +112,16 @@ function RunView({
   visible: boolean;
   onOpenSubagent: (toolUseId: string, title: string) => void;
 }) {
-  const options = useRunOptions(
-    { model: run.model, effort: run.effort, permission_mode: run.permission_mode, fast_mode: run.fast_mode },
-    run.project_id,
-    run.worktree_path || undefined,
+  const options = useChatOptions(
+    { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
+    chat.project_id,
+    chat.worktree_path || undefined,
   );
-  const busy = BUSY_STATUSES.includes(run.status);
-  const subagents = useSubagents(run.id, events, busy, background);
+  const busy = BUSY_STATUSES.includes(chat.status);
+  const subagents = useSubagents(chat.id, events, busy, background);
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
-  const busyNeighbors = useBusyNeighbors(run);
+  const busyNeighbors = useBusyNeighbors(chat);
   // サブエージェントの中身は、パネルの新しいタブで開く（ツールのまとまりの「中身を見る」からは呼び出し ID だけが届く）
   // 流れの項目に context で渡すので、描き直しのたびに作り直さない（作り直すと memo した項目がすべて描き直される）
   const openSubRef = useRef({ onOpenSubagent, subagents });
@@ -142,7 +142,7 @@ function RunView({
   const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
   const waiting = approvals.length > 0;
   // 返答の中のファイルのパスを、押してエディタタブで開けるチップにする（作業場所のファイルだけ）
-  const fileLinks = useFileLinks(run, project?.repo_path);
+  const fileLinks = useFileLinks(chat, project?.repo_path);
   // 作業中に送ったときの扱い（伝える / ためておく。どのチャットでも同じ）
   const [queueMode, setQueueMode] = useQueueMode();
   const composerTexts = queueModeTexts(busy, queue.length > 0, queueMode);
@@ -167,7 +167,7 @@ function RunView({
   // 上に置く指示の帯を出さないか（見出しの行のボタンと設定の「表示」で切り替える。どのチャットでも同じ）
   const [stickyHidden, setStickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
-  const timeline = useTimelineWindow({ items, runId: run.id, focus, stickToBottom });
+  const timeline = useTimelineWindow({ items, chatId: chat.id, focus, stickToBottom });
   // 移り先が窓の外なら、窓を広げて描いてから移る
   const [jumpTarget, setJumpTarget] = useState<number | null>(null);
   const jump = (eventId: number) => {
@@ -190,26 +190,26 @@ function RunView({
       busy,
       // 確かめ（その発言のあとに AI が変えたファイルがあれば、会話だけ / ファイルも から選ぶ）てから送る。やめたら false
       send: async (eventId: number, text: string) => {
-        const choice = await confirmRewindSend(run.id, eventId);
+        const choice = await confirmRewindSend(chat.id, eventId);
         if (!choice) return false;
         stickToBottom.current = true;
-        await api.rewindRun(run.id, eventId, text, rewindOptions.current, choice.restoreFiles);
+        await api.rewindChat(chat.id, eventId, text, rewindOptions.current, choice.restoreFiles);
         return true;
       },
-      restoreFiles: (eventId: number) => restoreFilesBefore(run.id, eventId),
+      restoreFiles: (eventId: number) => restoreFilesBefore(chat.id, eventId),
     }),
-    [busy, run.id],
+    [busy, chat.id],
   );
   // 失敗した作業の直す操作（続きから・深さを下げて・別のモデルで・巻き戻して再試行）
-  const retry = useRetryActions(run.id, events, busy, options, rewind.send);
+  const retry = useRetryActions(chat.id, events, busy, options, rewind.send);
   return (
     <FileLinkContext.Provider value={fileLinks}>
     <RetryContext.Provider value={retry}>
     <OpenSubagentContext.Provider value={openSub}>
     <RewindContext.Provider value={rewind}>
-    <div ref={panelRef} className={cx("run-page run-panel", wide && "wide")}>
-      <RunHeader
-        run={run}
+    <div ref={panelRef} className={cx("chat-page chat-panel", wide && "wide")}>
+      <ChatHeader
+        chat={chat}
         project={project}
         tools={
           <>
@@ -221,7 +221,7 @@ function RunView({
             label={stickyHidden ? "指示の帯を表示" : "指示の帯を隠す"}
             title={stickyHidden ? "指示の帯を表示（読んでいる返答の元の指示を上に出す）" : "指示の帯を隠す"}
             aria-pressed={!stickyHidden}
-            className={cx("run-sticky-toggle", !stickyHidden && "on")}
+            className={cx("chat-sticky-toggle", !stickyHidden && "on")}
             onClick={() => setStickyHidden(!stickyHidden)}
           />
           {/* このチャットの中の検索欄（いつも見出しの行にあり、⌘F でここにピントが入る） */}
@@ -233,15 +233,15 @@ function RunView({
               stickToBottom.current = false;
               timeline.reveal(eventId);
             }}
-            onDone={() => panelRef.current?.querySelector<HTMLTextAreaElement>(".run-composer textarea")?.focus()}
+            onDone={() => panelRef.current?.querySelector<HTMLTextAreaElement>(".chat-composer textarea")?.focus()}
           />
           </>
         }
       />
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}
       <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
-      <RunTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} run={run} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} compacting={compacting} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} pillDock={pillDock} />
-      <div className="run-composer">
+      <ChatTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} chat={chat} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} compacting={compacting} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} pillDock={pillDock} />
+      <div className="chat-composer">
         {/*
           同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる）。押して開くピルの列とは役割が違うので、
           ピルに混ぜず、その上の 1 行に分ける（以前はピルの横に並べていて、ピルの一つに見えた・狭いと折り返してピルの間に入った）
@@ -256,14 +256,14 @@ function RunView({
         <div className="composer-chips">
           <PromptsChip events={events} onJump={jump} onReuse={(text) => fillComposer.current?.(text)} />
           <TodoChip events={events} />
-          <SubagentChip entries={subagents} run={run} busy={busy} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
+          <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} onOpen={(s) => onOpenSubagent(s.key, s.description)} />
           {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
           <span ref={setPillDock} className="composer-chips-dock" />
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-        <QueuedMessages runId={run.id} queue={queue} paused={queuePaused} stops={queueStops} waitingEdit={queueWaitingEdit} busy={busy} newChatTarget={{ projectId: run.project_id, group: run.group_id ?? undefined }} />
+        <QueuedMessages chatId={chat.id} queue={queue} paused={queuePaused} stops={queueStops} waitingEdit={queueWaitingEdit} busy={busy} newChatTarget={{ projectId: chat.project_id, group: chat.group_id ?? undefined }} />
         <Composer
-          chatContext={{ projectId: run.project_id, exclude: run.id }}
+          chatContext={{ projectId: chat.project_id, exclude: chat.id }}
           options={options}
           busy={busy}
           queueWhileIdle={!busy && queue.length > 0}
@@ -271,20 +271,20 @@ function RunView({
           sendLabel={composerTexts.sendLabel}
           onSend={async (text, attachments) => {
             stickToBottom.current = true;
-            await api.sendMessage(run.id, text, options.options, attachments);
+            await api.sendMessage(chat.id, text, options.options, attachments);
           }}
           onQueue={async (text, attachments, mode = queueMode) => {
             // 伝える: 止めずに、いまのやり取りに足す（裏のサブエージェント・コマンドも動き続ける。足せなければ待ちの列へ）。
             // ⌘Enter / ⌘⇧Enter で送ったときは、切り替えに関係なくそのキーの送り方にする
             // 作業していない（送信待ちを止めている）とき: すぐ送る = 送信待ちより先にいま送る / ためておく = 送信待ちの最後に足す
             if (!busy) {
-              if (mode === "queue") return void (await api.queueMessage(run.id, text, options.options, attachments, true));
+              if (mode === "queue") return void (await api.queueMessage(chat.id, text, options.options, attachments, true));
               stickToBottom.current = true;
-              return void (await api.sendMessage(run.id, text, options.options, attachments));
+              return void (await api.sendMessage(chat.id, text, options.options, attachments));
             }
             stickToBottom.current = true;
-            if (mode === "tell") await api.tellRun(run.id, text, options.options, attachments);
-            else await api.queueMessage(run.id, text, options.options, attachments);
+            if (mode === "tell") await api.tellChat(chat.id, text, options.options, attachments);
+            else await api.queueMessage(chat.id, text, options.options, attachments);
           }}
           busyControls={<QueueModeToggle busy={busy} value={queueMode} onChange={setQueueMode} />}
           stopping={stopping}
@@ -292,14 +292,14 @@ function RunView({
             void confirmStopAgents(background, runningAgents, "中断する").then((ok) => {
               if (!ok) return;
               setStopClicked(true);
-              void api.cancelRun(run.id).catch(() => setStopClicked(false));
+              void api.cancelChat(chat.id).catch(() => setStopClicked(false));
             })
           }
-          trailing={<ContextMeter run={run} compacting={compacting} />}
-          suggestTarget={{ projectId: run.project_id, worktree: run.worktree_path || undefined }}
+          trailing={<ContextMeter chat={chat} compacting={compacting} />}
+          suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path || undefined }}
           fillRef={fillComposer}
           history={prompts}
-          draftKey={chatDraftKey(run.id)}
+          draftKey={chatDraftKey(chat.id)}
         />
       </div>
     </div>

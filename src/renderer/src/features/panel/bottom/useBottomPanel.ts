@@ -4,7 +4,7 @@ import { startVerticalDrag } from "@/hooks/dragResize";
 import { useStoredNumber } from "@/hooks/useStoredState";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { BOTTOM_PANEL_HEIGHT_KEY } from "@/lib/storageKeys";
-import { useSidePanel, type TerminalTarget } from "@/features/panel/usePanel";
+import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
 
 /** どの画面のパネルか（プロジェクトの ID。全プロジェクトの画面は "all"） */
 type BottomScope = number | "all";
@@ -18,13 +18,13 @@ export type BottomPanelController = ReturnType<typeof useBottomPanel>;
 
 /**
  * フッター（画面の下のパネル。VS Code と同じく、どの画面でも ⌃` か ⌘J で開閉する）の状態と操作。
- * 中身は右のパネル・右端のチャット欄と同じタブ（useSidePanel の欄 "bottom"）で、初めはターミナルとブラウザを出す
+ * 中身は右のパネル・右端のチャット欄と同じタブ（usePanel の欄 "bottom"）で、初めはターミナルとブラウザを出す
  * （表示するタブ・タブのまとめ方はフッターだけで覚える）。タブ・開いているかはプロジェクトごと（全プロジェクトの画面は別）。
  * タブはほかの欄と同じく上下・左右のペインに分けられる（フッターにピントがあるときの ⌘\ で右に分ける）。
  * Esc では閉じない（ターミナルの中で使うため）。シェルはメインプロセスで動き続けるので、閉じても・ほかのプロジェクトに移っても残る
  */
 export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], projects: ProjectSummary[]) {
-  const panel = useSidePanel({
+  const panel = usePanel({
     memoryKey: `bottom:${scope}`,
     scope,
     surface: "bottom",

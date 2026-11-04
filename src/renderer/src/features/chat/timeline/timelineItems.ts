@@ -1,10 +1,10 @@
 // チャットのタイムラインの組み立て（イベント → 表示の単位）
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { changesOf, type EditCall, type FileChange } from "@/features/chat/tools/turnFileChanges";
 
 export interface ToolCall {
-  use: RunEvent;
-  result?: RunEvent;
+  use: ChatEvent;
+  result?: ChatEvent;
 }
 
 /**
@@ -12,14 +12,14 @@ export interface ToolCall {
  * turnText: その作業での AI の返答をつないだ文（コピーのボタンに使う）、turnChanges: その作業で変えたファイル（ターンの変更カード）
  */
 export type TimelineItem =
-  | { kind: "event"; key: string; event: RunEvent; turnStart?: string; turnText?: string; turnChanges?: FileChange[] }
+  | { kind: "event"; key: string; event: ChatEvent; turnStart?: string; turnText?: string; turnChanges?: FileChange[] }
   | { kind: "tools"; key: string; tools: ToolCall[] };
 
 /**
  * 作業の終わりごとの変えたファイル（作業の終わりの記録 → 一覧）。終わった作業の編集はもう変わらないので覚えておき、
  * 返答が届くたびの組み立て直しで新しい配列を作らない（作業の終わりの行の memo が効くように）
  */
-const turnChangesCache = new WeakMap<RunEvent, FileChange[]>();
+const turnChangesCache = new WeakMap<ChatEvent, FileChange[]>();
 
 /** これより短い思考（中身なし）はタイムラインに出さない */
 const THINKING_MIN_MS = 2000;
@@ -28,7 +28,7 @@ const THINKING_MIN_MS = 2000;
  * 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる）。
  * parent を渡すとそのサブエージェントの中身だけ、渡さなければ親のエージェントの分だけを並べる
  */
-export function groupEvents(events: RunEvent[], parent?: string): TimelineItem[] {
+export function groupEvents(events: ChatEvent[], parent?: string): TimelineItem[] {
   const items: TimelineItem[] = [];
   const byId = new Map<string, ToolCall>();
   let turnStart: string | undefined;

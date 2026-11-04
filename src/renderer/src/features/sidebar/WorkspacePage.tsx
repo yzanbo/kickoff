@@ -1,14 +1,14 @@
 import { Archive, Folder, Pin, Plus } from "lucide-react";
 import { memo, useState } from "react";
-import { BOARD_COLUMN_LABELS, type AgentState, type ProjectSummary, type Run, type RunGroup } from "@shared/types";
+import { BOARD_COLUMN_LABELS, type AgentState, type ProjectSummary, type Chat, type ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { alertDialog } from "@/ui/dialogs";
-import { useRunRename } from "@/features/chat/useChatRename";
+import { useChatRename } from "@/features/chat/useChatRename";
 import { useStoredFlag, useStoredFlagMap } from "@/hooks/useStoredState";
 import { projectHue } from "@/features/project/projectColor";
 import { SIDEBAR_GROUP_CLOSED_PREFIX, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "@/lib/storageKeys";
-import { openNewChat, openRun, routeProjectId, useRoute } from "@/app/router";
-import { CardMenu } from "@/features/chat/ChatMenu";
+import { openNewChat, openChat, routeProjectId, useRoute } from "@/app/router";
+import { ChatMenu } from "@/features/chat/ChatMenu";
 import { InlineName } from "@/ui/InlineName";
 import { SearchField } from "@/ui/SearchField";
 import { ChatRow } from "./ChatRow";
@@ -28,7 +28,7 @@ import { Collapse } from "@/ui/Collapse";
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
   project,
-  runs,
+  chats,
   groups,
   hidden,
   collapsed,
@@ -37,8 +37,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   searchAll = "",
 }: {
   project: ProjectSummary;
-  runs: Run[];
-  groups: RunGroup[];
+  chats: Chat[];
+  groups: ChatGroup[];
   hidden: boolean;
   /** チャット一覧を閉じているか（縦並びの「すべて閉じる・開く」で変えるので、外で持つ） */
   collapsed: boolean;
@@ -59,18 +59,18 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 選んでいる = いまの画面がこのプロジェクト（カンバン・チャットなど）
   const isActive = routeProjectId(route) === project.id;
   // 行の絞り込み（検索・自分待ち・状態）と、固定・グループ・アーカイブ済みへの分け方
-  const list = useWorkspaceRows({ runs, groups, searchAll });
+  const list = useWorkspaceRows({ chats, groups, searchAll });
   const { waitingOnly, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, allRows, visibleRows, pinnedRows, rows, archivedMatches, ungroupedRows } = list;
   // 開閉の記憶: アーカイブ済み・固定（プロジェクトごと）
   const [archivedOpen, setArchivedOpen] = useStoredFlag(sidebarArchivedOpenKey(project.id));
   const toggleArchived = () => setArchivedOpen(!archivedOpen);
   const [pinnedClosed, setPinnedClosed] = useStoredFlag(sidebarPinnedClosedKey(project.id));
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
-  const [rowMenu, setRowMenu] = useState<{ x: number; y: number; run: Run } | null>(null);
+  const [rowMenu, setRowMenu] = useState<{ x: number; y: number; chat: Chat } | null>(null);
 
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
-  const sections = useGroupSections({ projectId: project.id, groups, runs });
+  const sections = useGroupSections({ projectId: project.id, groups, chats });
   // 送る前の新しいチャット（下書き）。作成先のグループの中に、グループなしは「グループなし」の中に出す（グループの見出しがないときはいちばん上）。
   // 自分が続きを書くものなので「自分待ち」でも出す（検索・状態での絞り込み中は出さない）
   const drafts = useProjectDrafts(
@@ -109,18 +109,18 @@ export const WorkspacePage = memo(function WorkspacePage({
   };
 
   // 右クリックメニューの「名前を変更」は、行の名前をその場で入力欄にする
-  const rename = useRunRename((m) => void alertDialog("名前を変更できませんでした", m));
-  const renderRow = ({ run, state }: { run: Run; state: AgentState }) => (
+  const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
+  const renderRow = ({ chat, state }: { chat: Chat; state: AgentState }) => (
     <ChatRow
-      key={run.id}
-      run={run}
+      key={chat.id}
+      chat={chat}
       state={state}
-      active={route.name === "run" && route.runId === run.id}
-      menuOpen={rowMenu?.run.id === run.id}
-      onMenu={(at) => setRowMenu({ ...at, run })}
+      active={route.name === "chat" && route.chatId === chat.id}
+      menuOpen={rowMenu?.chat.id === chat.id}
+      onMenu={(at) => setRowMenu({ ...at, chat })}
       onCloseMenu={() => setRowMenu(null)}
-      onRename={() => rename.start(run)}
-      rename={rename.editorFor(run)}
+      onRename={() => rename.start(chat)}
+      rename={rename.editorFor(chat)}
     />
   );
 
@@ -139,7 +139,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         collapsed={collapsed}
         onToggleCollapsed={toggleCollapsed}
         chatCount={allRows.length}
-        counts={stateCounts(runs, pending)}
+        counts={stateCounts(chats, pending)}
         stateFilter={stateFilter}
         onStateFilter={(next) => {
           setStateFilter(next);
@@ -241,9 +241,9 @@ export const WorkspacePage = memo(function WorkspacePage({
       </Collapse>
       {sections.menuElement}
       {rowMenu && (
-        <CardMenu
+        <ChatMenu
           {...rowMenu}
-          onOpenPanel={(run) => openRun(run.project_id, run.id)}
+          onOpenPanel={(chat) => openChat(chat.project_id, chat.id)}
           onRename={rename.start}
           onClose={() => setRowMenu(null)}
           onError={(m) => void alertDialog("操作できませんでした", m)}

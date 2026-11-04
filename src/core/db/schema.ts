@@ -9,7 +9,7 @@ export const APPLICATION_ID = 0x4b49434b;
 /**
  * v1 のスキーマ（すべて STRICT。真偽値は 0 / 1、JSON の列は json_valid で確かめる）。
  * 会話の記録のうち、自分の発言と AI の返答（type が user / text）の文は生成列 text に出し、
- * 全文検索の索引 run_event_search（trigram で部分一致）はビュー run_event_texts を中身にして、トリガーで追従させる
+ * 全文検索の索引 chat_event_search（trigram で部分一致）はビュー chat_event_texts を中身にして、トリガーで追従させる
  */
 export const SCHEMA_V1 = `
 CREATE TABLE settings (
@@ -32,7 +32,7 @@ CREATE TABLE projects (
   created_at TEXT NOT NULL DEFAULT (${NOW}),
   active_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
-CREATE TABLE run_groups (
+CREATE TABLE chat_groups (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -40,11 +40,11 @@ CREATE TABLE run_groups (
   hue INTEGER NOT NULL CHECK (hue BETWEEN 0 AND 359),
   created_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
-CREATE INDEX idx_run_groups_project ON run_groups(project_id);
-CREATE TABLE runs (
+CREATE INDEX idx_chat_groups_project ON chat_groups(project_id);
+CREATE TABLE chats (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  group_id INTEGER REFERENCES run_groups(id) ON DELETE SET NULL,
+  group_id INTEGER REFERENCES chat_groups(id) ON DELETE SET NULL,
   title TEXT NOT NULL DEFAULT '',
   provider TEXT NOT NULL,
   worktree_path TEXT NOT NULL DEFAULT '',
@@ -62,39 +62,39 @@ CREATE TABLE runs (
   num_turns INTEGER NOT NULL DEFAULT 0,
   context_tokens INTEGER,
   context_window INTEGER,
-  attention INTEGER NOT NULL DEFAULT 0 CHECK (attention IN (0, 1)),
+  unread INTEGER NOT NULL DEFAULT 0 CHECK (unread IN (0, 1)),
   pinned INTEGER NOT NULL DEFAULT 0 CHECK (pinned IN (0, 1)),
   archived_at TEXT,
   created_at TEXT NOT NULL DEFAULT (${NOW}),
   active_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
-CREATE INDEX idx_runs_project ON runs(project_id, archived_at);
-CREATE INDEX idx_runs_worktree ON runs(project_id, worktree_path) WHERE worktree_path <> '';
-CREATE INDEX idx_runs_group ON runs(group_id) WHERE group_id IS NOT NULL;
-CREATE INDEX idx_runs_active ON runs(status) WHERE status IN ('queued', 'running', 'waiting');
-CREATE TABLE run_events (
+CREATE INDEX idx_chats_project ON chats(project_id, archived_at);
+CREATE INDEX idx_chats_worktree ON chats(project_id, worktree_path) WHERE worktree_path <> '';
+CREATE INDEX idx_chats_group ON chats(group_id) WHERE group_id IS NOT NULL;
+CREATE INDEX idx_chats_active ON chats(status) WHERE status IN ('queued', 'running', 'waiting');
+CREATE TABLE chat_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id INTEGER NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+  chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
   type TEXT NOT NULL,
   data TEXT NOT NULL CHECK (json_valid(data)),
   created_at TEXT NOT NULL DEFAULT (${NOW}),
   text TEXT GENERATED ALWAYS AS (CASE WHEN type IN ('user', 'text') THEN json_extract(data, '$.text') END) VIRTUAL
 ) STRICT;
-CREATE INDEX idx_run_events_run ON run_events(run_id);
-CREATE VIEW run_event_texts AS SELECT id, text FROM run_events WHERE text IS NOT NULL;
-CREATE VIRTUAL TABLE run_event_search USING fts5(text, content = 'run_event_texts', content_rowid = 'id', tokenize = 'trigram');
-CREATE TRIGGER run_events_search_insert AFTER INSERT ON run_events WHEN new.text IS NOT NULL BEGIN
-  INSERT INTO run_event_search (rowid, text) VALUES (new.id, new.text);
+CREATE INDEX idx_chat_events_chat ON chat_events(chat_id);
+CREATE VIEW chat_event_texts AS SELECT id, text FROM chat_events WHERE text IS NOT NULL;
+CREATE VIRTUAL TABLE chat_event_search USING fts5(text, content = 'chat_event_texts', content_rowid = 'id', tokenize = 'trigram');
+CREATE TRIGGER chat_events_search_insert AFTER INSERT ON chat_events WHEN new.text IS NOT NULL BEGIN
+  INSERT INTO chat_event_search (rowid, text) VALUES (new.id, new.text);
 END;
-CREATE TRIGGER run_events_search_delete AFTER DELETE ON run_events WHEN old.text IS NOT NULL BEGIN
-  INSERT INTO run_event_search (run_event_search, rowid, text) VALUES ('delete', old.id, old.text);
+CREATE TRIGGER chat_events_search_delete AFTER DELETE ON chat_events WHEN old.text IS NOT NULL BEGIN
+  INSERT INTO chat_event_search (chat_event_search, rowid, text) VALUES ('delete', old.id, old.text);
 END;
-CREATE TRIGGER run_events_search_update AFTER UPDATE OF type, data ON run_events BEGIN
-  INSERT INTO run_event_search (run_event_search, rowid, text) SELECT 'delete', old.id, old.text WHERE old.text IS NOT NULL;
-  INSERT INTO run_event_search (rowid, text) SELECT new.id, new.text WHERE new.text IS NOT NULL;
+CREATE TRIGGER chat_events_search_update AFTER UPDATE OF type, data ON chat_events BEGIN
+  INSERT INTO chat_event_search (chat_event_search, rowid, text) SELECT 'delete', old.id, old.text WHERE old.text IS NOT NULL;
+  INSERT INTO chat_event_search (rowid, text) SELECT new.id, new.text WHERE new.text IS NOT NULL;
 END;
-CREATE TABLE run_queues (
-  run_id INTEGER PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
+CREATE TABLE chat_queues (
+  chat_id INTEGER PRIMARY KEY REFERENCES chats(id) ON DELETE CASCADE,
   messages TEXT NOT NULL CHECK (json_valid(messages)),
   paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1)),
   stop_after TEXT

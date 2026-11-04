@@ -1,13 +1,13 @@
 import { Folder, GitBranch } from "lucide-react";
 import type { ReactNode } from "react";
-import type { GitWorktree, ProjectSummary, RunGroup } from "@shared/types";
+import type { GitWorktree, ProjectSummary, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useStoredFlagMap } from "@/hooks/useStoredState";
 import { ProjectMark } from "@/features/project/ProjectMark";
 import { useProjects } from "@/app/projectsContext";
 import { BOARD_LANE_CLOSED_PREFIX } from "@/lib/storageKeys";
 import { useWorktreeLists } from "@/features/worktree/worktreeBranches";
-import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "@/features/worktree/workplace";
+import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type ChatWorkplace } from "@/features/worktree/workplace";
 import { GroupToggle } from "@/ui/GroupToggle";
 import type { BoardEntry } from "@/features/chatList/boardColumns";
 
@@ -72,7 +72,7 @@ function lanesOf(
   entries: BoardEntry[],
   drafts: DraftTarget[],
   projects: ProjectSummary[],
-  groups: RunGroup[],
+  groups: ChatGroup[],
   showEmpty: boolean,
   worktreesOf: (projectId: number) => GitWorktree[] | undefined,
   projectName: (projectId: number) => string,
@@ -84,31 +84,31 @@ function lanesOf(
     const inNone = (group: number | null | undefined) => group == null || !ids.has(group);
     const lanes: Lane[] = [];
     for (const g of groups) {
-      const list = entries.filter((e) => e.run.group_id === g.id);
+      const list = entries.filter((e) => e.chat.group_id === g.id);
       const draft = (t: DraftTarget) => t.group === g.id;
       if (list.length > 0 || showEmpty || drafts.some(draft)) lanes.push({ key: `g${g.id}`, head: <LaneTitle mark={<Folder size={14} className="muted" />} label={g.name} />, entries: list, draft });
     }
-    const rest = entries.filter((e) => inNone(e.run.group_id));
+    const rest = entries.filter((e) => inNone(e.chat.group_id));
     const draft = (t: DraftTarget) => inNone(t.group);
     if (rest.length > 0 || showEmpty || drafts.some(draft)) lanes.push({ key: "none", head: <LaneTitle mark={<Folder size={14} className="muted" />} label="グループなし" />, entries: rest, draft });
     return lanes;
   }
   if (kind === "project") {
     return projects.flatMap((p) => {
-      const list = entries.filter((e) => e.run.project_id === p.id);
+      const list = entries.filter((e) => e.chat.project_id === p.id);
       const draft = (t: DraftTarget) => t.projectId === p.id;
       if (list.length === 0 && !drafts.some(draft)) return [];
       return [{ key: `p${p.id}`, head: <LaneTitle mark={<ProjectMark project={p} />} label={p.name} />, entries: list, draft }];
     });
   }
   // 作業場所（プロジェクトと作業場所の組。本体が先。見出しはサイドバーと同じ workplaceOf）
-  const byPlace = new Map<string, { projectId: number; place: RunWorkplace; entries: BoardEntry[] }>();
+  const byPlace = new Map<string, { projectId: number; place: ChatWorkplace; entries: BoardEntry[] }>();
   for (const e of entries) {
-    const place = workplaceOf(e.run, worktreesOf(e.run.project_id));
-    const key = `${e.run.project_id}\u0000${place.key}`;
+    const place = workplaceOf(e.chat, worktreesOf(e.chat.project_id));
+    const key = `${e.chat.project_id}\u0000${place.key}`;
     const hit = byPlace.get(key);
     if (hit) hit.entries.push(e);
-    else byPlace.set(key, { projectId: e.run.project_id, place, entries: [e] });
+    else byPlace.set(key, { projectId: e.chat.project_id, place, entries: [e] });
   }
   // 下書きのあるプロジェクトの本体の段（チャットがなくても出す）
   for (const projectId of new Set(drafts.map((d) => d.projectId))) {
@@ -171,7 +171,7 @@ export function BoardLanes({
   list?: boolean;
   kind: BoardLane;
   /** 自分で作ったグループ（グループで段に分けるとき） */
-  groups?: RunGroup[];
+  groups?: ChatGroup[];
   /** チャットのない段も出す（グループのタブ: 下書き・ドラッグで入れる先として） */
   showEmpty?: boolean;
   /** 段の要素に付けるもの（ドロップ先にするなど） */
@@ -187,7 +187,7 @@ export function BoardLanes({
 }) {
   const closed = useStoredFlagMap(BOARD_LANE_CLOSED_PREFIX);
   // 作業場所で分けるときは、プロジェクトごとのワークツリーの一覧からブランチ名を引く
-  const worktreesOf = useWorktreeLists(kind === "worktree" ? entries.map((e) => e.run.project_id) : []);
+  const worktreesOf = useWorktreeLists(kind === "worktree" ? entries.map((e) => e.chat.project_id) : []);
   const { projectName } = useProjects();
   const lanes = lanesOf(kind, entries, drafts, projects, groups, showEmpty, worktreesOf, projectName);
   return (

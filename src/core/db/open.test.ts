@@ -58,7 +58,7 @@ test("openDatabase: Kickoff のものでない・このアプリより新しい�
 
 test("discardPrereleaseData: リリース前の系統（101〜199）の DB は、backups・uploads と一緒に消し、ほかのファイルは残す", () => {
   const dir = tempDir();
-  rawDatabase(dir, `CREATE TABLE runs (id INTEGER); PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 104;`);
+  rawDatabase(dir, `CREATE TABLE chats (id INTEGER); PRAGMA application_id = ${APPLICATION_ID}; PRAGMA user_version = 104;`);
   fs.writeFileSync(path.join(dir, `${DB_FILE}-wal`), "");
   fs.writeFileSync(path.join(dir, `${DB_FILE}-shm`), "");
   for (const sub of ["backups", "uploads", "models"]) {

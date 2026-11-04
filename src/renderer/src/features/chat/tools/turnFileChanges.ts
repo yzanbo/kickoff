@@ -1,5 +1,5 @@
 // 1 回の作業（ターン）で変えたファイルの数え方（ターンの変更カード。純粋関数）
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 
 /** ターンで変えたファイル 1 つ */
 export interface FileChange {
@@ -14,8 +14,8 @@ export interface FileChange {
 
 /** 編集のツールの呼び出しと、その結果 */
 export interface EditCall {
-  use: RunEvent;
-  result?: RunEvent;
+  use: ChatEvent;
+  result?: ChatEvent;
 }
 
 const lines = (text: string) => (text === "" ? [] : text.replace(/\n$/, "").split("\n"));

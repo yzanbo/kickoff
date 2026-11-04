@@ -56,10 +56,10 @@
   background: var(--dot-running);
 }
 
-.corner-count.review {
+.corner-count.unread {
   top: var(--corner-offset, -6px);
   right: var(--corner-offset, -6px);
-  background: var(--dot-attention);
+  background: var(--dot-unread);
 }
 
 .corner-count.needs-input {

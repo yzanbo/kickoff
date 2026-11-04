@@ -15,12 +15,12 @@ const ICONS: Record<BackgroundTask["kind"], typeof Bot> = { agent: Bot, command:
  * サブエージェントは名前を押すと中身をタブで開き、しばらく動きがなければ最後の動き（長く動きがなければ注意の色）を添える
  */
 export function BackgroundTasks({
-  runId,
+  chatId,
   background,
   agents = [],
   onOpen,
 }: {
-  runId: number;
+  chatId: number;
   background: BackgroundState | null;
   agents?: SubagentEntry[];
   onOpen?: (entry: SubagentEntry) => void;
@@ -37,7 +37,7 @@ export function BackgroundTasks({
       }))
     )
       return;
-    await api.stopBackgroundTask(runId, task.task_id).catch(reportFailure("裏の作業を止められませんでした"));
+    await api.stopBackgroundTask(chatId, task.task_id).catch(reportFailure("裏の作業を止められませんでした"));
   };
   return (
     <ul className="background-tasks" aria-label="裏で動いている作業">

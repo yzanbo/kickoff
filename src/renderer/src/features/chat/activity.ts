@@ -1,4 +1,4 @@
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { EDIT_TOOLS } from "@/features/chat/timeline/timelineItems";
 import { describeTool } from "@/features/chat/tools/toolDescribe";
 import { baseName } from "@/lib/format";
@@ -16,7 +16,7 @@ const clip = (text: string, max = 40) => {
  * チャットの記録の 1 件から、いまの作業を短い文にする（サイドバーの作業中のチャットの説明に出す）。
  * 作業の手がかりにならないもの（ツールの結果など）は null
  */
-export function describeActivity(event: Pick<RunEvent, "type" | "data">): string | null {
+export function describeActivity(event: Pick<ChatEvent, "type" | "data">): string | null {
   const data = event.data as Record<string, unknown>;
   if (event.type === "thinking") return "考えています";
   if (event.type === "text") return data.sub ? "サブエージェントが返答を書いています" : "返答を書いています";

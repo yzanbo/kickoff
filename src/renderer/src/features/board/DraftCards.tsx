@@ -2,7 +2,7 @@ import { SquarePen, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cx } from "@/lib/cx";
 import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
-import type { NewChatTarget, SidePanelController } from "@/features/panel/usePanel";
+import type { NewChatTarget, PanelController } from "@/features/panel/usePanel";
 import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
 
 /**
@@ -14,7 +14,7 @@ export function DraftCards({
   filter = () => true,
   onShow = panel.showTab,
 }: {
-  panel: SidePanelController;
+  panel: PanelController;
   filter?: (target: NewChatTarget) => boolean;
   onShow?: (key: string) => void;
 }) {

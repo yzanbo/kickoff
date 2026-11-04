@@ -1,6 +1,6 @@
 import { Shrink } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { ProviderStatus, Run, UsageWindow } from "@shared/types";
+import type { ProviderStatus, Chat, UsageWindow } from "@shared/types";
 import { api } from "@/api";
 import { cachedLoader } from "@/lib/cachedLoader";
 import { cx } from "@/lib/cx";
@@ -28,15 +28,15 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
  * 押すと、コンテキストの詳細とプランの使用枠を出す（もう一度押す・ポップオーバーの外を押す・Esc で閉じる。マウスを乗せただけでは出さない）。
  * 会話を圧縮している間（手で圧縮した・上限に近づいて自動で）は、弧を回して知らせる（終わるとコンテキストの大きさが届き、弧が縮む）。
  */
-export function ContextMeter({ run, compacting = false }: { run: Run; compacting?: boolean }) {
+export function ContextMeter({ chat, compacting = false }: { chat: Chat; compacting?: boolean }) {
   const planUsage = useSharedPlanUsage();
   const [open, setOpen] = useState(false);
   const [account, setAccount] = useState<string>();
   const ref = useRef<HTMLDivElement>(null);
 
   // まだ数値が届いていないとき（新しいチャット・要約の直後など）は 0% として出す
-  const tokens = run.context_tokens ?? 0;
-  const windowSize = run.context_window;
+  const tokens = chat.context_tokens ?? 0;
+  const windowSize = chat.context_window;
   const pct = windowSize ? Math.min(100, Math.round((tokens / windowSize) * 100)) : 0;
 
   useEffect(() => {
@@ -52,12 +52,12 @@ export function ContextMeter({ run, compacting = false }: { run: Run; compacting
     : [];
 
   // 手で圧縮する（作業中・まだ会話がないときはできない）。終わると compact イベントとコンテキストの大きさが届く
-  const canCompact = Boolean(run.session_id) && !BUSY_STATUSES.includes(run.status);
+  const canCompact = Boolean(chat.session_id) && !BUSY_STATUSES.includes(chat.status);
   const [compactError, setCompactError] = useState<string>();
   const compact = async () => {
     setCompactError(undefined);
     try {
-      await api.compactRun(run.id);
+      await api.compactChat(chat.id);
     } catch (e) {
       setCompactError(errorMessage(e));
     }
@@ -92,7 +92,7 @@ export function ContextMeter({ run, compacting = false }: { run: Run; compacting
             <div className="context-bar" role="img" aria-label={`${pct}% 使用`}>
               <span className={`context-bar-fill tone-${tone(pct)}`} style={{ width: `${pct}%` }} />
             </div>
-            <div className="context-sub">セッションコスト: ${run.cost_usd.toFixed(2)}（API 換算）</div>
+            <div className="context-sub">セッションコスト: ${chat.cost_usd.toFixed(2)}（API 換算）</div>
             {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
             <div className="context-compact">
               <button

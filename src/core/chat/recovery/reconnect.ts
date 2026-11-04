@@ -3,7 +3,7 @@ import type { Bus } from "../../bus.js";
 import { errorMessage } from "@shared/errors";
 import type { FollowupQueue } from "../queue.js";
 import { canReachApi, ReconnectWatcher } from "./reachability.js";
-import type { RunOutcome, StoppedAgent } from "../turn.js";
+import type { TurnOutcome, StoppedAgent } from "../turn.js";
 import type { Store } from "../../db/store.js";
 import { networkStoppedSubagents } from "@shared/chat/subagents";
 import type { ReconnectState } from "@shared/types";
@@ -35,7 +35,7 @@ export function resumePrompt(agents: StoppedAgent[]): string {
  * 3. 続けて MAX_AUTO_RESUMES 回止まったら、再開するかを人に聞く（承認のカードと同じ回答待ち）
  * 再開した作業が最後まで終わったら、止めておいた送信待ちを元に戻す
  */
-export class RunReconnect {
+export class ChatReconnect {
   private readonly watcher: ReconnectWatcher;
   /** 続けて自動で再開した回数 */
   private readonly attempts = new Map<number, number>();
@@ -54,8 +54,8 @@ export class RunReconnect {
       approvals: ApprovalCenter;
       bus?: Bus;
       followups: FollowupQueue;
-      isBusy: (runId: number) => boolean;
-      send: (runId: number, text: string) => Promise<unknown>;
+      isBusy: (chatId: number) => boolean;
+      send: (chatId: number, text: string) => Promise<unknown>;
       /** AI の API に届くか（テストで差し替える） */
       check?: () => Promise<boolean>;
       /** つながったかを確かめる間隔 */
@@ -65,53 +65,53 @@ export class RunReconnect {
     this.watcher = new ReconnectWatcher({
       check: deps.check ?? canReachApi,
       intervalMs: deps.intervalMs ?? 15_000,
-      onOnline: (runIds) => runIds.forEach((runId) => void this.resume(runId)),
+      onOnline: (chatIds) => chatIds.forEach((chatId) => void this.resume(chatId)),
     });
   }
 
   /** つながったら自動で再開するのを待っているか（画面に出す） */
-  state(runId: number): ReconnectState | null {
-    if (!this.watcher.has(runId)) return null;
-    return { attempts: this.attempts.get(runId) ?? 0, max: MAX_AUTO_RESUMES, agents: [...(this.stoppedAgents.get(runId)?.values() ?? [])] };
+  state(chatId: number): ReconnectState | null {
+    if (!this.watcher.has(chatId)) return null;
+    return { attempts: this.attempts.get(chatId) ?? 0, max: MAX_AUTO_RESUMES, agents: [...(this.stoppedAgents.get(chatId)?.values() ?? [])] };
   }
 
   /**
    * 作業が終わったとき。送信待ちを送ってよいかを返す（通信で止まったときは送らない）
    */
-  finished(runId: number, outcome: RunOutcome): boolean {
+  finished(chatId: number, outcome: TurnOutcome): boolean {
     if (outcome.network) {
-      this.rememberAgents(runId, outcome.stoppedAgents ?? []);
-      this.onNetworkFailure(runId);
+      this.rememberAgents(chatId, outcome.stoppedAgents ?? []);
+      this.onNetworkFailure(chatId);
       return false;
     }
     // 通信以外で終わった（最後まで・止めた・ほかの失敗）: 止まったサブエージェントの再開は頼まない（一覧の「再開」で戻せる）
-    this.stoppedAgents.delete(runId);
+    this.stoppedAgents.delete(chatId);
     if (outcome.status === "completed") {
       // 最後まで終わった: 数え直し、止めておいた送信待ちを戻す
-      this.attempts.delete(runId);
-      if (this.heldQueues.delete(runId)) this.deps.followups.setPaused(runId, false);
+      this.attempts.delete(chatId);
+      if (this.heldQueues.delete(chatId)) this.deps.followups.setPaused(chatId, false);
     } else {
       // 止めた・ほかの理由で失敗した: 自動の再開はやめる（送信待ちは止めたまま。自分で戻せる）
-      this.attempts.delete(runId);
-      this.heldQueues.delete(runId);
+      this.attempts.delete(chatId);
+      this.heldQueues.delete(chatId);
     }
     return true;
   }
 
   /** 自分でメッセージを送った・止めた・チャットを消した: 待つのも聞くのもやめる */
-  forget(runId: number) {
-    if (this.resuming.has(runId)) return;
-    this.stopWaiting(runId);
-    this.attempts.delete(runId);
-    this.stoppedAgents.delete(runId);
-    this.heldQueues.delete(runId);
-    this.asks.get(runId)?.abort();
+  forget(chatId: number) {
+    if (this.resuming.has(chatId)) return;
+    this.stopWaiting(chatId);
+    this.attempts.delete(chatId);
+    this.stoppedAgents.delete(chatId);
+    this.heldQueues.delete(chatId);
+    this.asks.get(chatId)?.abort();
   }
 
   /** つながったら自動で再開するのをやめる（画面の「自動で再開しない」）。待っていたら true */
-  stopWaiting(runId: number): boolean {
-    if (!this.watcher.remove(runId)) return false;
-    this.publish(runId);
+  stopWaiting(chatId: number): boolean {
+    if (!this.watcher.remove(chatId)) return false;
+    this.publish(chatId);
     return true;
   }
 
@@ -119,31 +119,31 @@ export class RunReconnect {
     this.watcher.stop();
   }
 
-  private onNetworkFailure(runId: number) {
+  private onNetworkFailure(chatId: number) {
     const { store, followups } = this.deps;
-    const run = store.getRun(runId);
-    if (!run) return;
+    const chat = store.getChat(chatId);
+    if (!chat) return;
     // 送信待ちを自分で止めていたら、自動では何も送らない（移動の前などに止めている）
-    const pausedByUser = followups.isPaused(runId) && !this.heldQueues.has(runId);
+    const pausedByUser = followups.isPaused(chatId) && !this.heldQueues.has(chatId);
     // 送信待ちは送らずに止めておく（通信が切れたまま送ると、次々に失敗して消えるため）
-    if (!pausedByUser && followups.list(runId).length > 0 && !followups.isPaused(runId)) {
-      followups.setPaused(runId, true);
-      this.heldQueues.add(runId);
+    if (!pausedByUser && followups.list(chatId).length > 0 && !followups.isPaused(chatId)) {
+      followups.setPaused(chatId, true);
+      this.heldQueues.add(chatId);
     }
-    const agents = this.agentsNote(runId);
+    const agents = this.agentsNote(chatId);
     if (pausedByUser || !store.getSettings().autoResumeOnReconnect) {
-      store.addEvent(runId, {
+      store.addEvent(chatId, {
         type: "notice",
         message: `通信が切れたため止まりました。つながってからメッセージを送ると、続きから再開できます。${agents ? `${agents}は、サブエージェントの一覧の「再開」で続きから再開できます。` : ""}`,
       });
       return;
     }
-    const attempts = this.attempts.get(runId) ?? 0;
+    const attempts = this.attempts.get(chatId) ?? 0;
     if (attempts >= MAX_AUTO_RESUMES) {
-      this.ask(runId, run.project_id, attempts);
+      this.ask(chatId, chat.project_id, attempts);
       return;
     }
-    store.addEvent(runId, {
+    store.addEvent(chatId, {
       type: "notice",
       message:
         (attempts === 0
@@ -151,34 +151,34 @@ export class RunReconnect {
           : `自動で再開しましたが、また通信が切れました。つながったら再開します（${attempts}/${MAX_AUTO_RESUMES} 回）。`) +
         (agents ? `${agents}も、続きから再開するよう頼みます。` : ""),
     });
-    this.watcher.add(runId);
-    this.publish(runId);
+    this.watcher.add(chatId);
+    this.publish(chatId);
   }
 
   /** つながった: 「続けて」を送る（その間に自分で送った・消したなら何もしない） */
-  private async resume(runId: number, { count = true }: { count?: boolean } = {}) {
+  private async resume(chatId: number, { count = true }: { count?: boolean } = {}) {
     const { store, isBusy, send } = this.deps;
-    this.publish(runId);
-    const run = store.getRun(runId);
-    if (!run || run.status !== "failed" || isBusy(runId)) return;
-    if (count) this.attempts.set(runId, (this.attempts.get(runId) ?? 0) + 1);
-    this.resuming.add(runId);
+    this.publish(chatId);
+    const chat = store.getChat(chatId);
+    if (!chat || chat.status !== "failed" || isBusy(chatId)) return;
+    if (count) this.attempts.set(chatId, (this.attempts.get(chatId) ?? 0) + 1);
+    this.resuming.add(chatId);
     try {
-      await send(runId, resumePrompt(this.agentsToResume(runId)));
+      await send(chatId, resumePrompt(this.agentsToResume(chatId)));
     } catch (e) {
-      store.addEvent(runId, { type: "error", message: `自動で再開できませんでした: ${errorMessage(e)}` });
+      store.addEvent(chatId, { type: "error", message: `自動で再開できませんでした: ${errorMessage(e)}` });
     } finally {
-      this.resuming.delete(runId);
+      this.resuming.delete(chatId);
     }
   }
 
   /** 何度再開しても続かない: 再開するかを人に聞く（承認のカードと同じ回答待ち。Mac の通知も出る） */
-  private ask(runId: number, projectId: number, attempts: number) {
-    if (this.asks.has(runId)) return;
+  private ask(chatId: number, projectId: number, attempts: number) {
+    if (this.asks.has(chatId)) return;
     const controller = new AbortController();
-    this.asks.set(runId, controller);
+    this.asks.set(chatId, controller);
     const { decision } = this.deps.approvals.request(
-      { runId, projectId },
+      { chatId, projectId },
       {
         kind: "reconnect",
         toolName: "reconnect",
@@ -190,41 +190,41 @@ export class RunReconnect {
       controller.signal,
     );
     void decision.then((answer) => {
-      this.asks.delete(runId);
-      this.attempts.delete(runId);
+      this.asks.delete(chatId);
+      this.attempts.delete(chatId);
       // 再開する: 数え直して、すぐ「続けて」を送る（また止まったら、つながるのを待つところから）
-      if (answer.action === "allow" && !controller.signal.aborted) void this.resume(runId, { count: false });
-      else this.heldQueues.delete(runId);
+      if (answer.action === "allow" && !controller.signal.aborted) void this.resume(chatId, { count: false });
+      else this.heldQueues.delete(chatId);
     });
   }
 
   /** 通信の切断で止まったサブエージェントを覚える（同じものは 1 つにまとめる） */
-  private rememberAgents(runId: number, agents: StoppedAgent[]) {
+  private rememberAgents(chatId: number, agents: StoppedAgent[]) {
     if (agents.length === 0) return;
-    const known = this.stoppedAgents.get(runId) ?? new Map<string, string>();
+    const known = this.stoppedAgents.get(chatId) ?? new Map<string, string>();
     for (const a of agents) known.set(a.agentId, a.description);
-    this.stoppedAgents.set(runId, known);
+    this.stoppedAgents.set(chatId, known);
   }
 
   /**
    * 再開を頼むサブエージェント: 覚えたもののうち、いまも通信で止まったままのもの
    * （前の再開で戻ったものは除く。最後まで終わるまでは覚えておき、再開の途中でまた通信が切れても頼み直す）
    */
-  private agentsToResume(runId: number): StoppedAgent[] {
-    const known = this.stoppedAgents.get(runId);
+  private agentsToResume(chatId: number): StoppedAgent[] {
+    const known = this.stoppedAgents.get(chatId);
     if (!known) return [];
-    const halted = new Set(networkStoppedSubagents(this.deps.store.listEvents(runId), 0).map((s) => s.agentId));
+    const halted = new Set(networkStoppedSubagents(this.deps.store.listEvents(chatId), 0).map((s) => s.agentId));
     return [...known].filter(([agentId]) => halted.has(agentId)).map(([agentId, description]) => ({ agentId, description }));
   }
 
   /** お知らせに添える、止まったサブエージェントの文（「サブエージェント 2 件（調査、レビュー）」。なければ空） */
-  private agentsNote(runId: number): string {
-    const names = [...(this.stoppedAgents.get(runId)?.values() ?? [])];
+  private agentsNote(chatId: number): string {
+    const names = [...(this.stoppedAgents.get(chatId)?.values() ?? [])];
     return names.length > 0 ? `通信で止まったサブエージェント ${names.length} 件（${names.join("、")}）` : "";
   }
 
-  private publish(runId: number) {
-    const run = this.deps.store.getRun(runId);
-    if (run) this.deps.bus?.publish({ type: "run_reconnect", project_id: run.project_id, run_id: runId, reconnect: this.state(runId) });
+  private publish(chatId: number) {
+    const chat = this.deps.store.getChat(chatId);
+    if (chat) this.deps.bus?.publish({ type: "chat_reconnect", project_id: chat.project_id, chat_id: chatId, reconnect: this.state(chatId) });
   }
 }

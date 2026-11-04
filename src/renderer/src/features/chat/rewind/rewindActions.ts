@@ -18,16 +18,16 @@ function describe(r: FileRewindResult): string {
 const NOT_RESTORED = "コマンドで変えたファイル・アプリの外で変えたファイルは戻りません。";
 
 /** その発言を送る前の状態に戻すと変わるファイル（戻せない（記録がない）なら undefined） */
-async function preview(runId: number, eventId: number): Promise<FileRewindResult | undefined> {
-  return api.rewindFiles(runId, eventId, true).catch(() => undefined);
+async function preview(chatId: number, eventId: number): Promise<FileRewindResult | undefined> {
+  return api.rewindFiles(chatId, eventId, true).catch(() => undefined);
 }
 
 /**
  * 書き直して送り直す前の確かめ。その発言のあとに AI が変えたファイルがあれば「会話だけ」「ファイルも」から選んでもらう
  * （なければ、今までどおり会話だけの確かめ）。やめたら null、送るならファイルも戻すか
  */
-export async function confirmRewindSend(runId: number, eventId: number): Promise<{ restoreFiles: boolean } | null> {
-  const files = await preview(runId, eventId);
+export async function confirmRewindSend(chatId: number, eventId: number): Promise<{ restoreFiles: boolean } | null> {
+  const files = await preview(chatId, eventId);
   const title = "この発言から書き直して送り直しますか？";
   if (files && (files.filesChanged?.length ?? 0) > 0) {
     const choice = await choiceDialog({
@@ -51,11 +51,11 @@ export async function confirmRewindSend(runId: number, eventId: number): Promise
 }
 
 /** ファイルだけを、その発言を送る前の状態に戻す（会話はそのまま）。先に変わる量を見せて確かめる */
-export async function restoreFilesBefore(runId: number, eventId: number): Promise<void> {
+export async function restoreFilesBefore(chatId: number, eventId: number): Promise<void> {
   const fail = reportFailure("ファイルを戻せませんでした");
   let files: FileRewindResult;
   try {
-    files = await api.rewindFiles(runId, eventId, true);
+    files = await api.rewindFiles(chatId, eventId, true);
   } catch (e) {
     return fail(e);
   }
@@ -69,5 +69,5 @@ export async function restoreFilesBefore(runId: number, eventId: number): Promis
     confirmLabel: "ファイルを戻す",
     danger: true,
   });
-  if (ok) await api.rewindFiles(runId, eventId, false).then(() => undefined, fail);
+  if (ok) await api.rewindFiles(chatId, eventId, false).then(() => undefined, fail);
 }

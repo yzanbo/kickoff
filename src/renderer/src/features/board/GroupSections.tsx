@@ -1,9 +1,9 @@
 import { Fragment, type ReactNode } from "react";
-import type { Run, RunGroup } from "@shared/types";
-import { useRunStates } from "@/app/chatStatesContext";
+import type { Chat, ChatGroup } from "@shared/types";
+import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { DraftCards } from "./DraftCards";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
 import { GroupColumnHead } from "./GroupColumnHead";
 import type { useBoardCards } from "./useBoardCards";
@@ -26,23 +26,23 @@ export function GroupSections({
   beforeUngrouped,
 }: {
   projectId: number;
-  groups: RunGroup[];
+  groups: ChatGroup[];
   board: GroupBoardState;
-  panel: SidePanelController;
+  panel: PanelController;
   cards: ReturnType<typeof useBoardCards>;
   /** 目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlight?: number;
   list?: boolean;
   beforeUngrouped?: ReactNode;
 }) {
-  const { stateOf } = useRunStates();
+  const { stateOf } = useChatStates();
   const { over, reorder, dropProps } = board;
-  const sections: (RunGroup | null)[] = list ? [...groups, null] : [null, ...groups];
+  const sections: (ChatGroup | null)[] = list ? [...groups, null] : [null, ...groups];
   const render = list ? cards.row : cards.card;
   return sections.map((g) => {
     const key = g?.id ?? "none";
     const [members, archived] = splitArchived(board.membersOf(g?.id ?? null), (r) => r);
-    const item = (run: Run) => render({ run, state: stateOf(run) });
+    const item = (chat: Chat) => render({ chat, state: stateOf(chat) });
     const body = (
       <>
         {/* その列（グループ）で入力中の新しいチャット */}

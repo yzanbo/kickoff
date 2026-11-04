@@ -23,11 +23,11 @@ export const ChatSelectionContext = createContext<ChatSelection | null>(null);
 export const useChatSelection = () => useContext(ChatSelectionContext);
 
 /** サイドバーの行の要素（画面の並び順をここから取る） */
-const CHAT_ROW_SELECTOR = ".workspaces a.chat-row[data-run-id]";
+const CHAT_ROW_SELECTOR = ".workspaces a.chat-row[data-chat-id]";
 /** 画面に出ている行の、上からの並び（横スライドの裏のプロジェクト（inert）・閉じているまとまりの中は除く） */
 export const visibleRows = () =>
   [...document.querySelectorAll<HTMLElement>(CHAT_ROW_SELECTOR)].filter((el) => !el.closest("[inert]") && !el.closest(".collapse:not(.open)"));
-const rowIds = () => visibleRows().map((el) => Number(el.dataset.runId));
+const rowIds = () => visibleRows().map((el) => Number(el.dataset.chatId));
 
 /** 選んでいる状態（existing: いまあるチャット。消えたものは選択から外す） */
 export function useChatSelectionState(existing: Set<number>): ChatSelection {

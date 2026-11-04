@@ -1,6 +1,6 @@
 import { app, session, shell, type Session, type WebContents } from "electron";
 
-// 埋め込みブラウザ（<webview>）のセッションと安全設定。開発者ツールは browserDevtools.ts、拡張機能は browserExtensions.ts
+// 埋め込みブラウザ（<webview>）のセッションと安全設定。開発者ツールは devtools.ts、拡張機能は extensions.ts
 
 /** 埋め込みブラウザ用のセッション（ログイン状態は保持するが、Kickoff 本体とは分ける） */
 const BROWSER_PARTITION = "persist:kickoff-browser";

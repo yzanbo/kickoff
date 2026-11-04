@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { BOARD_COLUMNS } from "@shared/types";
 import { DraftCards } from "./DraftCards";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 import { byColumn, type BoardEntry } from "@/features/chatList/boardColumns";
 import { DraftColumn, StateColumn } from "./StateColumn";
 
@@ -20,7 +20,7 @@ export function GroupLaneColumns({
   /** null はグループなし */
   groupId: number | null;
   projectId: number;
-  panel: SidePanelController;
+  panel: PanelController;
   renderCard: (entry: BoardEntry) => ReactNode;
 }) {
   const columns = byColumn(entries);

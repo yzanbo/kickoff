@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTicker } from "@/hooks/useTicker";
-import type { BackgroundState, Run, RunEvent } from "@shared/types";
+import type { BackgroundState, Chat, ChatEvent } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, activityText, type Activity } from "./stall";
 import { backgroundWaitLabel, countBackground } from "./backgroundLabel";
@@ -8,16 +8,16 @@ import { RetryLabel, type Connection } from "./ConnectionStatus";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 
 /** 作業中のチャットの動きの様子（最後に何かが届いてからの時間と、長く動きのないサブエージェント） */
-export interface RunActivity {
+export interface ChatActivity {
   parent: Activity;
   stalled: SubagentEntry[];
 }
 
 /** 作業中の行の文（止めている・通信を再試行している・順番待ち・会話を圧縮している・返答を書いている・ツールを実行中・考えている）と、動きの様子 */
-export function workingLabel(run: Run, last: TimelineItem | undefined, live: string, stopping: boolean, compacting: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: RunActivity): ReactNode {
+export function workingLabel(chat: Chat, last: TimelineItem | undefined, live: string, stopping: boolean, compacting: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: ChatActivity): ReactNode {
   if (stopping) return "停止中…";
   if (connection.retry) return <RetryLabel retry={connection.retry} agents={Math.max(runningAgents, countBackground(background).agents)} />;
-  if (run.status === "queued") return "順番を待っています";
+  if (chat.status === "queued") return "順番を待っています";
   // 会話を要約して、コンテキストを空けている（手で圧縮した・上限に近づいて自動で。終わると続きを始める）
   if (compacting) return COMPACTING_LABEL;
   // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
@@ -37,7 +37,7 @@ export function workingLabel(run: Run, last: TimelineItem | undefined, live: str
   const note = activityText(activity.parent, toolName);
   return (
     <>
-      {base ?? <ThinkingWords since={lastActivityAt(last) ?? run.turn_started_at} />}
+      {base ?? <ThinkingWords since={lastActivityAt(last) ?? chat.turn_started_at} />}
       {note && <span className={activity.parent.level === "stalled" ? "activity-stalled" : "muted"}> · {note}</span>}
     </>
   );
@@ -79,7 +79,7 @@ function ThinkingWords({ since }: { since: string | null }) {
 }
 
 /** いちばん新しい作業の終わり（result）のイベント ID（なければ 0） */
-export function lastResultIdOf(events: RunEvent[]): number {
+export function lastResultIdOf(events: ChatEvent[]): number {
   for (let i = events.length - 1; i >= 0; i--) if (events[i].type === "result") return events[i].id;
   return 0;
 }

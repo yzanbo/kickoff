@@ -7,7 +7,7 @@ import { COLUMN_TONE } from "@/features/chat/tones";
 import { useStoredFlagMap } from "@/hooks/useStoredState";
 import { cx } from "@/lib/cx";
 import { useWorktreeList } from "@/features/worktree/worktreeBranches";
-import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type RunWorkplace } from "@/features/worktree/workplace";
+import { compareWorkplaces, workplaceOf, WORKPLACE_KIND_LABELS, type ChatWorkplace } from "@/features/worktree/workplace";
 import type { ChatOrder } from "./chatGroupings";
 import { Collapse } from "@/ui/Collapse";
 import { GroupToggle } from "@/ui/GroupToggle";
@@ -117,9 +117,9 @@ function statusGroups(rows: BoardEntry[], renderRow: (row: BoardEntry) => ReactN
 
 /** 作業場所（本体・ワークツリー・フォルダなし・以前のブランチ）ごと。本体を先に（workplaceOf / compareWorkplaces）。状態別なら中も状態ごとに分ける */
 function workplaceGroups(worktrees: GitWorktree[] | undefined, rows: BoardEntry[], renderRow: (row: BoardEntry) => ReactNode, order: ChatOrder) {
-  const byPlace = new Map<string, { place: RunWorkplace; rows: BoardEntry[] }>();
+  const byPlace = new Map<string, { place: ChatWorkplace; rows: BoardEntry[] }>();
   for (const row of rows) {
-    const place = workplaceOf(row.run, worktrees);
+    const place = workplaceOf(row.chat, worktrees);
     const hit = byPlace.get(place.key);
     if (hit) hit.rows.push(row);
     else byPlace.set(place.key, { place, rows: [row] });

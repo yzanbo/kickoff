@@ -3,7 +3,7 @@ import type { ProjectSummary } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useServerEvent } from "@/api/events";
-import { dropProject, removeGroup, removeRun, upsertGroup, upsertRun, type GroupsByProject, type RunsByProject } from "./sidebarData";
+import { dropProject, removeGroup, removeChat, upsertGroup, upsertChat, type GroupsByProject, type ChatsByProject } from "./sidebarData";
 
 /** 読み込みに失敗したあと、取り直すまでの間隔（サーバーが起動中・一時的に切れたときのため） */
 const RETRY_MS = 5000;
@@ -14,7 +14,7 @@ const RETRY_MS = 5000;
  * 読み込みに失敗したプロジェクトは errors に記録し、しばらくして取り直す（失敗したまま空にしない）
  */
 export function useSidebarData(projects: ProjectSummary[]) {
-  const [runs, setRuns] = useState<RunsByProject>({});
+  const [chats, setChats] = useState<ChatsByProject>({});
   const [groups, setGroups] = useState<GroupsByProject>({});
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [attempt, setAttempt] = useState(0);
@@ -31,10 +31,10 @@ export function useSidebarData(projects: ProjectSummary[]) {
     const clearError = (projectId: number) => setErrors((prev) => dropProject(prev, projectId));
     for (const p of projects) {
       // アーカイブしたチャットも読み込み、一覧の下の「アーカイブ済み」に分けて出す
-      if (!runs[p.id]) {
-        api.runs(p.id, { archived: true }).then((list) => {
+      if (!chats[p.id]) {
+        api.chats(p.id, { archived: true }).then((list) => {
           if (!alive) return;
-          setRuns((prev) => ({ ...prev, [p.id]: list }));
+          setChats((prev) => ({ ...prev, [p.id]: list }));
           clearError(p.id);
         }, failed(p.id));
       }
@@ -57,19 +57,19 @@ export function useSidebarData(projects: ProjectSummary[]) {
       case "group_deleted":
         setGroups((prev) => removeGroup(prev, e.project_id, e.id));
         break;
-      case "run_deleted":
-        setRuns((prev) => removeRun(prev, e.project_id, e.id));
+      case "chat_deleted":
+        setChats((prev) => removeChat(prev, e.project_id, e.id));
         break;
-      case "run":
-        setRuns((prev) => upsertRun(prev, e.run));
+      case "chat":
+        setChats((prev) => upsertChat(prev, e.chat));
         break;
       case "project_deleted":
-        setRuns((prev) => dropProject(prev, e.id));
+        setChats((prev) => dropProject(prev, e.id));
         setGroups((prev) => dropProject(prev, e.id));
         setErrors((prev) => dropProject(prev, e.id));
         break;
     }
   });
 
-  return { runs, groups, errors };
+  return { chats, groups, errors };
 }
