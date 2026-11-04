@@ -161,6 +161,20 @@ test("作業が終わると未読になり、続けて送ると消える。中�
   assert.equal(store.getChat(chat.id)?.unread, false);
 });
 
+test("送った直後（作業場所を調べている間）に止めても、プロバイダーを動かさずに中断で終わる", async () => {
+  let calls = 0;
+  const { store, runner, project } = setup(async (_p, _cb, signal) => {
+    calls++;
+    await new Promise<void>((r) => signal.addEventListener("abort", () => r()));
+    return { status: "cancelled", sessionId: null };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "x" });
+  runner.cancel(chat.id);
+  await until(() => store.getChat(chat.id)?.status === "cancelled");
+  assert.equal(calls, 0);
+  assert.equal(runner.isBusy(chat.id), false);
+});
+
 test("承認待ちの間は waiting になり、回答するとエージェントに結果が渡る", async () => {
   let received: unknown;
   const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {

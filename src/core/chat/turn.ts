@@ -71,7 +71,11 @@ export async function executeTurn(deps: ExecutionDeps, { chatId, prompt, promptI
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
     const since = store.listEvents(chatId).at(-1)?.id ?? 0;
 
-    const result = await providers[chat.provider].run(buildTurnParams(deps, chat, project, cwd, prompt, promptId), callbacksFor(deps, chat, signal, compact), signal);
+    // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
+    // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
+    const result: ProviderTurnResult = signal.aborted
+      ? { status: "cancelled", sessionId: chat.session_id }
+      : await providers[chat.provider].run(buildTurnParams(deps, chat, project, cwd, prompt, promptId), callbacksFor(deps, chat, signal, compact), signal);
     const network = result.status === "failed" && Boolean(result.network);
     applyResult(store, chatId, result, compact, since, network);
     const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
