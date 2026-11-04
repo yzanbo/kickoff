@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { DATABASE_ID, chatDraft, NEW_CHAT_DRAFTS, sidebarGroupClosed, THEME } from "./storageKeys";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -15,7 +16,7 @@ function sources(dir: string): string[] {
   });
 }
 
-test("保存するものは storageKeys.ts でだけ宣言する（保存するものの一覧を 1 か所にする）", () => {
+test("保存するものは storageKeys.ts でだけ宣言する（ほかで宣言すると、起動したときの片付けがその宣言を知らずにキーを消す）", () => {
   const outside = sources(root).filter((file) => {
     if (file.endsWith(path.join("lib", "storageKeys.ts")) || file.endsWith(path.join("lib", "storage.ts"))) return false;
     return /\bdefineSetting(Family)?\(/.test(fs.readFileSync(file, "utf8"));
@@ -31,4 +32,12 @@ test("localStorage・sessionStorage は lib/storage.ts の外で直接読み書�
     return /\b(localStorage|sessionStorage)\b/.test(code);
   });
   assert.deepEqual(direct.map((f) => path.relative(root, f)), []);
+});
+
+test("宣言: ID を含むもの（チャット・グループ・下書き）には印があり、含まないもの（テーマ・DB の ID）にはない", () => {
+  assert.equal(chatDraft(1).ids, true);
+  assert.equal(sidebarGroupClosed.ids, true);
+  assert.equal(NEW_CHAT_DRAFTS.ids, true);
+  assert.equal(THEME.ids, false);
+  assert.equal(DATABASE_ID.ids, false);
 });

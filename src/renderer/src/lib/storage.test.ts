@@ -7,8 +7,10 @@ import {
   defineSettingFamily,
   familyVersion,
   flag,
+  forgetIdSettings,
   list,
   number,
+  pruneUndeclared,
   readSetting,
   record,
   storedIds,
@@ -31,8 +33,9 @@ const MODE = defineSetting("kickoff:t-mode", choice(["queue", "tell"], "tell"));
 const WIDTH = defineSetting("kickoff:t-width", number(300));
 const DRAFT = defineSetting("kickoff:t-draft", text());
 const TAGS = defineSetting("kickoff:t-tags", list());
-const HASHES = defineSetting("kickoff:t-hashes", record((v): v is string => typeof v === "string"), { session: true });
-const groupClosed = defineSettingFamily("kickoff:t-group-closed:", flag());
+const HASHES = defineSetting("kickoff:t-hashes", record((v): v is string => typeof v === "string"), { session: true, ids: true });
+const CURRENT = defineSetting("kickoff:t-current", number(0), { ids: true });
+const groupClosed = defineSettingFamily("kickoff:t-group-closed:", flag(), { ids: true });
 const surfaceMode = defineSettingFamily("kickoff:t-surface:", choice(["none", "group"], "none"));
 
 test("値の形: 未保存・読めない値は初めの値。保存する文字はキー名と同じく、今までの形のまま（\"1\" / \"0\"、\"open\" / \"closed\" など）", () => {
@@ -128,4 +131,36 @@ test("宣言: kickoff: で始まらないキー・同じキー・ほかの宣言
   // ほかの頭の手前までの名前のキー・別の保存先（sessionStorage）の同じキーはよい
   assert.doesNotThrow(() => defineSetting("kickoff:t-group", flag()));
   assert.doesNotThrow(() => defineSetting("kickoff:t-open", flag(), { session: true }));
+});
+
+test("片付け: 宣言していない kickoff: のキーを消す（宣言したもの・ほかのアプリのキーは残す。保存先も宣言と合わなければ消す）", () => {
+  local.setItem("kickoff:t-compact", "1");
+  local.setItem("kickoff:t-group-closed:3", "1");
+  local.setItem("kickoff:sidebar-grouping", "status");
+  local.setItem("kickoff:t-hashes", "{}");
+  local.setItem("other-app:theme", "dark");
+  session.setItem("kickoff:t-hashes", '{"1":"#/"}');
+  session.setItem("kickoff:old", "x");
+  assert.deepEqual(pruneUndeclared().sort(), ["kickoff:old", "kickoff:sidebar-grouping", "kickoff:t-hashes"]);
+  assert.equal(local.getItem("kickoff:t-compact"), "1");
+  assert.equal(local.getItem("kickoff:t-group-closed:3"), "1");
+  assert.equal(local.getItem("other-app:theme"), "dark");
+  assert.equal(session.getItem("kickoff:t-hashes"), '{"1":"#/"}');
+  assert.equal(local.getItem("kickoff:t-hashes"), null);
+});
+
+test("片付け: ID を含む設定（ids を付けて宣言したもの）だけを、どちらの保存先からも消し、読み直すと初めの値", () => {
+  writeSetting(CURRENT, 12);
+  writeSetting(groupClosed(4), true);
+  writeSetting(HASHES, { 12: "#/projects/12" });
+  writeSetting(COMPACT, true);
+  let notified = 0;
+  const stop = subscribeSetting(CURRENT, () => notified++);
+  assert.deepEqual(forgetIdSettings().sort(), ["kickoff:t-current", "kickoff:t-group-closed:4", "kickoff:t-hashes"]);
+  assert.equal(readSetting(CURRENT), 0);
+  assert.equal(readSetting(groupClosed(4)), false);
+  assert.deepEqual(readSetting(HASHES), {});
+  assert.equal(readSetting(COMPACT), true);
+  assert.equal(notified, 1);
+  stop();
 });
