@@ -4,7 +4,7 @@ import { boardColumnOf } from "../../../../core/board";
 import { BOARD_COLUMN_LABELS, type Run } from "../../../../core/types";
 import { api } from "../../api";
 import { useRunStates } from "../../approvalsContext";
-import { chatTitle } from "../../chatTitle";
+import { NEW_CHAT_TITLE, chatTitle } from "../../chatTitle";
 import { useServerEvent } from "../../events";
 import { useListNavigation } from "../../hooks/useListNavigation";
 import { useModalDialog } from "../../hooks/useModalDialog";
@@ -28,7 +28,7 @@ type CountedColumn = (typeof COUNTED_COLUMNS)[number];
 type Item = { kind: "run"; key: string; run: Run } | { kind: "draft"; key: string; draft: SidebarDraft };
 
 /** 下書きの名前（書いた文の 1 行目。まだ書いていなければ「新しいチャット」） */
-const draftTitle = (draft: SidebarDraft) => draft.text.trim().split("\n")[0] || "新しいチャット";
+const draftTitle = (draft: SidebarDraft) => draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE;
 
 /**
  * ⌘⇧A: 作業中・回答待ち・未読のチャットを、すべてのプロジェクトから状態ごとに並べる（⌘K と同じ形）。
