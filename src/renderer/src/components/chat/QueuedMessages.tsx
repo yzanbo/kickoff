@@ -192,7 +192,8 @@ export function QueuedMessages({
           }}
         />
       )}
-      <div className="queued-head-row">
+      {/* 見出しの行にドラッグして落とすと、いちばん上へ（1 件目の上の「ここまで送ったら止めます」よりも上） */}
+      <div className="queued-head-row" onDragOver={dnd.overTop} onDrop={dnd.drop}>
         <button
           type="button"
           className="queued-head small muted"
