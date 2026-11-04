@@ -150,11 +150,7 @@
   white-space: pre-wrap;
 }
 
-.sticky-prompt-toggle {
-  flex: none;
-}
-
-/* 前・次の指示へ（見出し「指示」のすぐ右。文・添付の前に置き、位置を動かさない） */
+/* 前・次の指示へ・全文の開閉（見出し「指示」のすぐ右。文・添付の前に置き、位置を動かさない） */
 .sticky-prompt-nav {
   display: flex;
   flex: none;
