@@ -1,6 +1,5 @@
 import type { IpcMainEvent, IpcMainInvokeEvent, WebContents } from "electron";
 import type { z } from "zod";
-import { errorMessage } from "@shared/errors";
 import { channelOf, ipcEntries, type InvokeSpec, type IpcArgs, type IpcGroup, type IpcMethodOf, type IpcSpec, type SendSpec } from "@shared/ipc";
 import { sameOrigin } from "../app/urls.js";
 
@@ -79,36 +78,26 @@ export function registerIpcHandlers(
     if (kind === "event") continue;
     const schema = schemaTable[group][method];
     const handler = handlerTable[group][method];
-    const accept = (event: Sender, raw: unknown[]): unknown[] => {
-      if (!trusted(event)) throw new IpcRejected(`${channel}: Kickoff の画面以外からの呼び出しは受け付けません`);
-      const parsed = schema.safeParse(raw);
-      if (!parsed.success) throw new IpcRejected(`${channel}: 引数が正しくありません（${describeIssues(parsed.error)}）`);
-      return parsed.data;
-    };
-    const reject = (e: unknown) => {
-      warn(`[ipc] ${errorMessage(e)}`);
-      return e;
+    /** 通すなら引数を、断るなら書き残してその理由を返す */
+    const accept = (event: Sender, raw: unknown[]): { args: unknown[] } | { rejected: IpcRejected } => {
+      const parsed = trusted(event) ? schema.safeParse(raw) : undefined;
+      if (parsed?.success) return { args: parsed.data };
+      const rejected = new IpcRejected(
+        parsed ? `${channel}: 引数が正しくありません（${describeIssues(parsed.error)}）` : `${channel}: Kickoff の画面以外からの呼び出しは受け付けません`,
+      );
+      warn(`[ipc] ${rejected.message}`);
+      return { rejected };
     };
     if (kind === "invoke") {
       ipc.handle(channel, (event, ...raw) => {
-        let args: unknown[];
-        try {
-          args = accept(event, raw);
-        } catch (e) {
-          throw reject(e);
-        }
-        return handler(event, ...args);
+        const accepted = accept(event, raw);
+        if ("rejected" in accepted) throw accepted.rejected;
+        return handler(event, ...accepted.args);
       });
     } else {
       ipc.on(channel, (event, ...raw) => {
-        let args: unknown[];
-        try {
-          args = accept(event, raw);
-        } catch (e) {
-          reject(e);
-          return;
-        }
-        handler(event, ...args);
+        const accepted = accept(event, raw);
+        if ("args" in accepted) handler(event, ...accepted.args);
       });
     }
   }
