@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, VOICE_PROVIDERS, type AppSettings } from "@shared/types";
-import { voiceLanguage } from "./schemas.js";
+import { voiceLanguage, jsonBody } from "./schemas.js";
 
 const settingsSchema = z
   .object({
@@ -34,5 +34,5 @@ const settingsSchema = z
 /** アプリ全体の設定（設定ダイアログ。送った項目だけを変える） */
 export function settingsRoutes(app: Hono, { store }: ServerDeps) {
   app.get("/api/settings", (c) => c.json(store.settings.get()));
-  app.put("/api/settings", async (c) => c.json(store.settings.update(settingsSchema.parse(await c.req.json()))));
+  app.put("/api/settings", async (c) => c.json(store.settings.update(settingsSchema.parse(await jsonBody(c)))));
 }

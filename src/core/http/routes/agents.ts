@@ -6,7 +6,7 @@ import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ApprovalDecision, type ModelOption, type ProviderId, type SlashCommandOption } from "@shared/types";
 import { ttlCache } from "../../system/ttlCache.js";
 import { HttpError, requireProject, requireWorkdir } from "./http.js";
-import { attachmentSchema, optionalId, queryOf } from "./schemas.js";
+import { attachmentSchema, optionalId, queryOf, jsonBody } from "./schemas.js";
 import { answersWithAttachments } from "../../chat/uploads.js";
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
@@ -30,7 +30,7 @@ export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, 
   });
 
   app.post("/api/approvals/:id", async (c) => {
-    let decision = decisionSchema.parse(await c.req.json());
+    let decision = decisionSchema.parse(await jsonBody(c));
     // 「その他」に添えた添付は、回答の文にパスを書き添えてから渡す（Claude Code には文字の回答しか渡せない）
     if (decision.action === "answer" && decision.attachments) {
       const { attachments, ...rest } = decision;

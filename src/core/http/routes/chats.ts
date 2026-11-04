@@ -3,7 +3,7 @@ import { z } from "zod";
 import { addWorktree, worktreePathFor } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
 import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject, requireChat, requireWorktree } from "./http.js";
-import { attachmentSchema, branchName, messageInputSchema, optionalId, queryOf, chatOptionsSchema } from "./schemas.js";
+import { attachmentSchema, branchName, messageInputSchema, optionalId, queryOf, chatOptionsSchema, jsonBody } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
 import { rewindFiles, rewindChat, ChatBusyError } from "../../chat/rewind.js";
 import type { ChatDetail } from "@shared/types";
@@ -35,7 +35,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
 
   app.post("/api/projects/:id/chats", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const input = chatInputSchema.parse(await c.req.json());
+    const input = chatInputSchema.parse(await jsonBody(c));
     if (input.group_id !== undefined) requireGroupOf(store, input.group_id, project.id);
     const worktreePath = await resolveWorktree(project.repo_path, input.worktree_path, input.new_worktree_branch);
     const chat = await runner.start({
@@ -79,7 +79,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
         group_id: z.number().int().nullable(),
       })
       .partial()
-      .parse(await c.req.json());
+      .parse(await jsonBody(c));
     if (group_id !== undefined) {
       if (group_id !== null) requireGroupOf(store, group_id, chat.project_id);
       store.chats.setGroup(chat.id, group_id);
@@ -91,7 +91,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   // （event_id がなければ、メニューの「既読にする」などで、そのまま消す）
   app.post("/api/chats/:id/seen", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { event_id } = z.object({ event_id: z.number().int().optional() }).parse(await c.req.json().catch(() => ({})));
+    const { event_id } = z.object({ event_id: z.number().int().optional() }).parse(await jsonBody(c));
     if (!chat.unread || (event_id !== undefined && store.events.latestUnreadId(chat.id) > event_id)) return c.json(chat);
     return c.json(store.chats.setUnread(chat.id, false));
   });
@@ -105,14 +105,14 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   // サイドバーの上に固定する・やめる
   app.post("/api/chats/:id/pin", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { pinned } = z.object({ pinned: z.boolean() }).parse(await c.req.json());
+    const { pinned } = z.object({ pinned: z.boolean() }).parse(await jsonBody(c));
     return c.json(store.chats.setPinned(chat.id, pinned));
   });
 
   // アーカイブ（一覧から隠す。会話の記録は残る）/ 戻す
   app.post("/api/chats/:id/archive", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { archived } = z.object({ archived: z.boolean().default(true) }).parse(await c.req.json().catch(() => ({})));
+    const { archived } = z.object({ archived: z.boolean().default(true) }).parse(await jsonBody(c));
     if (archived && runner.isBusy(chat.id)) throw new HttpError(409, "作業中のチャットはアーカイブできません。中断してから行ってください");
     return c.json(store.chats.update(chat.id, { archived_at: archived ? new Date().toISOString() : null }));
   });
@@ -128,7 +128,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
 
   app.post("/api/chats/:id/messages", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
+    const { text, options, attachments } = messageInputSchema.parse(await jsonBody(c));
     // 作業中のチャットには送れない（409）
     return c.json(await conflictOnError(() => runner.send(chat.id, text, options, attachments)));
   });
@@ -143,7 +143,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）
   app.post("/api/chats/:id/tell", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { text, options, attachments } = messageInputSchema.parse(await c.req.json());
+    const { text, options, attachments } = messageInputSchema.parse(await jsonBody(c));
     return c.json({ result: await conflictOnError(() => runner.tell(chat.id, text, options, attachments)) });
   });
 
@@ -157,7 +157,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   // 作業の終わり（result イベント）の時点から、新しいチャットに分岐する（作業中は 409、分岐できない時点は 400）
   app.post("/api/chats/:id/fork", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { event_id } = z.object({ event_id: z.number().int() }).parse(await c.req.json());
+    const { event_id } = z.object({ event_id: z.number().int() }).parse(await jsonBody(c));
     if (runner.isBusy(chat.id)) throw new HttpError(409, "作業中は分岐できません。終わってから行ってください");
     const project = requireProject(store, String(chat.project_id));
     const forked = await badRequest(() => forkChat({ store, providers }, chat, event_id, chat.worktree_path || project.repo_path));
@@ -170,7 +170,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
     const chat = requireChat(store, c.req.param("id"));
     const { event_id, text, options, restore_files } = z
       .object({ event_id: z.number().int(), text: z.string().trim().max(50_000).default(""), options: chatOptionsSchema, restore_files: z.boolean().default(false) })
-      .parse(await c.req.json());
+      .parse(await jsonBody(c));
     const project = requireProject(store, String(chat.project_id));
     const cwd = chat.worktree_path || project.repo_path;
     return c.json(
@@ -182,7 +182,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   // （作業中は 409、戻せない発言（ファイルの記録がない）・プロバイダーは 400）
   app.post("/api/chats/:id/rewind-files", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    const { event_id, dry_run } = z.object({ event_id: z.number().int(), dry_run: z.boolean().default(false) }).parse(await c.req.json());
+    const { event_id, dry_run } = z.object({ event_id: z.number().int(), dry_run: z.boolean().default(false) }).parse(await jsonBody(c));
     const project = requireProject(store, String(chat.project_id));
     const cwd = chat.worktree_path || project.repo_path;
     return c.json(await badRequest(() => rewindFiles({ store, runner, providers }, chat, { eventId: event_id, cwd, dryRun: dry_run }), ChatBusyError));

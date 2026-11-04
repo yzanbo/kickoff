@@ -4,7 +4,7 @@ import { commitStaged, discardPaths, fetchRemote, gitCommitDetail, gitCommitDiff
 import { createPullRequest, pullRequestFor } from "../../git/github.js";
 import type { ServerDeps } from "../server.js";
 import { badRequest, gitAction, requireProject, requireWorkdir } from "./http.js";
-import { flag, queryOf, repoPath } from "./schemas.js";
+import { flag, queryOf, repoPath, jsonBody } from "./schemas.js";
 
 const diffQuerySchema = z.object({ path: repoPath, old: repoPath.optional(), staged: flag.default("0") });
 
@@ -28,7 +28,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
   for (const [name, action] of Object.entries(actions)) {
     app.post(`/api/projects/:id/git/${name}`, async (c) => {
       const project = requireProject(store, c.req.param("id"));
-      const { paths } = pathsSchema.parse(await c.req.json());
+      const { paths } = pathsSchema.parse(await jsonBody(c));
       const dir = await requireWorkdir(c, project);
       return gitAction(c, dir, () => action(dir, paths));
     });
@@ -37,7 +37,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
   // コミット・プッシュ（終わったら新しい状態を返す）
   app.post("/api/projects/:id/git/commit", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const { message } = z.object({ message: z.string().max(10_000) }).parse(await c.req.json());
+    const { message } = z.object({ message: z.string().max(10_000) }).parse(await jsonBody(c));
     const dir = await requireWorkdir(c, project);
     return gitAction(c, dir, () => commitStaged(dir, message));
   });

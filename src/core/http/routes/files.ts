@@ -3,7 +3,7 @@ import { z } from "zod";
 import { FileConflictError, listProjectFiles, readProjectFile, searchProject, writeProjectFile } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
 import { badRequest, HttpError, requireProject, requireWorkdir } from "./http.js";
-import { flag, repoPath } from "./schemas.js";
+import { flag, repoPath, jsonBody } from "./schemas.js";
 
 /** 作業場所のファイル（エクスプローラーの一覧・中身・検索・保存）。操作するフォルダは requireWorkdir（?worktree=） */
 export function filesRoutes(app: Hono, { store }: ServerDeps) {
@@ -37,7 +37,7 @@ export function filesRoutes(app: Hono, { store }: ServerDeps) {
   // ファイルを保存する（開いたときの指紋 base_hash といまの中身が違えば 409。null なら上書き）
   app.put("/api/projects/:id/file", async (c) => {
     const project = requireProject(store, c.req.param("id"));
-    const body = z.object({ path: repoPath, content: z.string().max(5_000_000), base_hash: z.string().max(100).nullable() }).parse(await c.req.json());
+    const body = z.object({ path: repoPath, content: z.string().max(5_000_000), base_hash: z.string().max(100).nullable() }).parse(await jsonBody(c));
     const dir = await requireWorkdir(c, project);
     return c.json(await badRequest(() => writeProjectFile(dir, body.path, body.content, body.base_hash), FileConflictError));
   });
