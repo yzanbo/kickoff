@@ -1,8 +1,8 @@
-import { List, SquareKanban, TextSearch } from "lucide-react";
+import { List, Rows2, Rows4, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
-import { useStoredChoice } from "../../hooks/useStoredState";
-import { BOARD_VIEW_KEY } from "../../storageKeys";
+import { useSharedFlag, useStoredChoice } from "../../hooks/useStoredState";
+import { BOARD_LIST_COMPACT_KEY, BOARD_VIEW_KEY } from "../../storageKeys";
 import { SearchField } from "../SearchField";
 import { Segmented } from "../Segmented";
 import { PanelToggle } from "../sidePanel/PanelToggle";
@@ -28,6 +28,14 @@ export function useBoardView() {
   const split = stored === "lanes" || stored === "list-lanes";
   const store = (v: BoardView, s: boolean) => setStored(v === "list" ? (s ? "list-lanes" : "list") : s ? "lanes" : "board");
   return { view, split, setView: (v: BoardView) => store(v, split), setSplit: (s: boolean) => store(view, s) };
+}
+
+/**
+ * リスト表示の行を 1 行にまとめるか（1 行 = 名前の後ろに作業場所・状態を並べる / 2 行 = 名前の下に並べる。初めは 2 行）。
+ * すべてのボード（カンバン・グループ・全プロジェクト）で共通で、見出しの切り替えと行の描き方（useBoardCards）でそろう
+ */
+export function useBoardListCompact() {
+  return useSharedFlag(BOARD_LIST_COMPACT_KEY);
 }
 
 interface Props {
@@ -80,6 +88,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
               { value: "list", label: "リスト", icon: List },
             ]}
           />
+          {view === "list" && <ListRowsToggle />}
           {viewOptions}
         </div>
         {organize && (
@@ -98,6 +107,23 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
         </div>
       </div>
     </div>
+  );
+}
+
+/** リスト表示の行の高さ（1 行 / 2 行）の切り替え。リストのときだけ、表示の切り替えのすぐ後ろに置く */
+function ListRowsToggle() {
+  const [compact, setCompact] = useBoardListCompact();
+  return (
+    <Segmented
+      className="view-toggle"
+      label="リストの行"
+      value={compact ? "1" : "2"}
+      onChange={(v) => setCompact(v === "1")}
+      options={[
+        { value: "2", label: "2 行（名前の下に作業場所・状態）", icon: Rows2, iconOnly: true },
+        { value: "1", label: "1 行（名前の後ろに作業場所・状態）", icon: Rows4, iconOnly: true },
+      ]}
+    />
   );
 }
 

@@ -6,6 +6,7 @@ import { startRunDrag } from "../../groups";
 import type { useRunRename } from "../../hooks/useRunRename";
 import type { SidePanelController } from "../sidePanel/useSidePanel";
 import type { BoardEntry } from "./boardColumns";
+import { useBoardListCompact } from "./BoardHeader";
 import { RunCardContent, RunRowContent } from "./RunCard";
 import { runCardProps } from "./runCardProps";
 
@@ -41,6 +42,8 @@ interface Options {
  */
 export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, style, projectName }: Options) {
   const { pendingCount } = useRunStates();
+  // リストの行を 1 行にまとめるか（見出しの切り替えとそろう）
+  const [compactRows] = useBoardListCompact();
   // ドラッグしている途中のチャット（薄く出す）
   const [dragRun, setDragRun] = useState<number>();
   const cardProps = (run: Run) => ({
@@ -71,7 +74,7 @@ export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, sty
     ),
     /** リストの行 */
     row: ({ run, state }: BoardEntry) => (
-      <div key={run.id} className={cx("list-row", cardClass(run))} {...cardProps(run)}>
+      <div key={run.id} className={cx("list-row", compactRows && "compact", cardClass(run))} {...cardProps(run)}>
         <RunRowContent run={run} state={state} projectName={projectName?.(run)} rename={rename.editorFor(run)} />
       </div>
     ),

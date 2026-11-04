@@ -152,6 +152,26 @@
   flex: none;
 }
 
+/* 1 行の行（見出しの「リストの行」で切り替え）: 名前の後ろに作業場所・状態を並べ、狭ければ名前から省く */
+.list-row.compact .list-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.list-row.compact .card-title {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.list-row.compact .list-meta {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow: hidden;
+}
+
 
 /* リスト表示のいちばん下の「アーカイブ済み」: 中を状態ごとに分ける（見出しはほかのまとまりと同じ ColumnHead） */
 .archived-list-state {
