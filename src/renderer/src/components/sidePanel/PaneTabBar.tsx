@@ -102,7 +102,8 @@ export function PaneTabBar({
   const known = pane.tabs.filter(panel.isKindShown);
   // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない（並び順だけ使う）
   const seeds = !showChat ? [] : home ? order : order.map((o) => ({ ...o, keepEmpty: false }));
-  const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf, seeds);
+  // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
+  const clusters = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, seeds);
   // タブを畳んだまとまり（すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない
   const [collapsed, setCollapsed] = useSharedList(PANEL_TAB_CLUSTERS_COLLAPSED_KEY);
   const toggleCollapsed = (key: string) => setCollapsed(toggleClusterCollapsed(key, collapsed));
