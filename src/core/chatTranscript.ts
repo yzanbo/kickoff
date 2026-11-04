@@ -50,8 +50,8 @@ export function chatTranscript(run: Run, project: Project, events: RunEvent[]): 
   return `${lines.join("\n")}\n`;
 }
 
-/** 添付にするときのファイル名（「チャット-名前.md」。ファイル名に使えない文字は除く） */
+/** 添付にするときのファイル名（「チャット履歴-名前.md」。ファイル名に使えない文字は除く） */
 export function transcriptFileName(run: Run): string {
   const title = (run.title || "無題のチャット").replace(/[\\/:*?"<>|\n\r\t]+/g, " ").trim().slice(0, 60);
-  return `チャット-${title}.md`;
+  return `チャット履歴-${title}.md`;
 }

@@ -755,11 +755,11 @@ test("チャットの記録の API: ほかのチャットのやり取りを Mark
   const res = await call("POST", `/api/runs/${source}/transcript`);
   assert.equal(res.status, 201);
   assert.equal(res.body.mime, "text/markdown");
-  assert.match(res.body.name, /^チャット-.+\.md$/);
+  assert.match(res.body.name, /^チャット履歴-.+\.md$/);
   // 別のチャットに添付として送ると、指示に記録のファイルのパスが添えられる
   const target = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "続き", attachments: [res.body] })).body.id;
   await until(() => store.getRun(target)?.status === "completed");
-  assert.match(provider.prompts.at(-1)!, /チャット-.+\.md/);
+  assert.match(provider.prompts.at(-1)!, /チャット履歴-.+\.md/);
   assert.equal((await call("POST", "/api/runs/99999/transcript")).status, 404);
 });
 

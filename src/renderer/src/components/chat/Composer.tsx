@@ -54,7 +54,7 @@ interface Props {
   draftKey?: string;
   /** 外から入力欄に文を入れる口（発言の一覧の「入力欄に入れる」など。append なら書いている文の後ろに足す。入れたら文の終わりにピントを置く） */
   fillRef?: MutableRefObject<ComposerFill | null>;
-  /** 「チャットを添付」（ほかのチャットのやり取りを添付する）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
+  /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
   chatContext?: { projectId?: number; exclude?: number };
 }
 
