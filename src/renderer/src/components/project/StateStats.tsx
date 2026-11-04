@@ -1,10 +1,9 @@
 import { useRef, useState, type CSSProperties } from "react";
-import { BOARD_COLUMN_LABELS, type Run } from "../../../../core/types";
+import type { Run } from "../../../../core/types";
 import { useRunStates } from "../../approvalsContext";
 import { useDismiss } from "../../hooks/useDismiss";
 import { openRun } from "../../router";
-import { COLUMN_TONE } from "../board/tones";
-import { StateRunsPopover, runsByState } from "../StateRunsPopover";
+import { SECTION_LABELS, SECTION_TONES, StateRunsPopover, runsByState } from "../StateRunsPopover";
 
 /**
  * 画面の見出しの、状態ごとのチャット数（作業中・回答待ち・未読。0 のものは出さない）。
@@ -24,8 +23,8 @@ export function StateStats({ runs, showProject = false }: { runs: Run[]; showPro
     <div ref={ref} className="state-stats">
       <button type="button" className="state-stats-button" aria-expanded={open} title="状態ごとのチャットを一覧する" onClick={() => setOpen(!open)}>
         {sections.map(({ column, runs: list }) => (
-          <span key={column} className="stat stat-state" style={{ "--tone": COLUMN_TONE[column] } as CSSProperties}>
-            {BOARD_COLUMN_LABELS[column]} {list.length}
+          <span key={column} className="stat stat-state" style={{ "--tone": SECTION_TONES[column] } as CSSProperties}>
+            {SECTION_LABELS[column]} {list.length}
           </span>
         ))}
       </button>
