@@ -16,7 +16,7 @@ import type { TabDrag } from "./useTabDrag";
 import { useGroupNames } from "../../groupNames";
 import type { SidePanelController } from "./useSidePanel";
 import { shownActiveOf } from "./panelKinds";
-import { OTHER_CLUSTER, clusterHue, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs, type TabCluster } from "./tabClusters";
+import { OTHER_CLUSTER, clusterHues, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useSharedList } from "../../hooks/useStoredState";
 import { PANEL_TAB_CLUSTERS_COLLAPSED_KEY } from "../../storageKeys";
 import { TabClusterHead } from "./TabClusterHead";
@@ -112,6 +112,8 @@ export function PaneTabBar({
   const isCollapsed = (key: string) => isClusterCollapsed(key, collapsed);
   const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c.key), active);
   const display = clusters ? clusters.flatMap(shownTabs) : known;
+  // まとまりの色（同じ列のまとまりどうしで被らないように決める。グループは覚えた色を先に取る）
+  const hues = clusterHues(clusters ?? []);
   // 自分で作ったグループの札のドラッグで、グループの並びを入れ替える（サイドバー・グループのボードも同じ並びになる）
   const clusterReorder = useClusterReorder(clusters);
   /**
@@ -218,7 +220,7 @@ export function PaneTabBar({
       {clusters
         ? clusters.map((c) => {
             // まとまりごとに 1 つの枠に入れ、色の付いた名前の札・薄い地・下の線で、どこからどこまでが 1 つのまとまりかを見せる（ブラウザのタブのグループと同じ）
-            const hue = clusterHue(c.key);
+            const hue = hues.get(c.key) ?? null;
             return (
               <div
                 key={c.key}

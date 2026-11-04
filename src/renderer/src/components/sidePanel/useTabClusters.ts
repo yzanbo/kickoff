@@ -47,7 +47,10 @@ export function useTabClusters(
 
   const byGroup = (projectId: number, groupId: number | null | undefined): ClusterOf => {
     const name = groupId ? groupName(projectId, groupId) : undefined;
+    // 自分で作ったグループは覚えた色（同じプロジェクトのほかのグループと被らない色）
+    const hue = groupId ? groupsOf(projectId).find((g) => g.id === groupId)?.hue : undefined;
     return named(projectId, {
+      ...(hue !== undefined && { hue }),
       key: `p${projectId}:g${groupId ?? ""}`,
       label: name ?? "グループなし",
       title: name ? `グループ: ${name}` : "グループに入っていないチャット",

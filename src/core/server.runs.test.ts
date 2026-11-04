@@ -93,6 +93,11 @@ test("チャット・グループの API", async () => {
   const other = store.createProject({ name: "o", repo_path: tempDir(), provider: "claude" });
   const group = await call("POST", `/api/projects/${project.id}/groups`, { name: "g" });
   assert.equal(group.status, 201);
+  // グループの色は、同じプロジェクトのほかのグループと被らない色を作ったときに選ぶ
+  const second = (await call("POST", `/api/projects/${project.id}/groups`, { name: "g2" })).body;
+  assert.equal(typeof group.body.hue, "number");
+  assert.notEqual(second.hue, group.body.hue);
+  await call("DELETE", `/api/groups/${second.id}`);
   const otherGroup = (await call("POST", `/api/projects/${other.id}/groups`, { name: "x" })).body;
 
   // 本文も添付もなければ送れない。ほかのプロジェクトのグループには入れられない
