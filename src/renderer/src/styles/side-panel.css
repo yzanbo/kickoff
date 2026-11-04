@@ -89,8 +89,11 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: var(--radius-lg);
+  /*
+   * 外枠は付けず、ボードとの境目に左の 1 本線だけを引く（以前は角の丸い枠と影で浮かせていたが、チャットはなるべく広く使いたいので、
+   * 枠と、その外の画面の右・下の余白の分も中身に回す）
+   */
+  border-left: 1px solid transparent;
   background: var(--bg);
   opacity: 0;
   transition:
@@ -98,19 +101,20 @@
     border-color var(--panel-motion-duration);
 }
 
+/* 開いたパネルは、画面の右・下の余白（.page の --gutter）まで伸ばして端に付ける（閉じているときは伸ばさない。幅 0 の見えない箱が余白を押さえないように） */
 .board-body.with-panel .board-panel {
-  border-color: var(--border);
+  margin: 0 calc(-1 * var(--gutter)) calc(-1 * var(--gutter)) 0;
+  border-left-color: var(--border);
   opacity: 1;
-  box-shadow: -8px 0 24px rgb(0 0 0 / 18%);
 }
 
 /*
- * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--panel-shown。左右の枠線の分を引く）のまま左端にそろえて置き、
+ * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--panel-shown に、右の余白まで伸ばした分を足し、左の線の分を引く）のまま左端にそろえて置き、
  * パネルの枠で右側を切り取る。列が左へ広がるのに合わせて、中身が右から左へ滑り込んでくる（閉じるときは右へ抜けていく）
  */
 .board-panel:not(.as-sidebar) > .panel-tabs,
 .board-panel:not(.as-sidebar) > .panel-content {
-  width: calc(var(--panel-shown, 100%) - 2px);
+  width: calc(var(--panel-shown, calc(100% - var(--gutter) + 1px)) + var(--gutter) - 1px);
 }
 
 /*
