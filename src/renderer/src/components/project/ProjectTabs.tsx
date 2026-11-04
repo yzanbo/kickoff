@@ -23,6 +23,12 @@ export function useProjectTabsLayout() {
   return useSharedChoice<ProjectTabsLayout>(PROJECT_TABS_LAYOUT_KEY, LAYOUTS, "side");
 }
 
+/** タブの数を取り直している最中か（ボード = チャットの一覧・エディタ = Git の状態。数の代わりに更新中の印を出す） */
+export interface TabRefreshing {
+  runs: boolean;
+  changes: boolean;
+}
+
 /** タブの列に出すタブ（グループは「ボード」の中の列の切り替えにまとめたので出さない） */
 const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
   { tab: "board", label: "ボード", icon: SquareKanban },
@@ -33,10 +39,24 @@ const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
 /**
  * プロジェクトの画面のタブ（ボード・エディタ）。ボードには状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
  * 縦並びはアイコンの角に重ね（左上 = 作業中・右上 = 未読・左下 = 回答待ち）、横並びは名前の後ろに並べる。作業中のまま未読のものは未読に数えない）、
- * エディタには変更のあるファイルの数を添える。
+ * エディタには変更のあるファイルの数を添える。取り直している最中（refreshing）は、VS Code のバッジと同じく数の代わりに回る印を出す。
  * vertical: 左に縦並び（アイコンだけ。名前と数は title と aria-label）。右クリックで置き方（横並び / 縦並び）を切り替える
  */
-export function ProjectTabs({ projectId, tab, runs, changeCount, vertical = false }: { projectId: number; tab: ProjectTab; runs: Run[]; changeCount: number; vertical?: boolean }) {
+export function ProjectTabs({
+  projectId,
+  tab,
+  runs,
+  changeCount,
+  refreshing,
+  vertical = false,
+}: {
+  projectId: number;
+  tab: ProjectTab;
+  runs: Run[];
+  changeCount: number;
+  refreshing: TabRefreshing;
+  vertical?: boolean;
+}) {
   const [columns] = useBoardColumns();
   const [layout, setLayout] = useProjectTabsLayout();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
@@ -72,11 +92,20 @@ export function ProjectTabs({ projectId, tab, runs, changeCount, vertical = fals
             href={href({ name: "project", id: projectId, tab: target })}
           >
             {vertical ? <Icon size={18} aria-hidden /> : label}
-            {t === "board" && <StateCornerCounts counts={counts} inline={!vertical} />}
-            {t === "changes" && count > 0 && (
-              <span className="change-count" aria-label={vertical ? undefined : countLabel}>
-                {count}
+            {/* 取り直している最中は数の代わりに更新中の印（終わったら数に戻す） */}
+            {(t === "board" && refreshing.runs) || (t === "changes" && refreshing.changes) ? (
+              <span className="tab-refreshing" role="status" aria-label="更新中" title="更新中…">
+                <span className="spinner" aria-hidden />
               </span>
+            ) : t === "board" ? (
+              <StateCornerCounts counts={counts} inline={!vertical} />
+            ) : (
+              t === "changes" &&
+              count > 0 && (
+                <span className="change-count" aria-label={vertical ? undefined : countLabel}>
+                  {count}
+                </span>
+              )
             )}
           </a>
         );

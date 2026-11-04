@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Project, Run, RunGroup } from "../../../../core/types";
 import { api } from "../../api";
 import { errorMessage } from "../../errors";
@@ -22,8 +22,13 @@ const projectCache = new Map<number, ProjectData>();
 export function useProjectData(id: number) {
   const [data, setData] = useState<ProjectData | undefined>(() => projectCache.get(id));
   const [error, setError] = useState<string>();
+  // 取り直している最中か（タブの数の代わりに更新中の印を出す）。続けて呼ばれても、すべて終わるまで true
+  const [loading, setLoading] = useState(false);
+  const inFlight = useRef(0);
 
   const load = useCallback(async () => {
+    inFlight.current++;
+    setLoading(true);
     try {
       const [project, runs, groups] = await Promise.all([api.project(id), api.runs(id), api.groups(id)]);
       const next = { project, runs, groups };
@@ -32,6 +37,8 @@ export function useProjectData(id: number) {
       setError(undefined);
     } catch (e) {
       setError(errorMessage(e));
+    } finally {
+      if (--inFlight.current === 0) setLoading(false);
     }
   }, [id]);
 
@@ -55,5 +62,5 @@ export function useProjectData(id: number) {
 
   // 切り替えた直後も、覚えている内容があれば最初の描画から使う（前のプロジェクトが一瞬映らないように）
   const shown = data?.project.id === id ? data : (projectCache.get(id) ?? data);
-  return { data: shown, error };
+  return { data: shown, error, loading };
 }
