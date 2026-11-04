@@ -6,6 +6,7 @@ import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject,
 import { attachmentSchema, branchName, messageInputSchema, optionalId, queryOf, chatOptionsSchema } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
 import { rewindFiles, rewindChat, ChatBusyError } from "../../chat/rewind.js";
+import type { ChatDetail } from "@shared/types";
 
 // 本文が空でも、添付があれば送れる
 const chatInputSchema = z
@@ -62,9 +63,11 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
     return c.json(store.chats.list({ limit: Math.min(limit, 1000), includeArchived: c.req.query("archived") === "1" }));
   });
 
+  // チャットの詳細（作業中の様子 live は SSE の chat_live と同じ形。画面はそれで追いかける）
   app.get("/api/chats/:id", (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    return c.json({ chat, events: store.events.list(chat.id), approvals: approvals.list({ chatId: chat.id }), queue: runner.queued(chat.id), queue_paused: runner.queuePaused(chat.id), queue_stops: runner.queueStops(chat.id), queue_waiting_edit: runner.queueWaitingForEdit(chat.id), reconnect: runner.reconnectState(chat.id), background: runner.backgroundState(chat.id), compacting: runner.compactingSince(chat.id), stopping: runner.isStopping(chat.id) });
+    const detail: ChatDetail = { chat, events: store.events.list(chat.id), approvals: approvals.list({ chatId: chat.id }), live: runner.live(chat.id) };
+    return c.json(detail);
   });
 
   // チャットの名前・グループを変える（カンバンの列は AI の状態で決まるので変えない）
@@ -119,7 +122,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
     const chat = requireChat(store, c.req.param("id"));
     if (runner.isBusy(chat.id)) throw new HttpError(409, "作業中のチャットは削除できません。中断してから行ってください");
     store.chats.delete(chat.id);
-    runner.forgetQueued(chat.id);
+    runner.forget(chat.id);
     return c.json({ ok: true });
   });
 

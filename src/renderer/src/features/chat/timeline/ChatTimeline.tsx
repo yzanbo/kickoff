@@ -3,14 +3,14 @@ import { CHAT_STATUS_LABELS } from "@/features/chat/chatStatus";
 import { useSharedFlag } from "@/hooks/useStoredState";
 import { useTicker } from "@/hooks/useTicker";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import type { Approval, BackgroundState, Chat, ChatEvent } from "@shared/types";
+import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, latestOf, stalledAgents } from "@/features/chat/status/stall";
 import { lastResultIdOf, workingLabel, type ChatActivity } from "@/features/chat/status/workingLabel";
 import { BackgroundTasks } from "@/features/chat/status/BackgroundTasks";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
-import { ReconnectRow, type Connection } from "@/features/chat/status/ConnectionStatus";
+import { ReconnectRow } from "@/features/chat/status/ConnectionStatus";
 import { jumpToEvent } from "./jumpToEvent";
 import { promptAttachments, readingPrompt, StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
 import { TimelineItems, Working } from "./Timeline";
@@ -50,12 +50,9 @@ export function ChatTimeline({
   busy,
   agents = [],
   onOpenSubagent,
-  background = null,
-  connection,
-  waiting,
-  stopping,
-  compacting,
   live,
+  waiting,
+  streaming,
   approvals,
   focus,
   stickToBottom,
@@ -83,16 +80,14 @@ export function ChatTimeline({
   agents?: SubagentEntry[];
   /** サブエージェントの中身をパネルのタブで開く */
   onOpenSubagent?: (entry: SubagentEntry) => void;
-  /** 裏で動いている作業と、メインの返答が終わったか（返答のあとに待っているものを、種類と名前で出す） */
-  background?: BackgroundState | null;
-  /** 通信の再試行中・止まってつながるのを待っているところ */
-  connection: Connection;
+  /**
+   * 作業中の様子（裏の作業と、メインの返答が終わったか・通信の再試行中・つながるのを待っているところ・圧縮中・停止中）。
+   * 停止中は押してからコアの知らせが届くまでの間も含め、圧縮中は作業中だけ（ChatPane が決める）
+   */
+  live: ChatLive;
   waiting: boolean;
-  /** 停止を押して、止まるのを待っている */
-  stopping: boolean;
-  /** 会話を圧縮している最中 */
-  compacting: boolean;
-  live: string;
+  /** 書いている途中の返答 */
+  streaming: string;
   approvals: Approval[];
   focus?: number;
   stickToBottom: RefObject<boolean>;
@@ -135,13 +130,13 @@ export function ChatTimeline({
   // Claude Code に問い合わせる手段はないので、1 秒ごとの描き直しで、長く動きがなければ知らせる
   // 何も届かない間も、動きの様子（「n 分動きがありません」）を進めるため、作業中は定期的に描き直す（流れの各項目は memo しているので軽い）
   useTicker(busy ? 15_000 : 3_600_000);
-  const liveAt = useRef<string>(undefined);
+  const streamedAt = useRef<string>(undefined);
   useEffect(() => {
-    if (live) liveAt.current = new Date().toISOString();
-  }, [live]);
+    if (streaming) streamedAt.current = new Date().toISOString();
+  }, [streaming]);
   const runningAgents = agents.filter((s) => s.status === "running").length;
   const activity: ChatActivity = {
-    parent: activityOf(latestOf(events.at(-1)?.created_at, liveAt.current, chat.turn_started_at, ...agents.filter((s) => s.status === "running").map((s) => s.lastActivityAt))),
+    parent: activityOf(latestOf(events.at(-1)?.created_at, streamedAt.current, chat.turn_started_at, ...agents.filter((s) => s.status === "running").map((s) => s.lastActivityAt))),
     stalled: busy ? stalledAgents(agents) : [],
   };
 
@@ -180,7 +175,7 @@ export function ChatTimeline({
     const el = timelineRef.current;
     if (el && stickToBottom.current && !focus) el.scrollTop = el.scrollHeight;
     // 窓（最近の項目だけ描く）は数が変わらないまま進むので、最後の項目で新しい発言を見分ける
-  }, [lastKey, approvals.length, live, focus, stickToBottom]);
+  }, [lastKey, approvals.length, streaming, focus, stickToBottom]);
 
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   useMarkSeen({ timelineRef, chat, events, visible, away, slackPx: BOTTOM_SLACK_PX });
@@ -219,12 +214,12 @@ export function ChatTimeline({
   // 通信が切れている（再試行中・つながるのを待っている）ときは黄にする
   const pill: { label: ReactNode; tone: ScrollPillTone } = waiting
     ? { label: "回答を待っています", tone: "waiting" }
-    : !busy && connection.reconnect
+    : !busy && live.reconnect
       ? { label: "通信待ち（つながったら自動で再開）", tone: "offline" }
       : finishedWhileAway
         ? { label: chat.status === "failed" ? "失敗しました" : "返答が届きました", tone: chat.status === "failed" ? "failed" : "arrived" }
         : busy
-          ? { label: workingLabel(chat, lastItem, live, stopping, compacting, runningAgents, connection, background, activity), tone: connection.retry ? "offline" : "working" }
+          ? { label: workingLabel(chat, lastItem, streaming, live, runningAgents, activity), tone: live.retry ? "offline" : "working" }
           : { label: CHAT_STATUS_LABELS[chat.status], tone: chat.status === "failed" ? "failed" : "idle" };
 
   return (
@@ -265,9 +260,9 @@ export function ChatTimeline({
             </button>
           ) : (
             <>
-          {live && (
+          {streaming && (
             <div className="assistant live">
-              <Markdown streaming>{live}</Markdown>
+              <Markdown streaming>{streaming}</Markdown>
             </div>
           )}
           {approvals.map((a) => (
@@ -275,12 +270,12 @@ export function ChatTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={chat.turn_started_at}>{workingLabel(chat, lastItem, live, stopping, compacting, runningAgents, connection, background, activity)}</Working>
+            <Working since={chat.turn_started_at}>{workingLabel(chat, lastItem, streaming, live, runningAgents, activity)}</Working>
           )}
           {/* 裏で動いている作業（1 件ずつ止められる） */}
-          {busy && <BackgroundTasks chatId={chat.id} background={background} agents={agents} onOpen={onOpenSubagent} />}
+          {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} onOpen={onOpenSubagent} />}
           {/* 通信が切れて止まり、つながるのを待っている */}
-          {!busy && connection.reconnect && <ReconnectRow chatId={chat.id} reconnect={connection.reconnect} />}
+          {!busy && live.reconnect && <ReconnectRow chatId={chat.id} reconnect={live.reconnect} />}
             </>
           )}
         </div>

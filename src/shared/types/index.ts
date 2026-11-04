@@ -10,3 +10,4 @@ export * from "./git";
 export * from "./server";
 export * from "./events";
 export * from "./voice";
+export * from "./api";

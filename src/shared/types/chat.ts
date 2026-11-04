@@ -135,7 +135,7 @@ export interface SearchHit {
   created_at: string;
 }
 
-/** 作業中のチャットに送った、次の指示の待ちの列の 1 件（いまの作業が終わったら順に送る。保存しない） */
+/** 作業中のチャットに送った、次の指示の待ちの列（送信待ち）の 1 件（いまの作業が終わったら順に送る。chat_queues に保存する） */
 export interface QueuedMessage {
   id: string;
   text: string;

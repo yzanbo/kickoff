@@ -8,6 +8,7 @@ import { ApprovalCenter } from "../chat/approvals.js";
 import { Bus } from "../bus.js";
 import { Runner } from "../chat/runner.js";
 import { AUTH, setup, tempDir, until } from "../testing/testServer.js";
+import type { ChatLive } from "@shared/types";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
   const { call, project, store, runner, provider } = setup();
@@ -43,63 +44,105 @@ test("未読: 作業中も AI の文章の返答で未読にし、一番下ま�
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`, { event_id: "x" })).status, 400);
 });
 
-test("裏で動いている作業: 作業中はチャットの詳細で返し、SSE でも知らせ、作業が終わったら消す", async () => {
+test("裏で動いている作業: 作業中はチャットの詳細で返し、SSE の chat_live でも知らせ、作業が終わったら消す", async () => {
   const { call, project, runner, provider, bus } = setup();
   const seen: unknown[] = [];
   bus.subscribe((e) => {
-    if (e.type === "chat_background") seen.push(e.background);
+    if (e.type === "chat_live") seen.push(e.live.background);
   });
   const state = { tasks: [{ task_id: "b1", kind: "command" as const, description: "npm run dev" }], replied: true };
   provider.background = state;
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "動かして" })).body.id;
-  await until(() => runner.backgroundState(chatId) !== null);
-  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.background, state);
+  await until(() => runner.live(chatId).background !== null);
+  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.background, state);
   release();
   await until(() => !runner.isBusy(chatId));
-  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.background, null);
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.background, null);
   assert.deepEqual(seen, [state, null]);
 });
 
-test("圧縮: 圧縮している間はチャットの詳細で始めた時刻を返し、SSE でも知らせ、作業が終わったら消す", async () => {
+test("圧縮: 圧縮している間はチャットの詳細で始めた時刻を返し、SSE の chat_live でも知らせ、作業が終わったら消す", async () => {
   const { call, project, runner, provider, bus } = setup();
   const seen: (string | null)[] = [];
   bus.subscribe((e) => {
-    if (e.type === "chat_compacting") seen.push(e.since);
+    if (e.type === "chat_live") seen.push(e.live.compacting);
   });
   provider.compacting = true;
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "続けて" })).body.id;
-  await until(() => runner.compactingSince(chatId) !== null);
-  const since = (await call("GET", `/api/chats/${chatId}`)).body.compacting;
+  await until(() => runner.live(chatId).compacting !== null);
+  const since = (await call("GET", `/api/chats/${chatId}`)).body.live.compacting;
   assert.equal(typeof since, "string");
   release();
   await until(() => !runner.isBusy(chatId));
-  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.compacting, null);
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.compacting, null);
   assert.deepEqual(seen, [since, null]);
 });
 
-test("停止: 止めるよう頼んでから作業が終わるまでは、詳細と SSE で停止中を知らせる", async () => {
+test("作業中の様子: チャットの詳細の live と SSE の chat_live は同じ形で、どれかが変わったときだけ丸ごと届く", async () => {
+  const { call, project, runner, provider, bus } = setup();
+  const lives: ChatLive[] = [];
+  bus.subscribe((e) => {
+    if (e.type === "chat_live") lives.push(JSON.parse(JSON.stringify(e.live)));
+  });
+  const release = provider.hold();
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
+  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
+  // 変わらなければ知らせない
+  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
+  assert.equal(lives.length, 2);
+  const last = lives.at(-1)!;
+  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live, last);
+  assert.deepEqual(
+    last.queue.messages.map((m) => m.text),
+    ["次"],
+  );
+  assert.deepEqual(
+    { ...last, queue: { ...last.queue, messages: [] } },
+    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false },
+  );
+  await call("DELETE", `/api/chats/${chatId}/queue`);
+  release();
+  await until(() => !runner.isBusy(chatId));
+});
+
+test("再試行: AI の API への通信を再試行している間はチャットの詳細でも返し、作業が終わったら消す", async () => {
+  const { call, project, runner, provider } = setup();
+  const retry = { attempt: 2, max_retries: 10, retry_delay_ms: 4000, at: new Date().toISOString() };
+  provider.retry = retry;
+  const release = provider.hold();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "動かして" })).body.id;
+  await until(() => runner.live(chatId).retry !== null);
+  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.retry, retry);
+  release();
+  await until(() => !runner.isBusy(chatId));
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.retry, null);
+});
+
+test("停止: 止めるよう頼んでから作業が終わるまでは、詳細と SSE の chat_live で停止中を知らせる", async () => {
   const { call, project, runner, provider, bus } = setup();
   const seen: boolean[] = [];
   bus.subscribe((e) => {
-    if (e.type === "chat_stopping") seen.push(e.stopping);
+    if (e.type === "chat_live") seen.push(e.live.stopping);
   });
   provider.hold();
   let finish = () => {};
   provider.slowStop = new Promise((resolve) => (finish = resolve));
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "動かして" })).body.id;
   await until(() => provider.prompts.length === 1);
-  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.stopping, false);
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.stopping, false);
   assert.deepEqual((await call("POST", `/api/chats/${chatId}/cancel`)).body, { ok: true });
   // 2 回押しても知らせは 1 回
   await call("POST", `/api/chats/${chatId}/cancel`);
-  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.stopping, true);
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.stopping, true);
   assert.equal(runner.isBusy(chatId), true);
   finish();
   await until(() => !runner.isBusy(chatId));
   const detail = (await call("GET", `/api/chats/${chatId}`)).body;
-  assert.equal(detail.stopping, false);
+  assert.equal(detail.live.stopping, false);
   assert.equal(detail.chat.status, "cancelled");
   assert.deepEqual(seen, [true, false]);
 });
@@ -318,44 +361,52 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   const third = (await call("POST", `/api/chats/${chatId}/queue`, { text: "3" })).body;
   assert.equal(third.queued, true);
   assert.equal(typeof third.id, "string");
-  const queue = (await call("GET", `/api/chats/${chatId}`)).body.queue as { id: string; text: string }[];
+  // 応答は、入れたあとの送信待ち（入れた指示の ID を添える）
+  assert.deepEqual(
+    third.messages.map((m: { id: string; text: string }) => [m.text, m.id === third.id]),
+    [
+      ["2", false],
+      ["3", true],
+    ],
+  );
+  const queue = (await call("GET", `/api/chats/${chatId}`)).body.live.queue.messages as { id: string; text: string }[];
   assert.deepEqual(queue.map((m) => m.text), ["2", "3"]);
 
   const moved = await call("POST", `/api/chats/${chatId}/queue/${queue[1].id}/move`, { index: 0 });
-  assert.deepEqual(moved.body.queue.map((m: { text: string }) => m.text), ["3", "2"]);
+  assert.deepEqual(moved.body.messages.map((m: { text: string }) => m.text), ["3", "2"]);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/nope/move`, { index: 0 })).status, 404);
   // 書き換え（空にはできない）
   const edited = await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: " 3 を直した " });
-  assert.equal(edited.body.queue.find((m: { id: string }) => m.id === queue[1].id).text, "3 を直した");
+  assert.equal(edited.body.messages.find((m: { id: string }) => m.id === queue[1].id).text, "3 を直した");
   assert.equal((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "  " })).status, 400);
   assert.equal((await call("PATCH", `/api/chats/${chatId}/queue/nope`, { text: "x" })).status, 404);
   // 添付も置き換えられる（足す・外す）。添付があれば文は空にでき、文も添付もなくなるなら断る
   const image = { id: randomUUID(), name: "a.png", mime: "image/png", size: 10 };
   const withImage = await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "", attachments: [image] });
-  assert.deepEqual(withImage.body.queue.find((m: { id: string }) => m.id === queue[1].id).attachments, [image]);
+  assert.deepEqual(withImage.body.messages.find((m: { id: string }) => m.id === queue[1].id).attachments, [image]);
   assert.equal((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "", attachments: [] })).status, 400);
   // 添付を省けば今のまま（文だけ直す）。外して元に戻す
-  assert.deepEqual((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "3 を直した" })).body.queue[0].attachments, [image]);
-  assert.deepEqual((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "3 を直した", attachments: [] })).body.queue[0].attachments, []);
-  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue/${queue[0].id}`)).body, { queue: [{ ...moved.body.queue[0], text: "3 を直した" }] });
+  assert.deepEqual((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "3 を直した" })).body.messages[0].attachments, [image]);
+  assert.deepEqual((await call("PATCH", `/api/chats/${chatId}/queue/${queue[1].id}`, { text: "3 を直した", attachments: [] })).body.messages[0].attachments, []);
+  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue/${queue[0].id}`)).body, { messages: [{ ...moved.body.messages[0], text: "3 を直した" }], paused: false, stops: [], waiting_edit: false });
   assert.equal((await call("DELETE", `/api/chats/${chatId}/queue/nope`)).status, 404);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/nope/send`)).status, 404);
 
   // すぐ送る: 作業中なら止めずに伝える（作業は止めない）
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/${queue[1].id}/send`)).body, { ok: true });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/${queue[1].id}/send`)).body.messages, []);
   assert.deepEqual(provider.told, ["3 を直した"]);
-  assert.deepEqual(runner.queued(chatId), []);
+  assert.deepEqual(runner.live(chatId).queue.messages, []);
   assert.equal(runner.isBusy(chatId), true);
   release();
   await until(() => !runner.isBusy(chatId));
   // 作業中でなければすぐ送る
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { text: "4" })).body, { queued: false });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue`, { text: "4" })).body, { messages: [], paused: false, stops: [], waiting_edit: false, queued: false, id: null });
   await until(() => provider.prompts.length === 2);
   await until(() => !runner.isBusy(chatId));
   // hold: 作業していなくても送らずに、列の最後に足す（止めている送信待ちがあるときの「ためておく」）
   const held = (await call("POST", `/api/chats/${chatId}/queue`, { text: "5", hold: true })).body;
   assert.equal(held.queued, true);
-  assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["5"]);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["5"]);
   assert.equal(runner.isBusy(chatId), false);
   assert.equal(provider.prompts.length, 2);
 });
@@ -369,8 +420,8 @@ test("待ちの列は再起動しても残る: 読み戻した列は止めてお
   await call("POST", `/api/chats/${chatId}/queue`, { text: "3" });
   // アプリを終えて起動し直したことにして、同じデータベースで作り直す
   const restarted = new Runner({ store, approvals: new ApprovalCenter(new Bus()), providers: { claude: provider } as never, usage: {} as never });
-  assert.deepEqual(restarted.queued(chatId).map((m) => m.text), ["2", "3"]);
-  assert.equal(restarted.queuePaused(chatId), true);
+  assert.deepEqual(restarted.live(chatId).queue.messages.map((m) => m.text), ["2", "3"]);
+  assert.equal(restarted.live(chatId).queue.paused, true);
   release();
   await until(() => !runner.isBusy(chatId));
 });
@@ -381,34 +432,34 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   // 列が空なら止めない
-  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true })).body, { paused: false, queue: [] });
+  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true })).body, { messages: [], paused: false, stops: [], waiting_edit: false });
   assert.equal((await call("PUT", `/api/chats/${chatId}/queue/paused`, {})).status, 400);
   assert.equal((await call("PUT", "/api/chats/999/queue/paused", { paused: true })).status, 404);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "2" });
   await call("POST", `/api/chats/${chatId}/queue`, { text: "3" });
   assert.equal((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true })).body.paused, true);
-  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.queue_paused, true);
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.queue.paused, true);
 
   // 終わっても送らない
   release();
   await until(() => !runner.isBusy(chatId));
   await new Promise((r) => setTimeout(r, 30));
   assert.equal(provider.prompts.length, 1);
-  assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["2", "3"]);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["2", "3"]);
 
   // すぐ送るで 1 件だけ送り、終わってもまた止まる
-  const [first] = runner.queued(chatId);
+  const [first] = runner.live(chatId).queue.messages;
   await call("POST", `/api/chats/${chatId}/queue/${first.id}/send`);
   await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));
   await new Promise((r) => setTimeout(r, 30));
   assert.equal(provider.prompts.length, 2);
-  assert.equal(runner.queuePaused(chatId), true);
+  assert.equal(runner.live(chatId).queue.paused, true);
 
   // 自動で送るに戻すと、作業中でなければ先頭をすぐ送り、列が空になったら止めない状態に戻る
-  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: false })).body, { paused: false, queue: [] });
+  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: false })).body, { messages: [], paused: false, stops: [], waiting_edit: false });
   await until(() => provider.prompts.length === 3);
   assert.equal(provider.prompts[2], "3");
-  assert.equal(runner.queuePaused(chatId), false);
+  assert.equal(runner.live(chatId).queue.paused, false);
 });
 
 test("待ちの列の書き直し: 次に送る指示を書き直している間は送らず、終わったら送る。ほかの指示の書き直し・知らせが途絶えたときは止めない", async () => {
@@ -417,7 +468,7 @@ test("待ちの列の書き直し: 次に送る指示を書き直している間
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   for (const text of ["2", "3"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
-  const [first] = runner.queued(chatId);
+  const [first] = runner.live(chatId).queue.messages;
   assert.equal((await call("PUT", "/api/chats/999/queue/editing", { ids: [] })).status, 404);
   assert.equal((await call("PUT", `/api/chats/${chatId}/queue/editing`, {})).status, 400);
 
@@ -428,7 +479,7 @@ test("待ちの列の書き直し: 次に送る指示を書き直している間
   await new Promise((r) => setTimeout(r, 30));
   assert.equal(provider.prompts.length, 1);
   // 送信の準備ができて、書き直しが終わるのを待っている（画面の案内に使う）
-  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.queue_waiting_edit, true);
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.queue.waiting_edit, true);
 
   // 書き直して保存し、欄を閉じた: 書き直した文をすぐ送る
   const release2 = provider.hold();
@@ -436,11 +487,11 @@ test("待ちの列の書き直し: 次に送る指示を書き直している間
   await call("PUT", `/api/chats/${chatId}/queue/editing`, { ids: [] });
   await until(() => provider.prompts.length === 2);
   assert.equal(provider.prompts[1], "2'");
-  assert.equal(runner.queueWaitingForEdit(chatId), false);
+  assert.equal(runner.live(chatId).queue.waiting_edit, false);
 
   // 先頭でない指示を書き直していても止めない（その指示は、先頭になってから書き直しが終わるのを待つ）
   await call("POST", `/api/chats/${chatId}/queue`, { text: "4" });
-  await call("PUT", `/api/chats/${chatId}/queue/editing`, { ids: [runner.queued(chatId)[1].id] });
+  await call("PUT", `/api/chats/${chatId}/queue/editing`, { ids: [runner.live(chatId).queue.messages[1].id] });
   release2();
   await until(() => provider.prompts.length === 3);
   assert.equal(provider.prompts[2], "3");
@@ -456,7 +507,7 @@ test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件に�
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   for (const text of ["a", "b", "c", "d"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
-  const ids = runner.queued(chatId).map((m) => m.id);
+  const ids = runner.live(chatId).queue.messages.map((m) => m.id);
   // 2 件以上選ばないとまとめない
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/merge`, { ids: [ids[0]] })).status, 400);
   assert.equal((await call("POST", "/api/chats/999/queue/merge", { ids })).status, 404);
@@ -465,7 +516,7 @@ test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件に�
   assert.equal(merged.status, 200);
   assert.equal(merged.body.id, ids[1]);
   assert.deepEqual(
-    runner.queued(chatId).map((m) => m.text),
+    runner.live(chatId).queue.messages.map((m) => m.text),
     ["a", "b\n\nd", "c"],
   );
   // 送ってはいない
@@ -486,10 +537,10 @@ test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発�
   release();
   await until(() => !runner.isBusy(chatId));
 
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/send-in-order`)).body, { ok: true });
-  assert.equal(runner.queuePaused(chatId), false);
-  assert.deepEqual(runner.queueStops(chatId), []);
-  await until(() => provider.prompts.length === 4 && runner.queued(chatId).length === 0 && !runner.isBusy(chatId));
+  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send-in-order`)).status, 200);
+  assert.equal(runner.live(chatId).queue.paused, false);
+  assert.deepEqual(runner.live(chatId).queue.stops, []);
+  await until(() => provider.prompts.length === 4 && runner.live(chatId).queue.messages.length === 0 && !runner.isBusy(chatId));
   // 1 つにまとめず、1 件ずつ別々の発言として送る
   assert.deepEqual(provider.prompts.slice(1), ["2", "3", "4"]);
 });
@@ -500,7 +551,7 @@ test("「ここまで送ったら止めます」: 印は列の中の位置で持
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   for (const text of ["2", "3", "4", "5"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
-  const [, third] = runner.queued(chatId);
+  const [, third] = runner.live(chatId).queue.messages;
   // 列にない指示には付けられない
   assert.equal((await call("PUT", `/api/chats/${chatId}/queue/stop-after`, { id: "nope" })).status, 404);
   assert.equal((await call("PUT", `/api/chats/${chatId}/queue/stop-after`, {})).status, 400);
@@ -509,20 +560,20 @@ test("「ここまで送ったら止めます」: 印は列の中の位置で持
   assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [3, 2, 99] })).body.stops, [2, 3, 4]);
   assert.equal((await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [-1] })).status, 400);
   assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [2, 3] })).body.stops, [2, 3]);
-  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.queue_stops, [2, 3]);
+  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.queue.stops, [2, 3]);
 
   // 「3」まで送ったら、残りは送らずに止めておく（止まった印は「4」の上に残る）
   release();
-  await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId) && runner.queuePaused(chatId));
+  await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId) && runner.live(chatId).queue.paused);
   assert.deepEqual(provider.prompts, ["1", "2", "3"]);
-  assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["4", "5"]);
-  assert.deepEqual(runner.queueStops(chatId), [0, 1]);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["4", "5"]);
+  assert.deepEqual(runner.live(chatId).queue.stops, [0, 1]);
 
   // 自動で送るに戻すと、止まった印を越えて次の印（「4」のあと）まで送って、また止める
   await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: false });
-  await until(() => provider.prompts.length === 4 && !runner.isBusy(chatId) && runner.queuePaused(chatId));
-  assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["5"]);
-  assert.deepEqual(runner.queueStops(chatId), [0]);
+  await until(() => provider.prompts.length === 4 && !runner.isBusy(chatId) && runner.live(chatId).queue.paused);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["5"]);
+  assert.deepEqual(runner.live(chatId).queue.stops, [0]);
 
   // × で外す（位置の置き換え）
   assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [] })).body.stops, []);
@@ -682,9 +733,9 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   const busyEvents = store.events.list(chatId).length;
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: user.id, text: "x" })).status, 409);
   assert.equal(store.events.list(chatId).length, busyEvents);
-  assert.equal(runner.queued(chatId).length, 1);
+  assert.equal(runner.live(chatId).queue.messages.length, 1);
   release();
-  await until(() => !runner.isBusy(chatId) && runner.queued(chatId).length === 0);
+  await until(() => !runner.isBusy(chatId) && runner.live(chatId).queue.messages.length === 0);
   // ほかのチャットの記録は変わらない
   assert.deepEqual(store.events.list(otherId).map((e) => e.type), ["user", "result"]);
 });
@@ -795,13 +846,13 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/send-all`)).status, 404);
   // すべて消す
   await call("POST", `/api/chats/${chatId}/queue`, { text: "消す" });
-  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue`)).body, { removed: 1, queue: [] });
-  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue`)).body, { removed: 0, queue: [] });
+  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue`)).body, { messages: [], paused: false, stops: [], waiting_edit: false });
+  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue`)).body.messages, []);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "A" });
   await call("POST", `/api/chats/${chatId}/queue`, { text: "B" });
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/send-all`)).body, { ok: true });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/send-all`)).body.messages, []);
   assert.deepEqual(provider.told, ["A\n\nB"]);
-  assert.deepEqual(runner.queued(chatId), []);
+  assert.deepEqual(runner.live(chatId).queue.messages, []);
   release();
   await until(() => !runner.isBusy(chatId));
 });
@@ -813,9 +864,9 @@ test("待ちの列の API: 選んだものだけ、まとめて送る・消す�
   await until(() => provider.prompts.length === 1);
   const ids: string[] = [];
   for (const text of ["A", "B", "C", "D", "E"]) ids.push((await call("POST", `/api/chats/${chatId}/queue`, { text })).body.id);
-  const texts = () => runner.queued(chatId).map((m) => m.text);
+  const texts = () => runner.live(chatId).queue.messages.map((m) => m.text);
   // B と D をいちばん上へ、C をいちばん下へ
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/move-many`, { ids: [ids[3], ids[1]], to: "top" })).body.moved, 2);
+  assert.equal((await call("POST", `/api/chats/${chatId}/queue/move-many`, { ids: [ids[3], ids[1]], to: "top" })).status, 200);
   assert.deepEqual(texts(), ["B", "D", "A", "C", "E"]);
   await call("POST", `/api/chats/${chatId}/queue/move-many`, { ids: [ids[2]], to: "bottom" });
   assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
@@ -838,21 +889,21 @@ test("待ちの列の API: 選んだものだけ、まとめて送る・消す�
   await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [2] });
   await call("POST", `/api/chats/${chatId}/queue/move-many`, { ids: [ids[2]], before: ids[0], below_stop: false });
   assert.deepEqual(texts(), ["B", "D", "C", "A", "E"]);
-  assert.deepEqual(runner.queueStops(chatId), [3]);
+  assert.deepEqual(runner.live(chatId).queue.stops, [3]);
   // いちばん上へ移しても、線の上の B・D は線の上のまま（E が線を越えて上へ）
   await call("POST", `/api/chats/${chatId}/queue/move-many`, { ids: [ids[4]], to: "top" });
   assert.deepEqual(texts(), ["E", "B", "D", "C", "A"]);
-  assert.deepEqual(runner.queueStops(chatId), [4]);
+  assert.deepEqual(runner.live(chatId).queue.stops, [4]);
   // 元に戻す（線を外し、B D A E C に）
   await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [] });
   for (const i of [1, 3, 0, 4, 2]) await call("POST", `/api/chats/${chatId}/queue/move-many`, { ids: [ids[i]], to: "bottom" });
   assert.deepEqual(texts(), ["B", "D", "A", "E", "C"]);
   // A と E を消す
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/remove-many`, { ids: [ids[0], ids[4], "nai"] })).body.removed, 2);
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/remove-many`, { ids: [ids[0], ids[4], "nai"] })).body.messages.map((m: { text: string }) => m.text), ["B", "D", "C"]);
   assert.deepEqual(texts(), ["B", "D", "C"]);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/remove-many`, { ids: [] })).status, 400);
   // C と B だけをまとめて送る（列の順につなぐ）。D は残る
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/send-all`, { ids: [ids[2], ids[1]] })).body, { ok: true });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/queue/send-all`, { ids: [ids[2], ids[1]] })).body.messages.map((m: { text: string }) => m.text), ["D"]);
   assert.deepEqual(provider.told, ["B\n\nC"]);
   assert.deepEqual(texts(), ["D"]);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/send-all`, { ids: ["nai"] })).status, 404);
@@ -871,7 +922,7 @@ test("止めずに伝える API: 作業中なら止めずに足して自分の�
   // 作業中: 止めずに足す（待ちの列には入れない。作業も止めない）
   assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "ついでに" })).body, { result: "told" });
   assert.deepEqual(provider.told, ["ついでに"]);
-  assert.deepEqual(runner.queued(chatId), []);
+  assert.deepEqual(runner.live(chatId).queue.messages, []);
   assert.equal(runner.isBusy(chatId), true);
   assert.equal((store.events.list(chatId).findLast((e) => e.type === "user")?.data as { text?: string }).text, "ついでに");
   assert.equal((await call("POST", `/api/chats/${chatId}/tell`, {})).status, 400);
@@ -879,11 +930,11 @@ test("止めずに伝える API: 作業中なら止めずに足して自分の�
   provider.acceptTell = false;
   assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "あとで" })).body, { result: "queued" });
   await call("POST", `/api/chats/${chatId}/queue`, { text: "2 番目" });
-  assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["あとで", "2 番目"]);
-  await call("POST", `/api/chats/${chatId}/queue/${runner.queued(chatId)[1].id}/send`);
-  assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["2 番目", "あとで"]);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["あとで", "2 番目"]);
+  await call("POST", `/api/chats/${chatId}/queue/${runner.live(chatId).queue.messages[1].id}/send`);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["2 番目", "あとで"]);
   provider.acceptTell = true;
-  await call("POST", `/api/chats/${chatId}/queue/${runner.queued(chatId)[1].id}/send`);
+  await call("POST", `/api/chats/${chatId}/queue/${runner.live(chatId).queue.messages[1].id}/send`);
   assert.deepEqual(provider.told, ["ついでに", "あとで"]);
   // 裏の作業を 1 つ止める
   assert.deepEqual((await call("POST", `/api/chats/${chatId}/background/b1/stop`)).body, { ok: true });

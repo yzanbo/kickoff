@@ -25,9 +25,9 @@ export function SubagentPane({
   /** 同じチャットのほかのサブエージェントを、パネルのタブで開く（やり直した回へ移る） */
   onOpenSubagent: (toolUseId: string, title: string) => void;
 }) {
-  const { chat, project, events, background, error } = useChatDetail(chatId, projectId);
+  const { chat, project, events, live, error } = useChatDetail(chatId, projectId);
   const busy = chat ? chat.status === "running" : false;
-  const subagents = useSubagents(chatId, events, busy, background);
+  const subagents = useSubagents(chatId, events, busy, live.background);
   // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
   const repoPath = project?.repo_path;
   const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);

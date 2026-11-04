@@ -7,11 +7,12 @@ import { errorMessage } from "@shared/errors";
 import { currentBranch } from "../git/index.js";
 import { isInside } from "../system/paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
-import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, TurnControl } from "../providers/types.js";
+import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
-import type { BackgroundState, Project, ProviderId, Chat } from "@shared/types";
+import type { Project, ProviderId, Chat } from "@shared/types";
 import type { UploadStore } from "./uploads.js";
+import type { ChatRuntime } from "./runtime.js";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
@@ -20,12 +21,6 @@ export interface ExecutionDeps {
   providers: Record<ProviderId, AgentProvider>;
   uploads?: UploadStore;
   bus?: Bus;
-  /** 作業中のチャットの、裏で動いている作業の様子（チャットの詳細でも返すため、Runner が持つ） */
-  background?: Map<number, BackgroundState>;
-  /** 作業中のチャットへの操作（止めずに発言を足す・裏の作業を止める。Runner が持つ） */
-  controls?: Map<number, TurnControl>;
-  /** 会話を圧縮している最中のチャットと、圧縮を始めた時刻（チャットの詳細でも返すため、Runner が持つ） */
-  compacting?: Map<number, string>;
 }
 
 /** 待機列の 1 件 */
@@ -57,10 +52,11 @@ export interface StoppedAgent {
 
 /**
  * 1 回の実行（待機列から取り出したもの）を最後まで進める: 作業場所を決めてプロバイダーを動かし、結果をチャットに反映する。
+ * 作業中の様子（裏の作業・再試行・圧縮中・作業中のチャットへの操作）はチャットの runtime に書く（画面には runtime が配る）。
  * 失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
-export async function executeTurn(deps: ExecutionDeps, { chatId, prompt, promptId, compact = false }: QueueItem, signal: AbortSignal): Promise<TurnOutcome> {
-  const { store, providers, bus } = deps;
+export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false }: QueueItem, signal: AbortSignal): Promise<TurnOutcome> {
+  const { store, providers } = deps;
   try {
     const chat = store.chats.get(chatId)!;
     const project = store.projects.get(chat.project_id)!;
@@ -75,7 +71,7 @@ export async function executeTurn(deps: ExecutionDeps, { chatId, prompt, promptI
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
     const result: ProviderTurnResult = signal.aborted
       ? { status: "cancelled", sessionId: chat.session_id }
-      : await providers[chat.provider].run(buildTurnParams(deps, chat, project, cwd, prompt, promptId), callbacksFor(deps, chat, signal, compact), signal);
+      : await providers[chat.provider].run(buildTurnParams(deps, chat, project, cwd, prompt, promptId), callbacksFor(deps, runtime, chat, signal, compact), signal);
     const network = result.status === "failed" && Boolean(result.network);
     applyResult(store, chatId, result, compact, since, network);
     const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
@@ -89,12 +85,9 @@ export async function executeTurn(deps: ExecutionDeps, { chatId, prompt, promptI
     store.events.add(chatId, { type: "error", message });
     return { status: "failed", network: false };
   } finally {
-    // 再試行・裏の作業の表示を消す（終わったので。Claude Code が終わると裏の作業も残らない）
-    const chat = store.chats.get(chatId);
-    if (chat) bus?.publish({ type: "chat_retry", project_id: chat.project_id, chat_id: chatId, retry: null });
-    deps.controls?.delete(chatId);
-    if (deps.background?.delete(chatId) && chat) bus?.publish({ type: "chat_background", project_id: chat.project_id, chat_id: chatId, background: null });
-    if (deps.compacting?.delete(chatId) && chat) bus?.publish({ type: "chat_compacting", project_id: chat.project_id, chat_id: chatId, since: null });
+    // 再試行・裏の作業・圧縮中の表示を消す（終わったので。Claude Code が終わると裏の作業も残らない）
+    runtime.control = null;
+    runtime.update({ retry: null, background: null, compacting: null });
   }
 }
 
@@ -126,31 +119,24 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
   };
 }
 
-/** プロバイダーからの知らせ: 途中経過は配るだけ、イベントは記録、承認依頼は回答を待つ（待つ間は waiting） */
-function callbacksFor({ store, approvals, bus, background, controls, compacting }: ExecutionDeps, chat: Chat, signal: AbortSignal, compact: boolean): ProviderCallbacks {
+/**
+ * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は runtime に書き（runtime が画面に配る）、イベントは記録、
+ * 承認依頼は回答を待つ（待つ間は回答待ち）
+ */
+function callbacksFor({ store, approvals, bus }: ExecutionDeps, runtime: ChatRuntime, chat: Chat, signal: AbortSignal, compact: boolean): ProviderCallbacks {
   const chatId = chat.id;
   const projectId = chat.project_id;
   return {
     subagentProgress: (subagent) => {
       bus?.publish({ type: "chat_subagent", project_id: projectId, chat_id: chatId, subagent });
     },
-    retry: (retry) => {
-      bus?.publish({ type: "chat_retry", project_id: projectId, chat_id: chatId, retry });
-    },
+    retry: (retry) => runtime.update({ retry }),
     control: (control) => {
-      if (control) controls?.set(chatId, control);
-      else controls?.delete(chatId);
+      runtime.control = control;
     },
-    background: (state) => {
-      background?.set(chatId, state);
-      bus?.publish({ type: "chat_background", project_id: projectId, chat_id: chatId, background: state });
-    },
-    compacting: (active) => {
-      const since = active ? new Date().toISOString() : null;
-      if (since) compacting?.set(chatId, since);
-      else compacting?.delete(chatId);
-      bus?.publish({ type: "chat_compacting", project_id: projectId, chat_id: chatId, since });
-    },
+    background: (background) => runtime.update({ background }),
+    // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま）
+    compacting: (active) => runtime.update({ compacting: active ? (runtime.compacting ?? new Date().toISOString()) : null }),
     stream: (text) => {
       bus?.publish({ type: "chat_delta", project_id: projectId, chat_id: chatId, text });
     },

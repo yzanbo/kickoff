@@ -3,9 +3,9 @@ import type { Approval } from "./approval";
 import type { AppSettings } from "./settings";
 import type { Project } from "./project";
 import type { PlanUsage } from "./provider";
-import type { QueuedMessage, Chat, ChatGroup } from "./chat";
+import type { Chat, ChatGroup } from "./chat";
 import type { ChatEvent, SubagentInfo } from "./chatEvent";
-import type { ApiRetryInfo, BackgroundState, ReconnectState } from "./chatLive";
+import type { ChatLive } from "./chatLive";
 import type { VoiceDownload } from "./voice";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
@@ -23,18 +23,8 @@ export type BusEvent =
   | { type: "chat_delta"; project_id: number; chat_id: number; text: string }
   /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */
   | { type: "chat_subagent"; project_id: number; chat_id: number; subagent: SubagentInfo }
-  /** AI の API への通信を再試行しているところ（null で終わり） */
-  | { type: "chat_retry"; project_id: number; chat_id: number; retry: ApiRetryInfo | null }
-  /** 裏で動いている作業と、メインの返答が終わったか（null で作業が終わった） */
-  | { type: "chat_background"; project_id: number; chat_id: number; background: BackgroundState | null }
-  /** 会話を圧縮している最中か（since: 圧縮を始めた時刻。null で終わった） */
-  | { type: "chat_compacting"; project_id: number; chat_id: number; since: string | null }
-  /** 停止を頼んで、作業が終わるのを待っているか（false で終わった） */
-  | { type: "chat_stopping"; project_id: number; chat_id: number; stopping: boolean }
-  /** 通信が切れて止まり、つながったら自動で再開するのを待っているか（null で待っていない） */
-  | { type: "chat_reconnect"; project_id: number; chat_id: number; reconnect: ReconnectState | null }
-  /** 作業中のチャットに送った次の指示の待ちの列（変わるたびに全体を送る） */
-  | { type: "chat_queue"; project_id: number; chat_id: number; queue: QueuedMessage[]; /** 終わっても自動で送らずに止めておくか */ paused: boolean; /** 「ここまで送ったら止めます」の印の位置（0 = 1 件目の上、n = n 件目のあと） */ stops: number[]; /** 次の指示を画面で書き直しているので、送らずに書き直しが終わるのを待っている（作業は終わり、送信の準備ができている） */ waiting_edit: boolean }
+  /** 作業中の様子（送信待ち・裏の作業・再試行・再接続待ち・圧縮中・停止中）。どれかが変わるたびに全体を送る（チャットの詳細の live と同じ形） */
+  | { type: "chat_live"; project_id: number; chat_id: number; live: ChatLive }
   | { type: "approval"; approval: Approval }
   | { type: "approval_resolved"; id: string; chat_id: number }
   | { type: "settings"; settings: AppSettings }

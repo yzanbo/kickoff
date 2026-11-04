@@ -290,26 +290,26 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
   const { gates, script } = gatedScript();
   const { store, runner, provider, project, bus } = setup(script);
   const published: number[] = [];
-  bus.subscribe((e) => e.type === "chat_queue" && published.push(e.queue.length));
+  bus.subscribe((e) => e.type === "chat_live" && published.push(e.live.queue.messages.length));
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => gates.length === 1);
   assert.equal((await runner.queueMessage(chat.id, "2")).queued, true);
   await runner.queueMessage(chat.id, "3");
-  assert.deepEqual(runner.queued(chat.id).map((m) => m.text), ["2", "3"]);
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["2", "3"]);
   // 並べ替え: 3 を先頭に
-  assert.equal(runner.moveQueued(chat.id, runner.queued(chat.id)[1].id, 0), true);
+  assert.equal(runner.moveQueued(chat.id, runner.live(chat.id).queue.messages[1].id, 0), true);
   gates[0]();
   await until(() => gates.length === 2);
   assert.equal(provider.calls[1].prompt, "3");
-  assert.deepEqual(runner.queued(chat.id).map((m) => m.text), ["2"]);
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["2"]);
   gates[1]();
   await until(() => gates.length === 3);
   gates[2]();
-  await until(() => store.chats.get(chat.id)?.status === "completed" && runner.queued(chat.id).length === 0);
+  await until(() => store.chats.get(chat.id)?.status === "completed" && runner.live(chat.id).queue.messages.length === 0);
   assert.deepEqual(provider.calls.map((c) => c.prompt), ["1", "3", "2"]);
   assert.deepEqual(published, [1, 2, 2, 1, 0]);
   // 作業中でなければすぐ送る
-  assert.deepEqual(await runner.queueMessage(chat.id, "4"), { queued: false });
+  assert.deepEqual(await runner.queueMessage(chat.id, "4"), { queued: false, id: null });
   await until(() => gates.length === 4);
   gates[3]();
 });
@@ -323,14 +323,14 @@ test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送
   // 止めても、待ちの次の指示を送る
   runner.cancel(chat.id);
   await until(() => gates.length === 2);
-  assert.deepEqual(runner.queued(chat.id), []);
+  assert.deepEqual(runner.live(chat.id).queue.messages, []);
   // 作業中に「すぐ送る」→ 止めずに伝える。この偽のプロバイダーは発言を足せないので、列の先頭に移す（作業は止めない）
   await runner.queueMessage(chat.id, "3");
   await runner.queueMessage(chat.id, "4");
-  assert.equal(await runner.sendQueuedNow(chat.id, runner.queued(chat.id)[1].id), true);
-  assert.deepEqual(runner.queued(chat.id).map((m) => m.text), ["4", "3"]);
+  assert.equal(await runner.sendQueuedNow(chat.id, runner.live(chat.id).queue.messages[1].id), true);
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["4", "3"]);
   assert.equal(gates.length, 2);
-  assert.equal(runner.removeQueued(chat.id, runner.queued(chat.id)[1].id), true);
+  assert.equal(runner.removeQueued(chat.id, runner.live(chat.id).queue.messages[1].id), true);
   assert.equal(runner.removeQueued(chat.id, "nope"), false);
   assert.equal(await runner.sendQueuedNow(chat.id, "nope"), false);
   // 終わったら、先頭に移した指示を送る

@@ -4,12 +4,6 @@ import { api } from "@/api";
 import { useTicker } from "@/hooks/useTicker";
 import { reportFailure } from "@/features/chat/chatActions";
 
-/** 通信の様子（AI の API への再試行中・止まってつながるのを待っているところ） */
-export interface Connection {
-  retry: ApiRetryInfo | null;
-  reconnect: ReconnectState | null;
-}
-
 /** 再試行中の文（「接続が切れています。再試行 3/10・あと 8 秒」）。残りの秒数を数える */
 export function RetryLabel({ retry, agents = 0 }: { retry: ApiRetryInfo; agents?: number }) {
   useTicker(1000);
