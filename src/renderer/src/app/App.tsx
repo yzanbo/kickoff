@@ -71,7 +71,7 @@ export function App() {
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
   // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。プロジェクトの画面でだけ出す）
   const chat = useProjectChat(routeProjectId(route));
-  const bottomPanel = useBottomPanel(routeProjectId(route) ?? "all", terminalTargets(projects, routeProjectId(route)), projects);
+  const bottomPanel = useBottomPanel(routeProjectId(route) ?? "all", terminalTargets(projects, routeProjectId(route)));
 
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める */
   const startNewChat = () => {

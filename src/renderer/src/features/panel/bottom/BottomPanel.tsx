@@ -1,7 +1,5 @@
 import { Maximize2, Minimize2, PanelBottomClose } from "lucide-react";
 import { cx } from "@/lib/cx";
-import { sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/stores/projects";
 import { Panel } from "@/features/panel/Panel";
 import type { BottomPanelController } from "./useBottomPanel";
 import { IconButton } from "@/ui/IconButton";
@@ -13,10 +11,10 @@ import { IconButton } from "@/ui/IconButton";
  */
 export function BottomPanel({ bottom }: { bottom: BottomPanelController }) {
   const { open, maximized, panel, targets } = bottom;
-  const { projects } = useProjects();
   if (!bottom.available) return null;
-  // 新しいチャットは、プロジェクトの画面ならそのプロジェクト、全プロジェクトの画面ならサイドバーの先頭のプロジェクトで始める（新しいチャットの中で選び直せる）
-  const newChatProject = targets.length === 1 ? targets[0].projectId : sidebarOrder(projects)[0]?.id;
+  // 新しいチャットは、プロジェクトの画面ならそのプロジェクト、全プロジェクトの画面なら選べるプロジェクトの先頭（サイドバーの先頭）で始める
+  // （新しいチャットの中で選び直せる。タグの絞り込みで 1 つも選べなければ、ターミナルを開ける先頭のプロジェクト）
+  const newChatProject = targets.length === 1 ? targets[0].projectId : (panel.projects?.[0]?.id ?? targets[0]?.projectId);
 
   return (
     <section
