@@ -10,12 +10,15 @@ import { concernsDetail, detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail } fr
  * チャットの中身（チャット・プロジェクト・イベント・確認・作業中の様子・書いている途中の返答）を取り、サーバーのイベントで追いかける。
  * 作業中の様子（送信待ち・裏の作業・再試行・再接続待ち・圧縮中・停止中）はコアが持つ形（ChatLive）のまま受け、SSE の chat_live で丸ごと置き換える。
  * SSE がつなぎ直されたら取り直す（切れていた間の知らせは届かないため）。読み込みの最中に届いた知らせは、届いた中身にもう一度当てる。
- * チャットを切り替えると読み直す（chat が undefined の間は読み込み中。error は読み込みの失敗）
+ * チャットを切り替えると読み直す（chat が undefined の間は読み込み中。error は読み込みの失敗）。
+ * 別のプロジェクトへ移しても読み直さない（中身はそのまま。プロジェクトだけが変わる）
  */
-export function useChatDetail(chatId: number, projectId: number) {
+export function useChatDetail(chatId: number) {
   const [detail, setDetail] = useState(EMPTY_DETAIL);
-  // チャットのプロジェクト（プロジェクトの店から。名前・参照資料などを変えたら、開いている間も直る）
-  const project = useProjects().projectsById.get(projectId);
+  // チャットのプロジェクト（プロジェクトの店から。名前・参照資料などを変えたら、開いている間も直る）。
+  // チャット自身のプロジェクトで引く（別のプロジェクトへ移したら、タブが知るのを待たずに移した先のものになる）
+  const { projectsById } = useProjects();
+  const project = detail.chat ? projectsById.get(detail.chat.project_id) : undefined;
   // 書いている途中の返答（確定すると text イベントとして届くので、そこで消す）
   const [streaming, setStreaming] = useState("");
   const [error, setError] = useState<string>();
