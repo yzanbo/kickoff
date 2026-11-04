@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { consumeKey, isCancelKey, isComposing, isKey, type KeyInput } from "@/lib/keys";
 import { permissionChoices } from "@/features/chat/options/models";
 import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import type { SettingValue } from "@/lib/storage";
@@ -11,7 +12,7 @@ export type QueueSendMode = SettingValue<typeof QUEUE_MODE>;
 export const sendModeOf = (e: { metaKey: boolean; shiftKey: boolean }): QueueSendMode | undefined => (e.metaKey ? (e.shiftKey ? "queue" : "tell") : undefined);
 
 /** 送信の Enter か（Shift+Enter は改行。⌘⇧Enter は送り方を決めた送信。日本語入力の変換を確定する Enter は除く） */
-export const isSendEnter = (e: KeyboardEvent) => e.key === "Enter" && (!e.shiftKey || e.metaKey) && !e.nativeEvent.isComposing && e.keyCode !== 229;
+export const isSendEnter = (e: KeyInput) => e.key === "Enter" && (!e.shiftKey || e.metaKey) && !isComposing(e);
 
 /** 1 回目の Esc のあと、もう一度押すと中断する、と待つ時間 */
 const STOP_CONFIRM_MS = 2000;
@@ -38,18 +39,16 @@ export function useComposerKeys({ busy, onStop, options }: { busy?: boolean; onS
 
   /** 扱ったら true */
   function onKeyDown(e: KeyboardEvent<HTMLElement>): boolean {
-    if (e.defaultPrevented || e.nativeEvent.isComposing) return false;
-    const plain = !e.metaKey && !e.altKey && !e.ctrlKey;
-    if (e.key === "Tab" && e.shiftKey && plain && options && e.target instanceof HTMLTextAreaElement) {
+    if (e.defaultPrevented || isComposing(e)) return false;
+    if (isKey(e, "Tab", { shift: true }) && options && e.target instanceof HTMLTextAreaElement) {
       e.preventDefault();
       const choices = permissionChoices(options.current);
       options.setPermission(choices[(choices.indexOf(options.permission) + 1) % choices.length]);
       return true;
     }
-    if (e.key === "Escape" && !e.shiftKey && plain && busy && onStop) {
+    if (isCancelKey(e) && busy && onStop) {
       // パネルを閉じる Esc に渡さない
-      e.preventDefault();
-      e.stopPropagation();
+      consumeKey(e);
       if (stopArmed) {
         disarm();
         onStop();

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type KeyboardEvent, type RefObject } from
 import type { SlashCommandOption } from "@shared/types";
 import { api, type GitTarget } from "@/api";
 import { stepIndex } from "@/hooks/useListNavigation";
+import { isComposing } from "@/lib/keys";
 import { createKeyedStore } from "@/stores/keyedStore";
 import { useKeyedStore } from "@/stores/useStore";
 import { findTrigger, matchCommands, matchFiles } from "./suggestMatch";
@@ -90,7 +91,7 @@ export function useSuggest({
 
   /** 候補を出している間のキー操作。扱ったら true（送信などはしない） */
   const handleKey = (e: KeyboardEvent<HTMLTextAreaElement>): boolean => {
-    if (!open || e.nativeEvent.isComposing || e.keyCode === 229) return false;
+    if (!open || isComposing(e)) return false;
     if (e.key === "Escape") {
       // パネルを閉じる Esc に渡さない
       e.preventDefault();

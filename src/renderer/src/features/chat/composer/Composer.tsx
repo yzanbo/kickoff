@@ -6,7 +6,8 @@ import { errorMessage } from "@shared/errors";
 import { cx } from "@/lib/cx";
 import { useOptionalSetting, useSetting } from "@/hooks/useSetting";
 import type { Setting } from "@/lib/storage";
-import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { useHeldMeta } from "@/hooks/useHeldMeta";
+import { consumeKey, hasModifiers, isCancelKey } from "@/lib/keys";
 import { COMPOSER_COMPACT } from "@/lib/storageKeys";
 import { PendingFileChips } from "@/features/chat/attachments/PendingFileChips";
 import { ErrorText } from "@/ui/ErrorText";
@@ -173,28 +174,22 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   }
 
   // ⌘ / ⌘⇧ を押している間だけ、その送り方（⌘Enter = 伝える・⌘⇧Enter = ためておく）のボタンを光らせる（作業中・送信待ちがあるときだけ。
-  // 押しているキーでどちらになるかを、送る前に目で確かめられるように。選んでいる送り方そのものは変えない）
-  const [heldMode, setHeldMode] = useState<QueueSendMode>();
-  const trackHeld = (e: { metaKey: boolean; shiftKey: boolean; ctrlKey: boolean; altKey: boolean }) =>
-    setHeldMode(e.ctrlKey || e.altKey ? undefined : sendModeOf(e));
+  // 押しているキーでどちらになるかを、送る前に目で確かめられるように。選んでいる送り方そのものは変えない）。
   // キーを離した・ほかへピントが移った・Kickoff が後ろに回ったら消す（チャット欄の外で離したときも）
-  useWindowEvent("keyup", (e) => {
-    if (!e.metaKey) setHeldMode(undefined);
-  });
-  useWindowEvent("blur", () => setHeldMode(undefined));
+  const held = useHeldMeta();
+  const heldMode: QueueSendMode | undefined = held.held === "meta-shift" ? "queue" : held.held === "meta" ? "tell" : undefined;
 
   // 停止中の Esc は何もしない（パネルを閉じる Esc にも渡さない）
   const keys = useComposerKeys({ busy, onStop: stopping ? ignoreStop : onStop, options });
 
   /** チャット欄の中のキー: ⌘⇧Space で録音の開始・停止、録音中の Esc でやめる。ほかは Esc 2 回で中断・Shift+Tab で権限モード（composerKeys.ts） */
   function onComposerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    trackHeld(e);
-    if (e.code === "Space" && e.metaKey && e.shiftKey && !e.altKey && !e.ctrlKey) {
+    held.track(e);
+    if (e.code === "Space" && hasModifiers(e, { meta: true, shift: true })) {
       e.preventDefault();
       dictation.toggle();
-    } else if (e.key === "Escape" && (dictation.recording || dictation.state.kind === "transcribing")) {
-      e.preventDefault();
-      e.stopPropagation();
+    } else if (isCancelKey(e) && (dictation.recording || dictation.state.kind === "transcribing")) {
+      consumeKey(e);
       dictation.cancel();
     } else keys.onKeyDown(e);
   }
@@ -203,8 +198,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
     <div
       className={cx("composer", attach.dragging && "dragging", compact && "compact")}
       onKeyDown={onComposerKeyDown}
-      onKeyUp={trackHeld}
-      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setHeldMode(undefined)}
+      onKeyUp={held.track}
+      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && held.clear()}
       {...attach.dropProps}
     >
       {attach.files.length > 0 && (

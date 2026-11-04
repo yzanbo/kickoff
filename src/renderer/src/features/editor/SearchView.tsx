@@ -2,6 +2,7 @@ import { CaseSensitive, Regex, WholeWord } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { SearchMatch } from "@shared/types";
 import { cx } from "@/lib/cx";
+import { isComposing } from "@/lib/keys";
 import { baseName } from "@/lib/format";
 import { Chevron } from "@/ui/Chevron";
 import { ErrorText } from "@/ui/ErrorText";
@@ -48,7 +49,7 @@ export function SearchView({ search, selected, onSelect }: Props) {
           autoFocus
           value={search.query}
           onChange={(e) => search.setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && search.rerun()}
+          onKeyDown={(e) => e.key === "Enter" && !isComposing(e) && search.rerun()}
         />
         {toggles.map(({ key, icon, label }) => (
           <IconButton

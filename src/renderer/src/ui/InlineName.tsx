@@ -1,5 +1,6 @@
 import { Check, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { isCancelKey, isComposing } from "@/lib/keys";
 import { IconButton } from "./IconButton";
 
 interface Props {
@@ -49,8 +50,8 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={(e) => {
         // 日本語入力の変換確定の Enter では決定しない
-        if (e.key === "Enter" && !e.nativeEvent.isComposing) finish(true);
-        else if (e.key === "Escape") {
+        if (e.key === "Enter" && !isComposing(e)) finish(true);
+        else if (isCancelKey(e)) {
           // 取り消しだけにする（同じ Esc で右のパネルまで閉じないように）
           e.stopPropagation();
           e.nativeEvent.stopImmediatePropagation();

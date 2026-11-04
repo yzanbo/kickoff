@@ -4,6 +4,7 @@ import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/pr
 import type { Project } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
+import { isCancelKey, isComposing } from "@/lib/keys";
 import { errorMessage } from "@shared/errors";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useProjects } from "@/stores/projects";
@@ -89,7 +90,7 @@ export function TagEditor({ project }: { project: Project }) {
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape" && open) {
+    if (isCancelKey(e) && open) {
       // 候補だけを閉じる（ダイアログは閉じない）
       e.preventDefault();
       e.stopPropagation();
@@ -99,7 +100,7 @@ export function TagEditor({ project }: { project: Project }) {
       e.preventDefault();
       return setOpen(true);
     }
-    if (e.key === "Enter" && !e.nativeEvent.isComposing && items.length === 0) {
+    if (e.key === "Enter" && !isComposing(e) && items.length === 0) {
       e.preventDefault();
       if (query) void add(query);
       return;

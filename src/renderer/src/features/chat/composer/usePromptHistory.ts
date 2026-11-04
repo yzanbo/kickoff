@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent, type RefObject } from "react";
+import { isKey } from "@/lib/keys";
 import { historyMove } from "@/features/chat/prompts/promptHistory";
 
 /**
@@ -23,11 +24,11 @@ export function usePromptHistory({
 
   /** ↑↓ を履歴に使ったら true */
   const handleKey = (e: KeyboardEvent<HTMLTextAreaElement>): boolean => {
-    if (!prompts || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return false;
     // 日本語入力の変換中・修飾キー付きは、普通の操作に任せる
-    if (e.nativeEvent.isComposing || e.keyCode === 229 || e.shiftKey || e.altKey || e.metaKey || e.ctrlKey) return false;
+    const key = isKey(e, "ArrowUp") ? "ArrowUp" : isKey(e, "ArrowDown") ? "ArrowDown" : null;
+    if (!prompts || !key) return false;
     const el = e.currentTarget;
-    const next = historyMove({ key: e.key, prompts, index, text, selectionStart: el.selectionStart, selectionEnd: el.selectionEnd });
+    const next = historyMove({ key, prompts, index, text, selectionStart: el.selectionStart, selectionEnd: el.selectionEnd });
     if (!next) return false;
     e.preventDefault();
     setIndex(next.index);
