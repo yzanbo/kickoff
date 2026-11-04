@@ -145,7 +145,7 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
   const a = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "a" })).body.id;
   await until(() => store.chats.get(a)?.status === "failed");
   assert.equal(runner.live(a).reconnect, null);
-  assert.equal((await call("DELETE", `/api/chats/${a}/reconnect`)).status, 404);
+  assert.equal((await call("DELETE", `/api/chats/${a}/reconnect`)).status, 409);
 
   // 待っている間に「自動で再開しない」を押すと、つながっても送らない
   await call("PUT", "/api/settings", { auto_resume_on_reconnect: true });

@@ -205,9 +205,10 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body.unstaged, []);
   assert.equal((await call("GET", `/api/projects/${project.id}/git/status?worktree=${encodeURIComponent("/tmp")}`)).status, 400);
 
-  // 片付け: ワークツリーと手元のブランチを消す（本体は片付けられない）
+  // 片付け: ワークツリーと手元のブランチを消す（本体は片付けられない。ワークツリーでないフォルダは 404）
   fs.rmSync(path.join(worktree, "b.txt"));
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: repo })).status, 400);
+  assert.deepEqual(await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: fs.realpathSync(repo) }), { status: 400, body: { error: "本体のフォルダは消せません" } });
+  assert.deepEqual(await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: "/no/such/worktree" }), { status: 404, body: { error: "ワークツリーが見つかりません" } });
   const finished = await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: worktree });
   assert.equal(finished.status, 200);
   assert.equal(finished.body.length, 1);

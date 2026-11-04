@@ -1,11 +1,16 @@
 import { errorMessage } from "@shared/errors";
+import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { ChatRuntimes } from "./runtime.js";
 import type { Attachment, QueuedMessage, Chat, ChatOptionsPatch, QueueState } from "@shared/types";
+
+/** 列にない指示を指したとき（消した・送ったあと） */
+const missing = () => new NotFound("待ちの指示が見つかりません");
 
 /**
  * Runner の、作業中のチャットに送った次の指示の待ちの列（queue.ts の ChatQueue。チャットごとの ChatRuntime が持つ）を扱う窓口。
  * 列そのものの出し入れは ChatQueue で、ここは API から呼ぶ操作（並べ替え・書き直し・すぐ送る・止めておくなど）と、
- * 終わったら先頭を送る処理だけ。送る・伝える・作業中かは Runner のものを使う
+ * 終わったら先頭を送る処理だけ。送る・伝える・作業中かは Runner のものを使う。
+ * できなければ失敗の種類の例外を投げる（列にない指示は 404・送るものがないなどの状態は 409・入力は 400。http/errors.ts）
  */
 export abstract class RunnerQueue {
   /** チャットごとの作業中の状態（送信待ちの列・書き直している指示・書き直しを待っているか） */
@@ -13,8 +18,8 @@ export abstract class RunnerQueue {
   abstract isBusy(chatId: number): boolean;
   abstract send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[]): Promise<Chat>;
   abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: { front?: boolean }): Promise<"told" | "sent" | "queued">;
-  /** チャットがあるか */
-  protected abstract hasChat(chatId: number): boolean;
+  /** チャット（なければ 404） */
+  protected abstract requireChat(chatId: number): Chat;
   /** 送れなかった理由をチャットに残す */
   protected abstract reportError(chatId: number, message: string): void;
 
@@ -39,7 +44,7 @@ export abstract class RunnerQueue {
     attachments: Attachment[] = [],
     { hold = false }: { hold?: boolean } = {},
   ): Promise<{ queued: boolean; id: string | null }> {
-    if (!this.hasChat(chatId)) throw new Error("実行が見つかりません");
+    this.requireChat(chatId);
     // hold: 作業していなくても送らずに、待ちの列の最後に足す（止めている送信待ちがあるときの「ためておく」）
     if (!hold && !this.isBusy(chatId)) {
       await this.send(chatId, text, options, attachments);
@@ -49,19 +54,19 @@ export abstract class RunnerQueue {
     return { queued: true, id };
   }
 
-  /** 待ちの列から消す（なければ false） */
-  removeQueued(chatId: number, id: string): boolean {
-    return this.queueOf(chatId).remove(id);
+  /** 待ちの列から消す */
+  removeQueued(chatId: number, id: string): void {
+    if (!this.queueOf(chatId).remove(id)) throw missing();
   }
 
   /** 待ちの指示を書き直す（attachments があれば添付も置き換える。文も添付もなくなるなら断る） */
-  editQueued(chatId: number, id: string, text: string, attachments?: Attachment[]): boolean {
+  editQueued(chatId: number, id: string, text: string, attachments?: Attachment[]): void {
     const queue = this.queueOf(chatId);
     const message = queue.list().find((m) => m.id === id);
-    if (!message) return false;
+    if (!message) throw missing();
     const nextAttachments = attachments ?? message.attachments;
-    if (!text.trim() && nextAttachments.length === 0) throw new Error("メッセージか添付ファイルが必要です");
-    return queue.edit(id, text.trim(), nextAttachments);
+    if (!text.trim() && nextAttachments.length === 0) throw new Invalid("メッセージか添付ファイルが必要です");
+    queue.edit(id, text.trim(), nextAttachments);
   }
 
   /** 待ちの指示をすべて消す（消した数を返す） */
@@ -78,52 +83,52 @@ export abstract class RunnerQueue {
     return this.queueOf(chatId).moveMany(ids, to);
   }
 
-  /** 待ちの列を並べ替える（なければ false） */
-  moveQueued(chatId: number, id: string, index: number): boolean {
-    return this.queueOf(chatId).move(id, index);
+  /** 待ちの列を並べ替える */
+  moveQueued(chatId: number, id: string, index: number): void {
+    if (!this.queueOf(chatId).move(id, index)) throw missing();
   }
 
   /**
-   * 待ちの 1 件をすぐ送る。作業中なら止めずに伝え、伝えられなければ列の先頭に戻す（なければ false）
+   * 待ちの 1 件をすぐ送る。作業中なら止めずに伝え、伝えられなければ列の先頭に戻す
    */
-  async sendQueuedNow(chatId: number, id: string): Promise<boolean> {
+  async sendQueuedNow(chatId: number, id: string): Promise<void> {
     const message = this.queueOf(chatId).take(id);
-    if (!message) return false;
+    if (!message) throw missing();
     await this.tell(chatId, message.text, message.options, message.attachments, { front: true });
-    return true;
   }
 
   /**
-   * 待ちの指示をすべて（ids を渡せばその指示だけ）1 つにまとめて、すぐ送る（作業中なら止めずに伝える）。送るものがなければ false
+   * 待ちの指示をすべて（ids を渡せばその指示だけ）1 つにまとめて、すぐ送る（作業中なら止めずに伝える）。
+   * 列が空なら 409、選んだ指示が 1 つも列になければ 404
    */
-  async sendAllQueued(chatId: number, ids?: string[]): Promise<boolean> {
+  async sendAllQueued(chatId: number, ids?: string[]): Promise<void> {
     // 1 つにまとめた指示を列から取り出して送る（列に「まとめた 1 件」を一瞬出さない）
     const merged = this.queueOf(chatId).merge({ silent: true, ids });
-    if (!merged) return false;
-    return this.sendQueuedNow(chatId, merged.id);
+    if (!merged) throw ids ? missing() : new Conflict("送信待ちの指示がありません");
+    await this.sendQueuedNow(chatId, merged.id);
   }
 
   /**
    * 選んだ待ちの指示を、送らずに 1 件にまとめる（文は列の順に空行でつなぎ、添付も合わせる。まとめた 1 件は選んだうちのいちばん上の位置に残る）。
-   * 2 件以上なければ undefined
+   * 列にあるものを 2 件以上選んでいなければ 400
    */
-  mergeQueued(chatId: number, ids: string[]): QueuedMessage | undefined {
+  mergeQueued(chatId: number, ids: string[]): QueuedMessage {
     const queue = this.queueOf(chatId);
-    if (queue.list().filter((m) => ids.includes(m.id)).length < 2) return undefined;
-    return queue.merge({ ids });
+    const merged = queue.list().filter((m) => ids.includes(m.id)).length >= 2 ? queue.merge({ ids }) : undefined;
+    if (!merged) throw new Invalid("まとめるには、送信待ちの指示を 2 件以上選んでください");
+    return merged;
   }
 
   /**
    * 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（まとめない）。止めている・「ここまで」の印があっても最後まで送るよう、
    * 止めておくのをやめて印を外す。作業中でなければ先頭をすぐ送り、あとは終わるたびに次を送る（作業中なら、いまの作業が終わってから）。
-   * 送るものがなければ false
+   * 列が空なら 409
    */
-  async sendQueuedInOrder(chatId: number): Promise<boolean> {
+  async sendQueuedInOrder(chatId: number): Promise<void> {
     const queue = this.queueOf(chatId);
-    if (queue.list().length === 0) return false;
+    if (queue.list().length === 0) throw new Conflict("送信待ちの指示がありません");
     queue.setStops([]);
     await this.setQueuePaused(chatId, false);
-    return true;
   }
 
   /** 印の位置をまとめて置き換える（ドラッグで動かした・× で外した） */
@@ -131,9 +136,9 @@ export abstract class RunnerQueue {
     this.queueOf(chatId).setStops(stops);
   }
 
-  /** その指示のすぐあとに印を付ける・外す（id が null ならすべて外す。id が列になければ false） */
-  setQueueStopAfter(chatId: number, id: string | null, stop = true): boolean {
-    return this.queueOf(chatId).setStopAfter(id, stop);
+  /** その指示のすぐあとに印を付ける・外す（id が null ならすべて外す） */
+  setQueueStopAfter(chatId: number, id: string | null, stop = true): void {
+    if (!this.queueOf(chatId).setStopAfter(id, stop)) throw missing();
   }
 
   /**

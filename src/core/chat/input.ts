@@ -5,6 +5,7 @@ import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { ExecutionDeps } from "./turn.js";
 import type { Attachment, ChatOptionsPatch } from "@shared/types";
 import { withAttachmentNote } from "./uploads.js";
+import { Invalid, NotFound } from "../http/errors.js";
 
 export interface StartChatInput {
   projectId: number;
@@ -25,8 +26,8 @@ export interface StartChatInput {
 export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
   const { store, providers } = deps;
   const project = store.projects.get(input.projectId);
-  if (!project) throw new Error("プロジェクトが見つかりません");
-  if (!providers[project.provider].implemented) throw new Error(`${providers[project.provider].label} はまだ使えません`);
+  if (!project) throw new NotFound("プロジェクトが見つかりません");
+  if (!providers[project.provider].implemented) throw new Invalid(`${providers[project.provider].label} はまだ使えません`);
 
   // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
   const options = resolveChatOptions(store.settings.get(), project.chat_defaults, input.options);

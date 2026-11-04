@@ -3,6 +3,7 @@ import type { GitDiff } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { assertInside } from "./files.js";
 import { gitStatus, hasRef, listRemotes } from "./status.js";
+import { Invalid } from "../http/errors.js";
 
 /** 差分を返す上限（これより大きければ途中で切る） */
 const MAX_DIFF_CHARS = 400_000;
@@ -33,7 +34,7 @@ export function toGitDiff(diff: string): GitDiff {
 
 /** 操作するパスがすべてリポジトリの中か確かめる */
 async function assertAllInside(repo: string, paths: string[]) {
-  if (paths.length === 0) throw new Error("ファイルが選ばれていません");
+  if (paths.length === 0) throw new Invalid("ファイルが選ばれていません");
   for (const p of paths) await assertInside(repo, p);
 }
 
@@ -64,7 +65,7 @@ export async function discardPaths(repo: string, paths: string[]): Promise<void>
 
 /** ステージした変更をコミットする（メッセージは必須。ステージしたものがなければ失敗する） */
 export async function commitStaged(repo: string, message: string): Promise<void> {
-  if (!message.trim()) throw new Error("コミットのメッセージを入れてください");
+  if (!message.trim()) throw new Invalid("コミットのメッセージを入れてください");
   await gitOutput(repo, ["commit", "-q", "-m", message]);
 }
 
@@ -74,12 +75,12 @@ export async function commitStaged(repo: string, message: string): Promise<void>
  */
 export async function pushBranch(repo: string): Promise<void> {
   const status = await gitStatus(repo);
-  if (!status.repo || !status.branch) throw new Error("プッシュするブランチがありません");
+  if (!status.repo || !status.branch) throw new Invalid("プッシュするブランチがありません");
   if (status.upstream) {
     await gitOutput(repo, ["push", "-q"], [], 120_000);
     return;
   }
-  if (!status.has_origin) throw new Error("プッシュ先のリモート（origin）がありません");
+  if (!status.has_origin) throw new Invalid("プッシュ先のリモート（origin）がありません");
   await gitOutput(repo, ["push", "-q", "-u", "origin", status.branch], [], 120_000);
 }
 

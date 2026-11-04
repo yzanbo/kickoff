@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { ServerDeps } from "../server.js";
-import { HttpError, requireProject, requireChat } from "./http.js";
+import { requireProject, requireChat } from "./http.js";
 import { jsonBody } from "./schemas.js";
 
 /**
@@ -14,7 +14,7 @@ export function chatMoveRoutes(app: Hono, { store, runner }: ServerDeps) {
     const { project_id } = z.object({ project_id: z.number().int().positive() }).parse(await jsonBody(c));
     const project = requireProject(store, String(project_id));
     if (project.id === chat.project_id) return c.json(chat);
-    if (runner.isBusy(chat.id)) throw new HttpError(409, "作業中のチャットは移動できません。中断してから行ってください");
+    runner.requireIdle(chat.id, "移動");
     return c.json(store.chats.move(chat.id, project.id));
   });
 }

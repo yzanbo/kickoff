@@ -5,6 +5,7 @@ import { errorMessage } from "@shared/errors";
 import { runCommand, stderrOf } from "../system/exec.js";
 import { CJK_CHAR } from "@shared/types";
 import type { AudioInput, LocalOptions } from "./types.js";
+import { Invalid } from "../http/errors.js";
 
 /** 文字起こしを打ち切るまでの時間（長い録音でも、ふつうは数十秒で終わる） */
 const TIMEOUT_MS = 10 * 60_000;
@@ -81,7 +82,7 @@ export function commandFailure(tool: string, e: unknown): string {
   return `${tool} が失敗しました: ${stderrOf(e).split("\n").at(-1) || errorMessage(e)}`;
 }
 
-/** この Mac の whisper-cli で起こす（ffmpeg で wav にしてから。一時ファイルは必ず消す） */
+/** この Mac の whisper-cli で起こす（ffmpeg で wav にしてから。一時ファイルは必ず消す）。コマンドが失敗したら 400 */
 export async function transcribeLocal(audio: AudioInput, opts: LocalOptions): Promise<string> {
   const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "kickoff-voice-"));
   try {
@@ -90,11 +91,11 @@ export async function transcribeLocal(audio: AudioInput, opts: LocalOptions): Pr
     const outBase = path.join(dir, "result");
     await fs.promises.writeFile(input, audio.bytes);
     await runCommand(opts.ffmpeg, ffmpegArgs(input, wav), { timeout: TIMEOUT_MS }).catch((e: unknown) => {
-      throw new Error(commandFailure("ffmpeg", e));
+      throw new Invalid(commandFailure("ffmpeg", e));
     });
     const threads = Math.max(1, Math.min(8, os.availableParallelism() - 2));
     await runCommand(opts.whisper, whisperArgs({ model: opts.model, wav, language: opts.language, outBase, threads }), { timeout: TIMEOUT_MS }).catch((e: unknown) => {
-      throw new Error(commandFailure("whisper-cli", e));
+      throw new Invalid(commandFailure("whisper-cli", e));
     });
     return joinSegments(await fs.promises.readFile(`${outBase}.txt`, "utf8"));
   } finally {

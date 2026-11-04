@@ -4,6 +4,7 @@ import { toGitDiff } from "./changes.js";
 import { gitOutput } from "./exec.js";
 import { assertInside } from "./files.js";
 import { hasRef, kindOf, parseAheadBehind } from "./status.js";
+import { Invalid } from "../http/errors.js";
 
 /** 履歴の区切り（コミットの間は RS、項目の間は NUL） */
 const LOG_FORMAT = "%H%x00%P%x00%an%x00%ae%x00%aI%x00%D%x00%s%x1e";
@@ -52,7 +53,7 @@ export function parseNameStatus(out: string): GitFileChange[] {
 
 /** コミットの詳細（マージは 1 つ目の親との差、最初のコミットは空との差） */
 export async function gitCommitDetail(repo: string, hash: string): Promise<GitCommitDetail> {
-  if (!HASH_RE.test(hash)) throw new Error("コミットの指定が正しくありません");
+  if (!HASH_RE.test(hash)) throw new Invalid("コミットの指定が正しくありません");
   const head = await gitOutput(repo, ["show", "-s", `--format=${LOG_FORMAT.replace("%x1e", "")}%x00%cn%x00%cI%x00%B`, hash]);
   const [hashFull, parents, author, email, date, refs, subject, committer, committedAt, ...body] = head.split("\0");
   const commit = parseCommit([hashFull, parents, author, email, date, refs, subject].join("\0"));
@@ -65,7 +66,7 @@ export async function gitCommitDetail(repo: string, hash: string): Promise<GitCo
 
 /** コミットでの 1 つのファイルの差分（1 つ目の親との差。最初のコミットは空との差） */
 export async function gitCommitDiff(repo: string, hash: string, file: string, oldPath?: string): Promise<GitDiff> {
-  if (!HASH_RE.test(hash)) throw new Error("コミットの指定が正しくありません");
+  if (!HASH_RE.test(hash)) throw new Invalid("コミットの指定が正しくありません");
   await assertInside(repo, file);
   if (oldPath) await assertInside(repo, oldPath);
   const paths = oldPath ? ["--", oldPath, file] : ["--", file];

@@ -2,11 +2,19 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { commitStaged, discardPaths, fetchRemote, gitCommitDetail, gitCommitDiff, gitDiff, gitLog, gitRefs, gitStatus, pullBranch, pushBranch, stagePaths, unstagePaths } from "../../git/index.js";
 import { createPullRequest, pullRequestFor } from "../../git/github.js";
+import type { Context } from "hono";
 import type { ServerDeps } from "../server.js";
-import { badRequest, gitAction, requireProject, requireWorkdir } from "./http.js";
+import { Invalid } from "../errors.js";
+import { requireProject, requireWorkdir } from "./http.js";
 import { flag, queryOf, repoPath, jsonBody } from "./schemas.js";
 
 const diffQuerySchema = z.object({ path: repoPath, old: repoPath.optional(), staged: flag.default("0") });
+
+/** Git の操作をしてから、新しい状態を返す（操作の失敗は 400） */
+async function gitAction(c: Context, dir: string, action: () => Promise<void>) {
+  await action();
+  return c.json(await gitStatus(dir));
+}
 
 /**
  * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・PR）。操作するフォルダは requireWorkdir（?worktree=）。
@@ -19,7 +27,7 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const project = requireProject(store, c.req.param("id"));
     const query = diffQuerySchema.parse({ path: c.req.query("path"), old: c.req.query("old"), staged: c.req.query("staged") });
     const dir = await requireWorkdir(c, project);
-    return c.json(await badRequest(() => gitDiff(dir, query.path, query.staged === "1", query.old)));
+    return c.json(await gitDiff(dir, query.path, query.staged === "1", query.old));
   });
 
   // ステージ・ステージの取り消し・変更を捨てる（元に戻す）。終わったら新しい状態を返す
@@ -60,14 +68,14 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
 
   app.get("/api/projects/:id/git/commits/:hash", async (c) => {
     const dir = await requireWorkdir(c, requireProject(store, c.req.param("id")));
-    return c.json(await badRequest(() => gitCommitDetail(dir, c.req.param("hash"))));
+    return c.json(await gitCommitDetail(dir, c.req.param("hash")));
   });
 
   app.get("/api/projects/:id/git/commits/:hash/diff", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const query = z.object({ path: repoPath, old: repoPath.optional() }).parse({ path: c.req.query("path"), old: c.req.query("old") });
     const dir = await requireWorkdir(c, project);
-    return c.json(await badRequest(() => gitCommitDiff(dir, c.req.param("hash"), query.path, query.old)));
+    return c.json(await gitCommitDiff(dir, c.req.param("hash"), query.path, query.old));
   });
 
   // フェッチ（リモートの情報を取ってくる。作業中のファイルは変えない）
@@ -87,19 +95,15 @@ export function gitRoutes(app: Hono, { store }: ServerDeps) {
     const dir = await requireWorkdir(c, requireProject(store, c.req.param("id")));
     const status = await gitStatus(dir);
     if (!status.repo || !status.branch || !status.has_origin) return c.json(null);
-    const branch = status.branch;
-    return c.json(await badRequest(() => pullRequestFor(dir, branch)));
+    return c.json(await pullRequestFor(dir, status.branch));
   });
 
   // PR を作る（まだプッシュしていなければ、先にプッシュする）
   app.post("/api/projects/:id/git/pr", async (c) => {
     const dir = await requireWorkdir(c, requireProject(store, c.req.param("id")));
-    const pr = await badRequest(async () => {
-      const status = await gitStatus(dir);
-      if (!status.repo || !status.branch) throw new Error("PR にするブランチがありません");
-      if (!status.upstream || status.ahead > 0) await pushBranch(dir);
-      return createPullRequest(dir, status.branch);
-    });
-    return c.json(pr, 201);
+    const status = await gitStatus(dir);
+    if (!status.repo || !status.branch) throw new Invalid("PR にするブランチがありません");
+    if (!status.upstream || status.ahead > 0) await pushBranch(dir);
+    return c.json(await createPullRequest(dir, status.branch), 201);
   });
 }

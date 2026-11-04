@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { isInside } from "../system/paths.js";
+import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { FileContent, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { gitStatus } from "./status.js";
@@ -16,17 +17,17 @@ const MAX_FILE_BYTES = 1_000_000;
 export async function assertInside(repo: string, file: string): Promise<string> {
   const root = await fs.realpath(repo);
   const target = path.resolve(root, file);
-  if (path.isAbsolute(file) || target === root || !isInside(root, target)) throw new Error("リポジトリの外のファイルです");
+  if (path.isAbsolute(file) || target === root || !isInside(root, target)) throw new Invalid("リポジトリの外のファイルです");
   return target;
 }
 
 /**
- * エクスプローラーに出すファイルの一覧（Git で管理していなければ null）。
+ * エクスプローラーに出すファイルの一覧（Git で管理していなければ 400）。
  * 管理しているファイルと、まだ追加していないファイル（消したファイルは除く）。.gitignore で無視しているものは、
  * フォルダなら中を開かずにまとめて返す（node_modules などを全部たどらないように）
  */
-export async function listProjectFiles(repo: string): Promise<ProjectFiles | null> {
-  if ((await gitStatus(repo)).repo === false) return null;
+export async function listProjectFiles(repo: string): Promise<ProjectFiles> {
+  if ((await gitStatus(repo)).repo === false) throw new Invalid("このプロジェクトのフォルダは、Git で管理されていません");
   const [all, deleted, ignored] = await Promise.all([
     gitOutput(repo, ["ls-files", "--cached", "--others", "--exclude-standard", "-z"]),
     gitOutput(repo, ["ls-files", "--deleted", "-z"]),
@@ -44,25 +45,25 @@ export async function listProjectFiles(repo: string): Promise<ProjectFiles | nul
 /** 中身の指紋（保存の前に、開いたあとでほかで変わっていないか比べる） */
 const hashOf = (data: Buffer) => createHash("sha1").update(data).digest("hex");
 
-/** リポジトリの中の、実体のパス（リポジトリの外を指すシンボリックリンクは使わせない） */
+/** リポジトリの中の、実体のパス（リポジトリの外を指すシンボリックリンクは使わせない。なければ 404） */
 async function resolveInside(repo: string, file: string): Promise<string> {
-  const real = await fs.realpath(await assertInside(repo, file));
+  const real = await fs.realpath(await assertInside(repo, file)).catch((e: unknown) => {
+    if ((e as { code?: unknown }).code === "ENOENT") throw new NotFound(`ファイルが見つかりません: ${file}`);
+    throw e;
+  });
   await assertInside(repo, path.relative(await fs.realpath(repo), real));
   return real;
 }
 
-/** 開いたあとで、ほかで（エージェントなどが）ファイルを変えていた */
-export class FileConflictError extends Error {}
-
 /**
  * ファイルを保存する（いまあるファイルだけ）。baseHash は開いたときの指紋で、いまの中身と違えば上書きせずに
- * FileConflictError にする（エージェントの作業を消さないため）。null なら確かめずに上書きする
+ * 409 にする（開いたあとで、ほかで（エージェントなどが）変えていた。エージェントの作業を消さないため）。null なら確かめずに上書きする
  */
 export async function writeProjectFile(repo: string, file: string, content: string, baseHash: string | null): Promise<{ hash: string }> {
   const real = await resolveInside(repo, file);
-  if (!(await fs.stat(real)).isFile()) throw new Error("ファイルではありません");
+  if (!(await fs.stat(real)).isFile()) throw new Invalid("ファイルではありません");
   if (baseHash !== null && hashOf(await fs.readFile(real)) !== baseHash) {
-    throw new FileConflictError("開いたあとで、ほかでファイルが変わりました");
+    throw new Conflict("開いたあとで、ほかでファイルが変わりました");
   }
   const data = Buffer.from(content, "utf8");
   await fs.writeFile(real, data);
@@ -73,7 +74,7 @@ export async function writeProjectFile(repo: string, file: string, content: stri
 export async function readProjectFile(repo: string, file: string): Promise<FileContent> {
   const real = await resolveInside(repo, file);
   const stat = await fs.stat(real);
-  if (!stat.isFile()) throw new Error("ファイルではありません");
+  if (!stat.isFile()) throw new Invalid("ファイルではありません");
   const handle = await fs.open(real, "r");
   try {
     const buffer = Buffer.alloc(Math.min(stat.size, MAX_FILE_BYTES));
@@ -94,7 +95,7 @@ const MAX_LINE_CHARS = 400;
 
 /**
  * プロジェクトのファイルの中を探す（git grep。.gitignore で無視しているもの・バイナリは除く。未追加のファイルは含める）。
- * 正規表現の書き方が正しくなければ失敗する
+ * 探せなければ 400（正規表現の書き方が正しくないときは、そう伝える）
  */
 export async function searchProject(repo: string, { query, case_sensitive: caseSensitive, whole_word: wholeWord, regex }: ProjectSearchQuery): Promise<ProjectSearchResult> {
   const result: ProjectSearchResult = { files: [], total: 0, truncated: false };
@@ -104,7 +105,9 @@ export async function searchProject(repo: string, { query, case_sensitive: caseS
   if (wholeWord) args.push("-w");
   args.push(regex ? "-E" : "-F", "-e", query);
   // 見つからなければ終了コード 1
-  const out = await gitOutput(repo, args, [1]);
+  const out = await gitOutput(repo, args, [1]).catch(() => {
+    throw new Invalid(regex ? "正規表現の書き方が正しくありません" : "検索できませんでした");
+  });
   for (const record of out.split("\n")) {
     if (!record) continue;
     const [file, line, column, ...rest] = record.split("\0");

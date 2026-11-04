@@ -7,6 +7,7 @@ import { ApprovalCenter } from "./approvals.js";
 import { Bus } from "../bus.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import { Runner } from "./runner.js";
+import { NotFound } from "../http/errors.js";
 import { Store } from "../db/store.js";
 import { FakeProviderBase } from "../testing/fakeProvider.js";
 import type { ProviderId } from "@shared/types";
@@ -186,7 +187,7 @@ test("承認待ちの間は作業中のまま回答待ちの一覧に入り、�
   await until(() => approvals.list({ chatId: chat.id }).length === 1);
   assert.equal(store.chats.get(chat.id)?.status, "running");
   const [pending] = approvals.list({ chatId: chat.id });
-  assert.ok(approvals.resolve(pending.id, { action: "answer", answers: { 何を作る: "Todo" } }));
+  approvals.resolve(pending.id, { action: "answer", answers: { 何を作る: "Todo" } });
   await until(() => store.chats.get(chat.id)?.status === "completed");
   assert.deepEqual(received, { action: "answer", answers: { 何を作る: "Todo" } });
   assert.equal(approvals.list().length, 0);
@@ -297,7 +298,7 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
   await runner.queueMessage(chat.id, "3");
   assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["2", "3"]);
   // 並べ替え: 3 を先頭に
-  assert.equal(runner.moveQueued(chat.id, runner.live(chat.id).queue.messages[1].id, 0), true);
+  runner.moveQueued(chat.id, runner.live(chat.id).queue.messages[1].id, 0);
   gates[0]();
   await until(() => gates.length === 2);
   assert.equal(provider.calls[1].prompt, "3");
@@ -327,12 +328,13 @@ test("待ちの列: 止めた・失敗したときも次を送り、「すぐ送
   // 作業中に「すぐ送る」→ 止めずに伝える。この偽のプロバイダーは発言を足せないので、列の先頭に移す（作業は止めない）
   await runner.queueMessage(chat.id, "3");
   await runner.queueMessage(chat.id, "4");
-  assert.equal(await runner.sendQueuedNow(chat.id, runner.live(chat.id).queue.messages[1].id), true);
+  await runner.sendQueuedNow(chat.id, runner.live(chat.id).queue.messages[1].id);
   assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["4", "3"]);
   assert.equal(gates.length, 2);
-  assert.equal(runner.removeQueued(chat.id, runner.live(chat.id).queue.messages[1].id), true);
-  assert.equal(runner.removeQueued(chat.id, "nope"), false);
-  assert.equal(await runner.sendQueuedNow(chat.id, "nope"), false);
+  runner.removeQueued(chat.id, runner.live(chat.id).queue.messages[1].id);
+  // 列にない指示は 404
+  assert.throws(() => runner.removeQueued(chat.id, "nope"), NotFound);
+  await assert.rejects(runner.sendQueuedNow(chat.id, "nope"), NotFound);
   // 終わったら、先頭に移した指示を送る
   gates[1]();
   await until(() => gates.length === 3);

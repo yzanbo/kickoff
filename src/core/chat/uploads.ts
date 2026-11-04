@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { Attachment } from "@shared/types";
+import { Invalid } from "../http/errors.js";
 
 /** 1 ファイルあたりの上限 */
 export const MAX_UPLOAD_BYTES = 30 * 1024 * 1024;
@@ -15,7 +16,7 @@ export class UploadStore {
 
   async save(file: { name: string; type: string; bytes: Uint8Array }): Promise<Attachment> {
     if (file.bytes.byteLength > MAX_UPLOAD_BYTES) {
-      throw new Error(`ファイルが大きすぎます（上限 ${MAX_UPLOAD_BYTES / 1024 / 1024} MB）: ${file.name}`);
+      throw new Invalid(`ファイルが大きすぎます（上限 ${MAX_UPLOAD_BYTES / 1024 / 1024} MB）: ${file.name}`);
     }
     const id = randomUUID();
     const name = safeFileName(file.name);
