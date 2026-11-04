@@ -135,15 +135,6 @@
   background: var(--bg-active);
 }
 
-/* プロジェクトの色の点（サイドバー・バッジと同じ色） */
-.palette-project-dot {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: hsl(var(--ws-hue, 150) 60% 60%);
-}
-
 .palette-project.archived .palette-project-name {
   font-style: italic;
 }

@@ -1,9 +1,9 @@
 import { Folder, GitBranch } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { GitWorktree, ProjectSummary, RunGroup } from "../../../../core/types";
 import { cx } from "../../cx";
 import { useStoredFlagMap } from "../../hooks/useStoredState";
-import { initialOf, projectHue } from "../../projectColor";
+import { ProjectMark } from "../ProjectMark";
 import { useProjects } from "../../projectsContext";
 import { BOARD_LANE_CLOSED_PREFIX } from "../../storageKeys";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
@@ -98,12 +98,7 @@ function lanesOf(
       const list = entries.filter((e) => e.run.project_id === p.id);
       const draft = (t: DraftTarget) => t.projectId === p.id;
       if (list.length === 0 && !drafts.some(draft)) return [];
-      const mark = (
-        <span className="project-chip-mark" style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties} aria-hidden>
-          {initialOf(p.name)}
-        </span>
-      );
-      return [{ key: `p${p.id}`, head: <LaneTitle mark={mark} label={p.name} />, entries: list, draft }];
+      return [{ key: `p${p.id}`, head: <LaneTitle mark={<ProjectMark project={p} />} label={p.name} />, entries: list, draft }];
     });
   }
   // 作業場所（プロジェクトと作業場所の組。本体が先。見出しはサイドバーと同じ workplaceOf）

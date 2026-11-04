@@ -1,46 +1,37 @@
-import { Check, ChevronDown, LayoutGrid } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import type { ProjectSummary } from "../../../../core/types";
-import { initialOf, projectHue } from "../../projectColor";
 import { archivedProjects, sidebarOrder } from "../../projectOrder";
 import { useProjects } from "../../projectsContext";
 import { navigate, type ProjectTab } from "../../router";
 import { MenuItem, PopupMenu } from "../PopupMenu";
 import { useAnchoredMenu } from "../menus/useAnchoredMenu";
+import { ProjectMark } from "../ProjectMark";
 
 /** 全プロジェクトの画面の名前（サイドバーの項目と同じ） */
 const ALL_PROJECTS = "全プロジェクト";
 
 /**
- * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。サイドバーと同じプロジェクトの色のカード（名前だけ。頭文字の四角は付けない）にして、どのプロジェクトかを色でもわかるようにする。
+ * 画面の見出しの名前（プロジェクトの画面と全プロジェクトの画面）。プロジェクトの印（ProjectMark）＋ 名前で、色は印だけに出す（サイドバー・バッジと同じ出し方）。
  * project がなければ全プロジェクト。押すと全プロジェクト・ほかのプロジェクトを選べ、プロジェクトどうしはいまのタブ（ボード・グループなど）のまま切り替わる
  * （全プロジェクトから選んだときはカンバン）。しまった（アーカイブした）プロジェクトは下の「アーカイブ済み」に分けて出す。プロジェクトがなければ押せない
  */
 export function ProjectSwitcher({ project, tab = "board" }: { project?: { id: number; name: string }; tab?: ProjectTab }) {
   const { projects } = useProjects();
   const menu = useAnchoredMenu(".project-switch", 260);
-  const hue = project ? ({ "--ws-hue": `${projectHue(project.id)}` } as CSSProperties) : undefined;
-  const className = project ? "project-switch" : "project-switch all-projects";
+  const className = "project-switch";
   const identity = (
     <>
-      {!project && <LayoutGrid size={14} aria-hidden />}
+      <ProjectMark project={project} size="md" />
       <span className="project-switch-name">{project ? project.name : ALL_PROJECTS}</span>
     </>
   );
-  if (projects.length === 0) {
-    return (
-      <span className={className} style={hue}>
-        {identity}
-      </span>
-    );
-  }
+  if (projects.length === 0) return <span className={className}>{identity}</span>;
   const ordered = sidebarOrder(projects);
   const archived = archivedProjects(projects);
   return (
     <>
       <button
         className={className}
-        style={hue}
         title="プロジェクトを切り替える"
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
@@ -87,29 +78,23 @@ function ProjectSwitchMenu({
   onPick: (id: number | undefined) => void;
   onClose: () => void;
 }) {
-  const item = (id: number | undefined, mark: ReactNode, name: string) => (
+  const item = (id: number | undefined, name: string) => (
     <MenuItem key={id ?? "all"} role="menuitemradio" checked={id === currentId} onSelect={() => id !== currentId && onPick(id)}>
-      <span
-        className={id === undefined ? "project-chip-mark all-projects" : "project-chip-mark"}
-        style={id === undefined ? undefined : ({ "--ws-hue": `${projectHue(id)}` } as CSSProperties)}
-        aria-hidden
-      >
-        {mark}
-      </span>
+      <ProjectMark project={id === undefined ? undefined : { id, name }} />
       <span className="project-switch-item">{name}</span>
       {id === currentId && <Check size={14} aria-hidden />}
     </MenuItem>
   );
   return (
     <PopupMenu x={x} y={y} className="project-switch-menu" label="プロジェクトを切り替える" ignore={ignore} onClose={onClose}>
-      {item(undefined, <LayoutGrid size={10} />, ALL_PROJECTS)}
+      {item(undefined, ALL_PROJECTS)}
       <div className="menu-separator" role="separator" />
-      {projects.map((p) => item(p.id, initialOf(p.name), p.name))}
+      {projects.map((p) => item(p.id, p.name))}
       {archived.length > 0 && (
         <>
           <div className="menu-separator" role="separator" />
           <div className="menu-label">アーカイブ済み</div>
-          {archived.map((p) => item(p.id, initialOf(p.name), p.name))}
+          {archived.map((p) => item(p.id, p.name))}
         </>
       )}
     </PopupMenu>

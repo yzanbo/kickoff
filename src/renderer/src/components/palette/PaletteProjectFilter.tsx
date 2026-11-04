@@ -1,7 +1,6 @@
 import { Archive } from "lucide-react";
-import type { CSSProperties } from "react";
 import { cx } from "../../cx";
-import { projectHue } from "../../projectColor";
+import { ProjectMark } from "../ProjectMark";
 
 /** 絞り込むプロジェクト（"all" = すべて） */
 export type ProjectFilterValue = number | "all";
@@ -49,11 +48,10 @@ export function PaletteProjectFilter({
             role="radio"
             aria-checked={value === p.id}
             className={cx("palette-project", value === p.id && "active", p.archived && "archived")}
-            style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties}
             title={p.archived ? `${p.name}（アーカイブ済み）` : p.name}
             onClick={() => onChange(p.id)}
           >
-            <span className="palette-project-dot" aria-hidden />
+            <ProjectMark project={p} />
             <span className="palette-project-name">{p.name}</span>
             <span className="palette-project-count">{p.count}</span>
           </button>
