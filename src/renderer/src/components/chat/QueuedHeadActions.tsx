@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowUpToLine, Pause, Play, SendHorizontal, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, Merge, Pause, Play, SendHorizontal, Trash2, X } from "lucide-react";
 import { cx } from "../../cx";
 import { api } from "../../api";
 import { confirmDialog } from "../../dialogs";
@@ -70,6 +70,19 @@ export function QueuedHeadActions({
     const done = () => onClearSelection();
     return (
       <>
+        {/* 送らずに、選んだ指示を 1 件にまとめる（列の順に空行でつなぐ。選んだうちのいちばん上の位置に残る） */}
+        {n > 1 && (
+          <button
+            type="button"
+            className="btn btn-sm queued-head-btn"
+            aria-label={`選んだ ${n} 件を 1 つにまとめる`}
+            title={`選んだ ${n} 件を、送らずに 1 つの指示にまとめる（列の順に空行でつなぎ、添付も合わせる。選んだうちのいちばん上の位置に残る）`}
+            onClick={() => void api.mergeQueued(runId, selected).then(done, failed)}
+          >
+            <Merge size={12} aria-hidden />
+            <span className="queued-head-label">1 つにまとめる</span>
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-sm btn-primary queued-head-btn"

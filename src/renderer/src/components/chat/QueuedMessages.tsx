@@ -248,6 +248,7 @@ export function QueuedMessages({
                 onSelect={(e) => selectRow(e, m.id)}
                 groupActions={{
                   sendTogether: () => void api.sendAllQueued(runId, selected).then(clearSelection, failed),
+                  merge: () => void api.mergeQueued(runId, selected).then(clearSelection, failed),
                   moveTo: (to) => void api.moveQueuedMany(runId, selected, to).catch(failed),
                   remove: () => void api.removeQueuedMany(runId, selected).then(clearSelection, failed),
                 }}

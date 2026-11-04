@@ -88,6 +88,15 @@ export abstract class RunnerQueue {
   }
 
   /**
+   * 選んだ待ちの指示を、送らずに 1 件にまとめる（文は列の順に空行でつなぎ、添付も合わせる。まとめた 1 件は選んだうちのいちばん上の位置に残る）。
+   * 2 件以上なければ undefined
+   */
+  mergeQueued(runId: number, ids: string[]): QueuedMessage | undefined {
+    if (this.followups.list(runId).filter((m) => ids.includes(m.id)).length < 2) return undefined;
+    return this.followups.merge(runId, { ids });
+  }
+
+  /**
    * 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（まとめない）。止めている・「ここまで」の印があっても最後まで送るよう、
    * 止めておくのをやめて印を外す。作業中でなければ先頭をすぐ送り、あとは終わるたびに次を送る（作業中なら、いまの作業が終わってから）。
    * 送るものがなければ false

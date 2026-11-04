@@ -59,7 +59,7 @@ export function QueuedRow({
   /** 行のクリック（⌘ / Ctrl で 1 件ずつ、Shift で範囲を選ぶ） */
   onSelect: (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => void;
   /** 選んだもの全体への操作（右クリックのメニュー） */
-  groupActions: { sendTogether: () => void; moveTo: (to: "top" | "bottom") => void; remove: () => void };
+  groupActions: { sendTogether: () => void; merge: () => void; moveTo: (to: "top" | "bottom") => void; remove: () => void };
   className: string;
   actions: QueuedRowActions;
   onDragStart: () => void;
@@ -143,6 +143,9 @@ export function QueuedRow({
             // 選んだもの全体への操作（送る → 並べ替え → 新しいチャットへ → 消す）
             <>
               <MenuItem onSelect={groupActions.sendTogether}>選んだ {selectedCount} 件をまとめて送る</MenuItem>
+              <MenuItem onSelect={groupActions.merge} title="送らずに 1 つの指示にまとめます（列の順に空行でつなぎ、添付も合わせます）">
+                選んだ {selectedCount} 件を 1 つにまとめる
+              </MenuItem>
               <div className="menu-separator" role="separator" />
               <MenuItem onSelect={() => groupActions.moveTo("top")}>選んだ {selectedCount} 件をいちばん上へ移動</MenuItem>
               <MenuItem onSelect={() => groupActions.moveTo("bottom")}>選んだ {selectedCount} 件をいちばん下へ移動</MenuItem>

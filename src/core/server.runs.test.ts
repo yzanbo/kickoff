@@ -390,6 +390,29 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
   assert.equal(runner.queuePaused(runId), false);
 });
 
+test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件にし（列の順に空行でつなぐ）、選んだうちのいちばん上の位置に残す", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  for (const text of ["a", "b", "c", "d"]) await call("POST", `/api/runs/${runId}/queue`, { text });
+  const ids = runner.queued(runId).map((m) => m.id);
+  // 2 件以上選ばないとまとめない
+  assert.equal((await call("POST", `/api/runs/${runId}/queue/merge`, { ids: [ids[0]] })).status, 400);
+  assert.equal((await call("POST", "/api/runs/999/queue/merge", { ids })).status, 404);
+  // 選んだ順ではなく、列の順につなぐ
+  const merged = await call("POST", `/api/runs/${runId}/queue/merge`, { ids: [ids[3], ids[1]] });
+  assert.equal(merged.status, 200);
+  assert.equal(merged.body.id, ids[1]);
+  assert.deepEqual(
+    runner.queued(runId).map((m) => m.text),
+    ["a", "b\n\nd", "c"],
+  );
+  // 送ってはいない
+  assert.equal(provider.prompts.length, 1);
+  release();
+});
+
 test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発言として順に送り、止めておく・「ここまで」の印があっても最後まで送る", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
