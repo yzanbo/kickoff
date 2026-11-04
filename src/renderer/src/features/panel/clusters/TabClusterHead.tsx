@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties } from "react";
+import { usePopover } from "@/ui/Popover";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
 import { useChatStates } from "@/app/chatStatesContext";
@@ -8,16 +8,11 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { cx } from "@/lib/cx";
 import { ChevronLeft } from "lucide-react";
-import { useDismiss } from "@/hooks/useDismiss";
 import { stateCounts } from "@/features/chat/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/StateCornerCounts";
 import { StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
 import type { TabCluster } from "./tabClusters";
 import type { NewChatTarget } from "@/features/panel/usePanel";
-
-/** 一覧の幅（state-chats.css の width と同じ）と、画面の端から空ける幅 */
-const POPOVER_WIDTH = 380;
-const EDGE = 8;
 
 /**
  * タブのまとまりの頭（まとまりの色の名前の札と、中のタブの数）。札の角に、そのまとまり（グループ・作業場所）のチャットの状態ごとの数を重ね、
@@ -65,9 +60,8 @@ export function TabClusterHead({
   tabCount?: number;
 }) {
   const { stateOf, pending } = useChatStates();
-  const [at, setAt] = useState<CSSProperties | null>(null);
-  const ref = useRef<HTMLSpanElement>(null);
-  useDismiss(ref, () => setAt(null), { enabled: at !== null });
+  // 札を押すと開く、まとまりのチャットの一覧（札の下に出す。タブの列に切り取られないよう top layer に出る）
+  const popover = usePopover<HTMLSpanElement>();
   // 札の右クリックのメニュー（プロジェクトの分かるまとまりだけ。「その他」「チャット」の札では出さない）
   const menu = useContextMenu();
   const projectId = cluster.projectId;
@@ -95,19 +89,12 @@ export function TabClusterHead({
   const summary = counts ? stateCountsSummary(counts) : "";
   const title = summary ? `${cluster.title ?? cluster.label}（${summary}）` : cluster.title;
   const nameText = <span className="panel-tab-cluster-text">{cluster.label}</span>;
-  // タブの列は横にスクロールして中身を切り取るので、一覧は画面に固定して札のすぐ下に出す（右の端からはみ出さないよう寄せる）
-  const toggle = () => {
-    if (at) return setAt(null);
-    const r = ref.current!.getBoundingClientRect();
-    const width = Math.min(POPOVER_WIDTH, window.innerWidth * 0.8);
-    setAt({ top: r.bottom + 6, left: Math.max(EDGE, Math.min(r.left, window.innerWidth - width - EDGE)) });
-  };
   return (
-    <span ref={ref} className={cx("panel-tab-cluster", all && "all", dragProps && "draggable")} onContextMenu={openMenu} {...dragProps}>
+    <span ref={popover.anchor} className={cx("panel-tab-cluster", all && "all", dragProps && "draggable")} onContextMenu={openMenu} {...dragProps}>
       {/* 1 つの丸い札を左右に区切る: 左 = 名前（押すと一覧）・右 = 畳む / 開く。角の状態ごとの数は札全体の角に重ねる */}
       <span className={cx("panel-tab-cluster-pill", collapsed && "collapsed")}>
         {chats ? (
-          <button type="button" className="panel-tab-cluster-name" title={`${title ?? cluster.label}・${countTitle}。押すと状態ごとのチャットを一覧する`} aria-expanded={at !== null} onClick={toggle}>
+          <button type="button" className="panel-tab-cluster-name" title={`${title ?? cluster.label}・${countTitle}。押すと状態ごとのチャットを一覧する`} aria-expanded={popover.open} onClick={popover.toggle}>
             {nameText}
           </button>
         ) : (
@@ -151,18 +138,18 @@ export function TabClusterHead({
           )}
         </PopupMenu>
       )}
-      {at && chats && (
+      {popover.open && chats && (
         <StateChatsPopover
           title={popoverTitle}
+          anchor={popover.anchor}
           // まとまりのチャットをすべて（既読・アーカイブ済みも）状態ごとに並べる
           sections={chatsByState(chats, stateOf, { all: true })}
           emptyText="チャットはありません"
           // グループのまとまり（グループ別のとき）では、そのグループに new チャットを足すボタンも置く（札の右クリックの項目と同じ）
           newChat={newChatTarget && { label: newChatLabel, onSelect: () => onNewChat?.(newChatTarget) }}
           onOpen={onOpen}
-          onClose={() => setAt(null)}
+          onClose={popover.close}
           className="cluster-chats-popover"
-          style={at}
         />
       )}
     </span>

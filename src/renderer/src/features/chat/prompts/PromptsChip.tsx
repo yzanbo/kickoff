@@ -2,11 +2,11 @@ import { ChevronUp, CornerDownLeft, History } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { useDismiss } from "@/hooks/useDismiss";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { formatMessageTime } from "@/lib/time";
 import { IconButton } from "@/ui/IconButton";
+import { Popover } from "@/ui/Popover";
 import { SearchField } from "@/ui/SearchField";
 import { promptEntries, type PromptEntry } from "./promptHistory";
 
@@ -22,7 +22,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const prompts = useMemo(() => promptEntries(events), [events]);
   // 行に出す番号（会話の中で何番目の指示か。絞り込んでも変えない）
   const numbers = useMemo(() => new Map(prompts.map((p, i) => [p.id, i + 1])), [prompts]);
@@ -47,7 +47,6 @@ export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; 
     onJump(p.id);
   };
   const nav = useListNavigation(items, reuse);
-  useDismiss(ref, close, { enabled: open });
   // 開いた・絞り込んだら、いちばん新しい（下の）指示を選ぶ
   useLayoutEffect(() => {
     if (open) nav.setIndex(items.length - 1);
@@ -55,7 +54,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; 
   }, [open, items]);
   // 選んでいる行を見せる（開いたときは、いちばん下）
   useLayoutEffect(() => {
-    listRef.current?.querySelector(".prompt-row.active")?.scrollIntoView({ block: "nearest" });
+    ref.current?.querySelector(".prompt-row.active")?.scrollIntoView({ block: "nearest" });
   }, [open, nav.index]);
 
   // ⌃R: 開いて絞り込みの欄にピントを置く（開いていれば 1 つ前の一致へ）
@@ -71,6 +70,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; 
   return (
     <div ref={ref} className="chip-wrap">
       <button
+        ref={button}
         type="button"
         className={cx("composer-chip", open && "open")}
         aria-expanded={open}
@@ -82,7 +82,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; 
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {open && (
-        <div ref={listRef} className="chip-popover prompts-popover" role="dialog" aria-label="指示の履歴">
+        <Popover anchor={button} side="above" gap={8} label="指示の履歴" className="chip-popover prompts-popover" onClose={close}>
           <SearchField
             autoFocus
             value={query}
@@ -118,7 +118,7 @@ export function PromptsChip({ events, onJump, onReuse }: { events: ChatEvent[]; 
               </div>
             );
           })}
-        </div>
+        </Popover>
       )}
     </div>
   );

@@ -1,8 +1,8 @@
 import { RefreshCw, X, type LucideIcon } from "lucide-react";
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 import { cx } from "@/lib/cx";
 
-type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "aria-label">;
+type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "aria-label"> & { ref?: Ref<HTMLButtonElement> };
 
 interface IconProps {
   /** アイコンの大きさ（px） */

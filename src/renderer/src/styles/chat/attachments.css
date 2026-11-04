@@ -67,17 +67,12 @@
 }
 
 
-/* 添付の一覧のポップオーバー（送信待ちの行の「+n」付きのサムネイルから開く。位置は AttachmentGrid が style で決める） */
+/* 添付の一覧のポップオーバー（送信待ちの行の「+n」付きのサムネイルから、その上（入らなければ下）に開く。枠と地は .popover） */
 .attachment-grid-popover {
-  position: fixed;
-  z-index: 60;
+  width: min(360px, calc(100vw - 16px));
   max-height: min(420px, 60vh);
   padding: 10px;
   overflow-y: auto;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elev);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
 }
 
 /* 画像は大きめのサムネイルで並べる（押すと全画面） */

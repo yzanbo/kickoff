@@ -16,7 +16,7 @@
   display: none;
 }
 
-/* ピルと、押すと上に開く一覧（サブエージェント・ToDo で共通） */
+/* ピルと、押すと上に開く一覧（Popover。サブエージェント・ToDo・指示の履歴などで共通）をまとめる入れ物 */
 .chip-wrap {
   position: relative;
 }
@@ -68,20 +68,12 @@
   color: var(--muted);
 }
 
+/* ピルの上に開く一覧（枠と地は .popover） */
 .chip-popover {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
-  z-index: 50;
   width: min(460px, 80vw);
   max-height: min(440px, 60vh);
   padding: 6px;
   overflow-y: auto;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elev);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
-  animation: popover-in 0.14s ease-out;
 }
 
 .subagent-row {

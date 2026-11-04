@@ -1,17 +1,16 @@
 import { Shrink } from "lucide-react";
-import { useRef, useState } from "react";
 import type { Chat, UsageWindow } from "@shared/types";
 import { api } from "@/api";
 import { useProviders } from "@/stores/providers";
 import { cx } from "@/lib/cx";
 import { useAction } from "@/hooks/useAction";
 import { formatTokens } from "@/lib/format";
-import { useDismiss } from "@/hooks/useDismiss";
 import { resetIn } from "@/lib/time";
 import { planLabel, usageLevel, usageUnavailableText, useSharedPlanUsage, weeklyModel } from "@/features/usage/usage";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ErrorText } from "@/ui/ErrorText";
 import { RefreshButton } from "@/ui/IconButton";
+import { Popover, usePopover } from "@/ui/Popover";
 import { COMPACTING_LABEL } from "@/features/chat/status/workingLabel";
 
 /** 使用率の色（70% から注意、90% から警告） */
@@ -25,18 +24,16 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
  */
 export function ContextMeter({ chat, compacting = false }: { chat: Chat; compacting?: boolean }) {
   const planUsage = useSharedPlanUsage();
-  const [open, setOpen] = useState(false);
+  // 押すとメーターの上に開く詳細（もう一度押す・外を押す・Esc で閉じる。右端をメーターにそろえる）
+  const popover = usePopover<HTMLDivElement>();
+  const open = popover.open;
   // ログイン中のアカウント（開いたときに取り直す。届くまでは前に取ったもの）
   const account = useProviders({ active: open }).data?.find((p) => p.id === "claude")?.account;
-  const ref = useRef<HTMLDivElement>(null);
 
   // まだ数値が届いていないとき（新しいチャット・要約の直後など）は 0% として出す
   const tokens = chat.context_tokens ?? 0;
   const windowSize = chat.context_window;
   const pct = windowSize ? Math.min(100, Math.round((tokens / windowSize) * 100)) : 0;
-
-  // 開いている間は、ポップオーバーの外のクリック・Esc で閉じる（メーターのボタンは中なので、そちらは押すたびに開閉する）
-  useDismiss(ref, () => setOpen(false), { enabled: open });
 
   const usage = planUsage?.usage;
   const windows: UsageWindow[] = usage?.available
@@ -50,7 +47,7 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
   const compact = () => compactAction.run("compact", () => api.compactChat(chat.id));
 
   return (
-    <div ref={ref} className="context-meter">
+    <div ref={popover.anchor} className="context-meter">
       <button
         type="button"
         className="context-ring-button"
@@ -58,12 +55,12 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
         aria-busy={compacting || undefined}
         aria-expanded={open}
         title={open ? "閉じる" : compacting ? `${COMPACTING_LABEL}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストと使用枠の詳細を表示"}
-        onClick={() => setOpen(!open)}
+        onClick={popover.toggle}
       >
         <Ring pct={pct} compacting={compacting} />
       </button>
       {open && (
-        <div className="context-popover" role="dialog" aria-label="コンテキストウィンドウと使用枠">
+        <Popover anchor={popover.anchor} side="above" align="end" gap={8} label="コンテキストウィンドウと使用枠" className="context-popover" onClose={popover.close}>
           <section className="context-section">
             <div className="context-title">コンテキストウィンドウ</div>
             <div className="context-row">
@@ -122,7 +119,7 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
             )}
             {account && <div className="context-sub">{account}</div>}
           </section>
-        </div>
+        </Popover>
       )}
     </div>
   );

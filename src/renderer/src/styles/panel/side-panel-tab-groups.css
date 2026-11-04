@@ -187,10 +187,8 @@ button.panel-tab-cluster-name[aria-expanded="true"],
   background: rgb(255 255 255 / 16%);
 }
 
-/* 札から開く一覧は、タブの列に切り取られないよう画面に固定する（位置は TabClusterHead が札の下に決める） */
+/* 札から開く一覧（top layer に出すので、タブの列に切り取られない）。札の太字などを受け継がない */
 .cluster-chats-popover {
-  position: fixed;
-  z-index: 60;
   font-size: 13px;
   font-weight: 400;
   color: var(--text);

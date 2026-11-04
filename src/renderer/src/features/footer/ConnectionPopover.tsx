@@ -1,15 +1,16 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { githubStore, providersStore, useGitHubStatus, useProviders } from "@/stores/providers";
-import { useDismiss } from "@/hooks/useDismiss";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { accountLine } from "@/features/usage/usage";
 import { ErrorText } from "@/ui/ErrorText";
-import { PopoverHeader } from "@/ui/PopoverHeader";
+import { Popover } from "@/ui/Popover";
 import { StatusDot, toneOf, type StatusTone } from "@/ui/StatusDot";
 
 interface Props {
+  /** 開いた左下の接続の表示（その左端にそろえて上に出す） */
+  anchor: RefObject<HTMLElement | null>;
   state: ConnectionState;
   /** 最後につながった時刻 */
   since: number | null;
@@ -30,8 +31,7 @@ const STATE_TEXT: Record<ConnectionState, string> = { connecting: "接続中…"
 const timeText = (t: number | string) => new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
 /** 左下の接続の表示を押したときに、左下から出る詳細（画面は移らない） */
-export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Props) {
-  const ref = useRef<HTMLDivElement>(null);
+export function ConnectionPopover({ anchor, state, since, onClose, onOpenSettings }: Props) {
   // 接続の状態が変わったら取り直す（取り直している間も前の内容を出しておく）。プロバイダー・GitHub は店から（開くたびに確かめ直す）
   const status = useAsync(() => api.status(), [state]);
   const providerState = useProviders();
@@ -54,16 +54,24 @@ export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Pro
   const loading = status.loading || providerState.loading || githubState.loading;
   const error = status.error ?? providerState.error ?? githubState.error;
 
-  // 外側のクリック・Esc で閉じる（左下の表示自体はそちらで開閉する）
-  useDismiss(ref, onClose, { ignore: ".conn", escape: "pass" });
-
   const claude = providers?.find((p) => p.id === "claude");
   const codex = providers?.find((p) => p.id === "codex");
   const gemini = providers?.find((p) => p.id === "gemini");
 
   return (
-    <div ref={ref} className="usage-popover connection-popover" role="dialog" aria-label="接続の詳細">
-      <PopoverHeader title="接続の詳細" refresh={{ label: "接続を再確認", title: "再確認", busy: loading, onClick: reload }} onClose={onClose} />
+    // 外側のクリック・Esc で閉じる（左下の表示自体はそちらで開閉する）。画面の端の帯から開くので、開いた場所の文字の大きさを受け継がない
+    <Popover
+      anchor={anchor}
+      side="above"
+      gap={8}
+      portal
+      escape="pass"
+      title="接続の詳細"
+      refresh={{ label: "接続を再確認", title: "再確認", busy: loading, onClick: reload }}
+      label="接続の詳細"
+      className="usage-popover connection-popover"
+      onClose={onClose}
+    >
 
       <section className="conn-section">
         <div className="conn-row-title">
@@ -135,7 +143,7 @@ export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Pro
       >
         設定を開く
       </button>
-    </div>
+    </Popover>
   );
 }
 

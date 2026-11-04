@@ -1,31 +1,36 @@
-import { useRef } from "react";
-import { useDismiss } from "@/hooks/useDismiss";
+import type { RefObject } from "react";
 import { FIVE_HOUR_IDLE, planName, usageUnavailableText, type usePlanUsage } from "./usage";
-import { PopoverHeader } from "@/ui/PopoverHeader";
+import { Popover } from "@/ui/Popover";
 import { UsageFetchedNote } from "./UsageFetchedNote";
 import { UsageMeter } from "./UsageMeter";
 
 interface Props {
+  /** 開いた右下の使用状況（その右端にそろえて上に出す） */
+  anchor: RefObject<HTMLElement | null>;
   planUsage: ReturnType<typeof usePlanUsage>;
   onClose: () => void;
 }
 
 /** フッターの使用状況を押したときに、右下から出る詳細（画面は移らない） */
-export function UsagePopover({ planUsage, onClose }: Props) {
+export function UsagePopover({ anchor, planUsage, onClose }: Props) {
   const { usage, refresh, refreshing } = planUsage;
   const plan = planName(usage);
-  const ref = useRef<HTMLDivElement>(null);
 
   // 外側のクリック・Esc で閉じる（フッターのボタン自体はそちらで開閉する）
-  useDismiss(ref, onClose, { ignore: ".footer-usage", escape: "pass" });
-
   return (
-    <div ref={ref} className="usage-popover" role="dialog" aria-label="使用状況の詳細">
-      <PopoverHeader
-        title={`使用状況${plan ? `（${plan}）` : ""}`}
-        refresh={{ label: "使用状況を更新", title: "更新", busy: refreshing, onClick: () => void refresh() }}
-        onClose={onClose}
-      />
+    <Popover
+      anchor={anchor}
+      side="above"
+      align="end"
+      gap={8}
+      portal
+      escape="pass"
+      title={`使用状況${plan ? `（${plan}）` : ""}`}
+      refresh={{ label: "使用状況を更新", title: "更新", busy: refreshing, onClick: () => void refresh() }}
+      label="使用状況の詳細"
+      className="usage-popover"
+      onClose={onClose}
+    >
       {!usage ? (
         <p className="muted small">取得中…</p>
       ) : !usage.available ? (
@@ -40,6 +45,6 @@ export function UsagePopover({ planUsage, onClose }: Props) {
           <UsageFetchedNote usage={usage} className="usage-popover-foot" />
         </div>
       )}
-    </div>
+    </Popover>
   );
 }

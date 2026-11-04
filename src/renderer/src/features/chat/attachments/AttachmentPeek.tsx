@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import { useState, type MouseEvent } from "react";
+import { useRef, useState } from "react";
 import type { Attachment } from "@shared/types";
 import { attachmentUrl } from "@/api";
 import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
@@ -16,7 +16,9 @@ import { isPreviewable, viewerImagesOf } from "./AttachmentChip";
 export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
   // 大きく見ている画像（同じ指示の画像の中の位置）と、添付が複数のときに開く一覧（開いたボタンの位置）
   const [viewing, setViewing] = useState<number>();
-  const [grid, setGrid] = useState<DOMRect>();
+  const [grid, setGrid] = useState(false);
+  // 一覧を開くボタン（一覧はこの上に出す）
+  const opener = useRef<HTMLButtonElement>(null);
   // 画像の右クリック（コピー・大きく表示・保存。外の行の右クリックのメニューには伝えない）
   const imageMenu = useImageMenu();
   if (attachments.length === 0) return null;
@@ -26,13 +28,14 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
   const rest = attachments.length - shown.length;
   const names = attachments.map((a) => a.name).join("\n");
   // 行で複数の添付を 1 つにまとめているときは、まず一覧を開き、そこから全画面へ（1 つだけなら、すぐ全画面）
-  const openGrid = rest > 0 ? (e: MouseEvent<HTMLElement>) => setGrid(e.currentTarget.getBoundingClientRect()) : undefined;
+  const openGrid = rest > 0 ? () => setGrid(true) : undefined;
   return (
     <span className="attach-peek" title={`添付 ${attachments.length} 件\n${names}`}>
       {shown.map((a) =>
         isPreviewable(a.mime) ? (
           <button
             key={a.id}
+            ref={openGrid ? opener : undefined}
             type="button"
             className="attach-peek-thumb"
             title={openGrid ? `添付 ${attachments.length} 件を並べて表示` : `${a.name}（大きく表示${images.length > 1 ? `。ほかの画像へは ← / →` : ""}）`}
@@ -48,7 +51,7 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
             )}
           </button>
         ) : openGrid ? (
-          <button key={a.id} type="button" className="attach-peek-file" title={`添付 ${attachments.length} 件を並べて表示`} onClick={openGrid}>
+          <button key={a.id} ref={opener} type="button" className="attach-peek-file" title={`添付 ${attachments.length} 件を並べて表示`} onClick={openGrid}>
             <FileText size={12} aria-hidden />
             <span className="attach-peek-file-name">{a.name}</span>
             <span className="attach-peek-file-count">+{rest}</span>
@@ -62,7 +65,7 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
       )}
       {imageMenu.element}
       {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
-      {grid && <AttachmentGrid attachments={attachments} anchor={grid} onClose={() => setGrid(undefined)} />}
+      {grid && <AttachmentGrid attachments={attachments} anchor={opener} onClose={() => setGrid(false)} />}
     </span>
   );
 }

@@ -1,9 +1,9 @@
-import { useRef, useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
-import { useDismiss } from "@/hooks/useDismiss";
 import { openChat } from "@/app/router";
 import { SECTION_LABELS, SECTION_TONES, StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
+import { usePopover } from "@/ui/Popover";
 
 /**
  * 画面の見出しの、状態ごとのチャット数（作業中・回答待ち・未読。0 のものは出さない）。
@@ -12,29 +12,28 @@ import { SECTION_LABELS, SECTION_TONES, StateChatsPopover, chatsByState } from "
  */
 export function StateStats({ chats, showProject = false }: { chats: Chat[]; showProject?: boolean }) {
   const { stateOf } = useChatStates();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useDismiss(ref, () => setOpen(false), { enabled: open });
+  const popover = usePopover<HTMLDivElement>();
 
   const sections = chatsByState(chats, stateOf);
   if (sections.length === 0) return null;
 
   return (
-    <div ref={ref} className="state-stats">
-      <button type="button" className="state-stats-button" aria-expanded={open} title="状態ごとのチャットを一覧する" onClick={() => setOpen(!open)}>
+    <div ref={popover.anchor} className="state-stats">
+      <button type="button" className="state-stats-button" aria-expanded={popover.open} title="状態ごとのチャットを一覧する" onClick={popover.toggle}>
         {sections.map(({ column, chats: list }) => (
           <span key={column} className="stat stat-state" style={{ "--tone": SECTION_TONES[column] } as CSSProperties}>
             {SECTION_LABELS[column]} {list.length}
           </span>
         ))}
       </button>
-      {open && (
+      {popover.open && (
         <StateChatsPopover
           title="状態ごとのチャット"
+          anchor={popover.anchor}
           sections={sections}
           showProject={showProject}
           onOpen={(chat) => openChat(chat.project_id, chat.id)}
-          onClose={() => setOpen(false)}
+          onClose={popover.close}
         />
       )}
     </div>

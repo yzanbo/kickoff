@@ -11,9 +11,7 @@ import { useBottomPanel } from "@/features/panel/bottom/useBottomPanel";
 import { ActiveChatsPalette } from "@/features/palette/ActiveChatsPalette";
 import { CommandPalette } from "@/features/palette/CommandPalette";
 import { LayoutToggles } from "./LayoutToggles";
-import { ConnectionPopover } from "@/features/footer/ConnectionPopover";
 import { SearchPanel } from "@/features/palette/SearchPanel";
-import { UsagePopover } from "@/features/usage/UsagePopover";
 import { NewProjectDialog } from "@/features/project/new/NewProjectDialog";
 import { OPEN_NEW_PROJECT_EVENT, type NewProjectRequest } from "@/features/project/new/openNewProject";
 import { ProjectChat } from "@/features/panel/projectChat/ProjectChat";
@@ -68,9 +66,6 @@ export function App() {
   // ⌘⇧A: 作業中・回答待ち・未読のチャットの一覧
   const [activeChats, setActiveChats] = useState(false);
   const [searching, setSearching] = useState(false);
-  // 下の帯の接続・使用状況の詳細（その場に出すだけで、画面は移らない）
-  const [connOpen, setConnOpen] = useState(false);
-  const [usageOpen, setUsageOpen] = useState(false);
   // 設定のダイアログ（開いている項目。null なら閉じている）
   const [settings, setSettings] = useState<SettingsSection | null>(null);
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
@@ -131,16 +126,7 @@ export function App() {
         <BottomPanel bottom={bottomPanel} />
         </div>
         <ProjectChat chat={chat} />
-        <AppFooter
-          onOpenSettings={() => setSettings("usage")}
-          connection={connection.state}
-          connOpen={connOpen}
-          onConnClick={() => setConnOpen((o) => !o)}
-          usage={planUsage.usage}
-          usageOpen={usageOpen}
-          onUsageClick={() => setUsageOpen((o) => !o)}
-          projectId={routeProjectId(route)}
-        />
+        <AppFooter onOpenSettings={setSettings} connection={connection} planUsage={planUsage} projectId={routeProjectId(route)} />
         {creating && (
           <NewProjectDialog
             defaultParentDir={appSettings?.projects_dir ?? "~/Documents"}
@@ -168,10 +154,6 @@ export function App() {
           chat={chat.projectId !== undefined ? { open: chat.open, onToggle: chat.toggle } : undefined}
         />
         <DialogHost />
-        {connOpen && (
-          <ConnectionPopover state={connection.state} since={connection.since} onClose={() => setConnOpen(false)} onOpenSettings={() => setSettings("connection")} />
-        )}
-        {usageOpen && <UsagePopover planUsage={planUsage} onClose={() => setUsageOpen(false)} />}
         {palette && <CommandPalette onClose={() => setPalette(false)} />}
         {activeChats && <ActiveChatsPalette onClose={() => setActiveChats(false)} />}
         {searching && (

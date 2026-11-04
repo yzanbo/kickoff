@@ -34,18 +34,22 @@ function holdDragRegions(): () => void {
 
 /**
  * ポップオーバー・メニューなどを、外側のクリックと Esc で閉じる。
- * ref の要素の中のクリックでは閉じない（ウィンドウのドラッグ領域のクリックでも閉じるよう、開いている間はドラッグ領域を止める）
+ * ref の要素（いくつか渡せば、そのどれか。ポップオーバーと開いたボタンなど）の中のクリックでは閉じない
+ * （ウィンドウのドラッグ領域のクリックでも閉じるよう、開いている間はドラッグ領域を止める）
  */
-export function useDismiss(ref: RefObject<HTMLElement | null>, onDismiss: () => void, options: DismissOptions = {}) {
+export function useDismiss(ref: RefObject<HTMLElement | null> | readonly RefObject<HTMLElement | null>[], onDismiss: () => void, options: DismissOptions = {}) {
   const { enabled = true, outside = true, ignore, escape = "stop" } = options;
   const dismiss = useRef(onDismiss);
   dismiss.current = onDismiss;
+  const refs = useRef(ref);
+  refs.current = ref;
 
   useEffect(() => {
     if (!enabled) return;
     const onDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (ref.current?.contains(target)) return;
+      const inside = Array.isArray(refs.current) ? refs.current : [refs.current as RefObject<HTMLElement | null>];
+      if (inside.some((r) => r.current?.contains(target))) return;
       if (ignore && target.closest?.(ignore)) return;
       dismiss.current();
     };
@@ -64,5 +68,5 @@ export function useDismiss(ref: RefObject<HTMLElement | null>, onDismiss: () => 
       window.removeEventListener("keydown", onKey, capture);
       release?.();
     };
-  }, [enabled, outside, ignore, escape, ref]);
+  }, [enabled, outside, ignore, escape]);
 }

@@ -53,20 +53,12 @@
   transition: none;
 }
 
+/* メーターの上に開く詳細（右端をメーターにそろえる。枠と地は .popover） */
 .context-popover {
-  position: absolute;
-  right: -8px;
-  bottom: calc(100% + 8px);
-  z-index: 50;
   width: 300px;
   padding: 4px 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
   font-size: 13px;
   color: var(--text);
-  background: var(--bg-elev);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
-  animation: popover-in 0.14s ease-out;
 }
 
 .context-section {

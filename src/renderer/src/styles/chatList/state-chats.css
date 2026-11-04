@@ -1,20 +1,12 @@
 /*
  * 状態ごとにまとめたチャットの一覧（StateChatsPopover）。画面の見出しの状態ごとの数（StateStats）と、
- * 右のパネルのタブのまとまりの名前の札から開く。置き場所（absolute / fixed）は開く側で決める
+ * 右のパネルのタブのまとまりの名前の札から開く（押したものの下に出す。枠と地は .popover）
  */
 .state-chats-popover {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  z-index: 50;
   width: min(380px, 80vw);
   max-height: min(460px, 70vh);
   padding: 10px;
   overflow-y: auto;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elev);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
 }
 
 .state-chats-section + .state-chats-section {
