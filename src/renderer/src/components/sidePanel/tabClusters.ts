@@ -1,3 +1,5 @@
+import { PROJECT_HUES } from "../../../../core/projectColors";
+
 /** 右のパネルのタブの列のまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別） */
 export type TabGrouping = "none" | "group" | "worktree";
 export const TAB_GROUPINGS: readonly TabGrouping[] = ["none", "group", "worktree"];
@@ -41,4 +43,15 @@ export function clusterTabs(keys: readonly string[], clusterOf: (key: string) =>
 export function paneIndexOf(displayIndex: number, display: readonly string[], paneTabs: readonly string[]): number {
   const key = display[displayIndex];
   return key === undefined ? paneTabs.length : paneTabs.indexOf(key);
+}
+
+/**
+ * まとまりの色（色相）。同じまとまりはいつも同じ色になるよう、キーから決める（並びが変わっても色は変わらない。プロジェクトの色と同じ 10 色から）。
+ * 「その他」は色を付けない（null）
+ */
+export function clusterHue(key: string): number | null {
+  if (key === OTHER_CLUSTER.key) return null;
+  let hash = 0;
+  for (const ch of key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return PROJECT_HUES[hash % PROJECT_HUES.length];
 }

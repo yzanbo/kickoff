@@ -170,16 +170,51 @@
 }
 
 /*
- * タブをまとめているときの、まとまりの頭の名前（グループ名・ブランチ）と中のタブの数（ブラウザのタブのグループと同じ）。
- * 2 つ目からのまとまりは、左に区切り線を入れて前のまとまりと分ける
+ * タブをまとめているときの 1 つのまとまり（ブラウザのタブのグループと同じ）。まとまりの色（--group-hue。キーから決まる）で
+ * 薄い地と下の線を引き、どこからどこまでが同じまとまりかを見せる。「その他」（.plain）は色を付けず灰の線だけ
  */
+.panel-tab-group {
+  position: relative;
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 0 3px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: hsl(var(--group-hue) 50% 50% / 13%);
+}
+
+.panel-tab-group::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 0;
+  left: 3px;
+  height: 2px;
+  border-radius: 2px;
+  background: hsl(var(--group-hue) 55% 55%);
+  pointer-events: none;
+}
+
+.panel-tab-group + .panel-tab-group {
+  margin-left: 6px;
+}
+
+.panel-tab-group.plain {
+  background: transparent;
+}
+
+.panel-tab-group.plain::after {
+  background: var(--border-strong);
+}
+
+/* まとまりの頭: 名前はまとまりの色の札、横に中のタブの数 */
 .panel-tab-cluster {
   display: flex;
   flex: none;
   gap: 4px;
   align-items: center;
-  max-width: 120px;
-  padding: 0 6px;
+  max-width: 140px;
+  padding: 0 4px;
   font-size: 11px;
   color: var(--muted);
 }
@@ -189,23 +224,26 @@
   min-width: 120px;
 }
 
-.panel-tab-cluster:not(:first-child) {
-  margin-left: 4px;
-  border-left: 1px solid var(--border);
-}
-
 .panel-tab-cluster-name {
+  padding: 1px 7px;
   overflow: hidden;
+  border-radius: 999px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #fff;
+  background: hsl(var(--group-hue) 45% 42%);
+}
+
+.panel-tab-group.plain .panel-tab-cluster-name {
+  color: var(--muted);
+  background: var(--bg-elev);
 }
 
 .panel-tab-cluster-count {
   flex: none;
   min-width: 16px;
   padding: 0 4px;
-  border-radius: 999px;
   font-variant-numeric: tabular-nums;
   text-align: center;
-  background: var(--bg-elev);
 }

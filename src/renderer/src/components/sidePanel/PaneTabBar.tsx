@@ -1,5 +1,5 @@
 import { ChevronDown, Columns2, Globe, Rows2, SquarePen, SquareTerminal, X } from "lucide-react";
-import { Fragment, useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
 import { PanelTab } from "./PanelTab";
@@ -15,7 +15,7 @@ import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import { useGroupNames } from "../../groupNames";
 import type { SidePanelController } from "./useSidePanel";
-import { clusterTabs, paneIndexOf } from "./tabClusters";
+import { clusterHue, clusterTabs, paneIndexOf } from "./tabClusters";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
 
 /** ▾ のメニューの種類 */
@@ -141,16 +141,20 @@ export function PaneTabBar({
       {controls}
       <div ref={stripRef} className={cx("panel-tab-strip", clusters && "grouped")}>
       {clusters
-        ? clusters.map((c) => (
-            <Fragment key={c.key}>
-              {/* まとまりの頭の名前（グループ名・ブランチ）と、中のタブの数 */}
-              <span className="panel-tab-cluster" title={c.title}>
-                <span className="panel-tab-cluster-name">{c.label}</span>
-                <span className="panel-tab-cluster-count">{c.tabs.length}</span>
-              </span>
-              {c.tabs.map((key) => tab(key, display.indexOf(key)))}
-            </Fragment>
-          ))
+        ? clusters.map((c) => {
+            // まとまりごとに 1 つの枠に入れ、色の付いた名前の札・薄い地・下の線で、どこからどこまでが 1 つのまとまりかを見せる（ブラウザのタブのグループと同じ）
+            const hue = clusterHue(c.key);
+            return (
+              <div key={c.key} className={cx("panel-tab-group", hue === null && "plain")} style={hue === null ? undefined : ({ "--group-hue": hue } as CSSProperties)}>
+                {/* まとまりの頭の名前（グループ名・ブランチ）と、中のタブの数 */}
+                <span className="panel-tab-cluster" title={c.title}>
+                  <span className="panel-tab-cluster-name">{c.label}</span>
+                  <span className="panel-tab-cluster-count">{c.tabs.length}</span>
+                </span>
+                {c.tabs.map((key) => tab(key, display.indexOf(key)))}
+              </div>
+            );
+          })
         : display.map(tab)}
       </div>
       {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右） */}
