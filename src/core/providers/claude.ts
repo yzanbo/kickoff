@@ -18,7 +18,7 @@ import { agentEnv, resolveClaudeExecutable } from "./claudeEnv.js";
 import { createMessageState, emitSdkMessage } from "./claudeMessages.js";
 import { runHooks, toAllowedTools } from "./claudePolicy.js";
 import type { SelfInfo } from "../selfProtection.js";
-import { normalizeUsage } from "./claudeUsage.js";
+import { normalizeUsage, readPlanDisplayName } from "./claudeUsage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderRunParams, ProviderRunResult } from "./types.js";
 import { execFileAsync } from "../exec.js";
 
@@ -39,14 +39,16 @@ export class ClaudeProvider implements AgentProvider {
     try {
       const { stdout } = await execFileAsync(this.executable, ["auth", "status"], { env: agentEnv(), timeout: 20_000 });
       const info = JSON.parse(stdout) as { loggedIn?: boolean; authMethod?: string; email?: string; subscriptionType?: string };
+      // プランは種類（Max の段階を区別しない "max"）より、アカウントの表示名（"Ultra"・"Max 20x" など）を出す
+      const plan = info.subscriptionType ? ((await readPlanDisplayName()) ?? info.subscriptionType) : undefined;
       return {
         ...base,
         installed: true,
         loggedIn: Boolean(info.loggedIn),
         account: info.email,
-        plan: info.subscriptionType,
+        plan,
         detail: info.loggedIn
-          ? `${info.authMethod ?? "ログイン済み"}${info.subscriptionType ? `（${info.subscriptionType} プラン）` : ""}`
+          ? `${info.authMethod ?? "ログイン済み"}${plan ? `（${plan} プラン）` : ""}`
           : "未ログインです。ターミナルで `claude` を起動してログインしてください",
       };
     } catch (e) {
@@ -61,7 +63,7 @@ export class ClaudeProvider implements AgentProvider {
    */
   async usage(): Promise<PlanUsage> {
     return this.withIdleSession(async (q) =>
-      normalizeUsage(await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true })),
+      normalizeUsage(await q.usage_EXPERIMENTAL_MAY_CHANGE_DO_NOT_RELY_ON_THIS_API_YET({ skipBehaviors: true }), await readPlanDisplayName()),
     );
   }
 
