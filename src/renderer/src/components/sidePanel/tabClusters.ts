@@ -52,6 +52,14 @@ export function clusterTabs(keys: readonly string[], clusterOf: (key: string) =>
 }
 
 /**
+ * 畳んだまとまりで見せるタブ。畳んでいれば、そのペインで表示中のタブ（中身が見えているもの）だけを残し、ほかは隠す
+ * （表示中のタブまで隠すと、いま見ている中身がどのタブか分からなくなるため。隠したタブを一覧から開けば、そのタブが表示中になって出る）
+ */
+export function visibleClusterTabs(cluster: TabCluster, collapsed: boolean, active: string | null): string[] {
+  return collapsed ? cluster.tabs.filter((key) => key === active) : cluster.tabs;
+}
+
+/**
  * 見た目の並びでの落とす位置（何番目のタブの前か）を、ペインの並びの位置に直す（まとめて並べ替えて見せているとき、
  * ドラッグで落とす位置は見た目の並びで決まるため）。いちばん後ろはペインの最後
  */

@@ -15,7 +15,9 @@ import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import { useGroupNames } from "../../groupNames";
 import type { SidePanelController } from "./useSidePanel";
-import { OTHER_CLUSTER, clusterHue, clusterTabs, paneIndexOf, type TabCluster } from "./tabClusters";
+import { OTHER_CLUSTER, clusterHue, clusterTabs, paneIndexOf, visibleClusterTabs, type TabCluster } from "./tabClusters";
+import { useSharedList } from "../../hooks/useStoredState";
+import { PANEL_TAB_CLUSTERS_COLLAPSED_KEY } from "../../storageKeys";
 import { TabClusterHead } from "./TabClusterHead";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
 
@@ -89,7 +91,11 @@ export function PaneTabBar({
   const { clusterOf, clusterOfRun, order } = useTabClusters(panel, grouping);
   const known = pane.tabs.filter((key) => panel.tabs.some((t) => t.key === key));
   const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf, order);
-  const display = clusters ? clusters.flatMap((c) => c.tabs) : known;
+  // タブを畳んだまとまり（すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない
+  const [collapsed, setCollapsed] = useSharedList(PANEL_TAB_CLUSTERS_COLLAPSED_KEY);
+  const toggleCollapsed = (key: string) => setCollapsed(collapsed.includes(key) ? collapsed.filter((k) => k !== key) : [...collapsed, key]);
+  const shownTabs = (c: TabCluster) => visibleClusterTabs(c, collapsed.includes(c.key), pane.active);
+  const display = clusters ? clusters.flatMap(shownTabs) : known;
   /**
    * まとまり（グループ・作業場所）のチャット: タブで開いているチャットと、ボードの一覧のうち同じまとまりに入るもの（タブで開いていないものも）。
    * 「その他」はチャットが入らないので undefined（札を押せない）
@@ -182,9 +188,20 @@ export function PaneTabBar({
             // まとまりごとに 1 つの枠に入れ、色の付いた名前の札・薄い地・下の線で、どこからどこまでが 1 つのまとまりかを見せる（ブラウザのタブのグループと同じ）
             const hue = clusterHue(c.key);
             return (
-              <div key={c.key} className={cx("panel-tab-group", hue === null && "plain")} style={hue === null ? undefined : ({ "--group-hue": hue } as CSSProperties)}>
-                <TabClusterHead cluster={c} runs={clusterRuns(c)} onOpen={(run) => panel.open(run)} onNewChat={(target) => panel.openNew(target)} />
-                {c.tabs.map((key) => tab(key, display.indexOf(key)))}
+              <div
+                key={c.key}
+                className={cx("panel-tab-group", hue === null && "plain", collapsed.includes(c.key) && "collapsed")}
+                style={hue === null ? undefined : ({ "--group-hue": hue } as CSSProperties)}
+              >
+                <TabClusterHead
+                  cluster={c}
+                  runs={clusterRuns(c)}
+                  onOpen={(run) => panel.open(run)}
+                  onNewChat={(target) => panel.openNew(target)}
+                  collapsed={collapsed.includes(c.key)}
+                  onToggleCollapsed={c.tabs.length > 0 ? () => toggleCollapsed(c.key) : undefined}
+                />
+                {shownTabs(c).map((key) => tab(key, display.indexOf(key)))}
               </div>
             );
           })
