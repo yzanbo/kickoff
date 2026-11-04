@@ -81,20 +81,6 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
-.run-state {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.run-state.state-waiting {
-  color: var(--accent);
-  font-weight: 600;
-}
-
 /* タイムラインの枠（一番下へ戻るボタンを、スクロールする中身の上に重ねる） */
 .timeline-wrap {
   position: relative;
