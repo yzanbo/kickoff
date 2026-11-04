@@ -104,12 +104,14 @@ export function SidePanel({
   const layoutMenu = useBoardHeaderLayoutMenu();
   // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
   const mountedTabs = useRef(new Set<string>());
-  // タブのまとめ方（まとめない・グループ別・作業場所別）とアーカイブ済みを出すか（サイドバーと共通）は、パネルを閉じるボタンのすぐ右（チャット欄は閉じるボタンがないので、この 2 つだけ）
+  // パネルを閉じるボタンのすぐ右に、表示するタブの種類（いちばん左。ほかの道具の前提になるため）、チャットのタブのまとめ方（まとめない・グループ別・作業場所別）、
+  // アーカイブ済みを出すか（サイドバーと共通）。チャット欄は閉じるボタンがないので、表示するタブの種類が左端
+  // （まとめ方・アーカイブ済みはチャットのタブにだけ効くので、チャットを隠している欄では出さない）
   const controls = sidebar ? (
     <div className="panel-controls">
-      <TabGroupingButton surface={panel.surface} />
       <TabKindsButton panel={panel} />
-      {/* アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
+      {/* まとめ方・アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
+      {panel.kinds.has("chat") && <TabGroupingButton surface={panel.surface} />}
       {panel.kinds.has("chat") && <TabArchiveToggle />}
       {sidebar.controls}
     </div>
@@ -119,9 +121,9 @@ export function SidePanel({
       <button className="panel-control" title="パネルを閉じる（Esc）" aria-label="パネルを閉じる" onClick={close}>
         <PanelRightClose size={15} />
       </button>
-      <TabGroupingButton surface={panel.surface} />
       <TabKindsButton panel={panel} />
-      {/* アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
+      {/* まとめ方・アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
+      {panel.kinds.has("chat") && <TabGroupingButton surface={panel.surface} />}
       {panel.kinds.has("chat") && <TabArchiveToggle />}
       {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
           ボードが残る幅まで縮める。サイドバー・チャット欄を開いて狭くなっても隠さない） */}
