@@ -6,16 +6,9 @@ import { startDraftDrag } from "@/features/group/groups";
 import { discardDraft, openDraft, useAllDrafts, type SidebarDraft } from "@/features/panel/state/panelMemory";
 import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
 
-/**
- * プロジェクトの下書きを、置く場所ごとに分ける（グループの中 / いちばん上）。
- * いちばん上には、グループなしと、作成先のグループがもうないものを並べる
- */
-export function useProjectDrafts(projectId: number, groupIds: number[]) {
-  const drafts = useAllDrafts().filter((d) => d.projectId === projectId);
-  return {
-    top: drafts.filter((d) => d.group === undefined || !groupIds.includes(d.group)),
-    inGroup: (group: number) => drafts.filter((d) => d.group === group),
-  };
+/** プロジェクトの下書き（すべてのボード・チャット欄の分。どのグループに置くかは bucketChats で分ける） */
+export function useProjectDrafts(projectId: number): SidebarDraft[] {
+  return useAllDrafts().filter((d) => d.projectId === projectId);
 }
 
 /**
