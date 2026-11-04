@@ -15,7 +15,7 @@ import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import { useGroupNames } from "../../groupNames";
 import type { SidePanelController } from "./useSidePanel";
-import { OTHER_CLUSTER, clusterHue, clusterTabs, paneIndexOf, visibleClusterTabs, type TabCluster } from "./tabClusters";
+import { OTHER_CLUSTER, clusterHue, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useSharedList } from "../../hooks/useStoredState";
 import { PANEL_TAB_CLUSTERS_COLLAPSED_KEY } from "../../storageKeys";
 import { TabClusterHead } from "./TabClusterHead";
@@ -94,8 +94,10 @@ export function PaneTabBar({
   const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf, order);
   // タブを畳んだまとまり（すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない
   const [collapsed, setCollapsed] = useSharedList(PANEL_TAB_CLUSTERS_COLLAPSED_KEY);
-  const toggleCollapsed = (key: string) => setCollapsed(collapsed.includes(key) ? collapsed.filter((k) => k !== key) : [...collapsed, key]);
-  const shownTabs = (c: TabCluster) => visibleClusterTabs(c, collapsed.includes(c.key), pane.active);
+  const toggleCollapsed = (key: string) => setCollapsed(toggleClusterCollapsed(key, collapsed));
+  // アーカイブ済みのまとまりは、サイドバーと同じく初めは畳んでおく
+  const isCollapsed = (key: string) => isClusterCollapsed(key, collapsed);
+  const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c.key), pane.active);
   const display = clusters ? clusters.flatMap(shownTabs) : known;
   // 自分で作ったグループの札のドラッグで、グループの並びを入れ替える（サイドバー・グループのボードも同じ並びになる）
   const clusterReorder = useClusterReorder(clusters);
@@ -112,6 +114,8 @@ export function PaneTabBar({
     });
     return [...open, ...panel.runs.filter((r) => !open.some((o) => o.id === r.id) && clusterOfRun(r).key === c.key)];
   };
+  /** 札の右の数: サイドバーの見出しと同じく、そのまとまりに入るサイドバーのチャットの数（表示だけ消したタブも数え、下書き・ブラウザは数えない）。「その他」はタブの数 */
+  const clusterCount = (c: TabCluster) => (c.key === OTHER_CLUSTER.key ? c.tabs.length : panel.runs.filter((r) => clusterOfRun(r).key === c.key).length);
   /**
    * まとめないときの「チャット」の札に出すチャット: タブで開いているチャットと、ボードの一覧のチャットすべて
    * （まとめているときと同じく、作業中・回答待ち・未読をひと目で分かるように。チャットが 1 つもなければ札を出さない）
@@ -160,7 +164,7 @@ export function PaneTabBar({
         editor={t.kind === "chat" ? withInitial(rename.editorFor({ id: t.id } as Run), t.title ?? "") : undefined}
         // チャットのタブの ×: 表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）
         onClose={() =>
-          t.kind === "chat" ? void closeChatWithChoice({ id: t.id, title: t.title ?? "" }, () => panel.closeTab(t.key)) : panel.closeTab(t.key)
+          t.kind === "chat" ? void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: (panel.runs.find((r) => r.id === t.id) ?? t.run)?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" })) : panel.closeTab(t.key)
         }
       />
     );
@@ -193,7 +197,7 @@ export function PaneTabBar({
             return (
               <div
                 key={c.key}
-                className={cx("panel-tab-group", hue === null && "plain", collapsed.includes(c.key) && "collapsed", clusterReorder.classFor(c))}
+                className={cx("panel-tab-group", hue === null && "plain", isCollapsed(c.key) && "collapsed", clusterReorder.classFor(c))}
                 // --cluster-tabs: 見せているタブの数（まとまりをどこまで細くできるかを CSS で決める）
                 style={{ ...(hue === null ? {} : { "--group-hue": hue }), "--cluster-tabs": shownTabs(c).length } as CSSProperties}
                 {...clusterReorder.dropProps(c)}
@@ -203,9 +207,10 @@ export function PaneTabBar({
                   runs={clusterRuns(c)}
                   onOpen={(run) => panel.open(run)}
                   onNewChat={(target) => panel.openNew(target)}
-                  collapsed={collapsed.includes(c.key)}
+                  collapsed={isCollapsed(c.key)}
                   onToggleCollapsed={c.tabs.length > 0 ? () => toggleCollapsed(c.key) : undefined}
                   dragProps={clusterReorder.handle(c)}
+                  count={clusterCount(c)}
                 />
                 {shownTabs(c).map((key) => tab(key, display.indexOf(key)))}
               </div>

@@ -25,9 +25,13 @@ function storedCloseAction(): ChatCloseAction {
 /**
  * チャットの ✕（見出しの ✕・タブの ×）: 表示だけ消すか、アーカイブするか、削除するかを選んでから閉じる。
  * 既定を決めていればそのとおりにする（削除は取り消せないので、既定でも確かめる）。
- * 聞いたときに「次からはこれにする」を付ければ、それを既定にする。close はパネル・タブを閉じる処理
+ * 聞いたときに「次からはこれにする」を付ければ、それを既定にする。close はパネル・タブを閉じる処理で、選んだ扱いを渡す
+ * （サイドバーと連動したタブは、表示だけ消したときだけ出し直さないよう覚える。アーカイブ・削除はサイドバーの一覧に合わせて増減する）
  */
-export async function closeChatWithChoice(run: Pick<Run, "id" | "title"> & Partial<Pick<Run, "archived_at">>, close: () => void) {
+export async function closeChatWithChoice(
+  run: Pick<Run, "id" | "title"> & Partial<Pick<Run, "archived_at">>,
+  close: (action: Exclude<ChatCloseAction, "ask">) => void,
+) {
   let action = storedCloseAction();
   let confirmed = false;
   if (action === "ask") {
@@ -59,5 +63,5 @@ export async function closeChatWithChoice(run: Pick<Run, "id" | "title"> & Parti
     reportFailure(action === "delete" ? "削除できませんでした" : "アーカイブできませんでした")(e);
     return;
   }
-  close();
+  close(action);
 }

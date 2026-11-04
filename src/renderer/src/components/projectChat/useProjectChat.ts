@@ -21,7 +21,7 @@ export const useProjectChatContext = () => useContext(ProjectChatContext);
 export function useProjectChat(projectId: number | undefined) {
   const openMap = useStoredFlagMap(PROJECT_CHAT_OPEN_PREFIX);
   const open = projectId !== undefined && openMap.get(projectId);
-  const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}` });
+  const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}`, scope: projectId ?? null });
   const width = useDragWidth({ storageKey: PROJECT_CHAT_WIDTH_KEY, initial: 367, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
 
   /** 欄を開いて、そのタブを表示する（ボード・サイドバーの下書きを押したとき） */

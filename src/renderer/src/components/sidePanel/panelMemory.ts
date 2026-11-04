@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { navigate } from "../../router";
 import { activeTabOf, closeLayoutTabs, reconcileLayout, singlePane, type PaneLayout } from "./paneLayout";
 import { readSavedDrafts, writeDrafts } from "./draftPersistence";
+import { NO_LINKS, type LinkState } from "./linkedTabs";
 import type { PanelTab } from "./useSidePanel";
 
 /**
@@ -13,6 +14,8 @@ interface PanelState {
   activeTab: string | null;
   panelOpen: boolean;
   layout?: PaneLayout;
+  /** サイドバーと連動したチャットのタブの覚え（表示だけ消したもの・一覧にないのに開いたもの） */
+  links?: LinkState;
 }
 
 /**
@@ -38,7 +41,7 @@ export function loadPanel(memoryKey: string): Required<PanelState> {
   const s = panelMemory.get(memoryKey) ?? EMPTY_PANEL;
   const keys = s.tabs.map((t) => t.key);
   const layout = s.layout ? reconcileLayout(s.layout, keys) : singlePane(keys, s.activeTab);
-  return { ...s, layout, activeTab: activeTabOf(layout) };
+  return { ...s, layout, activeTab: activeTabOf(layout), links: s.links ?? NO_LINKS };
 }
 
 export function savePanel(memoryKey: string, state: PanelState) {
@@ -127,7 +130,7 @@ export function discardDraft(draft: SidebarDraft) {
   const s = loadPanel(draft.memoryKey);
   const tabs = s.tabs.filter((t) => t.key !== draft.key);
   const layout = closeLayoutTabs(s.layout, [draft.key]);
-  savePanel(draft.memoryKey, { tabs, layout, activeTab: activeTabOf(layout), panelOpen: s.panelOpen && tabs.length > 0 });
+  savePanel(draft.memoryKey, { ...s, tabs, layout, activeTab: activeTabOf(layout), panelOpen: s.panelOpen && tabs.length > 0 });
 }
 
 /**

@@ -24,7 +24,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const [renaming, setRenaming] = useState<number>();
   const { error, setError, guard } = useActionError();
   const [archive, setArchive] = useArchiveFilter(GROUP_SHOW_ARCHIVED_KEY);
-  const { runs, loaded, fresh } = useBoardRuns(projectId, archive !== "active", setError);
+  const { runs, loaded } = useBoardRuns(projectId, archive !== "active", setError);
   const shown = runs.filter((r) => archiveMatches(r, archive));
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useRunRename(setError);
@@ -58,8 +58,6 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   return {
     runs,
     loaded,
-    /** このボードを開いてから読み直したか（パネルが一覧にないタブを閉じるのは、読み直してから） */
-    fresh,
     shown,
     archive,
     setArchive,

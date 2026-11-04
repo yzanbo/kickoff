@@ -27,7 +27,7 @@ interface Options {
   onOpen: (run: Run) => void;
   /** ドラッグで移せるボード（グループのボード）だけ。hint は読み上げの「（ドラッグで…）」 */
   drag?: { hint: string };
-  /** ボードごとのカードのクラス（プロジェクト名つきなど。共通の archived の後・selected / in-tab より前に付く） */
+  /** ボードごとのカードのクラス（プロジェクト名つきなど。共通の archived の後・selected より前に付く） */
   classFor?: (run: Run) => string | false | undefined;
   style?: (run: Run) => CSSProperties | undefined;
   /** 全プロジェクトのボードでは、カードにプロジェクト名を出す */
@@ -38,7 +38,7 @@ interface Options {
  * ボードのカード（ボードの表示）と行（リストの表示）の描き方。カンバンとグループのボードで共通:
  * クリック・Enter で開く / 右クリックでメニュー / ドラッグで移す（グループのボードだけ）/ 名前をその場で変える。
  * どのボードでも、アーカイブ済みのカードは archived（ArchivedFold の中で薄く出す）、ボードのカードには回答待ちの依頼の数（「回答 n件」）を付ける。
- * パネルで表示中なら selected、タブで開いていれば in-tab
+ * パネルで表示中なら selected（チャットはどれもサイドバーと連動してタブにあるので、タブで開いているかの印は付けない）
  */
 export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, style, projectName }: Options) {
   const { pendingCount } = useRunStates();
@@ -62,7 +62,7 @@ export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, sty
     }),
     style: style?.(run),
   });
-  const cardClass = (run: Run) => cx(run.archived_at && "archived", classFor?.(run), dragRun === run.id && "dragging", panel.isShowing(run.id) && "selected", panel.hasTab(run.id) && "in-tab");
+  const cardClass = (run: Run) => cx(run.archived_at && "archived", classFor?.(run), dragRun === run.id && "dragging", panel.isShowing(run.id) && "selected");
   return {
     cardProps,
     cardClass,

@@ -64,7 +64,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   // 表示（ボード / リスト）と、段に分けるか（段の分け方はボードとリストで共通）
   const { view, split, setView, setSplit } = useBoardView();
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
-  const { runs, loaded, fresh } = useBoardRuns(projectId, filters.archive !== "active", setError);
+  const { runs, loaded } = useBoardRuns(projectId, filters.archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
   const worktreeChoices = useWorktreeChoices(runs);
   // カードの右クリックメニュー
@@ -73,9 +73,8 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）
   const panel = useSidePanel({
     memoryKey: boardPanelKey(projectId),
-    runs,
-    // 一覧にないチャットのタブを閉じるのは、読み直してから（覚えている内容は古いことがある）
-    loaded: fresh,
+    // チャットのタブはサイドバーの一覧にそろえる（全プロジェクトのボードはすべてのプロジェクト）
+    scope: projectId ?? "all",
     holdEsc: menu.isOpen,
     projects: allProjects ? projects : undefined,
     // 新しいチャットを送ったら、プロジェクトのボードでは URL もそのチャットにする
