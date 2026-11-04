@@ -41,7 +41,7 @@ function DraftCard({ text, active, onOpen, onDelete }: { text: string; active: b
       >
         <span className="draft-card-head">
           <SquarePen size={13} aria-hidden />
-          {written ? "書きかけ（未送信）" : `${NEW_CHAT_TITLE}（未送信）`}
+          {written ? "書きかけ" : NEW_CHAT_TITLE}
         </span>
         {written && <span className="draft-card-text">{written}</span>}
       </button>
