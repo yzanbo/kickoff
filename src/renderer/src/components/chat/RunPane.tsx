@@ -29,6 +29,7 @@ import { IconButton } from "../IconButton";
 import { ChatFind } from "./ChatFind";
 import { PromptsChip } from "./PromptsChip";
 import { usePromptKeys } from "./usePromptKeys";
+import { useChatFindKey } from "./useChatFindKey";
 import { jumpToEvent } from "./jumpToEvent";
 import { useTimelineWindow } from "./useTimelineWindow";
 import { RewindContext } from "./MessageItems";
@@ -152,6 +153,8 @@ function RunView({
   // 発言の一覧から、同じ文を入力欄に入れる
   const fillComposer = useRef<ComposerFill | null>(null);
   const [finding, setFinding] = useState(false);
+  // ⌘F でこのチャットの中の検索を開く（ピントがこのチャットにあるとき）
+  useChatFindKey(panelRef, () => setFinding(true));
   // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
   const [wide, setWide] = useSharedFlag(CHAT_WIDE_KEY);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
@@ -210,7 +213,7 @@ function RunView({
               className={cx(wide && "active")}
               onClick={() => setWide(!wide)}
             />
-            <IconButton icon={Search} size={13} label="このチャットの中を検索" aria-expanded={finding} onClick={() => setFinding(!finding)} />
+            <IconButton icon={Search} size={13} label="このチャットの中を検索" title="このチャットの中を検索（⌘F）" aria-expanded={finding} onClick={() => setFinding(!finding)} />
           </>
         }
       />
