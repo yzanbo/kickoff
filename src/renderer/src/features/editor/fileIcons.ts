@@ -1,5 +1,5 @@
 import manifest from "material-icon-theme/dist/material-icons.json";
-import { languageOf } from "@/lib/highlight";
+import { languageOf } from "@/lib/languages";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 
 /**
