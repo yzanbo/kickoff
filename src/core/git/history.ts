@@ -3,7 +3,7 @@ import type { GitCommit, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRef
 import { toGitDiff } from "./changes.js";
 import { gitOutput } from "./exec.js";
 import { assertInside } from "./files.js";
-import { kindOf } from "./status.js";
+import { hasRef, kindOf, parseAheadBehind } from "./status.js";
 
 /** 履歴の区切り（コミットの間は RS、項目の間は NUL） */
 const LOG_FORMAT = "%H%x00%P%x00%an%x00%ae%x00%aI%x00%D%x00%s%x1e";
@@ -26,11 +26,7 @@ export function parseCommit(record: string): GitCommit {
 /** 履歴（すべてのブランチ。新しい順で、親より子が先。skip 件目から limit 件） */
 export async function gitLog(repo: string, skip = 0, limit = 200): Promise<GitLog> {
   // コミットがまだなければ空
-  const hasHead = await gitOutput(repo, ["rev-parse", "--verify", "-q", "HEAD"]).then(
-    () => true,
-    () => false,
-  );
-  if (!hasHead) return { commits: [], more: false };
+  if (!(await hasRef(repo, "HEAD"))) return { commits: [], more: false };
   const out = await gitOutput(repo, ["log", "--all", "--topo-order", `--format=${LOG_FORMAT}`, `--skip=${skip}`, `-n`, String(limit + 1)]);
   const commits = out.split("\x1e").filter((r) => r.trim()).map(parseCommit);
   return { commits: commits.slice(0, limit), more: commits.length > limit };
@@ -101,8 +97,7 @@ export async function gitRefs(repo: string): Promise<GitRefs> {
         hash,
         current: head === "*",
         upstream: upstream || null,
-        ahead: Number(/ahead (\d+)/.exec(track)?.[1] ?? 0),
-        behind: Number(/behind (\d+)/.exec(track)?.[1] ?? 0),
+        ...parseAheadBehind(track),
       });
     } else if (ref.startsWith("refs/remotes/")) {
       const name = ref.slice(13);

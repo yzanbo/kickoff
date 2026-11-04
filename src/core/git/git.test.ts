@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseCommit, parseGitStatus, parseNameStatus, parseWorktrees, toGitDiff } from "./index.js";
+import { parseAheadBehind } from "./status.js";
 
 test("git status（porcelain v1 -z）を、ステージ済み・未ステージ・競合に分けて読む", () => {
   const raw = [
@@ -34,6 +35,12 @@ test("git status（porcelain v1 -z）を、ステージ済み・未ステージ�
     { path: "notes.md", kind: "U" },
   ]);
   assert.deepEqual(status.conflicts, [{ path: "src/conflict.ts", kind: "!" }]);
+});
+
+test("追いかけているブランチとの進み・遅れ（git status の見出しと for-each-ref の upstream:track で同じ読み方）", () => {
+  assert.deepEqual(parseAheadBehind("main...origin/main [ahead 2, behind 1]"), { ahead: 2, behind: 1 });
+  assert.deepEqual(parseAheadBehind("[behind 3]"), { ahead: 0, behind: 3 });
+  assert.deepEqual(parseAheadBehind(""), { ahead: 0, behind: 0 });
 });
 
 test("コミット前・ブランチから外れているときのブランチ名", () => {
