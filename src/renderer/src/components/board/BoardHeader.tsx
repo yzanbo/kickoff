@@ -7,6 +7,7 @@ import { SearchField } from "../SearchField";
 import { Segmented } from "../Segmented";
 import { PanelToggle } from "../sidePanel/PanelToggle";
 import type { SidePanelController } from "../sidePanel/useSidePanel";
+import { useBoardHeaderLayout } from "./boardHeaderLayout";
 
 /** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
 export type BoardView = "board" | "list";
@@ -64,6 +65,10 @@ interface Props {
  * 右に パネルの開閉（ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
 export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, columns, panel }: Props) {
+  // ツールバーを「ボードの上だけ」に置いてパネルを開いているときは、パネルが上端まで伸びてそのタブの列の左端に閉じるがあるので、
+  // ツールバーの右端の開閉は出さない（すぐ隣に同じボタンが 2 つ並んでいた）。閉じているときは開くために出す
+  const [headerLayout] = useBoardHeaderLayout();
+  const showToggle = !(headerLayout === "beside" && panel.panelOpen);
   return (
     <div className="board-header">
       {heading && (
@@ -101,11 +106,13 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
           {filters}
         </div>
       </div>
-      <div className="board-tools board-tools-end">
-        <div className="board-tool-group">
-          <PanelToggle panel={panel} />
+      {showToggle && (
+        <div className="board-tools board-tools-end">
+          <div className="board-tool-group">
+            <PanelToggle panel={panel} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
