@@ -47,7 +47,6 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
   const [compactProjects, setCompactProjects] = useCompactProjects();
-  const radio = { role: "menuitemradio" as const };
   /** アーカイブを出すかのボタン（プロジェクト・チャットで共通。押すたびに 表示 ⇄ 隠す） */
   const archiveToggle = (id: string, target: string, shown: boolean, set: (show: boolean) => void, note = "") => (
     <HeadToggle
@@ -71,12 +70,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           value={LAYOUT_META[layout].short}
           values={LAYOUTS.map((l) => LAYOUT_META[l].short)}
           title={`プロジェクトの並べ方（いまは「${LAYOUT_META[layout].label}」）`}
-          sections={[
-            {
-              label: "プロジェクトの並べ方",
-              items: LAYOUTS.map((l) => ({ ...radio, key: l, icon: LAYOUT_META[l].icon, label: LAYOUT_META[l].label, checked: l === layout, onSelect: () => onLayout(l) })),
-            },
-          ]}
+          menu={{ title: "プロジェクトの並べ方", choices: LAYOUTS, meta: LAYOUT_META, current: layout, onPick: onLayout }}
         />
         <HeadToggle
           id="order"
@@ -118,12 +112,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           value={SECTIONS_META[sections].short}
           values={CHAT_SECTIONS.map((g) => SECTIONS_META[g].short)}
           title={`チャットのまとめ方（すべてのプロジェクト。いまは「${SECTIONS_META[sections].label}」）`}
-          sections={[
-            {
-              label: "チャットのまとめ方",
-              items: CHAT_SECTIONS.map((g) => ({ ...radio, key: g, icon: SECTIONS_META[g].icon, label: SECTIONS_META[g].label, checked: g === sections, onSelect: () => setSections(g) })),
-            },
-          ]}
+          menu={{ title: "チャットのまとめ方", choices: CHAT_SECTIONS, meta: SECTIONS_META, current: sections, onPick: setSections }}
         />
         <HeadToggle
           id="chat-order"

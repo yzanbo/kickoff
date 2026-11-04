@@ -1,40 +1,22 @@
-import { Check, type LucideIcon } from "lucide-react";
-import { Fragment } from "react";
+import type { LucideIcon } from "lucide-react";
 import { cx } from "@/lib/cx";
-import type { Placement } from "@/lib/floating";
-import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 
-/** メニューの 1 項目（radio はどれか 1 つ、checkbox はオン・オフ） */
-interface HeadMenuItem {
-  key: string;
-  role: "menuitemradio" | "menuitemcheckbox";
-  icon: LucideIcon;
-  label: string;
-  checked: boolean;
-  onSelect: () => void;
-}
-
-/** メニューのまとまり（label は見出し） */
-interface HeadMenuSection {
-  label?: string;
-  items: HeadMenuItem[];
-}
-
 /**
- * プロジェクト一覧の上の見出しの、選択肢が 3 つ以上ある設定（まとめ方）のボタン（2 択のものは HeadToggle）。
- * ボタンは 2 段で、上に種類の名前・下にいまの値を出し、押すとその種類の選択肢だけを出す。
+ * プロジェクト一覧の上の見出しの、選択肢が 3 つ以上ある設定（並べ方・まとめ方）のボタン（2 択のものは HeadToggle）。
+ * ボタンは 2 段で、上に種類の名前・下にいまの値を出し、押すとその種類の選択肢だけを出す（ChoiceMenu。選択肢のアイコンと名前は meta）。
  * 幅は、取りうる値（values）のうちいちばん長いものに合わせて固定する（選び直しても幅が変わらない）。
  * 狭いときは文字を隠してアイコンだけにする（@container。アイコンもいまの値を表すものを渡す）
  */
-export function HeadMenu({
+export function HeadMenu<T extends string>({
   id,
   icon: Icon,
   label,
   value,
   values,
   title,
-  sections,
+  menu,
 }: {
   id: string;
   /** いまの値を表すアイコン（狭いときに出す） */
@@ -46,44 +28,39 @@ export function HeadMenu({
   /** 取りうる値すべて（幅をいちばん長いものに合わせる） */
   values: string[];
   title: string;
-  sections: HeadMenuSection[];
+  /** 開くメニュー: 見出し・選択肢（その名前とアイコン）・いま選んでいるもの・選んだとき */
+  menu: { title: string; choices: readonly T[]; meta: Record<T, { icon: LucideIcon; label: string }>; current: T; onPick: (choice: T) => void };
 }) {
   const buttonClass = `head-menu-${id}`;
-  const menu = useContextMenu();
+  const open = useContextMenu();
+  const labels = Object.fromEntries(menu.choices.map((c) => [c, menu.meta[c].label])) as Record<T, string>;
+  const icons = Object.fromEntries(menu.choices.map((c) => [c, menu.meta[c].icon])) as Record<T, LucideIcon>;
   return (
     <>
       <button
-        className={cx("head-chip", buttonClass, menu.isOpen && "active")}
+        className={cx("head-chip", buttonClass, open.isOpen && "active")}
         title={title}
         aria-label={`${label}: ${value}`}
         aria-haspopup="menu"
-        aria-expanded={menu.isOpen}
-        onClick={menu.toggle}
+        aria-expanded={open.isOpen}
+        onClick={open.toggle}
       >
         <ChipFace icon={Icon} label={label} value={value} values={values} />
       </button>
-      {menu.menu && <Menu at={menu.menu.at} label={label} ignore={`.${buttonClass}`} sections={sections} onClose={menu.close} />}
+      {open.menu && (
+        <ChoiceMenu
+          at={open.menu.at}
+          title={menu.title}
+          values={menu.choices}
+          labels={labels}
+          icons={icons}
+          value={menu.current}
+          ignore={`.${buttonClass}`}
+          onPick={menu.onPick}
+          onClose={open.close}
+        />
+      )}
     </>
-  );
-}
-
-function Menu({ at, label, ignore, sections, onClose }: { at: Placement; label: string; ignore: string; sections: HeadMenuSection[]; onClose: () => void }) {
-  return (
-    <PopupMenu at={at} label={label} ignore={ignore} onClose={onClose}>
-      {sections.map((section, i) => (
-        <Fragment key={section.label ?? i}>
-          {i > 0 && <div className="menu-separator" role="separator" />}
-          {section.label && <div className="menu-label">{section.label}</div>}
-          {section.items.map(({ key, role, icon: ItemIcon, label: itemLabel, checked, onSelect }) => (
-            <MenuItem key={key} role={role} checked={checked} onSelect={onSelect}>
-              <ItemIcon size={14} aria-hidden />
-              <span className="project-switch-item">{itemLabel}</span>
-              {checked && <Check size={14} aria-hidden />}
-            </MenuItem>
-          ))}
-        </Fragment>
-      ))}
-    </PopupMenu>
   );
 }
 
