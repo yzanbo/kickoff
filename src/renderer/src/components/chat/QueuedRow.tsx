@@ -3,7 +3,7 @@ import { useState, type DragEvent, type MouseEvent } from "react";
 import type { QueuedMessage } from "../../../../core/types";
 import { IconButton } from "../IconButton";
 import { clampToViewport, MenuItem, PopupMenu } from "../PopupMenu";
-import { setQueueDragImage } from "./queueDragImage";
+import { startQueueDragGhost } from "./queueDragImage";
 import { AttachmentPeek } from "./AttachmentPeek";
 
 /** 送信待ちの 1 行への操作（行のボタンと右クリックのメニューで共通） */
@@ -108,9 +108,8 @@ export function QueuedRow({
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("text/plain", m.text);
-            // 動かしている間の絵は、カーソルの右下の小さな札（入る位置の線に被せない。まとめて動かすときは「n 件を移動」）
-            if (dragCount > 1) setQueueDragImage(e.dataTransfer, `${dragCount} 件を移動`, "many");
-            else setQueueDragImage(e.dataTransfer, `${i + 1}. ${m.text.trim().split("\n")[0] || "添付だけの指示"}`, "row");
+            // 動かしている間は、この行の半透明の写しがカーソルに付いて動く（まとめて動かすときは「n 件」を添える）
+            startQueueDragGhost(e, dragCount);
             onDragStart();
           }}
           onDragEnd={onDragEnd}
