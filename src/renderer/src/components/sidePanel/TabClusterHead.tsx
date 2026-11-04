@@ -82,6 +82,9 @@ export function TabClusterHead({
     if (await confirmDeleteGroup({ name: cluster.groupName ?? cluster.label })) await api.deleteGroup(groupId).catch(reportFailure("グループを削除できませんでした"));
   };
   const counts = runs ? stateCounts(runs, pending) : undefined;
+  // このまとまりで始める新しいチャット（グループ別のまとまりだけ。グループなしならグループを付けない）
+  const newChatTarget = projectId !== undefined && cluster.groupId !== undefined && onNewChat ? { projectId, group: cluster.groupId ?? undefined } : undefined;
+  const newChatLabel = cluster.groupId === null ? "グループなしで新しいチャット" : `「${cluster.groupName ?? cluster.label}」で新しいチャット`;
   const countTitle = runs ? `チャット ${count} 件（サイドバーの見出しと同じ数）` : `タブ ${count} 個`;
   const summary = counts ? stateCountsSummary(counts) : "";
   const title = summary ? `${cluster.title ?? cluster.label}（${summary}）` : cluster.title;
@@ -134,11 +137,7 @@ export function TabClusterHead({
               <div className="menu-separator" role="separator" />
             </>
           )}
-          {cluster.groupId !== undefined && onNewChat && (
-            <MenuItem onSelect={() => onNewChat({ projectId, group: cluster.groupId ?? undefined })}>
-              {cluster.groupId === null ? "グループなしで新しいチャット" : `「${cluster.label}」で新しいチャット`}
-            </MenuItem>
-          )}
+          {newChatTarget && <MenuItem onSelect={() => onNewChat?.(newChatTarget)}>{newChatLabel}</MenuItem>}
           <MenuItem onSelect={() => void createGroup()} title="このプロジェクトに、自分で使うグループを作ります">
             新しいグループを作成…
           </MenuItem>
@@ -158,6 +157,8 @@ export function TabClusterHead({
           // まとまりのチャットをすべて（既読・アーカイブ済みも）状態ごとに並べる
           sections={runsByState(runs, stateOf, { all: true })}
           emptyText="チャットはありません"
+          // グループのまとまり（グループ別のとき）では、そのグループに new チャットを足すボタンも置く（札の右クリックの項目と同じ）
+          newChat={newChatTarget && { label: newChatLabel, onSelect: () => onNewChat?.(newChatTarget) }}
           onOpen={onOpen}
           onClose={() => setAt(null)}
           className="cluster-runs-popover"
