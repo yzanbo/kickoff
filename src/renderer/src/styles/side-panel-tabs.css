@@ -236,11 +236,16 @@
   cursor: pointer;
 }
 
-.panel-control:hover {
+.panel-control:hover:not(:disabled) {
   color: var(--text);
   background: var(--bg-elev);
 }
 
+/* 押せないとき（画面が狭くて横幅いっぱいを元の幅に戻せない）も隠さず、薄くする */
+.panel-control:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 /* タブのまとめ方・アーカイブ済みを出すかのボタン（パネルを閉じるボタンのすぐ右）。まとめている・出しているときはアクセントの色 */
 .panel-control.on {

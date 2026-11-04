@@ -45,7 +45,7 @@ export function SidePanel({
   terminals: TerminalTarget[];
   sidebar?: { open: boolean; onClose: () => void; controls?: React.ReactNode; className?: string };
 }) {
-  const { tabs, maximized, layout } = panel;
+  const { tabs, panelFull, layout } = panel;
   const panelOpen = sidebar ? sidebar.open : panel.panelOpen;
   const close = sidebar ? sidebar.onClose : panel.close;
   const terminalTargets = window.kickoff?.terminal ? terminals : [];
@@ -122,18 +122,18 @@ export function SidePanel({
       <TabKindsButton panel={panel} />
       {/* アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
       {panel.kinds.has("chat") && <TabArchiveToggle />}
-      {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。狭くてボードを覆っているときは、切り替えても見た目が変わらないので出さない */}
-      {!panel.covering && (
-        <button
-          className="panel-control"
-          title={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-          aria-label={maximized ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-          aria-pressed={maximized}
-          onClick={panel.toggleMaximized}
-        >
-          {maximized ? <FoldHorizontal size={15} /> : <UnfoldHorizontal size={15} />}
-        </button>
-      )}
+      {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
+          ボードが残る幅まで縮める。サイドバー・チャット欄を開いて狭くなっても隠さない） */}
+      <button
+        className="panel-control"
+        title={panelFull ? (panel.canRestoreWidth ? "元の幅に戻す" : "画面が狭いため、元の幅に戻せません") : "横幅いっぱいに広げる"}
+        aria-label={panelFull ? "元の幅に戻す" : "横幅いっぱいに広げる"}
+        aria-pressed={panelFull}
+        disabled={panelFull && !panel.canRestoreWidth}
+        onClick={panel.toggleMaximized}
+      >
+        {panelFull ? <FoldHorizontal size={15} /> : <UnfoldHorizontal size={15} />}
+      </button>
     </div>
   );
   /** ペインのタブの列（パネルの閉じる・横幅いっぱいは、左上のペインにだけ置く） */
