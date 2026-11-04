@@ -1,6 +1,7 @@
 import { useRef, useState, type CSSProperties } from "react";
 import type { Run } from "../../../../core/types";
 import { useRunStates } from "../../approvalsContext";
+import { cx } from "../../cx";
 import { useDismiss } from "../../hooks/useDismiss";
 import { stateCounts } from "../../runState";
 import { StateCornerCounts, stateCountsSummary } from "../StateCornerCounts";
@@ -14,16 +15,21 @@ const EDGE = 8;
 /**
  * タブのまとまりの頭（まとまりの色の名前の札と、中のタブの数）。札の角に、そのまとまり（グループ・作業場所）のチャットの状態ごとの数を重ね、
  * 札を押すと、まとまりのチャットを状態ごと（作業中 → 回答待ち → 未読）にまとめた一覧を開く（画面の見出しの状態ごとの数と同じ一覧。行でそのチャットのタブを開く）。
- * runs が undefined の「その他」（ブラウザなど）は押せない札。まとまりはプロジェクトごとなので、一覧の行にプロジェクト名は出さない
+ * runs が undefined の「その他」（ブラウザなど）は押せない札。まとまりはプロジェクトごとなので、一覧の行にプロジェクト名は出さない。
+ * まとめないときも、タブの列の左端に「チャット」の札（all）として置き、パネルのチャット全体の状態ごとの数と一覧を出す（タブの数は出さない）
  */
 export function TabClusterHead({
   cluster,
   runs,
   onOpen,
+  all = false,
+  popoverTitle = `${cluster.label}のチャット`,
 }: {
   cluster: TabCluster;
   runs: Run[] | undefined;
   onOpen: (run: Run) => void;
+  all?: boolean;
+  popoverTitle?: string;
 }) {
   const { stateOf, pending } = useRunStates();
   const [at, setAt] = useState<CSSProperties | null>(null);
@@ -46,7 +52,7 @@ export function TabClusterHead({
     setAt({ top: r.bottom + 6, left: Math.max(EDGE, Math.min(r.left, window.innerWidth - width - EDGE)) });
   };
   return (
-    <span ref={ref} className="panel-tab-cluster">
+    <span ref={ref} className={cx("panel-tab-cluster", all && "all")}>
       {runs ? (
         <button type="button" className="panel-tab-cluster-name" title={`${title ?? cluster.label}。押すと状態ごとのチャットを一覧する`} aria-expanded={at !== null} onClick={toggle}>
           {name}
@@ -56,12 +62,14 @@ export function TabClusterHead({
           {name}
         </span>
       )}
-      <span className="panel-tab-cluster-count" title={`タブ ${cluster.tabs.length} 個`}>
-        {cluster.tabs.length}
-      </span>
+      {!all && (
+        <span className="panel-tab-cluster-count" title={`タブ ${cluster.tabs.length} 個`}>
+          {cluster.tabs.length}
+        </span>
+      )}
       {at && runs && (
         <StateRunsPopover
-          title={`${cluster.label}のチャット`}
+          title={popoverTitle}
           sections={runsByState(runs, stateOf)}
           onOpen={onOpen}
           onClose={() => setAt(null)}
