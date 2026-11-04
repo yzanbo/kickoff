@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type KeyboardEvent, type RefObject } from "react";
 import type { SlashCommandOption } from "@shared/types";
 import { api, type GitTarget } from "@/api";
+import { createKeyedStore } from "@/stores/keyedStore";
+import { useKeyedStore } from "@/stores/useStore";
 import { findTrigger, matchCommands, matchFiles } from "./suggestMatch";
 
 export type SuggestItem =
@@ -10,20 +12,16 @@ export type SuggestItem =
 /** 取り直すまでの間隔（ファイルは増えたり減ったりするので、しばらくしたら取り直す） */
 const MAX_AGE_MS = 60_000;
 
-const keyOf = (target: GitTarget) => (typeof target === "number" ? `${target}` : `${target.projectId}:${target.worktree ?? ""}`);
-
-// 作業場所ごとの、コマンドとファイルの一覧（チャット欄がいくつあっても、取りに行くのは作業場所ごとに 1 回）
-const cache = new Map<string, { at: number; promise: Promise<unknown> }>();
-function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
-  const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < MAX_AGE_MS) return hit.promise as Promise<T>;
-  const promise = load().catch(() => {
-    cache.delete(key);
-    return [] as unknown as T;
-  });
-  cache.set(key, { at: Date.now(), promise });
-  return promise;
+/** 作業場所の key（プロジェクトの番号と、ワークツリーのフォルダ。本体は空）と、key からの作業場所 */
+const keyOf = (target: GitTarget) => (typeof target === "number" ? `${target}\n` : `${target.projectId}\n${target.worktree ?? ""}`);
+function targetOf(key: string): GitTarget {
+  const [projectId, worktree] = key.split("\n");
+  return { projectId: Number(projectId), worktree: worktree || undefined };
 }
+
+// 作業場所ごとの、コマンドとファイルの一覧（チャット欄がいくつあっても、取りに行くのは作業場所ごとに 1 回。しばらくしたら取り直す）
+const commandsStore = createKeyedStore<string, SlashCommandOption[]>({ load: (key) => api.slashCommands(targetOf(key)), maxAge: MAX_AGE_MS });
+const filesStore = createKeyedStore<string, string[]>({ load: async (key) => (await api.projectFiles(targetOf(key))).files, maxAge: MAX_AGE_MS });
 
 /**
  * チャット欄の / と @ の候補（Claude Code の VS Code 拡張と同じ）。
@@ -48,34 +46,24 @@ export function useSuggest({
   const [index, setIndex] = useState(0);
   // Esc で閉じた候補（同じ場所で打ち続けている間は出さない）
   const [dismissed, setDismissed] = useState<number | null>(null);
-  const [commands, setCommands] = useState<SlashCommandOption[]>();
-  const [files, setFiles] = useState<string[]>();
 
   const trigger = target ? findTrigger(text, caret) : null;
   const open = !paused && trigger !== null && dismissed !== trigger.start;
   const targetKey = target === undefined ? "" : keyOf(target);
 
-  // 候補を出すときに、はじめて一覧を取ってくる
-  useEffect(() => {
-    if (!open || !target) return;
-    let alive = true;
-    if (trigger.kind === "slash") {
-      void cached(`commands:${targetKey}`, () => api.slashCommands(target)).then((list) => alive && setCommands(list));
-    } else {
-      void cached(`files:${targetKey}`, () => api.projectFiles(target).then((r) => r.files)).then((list) => alive && setFiles(list));
-    }
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, trigger?.kind, targetKey]);
+  // 候補を出すときに、はじめて一覧を取ってくる（出している間は読み込みを頼む。取れなければ候補なし）
+  const commandsState = useKeyedStore(commandsStore, targetKey && trigger?.kind === "slash" ? targetKey : undefined, { active: open });
+  const filesState = useKeyedStore(filesStore, targetKey && trigger?.kind === "file" ? targetKey : undefined, { active: open });
+  const commands = commandsState.data;
+  const files = filesState.data;
 
   const items: SuggestItem[] = useMemo(() => {
     if (!open || !trigger) return [];
     if (trigger.kind === "slash") return matchCommands(commands ?? [], trigger.query).map((command) => ({ kind: "slash", key: command.name, command }));
     return matchFiles(files ?? [], trigger.query).map((path) => ({ kind: "file", key: path, path }));
   }, [open, trigger?.kind, trigger?.query, commands, files]); // eslint-disable-line react-hooks/exhaustive-deps
-  const loading = open && (trigger?.kind === "slash" ? commands === undefined : files === undefined);
+  const shown = trigger?.kind === "slash" ? commandsState : filesState;
+  const loading = open && !shown.loaded && shown.error === undefined;
 
   // 打つたびに、先頭の候補を選び直す
   useEffect(() => setIndex(0), [trigger?.kind, trigger?.query]);
