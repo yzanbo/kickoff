@@ -3,6 +3,7 @@ import { navigate } from "@/app/router";
 import type { DraftTarget } from "@/features/chatList/buckets";
 import { isTabVisible } from "@/features/panel/layout/paneLayout";
 import { panelScreen } from "@/features/panel/surfaces";
+import { panelActions } from "./panelActions";
 import { allPanels, dispatchPanel, isPanelMounted, panelsVersion, subscribePanels } from "./panelStore";
 
 /**
@@ -61,7 +62,7 @@ export function usePanelDrafts(panels: readonly string[]): PanelDraft[] {
 export function openDraft(draft: DraftRef) {
   const screen = isPanelMounted(draft.panel) ? undefined : panelScreen(draft.panel);
   if (screen) navigate(screen);
-  dispatchPanel(draft.panel, { type: "show", key: draft.key });
+  panelActions(draft.panel).showTab(draft.key);
 }
 
 /** 下書きの作成先のグループを変える（サイドバーでグループへドラッグしたとき。undefined ならグループなし） */

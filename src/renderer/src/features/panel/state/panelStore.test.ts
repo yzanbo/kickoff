@@ -83,6 +83,18 @@ test("隠している種類のタブを自分で開いたら、その種類を�
   assert.deepEqual(readSetting(panelTabKinds("board")), ["chat", "browser"]);
 });
 
+test("隠している種類のタブ（チャットを隠した欄の下書きなど）を表示するときも、その種類を出す", () => {
+  writeSetting(panelTabKinds("bottom"), ["terminal"]);
+  const actions = panelActions("bottom:12");
+  actions.openNew({ projectId: 12 });
+  const [draft] = keys("bottom:12");
+  writeSetting(panelTabKinds("bottom"), ["terminal"]);
+  actions.close();
+  actions.showTab(draft);
+  assert.deepEqual(readSetting(panelTabKinds("bottom")), ["chat", "terminal"]);
+  assert.equal(panelStateOf("bottom:12").open, true);
+});
+
 test("削除したチャットのタブは、画面に出ていない欄でも閉じる（そのチャットのサブエージェントのタブも）", () => {
   const actions = panelActions("kanban:6");
   actions.open({ id: 60, project_id: 6 });
