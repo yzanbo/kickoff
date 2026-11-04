@@ -135,6 +135,8 @@ export const QUEUE_EXPANDED_KEY = "kickoff:queue-expanded";
 export const QUEUE_HEIGHT_KEY = "kickoff:queue-height";
 /** チャットの上に貼り付ける自分の指示を、1 行にたたまず全文で出すか（"1" なら全文。どのチャットでも同じ） */
 export const STICKY_PROMPT_EXPANDED_KEY = "kickoff:sticky-prompt-expanded";
+/** チャットの上に貼り付ける自分の指示の帯を出さないか（"1" なら出さない。未保存なら出す。設定の「表示」。どのチャットでも同じ） */
+export const STICKY_PROMPT_HIDDEN_KEY = "kickoff:sticky-prompt-hidden";
 /** チャット欄をコンパクトに表示するか（"1" / "0"。設定の「表示」。どのチャット欄にも効く） */
 export const COMPOSER_COMPACT_KEY = "kickoff:composer-compact";
 /** プロジェクトの画面のタブ（ボード・エディタ）の置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */
