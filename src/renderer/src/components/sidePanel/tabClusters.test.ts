@@ -16,6 +16,27 @@ test("タブのまとめ方: 初めて出てくる順にまとめ、その他は
   assert.deepEqual(clusterTabs([], () => OTHER_CLUSTER), []);
 });
 
+test("タブのまとめ方: 先に並べるまとまり（サイドバーのグループの並び）を先に出し、keepEmpty ならタブがなくても札だけ出す", () => {
+  const of: Record<string, string> = { a: "g2", b: "none", c: "g1" };
+  const order = [
+    { cluster: { key: "g1", label: "g1" }, keepEmpty: true },
+    { cluster: { key: "g3", label: "g3" }, keepEmpty: true },
+    { cluster: { key: "g2", label: "g2" }, keepEmpty: true },
+    { cluster: { key: "none", label: "グループなし" }, keepEmpty: false },
+    { cluster: { key: "empty-none", label: "グループなし" }, keepEmpty: false },
+  ];
+  const clusters = clusterTabs(["a", "b", "c"], (k) => ({ key: of[k], label: of[k] }), order);
+  assert.deepEqual(
+    clusters.map((c) => [c.key, c.tabs]),
+    [
+      ["g1", ["c"]],
+      ["g3", []],
+      ["g2", ["a"]],
+      ["none", ["b"]],
+    ],
+  );
+});
+
 test("タブのまとめ方: 見た目の並びで落とす位置を、ペインの並びの位置に直す", () => {
   const pane = ["a", "b", "c", "d"];
   const display = ["a", "d", "b", "c"];

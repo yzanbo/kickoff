@@ -24,19 +24,28 @@ export interface TabCluster extends ClusterOf {
   tabs: string[];
 }
 
+/** 先に並べるまとまり（グループ別のとき、サイドバーと同じグループの並び）。keepEmpty ならタブがなくても札だけ出す */
+export interface ClusterSeed {
+  cluster: ClusterOf;
+  keepEmpty: boolean;
+}
+
 /**
- * ペインのタブ（並び順のキー）を、まとまりごとに分ける。まとまりは、そのまとまりのタブが初めて出てくる順に並べ、
- * 「その他」はいちばん後ろ。まとまりの中はペインの並びのまま（並べ替えても、まとまりの中の順が変わるだけ）
+ * ペインのタブ（並び順のキー）を、まとまりごとに分ける。order のまとまりを先にその順で並べ（keepEmpty ならタブがなくても出す）、
+ * order にないまとまりは、そのまとまりのタブが初めて出てくる順に続け、「その他」はいちばん後ろ。
+ * まとまりの中はペインの並びのまま（並べ替えても、まとまりの中の順が変わるだけ）
  */
-export function clusterTabs(keys: readonly string[], clusterOf: (key: string) => ClusterOf): TabCluster[] {
+export function clusterTabs(keys: readonly string[], clusterOf: (key: string) => ClusterOf, order: readonly ClusterSeed[] = []): TabCluster[] {
   const clusters = new Map<string, TabCluster>();
+  for (const { cluster } of order) clusters.set(cluster.key, { ...cluster, tabs: [] });
   for (const key of keys) {
     const c = clusterOf(key);
     const found = clusters.get(c.key);
     if (found) found.tabs.push(key);
     else clusters.set(c.key, { ...c, tabs: [key] });
   }
-  const list = [...clusters.values()];
+  const keep = new Set(order.filter((o) => o.keepEmpty).map((o) => o.cluster.key));
+  const list = [...clusters.values()].filter((c) => c.tabs.length > 0 || keep.has(c.key));
   return [...list.filter((c) => c.key !== OTHER_CLUSTER.key), ...list.filter((c) => c.key === OTHER_CLUSTER.key)];
 }
 
