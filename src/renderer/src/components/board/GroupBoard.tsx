@@ -11,7 +11,7 @@ import { useSidePanel } from "../sidePanel/useSidePanel";
 import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader } from "./BoardHeader";
-import { BoardLanes, groupOfLane } from "./BoardLanes";
+import { BoardLanes, groupOfLane, LaneSelect, type BoardLane } from "./BoardLanes";
 import { BoardShell } from "./BoardShell";
 import type { BoardEntry } from "./boardColumns";
 import { GroupCreateForm } from "./GroupCreateForm";
@@ -20,6 +20,9 @@ import { GroupLaneColumns } from "./GroupLaneColumns";
 import { useBoardCards } from "./useBoardCards";
 import { useBoardFocus } from "./useBoardFocus";
 import { useGroupBoard } from "./useGroupBoard";
+
+/** グループのボードの段の分け方（グループだけ） */
+const GROUP_LANES: readonly BoardLane[] = ["group"];
 
 interface Props {
   projectId: number;
@@ -36,7 +39,7 @@ interface Props {
  */
 export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   const board = useGroupBoard({ projectId, groups });
-  const { view, menu, rename, over, dropProps } = board;
+  const { view, split, menu, rename, over, dropProps } = board;
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く
   const panel = useSidePanel({ memoryKey: boardPanelKey(projectId), runs: board.runs, loaded: board.fresh, holdEsc: menu.isOpen });
 
@@ -93,7 +96,8 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       }
       view={view}
       onView={board.setView}
-      lanesView
+      // 段の分け方はグループだけ（段に分けると、列は下書き＋状態）。リストはもともとグループごとのまとまりなので出さない
+      viewOptions={view === "board" && <LaneSelect value={split ? "group" : "none"} options={GROUP_LANES} onChange={(next) => board.setSplit(next !== "none")} />}
       columns={<BoardColumnsToggle projectId={projectId} value="groups" />}
       panel={panel}
     />
@@ -113,7 +117,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       onError={board.setError}
       after={board.groupMenu.menu}
     >
-      {view === "lanes" ? (
+      {view === "board" && split ? (
         // 段（グループ）へカードをドラッグすると、そのグループへ移す
         <BoardLanes
           kind="group"

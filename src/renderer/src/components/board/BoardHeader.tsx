@@ -1,4 +1,4 @@
-import { List, Rows3, SquareKanban, TextSearch } from "lucide-react";
+import { List, SquareKanban, TextSearch } from "lucide-react";
 import type { ReactNode } from "react";
 import { openContentSearch } from "../../chatSearch";
 import { useStoredChoice } from "../../hooks/useStoredState";
@@ -8,12 +8,26 @@ import { Segmented } from "../Segmented";
 import { PanelToggle } from "../sidePanel/PanelToggle";
 import type { SidePanelController } from "../sidePanel/useSidePanel";
 
-/** 表示の種類: ボード（状態の列）・リスト・スイムレーン（段ごとに状態の列。カンバンだけ） */
-export type BoardView = "board" | "list" | "lanes";
+/** 表示の種類: ボード（列を横に並べる）・リスト（まとまりを縦に並べる） */
+export type BoardView = "board" | "list";
 
-/** 表示の種類（列を状態で分けるカンバン・グループのボード・全プロジェクトのボードで共通。列の分け方を切り替えてもそのまま） */
+/**
+ * 保存の形（kickoff:board-view）: board / list と、それぞれを段（スイムレーン）に分ける lanes（= ボードを段に分ける。以前の「スイムレーン」の表示）/ list-lanes。
+ * 以前は表示の切り替えの 3 つ目がスイムレーンだったので、lanes はそのまま「ボード ＋ 段に分ける」として読む
+ */
+type StoredView = "board" | "list" | "lanes" | "list-lanes";
+const STORED_VIEWS: readonly StoredView[] = ["board", "list", "lanes", "list-lanes"];
+
+/**
+ * 表示の種類と、段に分けるか（列を状態で分けるカンバン・グループのボード・全プロジェクトのボードで共通。列の分け方を切り替えてもそのまま）。
+ * 段の分け方（作業場所・グループ・プロジェクト）はボードとリストで共通（useKanbanLanes）で、表示を切り替えても段に分けたまま
+ */
 export function useBoardView() {
-  return useStoredChoice<BoardView>(BOARD_VIEW_KEY, ["board", "list", "lanes"], "board");
+  const [stored, setStored] = useStoredChoice<StoredView>(BOARD_VIEW_KEY, STORED_VIEWS, "board");
+  const view: BoardView = stored === "list" || stored === "list-lanes" ? "list" : "board";
+  const split = stored === "lanes" || stored === "list-lanes";
+  const store = (v: BoardView, s: boolean) => setStored(v === "list" ? (s ? "list-lanes" : "list") : s ? "lanes" : "board");
+  return { view, split, setView: (v: BoardView) => store(v, split), setSplit: (s: boolean) => store(view, s) };
 }
 
 interface Props {
@@ -29,9 +43,7 @@ interface Props {
   primary?: ReactNode;
   view: BoardView;
   onView: (view: BoardView) => void;
-  /** スイムレーンも選べるか（カンバンだけ） */
-  lanesView?: boolean;
-  /** 表示のまとまりで、表示の切り替えの後ろに置くもの（スイムレーンの段の分け方） */
+  /** 表示のまとまりで、表示の切り替えの後ろに置くもの（段の分け方 LaneSelect） */
   viewOptions?: ReactNode;
   /** 表示のまとまりの先頭に置く、列の分け方の切り替え（プロジェクトのボードだけ。状態 / グループ） */
   columns?: ReactNode;
@@ -43,7 +55,7 @@ interface Props {
  * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
  * 右に パネルの開閉（ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
-export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, lanesView = false, viewOptions, columns, panel }: Props) {
+export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, columns, panel }: Props) {
   return (
     <div className="board-header">
       {heading && (
@@ -66,7 +78,6 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
             options={[
               { value: "board", label: "ボード", icon: SquareKanban },
               { value: "list", label: "リスト", icon: List },
-              ...(lanesView ? [{ value: "lanes" as const, label: "スイムレーン", icon: Rows3 }] : []),
             ]}
           />
           {viewOptions}

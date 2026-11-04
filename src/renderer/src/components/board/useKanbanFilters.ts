@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Run } from "../../../../core/types";
 import { useChatSearch } from "../../chatSearch";
 import { useStoredChoice } from "../../hooks/useStoredState";
-import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_LIST_LANES_ALL_KEY, BOARD_LIST_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY } from "../../storageKeys";
+import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY } from "../../storageKeys";
 import { workplaceOf } from "../../worktree/workplace";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
 import { BOARD_LANES, type BoardLane } from "./BoardLanes";
@@ -46,13 +46,3 @@ export function useKanbanLanes(allProjects: boolean) {
   return { lanes, options, setLanes };
 }
 
-/** リスト表示の段の分け方: 段に分けない（初め）か、スイムレーンと同じ分け方（プロジェクトのボードと全プロジェクトのボードで別に覚える） */
-export type ListLanes = BoardLane | "none";
-const LIST_LANES: readonly ListLanes[] = ["none", ...BOARD_LANES];
-
-export function useKanbanListLanes(allProjects: boolean) {
-  const options = KANBAN_LANES.filter((l) => (allProjects ? l !== "group" : l !== "project"));
-  const [choice, setListLanes] = useStoredChoice<ListLanes>(allProjects ? BOARD_LIST_LANES_ALL_KEY : BOARD_LIST_LANES_KEY, LIST_LANES, "none");
-  const listLanes: ListLanes = choice === "none" || options.includes(choice) ? choice : "none";
-  return { listLanes, setListLanes };
-}

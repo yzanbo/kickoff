@@ -30,6 +30,23 @@ export interface DraftTarget {
   group?: number;
 }
 
+/**
+ * ボードの見出しの段の分け方の選択（「段: 分けない / 作業場所 / グループ / プロジェクト」。ボード・リストで共通）。
+ * value は段に分けていなければ "none"
+ */
+export function LaneSelect({ value, options, onChange }: { value: BoardLane | "none"; options: readonly BoardLane[]; onChange: (value: BoardLane | "none") => void }) {
+  return (
+    <select className="board-filter" aria-label="段の分け方" title="段（スイムレーン）の分け方" value={value} onChange={(e) => onChange(e.target.value as BoardLane | "none")}>
+      <option value="none">段: 分けない</option>
+      {options.map((l) => (
+        <option key={l} value={l}>
+          段: {BOARD_LANE_LABELS[l]}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 interface Lane {
   key: string;
   head: ReactNode;
