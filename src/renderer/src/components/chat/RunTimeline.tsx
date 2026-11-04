@@ -1,6 +1,4 @@
-import { ArrowDown } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
-import { cx } from "../../cx";
 import { RUN_STATUS_LABELS } from "../RunStatus";
 import { useSharedFlag } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
@@ -18,6 +16,7 @@ import { promptAttachments, readingPrompt, StickyPrompt } from "./StickyPrompt";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
+import { ScrollBottomPill, type ScrollPillTone } from "./ScrollBottomPill";
 import { STICKY_PROMPT_HIDDEN_KEY } from "../../storageKeys";
 
 /**
@@ -62,6 +61,7 @@ export function RunTimeline({
   events,
   visible,
   onPromptStep,
+  pillDock,
 }: {
   items: TimelineItem[];
   /** 流れ全体の最後の項目（窓で途中を描いていても、作業中の文はいまの状態で決める） */
@@ -99,6 +99,8 @@ export function RunTimeline({
   visible: boolean;
   /** 上に貼り付けた指示の帯の ↑ / ↓: 貼り付けた指示（from）の前・次の指示へ移る */
   onPromptStep?: (dir: -1 | 1, from: number) => void;
+  /** 一番下へ戻るボタンを置くピルの列の右端（入る幅があれば、流れに浮かせずそこに置く） */
+  pillDock?: HTMLElement | null;
 }) {
   const timelineRef = useRef<HTMLDivElement>(null);
   // 一番下から離れているか（一番下へ戻るボタンを出す）
@@ -212,7 +214,7 @@ export function RunTimeline({
   // ボタンに出すいまの状態（上を読んでいる間も、このチャットがどうなっているかが分かるように）。
   // 答えを待っている・その間に返答が届いたときは目立たせて下へ誘い、作業中はいまの段階、終わっていれば結果を出す
   // 通信が切れている（再試行中・つながるのを待っている）ときは黄にする
-  const pill: { label: ReactNode; tone: "waiting" | "arrived" | "working" | "idle" | "failed" | "offline" } = waiting
+  const pill: { label: ReactNode; tone: ScrollPillTone } = waiting
     ? { label: "回答を待っています", tone: "waiting" }
     : !busy && connection.reconnect
       ? { label: "通信待ち（つながったら自動で再開）", tone: "offline" }
@@ -288,28 +290,8 @@ export function RunTimeline({
           onNext={onPromptStep && pinnedAt >= 0 && pinnedAt < promptIds.length - 1 ? () => onPromptStep(1, pinned.id) : undefined}
         />
       )}
-      {/* 一番下へ戻るボタン: いまの状態を添えて出す（答えを待っている・返答が届いたときは目立たせて誘う） */}
-      {away && (
-        <button
-          type="button"
-          className={cx("scroll-bottom guide", pill.tone, (pill.tone === "waiting" || pill.tone === "arrived") && "attention")}
-          title="一番下までスクロール（⌘↓）"
-          aria-label="一番下までスクロール"
-          onClick={scrollToBottom}
-        >
-          {pill.tone === "working" ? (
-            <span className="dots" aria-hidden>
-              <span />
-              <span />
-              <span />
-            </span>
-          ) : (
-            <ArrowDown size={14} aria-hidden />
-          )}
-          <span className="scroll-bottom-label">{pill.label}</span>
-          <kbd>⌘↓</kbd>
-        </button>
-      )}
+      {/* 一番下へ戻るボタン: いまの状態を添えて出す（入る幅があればチャット欄の上のピルの列の右端に置く） */}
+      {away && <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={scrollToBottom} />}
     </div>
   );
 }

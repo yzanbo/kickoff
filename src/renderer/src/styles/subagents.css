@@ -11,7 +11,8 @@
   padding: 0 0 6px;
 }
 
-.composer-chips:empty {
+/* ピルが 1 つもない（右端のボタンの置き場所だけが空で残っている）ときは列ごと出さない */
+.composer-chips:not(:has(> :not(.composer-chips-dock:empty))) {
   display: none;
 }
 
