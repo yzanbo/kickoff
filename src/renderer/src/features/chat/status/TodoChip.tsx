@@ -1,8 +1,9 @@
-import { CheckCircle2, ChevronUp, Circle, CircleDot, ListTodo } from "lucide-react";
+import { CheckCircle2, Circle, CircleDot, ListTodo } from "lucide-react";
 import { useMemo } from "react";
 import type { ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { Popover, usePopover } from "@/ui/Popover";
+import { usePopover } from "@/ui/Popover";
+import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { collectTodos, type TodoStatus } from "./todoList";
 
 const STATUS_ICONS: Record<TodoStatus, typeof Circle> = { pending: Circle, in_progress: CircleDot, completed: CheckCircle2 };
@@ -19,33 +20,27 @@ export function TodoChip({ events }: { events: ChatEvent[] }) {
   const done = todos.filter((t) => t.status === "completed").length;
   const current = todos.find((t) => t.status === "in_progress");
   return (
-    <div className="chip-wrap">
-      <button
-        ref={popover.anchor}
-        type="button"
-        className={cx("composer-chip", popover.open && "open")}
-        aria-expanded={popover.open}
-        title="ToDo の一覧"
-        onClick={popover.toggle}
-      >
-        <ListTodo size={14} className="chip-icon" aria-hidden />
-        ToDo {done}/{todos.length}
-        {current && <span className="chip-running todo-current"> · {current.activeForm ?? current.content}</span>}
-        <ChevronUp size={13} className="chip-chevron" aria-hidden />
-      </button>
-      {popover.open && (
-        <Popover anchor={popover.anchor} side="above" gap={8} label="ToDo" className="chip-popover" onClose={popover.close}>
-          {todos.map((t) => {
-            const Icon = STATUS_ICONS[t.status];
-            return (
-              <div key={t.key} className={cx("todo-row", `todo-${t.status}`)}>
-                <Icon size={15} className="todo-icon" aria-label={STATUS_LABELS[t.status]} />
-                <span className="todo-text">{t.status === "in_progress" ? (t.activeForm ?? t.content) : t.content}</span>
-              </div>
-            );
-          })}
-        </Popover>
-      )}
-    </div>
+    <ComposerChip
+      popover={popover}
+      chip={
+        <>
+          <ListTodo size={14} className="chip-icon" aria-hidden />
+          ToDo {done}/{todos.length}
+          {current && <span className="chip-running todo-current"> · {current.activeForm ?? current.content}</span>}
+        </>
+      }
+      title="ToDo の一覧"
+      label="ToDo"
+    >
+      {todos.map((t) => {
+        const Icon = STATUS_ICONS[t.status];
+        return (
+          <div key={t.key} className={cx("todo-row", `todo-${t.status}`)}>
+            <Icon size={15} className="todo-icon" aria-label={STATUS_LABELS[t.status]} />
+            <span className="todo-text">{t.status === "in_progress" ? (t.activeForm ?? t.content) : t.content}</span>
+          </div>
+        );
+      })}
+    </ComposerChip>
   );
 }
