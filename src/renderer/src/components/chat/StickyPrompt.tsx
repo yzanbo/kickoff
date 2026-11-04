@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Attachment, RunEvent } from "../../../../core/types";
 import { cx } from "../../cx";
@@ -10,9 +10,22 @@ import { AttachmentPeek } from "./AttachmentPeek";
 /**
  * チャットの上に貼り付ける、いま読んでいる返答の元の自分の指示。
  * 初めは 1 行にたたみ（長い指示で縦をとらないように）、右の矢印で全文を出す（長ければ中でスクロール。開閉はどのチャットでも同じに覚える）。
- * 指示の文を押すと、その発言へ移る。添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）
+ * 指示の文を押すと、その発言へ移る。右の ↑ / ↓ で前・次の指示へ移る（⌘⌥↑ / ↓ と同じ）。添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）
  */
-export function StickyPrompt({ text, attachments, onJump }: { text: string; attachments: Attachment[]; onJump: () => void }) {
+export function StickyPrompt({
+  text,
+  attachments,
+  onJump,
+  onPrev,
+  onNext,
+}: {
+  text: string;
+  attachments: Attachment[];
+  onJump: () => void;
+  /** 前・次の指示へ移る（ないときは押せない。⌘⌥↑ / ↓ と同じ） */
+  onPrev?: () => void;
+  onNext?: () => void;
+}) {
   const [expanded, setExpanded] = useStoredFlag(STICKY_PROMPT_EXPANDED_KEY);
   const textRef = useRef<HTMLSpanElement>(null);
   // 1 行に収まらないか（収まるなら開閉の矢印を出さない）。欄の幅が変わったら測り直す
@@ -38,6 +51,11 @@ export function StickyPrompt({ text, attachments, onJump }: { text: string; atta
           {text}
         </span>
       </button>
+      {/* 前・次の指示へ（開閉の矢印と見分けるため、移る向きの矢印） */}
+      <span className="sticky-prompt-nav">
+        <IconButton icon={ArrowUp} label="前の指示へ" title="前の指示へ（⌘⌥↑）" size={14} disabled={!onPrev} onClick={onPrev} />
+        <IconButton icon={ArrowDown} label="次の指示へ" title="次の指示へ（⌘⌥↓）" size={14} disabled={!onNext} onClick={onNext} />
+      </span>
       {(overflowing || expanded) && (
         <IconButton
           icon={expanded ? ChevronUp : ChevronDown}

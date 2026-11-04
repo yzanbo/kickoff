@@ -165,6 +165,13 @@
   flex: none;
 }
 
+/* 前・次の指示へ（帯の右端。開閉の矢印の手前） */
+.sticky-prompt-nav {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
 /* 指示の添付（1 つ目だけ）。帯の高さを変えないよう、文の 1 行目の高さに収める */
 .sticky-prompt .attach-peek {
   margin-top: 2px;
