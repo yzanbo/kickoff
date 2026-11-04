@@ -1,13 +1,16 @@
-import { Hourglass, SendHorizontal } from "lucide-react";
+import { ListPlus, MessageSquarePlus } from "lucide-react";
 import { useStoredState } from "../../hooks/useStoredState";
 import { QUEUE_MODE_KEY } from "../../storageKeys";
 import { Segmented, type SegmentOption } from "../Segmented";
 import type { QueueSendMode } from "./composerKeys";
 
-/** 作業中に送ったときの扱いの選択肢（アイコンだけで出す。ためておく = 砂時計（あとで送る）・伝える = 送るの矢印（いま送る）で見分ける） */
+/**
+ * 作業中に送ったときの扱いの選択肢。押すと送るボタンに見えないよう、アイコン（ためる = リスト・伝える = 吹き出し。送るの矢印は使わない）に文字を添えた切り替えにして、
+ * 送り方を選ぶものだと分かるようにする（説明はマウスを乗せたときに出す）
+ */
 const BUSY_OPTIONS: SegmentOption<QueueSendMode>[] = [
-  { value: "queue", label: "ためておく（いまの作業が終わったら送る。どちらを選んでいても ⌘⇧Enter でためておける）", icon: Hourglass, iconOnly: true },
-  { value: "tell", label: "伝える（止めずに、いま送っていまのやり取りに足す。どちらを選んでいても ⌘Enter で伝えられる）", icon: SendHorizontal, iconOnly: true },
+  { value: "queue", label: "ためる", icon: ListPlus, tip: "ためておく（いまの作業が終わったら送る。どちらを選んでいても ⌘⇧Enter でためておける）" },
+  { value: "tell", label: "伝える", icon: MessageSquarePlus, tip: "伝える（止めずに、いま送っていまのやり取りに足す。どちらを選んでいても ⌘Enter で伝えられる）" },
 ];
 
 /**
@@ -15,8 +18,8 @@ const BUSY_OPTIONS: SegmentOption<QueueSendMode>[] = [
  * 「伝える」はいま送る（送信待ちより先に）、「ためておく」は送信待ちの最後に足す
  */
 const IDLE_OPTIONS: SegmentOption<QueueSendMode>[] = [
-  { value: "queue", label: "ためておく（送信待ちの最後に足す。どちらを選んでいても ⌘⇧Enter でためておける）", icon: Hourglass, iconOnly: true },
-  { value: "tell", label: "すぐ送る（送信待ちより先に、いま送る。どちらを選んでいても ⌘Enter ですぐ送れる）", icon: SendHorizontal, iconOnly: true },
+  { value: "queue", label: "ためる", icon: ListPlus, tip: "ためておく（送信待ちの最後に足す。どちらを選んでいても ⌘⇧Enter でためておける）" },
+  { value: "tell", label: "すぐ送る", icon: MessageSquarePlus, tip: "すぐ送る（送信待ちより先に、いま送る。どちらを選んでいても ⌘Enter ですぐ送れる）" },
 ];
 
 /** 保存の形（以前の「割り込む」= "interrupt" は、なくしたので「伝える」として読む） */
@@ -32,11 +35,12 @@ export function QueueModeToggle({ busy, value, onChange }: { busy: boolean; valu
       value={value}
       options={busy ? BUSY_OPTIONS : IDLE_OPTIONS}
       onChange={onChange}
-      label={busy ? "作業中に送ったときの扱い" : "送信待ちがあるときに送ったときの扱い"}
+      label={busy ? "作業中に Enter で送ったときの扱い" : "送信待ちがあるときに Enter で送ったときの扱い"}
       className="view-toggle queue-mode"
     />
   );
 }
+
 
 /** チャット欄の案内と送信ボタンの名前（作業中か・送信待ちがあるか・送り方で変える） */
 export function queueModeTexts(busy: boolean, queued: boolean, mode: QueueSendMode): { placeholder: string; sendLabel?: string } {
