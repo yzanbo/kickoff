@@ -4,9 +4,9 @@ import { BOARD_COLUMN_LABELS, type Project, type Chat, type ChatGroup } from "@s
 import { api } from "@/api";
 import { alertDialog } from "@/ui/dialogs";
 import { useChatRename } from "@/features/chat/useChatRename";
-import { useSetting, useSettingFamily } from "@/hooks/useSetting";
+import { useFold, useFolds } from "@/hooks/useFold";
 import { projectHue } from "@/features/project/projectColor";
-import { sidebarArchivedOpen, sidebarGroupClosed, sidebarPinnedClosed, sidebarUngroupedClosed } from "@/lib/storageKeys";
+import { archivedKey, groupKey, pinnedKey } from "@/features/chatList/buckets";
 import { openNewChat, openChat, routeProjectId, useRoute } from "@/app/router";
 import { useChatStates } from "@/app/chatStatesContext";
 import { ChatMenu } from "@/features/chat/ChatMenu";
@@ -18,9 +18,8 @@ import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
 import { useGroupSections } from "./useGroupSections";
 import { DraftRows } from "./DraftRows";
-import { RowSection } from "@/ui/RowSection";
+import { FoldSection } from "@/ui/FoldHead";
 import { stateCounts } from "@/features/chat/chatState";
-import { useFoldAll } from "@/features/chatList/chatListFlags";
 import { UngroupedHead } from "./UngroupedHead";
 import { useWorkspaceRows } from "./useWorkspaceRows";
 import { WorkspaceHead } from "./WorkspaceHead";
@@ -61,10 +60,15 @@ export const WorkspacePage = memo(function WorkspacePage({
   const list = useWorkspaceRows({ projectId: project.id, chats, groupCount: groups.length, searchAll });
   const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived } = list;
   const { stateOf } = useChatStates();
-  // 開閉の記憶: アーカイブ済み・固定（プロジェクトごと）
-  const [archivedOpen, setArchivedOpen] = useSetting(sidebarArchivedOpen(project.id));
-  const toggleArchived = () => setArchivedOpen(!archivedOpen);
-  const [pinnedClosed, setPinnedClosed] = useSetting(sidebarPinnedClosed(project.id));
+  // 開閉の記憶（まとまりのキーで覚え、見出しの行の「すべて閉じる / 開く」にも従う）: 固定・グループなし・自分で作ったグループ（絞り込み中は開いて見せる）、
+  // アーカイブ済み（初めは閉じる。検索中は開いて見せる）
+  const pinnedFold = useFold("sidebar", pinnedKey(project.id), { forceOpen: filtering });
+  const ungroupedFold = useFold("sidebar", groupKey(project.id, null), { forceOpen: filtering });
+  const archivedFold = useFold("sidebar", archivedKey(project.id), { defaultOpen: false, forceOpen: Boolean(keyword) });
+  const groupFolds = useFolds(
+    "sidebar",
+    groups.map((g) => groupKey(project.id, g.id)),
+  );
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
   const rowMenu = useContextMenu<Chat>();
 
@@ -78,18 +82,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   const ungroupedDrafts = showGroups ? (ungrouped?.drafts ?? []) : [];
   // 固定を除いた、絞り込みを通したチャットの数
   const restCount = visibleCount - (pinned?.chats.length ?? 0);
-  // グループの開閉（グループごとに記憶）
-  const groupClosed = useSettingFamily(sidebarGroupClosed);
-  // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
-  const [ungroupedClosed, setUngroupedClosed] = useSetting(sidebarUngroupedClosed(project.id));
-  const toggleUngrouped = () => setUngroupedClosed(!ungroupedClosed);
-  // 見出しの行の「すべて閉じる / 開く」: 中のまとまり（グループ・グループなし・固定・アーカイブ済み）もそろえる
-  useFoldAll((closed) => {
-    groups.forEach((g) => groupClosed.set(g.id, closed));
-    setUngroupedClosed(closed);
-    setPinnedClosed(closed);
-    setArchivedOpen(!closed);
-  });
+  // 「グループなし」の見出しで閉じているか（グループの見出しを出しているときだけ。閉じていれば中身を隠す）
+  const ungroupedHidden = showGroups && !ungroupedFold.open;
   const startCreate = () => {
     if (collapsed) toggleCollapsed();
     // 作ったグループが見えるよう、グループでまとめる表示にする
@@ -159,9 +153,9 @@ export const WorkspacePage = memo(function WorkspacePage({
         {/* グループの見出しを出していないときの下書き（グループでまとめていないときは、グループに入れたものも含めていちばん上に） */}
         <DraftRows drafts={list.topDrafts} />
         {pinned && (
-          <RowSection icon={Pin} label="固定" className="pinned" count={pinned.chats.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
+          <FoldSection look="row" wrapClassName="pinned" icon={Pin} label="固定" count={pinned.chats.length} open={pinnedFold.open} onToggle={pinnedFold.toggle}>
             <ul className="chat-rows">{pinned.chats.map(renderRow)}</ul>
-          </RowSection>
+          </FoldSection>
         )}
         {/* 自分で作ったグループ（検索・自分待ちなどで絞り込んでいる間は、一致するチャットか下書きのあるものだけ） */}
         {list.groups.map((bucket) => {
@@ -172,8 +166,8 @@ export const WorkspacePage = memo(function WorkspacePage({
               projectId={project.id}
               group={group}
               bucket={bucket}
-              closed={groupClosed.get(group.id) && !filtering}
-              onSetClosed={(closed) => groupClosed.set(group.id, closed)}
+              closed={!filtering && !groupFolds.isOpen(bucket.key)}
+              onSetClosed={(closed) => groupFolds.set(bucket.key, !closed)}
               filtering={filtering}
               renderRow={renderRow}
               section={sections.sectionProps(group)}
@@ -181,17 +175,17 @@ export const WorkspacePage = memo(function WorkspacePage({
           );
         })}
         {showGroups && ungrouped && (ungrouped.chats.length > 0 || ungroupedDrafts.length > 0 || groupedDrafts) && (
-          <UngroupedHead projectId={project.id} count={ungrouped.chats.length} open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} drop={sections.ungroupedDrop} />
+          <UngroupedHead projectId={project.id} count={ungrouped.chats.length} open={ungroupedFold.open} onToggle={ungroupedFold.toggle} drop={sections.ungroupedDrop} />
         )}
         {(filtering && restCount === 0 && ungroupedDrafts.length === 0) ||
-        (visibleCount === 0 && ungroupedDrafts.length === 0 && showGroups && ungroupedClosed && !filtering) ? null : visibleCount === 0 &&
+        (visibleCount === 0 && ungroupedDrafts.length === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
           ungroupedDrafts.length === 0 ? (
           <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
             <Plus size={13} /> 最初のチャットを始める
           </button>
         ) : mainRows.length === 0 && ungroupedDrafts.length === 0 ? null : (
           // グループの見出しがあるときは「グループなし」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする
-          <Collapse open={!(showGroups && ungroupedClosed && !filtering)} indent={showGroups}>
+          <Collapse open={!ungroupedHidden} indent={showGroups}>
             {/* グループなしの下書き（グループから戻すドロップ先にもする） */}
             <DraftRows drafts={ungroupedDrafts} drop={sections.ungroupedDrop.props} />
             {mainRows.length === 0 ? null : mainSections ? (
@@ -204,7 +198,7 @@ export const WorkspacePage = memo(function WorkspacePage({
           </Collapse>
         )}
         {archived && (
-          <RowSection icon={Archive} label="アーカイブ済み" count={archived.chats.length} open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived}>
+          <FoldSection look="row" icon={Archive} label="アーカイブ済み" count={archived.chats.length} open={archivedFold.open} onToggle={archivedFold.toggle}>
             {/* 中も、ほかのチャットと同じまとめ方で出す（グループには分けない。開閉はアーカイブ済みの中だけで覚える） */}
             {archived.children ? (
               <div className="custom-group-grouped">
@@ -213,7 +207,7 @@ export const WorkspacePage = memo(function WorkspacePage({
             ) : (
               <ul className="chat-rows archived-rows">{archived.chats.map(renderRow)}</ul>
             )}
-          </RowSection>
+          </FoldSection>
         )}
       </Collapse>
       {sections.menuElement}

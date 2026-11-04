@@ -7,7 +7,7 @@
  *   ID が 1 から振り直され、別のものを指すため）。ID ごとのものは defineSettingFamily（キーは頭 ＋ ID）
  */
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/types";
-import { choice, defineSetting, defineSettingFamily, flag, list, number, record, text } from "./storage";
+import { choice, defineSetting, defineSettingFamily, flag, list, number, optionalFlag, record, text } from "./storage";
 
 const isString = (value: unknown): value is string => typeof value === "string";
 
@@ -33,8 +33,6 @@ export const SIDEBAR_PROJECT_ORDER = defineSetting("kickoff:sidebar-project-orde
 export const SIDEBAR_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:sidebar-show-archived-projects", flag());
 /** プロジェクトのカードを 1 行で出すか（名前だけにして、チャット数の行を隠す） */
 export const SIDEBAR_PROJECT_COMPACT = defineSetting("kickoff:sidebar-project-compact", flag());
-/** プロジェクトごとの、チャット一覧を閉じているか */
-export const sidebarProjectCollapsed = defineSettingFamily("kickoff:collapsed:", flag(), { ids: true });
 /** プロジェクトごとに最後に見ていた画面（URL のハッシュ。横スライドで戻ってきたときに開く。アプリを閉じるまで） */
 export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project", record(isString), { ids: true, session: true });
 /** プロジェクトのタグでの絞り込み（選んだタグ。"" はタグのないプロジェクト。空なら絞り込まない。サイドバー・全プロジェクトの画面・⌘⇧A で共通） */
@@ -51,16 +49,15 @@ export const SIDEBAR_WAITING_ONLY = defineSetting("kickoff:sidebar-waiting-only"
 export const SIDEBAR_COMPACT = defineSetting("kickoff:sidebar-compact", flag(true));
 /** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブ・ボードの絞り込みで共通） */
 export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archived", flag(true));
-/** まとめたまとまり（状態・作業場所）ごとの、閉じているか（ID は <プロジェクト>:<グループ・アーカイブ済み>:<まとまり>） */
-export const sidebarSectionClosed = defineSettingFamily("kickoff:sidebar-group-closed:", flag(), { ids: true });
-/** 自分で作ったグループごとの、閉じているか */
-export const sidebarGroupClosed = defineSettingFamily("kickoff:group-closed:", flag(), { ids: true });
-/** プロジェクトごとの「アーカイブ済み」のまとまりを開いているか */
-export const sidebarArchivedOpen = defineSettingFamily("kickoff:archived-open:", flag(), { ids: true });
-/** プロジェクトごとの「固定」のまとまりを閉じているか */
-export const sidebarPinnedClosed = defineSettingFamily("kickoff:pinned-closed:", flag(), { ids: true });
-/** プロジェクトごとの「グループなし」を閉じているか */
-export const sidebarUngroupedClosed = defineSettingFamily("kickoff:ungrouped-closed:", flag(), { ids: true });
+
+// まとまりの開閉（ここだけで覚える）
+/**
+ * まとまりを開いているか（hooks/useFold。サイドバーのプロジェクト・固定・グループ・グループなし・並べ方のまとまり・アーカイブ済み、
+ * ボードの段・列のアーカイブ済み、パネルのタブのまとまり）。ID は <場所>:<まとまりのキー>（chatList の bucketChats のキー。
+ * 例 "sidebar:p3"・"sidebar:p3/g5/status:read"・"board:kanban:3:p3/w:main"・"panel:p3/archived"）。
+ * "1" = 開いている / "0" = 閉じている。覚えていなければ、まとまりごとの初めの値（アーカイブ済みは閉じる・ほかは開く）
+ */
+export const FOLDS = defineSettingFamily("kickoff:fold:", optionalFlag(), { ids: true });
 
 // パレット
 /** ⌘K で探す対象（project / chat / message。空ならプロジェクトとチャット） */
@@ -85,10 +82,6 @@ export const ALL_PROJECTS_BOARD_LANES = defineSetting("kickoff:board-lanes-all",
 export const BOARD_ARCHIVE_FILTER = defineSetting("kickoff:show-archived", choice(["all", "active", "archived"], "all"));
 /** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える） */
 export const GROUP_BOARD_ARCHIVE_FILTER = defineSetting("kickoff:group-show-archived", choice(BOARD_ARCHIVE_FILTER.choices, "all"));
-/** 段ごとの、閉じているか（ID は <ボード>:<分け方>:<段>） */
-export const boardLaneClosed = defineSettingFamily("kickoff:board-lane-closed:", flag(), { ids: true });
-/** ボードの列・まとまりごとの「アーカイブ済み」を開いているか（ID はボード・段・列） */
-export const boardArchivedOpen = defineSettingFamily("kickoff:board-archived-open:", flag(), { ids: true });
 /** ボードツールバーの置き方（top = 常時表示 / beside = パネル優先。設定の「表示」） */
 export const BOARD_HEADER_LAYOUT = defineSetting("kickoff:board-header-layout", choice(["top", "beside"], "top"));
 /** プロジェクトの画面のタブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */
@@ -102,8 +95,6 @@ export const PANEL_MAXIMIZED = defineSetting("kickoff:panel-maximized", flag());
 export const panelTabGrouping = defineSettingFamily("kickoff:panel-tab-grouping:", choice(SIDEBAR_CHAT_SECTIONS.choices, "none"));
 /** 欄ごとの、表示するタブの種類（chat / browser / terminal。空なら欄ごとの既定） */
 export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", list());
-/** タブを畳んでいるまとまり（まとまりのキー。プロジェクト・グループの ID を含む。すべてのパネル・ペインで共通） */
-export const PANEL_TAB_CLUSTERS_COLLAPSED = defineSetting("kickoff:panel-tab-clusters-collapsed", list(), { ids: true });
 /** プロジェクトごとの、右のチャット欄を開いているか */
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
 export const PROJECT_CHAT_WIDTH = defineSetting("kickoff:project-chat-width", number(367));

@@ -110,6 +110,11 @@ export const projectKey = (projectId: number) => `p${projectId}`;
 const keyAt = (local: string, scope: number | undefined, parent: string | undefined) =>
   parent !== undefined ? `${parent}/${local}` : scope === undefined ? local : `${projectKey(scope)}/${local}`;
 
+/** グループ（null はグループなし）・固定・アーカイブ済みのまとまりのキー（まとまりがまだないとき（開閉をそろえる）にも使う） */
+export const groupKey = (projectId: number, groupId: number | null) => keyAt(groupId === null ? "ungrouped" : `g${groupId}`, projectId, undefined);
+export const pinnedKey = (projectId: number) => keyAt("pinned", projectId, undefined);
+export const archivedKey = (projectId: number) => keyAt("archived", projectId, undefined);
+
 const ZERO_COUNTS: StateCounts = Object.freeze({ running: 0, needs_input: 0, unread: 0 });
 
 /** 本体（新しいチャット・下書きの作業場所） */

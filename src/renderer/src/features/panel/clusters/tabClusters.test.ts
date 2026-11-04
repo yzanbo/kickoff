@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { PROJECT_HUES } from "@shared/project/colors";
 import type { ChatGroup } from "@shared/types";
 import type { BucketHead } from "@/features/chatList/buckets";
-import { OTHER_CLUSTER, clusterHue, clusterHues, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs } from "./tabClusters";
+import { OTHER_CLUSTER, clusterHue, clusterHues, clusterTabs, paneIndexOf, visibleClusterTabs } from "./tabClusters";
 
 const group = (id: number, position: number, hue = 0): ChatGroup => ({ id, project_id: 1, name: `G${id}`, position, hue, created_at: "" });
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });
@@ -95,14 +95,4 @@ test("タブのまとめ方: 畳んだまとまりは、ペインで表示中の
   // 表示中のタブがほかのまとまりにあれば、すべて隠す
   assert.deepEqual(visibleClusterTabs(cluster, true, "x"), []);
   assert.deepEqual(visibleClusterTabs(cluster, true, null), []);
-});
-
-test("タブのまとまりの畳み: アーカイブ済みは初めは畳み、開いたら open: で覚える。ほかは畳んだときだけ覚える", () => {
-  assert.equal(isClusterCollapsed("p1/archived", []), true);
-  assert.equal(isClusterCollapsed("p1/g2", []), false);
-  const opened = toggleClusterCollapsed("p1/archived", []);
-  assert.deepEqual(opened, ["open:p1/archived"]);
-  assert.equal(isClusterCollapsed("p1/archived", opened), false);
-  assert.deepEqual(toggleClusterCollapsed("p1/archived", opened), []);
-  assert.deepEqual(toggleClusterCollapsed("p1/g2", []), ["p1/g2"]);
 });

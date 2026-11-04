@@ -79,20 +79,3 @@ export function clusterHues(clusters: readonly Pick<BucketHead, "key" | "kind" |
   }
   return hues;
 }
-
-/** 初めは畳んでおくまとまり（アーカイブ済み。サイドバーの「アーカイブ済み」も初めは閉じている） */
-const foldedByDefault = (key: string) => key.endsWith("/archived");
-
-/**
- * まとまりを畳んでいるか。stored は kickoff:panel-tab-clusters-collapsed の値（畳んだまとまりのキー）。
- * 初めは畳んでおくまとまりだけは逆に、開いたときに `open:<キー>` を覚える（覚えていなければ畳む）
- */
-export function isClusterCollapsed(key: string, stored: readonly string[]): boolean {
-  return foldedByDefault(key) ? !stored.includes(`open:${key}`) : stored.includes(key);
-}
-
-/** まとまりを畳む ⇄ 開くに切り替えたあとの stored */
-export function toggleClusterCollapsed(key: string, stored: readonly string[]): string[] {
-  const mark = foldedByDefault(key) ? `open:${key}` : key;
-  return stored.includes(mark) ? stored.filter((k) => k !== mark) : [...stored, mark];
-}

@@ -129,8 +129,8 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
     drafts,
     keepEmpty: keepColumns,
   });
-  /** アーカイブ済みのまとまりの開閉を覚える名前（ボードごと。列・段はまとまりのキーで分ける） */
-  const foldScope = boardPanelKey(projectId);
+  /** 段・アーカイブ済みのまとまりの開閉を覚える場所（ボードごと。列・段はまとまりのキーで分ける） */
+  const foldPlace = `board:${boardPanelKey(projectId)}`;
 
   const header = (
     <BoardHeader
@@ -175,22 +175,22 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
       ) : split ? (
         // 段に分ける: 段ごとに、ボードと同じく下書き（その段に入る作成先のもの）→ 状態の列を並べる（リストなら 下書き → 状態のまとまり → アーカイブ済み を縦に）
         // 作業場所の段にプロジェクト名を添えるのは、いくつかのプロジェクトが並ぶ全プロジェクトのボードだけ
-        <BoardLanes lanes={buckets} list={view === "list"} boardKey={foldScope} showProject={allProjects && projects.length > 1}>
+        <BoardLanes lanes={buckets} list={view === "list"} foldPlace={foldPlace} showProject={allProjects && projects.length > 1}>
           {(lane) =>
             view === "board" ? (
-              <StateColumns columns={lane.children ?? []} drafts={lane.drafts} foldScope={foldScope} render={cards.card} />
+              <StateColumns columns={lane.children ?? []} drafts={lane.drafts} foldPlace={foldPlace} render={cards.card} />
             ) : (
-              <ListSections columns={lane.children ?? []} drafts={lane.drafts} foldScope={foldScope} archivedKey={`${lane.key}/archived`} render={cards.row} />
+              <ListSections columns={lane.children ?? []} drafts={lane.drafts} foldPlace={foldPlace} archivedKey={`${lane.key}/archived`} render={cards.row} />
             )
           }
         </BoardLanes>
       ) : view === "board" ? (
         <div className="board-columns">
-          <StateColumns columns={buckets} drafts={drafts} foldScope={foldScope} render={cards.card} />
+          <StateColumns columns={buckets} drafts={drafts} foldPlace={foldPlace} render={cards.card} />
         </div>
       ) : (
         <div className="board-list">
-          <ListSections columns={buckets} drafts={drafts} foldScope={foldScope} archivedKey="archived" render={cards.row} />
+          <ListSections columns={buckets} drafts={drafts} foldPlace={foldPlace} archivedKey="archived" render={cards.row} />
         </div>
       )}
     </BoardShell>

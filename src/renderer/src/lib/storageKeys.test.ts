@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { DATABASE_ID, chatDraft, NEW_CHAT_DRAFTS, sidebarGroupClosed, THEME } from "./storageKeys";
+import { DATABASE_ID, chatDraft, FOLDS, NEW_CHAT_DRAFTS, THEME } from "./storageKeys";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -36,7 +36,7 @@ test("localStorage・sessionStorage は lib/storage.ts の外で直接読み書�
 
 test("宣言: ID を含むもの（チャット・グループ・下書き）には印があり、含まないもの（テーマ・DB の ID）にはない", () => {
   assert.equal(chatDraft(1).ids, true);
-  assert.equal(sidebarGroupClosed.ids, true);
+  assert.equal(FOLDS.ids, true);
   assert.equal(NEW_CHAT_DRAFTS.ids, true);
   assert.equal(THEME.ids, false);
   assert.equal(DATABASE_ID.ids, false);

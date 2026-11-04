@@ -18,14 +18,14 @@ type RenderChat = (chat: Chat) => ReactNode;
  */
 export function StateColumn({
   column,
-  foldKey,
+  foldPlace,
   render,
   list = false,
   foldArchived = true,
 }: {
   column: ChatBucket<BoardDraft>;
-  /** アーカイブ済みのまとまりの開閉を覚える名前（ボード・段・列ごと） */
-  foldKey?: string;
+  /** アーカイブ済みのまとまりの開閉を覚える場所（ボード。列は列のまとまりのキーで分ける） */
+  foldPlace?: string;
   render: RenderChat;
   list?: boolean;
   /** アーカイブ済みを列のいちばん下に畳んで出す（リスト表示では、最後の ArchivedListSection にまとめるので出さない） */
@@ -36,8 +36,8 @@ export function StateColumn({
     <>
       {active.length === 0 && <p className="column-empty">なし</p>}
       {active.map(render)}
-      {foldArchived && foldKey && (
-        <ArchivedFold foldKey={foldKey} count={archived.length}>
+      {foldArchived && foldPlace && (
+        <ArchivedFold place={foldPlace} foldKey={`${column.key}/archived`} count={archived.length}>
           {archived.map(render)}
         </ArchivedFold>
       )}
@@ -72,14 +72,14 @@ export function DraftColumn({ drafts, list = false }: { drafts: readonly BoardDr
 
 /**
  * ボードの列: いちばん左に下書き、続けて状態の列（columns は bucketChats の状態のまとまり。ボードと段の中で共通）。
- * アーカイブ済みのまとまりの開閉は、foldScope（ボード）と列のキーで覚える
+ * アーカイブ済みのまとまりの開閉は、foldPlace（ボード）と列のキーで覚える
  */
-export function StateColumns({ columns, drafts, foldScope, render }: { columns: readonly ChatBucket<BoardDraft>[]; drafts: readonly BoardDraft[]; foldScope: string; render: RenderChat }) {
+export function StateColumns({ columns, drafts, foldPlace, render }: { columns: readonly ChatBucket<BoardDraft>[]; drafts: readonly BoardDraft[]; foldPlace: string; render: RenderChat }) {
   return (
     <>
       <DraftColumn drafts={drafts} />
       {columns.map((c) => (
-        <StateColumn key={c.key} column={c} foldKey={`${foldScope}:${c.key}/archived`} render={render} />
+        <StateColumn key={c.key} column={c} foldPlace={foldPlace} render={render} />
       ))}
     </>
   );
@@ -92,13 +92,13 @@ export function StateColumns({ columns, drafts, foldScope, render }: { columns: 
 export function ListSections({
   columns,
   drafts,
-  foldScope,
+  foldPlace,
   archivedKey,
   render,
 }: {
   columns: readonly ChatBucket<BoardDraft>[];
   drafts: readonly BoardDraft[];
-  foldScope: string;
+  foldPlace: string;
   archivedKey: string;
   render: RenderChat;
 }) {
@@ -108,7 +108,7 @@ export function ListSections({
       {columns.map((c) => (
         <StateColumn key={c.key} column={c} render={render} list foldArchived={false} />
       ))}
-      <ArchivedListSection columns={columns} foldKey={`${foldScope}:${archivedKey}`} render={render} />
+      <ArchivedListSection columns={columns} foldPlace={foldPlace} foldKey={archivedKey} render={render} />
     </>
   );
 }
@@ -117,13 +117,13 @@ export function ListSections({
  * リスト表示のいちばん下の「アーカイブ済み」（初めは閉じていて、押すと開く）。中は、アーカイブしていないものと同じく
  * 状態ごと（作業中・回答待ち・未読・既読）に分けて並べる。下書きはアーカイブできないので分けない
  */
-function ArchivedListSection({ columns, foldKey, render }: { columns: readonly ChatBucket<BoardDraft>[]; foldKey: string; render: RenderChat }) {
+function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns: readonly ChatBucket<BoardDraft>[]; foldPlace: string; foldKey: string; render: RenderChat }) {
   const archivedOf = (c: ChatBucket<BoardDraft>) => splitArchived(c.chats)[1];
   const count = columns.reduce((n, c) => n + archivedOf(c).length, 0);
   if (count === 0) return null;
   return (
     <section className="list-group archived-list">
-      <ArchivedFold foldKey={foldKey} count={count}>
+      <ArchivedFold place={foldPlace} foldKey={foldKey} count={count}>
         {columns.map((c) => {
           const list = archivedOf(c);
           return (

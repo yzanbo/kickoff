@@ -16,9 +16,8 @@ import type { TabDrag } from "@/features/panel/layout/useTabDrag";
 import { groupNameIn, useGroupsOf } from "@/stores/groups";
 import type { PanelController } from "@/features/panel/usePanel";
 import { shownActiveOf } from "@/features/panel/state/panelKinds";
-import { OTHER_CLUSTER, clusterHues, clusterTabs, isClusterCollapsed, paneIndexOf, toggleClusterCollapsed, visibleClusterTabs, type TabCluster } from "@/features/panel/clusters/tabClusters";
-import { useSetting } from "@/hooks/useSetting";
-import { PANEL_TAB_CLUSTERS_COLLAPSED } from "@/lib/storageKeys";
+import { OTHER_CLUSTER, clusterHues, clusterTabs, paneIndexOf, visibleClusterTabs, type TabCluster } from "@/features/panel/clusters/tabClusters";
+import { useFolds } from "@/hooks/useFold";
 import { TabClusterHead } from "@/features/panel/clusters/TabClusterHead";
 import { useTabClusters, useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 import { useClusterReorder } from "@/features/panel/clusters/useClusterReorder";
@@ -105,12 +104,16 @@ export function PaneTabBar({
   const shownSeeds = showChat && home ? seeds : [];
   // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
   const clusters = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, shownSeeds, projectOrder);
-  // タブを畳んだまとまり（すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない
-  const [collapsed, setCollapsed] = useSetting(PANEL_TAB_CLUSTERS_COLLAPSED);
-  const toggleCollapsed = (key: string) => setCollapsed(toggleClusterCollapsed(key, collapsed));
+  // タブを畳んだまとまり（まとまりのキーで覚え、すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない。
   // アーカイブ済みのまとまりは、サイドバーと同じく初めは畳んでおく
-  const isCollapsed = (key: string) => isClusterCollapsed(key, collapsed);
-  const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c.key), active);
+  const folds = useFolds(
+    "panel",
+    (clusters ?? []).map((c) => c.key),
+  );
+  const openByDefault = (c: TabCluster) => c.kind !== "archived";
+  const isCollapsed = (c: TabCluster) => !folds.isOpen(c.key, openByDefault(c));
+  const toggleCollapsed = (c: TabCluster) => folds.toggle(c.key, openByDefault(c));
+  const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c), active);
   const display = clusters ? clusters.flatMap(shownTabs) : known;
   // まとまりの色（同じ列のまとまりどうしで被らないように決める。グループは覚えた色を先に取る）
   const hues = clusterHues(clusters ?? []);
@@ -224,7 +227,7 @@ export function PaneTabBar({
             return (
               <div
                 key={c.key}
-                className={cx("panel-tab-group", hue === null && "plain", isCollapsed(c.key) && "collapsed", clusterReorder.classFor(c))}
+                className={cx("panel-tab-group", hue === null && "plain", isCollapsed(c) && "collapsed", clusterReorder.classFor(c))}
                 // --cluster-tabs: 見せているタブの数（まとまりをどこまで細くできるかを CSS で決める）
                 style={{ ...(hue === null ? {} : { "--group-hue": hue }), "--cluster-tabs": shownTabs(c).length } as CSSProperties}
                 {...clusterReorder.dropProps(c)}
@@ -234,8 +237,8 @@ export function PaneTabBar({
                   chats={clusterChats(c)}
                   onOpen={(chat) => panel.open(chat)}
                   onNewChat={(target) => panel.openNew(target)}
-                  collapsed={isCollapsed(c.key)}
-                  onToggleCollapsed={c.tabs.length > 0 ? () => toggleCollapsed(c.key) : undefined}
+                  collapsed={isCollapsed(c)}
+                  onToggleCollapsed={c.tabs.length > 0 ? () => toggleCollapsed(c) : undefined}
                   dragProps={clusterReorder.handle(c)}
                   count={clusterCount(c)}
                   tabCount={c.tabs.length}

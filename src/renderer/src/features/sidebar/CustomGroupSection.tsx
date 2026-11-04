@@ -10,7 +10,8 @@ import { Collapse } from "@/ui/Collapse";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
 import { GroupedChatRows } from "./GroupedChatRows";
-import { GroupToggle, pressedLeftOfName } from "@/ui/GroupToggle";
+import { pressedLeftOfName } from "@/ui/GroupToggle";
+import { FoldHead } from "@/ui/FoldHead";
 import type { SidebarDraft } from "@/features/panel/state/panelMemory";
 import { DraftRows } from "./DraftRows";
 import type { GroupSectionProps } from "./useGroupSections";
@@ -59,8 +60,10 @@ export function CustomGroupSection({
   const pressLabel = selected && !closed ? "閉じる" : `「${group.name}」のボードを開く`;
   return (
     <div className={cx("custom-group", dropClass)} {...dropProps}>
-      <div
-        className={cx("custom-group-head", selected && "active")}
+      {/* 開閉の矢印（ほかのまとまりと同じ）とフォルダのアイコン。押すと開閉する。名前の編集中は、ほかの操作を隠す（押し直して編集が始まり直さないように） */}
+      <FoldHead
+        look="group"
+        className={cx(selected && "active")}
         draggable={!renaming}
         title="ドラッグでグループを並べ替える（右クリックでメニュー・名前をダブルクリックで名前を変更）"
         onContextMenu={(e) => menu.openFor(group, e)}
@@ -72,49 +75,52 @@ export function CustomGroupSection({
           press();
         }}
         {...dragProps}
-      >
-        {/* 開閉の矢印（ほかのまとまりと同じ）とフォルダのアイコン。押すと開閉する */}
-        <GroupToggle open={!closed} onToggle={() => onSetClosed(!closed)} icon={Folder} />
-        {renaming ? (
-          <InlineName
-            initial={group.name}
-            onSubmit={(name) => {
-              onRenameEnd();
-              void api.renameGroup(group.id, name);
-            }}
-            onCancel={onRenameEnd}
-          />
-        ) : (
-          <button
-            type="button"
-            className="custom-group-name"
-            title={`${pressLabel}（ダブルクリックで名前を変更）`}
-            onClick={(e) => {
-              // ダブルクリック（名前の変更）の 2 回目は数えない
-              if (e.detail > 1) return;
-              press();
-            }}
-            onDoubleClick={onRenameStart}
-          >
-            {group.name}
-          </button>
-        )}
-        {/* 名前の編集中は、ほかの操作を隠す（鉛筆を押し直して編集が始まり直さないように） */}
-        {!renaming && (
-          <>
-            <span className="custom-group-count">{members.length}</span>
-            <IconButton
-              icon={Plus}
-              label={`${group.name} に新しいチャット`}
-              title={`「${group.name}」に新しいチャット`}
-              size={13}
-              className="custom-group-add"
-              onClick={() => openNewChat(projectId, { group: group.id })}
+        open={!closed}
+        onToggle={() => onSetClosed(!closed)}
+        icon={Folder}
+        name={
+          renaming ? (
+            <InlineName
+              initial={group.name}
+              onSubmit={(name) => {
+                onRenameEnd();
+                void api.renameGroup(group.id, name);
+              }}
+              onCancel={onRenameEnd}
             />
-            {menu.button(group)}
-          </>
-        )}
-      </div>
+          ) : (
+            <button
+              type="button"
+              className="custom-group-name"
+              title={`${pressLabel}（ダブルクリックで名前を変更）`}
+              onClick={(e) => {
+                // ダブルクリック（名前の変更）の 2 回目は数えない
+                if (e.detail > 1) return;
+                press();
+              }}
+              onDoubleClick={onRenameStart}
+            >
+              {group.name}
+            </button>
+          )
+        }
+        count={renaming ? undefined : members.length}
+        actions={
+          !renaming && (
+            <>
+              <IconButton
+                icon={Plus}
+                label={`${group.name} に新しいチャット`}
+                title={`「${group.name}」に新しいチャット`}
+                size={13}
+                className="custom-group-add"
+                onClick={() => openNewChat(projectId, { group: group.id })}
+              />
+              {menu.button(group)}
+            </>
+          )
+        }
+      />
       <Collapse open={!closed} indent>
         <DraftRows drafts={drafts} />
         {members.length === 0 ? (

@@ -2,7 +2,7 @@ import { Archive, Plus } from "lucide-react";
 import type { Chat, ChatGroup } from "@shared/types";
 import { tagLabel } from "@/features/project/projectTagFilter";
 import { useChatSelection } from "./chatSelection";
-import { GroupToggle } from "@/ui/GroupToggle";
+import { FoldHead } from "@/ui/FoldHead";
 import { ProjectSlides } from "./ProjectSlides";
 import { ProjectStack } from "./ProjectStack";
 import { SelectionBar } from "./SelectionBar";
@@ -40,13 +40,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   /** 縦並びの、しまったプロジェクトのまとまりの見出し（サイドバーのアーカイブ済みのチャットと同じ形） */
   const toggleArchived = () => setShowArchived(!showArchived);
   const archivedHead = archived.length > 0 && !waitingOnly && (
-    <div className="custom-group-head ungrouped archived-projects-head">
-      <GroupToggle open={showArchived} onToggle={toggleArchived} icon={Archive} iconSize={12} />
-      <button className="custom-group-name ungrouped-name" onClick={toggleArchived}>
-        アーカイブしたプロジェクト
-      </button>
-      <span className="custom-group-count">{archived.length}</span>
-    </div>
+    <FoldHead look="row" className="archived-projects-head" icon={Archive} open={showArchived} onToggle={toggleArchived} label="アーカイブしたプロジェクト" count={archived.length} />
   );
 
   /** タグで絞り込んで、合うプロジェクトがひとつもないとき（自分待ちより先に知らせる） */

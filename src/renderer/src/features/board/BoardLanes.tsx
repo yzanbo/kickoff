@@ -1,14 +1,14 @@
 import { Folder, GitBranch } from "lucide-react";
 import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
-import { useSettingFamily } from "@/hooks/useSetting";
+import { useFolds } from "@/hooks/useFold";
 import type { SettingValue } from "@/lib/storage";
 import { ProjectMark } from "@/features/project/ProjectMark";
 import { useProjects } from "@/stores/projects";
-import { boardLaneClosed, type PROJECT_BOARD_LANES } from "@/lib/storageKeys";
+import type { PROJECT_BOARD_LANES } from "@/lib/storageKeys";
 import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
 import type { ChatBucket } from "@/features/chatList/buckets";
-import { GroupToggle } from "@/ui/GroupToggle";
+import { FoldHead } from "@/ui/FoldHead";
 import type { BoardDraft } from "./DraftCards";
 
 /**
@@ -69,19 +69,19 @@ function LaneTitle({ lane, showProject }: { lane: ChatBucket<BoardDraft>; showPr
 /**
  * ボードを段（スイムレーン）に分けて出す。段は bucketChats のまとまり（グループ・作業場所・プロジェクト。中の段が状態の列）で、
  * 段の中身（children: 下書きと状態の列・リストのまとまり）は呼ぶ側が描く。
- * 段は見出しで開閉でき、ボードごとに覚える（boardKey）
+ * 段は見出しで開閉でき、ボード（foldPlace）と段のまとまりのキーで覚える
  */
 export function BoardLanes({
   lanes,
-  boardKey,
+  foldPlace,
   list = false,
   showProject = false,
   laneProps,
   children,
 }: {
   lanes: readonly ChatBucket<BoardDraft>[];
-  /** 段の開閉を覚える名前（ボードごと） */
-  boardKey: string;
+  /** 段の開閉を覚える場所（ボードごと） */
+  foldPlace: string;
   /** 段の中をリストで並べる（リスト表示。段の中の状態のまとまりを縦に並べる） */
   list?: boolean;
   /** 作業場所の段に、どのプロジェクトのものかを添える（いくつかのプロジェクトが並ぶボード） */
@@ -91,23 +91,19 @@ export function BoardLanes({
   /** 段の中身 */
   children: (lane: ChatBucket<BoardDraft>) => ReactNode;
 }) {
-  const closed = useSettingFamily(boardLaneClosed);
+  const folds = useFolds(
+    foldPlace,
+    lanes.map((l) => l.key),
+  );
   return (
     <div className="board-lanes">
       {lanes.length === 0 && <p className="column-empty">チャットはありません</p>}
       {lanes.map((lane) => {
-        const id = `${boardKey}:${lane.key}`;
-        const open = !closed.get(id);
+        const open = folds.isOpen(lane.key);
         const extra = laneProps?.(lane) ?? {};
         return (
           <section key={lane.key} {...extra} className={cx("board-lane", extra.className)}>
-            <div className="board-lane-head">
-              <GroupToggle open={open} onToggle={() => closed.set(id, open)} />
-              <button className="board-lane-name" aria-expanded={open} onClick={() => closed.set(id, open)}>
-                <LaneTitle lane={lane} showProject={showProject} />
-                <span className="board-lane-count">{lane.chats.length}</span>
-              </button>
-            </div>
+            <FoldHead look="lane" open={open} onToggle={() => folds.set(lane.key, !open)} label={<LaneTitle lane={lane} showProject={showProject} />} count={lane.chats.length} />
             {open && <div className={list ? "lane-list" : "board-columns lane-columns"}>{children(lane)}</div>}
           </section>
         );

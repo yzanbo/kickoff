@@ -1,26 +1,21 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Project, Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { useChatSearch } from "@/features/chat/chatSearch";
-import { useSetting, useSettingFamily } from "@/hooks/useSetting";
+import { useSetting } from "@/hooks/useSetting";
+import { foldAll, useFolds } from "@/hooks/useFold";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/stores/projects";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { navigate, routeProjectId, useRoute } from "@/app/router";
 import { readSetting, writeSetting } from "@/lib/storage";
-import {
-  SIDEBAR_LAST_HASHES,
-  SIDEBAR_LAYOUT,
-  SIDEBAR_PROJECT_ORDER,
-  SIDEBAR_SHOW_ARCHIVED_PROJECTS,
-  SIDEBAR_WAITING_ONLY,
-  sidebarProjectCollapsed,
-} from "@/lib/storageKeys";
+import { SIDEBAR_LAST_HASHES, SIDEBAR_LAYOUT, SIDEBAR_PROJECT_ORDER, SIDEBAR_SHOW_ARCHIVED_PROJECTS, SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
+import { projectKey } from "@/features/chatList/buckets";
 import { loadCurrentProject, saveCurrentProject } from "./currentProject";
 import { useProjectMenu } from "@/features/project/ProjectMenu";
 import { useAllDrafts } from "@/features/panel/state/panelMemory";
-import { foldAll, useCompactProjects, useCompactRows, useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
+import { useCompactProjects, useCompactRows, useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
 import { useProjectReorder } from "./useProjectReorder";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
@@ -67,8 +62,14 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const [currentId, setCurrentId] = useState(loadCurrentProject);
   // 下の丸の右クリックメニュー（プロジェクトに対する操作）
   const projectMenu = useProjectMenu(projects);
-  // チャット一覧の開閉（縦並びでは、すべてまとめて閉じる・開くこともできる）
-  const collapsedMap = useSettingFamily(sidebarProjectCollapsed);
+  // チャット一覧の開閉（プロジェクトのまとまりのキーで覚える。見出しの行の「すべて閉じる / 開く」でそろえる）。set は参照が変わらない（memo したページに渡す）
+  const projectFolds = useFolds(
+    "sidebar",
+    ordered.map((p) => projectKey(p.id)),
+  );
+  const { set: setProjectOpen } = projectFolds;
+  const setCollapsed = useCallback((id: number, collapsed: boolean) => setProjectOpen(projectKey(id), !collapsed), [setProjectOpen]);
+  const collapsedMap = { get: (id: number) => !projectFolds.isOpen(projectKey(id)), set: setCollapsed };
   const index = Math.max(0, ordered.findIndex((p) => p.id === currentId));
   const current = ordered[index];
 
@@ -136,10 +137,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
 
   // プロジェクトと、その中のまとまりをすべて閉じる・開く（縦並び・横スライドのどちらでも、見出しの行から）
   const allCollapsed = ordered.every((p) => collapsedMap.get(p.id));
-  const setAllCollapsed = (on: boolean) => {
-    ordered.forEach((p) => collapsedMap.set(p.id, on));
-    foldAll(on);
-  };
+  const setAllCollapsed = (on: boolean) => foldAll("sidebar", on);
   /** 一覧の上の見出しの行に渡す（並べ方・しまったプロジェクトを出すか・すべて閉じる / 開く） */
   const head = {
     layout,
