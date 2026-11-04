@@ -10,6 +10,10 @@ export interface ClusterOf {
   key: string;
   label: string;
   title?: string;
+  /** まとまりのプロジェクト（札の右クリックで、そのプロジェクトにグループを作る。「その他」にはない） */
+  projectId?: number;
+  /** グループ別のまとまりのグループ（null = グループなし。作業場所別では持たない） */
+  groupId?: number | null;
 }
 
 /** ブラウザなど、どのグループ・作業場所にも入らないタブのまとまり（いちばん後ろに置く） */

@@ -183,7 +183,7 @@ export function PaneTabBar({
             const hue = clusterHue(c.key);
             return (
               <div key={c.key} className={cx("panel-tab-group", hue === null && "plain")} style={hue === null ? undefined : ({ "--group-hue": hue } as CSSProperties)}>
-                <TabClusterHead cluster={c} runs={clusterRuns(c)} onOpen={(run) => panel.open(run)} />
+                <TabClusterHead cluster={c} runs={clusterRuns(c)} onOpen={(run) => panel.open(run)} onNewChat={(target) => panel.openNew(target)} />
                 {c.tabs.map((key) => tab(key, display.indexOf(key)))}
               </div>
             );

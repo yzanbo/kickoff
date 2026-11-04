@@ -41,12 +41,18 @@ export function useTabClusters(
 
   const byGroup = (projectId: number, groupId: number | null | undefined): ClusterOf => {
     const name = groupId ? groupName(projectId, groupId) : undefined;
-    return named(projectId, { key: `p${projectId}:g${groupId ?? ""}`, label: name ?? "グループなし", title: name ? `グループ: ${name}` : "グループに入っていないチャット" });
+    return named(projectId, {
+      key: `p${projectId}:g${groupId ?? ""}`,
+      label: name ?? "グループなし",
+      title: name ? `グループ: ${name}` : "グループに入っていないチャット",
+      projectId,
+      groupId: groupId ?? null,
+    });
   };
   const byWorkplace = (projectId: number, run: Pick<Run, "worktree_path" | "branch">): ClusterOf => {
     const wp = workplaceOf(run, worktrees(projectId));
     const label = wp.kind === "main" ? `本体${wp.name ? ` · ${wp.name}` : ""}` : wp.name;
-    return named(projectId, { key: `p${projectId}:w${wp.key}`, label, title: wp.title });
+    return named(projectId, { key: `p${projectId}:w${wp.key}`, label, title: wp.title, projectId });
   };
   /** ターミナルの開いたフォルダが、どのプロジェクトの本体・ワークツリーか */
   const terminalWorkplace = (cwd: string): ClusterOf => {
