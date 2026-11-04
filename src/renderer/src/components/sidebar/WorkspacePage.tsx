@@ -4,15 +4,15 @@ import { BOARD_COLUMN_LABELS, type AgentState, type ProjectSummary, type Run, ty
 import { api } from "../../api";
 import { alertDialog } from "../../dialogs";
 import { useRunRename } from "../../hooks/useRunRename";
-import { useSharedChoice, useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
+import { useStoredFlag, useStoredFlagMap } from "../../hooks/useStoredState";
 import { projectHue } from "../../projectColor";
-import { SIDEBAR_GROUP_CLOSED_PREFIX, SIDEBAR_GROUPING_KEY, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
+import { SIDEBAR_GROUP_CLOSED_PREFIX, sidebarArchivedOpenKey, sidebarPinnedClosedKey, sidebarUngroupedClosedKey } from "../../storageKeys";
 import { openNewChat, openRun, routeProjectId, useRoute } from "../../router";
 import { CardMenu } from "../menus/CardMenu";
 import { InlineName } from "../InlineName";
 import { SearchField } from "../SearchField";
 import { ChatRow } from "./ChatRow";
-import { CHAT_GROUPINGS, type ChatGrouping } from "./chatGroupings";
+import { useChatLayout } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
 import { useGroupSections } from "./useGroupSections";
@@ -49,7 +49,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   searchAll?: string;
 }) {
   const route = useRoute();
-  const [grouping] = useSharedChoice<ChatGrouping>(SIDEBAR_GROUPING_KEY, CHAT_GROUPINGS, "recent");
+  // まとめ方（まとめない / グループ / 作業場所）と並び順（新しい順 / 状態別）。グループの見出しは「グループ」のときだけ出す
+  const { sections: chatSections, setSections, order } = useChatLayout();
+  const byGroup = chatSections === "group";
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
   const [showArchived] = useShowArchivedChats();
   // 見出しのクリックでチャット一覧を開閉する
@@ -77,7 +79,13 @@ export const WorkspacePage = memo(function WorkspacePage({
   );
   const showDrafts = !keyword && stateFilter === null;
   // グループに入れた下書きがあれば、グループなしのチャットがなくても「グループなし」の見出しを出す（下書きを戻すドロップ先）
-  const groupedDrafts = showDrafts && groups.some((g) => drafts.inGroup(g.id).length > 0);
+  const groupedDrafts = showDrafts && byGroup && groups.some((g) => drafts.inGroup(g.id).length > 0);
+  // グループでまとめていないときは、グループに入れた下書きもいちばん上に並べる
+  const topDrafts = byGroup ? drafts.top : [...drafts.top, ...groups.flatMap((g) => drafts.inGroup(g.id))];
+  // グループの見出しを出しているか（グループでまとめていて、グループがあるとき）
+  const showGroups = byGroup && groups.length > 0;
+  // 見出しの下に並べる行: グループでまとめているときはグループなしのものだけ、それ以外はすべて（固定したものを除く）
+  const mainRows = byGroup ? ungroupedRows : rows;
   // グループの開閉（グループごとに記憶）
   const groupClosed = useStoredFlagMap(SIDEBAR_GROUP_CLOSED_PREFIX);
   // 「グループなし」の開閉（プロジェクトごとに記憶。検索中は開いて見せる）
@@ -92,6 +100,8 @@ export const WorkspacePage = memo(function WorkspacePage({
   });
   const startCreate = () => {
     if (collapsed) toggleCollapsed();
+    // 作ったグループが見えるよう、グループでまとめる表示にする
+    if (!byGroup) setSections("group");
     setCreating(true);
   };
 
@@ -155,13 +165,13 @@ export const WorkspacePage = memo(function WorkspacePage({
           </div>
         )}
         {/* グループなしの下書き（グループから戻すドロップ先にもする） */}
-        {showDrafts && <DraftRows drafts={drafts.top} drop={groups.length > 0 ? sections.ungroupedDrop.props : undefined} />}
+        {showDrafts && <DraftRows drafts={topDrafts} drop={showGroups ? sections.ungroupedDrop.props : undefined} />}
         {pinnedRows.length > 0 && (
           <RowSection icon={Pin} label="固定" className="pinned" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
             <ul className="chat-rows">{pinnedRows.map(renderRow)}</ul>
           </RowSection>
         )}
-        {groups.map((group) => {
+        {byGroup && groups.map((group) => {
           const members = list.groupedRows(group.id);
           const groupDrafts = showDrafts ? drafts.inGroup(group.id) : [];
           // 検索・自分待ちなどで絞り込んでいる間は、一致するチャットがないグループを隠す（下書きがあれば出す。自分が続きを書くもの）
@@ -175,40 +185,48 @@ export const WorkspacePage = memo(function WorkspacePage({
               closed={groupClosed.get(group.id) && !filtering}
               onSetClosed={(closed) => groupClosed.set(group.id, closed)}
               filtering={filtering}
-              grouping={grouping}
+              order={order}
               renderRow={renderRow}
               section={sections.sectionProps(group)}
               drafts={groupDrafts}
             />
           );
         })}
-        {groups.length > 0 && (ungroupedRows.length > 0 || groupedDrafts) && (
+        {showGroups && (ungroupedRows.length > 0 || groupedDrafts) && (
           <UngroupedHead projectId={project.id} count={ungroupedRows.length} open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} drop={sections.ungroupedDrop} />
         )}
-        {(filtering && rows.length === 0) || (visibleRows.length === 0 && groups.length > 0 && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 ? (
+        {(filtering && rows.length === 0) || (visibleRows.length === 0 && showGroups && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 ? (
           <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
             <Plus size={13} /> 最初のチャットを始める
           </button>
-        ) : ungroupedRows.length === 0 ? null : (
-          // グループがあるときは「グループなし」の見出しで開閉し、中身を段下げする
-          <Collapse open={!(groups.length > 0 && ungroupedClosed && !filtering)} indent={groups.length > 0}>
-            {grouping === "recent" ? (
-              <ul className="chat-rows" {...(groups.length > 0 ? sections.ungroupedDrop.props : {})}>
-                {ungroupedRows.map(renderRow)}
+        ) : mainRows.length === 0 ? null : (
+          // グループの見出しがあるときは「グループなし」の見出しで開閉し、中身を段下げする
+          <Collapse open={!(showGroups && ungroupedClosed && !filtering)} indent={showGroups}>
+            {chatSections !== "worktree" && order === "recent" ? (
+              <ul className="chat-rows" {...(showGroups ? sections.ungroupedDrop.props : {})}>
+                {mainRows.map(renderRow)}
               </ul>
             ) : (
-              <GroupedChatRows grouping={grouping} projectId={project.id} rows={ungroupedRows} renderRow={renderRow} forceOpen={filtering} />
+              <GroupedChatRows sections={chatSections === "worktree" ? "worktree" : "none"} order={order} projectId={project.id} rows={mainRows} renderRow={renderRow} forceOpen={filtering} />
             )}
           </Collapse>
         )}
         {showArchived && !waitingOnly && archivedMatches.length > 0 && (
           <RowSection icon={Archive} label="アーカイブ済み" count={archivedMatches.length} open={archivedOpen || Boolean(keyword)} onToggle={toggleArchived}>
             {/* 中も、ほかのチャットと同じまとめ方で出す（開閉はアーカイブ済みの中だけで覚える） */}
-            {grouping === "recent" ? (
+            {chatSections !== "worktree" && order === "recent" ? (
               <ul className="chat-rows archived-rows">{archivedMatches.map(renderRow)}</ul>
             ) : (
               <div className="custom-group-grouped">
-                <GroupedChatRows grouping={grouping} projectId={project.id} scope="archived" rows={archivedMatches} renderRow={renderRow} forceOpen={Boolean(keyword)} />
+                <GroupedChatRows
+                  sections={chatSections === "worktree" ? "worktree" : "none"}
+                  order={order}
+                  projectId={project.id}
+                  scope="archived"
+                  rows={archivedMatches}
+                  renderRow={renderRow}
+                  forceOpen={Boolean(keyword)}
+                />
               </div>
             )}
           </RowSection>

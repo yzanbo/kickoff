@@ -9,7 +9,7 @@ import type { BoardEntry } from "../board/boardColumns";
 import { Collapse } from "../Collapse";
 import { IconButton } from "../IconButton";
 import { InlineName } from "../InlineName";
-import type { ChatGrouping } from "./chatGroupings";
+import type { ChatOrder } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { GroupToggle, pressedLeftOfName } from "./GroupToggle";
 import type { SidebarDraft } from "../sidePanel/panelMemory";
@@ -28,7 +28,7 @@ export function CustomGroupSection({
   closed,
   onSetClosed,
   filtering,
-  grouping,
+  order,
   renderRow,
   section: { menu, renaming, onRenameStart, onRenameEnd, dropClass, dropProps, dragProps },
   drafts = [],
@@ -40,7 +40,8 @@ export function CustomGroupSection({
   onSetClosed: (closed: boolean) => void;
   /** 検索・絞り込みの間（並べ方のまとまりを開いて見せる） */
   filtering: boolean;
-  grouping: ChatGrouping;
+  /** 中の並び順（状態別なら状態ごとの見出しに分ける） */
+  order: ChatOrder;
   renderRow: (row: BoardEntry) => ReactNode;
   /** 見出しの操作の束（useGroupSections の sectionProps） */
   section: GroupSectionProps;
@@ -125,10 +126,10 @@ export function CustomGroupSection({
           drafts.length > 0 ? null : (
           <p className="custom-group-empty">チャットをここへドラッグ</p>
           )
-        ) : grouping !== "recent" ? (
-          // 並べ方でまとめているときは、グループの中も同じようにまとめる
+        ) : order === "status" ? (
+          // 状態別のときは、グループの中を状態ごとの見出しに分ける
           <div className="custom-group-grouped">
-            <GroupedChatRows grouping={grouping} projectId={projectId} scope={group.id} rows={members} renderRow={renderRow} forceOpen={filtering} />
+            <GroupedChatRows sections="none" order={order} projectId={projectId} scope={group.id} rows={members} renderRow={renderRow} forceOpen={filtering} />
           </div>
         ) : (
           <ul className="chat-rows custom-group-rows">{members.map(renderRow)}</ul>
