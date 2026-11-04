@@ -155,7 +155,9 @@ export function TabClusterHead({
       {at && runs && (
         <StateRunsPopover
           title={popoverTitle}
-          sections={runsByState(runs, stateOf)}
+          // まとまりのチャットをすべて（既読・アーカイブ済みも）状態ごとに並べる
+          sections={runsByState(runs, stateOf, { all: true })}
+          emptyText="チャットはありません"
           onOpen={onOpen}
           onClose={() => setAt(null)}
           className="cluster-runs-popover"

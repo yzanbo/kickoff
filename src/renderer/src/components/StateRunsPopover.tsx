@@ -1,6 +1,6 @@
 import type { CSSProperties, Ref } from "react";
 import { boardColumnOf } from "../../../core/board";
-import { BOARD_COLUMN_LABELS, type AgentState, type Run } from "../../../core/types";
+import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type AgentState, type BoardColumn, type Run } from "../../../core/types";
 import { chatTitle } from "../chatTitle";
 import { cx } from "../cx";
 import { useProjects } from "../projectsContext";
@@ -10,27 +10,32 @@ import { COLUMN_TONE } from "./board/tones";
 import { PopoverHeader } from "./PopoverHeader";
 import { StatusDot } from "./StatusDot";
 
-type CountedColumn = (typeof COUNTED_COLUMNS)[number];
+/** 一覧のまとまり（カンバンの列と、すべての状態を出すときのいちばん下の「アーカイブ済み」） */
+type SectionKey = BoardColumn | "archived";
 
-/** 状態ごとのチャットのまとまり（作業中 → 回答待ち → 未読の順。中は最近動いた順） */
+/** 状態ごとのチャットのまとまり（作業中 → 回答待ち → 未読（→ 既読 → アーカイブ済み）の順。中は最近動いた順） */
 export interface StateRunsSection {
-  column: CountedColumn;
+  column: SectionKey;
   runs: Run[];
 }
 
+/** まとまりの名前と色（画面の見出しの状態ごとの数 StateStats でも使う） */
+export const SECTION_LABELS: Record<SectionKey, string> = { ...BOARD_COLUMN_LABELS, archived: "アーカイブ済み" };
+export const SECTION_TONES: Record<SectionKey, string> = { ...COLUMN_TONE, archived: "var(--extra-muted)" };
+
 /**
- * チャットを状態ごとに分ける（アーカイブしたものと既読は入れない。チャットのないまとまりは出さない）。
- * 数え方はカンバンの列と同じ（boardColumnOf）で、状態ごとの数（stateCounts）とそろう
+ * チャットを状態ごとに分ける（チャットのないまとまりは出さない）。数え方はカンバンの列と同じ（boardColumnOf）で、状態ごとの数（stateCounts）とそろう。
+ * 初めは作業中・回答待ち・未読だけ（アーカイブしたものと既読は入れない。画面の見出しの状態ごとの数）。
+ * all なら既読と、いちばん下にアーカイブ済みも並べ、渡したチャットをすべて出す（右のパネルのタブのまとまりの札。そのまとまりのチャットの一覧）
  */
-export function runsByState(runs: readonly Run[], stateOf: (run: Run) => AgentState): StateRunsSection[] {
-  const byColumn = new Map<CountedColumn, Run[]>(COUNTED_COLUMNS.map((c) => [c, []]));
+export function runsByState(runs: readonly Run[], stateOf: (run: Run) => AgentState, { all = false }: { all?: boolean } = {}): StateRunsSection[] {
+  const keys: readonly SectionKey[] = all ? [...BOARD_COLUMNS, "archived"] : COUNTED_COLUMNS;
+  const bySection = new Map<SectionKey, Run[]>(keys.map((c) => [c, []]));
   for (const run of runs) {
-    if (run.archived_at) continue;
-    byColumn.get(boardColumnOf(stateOf(run)) as CountedColumn)?.push(run);
+    const key: SectionKey = run.archived_at ? "archived" : boardColumnOf(stateOf(run));
+    bySection.get(key)?.push(run);
   }
-  return COUNTED_COLUMNS.map((column) => ({ column, runs: byColumn.get(column)!.sort((a, b) => b.active_at.localeCompare(a.active_at)) })).filter(
-    (s) => s.runs.length > 0,
-  );
+  return keys.map((column) => ({ column, runs: bySection.get(column)!.sort((a, b) => b.active_at.localeCompare(a.active_at)) })).filter((s) => s.runs.length > 0);
 }
 
 /**
@@ -42,6 +47,7 @@ export function StateRunsPopover({
   title,
   sections,
   showProject = false,
+  emptyText = "作業中・回答待ち・未読のチャットはありません",
   onOpen,
   onClose,
   className,
@@ -51,6 +57,8 @@ export function StateRunsPopover({
   title: string;
   sections: StateRunsSection[];
   showProject?: boolean;
+  /** チャットがないときの文 */
+  emptyText?: string;
   onOpen: (run: Run) => void;
   onClose: () => void;
   className?: string;
@@ -61,12 +69,12 @@ export function StateRunsPopover({
   return (
     <div ref={popoverRef} className={cx("state-runs-popover", className)} style={style} role="dialog" aria-label={title}>
       <PopoverHeader title={title} onClose={onClose} />
-      {sections.length === 0 && <p className="state-runs-empty muted">作業中・回答待ち・未読のチャットはありません</p>}
+      {sections.length === 0 && <p className="state-runs-empty muted">{emptyText}</p>}
       {sections.map(({ column, runs }) => (
         <section key={column} className="state-runs-section">
           <h3 className="state-runs-head">
-            <StatusDot color={COLUMN_TONE[column]} />
-            {BOARD_COLUMN_LABELS[column]}
+            <StatusDot color={SECTION_TONES[column]} />
+            {SECTION_LABELS[column]}
             <span className="muted">{runs.length}</span>
           </h3>
           {runs.map((run) => (
