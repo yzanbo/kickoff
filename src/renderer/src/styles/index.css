@@ -52,6 +52,7 @@
 @import "./board-columns.css";
 @import "./board-cards.css";
 @import "./side-panel.css";
+@import "./side-panel-tabs.css";
 @import "./side-panel-split.css";
 @import "./browser.css";
 @import "./board-list.css";

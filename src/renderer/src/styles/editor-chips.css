@@ -34,6 +34,29 @@
   flex: none;
 }
 
+/* どのグループのチャットか（新しいチャットの見出しのグループの選択と同じアクセントの色。形はブランチの印と同じ小さなピル） */
+.run-group-chip {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  max-width: 160px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-bright) 50%, transparent);
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent-bright);
+}
+
+.run-group-chip svg {
+  flex: none;
+}
+
 /* 本体で作業しているチャットのブランチは控えめに（ワークツリーのものと見分ける） */
 .worktree-chip.on-main {
   border-color: var(--border-strong);

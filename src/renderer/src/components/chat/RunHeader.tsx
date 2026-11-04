@@ -1,13 +1,14 @@
-import { Archive, ArchiveRestore } from "lucide-react";
+import { Archive, ArchiveRestore, Folder } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Project, Run } from "../../../../core/types";
+import { useGroupName } from "../../groupNames";
 import { toggleArchiveRunNow } from "../../runActions";
 import { IconButton } from "../IconButton";
 import { ProjectChip } from "../ProjectChip";
 import { WorktreeChip } from "../WorktreeChip";
 
 /**
- * チャットの見出し: プロジェクト・作業場所のバッジ、右に道具（検索・横幅・アーカイブ）・ターン数と API 換算。
+ * チャットの見出し: プロジェクト・作業場所・グループのバッジ、右に道具（検索・横幅・アーカイブ）・ターン数と API 換算。
  * 名前・閉じる・状態の印（作業中・回答待ちなど）はパネルのタブにあるので、ここには出さない（名前はタブのダブルクリックで変える）
  */
 export function RunHeader({
@@ -20,6 +21,7 @@ export function RunHeader({
   /** 右の道具の列の先頭に置くもの（チャットの中の検索・発言の目次） */
   tools?: ReactNode;
 }) {
+  const groupName = useGroupName(run.project_id, run.group_id);
   return (
     <header className="run-header">
       <div className="run-title-row">
@@ -27,6 +29,12 @@ export function RunHeader({
         <span className="run-sub muted small">
           {project && <ProjectChip id={project.id} name={project.name} linked />}
           <WorktreeChip run={run} />
+          {groupName && (
+            <span className="run-group-chip" title={`グループ「${groupName}」のチャット`}>
+              <Folder size={11} aria-hidden />
+              {groupName}
+            </span>
+          )}
         </span>
         {run.archived_at && <span className="archived-chip">アーカイブ済み</span>}
         <span className="spacer" />

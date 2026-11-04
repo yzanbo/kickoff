@@ -28,11 +28,12 @@ export function hostOf(url: string): string {
  * タブに出す名前とアイコン。チャットかブラウザかがひと目でわかるよう、チャットは吹き出し、
  * ブラウザは地球儀、新しいチャットはペン、ターミナルは端末の印にする
  */
-export function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string } {
+export function tabLabel(t: PanelTab, runs: Run[]): { Icon: LucideIcon; iconClass?: string; label: string; group?: string } {
   if (t.kind === "browser") return { Icon: Globe, label: t.title || (t.url ? hostOf(t.url) : "新しいタブ") };
   if (t.kind === "terminal") return { Icon: SquareTerminal, label: `ターミナル · ${t.label}` };
   if (t.kind === "subagent") return { Icon: Bot, iconClass: "muted", label: t.title };
-  if (t.kind === "new") return { Icon: SquarePen, label: t.groupName ? `${NEW_CHAT_TITLE} · ${t.groupName}` : NEW_CHAT_TITLE };
+  // 作成先のグループ名は名前の後ろに控えめに添える（PanelTab の group。送ったあとのチャットのタブも同じ）
+  if (t.kind === "new") return { Icon: SquarePen, label: NEW_CHAT_TITLE, group: t.groupName };
   // ボードの一覧にあればその最新の名前、なければタブが覚えている名前（アーカイブ済み・絞り込みで外れたチャットなど）
   const run = runs.find((r) => r.id === t.id);
   const title = run?.title ?? t.title;
