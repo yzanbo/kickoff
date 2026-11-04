@@ -30,7 +30,20 @@ const NO_DRAFTS: SidebarDraft[] = [];
  * 検索（プロジェクトの検索欄か、すべてのプロジェクトをまたぐ検索欄 searchAll）・自分待ち・見出しの状態の数で絞り、
  * 上に固定したもの・グループごと・グループなし（まとめ方が作業場所・状態なら、その見出しのまとまり）・アーカイブ済みに分ける
  */
-export function useWorkspaceRows({ projectId, chats, groupCount, searchAll }: { projectId: number; chats: Chat[]; groupCount: number; searchAll: string }) {
+export function useWorkspaceRows({
+  projectId,
+  chats,
+  groupCount,
+  searchAll,
+  collapsed,
+}: {
+  projectId: number;
+  chats: Chat[];
+  groupCount: number;
+  searchAll: string;
+  /** チャット一覧を閉じているか（閉じている間は、作業場所で分けるためのワークツリーの一覧を読みに行かない） */
+  collapsed: boolean;
+}) {
   // まとめ方（まとめない / グループ / 作業場所）と並び順（新しい順 / 状態別）。グループの見出しは「グループ」のときだけ出す
   const { grouping, order } = useChatLayout();
   // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替える）
@@ -70,6 +83,7 @@ export function useWorkspaceRows({ projectId, chats, groupCount, searchAll }: { 
     archived: "bucket",
     drafts: showGroups && showDrafts ? drafts : NO_DRAFTS,
     keepEmpty: filtering ? KEEP_UNGROUPED : KEEP_GROUPS,
+    idle: collapsed,
   });
   const main = buckets.filter((b) => b.kind !== "pinned" && b.kind !== "archived" && b.kind !== "group");
   const ungrouped = main.find((b) => b.kind === "ungrouped");
