@@ -57,14 +57,25 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-/** いくつかのプロジェクトのグループ名を引く（グループなし・読み込み中・もうないグループは undefined）。一覧が変わると描き直す */
-export function useGroupNames(projectIds: number[]): (projectId: number, groupId: number | null | undefined) => string | undefined {
+/** いくつかのプロジェクトのグループの一覧を読み、変わったら描き直す */
+function useLoadGroups(projectIds: number[]) {
   useSyncExternalStore(subscribe, () => version);
   const key = [...new Set(projectIds)].sort((a, b) => a - b).join(",");
   useEffect(() => {
     if (key) key.split(",").map(Number).forEach(load);
   }, [key]);
+}
+
+/** いくつかのプロジェクトのグループ名を引く（グループなし・読み込み中・もうないグループは undefined）。一覧が変わると描き直す */
+export function useGroupNames(projectIds: number[]): (projectId: number, groupId: number | null | undefined) => string | undefined {
+  useLoadGroups(projectIds);
   return (projectId, groupId) => (groupId == null ? undefined : cache.get(projectId)?.find((g) => g.id === groupId)?.name);
+}
+
+/** いくつかのプロジェクトのグループを、サイドバーと同じ並び（position の順）で引く（読み込み中は空）。一覧が変わると描き直す */
+export function useProjectGroups(projectIds: number[]): (projectId: number) => RunGroup[] {
+  useLoadGroups(projectIds);
+  return (projectId) => [...(cache.get(projectId) ?? [])].sort((a, b) => a.position - b.position);
 }
 
 /** 1 つのチャットのグループ名（グループなし・読み込み中は undefined） */

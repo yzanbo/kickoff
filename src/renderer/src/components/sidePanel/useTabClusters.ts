@@ -1,11 +1,11 @@
 import type { Run } from "../../../../core/types";
-import { useGroupNames } from "../../groupNames";
+import { useGroupNames, useProjectGroups } from "../../groupNames";
 import { useSharedChoice } from "../../hooks/useStoredState";
 import { useProjects } from "../../projectsContext";
 import { PANEL_TAB_GROUPING_KEY } from "../../storageKeys";
 import { workplaceOf } from "../../worktree/workplace";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
-import { OTHER_CLUSTER, TAB_GROUPINGS, type ClusterOf, type TabGrouping } from "./tabClusters";
+import { OTHER_CLUSTER, TAB_GROUPINGS, type ClusterOf, type ClusterSeed, type TabGrouping } from "./tabClusters";
 import type { PanelTab, SidePanelController } from "./useSidePanel";
 
 /** 右のパネルのタブの列のまとめ方（ボードの右のパネル・プロジェクトのチャット欄・すべてのペインで共通。初めはまとめない） */
@@ -20,15 +20,18 @@ const projectOfTab = (t: PanelTab): number | undefined => (t.kind === "browser" 
  * 作業場所別: チャット・サブエージェントはそのチャットの作業場所（ブランチ。workplaceOf）、新しいチャットはプロジェクトの本体、
  * ターミナルは開いたフォルダ（本体・ワークツリー）。ブラウザ（作業場所別ではフォルダの分からないターミナルも）は「その他」。
  * いくつかのプロジェクトのタブが並ぶとき（全プロジェクトのボード）は、名前の前にプロジェクト名を添える。
- * clusterOfRun はチャットがどのまとまりに入るか（タブで開いていないチャットも。まとまりの札から開く状態ごとの一覧に使う）
+ * clusterOfRun はチャットがどのまとまりに入るか（タブで開いていないチャットも。まとまりの札から開く状態ごとの一覧に使う）。
+ * order はグループ別のとき先に並べるまとまり: サイドバーと連動させ、プロジェクトごとに自分で作ったグループをサイドバーと同じ並びで
+ * （チャットのタブがなくても札を出す。作ったグループがすぐタブの列にも出る）、そのあとに「グループなし」（タブがあるときだけ）
  */
 export function useTabClusters(
   panel: SidePanelController,
   grouping: TabGrouping,
-): { clusterOf: (key: string) => ClusterOf; clusterOfRun: (run: Run) => ClusterOf } {
+): { clusterOf: (key: string) => ClusterOf; clusterOfRun: (run: Run) => ClusterOf; order: ClusterSeed[] } {
   const { projectsById, projectName } = useProjects();
   const projectIds = [...new Set(panel.tabs.flatMap((t) => projectOfTab(t) ?? []))];
   const groupName = useGroupNames(grouping === "group" ? projectIds : []);
+  const groupsOf = useProjectGroups(grouping === "group" ? projectIds : []);
   // ターミナルのフォルダから引くプロジェクト（本体のフォルダか、その隣のワークツリーの置き場 <名前>-worktrees/ の中）
   const terminalCwds = panel.tabs.flatMap((t) => (t.kind === "terminal" ? [t.cwd] : []));
   const terminalProjects = [...projectsById.values()]
@@ -79,5 +82,12 @@ export function useTabClusters(
     const run = t.kind === "chat" ? runOf(t.id, t.run) : runOf(t.runId);
     return byWorkplace(t.projectId, run ?? { worktree_path: "", branch: "" });
   };
-  return { clusterOf, clusterOfRun };
+  const order: ClusterSeed[] =
+    grouping === "group"
+      ? projectIds.flatMap((id) => [
+          ...groupsOf(id).map((g) => ({ cluster: byGroup(id, g.id), keepEmpty: true })),
+          { cluster: byGroup(id, null), keepEmpty: false },
+        ])
+      : [];
+  return { clusterOf, clusterOfRun, order };
 }

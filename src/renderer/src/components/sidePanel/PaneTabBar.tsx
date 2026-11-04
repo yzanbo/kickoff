@@ -86,9 +86,9 @@ export function PaneTabBar({
     panel.runs.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, attention: Boolean(t.attention) } as Run) : undefined);
   // まとめ方を選んでいれば、まとまりごとに並べ替えて見せる（display は見た目の並び。タブの中身が残っているものだけ）
   const [grouping] = useTabGrouping();
-  const { clusterOf, clusterOfRun } = useTabClusters(panel, grouping);
+  const { clusterOf, clusterOfRun, order } = useTabClusters(panel, grouping);
   const known = pane.tabs.filter((key) => panel.tabs.some((t) => t.key === key));
-  const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf);
+  const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf, order);
   const display = clusters ? clusters.flatMap((c) => c.tabs) : known;
   /**
    * まとまり（グループ・作業場所）のチャット: タブで開いているチャットと、ボードの一覧のうち同じまとまりに入るもの（タブで開いていないものも）。
