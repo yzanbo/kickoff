@@ -105,9 +105,12 @@ export function panelReducer(state: PanelState, action: PanelAction, rules: Pane
       return changed ? { ...state, tabs } : state;
     }
     case "replace": {
-      if (!state.tabs.some((t) => t.key === action.key)) return state;
-      const tabs = state.tabs.map((t) => (t.key === action.key ? action.tab : t));
-      const layout = reconcileLayout(renameTab(state.layout, action.key, action.tab.key), tabs.map((t) => t.key));
+      const { key, tab } = action;
+      if (!state.tabs.some((t) => t.key === key)) return state;
+      // 同じキーのタブがもうあれば（送った直後に、サーバーの知らせで連動のタブが先に足されたとき）、置き換えるタブ 1 つにまとめる（置き換える位置に残す）
+      const twin = tab.key !== key && state.tabs.some((t) => t.key === tab.key);
+      const tabs = state.tabs.flatMap((t) => (t.key === key ? [tab] : twin && t.key === tab.key ? [] : [t]));
+      const layout = renameTab(twin ? closeLayoutTabs(state.layout, [tab.key]) : state.layout, key, tab.key);
       return { ...state, tabs, layout };
     }
     case "close":

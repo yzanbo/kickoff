@@ -79,6 +79,14 @@ test("replace: 送った新しいチャットのタブを、同じペインの�
   assert.equal(shape(next.layout.root), `${FIRST_PANE}[chat:1,*chat:9]`);
 });
 
+test("replace: 連動で先に足されていた同じチャットのタブは、置き換えるタブ 1 つにまとめる（送った直後にサーバーの知らせが先に届いたとき）", () => {
+  const s = run(emptyPanel([chatTab(1), newTab("new:a")]), { type: "show", key: "new:a" }, { type: "sync", chats: [chat(1), chat(9)] });
+  assert.deepEqual(keys(s), ["chat:1", "new:a", "chat:9"]);
+  const next = run(s, { type: "replace", key: "new:a", tab: chatTab(9) });
+  assert.deepEqual(keys(next), ["chat:1", "chat:9"]);
+  assert.equal(shape(next.layout.root), `${FIRST_PANE}[chat:1,*chat:9]`);
+});
+
 test("close: 表示中のタブを閉じたら隣のタブへ。見せているタブがなくなったら欄も閉じる（閉じない欄もある）", () => {
   const s = run(emptyPanel([chatTab(1), chatTab(2)]), { type: "show", key: "chat:1" });
   const one = run(s, { type: "close", keys: ["chat:1"], dismiss: true });
