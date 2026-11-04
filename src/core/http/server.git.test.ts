@@ -8,8 +8,9 @@ import { setup, tempDir, until } from "../testing/testServer.js";
 
 test("Git の変更の API（状態と、ファイルごとの差分）", async () => {
   const { call, project } = setup();
-  // Git で管理されていないフォルダ
+  // Git で管理されていないフォルダ（ワークツリーの一覧は失敗にせず空）
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body, { repo: false });
+  assert.deepEqual(await call("GET", `/api/projects/${project.id}/git/worktrees`), { status: 200, body: [] });
 
   const repo = project.repo_path;
   const git = (...args: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd: repo });

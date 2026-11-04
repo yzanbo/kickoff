@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { addWorktree, findWorktree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
+import { addWorktree, findWorktree, isGitWorkTree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
 import { Conflict } from "../errors.js";
 import { jsonBody } from "../input.js";
@@ -11,7 +11,11 @@ import { branchName, folderPath } from "./schemas.js";
 export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
   const { withProject } = lookups(store);
 
-  app.get("/api/projects/:id/git/worktrees", withProject, async (c) => c.json(await listWorktrees(c.var.project.repo_path)));
+  // Git で管理していないフォルダは、ワークツリーのないもの（空）として返す（Git の状態の repo: false と同じ扱い。失敗にすると、画面が取り直し続ける）
+  app.get("/api/projects/:id/git/worktrees", withProject, async (c) => {
+    const repo = c.var.project.repo_path;
+    return c.json((await isGitWorkTree(repo)) ? await listWorktrees(repo) : []);
+  });
 
   app.get("/api/projects/:id/git/worktrees/path", withProject, async (c) => {
     const { branch } = z.object({ branch: branchName }).parse({ branch: c.req.query("branch") });

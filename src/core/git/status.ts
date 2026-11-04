@@ -51,13 +51,17 @@ export function parseGitStatus(raw: string): Extract<GitStatus, { repo: true }> 
   return status;
 }
 
-/** プロジェクトのフォルダの Git の状態（Git で管理されていなければ repo: false） */
-export async function gitStatus(repo: string): Promise<GitStatus> {
-  const inside = await gitOutput(repo, ["rev-parse", "--is-inside-work-tree"]).then(
+/** フォルダが Git で管理されているか（作業ツリーの中か。フォルダがない・Git でなければ false） */
+export function isGitWorkTree(repo: string): Promise<boolean> {
+  return gitOutput(repo, ["rev-parse", "--is-inside-work-tree"]).then(
     (out) => out.trim() === "true",
     () => false,
   );
-  if (!inside) return { repo: false };
+}
+
+/** プロジェクトのフォルダの Git の状態（Git で管理されていなければ repo: false） */
+export async function gitStatus(repo: string): Promise<GitStatus> {
+  if (!(await isGitWorkTree(repo))) return { repo: false };
   const [raw, remotes] = await Promise.all([gitOutput(repo, ["status", "--porcelain=v1", "-z", "--branch", "--untracked-files=all"]), listRemotes(repo)]);
   return { ...parseGitStatus(raw), has_origin: remotes.includes("origin") };
 }
