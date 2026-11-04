@@ -93,6 +93,56 @@
   padding-right: 100px;
 }
 
+/*
+ * 右端のチャット欄は幅が狭いので、タブの列を 2 段に分ける: 上の段（信号機ボタン・右上のレイアウトの開閉と同じ行）にタブ、
+ * 下の段にタブの列の道具（まとめ方・表示するタブ・アーカイブ・新しいタブ・ペインの分割）。1 段に並べるとタブの入る幅がほとんど残らなかった。
+ * 並びは DOM を変えず order で入れ替え、間の改行は幅いっぱいの ::before で入れる。フッター（.in-footer）は横に広いので 1 段のまま
+ */
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs {
+  flex-wrap: wrap;
+  align-content: flex-start;
+  row-gap: 4px;
+  padding-right: var(--gutter);
+  padding-bottom: 4px;
+}
+
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs::before {
+  content: "";
+  order: 0;
+  flex-basis: 100%;
+  height: 0;
+}
+
+/* 上の段: 「チャット」の札とタブの並び。右端は右上のレイアウトの開閉のために空ける（右上のペインだけ。下の段は欄の端まで使う） */
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs > .panel-tab-cluster.all,
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs > .panel-tab-strip {
+  order: -1;
+}
+
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs > .panel-tab-strip {
+  flex: 1 1 0;
+  min-height: 30px;
+}
+
+.board-panel.as-sidebar:not(.in-footer) > .panel-tabs > .panel-tab-strip,
+.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tab-strip {
+  margin-right: calc(100px - var(--gutter));
+}
+
+/* 下の段: 道具（左から、タブの列の道具・新しいタブ。ペインの分割は右端） */
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs > :is(.panel-controls, .panel-tab-adds, .panel-pane-tools) {
+  order: 1;
+}
+
+.board-panel.as-sidebar:not(.in-footer) .split-view {
+  --split-tabs-h: 77px;
+}
+
+.board-panel.as-sidebar:not(.in-footer) .split-pane .panel-tabs,
+.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tabs {
+  padding-right: var(--gutter);
+}
+
 /* スマホ（縦 1 列）ではプロジェクトのチャット欄は出さない（ボードの右のパネルを使う）。上の基底（display: flex）と同じ詳細度なので、必ず基底より後ろに置く */
 @media (max-width: 720px) {
   .project-chat {
