@@ -5,7 +5,7 @@ import { githubStatus } from "../../git/github.js";
 import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ApprovalDecision, type ModelOption, type ProviderId, type SlashCommandOption } from "@shared/types";
 import { ttlCache } from "../../system/ttlCache.js";
-import { HttpError, requireProject, requireWorkdir } from "./http.js";
+import { requireProject, requireWorkdir } from "./http.js";
 import { attachmentSchema, optionalId, queryOf, jsonBody } from "./schemas.js";
 import { answersWithAttachments } from "../../chat/uploads.js";
 
@@ -37,7 +37,8 @@ export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, 
       // AI には添付のパスを書き添えた回答を渡し、チャットの記録には選んだままの回答と添付を残す
       decision = { ...rest, answers: await answersWithAttachments(uploads, rest.answers, attachments), plain: rest.answers, attachments };
     }
-    if (!approvals.resolve(c.req.param("id"), decision)) throw new HttpError(404, "この依頼はすでに回答済みか、中断されています");
+    // もう待っていない（回答済み・中断済み）なら 409
+    approvals.resolve(c.req.param("id"), decision);
     return c.json({ ok: true });
   });
 

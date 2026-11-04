@@ -176,7 +176,7 @@ test("チャット・グループの API", async () => {
   assert.equal(detail.body.chat.id, chatId);
   assert.ok(detail.body.events.length > 0);
   assert.deepEqual(detail.body.approvals, []);
-  assert.deepEqual(await call("GET", "/api/chats/999"), { status: 404, body: { error: "実行が見つかりません" } });
+  assert.deepEqual(await call("GET", "/api/chats/999"), { status: 404, body: { error: "チャットが見つかりません" } });
   assert.ok(Array.isArray((await call("GET", `/api/search?q=${encodeURIComponent("こんにちは")}&project_id=${project.id}`)).body));
   // 絞り込み・件数が数でなければ 400（NaN を SQL に入れない）。件数の上限は 1000 に丸める
   assert.equal((await call("GET", "/api/search?q=a&project_id=x")).status, 400);
@@ -278,8 +278,9 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   assert.deepEqual(await call("GET", `/api/uploads/${randomUUID()}`), { status: 404, body: { error: "ファイルが見つかりません" } });
 
   assert.deepEqual((await call("GET", "/api/approvals")).body, []);
+  // もう待っていない（回答済み・中断済み）依頼は 409（状態による失敗。404 にしない）
   assert.deepEqual(await call("POST", "/api/approvals/nope", { action: "allow" }), {
-    status: 404,
+    status: 409,
     body: { error: "この依頼はすでに回答済みか、中断されています" },
   });
   assert.equal((await call("POST", "/api/approvals/nope", { action: "maybe" })).status, 400);
@@ -529,7 +530,8 @@ test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発�
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send-in-order`)).status, 404);
+  // 送るものがなければ 409（状態による失敗）、チャットがなければ 404
+  assert.deepEqual(await call("POST", `/api/chats/${chatId}/queue/send-in-order`), { status: 409, body: { error: "送信待ちの指示がありません" } });
   assert.equal((await call("POST", "/api/chats/999/queue/send-in-order")).status, 404);
   for (const text of ["2", "3", "4"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
   await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
@@ -843,7 +845,8 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
-  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send-all`)).status, 404);
+  // 送るものがなければ 409（状態による失敗）
+  assert.equal((await call("POST", `/api/chats/${chatId}/queue/send-all`)).status, 409);
   // すべて消す
   await call("POST", `/api/chats/${chatId}/queue`, { text: "消す" });
   assert.deepEqual((await call("DELETE", `/api/chats/${chatId}/queue`)).body, { messages: [], paused: false, stops: [], waiting_edit: false });
@@ -942,7 +945,8 @@ test("止めずに伝える API: 作業中なら止めずに足して自分の�
   await call("DELETE", `/api/chats/${chatId}/queue`);
   release();
   await until(() => !runner.isBusy(chatId));
-  assert.equal((await call("POST", `/api/chats/${chatId}/background/b1/stop`)).status, 404);
+  // 作業中でなければ 409（状態による失敗）
+  assert.equal((await call("POST", `/api/chats/${chatId}/background/b1/stop`)).status, 409);
   // 作業中でなければ、すぐ送る
   assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "ふつう" })).body, { result: "sent" });
   await until(() => provider.prompts.length === 2);

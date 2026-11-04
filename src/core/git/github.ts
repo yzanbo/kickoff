@@ -1,6 +1,7 @@
 import { errorMessage } from "@shared/errors";
 import { CommandError, nonInteractiveEnv, runCommand } from "../system/exec.js";
 import type { GitHubStatus, PullRequestInfo } from "@shared/types";
+import { Invalid } from "../http/errors.js";
 
 const GH_MISSING = "gh が見つかりません。`brew install gh` でインストールしてください";
 
@@ -28,9 +29,9 @@ async function gh(cwd: string, args: string[]): Promise<string> {
     return await runGh(args, { cwd, timeout: 60_000 });
   } catch (e) {
     if (e instanceof CommandError) {
-      if (e.code === "ENOENT") throw new Error(GH_MISSING);
-      if (/known GitHub host/i.test(e.stderr)) throw new Error("プッシュ先が GitHub ではないので、PR は作れません");
-      if (/gh auth login/i.test(e.stderr)) throw new Error("GitHub にログインしていません。ターミナルで `gh auth login` を実行してください");
+      if (e.code === "ENOENT") throw new Invalid(GH_MISSING);
+      if (/known GitHub host/i.test(e.stderr)) throw new Invalid("プッシュ先が GitHub ではないので、PR は作れません");
+      if (/gh auth login/i.test(e.stderr)) throw new Invalid("GitHub にログインしていません。ターミナルで `gh auth login` を実行してください");
     }
     throw e;
   }
@@ -53,6 +54,6 @@ export async function pullRequestFor(cwd: string, branch: string): Promise<PullR
 export async function createPullRequest(cwd: string, branch: string): Promise<PullRequestInfo> {
   await gh(cwd, ["pr", "create", "--fill", "--head", branch]);
   const pr = await pullRequestFor(cwd, branch);
-  if (!pr) throw new Error("PR を作れませんでした");
+  if (!pr) throw new Invalid("PR を作れませんでした");
   return pr;
 }

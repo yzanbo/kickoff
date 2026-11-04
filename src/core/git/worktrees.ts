@@ -5,6 +5,7 @@ import type { GitWorktree, WorktreeRemovalInfo } from "@shared/types";
 import { prepareWorktree } from "./worktreeSetup.js";
 import { gitOutput } from "./exec.js";
 import { hasRef, listRemotes } from "./status.js";
+import { Conflict, Invalid, NotFound } from "../http/errors.js";
 
 /** `git worktree list --porcelain` を読む（空行で区切られた塊ごとに 1 つ。最初が本体） */
 export function parseWorktrees(out: string): GitWorktree[] {
@@ -47,10 +48,10 @@ export async function worktreePathFor(repo: string, branch: string): Promise<str
  */
 export async function addWorktree(repo: string, branch: string): Promise<GitWorktree[]> {
   await gitOutput(repo, ["check-ref-format", "--branch", branch]).catch(() => {
-    throw new Error("ブランチの名前に使えない文字があります");
+    throw new Invalid("ブランチの名前に使えない文字があります");
   });
   const target = await worktreePathFor(repo, branch);
-  if (await fs.stat(target).catch(() => null)) throw new Error(`フォルダがすでにあります: ${target}`);
+  if (await fs.stat(target).catch(() => null)) throw new Conflict(`フォルダがすでにあります: ${target}`);
   const exists = await hasRef(repo, `refs/heads/${branch}`);
   await gitOutput(repo, exists ? ["worktree", "add", target, branch] : ["worktree", "add", "-b", branch, target]);
   await prepareWorktree(await fs.realpath(repo), target);
@@ -60,7 +61,7 @@ export async function addWorktree(repo: string, branch: string): Promise<GitWork
 /** ワークツリーを消す前の確かめ（コミットしていない変更の数・どのリモートにもないコミットの数・プッシュしたことがあるか） */
 export async function worktreeRemovalInfo(repo: string, target: string): Promise<WorktreeRemovalInfo> {
   const worktree = await findWorktree(repo, target);
-  if (!worktree) throw new Error("ワークツリーが見つかりません");
+  if (!worktree) throw new NotFound("ワークツリーが見つかりません");
   const ok = (p: Promise<string>) => p.then((out) => out, () => "");
   const changes = worktree.prunable ? "" : await ok(gitOutput(target, ["status", "--porcelain"]));
   const hasRemote = (await listRemotes(repo).catch(() => [])).length > 0;
@@ -87,8 +88,8 @@ export async function worktreeRemovalInfo(repo: string, target: string): Promise
  */
 export async function removeWorktree(repo: string, target: string, { force = false, deleteBranch = false } = {}): Promise<GitWorktree[]> {
   const worktree = await findWorktree(repo, target);
-  if (!worktree) throw new Error("ワークツリーが見つかりません");
-  if (worktree.main) throw new Error("本体のフォルダは消せません");
+  if (!worktree) throw new NotFound("ワークツリーが見つかりません");
+  if (worktree.main) throw new Invalid("本体のフォルダは消せません");
   if (worktree.prunable) await gitOutput(repo, ["worktree", "prune"]);
   else await gitOutput(repo, ["worktree", "remove", ...(force ? ["--force"] : []), target]);
   if (deleteBranch && worktree.branch) await gitOutput(repo, ["branch", "-D", worktree.branch]);

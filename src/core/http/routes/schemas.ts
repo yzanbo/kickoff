@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { z } from "zod";
 import type { ChatOptionsPatch } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
-import { HttpError } from "./http.js";
+import { Invalid } from "../errors.js";
 
 // ルートで共通に使う zod の形（入力の検証に失敗したときの 400 は server.ts の onError が返す）
 
@@ -19,7 +19,7 @@ export async function jsonBody(c: Context): Promise<unknown> {
   try {
     return JSON.parse(text);
   } catch {
-    throw new HttpError(400, "本文が JSON として読めません");
+    throw new Invalid("本文が JSON として読めません");
   }
 }
 

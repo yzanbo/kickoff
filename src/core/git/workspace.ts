@@ -5,6 +5,7 @@ import { gitOutput } from "./exec.js";
 import { hasRef } from "./status.js";
 import { expandHome } from "../system/paths.js";
 import type { FolderInspection } from "@shared/types";
+import { Conflict, Invalid } from "../http/errors.js";
 
 const git = async (cwd: string, args: string[]) => (await gitOutput(cwd, args)).trim();
 
@@ -32,14 +33,14 @@ interface NewWorkspace {
  */
 export async function createWorkspace(input: NewWorkspace): Promise<string> {
   const folder = toFolderName(input.folderName);
-  if (!folder) throw new Error("フォルダ名には英数字・ハイフン・アンダースコアを使ってください");
+  if (!folder) throw new Invalid("フォルダ名には英数字・ハイフン・アンダースコアを使ってください");
   const parent = path.resolve(expandHome(input.parentDir.trim()));
   const stat = await fs.stat(parent).catch(() => null);
-  if (!stat?.isDirectory()) throw new Error(`保存先のフォルダが見つかりません: ${parent}`);
+  if (!stat?.isDirectory()) throw new Invalid(`保存先のフォルダが見つかりません: ${parent}`);
 
   const repo = path.join(parent, folder);
   const existing = await fs.readdir(repo).catch(() => null);
-  if (existing && existing.length > 0) throw new Error(`同じ名前のフォルダがすでにあり、空ではありません: ${repo}`);
+  if (existing && existing.length > 0) throw new Conflict(`同じ名前のフォルダがすでにあり、空ではありません: ${repo}`);
 
   await fs.mkdir(repo, { recursive: true });
   try {
@@ -52,7 +53,7 @@ export async function createWorkspace(input: NewWorkspace): Promise<string> {
     // 途中で失敗したら、作ったフォルダを片付けてから伝える
     if (!existing) await fs.rm(repo, { recursive: true, force: true });
     const detail = errorMessage(e);
-    throw new Error(`git リポジトリの初期化に失敗しました: ${detail}`);
+    throw new Invalid(`git リポジトリの初期化に失敗しました: ${detail}`);
   }
   // 取り込み時の重複チェックと揃えるため、実体のパスで登録する
   return fs.realpath(repo);
@@ -98,15 +99,15 @@ export async function inspectWorkspace(rawPath: string): Promise<FolderInspectio
  */
 export async function prepareImportedWorkspace(rawPath: string, initGit: boolean): Promise<string> {
   const info = await inspectWorkspace(rawPath);
-  if (!info.exists || !info.is_directory) throw new Error(`フォルダが見つかりません: ${info.path}`);
+  if (!info.exists || !info.is_directory) throw new Invalid(`フォルダが見つかりません: ${info.path}`);
   const real = info.path;
   if (info.is_git && info.git_root !== real) {
-    throw new Error(`このフォルダは git リポジトリの一部です。ルートのフォルダを指定してください: ${info.git_root}`);
+    throw new Invalid(`このフォルダは git リポジトリの一部です。ルートのフォルダを指定してください: ${info.git_root}`);
   }
   if (info.is_git && info.has_commits) return real;
 
   if (!initGit) {
-    throw new Error(
+    throw new Invalid(
       info.is_git
         ? "コミットがまだありません。最初のコミットを作成することに同意してください"
         : "git で管理されていません。git リポジトリとして初期化することに同意してください",
@@ -117,7 +118,7 @@ export async function prepareImportedWorkspace(rawPath: string, initGit: boolean
     await git(real, ["add", "-A"]);
     await git(real, ["commit", "--allow-empty", "-m", "chore: Kickoff に取り込み"]);
   } catch (e) {
-    throw new Error(`git の初期化に失敗しました: ${errorMessage(e)}`);
+    throw new Invalid(`git の初期化に失敗しました: ${errorMessage(e)}`);
   }
   return real;
 }

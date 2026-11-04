@@ -1,5 +1,6 @@
 import { errorMessage } from "@shared/errors";
 import type { AudioInput, OpenAiOptions } from "./types.js";
+import { Invalid } from "../http/errors.js";
 
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 
@@ -19,7 +20,7 @@ export function transcriptionForm(audio: AudioInput, opts: Pick<OpenAiOptions, "
 /** 成功の応答から文を取り出す（{ text }） */
 export function parseTranscription(body: unknown): string {
   const text = (body as { text?: unknown } | null)?.text;
-  if (typeof text !== "string") throw new Error("文字起こしの応答の形が正しくありません");
+  if (typeof text !== "string") throw new Invalid("文字起こしの応答の形が正しくありません");
   return text.trim();
 }
 
@@ -34,7 +35,7 @@ export function openAiFailure(status: number, body: unknown): string {
   return `文字起こしに失敗しました（${detail}）`;
 }
 
-/** OpenAI（互換のサーバーも）の文字起こしの API で起こす */
+/** OpenAI（互換のサーバーも）の文字起こしの API で起こす（つながらない・断られたら、理由の文で 400） */
 export async function transcribeOpenAi(audio: AudioInput, opts: OpenAiOptions, fetchImpl: typeof fetch = fetch): Promise<string> {
   const url = transcriptionUrl(opts.baseUrl);
   let res: Response;
@@ -46,9 +47,9 @@ export async function transcribeOpenAi(audio: AudioInput, opts: OpenAiOptions, f
       signal: AbortSignal.timeout(5 * 60_000),
     });
   } catch (e) {
-    throw new Error(`文字起こしの API につながりません（${new URL(url).host}）: ${errorMessage(e)}`);
+    throw new Invalid(`文字起こしの API につながりません（${new URL(url).host}）: ${errorMessage(e)}`);
   }
   const body: unknown = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(openAiFailure(res.status, body));
+  if (!res.ok) throw new Invalid(openAiFailure(res.status, body));
   return parseTranscription(body);
 }

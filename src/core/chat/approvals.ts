@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Bus } from "../bus.js";
 import type { ApprovalRequest } from "../providers/types.js";
 import type { Approval, ApprovalDecision } from "@shared/types";
+import { Conflict } from "../http/errors.js";
 
 interface Pending {
   approval: Approval;
@@ -53,9 +54,9 @@ export class ApprovalCenter {
     return { approval, decision };
   }
 
-  /** ユーザーの回答を反映する。存在しない（回答済み・中断済み）なら false */
-  resolve(id: string, decision: ApprovalDecision): boolean {
-    return this.settle(id, decision);
+  /** ユーザーの回答を反映する。もう待っていない（回答済み・中断済み）なら 409 */
+  resolve(id: string, decision: ApprovalDecision): void {
+    if (!this.settle(id, decision)) throw new Conflict("この依頼はすでに回答済みか、中断されています");
   }
 
   private settle(id: string, decision: ApprovalDecision): boolean {

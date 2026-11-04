@@ -4,8 +4,8 @@ import { Hono, type Context } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { streamSSE } from "hono/streaming";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { z } from "zod";
 import { AUTH_COOKIE, tokenMatches } from "./auth.js";
+import { errorResponse } from "./errors.js";
 import type { Bus } from "../bus.js";
 import type { AgentProvider } from "../providers/index.js";
 import type { Store } from "../db/store.js";
@@ -19,7 +19,6 @@ import { agentRoutes } from "./routes/agents.js";
 import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
-import { HttpError } from "./routes/http.js";
 import { projectRoutes } from "./routes/projects.js";
 import { chatRoutes } from "./routes/chats.js";
 import { chatMoveRoutes } from "./routes/chatMove.js";
@@ -73,11 +72,11 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json({ error: "unauthorized" }, 401);
   });
 
+  // 失敗はここでまとめて応答にする（種類は errors.ts。知らない失敗だけ記録する）
   app.onError((err, c) => {
-    if (err instanceof HttpError) return c.json({ error: err.message }, err.status);
-    if (err instanceof z.ZodError) return c.json({ error: "入力が正しくありません", issues: err.issues }, 400);
-    console.error("[api]", err);
-    return c.json({ error: err.message }, 500);
+    const { status, body } = errorResponse(err);
+    if (status === 500) console.error("[api]", err);
+    return c.json(body, status);
   });
 
   app.get("/api/health", (c) => c.json({ ok: true, version: VERSION }));

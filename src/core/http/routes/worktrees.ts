@@ -1,10 +1,10 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { errorMessage } from "@shared/errors";
 import { addWorktree, findWorktree, listWorktrees, removeWorktree, worktreePathFor, worktreeRemovalInfo } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
 import type { Project } from "@shared/types";
-import { badRequest, HttpError, requireProject } from "./http.js";
+import { Conflict } from "../errors.js";
+import { requireProject } from "./http.js";
 import { branchName, folderPath, jsonBody } from "./schemas.js";
 
 /** ワークツリー（一覧・作る・消す・PR のあとの片付け。置き場所の案は path?branch= で） */
@@ -20,13 +20,13 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.post("/api/projects/:id/git/worktrees", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const { branch } = z.object({ branch: branchName }).parse(await jsonBody(c));
-    return c.json(await badRequest(() => addWorktree(project.repo_path, branch)), 201);
+    return c.json(await addWorktree(project.repo_path, branch), 201);
   });
 
   /** 作業中のチャットがあるうちは消さない・片付けない（作業中のフォルダが消えてしまう） */
   const assertIdle = (projectId: number, path: string, verb: string) => {
     if (store.chats.inWorktree(projectId, path).some((r) => runner.isBusy(r.id))) {
-      throw new HttpError(409, `このワークツリーで作業中のチャットがあります。終わってから${verb}てください`);
+      throw new Conflict(`このワークツリーで作業中のチャットがあります。終わってから${verb}てください`);
     }
   };
 
@@ -34,12 +34,12 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.get("/api/projects/:id/git/worktrees/info", async (c) => {
     const project = requireProject(store, c.req.param("id"));
     const { path } = z.object({ path: folderPath }).parse({ path: c.req.query("path") });
-    return c.json(await badRequest(() => worktreeRemovalInfo(project.repo_path, path)));
+    return c.json(await worktreeRemovalInfo(project.repo_path, path));
   });
 
   /**
    * ワークツリーを消し（deleteBranch ならブランチも）、消えたら、そこで作業していたチャットの続きを本体で進める
-   * （ブランチを消すところで失敗しても、ワークツリーが消えていればチャットは本体に戻す）。失敗は 400
+   * （ブランチを消すところで失敗しても、ワークツリーが消えていればチャットは本体に戻す）
    */
   const removeAndRelease = async (project: Project, path: string, opts: { force?: boolean; deleteBranch?: boolean }) => {
     try {
@@ -50,7 +50,7 @@ export function worktreeRoutes(app: Hono, { store, runner }: ServerDeps) {
       // 一覧も取れなければ、消えたか分からないので戻さない
       const gone = await findWorktree(project.repo_path, path).then((w) => !w, () => false);
       if (gone) store.chats.clearWorktree(project.id, path);
-      throw new HttpError(400, errorMessage(e));
+      throw e;
     }
   };
 

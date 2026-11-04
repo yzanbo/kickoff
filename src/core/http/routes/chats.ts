@@ -2,10 +2,10 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { addWorktree, worktreePathFor } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
-import { badRequest, conflictOnError, HttpError, requireGroupOf, requireProject, requireChat, requireWorktree } from "./http.js";
+import { requireGroupOf, requireProject, requireChat, requireWorktree } from "./http.js";
 import { attachmentSchema, branchName, messageInputSchema, optionalId, queryOf, chatOptionsSchema, jsonBody } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
-import { rewindFiles, rewindChat, ChatBusyError } from "../../chat/rewind.js";
+import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import type { ChatDetail } from "@shared/types";
 
 // 本文が空でも、添付があれば送れる
@@ -113,14 +113,14 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   app.post("/api/chats/:id/archive", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
     const { archived } = z.object({ archived: z.boolean().default(true) }).parse(await jsonBody(c));
-    if (archived && runner.isBusy(chat.id)) throw new HttpError(409, "作業中のチャットはアーカイブできません。中断してから行ってください");
+    if (archived) runner.requireIdle(chat.id, "アーカイブ");
     return c.json(store.chats.update(chat.id, { archived_at: archived ? new Date().toISOString() : null }));
   });
 
   // 削除（会話の記録も消える）
   app.delete("/api/chats/:id", (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    if (runner.isBusy(chat.id)) throw new HttpError(409, "作業中のチャットは削除できません。中断してから行ってください");
+    runner.requireIdle(chat.id, "削除");
     store.chats.delete(chat.id);
     runner.forget(chat.id);
     return c.json({ ok: true });
@@ -130,13 +130,13 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
     const chat = requireChat(store, c.req.param("id"));
     const { text, options, attachments } = messageInputSchema.parse(await jsonBody(c));
     // 作業中のチャットには送れない（409）
-    return c.json(await conflictOnError(() => runner.send(chat.id, text, options, attachments)));
+    return c.json(await runner.send(chat.id, text, options, attachments));
   });
 
-  // 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる（待っていなければ 404）
+  // 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる（待っていなければ 409）
   app.delete("/api/chats/:id/reconnect", (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    if (!runner.stopReconnect(chat.id)) throw new HttpError(404, "つながるのを待っていません");
+    runner.stopReconnect(chat.id);
     return c.json({ ok: true });
   });
 
@@ -144,13 +144,13 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   app.post("/api/chats/:id/tell", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
     const { text, options, attachments } = messageInputSchema.parse(await jsonBody(c));
-    return c.json({ result: await conflictOnError(() => runner.tell(chat.id, text, options, attachments)) });
+    return c.json({ result: await runner.tell(chat.id, text, options, attachments) });
   });
 
-  // 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 404）
+  // 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 409）
   app.post("/api/chats/:id/background/:taskId/stop", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    if (!(await runner.stopBackgroundTask(chat.id, c.req.param("taskId")))) throw new HttpError(404, "このチャットは作業中ではありません");
+    await runner.stopBackgroundTask(chat.id, c.req.param("taskId"));
     return c.json({ ok: true });
   });
 
@@ -158,9 +158,9 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
   app.post("/api/chats/:id/fork", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
     const { event_id } = z.object({ event_id: z.number().int() }).parse(await jsonBody(c));
-    if (runner.isBusy(chat.id)) throw new HttpError(409, "作業中は分岐できません。終わってから行ってください");
+    runner.requireIdle(chat.id, "分岐");
     const project = requireProject(store, String(chat.project_id));
-    const forked = await badRequest(() => forkChat({ store, providers }, chat, event_id, chat.worktree_path || project.repo_path));
+    const forked = await forkChat({ store, providers }, chat, event_id, chat.worktree_path || project.repo_path);
     return c.json(forked, 201);
   });
 
@@ -173,9 +173,7 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
       .parse(await jsonBody(c));
     const project = requireProject(store, String(chat.project_id));
     const cwd = chat.worktree_path || project.repo_path;
-    return c.json(
-      await badRequest(() => rewindChat({ store, runner, providers }, chat, { eventId: event_id, text, options, cwd, restoreFiles: restore_files }), ChatBusyError),
-    );
+    return c.json(await rewindChat({ store, runner, providers }, chat, { eventId: event_id, text, options, cwd, restoreFiles: restore_files }));
   });
 
   // ファイルだけを、自分の発言を送る前の状態に戻す（会話はそのまま）。dry_run なら戻さずに、変わるファイルと行の増減だけを返す
@@ -185,13 +183,13 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
     const { event_id, dry_run } = z.object({ event_id: z.number().int(), dry_run: z.boolean().default(false) }).parse(await jsonBody(c));
     const project = requireProject(store, String(chat.project_id));
     const cwd = chat.worktree_path || project.repo_path;
-    return c.json(await badRequest(() => rewindFiles({ store, runner, providers }, chat, { eventId: event_id, cwd, dryRun: dry_run }), ChatBusyError));
+    return c.json(await rewindFiles({ store, runner, providers }, chat, { eventId: event_id, cwd, dryRun: dry_run }));
   });
 
   // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中・まだ会話がなければ 409）
   app.post("/api/chats/:id/compact", async (c) => {
     const chat = requireChat(store, c.req.param("id"));
-    return c.json(await conflictOnError(() => runner.compact(chat.id)));
+    return c.json(await runner.compact(chat.id));
   });
 
   app.post("/api/chats/:id/cancel", (c) => {
@@ -207,11 +205,9 @@ export function chatRoutes(app: Hono, { store, runner, approvals, providers }: S
  */
 async function resolveWorktree(repo: string, worktreePath?: string, newBranch?: string): Promise<string> {
   if (newBranch) {
-    return badRequest(async () => {
-      const target = await worktreePathFor(repo, newBranch);
-      await addWorktree(repo, newBranch);
-      return target;
-    });
+    const target = await worktreePathFor(repo, newBranch);
+    await addWorktree(repo, newBranch);
+    return target;
   }
   const found = await requireWorktree(repo, worktreePath);
   return found && !found.main ? found.path : "";

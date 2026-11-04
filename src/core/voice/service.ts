@@ -7,6 +7,7 @@ import { transcribeOpenAi } from "./openai.js";
 import { voiceUnreadyReason } from "./readiness.js";
 import { findVoiceTools, type VoiceTools } from "./tools.js";
 import type { AudioInput, TranscribeEngines } from "./types.js";
+import { Invalid } from "../http/errors.js";
 
 interface VoiceServiceOptions {
   store: Store;
@@ -65,13 +66,13 @@ export class VoiceService {
     };
   }
 
-  /** 音声を文にする（language を省けば設定の言語。準備ができていなければ、その理由で失敗する） */
+  /** 音声を文にする（language を省けば設定の言語。準備ができていなければ、その理由で 400。起こせなかったときも理由で 400） */
   async transcribe(audio: AudioInput, language?: string): Promise<string> {
     const settings = this.store.settings.get();
     const tools = await this.findTools();
     const key = this.store.secrets.get("openai_transcribe_key") ?? "";
     const reason = voiceUnreadyReason({ settings, tools, modelDownloaded: this.downloads.isDownloaded(settings.voice_model), keySaved: Boolean(key) });
-    if (reason) throw new Error(reason);
+    if (reason) throw new Invalid(reason);
     const lang = language ?? settings.voice_language;
     if (settings.voice_provider === "openai") {
       return this.engines.openai(audio, { key, baseUrl: settings.voice_openai_base_url, model: settings.voice_openai_model, language: lang });

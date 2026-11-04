@@ -6,6 +6,7 @@ import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, type StartChatInput } from "./input.js";
 import type { Attachment, Chat, ChatLive, ChatOptionsPatch } from "@shared/types";
 import type { UsageMonitor } from "../usage/planUsage.js";
+import { Conflict, NotFound } from "../http/errors.js";
 
 /**
  * エージェントの実行を管理する。
@@ -60,9 +61,9 @@ export class Runner extends RunnerQueue {
     return this.runtimes.live(chatId);
   }
 
-  /** つながったら自動で再開するのをやめる（待っていたら true） */
-  stopReconnect(chatId: number): boolean {
-    return this.recovery.stopWaiting(chatId);
+  /** つながったら自動で再開するのをやめる（待っていなければ 409） */
+  stopReconnect(chatId: number): void {
+    if (!this.recovery.stopWaiting(chatId)) throw new Conflict("つながるのを待っていません");
   }
 
   async start(input: StartChatInput): Promise<Chat> {
@@ -73,10 +74,9 @@ export class Runner extends RunnerQueue {
 
   /** 終了した会話に追加の指示を送り、続きから再開する */
   async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = []): Promise<Chat> {
+    const chat = this.requireChat(chatId);
+    this.requireIdle(chatId, "送信");
     const { store } = this.deps;
-    const chat = store.chats.get(chatId);
-    if (!chat) throw new Error("実行が見つかりません");
-    if (this.isBusy(chatId)) throw new Error("エージェントが作業中です。終わってから送ってください");
     // 動かし始めるまで作業中として数える（組み立ての間に届いた送信は、作業中のチャットへの送信として扱われる）
     const runtime = this.runtimes.get(chatId);
     runtime.preparing = true;
@@ -114,8 +114,7 @@ export class Runner extends RunnerQueue {
    */
   async tell(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { front = false } = {}): Promise<"told" | "sent" | "queued"> {
     const { store } = this.deps;
-    const chat = store.chats.get(chatId);
-    if (!chat) throw new Error("実行が見つかりません");
+    const chat = this.requireChat(chatId);
     if (!this.isBusy(chatId)) {
       await this.send(chatId, text, options, attachments);
       return "sent";
@@ -138,12 +137,11 @@ export class Runner extends RunnerQueue {
     return "queued";
   }
 
-  /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ false） */
-  async stopBackgroundTask(chatId: number, taskId: string): Promise<boolean> {
+  /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 409） */
+  async stopBackgroundTask(chatId: number, taskId: string): Promise<void> {
     const control = this.runtimes.get(chatId).control;
-    if (!control) return false;
+    if (!control) throw new Conflict("このチャットは作業中ではありません");
     await control.stopTask(taskId);
-    return true;
   }
 
   /** チャットを消したとき: 作業中の状態（送信待ちの列も）を捨て、再開の段取りもやめる */
@@ -163,10 +161,9 @@ export class Runner extends RunnerQueue {
    */
   async compact(chatId: number): Promise<Chat> {
     const { store } = this.deps;
-    const chat = store.chats.get(chatId);
-    if (!chat) throw new Error("実行が見つかりません");
-    if (this.isBusy(chatId)) throw new Error("エージェントが作業中です。終わってから圧縮してください");
-    if (!chat.session_id) throw new Error("まだ会話がないので、圧縮できません");
+    const chat = this.requireChat(chatId);
+    this.requireIdle(chatId, "圧縮");
+    if (!chat.session_id) throw new Conflict("まだ会話がないので、圧縮できません");
     store.chats.update(chat.id, { status: "running", error: null });
     void this.execute({ chatId: chat.id, prompt: "/compact", compact: true });
     return store.chats.get(chat.id)!;
@@ -188,8 +185,11 @@ export class Runner extends RunnerQueue {
     return { running: this.runtimes.running().length };
   }
 
-  protected hasChat(chatId: number): boolean {
-    return this.deps.store.chats.get(chatId) !== undefined;
+  /** チャット（なければ 404） */
+  protected requireChat(chatId: number): Chat {
+    const chat = this.deps.store.chats.get(chatId);
+    if (!chat) throw new NotFound("チャットが見つかりません");
+    return chat;
   }
 
   protected reportError(chatId: number, message: string) {
@@ -198,6 +198,11 @@ export class Runner extends RunnerQueue {
 
   isBusy(chatId: number): boolean {
     return this.runtimes.isBusy(chatId);
+  }
+
+  /** 作業中（送る準備の途中も）なら 409。action は「削除」「分岐」などの、できない操作の名前 */
+  requireIdle(chatId: number, action: string): void {
+    if (this.isBusy(chatId)) throw new Conflict(`作業中のチャットは${action}できません。終わってから（または中断してから）行ってください`);
   }
 
   /** アプリ終了時: 実行中のエージェントをすべて止める */

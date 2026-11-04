@@ -6,7 +6,8 @@ import { expandHome } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
 import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
-import { badRequest, HttpError, requireProject } from "./http.js";
+import { Conflict, Invalid } from "../errors.js";
+import { requireProject } from "./http.js";
 import { jsonBody } from "./schemas.js";
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
@@ -67,7 +68,7 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   app.post("/api/projects", async (c) => {
     const input = newProjectSchema.parse(await jsonBody(c));
-    const repoPath = await badRequest(() => createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, idea: input.idea }));
+    const repoPath = await createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, idea: input.idea });
     const project = store.projects.create({ name: input.name, description: input.idea, repo_path: repoPath, provider: providerOf(input.provider) });
     store.settings.update({ projects_dir: input.parent_dir });
     return c.json(project, 201);
@@ -83,9 +84,9 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   app.post("/api/projects/import", async (c) => {
     const input = importProjectSchema.parse(await jsonBody(c));
-    const repoPath = await badRequest(() => prepareImportedWorkspace(input.path, input.init_git));
+    const repoPath = await prepareImportedWorkspace(input.path, input.init_git);
     const existing = store.projects.findByPath(repoPath);
-    if (existing) throw new HttpError(409, `このフォルダは「${existing.name}」として登録済みです`);
+    if (existing) throw new Conflict(`このフォルダは「${existing.name}」として登録済みです`);
     const project = store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
     return c.json(project, 201);
   });
@@ -130,7 +131,7 @@ function resolveReferences(input: { path: string }[]): Project["reference_paths"
     try {
       stat = fs.statSync(abs);
     } catch {
-      throw new HttpError(400, `見つかりません: ${raw}`);
+      throw new Invalid(`見つかりません: ${raw}`);
     }
     seen.add(abs);
     out.push({ path: abs, kind: stat.isDirectory() ? "folder" : "file" });
