@@ -174,7 +174,8 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
         <p className="muted small board-loading">読み込み中…</p>
       ) : split ? (
         // 段に分ける: 段ごとに、ボードと同じく下書き（その段に入る作成先のもの）→ 状態の列を並べる（リストなら 下書き → 状態のまとまり → アーカイブ済み を縦に）
-        <BoardLanes lanes={buckets} list={view === "list"} boardKey={foldScope} showProject={projects.length > 1}>
+        // 作業場所の段にプロジェクト名を添えるのは、いくつかのプロジェクトが並ぶ全プロジェクトのボードだけ
+        <BoardLanes lanes={buckets} list={view === "list"} boardKey={foldScope} showProject={allProjects && projects.length > 1}>
           {(lane) =>
             view === "board" ? (
               <StateColumns columns={lane.children ?? []} drafts={lane.drafts} foldScope={foldScope} render={cards.card} />
