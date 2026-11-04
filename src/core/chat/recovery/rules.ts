@@ -2,6 +2,7 @@ import type { Store } from "../../db/store.js";
 import type { StoppedAgent, TurnOutcome } from "../turn.js";
 import { networkStoppedSubagents } from "@shared/chat/subagents";
 import { exhaustedResetOf } from "@shared/chat/usageLimit";
+import { resumePrompt, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import type { PlanUsage } from "@shared/types";
 import type { RecoveryState } from "./state.js";
 
@@ -33,7 +34,7 @@ export interface RecoveryRule {
   plan(ctx: RecoveryContext & { pausedByUser: boolean; outcome: TurnOutcome }): RecoveryPlan | Promise<RecoveryPlan>;
   /** 再開するかを聞くときの文（承認のカードと同じ回答待ち。Mac の通知も出る） */
   ask(ctx: RecoveryContext): { title: string; description: string; input: Record<string, unknown> };
-  /** 再開するときに送る指示（自分の発言として残す） */
+  /** 再開するときに送る指示（自分の発言として残す。文は @shared/chat/prompts） */
   prompt(ctx: RecoveryContext): string;
   /** 再開の指示を送れなかったときの、お知らせの頭 */
   resumeFailed: string;
@@ -43,23 +44,6 @@ export interface RecoveryRule {
 
 /** 自動で再開する回数の上限（続けてこの回数だけ通信で止まったら、人に聞く） */
 export const MAX_AUTO_RESUMES = 3;
-
-/** 自動で再開するときに送る指示（自分の発言として残す） */
-export const RESUME_PROMPT = "（通信が戻ったので自動で再開します）通信が切れて止まったところから、作業を続けてください。";
-
-/**
- * 自動で再開するときの指示。通信の切断で止まったサブエージェントがあれば、SendMessage で続きから再開するよう頼む
- * （Claude Code はサブエージェントの記録から続きを始める。記録が見つからないときだけ、同じ依頼で立ち上げ直す）
- */
-export function resumePrompt(agents: StoppedAgent[]): string {
-  if (agents.length === 0) return RESUME_PROMPT;
-  return [
-    RESUME_PROMPT,
-    "",
-    "通信の切断で、次のサブエージェントも止まっています。それぞれ SendMessage（宛先は ID）で、止まったところから続けるよう伝えて再開させてください。再開できないもの（記録が見つからないなど）だけ、同じ依頼で立ち上げ直してください。",
-    ...agents.map((a) => `- 「${a.description}」（ID: ${a.agentId}）`),
-  ].join("\n");
-}
 
 /**
  * 通信が切れて止まったとき: つながったら「続けて」を送って自動で再開する（設定で切れる。送信待ちを自分で止めていれば再開しない）。
@@ -115,9 +99,6 @@ function agentsNote(state: RecoveryState): string {
 }
 
 // ---- 使用枠の上限 ----
-
-/** 枠が戻って、続けると答えたときに送る指示（自分の発言として残す） */
-export const USAGE_RESUME_PROMPT = "（使用枠が戻ったので再開します）使用枠の上限で止まったところから、作業を続けてください。";
 
 /** 枠が戻る時刻から、聞くまでに置く余裕（時刻ちょうどではまだ断られることがあるため） */
 const MARGIN_MS = 60_000;

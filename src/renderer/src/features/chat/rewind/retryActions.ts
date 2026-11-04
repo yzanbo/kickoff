@@ -1,9 +1,6 @@
 // 失敗した作業の直す操作（続きから・深さを下げて・別のモデルで・巻き戻して再試行）の判定（純粋関数）
 import { EFFORT_LEVELS, type EffortLevel, type ChatEvent, type ChatEventOf } from "@shared/types";
 
-/** 続きから再試行するときに送る指示（自分の発言として残す） */
-export const RETRY_PROMPT = "（再試行）さきほどの作業は途中で失敗しました。止まったところから、作業を続けてください。";
-
 /** 直す操作を出す失敗の作業: いちばん新しい作業の終わりが失敗で、そのあと発言していないもの（その作業の終わりの記録と、元の自分の発言） */
 export interface FailedTurn {
   resultId: number;

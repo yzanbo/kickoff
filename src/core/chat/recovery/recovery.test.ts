@@ -6,7 +6,7 @@ import { Bus } from "../../bus.js";
 import { Store } from "../../db/store.js";
 import { ChatRuntimes } from "../runtime.js";
 import { ChatRecovery } from "./recovery.js";
-import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "./rules.js";
+import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import type { PlanUsage } from "@shared/types";
 import type { TurnOutcome } from "../turn.js";
 
