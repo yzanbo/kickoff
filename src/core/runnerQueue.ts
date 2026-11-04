@@ -174,6 +174,8 @@ export abstract class RunnerQueue {
 
   /** 待ちの列の先頭を送る（送れなければ、理由をチャットに残す） */
   protected async sendNextQueued(runId: number) {
+    // 作業中（送る準備の途中も）なら送らない（取り出すと送れずに消える。いまの作業が終わったときに、もう一度呼ばれる）
+    if (this.isBusy(runId)) return;
     // 自動で送る次の指示を画面で書き直している間は送らず、書き直しが終わる（保存・やめる・欄を閉じる）のを待つ
     const head = this.followups.list(runId)[0];
     const holds = Boolean(head && !this.followups.isPaused(runId) && this.editHolds.isHeld(runId, head.id));
