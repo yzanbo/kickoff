@@ -206,12 +206,6 @@ select:focus {
   color: var(--muted);
 }
 
-.form-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .input-row {
   display: flex;
   align-items: center;

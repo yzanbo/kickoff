@@ -4,7 +4,8 @@ import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useSubmit } from "@/hooks/useSubmit";
 import { ErrorText } from "@/ui/ErrorText";
-import { Field } from "@/ui/Field";
+import { DialogActions } from "@/ui/DialogActions";
+import { CheckField, Field } from "@/ui/Field";
 import { FolderField } from "./FolderField";
 import { InspectionPanel } from "./InspectionPanel";
 import type { FormProps } from "./NewProjectDialog";
@@ -73,15 +74,12 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
       )}
 
       {needsInit && (
-        <label className="check">
-          <input type="checkbox" checked={initGit} onChange={(e) => setInitGit(e.target.checked)} />
-          <span>
-            {inspection?.is_git ? "既存のファイルで最初のコミットを作成する" : "git リポジトリとして初期化し、既存のファイルで最初のコミットを作成する"}
-            <span className="field-help">
-              フォルダ内のファイルがすべてコミットされます。秘密情報などがあれば、先に .gitignore に追加してください。
-            </span>
-          </span>
-        </label>
+        <CheckField
+          label={inspection?.is_git ? "既存のファイルで最初のコミットを作成する" : "git リポジトリとして初期化し、既存のファイルで最初のコミットを作成する"}
+          help="フォルダ内のファイルがすべてコミットされます。秘密情報などがあれば、先に .gitignore に追加してください。"
+          checked={initGit}
+          onChange={setInitGit}
+        />
       )}
 
       <Field label="プロジェクト名">
@@ -109,14 +107,7 @@ export function ImportForm({ onCancel, onCreated }: FormProps) {
 
       <ErrorText message={error} />
 
-      <div className="dialog-actions">
-        <button type="button" className="btn" onClick={onCancel}>
-          キャンセル
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={submitting || blocked || !name.trim()}>
-          {submitting ? "取り込み中…" : "取り込む"}
-        </button>
-      </div>
+      <DialogActions onCancel={onCancel} submit={{ label: "取り込む", busyLabel: "取り込み中…", busy: submitting, disabled: blocked || !name.trim() }} />
     </form>
   );
 }

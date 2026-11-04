@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/api";
 import { useSubmit } from "@/hooks/useSubmit";
 import { ErrorText } from "@/ui/ErrorText";
+import { DialogActions } from "@/ui/DialogActions";
 import { Field } from "@/ui/Field";
 import { FolderField } from "./FolderField";
 import type { FormProps } from "./NewProjectDialog";
@@ -70,14 +71,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
       <ErrorText message={error} />
 
-      <div className="dialog-actions">
-        <button type="button" className="btn" onClick={onCancel}>
-          キャンセル
-        </button>
-        <button type="submit" className="btn btn-primary" disabled={submitting || !name.trim() || !folderName}>
-          {submitting ? "作成中…" : "作成"}
-        </button>
-      </div>
+      <DialogActions onCancel={onCancel} submit={{ label: "作成", busyLabel: "作成中…", busy: submitting, disabled: !name.trim() || !folderName }} />
     </form>
   );
 }

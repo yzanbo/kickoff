@@ -1,6 +1,6 @@
 import { errorMessage } from "@shared/errors";
 import { useAction } from "@/hooks/useAction";
-import { Field } from "@/ui/Field";
+import { CheckField, Field } from "@/ui/Field";
 import { ResultMessage, SaveActions } from "@/ui/SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
 
@@ -26,15 +26,12 @@ export function NotificationSettings() {
     <section className="section">
       <h2>通知</h2>
       <div className="form">
-        <label className="check">
-          <input type="checkbox" checked={draft.desktop_notifications} onChange={(e) => setDraft({ ...draft, desktop_notifications: e.target.checked })} />
-          <span>
-            Mac の通知で知らせる
-            <span className="field-help">
-              チャットの完了・失敗・回答待ちを通知します。通知を押すと、そのチャットを開きます。Kickoff でそのチャットを見ているときは通知しません。
-            </span>
-          </span>
-        </label>
+        <CheckField
+          label="Mac の通知で知らせる"
+          help="チャットの完了・失敗・回答待ちを通知します。通知を押すと、そのチャットを開きます。Kickoff でそのチャットを見ているときは通知しません。"
+          checked={draft.desktop_notifications}
+          onChange={(on) => setDraft({ ...draft, desktop_notifications: on })}
+        />
         {/* Mac の通知が届くかを試す・Mac の設定（許可・バナーか通知パネルか・音）を開く（デスクトップアプリだけ） */}
         {native && (
           <div className="notification-test">
