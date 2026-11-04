@@ -1,5 +1,5 @@
 // git の実行（ほかの git/ のモジュールはここを通す）
-import { execFileAsync } from "../exec.js";
+import { execFileAsync } from "../system/exec.js";
 
 /**
  * git を実行して標準出力をそのまま返す。okCodes の終了コードは失敗にしない

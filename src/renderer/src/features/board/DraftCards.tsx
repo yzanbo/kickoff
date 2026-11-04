@@ -1,0 +1,60 @@
+import { SquarePen, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { cx } from "@/lib/cx";
+import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import type { NewChatTarget, SidePanelController } from "@/features/panel/usePanel";
+import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
+
+/**
+ * 列・グループに出す、送る前の新しいチャット（パネルで入力中）の下書き（filter がなければすべて）。
+ * onShow: 押したときにタブを表示する方法（プロジェクトのチャット欄の下書きは、欄を開いてから表示する）
+ */
+export function DraftCards({
+  panel,
+  filter = () => true,
+  onShow = panel.showTab,
+}: {
+  panel: SidePanelController;
+  filter?: (target: NewChatTarget) => boolean;
+  onShow?: (key: string) => void;
+}) {
+  return panel.drafts
+    .filter((d) => filter(d.target))
+    .map((d) => <DraftCard key={d.key} text={d.text} active={panel.isShowingTab(d.key)} onOpen={() => onShow(d.key)} onDelete={() => panel.closeTab(d.key)} />);
+}
+
+/** 下書きのカード。書いている途中の文があれば、その初めの数行を出す。押すとそのタブを表示し、右クリックで開く・削除を選べる */
+function DraftCard({ text, active, onOpen, onDelete }: { text: string; active: boolean; onOpen: () => void; onDelete: () => void }) {
+  const written = text.trim();
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  return (
+    <>
+      <button
+        type="button"
+        className={cx("draft-card", active && "selected")}
+        title="右側で入力中の新しいチャット（右クリックで削除）"
+        onClick={onOpen}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu(clampToViewport(e.clientX, e.clientY, 220, 120));
+        }}
+      >
+        <span className="draft-card-head">
+          <SquarePen size={13} aria-hidden />
+          {written ? "書きかけ" : NEW_CHAT_TITLE}
+        </span>
+        {written && <span className="draft-card-text">{written}</span>}
+      </button>
+      {menu && (
+        <PopupMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)}>
+          <MenuItem onSelect={onOpen}>
+            <SquarePen size={14} /> 開く
+          </MenuItem>
+          <MenuItem danger onSelect={onDelete}>
+            <Trash2 size={14} /> 削除（入力中の内容は消えます）
+          </MenuItem>
+        </PopupMenu>
+      )}
+    </>
+  );
+}

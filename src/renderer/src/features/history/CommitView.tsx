@@ -1,0 +1,159 @@
+import { List, ListTree } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { GitCommit, GitFileChange } from "@shared/types";
+import { api } from "@/api";
+import { cx } from "@/lib/cx";
+import { useDragWidth } from "@/hooks/useDragWidth";
+import { useKeyedAsync } from "@/hooks/useKeyedAsync";
+import { useStoredFlag } from "@/hooks/useStoredState";
+import { COMMIT_FILES_LIST_KEY, COMMIT_FILES_WIDTH_KEY } from "@/lib/storageKeys";
+import { formatDayTime } from "@/lib/time";
+import { ErrorText } from "@/ui/ErrorText";
+import { IconButton } from "@/ui/IconButton";
+import { Segmented } from "@/ui/Segmented";
+import { CHANGE_LABELS, DiffView } from "@/features/editor/DiffView";
+import { FileIcon } from "@/features/editor/FileIcon";
+import { FileTree } from "@/features/editor/FileTree";
+import { buildTree, folderPaths, kindMaps } from "@/features/editor/treeModel";
+import { useGitTarget } from "@/features/worktree/worktreeContext";
+
+type CommitTab = "commit" | "changes";
+
+/**
+ * 履歴で選んだコミットの詳細（Fork と同じ: 1 行の見出しと「コミット」「変更」のタブ）。
+ * 変更: 左に変わったファイル（木・一覧）、右に選んだファイルの差分。初めは 1 つ目のファイルの差分を出す
+ */
+export function CommitView({ projectId, commit }: { projectId: number; commit: GitCommit }) {
+  const { target, key: at } = useGitTarget(projectId);
+  // コミットごとに読む（作業場所が変わったら同じコミットでも取り直す。その間は前の内容を出す）
+  const loaded = useKeyedAsync(commit.hash, () => api.gitCommitDetail(target, commit.hash), { deps: [at] });
+  const detail = loaded.data;
+  const [file, setFile] = useState<GitFileChange>();
+  const [tab, setTab] = useState<CommitTab>("changes");
+  // 変わったファイルを木で出すか（初めは木。Fork と同じ）
+  const [list, setList] = useStoredFlag(COMMIT_FILES_LIST_KEY);
+  // 左のファイルの一覧の幅（境目をドラッグで変える。ダブルクリックで元に戻す）
+  const filesPane = useDragWidth({ storageKey: COMMIT_FILES_WIDTH_KEY, initial: 260, min: 160 });
+
+  // 読み込んだら 1 つ目のファイルを選ぶ（別のコミットに変わったら、読み込むまで外す）
+  useEffect(() => setFile(detail?.files[0]), [detail]);
+  const files = useMemo(() => detail?.files ?? [], [detail]);
+  const nodes = useMemo(() => buildTree({ files: files.map((f) => f.path), ignored: [] }), [files]);
+  const kinds = useMemo(() => kindMaps(files), [files]);
+  // 木で閉じたフォルダ（初めは全部開いておく）
+  const [closed, setClosed] = useState<Set<string>>(() => new Set());
+  const openFolders = useMemo(() => new Set(folderPaths(nodes).filter((p) => !closed.has(p))), [nodes, closed]);
+
+  return (
+    <div className="commit-view">
+      <header className="commit-line">
+        <span className="commit-author" title={commit.email}>
+          {commit.author}
+        </span>
+        <span className="history-hash">{commit.hash.slice(0, 9)}</span>
+        <span className="muted">{formatDayTime(commit.date)}</span>
+        <span className="commit-line-subject" title={commit.subject}>
+          {commit.subject}
+        </span>
+        <Segmented
+          className="view-toggle"
+          label="コミットの詳細の表示"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "commit", label: "コミット" },
+            { value: "changes", label: "変更" },
+          ]}
+        />
+      </header>
+      <ErrorText message={loaded.error} className="code-search-message" />
+      {tab === "commit" ? (
+        <section className="commit-meta">
+          <h3 className="commit-subject">{commit.subject}</h3>
+          {detail && detail.body.split("\n").slice(1).join("\n").trim() && <p className="commit-body">{detail.body.split("\n").slice(1).join("\n").trim()}</p>}
+          <dl className="commit-facts">
+            <dt>作者</dt>
+            <dd>
+              {commit.author}（{commit.email}）
+            </dd>
+            <dt>日時</dt>
+            <dd>{new Date(commit.date).toLocaleString("ja-JP")}</dd>
+            {detail && detail.committer !== commit.author && (
+              <>
+                <dt>コミットした人</dt>
+                <dd>{detail.committer}</dd>
+              </>
+            )}
+            <dt>コミット</dt>
+            <dd className="mono">{commit.hash}</dd>
+            {commit.parents.length > 0 && (
+              <>
+                <dt>{commit.parents.length > 1 ? "親（マージ）" : "親"}</dt>
+                <dd className="mono">{commit.parents.map((p) => p.slice(0, 9)).join("・")}</dd>
+              </>
+            )}
+            <dt>変わったファイル</dt>
+            <dd>{detail ? `${files.length} 個${commit.parents.length > 1 ? "（1 つ目の親との差）" : ""}` : "読み込み中…"}</dd>
+          </dl>
+        </section>
+      ) : (
+        <div className={cx("commit-changes", filesPane.resizing && "resizing")}>
+          <aside ref={filesPane.paneRef} className="commit-files" style={{ width: filesPane.width }}>
+            <div className="commit-files-head">
+              <span className="muted small">{detail ? `${files.length} 個のファイル` : "読み込み中…"}</span>
+              <span className="spacer" />
+              <IconButton icon={list ? ListTree : List} label={list ? "ツリーで表示" : "一覧で表示"} size={14} onClick={() => setList(!list)} />
+            </div>
+            {list ? (
+              <ul className="change-files">
+                {files.map((f) => {
+                  const slash = f.path.lastIndexOf("/");
+                  const name = f.path.slice(slash + 1);
+                  const selected = file?.path === f.path;
+                  return (
+                    <li key={f.path}>
+                      <button
+                        className={cx("change-file", selected && "selected")}
+                        aria-current={selected || undefined}
+                        title={`${f.path}（${CHANGE_LABELS[f.kind]}）`}
+                        onClick={() => setFile(f)}
+                      >
+                        <FileIcon name={name} />
+                        <span className={cx("change-name", f.kind === "D" && "deleted")}>{name}</span>
+                        {slash > 0 && <span className="change-dir">{f.path.slice(0, slash)}</span>}
+                        <span className="change-kind" data-kind={f.kind}>
+                          {f.kind}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <FileTree
+                nodes={nodes}
+                open={openFolders}
+                onToggle={(path) =>
+                  setClosed((prev) => {
+                    const next = new Set(prev);
+                    if (!next.delete(path)) next.add(path);
+                    return next;
+                  })
+                }
+                selected={file?.path}
+                onSelect={(path) => setFile(files.find((f) => f.path === path))}
+                kinds={kinds}
+              />
+            )}
+          </aside>
+          <div className="pane-resizer" aria-label="ファイルの一覧の幅を変える" {...filesPane.handle} />
+          {file ? (
+            <DiffView projectId={projectId} file={file} staged={false} version={0} commit={commit.hash} />
+          ) : (
+            <p className="muted small changes-hint">ファイルを選ぶと、差分を表示します。</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

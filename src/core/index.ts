@@ -1,19 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
-import { loadOrCreateToken } from "./auth.js";
+import { loadOrCreateToken } from "./http/auth.js";
 import { Bus } from "./bus.js";
-import { startHttpServer, stopHttpServer } from "./httpServer.js";
+import { startHttpServer, stopHttpServer } from "./http/httpServer.js";
 import { createProviders } from "./providers/index.js";
-import { currentSelf } from "./selfProtection.js";
-import { createApp } from "./server.js";
-import { Store } from "./store.js";
-import { ServiceUsageMonitor } from "./serviceUsage/index.js";
-import { UsageMonitor } from "./usage.js";
-import { ApprovalCenter } from "./approvals.js";
-import { Runner } from "./runner.js";
-import { UploadStore } from "./uploads.js";
-import { startAutoArchive } from "./autoArchive.js";
-import { VoiceService } from "./transcribe/service.js";
+import { currentSelf } from "./chat/guard/selfProtection.js";
+import { createApp } from "./http/server.js";
+import { Store } from "./db/store.js";
+import { ServiceUsageMonitor } from "./usage/services/index.js";
+import { UsageMonitor } from "./usage/planUsage.js";
+import { ApprovalCenter } from "./chat/approvals.js";
+import { Runner } from "./chat/runner.js";
+import { UploadStore } from "./chat/uploads.js";
+import { startAutoArchive } from "./chat/autoArchive.js";
+import { VoiceService } from "./voice/service.js";
 
 interface CoreOptions {
   dataDir: string;

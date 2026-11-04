@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { errorMessage } from "../errors";
+import { errorMessage } from "@shared/errors";
 
 /** key ごとに覚えている結果（成功なら data、失敗なら error） */
 export interface KeyedResult<T> {

@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { KickoffNativeApi } from "../../preload/index";
+import type { KickoffNativeApi } from "../../preload";
 
 declare global {
   interface Window {

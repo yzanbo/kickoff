@@ -1,5 +1,5 @@
 // 開発中に起動する Electron.app（node_modules の中）の名前とアイコンを「Kickoff Dev」にする（Dock・メニューバー・⌘Tab に「Electron」と出ないように。
-// インストールした Kickoff と同時に動かすので、名前と DEV の帯のアイコンで見分ける。名前は src/core/appEnv.ts の development と同じ）。
+// インストールした Kickoff と同時に動かすので、名前と DEV の帯のアイコンで見分ける。名前は src/core/system/appEnv.ts の development と同じ）。
 // npm install のたびに Electron.app が置き直されるので、postinstall から呼ぶ。ビルドしたアプリは electron-builder.yml と build/icon.icns で決まる
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, utimesSync } from "node:fs";

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { BrowserExtensionInfo, DiagnosticsFolders, DiagnosticsState } from "../core/types.js";
+import type { BrowserExtensionInfo, DiagnosticsFolders, DiagnosticsState } from "@shared/types";
 
 // 画面が preload から型を読めるように、コアの型をここからも出す
 export type { BrowserExtensionInfo };

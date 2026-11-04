@@ -2,8 +2,8 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isInside } from "../paths.js";
-import type { FileContent, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "../types.js";
+import { isInside } from "../system/paths.js";
+import type { FileContent, ProjectFiles, ProjectSearchQuery, ProjectSearchResult } from "@shared/types";
 import { gitOutput, nulList } from "./exec.js";
 import { gitStatus } from "./status.js";
 

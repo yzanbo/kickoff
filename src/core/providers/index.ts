@@ -1,6 +1,6 @@
-import type { SelfInfo } from "../selfProtection.js";
-import type { ProviderId } from "../types.js";
-import { ClaudeProvider } from "./claude.js";
+import type { SelfInfo } from "../chat/guard/selfProtection.js";
+import type { ProviderId } from "@shared/types";
+import { ClaudeProvider } from "./claude/provider.js";
 import { PlannedProvider } from "./planned.js";
 import type { AgentProvider } from "./types.js";
 

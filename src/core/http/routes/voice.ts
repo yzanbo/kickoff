@@ -1,0 +1,54 @@
+import type { Hono } from "hono";
+import { z } from "zod";
+import type { ServerDeps } from "../server.js";
+import { findWhisperModel } from "../../voice/models.js";
+import { badRequest, HttpError } from "./http.js";
+import { voiceLanguage } from "./schemas.js";
+
+/** 受け取る音声の大きさの上限（OpenAI の文字起こしの API と同じ 25MB） */
+const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+
+const keySchema = z.object({ key: z.string().max(500) });
+
+/** モデルの id（知らないものは 404） */
+function requireVoiceModel(id: string) {
+  const model = findWhisperModel(id);
+  if (!model) throw new HttpError(404, "文字起こしのモデルが見つかりません");
+  return model;
+}
+
+/** 音声入力: 文字起こし・準備の状態・この Mac のモデルの管理・OpenAI の API キー */
+export function voiceRoutes(app: Hono, { voice }: ServerDeps) {
+  // チャット欄のマイクで録った音声を文にする（multipart の file と、省けば設定の言語になる language）
+  app.post("/api/transcribe", async (c) => {
+    const body = await c.req.parseBody();
+    const file = body.file;
+    if (!(file instanceof File)) throw new HttpError(400, "音声がありません");
+    if (file.size === 0) throw new HttpError(400, "音声が空です");
+    if (file.size > MAX_AUDIO_BYTES) throw new HttpError(400, "音声が大きすぎます（25MB まで）。短く区切って話してください");
+    const language = typeof body.language === "string" && body.language ? voiceLanguage.parse(body.language) : undefined;
+    const audio = { bytes: new Uint8Array(await file.arrayBuffer()), name: file.name || "audio.webm", type: file.type };
+    // 準備ができていない（未設定・モデルがない）・コマンドや API の失敗は、理由を 400 で返す
+    return c.json({ text: await badRequest(() => voice.transcribe(audio, language)) });
+  });
+
+  app.get("/api/voice", async (c) => c.json(await voice.status()));
+
+  // モデルを落とし始める（終わるのは待たない。進み具合は voice_model のイベントと、状態の取り直しで分かる）
+  app.post("/api/voice/models/:id/download", async (c) => {
+    voice.downloads.start(requireVoiceModel(c.req.param("id")).id);
+    return c.json(await voice.status(), 202);
+  });
+
+  // 落としたモデルを消す（落としている途中ならやめる）
+  app.delete("/api/voice/models/:id", async (c) => {
+    await voice.downloads.remove(requireVoiceModel(c.req.param("id")).id);
+    return c.json(await voice.status());
+  });
+
+  // OpenAI の API キー（空なら消す）。キーそのものは返さず、保存したかだけを返す
+  app.put("/api/voice/openai-key", async (c) => {
+    const { key } = keySchema.parse(await c.req.json());
+    return c.json(voice.saveOpenAiKey(key));
+  });
+}

@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import type { BusEvent } from "./types.js";
+import type { BusEvent } from "@shared/types";
 
 /** コア内の変更をクライアント（SSE）へ配信するためのイベントバス */
 export class Bus {
