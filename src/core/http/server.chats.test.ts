@@ -7,7 +7,8 @@ import { test } from "node:test";
 import { ApprovalCenter } from "../chat/approvals.js";
 import { Bus } from "../bus.js";
 import { Runner } from "../chat/runner.js";
-import { AUTH, setup, tempDir, until } from "../testing/testServer.js";
+import { AUTH, setup, until } from "../testing/testServer.js";
+import { tempDir } from "../testing/tempDir.js";
 import type { ChatLive } from "@shared/types";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {

@@ -1,18 +1,11 @@
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { test } from "node:test";
-import { ApprovalCenter } from "./approvals.js";
-import { Bus } from "../bus.js";
-import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
-import { Runner } from "./runner.js";
+import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import { NotFound } from "../http/errors.js";
-import { Store } from "../db/store.js";
 import { FakeProviderBase } from "../testing/fakeProvider.js";
-import type { ProviderId } from "@shared/types";
+import { tempDir } from "../testing/tempDir.js";
+import { setupCore, tick, until } from "../testing/testCore.js";
 import { UploadStore } from "./uploads.js";
-import type { UsageMonitor } from "../usage/planUsage.js";
 
 type Script = (params: ProviderTurnParams, cb: ProviderCallbacks, signal: AbortSignal) => Promise<ProviderTurnResult>;
 
@@ -28,29 +21,8 @@ class FakeProvider extends FakeProviderBase {
   }
 }
 
-function setup(script: Script, uploads?: UploadStore) {
-  const bus = new Bus();
-  const store = new Store(":memory:", (e) => bus.publish(e));
-  const approvals = new ApprovalCenter(bus);
-  const provider = new FakeProvider(script);
-  const usage = { refresh: async () => ({}) } as unknown as UsageMonitor;
-  const runner = new Runner({
-    store,
-    approvals,
-    providers: { claude: provider, codex: provider, gemini: provider } as Record<ProviderId, AgentProvider>,
-    usage,
-    uploads,
-    bus,
-  });
-  const project = store.projects.create({ name: "p", repo_path: "/tmp", provider: "claude" });
-  return { store, approvals, runner, provider, project, bus };
-}
-
-const tick = () => new Promise((r) => setTimeout(r, 10));
-async function until(cond: () => boolean) {
-  for (let i = 0; i < 200 && !cond(); i++) await tick();
-  assert.ok(cond(), "条件を満たしませんでした");
-}
+/** 台本どおりの偽のプロバイダーで、コアを組み立てる（API のテストと同じ準備。testing/testCore.ts） */
+const setup = (script: Script, uploads?: UploadStore) => setupCore(new FakeProvider(script), { uploads });
 
 test("実行するとイベントが記録され、続きのメッセージは同じセッションで再開する", async () => {
   const { store, runner, provider, project } = setup(async (params, cb) => {
@@ -98,7 +70,7 @@ test("どこでも決めていなければ、推論の深さは指定せず（nu
 });
 
 test("添付ファイルはパスがメッセージに書き添えられ、会話には添付として記録される", async () => {
-  const uploadsDir = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-run-up-"));
+  const uploadsDir = tempDir();
   const uploads = new UploadStore(uploadsDir);
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }), uploads);
   const attachment = await uploads.save({ name: "spec.md", type: "text/markdown", bytes: new TextEncoder().encode("# 仕様") });

@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import { AUTH, setup, tempDir } from "../testing/testServer.js";
+import { AUTH, setup } from "../testing/testServer.js";
+import { tempDir } from "../testing/tempDir.js";
 
 test("設定・プロジェクトの API", async () => {
   const { app, call, project, store } = setup();

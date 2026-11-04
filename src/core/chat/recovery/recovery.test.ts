@@ -9,6 +9,7 @@ import { ChatRecovery } from "./recovery.js";
 import { RESUME_PROMPT, USAGE_RESUME_PROMPT } from "@shared/chat/prompts";
 import type { PlanUsage } from "@shared/types";
 import type { TurnOutcome } from "../turn.js";
+import { tick, until } from "../../testing/testCore.js";
 
 const RESET = "2026-11-04T10:30:00.000Z";
 
@@ -47,11 +48,6 @@ function setup({ usage }: { usage?: () => Promise<PlanUsage> } = {}) {
   return { store, approvals, recovery, runtime, chat, sent, network, clock, finish, notices };
 }
 
-const tick = () => new Promise((r) => setTimeout(r, 10));
-async function until(cond: () => boolean) {
-  for (let i = 0; i < 200 && !cond(); i++) await tick();
-  assert.ok(cond(), "条件を満たしませんでした");
-}
 
 const usageLimit = (resetsAt: string | null): TurnOutcome => ({ status: "failed", network: false, usageLimit: { resetsAt } });
 const networkFailure: TurnOutcome = { status: "failed", network: true };

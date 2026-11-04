@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { seedDevData } from "./devData.js";
+import { tempDir } from "../testing/tempDir.js";
 
 test("seedDevData: 開発の保存先がなければ、本番のデータを一度だけ写す（起動中の印・キャッシュは写さない）", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-seed-"));
+  const root = tempDir();
   const prod = path.join(root, "Kickoff");
   const dev = path.join(root, "Kickoff Dev");
   fs.mkdirSync(path.join(prod, "Local Storage"), { recursive: true });
@@ -33,12 +33,10 @@ test("seedDevData: 開発の保存先がなければ、本番のデータを一�
   db.exec("INSERT INTO projects VALUES ('dandori')");
   assert.equal(seedDevData(prod, dev), false);
   db.close();
-  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test("seedDevData: 本番のデータがなければ何もしない", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "kickoff-seed-"));
+  const root = tempDir();
   assert.equal(seedDevData(path.join(root, "Kickoff"), path.join(root, "Kickoff Dev")), false);
   assert.ok(!fs.existsSync(path.join(root, "Kickoff Dev")));
-  fs.rmSync(root, { recursive: true, force: true });
 });
