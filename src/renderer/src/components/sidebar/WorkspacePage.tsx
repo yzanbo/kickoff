@@ -71,7 +71,7 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
   const sections = useGroupSections({ projectId: project.id, groups, runs });
-  // 送る前の新しいチャット（下書き）。作成先のグループの中に、グループなしはいちばん上に出す。
+  // 送る前の新しいチャット（下書き）。作成先のグループの中に、グループなしは「グループなし」の中に出す（グループの見出しがないときはいちばん上）。
   // 自分が続きを書くものなので「自分待ち」でも出す（検索・状態での絞り込み中は出さない）
   const drafts = useProjectDrafts(
     project.id,
@@ -84,6 +84,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   const topDrafts = byGroup ? drafts.top : [...drafts.top, ...groups.flatMap((g) => drafts.inGroup(g.id))];
   // グループの見出しを出しているか（グループでまとめていて、グループがあるとき）
   const showGroups = byGroup && groups.length > 0;
+  // グループの見出しを出しているときは、どのグループにも入っていない下書きを「グループなし」の中（チャットの上）に並べる
+  // （以前はプロジェクトのいちばん上に出していて、グループなしのものだと分かりにくかった）
+  const ungroupedDrafts = showGroups && showDrafts ? drafts.top : [];
   // 見出しの下に並べる行: グループでまとめているときはグループなしのものだけ、それ以外はすべて（固定したものを除く）
   const mainRows = byGroup ? ungroupedRows : rows;
   // グループの開閉（グループごとに記憶）
@@ -164,8 +167,8 @@ export const WorkspacePage = memo(function WorkspacePage({
             />
           </div>
         )}
-        {/* グループなしの下書き（グループから戻すドロップ先にもする） */}
-        {showDrafts && <DraftRows drafts={topDrafts} drop={showGroups ? sections.ungroupedDrop.props : undefined} />}
+        {/* グループの見出しを出していないときの下書き（グループでまとめていないときは、グループに入れたものも含めていちばん上に） */}
+        {showDrafts && !showGroups && <DraftRows drafts={topDrafts} />}
         {pinnedRows.length > 0 && (
           <RowSection icon={Pin} label="固定" className="pinned" count={pinnedRows.length} open={!pinnedClosed || filtering} onToggle={() => setPinnedClosed(!pinnedClosed)}>
             <ul className="chat-rows">{pinnedRows.map(renderRow)}</ul>
@@ -192,17 +195,21 @@ export const WorkspacePage = memo(function WorkspacePage({
             />
           );
         })}
-        {showGroups && (ungroupedRows.length > 0 || groupedDrafts) && (
+        {showGroups && (ungroupedRows.length > 0 || ungroupedDrafts.length > 0 || groupedDrafts) && (
           <UngroupedHead projectId={project.id} count={ungroupedRows.length} open={!(ungroupedClosed && !filtering)} onToggle={toggleUngrouped} drop={sections.ungroupedDrop} />
         )}
-        {(filtering && rows.length === 0) || (visibleRows.length === 0 && showGroups && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 ? (
+        {(filtering && rows.length === 0 && ungroupedDrafts.length === 0) ||
+        (visibleRows.length === 0 && ungroupedDrafts.length === 0 && showGroups && ungroupedClosed && !filtering) ? null : visibleRows.length === 0 &&
+          ungroupedDrafts.length === 0 ? (
           <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
             <Plus size={13} /> 最初のチャットを始める
           </button>
-        ) : mainRows.length === 0 ? null : (
-          // グループの見出しがあるときは「グループなし」の見出しで開閉し、中身を段下げする
+        ) : mainRows.length === 0 && ungroupedDrafts.length === 0 ? null : (
+          // グループの見出しがあるときは「グループなし」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする
           <Collapse open={!(showGroups && ungroupedClosed && !filtering)} indent={showGroups}>
-            {chatSections !== "worktree" && order === "recent" ? (
+            {/* グループなしの下書き（グループから戻すドロップ先にもする） */}
+            <DraftRows drafts={ungroupedDrafts} drop={sections.ungroupedDrop.props} />
+            {mainRows.length === 0 ? null : chatSections !== "worktree" && order === "recent" ? (
               <ul className="chat-rows" {...(showGroups ? sections.ungroupedDrop.props : {})}>
                 {mainRows.map(renderRow)}
               </ul>
