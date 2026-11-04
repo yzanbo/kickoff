@@ -7,22 +7,16 @@ import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Approval, BackgroundState, Run, RunEvent } from "../../../../core/types";
 import type { SubagentEntry } from "../../../../core/subagents";
 import { activityOf, latestOf, stalledAgents } from "./stall";
-import { workingLabel, type RunActivity } from "./workingLabel";
+import { lastResultIdOf, workingLabel, type RunActivity } from "./workingLabel";
 import { BackgroundTasks } from "./BackgroundTasks";
 import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { ReconnectRow, type Connection } from "./ConnectionStatus";
 import { jumpToEvent } from "./jumpToEvent";
-import { promptAbove, StickyPrompt } from "./StickyPrompt";
+import { promptAbove, STICKY_PROMPT_HEIGHT, StickyPrompt } from "./StickyPrompt";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
-
-/** いちばん新しい作業の終わり（result）のイベント ID（なければ 0） */
-function lastResultIdOf(events: RunEvent[]): number {
-  for (let i = events.length - 1; i >= 0; i--) if (events[i].type === "result") return events[i].id;
-  return 0;
-}
 
 /** 上の端からこの距離まで戻ったら、窓の外の前の項目を足す */
 const TOP_LOAD_PX = 200;
@@ -111,6 +105,7 @@ export function RunTimeline({
   const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
   // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
+  const stickyHeight = useRef(STICKY_PROMPT_HEIGHT); // 貼り付けた帯の高さ（その下端を、指示が見えているかの線にする）
   // 窓の最初と最後の項目（前を足した・新しい発言が届いたを見分ける）
   const firstKey = items[0]?.key;
   const lastKey = items[items.length - 1]?.key;
@@ -222,7 +217,10 @@ export function RunTimeline({
           if (hidden > 0 && el.scrollTop < TOP_LOAD_PX) showMore();
           // 下の端の近くまで来たら、窓の外の後ろの項目を足す（下に足すので、読んでいた位置は動かない）
           if (after > 0 && fromBottom < TOP_LOAD_PX) onShowLater?.();
-          const next = promptAbove(el);
+          // 帯の高さは、出していないときは前に出したときのもの（開いた全文の帯でも、出す・引っ込めるが行き来しないように）
+          const bar = el.parentElement?.querySelector<HTMLElement>(".sticky-prompt");
+          if (bar) stickyHeight.current = bar.offsetHeight;
+          const next = promptAbove(el, stickyHeight.current);
           // 同じ発言のままなら前の値を残し、スクロールのたびに描き直さない
           setPinned((prev) => (prev?.id === next?.id ? prev : next));
         }}

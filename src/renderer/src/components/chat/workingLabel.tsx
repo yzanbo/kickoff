@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTicker } from "../../hooks/useTicker";
-import type { BackgroundState, Run } from "../../../../core/types";
+import type { BackgroundState, Run, RunEvent } from "../../../../core/types";
 import type { SubagentEntry } from "../../../../core/subagents";
 import { activityOf, activityText, type Activity } from "./stall";
 import { backgroundWaitLabel, countBackground } from "./backgroundLabel";
@@ -71,4 +71,10 @@ function ThinkingWords({ since }: { since: string | null }) {
   useTicker(1000);
   const ms = since ? Date.now() - new Date(since).getTime() : 0;
   return <>{THINKING_WORDS.find(([after]) => ms >= after)![1]}</>;
+}
+
+/** いちばん新しい作業の終わり（result）のイベント ID（なければ 0） */
+export function lastResultIdOf(events: RunEvent[]): number {
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].type === "result") return events[i].id;
+  return 0;
 }
