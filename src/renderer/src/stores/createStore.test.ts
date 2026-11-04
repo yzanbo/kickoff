@@ -51,7 +51,7 @@ test("店: 同時に何度頼まれても読み込みは 1 回で、届いたら
   release();
 });
 
-test("店: 失敗は覚えず（前の値は残す）、次に使うときに取り直す", async () => {
+test("店: 失敗は覚えず（前の値は残す）、取り直すまでの間に使い始めても頼み直さない。reload ならすぐ取り直す", async () => {
   const { calls, load } = loader<number>();
   const store = createStore({ load });
   store.ensure();
@@ -65,10 +65,43 @@ test("店: 失敗は覚えず（前の値は残す）、次に使うときに取
   await flush();
   assert.deepEqual(store.get(), { data: 1, error: "つながりません", loading: false, loaded: true });
   store.ensure();
+  assert.equal(calls.length, 2);
+  void store.reload();
   assert.equal(calls.length, 3);
   calls[2].resolve(2);
   await flush();
   assert.deepEqual(store.get(), { data: 2, error: undefined, loading: false, loaded: true });
+});
+
+test("店: 使っている値の読み込みに失敗したら、間隔を伸ばしながら自動で取り直す（読めたら間隔を戻す）", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const { calls, load } = loader<number>();
+  const store = createStore({ load });
+  const release = store.retain();
+  calls[0].reject(new Error("失敗"));
+  await flush();
+  t.mock.timers.tick(1999);
+  assert.equal(calls.length, 1);
+  t.mock.timers.tick(1);
+  assert.equal(calls.length, 2);
+  calls[1].reject(new Error("失敗"));
+  await flush();
+  // 2 回続けて失敗したら 4 秒
+  t.mock.timers.tick(2000);
+  assert.equal(calls.length, 2);
+  t.mock.timers.tick(2000);
+  assert.equal(calls.length, 3);
+  calls[2].resolve(1);
+  await flush();
+  release();
+  // 使っていない間に失敗したものは、自動では取り直さない（次に使うときに）
+  void store.reload();
+  calls[3].reject(new Error("失敗"));
+  await flush();
+  t.mock.timers.tick(60_000);
+  assert.equal(calls.length, 4);
+  store.retain()();
+  assert.equal(calls.length, 5);
 });
 
 test("店: 知らせで値を直し、読み込みの最中に届いた知らせは、届いた値にもう一度当てる", async () => {
@@ -166,22 +199,31 @@ test("店: dropOn の知らせで、その key の値を捨てる", async () => 
   assert.equal(notified, 1);
 });
 
-test("店: つながったら、使っている値のうち失敗したものを取り直し、つなぎ直したら知らせで直している値も取り直す", async () => {
+test("店: つながったら、知らせで直している値は使っているものをすべて取り直す（つながる前に読んだ値は、その間の知らせを取りこぼしている）", async () => {
   const { calls, load } = loader<number>();
   const store = createKeyedStore<number, number>({ load, reduce: (n) => n });
   const releases = [store.retain(1), store.retain(2)];
   store.ensure(3);
   calls[0].reject(new Error("起動中"));
   calls[1].resolve(2);
-  calls[2].reject(new Error("起動中"));
+  calls[2].resolve(3);
   await flush();
-  // 初めてつながったとき: 失敗した値だけ（使っていない 3 は、次に使うときに）
   publishServerOpen();
-  assert.equal(calls.length, 4);
-  calls[3].resolve(1);
-  await flush();
-  // つなぎ直したとき: 使っている値をすべて
-  publishServerOpen();
+  // 使っている 1・2 だけ（使っていない 3 は、次に使うときに）
+  assert.equal(calls.length, 5);
+  store.ensure(3);
   assert.equal(calls.length, 6);
+  releases.forEach((release) => release());
+});
+
+test("店: 知らせで直さない店は、つながったときに失敗した値だけを取り直す", async () => {
+  const { calls, load } = loader<number>();
+  const store = createKeyedStore<number, number>({ load, maxAge: 60_000 });
+  const releases = [store.retain(1), store.retain(2)];
+  calls[0].reject(new Error("起動中"));
+  calls[1].resolve(2);
+  await flush();
+  publishServerOpen();
+  assert.equal(calls.length, 3);
   releases.forEach((release) => release());
 });

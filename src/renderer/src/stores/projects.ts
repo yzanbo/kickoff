@@ -31,22 +31,24 @@ export interface ProjectsIndex {
   projectName: (id: number) => string;
   /** 一覧が届いたか（届く前は、見つからなくても「ない」と決めない） */
   loaded: boolean;
+  /** 一覧を読めなかった理由（読めたら undefined。読めるまで自動で取り直す） */
+  error?: string;
 }
 
-export function indexProjects(projects: Project[], loaded = true): ProjectsIndex {
+export function indexProjects(projects: Project[], loaded = true, error?: string): ProjectsIndex {
   const projectsById = new Map(projects.map((p) => [p.id, p]));
-  return { projects, projectsById, projectName: (id) => projectsById.get(id)?.name ?? "", loaded };
+  return { projects, projectsById, projectName: (id) => projectsById.get(id)?.name ?? "", loaded, error };
 }
 
 const NO_PROJECTS: Project[] = [];
-// 一覧が変わったときだけ引き当てを作り直す（読む部品ごとに作らない）
-let last: { list: Project[] | undefined; index: ProjectsIndex } | undefined;
+// 一覧（と読めなかった理由）が変わったときだけ引き当てを作り直す（読む部品ごとに作らない）
+let last: { list: Project[] | undefined; error: string | undefined; index: ProjectsIndex } | undefined;
 
 /** プロジェクトの一覧と名前の引き当て */
 export function useProjects(): ProjectsIndex {
-  const { data } = useStore(projectsStore);
-  if (last && last.list === data) return last.index;
-  const index = indexProjects(data ?? NO_PROJECTS, data !== undefined);
-  last = { list: data, index };
+  const { data, error } = useStore(projectsStore);
+  if (last && last.list === data && last.error === error) return last.index;
+  const index = indexProjects(data ?? NO_PROJECTS, data !== undefined, error);
+  last = { list: data, error, index };
   return index;
 }

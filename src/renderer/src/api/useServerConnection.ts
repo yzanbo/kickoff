@@ -7,7 +7,7 @@ export type ConnectionState = "connecting" | "open" | "closed";
 /**
  * サーバーとつなぎ（SSE の /api/events）、届いたイベントを onEvent に渡す（App で 1 回だけ使う。各画面へは events.ts の publishServerEvent で配る）。
  * 切れたら EventSource が自動でつなぎ直し、つなぎ直されない切断（認証の失敗など）は 5 秒ごとにこちらで張り直す。
- * つながるたびに publishServerOpen で知らせる（店 stores/ が、失敗した値・切れている間に取りこぼしたかもしれない値を取り直す）。
+ * つながるたびに publishServerOpen で知らせる（店 stores/ が、失敗した値と、つながる前・切れている間に読んだ値を取り直す）。
  * state は接続の状態、since は最後につながった時刻
  */
 export function useServerConnection(onEvent: (event: BusEvent) => void): { state: ConnectionState; since: number | null } {
