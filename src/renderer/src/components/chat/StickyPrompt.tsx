@@ -73,22 +73,29 @@ export function StickyPrompt({
 /** 貼り付けた指示の帯の高さが分からないとき（まだ出していない）の目安（1 行にたたんだ高さ） */
 export const STICKY_PROMPT_HEIGHT = 37;
 
+/** 次の指示の吹き出しが帯の下端のこの距離（px）まで来たら、帯を引っ込める（下端に着く少し手前で引っ込め、吹き出しの頭を隠さない） */
+const HIDE_AHEAD_PX = 10;
+
 /**
  * 画面の上に流れて見えなくなった、いちばん下の自分の発言（その返答を読んでいる）。どれも流れていなければ undefined。
  * cover は上に貼り付ける帯の高さで、帯の下端を「見えている」かどうかの線にする（上端を線にすると、次の指示の吹き出しが
- * 帯の下に入り込んでも帯を出したままになり、吹き出しが隠れていた。帯の下端まで来たら帯を引っ込める）
+ * 帯の下に入り込んでも帯を出したままになり、吹き出しが隠れていた）。
+ * 出すのは、吹き出しの下の時刻・コピーなどの行（`.user-message` の下端）まで線より上へ流れてから（吹き出しだけが流れた
+ * ところで出すと、すぐ下のコピーなどがまだ見えているのに帯が重なっていた）。引っ込めるのは、次の吹き出しが線の HIDE_AHEAD_PX 手前まで来たとき
  */
 export function promptAbove(timeline: HTMLElement, cover = 0): { id: number; text: string } | undefined {
-  const top = timeline.getBoundingClientRect().top + cover;
-  // 線より上から始まる、いちばん下の吹き出し（それがまだ少しでも線の下に見えていれば、貼り付けない）
+  const line = timeline.getBoundingClientRect().top + cover;
+  // 線（の少し手前）より上から始まる、いちばん下の吹き出し（それと下の行がまだ少しでも線の下に見えていれば、貼り付けない）
   let found: HTMLElement | undefined;
   for (const bubble of timeline.querySelectorAll<HTMLElement>(".bubble.user")) {
-    if (bubble.getBoundingClientRect().top >= top) break;
+    if (bubble.getBoundingClientRect().top >= line + HIDE_AHEAD_PX) break;
     found = bubble;
   }
-  if (found && found.getBoundingClientRect().bottom > top) return undefined;
-  const id = found ? Number(found.id.replace("ev-", "")) : NaN;
-  if (!found || !Number.isFinite(id)) return undefined;
+  if (!found) return undefined;
+  const message = found.closest<HTMLElement>(".user-message") ?? found;
+  if (message.getBoundingClientRect().bottom > line) return undefined;
+  const id = Number(found.id.replace("ev-", ""));
+  if (!Number.isFinite(id)) return undefined;
   // 添付だけの発言は文が空（帯には添付だけを出す）
   const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
   return { id, text };

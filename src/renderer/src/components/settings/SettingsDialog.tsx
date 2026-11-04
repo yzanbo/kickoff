@@ -1,6 +1,6 @@
 import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
 import { useSharedFlag } from "../../hooks/useStoredState";
-import { CHAT_WIDE_KEY, COMPOSER_COMPACT_KEY } from "../../storageKeys";
+import { CHAT_WIDE_KEY, COMPOSER_COMPACT_KEY, STICKY_PROMPT_HIDDEN_KEY } from "../../storageKeys";
 import { useTheme, type Theme } from "../../theme";
 import { Field } from "../Field";
 import { BrowserExtensions } from "../BrowserExtensions";
@@ -75,6 +75,7 @@ function DisplaySettings() {
   const [theme, setTheme] = useTheme();
   const [compactComposer, setCompactComposer] = useSharedFlag(COMPOSER_COMPACT_KEY);
   const [wideChat, setWideChat] = useSharedFlag(CHAT_WIDE_KEY);
+  const [stickyHidden, setStickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
   return (
@@ -106,7 +107,7 @@ function DisplaySettings() {
             ]}
           />
         </Field>
-        <Field label="チャットの横幅" help="広くすると、発言の流れとチャット欄を欄の横幅いっぱいまで広げます。チャットの見出しの ↔ でも切り替えられます。">
+        <Field label="チャットの横幅" help="広くすると、発言の流れとチャット欄を欄の横幅いっぱいまで広げます。">
           <Segmented<"normal" | "wide">
             className="segmented theme-switch"
             label="チャットの横幅"
@@ -115,6 +116,18 @@ function DisplaySettings() {
             options={[
               { value: "normal", label: "標準" },
               { value: "wide", label: "横幅いっぱい" },
+            ]}
+          />
+        </Field>
+        <Field label="上に貼り付ける指示" help="上にスクロールして自分の指示が見えなくなったとき、読んでいる返答の元の指示をチャットの上端に貼り付けて出します。">
+          <Segmented<"show" | "hide">
+            className="segmented theme-switch"
+            label="上に貼り付ける指示"
+            value={stickyHidden ? "hide" : "show"}
+            onChange={(v) => setStickyHidden(v === "hide")}
+            options={[
+              { value: "show", label: "表示する" },
+              { value: "hide", label: "表示しない" },
             ]}
           />
         </Field>

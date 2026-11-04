@@ -2,6 +2,7 @@ import { ArrowDown } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cx } from "../../cx";
 import { RUN_STATUS_LABELS } from "../RunStatus";
+import { useSharedFlag } from "../../hooks/useStoredState";
 import { useTicker } from "../../hooks/useTicker";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Approval, BackgroundState, Run, RunEvent } from "../../../../core/types";
@@ -17,6 +18,7 @@ import { promptAbove, promptAttachments, STICKY_PROMPT_HEIGHT, StickyPrompt } fr
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
+import { STICKY_PROMPT_HIDDEN_KEY } from "../../storageKeys";
 
 /**
  * 窓の外の項目を足し始める、端からの距離（画面の高さに対する割合と、最低限の px）。
@@ -108,6 +110,8 @@ export function RunTimeline({
   else awayFromResult.current ??= lastResultId;
   const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
   // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
+  // （設定の「表示」で出さないこともできる）
+  const [stickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
   const pinnedAttachments = useMemo(() => (pinned ? promptAttachments(events, pinned.id) : []), [pinned, events]);
   // 自分の指示の並び（帯の ↑ / ↓ を押せるか）
@@ -233,7 +237,7 @@ export function RunTimeline({
           // 帯の高さは、出していないときは前に出したときのもの（開いた全文の帯でも、出す・引っ込めるが行き来しないように）
           const bar = el.parentElement?.querySelector<HTMLElement>(".sticky-prompt");
           if (bar) stickyHeight.current = bar.offsetHeight;
-          const next = promptAbove(el, stickyHeight.current);
+          const next = stickyHidden ? undefined : promptAbove(el, stickyHeight.current);
           // 同じ発言のままなら前の値を残し、スクロールのたびに描き直さない
           setPinned((prev) => (prev?.id === next?.id ? prev : next));
         }}
@@ -272,7 +276,7 @@ export function RunTimeline({
           )}
         </div>
       </div>
-      {pinned && (
+      {pinned && !stickyHidden && (
         <StickyPrompt
           text={pinned.text}
           attachments={pinnedAttachments}
