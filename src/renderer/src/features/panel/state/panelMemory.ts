@@ -76,7 +76,7 @@ export interface SidebarDraft {
   text: string;
 }
 
-/** すべてのボード・チャット欄の下書き（サイドバーに出す） */
+/** すべてのボード・チャット欄の下書き（サイドバーに出す。パネルが変わるまでは同じ配列） */
 export function useAllDrafts(): SidebarDraft[] {
   useSyncExternalStore(
     (l) => {
@@ -144,8 +144,15 @@ export function forgetDraftsOfMissingProjects(projectIds: ReadonlySet<number>) {
     .forEach(discardDraft);
 }
 
+/** いまの下書き（覚えている内容が変わるまでは、同じ配列を返す。描くたびに作り直さない） */
+let drafts: { version: number; list: SidebarDraft[] } | undefined;
+
 function draftsSnapshot(): SidebarDraft[] {
-  return [...panelMemory].flatMap(([memoryKey, s]) =>
-    s.tabs.flatMap((t) => (t.kind === "new" ? [{ memoryKey, key: t.key, projectId: t.projectId, group: t.group, text: t.draftText ?? "" }] : [])),
-  );
+  if (drafts?.version !== version) {
+    const list = [...panelMemory].flatMap(([memoryKey, s]) =>
+      s.tabs.flatMap((t) => (t.kind === "new" ? [{ memoryKey, key: t.key, projectId: t.projectId, group: t.group, text: t.draftText ?? "" }] : [])),
+    );
+    drafts = { version, list };
+  }
+  return drafts.list;
 }
