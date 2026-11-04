@@ -3,7 +3,8 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { isKey } from "@/lib/keys";
 import { useListNavigation } from "@/hooks/useListNavigation";
-import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { useChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
 import { formatMessageTime } from "@/lib/time";
 import { IconButton } from "@/ui/IconButton";
 import { Popover } from "@/ui/Popover";
@@ -18,7 +19,8 @@ import type { PromptEntry } from "./promptHistory";
  * 上の欄で絞り込め、↑↓ で選んで Enter で入力欄に入れる・⌘Enter でその指示へ移る。
  * チャットにピントがあるときの ⌃R でも開く（シェルの履歴の検索と同じ。開いている間の ⌃R は 1 つ前の一致へ）
  */
-export function PromptsChip({ prompts, onJump, onReuse }: { prompts: PromptEntry[]; onJump: (eventId: number) => void; onReuse: (text: string) => void }) {
+export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
+  const pane = useChatPane();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -31,19 +33,21 @@ export function PromptsChip({ prompts, onJump, onReuse }: { prompts: PromptEntry
   }, [prompts, query]);
   const close = () => {
     // 絞り込みの欄にピントがあれば、チャット欄に戻す（欄が消えてピントが外れると、次の Esc でパネルが閉じる）
-    if (ref.current?.contains(document.activeElement)) ref.current.closest(".chat-panel")?.querySelector<HTMLElement>(".composer textarea")?.focus();
+    if (ref.current?.contains(document.activeElement)) pane.focusComposer();
     setOpen(false);
     setQuery("");
   };
+  // 行の右のボタン・Enter: 同じ文を入力欄に入れる（もう一度送る・少し直して送る）
   const reuse = (p: PromptEntry | undefined) => {
     if (!p?.text) return;
     close();
-    onReuse(p.text);
+    pane.fillComposer(p.text);
   };
+  // 行・⌘Enter: その指示へ移って強調する
   const jump = (p: PromptEntry | undefined) => {
     if (!p) return;
     close();
-    onJump(p.id);
+    pane.jumpTo(p.id);
   };
   const nav = useListNavigation(items, reuse);
   // 開いた・絞り込んだら、いちばん新しい（下の）指示を選ぶ
@@ -56,14 +60,16 @@ export function PromptsChip({ prompts, onJump, onReuse }: { prompts: PromptEntry
     ref.current?.querySelector(".prompt-row.active")?.scrollIntoView({ block: "nearest" });
   }, [open, nav.index]);
 
-  // ⌃R: 開いて絞り込みの欄にピントを置く（開いていれば 1 つ前の一致へ）
-  useWindowEvent("keydown", (e) => {
-    if (!isKey(e, "r", { ctrl: true })) return;
-    if (!ref.current?.closest(".chat-panel")?.contains(document.activeElement)) return;
-    e.preventDefault();
-    if (!open) setOpen(true);
-    else nav.setIndex((i) => Math.max(i - 1, 0));
-  });
+  // ⌃R（このチャットにピントがあるとき）: 開いて絞り込みの欄にピントを置く（開いていれば 1 つ前の一致へ）
+  useChatHotkey(
+    pane.root,
+    (e) => isKey(e, "r", { ctrl: true }),
+    (e) => {
+      e.preventDefault();
+      if (!open) setOpen(true);
+      else nav.setIndex((i) => Math.max(i - 1, 0));
+    },
+  );
 
   if (prompts.length === 0) return null;
   return (

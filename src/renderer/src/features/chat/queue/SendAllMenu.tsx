@@ -2,6 +2,8 @@ import { ChevronDown, ListOrdered, Merge, SendHorizontal } from "lucide-react";
 import { api } from "@/api";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
+import { useChatPane } from "@/features/chat/pane/chatPaneContext";
+import { queueFailed as failed } from "./queueFailed";
 
 /**
  * 送信待ちの「すべて送る」: 押すと、このチャットへの送り方を 2 つから選ぶ。
@@ -9,19 +11,16 @@ import { useContextMenu } from "@/ui/useContextMenu";
  * 送信待ちはチャット欄のすぐ上（画面の下の方）にあるので、メニューはボタンの上に、右端をそろえて開く
  */
 export function SendAllMenu({
-  chatId,
   count,
   busy,
   holds,
-  failed,
 }: {
-  chatId: number;
   count: number;
   busy: boolean;
   /** 止めている・一時停止の印がある（1 件ずつ送るときは外して最後まで送る） */
   holds: boolean;
-  failed: (e: unknown) => void;
 }) {
+  const { chatId } = useChatPane();
   const menu = useContextMenu({ side: "above", align: "end" });
   return (
     <>

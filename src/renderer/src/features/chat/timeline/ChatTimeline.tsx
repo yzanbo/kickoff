@@ -1,8 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { CHAT_STATUS_LABELS } from "@/features/chat/chatStatus";
 import { useSetting } from "@/hooks/useSetting";
 import { useTicker } from "@/hooks/useTicker";
-import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { isKey } from "@/lib/keys";
+import { useChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
 import type { Approval, Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, latestOf, stalledAgents } from "@/features/chat/status/stall";
@@ -13,9 +15,10 @@ import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
 import { ReconnectRow } from "@/features/chat/status/ConnectionStatus";
 import { jumpToEvent } from "./jumpToEvent";
 import { readingPrompt, StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
-import { promptListOf } from "@/features/chat/prompts/promptHistory";
+import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { TimelineItems, Working } from "./Timeline";
-import type { TimelineItem } from "./timelineItems";
+import type { TimelineScroll } from "./timelineScroll";
+import type { TimelineWindow } from "./useTimelineWindow";
 import { useMarkSeen } from "./useMarkSeen";
 import { ScrollBottomPill, type ScrollPillTone } from "./ScrollBottomPill";
 import { STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
@@ -34,76 +37,59 @@ const NO_ATTACHMENTS: Attachment[] = [];
 
 /**
  * チャットの発言の流れ（発言とツールのまとまり・生成中の返答・確認のカード・作業中の行）。
- * 一番下を見ているときだけ、新しい発言に合わせてスクロールする（stickToBottom。送ったら親が true に戻す）。
+ * 一番下を見ているときだけ、新しい発言に合わせてスクロールする（scroll の following。送ったら付いていくに戻る）。
  * 上にスクロールしている間は、一番下へ戻るボタンを出す（⌘↓ でも戻る）。答えを待っているとき・その間に作業が終わったときは、
  * ボタンに文を添えて目立たせ、下へ戻るよう誘う。
  * focus（検索結果から開いた発言）があれば、そこまでスクロールして一瞬強調する
  */
 export function ChatTimeline({
-  items,
-  lastItem,
+  window: w,
   rel,
-  hidden = 0,
-  onShowMore,
-  after = 0,
-  onShowLater,
-  onLatest,
-  onAtBottom,
   chat,
   busy,
   agents = [],
-  onOpenSubagent,
   live,
-  waiting,
   streaming,
   approvals,
   focus,
-  stickToBottom,
+  scroll,
   events,
+  prompts,
   visible,
-  onPromptStep,
   pillDock,
 }: {
-  items: TimelineItem[];
-  /** 流れ全体の最後の項目（窓で途中を描いていても、作業中の文はいまの状態で決める） */
-  lastItem: TimelineItem | undefined;
+  /** 描く範囲（長いチャットでは最近の項目だけ。窓の外の上・下の項目の数と、それを足す・最新に戻す操作） */
+  window: TimelineWindow;
   rel: (s: string) => string;
   chat: Chat;
   busy: boolean;
-  /** 窓の外（上）にあって描いていない項目の数と、それを足す操作（長いチャットでは最近の項目だけを描く） */
-  hidden?: number;
-  onShowMore?: () => void;
-  /** 窓の外（下）にあって描いていない項目の数（検索などで途中の一部分を描いているとき）と、それを足す操作・最新の窓に戻す操作 */
-  after?: number;
-  onShowLater?: () => void;
-  onLatest?: () => void;
-  /** 一番下へ戻った（足した前の項目を外して、描く量を元に戻す） */
-  onAtBottom?: () => void;
   /** チャットのサブエージェント（実行中の数・長く動きのないもの・裏の作業の一覧から中身を開く） */
   agents?: SubagentEntry[];
-  /** サブエージェントの中身をパネルのタブで開く */
-  onOpenSubagent?: (entry: SubagentEntry) => void;
   /**
    * 作業中の様子（裏の作業と、メインの返答が終わったか・通信の再試行中・つながるのを待っているところ・圧縮中・停止中）。
-   * 停止中は押してからコアの知らせが届くまでの間も含め、圧縮中は作業中だけ（ChatPane が決める）
+   * 停止中は押してからコアの知らせが届くまでの間も含め、圧縮中は作業中だけ（ChatView が決める）
    */
   live: ChatLive;
-  waiting: boolean;
   /** 書いている途中の返答 */
   streaming: string;
   approvals: Approval[];
   focus?: number;
-  stickToBottom: RefObject<boolean>;
+  /** 流れのスクロールの持ち主（流れの要素と、一番下に付いていくか） */
+  scroll: TimelineScroll;
   /** 会話の記録（最新の結果を一番下まで見たら既読にする） */
   events: ChatEvent[];
+  /** 自分の指示の一覧（上に貼り付ける指示の帯の ↑ / ↓・添付） */
+  prompts: PromptList;
   /** チャットを表示しているか（パネルの裏のタブ・閉じたパネルは見ていない） */
   visible: boolean;
-  /** 上に貼り付けた指示の帯の ↑ / ↓: 貼り付けた指示（from）の前・次の指示へ移る */
-  onPromptStep?: (dir: -1 | 1, from: number) => void;
   /** 一番下へ戻るボタンを置くピルの列の右端（入る幅があれば、流れに浮かせずそこに置く） */
   pillDock?: HTMLElement | null;
 }) {
-  const timelineRef = useRef<HTMLDivElement>(null);
+  const pane = useChatPane();
+  const items = w.visible;
+  const { hidden, hiddenAfter: after } = w;
+  const waiting = approvals.length > 0;
+  const timelineRef = scroll.ref;
   // 一番下から離れているか（一番下へ戻るボタンを出す）
   const [away, setAway] = useState(false);
   // 上を読んでいる間に作業が終わったか（一番下へ戻るボタンで知らせる。一番下へ戻ったら消す）
@@ -117,7 +103,6 @@ export function ChatTimeline({
   const [stickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
   // 自分の指示の並び（帯の ↑ / ↓ を押せるか）と、貼り付けた指示の添付
-  const prompts = promptListOf(events);
   const promptIds = prompts.ids;
   const pinnedAttachments = (pinned && prompts.byId.get(pinned.id)?.attachments) || NO_ATTACHMENTS;
   const pinnedAt = pinned ? promptIds.indexOf(pinned.id) : -1;
@@ -148,8 +133,8 @@ export function ChatTimeline({
   useEffect(() => {
     if (!focus) return;
     if (!timelineRef.current || !jumpToEvent(timelineRef.current, focus)) return;
-    stickToBottom.current = false;
-  }, [focus, lastKey, stickToBottom]);
+    scroll.release();
+  }, [focus, lastKey, scroll, timelineRef]);
 
   // 描いた項目が変わった・帯の出し方を変えたときも確かめ直す（スクロールしなくても、開いたときから帯を出す）
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -169,17 +154,17 @@ export function ChatTimeline({
   }, [firstKey]);
   const showMore = () => {
     const el = timelineRef.current;
-    if (!el || !onShowMore || beforeMore.current) return;
+    if (!el || beforeMore.current) return;
     beforeMore.current = { height: el.scrollHeight, top: el.scrollTop };
-    onShowMore();
+    w.showMore();
   };
 
   // 一番下を見ているときだけ、新しい発言に合わせてスクロールする
   useEffect(() => {
     const el = timelineRef.current;
-    if (el && stickToBottom.current && !focus) el.scrollTop = el.scrollHeight;
+    if (el && scroll.following() && !focus) el.scrollTop = el.scrollHeight;
     // 窓（最近の項目だけ描く）は数が変わらないまま進むので、最後の項目で新しい発言を見分ける
-  }, [lastKey, approvals.length, streaming, focus, stickToBottom]);
+  }, [lastKey, approvals.length, streaming, focus, scroll, timelineRef]);
 
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   useMarkSeen({ timelineRef, chat, events, visible, away, slackPx: BOTTOM_SLACK_PX });
@@ -195,23 +180,25 @@ export function ChatTimeline({
   function scrollToBottom() {
     const el = timelineRef.current;
     if (!el) return;
-    stickToBottom.current = true;
+    scroll.follow();
     if (after > 0) {
       toLatest.current = true;
-      onLatest?.();
+      w.latest();
       return;
     }
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }
 
   // ⌘↓ で一番下へ（このチャットの中にピントがあり、上を読んでいるとき。入力欄の中でも効く）
-  useWindowEvent("keydown", (e) => {
-    if (!away || !e.metaKey || e.altKey || e.ctrlKey || e.shiftKey || e.key !== "ArrowDown") return;
-    const panel = timelineRef.current?.closest(".chat-panel");
-    if (!panel?.contains(document.activeElement)) return;
-    e.preventDefault();
-    scrollToBottom();
-  });
+  useChatHotkey(
+    pane.root,
+    (e) => isKey(e, "ArrowDown", { meta: true }),
+    (e) => {
+      e.preventDefault();
+      scrollToBottom();
+    },
+    { enabled: away },
+  );
 
   // ボタンに出すいまの状態（上を読んでいる間も、このチャットがどうなっているかが分かるように）。
   // 答えを待っている・その間に返答が届いたときは目立たせて下へ誘い、作業中はいまの段階、終わっていれば結果を出す
@@ -223,7 +210,7 @@ export function ChatTimeline({
       : finishedWhileAway
         ? { label: chat.status === "failed" ? "失敗しました" : "返答が届きました", tone: chat.status === "failed" ? "failed" : "arrived" }
         : busy
-          ? { label: workingLabel(chat, lastItem, streaming, live, runningAgents, activity), tone: live.retry ? "offline" : "working" }
+          ? { label: workingLabel(chat, w.last, streaming, live, runningAgents, activity), tone: live.retry ? "offline" : "working" }
           : { label: CHAT_STATUS_LABELS[chat.status], tone: chat.status === "failed" ? "failed" : "idle" };
 
   return (
@@ -238,15 +225,16 @@ export function ChatTimeline({
           const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
           // 途中の一部分を描いているときは、下の端まで来ても最新ではない
           const atBottom = after === 0 && fromBottom < BOTTOM_SLACK_PX;
-          stickToBottom.current = atBottom;
+          if (atBottom) scroll.follow();
+          else scroll.release();
           setAway(!atBottom);
-          if (atBottom) onAtBottom?.();
+          if (atBottom) w.atBottom();
           // 上の端に近づいたら（着く前に）、窓の外の前の項目を足す
           const ahead = Math.max(LOAD_AHEAD_MIN_PX, el.clientHeight * LOAD_AHEAD_VIEWPORTS);
           // （一番下にいるときは足さない。窓が短いと、一番下で窓を戻す処理と行き来するため）
           if (hidden > 0 && !atBottom && el.scrollTop < ahead) showMore();
           // 下の端に近づいたら、窓の外の後ろの項目を足す（下に足すので、読んでいた位置は動かない）
-          if (after > 0 && fromBottom < ahead) onShowLater?.();
+          if (after > 0 && fromBottom < ahead) w.showLater();
           updatePinned();
         }}
       >
@@ -259,7 +247,7 @@ export function ChatTimeline({
           <TimelineItems items={items} rel={rel} active={busy} />
           {/* 途中の一部分を描いているときは、最新の分（書いている途中の返答・確認のカード・作業中の行）は出さない（一番下へ戻るボタンで最新へ） */}
           {after > 0 ? (
-            <button type="button" className="link-button timeline-more" onClick={() => onShowLater?.()}>
+            <button type="button" className="link-button timeline-more" onClick={w.showLater}>
               以降の発言を表示（あと {after} 件）
             </button>
           ) : (
@@ -274,10 +262,10 @@ export function ChatTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={chat.turn_started_at}>{workingLabel(chat, lastItem, streaming, live, runningAgents, activity)}</Working>
+            <Working since={chat.turn_started_at}>{workingLabel(chat, w.last, streaming, live, runningAgents, activity)}</Working>
           )}
           {/* 裏で動いている作業（1 件ずつ止められる） */}
-          {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} onOpen={onOpenSubagent} />}
+          {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} />}
           {/* 通信が切れて止まり、つながるのを待っている */}
           {!busy && live.reconnect && <ReconnectRow chatId={chat.id} reconnect={live.reconnect} />}
             </>
@@ -288,8 +276,8 @@ export function ChatTimeline({
         <StickyPrompt
           text={pinned.text}
           attachments={pinnedAttachments}
-          onPrev={onPromptStep && pinnedAt > 0 ? () => onPromptStep(-1, pinned.id) : undefined}
-          onNext={onPromptStep && pinnedAt >= 0 && pinnedAt < promptIds.length - 1 ? () => onPromptStep(1, pinned.id) : undefined}
+          onPrev={pinnedAt > 0 ? () => pane.stepPrompt(-1, pinned.id) : undefined}
+          onNext={pinnedAt >= 0 && pinnedAt < promptIds.length - 1 ? () => pane.stepPrompt(1, pinned.id) : undefined}
         />
       )}
       {/* 一番下へ戻るボタン: いまの状態を添えて出す（入る幅があればチャット欄の上のピルの列の右端に置く） */}

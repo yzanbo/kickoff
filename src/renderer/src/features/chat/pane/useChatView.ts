@@ -1,0 +1,139 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { Approval, Chat, ChatEvent, ChatLive, Project } from "@shared/types";
+import { api } from "@/api";
+import { createValueCell } from "@/lib/valueCell";
+import { useFileLinks } from "@/features/fileLinks/useFileLinks";
+import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
+import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
+import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
+import { promptListOf } from "@/features/chat/prompts/promptHistory";
+import { usePromptKeys } from "@/features/chat/prompts/usePromptKeys";
+import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
+import { confirmRewindSend, restoreFilesBefore } from "@/features/chat/rewind/rewindActions";
+import { retryTurn, useRetryChoices } from "@/features/chat/rewind/useRetryChoices";
+import { useSubagents } from "@/features/chat/subagents/Subagents";
+import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
+import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems";
+import { useTimelineScrollHandle } from "@/features/chat/timeline/timelineScroll";
+import { useTimelineWindow } from "@/features/chat/timeline/useTimelineWindow";
+import type { ChatPaneActions, ChatPaneState } from "./chatPaneContext";
+import { useChatSend } from "./useChatSend";
+
+export interface ChatViewInput {
+  chat: Chat;
+  project?: Project;
+  events: ChatEvent[];
+  approvals: Approval[];
+  /** 作業中の様子（コアが持つ形のまま。停止中はほかの画面から止めたときも） */
+  live: ChatLive;
+  /** 書いている途中の返答 */
+  streaming: string;
+  /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
+  focus?: number;
+  /** サブエージェントの中身を、パネルの新しいタブで開く（行のキーと名前） */
+  onOpenSubagent: (toolUseId: string, title: string) => void;
+  /** 新しいチャットのタブを開く（送信待ちの指示を新しいチャットで聞くとき。パネルの外では渡さない） */
+  onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
+}
+
+/**
+ * 1 つのチャットの画面（ChatView）の状態と操作: 選択（モデル・深さ・権限）・作業中の様子・サブエージェント・流れ（窓とスクロール）・
+ * 自分の指示の一覧・送り方と、子の部品に配る操作（ChatPaneActions。チャットごとに 1 回だけ作る）。
+ * ChatView は描くだけ（ChatView はチャットごとに作り直す = key がチャットの ID）
+ */
+export function useChatView({ chat, project, events, approvals, live: coreLive, streaming, focus, onOpenSubagent, onOpenNew }: ChatViewInput) {
+  const options = useChatOptions(
+    { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
+    chat.project_id,
+    chat.worktree_path ?? undefined,
+  );
+  const busy = chat.status === "running";
+  // 停止を押して、止まるのを待っている（押してからコアの知らせが届くまでの間も含める。止まったら戻す）
+  const [stopClicked, setStopClicked] = useState(false);
+  useEffect(() => {
+    if (!busy) setStopClicked(false);
+  }, [busy]);
+  // 画面に出す作業中の様子: 停止中は押した直後から、会話の圧縮中は作業中だけ（作業中の行・チャット欄のメーターで知らせる）
+  const live = useMemo<ChatLive>(
+    () => ({ ...coreLive, stopping: busy && (stopClicked || coreLive.stopping), compacting: busy ? coreLive.compacting : null }),
+    [coreLive, busy, stopClicked],
+  );
+  const subagents = useSubagents(chat.id, events, busy, live.background);
+  // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
+  const runningAgents = subagents.filter((s) => s.status === "running").length;
+  const items = useMemo(() => groupEvents(events), [events]);
+  // 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・チャット欄の ↑ の呼び出し。記録が変わったときだけ作り直す）
+  const prompts = promptListOf(events);
+  // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
+  const repoPath = project?.repo_path;
+  const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
+  // 返答の中のファイルのパスを、押してエディタタブで開けるチップにする（作業場所のファイルだけ）
+  const fileLinks = useFileLinks(chat, project?.repo_path);
+
+  // 画面の要素・チャット欄・流れのスクロール（一番下に付いていくか）
+  const rootRef = useRef<HTMLDivElement>(null);
+  const composer = useRef<ComposerHandle | null>(null);
+  const scroll = useTimelineScrollHandle();
+  // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
+  const timeline = useTimelineWindow({ items, chatId: chat.id, focus, scroll });
+  // 移り先が窓の外なら、窓を広げて描いてから移る
+  const [jumpTarget, setJumpTarget] = useState<number | null>(null);
+  useEffect(() => {
+    const el = scroll.ref.current;
+    if (jumpTarget !== null && el && jumpToEvent(el, jumpTarget)) setJumpTarget(null);
+  }, [jumpTarget, timeline.visible, scroll]);
+  // 失敗した作業の直し方（変わる様子として配り、失敗した作業の終わりの行だけが描き直る）
+  const retry = useRetryChoices(events, busy, options);
+  const send = useChatSend({ chatId: chat.id, busy, queued: live.queue.messages.length > 0, options, scroll, background: live.background, runningAgents, onStopping: setStopClicked });
+
+  // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
+  const promptKeys = usePromptKeys({ root: rootRef, timeline: scroll.ref, promptIds: prompts.ids, onJump: (id) => pane.jumpTo(id) });
+  // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
+  const fresh = { chat, options, subagents, timeline, onOpenSubagent, onOpenNew, stepPrompt: promptKeys.go };
+  const latest = useRef(fresh);
+  latest.current = fresh;
+
+  const [pane] = useState<ChatPaneActions>(() => {
+    const now = () => latest.current;
+    const chatId = chat.id;
+    return {
+      chatId,
+      root: rootRef,
+      // 名前はサブエージェントの一覧から（ツールのまとまりの「中身を見る」からは呼び出し ID だけが届く）
+      openSubagent: (key) => now().onOpenSubagent(key, now().subagents.find((s) => s.key === key)?.description ?? "サブエージェント"),
+      rewind: async (eventId, text) => {
+        const choice = await confirmRewindSend(chatId, eventId);
+        if (!choice) return false;
+        scroll.follow();
+        await api.rewindChat(chatId, eventId, text, now().options.options, choice.restoreFiles);
+        return true;
+      },
+      restoreFiles: (eventId) => restoreFilesBefore(chatId, eventId),
+      retry: (change) => retryTurn(chatId, now().options, change),
+      jumpTo: (eventId) => {
+        scroll.release();
+        const el = scroll.ref.current;
+        // 移ったら流れにピントを置く（続けて ⌘⌥↑ / ↓・↑↓ のスクロールが効くように。一覧を閉じてピントが外れたままにしない）
+        el?.focus({ preventScroll: true });
+        if (!now().timeline.reveal(eventId)) setJumpTarget(eventId);
+        else if (el) jumpToEvent(el, eventId);
+      },
+      reveal: (eventId) => {
+        scroll.release();
+        now().timeline.reveal(eventId);
+      },
+      stepPrompt: (dir, from) => now().stepPrompt(dir, from),
+      fillComposer: (text, opts) => composer.current?.fill(text, opts),
+      focusComposer: () => composer.current?.focus(),
+      // 作成先は、いまのチャットのプロジェクト・グループ（移したあとも、いまのもの）
+      askInNewChat: onOpenNew && ((seed) => now().onOpenNew?.({ projectId: now().chat.project_id, group: now().chat.group_id ?? undefined }, seed)),
+      state: createValueCell<ChatPaneState>({ retry }),
+    };
+  });
+  // 変わる様子を配る（変わったときだけ。読んでいる部品だけが描き直る）
+  useLayoutEffect(() => {
+    if (pane.state.get().retry !== retry) pane.state.set({ retry });
+  }, [pane, retry]);
+
+  return { pane, options, busy, live, subagents, items, prompts, rel, fileLinks, composer, scroll, timeline, send };
+}

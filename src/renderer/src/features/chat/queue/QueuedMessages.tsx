@@ -11,9 +11,9 @@ import { useQueuedEdits } from "./useQueuedEdits";
 import { useQueueSelection } from "./useQueueSelection";
 import { useAskInNewChat } from "./askInNewChat";
 import { nextQueuedText, queuedHint } from "./queuedHint";
-import type { NewChatTarget } from "@/features/panel/usePanel";
+import { queueFailed as failed } from "./queueFailed";
+import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { cx } from "@/lib/cx";
-import { reportFailure } from "@/ui/dialogs";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { QUEUE_COLLAPSED, QUEUE_EXPANDED, QUEUE_HEIGHT } from "@/lib/storageKeys";
@@ -35,14 +35,9 @@ const MIN_LIST_HEIGHT = 36;
  * 入力欄のすぐ上に区切り線だけでつなげ、1 枚の枠に見せる（queued.css）
  */
 export function QueuedMessages({
-  chatId,
   queue,
   busy,
-  newChatTarget,
 }: {
-  chatId: number;
-  /** 「新しいチャットで聞く」で作るチャットのプロジェクト・グループ（元のチャットと同じ） */
-  newChatTarget: NewChatTarget;
   /**
    * 送信待ちの様子（作業中の様子の queue）。stops は一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも）、
    * waiting_edit はコアが次の指示の書き直しが終わるのを待っているか（作業は終わり、送信の準備ができている）
@@ -50,6 +45,7 @@ export function QueuedMessages({
   queue: QueueState;
   busy: boolean;
 }) {
+  const { chatId } = useChatPane();
   const { messages, paused, stops, waiting_edit: waitingEdit } = queue;
   const [collapsed, setCollapsed] = useSetting(QUEUE_COLLAPSED);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
@@ -74,11 +70,10 @@ export function QueuedMessages({
   const resizing = resize.resizing;
   // ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選ぶ（選んだものだけ、まとめて送る・消す・移す。Esc でやめる）
   const { selected, selectRow, clearSelection } = useQueueSelection(messages);
-  const failed = reportFailure("待ちの指示を操作できませんでした");
   // ドラッグ: 指示の並べ替えと、一時停止の印の移動
   const dnd = useQueueDrag(chatId, messages, stops, failed);
   // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
-  const ask = useAskInNewChat(chatId, messages, newChatTarget);
+  const ask = useAskInNewChat(messages);
   // 書き直す欄（いくつでも同時に開ける。指示ごとに書いている途中の文を持つ）
   const edit = useQueuedEdits(chatId, messages, listRef, failed);
   const editSelected = () => {
@@ -167,11 +162,11 @@ export function QueuedMessages({
           </button>
         )}
         {/* 終わったら自動で送るか、送らずに止めておくか（列全体の設定。ここから右が操作） */}
-        <QueuedModeButton chatId={chatId} paused={paused} busy={busy} failed={failed} />
-        <QueuedStopButton chatId={chatId} stops={stops} failed={failed} onAdded={() => setCollapsed(false)} />
+        <QueuedModeButton paused={paused} busy={busy} />
+        <QueuedStopButton stops={stops} onAdded={() => setCollapsed(false)} />
         {/* 選んでいるときは、行と同じ 2 つのまとまり: 並べ替え（いちばん上へ・下へ）｜ 選んだものへの操作（まとめて送る・消す・選ぶのをやめる） */}
-        {selected.length > 0 && <QueuedMoveActions chatId={chatId} selected={selected} failed={failed} />}
-        <QueuedHeadActions chatId={chatId} count={messages.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} onEditSelected={editSelected} failed={failed} />
+        {selected.length > 0 && <QueuedMoveActions selected={selected} />}
+        <QueuedHeadActions count={messages.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} onEditSelected={editSelected} />
       </div>
       {/* 増えてもチャット欄を押し上げすぎないよう、決めた高さ（初めは 5 件ほど）を超えたら中でスクロールする */}
       {!collapsed && (

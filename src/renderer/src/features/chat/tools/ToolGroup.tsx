@@ -1,13 +1,11 @@
 import { ChevronRight, Wrench } from "lucide-react";
-import { createContext, useContext, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
+import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { BashOutput } from "./BashOutput";
 import { cleanSubagentReport, isSubagentTool } from "@shared/chat/subagents";
 import { summarizeTools, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
-
-/** タイムラインの Task / Agent の呼び出しから、そのサブエージェントの中身を開く */
-export const OpenSubagentContext = createContext<(toolUseId: string) => void>(() => {});
 
 /** ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約する） */
 export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
@@ -46,7 +44,8 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
 function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string }) {
   const { id, name } = call.use.data;
   const input = (call.use.data.input ?? {}) as Record<string, unknown>;
-  const openSubagent = useContext(OpenSubagentContext);
+  // Task / Agent の呼び出しから、そのサブエージェントの中身をパネルのタブで開く（チャットの画面の中だけ）
+  const pane = useOptionalChatPane();
   const r = call.result?.data;
   // ツール検索の `[tool_reference]` のような意味のない結果は出さない
   const content = r?.content ? visibleToolResult(r.content) : "";
@@ -66,13 +65,13 @@ function ToolItem({ call, rel }: { call: ToolCall; rel: (s: string) => string })
         <span className="tool-name">{toolLabel(name)}</span>
         <span className="tool-arg">{rel(describeToolInput(name, input))}</span>
         {!call.result && <span className="spinner small" aria-label="実行中" />}
-        {isSubagentTool(name) && (
+        {isSubagentTool(name) && pane && (
           <button
             type="button"
             className="tool-open-sub"
             onClick={(e) => {
               e.preventDefault();
-              openSubagent(id);
+              pane.openSubagent(id);
             }}
           >
             中身を見る

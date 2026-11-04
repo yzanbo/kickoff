@@ -1,7 +1,9 @@
 import { CaseSensitive, ChevronDown, ChevronUp, Search } from "lucide-react";
-import { useDeferredValue, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
-import { consumeKey, hasModifiers, isCancelKey, isComposing } from "@/lib/keys";
+import { consumeKey, hasModifiers, isCancelKey, isComposing, isKey } from "@/lib/keys";
+import { useChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useChatHotkey } from "@/features/chat/pane/chatHotkeys";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_FIND_CASE } from "@/lib/storageKeys";
 import { CloseButton, IconButton } from "@/ui/IconButton";
@@ -13,30 +15,24 @@ const HIGHLIGHT = "chat-find";
 const CURRENT = "chat-find-current";
 
 /**
- * チャットの中の検索。チャットの見出しの行にいつも置き、⌘F（useChatFindKey）でピントが入る。Esc で文を消してチャット欄に戻る。自分の発言と AI の返答から探して印を付け、↑ / Shift+Enter で前（古い方）、↓ / Enter で次へ移る。
+ * チャットの中の検索。チャットの見出しの行にいつも置き、⌘F でピントが入る（ピントがこのチャットの中にあるとき、
+ * またはどこにもピントがなく最後に押したのがこのチャットのとき。アプリ全体の ⌘F（ボードのチャット名の検索欄）より先に受け取る）。Esc で文を消してチャット欄に戻る。自分の発言と AI の返答から探して印を付け、↑ / Shift+Enter で前（古い方）、↓ / Enter で次へ移る。
  * 探すのは記録から（findMatches）で、流れ（最近の項目だけを描く窓）をすべて描かない。移るときに、その発言を描くよう窓を動かす（onGoto）。
  * 初めて移るときは、いちばん新しい一致へ。印は描いている範囲の文に CSS Custom Highlight API で付け、DOM は書き換えない（React の描画とぶつからない）。
  * 閉じたツールのまとまり・思考の中は探さない（見えていない文に印を付けないように）。
  * 打った文は前後の空白も削らずに探し（半角・全角の空白も探せる）、右の「Aa」（⌥⌘C）で大文字・小文字を区別するかを切り替える（VS Code と同じ。覚えておく）
  */
 export function ChatFind({
-  root,
   items,
   version,
-  onGoto,
-  onDone,
 }: {
-  /** 印を付ける範囲（タイムラインの中身） */
-  root: RefObject<HTMLElement | null>;
   /** 流れ全体（描いていない分も含めて探す） */
   items: TimelineItem[];
   /** 描いている項目（変わったら印を付け直す） */
   version: unknown;
-  /** その発言へ移る（一番下への追従をやめ、窓の外なら窓を動かす） */
-  onGoto: (eventId: number) => void;
-  /** Esc で検索をやめたあと（文を消し、チャット欄にピントを戻す） */
-  onDone: () => void;
 }) {
+  // 印を付ける範囲（チャットの画面）・移るとき（その発言を描くよう窓を動かす）・やめたあと（チャット欄にピントを戻す）
+  const { root, reveal, focusComposer } = useChatPane();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [caseSensitive, setCaseSensitive] = useSetting(CHAT_FIND_CASE);
@@ -87,8 +83,23 @@ export function ChatFind({
     const i = index === null ? matches.length - 1 : (index + step + matches.length) % matches.length;
     setIndex(i);
     scrollPending.current = true;
-    onGoto(matches[i].eventId);
+    reveal(matches[i].eventId);
   };
+
+  // ⌘F: 見出しの行の検索欄にピントを移し、前に打った文を選んで打ち直せるようにする（アプリ全体の ⌘F より先に、捕捉で受け取る）
+  useChatHotkey(
+    root,
+    (e) => isKey(e, "f", { meta: true }) || isKey(e, "f", { ctrl: true }),
+    (e) => {
+      const input = inputRef.current;
+      if (!input) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      input.focus();
+      input.select();
+    },
+    { capture: true, pressed: true },
+  );
 
   return (
     // 欄のどこを押しても入力欄にピント（虫眼鏡も。狭い見出しでは虫眼鏡だけになり、押す・⌘F で広がる）
@@ -117,7 +128,7 @@ export function ChatFind({
             // パネルを閉じる Esc より先に、検索をやめる（文を消して印を外し、チャット欄にピントを戻す）
             consumeKey(e);
             setQuery("");
-            onDone();
+            focusComposer();
           }
         }}
       />

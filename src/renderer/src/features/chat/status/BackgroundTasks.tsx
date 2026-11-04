@@ -5,6 +5,7 @@ import { api } from "@/api";
 import { confirmDialog, reportFailure } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
 import { ActivityNote } from "@/features/chat/subagents/Subagents";
+import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 
 const ICONS: Record<BackgroundTask["kind"], typeof Bot> = { agent: Bot, command: SquareTerminal, other: SquareTerminal };
 
@@ -13,17 +14,9 @@ const ICONS: Record<BackgroundTask["kind"], typeof Bot> = { agent: Bot, command:
  * 開発サーバーだけ止めて、サブエージェントは動かしたままにするなど）。サブエージェントは、止めると報告が届かないので確かめる。
  * サブエージェントは名前を押すと中身をタブで開き、しばらく動きがなければ最後の動き（長く動きがなければ注意の色）を添える
  */
-export function BackgroundTasks({
-  chatId,
-  background,
-  agents = [],
-  onOpen,
-}: {
-  chatId: number;
-  background: BackgroundState | null;
-  agents?: SubagentEntry[];
-  onOpen?: (entry: SubagentEntry) => void;
-}) {
+export function BackgroundTasks({ chatId, background, agents = [] }: { chatId: number; background: BackgroundState | null; agents?: SubagentEntry[] }) {
+  // サブエージェントの中身を開く（チャットの画面の中だけ）
+  const pane = useOptionalChatPane();
   if (!background || background.tasks.length === 0) return null;
   const stop = async (task: BackgroundTask) => {
     if (
@@ -47,8 +40,8 @@ export function BackgroundTasks({
         return (
           <li key={task.task_id} className="background-task">
             <Icon size={13} aria-hidden className="muted" />
-            {entry && onOpen ? (
-              <button type="button" className="link-button background-task-name" title={`「${task.description}」の中身を開く`} onClick={() => onOpen(entry)}>
+            {entry && pane ? (
+              <button type="button" className="link-button background-task-name" title={`「${task.description}」の中身を開く`} onClick={() => pane.openSubagent(entry.key)}>
                 {task.description}
               </button>
             ) : (

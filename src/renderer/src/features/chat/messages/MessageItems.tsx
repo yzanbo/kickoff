@@ -1,5 +1,5 @@
 import { History, Inbox, Pencil } from "lucide-react";
-import { createContext, useContext, useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useAction } from "@/hooks/useAction";
@@ -14,17 +14,7 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 import { copyRich } from "@/lib/richCopy";
-
-/**
- * 自分の発言を書き直して送り直す・ファイルだけ戻す（チャットの画面が渡す。サブエージェントの中身など、渡さない所ではできない）。
- * busy の間（作業中）はできない。send は確かめ（会話だけ / ファイルも）を含み、やめたら false。
- * restoreFiles はファイルだけを、その発言を送る前の状態に戻す（会話はそのまま）
- */
-export const RewindContext = createContext<{
-  busy: boolean;
-  send: (eventId: number, text: string) => Promise<boolean>;
-  restoreFiles: (eventId: number) => Promise<void>;
-} | null>(null);
+import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 
 /** 自分の発言を折りたたむ高さ（これより高い発言は、ここまで出して下を薄くする） */
 const COLLAPSE_PX = 240;
@@ -32,9 +22,10 @@ const COLLAPSE_PX = 240;
 /**
  * 自分の発言（吹き出し）。長い発言は途中まで出して「もっと見る / たたむ」で開閉する。
  * 吹き出しの下に、時刻（今日は時刻・7 日以内は曜日・それより前は日付）・コピー・書き直しのボタンを出す。右クリックでも同じ操作。
- * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）
+ * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）。
+ * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない
  */
-export function UserMessage({ event }: { event: ChatEventOf<"user"> }) {
+export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
   const data = event.data;
   const text = data.text;
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
@@ -48,17 +39,17 @@ export function UserMessage({ event }: { event: ChatEventOf<"user"> }) {
     const el = bodyRef.current;
     if (el) setLong(el.scrollHeight > COLLAPSE_PX + 40);
   }, [text]);
-  const rewind = useContext(RewindContext);
+  const pane = useOptionalChatPane();
   // 書き直している文（undefined なら書き直していない）
   const [draft, setDraft] = useState<string>();
-  const startEdit = rewind && !rewind.busy ? () => setDraft(text) : undefined;
+  const startEdit = pane && !busy ? () => setDraft(text) : undefined;
   // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）
-  const restoreFiles = rewind && data.message_uuid ? () => void rewind.restoreFiles(event.id) : undefined;
+  const restoreFiles = pane && data.message_uuid ? () => void pane.restoreFiles(event.id) : undefined;
   const menu = useMessageMenu(
     text,
     <>
       {startEdit && <MenuItem onSelect={startEdit}>書き直して送り直す</MenuItem>}
-      {restoreFiles && !rewind?.busy && <MenuItem onSelect={restoreFiles}>ファイルをこの発言の前に戻す</MenuItem>}
+      {restoreFiles && !busy && <MenuItem onSelect={restoreFiles}>ファイルをこの発言の前に戻す</MenuItem>}
     </>,
   );
   return (
@@ -69,12 +60,12 @@ export function UserMessage({ event }: { event: ChatEventOf<"user"> }) {
             <AttachmentChips attachments={attachments} />
           </div>
         )}
-        {draft !== undefined && rewind ? (
+        {draft !== undefined && pane ? (
           <BubbleEditor
             text={draft}
             onChange={setDraft}
             onCancel={() => setDraft(undefined)}
-            onSend={() => rewind.send(event.id, draft)}
+            onSend={() => pane.rewind(event.id, draft)}
           />
         ) : (
           <div ref={bodyRef} className={cx("bubble-text", long && !expanded && "clamped")}>
@@ -98,12 +89,12 @@ export function UserMessage({ event }: { event: ChatEventOf<"user"> }) {
           </span>
         )}
         {text && <CopyButton text={text} label="メッセージをコピー" className="message-action" />}
-        {rewind && (
+        {pane && (
           <IconButton
             icon={Pencil}
             size={13}
             label="書き直して送り直す"
-            title={rewind.busy ? "作業中は書き直せません（止めてから書き直せます）" : "書き直して送り直す（この発言から後ろのやり取りは消えます）"}
+            title={busy ? "作業中は書き直せません（止めてから書き直せます）" : "書き直して送り直す（この発言から後ろのやり取りは消えます）"}
             className="message-action"
             disabled={!startEdit}
             onClick={startEdit}
@@ -114,9 +105,9 @@ export function UserMessage({ event }: { event: ChatEventOf<"user"> }) {
             icon={History}
             size={13}
             label="ファイルをこの発言の前に戻す"
-            title={rewind?.busy ? "作業中はファイルを戻せません" : "ファイルだけを、この発言を送る前の状態に戻す（会話はそのまま）"}
+            title={busy ? "作業中はファイルを戻せません" : "ファイルだけを、この発言を送る前の状態に戻す（会話はそのまま）"}
             className="message-action"
-            disabled={rewind?.busy}
+            disabled={busy}
             onClick={restoreFiles}
           />
         )}

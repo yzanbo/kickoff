@@ -156,7 +156,7 @@ function EventItem({
 }) {
   switch (event.type) {
     case "user":
-      return <UserMessage event={event} />;
+      return <UserMessage event={event} busy={busy} />;
     case "text":
       return <AssistantMessage event={event} />;
     case "thinking":

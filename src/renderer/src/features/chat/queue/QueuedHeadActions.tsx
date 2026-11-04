@@ -3,10 +3,13 @@ import { cx } from "@/lib/cx";
 import { api } from "@/api";
 import { confirmDialog } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
+import { useChatPane } from "@/features/chat/pane/chatPaneContext";
+import { queueFailed as failed } from "./queueFailed";
 import { SendAllMenu } from "./SendAllMenu";
 
 /** 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。チャットごと） */
-export function QueuedModeButton({ chatId, paused, busy, failed }: { chatId: number; paused: boolean; busy: boolean; failed: (e: unknown) => void }) {
+export function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) {
+  const { chatId } = useChatPane();
   return (
     <button
       type="button"
@@ -31,7 +34,8 @@ export function QueuedModeButton({ chatId, paused, busy, failed }: { chatId: num
  * 名前は、押した結果（「今の分で止める」など）ではなく、列に挟む物の名前で呼ぶ。置いたあとは、線のつまみのドラッグ・↑↓ で止める位置へ動かす。
  * もう 1 件目の上に印があれば押せない。onAdded は置いたあと（たたんでいれば一覧を開いて線を見せる）
  */
-export function QueuedStopButton({ chatId, stops, failed, onAdded }: { chatId: number; stops: number[]; failed: (e: unknown) => void; onAdded: () => void }) {
+export function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => void }) {
+  const { chatId } = useChatPane();
   const atTop = stops.includes(0);
   return (
     <button
@@ -55,7 +59,8 @@ export function QueuedStopButton({ chatId, stops, failed, onAdded }: { chatId: n
 /**
  * 選んだ指示の並べ替え（いちばん上へ・いちばん下へ）。行の ↑↓ と同じく、送る・消すのまとまりの左に区切って置く
  */
-export function QueuedMoveActions({ chatId, selected, failed }: { chatId: number; selected: string[]; failed: (e: unknown) => void }) {
+export function QueuedMoveActions({ selected }: { selected: string[] }) {
+  const { chatId } = useChatPane();
   const n = selected.length;
   return (
     <span className="queued-head-moves">
@@ -71,16 +76,13 @@ export function QueuedMoveActions({ chatId, selected, failed }: { chatId: number
  * 選んでいれば「書き直す」（選んだ指示の書き直す欄をまとめて開く）・「まとめて送る」（選んだものだけを 1 つにまとめてすぐ送る）・消す・選ぶのをやめる（並べ替えは QueuedMoveActions）
  */
 export function QueuedHeadActions({
-  chatId,
   count,
   selected,
   busy,
   holds,
   onClearSelection,
   onEditSelected,
-  failed,
 }: {
-  chatId: number;
   count: number;
   /** 止めている・一時停止の印がある */
   holds: boolean;
@@ -90,8 +92,8 @@ export function QueuedHeadActions({
   onClearSelection: () => void;
   /** 選んだ指示の書き直す欄をまとめて開く（いくつでも同時に書き直せる） */
   onEditSelected: () => void;
-  failed: (e: unknown) => void;
 }) {
+  const { chatId } = useChatPane();
   // 作業中は止めずに、いまのやり取りに伝える（Runner の tell。メインのエージェントがいまの手順の切れ目で読む）
   const stopping = busy ? "（作業は止めずに、いまのやり取りに足す）" : "";
   if (selected.length > 0) {
@@ -156,7 +158,7 @@ export function QueuedHeadActions({
   return (
     <>
       {/* 押すと、まとめて 1 件で送るか・1 件ずつ順に送るかを選ぶ */}
-      <SendAllMenu chatId={chatId} count={count} busy={busy} holds={holds} failed={failed} />
+      <SendAllMenu count={count} busy={busy} holds={holds} />
       <button
         type="button"
         className="btn btn-sm queued-head-btn queued-clear"
