@@ -395,6 +395,45 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
   assert.equal(runner.queuePaused(runId), false);
 });
 
+test("待ちの列の書き直し: 次に送る指示を書き直している間は送らず、終わったら送る。ほかの指示の書き直し・知らせが途絶えたときは止めない", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const runId = (await call("POST", `/api/projects/${project.id}/runs`, { prompt: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  for (const text of ["2", "3"]) await call("POST", `/api/runs/${runId}/queue`, { text });
+  const [first] = runner.queued(runId);
+  assert.equal((await call("PUT", "/api/runs/999/queue/editing", { ids: [] })).status, 404);
+  assert.equal((await call("PUT", `/api/runs/${runId}/queue/editing`, {})).status, 400);
+
+  // 次に送る指示（先頭）を書き直している: 終わっても送らない
+  assert.equal((await call("PUT", `/api/runs/${runId}/queue/editing`, { ids: [first.id] })).status, 200);
+  release();
+  await until(() => !runner.isBusy(runId));
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(provider.prompts.length, 1);
+  // 送信の準備ができて、書き直しが終わるのを待っている（画面の案内に使う）
+  assert.equal((await call("GET", `/api/runs/${runId}`)).body.queue_waiting_edit, true);
+
+  // 書き直して保存し、欄を閉じた: 書き直した文をすぐ送る
+  const release2 = provider.hold();
+  await call("PATCH", `/api/runs/${runId}/queue/${first.id}`, { text: "2'" });
+  await call("PUT", `/api/runs/${runId}/queue/editing`, { ids: [] });
+  await until(() => provider.prompts.length === 2);
+  assert.equal(provider.prompts[1], "2'");
+  assert.equal(runner.queueWaitingForEdit(runId), false);
+
+  // 先頭でない指示を書き直していても止めない（その指示は、先頭になってから書き直しが終わるのを待つ）
+  await call("POST", `/api/runs/${runId}/queue`, { text: "4" });
+  await call("PUT", `/api/runs/${runId}/queue/editing`, { ids: [runner.queued(runId)[1].id] });
+  release2();
+  await until(() => provider.prompts.length === 3);
+  assert.equal(provider.prompts[2], "3");
+
+  // 知らせが途絶えた（画面を閉じた・落ちた）: 持ち時間で外れて送る
+  await until(() => provider.prompts.length === 4);
+  assert.equal(provider.prompts[3], "4");
+});
+
 test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件にし（列の順に空行でつなぐ）、選んだうちのいちばん上の位置に残す", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();

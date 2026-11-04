@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { FollowupQueue } from "./followups.js";
+import { QueueEditHolds } from "./queueEditHolds.js";
 import type { RunControl } from "./providers/types.js";
 import { executeRun, type ExecutionDeps, type QueueItem, type RunOutcome } from "./runExecution.js";
 import { RunnerQueue } from "./runnerQueue.js";
@@ -36,6 +37,7 @@ export class Runner extends RunnerQueue {
   private readonly active = new Map<number, AbortController>();
   private readonly queue: QueueItem[] = [];
   protected readonly followups: FollowupQueue;
+  protected readonly editHolds: QueueEditHolds;
   /** アプリを終えるところ（待ちの列を送らない） */
   private shuttingDown = false;
 
@@ -57,18 +59,18 @@ export class Runner extends RunnerQueue {
       reconnect?: { check?: () => Promise<boolean>; intervalMs?: number };
       /** 使用枠が戻ったかを確かめる時計と間隔（テストで差し替える） */
       usageLimit?: { now?: () => number; checkMs?: number };
+      /** 書き直している印の持ち時間（テストで差し替える） */
+      editHoldTtlMs?: number;
     },
   ) {
     super();
     this.stopping = new RunStopping(deps);
     this.followups = new FollowupQueue(
-      (runId, queue, paused, stops) => {
-        const run = deps.store.getRun(runId);
-        if (run) deps.bus?.publish({ type: "run_queue", project_id: run.project_id, run_id: runId, queue, paused, stops });
-      },
+      (runId) => this.queueChanged(runId),
       // 再起動しても残す（読み戻した列は止めておく）
       deps.store,
     );
+    this.editHolds = new QueueEditHolds((runId) => this.editHoldsChanged(runId), deps.editHoldTtlMs);
     this.reconnect = new RunReconnect({
       store: deps.store,
       approvals: deps.approvals,
@@ -86,6 +88,21 @@ export class Runner extends RunnerQueue {
       send: (runId, text) => this.send(runId, text),
       usage: deps.usage,
       ...deps.usageLimit,
+    });
+  }
+
+  /** 待ちの列の様子を画面に配る（列・止めておくか・一時停止の位置・書き直しを待っているか） */
+  protected queueChanged(runId: number) {
+    const run = this.deps.store.getRun(runId);
+    if (!run) return;
+    this.deps.bus?.publish({
+      type: "run_queue",
+      project_id: run.project_id,
+      run_id: runId,
+      queue: this.followups.list(runId),
+      paused: this.followups.isPaused(runId),
+      stops: this.followups.stopsOf(runId),
+      waiting_edit: this.queueWaitingForEdit(runId),
     });
   }
 
@@ -209,6 +226,8 @@ export class Runner extends RunnerQueue {
   /** チャットを消したとき、待ちの列も消す */
   forgetQueued(runId: number) {
     this.followups.forget(runId);
+    this.editHolds.forget(runId);
+    this.waitingForEdit.delete(runId);
     this.forgetRecovery(runId);
   }
 

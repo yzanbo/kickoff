@@ -1,4 +1,4 @@
-import { Check, Paperclip, SendHorizontal, X } from "lucide-react";
+import { Check, Paperclip, Pause, SendHorizontal, X } from "lucide-react";
 import { useRef, useState, type KeyboardEvent } from "react";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import type { Attachment } from "../../../../core/types";
@@ -18,6 +18,7 @@ export function QueuedEditor({
   index,
   withGrip,
   busy,
+  holdNote,
   text,
   attachments,
   onChange,
@@ -34,6 +35,11 @@ export function QueuedEditor({
   withGrip: boolean;
   /** 作業中か（「いま送る」の説明を変える。作業中は止めずにいまのやり取りに足す） */
   busy: boolean;
+  /**
+   * 次に送る指示を書き直しているので、自動で送るのを止めている（waiting = 作業中。終わっても送らずに待つ / ready = 作業は終わり、送信の準備ができている。
+   * 保存・やめると送る）。次に送る指示でなければ省く
+   */
+  holdNote?: "waiting" | "ready";
   text: string;
   /** 残しておく添付（外したものは除いたもの） */
   attachments: Attachment[];
@@ -81,6 +87,14 @@ export function QueuedEditor({
         {index + 1}
       </span>
       <div className="queued-editor-body">
+        {holdNote && (
+          <p className={cx("queued-editor-hold", holdNote === "ready" && "ready")}>
+            {holdNote === "ready" ? <SendHorizontal size={12} aria-hidden /> : <Pause size={12} aria-hidden />}
+            {holdNote === "ready"
+              ? "送信の準備ができています。保存すると、この指示を送ります（やめると元の文のまま送ります）"
+              : "書き直しが終わるまで、この指示は送りません（今の作業が終わっても待ちます）"}
+          </p>
+        )}
         {hasAttachments && (
           <div className="composer-attachments queued-editor-attachments">
             {attachments.map((a) => (
@@ -124,7 +138,7 @@ export function QueuedEditor({
       <IconButton
         icon={Check}
         label="保存"
-        title={files.uploading ? "アップロードが終わるまでお待ちください" : "保存（Enter）"}
+        title={files.uploading ? "アップロードが終わるまでお待ちください" : holdNote === "ready" ? "保存して送る（Enter）" : "保存（Enter）"}
         size={13}
         disabled={files.uploading}
         onClick={() => save()}
@@ -138,7 +152,7 @@ export function QueuedEditor({
         disabled={files.uploading}
         onClick={() => save(true)}
       />
-      <IconButton icon={X} label="やめる" title="やめる（Esc）" size={13} onClick={onCancel} />
+      <IconButton icon={X} label="やめる" title={holdNote === "ready" ? "やめる（Esc。元の文のまま送ります）" : "やめる（Esc）"} size={13} onClick={onCancel} />
     </div>
   );
 }

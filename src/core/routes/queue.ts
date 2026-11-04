@@ -50,6 +50,15 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json({ paused: await runner.setQueuePaused(run.id, paused), queue: runner.queued(run.id) });
   });
 
+  // 画面でいま書き直している待ちの指示（書き直す欄を開いているもの。丸ごと置き換え、空なら外す）。自動で送る次の指示なら、書き直しが終わるまで送らない。
+  // 開いている間は持ち時間より短い間隔で知らせ直す（途絶えたら外れて送る。列にない指示は数えない）
+  app.put("/api/runs/:id/queue/editing", async (c) => {
+    const run = requireRun(store, c.req.param("id"));
+    const { ids } = z.object({ ids: z.array(z.string().min(1).max(100)).max(500) }).parse(await c.req.json());
+    runner.setQueueEditing(run.id, ids);
+    return c.json({ ok: true });
+  });
+
   // 待ちの列から消す
   app.delete("/api/runs/:id/queue/:queueId", (c) => {
     const run = requireRun(store, c.req.param("id"));

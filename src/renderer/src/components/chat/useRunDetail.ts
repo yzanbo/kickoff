@@ -20,6 +20,8 @@ export function useRunDetail(runId: number, projectId: number) {
   const [queuePaused, setQueuePaused] = useState(false);
   // 一時停止の位置（0 = 1 件目の上、n = n 件目のあと）
   const [queueStops, setQueueStops] = useState<number[]>([]);
+  // 次の指示の書き直しが終わるのを待っている（作業は終わり、送信の準備ができている）
+  const [queueWaitingEdit, setQueueWaitingEdit] = useState(false);
   // AI の API への通信を再試行しているところ（通信が切れたときなど）と、止まってつながるのを待っているところ
   const [retry, setRetry] = useState<ApiRetryInfo | null>(null);
   const [reconnect, setReconnect] = useState<ReconnectState | null>(null);
@@ -39,6 +41,7 @@ export function useRunDetail(runId: number, projectId: number) {
     setQueue([]);
     setQueuePaused(false);
     setQueueStops([]);
+    setQueueWaitingEdit(false);
     setRetry(null);
     setReconnect(null);
     setBackground(null);
@@ -55,6 +58,7 @@ export function useRunDetail(runId: number, projectId: number) {
         setQueue(d.queue ?? []);
         setQueuePaused(Boolean(d.queue_paused));
         setQueueStops(d.queue_stops ?? []);
+        setQueueWaitingEdit(Boolean(d.queue_waiting_edit));
         setReconnect(d.reconnect ?? null);
         setBackground(d.background ?? null);
         setStopping(Boolean(d.stopping));
@@ -120,6 +124,7 @@ export function useRunDetail(runId: number, projectId: number) {
       setQueue(e.queue);
       setQueuePaused(e.paused);
       setQueueStops(e.stops);
+      setQueueWaitingEdit(Boolean(e.waiting_edit));
     } else if (e.type === "approval" && e.approval.run_id === runId) {
       setApprovals((prev) => [...prev, e.approval]);
     } else if (e.type === "approval_resolved" && e.run_id === runId) {
@@ -127,5 +132,5 @@ export function useRunDetail(runId: number, projectId: number) {
     }
   });
 
-  return { run, project, events, approvals, queue, queuePaused, queueStops, retry, reconnect, background, stopping, live, error };
+  return { run, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, live, error };
 }

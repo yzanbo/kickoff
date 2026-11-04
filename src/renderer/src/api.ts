@@ -57,6 +57,8 @@ interface RunDetail {
   queue_paused?: boolean;
   /** 一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと） */
   queue_stops?: number[];
+  /** 次の指示を書き直しているので、送らずに書き直しが終わるのを待っている（送信の準備ができている） */
+  queue_waiting_edit?: boolean;
   /** 通信が切れて止まり、つながったら自動で再開するのを待っているか */
   reconnect?: ReconnectState | null;
   /** 裏で動いている作業と、メインの返答が終わったか（作業中でなければ null） */
@@ -276,6 +278,8 @@ export const api = {
   setQueueStops: (runId: number, stops: number[]) =>
     request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/stops`, { stops }),
   /** 待ちの指示をすべて消す */
+  /** 画面でいま書き直している待ちの指示（丸ごと置き換え。空なら外す）。次に送る指示なら、書き直しが終わるまで送らない */
+  setQueueEditing: (runId: number, ids: string[]) => request<{ ok: true }>("PUT", `/api/runs/${runId}/queue/editing`, { ids }),
   clearQueued: (runId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue`),
   /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */
   sendAllQueued: (runId: number, ids?: string[]) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/send-all`, ids ? { ids } : {}),
