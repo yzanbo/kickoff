@@ -9,15 +9,14 @@ import { closeChatWithChoice } from "../chat/closeChat";
 import { CHAT_TITLE_MAX } from "../../chatTitle";
 import type { useRunRename } from "../../hooks/useRunRename";
 import { useRunStates } from "../../approvalsContext";
-import { stateCounts } from "../../runState";
-import { StateCornerCounts, stateCountsSummary } from "../StateCornerCounts";
 import { StatusSlot } from "../StatusSlot";
 import { busyWithUnread } from "../../../../core/board";
 import type { Run } from "../../../../core/types";
 import type { TabDrag } from "./useTabDrag";
 import { useGroupNames } from "../../groupNames";
 import type { SidePanelController } from "./useSidePanel";
-import { clusterHue, clusterTabs, paneIndexOf } from "./tabClusters";
+import { OTHER_CLUSTER, clusterHue, clusterTabs, paneIndexOf, type TabCluster } from "./tabClusters";
+import { TabClusterHead } from "./TabClusterHead";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
 
 /** ▾ のメニューの種類 */
@@ -80,17 +79,30 @@ export function PaneTabBar({
   /** 右・下に分ける: タブが 2 つ以上なら表示中のタブを新しいペインへ移し、1 つ以下なら空のペインを作る */
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
   // チャットのタブの状態（作業中・回答待ち・未読・既読。サイドバーの行と同じ印）
-  const { stateOf, pending } = useRunStates();
+  const { stateOf } = useRunStates();
   // チャットのタブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
   const groupName = useGroupNames(panel.tabs.flatMap((t) => (t.kind === "chat" ? [t.projectId] : [])));
   const chatRunOf = (t: { id: number; status?: Run["status"]; attention?: boolean }) =>
     panel.runs.find((r) => r.id === t.id) ?? (t.status ? ({ id: t.id, status: t.status, attention: Boolean(t.attention) } as Run) : undefined);
   // まとめ方を選んでいれば、まとまりごとに並べ替えて見せる（display は見た目の並び。タブの中身が残っているものだけ）
   const [grouping] = useTabGrouping();
-  const clusterOf = useTabClusters(panel, grouping);
+  const { clusterOf, clusterOfRun } = useTabClusters(panel, grouping);
   const known = pane.tabs.filter((key) => panel.tabs.some((t) => t.key === key));
   const clusters = grouping === "none" ? null : clusterTabs(known, clusterOf);
   const display = clusters ? clusters.flatMap((c) => c.tabs) : known;
+  /**
+   * まとまり（グループ・作業場所）のチャット: タブで開いているチャットと、ボードの一覧のうち同じまとまりに入るもの（タブで開いていないものも）。
+   * 「その他」はチャットが入らないので undefined（札を押せない）
+   */
+  const clusterRuns = (c: TabCluster): Run[] | undefined => {
+    if (c.key === OTHER_CLUSTER.key) return undefined;
+    const open = c.tabs.flatMap((key) => {
+      const t = panel.tabs.find((x) => x.key === key);
+      const run = t?.kind === "chat" ? (panel.runs.find((r) => r.id === t.id) ?? t.run) : undefined;
+      return run ? [run] : [];
+    });
+    return [...open, ...panel.runs.filter((r) => !open.some((o) => o.id === r.id) && clusterOfRun(r).key === c.key)];
+  };
   /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
   const tab = (key: string, i: number) => {
     const t = panel.tabs.find((x) => x.key === key);
@@ -146,26 +158,9 @@ export function PaneTabBar({
         ? clusters.map((c) => {
             // まとまりごとに 1 つの枠に入れ、色の付いた名前の札・薄い地・下の線で、どこからどこまでが 1 つのまとまりかを見せる（ブラウザのタブのグループと同じ）
             const hue = clusterHue(c.key);
-            // まとまりのチャットの状態ごとの数（サイドバーのプロジェクトの丸と同じく、名前の札の角に重ねる）
-            const counts = stateCounts(
-              c.tabs.flatMap((key) => {
-                const t = panel.tabs.find((x) => x.key === key);
-                const run = t?.kind === "chat" ? chatRunOf(t) : undefined;
-                return run ? [run] : [];
-              }),
-              pending,
-            );
-            const summary = stateCountsSummary(counts);
             return (
               <div key={c.key} className={cx("panel-tab-group", hue === null && "plain")} style={hue === null ? undefined : ({ "--group-hue": hue } as CSSProperties)}>
-                {/* まとまりの頭の名前（グループ名・ブランチ。角に状態ごとのチャット数）と、中のタブの数 */}
-                <span className="panel-tab-cluster" title={summary ? `${c.title ?? c.label}（${summary}）` : c.title}>
-                  <span className="panel-tab-cluster-name">
-                    <span className="panel-tab-cluster-text">{c.label}</span>
-                    <StateCornerCounts counts={counts} />
-                  </span>
-                  <span className="panel-tab-cluster-count">{c.tabs.length}</span>
-                </span>
+                <TabClusterHead cluster={c} runs={clusterRuns(c)} onOpen={(run) => panel.open(run)} />
                 {c.tabs.map((key) => tab(key, display.indexOf(key)))}
               </div>
             );

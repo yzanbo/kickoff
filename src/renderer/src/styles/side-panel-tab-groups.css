@@ -1,0 +1,132 @@
+/*
+ * タブをまとめているときの 1 つのまとまり（ブラウザのタブのグループと同じ）。まとまりの色（--group-hue。キーから決まる）で
+ * 薄い地と下の線を引き、どこからどこまでが同じまとまりかを見せる。「その他」（.plain）は色を付けず灰の線だけ
+ */
+.panel-tab-group {
+  position: relative;
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 0 3px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: hsl(var(--group-hue) 50% 50% / 13%);
+}
+
+.panel-tab-group::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 0;
+  left: 3px;
+  height: 2px;
+  border-radius: 2px;
+  background: hsl(var(--group-hue) 55% 55%);
+  pointer-events: none;
+}
+
+.panel-tab-group + .panel-tab-group {
+  margin-left: 6px;
+}
+
+.panel-tab-group.plain {
+  background: transparent;
+}
+
+.panel-tab-group.plain::after {
+  background: var(--border-strong);
+}
+
+/* まとまりの頭: 名前はまとまりの色の札、横に中のタブの数 */
+.panel-tab-cluster {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+  max-width: 140px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* まとめているときは、まとまりの名前の分だけタブが細くなりすぎないよう、名前が読める幅より縮めず、並びの中を横にスクロールさせる */
+.panel-tab-strip.grouped .panel-tab {
+  min-width: 120px;
+}
+
+/* 名前の札。角に状態ごとのチャット数を重ねる（StateCornerCounts）ので、札そのものは切り取らず、名前の文だけを省略する */
+.panel-tab-cluster-name {
+  position: relative;
+  min-width: 0;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 600;
+  color: #fff;
+  background: hsl(var(--group-hue) 45% 42%);
+  --corner-offset: -7px;
+}
+
+/* 札は低く、下にまとまりの線があるので、数の丸を少し小さくし、下へのはみ出しを抑える（列の下端で切れないように） */
+.panel-tab-cluster-name .corner-count {
+  min-width: 14px;
+  height: 14px;
+  font-size: 8.5px;
+}
+
+/* 角に数がある側は、名前の文字に重ならないよう札の余白を広げる */
+.panel-tab-cluster-name:has(.corner-count.running, .corner-count.needs-input) {
+  padding-left: 11px;
+}
+
+.panel-tab-cluster-name:has(.corner-count.review) {
+  padding-right: 11px;
+}
+
+.panel-tab-cluster-name .corner-count:is(.running, .review) {
+  top: -5px;
+}
+
+.panel-tab-cluster-name .corner-count.needs-input {
+  bottom: -3px;
+}
+
+/* 押せる札（グループ・作業場所。状態ごとのチャットの一覧を開く） */
+button.panel-tab-cluster-name {
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.panel-tab-cluster-name:hover,
+button.panel-tab-cluster-name[aria-expanded="true"] {
+  background: hsl(var(--group-hue) 50% 50%);
+}
+
+/* 札から開く一覧は、タブの列に切り取られないよう画面に固定する（位置は TabClusterHead が札の下に決める） */
+.cluster-runs-popover {
+  position: fixed;
+  z-index: 60;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.panel-tab-cluster-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-tab-group.plain .panel-tab-cluster-name {
+  color: var(--muted);
+  background: var(--bg-elev);
+}
+
+.panel-tab-cluster-count {
+  flex: none;
+  min-width: 16px;
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
