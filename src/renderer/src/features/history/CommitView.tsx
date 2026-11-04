@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { GitCommit, GitFileChange } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
+import { baseName } from "@/lib/format";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
 import { useSetting } from "@/hooks/useSetting";
@@ -10,6 +11,7 @@ import { COMMIT_FILES_LIST, COMMIT_FILES_WIDTH } from "@/lib/storageKeys";
 import { formatDayTime } from "@/lib/time";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
+import { PathParts } from "@/ui/PathParts";
 import { Segmented } from "@/ui/Segmented";
 import { CHANGE_LABELS, DiffView } from "@/features/editor/DiffView";
 import { FileIcon } from "@/features/editor/FileIcon";
@@ -107,8 +109,6 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
             {list ? (
               <ul className="change-files">
                 {files.map((f) => {
-                  const slash = f.path.lastIndexOf("/");
-                  const name = f.path.slice(slash + 1);
                   const selected = file?.path === f.path;
                   return (
                     <li key={f.path}>
@@ -118,9 +118,8 @@ export function CommitView({ projectId, commit }: { projectId: number; commit: G
                         title={`${f.path}（${CHANGE_LABELS[f.kind]}）`}
                         onClick={() => setFile(f)}
                       >
-                        <FileIcon name={name} />
-                        <span className={cx("change-name", f.kind === "D" && "deleted")}>{name}</span>
-                        {slash > 0 && <span className="change-dir">{f.path.slice(0, slash)}</span>}
+                        <FileIcon name={baseName(f.path)} />
+                        <PathParts path={f.path} nameClass={cx("change-name", f.kind === "D" && "deleted")} dirClass="change-dir" />
                         <span className="change-kind" data-kind={f.kind}>
                           {f.kind}
                         </span>

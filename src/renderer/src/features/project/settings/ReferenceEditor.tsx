@@ -3,14 +3,10 @@ import { useState } from "react";
 import type { Project, ProjectReference } from "@shared/types";
 import { api } from "@/api";
 import { useSave } from "@/hooks/useSave";
+import { splitPath } from "@/lib/format";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
-
-/** パスの最後の名前と、その親フォルダ（一覧で「名前」と「場所」を分けて見せる） */
-function splitPath(p: string): { name: string; dir: string } {
-  const i = p.lastIndexOf("/");
-  return i < 0 ? { name: p, dir: "" } : { name: p.slice(i + 1) || p, dir: p.slice(0, i) || "/" };
-}
+import { PathParts } from "@/ui/PathParts";
 
 /**
  * 参照資料の一覧と追加・削除（AI がいつでも読めるフォルダ・ファイル）。
@@ -43,17 +39,13 @@ export function ReferenceEditor({ project }: { project: Project }) {
       ) : (
         <ul className="reference-list">
           {refs.map((r) => {
-            const { name, dir } = splitPath(r.path);
+            const { name } = splitPath(r.path);
             const Icon = r.kind === "folder" ? Folder : FileText;
             return (
               <li key={r.path} className="reference-item">
                 <Icon size={16} className={`reference-icon ${r.kind}`} aria-hidden />
                 <span className="reference-text" title={r.path}>
-                  <span className="reference-name">
-                    {name}
-                    {r.kind === "folder" && "/"}
-                  </span>
-                  <span className="reference-dir">{dir}</span>
+                  <PathParts path={r.path} nameClass="reference-name" dirClass="reference-dir" suffix={r.kind === "folder" ? "/" : undefined} />
                 </span>
                 {window.kickoff && (
                   <IconButton

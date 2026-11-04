@@ -2,9 +2,11 @@ import { CaseSensitive, Regex, WholeWord } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { SearchMatch } from "@shared/types";
 import { cx } from "@/lib/cx";
+import { baseName } from "@/lib/format";
 import { Chevron } from "@/ui/Chevron";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
+import { PathParts } from "@/ui/PathParts";
 import { FileIcon } from "./FileIcon";
 import { searchPattern, splitMatches } from "./searchMatch";
 import type { ProjectSearchController } from "./useProjectSearch";
@@ -91,14 +93,12 @@ function SearchFile({
   onSelect: (path: string, line: number) => void;
 }) {
   const [open, setOpen] = useState(true);
-  const slash = path.lastIndexOf("/");
   return (
     <section className="change-group">
       <button className="code-search-file" aria-expanded={open} title={path} onClick={() => setOpen(!open)}>
         <Chevron open={open} />
-        <FileIcon name={path.slice(slash + 1)} />
-        <span className="change-name">{path.slice(slash + 1)}</span>
-        {slash > 0 && <span className="change-dir">{path.slice(0, slash)}</span>}
+        <FileIcon name={baseName(path)} />
+        <PathParts path={path} nameClass="change-name" dirClass="change-dir" />
         <span className="change-count">{matches.length}</span>
       </button>
       {open && (
