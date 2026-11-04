@@ -1,10 +1,23 @@
 /* ==== やり取りの全文検索（⌘⇧F） ==== */
 
+/* 探す範囲（⌘⇧A と同じプロジェクトのピル。多ければ折り返す）と、右に見つかった数 */
 .search-scopes {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
   padding: 8px 12px 0;
+}
+
+.search-scopes > .muted {
+  flex: none;
+  line-height: 24px;
+}
+
+/* いま開いているプロジェクトに添える「このプロジェクト」（名前の補足として小さく） */
+.palette-project-note {
+  flex: none;
+  font-size: 10px;
+  color: var(--extra-muted);
 }
 
 .search-hit {
