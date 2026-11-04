@@ -11,6 +11,7 @@
 @import "./sidebar-list.css";
 @import "./sidebar-counts.css";
 @import "./status.css";
+@import "./state-runs.css";
 @import "./buttons-forms.css";
 @import "./project-tags.css";
 @import "./dialogs.css";
@@ -54,6 +55,7 @@
 @import "./board-cards.css";
 @import "./side-panel.css";
 @import "./side-panel-tabs.css";
+@import "./side-panel-tab-groups.css";
 @import "./side-panel-split.css";
 @import "./browser.css";
 @import "./board-list.css";

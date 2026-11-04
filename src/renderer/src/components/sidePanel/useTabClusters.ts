@@ -19,9 +19,13 @@ const projectOfTab = (t: PanelTab): number | undefined => (t.kind === "browser" 
  * グループ別: チャット・サブエージェントはそのチャットのグループ、新しいチャットは作成先のグループ（なければ「グループなし」）。
  * 作業場所別: チャット・サブエージェントはそのチャットの作業場所（ブランチ。workplaceOf）、新しいチャットはプロジェクトの本体、
  * ターミナルは開いたフォルダ（本体・ワークツリー）。ブラウザ（作業場所別ではフォルダの分からないターミナルも）は「その他」。
- * いくつかのプロジェクトのタブが並ぶとき（全プロジェクトのボード）は、名前の前にプロジェクト名を添える
+ * いくつかのプロジェクトのタブが並ぶとき（全プロジェクトのボード）は、名前の前にプロジェクト名を添える。
+ * clusterOfRun はチャットがどのまとまりに入るか（タブで開いていないチャットも。まとまりの札から開く状態ごとの一覧に使う）
  */
-export function useTabClusters(panel: SidePanelController, grouping: TabGrouping): (key: string) => ClusterOf {
+export function useTabClusters(
+  panel: SidePanelController,
+  grouping: TabGrouping,
+): { clusterOf: (key: string) => ClusterOf; clusterOfRun: (run: Run) => ClusterOf } {
   const { projectsById, projectName } = useProjects();
   const projectIds = [...new Set(panel.tabs.flatMap((t) => projectOfTab(t) ?? []))];
   const groupName = useGroupNames(grouping === "group" ? projectIds : []);
@@ -54,7 +58,8 @@ export function useTabClusters(panel: SidePanelController, grouping: TabGrouping
     return OTHER_CLUSTER;
   };
 
-  return (key) => {
+  const clusterOfRun = (run: Run): ClusterOf => (grouping === "group" ? byGroup(run.project_id, run.group_id) : byWorkplace(run.project_id, run));
+  const clusterOf = (key: string): ClusterOf => {
     const t = panel.tabs.find((x) => x.key === key);
     if (!t || t.kind === "browser") return OTHER_CLUSTER;
     if (grouping === "group") {
@@ -68,4 +73,5 @@ export function useTabClusters(panel: SidePanelController, grouping: TabGrouping
     const run = t.kind === "chat" ? runOf(t.id, t.run) : runOf(t.runId);
     return byWorkplace(t.projectId, run ?? { worktree_path: "", branch: "" });
   };
+  return { clusterOf, clusterOfRun };
 }

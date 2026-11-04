@@ -1,0 +1,71 @@
+/*
+ * 状態ごとにまとめたチャットの一覧（StateRunsPopover）。画面の見出しの状態ごとの数（StateStats）と、
+ * 右のパネルのタブのまとまりの名前の札から開く。置き場所（absolute / fixed）は開く側で決める
+ */
+.state-runs-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 50;
+  width: min(380px, 80vw);
+  max-height: min(460px, 70vh);
+  padding: 10px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+}
+
+.state-runs-section + .state-runs-section {
+  margin-top: 8px;
+}
+
+.state-runs-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 2px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.state-runs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 6px 5px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+
+.state-runs-row:hover {
+  background: var(--bg-hover);
+}
+
+.state-runs-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state-runs-project,
+.state-runs-time {
+  flex: none;
+  font-size: 11px;
+}
+
+.state-runs-empty {
+  margin: 4px 6px;
+  font-size: 12px;
+}
