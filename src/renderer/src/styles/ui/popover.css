@@ -1,0 +1,43 @@
+/* ==== 押すと開く一覧・詳細（Popover） ==== */
+
+/*
+ * popover で top layer に出すので（中を切り取る枠・コンテナクエリの枠の中から開いても、画面を基準に置ける）、
+ * ブラウザの既定（真ん中に置く・枠・余白・はみ出しのスクロール・文字の色）を消す。位置は画面が大きさを測ってから left / top で与える（useFloating。
+ * 測るまでは左上に置いて、幅を狭めずに測る）。枠・地・影・開くときの動きはここで共通にし、幅・余白・高さの上限は使う所のクラスで決める
+ * （使う所のクラスはこれより後ろのファイルにあるので、同じ詳細度で上書きできる）
+ */
+.popover {
+  position: fixed;
+  inset: 0 auto auto 0;
+  display: block;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  color: inherit;
+  background: var(--bg-elev);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  animation: popover-in 0.14s ease-out;
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* 見出し（PopoverHeader。題名・取り直し・閉じる） */
+.popover-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.popover-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+}

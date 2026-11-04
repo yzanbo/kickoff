@@ -1,6 +1,7 @@
 @import "./base/tokens.css";
 @import "./base/base.css";
 @import "./base/layout.css";
+@import "./ui/popover.css";
 @import "./sidebar/sidebar.css";
 @import "./sidebar/sidebar-rows.css";
 @import "./sidebar/sidebar-search.css";

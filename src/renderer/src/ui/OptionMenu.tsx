@@ -1,6 +1,6 @@
 import { Check, ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useDismiss } from "@/hooks/useDismiss";
+import { Popover } from "./Popover";
 
 interface OptionItem<T extends string> {
   value: T;
@@ -39,9 +39,6 @@ export function OptionMenu<T extends string>({ value, display, icon, groups, ari
   const ref = useRef<HTMLDivElement>(null);
   const items = groups.flatMap((g) => g.items).filter((i) => !i.disabled);
   const selected = groups.flatMap((g) => g.items).find((i) => i.value === value);
-
-  // 外側のクリックで閉じる（Esc は一覧にピントがあるときに onKeyDown で閉じる）
-  useDismiss(ref, () => setOpen(false), { enabled: open, escape: "none" });
 
   useEffect(() => {
     if (!open) return;
@@ -100,7 +97,8 @@ export function OptionMenu<T extends string>({ value, display, icon, groups, ari
         <ChevronDown size={14} className="option-chevron" aria-hidden />
       </button>
       {open && (
-        <div className="option-popover" role="listbox" aria-label={ariaLabel}>
+        // 外側のクリックで閉じる（Esc は一覧にピントがあるときに onKeyDown で閉じる）
+        <Popover anchor={ref} side="above" escape="none" role="listbox" label={ariaLabel} className="option-popover" onClose={() => setOpen(false)}>
           {groups.map((g, gi) => (
             <div key={g.label ?? gi} className="option-group" role="group" aria-label={g.label}>
               {g.label && <div className="option-group-label">{g.label}</div>}
@@ -124,7 +122,7 @@ export function OptionMenu<T extends string>({ value, display, icon, groups, ari
               ))}
             </div>
           ))}
-        </div>
+        </Popover>
       )}
     </div>
   );

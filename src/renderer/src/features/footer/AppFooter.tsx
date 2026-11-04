@@ -1,36 +1,56 @@
 import { GitBranch, Settings, WifiOff } from "lucide-react";
-import type { PlanUsage } from "@shared/types";
 import { useOnline } from "@/hooks/useOnline";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { href } from "@/app/router";
-import { FIVE_HOUR_IDLE, planName, weeklyModel } from "@/features/usage/usage";
+import { FIVE_HOUR_IDLE, planName, weeklyModel, type usePlanUsage } from "@/features/usage/usage";
 import { useMainBranch } from "@/features/worktree/useWorkplace";
-import { CONNECTION_LABELS } from "./ConnectionPopover";
+import type { SettingsSection } from "@/features/settings/SettingsDialog";
+import { CONNECTION_LABELS, ConnectionPopover } from "./ConnectionPopover";
 import { IconButton } from "@/ui/IconButton";
+import { usePopover } from "@/ui/Popover";
 import { UsageMeter } from "@/features/usage/UsageMeter";
+import { UsagePopover } from "@/features/usage/UsagePopover";
 
 interface Props {
-  onOpenSettings: () => void;
-  connection: ConnectionState;
-  connOpen: boolean;
-  onConnClick: () => void;
-  usage: PlanUsage | undefined;
-  usageOpen: boolean;
-  onUsageClick: () => void;
+  onOpenSettings: (section: SettingsSection) => void;
+  /** Kickoff サーバーとの接続（状態と、最後につながった時刻） */
+  connection: { state: ConnectionState; since: number | null };
+  planUsage: ReturnType<typeof usePlanUsage>;
   /** いま開いているプロジェクト（ブランチを出す。全プロジェクトの画面ではなし） */
   projectId?: number;
 }
 
-/** 下の帯（左: 設定とサーバーとの接続・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。接続と使用状況は押すと詳細を出す */
-export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, usage, usageOpen, onUsageClick, projectId }: Props) {
+/**
+ * 下の帯（左: 設定とサーバーとの接続・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
+ * 接続と使用状況は押すと、その上に詳細を出す（画面は移らない）
+ */
+export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: Props) {
   const online = useOnline();
+  const conn = usePopover();
+  const usagePopover = usePopover();
+  const usage = planUsage.usage;
   return (
     <footer className="app-footer">
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
-      <IconButton icon={Settings} label="設定" title="設定（⌘,）" className="footer-settings" onClick={onOpenSettings} />
-      <button className={`footer-button conn conn-${connection} ${connOpen ? "active" : ""}`} title="接続の詳細" aria-expanded={connOpen} onClick={onConnClick}>
-        {CONNECTION_LABELS[connection]}
+      <IconButton icon={Settings} label="設定" title="設定（⌘,）" className="footer-settings" onClick={() => onOpenSettings("usage")} />
+      <button
+        ref={conn.anchor}
+        className={`footer-button conn conn-${connection.state} ${conn.open ? "active" : ""}`}
+        title="接続の詳細"
+        aria-expanded={conn.open}
+        onClick={conn.toggle}
+      >
+        {CONNECTION_LABELS[connection.state]}
       </button>
+      {conn.open && (
+        <ConnectionPopover
+          anchor={conn.anchor}
+          state={connection.state}
+          since={connection.since}
+          onClose={conn.close}
+          onOpenSettings={() => onOpenSettings("connection")}
+        />
+      )}
       {/* Wi-Fi が切れている（作業中のチャットは止まることがある。つながったら自動で再開する） */}
       {!online && (
         <span className="footer-offline" title="ネットワークにつながっていません。作業中のチャットが止まったら、つながったときに自動で再開します（設定の「チャット」）">
@@ -45,7 +65,13 @@ export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, u
         </span>
       )}
       {usage?.available ? (
-        <button className={`footer-usage ${usageOpen ? "active" : ""}`} title="使用状況の詳細" aria-expanded={usageOpen} onClick={onUsageClick}>
+        <button
+          ref={usagePopover.anchor}
+          className={`footer-usage ${usagePopover.open ? "active" : ""}`}
+          title="使用状況の詳細"
+          aria-expanded={usagePopover.open}
+          onClick={usagePopover.toggle}
+        >
           <UsageMeter window={usage.five_hour} inline idleText={FIVE_HOUR_IDLE} />
           <UsageMeter window={usage.seven_day} inline />
           {/* モデル別の週枠（Fable など）。フッターでは短く「Fable」と表示する */}
@@ -56,6 +82,7 @@ export function AppFooter({ onOpenSettings, connection, connOpen, onConnClick, u
       ) : (
         usage && <span className="muted">使用状況を取得できません</span>
       )}
+      {usagePopover.open && <UsagePopover anchor={usagePopover.anchor} planUsage={planUsage} onClose={usagePopover.close} />}
     </footer>
   );
 }

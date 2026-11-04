@@ -1,5 +1,5 @@
 import { SquarePen } from "lucide-react";
-import type { CSSProperties, Ref } from "react";
+import type { RefObject } from "react";
 import { boardColumnOf, busyWithUnread } from "@shared/chat/state";
 import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type AgentState, type BoardColumn, type Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -9,7 +9,7 @@ import { useProjects } from "@/stores/projects";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
 import { shortRelativeTime } from "@/lib/time";
 import { COLUMN_TONE } from "@/features/chat/tones";
-import { PopoverHeader } from "@/ui/PopoverHeader";
+import { Popover } from "@/ui/Popover";
 import { StatusDot } from "@/ui/StatusDot";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 
@@ -46,10 +46,12 @@ export function chatsByState(chats: readonly Chat[], stateOf: (chat: Chat) => Ag
  * 画面の見出しの状態ごとの数（StateStats）と、右のパネルのタブのまとまりの名前の札で共通。行を押すと onOpen。
  * 行の左には、サイドバーの行と同じ状態の印（StatusSlot。作業中は回るリング、作業中のまま未読があれば緑の点を重ねる）を出す。
  * showProject なら行にプロジェクト名も出す（いくつかのプロジェクトのチャットが混ざるとき）。
- * newChat を渡すと、いちばん下に新しいチャットを始めるボタンを置く（タブのまとまりの札から開いたとき。そのグループに new チャットを足す）
+ * newChat を渡すと、いちばん下に新しいチャットを始めるボタンを置く（タブのまとまりの札から開いたとき。そのグループに new チャットを足す）。
+ * 開いた要素（anchor）の下に、左端をそろえて出す
  */
 export function StateChatsPopover({
   title,
+  anchor,
   sections,
   showProject = false,
   emptyText = "作業中・回答待ち・未読のチャットはありません",
@@ -57,10 +59,10 @@ export function StateChatsPopover({
   onOpen,
   onClose,
   className,
-  style,
-  popoverRef,
 }: {
   title: string;
+  /** 開いた要素（画面の見出しの状態ごとの数・タブのまとまりの札） */
+  anchor: RefObject<HTMLElement | null>;
   sections: StateChatsSection[];
   showProject?: boolean;
   /** チャットがないときの文 */
@@ -70,14 +72,11 @@ export function StateChatsPopover({
   onOpen: (chat: Chat) => void;
   onClose: () => void;
   className?: string;
-  style?: CSSProperties;
-  popoverRef?: Ref<HTMLDivElement>;
 }) {
   const { projectName } = useProjects();
   const { stateOf } = useChatStates();
   return (
-    <div ref={popoverRef} className={cx("state-chats-popover", className)} style={style} role="dialog" aria-label={title}>
-      <PopoverHeader title={title} onClose={onClose} />
+    <Popover anchor={anchor} gap={6} title={title} label={title} className={cx("state-chats-popover", className)} onClose={onClose}>
       {sections.length === 0 && <p className="state-chats-empty muted">{emptyText}</p>}
       {sections.map(({ column, chats }) => (
         <section key={column} className="state-chats-section">
@@ -118,6 +117,6 @@ export function StateChatsPopover({
           {newChat.label}
         </button>
       )}
-    </div>
+    </Popover>
   );
 }

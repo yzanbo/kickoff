@@ -62,10 +62,8 @@
   white-space: nowrap;
 }
 
-/* 左下から出る接続の詳細（使用状況の詳細と同じ見た目で、左に寄せる） */
+/* 左下から出る接続の詳細（使用状況の詳細と同じ見た目。押した接続の表示の左端にそろえて上に出す） */
 .usage-popover.connection-popover {
-  right: auto;
-  left: 12px;
   width: 360px;
   transform-origin: bottom left;
 }
@@ -188,40 +186,12 @@
   background: var(--bg-hover);
 }
 
-/* 右下からふわっと出る使用状況の詳細 */
+/* 右下からふわっと出る使用状況の詳細（押した使用状況の右端にそろえて上に出す。枠と地は .popover） */
 .usage-popover {
-  position: fixed;
-  right: 12px;
-  bottom: 36px;
-  z-index: 60;
   width: 320px;
   padding: 12px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elev);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
   transform-origin: bottom right;
   animation: popover-in 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-@keyframes popover-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-}
-
-.popover-head {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-bottom: 10px;
-}
-
-.popover-title {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .usage-popover-body {

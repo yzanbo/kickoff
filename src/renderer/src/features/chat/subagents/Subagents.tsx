@@ -1,10 +1,9 @@
 import { Archive, ArchiveRestore, ChevronUp } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EFFORT_LABELS, type BackgroundState, type EffortLevel, type ModelOption, type Chat, type ChatEvent, type SubagentInfo } from "@shared/types";
 import { confirmDialog } from "@/ui/dialogs";
 import { useServerEvent } from "@/api/events";
 import { formatTokens } from "@/lib/format";
-import { useDismiss } from "@/hooks/useDismiss";
 import { useSetting } from "@/hooks/useSetting";
 import { useTicker } from "@/hooks/useTicker";
 import { subagentsArchived } from "@/lib/storageKeys";
@@ -15,6 +14,7 @@ import { activityOf, activityText, latestOf } from "@/features/chat/status/stall
 import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { IconButton } from "@/ui/IconButton";
+import { Popover, usePopover } from "@/ui/Popover";
 
 /** チャットのサブエージェントの一覧（途中経過はサーバーからのイベントで受け取る） */
 export function useSubagents(chatId: number, events: ChatEvent[], busy: boolean, background: BackgroundState | null = null): SubagentEntry[] {
@@ -57,16 +57,14 @@ export function SubagentChip({
   models: ModelOption[];
   onOpen: (entry: SubagentEntry) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const popover = usePopover();
+  const { open, setOpen } = popover;
   // 最後の動きの表示を進める（開いている間だけ）
   useTicker(open ? 15_000 : 3_600_000);
   const [showArchived, setShowArchived] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
   const [archivedKeys, saveArchived] = useSetting(subagentsArchived(chat.id));
   const archived = useMemo(() => new Set(archivedKeys), [archivedKeys]);
-  // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
-  useDismiss(ref, () => setOpen(false), { enabled: open, ignore: "dialog" });
 
   if (entries.length === 0) return null;
   // 新しいものを上に
@@ -164,8 +162,8 @@ export function SubagentChip({
   };
 
   return (
-    <div ref={ref} className="chip-wrap">
-      <button type="button" className={`composer-chip ${open ? "open" : ""}`} aria-expanded={open} onClick={() => setOpen(!open)}>
+    <div className="chip-wrap">
+      <button ref={popover.anchor} type="button" className={`composer-chip ${open ? "open" : ""}`} aria-expanded={open} onClick={popover.toggle}>
         {running > 0 && (
           <span className="chip-mark">
             <ClaudeMark size={13} />
@@ -181,7 +179,8 @@ export function SubagentChip({
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>
       {open && (
-        <div className="chip-popover" role="dialog" aria-label="サブエージェント">
+        // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
+        <Popover anchor={popover.anchor} side="above" gap={8} label="サブエージェント" className="chip-popover" ignore="dialog" onClose={popover.close}>
           <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void archive(finished.map((s) => s.key))}>
             <Archive size={15} aria-hidden />
             完了したサブエージェントをアーカイブ
@@ -197,7 +196,7 @@ export function SubagentChip({
               {showArchived && hidden.map((s) => renderRow(s, true))}
             </>
           )}
-        </div>
+        </Popover>
       )}
     </div>
   );
