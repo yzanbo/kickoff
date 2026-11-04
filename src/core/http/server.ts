@@ -128,6 +128,9 @@ export function createApp(deps: ServerDeps): Hono {
     }),
   );
 
+  // 知らない API は JSON の 404 にする（本番の画面の配信の「未知のパスは index.html」に落とすと、200 の HTML が返っていた）
+  app.all("/api/*", (c) => c.json({ error: "API が見つかりません" }, 404));
+
   // ---- 画面（本番時） ----
   if (deps.staticDir && fs.existsSync(deps.staticDir)) {
     const root = path.relative(process.cwd(), deps.staticDir);
