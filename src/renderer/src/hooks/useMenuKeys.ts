@@ -29,7 +29,9 @@ export function useMenuKeys(ref: RefObject<HTMLElement | null>) {
       const scope = active && root.contains(active) ? scopeOf(active) : root;
       const items = [...scope.querySelectorAll<HTMLButtonElement>("button")].filter((b) => scopeOf(b) === scope);
       const i = items.indexOf(active as HTMLButtonElement);
-      items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus();
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      // まだ項目を選んでいなければ、↓ で先頭・↑ で最後（以前は ↑ で最後から 2 つ目に移っていた）
+      items[i < 0 ? (step > 0 ? 0 : items.length - 1) : (i + step + items.length) % items.length]?.focus();
     },
     true,
     true,

@@ -73,7 +73,9 @@ export function OptionMenu<T extends string>({ value, display, icon, groups, ari
       setOpen(false);
     } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      const next = items[(index + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length];
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      // 選んでいるもの（cursor）が押せない項目なら、↓ で先頭・↑ で最後から（以前は ↑ で最後から 2 つ目に移っていた）
+      const next = items[index < 0 ? (step > 0 ? 0 : items.length - 1) : (index + step + items.length) % items.length];
       if (next) setCursor(next.value);
     } else if (e.key === "Enter") {
       e.preventDefault();
