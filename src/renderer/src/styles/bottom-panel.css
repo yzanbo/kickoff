@@ -61,108 +61,29 @@
   background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
 }
 
-.bottom-panel-bar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  padding: 0 var(--gutter);
-  border-bottom: 1px solid var(--border);
-}
-
-.bottom-panel-title {
-  flex: none;
-  margin-right: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-}
-
-/* タブの列は右のパネルと同じ見た目。下の線はバーの線を使い、タブは名前の長さに合わせる */
-.bottom-panel-tabs {
-  min-width: 0;
-  padding: 4px 0 0;
-  border-bottom: none;
-}
-
-.bottom-panel-tabs .panel-tab {
-  flex: none;
-  min-width: 0;
-  max-width: 220px;
-}
-
-/* 最大化して画面のいちばん上に来たとき、サイドバーを閉じていれば信号機ボタンと開閉ボタンの右から並べる */
-.sidebar-collapsed .bottom-panel.maximized .bottom-panel-bar {
-  padding-left: 104px;
-}
-
-.bottom-panel-body {
-  position: relative;
-  flex: 1;
+/*
+ * 中身は右のパネル・右端のチャット欄と同じタブ（.board-panel.as-sidebar.in-footer）。右端のチャット欄と違い、
+ * タブの列はウィンドウのドラッグ領域にせず、右上のレイアウトの開閉のための空きも要らない（後ろの project-chat.css に勝つよう詳細度を上げる）
+ */
+.bottom-panel .board-panel.in-footer {
   min-height: 0;
 }
 
-.bottom-panel-page {
-  height: 100%;
+.bottom-panel .board-panel.in-footer .panel-tabs {
+  min-height: 0;
+  padding-right: var(--gutter);
+  -webkit-app-region: no-drag;
 }
 
-.bottom-panel-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  height: 100%;
-  padding: 16px;
+.bottom-panel .board-panel.in-footer .split-view {
+  --split-tabs-h: 37px;
 }
 
-.bottom-panel-targets {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
+.bottom-panel .board-panel.in-footer .split-pane.top-right .panel-tabs {
+  padding-right: var(--gutter);
 }
 
-/* 下のパネルのタブの中身: 分割したペインを左右に並べる */
-.terminal-split {
-  display: flex;
-  height: 100%;
+/* 最大化して画面のいちばん上に来たとき、サイドバーを閉じていれば信号機ボタンと開閉ボタンの右から並べる */
+.sidebar-collapsed .bottom-panel.maximized .board-panel.in-footer .panel-tabs {
+  padding-left: 104px;
 }
-
-.terminal-split-pane {
-  position: relative;
-  min-width: 0;
-}
-
-/* 分割しているときは、入力先のペインを枠で示す */
-.terminal-split.is-split .terminal-split-pane {
-  box-shadow: inset 0 0 0 1px transparent;
-}
-
-.terminal-split.is-split .terminal-split-pane.focused {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--info) 55%, transparent);
-}
-
-/* ペインの右上の閉じるボタン（いつも出す） */
-.terminal-split-close {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border: none;
-  border-radius: 4px;
-  color: var(--muted);
-  background: var(--bg-elev);
-  cursor: pointer;
-}
-
-.terminal-split-close:hover {
-  color: var(--text);
-  background: var(--bg-active);
-}
-

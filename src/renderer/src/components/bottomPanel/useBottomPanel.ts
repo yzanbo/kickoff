@@ -1,114 +1,57 @@
 import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import type { ProjectSummary } from "../../../../core/types";
 import { startVerticalDrag } from "../../hooks/dragResize";
 import { useStoredNumber } from "../../hooks/useStoredState";
 import { useWindowEvent } from "../../hooks/useWindowEvent";
 import { BOTTOM_PANEL_HEIGHT_KEY } from "../../storageKeys";
-import { newTabKey } from "../sidePanel/tabKeys";
-import type { TerminalTarget } from "../sidePanel/useSidePanel";
-import { activePaneOf, movePane as movePaneIn, removePane, splitGroup, type TerminalGroup, type TerminalPaneInfo } from "./terminalGroups";
+import { useSidePanel, type TerminalTarget } from "../sidePanel/useSidePanel";
 
 /** どの画面のパネルか（プロジェクトの ID。全プロジェクトの画面は "all"） */
 type BottomScope = number | "all";
-
-/** 画面ごとの、開いているか・表示しているタブ */
-interface ScopeState {
-  open: boolean;
-  active: string | null;
-}
 
 const DEFAULT_HEIGHT = 198;
 const MIN_HEIGHT = 120;
 /** 上の画面に残す高さ */
 const KEEP_ABOVE = 120;
 
-
 export type BottomPanelController = ReturnType<typeof useBottomPanel>;
 
 /**
- * 画面の下のパネル（VS Code と同じく、どの画面でも ⌃` か ⌘J で開閉するターミナル）の状態と操作。
- * ターミナルはプロジェクトごと（VS Code のウィンドウごとと同じ）: プロジェクトの画面ではそのプロジェクトのタブだけを出し、
- * 開いているか・表示しているタブもプロジェクトごとに覚える。全プロジェクトの画面ではすべてのプロジェクトのタブを出す。
- * タブは分割でき（⌘\）、ペインは左右に並ぶ（⌥⌘← / → で移る）。
- * scope: いまの画面（プロジェクトの ID か "all"）。targets: 新しいターミナルを開く場所（terminalTargets）。
- * 表示は BottomPanel。シェルはメインプロセスで動き続けるので、閉じても・ほかのプロジェクトに移ってもタブは残す
+ * フッター（画面の下のパネル。VS Code と同じく、どの画面でも ⌃` か ⌘J で開閉する）の状態と操作。
+ * 中身は右のパネル・右端のチャット欄と同じタブ（useSidePanel の欄 "bottom"）で、初めはターミナルとブラウザを出す
+ * （表示するタブ・タブのまとめ方はフッターだけで覚える）。タブ・開いているかはプロジェクトごと（全プロジェクトの画面は別）。
+ * タブはほかの欄と同じく上下・左右のペインに分けられる（フッターにピントがあるときの ⌘\ で右に分ける）。
+ * Esc では閉じない（ターミナルの中で使うため）。シェルはメインプロセスで動き続けるので、閉じても・ほかのプロジェクトに移っても残る
  */
-export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
-  const [groups, setGroups] = useState<TerminalGroup[]>([]);
-  const [scopes, setScopes] = useState<Record<string, ScopeState>>({});
+export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], projects: ProjectSummary[]) {
+  const panel = useSidePanel({
+    memoryKey: `bottom:${scope}`,
+    scope,
+    surface: "bottom",
+    holdEsc: true,
+    // 全プロジェクトの画面では、新しいチャットのプロジェクトを選べるようにする
+    projects: scope === "all" ? projects : undefined,
+  });
   const [maximized, setMaximized] = useState(false);
   const [height, setHeight] = useStoredNumber(BOTTOM_PANEL_HEIGHT_KEY, DEFAULT_HEIGHT);
   const [resizing, setResizing] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
-  const available = Boolean(window.kickoff?.terminal);
+  const available = Boolean(window.kickoff);
+  const open = panel.panelOpen;
 
-  const inScope = (g: TerminalGroup) => scope === "all" || g.projectId === scope;
-  const tabs = groups.filter(inScope);
-  const saved = scopes[String(scope)];
-  const open = saved?.open ?? false;
-  // 表示しているタブ（閉じられていたら、その画面の先頭のタブ）
-  const active = tabs.find((g) => g.key === saved?.active) ?? tabs[0];
-  const setScope = (update: Partial<ScopeState>) =>
-    setScopes((prev) => ({ ...prev, [String(scope)]: { ...(prev[String(scope)] ?? { open, active: active?.key ?? null }), ...update } }));
-  const updateGroup = (key: string, update: (g: TerminalGroup) => TerminalGroup) => setGroups((prev) => prev.map((g) => (g.key === key ? update(g) : g)));
-
-  const openTerminal = (target: TerminalTarget) => {
-    const pane: TerminalPaneInfo = { key: newTabKey("bottom"), ...target };
-    const group: TerminalGroup = { key: newTabKey("group"), projectId: target.projectId, label: target.label, panes: [pane], sizes: [1], activePane: pane.key };
-    setGroups((prev) => [...prev, group]);
-    setScope({ open: true, active: group.key });
-  };
-
-  /** 開閉。開くときにこの画面のタブがなく、開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
+  /** 開閉。開くときに見せているタブがなく、ターミナルを出す欄で開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
   const toggle = () => {
-    if (open) return setScope({ open: false });
-    if (tabs.length === 0 && targets.length === 1) return openTerminal(targets[0]);
-    setScope({ open: true });
-  };
-
-  /** タブを閉じる（中のシェルもすべて止める）。この画面の最後のタブならパネルも閉じる */
-  const closeTab = (key: string) => {
-    const group = groups.find((g) => g.key === key);
-    group?.panes.forEach((p) => void window.kickoff?.terminal.close(p.key));
-    const index = tabs.findIndex((g) => g.key === key);
-    const rest = tabs.filter((g) => g.key !== key);
-    // 続けて閉じても取りこぼさないよう、いまの一覧から消す
-    setGroups((prev) => prev.filter((g) => g.key !== key));
-    if (rest.length === 0) {
-      setScope({ open: false, active: null });
-      setMaximized(false);
-    } else if (active?.key === key) {
-      setScope({ active: rest[Math.min(index, rest.length - 1)].key });
-    }
-  };
-
-  /** 表示しているタブを分割する（入力先のペインと同じフォルダで、その右に新しいペインを開く） */
-  const split = () => {
-    if (!active) return;
-    const from = activePaneOf(active);
-    const pane: TerminalPaneInfo = { key: newTabKey("bottom"), cwd: from.cwd, label: from.label, projectId: from.projectId };
-    updateGroup(active.key, (g) => splitGroup(g, pane));
-  };
-
-  /** ペインを閉じる（シェルも止める）。最後のペインならタブごと閉じる */
-  const closePane = (groupKey: string, paneKey: string) => {
-    const group = groups.find((g) => g.key === groupKey);
-    if (!group) return;
-    if (group.panes.length <= 1) return closeTab(groupKey);
-    void window.kickoff?.terminal.close(paneKey);
-    updateGroup(groupKey, (g) => removePane(g, paneKey));
-  };
-
-  /** 入力先のペインを左右に移す（⌥⌘← / →） */
-  const movePane = (step: -1 | 1) => {
-    if (!active || active.panes.length < 2) return;
-    updateGroup(active.key, (g) => movePaneIn(g, step));
+    if (open) return panel.close();
+    const empty = !panel.tabs.some((t) => panel.isKindShown(t.key));
+    if (empty && panel.kinds.has("terminal") && targets.length === 1 && window.kickoff?.terminal) return panel.openTerminal(targets[0]);
+    panel.toggle();
   };
 
   /** 上の端をドラッグして高さを変える（ダブルクリックで元の高さ） */
   const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const panel = panelRef.current;
-    const column = panel?.parentElement;
-    if (!panel || !column) return;
+    const el = panelRef.current;
+    const column = el?.parentElement;
+    if (!el || !column) return;
     const bottom = column.getBoundingClientRect().bottom;
     const max = column.clientHeight - KEEP_ABOVE;
     let next = height;
@@ -117,7 +60,7 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
     startVerticalDrag(e, {
       move: (clientY) => {
         next = Math.round(Math.max(MIN_HEIGHT, Math.min(max, bottom - clientY)));
-        panel.style.setProperty("--bottom-h", `${next}px`);
+        el.style.setProperty("--bottom-h", `${next}px`);
       },
       end: () => {
         setResizing(false);
@@ -126,22 +69,16 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
     });
   };
 
-  // ⌃`（VS Code と同じ）か ⌘J で開閉。ターミナルの中で押しても効くよう、ほかより先に受け取る。
-  // 下のパネルの中では、⌘\ で分割・⌥⌘← / → でペインを移る（サイドバーのプロジェクトの切り替えより先に受け取る）
+  // ⌃`（VS Code と同じ）か ⌘J で開閉。ターミナルの中で押しても効くよう、ほかより先に受け取る
   useWindowEvent(
     "keydown",
     (e) => {
       const ctrlBackquote = e.ctrlKey && !e.metaKey && e.code === "Backquote";
       const cmdJ = e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "j";
-      const inPanel = open && e.target instanceof Node && Boolean(panelRef.current?.contains(e.target));
-      const cmdBackslash = inPanel && e.metaKey && !e.altKey && e.code === "Backslash";
-      const arrow = inPanel && e.metaKey && e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight") && (active?.panes.length ?? 0) > 1;
-      if (!ctrlBackquote && !cmdJ && !cmdBackslash && !arrow) return;
+      if (!ctrlBackquote && !cmdJ) return;
       e.preventDefault();
       e.stopPropagation();
-      if (cmdBackslash) split();
-      else if (arrow) movePane(e.key === "ArrowLeft" ? -1 : 1);
-      else toggle();
+      toggle();
     },
     available,
     true,
@@ -150,22 +87,14 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[]) {
   return {
     available,
     open,
-    tabs,
-    /** すべてのプロジェクトのタブ（裏のタブも画面を保持するため、表示はしないが部品は置いておく） */
-    groups,
-    active: active?.key ?? null,
     maximized,
     targets,
+    panel,
     toggle,
-    close: () => setScope({ open: false }),
-    openTerminal,
-    closeTab,
-    split,
-    closePane,
-    /** ペインを押した・入力したとき、そのペインを入力先にする */
-    focusPane: (groupKey: string, paneKey: string) => updateGroup(groupKey, (g) => (g.activePane === paneKey ? g : { ...g, activePane: paneKey })),
-    resizePanes: (groupKey: string, sizes: number[]) => updateGroup(groupKey, (g) => ({ ...g, sizes })),
-    showTab: (key: string) => setScope({ active: key }),
+    close: () => {
+      panel.close();
+      setMaximized(false);
+    },
     toggleMaximized: () => setMaximized((m) => !m),
     startResize,
     resetHeight: () => setHeight(DEFAULT_HEIGHT),

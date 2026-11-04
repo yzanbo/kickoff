@@ -2,14 +2,15 @@ import type { Run } from "../../../../core/types";
 import { useGroupNames, useProjectGroups } from "../../groupNames";
 import { useSharedChoice } from "../../hooks/useStoredState";
 import { useProjects } from "../../projectsContext";
-import { PANEL_TAB_GROUPING_KEY } from "../../storageKeys";
+import { panelTabGroupingKey } from "../../storageKeys";
 import { workplaceOf } from "../../worktree/workplace";
 import { useWorktreeLists } from "../../worktree/worktreeBranches";
 import { OTHER_CLUSTER, TAB_GROUPINGS, type ClusterOf, type ClusterSeed, type TabGrouping } from "./tabClusters";
+import type { PanelSurface } from "./panelKinds";
 import type { PanelTab, SidePanelController } from "./useSidePanel";
 
-/** 右のパネルのタブの列のまとめ方（ボードの右のパネル・プロジェクトのチャット欄・すべてのペインで共通。初めはまとめない） */
-export const useTabGrouping = () => useSharedChoice<TabGrouping>(PANEL_TAB_GROUPING_KEY, TAB_GROUPINGS, "none");
+/** タブの列のまとめ方（欄ごと: ボードの右のパネル・右端のチャット欄・フッターで別々に覚える。欄の中のペインでは共通。初めはまとめない） */
+export const useTabGrouping = (surface: PanelSurface) => useSharedChoice<TabGrouping>(panelTabGroupingKey(surface), TAB_GROUPINGS, "none");
 
 /** タブのプロジェクト（ブラウザはどのプロジェクトにも入らない） */
 const projectOfTab = (t: PanelTab): number | undefined => (t.kind === "browser" || t.kind === "terminal" ? undefined : t.projectId);
