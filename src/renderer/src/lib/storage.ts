@@ -1,5 +1,5 @@
 // 画面の表示の設定（開閉・切り替え・幅・書きかけの文など）を localStorage / sessionStorage に保存する仕組み。
-// 保存するものは lib/storageKeys.ts でだけ宣言し（キー・値の形・初めの値）、読み書きはすべてここを通す。
+// 保存するものは lib/storageKeys.ts でだけ宣言し（キー・値の形・初めの値・ID を含むか）、読み書きはすべてここを通す。
 // 同じ設定を読むものどうし（部品も、React の外も）で値がそろう（書いたら、その設定を見ているものすべてに知らせる）。
 // React からは hooks/useSetting.ts の useSetting / useSettingFamily で読む
 
@@ -24,6 +24,8 @@ export interface Setting<T> extends Shape<T> {
   readonly key: string;
   /** 保存先（session はアプリを閉じるまで） */
   readonly area: Area;
+  /** プロジェクト・チャット・グループなどの ID を（キーか値に）含む。DB を作り直したら捨てる（ID が振り直され、別のものを指すため） */
+  readonly ids: boolean;
 }
 
 /** ID ごとの設定（グループごとの開閉など。キーは prefix ＋ ID） */
@@ -33,9 +35,12 @@ export interface SettingFamily<T, S = Shape<T>> {
   /** 値の形（選べる値 choices などを、ID を決めずに読むとき） */
   readonly shape: S;
   readonly area: Area;
+  readonly ids: boolean;
 }
 
 interface SettingOptions {
+  /** ID を含む（DB を作り直したら捨てる） */
+  ids?: boolean;
   /** アプリを閉じるまで覚える（sessionStorage） */
   session?: boolean;
 }
@@ -43,7 +48,7 @@ interface SettingOptions {
 /** 設定（値の形）の値の型（選択肢の型を、宣言から作るとき） */
 export type SettingValue<S> = S extends Shape<infer T> ? T : never;
 
-/** Kickoff の保存するキーの頭 */
+/** Kickoff の保存するキーの頭（これで始まるキーは、宣言していなければ起動したときに消す） */
 const KEY_PREFIX = "kickoff:";
 
 // ---- 値の形 ----
@@ -119,11 +124,11 @@ function assertFree(area: Area, key: string, isPrefix: boolean) {
   if (!key.startsWith(KEY_PREFIX) || clash) throw new Error(`保存のキーが kickoff: で始まらないか、ほかの宣言と重なっています: ${key}`);
 }
 
-/** 保存する設定を宣言する（lib/storageKeys.ts からだけ使う） */
+/** 保存する設定を宣言する（lib/storageKeys.ts からだけ使う。宣言していない kickoff: のキーは、起動したときに消える） */
 export function defineSetting<S extends Shape<unknown>>(key: string, shape: S, options: SettingOptions = {}): S & Setting<SettingValue<S>> {
   const area: Area = options.session ? "session" : "local";
   assertFree(area, key, false);
-  const setting = { ...shape, key, area } as S & Setting<SettingValue<S>>;
+  const setting = { ...shape, key, area, ids: options.ids ?? false } as S & Setting<SettingValue<S>>;
   singles.set(idOf(area, key), setting as Setting<unknown>);
   return setting;
 }
@@ -133,18 +138,19 @@ export function defineSettingFamily<S extends Shape<unknown>>(prefix: string, sh
   const area: Area = options.session ? "session" : "local";
   if (!prefix.endsWith(":")) throw new Error(`ID ごとの設定のキーの頭は ":" で終えてください: ${prefix}`);
   assertFree(area, prefix, true);
+  const ids = options.ids ?? false;
   const members = new Map<string, S & Setting<SettingValue<S>>>();
   const family = Object.assign(
     (id: string | number) => {
       const key = `${prefix}${id}`;
       let member = members.get(key);
       if (!member) {
-        member = { ...shape, key, area } as S & Setting<SettingValue<S>>;
+        member = { ...shape, key, area, ids } as S & Setting<SettingValue<S>>;
         members.set(key, member);
       }
       return member;
     },
-    { prefix, shape, area },
+    { prefix, shape, area, ids },
   );
   families.push(family as unknown as SettingFamily<unknown>);
   return family;
@@ -235,7 +241,7 @@ export function familyVersion(family: SettingFamily<unknown>): number {
   return familyVersions.get(idOf(family.area, family.prefix)) ?? 0;
 }
 
-// ---- 一覧 ----
+// ---- 一覧と片付け ----
 
 function storedKeys(area: Area): string[] {
   try {
@@ -252,4 +258,38 @@ export function storedIds(family: SettingFamily<unknown>): string[] {
   return storedKeys(family.area)
     .filter((k) => k.startsWith(family.prefix))
     .map((k) => k.slice(family.prefix.length));
+}
+
+/** 宣言した設定か（ids なら、ID を含むものだけ） */
+function declared(area: Area, key: string, onlyIds: boolean): boolean {
+  const single = singles.get(idOf(area, key));
+  if (single) return !onlyIds || single.ids;
+  return families.some((f) => f.area === area && key.startsWith(f.prefix) && (!onlyIds || f.ids));
+}
+
+function removeWhere(test: (area: Area, key: string) => boolean): string[] {
+  const removed: string[] = [];
+  for (const area of ["local", "session"] as const) {
+    for (const key of storedKeys(area).filter((k) => test(area, k))) {
+      try {
+        storageOf(area)?.removeItem(key);
+      } catch {
+        continue;
+      }
+      cache.delete(idOf(area, key));
+      removed.push(key);
+      notify(area, key);
+    }
+  }
+  return removed;
+}
+
+/** 宣言していない kickoff: のキー（なくした機能の古いキーなど）を消す（起動したときに 1 回）。消したキーを返す */
+export function pruneUndeclared(): string[] {
+  return removeWhere((area, key) => !declared(area, key, false));
+}
+
+/** ID を含む設定（ids を付けて宣言したもの）をすべて消す（DB を作り直したとき）。消したキーを返す */
+export function forgetIdSettings(): string[] {
+  return removeWhere((area, key) => declared(area, key, true));
 }

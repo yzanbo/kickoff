@@ -30,14 +30,11 @@ import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { openNewChat, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { useChatHistory } from "./useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
-import { startTheme } from "./theme";
 import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
 import { setProjectHues } from "@/features/project/projectColor";
 import { indexProjects, ProjectsContext } from "./projectsContext";
 import { forgetDraftsOfMissingProjects } from "@/features/panel/state/panelMemory";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
-
-startTheme();
 
 export function App() {
   // URL（ハッシュ）はここで 1 回だけ購読し、部品は useRoute()（RouteContext）で読む
