@@ -1,4 +1,3 @@
-import { FoldHorizontal, PanelRightClose, UnfoldHorizontal } from "lucide-react";
 import { useRef, useState } from "react";
 import { baseName } from "@/lib/format";
 import { cx } from "@/lib/cx";
@@ -8,6 +7,7 @@ import { TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";
 import { PaneSash, fracStyle } from "@/features/panel/layout/PaneSash";
 import { PaneTabBar } from "@/features/panel/tabs/PaneTabBar";
 import { PanelEmpty } from "./PanelEmpty";
+import { PanelTools, type PanelFrame } from "./PanelTools";
 import { PanelTabPage } from "@/features/panel/tabs/PanelTabPage";
 import { layoutRects } from "@/features/panel/layout/paneGeometry";
 import { focusedPane, homePane, leavesOf, type PaneLeaf } from "@/features/panel/layout/paneLayout";
@@ -17,38 +17,23 @@ import { useTabDrag } from "@/features/panel/layout/useTabDrag";
 import type { PanelController, TerminalTarget } from "./usePanel";
 import { useBoardHeaderLayoutMenu } from "@/features/board/useBoardHeaderLayoutMenu";
 import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
-import { TabArchiveToggle } from "@/features/panel/tabs/TabArchiveToggle";
-import { TabGroupingButton } from "@/features/panel/tabs/TabGroupingButton";
-import { TabKindsButton } from "@/features/panel/tabs/TabKindsButton";
 import { shownActiveOf } from "@/features/panel/state/panelKinds";
-import { IconButton } from "@/ui/IconButton";
+import { SURFACES } from "./surfaces";
 
 /**
- * ボードの右側のパネル（ボードとパネルを並べる要素の中の最後に置く）。プロジェクトのチャット欄でも同じものを使う（sidebar）。
+ * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは SURFACES と、殻が渡す frame）。
  * タブは上下・左右のペインに分けて並べられる（VS Code のエディターと同じ）。分けていないときは、タブの列 → 中身の 1 段。
  * 分けているときは、中身の中にペインごとのタブの列と境目のつまみを、割合の位置で重ねる（タブの中身はいつも中身の直下に置き、作り直さない）。
  * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
- * onNewChat: 「新しいチャット」を押したとき（どのプロジェクト・グループで始めるかはボードが決める）。
- * terminals: 開けるターミナル（terminalTargets。Mac のアプリでだけ出す）。チャットを開いているときは、そのチャットの作業場所で開く。
- * sidebar: 欄（画面の右端のチャット欄・フッター）として使うとき（幅の変更・横幅いっぱいは欄の側で行うので出さない。
- * controls は欄の道具（フッターの最大化・閉じるなど）で、タブの列の左の道具の後ろに並べる）。
+ * 「新しいチャット」の作成先・開けるターミナル（Mac のアプリでだけ）は欄の hook が usePanel に渡す。チャットを開いているペインでは、ターミナルはそのチャットの作業場所で開く。
  * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）
  */
-export function Panel({
-  panel,
-  onNewChat,
-  terminals,
-  sidebar,
-}: {
-  panel: PanelController;
-  onNewChat: () => void;
-  terminals: TerminalTarget[];
-  sidebar?: { controls?: React.ReactNode; className?: string };
-}) {
-  const { tabs, panelFull, layout, panelOpen } = panel;
-  const terminalTargets = window.kickoff?.terminal ? terminals : [];
-  // パネルそのもの（ピントがパネルの中にあるか・左端のつまみのドラッグを始めたときの幅）
-  const asideRef = panel.paneRef;
+export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
+  const { tabs, layout, panelOpen, terminals } = panel;
+  const rules = SURFACES[panel.surface];
+  // パネルそのもの（ピントがパネルの中にあるか・殻が大きさを測る）
+  const ownRef = useRef<HTMLElement>(null);
+  const asideRef = frame?.paneRef ?? ownRef;
   const contentRef = useRef<HTMLDivElement>(null);
   const drag = useTabDrag(panel);
   // タブの右クリックのメニュー
@@ -72,18 +57,18 @@ export function Panel({
     if (tab?.kind !== "chat") return undefined;
     const chat = panel.chats.find((r) => r.id === tab.id);
     if (chat?.worktree_path) return { cwd: chat.worktree_path, label: baseName(chat.worktree_path), projectId: chat.project_id };
-    return terminalTargets.find((t) => t.projectId === tab.projectId);
+    return terminals.find((t) => t.projectId === tab.projectId);
   };
   /** ターミナルを開く（押したペインに入れる）: チャットを表示していればその作業場所、開く場所が 1 つならそこ、いくつもあれば選ぶメニュー */
   const openTerminal = (e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => {
     panel.focusPane(pane.id);
-    const target = chatTarget(pane) ?? (terminalTargets.length === 1 ? terminalTargets[0] : undefined);
+    const target = chatTarget(pane) ?? (terminals.length === 1 ? terminals[0] : undefined);
     if (target) return panel.openTerminal(target);
     terminalMenu.toggle(e);
   };
 
   // ブラウザ・ターミナルの ▾（新しいタブ・外のアプリで開く・外のアプリを選ぶ）
-  const openWith = useOpenWithMenu({ panel, targets: terminalTargets, chatTarget });
+  const openWith = useOpenWithMenu({ panel, targets: terminals, chatTarget });
 
   // ⌘\ で、ピントのあるペインを右に分ける（パネルの中にピントがあるとき。下のパネルの ⌘\ はそちらにピントがあるときだけ）
   useWindowEvent(
@@ -98,45 +83,11 @@ export function Panel({
     panelOpen,
   );
 
-  // パネルの閉じる・タブのまとめ方・横幅いっぱい（閉じる・横幅いっぱいはボードの右のパネルだけ。チャット欄は右上のレイアウトの開閉（LayoutToggles）で閉じるので、重ねて置かない）
-  // タブの列の何もないところの右クリックで、ボードツールバーの置き方を選ぶ（常時表示か、パネル優先にしてパネルを上まで伸ばすか。チャット欄では関係しないので出さない）
+  // タブの列の何もないところの右クリックで、ボードツールバーの置き方を選ぶ（常時表示か、パネル優先にしてパネルを上まで伸ばすか。ボードの右のパネルだけ）
   const layoutMenu = useBoardHeaderLayoutMenu();
   // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
   const mountedTabs = useRef(new Set<string>());
-  // パネルを閉じるボタンのすぐ右に、表示するタブの種類（いちばん左。ほかの道具の前提になるため）、チャットのタブのまとめ方（まとめない・グループ別・作業場所別）、
-  // アーカイブ済みを出すか（サイドバーと共通）。チャット欄は閉じるボタンがないので、表示するタブの種類が左端
-  // （まとめ方・アーカイブ済みはチャットのタブにだけ効くので、チャットを隠している欄では出さない）
-  const controls = sidebar ? (
-    <div className="panel-controls">
-      <TabKindsButton panel={panel} />
-      {/* まとめ方・アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
-      {panel.kinds.has("chat") && <TabGroupingButton surface={panel.surface} />}
-      {panel.kinds.has("chat") && <TabArchiveToggle />}
-      {sidebar.controls}
-    </div>
-  ) : (
-    <div className="panel-controls">
-      {/* 横から出てきたパネルを、横へしまう（タブはそのまま残る） */}
-      <IconButton icon={PanelRightClose} size={15} className="panel-control" label="パネルを閉じる" keys="Esc" onClick={panel.close} />
-      <TabKindsButton panel={panel} />
-      {/* まとめ方・アーカイブ済みを出すかはチャットのタブにだけ効くので、チャットを隠している欄では出さない */}
-      {panel.kinds.has("chat") && <TabGroupingButton surface={panel.surface} />}
-      {panel.kinds.has("chat") && <TabArchiveToggle />}
-      {/* 横幅いっぱい ⇔ 元の幅（横にだけ広がるので、横向きの矢印）。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
-          ボードが残る幅まで縮める。サイドバー・チャット欄を開いて狭くなっても隠さない） */}
-      <IconButton
-        icon={panelFull ? FoldHorizontal : UnfoldHorizontal}
-        size={15}
-        className="panel-control"
-        label={panelFull ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-        title={panelFull ? (panel.canRestoreWidth ? "元の幅に戻す" : "元の幅に戻す（画面が狭いため、元の幅に戻せません）") : "横幅いっぱいに広げる"}
-        aria-pressed={panelFull}
-        disabled={panelFull && !panel.canRestoreWidth}
-        onClick={panel.toggleMaximized}
-      />
-    </div>
-  );
-  /** ペインのタブの列（パネルの閉じる・横幅いっぱいは、左上のペインにだけ置く） */
+  /** ペインのタブの列（タブの列の左の道具は、左上のペインにだけ置く） */
   const bar = (pane: PaneLeaf) => (
     <PaneTabBar
       panel={panel}
@@ -145,17 +96,17 @@ export function Panel({
       // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていなければ、そのペインが一覧
       home={!split || pane.id === homeId}
       inert={!panelOpen}
-      controls={pane.id === leaves[0].id ? controls : undefined}
+      controls={pane.id === leaves[0].id ? <PanelTools panel={panel} frame={frame} /> : undefined}
       drag={drag}
-      terminals={terminalTargets.length}
+      terminals={terminals.length}
       terminalMenuOpen={terminalMenu.isOpen}
       onNewChat={() => {
         panel.focusPane(pane.id);
-        onNewChat();
+        panel.startNewChat();
       }}
       onTerminal={openTerminal}
       rename={rename}
-      onBarMenu={sidebar ? undefined : layoutMenu.open}
+      onBarMenu={rules.layoutMenu ? layoutMenu.open : undefined}
       onOpenWith={openWith.open}
       openWithShown={openWith.shown}
       onMenu={(key, e) => tabMenu.open(e, key)}
@@ -163,12 +114,12 @@ export function Panel({
   );
   const empty = (pane: PaneLeaf) => (
     <PanelEmpty
-      // ボードの分けていないパネルは、今までどおり案内の文（新しいチャットは見出しの「新規」から）。分けたペインには新しいチャットも出す
-      showNewChat={!!sidebar || split}
+      // 分けたペインには、案内の代わりに新しいチャットも出す
+      hint={split ? undefined : rules.emptyHint}
       kinds={panel.kinds}
-      hasTerminals={terminalTargets.length > 0}
-      manyTerminals={terminalTargets.length > 1}
-      onNewChat={onNewChat}
+      hasTerminals={terminals.length > 0}
+      manyTerminals={terminals.length > 1}
+      onNewChat={panel.startNewChat}
       onBrowser={() => panel.openBrowser()}
       onTerminal={(e) => openTerminal(e, pane)}
     />
@@ -176,10 +127,8 @@ export function Panel({
   const rectOf = new Map(panes.map((p) => [p.id, p.rect]));
 
   return (
-    <aside ref={asideRef} className={cx("board-panel", sidebar && "as-sidebar", sidebar?.className)} aria-hidden={!panelOpen}>
-      {!sidebar && (
-        <div inert={!panelOpen} className="panel-resizer" aria-label="パネルの幅を変える" {...panel.resizeHandle} />
-      )}
+    <aside ref={asideRef} className={cx("board-panel", rules.className)} aria-hidden={!panelOpen}>
+      {frame?.resizeHandle && <div inert={!panelOpen} className="panel-resizer" aria-label="パネルの幅を変える" {...frame.resizeHandle} />}
       {!split && bar(leaves[0])}
       <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing")} inert={!panelOpen}>
         {!split && !anyShown(leaves[0].tabs) && empty(leaves[0])}
@@ -203,7 +152,7 @@ export function Panel({
         {terminalMenu.menu && (
           <TerminalTargetMenu
             at={terminalMenu.menu.at}
-            targets={terminalTargets}
+            targets={terminals}
             ignore=".panel-tab-terminal, .panel-empty-terminal"
             onPick={panel.openTerminal}
             onClose={terminalMenu.close}

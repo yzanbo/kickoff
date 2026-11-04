@@ -39,7 +39,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   const board = useGroupBoard({ projectId, groups });
   const { view, split, menu, rename, over, dropProps } = board;
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開く（下書きもカンバンと同じく、このボードのパネルとチャット欄のもの）
-  const { panel, drafts } = useBoardPanel({ projectId, holdEsc: menu.isOpen });
+  const { panel, drafts, frame, body } = useBoardPanel({ projectId, holdEsc: menu.isOpen });
 
   // サイドバーのグループの＋から来たら、そのグループで新しいチャットを右側に開く（同じ＋を押し直したときも）
   useBoardFocus(focus, (target) => {
@@ -85,7 +85,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
         </button>
       }
       primary={
-        <button className="btn btn-sm" onClick={() => panel.openNew({ projectId })} title="右側で新しいチャットを始める">
+        <button className="btn btn-sm" onClick={panel.startNewChat} title="右側で新しいチャットを始める">
           <Plus size={13} /> <span className="btn-label">新規</span>
         </button>
       }
@@ -104,8 +104,8 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       header={header}
       error={board.error}
       panel={panel}
-      onNewChat={() => panel.openNew({ projectId })}
-      projectId={projectId}
+      frame={frame}
+      body={body}
       menu={menu}
       onOpenChat={panel.open}
       rename={rename}

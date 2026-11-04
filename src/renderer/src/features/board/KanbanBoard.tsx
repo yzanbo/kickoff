@@ -59,7 +59,7 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
 
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ。チャットのタブはサイドバーの一覧にそろえる）と、
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない。いちばん左の「下書き」の列に出す）
-  const { panel, drafts } = useBoardPanel({
+  const { panel, drafts, frame, body } = useBoardPanel({
     projectId,
     holdEsc: menu.isOpen,
     projects: allProjects ? projects : undefined,
@@ -89,15 +89,6 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
   const total = shown.length;
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
-
-  /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
-  function newChat() {
-    // 全プロジェクトのボードでは、最近のプロジェクトで始める（パネルでバッジから選び直せる）
-    const target = projectId ?? projects[0]?.id;
-    if (target === undefined) return;
-    // 画面は移らず、右側のパネルで始める
-    panel.openNew({ projectId: target });
-  }
 
   /** カード・リストの行（クリックで開く・右クリックでメニュー・名前をその場で変える。全プロジェクトのボードではプロジェクトのバッジ（印と名前）を付ける） */
   const cards = useBoardCards({
@@ -133,7 +124,8 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
         />
       }
       primary={
-        <button className="btn btn-sm" onClick={() => newChat()} disabled={allProjects && projects.length === 0}>
+        // 画面は移らず、右側のパネルで新しいチャットを始める（全プロジェクトのボードでは、最近のプロジェクトで。パネルでバッジから選び直せる）
+        <button className="btn btn-sm" onClick={panel.startNewChat} disabled={allProjects && projects.length === 0}>
           <Plus size={13} /> <span className="btn-label">新規</span>
         </button>
       }
@@ -155,7 +147,7 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
   );
 
   return (
-    <BoardShell header={header} error={error ?? loadError} panel={panel} onNewChat={() => newChat()} projectId={projectId} menu={menu} onOpenChat={open} rename={rename} onError={setError}>
+    <BoardShell header={header} error={error ?? loadError} panel={panel} frame={frame} body={body} menu={menu} onOpenChat={open} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : split ? (

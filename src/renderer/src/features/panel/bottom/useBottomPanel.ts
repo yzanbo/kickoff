@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { BOTTOM_PANEL_HEIGHT } from "@/lib/storageKeys";
@@ -36,6 +36,10 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
     onStart: () => setMaximized(false),
   });
   const available = Boolean(window.kickoff);
+  // 閉じたら最大化をやめる（閉じるボタン・最後のタブを閉じた・⌃` のどれで閉じても、次は元の高さで開く）
+  useEffect(() => {
+    if (!open) setMaximized(false);
+  }, [open]);
 
   /** 開閉。開くときに見せているタブがなく、ターミナルを出す欄で開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
   const toggle = () => actions.toggle({ terminal: targets.length === 1 && window.kickoff?.terminal ? targets[0] : undefined });
@@ -62,10 +66,6 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
     maximized,
     targets,
     toggle,
-    close: () => {
-      actions.close();
-      setMaximized(false);
-    },
     toggleMaximized: () => setMaximized((m) => !m),
     /** 上の端のつまみに渡す */
     resizeHandle: resize.handle,

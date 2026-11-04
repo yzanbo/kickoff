@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { Project, Chat } from "@shared/types";
-import { cx } from "@/lib/cx";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { isTabVisible } from "@/features/panel/layout/paneLayout";
 import { chatKey } from "@/features/panel/state/linkedTabs";
@@ -10,7 +9,7 @@ import { isLinkedTab } from "@/features/panel/state/panelState";
 import { useMountedPanel, usePanelState } from "@/features/panel/state/panelStore";
 import { useLinkedTabs } from "@/features/panel/state/useLinkedChats";
 import { panelKey, SURFACES, type PanelScope, type PanelSurface } from "@/features/panel/surfaces";
-import { usePanelWidth } from "./usePanelWidth";
+import type { NewChatTarget, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 
 export type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 export { terminalTargets } from "@/features/panel/tabs/panelTypes";
@@ -25,6 +24,10 @@ interface Options {
   scope: PanelScope;
   /** true の間は Esc で閉じない（メニューが開いているときなど。Esc で閉じる欄だけ） */
   holdEsc?: boolean;
+  /** 「新しいチャット」で始める作成先（どのプロジェクト・グループで始めるかは欄が決める。決まらなければ始めない） */
+  newChat: NewChatTarget | undefined;
+  /** 開けるターミナルの場所（Mac のアプリでだけ使う。チャットを表示しているペインでは、そのチャットの作業場所で開く） */
+  terminals: readonly TerminalTarget[];
   /** 全プロジェクトの画面では、新しいチャットのプロジェクトを選べるようにする */
   projects?: Project[];
   /** 新しいチャットができたとき（URL をそのチャットにするなど） */
@@ -38,9 +41,9 @@ export type PanelController = ReturnType<typeof usePanel>;
  * 状態は欄・画面ごとに店（panelStore）が覚え、変え方は純粋関数（panelState の panelReducer）。ここでは読む・そろえる・束ねるだけ。
  * タブは上下・左右のペインに分けて並べられる（配置は paneLayout の木。自分で開くタブはピントのあるペインに、
  * サイドバーと連動して自動で足すチャットのタブは一覧のペイン（homePane。分けた元のペイン）に入る）。
- * 表示は Panel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）で行う
+ * 表示は Panel。大きさ（幅・高さ・最大化）は欄の殻（useBoardPanel・useProjectChat・useBottomPanel）が持つ
  */
-export function usePanel({ surface, scope, holdEsc = false, projects, onCreated }: Options) {
+export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, projects, onCreated }: Options) {
   const key = panelKey(surface, scope);
   const state = usePanelState(key);
   const { tabs, layout, open: panelOpen } = state;
@@ -50,8 +53,6 @@ export function usePanel({ surface, scope, holdEsc = false, projects, onCreated 
   // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える）
   const chats = useLinkedTabs(key, scope);
   const actions = useMemo(() => panelActions(key), [key]);
-  // 幅と横幅いっぱい（ボードを覆う）
-  const size = usePanelWidth();
 
   // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先）
   useWindowEvent(
@@ -81,12 +82,14 @@ export function usePanel({ surface, scope, holdEsc = false, projects, onCreated 
     /** 分割の配置 */
     layout,
     panelOpen,
-    /** パネルが横幅いっぱいに見えているか（横幅いっぱいにした・横に残るボードが狭すぎてボードを覆っている） */
-    panelFull: size.maximized || size.covering,
-    /** 元の幅に戻せるか（覆っていて、ボードを残すとパネルの最小の幅に足りないほど狭いときは戻せない） */
-    canRestoreWidth: size.canRestore,
     chats,
     projects,
+    /** 開けるターミナルの場所（Mac のアプリでなければ空） */
+    terminals: window.kickoff?.terminal ? terminals : NO_TERMINALS,
+    /** 「新しいチャット」（欄が決めた作成先で始める。決まっていなければ何もしない） */
+    startNewChat: () => {
+      if (newChat) actions.openNew(newChat);
+    },
     /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
     replaceWithChat: (tabKey: string, chat: Chat) => {
       actions.replaceWithChat(tabKey, chat);
@@ -97,16 +100,7 @@ export function usePanel({ surface, scope, holdEsc = false, projects, onCreated 
     isShowingTab,
     /** 欄でこのチャットを表示しているか（カードを選択中として見せる。分割していれば、どれかのペインで） */
     isShowing: (chatId: number) => isShowingTab(chatKey(chatId)),
-    toggleMaximized: size.toggleMaximized,
-    /** パネル（aside）に付ける（左端のつまみのドラッグを始めたときの幅を測る） */
-    paneRef: size.paneRef,
-    resizeHandle: size.resizeHandle,
-    /** ボードとパネルを並べる要素に渡す */
-    body: {
-      ref: size.bodyRef,
-      // 覆っているときは間隔を消す（ドラッグ中は指の位置どおりの幅にするので付けない）
-      className: cx("board-body", panelOpen && "with-panel", (size.maximized || size.covering) && !size.resizing && "panel-full", size.resizing && "resizing", size.stretching && "stretching"),
-      style: size.style,
-    },
   };
 }
+
+const NO_TERMINALS: readonly TerminalTarget[] = [];

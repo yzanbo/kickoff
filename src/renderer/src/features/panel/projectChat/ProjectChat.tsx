@@ -33,6 +33,6 @@ export function ProjectChat({ chat }: { chat: ProjectChatController }) {
 /** チャット欄の中身（プロジェクトのタブ。開いているかは欄の殻 useProjectChat と同じ店から読む） */
 function ProjectChatPanel({ projectId }: { projectId: number }) {
   const { projects } = useProjects();
-  const panel = usePanel({ surface: "side", scope: projectId });
-  return <Panel panel={panel} onNewChat={() => panel.openNew({ projectId })} terminals={terminalTargets(projects, projectId)} sidebar={{}} />;
+  const panel = usePanel({ surface: "side", scope: projectId, newChat: { projectId }, terminals: terminalTargets(projects, projectId) });
+  return <Panel panel={panel} />;
 }
