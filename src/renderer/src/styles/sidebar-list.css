@@ -188,38 +188,7 @@
   border: 1px dashed var(--border-strong);
 }
 
-/* 丸の角の件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 回答待ち、右下 = 未読 */
-.workspace-dot-count {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 3px;
-  border: 2px solid var(--bg-sidebar);
-  border-radius: 8px;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-}
-
-.workspace-dot-count.running {
-  top: -6px;
-  left: -6px;
-  background: var(--dot-running);
-}
-
-/* 右上 = 未読（いちばん目に入る右上に、見るべき結果の数）、左下 = 回答待ち */
-.workspace-dot-count.review {
-  top: -6px;
-  right: -6px;
-  background: var(--dot-attention);
-}
-
-.workspace-dot-count.needs-input {
-  bottom: -6px;
-  left: -6px;
-  background: var(--dot-needs-input);
+/* 丸の角の件数（StateCornerCounts。status.css）の縁は、サイドバーの地の色にする */
+.workspace-dot {
+  --corner-ring: var(--bg-sidebar);
 }

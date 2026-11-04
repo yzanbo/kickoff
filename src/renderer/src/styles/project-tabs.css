@@ -34,7 +34,6 @@
   background: var(--bg-elev);
 }
 
-.project-side-tabs .tab-count,
 .project-side-tabs .change-count {
   position: absolute;
   top: 1px;
@@ -49,8 +48,7 @@
   text-align: center;
 }
 
-/* 未読のチャットの数も、エディタの数（.change-count）と同じ丸いバッジにする（アイコンの右上で読めるように）。色は未読の点と同じ緑 */
-.project-side-tabs .tab-count {
-  color: #fff;
-  background: var(--dot-attention);
+/* ボードのタブの角の数（StateCornerCounts）は、タブの角に少しだけはみ出させる */
+.project-side-tabs .tab {
+  --corner-offset: -4px;
 }

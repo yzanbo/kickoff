@@ -1,9 +1,10 @@
 import { Plus } from "lucide-react";
 import { Fragment, useEffect, useRef, type CSSProperties, type MouseEvent } from "react";
-import { BOARD_COLUMN_LABELS, type ProjectSummary } from "../../../../core/types";
+import type { ProjectSummary } from "../../../../core/types";
 import { cx } from "../../cx";
 import { initialOf, projectHue } from "../../projectColor";
 import type { StateCounts } from "../../runState";
+import { StateCornerCounts, stateCountsSummary } from "../StateCornerCounts";
 import type { ProjectReorder } from "./useProjectReorder";
 
 /**
@@ -52,10 +53,7 @@ export function WorkspaceDots({
       {projects.map((p, i) => {
         const counts = countsOf(p.id);
         const draggable = reorder.draggable(p.id);
-        const summary = (["running", "needs_input", "review"] as const)
-          .filter((c) => counts[c] > 0)
-          .map((c) => `${BOARD_COLUMN_LABELS[c]} ${counts[c]}`)
-          .join("・");
+        const summary = stateCountsSummary(counts);
         // 固定したプロジェクトの丸と、残りの丸の間に区切りを入れる
         const divider = i > 0 && projects[i - 1].pinned && !p.pinned;
         return (
@@ -75,21 +73,7 @@ export function WorkspaceDots({
           >
             {initialOf(p.name)}
             {/* 状態ごとの件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 未読、左下 = 回答待ち */}
-            {counts.running > 0 && (
-              <span className="workspace-dot-count running" aria-label={`作業中 ${counts.running} 件`}>
-                {counts.running}
-              </span>
-            )}
-            {counts.needs_input > 0 && (
-              <span className="workspace-dot-count needs-input" aria-label={`回答待ち ${counts.needs_input} 件`}>
-                {counts.needs_input}
-              </span>
-            )}
-            {counts.review > 0 && (
-              <span className="workspace-dot-count review" aria-label={`未読 ${counts.review} 件`}>
-                {counts.review}
-              </span>
-            )}
+            <StateCornerCounts counts={counts} />
           </button>
           </Fragment>
         );
