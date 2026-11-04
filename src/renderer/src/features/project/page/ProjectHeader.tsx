@@ -49,7 +49,7 @@ export function ProjectHeader({
         className="path-button"
         disabled={!window.kickoff}
         title={window.kickoff ? `Finder で開く（${project.repo_path}）` : project.repo_path}
-        onClick={() => void window.kickoff?.openPath(project.repo_path)}
+        onClick={() => void window.kickoff?.externalApps.openPath(project.repo_path)}
       >
         <FolderOpen size={13} aria-hidden />
         <span className="path-button-text">{project.repo_path}</span>

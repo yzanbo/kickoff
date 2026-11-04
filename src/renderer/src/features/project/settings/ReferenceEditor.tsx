@@ -26,7 +26,7 @@ export function ReferenceEditor({ project }: { project: Project }) {
   };
 
   const pick = async () => {
-    const paths = (await window.kickoff?.pickReferences()) ?? [];
+    const paths = (await window.kickoff?.dialog.pickReferences()) ?? [];
     await add(paths);
   };
 
@@ -52,7 +52,7 @@ export function ReferenceEditor({ project }: { project: Project }) {
                     icon={FolderOpen}
                     label={`${name} を Finder で開く`}
                     title="Finder で開く"
-                    onClick={() => void window.kickoff?.openPath(r.path)}
+                    onClick={() => void window.kickoff?.externalApps.openPath(r.path)}
                   />
                 )}
                 <IconButton

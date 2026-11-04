@@ -3,11 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { app } from "electron";
 import { errorMessage } from "@shared/errors";
-import type { BrowserExtensionInfo } from "@shared/types";
+import { KNOWN_EXTENSIONS, type BrowserExtensionInfo, type KnownExtensionKey } from "@shared/ipc";
+import { pickPaths } from "../app/dialogs.js";
+import type { IpcHandlers } from "../ipc/register.js";
 import { browserSession } from "./browser.js";
 import { unpackCrx } from "./crx.js";
 import { isManagedExtensionDir } from "./extensionDirs.js";
-import { KNOWN_EXTENSIONS, type KnownExtensionKey } from "../ipc/ipcArgs.js";
 
 // 埋め込みブラウザの拡張機能（React DevTools など）: ウェブストアから取る・Chrome から写す・展開済みのフォルダを読む
 
@@ -27,7 +28,7 @@ export async function loadSavedExtensions(): Promise<string[]> {
   return errors;
 }
 
-export async function listExtensions(): Promise<BrowserExtensionInfo[]> {
+async function listExtensions(): Promise<BrowserExtensionInfo[]> {
   const loaded = browserSession().extensions.getAllExtensions();
   const manual = await readManualList();
   return loaded.map((ext) => ({
@@ -39,7 +40,7 @@ export async function listExtensions(): Promise<BrowserExtensionInfo[]> {
 }
 
 /** Chrome ウェブストアから拡張機能（.crx）を取得して展開し、読み込む */
-export async function installFromWebStore(key: KnownExtensionKey): Promise<BrowserExtensionInfo[]> {
+async function installFromWebStore(key: KnownExtensionKey): Promise<BrowserExtensionInfo[]> {
   const { id } = KNOWN_EXTENSIONS[key];
   const url =
     `https://clients2.google.com/service/update2/crx?response=redirect&acceptformat=crx2,crx3` +
@@ -54,7 +55,7 @@ export async function installFromWebStore(key: KnownExtensionKey): Promise<Brows
 }
 
 /** Chrome のプロフィールにインストール済みの拡張機能を探して、コピーしてから読み込む */
-export async function importFromChrome(key: KnownExtensionKey): Promise<BrowserExtensionInfo[]> {
+async function importFromChrome(key: KnownExtensionKey): Promise<BrowserExtensionInfo[]> {
   const { id } = KNOWN_EXTENSIONS[key];
   const chromeDir = path.join(os.homedir(), "Library", "Application Support", "Google", "Chrome");
   const profiles = await fs.readdir(chromeDir).catch(() => {
@@ -76,7 +77,7 @@ export async function importFromChrome(key: KnownExtensionKey): Promise<BrowserE
 }
 
 /** 展開済みの拡張機能のフォルダを指定して読み込む */
-export async function addExtensionFolder(dir: string): Promise<BrowserExtensionInfo[]> {
+async function addExtensionFolder(dir: string): Promise<BrowserExtensionInfo[]> {
   await fs.access(path.join(dir, "manifest.json")).catch(() => {
     throw new Error("manifest.json があるフォルダ（展開済みの拡張機能）を選んでください");
   });
@@ -86,7 +87,7 @@ export async function addExtensionFolder(dir: string): Promise<BrowserExtensionI
   return listExtensions();
 }
 
-export async function removeExtension(extPath: string): Promise<BrowserExtensionInfo[]> {
+async function removeExtension(extPath: string): Promise<BrowserExtensionInfo[]> {
   const ext = browserSession()
     .extensions.getAllExtensions()
     .find((e) => e.path === extPath);
@@ -121,3 +122,15 @@ async function readManualList(): Promise<string[]> {
     return [];
   }
 }
+
+/** 埋め込みブラウザの拡張機能（IPC の browserExtensions）。どれも、そのあとの一覧を返す */
+export const browserExtensionHandlers: IpcHandlers["browserExtensions"] = {
+  list: () => listExtensions(),
+  install: (_e, key) => installFromWebStore(key),
+  importFromChrome: (_e, key) => importFromChrome(key),
+  addFolder: async () => {
+    const [dir] = await pickPaths({ properties: ["openDirectory"], title: "展開済みの拡張機能のフォルダを選択" });
+    return dir ? addExtensionFolder(dir) : listExtensions();
+  },
+  remove: (_e, extPath) => removeExtension(extPath),
+};

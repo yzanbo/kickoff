@@ -6,7 +6,7 @@
  * - プロジェクト・チャット・グループなどの ID を、キーか値に含むものは ids を付ける（DB を作り直したら、起動したときに捨てる。
  *   ID が 1 から振り直され、別のものを指すため）。ID ごとのものは defineSettingFamily（キーは頭 ＋ ID）
  */
-import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/types";
+import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
 import { choice, defineSetting, defineSettingFamily, flag, list, number, optionalFlag, record, text } from "./storage";
 
 const isString = (value: unknown): value is string => typeof value === "string";

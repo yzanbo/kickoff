@@ -8,7 +8,7 @@ export function DiagnosticsPath({ dir, onOpen }: { dir: string; onOpen?: () => v
     <span className="diagnostics-path">
       <code title={dir}>{dir}</code>
       <CopyButton label="保存先をコピー" text={dir} />
-      <IconButton icon={FolderOpen} size={13} label="Finder で開く" onClick={onOpen ?? (() => void window.kickoff?.openPath(dir))} />
+      <IconButton icon={FolderOpen} size={13} label="Finder で開く" onClick={onOpen ?? (() => void window.kickoff?.externalApps.openPath(dir))} />
     </span>
   );
 }

@@ -1,10 +1,10 @@
 /// <reference types="vite/client" />
-import type { KickoffNativeApi } from "../../preload";
+import type { NativeApi } from "@shared/ipc";
 
 declare global {
   interface Window {
-    /** デスクトップアプリでのみ存在するネイティブ機能 */
-    kickoff?: KickoffNativeApi;
+    /** デスクトップアプリでのみ存在するネイティブ機能（preload が IPC の取り決め shared/ipc から作る） */
+    kickoff?: NativeApi;
   }
 }
 

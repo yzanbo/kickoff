@@ -12,7 +12,6 @@ import { setAppMenu } from "./app/appMenu.js";
 import { moveLegacyDiagnostics } from "./diagnostics/diagnostics.js";
 import { setDiagnosticsCore } from "./diagnostics/mainProcess.js";
 import { registerIpc } from "./ipc/ipc.js";
-import { registerNotifications } from "./notifications/notifications.js";
 import { allowAppMicrophone } from "./app/mediaPermission.js";
 import { registerShutdown } from "./app/shutdown.js";
 import { logLaunch, startupLog, watchChildProcesses, watchWindowLoad } from "./app/startupLog.js";
@@ -89,8 +88,7 @@ if (!app.requestSingleInstanceLock()) {
     startupLog("認証の Cookie を設定しました");
     // チャット欄の音声入力: Kickoff の画面からのマイクだけ許す（埋め込みブラウザは別のセッションなので広げない）
     allowAppMicrophone(session.defaultSession, uiUrl);
-    registerIpc(() => mainWindow);
-    registerNotifications(() => mainWindow);
+    registerIpc({ appUrl: uiUrl, mainWindow: () => mainWindow });
     setAppMenu(() => mainWindow);
     createWindow(uiUrl);
     // 埋め込みブラウザの拡張機能（React DevTools など）を読み込む

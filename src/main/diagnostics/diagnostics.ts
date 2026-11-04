@@ -1,8 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { app, shell, type BrowserWindow, type WebContents } from "electron";
-import type { DiagnosticsFolders, DiagnosticsState } from "@shared/ipc/diagnostics";
+import { app, BrowserWindow, shell, type WebContents } from "electron";
+import type { DiagnosticsFolders, DiagnosticsState } from "@shared/ipc";
 import { errorMessage } from "@shared/errors";
+import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { startMainRecording } from "./mainProcess.js";
 import { diagnosticsFolderName, perSecond, RENDERER_PROBE, topSelfTime, type CpuProfile, type Metrics } from "./profileSummary.js";
 import { RENDERER_COLLECT, RENDERER_OBSERVE, summarizeFrames, summarizeInteractions, type RendererTimings } from "./rendererTiming.js";
@@ -38,7 +39,7 @@ export async function moveLegacyDiagnostics(): Promise<void> {
 const RECENT_RECORDS = 5;
 
 /** 保存先と、最近の記録のフォルダ（フォルダ名は日時なので、名前の逆順 = 新しい順）。まだ記録がなければ records は空 */
-export async function diagnosticsFolders(): Promise<DiagnosticsFolders> {
+async function diagnosticsFolders(): Promise<DiagnosticsFolders> {
   const root = diagnosticsRoot();
   const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
   const records = entries
@@ -57,18 +58,27 @@ export async function openDiagnosticsRoot(): Promise<void> {
   await shell.openPath(diagnosticsRoot());
 }
 
+/** 性能の記録（IPC の diagnostics）。記録を取るのは、頼んできた画面のウィンドウ（なければメインのウィンドウ） */
+export function diagnosticsHandlers(mainWindow: () => BrowserWindow | undefined): IpcHandlers["diagnostics"] {
+  return {
+    start: (e) => void startDiagnostics(BrowserWindow.fromWebContents(e.sender) ?? mainWindow()),
+    folders: () => diagnosticsFolders(),
+    openRoot: () => openDiagnosticsRoot(),
+  };
+}
+
 let running = false;
 
 /**
  * 性能の記録を取る（重いときに、再起動せずその場で）。Kickoff の画面に Electron のデバッガをつなぎ、
  * 10 秒間の CPU プロファイル・画面の要素の数・メモリ・処理の時間と、プロセスごとの CPU・メモリを集めて、
  * diagnostics/<日時>/ に summary.json と profile.cpuprofile（Chrome の開発者ツールで開ける）を保存する。
- * 外から入る口（デバッグ用のポート）は開かない。様子は画面へ kickoff:diagnostics で知らせる
+ * 外から入る口（デバッグ用のポート）は開かない。様子は画面へ知らせる（diagnostics.onState）
  */
 export async function startDiagnostics(win: BrowserWindow | undefined): Promise<void> {
   if (!win || win.isDestroyed()) return;
   const notify = (state: DiagnosticsState) => {
-    if (!win.isDestroyed()) win.webContents.send("kickoff:diagnostics", state);
+    if (!win.isDestroyed()) sendEvent(win.webContents, "diagnostics", "onState", state);
   };
   if (running) return;
   running = true;

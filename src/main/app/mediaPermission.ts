@@ -1,15 +1,7 @@
 import type { Session } from "electron";
+import { sameOrigin } from "./urls.js";
 
 // アプリ自身の画面のマイクの許可（チャット欄の音声入力）。埋め込みブラウザの webview は別のセッション（browser.ts）なので、ここでは扱わない
-
-/** 同じ出どころ（スキーム・ホスト・ポート）か。URL として読めなければ違うものとする */
-function sameOrigin(a: string, b: string): boolean {
-  try {
-    return new URL(a).origin === new URL(b).origin;
-  } catch {
-    return false;
-  }
-}
 
 /**
  * 許可の問い合わせへの答え。media（マイク・カメラ）はアプリ自身の画面からの音声だけ許し、カメラ・ほかの出どころは断る。

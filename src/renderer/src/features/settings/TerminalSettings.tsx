@@ -1,4 +1,4 @@
-import type { ExternalTerminalId } from "@shared/types";
+import type { ExternalTerminalId } from "@shared/ipc";
 import { useExternalTerminal } from "@/features/openWith/externalApps";
 import { Field } from "@/ui/Field";
 

@@ -24,7 +24,7 @@ export function useChatNotifications({ enabled, projectName, route }: { enabled:
     const viewing = document.hasFocus() && current.name === "chat" && current.chatId === chat.id;
     if (viewing) return;
     if (window.kickoff) {
-      void window.kickoff.notify({ title, body, projectId: chat.project_id, chatId: chat.id });
+      void window.kickoff.notifications.notify({ title, body, chat: { projectId: chat.project_id, chatId: chat.id } });
       return;
     }
     const n = new Notification(title, { body, silent: false });
@@ -34,7 +34,7 @@ export function useChatNotifications({ enabled, projectName, route }: { enabled:
     };
   };
   // メインプロセスの通知が押されたら、そのチャットを開く
-  useEffect(() => window.kickoff?.onOpenChat((projectId, chatId) => openChat(projectId, chatId)), []);
+  useEffect(() => window.kickoff?.notifications.onOpenChat((projectId, chatId) => openChat(projectId, chatId)), []);
 
   useServerEvent((e) => {
     if (e.type === "chat") {
