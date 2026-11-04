@@ -12,7 +12,7 @@ import { CopyButton } from "@/ui/CopyButton";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { AttachmentChip } from "@/features/chat/attachments/AttachmentChip";
+import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 import { copyRich } from "@/lib/richCopy";
 
 /**
@@ -66,9 +66,7 @@ export function UserMessage({ event }: { event: ChatEventOf<"user"> }) {
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
         {attachments.length > 0 && (
           <div className="bubble-attachments">
-            {attachments.map((a) => (
-              <AttachmentChip key={a.id} attachment={a} siblings={attachments} />
-            ))}
+            <AttachmentChips attachments={attachments} />
           </div>
         )}
         {draft !== undefined && rewind ? (

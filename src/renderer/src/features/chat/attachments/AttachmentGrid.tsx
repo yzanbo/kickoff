@@ -1,10 +1,9 @@
-import { useState, type RefObject } from "react";
+import type { RefObject } from "react";
 import type { Attachment } from "@shared/types";
 import { attachmentUrl } from "@/api";
-import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
 import { Popover } from "@/ui/Popover";
-import { useImageMenu } from "@/ui/imageViewer/useImageMenu";
 import { AttachmentChip, isPreviewable, viewerImagesOf } from "./AttachmentChip";
+import { useAttachmentViewer } from "./useAttachmentViewer";
 
 /**
  * 添付の一覧のポップオーバー（送信待ちの行の「+n」付きのサムネイルから開く）。
@@ -12,10 +11,9 @@ import { AttachmentChip, isPreviewable, viewerImagesOf } from "./AttachmentChip"
  * 送信待ちの一覧は中でスクロールして切り取られ、行の文字の大きさ・折り返しも受け継がないよう body の直下に出し、開いたボタンの上（入らなければ下）に置く
  */
 export function AttachmentGrid({ attachments, anchor, onClose }: { attachments: Attachment[]; anchor: RefObject<HTMLElement | null>; onClose: () => void }) {
-  // 全画面で見ている画像（画像の中の位置）。見ている間は一覧の外側クリック・Esc で一覧を閉じない
-  const [viewing, setViewing] = useState<number>();
-  // 画像の右クリック（コピー・大きく表示・保存）。メニューは一覧の外に出るので、開いている間も一覧を閉じない
-  const imageMenu = useImageMenu();
+  // 全画面で見ている画像と、画像の右クリック（コピー・大きく表示・保存）。メニューは一覧の外に出るので、
+  // 全画面で見ている・メニューを開いている間は、一覧の外側クリック・Esc で一覧を閉じない
+  const viewer = useAttachmentViewer(viewerImagesOf(attachments));
   const images = attachments.filter((a) => isPreviewable(a.mime));
   const files = attachments.filter((a) => !isPreviewable(a.mime));
   const title = `添付 ${attachments.length} 件`;
@@ -27,7 +25,7 @@ export function AttachmentGrid({ attachments, anchor, onClose }: { attachments: 
       title={title}
       label={title}
       className="attachment-grid-popover"
-      dismissable={viewing === undefined && !imageMenu.active}
+      dismissable={!viewer.active}
       onClose={onClose}
       // 開いた元の行（送信待ち）のダブルクリック（書き直す）・右クリックのメニューに伝えない
       onDoubleClick={(e) => e.stopPropagation()}
@@ -37,8 +35,8 @@ export function AttachmentGrid({ attachments, anchor, onClose }: { attachments: 
         <div className="attachment-grid">
           {images.map((a, i) => (
             <button key={a.id} type="button" className="attachment-grid-item" title={`${a.name}（全画面で表示）`} aria-label={`${a.name} を全画面で表示`}
-              onClick={() => setViewing(i)}
-              onContextMenu={(e) => imageMenu.open(e, { src: attachmentUrl(a), name: a.name }, () => setViewing(i))}
+              onClick={() => viewer.open(i)}
+              onContextMenu={(e) => viewer.menu(e, i)}
             >
               <img src={attachmentUrl(a)} alt="" />
             </button>
@@ -52,8 +50,7 @@ export function AttachmentGrid({ attachments, anchor, onClose }: { attachments: 
           ))}
         </div>
       )}
-      {imageMenu.element}
-      {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
+      {viewer.element}
     </Popover>
   );
 }

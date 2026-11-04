@@ -2,10 +2,9 @@ import { FileText } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Attachment } from "@shared/types";
 import { attachmentUrl } from "@/api";
-import { ImageViewer } from "@/ui/imageViewer/ImageViewer";
-import { useImageMenu } from "@/ui/imageViewer/useImageMenu";
 import { AttachmentGrid } from "./AttachmentGrid";
 import { isPreviewable, viewerImagesOf } from "./AttachmentChip";
+import { useAttachmentViewer } from "./useAttachmentViewer";
 
 /**
  * 1 行に収める添付（送信待ちの行・上に貼り付ける指示の帯）。1 つ目だけを小さく出し、2 つ以上なら数を重ねる（狭い欄でも 1 行に収め、文を読めるようにする）。
@@ -14,13 +13,11 @@ import { isPreviewable, viewerImagesOf } from "./AttachmentChip";
  * 画像は右クリックでコピー・保存もできる。画像以外はファイルの印と名前。乗せると、すべての添付の名前を出す
  */
 export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
-  // 大きく見ている画像（同じ指示の画像の中の位置）と、添付が複数のときに開く一覧（開いたボタンの位置）
-  const [viewing, setViewing] = useState<number>();
+  // 大きく見る画像（同じ指示の画像。画像の右クリックでコピー・保存も。外の行の右クリックのメニューには伝えない）と、
+  // 添付が複数のときに開く一覧（開いたボタンの上に出す）
+  const viewer = useAttachmentViewer(viewerImagesOf(attachments));
   const [grid, setGrid] = useState(false);
-  // 一覧を開くボタン（一覧はこの上に出す）
   const opener = useRef<HTMLButtonElement>(null);
-  // 画像の右クリック（コピー・大きく表示・保存。外の行の右クリックのメニューには伝えない）
-  const imageMenu = useImageMenu();
   if (attachments.length === 0) return null;
   const images = attachments.filter((a) => isPreviewable(a.mime));
   // 行では、画像を先にして 1 つ目だけを出す
@@ -42,8 +39,8 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
             title={openGrid ? `添付 ${attachments.length} 件を並べて表示` : `${a.name}（大きく表示${images.length > 1 ? `。ほかの画像へは ← / →` : ""}）`}
             aria-expanded={openGrid ? grid : undefined}
             aria-label={openGrid ? `添付 ${attachments.length} 件を並べて表示` : `${a.name} を大きく表示`}
-            onClick={openGrid ?? (() => setViewing(images.indexOf(a)))}
-            onContextMenu={(e) => imageMenu.open(e, { src: attachmentUrl(a), name: a.name }, () => setViewing(images.indexOf(a)))}
+            onClick={openGrid ?? (() => viewer.open(images.indexOf(a)))}
+            onContextMenu={(e) => viewer.menu(e, images.indexOf(a))}
           >
             <img src={attachmentUrl(a)} alt="" />
             {rest > 0 && (
@@ -65,8 +62,7 @@ export function AttachmentPeek({ attachments }: { attachments: Attachment[] }) {
           </span>
         ),
       )}
-      {imageMenu.element}
-      {viewing !== undefined && <ImageViewer images={viewerImagesOf(attachments)} index={viewing} onClose={() => setViewing(undefined)} />}
+      {viewer.element}
       {grid && <AttachmentGrid attachments={attachments} anchor={opener} onClose={() => setGrid(false)} />}
     </span>
   );

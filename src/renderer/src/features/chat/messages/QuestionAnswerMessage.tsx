@@ -1,7 +1,7 @@
 import { MessageCircleQuestion } from "lucide-react";
 import type { ChatEventOf } from "@shared/types";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
-import { AttachmentChip } from "@/features/chat/attachments/AttachmentChip";
+import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 
 /**
  * AI からの質問に答えた内容（記録の approval_resolved の answers / attachments）。自分の発言と同じ吹き出しで右に出し、
@@ -25,9 +25,7 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
                 <dd>{Array.isArray(answer) ? answer.join("、") : answer}</dd>
                 {files.length > 0 && (
                   <dd className="bubble-attachments">
-                    {files.map((a) => (
-                      <AttachmentChip key={a.id} attachment={a} siblings={files} />
-                    ))}
+                    <AttachmentChips attachments={files} />
                   </dd>
                 )}
               </div>

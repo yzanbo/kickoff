@@ -1,9 +1,8 @@
-import { Paperclip } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useEditKeys } from "@/hooks/useEditKeys";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { IconButton } from "@/ui/IconButton";
+import { AttachButton } from "@/features/chat/attachments/AttachButton";
 import { PendingFileChips } from "@/features/chat/attachments/PendingFileChips";
 import { useComposerFiles } from "@/features/chat/attachments/useComposerFiles";
 
@@ -33,7 +32,6 @@ export function QuestionOtherField({
   onSubmit: () => void;
 }) {
   const files = useComposerFiles();
-  const inputRef = useRef<HTMLInputElement>(null);
   // 添付が変わったら知らせる（ID の並びとアップロードの途中かで比べ、描き直しのたびには知らせない）
   const key = `${files.attachments.map((a) => a.id).join(",")}|${files.uploading}`;
   useEffect(() => onFiles({ attachments: files.attachments, uploading: files.uploading }), [key]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -62,26 +60,8 @@ export function QuestionOtherField({
             files.onPaste(e);
           }}
         />
-        <IconButton
-          icon={Paperclip}
-          label="ファイルを添付"
-          title="画像・ファイルを添付（貼り付け・ドラッグ＆ドロップでも）"
-          size={14}
-          onClick={() => {
-            onFocus();
-            inputRef.current?.click();
-          }}
-        />
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          hidden
-          onChange={(e) => {
-            if (e.target.files) files.addFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
+        {/* 押したら「その他」を選ぶ（選ばないと添付が回答に入らない） */}
+        <AttachButton onOpen={onFocus} onFiles={files.addFiles} />
       </div>
     </div>
   );
