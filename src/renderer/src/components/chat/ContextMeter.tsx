@@ -23,15 +23,13 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
 
 /**
  * チャット欄の右下の丸いメーター: コンテキストウィンドウの使用率。
- * マウスを乗せる（押すと固定）と、コンテキストの詳細とプランの使用枠を出す。
+ * 押すと、コンテキストの詳細とプランの使用枠を出す（もう一度押す・ポップオーバーの外を押す・Esc で閉じる。マウスを乗せただけでは出さない）。
  */
 export function ContextMeter({ run }: { run: Run }) {
   const planUsage = useSharedPlanUsage();
   const [open, setOpen] = useState(false);
-  const [pinned, setPinned] = useState(false);
   const [account, setAccount] = useState<string>();
   const ref = useRef<HTMLDivElement>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // まだ数値が届いていないとき（新しいチャット・要約の直後など）は 0% として出す
   const tokens = run.context_tokens ?? 0;
@@ -42,21 +40,8 @@ export function ContextMeter({ run }: { run: Run }) {
     if (open) void loadProviders().then((list) => setAccount(list.find((p) => p.id === "claude")?.account));
   }, [open]);
 
-  const close = () => {
-    setPinned(false);
-    setOpen(false);
-  };
-  // 固定しているときは、外側のクリック・Esc で閉じる
-  useDismiss(ref, close, { enabled: pinned });
-  const show = () => {
-    clearTimeout(hideTimer.current);
-    setOpen(true);
-  };
-  // マウスがポップオーバーへ移る間に閉じないよう、少し待ってから閉じる
-  const hide = () => {
-    if (pinned) return;
-    hideTimer.current = setTimeout(() => setOpen(false), 150);
-  };
+  // 開いている間は、ポップオーバーの外のクリック・Esc で閉じる（メーターのボタンは中なので、そちらは押すたびに開閉する）
+  useDismiss(ref, () => setOpen(false), { enabled: open });
 
   const usage = planUsage?.usage;
   const windows: UsageWindow[] = usage?.available
@@ -77,13 +62,14 @@ export function ContextMeter({ run }: { run: Run }) {
   };
 
   return (
-    <div ref={ref} className="context-meter" onMouseEnter={show} onMouseLeave={hide}>
+    <div ref={ref} className="context-meter">
       <button
         type="button"
         className="context-ring-button"
         aria-label={`コンテキストウィンドウ ${pct}% 使用`}
         aria-expanded={open}
-        onClick={() => (pinned ? close() : (setPinned(true), setOpen(true)))}
+        title={open ? "閉じる" : "コンテキストと使用枠の詳細を表示"}
+        onClick={() => setOpen(!open)}
       >
         <Ring pct={pct} />
       </button>
