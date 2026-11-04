@@ -123,11 +123,7 @@ button.chat-row {
   color: var(--extra-muted);
 }
 
-/* 送る前の新しいチャット（下書き）の行: 名前を斜めにして、送ったチャットと見分ける */
-.draft-row .chat-row-title {
-  font-style: italic;
-}
-
+/* 送る前の新しいチャット（下書き）の行の印（名前はほかの行と同じ字体にし、この印で見分ける。以前は名前を斜めにしていた） */
 .draft-slot {
   color: var(--muted);
 }
