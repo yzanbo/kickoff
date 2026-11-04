@@ -125,6 +125,8 @@ export const PROJECT_TABS_LAYOUT_KEY = "kickoff:project-tabs-layout";
 export const BOARD_HEADER_LAYOUT_KEY = "kickoff:board-header-layout";
 /** チャット（発言の流れとチャット欄）を、欄の横幅いっぱいに広げるか（"1" なら広く。どのチャットでも同じ） */
 export const CHAT_WIDE_KEY = "kickoff:chat-wide";
+/** チャットの中の検索で、大文字・小文字を区別するか（"1" / "0"。初めは区別しない） */
+export const CHAT_FIND_CASE_KEY = "kickoff:chat-find-case-sensitive";
 /** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除。未保存なら ask） */
 export const CHAT_CLOSE_ACTION_KEY = "kickoff:chat-close-action";
 
