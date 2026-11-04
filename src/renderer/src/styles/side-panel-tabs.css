@@ -150,14 +150,17 @@
   }
 }
 
-/* 細いタブ: 表示中のタブ以外は閉じるを出さない（Chrome と同じ。名前を押せる幅を残す） */
+/*
+ * 細いタブ: 表示中のタブ以外は、ふだんは閉じるを出さない（名前を押せる幅を残す）。マウスを乗せたときは、どのタブでも閉じるを出す（Chrome と同じ。
+ * 以前は細いと乗せても出ず、チャットのタブがサイドバーと連動して増えると、表示中のタブにしないと閉じられなかった）
+ */
 @container panel-tab (max-width: 96px) {
-  .panel-tab:not(.active) .panel-tab-close {
+  .panel-tab:not(.active, :hover) .panel-tab-close {
     display: none;
   }
 }
 
-/* とても細いタブ: 名前を隠してアイコン（状態の印）だけを真ん中に。表示中のタブは閉じるだけにする */
+/* とても細いタブ: 名前を隠してアイコン（状態の印）だけを真ん中に。表示中・マウスを乗せたタブは閉じるだけにする */
 @container panel-tab (max-width: 60px) {
   .panel-tab-label > span:not(.status-slot) {
     display: none;
@@ -168,11 +171,12 @@
     padding: 0;
   }
 
-  .panel-tab.active .panel-tab-label {
+  /* 表示中のタブと、マウスを乗せたタブは、アイコンの代わりに閉じるだけを真ん中に出す（Chrome と同じ） */
+  .panel-tab:is(.active, :hover) .panel-tab-label {
     display: none;
   }
 
-  .panel-tab.active .panel-tab-close {
+  .panel-tab:is(.active, :hover) .panel-tab-close {
     margin: 0 auto;
   }
 }
