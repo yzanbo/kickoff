@@ -5,6 +5,7 @@ import { cx } from "@/lib/cx";
 import { confirmDialog } from "@/ui/dialogs";
 import { useAction } from "@/hooks/useAction";
 import { useHighlight } from "@/hooks/useHighlight";
+import { languageOf } from "@/lib/highlight";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
 import { CodeLine } from "@/ui/CodeLine";
 import { ErrorText } from "@/ui/ErrorText";
@@ -114,7 +115,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
   // 編集している間に、ほかでファイルが変わった
   const changedOnDisk = Boolean(base && current?.file && current.file.hash !== base.hash);
   const lines = useMemo(() => current?.file?.content.replace(/\n$/, "").split("\n") ?? [], [current?.file]);
-  const tokens = useHighlight(base ? [] : lines, path);
+  const tokens = useHighlight(base ? [] : lines, languageOf(path));
   const focusRef = useRef<HTMLTableRowElement>(null);
   // 開いた行を真ん中に出す（中身を読み込んだあと・別の行を選んだとき）
   useEffect(() => {

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import type { GitFileChange } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
-import type { CodeToken } from "@/lib/highlight";
+import { languageOf, type CodeToken } from "@/lib/highlight";
 import { useHighlight } from "@/hooks/useHighlight";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
 import { useSetting } from "@/hooks/useSetting";
@@ -114,11 +114,11 @@ function useDiffHighlight(lines: DiffLine[], file: GitFileChange) {
   const after = useMemo(() => lines.filter((l) => l.newNo !== undefined), [lines]);
   const beforeTokens = useHighlight(
     useMemo(() => before.map((l) => l.text), [before]),
-    file.old_path ?? file.path,
+    languageOf(file.old_path ?? file.path),
   );
   const afterTokens = useHighlight(
     useMemo(() => after.map((l) => l.text), [after]),
-    file.path,
+    languageOf(file.path),
   );
   return useMemo(() => {
     const map = new Map<DiffLine, CodeToken[]>();
