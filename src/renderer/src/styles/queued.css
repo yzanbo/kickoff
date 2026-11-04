@@ -189,40 +189,31 @@
   margin-top: 5px;
 }
 
-/* まとめて動かすときのドラッグの絵（画面の外で描いて、ドラッグの絵に写す） */
-.queued-drag-image {
+/* ドラッグの絵（queueDragImage.ts の startQueueDragGhost）: つかんだ行の半透明の写し。送信待ちの枠と同じ入れ物に入れ、
+   画面のいちばん上に重ねてカーソルに付いて動かす（位置は transform で与える。押せない・下の入る位置の線が透けて見える） */
+.queued-messages.queued-drag-ghost {
   position: fixed;
-  top: -200px;
-  left: -400px;
-  /* 透明の余白の分だけ、札をカーソルから右下へずらす（入る位置の線に被せない） */
-  padding: 14px 0 0 18px;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  opacity: 0.6;
+  pointer-events: none;
 }
 
-/* ドラッグの絵の札: 1 件は文の初めの行（ふつうの地）・まとめて動かすときはアクセント・止める印は黄 */
-.queued-drag-badge {
-  max-width: 280px;
-  padding: 3px 10px;
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
+/* まとめて動かすときの件数（写しの右上） */
+.queued-drag-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  padding: 1px 7px;
   border-radius: 999px;
-  font-size: 12px;
-  color: var(--text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: var(--bg-elev);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
-}
-
-.queued-drag-badge.many {
-  border-color: var(--accent);
+  font-size: 11px;
   font-weight: 600;
   color: var(--accent-text);
   background: var(--accent);
-}
-
-.queued-drag-badge.stop {
-  border-color: color-mix(in srgb, var(--warn) 60%, transparent);
-  color: var(--warn);
 }
 
 .queued-row.dragging {
