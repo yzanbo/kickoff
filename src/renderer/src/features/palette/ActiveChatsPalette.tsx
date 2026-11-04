@@ -2,10 +2,9 @@ import { Activity } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { boardColumnOf } from "@shared/chat/state";
 import { BOARD_COLUMN_LABELS, type Chat } from "@shared/types";
-import { api } from "@/api";
 import { useChatStates } from "@/app/chatStatesContext";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
-import { useServerEvent } from "@/api/events";
+import { useChats } from "@/stores/chats";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { useSetting } from "@/hooks/useSetting";
@@ -43,20 +42,12 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
   const tagFilter = useProjectTagFilter();
   const { stateOf } = useChatStates();
   const [query, setQuery] = useState("");
-  const [chats, setChats] = useState<Chat[]>([]);
+  // すべてのプロジェクトのチャット（開いている間も、状態の変化・削除に追いつく）
+  const { chats } = useChats();
   const dialog = useModalDialog();
   const drafts = useAllDrafts();
   const [project, setProject] = useState<ProjectFilterValue>("all");
   const [showArchived, setShowArchived] = useSetting(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS);
-
-  useEffect(() => {
-    void api.allChats().then(setChats).catch(() => {});
-  }, []);
-  // 状態が変わったチャットを差し替え、新しいチャットは足す
-  useServerEvent((e) => {
-    if (e.type !== "chat") return;
-    setChats((prev) => (prev.some((r) => r.id === e.chat.id) ? prev.map((r) => (r.id === e.chat.id ? e.chat : r)) : [e.chat, ...prev]));
-  });
 
   // 状態ごとのまとまり（下書き → 作業中・回答待ち・未読。アーカイブしたもの・既読は除く。最近動いた順）と、↑↓ で移る平らな並び。
   // プロジェクトの絞り込みの選択肢には、ほかの絞り込み（文字・タグ・アーカイブ済みのプロジェクト）を通ったものの数を添える

@@ -46,7 +46,7 @@ export function useChatDetail(chatId: number, projectId: number) {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    // 切り替えを素早く繰り返しても、前のチャットの応答で上書きされないように（useBoardChats と同じ alive の形）
+    // 切り替えを素早く繰り返しても、前のチャットの応答で上書きされないように（alive の形）
     let alive = true;
     setChat(undefined);
     setEvents([]);

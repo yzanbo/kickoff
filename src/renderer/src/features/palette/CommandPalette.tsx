@@ -1,7 +1,8 @@
 import { Bot, FolderGit2, MessageSquare, Plus, Search, User } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { Chat, SearchHit } from "@shared/types";
+import type { SearchHit } from "@shared/types";
 import { api } from "@/api";
+import { useChats } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
 import { useListNavigation } from "@/hooks/useListNavigation";
@@ -81,7 +82,8 @@ function useMessageSearch(query: string, enabled: boolean) {
 export function CommandPalette({ onClose }: { onClose: () => void }) {
   const { projects, projectName } = useProjects();
   const [query, setQuery] = useState("");
-  const [chats, setChats] = useState<Chat[]>([]);
+  // すべてのプロジェクトのチャット（アーカイブしていないもの）
+  const { chats } = useChats();
   const dialog = useModalDialog();
   // 探す対象（複数選べる。開き直しても覚えておく。1 つは必ず残す）
   const [stored, setStored] = useSetting(COMMAND_PALETTE_TARGETS);
@@ -93,10 +95,6 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
     if (next.length > 0) setStored(next);
   };
   const { hits, searching } = useMessageSearch(query, targets.includes("message"));
-
-  useEffect(() => {
-    void api.allChats().then(setChats).catch(() => {});
-  }, []);
 
   const items = useMemo<Item[]>(() => {
     const q = query.trim().toLowerCase();

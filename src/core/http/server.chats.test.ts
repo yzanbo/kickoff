@@ -148,6 +148,28 @@ test("停止: 止めるよう頼んでから作業が終わるまでは、詳細
   assert.deepEqual(seen, [true, false]);
 });
 
+test("チャットの一覧: 件数で黙って切らず、最後に動いた順に返す。?archived=1 はアーカイブ済みだけ", async () => {
+  const { call, project, store } = setup();
+  const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
+  const ids: number[] = [];
+  for (let i = 0; i < 305; i++) ids.push(store.chats.create({ project_id: i % 2 ? project.id : other.id, provider: "claude", title: `c${i}`, status: "completed" }).id);
+  // いちばん古いチャットが動いた（状態が変わると、最後に動いた時刻が進んで並びの先頭へ）。アーカイブ済みは別に読む
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  store.chats.update(ids[0], { status: "running" });
+  store.chats.update(ids[1], { archived_at: new Date().toISOString() });
+
+  const all = (await call("GET", "/api/chats")).body as { id: number }[];
+  assert.equal(all.length, 304);
+  assert.equal(all[0].id, ids[0]);
+  assert.deepEqual((await call("GET", "/api/chats?archived=1")).body.map((r: { id: number }) => r.id), [ids[1]]);
+  assert.equal((await call("GET", "/api/chats?limit=5")).body.length, 5);
+  const mine = (await call("GET", `/api/projects/${project.id}/chats`)).body as { id: number; project_id: number }[];
+  assert.equal(mine.length, 151);
+  assert.ok(mine.every((r) => r.project_id === project.id));
+  assert.deepEqual((await call("GET", `/api/projects/${project.id}/chats?archived=1`)).body.map((r: { id: number }) => r.id), [ids[1]]);
+  assert.equal((await call("GET", `/api/projects/${other.id}/chats?archived=1`)).body.length, 0);
+});
+
 test("チャット・グループの API", async () => {
   const { call, project, store, runner } = setup();
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
@@ -187,6 +209,7 @@ test("チャット・グループの API", async () => {
   assert.equal((await call("GET", "/api/chats?limit=abc")).status, 400);
   assert.equal((await call("GET", "/api/chats?limit=0")).status, 400);
   assert.equal((await call("GET", "/api/chats?limit=5000")).body.length, 1);
+  assert.equal((await call("GET", "/api/chats?archived=yes")).status, 400);
   assert.equal((await call("GET", "/api/approvals?project_id=x")).status, 400);
   assert.deepEqual((await call("GET", `/api/approvals?project_id=${project.id}`)).body, []);
 
@@ -218,8 +241,11 @@ test("チャット・グループの API", async () => {
   assert.ok(archived.archived_at);
   assert.equal((await call("PATCH", `/api/chats/${chatId}`, { archived: true })).body.archived_at, archived.archived_at);
   assert.equal(store.chats.get(chatId)?.active_at, activeAt);
+  // 一覧はアーカイブしていないものだけ、?archived=1 はアーカイブ済みだけ（全プロジェクト・プロジェクトごとで同じ）
   assert.equal((await call("GET", `/api/projects/${project.id}/chats`)).body.length, 0);
   assert.equal((await call("GET", `/api/projects/${project.id}/chats?archived=1`)).body.length, 1);
+  assert.equal((await call("GET", "/api/chats")).body.length, 0);
+  assert.equal((await call("GET", "/api/chats?archived=1")).body.length, 1);
   // いくつかの項目を一度に変えられる
   const restored = (await call("PATCH", `/api/chats/${chatId}`, { archived: false, pinned: true, title: "名前2" })).body;
   assert.deepEqual([restored.archived_at, restored.pinned, restored.title], [null, true, "名前2"]);

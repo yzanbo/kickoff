@@ -10,21 +10,21 @@ import { useGroupMenu } from "@/features/group/GroupMenu";
 import { archiveMatches, useArchiveFilter } from "./archiveFilter";
 import { useBoardView } from "./BoardHeader";
 import { useCardMenu } from "./useBoardCards";
-import { useBoardChats } from "./useBoardChats";
+import { useChats } from "@/stores/chats";
 
 export type GroupBoardState = ReturnType<typeof useGroupBoard>;
 
 /**
  * グループのボードの状態と操作: グループを作る・名前を変える・削除する（「…」メニュー）、列へのドロップ（チャットを移す・列を並べ替える）、
  * 名前の検索、アーカイブでの絞り込みとボード / リスト / スイムレーンの切り替え（どちらもカンバンとは別に覚える）、失敗の文。
- * チャットはカンバンと同じく useBoardChats で読み、アーカイブ済みを出すときはそれも読み込む（runs は読み込んだすべて、shown は絞り込んだもの）
+ * チャットはカンバンと同じくチャットの店（useChats）から読み、アーカイブ済みを出すときはそれも読み込む（chats は読み込んだすべて、shown は絞り込んだもの）
  */
 export function useGroupBoard({ projectId, groups }: { projectId: number; groups: ChatGroup[] }) {
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const { error, setError, guard } = useActionError();
   const [archive, setArchive] = useArchiveFilter(GROUP_BOARD_ARCHIVE_FILTER);
-  const { chats, loaded } = useBoardChats(projectId, archive !== "active", setError);
+  const { chats, loaded, error: loadError } = useChats({ projectId, archived: archive !== "active" });
   const shown = chats.filter((r) => archiveMatches(r, archive));
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useChatRename(setError);
@@ -65,7 +65,8 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
     setCreating,
     renaming,
     setRenaming,
-    error,
+    /** 操作の失敗（なければチャットの一覧を読み込めなかった理由） */
+    error: error ?? loadError,
     setError,
     rename,
     menu,

@@ -12,6 +12,7 @@ import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "@/feature
 import { invalidateWorktrees } from "@/features/worktree/worktreeBranches";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { ComposerFill } from "@/features/chat/messages/quoteComment";
+import { currentChats, useChats } from "@/stores/chats";
 
 interface Props {
   projectId: number;
@@ -50,12 +51,12 @@ export function NewChatPane({
   const { projectName } = useProjects();
   const options = useChatOptions(undefined, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
-  const chats = useAsync(() => api.chats(projectId), [projectId]);
+  const chats = useChats({ projectId });
   // 作業場所（初めは本体。並行して進めたいときにワークツリーを選ぶ）
   const [place, setPlace] = useState<Workplace>({ kind: "main" });
   useEffect(() => setPlace({ kind: "main" }), [projectId]);
   // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる）
-  const busyHere = isBusyAt(chats.data ?? [], place);
+  const busyHere = isBusyAt(chats.chats, place);
   const groups = useAsync(() => api.groups(projectId), [projectId]);
   const groupName = groups.data?.find((g) => g.id === group)?.name;
   // グループ名が分かったら、タブにも出す
@@ -64,7 +65,7 @@ export function NewChatPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupName]);
 
-  const ready = !project.loading && !chats.loading;
+  const ready = !project.loading && (chats.loaded || chats.error !== undefined);
   // 入力欄ができたら 1 回だけ、書きかけていた文（なければ送信待ちの指示から始めたときの文）と添付を入れる（送るのは自分で）。
   // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
   const fillComposer = useRef<ComposerFill | null>(null);
@@ -153,10 +154,10 @@ export function NewChatPane({
             suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
             placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"
             onSend={async (prompt, attachments) => {
-              // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい）
-              // 開いたときの一覧は古くなっているので、送るときに取り直して確かめる
+              // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい）。
+              // チャットの一覧はサーバーの知らせで直っているので、送るときのいまの一覧で確かめる
               let target = place;
-              if (isBusyAt(await api.chats(projectId), place)) {
+              if (isBusyAt(currentChats({ projectId }), place)) {
                 const choice = await choiceDialog({
                   title: "この作業場所では、ほかのチャットが作業中です",
                   message: "同じファイルを書き換えると、作業がぶつかることがあります。新しいワークツリーで始めると、別のフォルダで並行して進められます。質問だけなど、ファイルを書き換えないチャットなら、このまま送っても大丈夫です。",

@@ -1,13 +1,14 @@
 import { MessagesSquare } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Chat } from "@shared/types";
-import { api } from "@/api";
 import { chatTitle } from "@/features/chat/chatTitle";
+import { useChats } from "@/stores/chats";
 import { cx } from "@/lib/cx";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useProjects } from "@/app/projectsContext";
 import { relativeTime } from "@/lib/time";
+import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
 import { PopoverHeader } from "@/ui/PopoverHeader";
 import { SearchField } from "@/ui/SearchField";
@@ -23,18 +24,15 @@ const MAX_ROWS = 50;
 export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: number; exclude?: number; onPick: (chat: Chat) => void }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [chats, setChats] = useState<Chat[]>();
   const ref = useRef<HTMLSpanElement>(null);
   const { projectName } = useProjects();
   useDismiss(ref, () => setOpen(false), { enabled: open });
-  useEffect(() => {
-    // アーカイブしたチャットも出す（前の話を読み込ませたいのは、片付けたチャットのことも多い）
-    if (open) void api.allChats({ archived: true }).then(setChats, () => setChats([]));
-  }, [open]);
+  // アーカイブしたチャットも出す（前の話を読み込ませたいのは、片付けたチャットのことも多い）。開いたときに初めて読む
+  const { chats, loaded, error } = useChats({ archived: true, enabled: open });
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (chats ?? [])
+    return chats
       .filter((r) => r.id !== exclude && (!q || chatTitle(r.title).toLowerCase().includes(q)))
       .sort((a, b) => Number(b.project_id === projectId) - Number(a.project_id === projectId) || b.active_at.localeCompare(a.active_at))
       .slice(0, MAX_ROWS);
@@ -61,8 +59,8 @@ export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: 
         <div className="chip-popover chat-context-popover">
           <PopoverHeader title="参照するチャット" onClose={() => setOpen(false)} />
           <SearchField autoFocus value={query} onChange={setQuery} onKeyDown={nav.onKeyDown} placeholder="チャット名で探す" label="参照するチャットを探す" />
-          {!chats ? (
-            <p className="muted small">読み込み中…</p>
+          {!loaded ? (
+            error ? <ErrorText message={error} /> : <p className="muted small">読み込み中…</p>
           ) : items.length === 0 ? (
             <p className="muted small">合うチャットはありません</p>
           ) : (

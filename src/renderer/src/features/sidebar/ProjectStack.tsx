@@ -6,6 +6,7 @@ import { SearchField } from "@/ui/SearchField";
 import { ProjectListHead } from "./ProjectListHead";
 import { NO_GROUPS, type ProjectNavController } from "./useProjectNav";
 import { WorkspacePage } from "./WorkspacePage";
+import { NO_CHATS } from "@/stores/chats";
 
 /**
  * 縦並び: 見出しの行・すべてのプロジェクトをまたぐ検索欄・プロジェクトのカードの列・下の「新しいプロジェクト」。
@@ -49,7 +50,7 @@ export function ProjectStack({
           <div className={cx("stack-item", reorder.classFor(p.id))} {...reorder.dropProps(p.id)}>
             <WorkspacePage
               project={p}
-              chats={chats[p.id] ?? []}
+              chats={chats[p.id] ?? NO_CHATS}
               groups={groups[p.id] ?? NO_GROUPS}
               hidden={false}
               collapsed={!waitingOnly && !allSearch.keyword && collapsedMap.get(p.id)}

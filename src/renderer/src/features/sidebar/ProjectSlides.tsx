@@ -6,6 +6,7 @@ import { stateCounts } from "@/features/chat/chatState";
 import { NO_GROUPS, type ProjectNavController } from "./useProjectNav";
 import { WorkspaceDots } from "./WorkspaceDots";
 import { WorkspacePage } from "./WorkspacePage";
+import { NO_CHATS } from "@/stores/chats";
 
 /**
  * スライド: 1 ページ = 1 プロジェクトのチャット一覧で、スワイプ・丸・ショートカットで切り替える。
@@ -59,7 +60,7 @@ export function ProjectSlides({
             <WorkspacePage
               key={p.id}
               project={p}
-              chats={chats[p.id] ?? []}
+              chats={chats[p.id] ?? NO_CHATS}
               groups={groups[p.id] ?? NO_GROUPS}
               hidden={i !== index}
               collapsed={!waitingOnly && collapsedMap.get(p.id)}

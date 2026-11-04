@@ -1,12 +1,21 @@
-import type { Hono } from "hono";
+import type { Context, Hono } from "hono";
 import { z } from "zod";
 import { addWorktree, worktreePathFor } from "../../git/index.js";
 import type { ServerDeps } from "../server.js";
 import { jsonBody, queryOf } from "../input.js";
 import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
-import { newChatSchema, optionalId } from "./schemas.js";
+import { flag, newChatSchema, optionalId } from "./schemas.js";
 import type { ChatDetail, ChatPatch } from "@shared/types";
+
+/**
+ * チャットの一覧の絞り込み（並びは最後に動いた順）: ?archived=1 でアーカイブ済みだけ（なければアーカイブしていないものだけ）。
+ * 件数は ?limit= で絞れるが、省けばすべて返す（以前は 300 件で黙って切っていて、古い作業中のチャットが画面の一覧から落ちることがあった）
+ */
+function chatListFilter(c: Context) {
+  const { archived, limit } = z.object({ archived: flag.optional(), limit: optionalId }).parse({ archived: queryOf(c, "archived"), limit: queryOf(c, "limit") });
+  return { limit, onlyArchived: archived === "1" };
+}
 
 /** チャットの変更（書いた項目だけ。プロジェクトの PATCH と同じ形で、固定・アーカイブもここ） */
 const chatPatchSchema = z
@@ -27,15 +36,8 @@ const chatPatchSchema = z
 export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) {
   const { withProject, withChat } = lookups(store);
 
-  // ?archived=1 でアーカイブしたチャットも含める
-  // プロジェクトのチャット。アーカイブ済みも含めるときは、未アーカイブとアーカイブ済みを別々に上限まで取る
-  // （アーカイブ済みが多くても、未アーカイブのチャットが一覧から落ちないように）
-  app.get("/api/projects/:id/chats", withProject, (c) => {
-    const projectId = c.var.project.id;
-    const active = store.chats.list({ projectId, limit: 300 });
-    const archived = c.req.query("archived") === "1" ? store.chats.list({ projectId, limit: 300, onlyArchived: true }) : [];
-    return c.json([...active, ...archived].sort((a, b) => b.id - a.id));
-  });
+  // プロジェクトのチャット（絞り込みは全プロジェクトの一覧と同じ）
+  app.get("/api/projects/:id/chats", withProject, (c) => c.json(store.chats.list({ ...chatListFilter(c), projectId: c.var.project.id })));
 
   app.post("/api/projects/:id/chats", withProject, async (c) => {
     const { project } = c.var;
@@ -61,11 +63,8 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     return c.json(store.events.search(q, { projectId: project_id, chatId: chat_id, limit }));
   });
 
-  // 全プロジェクトのチャット（⌘K の検索・移動用）。件数は 1000 まで
-  app.get("/api/chats", (c) => {
-    const { limit } = z.object({ limit: z.coerce.number().int().positive().default(300) }).parse({ limit: queryOf(c, "limit") });
-    return c.json(store.chats.list({ limit: Math.min(limit, 1000), includeArchived: c.req.query("archived") === "1" }));
-  });
+  // 全プロジェクトのチャット（画面はこれを 1 回読み、あとは知らせで直す）
+  app.get("/api/chats", (c) => c.json(store.chats.list(chatListFilter(c))));
 
   // チャットの詳細（作業中の様子 live は SSE の chat_live と同じ形。画面はそれで追いかける）
   app.get("/api/chats/:id", withChat, (c) => {

@@ -23,7 +23,7 @@ import { useKanbanFilters, useKanbanLanes, useWorktreeChoices } from "./useKanba
 import { BoardShell } from "./BoardShell";
 import { ArchivedListSection, DraftColumn, StateColumn } from "./StateColumn";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
-import { useBoardChats } from "./useBoardChats";
+import { useChats } from "@/stores/chats";
 
 const NO_GROUPS: ChatGroup[] = [];
 
@@ -63,7 +63,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   // 表示（ボード / リスト）と、段に分けるか（段の分け方はボードとリストで共通）
   const { view, split, setView, setSplit } = useBoardView();
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
-  const { chats, loaded } = useBoardChats(projectId, filters.archive !== "active", setError);
+  const { chats, loaded, error: loadError } = useChats({ projectId, archived: filters.archive !== "active" });
   useTicker(30_000); // 経過時間の表示を進める
   const worktreeChoices = useWorktreeChoices(chats);
   // カードの右クリックメニュー
@@ -196,7 +196,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   );
 
   return (
-    <BoardShell header={header} error={error} panel={panel} onNewChat={() => newChat()} projectId={projectId} menu={menu} onOpenChat={open} rename={rename} onError={setError}>
+    <BoardShell header={header} error={error ?? loadError} panel={panel} onNewChat={() => newChat()} projectId={projectId} menu={menu} onOpenChat={open} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : view === "board" && split ? (

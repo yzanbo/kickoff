@@ -182,9 +182,9 @@ export function usePanel({ memoryKey, scope, surface = "board", holdEsc = false,
     if (gone.length > 0) closeMany(gone.map((t) => t.key), layout, false);
   });
 
-  // チャットのタブをサイドバーの一覧にそろえる（読み直してから。一覧から外れたタブは閉じ、まだないチャットはタブを足す）
+  // チャットのタブをサイドバーの一覧にそろえる（一覧が届いてから。一覧から外れたタブは閉じ、まだないチャットはタブを足す）
   useEffect(() => {
-    if (!linked.fresh || !current) return;
+    if (!linked.loaded || !current) return;
     const next = syncLinkedTabs(tabs, chats, links);
     if (next.links !== links) setLinks(next.links);
     if (next.tabs === tabs) return;
@@ -193,7 +193,7 @@ export function usePanel({ memoryKey, scope, surface = "board", holdEsc = false,
     setTabs(next.tabs);
     if (gone.length > 0) setLayout((l) => closeLayoutTabs(l, gone.map((t) => t.key)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chats, linked.fresh, links, current, memoryKey]);
+  }, [chats, linked.loaded, links, current, memoryKey]);
 
   // Esc でパネルを閉じる（メニューやダイアログが開いていればそちらを優先）
   useWindowEvent(
