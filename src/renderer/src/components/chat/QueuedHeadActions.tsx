@@ -60,7 +60,7 @@ export function QueuedHeadActions({
   failed: (e: unknown) => void;
 }) {
   // 作業中は止めずに、いまのやり取りに伝える（Runner の tell。メインのエージェントがいまの手順の切れ目で読む）
-  const stopping = busy ? "（作業は止めずに、いまのやり取りに伝える）" : "";
+  const stopping = busy ? "（作業は止めずに、いまのやり取りに足す）" : "";
   if (selected.length > 0) {
     const n = selected.length;
     const done = () => onClearSelection();

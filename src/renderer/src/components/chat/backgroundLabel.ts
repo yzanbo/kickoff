@@ -42,7 +42,7 @@ export function confirmStopAgents(background: BackgroundState | null, runningAge
     ? Promise.resolve(true)
     : confirmDialog({
         title: `裏で動いている${what}も止まります`,
-        message: `${action}と、いまの作業と一緒に、裏で動いている${what}も止まり、サブエージェントの報告は届きません。終わるまで待つときは、キャンセルして「ためておく」で送ってください。`,
+        message: `${action}と、いまの作業と一緒に、裏で動いている${what}も止まり、サブエージェントの報告は届きません。終わるまで待つときは、キャンセルして「あとで」で送ってください。`,
         confirmLabel: `${action}`,
         danger: true,
       });

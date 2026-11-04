@@ -9,11 +9,13 @@ const MARGIN = 8;
 interface Tip {
   title?: string;
   text: string;
+  /** ショートカットのキー（見出しの右に出す） */
+  keys?: string;
   anchor: DOMRect;
 }
 
 /**
- * マウスを乗せたときの説明（アプリ全体で 1 つ。App が置く）。data-tip（説明）と data-tip-title（見出し。省ける）を付けた要素に
+ * マウスを乗せたときの説明（アプリ全体で 1 つ。App が置く）。data-tip（説明）と data-tip-title（見出し。省ける）・data-tip-keys（ショートカット。省ける）を付けた要素に
  * 乗せると、少し待ってその上（入らなければ下）に出す。OS の title より早く出て、見出しと説明を分けて読める。
  * ダイアログ（top layer）の上にも出るよう popover で出す。押した・キーを押した・スクロールした・離れたら消す
  */
@@ -40,7 +42,12 @@ export function HoverTip() {
       timer.current = window.setTimeout(() => {
         const text = el.getAttribute("data-tip");
         if (!text || !el.isConnected) return;
-        setTip({ title: el.getAttribute("data-tip-title") ?? undefined, text, anchor: el.getBoundingClientRect() });
+        setTip({
+          title: el.getAttribute("data-tip-title") ?? undefined,
+          text,
+          keys: el.getAttribute("data-tip-keys") ?? undefined,
+          anchor: el.getBoundingClientRect(),
+        });
       }, SHOW_DELAY_MS);
     },
     true,
@@ -81,7 +88,12 @@ export function HoverTip() {
 
   return (
     <div ref={ref} popover="manual" className="hover-tip" role="tooltip">
-      {tip?.title && <strong className="hover-tip-title">{tip.title}</strong>}
+      {(tip?.title || tip?.keys) && (
+        <span className="hover-tip-head">
+          {tip.title && <strong className="hover-tip-title">{tip.title}</strong>}
+          {tip.keys && <kbd className="hover-tip-keys">{tip.keys}</kbd>}
+        </span>
+      )}
       {tip && <span className="hover-tip-text">{tip.text}</span>}
     </div>
   );

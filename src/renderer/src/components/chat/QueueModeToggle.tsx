@@ -5,30 +5,37 @@ import { Segmented, type SegmentOption } from "../Segmented";
 import type { QueueSendMode } from "./composerKeys";
 
 /**
- * 作業中に送ったときの扱いの選択肢。押すと送るボタンに見えないよう、アイコン（ためる = リスト・伝える = 吹き出し。送るの矢印は使わない）に文字を添えた切り替えにして、
- * 送り方を選ぶものだと分かるようにする（説明はマウスを乗せたときに出す）
+ * 作業中に送ったときの扱いの選択肢。いつ送るかの対で「あとで ｜ いま」と短く見せる（送信待ちに足す・いまのやり取りに追加の指示として送る、は長いので説明へ）。
+ * 押すと送るボタンに見えないよう、アイコン（あとで = リスト・いま = 吹き出し。送るの矢印は使わない）に文字を添えた切り替えにし、
+ * マウスを乗せたときの説明に、どちらを選んでいても使えるショートカットのキーを添える
  */
 const BUSY_OPTIONS: SegmentOption<QueueSendMode>[] = [
-  { value: "queue", label: "ためる", icon: ListPlus, tip: "ためておく（いまの作業が終わったら送る。どちらを選んでいても ⌘⇧Enter でためておける）" },
-  { value: "tell", label: "伝える", icon: MessageSquarePlus, tip: "伝える（止めずに、いま送っていまのやり取りに足す。どちらを選んでいても ⌘Enter で伝えられる）" },
+  { value: "queue", label: "あとで", icon: ListPlus, tip: "あとで送る（送信待ちに足し、いまの作業が終わったら順に送ります）", keys: "⌘⇧Enter" },
+  {
+    value: "tell",
+    label: "いま",
+    icon: MessageSquarePlus,
+    tip: "いま送る（作業を止めずに、いまのやり取りへ追加の指示として送ります。AI は手順の切れ目で読みます）",
+    keys: "⌘Enter",
+  },
 ];
 
 /**
- * 作業していないが送信待ちが残っている（止めている）ときの選択肢（値は作業中と同じものを使い、同じ保存の値で覚える）。
- * 「伝える」はいま送る（送信待ちより先に）、「ためておく」は送信待ちの最後に足す
+ * 作業していないが送信待ちが残っている（止めている）ときの選択肢（値・文字は作業中と同じで、同じ保存の値で覚える）。
+ * 「いま」は送信待ちより先にいま送り、「あとで」は送信待ちの最後に足す
  */
 const IDLE_OPTIONS: SegmentOption<QueueSendMode>[] = [
-  { value: "queue", label: "ためる", icon: ListPlus, tip: "ためておく（送信待ちの最後に足す。どちらを選んでいても ⌘⇧Enter でためておける）" },
-  { value: "tell", label: "すぐ送る", icon: MessageSquarePlus, tip: "すぐ送る（送信待ちより先に、いま送る。どちらを選んでいても ⌘Enter ですぐ送れる）" },
+  { value: "queue", label: "あとで", icon: ListPlus, tip: "あとで送る（送信待ちの最後に足します）", keys: "⌘⇧Enter" },
+  { value: "tell", label: "いま", icon: MessageSquarePlus, tip: "いま送る（送信待ちより先に、いま送ります）", keys: "⌘Enter" },
 ];
 
 /** 保存の形（以前の「割り込む」= "interrupt" は、なくしたので「伝える」として読む） */
 const readQueueMode = (raw: string | null): QueueSendMode => (raw === "queue" ? "queue" : "tell");
 
-/** 作業中・送信待ちがあるときに送ったときの扱い（伝える・すぐ送る / ためておく。どのチャットでも同じ） */
+/** 作業中・送信待ちがあるときに送ったときの扱い（いま / あとで。どのチャットでも同じ） */
 export const useQueueMode = () => useStoredState<QueueSendMode>(QUEUE_MODE_KEY, readQueueMode, (mode) => mode);
 
-/** チャット欄の送り方の切り替え（作業中は 伝える / ためておく、送信待ちを止めているときは すぐ送る / ためておく） */
+/** チャット欄の送り方の切り替え（あとで / いま。作業中と、送信待ちを止めているときで説明だけ変える） */
 export function QueueModeToggle({ busy, value, onChange }: { busy: boolean; value: QueueSendMode; onChange: (mode: QueueSendMode) => void }) {
   return (
     <Segmented<QueueSendMode>
@@ -46,11 +53,11 @@ export function QueueModeToggle({ busy, value, onChange }: { busy: boolean; valu
 export function queueModeTexts(busy: boolean, queued: boolean, mode: QueueSendMode): { placeholder: string; sendLabel?: string } {
   if (busy)
     return mode === "tell"
-      ? { placeholder: "作業中です。Enter で、止めずにいまのやり取りに伝えます（⌘⇧Enter でためておく）", sendLabel: "止めずに伝える" }
-      : { placeholder: "作業中です。Enter でためておき、終わったら送ります（⌘Enter で止めずに伝える）", sendLabel: "ためておく" };
+      ? { placeholder: "作業中です。Enter でいま送ります（止めずに、いまのやり取りに足す。⌘⇧Enter であとで送る）", sendLabel: "いま送る（止めずに）" }
+      : { placeholder: "作業中です。Enter であとで送ります（終わったら順に送る。⌘Enter でいま送る）", sendLabel: "あとで送る" };
   if (queued)
     return mode === "tell"
-      ? { placeholder: "送信待ちがあります。Enter ですぐ送ります（⌘⇧Enter で送信待ちの最後に足す）", sendLabel: "すぐ送る（送信待ちより先に）" }
-      : { placeholder: "送信待ちがあります。Enter で送信待ちの最後に足します（⌘Enter ですぐ送る）", sendLabel: "送信待ちの最後に足す" };
+      ? { placeholder: "送信待ちがあります。Enter でいま送ります（送信待ちより先に。⌘⇧Enter であとで送る）", sendLabel: "いま送る（送信待ちより先に）" }
+      : { placeholder: "送信待ちがあります。Enter であとで送ります（送信待ちの最後に足す。⌘Enter でいま送る）", sendLabel: "あとで送る（送信待ちの最後に）" };
   return { placeholder: "続けて指示する（Enter で送信、Shift+Enter で改行）" };
 }

@@ -69,7 +69,7 @@ export function QueuedRow({
 }) {
   const [menu, setMenu] = useState<{ x: number; y: number }>();
   // 作業中は止めずに、いまのやり取りに伝える（作業していなければ、すぐ送る）
-  const sendLabel = busy ? "いま伝える（作業は止めない）" : "いますぐ送る";
+  const sendLabel = busy ? "いま送る（作業は止めない）" : "いますぐ送る";
   return (
     <>
     <div
