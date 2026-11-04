@@ -110,10 +110,9 @@ const loadHighlighter = () =>
     createHighlighterCore({ themes: [dark.default, light.default], langs: [], engine: createJavaScriptRegexEngine({ forgiving: true }) }),
   ));
 
-/** コードを行ごとの色付きの断片にする。色を付けない種類・長すぎるコードは null */
-export async function highlightLines(code: string, path: string, theme: AppliedTheme): Promise<CodeToken[][] | null> {
-  const lang = languageOf(path);
-  if (!lang || code.length > MAX_CHARS) return null;
+/** コードを行ごとの色付きの断片にする（lang は languageOf などで決めた言語）。色を付けない言語・長すぎるコードは null */
+export async function highlightLines(code: string, lang: string | undefined, theme: AppliedTheme): Promise<CodeToken[][] | null> {
+  if (!lang || !(lang in LANGUAGES) || code.length > MAX_CHARS) return null;
   const highlighter = await loadHighlighter();
   if (!highlighter.getLoadedLanguages().includes(lang)) await highlighter.loadLanguage((await LANGUAGES[lang]()).default);
   const { tokens } = highlighter.codeToTokens(code, { lang, theme: theme === "dark" ? "dark-plus" : "light-plus" });
