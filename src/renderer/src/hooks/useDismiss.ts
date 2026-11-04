@@ -16,9 +16,25 @@ interface DismissOptions {
   escape?: "stop" | "pass" | "none";
 }
 
+/** 外側のクリックで閉じるものが開いている数（開いている間は、ウィンドウのドラッグ領域を止める） */
+let openCount = 0;
+
+/**
+ * 外側のクリックで閉じるものが開いている間、<html> に data-dismissable を付ける（layout.css でドラッグ領域を止める）。
+ * Electron のドラッグ領域（見出しの行など）を押しても、ページにはクリックが届かず（ウィンドウのドラッグになる）閉じなかったため
+ */
+function holdDragRegions(): () => void {
+  openCount += 1;
+  document.documentElement.dataset.dismissable = "";
+  return () => {
+    openCount -= 1;
+    if (openCount === 0) delete document.documentElement.dataset.dismissable;
+  };
+}
+
 /**
  * ポップオーバー・メニューなどを、外側のクリックと Esc で閉じる。
- * ref の要素の中のクリックでは閉じない
+ * ref の要素の中のクリックでは閉じない（ウィンドウのドラッグ領域のクリックでも閉じるよう、開いている間はドラッグ領域を止める）
  */
 export function useDismiss(ref: RefObject<HTMLElement | null>, onDismiss: () => void, options: DismissOptions = {}) {
   const { enabled = true, outside = true, ignore, escape = "stop" } = options;
@@ -39,12 +55,14 @@ export function useDismiss(ref: RefObject<HTMLElement | null>, onDismiss: () => 
       dismiss.current();
     };
     if (outside) window.addEventListener("mousedown", onDown);
+    const release = outside ? holdDragRegions() : undefined;
     // "stop" はほかより先に受け取るため、捕捉フェーズで聞く
     const capture = escape === "stop";
     if (escape !== "none") window.addEventListener("keydown", onKey, capture);
     return () => {
       window.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey, capture);
+      release?.();
     };
   }, [enabled, outside, ignore, escape, ref]);
 }

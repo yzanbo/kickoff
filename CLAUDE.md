@@ -38,7 +38,7 @@
 | モーダル | `useModalDialog`（入力中に閉じたくないフォームは `closeOnBackdrop: false`） |
 | 左に項目・右に内容のダイアログ | `TabbedDialog`（プロジェクトの編集・設定） |
 | 確認・入力・お知らせのダイアログ | `confirmDialog` / `promptDialog` / `alertDialog`、3 つ以上から選ぶときは `choiceDialog`（`dialogs.tsx`。「次からはこれにする」のチェックを添えるなら `choiceDialogWithRemember`。取り消せない選択肢は `danger`）。送る前の確かめでやめたら、`Composer` の `onSend` で `SendCancelled` を投げる（書いた文を残し、失敗の文も出さない） |
-| ポップオーバー | `PopoverHeader`。外側クリックと Esc で閉じるのは `useDismiss`（`escape`: `stop` = いちばん上だけ閉じる / `pass` = ほかの Esc にも伝える / `none`） |
+| ポップオーバー | `PopoverHeader`。外側クリックと Esc で閉じるのは `useDismiss`（`escape`: `stop` = いちばん上だけ閉じる / `pass` = ほかの Esc にも伝える / `none`。開いている間は `<html data-dismissable>` を付け、`layout.css` でウィンドウのドラッグ領域を止める。見出しの行などドラッグ領域を押すとページにクリックが届かず閉じなかったため） |
 | 右クリック・「…」・＋のメニュー | `PopupMenu` ＋ `clampToViewport`。選択肢から 1 つ選ぶだけのメニュー（見出し・選んでいるものにチェック）は `menus/ChoiceMenu`（開発者ツールの場所・ボードの見出しの置き方（`useBoardHeaderLayoutMenu`）・プロジェクトのタブの置き方）。項目は `MenuItem`（閉じてから実行。`role` / `checked` / `danger` / `title`）。開いたら先頭にピントを置き ↑↓ で移るのは `useMenuKeys` で、`PopupMenu` が既定で効かせる（部品側で重ねて呼ばない）。ボタンの下（右寄せも）に出すメニューの位置・開閉・`ignore` は `menus/useAnchoredMenu(buttonSelector, width, align)`（開いているときに押したら閉じる）、カードの右クリックは `board/useCardMenu` |
 | 選択肢から 1 つ選ぶボタンの組 | `Segmented`（見た目は className で決める。数を出すなら選択肢の `badge`） |
 | マウスを乗せたときの説明 | 要素に `data-tip`（説明）と `data-tip-title`（見出し。省ける）を付けると、アプリ全体で 1 つの `HoverTip`（App が置く）が 0.35 秒ほどで上（入らなければ下）に出す（OS の title より早く、見出しと説明を分けて読める。popover の top layer なのでダイアログの上にも出る）。「名前（説明）」の文は `tipProps(label)` で分ける（`Segmented` のアイコンだけの選択肢はこれ）。title と重ねて付けない（説明が 2 つ出る） |
