@@ -6,7 +6,7 @@ import type { SettingValue } from "@/lib/storage";
 import { BOARD_LIST_COMPACT, BOARD_SPLIT, BOARD_VIEW } from "@/lib/storageKeys";
 import { SearchField } from "@/ui/SearchField";
 import { Segmented } from "@/ui/Segmented";
-import { PanelToggle } from "@/features/panel/PanelToggle";
+import { PanelToggle } from "@/features/panel/board/PanelToggle";
 import type { PanelController } from "@/features/panel/usePanel";
 import { useBoardHeaderLayout } from "./boardHeaderLayout";
 import { IconButton } from "@/ui/IconButton";

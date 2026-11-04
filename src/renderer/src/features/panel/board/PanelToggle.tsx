@@ -1,6 +1,6 @@
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { cx } from "@/lib/cx";
-import type { PanelController } from "./usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 
 /** ボードの見出し（「ボード／リスト」の右）に置く、パネルの開閉ボタン。閉じていて開いたタブがあれば数を出す */
 export function PanelToggle({ panel }: { panel: PanelController }) {

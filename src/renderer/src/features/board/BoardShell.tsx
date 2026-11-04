@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
 import type { useChatRename } from "@/features/chat/useChatRename";
-import { useProjects } from "@/stores/projects";
 import { ErrorText } from "@/ui/ErrorText";
 import { ChatMenu } from "@/features/chat/ChatMenu";
 import { Panel } from "@/features/panel/Panel";
-import { terminalTargets, type PanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
+import type { useBoardPanel } from "@/features/panel/board/useBoardPanel";
 import { useBoardHeaderLayout } from "./boardHeaderLayout";
 import type { useCardMenu } from "./useBoardCards";
 import { useBoardHeaderLayoutMenu } from "./useBoardHeaderLayoutMenu";
@@ -21,8 +21,8 @@ export function BoardShell({
   header,
   error,
   panel,
-  onNewChat,
-  projectId,
+  frame,
+  body,
   menu,
   onOpenChat,
   rename,
@@ -35,10 +35,9 @@ export function BoardShell({
   header: ReactNode;
   error?: string;
   panel: PanelController;
-  /** タブの列の＋の「新しいチャット」 */
-  onNewChat: () => void;
-  /** ターミナルの開く場所（プロジェクトのボードはそのプロジェクトの本体。未指定なら全プロジェクト） */
-  projectId?: number;
+  /** パネルの大きさ（useBoardPanel の frame・body） */
+  frame: ReturnType<typeof useBoardPanel>["frame"];
+  body: ReturnType<typeof useBoardPanel>["body"];
   menu: ReturnType<typeof useCardMenu>;
   /** メニューの「開く」 */
   onOpenChat: (chat: Chat) => void;
@@ -47,7 +46,6 @@ export function BoardShell({
   after?: ReactNode;
   children: ReactNode;
 }) {
-  const { projects } = useProjects();
   const [headerLayout] = useBoardHeaderLayout();
   const layoutMenu = useBoardHeaderLayoutMenu();
   const beside = headerLayout === "beside";
@@ -65,7 +63,7 @@ export function BoardShell({
   return (
     <div className={cx("board", className)}>
       {!beside && top}
-      <div {...panel.body}>
+      <div {...body}>
         {beside ? (
           <div className="board-side">
             {top}
@@ -74,7 +72,7 @@ export function BoardShell({
         ) : (
           main
         )}
-        <Panel panel={panel} onNewChat={onNewChat} terminals={terminalTargets(projects, projectId)} />
+        <Panel panel={panel} frame={frame} />
       </div>
       {after}
       {layoutMenu.menu}

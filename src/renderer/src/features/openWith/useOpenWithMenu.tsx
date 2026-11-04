@@ -24,7 +24,7 @@ export function useOpenWithMenu({
   chatTarget,
 }: {
   panel: PanelController;
-  targets: TerminalTarget[];
+  targets: readonly TerminalTarget[];
   /** ペインで表示しているチャットの作業場所（チャットでなければ undefined） */
   chatTarget: (pane: PaneLeaf) => TerminalTarget | undefined;
 }) {

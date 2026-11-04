@@ -1,3 +1,4 @@
+import { PanelBottomClose, PanelRightClose, type LucideIcon } from "lucide-react";
 import type { SettingFamily } from "@/lib/storage";
 import { projectChatOpen } from "@/lib/storageKeys";
 import type { PanelKind } from "./state/panelKinds";
@@ -22,6 +23,16 @@ export interface SurfaceRules {
   openWhenEmpty: "newChat" | "terminal" | null;
   /** 開いているかを覚える設定（プロジェクトごと）。なければアプリを閉じるまで覚える */
   openSetting?: SettingFamily<boolean>;
+  /** 閉じるボタン（タブの列の左の道具の先頭か最後。なければ出さない: チャット欄は右上のレイアウトの開閉で閉じる） */
+  closeButton?: { icon: LucideIcon; label: string; keys: string; at: "start" | "end" };
+  /** 大きくする切り替え（width = 横幅いっぱい ⇔ 元の幅 / height = 最大化 ⇔ 元の高さ。大きさは欄の殻が持ち、Panel の frame で渡す） */
+  maximize?: "width" | "height";
+  /** タブがないときに、新しいチャットのボタンの代わりに出す案内（分けていない欄だけ。ボードの右のパネル: 新しいチャットは見出しの「新規」から） */
+  emptyHint?: string;
+  /** タブの列の何もないところの右クリックで、ボードツールバーの置き方を選ぶか（ボードの右のパネルだけ） */
+  layoutMenu?: boolean;
+  /** パネルに付けるクラス（欄ごとの見た目。as-sidebar = 欄いっぱいに置く（枠・影なし）/ in-footer = フッター） */
+  className?: string;
 }
 
 export const SURFACES: Record<PanelSurface, SurfaceRules> = {
@@ -31,6 +42,11 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeOnEsc: true,
     closeWhenEmpty: true,
     openWhenEmpty: null,
+    // 横から出てきたパネルを、横へしまう（タブはそのまま残る）
+    closeButton: { icon: PanelRightClose, label: "パネルを閉じる", keys: "Esc", at: "start" },
+    maximize: "width",
+    emptyHint: "カードを押すと、ここにチャットが開きます。",
+    layoutMenu: true,
   },
   side: {
     memoryPrefix: "side",
@@ -39,6 +55,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeWhenEmpty: false,
     openWhenEmpty: "newChat",
     openSetting: projectChatOpen,
+    className: "as-sidebar",
   },
   bottom: {
     memoryPrefix: "bottom",
@@ -46,6 +63,9 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeOnEsc: false,
     closeWhenEmpty: true,
     openWhenEmpty: "terminal",
+    closeButton: { icon: PanelBottomClose, label: "フッターを閉じる", keys: "⌃` / ⌘J", at: "end" },
+    maximize: "height",
+    className: "as-sidebar in-footer",
   },
 };
 

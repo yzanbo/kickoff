@@ -16,7 +16,7 @@ export function TerminalTargetMenu({
 }: {
   /** 置く場所（押したボタンの右端にそろえて、その下） */
   at: Placement;
-  targets: TerminalTarget[];
+  targets: readonly TerminalTarget[];
   ignore: string;
   onPick: (t: TerminalTarget) => void;
   onClose: () => void;

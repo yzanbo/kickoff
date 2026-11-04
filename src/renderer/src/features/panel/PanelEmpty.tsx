@@ -3,11 +3,11 @@ import type { PanelKind } from "@/features/panel/state/panelKinds";
 
 /**
  * タブがないときのパネル・ペインの中身（新しいチャット・ブラウザ・ターミナルを開くボタン）。
- * ボードの右のパネルでは、新しいチャットの代わりに案内の文を出す（新しいチャットは見出しの「新規」から）。
+ * hint があれば、新しいチャットの代わりにその案内の文を出す（ボードの分けていないパネル。新しいチャットは見出しの「新規」から）。
  * 欄で隠している種類（kinds）のボタンは出さない
  */
 export function PanelEmpty({
-  showNewChat,
+  hint,
   kinds,
   hasTerminals,
   manyTerminals,
@@ -15,7 +15,7 @@ export function PanelEmpty({
   onBrowser,
   onTerminal,
 }: {
-  showNewChat: boolean;
+  hint?: string;
   kinds: { has: (kind: PanelKind) => boolean };
   hasTerminals: boolean;
   /** 開く場所がいくつもある（押すとメニューを開く） */
@@ -27,12 +27,12 @@ export function PanelEmpty({
   return (
     <div className="panel-empty">
       {kinds.has("chat") &&
-        (showNewChat ? (
+        (hint ? (
+          <p className="muted small">{hint}</p>
+        ) : (
           <button className="btn" onClick={onNewChat}>
             <SquarePen size={14} /> 新しいチャット
           </button>
-        ) : (
-          <p className="muted small">カードを押すと、ここにチャットが開きます。</p>
         ))}
       {kinds.has("browser") && (
         <button className="btn" onClick={onBrowser}>
