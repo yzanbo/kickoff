@@ -1,5 +1,5 @@
 import { ArrowDown } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { cx } from "../../cx";
 import { RUN_STATUS_LABELS } from "../RunStatus";
 import { useTicker } from "../../hooks/useTicker";
@@ -13,7 +13,7 @@ import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { ReconnectRow, type Connection } from "./ConnectionStatus";
 import { jumpToEvent } from "./jumpToEvent";
-import { promptAbove, STICKY_PROMPT_HEIGHT, StickyPrompt } from "./StickyPrompt";
+import { promptAbove, promptAttachments, STICKY_PROMPT_HEIGHT, StickyPrompt } from "./StickyPrompt";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
@@ -105,6 +105,7 @@ export function RunTimeline({
   const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
   // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
+  const pinnedAttachments = useMemo(() => (pinned ? promptAttachments(events, pinned.id) : []), [pinned, events]);
   const stickyHeight = useRef(STICKY_PROMPT_HEIGHT); // 貼り付けた帯の高さ（その下端を、指示が見えているかの線にする）
   // 窓の最初と最後の項目（前を足した・新しい発言が届いたを見分ける）
   const firstKey = items[0]?.key;
@@ -263,6 +264,7 @@ export function RunTimeline({
       {pinned && (
         <StickyPrompt
           text={pinned.text}
+          attachments={pinnedAttachments}
           onJump={() => {
             stickToBottom.current = false;
             if (timelineRef.current) jumpToEvent(timelineRef.current, pinned.id);
