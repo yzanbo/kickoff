@@ -15,11 +15,11 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   provider.networkFailures = 1;
   network.online = false;
   release();
-  await until(() => runner.reconnectState(chatId) !== null);
+  await until(() => runner.live(chatId).reconnect !== null);
   assert.equal(store.chats.get(chatId)?.status, "failed");
-  assert.equal(runner.queuePaused(chatId), true);
-  assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["次"]);
-  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES, agents: [] });
+  assert.equal(runner.live(chatId).queue.paused, true);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["次"]);
+  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.reconnect, { attempts: 0, max: MAX_AUTO_RESUMES, agents: [] });
   assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /自動で再開します/.test(JSON.stringify(e.data))));
   // つながらない間は何も送らない（送信待ちも送らない）
   await new Promise((r) => setTimeout(r, 30));
@@ -29,8 +29,8 @@ test("通信の切断: 送信待ちを送らずに止めて、つながったら
   network.online = true;
   await until(() => provider.prompts.includes(RESUME_PROMPT));
   await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
-  assert.equal(runner.queuePaused(chatId), false);
-  assert.equal(runner.reconnectState(chatId), null);
+  assert.equal(runner.live(chatId).queue.paused, false);
+  assert.equal(runner.live(chatId).reconnect, null);
 });
 
 test("通信の切断: 通信で止まったサブエージェントは、自動で再開するときに名前と ID を添えて続きから再開を頼む（自分で止めたものは頼まない）", async () => {
@@ -47,10 +47,10 @@ test("通信の切断: 通信で止まったサブエージェントは、自動
     { type: "subagent", task_id: "a2", tool_use_id: "tu2", description: "レビュー", status: "stopped" },
   ];
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
-  await until(() => runner.reconnectState(chatId) !== null);
+  await until(() => runner.live(chatId).reconnect !== null);
   provider.emits = [];
   // つながるのを待っている間は、続きから再開を頼むサブエージェントの名前も返す（画面の待っている行に添える）
-  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.reconnect.agents, ["調査"]);
+  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.reconnect.agents, ["調査"]);
   const events = store.events.list(chatId);
   // 実行の終わりの記録に通信の切断の印。お知らせには、止まったサブエージェントの名前を添える
   assert.ok(events.some((e) => e.type === "result" && (e.data as { network?: boolean }).network === true));
@@ -76,7 +76,7 @@ test("通信の切断: 続けて何度も止まったら、再開するかを聞
   const [ask] = approvals.list({ chatId });
   assert.equal(ask.kind, "reconnect");
   assert.equal(provider.prompts.filter((p) => p === RESUME_PROMPT).length, MAX_AUTO_RESUMES);
-  assert.equal(runner.reconnectState(chatId), null);
+  assert.equal(runner.live(chatId).reconnect, null);
 
   // 再開する: すぐ「続けて」を送る（こんどは続く）
   assert.equal((await call("POST", `/api/approvals/${ask.id}`, { action: "allow" })).status, 200);
@@ -99,14 +99,14 @@ test("使用枠の上限: 送信待ちを止め、枠が戻ったら続けるか
   assert.match(ask.description ?? "", /送信待ちは、再開した作業が終わってから送ります/);
   // 聞いている間は何も送らず、送信待ちは止めてある
   assert.equal(provider.prompts.length, 1);
-  assert.equal(runner.queuePaused(chatId), true);
+  assert.equal(runner.live(chatId).queue.paused, true);
   assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /使用枠の上限に達したため止まりました/.test(JSON.stringify(e.data))));
 
   // 続ける: 「続けて」を送り、終わったら送信待ちを戻して送る
   assert.equal((await call("POST", `/api/approvals/${ask.id}`, { action: "allow" })).status, 200);
   await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId));
   assert.deepEqual(provider.prompts.slice(1), [USAGE_RESUME_PROMPT, "次の指示"]);
-  assert.equal(runner.queuePaused(chatId), false);
+  assert.equal(runner.live(chatId).queue.paused, false);
 });
 
 test("使用枠の上限: 戻る前は聞かず、その間に自分で送ったら聞くのをやめる。やめるを選んだら送信待ちは止めたまま", async () => {
@@ -132,8 +132,8 @@ test("使用枠の上限: 戻る前は聞かず、その間に自分で送った
   await call("POST", `/api/approvals/${approvals.list({ chatId })[0].id}`, { action: "deny" });
   await new Promise((resolve) => setTimeout(resolve, 30));
   assert.equal(provider.prompts.length, 3);
-  assert.equal(runner.queuePaused(chatId), true);
-  assert.deepEqual(runner.queued(chatId).map((m) => m.text), ["あとで"]);
+  assert.equal(runner.live(chatId).queue.paused, true);
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["あとで"]);
 });
 
 test("通信の切断: 自動で再開しない設定・「自動で再開しない」・自分で送ったときは待たない", async () => {
@@ -144,14 +144,14 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
   provider.networkFailures = 1;
   const a = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "a" })).body.id;
   await until(() => store.chats.get(a)?.status === "failed");
-  assert.equal(runner.reconnectState(a), null);
+  assert.equal(runner.live(a).reconnect, null);
   assert.equal((await call("DELETE", `/api/chats/${a}/reconnect`)).status, 404);
 
   // 待っている間に「自動で再開しない」を押すと、つながっても送らない
   await call("PUT", "/api/settings", { auto_resume_on_reconnect: true });
   provider.networkFailures = 1;
   const b = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "b" })).body.id;
-  await until(() => runner.reconnectState(b) !== null);
+  await until(() => runner.live(b).reconnect !== null);
   assert.deepEqual((await call("DELETE", `/api/chats/${b}/reconnect`)).body, { ok: true });
   network.online = true;
   await new Promise((r) => setTimeout(r, 30));
@@ -161,9 +161,9 @@ test("通信の切断: 自動で再開しない設定・「自動で再開しな
   network.online = false;
   provider.networkFailures = 1;
   const c = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "c" })).body.id;
-  await until(() => runner.reconnectState(c) !== null);
+  await until(() => runner.live(c).reconnect !== null);
   await call("POST", `/api/chats/${c}/messages`, { text: "自分で続き" });
-  assert.equal(runner.reconnectState(c), null);
+  assert.equal(runner.live(c).reconnect, null);
   await until(() => !runner.isBusy(c));
   network.online = true;
   await new Promise((r) => setTimeout(r, 30));
@@ -180,8 +180,8 @@ test("通信の切断のあとに使用枠の上限で止まっても、止め�
   provider.networkFailures = 1;
   network.online = false;
   release();
-  await until(() => runner.reconnectState(chatId) !== null);
-  assert.equal(runner.queuePaused(chatId), true);
+  await until(() => runner.live(chatId).reconnect !== null);
+  assert.equal(runner.live(chatId).queue.paused, true);
 
   // つながって自動で再開したら、こんどは使用枠の上限で止まる（枠が戻る時刻はもう過ぎている）
   provider.usageLimits = [new Date(Date.now() - 120_000).toISOString()];
@@ -190,14 +190,14 @@ test("通信の切断のあとに使用枠の上限で止まっても、止め�
   const [ask] = approvals.list({ chatId });
   assert.equal(ask.kind, "usage_limit");
   // 送信待ちは止めたまま、使用枠の段取りが引き継ぐ（再開した作業が終わったら送ると伝える）
-  assert.equal(runner.queuePaused(chatId), true);
+  assert.equal(runner.live(chatId).queue.paused, true);
   assert.match(ask.description ?? "", /送信待ちは、再開した作業が終わってから送ります/);
 
   // 続ける: 最後まで終わったら、止めておいた送信待ちを戻して送る
   await call("POST", `/api/approvals/${ask.id}`, { action: "allow" });
   await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
   assert.deepEqual(provider.prompts.slice(1), [RESUME_PROMPT, USAGE_RESUME_PROMPT, "次"]);
-  assert.equal(runner.queuePaused(chatId), false);
+  assert.equal(runner.live(chatId).queue.paused, false);
 });
 
 test("使用枠の上限のあとに通信の切断で止まっても、止めた送信待ちを自分で止めたものとみなさず、つながったら自動で再開する", async () => {
@@ -215,13 +215,13 @@ test("使用枠の上限のあとに通信の切断で止まっても、止め�
   provider.networkFailures = 1;
   network.online = false;
   await call("POST", `/api/approvals/${approvals.list({ chatId })[0].id}`, { action: "allow" });
-  await until(() => runner.reconnectState(chatId) !== null);
-  assert.equal(runner.queuePaused(chatId), true);
+  await until(() => runner.live(chatId).reconnect !== null);
+  assert.equal(runner.live(chatId).queue.paused, true);
   assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /つながったら自動で再開します/.test(JSON.stringify(e.data))));
 
   // つながったら自動で再開し、最後まで終わったら送信待ちを戻して送る
   network.online = true;
   await until(() => provider.prompts.at(-1) === "次" && !runner.isBusy(chatId));
   assert.deepEqual(provider.prompts.slice(1), [USAGE_RESUME_PROMPT, RESUME_PROMPT, "次"]);
-  assert.equal(runner.queuePaused(chatId), false);
+  assert.equal(runner.live(chatId).queue.paused, false);
 });

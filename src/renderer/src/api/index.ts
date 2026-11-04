@@ -1,32 +1,10 @@
-import type { AppSettings, Attachment, Approval, ApprovalDecision, ModelOption, ProviderId, EffortDefault, QueuedMessage, ReconnectState, BackgroundState, Chat, ChatEvent, ChatGroup, ChatOptionsPatch, SearchHit, ServerStatus, FileContent, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitWorktree, WorktreeRemovalInfo, GitHubStatus, GitStatus, PlanUsage, ServiceUsage, SlashCommandOption, Project, ProjectFiles, PullRequestInfo, ProjectSearchQuery, ProjectSearchResult, ProviderStatus, VoiceStatus, FolderInspection, FileRewindResult } from "@shared/types";
+import type { AppSettings, Attachment, Approval, ApprovalDecision, ModelOption, ProviderId, EffortDefault, Chat, ChatDetail, ChatGroup, ChatOptionsPatch, QueueAddResult, QueueMergeResult, QueueState, SearchHit, ServerStatus, FileContent, GitCommitDetail, GitDiff, GitFileChange, GitLog, GitRefs, GitWorktree, WorktreeRemovalInfo, GitHubStatus, GitStatus, PlanUsage, ServiceUsage, SlashCommandOption, Project, ProjectFiles, PullRequestInfo, ProjectSearchQuery, ProjectSearchResult, ProviderStatus, VoiceStatus, FolderInspection, FileRewindResult } from "@shared/types";
 
 interface NewProjectInput {
   name: string;
   idea: string;
   parent_dir: string;
   folder_name: string;
-}
-
-interface ChatDetail {
-  chat: Chat;
-  events: ChatEvent[];
-  approvals: Approval[];
-  /** 作業中に送った、次の指示の待ちの列 */
-  queue: QueuedMessage[];
-  /** 待ちの列を、いまの作業が終わっても自動で送らずに止めておくか */
-  queue_paused?: boolean;
-  /** 一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと） */
-  queue_stops?: number[];
-  /** 次の指示を書き直しているので、送らずに書き直しが終わるのを待っている（送信の準備ができている） */
-  queue_waiting_edit?: boolean;
-  /** 通信が切れて止まり、つながったら自動で再開するのを待っているか */
-  reconnect?: ReconnectState | null;
-  /** 裏で動いている作業と、メインの返答が終わったか（作業中でなければ null） */
-  background?: BackgroundState | null;
-  /** 停止を頼んで、作業が終わるのを待っているか */
-  stopping?: boolean;
-  /** 会話を圧縮している最中なら、始めた時刻 */
-  compacting?: string | null;
 }
 
 interface ImportProjectInput {
@@ -132,7 +110,8 @@ export const api = {
       new_worktree_branch?: string;
     },
   ) => request<Chat>("POST", `/api/projects/${projectId}/chats`, input),
-  run: (id: number) => request<ChatDetail>("GET", `/api/chats/${id}`),
+  /** チャットの詳細（記録・回答待ち・作業中の様子。作業中の様子は SSE の chat_live で追いかける） */
+  chatDetail: (id: number) => request<ChatDetail>("GET", `/api/chats/${id}`),
   sendMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = []) =>
     request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments }),
 
@@ -200,15 +179,15 @@ export const api = {
   deleteGroup: (groupId: number) => request<{ ok: true }>("DELETE", `/api/groups/${groupId}`),
   cancelChat: (chatId: number) => request<{ ok: true }>("POST", `/api/chats/${chatId}/cancel`),
 
-  // 作業中に送る次の指示の待ちの列（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す）
+  // 作業中に送る次の指示の待ちの列（送信待ち）。応答はどれも、変えたあとの送信待ち（QueueState）
+  /** 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す） */
   queueMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], hold = false) =>
-    request<{ queued: boolean; id?: string }>("POST", `/api/chats/${chatId}/queue`, { text, options, attachments, ...(hold ? { hold } : {}) }),
+    request<QueueAddResult>("POST", `/api/chats/${chatId}/queue`, { text, options, attachments, ...(hold ? { hold } : {}) }),
   /** attachments: 添付を置き換える（省けば今のまま） */
   editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
-    request<{ queue: QueuedMessage[] }>("PATCH", `/api/chats/${chatId}/queue/${id}`, attachments ? { text, attachments } : { text }),
-  removeQueued: (chatId: number, id: string) => request<{ queue: QueuedMessage[] }>("DELETE", `/api/chats/${chatId}/queue/${id}`),
-  moveQueued: (chatId: number, id: string, index: number) =>
-    request<{ queue: QueuedMessage[] }>("POST", `/api/chats/${chatId}/queue/${id}/move`, { index }),
+    request<QueueState>("PATCH", `/api/chats/${chatId}/queue/${id}`, attachments ? { text, attachments } : { text }),
+  removeQueued: (chatId: number, id: string) => request<QueueState>("DELETE", `/api/chats/${chatId}/queue/${id}`),
+  moveQueued: (chatId: number, id: string, index: number) => request<QueueState>("POST", `/api/chats/${chatId}/queue/${id}/move`, { index }),
   /** 推論の深さを指定しないとき（既定）に Claude Code が使う深さ（設定から求める） */
   effortDefault: (projectId: number, model: string | null, worktree?: string) =>
     request<EffortDefault>("GET", `/api/projects/${projectId}/effort-default?${new URLSearchParams({ ...(model ? { model } : {}), ...(worktree ? { worktree } : {}) })}`),
@@ -231,38 +210,34 @@ export const api = {
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
   stopBackgroundTask: (chatId: number, taskId: string) => request<{ ok: true }>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),
   /** 待ちの列を、終わっても自動で送らずに止めておくか（戻すと、作業中でなければ先頭をすぐ送る） */
-  setQueuePaused: (chatId: number, paused: boolean) =>
-    request<{ paused: boolean; queue: QueuedMessage[] }>("PUT", `/api/chats/${chatId}/queue/paused`, { paused }),
+  setQueuePaused: (chatId: number, paused: boolean) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/paused`, { paused }),
   /** その指示のすぐあとに一時停止の印を付ける・外す（右クリックの「この指示のあとで止める」。id が null ならすべて外す） */
-  setQueueStopAfter: (chatId: number, id: string | null, stop = true) =>
-    request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/chats/${chatId}/queue/stop-after`, { id, stop }),
+  setQueueStopAfter: (chatId: number, id: string | null, stop = true) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/stop-after`, { id, stop }),
   /** 印の位置をまとめて置き換える（印のドラッグ・×。0 = 1 件目の上、n = n 件目のあと） */
-  setQueueStops: (chatId: number, stops: number[]) =>
-    request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/chats/${chatId}/queue/stops`, { stops }),
-  /** 待ちの指示をすべて消す */
+  setQueueStops: (chatId: number, stops: number[]) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/stops`, { stops }),
   /** 画面でいま書き直している待ちの指示（丸ごと置き換え。空なら外す）。次に送る指示なら、書き直しが終わるまで送らない */
-  setQueueEditing: (chatId: number, ids: string[]) => request<{ ok: true }>("PUT", `/api/chats/${chatId}/queue/editing`, { ids }),
-  clearQueued: (chatId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/chats/${chatId}/queue`),
+  setQueueEditing: (chatId: number, ids: string[]) => request<QueueState>("PUT", `/api/chats/${chatId}/queue/editing`, { ids }),
+  /** 待ちの指示をすべて消す */
+  clearQueued: (chatId: number) => request<QueueState>("DELETE", `/api/chats/${chatId}/queue`),
   /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */
-  sendAllQueued: (chatId: number, ids?: string[]) => request<{ ok: true }>("POST", `/api/chats/${chatId}/queue/send-all`, ids ? { ids } : {}),
+  sendAllQueued: (chatId: number, ids?: string[]) => request<QueueState>("POST", `/api/chats/${chatId}/queue/send-all`, ids ? { ids } : {}),
   /** 選んだ待ちの指示を、送らずに 1 件にまとめる（2 件以上） */
-  mergeQueued: (chatId: number, ids: string[]) => request<{ id: string; queue: QueuedMessage[] }>("POST", `/api/chats/${chatId}/queue/merge`, { ids }),
+  mergeQueued: (chatId: number, ids: string[]) => request<QueueMergeResult>("POST", `/api/chats/${chatId}/queue/merge`, { ids }),
   /** 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めておくのをやめ、印を外す） */
-  sendQueuedInOrder: (chatId: number) => request<{ ok: true }>("POST", `/api/chats/${chatId}/queue/send-in-order`),
+  sendQueuedInOrder: (chatId: number) => request<QueueState>("POST", `/api/chats/${chatId}/queue/send-in-order`),
   /** 選んだ待ちの指示をまとめて消す */
-  removeQueuedMany: (chatId: number, ids: string[]) =>
-    request<{ removed: number; queue: QueuedMessage[] }>("POST", `/api/chats/${chatId}/queue/remove-many`, { ids }),
+  removeQueuedMany: (chatId: number, ids: string[]) => request<QueueState>("POST", `/api/chats/${chatId}/queue/remove-many`, { ids }),
   /**
    * 選んだ待ちの指示を、並びを保ったまままとめて移す（いちばん上・いちばん下、または { before: その指示の前（null ならいちばん下）,
    * belowStop: その位置に止める線があれば線の下に入れるか }）
    */
   moveQueuedMany: (chatId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }) =>
-    request<{ moved: number; queue: QueuedMessage[] }>(
+    request<QueueState>(
       "POST",
       `/api/chats/${chatId}/queue/move-many`,
       typeof to === "string" ? { ids, to } : { ids, before: to.before, ...(to.belowStop === undefined ? {} : { below_stop: to.belowStop }) },
     ),
-  sendQueuedNow: (chatId: number, id: string) => request<{ ok: true }>("POST", `/api/chats/${chatId}/queue/${id}/send`),
+  sendQueuedNow: (chatId: number, id: string) => request<QueueState>("POST", `/api/chats/${chatId}/queue/${id}/send`),
 
   // 音声入力（文字起こし・準備の状態・この Mac のモデル・OpenAI の API キー）
   /** 録った音声を文にする（language を省けば設定の言語） */

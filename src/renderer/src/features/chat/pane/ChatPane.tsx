@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Approval, BackgroundState, Project, QueuedMessage, Chat, ChatEvent } from "@shared/types";
+import type { Approval, Project, Chat, ChatEvent, ChatLive } from "@shared/types";
 import { api } from "@/api";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { useSharedFlag } from "@/hooks/useStoredState";
@@ -12,7 +12,6 @@ import type { ComposerFill } from "@/features/chat/messages/quoteComment";
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
 import { ChatHeader } from "./ChatHeader";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
-import type { Connection } from "@/features/chat/status/ConnectionStatus";
 import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
 import { confirmStopAgents } from "@/features/chat/status/backgroundLabel";
 import { SubagentChip, useSubagents } from "@/features/chat/subagents/Subagents";
@@ -52,7 +51,7 @@ interface ChatPaneProps {
 
 /** エージェントとのチャット（ボードの右側のパネルに出す） */
 export function ChatPane({ projectId, chatId, focus, onChatChange, visible = true, onOpenSubagent }: ChatPaneProps) {
-  const { chat, project, events, approvals, queue, queuePaused, queueStops, queueWaitingEdit, retry, reconnect, background, stopping, compacting, live, error } = useChatDetail(chatId, projectId);
+  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId, projectId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
   const notifyChat = useRef(onChatChange);
@@ -64,7 +63,7 @@ export function ChatPane({ projectId, chatId, focus, onChatChange, visible = tru
   if (error) return <div className="page error">{error}</div>;
   if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
-    <ChatView chat={chat} project={project} events={events} approvals={approvals} queue={queue} queuePaused={queuePaused} queueStops={queueStops} queueWaitingEdit={queueWaitingEdit} connection={{ retry, reconnect }} background={background} stopping={stopping} compacting={compacting} live={live} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
+    <ChatView chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} focus={focus} visible={visible} onOpenSubagent={onOpenSubagent} />
   );
 }
 
@@ -73,15 +72,8 @@ function ChatView({
   project,
   events,
   approvals,
-  queue,
-  queuePaused,
-  queueStops,
-  queueWaitingEdit,
-  connection,
-  background,
-  stopping: stopRequested,
-  compacting: compactingSince,
-  live,
+  live: coreLive,
+  streaming,
   focus,
   visible,
   onOpenSubagent,
@@ -90,22 +82,10 @@ function ChatView({
   project?: Project;
   events: ChatEvent[];
   approvals: Approval[];
-  queue: QueuedMessage[];
-  /** 待ちの列を、終わっても自動で送らずに止めておくか */
-  queuePaused: boolean;
-  /** 一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと） */
-  queueStops: number[];
-  /** 次の指示の書き直しが終わるのを待っている（作業は終わり、送信の準備ができている） */
-  queueWaitingEdit: boolean;
-  /** 通信の再試行中・つながるのを待っているところ */
-  connection: Connection;
-  /** 裏で動いている作業と、メインの返答が終わったか */
-  background: BackgroundState | null;
-  /** 停止を頼んで、作業が終わるのを待っているか（コアが持つ。ほかの画面から止めたときも） */
-  stopping: boolean;
-  /** 会話を圧縮している最中なら、始めた時刻 */
-  compacting: string | null;
-  live: string;
+  /** 作業中の様子（コアが持つ形のまま。停止中はほかの画面から止めたときも） */
+  live: ChatLive;
+  /** 書いている途中の返答 */
+  streaming: string;
   focus?: number;
   /** チャットを表示しているか（最新の結果を一番下まで見たら既読にする） */
   visible: boolean;
@@ -117,7 +97,18 @@ function ChatView({
     chat.worktree_path || undefined,
   );
   const busy = chat.status === "running";
-  const subagents = useSubagents(chat.id, events, busy, background);
+  // 停止を押して、止まるのを待っている（押してからコアの知らせが届くまでの間も含める。止まったら戻す）
+  const [stopClicked, setStopClicked] = useState(false);
+  useEffect(() => {
+    if (!busy) setStopClicked(false);
+  }, [busy]);
+  // 画面に出す作業中の様子: 停止中は押した直後から、会話の圧縮中は作業中だけ（作業中の行・チャット欄のメーターで知らせる）
+  const live = useMemo<ChatLive>(
+    () => ({ ...coreLive, stopping: busy && (stopClicked || coreLive.stopping), compacting: busy ? coreLive.compacting : null }),
+    [coreLive, busy, stopClicked],
+  );
+  const queued = live.queue.messages.length > 0;
+  const subagents = useSubagents(chat.id, events, busy, live.background);
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
   const busyNeighbors = useBusyNeighbors(chat);
@@ -144,15 +135,7 @@ function ChatView({
   const fileLinks = useFileLinks(chat, project?.repo_path);
   // 作業中に送ったときの扱い（伝える / ためておく。どのチャットでも同じ）
   const [queueMode, setQueueMode] = useQueueMode();
-  const composerTexts = queueModeTexts(busy, queue.length > 0, queueMode);
-  // 停止を押して、止まるのを待っている（押してからコアの知らせが届くまでの間も含める。止まったら戻す）
-  const [stopClicked, setStopClicked] = useState(false);
-  useEffect(() => {
-    if (!busy) setStopClicked(false);
-  }, [busy]);
-  const stopping = busy && (stopClicked || stopRequested);
-  // 会話を圧縮している最中（作業中の行・チャット欄のメーターで知らせる）
-  const compacting = busy && compactingSince !== null;
+  const composerTexts = queueModeTexts(busy, queued, queueMode);
   // チャットの中の検索を開いているか・発言へ移る（指示の履歴・⌘⌥↑ / ↓ から）
   const panelRef = useRef<HTMLDivElement>(null);
   // 発言の一覧から、同じ文を入力欄に入れる
@@ -239,7 +222,7 @@ function ChatView({
       />
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}
       <SelectionComment root={panelRef} onAdd={(block) => fillComposer.current?.(block, { append: true })} />
-      <ChatTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} chat={chat} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} background={background} waiting={waiting} stopping={stopping} compacting={compacting} live={live} connection={connection} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} pillDock={pillDock} />
+      <ChatTimeline items={timeline.visible} lastItem={items.at(-1)} hidden={timeline.hidden} onShowMore={timeline.showMore} after={timeline.hiddenAfter} onShowLater={timeline.showLater} onLatest={timeline.latest} onAtBottom={timeline.atBottom} rel={rel} chat={chat} busy={busy} agents={subagents} onOpenSubagent={(s) => onOpenSubagent(s.key, s.description)} live={live} waiting={waiting} streaming={streaming} approvals={approvals} focus={focus} stickToBottom={stickToBottom} events={events} visible={visible} onPromptStep={promptNav.go} pillDock={pillDock} />
       <div className="chat-composer">
         {/*
           同じ作業場所で、ほかのチャットも作業中なら知らせる（同じファイルを触るとぶつかる）。押して開くピルの列とは役割が違うので、
@@ -260,12 +243,12 @@ function ChatView({
           <span ref={setPillDock} className="composer-chips-dock" />
         </div>
         {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-        <QueuedMessages chatId={chat.id} queue={queue} paused={queuePaused} stops={queueStops} waitingEdit={queueWaitingEdit} busy={busy} newChatTarget={{ projectId: chat.project_id, group: chat.group_id ?? undefined }} />
+        <QueuedMessages chatId={chat.id} queue={live.queue} busy={busy} newChatTarget={{ projectId: chat.project_id, group: chat.group_id ?? undefined }} />
         <Composer
           chatContext={{ projectId: chat.project_id, exclude: chat.id }}
           options={options}
           busy={busy}
-          queueWhileIdle={!busy && queue.length > 0}
+          queueWhileIdle={!busy && queued}
           placeholder={composerTexts.placeholder}
           sendLabel={composerTexts.sendLabel}
           onSend={async (text, attachments) => {
@@ -286,15 +269,15 @@ function ChatView({
             else await api.queueMessage(chat.id, text, options.options, attachments);
           }}
           busyControls={<QueueModeToggle busy={busy} value={queueMode} onChange={setQueueMode} />}
-          stopping={stopping}
+          stopping={live.stopping}
           onStop={() =>
-            void confirmStopAgents(background, runningAgents, "中断する").then((ok) => {
+            void confirmStopAgents(live.background, runningAgents, "中断する").then((ok) => {
               if (!ok) return;
               setStopClicked(true);
               void api.cancelChat(chat.id).catch(() => setStopClicked(false));
             })
           }
-          trailing={<ContextMeter chat={chat} compacting={compacting} />}
+          trailing={<ContextMeter chat={chat} compacting={live.compacting !== null} />}
           suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path || undefined }}
           fillRef={fillComposer}
           history={prompts}

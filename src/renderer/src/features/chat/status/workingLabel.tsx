@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { useTicker } from "@/hooks/useTicker";
-import type { BackgroundState, Chat, ChatEvent } from "@shared/types";
+import type { Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, activityText, type Activity } from "./stall";
 import { backgroundWaitLabel, countBackground } from "./backgroundLabel";
-import { RetryLabel, type Connection } from "./ConnectionStatus";
+import { RetryLabel } from "./ConnectionStatus";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 
 /** 作業中のチャットの動きの様子（最後に何かが届いてからの時間と、長く動きのないサブエージェント） */
@@ -13,20 +13,23 @@ export interface ChatActivity {
   stalled: SubagentEntry[];
 }
 
-/** 作業中の行の文（止めている・通信を再試行している・順番待ち・会話を圧縮している・返答を書いている・ツールを実行中・考えている）と、動きの様子 */
-export function workingLabel(chat: Chat, last: TimelineItem | undefined, live: string, stopping: boolean, compacting: boolean, runningAgents: number, connection: Connection, background: BackgroundState | null, activity: ChatActivity): ReactNode {
-  if (stopping) return "停止中…";
-  if (connection.retry) return <RetryLabel retry={connection.retry} agents={Math.max(runningAgents, countBackground(background).agents)} />;
+/**
+ * 作業中の行の文（止めている・通信を再試行している・会話を圧縮している・返答を書いている・ツールを実行中・考えている）と、動きの様子。
+ * streaming: 書いている途中の返答、live: 作業中の様子（停止中・再試行・圧縮中・裏の作業）
+ */
+export function workingLabel(chat: Chat, last: TimelineItem | undefined, streaming: string, live: ChatLive, runningAgents: number, activity: ChatActivity): ReactNode {
+  if (live.stopping) return "停止中…";
+  if (live.retry) return <RetryLabel retry={live.retry} agents={Math.max(runningAgents, countBackground(live.background).agents)} />;
   // 会話を要約して、コンテキストを空けている（手で圧縮した・上限に近づいて自動で。終わると続きを始める）
-  if (compacting) return COMPACTING_LABEL;
+  if (live.compacting !== null) return COMPACTING_LABEL;
   // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
   if (activity.stalled.length > 0) return <StalledAgentsLabel agents={activity.stalled} />;
   const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : undefined;
   const base = (() => {
-    if (live) return "返答を書いています";
+    if (streaming) return "返答を書いています";
     if (pendingTool && !pendingTool.result) return "ツールを実行中";
     // 返答を書き終えたあと、裏で動いている作業（サブエージェント・コマンド）の終わりを待っている（Claude Code が知らせる一覧で、種類と名前を出す）
-    const waitingBackground = backgroundWaitLabel(background);
+    const waitingBackground = backgroundWaitLabel(live.background);
     if (waitingBackground) return waitingBackground;
     // 一覧の知らせがない古い Claude Code: 返答を書き終えたあと、裏のサブエージェントの終わりを待っている（指示待ちではない。ここで止めると一緒に止まる）
     if (runningAgents > 0 && last?.kind === "event" && last.event.type === "text") return `裏で動いているサブエージェント ${runningAgents} 件の終わりを待っています`;

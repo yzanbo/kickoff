@@ -9,7 +9,7 @@ import type { AgentProvider, ProviderCallbacks, ProviderTurnResult } from "../pr
 import { Runner } from "../chat/runner.js";
 import { createApp } from "../http/server.js";
 import { Store } from "../db/store.js";
-import type { BackgroundState, FileRewindResult, ProviderId, SlashCommandOption } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, FileRewindResult, ProviderId, SlashCommandOption } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
@@ -39,6 +39,8 @@ class FakeProvider extends FakeProviderBase {
   background: BackgroundState | null = null;
   /** true なら実行の初めに、会話を圧縮し始めたと知らせる（終わりは知らせない。作業の終わりで消えるかの確かめに使う） */
   compacting = false;
+  /** これがあれば実行の初めに、AI の API への通信を再試行していると知らせる（終わりは知らせない。作業の終わりで消えるかの確かめに使う） */
+  retry: ApiRetryInfo | null = null;
   /** 作業中に足された発言（止めずに伝える）と、止めた裏の作業。acceptTell が false なら足せない（入力が閉じている） */
   told: string[] = [];
   stoppedTasks: string[] = [];
@@ -47,7 +49,7 @@ class FakeProvider extends FakeProviderBase {
   private gate: Promise<void> | null = null;
   /** これがあれば、止められてもすぐには終わらない（サブエージェント・裏のコマンドが終わるのを待つ Claude Code の代わり） */
   slowStop: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "control">, signal: AbortSignal): Promise<ProviderTurnResult> {
+  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "control" | "retry">, signal: AbortSignal): Promise<ProviderTurnResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);
@@ -55,6 +57,7 @@ class FakeProvider extends FakeProviderBase {
     this.emits.forEach((event) => cb.emit(event));
     if (this.background) cb.background?.(this.background);
     if (this.compacting) cb.compacting?.(true);
+    if (this.retry) cb.retry?.(this.retry);
     cb.control?.({
       tell: (text) => this.acceptTell && Boolean(this.told.push(text)),
       stopTask: async (taskId) => void this.stoppedTasks.push(taskId),

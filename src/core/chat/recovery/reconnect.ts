@@ -1,7 +1,6 @@
 import type { ApprovalCenter } from "../approvals.js";
-import type { Bus } from "../../bus.js";
 import { errorMessage } from "@shared/errors";
-import type { FollowupQueue } from "../queue.js";
+import type { ChatQueue } from "../queue.js";
 import { canReachApi, ReconnectWatcher } from "./reachability.js";
 import type { TurnOutcome, StoppedAgent } from "../turn.js";
 import type { Store } from "../../db/store.js";
@@ -50,8 +49,10 @@ export class ChatReconnect {
     private readonly deps: {
       store: Store;
       approvals: ApprovalCenter;
-      bus?: Bus;
-      followups: FollowupQueue;
+      /** つながるのを待っているかが変わった（作業中の様子を画面に配り直す） */
+      changed: (chatId: number) => void;
+      /** チャットの送信待ちの列 */
+      queueOf: (chatId: number) => ChatQueue;
       /** 止まったときに、こちらで止めた送信待ち（再開して終わったら戻す。使用枠の上限の段取りと 1 つを使う） */
       heldQueues: Set<number>;
       isBusy: (chatId: number) => boolean;
@@ -89,7 +90,7 @@ export class ChatReconnect {
     this.attempts.delete(chatId);
     // 最後まで終わった: 止めておいた送信待ちを戻す
     if (outcome.status === "completed") {
-      if (this.deps.heldQueues.delete(chatId)) this.deps.followups.setPaused(chatId, false);
+      if (this.deps.heldQueues.delete(chatId)) this.deps.queueOf(chatId).setPaused(false);
     } else if (!outcome.usageLimit) {
       // 止めた・ほかの理由で失敗した: 自動の再開はやめる（送信待ちは止めたまま。自分で戻せる）。
       // 使用枠の上限で止まったときは、止めた送信待ちを使用枠の段取りが引き継ぐ（ここで忘れると、戻す者がいなくなる）
@@ -125,14 +126,15 @@ export class ChatReconnect {
   }
 
   private onNetworkFailure(chatId: number) {
-    const { store, followups } = this.deps;
+    const { store } = this.deps;
+    const queue = this.deps.queueOf(chatId);
     const chat = store.chats.get(chatId);
     if (!chat) return;
     // 送信待ちを自分で止めていたら、自動では何も送らない（移動の前などに止めている。使用枠の段取りが止めたものは自分で止めたものではない）
-    const pausedByUser = followups.isPaused(chatId) && !this.deps.heldQueues.has(chatId);
+    const pausedByUser = queue.isPaused() && !this.deps.heldQueues.has(chatId);
     // 送信待ちは送らずに止めておく（通信が切れたまま送ると、次々に失敗して消えるため）
-    if (!pausedByUser && followups.list(chatId).length > 0 && !followups.isPaused(chatId)) {
-      followups.setPaused(chatId, true);
+    if (!pausedByUser && queue.list().length > 0 && !queue.isPaused()) {
+      queue.setPaused(true);
       this.deps.heldQueues.add(chatId);
     }
     const agents = this.agentsNote(chatId);
@@ -229,7 +231,6 @@ export class ChatReconnect {
   }
 
   private publish(chatId: number) {
-    const chat = this.deps.store.chats.get(chatId);
-    if (chat) this.deps.bus?.publish({ type: "chat_reconnect", project_id: chat.project_id, chat_id: chatId, reconnect: this.state(chatId) });
+    this.deps.changed(chatId);
   }
 }

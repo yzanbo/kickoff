@@ -11,7 +11,7 @@ export interface SavedQueue {
   stops: number[];
 }
 
-/** 送信待ちの指示の保存（chat_queues の表。chat/queue.ts の FollowupQueue が、変わるたびに丸ごと書く。画面への知らせは FollowupQueue が出す） */
+/** 送信待ちの指示の保存（chat_queues の表。chat/queue.ts の ChatQueue が、変わるたびに丸ごと書く。画面への知らせは ChatRuntime が出す） */
 export function createQueueStore(db: DatabaseSync) {
   return {
     /** 保存したすべての列（起動したときに読み戻す。すべて送ったあとの印だけが残った空の列も読む） */

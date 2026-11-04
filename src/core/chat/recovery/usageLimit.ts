@@ -1,6 +1,6 @@
 import type { ApprovalCenter } from "../approvals.js";
 import { errorMessage } from "@shared/errors";
-import type { FollowupQueue } from "../queue.js";
+import type { ChatQueue } from "../queue.js";
 import type { TurnOutcome } from "../turn.js";
 import type { Store } from "../../db/store.js";
 import type { PlanUsage } from "@shared/types";
@@ -40,7 +40,8 @@ export class ChatUsageLimit {
     private readonly deps: {
       store: Store;
       approvals: ApprovalCenter;
-      followups: FollowupQueue;
+      /** チャットの送信待ちの列 */
+      queueOf: (chatId: number) => ChatQueue;
       /** 止まったときに、こちらで止めた送信待ち（再開して終わったら戻す。通信の切断の段取りと 1 つを使う） */
       heldQueues: Set<number>;
       isBusy: (chatId: number) => boolean;
@@ -62,7 +63,7 @@ export class ChatUsageLimit {
     // 通信の切断で止まったときは、止めた送信待ちを通信の段取りが引き継ぐ（ここで忘れると、戻す者がいなくなる）
     if (outcome.network) return true;
     // 最後まで終わった: 止めておいた送信待ちを戻す。止めた・ほかの理由で失敗した: 止めたまま（自分で戻せる）
-    if (this.deps.heldQueues.delete(chatId) && outcome.status === "completed") this.deps.followups.setPaused(chatId, false);
+    if (this.deps.heldQueues.delete(chatId) && outcome.status === "completed") this.deps.queueOf(chatId).setPaused(false);
     return true;
   }
 
@@ -86,11 +87,12 @@ export class ChatUsageLimit {
   }
 
   private async onLimit(chatId: number, reportedReset: string | null) {
-    const { store, followups } = this.deps;
+    const { store } = this.deps;
+    const queue = this.deps.queueOf(chatId);
     if (!store.chats.get(chatId)) return;
     // 送信待ちは送らずに止めておく（自分で止めていたものはそのまま。通信の段取りが止めていたものは、そのまま引き継ぐ）
-    if (followups.list(chatId).length > 0 && !followups.isPaused(chatId)) {
-      followups.setPaused(chatId, true);
+    if (queue.list().length > 0 && !queue.isPaused()) {
+      queue.setPaused(true);
       this.deps.heldQueues.add(chatId);
     }
     const resetAt = reportedReset ?? (await this.resetFromUsage());
