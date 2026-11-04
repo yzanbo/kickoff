@@ -5,7 +5,7 @@ import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
 import { groupName } from "./schemas.js";
 
-/** チャットのグループ */
+/** チャットのグループ（変えたら、変えたあとのグループ。並べ替えはそのプロジェクトのグループの一覧。削除は 204） */
 export function groupRoutes(app: Hono, { store }: ServerDeps) {
   const { withProject, withGroup } = lookups(store);
 
@@ -29,6 +29,6 @@ export function groupRoutes(app: Hono, { store }: ServerDeps) {
   // グループだけを消す（中のチャットはグループなしに戻る）
   app.delete("/api/groups/:id", withGroup, (c) => {
     store.groups.delete(c.var.group.id);
-    return c.json({ ok: true });
+    return c.body(null, 204);
   });
 }

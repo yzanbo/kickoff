@@ -181,13 +181,13 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   git("commit", "-q", "-m", "init");
 
   // 本体（指定なし）
-  const main = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "本体で" })).body;
+  const main = (await call("POST", `/api/projects/${project.id}/chats`, { text: "本体で" })).body;
   assert.equal(main.worktree_path, null);
   await until(() => store.chats.get(main.id)?.status === "completed");
   assert.equal(provider.lastCwd, repo);
 
   // 新しいワークツリー
-  const created = await call("POST", `/api/projects/${project.id}/chats`, { prompt: "並行で", new_worktree_branch: "feat/a" });
+  const created = await call("POST", `/api/projects/${project.id}/chats`, { text: "並行で", new_worktree_branch: "feat/a" });
   assert.equal(created.status, 201);
   const worktree = created.body.worktree_path;
   assert.ok(worktree.endsWith(path.join(`${path.basename(fs.realpathSync(repo))}-worktrees`, "feat-a")));
@@ -195,8 +195,8 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal(provider.lastCwd, worktree);
 
   // いまあるワークツリーを選ぶ・知らないフォルダは断る
-  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { prompt: "同じ所", worktree_path: worktree })).body.worktree_path, worktree);
-  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { prompt: "x", worktree_path: "/tmp" })).status, 400);
+  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { text: "同じ所", worktree_path: worktree })).body.worktree_path, worktree);
+  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { text: "x", worktree_path: "/tmp" })).status, 400);
 
   // Git の操作は ?worktree= のワークツリーで行う
   fs.writeFileSync(path.join(worktree, "b.txt"), "b\n");
@@ -205,11 +205,14 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.deepEqual((await call("GET", `/api/projects/${project.id}/git/status`)).body.unstaged, []);
   assert.equal((await call("GET", `/api/projects/${project.id}/git/status?worktree=${encodeURIComponent("/tmp")}`)).status, 400);
 
-  // 片付け: ワークツリーと手元のブランチを消す（本体は片付けられない。ワークツリーでないフォルダは 404）
+  // 片付け（PR がマージされたあと）: ブランチも消す「消す」で、ワークツリーと手元のブランチを消す（本体は消せない。ワークツリーでないフォルダは 404）
+  const removeUrl = `/api/projects/${project.id}/git/worktrees/remove`;
   fs.rmSync(path.join(worktree, "b.txt"));
-  assert.deepEqual(await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: fs.realpathSync(repo) }), { status: 400, body: { error: "本体のフォルダは消せません" } });
-  assert.deepEqual(await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: "/no/such/worktree" }), { status: 404, body: { error: "ワークツリーが見つかりません" } });
-  const finished = await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: worktree });
+  assert.deepEqual(await call("POST", removeUrl, { path: fs.realpathSync(repo), delete_branch: true }), { status: 400, body: { error: "本体のフォルダは消せません" } });
+  assert.deepEqual(await call("POST", removeUrl, { path: "/no/such/worktree", delete_branch: true }), { status: 404, body: { error: "ワークツリーが見つかりません" } });
+  // 以前の「片付ける」の個別のルートはなくした
+  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: worktree })).status, 404);
+  const finished = await call("POST", removeUrl, { path: worktree, delete_branch: true });
   assert.equal(finished.status, 200);
   assert.equal(finished.body.length, 1);
   // そこで作業していたチャットは、本体に戻る。作業したブランチの名前は残す
@@ -231,19 +234,19 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.deepEqual(info.body, { branch: "feat/d", changes: 1, unpushed: 0, only_here: 1, pushed: false, has_remote: false });
   // 変更があると force なしでは消せない。force とブランチを消す指定で、フォルダもブランチも消える
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt })).status, 400);
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: wt, force: true, deleteBranch: true })).status, 200);
+  assert.equal((await call("POST", removeUrl, { path: wt, force: true, delete_branch: true })).status, 200);
   assert.equal(fs.existsSync(wt), false);
   assert.equal(execFileSync("git", ["branch", "--list", "feat/d"], { cwd: repo }).toString().trim(), "");
 
   // エディタタブの履歴から消したときも、チャットは本体に戻る（ブランチの名前は残す）
-  const other = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "別の作業", new_worktree_branch: "feat/b" })).body;
+  const other = (await call("POST", `/api/projects/${project.id}/chats`, { text: "別の作業", new_worktree_branch: "feat/b" })).body;
   await until(() => store.chats.get(other.id)?.status === "completed");
   assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/remove`, { path: other.worktree_path })).status, 200);
   assert.equal(store.chats.get(other.id)?.worktree_path, null);
   assert.equal(store.chats.get(other.id)?.branch, "feat/b");
 
   // アプリの外でフォルダを消したワークツリー: 続きを送ると分かる文で失敗し、片付けると Git の記録を消してチャットは本体に戻る
-  const gone = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "消える所", new_worktree_branch: "feat/c" })).body;
+  const gone = (await call("POST", `/api/projects/${project.id}/chats`, { text: "消える所", new_worktree_branch: "feat/c" })).body;
   await until(() => store.chats.get(gone.id)?.status === "completed");
   fs.rmSync(gone.worktree_path, { recursive: true, force: true });
   // フォルダが消えた作業場所の Git の操作は 404（「Git で管理されていません」と紛らわしく出さない）
@@ -251,7 +254,7 @@ test("チャットの作業場所: 新しいワークツリーを作って、そ
   assert.equal((await call("POST", `/api/chats/${gone.id}/messages`, { text: "続き" })).status, 200);
   await until(() => store.chats.get(gone.id)?.status === "failed");
   assert.match(store.chats.get(gone.id)?.error ?? "", /作業場所のフォルダが見つかりません/);
-  assert.equal((await call("POST", `/api/projects/${project.id}/git/worktrees/finish`, { path: gone.worktree_path })).status, 200);
+  assert.equal((await call("POST", removeUrl, { path: gone.worktree_path, delete_branch: true })).status, 200);
   assert.equal(store.chats.get(gone.id)?.worktree_path, null);
   assert.equal(store.chats.get(gone.id)?.branch, "feat/c");
   fs.rmSync(path.dirname(worktree), { recursive: true, force: true });

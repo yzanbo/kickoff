@@ -4,17 +4,19 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
-import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
+import { PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
+import { chatDefaultsSchema, projectDescription, projectName } from "./schemas.js";
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 
+// 新しいプロジェクト（description は README の「アイデア」にも書く）
 const newProjectSchema = z.object({
-  name: z.string().trim().min(1).max(100),
-  idea: z.string().max(10_000).default(""),
+  name: projectName,
+  description: projectDescription.default(""),
   parent_dir: z.string().trim().min(1),
   folder_name: z.string().trim().min(1).max(100),
   provider: z.enum(PROVIDER_IDS).optional(),
@@ -22,16 +24,16 @@ const newProjectSchema = z.object({
 
 const importProjectSchema = z.object({
   path: z.string().trim().min(1),
-  name: z.string().trim().min(1).max(100),
-  description: z.string().max(10_000).default(""),
+  name: projectName,
+  description: projectDescription.default(""),
   init_git: z.boolean().default(false),
   provider: z.enum(PROVIDER_IDS).optional(),
 });
 
 const projectPatchSchema = z
   .object({
-    name: z.string().trim().min(1).max(100),
-    description: z.string().max(10_000),
+    name: projectName,
+    description: projectDescription,
     provider: z.enum(PROVIDER_IDS),
     // プロジェクトの色（色の一覧から選ぶ）
     hue: z.number().int().refine((h) => (PROJECT_HUES as readonly number[]).includes(h), "色は一覧から選んでください"),
@@ -47,19 +49,11 @@ const projectPatchSchema = z
     // 参照資料（パスだけ送ればよい。種類はサーバーで調べる）
     reference_paths: z.array(z.object({ path: z.string().trim().min(1).max(1000) })).max(50),
     // 送った内容で置き換える（書いていない項目はアプリ全体の設定に従う）
-    chat_defaults: z
-      .object({
-        model: z.string().min(1).max(100),
-        effort: z.enum(EFFORT_LEVELS).nullable(),
-        permission_mode: z.enum(PERMISSION_MODES),
-        fast_mode: z.boolean(),
-      })
-      .partial()
-      .strict(),
+    chat_defaults: chatDefaultsSchema.partial().strict(),
   })
   .partial();
 
-/** プロジェクト（作成・取り込み・設定の変更・並び順・管理から外す） */
+/** プロジェクト（作成・取り込み・設定の変更・並び順・管理から外す）。変えたら、変えたあとのプロジェクト（並べ替えは一覧。管理から外すのは 204） */
 export function projectRoutes(app: Hono, { store }: ServerDeps) {
   const { withProject } = lookups(store);
   // 指定がなければ、設定の既定のプロバイダー
@@ -69,8 +63,8 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
 
   app.post("/api/projects", async (c) => {
     const input = newProjectSchema.parse(await jsonBody(c));
-    const repoPath = await createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, idea: input.idea });
-    const project = store.projects.create({ name: input.name, description: input.idea, repo_path: repoPath, provider: providerOf(input.provider) });
+    const repoPath = await createWorkspace({ parentDir: input.parent_dir, folderName: input.folder_name, name: input.name, description: input.description });
+    const project = store.projects.create({ name: input.name, description: input.description, repo_path: repoPath, provider: providerOf(input.provider) });
     store.settings.update({ projects_dir: input.parent_dir });
     return c.json(project, 201);
   });
@@ -106,17 +100,16 @@ export function projectRoutes(app: Hono, { store }: ServerDeps) {
     );
   });
 
-  // サイドバーでのプロジェクトの並び順
+  // サイドバーでのプロジェクトの並び順（並べたあとの一覧を返す。グループの並べ替えと同じ）
   app.put("/api/projects/order", async (c) => {
     const { ids } = z.object({ ids: z.array(z.number().int()).max(500) }).parse(await jsonBody(c));
-    store.projects.reorder(ids);
-    return c.json({ ok: true });
+    return c.json(store.projects.reorder(ids));
   });
 
   // Kickoff の管理から外すだけで、フォルダやリポジトリは削除しない
   app.delete("/api/projects/:id", withProject, (c) => {
     store.projects.delete(c.var.project.id);
-    return c.json({ ok: true });
+    return c.body(null, 204);
   });
 }
 

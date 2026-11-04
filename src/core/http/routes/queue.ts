@@ -3,11 +3,8 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
-import { attachmentSchema, messageInputSchema } from "./schemas.js";
+import { attachmentsSchema, editingIdsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "./schemas.js";
 import type { QueueAddResult, QueueMergeResult } from "@shared/types";
-
-/** 選んだ待ちの指示（送信待ちの複数選択） */
-const queueIdsSchema = z.object({ ids: z.array(z.string().min(1).max(100)).min(1).max(500) });
 
 /**
  * 作業中のチャットに送った次の指示の待ちの列（送信待ち）: ためる・消す・書き換える・並べ替える・まとめて送る・すぐ送る・
@@ -20,9 +17,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す）
   app.post("/api/chats/:id/queue", withChat, async (c) => {
     const { chat } = c.var;
-    const body = await jsonBody(c);
-    const { text, options, attachments } = messageInputSchema.parse(body);
-    const { hold } = z.object({ hold: z.boolean().optional() }).parse(body);
+    const { text, options, attachments, hold } = queueMessageSchema.parse(await jsonBody(c));
     const added = await runner.queueMessage(chat.id, text, options, attachments, { hold });
     const result: QueueAddResult = { ...runner.queueState(chat.id), ...added };
     return c.json(result);
@@ -38,7 +33,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // その指示のすぐあとに「ここまで送ったら止めます」の印を付ける・外す（右クリックの「この指示のあとで止める」。stop: false で外す・id: null ですべて外す。列にない指示なら 404）
   app.put("/api/chats/:id/queue/stop-after", withChat, async (c) => {
     const { chat } = c.var;
-    const { id, stop } = z.object({ id: z.string().min(1).max(100).nullable(), stop: z.boolean().default(true) }).parse(await jsonBody(c));
+    const { id, stop } = z.object({ id: queueId.nullable(), stop: z.boolean().default(true) }).parse(await jsonBody(c));
     runner.setQueueStopAfter(chat.id, id, stop);
     return c.json(runner.queueState(chat.id));
   });
@@ -63,7 +58,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   // 開いている間は持ち時間より短い間隔で知らせ直す（途絶えたら外れて送る。列にない指示は数えない）
   app.put("/api/chats/:id/queue/editing", withChat, async (c) => {
     const { chat } = c.var;
-    const { ids } = z.object({ ids: z.array(z.string().min(1).max(100)).max(500) }).parse(await jsonBody(c));
+    const { ids } = editingIdsSchema.parse(await jsonBody(c));
     runner.setQueueEditing(chat.id, ids);
     return c.json(runner.queueState(chat.id));
   });
@@ -79,9 +74,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.patch("/api/chats/:id/queue/:queueId", withChat, async (c) => {
     const { chat } = c.var;
     // attachments: 添付を置き換える（足す・外す。省けば今のまま）
-    const { text, attachments } = z
-      .object({ text: z.string().max(50_000), attachments: z.array(attachmentSchema).max(20).optional() })
-      .parse(await jsonBody(c));
+    const { text, attachments } = z.object({ text: messageText, attachments: attachmentsSchema.optional() }).parse(await jsonBody(c));
     runner.editQueued(chat.id, c.req.param("queueId"), text, attachments);
     return c.json(runner.queueState(chat.id));
   });
@@ -131,7 +124,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.post("/api/chats/:id/queue/move-many", withChat, async (c) => {
     const { chat } = c.var;
     const body = queueIdsSchema
-      .extend({ to: z.enum(["top", "bottom"]).optional(), before: z.string().min(1).max(100).nullable().optional(), below_stop: z.boolean().optional() })
+      .extend({ to: z.enum(["top", "bottom"]).optional(), before: queueId.nullable().optional(), below_stop: z.boolean().optional() })
       .refine((b) => (b.to === undefined) !== (b.before === undefined), "to か before のどちらか一方を指定してください")
       .parse(await jsonBody(c));
     const to = body.to ?? { before: body.before ?? null, belowStop: body.below_stop };

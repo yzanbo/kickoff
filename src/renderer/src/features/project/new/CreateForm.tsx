@@ -32,7 +32,7 @@ export function CreateForm({ defaultParentDir, initialName = "", onCancel, onCre
 
   const create = (e: FormEvent) => {
     e.preventDefault();
-    void submit(async () => onCreated(await api.createProject({ name, idea, parent_dir: parentDir, folder_name: folderName })));
+    void submit(async () => onCreated(await api.createProject({ name, description: idea, parent_dir: parentDir, folder_name: folderName })));
   };
 
   const fullPath = `${parentDir.replace(/\/+$/, "")}/${folderName || "…"}`;

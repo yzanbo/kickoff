@@ -82,7 +82,8 @@ export function WorktreeBar({
     setBusy("finish");
     setError(undefined);
     try {
-      await api.finishWorktree(projectId, worktree);
+      // 片付け = ブランチも消す「消す」（コミットしていない変更があれば、消さずに失敗する）
+      await api.removeWorktree(projectId, worktree, false, true);
       invalidateWorktrees(projectId);
       // 本体を最新にする（手元に変更があってできなければ、そう伝える）
       await api.gitPull(projectId).catch((e: unknown) => void alertDialog("本体を最新にできませんでした", errorMessage(e)));

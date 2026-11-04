@@ -3,14 +3,14 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups, requireProject } from "../lookups.js";
-import { messageInputSchema, chatOptionsSchema } from "./schemas.js";
+import { chatOptionsSchema, messageInputSchema, messageText } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
 import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import { workdirOf } from "../../chat/workdir.js";
 
 /**
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
- * 作業中にはできない操作は 409（Runner の requireIdle）
+ * 作業中にはできない操作は 409（Runner の requireIdle）。様子が変わるだけ（止める・やめる）で返すものがなければ 204（変わった様子は SSE の chat_live で届く）
  */
 export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) {
   const { withChat } = lookups(store);
@@ -31,7 +31,7 @@ export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) 
 
   app.post("/api/chats/:id/cancel", withChat, (c) => {
     runner.cancel(c.var.chat.id);
-    return c.json({ ok: true });
+    return c.body(null, 204);
   });
 
   // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中・まだ会話がなければ 409）
@@ -40,13 +40,13 @@ export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) 
   // 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる（待っていなければ 409）
   app.delete("/api/chats/:id/reconnect", withChat, (c) => {
     runner.stopReconnect(c.var.chat.id);
-    return c.json({ ok: true });
+    return c.body(null, 204);
   });
 
   // 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 409）
   app.post("/api/chats/:id/background/:taskId/stop", withChat, async (c) => {
     await runner.stopBackgroundTask(c.var.chat.id, c.req.param("taskId"));
-    return c.json({ ok: true });
+    return c.body(null, 204);
   });
 
   // 作業の終わり（result イベント）の時点から、新しいチャットに分岐する（作業中は 409、分岐できない時点は 400）
@@ -63,7 +63,7 @@ export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) 
   app.post("/api/chats/:id/rewind", withChat, async (c) => {
     const { chat } = c.var;
     const { event_id, text, options, restore_files } = z
-      .object({ event_id: z.number().int(), text: z.string().trim().max(50_000).default(""), options: chatOptionsSchema, restore_files: z.boolean().default(false) })
+      .object({ event_id: z.number().int(), text: messageText.default(""), options: chatOptionsSchema, restore_files: z.boolean().default(false) })
       .parse(await jsonBody(c));
     const cwd = workdirOf(chat, requireProject(store, chat.project_id));
     return c.json(await rewindChat(deps, chat, { eventId: event_id, text, options, cwd, restoreFiles: restore_files }));

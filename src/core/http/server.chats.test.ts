@@ -1,4 +1,4 @@
-// API のテスト: チャット・グループ、添付・承認依頼・プロバイダー・使用枠、/ のコマンド、自動のアーカイブ（共通の準備は testing/testServer.ts）
+// API のテスト: チャット（作成・変更・固定・アーカイブ・移動・削除）・グループ、送信待ち・実行（送る・伝える・止める・分岐・巻き戻し）、添付・承認依頼・プロバイダー・使用枠、/ のコマンド、自動のアーカイブ（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -18,7 +18,7 @@ test("未読: 作業中も AI の文章の返答で未読にし、一番下ま�
     { type: "text", text: "サブの返答", parent: "t1" },
   ];
   let release = provider.hold();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "やって" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "やって" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "running" && store.events.list(chatId).some((e) => e.type === "tool_use"));
   assert.equal(store.chats.get(chatId)?.unread, false);
   release();
@@ -53,7 +53,7 @@ test("裏で動いている作業: 作業中はチャットの詳細で返し、
   const state = { tasks: [{ task_id: "b1", kind: "command" as const, description: "npm run dev" }], replied: true };
   provider.background = state;
   const release = provider.hold();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "動かして" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "動かして" })).body.id;
   await until(() => runner.live(chatId).background !== null);
   assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.background, state);
   release();
@@ -70,7 +70,7 @@ test("圧縮: 圧縮している間はチャットの詳細で始めた時刻を
   });
   provider.compacting = true;
   const release = provider.hold();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "続けて" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "続けて" })).body.id;
   await until(() => runner.live(chatId).compacting !== null);
   const since = (await call("GET", `/api/chats/${chatId}`)).body.live.compacting;
   assert.equal(typeof since, "string");
@@ -87,7 +87,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
     if (e.type === "chat_live") lives.push(JSON.parse(JSON.stringify(e.live)));
   });
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "次" });
   await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
@@ -114,7 +114,7 @@ test("再試行: AI の API への通信を再試行している間はチャッ�
   const retry = { attempt: 2, max_retries: 10, retry_delay_ms: 4000, at: new Date().toISOString() };
   provider.retry = retry;
   const release = provider.hold();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "動かして" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "動かして" })).body.id;
   await until(() => runner.live(chatId).retry !== null);
   assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.retry, retry);
   release();
@@ -131,10 +131,11 @@ test("停止: 止めるよう頼んでから作業が終わるまでは、詳細
   provider.hold();
   let finish = () => {};
   provider.slowStop = new Promise((resolve) => (finish = resolve));
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "動かして" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "動かして" })).body.id;
   await until(() => provider.prompts.length === 1);
   assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.stopping, false);
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/cancel`)).body, { ok: true });
+  // 止めるよう頼んだだけで返すものはない（停止中は SSE の chat_live で届く）
+  assert.deepEqual(await call("POST", `/api/chats/${chatId}/cancel`), { status: 204, body: undefined });
   // 2 回押しても知らせは 1 回
   await call("POST", `/api/chats/${chatId}/cancel`);
   assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.stopping, true);
@@ -159,12 +160,13 @@ test("チャット・グループの API", async () => {
   await call("DELETE", `/api/groups/${second.id}`);
   const otherGroup = (await call("POST", `/api/projects/${other.id}/groups`, { name: "x" })).body;
 
-  // 本文も添付もなければ送れない。ほかのプロジェクトのグループには入れられない
+  // 本文も添付もなければ送れない（本文のキーは続きと同じ text。以前の prompt は受け付けない）。ほかのプロジェクトのグループには入れられない
   assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { phase: "requirements" })).status, 400);
-  const cross = await call("POST", `/api/projects/${project.id}/chats`, { prompt: "x", group_id: otherGroup.id });
+  assert.equal((await call("POST", `/api/projects/${project.id}/chats`, { prompt: "以前のキー" })).status, 400);
+  const cross = await call("POST", `/api/projects/${project.id}/chats`, { text: "x", group_id: otherGroup.id });
   assert.deepEqual(cross, { status: 400, body: { error: "ほかのプロジェクトのグループには入れられません" } });
 
-  const started = await call("POST", `/api/projects/${project.id}/chats`, { prompt: "こんにちは", group_id: group.body.id });
+  const started = await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは", group_id: group.body.id });
   assert.equal(started.status, 201);
   const chatId: number = started.body.id;
   await until(() => !runner.isBusy(chatId));
@@ -203,20 +205,30 @@ test("チャット・グループの API", async () => {
   assert.equal(store.chats.get(chatId)?.active_at, activeAt);
   assert.equal((await call("POST", `/api/chats/${chatId}/seen`)).body.unread, false);
   assert.equal(store.chats.get(chatId)?.active_at, activeAt);
-  // サイドバーの上に固定する・やめる: 並び順（最後に動いた時刻）は変えない
-  assert.equal((await call("POST", `/api/chats/${chatId}/pin`, { pinned: true })).body.pinned, true);
+  // サイドバーの上に固定する・やめる（プロジェクトと同じく PATCH）: 並び順（最後に動いた時刻）は変えない
+  assert.equal((await call("PATCH", `/api/chats/${chatId}`, { pinned: true })).body.pinned, true);
   assert.equal(store.chats.get(chatId)?.active_at, activeAt);
-  assert.equal((await call("POST", `/api/chats/${chatId}/pin`, { pinned: false })).body.pinned, false);
-  assert.equal((await call("POST", `/api/chats/${chatId}/pin`, {})).status, 400);
-  assert.ok((await call("POST", `/api/chats/${chatId}/archive`)).body.archived_at);
+  assert.equal((await call("PATCH", `/api/chats/${chatId}`, { pinned: false })).body.pinned, false);
+  assert.equal((await call("PATCH", `/api/chats/${chatId}`, { pinned: "yes" })).status, 400);
+  // 以前の個別のルートはなくした
+  assert.equal((await call("POST", `/api/chats/${chatId}/pin`, { pinned: true })).status, 404);
+  assert.equal((await call("POST", `/api/chats/${chatId}/archive`, { archived: true })).status, 404);
+  // アーカイブ・戻す（しまったままもう一度しまっても、しまった日時は変えない）。並び順は変えない
+  const archived = (await call("PATCH", `/api/chats/${chatId}`, { archived: true })).body;
+  assert.ok(archived.archived_at);
+  assert.equal((await call("PATCH", `/api/chats/${chatId}`, { archived: true })).body.archived_at, archived.archived_at);
+  assert.equal(store.chats.get(chatId)?.active_at, activeAt);
   assert.equal((await call("GET", `/api/projects/${project.id}/chats`)).body.length, 0);
   assert.equal((await call("GET", `/api/projects/${project.id}/chats?archived=1`)).body.length, 1);
-  assert.equal((await call("POST", `/api/chats/${chatId}/archive`, { archived: false })).body.archived_at, null);
+  // いくつかの項目を一度に変えられる
+  const restored = (await call("PATCH", `/api/chats/${chatId}`, { archived: false, pinned: true, title: "名前2" })).body;
+  assert.deepEqual([restored.archived_at, restored.pinned, restored.title], [null, true, "名前2"]);
+  await call("PATCH", `/api/chats/${chatId}`, { pinned: false });
 
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, {})).status, 400);
   assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "続き" })).status, 200);
   await until(() => !runner.isBusy(chatId));
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/cancel`)).body, { ok: true });
+  assert.equal((await call("POST", `/api/chats/${chatId}/cancel`)).status, 204);
 
   assert.deepEqual(
     (await call("PUT", `/api/projects/${project.id}/groups/order`, { ids: [group.body.id] })).body.map((g: { id: number }) => g.id),
@@ -224,19 +236,35 @@ test("チャット・グループの API", async () => {
   );
   assert.equal((await call("PATCH", `/api/groups/${group.body.id}`, { name: "h" })).body.name, "h");
   assert.equal((await call("GET", `/api/projects/${project.id}/groups`)).body.length, 1);
-  assert.deepEqual((await call("DELETE", `/api/groups/${group.body.id}`)).body, { ok: true });
+  assert.deepEqual(await call("DELETE", `/api/groups/${group.body.id}`), { status: 204, body: undefined });
   assert.equal(store.chats.get(chatId)?.group_id, null);
   assert.deepEqual(await call("PATCH", "/api/groups/999", { name: "x" }), { status: 404, body: { error: "グループが見つかりません" } });
 
-  assert.deepEqual((await call("DELETE", `/api/chats/${chatId}`)).body, { ok: true });
+  assert.deepEqual(await call("DELETE", `/api/chats/${chatId}`), { status: 204, body: undefined });
   assert.equal(store.chats.get(chatId), undefined);
+});
+
+test("作業中のチャットはアーカイブ・削除できない（409）。断るときはほかの項目も変えない", async () => {
+  const { call, project, runner, provider, store } = setup();
+  const release = provider.hold();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  const busy = await call("PATCH", `/api/chats/${chatId}`, { archived: true, pinned: true });
+  assert.deepEqual(busy, { status: 409, body: { error: "作業中のチャットはアーカイブできません。終わってから（または中断してから）行ってください" } });
+  assert.equal(store.chats.get(chatId)?.pinned, false);
+  assert.equal(store.chats.get(chatId)?.archived_at, null);
+  assert.equal((await call("DELETE", `/api/chats/${chatId}`)).status, 409);
+  // 固定は作業中でもできる
+  assert.equal((await call("PATCH", `/api/chats/${chatId}`, { pinned: true })).body.pinned, true);
+  release();
+  await until(() => !runner.isBusy(chatId));
 });
 
 test("チャットを別のプロジェクトへ移す: グループ・作業場所・ブランチを外し、並び順は変えない。作業中・知らないプロジェクトは断る", async () => {
   const { call, project, store, runner } = setup();
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
   const group = (await call("POST", `/api/projects/${project.id}/groups`, { name: "g" })).body;
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "こんにちは", group_id: group.id })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "こんにちは", group_id: group.id })).body.id;
   await until(() => !runner.isBusy(chatId));
   const activeAt = store.chats.get(chatId)?.active_at;
 
@@ -296,7 +324,8 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
     answers: { Q: "この画像のように" },
     attachments: { Q: [saved, { id: randomUUID(), name: "missing.png", mime: "image/png", size: 1 }] },
   });
-  assert.equal(answered.status, 200);
+  // 回答した依頼は一覧から消えるので、返すものはない（204）
+  assert.equal(answered.status, 204);
   const decision = await question.decision;
   assert.equal(decision.action, "answer");
   const text = decision.action === "answer" ? String(decision.answers.Q) : "";
@@ -325,7 +354,7 @@ test("チャット欄の / のコマンド: プロジェクトの作業場所で
 test("自動のアーカイブ: 完了して日数がたったチャットだけをアーカイブする（未読・固定はしない）。設定で日数を選ぶ", async () => {
   const { call, project, store } = setup();
   const finish = async (prompt: string) => {
-    const chat = (await call("POST", `/api/projects/${project.id}/chats`, { prompt })).body;
+    const chat = (await call("POST", `/api/projects/${project.id}/chats`, { text: prompt })).body;
     await until(() => store.chats.get(chat.id)?.status === "completed");
     return chat.id as number;
   };
@@ -355,7 +384,7 @@ test("自動のアーカイブ: 完了して日数がたったチャットだけ
 test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・すぐ送る。作業中でなければすぐ送る", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue`, {})).status, 400);
   assert.equal((await call("POST", `/api/chats/${chatId}/queue`, { text: "2" })).body.queued, true);
@@ -415,7 +444,7 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
 test("待ちの列は再起動しても残る: 読み戻した列は止めておき、作業が終わっても送らない", async () => {
   const { call, project, runner, provider, store } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "2" });
   await call("POST", `/api/chats/${chatId}/queue`, { text: "3" });
@@ -430,7 +459,7 @@ test("待ちの列は再起動しても残る: 読み戻した列は止めてお
 test("待ちの列を止めておく API: 終わっても送らず、すぐ送るで 1 件ずつ送れ、戻すと先頭をすぐ送る。空になると自動に戻る", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   // 列が空なら止めない
   assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true })).body, { messages: [], paused: false, stops: [], waiting_edit: false });
@@ -466,7 +495,7 @@ test("待ちの列を止めておく API: 終わっても送らず、すぐ送�
 test("待ちの列の書き直し: 次に送る指示を書き直している間は送らず、終わったら送る。ほかの指示の書き直し・知らせが途絶えたときは止めない", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   for (const text of ["2", "3"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
   const [first] = runner.live(chatId).queue.messages;
@@ -505,7 +534,7 @@ test("待ちの列の書き直し: 次に送る指示を書き直している間
 test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件にし（列の順に空行でつなぐ）、選んだうちのいちばん上の位置に残す", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   for (const text of ["a", "b", "c", "d"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
   const ids = runner.live(chatId).queue.messages.map((m) => m.id);
@@ -528,7 +557,7 @@ test("待ちの列をまとめる API: 選んだ指示を送らずに 1 件に�
 test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発言として順に送り、止めておく・「ここまで」の印があっても最後まで送る", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   // 送るものがなければ 409（状態による失敗）、チャットがなければ 404
   assert.deepEqual(await call("POST", `/api/chats/${chatId}/queue/send-in-order`), { status: 409, body: { error: "送信待ちの指示がありません" } });
@@ -550,7 +579,7 @@ test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発�
 test("「ここまで送ったら止めます」: 印は列の中の位置で持ち、いくつでも・1 件目の上にも置ける。印まで送って止め、自動に戻すと次の印まで送る", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   for (const text of ["2", "3", "4", "5"]) await call("POST", `/api/chats/${chatId}/queue`, { text });
   const [, third] = runner.live(chatId).queue.messages;
@@ -587,7 +616,7 @@ test("作業の終わり: 終わりの知らせがないまま止まったサブ
     { type: "tool_use", id: "tu1", name: "Agent", input: { description: "調査" } },
     { type: "tool_result", tool_use_id: "tu1", content: "Async agent launched successfully.", is_error: false },
   ];
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   assert.ok(store.events.list(chatId).some((e) => e.type === "notice" && /サブエージェント 1 件（調査）/.test(JSON.stringify(e.data))));
   // 次の実行では、前の実行のものを数え直さない
@@ -606,7 +635,7 @@ test("届かなかったサブエージェントの報告: 次に送る指示に
     { type: "subagent", task_id: "a1", tool_use_id: "tu1", description: "調査", status: "running" },
     { type: "subagent", task_id: "a1", tool_use_id: "tu1", description: "", status: "completed", summary: "見つけたのは 3 件" },
   ];
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   provider.emits = [];
   await call("POST", `/api/chats/${chatId}/messages`, { text: "次" });
@@ -625,7 +654,7 @@ test("届かなかったサブエージェントの報告: 次に送る指示に
 
 test("分岐の API: 作業の終わりの時点までの会話を新しいチャットに写す（元のチャットは変えない）", async () => {
   const { call, project, store, runner, provider } = setup();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
@@ -658,7 +687,7 @@ test("分岐の API: 作業の終わりの時点までの会話を新しいチ�
 
 test("巻き戻し・分岐は、止めた作業の終わりを起点にしない（その時点のメッセージはセッションに残らないことがある）", async () => {
   const { call, project, store, provider } = setup();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   const completed = store.events.list(chatId).find((e) => e.type === "result")!;
   // 以前の記録の形: 止めた作業の終わりにも message_id が付いている
@@ -674,7 +703,7 @@ test("巻き戻し・分岐は、止めた作業の終わりを起点にしな�
 test("巻き戻しの API: 自分の発言の手前まで戻し、書き直した文で送り直す（添付は引き継ぐ）", async () => {
   const { call, project, store, runner, provider } = setup();
   const attachment = { id: randomUUID(), name: "a.txt", mime: "text/plain", size: 1 };
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2", attachments: [attachment] });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
@@ -719,7 +748,7 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
   const user = events.find((e) => e.type === "user")!;
   const notMine = await call("POST", `/api/chats/${chatId}/rewind`, { event_id: result.id, text: "x" });
   assert.deepEqual(notMine, { status: 400, body: { error: "自分の発言のところからだけ巻き戻せます" } });
-  const otherId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "別" })).body.id;
+  const otherId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "別" })).body.id;
   await until(() => !runner.isBusy(otherId));
   const otherUser = store.events.list(otherId).find((e) => e.type === "user")!;
   assert.equal((await call("POST", `/api/chats/${chatId}/rewind`, { event_id: otherUser.id, text: "x" })).status, 400);
@@ -744,14 +773,14 @@ test("巻き戻しの API: 自分の発言の手前まで戻し、書き直し�
 
 test("チャットの記録の API: ほかのチャットのやり取りを Markdown の添付ファイルにして返す（そのまま添付として送れる）", async () => {
   const { call, project, store, provider } = setup();
-  const source = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "前の話" })).body.id;
+  const source = (await call("POST", `/api/projects/${project.id}/chats`, { text: "前の話" })).body.id;
   await until(() => store.chats.get(source)?.status === "completed");
   const res = await call("POST", `/api/chats/${source}/transcript`);
   assert.equal(res.status, 201);
   assert.equal(res.body.mime, "text/markdown");
   assert.match(res.body.name, /^チャット履歴-.+\.md$/);
   // 別のチャットに添付として送ると、指示に記録のファイルのパスが添えられる
-  const target = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "続き", attachments: [res.body] })).body.id;
+  const target = (await call("POST", `/api/projects/${project.id}/chats`, { text: "続き", attachments: [res.body] })).body.id;
   await until(() => store.chats.get(target)?.status === "completed");
   assert.match(provider.prompts.at(-1)!, /チャット履歴-.+\.md/);
   assert.equal((await call("POST", "/api/chats/99999/transcript")).status, 404);
@@ -759,7 +788,7 @@ test("チャットの記録の API: ほかのチャットのやり取りを Mark
 
 test("ファイルを戻す API: 自分の発言を送る前の状態にファイルだけ戻す（会話はそのまま）。dry_run は量だけ。戻せない・作業中は断る", async () => {
   const { call, project, store, runner, provider } = setup();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   const [user] = store.events.list(chatId).filter((e) => e.type === "user");
   const messageId = user.type === "user" ? user.data.message_uuid : "";
@@ -792,7 +821,7 @@ test("ファイルを戻す API: 自分の発言を送る前の状態にファ�
 
 test("巻き戻しの API: restore_files なら、分岐する前にファイルも戻す（ファイルの記録は元のセッションにあるため）", async () => {
   const { call, project, store, runner, provider } = setup();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => store.chats.get(chatId)?.status === "completed");
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
@@ -817,7 +846,7 @@ test("巻き戻しの API: restore_files なら、分岐する前にファイル
 
 test("巻き戻しの API: 分岐に対応していないプロバイダーなら 400（最初の発言なら分岐しないので送れる）", async () => {
   const { call, project, store, runner, provider } = setup();
-  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => !runner.isBusy(chatId));
   await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
   await until(() => !runner.isBusy(chatId) && store.events.list(chatId).filter((e) => e.type === "result").length === 2);
@@ -843,7 +872,7 @@ test("既定の推論の深さの API: 作業フォルダの Claude Code の設�
 test("待ちの列の API: すべて消す・まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めずに伝える）", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   // 送るものがなければ 409（状態による失敗）
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/send-all`)).status, 409);
@@ -863,7 +892,7 @@ test("待ちの列の API: すべて消す・まとめて送る（文は空行�
 test("待ちの列の API: 選んだものだけ、まとめて送る・消す・いちばん上か下へ移す（ほかは並びを保つ）", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   const ids: string[] = [];
   for (const text of ["A", "B", "C", "D", "E"]) ids.push((await call("POST", `/api/chats/${chatId}/queue`, { text })).body.id);
@@ -920,7 +949,7 @@ test("待ちの列の API: 選んだものだけ、まとめて送る・消す�
 test("止めずに伝える API: 作業中なら止めずに足して自分の発言に残し、足せなければ待ちの列へ。作業中でなければすぐ送る", async () => {
   const { call, project, runner, provider, store } = setup();
   const release = provider.hold();
-  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { prompt: "1" })).body.id;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
   await until(() => provider.prompts.length === 1);
   // 作業中: 止めずに足す（待ちの列には入れない。作業も止めない）
   assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "ついでに" })).body, { result: "told" });
@@ -940,7 +969,7 @@ test("止めずに伝える API: 作業中なら止めずに足して自分の�
   await call("POST", `/api/chats/${chatId}/queue/${runner.live(chatId).queue.messages[1].id}/send`);
   assert.deepEqual(provider.told, ["ついでに", "あとで"]);
   // 裏の作業を 1 つ止める
-  assert.deepEqual((await call("POST", `/api/chats/${chatId}/background/b1/stop`)).body, { ok: true });
+  assert.equal((await call("POST", `/api/chats/${chatId}/background/b1/stop`)).status, 204);
   assert.deepEqual(provider.stoppedTasks, ["b1"]);
   await call("DELETE", `/api/chats/${chatId}/queue`);
   release();

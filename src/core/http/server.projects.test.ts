@@ -1,5 +1,7 @@
-// API のテスト: 設定・プロジェクト、プロジェクトの固定・アーカイブ・色（共通の準備は testing/testServer.ts）
+// API のテスト: 設定・プロジェクト（作成・変更・並べ替え・管理から外す）、プロジェクトの固定・アーカイブ・タグ・色（共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 import { AUTH, setup, tempDir } from "../testing/testServer.js";
 
@@ -33,11 +35,13 @@ test("設定・プロジェクトの API", async () => {
   assert.deepEqual(refs.body.reference_paths, [{ path: project.repo_path, kind: "folder" }]);
 
   const other = store.projects.create({ name: "o", repo_path: tempDir(), provider: "claude" });
-  // 一覧は更新順。サイドバーの並び順は position で持つ
-  assert.deepEqual((await call("PUT", "/api/projects/order", { ids: [other.id, project.id] })).body, { ok: true });
+  // サイドバーの並び順は position で持つ。並べ替えは、並べたあとの一覧を返す（グループの並べ替えと同じ）
+  const ordered = (await call("PUT", "/api/projects/order", { ids: [other.id, project.id] })).body;
+  assert.deepEqual(ordered.map((p: { id: number }) => p.id), [other.id, project.id]);
   const positions = new Map((await call("GET", "/api/projects")).body.map((p: { id: number; position: number }) => [p.id, p.position]));
   assert.deepEqual([positions.get(other.id), positions.get(project.id)], [1, 2]);
-  assert.deepEqual((await call("DELETE", `/api/projects/${other.id}`)).body, { ok: true });
+  // 管理から外すと、返すものはない（204）
+  assert.deepEqual(await call("DELETE", `/api/projects/${other.id}`), { status: 204, body: undefined });
   assert.equal(store.projects.get(other.id), undefined);
 
   const inspected = await call("GET", `/api/workspace/inspect?path=${encodeURIComponent(project.repo_path)}`);
@@ -54,6 +58,19 @@ test("設定・プロジェクトの API", async () => {
   // 以前の設定（テストのコマンド・デプロイの手順・自動コミット）は受け付けず（無視する）、返しもしない
   const legacy = (await call("PATCH", `/api/projects/${project.id}`, { test_command: "npm test", deploy_instructions: "x", auto_commit: false })).body;
   for (const key of ["test_command", "deploy_instructions", "auto_commit"]) assert.equal(key in legacy, false, key);
+});
+
+test("新しいプロジェクト: フォルダを Git のリポジトリとして作り、説明（description。取り込み・編集と同じキー）を README の「アイデア」にも書く", async () => {
+  const { call, store } = setup();
+  const parent = tempDir();
+  const created = await call("POST", "/api/projects", { name: "Todo", description: "やることを管理したい", parent_dir: parent, folder_name: "todo" });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.description, "やることを管理したい");
+  assert.match(fs.readFileSync(path.join(created.body.repo_path, "README.md"), "utf8"), /## アイデア\n\nやることを管理したい/);
+  // 作った場所を、次の新しいプロジェクトの保存先の既定にする
+  assert.equal(store.settings.get().projects_dir, parent);
+  // 同じ名前の空でないフォルダには作らない（409）
+  assert.equal((await call("POST", "/api/projects", { name: "Todo", parent_dir: parent, folder_name: "todo" })).status, 409);
 });
 
 test("プロジェクトを上に固定する・しまう（アーカイブ）・戻す", async () => {

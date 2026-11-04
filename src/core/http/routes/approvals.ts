@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import type { ApprovalDecision } from "@shared/types";
 import { jsonBody, queryOf } from "../input.js";
-import { attachmentSchema, optionalId } from "./schemas.js";
+import { attachmentsSchema, optionalId } from "./schemas.js";
 import { answersWithAttachments } from "../../chat/uploads.js";
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
@@ -14,7 +14,7 @@ const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action
     action: z.literal("answer"),
     answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
     response: z.string().max(5000).optional(),
-    attachments: z.record(z.string(), z.array(attachmentSchema).max(20)).optional(),
+    attachments: z.record(z.string(), attachmentsSchema).optional(),
   }),
 ]);
 
@@ -33,8 +33,8 @@ export function approvalRoutes(app: Hono, { approvals, uploads }: ServerDeps) {
       // AI には添付のパスを書き添えた回答を渡し、チャットの記録には選んだままの回答と添付を残す
       decision = { ...rest, answers: await answersWithAttachments(uploads, rest.answers, attachments), plain: rest.answers, attachments };
     }
-    // もう待っていない（回答済み・中断済み）なら 409
+    // もう待っていない（回答済み・中断済み）なら 409。回答した依頼は一覧から消えるので、返すものはない
     approvals.resolve(c.req.param("id"), decision);
-    return c.json({ ok: true });
+    return c.body(null, 204);
   });
 }

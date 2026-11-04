@@ -174,7 +174,7 @@ export function NewChatPane({
                 }
               }
               const chat = await api.startChat(projectId, {
-                prompt,
+                text: prompt,
                 options: options.options,
                 attachments,
                 group_id: group,
