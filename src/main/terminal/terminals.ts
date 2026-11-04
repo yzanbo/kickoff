@@ -142,12 +142,13 @@ export function registerTerminalIpc() {
     const dir = typeof cwd === "string" && isDirectory(cwd) ? cwd : os.homedir();
     watchOwner(e.sender);
     const session = start(key, dir, clampSize(cols, 80), clampSize(rows, 24), e.sender);
-    // 作業場所のフォルダが見つからず（ワークツリーが消されたなど）ホームで開いたときは、画面の先頭でそう知らせる
+    // 作業場所のフォルダが見つからず（ワークツリーが消されたなど）ホームで開いたときは、画面の先頭でそう知らせる。
+    // 画面はこの返事が届くまでの出力を捨てるので、知らせとして送らず、最初の画面の内容（snapshot）として返す
+    // （裏の端末にも書いておき、つなぎ直したときにも出す）
     if (missing) {
       const note = `\x1b[33m作業場所のフォルダが見つからないため、ホームフォルダで開きました（${cwd}）\x1b[0m\r\n`;
       session.screen.write(note);
-      session.pending += note;
-      flush(key, session);
+      return { snapshot: note, created: true };
     }
     return { snapshot: "", created: true };
   });
