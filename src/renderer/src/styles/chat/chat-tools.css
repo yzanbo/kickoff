@@ -78,6 +78,18 @@
   color: var(--ng);
 }
 
+/* 処理の時刻（まとまりの見出しの要約の後ろ・1 件の行の右。実行中は回る印を前に置く） */
+.tool-time {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
 .tool-calls {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

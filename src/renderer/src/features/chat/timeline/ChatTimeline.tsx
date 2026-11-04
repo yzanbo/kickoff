@@ -92,7 +92,8 @@ export function ChatTimeline({
               以前の発言を表示（あと {w.hidden} 件）
             </button>
           )}
-          <TimelineItems items={w.visible} rel={rel} active={busy} />
+          {/* 途中の一部分（過去）を描いているときは、実行中のツールはない */}
+          <TimelineItems items={w.visible} rel={rel} active={busy && w.hiddenAfter === 0} />
           {/* 途中の一部分を描いているときは、最新の分（書いている途中の返答・確認のカード・作業中の行）は出さない（一番下へ戻るボタンで最新へ） */}
           {w.hiddenAfter > 0 ? (
             <button type="button" className="link-button timeline-more" onClick={w.showLater}>

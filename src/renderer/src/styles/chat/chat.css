@@ -267,6 +267,16 @@
   transform: rotate(90deg);
 }
 
+/* 思考の行の後ろの、考え始めた時刻 */
+.event-time {
+  margin-left: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.thinking > summary .event-time {
+  margin-left: 2px;
+}
+
 .thinking-body {
   margin: 4px 0 4px 6px;
   padding-left: 12px;
