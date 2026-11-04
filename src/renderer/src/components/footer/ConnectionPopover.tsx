@@ -71,8 +71,7 @@ export function ConnectionPopover({ state, since, onClose, onOpenSettings }: Pro
               <dd>{timeText(server.started_at)}</dd>
               <dt>エージェント</dt>
               <dd>
-                実行中 {server.agents.running} / {server.agents.max === null ? "上限なし" : `上限 ${server.agents.max}`}
-                {server.agents.queued > 0 && `（順番待ち ${server.agents.queued}）`}
+                実行中 {server.agents.running}
               </dd>
               <dt>スマホ連携</dt>
               <dd>{server.remote_enabled ? "オン（ほかの端末から接続できます）" : "オフ（この Mac からだけ）"}</dd>

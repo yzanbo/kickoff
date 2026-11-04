@@ -7,7 +7,6 @@ import { voiceLanguage } from "./schemas.js";
 
 const settingsSchema = z
   .object({
-    maxConcurrentRuns: z.number().int().min(1).max(8).nullable(),
     defaultProvider: z.enum(PROVIDER_IDS),
     remoteEnabled: z.boolean(),
     ntfyUrl: z.union([z.literal(""), z.url()]),

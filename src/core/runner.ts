@@ -13,7 +13,7 @@ import type { UsageMonitor } from "./usage.js";
 
 /**
  * エージェントの実行を管理する。
- * 同時実行数の上限を超えた分は待機列に入れ、空きができしだい順に開始する。
+ * 送った指示はすぐ動かす（同時に動かす数は決めない）。
  * 1 つの実行（Run）は 1 つの会話で、追加のメッセージを送ると同じセッションを続きから再開する。
  * 作業中のチャットに送った次の指示は、チャットごとの待ちの列（followups）に入れ、作業が終わったら（止めた・失敗したときも）順に送る。
  * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は runExecution.ts、
@@ -21,7 +21,6 @@ import type { UsageMonitor } from "./usage.js";
  */
 export class Runner extends RunnerQueue {
   private readonly active = new Map<number, AbortController>();
-  private readonly queue: QueueItem[] = [];
   protected readonly followups: FollowupQueue;
   protected readonly editHolds: QueueEditHolds;
   /** アプリを終えるところ（待ちの列を送らない） */
@@ -40,7 +39,7 @@ export class Runner extends RunnerQueue {
   /** 止めるよう頼んで、終わるのを待っているチャット（runStopping.ts） */
   private readonly stopping: RunStopping;
   /**
-   * 送る準備をしているチャット（send で作業中かを確かめてから、指示を組み立てて順番待ちに入れるまで）。作業中として数える。
+   * 送る準備をしているチャット（send で作業中かを確かめてから、指示を組み立てて動かし始めるまで）。作業中として数える。
    * 組み立ての間（await）に別の送信（送信待ちの自動送信と「いま」など）が割り込むと、同じチャットを 2 つ同時に動かし、片方の指示が会話から消えていた
    */
   private readonly preparing = new Set<number>();
@@ -121,7 +120,7 @@ export class Runner extends RunnerQueue {
 
   async start(input: StartRunInput): Promise<Run> {
     const { run, prompt, messageUuid } = await createRun(this.deps, input);
-    this.enqueue({ runId: run.id, prompt, promptId: messageUuid });
+    void this.execute({ runId: run.id, prompt, promptId: messageUuid });
     return this.deps.store.getRun(run.id)!;
   }
 
@@ -131,7 +130,7 @@ export class Runner extends RunnerQueue {
     const run = store.getRun(runId);
     if (!run) throw new Error("実行が見つかりません");
     if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから送ってください");
-    // 順番待ちに入れるまで作業中として数える（組み立ての間に届いた送信は、作業中のチャットへの送信として扱われる）
+    // 動かし始めるまで作業中として数える（組み立ての間に届いた送信は、作業中のチャットへの送信として扱われる）
     this.preparing.add(runId);
     let prepared: Awaited<ReturnType<typeof followupPrompt>>;
     try {
@@ -157,15 +156,15 @@ export class Runner extends RunnerQueue {
       permission_mode: options.permission_mode ?? undefined,
       fast_mode: options.fast_mode ?? undefined,
     });
-    // 順番待ちに入れたら作業中（this.queue / this.active）として数えられるので、準備の印は外す
+    // 動かし始めたら作業中（this.active）として数えられるので、準備の印は外す
     this.preparing.delete(runId);
-    this.enqueue({ runId: run.id, prompt, promptId: messageUuid });
+    void this.execute({ runId: run.id, prompt, promptId: messageUuid });
     return store.getRun(run.id)!;
   }
 
   /**
    * 止めずに伝える: 作業中なら、いまのやり取りに発言を足す（メインのエージェントが、いまの手順の切れ目で読む。
-   * 裏のサブエージェント・コマンドは動き続ける）。足せないとき（順番待ち・要約中など）は待ちの列に入れ（front なら先頭）、
+   * 裏のサブエージェント・コマンドは動き続ける）。足せないとき（始まる前・要約中など）は待ちの列に入れ（front なら先頭）、
    * 作業中でなければすぐ送る。モデルなどの選択は、作業の途中では変えられないので次に送るときから効く
    */
   async tell(runId: number, text: string, options: RunOptions = {}, attachments: Attachment[] = [], { front = false } = {}): Promise<"told" | "sent" | "queued"> {
@@ -227,18 +226,12 @@ export class Runner extends RunnerQueue {
     if (this.isBusy(runId)) throw new Error("エージェントが作業中です。終わってから圧縮してください");
     if (!run.session_id) throw new Error("まだ会話がないので、圧縮できません");
     store.updateRun(run.id, { status: "queued", error: null });
-    this.enqueue({ runId: run.id, prompt: "/compact", compact: true });
+    void this.execute({ runId: run.id, prompt: "/compact", compact: true });
     return store.getRun(run.id)!;
   }
 
 
   cancel(runId: number) {
-    const queued = this.queue.findIndex((q) => q.runId === runId);
-    if (queued >= 0) {
-      this.queue.splice(queued, 1);
-      this.deps.store.updateRun(runId, { status: "cancelled" });
-      return;
-    }
     const controller = this.active.get(runId);
     if (!controller) return;
     this.stopping.begin(runId);
@@ -250,9 +243,9 @@ export class Runner extends RunnerQueue {
     return this.stopping.has(runId);
   }
 
-  /** 実行中・順番待ちのエージェントの数（接続の詳細の表示用） */
-  stats(): { running: number; queued: number } {
-    return { running: this.active.size, queued: this.queue.length };
+  /** 実行中のエージェントの数（接続の詳細の表示用） */
+  stats(): { running: number } {
+    return { running: this.active.size };
   }
 
   protected hasRun(runId: number): boolean {
@@ -264,7 +257,7 @@ export class Runner extends RunnerQueue {
   }
 
   isBusy(runId: number): boolean {
-    return this.active.has(runId) || this.preparing.has(runId) || this.queue.some((q) => q.runId === runId);
+    return this.active.has(runId) || this.preparing.has(runId);
   }
 
   /** アプリ終了時: 実行中のエージェントをすべて止める */
@@ -272,24 +265,10 @@ export class Runner extends RunnerQueue {
     this.shuttingDown = true;
     this.reconnect.shutdown();
     this.usageLimit.shutdown();
-    this.queue.length = 0;
     for (const controller of this.active.values()) controller.abort();
   }
 
-  private enqueue(item: QueueItem) {
-    this.queue.push(item);
-    this.pump();
-  }
-
-  private pump() {
-    // 上限なし（null）なら、待たせずにすべて動かす
-    const limit = this.deps.store.getSettings().maxConcurrentRuns ?? Infinity;
-    while (this.active.size < limit && this.queue.length > 0) {
-      const item = this.queue.shift()!;
-      void this.execute(item);
-    }
-  }
-
+  /** 送った指示をすぐ動かす（同時に動かす数は決めない） */
   private async execute(item: QueueItem) {
     const controller = new AbortController();
     this.active.set(item.runId, controller);
@@ -305,7 +284,6 @@ export class Runner extends RunnerQueue {
       const network = this.reconnect.finished(item.runId, outcome);
       const usage = this.usageLimit.finished(item.runId, outcome);
       if (!this.shuttingDown && network && usage) void this.sendNextQueued(item.runId);
-      this.pump();
     }
   }
 }

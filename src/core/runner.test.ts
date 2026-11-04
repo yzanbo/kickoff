@@ -203,39 +203,23 @@ test("質問の「その他」に添付して答えたら、記録には選ん�
   });
 });
 
-test("同時実行数の上限を超えた分は待機し、中断すると承認待ちも片付く", async () => {
-  const { store, runner, approvals, project } = setup(async (_p, cb, signal) => {
+test("送った指示は数に関係なくすぐ動き、中断すると承認待ちも片付く", async () => {
+  const { runner, approvals, project, store } = setup(async (_p, cb, signal) => {
     const d = await cb.requestApproval({ kind: "permission", toolName: "Bash", input: { command: "ls" }, canRemember: false }, signal);
     return signal.aborted ? { status: "cancelled", sessionId: null } : { status: d.action === "deny" ? "failed" : "completed", sessionId: null };
   });
-  store.updateSettings({ maxConcurrentRuns: 1 });
-
-  const a = await runner.start({ projectId: project.id, prompt: "a" });
-  const b = await runner.start({ projectId: project.id, prompt: "b" });
-  await until(() => store.getRun(a.id)?.status === "waiting");
-  assert.equal(store.getRun(b.id)?.status, "queued");
-
-  runner.cancel(a.id);
-  await until(() => store.getRun(a.id)?.status === "cancelled");
-  await until(() => store.getRun(b.id)?.status === "waiting");
-  assert.deepEqual(
-    approvals.list().map((x) => x.run_id),
-    [b.id],
-  );
-  runner.cancel(b.id);
-  await until(() => store.getRun(b.id)?.status === "cancelled");
-});
-
-test("同時実行数が上限なし（null）なら、順番待ちをせずにすべて動かす", async () => {
-  const { store, runner, project } = setup(async (_p, cb, signal) => {
-    const d = await cb.requestApproval({ kind: "permission", toolName: "Bash", input: { command: "ls" }, canRemember: false }, signal);
-    return signal.aborted ? { status: "cancelled", sessionId: null } : { status: d.action === "deny" ? "failed" : "completed", sessionId: null };
-  });
-  store.updateSettings({ maxConcurrentRuns: null });
 
   const runs = await Promise.all(["a", "b", "c"].map((prompt) => runner.start({ projectId: project.id, prompt })));
   await until(() => runs.every((r) => store.getRun(r.id)?.status === "waiting"));
-  for (const r of runs) runner.cancel(r.id);
+  assert.equal(runner.stats().running, 3);
+
+  runner.cancel(runs[0].id);
+  await until(() => store.getRun(runs[0].id)?.status === "cancelled");
+  assert.deepEqual(
+    approvals.list().map((x) => x.run_id).sort(),
+    [runs[1].id, runs[2].id].sort(),
+  );
+  for (const r of runs.slice(1)) runner.cancel(r.id);
   await until(() => runs.every((r) => store.getRun(r.id)?.status === "cancelled"));
 });
 
