@@ -38,6 +38,12 @@
   opacity: 1;
 }
 
+/* 状態のあるとき（終わっている以外）は、枠をその状態の色そのものにする（サイドバー・カンバンの作業中・回答待ち・未読の点と同じ色に見えるように。以前は灰色と混ぜていて、色が分かりにくかった） */
+.scroll-bottom.guide:not(.idle) {
+  border-color: var(--pill-tone);
+  background: color-mix(in srgb, var(--pill-tone) 16%, var(--bg-elev));
+}
+
 .scroll-bottom.guide.working {
   --pill-tone: var(--dot-running);
   color: var(--text);
