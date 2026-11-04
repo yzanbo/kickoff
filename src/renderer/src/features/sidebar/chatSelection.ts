@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from "react";
+import type { Placement } from "@/lib/floating";
 
 /**
  * サイドバーで選んだチャット（⌘ を押しながらクリックで足す・外す、Shift で前に選んだものからの範囲。ふつうのクリックで解く）。
@@ -14,8 +15,8 @@ export interface ChatSelection {
   add: (id: number) => void;
   clear: () => void;
   /** 選んでいるチャットを右クリックしたとき: まとめて操作するメニューを開く */
-  openMenu: (at: { x: number; y: number }) => void;
-  menuAt: { x: number; y: number } | null;
+  openMenu: (at: Placement) => void;
+  menuAt: Placement | null;
   closeMenu: () => void;
 }
 
@@ -33,7 +34,7 @@ const rowIds = () => visibleRows().map((el) => Number(el.dataset.chatId));
 export function useChatSelectionState(existing: Set<number>): ChatSelection {
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [anchor, setAnchor] = useState<number | null>(null);
-  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
+  const [menuAt, setMenuAt] = useState<Placement | null>(null);
   const ids = new Set([...picked].filter((id) => existing.has(id)));
   return {
     ids,

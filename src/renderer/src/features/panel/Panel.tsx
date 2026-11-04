@@ -3,16 +3,15 @@ import { useRef, useState } from "react";
 import { baseName } from "@/lib/format";
 import { cx } from "@/lib/cx";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { useAnchoredMenu } from "@/ui/useAnchoredMenu";
-import { clampToViewport } from "@/ui/PopupMenu";
-import { TARGET_MENU_WIDTH, targetMenuHeight, TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
+import { TerminalTargetMenu } from "@/features/terminal/TerminalTargetMenu";
 import { PaneSash, fracStyle } from "@/features/panel/layout/PaneSash";
 import { PaneTabBar } from "@/features/panel/tabs/PaneTabBar";
 import { PanelEmpty } from "./PanelEmpty";
 import { PanelTabPage } from "@/features/panel/tabs/PanelTabPage";
 import { layoutRects } from "@/features/panel/layout/paneGeometry";
 import { focusedPane, homePane, leavesOf, type PaneLeaf } from "@/features/panel/layout/paneLayout";
-import { TAB_MENU_WIDTH, TabMenu, tabMenuHeight } from "@/features/panel/tabs/TabMenu";
+import { TabMenu } from "@/features/panel/tabs/TabMenu";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTabDrag } from "@/features/panel/layout/useTabDrag";
 import type { PanelController, TerminalTarget } from "./usePanel";
@@ -53,7 +52,7 @@ export function Panel({
   const contentRef = useRef<HTMLDivElement>(null);
   const drag = useTabDrag(panel);
   // タブの右クリックのメニュー
-  const [menu, setMenu] = useState<{ key: string; x: number; y: number } | null>(null);
+  const tabMenu = useContextMenu<string>();
   // チャットのタブの名前をその場で変える（タブのダブルクリック・右クリックの「名前を変更」で共通）
   const rename = useChatRename();
   // 境目をドラッグしている間（中身の上でポインターを奪われないようにする）
@@ -66,7 +65,7 @@ export function Panel({
   const shown = (pane: PaneLeaf) => shownActiveOf(pane, panel.isKindShown);
   const anyShown = (keys: readonly string[]) => keys.some(panel.isKindShown);
   // ターミナルの開く場所を選ぶメニュー（開く場所がいくつもあるとき。タブの列のボタン・タブがないときのボタンで共通）
-  const terminalMenu = useAnchoredMenu(".panel-tab-terminal, .panel-empty-terminal", TARGET_MENU_WIDTH, "right");
+  const terminalMenu = useContextMenu({ align: "end" });
   /** ペインで表示しているチャットの作業場所（ワークツリーならそのフォルダ、本体ならプロジェクトのフォルダ）。チャットでなければ undefined */
   const chatTarget = (pane: PaneLeaf): TerminalTarget | undefined => {
     const tab = tabs.find((t) => t.key === shown(pane));
@@ -80,7 +79,7 @@ export function Panel({
     panel.focusPane(pane.id);
     const target = chatTarget(pane) ?? (terminalTargets.length === 1 ? terminalTargets[0] : undefined);
     if (target) return panel.openTerminal(target);
-    terminalMenu.toggle(e, targetMenuHeight(terminalTargets.length));
+    terminalMenu.toggle(e);
   };
 
   // ブラウザ・ターミナルの ▾（新しいタブ・外のアプリで開く・外のアプリを選ぶ）
@@ -161,10 +160,7 @@ export function Panel({
       onBarMenu={sidebar ? undefined : layoutMenu.open}
       onOpenWith={openWith.open}
       openWithShown={openWith.shown}
-      onMenu={(key, e) => {
-        e.preventDefault();
-        setMenu({ key, ...clampToViewport(e.clientX, e.clientY, TAB_MENU_WIDTH, tabMenuHeight(leaves.length, tabs.some((t) => t.key === key && t.kind === "chat"))) });
-      }}
+      onMenu={(key, e) => tabMenu.open(e, key)}
     />
   );
   const empty = (pane: PaneLeaf) => (
@@ -214,11 +210,11 @@ export function Panel({
           })}
         {layoutMenu.menu}
         {openWith.menu}
-        {terminalMenu.at && (
+        {terminalMenu.menu && (
           <TerminalTargetMenu
-            {...terminalMenu.at}
+            at={terminalMenu.menu.at}
             targets={terminalTargets}
-            ignore={terminalMenu.ignore}
+            ignore=".panel-tab-terminal, .panel-empty-terminal"
             onPick={panel.openTerminal}
             onClose={terminalMenu.close}
           />
@@ -270,7 +266,7 @@ export function Panel({
             );
           })}
       </div>
-      {menu && <TabMenu panel={panel} tabKey={menu.key} x={menu.x} y={menu.y} onRename={(chat) => rename.start(chat)} onClose={() => setMenu(null)} />}
+      {tabMenu.menu && <TabMenu panel={panel} tabKey={tabMenu.menu.value} at={tabMenu.menu.at} onRename={(chat) => rename.start(chat)} onClose={tabMenu.close} />}
     </aside>
   );
 }

@@ -3,6 +3,7 @@ import { busyWithUnread } from "@shared/chat/state";
 import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
+import { anchorPlacement, type Placement } from "@/lib/floating";
 import { startChatDrag } from "@/features/group/groups";
 import type { ChatTitleEditor } from "@/features/chat/useChatRename";
 import { href, openChat } from "@/app/router";
@@ -11,7 +12,6 @@ import { workingFor } from "@/features/chat/activity";
 import { useTicker } from "@/hooks/useTicker";
 import { useChatActivity } from "@/features/chat/chatActivity";
 import { useChatSelection } from "./chatSelection";
-import { CARD_MENU_WIDTH } from "@/features/chat/ChatMenu";
 import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import { IconButton } from "@/ui/IconButton";
 import { StatusSlot } from "@/features/chat/StatusSlot";
@@ -36,7 +36,7 @@ export function ChatRow({
   active: boolean;
   /** この行のメニューを開いているか（「…」を出したままにし、もう一度押すと閉じる） */
   menuOpen?: boolean;
-  onMenu: (at: { x: number; y: number }) => void;
+  onMenu: (at: Placement) => void;
   onCloseMenu?: () => void;
   /** ダブルクリックで名前をその場で変え始める */
   onRename: () => void;
@@ -62,7 +62,7 @@ export function ChatRow({
     );
   }
   // 選んでいるチャットのメニューなら、まとめて操作するメニュー
-  const openMenuAt = (at: { x: number; y: number }) => {
+  const openMenuAt = (at: Placement) => {
     if (selection && selected && selection.ids.size > 1) selection.openMenu(at);
     else onMenu(at);
   };
@@ -130,8 +130,7 @@ export function ChatRow({
           onClick={(e) => {
             if (menuOpen) return onCloseMenu?.();
             // メニューの右端を、ボタンの右端にそろえて下に出す
-            const rect = e.currentTarget.getBoundingClientRect();
-            openMenuAt({ x: rect.right - CARD_MENU_WIDTH, y: rect.bottom + 4 });
+            openMenuAt(anchorPlacement(e.currentTarget, { align: "end" }));
           }}
         />
       </span>

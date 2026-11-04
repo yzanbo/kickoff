@@ -1,5 +1,4 @@
 import { Code2, History, SquareKanban, type LucideIcon } from "lucide-react";
-import { useState } from "react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -11,7 +10,7 @@ import { href, type ProjectTab } from "@/app/router";
 import { PROJECT_TABS_LAYOUT } from "@/lib/storageKeys";
 import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
-import { clampToViewport } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 
 /** タブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。縦の幅を本体に回せる） */
 export type ProjectTabsLayout = SettingValue<typeof PROJECT_TABS_LAYOUT>;
@@ -59,7 +58,7 @@ export function ProjectTabs({
 }) {
   const [columns] = useBoardColumns();
   const [layout, setLayout] = useProjectTabsLayout();
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const menu = useContextMenu();
   // 状態ごとのチャット数（カンバンの列と同じ数え方。アーカイブ済みは数えない）
   const { pending } = useChatStates();
   const counts = stateCounts(chats, pending);
@@ -69,10 +68,7 @@ export function ProjectTabs({
       className={cx("tabs", vertical && "project-side-tabs")}
       role="tablist"
       aria-orientation={vertical ? "vertical" : undefined}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setMenu(clampToViewport(e.clientX, e.clientY, 220, 100));
-      }}
+      onContextMenu={menu.open}
     >
       {TABS.map(({ tab: t, label, icon: Icon }) => {
         // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
@@ -110,16 +106,15 @@ export function ProjectTabs({
           </a>
         );
       })}
-      {menu && (
+      {menu.menu && (
         <ChoiceMenu
-          x={menu.x}
-          y={menu.y}
+          at={menu.menu.at}
           title="タブの置き方"
           values={PROJECT_TABS_LAYOUT.choices}
           labels={PROJECT_TABS_LAYOUT_LABELS}
           value={layout}
           onPick={setLayout}
-          onClose={() => setMenu(null)}
+          onClose={menu.close}
         />
       )}
     </nav>

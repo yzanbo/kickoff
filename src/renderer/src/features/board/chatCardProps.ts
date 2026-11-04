@@ -1,5 +1,6 @@
 import type { DragEvent, KeyboardEvent, MouseEvent } from "react";
 import type { Chat } from "@shared/types";
+import type { Placement } from "@/lib/floating";
 import { chatTitle } from "@/features/chat/chatTitle";
 
 /**
@@ -20,7 +21,7 @@ export function chatCardProps(
     /** 読み上げる説明の「（ドラッグで…）」の部分（ドラッグできるボードだけ） */
     dragHint?: string;
     onOpen: () => void;
-    onMenu: (at: { x: number; y: number }) => void;
+    onMenu: (at: Placement) => void;
     /** ドラッグで移せるボードだけ渡す（カンバンの列は AI の状態で決まるので動かさない） */
     onDragStart?: (e: DragEvent) => void;
     onDragEnd?: () => void;

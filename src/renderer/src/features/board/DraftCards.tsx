@@ -1,7 +1,7 @@
 import { SquarePen, Trash2 } from "lucide-react";
-import { useState } from "react";
 import { cx } from "@/lib/cx";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import type { NewChatTarget, PanelController } from "@/features/panel/usePanel";
 import { NEW_CHAT_TITLE } from "@/features/chat/chatTitle";
 
@@ -26,7 +26,7 @@ export function DraftCards({
 /** 下書きのカード。書いている途中の文があれば、その初めの数行を出す。押すとそのタブを表示し、右クリックで開く・削除を選べる */
 function DraftCard({ text, active, onOpen, onDelete }: { text: string; active: boolean; onOpen: () => void; onDelete: () => void }) {
   const written = text.trim();
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const menu = useContextMenu();
   return (
     <>
       <button
@@ -34,10 +34,7 @@ function DraftCard({ text, active, onOpen, onDelete }: { text: string; active: b
         className={cx("draft-card", active && "selected")}
         title="右側で入力中の新しいチャット（右クリックで削除）"
         onClick={onOpen}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setMenu(clampToViewport(e.clientX, e.clientY, 220, 120));
-        }}
+        onContextMenu={menu.open}
       >
         <span className="draft-card-head">
           <SquarePen size={13} aria-hidden />
@@ -45,8 +42,8 @@ function DraftCard({ text, active, onOpen, onDelete }: { text: string; active: b
         </span>
         {written && <span className="draft-card-text">{written}</span>}
       </button>
-      {menu && (
-        <PopupMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)}>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} onClose={menu.close}>
           <MenuItem onSelect={onOpen}>
             <SquarePen size={14} /> 開く
           </MenuItem>

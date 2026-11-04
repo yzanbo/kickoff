@@ -15,6 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
+import type { Placement } from "@/lib/floating";
 import { collectTags, MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 import type { Project } from "@shared/types";
 import { alertDialog, promptDialog } from "@/ui/dialogs";
@@ -23,7 +24,8 @@ import { useProjects } from "@/stores/projects";
 import { openNewChat } from "@/app/router";
 import { ProjectEditDialog } from "@/features/project/settings/ProjectEditDialog";
 import type { ProjectSettingsSection } from "@/features/project/settings/ProjectSettings";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 
 /** 開いた場所によって使える操作（見出しのカードから開いたときだけ渡す） */
 export interface ProjectMenuExtras {
@@ -42,27 +44,24 @@ export interface ProjectMenuExtras {
  * open に右クリックのイベントを渡し、element を描く（メニューと編集のダイアログ）
  */
 export function useProjectMenu(projects: Project[]) {
-  const [menu, setMenu] = useState<{ x: number; y: number; id: number; extras?: ProjectMenuExtras } | null>(null);
+  const menu = useContextMenu<{ id: number; extras?: ProjectMenuExtras }>();
   const [editing, setEditing] = useState<{ id: number; section?: ProjectSettingsSection } | null>(null);
   // 編集中に保存した内容も出るよう、いまのプロジェクトを引き直す
   const find = (id: number) => projects.find((p) => p.id === id);
-  const menuProject = menu && find(menu.id);
+  const shown = menu.menu;
+  const menuProject = shown && find(shown.value.id);
   const editingProject = editing && find(editing.id);
   return {
-    open: (e: MouseEvent, project: Project, extras?: ProjectMenuExtras) => {
-      e.preventDefault();
-      setMenu({ x: e.clientX, y: e.clientY, id: project.id, extras });
-    },
+    open: (e: MouseEvent, project: Project, extras?: ProjectMenuExtras) => menu.open(e, { id: project.id, extras }),
     element: (
       <>
-        {menu && menuProject && (
+        {shown && menuProject && (
           <ProjectMenu
-            x={menu.x}
-            y={menu.y}
+            at={shown.at}
             project={menuProject}
-            extras={menu.extras}
+            extras={shown.value.extras}
             onEdit={(section) => setEditing({ id: menuProject.id, section })}
-            onClose={() => setMenu(null)}
+            onClose={menu.close}
           />
         )}
         {editing && editingProject && <ProjectEditDialog project={editingProject} initial={editing.section} onClose={() => setEditing(null)} />}
@@ -70,9 +69,6 @@ export function useProjectMenu(projects: Project[]) {
     ),
   };
 }
-
-/** メニューの高さの目安（画面の下にはみ出さない位置に出す。画面より高いときはメニューの中でスクロール）。タグの項目の分は足す */
-const MENU_HEIGHT = 400;
 
 /** 新しいタグの名前を聞いて付ける（やめたら何もしない。上限を超えるならお知らせ） */
 async function addNewTag(project: Project) {
@@ -89,15 +85,13 @@ async function addNewTag(project: Project) {
 }
 
 function ProjectMenu({
-  x,
-  y,
+  at,
   project,
   extras,
   onEdit,
   onClose,
 }: {
-  x: number;
-  y: number;
+  at: Placement;
   project: Project;
   extras?: ProjectMenuExtras;
   onEdit: (section?: ProjectSettingsSection) => void;
@@ -106,7 +100,6 @@ function ProjectMenu({
   // 使っているタグ（ほかのプロジェクトの分も。押すたびに付け外す）
   const { projects } = useProjects();
   const tags = collectTags(projects);
-  const at = clampToViewport(x, y, 260, MENU_HEIGHT + Math.min(tags.length, 8) * 34);
   /** 押したらメニューを閉じてから行う */
   const item = (key: string, icon: ReactNode, label: string, run: () => void, opts: { danger?: boolean } = {}) => (
     <MenuItem key={key} danger={opts.danger} onSelect={run}>
@@ -115,7 +108,7 @@ function ProjectMenu({
   );
   const archived = Boolean(project.archived_at);
   return (
-    <PopupMenu x={at.x} y={at.y} className="project-menu" label={`${project.name} のメニュー`} onClose={onClose}>
+    <PopupMenu at={at} className="project-menu" label={`${project.name} のメニュー`} onClose={onClose}>
       <div className="menu-label">このプロジェクト</div>
       {item("new", <SquarePen size={14} />, "新しいチャット", () => openNewChat(project.id))}
       {extras?.onCreateGroup && item("group", <FolderPlus size={14} />, "グループを作成", extras.onCreateGroup)}

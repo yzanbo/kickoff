@@ -11,7 +11,7 @@
   min-width: 200px;
 }
 
-/* パネルのブラウザ・ターミナルの ▾ のメニュー（OpenWithMenu。OPEN_WITH_MENU_WIDTH と同じ幅） */
+/* パネルのブラウザ・ターミナルの ▾ のメニュー（OpenWithMenu） */
 .open-with-menu {
   width: 240px;
 }
@@ -21,16 +21,22 @@
   color: var(--muted);
 }
 
-/* 右クリックメニュー */
-
+/*
+ * 右クリックメニュー（PopupMenu）。popover で top layer に出すので、ブラウザの既定（真ん中に置く・はみ出しのスクロール・文字の色）を消す。
+ * 位置は画面が自分の大きさを測ってから left / top で与える（useFloating。測るまでは左上に置いて、幅を狭めずに測る）
+ */
 .menu {
   position: fixed;
+  inset: 0 auto auto 0;
   z-index: 50;
   display: grid;
   min-width: 200px;
+  margin: 0;
   padding: 4px;
+  overflow: visible;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
+  color: inherit;
   background: var(--bg-elev);
   box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
 }

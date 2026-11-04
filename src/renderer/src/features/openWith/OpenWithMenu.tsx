@@ -1,11 +1,6 @@
 import { Check, type LucideIcon } from "lucide-react";
+import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
-
-/** メニューの幅（開く位置の計算と CSS で同じ値） */
-export const OPEN_WITH_MENU_WIDTH = 240;
-
-/** メニューのおおよその高さ（画面からはみ出さない位置にするため） */
-export const openWithMenuHeight = (apps: number) => 70 + apps * 32;
 
 /**
  * パネルのタブの列のブラウザ・ターミナルの ▾ のメニュー: 新しいタブで開く・「外部で開く」の見出しの下にこの Mac のアプリの一覧。
@@ -13,8 +8,7 @@ export const openWithMenuHeight = (apps: number) => 70 + apps * 32;
  * ブラウザのアドレス欄の横の「〜で開く」もこのアプリを使う）。以前は「外部で開く」と「外で開くアプリ」（選ぶだけで開かない）が分かれていた
  */
 export function OpenWithMenu<T extends string>({
-  x,
-  y,
+  at,
   ignore,
   icon: Icon,
   title,
@@ -25,8 +19,8 @@ export function OpenWithMenu<T extends string>({
   onOpenIn,
   onClose,
 }: {
-  x: number;
-  y: number;
+  /** 置く場所（▾ の右端にそろえて、その下） */
+  at: Placement;
   ignore: string;
   icon: LucideIcon;
   /** メニューの名前（aria-label） */
@@ -41,7 +35,7 @@ export function OpenWithMenu<T extends string>({
   onClose: () => void;
 }) {
   return (
-    <PopupMenu x={x} y={y} className="open-with-menu" label={title} ignore={ignore} onClose={onClose}>
+    <PopupMenu at={at} className="open-with-menu" label={title} ignore={ignore} onClose={onClose}>
       <MenuItem onSelect={onNewTab}>
         <Icon size={14} aria-hidden /> {newTab}
       </MenuItem>

@@ -1,6 +1,7 @@
-import { useState, type MouseEvent, type ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { reportFailure } from "@/ui/dialogs";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { copyImage, downloadImage } from "./imageFile";
 
 /**
@@ -14,20 +15,20 @@ export function useImageMenu(): {
   /** メニューを開いているか（開いている間は、外側クリックで閉じる入れ物を閉じない） */
   active: boolean;
 } {
-  const [at, setAt] = useState<{ x: number; y: number; src: string; name: string; onView?: () => void }>();
+  const menu = useContextMenu<{ src: string; name: string; onView?: () => void }>();
+  const shown = menu.menu;
   return {
-    active: Boolean(at),
+    active: menu.isOpen,
     open: (e, image, onView) => {
-      e.preventDefault();
       e.stopPropagation();
-      setAt({ ...clampToViewport(e.clientX, e.clientY, 180, 110), ...image, onView });
+      menu.open(e, { ...image, onView });
     },
-    element: at && (
-      <PopupMenu x={at.x} y={at.y} label="画像の操作" onClose={() => setAt(undefined)}>
+    element: shown && (
+      <PopupMenu at={shown.at} label="画像の操作" onClose={menu.close}>
         {/* 押した直後に書き込む（待つと、押した操作によるコピーと見なされないことがある） */}
-        <MenuItem onSelect={() => void copyImage(at.src).catch(reportFailure("画像をコピーできませんでした"))}>画像をコピー</MenuItem>
-        {at.onView && <MenuItem onSelect={at.onView}>大きく表示</MenuItem>}
-        <MenuItem onSelect={() => downloadImage(at.src, at.name)}>画像を保存</MenuItem>
+        <MenuItem onSelect={() => void copyImage(shown.value.src).catch(reportFailure("画像をコピーできませんでした"))}>画像をコピー</MenuItem>
+        {shown.value.onView && <MenuItem onSelect={shown.value.onView}>大きく表示</MenuItem>}
+        <MenuItem onSelect={() => downloadImage(shown.value.src, shown.value.name)}>画像を保存</MenuItem>
       </PopupMenu>
     ),
   };

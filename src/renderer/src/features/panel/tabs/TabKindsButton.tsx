@@ -1,10 +1,8 @@
 import { Check, Eye } from "lucide-react";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
-import { useAnchoredMenu } from "@/ui/useAnchoredMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { PANEL_KINDS, PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
 import type { PanelController } from "@/features/panel/usePanel";
-
-const MENU_WIDTH = 200;
 
 /**
  * 欄で表示するタブの種類（チャット・ブラウザ・ターミナル）を選ぶボタン（タブのまとめ方のすぐ右）。
@@ -15,7 +13,7 @@ export function TabKindsButton({ panel }: { panel: PanelController }) {
   const { kinds } = panel;
   // 欄ごとにボタンを分ける（ほかの欄のボタンを押したときは、こちらのメニューを外側のクリックとして閉じる）
   const selector = `.panel-tab-kinds-${panel.surface}`;
-  const menu = useAnchoredMenu(selector, MENU_WIDTH);
+  const menu = useContextMenu();
   const label = `表示するタブ: ${kinds.kinds.map((k) => PANEL_KIND_LABELS[k]).join("・")}`;
   return (
     <>
@@ -26,12 +24,12 @@ export function TabKindsButton({ panel }: { panel: PanelController }) {
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
-        onClick={(e) => menu.toggle(e, 130)}
+        onClick={menu.toggle}
       >
         <Eye size={15} />
       </button>
-      {menu.at && (
-        <PopupMenu x={menu.at.x} y={menu.at.y} label="表示するタブ" ignore={menu.ignore} onClose={menu.close}>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="表示するタブ" ignore={selector} onClose={menu.close}>
           <div className="menu-label">表示するタブ</div>
           {PANEL_KINDS.map((k) => {
             const on = kinds.has(k);

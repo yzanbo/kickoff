@@ -1,11 +1,12 @@
 import { Brain, ChevronDown, History, RotateCcw } from "lucide-react";
-import { createContext, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useMemo, useRef } from "react";
 import { EFFORT_LABELS, type EffortLevel, type ChatEvent } from "@shared/types";
 import { api } from "@/api";
 import { effortsFor, groupModels } from "@/features/chat/options/models";
 import { reportFailure } from "@/ui/dialogs";
 import { ClaudeMark } from "@/ui/ClaudeMark";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { failedTurnOf, lowerEffort, type FailedTurn } from "./retryActions";
 import { RETRY_PROMPT } from "@shared/chat/prompts";
 import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
@@ -77,7 +78,8 @@ export function useRetryActions(
 /** 失敗した作業の終わりの行の下に出す直す操作（いちばん新しい作業が失敗で終わったときだけ） */
 export function FailedTurnActions({ resultId }: { resultId: number }) {
   const actions = useContext(RetryContext);
-  const [menu, setMenu] = useState<{ x: number; y: number }>();
+  // 別のモデルの一覧（終わりの行はチャット欄の近く（画面の下のほう）にあるので、下に収まらなければボタンの上に開く）
+  const menu = useContextMenu();
   if (!actions || actions.failed.resultId !== resultId) return null;
   const { lower, models, retry, rewind } = actions;
   return (
@@ -98,14 +100,8 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
           className="btn turn-retry-model"
           title="別のモデルで、続きから再試行します（チャット欄のモデルも変わります）"
           aria-haspopup="menu"
-          aria-expanded={Boolean(menu)}
-          onClick={(e) => {
-            // 終わりの行はチャット欄の近く（画面の下のほう）にあるので、下に収まらなければボタンの上に開く
-            const r = e.currentTarget.getBoundingClientRect();
-            const height = models.length * 36 + 12;
-            const y = r.bottom + 4 + height > window.innerHeight ? Math.max(8, r.top - height - 4) : r.bottom + 4;
-            setMenu(menu ? undefined : clampToViewport(r.left, y, 220, height));
-          }}
+          aria-expanded={menu.isOpen}
+          onClick={menu.toggle}
         >
           <ClaudeMark />
           別のモデルで再試行
@@ -118,9 +114,9 @@ export function FailedTurnActions({ resultId }: { resultId: number }) {
           巻き戻して再試行
         </button>
       )}
-      {menu && (
+      {menu.menu && (
         // 開いているときにボタンを押したら閉じる（外側のクリックとして閉じると、続くクリックで開き直していた）
-        <PopupMenu x={menu.x} y={menu.y} label="再試行するモデル" ignore=".turn-retry-model" onClose={() => setMenu(undefined)}>
+        <PopupMenu at={menu.menu.at} label="再試行するモデル" ignore=".turn-retry-model" onClose={menu.close}>
           {models.map((m) => (
             <MenuItem key={m.value} onSelect={() => retry({ model: m.value })}>
               {m.label}

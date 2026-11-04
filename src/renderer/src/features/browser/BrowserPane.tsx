@@ -5,7 +5,7 @@ import { cx } from "@/lib/cx";
 import { useExternalBrowser } from "@/features/openWith/externalApps";
 import { normalizeUrl } from "@/lib/url";
 import { IconButton } from "@/ui/IconButton";
-import { useAnchoredMenu } from "@/ui/useAnchoredMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { DockMenu } from "./DockMenu";
 import { DEVTOOLS_DOCK_LABELS, useDevtools } from "./useDevtools";
 
@@ -30,7 +30,7 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
   const [error, setError] = useState<string>();
   // 開発者ツール（右・下・別のウィンドウ）と、出す場所を選ぶメニュー
   const devtools = useDevtools(ref);
-  const dockMenu = useAnchoredMenu(".browser-devtools-dock", 200, "right");
+  const dockMenu = useContextMenu({ align: "end" });
   const changeRef = useRef(onChange);
   changeRef.current = onChange;
 
@@ -138,7 +138,7 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
             className="browser-devtools-dock"
             aria-haspopup="menu"
             aria-expanded={dockMenu.isOpen}
-            onClick={(e) => dockMenu.toggle(e, 130)}
+            onClick={dockMenu.toggle}
           />
         </span>
         <IconButton
@@ -149,7 +149,7 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
           onClick={() => external.open(current)}
         />
       </form>
-      {dockMenu.at && <DockMenu {...dockMenu.at} value={devtools.dock} onPick={devtools.changeDock} onClose={dockMenu.close} />}
+      {dockMenu.menu && <DockMenu at={dockMenu.menu.at} value={devtools.dock} onPick={devtools.changeDock} onClose={dockMenu.close} />}
       {error && <p className="browser-error">{error}</p>}
       <div className={cx("browser-body", devtools.embed && `dock-${devtools.embed.dock}`, devtools.resizing && "resizing")}>
         {/* partition は main プロセスでも専用のセッションに強制している */}

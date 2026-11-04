@@ -1,12 +1,10 @@
 import { Group, Ungroup } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
-import { useAnchoredMenu } from "@/ui/useAnchoredMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { TAB_GROUPING_LABELS, TAB_GROUPINGS } from "@/features/panel/clusters/tabClusters";
 import type { PanelSurface } from "@/features/panel/state/panelKinds";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
-
-const MENU_WIDTH = 200;
 
 /**
  * タブの列のまとめ方（見出しはサイドバーと同じ「チャットのまとめ方」）を選ぶボタン（パネルを閉じるボタンのすぐ右）。押すと下にメニューを開き、
@@ -14,7 +12,7 @@ const MENU_WIDTH = 200;
  */
 export function TabGroupingButton({ surface }: { surface: PanelSurface }) {
   const [grouping, setGrouping] = useTabGrouping(surface);
-  const menu = useAnchoredMenu(".panel-tab-grouping", MENU_WIDTH);
+  const menu = useContextMenu();
   const label = `チャットのまとめ方: ${TAB_GROUPING_LABELS[grouping]}`;
   return (
     <>
@@ -25,19 +23,18 @@ export function TabGroupingButton({ surface }: { surface: PanelSurface }) {
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={menu.isOpen}
-        onClick={(e) => menu.toggle(e, 130)}
+        onClick={menu.toggle}
       >
         {grouping === "none" ? <Ungroup size={15} /> : <Group size={15} />}
       </button>
-      {menu.at && (
+      {menu.menu && (
         <ChoiceMenu
-          x={menu.at.x}
-          y={menu.at.y}
+          at={menu.menu.at}
           title="チャットのまとめ方"
           values={TAB_GROUPINGS}
           labels={TAB_GROUPING_LABELS}
           value={grouping}
-          ignore={menu.ignore}
+          ignore=".panel-tab-grouping"
           onPick={setGrouping}
           onClose={menu.close}
         />

@@ -1,16 +1,12 @@
 import { ChevronDown, ListOrdered, Merge, SendHorizontal } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import { api } from "@/api";
-import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
-
-/** メニューの幅と、開く前に見積もる高さ（開いたら実際の高さを測って、ボタンのすぐ上にそろえ直す） */
-const MENU_WIDTH = 300;
-const MENU_HEIGHT = 140;
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 
 /**
  * 送信待ちの「すべて送る」: 押すと、このチャットへの送り方を 2 つから選ぶ。
  * 「まとめて 1 件で送る」= 1 つの指示につなげていま送る / 「1 件ずつ順に送る」= 別々の指示として、終わるたびに次を送る。
- * 送信待ちはチャット欄のすぐ上（画面の下の方）にあるので、メニューはボタンの上に開く
+ * 送信待ちはチャット欄のすぐ上（画面の下の方）にあるので、メニューはボタンの上に、右端をそろえて開く
  */
 export function SendAllMenu({
   chatId,
@@ -26,22 +22,7 @@ export function SendAllMenu({
   holds: boolean;
   failed: (e: unknown) => void;
 }) {
-  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
-  // 開いたボタンの位置（開いたあとにメニューの高さを測って、ボタンのすぐ上に置き直すため）
-  const anchor = useRef<DOMRect | null>(null);
-  const toggle = (e: MouseEvent<HTMLElement>) => {
-    if (at) return setAt(null);
-    const r = e.currentTarget.getBoundingClientRect();
-    anchor.current = r;
-    setAt(clampToViewport(r.right - MENU_WIDTH, r.top - MENU_HEIGHT - 4, MENU_WIDTH, MENU_HEIGHT));
-  };
-  const open = at !== null;
-  useLayoutEffect(() => {
-    const r = anchor.current;
-    const height = document.querySelector<HTMLElement>(".send-all-menu")?.offsetHeight;
-    if (!open || !r || !height) return;
-    setAt(clampToViewport(r.right - MENU_WIDTH, r.top - height - 4, MENU_WIDTH, height));
-  }, [open]);
+  const menu = useContextMenu({ side: "above", align: "end" });
   return (
     <>
       <button
@@ -49,17 +30,17 @@ export function SendAllMenu({
         className="btn btn-sm btn-primary queued-head-btn send-all-button"
         aria-label="すべて送る"
         aria-haspopup="menu"
-        aria-expanded={at !== null}
+        aria-expanded={menu.isOpen}
         title={`送信待ちの ${count} 件をすべて送る（まとめて 1 件で送るか、1 件ずつ順に送るかを選ぶ）`}
-        onClick={toggle}
+        onClick={menu.toggle}
       >
         <SendHorizontal size={12} aria-hidden />
         {/* 狭いときは文字を隠してアイコンだけにする（読み上げは aria-label） */}
         <span className="queued-head-label">すべて送る</span>
         <ChevronDown size={12} aria-hidden />
       </button>
-      {at && (
-        <PopupMenu x={at.x} y={at.y} label="送信待ちの送り方" className="send-all-menu" ignore=".send-all-button" onClose={() => setAt(null)}>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="送信待ちの送り方" className="send-all-menu" ignore=".send-all-button" onClose={menu.close}>
           <MenuItem onSelect={() => void api.sendAllQueued(chatId).catch(failed)}>
             <Merge size={14} aria-hidden />
             <span className="send-all-option">
