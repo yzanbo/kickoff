@@ -14,7 +14,7 @@ import { Markdown } from "../Markdown";
 import { ApprovalCard } from "./ApprovalCard";
 import { ReconnectRow, type Connection } from "./ConnectionStatus";
 import { jumpToEvent } from "./jumpToEvent";
-import { promptAbove, promptAttachments, STICKY_PROMPT_HEIGHT, StickyPrompt } from "./StickyPrompt";
+import { promptAttachments, readingPrompt, StickyPrompt } from "./StickyPrompt";
 import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
@@ -109,15 +109,20 @@ export function RunTimeline({
   if (!away) awayFromResult.current = null;
   else awayFromResult.current ??= lastResultId;
   const finishedWhileAway = away && awayFromResult.current !== null && lastResultId > awayFromResult.current;
-  // 上に貼り付けておく自分の発言（読んでいる返答の元の発言）
-  // （設定の「表示」で出さないこともできる）
+  // 上に貼り付けておく自分の発言（読んでいる返答の元の発言。いつも出しておき、スクロールに合わせて中身を変える）
+  // （見出しの行のボタン・設定の「表示」で出さないこともできる）
   const [stickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
   const [pinned, setPinned] = useState<{ id: number; text: string }>();
   const pinnedAttachments = useMemo(() => (pinned ? promptAttachments(events, pinned.id) : []), [pinned, events]);
   // 自分の指示の並び（帯の ↑ / ↓ を押せるか）
   const promptIds = useMemo(() => events.filter((e) => e.type === "user").map((e) => e.id), [events]);
   const pinnedAt = pinned ? promptIds.indexOf(pinned.id) : -1;
-  const stickyHeight = useRef(STICKY_PROMPT_HEIGHT); // 貼り付けた帯の高さ（その下端を、指示が見えているかの線にする）
+  // 読んでいる指示を確かめ直す（同じ発言のままなら前の値を残し、スクロールのたびに描き直さない）
+  const updatePinned = () => {
+    const el = timelineRef.current;
+    const next = !el || stickyHidden ? undefined : readingPrompt(el);
+    setPinned((prev) => (prev?.id === next?.id && prev?.text === next?.text ? prev : next));
+  };
   // 窓の最初と最後の項目（前を足した・新しい発言が届いたを見分ける）
   const firstKey = items[0]?.key;
   const lastKey = items[items.length - 1]?.key;
@@ -141,6 +146,10 @@ export function RunTimeline({
     if (!timelineRef.current || !jumpToEvent(timelineRef.current, focus)) return;
     stickToBottom.current = false;
   }, [focus, lastKey, stickToBottom]);
+
+  // 描いた項目が変わった・帯の出し方を変えたときも確かめ直す（スクロールしなくても、開いたときから帯を出す）
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(updatePinned, [firstKey, lastKey, stickyHidden]);
 
   // 前の項目を足したら、読んでいた位置を動かさない（上に足した分だけ下げる）
   const beforeMore = useRef<{ height: number; top: number } | null>(null);
@@ -234,12 +243,7 @@ export function RunTimeline({
           if (hidden > 0 && !atBottom && el.scrollTop < ahead) showMore();
           // 下の端に近づいたら、窓の外の後ろの項目を足す（下に足すので、読んでいた位置は動かない）
           if (after > 0 && fromBottom < ahead) onShowLater?.();
-          // 帯の高さは、出していないときは前に出したときのもの（開いた全文の帯でも、出す・引っ込めるが行き来しないように）
-          const bar = el.parentElement?.querySelector<HTMLElement>(".sticky-prompt");
-          if (bar) stickyHeight.current = bar.offsetHeight;
-          const next = stickyHidden ? undefined : promptAbove(el, stickyHeight.current);
-          // 同じ発言のままなら前の値を残し、スクロールのたびに描き直さない
-          setPinned((prev) => (prev?.id === next?.id ? prev : next));
+          updatePinned();
         }}
       >
         <div className="timeline-inner">

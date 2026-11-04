@@ -3,7 +3,7 @@ import type { Approval, BackgroundState, Project, QueuedMessage, Run, RunEvent }
 import { api } from "../../api";
 import { useBusyNeighbors } from "../../hooks/useBusyNeighbors";
 import { useSharedFlag } from "../../hooks/useStoredState";
-import { CHAT_WIDE_KEY, chatDraftKey } from "../../storageKeys";
+import { CHAT_WIDE_KEY, chatDraftKey, STICKY_PROMPT_HIDDEN_KEY } from "../../storageKeys";
 import { FileLinkContext } from "../fileLinks/fileLinkContext";
 import { useFileLinks } from "../fileLinks/useFileLinks";
 import { BUSY_STATUSES } from "../RunStatus";
@@ -23,7 +23,8 @@ import { OpenSubagentContext } from "./ToolGroup";
 import { promptEntries, userPrompts } from "./promptHistory";
 import { groupEvents, relativize } from "./timelineItems";
 import { useRunDetail } from "./useRunDetail";
-import { TriangleAlert } from "lucide-react";
+import { PanelTop, TriangleAlert } from "lucide-react";
+import { IconButton } from "../IconButton";
 import { cx } from "../../cx";
 import { ChatFind } from "./ChatFind";
 import { PromptsChip } from "./PromptsChip";
@@ -155,6 +156,8 @@ function RunView({
   useChatFindKey(panelRef);
   // 横幅いっぱいに広げるか（設定の「表示」と同じ値）
   const [wide] = useSharedFlag(CHAT_WIDE_KEY);
+  // 上に置く指示の帯を出さないか（見出しの行のボタンと設定の「表示」で切り替える。どのチャットでも同じ）
+  const [stickyHidden, setStickyHidden] = useSharedFlag(STICKY_PROMPT_HIDDEN_KEY);
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
   const timeline = useTimelineWindow({ items, runId: run.id, focus, stickToBottom });
   // 移り先が窓の外なら、窓を広げて描いてから移る
@@ -205,6 +208,16 @@ function RunView({
             このチャットの中の検索欄（いつも見出しの行にあり、⌘F でここにピントが入る）。横幅（標準 / 横幅いっぱい）は設定の「表示」で選ぶ
             （以前は見出しに ↔ を置いていたが、パネルの横幅いっぱいの ↔ と紛らわしく、ふつうの幅のパネルでは押しても変わらなかった）
           */
+          <>
+          {/* 上に置く指示の帯の表示・非表示（出しているかは色で示す） */}
+          <IconButton
+            icon={PanelTop}
+            label={stickyHidden ? "指示の帯を表示" : "指示の帯を隠す"}
+            title={stickyHidden ? "指示の帯を表示（読んでいる返答の元の指示を上に出す）" : "指示の帯を隠す"}
+            aria-pressed={!stickyHidden}
+            className={cx("run-sticky-toggle", !stickyHidden && "on")}
+            onClick={() => setStickyHidden(!stickyHidden)}
+          />
           <ChatFind
             root={panelRef}
             items={items}
@@ -215,6 +228,7 @@ function RunView({
             }}
             onDone={() => panelRef.current?.querySelector<HTMLTextAreaElement>(".run-composer textarea")?.focus()}
           />
+          </>
         }
       />
       {/* 返答の一部を選んでコメントし、チャット欄に添える */}

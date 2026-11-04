@@ -8,7 +8,7 @@ import { IconButton } from "../IconButton";
 import { AttachmentPeek } from "./AttachmentPeek";
 
 /**
- * チャットの上に貼り付ける、いま読んでいる返答の元の自分の指示。
+ * チャットの上に置く、いま読んでいる返答の元の自分の指示。いつも出し、流れに重ねずに流れの上の段に置く（スクロールに合わせて中身を変える）。
  * 初めは 1 行にたたみ（長い指示で縦をとらないように）、右の矢印で全文を出す（長ければ中でスクロール。開閉はどのチャットでも同じに覚える）。
  * 指示の文を押すと、その発言へ移る。右の ↑ / ↓ で前・次の指示へ移る（⌘⌥↑ / ↓ と同じ）。添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）
  */
@@ -56,7 +56,8 @@ export function StickyPrompt({
         <IconButton icon={ArrowUp} label="前の指示へ" title="前の指示へ（⌘⌥↑）" size={14} disabled={!onPrev} onClick={onPrev} />
         <IconButton icon={ArrowDown} label="次の指示へ" title="次の指示へ（⌘⌥↓）" size={14} disabled={!onNext} onClick={onNext} />
       </span>
-      {(overflowing || expanded) && (
+      {/* 1 行に収まるときも場所だけは取っておく（開閉の矢印の有無で ↑ / ↓ の位置が左右に動かないように） */}
+      {overflowing || expanded ? (
         <IconButton
           icon={expanded ? ChevronUp : ChevronDown}
           label={expanded ? "1 行にたたむ" : "指示の全文を表示"}
@@ -65,35 +66,27 @@ export function StickyPrompt({
           className="sticky-prompt-toggle"
           onClick={() => setExpanded(!expanded)}
         />
+      ) : (
+        <span className="icon-button sticky-prompt-toggle placeholder" aria-hidden />
       )}
     </div>
   );
 }
 
-/** 貼り付けた指示の帯の高さが分からないとき（まだ出していない）の目安（1 行にたたんだ高さ） */
-export const STICKY_PROMPT_HEIGHT = 37;
-
-/** 次の指示の吹き出しが帯の下端のこの距離（px）まで来たら、帯を引っ込める（下端に着く少し手前で引っ込め、吹き出しの頭を隠さない） */
-const HIDE_AHEAD_PX = 10;
-
 /**
- * 画面の上に流れて見えなくなった、いちばん下の自分の発言（その返答を読んでいる）。どれも流れていなければ undefined。
- * cover は上に貼り付ける帯の高さで、帯の下端を「見えている」かどうかの線にする（上端を線にすると、次の指示の吹き出しが
- * 帯の下に入り込んでも帯を出したままになり、吹き出しが隠れていた）。
- * 出すのは、吹き出しの下の時刻・コピーなどの行（`.user-message` の下端）まで線より上へ流れてから（吹き出しだけが流れた
- * ところで出すと、すぐ下のコピーなどがまだ見えているのに帯が重なっていた）。引っ込めるのは、次の吹き出しが線の HIDE_AHEAD_PX 手前まで来たとき
+ * いま読んでいる返答の元の自分の発言（帯に出す指示）: 流れの上端まで流れた（上端より上から始まる）いちばん下の吹き出し。
+ * どれも流れていなければ（いちばん上を見ている）、最初の吹き出し。吹き出しがなければ undefined。
+ * 帯は流れの上に置き、流れに重ねないので、流れの上端をそのまま線にする
  */
-export function promptAbove(timeline: HTMLElement, cover = 0): { id: number; text: string } | undefined {
-  const line = timeline.getBoundingClientRect().top + cover;
-  // 線（の少し手前）より上から始まる、いちばん下の吹き出し（それと下の行がまだ少しでも線の下に見えていれば、貼り付けない）
-  let found: HTMLElement | undefined;
-  for (const bubble of timeline.querySelectorAll<HTMLElement>(".bubble.user")) {
-    if (bubble.getBoundingClientRect().top >= line + HIDE_AHEAD_PX) break;
+export function readingPrompt(timeline: HTMLElement): { id: number; text: string } | undefined {
+  const line = timeline.getBoundingClientRect().top + 1;
+  const bubbles = timeline.querySelectorAll<HTMLElement>(".bubble.user");
+  let found: HTMLElement | undefined = bubbles[0];
+  for (const bubble of bubbles) {
+    if (bubble.getBoundingClientRect().top >= line) break;
     found = bubble;
   }
   if (!found) return undefined;
-  const message = found.closest<HTMLElement>(".user-message") ?? found;
-  if (message.getBoundingClientRect().bottom > line) return undefined;
   const id = Number(found.id.replace("ev-", ""));
   if (!Number.isFinite(id)) return undefined;
   // 添付だけの発言は文が空（帯には添付だけを出す）
