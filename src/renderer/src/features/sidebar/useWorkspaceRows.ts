@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { boardColumnOf } from "@shared/chat/state";
-import type { Run, RunGroup } from "@shared/types";
-import { useRunStates } from "@/app/chatStatesContext";
+import type { Chat, ChatGroup } from "@shared/types";
+import { useChatStates } from "@/app/chatStatesContext";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import { useSharedFlag } from "@/hooks/useStoredState";
 import { SIDEBAR_WAITING_ONLY_KEY } from "@/lib/storageKeys";
@@ -13,7 +13,7 @@ import { isWaitingState } from "@/features/chatList/chatListFlags";
  * 検索（プロジェクトの検索欄か、すべてのプロジェクトをまたぐ検索欄 searchAll）・自分待ち・見出しの状態の数で絞り、
  * 上に固定したもの・グループごと・グループなし・アーカイブ済みに分ける
  */
-export function useWorkspaceRows({ runs, groups, searchAll }: { runs: Run[]; groups: RunGroup[]; searchAll: string }) {
+export function useWorkspaceRows({ chats, groups, searchAll }: { chats: Chat[]; groups: ChatGroup[]; searchAll: string }) {
   // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替える）
   const [waitingOnly] = useSharedFlag(SIDEBAR_WAITING_ONLY_KEY);
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む
@@ -24,25 +24,25 @@ export function useWorkspaceRows({ runs, groups, searchAll }: { runs: Run[]; gro
   // 検索・自分待ち・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
   const filtering = Boolean(keyword) || waitingOnly || stateFilter !== null;
 
-  const { pending, stateOf } = useRunStates();
+  const { pending, stateOf } = useChatStates();
   // 行の分け方は、チャット・絞り込み・回答待ちの一覧が変わったときだけ計算し直す（matches は検索語が変わるまで同じ関数）
   const { allRows, visibleRows, pinnedRows, rows, archivedMatches, ungroupedRows } = useMemo(() => {
-    const withState = (run: Run) => ({ run, state: stateOf(run) });
-    const allRows = runs.filter((r) => !r.archived_at).map(withState);
+    const withState = (chat: Chat) => ({ chat, state: stateOf(chat) });
+    const allRows = chats.filter((r) => !r.archived_at).map(withState);
     // アーカイブしたチャット（一覧の下にまとめて、開閉できる。最初は閉じておく）
-    const archivedRows = runs.filter((r) => r.archived_at).map(withState);
+    const archivedRows = chats.filter((r) => r.archived_at).map(withState);
     const visibleRows = allRows.filter(
-      ({ run, state }) => matches(run) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter),
+      ({ chat, state }) => matches(chat) && (!waitingOnly || isWaitingState(state)) && (stateFilter === null || boardColumnOf(state) === stateFilter),
     );
     // 上に固定したチャットは、グループ・グループなしから抜き出して、いちばん上にまとめる
-    const pinnedRows = visibleRows.filter(({ run }) => run.pinned);
-    const rows = visibleRows.filter(({ run }) => !run.pinned);
-    const archivedMatches = archivedRows.filter(({ run }) => matches(run));
+    const pinnedRows = visibleRows.filter(({ chat }) => chat.pinned);
+    const rows = visibleRows.filter(({ chat }) => !chat.pinned);
+    const archivedMatches = archivedRows.filter(({ chat }) => matches(chat));
     const groupIds = new Set(groups.map((g) => g.id));
-    const ungroupedRows = rows.filter(({ run }) => run.group_id === null || !groupIds.has(run.group_id));
+    const ungroupedRows = rows.filter(({ chat }) => chat.group_id === null || !groupIds.has(chat.group_id));
     return { allRows, visibleRows, pinnedRows, rows, archivedMatches, ungroupedRows };
-  }, [runs, groups, matches, waitingOnly, stateFilter, stateOf]);
-  const groupedRows = (id: number) => rows.filter(({ run }) => run.group_id === id);
+  }, [chats, groups, matches, waitingOnly, stateFilter, stateOf]);
+  const groupedRows = (id: number) => rows.filter(({ chat }) => chat.group_id === id);
 
   return {
     waitingOnly,

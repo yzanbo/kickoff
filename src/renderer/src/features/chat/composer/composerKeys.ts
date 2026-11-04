@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { permissionChoices } from "@/features/chat/options/models";
-import type { RunOptionsState } from "@/features/chat/options/ChatOptionsBar";
+import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 
 /** 作業中に送るときの扱い（伝える = 止めずに、いまのやり取りに足す / ためておく = 終わったら送る） */
 export type QueueSendMode = "tell" | "queue";
@@ -21,7 +21,7 @@ const STOP_CONFIRM_MS = 2000;
  * - Shift+Tab（入力欄）: 権限モードを順に切り替える（そのモデルで選べるものだけ）
  * ほかの部品が先に扱ったキー（候補の一覧・録音など）は見ない
  */
-export function useComposerKeys({ busy, onStop, options }: { busy?: boolean; onStop?: () => void; options?: RunOptionsState }) {
+export function useComposerKeys({ busy, onStop, options }: { busy?: boolean; onStop?: () => void; options?: ChatOptionsState }) {
   const [stopArmed, setStopArmed] = useState(false);
   const timer = useRef<number>(undefined);
   const disarm = () => {

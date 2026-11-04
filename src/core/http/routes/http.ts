@@ -28,10 +28,10 @@ export function requireGroup(store: Store, idParam: string) {
   return group;
 }
 
-export function requireRun(store: Store, idParam: string) {
-  const run = store.getRun(Number(idParam));
-  if (!run) throw new HttpError(404, "実行が見つかりません");
-  return run;
+export function requireChat(store: Store, idParam: string) {
+  const chat = store.getChat(Number(idParam));
+  if (!chat) throw new HttpError(404, "実行が見つかりません");
+  return chat;
 }
 
 /** グループ。ほかのプロジェクトのものなら 400（チャットを入れられるのは同じプロジェクトのグループだけ） */

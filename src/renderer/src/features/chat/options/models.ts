@@ -1,4 +1,4 @@
-import { EFFORT_LEVELS, PERMISSION_CHOICES, type EffortLevel, type ModelOption, type PermissionChoice } from "@shared/types";
+import { EFFORT_LEVELS, PERMISSION_MODES, type EffortLevel, type ModelOption, type PermissionMode } from "@shared/types";
 
 /** 一覧での並び順（性能の高い順） */
 const FAMILY_ORDER = ["fable", "opus", "sonnet", "haiku"];
@@ -49,6 +49,6 @@ export function effortsFor(model: ModelOption | undefined): readonly EffortLevel
 }
 
 /** そのモデルで選べる権限モード（Auto mode は対応しているモデルだけ。モデルが分からなければすべて） */
-export function permissionChoices(model: ModelOption | undefined): PermissionChoice[] {
-  return PERMISSION_CHOICES.filter((p) => p !== "auto" || !model || model.supportsAutoMode);
+export function permissionChoices(model: ModelOption | undefined): PermissionMode[] {
+  return PERMISSION_MODES.filter((p) => p !== "auto" || !model || model.supportsAutoMode);
 }

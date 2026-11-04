@@ -1,9 +1,9 @@
 import { boardColumnOf } from "@shared/chat/state";
 import { useSharedFlag } from "@/hooks/useStoredState";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { runStateOf, type ApprovalIndex } from "@/features/chat/chatState";
+import { chatStateOf, type ApprovalIndex } from "@/features/chat/chatState";
 import { SIDEBAR_COMPACT_KEY, SIDEBAR_PROJECT_COMPACT_KEY, SIDEBAR_SECTION_CLOSED_PREFIX, SIDEBAR_SHOW_ARCHIVED_KEY } from "@/lib/storageKeys";
-import type { AgentState, Run } from "@shared/types";
+import type { AgentState, Chat } from "@shared/types";
 
 /** チャットを 1 行で出すか（初めは 1 行。どの部品でも同じ初期値になるよう、ここから読む） */
 export const useCompactRows = () => useSharedFlag(SIDEBAR_COMPACT_KEY, true);
@@ -15,11 +15,11 @@ export const useShowArchivedChats = () => useSharedFlag(SIDEBAR_SHOW_ARCHIVED_KE
 /** 自分が見る番か（カンバンの回答待ち・未読の列と同じ） */
 export const isWaitingState = (state: AgentState) => {
   const column = boardColumnOf(state);
-  return column === "needs_input" || column === "review";
+  return column === "needs_input" || column === "unread";
 };
 
-/** 自分待ちのチャット（アーカイブしたものは除く）。pending は ApprovalsContext の回答待ちの一覧 */
-export const waitingRuns = (runs: Run[], pending: ApprovalIndex) => runs.filter((r) => !r.archived_at && isWaitingState(runStateOf(r, pending)));
+/** 自分待ちのチャット（アーカイブしたものは除く）。pending は ChatStatesContext の回答待ちの一覧 */
+export const waitingChats = (chats: Chat[], pending: ApprovalIndex) => chats.filter((r) => !r.archived_at && isWaitingState(chatStateOf(r, pending)));
 
 const FOLD_ALL_EVENT = "kickoff:sidebar-fold-all";
 

@@ -6,7 +6,7 @@ import { IconButton } from "@/ui/IconButton";
 import { SendAllMenu } from "./SendAllMenu";
 
 /** 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。チャットごと） */
-export function QueuedModeButton({ runId, paused, busy, failed }: { runId: number; paused: boolean; busy: boolean; failed: (e: unknown) => void }) {
+export function QueuedModeButton({ chatId, paused, busy, failed }: { chatId: number; paused: boolean; busy: boolean; failed: (e: unknown) => void }) {
   return (
     <button
       type="button"
@@ -18,7 +18,7 @@ export function QueuedModeButton({ runId, paused, busy, failed }: { runId: numbe
           ? `いまの作業が終わっても送らずに止めておきます。行の「すぐ送る」で 1 件ずつ送れます。押すと、自動で送るに戻します${busy ? "" : "（先頭をすぐ送ります）"}`
           : "いまの作業が終わったら、先頭から順に自動で送ります。押すと、送らずに止めておきます（移動の前などに）"
       }
-      onClick={() => void api.setQueuePaused(runId, !paused).catch(failed)}
+      onClick={() => void api.setQueuePaused(chatId, !paused).catch(failed)}
     >
       {paused ? <Pause size={12} aria-hidden /> : <Play size={12} aria-hidden />}
       <span className="queued-head-label">{paused ? "止めています" : "自動で送る"}</span>
@@ -31,7 +31,7 @@ export function QueuedModeButton({ runId, paused, busy, failed }: { runId: numbe
  * 名前は、押した結果（「今の分で止める」など）ではなく、列に挟む物の名前で呼ぶ。置いたあとは、線のつまみのドラッグ・↑↓ で止める位置へ動かす。
  * もう 1 件目の上に印があれば押せない。onAdded は置いたあと（たたんでいれば一覧を開いて線を見せる）
  */
-export function QueuedStopButton({ runId, stops, failed, onAdded }: { runId: number; stops: number[]; failed: (e: unknown) => void; onAdded: () => void }) {
+export function QueuedStopButton({ chatId, stops, failed, onAdded }: { chatId: number; stops: number[]; failed: (e: unknown) => void; onAdded: () => void }) {
   const atTop = stops.includes(0);
   return (
     <button
@@ -44,7 +44,7 @@ export function QueuedStopButton({ runId, stops, failed, onAdded }: { runId: num
           ? "1 件目の上にもう一時停止があります（線をドラッグ・↑↓ で動かせます）"
           : "自動で送るのを一度止める位置（一時停止）を、列のいちばん上に挟みます。線をドラッグ・↑↓ で、止めたい位置へ動かせます"
       }
-      onClick={() => void api.setQueueStops(runId, [0, ...stops]).then(onAdded, failed)}
+      onClick={() => void api.setQueueStops(chatId, [0, ...stops]).then(onAdded, failed)}
     >
       <OctagonPause size={12} aria-hidden />
       <span className="queued-head-label">一時停止</span>
@@ -55,12 +55,12 @@ export function QueuedStopButton({ runId, stops, failed, onAdded }: { runId: num
 /**
  * 選んだ指示の並べ替え（いちばん上へ・いちばん下へ）。行の ↑↓ と同じく、送る・消すのまとまりの左に区切って置く
  */
-export function QueuedMoveActions({ runId, selected, failed }: { runId: number; selected: string[]; failed: (e: unknown) => void }) {
+export function QueuedMoveActions({ chatId, selected, failed }: { chatId: number; selected: string[]; failed: (e: unknown) => void }) {
   const n = selected.length;
   return (
     <span className="queued-head-moves">
-      <IconButton icon={ArrowUpToLine} size={13} label={`選んだ ${n} 件をいちばん上へ移動`} onClick={() => void api.moveQueuedMany(runId, selected, "top").catch(failed)} />
-      <IconButton icon={ArrowDownToLine} size={13} label={`選んだ ${n} 件をいちばん下へ移動`} onClick={() => void api.moveQueuedMany(runId, selected, "bottom").catch(failed)} />
+      <IconButton icon={ArrowUpToLine} size={13} label={`選んだ ${n} 件をいちばん上へ移動`} onClick={() => void api.moveQueuedMany(chatId, selected, "top").catch(failed)} />
+      <IconButton icon={ArrowDownToLine} size={13} label={`選んだ ${n} 件をいちばん下へ移動`} onClick={() => void api.moveQueuedMany(chatId, selected, "bottom").catch(failed)} />
     </span>
   );
 }
@@ -71,7 +71,7 @@ export function QueuedMoveActions({ runId, selected, failed }: { runId: number; 
  * 選んでいれば「書き直す」（選んだ指示の書き直す欄をまとめて開く）・「まとめて送る」（選んだものだけを 1 つにまとめてすぐ送る）・消す・選ぶのをやめる（並べ替えは QueuedMoveActions）
  */
 export function QueuedHeadActions({
-  runId,
+  chatId,
   count,
   selected,
   busy,
@@ -80,7 +80,7 @@ export function QueuedHeadActions({
   onEditSelected,
   failed,
 }: {
-  runId: number;
+  chatId: number;
   count: number;
   /** 止めている・一時停止の印がある */
   holds: boolean;
@@ -116,7 +116,7 @@ export function QueuedHeadActions({
             className="btn btn-sm queued-head-btn"
             aria-label={`選んだ ${n} 件を 1 つにまとめる`}
             title={`選んだ ${n} 件を、送らずに 1 つの指示にまとめる（列の順に空行でつなぎ、添付も合わせる。選んだうちのいちばん上の位置に残る）`}
-            onClick={() => void api.mergeQueued(runId, selected).then(done, failed)}
+            onClick={() => void api.mergeQueued(chatId, selected).then(done, failed)}
           >
             <Merge size={12} aria-hidden />
             <span className="queued-head-label">1 つにまとめる</span>
@@ -127,7 +127,7 @@ export function QueuedHeadActions({
           className="btn btn-sm btn-primary queued-head-btn"
           aria-label={`選んだ ${n} 件をまとめて送る`}
           title={`選んだ ${n} 件を 1 つにまとめて、すぐ送る${stopping}`}
-          onClick={() => void api.sendAllQueued(runId, selected).then(done, failed)}
+          onClick={() => void api.sendAllQueued(chatId, selected).then(done, failed)}
         >
           <SendHorizontal size={12} aria-hidden />
           <span className="queued-head-label">まとめて送る</span>
@@ -140,7 +140,7 @@ export function QueuedHeadActions({
           onClick={() =>
             void confirmDialog({ title: `選んだ ${n} 件を消しますか？`, message: "消した指示は送られません。元に戻せません。", confirmLabel: "消す", danger: true }).then(
               async (ok) => {
-                if (ok) await api.removeQueuedMany(runId, selected).then(done, failed);
+                if (ok) await api.removeQueuedMany(chatId, selected).then(done, failed);
               },
             )
           }
@@ -156,7 +156,7 @@ export function QueuedHeadActions({
   return (
     <>
       {/* 押すと、まとめて 1 件で送るか・1 件ずつ順に送るかを選ぶ */}
-      <SendAllMenu runId={runId} count={count} busy={busy} holds={holds} failed={failed} />
+      <SendAllMenu chatId={chatId} count={count} busy={busy} holds={holds} failed={failed} />
       <button
         type="button"
         className="btn btn-sm queued-head-btn queued-clear"
@@ -169,7 +169,7 @@ export function QueuedHeadActions({
             confirmLabel: "すべて消す",
             danger: true,
           }).then(async (ok) => {
-            if (ok) await api.clearQueued(runId).catch(failed);
+            if (ok) await api.clearQueued(chatId).catch(failed);
           })
         }
       >

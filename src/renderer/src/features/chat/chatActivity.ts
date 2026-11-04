@@ -8,13 +8,13 @@ const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
 subscribeServerEvent((e) => {
-  if (e.type === "run_event") {
+  if (e.type === "chat_event") {
     const text = describeActivity(e.event);
-    if (text && activities.get(e.event.run_id) !== text) {
-      activities.set(e.event.run_id, text);
+    if (text && activities.get(e.event.chat_id) !== text) {
+      activities.set(e.event.chat_id, text);
       notify();
     }
-  } else if (e.type === "run" && e.run.status !== "running" && e.run.status !== "queued" && activities.delete(e.run.id)) {
+  } else if (e.type === "chat" && e.chat.status !== "running" && e.chat.status !== "queued" && activities.delete(e.chat.id)) {
     notify();
   }
 });
@@ -25,6 +25,6 @@ function subscribe(listener: () => void) {
 }
 
 /** 作業中のチャットの、いまの作業（ファイルの編集・コマンドの実行など。まだ分からなければ null） */
-export function useRunActivity(runId: number): string | null {
-  return useSyncExternalStore(subscribe, () => activities.get(runId) ?? null);
+export function useChatActivity(chatId: number): string | null {
+  return useSyncExternalStore(subscribe, () => activities.get(chatId) ?? null);
 }

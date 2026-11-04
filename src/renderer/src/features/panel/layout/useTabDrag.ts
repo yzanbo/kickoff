@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from "react";
 import { dropZoneAt, insertIndexAt, splitOfZone, type DropZone } from "./paneGeometry";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 
 /** 右のパネルのタブをドラッグするときの dataTransfer の型（ファイルのドロップ（チャット欄への添付）と取り違えないよう独自の型にする） */
 const TAB_MIME = "application/x-kickoff-panel-tab";
@@ -10,7 +10,7 @@ const TAB_MIME = "application/x-kickoff-panel-tab";
  * ペインの中身の端に落とすとその側に分けて置き、真ん中ならそのペインへ移す。
  * ドラッグ中だけ中身の上に透明の覆い（cover）を置き、webview やターミナルの上でも落とす場所を出す
  */
-export function useTabDrag(panel: SidePanelController) {
+export function useTabDrag(panel: PanelController) {
   // ドラッグ中のタブ（このパネルのタブだけを受け付ける）
   const [dragging, setDragging] = useState<string | null>(null);
   // タブの列に落とす位置（何番目の前か）と、中身の上の落とす場所

@@ -1,6 +1,6 @@
 // 型と定数のみ。Node 依存なし（コア・画面・将来のモバイルアプリで共有する）
 import type { ApprovalDecision, ApprovalKind } from "@shared/types/approval";
-import type { EffortLevel, PermissionChoice, ProviderId } from "@shared/types/settings";
+import type { EffortLevel, PermissionMode, ProviderId } from "@shared/types/settings";
 
 // チャット（エージェントとの会話）: 実行ごとの選択肢・カンバンの列・エージェントの状態・記録されるイベント
 /** チャット欄で選べるモデル */
@@ -25,10 +25,10 @@ export interface EffortDefault {
 }
 
 /** 実行ごとに選べるオプション（チャット欄の選択） */
-export interface RunOptions {
+export interface ChatOptions {
   model?: string | null;
   effort?: EffortLevel | null;
-  permission_mode?: PermissionChoice | null;
+  permission_mode?: PermissionMode | null;
   fast_mode?: boolean | null;
 }
 
@@ -37,43 +37,43 @@ export interface RunOptions {
  * 作業中（考えている・順番待ち）→ 回答待ち（承認・質問に答えてほしい）→ 未読（作業が終わった・失敗した。まだ見ていない）→ 既読（見た）。
  * 終わったかどうかより、終わった結果を見たかどうかを分ける（見ていないものを「完了」と呼ばない）
  */
-export const BOARD_COLUMNS = ["running", "needs_input", "review", "done"] as const;
+export const BOARD_COLUMNS = ["running", "needs_input", "unread", "read"] as const;
 export type BoardColumn = (typeof BOARD_COLUMNS)[number];
 
 export const BOARD_COLUMN_LABELS: Record<BoardColumn, string> = {
   running: "作業中",
   needs_input: "回答待ち",
-  review: "未読",
-  done: "既読",
+  unread: "未読",
+  read: "既読",
 };
 
 /**
  * エージェント自身の状態（状態の分け方に合わせる）。
  * needs_input: 承認・回答待ち / failed: 失敗してまだ見ていない / running: 作業中 / attention: 終わってまだ見ていない（未読）/ done: 見た（既読）
  */
-const AGENT_STATES = ["needs_input", "failed", "attention", "running", "done"] as const;
+const AGENT_STATES = ["needs_input", "failed", "unread", "running", "read"] as const;
 export type AgentState = (typeof AGENT_STATES)[number];
 
 export const AGENT_STATE_LABELS: Record<AgentState, string> = {
   needs_input: "回答待ち",
   failed: "エラー",
-  attention: "未読",
+  unread: "未読",
   running: "作業中",
-  done: "既読",
+  read: "既読",
 };
 
-export type RunStatus = "queued" | "running" | "waiting" | "completed" | "failed" | "cancelled";
-export interface Run {
+export type ChatStatus = "queued" | "running" | "waiting" | "completed" | "failed" | "cancelled";
+export interface Chat {
   id: number;
   project_id: number;
   provider: ProviderId;
   title: string;
-  status: RunStatus;
+  status: ChatStatus;
   session_id: string | null;
   model: string | null;
   /** 推論の深さ（null なら指定しない＝モデルの既定） */
   effort: EffortLevel | null;
-  permission_mode: PermissionChoice;
+  permission_mode: PermissionMode;
   /** ファストモードを指定したか */
   fast_mode: boolean;
   cost_usd: number;
@@ -81,7 +81,7 @@ export interface Run {
   result: string | null;
   error: string | null;
   /** AI の作業が終わって、まだ開いて確認していない */
-  attention: boolean;
+  unread: boolean;
   /** アーカイブした日時（null なら一覧に出す） */
   archived_at: string | null;
   /** サイドバーのプロジェクトの上に固定したか */
@@ -103,7 +103,7 @@ export interface Run {
 }
 
 /** チャットを自分でまとめるグループ（プロジェクトごと） */
-export interface RunGroup {
+export interface ChatGroup {
   id: number;
   project_id: number;
   name: string;
@@ -117,9 +117,9 @@ export interface RunGroup {
 /** チャットのやり取りの検索結果（1 件 = 1 つの発言） */
 export interface SearchHit {
   event_id: number;
-  run_id: number;
+  chat_id: number;
   project_id: number;
-  run_title: string;
+  chat_title: string;
   /** user: 自分の発言 / text: AI の返答 */
   type: "user" | "text";
   /** キーワードの前後を切り出した文（match_start〜match_end がキーワード） */
@@ -134,7 +134,7 @@ export interface QueuedMessage {
   id: string;
   text: string;
   attachments: Attachment[];
-  options: RunOptions;
+  options: ChatOptions;
   created_at: string;
 }
 
@@ -183,7 +183,7 @@ export interface ReconnectState {
   agents: string[];
 }
 
-export type RunEventData =
+export type ChatEventData =
   /**
    * handover: この発言に添えて渡した、届いていなかったサブエージェントの報告（一覧の行のキー）。
    * message_uuid: Claude Code に渡した発言の ID（ファイルをこの発言を送る前の状態に戻すときの目印。以前の記録にはない）
@@ -213,7 +213,7 @@ export type RunEventData =
   /** 作業の終わり。session_id と message_id: その時点の会話の位置（ここから分岐するときに使う。分岐したチャットに写しても元の会話を指す） */
   | {
       type: "result";
-      status: RunStatus;
+      status: ChatStatus;
       text?: string;
       cost_usd?: number;
       turns?: number;
@@ -226,7 +226,7 @@ export type RunEventData =
   | { type: "notice"; message: string }
   /** 会話を要約してコンテキストを空けた（manual: 手で圧縮 / auto: 上限に近づいて自動で）。前後のトークン数 */
   | { type: "compact"; trigger: "manual" | "auto"; pre_tokens: number; post_tokens?: number }
-  /** サブエージェントの開始・終了（途中経過は保存せず、run_subagent で届く） */
+  /** サブエージェントの開始・終了（途中経過は保存せず、chat_subagent で届く） */
   | ({ type: "subagent" } & SubagentInfo);
 
 /** サブエージェント（Task / Agent ツールで起動された別のエージェント）の状態 */
@@ -245,12 +245,12 @@ export interface SubagentInfo {
   summary?: string;
 }
 
-export type RunEventType = RunEventData["type"];
+export type ChatEventType = ChatEventData["type"];
 
-export interface RunEvent {
+export interface ChatEvent {
   id: number;
-  run_id: number;
-  type: RunEventType;
-  data: Omit<RunEventData, "type">;
+  chat_id: number;
+  type: ChatEventType;
+  data: Omit<ChatEventData, "type">;
   created_at: string;
 }

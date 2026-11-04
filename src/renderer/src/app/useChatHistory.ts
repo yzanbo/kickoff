@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { openRun, type Route } from "./router";
+import { openChat, type Route } from "./router";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 
 /** 覚えておく、開いたチャットの数 */
@@ -10,17 +10,17 @@ const MAX_HISTORY = 50;
  * コードの編集中（Monaco）の ⌘[ / ⌘] は字下げなので、そちらに任せる
  */
 export function useChatHistory(route: Route) {
-  const history = useRef<{ list: { projectId: number; runId: number }[]; index: number; moving: boolean }>({ list: [], index: -1, moving: false });
+  const history = useRef<{ list: { projectId: number; chatId: number }[]; index: number; moving: boolean }>({ list: [], index: -1, moving: false });
   useEffect(() => {
-    if (route.name !== "run") return;
+    if (route.name !== "chat") return;
     const h = history.current;
     // ⌘[ / ⌘] で移ったときは、覚えている並びをそのままにする
     if (h.moving) {
       h.moving = false;
       return;
     }
-    if (h.list[h.index]?.runId === route.runId) return;
-    h.list = [...h.list.slice(0, h.index + 1), { projectId: route.projectId, runId: route.runId }].slice(-MAX_HISTORY);
+    if (h.list[h.index]?.chatId === route.chatId) return;
+    h.list = [...h.list.slice(0, h.index + 1), { projectId: route.projectId, chatId: route.chatId }].slice(-MAX_HISTORY);
     h.index = h.list.length - 1;
   }, [route]);
 
@@ -34,6 +34,6 @@ export function useChatHistory(route: Route) {
     e.preventDefault();
     h.index += step;
     h.moving = true;
-    openRun(next.projectId, next.runId);
+    openChat(next.projectId, next.chatId);
   });
 }

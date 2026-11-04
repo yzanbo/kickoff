@@ -13,13 +13,13 @@ const MENU_HEIGHT = 140;
  * 送信待ちはチャット欄のすぐ上（画面の下の方）にあるので、メニューはボタンの上に開く
  */
 export function SendAllMenu({
-  runId,
+  chatId,
   count,
   busy,
   holds,
   failed,
 }: {
-  runId: number;
+  chatId: number;
   count: number;
   busy: boolean;
   /** 止めている・一時停止の印がある（1 件ずつ送るときは外して最後まで送る） */
@@ -60,7 +60,7 @@ export function SendAllMenu({
       </button>
       {at && (
         <PopupMenu x={at.x} y={at.y} label="送信待ちの送り方" className="send-all-menu" ignore=".send-all-button" onClose={() => setAt(null)}>
-          <MenuItem onSelect={() => void api.sendAllQueued(runId).catch(failed)}>
+          <MenuItem onSelect={() => void api.sendAllQueued(chatId).catch(failed)}>
             <Merge size={14} aria-hidden />
             <span className="send-all-option">
               <span>まとめて 1 件で送る</span>
@@ -69,7 +69,7 @@ export function SendAllMenu({
               </span>
             </span>
           </MenuItem>
-          <MenuItem onSelect={() => void api.sendQueuedInOrder(runId).catch(failed)}>
+          <MenuItem onSelect={() => void api.sendQueuedInOrder(chatId).catch(failed)}>
             <ListOrdered size={14} aria-hidden />
             <span className="send-all-option">
               <span>1 件ずつ順に送る</span>

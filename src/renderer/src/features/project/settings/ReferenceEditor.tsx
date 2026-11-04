@@ -18,10 +18,10 @@ function splitPath(p: string): { name: string; dir: string } {
  */
 export function ReferenceEditor({ project }: { project: Project }) {
   const [typed, setTyped] = useState("");
-  const { saving, error, run } = useSave();
+  const { saving, error, chat } = useSave();
   const refs = project.references;
 
-  const save = (next: Pick<ProjectReference, "path">[]) => run(() => api.updateProject(project.id, { references: next as ProjectReference[] }));
+  const save = (next: Pick<ProjectReference, "path">[]) => chat(() => api.updateProject(project.id, { references: next as ProjectReference[] }));
 
   const add = async (paths: string[]) => {
     const fresh = paths.map((p) => p.trim()).filter((p) => p && !refs.some((r) => r.path === p));

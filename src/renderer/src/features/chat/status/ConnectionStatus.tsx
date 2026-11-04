@@ -39,7 +39,7 @@ export function reconnectLabel(reconnect: ReconnectState): string {
  * 流れのいちばん下に出す、つながるのを待っている行（作業中の行の代わり）。
  * 「自動で再開しない」で待つのをやめられる（そのあとは、自分でメッセージを送ると続きから再開する）
  */
-export function ReconnectRow({ runId, reconnect }: { runId: number; reconnect: ReconnectState }) {
+export function ReconnectRow({ chatId, reconnect }: { chatId: number; reconnect: ReconnectState }) {
   return (
     <div className="reconnect-row" role="status">
       <WifiOff size={14} aria-hidden />
@@ -48,7 +48,7 @@ export function ReconnectRow({ runId, reconnect }: { runId: number; reconnect: R
         type="button"
         className="link-button"
         title="つながっても自動で再開しない（自分でメッセージを送ると、続きから再開します）"
-        onClick={() => void api.stopReconnect(runId).catch(reportFailure("自動の再開をやめられませんでした"))}
+        onClick={() => void api.stopReconnect(chatId).catch(reportFailure("自動の再開をやめられませんでした"))}
       >
         自動で再開しない
       </button>

@@ -1,16 +1,16 @@
 // チャットに送る指示の下ごしらえ（Runner から使う）: チャットの作成・名前の付け方・添付と届かなかった報告の書き添え
 import { randomUUID } from "node:crypto";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
-import { resolveRunDefaults } from "@shared/chat/chatOptions";
+import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { ExecutionDeps } from "./turn.js";
-import type { Attachment, RunOptions } from "@shared/types";
+import type { Attachment, ChatOptions } from "@shared/types";
 import { withAttachmentNote } from "./uploads.js";
 
-export interface StartRunInput {
+export interface StartChatInput {
   projectId: number;
   prompt: string;
   title?: string;
-  options?: RunOptions;
+  options?: ChatOptions;
   attachments?: Attachment[];
   /** 自分で作ったグループ（グループの＋から始めたとき） */
   groupId?: number;
@@ -22,17 +22,17 @@ export interface StartRunInput {
  * 新しいチャットを作り、最初の発言を記録する（実行の待機列に入れるのは Runner）。prompt は添付のパスを書き添えた、AI に渡す文。
  * messageUuid は発言の ID（Claude Code にも同じ ID で渡し、ファイルをこの発言の時点に戻すときの目印にする）
  */
-export async function createRun(deps: ExecutionDeps, input: StartRunInput) {
+export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
   const { store, providers } = deps;
   const project = store.getProject(input.projectId);
   if (!project) throw new Error("プロジェクトが見つかりません");
   if (!providers[project.provider].implemented) throw new Error(`${providers[project.provider].label} はまだ使えません`);
 
   // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
-  const defaults = resolveRunDefaults(store.getSettings(), project.defaults);
+  const defaults = resolveChatOptions(store.getSettings(), project.defaults);
   const options = input.options ?? {};
   const model = options.model ?? (project.provider === "claude" ? defaults.model || null : null);
-  const run = store.createRun({
+  const chat = store.createChat({
     project_id: project.id,
     provider: project.provider,
     title: input.title ?? firstLine(input.prompt),
@@ -46,17 +46,17 @@ export async function createRun(deps: ExecutionDeps, input: StartRunInput) {
   });
   const attachments = input.attachments ?? [];
   const messageUuid = randomUUID();
-  store.addEvent(run.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}), message_uuid: messageUuid });
-  if (!input.title) void autoTitle(deps, run.id, input.prompt || attachments.map((a) => a.name).join("、"));
-  return { run, prompt: await promptWithAttachments(deps, input.prompt, attachments), messageUuid };
+  store.addEvent(chat.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}), message_uuid: messageUuid });
+  if (!input.title) void autoTitle(deps, chat.id, input.prompt || attachments.map((a) => a.name).join("、"));
+  return { chat, prompt: await promptWithAttachments(deps, input.prompt, attachments), messageUuid };
 }
 
 /**
  * 続きの指示の下ごしらえ: 添付のパスと、親に届かなかったサブエージェントの報告を添える（前の作業が報告を受け取る前に
  * 終わっていたとき。送るまで残っている報告を、次の自然な機会に渡す）。handover は自分の発言の記録に足す
  */
-export async function followupPrompt(deps: ExecutionDeps, runId: number, text: string, attachments: Attachment[]) {
-  const lost = undeliveredReports(deps.store.listEvents(runId));
+export async function followupPrompt(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
+  const lost = undeliveredReports(deps.store.listEvents(chatId));
   const prompt = withUndeliveredReports(await promptWithAttachments(deps, text, attachments), lost);
   return { prompt, handover: lost.length ? { handover: lost.map((s) => s.key) } : {} };
 }
@@ -68,14 +68,14 @@ function firstLine(text: string): string {
 }
 
 /** チャット名を AI に付けてもらう（ユーザーが名前を変えていなければ置き換える） */
-async function autoTitle({ store, providers }: ExecutionDeps, runId: number, text: string) {
-  const run = store.getRun(runId);
-  const provider = run ? providers[run.provider] : undefined;
-  if (!run || !provider?.title || !text.trim()) return;
+async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, text: string) {
+  const chat = store.getChat(chatId);
+  const provider = chat ? providers[chat.provider] : undefined;
+  if (!chat || !provider?.title || !text.trim()) return;
   try {
     const title = await provider.title(text);
-    const latest = store.getRun(runId);
-    if (title && latest && latest.title === run.title) store.updateRun(runId, { title });
+    const latest = store.getChat(chatId);
+    if (title && latest && latest.title === chat.title) store.updateChat(chatId, { title });
   } catch {
     // 付けられなくても困らない（最初の発言のまま）
   }

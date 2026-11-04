@@ -5,7 +5,7 @@ import type { LinkState } from "./linkedTabs";
 import { loadPanel, savePanel } from "./panelMemory";
 
 /**
- * 右のパネル（useSidePanel）の覚えておく状態: タブ・分割の配置・開いているか・サイドバーと連動したチャットのタブの覚え。
+ * 右のパネル（usePanel）の覚えておく状態: タブ・分割の配置・開いているか・サイドバーと連動したチャットのタブの覚え。
  * memoryKey（ボードごと）に覚え（panelMemory.ts）、同じ部品のまま別のボードに切り替わったら、そのボードで覚えている状態に戻す
  */
 export function usePanelState(memoryKey: string) {

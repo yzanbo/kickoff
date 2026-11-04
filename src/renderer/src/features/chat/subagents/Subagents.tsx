@@ -1,6 +1,6 @@
 import { Archive, ArchiveRestore, ChevronUp } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EFFORT_LABELS, type BackgroundState, type EffortLevel, type ModelOption, type Run, type RunEvent, type SubagentInfo } from "@shared/types";
+import { EFFORT_LABELS, type BackgroundState, type EffortLevel, type ModelOption, type Chat, type ChatEvent, type SubagentInfo } from "@shared/types";
 import { confirmDialog } from "@/ui/dialogs";
 import { useServerEvent } from "@/api/events";
 import { formatTokens } from "@/lib/format";
@@ -17,13 +17,13 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { IconButton } from "@/ui/IconButton";
 
 /** チャットのサブエージェントの一覧（途中経過はサーバーからのイベントで受け取る） */
-export function useSubagents(runId: number, events: RunEvent[], busy: boolean, background: BackgroundState | null = null): SubagentEntry[] {
+export function useSubagents(chatId: number, events: ChatEvent[], busy: boolean, background: BackgroundState | null = null): SubagentEntry[] {
   const [progress, setProgress] = useState<Record<string, SubagentInfo>>({});
   // 途中経過が届いた時刻（作業 ID ごと。記録に残らないので、最後に動いた時刻に足す）
   const [progressAt, setProgressAt] = useState<Record<string, string>>({});
-  useEffect(() => (setProgress({}), setProgressAt({})), [runId]);
+  useEffect(() => (setProgress({}), setProgressAt({})), [chatId]);
   useServerEvent((e) => {
-    if (e.type === "run_subagent" && e.run_id === runId) {
+    if (e.type === "chat_subagent" && e.chat_id === chatId) {
       // 作業 ID ごとに覚える（再開すると呼び出し ID が変わるため。行へのまとめ方は collectSubagents が決める）
       setProgress((prev) => ({ ...prev, [e.subagent.task_id]: e.subagent }));
       setProgressAt((prev) => ({ ...prev, [e.subagent.task_id]: new Date().toISOString() }));
@@ -46,13 +46,13 @@ export function useSubagents(runId: number, events: RunEvent[], busy: boolean, b
  */
 export function SubagentChip({
   entries,
-  run,
+  chat,
   busy,
   models,
   onOpen,
 }: {
   entries: SubagentEntry[];
-  run: Run;
+  chat: Chat;
   busy: boolean;
   models: ModelOption[];
   onOpen: (entry: SubagentEntry) => void;
@@ -64,7 +64,7 @@ export function SubagentChip({
   const ref = useRef<HTMLDivElement>(null);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
   const [archived, saveArchived] = useStoredState(
-    subagentsArchivedKey(run.id),
+    subagentsArchivedKey(chat.id),
     (raw) => new Set(JSON.parse(raw ?? "[]") as string[]),
     (keys) => JSON.stringify([...keys]),
   );
@@ -107,8 +107,8 @@ export function SubagentChip({
   const renderRow = (s: SubagentEntry, isArchived: boolean) => {
     const meta = [
       s.subagentType ?? "general-purpose",
-      modelDisplayName(models, s.model ?? run.model),
-      s.model ? null : run.effort ? EFFORT_LABELS[run.effort as EffortLevel] : null,
+      modelDisplayName(models, s.model ?? chat.model),
+      s.model ? null : chat.effort ? EFFORT_LABELS[chat.effort as EffortLevel] : null,
       s.tokens !== undefined ? `${formatTokens(s.tokens)} tokens` : null,
     ].filter(Boolean);
     return (
@@ -133,7 +133,7 @@ export function SubagentChip({
           </span>
           {!isArchived && (
             <SubagentActions
-              runId={run.id}
+              chatId={chat.id}
               entry={s}
               busy={busy}
               onOpen={(key) => {

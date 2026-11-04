@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
-import { RUN_STATUS_LABELS } from "@/features/chat/chatStatus";
+import { CHAT_STATUS_LABELS } from "@/features/chat/chatStatus";
 import { useSharedFlag } from "@/hooks/useStoredState";
 import { useTicker } from "@/hooks/useTicker";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import type { Approval, BackgroundState, Run, RunEvent } from "@shared/types";
+import type { Approval, BackgroundState, Chat, ChatEvent } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, latestOf, stalledAgents } from "@/features/chat/status/stall";
-import { lastResultIdOf, workingLabel, type RunActivity } from "@/features/chat/status/workingLabel";
+import { lastResultIdOf, workingLabel, type ChatActivity } from "@/features/chat/status/workingLabel";
 import { BackgroundTasks } from "@/features/chat/status/BackgroundTasks";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
@@ -36,7 +36,7 @@ const BOTTOM_SLACK_PX = 80;
  * ボタンに文を添えて目立たせ、下へ戻るよう誘う。
  * focus（検索結果から開いた発言）があれば、そこまでスクロールして一瞬強調する
  */
-export function RunTimeline({
+export function ChatTimeline({
   items,
   lastItem,
   rel,
@@ -46,7 +46,7 @@ export function RunTimeline({
   onShowLater,
   onLatest,
   onAtBottom,
-  run,
+  chat,
   busy,
   agents = [],
   onOpenSubagent,
@@ -68,7 +68,7 @@ export function RunTimeline({
   /** 流れ全体の最後の項目（窓で途中を描いていても、作業中の文はいまの状態で決める） */
   lastItem: TimelineItem | undefined;
   rel: (s: string) => string;
-  run: Run;
+  chat: Chat;
   busy: boolean;
   /** 窓の外（上）にあって描いていない項目の数と、それを足す操作（長いチャットでは最近の項目だけを描く） */
   hidden?: number;
@@ -97,7 +97,7 @@ export function RunTimeline({
   focus?: number;
   stickToBottom: RefObject<boolean>;
   /** 会話の記録（最新の結果を一番下まで見たら既読にする） */
-  events: RunEvent[];
+  events: ChatEvent[];
   /** チャットを表示しているか（パネルの裏のタブ・閉じたパネルは見ていない） */
   visible: boolean;
   /** 上に貼り付けた指示の帯の ↑ / ↓: 貼り付けた指示（from）の前・次の指示へ移る */
@@ -140,8 +140,8 @@ export function RunTimeline({
     if (live) liveAt.current = new Date().toISOString();
   }, [live]);
   const runningAgents = agents.filter((s) => s.status === "running").length;
-  const activity: RunActivity = {
-    parent: activityOf(latestOf(events.at(-1)?.created_at, liveAt.current, run.turn_started_at, ...agents.filter((s) => s.status === "running").map((s) => s.lastActivityAt))),
+  const activity: ChatActivity = {
+    parent: activityOf(latestOf(events.at(-1)?.created_at, liveAt.current, chat.turn_started_at, ...agents.filter((s) => s.status === "running").map((s) => s.lastActivityAt))),
     stalled: busy ? stalledAgents(agents) : [],
   };
 
@@ -183,7 +183,7 @@ export function RunTimeline({
   }, [lastKey, approvals.length, live, focus, stickToBottom]);
 
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
-  useMarkSeen({ timelineRef, run, events, visible, away, slackPx: BOTTOM_SLACK_PX });
+  useMarkSeen({ timelineRef, chat, events, visible, away, slackPx: BOTTOM_SLACK_PX });
 
   // 途中の一部分を描いているときに一番下へ戻る: 最新の窓に戻して、描いてから一番下へ
   const toLatest = useRef(false);
@@ -208,7 +208,7 @@ export function RunTimeline({
   // ⌘↓ で一番下へ（このチャットの中にピントがあり、上を読んでいるとき。入力欄の中でも効く）
   useWindowEvent("keydown", (e) => {
     if (!away || !e.metaKey || e.altKey || e.ctrlKey || e.shiftKey || e.key !== "ArrowDown") return;
-    const panel = timelineRef.current?.closest(".run-panel");
+    const panel = timelineRef.current?.closest(".chat-panel");
     if (!panel?.contains(document.activeElement)) return;
     e.preventDefault();
     scrollToBottom();
@@ -222,10 +222,10 @@ export function RunTimeline({
     : !busy && connection.reconnect
       ? { label: "通信待ち（つながったら自動で再開）", tone: "offline" }
       : finishedWhileAway
-        ? { label: run.status === "failed" ? "失敗しました" : "返答が届きました", tone: run.status === "failed" ? "failed" : "arrived" }
+        ? { label: chat.status === "failed" ? "失敗しました" : "返答が届きました", tone: chat.status === "failed" ? "failed" : "arrived" }
         : busy
-          ? { label: workingLabel(run, lastItem, live, stopping, compacting, runningAgents, connection, background, activity), tone: connection.retry ? "offline" : "working" }
-          : { label: RUN_STATUS_LABELS[run.status], tone: run.status === "failed" ? "failed" : "idle" };
+          ? { label: workingLabel(chat, lastItem, live, stopping, compacting, runningAgents, connection, background, activity), tone: connection.retry ? "offline" : "working" }
+          : { label: CHAT_STATUS_LABELS[chat.status], tone: chat.status === "failed" ? "failed" : "idle" };
 
   return (
     <div className="timeline-wrap">
@@ -275,12 +275,12 @@ export function RunTimeline({
           ))}
           {/* 返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える */}
           {busy && !waiting && (
-            <Working since={run.status === "queued" ? null : run.turn_started_at}>{workingLabel(run, lastItem, live, stopping, compacting, runningAgents, connection, background, activity)}</Working>
+            <Working since={chat.status === "queued" ? null : chat.turn_started_at}>{workingLabel(chat, lastItem, live, stopping, compacting, runningAgents, connection, background, activity)}</Working>
           )}
           {/* 裏で動いている作業（1 件ずつ止められる） */}
-          {busy && <BackgroundTasks runId={run.id} background={background} agents={agents} onOpen={onOpenSubagent} />}
+          {busy && <BackgroundTasks chatId={chat.id} background={background} agents={agents} onOpen={onOpenSubagent} />}
           {/* 通信が切れて止まり、つながるのを待っている */}
-          {!busy && connection.reconnect && <ReconnectRow runId={run.id} reconnect={connection.reconnect} />}
+          {!busy && connection.reconnect && <ReconnectRow chatId={chat.id} reconnect={connection.reconnect} />}
             </>
           )}
         </div>

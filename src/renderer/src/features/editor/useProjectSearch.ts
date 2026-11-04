@@ -19,7 +19,7 @@ export function useProjectSearch(projectId: number) {
   const [loading, setLoading] = useState(false);
   const latest = useRef(0);
 
-  const run = useCallback(
+  const chat = useCallback(
     async (search: ProjectSearchQuery) => {
       const request = ++latest.current;
       setLoading(true);
@@ -47,9 +47,9 @@ export function useProjectSearch(projectId: number) {
       setLoading(false);
       return;
     }
-    const timer = setTimeout(() => void run({ query, ...options }), DEBOUNCE_MS);
+    const timer = setTimeout(() => void chat({ query, ...options }), DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [query, options, run]);
+  }, [query, options, chat]);
 
   return {
     query,
@@ -60,7 +60,7 @@ export function useProjectSearch(projectId: number) {
     result,
     error,
     loading,
-    rerun: () => query && void run(current),
+    rerun: () => query && void chat(current),
   };
 }
 

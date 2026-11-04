@@ -35,12 +35,12 @@ export function useComposerFiles() {
   }
 
   /** 別のチャットを参照する: そのやり取りを添付する（コアが記録を Markdown のファイルにして返す。チップはファイルと同じに出す） */
-  function addChat(run: { id: number; title: string | null }) {
+  function addChat(chat: { id: number; title: string | null }) {
     const key = `${Date.now()}-${Math.random()}`;
-    const file = new File([], `チャット履歴-${chatTitle(run.title)}.md`, { type: "text/markdown" });
+    const file = new File([], `チャット履歴-${chatTitle(chat.title)}.md`, { type: "text/markdown" });
     setFiles((prev) => [...prev, { key, file }]);
     api
-      .chatTranscript(run.id)
+      .chatTranscript(chat.id)
       .then((attachment) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, attachment } : f))))
       .catch((e: unknown) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))));
   }

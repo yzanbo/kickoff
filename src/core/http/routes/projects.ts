@@ -4,7 +4,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import type { ServerDeps } from "../server.js";
-import { EFFORT_LEVELS, PERMISSION_CHOICES, PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
+import { EFFORT_LEVELS, PERMISSION_MODES, PROVIDER_IDS, type Project, type ProviderId } from "@shared/types";
 import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../../git/workspace.js";
 import { badRequest, HttpError, requireProject } from "./http.js";
 import { PROJECT_HUES } from "@shared/project/colors";
@@ -49,7 +49,7 @@ const projectPatchSchema = z
       .object({
         model: z.string().min(1).max(100),
         effort: z.enum(EFFORT_LEVELS).nullable(),
-        permission: z.enum(PERMISSION_CHOICES),
+        permission: z.enum(PERMISSION_MODES),
         fastMode: z.boolean(),
       })
       .partial()

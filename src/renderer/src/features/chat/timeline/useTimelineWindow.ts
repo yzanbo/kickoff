@@ -12,12 +12,12 @@ import type { TimelineItem } from "./timelineItems";
  */
 export function useTimelineWindow({
   items,
-  runId,
+  chatId,
   focus,
   stickToBottom,
 }: {
   items: TimelineItem[];
-  runId: number;
+  chatId: number;
   focus?: number;
   stickToBottom: RefObject<boolean>;
 }) {
@@ -27,7 +27,7 @@ export function useTimelineWindow({
   useEffect(() => {
     setShown(TIMELINE_WINDOW);
     setRange(null);
-  }, [runId]);
+  }, [chatId]);
   useEffect(() => {
     if (stickToBottom.current) setShown((s) => Math.min(s, TIMELINE_WINDOW));
   }, [items.length, stickToBottom]);

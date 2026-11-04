@@ -5,13 +5,13 @@ import { Store } from "./store.js";
 function setup() {
   const store = new Store(":memory:");
   const project = store.createProject({ name: "demo", repo_path: "/tmp/demo", provider: "claude" });
-  const run = store.createRun({ project_id: project.id, provider: "claude", title: "検索", status: "completed", model: null });
-  const say = (text: string, type: "user" | "text" = "text", runId = run.id) => store.addEvent(runId, { type, text }).id;
+  const chat = store.createChat({ project_id: project.id, provider: "claude", title: "検索", status: "completed", model: null });
+  const say = (text: string, type: "user" | "text" = "text", chatId = chat.id) => store.addEvent(chatId, { type, text }).id;
   /** 見つかった発言の ID（新しい順） */
   const ids = (query: string, filter?: Parameters<Store["searchEvents"]>[1]) => store.searchEvents(query, filter).map((h) => h.event_id);
   /** 全文検索の索引が中身（発言の文）と合っているか（合っていなければ例外） */
-  const checkIndex = () => store.db.exec("INSERT INTO run_event_search (run_event_search) VALUES ('integrity-check')");
-  return { store, project, run, say, ids, checkIndex };
+  const checkIndex = () => store.db.exec("INSERT INTO chat_event_search (chat_event_search) VALUES ('integrity-check')");
+  return { store, project, chat, say, ids, checkIndex };
 }
 
 test("検索: 日本語は 2 文字（LIKE）でも 3 文字以上（全文検索の索引）でも部分一致で見つかり、切り出しの位置が合う", () => {
@@ -53,21 +53,21 @@ test("検索: 大文字・小文字を区別せず、% _ \" \\ は文字とし�
 });
 
 test("検索: 自分の発言と AI の返答だけを探し、消したチャット・プロジェクトの発言は出ない（索引も追従する）", () => {
-  const { store, project, run, say, ids, checkIndex } = setup();
-  store.addEvent(run.id, { type: "tool_use", id: "t1", name: "Read", input: { text: "消える予定の語" } });
-  store.addEvent(run.id, { type: "thinking", text: "消える予定の語" });
+  const { store, project, chat, say, ids, checkIndex } = setup();
+  store.addEvent(chat.id, { type: "tool_use", id: "t1", name: "Read", input: { text: "消える予定の語" } });
+  store.addEvent(chat.id, { type: "thinking", text: "消える予定の語" });
   const kept = say("消える予定の語（残る）");
-  const other = store.createRun({ project_id: project.id, provider: "claude", title: "消す", status: "completed", model: null });
+  const other = store.createChat({ project_id: project.id, provider: "claude", title: "消す", status: "completed", model: null });
   say("消える予定の語", "user", other.id);
   assert.deepEqual(ids("消える予定"), [kept + 1, kept]);
-  store.deleteRun(other.id);
+  store.deleteChat(other.id);
   assert.deepEqual(ids("消える予定"), [kept]);
   assert.deepEqual(ids("消え"), [kept]);
   checkIndex();
 
   const second = store.createProject({ name: "other", repo_path: "/tmp/other", provider: "claude" });
-  const run2 = store.createRun({ project_id: second.id, provider: "claude", title: "別", status: "completed", model: null });
-  say("別のプロジェクトの発言", "text", run2.id);
+  const chat2 = store.createChat({ project_id: second.id, provider: "claude", title: "別", status: "completed", model: null });
+  say("別のプロジェクトの発言", "text", chat2.id);
   assert.equal(ids("別のプロジェクト").length, 1);
   assert.deepEqual(ids("別のプロジェクト", { projectId: project.id }), []);
   store.deleteProject(second.id);
@@ -75,7 +75,7 @@ test("検索: 自分の発言と AI の返答だけを探し、消したチャ�
   checkIndex();
 
   // 記録を書き換えても索引は追従する（いまは書き換える操作はないが、索引を壊さないように）
-  store.db.prepare("UPDATE run_events SET data = ? WHERE id = ?").run(JSON.stringify({ text: "書き換えた発言" }), kept);
+  store.db.prepare("UPDATE chat_events SET data = ? WHERE id = ?").run(JSON.stringify({ text: "書き換えた発言" }), kept);
   assert.deepEqual(ids("消える予定"), []);
   assert.deepEqual(ids("書き換えた"), [kept]);
   checkIndex();

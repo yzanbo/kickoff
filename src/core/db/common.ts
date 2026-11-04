@@ -2,7 +2,7 @@ import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { NOW } from "./schema.js";
 import type { BusEvent } from "@shared/types";
 
-// store/ の各モジュールで共通に使う小さな部品（Store のファサードは src/core/store.ts）
+// db/ の各モジュールで共通に使う小さな部品（Store のファサードは src/core/store.ts）
 
 /** SQL に渡す行（列名 → 値） */
 export type Row = Record<string, SQLInputValue>;

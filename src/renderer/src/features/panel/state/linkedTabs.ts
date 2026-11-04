@@ -1,4 +1,4 @@
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import type { PanelTab } from "@/features/panel/usePanel";
 
 export const chatKey = (id: number) => `chat:${id}`;
@@ -19,7 +19,7 @@ export const NO_LINKS: LinkState = { dismissed: [], extra: [] };
  * 一覧から外れたチャット（アーカイブして隠した・別のプロジェクトへ移した・消した）のタブは閉じる（自分で開いた extra は残す）。
  * 一覧に入った extra は extra から外す（次に一覧から外れたら閉じる）。変わらなければ同じ配列を返す
  */
-export function syncLinkedTabs(tabs: PanelTab[], linked: readonly Run[], links: LinkState): { tabs: PanelTab[]; links: LinkState } {
+export function syncLinkedTabs(tabs: PanelTab[], linked: readonly Chat[], links: LinkState): { tabs: PanelTab[]; links: LinkState } {
   const linkedIds = new Set(linked.map((r) => r.id));
   const dismissed = new Set(links.dismissed);
   const extra = links.extra.filter((id) => !linkedIds.has(id));

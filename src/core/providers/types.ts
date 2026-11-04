@@ -1,5 +1,5 @@
 import type { ChatPolicy } from "../chat/policy.js";
-import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionChoice, PlanUsage, ProviderId, ProviderStatus, RunEventData, SlashCommandOption, SubagentInfo } from "@shared/types";
+import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, SlashCommandOption, SubagentInfo } from "@shared/types";
 
 /**
  * エージェント実行基盤の抽象化。
@@ -26,10 +26,10 @@ export interface AgentProvider {
   /** ファイルを、その会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけを返す）。作業中でないときに呼ぶ */
   rewindFiles?(sessionId: string, messageId: string, cwd: string, dryRun: boolean): Promise<FileRewindResult>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
-  run(params: ProviderRunParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderRunResult>;
+  run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult>;
 }
 
-export interface ProviderRunParams {
+export interface ProviderTurnParams {
   cwd: string;
   prompt: string;
   /** 指示の ID（自分の発言の記録の message_uuid。ファイルをこの発言の時点に戻すときの目印） */
@@ -43,7 +43,7 @@ export interface ProviderRunParams {
   /** 推論の深さ（null なら指定しない＝SDK とモデルの既定） */
   effort: EffortLevel | null;
   /** 権限モード（ファイルの編集を自動で承認するかも、これで決まる） */
-  permissionMode: PermissionChoice;
+  permissionMode: PermissionMode;
   /** ファストモード（対応していないモデル・プランでは通常の速度になる） */
   fastMode: boolean;
   /** 作業フォルダ以外に読み取りを許すフォルダ（添付ファイルの保存先・参照資料など） */
@@ -62,10 +62,10 @@ export interface ApprovalRequest {
 }
 
 /** プロバイダーから Kickoff へ通知する実行中イベント（DB にはこの形のまま保存される） */
-type AgentEvent = Exclude<RunEventData, { type: "user" | "approval" | "approval_resolved" | "result" }>;
+type AgentEvent = Exclude<ChatEventData, { type: "user" | "approval" | "approval_resolved" | "result" }>;
 
 /** 作業中のチャットへの操作（ストリーミング入力が開いている間だけ） */
-export interface RunControl {
+export interface TurnControl {
   /** 作業を止めずに発言を足す（いまの手順の切れ目でメインのエージェントが読む）。入力が閉じていれば false */
   tell(text: string, uuid?: string): boolean;
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
@@ -86,10 +86,10 @@ export interface ProviderCallbacks {
   /** 会話を圧縮（要約）し始めた・終わった（手で圧縮したときも、上限に近づいて自動で圧縮されたときも。保存しない） */
   compacting?(active: boolean): void;
   /** 作業中のチャットへの操作を渡す（終わったら null） */
-  control?(control: RunControl | null): void;
+  control?(control: TurnControl | null): void;
 }
 
-export interface ProviderRunResult {
+export interface ProviderTurnResult {
   status: "completed" | "failed" | "cancelled";
   sessionId: string | null;
   result?: string;

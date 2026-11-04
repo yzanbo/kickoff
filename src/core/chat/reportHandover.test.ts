@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { collectSubagents } from "@shared/chat/subagents";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
 
-const ev = (id: number, type: RunEvent["type"], data: object): RunEvent =>
-  ({ id, run_id: 1, type, data, created_at: "2026-11-03T00:00:00Z" }) as unknown as RunEvent;
+const ev = (id: number, type: ChatEvent["type"], data: object): ChatEvent =>
+  ({ id, chat_id: 1, type, data, created_at: "2026-11-03T00:00:00Z" }) as unknown as ChatEvent;
 
 // 裏で動かしたサブエージェントが報告を送ったが、親が動かないまま作業が終わった
 const lost = [

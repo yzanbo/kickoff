@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { GroupBoard } from "@/features/board/GroupBoard";
 import { KanbanBoard } from "@/features/board/KanbanBoard";
-import { ChangesTab } from "@/features/editor/EditorTab";
+import { EditorTab } from "@/features/editor/EditorTab";
 import { HistoryTab } from "@/features/history/HistoryTab";
 import { useGitStatus } from "@/features/editor/useGitStatus";
 import { ProjectEditDialog } from "@/features/project/settings/ProjectEditDialog";
@@ -32,7 +32,7 @@ export function ProjectPage({
   /** エディタタブで開くファイル（チャットの返答のファイルのチップから） */
   openFile?: FileTarget;
 }) {
-  const { data: shown, error, loading: runsLoading } = useProjectData(id);
+  const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
   // ボードの列の分け方は、最後に見た方を覚える（サイドバーのグループから来たときも、次にボードのタブを押すとグループの列で開く）
   const [, setColumns] = useBoardColumns();
@@ -45,10 +45,10 @@ export function ProjectPage({
   // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
   const git = useGitStatus(id, tab === "changes" || tab === "history", worktree);
   // タブの数を取り直している最中（更新を知ってから結果が届くまで、数の代わりに更新中の印を出す）
-  const refreshing = { runs: useBusyBadge(runsLoading), changes: useBusyBadge(git.refreshing) };
+  const refreshing = { chats: useBusyBadge(chatsLoading), changes: useBusyBadge(git.refreshing) };
   // タブの置き方（見出しの下に横並び / 左に縦並び。設定の「表示」）
   const [tabsLayout] = useProjectTabsLayout();
-  // 開くファイルが別の作業場所のものなら、先にその作業場所へ切り替える（切り替わってから ChangesTab に渡す）
+  // 開くファイルが別の作業場所のものなら、先にその作業場所へ切り替える（切り替わってから EditorTab に渡す）
   useEffect(() => {
     if (openFile && openFile.worktree !== worktree) setWorktree(openFile.worktree);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,7 +65,7 @@ export function ProjectPage({
       <ProjectHeader data={shown} tab={tab} changeCount={git.count} refreshing={refreshing} onEdit={() => setEditing(true)} />
       {/* タブを左に縦並びにする設定のときは、本体の左にアイコンだけで並べる（見出しの下の行がなくなり、本体の縦の幅が増える） */}
       <div className="project-main">
-      {tabsLayout === "side" && <ProjectTabs projectId={project.id} tab={tab} runs={shown.runs} changeCount={git.count} refreshing={refreshing} vertical />}
+      {tabsLayout === "side" && <ProjectTabs projectId={project.id} tab={tab} chats={shown.chats} changeCount={git.count} refreshing={refreshing} vertical />}
       <div className="project-content">
 
       {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} groups={groups} />}
@@ -73,7 +73,7 @@ export function ProjectPage({
       {tab === "changes" && (
         <WorktreeContext.Provider value={worktree}>
           {/* 作業場所を変えたら、選んでいたファイル・検索などは初めからにする */}
-          <ChangesTab
+          <EditorTab
             key={worktree ?? ""}
             projectId={project.id}
             repoPath={project.repo_path}

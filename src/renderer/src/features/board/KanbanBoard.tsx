@@ -1,17 +1,17 @@
 import { Plus, SquareKanban } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
-import { BOARD_COLUMNS, type BoardColumn, type Run, type RunGroup } from "@shared/types";
-import { useRunRename } from "@/features/chat/useChatRename";
+import { BOARD_COLUMNS, type BoardColumn, type Chat, type ChatGroup } from "@shared/types";
+import { useChatRename } from "@/features/chat/useChatRename";
 import { useTicker } from "@/hooks/useTicker";
 import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/app/projectsContext";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
-import { openRun, type ReopenRoute } from "@/app/router";
-import { useRunStates } from "@/app/chatStatesContext";
+import { openChat, type ReopenRoute } from "@/app/router";
+import { useChatStates } from "@/app/chatStatesContext";
 import { useProjectChatContext } from "@/features/panel/projectChat/useProjectChat";
 import { DraftCards } from "./DraftCards";
 import { boardPanelKey } from "@/features/panel/state/panelMemory";
-import { useSidePanel, type NewChatTarget } from "@/features/panel/usePanel";
+import { usePanel, type NewChatTarget } from "@/features/panel/usePanel";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
@@ -23,9 +23,9 @@ import { useKanbanFilters, useKanbanLanes, useWorktreeChoices } from "./useKanba
 import { BoardShell } from "./BoardShell";
 import { ArchivedListSection, DraftColumn, StateColumn } from "./StateColumn";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
-import { useBoardRuns } from "./useBoardChats";
+import { useBoardChats } from "./useBoardChats";
 
-const NO_GROUPS: RunGroup[] = [];
+const NO_GROUPS: ChatGroup[] = [];
 
 interface Props {
   /** 未指定なら全プロジェクトのボード（カードにプロジェクト名を出す） */
@@ -35,7 +35,7 @@ interface Props {
   /** 右側のパネルで開くチャット・新しいチャット（サイドバー・検索などから開いたとき） */
   focus?: ReopenRoute;
   /** 自分で作ったグループ（スイムレーンをグループで分けるとき。プロジェクトのボードだけ） */
-  groups?: RunGroup[];
+  groups?: ChatGroup[];
 }
 
 /**
@@ -54,42 +54,42 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     [allList, allProjects, tagFilter.selected],
   );
   // チャットの状態と回答待ちの数（回答待ちの依頼は App が持つ）
-  const { stateOf } = useRunStates();
+  const { stateOf } = useChatStates();
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
-  const rename = useRunRename(setError);
+  const rename = useChatRename(setError);
   // 絞り込み（アーカイブ・作業場所・名前）とボード／リスト／スイムレーン（覚えておく）
   const filters = useKanbanFilters();
   // 表示（ボード / リスト）と、段に分けるか（段の分け方はボードとリストで共通）
   const { view, split, setView, setSplit } = useBoardView();
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
-  const { runs, loaded } = useBoardRuns(projectId, filters.archive !== "active", setError);
+  const { chats, loaded } = useBoardChats(projectId, filters.archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
-  const worktreeChoices = useWorktreeChoices(runs);
+  const worktreeChoices = useWorktreeChoices(chats);
   // カードの右クリックメニュー
   const menu = useCardMenu();
 
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）
-  const panel = useSidePanel({
+  const panel = usePanel({
     memoryKey: boardPanelKey(projectId),
     // チャットのタブはサイドバーの一覧にそろえる（全プロジェクトのボードはすべてのプロジェクト）
     scope: projectId ?? "all",
     holdEsc: menu.isOpen,
     projects: allProjects ? projects : undefined,
     // 新しいチャットを送ったら、プロジェクトのボードでは URL もそのチャットにする
-    onCreated: (run) => !allProjects && openRun(run.project_id, run.id, undefined, { replace: true }),
+    onCreated: (chat) => !allProjects && openChat(chat.project_id, chat.id, undefined, { replace: true }),
   });
   /** カードから開く。プロジェクトのボードでは URL もそのチャットにする（サイドバーで強調され、戻る・進むで行き来できる） */
-  const open = (run: Run) => {
-    panel.open(run);
-    if (!allProjects) openRun(run.project_id, run.id, undefined, { replace: true });
+  const open = (chat: Chat) => {
+    panel.open(chat);
+    if (!allProjects) openChat(chat.project_id, chat.id, undefined, { replace: true });
   };
 
   // サイドバー・検索などから開いたチャット・新しいチャットを、パネルで開く
   useBoardFocus(
     focus,
     (target) => {
-      if (target.name === "run") panel.open({ id: target.runId, project_id: target.projectId }, target.focus);
+      if (target.name === "chat") panel.open({ id: target.chatId, project_id: target.projectId }, target.focus);
       else panel.openNew({ projectId: target.projectId, group: target.group });
     },
     !allProjects,
@@ -98,7 +98,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
 
   // 絞り込んだチャット（新しく動いた順）。全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトのチャットを出さない
   const projectIds = useMemo(() => (allProjects ? new Set(projects.map((p) => p.id)) : undefined), [allProjects, projects]);
-  const { entries } = useKanbanEntries({ runs, filters: { ...filters, matches: filters.search.matches }, stateOf, projectIds });
+  const { entries } = useKanbanEntries({ chats, filters: { ...filters, matches: filters.search.matches }, stateOf, projectIds });
   const total = entries.length;
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
@@ -118,7 +118,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     rename,
     menu,
     onOpen: open,
-    projectName: (run) => (allProjects ? projectName(run.project_id) : undefined),
+    projectName: (chat) => (allProjects ? projectName(chat.project_id) : undefined),
   });
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。AI はまだ何もしていない）。いちばん左の「下書き」の列に出す
   const chat = useProjectChatContext();
@@ -196,7 +196,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   );
 
   return (
-    <BoardShell header={header} error={error} panel={panel} onNewChat={() => newChat()} projectId={projectId} menu={menu} onOpenRun={open} rename={rename} onError={setError}>
+    <BoardShell header={header} error={error} panel={panel} onNewChat={() => newChat()} projectId={projectId} menu={menu} onOpenChat={open} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
       ) : view === "board" && split ? (

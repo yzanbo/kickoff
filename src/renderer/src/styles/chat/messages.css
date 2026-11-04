@@ -15,7 +15,7 @@
 }
 
 /* 右のパネル（狭い）では広めに使う */
-.run-panel .user-message {
+.chat-panel .user-message {
   max-width: 90%;
 }
 
@@ -226,12 +226,12 @@
 }
 
 /* 横幅いっぱいに広げたチャット（チャットの見出しの ↔・設定の「表示」）: 発言の流れ・チャット欄・上に貼り付ける指示の幅の上限を外す */
-.run-page.wide .timeline-inner,
-.run-page.wide .run-composer {
+.chat-page.wide .timeline-inner,
+.chat-page.wide .chat-composer {
   max-width: none;
 }
 
-.run-page.wide .sticky-prompt {
+.chat-page.wide .sticky-prompt {
   padding-inline: var(--gutter);
 }
 

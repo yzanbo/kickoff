@@ -1,7 +1,7 @@
 import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
 import { isNetworkError } from "@shared/chat/networkErrors";
 import { markSuperseded } from "@shared/chat/subagentSupersede";
-import type { RunEvent, SubagentInfo } from "@shared/types";
+import type { ChatEvent, SubagentInfo } from "@shared/types";
 
 // サブエージェントの一覧の組み立て（画面の一覧・タブと、コアの作業の終わりのお知らせ・通信が戻ったときの再開で共有する。Node 依存なし）
 
@@ -68,7 +68,7 @@ export function isSubagentTool(name: string): boolean {
  * チャットのサブエージェントの一覧を組み立てる。保存されたイベント（Task / Agent の呼び出しと結果、開始・終了の通知）と、
  * 画面にだけ届く途中経過（progress: トークン数・直近のツール）を合わせる。busy でなければ、終わっていないものは中断とみなす
  */
-export function collectSubagents(events: RunEvent[], progress: Record<string, SubagentInfo>, busy: boolean, live?: Set<string>): SubagentEntry[] {
+export function collectSubagents(events: ChatEvent[], progress: Record<string, SubagentInfo>, busy: boolean, live?: Set<string>): SubagentEntry[] {
   const map = new Map<string, SubagentEntry>();
   // 裏で動かした（起動の知らせ・再開）サブエージェントと、いちばん新しく始まったあとに報告（SubagentHandback）を渡したか
   const backgrounded = new Set<string>();
@@ -94,13 +94,13 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
     awaitingParent.clear();
   };
   // 親（メインのエージェント）が動いた記録か（サブエージェントの中の発言・ツールは除く）
-  const isParentActivity = (e: RunEvent) => {
+  const isParentActivity = (e: ChatEvent) => {
     if (e.type !== "text" && e.type !== "thinking" && e.type !== "tool_use") return false;
     const d = e.data as { parent?: string; sub?: boolean };
     return !d.parent && !d.sub;
   };
   // サブエージェントの中の動き（parent = 起動した呼び出し ID）: 最後に動いた時刻と、結果を待っているツール
-  const touch = (e: RunEvent) => {
+  const touch = (e: ChatEvent) => {
     const d = e.data as { parent?: string; name?: string };
     const entry = d.parent ? map.get(d.parent) : undefined;
     if (!entry) return;
@@ -241,7 +241,7 @@ export function collectSubagents(events: RunEvent[], progress: Record<string, Su
  * 1 回の実行（記録の ID が sinceEventId より後）で始めたのに、終わりの知らせがないまま実行が終わったサブエージェント。
  * Kickoff では実行の終わりで Claude Code のプロセスも終わるので、これらはそこで止まる（作業の終わりにお知らせを残す）
  */
-export function unfinishedSubagents(events: RunEvent[], sinceEventId: number): SubagentEntry[] {
+export function unfinishedSubagents(events: ChatEvent[], sinceEventId: number): SubagentEntry[] {
   // 実行が終わったとして数え、終わりの記録がないまま中断になったもの（報告を渡したものは完了になる）
   return collectSubagents(events, {}, false).filter(
     (s) => s.status === "stopped" && s.endEventId === undefined && (s.startEventId ?? 0) > sinceEventId,
@@ -252,7 +252,7 @@ export function unfinishedSubagents(events: RunEvent[], sinceEventId: number): S
  * 1 回の実行（記録の ID が sinceEventId より後）で、通信の切断で止まったサブエージェント（作業 ID が分かるものだけ）。
  * 通信が戻って自動で再開するときに、SendMessage で続きから再開するよう頼む。自分で止めたもの・ほかの理由の失敗は含めない
  */
-export function networkStoppedSubagents(events: RunEvent[], sinceEventId: number): SubagentEntry[] {
+export function networkStoppedSubagents(events: ChatEvent[], sinceEventId: number): SubagentEntry[] {
   return collectSubagents(events, {}, false).filter(
     (s) => s.network && !s.supersededBy && s.agentId !== undefined && (s.endEventId ?? Number.POSITIVE_INFINITY) > sinceEventId,
   );
@@ -282,7 +282,7 @@ const isHandbackPointer = (text: string) => /report was delivered to you as a me
  * 2. 終わりの知らせの要約（「別の知らせで届けた」という案内は除く）
  * 3. Agent / Task ツールの結果の文（以前の記録。裏で動かしたときの「起動した」という知らせは除く）
  */
-export function subagentReport(entry: SubagentEntry, events: RunEvent[]): string | undefined {
+export function subagentReport(entry: SubagentEntry, events: ChatEvent[]): string | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i];
     const d = e.data as { name?: string; parent?: string; input?: { message?: string } };

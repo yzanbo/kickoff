@@ -28,7 +28,7 @@ import { WorktreeBar } from "@/features/worktree/WorktreeBar";
  * - 変更（ソース管理）: ステージされている変更・変更（未追跡・競合を含む）（ChangesPane）
  * ファイルを選ぶと、変更があれば差分、なければ中身を右に出す（ChangesDetail）。履歴はボード・エディタと並ぶ「履歴」タブ（HistoryTab）
  */
-export function ChangesTab({
+export function EditorTab({
   projectId,
   repoPath,
   git,

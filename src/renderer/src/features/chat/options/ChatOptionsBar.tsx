@@ -1,7 +1,7 @@
 import { Brain, Shield, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
-import { resolveRunDefaults } from "@shared/chat/chatOptions";
-import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type ModelOption, type PermissionChoice, type RunOptions } from "@shared/types";
+import { resolveChatOptions } from "@shared/chat/chatOptions";
+import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type ModelOption, type PermissionMode, type ChatOptions } from "@shared/types";
 import { api } from "@/api";
 import { cachedLoader } from "@/lib/cachedLoader";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";
@@ -16,18 +16,18 @@ const loadModels = cachedLoader<ModelOption[]>(() => api.models("claude"), []);
  * 新しいチャットはプロジェクトの既定（なければ設定画面の既定）から始まり、ここでの変更はそのチャットだけに効く。
  * initial を渡すと（既存のチャットを開いたとき）そのチャットの設定から始める。
  */
-export function useRunOptions(initial: RunOptions | undefined, projectId?: number, worktree?: string) {
+export function useChatOptions(initial: ChatOptions | undefined, projectId?: number, worktree?: string) {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [model, setModel] = useState<string | null>(initial?.model ?? null);
   const [effort, setEffort] = useState<EffortLevel | null>(initial?.effort ?? null);
-  const [permission, setPermission] = useState<PermissionChoice>(initial?.permission_mode ?? "default");
+  const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
   const [fastMode, setFastMode] = useState<boolean>(initial?.fast_mode ?? false);
 
   useEffect(() => {
     void loadModels().then(setModels);
     if (!initial) {
       void Promise.all([api.settings(), projectId === undefined ? undefined : api.project(projectId)]).then(([s, project]) => {
-        const d = resolveRunDefaults(s, project?.defaults);
+        const d = resolveChatOptions(s, project?.defaults);
         setModel((m) => m ?? d.model);
         setEffort(d.effort);
         setPermission(d.permission);
@@ -62,7 +62,7 @@ export function useRunOptions(initial: RunOptions | undefined, projectId?: numbe
   }, [projectId, modelId, worktree]);
 
   // 推論の深さの null は「指定しない」（モデルの既定に任せる）
-  const options: RunOptions = { model, effort, permission_mode: permission, fast_mode: fastMode };
+  const options: ChatOptions = { model, effort, permission_mode: permission, fast_mode: fastMode };
   return {
     models,
     current,
@@ -79,7 +79,7 @@ export function useRunOptions(initial: RunOptions | undefined, projectId?: numbe
   };
 }
 
-export type RunOptionsState = ReturnType<typeof useRunOptions>;
+export type ChatOptionsState = ReturnType<typeof useChatOptions>;
 
 /** 既定の深さが、どこで決まったか */
 const EFFORT_SOURCE_LABELS: Record<NonNullable<EffortDefault["source"]>, string> = {
@@ -110,7 +110,7 @@ function effortLabel(effort: EffortLevel | null, d: EffortDefault | undefined): 
 }
 
 /** 権限モードの説明（一覧で名前の下に出す） */
-const PERMISSION_HINTS: Partial<Record<PermissionChoice, string>> = {
+const PERMISSION_HINTS: Partial<Record<PermissionMode, string>> = {
   default: "ファイルの編集やコマンドの前に毎回確認する",
   acceptEdits: "ファイルの編集は自動で承認し、コマンドは確認する",
   auto: "安全と判断した操作は確認せずに進める",
@@ -119,13 +119,13 @@ const PERMISSION_HINTS: Partial<Record<PermissionChoice, string>> = {
 
 
 /** 入力欄の下に並べる選択（モデル / 推論の深さ / 権限モード / ファストモード） */
-export function RunOptionsBar({ state, disabled }: { state: RunOptionsState; disabled?: boolean }) {
+export function ChatOptionsBar({ state, disabled }: { state: ChatOptionsState; disabled?: boolean }) {
   const { models, current, model, setModel, effort, setEffort, permission, setPermission, fastMode, setFastMode, effortDefault } = state;
   const efforts = effortsFor(current);
   const fastSupported = !current || current.supportsFastMode;
 
   return (
-    <div className="run-options">
+    <div className="chat-options">
       <OptionMenu
         value={model ?? ""}
         display={modelDisplayName(models, model)}

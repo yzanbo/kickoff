@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { collectSubagents, networkStoppedSubagents } from "@shared/chat/subagents";
 import { textSimilarity } from "@shared/chat/subagentSupersede";
 
-const ev = (id: number, type: RunEvent["type"], data: object): RunEvent =>
-  ({ id, run_id: 1, type, data, created_at: "2026-11-03T00:00:00Z" }) as unknown as RunEvent;
+const ev = (id: number, type: ChatEvent["type"], data: object): ChatEvent =>
+  ({ id, chat_id: 1, type, data, created_at: "2026-11-03T00:00:00Z" }) as unknown as ChatEvent;
 
 const PROMPT = "日本語で報告してください。読むだけの調査です。Mac に入っている チャット画面の機能を洗い出し、Kickoff にないものを挙げてください。";
 // 裏で動かして、終わりの知らせで結果を受け取る

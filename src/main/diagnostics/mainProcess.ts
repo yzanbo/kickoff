@@ -36,10 +36,10 @@ function dbStats(dataDir: string) {
     const count = (sql: string) => Number((db.prepare(sql).get() as { n: number }).n);
     const busiest = db
       .prepare(
-        "SELECT e.run_id AS id, COUNT(*) AS events, r.title AS title, r.status AS status FROM run_events e JOIN runs r ON r.id = e.run_id GROUP BY e.run_id ORDER BY events DESC LIMIT 5",
+        "SELECT e.chat_id AS id, COUNT(*) AS events, r.title AS title, r.status AS status FROM chat_events e JOIN chats r ON r.id = e.chat_id GROUP BY e.chat_id ORDER BY events DESC LIMIT 5",
       )
       .all() as { id: number; events: number; title: string | null; status: string }[];
-    return { ...files, runs: count("SELECT COUNT(*) AS n FROM runs"), events: count("SELECT COUNT(*) AS n FROM run_events"), busiestRuns: busiest };
+    return { ...files, chats: count("SELECT COUNT(*) AS n FROM chats"), events: count("SELECT COUNT(*) AS n FROM chat_events"), busiestChats: busiest };
   } catch (e) {
     return { ...files, error: String(e) };
   }

@@ -9,25 +9,25 @@ import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/app/projectsContext";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useModalDialog } from "@/hooks/useModalDialog";
-import { openRun } from "@/app/router";
+import { openChat } from "@/app/router";
 import { relativeTime } from "@/lib/time";
 
 /** 探す範囲: いまのチャット・すべて・プロジェクト（ID） */
-type SearchScope = "run" | "all" | number;
+type SearchScope = "chat" | "all" | number;
 
 interface Props {
   /** 開いた画面のチャット・プロジェクト（範囲の選択肢に使う） */
-  runId?: number;
+  chatId?: number;
   projectId?: number;
   onClose: () => void;
 }
 
 /** ⌘⇧F: チャットのやり取りをキーワードで全文検索し、該当する発言へ移動する */
-export function SearchPanel({ runId, projectId, onClose }: Props) {
+export function SearchPanel({ chatId, projectId, onClose }: Props) {
   // 範囲の選択肢: このチャット → いまのプロジェクト（名前で出し、「このプロジェクト」は小さく添える）→ すべて → ほかのプロジェクト（サイドバーの並び。しまったものは出さない）
   const { projects, projectName } = useProjects();
   const others = useMemo(() => sidebarOrder(projects).filter((p) => p.id !== projectId), [projects, projectId]);
-  const scopes: SearchScope[] = [...(runId ? ["run" as const] : []), ...(projectId ? [projectId] : []), "all", ...others.map((p) => p.id)];
+  const scopes: SearchScope[] = [...(chatId ? ["chat" as const] : []), ...(projectId ? [projectId] : []), "all", ...others.map((p) => p.id)];
   const [scope, setScope] = useState<SearchScope>(scopes[0]);
   /** 入力欄の Tab / Shift+Tab で範囲を順に切り替える（端では反対の端へ。⌘⇧A のプロジェクトの絞り込みと同じ） */
   const cycleScope = (e: KeyboardEvent) => {
@@ -53,7 +53,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
     setLoading(true);
     const timer = setTimeout(() => {
       api
-        .search(q, scope === "run" ? { runId } : scope === "all" ? {} : { projectId: scope })
+        .search(q, scope === "chat" ? { chatId } : scope === "all" ? {} : { projectId: scope })
         .then((r) => alive && (setHits(r), nav.setIndex(0)))
         .catch(() => alive && setHits([]))
         .finally(() => alive && setLoading(false));
@@ -62,12 +62,12 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
       alive = false;
       clearTimeout(timer);
     };
-  }, [query, scope, runId, projectId]);
+  }, [query, scope, chatId, projectId]);
 
   function open(hit: SearchHit | undefined) {
     if (!hit) return;
     dialog.close();
-    openRun(hit.project_id, hit.run_id, hit.event_id);
+    openChat(hit.project_id, hit.chat_id, hit.event_id);
   }
   const nav = useListNavigation(hits, open);
 
@@ -93,7 +93,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
         <div className="palette-projects" role="radiogroup" aria-label="探す範囲（Tab / Shift+Tab で切り替え）">
           {scopes.map((value) => {
             const project = typeof value === "number" ? value : undefined;
-            const name = value === "run" ? "このチャット" : value === "all" ? "すべて" : projectName(value);
+            const name = value === "chat" ? "このチャット" : value === "all" ? "すべて" : projectName(value);
             return (
               <button
                 key={value}
@@ -121,7 +121,7 @@ export function SearchPanel({ runId, projectId, onClose }: Props) {
             <button className={`search-hit ${i === nav.index ? "active" : ""}`} onMouseEnter={() => nav.setIndex(i)} onClick={() => open(hit)}>
               <div className="search-hit-head">
                 {hit.type === "user" ? <User size={13} aria-label="自分" /> : <Bot size={13} aria-label="AI" />}
-                <span className="search-hit-title">{chatTitle(hit.run_title)}</span>
+                <span className="search-hit-title">{chatTitle(hit.chat_title)}</span>
                 <span className="muted small">{relativeTime(hit.created_at)}</span>
               </div>
               <div className="search-hit-snippet">

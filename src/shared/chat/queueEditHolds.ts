@@ -12,39 +12,39 @@ export class QueueEditHolds {
   private readonly timers = new Map<number, ReturnType<typeof setTimeout>>();
 
   constructor(
-    private readonly onChange: (runId: number) => void,
+    private readonly onChange: (chatId: number) => void,
     private readonly ttlMs = EDIT_HOLD_TTL_MS,
   ) {}
 
   /** 書き直している指示を丸ごと置き換える（空なら外す）。持ち時間はここから数え直す */
-  set(runId: number, ids: string[]) {
-    clearTimeout(this.timers.get(runId));
-    this.timers.delete(runId);
-    if (ids.length === 0) this.holds.delete(runId);
+  set(chatId: number, ids: string[]) {
+    clearTimeout(this.timers.get(chatId));
+    this.timers.delete(chatId);
+    if (ids.length === 0) this.holds.delete(chatId);
     else {
-      this.holds.set(runId, new Set(ids));
-      const timer = setTimeout(() => this.set(runId, []), this.ttlMs);
+      this.holds.set(chatId, new Set(ids));
+      const timer = setTimeout(() => this.set(chatId, []), this.ttlMs);
       // アプリを終えるときに、この待ちでプロセスを引き止めない
       timer.unref?.();
-      this.timers.set(runId, timer);
+      this.timers.set(chatId, timer);
     }
-    this.onChange(runId);
+    this.onChange(chatId);
   }
 
   /** その指示を書き直しているか */
-  isHeld(runId: number, id: string): boolean {
-    return this.holds.get(runId)?.has(id) ?? false;
+  isHeld(chatId: number, id: string): boolean {
+    return this.holds.get(chatId)?.has(id) ?? false;
   }
 
   /** 書き直している指示の ID */
-  idsOf(runId: number): string[] {
-    return [...(this.holds.get(runId) ?? [])];
+  idsOf(chatId: number): string[] {
+    return [...(this.holds.get(chatId) ?? [])];
   }
 
   /** チャットを消したとき（知らせない） */
-  forget(runId: number) {
-    clearTimeout(this.timers.get(runId));
-    this.timers.delete(runId);
-    this.holds.delete(runId);
+  forget(chatId: number) {
+    clearTimeout(this.timers.get(chatId));
+    this.timers.delete(chatId);
+    this.holds.delete(chatId);
   }
 }

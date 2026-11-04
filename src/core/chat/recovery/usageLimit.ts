@@ -1,7 +1,7 @@
 import type { ApprovalCenter } from "../approvals.js";
 import { errorMessage } from "@shared/errors";
 import type { FollowupQueue } from "../queue.js";
-import type { RunOutcome } from "../turn.js";
+import type { TurnOutcome } from "../turn.js";
 import type { Store } from "../../db/store.js";
 import type { PlanUsage } from "@shared/types";
 import { exhaustedResetOf } from "@shared/chat/usageLimit";
@@ -27,7 +27,7 @@ function clockOf(iso: string): string {
  * 3. 続けると答えたら「続けて」を送り、その作業が最後まで終わったら止めておいた送信待ちを戻す
  * 自分で送った・止めた・チャットを消したら、待つのも聞くのもやめる
  */
-export class RunUsageLimit {
+export class ChatUsageLimit {
   /** 枠が戻るのを待っているチャット（チャット → 聞く時刻） */
   private readonly waiting = new Map<number, number>();
   /** 続けるかを聞いているチャット（取り下げるため） */
@@ -43,8 +43,8 @@ export class RunUsageLimit {
       store: Store;
       approvals: ApprovalCenter;
       followups: FollowupQueue;
-      isBusy: (runId: number) => boolean;
-      send: (runId: number, text: string) => Promise<unknown>;
+      isBusy: (chatId: number) => boolean;
+      send: (chatId: number, text: string) => Promise<unknown>;
       /** 枠の使い方（Claude Code が戻る時刻を知らせなかったときに使う） */
       usage?: { get(): Promise<PlanUsage> };
       /** いまの時刻と確かめる間隔（テストで差し替える） */
@@ -54,22 +54,22 @@ export class RunUsageLimit {
   ) {}
 
   /** 作業が終わったとき。送信待ちを送ってよいかを返す（上限で止まったときは送らない） */
-  finished(runId: number, outcome: RunOutcome): boolean {
+  finished(chatId: number, outcome: TurnOutcome): boolean {
     if (outcome.usageLimit) {
-      void this.onLimit(runId, outcome.usageLimit.resetsAt);
+      void this.onLimit(chatId, outcome.usageLimit.resetsAt);
       return false;
     }
     // 最後まで終わった: 止めておいた送信待ちを戻す。止めた・ほかの理由で失敗した: 止めたまま（自分で戻せる）
-    if (this.heldQueues.delete(runId) && outcome.status === "completed") this.deps.followups.setPaused(runId, false);
+    if (this.heldQueues.delete(chatId) && outcome.status === "completed") this.deps.followups.setPaused(chatId, false);
     return true;
   }
 
   /** 自分でメッセージを送った・止めた・チャットを消した: 待つのも聞くのもやめる */
-  forget(runId: number) {
-    if (this.resuming.has(runId)) return;
-    this.waiting.delete(runId);
-    this.heldQueues.delete(runId);
-    this.asks.get(runId)?.abort();
+  forget(chatId: number) {
+    if (this.resuming.has(chatId)) return;
+    this.waiting.delete(chatId);
+    this.heldQueues.delete(chatId);
+    this.asks.get(chatId)?.abort();
     this.stopTimerIfIdle();
   }
 
@@ -78,28 +78,28 @@ export class RunUsageLimit {
     this.timer = undefined;
   }
 
-  private async onLimit(runId: number, reportedReset: string | null) {
+  private async onLimit(chatId: number, reportedReset: string | null) {
     const { store, followups } = this.deps;
-    if (!store.getRun(runId)) return;
+    if (!store.getChat(chatId)) return;
     // 送信待ちは送らずに止めておく（自分で止めていたものはそのまま）
-    if (followups.list(runId).length > 0 && !followups.isPaused(runId)) {
-      followups.setPaused(runId, true);
-      this.heldQueues.add(runId);
+    if (followups.list(chatId).length > 0 && !followups.isPaused(chatId)) {
+      followups.setPaused(chatId, true);
+      this.heldQueues.add(chatId);
     }
     const resetAt = reportedReset ?? (await this.resetFromUsage());
-    const held = this.heldQueues.has(runId) ? "送信待ちは止めてあります。" : "";
+    const held = this.heldQueues.has(chatId) ? "送信待ちは止めてあります。" : "";
     if (!resetAt) {
-      store.addEvent(runId, {
+      store.addEvent(chatId, {
         type: "notice",
         message: `使用枠の上限に達したため止まりました。枠が戻る時刻が分からないため、戻ったらメッセージを送ると続きから再開できます。${held}`,
       });
       return;
     }
-    store.addEvent(runId, {
+    store.addEvent(chatId, {
       type: "notice",
       message: `使用枠の上限に達したため止まりました。${clockOf(resetAt)} に枠が戻ったら、続けるかを確かめます。${held}`,
     });
-    this.waiting.set(runId, Date.parse(resetAt) + MARGIN_MS);
+    this.waiting.set(chatId, Date.parse(resetAt) + MARGIN_MS);
     this.timer ??= setInterval(() => this.check(), this.deps.checkMs ?? CHECK_MS);
     this.check();
   }
@@ -116,51 +116,51 @@ export class RunUsageLimit {
   /** 枠が戻る時刻を過ぎたチャットに、続けるかを聞く */
   private check() {
     const now = (this.deps.now ?? Date.now)();
-    for (const [runId, due] of this.waiting) {
+    for (const [chatId, due] of this.waiting) {
       if (now < due) continue;
-      this.waiting.delete(runId);
-      this.ask(runId);
+      this.waiting.delete(chatId);
+      this.ask(chatId);
     }
     this.stopTimerIfIdle();
   }
 
   /** 続けるかを聞く（承認のカードと同じ回答待ち。Mac の通知も出る）。その間に自分で再開していたら聞かない */
-  private ask(runId: number) {
+  private ask(chatId: number) {
     const { store, approvals, isBusy } = this.deps;
-    const run = store.getRun(runId);
-    if (!run || run.status !== "failed" || isBusy(runId) || this.asks.has(runId)) return;
+    const chat = store.getChat(chatId);
+    if (!chat || chat.status !== "failed" || isBusy(chatId) || this.asks.has(chatId)) return;
     const controller = new AbortController();
-    this.asks.set(runId, controller);
+    this.asks.set(chatId, controller);
     const { decision } = approvals.request(
-      { runId, projectId: run.project_id },
+      { chatId, projectId: chat.project_id },
       {
         kind: "usage_limit",
         toolName: "usage_limit",
         input: {},
         title: "使用枠が戻りました",
-        description: `使用枠の上限で止まっていた作業を、続きから再開しますか？${this.heldQueues.has(runId) ? "止めておいた送信待ちは、再開した作業が終わってから送ります。" : ""}`,
+        description: `使用枠の上限で止まっていた作業を、続きから再開しますか？${this.heldQueues.has(chatId) ? "止めておいた送信待ちは、再開した作業が終わってから送ります。" : ""}`,
         canRemember: false,
       },
       controller.signal,
     );
     void decision.then((answer) => {
-      this.asks.delete(runId);
-      if (answer.action === "allow" && !controller.signal.aborted) void this.resume(runId);
+      this.asks.delete(chatId);
+      if (answer.action === "allow" && !controller.signal.aborted) void this.resume(chatId);
       // やめる: 送信待ちは止めたまま（自分で戻す・メッセージを送ると続きから再開できる）
-      else this.heldQueues.delete(runId);
+      else this.heldQueues.delete(chatId);
     });
   }
 
-  private async resume(runId: number) {
+  private async resume(chatId: number) {
     const { store, isBusy, send } = this.deps;
-    if (isBusy(runId)) return;
-    this.resuming.add(runId);
+    if (isBusy(chatId)) return;
+    this.resuming.add(chatId);
     try {
-      await send(runId, USAGE_RESUME_PROMPT);
+      await send(chatId, USAGE_RESUME_PROMPT);
     } catch (e) {
-      store.addEvent(runId, { type: "error", message: `再開できませんでした: ${errorMessage(e)}` });
+      store.addEvent(chatId, { type: "error", message: `再開できませんでした: ${errorMessage(e)}` });
     } finally {
-      this.resuming.delete(runId);
+      this.resuming.delete(chatId);
     }
   }
 

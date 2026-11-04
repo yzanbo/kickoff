@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from "react";
-import type { Run, RunGroup } from "@shared/types";
+import type { Chat, ChatGroup } from "@shared/types";
 import { confirmDialog } from "@/ui/dialogs";
 import type { DraftRef } from "@/features/panel/state/panelMemory";
 
@@ -10,17 +10,17 @@ export const GROUP_FLASH_EVENT = "kickoff:group-flash";
 /** グループのボードで、そのグループをもう一度ハイライトする（グループのタブでなければ何もしない） */
 export const flashGroup = (groupId: number) => window.dispatchEvent(new CustomEvent<number>(GROUP_FLASH_EVENT, { detail: groupId }));
 
-const RUN_DRAG_TYPE = "application/x-kickoff-run";
+const CHAT_DRAG_TYPE = "application/x-kickoff-run";
 
 /** チャットのドラッグを始める（ドロップ先でチャットの ID を受け取れるようにする） */
-export function startRunDrag(e: DragEvent, runId: number) {
-  e.dataTransfer.setData(RUN_DRAG_TYPE, String(runId));
+export function startChatDrag(e: DragEvent, chatId: number) {
+  e.dataTransfer.setData(CHAT_DRAG_TYPE, String(chatId));
   e.dataTransfer.effectAllowed = "move";
 }
 
 /** ドラッグ中のものがチャットか */
-function isRunDrag(e: DragEvent): boolean {
-  return e.dataTransfer.types.includes(RUN_DRAG_TYPE);
+function isChatDrag(e: DragEvent): boolean {
+  return e.dataTransfer.types.includes(CHAT_DRAG_TYPE);
 }
 
 /** 送る前の新しいチャット（下書き）をグループへドラッグするときのデータの種類 */
@@ -59,8 +59,8 @@ export function reorderIds(ids: number[], moved: number, target: number): number
 }
 
 /** ドロップされたチャットの ID（チャットでなければ undefined） */
-function droppedRunId(e: DragEvent): number | undefined {
-  const id = Number(e.dataTransfer.getData(RUN_DRAG_TYPE));
+function droppedChatId(e: DragEvent): number | undefined {
+  const id = Number(e.dataTransfer.getData(CHAT_DRAG_TYPE));
   return Number.isInteger(id) && id > 0 ? id : undefined;
 }
 
@@ -130,7 +130,7 @@ function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
 }
 
 /** グループの削除を確かめる（中のチャットは消えず、グループなしに戻る） */
-export function confirmDeleteGroup(group: Pick<RunGroup, "name">): Promise<boolean> {
+export function confirmDeleteGroup(group: Pick<ChatGroup, "name">): Promise<boolean> {
   return confirmDialog({
     title: `グループ「${group.name}」を削除しますか？`,
     message: "中のチャットは消えず、グループなしに戻ります。",
@@ -146,15 +146,15 @@ export function confirmDeleteGroup(group: Pick<RunGroup, "name">): Promise<boole
  */
 export function useGroupDrop({
   groups,
-  runs,
+  chats,
   onReorder,
-  onMoveRun,
+  onMoveChat,
   onMoveDraft,
 }: {
-  groups: RunGroup[];
-  runs: Run[];
+  groups: ChatGroup[];
+  chats: Chat[];
   onReorder: (ids: number[]) => void;
-  onMoveRun: (run: Run, groupId: number | null) => void;
+  onMoveChat: (chat: Chat, groupId: number | null) => void;
   onMoveDraft?: (draft: DraftRef, groupId: number | null) => void;
 }) {
   const reorder = useGroupReorder(
@@ -167,7 +167,7 @@ export function useGroupDrop({
   const dropProps = (groupId: number | null) => ({
     onDragOver: (e: DragEvent) => {
       if (reorder.over(e, groupId)) return;
-      if (!isRunDrag(e) && !(onMoveDraft && e.dataTransfer.types.includes(DRAFT_DRAG_TYPE))) return;
+      if (!isChatDrag(e) && !(onMoveDraft && e.dataTransfer.types.includes(DRAFT_DRAG_TYPE))) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       setOver(groupId ?? "none");
@@ -183,8 +183,8 @@ export function useGroupDrop({
       e.preventDefault();
       const draft = onMoveDraft && droppedDraft(e);
       if (draft) return onMoveDraft(draft, groupId);
-      const run = runs.find((r) => r.id === droppedRunId(e));
-      if (run && run.group_id !== groupId) onMoveRun(run, groupId);
+      const chat = chats.find((r) => r.id === droppedChatId(e));
+      if (chat && chat.group_id !== groupId) onMoveChat(chat, groupId);
     },
   });
 

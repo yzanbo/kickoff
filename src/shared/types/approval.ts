@@ -22,7 +22,7 @@ export interface Question {
 
 export interface Approval {
   id: string;
-  run_id: number;
+  chat_id: number;
   project_id: number;
   kind: ApprovalKind;
   tool_name: string;

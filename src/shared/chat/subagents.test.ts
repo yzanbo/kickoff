@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { cleanSubagentReport, collectSubagents, isOutputLimitError, networkStoppedSubagents, subagentReport, unfinishedSubagents } from "@shared/chat/subagents";
 
-const ev = (id: number, type: RunEvent["type"], data: object): RunEvent =>
-  ({ id, run_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as RunEvent;
+const ev = (id: number, type: ChatEvent["type"], data: object): ChatEvent =>
+  ({ id, chat_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as ChatEvent;
 
 test("サブエージェント: 呼び出し・通知・途中経過をまとめ、止まったものは中断にする", () => {
   const events = [
@@ -52,8 +52,8 @@ test("サブエージェントの報告: 前置きと字下げを外す", () => 
 
 test("裏で動かしたサブエージェントは、起動の知らせでは完了にせず、作業が止まっていれば中断にする", () => {
   const events = [
-    { id: 1, run_id: 1, type: "tool_use", data: { id: "a", name: "Agent", input: { description: "裏の作業" } }, created_at: "" },
-    { id: 2, run_id: 1, type: "tool_result", data: { tool_use_id: "a", is_error: false, content: "Async agent launched successfully." }, created_at: "" },
+    { id: 1, chat_id: 1, type: "tool_use", data: { id: "a", name: "Agent", input: { description: "裏の作業" } }, created_at: "" },
+    { id: 2, chat_id: 1, type: "tool_result", data: { tool_use_id: "a", is_error: false, content: "Async agent launched successfully." }, created_at: "" },
   ] as unknown as Parameters<typeof collectSubagents>[0];
   assert.equal(collectSubagents(events, {}, true)[0].status, "running");
   assert.equal(collectSubagents(events, {}, false)[0].status, "stopped");
@@ -199,8 +199,8 @@ test("サブエージェント: 実行の終わりに終わっていないもの
 });
 
 test("サブエージェント: 最後に動いた時刻と、結果を待っているツール（中の発言・ツール・知らせで進める）", () => {
-  const at = (id: number, type: RunEvent["type"], data: object, created_at: string): RunEvent =>
-    ({ id, run_id: 1, type, data, created_at }) as unknown as RunEvent;
+  const at = (id: number, type: ChatEvent["type"], data: object, created_at: string): ChatEvent =>
+    ({ id, chat_id: 1, type, data, created_at }) as unknown as ChatEvent;
   const events = [
     at(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "調査" } }, "2026-11-03T12:00:00Z"),
     at(2, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "調査", status: "running" }, "2026-11-03T12:00:01Z"),

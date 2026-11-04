@@ -60,11 +60,11 @@ test("evaluateSelfProtection: ファイルのツールで保存先を読み書�
 
 test("evaluateSelfProtection: 開発中（アプリ本体なし）は、本体の判定をしない", () => {
   const dev: SelfInfo = { pid: 7, dataDir: `${home}/Library/Application Support/Kickoff Dev`, port: 4318, appName: "Kickoff Dev" };
-  const run = (command: string) => evaluateSelfProtection(dev, "Bash", { command }).decision;
-  assert.equal(run("ls /Applications/Kickoff.app"), "pass");
-  assert.equal(run("curl localhost:4318/api/status"), "deny");
-  assert.equal(run('rm -rf "$HOME/Library/Application Support/Kickoff Dev"'), "deny");
-  assert.equal(run("killall 'Kickoff Dev'"), "deny");
+  const chat = (command: string) => evaluateSelfProtection(dev, "Bash", { command }).decision;
+  assert.equal(chat("ls /Applications/Kickoff.app"), "pass");
+  assert.equal(chat("curl localhost:4318/api/status"), "deny");
+  assert.equal(chat('rm -rf "$HOME/Library/Application Support/Kickoff Dev"'), "deny");
+  assert.equal(chat("killall 'Kickoff Dev'"), "deny");
   // 開発版が自分のときは、開発版を使うようには案内しない（食い違うため）。製品版のときは案内する
   const devReason = evaluateSelfProtection(dev, "Bash", { command: "curl localhost:4318/" });
   assert.ok(devReason.decision === "deny" && !devReason.reason.includes("開発版"));

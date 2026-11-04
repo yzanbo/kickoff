@@ -78,7 +78,7 @@ export const RENDERER_PROBE = `JSON.stringify({
   route: location.hash,
   domNodes: document.getElementsByTagName("*").length,
   timelines: [...document.querySelectorAll(".timeline-inner")].map((t) => t.children.length),
-  chatPanels: document.querySelectorAll(".run-panel").length,
+  chatPanels: document.querySelectorAll(".chat-panel").length,
   panelTabs: document.querySelectorAll(".panel-tab").length,
   // 隠れていても作り直さずに残している中身（タブ・ペイン）。多いほど、描き直し・メモリが重くなる
   tabPages: document.querySelectorAll(".panel-tab-page").length,

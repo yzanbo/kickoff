@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import { useStoredChoice } from "@/hooks/useStoredState";
 import { BOARD_LANES_ALL_KEY, BOARD_LANES_KEY, BOARD_SHOW_ARCHIVED_KEY } from "@/lib/storageKeys";
@@ -19,10 +19,10 @@ export function useKanbanFilters() {
 }
 
 /** 絞り込みの候補: ワークツリーの作業場所（ブランチ名で出し、フォルダが消えたものは「フォルダなし」と添える） */
-export function useWorktreeChoices(runs: Run[]) {
-  const worktreeRuns = runs.filter((r) => r.worktree_path);
-  const worktreesOf = useWorktreeLists(worktreeRuns.map((r) => r.project_id));
-  return [...new Map(worktreeRuns.map((r) => [r.worktree_path, r])).values()]
+export function useWorktreeChoices(chats: Chat[]) {
+  const worktreeChats = chats.filter((r) => r.worktree_path);
+  const worktreesOf = useWorktreeLists(worktreeChats.map((r) => r.project_id));
+  return [...new Map(worktreeChats.map((r) => [r.worktree_path, r])).values()]
     .map((r) => {
       const place = workplaceOf(r, worktreesOf(r.project_id));
       return { path: r.worktree_path, label: place.kind === "missing" ? `${place.name}（フォルダなし）` : place.name };

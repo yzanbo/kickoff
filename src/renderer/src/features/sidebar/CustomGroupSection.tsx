@@ -1,6 +1,6 @@
 import { Folder, Plus } from "lucide-react";
 import type { ReactNode } from "react";
-import type { RunGroup } from "@shared/types";
+import type { ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { flashGroup } from "@/features/group/groups";
@@ -34,7 +34,7 @@ export function CustomGroupSection({
   drafts = [],
 }: {
   projectId: number;
-  group: RunGroup;
+  group: ChatGroup;
   members: BoardEntry[];
   closed: boolean;
   onSetClosed: (closed: boolean) => void;

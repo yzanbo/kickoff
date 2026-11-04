@@ -17,20 +17,20 @@ export class ApprovalCenter {
 
   constructor(private readonly bus: Bus) {}
 
-  list(filter: { projectId?: number; runId?: number } = {}): Approval[] {
+  list(filter: { projectId?: number; chatId?: number } = {}): Approval[] {
     return [...this.pending.values()]
       .map((p) => p.approval)
-      .filter((a) => (filter.projectId === undefined || a.project_id === filter.projectId) && (filter.runId === undefined || a.run_id === filter.runId));
+      .filter((a) => (filter.projectId === undefined || a.project_id === filter.projectId) && (filter.chatId === undefined || a.chat_id === filter.chatId));
   }
 
   request(
-    context: { runId: number; projectId: number },
+    context: { chatId: number; projectId: number },
     req: ApprovalRequest,
     signal: AbortSignal,
   ): { approval: Approval; decision: Promise<ApprovalDecision> } {
     const approval: Approval = {
       id: randomUUID(),
-      run_id: context.runId,
+      chat_id: context.chatId,
       project_id: context.projectId,
       kind: req.kind,
       tool_name: req.toolName,
@@ -63,7 +63,7 @@ export class ApprovalCenter {
     if (!p) return false;
     this.pending.delete(id);
     p.resolve(decision);
-    this.bus.publish({ type: "approval_resolved", id, run_id: p.approval.run_id });
+    this.bus.publish({ type: "approval_resolved", id, chat_id: p.approval.chat_id });
     return true;
   }
 }

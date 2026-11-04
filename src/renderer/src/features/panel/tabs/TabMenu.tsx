@@ -1,10 +1,10 @@
 import { ArrowRightLeft, Columns2, Rows2, Undo2, X } from "lucide-react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneLayout";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 
 /** タブの右クリックのメニューの、おおよその大きさ（画面からはみ出さない位置にするため。チャットのタブは項目が多い） */
 export const TAB_MENU_WIDTH = 220;
@@ -23,12 +23,12 @@ export function TabMenu({
   onRename,
   onClose,
 }: {
-  panel: SidePanelController;
+  panel: PanelController;
   tabKey: string;
   x: number;
   y: number;
   /** チャットのタブの名前をその場で変え始める */
-  onRename: (run: Run) => void;
+  onRename: (chat: Chat) => void;
   onClose: () => void;
 }) {
   const pane = paneOfTab(panel.layout, tabKey);
@@ -36,7 +36,7 @@ export function TabMenu({
   const panes = leavesOf(panel.layout.root);
   const tab = panel.tabs.find((t) => t.key === tabKey);
   // ボードの一覧にあればそれを、なければタブの中のチャットから届いたもの（まだ読み込んでいなければチャットの項目は出さない）
-  const run = tab?.kind === "chat" ? (panel.runs.find((r) => r.id === tab.id) ?? tab.run) : undefined;
+  const chat = tab?.kind === "chat" ? (panel.chats.find((r) => r.id === tab.id) ?? tab.chat) : undefined;
   const homeId = panel.linked && panes.length > 1 ? homePane(panel.layout).id : undefined;
   // 分けたペインにある、サイドバーと連動したチャット（× と同じく、一覧のペインへ戻せる）
   const canReturn = homeId !== undefined && pane.id !== homeId && panel.isLinkedTab(tabKey);
@@ -73,9 +73,9 @@ export function TabMenu({
   );
   return (
     <PopupMenu x={x} y={y} label="タブのメニュー" onClose={onClose}>
-      {run ? (
+      {chat ? (
         <ChatMenuItems
-          run={run}
+          chat={chat}
           onRename={onRename}
           onClose={onClose}
           onError={(m) => void alertDialog("操作できませんでした", m)}

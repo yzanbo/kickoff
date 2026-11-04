@@ -9,10 +9,10 @@ import type {
   QueuedMessage,
   ReconnectState,
   BackgroundState,
-  Run,
-  RunEvent,
-  RunGroup,
-  RunOptions,
+  Chat,
+  ChatEvent,
+  ChatGroup,
+  ChatOptions,
   SearchHit,
   ServerStatus,
   FileContent,
@@ -47,9 +47,9 @@ interface NewProjectInput {
   folder_name: string;
 }
 
-interface RunDetail {
-  run: Run;
-  events: RunEvent[];
+interface ChatDetail {
+  chat: Chat;
+  events: ChatEvent[];
   approvals: Approval[];
   /** 作業中に送った、次の指示の待ちの列 */
   queue: QueuedMessage[];
@@ -151,30 +151,30 @@ export const api = {
 
   // 実行（エージェントとの会話）
   /** archived: アーカイブしたチャットも含める */
-  runs: (projectId: number, opts: { archived?: boolean } = {}) =>
-    request<Run[]>("GET", `/api/projects/${projectId}/runs${opts.archived ? "?archived=1" : ""}`),
-  allRuns: (opts: { archived?: boolean } = {}) => request<Run[]>("GET", `/api/runs?limit=300${opts.archived ? "&archived=1" : ""}`),
-  search: (q: string, scope: { projectId?: number; runId?: number } = {}) => {
+  chats: (projectId: number, opts: { archived?: boolean } = {}) =>
+    request<Chat[]>("GET", `/api/projects/${projectId}/chats${opts.archived ? "?archived=1" : ""}`),
+  allChats: (opts: { archived?: boolean } = {}) => request<Chat[]>("GET", `/api/chats?limit=300${opts.archived ? "&archived=1" : ""}`),
+  search: (q: string, scope: { projectId?: number; chatId?: number } = {}) => {
     const params = new URLSearchParams({ q });
     if (scope.projectId !== undefined) params.set("project_id", String(scope.projectId));
-    if (scope.runId !== undefined) params.set("run_id", String(scope.runId));
+    if (scope.chatId !== undefined) params.set("chat_id", String(scope.chatId));
     return request<SearchHit[]>("GET", `/api/search?${params}`);
   },
-  startRun: (
+  startChat: (
     projectId: number,
     input: {
       prompt: string;
-      options: RunOptions;
+      options: ChatOptions;
       attachments?: Attachment[];
       group_id?: number;
       /** 作業場所: いまあるワークツリーのフォルダ、または新しく作るワークツリーのブランチ名（どちらもなければ本体） */
       worktree_path?: string;
       new_worktree_branch?: string;
     },
-  ) => request<Run>("POST", `/api/projects/${projectId}/runs`, input),
-  run: (id: number) => request<RunDetail>("GET", `/api/runs/${id}`),
-  sendMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
-    request<Run>("POST", `/api/runs/${runId}/messages`, { text, options, attachments }),
+  ) => request<Chat>("POST", `/api/projects/${projectId}/chats`, input),
+  run: (id: number) => request<ChatDetail>("GET", `/api/chats/${id}`),
+  sendMessage: (chatId: number, text: string, options: ChatOptions, attachments: Attachment[] = []) =>
+    request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments }),
 
   /** 添付ファイルをアップロードする */
   upload: async (file: File): Promise<Attachment> => {
@@ -183,21 +183,21 @@ export const api = {
     const [saved] = await postForm<Attachment[]>("/api/uploads", form);
     return saved;
   },
-  renameRun: (runId: number, title: string) => request<Run>("PATCH", `/api/runs/${runId}`, { title }),
+  renameChat: (chatId: number, title: string) => request<Chat>("PATCH", `/api/chats/${chatId}`, { title }),
   /** eventId: 一番下まで見た記録（それより新しい返答があれば、未読のまま） */
-  markSeen: (runId: number, eventId?: number) => request<Run>("POST", `/api/runs/${runId}/seen`, eventId === undefined ? undefined : { event_id: eventId }),
-  markUnseen: (runId: number) => request<Run>("POST", `/api/runs/${runId}/unseen`),
-  pinRun: (runId: number, pinned: boolean) => request<Run>("POST", `/api/runs/${runId}/pin`, { pinned }),
-  compactRun: (runId: number) => request<Run>("POST", `/api/runs/${runId}/compact`),
-  archiveRun: (runId: number, archived = true) => request<Run>("POST", `/api/runs/${runId}/archive`, { archived }),
-  deleteRun: (runId: number) => request<{ ok: true }>("DELETE", `/api/runs/${runId}`),
-  setRunGroup: (runId: number, groupId: number | null) => request<Run>("PATCH", `/api/runs/${runId}`, { group_id: groupId }),
+  markSeen: (chatId: number, eventId?: number) => request<Chat>("POST", `/api/chats/${chatId}/seen`, eventId === undefined ? undefined : { event_id: eventId }),
+  markUnseen: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/unseen`),
+  pinChat: (chatId: number, pinned: boolean) => request<Chat>("POST", `/api/chats/${chatId}/pin`, { pinned }),
+  compactChat: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/compact`),
+  archiveChat: (chatId: number, archived = true) => request<Chat>("POST", `/api/chats/${chatId}/archive`, { archived }),
+  deleteChat: (chatId: number) => request<{ ok: true }>("DELETE", `/api/chats/${chatId}`),
+  setChatGroup: (chatId: number, groupId: number | null) => request<Chat>("PATCH", `/api/chats/${chatId}`, { group_id: groupId }),
   /** チャットを別のプロジェクトへ移す（グループ・作業場所は外れ、移した先の本体で作業する。会話は続く） */
-  moveRun: (runId: number, projectId: number) => request<Run>("POST", `/api/runs/${runId}/move`, { project_id: projectId }),
-  groups: (projectId: number) => request<RunGroup[]>("GET", `/api/projects/${projectId}/groups`),
-  createGroup: (projectId: number, name: string) => request<RunGroup>("POST", `/api/projects/${projectId}/groups`, { name }),
-  renameGroup: (groupId: number, name: string) => request<RunGroup>("PATCH", `/api/groups/${groupId}`, { name }),
-  reorderGroups: (projectId: number, ids: number[]) => request<RunGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
+  moveChat: (chatId: number, projectId: number) => request<Chat>("POST", `/api/chats/${chatId}/move`, { project_id: projectId }),
+  groups: (projectId: number) => request<ChatGroup[]>("GET", `/api/projects/${projectId}/groups`),
+  createGroup: (projectId: number, name: string) => request<ChatGroup>("POST", `/api/projects/${projectId}/groups`, { name }),
+  renameGroup: (groupId: number, name: string) => request<ChatGroup>("PATCH", `/api/groups/${groupId}`, { name }),
+  reorderGroups: (projectId: number, ids: number[]) => request<ChatGroup[]>("PUT", `/api/projects/${projectId}/groups/order`, { ids }),
   gitStatus: (target: GitTarget) => request<GitStatus>("GET", gitUrl(target, "/git/status")),
   /** ステージ・ステージの取り消し・変更を元に戻す（終わったあとの状態を返す） */
   gitAction: (target: GitTarget, action: "stage" | "unstage" | "discard", paths: string[]) =>
@@ -238,71 +238,71 @@ export const api = {
   gitDiff: (target: GitTarget, file: GitFileChange, staged: boolean) =>
     request<GitDiff>("GET", gitUrl(target, "/git/diff", { path: file.path, staged: staged ? "1" : "0", ...(file.old_path ? { old: file.old_path } : {}) })),
   deleteGroup: (groupId: number) => request<{ ok: true }>("DELETE", `/api/groups/${groupId}`),
-  cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
+  cancelChat: (chatId: number) => request<{ ok: true }>("POST", `/api/chats/${chatId}/cancel`),
 
   // 作業中に送る次の指示の待ちの列（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す）
-  queueMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = [], hold = false) =>
-    request<{ queued: boolean; id?: string }>("POST", `/api/runs/${runId}/queue`, { text, options, attachments, ...(hold ? { hold } : {}) }),
+  queueMessage: (chatId: number, text: string, options: ChatOptions, attachments: Attachment[] = [], hold = false) =>
+    request<{ queued: boolean; id?: string }>("POST", `/api/chats/${chatId}/queue`, { text, options, attachments, ...(hold ? { hold } : {}) }),
   /** attachments: 添付を置き換える（省けば今のまま） */
-  editQueued: (runId: number, id: string, text: string, attachments?: Attachment[]) =>
-    request<{ queue: QueuedMessage[] }>("PATCH", `/api/runs/${runId}/queue/${id}`, attachments ? { text, attachments } : { text }),
-  removeQueued: (runId: number, id: string) => request<{ queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue/${id}`),
-  moveQueued: (runId: number, id: string, index: number) =>
-    request<{ queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/${id}/move`, { index }),
+  editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
+    request<{ queue: QueuedMessage[] }>("PATCH", `/api/chats/${chatId}/queue/${id}`, attachments ? { text, attachments } : { text }),
+  removeQueued: (chatId: number, id: string) => request<{ queue: QueuedMessage[] }>("DELETE", `/api/chats/${chatId}/queue/${id}`),
+  moveQueued: (chatId: number, id: string, index: number) =>
+    request<{ queue: QueuedMessage[] }>("POST", `/api/chats/${chatId}/queue/${id}/move`, { index }),
   /** 推論の深さを指定しないとき（既定）に Claude Code が使う深さ（設定から求める） */
   effortDefault: (projectId: number, model: string | null, worktree?: string) =>
     request<EffortDefault>("GET", `/api/projects/${projectId}/effort-default?${new URLSearchParams({ ...(model ? { model } : {}), ...(worktree ? { worktree } : {}) })}`),
   /** 作業の終わり（result イベント）の時点から、新しいチャットに分岐する */
-  forkRun: (runId: number, eventId: number) => request<Run>("POST", `/api/runs/${runId}/fork`, { event_id: eventId }),
+  forkChat: (chatId: number, eventId: number) => request<Chat>("POST", `/api/chats/${chatId}/fork`, { event_id: eventId }),
   /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。ファイルの変更は戻さない） */
-  rewindRun: (runId: number, eventId: number, text: string, options: RunOptions = {}, restoreFiles = false) =>
-    request<Run>("POST", `/api/runs/${runId}/rewind`, { event_id: eventId, text, options, restore_files: restoreFiles }),
+  rewindChat: (chatId: number, eventId: number, text: string, options: ChatOptions = {}, restoreFiles = false) =>
+    request<Chat>("POST", `/api/chats/${chatId}/rewind`, { event_id: eventId, text, options, restore_files: restoreFiles }),
   /** 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて AI に読ませる） */
-  chatTranscript: (runId: number) => request<Attachment>("POST", `/api/runs/${runId}/transcript`),
+  chatTranscript: (chatId: number) => request<Attachment>("POST", `/api/chats/${chatId}/transcript`),
   /** ファイルだけを、自分の発言を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけ） */
-  rewindFiles: (runId: number, eventId: number, dryRun: boolean) =>
-    request<FileRewindResult>("POST", `/api/runs/${runId}/rewind-files`, { event_id: eventId, dry_run: dryRun }),
+  rewindFiles: (chatId: number, eventId: number, dryRun: boolean) =>
+    request<FileRewindResult>("POST", `/api/chats/${chatId}/rewind-files`, { event_id: eventId, dry_run: dryRun }),
   /**
    * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）。
    * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った
    */
-  tellRun: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
-    request<{ result: "told" | "queued" | "sent" }>("POST", `/api/runs/${runId}/tell`, { text, options, attachments }),
+  tellChat: (chatId: number, text: string, options: ChatOptions, attachments: Attachment[] = []) =>
+    request<{ result: "told" | "queued" | "sent" }>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments }),
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
-  stopBackgroundTask: (runId: number, taskId: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/background/${encodeURIComponent(taskId)}/stop`),
+  stopBackgroundTask: (chatId: number, taskId: string) => request<{ ok: true }>("POST", `/api/chats/${chatId}/background/${encodeURIComponent(taskId)}/stop`),
   /** 待ちの列を、終わっても自動で送らずに止めておくか（戻すと、作業中でなければ先頭をすぐ送る） */
-  setQueuePaused: (runId: number, paused: boolean) =>
-    request<{ paused: boolean; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/paused`, { paused }),
+  setQueuePaused: (chatId: number, paused: boolean) =>
+    request<{ paused: boolean; queue: QueuedMessage[] }>("PUT", `/api/chats/${chatId}/queue/paused`, { paused }),
   /** その指示のすぐあとに一時停止の印を付ける・外す（右クリックの「この指示のあとで止める」。id が null ならすべて外す） */
-  setQueueStopAfter: (runId: number, id: string | null, stop = true) =>
-    request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/stop-after`, { id, stop }),
+  setQueueStopAfter: (chatId: number, id: string | null, stop = true) =>
+    request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/chats/${chatId}/queue/stop-after`, { id, stop }),
   /** 印の位置をまとめて置き換える（印のドラッグ・×。0 = 1 件目の上、n = n 件目のあと） */
-  setQueueStops: (runId: number, stops: number[]) =>
-    request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/runs/${runId}/queue/stops`, { stops }),
+  setQueueStops: (chatId: number, stops: number[]) =>
+    request<{ stops: number[]; queue: QueuedMessage[] }>("PUT", `/api/chats/${chatId}/queue/stops`, { stops }),
   /** 待ちの指示をすべて消す */
   /** 画面でいま書き直している待ちの指示（丸ごと置き換え。空なら外す）。次に送る指示なら、書き直しが終わるまで送らない */
-  setQueueEditing: (runId: number, ids: string[]) => request<{ ok: true }>("PUT", `/api/runs/${runId}/queue/editing`, { ids }),
-  clearQueued: (runId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/runs/${runId}/queue`),
+  setQueueEditing: (chatId: number, ids: string[]) => request<{ ok: true }>("PUT", `/api/chats/${chatId}/queue/editing`, { ids }),
+  clearQueued: (chatId: number) => request<{ removed: number; queue: QueuedMessage[] }>("DELETE", `/api/chats/${chatId}/queue`),
   /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */
-  sendAllQueued: (runId: number, ids?: string[]) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/send-all`, ids ? { ids } : {}),
+  sendAllQueued: (chatId: number, ids?: string[]) => request<{ ok: true }>("POST", `/api/chats/${chatId}/queue/send-all`, ids ? { ids } : {}),
   /** 選んだ待ちの指示を、送らずに 1 件にまとめる（2 件以上） */
-  mergeQueued: (runId: number, ids: string[]) => request<{ id: string; queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/merge`, { ids }),
+  mergeQueued: (chatId: number, ids: string[]) => request<{ id: string; queue: QueuedMessage[] }>("POST", `/api/chats/${chatId}/queue/merge`, { ids }),
   /** 待ちの指示をすべて、1 件ずつ別々の発言として順に送る（止めておくのをやめ、印を外す） */
-  sendQueuedInOrder: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/send-in-order`),
+  sendQueuedInOrder: (chatId: number) => request<{ ok: true }>("POST", `/api/chats/${chatId}/queue/send-in-order`),
   /** 選んだ待ちの指示をまとめて消す */
-  removeQueuedMany: (runId: number, ids: string[]) =>
-    request<{ removed: number; queue: QueuedMessage[] }>("POST", `/api/runs/${runId}/queue/remove-many`, { ids }),
+  removeQueuedMany: (chatId: number, ids: string[]) =>
+    request<{ removed: number; queue: QueuedMessage[] }>("POST", `/api/chats/${chatId}/queue/remove-many`, { ids }),
   /**
    * 選んだ待ちの指示を、並びを保ったまままとめて移す（いちばん上・いちばん下、または { before: その指示の前（null ならいちばん下）,
    * belowStop: その位置に止める線があれば線の下に入れるか }）
    */
-  moveQueuedMany: (runId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }) =>
+  moveQueuedMany: (chatId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }) =>
     request<{ moved: number; queue: QueuedMessage[] }>(
       "POST",
-      `/api/runs/${runId}/queue/move-many`,
+      `/api/chats/${chatId}/queue/move-many`,
       typeof to === "string" ? { ids, to } : { ids, before: to.before, ...(to.belowStop === undefined ? {} : { below_stop: to.belowStop }) },
     ),
-  sendQueuedNow: (runId: number, id: string) => request<{ ok: true }>("POST", `/api/runs/${runId}/queue/${id}/send`),
+  sendQueuedNow: (chatId: number, id: string) => request<{ ok: true }>("POST", `/api/chats/${chatId}/queue/${id}/send`),
 
   // 音声入力（文字起こし・準備の状態・この Mac のモデル・OpenAI の API キー）
   /** 録った音声を文にする（language を省けば設定の言語） */
@@ -321,7 +321,7 @@ export const api = {
   // 承認依頼・質問
   approvals: () => request<Approval[]>("GET", "/api/approvals"),
   /** 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる */
-  stopReconnect: (runId: number) => request<{ ok: true }>("DELETE", `/api/runs/${runId}/reconnect`),
+  stopReconnect: (chatId: number) => request<{ ok: true }>("DELETE", `/api/chats/${chatId}/reconnect`),
   resolveApproval: (id: string, decision: ApprovalDecision) =>
     request<{ ok: true }>("POST", `/api/approvals/${id}`, decision),
 };

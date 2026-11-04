@@ -46,13 +46,13 @@ const api = {
     /** 記録の様子（記録中・保存中・保存した・失敗）。戻り値で受け取りをやめる */
     onState: (listener: (state: DiagnosticsState) => void): (() => void) => subscribe("kickoff:diagnostics", listener),
   },
-  /** Mac の通知を出す（projectId・runId を渡すと、押したときにそのチャットを開く）。届かなかったら理由を返す */
-  notify: (args: { title: string; body: string; projectId?: number; runId?: number }): Promise<{ ok: boolean; error?: string }> =>
+  /** Mac の通知を出す（projectId・chatId を渡すと、押したときにそのチャットを開く）。届かなかったら理由を返す */
+  notify: (args: { title: string; body: string; projectId?: number; chatId?: number }): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("kickoff:notify", args),
   /** Mac の「システム設定 → 通知」を開く（Kickoff の通知を許可する・出し方を変える） */
   openNotificationSettings: (): Promise<void> => ipcRenderer.invoke("kickoff:open-notification-settings"),
   /** 通知が押されて、そのチャットを開くとき（Kickoff を起動し直したあとに、前の通知が押されたときも）。戻り値で受け取りをやめる */
-  onOpenRun: (listener: (projectId: number, runId: number) => void): (() => void) => subscribe("kickoff:open-run", listener),
+  onOpenChat: (listener: (projectId: number, chatId: number) => void): (() => void) => subscribe("kickoff:open-chat", listener),
   /** 内蔵ターミナル（右のパネルのタブ）。key はタブごとのキー */
   terminal: {
     /** シェルにつなぐ（なければ cwd で始める）。snapshot はいまの画面の内容（つなぎ直したとき） */

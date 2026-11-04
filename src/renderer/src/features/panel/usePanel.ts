@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { ProjectSummary, Run } from "@shared/types";
+import type { ProjectSummary, Chat } from "@shared/types";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { cx } from "@/lib/cx";
 import { useServerEvent } from "@/api/events";
@@ -10,7 +10,7 @@ import { chatKey, syncLinkedTabs } from "@/features/panel/state/linkedTabs";
 import { registerPanel } from "@/features/panel/state/panelMemory";
 import { usePanelState } from "@/features/panel/state/usePanelState";
 import { kindOfTab, usePanelKinds, type PanelSurface } from "@/features/panel/state/panelKinds";
-import { useLinkedRuns, type LinkScope } from "@/features/panel/state/useLinkedChats";
+import { useLinkedChats, type LinkScope } from "@/features/panel/state/useLinkedChats";
 import { newTabKey } from "@/features/panel/tabs/tabKeys";
 import { usePanelWidth } from "./usePanelWidth";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
@@ -33,25 +33,25 @@ interface Options {
   /** 全プロジェクトのボードでは、新しいチャットのプロジェクトを選べるようにする */
   projects?: ProjectSummary[];
   /** 新しいチャットができたとき（URL をそのチャットにするなど） */
-  onCreated?: (run: Run) => void;
+  onCreated?: (chat: Chat) => void;
 }
 
-export type SidePanelController = ReturnType<typeof useSidePanel>;
+export type PanelController = ReturnType<typeof usePanel>;
 
 /**
  * ボードの右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ）の状態と操作。カンバンとグループのボードで共通。
  * タブは上下・左右のペインに分けて並べられる（配置は paneLayout の木。自分で開くタブはピントのあるペインに、
  * サイドバーと連動して自動で足すチャットのタブは一覧のペイン（homePane。分けた元のペイン）に入る）。
- * 表示は SidePanel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）・DraftCards（列の下書き）で行う
+ * 表示は Panel（body の中の最後に置く）・PanelToggle（見出しの開閉ボタン）・DraftCards（列の下書き）で行う
  */
-export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = false, projects, onCreated }: Options) {
+export function usePanel({ memoryKey, scope, surface = "board", holdEsc = false, projects, onCreated }: Options) {
   // 欄で表示するタブの種類（隠した種類のタブは閉じずに残す。隠している種類のタブを自分で開いたら、その種類を出す）
   const kinds = usePanelKinds(surface);
   // タブ・分割の配置・開閉・連動の覚え（ボードごとに覚え、切り替えたら戻す。usePanelState.ts）
   const { tabs, setTabs, layout, setLayout, changeLayout, activeTab, panelOpen, setPanelOpen, links, setLinks, current } = usePanelState(memoryKey);
   // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える）
-  const linked = useLinkedRuns(scope);
-  const runs = linked.runs;
+  const linked = useLinkedChats(scope);
+  const chats = linked.chats;
   // 幅と横幅いっぱい（ボードを覆う）
   const size = usePanelWidth();
 
@@ -69,15 +69,15 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
    * 右側のパネルにタブで開く（開いていればそのタブへ）。ボードはその分狭くなる。
    * focus は検索結果から開いたときに、スクロールして強調する発言
    */
-  const open = (run: Pick<Run, "id" | "project_id"> & Partial<Pick<Run, "title">>, focus?: number) => {
-    const key = chatKey(run.id);
-    const tab: PanelTab = { key, kind: "chat", id: run.id, projectId: run.project_id, focus, title: run.title };
+  const open = (chat: Pick<Chat, "id" | "project_id"> & Partial<Pick<Chat, "title">>, focus?: number) => {
+    const key = chatKey(chat.id);
+    const tab: PanelTab = { key, kind: "chat", id: chat.id, projectId: chat.project_id, focus, title: chat.title };
     kinds.show("chat");
     setTabs((prev) => (prev.some((t) => t.key === key) ? prev.map((t) => (t.key === key && focus ? tab : t)) : [...prev, tab]));
     // 表示だけ消していたチャットも、開けばまたタブに出す。サイドバーの一覧にないチャット（隠しているアーカイブ済みなど）は、閉じるまで残す
     setLinks((l) => {
-      const dismissed = l.dismissed.filter((id) => id !== run.id);
-      const extra = scope !== null && !runs.some((r) => r.id === run.id) && !l.extra.includes(run.id) ? [...l.extra, run.id] : l.extra;
+      const dismissed = l.dismissed.filter((id) => id !== chat.id);
+      const extra = scope !== null && !chats.some((r) => r.id === chat.id) && !l.extra.includes(chat.id) ? [...l.extra, chat.id] : l.extra;
       return dismissed.length === l.dismissed.length && extra === l.extra ? l : { dismissed, extra };
     });
     reveal(key);
@@ -101,10 +101,10 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
   };
 
   /** サブエージェントの中身をタブで開く（同じサブエージェントのタブがあればそこへ） */
-  const openSubagent = ({ runId, projectId, toolUseId, title }: { runId: number; projectId: number; toolUseId: string; title: string }) => {
-    const key = `subagent:${runId}:${toolUseId}`;
+  const openSubagent = ({ chatId, projectId, toolUseId, title }: { chatId: number; projectId: number; toolUseId: string; title: string }) => {
+    const key = `subagent:${chatId}:${toolUseId}`;
     kinds.show("chat");
-    setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "subagent", runId, projectId, toolUseId, title }]));
+    setTabs((prev) => (prev.some((t) => t.key === key) ? prev : [...prev, { key, kind: "subagent", chatId, projectId, toolUseId, title }]));
     reveal(key);
   };
 
@@ -128,11 +128,11 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
   const updateTab = (key: string, update: (tab: PanelTab) => PanelTab) => setTabs((prev) => prev.map((t) => (t.key === key ? update(t) : t)));
 
   /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
-  const replaceWithChat = (key: string, run: Run) => {
-    const chat: PanelTab = { key: chatKey(run.id), kind: "chat", id: run.id, projectId: run.project_id, title: run.title };
-    updateTab(key, () => chat);
-    changeLayout((l) => renameTab(l, key, chat.key));
-    onCreated?.(run);
+  const replaceWithChat = (key: string, chat: Chat) => {
+    const tab: PanelTab = { key: chatKey(chat.id), kind: "chat", id: chat.id, projectId: chat.project_id, title: chat.title };
+    updateTab(key, () => tab);
+    changeLayout((l) => renameTab(l, key, tab.key));
+    onCreated?.(chat);
   };
 
   const close = () => setPanelOpen(false);
@@ -148,7 +148,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
     const closedChats = tabs.flatMap((t) => (closing.has(t.key) && t.kind === "chat" ? [t.id] : []));
     if (closedChats.length > 0)
       setLinks((l) => ({
-        dismissed: dismiss ? [...new Set([...l.dismissed, ...closedChats.filter((id) => runs.some((r) => r.id === id))])] : l.dismissed,
+        dismissed: dismiss ? [...new Set([...l.dismissed, ...closedChats.filter((id) => chats.some((r) => r.id === id))])] : l.dismissed,
         extra: l.extra.filter((id) => !closedChats.includes(id)),
       }));
     for (const t of tabs) if (closing.has(t.key) && t.kind === "terminal") void window.kickoff?.terminal.close(t.key);
@@ -177,15 +177,15 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
 
   // 削除したチャットのタブ（そのチャットのサブエージェントのタブも）は閉じる（ボードのないチャット欄でも）
   useServerEvent((e) => {
-    if (e.type !== "run_deleted") return;
-    const gone = tabs.filter((t) => t.key === chatKey(e.id) || (t.kind === "subagent" && t.runId === e.id));
+    if (e.type !== "chat_deleted") return;
+    const gone = tabs.filter((t) => t.key === chatKey(e.id) || (t.kind === "subagent" && t.chatId === e.id));
     if (gone.length > 0) closeMany(gone.map((t) => t.key), layout, false);
   });
 
   // チャットのタブをサイドバーの一覧にそろえる（読み直してから。一覧から外れたタブは閉じ、まだないチャットはタブを足す）
   useEffect(() => {
     if (!linked.fresh || !current) return;
-    const next = syncLinkedTabs(tabs, runs, links);
+    const next = syncLinkedTabs(tabs, chats, links);
     if (next.links !== links) setLinks(next.links);
     if (next.tabs === tabs) return;
     const kept = new Set(next.tabs.map((t) => t.key));
@@ -193,7 +193,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
     setTabs(next.tabs);
     if (gone.length > 0) setLayout((l) => closeLayoutTabs(l, gone.map((t) => t.key)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runs, linked.fresh, links, current, memoryKey]);
+  }, [chats, linked.fresh, links, current, memoryKey]);
 
   // Esc でパネルを閉じる（メニューやダイアログが開いていればそちらを優先）
   useWindowEvent(
@@ -210,7 +210,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
   /** サイドバーに出ているチャットのタブか（連動しない欄では runs が空なので、いつも false） */
   const isLinkedTab = (key: string) => {
     const t = tabs.find((x) => x.key === key);
-    return t?.kind === "chat" && runs.some((r) => r.id === t.id);
+    return t?.kind === "chat" && chats.some((r) => r.id === t.id);
   };
 
   /** そのタブの種類をこの欄で見せているか */
@@ -235,8 +235,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
     panelFull: size.maximized || size.covering,
     /** 元の幅に戻せるか（覆っていて、ボードを残すとパネルの最小の幅に足りないほど狭いときは戻せない） */
     canRestoreWidth: size.canRestore,
-    /** サイドバーに出ているチャット（タブのチャットの状態・まとまりの数・状態ごとの一覧に使う） */
-    runs,
+    chats,
     /** アーカイブ済みのチャットもタブに出しているか（サイドバーと共通） */
     showArchived: linked.showArchived,
     projects,
@@ -266,7 +265,7 @@ export function useSidePanel({ memoryKey, scope, surface = "board", holdEsc = fa
     ),
     isShowingTab,
     /** パネルでこのチャットを表示しているか（カードを選択中として見せる。分割していれば、どれかのペインで） */
-    isShowing: (runId: number) => isShowingTab(chatKey(runId)),
+    isShowing: (chatId: number) => isShowingTab(chatKey(chatId)),
     /** ボードとパネルを並べる要素に渡す */
     body: {
       ref: size.bodyRef,

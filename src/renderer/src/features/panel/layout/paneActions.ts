@@ -3,7 +3,7 @@ import { equalizeSplit, setSplitSizes } from "./paneSizes";
 import { newTabKey } from "@/features/panel/tabs/tabKeys";
 
 /**
- * 右のパネルのペインの操作（分ける・移す・閉じる・境目・ピント）。useSidePanel が返す。
+ * 右のパネルのペインの操作（分ける・移す・閉じる・境目・ピント）。usePanel が返す。
  * closeMany はタブを閉じる方法（ペインを閉じるとき、中のタブも閉じる。base は閉じる前に変えておいた配置）。
  * keepOnClose はペインを閉じても閉じずに一覧のペインへ戻すタブ（サイドバーと連動したチャット）
  */

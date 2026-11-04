@@ -1,12 +1,12 @@
 import { ChevronRight, GitBranch } from "lucide-react";
 import { memo, type ReactNode } from "react";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
 import { useTicker } from "@/hooks/useTicker";
 import { formatClock, formatElapsed } from "@/lib/time";
 import { api } from "@/api";
-import { openRun } from "@/app/router";
+import { openChat } from "@/app/router";
 import { reportFailure } from "@/features/chat/chatActions";
 import { CopyButton } from "@/ui/CopyButton";
 import { IconButton } from "@/ui/IconButton";
@@ -93,7 +93,7 @@ function TurnEnd(props: TurnFooterProps & { turnChanges?: FileChange[] }) {
   );
 }
 
-type TurnFooterProps = { event: RunEvent; turnStart?: string; turnText?: string; busy: boolean };
+type TurnFooterProps = { event: ChatEvent; turnStart?: string; turnText?: string; busy: boolean };
 
 /**
  * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー、ここから分岐。
@@ -122,8 +122,8 @@ function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
           className="turn-action"
           onClick={() =>
             void api
-              .forkRun(event.run_id, event.id)
-              .then((run) => openRun(run.project_id, run.id))
+              .forkChat(event.chat_id, event.id)
+              .then((chat) => openChat(chat.project_id, chat.id))
               .catch(reportFailure("分岐できませんでした"))
           }
         />
@@ -149,7 +149,7 @@ function EventItem({
   turnChanges,
   busy,
 }: {
-  event: RunEvent;
+  event: ChatEvent;
   turnStart?: string;
   turnText?: string;
   turnChanges?: FileChange[];

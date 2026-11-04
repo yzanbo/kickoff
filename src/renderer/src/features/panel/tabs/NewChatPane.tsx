@@ -1,13 +1,13 @@
 import { Folder, SquarePen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { ProjectSummary, Run } from "@shared/types";
+import type { ProjectSummary, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useAsync } from "@/hooks/useAsync";
 import { useProjects } from "@/app/projectsContext";
 import { choiceDialog } from "@/ui/dialogs";
 import { Composer, SendCancelled } from "@/features/chat/composer/Composer";
 import { ProjectChip } from "@/features/project/ProjectChip";
-import { useRunOptions } from "@/features/chat/options/ChatOptionsBar";
+import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { BUSY_STATUSES } from "@/features/chat/chatStatus";
 import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "@/features/worktree/WorkplacePicker";
 import { invalidateWorktrees } from "@/features/worktree/worktreeBranches";
@@ -30,7 +30,7 @@ interface Props {
   /** 作成先のグループを変えたとき・グループ名が分かったとき（タブの表示に使う） */
   onGroupChange?: (group: number | undefined, groupName: string | undefined) => void;
   /** 最初のメッセージを送ってチャットができたとき（このタブをそのチャットに置き換える） */
-  onCreated: (run: Run) => void;
+  onCreated: (chat: Chat) => void;
   /** 書いている文が変わったとき（ボードの「下書き」のカードに出す） */
   onDraftChange?: (text: string) => void;
 }
@@ -49,14 +49,14 @@ export function NewChatPane({
   onDraftChange,
 }: Props) {
   const { projectName } = useProjects();
-  const options = useRunOptions(undefined, projectId);
+  const options = useChatOptions(undefined, projectId);
   const project = useAsync(() => api.project(projectId), [projectId]);
-  const runs = useAsync(() => api.runs(projectId), [projectId]);
+  const chats = useAsync(() => api.chats(projectId), [projectId]);
   // 作業場所（初めは本体。並行して進めたいときにワークツリーを選ぶ）
   const [place, setPlace] = useState<Workplace>({ kind: "main" });
   useEffect(() => setPlace({ kind: "main" }), [projectId]);
   // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる）
-  const busyHere = isBusyAt(runs.data ?? [], place);
+  const busyHere = isBusyAt(chats.data ?? [], place);
   const groups = useAsync(() => api.groups(projectId), [projectId]);
   const groupName = groups.data?.find((g) => g.id === group)?.name;
   // グループ名が分かったら、タブにも出す
@@ -65,7 +65,7 @@ export function NewChatPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupName]);
 
-  const ready = !project.loading && !runs.loading;
+  const ready = !project.loading && !chats.loading;
   // 入力欄ができたら 1 回だけ、書きかけていた文（なければ送信待ちの指示から始めたときの文）と添付を入れる（送るのは自分で）。
   // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
   const fillComposer = useRef<ComposerFill | null>(null);
@@ -82,11 +82,11 @@ export function NewChatPane({
   }, [ready, seed]);
 
   return (
-    <div className="run-page run-panel new-chat">
-      <header className="run-header">
-        {/* 名前と閉じるはタブに出すので、見出しには出さない（いまのチャットの見出し RunHeader と同じ） */}
-        <div className="run-title-row">
-        <div className="run-sub muted small">
+    <div className="chat-page chat-panel new-chat">
+      <header className="chat-header">
+        {/* 名前と閉じるはタブに出すので、見出しには出さない（いまのチャットの見出し ChatHeader と同じ） */}
+        <div className="chat-title-row">
+        <div className="chat-sub muted small">
           {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
           {projects && projects.length > 1 && onProjectChange ? (
             // 全プロジェクトのボードでは、バッジのまま選び直せる
@@ -141,7 +141,7 @@ export function NewChatPane({
           {busyHere && <p className="small warn-text">この作業場所では、ほかのチャットが作業中です。同じファイルを触ると作業がぶつかることがあります。</p>}
         </div>
       </div>
-      <div className="run-composer">
+      <div className="chat-composer">
         {ready && (
           <Composer
             key={projectId}
@@ -157,7 +157,7 @@ export function NewChatPane({
               // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい）
               // 開いたときの一覧は古くなっているので、送るときに取り直して確かめる
               let target = place;
-              if (isBusyAt(await api.runs(projectId), place)) {
+              if (isBusyAt(await api.chats(projectId), place)) {
                 const choice = await choiceDialog({
                   title: "この作業場所では、ほかのチャットが作業中です",
                   message: "同じファイルを書き換えると、作業がぶつかることがあります。新しいワークツリーで始めると、別のフォルダで並行して進められます。質問だけなど、ファイルを書き換えないチャットなら、このまま送っても大丈夫です。",
@@ -174,7 +174,7 @@ export function NewChatPane({
                   setPlace(target);
                 }
               }
-              const run = await api.startRun(projectId, {
+              const chat = await api.startChat(projectId, {
                 prompt,
                 options: options.options,
                 attachments,
@@ -183,7 +183,7 @@ export function NewChatPane({
               });
               // 新しいワークツリーを作ったときは、ブランチの一覧をすぐ取り直す
               if (target.kind === "new") invalidateWorktrees(projectId);
-              onCreated(run);
+              onCreated(chat);
             }}
           />
         )}
@@ -193,7 +193,7 @@ export function NewChatPane({
 }
 
 /** その作業場所（本体・いまあるワークツリー）で、作業中のチャットがあるか。新しく作るワークツリーなら、まだない */
-function isBusyAt(runs: Run[], place: Workplace): boolean {
+function isBusyAt(chats: Chat[], place: Workplace): boolean {
   const path = place.kind === "existing" ? place.path : place.kind === "main" ? "" : null;
-  return path !== null && runs.some((r) => r.worktree_path === path && BUSY_STATUSES.includes(r.status));
+  return path !== null && chats.some((r) => r.worktree_path === path && BUSY_STATUSES.includes(r.status));
 }

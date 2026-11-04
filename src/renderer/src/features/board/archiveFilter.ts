@@ -1,4 +1,4 @@
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { useStoredState } from "@/hooks/useStoredState";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 
@@ -32,4 +32,4 @@ export function useArchiveFilter(key: string): [ArchiveFilter, (value: ArchiveFi
 }
 
 /** そのチャットを出すか（未アーカイブのときはアーカイブ済みを、アーカイブ済みのときは未アーカイブを出さない） */
-export const archiveMatches = (run: Pick<Run, "archived_at">, filter: ArchiveFilter) => filter === "all" || (filter === "archived") === Boolean(run.archived_at);
+export const archiveMatches = (chat: Pick<Chat, "archived_at">, filter: ArchiveFilter) => filter === "all" || (filter === "archived") === Boolean(chat.archived_at);

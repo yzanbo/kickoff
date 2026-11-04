@@ -13,9 +13,9 @@ import { PanelTabPage } from "@/features/panel/tabs/PanelTabPage";
 import { layoutRects } from "@/features/panel/layout/paneGeometry";
 import { focusedPane, homePane, leavesOf, type PaneLeaf } from "@/features/panel/layout/paneLayout";
 import { TAB_MENU_WIDTH, TabMenu, tabMenuHeight } from "@/features/panel/tabs/TabMenu";
-import { useRunRename } from "@/features/chat/useChatRename";
+import { useChatRename } from "@/features/chat/useChatRename";
 import { useTabDrag } from "@/features/panel/layout/useTabDrag";
-import type { SidePanelController, TerminalTarget } from "./usePanel";
+import type { PanelController, TerminalTarget } from "./usePanel";
 import { useBoardHeaderLayoutMenu } from "@/features/board/useBoardHeaderLayoutMenu";
 import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
 import { TabArchiveToggle } from "@/features/panel/tabs/TabArchiveToggle";
@@ -34,13 +34,13 @@ import { shownActiveOf } from "@/features/panel/state/panelKinds";
  * controls は欄の道具（フッターの最大化・閉じるなど）で、タブの列の左の道具の後ろに並べる）。
  * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）
  */
-export function SidePanel({
+export function Panel({
   panel,
   onNewChat,
   terminals,
   sidebar,
 }: {
-  panel: SidePanelController;
+  panel: PanelController;
   onNewChat: () => void;
   terminals: TerminalTarget[];
   sidebar?: { open: boolean; onClose: () => void; controls?: React.ReactNode; className?: string };
@@ -55,7 +55,7 @@ export function SidePanel({
   // タブの右クリックのメニュー
   const [menu, setMenu] = useState<{ key: string; x: number; y: number } | null>(null);
   // チャットのタブの名前をその場で変える（タブのダブルクリック・右クリックの「名前を変更」で共通）
-  const rename = useRunRename();
+  const rename = useChatRename();
   // 境目をドラッグしている間（中身の上でポインターを奪われないようにする）
   const [resizing, setResizing] = useState(false);
   const leaves = leavesOf(layout.root);
@@ -71,8 +71,8 @@ export function SidePanel({
   const chatTarget = (pane: PaneLeaf): TerminalTarget | undefined => {
     const tab = tabs.find((t) => t.key === shown(pane));
     if (tab?.kind !== "chat") return undefined;
-    const run = panel.runs.find((r) => r.id === tab.id);
-    if (run?.worktree_path) return { cwd: run.worktree_path, label: baseName(run.worktree_path), projectId: run.project_id };
+    const chat = panel.chats.find((r) => r.id === tab.id);
+    if (chat?.worktree_path) return { cwd: chat.worktree_path, label: baseName(chat.worktree_path), projectId: chat.project_id };
     return terminalTargets.find((t) => t.projectId === tab.projectId);
   };
   /** ターミナルを開く（押したペインに入れる）: チャットを表示していればその作業場所、開く場所が 1 つならそこ、いくつもあれば選ぶメニュー */
@@ -270,7 +270,7 @@ export function SidePanel({
             );
           })}
       </div>
-      {menu && <TabMenu panel={panel} tabKey={menu.key} x={menu.x} y={menu.y} onRename={(run) => rename.start(run)} onClose={() => setMenu(null)} />}
+      {menu && <TabMenu panel={panel} tabKey={menu.key} x={menu.x} y={menu.y} onRename={(chat) => rename.start(chat)} onClose={() => setMenu(null)} />}
     </aside>
   );
 }

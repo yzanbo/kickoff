@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { chatTitle } from "./chatTitle";
 
 /**
@@ -11,7 +11,7 @@ export function useChatSearch(query: string) {
   const keyword = query.trim();
   const lower = keyword.toLowerCase();
   /** 検索語がなければすべて一致 */
-  const matches = useCallback((run: Run) => !lower || chatTitle(run.title).toLowerCase().includes(lower), [lower]);
+  const matches = useCallback((chat: Chat) => !lower || chatTitle(chat.title).toLowerCase().includes(lower), [lower]);
   return useMemo(() => ({ keyword, matches }), [keyword, matches]);
 }
 

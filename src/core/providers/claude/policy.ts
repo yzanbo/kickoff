@@ -2,7 +2,7 @@ import type { HookCallbackMatcher, HookEvent, HookInput, SyncHookJSONOutput } fr
 import type { ChatPolicy } from "../../chat/policy.js";
 import { evaluateReferenceWrite } from "../../chat/guard/scope.js";
 import { evaluateSelfProtection, type SelfInfo } from "../../chat/guard/selfProtection.js";
-import type { ProviderRunParams } from "../types.js";
+import type { ProviderTurnParams } from "../types.js";
 
 type Decision = { decision: "deny"; reason: string } | { decision: "pass" };
 
@@ -24,7 +24,7 @@ function denyHook(evaluate: (toolName: string, input: Record<string, unknown>) =
  * チャットの実行に付けるフック。エージェントを動かしている Kickoff 自身（プロセス・アプリ本体・保存先・API）を壊す呼び出し
  * （selfProtection.ts）はいつも、参照資料への書き込みは参照資料があるときだけ断る。Auto mode や許可ルールがあっても効く
  */
-export function runHooks(params: ProviderRunParams, self: SelfInfo | undefined): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
+export function turnHooks(params: ProviderTurnParams, self: SelfInfo | undefined): Partial<Record<HookEvent, HookCallbackMatcher[]>> | undefined {
   const readOnly = params.readOnlyPaths ?? [];
   const matchers = [
     ...(self ? [denyHook((tool, input) => evaluateSelfProtection(self, tool, input))] : []),

@@ -23,17 +23,17 @@ export type Route =
   | { name: "project"; id: number; tab: ProjectTab; group?: number; file?: FileTarget }
   | { name: "newChat"; projectId: number; group?: number }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
-  | { name: "run"; projectId: number; runId: number; focus?: number };
+  | { name: "chat"; projectId: number; chatId: number; focus?: number };
 
 /** URL のハッシュを画面に読む（知らない形は全プロジェクト） */
 export function parse(hash: string): Route {
   const [path, query = ""] = (hash.replace(/^#/, "") || "/").split("?");
   const params = new URLSearchParams(query);
 
-  const run = path.match(/^\/projects\/(\d+)\/runs\/(\d+)$/);
-  if (run) {
+  const chat = path.match(/^\/projects\/(\d+)\/chats\/(\d+)$/);
+  if (chat) {
     const focus = Number(params.get("event"));
-    return { name: "run", projectId: Number(run[1]), runId: Number(run[2]), ...(focus ? { focus } : {}) };
+    return { name: "chat", projectId: Number(chat[1]), chatId: Number(chat[2]), ...(focus ? { focus } : {}) };
   }
 
   const newChat = path.match(/^\/projects\/(\d+)\/new$/);
@@ -96,15 +96,15 @@ export function href(route: Route): string {
     case "newChat": {
       return `#/projects/${route.projectId}/new${route.group ? `?group=${route.group}` : ""}`;
     }
-    case "run":
-      return `#/projects/${route.projectId}/runs/${route.runId}${route.focus ? `?event=${route.focus}` : ""}`;
+    case "chat":
+      return `#/projects/${route.projectId}/chats/${route.chatId}${route.focus ? `?event=${route.focus}` : ""}`;
     default:
       return "#/";
   }
 }
 
 export function navigate(route: Route, options: { replace?: boolean } = {}) {
-  if (location.hash === href(route) && (route.name === "run" || route.name === "newChat")) {
+  if (location.hash === href(route) && (route.name === "chat" || route.name === "newChat")) {
     window.dispatchEvent(new CustomEvent<ReopenRoute>(REOPEN_EVENT, { detail: route }));
     return;
   }
@@ -122,11 +122,11 @@ export function navigate(route: Route, options: { replace?: boolean } = {}) {
  * 同じものを開き直したときは URL が変わらないので、このイベントでパネルに知らせる
  */
 export const REOPEN_EVENT = "kickoff:reopen";
-export type ReopenRoute = Extract<Route, { name: "run" } | { name: "newChat" }>;
+export type ReopenRoute = Extract<Route, { name: "chat" } | { name: "newChat" }>;
 
 /** チャットを開く（プロジェクトのカンバンへ移り、右側のパネルで開く） */
-export function openRun(projectId: number, runId: number, focus?: number, options: { replace?: boolean } = {}) {
-  navigate({ name: "run", projectId, runId, ...(focus ? { focus } : {}) }, options);
+export function openChat(projectId: number, chatId: number, focus?: number, options: { replace?: boolean } = {}) {
+  navigate({ name: "chat", projectId, chatId, ...(focus ? { focus } : {}) }, options);
 }
 
 /** 新しいチャットを始める（プロジェクトのカンバンへ移り、右側のパネルで始める） */
@@ -142,6 +142,6 @@ export function openProjectFile(projectId: number, file: FileTarget) {
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */
 export function routeProjectId(route: Route): number | undefined {
   if (route.name === "project") return route.id;
-  if (route.name === "newChat" || route.name === "run") return route.projectId;
+  if (route.name === "newChat" || route.name === "chat") return route.projectId;
   return undefined;
 }

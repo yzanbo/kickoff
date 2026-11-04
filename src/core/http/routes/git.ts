@@ -10,7 +10,7 @@ const diffQuerySchema = z.object({ path: repoPath, old: repoPath.optional(), sta
 
 /**
  * 作業場所の Git（ソース管理の状態・差分・ステージ・コミット・プッシュ・プル・履歴・PR）。操作するフォルダは requireWorkdir（?worktree=）。
- * ファイルの一覧・中身は routes/files.ts、ワークツリーは routes/worktrees.ts
+ * ファイルの一覧・中身は http/routes/files.ts、ワークツリーは http/routes/worktrees.ts
  */
 export function gitRoutes(app: Hono, { store }: ServerDeps) {
   app.get("/api/projects/:id/git/status", async (c) => c.json(await gitStatus(await requireWorkdir(c, requireProject(store, c.req.param("id"))))));

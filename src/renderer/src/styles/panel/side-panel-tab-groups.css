@@ -158,12 +158,12 @@
   padding-left: 11px;
 }
 
-.panel-tab-cluster-pill:has(.corner-count.review) .panel-tab-cluster-fold,
-.panel-tab-cluster-pill:has(.corner-count.review):not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
+.panel-tab-cluster-pill:has(.corner-count.unread) .panel-tab-cluster-fold,
+.panel-tab-cluster-pill:has(.corner-count.unread):not(:has(.panel-tab-cluster-fold)) .panel-tab-cluster-name {
   padding-right: 11px;
 }
 
-.panel-tab-cluster-pill .corner-count:is(.running, .review) {
+.panel-tab-cluster-pill .corner-count:is(.running, .unread) {
   top: -5px;
 }
 
@@ -188,7 +188,7 @@ button.panel-tab-cluster-name[aria-expanded="true"],
 }
 
 /* 札から開く一覧は、タブの列に切り取られないよう画面に固定する（位置は TabClusterHead が札の下に決める） */
-.cluster-runs-popover {
+.cluster-chats-popover {
   position: fixed;
   z-index: 60;
   font-size: 13px;

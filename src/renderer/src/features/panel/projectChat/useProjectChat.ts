@@ -4,7 +4,7 @@ import { useStoredFlagMap } from "@/hooks/useStoredState";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { PROJECT_CHAT_OPEN_PREFIX, PROJECT_CHAT_WIDTH_KEY } from "@/lib/storageKeys";
 import { registerPanel } from "@/features/panel/state/panelMemory";
-import { useSidePanel } from "@/features/panel/usePanel";
+import { usePanel } from "@/features/panel/usePanel";
 
 export type ProjectChatController = ReturnType<typeof useProjectChat>;
 
@@ -14,14 +14,14 @@ export const useProjectChatContext = () => useContext(ProjectChatContext);
 
 /**
  * プロジェクトのチャット欄（画面の右端。どのタブでも開ける。Cursor・VS Code の右のチャットと同じ）の状態。
- * 中身はボードの右のパネルと同じタブ（チャット・新しいチャット・ブラウザ・ターミナル。useSidePanel）。
+ * 中身はボードの右のパネルと同じタブ（チャット・新しいチャット・ブラウザ・ターミナル。usePanel）。
  * 開いているかはプロジェクトごと（localStorage）、タブはプロジェクトごと（アプリを閉じるまで）、幅はアプリ全体で覚える。⌥⌘B で開閉。
  * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。projectId がない画面（全プロジェクト）では出さない
  */
 export function useProjectChat(projectId: number | undefined) {
   const openMap = useStoredFlagMap(PROJECT_CHAT_OPEN_PREFIX);
   const open = projectId !== undefined && openMap.get(projectId);
-  const panel = useSidePanel({ memoryKey: `side:${projectId ?? "none"}`, scope: projectId ?? null, surface: "side" });
+  const panel = usePanel({ memoryKey: `side:${projectId ?? "none"}`, scope: projectId ?? null, surface: "side" });
   const width = useDragWidth({ storageKey: PROJECT_CHAT_WIDTH_KEY, initial: 367, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
 
   /** 欄を開いて、そのタブを表示する（ボード・サイドバーの下書きを押したとき） */

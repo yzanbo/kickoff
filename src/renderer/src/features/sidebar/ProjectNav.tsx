@@ -1,5 +1,5 @@
 import { Archive, Plus } from "lucide-react";
-import type { Run, RunGroup } from "@shared/types";
+import type { Chat, ChatGroup } from "@shared/types";
 import { tagLabel } from "@/features/project/projectTagFilter";
 import { useChatSelection } from "./chatSelection";
 import { GroupToggle } from "@/ui/GroupToggle";
@@ -10,8 +10,8 @@ import { useProjectNav } from "./useProjectNav";
 
 interface Props {
   /** プロジェクトごとのチャット（アーカイブしたものも含む）とグループ（useSidebarData） */
-  runs: Record<number, Run[]>;
-  groups: Record<number, RunGroup[]>;
+  chats: Record<number, Chat[]>;
+  groups: Record<number, ChatGroup[]>;
   onNewProject: () => void;
 }
 
@@ -21,8 +21,8 @@ interface Props {
  * 縦に並べる（ProjectStack）。状態と操作は useProjectNav。
  * タグで絞り込んで合うプロジェクトがないとき・自分待ちがないときは、その旨と戻すボタンを出す（waitingEmpty）
  */
-export function ProjectNav({ runs, groups, onNewProject }: Props) {
-  const nav = useProjectNav(runs);
+export function ProjectNav({ chats, groups, onNewProject }: Props) {
+  const nav = useProjectNav(chats);
   const { projects, archived, ordered, visible, waitingOnly, setWaitingOnly, tagFilter, showArchived, setShowArchived } = nav;
   // 複数選んだチャットをまとめて操作する欄（選んでいるときだけ、下の行の上に出す）。hooks は、下の早い return より前に呼ぶ
   const selection = useChatSelection();
@@ -70,10 +70,10 @@ export function ProjectNav({ runs, groups, onNewProject }: Props) {
     </div>
   ));
 
-  const selectionBar = selection && <SelectionBar selection={selection} runs={runs} groups={groups} />;
+  const selectionBar = selection && <SelectionBar selection={selection} chats={chats} groups={groups} />;
 
   if (nav.layout === "stack") {
-    return <ProjectStack nav={nav} runs={runs} groups={groups} onNewProject={onNewProject} archivedHead={archivedHead} waitingEmpty={waitingEmpty} selectionBar={selectionBar} />;
+    return <ProjectStack nav={nav} chats={chats} groups={groups} onNewProject={onNewProject} archivedHead={archivedHead} waitingEmpty={waitingEmpty} selectionBar={selectionBar} />;
   }
-  return <ProjectSlides nav={nav} runs={runs} groups={groups} onNewProject={onNewProject} waitingEmpty={waitingEmpty} selectionBar={selectionBar} />;
+  return <ProjectSlides nav={nav} chats={chats} groups={groups} onNewProject={onNewProject} waitingEmpty={waitingEmpty} selectionBar={selectionBar} />;
 }

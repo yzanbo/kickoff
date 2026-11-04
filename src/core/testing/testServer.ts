@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { ApprovalCenter } from "../chat/approvals.js";
 import { Bus } from "../bus.js";
-import type { AgentProvider, ProviderCallbacks, ProviderRunResult } from "../providers/types.js";
+import type { AgentProvider, ProviderCallbacks, ProviderTurnResult } from "../providers/types.js";
 import { Runner } from "../chat/runner.js";
 import { createApp } from "../http/server.js";
 import { Store } from "../db/store.js";
@@ -47,7 +47,7 @@ class FakeProvider extends FakeProviderBase {
   private gate: Promise<void> | null = null;
   /** これがあれば、止められてもすぐには終わらない（サブエージェント・裏のコマンドが終わるのを待つ Claude Code の代わり） */
   slowStop: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "control">, signal: AbortSignal): Promise<ProviderRunResult> {
+  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "control">, signal: AbortSignal): Promise<ProviderTurnResult> {
     this.lastCwd = params.cwd;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);

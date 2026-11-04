@@ -1,13 +1,13 @@
 import { Archive } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { useStoredFlag } from "@/hooks/useStoredState";
 import { boardArchivedOpenKey } from "@/lib/storageKeys";
 import { RowSection } from "@/ui/RowSection";
 
 /** 未アーカイブとアーカイブ済みに分ける（並びはそのまま） */
-export function splitArchived<T>(list: T[], runOf: (item: T) => Pick<Run, "archived_at">): [T[], T[]] {
-  return [list.filter((item) => !runOf(item).archived_at), list.filter((item) => runOf(item).archived_at)];
+export function splitArchived<T>(list: T[], chatOf: (item: T) => Pick<Chat, "archived_at">): [T[], T[]] {
+  return [list.filter((item) => !chatOf(item).archived_at), list.filter((item) => chatOf(item).archived_at)];
 }
 
 /**

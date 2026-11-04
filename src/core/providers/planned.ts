@@ -1,5 +1,5 @@
 import type { ProviderId, ProviderStatus } from "@shared/types";
-import type { AgentProvider, ProviderRunResult } from "./types.js";
+import type { AgentProvider, ProviderTurnResult } from "./types.js";
 import { execFileAsync } from "../system/exec.js";
 
 /**
@@ -32,7 +32,7 @@ export class PlannedProvider implements AgentProvider {
     };
   }
 
-  async run(): Promise<ProviderRunResult> {
+  async run(): Promise<ProviderTurnResult> {
     return { status: "failed", sessionId: null, error: `${this.label} はまだ Kickoff から使えません` };
   }
 }

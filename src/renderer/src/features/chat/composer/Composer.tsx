@@ -13,7 +13,7 @@ import { IconButton } from "@/ui/IconButton";
 import { DictationButton, DictationError } from "@/features/dictation/DictationButton";
 import { insertDictation } from "@/features/dictation/dictationText";
 import { useDictation } from "@/features/dictation/useDictation";
-import { RunOptionsBar, type RunOptionsState } from "@/features/chat/options/ChatOptionsBar";
+import { ChatOptionsBar, type ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import { SuggestList } from "@/features/chat/composer/suggest/SuggestList";
 import { useSuggest } from "@/features/chat/composer/suggest/useSuggest";
 import { useComposerFiles } from "@/features/chat/attachments/useComposerFiles";
@@ -25,7 +25,7 @@ import { ChatContextButton } from "./ChatContextButton";
 
 interface Props {
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
-  options?: RunOptionsState;
+  options?: ChatOptionsState;
   placeholder?: string;
   autoFocus?: boolean;
   busy?: boolean;
@@ -249,7 +249,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
           />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
           <DictationButton dictation={dictation} />
-          {options && <RunOptionsBar state={options} />}
+          {options && <ChatOptionsBar state={options} />}
         </div>
         <div className="composer-actions">
         {trailing}

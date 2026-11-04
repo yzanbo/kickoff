@@ -25,7 +25,7 @@ function leavesNarrowBoard(bodyWidth: number, width: number): boolean {
 /**
  * ボードの右側のパネルの幅（左端のつまみのドラッグで変える。覚えておく）と、横幅いっぱい（ボードを覆う）の切り替え。
  * 横に残るボードが狭すぎるとき（チャット欄を広げた・ウィンドウを狭めた）は、覚えた幅のままボードを覆い、広がったら戻す。
- * bodyRef と style は、ボードとパネルを並べる要素（useSidePanel の body）に渡す
+ * bodyRef と style は、ボードとパネルを並べる要素（usePanel の body）に渡す
  */
 export function usePanelWidth() {
   const [panelWidth, setPanelWidth] = useStoredNumber(PANEL_WIDTH_KEY, DEFAULT_PANEL_WIDTH);

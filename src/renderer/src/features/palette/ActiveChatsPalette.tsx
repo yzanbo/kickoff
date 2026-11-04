@@ -1,9 +1,9 @@
 import { Activity } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { boardColumnOf } from "@shared/chat/state";
-import { BOARD_COLUMN_LABELS, type Run } from "@shared/types";
+import { BOARD_COLUMN_LABELS, type Chat } from "@shared/types";
 import { api } from "@/api";
-import { useRunStates } from "@/app/chatStatesContext";
+import { useChatStates } from "@/app/chatStatesContext";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
 import { useServerEvent } from "@/api/events";
 import { useListNavigation } from "@/hooks/useListNavigation";
@@ -13,7 +13,7 @@ import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder"
 import { useProjects } from "@/app/projectsContext";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
-import { openRun } from "@/app/router";
+import { openChat } from "@/app/router";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
 import { shortRelativeTime } from "@/lib/time";
 import { COLUMN_TONE, DRAFT_TONE } from "@/features/chat/tones";
@@ -25,7 +25,7 @@ import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, typ
 type CountedColumn = (typeof COUNTED_COLUMNS)[number];
 
 /** 一覧の 1 行: チャットか、送る前の新しいチャット（下書き） */
-type Item = { kind: "run"; key: string; run: Run } | { kind: "draft"; key: string; draft: SidebarDraft };
+type Item = { kind: "chat"; key: string; chat: Chat } | { kind: "draft"; key: string; draft: SidebarDraft };
 
 /** 下書きの名前（書いた文の 1 行目。まだ書いていなければ「新しいチャット」） */
 const draftTitle = (draft: SidebarDraft) => draft.text.trim().split("\n")[0] || NEW_CHAT_TITLE;
@@ -41,21 +41,21 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
   const { projects, projectName, projectsById } = useProjects();
   // サイドバーの「タグ」で絞り込んでいれば、合うプロジェクトのチャットだけ
   const tagFilter = useProjectTagFilter();
-  const { stateOf } = useRunStates();
+  const { stateOf } = useChatStates();
   const [query, setQuery] = useState("");
-  const [runs, setRuns] = useState<Run[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
   const dialog = useModalDialog();
   const drafts = useAllDrafts();
   const [project, setProject] = useState<ProjectFilterValue>("all");
   const [showArchived, setShowArchived] = useStoredFlag(ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS_KEY);
 
   useEffect(() => {
-    void api.allRuns().then(setRuns).catch(() => {});
+    void api.allChats().then(setChats).catch(() => {});
   }, []);
   // 状態が変わったチャットを差し替え、新しいチャットは足す
   useServerEvent((e) => {
-    if (e.type !== "run") return;
-    setRuns((prev) => (prev.some((r) => r.id === e.run.id) ? prev.map((r) => (r.id === e.run.id ? e.run : r)) : [e.run, ...prev]));
+    if (e.type !== "chat") return;
+    setChats((prev) => (prev.some((r) => r.id === e.chat.id) ? prev.map((r) => (r.id === e.chat.id ? e.chat : r)) : [e.chat, ...prev]));
   });
 
   // 状態ごとのまとまり（下書き → 作業中・回答待ち・未読。アーカイブしたもの・既読は除く。最近動いた順）と、↑↓ で移る平らな並び。
@@ -68,11 +68,11 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
       return !tagFilter.active || tagFilter.matches(p);
     };
     const matches = (title: string, projectId: number) => inFilter(projectId) && (!q || `${title} ${projectName(projectId)}`.toLowerCase().includes(q));
-    const baseRuns = runs.filter((run) => !run.archived_at && COUNTED_COLUMNS.includes(boardColumnOf(stateOf(run)) as CountedColumn) && matches(chatTitle(run.title), run.project_id));
+    const baseChats = chats.filter((chat) => !chat.archived_at && COUNTED_COLUMNS.includes(boardColumnOf(stateOf(chat)) as CountedColumn) && matches(chatTitle(chat.title), chat.project_id));
     const baseDrafts = drafts.filter((d) => matches(draftTitle(d), d.projectId));
     // プロジェクトごとの数と、選択肢（サイドバーの並び → アーカイブ済み。チャットのあるものと、選んでいるもの）
     const counts = new Map<number, number>();
-    for (const id of [...baseRuns.map((r) => r.project_id), ...baseDrafts.map((d) => d.projectId)]) counts.set(id, (counts.get(id) ?? 0) + 1);
+    for (const id of [...baseChats.map((r) => r.project_id), ...baseDrafts.map((d) => d.projectId)]) counts.set(id, (counts.get(id) ?? 0) + 1);
     const ordered = [...sidebarOrder(projects), ...(showArchived ? archivedProjects(projects) : [])];
     // 選んでいたプロジェクトが隠れた（アーカイブ済みを隠した・タグで外れた）ら「すべて」に戻す
     const selected: ProjectFilterValue = project !== "all" && inFilter(project) ? project : "all";
@@ -81,8 +81,8 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
       .map((p) => ({ id: p.id, name: p.name, count: counts.get(p.id) ?? 0, archived: Boolean(p.archived_at) }));
     const inProject = (projectId: number) => selected === "all" || projectId === selected;
 
-    const byColumn = new Map<CountedColumn, Run[]>(COUNTED_COLUMNS.map((c) => [c, []]));
-    for (const run of baseRuns) if (inProject(run.project_id)) byColumn.get(boardColumnOf(stateOf(run)) as CountedColumn)!.push(run);
+    const byColumn = new Map<CountedColumn, Chat[]>(COUNTED_COLUMNS.map((c) => [c, []]));
+    for (const chat of baseChats) if (inProject(chat.project_id)) byColumn.get(boardColumnOf(stateOf(chat)) as CountedColumn)!.push(chat);
     const draftItems: Item[] = baseDrafts
       .filter((d) => inProject(d.projectId))
       .map((draft) => ({ kind: "draft", key: `draft:${draft.memoryKey}:${draft.key}`, draft }));
@@ -95,12 +95,12 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
         items: byColumn
           .get(column)!
           .sort((a, b) => b.active_at.localeCompare(a.active_at))
-          .map((run): Item => ({ kind: "run", key: `run:${run.id}`, run })),
+          .map((chat): Item => ({ kind: "chat", key: `chat:${chat.id}`, chat })),
       })),
     ].filter((g) => g.items.length > 0);
-    return { groups, items: groups.flatMap((g) => g.items), total: baseRuns.length + baseDrafts.length, options, selected };
+    return { groups, items: groups.flatMap((g) => g.items), total: baseChats.length + baseDrafts.length, options, selected };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
-  }, [runs, drafts, query, stateOf, projects, projectName, projectsById, tagFilter.selected, project, showArchived]);
+  }, [chats, drafts, query, stateOf, projects, projectName, projectsById, tagFilter.selected, project, showArchived]);
   const archivedCount = useMemo(() => projects.filter((p) => p.archived_at && (!tagFilter.active || tagFilter.matches(p))).length,
     // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
     [projects, tagFilter.selected]);
@@ -109,7 +109,7 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
     if (!item) return;
     dialog.close();
     if (item.kind === "draft") openDraft(item.draft);
-    else openRun(item.run.project_id, item.run.id);
+    else openChat(item.chat.project_id, item.chat.id);
   }
   const nav = useListNavigation(items, go);
   useEffect(() => nav.setIndex(0), [query, selected, showArchived]);
@@ -176,9 +176,9 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
                       </>
                     ) : (
                       <>
-                        <span className="palette-label">{chatTitle(item.run.title)}</span>
+                        <span className="palette-label">{chatTitle(item.chat.title)}</span>
                         <span className="palette-hint">
-                          {projectName(item.run.project_id)} · {shortRelativeTime(item.run.active_at)}
+                          {projectName(item.chat.project_id)} · {shortRelativeTime(item.chat.active_at)}
                         </span>
                       </>
                     )}

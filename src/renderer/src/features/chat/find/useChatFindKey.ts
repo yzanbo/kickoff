@@ -13,7 +13,7 @@ function watchPresses() {
   window.addEventListener(
     "pointerdown",
     (e) => {
-      lastPressed = (e.target as Element | null)?.closest?.(".run-page") ?? null;
+      lastPressed = (e.target as Element | null)?.closest?.(".chat-page") ?? null;
     },
     true,
   );

@@ -157,6 +157,6 @@
   border-radius: 999px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--dot-attention);
-  background: color-mix(in srgb, var(--dot-attention) 16%, transparent);
+  color: var(--dot-unread);
+  background: color-mix(in srgb, var(--dot-unread) 16%, transparent);
 }

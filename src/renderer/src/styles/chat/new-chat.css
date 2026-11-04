@@ -3,7 +3,7 @@
 /* 新しいチャット */
 
 /* 新しいチャットの作成先のグループ（プロジェクト名の横） */
-.new-chat .run-sub {
+.new-chat .chat-sub {
   display: flex;
   align-items: center;
   gap: 8px;

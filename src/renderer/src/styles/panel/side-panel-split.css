@@ -1,4 +1,4 @@
-/* ==== ボードの右のパネルのペインの分割（SidePanel・PaneTabBar・PaneSash・useTabDrag） ==== */
+/* ==== ボードの右のパネルのペインの分割（Panel・PaneTabBar・PaneSash・useTabDrag） ==== */
 
 /*
  * 分けているときは、中身の中にペイン（タブの列と、タブがないときの画面）・タブの中身・境目のつまみを、割合の位置で重ねる。

@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
-import type { GitWorktree, Run } from "@shared/types";
-import { branchName, workplaceOf, type RunWorkplace } from "./workplace";
+import type { GitWorktree, Chat } from "@shared/types";
+import { branchName, workplaceOf, type ChatWorkplace } from "./workplace";
 import { api } from "@/api";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 
@@ -71,6 +71,6 @@ export function useMainBranch(projectId: number): string | null {
 }
 
 /** チャットの作業場所とブランチ（workplaceOf を、そのプロジェクトのワークツリーの一覧で求める） */
-export function useRunWorkplace(run: Pick<Run, "project_id" | "worktree_path" | "branch">): RunWorkplace {
-  return workplaceOf(run, useWorktreeList(run.project_id));
+export function useChatWorkplace(chat: Pick<Chat, "project_id" | "worktree_path" | "branch">): ChatWorkplace {
+  return workplaceOf(chat, useWorktreeList(chat.project_id));
 }

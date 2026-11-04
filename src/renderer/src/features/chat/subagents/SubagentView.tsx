@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { RunEvent } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { formatTokens } from "@/lib/format";
 import { subagentReport, type SubagentEntry } from "@shared/chat/subagents";
 import { subagentStatusLabel, subagentStatusTitle } from "./subagentList";
@@ -17,16 +17,16 @@ import { TimelineItems, Working } from "@/features/chat/timeline/Timeline";
  * 実行中は追記されていき、そのあいだは下までスクロールする
  */
 export function SubagentView({
-  runId,
+  chatId,
   entry,
   events,
   rel,
   busy,
   onOpen,
 }: {
-  runId: number;
+  chatId: number;
   entry: SubagentEntry;
-  events: RunEvent[];
+  events: ChatEvent[];
   rel: (s: string) => string;
   busy: boolean;
   /** ほかのサブエージェントの中身を開く（やり直した回へ移る） */
@@ -70,7 +70,7 @@ export function SubagentView({
             {activityLabel && <span className={activity?.level === "stalled" ? "activity-stalled" : undefined}> · {activityLabel}</span>}
           </span>
         </div>
-        <SubagentActions runId={runId} entry={entry} busy={busy} onOpen={onOpen} />
+        <SubagentActions chatId={chatId} entry={entry} busy={busy} onOpen={onOpen} />
       </header>
       <div className="subagent-detail-body timeline" ref={bodyRef}>
         <div className="timeline-inner">

@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
-import type { Run, RunGroup } from "@shared/types";
+import type { Chat, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { SearchField } from "@/ui/SearchField";
 import { ProjectListHead } from "./ProjectListHead";
@@ -13,7 +13,7 @@ import { WorkspacePage } from "./WorkspacePage";
  */
 export function ProjectStack({
   nav,
-  runs,
+  chats,
   groups,
   onNewProject,
   archivedHead,
@@ -21,8 +21,8 @@ export function ProjectStack({
   selectionBar,
 }: {
   nav: ProjectNavController;
-  runs: Record<number, Run[]>;
-  groups: Record<number, RunGroup[]>;
+  chats: Record<number, Chat[]>;
+  groups: Record<number, ChatGroup[]>;
   onNewProject: () => void;
   archivedHead: ReactNode;
   waitingEmpty: ReactNode;
@@ -49,7 +49,7 @@ export function ProjectStack({
           <div className={cx("stack-item", reorder.classFor(p.id))} {...reorder.dropProps(p.id)}>
             <WorkspacePage
               project={p}
-              runs={runs[p.id] ?? []}
+              chats={chats[p.id] ?? []}
               groups={groups[p.id] ?? NO_GROUPS}
               hidden={false}
               collapsed={!waitingOnly && !allSearch.keyword && collapsedMap.get(p.id)}

@@ -35,9 +35,9 @@ test("parse: エディタタブで開くファイル（エディタタブでだ�
 test("parse: 新しいチャット（以前の section は読まない）とチャット（focus は 0 なら付けない）", () => {
   assert.deepEqual(parse("#/projects/3/new"), { name: "newChat", projectId: 3 });
   assert.deepEqual(parse("#/projects/3/new?section=requirements&group=2"), { name: "newChat", projectId: 3, group: 2 });
-  assert.deepEqual(parse("#/projects/3/runs/12"), { name: "run", projectId: 3, runId: 12 });
-  assert.deepEqual(parse("#/projects/3/runs/12?event=99"), { name: "run", projectId: 3, runId: 12, focus: 99 });
-  assert.deepEqual(parse("#/projects/3/runs/12?event=0"), { name: "run", projectId: 3, runId: 12 });
+  assert.deepEqual(parse("#/projects/3/chats/12"), { name: "chat", projectId: 3, chatId: 12 });
+  assert.deepEqual(parse("#/projects/3/chats/12?event=99"), { name: "chat", projectId: 3, chatId: 12, focus: 99 });
+  assert.deepEqual(parse("#/projects/3/chats/12?event=0"), { name: "chat", projectId: 3, chatId: 12 });
 });
 
 test("href と parse の往復: 画面 → URL → 画面で同じになる", () => {
@@ -50,8 +50,8 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "changes", file: { path: "src/a b.ts", line: 3, worktree: "/x/app-worktrees/w" } },
     { name: "project", id: 1, tab: "changes", file: { path: "README.md" } },
     { name: "newChat", projectId: 2, group: 4 },
-    { name: "run", projectId: 2, runId: 30 },
-    { name: "run", projectId: 2, runId: 30, focus: 8 },
+    { name: "chat", projectId: 2, chatId: 30 },
+    { name: "chat", projectId: 2, chatId: 30, focus: 8 },
   ];
   for (const route of routes) {
     assert.deepEqual(parse(href(route)), route, href(route));
@@ -63,6 +63,6 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
 test("routeProjectId: プロジェクトの画面・新しいチャット・チャットはそのプロジェクト、全プロジェクトは undefined", () => {
   assert.equal(routeProjectId({ name: "project", id: 4, tab: "board" }), 4);
   assert.equal(routeProjectId({ name: "newChat", projectId: 5 }), 5);
-  assert.equal(routeProjectId({ name: "run", projectId: 6, runId: 1 }), 6);
+  assert.equal(routeProjectId({ name: "chat", projectId: 6, chatId: 1 }), 6);
   assert.equal(routeProjectId({ name: "allProjects" }), undefined);
 });

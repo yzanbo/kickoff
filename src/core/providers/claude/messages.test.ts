@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { RunEventData } from "@shared/types";
+import type { ChatEventData } from "@shared/types";
 import { createMessageState, emitSdkMessage } from "./messages.js";
 import type { ProviderCallbacks } from "../types.js";
 
 /** 受け取ったイベントを記録する偽のコールバック */
 function recorder() {
-  const events: RunEventData[] = [];
-  const cb = { emit: (e: RunEventData) => events.push(e), requestApproval: async () => ({ action: "deny" }) } as unknown as ProviderCallbacks;
+  const events: ChatEventData[] = [];
+  const cb = { emit: (e: ChatEventData) => events.push(e), requestApproval: async () => ({ action: "deny" }) } as unknown as ProviderCallbacks;
   return { events, cb };
 }
 

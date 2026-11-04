@@ -16,7 +16,7 @@ interface QueuedDraft {
  * （書き直しが終わる = 保存・やめる・一覧をたたむ・画面を閉じると外れて送る。queueEditHolds.ts）。
  * editHeight: 書き直している行の高さの合計（文を中でスクロールさせず全部見せるため、一覧の高さの上限をこれより低くしない。画面の 6 割まで）
  */
-export function useQueuedEdits(runId: number, queue: QueuedMessage[], listRef: RefObject<HTMLElement | null>, failed: (e: unknown) => void) {
+export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: RefObject<HTMLElement | null>, failed: (e: unknown) => void) {
   const [edits, setEdits] = useState<Record<string, QueuedDraft>>({});
   // いちばん最後に開いた欄（見えるところまで動かす）
   const [last, setLast] = useState<string>();
@@ -35,19 +35,19 @@ export function useQueuedEdits(runId: number, queue: QueuedMessage[], listRef: R
     const list = editingKey ? editingKey.split(",") : [];
     if (list.length === 0 && !told.current) return;
     told.current = list.length > 0;
-    const tell = () => void api.setQueueEditing(runId, list).catch(() => undefined);
+    const tell = () => void api.setQueueEditing(chatId, list).catch(() => undefined);
     tell();
     if (list.length === 0) return;
     const timer = setInterval(tell, EDIT_HOLD_TTL_MS / 4);
     return () => clearInterval(timer);
-  }, [runId, editingKey]);
+  }, [chatId, editingKey]);
   // 欄ごと消えた（チャットを閉じた・切り替えた）: 書き直しは終わったとして外す（欄の中身も残らない）
   useEffect(
     () => () => {
-      if (told.current) void api.setQueueEditing(runId, []).catch(() => undefined);
+      if (told.current) void api.setQueueEditing(chatId, []).catch(() => undefined);
       told.current = false;
     },
-    [runId],
+    [chatId],
   );
 
   const [editHeight, setEditHeight] = useState(0);
@@ -80,8 +80,8 @@ export function useQueuedEdits(runId: number, queue: QueuedMessage[], listRef: R
     /** 保存する（send なら続けていま送る。行の「すぐ送る」と同じで、作業中なら止めずに伝える）。保存した欄だけを閉じる */
     save: (id: string, attachments: Attachment[], send: boolean) =>
       void api
-        .editQueued(runId, id, edits[id]?.text ?? "", attachments)
-        .then(() => (send ? api.sendQueuedNow(runId, id) : undefined))
+        .editQueued(chatId, id, edits[id]?.text ?? "", attachments)
+        .then(() => (send ? api.sendQueuedNow(chatId, id) : undefined))
         .then(() => close(id), failed),
   };
 }

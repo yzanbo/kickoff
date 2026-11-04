@@ -58,17 +58,17 @@ export function createProjectStore(db: DatabaseSync, onChange: Notify) {
     /** 一覧（更新順）。費用・動いているチャットの数を添える */
     list(): ProjectSummary[] {
       const projects = db.prepare("SELECT * FROM projects ORDER BY active_at DESC").all().map(toProject);
-      const runs = db
+      const chats = db
         .prepare(
           `SELECT project_id, SUM(cost_usd) AS cost,
              SUM(CASE WHEN status IN ('queued','running','waiting') THEN 1 ELSE 0 END) AS active
-           FROM runs GROUP BY project_id`,
+           FROM chats GROUP BY project_id`,
         )
         .all() as { project_id: number; cost: number; active: number }[];
 
       return projects.map((p) => {
-        const r = runs.find((x) => x.project_id === p.id);
-        return { ...p, total_cost_usd: r?.cost ?? 0, active_runs: r?.active ?? 0 };
+        const r = chats.find((x) => x.project_id === p.id);
+        return { ...p, total_cost_usd: r?.cost ?? 0, active_chats: r?.active ?? 0 };
       });
     },
     findByPath(repoPath: string): Project | undefined {

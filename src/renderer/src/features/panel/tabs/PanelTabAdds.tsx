@@ -2,7 +2,7 @@ import { ChevronDown, Globe, SquarePen, SquareTerminal } from "lucide-react";
 import type { MouseEvent } from "react";
 import { IconButton } from "@/ui/IconButton";
 import type { PaneLeaf } from "@/features/panel/layout/paneLayout";
-import type { SidePanelController } from "@/features/panel/usePanel";
+import type { PanelController } from "@/features/panel/usePanel";
 
 /** ▾ のメニューの種類 */
 export type OpenWithKind = "browser" | "terminal";
@@ -21,7 +21,7 @@ export function PanelTabAdds({
   onOpenWith,
   openWithShown,
 }: {
-  panel: SidePanelController;
+  panel: PanelController;
   pane: PaneLeaf;
   /** 開けるターミナルの場所の数（0 なら出さない） */
   terminals: number;

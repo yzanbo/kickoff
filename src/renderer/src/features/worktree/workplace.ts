@@ -1,4 +1,4 @@
-import type { GitWorktree, Run } from "@shared/types";
+import type { GitWorktree, Chat } from "@shared/types";
 import { baseName } from "@/lib/format";
 
 /** ワークツリーのブランチ名（ブランチから外れていれば "HEAD a1b2c3d"） */
@@ -18,7 +18,7 @@ export const WORKPLACE_KIND_LABELS: Record<WorkplaceKind, string> = {
   past: "以前のブランチ",
 };
 
-export interface RunWorkplace {
+export interface ChatWorkplace {
   /** まとめるときのキー（同じ作業場所なら同じ） */
   key: string;
   kind: WorkplaceKind;
@@ -32,34 +32,34 @@ export interface RunWorkplace {
  * チャットの作業場所とブランチ（ブランチの印・作業場所でまとめたときの見出し・段で共通）。
  * ブランチ名はいまのワークツリーの一覧から引き、見つからないとき（片付けた・消した）は、チャットが最後に作業したブランチ（runs.branch）を出す
  */
-export function workplaceOf(run: Pick<Run, "worktree_path" | "branch">, list: GitWorktree[] | undefined): RunWorkplace {
-  const path = run.worktree_path;
+export function workplaceOf(chat: Pick<Chat, "worktree_path" | "branch">, list: GitWorktree[] | undefined): ChatWorkplace {
+  const path = chat.worktree_path;
   if (path) {
     const wt = list?.find((w) => w.path === path);
     if (wt && !wt.prunable) return { key: path, kind: "worktree", name: branchName(wt), title: `ブランチ: ${branchName(wt)}\n作業場所: ワークツリー（${path}）` };
     // 一覧を読み込み終わって見つからない・フォルダが消えている
     if (wt || list) {
-      const name = wt?.branch ?? (run.branch || baseName(path));
+      const name = wt?.branch ?? (chat.branch || baseName(path));
       return { key: path, kind: "missing", name, title: `ブランチ: ${name}\n作業場所: ワークツリー（${path}）のフォルダが見つかりません。アプリの外で消された可能性があります` };
     }
-    const name = run.branch || baseName(path);
+    const name = chat.branch || baseName(path);
     return { key: path, kind: "worktree", name, title: `ブランチ: ${name}\n作業場所: ワークツリー（${path}）` };
   }
   const main = list?.find((w) => w.main);
   const mainBranch = main ? branchName(main) : null;
   // 本体に戻ったチャット（ワークツリーを片付けた・消した）は、最後に作業したブランチでまとめる
-  if (run.branch && mainBranch && run.branch !== mainBranch) {
+  if (chat.branch && mainBranch && chat.branch !== mainBranch) {
     return {
-      key: `branch:${run.branch}`,
+      key: `branch:${chat.branch}`,
       kind: "past",
-      name: run.branch,
-      title: `最後に作業したブランチ: ${run.branch}\n作業場所: 本体（いまのブランチは ${mainBranch}。ワークツリーを片付けたあとなど）`,
+      name: chat.branch,
+      title: `最後に作業したブランチ: ${chat.branch}\n作業場所: 本体（いまのブランチは ${mainBranch}。ワークツリーを片付けたあとなど）`,
     };
   }
-  const name = mainBranch ?? run.branch;
+  const name = mainBranch ?? chat.branch;
   return { key: "", kind: "main", name, title: `ブランチ: ${name || "不明"}\n作業場所: 本体` };
 }
 
 /** 作業場所でまとめるときの並び: 本体 → ワークツリー（名前順）→ フォルダなし → 以前のブランチ */
 const KIND_ORDER: Record<WorkplaceKind, number> = { main: 0, worktree: 1, missing: 2, past: 3 };
-export const compareWorkplaces = (a: RunWorkplace, b: RunWorkplace) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.name.localeCompare(b.name);
+export const compareWorkplaces = (a: ChatWorkplace, b: ChatWorkplace) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || a.name.localeCompare(b.name);

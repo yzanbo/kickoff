@@ -28,7 +28,7 @@ interface Props {
 
 /**
  * 内蔵ターミナル（xterm.js）。シェルは Electron のメインプロセスで動いていて、タブを裏に回しても・ボードを切り替えても動き続ける。
- * 表示し直したときは、いまの画面の内容をもらって描き直す。使うときだけ読み込む（SidePanel から lazy で読む）
+ * 表示し直したときは、いまの画面の内容をもらって描き直す。使うときだけ読み込む（Panel から lazy で読む）
  */
 export default function TerminalPane({ termKey, cwd, visible, focused = visible, onFocus, onOpenUrl }: Props) {
   const ref = useRef<HTMLDivElement>(null);

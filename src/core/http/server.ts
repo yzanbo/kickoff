@@ -21,8 +21,8 @@ import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
 import { HttpError } from "./routes/http.js";
 import { projectRoutes } from "./routes/projects.js";
-import { runRoutes } from "./routes/chats.js";
-import { runMoveRoutes } from "./routes/chatMove.js";
+import { chatRoutes } from "./routes/chats.js";
+import { chatMoveRoutes } from "./routes/chatMove.js";
 import { queueRoutes } from "./routes/queue.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { uploadRoutes } from "./routes/uploads.js";
@@ -96,11 +96,11 @@ export function createApp(deps: ServerDeps): Hono {
     return c.json(status);
   });
 
-  // ---- 機能ごとの API（routes/ に分けている。登録の順は変えない） ----
+  // ---- 機能ごとの API（http/routes/ に分けている。登録の順は変えない） ----
   settingsRoutes(app, deps);
   projectRoutes(app, deps);
-  runRoutes(app, deps);
-  runMoveRoutes(app, deps);
+  chatRoutes(app, deps);
+  chatMoveRoutes(app, deps);
   queueRoutes(app, deps);
   groupRoutes(app, deps);
   uploadRoutes(app, deps);

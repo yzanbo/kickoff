@@ -108,8 +108,8 @@ function ProjectMenu({
   const tags = collectTags(projects);
   const at = clampToViewport(x, y, 260, MENU_HEIGHT + Math.min(tags.length, 8) * 34);
   /** 押したらメニューを閉じてから行う */
-  const item = (key: string, icon: ReactNode, label: string, run: () => void, opts: { danger?: boolean } = {}) => (
-    <MenuItem key={key} danger={opts.danger} onSelect={run}>
+  const item = (key: string, icon: ReactNode, label: string, chat: () => void, opts: { danger?: boolean } = {}) => (
+    <MenuItem key={key} danger={opts.danger} onSelect={chat}>
       {icon} {label}
     </MenuItem>
   );

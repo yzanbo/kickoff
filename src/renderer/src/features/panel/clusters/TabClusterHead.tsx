@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties } from "react";
-import type { Run } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { api } from "@/api";
-import { useRunStates } from "@/app/chatStatesContext";
+import { useChatStates } from "@/app/chatStatesContext";
 import { promptDialog } from "@/ui/dialogs";
 import { confirmDeleteGroup } from "@/features/group/groups";
 import { reportFailure } from "@/features/chat/chatActions";
@@ -11,11 +11,11 @@ import { ChevronLeft } from "lucide-react";
 import { useDismiss } from "@/hooks/useDismiss";
 import { stateCounts } from "@/features/chat/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/StateCornerCounts";
-import { StateRunsPopover, runsByState } from "@/features/chatList/StateChatsPopover";
+import { StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
 import type { TabCluster } from "./tabClusters";
 import type { NewChatTarget } from "@/features/panel/usePanel";
 
-/** 一覧の幅（state-runs.css の width と同じ）と、画面の端から空ける幅 */
+/** 一覧の幅（state-chats.css の width と同じ）と、画面の端から空ける幅 */
 const POPOVER_WIDTH = 380;
 const EDGE = 8;
 
@@ -36,7 +36,7 @@ const EDGE = 8;
  */
 export function TabClusterHead({
   cluster,
-  runs,
+  chats,
   onOpen,
   onNewChat,
   all = false,
@@ -48,8 +48,8 @@ export function TabClusterHead({
   tabCount = cluster.tabs.length,
 }: {
   cluster: TabCluster;
-  runs: Run[] | undefined;
-  onOpen: (run: Run) => void;
+  chats: Chat[] | undefined;
+  onOpen: (chat: Chat) => void;
   /** 札の右クリックの「このグループで新しいチャット」 */
   onNewChat?: (target: NewChatTarget) => void;
   all?: boolean;
@@ -64,7 +64,7 @@ export function TabClusterHead({
   /** まとまりのタブの数（畳んだときに札の右側に出す。表示中のタブも数える） */
   tabCount?: number;
 }) {
-  const { stateOf, pending } = useRunStates();
+  const { stateOf, pending } = useChatStates();
   const [at, setAt] = useState<CSSProperties | null>(null);
   const ref = useRef<HTMLSpanElement>(null);
   useDismiss(ref, () => setAt(null), { enabled: at !== null });
@@ -88,11 +88,11 @@ export function TabClusterHead({
     if (typeof groupId !== "number") return;
     if (await confirmDeleteGroup({ name: cluster.groupName ?? cluster.label })) await api.deleteGroup(groupId).catch(reportFailure("グループを削除できませんでした"));
   };
-  const counts = runs ? stateCounts(runs, pending) : undefined;
+  const counts = chats ? stateCounts(chats, pending) : undefined;
   // このまとまりで始める新しいチャット（グループ別のまとまりだけ。グループなしならグループを付けない）
   const newChatTarget = projectId !== undefined && cluster.groupId !== undefined && onNewChat ? { projectId, group: cluster.groupId ?? undefined } : undefined;
   const newChatLabel = cluster.groupId === null ? "グループなしで新しいチャット" : `「${cluster.groupName ?? cluster.label}」で新しいチャット`;
-  const countTitle = runs ? `チャット ${count} 件（サイドバーの見出しと同じ数）` : `タブ ${count} 個`;
+  const countTitle = chats ? `チャット ${count} 件（サイドバーの見出しと同じ数）` : `タブ ${count} 個`;
   const summary = counts ? stateCountsSummary(counts) : "";
   const title = summary ? `${cluster.title ?? cluster.label}（${summary}）` : cluster.title;
   const nameText = <span className="panel-tab-cluster-text">{cluster.label}</span>;
@@ -107,7 +107,7 @@ export function TabClusterHead({
     <span ref={ref} className={cx("panel-tab-cluster", all && "all", dragProps && "draggable")} onContextMenu={openMenu} {...dragProps}>
       {/* 1 つの丸い札を左右に区切る: 左 = 名前（押すと一覧）・右 = 畳む / 開く。角の状態ごとの数は札全体の角に重ねる */}
       <span className={cx("panel-tab-cluster-pill", collapsed && "collapsed")}>
-        {runs ? (
+        {chats ? (
           <button type="button" className="panel-tab-cluster-name" title={`${title ?? cluster.label}・${countTitle}。押すと状態ごとのチャットを一覧する`} aria-expanded={at !== null} onClick={toggle}>
             {nameText}
           </button>
@@ -152,17 +152,17 @@ export function TabClusterHead({
           )}
         </PopupMenu>
       )}
-      {at && runs && (
-        <StateRunsPopover
+      {at && chats && (
+        <StateChatsPopover
           title={popoverTitle}
           // まとまりのチャットをすべて（既読・アーカイブ済みも）状態ごとに並べる
-          sections={runsByState(runs, stateOf, { all: true })}
+          sections={chatsByState(chats, stateOf, { all: true })}
           emptyText="チャットはありません"
           // グループのまとまり（グループ別のとき）では、そのグループに new チャットを足すボタンも置く（札の右クリックの項目と同じ）
           newChat={newChatTarget && { label: newChatLabel, onSelect: () => onNewChat?.(newChatTarget) }}
           onOpen={onOpen}
           onClose={() => setAt(null)}
-          className="cluster-runs-popover"
+          className="cluster-chats-popover"
           style={at}
         />
       )}
