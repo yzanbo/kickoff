@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause } from "lucide-react";
 import { Fragment, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
@@ -158,6 +158,9 @@ export function QueuedMessages({
       />
     );
   const hint = queuedHint({ paused, busy, collapsed, stopIndex });
+  // 「ここまで送ったら止めます」の印があって、案内がその止める位置を伝えているとき（queuedHint の印の分かれ道と同じ条件）。
+  // 止める印と同じ色・同じアイコンで、畳んでいてもひと目で止める予定があると分かるようにする
+  const stopHint = !paused && busy && stopIndex >= 0;
   // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
   const next = collapsed ? nextQueuedText(queue[0]) : "";
   return (
@@ -187,7 +190,12 @@ export function QueuedMessages({
         >
           <ChevronRight size={13} className="queued-chevron" aria-hidden />
           <span className="queued-count">送信待ち {queue.length} 件</span>
-          {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && <span className="queued-hint">{hint}</span>}
+          {selected.length > 0 ? <span className="queued-hint">{selected.length} 件を選択中</span> : hint && (
+              <span className={cx("queued-hint", stopHint && "stop")}>
+                {stopHint && <OctagonPause size={12} aria-hidden />}
+                {hint}
+              </span>
+            )}
           {next && <span className="queued-next">次: {next}</span>}
         </button>
         {/* 溜まって中でスクロールするようになったら、すべて出す・縮めるを切り替えられる（一覧の見え方の操作なので、送る・消すの並びと分けて件数の隣に置く） */}

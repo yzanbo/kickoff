@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, GripVertical, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, OctagonPause, Trash2 } from "lucide-react";
 import { useState, type DragEvent, type MouseEvent } from "react";
 import { cx } from "../../cx";
 import { IconButton } from "../IconButton";
@@ -64,7 +64,11 @@ export function QueuedStopLine({
         >
           <GripVertical size={13} aria-hidden />
         </span>
-        <span className="queued-stop-label">ここまで送ったら止めます</span>
+        <span className="queued-stop-label">
+          {/* 見出しの「n 件目のあとで止めます」と同じアイコン（止める予定の印） */}
+          <OctagonPause size={12} aria-hidden />
+          ここまで送ったら止めます
+        </span>
         <span className="queued-stop-rule" aria-hidden />
         {/* 行と同じ 2 つのまとまり・同じ列に置く: 並べ替え（↑↓）｜ 操作（書き直す・送るの位置は空けて、外すを消すの列に） */}
         <span className="queued-row-moves">
