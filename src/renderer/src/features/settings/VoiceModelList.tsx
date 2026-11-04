@@ -2,7 +2,7 @@ import type { VoiceModelInfo } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { confirmDialog } from "@/ui/dialogs";
-import { useActionError } from "@/hooks/useActionError";
+import { useAction } from "@/hooks/useAction";
 import { voiceStatusStore } from "@/stores/voice";
 import { ErrorText } from "@/ui/ErrorText";
 
@@ -17,7 +17,7 @@ const percentOf = (m: VoiceModelInfo) => (m.download?.total ? Math.floor((m.down
  * 選んだモデルは、ほかの設定と一緒に保存する
  */
 export function VoiceModelList({ models, selected, onSelect }: { models: VoiceModelInfo[] | undefined; selected: string; onSelect: (id: string) => void }) {
-  const action = useActionError();
+  const action = useAction();
   if (!models) return <p className="muted small">読み込み中…</p>;
 
   const download = (m: VoiceModelInfo) => action.guard(async () => voiceStatusStore.set(await api.downloadVoiceModel(m.id)));

@@ -1,5 +1,6 @@
 import { cx } from "@/lib/cx";
-import type { ResultText, SaveState } from "@/hooks/useSave";
+import type { ResultText } from "@/hooks/useAction";
+import type { SaveState } from "@/hooks/useSave";
 
 /** 結果の文（成功は success、失敗は error の色） */
 export function ResultMessage({ result, as: Tag = "span", className }: { result: ResultText | undefined; as?: "span" | "p"; className?: string }) {

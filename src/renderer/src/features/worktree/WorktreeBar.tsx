@@ -1,10 +1,11 @@
 import { ExternalLink, GitPullRequest, GitPullRequestArrow, Sparkles, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
 import type { PullRequestInfo } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
+import { useAction } from "@/hooks/useAction";
+import { useAsync } from "@/hooks/useAsync";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
@@ -33,43 +34,28 @@ export function WorktreeBar({
   onFinished: () => void;
 }) {
   const target = { projectId, worktree };
-  const [pr, setPr] = useState<{ value: PullRequestInfo | null } | undefined>();
-  const [busy, setBusy] = useState<"load" | "create" | "finish" | "remove">();
-  const [error, setError] = useState<string>();
   const status = git.status?.repo ? git.status : undefined;
 
-  // PR の状態は GitHub に聞くので、開いたとき・ウィンドウに戻ったとき・押したときだけ取り直す
-  const load = async () => {
-    setBusy("load");
-    try {
-      setPr({ value: await api.pullRequest(target) });
-      setError(undefined);
-    } catch (e) {
-      // 途中で失敗しても、ワークツリーは消えていることがあるので、一覧を取り直す
-      worktreesStore.invalidate(projectId);
-      setError(errorMessage(e));
-    } finally {
-      setBusy(undefined);
-    }
-  };
-  useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, worktree]);
-  useWindowEvent("focus", () => void load());
+  // PR の状態は GitHub に聞くので、開いたとき・ウィンドウに戻ったとき・押したときだけ取り直す（null は PR がまだない）
+  const pr = useAsync<PullRequestInfo | null>(
+    () =>
+      api.pullRequest(target).catch((e: unknown) => {
+        // 途中で失敗しても、ワークツリーは消えていることがあるので、一覧を取り直す
+        worktreesStore.invalidate(projectId);
+        throw e;
+      }),
+    [projectId, worktree],
+  );
+  useWindowEvent("focus", pr.reload);
+  // PR を作る・片付ける・消すの実行中と失敗（PR の状態を取り直している間も押せなくする。届いた状態で作った PR を上書きしないため）
+  const action = useAction<"create" | "finish" | "remove">();
+  const busy = action.busy !== null || pr.loading;
 
-  const create = async () => {
-    setBusy("create");
-    setError(undefined);
-    try {
-      setPr({ value: await api.createPullRequest(target) });
+  const create = () =>
+    action.run("create", async () => {
+      pr.setData(await api.createPullRequest(target));
       void git.refresh();
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(undefined);
-    }
-  };
+    });
 
   const finish = async () => {
     const ok = await confirmDialog({
@@ -79,36 +65,24 @@ export function WorktreeBar({
       danger: true,
     });
     if (!ok) return;
-    setBusy("finish");
-    setError(undefined);
-    try {
+    await action.run("finish", async () => {
       // 片付け = ブランチも消す「消す」（コミットしていない変更があれば、消さずに失敗する）
       await api.removeWorktree(projectId, worktree, false, true);
       worktreesStore.invalidate(projectId);
       // 本体を最新にする（手元に変更があってできなければ、そう伝える）
       await api.gitPull(projectId).catch((e: unknown) => void alertDialog("本体を最新にできませんでした", errorMessage(e)));
       onFinished();
-    } catch (e) {
-      setError(errorMessage(e));
-      setBusy(undefined);
-    }
+    });
   };
 
   // ワークツリーを消す（変更・プッシュしていないコミットを知らせ、ブランチも消すかを選んでもらう）
-  const remove = async () => {
-    setBusy("remove");
-    setError(undefined);
-    try {
+  const remove = () =>
+    action.run("remove", async () => {
       if (await confirmRemoveWorktree(projectId, { path: worktree, branch: status?.branch ?? null }, status?.branch ?? baseName(worktree))) onFinished();
-      else setBusy(undefined);
-    } catch (e) {
-      setError(errorMessage(e));
-      setBusy(undefined);
-    }
-  };
+    });
 
   if (!status) return null;
-  const value = pr?.value;
+  const value = pr.data;
   return (
     <div className="worktree-bar">
       {!status.has_origin ? (
@@ -122,21 +96,21 @@ export function WorktreeBar({
             <ExternalLink size={12} aria-hidden /> PR を開く
           </button>
           {value.state === "MERGED" && (
-            <button className="btn btn-sm btn-primary" disabled={Boolean(busy)} onClick={() => void finish()}>
-              <Sparkles size={12} aria-hidden /> {busy === "finish" ? "片付け中…" : "片付ける"}
+            <button className="btn btn-sm btn-primary" disabled={busy} onClick={() => void finish()}>
+              <Sparkles size={12} aria-hidden /> {action.busy === "finish" ? "片付け中…" : "片付ける"}
             </button>
           )}
         </>
       ) : (
-        pr && (
-          <button className="btn btn-sm" disabled={Boolean(busy)} title="まだプッシュしていなければ、先にプッシュします" onClick={() => void create()}>
-            <GitPullRequestArrow size={12} aria-hidden /> {busy === "create" ? "PR を作っています…" : "PR を作る"}
+        value === null && (
+          <button className="btn btn-sm" disabled={busy} title="まだプッシュしていなければ、先にプッシュします" onClick={() => void create()}>
+            <GitPullRequestArrow size={12} aria-hidden /> {action.busy === "create" ? "PR を作っています…" : "PR を作る"}
           </button>
         )
       )}
-      {status.has_origin && <RefreshButton label="PR の状態を取り直す" busy={busy === "load"} onClick={() => void load()} />}
-      <IconButton icon={Trash2} label="ワークツリーを消す" title="このワークツリーを消す（ブランチも消すかを選べます）" disabled={Boolean(busy)} onClick={() => void remove()} />
-      <ErrorText message={error} />
+      {status.has_origin && <RefreshButton label="PR の状態を取り直す" busy={pr.loading} onClick={pr.reload} />}
+      <IconButton icon={Trash2} label="ワークツリーを消す" title="このワークツリーを消す（ブランチも消すかを選べます）" disabled={busy} onClick={() => void remove()} />
+      <ErrorText message={action.error ?? pr.error} />
     </div>
   );
 }

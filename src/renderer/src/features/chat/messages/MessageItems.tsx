@@ -2,7 +2,7 @@ import { History, Inbox, Pencil } from "lucide-react";
 import { createContext, useContext, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { errorMessage } from "@shared/errors";
+import { useAction } from "@/hooks/useAction";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
 import { reportFailure } from "@/features/chat/chatActions";
@@ -182,19 +182,14 @@ function BubbleEditor({
   onCancel: () => void;
   onSend: () => Promise<boolean>;
 }) {
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string>();
+  // 送り直している間と、送れなかった理由
+  const action = useAction<"send">();
+  const sending = action.busy !== null;
   const send = async () => {
     if (!text.trim() || sending) return;
-    setSending(true);
-    setError(undefined);
-    try {
+    await action.run("send", async () => {
       if (await onSend()) onCancel();
-    } catch (e) {
-      setError(errorMessage(e));
-    } finally {
-      setSending(false);
-    }
+    });
   };
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Escape") {
@@ -223,7 +218,7 @@ function BubbleEditor({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
       />
-      <ErrorText message={error} />
+      <ErrorText message={action.error} />
       <div className="bubble-editor-actions">
         <button type="button" className="btn btn-sm" disabled={sending} onClick={onCancel}>
           やめる

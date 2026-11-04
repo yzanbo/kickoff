@@ -1,12 +1,12 @@
 import type { Project } from "@shared/types";
 import { api } from "@/api";
 import { confirmDialog } from "@/ui/dialogs";
-import { useActionError } from "@/hooks/useActionError";
+import { useAction } from "@/hooks/useAction";
 import { navigate } from "@/app/router";
 import { ErrorText } from "@/ui/ErrorText";
 
 export function DeleteProject({ project }: { project: Project }) {
-  const { error, guard } = useActionError();
+  const { error, guard } = useAction();
   const remove = async () => {
     const ok = await confirmDialog({
       title: `プロジェクト「${project.name}」を削除しますか？`,

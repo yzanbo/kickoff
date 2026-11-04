@@ -2,7 +2,7 @@ import { Check, Sparkles, SquareTerminal } from "lucide-react";
 import { type ReactNode } from "react";
 import { PROVIDER_IDS, type AppSettings, type Project, type ProviderId, type ProviderStatus } from "@shared/types";
 import { api } from "@/api";
-import { useActionError } from "@/hooks/useActionError";
+import { useAction } from "@/hooks/useAction";
 import { accountLine } from "@/features/usage/usage";
 import { useProviders } from "@/stores/providers";
 import { ClaudeMark } from "@/ui/ClaudeMark";
@@ -20,7 +20,7 @@ const PROVIDER_META: Record<ProviderId, { icon: ReactNode; cli: string }> = {
 /** AI: どの AI を使うか（カード）と、その AI の既定 */
 export function AiSection({ project, app }: { project: Project; app: AppSettings | undefined }) {
   const providers = useProviders();
-  const { error, guard } = useActionError();
+  const { error, guard } = useAction();
   const choose = (id: ProviderId) => guard(() => api.updateProject(project.id, { provider: id }));
 
   return (
