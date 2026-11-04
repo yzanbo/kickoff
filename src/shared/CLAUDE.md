@@ -40,6 +40,7 @@
 ## サブエージェントの数え方（subagents.ts）
 
 - `collectSubagents(events, progress, busy, live?)`: Task / Agent の呼び出しと結果・開始と終了の知らせ（記録）と、画面にだけ届く途中経過（`progress`）から一覧（`SubagentEntry`）を作る。行は作業 ID（`agentId`）でまとめる（SendMessage で再開すると、知らせの呼び出し ID が再開を頼んだ SendMessage のものになるため）。作業中でなければ、終わっていないものは中断とみなす。`live`（いま裏で動いている作業）から消えたものは終わったとみなし、報告を渡していれば完了、なければ中断。裏で動かしたときの起動の知らせ（`backgroundTasks.ts` の `isBackgroundLaunch`）は完了と数えない。
+- 入れ子: サブエージェントが起動したサブエージェントは、起動したほうの行のキーを `parentKey` に持つ（Agent の呼び出しの記録の `parent`）。SendMessage で再開した回の中の記録は parent が再開を頼んだ SendMessage の ID になりうるので、その ID を `aliases` に覚えて元の行のものとして数える。子孫の動き（発言・ツール・知らせ）は祖先の `lastActivityAt` にも伝え、子の結果を待っている親を「動きがない」としない。時刻は、初めに起動した `startedAt` と、いちばん新しい回が止まった `endedAt`（作業中は undefined）。
 - 行が持つもの: 通信の切断で止まった `network`、報告が親に届いたか `delivery`（`received` = 待つ形ならツールの結果が返った・裏で動かしたなら報告のあとに親が動いた / `pending` = 親がまだ動いていない / `lost` = 親が動かないまま作業が終わった）と、届かなかった本文 `undeliveredReport`、出力の上限で止まった `outputLimit`（`isOutputLimitError`）、最後に動いた時刻 `lastActivityAt` と結果待ちのツール `pendingTool`、やり直された `supersededBy`。
 - やり直し済み（`subagentSupersede.ts` の `markSuperseded`）: 止まった行のあとに始まり、種類が同じで、説明（短い方に対する重なり）と依頼文（Dice 係数）の 2 文字の組がどちらも半分以上重なるもの。同時に始めた似た依頼は止まる前に始まっているので数えない。
 - 報告の本文（`subagentReport`）は、SubagentHandback の本文 → 終わりの知らせの要約 → ツールの結果の順に探す。

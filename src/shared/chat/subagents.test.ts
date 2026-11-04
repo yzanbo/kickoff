@@ -262,3 +262,48 @@ test("サブエージェント: 出力の上限（max_output_tokens）で止ま�
   assert.deepEqual([s.status, s.outputLimit, s.network], ["failed", true, false]);
   assert.equal(isOutputLimitError("API Error: Connection dropped (ECONNRESET)"), false);
 });
+
+test("サブエージェント: 入れ子は起動したサブエージェントを親に持ち、子孫の動きで祖先も動いているとみなす", () => {
+  const at = (min: number) => `2026-11-05T12:${String(min).padStart(2, "0")}:00Z`;
+  const events = [
+    makeEvent(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "調査" } }, { created_at: at(0) }),
+    makeEvent(2, "tool_use", { id: "tu2", name: "Agent", input: { description: "洗い出し" }, parent: "tu1" }, { created_at: at(1) }),
+    makeEvent(3, "tool_use", { id: "tu3", name: "Agent", input: { description: "孫" }, parent: "tu2" }, { created_at: at(2) }),
+    makeEvent(4, "tool_use", { id: "b1", name: "Bash", input: { command: "grep" }, parent: "tu3" }, { created_at: at(9) }),
+  ];
+  const [outer, child, grandchild] = collectSubagents(events, {}, true);
+  assert.deepEqual([outer.parentKey, child.parentKey, grandchild.parentKey], [undefined, "tu1", "tu2"]);
+  // 孫の動き（9 分）が、子と親にも伝わる。待っているツールは、それぞれが待っているもの
+  assert.deepEqual([outer.lastActivityAt, child.lastActivityAt, grandchild.lastActivityAt], [at(9), at(9), at(9)]);
+  assert.deepEqual([outer.pendingTool, child.pendingTool, grandchild.pendingTool], ["Agent", "Agent", "Bash"]);
+  assert.deepEqual([outer.startedAt, child.startedAt, grandchild.startedAt], [at(0), at(1), at(2)]);
+});
+
+test("サブエージェント: SendMessage で再開した回の記録（parent が SendMessage の ID）も元の行のものとして数える", () => {
+  const events = [
+    makeEvent(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "調べもの" } }, { created_at: "2026-11-05T12:00:00Z" }),
+    makeEvent(2, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "調べもの", status: "running" }, { created_at: "2026-11-05T12:00:01Z" }),
+    makeEvent(3, "subagent", { task_id: "a1", tool_use_id: "tu1", description: "", status: "completed" }, { created_at: "2026-11-05T12:05:00Z" }),
+    makeEvent(4, "tool_use", { id: "sm1", name: "SendMessage", input: { to: "a1" } }, { created_at: "2026-11-05T12:10:00Z" }),
+    makeEvent(5, "subagent", { task_id: "a1", tool_use_id: "sm1", description: "調べもの", status: "running" }, { created_at: "2026-11-05T12:10:01Z" }),
+    makeEvent(6, "tool_use", { id: "b1", name: "Bash", input: { command: "npm test" }, parent: "sm1" }, { created_at: "2026-11-05T12:11:00Z" }),
+    makeEvent(7, "tool_use", { id: "tu2", name: "Agent", input: { description: "子" }, parent: "sm1" }, { created_at: "2026-11-05T12:12:00Z" }),
+  ];
+  const [entry, child] = collectSubagents(events, {}, true);
+  assert.deepEqual(entry.aliases, ["sm1"]);
+  assert.equal(entry.lastActivityAt, "2026-11-05T12:12:00Z");
+  assert.equal(child.parentKey, "tu1");
+  // 初めに起動した時刻は変わらず、再開したら止まった時刻を外す
+  assert.deepEqual([entry.startedAt, entry.endedAt], ["2026-11-05T12:00:00Z", undefined]);
+});
+
+test("サブエージェント: 止まった時刻は、ツールの結果・終わりの知らせ・通信で親が失敗した結果", () => {
+  const events = [
+    makeEvent(1, "tool_use", { id: "tu1", name: "Agent", input: { description: "A" } }, { created_at: "2026-11-05T12:00:00Z" }),
+    makeEvent(2, "tool_result", { tool_use_id: "tu1", content: "ok", is_error: false }, { created_at: "2026-11-05T12:03:00Z" }),
+    makeEvent(3, "tool_use", { id: "tu2", name: "Agent", input: { description: "B" } }, { created_at: "2026-11-05T12:04:00Z" }),
+    makeEvent(4, "result", { status: "failed", text: "API Error: Connection error.", network: true }, { created_at: "2026-11-05T12:06:00Z" }),
+  ];
+  const [a, b] = collectSubagents(events, {}, false);
+  assert.deepEqual([a.endedAt, b.endedAt], ["2026-11-05T12:03:00Z", "2026-11-05T12:06:00Z"]);
+});
