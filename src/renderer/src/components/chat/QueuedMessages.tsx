@@ -2,7 +2,7 @@ import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause } from "luci
 import { Fragment, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import type { Attachment, QueuedMessage } from "../../../../core/types";
 import { api } from "../../api";
-import { QueuedHeadActions, QueuedModeButton, QueuedMoveActions } from "./QueuedHeadActions";
+import { QueuedHeadActions, QueuedModeButton, QueuedMoveActions, QueuedStopButton } from "./QueuedHeadActions";
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
 import { QueuedStopLine } from "./QueuedStopLine";
@@ -218,6 +218,7 @@ export function QueuedMessages({
         )}
         {/* 終わったら自動で送るか、送らずに止めておくか（列全体の設定。ここから右が操作） */}
         <QueuedModeButton runId={runId} paused={paused} busy={busy} failed={failed} />
+        <QueuedStopButton runId={runId} stops={stops} failed={failed} onAdded={() => setCollapsed(false)} />
         {/* 選んでいるときは、行と同じ 2 つのまとまり: 並べ替え（いちばん上へ・下へ）｜ 選んだものへの操作（まとめて送る・消す・選ぶのをやめる） */}
         {selected.length > 0 && <QueuedMoveActions runId={runId} selected={selected} failed={failed} />}
         <QueuedHeadActions runId={runId} count={queue.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} failed={failed} />

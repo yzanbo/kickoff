@@ -40,6 +40,22 @@
   background: color-mix(in srgb, var(--warn) 14%, transparent);
 }
 
+/* 「ここまで送ったら止めます」の印を置く: 線と同じ注意の色（押せないときは薄く） */
+.queued-head-btn.queued-add-stop {
+  border-color: color-mix(in srgb, var(--warn) 45%, transparent);
+  color: var(--warn);
+  background: transparent;
+}
+
+.queued-head-btn.queued-add-stop:hover:not(:disabled) {
+  border-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+}
+
+.queued-head-btn.queued-add-stop:disabled {
+  opacity: 0.45;
+}
+
 .queued-head-btn.queued-clear {
   border-color: color-mix(in srgb, var(--ng) 55%, transparent);
   color: var(--ng);
