@@ -10,6 +10,8 @@ export interface SegmentOption<T extends string> {
   iconOnly?: boolean;
   /** 文字で見せるときの、マウスを乗せたときの説明（「名前（説明）」なら見出しと説明に分ける） */
   tip?: string;
+  /** マウスを乗せたときの説明に添えるショートカットのキー（「⌘Enter」など） */
+  keys?: string;
   /** 右上に出す数（0 なら出さない。変更のあるファイルの数など） */
   badge?: number;
 }
@@ -36,7 +38,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div className={className} role="radiogroup" aria-label={label}>
-      {options.map(({ value: v, label: text, icon: Icon, iconOnly, tip, badge }) => (
+      {options.map(({ value: v, label: text, icon: Icon, iconOnly, tip, keys, badge }) => (
         <button
           key={v}
           type="button"
@@ -45,6 +47,7 @@ export function Segmented<T extends string>({
           className={value === v ? "active" : ""}
           data-value={v}
           {...(iconOnly ? tipProps(text) : tip ? tipProps(tip) : {})}
+          data-tip-keys={keys}
           aria-label={iconOnly ? text : undefined}
           onClick={() => onChange(v)}
         >

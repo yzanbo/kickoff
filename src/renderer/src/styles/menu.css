@@ -172,8 +172,20 @@
   gap: 2px;
 }
 
+.hover-tip-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .hover-tip-title {
   font-weight: 600;
+}
+
+/* ショートカットのキー（見出しの右。見た目は kbd の基底のまま） */
+.hover-tip-keys {
+  flex: none;
 }
 
 .hover-tip-text {
