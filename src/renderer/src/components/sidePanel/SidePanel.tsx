@@ -11,7 +11,7 @@ import { PaneTabBar } from "./PaneTabBar";
 import { PanelEmpty } from "./PanelEmpty";
 import { PanelTabPage } from "./PanelTabPage";
 import { layoutRects } from "./paneGeometry";
-import { focusedPane, leavesOf, type PaneLeaf } from "./paneLayout";
+import { focusedPane, homePane, leavesOf, type PaneLeaf } from "./paneLayout";
 import { TAB_MENU_WIDTH, TabMenu, tabMenuHeight } from "./TabMenu";
 import { useRunRename } from "../../hooks/useRunRename";
 import { useTabDrag } from "./useTabDrag";
@@ -60,6 +60,7 @@ export function SidePanel({
   const [resizing, setResizing] = useState(false);
   const leaves = leavesOf(layout.root);
   const split = leaves.length > 1;
+  const homeId = homePane(layout).id;
   const { panes, sashes } = layoutRects(layout.root);
   /** ペインで見せる表示中のタブ（隠した種類のタブを表示中にしていたら、見せている種類の最初のタブ） */
   const shown = (pane: PaneLeaf) => shownActiveOf(pane, panel.isKindShown);
@@ -142,6 +143,8 @@ export function SidePanel({
       panel={panel}
       pane={pane}
       split={split}
+      // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていない・連動しない欄では、どのペインも一覧として扱う
+      home={!split || !panel.linked || pane.id === homeId}
       inert={!panelOpen}
       controls={pane.id === leaves[0].id ? controls : undefined}
       drag={drag}
