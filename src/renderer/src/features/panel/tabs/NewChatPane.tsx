@@ -7,7 +7,9 @@ import { choiceDialog } from "@/ui/dialogs";
 import { Composer, SendCancelled } from "@/features/chat/composer/Composer";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
-import { askNewWorktreeBranch, WorkplacePicker, type Workplace } from "@/features/worktree/WorkplacePicker";
+import { askNewWorktreeBranch, WorkplacePicker, workplacePath, type Workplace } from "@/features/worktree/WorkplacePicker";
+import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
+import { countBusyAt } from "@/features/worktree/workplace";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { ComposerFill } from "@/features/chat/messages/quoteComment";
 import { currentChats, useChats } from "@/stores/chats";
@@ -55,8 +57,8 @@ export function NewChatPane({
   // 作業場所（初めは本体。並行して進めたいときにワークツリーを選ぶ）
   const [place, setPlace] = useState<Workplace>({ kind: "main" });
   useEffect(() => setPlace({ kind: "main" }), [projectId]);
-  // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる）
-  const busyHere = isBusyAt(chats.chats, place);
+  // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる。チャットの画面と同じ数え方）
+  const busyHere = useBusyNeighbors(projectId, workplacePath(place)) > 0;
   // 作成先のグループ（作る・名前を変える・消すと、サーバーの知らせで選択肢も直る）
   const groups = useGroups(projectId);
   const groupName = groupNameIn(groups, group);
@@ -158,7 +160,8 @@ export function NewChatPane({
               // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい）。
               // チャットの一覧はサーバーの知らせで直っているので、送るときのいまの一覧で確かめる
               let target = place;
-              if (isBusyAt(currentChats({ projectId }), place)) {
+              const path = workplacePath(place);
+              if (path !== undefined && countBusyAt(currentChats({ projectId }), path) > 0) {
                 const choice = await choiceDialog({
                   title: "この作業場所では、ほかのチャットが作業中です",
                   message: "同じファイルを書き換えると、作業がぶつかることがあります。新しいワークツリーで始めると、別のフォルダで並行して進められます。質問だけなど、ファイルを書き換えないチャットなら、このまま送っても大丈夫です。",
@@ -191,12 +194,4 @@ export function NewChatPane({
       </div>
     </div>
   );
-}
-
-/** その作業場所（本体・いまあるワークツリー）で、作業中のチャットがあるか。新しく作るワークツリーなら、まだない */
-function isBusyAt(chats: Chat[], place: Workplace): boolean {
-  if (place.kind === "new") return false;
-  // 本体のチャットの作業場所は null（空の文字ではない）
-  const path = place.kind === "existing" ? place.path : null;
-  return chats.some((r) => r.worktree_path === path && r.status === "running");
 }

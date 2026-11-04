@@ -110,7 +110,7 @@ function ChatView({
   const subagents = useSubagents(chat.id, events, busy, live.background);
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
-  const busyNeighbors = useBusyNeighbors(chat);
+  const busyNeighbors = useBusyNeighbors(chat.project_id, chat.worktree_path, chat.id);
   // サブエージェントの中身は、パネルの新しいタブで開く（ツールのまとまりの「中身を見る」からは呼び出し ID だけが届く）
   // 流れの項目に context で渡すので、描き直しのたびに作り直さない（作り直すと memo した項目がすべて描き直される）
   const openSubRef = useRef({ onOpenSubagent, subagents });
