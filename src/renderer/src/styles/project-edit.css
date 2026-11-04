@@ -198,7 +198,11 @@
   font-size: 15px;
 }
 
+/* プロジェクトの見出しの設定の歯車（左下のアプリの設定と同じ大きさ） */
 .project-edit-button {
+  flex: none;
+  width: 24px;
+  height: 24px;
   color: var(--muted);
 }
 

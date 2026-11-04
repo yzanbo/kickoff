@@ -1,4 +1,5 @@
-import { ArchiveRestore, FolderOpen, Pencil } from "lucide-react";
+import { ArchiveRestore, FolderOpen, Settings } from "lucide-react";
+import { IconButton } from "../IconButton";
 import { confirmRestoreProject } from "../../projectOrder";
 import type { ProjectTab } from "../../router";
 import { ProjectSwitcher } from "./ProjectSwitcher";
@@ -7,7 +8,7 @@ import { StateStats } from "./StateStats";
 import type { ProjectData } from "./useProjectData";
 
 /**
- * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・編集・しまったものを戻す・フォルダの場所・状態ごとのチャット数と、
+ * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・フォルダの場所・状態ごとのチャット数と、
  * タブの列（チャットの件数、エディタは変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）
  */
 export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: ProjectData; tab: ProjectTab; changeCount: number; onEdit: () => void }) {
@@ -19,9 +20,8 @@ export function ProjectHeader({ data, tab, changeCount, onEdit }: { data: Projec
       <h1>
         <ProjectSwitcher project={project} tab={tab} />
       </h1>
-      <button className="btn btn-sm project-edit-button" title="プロジェクトの名前・既定の設定などを編集" onClick={onEdit}>
-        <Pencil size={13} /> 編集
-      </button>
+      {/* プロジェクトの設定（名前・既定の設定などの編集）。左下のアプリの設定と同じ歯車 */}
+      <IconButton icon={Settings} label="プロジェクトの設定" title="プロジェクトの設定（名前・既定の設定などを編集）" className="project-edit-button" onClick={onEdit} />
       {/* しまった（アーカイブした）プロジェクト: サイドバーに出ないので、ここから戻せるようにする */}
       {project.archived_at && (
         <button
