@@ -31,7 +31,8 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const menu = useCardMenu();
   const [query, setQuery] = useState("");
   const search = useChatSearch(query);
-  const [view, setView] = useBoardView();
+  // 表示（ボード / リスト）と、段（グループ）に分けるか
+  const { view, split, setView, setSplit } = useBoardView();
 
   const groupIds = new Set(groups.map((g) => g.id));
   /** そのグループ（null はグループなし）のチャット。アーカイブと検索で絞り、新しく動いた順 */
@@ -73,7 +74,9 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
     query,
     setQuery,
     view,
+    split,
     setView,
+    setSplit,
     search,
     membersOf,
     groupMenu,

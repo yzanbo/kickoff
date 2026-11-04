@@ -17,10 +17,10 @@ import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader, useBoardView } from "./BoardHeader";
 import { KanbanFilters } from "./KanbanFilters";
 import { useBoardFocus } from "./useBoardFocus";
-import { BOARD_LANE_LABELS, BoardLanes, type BoardLane } from "./BoardLanes";
+import { BoardLanes, LaneSelect } from "./BoardLanes";
 import { byColumn, type BoardEntry } from "./boardColumns";
 import { useKanbanEntries } from "./useKanbanEntries";
-import { useKanbanFilters, useKanbanLanes, useKanbanListLanes, useWorktreeChoices, type ListLanes } from "./useKanbanFilters";
+import { useKanbanFilters, useKanbanLanes, useWorktreeChoices } from "./useKanbanFilters";
 import { BoardShell } from "./BoardShell";
 import { ArchivedListSection, DraftColumn, StateColumn } from "./StateColumn";
 import { useBoardCards, useCardMenu } from "./useBoardCards";
@@ -61,7 +61,8 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   const rename = useRunRename(setError);
   // 絞り込み（アーカイブ・作業場所・名前）とボード／リスト／スイムレーン（覚えておく）
   const filters = useKanbanFilters();
-  const [view, setView] = useBoardView();
+  // 表示（ボード / リスト）と、段に分けるか（段の分け方はボードとリストで共通）
+  const { view, split, setView, setSplit } = useBoardView();
   // 「アーカイブ済み」も、アーカイブを含めて読み込んでから、下で絞り込む
   const { runs, loaded, fresh } = useBoardRuns(projectId, filters.archive !== "active", setError);
   useTicker(30_000); // 経過時間の表示を進める
@@ -103,8 +104,6 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
   const total = entries.length;
   // スイムレーンの段の分け方
   const { lanes, options: laneOptions, setLanes } = useKanbanLanes(allProjects);
-  // リスト表示の段の分け方（段に分けない / スイムレーンと同じ分け方）
-  const { listLanes, setListLanes } = useKanbanListLanes(allProjects);
 
   /** 見出しの「新規」: 右側のパネルで新しいチャットを始める（送ると作業中の列に入る） */
   function newChat() {
@@ -185,27 +184,16 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
       }
       view={view}
       onView={setView}
-      lanesView
       columns={projectId !== undefined && <BoardColumnsToggle projectId={projectId} value="state" />}
       viewOptions={
-        view === "list" ? (
-          <select className="board-filter" aria-label="リストの段の分け方" title="リストの段の分け方" value={listLanes} onChange={(e) => setListLanes(e.target.value as ListLanes)}>
-            <option value="none">段: 分けない</option>
-            {laneOptions.map((l) => (
-              <option key={l} value={l}>
-                段: {BOARD_LANE_LABELS[l]}
-              </option>
-            ))}
-          </select>
-        ) : view === "lanes" && (
-          <select className="board-filter" aria-label="段の分け方" title="段の分け方" value={lanes} onChange={(e) => setLanes(e.target.value as BoardLane)}>
-            {laneOptions.map((l) => (
-              <option key={l} value={l}>
-                段: {BOARD_LANE_LABELS[l]}
-              </option>
-            ))}
-          </select>
-        )
+        <LaneSelect
+          value={split ? lanes : "none"}
+          options={laneOptions}
+          onChange={(next) => {
+            if (next !== "none") setLanes(next);
+            setSplit(next !== "none");
+          }}
+        />
       }
       panel={panel}
     />
@@ -215,7 +203,7 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
     <BoardShell header={header} error={error} panel={panel} onNewChat={() => newChat()} projectId={projectId} menu={menu} onOpenRun={open} rename={rename} onError={setError}>
       {!loaded ? (
         <p className="muted small board-loading">読み込み中…</p>
-      ) : view === "lanes" ? (
+      ) : view === "board" && split ? (
         // 段に分ける: 段ごとに、ボードと同じく下書き（その段に入る作成先のもの）→ 状態の列を並べる
         <BoardLanes
           kind={lanes}
@@ -236,12 +224,12 @@ export function KanbanBoard({ projectId, title, focus, groups = NO_GROUPS }: Pro
           <DraftColumn count={draftCount}>{draftCards}</DraftColumn>
           {columns(entries)}
         </div>
-      ) : listLanes !== "none" ? (
+      ) : split ? (
         // リストを段に分ける: 段ごとに、下書き（その段に入る作成先のもの）→ 状態のまとまり → アーカイブ済み を縦に並べる
         <BoardLanes
-          kind={listLanes}
+          kind={lanes}
           list
-          boardKey={`${projectId ?? "all"}:list`}
+          boardKey={`${projectId ?? "all"}`}
           entries={entries}
           projects={projects}
           groups={groups}

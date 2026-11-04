@@ -55,15 +55,12 @@ export const sidebarPinnedClosedKey = (projectId: number) => `kickoff:pinned-clo
 export const sidebarUngroupedClosedKey = (projectId: number) => `kickoff:ungrouped-closed:${projectId}`;
 
 // ボード（カンバン・グループ）
-/** ボードの表示（"board" / "list" / "lanes"）。カンバン・グループのボードで共通（以前グループのボードだけで覚えていた kickoff:group-view は使わない） */
+/** ボードの表示（"board" / "list"、段に分けるなら "lanes"（ボード）/ "list-lanes"（リスト））。カンバン・グループのボードで共通（以前グループのボードだけで覚えていた kickoff:group-view は使わない。"lanes" は以前の「スイムレーン」の表示と同じ） */
 export const BOARD_VIEW_KEY = "kickoff:board-view";
-/** プロジェクトのボードのスイムレーンの段の分け方 */
+/** プロジェクトのボードの段（スイムレーン）の分け方（ボード・リストで共通。段に分けるかは BOARD_VIEW_KEY） */
 export const BOARD_LANES_KEY = "kickoff:board-lanes";
 /** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える） */
 export const BOARD_LANES_ALL_KEY = "kickoff:board-lanes-all";
-/** カンバンのリスト表示の段の分け方（"none" = 段に分けない（初め）か、スイムレーンと同じ分け方。プロジェクトのボード / 全プロジェクトのボードで別に覚える） */
-export const BOARD_LIST_LANES_KEY = "kickoff:board-list-lanes";
-export const BOARD_LIST_LANES_ALL_KEY = "kickoff:board-list-lanes-all";
 /** カンバンのアーカイブでの絞り込み（"1" / "0" / "archived"。decodeArchiveFilter） */
 export const BOARD_SHOW_ARCHIVED_KEY = "kickoff:show-archived";
 /** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える。形式は同じ） */
