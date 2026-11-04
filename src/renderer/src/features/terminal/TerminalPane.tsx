@@ -20,8 +20,6 @@ interface Props {
   visible: boolean;
   /** 入力先か（分割したペインのうち 1 つ。省略なら表示しているとき） */
   focused?: boolean;
-  /** ペインを押した・入力し始めたとき */
-  onFocus?: () => void;
   /** ⌘ を押しながら URL を押したとき（アプリの中のブラウザで開く） */
   onOpenUrl: (url: string) => void;
 }
@@ -30,7 +28,7 @@ interface Props {
  * 内蔵ターミナル（xterm.js）。シェルは Electron のメインプロセスで動いていて、タブを裏に回しても・ボードを切り替えても動き続ける。
  * 表示し直したときは、いまの画面の内容をもらって描き直す。使うときだけ読み込む（Panel から lazy で読む）
  */
-export default function TerminalPane({ termKey, cwd, visible, focused = visible, onFocus, onOpenUrl }: Props) {
+export default function TerminalPane({ termKey, cwd, visible, focused = visible, onOpenUrl }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal>(undefined);
   const fitRef = useRef<FitAddon>(undefined);
@@ -143,7 +141,6 @@ export default function TerminalPane({ termKey, cwd, visible, focused = visible,
   return (
     <div
       className="terminal-pane"
-      onFocus={onFocus}
       // ⌘ のないキー（⌃B・⌃K・Esc など）はシェルのもの。アプリのショートカットやパネルを閉じる Esc に渡さない
       onKeyDown={(e) => {
         if (!e.metaKey) e.stopPropagation();

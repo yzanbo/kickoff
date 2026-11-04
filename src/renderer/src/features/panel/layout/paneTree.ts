@@ -39,7 +39,7 @@ export interface PaneLayout {
 /** 分けていないときの、最初のペインの ID */
 export const FIRST_PANE = "pane:0";
 
-/** すべてのタブが入った 1 つのペイン（分割を覚える前の保存形式もこれとして読む） */
+/** すべてのタブが入った 1 つのペイン（分けていない初めの配置） */
 export function singlePane(tabs: readonly string[], active: string | null, id = FIRST_PANE): PaneLayout {
   return { root: { type: "pane", id, tabs: [...tabs], active: active !== null && tabs.includes(active) ? active : (tabs[0] ?? null) }, focused: id };
 }
