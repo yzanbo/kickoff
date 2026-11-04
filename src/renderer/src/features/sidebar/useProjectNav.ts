@@ -5,7 +5,7 @@ import { useChatSearch } from "@/features/chat/chatSearch";
 import { useSetting, useSettingFamily } from "@/hooks/useSetting";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { navigate, routeProjectId, useRoute } from "@/app/router";
 import { readSetting, writeSetting } from "@/lib/storage";

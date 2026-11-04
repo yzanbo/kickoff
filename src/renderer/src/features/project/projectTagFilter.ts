@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { collectTags, matchesTags, UNTAGGED } from "@shared/project/tags";
 import type { Project } from "@shared/types";
 import { useSetting } from "@/hooks/useSetting";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { PROJECT_TAG_FILTER } from "@/lib/storageKeys";
 
 export type ProjectTagFilter = ReturnType<typeof useProjectTagFilter>;

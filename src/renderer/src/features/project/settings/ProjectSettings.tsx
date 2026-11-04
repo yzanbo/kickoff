@@ -1,7 +1,6 @@
 import { Bot, FileText, Library, Trash2 } from "lucide-react";
 import type { Project } from "@shared/types";
-import { api } from "@/api";
-import { useAsync } from "@/hooks/useAsync";
+import { useAppSettings } from "@/stores/settings";
 import type { DialogSection } from "@/ui/TabbedDialog";
 import { AiSection } from "./AiSection";
 import { BasicInfo } from "./BasicInfo";
@@ -22,7 +21,7 @@ export const PROJECT_SETTINGS_SECTIONS: DialogSection<ProjectSettingsSection>[] 
  * 基本情報・参照資料・AI・削除
  */
 export function ProjectSettings({ project, section }: { project: Project; section: ProjectSettingsSection }) {
-  const settings = useAsync(api.settings);
+  const settings = useAppSettings();
   return (
     <>
       {section === "basic" && <BasicInfo project={project} />}

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import type { Approval, Project, Chat, ChatEvent, ChatLive } from "@shared/types";
+import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useServerEvent } from "@/api/events";
+import { useProjects } from "@/stores/projects";
 
 /** 読み込む前・何も起きていないときの作業中の様子 */
 const IDLE_LIVE: ChatLive = {
@@ -37,7 +38,8 @@ function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
  */
 export function useChatDetail(chatId: number, projectId: number) {
   const [chat, setChat] = useState<Chat>();
-  const [project, setProject] = useState<Project>();
+  // チャットのプロジェクト（プロジェクトの店から。名前・参照資料などを変えたら、開いている間も直る）
+  const project = useProjects().projectsById.get(projectId);
   const [events, setEvents] = useState<ChatEvent[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [live, setLive] = useState<ChatLive>(IDLE_LIVE);
@@ -63,14 +65,10 @@ export function useChatDetail(chatId: number, projectId: number) {
         setLive(d.live);
       })
       .catch((e: unknown) => alive && setError(errorMessage(e)));
-    api
-      .project(projectId)
-      .then((p) => alive && setProject(p))
-      .catch(() => {});
     return () => {
       alive = false;
     };
-  }, [chatId, projectId]);
+  }, [chatId]);
 
   // 書いている途中の返答は、細切れ（トークンごと）に届く。届くたびに描き直すと、長いチャットでは流れの描き直しが追いつかず
   // 入力が重くなるので、1 フレームの間に届いた分をまとめて足す

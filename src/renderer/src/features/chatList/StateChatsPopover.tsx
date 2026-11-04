@@ -5,7 +5,7 @@ import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type AgentState, type BoardColumn, 
 import { chatTitle } from "@/features/chat/chatTitle";
 import { cx } from "@/lib/cx";
 import { useChatStates } from "@/app/chatStatesContext";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { COUNTED_COLUMNS } from "@/features/chat/chatState";
 import { shortRelativeTime } from "@/lib/time";
 import { COLUMN_TONE } from "@/features/chat/tones";

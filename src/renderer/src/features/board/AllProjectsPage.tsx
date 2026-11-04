@@ -3,7 +3,7 @@ import { ProjectSwitcher } from "@/features/project/page/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
 import { KanbanBoard } from "./KanbanBoard";
 import { sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { tagLabel, useProjectTagFilter } from "@/features/project/projectTagFilter";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
 import { useChats } from "@/stores/chats";

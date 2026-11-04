@@ -1,9 +1,11 @@
 import { Brain, Shield, Zap } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
 import { EFFORT_LABELS, PERMISSION_LABELS, type EffortDefault, type EffortLevel, type PermissionMode, type ChatOptions } from "@shared/types";
 import { api } from "@/api";
+import { useProjects } from "@/stores/projects";
 import { useModels } from "@/stores/providers";
+import { useAppSettings } from "@/stores/settings";
 import { effortsFor, groupModels, modelDisplayName, permissionChoices } from "./models";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { OptionMenu } from "@/ui/OptionMenu";
@@ -21,18 +23,20 @@ export function useChatOptions(initial: ChatOptions | undefined, projectId?: num
   const [permission, setPermission] = useState<PermissionMode>(initial?.permission_mode ?? "default");
   const [fastMode, setFastMode] = useState<boolean>(initial?.fast_mode ?? false);
 
+  // 新しいチャットは、設定とプロジェクトが届いたら 1 回だけ、その既定から始める（どちらも店から。あとで既定を変えても、選び直したものは変えない）
+  const settings = useAppSettings().data;
+  const { projectsById, loaded: projectsLoaded } = useProjects();
+  const project = projectId === undefined ? undefined : projectsById.get(projectId);
+  const defaulted = useRef(Boolean(initial));
   useEffect(() => {
-    if (!initial) {
-      void Promise.all([api.settings(), projectId === undefined ? undefined : api.project(projectId)]).then(([s, project]) => {
-        const d = resolveChatOptions(s, project?.chat_defaults);
-        setModel((m) => m ?? d.model);
-        setEffort(d.effort);
-        setPermission(d.permission_mode);
-        setFastMode(d.fast_mode);
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (defaulted.current || !settings || (projectId !== undefined && !projectsLoaded)) return;
+    defaulted.current = true;
+    const d = resolveChatOptions(settings, project?.chat_defaults);
+    setModel((m) => m ?? d.model);
+    setEffort(d.effort);
+    setPermission(d.permission_mode);
+    setFastMode(d.fast_mode);
+  }, [settings, projectId, projectsLoaded, project]);
 
   const current = models.find((m) => m.value === model);
   // 選んだモデルが対応していない深さ・Auto mode・ファストモードは外す

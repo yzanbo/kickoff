@@ -6,7 +6,7 @@ import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { errorMessage } from "@shared/errors";
 import { useListNavigation } from "@/hooks/useListNavigation";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { ErrorText } from "@/ui/ErrorText";
 import { Field } from "@/ui/Field";
 import { ProjectTags } from "@/features/project/ProjectTags";

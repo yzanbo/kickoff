@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
 import type { useChatRename } from "@/features/chat/useChatRename";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { ErrorText } from "@/ui/ErrorText";
 import { ChatMenu } from "@/features/chat/ChatMenu";
 import { Panel } from "@/features/panel/Panel";

@@ -1,7 +1,7 @@
 import type { Chat } from "@shared/types";
 import { groupNameIn, useGroupsOf } from "@/stores/groups";
 import { useSetting } from "@/hooks/useSetting";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { panelTabGrouping } from "@/lib/storageKeys";
 import { workplaceOf } from "@/features/worktree/workplace";
 import { useWorktreesOf } from "@/stores/worktrees";

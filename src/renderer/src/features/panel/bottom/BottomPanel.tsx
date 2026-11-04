@@ -1,7 +1,7 @@
 import { Maximize2, Minimize2, PanelBottomClose } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/app/projectsContext";
+import { useProjects } from "@/stores/projects";
 import { Panel } from "@/features/panel/Panel";
 import type { BottomPanelController } from "./useBottomPanel";
 
