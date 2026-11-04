@@ -4,7 +4,7 @@ import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
 import { useAction } from "@/hooks/useAction";
 import type { CommitBusy } from "./CommitBox";
-import { useDragWidth } from "@/hooks/useDragWidth";
+import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { navigate, type FileTarget } from "@/app/router";
 import { CHANGES_LIST_WIDTH, CHANGES_VIEW } from "@/lib/storageKeys";
@@ -59,7 +59,7 @@ export function EditorTab({
   // 変更の一覧の操作（ステージ・コミット・プッシュなど）の実行中と失敗（表示を切り替えても残す）
   const gitAction = useAction<CommitBusy>();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
-  const list = useDragWidth({ setting: CHANGES_LIST_WIDTH });
+  const list = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   // チャットの返答のファイルのチップから来たとき: エクスプローラーでそのファイルを選び（行があればその行へ）、
   // 上のフォルダを開いて、URL からは外す（同じファイルをもう一度押しても開けるように）
   useEffect(() => {
@@ -116,7 +116,7 @@ export function EditorTab({
       <aside
         ref={list.paneRef}
         className="changes-list"
-        style={{ width: list.width }}
+        style={{ width: list.size }}
         aria-label={view === "files" ? "すべてのファイル" : view === "search" ? "検索" : "変更のあるファイル"}
       >
         {view === "search" ? (

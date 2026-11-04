@@ -1,7 +1,6 @@
-import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Project } from "@shared/types";
-import { startVerticalDrag } from "@/hooks/dragResize";
-import { useSetting } from "@/hooks/useSetting";
+import { useDragSize } from "@/hooks/useDragSize";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { BOTTOM_PANEL_HEIGHT } from "@/lib/storageKeys";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
@@ -32,9 +31,16 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], pr
     projects: scope === "all" ? projects : undefined,
   });
   const [maximized, setMaximized] = useState(false);
-  const [height, setHeight] = useSetting(BOTTOM_PANEL_HEIGHT);
-  const [resizing, setResizing] = useState(false);
-  const panelRef = useRef<HTMLElement>(null);
+  // 上の端をドラッグして高さを変える（いま見えている高さから。最大化していればやめる。ダブルクリックで元の高さ）
+  const resize = useDragSize({
+    setting: BOTTOM_PANEL_HEIGHT,
+    axis: "y",
+    edge: "start",
+    min: MIN_HEIGHT,
+    keep: KEEP_ABOVE,
+    write: "--bottom-h",
+    onStart: () => setMaximized(false),
+  });
   const available = Boolean(window.kickoff);
   const open = panel.panelOpen;
 
@@ -44,28 +50,6 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], pr
     const empty = !panel.tabs.some((t) => panel.isKindShown(t.key));
     if (empty && panel.kinds.has("terminal") && targets.length === 1 && window.kickoff?.terminal) return panel.openTerminal(targets[0]);
     panel.toggle();
-  };
-
-  /** 上の端をドラッグして高さを変える（ダブルクリックで元の高さ） */
-  const startResize = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const el = panelRef.current;
-    const column = el?.parentElement;
-    if (!el || !column) return;
-    const bottom = column.getBoundingClientRect().bottom;
-    const max = column.clientHeight - KEEP_ABOVE;
-    let next = height;
-    if (maximized) setMaximized(false);
-    setResizing(true);
-    startVerticalDrag(e, {
-      move: (clientY) => {
-        next = Math.round(Math.max(MIN_HEIGHT, Math.min(max, bottom - clientY)));
-        el.style.setProperty("--bottom-h", `${next}px`);
-      },
-      end: () => {
-        setResizing(false);
-        setHeight(next);
-      },
-    });
   };
 
   // ⌃`（VS Code と同じ）か ⌘J で開閉。ターミナルの中で押しても効くよう、ほかより先に受け取る
@@ -95,14 +79,14 @@ export function useBottomPanel(scope: BottomScope, targets: TerminalTarget[], pr
       setMaximized(false);
     },
     toggleMaximized: () => setMaximized((m) => !m),
-    startResize,
-    resetHeight: () => setHeight(BOTTOM_PANEL_HEIGHT.initial),
+    /** 上の端のつまみに渡す */
+    resizeHandle: resize.handle,
     /** パネルの要素に渡す */
     // 開閉は高さの動きで見せる（中身は開いたときの高さのまま。ターミナルが動いている間に何度も大きさを変えないように）
     panelProps: {
-      ref: panelRef,
-      style: { "--bottom-h": `${height}px` } as CSSProperties,
+      ref: resize.paneRef,
+      style: { "--bottom-h": `${resize.size}px` } as CSSProperties,
     },
-    resizing,
+    resizing: resize.resizing,
   };
 }

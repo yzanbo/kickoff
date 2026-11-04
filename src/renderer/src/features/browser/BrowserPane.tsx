@@ -158,22 +158,14 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
         {devtools.embed && (
           <>
             {devtools.embed.dock === "right" ? (
-              <div className="pane-resizer" aria-label="開発者ツールの幅を変える" {...devtools.width.handle} />
+              <div className="pane-resizer" aria-label="開発者ツールの幅を変える" {...devtools.widthHandle} />
             ) : (
-              <div
-                className="browser-devtools-resizer"
-                role="separator"
-                aria-orientation="horizontal"
-                aria-label="開発者ツールの高さを変える"
-                title="ドラッグで高さを変える（ダブルクリックで元に戻す）"
-                onPointerDown={devtools.startResizeHeight}
-                onDoubleClick={devtools.resetHeight}
-              />
+              <div className="browser-devtools-resizer" aria-label="開発者ツールの高さを変える" {...devtools.heightHandle} />
             )}
             <div
-              ref={devtools.width.paneRef as React.RefObject<HTMLDivElement>}
+              ref={devtools.paneRef}
               className="browser-devtools"
-              style={devtools.embed.dock === "right" ? { width: devtools.width.width } : { height: devtools.height }}
+              style={devtools.embed.dock === "right" ? { width: devtools.width } : { height: devtools.height }}
             >
               <webview key={devtools.embed.key} ref={devtools.devtoolsRef} className="browser-devtools-view" src="about:blank" partition="persist:kickoff-browser" />
             </div>

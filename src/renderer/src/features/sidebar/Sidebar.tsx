@@ -60,16 +60,8 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
     }
   });
   return (
-    <aside className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
-      <div
-        className="sidebar-resizer"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="サイドバーの幅を変える"
-        title="ドラッグで幅を変える"
-        onPointerDown={sidebar.startResize}
-        onDoubleClick={sidebar.resetWidth}
-      />
+    <aside ref={sidebar.paneRef} className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
+      <div className="sidebar-resizer" aria-label="サイドバーの幅を変える" {...sidebar.resizeHandle} />
       {/* 一番上の行は macOS の信号機ボタンの行。右端に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
       <div className="sidebar-header">
         <button className="titlebar-toggle" title="サイドバーを閉じる（⌘B）" aria-label="サイドバーを閉じる" onClick={sidebar.toggle}>

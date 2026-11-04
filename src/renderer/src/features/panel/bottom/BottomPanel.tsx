@@ -26,15 +26,7 @@ export function BottomPanel({ bottom }: { bottom: BottomPanelController }) {
       aria-label="フッター"
     >
       <div className="bottom-panel-inner">
-        <div
-          className="bottom-panel-resizer"
-          role="separator"
-          aria-orientation="horizontal"
-          aria-label="パネルの高さを変える"
-          title="ドラッグで高さを変える（ダブルクリックで元の高さ）"
-          onPointerDown={bottom.startResize}
-          onDoubleClick={bottom.resetHeight}
-        />
+        <div className="bottom-panel-resizer" aria-label="パネルの高さを変える" {...bottom.resizeHandle} />
         <Panel
           panel={panel}
           onNewChat={() => newChatProject !== undefined && panel.openNew({ projectId: newChatProject })}

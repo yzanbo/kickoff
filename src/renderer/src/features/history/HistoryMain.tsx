@@ -1,8 +1,6 @@
-import { useRef, useState } from "react";
 import type { GitCommit } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { startVerticalDrag } from "@/hooks/dragResize";
-import { useSetting } from "@/hooks/useSetting";
+import { useDragSize } from "@/hooks/useDragSize";
 import { HISTORY_SPLIT } from "@/lib/storageKeys";
 import { CommitTable } from "./CommitTable";
 import { CommitView } from "./CommitView";
@@ -20,46 +18,15 @@ export function HistoryMain({
   commit?: GitCommit;
   onSelect: (commit: GitCommit) => void;
 }) {
-  // 上のコミットの表の高さ（割合 %。下はコミットの詳細）
-  const [split, setSplit] = useSetting(HISTORY_SPLIT);
-  const [resizing, setResizing] = useState(false);
-  const mainRef = useRef<HTMLDivElement>(null);
-  const tableRef = useRef<HTMLDivElement>(null);
-
-  const startResize = (e: React.PointerEvent<HTMLDivElement>) => {
-    const main = mainRef.current;
-    const table = tableRef.current;
-    if (!main || !table) return;
-    const box = main.getBoundingClientRect();
-    let next = split;
-    setResizing(true);
-    startVerticalDrag(e, {
-      // ドラッグ中は描き直さず、高さだけを書き換えて指に追従させる
-      move: (clientY) => {
-        next = Math.round(Math.max(15, Math.min(85, ((clientY - box.top) / box.height) * 100)));
-        table.style.flexBasis = `${next}%`;
-      },
-      end: () => {
-        setResizing(false);
-        setSplit(next);
-      },
-    });
-  };
+  // 上のコミットの表の高さ（全体の高さに対する割合 %。下はコミットの詳細）。ドラッグ中は描き直さず、高さだけを書き換えて指に追従させる
+  const split = useDragSize<HTMLDivElement>({ setting: HISTORY_SPLIT, axis: "y", unit: "%", min: 15, max: 85, write: "flexBasis" });
 
   return (
-    <div ref={mainRef} className={cx("history-main", resizing && "resizing")}>
-      <div ref={tableRef} className="history-table" style={{ flexBasis: `${split}%` }}>
+    <div className={cx("history-main", split.resizing && "resizing")}>
+      <div ref={split.paneRef} className="history-table" style={{ flexBasis: `${split.size}%` }}>
         <CommitTable log={log} selected={commit?.hash} onSelect={onSelect} />
       </div>
-      <div
-        className="history-resizer"
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label="コミットの表の高さを変える"
-        title="ドラッグで高さを変える（ダブルクリックで元に戻す）"
-        onPointerDown={startResize}
-        onDoubleClick={() => setSplit(HISTORY_SPLIT.initial)}
-      />
+      <div className="history-resizer" aria-label="コミットの表の高さを変える" {...split.handle} />
       <div className="history-detail">
         {commit ? (
           <CommitView projectId={projectId} commit={commit} />

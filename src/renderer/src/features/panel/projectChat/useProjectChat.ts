@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef } from "react";
-import { useDragWidth } from "@/hooks/useDragWidth";
+import { useDragSize } from "@/hooks/useDragSize";
 import { useSettingFamily } from "@/hooks/useSetting";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { PROJECT_CHAT_WIDTH, projectChatOpen } from "@/lib/storageKeys";
@@ -22,7 +22,8 @@ export function useProjectChat(projectId: number | undefined) {
   const openMap = useSettingFamily(projectChatOpen);
   const open = projectId !== undefined && openMap.get(projectId);
   const panel = usePanel({ memoryKey: `side:${projectId ?? "none"}`, scope: projectId ?? null, surface: "side" });
-  const width = useDragWidth({ setting: PROJECT_CHAT_WIDTH, min: 320, keep: 480, side: "right", cssVar: "--chat-w" });
+  // 幅（左端のつまみのドラッグ。真ん中に 480px は残す）
+  const width = useDragSize({ setting: PROJECT_CHAT_WIDTH, edge: "start", min: 320, keep: 480, write: "--chat-w" });
 
   /** 欄を開いて、そのタブを表示する（ボード・サイドバーの下書きを押したとき） */
   const showTab = (key: string) => {

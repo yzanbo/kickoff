@@ -1,7 +1,6 @@
 import type { WebviewTag } from "electron";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { startVerticalDrag } from "@/hooks/dragResize";
-import { useDragWidth } from "@/hooks/useDragWidth";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import type { SettingValue } from "@/lib/storage";
 import { BROWSER_DEVTOOLS_DOCK, BROWSER_DEVTOOLS_HEIGHT, BROWSER_DEVTOOLS_WIDTH } from "@/lib/storageKeys";
@@ -30,9 +29,10 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
   const [shown, setShown] = useState<DevtoolsDock | null>(null);
   const [embedKey, setEmbedKey] = useState(0);
   const devtoolsRef = useRef<WebviewTag | null>(null);
-  const width = useDragWidth({ setting: BROWSER_DEVTOOLS_WIDTH, min: 260, keep: 240, side: "right" });
-  const [height, setHeight] = useSetting(BROWSER_DEVTOOLS_HEIGHT);
-  const [resizingHeight, setResizingHeight] = useState(false);
+  // 右に出すときの幅（左端のつまみ）と、下に出すときの高さ（上端のつまみ）。右と下で同じ入れ物（paneRef）を使う
+  const paneRef = useRef<HTMLDivElement>(null);
+  const width = useDragSize({ setting: BROWSER_DEVTOOLS_WIDTH, edge: "start", min: 260, keep: 240, pane: paneRef });
+  const height = useDragSize({ setting: BROWSER_DEVTOOLS_HEIGHT, axis: "y", edge: "start", min: MIN_HEIGHT, keep: 120, pane: paneRef });
   const embedded = shown === "right" || shown === "bottom";
 
   const viewId = () => {
@@ -105,27 +105,6 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     setShown(null);
   };
 
-  /** 上の端をドラッグして、下に出した開発者ツールの高さを変える */
-  const startResizeHeight = (e: ReactPointerEvent<HTMLElement>) => {
-    const pane = e.currentTarget.nextElementSibling as HTMLElement | null;
-    const body = pane?.parentElement;
-    if (!pane || !body) return;
-    const bottom = body.getBoundingClientRect().bottom;
-    const max = body.clientHeight - 120;
-    let next = height;
-    setResizingHeight(true);
-    startVerticalDrag(e, {
-      move: (clientY) => {
-        next = Math.round(Math.max(MIN_HEIGHT, Math.min(max, bottom - clientY)));
-        pane.style.height = `${next}px`;
-      },
-      end: () => {
-        setResizingHeight(false);
-        setHeight(next);
-      },
-    });
-  };
-
   return {
     dock,
     /** いま出している場所（null は閉じている） */
@@ -133,11 +112,15 @@ export function useDevtools(viewRef: RefObject<WebviewTag | null>) {
     /** タブの中に出しているとき、その場所と入れ物の key */
     embed: embedded ? { key: embedKey, dock: shown as Exclude<DevtoolsDock, "window"> } : null,
     devtoolsRef,
-    width,
-    height,
-    resizing: width.resizing || resizingHeight,
-    startResizeHeight,
-    resetHeight: () => setHeight(BROWSER_DEVTOOLS_HEIGHT.initial),
+    /** 右・下に出す入れ物に付ける */
+    paneRef,
+    /** 右に出すときの幅・下に出すときの高さ */
+    width: width.size,
+    height: height.size,
+    /** 右に出すときの左端のつまみ・下に出すときの上端のつまみに渡す */
+    widthHandle: width.handle,
+    heightHandle: height.handle,
+    resizing: width.resizing || height.resizing,
     toggle: () => (shown ? close() : openAt(dock)),
     /** 出す場所を選ぶ（選んだ場所で開く。開いていれば、その場所へ移す） */
     changeDock: (next: DevtoolsDock) => {
