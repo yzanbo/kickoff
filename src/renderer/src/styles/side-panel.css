@@ -15,16 +15,20 @@
     gap var(--panel-motion-duration) var(--panel-motion-ease);
 }
 
-/* パネルがボードを覆う（横幅いっぱい・ボードが狭すぎる）ときは、見えないボードとの間隔も消す（左に余白が二重に残らないように） */
-.board-body.with-panel.panel-full {
-  grid-template-columns: 0px 100%;
-  gap: 0;
-}
-
 .board-body.with-panel {
   /* パネルはカンバンを覆うところまで広げられる（間隔の分だけ引く） */
   grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 560px), calc(100% - 12px));
   gap: 12px;
+}
+
+/*
+ * パネルがボードを覆う（横幅いっぱい・ボードが狭すぎる）ときは、見えないボードとの間隔も消す（左に余白が二重に残らないように）。
+ * 列の指定はふだんと同じ形（残り・パネルの幅）のまま、パネルの幅だけを 100% にする。形を変える（0px 100%）と、ブラウザが 2 つの間を
+ * なめらかにつなげず、横幅いっぱいの切り替えでパネルの左端が先に飛んでから右端が伸びていた（右端を動かさず左端だけを伸び縮みさせる）
+ */
+.board-body.with-panel.panel-full {
+  grid-template-columns: minmax(0, 1fr) min(var(--panel-w, 560px), 100%);
+  gap: 0;
 }
 
 /* パネルを開いたが、タブがひとつもないとき */
@@ -109,9 +113,15 @@
   width: calc(var(--panel-shown, 100%) - 2px);
 }
 
-/* 幅をドラッグで変えている間は、指の位置どおりの枠いっぱいに広げる（--panel-shown は離したときに直る） */
+/*
+ * 幅をドラッグで変えている間は、指の位置どおりの枠いっぱいに広げる（--panel-shown は離したときに直る）。
+ * 横幅いっぱいを切り替えている間（stretching。usePanelWidth）も枠に合わせる: 右端は動かず左端だけが伸び縮みするので、
+ * 開き終えたときの幅のまま左端にそろえると、広げるときは中身が左端と一緒に滑り、戻すときは右側が空いた
+ */
 .board-body.resizing .board-panel > .panel-tabs,
-.board-body.resizing .board-panel > .panel-content {
+.board-body.resizing .board-panel > .panel-content,
+.board-body.stretching .board-panel > .panel-tabs,
+.board-body.stretching .board-panel > .panel-content {
   width: auto;
 }
 

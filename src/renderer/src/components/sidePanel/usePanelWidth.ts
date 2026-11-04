@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { startHorizontalDrag } from "../../hooks/dragResize";
 import { useStoredFlag, useStoredNumber } from "../../hooks/useStoredState";
 import { PANEL_MAXIMIZED_KEY, PANEL_WIDTH_KEY } from "../../storageKeys";
@@ -12,6 +12,8 @@ const PANEL_GAP = 12;
  * 狭いボードは列を 1 本ずつめくる表示になる（board-columns.css の @container）ので、1 本が収まる幅にする
  */
 const MIN_BOARD_WIDTH = 200;
+/** 横幅いっぱいの切り替えで、パネルの幅が動いている時間（tokens.css の --panel-motion-duration（0.24s）に少し足す） */
+const STRETCH_MS = 300;
 
 /** パネルの幅 width のとき、横に残るボードが狭すぎるか（そのときはボードを覆う） */
 function leavesNarrowBoard(bodyWidth: number, width: number): boolean {
@@ -30,6 +32,13 @@ export function usePanelWidth() {
   const [resizing, setResizing] = useState(false);
   // 横幅いっぱい（ボードを覆う）。戻すと、元の幅に戻る
   const [maximized, setMaximized] = useStoredFlag(PANEL_MAXIMIZED_KEY);
+  /**
+   * 横幅いっぱいを切り替えて、パネルの幅が動いている途中か。開閉と違い、右端は動かず左端だけが伸び縮みするので、その間は中身を
+   * 枠の幅に合わせて並べ直す（開き終えたときの幅のまま左端にそろえると、広げるときは中身が左端と一緒に滑り、戻すときは右側が空いた）
+   */
+  const [stretching, setStretching] = useState(false);
+  const stretchTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(stretchTimer.current), []);
   const [body, setBody] = useState<HTMLDivElement | null>(null);
   const [bodyWidth, setBodyWidth] = useState(0);
 
@@ -72,7 +81,13 @@ export function usePanelWidth() {
   return {
     maximized,
     covering,
-    toggleMaximized: () => setMaximized(!maximized),
+    toggleMaximized: () => {
+      setMaximized(!maximized);
+      setStretching(true);
+      window.clearTimeout(stretchTimer.current);
+      stretchTimer.current = window.setTimeout(() => setStretching(false), STRETCH_MS);
+    },
+    stretching,
     resizing,
     bodyRef: setBody,
     startResize,
