@@ -285,6 +285,13 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   // 作業中でなければすぐ送る
   assert.deepEqual((await call("POST", `/api/runs/${runId}/queue`, { text: "4" })).body, { queued: false });
   await until(() => provider.prompts.length === 2);
+  await until(() => !runner.isBusy(runId));
+  // hold: 作業していなくても送らずに、列の最後に足す（止めている送信待ちがあるときの「ためておく」）
+  const held = (await call("POST", `/api/runs/${runId}/queue`, { text: "5", hold: true })).body;
+  assert.equal(held.queued, true);
+  assert.deepEqual(runner.queued(runId).map((m) => m.text), ["5"]);
+  assert.equal(runner.isBusy(runId), false);
+  assert.equal(provider.prompts.length, 2);
 });
 
 test("待ちの列は再起動しても残る: 読み戻した列は止めておき、作業が終わっても送らない", async () => {

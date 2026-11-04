@@ -26,9 +26,16 @@ export abstract class RunnerQueue {
    * 次の指示を送る。作業中なら待ちの列に入れ（終わったら順に送る）、作業中でなければすぐ送る。
    * queued: 列に入れたか、id: 列に入れたその指示の ID
    */
-  async queueMessage(runId: number, text: string, options: RunOptions = {}, attachments: Attachment[] = []): Promise<{ queued: boolean; id?: string }> {
+  async queueMessage(
+    runId: number,
+    text: string,
+    options: RunOptions = {},
+    attachments: Attachment[] = [],
+    { hold = false }: { hold?: boolean } = {},
+  ): Promise<{ queued: boolean; id?: string }> {
     if (!this.hasRun(runId)) throw new Error("実行が見つかりません");
-    if (!this.isBusy(runId)) {
+    // hold: 作業していなくても送らずに、待ちの列の最後に足す（止めている送信待ちがあるときの「ためておく」）
+    if (!hold && !this.isBusy(runId)) {
       await this.send(runId, text, options, attachments);
       return { queued: false };
     }

@@ -234,9 +234,9 @@ export const api = {
   deleteGroup: (groupId: number) => request<{ ok: true }>("DELETE", `/api/groups/${groupId}`),
   cancelRun: (runId: number) => request<{ ok: true }>("POST", `/api/runs/${runId}/cancel`),
 
-  // 作業中に送る次の指示の待ちの列（作業中でなければすぐ送る）
-  queueMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = []) =>
-    request<{ queued: boolean; id?: string }>("POST", `/api/runs/${runId}/queue`, { text, options, attachments }),
+  // 作業中に送る次の指示の待ちの列（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す）
+  queueMessage: (runId: number, text: string, options: RunOptions, attachments: Attachment[] = [], hold = false) =>
+    request<{ queued: boolean; id?: string }>("POST", `/api/runs/${runId}/queue`, { text, options, attachments, ...(hold ? { hold } : {}) }),
   /** attachments: 添付を置き換える（省けば今のまま） */
   editQueued: (runId: number, id: string, text: string, attachments?: Attachment[]) =>
     request<{ queue: QueuedMessage[] }>("PATCH", `/api/runs/${runId}/queue/${id}`, attachments ? { text, attachments } : { text }),
