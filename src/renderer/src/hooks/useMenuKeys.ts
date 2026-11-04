@@ -2,12 +2,17 @@ import { useEffect, type RefObject } from "react";
 import { useWindowEvent } from "./useWindowEvent";
 
 /**
- * メニューを開いたら先頭の項目にピントを置き、↑↓ で項目を移る。
+ * メニューを開いたらメニューそのものにピントを置き、↑↓ で項目を移る（↓ で先頭・↑ で最後から。macOS のメニューと同じ）。
+ * 以前は先頭の項目にピントを置いていて、直前にキーを使っていると、右クリックで開いただけでも先頭の項目にピントの枠が出ていた。
  * メニューの中に横に開く一覧（data-menu-scope の付いた要素）があれば、ピントのある側の項目の中だけで動く
  */
 export function useMenuKeys(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
-    ref.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    const root = ref.current;
+    if (!root) return;
+    // Esc・↑↓ をメニューで受け取れるよう、メニューそのものにピントを置く（項目は選んでいない状態から始める）
+    root.tabIndex = -1;
+    root.focus({ preventScroll: true });
   }, [ref]);
   useWindowEvent(
     "keydown",
