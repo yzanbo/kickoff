@@ -1,6 +1,7 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
 import type { Placement } from "@/lib/floating";
 import { useMultiSelect } from "@/hooks/useMultiSelect";
+import { useContextMenu } from "@/ui/useContextMenu";
 
 /**
  * サイドバーで選んだチャット（決まりは useMultiSelect: ⌘ を押しながらクリックで足す・外す、Shift で前に選んだものからの範囲を足す。
@@ -34,7 +35,8 @@ const rowIds = () => visibleRows().map((el) => Number(el.dataset.chatId));
 /** 選んでいる状態（existing: いまあるチャット。消えたものは選択から外す） */
 export function useChatSelectionState(existing: readonly number[]): ChatSelection {
   const select = useMultiSelect(existing, rowIds);
-  const [menuAt, setMenuAt] = useState<Placement | null>(null);
+  // 選んだチャットをまとめて操作する右クリックのメニュー
+  const menu = useContextMenu();
   return {
     ids: select.ids,
     has: select.has,
@@ -42,10 +44,10 @@ export function useChatSelectionState(existing: readonly number[]): ChatSelectio
     add: select.add,
     clear: () => {
       select.clear();
-      setMenuAt(null);
+      menu.close();
     },
-    openMenu: setMenuAt,
-    menuAt,
-    closeMenu: () => setMenuAt(null),
+    openMenu: (at) => menu.openAt(at),
+    menuAt: menu.menu?.at ?? null,
+    closeMenu: menu.close,
   };
 }

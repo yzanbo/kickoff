@@ -78,7 +78,7 @@ export function BoardShell({
       </div>
       {after}
       {layoutMenu.menu}
-      {menu.at && <ChatMenu at={menu.at.at} chat={menu.at.chat} onOpenPanel={onOpenChat} onRename={rename.start} onClose={menu.close} onError={onError} />}
+      {menu.menu && <ChatMenu at={menu.menu.at} chat={menu.menu.value} onOpenPanel={onOpenChat} onRename={rename.start} onClose={menu.close} onError={onError} />}
     </div>
   );
 }

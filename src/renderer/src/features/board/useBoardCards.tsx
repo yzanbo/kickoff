@@ -9,16 +9,10 @@ import type { BoardEntry } from "@/features/chatList/boardColumns";
 import { useBoardListCompact } from "./BoardHeader";
 import { ChatCardContent, ChatRowContent } from "./ChatCard";
 import { chatCardProps } from "./chatCardProps";
-import type { Placement } from "@/lib/floating";
+import { useContextMenu } from "@/ui/useContextMenu";
 
-/** カードの右クリックメニューの状態（どこに・どのチャットの） */
-export type ChatMenuAt = { at: Placement; chat: Chat };
-
-/** カードの右クリックメニュー（開いている間はパネルを Esc で閉じない: usePanel の holdEsc に isOpen を渡す） */
-export function useCardMenu() {
-  const [at, setAt] = useState<ChatMenuAt | null>(null);
-  return { at, isOpen: at !== null, open: (where: Placement, chat: Chat) => setAt({ at: where, chat }), close: () => setAt(null) };
-}
+/** カードの右クリックメニュー（どこに・どのチャットの。開いている間はパネルを Esc で閉じない: usePanel の holdEsc に isOpen を渡す） */
+export const useCardMenu = () => useContextMenu<Chat>();
 
 interface Options {
   panel: PanelController;
@@ -51,7 +45,7 @@ export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, sty
     ...chatCardProps(chat, {
       dragHint: drag?.hint,
       onOpen: () => onOpen(chat),
-      onMenu: (at) => menu.open(at, chat),
+      onMenu: (at) => menu.openAt(at, chat),
       onDragStart: drag
         ? (e: DragEvent) => {
             startChatDrag(e, chat.id);
