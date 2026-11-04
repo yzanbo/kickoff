@@ -1,7 +1,7 @@
 import type { GitWorktree } from "@shared/types";
 import { api } from "@/api";
 import { choiceDialog, confirmDialog } from "@/ui/dialogs";
-import { invalidateWorktrees, setWorktreeList } from "./worktreeBranches";
+import { worktreesStore } from "@/stores/worktrees";
 
 /**
  * ワークツリーを消す（確かめてから）。消す前に、コミットしていない変更・プッシュしていないコミット・このブランチにしかないコミットを調べて知らせ、
@@ -46,7 +46,7 @@ export async function confirmRemoveWorktree(projectId: number, worktree: Pick<Gi
   }
   // コミットしていない変更は、上で知らせたうえで消すので force で消す
   const list = await api.removeWorktree(projectId, worktree.path, info.changes > 0, deleteBranch);
-  setWorktreeList(projectId, list);
-  invalidateWorktrees(projectId);
+  worktreesStore.set(projectId, list);
+  worktreesStore.invalidate(projectId);
   return list;
 }

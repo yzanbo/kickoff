@@ -3,7 +3,7 @@ import { api } from "@/api";
 import { promptDialog } from "@/ui/dialogs";
 import { baseName } from "@/lib/format";
 import { useActionError } from "@/hooks/useActionError";
-import { invalidateWorktrees, setWorktreeList } from "./worktreeBranches";
+import { worktreesStore } from "@/stores/worktrees";
 import { worktreeLabel } from "./WorktreePicker";
 import { confirmRemoveWorktree } from "./removeWorktree";
 import type { GitLogController } from "@/features/history/useGitLog";
@@ -24,8 +24,8 @@ export function useWorktreeActions(projectId: number, log: GitLogController) {
     });
     if (!branch) return;
     await worktreeError.guard(async () => {
-      setWorktreeList(projectId, await api.addWorktree(projectId, branch));
-      invalidateWorktrees(projectId);
+      worktreesStore.set(projectId, await api.addWorktree(projectId, branch));
+      worktreesStore.invalidate(projectId);
       log.refresh();
     });
   };

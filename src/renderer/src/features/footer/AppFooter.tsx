@@ -4,7 +4,7 @@ import { useOnline } from "@/hooks/useOnline";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { href } from "@/app/router";
 import { FIVE_HOUR_IDLE, planName, weeklyModel } from "@/features/usage/usage";
-import { useMainBranch } from "@/features/worktree/worktreeBranches";
+import { useMainBranch } from "@/features/worktree/useWorkplace";
 import { CONNECTION_LABELS } from "./ConnectionPopover";
 import { IconButton } from "@/ui/IconButton";
 import { UsageMeter } from "@/features/usage/UsageMeter";
