@@ -6,8 +6,10 @@
   grid-template-columns: minmax(0, 1fr) 0px;
   gap: 0;
   min-height: 0;
-  /* 閉じたパネル（右へずらして隠す）が、画面の横にはみ出してスクロールさせないように */
-  overflow-x: clip;
+  /*
+   * 横を切り取らない（overflow-x: clip を付けると、ツールバーを「パネルを上まで伸ばす」にしたとき、右端の開閉ボタンのバッジが切れる）。
+   * 閉じたパネルは幅 0 の列にあり、中身はパネル自身の枠で切り取るので、横にはみ出さない
+   */
   transition:
     grid-template-columns var(--panel-motion-duration) var(--panel-motion-ease),
     gap var(--panel-motion-duration) var(--panel-motion-ease);
@@ -87,18 +89,30 @@
   border-radius: var(--radius-lg);
   background: var(--bg);
   opacity: 0;
-  transform: translateX(24px);
   transition:
     opacity var(--panel-motion-duration) ease,
-    transform var(--panel-motion-duration) var(--panel-motion-ease),
     border-color var(--panel-motion-duration);
 }
 
 .board-body.with-panel .board-panel {
   border-color: var(--border);
   opacity: 1;
-  transform: none;
   box-shadow: -8px 0 24px rgb(0 0 0 / 18%);
+}
+
+/*
+ * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--panel-shown。左右の枠線の分を引く）のまま左端にそろえて置き、
+ * パネルの枠で右側を切り取る。列が左へ広がるのに合わせて、中身が右から左へ滑り込んでくる（閉じるときは右へ抜けていく）
+ */
+.board-panel:not(.as-sidebar) > .panel-tabs,
+.board-panel:not(.as-sidebar) > .panel-content {
+  width: calc(var(--panel-shown, 100%) - 2px);
+}
+
+/* 幅をドラッグで変えている間は、指の位置どおりの枠いっぱいに広げる（--panel-shown は離したときに直る） */
+.board-body.resizing .board-panel > .panel-tabs,
+.board-body.resizing .board-panel > .panel-content {
+  width: auto;
 }
 
 /* パネル内のチャットは余白を詰め、長いタイトルや本文でパネルの幅を広げない */

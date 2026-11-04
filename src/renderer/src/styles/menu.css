@@ -135,6 +135,12 @@
     border-radius: 0;
   }
 
+  /* 全面に重ねるので、中身は開き終えたときの幅ではなく画面いっぱいに */
+  .board-body.with-panel .board-panel > .panel-tabs,
+  .board-body.with-panel .board-panel > .panel-content {
+    width: auto;
+  }
+
   .board-columns {
     scroll-snap-type: x mandatory;
   }

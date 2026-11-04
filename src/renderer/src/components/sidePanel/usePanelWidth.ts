@@ -35,6 +35,8 @@ export function usePanelWidth() {
 
   useEffect(() => {
     if (!body) return;
+    // 初めの幅はすぐ測る（ResizeObserver の最初の知らせは次の描画まで来ない。開き終えたときの幅 --panel-shown をすぐ決めるため）
+    setBodyWidth(body.clientWidth);
     const observer = new ResizeObserver(() => setBodyWidth(body.clientWidth));
     observer.observe(body);
     return () => observer.disconnect();
@@ -74,7 +76,14 @@ export function usePanelWidth() {
     resizing,
     bodyRef: setBody,
     startResize,
-    /** 横幅いっぱい・覆うときは、CSS 側の上限（ボードの幅）まで広げる */
-    style: { "--panel-w": maximized || covering ? "100vw" : `${panelWidth}px` } as CSSProperties,
+    /**
+     * 横幅いっぱい・覆うときは、CSS 側の上限（ボードの幅）まで広げる。
+     * --panel-shown は開き終えたときのパネルの幅（side-panel.css の列の幅と同じ計算）。開閉で列の幅が動いている間も、中身はこの幅のまま置いて
+     * パネルの枠で切り取り、右から滑り込むように見せる（動いている間に中身を並べ直さない）。まだ測っていなければ付けない（中身は枠いっぱい）
+     */
+    style: {
+      "--panel-w": maximized || covering ? "100vw" : `${panelWidth}px`,
+      ...(bodyWidth > 0 && { "--panel-shown": `${maximized || covering ? bodyWidth : Math.min(panelWidth, bodyWidth - PANEL_GAP)}px` }),
+    } as CSSProperties,
   };
 }
