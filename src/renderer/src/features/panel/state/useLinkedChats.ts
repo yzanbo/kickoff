@@ -10,13 +10,14 @@ import { dispatchPanel } from "./panelStore";
  * サイドバーに出ているチャット（パネルのチャットのタブをこれにそろえる）。アーカイブ済みは、サイドバーと共通の
  * 「アーカイブ済みを表示」（kickoff:sidebar-show-archived）を入れているときだけ含める。
  * 全プロジェクトでは、サイドバーと同じく、しまったプロジェクトとタグの絞り込みに合わないプロジェクトのチャットを除く。
- * loaded: 一覧が届いたか（タブをそろえるのは届いてから。届いたあとはサーバーの知らせで直るので、いつも今の一覧）
+ * loaded: 一覧が届いたか（タブをそろえるのは届いてから。届いたあとはサーバーの知らせで直るので、いつも今の一覧）。
+ * enabled でなければ読まない（チャットを隠している欄。空のまま loaded にもしない）
  */
-export function useLinkedChats(scope: PanelScope): { chats: Chat[]; loaded: boolean } {
+export function useLinkedChats(scope: PanelScope, enabled = true): { chats: Chat[]; loaded: boolean } {
   const [showArchived] = useShowArchivedChats();
   // 全プロジェクトのときに出すプロジェクト（サイドバーと同じ: しまったものを除き、タグの絞り込みに合うもの）
   const { visible } = useVisibleProjects();
-  const list = useChats({ projectId: scope === "all" ? undefined : scope, archived: showArchived });
+  const list = useChats({ projectId: scope === "all" ? undefined : scope, archived: showArchived, enabled });
   const chats = useMemo(() => {
     if (scope !== "all") return list.chats;
     const shown = new Set(visible.map((p) => p.id));
@@ -27,10 +28,11 @@ export function useLinkedChats(scope: PanelScope): { chats: Chat[]; loaded: bool
 
 /**
  * 欄のチャットのタブを、サイドバーの一覧にそろえる（一覧が届いてから。チャットができる・アーカイブして隠す・別のプロジェクトへ移すと、タブも増減する）。
- * サイドバーに出ているチャットを返す（タブのチャットの状態・まとまりの数もこれで数える）
+ * サイドバーに出ているチャットを返す（タブのチャットの状態・まとまりの数もこれで数える）。
+ * チャットを隠している欄（enabled でない）では、読まず・そろえない（隠したチャットのタブは閉じずにそのまま残し、表示に戻したらそろえる）
  */
-export function useLinkedTabs(key: string, scope: PanelScope): Chat[] {
-  const { chats, loaded } = useLinkedChats(scope);
+export function useLinkedTabs(key: string, scope: PanelScope, enabled: boolean): Chat[] {
+  const { chats, loaded } = useLinkedChats(scope, enabled);
   useEffect(() => {
     if (loaded) dispatchPanel(key, { type: "sync", chats });
   }, [key, chats, loaded]);

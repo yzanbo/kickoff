@@ -50,8 +50,8 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
   useMountedPanel(key);
   // 欄で表示するタブの種類（隠した種類のタブは閉じずに残す。隠している種類のタブを自分で開いたら、その種類を出す）
   const kinds = usePanelKinds(surface);
-  // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える）
-  const chats = useLinkedTabs(key, scope);
+  // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える。チャットを隠している欄では読まず、タブもそろえない）
+  const chats = useLinkedTabs(key, scope, kinds.has("chat"));
   const actions = useMemo(() => panelActions(key), [key]);
 
   // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先）
