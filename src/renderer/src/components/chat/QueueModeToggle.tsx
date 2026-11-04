@@ -1,13 +1,13 @@
-import { ListPlus, MessageSquarePlus, SendHorizontal } from "lucide-react";
+import { Hourglass, SendHorizontal } from "lucide-react";
 import { useStoredState } from "../../hooks/useStoredState";
 import { QUEUE_MODE_KEY } from "../../storageKeys";
 import { Segmented, type SegmentOption } from "../Segmented";
 import type { QueueSendMode } from "./composerKeys";
 
-/** 作業中に送ったときの扱いの選択肢（アイコンだけで出す） */
+/** 作業中に送ったときの扱いの選択肢（アイコンだけで出す。ためておく = 砂時計（あとで送る）・伝える = 送るの矢印（いま送る）で見分ける） */
 const BUSY_OPTIONS: SegmentOption<QueueSendMode>[] = [
-  { value: "tell", label: "伝える（止めずに、いまのやり取りに足す。どちらを選んでいても ⌘Enter で伝えられる）", icon: MessageSquarePlus, iconOnly: true },
-  { value: "queue", label: "ためておく（いまの作業が終わったら送る。どちらを選んでいても ⌘⇧Enter でためておける）", icon: ListPlus, iconOnly: true },
+  { value: "queue", label: "ためておく（いまの作業が終わったら送る。どちらを選んでいても ⌘⇧Enter でためておける）", icon: Hourglass, iconOnly: true },
+  { value: "tell", label: "伝える（止めずに、いま送っていまのやり取りに足す。どちらを選んでいても ⌘Enter で伝えられる）", icon: SendHorizontal, iconOnly: true },
 ];
 
 /**
@@ -15,8 +15,8 @@ const BUSY_OPTIONS: SegmentOption<QueueSendMode>[] = [
  * 「伝える」はいま送る（送信待ちより先に）、「ためておく」は送信待ちの最後に足す
  */
 const IDLE_OPTIONS: SegmentOption<QueueSendMode>[] = [
+  { value: "queue", label: "ためておく（送信待ちの最後に足す。どちらを選んでいても ⌘⇧Enter でためておける）", icon: Hourglass, iconOnly: true },
   { value: "tell", label: "すぐ送る（送信待ちより先に、いま送る。どちらを選んでいても ⌘Enter ですぐ送れる）", icon: SendHorizontal, iconOnly: true },
-  { value: "queue", label: "ためておく（送信待ちの最後に足す。どちらを選んでいても ⌘⇧Enter でためておける）", icon: ListPlus, iconOnly: true },
 ];
 
 /** 保存の形（以前の「割り込む」= "interrupt" は、なくしたので「伝える」として読む） */
