@@ -1,8 +1,7 @@
 // 巻き戻しの確かめ（会話だけ・ファイルだけ・両方）。ファイルを戻すのは Claude Code のファイルのチェックポイント（コアの rewind-files）
 import type { FileRewindResult } from "@shared/types";
 import { api } from "@/api";
-import { alertDialog, choiceDialog, confirmDialog } from "@/ui/dialogs";
-import { reportFailure } from "@/features/chat/chatActions";
+import { alertDialog, choiceDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
 
 /**
  * 戻すと変わるファイル（「2 個のファイル（README.md、a.ts。戻すと +3 −12 行）」。名前は多ければ頭の 8 個。

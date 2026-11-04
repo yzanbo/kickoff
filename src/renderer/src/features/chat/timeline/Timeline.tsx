@@ -7,7 +7,7 @@ import { useTicker } from "@/hooks/useTicker";
 import { formatClock, formatElapsed } from "@/lib/time";
 import { api } from "@/api";
 import { openChat } from "@/app/router";
-import { reportFailure } from "@/features/chat/chatActions";
+import { reportFailure } from "@/ui/dialogs";
 import { CopyButton } from "@/ui/CopyButton";
 import { IconButton } from "@/ui/IconButton";
 import type { TimelineItem } from "./timelineItems";

@@ -1,7 +1,7 @@
 import type { DragEvent } from "react";
 import { api } from "@/api";
 import { useReorder } from "@/features/group/groups";
-import { reportFailure } from "@/features/chat/chatActions";
+import { reportFailure } from "@/ui/dialogs";
 import type { TabCluster } from "./tabClusters";
 
 /** 並べ替えられるまとまり（自分で作ったグループ。グループなし・作業場所・その他は動かさない） */

@@ -5,7 +5,7 @@ import { cx } from "@/lib/cx";
 import { useAction } from "@/hooks/useAction";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
-import { reportFailure } from "@/features/chat/chatActions";
+import { reportFailure } from "@/ui/dialogs";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
 import { CopyButton } from "@/ui/CopyButton";
 import { Markdown } from "@/ui/markdown/Markdown";

@@ -2,7 +2,7 @@
 import { createContext, useContext } from "react";
 import type { Attachment, QueuedMessage } from "@shared/types";
 import { api } from "@/api";
-import { reportFailure } from "@/features/chat/chatActions";
+import { reportFailure } from "@/ui/dialogs";
 import type { NewChatTarget } from "@/features/panel/usePanel";
 
 /** 新しいチャットの入力欄に、初めに入れておくもの（送信待ちの指示から始めるとき） */

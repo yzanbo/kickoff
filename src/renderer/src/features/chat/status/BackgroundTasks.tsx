@@ -2,9 +2,8 @@ import { Bot, Square, SquareTerminal } from "lucide-react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import type { BackgroundState, BackgroundTask } from "@shared/types";
 import { api } from "@/api";
-import { confirmDialog } from "@/ui/dialogs";
+import { confirmDialog, reportFailure } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
-import { reportFailure } from "@/features/chat/chatActions";
 import { ActivityNote } from "@/features/chat/subagents/Subagents";
 
 const ICONS: Record<BackgroundTask["kind"], typeof Bot> = { agent: Bot, command: SquareTerminal, other: SquareTerminal };

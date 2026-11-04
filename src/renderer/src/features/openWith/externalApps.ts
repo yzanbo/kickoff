@@ -4,7 +4,7 @@ import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS, type ExternalBrowserId, type Ext
 import { useSetting } from "@/hooks/useSetting";
 import { createStore } from "@/stores/createStore";
 import { useStore } from "@/stores/useStore";
-import { reportFailure } from "@/features/chat/chatActions";
+import { reportFailure } from "@/ui/dialogs";
 import { EXTERNAL_BROWSER, EXTERNAL_TERMINAL } from "@/lib/storageKeys";
 
 /** 外部のターミナルの表示名 */

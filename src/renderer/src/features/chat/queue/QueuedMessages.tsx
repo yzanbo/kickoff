@@ -13,7 +13,7 @@ import { useAskInNewChat } from "./askInNewChat";
 import { nextQueuedText, queuedHint } from "./queuedHint";
 import type { NewChatTarget } from "@/features/panel/usePanel";
 import { cx } from "@/lib/cx";
-import { reportFailure } from "@/features/chat/chatActions";
+import { reportFailure } from "@/ui/dialogs";
 import { startVerticalDrag } from "@/hooks/dragResize";
 import { useSetting } from "@/hooks/useSetting";
 import { QUEUE_COLLAPSED, QUEUE_EXPANDED, QUEUE_HEIGHT } from "@/lib/storageKeys";

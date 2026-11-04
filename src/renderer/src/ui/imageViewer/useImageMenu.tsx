@@ -1,5 +1,5 @@
 import { useState, type MouseEvent, type ReactNode } from "react";
-import { reportFailure } from "@/features/chat/chatActions";
+import { reportFailure } from "@/ui/dialogs";
 import { clampToViewport, MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { copyImage, downloadImage } from "./imageFile";
 
