@@ -29,20 +29,18 @@ export function subscribeServerEvent(listener: Listener): () => void {
 
 // ---- つながったとき ----
 
-/** reconnect: 一度切れてから、つなぎ直した（切れている間の知らせを取りこぼしたかもしれない） */
-type OpenListener = (reconnect: boolean) => void;
-const openListeners = new Set<OpenListener>();
-let opened = false;
+const openListeners = new Set<() => void>();
 
-/** サーバーとの SSE がつながったことを知らせる（useServerConnection がつながるたびに呼ぶ） */
+/** サーバーとの SSE がつながったことを知らせる（useServerConnection が、初めてつながったとき・つなぎ直したときに呼ぶ） */
 export function publishServerOpen() {
-  const reconnect = opened;
-  opened = true;
-  for (const listener of [...openListeners]) listener(reconnect);
+  for (const listener of [...openListeners]) listener();
 }
 
-/** サーバーとつながったら listener を呼ぶ（読み込みに失敗した値・取りこぼしたかもしれない値を取り直すため）。やめるときは返り値を呼ぶ */
-export function subscribeServerOpen(listener: OpenListener): () => void {
+/**
+ * サーバーとつながったら listener を呼ぶ（つながる前・切れている間の知らせは届かないので、その間に読んだ値と、失敗した値を取り直すため）。
+ * やめるときは返り値を呼ぶ
+ */
+export function subscribeServerOpen(listener: () => void): () => void {
   openListeners.add(listener);
   return () => void openListeners.delete(listener);
 }
