@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Chat } from "@shared/types";
+import { makeChat } from "@shared/testing/factories";
 import { closedLinks, NO_LINKS, openedLinks, syncLinkedTabs, type LinkState } from "./linkedTabs";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 
-const makeChat = (id: number) => ({ id, project_id: 1, title: `チャット${id}` }) as Chat;
 const chatTab = (id: number): PanelTab => ({ key: `chat:${id}`, kind: "chat", id, projectId: 1, title: `チャット${id}` });
 const browser: PanelTab = { key: "browser:1", kind: "browser", url: "", title: "" };
 const ids = (tabs: readonly PanelTab[]) => tabs.map((t) => t.key);

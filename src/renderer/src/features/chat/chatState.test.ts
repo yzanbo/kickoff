@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Chat } from "@shared/types";
+import { makeChat } from "@shared/testing/factories";
 import { approvalIndex, chatStateOf, stateCounts } from "./chatState";
 
-const chat = (id: number, status: Chat["status"], unread = false) => ({ id, status, unread }) as unknown as Chat;
+const chat = (id: number, status: Chat["status"], unread = false) => makeChat(id, { status, unread });
 
 test("approvalIndex: 回答待ちの依頼があるチャットの ID の集まり（同じチャットの依頼が複数あっても 1 つ）", () => {
   const index = approvalIndex([{ chat_id: 1 }, { chat_id: 3 }, { chat_id: 1 }]);
@@ -40,7 +41,7 @@ test("stateCounts: 作業中・回答待ち・未読の数（カンバンの列�
     // 回答待ちの依頼がある（approvals から引く）
     chat(7, "running"),
   ];
-  const archived = { ...chat(8, "running"), archived_at: "2026-01-01T00:00:00Z" } as Chat;
+  const archived = { ...chat(8, "running"), archived_at: "2026-01-01T00:00:00Z" };
   assert.deepEqual(stateCounts([...list, archived], approvalIndex([{ chat_id: 3 }, { chat_id: 7 }, { chat_id: 8 }])), { running: 2, needs_input: 2, unread: 2 });
   assert.deepEqual(stateCounts([], approvalIndex([])), { running: 0, needs_input: 0, unread: 0 });
 });

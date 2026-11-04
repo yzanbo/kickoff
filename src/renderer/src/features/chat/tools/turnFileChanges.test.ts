@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ChatEvent, ChatEventOf } from "@shared/types";
+import type { ChatEventOf } from "@shared/types";
+import { eventSequence } from "@shared/testing/factories";
 import { groupEvents } from "@/features/chat/timeline/timelineItems";
 import { changesOf, lineDelta, type EditCall } from "./turnFileChanges";
 
-let id = 0;
-const ev = (type: ChatEvent["type"], data: object): ChatEvent => ({ id: ++id, chat_id: 1, type, data, created_at: "2026-11-04T00:00:00Z" }) as unknown as ChatEvent;
-const call = (key: string, name: string, input: object, result: object = { content: "ok" }, parent?: string) => [
+const ev = eventSequence();
+const call = (key: string, name: string, input: object, result: { content: string; is_error?: boolean } = { content: "ok" }, parent?: string) => [
   ev("tool_use", { id: key, name, input, ...(parent ? { parent } : {}) }),
   ev("tool_result", { tool_use_id: key, is_error: false, ...result, ...(parent ? { parent } : {}) }),
 ];

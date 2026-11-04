@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { ChatGroup } from "@shared/types";
+import { makeGroup } from "@shared/testing/factories";
 import { groupNameIn, reduceGroups } from "./groups";
 
-const group = (id: number, project_id: number, position: number) => ({ id, project_id, position, name: `g${id}` }) as ChatGroup;
+const group = (id: number, project_id: number, position: number) => makeGroup(id, { project_id, position, name: `g${id}` });
 const ids = (list: readonly ChatGroup[]) => list.map((g) => g.id);
 
 test("reduceGroups: 作った・変えたグループは並び順（position → id）の位置へ。ほかのプロジェクトの知らせでは同じ一覧のまま", () => {

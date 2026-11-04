@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Chat } from "@shared/types";
+import { makeChat } from "@shared/testing/factories";
 import { kanbanChats } from "./useKanbanChats";
 
-const chat = (id: number, extra: Partial<Chat> = {}) =>
-  ({ id, project_id: 1, worktree_path: null, archived_at: null, active_at: `2026-01-0${id}`, title: `c${id}`, ...extra }) as Chat;
+const chat = (id: number, extra: Partial<Chat> = {}) => makeChat(id, { active_at: `2026-01-0${id}`, title: `c${id}`, ...extra });
 const all = { archive: "all" as const, worktree: "all", matches: () => true };
 const ids = (list: Chat[]) => list.map((c) => c.id);
 

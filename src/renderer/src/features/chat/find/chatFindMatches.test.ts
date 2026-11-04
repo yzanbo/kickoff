@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ChatEvent } from "@shared/types";
+import type { ChatEventType } from "@shared/types";
+import { makeEvent, type EventInput } from "@shared/testing/factories";
 import { findMatches, matchOffsets } from "./chatFindMatches";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 
-const item = (id: number, type: string, data: object): TimelineItem => ({ kind: "event", key: `e${id}`, event: { id, type, data } as unknown as ChatEvent });
+const item = <T extends ChatEventType>(id: number, type: T, data: EventInput<T>): TimelineItem => ({ kind: "event", key: `e${id}`, event: makeEvent(id, type, data) });
 
 test("チャットの中の検索: 自分の発言と AI の返答から、流れの順に、発言の中の何番目かを添えて探す", () => {
   const items: TimelineItem[] = [

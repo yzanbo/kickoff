@@ -1,21 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ChatEvent } from "@shared/types";
+import { makeEvent } from "@shared/testing/factories";
 import { collectSubagents, networkStoppedSubagents } from "./subagents";
 import { textSimilarity } from "./subagentSupersede";
 
-const ev = (id: number, type: ChatEvent["type"], data: object): ChatEvent =>
-  ({ id, chat_id: 1, type, data, created_at: "2026-11-03T00:00:00Z" }) as unknown as ChatEvent;
 
 const PROMPT = "日本語で報告してください。読むだけの調査です。Mac に入っている チャット画面の機能を洗い出し、Kickoff にないものを挙げてください。";
 // 裏で動かして、終わりの知らせで結果を受け取る
 const launch = (n: number, key: string, agent: string, description: string, prompt: string) => [
-  ev(n, "tool_use", { id: key, name: "Agent", input: { description, prompt } }),
-  ev(n + 1, "tool_result", { tool_use_id: key, is_error: false, content: `Async agent launched successfully.\nagentId: ${agent}` }),
-  ev(n + 2, "subagent", { task_id: agent, tool_use_id: key, description, status: "running" }),
+  makeEvent(n, "tool_use", { id: key, name: "Agent", input: { description, prompt } }),
+  makeEvent(n + 1, "tool_result", { tool_use_id: key, is_error: false, content: `Async agent launched successfully.\nagentId: ${agent}` }),
+  makeEvent(n + 2, "subagent", { task_id: agent, tool_use_id: key, description, status: "running" }),
 ];
 const failed = (n: number, key: string, agent: string, summary: string) =>
-  ev(n, "subagent", { task_id: agent, tool_use_id: key, description: "", status: "failed", summary });
+  makeEvent(n, "subagent", { task_id: agent, tool_use_id: key, description: "", status: "failed", summary });
 
 test("やり直し済み: 失敗のあとに、親が似た依頼の新しいサブエージェントを始めたら、その回を指す", () => {
   const events = [

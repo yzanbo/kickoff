@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Chat } from "@shared/types";
+import { makeChat } from "@shared/testing/factories";
 import { chatsByProject, NO_CHATS, reduceChats, selectChats, upsertChat } from "./chats";
 
-const chat = (id: number, project_id: number, active_at: string, archived_at: string | null = null) => ({ id, project_id, active_at, archived_at }) as Chat;
+const chat = (id: number, project_id: number, active_at: string, archived_at: string | null = null) => makeChat(id, { project_id, active_at, archived_at });
 const ids = (list: readonly Chat[]) => list.map((r) => r.id);
 
 test("upsertChat: 最後に動いた順の位置に入れ、同じ ID は置き換える（同じ時刻なら新しく作った順）", () => {

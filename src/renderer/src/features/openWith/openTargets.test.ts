@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Chat } from "@shared/types";
+import { makeChat } from "@shared/testing/factories";
 import { shownActiveOf } from "@/features/panel/state/panelKinds";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 import { browserPageOf, terminalTargetOf } from "./openTargets";
@@ -14,9 +14,9 @@ const browser: PanelTab = { key: "browser:x", kind: "browser", url: "https://exa
 const terminal: PanelTab = { key: "terminal:x", kind: "terminal", cwd: "/repo/a", label: "a", projectId: 1 };
 
 test("ターミナルを開く場所: チャットを見せていればその作業場所（ワークツリー → そのプロジェクトの本体）、そうでなければ開く場所が 1 つのときだけ", () => {
-  const inWorktree = { id: 5, project_id: 2, worktree_path: "/repo/b-worktrees/feat" } as Chat;
+  const inWorktree = makeChat(5, { project_id: 2, worktree_path: "/repo/b-worktrees/feat" });
   assert.deepEqual(terminalTargetOf(chatTab, inWorktree, targets), { cwd: "/repo/b-worktrees/feat", label: "feat", projectId: 2 });
-  assert.deepEqual(terminalTargetOf(chatTab, { id: 5, project_id: 2, worktree_path: null } as Chat, targets), targets[1]);
+  assert.deepEqual(terminalTargetOf(chatTab, makeChat(5, { project_id: 2 }), targets), targets[1]);
   // チャットがまだ届いていなければ、タブのプロジェクトの本体
   assert.deepEqual(terminalTargetOf(chatTab, undefined, targets), targets[1]);
   assert.equal(terminalTargetOf(browser, undefined, targets), undefined);

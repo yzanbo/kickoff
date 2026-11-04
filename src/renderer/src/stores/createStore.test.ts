@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { BusEvent, ChatGroup } from "@shared/types";
+import { makeGroup } from "@shared/testing/factories";
 import { publishServerEvent, publishServerOpen } from "@/api/events";
 import { createStore } from "./createStore";
 import { createKeyedStore } from "./keyedStore";
@@ -30,7 +31,7 @@ function loader<T>() {
 }
 
 const flush = () => new Promise((resolve) => setImmediate(resolve));
-const group = (id: number, project_id = 1) => ({ id, project_id, name: `g${id}`, position: id }) as ChatGroup;
+const group = (id: number, project_id = 1) => makeGroup(id, { project_id, name: `g${id}` });
 const groupEvent = (g: ChatGroup): BusEvent => ({ type: "group", group: g });
 
 test("店: 同時に何度頼まれても読み込みは 1 回で、届いたら値を出す", async () => {

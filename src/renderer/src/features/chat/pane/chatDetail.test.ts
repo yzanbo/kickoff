@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Approval, BusEvent, Chat, ChatDetail, ChatEvent, ChatLive } from "@shared/types";
+import { makeChat, makeEvent } from "@shared/testing/factories";
 import { detailFromSnapshot, EMPTY_DETAIL, reduceChatDetail, type ChatDetailState } from "./chatDetail";
 
-const chat = (id: number, status: Chat["status"] = "running") => ({ id, project_id: 1, status }) as Chat;
-const ev = (id: number, chatId = 1): ChatEvent => ({ id, chat_id: chatId, type: "text", data: { text: `#${id}` }, created_at: "2026-11-05T00:00:00Z" }) as ChatEvent;
+const chat = (id: number, status: Chat["status"] = "running") => makeChat(id, { status });
+const ev = (id: number, chatId = 1) => makeEvent(id, "text", { text: `#${id}` }, { chat_id: chatId });
 const approval = (id: string, chatId = 1) => ({ id, chat_id: chatId }) as Approval;
 const live = (paused: boolean): ChatLive => ({ ...EMPTY_DETAIL.live, queue: { ...EMPTY_DETAIL.live.queue, paused } });
 const ids = (s: ChatDetailState) => s.events.map((e) => e.id);

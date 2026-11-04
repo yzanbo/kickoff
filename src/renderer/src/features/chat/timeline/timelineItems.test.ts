@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { ChatEvent, ChatEventOf } from "@shared/types";
+import { eventSequence, makeEvent } from "@shared/testing/factories";
 import { groupEvents, relativize, summarizeTools, type ToolCall } from "./timelineItems";
 
-let nextId = 1;
-const call = (name: string, input: object = {}): ToolCall => ({
-  use: { id: nextId++, chat_id: 1, type: "tool_use", data: { id: `tu${nextId}`, name, input }, created_at: "2026-11-01T00:00:00Z" } as unknown as ChatEventOf<"tool_use">,
-});
+const use = eventSequence();
+let tools = 0;
+const call = (name: string, input: object = {}): ToolCall => ({ use: use("tool_use", { id: `tu${++tools}`, name, input }) });
 
 test("ツールのまとまりの要約: 編集・読み取りはファイルの数、それ以外は回数で 1 文にする", () => {
   assert.equal(
@@ -32,20 +31,18 @@ test("ツールのまとまりの要約: ToDo・ツール検索・スキル・�
   assert.equal(summarizeTools([call("mcp__github__get_issue"), call("Mystery"), call("Mystery")]), "MCP のツールを1回使用 および その他のツールを2回使用");
 });
 
-const event = (id: number, type: string, data: object = {}): ChatEvent => ({ id, chat_id: 1, type, data, created_at: "2026-11-01T00:00:00Z" }) as unknown as ChatEvent;
-
 test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果は呼び出しにぶら下げる。init・thinking などは出さない", () => {
   const items = groupEvents([
-    event(1, "init"),
-    event(2, "user", { text: "やって" }),
-    event(3, "tool_use", { id: "a", name: "Read", input: {} }),
-    event(4, "tool_result", { tool_use_id: "a", content: "ok" }),
-    event(5, "tool_use", { id: "b", name: "Bash", input: {} }),
-    event(6, "thinking", { text: "" }),
-    event(7, "text", { text: "できました" }),
-    event(8, "tool_use", { id: "c", name: "Edit", input: {} }),
+    makeEvent(1, "init", { session_id: "s1" }),
+    makeEvent(2, "user", { text: "やって" }),
+    makeEvent(3, "tool_use", { id: "a", name: "Read", input: {} }),
+    makeEvent(4, "tool_result", { tool_use_id: "a", content: "ok" }),
+    makeEvent(5, "tool_use", { id: "b", name: "Bash", input: {} }),
+    makeEvent(6, "thinking", { text: "" }),
+    makeEvent(7, "text", { text: "できました" }),
+    makeEvent(8, "tool_use", { id: "c", name: "Edit", input: {} }),
     // 対応する呼び出しがない結果は捨てる
-    event(9, "tool_result", { tool_use_id: "zzz" }),
+    makeEvent(9, "tool_result", { tool_use_id: "zzz", content: "" }),
   ]);
   assert.deepEqual(
     items.map((i) => i.kind + ":" + i.key),
@@ -63,7 +60,7 @@ test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果�
 });
 
 test("groupEvents: parent を渡すとそのサブエージェントの分だけ、渡さなければ親のエージェントの分だけ", () => {
-  const events = [event(1, "text", { text: "親" }), event(2, "text", { text: "子", parent: "sub1" }), event(3, "tool_use", { id: "x", name: "Read", parent: "sub1" })];
+  const events = [makeEvent(1, "text", { text: "親" }), makeEvent(2, "text", { text: "子", parent: "sub1" }), makeEvent(3, "tool_use", { id: "x", name: "Read", input: {}, parent: "sub1" })];
   assert.deepEqual(
     groupEvents(events).map((i) => i.key),
     ["e1"],
@@ -88,17 +85,16 @@ test("relativize: リポジトリの絶対パスを相対パスにする（リ�
 });
 
 test("groupEvents: 作業の終わり（result）に、その作業を始めた自分の発言の時刻と返答の文を付ける", () => {
-  const at = (id: number, type: string, time: string, data: object = {}) => ({ ...event(id, type, data), created_at: time });
   const items = groupEvents([
-    at(1, "user", "2026-11-01T00:00:00Z", { text: "1 回目" }),
-    at(10, "text", "2026-11-01T00:00:30Z", { text: "答え 1" }),
-    at(11, "text", "2026-11-01T00:00:40Z", { text: "サブ", parent: "x" }),
-    at(12, "text", "2026-11-01T00:00:50Z", { text: "答え 2" }),
-    at(2, "result", "2026-11-01T00:01:23Z", { status: "completed" }),
-    at(3, "user", "2026-11-01T00:05:00Z", { text: "2 回目" }),
-    at(4, "user", "2026-11-01T00:05:10Z", { text: "追加" }),
-    at(5, "result", "2026-11-01T00:06:00Z", { status: "cancelled" }),
-    at(6, "result", "2026-11-01T00:07:00Z", { status: "completed" }),
+    makeEvent(1, "user", { text: "1 回目" }, { created_at: "2026-11-01T00:00:00Z" }),
+    makeEvent(10, "text", { text: "答え 1" }, { created_at: "2026-11-01T00:00:30Z" }),
+    makeEvent(11, "text", { text: "サブ", parent: "x" }, { created_at: "2026-11-01T00:00:40Z" }),
+    makeEvent(12, "text", { text: "答え 2" }, { created_at: "2026-11-01T00:00:50Z" }),
+    makeEvent(2, "result", { status: "completed" }, { created_at: "2026-11-01T00:01:23Z" }),
+    makeEvent(3, "user", { text: "2 回目" }, { created_at: "2026-11-01T00:05:00Z" }),
+    makeEvent(4, "user", { text: "追加" }, { created_at: "2026-11-01T00:05:10Z" }),
+    makeEvent(5, "result", { status: "cancelled" }, { created_at: "2026-11-01T00:06:00Z" }),
+    makeEvent(6, "result", { status: "completed" }, { created_at: "2026-11-01T00:07:00Z" }),
   ]);
   const starts = items.flatMap((i) => (i.kind === "event" && i.event.type === "result" ? [i.turnStart] : []));
   // 続けて送ったときは最初の発言から数え、発言のない result には付けない
@@ -110,12 +106,12 @@ test("groupEvents: 作業の終わり（result）に、その作業を始めた�
 
 test("groupEvents: 思考は、中身があるか 2 秒以上考えたものだけ出す（短い思考ではツールのまとまりを分けない）", () => {
   const items = groupEvents([
-    event(1, "tool_use", { id: "a", name: "Read", input: {} }),
-    event(2, "thinking", { text: "", duration_ms: 800 }),
-    event(3, "tool_use", { id: "b", name: "Read", input: {} }),
-    event(4, "thinking", { text: "", duration_ms: 8_000 }),
-    event(5, "thinking", { text: "考えたこと" }),
-    event(6, "thinking", { text: "" }),
+    makeEvent(1, "tool_use", { id: "a", name: "Read", input: {} }),
+    makeEvent(2, "thinking", { text: "", duration_ms: 800 }),
+    makeEvent(3, "tool_use", { id: "b", name: "Read", input: {} }),
+    makeEvent(4, "thinking", { text: "", duration_ms: 8_000 }),
+    makeEvent(5, "thinking", { text: "考えたこと" }),
+    makeEvent(6, "thinking", { text: "" }),
   ]);
   assert.deepEqual(
     items.map((i) => (i.kind === "tools" ? `tools:${i.tools.length}` : i.event.id)),

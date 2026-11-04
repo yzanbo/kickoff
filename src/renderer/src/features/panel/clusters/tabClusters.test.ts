@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PROJECT_HUES } from "@shared/project/colors";
-import type { ChatGroup } from "@shared/types";
+import { makeGroup } from "@shared/testing/factories";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { OTHER_CLUSTER, clusterHue, clusterHues, clusterTabs, paneIndexOf, visibleClusterTabs } from "./tabClusters";
 
-const group = (id: number, position: number, hue = 0): ChatGroup => ({ id, project_id: 1, name: `G${id}`, position, hue, created_at: "" });
+const group = (id: number, position: number, hue = 0) => makeGroup(id, { position, hue });
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });
 
 test("タブのまとめ方: 同じ並びのまとまり（作業場所）は初めて出てくる順、その他はいちばん後ろ。まとまりの中はペインの並びのまま", () => {

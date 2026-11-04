@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Approval, Chat } from "@shared/types";
+import { makeChat } from "@shared/testing/factories";
 import { indexApprovals } from "./chatStatesContext";
 
 const approval = (chat_id: number) => ({ chat_id }) as Approval;
-const chat = (id: number, status: Chat["status"]) => ({ id, status, unread: false }) as unknown as Chat;
+const chat = (id: number, status: Chat["status"]) => makeChat(id, { status });
 
 test("indexApprovals: 回答待ちの依頼があるチャットは回答待ち、依頼の数も引ける", () => {
   const states = indexApprovals([approval(1), approval(1), approval(3)]);
