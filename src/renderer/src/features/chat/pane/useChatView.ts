@@ -11,7 +11,7 @@ import { usePromptKeys } from "@/features/chat/prompts/usePromptKeys";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { confirmRewindSend, restoreFilesBefore } from "@/features/chat/rewind/rewindActions";
 import { retryTurn, useRetryChoices } from "@/features/chat/rewind/useRetryChoices";
-import { useSubagents } from "@/features/chat/subagents/Subagents";
+import { useSubagents } from "@/features/chat/subagents/useSubagents";
 import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
 import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems";
 import { useTimelineScrollHandle } from "@/features/chat/timeline/timelineScroll";

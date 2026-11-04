@@ -4,7 +4,7 @@ import type { BackgroundState, BackgroundTask } from "@shared/types";
 import { api } from "@/api";
 import { confirmDialog, reportFailure } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
-import { ActivityNote } from "@/features/chat/subagents/Subagents";
+import { ActivityNote } from "@/features/chat/subagents/SubagentChip";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 
 const ICONS: Record<BackgroundTask["kind"], typeof Bot> = { agent: Bot, command: SquareTerminal, other: SquareTerminal };
