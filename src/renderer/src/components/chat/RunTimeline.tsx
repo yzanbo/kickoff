@@ -18,8 +18,12 @@ import { TimelineItems, Working } from "./Timeline";
 import type { TimelineItem } from "./timelineItems";
 import { useMarkSeen } from "./useMarkSeen";
 
-/** 上の端からこの距離まで戻ったら、窓の外の前の項目を足す */
-const TOP_LOAD_PX = 200;
+/**
+ * 窓の外の項目を足し始める、端からの距離（画面の高さに対する割合と、最低限の px）。
+ * 端に着いてから足すと、トラックパッドの慣性が端で止まり「途中で止まる」ように見えるので、ずっと手前で足しておく
+ */
+const LOAD_AHEAD_VIEWPORTS = 1.5;
+const LOAD_AHEAD_MIN_PX = 600;
 
 /** 一番下を見ているとみなす、下端からの距離（これより上にスクロールしたら、新しい発言に付いていかない） */
 const BOTTOM_SLACK_PX = 80;
@@ -138,7 +142,10 @@ export function RunTimeline({
     const prev = beforeMore.current;
     if (!el || !prev) return;
     beforeMore.current = null;
-    el.scrollTop = prev.top + (el.scrollHeight - prev.height);
+    // ふつうはブラウザのスクロールアンカーがもう位置を合わせている。合っていないときだけ直す
+    // （書き換えると、トラックパッドの慣性のスクロールがそこで止まる）
+    const expected = prev.top + (el.scrollHeight - prev.height);
+    if (Math.abs(el.scrollTop - expected) > 1) el.scrollTop = expected;
   }, [firstKey]);
   const showMore = () => {
     const el = timelineRef.current;
@@ -214,10 +221,12 @@ export function RunTimeline({
           stickToBottom.current = atBottom;
           setAway(!atBottom);
           if (atBottom) onAtBottom?.();
-          // 上の端の近くまで戻ったら、窓の外の前の項目を足す
-          if (hidden > 0 && el.scrollTop < TOP_LOAD_PX) showMore();
-          // 下の端の近くまで来たら、窓の外の後ろの項目を足す（下に足すので、読んでいた位置は動かない）
-          if (after > 0 && fromBottom < TOP_LOAD_PX) onShowLater?.();
+          // 上の端に近づいたら（着く前に）、窓の外の前の項目を足す
+          const ahead = Math.max(LOAD_AHEAD_MIN_PX, el.clientHeight * LOAD_AHEAD_VIEWPORTS);
+          // （一番下にいるときは足さない。窓が短いと、一番下で窓を戻す処理と行き来するため）
+          if (hidden > 0 && !atBottom && el.scrollTop < ahead) showMore();
+          // 下の端に近づいたら、窓の外の後ろの項目を足す（下に足すので、読んでいた位置は動かない）
+          if (after > 0 && fromBottom < ahead) onShowLater?.();
           // 帯の高さは、出していないときは前に出したときのもの（開いた全文の帯でも、出す・引っ込めるが行き来しないように）
           const bar = el.parentElement?.querySelector<HTMLElement>(".sticky-prompt");
           if (bar) stickyHeight.current = bar.offsetHeight;
