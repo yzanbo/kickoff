@@ -2,9 +2,8 @@ import { FolderGit2, Plus, Tags } from "lucide-react";
 import { ProjectSwitcher } from "@/features/project/page/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
 import { KanbanBoard } from "./KanbanBoard";
-import { sidebarOrder } from "@/features/project/projectOrder";
-import { useProjects } from "@/stores/projects";
-import { tagLabel, useProjectTagFilter } from "@/features/project/projectTagFilter";
+import { tagLabel } from "@/features/project/projectTagFilter";
+import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
 import { useChats } from "@/stores/chats";
 import { useGitHubStatus, useProviders } from "@/stores/providers";
@@ -16,14 +15,11 @@ interface Props {
 
 /** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
 export function AllProjectsPage({ onNewProject }: Props) {
-  const { projects } = useProjects();
   const providers = useProviders();
   const github = useGitHubStatus();
   const claude = providers.data?.find((p) => p.id === "claude");
   // しまった（アーカイブした）プロジェクトは、全プロジェクトの画面に出さない。サイドバーの「タグ」で絞り込んでいれば、合うものだけ
-  const tagFilter = useProjectTagFilter();
-  const all = sidebarOrder(projects);
-  const shown = all.filter(tagFilter.matches);
+  const { active: all, visible: shown, tagFilter } = useVisibleProjects();
   const notReady = (!providers.loading && !claude?.logged_in) || (!github.loading && !github.data?.logged_in);
   // 状態ごとの数: すぐ下の全プロジェクトのカンバンと同じチャット（しまったプロジェクトの分は除く）を、プロジェクトの画面・サイドバーと同じ数え方で
   const { chats } = useChats();

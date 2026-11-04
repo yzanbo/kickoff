@@ -1,9 +1,8 @@
 import { Inbox, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
-import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/stores/projects";
-import { useProjectTagFilter } from "@/features/project/projectTagFilter";
+import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { useChatStates } from "@/app/chatStatesContext";
 import { href, useRoute } from "@/app/router";
 import { ProjectNav } from "./ProjectNav";
@@ -36,10 +35,8 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   // 自分待ち（回答待ち・未読）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
   const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
   // タグで絞り込んでいれば、出しているプロジェクトの分だけを数える（押して出る一覧と合わせる）
-  const tagFilter = useProjectTagFilter();
-  const waitingCount = sidebarOrder(projects)
-    .filter(tagFilter.matches)
-    .reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
+  const { visible } = useVisibleProjects();
+  const waitingCount = visible.reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
   // チャットの複数選択（⌘ / Shift を押しながらクリック）。サイドバー全体で 1 つ
   const selection = useChatSelectionState(Object.values(chats).flatMap((list) => list.map((r) => r.id)));
   // ↑↓ でチャットを移る（サイドバーにピントがあるとき。Enter で開く。Shift を押しながらで選ぶものに足す）

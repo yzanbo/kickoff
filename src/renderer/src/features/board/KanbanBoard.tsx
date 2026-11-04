@@ -3,9 +3,8 @@ import { useMemo, useState } from "react";
 import type { Chat } from "@shared/types";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTicker } from "@/hooks/useTicker";
-import { sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/stores/projects";
-import { useProjectTagFilter } from "@/features/project/projectTagFilter";
+import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { openChat, type ReopenRoute } from "@/app/router";
 import { useProjectChatContext } from "@/features/panel/projectChat/useProjectChat";
 import { boardDrafts } from "./DraftCards";
@@ -43,15 +42,10 @@ const keepColumns = (head: BucketHead) => head.kind === "status";
  */
 export function KanbanBoard({ projectId, title, focus }: Props) {
   const allProjects = projectId === undefined;
-  // 全プロジェクトのボードでは、しまった（アーカイブした）プロジェクトを除いたサイドバーの並び（名前の引き当てはどのボードでも全プロジェクトから）。
-  // サイドバーの「タグ」で絞り込んでいれば、合うプロジェクトだけ
-  const { projects: allList, projectName } = useProjects();
-  const tagFilter = useProjectTagFilter();
-  const projects = useMemo(
-    () => (allProjects ? sidebarOrder(allList).filter(tagFilter.matches) : allList),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
-    [allList, allProjects, tagFilter.selected],
-  );
+  // 全プロジェクトのボードに出すプロジェクト: しまった（アーカイブした）ものを除いたサイドバーの並び。サイドバーの「タグ」で絞り込んでいれば、合うものだけ
+  // （使うのは全プロジェクトのボードだけ。名前の引き当てはどのボードでも全プロジェクトから）
+  const { projectName } = useProjects();
+  const { visible: projects } = useVisibleProjects();
   const [error, setError] = useState<string>();
   // 右クリックメニューの「名前を変更」は、カード・行の名前をその場で入力欄にする
   const rename = useChatRename(setError);

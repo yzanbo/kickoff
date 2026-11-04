@@ -7,9 +7,8 @@ import { useChats } from "@/stores/chats";
 import { useListNavigation } from "@/hooks/useListNavigation";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { useSetting } from "@/hooks/useSetting";
-import { archivedProjects, sidebarOrder } from "@/features/project/projectOrder";
 import { useProjects } from "@/stores/projects";
-import { useProjectTagFilter } from "@/features/project/projectTagFilter";
+import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
 import { openChat } from "@/app/router";
 import { shortRelativeTime } from "@/lib/time";
@@ -34,9 +33,10 @@ const draftTitle = (draft: SidebarDraft) => draft.text.trim().split("\n")[0] || 
  * アーカイブ済みのプロジェクトのチャットは、行の右端の切り替えで出す（初めは隠す。覚えておく）
  */
 export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
-  const { projects, projectName, projectsById } = useProjects();
-  // サイドバーの「タグ」で絞り込んでいれば、合うプロジェクトのチャットだけ
-  const tagFilter = useProjectTagFilter();
+  const { projectName } = useProjects();
+  // 出すプロジェクト: サイドバーと同じく、しまったものを除いた並び（サイドバーの「タグ」で絞り込んでいれば、合うものだけ）。
+  // アーカイブ済みのプロジェクトは、行の右端の切り替えで出したときだけ後ろに足す
+  const { visible, archived, tagFilter } = useVisibleProjects();
   const { pending } = useChatStates();
   const [query, setQuery] = useState("");
   // すべてのプロジェクトのチャット（開いている間も、状態の変化・削除に追いつく）
@@ -50,11 +50,10 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
   // プロジェクトの絞り込みの選択肢には、ほかの絞り込み（文字・タグ・アーカイブ済みのプロジェクト）を通ったものの数を添える
   const { groups, items, total, options, selected } = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const inFilter = (projectId: number) => {
-      const p = projectsById.get(projectId);
-      if (!p || (p.archived_at && !showArchived)) return false;
-      return !tagFilter.active || tagFilter.matches(p);
-    };
+    // 選べるプロジェクト（サイドバーの並び → アーカイブ済み）
+    const ordered = showArchived ? [...visible, ...archived] : visible;
+    const allowed = new Set(ordered.map((p) => p.id));
+    const inFilter = (projectId: number) => allowed.has(projectId);
     const matches = (title: string, projectId: number) => inFilter(projectId) && (!q || `${title} ${projectName(projectId)}`.toLowerCase().includes(q));
     // 状態ごとのまとまり（作業中・回答待ち・未読。アーカイブしたもの・既読は入れない。中は最後に動いた順）
     const sections = chatsByState(
@@ -66,11 +65,10 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
     // プロジェクトごとの数と、選択肢（サイドバーの並び → アーカイブ済み。チャットのあるものと、選んでいるもの）
     const counts = new Map<number, number>();
     for (const id of [...baseChats.map((r) => r.project_id), ...baseDrafts.map((d) => d.projectId)]) counts.set(id, (counts.get(id) ?? 0) + 1);
-    const ordered = [...sidebarOrder(projects), ...(showArchived ? archivedProjects(projects) : [])];
     // 選んでいたプロジェクトが隠れた（アーカイブ済みを隠した・タグで外れた）ら「すべて」に戻す
     const selected: ProjectFilterValue = project !== "all" && inFilter(project) ? project : "all";
     const options: ProjectFilterOption[] = ordered
-      .filter((p) => inFilter(p.id) && ((counts.get(p.id) ?? 0) > 0 || p.id === selected))
+      .filter((p) => (counts.get(p.id) ?? 0) > 0 || p.id === selected)
       .map((p) => ({ id: p.id, name: p.name, count: counts.get(p.id) ?? 0, archived: Boolean(p.archived_at) }));
     const inProject = (projectId: number) => selected === "all" || projectId === selected;
 
@@ -87,11 +85,8 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
       })),
     ].filter((g) => g.items.length > 0);
     return { groups, items: groups.flatMap((g) => g.items), total: baseChats.length + baseDrafts.length, options, selected };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
-  }, [chats, drafts, query, pending, projects, projectName, projectsById, tagFilter.selected, project, showArchived]);
-  const archivedCount = useMemo(() => projects.filter((p) => p.archived_at && (!tagFilter.active || tagFilter.matches(p))).length,
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- matches は selected だけで決まる
-    [projects, tagFilter.selected]);
+  }, [chats, drafts, query, pending, visible, archived, projectName, project, showArchived]);
+  const archivedCount = archived.length;
 
   function go(item: Item | undefined) {
     if (!item) return;
