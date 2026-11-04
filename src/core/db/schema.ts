@@ -9,8 +9,7 @@ export const APPLICATION_ID = 0x4b49434b;
 /**
  * v1 のスキーマ（すべて STRICT。真偽値は 0 / 1、JSON の列は json_valid で確かめる）。
  * 会話の記録のうち、自分の発言と AI の返答（type が user / text）の文は生成列 text に出し、
- * 全文検索の索引 run_event_search（trigram で部分一致）はビュー run_event_texts を中身にして、トリガーで追従させる。
- * 古い系統の v17 からの変換（legacyMigration.ts）も、この版に写す
+ * 全文検索の索引 run_event_search（trigram で部分一致）はビュー run_event_texts を中身にして、トリガーで追従させる
  */
 export const SCHEMA_V1 = `
 CREATE TABLE settings (
@@ -29,6 +28,7 @@ CREATE TABLE projects (
   archived_at TEXT,
   defaults TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(defaults)),
   reference_paths TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(reference_paths)),
+  tags TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags)),
   created_at TEXT NOT NULL DEFAULT (${NOW}),
   active_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
@@ -37,6 +37,7 @@ CREATE TABLE run_groups (
   project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   position INTEGER NOT NULL DEFAULT 0,
+  hue INTEGER NOT NULL CHECK (hue BETWEEN 0 AND 359),
   created_at TEXT NOT NULL DEFAULT (${NOW})
 ) STRICT;
 CREATE INDEX idx_run_groups_project ON run_groups(project_id);
@@ -92,18 +93,6 @@ CREATE TRIGGER run_events_search_update AFTER UPDATE OF type, data ON run_events
   INSERT INTO run_event_search (run_event_search, rowid, text) SELECT 'delete', old.id, old.text WHERE old.text IS NOT NULL;
   INSERT INTO run_event_search (rowid, text) SELECT new.id, new.text WHERE new.text IS NOT NULL;
 END;
-`;
-
-/** v2: プロジェクトのタグ（文字の JSON 配列。既存の行は空の配列） */
-const SCHEMA_V2_PROJECT_TAGS = `
-ALTER TABLE projects ADD COLUMN tags TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(tags));
-`;
-
-/**
- * v3: 送信待ちの指示（作業中のチャットに送った次の指示の待ちの列）を、再起動しても残す。チャットごとに 1 行で、
- * 列の中身（QueuedMessage の JSON 配列）・止めておくか・「ここまで自動で送る」の印を丸ごと持つ。チャットを消すと一緒に消える
- */
-const SCHEMA_V3_RUN_QUEUES = `
 CREATE TABLE run_queues (
   run_id INTEGER PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
   messages TEXT NOT NULL CHECK (json_valid(messages)),
@@ -112,50 +101,43 @@ CREATE TABLE run_queues (
 ) STRICT;
 `;
 
-/**
- * v4: グループの色（色相。プロジェクトの色と同じ 10 色から、同じプロジェクトのほかのグループと被らない色を作ったときに選ぶ）。
- * 右のパネルのタブのまとまりの色に使う（以前は名前のキーから決めていて、同じプロジェクトのグループどうしで色が被った）。
- * いまあるグループは NULL で足し、開いたときにグループの店（store/groups.ts の assignMissingHues）が並び順に被らない色を付ける
- */
-const SCHEMA_V4_GROUP_HUES = `
-ALTER TABLE run_groups ADD COLUMN hue INTEGER CHECK (hue IS NULL OR hue BETWEEN 0 AND 359);
-`;
-
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2_PROJECT_TAGS, SCHEMA_V3_RUN_QUEUES, SCHEMA_V4_GROUP_HUES];
+const MIGRATIONS = [SCHEMA_V1];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
 /**
- * いまの系統の PRAGMA user_version は、この数に版を足して持つ（v1 = 101）。古い系統の版（〜17）と重ならないので、
- * 古いコードの migrate（user_version が 17 未満のときだけ以前の MIGRATIONS を流す）は、変換したあとの DB に何もしない
+ * PRAGMA user_version は、この数に版を足して持つ（v1 = 201）。2026-11 の作り直しより前（リリース前）の系統は 100 ＋ 版（101〜）で、
+ * その DB は引き継がずに消して作り直す（prerelease.ts）
  */
-export const USER_VERSION_BASE = 100;
+export const USER_VERSION_BASE = 200;
 
-/** 古い系統（application_id のない Kickoff）の最後の版。この版のデータベースだけを変換して引き継ぐ（legacyMigration.ts） */
-export const LEGACY_VERSION = 17;
+/** リリース前の系統の user_version（100 ＋ 版） */
+const PRERELEASE_BASE = 100;
 
 const pragmaNumber = (db: DatabaseSync, name: "user_version" | "application_id") =>
   (db.prepare(`PRAGMA ${name}`).get() as Record<string, number>)[name];
 
-/** PRAGMA user_version そのもの（作ったばかりなら 0、古い系統は 17 まで、いまの系統は USER_VERSION_BASE ＋ 版） */
+/** PRAGMA user_version そのもの（作ったばかりなら 0、いまの系統は USER_VERSION_BASE ＋ 版） */
 export function userVersion(db: DatabaseSync): number {
   return pragmaNumber(db, "user_version");
 }
 
-/** データベースの系統と版。empty: 作ったばかり（空） / current: いまの系統の v<version> / legacy: 古い系統の v17（変換する） */
-export type SchemaState = { kind: "empty" } | { kind: "current"; version: number } | { kind: "legacy" };
+/** データベースの系統と版。empty: 作ったばかり（空） / current: いまの系統の v<version> / prerelease: リリース前の系統（消して作り直す） */
+export type SchemaState = { kind: "empty" } | { kind: "current"; version: number } | { kind: "prerelease" };
 
-/** 開いたデータベースが何かを調べる（読むだけ）。Kickoff のものでない・対応していない版なら、データに触らずに例外を投げる */
+/** 開いたデータベースが何かを調べる（読むだけ）。Kickoff のものでない・このアプリより新しい版なら、データに触らずに例外を投げる */
 export function inspectSchema(db: DatabaseSync): SchemaState {
   const applicationId = pragmaNumber(db, "application_id");
   const raw = userVersion(db);
-  if (applicationId === APPLICATION_ID && raw > USER_VERSION_BASE) return { kind: "current", version: raw - USER_VERSION_BASE };
-  if (applicationId === 0) {
+  if (applicationId === APPLICATION_ID) {
+    if (raw > USER_VERSION_BASE && raw <= USER_VERSION_BASE + SCHEMA_VERSION) return { kind: "current", version: raw - USER_VERSION_BASE };
+    if (raw > PRERELEASE_BASE && raw < USER_VERSION_BASE) return { kind: "prerelease" };
+  }
+  if (applicationId === 0 && raw === 0) {
     const { objects } = db.prepare("SELECT count(*) AS objects FROM sqlite_master").get() as { objects: number };
-    if (raw === 0 && objects === 0) return { kind: "empty" };
-    if (raw === LEGACY_VERSION) return { kind: "legacy" };
+    if (objects === 0) return { kind: "empty" };
   }
   throw new Error(
     `Kickoff のデータベースではないか、対応していない版のため開けません（application_id = ${applicationId}、user_version = ${raw}）。データには触れていません`,
@@ -165,7 +147,7 @@ export function inspectSchema(db: DatabaseSync): SchemaState {
 /** いまの系統の版を上げる。版ごとに 1 つのトランザクションで流し、いまの系統の印と user_version（USER_VERSION_BASE ＋ 版）を付ける */
 export function migrate(db: DatabaseSync) {
   const state = inspectSchema(db);
-  if (state.kind === "legacy") throw new Error(`古い系統の v${LEGACY_VERSION} のデータベースは、変換してから版を上げます`);
+  if (state.kind === "prerelease") throw new Error("リリース前の版のデータベースは、消してから作り直します（discardPrereleaseData）");
   for (let v = state.kind === "current" ? state.version : 0; v < MIGRATIONS.length; v++) {
     db.exec("BEGIN");
     try {
