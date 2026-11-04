@@ -5,7 +5,7 @@ import { useChatStates } from "@/app/chatStatesContext";
 import { useChatSearch } from "@/features/chat/chatSearch";
 import { useSetting } from "@/hooks/useSetting";
 import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
-import type { StateFilter } from "./HeadCounts";
+import type { CountedColumn } from "@/features/chat/chatState";
 import { isWaitingState } from "@/features/chatList/chatListFlags";
 
 /**
@@ -20,7 +20,7 @@ export function useWorkspaceRows({ chats, groups, searchAll }: { chats: Chat[]; 
   const [query, setQuery] = useState("");
   const { keyword, matches } = useChatSearch(query || searchAll);
   // 見出しの状態の数を押して、その状態のチャットだけに絞る（このプロジェクトだけ。もう一度押すと戻す）
-  const [stateFilter, setStateFilter] = useState<StateFilter | null>(null);
+  const [stateFilter, setStateFilter] = useState<CountedColumn | null>(null);
   // 検索・自分待ち・状態で絞り込んでいる間は、まとまりを開いて見せ、空のまとまりは隠す
   const filtering = Boolean(keyword) || waitingOnly || stateFilter !== null;
 

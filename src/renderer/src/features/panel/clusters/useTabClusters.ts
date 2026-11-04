@@ -5,7 +5,8 @@ import { useProjects } from "@/stores/projects";
 import { panelTabGrouping } from "@/lib/storageKeys";
 import { workplaceOf } from "@/features/worktree/workplace";
 import { useWorktreesOf } from "@/stores/worktrees";
-import { OTHER_CLUSTER, type ClusterOf, type ClusterSeed, type TabGrouping } from "./tabClusters";
+import type { ChatGrouping } from "@/features/chatList/chatGrouping";
+import { OTHER_CLUSTER, type ClusterOf, type ClusterSeed } from "./tabClusters";
 import type { PanelSurface } from "@/features/panel/state/panelKinds";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
@@ -29,7 +30,7 @@ const projectOfTab = (t: PanelTab): number | undefined => (t.kind === "browser" 
  */
 export function useTabClusters(
   panel: PanelController,
-  grouping: TabGrouping,
+  grouping: ChatGrouping,
 ): { clusterOf: (key: string) => ClusterOf; clusterOfChat: (chat: Chat) => ClusterOf; order: ClusterSeed[] } {
   const { projectsById, projectName } = useProjects();
   const projectIds = [...new Set(panel.tabs.flatMap((t) => projectOfTab(t) ?? []))];

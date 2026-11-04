@@ -51,7 +51,7 @@ export const WorkspacePage = memo(function WorkspacePage({
 }) {
   const route = useRoute();
   // まとめ方（まとめない / グループ / 作業場所）と並び順（新しい順 / 状態別）。グループの見出しは「グループ」のときだけ出す
-  const { sections: chatSections, setSections, order } = useChatLayout();
+  const { grouping: chatSections, setGrouping: setSections, order } = useChatLayout();
   const byGroup = chatSections === "group";
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ。はじめは出さない）
   const [showArchived] = useShowArchivedChats();

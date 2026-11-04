@@ -2,7 +2,8 @@ import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizo
 import type { ProjectOrder } from "@/features/project/projectOrder";
 import type { SettingValue } from "@/lib/storage";
 import type { SIDEBAR_LAYOUT } from "@/lib/storageKeys";
-import { CHAT_SECTIONS, ORDER_META, SECTIONS_META, useChatLayout } from "./chatGroupings";
+import { CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
+import { GROUPING_META, ORDER_META, useChatLayout } from "./chatGroupings";
 import { HeadMenu, HeadToggle } from "./HeadMenu";
 import { IconButton } from "@/ui/IconButton";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "@/features/chatList/chatListFlags";
@@ -43,7 +44,7 @@ interface Props {
  * （ボタンを 5 つ並べる幅はないため。以前はアーカイブの右に同じ形のボタンで置いていたが、並び順を足して収まらなくなった）
  */
 export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
-  const { sections, setSections, order: chatOrder, setOrder: setChatOrder } = useChatLayout();
+  const { grouping, setGrouping, order: chatOrder, setOrder: setChatOrder } = useChatLayout();
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
   const [compactProjects, setCompactProjects] = useCompactProjects();
@@ -107,12 +108,12 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         </span>
         <HeadMenu
           id="grouping"
-          icon={SECTIONS_META[sections].icon}
+          icon={GROUPING_META[grouping].icon}
           label="まとめ方"
-          value={SECTIONS_META[sections].short}
-          values={CHAT_SECTIONS.map((g) => SECTIONS_META[g].short)}
-          title={`チャットのまとめ方（すべてのプロジェクト。いまは「${SECTIONS_META[sections].label}」）`}
-          menu={{ title: "チャットのまとめ方", choices: CHAT_SECTIONS, meta: SECTIONS_META, current: sections, onPick: setSections }}
+          value={GROUPING_META[grouping].short}
+          values={CHAT_GROUPINGS.map((g) => GROUPING_META[g].short)}
+          title={`チャットのまとめ方（すべてのプロジェクト。いまは「${GROUPING_META[grouping].label}」）`}
+          menu={{ title: "チャットのまとめ方", choices: CHAT_GROUPINGS, meta: GROUPING_META, current: grouping, onPick: setGrouping }}
         />
         <HeadToggle
           id="chat-order"

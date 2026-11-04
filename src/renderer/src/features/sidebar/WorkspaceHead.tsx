@@ -9,10 +9,10 @@ import { GroupPickMenu } from "@/features/group/GroupPickMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { IconButton } from "@/ui/IconButton";
 import { ProjectTags } from "@/features/project/ProjectTags";
-import { HeadCounts, type StateFilter } from "./HeadCounts";
+import { HeadCounts } from "./HeadCounts";
 import { pressedLeftOfName } from "@/ui/GroupToggle";
 import { useProjectMenu } from "@/features/project/ProjectMenu";
-import type { StateCounts } from "@/features/chat/chatState";
+import type { CountedColumn, StateCounts } from "@/features/chat/chatState";
 
 /**
  * サイドバーのプロジェクトの見出し（どのプロジェクトを見ているかが一目でわかるよう、プロジェクトの色のカードにする）。
@@ -46,8 +46,8 @@ export function WorkspaceHead({
   /** 作業中・回答待ち・未読のチャット数 */
   counts: StateCounts;
   /** 状態の数を押して絞っている状態 */
-  stateFilter: StateFilter | null;
-  onStateFilter: (state: StateFilter | null) => void;
+  stateFilter: CountedColumn | null;
+  onStateFilter: (state: CountedColumn | null) => void;
   onCreateGroup: () => void;
   /** 縦並びのとき: 見出しのカードをつかんでプロジェクトを並べ替える */
   headDrag?: { onDragStart: (e: DragEvent) => void; onDragEnd: () => void };
