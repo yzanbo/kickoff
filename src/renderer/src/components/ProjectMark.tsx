@@ -1,7 +1,6 @@
 import { LayoutGrid } from "lucide-react";
-import type { CSSProperties } from "react";
 import { cx } from "../cx";
-import { initialOf, projectHue } from "../projectColor";
+import { initialOf, projectHueStyle } from "../projectColor";
 
 /**
  * プロジェクトの印（プロジェクトの色の角丸の四角に、名前の頭文字）。プロジェクトの色はこの印だけで出し、名前はどこでも普通の文字色にする
@@ -17,7 +16,7 @@ export function ProjectMark({ project, size = "sm", className }: { project?: { i
     );
   }
   return (
-    <span className={cx("project-mark", size, className)} style={{ "--ws-hue": `${projectHue(project.id)}` } as CSSProperties} aria-hidden>
+    <span className={cx("project-mark", size, className)} style={projectHueStyle(project.id)} aria-hidden>
       {initialOf(project.name)}
     </span>
   );

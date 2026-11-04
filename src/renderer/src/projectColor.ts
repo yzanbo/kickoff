@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Project } from "../../core/types";
 
 // プロジェクトごとの色（色相）。プロジェクトの一覧を読み込むたびに入れる（DB に覚えた色。作ったときにほかと被らない色を選んでいる）
@@ -11,6 +12,11 @@ export function setProjectHues(projects: Pick<Project, "id" | "hue">[]) {
 /** プロジェクトの色相（サイドバーの見出し・切り替えアイコン・全プロジェクトのカンバンで同じ色を使う。まだ分からなければ ID から仮に決める） */
 export function projectHue(id: number): number {
   return hues.get(id) ?? (id * 67) % 360;
+}
+
+/** プロジェクトの色を要素に渡す style（CSS の --ws-hue。印・札の地・横スライドの丸で使う） */
+export function projectHueStyle(id: number): CSSProperties {
+  return { "--ws-hue": `${projectHue(id)}` } as CSSProperties;
 }
 
 /** プロジェクト名の頭文字（アイコン用） */
