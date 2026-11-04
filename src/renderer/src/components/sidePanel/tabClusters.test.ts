@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { OTHER_CLUSTER, clusterTabs, paneIndexOf } from "./tabClusters.js";
+import { OTHER_CLUSTER, clusterHue, clusterTabs, paneIndexOf } from "./tabClusters.js";
 
 test("タブのまとめ方: 初めて出てくる順にまとめ、その他はいちばん後ろ。まとまりの中はペインの並びのまま", () => {
   const of: Record<string, string> = { a: "g1", b: "other", c: "g2", d: "g1", e: "g2" };
@@ -25,4 +25,10 @@ test("タブのまとめ方: 見た目の並びで落とす位置を、ペイン
   assert.equal(paneIndexOf(2, display, pane), 1);
   // いちばん後ろ
   assert.equal(paneIndexOf(4, display, pane), 4);
+});
+
+test("タブのまとめ方: まとまりの色はキーから決まり（いつも同じ）、その他は色なし", () => {
+  assert.equal(clusterHue("p5:g7"), clusterHue("p5:g7"));
+  assert.equal(typeof clusterHue("p5:g7"), "number");
+  assert.equal(clusterHue(OTHER_CLUSTER.key), null);
 });
