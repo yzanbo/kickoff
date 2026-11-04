@@ -41,10 +41,10 @@ export function safeFileName(name: string): string {
 }
 
 /** エージェントへのメッセージに添付の案内を付け足す */
-export function withAttachmentNote(text: string, files: { path: string; attachment: Attachment }[]): string {
+export function withAttachmentNote(text: string, files: { path: string; attachment: Attachment }[], heading = "添付ファイル（Read ツールで読めます）"): string {
   if (files.length === 0) return text;
   const lines = files.map(({ path: p, attachment: a }) => `- ${p}（${a.mime}, ${formatBytes(a.size)}）`);
-  const note = `添付ファイル（Read ツールで読めます）:\n${lines.join("\n")}`;
+  const note = `${heading}:\n${lines.join("\n")}`;
   return text.trim() ? `${text}\n\n${note}` : note;
 }
 
@@ -52,4 +52,32 @@ function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/** 回答に添えた添付の見出し（回答の一部なので、読み飛ばさずに開いてもらう） */
+const ANSWER_ATTACHMENT_HEADING = "回答に添えた添付ファイル（回答の一部です。Read ツールで開いて中身を確かめてから進めてください）";
+
+/**
+ * AI からの質問への回答に、質問ごとに添えた添付のパスを書き添える（回答は文字だけなので、エージェントは Read ツールで読む。
+ * 見つからない添付は書かない）。複数選ぶ質問は、最後の答えに書き添える
+ */
+export async function answersWithAttachments(
+  uploads: Pick<UploadStore, "resolve">,
+  answers: Record<string, string | string[]>,
+  attachments: Record<string, Attachment[]> | undefined,
+): Promise<Record<string, string | string[]>> {
+  if (!attachments) return answers;
+  const result = { ...answers };
+  for (const [question, list] of Object.entries(attachments)) {
+    const files = [];
+    for (const attachment of list) {
+      const resolved = await uploads.resolve(attachment.id);
+      if (resolved) files.push({ path: resolved.path, attachment });
+    }
+    if (files.length === 0) continue;
+    const current = result[question];
+    if (Array.isArray(current)) result[question] = [...current.slice(0, -1), withAttachmentNote(current.at(-1) ?? "", files, ANSWER_ATTACHMENT_HEADING)];
+    else result[question] = withAttachmentNote(current ?? "", files, ANSWER_ATTACHMENT_HEADING);
+  }
+  return result;
 }

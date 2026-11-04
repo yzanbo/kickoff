@@ -6,7 +6,8 @@ import type { ServerDeps } from "../server.js";
 import { PROVIDER_IDS, type ApprovalDecision, type ModelOption, type ProviderId, type SlashCommandOption } from "../types.js";
 import { ttlCache } from "../ttlCache.js";
 import { HttpError, requireProject, requireWorkdir } from "./http.js";
-import { optionalId, queryOf } from "./schemas.js";
+import { attachmentSchema, optionalId, queryOf } from "./schemas.js";
+import { answersWithAttachments } from "../uploads.js";
 
 const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action", [
   z.object({ action: z.literal("allow") }),
@@ -16,11 +17,12 @@ const decisionSchema: z.ZodType<ApprovalDecision> = z.discriminatedUnion("action
     action: z.literal("answer"),
     answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
     response: z.string().max(5000).optional(),
+    attachments: z.record(z.string(), z.array(attachmentSchema).max(20)).optional(),
   }),
 ]);
 
 /** 承認依頼・AI からの質問への回答、外部 CLI（Claude など）の状態とモデル一覧、プランの使用枠・サービスごとの使用状況 */
-export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, approvals }: ServerDeps) {
+export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, approvals, uploads }: ServerDeps) {
   // ---- 承認依頼・AI からの質問 ----
   app.get("/api/approvals", (c) => {
     const { project_id } = z.object({ project_id: optionalId }).parse({ project_id: queryOf(c, "project_id") });
@@ -28,7 +30,12 @@ export function agentRoutes(app: Hono, { store, providers, usage, serviceUsage, 
   });
 
   app.post("/api/approvals/:id", async (c) => {
-    const decision = decisionSchema.parse(await c.req.json());
+    let decision = decisionSchema.parse(await c.req.json());
+    // 「その他」に添えた添付は、回答の文にパスを書き添えてから渡す（Claude Code には文字の回答しか渡せない）
+    if (decision.action === "answer" && decision.attachments) {
+      const { attachments, ...rest } = decision;
+      decision = { ...rest, answers: await answersWithAttachments(uploads, rest.answers, attachments) };
+    }
     if (!approvals.resolve(c.req.param("id"), decision)) throw new HttpError(404, "この依頼はすでに回答済みか、中断されています");
     return c.json({ ok: true });
   });
