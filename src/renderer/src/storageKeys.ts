@@ -65,6 +65,8 @@ export const sidebarUngroupedClosedKey = (projectId: number) => `kickoff:ungroup
 // ボード（カンバン・グループ）
 /** ボードの表示（"board" / "list"、段に分けるなら "lanes"（ボード）/ "list-lanes"（リスト））。カンバン・グループのボードで共通（以前グループのボードだけで覚えていた kickoff:group-view は使わない。"lanes" は以前の「スイムレーン」の表示と同じ） */
 export const BOARD_VIEW_KEY = "kickoff:board-view";
+/** ボードのリスト表示の行を 1 行にまとめるか（"1" = 1 行 / "0"・未保存 = 2 行。すべてのボードで共通） */
+export const BOARD_LIST_COMPACT_KEY = "kickoff:board-list-compact";
 /** プロジェクトのボードの段（スイムレーン）の分け方（ボード・リストで共通。段に分けるかは BOARD_VIEW_KEY） */
 export const BOARD_LANES_KEY = "kickoff:board-lanes";
 /** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える） */
