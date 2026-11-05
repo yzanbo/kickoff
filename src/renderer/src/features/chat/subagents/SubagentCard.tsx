@@ -78,6 +78,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
               ›{" "}
             </span>
           )}
+          <span className="subagent-kind">サブエージェント</span>
           <span className="subagent-card-name">{entry.description}</span>
           <span className="subagent-card-type">{entry.subagentType ?? "general-purpose"}</span>
           {showsSubagentStatus(entry) && (
