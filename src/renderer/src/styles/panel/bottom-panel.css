@@ -11,14 +11,22 @@
   overflow: hidden;
   border-top: 1px solid transparent;
   background: var(--bg);
+  /* 閉じ終えたら中身を隠す（右端のチャット欄と同じ。はみ出した中身のドラッグ領域・押せる所を残さない） */
+  visibility: hidden;
   transition:
     height var(--panel-motion-duration) var(--panel-motion-ease),
-    border-color var(--panel-motion-duration);
+    border-color var(--panel-motion-duration),
+    visibility 0s linear var(--panel-motion-duration);
 }
 
 .bottom-panel.open {
   height: var(--bottom-h);
   border-top-color: var(--border);
+  visibility: visible;
+  transition:
+    height var(--panel-motion-duration) var(--panel-motion-ease),
+    border-color var(--panel-motion-duration),
+    visibility 0s;
 }
 
 .bottom-panel.open.maximized {
