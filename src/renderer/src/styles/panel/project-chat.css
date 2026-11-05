@@ -19,14 +19,26 @@
   overflow: hidden;
   border-left: 1px solid transparent;
   background: var(--bg);
+  /*
+   * 閉じ終えたら中身を隠す（visibility は閉じる動きのあとに切り替え、開くときはすぐ見せる）。
+   * 閉じても中身は開いたときの幅のまま左へはみ出して残り、見た目は切り取られても、タブの列（ウィンドウのドラッグ領域）は
+   * 切り取られずにボードの上に残った。そこにあるボードの右のパネルのタブ・見出しのボタンを押してもウィンドウのドラッグになり、カーソルも矢印になった
+   */
+  visibility: hidden;
   transition:
     width var(--panel-motion-duration) var(--panel-motion-ease),
-    border-color var(--panel-motion-duration);
+    border-color var(--panel-motion-duration),
+    visibility 0s linear var(--panel-motion-duration);
 }
 
 .project-chat.open {
   width: var(--chat-shown);
   border-left-color: var(--border);
+  visibility: visible;
+  transition:
+    width var(--panel-motion-duration) var(--panel-motion-ease),
+    border-color var(--panel-motion-duration),
+    visibility 0s;
 }
 
 .project-chat.resizing {
