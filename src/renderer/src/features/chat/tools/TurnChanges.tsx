@@ -6,8 +6,8 @@ import { FileIcon } from "@/features/editor/FileIcon";
 import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
 import type { FileChange } from "./turnFileChanges";
 
-/** 足した行・消した行（＋12 −3）。書き直しは消した行が分からないので足した行だけ */
-function Counts({ added, removed }: { added: number; removed: number }) {
+/** 足した行・消した行（＋12 −3）。書き直しは消した行が分からないので足した行だけ（メモの AI の案の差分でも使う） */
+export function ChangeCounts({ added, removed }: { added: number; removed: number }) {
   return (
     <span className="turn-change-counts">
       {added > 0 && <span className="turn-change-add">+{added}</span>}
@@ -34,7 +34,7 @@ export function TurnChanges({ files }: { files: FileChange[] }) {
       <summary>
         <ChevronRight size={13} className="tool-chevron" />
         <span>{files.length} 個のファイルを変更</span>
-        <Counts added={added} removed={removed} />
+        <ChangeCounts added={added} removed={removed} />
         {links && first && (
           <button
             type="button"
@@ -59,7 +59,7 @@ export function TurnChanges({ files }: { files: FileChange[] }) {
               {/* フォルダは作業場所からの相対（作業場所の外なら絶対パスのまま） */}
               <PathParts path={rel ?? f.path} nameClass="turn-change-name" dirClass="turn-change-dir" />
               {f.write && <span className="turn-change-tag">{f.write === "created" ? "新規" : "書き直し"}</span>}
-              <Counts added={f.added} removed={f.removed} />
+              <ChangeCounts added={f.added} removed={f.removed} />
             </>
           );
           return (

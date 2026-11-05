@@ -1,5 +1,6 @@
 // 1 回の作業（ターン）で変えたファイルの数え方（ターンの変更カード。純粋関数）
 import type { ChatEventOf } from "@shared/types";
+import { lineCounts, lineDiff } from "@/lib/lineDiff";
 
 /** ターンで変えたファイル 1 つ */
 export interface FileChange {
@@ -20,26 +21,9 @@ export interface EditCall {
 
 const lines = (text: string) => (text === "" ? [] : text.replace(/\n$/, "").split("\n"));
 
-/** 行ごとの比べ合わせの上限（これより大きい置き換えは、前後の同じ行を除いた残りを数えるだけにする） */
-const MAX_CELLS = 1_000_000;
-
-/** 置き換えの前後で、足した行と消した行（同じ行は数えない。最長共通部分列で比べる） */
+/** 置き換えの前後で、足した行と消した行（同じ行は数えない。最長共通部分列で比べる。lib/lineDiff） */
 export function lineDelta(before: string, after: string): { added: number; removed: number } {
-  let a = lines(before);
-  let b = lines(after);
-  // 前と後ろの同じ行は外す（多くの置き換えはここで小さくなる）
-  while (a.length && b.length && a[0] === b[0]) (a = a.slice(1)), (b = b.slice(1));
-  while (a.length && b.length && a[a.length - 1] === b[b.length - 1]) (a = a.slice(0, -1)), (b = b.slice(0, -1));
-  if (a.length * b.length > MAX_CELLS) return { added: b.length, removed: a.length };
-  // 最長共通部分列の長さ（1 行分ずつの表で求める）
-  let prev = new Array<number>(b.length + 1).fill(0);
-  for (const line of a) {
-    const row = new Array<number>(b.length + 1).fill(0);
-    for (let j = 0; j < b.length; j++) row[j + 1] = line === b[j] ? prev[j] + 1 : Math.max(prev[j + 1], row[j]);
-    prev = row;
-  }
-  const common = prev[b.length];
-  return { added: b.length - common, removed: a.length - common };
+  return lineCounts(lineDiff(before, after));
 }
 
 type EditInput = {
