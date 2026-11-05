@@ -20,15 +20,12 @@ import { MEMO_CHAT_PRESETS, type MemoChatState } from "./useMemoChat";
 export function MemoChat({
   chat,
   selection,
-  paneRef,
   inputRef,
   onClose,
 }: {
   chat: MemoChatState;
   /** 本文でいま選んでいる部分（なければ null） */
   selection: string | null;
-  /** 欄（幅のつまみが測る） */
-  paneRef: RefObject<HTMLElement | null>;
   /** 入力の欄（選択の上の「AI と話す」で開いたとき、ここにピントを移す） */
   inputRef: RefObject<HTMLTextAreaElement | null>;
   onClose: () => void;
@@ -52,7 +49,7 @@ export function MemoChat({
   }, [chat.entries.length, chat.busy]);
 
   return (
-    <aside ref={paneRef} className="memo-chat" aria-label="メモの会話">
+    <aside className="memo-chat" aria-label="メモの会話">
       <header className="memo-chat-head">
         <Sparkles size={14} aria-hidden />
         <span className="memo-chat-title">メモの会話</span>

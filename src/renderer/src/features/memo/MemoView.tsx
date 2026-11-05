@@ -45,9 +45,10 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
   const [selection, setSelection] = useState<string | null>(null);
   useEffect(() => setSelection(null), [path]);
   const chatInput = useRef<HTMLTextAreaElement>(null);
-  // 会話の欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）
+  // 会話の欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）。
+  // 欄は閉じても描いたまま置き（書きかけの文も残る）、開け閉めは幅（狭いときは高さ）をスライドさせる
   const body = useRef<HTMLDivElement>(null);
-  const chatPane = useRef<HTMLElement>(null);
+  const chatPane = useRef<HTMLDivElement>(null);
   const chatWidth = useDragSize({ setting: MEMO_CHAT_WIDTH, edge: "start", min: 280, keep: 280, write: "--memo-chat-w", pane: chatPane, target: () => body.current });
   /** 会話の欄を開いて、入力にピントを移す（本文の選択の上の「AI と話す」） */
   const talk = () => {
@@ -146,7 +147,7 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
       {doc.error && <ErrorText message={doc.error} className="memo-message" />}
       <div
         ref={body}
-        className={cx("memo-body", chatOpen && !unreadable && doc.initial !== null && "with-chat", chatWidth.resizing && "resizing")}
+        className={cx("memo-body", !unreadable && doc.initial !== null && "with-chat", chatOpen && "chat-open", chatWidth.resizing && "resizing")}
         style={{ "--memo-chat-w": `${chatWidth.size}px` } as CSSProperties}
       >
         {doc.loadError ? (
@@ -169,12 +170,10 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
                 onSelectionChange={setSelection}
               />
             </Suspense>
-            {chatOpen && (
-              <>
-                <div className="pane-resizer memo-chat-resizer" aria-label="メモの会話の欄の幅を変える" {...chatWidth.handle} />
-                <MemoChat chat={chat} selection={selection} paneRef={chatPane} inputRef={chatInput} onClose={() => setChatOpen(false)} />
-              </>
-            )}
+            {chatOpen && <div className="pane-resizer memo-chat-resizer" aria-label="メモの会話の欄の幅を変える" {...chatWidth.handle} />}
+            <div ref={chatPane} className="memo-chat-slot" aria-hidden={!chatOpen} inert={!chatOpen}>
+              <MemoChat chat={chat} selection={selection} inputRef={chatInput} onClose={() => setChatOpen(false)} />
+            </div>
           </>
         )}
       </div>

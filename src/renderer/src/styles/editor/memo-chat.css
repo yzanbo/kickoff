@@ -1,27 +1,62 @@
 /* ==== メモの会話の欄（本文の右。狭いときは本文の下。MemoChat） ==== */
 
-/* 会話を開いているときは、本文と会話を左右に並べる（メモの見出しの幅で、狭ければ上下） */
+/* 本文と会話を左右に並べる（メモの見出しの幅で、狭ければ上下） */
 .memo-view {
   container: memo-view / inline-size;
 }
 
 .memo-body.with-chat {
+  /* 見せる幅: 覚えた幅（--memo-chat-w。つまみで変える）のまま、本文を 280px 残すところまで（260px より狭くはしない） */
+  --memo-chat-shown: max(260px, min(var(--memo-chat-w), 100cqw - 280px));
   flex-direction: row;
 }
 
 .memo-body.with-chat .md-editor {
-  min-width: 240px;
+  min-width: 0;
 }
 
-/* 幅は境目のつまみで変える（--memo-chat-w。MemoView が覚えた幅を置く）。狭まったときは本文と分け合って縮む */
+/*
+ * 会話の欄の入れ物。閉じても描いたまま置き、開け閉めは幅をほかの欄と同じ動きでスライドさせる（中身は開いたときの幅のまま置いて
+ * 切り取るので、動いている間に並べ直さない）。閉じ終えたら見えなくする（ピントも入らない。MemoView が inert を付ける）
+ */
+.memo-chat-slot {
+  display: flex;
+  flex: 0 0 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition:
+    flex-basis var(--panel-motion-duration) var(--panel-motion-ease),
+    visibility 0s linear var(--panel-motion-duration);
+}
+
+.memo-body.chat-open .memo-chat-slot {
+  flex-basis: var(--memo-chat-shown);
+  visibility: visible;
+  transition: flex-basis var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+/* つまみで幅を変えている間は、指に遅れないよう動かさない */
+.memo-body.resizing .memo-chat-slot {
+  transition: none;
+}
+
 .memo-chat {
   display: flex;
-  flex: 0 1 var(--memo-chat-w);
+  flex: none;
   flex-direction: column;
-  min-width: 260px;
+  width: var(--memo-chat-shown);
   min-height: 0;
   border-left: 1px solid var(--border);
   background: var(--bg-elev);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memo-chat-slot,
+  .memo-body.chat-open .memo-chat-slot {
+    transition: none;
+  }
 }
 
 /* ドラッグ中は、本文の文字を選ばない */
@@ -35,9 +70,13 @@
     flex-direction: column;
   }
 
+  /* 上下に並べるときは、高さ（本文の下の 55%）をスライドさせる */
+  .memo-body.chat-open .memo-chat-slot {
+    flex-basis: 55%;
+  }
+
   .memo-chat {
-    flex: 0 0 55%;
-    min-width: 0;
+    width: 100%;
     border-top: 1px solid var(--border);
     border-left: none;
   }
