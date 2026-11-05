@@ -2,7 +2,6 @@ import { ChevronRight, GitBranch } from "lucide-react";
 import { memo } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
-import { formatTokens } from "@/lib/format";
 import { formatClock, formatElapsed, formatFullStamp, formatStamp } from "@/lib/time";
 import { api } from "@/api";
 import { openChat } from "@/app/router";
@@ -20,6 +19,7 @@ import { copyRich } from "@/lib/richCopy";
 import { FailedTurnActions } from "@/features/chat/rewind/FailedTurnActions";
 import { SubagentCard, type RenderItems } from "@/features/chat/subagents/SubagentCard";
 import { SubagentEndNote } from "@/features/chat/subagents/SubagentEndNote";
+import { CompactedRow } from "@/features/chat/status/CompactingRow";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -188,16 +188,9 @@ function EventItem({
           {event.data.message}
         </div>
       );
-    case "compact": {
-      // 手で圧縮したとき・上限に近づいて自動で圧縮されたとき
-      const { trigger, pre_tokens, post_tokens } = event.data;
-      return (
-        <div className="event-note" id={`ev-${event.id}`}>
-          ここまでの会話を要約しました（{trigger === "auto" ? "自動" : "手動"}・{formatTokens(pre_tokens)}
-          {post_tokens !== undefined && ` → ${formatTokens(post_tokens)}`} トークン）
-        </div>
-      );
-    }
+    case "compact":
+      // 手で圧縮したとき・上限に近づいて自動で圧縮されたとき（圧縮中の行と同じ枠のまま残す）
+      return <CompactedRow event={event} />;
     default:
       return null;
   }

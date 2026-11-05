@@ -58,10 +58,14 @@
 
 /*
  * 会話を圧縮している間の作業中の行（CompactingRow）。ふだんの作業中の行（灰色の 1 行）と見分けがつくよう、アクセントの色の枠と薄い地に、
- * 見出し・始めた時刻と経過・きっかけの説明を出す。左の列にアイコン、右の列に見出しと説明（アイコンは見出しの行の高さの真ん中）
+ * 見出し・始めた時刻と経過・きっかけの説明を出す。左の列にアイコン、右の列に見出しと説明（アイコンは見出しの行の高さの真ん中）。
+ * 終わったあとの記録の行（CompactedRow。.compacted）も同じ枠のまま残す（.working の文字の大きさ・色もそろえる）
  */
-.working.compacting {
+.working.compacting,
+.compacted {
   display: grid;
+  font-size: 13px;
+  color: var(--muted);
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 4px 10px;
