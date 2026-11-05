@@ -2,10 +2,11 @@ import { Folder, Inbox, SquarePen } from "lucide-react";
 import type { ChatGroup } from "@shared/types";
 import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
 /**
  * グループを選ぶメニュー（新しいチャットの作成先・まとめて選んだチャットの移動先）。
- * group が undefined なら「グループなし」
+ * group が undefined なら「No Group」
  */
 export function GroupPickMenu({
   at,
@@ -35,7 +36,7 @@ export function GroupPickMenu({
         </MenuItem>
       ))}
       <MenuItem className="muted-item" onSelect={() => onPick(undefined)}>
-        <Inbox size={14} /> グループなし
+        <Inbox size={14} /> {NO_GROUP_LABEL}
       </MenuItem>
     </PopupMenu>
   );

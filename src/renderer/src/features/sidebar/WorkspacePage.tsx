@@ -99,14 +99,14 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
   const sections = useGroupSections({ projectId: project.id, groups, chats });
-  // グループに入れた下書きがあれば、グループなしのチャットがなくても「グループなし」の見出しを出す（下書きを戻すドロップ先）
+  // グループに入れた下書きがあれば、グループなしのチャットがなくても「No Group」の見出しを出す（下書きを戻すドロップ先）
   const groupedDrafts = list.groups.some((g) => g.drafts.length > 0);
-  // グループの見出しを出しているときは、どのグループにも入っていない下書き（もうないグループのものも）を「グループなし」の中（チャットの上）に並べる
+  // グループの見出しを出しているときは、どのグループにも入っていない下書き（もうないグループのものも）を「No Group」の中（チャットの上）に並べる
   // （以前はプロジェクトのいちばん上に出していて、グループなしのものだと分かりにくかった）
   const ungroupedDrafts = showGroups ? (ungrouped?.drafts ?? []) : [];
   // 固定を除いた、絞り込みを通したチャットの数
   const restCount = visibleCount - (pinned?.chats.length ?? 0);
-  // 「グループなし」の見出しで閉じているか（グループの見出しを出しているときだけ。閉じていれば中身を隠す）
+  // 「No Group」の見出しで閉じているか（グループの見出しを出しているときだけ。閉じていれば中身を隠す）
   const ungroupedHidden = showGroups && !ungroupedFold.open;
   const startCreate = () => {
     if (collapsed) toggleCollapsed();
@@ -214,7 +214,7 @@ export const WorkspacePage = memo(function WorkspacePage({
             <Plus size={13} /> 最初のチャットを始める
           </button>
         ) : mainRows.length === 0 && ungroupedDrafts.length === 0 ? null : (
-          // グループの見出しがあるときは「グループなし」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする
+          // グループの見出しがあるときは「No Group」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする
           <Collapse open={!ungroupedHidden} indent={showGroups}>
             {/* グループなしの下書き（グループから戻すドロップ先にもする） */}
             <DraftRows drafts={ungroupedDrafts} drop={sections.ungroupedDrop.props} />

@@ -29,7 +29,7 @@ test("bucketChats: グループはサイドバーの並び、もうないグル�
   assert.equal(list[0].kind, "group");
   assert.equal(list[0].label, "G4");
   assert.equal(list[2].kind, "ungrouped");
-  assert.equal(list[2].label, "グループなし");
+  assert.equal(list[2].label, "No Group");
 });
 
 test("bucketChats: 下書きは作成先のグループへ（もうないグループはグループなし）。keepEmpty ならチャットのないグループも出す", () => {

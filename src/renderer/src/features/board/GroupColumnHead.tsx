@@ -3,9 +3,10 @@ import type { ChatGroup } from "@shared/types";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
 import type { GroupBoardState } from "./useGroupBoard";
+import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
 /**
- * グループのボードの列・リストのまとまりの見出し。group が null なら「グループなし」。
+ * グループのボードの列・リストのまとまりの見出し。group が null なら「No Group」。
  * 見出しをドラッグしてグループを並べ替え、名前のダブルクリックで名前を変え、右クリック・「…」でメニュー。
  * onNewChat: ＋でそのグループに新しいチャットを始める
  */
@@ -13,10 +14,10 @@ export function GroupColumnHead({ group, count, board, onNewChat }: { group: Cha
   if (!group) {
     return (
       <header className="column-head">
-        <span className="column-title muted">グループなし</span>
+        <span className="column-title muted">{NO_GROUP_LABEL}</span>
         <span className="column-count">{count}</span>
         <span className="spacer" />
-        <IconButton icon={Plus} label="グループなしで新しいチャット" title="新しいチャット" onClick={onNewChat} />
+        <IconButton icon={Plus} label={`${NO_GROUP_LABEL} で新しいチャット`} title="新しいチャット" onClick={onNewChat} />
       </header>
     );
   }

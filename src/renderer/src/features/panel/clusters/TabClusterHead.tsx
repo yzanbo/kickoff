@@ -13,6 +13,7 @@ import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/State
 import { StateChatsPopover, chatsByState } from "@/features/chatList/StateChatsPopover";
 import type { TabCluster } from "./tabClusters";
 import type { NewChatTarget } from "@/features/panel/usePanel";
+import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
 /**
  * タブのまとまりの頭（まとまりの色の名前の札と、中のタブの数）。札の角に、そのまとまり（グループ・作業場所）のチャットの状態ごとの数を重ね、
@@ -96,7 +97,7 @@ export function TabClusterHead({
   const newChatLabel = byGroup
     ? group
       ? `「${group.name}」で新しいチャット`
-      : "グループなしで新しいチャット"
+      : `${NO_GROUP_LABEL} で新しいチャット`
     : place?.kind === "worktree"
       ? `「${place.name}」で新しいチャット`
       : "本体で新しいチャット";
@@ -152,7 +153,7 @@ export function TabClusterHead({
           {group && (
             <>
               <div className="menu-separator" role="separator" />
-              <MenuItem danger onSelect={() => void deleteGroup()} title="グループを消します（中のチャットは消えず、グループなしに戻ります）">
+              <MenuItem danger onSelect={() => void deleteGroup()} title={`グループを消します（中のチャットは消えず、「${NO_GROUP_LABEL}」に戻ります）`}>
                 「{group.name}」を削除…
               </MenuItem>
             </>
