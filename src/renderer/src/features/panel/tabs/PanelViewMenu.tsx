@@ -11,7 +11,7 @@ import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
 import { useHiddenTabGroups } from "@/features/panel/clusters/useHiddenTabGroups";
-import { PANEL_KINDS, PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
+import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
 
@@ -55,7 +55,7 @@ export function usePanelViewMenu(panel: PanelController) {
     sections.push(
       section(
         "表示するタブ",
-        PANEL_KINDS.map((k) => {
+        kinds.choices.map((k) => {
           const on = kinds.has(k);
           const last = on && kinds.kinds.length === 1;
           return (

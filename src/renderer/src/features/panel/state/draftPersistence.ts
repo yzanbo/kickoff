@@ -25,20 +25,22 @@ export function readSavedDrafts(): Map<string, DraftTab[]> {
 }
 
 /**
- * 全プロジェクトのボードの右のパネル（いまは持たない。チャットはそのプロジェクトへ移って開く）に残っていた下書きを、
+ * 全プロジェクトの画面の、チャットを出さない欄（ボードの右のパネル（いまは持たない）・フッター）に残っていた下書きを、
  * 作成先のプロジェクトのボードのパネルへ移す（そのパネルの下書きの後ろに足す。同じタブがすでにあれば重ねない）。
  * 開けない欄に下書きが残り続けないように、読み戻すときに 1 度だけ行う。移すものがなければ同じ Map を返す
  */
-export function moveAllProjectsBoardDrafts(saved: ReadonlyMap<string, DraftTab[]>): ReadonlyMap<string, DraftTab[]> {
-  const from = panelKey("board", "all");
-  const stray = saved.get(from);
-  if (!stray) return saved;
+export function moveAllProjectsDrafts(saved: ReadonlyMap<string, DraftTab[]>): ReadonlyMap<string, DraftTab[]> {
+  const froms = [panelKey("board", "all"), panelKey("bottom", "all")].filter((key) => saved.has(key));
+  if (froms.length === 0) return saved;
   const out = new Map(saved);
-  out.delete(from);
-  for (const tab of stray) {
-    const to = panelKey("board", tab.projectId);
-    const tabs = out.get(to) ?? [];
-    if (!tabs.some((t) => t.key === tab.key)) out.set(to, [...tabs, tab]);
+  for (const from of froms) {
+    const stray = out.get(from) ?? [];
+    out.delete(from);
+    for (const tab of stray) {
+      const to = panelKey("board", tab.projectId);
+      const tabs = out.get(to) ?? [];
+      if (!tabs.some((t) => t.key === tab.key)) out.set(to, [...tabs, tab]);
+    }
   }
   return out;
 }

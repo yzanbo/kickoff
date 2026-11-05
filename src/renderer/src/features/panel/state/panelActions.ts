@@ -98,10 +98,10 @@ export function panelActions(key: string) {
      * 開閉。開くときに見せているタブがなければ、欄の決まり（SURFACES の openWhenEmpty）でタブを始める
      * （チャット欄 = チャットを出す欄なら新しいチャット / フッター = ターミナルを出す欄で、開く場所 terminal が決まっていればターミナル）
      */
-    toggle: ({ terminal }: { terminal?: TerminalTarget } = {}) => {
+    toggle: ({ terminal, noChat = false }: { terminal?: TerminalTarget; noChat?: boolean } = {}) => {
       const state = panelStateOf(key);
       if (state.open || !at) return setOpen(!state.open);
-      const kinds = readKinds(at.surface);
+      const kinds = readKinds(at.surface, noChat);
       const empty = !state.tabs.some((t) => kinds.includes(kindOfTab(t)));
       const start = SURFACES[at.surface].openWhenEmpty;
       if (empty && start === "newChat" && kinds.includes("chat") && at.scope !== "all") return openNew({ projectId: at.scope });

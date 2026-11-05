@@ -87,7 +87,8 @@ export function App() {
   const fallbackProject = useFallbackProject();
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
   // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの）
-  const chat = useProjectChat(projectId ?? fallbackProject);
+  // 全プロジェクトの画面ではチャットを出さない（ターミナルとブラウザだけ。チャットはそのプロジェクトへ移って開く）
+  const chat = useProjectChat(projectId ?? fallbackProject, { noChat: projectId === undefined });
   const bottomPanel = useBottomPanel(projectId ?? "all", terminalTargets(projects, projectId));
   // チャット・新しいチャットの URL では、最後に見たボード（カンバン / グループのボード）のパネルで開く
   const [boardColumns] = useBoardColumns();

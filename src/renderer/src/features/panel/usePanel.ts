@@ -35,6 +35,11 @@ interface Options {
   projects?: Project[];
   /** 新しいチャットができたとき（URL をそのチャットにするなど） */
   onCreated?: (chat: Chat) => void;
+  /**
+   * チャットを出さない欄（全プロジェクトの画面のフッター・チャット欄。ボードの右のパネルをなくしたのと同じく、チャットはそのプロジェクトへ移って開く）。
+   * チャットのタブは閉じずに隠し、サイドバーとそろえもしない。表示するタブの選び方にもチャットを出さない
+   */
+  noChat?: boolean;
 }
 
 export type PanelController = ReturnType<typeof usePanel>;
@@ -46,13 +51,13 @@ export type PanelController = ReturnType<typeof usePanel>;
  * サイドバーと連動して自動で足すチャットのタブは一覧のペイン（homePane。分けた元のペイン）に入る）。
  * 表示は Panel。大きさ（幅・高さ・最大化）は欄の殻（useBoardPanel・useProjectChat・useBottomPanel）が持つ
  */
-export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, projects, onCreated }: Options) {
+export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, projects, onCreated, noChat = false }: Options) {
   const key = panelKey(surface, scope);
   const state = usePanelState(key);
   const { tabs, layout, open: panelOpen } = state;
   useMountedPanel(key);
   // 欄で表示するタブの種類（隠した種類のタブは閉じずに残す。隠している種類のタブを自分で開いたら、その種類を出す）
-  const kinds = usePanelKinds(surface);
+  const kinds = usePanelKinds(surface, noChat);
   // サイドバーに出ているチャット（タブのチャットの状態・まとまりの数もこれで数える。チャットを隠している欄では読まず、タブもそろえない）
   const chats = useLinkedTabs(key, scope, kinds.has("chat"));
   const actions = useMemo(() => panelActions(key), [key]);

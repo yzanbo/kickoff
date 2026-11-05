@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import { installMemoryStorage } from "@/lib/memoryStorage";
 import { NEW_CHAT_DRAFTS } from "@/lib/storageKeys";
-import { moveAllProjectsBoardDrafts, readSavedDrafts, writeDrafts, type DraftTab } from "./draftPersistence";
+import { moveAllProjectsDrafts, readSavedDrafts, writeDrafts, type DraftTab } from "./draftPersistence";
 import type { PanelTab } from "@/features/panel/usePanel";
 
 const { local } = installMemoryStorage();
@@ -36,17 +36,18 @@ test("下書きの保存: 壊れた値・形の違うものは読まない", () 
 
 const draftOf = (key: string, projectId: number): DraftTab => ({ key, kind: "new", projectId });
 
-test("全プロジェクトのボードの下書き: 作成先のプロジェクトのボードのパネルの後ろへ移し、全プロジェクトの分は消す", () => {
+test("全プロジェクトの画面の下書き（ボード・フッター）: 作成先のプロジェクトのボードのパネルの後ろへ移し、全プロジェクトの分は消す", () => {
   const saved = new Map([
     ["kanban:all", [draftOf("new:a", 1), draftOf("new:b", 2)]],
     ["kanban:1", [draftOf("new:x", 1)]],
     ["side:2", [draftOf("new:y", 2)]],
+    ["bottom:all", [draftOf("new:c", 1)]],
   ]);
-  const moved = moveAllProjectsBoardDrafts(saved);
+  const moved = moveAllProjectsDrafts(saved);
   assert.deepEqual(
     [...moved],
     [
-      ["kanban:1", [draftOf("new:x", 1), draftOf("new:a", 1)]],
+      ["kanban:1", [draftOf("new:x", 1), draftOf("new:a", 1), draftOf("new:c", 1)]],
       ["side:2", [draftOf("new:y", 2)]],
       ["kanban:2", [draftOf("new:b", 2)]],
     ],
@@ -56,8 +57,8 @@ test("全プロジェクトのボードの下書き: 作成先のプロジェク
 });
 
 test("全プロジェクトのボードの下書き: 同じタブが移す先にあれば重ねず、移すものがなければ同じ Map を返す", () => {
-  const twice = moveAllProjectsBoardDrafts(new Map([["kanban:all", [draftOf("new:a", 1)]], ["kanban:1", [draftOf("new:a", 1)]]]));
+  const twice = moveAllProjectsDrafts(new Map([["kanban:all", [draftOf("new:a", 1)]], ["kanban:1", [draftOf("new:a", 1)]]]));
   assert.deepEqual([...twice], [["kanban:1", [draftOf("new:a", 1)]]]);
   const none = new Map([["kanban:1", [draftOf("new:x", 1)]]]);
-  assert.equal(moveAllProjectsBoardDrafts(none), none);
+  assert.equal(moveAllProjectsDrafts(none), none);
 });

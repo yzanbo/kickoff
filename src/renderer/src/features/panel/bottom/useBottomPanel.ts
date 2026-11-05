@@ -42,7 +42,8 @@ export function useBottomPanel(scope: PanelScope, targets: TerminalTarget[]) {
   }, [open]);
 
   /** 開閉。開くときに見せているタブがなく、ターミナルを出す欄で開く場所が 1 つ（プロジェクトの画面）なら、そこでターミナルを始める */
-  const toggle = () => actions.toggle({ terminal: targets.length === 1 && window.kickoff?.terminal ? targets[0] : undefined });
+  // 全プロジェクトの画面のフッターはチャットを出さない（BottomPanel）
+  const toggle = () => actions.toggle({ terminal: targets.length === 1 && window.kickoff?.terminal ? targets[0] : undefined, noChat: scope === "all" });
 
   // ⌃`（VS Code と同じ）か ⌘J で開閉。ターミナルの中で押しても効くよう、ほかより先に受け取る
   useWindowEvent(
