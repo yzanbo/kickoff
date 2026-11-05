@@ -86,6 +86,16 @@
   cursor: pointer;
 }
 
+/*
+ * 名前のボタンの押せる範囲をタブ全体（枠・閉じるの周りの余白も）に広げる。閉じるはこの上に重ねる。
+ * 以前は名前の部分だけが押せて、閉じるの上下・右の余白や枠を押しても表示が変わらなかった
+ */
+.panel-tab-label::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+}
+
 .panel-tab-label span {
   overflow: hidden;
   white-space: nowrap;
@@ -120,6 +130,8 @@
   border: none;
   border-radius: 4px;
   color: var(--muted);
+  position: relative;
+  z-index: 1;
   background: transparent;
   cursor: pointer;
   opacity: 0;
@@ -171,8 +183,15 @@
     padding: 0;
   }
 
-  /* 表示中のタブと、マウスを乗せたタブは、アイコンの代わりに閉じるだけを真ん中に出す（Chrome と同じ） */
+  /*
+   * 表示中のタブと、マウスを乗せたタブは、アイコンの代わりに閉じるだけを真ん中に出す（Chrome と同じ）。
+   * 名前のボタンは幅をなくすだけで残し、閉じるの周りを押せば表示できるようにする
+   */
   .panel-tab:is(.active, :hover) .panel-tab-label {
+    flex: none;
+  }
+
+  .panel-tab:is(.active, :hover) .panel-tab-label > * {
     display: none;
   }
 
