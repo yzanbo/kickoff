@@ -181,6 +181,9 @@ export function useMemoDocument(projectId: number, path: string) {
         save: () => save(),
         discard: () => {
           clearTimeout(draftTimer.current);
+          // 書いたものを保存したものに戻す（閉じるときに、捨てた書きかけをまた残さないように）
+          const b = current.current.base;
+          if (b?.key === key) text.current = b.content;
           writeSetting(memoDraft(key), null);
         },
         flush: () => {
