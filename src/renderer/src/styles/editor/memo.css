@@ -66,43 +66,28 @@
   min-width: 0;
 }
 
-.memo-head-title h2 {
-  margin: 0;
-  overflow: hidden;
-  font-size: 15px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 題名（押すとその場で名前を変える） */
+/*
+ * 題名（いつでも書き換えられる欄。ふだんは見出しの文字に見せ、乗せる・ピントが入ると地を付ける。⌘S で名前を変える）。
+ * type を付けないので、入力欄の共通の形（input[type="text"] の枠・余白）は当たらない
+ */
 .memo-title {
-  max-width: 100%;
-  padding: 1px 4px;
-  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
   border: 0;
   border-radius: 4px;
   font: inherit;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: inherit;
-  background: none;
-  cursor: text;
-}
-
-.memo-title:hover {
-  background: var(--bg-hover);
-}
-
-.memo-head-title .inline-name-wrap {
-  flex: 1;
-  min-width: 0;
-}
-
-.memo-title-input {
-  width: 100%;
   font-size: 15px;
   font-weight: 600;
+  text-overflow: ellipsis;
+  color: inherit;
+  background: none;
+}
+
+.memo-title:hover,
+.memo-title:focus {
+  outline: none;
+  background: var(--bg-hover);
 }
 
 .memo-head-folder {

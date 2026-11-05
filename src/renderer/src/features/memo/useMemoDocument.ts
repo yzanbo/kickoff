@@ -219,8 +219,8 @@ export function useMemoDocument(projectId: number, path: string) {
     state,
     error,
     change,
-    /** ⌘S・保存のボタン */
-    saveNow: () => void save(),
+    /** 本文を保存する（変わっていなければ何もしない）。保存できた（する必要がなかった）か */
+    save: () => save(),
     /** ほかで変わっていても、書いたもので上書きする */
     overwrite: () => void save(true),
     /** ほかでの変更を読み直す（書いたものは捨てる） */
