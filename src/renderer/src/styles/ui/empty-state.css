@@ -1,0 +1,154 @@
+/* 中身がない・見つからない画面の案内（EmptyState）。アイコン → 見出し → 説明 → ボタン → 始め方の手順・移れる先の一覧 */
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 580px;
+  margin: 48px auto;
+  padding: 32px 28px 28px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-state-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.empty-state-title {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.empty-state-text {
+  max-width: 480px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.empty-state-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.empty-state-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+/* 始め方の手順（番号・見出し・説明） */
+.empty-state-steps {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 18px 4px 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+  text-align: left;
+}
+
+.empty-state-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.empty-state-step-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: var(--accent-bright);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.empty-state-step-body {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.empty-state-step-body strong {
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* 移れる先の一覧（見つからないプロジェクトの画面の、ほかのプロジェクト） */
+.empty-state-list {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
+.empty-state-list-head {
+  margin: 0 8px 4px;
+  font-size: 11px;
+}
+
+.empty-state-project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.empty-state-project:hover {
+  background: var(--bg-hover);
+}
+
+.empty-state-project-name {
+  flex: none;
+  font-size: 13px;
+}
+
+.empty-state-project-path {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.empty-state-more {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.empty-state-more:hover {
+  color: var(--text);
+}

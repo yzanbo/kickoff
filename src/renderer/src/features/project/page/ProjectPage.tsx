@@ -12,6 +12,7 @@ import { useProjectData } from "./useProjectData";
 import { useBusyBadge } from "@/hooks/useBusyBadge";
 import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/stores/projects";
+import { MissingProject, NoProjectsWelcome } from "@/features/project/ProjectsEmpty";
 import type { FileTarget, ProjectTab, ReopenRoute } from "@/app/router";
 import { editorWorktree } from "@/lib/storageKeys";
 import { WorktreeContext } from "@/features/worktree/worktreeContext";
@@ -29,9 +30,11 @@ interface ProjectPageProps {
 
 /** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・履歴（コミット）をタブで */
 export function ProjectPage(props: ProjectPageProps) {
-  // 一覧が届いたのに見つからないプロジェクト（消した・URL の番号が違う）は、前の画面を出さずに知らせるだけにする
-  // （中身の部品を出さないので、そのプロジェクトのグループ・Git の状態を読みに行かない）
-  if (useProjects().missing(props.id)) return <div className="page error">プロジェクトが見つかりません</div>;
+  // 一覧が届いたのに見つからないプロジェクト（消した・URL の番号が違う）は、前の画面を出さずに案内だけを出す
+  // （中身の部品を出さないので、そのプロジェクトのグループ・Git の状態を読みに行かない）。プロジェクトが 1 つもなければ始め方の案内
+  const { missing, projects } = useProjects();
+  if (missing(props.id))
+    return <div className="page page-wide">{projects.length === 0 ? <NoProjectsWelcome /> : <MissingProject id={props.id} />}</div>;
   return <ProjectPageBody {...props} />;
 }
 

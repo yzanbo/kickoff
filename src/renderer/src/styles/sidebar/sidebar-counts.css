@@ -55,6 +55,13 @@
   padding: 8px;
 }
 
+.workspace-empty-text {
+  margin: 4px 4px 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
 .sidebar-new {
   display: flex;
   align-items: center;

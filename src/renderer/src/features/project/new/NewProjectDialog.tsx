@@ -4,20 +4,23 @@ import { useModalDialog } from "@/hooks/useModalDialog";
 import { Segmented } from "@/ui/Segmented";
 import { CreateForm } from "./CreateForm";
 import { ImportForm } from "./ImportForm";
+import type { NewProjectMode } from "./openNewProject";
 
 interface Props {
   defaultParentDir: string;
   /** 名前の欄の初めの値 */
   initialName?: string;
+  /** 初めに開く作り方（省けば新しく作る） */
+  initialMode?: NewProjectMode;
   onClose: () => void;
   onCreated: (project: Project) => void;
 }
 
-type Mode = "create" | "import";
+type Mode = NewProjectMode;
 
 /** 新しいプロジェクト（新規作成 / 既存フォルダの取り込み） */
-export function NewProjectDialog({ defaultParentDir, initialName, onClose, onCreated }: Props) {
-  const [mode, setMode] = useState<Mode>("create");
+export function NewProjectDialog({ defaultParentDir, initialName, initialMode = "create", onClose, onCreated }: Props) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   // 入力の途中で閉じないよう、背景を押しても閉じない
   const { ref, close } = useModalDialog({ closeOnBackdrop: false });
 

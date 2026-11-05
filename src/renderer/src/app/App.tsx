@@ -127,7 +127,7 @@ export function App() {
               openFile={route.name === "project" ? route.file : undefined}
             />
           ) : (
-            <AllProjectsPage onNewProject={() => setCreating({})} />
+            <AllProjectsPage />
           )}
         </main>
         <BottomPanel bottom={bottomPanel} />
@@ -138,6 +138,7 @@ export function App() {
           <NewProjectDialog
             defaultParentDir={appSettings?.projects_dir ?? "~/Documents"}
             initialName={creating.name}
+            initialMode={creating.mode}
             onClose={() => setCreating(null)}
             onCreated={(project) => {
               setCreating(null);
