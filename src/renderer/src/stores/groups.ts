@@ -37,5 +37,8 @@ export function useGroupsOf(projectIds: readonly number[]): (projectId: number) 
 export const groupNameIn = (groups: readonly ChatGroup[], groupId: number | null | undefined): string | undefined =>
   groupId == null ? undefined : groups.find((g) => g.id === groupId)?.name;
 
-/** 1 つのチャットのグループ名（グループなし・読み込み中は undefined） */
-export const useGroupName = (projectId: number, groupId: number | null | undefined) => groupNameIn(useGroups(projectId), groupId);
+/** 1 つのチャットのグループ（名前と色。グループなし・読み込み中・もうないグループは undefined） */
+export const useGroup = (projectId: number, groupId: number | null | undefined): ChatGroup | undefined => {
+  const groups = useGroups(projectId);
+  return groupId == null ? undefined : groups.find((g) => g.id === groupId);
+};

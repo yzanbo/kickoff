@@ -34,8 +34,13 @@
   flex: none;
 }
 
-/* どのグループのチャットか（新しいチャットの見出しのグループの選択と同じアクセントの色。形はブランチの印と同じ小さなピル） */
+/*
+ * どのグループのチャットか（グループの色。タブの名前の後ろの札・グループ別のまとまりの札と同じ色 --group-hue。形はブランチの印と同じ小さなピル）。
+ * 以前はどのグループもアクセントの緑で、グループの色と合っていなかった
+ */
 .chat-group-chip {
+  --group-color: hsl(var(--group-hue) 60% 68%);
+
   display: inline-flex;
   flex: 0 1 auto;
   align-items: center;
@@ -44,13 +49,17 @@
   max-width: 160px;
   padding: 0 6px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent-bright) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--group-color) 50%, transparent);
   border-radius: 999px;
   font-size: 11px;
   line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--accent-bright);
+  color: var(--group-color);
+}
+
+:root[data-theme="light"] .chat-group-chip {
+  --group-color: hsl(var(--group-hue) 55% 38%);
 }
 
 .chat-group-chip svg {
