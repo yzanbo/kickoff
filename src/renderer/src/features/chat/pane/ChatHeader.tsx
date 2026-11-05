@@ -1,6 +1,7 @@
 import { Folder } from "lucide-react";
+import type { CSSProperties } from "react";
 import type { Project, Chat } from "@shared/types";
-import { useGroupName } from "@/stores/groups";
+import { useGroup } from "@/stores/groups";
 import { PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { ProjectChip } from "@/features/project/ProjectChip";
@@ -33,7 +34,8 @@ export function ChatHeader({
   /** 描いている項目（変わったら検索の印を付け直す） */
   version: unknown;
 }) {
-  const groupName = useGroupName(chat.project_id, chat.group_id);
+  // グループ（名前と色。タブの札・グループ別のまとまりと同じ色）
+  const group = useGroup(chat.project_id, chat.group_id);
   const shows = useChatHeaderItems();
   const { canOpenSide } = useChatPane();
   const rowHidden = useChatHeaderRowHidden();
@@ -61,10 +63,10 @@ export function ChatHeader({
         <span className="chat-sub muted small">
           {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
           {shows("worktree") && <WorktreeChip chat={chat} />}
-          {groupName && shows("group") && (
-            <span className="chat-group-chip" title={`グループ「${groupName}」のチャット`}>
+          {group && shows("group") && (
+            <span className="chat-group-chip" style={{ "--group-hue": group.hue } as CSSProperties} title={`グループ「${group.name}」のチャット`}>
               <Folder size={11} aria-hidden />
-              {groupName}
+              {group.name}
             </span>
           )}
         </span>
