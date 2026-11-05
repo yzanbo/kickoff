@@ -27,7 +27,7 @@
   min-height: 30px;
   padding: 3px 10px 3px 4px;
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: calc(14px * var(--chat-scale, 1));
   color: var(--muted);
 }
 
@@ -69,7 +69,7 @@
 .tool-current {
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -87,7 +87,7 @@
   flex: none;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--muted);
@@ -121,7 +121,7 @@
   align-items: center;
   gap: 8px;
   padding: 5px 10px;
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
 }
 
 .tool-name {
@@ -134,7 +134,7 @@
   min-width: 0;
   overflow: hidden;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--muted);
@@ -150,7 +150,7 @@
   overflow: auto;
   border-top: 1px solid var(--border);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;
@@ -180,7 +180,7 @@
   margin: 4px 0 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
 }
 
 .turn-changes > summary {
@@ -238,13 +238,13 @@ button.turn-change-file:hover {
 .turn-change-name {
   flex: none;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .turn-change-dir {
   min-width: 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--extra-muted);
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -252,7 +252,7 @@ button.turn-change-file:hover {
 
 .turn-change-tag {
   flex: none;
-  font-size: 11px;
+  font-size: calc(11px * var(--chat-scale, 1));
   color: var(--muted);
 }
 
@@ -262,7 +262,7 @@ button.turn-change-file:hover {
   gap: 6px;
   margin-left: auto;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .turn-changes > summary .turn-change-counts {

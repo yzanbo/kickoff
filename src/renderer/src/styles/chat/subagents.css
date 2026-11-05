@@ -30,7 +30,7 @@
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--text);
   background: var(--bg-elev);
   cursor: pointer;
@@ -123,7 +123,7 @@
   border-bottom: 2px solid var(--accent);
   border-radius: var(--radius) var(--radius) 0 0;
   font: inherit;
-  font-size: 14px;
+  font-size: calc(14px * var(--chat-scale, 1));
   text-align: left;
   color: var(--text);
   background: transparent;
@@ -146,7 +146,7 @@
   border: none;
   border-top: 1px solid var(--border);
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   text-align: left;
   color: var(--muted);
   background: transparent;
@@ -182,14 +182,14 @@
 
 .subagent-title {
   overflow: hidden;
-  font-size: 14px;
+  font-size: calc(14px * var(--chat-scale, 1));
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .subagent-meta {
   overflow: hidden;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -232,7 +232,7 @@
 .turn-retry .btn {
   gap: 4px;
   padding: 2px 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .subagent-text .subagent-recovery {
@@ -242,7 +242,7 @@
 /* 届かなかった報告は、次に送る指示に自動で添える（reportHandover.ts）という添え書き */
 .subagent-recovery-note {
   align-self: center;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--extra-muted);
 }
 

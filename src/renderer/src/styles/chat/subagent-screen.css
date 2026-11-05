@@ -27,7 +27,7 @@
   padding: 6px var(--gutter) 6px calc(var(--gutter) + 6px);
   border-bottom: 1px solid var(--border);
   box-shadow: inset 4px 0 0 var(--agent-color);
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   background: color-mix(in srgb, var(--agent-color) 9%, var(--bg));
 }
 
@@ -62,7 +62,7 @@
   gap: 4px;
   min-width: 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
   white-space: nowrap;
 }
@@ -71,7 +71,7 @@
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -101,7 +101,7 @@
 .subagent-screen-name {
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: calc(14px * var(--chat-scale, 1));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -123,7 +123,7 @@
   gap: 4px 8px;
   min-width: 0;
   min-height: 22px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
 }
 

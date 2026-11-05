@@ -111,6 +111,7 @@
  *   --agent-hue  サブエージェントの色相（起動した順。subagents/agentHues.ts の agentHueStyle・SubagentChip.tsx）
  *   --timeline-h チャットの流れの見えている高さ（ChatTimeline.tsx。サブエージェントのカードの窓の高さに使う）
  *   --activity-time-w 動きの時刻の欄の幅（ActivityView.tsx。別の日の行があれば日付の入る幅）
+ *   --chat-font-scale 会話の文字の大きさの倍率（<html> に。chat/chatFontSize.ts。会話の入れ物で --chat-scale にして使う。chat.css）
  * 逆に、上の :root の値を getComputedStyle で読んでいるコードもある（名前を変えるときは一緒に直す）:
  *   mermaidConfig.ts（--text --bg --bg-sidebar --bg-hover --bg-elev --bg-active --muted --accent-bright --info --warn --ok --ng --dot-needs-input --sec-*）
  *   terminalTheme.ts・CodeEditor.tsx（--bg --text --mono）

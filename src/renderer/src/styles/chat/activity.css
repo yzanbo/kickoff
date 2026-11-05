@@ -20,7 +20,7 @@
   border: none;
   border-radius: 999px;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   white-space: nowrap;
   color: var(--muted);
   background: transparent;
@@ -86,7 +86,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
@@ -115,7 +115,7 @@
 
 .activity-running {
   margin-left: auto;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
 }
 
@@ -132,7 +132,7 @@
   max-width: 820px;
   margin: 0 auto;
   padding: 10px var(--gutter) 24px;
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
 }
 
 .chat-page.wide .activity-inner {
@@ -142,7 +142,7 @@
 .activity-more {
   display: block;
   margin: 0 auto 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .activity-empty {
@@ -218,7 +218,7 @@
   flex: none;
   width: 7.5em;
   overflow: hidden;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -252,7 +252,7 @@
   align-items: center;
   gap: 6px;
   margin-left: auto;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
@@ -268,7 +268,7 @@
 
 .activity-call {
   padding: 2px 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .activity-call-time {

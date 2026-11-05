@@ -2,7 +2,7 @@
  * チャットの見出しの行に出す項目（タブの列の「表示」→「見出しの項目」で、項目ごとに表示・非表示を選ぶ）。
  * 覚えるのは隠した項目だけ（CHAT_HEADER_HIDDEN）なので、項目を増やしても初めは表示になる
  */
-export const CHAT_HEADER_ITEMS = ["project", "worktree", "group", "showing", "textWidth", "sticky", "find", "turns", "cost"] as const;
+export const CHAT_HEADER_ITEMS = ["project", "worktree", "group", "showing", "textWidth", "fontSize", "sticky", "find", "turns", "cost"] as const;
 export type ChatHeaderItem = (typeof CHAT_HEADER_ITEMS)[number];
 
 export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
@@ -11,6 +11,7 @@ export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
   group: "グループ",
   showing: "会話 / 動きの切り替え",
   textWidth: "文の幅",
+  fontSize: "文字の大きさ",
   sticky: "指示の帯の表示",
   find: "検索欄",
   turns: "ターン数",
@@ -26,7 +27,7 @@ export const CHAT_HEADER_ITEM_NOTES: Partial<Record<ChatHeaderItem, string>> = {
 /** メニューのまとまり（見出しの行の左から） */
 export const CHAT_HEADER_SECTIONS: readonly { title: string; items: readonly ChatHeaderItem[] }[] = [
   { title: "バッジ", items: ["project", "worktree", "group"] },
-  { title: "道具", items: ["showing", "textWidth", "sticky", "find"] },
+  { title: "道具", items: ["showing", "textWidth", "fontSize", "sticky", "find"] },
   { title: "数", items: ["turns", "cost"] },
 ];
 

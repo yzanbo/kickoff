@@ -13,7 +13,7 @@
   gap: 8px;
   padding: 6px 12px 0;
   border-top: 1px solid var(--border);
-  font-size: 11px;
+  font-size: calc(11px * var(--chat-scale, 1));
   font-weight: 600;
   color: var(--extra-muted);
 }
@@ -51,7 +51,7 @@
   display: block;
   padding: 0 12px 8px;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .bash-exit {

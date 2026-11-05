@@ -64,7 +64,7 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
   background: var(--bg-hover);
 }
@@ -111,7 +111,7 @@
 .question-folded-text {
   min-width: 0;
   overflow: hidden;
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   color: var(--text);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -132,7 +132,7 @@
 
 .segmented.question-layout button {
   padding: 2px 10px;
-  font-size: 11px;
+  font-size: calc(11px * var(--chat-scale, 1));
 }
 
 /* 1 問ずつのときの、質問の見出しの並び（いまの質問は枠の色、答えたものはチェック。押すとその質問へ） */
@@ -152,7 +152,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
   background: transparent;
   cursor: pointer;
@@ -178,7 +178,7 @@
   width: 15px;
   height: 15px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: calc(10px * var(--chat-scale, 1));
   background: var(--bg-hover);
 }
 
@@ -251,7 +251,7 @@
   height: 18px;
   margin-right: 6px;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: calc(11px * var(--chat-scale, 1));
   font-weight: 600;
   color: var(--text);
   background: var(--bg-active);
@@ -268,7 +268,7 @@
   gap: 5px;
   align-items: center;
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: calc(11px * var(--chat-scale, 1));
   color: var(--muted);
 }
 
@@ -279,7 +279,7 @@
 }
 
 .question-answer-item dt {
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
 }
 

@@ -7,6 +7,7 @@ import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
 import { Segmented } from "@/ui/Segmented";
 import { BOARD_HEADER_LAYOUT_LABELS, useBoardHeaderLayout, type BoardHeaderLayout } from "@/features/board/boardHeaderLayout";
 import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode, type FooterMode } from "@/features/footer/footerMode";
+import { CHAT_FONT_SIZE_LABELS, CHAT_FONT_SIZES, useChatFontSize, type ChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { PROJECT_TABS_LAYOUT_LABELS, useProjectTabsLayout, type ProjectTabsLayout } from "@/features/project/page/ProjectTabs";
 import { TabbedDialog, type DialogSection } from "@/ui/TabbedDialog";
 import { UsagePanel } from "@/features/usage/UsagePanel";
@@ -76,6 +77,7 @@ function DisplaySettings() {
   const [theme, setTheme] = useTheme();
   const [compactComposer, setCompactComposer] = useSetting(COMPOSER_COMPACT);
   const [wideChat, setWideChat] = useSetting(CHAT_WIDE);
+  const [fontSize, setFontSize] = useChatFontSize();
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
@@ -109,6 +111,15 @@ function DisplaySettings() {
               { value: "normal", label: "標準" },
               { value: "compact", label: "コンパクト" },
             ]}
+          />
+        </Field>
+        <Field label="会話の文字の大きさ" help="会話（自分の発言・AI の返答・ツール・サブエージェントのカード・動き）の文字だけを大きく・小さくします。見出し・入力欄・メニューの文字はそのままです。チャットの見出しの行のボタンと、タブの列の「表示」でも切り替えられます。">
+          <Segmented<ChatFontSize>
+            className="segmented theme-switch"
+            label="会話の文字の大きさ"
+            value={fontSize}
+            onChange={setFontSize}
+            options={CHAT_FONT_SIZES.map((s) => ({ value: s, label: CHAT_FONT_SIZE_LABELS[s] }))}
           />
         </Field>
         <Field label="チャットの文の幅" help="広げると、パネルの大きさはそのままで、発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます（パネルが狭いときは変わりません）。チャットの見出しの行のボタンでも切り替えられます。">

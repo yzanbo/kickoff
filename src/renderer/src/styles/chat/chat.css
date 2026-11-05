@@ -1,5 +1,17 @@
 /* ==== チャット画面 ==== */
 
+/*
+ * 会話の文字の大きさ（タブの列の「表示」・設定の「表示」→「会話の文字の大きさ」。chatFontSize.ts が <html> に --chat-font-scale を与える）。
+ * 会話に出るもの（発言・返答・ツール・サブエージェントのカード・承認と質問のカード・動き）の CSS は、文字の大きさと行の高さを
+ * calc(… * var(--chat-scale, 1)) で書き、倍率は会話の入れ物（流れ・動きの行・右の欄のサブエージェントの手順）にだけ入れる。
+ * 見出し・入力欄・ピル・メニュー・ポップオーバーは 1 のまま（会話の文字だけを変える）
+ */
+.timeline-wrap,
+.activity,
+.subagent-screen-scroll {
+  --chat-scale: var(--chat-font-scale, 1);
+}
+
 .chat-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -127,14 +139,14 @@
   max-width: 820px;
   margin: 0 auto;
   padding: 20px var(--gutter) 24px;
-  font-size: 15px;
+  font-size: calc(15px * var(--chat-scale, 1));
 }
 
 /* 長いチャットで、窓の外（上）の前の発言を足すボタン（上の端まで戻っても足す） */
 .timeline-more {
   align-self: center;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .chat-composer {
@@ -190,7 +202,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   color: var(--muted);
 }
 
@@ -235,7 +247,7 @@
 }
 
 .event-note {
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
 }
 

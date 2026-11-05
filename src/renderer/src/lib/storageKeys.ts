@@ -140,6 +140,8 @@ export const CHAT_HEADER_ROW_HIDDEN = defineSetting("kickoff:chat-header-row-hid
 export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list());
 /** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く） */
 export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag());
+/** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・タブの列の「表示」・設定の「表示」。どのチャットでも同じ） */
+export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "md"));
 /** チャットの文の幅を広げるか（どのチャットでも同じ） */
 export const CHAT_WIDE = defineSetting("kickoff:chat-wide", flag());
 /** チャットの中の検索で、大文字・小文字を区別するか（どのチャットでも同じ） */
