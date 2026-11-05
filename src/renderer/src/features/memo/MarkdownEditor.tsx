@@ -3,7 +3,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { search, searchKeymap } from "@codemirror/search";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
 
@@ -26,6 +26,18 @@ const SEARCH_PHRASES: Record<string, string> = {
   "on line": "行",
 };
 
+/** 外から編集の部品を動かす口（メモの AI の整理。選んだ範囲を読む・範囲を置き換える） */
+export interface MemoEditorHandle {
+  /** いま書いてある中身 */
+  text: () => string;
+  /** 選んでいる範囲（何も選んでいなければ null） */
+  selection: () => { from: number; to: number; text: string } | null;
+  /**
+   * from〜to を text に置き換え、置き換えた範囲を選ぶ（元に戻す ⌘Z で戻せる）。その範囲がもう expected でなければ（あとから書き換えた）置き換えずに false
+   */
+  replace: (from: number, to: number, expected: string, text: string) => boolean;
+}
+
 interface Props {
   /** 書き始めの中身（作ったときだけ読む。読み直したときは key を変えて作り直す） */
   initialValue: string;
@@ -34,6 +46,8 @@ interface Props {
   onChange: (text: string) => void;
   /** ⌘S */
   onSave: () => void;
+  /** 外から動かす口を入れる入れ物 */
+  handleRef?: MutableRefObject<MemoEditorHandle | null>;
 }
 
 /**
@@ -41,7 +55,7 @@ interface Props {
  * （livePreviewExtension。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
  * 行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、メモを開いたときに初めて読み込む（default export）
  */
-export default function MarkdownEditor({ initialValue, live, onChange, onSave }: Props) {
+export default function MarkdownEditor({ initialValue, live, onChange, onSave, handleRef }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const [mode] = useState(() => new Compartment());
@@ -85,9 +99,25 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave }:
       }),
     });
     view.current = v;
+    if (handleRef) {
+      handleRef.current = {
+        text: () => v.state.doc.toString(),
+        selection: () => {
+          const { from, to } = v.state.selection.main;
+          return from === to ? null : { from, to, text: v.state.sliceDoc(from, to) };
+        },
+        replace: (from, to, expected, text) => {
+          if (to > v.state.doc.length || v.state.sliceDoc(from, to) !== expected) return false;
+          v.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from, head: from + text.length }, scrollIntoView: true, userEvent: "input.ai" });
+          v.focus();
+          return true;
+        },
+      };
+    }
     return () => {
       v.destroy();
       view.current = null;
+      if (handleRef) handleRef.current = null;
     };
     // 作るのは 1 回だけ（中身を入れ直すときは key を変えて作り直す。表示の切り替えは下の effect）
     // eslint-disable-next-line react-hooks/exhaustive-deps
