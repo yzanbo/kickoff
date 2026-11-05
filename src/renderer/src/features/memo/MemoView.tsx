@@ -10,7 +10,7 @@ import { reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import type { MemoEditorHandle } from "./MarkdownEditor";
-import { MemoAiButton } from "./MemoAiButton";
+import { MemoAiButton, type MemoAiOpenRequest } from "./MemoAiButton";
 import { MemoAiProposal } from "./MemoAiProposal";
 import { memoTitle, parentOf } from "./memoPaths";
 import { useMemoAi } from "./useMemoAi";
@@ -18,6 +18,9 @@ import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
 
 // 編集の部品（CodeMirror）は大きいので、メモを開いたときに初めて読み込む
 const MarkdownEditor = lazy(() => import("./MarkdownEditor"));
+
+/** 「AI で直す」の頼みの欄のおよその高さ（選んだ文の上に入るかの見積もり） */
+const AI_POPOVER_HEIGHT = 300;
 
 /** 保存の様子の文（見出しの右） */
 const SAVE_LABELS: Record<MemoSaveState, string> = {
@@ -40,6 +43,17 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
   // 編集の部品を外から動かす口（AI の案を取り込む）と、AI の整理
   const editor = useRef<MemoEditorHandle | null>(null);
   const ai = useMemoAi(projectId, path, editor);
+  // 本文の選択の上の「AI で直す」を押した（見出しの「AI で直す」の欄をその場所に開く）
+  const [aiFrom, setAiFrom] = useState<MemoAiOpenRequest | null>(null);
+  // 頼みの欄は選んだ文を隠さないように出す: 最初の行の上に入る（およそ欄の高さ分の空きがある）ならそこ、なければ最後の行の下
+  const askAiFromSelection = (button: HTMLElement) => {
+    const lines = editor.current?.selectionLines();
+    const left = button.getBoundingClientRect().left;
+    const top = lines?.first.getBoundingClientRect().top ?? button.getBoundingClientRect().bottom;
+    const bottom = lines?.last.getBoundingClientRect().bottom ?? top;
+    const roomAbove = top > AI_POPOVER_HEIGHT;
+    setAiFrom({ left, y: roomAbove ? top : bottom, side: roomAbove ? "above" : "below", at: Date.now() });
+  };
   const savedTitle = memoTitle(path);
   // 書いている題名（別のメモへ移った・名前を変えたら、そのメモの題名に入れ直す）
   const [title, setTitle] = useState(savedTitle);
@@ -105,7 +119,7 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
             { value: "edit", label: "そのまま表示（Markdown の記号もそのまま見せる）", icon: CodeXml, iconOnly: true },
           ]}
         />
-        {doc.initial !== null && !unreadable && <MemoAiButton ai={ai} />}
+        {doc.initial !== null && !unreadable && <MemoAiButton ai={ai} openFrom={aiFrom} />}
         {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(`${dir}/${path}`)} />}
         {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
         <PopOutTabButton />
@@ -132,7 +146,7 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
         ) : (
           <Suspense fallback={<p className="muted small memo-message">編集の準備中…</p>}>
             <MemoAiProposal ai={ai} />
-            <MarkdownEditor key={`${path}:${doc.revision}`} initialValue={doc.initial} live={view === "preview"} onChange={doc.change} onSave={saveNow} handleRef={editor} />
+            <MarkdownEditor key={`${path}:${doc.revision}`} initialValue={doc.initial} live={view === "preview"} onChange={doc.change} onSave={saveNow} handleRef={editor} onAskAi={askAiFromSelection} />
           </Suspense>
         )}
       </div>
