@@ -4,6 +4,8 @@ import type { SettingValue } from "@/lib/storage";
 import type { SIDEBAR_LAYOUT } from "@/lib/storageKeys";
 import { CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import { GROUPING_META, ORDER_META, useChatLayout } from "./chatGroupings";
+import { cx } from "@/lib/cx";
+import { useOverflowCompact } from "@/hooks/useOverflowCompact";
 import { HeadMenu, HeadToggle } from "./HeadMenu";
 import { IconButton } from "@/ui/IconButton";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "@/features/chatList/chatListFlags";
@@ -52,6 +54,8 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
   const [compactProjects, setCompactProjects] = useCompactProjects();
+  // ボタンの文字が横幅に入らないときだけ、文字を隠していまの値のアイコンだけにする（入るかは実際の幅で決める。自分待ちの行が出入りしたら測り直す）
+  const fit = useOverflowCompact<HTMLDivElement>(waiting !== undefined);
   /** アーカイブを出すかのボタン（プロジェクト・チャットで共通。押すたびに 表示 ⇄ 隠す） */
   const archiveToggle = (id: string, target: string, shown: boolean, set: (show: boolean) => void, note = "") => (
     <HeadToggle
@@ -65,7 +69,7 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
     />
   );
   return (
-    <div className="project-list-head">
+    <div ref={fit.ref} className={cx("project-list-head", fit.compact && "icon-only")}>
       <div className="project-list-row">
         <span className="project-list-row-label">プロジェクト</span>
         <HeadMenu
