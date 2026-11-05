@@ -71,7 +71,6 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
     <SideChildChat
       chatId={t.childId}
       visible={visible}
-      onPutAway={() => panel.closeTab(t.key)}
       onTitle={(title) => panel.patchTab(t.key, { kind: "child", fields: { title } })}
     />
   ),

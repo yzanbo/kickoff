@@ -75,9 +75,9 @@ function openPopout(appUrl: string, route: string, title: string) {
     if (popouts.get(route) === win) popouts.delete(route);
   });
   if (route.startsWith("/popout/chat?")) {
-    // 子チャットのウィンドウは、最小化（黄色）で Dock に入れず「しまう」（閉じて、メインの会話の札に戻す。✕ と違い、閉じ方を聞かない）
+    // 子チャットのウィンドウは、最小化（黄色）で Dock に入れず閉じる（、メインの会話の札に戻す。✕ と違い、閉じ方を聞かない）
     win.on("minimize", () => win.destroy());
-    // ✕・⌘W は閉じるのを止めて画面に知らせ、閉じ方（しまう / アーカイブ / 削除）を聞く。選んだら画面が closeSelf で閉じる。
+    // ✕・⌘W は閉じるのを止めて画面に知らせ、閉じ方（表示だけ消す / アーカイブ / 削除）を聞く。選んだら画面が closeSelf で閉じる。
     // 画面の beforeunload では止められない（利用者の操作がないページの beforeunload は Chromium が無視する）。
     // アプリの終了は app.exit で閉じる（close が来ない）ので、ここで止めても終われる
     win.on("close", (e) => {
