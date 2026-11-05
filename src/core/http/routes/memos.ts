@@ -1,13 +1,12 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { MemoAiPlanBody, MemoChatBody, MemoCreateBody, MemoDefaults, MemoFromChatBody, MemoMoveBody, MemoWriteBody } from "@shared/types";
-import { MAX_MEMO_AI_CHARS } from "../../memos/memoAi.js";
+import type { MemoAiPlanBody, MemoCreateBody, MemoDefaults, MemoFromChatBody, MemoMoveBody, MemoWriteBody } from "@shared/types";
 import { MAX_MEMO_SOURCE_CHARS } from "../../memos/memos.js";
 import type { ServerDeps } from "../server.js";
-import { Invalid, NotFound } from "../errors.js";
+import { Conflict, Invalid, NotFound } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
-import { repoPath } from "./schemas.js";
+import { memoChatSchema, repoPath } from "./schemas.js";
 
 /** メモの中身の上限（文字） */
 const MAX_MEMO_CHARS = 5_000_000;
@@ -23,21 +22,13 @@ const fromChatSchema = z.object({
   folder: repoPath.nullable(),
 }) satisfies z.ZodType<MemoFromChatBody>;
 const instructionText = z.string().trim().min(1).max(2000);
-const chatSchema = z.object({
-  messages: z
-    .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(MAX_MEMO_AI_CHARS) }))
-    .min(1)
-    .max(200),
-  memo: z.string().max(MAX_MEMO_CHARS),
-  selection: z.string().max(MAX_MEMO_AI_CHARS).nullable(),
-}) satisfies z.ZodType<MemoChatBody>;
 const aiPlanSchema = z.object({ instruction: instructionText.nullable() }) satisfies z.ZodType<MemoAiPlanBody>;
 
 /**
- * プロジェクトのメモ（一覧・中身・保存・作成・名前の変更と移動・ゴミ箱・チャットの文から作る・AI（メモについての会話・フォルダの整理案。どちらも書き換えない））。
+ * プロジェクトのメモ（一覧・中身・保存・作成・名前の変更と移動・ゴミ箱・チャットの文から作る・メモのチャットを始める・AI のフォルダの整理案（動かさない））。
  * 保存先はプロジェクトの外（設定の memos_dir の下の、プロジェクトごとのフォルダ）。パスはメモのフォルダからの相対
  */
-export function memoRoutes(app: Hono, { store, memos }: ServerDeps) {
+export function memoRoutes(app: Hono, { store, memos, runner }: ServerDeps) {
   const { withProject } = lookups(store);
 
   // 設定の画面で、親フォルダをまだ選んでいないときに出す既定の場所
@@ -71,12 +62,16 @@ export function memoRoutes(app: Hono, { store, memos }: ServerDeps) {
     return c.body(null, 204);
   });
 
-  // メモについての会話の返事（保存しない。変更の案を取り込むかは画面で決める）。最後の発言は利用者の空でない発言
+  // メモのチャットを始める（メモごとに 1 つ。続きはふつうのチャットと同じく /api/chats/:id/messages）。メモがなければ 404、もうあれば 409
   app.post("/api/projects/:id/memo/chat", withProject, async (c) => {
-    const body = chatSchema.parse(await jsonBody(c));
-    const last = body.messages.at(-1);
-    if (last?.role !== "user" || !last.text.trim()) throw new Invalid("話しかける文がありません");
-    return c.json(await memos.aiChat(c.var.project, body));
+    const { project } = c.var;
+    const input = memoChatSchema.parse(await jsonBody(c));
+    await memos.read(project, input.path);
+    if (store.chats.memoChats(project.id, input.path).some((chat) => chat.memo_path === input.path && !chat.archived_at)) {
+      throw new Conflict("このメモのチャットはもうあります");
+    }
+    const created = await runner.start({ projectId: project.id, prompt: input.text, options: input.options, attachments: input.attachments, memoPath: input.path });
+    return c.json(created, 201);
   });
 
   // フォルダの整理案を返す（動かさない）

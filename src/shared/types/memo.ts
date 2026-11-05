@@ -36,21 +36,6 @@ export interface MemoRef {
 /** メモの拡張子（新しいメモ・チャットから作るメモ） */
 export const MEMO_EXTENSION = ".md";
 
-/** メモの会話の 1 件（利用者の発言か AI の返事。AI に渡すのは文だけ） */
-export interface MemoChatTurn {
-  role: "user" | "assistant";
-  text: string;
-}
-
-/**
- * メモの会話の返事（POST /api/projects/:id/memo/chat。保存はしない）。edit は、メモを変える案が固まったときだけ付く変えたあとの文
- * （selection = 選んだ部分を置き換える / memo = メモ全体を置き換える。取り込むかは画面で決める）
- */
-export interface MemoChatReply {
-  reply: string;
-  edit: { target: "selection" | "memo"; text: string } | null;
-}
-
 /** AI のフォルダの整理案の 1 件（名前の変更・ほかのフォルダへの移動。行き先のフォルダがなければ動かすときに作る） */
 export interface MemoPlanMove {
   from: string;

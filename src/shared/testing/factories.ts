@@ -32,6 +32,7 @@ export function makeChat(id: number, patch: Partial<Chat> = {}): Chat {
     context_window: null,
     parent_chat_id: null,
     parent_event_id: null,
+    memo_path: null,
     created_at: TEST_TIME,
     active_at: TEST_TIME,
     ...patch,

@@ -1,4 +1,4 @@
-import { CodeXml, Eye, FolderSearch, Save, Sparkles } from "lucide-react";
+import { CodeXml, Eye, FolderSearch, MessagesSquare, Save } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
@@ -11,10 +11,10 @@ import { reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import type { MemoEditorHandle } from "./MarkdownEditor";
-import { MemoChat } from "./MemoChat";
+import { MemoChat, type MemoChatHandle } from "./MemoChat";
 import { memoTitle, parentOf } from "./memoPaths";
-import { useMemoChat } from "./useMemoChat";
 import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
+import { useMemoEditMenu } from "./useMemoEditMenu";
 
 // 編集の部品（CodeMirror）は大きいので、メモを開いたときに初めて読み込む
 const MarkdownEditor = lazy(() => import("./MarkdownEditor"));
@@ -37,24 +37,20 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  */
 export function MemoView({ projectId, path, dir, onRenamed }: { projectId: number; path: string; dir: string; onRenamed: (path: string) => void }) {
   const doc = useMemoDocument(projectId, path);
-  // 編集の部品を外から動かす口（会話の案を取り込む・いまの中身と選んだ部分を読む）と、メモの会話
+  // 編集の部品を外から動かす口（右クリックのメニュー）と、メモのチャットの欄を動かす口（チャットに追加）
   const editor = useRef<MemoEditorHandle | null>(null);
-  const chat = useMemoChat(projectId, path, editor);
+  const chat = useRef<MemoChatHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
-  // 本文でいま選んでいる部分（会話の欄に、どこについて話すかを見せる）
-  const [selection, setSelection] = useState<string | null>(null);
-  useEffect(() => setSelection(null), [path]);
-  const chatInput = useRef<HTMLTextAreaElement>(null);
-  // 会話の欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）。
+  // 本文の右クリック: 「チャットに追加」は欄を開いて、選んだ文の引用を入力欄に足す
+  const editMenu = useMemoEditMenu(editor, (quote) => {
+    setChatOpen(true);
+    chat.current?.add(quote);
+  });
+  // チャットの欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）。
   // 欄は閉じても描いたまま置き（書きかけの文も残る）、開け閉めは幅（狭いときは高さ）をスライドさせる
   const body = useRef<HTMLDivElement>(null);
   const chatPane = useRef<HTMLDivElement>(null);
   const chatWidth = useDragSize({ setting: MEMO_CHAT_WIDTH, edge: "start", min: 280, keep: 280, write: "--memo-chat-w", pane: chatPane, target: () => body.current });
-  /** 会話の欄を開いて、入力にピントを移す（本文の選択の上の「AI と話す」） */
-  const talk = () => {
-    setChatOpen(true);
-    requestAnimationFrame(() => chatInput.current?.focus());
-  };
   const savedTitle = memoTitle(path);
   // 書いている題名（別のメモへ移った・名前を変えたら、そのメモの題名に入れ直す）
   const [title, setTitle] = useState(savedTitle);
@@ -70,6 +66,10 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
       });
       if (to) onRenamed(to);
     });
+  };
+  // メモのチャットで送る前に、書きかけの本文を保存する（AI はファイルを読むので。保存できなければ送らない）
+  const saveBeforeSend = async () => {
+    if (!(await doc.save())) throw new Error("メモを保存できなかったので送りませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから送ってください）");
   };
   const [view, setView] = useSetting(MEMO_VIEW);
   const folder = parentOf(path);
@@ -122,8 +122,8 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
         />
         {doc.initial !== null && !unreadable && (
           <IconButton
-            icon={Sparkles}
-            label={chatOpen ? "メモの会話を閉じる" : "メモの会話を開く（AI と話しながらメモを作る）"}
+            icon={MessagesSquare}
+            label={chatOpen ? "メモのチャットを閉じる" : "メモのチャットを開く（AI と話しながらメモを作る）"}
             aria-pressed={chatOpen}
             className={cx("memo-chat-toggle", chatOpen && "on")}
             onClick={() => setChatOpen(!chatOpen)}
@@ -166,13 +166,13 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
                 onChange={doc.change}
                 onSave={saveNow}
                 handleRef={editor}
-                onAskAi={talk}
-                onSelectionChange={setSelection}
+                onContextMenu={editMenu.open}
               />
             </Suspense>
-            {chatOpen && <div className="pane-resizer memo-chat-resizer" aria-label="メモの会話の欄の幅を変える" {...chatWidth.handle} />}
+            {editMenu.element}
+            {chatOpen && <div className="pane-resizer memo-chat-resizer" aria-label="メモのチャットの欄の幅を変える" {...chatWidth.handle} />}
             <div ref={chatPane} className="memo-chat-slot" aria-hidden={!chatOpen} inert={!chatOpen}>
-              <MemoChat chat={chat} selection={selection} inputRef={chatInput} onClose={() => setChatOpen(false)} />
+              <MemoChat projectId={projectId} path={path} visible={chatOpen} beforeSend={saveBeforeSend} handleRef={chat} onClose={() => setChatOpen(false)} />
             </div>
           </>
         )}

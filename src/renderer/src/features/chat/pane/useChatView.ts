@@ -40,6 +40,8 @@ export interface ChatViewInput {
   focus?: number;
   /** 新しいチャットのタブを開く（送信待ちの指示を新しいチャットで聞くとき。パネルの外では渡さない） */
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
+  /** 送る前にすること（メモのチャットで、書きかけのメモを保存してから送る） */
+  beforeSend?: () => Promise<void>;
 }
 
 /** 右の欄（サブエージェントの欄）の殻を外から動かす口（AgentPanel が入れる） */
@@ -58,7 +60,7 @@ const sideScroller = (chatId: number, key: string) =>
  * ChatView は描くだけ（ChatView はチャットごとに作り直す = key がチャットの ID）
  */
 export function useChatView(
-  { chat, project, events, approvals, live: coreLive, streaming, focus, onOpenNew }: ChatViewInput,
+  { chat, project, events, approvals, live: coreLive, streaming, focus, onOpenNew, beforeSend }: ChatViewInput,
   /** 右の欄（サブエージェントの欄）を置けるか（パネルの中のチャット） */
   canOpenSide = false,
 ) {
@@ -113,7 +115,7 @@ export function useChatView(
   }, [jumpTarget, timeline.visible, scroll]);
   // 失敗した作業の直し方（変わる様子として配り、失敗した作業の終わりの行だけが描き直る）
   const retry = useRetryChoices(events, busy, options);
-  const send = useChatSend({ chatId: chat.id, busy, queued: live.queue.messages.length > 0, options, scroll, background: live.background, runningAgents, onStopping: setStopClicked });
+  const send = useChatSend({ chatId: chat.id, busy, queued: live.queue.messages.length > 0, options, scroll, background: live.background, runningAgents, onStopping: setStopClicked, beforeSend });
 
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
   const promptKeys = usePromptKeys({ root: rootRef, timeline: scroll.ref, promptIds: prompts.ids, onJump: (id) => pane.jumpTo(id) });

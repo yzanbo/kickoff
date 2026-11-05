@@ -1,65 +1,4 @@
-/* ==== メモの AI（会話の案の差分・選んだ部分の引用・選択の上の「AI と話す」・フォルダの整理案のダイアログ。会話の欄は memo-chat.css） ==== */
-
-/* 選んだ部分の引用（どの文の話か。長ければ中でスクロール） */
-.memo-ai-quote {
-  max-height: 120px;
-  margin: 0;
-  padding: 6px 10px;
-  overflow: auto;
-  border-left: 3px solid var(--accent);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-size: 12px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--muted);
-  background: var(--bg);
-}
-
-.memo-ai-spin {
-  flex: none;
-  animation: memo-ai-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes memo-ai-pulse {
-  50% {
-    opacity: 0.35;
-  }
-}
-
-.memo-ai-diff {
-  flex: 1;
-  min-height: 0;
-  margin: 0;
-  padding: 6px 0;
-  overflow: auto;
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.memo-ai-line {
-  display: flex;
-  padding: 0 var(--gutter) 0 8px;
-}
-
-.memo-ai-mark {
-  flex: none;
-  width: 16px;
-  color: var(--muted);
-  user-select: none;
-}
-
-.memo-ai-line.add {
-  background: color-mix(in srgb, var(--ok) 14%, transparent);
-}
-
-.memo-ai-line.del {
-  color: var(--muted);
-  text-decoration: line-through;
-  background: color-mix(in srgb, var(--ng) 12%, transparent);
-}
+/* ==== メモの AI のフォルダの整理案のダイアログ（MemoPlanDialog。メモのチャットの欄は memo-chat.css） ==== */
 
 /* メモのタブの「AI でフォルダを整理」のダイアログ（整理案のチェックの一覧。多ければ中でスクロール） */
 .dialog.app-dialog.memo-plan-dialog {
@@ -114,29 +53,4 @@
 
 .memo-plan-reason {
   grid-column: 2;
-}
-
-/* 本文で範囲を選んだときに、その上に出す「AI と話す」（CodeMirror の吹き出し。押すとメモの会話の欄を開く） */
-.md-editor .cm-tooltip.memo-ai-tip {
-  border: none;
-  background: transparent;
-}
-
-.memo-ai-tip-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  font: inherit;
-  font-size: 12px;
-  color: var(--text);
-  background: var(--bg-elev);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
-  cursor: pointer;
-}
-
-.memo-ai-tip-button:hover {
-  background: var(--bg-hover);
 }

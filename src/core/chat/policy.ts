@@ -39,7 +39,7 @@ export const CHAT_POLICY: ChatPolicy = { allowedCommands: [...GIT_READ, ...CHECK
  * プロバイダーのシステムプロンプトに追記するプロジェクト文脈。
  * workdir: チャットの作業場所（ワークツリーで作業するチャットはそのフォルダ。「リポジトリ」として伝え、本体の場所は添えるだけにする）
  */
-export function buildSystemPrompt(project: Project, workdir = project.repo_path): string {
+export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string }): string {
   const lines = [
     `# Kickoff からの指示`,
     `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
@@ -62,6 +62,17 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path)
     `- サブエージェントが API・通信のエラー（終わりの知らせに API Error・Connection などとある）で途中で止まったときは、SendMessage でそのサブエージェントに止まったところから続けるよう伝えて、1 回だけ再開してください（記録が見つからず再開できないときだけ、同じ依頼で立ち上げ直してください）。それでも止まったとき、通信以外の理由で失敗したとき、利用者が止めたもの（中断）は、再開も立ち上げ直しもせず、何が止まったかを利用者に伝えてください。`,
     `- ただし、サブエージェントが 1 回の返答で書ける量の上限（終わりの知らせに max_output_tokens・output token maximum とある）で止まったときは、通信のエラーではありません。同じやり方で続けると同じところでまた止まるので、「報告は短くまとめる」「大きなファイルは何回かに分けて書く」と添えて、SendMessage で 1 回だけ続きを頼んでください。それでも止まったら、利用者に伝えてください。`,
   );
+
+  if (memo) {
+    lines.push(
+      ``,
+      `## メモ`,
+      `このチャットは、利用者のメモ ${memo.file} の横で話しています（メモのフォルダ: ${memo.dir}）。利用者と相談しながら、このメモの中身を一緒に作ってください。`,
+      `- メモは Markdown のファイルです。話の前に Read で今の中身を読み、変えるときは Edit / Write でこのファイルを直接書き換えてください（利用者の画面は書き換えるとすぐ読み直します）。`,
+      `- 相談・質問・アイデア出しにはふつうに答え、利用者が頼んだとき（「反映して」「まとめて」など）にメモを書き換えてください。頼まれていないのに大きく書き換えないでください。`,
+      `- 利用者が引用（> で始まる行）を送ってきたら、メモのその部分についての話です。`,
+    );
+  }
 
   if (project.reference_paths.length > 0) {
     lines.push(

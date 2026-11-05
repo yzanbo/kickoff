@@ -26,6 +26,8 @@ export interface StartChatInput {
   notice?: string;
   /** 名前（1 行目・AI が付ける名前）のもとにする文（なければ prompt。子チャットでは引用を除いた質問だけ） */
   titleText?: string;
+  /** メモのチャット: どのメモについてのチャットか（メモのフォルダからの相対パス） */
+  memoPath?: string;
 }
 
 /**
@@ -51,6 +53,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
     worktree_path: input.worktreePath || null,
     parent_chat_id: input.parentChatId ?? null,
     parent_event_id: input.parentEventId ?? null,
+    memo_path: input.memoPath ?? null,
   });
   // 親の会話を引き継ぐ子チャットは、親の会話を写したセッションの続きから始める
   const chat = input.sessionId ? store.chats.update(created.id, { session_id: input.sessionId }) : created;

@@ -110,6 +110,11 @@ export interface Chat {
   parent_chat_id: number | null;
   /** 親の会話のどの記録（発言・返答）から聞いたか（子チャットで、聞いた位置が分かるとき） */
   parent_event_id: number | null;
+  /**
+   * メモのチャット（メモの右の欄で話す、メモごとに 1 つのチャット）のメモ（メモのフォルダからの相対パス）。null ならふつうのチャット。
+   * サイドバー・ボードに並べず、そのメモの右の欄から開く
+   */
+  memo_path: string | null;
   created_at: string;
   /** 最後に動いた時刻（作った・送った・状態が変わったときに進む。一覧の並び順。印・固定・グループ・作業場所の変更では進めない） */
   active_at: string;

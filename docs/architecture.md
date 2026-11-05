@@ -33,6 +33,7 @@
 | 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインとのつながりが見えないのでやめた） |
 | チャットタブ（チャットをボードと分けて横幅いっぱいに開くプロジェクトのタブ。設定でボードの右のパネルにも戻せる） | タブ `chats`（`#/projects/:id/chats`）・`ChatsTab`・置き方の設定 `CHAT_PLACEMENT`（`separate` / `together`）。中身はボードの右のパネルと同じ `kanban:<プロジェクト>` のパネル | ボードの右のパネルだけ |
 | メモ（プロジェクトの「メモ」タブ。プロジェクトの外のフォルダの Markdown） | メモのフォルダ（設定 `memos_dir` の下の、プロジェクトの `memo_folder`。別の場所なら `memo_path`）・`MemoService`（`core/memos/`）・`MemoTab`（`features/memo/`） | なし |
+| メモのチャット（メモの右の欄で話す、メモごとに 1 つのふつうのチャット。一覧には並べず、そのメモの右の欄から開く。AI はメモのファイルを直接読み書きする） | `Chat` の `memo_path`・`POST /api/projects/:id/memo/chat`・`MemoChat`（`features/memo/`） | なし |
 | 子チャット（チャットの発言から「子チャットで聞く」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`）。孫・ひ孫も作れる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`features/chat/children/` | なし |
 | 会話 / 動き（チャットの画面の見え方。動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 
@@ -109,9 +110,12 @@ CREATE TABLE chats (
   active_at TEXT NOT NULL DEFAULT (NOW),            -- 最後に動いた時刻（送った・終わった）。名前・固定・アーカイブ・グループ・移動では進めない
   -- v3: 子チャット（parent_chat_id = 親。親を消すと子孫も消える / parent_event_id = 聞いた親の発言の記録の ID。NULL = 位置なし）。ALTER TABLE で末尾に足す
   parent_chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
-  parent_event_id INTEGER CHECK (parent_event_id > 0)
+  parent_event_id INTEGER CHECK (parent_event_id > 0),
+  -- v4: メモのチャット（memo_path = どのメモについてのチャットか。メモのフォルダからの相対パス。NULL = ふつうのチャット）
+  memo_path TEXT CHECK (memo_path <> '')
 ) STRICT;
 -- v3: CREATE INDEX idx_chats_parent ON chats(parent_chat_id) WHERE parent_chat_id IS NOT NULL;
+-- v4: CREATE INDEX idx_chats_memo ON chats(project_id, memo_path) WHERE memo_path IS NOT NULL;
 -- 以前の result（書くだけで読まれない。同じ文が記録の result にある）はなくす
 
 CREATE TABLE chat_events (

@@ -1,179 +1,125 @@
-import { Sparkles, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { cx } from "@/lib/cx";
-import { lineCounts, lineDiff } from "@/lib/lineDiff";
-import { MEMO_CHAT_APPLY, type MemoChatEntry } from "@/lib/storageKeys";
-import { useEditKeys } from "@/hooks/useEditKeys";
-import { useSetting } from "@/hooks/useSetting";
-import { CloseButton, IconButton } from "@/ui/IconButton";
-import { Markdown } from "@/ui/markdown/Markdown";
-import { confirmDialog } from "@/ui/dialogs";
-import { Segmented } from "@/ui/Segmented";
-import { ChangeCounts } from "@/features/chat/tools/TurnChanges";
-import { MEMO_CHAT_PRESETS, type MemoChatState } from "./useMemoChat";
+import { MessagesSquare } from "lucide-react";
+import { useRef, useState, type MutableRefObject } from "react";
+import type { Attachment, ChatOptions } from "@shared/types";
+import { api } from "@/api";
+import { useMemoChatOf } from "@/stores/chats";
+import { CloseButton } from "@/ui/IconButton";
+import { Composer } from "@/features/chat/composer/Composer";
+import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
+import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
+import { ChatView } from "@/features/chat/pane/ChatPane";
+import { useChatDetail } from "@/features/chat/pane/useChatDetail";
+import { chatPaneOf } from "@/features/chat/pane/windowMessages";
+import { PanelHostContext } from "@/features/panel/panelHost";
+
+/** 外からメモのチャットの欄を動かす口（本文の右クリックの「チャットに追加」） */
+export interface MemoChatHandle {
+  /** 入力欄の文の後ろに足す（まだチャットがなければ、最初の指示の入力欄に） */
+  add: (text: string) => void;
+}
 
 /**
- * メモの会話の欄（本文の右。狭いときは下）: メモについて AI と何往復も話し、変更の案が出たら差分を見て取り込む（取り込むまでメモは変わらない）。
- * 案の入れ方は見出しで選ぶ（承認 = 差分を見て「取り込む」/ 直接編集 = 届いたらすぐ本文に入れる。MEMO_CHAT_APPLY）。
- * 本文で範囲を選んでいれば、それを話の的として送る（入力の上に引用で見せ、× で外せる）。会話はメモごとに残る（useMemoChat）
+ * メモのチャットの欄（本文の右。狭いときは下）: メモごとに 1 つの、ふつうのチャット（Claude Code。モデルの選択・音声入力・返事を書きながら見せる・
+ * 送信待ち・添付などはメインのチャットと同じ）。AI はメモのファイルを直接読み書きし、書き換えると開いているメモが読み直す（コアがメモの変更を知らせる）。
+ * まだチャットがなければ、最初の指示の入力欄だけを出し、送るとチャットを作る。送る前に、書きかけのメモを保存する（beforeSend）
  */
 export function MemoChat({
-  chat,
-  selection,
-  inputRef,
+  projectId,
+  path,
+  visible,
+  beforeSend,
+  handleRef,
   onClose,
 }: {
-  chat: MemoChatState;
-  /** 本文でいま選んでいる部分（なければ null） */
-  selection: string | null;
-  /** 入力の欄（選択の上の「AI と話す」で開いたとき、ここにピントを移す） */
-  inputRef: RefObject<HTMLTextAreaElement | null>;
+  projectId: number;
+  path: string;
+  visible: boolean;
+  /** 送る前にすること（書きかけのメモを保存する。保存できなければ SendCancelled を投げて送らない） */
+  beforeSend: () => Promise<void>;
+  handleRef: MutableRefObject<MemoChatHandle | null>;
   onClose: () => void;
 }) {
-  const [text, setText] = useState("");
-  const [applyMode, setApplyMode] = useSetting(MEMO_CHAT_APPLY);
-  // 選んでいる部分を話の的にしない（× で外した。選び直したら、また的にする）
-  const [ignored, setIgnored] = useState<string | null>(null);
-  const useSelection = selection !== null && selection !== ignored;
-  const list = useRef<HTMLDivElement>(null);
-  const send = (body: string) => {
-    if (!body.trim() || chat.busy) return;
-    chat.send(body, useSelection);
-    setText("");
+  const stored = useMemoChatOf(projectId, path);
+  // 作ったばかりのチャット（一覧の知らせが届くまでの間も、そのチャットを出す）
+  const [created, setCreated] = useState<{ path: string; id: number } | null>(null);
+  const chatId = stored?.id ?? (created?.path === path ? created.id : undefined);
+  const composer = useRef<ComposerHandle | null>(null);
+  handleRef.current = {
+    add: (text) => {
+      if (chatId === undefined) composer.current?.fill(text, { append: true });
+      else chatPaneOf(chatId)?.fillComposer(text, { append: true });
+    },
   };
-  const keys = useEditKeys({ onSubmit: () => send(text) });
-
-  // 新しい発言・返事が来たら、いちばん下を見せる
-  useEffect(() => {
-    list.current?.scrollTo({ top: list.current.scrollHeight });
-  }, [chat.entries.length, chat.busy]);
-
   return (
-    <aside className="memo-chat" aria-label="メモの会話">
+    <aside className="memo-chat" aria-label="メモのチャット">
       <header className="memo-chat-head">
-        <Sparkles size={14} aria-hidden />
-        <span className="memo-chat-title">メモの会話</span>
+        <MessagesSquare size={14} aria-hidden />
+        <span className="memo-chat-title">メモのチャット</span>
         <span className="spacer" />
-        <Segmented
-          className="segmented memo-chat-apply"
-          label="変更の案の入れ方"
-          value={applyMode}
-          onChange={setApplyMode}
-          options={[
-            { value: "review", label: "承認", tip: "承認（AI の変更の案を差分で見て、「取り込む」を押したときだけ本文に入れる）" },
-            { value: "direct", label: "直接編集", tip: "直接編集（AI の変更の案を、届いたらすぐ本文に入れる。⌘Z で戻せる。保存は ⌘S）" },
-          ]}
-        />
-        <IconButton
-          icon={Trash2}
-          size={14}
-          label="会話を消す（はじめから話す）"
-          disabled={chat.entries.length === 0}
-          onClick={() => void confirmDialog({ title: "このメモの会話を消しますか？", message: "メモの中身は変わりません。", confirmLabel: "消す" }).then((ok) => ok && chat.clear())}
-        />
-        <CloseButton size={15} label="会話の欄を閉じる" onClick={onClose} />
+        <CloseButton size={15} label="チャットの欄を閉じる" onClick={onClose} />
       </header>
-      <div ref={list} className="memo-chat-list">
-        {chat.entries.length === 0 && (
-          <div className="memo-chat-empty muted small">
-            <p>このメモについて、相談・アイデア出し・書き直しを頼めます。AI はいまのメモ（まだ保存していない書きかけも）を見て答えます。</p>
-            <p>
-              「反映して」と頼むと、メモの変更の案を出します。{applyMode === "review" ? "差分を見て「取り込む」まで、メモは変わりません。" : "直接編集なので、届いたらすぐ本文に入れます（⌘Z で戻せます）。"}
-              保存は ⌘S です。本文で範囲を選ぶと、その部分についての話になります。
-            </p>
-          </div>
+      <div className="memo-chat-body">
+        {chatId === undefined ? (
+          <MemoChatStart
+            key={path}
+            projectId={projectId}
+            composerRef={composer}
+            onStart={async (text, attachments, options) => {
+              await beforeSend();
+              const chat = await api.startMemoChat(projectId, { path, text, options, attachments });
+              setCreated({ path, id: chat.id });
+            }}
+          />
+        ) : (
+          <MemoChatView key={chatId} chatId={chatId} visible={visible} beforeSend={beforeSend} />
         )}
-        {chat.entries.map((e, i) => (
-          <ChatEntry key={i} entry={e} onApply={() => chat.apply(i)} />
-        ))}
-        {chat.busy && (
-          <div className="memo-chat-busy" role="status">
-            <Sparkles size={13} className="memo-ai-spin" aria-hidden />
-            考えています…
-            <button type="button" className="btn btn-sm" onClick={chat.cancel}>
-              やめる
-            </button>
-          </div>
-        )}
-      </div>
-      {chat.error && (
-        <div className="memo-chat-error" role="alert">
-          <span>{chat.error}</span>
-          <CloseButton size={13} label="閉じる" onClick={chat.clearError} />
-        </div>
-      )}
-      <div className="memo-chat-compose">
-        {useSelection && (
-          <div className="memo-chat-selection">
-            <span className="muted small">選んだ部分（{selection.length} 文字）について</span>
-            <IconButton icon={X} size={12} label="選んだ部分を話の的にしない（メモ全体の話にする）" onClick={() => setIgnored(selection)} />
-            <blockquote className="memo-ai-quote">{selection}</blockquote>
-          </div>
-        )}
-        <div className="memo-chat-presets">
-          {MEMO_CHAT_PRESETS.map((p) => (
-            <button key={p.label} type="button" className="btn btn-sm" title={p.text} disabled={chat.busy} onClick={() => send(p.text)}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <textarea
-          ref={inputRef}
-          rows={3}
-          className="memo-chat-input"
-          value={text}
-          placeholder="メモについて話す（例: 機能案を一緒に考えて / 優先度順に並べて反映して）。Enter で送る、Shift+Enter で改行"
-          onChange={(e) => setText(e.target.value)}
-          {...keys.keyProps}
-        />
       </div>
     </aside>
   );
 }
 
-/** 会話の 1 件（自分の発言は吹き出し・選んでいた部分の引用、AI の返事は Markdown と変更の案） */
-function ChatEntry({ entry, onApply }: { entry: MemoChatEntry; onApply: () => void }) {
-  if (entry.role === "user") {
-    return (
-      <div className="memo-chat-user">
-        {entry.selection && <blockquote className="memo-ai-quote">{entry.selection}</blockquote>}
-        <div className="memo-chat-bubble">{entry.text}</div>
-      </div>
-    );
-  }
+/** メモのチャットの会話（ふつうのチャットの画面。右の欄は重ねない） */
+function MemoChatView({ chatId, visible, beforeSend }: { chatId: number; visible: boolean; beforeSend: () => Promise<void> }) {
+  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  if (error) return <div className="page error">{error}</div>;
+  if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
-    <div className={cx("memo-chat-reply", entry.error && "error")}>
-      {entry.error ? <p className="memo-chat-error-text">{entry.text}</p> : <Markdown>{entry.text}</Markdown>}
-      {entry.edit && <EditCard edit={entry.edit} onApply={onApply} />}
-    </div>
+    <PanelHostContext.Provider value={null}>
+      <ChatView chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} visible={visible} beforeSend={beforeSend} />
+    </PanelHostContext.Provider>
   );
 }
 
-/** AI の変更の案（差分と「取り込む」。取り込んだら「取り込みました」） */
-function EditCard({ edit, onApply }: { edit: NonNullable<MemoChatEntry["edit"]>; onApply: () => void }) {
-  const diff = useMemo(() => lineDiff(edit.original, edit.text), [edit.original, edit.text]);
+/** まだチャットがないときの、最初の指示の入力欄（メインの新しいチャットと同じ入力欄。送るとメモのチャットを作る） */
+function MemoChatStart({
+  projectId,
+  composerRef,
+  onStart,
+}: {
+  projectId: number;
+  composerRef: MutableRefObject<ComposerHandle | null>;
+  onStart: (text: string, attachments: Attachment[], options: ChatOptions) => Promise<void>;
+}) {
+  const options = useChatOptions(undefined, projectId);
   return (
-    <section className="memo-chat-edit" aria-label="メモの変更の案">
-      <div className="memo-chat-edit-head">
-        <span className="small">
-          {edit.applied ? "入れた変更" : "変更の案"}（{edit.part ? "選んだ部分" : "メモ全体"}）
-        </span>
-        <ChangeCounts {...lineCounts(diff)} />
-        <span className="spacer" />
-        <button type="button" className="btn btn-sm btn-primary" disabled={edit.applied} title={edit.applied ? "本文に入れました（⌘Z で戻せます。保存は ⌘S）" : "本文を置き換えます（保存はしません。⌘Z で戻せます）"} onClick={onApply}>
-          {edit.applied ? "取り込みました" : "取り込む"}
-        </button>
+    <div className="chat-page chat-panel memo-chat-start">
+      <div className="timeline">
+        <div className="memo-chat-hero">
+          <MessagesSquare size={22} aria-hidden />
+          <p>このメモについて AI と話しながら、中身を一緒に作ります。AI はメモを読み、頼むと直接書き換えます（書き換えると本文もすぐ変わります）。</p>
+          <p className="muted small">本文で文を選んで右クリックの「チャットに追加」で、その部分を引用して入力欄に足せます。</p>
+        </div>
       </div>
-      <pre className="memo-ai-diff">
-        {diff.map((d, i) => (
-          <div key={i} className={cx("memo-ai-line", d.kind)}>
-            <span className="memo-ai-mark" aria-hidden>
-              {d.kind === "add" ? "+" : d.kind === "del" ? "−" : " "}
-            </span>
-            {d.text || " "}
-          </div>
-        ))}
-      </pre>
-    </section>
+      <div className="chat-composer">
+        <Composer
+          chatContext={{ projectId }}
+          options={options}
+          handleRef={composerRef}
+          suggestTarget={projectId}
+          placeholder="メモについて話す（例: 機能案を一緒に考えて / 優先度順に並べて反映して）。Enter で送る、Shift+Enter で改行"
+          onSend={(text, attachments) => onStart(text, attachments, options.options)}
+        />
+      </div>
+    </div>
   );
 }

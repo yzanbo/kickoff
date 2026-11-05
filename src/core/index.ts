@@ -56,9 +56,6 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const serviceUsage = new ServiceUsageMonitor(usage);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus });
-  // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
-  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), publish: (e) => bus.publish(e) });
   // メモの親フォルダの既定は ~/Documents/<アプリ名> メモ（保存先のフォルダ名がアプリ名。開発版は「Kickoff Dev メモ」で、製品版のメモに触らない）
   const memos = new MemoService({
     store,
@@ -66,6 +63,10 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     providers,
     publish: (e) => bus.publish(e),
   });
+  // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project) });
+  // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
+  const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), publish: (e) => bus.publish(e) });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
