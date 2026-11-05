@@ -125,6 +125,7 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     effort: chat.effort,
     permissionMode: chat.permission_mode,
     fastMode: chat.fast_mode,
+    autoCompactPct: deps.store.settings.get().auto_compact_pct,
     // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
     additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project)],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）

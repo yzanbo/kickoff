@@ -13,6 +13,7 @@ import { createInputChannel } from "./input.js";
 import { errorMessage } from "@shared/errors";
 import { isNetworkError } from "@shared/chat/networkErrors";
 import { isUsageLimitError, resetTimeOf } from "@shared/chat/usageLimit";
+import { autoCompactEnv } from "@shared/chat/autoCompact";
 import { ERROR_LABELS, FAST_MODE_REASONS, TERMINAL_ONLY_COMMANDS } from "./labels.js";
 import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOption, type PlanUsage, type ProviderStatus, type SlashCommandOption } from "@shared/types";
 import { createCanUseTool } from "./approvals.js";
@@ -175,7 +176,8 @@ export class ClaudeProvider implements AgentProvider {
           canUseTool,
           resume: params.resumeSessionId ?? undefined,
           abortController,
-          env: agentEnv(),
+          // 自動圧縮を始める使用率を決めていれば渡す（決めていなければ Claude Code の既定）
+          env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct) },
           pathToClaudeCodeExecutable: this.executable,
           hooks: turnHooks(params, this.self),
           includePartialMessages: true,

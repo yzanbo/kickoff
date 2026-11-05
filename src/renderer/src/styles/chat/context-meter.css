@@ -35,6 +35,11 @@
   transition: stroke-dasharray 0.3s;
 }
 
+/* 自動圧縮が始まるところを指す矢印（設定で決めたとき） */
+.context-ring-mark {
+  fill: var(--text);
+}
+
 .context-ring.tone-warn .context-ring-fill {
   stroke: var(--warn);
 }

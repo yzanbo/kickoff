@@ -7,7 +7,7 @@
 - 表示（画面だけの表示の設定。保存は localStorage の設定）: テーマ（`THEME`。ダーク / ライト / システムに合わせる）・チャット欄（標準 / コンパクト `COMPOSER_COMPACT`）・会話の文字の大きさ（5 段階 `CHAT_FONT_SIZE`）・チャットの文の幅（`CHAT_WIDE`）・チャットの見出し（表示する / 隠す `CHAT_HEADER_ROW_HIDDEN`）・上に貼り付ける指示（表示する / 表示しない `STICKY_PROMPT_HIDDEN`）・サブエージェントを開く場所（流れの中 / 右の欄 `SUBAGENT_OPEN_IN`。初めは流れの中）・プロジェクトのタブ（`PROJECT_TABS_LAYOUT`）・チャットを開く場所（チャットタブ / ボードの右 `CHAT_PLACEMENT`。初めはチャットタブ。`features/project/page/chatPlacement.ts`）・ボードツールバーの置き方（`BOARD_HEADER_LAYOUT`）・下の帯（表示 / 寄せたときだけ表示 / 非表示 `FOOTER_MODE`。初めは表示）。どれもチャットの見出しの行・タブの右クリックなど、使う場所の切り替えと同じ設定。
 - 接続: AI エージェントと GitHub の CLI のログイン状態（`StatusCard` / `GitHubStatusCard`。`.card-grid`）。
 - AI の既定: 新しいチャットのモデル・推論の深さ・権限モード・ファストモード（`AiDefaultsSettings`。選択肢の部品は `features/chat/options/AiOptions.tsx`）。
-- チャット: 完了したチャットの自動のアーカイブ・通信が切れて止まったときの自動の再開・✕ を押したときの扱い（`CHAT_CLOSE_ACTION`）・ほかのチャットが作業中の作業場所で新しいチャットを始めるときの扱い（`BUSY_WORKPLACE_ACTION`。`features/worktree/busyWorkplace.ts`）。
+- チャット: 完了したチャットの自動のアーカイブ・自動圧縮を始める量（`auto_compact_pct`。コンテキストの 30〜90% / Claude Code の既定。コアが次のやり取りから Claude Code に渡す）・通信が切れて止まったときの自動の再開・✕ を押したときの扱い（`CHAT_CLOSE_ACTION`）・ほかのチャットが作業中の作業場所で新しいチャットを始めるときの扱い（`BUSY_WORKPLACE_ACTION`。`features/worktree/busyWorkplace.ts`）。
 - メモ: メモの親フォルダ（`memos_dir`。`MemoSettings`。欄は `features/memo` の `MemoFolderField`）。
 - 通知: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・ntfy）。「テスト通知を送る」（届かなければ理由を出す）と「Mac の通知の設定を開く」。知らせる中身は `app/notifications.ts` の `useChatNotifications`（Kickoff を見ていてそのチャットを開いているときは知らせない。押すとそのチャットを開く。スマホのブラウザではブラウザの通知）。
 - ターミナル: 外部のターミナルとして開くアプリ（`useExternalTerminal`。`features/terminal/CLAUDE.md`）。ブラウザの拡張機能は `features/browser/BrowserExtensions`。
