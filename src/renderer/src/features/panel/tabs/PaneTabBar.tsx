@@ -5,7 +5,7 @@ import { IconButton } from "@/ui/IconButton";
 import type { PaneLeaf, SplitDir } from "@/features/panel/layout/paneTree";
 import type { useChatRename } from "@/features/chat/useChatRename";
 import type { TabDrag } from "@/features/panel/layout/useTabDrag";
-import { groupNameIn, useGroupsOf } from "@/stores/groups";
+import { useGroupsOf } from "@/stores/groups";
 import type { PanelController } from "@/features/panel/usePanel";
 import { paneIndexOf } from "@/features/panel/clusters/tabClusters";
 import { TabClusterHead } from "@/features/panel/clusters/TabClusterHead";
@@ -14,7 +14,7 @@ import { useTabStrip } from "@/features/panel/clusters/useTabStrip";
 import type { OpenWithKind } from "@/features/openWith/useOpenWithMenu";
 import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
-import { specOf } from "./tabKinds";
+import { specOf, type TabGroupLookup } from "./tabKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 
 /**
@@ -85,7 +85,10 @@ export function PaneTabBar({
   const splitTo = (dir: SplitDir) => panel.splitPane(pane.id, dir, "after", pane.tabs.length > 1 ? (active ?? undefined) : undefined);
   // タブに添えるグループ名（タブのプロジェクトごとに 1 回だけ読む）
   const groupsOf = useGroupsOf(panel.tabs.flatMap((t) => specOf(t).projectOf(t) ?? []));
-  const groupName = (projectId: number, groupId: number | null | undefined) => groupNameIn(groupsOf(projectId), groupId);
+  const groupOf: TabGroupLookup = (projectId, groupId) => {
+    const group = groupId === null || groupId === undefined ? undefined : groupsOf(projectId).find((g) => g.id === groupId);
+    return group && { name: group.name, hue: group.hue };
+  };
   /** タブ 1 つ（i は見た目の並びの位置。ドラッグで落とす位置の印もこの並びで付ける） */
   const tab = (key: string, i: number) => {
     const t = panel.tabs.find((x) => x.key === key);
@@ -98,7 +101,7 @@ export function PaneTabBar({
         active={active === t.key}
         home={home}
         showGroup={strip.grouping !== "group"}
-        groupName={groupName}
+        groupOf={groupOf}
         className={cx(
           insertAt === i && "split-insert-before",
           insertAt === display.length && i === display.length - 1 && "split-insert-after",

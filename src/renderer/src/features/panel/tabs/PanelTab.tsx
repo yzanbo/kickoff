@@ -1,8 +1,9 @@
 import type { LucideIcon } from "lucide-react";
-import type { HTMLAttributes, ReactNode } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { CloseButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
+import type { TabGroupBadge } from "./tabKinds";
 
 /**
  * パネルのタブ 1 つ（右のパネル・下のパネルで共通）。タブのどこを押しても表示し（名前のボタンの押せる範囲を CSS でタブ全体に広げる）、× で閉じる。
@@ -32,8 +33,8 @@ export function PanelTab({
   /** 名前の前に置く種類の札（メモ・サブ・子）。タブの枠もその種類の色にする（kind で色を分ける。CSS の .tab-kind-<kind>） */
   badge?: { text: string; kind: string };
   label: string;
-  /** チャットのグループ名（名前の後ろに控えめに添える。グループなしなら出さない） */
-  group?: string;
+  /** チャットのグループ（名前の後ろに、グループの色の札で添える。グループなしなら出さない） */
+  group?: TabGroupBadge;
   /** 名前にマウスを乗せたときの説明（なければ名前） */
   title?: string;
   className?: string;
@@ -61,7 +62,11 @@ export function PanelTab({
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           {badge && <span className="panel-tab-kind">{badge.text}</span>}
           <span>{label}</span>
-          {group && <span className="panel-tab-group-name">{group}</span>}
+          {group && (
+            <span className="panel-tab-group-name" style={group.hue === null ? undefined : ({ "--group-hue": group.hue } as CSSProperties)}>
+              {group.name}
+            </span>
+          )}
         </button>
       )}
       {/* 名前を変えている間は、入力欄の ✓ / ✕ と並ばないよう閉じるを隠す */}

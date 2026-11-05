@@ -100,20 +100,34 @@
   text-overflow: ellipsis;
 }
 
-/* チャットのグループ名（名前の後ろに控えめに。タブは幅が決まっているので、名前の方を省いてグループ名は残す。長い名前だけタブの半分で省く） */
+/*
+ * チャットのグループ（タブをまとめないとき、名前の後ろに添える札。グループの色の薄い地に色の文字で、まとめたときの頭の札・右の欄の種類の札と同じ形。
+ * 色が分からない（送る前の新しいチャットで、グループの一覧がまだ届いていない）ときは灰色。タブは幅が決まっているので、名前の方を省いて札は残す。長い名前だけタブの半分で省く）
+ */
 .panel-tab-label .panel-tab-group-name {
+  --group-color: var(--muted);
+
   flex: none;
   max-width: 50%;
-  font-size: 11px;
-  color: var(--extra-muted);
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--group-color);
+  background: color-mix(in srgb, var(--group-color) 18%, transparent);
 }
 
-.panel-tab-label .panel-tab-group-name::before {
-  content: "· ";
+.panel-tab-label .panel-tab-group-name[style] {
+  --group-color: hsl(var(--group-hue) 60% 68%);
+}
+
+:root[data-theme="light"] .panel-tab-label .panel-tab-group-name[style] {
+  --group-color: hsl(var(--group-hue) 55% 38%);
 }
 
 /* 未読（終わった・失敗したのに見ていない）のチャットのタブは、名前を太字にする（サイドバーの行と同じ） */
-.panel-tab.unread .panel-tab-label span {
+.panel-tab.unread .panel-tab-label span:not(.panel-tab-group-name) {
   font-weight: 600;
   color: var(--text);
 }
