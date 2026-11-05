@@ -40,9 +40,3 @@ export function toggleHeaderItem(saved: readonly string[], item: ChatHeaderItem)
   const hidden = hiddenHeaderItems(saved);
   return CHAT_HEADER_ITEMS.filter((i) => (i === item ? !hidden.has(i) : hidden.has(i)));
 }
-
-/** saved で、既定（initial）より多く隠している項目があるか（タブの列の「表示」のボタンの点。隠れた状態に気づけるように） */
-export function hidesMoreHeaderItems(saved: readonly string[], initial: readonly string[]): boolean {
-  const defaults = hiddenHeaderItems(initial);
-  return [...hiddenHeaderItems(saved)].some((i) => !defaults.has(i));
-}

@@ -9,7 +9,6 @@ import {
   CHAT_HEADER_ITEM_NOTES,
   CHAT_HEADER_SECTIONS,
   hiddenHeaderItems,
-  hidesMoreHeaderItems,
   toggleHeaderItem,
   type ChatHeaderItem,
 } from "./chatHeaderItems";
@@ -32,7 +31,7 @@ export function useChatDisplayHides(): boolean {
   const [rowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [saved] = useSetting(CHAT_HEADER_HIDDEN);
   const [stickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
-  return rowHidden || stickyHidden || hidesMoreHeaderItems(saved, CHAT_HEADER_HIDDEN.initial);
+  return rowHidden || stickyHidden || hiddenHeaderItems(saved).size > 0;
 }
 
 /** チェックの付く項目（keepOpen: 押してもメニューを閉じない） */
@@ -58,7 +57,6 @@ export function ChatDisplayItems() {
   const [compact, setCompact] = useSetting(COMPOSER_COMPACT);
   const items = useSubmenu();
   const hidden = hiddenHeaderItems(saved);
-  const isDefault = !hidesMoreHeaderItems(saved, CHAT_HEADER_HIDDEN.initial) && !hidesMoreHeaderItems(CHAT_HEADER_HIDDEN.initial, saved);
   return (
     <div className="menu-items">
       <div className="menu-label">チャットの画面（どのチャットでも共通）</div>
@@ -91,11 +89,11 @@ export function ChatDisplayItems() {
               })}
             </Fragment>
           ))}
-          {!isDefault && (
+          {hidden.size > 0 && (
             <>
               <div className="menu-separator" role="separator" />
-              <MenuItem keepOpen onSelect={() => setSaved(CHAT_HEADER_HIDDEN.initial)}>
-                <span className="project-switch-item">既定に戻す</span>
+              <MenuItem keepOpen onSelect={() => setSaved([])}>
+                <span className="project-switch-item">すべて表示する</span>
               </MenuItem>
             </>
           )}
