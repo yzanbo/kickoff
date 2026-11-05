@@ -24,7 +24,7 @@ export function FileLinksProvider({ value, children }: { value: ChatFileLinks | 
             remarkPlugin: [remarkFileLinks, links.index],
             open: (e, path, line) => openByClick(links, e, { path, ...(line ? { line } : {}) }),
             menu: (e, path, line) => links.showMenu(e, { path, ...(line ? { line } : {}) }),
-            title: (path, line) => `${path}${line ? `（${line} 行目）` : ""} を${links.side ? "右の欄" : "エディタタブ"}で開く（⌘クリックでエディタタブ・右クリックでほかの開き方）`,
+            title: (path, line) => `${path}${line ? `（${line} 行目）` : ""} を${links.side ? "右の欄" : "ファイルタブ"}で開く（⌘クリックでファイルタブ・右クリックでほかの開き方）`,
           }
         : undefined,
     [links],

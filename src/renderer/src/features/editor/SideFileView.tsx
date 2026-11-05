@@ -19,8 +19,8 @@ interface Props {
 }
 
 /**
- * チャットの画面の右の欄の「ファイル」: 作業場所のファイルの中身（エディタタブと同じ FileView。編集・保存もできる）。行の番号があればその行を目立たせる。
- * 上の帯に、コミットしていない変更があれば「差分を見る」（右の欄の変更のタブのそのファイルの位置へ）と、「エディタタブで開く」
+ * チャットの画面の右の欄の「ファイル」: 作業場所のファイルの中身（ファイルタブと同じ FileView。編集・保存もできる）。行の番号があればその行を目立たせる。
+ * 上の帯に、コミットしていない変更があれば「差分を見る」（右の欄の変更のタブのそのファイルの位置へ）と、「ファイルタブで開く」
  */
 export function SideFileView(props: Props) {
   return (
@@ -50,7 +50,7 @@ function SideFileBody({ projectId, worktree, path, line }: Props) {
           className="btn btn-sm"
           onClick={() => (links ? links.openInEditor(ref) : openProjectFile(projectId, { ...ref, ...(worktree ? { worktree } : {}) }))}
         >
-          <SquareArrowOutUpRight size={13} aria-hidden /> エディタタブで開く
+          <SquareArrowOutUpRight size={13} aria-hidden /> ファイルタブで開く
         </button>
       </div>
       <FileView

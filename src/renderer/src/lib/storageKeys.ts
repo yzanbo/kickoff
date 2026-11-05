@@ -158,12 +158,10 @@ export const QUESTION_LAYOUT = defineSetting("kickoff:question-layout", choice([
 /** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除） */
 export const CHAT_CLOSE_ACTION = defineSetting("kickoff:chat-close-action", choice(["ask", "close", "archive", "delete"], "ask"));
 
-// エディタ・履歴のタブ
-/** エディタタブの左端の表示（files = すべてのファイル / search = 検索 / changes = 変更） */
-export const CHANGES_VIEW = defineSetting("kickoff:changes-view", choice(["files", "search", "changes"], "files"));
+// ファイル・検索・変更・履歴のタブ
 /** 変更の一覧を木で出すか */
 export const CHANGES_TREE = defineSetting("kickoff:changes-tree", flag(true));
-/** エディタタブ・履歴タブの左の一覧の幅 */
+/** ファイルタブ・履歴タブの左の一覧の幅 */
 export const CHANGES_LIST_WIDTH = defineSetting("kickoff:changes-list-width", number(246));
 /** 差分の並べ方（split = 左右に並べる / unified = 1 列） */
 export const DIFF_LAYOUT = defineSetting("kickoff:diff-layout", choice(["split", "unified"], "unified"));
@@ -172,7 +170,7 @@ export const COMMIT_FILES_LIST = defineSetting("kickoff:commit-files-tree", flag
 export const COMMIT_FILES_WIDTH = defineSetting("kickoff:commit-files-width", number(260));
 /** 履歴の上のコミットの表の高さ（割合 %） */
 export const HISTORY_SPLIT = defineSetting("kickoff:history-split", number(43));
-/** プロジェクトごとの、エディタタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
+/** プロジェクトごとの、ファイルタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
 export const editorWorktree = defineSettingFamily("kickoff:editor-worktree:", text(), { ids: true });
 /** プロジェクトごとの、メモのタブで開いているメモ（メモのフォルダからの相対パス。空なら選んでいない） */
 export const memoSelected = defineSettingFamily("kickoff:memo-selected:", text(), { ids: true });

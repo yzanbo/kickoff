@@ -1,7 +1,5 @@
 import { useRef, useState } from "react";
 import type { GitFileChange } from "@shared/types";
-import type { SettingValue } from "@/lib/storage";
-import type { CHANGES_VIEW } from "@/lib/storageKeys";
 import { confirmDialog } from "@/ui/dialogs";
 
 /**
@@ -17,7 +15,7 @@ export interface Selection {
   edit?: boolean;
 }
 
-/** エディタタブで選んでいるファイル。編集中に保存していない変更があれば、別のファイルを開く前に確かめる */
+/** ファイルタブで選んでいるファイル。編集中に保存していない変更があれば、別のファイルを開く前に確かめる */
 export function useChangesSelection() {
   const [selected, setSelectedState] = useState<Selection>();
   // 編集中のファイルに保存していない変更があるか（別のファイルを開く前に確かめる）
@@ -61,5 +59,5 @@ export function selectedChange(selected: Selection | undefined, groups: ChangeGr
   return staged && { file: staged, staged: true };
 }
 
-/** エディタタブの左の表示（すべてのファイル・検索・変更） */
-export type ChangesView = SettingValue<typeof CHANGES_VIEW>;
+/** 左の一覧の表示（ファイル・検索・変更。プロジェクトのタブの files / search / changes） */
+export type ChangesView = "files" | "search" | "changes";

@@ -27,14 +27,14 @@ interface ProjectPageProps {
   focus?: ReopenRoute;
   /** グループのタブで目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlightGroup?: number;
-  /** エディタタブで開くファイル（チャットの返答のファイルのチップから） */
+  /** ファイルタブで開くファイル（チャットの返答のファイルのチップから） */
   openFile?: FileTarget;
   /** メモのタブで開くメモ（チャットの「メモに追加」から） */
   openMemo?: string;
 }
 
 /**
- * プロジェクト画面: ボード（カンバン）・グループ・チャット（ボードと分ける置き方のとき）・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・
+ * プロジェクト画面: ボード（カンバン）・グループ・チャット（ボードと分ける置き方のとき）・ファイル・検索・変更（Git の変更とファイル。文書もここでファイルとして見る）・
  * 履歴（コミット）・メモをタブで
  */
 export function ProjectPage(props: ProjectPageProps) {
@@ -58,12 +58,14 @@ function ProjectPageBody({ id, tab: routeTab, focus, highlightGroup, openFile, o
     if (tab === "board") setColumns("state");
     else if (tab === "groups") setColumns("groups");
   }, [tab, setColumns]);
-  // エディタ・履歴タブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
+  // ファイル・検索・変更・履歴タブで見る作業場所（ワークツリーのフォルダ。空なら本体。プロジェクトごとに覚える）
   const [storedWorktree, storeWorktree] = useSetting(editorWorktree(id));
   const worktree = storedWorktree || undefined;
   const setWorktree = (path: string | undefined) => storeWorktree(path ?? "");
-  // Git の変更（タブのバッジに数を出し、エディタタブで一覧と差分を出す）
-  const git = useGitStatus(id, tab === "changes" || tab === "history", worktree);
+  // ファイル・検索・変更のタブ（同じ部品 EditorTab を、左の一覧の表示だけ変えて出す。行き来しても開いたファイルは共有）
+  const editorView = tab === "files" || tab === "search" || tab === "changes" ? tab : undefined;
+  // Git の変更（変更のタブのバッジに数を出し、ファイル・検索・変更のタブで一覧と差分を出す）
+  const git = useGitStatus(id, editorView !== undefined || tab === "history", worktree);
   // タブの数を取り直している最中（更新を知ってから結果が届くまで、数の代わりに更新中の印を出す）
   const refreshing = { chats: useBusyBadge(chatsLoading), changes: useBusyBadge(git.refreshing) };
   // タブの置き方（見出しの下に横並び / 左に縦並び。設定の「表示」）
@@ -92,11 +94,12 @@ function ProjectPageBody({ id, tab: routeTab, focus, highlightGroup, openFile, o
       {/* ボードと分けたチャット（ボードの右のパネルと同じパネルを横幅いっぱいに） */}
       {tab === "chats" && <ChatsTab key={project.id} projectId={project.id} focus={stale ? undefined : focus} />}
       {tab === "groups" && <GroupBoard projectId={project.id} groups={groups} focus={focus} highlight={highlightGroup} />}
-      {tab === "changes" && (
+      {editorView && (
         <WorktreeContext.Provider value={worktree}>
-          {/* 作業場所を変えたら、選んでいたファイル・検索などは初めからにする */}
+          {/* 作業場所を変えたら、選んでいたファイル・検索などは初めからにする（ファイル・検索・変更のタブの間では同じ部品のまま） */}
           <EditorTab
             key={worktree ?? ""}
+            view={editorView}
             projectId={project.id}
             repoPath={project.repo_path}
             git={git}

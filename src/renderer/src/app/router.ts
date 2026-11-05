@@ -1,12 +1,13 @@
 import { createContext, useContext, useState } from "react";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 
-// プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はエディタ（changes）でファイルとして見る
+// プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はファイルタブ（files）でファイルとして見る
 // （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
-const PROJECT_TABS = ["board", "groups", "chats", "changes", "history", "memos"] as const;
+// ファイル（files）・検索（search）・変更（changes = ソース管理）は、以前の「エディタ」タブの中の切り替えをタブにしたもの（開いたファイルは 3 つで共有）
+const PROJECT_TABS = ["board", "groups", "chats", "files", "search", "changes", "history", "memos"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
-/** エディタタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
+/** ファイルタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
 export interface FileTarget {
   path: string;
   line?: number;
@@ -18,7 +19,7 @@ export type Route =
   | { name: "allProjects" }
   /**
    * group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき）。
-   * file: エディタタブで開くファイル（開いたら URL から外す）。memo: メモのタブで開くメモ（メモのフォルダからの相対パス。開いたら URL から外す）
+   * file: ファイルタブで開くファイル（開いたら URL から外す）。memo: メモのタブで開くメモ（メモのフォルダからの相対パス。開いたら URL から外す）
    */
   | { name: "project"; id: number; tab: ProjectTab; group?: number; file?: FileTarget; memo?: string }
   | { name: "newChat"; projectId: number; group?: number }
@@ -45,9 +46,11 @@ export function parse(hash: string): Route {
 
   const project = path.match(/^\/projects\/(\d+)(?:\/([a-z]+))?$/);
   if (project) {
-    const tab = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "board";
+    const named = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "board";
     const group = Number(params.get("group"));
-    const file = tab === "changes" ? parseFileTarget(params) : undefined;
+    // 開くファイルはファイルタブでだけ読む（以前のファイルタブ changes?file= の URL も、ファイルタブで開く）
+    const file = named === "files" || named === "changes" ? parseFileTarget(params) : undefined;
+    const tab: ProjectTab = file ? "files" : named;
     const memo = tab === "memos" ? params.get("memo") : null;
     return {
       name: "project",
@@ -61,7 +64,7 @@ export function parse(hash: string): Route {
   return { name: "allProjects" };
 }
 
-/** エディタタブで開くファイル（?file=&line=&worktree=。file がなければ undefined） */
+/** ファイルタブで開くファイル（?file=&line=&worktree=。file がなければ undefined） */
 function parseFileTarget(params: URLSearchParams): FileTarget | undefined {
   const path = params.get("file");
   if (!path) return undefined;
@@ -93,7 +96,7 @@ export function href(route: Route): string {
   switch (route.name) {
     case "project":
       if (route.tab === "board") return `#/projects/${route.id}`;
-      if (route.tab === "changes") return `#/projects/${route.id}/changes${route.file ? fileQuery(route.file) : ""}`;
+      if (route.tab === "files") return `#/projects/${route.id}/files${route.file ? fileQuery(route.file) : ""}`;
       if (route.tab === "memos") return `#/projects/${route.id}/memos${route.memo ? `?${new URLSearchParams({ memo: route.memo })}` : ""}`;
       return `#/projects/${route.id}/${route.tab}${route.group ? `?group=${route.group}` : ""}`;
     case "newChat": {
@@ -148,9 +151,9 @@ export function openNewChat(projectId: number, target: { group?: number } = {}) 
   navigate({ name: "newChat", projectId, ...target });
 }
 
-/** プロジェクトのエディタタブで、ファイルを開く（行があればその行へ移る） */
+/** プロジェクトのファイルタブで、ファイルを開く（行があればその行へ移る） */
 export function openProjectFile(projectId: number, file: FileTarget) {
-  navigate({ name: "project", id: projectId, tab: "changes", file });
+  navigate({ name: "project", id: projectId, tab: "files", file });
 }
 
 /** メモのタブでそのメモを開く（チャットの「メモに追加」のあと。開いているチャットは右のパネルに残る） */

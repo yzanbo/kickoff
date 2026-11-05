@@ -1,4 +1,4 @@
-import { Code2, History, MessagesSquare, SquareKanban, StickyNote, type LucideIcon } from "lucide-react";
+import { Files, GitBranch, History, MessagesSquare, Search, SquareKanban, StickyNote, type LucideIcon } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -23,7 +23,7 @@ export function useProjectTabsLayout() {
   return useSetting(PROJECT_TABS_LAYOUT);
 }
 
-/** タブの数を取り直している最中か（ボード = チャットの一覧・エディタ = Git の状態。数の代わりに更新中の印を出す） */
+/** タブの数を取り直している最中か（ボード = チャットの一覧・変更 = Git の状態。数の代わりに更新中の印を出す） */
 export interface TabRefreshing {
   chats: boolean;
   changes: boolean;
@@ -33,15 +33,18 @@ export interface TabRefreshing {
 const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
   { tab: "board", label: "ボード", icon: SquareKanban },
   { tab: "chats", label: "チャット", icon: MessagesSquare },
-  { tab: "changes", label: "エディタ", icon: Code2 },
+  // 以前の「エディタ」タブの中の切り替え（ファイル・検索・変更）を、そのままタブにしたもの
+  { tab: "files", label: "ファイル", icon: Files },
+  { tab: "search", label: "検索", icon: Search },
+  { tab: "changes", label: "変更", icon: GitBranch },
   { tab: "history", label: "履歴", icon: History },
   { tab: "memos", label: "メモ", icon: StickyNote },
 ];
 
 /**
- * プロジェクトの画面のタブ（ボード・チャット（ボードと分ける置き方のとき）・エディタ・履歴・メモ）。ボードには状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
+ * プロジェクトの画面のタブ（ボード・チャット（ボードと分ける置き方のとき）・ファイル・検索・変更・履歴・メモ）。ボードには状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
  * 縦並びはアイコンの角に重ね（左上 = 作業中・右上 = 未読・左下 = 回答待ち）、横並びは名前の後ろに並べる。作業中のまま未読のものは未読に数えない）、
- * エディタには変更のあるファイルの数を添える。取り直している最中（refreshing）は、VS Code のバッジと同じく数の代わりに回る印を出す。
+ * 変更には変更のあるファイルの数を添える。取り直している最中（refreshing）は、VS Code のバッジと同じく数の代わりに回る印を出す。
  * vertical: 左に縦並び（アイコンだけ。名前と数は title と aria-label）。右クリックで置き方（横並び / 縦並び）を切り替える
  */
 export function ProjectTabs({
@@ -78,7 +81,7 @@ export function ProjectTabs({
         // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
         const selected = tab === t || (t === "board" && tab === "groups");
         const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
-        // 数はボード（状態ごとのチャット）とエディタ（変更のあるファイル）だけ。履歴・メモには出さない
+        // 数はボード（状態ごとのチャット）と変更（変更のあるファイル）だけ。ほかには出さない
         const count = t === "board" ? (countsText ? 1 : 0) : t === "changes" ? changeCount : 0;
         const countLabel = t === "board" ? countsText : `変更のあるファイル ${count} 件`;
         return (

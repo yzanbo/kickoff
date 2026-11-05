@@ -12,7 +12,7 @@ import type { GitStatusController } from "@/features/editor/useGitStatus";
 
 /**
  * プロジェクトの「履歴」タブ（Fork と同じ形: 左にブランチ・リモート・ワークツリーなどの一覧、右上にコミットの表、右下に詳細）。
- * ボード・エディタと並ぶタブ。上の WorktreePicker で見る作業場所を切り替える（エディタと同じ作業場所）
+ * ボード・ファイル・変更と並ぶタブ。上の WorktreePicker で見る作業場所を切り替える（ファイル・検索・変更のタブと同じ作業場所）
  */
 export function HistoryTab({
   projectId,
@@ -32,7 +32,7 @@ export function HistoryTab({
   // 別のプロジェクトに切り替えたら、選んでいたコミットは外す（ほかのリポジトリにはない）
   const commit = picked?.projectId === projectId ? picked.commit : undefined;
   const setCommit = (next: GitCommit) => setPicked({ projectId, commit: next });
-  // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。エディタタブの一覧と同じ幅を覚える）
+  // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。ファイルタブの一覧と同じ幅を覚える）
   const list = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
 
   if (!status) {

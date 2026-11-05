@@ -6,7 +6,7 @@ import type { FileRef } from "./fileRefs";
 
 /**
  * チャットの中のファイルの右クリックのメニュー（返答のチップ・ターンの変更カードの行・ツールの行・右の欄の変更のファイルの見出しで共通）:
- * 開き方（右の欄・エディタタブ）/ 外のアプリ（VS Code・既定のアプリ・Finder で表示。Mac のアプリだけ）/ パスのコピー（作業場所からの相対・絶対）
+ * 開き方（右の欄・ファイルタブ）/ 外のアプリ（VS Code・既定のアプリ・Finder で表示。Mac のアプリだけ）/ パスのコピー（作業場所からの相対・絶対）
  */
 export function FileMenu({ at, file, links, onClose }: { at: Placement; file: FileRef; links: FileLinks; onClose: () => void }) {
   const absolute = `${links.index.root}/${file.path}`;
@@ -20,7 +20,7 @@ export function FileMenu({ at, file, links, onClose }: { at: Placement; file: Fi
         </MenuItem>
       )}
       <MenuItem onSelect={() => links.openInEditor(file)}>
-        <SquareArrowOutUpRight size={14} /> エディタタブで開く
+        <SquareArrowOutUpRight size={14} /> ファイルタブで開く
       </MenuItem>
       {native && (
         <>

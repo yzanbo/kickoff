@@ -9,7 +9,7 @@ import type { ProjectData } from "./useProjectData";
 
 /**
  * プロジェクト画面の見出し: 名前（プロジェクトの切り替え）・設定の歯車・しまったものを戻す・フォルダの場所・状態ごとのチャット数と、
- * タブの列（チャットの件数、エディタは変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）
+ * タブの列（チャットの件数、変更は変更のあるファイルの数 changeCount。左に縦並びにする設定のときは、見出しには出さない）
  */
 export function ProjectHeader({
   data,

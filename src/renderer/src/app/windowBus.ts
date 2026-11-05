@@ -8,7 +8,7 @@ export type WindowMessage =
   | { type: "reveal"; chatId: number; eventId?: number; agent: string | null }
   /** メインのウィンドウのそのチャットの「動き」を、そのサブエージェントに絞って開く */
   | { type: "showActivity"; chatId: number; agent: string }
-  /** メインのウィンドウでエディタタブのファイルを開く */
+  /** メインのウィンドウでファイルタブのファイルを開く */
   | { type: "openProjectFile"; projectId: number; file: FileTarget }
   /** メインのウィンドウでメモのタブのそのメモを開く（別ウィンドウのサブエージェントの返答から「メモに追加」したとき） */
   | { type: "openMemo"; projectId: number; path: string }
@@ -27,7 +27,7 @@ export function postWindowMessage(message: WindowMessage) {
   channel?.postMessage(message);
 }
 
-/** メインのウィンドウに知らせて、前に出す（別ウィンドウから、メインの会話・チャット欄・エディタタブを動かすとき） */
+/** メインのウィンドウに知らせて、前に出す（別ウィンドウから、メインの会話・チャット欄・ファイルタブを動かすとき） */
 export function postToMainWindow(message: WindowMessage) {
   postWindowMessage(message);
   void window.kickoff?.windows.focusMain();

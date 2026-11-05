@@ -116,7 +116,7 @@ export function App() {
   useWindowEvent(OPEN_NEW_PROJECT_EVENT, (e) => setCreating((e as CustomEvent<NewProjectRequest>).detail));
   useWindowEvent(OPEN_NO_PROJECTS_GUIDE_EVENT, () => setNoProjectsGuide(true));
   useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
-  // 別ウィンドウの「エディタタブで開く」は、このウィンドウのエディタタブで開く
+  // 別ウィンドウの「ファイルタブで開く」は、このウィンドウのファイルタブで開く
   useEffect(
     () =>
       subscribeWindowMessages((m) => {

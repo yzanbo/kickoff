@@ -20,15 +20,16 @@ test("parse: ハッシュを画面に読む（タブなしはボード、知ら�
   assert.deepEqual(parse("#/projects/3/changes?group=7"), { name: "project", id: 3, tab: "changes" });
 });
 
-test("parse: エディタタブで開くファイル（エディタタブでだけ読む。行は 1 以上の整数だけ）", () => {
-  assert.deepEqual(parse("#/projects/3/changes?file=src%2Fa.ts&line=12&worktree=%2Fw%2Fx"), {
+test("parse: ファイルタブで開くファイル（ファイルタブでだけ読む。以前のファイルタブ changes?file= もファイルタブで開く。行は 1 以上の整数だけ）", () => {
+  assert.deepEqual(parse("#/projects/3/files?file=src%2Fa.ts&line=12&worktree=%2Fw%2Fx"), {
     name: "project",
     id: 3,
-    tab: "changes",
+    tab: "files",
     file: { path: "src/a.ts", line: 12, worktree: "/w/x" },
   });
-  assert.deepEqual(parse("#/projects/3/changes?file=a.ts&line=0"), { name: "project", id: 3, tab: "changes", file: { path: "a.ts" } });
-  assert.deepEqual(parse("#/projects/3/changes?line=4"), { name: "project", id: 3, tab: "changes" });
+  assert.deepEqual(parse("#/projects/3/changes?file=a.ts&line=0"), { name: "project", id: 3, tab: "files", file: { path: "a.ts" } });
+  assert.deepEqual(parse("#/projects/3/files?line=4"), { name: "project", id: 3, tab: "files" });
+  assert.deepEqual(parse("#/projects/3/search"), { name: "project", id: 3, tab: "search" });
   assert.deepEqual(parse("#/projects/3/groups?file=a.ts"), { name: "project", id: 3, tab: "groups" });
   // 開くメモはメモのタブでだけ読む
   assert.deepEqual(parse("#/projects/3/changes?memo=a.md"), { name: "project", id: 3, tab: "changes" });
@@ -49,8 +50,10 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "changes" },
     { name: "project", id: 1, tab: "history" },
     { name: "project", id: 1, tab: "groups", group: 5 },
-    { name: "project", id: 1, tab: "changes", file: { path: "src/a b.ts", line: 3, worktree: "/x/app-worktrees/w" } },
-    { name: "project", id: 1, tab: "changes", file: { path: "README.md" } },
+    { name: "project", id: 1, tab: "files", file: { path: "src/a b.ts", line: 3, worktree: "/x/app-worktrees/w" } },
+    { name: "project", id: 1, tab: "files", file: { path: "README.md" } },
+    { name: "project", id: 1, tab: "files" },
+    { name: "project", id: 1, tab: "search" },
     { name: "project", id: 1, tab: "memos" },
     { name: "project", id: 1, tab: "chats" },
     { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md" },

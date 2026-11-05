@@ -17,7 +17,7 @@ import { worktreesStore } from "@/stores/worktrees";
 const PR_STATE_LABELS: Record<PullRequestInfo["state"], string> = { OPEN: "オープン", MERGED: "マージ済み", CLOSED: "クローズ" };
 
 /**
- * ワークツリーの作業の流れ（エディタタブでワークツリーを選んでいるとき、作業場所の右に出す）。
+ * ワークツリーの作業の流れ（ファイルタブでワークツリーを選んでいるとき、作業場所の右に出す）。
  * プッシュして GitHub に PR を作る → GitHub でマージ → 「片付ける」でワークツリーとブランチを消し、本体を最新にする。
  * 右端のごみ箱で、PR の状態にかかわらずワークツリーを消せる（ブランチも消すかを選ぶ）
  */

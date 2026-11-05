@@ -113,12 +113,12 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
   );
 }
 
-/** いまのプロジェクト（本体）のブランチ（VS Code の左下と同じ）。押すとエディタタブ（コミット・プッシュ・プル）を開く */
+/** いまのプロジェクト（本体）のブランチ（VS Code の左下と同じ）。押すとファイルタブ（コミット・プッシュ・プル）を開く */
 function FooterBranch({ projectId }: { projectId: number }) {
   const branch = useMainBranch(projectId);
   if (!branch) return null;
   return (
-    <a className="footer-button footer-branch" href={href({ name: "project", id: projectId, tab: "changes" })} title={`ブランチ（本体）: ${branch}\n押すとエディタタブを開きます`}>
+    <a className="footer-button footer-branch" href={href({ name: "project", id: projectId, tab: "changes" })} title={`ブランチ（本体）: ${branch}\n押すと変更タブを開きます`}>
       <GitBranch size={13} aria-hidden /> {branch}
     </a>
   );

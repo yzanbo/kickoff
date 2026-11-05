@@ -1,49 +1,4 @@
-/* ==== エディタの左端の切り替え・ファイルの木・検索・ファイルのアイコン ==== */
-
-/* 「エディタ」タブの左端の表示の切り替え（VS Code のアクティビティバー: すべてのファイル・変更） */
-.changes-activity {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 44px;
-  padding: 6px 0;
-  border-right: 1px solid var(--border);
-  background: var(--bg-sidebar);
-}
-
-.changes-activity button {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--extra-muted);
-  background: transparent;
-  cursor: pointer;
-}
-
-.changes-activity button:hover {
-  color: var(--text);
-}
-
-/* 選んでいる表示: VS Code と同じく、左端に真っすぐな縦線（ボタンの丸みに沿わせない） */
-.changes-activity button.active {
-  color: var(--text);
-}
-
-.changes-activity button.active::before {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: -4px;
-  width: 2px;
-  content: "";
-  background: var(--text);
-}
+/* ==== ボタンの組の数・ファイルの木・検索・ファイルのアイコン ==== */
 
 /* ボタンの組の数（変更のあるファイルの数など） */
 .segmented-badge {
@@ -57,12 +12,6 @@
   text-align: center;
   color: #fff;
   background: var(--info);
-}
-
-.changes-activity .segmented-badge {
-  position: absolute;
-  right: -2px;
-  bottom: 0;
 }
 
 /* エクスプローラーのフォルダの木 */

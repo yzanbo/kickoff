@@ -6,7 +6,7 @@ import type { ChangesSelection, ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 
 /**
- * エディタタブの右側: 検索の行や「編集」から開いたファイルは中身（FileView）、
+ * ファイルタブの右側: 検索の行や「編集」から開いたファイルは中身（FileView）、
  * 変更のあるファイルは差分（DiffView）、エクスプローラーから選んだ変更のないファイルは中身、それ以外は案内
  */
 export function ChangesDetail({
