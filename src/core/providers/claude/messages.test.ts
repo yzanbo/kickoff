@@ -63,7 +63,7 @@ test("タスク: サブエージェント（local_agent・種類のない古い 
   assert.deepEqual(progress, []);
 });
 
-test("圧縮: status の知らせで圧縮の始まりと終わりを 1 回ずつ知らせ、失敗したら理由を渡す（記録にはしない。残すかはコアが決める）", () => {
+test("圧縮: status の知らせで圧縮の始まりと終わりを 1 回ずつ知らせ、失敗したら理由を渡す（記録にはしない。残すかはコアが決める）。区切りはかかった時間も記録する", () => {
   const { events, cb } = recorder();
   const changes: boolean[] = [];
   const failures: (string | null)[] = [];
@@ -77,12 +77,12 @@ test("圧縮: status の知らせで圧縮の始まりと終わりを 1 回ず�
   emitSdkMessage(status(null, { compact_result: "failed", compact_error: "too long" }), cb, state);
   // 圧縮の区切りが先に届いたときも終わりとして扱い、そのあとの status では重ねて知らせない
   emitSdkMessage(status("compacting"), cb, state);
-  emitSdkMessage({ type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "auto", pre_tokens: 150_000, post_tokens: 20_000 } } as unknown as SDKMessage, cb, state);
+  emitSdkMessage({ type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "auto", pre_tokens: 150_000, post_tokens: 20_000, duration_ms: 53_000 } } as unknown as SDKMessage, cb, state);
   emitSdkMessage(status(null, { compact_result: "success" }), cb, state);
   // 理由のない失敗は null
   emitSdkMessage(status("compacting"), cb, state);
   emitSdkMessage(status(null, { compact_result: "failed" }), cb, state);
   assert.deepEqual(changes, [true, false, true, false, true, false]);
   assert.deepEqual(failures, ["too long", null]);
-  assert.deepEqual(events, [{ type: "compact", trigger: "auto", pre_tokens: 150_000, post_tokens: 20_000 }]);
+  assert.deepEqual(events, [{ type: "compact", trigger: "auto", pre_tokens: 150_000, post_tokens: 20_000, duration_ms: 53_000 }]);
 });

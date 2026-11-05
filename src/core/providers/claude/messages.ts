@@ -52,9 +52,15 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
       }
       // 会話の要約（手で圧縮したとき・上限に近づいて自動で圧縮されたとき）
       if (msg.subtype === "compact_boundary") {
-        const { trigger, pre_tokens, post_tokens } = msg.compact_metadata;
+        const { trigger, pre_tokens, post_tokens, duration_ms } = msg.compact_metadata;
         setCompacting(state, cb, false);
-        cb.emit({ type: "compact", trigger, pre_tokens, ...(post_tokens !== undefined ? { post_tokens } : {}) });
+        cb.emit({
+          type: "compact",
+          trigger,
+          pre_tokens,
+          ...(post_tokens !== undefined ? { post_tokens } : {}),
+          ...(duration_ms !== undefined ? { duration_ms } : {}),
+        });
         return undefined;
       }
       // いまの段階（圧縮中・API に問い合わせ中）。圧縮の始まりと終わりを画面に知らせ、失敗したら理由を渡す（お知らせに残すかはコアが決める）
