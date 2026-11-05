@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatRunTime, relativeTime, resetInShort, shortRelativeTime } from "./time";
+import { formatClock, formatDayTime, formatElapsed, formatFullDateTime, formatFullStamp, formatMessageTime, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime, formatRunTime, relativeTime, resetInShort, shortRelativeTime } from "./time";
 
 test("履歴の日時: 今日・昨日は時刻つき、今年は月日、去年より前は年月日", () => {
   const now = new Date(2026, 10, 1, 23, 0);
@@ -96,4 +96,15 @@ test("終わった処理の範囲と実行時間: 時刻が 1 つだけのとき
   assert.equal(formatStampRangeWithRunTime(at(5, 12, 6, 47), at(5, 12, 6, 55), now), "12:06:47 – 12:06:55 · 8秒");
   assert.equal(formatStampRangeWithRunTime(at(4, 23, 58, 1), at(5, 1, 0, 13), now), "11/4 23:58:01 – 11/5 01:00:13 · 1時間2分12秒");
   assert.equal(formatStampRangeWithRunTime(at(5, 8, 34, 12), at(5, 8, 34, 12), now), "08:34:12");
+});
+
+test("終わった処理の実行時間は、並べた開始と終了の時刻の差（秒より下を切り捨てた時刻どうし）", () => {
+  const now = new Date(2026, 10, 5, 14, 0);
+  const at = (s: number, ms: number) => new Date(2026, 10, 5, 13, 27, s, ms).toISOString();
+  // 実際は 0.6 秒でも、時刻が 37 と 38 なら 1秒（以前は「0秒」と出て、並べた時刻と合わなかった）
+  assert.equal(formatStampRangeWithRunTime(at(37, 800), at(38, 400), now), "13:27:37 – 13:27:38 · 1秒");
+  // 実際は 1.8 秒でも、時刻が 37 と 38 なら 1秒
+  assert.equal(formatStampRunTime(at(37, 100), at(38, 900)), "1秒");
+  // 同じ秒の中なら、時刻は 1 つで実行時間は添えない
+  assert.equal(formatStampRangeWithRunTime(at(37, 100), at(37, 900), now), "13:27:37");
 });

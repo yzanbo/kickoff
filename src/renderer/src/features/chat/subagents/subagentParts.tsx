@@ -5,7 +5,7 @@ import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat
 import { relayedText } from "@shared/chat/prompts";
 import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
-import { formatElapsed, formatFullStamp, formatRunTime, formatStampRange, formatStampRangeWithRunTime } from "@/lib/time";
+import { formatElapsed, formatFullStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/lib/time";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { activityOf, activityText } from "@/features/chat/status/stall";
@@ -140,7 +140,7 @@ export function SubagentTime({ entry }: { entry: SubagentEntry }) {
   const end = running ? (entry.lastActivityAt ?? start) : (entry.endedAt ?? entry.lastActivityAt ?? start);
   const title = running
     ? `開始 ${formatFullStamp(start)}\n最後の動き ${formatFullStamp(end)}（実行中）`
-    : `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(end)}（実行時間 ${formatRunTime(Date.parse(end) - Date.parse(start))}）`;
+    : `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(end)}（実行時間 ${formatStampRunTime(start, end)}）`;
   return (
     <span className={cx("tool-time", running && "running")} title={title}>
       {running ? formatStampRange(start, end) : formatStampRangeWithRunTime(start, end)}

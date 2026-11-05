@@ -125,12 +125,21 @@ export function formatRunTime(ms: number): string {
 }
 
 /**
+ * 出している開始と終了の時刻の差（秒より下を切り捨てた時刻どうしの差。"13:27:37 – 13:27:38" なら 1秒）。
+ * 実際の長さ（0.6 秒など）を切り捨てると、時刻は 1 秒違うのに「0秒」と出て、並べた時刻と合わなかった
+ */
+export function formatStampRunTime(start: string, end: string): string {
+  const seconds = Math.floor(Date.parse(end) / 1000) - Math.floor(Date.parse(start) / 1000);
+  return formatRunTime(seconds * 1000);
+}
+
+/**
  * 終わった処理の範囲と実行時間（"08:34:12 – 08:36:40 · 2分28秒"。1 件の行の「始めた時刻 · かかった時間」と同じ形）。
- * 始まりと終わりが同じ秒で時刻が 1 つだけになるときは、実行時間を添えない
+ * 実行時間は、並べた開始と終了の時刻の差（formatStampRunTime）。始まりと終わりが同じ秒で時刻が 1 つだけになるときは、実行時間を添えない
  */
 export function formatStampRangeWithRunTime(start: string, end: string, now = new Date()): string {
   const range = formatStampRange(start, end, now);
-  return range === formatStamp(start, now) ? range : `${range} · ${formatRunTime(Date.parse(end) - Date.parse(start))}`;
+  return range === formatStamp(start, now) ? range : `${range} · ${formatStampRunTime(start, end)}`;
 }
 
 /** 年月日と秒までの時刻（"2026/11/5 08:34:12"。処理の時刻に乗せたときの title に） */
