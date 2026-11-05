@@ -1,5 +1,5 @@
 import { cx } from "@/lib/cx";
-import { formatElapsed, formatFullStamp, formatStamp, formatRunTime, formatStampRange, formatStampRangeWithRunTime } from "@/lib/time";
+import { formatElapsed, formatFullStamp, formatStamp, formatStampRange, formatStampRangeWithRunTime, formatStampRunTime } from "@/lib/time";
 import { Elapsed } from "@/features/chat/status/Elapsed";
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 import { callDuration, toolSpan } from "./toolTimes";
@@ -12,7 +12,7 @@ export function GroupTime({ tools, running }: { tools: ToolCall[]; running: bool
   const { start, latestStart, end } = toolSpan(tools);
   const title = running
     ? `開始 ${formatFullStamp(start)}\n最後に始めた処理 ${formatFullStamp(latestStart)}（実行中）`
-    : `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(end)}（実行時間 ${formatRunTime(Date.parse(end) - Date.parse(start))}）`;
+    : `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(end)}（実行時間 ${formatStampRunTime(start, end)}）`;
   return (
     <span className={cx("tool-time", running && "running")} title={title}>
       {running ? formatStampRange(start, latestStart) : formatStampRangeWithRunTime(start, end)}
