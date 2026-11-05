@@ -64,7 +64,7 @@
 - フォーム: 1 行は `Field`（入力欄が 1 つなら label、いくつも並ぶなら `as="div"`）、説明付きのチェックは `CheckField`、名前で絞り込む欄は `SearchField`、その場で名前を変えるのは `InlineName`、失敗の文は `ErrorText`（空なら何も出さない）、結果の文は `ResultMessage`。
 - 1 つを選ぶボタンの組: `Segmented`（見た目は className。数は `badge`、説明は `tip`、キーは `keys`、アイコンだけなら `iconOnly`）。
 - 開閉: まとまりの見出しは `FoldHead` / `FoldSection`（`look`: `row` / `group` / `section` / `lane`）、開閉の矢印は `GroupToggle` / `Chevron`、高さをなめらかに変えるのは `Collapse`、開閉の記憶は `useFold` / `useFolds`。
-- そのほか: コピーは `CopyButton`（文は `text`、画像などは `copy`）、AI の返答の書式付きコピーは `lib/richCopy.ts` の `copyRich`、状態の点は `StatusDot`（接続・準備は `tone`（`toneOf`）、列・チャットの状態は `color`。点を `<span>` で手書きしない）、CLI の状態は `StatusCard` / `GitHubStatusCard`、Markdown は `Markdown`（Mermaid のコードブロックは図にする `MermaidDiagram`。生成中は `streaming` で書きかけの図を描かない）、コードの色付けは `useHighlight` ＋ `CodeLine`（言語の名前を渡す。ファイルなら `lib/languages.ts` の `languageOf(パス)`。Shiki は使うときだけ読み込む。行を改行でつないで出すだけなら `HighlightedCode`（`lang` が undefined なら色を付けない）。シェル（`shellscript`）の heredoc の本文は、`lib/heredoc.ts` が言語を推し量れればその言語で色を付け直す）、画像を大きく見るのは `ImageViewer`（下）。
+- そのほか: コピーは `CopyButton`（文は `text`、画像などは `copy`）、AI の返答の書式付きコピーは `lib/richCopy.ts` の `copyRich`、状態の点は `StatusDot`（接続・準備は `tone`（`toneOf`）、列・チャットの状態は `color`。点を `<span>` で手書きしない）、CLI の状態は `StatusCard` / `GitHubStatusCard`、Markdown は `Markdown`（Mermaid のコードブロックは図にする `MermaidDiagram`。生成中は `streaming` で書きかけの図を描かない）、コードの色付けは `useHighlight` ＋ `CodeLine`（言語の名前を渡す。ファイルなら `lib/languages.ts` の `languageOf(パス)`。Shiki は使うときだけ読み込む。行を改行でつないで出すだけなら `HighlightedCode`（`lang` が undefined なら色を付けない）。シェル（`shellscript`）の heredoc の本文は、`lib/heredoc.ts` が言語を推し量れればその言語で色を付け直す。短いコードの結果は `highlightLines` が覚えて共有するので、返った配列は書き換えない）、画像を大きく見るのは `ImageViewer`（下）。
 
 ### 画像を大きく見る（`ui/imageViewer/`）
 

@@ -59,9 +59,36 @@ const loadHighlighter = () =>
     createHighlighterCore({ themes: [dark.default, light.default], langs: [], engine: createJavaScriptRegexEngine({ forgiving: true }) }),
   ));
 
-/** コードを行ごとの色付きの断片にする（lang は languageOf などで決めた言語）。色を付けない言語・長すぎるコードは null */
-export async function highlightLines(code: string, lang: string | undefined, theme: AppliedTheme): Promise<CodeToken[][] | null> {
-  if (!lang || !(lang in LANGUAGES) || code.length > MAX_CHARS) return null;
+/** 色付けの結果を覚えておく短いコードの長さの上限と、覚える数（コマンドなど。ファイルの中身のような長いものは覚えない） */
+const CACHE_MAX_CHARS = 20_000;
+const CACHE_LIMIT = 200;
+const cache = new Map<string, Promise<CodeToken[][] | null>>();
+
+/**
+ * コードを行ごとの色付きの断片にする（lang は languageOf などで決めた言語）。色を付けない言語・長すぎるコードは null。
+ * 短いコードは結果を覚え、同じコード・言語・配色なら作り直さない（ツールの一覧の 1 行と、開いた欄で同じコマンドを色付けするなど）。
+ * 返す配列は覚えたものを共有するので、書き換えない
+ */
+export function highlightLines(code: string, lang: string | undefined, theme: AppliedTheme): Promise<CodeToken[][] | null> {
+  if (!lang || !(lang in LANGUAGES) || code.length > MAX_CHARS) return Promise.resolve(null);
+  if (code.length > CACHE_MAX_CHARS) return computeLines(code, lang, theme);
+  const key = `${theme}\u0000${lang}\u0000${code}`;
+  const cached = cache.get(key);
+  if (cached) {
+    // 使ったものを新しい側へ（古いものから捨てる）
+    cache.delete(key);
+    cache.set(key, cached);
+    return cached;
+  }
+  const result = computeLines(code, lang, theme);
+  cache.set(key, result);
+  if (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value!);
+  // 失敗したものは覚えない
+  result.catch(() => cache.delete(key));
+  return result;
+}
+
+async function computeLines(code: string, lang: string, theme: AppliedTheme): Promise<CodeToken[][] | null> {
   const highlighter = await loadHighlighter();
   if (!highlighter.getLoadedLanguages().includes(lang)) await highlighter.loadLanguage((await LANGUAGES[lang]()).default);
   const { tokens } = highlighter.codeToTokens(code, { lang, theme: theme === "dark" ? "dark-plus" : "light-plus" });
