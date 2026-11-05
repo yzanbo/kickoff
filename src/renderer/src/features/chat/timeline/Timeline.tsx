@@ -1,10 +1,9 @@
 import { ChevronRight, GitBranch } from "lucide-react";
-import { memo, type ReactNode } from "react";
+import { memo } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
 import { formatClock, formatElapsed, formatFullStamp, formatStamp } from "@/lib/time";
-import { Elapsed } from "@/features/chat/status/Elapsed";
 import { api } from "@/api";
 import { openChat } from "@/app/router";
 import { reportFailure } from "@/ui/dialogs";
@@ -19,6 +18,7 @@ import { UserMessage } from "@/features/chat/messages/UserMessage";
 import { QuestionAnswerMessage } from "@/features/chat/messages/QuestionAnswerMessage";
 import { copyRich } from "@/lib/richCopy";
 import { FailedTurnActions } from "@/features/chat/rewind/FailedTurnActions";
+import { SubagentCard, SubagentEndNote, type RenderItems } from "@/features/chat/subagents/SubagentCard";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -29,13 +29,20 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
   const floor = active ? items.findLastIndex((item) => item.kind === "event" && item.event.type === "result") : items.length;
   // 各項目は memo して、変わっていない発言・ツールは描き直さない（作業中は返答が届くたびに流れ全体が描き直されるため。
   // 長いチャットで Markdown を毎回解析し直すと、そのたびに 100ms ほどかかり、入力が重くなる）
-  return items.map((item, i) =>
-    item.kind === "tools" ? (
-      <MemoToolGroup key={item.key} tools={item.tools} rel={rel} active={i > floor} />
-    ) : (
-      <MemoEventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} turnChanges={item.turnChanges} busy={active} />
-    ),
-  );
+  // サブエージェントのカードの中身も、同じ部品で描く（入れ子のカードもこの中で描かれる）
+  const renderItems: RenderItems = (inner, innerActive) => <TimelineItems items={inner} rel={rel} active={innerActive} />;
+  return items.map((item, i) => {
+    switch (item.kind) {
+      case "tools":
+        return <MemoToolGroup key={item.key} tools={item.tools} rel={rel} active={i > floor} />;
+      case "subagent":
+        return <SubagentCard key={item.key} call={item.call} rel={rel} renderItems={renderItems} />;
+      case "subagentEnd":
+        return <SubagentEndNote key={item.key} event={item.event} agentKey={item.agentKey} />;
+      default:
+        return <MemoEventItem key={item.key} event={item.event} turnStart={item.turnStart} turnText={item.turnText} turnChanges={item.turnChanges} busy={active} />;
+    }
+  });
 }
 
 /** ツールのまとまり: 呼び出しと結果の記録が同じなら描き直さない（まとまりの配列は記録が増えるたびに作り直されるため、中身で比べる） */
@@ -47,21 +54,6 @@ const MemoToolGroup = memo(
     a.tools.length === b.tools.length &&
     a.tools.every((t, i) => t.use === b.tools[i].use && t.result === b.tools[i].result),
 );
-
-/** 「考えています」などの、エージェントが動いている印。since があれば、そこからの経過時間を添える（ツールの実行中も数える） */
-export function Working({ children, since }: { children: ReactNode; since?: string | null }) {
-  return (
-    <div className="working">
-      <span className="dots" aria-hidden>
-        <span />
-        <span />
-        <span />
-      </span>
-      {children}
-      {since && <Elapsed since={since} className="working-elapsed" />}
-    </div>
-  );
-}
 
 /**
  * 思考の行（「8秒間思考しました」。中身があれば開いて読める）。後ろに考え始めた時刻

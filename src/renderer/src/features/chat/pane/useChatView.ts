@@ -12,6 +12,8 @@ import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { confirmRewindSend, restoreFilesBefore } from "@/features/chat/rewind/rewindActions";
 import { retryTurn, useRetryChoices } from "@/features/chat/rewind/useRetryChoices";
 import { useSubagents } from "@/features/chat/subagents/useSubagents";
+import type { SubagentsView } from "@/features/chat/subagents/subagentsContext";
+import { pathOf, subagentTree } from "@/features/chat/subagents/subagentTree";
 import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
 import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems";
 import { useTimelineScrollHandle } from "@/features/chat/timeline/timelineScroll";
@@ -30,8 +32,6 @@ export interface ChatViewInput {
   streaming: string;
   /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   focus?: number;
-  /** サブエージェントの中身を、パネルの新しいタブで開く（行のキーと名前） */
-  onOpenSubagent: (toolUseId: string, title: string) => void;
   /** 新しいチャットのタブを開く（送信待ちの指示を新しいチャットで聞くとき。パネルの外では渡さない） */
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
 }
@@ -41,7 +41,7 @@ export interface ChatViewInput {
  * 自分の指示の一覧・送り方と、子の部品に配る操作（ChatPaneActions。チャットごとに 1 回だけ作る）。
  * ChatView は描くだけ（ChatView はチャットごとに作り直す = key がチャットの ID）
  */
-export function useChatView({ chat, project, events, approvals, live: coreLive, streaming, focus, onOpenSubagent, onOpenNew }: ChatViewInput) {
+export function useChatView({ chat, project, events, approvals, live: coreLive, streaming, focus, onOpenNew }: ChatViewInput) {
   const options = useChatOptions(
     { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
     chat.project_id,
@@ -59,6 +59,9 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
     [coreLive, busy, stopClicked],
   );
   const subagents = useSubagents(chat.id, events, busy, live.background);
+  // サブエージェントの入れ子（流れの中のカード・ピルの一覧・カードへ移るとき）と、カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
+  const tree = useMemo(() => subagentTree(subagents), [subagents]);
+  const subagentsView = useMemo<SubagentsView>(() => ({ chatId: chat.id, busy, events, tree }), [chat.id, busy, events, tree]);
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
   const items = useMemo(() => groupEvents(events), [events]);
@@ -89,18 +92,51 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
   const promptKeys = usePromptKeys({ root: rootRef, timeline: scroll.ref, promptIds: prompts.ids, onJump: (id) => pane.jumpTo(id) });
   // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
-  const fresh = { chat, options, subagents, timeline, onOpenSubagent, onOpenNew, stepPrompt: promptKeys.go };
+  const fresh = { chat, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go };
   const latest = useRef(fresh);
   latest.current = fresh;
 
   const [pane] = useState<ChatPaneActions>(() => {
     const now = () => latest.current;
     const chatId = chat.id;
+    const state = createValueCell<ChatPaneState>({ retry, openSubagents: new Set(), relayTarget: null });
+    const patch = (next: Partial<ChatPaneState>) => state.set({ ...state.get(), ...next });
+    /** 描いたあとに、その記録の要素へ移る（開いたカードの中身が描かれるまで、数フレーム待つ） */
+    const jumpWhenDrawn = (eventId: number, frames = 20) => {
+      const el = scroll.ref.current;
+      if (el && jumpToEvent(el, eventId)) return;
+      if (frames > 0) requestAnimationFrame(() => jumpWhenDrawn(eventId, frames - 1));
+    };
     return {
       chatId,
       root: rootRef,
-      // 名前はサブエージェントの一覧から（ツールのまとまりの「中身を見る」からは呼び出し ID だけが届く）
-      openSubagent: (key) => now().onOpenSubagent(key, now().subagents.find((s) => s.key === key)?.description ?? "サブエージェント"),
+      revealSubagent: (key) => {
+        const path = pathOf(now().tree, key);
+        const target = path.at(-1);
+        if (!target) return;
+        // 外側のカードから自分まで開き、いちばん外側のカードを窓に入れてから移る
+        patch({ openSubagents: new Set([...state.get().openSubagents, ...path.map((s) => s.key)]) });
+        scroll.release();
+        const root = path[0].toolUseEventId;
+        if (root !== undefined) now().timeline.reveal(root);
+        // 開いた状態が描かれてから移る（先に移ると、描き直しで強調の印が消える）
+        const eventId = target.toolUseEventId;
+        if (eventId !== undefined) requestAnimationFrame(() => jumpWhenDrawn(eventId));
+      },
+      toggleSubagent: (key, open) => {
+        const current = state.get().openSubagents;
+        const next = new Set(current);
+        if (open ?? !current.has(key)) next.add(key);
+        else next.delete(key);
+        patch({ openSubagents: next });
+      },
+      tellSubagent: (key) => {
+        const entry = now().tree.byKey.get(key);
+        if (!entry?.agentId) return;
+        patch({ relayTarget: { key, agentId: entry.agentId, description: entry.description } });
+        composer.current?.focus();
+      },
+      clearRelay: () => patch({ relayTarget: null }),
       rewind: async (eventId, text) => {
         const choice = await confirmRewindSend(chatId, eventId);
         if (!choice) return false;
@@ -127,13 +163,13 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
       focusComposer: () => composer.current?.focus(),
       // 作成先は、いまのチャットのプロジェクト・グループ（移したあとも、いまのもの）
       askInNewChat: onOpenNew && ((seed) => now().onOpenNew?.({ projectId: now().chat.project_id, group: now().chat.group_id ?? undefined }, seed)),
-      state: createValueCell<ChatPaneState>({ retry }),
+      state,
     };
   });
   // 変わる様子を配る（変わったときだけ。読んでいる部品だけが描き直る）
   useLayoutEffect(() => {
-    if (pane.state.get().retry !== retry) pane.state.set({ retry });
+    if (pane.state.get().retry !== retry) pane.state.set({ ...pane.state.get(), retry });
   }, [pane, retry]);
 
-  return { pane, options, busy, live, subagents, items, prompts, rel, fileLinks, composer, scroll, timeline, send };
+  return { pane, options, busy, live, subagents, subagentsView, items, prompts, rel, fileLinks, composer, scroll, timeline, send };
 }

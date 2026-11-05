@@ -2,7 +2,6 @@ import { lazy, Suspense, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BrowserPane } from "@/features/browser/BrowserPane";
 import { ChatPane } from "@/features/chat/pane/ChatPane";
-import { SubagentPane } from "@/features/chat/subagents/SubagentPane";
 import { NewChatPane } from "./NewChatPane";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
@@ -30,7 +29,6 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       chatId={t.id}
       focus={t.focus}
       visible={visible}
-      onOpenSubagent={(toolUseId, title) => panel.openSubagent({ chatId: t.id, projectId: t.projectId, toolUseId, title })}
       // 送信待ちの指示を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
       onOpenNew={panel.openNew}
       // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
@@ -50,13 +48,6 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       onCreated={(chat) => panel.replaceWithChat(t.key, chat)}
       // 空の文は覚えない（書き始める前と同じ形のまま）
       onDraftChange={(text) => panel.patchTab(t.key, { kind: "new", fields: { draftText: text || undefined } })}
-    />
-  ),
-  subagent: ({ tab: t, panel }) => (
-    <SubagentPane
-      chatId={t.chatId}
-      toolUseId={t.toolUseId}
-      onOpenSubagent={(toolUseId, title) => panel.openSubagent({ chatId: t.chatId, projectId: t.projectId, toolUseId, title })}
     />
   ),
   terminal: ({ tab: t, panel, visible, focused }) => (

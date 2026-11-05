@@ -81,7 +81,8 @@
   align-items: flex-start;
   gap: 12px;
   width: 100%;
-  padding: 8px 10px;
+  /* 入れ子は親のすぐ下に字下げして並べる（--depth は SubagentChip が深さで入れる） */
+  padding: 8px 10px 8px calc(10px + var(--depth, 0) * 18px);
   border: none;
   border-radius: var(--radius);
   font: inherit;

@@ -1,9 +1,7 @@
 import { ChevronRight, Wrench } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
-import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { BashOutput } from "./BashOutput";
-import { cleanSubagentReport, isSubagentTool } from "@shared/chat/subagents";
 import { summarizeTools, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
 import { CallTime, GroupTime } from "./ToolTime";
@@ -48,10 +46,8 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
 
 /** ツールの呼び出し 1 件（右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: 結果を待っている（作業中のチャットのいまの作業） */
 function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => string; running: boolean }) {
-  const { id, name } = call.use.data;
+  const { name } = call.use.data;
   const input = (call.use.data.input ?? {}) as Record<string, unknown>;
-  // Task / Agent の呼び出しから、そのサブエージェントの中身をパネルのタブで開く（チャットの画面の中だけ）
-  const pane = useOptionalChatPane();
   // 一度でも開いたか（コマンドの色付けは、開いてから始める。閉じたままの呼び出しが多くても重くしない）
   const [opened, setOpened] = useState(false);
   const r = call.result?.data;
@@ -72,25 +68,12 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
       <summary>
         <span className="tool-name">{toolLabel(name)}</span>
         <span className="tool-arg">{rel(describeToolInput(name, input))}</span>
-        {isSubagentTool(name) && pane && (
-          <button
-            type="button"
-            className="tool-open-sub"
-            onClick={(e) => {
-              e.preventDefault();
-              pane.openSubagent(id);
-            }}
-          >
-            中身を見る
-          </button>
-        )}
         <CallTime call={call} running={running} />
       </summary>
       {detail}
       {content && !isCommand && (r?.is_error || !detail) && (
         <pre className={cx("tool-output", r?.is_error && "error")}>
-          {/* サブエージェントの結果は、Claude Code の前置きを外して報告の本文だけを見せる */}
-          {rel(isSubagentTool(name) ? cleanSubagentReport(content) : content)}
+          {rel(content)}
         </pre>
       )}
     </details>

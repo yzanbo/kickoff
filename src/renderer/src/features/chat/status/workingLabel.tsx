@@ -24,9 +24,11 @@ export function workingLabel(chat: Chat, last: TimelineItem | undefined, streami
   if (live.compacting !== null) return COMPACTING_LABEL;
   // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
   if (activity.stalled.length > 0) return <StalledAgentsLabel agents={activity.stalled} />;
-  const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : undefined;
+  const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : last?.kind === "subagent" ? last.call : undefined;
   const base = (() => {
     if (streaming) return "返答を書いています";
+    // 起動したサブエージェントの終わりを待っている（待つ形で結果がまだ・並べて起動したほかのものが実行中。その様子はカードに出る）
+    if (last?.kind === "subagent" && (!last.call.result || runningAgents > 0)) return "サブエージェントの終わりを待っています";
     if (pendingTool && !pendingTool.result) return "ツールを実行中";
     // 返答を書き終えたあと、裏で動いている作業（サブエージェント・コマンド）の終わりを待っている（Claude Code が知らせる一覧で、種類と名前を出す）
     const waitingBackground = backgroundWaitLabel(live.background);
@@ -62,8 +64,8 @@ function StalledAgentsLabel({ agents }: { agents: SubagentEntry[] }) {
 /** いちばん最後に動いた時刻（最後の発言・ツールの結果）。考え始めた時刻として使う */
 function lastActivityAt(item: TimelineItem | undefined): string | null {
   if (!item) return null;
-  if (item.kind === "event") return item.event.created_at;
-  const call = item.tools[item.tools.length - 1];
+  if (item.kind === "event" || item.kind === "subagentEnd") return item.event.created_at;
+  const call = item.kind === "tools" ? item.tools[item.tools.length - 1] : item.call;
   return (call.result ?? call.use).created_at;
 }
 

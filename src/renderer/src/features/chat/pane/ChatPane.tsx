@@ -6,6 +6,7 @@ import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { SelectionComment } from "@/features/chat/messages/SelectionComment";
 import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
+import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
 import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
 import { ChatHeaderTools } from "./ChatHeaderTools";
@@ -22,14 +23,12 @@ interface ChatPaneProps {
   onChatChange?: (chat: Chat) => void;
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
   visible?: boolean;
-  /** サブエージェントの中身を、パネルの新しいタブで開く */
-  onOpenSubagent: (toolUseId: string, title: string) => void;
   /** 新しいチャットのタブを開く（送信待ちの指示を新しいチャットで聞くとき。パネルの外では渡さない） */
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
 }
 
 /** エージェントとのチャット（パネルのタブに出す）。中身を読み込み、読めたら ChatView を描く（チャットごとに作り直す） */
-export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenSubagent, onOpenNew }: ChatPaneProps) {
+export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNew }: ChatPaneProps) {
   const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
@@ -52,7 +51,6 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenSu
       streaming={streaming}
       focus={focus}
       visible={visible}
-      onOpenSubagent={onOpenSubagent}
       onOpenNew={onOpenNew}
     />
   );
@@ -73,6 +71,7 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
   return (
     <FileLinksProvider value={view.fileLinks}>
       <ChatPaneContext.Provider value={pane}>
+        <SubagentsContext.Provider value={view.subagentsView}>
         <div ref={pane.root} className={cx("chat-page chat-panel", wide && "wide")}>
           <ChatHeader chat={chat} project={project} tools={<ChatHeaderTools items={view.items} version={view.timeline.visible} />} />
           {/* 返答の一部を選んでコメントし、チャット欄に添える */}
@@ -106,6 +105,7 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
             onDock={setPillDock}
           />
         </div>
+        </SubagentsContext.Provider>
       </ChatPaneContext.Provider>
     </FileLinksProvider>
   );

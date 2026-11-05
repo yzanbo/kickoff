@@ -20,10 +20,23 @@ export interface RetryChoices {
   models: { value: string; label: string }[];
 }
 
+/** チャット欄から伝える先のサブエージェント（メインのエージェントに SendMessage でそのまま渡してもらう） */
+export interface RelayTarget {
+  /** 一覧の行のキー */
+  key: string;
+  /** SendMessage の宛先（Claude Code のサブエージェントの ID） */
+  agentId: string;
+  description: string;
+}
+
 /** 1 つのチャットの画面の、変わる様子（useChatPaneState で読む） */
 export interface ChatPaneState {
   /** 失敗した作業の直し方（作業中・失敗していなければ null） */
   retry: RetryChoices | null;
+  /** 開いているサブエージェントのカード（行のキー） */
+  openSubagents: ReadonlySet<string>;
+  /** チャット欄から伝える先のサブエージェント（なければ null = メインのエージェントへ送る） */
+  relayTarget: RelayTarget | null;
 }
 
 /**
@@ -35,8 +48,14 @@ export interface ChatPaneActions {
   readonly chatId: number;
   /** チャットの画面の要素（ピントがこのチャットにあるかを見る・文の幅を測る・検索の印を付ける範囲） */
   readonly root: RefObject<HTMLDivElement | null>;
-  /** サブエージェントの中身を、パネルの新しいタブで開く（key = 一覧の行のキー = 起動した呼び出し ID） */
-  openSubagent: (key: string) => void;
+  /** サブエージェントのカードへ移って開く（入れ子なら外側のカードも開く。key = 一覧の行のキー = 起動した呼び出し ID） */
+  revealSubagent: (key: string) => void;
+  /** サブエージェントのカードを開く・閉じる（open を省けば切り替え） */
+  toggleSubagent: (key: string, open?: boolean) => void;
+  /** チャット欄の宛先をそのサブエージェントにする（送るとメインのエージェントから SendMessage で伝える）。ピントもチャット欄へ */
+  tellSubagent: (key: string) => void;
+  /** チャット欄の宛先をメインのエージェントに戻す */
+  clearRelay: () => void;
   /** 自分の発言を書き直して送り直す（確かめ（会話だけ / ファイルも）てから送る。やめたら false。作業中は呼ばない） */
   rewind: (eventId: number, text: string) => Promise<boolean>;
   /** ファイルだけを、その発言を送る前の状態に戻す（会話はそのまま。変わる量を見せて確かめてから） */
@@ -59,7 +78,7 @@ export interface ChatPaneActions {
   readonly state: ValueCell<ChatPaneState>;
 }
 
-/** 1 つのチャットの画面の操作（ChatView が配る。サブエージェントのタブなど、チャットの画面の外では null） */
+/** 1 つのチャットの画面の操作（ChatView が配る。チャットの画面の外では null） */
 export const ChatPaneContext = createContext<ChatPaneActions | null>(null);
 
 /** チャットの画面の中だけで使う部品から（外で使うと例外） */
@@ -69,7 +88,7 @@ export function useChatPane(): ChatPaneActions {
   return pane;
 }
 
-/** チャットの画面の外でも描く部品から（発言・ツールのまとまりなど。外では null で、書き直し・再試行・中身を見るを出さない） */
+/** チャットの画面の外でも描く部品から（発言・ツールのまとまりなど。外では null で、書き直し・再試行・カードの開閉を出さない） */
 export const useOptionalChatPane = (): ChatPaneActions | null => useContext(ChatPaneContext);
 
 const noSubscribe = () => () => {};

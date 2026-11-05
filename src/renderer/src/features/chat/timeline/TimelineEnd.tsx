@@ -5,7 +5,7 @@ import { Markdown } from "@/ui/markdown/Markdown";
 import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
 import { BackgroundTasks } from "@/features/chat/status/BackgroundTasks";
 import { ReconnectRow } from "@/features/chat/status/ConnectionStatus";
-import { Working } from "./Timeline";
+import { Working } from "@/features/chat/status/Working";
 
 /**
  * 流れの終わり（最新の分）: 書いている途中の返答・確認のカード・作業中の行（返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える。

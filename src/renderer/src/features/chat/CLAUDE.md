@@ -14,7 +14,7 @@
 | `options/` | モデル・推論の深さ・権限モード・ファストモード |
 | `attachments/` | 添付（📎・選んだばかりの添付・送った添付・画像を大きく見る） |
 | `queue/` | 送信待ち |
-| `subagents/` | サブエージェントの一覧とタブ |
+| `subagents/` | サブエージェント（流れの中のカード・入れ子・目次のピル・宛先の札） |
 | `approvals/` | 承認・AI からの質問・再開の確かめ |
 | `prompts/` | 自分の指示の一覧（指示の履歴・上に貼り付ける指示・前後の指示へ） |
 | `find/` | チャットの中の検索 |
@@ -39,7 +39,7 @@
 
 - `ChatPane` が中身を読み（`useChatDetail`）、読めたら `ChatView`（チャットごとに作り直す）を描く。状態と操作は `useChatView`、`ChatView` は描くだけ。チャットはいつもパネルのタブの中に開く。
 - `useChatDetail` はチャット・記録・回答待ち・作業中の様子（`ChatLive`。送信待ち・裏の作業・再試行・再接続待ち・圧縮中・停止中）を読み、SSE で追う（作業中の様子は `chat_live` で丸ごと置き換え、中身の変わらない部分は前のものを使う `keepUnchanged`）。読み込みの最中に届いた知らせは届いた中身にもう一度当て、SSE をつなぎ直したら取り直す（決まりは純粋関数の `chatDetail.ts`）。別のプロジェクトへ移しても読み直さない。
-- 子の部品（流れの項目・ピル・送信待ち・検索・質問のカードなど）への操作は `ChatPaneContext`（`ChatPaneActions`: `openSubagent` / `rewind` / `restoreFiles` / `retry` / `jumpTo` / `reveal` / `stepPrompt` / `fillComposer` / `focusComposer` / `askInNewChat`）1 つで配る。props で中継しない・クラス名で DOM を探さない。`ChatView` がチャットごとに 1 回だけ作り、描き直しても同じもの（memo した項目を描き直させない）。変わる様子（失敗した作業の直し方）は `state` に置き、`useChatPaneState` で読む。画面の外でも描く部品（発言・ツールのまとまり。サブエージェントのタブでも使う）は `useOptionalChatPane`（外では書き直し・再試行・中身を見るを出さない）。
+- 子の部品（流れの項目・ピル・送信待ち・検索・質問のカードなど）への操作は `ChatPaneContext`（`ChatPaneActions`: `revealSubagent` / `toggleSubagent` / `tellSubagent` / `clearRelay` / `rewind` / `restoreFiles` / `retry` / `jumpTo` / `reveal` / `stepPrompt` / `fillComposer` / `focusComposer` / `askInNewChat`）1 つで配る。props で中継しない・クラス名で DOM を探さない。`ChatView` がチャットごとに 1 回だけ作り、描き直しても同じもの（memo した項目を描き直させない）。変わる様子（失敗した作業の直し方・開いているサブエージェントのカード `openSubagents`・チャット欄の宛先 `relayTarget`）は `state` に置き、`useChatPaneState` で読む。画面の外でも描く部品（発言・ツールのまとまり・サブエージェントのカード）は `useOptionalChatPane`（外では書き直し・再試行・カードの開閉を出さない）。
 - チャットのキー（⌘↓・⌘⌥↑ / ↓・⌃R・⌘F）は `useChatHotkey`（`chatHotkeys.ts`）で、ピントがそのチャットにあるときだけ受け取る（⌘F は、どこにもピントがなく最後に押したのがそのチャットのときも）。隠れているタブ・閉じたパネルのチャットでは受け取らない。捕捉で先に受け取り、アプリ全体の ⌘F・縦スライドのプロジェクトの切り替えより優先する。
 
 ### 見出し
@@ -50,7 +50,7 @@
 
 ## 流れ（`timeline/`）
 
-- 組み立ては `timelineItems.ts` の `groupEvents`（連続するツールの実行を 1 つのまとまりにし、結果は呼び出しにぶら下げる。作業の終わりの項目に `turnStart`・`turnText`・`turnChanges` を付ける。終わった作業の分は作業の終わりの記録ごとに覚え、配列を作り直さない）。描くのは `ChatTimeline`（スクロール `useTimelineScroll`・上に貼り付ける指示 `useStickyPrompt`・作業中の文 `useWorkingStatus`・流れの終わり `TimelineEnd`）と `Timeline.tsx`（項目は memo）。
+- 組み立ては `timelineItems.ts` の `groupEvents`（連続するツールの実行を 1 つのまとまりにし、結果は呼び出しにぶら下げる。サブエージェントの起動（Agent / Task）はまとまりに入れずカードの項目 `subagent` にし、裏で動かしたものが終わったら、起動した流れのその時刻の位置に `subagentEnd`（1 行）。`scope` を渡すとそのサブエージェントの中身（行のキーと再開した回の呼び出し ID）。作業の終わりの項目に `turnStart`・`turnText`・`turnChanges` を付ける。終わった作業の分は作業の終わりの記録ごとに覚え、配列を作り直さない）。描くのは `ChatTimeline`（スクロール `useTimelineScroll`・上に貼り付ける指示 `useStickyPrompt`・作業中の文 `useWorkingStatus`・流れの終わり `TimelineEnd`）と `Timeline.tsx`（項目は memo）。
 - 窓: 描くのは最近の項目だけ（`timelineWindow.ts` の `TIMELINE_WINDOW`（120）と `useTimelineWindow`）。上の端に近づく（画面の高さの 1.5 倍の手前。端に着いてから足すとトラックパッドの慣性が端で止まる）・「以前の発言を表示」で前を足し、読んでいた位置はブラウザのスクロールアンカーに任せる（合っていないときだけ JS で直す。書き換えると慣性のスクロールが止まる。一番下にいるときは足さない）。一番下へ戻った・一番下で新しい項目が届いたら元の大きさに戻す。窓は大きさが一定のまま進むので、新しい発言の見分けは項目の数ではなく最後の項目のキーで行う。
 - 検索結果から開いた発言・指示の履歴から移る先が窓の外なら、その前後を描く範囲にしてから移る（`revealRange`。最新まで `MAX_TAIL`（400）件以内なら最新まで、遠ければ途中の一部分だけを描き、下の端・「以降の発言を表示」で後ろを足し、一番下へ戻るボタン・⌘↓ で最新の窓に戻す `latest`）。途中を描いている間は、書いている途中の返答・確認のカード・作業中の行を出さない。
 - スクロールの持ち主は `useTimelineScrollHandle`（`following` = 一番下に付いていくか。送った・一番下へ戻ったら付き、上へスクロールした・発言へ移ったら離れる。`BOTTOM_SLACK_PX`）。発言へ移って強調するのは `jumpToEvent`（`.flash`。色はアクセントの緑。黄は検索で見つかった文字と注意の色なので使わない）。移ったら流れにピントを置く。
@@ -66,7 +66,7 @@
 
 ## ツール（`tools/`）
 
-- ツールの呼び出しは人が読める文にする（`toolDescribe.ts`。「ToDo を追加: 確認 1」。生の JSON を出さない。承認カードは `describeApprovalInput`）。まとまりと 1 件は `ToolGroup`（閉じた状態の要約は `summarizeTools`: 「2個のファイルを編集 および 3個のコマンドを実行」。で、分類できないものだけ「その他」）。サブエージェントの呼び出しには「中身を見る」。
+- ツールの呼び出しは人が読める文にする（`toolDescribe.ts`。「ToDo を追加: 確認 1」。生の JSON を出さない。承認カードは `describeApprovalInput`）。まとまりと 1 件は `ToolGroup`（閉じた状態の要約は `summarizeTools`: 「2個のファイルを編集 および 3個のコマンドを実行」。で、分類できないものだけ「その他」）。サブエージェントの起動はまとまりに入れず、流れの中のカード（`subagents/`）。
 - 時刻（`ToolTime`。数え方は純粋関数の `toolTimes.ts`）: 1 件は行の右に「始めた時刻 · かかった時間」（実行中は回る印と経過時間）。まとまりの見出しは要約の後ろに、実行中は「最初に始めた時刻 – 最後に始めた時刻」と回る印、終われば「最初に始めた時刻 – 最後に終わった時刻」。思考の行は考え始めた時刻（記録は考え終えたときに残るので、かかった時間を引く）。書式は `lib/time.ts` の `formatStamp` / `formatStampRange`（秒まで。今日は時刻だけ、別の日は日付も、日をまたいだ範囲は終わりにも日付）、乗せると年月日（`formatFullStamp`）とかかった時間。実行中として見せるのは、作業中のチャットのいまの作業（最後の作業の終わりより後。過去の一部分を描いている間はなし）の、結果の届いていない呼び出しだけ（前の作業で中断したまま結果のないものは実行中にしない）。
 - コマンドの出力は `BashOutput`（「$ コマンド」と出力を 1 つの枠に。終了コードは `bashResult.ts`）。コマンドはシェルの文法で色を付け（`HighlightedCode` の `shellscript`。heredoc の本文は、言語が分かればその言語で）、出力は色を付けない。色付けは、その呼び出しを一度開いてから始める（`ToolItem` の `opened`。閉じたままの呼び出しが多くても重くしない）。
 - ターンの変更カード（`TurnChanges`）: 作業の終わりの行の上に、その作業で変えたファイル（「3 個のファイルを変更 +7 −1」）。開くとファイルの一覧で、押すと `FileLinkContext` の `open` でエディタタブに開く（変わっていれば差分）。作業場所の外のファイルは押せない行。数え方は純粋関数の `turnFileChanges.ts`（`changesOf` / `lineDelta`。Edit・MultiEdit は置き換えの前後を最長共通部分列で比べ、Write は「新規」「書き直し」（書き直しは足した行だけ）、NotebookEdit は足した行。失敗した・結果がまだないものは数えない。サブエージェントの変更も含める）。
@@ -74,8 +74,8 @@
 ## 作業中の様子（`status/`）
 
 - 作業中の行の文は `workingLabel`（止めている・通信を再試行している・会話を圧縮している・返答を書いている・ツールを実行中・考えている）で、作業中の行と一番下へ戻るボタンの両方に使う（`useWorkingStatus` が 1 回だけ組み立てる）。返答を書き終えて裏の作業を待っているときは「返答は終わりました。裏で動いているサブエージェント 1 件（調査）とコマンド 1 件（npm run dev）の終わりを待っています」（`backgroundLabel.ts`）。
-- 本当に動いているかは、最後に何かが届いた時刻で見る（Claude Code に問い合わせる手段はない。`stall.ts` の `activityOf` / `activityText`）。1 分静かなら「最後の動き n 分前」、`STALL_MS`（10 分）動きがなければ「n 分動きがありません（Bash の結果待ち）」と注意の色（`.activity-stalled`）。作業中の行は記録・書いている途中の返答・実行中のサブエージェントのいちばん新しい時刻、サブエージェントは中の発言・ツール・知らせ（`lastActivityAt` / `pendingTool`）と途中経過の時刻で決め、作業中は `useTicker` で描き直す。長く動きのないサブエージェントは作業中の行（「サブエージェント『調査』が 12 分動いていません」）・ピル（「n 件動きなし」）・一覧の行・タブの見出しで知らせる。
-- 裏で動いている作業の一覧（`BackgroundTasks`。作業中の行の下）は 1 件ずつ止められる（`api.stopBackgroundTask`。チャット全体は止めない。サブエージェントは報告が届かなくなるので確かめる）。サブエージェントは名前を押すと中身をタブで開き、最後の動きを添える（作業 ID で一覧の行と結びつける）。
+- 本当に動いているかは、最後に何かが届いた時刻で見る（Claude Code に問い合わせる手段はない。`stall.ts` の `activityOf` / `activityText`）。1 分静かなら「最後の動き n 分前」、`STALL_MS`（10 分）動きがなければ「n 分動きがありません（Bash の結果待ち）」と注意の色（`.activity-stalled`）。作業中の行は記録・書いている途中の返答・実行中のサブエージェントのいちばん新しい時刻、サブエージェントは中の発言・ツール・知らせ（`lastActivityAt` / `pendingTool`）と途中経過の時刻で決め、作業中は `useTicker` で描き直す。長く動きのないサブエージェントは作業中の行（「サブエージェント『調査』が 12 分動いていません」）・ピル（「n 件動きなし」）・一覧の行・カードで知らせる（子孫が動いている間は、待っている祖先を動きなしにしない）。
+- 裏で動いている作業の一覧（`BackgroundTasks`。作業中の行の下）は 1 件ずつ止められる（`api.stopBackgroundTask`。チャット全体は止めない。サブエージェントは報告が届かなくなるので確かめる）。サブエージェントは名前を押すと流れの中のカードへ移って開き、最後の動きを添える（作業 ID で一覧の行と結びつける）。
 - 中断は、裏で動いているサブエージェント・コマンドも止まることを確かめてから（`confirmStopAgents`。止めると Claude Code のプロセスごと終わる）。止めるよう頼んでから終わるまでは停止中（`ChatLive.stopping`）で、停止ボタンを回る印にして押せなくし（Esc でも止め直さない）、横に「停止中…」を出す。
 - 通信が切れて再試行している間は作業中の行・一番下へ戻るボタンに「接続が切れています。再試行 n/m」（`RetryLabel`。動いていたサブエージェントも止まっている可能性を添える）。再試行しきって、つながるのを待っている間は作業中の行の代わりに `ReconnectRow`（通信で止まったサブエージェントも続きから再開することを添える `reconnectLabel`。「自動で再開しない」で `api.stopReconnect`）。何度再開しても続かなかったとき・使用枠の上限で止まって枠が戻ったときは、承認と同じ回答待ちのカード（`ReconnectCard`）で続けるかを聞く。
 - 会話の圧縮中（`ChatLive.compacting`。手でも自動でも）は、作業中の行・一番下へ戻るボタンを「会話を圧縮しています」（`COMPACTING_LABEL`）にし、チャット欄の丸いメーター（`ContextMeter`）は短い弧をアクセントの色で回す（使用率が高いと弧がほぼ一周で、回しても分かりにくいため）。終わると記録の「ここまでの会話を要約しました」が残る。
@@ -123,15 +123,21 @@
 
 ## サブエージェント（`subagents/`）
 
-- 一覧（`useSubagents`。途中経過は SSE の `chat_subagent`）は、チャット欄の上のピル `SubagentChip`（「サブエージェント N 件」）。行・ツールのまとまりの「中身を見る」から、パネルの新しいタブで開く（`ChatPaneActions.openSubagent` → パネルの `openSubagent`、タブの種類 `subagent`、中身は `SubagentPane` ＋ `SubagentView`。同じサブエージェントならそのタブへ。チャットを消したら一緒に閉じる）。アーカイブした行は `subagentsArchived(chatId)`。
+サブエージェントはタブにせず、メインのチャットの流れの中で見せる（どの依頼から起動し、いつ何をしているかを、メインのエージェントとのつながりのまま見るため。依頼を出すタブはメインのエージェントだけ）。
+
+- カード（`SubagentCard`）: Agent / Task の呼び出し 1 つが流れの中の 1 枚。閉じた状態でも、状態（実行中は回る印）・名前・種類・状態の文・開始〜終了（実行中は開始〜最後の動き。書式はツールと同じ `formatStampRange`）と、2 行目に、実行中なら「いま」いちばん新しい呼び出し（中で起動したサブエージェントのものは「洗い出し › コマンド: …」。`subagentTree.ts` の `latestActivity`）・最後の動きからの時間・トークン数、終わったものなら「完了 · ツール n 回 · トークン数 · かかった時間 · サブエージェント n 件」、右に操作（`SubagentActions`・「伝える」）。見出しを押す・Enter で開閉し、開くと親からの依頼（初めは 1 行にたたむ）→ そのサブエージェントの流れ（`groupEvents(events, scopeOf(entry))`。時刻付きのツールのまとまり・返答・入れ子のカード）→ 親への報告 → 実行中の行を、左の縦線で字下げして出す。
+- 入れ子: 中で起動したサブエージェントも同じカードとして中身の中に出す（地の色を交互にする）。`FLAT_DEPTH`（3）段より深いものは字下げをやめ、見出しに外側からの道筋（「調査 › 洗い出し ›」）を添える。木は `subagentTree.ts`（`subagentTree` / `childrenOf` / `pathOf` / `flattenTree` / `scopeOf`）。
+- カードが読むもの（チャット・作業中か・記録・木）は `SubagentsContext`（`ChatView` が配る。変わるとカードだけが描き直る）、開閉はチャットの画面の状態 `openSubagents`（`toggleSubagent`）。カードの中の流れは描く側（`TimelineItems`）から `renderItems` で渡す（流れの部品を読むと輪になるため）。
+- 目次: チャット欄の上のピル `SubagentChip`（「サブエージェント N 件」）の一覧は、入れ子を親のすぐ下に字下げして並べ（`flattenTree`）、行を押すとそのカードへ移って開く（`revealSubagent`: 外側のカードから自分まで開き、いちばん外側のカードを窓に入れ、開いた中身が描かれてから移って強調する）。裏の作業の一覧の名前・「やり直した回を見る」も同じ。裏で動いていて流れの上に流れていったカードにも、ここから戻れる。
+- 裏で動かしたサブエージェントが終わったら、起動した流れのその時刻の位置に「裏で動かしたサブエージェント『…』が終わりました 時刻 カードへ」（`SubagentEndNote`）。
+- 伝える: カードの「伝える」でチャット欄の宛先をそのサブエージェントにする（`tellSubagent` → `relayTarget`。入力欄の上に `RelayBanner`「宛先: サブエージェント『…』」と ×、送り方の切り替えは出さない）。送ると、Kickoff から直接は送れないので、メインのエージェントに SendMessage でそのまま伝えてもらう（文の形は `@shared/chat/prompts.ts` の `relayMessage`、カードの流れには `relayedText` で自分の発言として混ぜる。`api.tellChat` で送り、メインが作業中なら止めずに伝える）。送ったら宛先をメインに戻す（× でも戻る）。
 - 一覧の組み立ては、コアと共有の `@shared/chat/subagents.ts`（`collectSubagents` / `subagentReport` と、コアの作業の終わりのお知らせ `unfinishedSubagents`・通信が戻ったときの再開 `networkStoppedSubagents` で同じ数え方にする）。表示名・状態の文だけ画面の `subagentList.ts`。行は作業 ID でまとめる（SendMessage で再開すると、知らせの呼び出し ID が再開を頼んだ SendMessage のものになるため）。報告の本文は `subagentReport`。裏で動かしたものは一覧から消えたら終わったとみなし（報告を渡していれば完了、なければ中断）、起動の知らせ（`isBackgroundLaunch`）を完了と数えない。
-- タブの下の入力欄から追加の指示を送れる。Kickoff から直接は送れないので、メインのエージェントに SendMessage でそのまま伝えてもらう（文の形は `@shared/chat/prompts.ts` の `relayMessage`、タブの流れには `relayedText` で自分の発言として混ぜる。`api.tellChat` で送り、メインが作業中なら止めずに伝える。伝えられなければ送信待ち）。
 - 状態の文（`subagentStatusLabel`・乗せたときの説明 `subagentStatusTitle`・色 `subagentStatusClass`）:
   - 通信の切断で止まったもの（`network`。API のエラーで失敗した・通信で親ごと終わったときに動いていた）は「通信の切断で中断」と注意の色（ピルの数も失敗と分ける）。
   - 出力の上限（`isOutputLimitError`）で止まったものは「失敗（出力の上限）」。再開・やり直すの頼みには「報告は短く・大きなファイルは分けて」と添える（`resumeRequest` / `retryRequest` の `outputLimit`）。
   - 完了は、報告が親に届いたかで分ける（`delivery`。待つ形は親のツールに結果が返ったら、裏で動かしたものは報告のあとに親が動いたら受け取った = 完了）。親がまだ動いていなければ「報告済み（親の受け取り待ち）」、親が動かないまま作業が終わったら「報告が親に届いていません」と注意の色。届かなかった報告はコアが次に送る指示に本文を自動で添えて渡し、受け取った = 完了になる。待たずに渡すなら行の「いま親に渡す」（`HAND_OVER_NOW` を `api.tellChat`。本文はコアが添える）。ピルにも「n 件受け取り待ち」「n 件届かず」。
-  - 止まったあとに親が同じ仕事を新しいサブエージェントでやり直したもの（`supersededBy`。判定は `@shared/chat/subagentSupersede.ts` の `markSuperseded`。決まりは `src/shared/CLAUDE.md`）は「やり直し済み」と控えめな色。止まった理由とやり直した回の名前は title、「やり直した回を見る」でその回のタブを開く。再開・やり直すを出さず、ピルの失敗の数・通信が戻ったときの再開にも数えない。
-- 止まった（失敗・中断）行とタブの見出しには「再開」（SendMessage で止まったところから続ける）と「やり直す」（同じ依頼で最初から。確かめてから）を置く（`SubagentActions`。文は `resumeRequest` / `retryRequest`、メインには `api.tellChat` で伝える）。実行中なのに長く動きのないものは「止める」（作業中だけ。確かめてから `api.stopBackgroundTask`。止めたら再開・やり直すで戻せる）。
+  - 止まったあとに親が同じ仕事を新しいサブエージェントでやり直したもの（`supersededBy`。判定は `@shared/chat/subagentSupersede.ts` の `markSuperseded`。決まりは `src/shared/CLAUDE.md`）は「やり直し済み」と控えめな色。止まった理由とやり直した回の名前は title、「やり直した回を見る」でその回のカードへ移る。再開・やり直すを出さず、ピルの失敗の数・通信が戻ったときの再開にも数えない。
+- 止まった（失敗・中断）行とカードには「再開」（SendMessage で止まったところから続ける）と「やり直す」（同じ依頼で最初から。確かめてから）を置く（`SubagentActions`。文は `resumeRequest` / `retryRequest`、メインには `api.tellChat` で伝える）。実行中なのに長く動きのないものは「止める」（作業中だけ。確かめてから `api.stopBackgroundTask`。止めたら再開・やり直すで戻せる）。
 - 作業中にサブエージェントだけが通信のエラー・出力の上限で止まったときは、システムプロンプトで 1 回だけ SendMessage で続きから再開させる（ほかの失敗・利用者が止めたものは再開せず伝える。コア）。
 
 ## 承認と質問（`approvals/`）

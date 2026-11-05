@@ -1,4 +1,4 @@
-import { Bot, Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
@@ -39,16 +39,6 @@ export const newChatTab = (target: NewChatTarget, seed?: NewChatSeed, key = newT
   kind: "new",
   ...target,
   ...(seed ? { seed, draftText: seed.text } : {}),
-});
-
-/** サブエージェントの中身のタブ（同じサブエージェントは 1 つのタブ） */
-export const subagentTab = ({ chatId, projectId, toolUseId, title }: { chatId: number; projectId: number; toolUseId: string; title: string }): TabOf<"subagent"> => ({
-  key: `subagent:${chatId}:${toolUseId}`,
-  kind: "subagent",
-  chatId,
-  projectId,
-  toolUseId,
-  title,
 });
 
 /** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
@@ -130,19 +120,6 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     groupName: (t) => t.groupName,
     projectOf: (t) => t.projectId,
     cluster: (t, r) => r.ofTarget(t.projectId, t.group),
-  },
-  subagent: {
-    shows: "chat",
-    icon: Bot,
-    iconClass: "muted",
-    label: (t) => t.title,
-    projectOf: (t) => t.projectId,
-    chatIdOf: (t) => t.chatId,
-    // 親のチャットのまとまり
-    cluster: (t, r) => {
-      const chat = r.chatById(t.chatId);
-      return chat ? r.ofChat(chat) : r.ofTarget(t.projectId);
-    },
   },
   browser: {
     shows: "browser",
