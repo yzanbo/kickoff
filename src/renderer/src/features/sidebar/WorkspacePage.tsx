@@ -2,7 +2,10 @@ import { Archive, Folder, Inbox, Pin, Plus } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { BOARD_COLUMN_LABELS, type Project, type Chat, type ChatGroup } from "@shared/types";
 import { api } from "@/api";
-import { alertDialog } from "@/ui/dialogs";
+import { alertDialog, reportFailure } from "@/ui/dialogs";
+import { cx } from "@/lib/cx";
+import { toggleArchiveChat } from "@/features/chat/chatActions";
+import { useChatDragging, useChatDropTarget } from "@/features/group/groups";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useFold, useFolds } from "@/hooks/useFold";
 import { projectHue } from "@/features/project/projectColor";
@@ -86,6 +89,12 @@ export const WorkspacePage = memo(function WorkspacePage({
   );
   // チャットの右クリックメニュー（開く・名前を変更・アーカイブ・削除）
   const rowMenu = useContextMenu<Chat>();
+  // 「アーカイブ済み」へチャットの行をドラッグしてアーカイブする（どこからでも同じく、確かめてから。作業中のチャットはサーバーが断るので、その理由を出す）
+  const chatDragging = useChatDragging();
+  const archiveDrop = useChatDropTarget((chatId) => {
+    const chat = chats.find((c) => c.id === chatId);
+    if (chat && !chat.archived_at) void toggleArchiveChat(chat).catch(reportFailure("アーカイブできませんでした"));
+  });
 
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
@@ -219,6 +228,8 @@ export const WorkspacePage = memo(function WorkspacePage({
           </Collapse>
         )}
         {archived && (
+          // チャットの行をここへドラッグすると、確かめてからアーカイブする（右クリックの「アーカイブ」と同じ確認のダイアログ）
+          <div className={cx("archive-drop", archiveDrop.over && "drop-target")} {...archiveDrop.props}>
           <FoldSection look="row" icon={Archive} label="アーカイブ済み" count={archived.chats.length} open={archivedFold.open} onToggle={archivedFold.toggle}>
             {/* 中も、ほかのチャットと同じまとめ方で出す（グループには分けない。開閉はアーカイブ済みの中だけで覚える） */}
             {archived.children ? (
@@ -229,6 +240,13 @@ export const WorkspacePage = memo(function WorkspacePage({
               <ul className="chat-rows archived-rows">{archived.chats.map(renderRow)}</ul>
             )}
           </FoldSection>
+          </div>
+        )}
+        {/* アーカイブ済みのまとまりがない（まだない・隠している）ときも、チャットをドラッグしている間だけ同じ場所に落とし先を出す */}
+        {!archived && chatDragging && (
+          <div className={cx("chat-row ghost archive-drop", archiveDrop.over && "drop-target")} {...archiveDrop.props}>
+            <Archive size={13} aria-hidden /> アーカイブ済みへ（落とすとアーカイブ）
+          </div>
         )}
       </Collapse>
       {sections.menuElement}
