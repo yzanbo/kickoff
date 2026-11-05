@@ -13,10 +13,14 @@ import { PopoutFiles } from "@/features/popout/PopoutFiles";
 import { PopoutSubagent } from "@/features/popout/PopoutSubagent";
 import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
 import { SideMemo } from "@/features/memo/SideMemo";
+import { PopoutDockButton } from "@/features/popout/PopoutDockButton";
 import { AskChildHost } from "@/features/chat/children/AskChildHost";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 import { popoutPath, type PopoutRoute } from "./popout";
 import { RouteContext, useHashRoute } from "./router";
+
+/** 上の帯の、何のウィンドウかの札 */
+const POPOUT_LABELS: Record<PopoutRoute["kind"], string> = { changes: "変更", file: "ファイル", subagent: "サブエージェント", chat: "子チャット", memo: "メモ" };
 
 /**
  * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ）の画面。メインのウィンドウの App は使わない
@@ -37,6 +41,14 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
       <RouteContext.Provider value={hashRoute}>
         <ChatStatesContext.Provider value={chatStates}>
           <div className="popout">
+            {route.kind !== "chat" && (
+              // 上の細い帯（子チャットは自分の帯に同じボタンを置く）
+              <div className="popout-bar">
+                <span className="popout-bar-label">{POPOUT_LABELS[route.kind]}</span>
+                <span className="spacer" />
+                <PopoutDockButton route={route} />
+              </div>
+            )}
             {route.kind === "subagent" ? (
               <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} />
             ) : route.kind === "chat" ? (

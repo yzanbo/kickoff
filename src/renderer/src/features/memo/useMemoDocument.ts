@@ -183,8 +183,12 @@ export function useMemoDocument(projectId: number, path: string) {
           clearTimeout(draftTimer.current);
           writeSetting(memoDraft(key), null);
         },
+        flush: () => {
+          const b = current.current.base;
+          if (b?.key === key) writeDraft(b);
+        },
       }),
-    [key, save],
+    [key, save, writeDraft],
   );
 
   // Kickoff の中でこのメモが変わった（チャットからの追記など）。自分の保存の知らせなら、指紋が同じなので何もしない

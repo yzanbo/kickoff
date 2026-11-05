@@ -10,6 +10,8 @@ interface MemoGuard {
   save: () => Promise<boolean>;
   /** 書きかけを捨てる */
   discard: () => void;
+  /** 書きかけを待たずに残す（ウィンドウを閉じる前。開き直すと未保存のまま戻る） */
+  flush: () => void;
 }
 
 /** 開いているメモ（キーは「プロジェクト:メモのパス」。同じメモを 2 か所で開いていれば、どれも） */
@@ -48,4 +50,9 @@ export async function confirmLeaveMemo(projectId: number, path: string | null | 
   }
   for (const g of dirty) if (!(await g.save())) return false;
   return true;
+}
+
+/** 開いているメモの書きかけを、待たずに残す（別ウィンドウを閉じて右の欄で開き直す前） */
+export function flushMemoDrafts() {
+  for (const set of guards.values()) for (const g of set) g.flush();
 }

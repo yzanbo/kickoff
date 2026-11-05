@@ -1,4 +1,5 @@
 import { ArrowUpLeft, Minus, Send } from "lucide-react";
+import type { ReactNode } from "react";
 import type { Chat, ChatEvent } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { handBackText } from "./childChats";
@@ -8,7 +9,20 @@ import { handBackToParent, revealInParent } from "./openChild";
  * 子チャットの上の帯（別ウィンドウ・右の欄で共通）: 親を見る（親の、聞いた発言へ）・メインに渡す（いちばん新しい答えを引用にして親の入力欄へ。送るのは自分で）・
  * しまう（onPutAway。別ウィンドウは閉じ、右の欄はタブを閉じる。子チャットは残り、親の会話の札から開き直せる）
  */
-export function ChildChatBar({ chat, events, putAwayTitle, onPutAway }: { chat: Chat; events: readonly ChatEvent[]; putAwayTitle: string; onPutAway: () => void }) {
+export function ChildChatBar({
+  chat,
+  events,
+  putAwayTitle,
+  onPutAway,
+  extra,
+}: {
+  chat: Chat;
+  events: readonly ChatEvent[];
+  putAwayTitle: string;
+  onPutAway: () => void;
+  /** しまうの前に足すボタン（別ウィンドウの「右の欄に戻す」） */
+  extra?: ReactNode;
+}) {
   // いちばん新しいメインの AI の返答（サブエージェントの文は除く）
   const answer = [...events].reverse().find((e) => e.type === "text" && !e.data.parent);
   const answerText = answer?.type === "text" ? answer.data.text : "";
@@ -33,6 +47,7 @@ export function ChildChatBar({ chat, events, putAwayTitle, onPutAway }: { chat: 
           </button>
         </>
       )}
+      {extra}
       <button type="button" className="btn btn-sm" title={putAwayTitle} onClick={onPutAway}>
         <Minus size={13} aria-hidden /> しまう
       </button>
