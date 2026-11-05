@@ -69,7 +69,8 @@
   -webkit-app-region: drag;
 }
 
-.board-panel.as-sidebar .panel-tabs button {
+/* タブは全体を押せるので、ボタンの隙間（枠・閉じるの周り）もウィンドウのドラッグにしない */
+.board-panel.as-sidebar .panel-tabs :is(button, .panel-tab) {
   -webkit-app-region: no-drag;
 }
 
