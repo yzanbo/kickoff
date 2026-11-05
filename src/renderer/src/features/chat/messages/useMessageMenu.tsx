@@ -3,16 +3,20 @@ import { reportFailure } from "@/ui/dialogs";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { copyRich } from "@/lib/richCopy";
+import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { MemoMenuItems } from "@/features/memo/MemoMenuItems";
 
 /**
  * 発言の右クリックのメニュー（メッセージをコピー。文を選んでいれば、選んだ文のコピーも）。
  * rich（AI の返答）なら「メッセージをコピー」は書式付き（ほかのアプリに貼っても見出し・表が崩れない）で、Markdown のままのコピーも並べる。
+ * チャットの画面の中なら「メモに追加」（選んでいる文、なければ発言の全体をメモにする）も並べる。
  * リンク・入力欄・コードブロックの上などでは、Electron の既定のメニューに任せず、この 1 つにそろえる
  */
 export function useMessageMenu(text: string, extra?: ReactNode, { rich = false }: { rich?: boolean } = {}): { open: (e: MouseEvent) => void; element: ReactNode } {
   // 開いたときに選んでいた文（その発言の中で選んでいれば）
   const menu = useContextMenu<string>();
   const at = menu.menu;
+  const pane = useOptionalChatPane();
   const copy = (value: string) => void navigator.clipboard.writeText(value).catch(reportFailure("コピーできませんでした"));
   const copyFormatted = (value: string) => void copyRich(value).catch(reportFailure("コピーできませんでした"));
   return {
@@ -29,6 +33,7 @@ export function useMessageMenu(text: string, extra?: ReactNode, { rich = false }
         <MenuItem onSelect={() => (rich ? copyFormatted(text) : copy(text))}>メッセージをコピー</MenuItem>
         {rich && <MenuItem onSelect={() => copy(text)}>Markdown のままコピー</MenuItem>}
         {extra}
+        {pane && <MemoMenuItems projectId={pane.projectId()} chatId={pane.chatId} text={at.value || text} />}
       </PopupMenu>
     ),
   };

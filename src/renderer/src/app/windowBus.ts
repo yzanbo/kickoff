@@ -10,6 +10,8 @@ export type WindowMessage =
   | { type: "showActivity"; chatId: number; agent: string }
   /** メインのウィンドウでエディタタブのファイルを開く */
   | { type: "openProjectFile"; projectId: number; file: FileTarget }
+  /** メインのウィンドウでメモのタブのそのメモを開く（別ウィンドウのサブエージェントの返答から「メモに追加」したとき） */
+  | { type: "openMemo"; projectId: number; path: string }
   /** もう開いている別ウィンドウの「変更」を、そのファイルの位置へ移す（key は popoutKey） */
   | { type: "popoutFocus"; key: string; focus: string };
 

@@ -3,7 +3,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 
 // プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はエディタ（changes）でファイルとして見る
 // （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
-const PROJECT_TABS = ["board", "groups", "changes", "history"] as const;
+const PROJECT_TABS = ["board", "groups", "changes", "history", "memos"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** エディタタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
@@ -18,9 +18,9 @@ export type Route =
   | { name: "allProjects" }
   /**
    * group: グループのタブで、表示して目立たせるグループ（サイドバーのグループ名から来たとき）。
-   * file: エディタタブで開くファイル（開いたら URL から外す）
+   * file: エディタタブで開くファイル（開いたら URL から外す）。memo: メモのタブで開くメモ（メモのフォルダからの相対パス。開いたら URL から外す）
    */
-  | { name: "project"; id: number; tab: ProjectTab; group?: number; file?: FileTarget }
+  | { name: "project"; id: number; tab: ProjectTab; group?: number; file?: FileTarget; memo?: string }
   | { name: "newChat"; projectId: number; group?: number }
   /** focus: 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   | { name: "chat"; projectId: number; chatId: number; focus?: number };
@@ -48,12 +48,14 @@ export function parse(hash: string): Route {
     const tab = (PROJECT_TABS as readonly string[]).includes(project[2] ?? "") ? (project[2] as ProjectTab) : "board";
     const group = Number(params.get("group"));
     const file = tab === "changes" ? parseFileTarget(params) : undefined;
+    const memo = tab === "memos" ? params.get("memo") : null;
     return {
       name: "project",
       id: Number(project[1]),
       tab,
       ...(tab === "groups" && Number.isInteger(group) && group > 0 ? { group } : {}),
       ...(file ? { file } : {}),
+      ...(memo ? { memo } : {}),
     };
   }
   return { name: "allProjects" };
@@ -92,6 +94,7 @@ export function href(route: Route): string {
     case "project":
       if (route.tab === "board") return `#/projects/${route.id}`;
       if (route.tab === "changes") return `#/projects/${route.id}/changes${route.file ? fileQuery(route.file) : ""}`;
+      if (route.tab === "memos") return `#/projects/${route.id}/memos${route.memo ? `?${new URLSearchParams({ memo: route.memo })}` : ""}`;
       return `#/projects/${route.id}/${route.tab}${route.group ? `?group=${route.group}` : ""}`;
     case "newChat": {
       return `#/projects/${route.projectId}/new${route.group ? `?group=${route.group}` : ""}`;
@@ -146,6 +149,11 @@ export function openNewChat(projectId: number, target: { group?: number } = {}) 
 /** プロジェクトのエディタタブで、ファイルを開く（行があればその行へ移る） */
 export function openProjectFile(projectId: number, file: FileTarget) {
   navigate({ name: "project", id: projectId, tab: "changes", file });
+}
+
+/** メモのタブでそのメモを開く（チャットの「メモに追加」のあと。開いているチャットは右のパネルに残る） */
+export function openMemo(projectId: number, path: string) {
+  navigate({ name: "project", id: projectId, tab: "memos", memo: path });
 }
 
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */

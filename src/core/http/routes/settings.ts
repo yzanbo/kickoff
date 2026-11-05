@@ -4,7 +4,7 @@ import type { ServerDeps } from "../server.js";
 import { WHISPER_MODEL_IDS } from "../../voice/models.js";
 import { PROVIDER_IDS, VOICE_PROVIDERS, type AppSettings } from "@shared/types";
 import { jsonBody } from "../input.js";
-import { chatDefaultsSchema, voiceLanguage } from "./schemas.js";
+import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, voiceLanguage } from "./schemas.js";
 
 const settingsSchema = z
   .object({
@@ -23,6 +23,8 @@ const settingsSchema = z
     voice_model: z.enum(WHISPER_MODEL_IDS),
     voice_openai_base_url: z.union([z.literal(""), z.url({ protocol: /^https?$/ })]),
     voice_openai_model: z.string().trim().min(1).max(100),
+    // メモの親フォルダ（null なら既定の場所）
+    memos_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
   })
   .partial()
   .strict() satisfies z.ZodType<Partial<AppSettings>>;

@@ -1,0 +1,179 @@
+/* ==== プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ。枠と一覧はエディタタブの .changes を使う） ==== */
+
+/* 名前で探す欄（一覧の見出しの下） */
+.memo-search {
+  margin: 6px 8px 2px;
+}
+
+.changes-list > .memo-found {
+  margin: 0;
+  padding: 4px 0 8px;
+  list-style: none;
+}
+
+/* 見つかったメモの、入っているフォルダ（名前の右に薄く） */
+.memo-found-folder {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+/* メモ・フォルダをドラッグして落とす先（フォルダの行・一覧の空いている所） */
+.tree-row.drop-target,
+.memo-list.drop-target {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.memo-main {
+  overflow: hidden;
+}
+
+.memo-main > .empty-state {
+  align-self: center;
+}
+
+.memo-dir {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.memo-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 見出し: 題名とフォルダ・保存の様子・書く / 読む・Finder */
+.memo-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.memo-head-title {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.memo-head-title h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memo-head-folder {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+.memo-save-state {
+  flex: none;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.memo-save-state.warn {
+  color: var(--warn);
+}
+
+.memo-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.memo-body.preview {
+  overflow-y: auto;
+}
+
+/* 読む表示（チャットの返答と同じ Markdown の見た目を、読みやすい幅で） */
+.memo-preview {
+  max-width: 760px;
+  padding: 16px 24px 32px;
+}
+
+.memo-message {
+  margin: 16px;
+}
+
+/* 設定のメモのフォルダの欄の、保存・既定に戻すの行 */
+.memo-folder-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* チャットの文をメモに追加している間の様子（画面の下の真ん中） */
+.memo-progress {
+  position: fixed;
+  bottom: 56px;
+  left: 50%;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  transform: translateX(-50%);
+}
+
+/* 発言の右クリックの「既存のメモに追記」の一覧（題名と、入っているフォルダ） */
+.memo-menu-note {
+  margin: 6px 10px;
+}
+
+.memo-menu-title {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memo-menu-folder {
+  max-width: 120px;
+  margin-left: auto;
+  padding-left: 12px;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+.memo-progress-text {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memo-progress-done {
+  flex: none;
+  color: var(--ok);
+}

@@ -1,10 +1,12 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
+import fs from "node:fs/promises";
 import type { ProviderCallbacks, ProviderTurnResult } from "../providers/types.js";
 import { createApp } from "../http/server.js";
 import type { ApiRetryInfo, BackgroundState, FileRewindResult, SlashCommandOption } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
 import { ServiceUsageMonitor } from "../usage/services/index.js";
 import { VoiceService } from "../voice/service.js";
+import { MemoService } from "../memos/memos.js";
 import type { VoiceTools } from "../voice/tools.js";
 import type { AudioInput, LocalOptions, OpenAiOptions } from "../voice/types.js";
 import { FakeProviderBase } from "./fakeProvider.js";
@@ -96,6 +98,12 @@ class FakeProvider extends FakeProviderBase {
     this.gate = new Promise((resolve) => (release = () => ((this.gate = null), resolve())));
     return release;
   }
+  /** 要約に渡した文（順に）。返すのは「要約: 」＋ 先頭の 10 文字 */
+  summarized: string[] = [];
+  async summarize(text: string) {
+    this.summarized.push(text);
+    return `要約: ${text.slice(0, 10)}`;
+  }
   /** チャット欄の / のコマンド（返すものと、調べた作業フォルダ） */
   commandList: SlashCommandOption[] = [];
   lastCommandsCwd = "";
@@ -151,7 +159,19 @@ export function setup(opts: { staticDir?: string } = {}) {
     findTools: async () => voiceFake.tools,
     fetch: () => voiceFake.download(),
   });
-  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, staticDir: opts.staticDir });
+  // メモ: 親フォルダの既定は一時フォルダ。ゴミ箱へ移すのは本物のゴミ箱に入れず、消して覚える
+  const memoFake = { defaultDir: tempDir(), trashed: [] as string[] };
+  const memos = new MemoService({
+    store,
+    defaultDir: memoFake.defaultDir,
+    providers,
+    publish: (e) => bus.publish(e),
+    trash: async (file) => {
+      memoFake.trashed.push(file);
+      await fs.rm(file, { recursive: true });
+    },
+  });
+  const app = createApp({ store, bus, token: TOKEN, providers, usage, serviceUsage, runner, approvals, uploads, voice, memos, staticDir: opts.staticDir });
 
   /** トークン付きで API を呼び、JSON の応答を返す */
   const call = async (method: string, url: string, body?: unknown) => {
@@ -163,6 +183,6 @@ export function setup(opts: { staticDir?: string } = {}) {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, voiceFake, network, approvals, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, voiceFake, memoFake, network, approvals, codexCalls: () => codexCalls };
 }
 

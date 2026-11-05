@@ -22,6 +22,10 @@ export interface Project {
   hue: number;
   /** タグ（仕事・プライベートなど。前後の空白を除き、重複なし。サイドバー・全プロジェクトの画面の絞り込みに使う） */
   tags: string[];
+  /** メモの親フォルダの下の、このプロジェクトのフォルダ名（初めてメモを使ったときに、プロジェクト名から決めて覚える。名前を変えてもメモを見失わない） */
+  memo_folder: string | null;
+  /** メモのフォルダを、このプロジェクトだけ別の場所にする（絶対パス。null なら親フォルダ / memo_folder） */
+  memo_path: string | null;
   created_at: string;
 }
 

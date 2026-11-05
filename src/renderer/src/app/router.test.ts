@@ -30,6 +30,8 @@ test("parse: エディタタブで開くファイル（エディタタブでだ�
   assert.deepEqual(parse("#/projects/3/changes?file=a.ts&line=0"), { name: "project", id: 3, tab: "changes", file: { path: "a.ts" } });
   assert.deepEqual(parse("#/projects/3/changes?line=4"), { name: "project", id: 3, tab: "changes" });
   assert.deepEqual(parse("#/projects/3/groups?file=a.ts"), { name: "project", id: 3, tab: "groups" });
+  // 開くメモはメモのタブでだけ読む
+  assert.deepEqual(parse("#/projects/3/changes?memo=a.md"), { name: "project", id: 3, tab: "changes" });
 });
 
 test("parse: 新しいチャット（以前の section は読まない）とチャット（focus は 0 なら付けない）", () => {
@@ -49,6 +51,8 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "groups", group: 5 },
     { name: "project", id: 1, tab: "changes", file: { path: "src/a b.ts", line: 3, worktree: "/x/app-worktrees/w" } },
     { name: "project", id: 1, tab: "changes", file: { path: "README.md" } },
+    { name: "project", id: 1, tab: "memos" },
+    { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md" },
     { name: "newChat", projectId: 2, group: 4 },
     { name: "chat", projectId: 2, chatId: 30 },
     { name: "chat", projectId: 2, chatId: 30, focus: 8 },

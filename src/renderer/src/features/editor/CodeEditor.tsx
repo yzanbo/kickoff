@@ -31,16 +31,20 @@ interface Props {
   savedValue: string;
   /** 開く行 */
   line?: number;
+  /** 文章を書く見た目（メモ。行を折り返し、行番号・全体の縮図を出さない） */
+  prose?: boolean;
+  /** 書き換えるたび（メモの自動の保存） */
+  onChange?: (value: string) => void;
 }
 
 /** VS Code と同じ編集の部品（Monaco Editor）。補完・型チェックは入れず、編集と色付けだけ */
-export default function CodeEditor({ path, initialValue, onDirtyChange, onSave, valueRef, savedValue, line }: Props) {
+export default function CodeEditor({ path, initialValue, onDirtyChange, onSave, valueRef, savedValue, line, prose = false, onChange }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const saved = useRef(savedValue);
   saved.current = savedValue;
-  const latest = useRef({ onDirtyChange, onSave });
-  latest.current = { onDirtyChange, onSave };
+  const latest = useRef({ onDirtyChange, onSave, onChange });
+  latest.current = { onDirtyChange, onSave, onChange };
   const theme = useAppliedTheme();
 
   useEffect(() => {
@@ -59,11 +63,29 @@ export default function CodeEditor({ path, initialValue, onDirtyChange, onSave, 
       fontSize: 12,
       scrollBeyondLastLine: false,
       fixedOverflowWidgets: true,
+      ...(prose
+        ? {
+            wordWrap: "on" as const,
+            lineNumbers: "off" as const,
+            minimap: { enabled: false },
+            folding: false,
+            glyphMargin: false,
+            lineDecorationsWidth: 16,
+            renderLineHighlight: "none" as const,
+            fontSize: 13,
+            lineHeight: 22,
+            padding: { top: 12, bottom: 12 },
+          }
+        : {}),
     });
     editorRef.current = editor;
     valueRef.current = () => editor.getValue();
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => latest.current.onSave(editor.getValue()));
-    const sub = model.onDidChangeContent(() => latest.current.onDirtyChange(model.getValue() !== saved.current));
+    const sub = model.onDidChangeContent(() => {
+      const value = model.getValue();
+      latest.current.onDirtyChange(value !== saved.current);
+      latest.current.onChange?.(value);
+    });
     editor.focus();
     return () => {
       sub.dispose();

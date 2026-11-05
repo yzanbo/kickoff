@@ -21,6 +21,8 @@ export interface AgentProvider {
   commands?(cwd: string): Promise<SlashCommandOption[]>;
   /** 最初のメッセージから短いチャット名を作る */
   title?(text: string): Promise<string>;
+  /** あとで読み返すメモにするため、文を短くまとめる（チャットの文を「AI で要約してメモに追加」） */
+  summarize?(text: string): Promise<string>;
   /** 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装） */
   fork?(sessionId: string, messageId: string, cwd: string): Promise<string>;
   /** ファイルを、その会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけを返す）。作業中でないときに呼ぶ */

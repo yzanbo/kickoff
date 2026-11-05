@@ -2,12 +2,13 @@
 
 ## 設定のダイアログ（`SettingsDialog`）
 
-- 左下の歯車・⌘, から開く `TabbedDialog`（画面は移らない）。項目（`SettingsSection`）: 使用状況・表示・接続・AI の既定・チャット・音声入力・通知・ターミナル・ブラウザの拡張機能・スマホ連携・診断。部品からその項目で開くときは `openSettings(section)`（App が受け取る。開いていればその項目に切り替える。チャット欄のマイクから「音声入力」など）。
+- 左下の歯車・⌘, から開く `TabbedDialog`（画面は移らない）。項目（`SettingsSection`）: 使用状況・表示・接続・AI の既定・チャット・メモ・音声入力・通知・ターミナル・ブラウザの拡張機能・スマホ連携・診断。部品からその項目で開くときは `openSettings(section)`（App が受け取る。開いていればその項目に切り替える。チャット欄のマイクから「音声入力」など）。
 - アプリの設定（`AppSettings`）は店（`settingsStore`）から読み、`useSettingsDraft` で下書きにして項目ごとに保存する（届いたら 1 回だけ下書きにし、ほかで設定が変わっても書いている途中の下書きは変えない。保存の応答は店に `set`）。保存のボタンと結果は `useSave` ＋ `SaveActions`。
 - 表示（画面だけの表示の設定。保存は localStorage の設定）: テーマ（`THEME`。ダーク / ライト / システムに合わせる）・チャット欄（標準 / コンパクト `COMPOSER_COMPACT`）・会話の文字の大きさ（5 段階 `CHAT_FONT_SIZE`）・チャットの文の幅（`CHAT_WIDE`）・チャットの見出し（表示する / 隠す `CHAT_HEADER_ROW_HIDDEN`）・上に貼り付ける指示（表示する / 表示しない `STICKY_PROMPT_HIDDEN`）・サブエージェントを開く場所（流れの中 / 右の欄 `SUBAGENT_OPEN_IN`。初めは流れの中）・プロジェクトのタブ（`PROJECT_TABS_LAYOUT`）・ボードツールバーの置き方（`BOARD_HEADER_LAYOUT`）・下の帯（表示 / 寄せたときだけ表示 / 非表示 `FOOTER_MODE`。初めは表示）。どれもチャットの見出しの行・タブの右クリックなど、使う場所の切り替えと同じ設定。
 - 接続: AI エージェントと GitHub の CLI のログイン状態（`StatusCard` / `GitHubStatusCard`。`.card-grid`）。
 - AI の既定: 新しいチャットのモデル・推論の深さ・権限モード・ファストモード（`AiDefaultsSettings`。選択肢の部品は `features/chat/options/AiOptions.tsx`）。
 - チャット: 完了したチャットの自動のアーカイブ・通信が切れて止まったときの自動の再開・✕ を押したときの扱い（`CHAT_CLOSE_ACTION`）。
+- メモ: メモの親フォルダ（`memos_dir`。`MemoSettings`。欄は `features/memo` の `MemoFolderField`）。
 - 通知: チャットの完了・失敗・回答待ちの知らせ方（Mac の通知・ntfy）。「テスト通知を送る」（届かなければ理由を出す）と「Mac の通知の設定を開く」。知らせる中身は `app/notifications.ts` の `useChatNotifications`（Kickoff を見ていてそのチャットを開いているときは知らせない。押すとそのチャットを開く。スマホのブラウザではブラウザの通知）。
 - ターミナル: 外部のターミナルとして開くアプリ（`useExternalTerminal`。`features/terminal/CLAUDE.md`）。ブラウザの拡張機能は `features/browser/BrowserExtensions`。
 - 診断（`DiagnosticsSettings`）: 重いときに、再起動せずその場で性能の記録を取る（10 秒。アプリのメニューの「ヘルプ → 性能の記録を取る」と同じ）。押すと設定を閉じ、記録の間も操作を続けられる。保存先と最近の記録（新しい順）を、場所・コピー・Finder で開くの行 `features/diagnostics/DiagnosticsPath` で出す。記録の様子は画面の右下の `DiagnosticsIndicator`（ダイアログにしない）。

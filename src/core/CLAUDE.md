@@ -13,6 +13,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `git/`: Git・GitHub（gh）・プロジェクトのフォルダの作成と取り込み・ワークツリー。→「Git」
 - `usage/`: Claude のプランの使用枠と、ほかのサービスの使用状況。→「使用状況」
 - `voice/`: 音声入力の文字起こし。→「音声入力」
+- `memos/`: プロジェクトのメモ（`memos.ts` の `MemoService`）。→「メモ」
 - `system/`: 外部コマンド・パス（→「外部コマンドとパス」）・ログインシェルの PATH（`shellEnv.ts` の `loadLoginShellPath`）・期限付きのキャッシュ（`ttlCache.ts`）・名前と保存先とポート（`appEnv.ts` の `APP_ENVS`。製品版 Kickoff = 4317、開発版 Kickoff Dev = 4318。同時に動かせ、開発中の変更で製品版のデータを壊さない）・開発版のデータの写し（`devData.ts` の `seedDevData`。開発の保存先がなければ製品版から一度だけ。DB は `VACUUM INTO`）。
 - `testing/`: テストからだけ使う補助。→「テスト」
 
@@ -35,7 +36,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## HTTP（http/）
 
-- ルートは `http/routes/<領域>.ts` に `xxxRoutes(app, deps)`（`deps` は `ServerDeps`）として書き、`http/server.ts` の `createApp` で登録する。登録は認証のミドルウェア（`/api/*`）と `onError` より後、SSE・知らない API の JSON の 404・画面の配信より前で、いまの順を崩さない。チャットの資源（一覧・作成・詳細・変更・既読・別のプロジェクトへの移動・削除・検索）は `chats.ts`、実行（送る・伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し）は `turns.ts`、送信待ちは `queue.ts`、回答待ちは `approvals.ts`、添付とほかのチャットの記録は `uploads.ts`、Git は `git.ts`（状態・差分・操作・履歴・PR）/ `files.ts`（ファイルの一覧・中身・検索・保存）/ `worktrees.ts`。
+- ルートは `http/routes/<領域>.ts` に `xxxRoutes(app, deps)`（`deps` は `ServerDeps`）として書き、`http/server.ts` の `createApp` で登録する。登録は認証のミドルウェア（`/api/*`）と `onError` より後、SSE・知らない API の JSON の 404・画面の配信より前で、いまの順を崩さない。チャットの資源（一覧・作成・詳細・変更・既読・別のプロジェクトへの移動・削除・検索）は `chats.ts`、実行（送る・伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し）は `turns.ts`、送信待ちは `queue.ts`、回答待ちは `approvals.ts`、添付とほかのチャットの記録は `uploads.ts`、Git は `git.ts`（状態・差分・操作・履歴・PR）/ `files.ts`（ファイルの一覧・中身・検索・保存）/ `worktrees.ts`、メモは `memos.ts`。
 - URL の `:id` は `http/lookups.ts` の `lookups(store)` が返すミドルウェアで引き当て、ハンドラーは `c.var` で受ける（`withProject` / `withChat` / `withGroup`。Git・ファイル・検索・/ のコマンドは、操作するフォルダも `c.var.workdir` に入れる `withWorkdir`）。番号でなければ 400（`idParam`）、なければ 404。ルートごとに引き当てと検証を書かない。ID で引くのは `requireProject`、ほかのプロジェクトのグループを断るのは `requireGroupOf`（400）。
 - 作業場所の指定（`?worktree=`・新しいチャットの `worktree_path`）は `http/workdir.ts` の `requireWorktree(repo, worktree)` で解決する（null = 本体 / このプロジェクトのワークツリーでなければ 400 / フォルダが消えていれば 404）。チャットの作業場所のフォルダは `chat/workdir.ts` の `workdirOf`。
 - 失敗は例外で伝える。ドメインのコード（`chat/`・`git/`・`voice/` なども）は `http/errors.ts` の `Invalid`（400）/ `NotFound`（404）/ `Conflict`（409）を投げ、`onError` が `errorResponse` で `{ error }` にする。zod の失敗は 400（`issues` 付き）、外部コマンドの `CommandError` はその文のまま 400、知らない失敗は 500（記録する）。外の SDK の失敗は `.catch(asInvalid)` で 400 にする。ルートで boolean を受けて 404 にしたり、例外を包み直したりしない。作業中にできない操作は `runner.requireIdle(chatId, "削除")` のように 409 にする。
@@ -71,9 +72,18 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - API は `http/routes/voice.ts`（`POST /api/transcribe`（multipart の `file` と `language`）→ `{ text }`、`GET /api/voice`、`POST /api/voice/models/:id/download`、`DELETE /api/voice/models/:id`、`PUT /api/voice/openai-key`）。OpenAI のキーは `secrets` の `openai_transcribe_key` に置く。
 - 文字起こしの処理・コマンドの探し方・ダウンロードの fetch は、テストで差し替える（`VoiceService` の `engines` / `findTools` / `fetch`）。
 
+## メモ（memos/）
+
+- プロジェクトの「メモ」タブのメモは、プロジェクトの外のフォルダの Markdown（DB に入れない。Finder・ほかのアプリでも開け、Kickoff を作り直しても残る）。画面の説明は `src/renderer/src/features/memo/CLAUDE.md`。
+- フォルダは `MemoService.dirOf(project)`: プロジェクトの `memo_path`（このプロジェクトだけ別の場所）があればそこ、なければ設定の `memos_dir`（null なら既定の `~/Documents/<保存先のフォルダ名> メモ`。`startCore` が決める。開発版は「Kickoff Dev メモ」）の下の `memo_folder`。`memo_folder` は初めて使ったときにプロジェクト名から決めて覚える（`@shared/memo/names` の `safeMemoName`。ほかのプロジェクトのフォルダ名とは `uniqueMemoName` で重ねない）。
+- パスはメモのフォルダからの相対で受け、`git/files.ts` の `assertInside` で外を断る。「.」で始まる名前（隠しファイル）は扱わない。中身の読み書きはエディタのファイルと同じ `readProjectFile` / `writeProjectFile`（保存は開いたときの指紋と比べて 409）。一覧は隠しファイル・リンクを除いて 5000 件まで。ゴミ箱へは `/usr/bin/trash`（テストでは差し替える）。
+- 変えたら SSE の `memos`（`project_id` と変えたメモ。ゴミ箱は null）を出す。Kickoff の外での変更は知らせない（画面がウィンドウに戻ったときなどに取り直す）。
+- チャットの文から作る（`fromChat`）: 新しいメモは `chatMemoName` の「<チャット名> チャットメモ<n>.md」（見出し・出どころの行 `memoSourceLine`・本文）、追記は区切り線を挟んで最後に足す。要約はプロジェクトのプロバイダーの `summarize`（対応していなければ 400）。
+- API は `http/routes/memos.ts`（`GET /api/memos/defaults`・`GET /api/projects/:id/memos`・`GET|PUT|DELETE /api/projects/:id/memo`・`POST /api/projects/:id/memos`（作る）・`/memos/move`・`/memos/from-chat`）。
+
 ## テスト
 
 - `npm test`（`node --import tsx --test`。`node:test` と `node:assert/strict`）。DB はメモリ（`new Store(":memory:")`）で、外のネットワーク・Claude Code は呼ばない。
-- API のルートを変えたら、その領域の `http/server.<領域>.test.ts` にテストを足す: 認証・本文の読み取り・`:id` の引き当て・SSE・停止・画面の配信 = `server.test.ts` / 設定・プロジェクト（固定・アーカイブ・タグ・色も）= `server.projects.test.ts` / チャット（一覧・作成・変更・移動・削除・記録）・グループ・添付・回答待ち・プロバイダー・使用枠・既定の推論の深さ・/ のコマンド・自動のアーカイブ = `server.chats.test.ts` / 作業中のチャット（未読・作業中の様子・裏の作業・圧縮・再試行・停止・止めずに伝える・報告の受け渡し）= `server.turns.test.ts` / 送信待ち = `server.queue.test.ts` / 止まったあとの再開 = `server.recovery.test.ts` / 分岐・巻き戻し・ファイルを戻す = `server.rewind.test.ts` / Git・ワークツリー = `server.git.test.ts` / サービスごとの使用状況 = `server.usage.test.ts` / 音声入力 = `server.voice.test.ts`。
+- API のルートを変えたら、その領域の `http/server.<領域>.test.ts` にテストを足す: 認証・本文の読み取り・`:id` の引き当て・SSE・停止・画面の配信 = `server.test.ts` / 設定・プロジェクト（固定・アーカイブ・タグ・色も）= `server.projects.test.ts` / チャット（一覧・作成・変更・移動・削除・記録）・グループ・添付・回答待ち・プロバイダー・使用枠・既定の推論の深さ・/ のコマンド・自動のアーカイブ = `server.chats.test.ts` / 作業中のチャット（未読・作業中の様子・裏の作業・圧縮・再試行・停止・止めずに伝える・報告の受け渡し）= `server.turns.test.ts` / 送信待ち = `server.queue.test.ts` / 止まったあとの再開 = `server.recovery.test.ts` / 分岐・巻き戻し・ファイルを戻す = `server.rewind.test.ts` / Git・ワークツリー = `server.git.test.ts` / サービスごとの使用状況 = `server.usage.test.ts` / 音声入力 = `server.voice.test.ts` / メモ = `server.memos.test.ts`（ゴミ箱は `memoFake` で、本物のゴミ箱に入れない）。
 - 準備は `testing/` の補助を使い、テストごとに書き直さない: API は `testServer.ts` の `setup()`（偽のプロバイダーで組み立てたアプリと、トークン付きで呼ぶ `call(method, url, body)`・`store`・`runner`・`project`・`provider` など。ほかのサービス・音声入力・つながったかの確かめも偽物）。`Runner` を直に試すなら `testCore.ts` の `setupCore(provider)` と、台本どおりに振る舞う `fakeProvider.ts` の `ScriptedProvider` / `gatedScript`。条件を待つのは `until(cond)`（2 秒で失敗）。再開の確かめ方・時計・書き直しの持ち時間は `Runner` に渡す値（`reconnect` / `usageLimit` / `editHoldTtlMs`）で差し替える。
 - 一時フォルダは `testing/tempDir.ts` の `tempDir()`（テストのあとに消える。`real` でリンクを解決したパス）、Git の作業場所は `testing/gitRepo.ts` の `gitRepo({ files })`（main ブランチと最初のコミット。Git の名前を設定していない環境でもコミットできる）。チャット・記録・プロジェクト・グループのデータは `@shared/testing/factories`（`makeChat` / `makeEvent` など）。

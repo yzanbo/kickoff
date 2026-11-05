@@ -4,6 +4,7 @@ import { GroupBoard } from "@/features/board/GroupBoard";
 import { KanbanBoard } from "@/features/board/KanbanBoard";
 import { EditorTab } from "@/features/editor/EditorTab";
 import { HistoryTab } from "@/features/history/HistoryTab";
+import { MemoTab } from "@/features/memo/MemoTab";
 import { useGitStatus } from "@/features/editor/useGitStatus";
 import { ProjectEditDialog } from "@/features/project/settings/ProjectEditDialog";
 import { ProjectHeader } from "./ProjectHeader";
@@ -26,9 +27,11 @@ interface ProjectPageProps {
   highlightGroup?: number;
   /** エディタタブで開くファイル（チャットの返答のファイルのチップから） */
   openFile?: FileTarget;
+  /** メモのタブで開くメモ（チャットの「メモに追加」から） */
+  openMemo?: string;
 }
 
-/** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・履歴（コミット）をタブで */
+/** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・履歴（コミット）・メモをタブで */
 export function ProjectPage(props: ProjectPageProps) {
   // 一覧が届いたのに見つからないプロジェクト（消した・URL の番号が違う）は、前の画面を出さずに案内だけを出す
   // （中身の部品を出さないので、そのプロジェクトのグループ・Git の状態を読みに行かない）。プロジェクトが 1 つもなければ始め方の案内
@@ -38,7 +41,7 @@ export function ProjectPage(props: ProjectPageProps) {
   return <ProjectPageBody {...props} />;
 }
 
-function ProjectPageBody({ id, tab, focus, highlightGroup, openFile }: ProjectPageProps) {
+function ProjectPageBody({ id, tab, focus, highlightGroup, openFile, openMemo }: ProjectPageProps) {
   const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
   // ボードの列の分け方は、最後に見た方を覚える（サイドバーのグループから来たときも、次にボードのタブを押すとグループの列で開く）
@@ -99,6 +102,8 @@ function ProjectPageBody({ id, tab, focus, highlightGroup, openFile }: ProjectPa
           <HistoryTab key={worktree ?? ""} projectId={project.id} git={git} worktree={worktree} onWorktreeChange={setWorktree} />
         </WorktreeContext.Provider>
       )}
+      {/* メモ（プロジェクトの外のフォルダ。作業場所には関係しない）。別のプロジェクトを読み込んでいる途中は、URL で来たメモを渡さない */}
+      {tab === "memos" && <MemoTab key={project.id} projectId={project.id} openMemo={stale ? undefined : openMemo} />}
       </div>
       </div>
       {editing && <ProjectEditDialog project={project} onClose={() => setEditing(false)} />}

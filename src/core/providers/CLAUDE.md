@@ -4,7 +4,7 @@
 
 ## 抽象（types.ts）
 
-- `AgentProvider`: `id`・`label`・`implemented`（false なら画面は「未対応」と出し、実行を受け付けない）・CLI の状態 `status()`・1 回の実行 `run(params, callbacks, signal)`。任意の機能（`usage` / `models` / `commands` / `title` / `fork` / `rewindFiles`）は対応しなければ持たない（ないときコアは、一覧なら空・名前は付けない・分岐と巻き戻しは 400 にする）。
+- `AgentProvider`: `id`・`label`・`implemented`（false なら画面は「未対応」と出し、実行を受け付けない）・CLI の状態 `status()`・1 回の実行 `run(params, callbacks, signal)`。任意の機能（`usage` / `models` / `commands` / `title` / `summarize` / `fork` / `rewindFiles`）は対応しなければ持たない（ないときコアは、一覧なら空・名前は付けない・分岐と巻き戻しは 400 にする）。
 - 渡すもの `ProviderTurnParams`: 作業場所・指示と、その ID `promptId`（記録の `message_uuid`）・既定のシステムプロンプトに足す文 `systemPrompt`・許可 `policy`（`ChatPolicy`）・続きのセッション `resumeSessionId`・選択（`model` / `effort` / `permissionMode` / `fastMode`。null は指定しない）・読めるフォルダ `additionalDirectories`・読むだけのパス `readOnlyPaths`。
 - 知らせ `ProviderCallbacks`: `emit`（記録になる形。`user` / `approval` / `approval_resolved` / `result` はコアが作るので含めない）・途中経過 `stream` / `subagentProgress` / `commandOutput`（実行中のコマンドの出力の終わりの部分。保存しない）・承認 `requestApproval`（回答まで待つ）・作業中の様子 `retry` / `background` / `compacting`・圧縮の失敗 `compactFailed`（理由を渡すだけで、お知らせに残すかはコアが決める）・作業中の操作 `control`（`TurnControl` の `tell` = 止めずに発言を足す / `stopTask` = 裏の作業を 1 つ止める。終わったら null）。
 - 結果 `ProviderTurnResult`: 状態（`completed` / `failed` / `cancelled`）・セッション・費用・回数・コンテキストの大きさと上限・メインの会話の最後のメッセージの ID `lastMessageId`（分岐の起点）・通信の切断か `network`・使用枠の上限 `usageLimit`（枠が戻る時刻）。失敗は投げずに結果で返し、止められたら `cancelled`。
@@ -14,7 +14,7 @@
 
 役割ごとにファイルを分ける:
 
-- `provider.ts` の `ClaudeProvider`: 状態（`claude auth status`。プランは種類より表示名 `readPlanDisplayName`）・使用枠・モデル・/ のコマンド・実行・分岐（`forkSession`。作業フォルダが消えていれば、すべてのプロジェクトから探す）・ファイルを戻す・名前を付ける（haiku に 1 回だけ）。
+- `provider.ts` の `ClaudeProvider`: 状態（`claude auth status`。プランは種類より表示名 `readPlanDisplayName`）・使用枠・モデル・/ のコマンド・実行・分岐（`forkSession`。作業フォルダが消えていれば、すべてのプロジェクトから探す）・ファイルを戻す・名前を付ける・メモにするため要約する（どちらも `askOnce` で haiku に 1 回だけ。空の一時フォルダで動かす。Kickoff を起動したフォルダで動かすと、そこの CLAUDE.md・自動のメモリーを読み込んで答えに混ざる）。
 - `env.ts`: 同梱の Claude Code の実行ファイル（`resolveClaudeExecutable`。製品版では `app.asar.unpacked` の中）と、子プロセスの環境変数（`agentEnv`。プランで動かすため API キーの環境変数は渡さない。`KICKOFF_ALLOW_API_KEY=1` のときだけ許す）。
 - `policy.ts`: 断るフック `turnHooks`（PreToolUse。Kickoff 自身を守る判定はいつも、参照資料への書き込みの判定は参照資料があるときだけ。判定そのものは `chat/guard/`）と、`ChatPolicy` を `allowedTools` にする `toAllowedTools`（Read・Glob・Grep・TodoWrite・Web と、許すコマンドの `Bash(<コマンド>:*)`。ファイルの編集は権限モードに任せる）。
 - `messages.ts` の `emitSdkMessage`: SDK のメッセージを記録の形にする（思考の時間・サブエージェントの開始と終了・圧縮の `status` / `compact_boundary`・圧縮の失敗の理由（`compactFailed` に渡す）。裏のコマンドなど、サブエージェントでないタスクは除く）。

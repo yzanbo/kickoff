@@ -4,6 +4,7 @@ import { useServerConnection } from "@/api/useServerConnection";
 import { useApprovals } from "@/stores/approvals";
 import { useProjects } from "@/stores/projects";
 import { HoverTip } from "@/ui/HoverTip";
+import { MemoProgress } from "@/features/memo/MemoProgress";
 import { DialogHost } from "@/ui/dialogs";
 import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { setProjectHues } from "@/features/project/projectColor";
@@ -36,6 +37,7 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
             {route.kind === "subagent" ? <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} /> : <PopoutFiles route={route} />}
           </div>
           <HoverTip />
+          <MemoProgress />
           <DialogHost />
         </ChatStatesContext.Provider>
       </RouteContext.Provider>
