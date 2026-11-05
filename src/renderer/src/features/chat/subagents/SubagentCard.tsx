@@ -10,6 +10,7 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { useChatPaneState, useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 import { SubagentActions } from "./SubagentActions";
+import { SubagentTellBox } from "./SubagentTell";
 import { SubagentWindow } from "./SubagentWindow";
 import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
@@ -49,6 +50,8 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
   const pane = useOptionalChatPane();
   const key = call.use.data.id;
   const open = useChatPaneState((s) => s.openSubagents.has(key)) ?? false;
+  // 「伝える」の入力欄を開いているか（カードのいちばん下に開く）
+  const telling = useChatPaneState((s) => s.tellOpen.has(key)) ?? false;
   const entry = view?.tree.byKey.get(key);
   const running = entry?.status === "running";
   // 実行中は「最後の動き」の表示を進める
@@ -143,8 +146,9 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
             <button
               type="button"
               className="link-button subagent-tell"
-              title="このサブエージェントに追加の指示を伝える（チャット欄の宛先をこのサブエージェントにし、メインのエージェントから SendMessage で渡します）"
-              onClick={() => pane.tellSubagent(key)}
+              title="このサブエージェントに追加の指示を伝える（カードの下に入力欄を開きます。メインのエージェントから SendMessage で渡します）"
+              aria-expanded={telling}
+              onClick={() => (telling ? pane.closeTell(key) : pane.tellSubagent(key))}
             >
               <Reply size={12} aria-hidden />
               伝える
@@ -157,6 +161,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
         <SubagentChildRows entry={entry} view={view} onOpen={(k) => pane.openSubagent(k)} onMore={() => pane.toggleSubagent(key, true)} />
       )}
       {open && <SubagentCardBody entry={entry} view={view} renderItems={renderItems} windowed={depth === 0} />}
+      {pane && telling && <SubagentTellBox entry={entry} view={view} onClose={() => pane.closeTell(key)} />}
     </div>
   );
 }

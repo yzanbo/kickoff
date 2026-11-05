@@ -113,6 +113,8 @@ export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record()
 // チャット
 /** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
 export const chatDraft = defineSettingFamily("kickoff:chat-draft:", text(), { ids: true });
+/** サブエージェントに伝える入力欄の書きかけの文（キーは「チャット:サブエージェントの行のキー」。カードの「伝える」と右の欄の画面で共通。送った・空にしたら消す） */
+export const subagentTellDraft = defineSettingFamily("kickoff:subagent-tell-draft:", text(), { ids: true });
 /**
  * サブエージェントを押したときに開く場所（inline = メインの流れの中のカードを開く / side = チャットの画面の右の欄にサブエージェントの画面を開く。
  * カードの見出し・動きの行・ピルの一覧・裏の作業の一覧で共通。もう一方はカードのボタン・右クリックで選べる。設定の「表示」）

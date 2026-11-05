@@ -1,0 +1,45 @@
+/* ==== 流れの中のサブエージェントのカードの「伝える」の入力欄（SubagentTellBox。カードのいちばん下に開く） ==== */
+
+.subagent-tell-box {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 2px;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* 見出し: 「調査」に伝える・メインから伝えること・× */
+.subagent-tell-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.subagent-tell-head > svg {
+  flex: none;
+  color: var(--accent-fg);
+}
+
+/* 狭いときは、名前より先に添え書き（メインから伝えること）を省く */
+.subagent-tell-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.subagent-tell-head > .muted {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ID が届いていなくて送れないときの案内 */
+.subagent-tell-box > p {
+  margin: 0;
+}

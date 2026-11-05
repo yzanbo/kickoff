@@ -130,7 +130,7 @@ export function useChatView(
       fullSubagents: new Set(),
       showing: "conversation",
       activityFilter: { kind: "all" },
-      relayTarget: null,
+      tellOpen: new Set(),
     });
     const patch = (next: Partial<ChatPaneState>) => state.set({ ...state.get(), ...next });
     /** 描いたあとに、その記録の要素へ移る（開いたカードの中身が描かれるまで、数フレーム待つ） */
@@ -209,12 +209,15 @@ export function useChatView(
         patch({ fullSubagents: next });
       },
       tellSubagent: (key) => {
-        const entry = now().tree.byKey.get(key);
-        if (!entry?.agentId) return;
-        patch({ relayTarget: { key, agentId: entry.agentId, description: entry.description } });
-        composer.current?.focus();
+        if (!now().tree.byKey.get(key)?.agentId) return;
+        // 書いている間に、カードの入力欄が流れの上へ流れていかないように
+        scroll.release();
+        patch({ tellOpen: new Set([...state.get().tellOpen, key]) });
       },
-      clearRelay: () => patch({ relayTarget: null }),
+      closeTell: (key) => {
+        const next = new Set(state.get().tellOpen);
+        if (next.delete(key)) patch({ tellOpen: next });
+      },
       rewind: async (eventId, text) => {
         const choice = await confirmRewindSend(chatId, eventId);
         if (!choice) return false;
