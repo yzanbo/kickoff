@@ -78,9 +78,10 @@
   transform: none;
 }
 
-/* タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域（レイアウトの開閉はサイドバー・左上に置くので、右端は空けない） */
+/* タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける */
 .board-panel.as-sidebar .panel-tabs:not(:where(.agent-panel *)) {
   min-height: 40px;
+  padding-right: 100px;
   -webkit-app-region: drag;
 }
 
@@ -90,7 +91,8 @@
 }
 
 /*
- * ペインを分けたとき: タブの列の高さは信号機ボタンの行にそろえ、ドラッグ領域は上の段のペインだけ
+ * ペインを分けたとき: タブの列の高さは信号機ボタンの行にそろえ、ドラッグ領域は上の段のペインだけ。
+ * 右上のレイアウトの開閉のために空けるのは、右上のペインだけ
  */
 .board-panel.as-sidebar .split-view:not(:where(.agent-panel *)) {
   --split-tabs-h: 40px;
@@ -104,8 +106,12 @@
   -webkit-app-region: no-drag;
 }
 
+.board-panel.as-sidebar .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
+  padding-right: 100px;
+}
+
 /*
- * 右端のチャット欄は幅が狭いので、タブの列を 2 段に分ける: 上の段（信号機ボタンと同じ行）にタブ、
+ * 右端のチャット欄は幅が狭いので、タブの列を 2 段に分ける: 上の段（信号機ボタン・右上のレイアウトの開閉と同じ行）にタブ、
  * 下の段にタブの列の道具（まとめ方・表示するタブ・アーカイブ・新しいタブ・ペインの分割）。1 段に並べるとタブの入る幅がほとんど残らなかった。
  * 並びは DOM を変えず order で入れ替え、間の改行は幅いっぱいの ::before で入れる。フッター（.in-footer）は横に広いので 1 段のまま
  */
@@ -124,7 +130,7 @@
   height: 0;
 }
 
-/* 上の段: 「チャット」の札とタブの並び（レイアウトの開閉はサイドバーの側に置くので、右端まで使う） */
+/* 上の段: 「チャット」の札とタブの並び。右端は右上のレイアウトの開閉のために空ける（右上のペインだけ。下の段は欄の端まで使う） */
 .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-cluster.all,
 .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
   order: -1;
@@ -133,6 +139,11 @@
 .board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
   flex: 1 1 0;
   min-height: 30px;
+}
+
+.board-panel.as-sidebar:not(.in-footer) > .panel-tabs > .panel-tab-strip,
+.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tab-strip:not(:where(.agent-panel *)) {
+  margin-right: calc(100px - var(--gutter));
 }
 
 /* 下の段: 道具（左から、タブの列の道具・新しいタブ。ペインの分割は右端） */

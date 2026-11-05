@@ -86,8 +86,6 @@ export const BOARD_ARCHIVE_FILTER = defineSetting("kickoff:show-archived", choic
 export const GROUP_BOARD_ARCHIVE_FILTER = defineSetting("kickoff:group-show-archived", choice(BOARD_ARCHIVE_FILTER.choices, "all"));
 /** ボードツールバーの置き方（top = 常時表示 / beside = パネル優先。設定の「表示」） */
 export const BOARD_HEADER_LAYOUT = defineSetting("kickoff:board-header-layout", choice(["top", "beside"], "top"));
-/** 画面の見出しの行（プロジェクト名・設定・フォルダ・状態ごとの数。プロジェクトの画面と全プロジェクトの画面）を隠すか（右上のレイアウトの開閉の「見出し」） */
-export const PAGE_TITLE_HIDDEN = defineSetting("kickoff:page-title-hidden", flag());
 /** 下の帯（フッター）の出し方（show = 表示 / hover = 下端に寄せたときだけ表示 / hide = 非表示。features/footer/footerMode.ts） */
 export const FOOTER_MODE = defineSetting("kickoff:footer-mode", choice(["show", "hover", "hide"], "show"));
 /** プロジェクトの画面のタブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */

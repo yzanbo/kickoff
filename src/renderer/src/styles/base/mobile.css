@@ -10,7 +10,7 @@
     display: none;
   }
 
-  .layout-toggles.floating {
+  .titlebar-toggle.floating {
     top: max(8px, env(safe-area-inset-top));
     left: 8px;
   }
