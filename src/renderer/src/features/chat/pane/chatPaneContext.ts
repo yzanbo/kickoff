@@ -63,13 +63,28 @@ export interface ChatPaneActions {
    * eventId を渡すと、カードの中のその記録（発言・ツールのまとまり）へ移る。動きを見せていれば会話に戻す
    */
   revealSubagent: (key: string, eventId?: number) => void;
+  /**
+   * サブエージェントを、設定の開き方（SUBAGENT_OPEN_IN）で開く: 流れの中 = そのカードへ移って開く（revealSubagent）/
+   * 右の欄 = チャットの画面の右の欄にそのサブエージェントの画面を開く（openSubagentSide）。eventId を渡すと、その中のその記録へ移る
+   */
+  openSubagent: (key: string, eventId?: number) => void;
+  /**
+   * チャットの画面の右の欄（サブエージェントの欄）に、そのサブエージェントの画面を開く（開いていればそのタブを表示）。
+   * eventId を渡すと、その画面の中のその記録へ移る。右の欄を置けない画面（パネルの外）では、流れの中のカードへ移る
+   */
+  openSubagentSide: (key: string, eventId?: number) => void;
+  /** 右の欄を置ける画面か（パネルの中のチャット。外では「右の欄で開く」を出さない） */
+  readonly canOpenSide: boolean;
   /** サブエージェントのカードを開く・閉じる（open を省けば切り替え） */
   toggleSubagent: (key: string, open?: boolean) => void;
   /** カードの中身の高さの制限を外す・戻す（「全体を表示」） */
   toggleSubagentFull: (key: string) => void;
   /** 会話・動きを切り替える（動きは filter を渡せば、その絞り込みで） */
   show: (showing: ChatShowing, filter?: ActivityFilter) => void;
-  /** 会話に戻って、その記録へ移って強調する（agent を渡せば、そのサブエージェントのカードを開いてその中へ） */
+  /**
+   * 会話に戻って、その記録へ移って強調する（agent を渡せば、そのサブエージェントを設定の開き方で開いてその中へ: 流れの中 = カードを開いてその中へ /
+   * 右の欄 = 右の欄のその画面の中へ。右の欄のときは、会話に戻さず動きを見せたまま）
+   */
   revealInConversation: (eventId: number | undefined, agent: string | null) => void;
   /** チャット欄の宛先をそのサブエージェントにする（送るとメインのエージェントから SendMessage で伝える）。ピントもチャット欄へ */
   tellSubagent: (key: string) => void;

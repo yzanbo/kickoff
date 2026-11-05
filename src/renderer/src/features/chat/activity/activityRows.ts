@@ -34,6 +34,17 @@ export interface ActivityRow {
   failed?: boolean;
 }
 
+/**
+ * 動きの行が指すサブエージェントと、その中の記録（押したときに開くもの）。起動の行は起動した子（その画面・カードの初めから）、
+ * 終わり・いまの行はそのサブエージェント、サブエージェントの中の行はその記録（eventId を渡せば、まとめたツールのうちのその 1 回）。
+ * メインの行は null（会話のその場所へ移るだけ）
+ */
+export function agentTargetOf(row: ActivityRow, eventId = row.eventId): { key: string; eventId?: number } | null {
+  if (row.kind === "launch" && row.child) return { key: row.child };
+  if ((row.kind === "end" || row.kind === "now") && row.agent !== null) return { key: row.agent };
+  return row.agent === null ? null : { key: row.agent, eventId };
+}
+
 /** 絞り込み（すべて・メインだけ・そのサブエージェントと配下） */
 export type ActivityFilter = { kind: "all" } | { kind: "main" } | { kind: "agent"; key: string };
 

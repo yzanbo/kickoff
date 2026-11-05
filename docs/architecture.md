@@ -29,7 +29,8 @@
 | チャットの選択（モデル・深さ・権限・ファスト） | `ChatOptions`（`model` / `effort` / `permission_mode` / `fast_mode`） | `RunOptions`・`ProjectDefaults`（`permission` / `fastMode`）・設定（`claudeModel` / `defaultPermission`）・`ProviderRunParams`（`permissionMode`）の 4 通り |
 | 権限モード | `PermissionMode` | `PermissionChoice` |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
-| タブの入れ物（右のパネル・チャット欄・下のパネル） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
+| タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
+| 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインとのつながりが見えないのでやめた） |
 | 会話 / 動き（チャットの画面の見え方。動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 
 ## 2. 名前の決まり
@@ -251,7 +252,7 @@ src/
 - 止まったあとの再開（通信の切断・使用枠の上限）は `core/chat/recovery/` の 1 つの仕組み（流れ `recovery.ts`・理由ごとの違い `rules.ts`）。AI へ送る定型文は `shared/chat/prompts.ts`。
 - HTTP の失敗は `core/http/errors.ts` の `Invalid` / `NotFound` / `Conflict` を投げ、`onError` で応答にする。`:id` の引き当ては `core/http/lookups.ts` のミドルウェア。変えたら資源を返し、返すものがなければ 204。
 - 画面のデータは `stores/` の `createStore` / `createKeyedStore`（チャット・グループ・ワークツリー・プロジェクト・回答待ち・設定・使用枠・音声・プロバイダー）。表示の設定は `lib/storageKeys.ts` の `defineSetting` と `useSetting`（宣言していないキーは起動したときに消し、DB の `database_id` が変わったら ID 入りのキーを捨てる）。
-- 汎用の部品: `ui/Popover`、自分で測って画面に収める `PopupMenu` と `useContextMenu`、`hooks/useDragSize`、`hooks/useFold` と `ui/FoldHead`、`hooks/useAction`、`hooks/useMultiSelect`。チャットのまとめ方は `features/chatList/` の `bucketChats`。パネルの欄の違いは `features/panel/surfaces.ts` の `SURFACES`、タブの種類の違いは `tabs/tabKinds.ts` の `TAB_KINDS`、状態の変え方は `state/panelState.ts` の reducer。チャットの画面の操作は `features/chat/pane/chatPaneContext.ts` の 1 つの context。
+- 汎用の部品: `ui/Popover`、自分で測って画面に収める `PopupMenu` と `useContextMenu`、`hooks/useDragSize`（横に並べた欄の幅と覆うのは `hooks/useCoverableWidth`）、`hooks/useFold` と `ui/FoldHead`、`hooks/useAction`、`hooks/useMultiSelect`。チャットのまとめ方は `features/chatList/` の `bucketChats`。パネルの欄の違いは `features/panel/surfaces.ts` の `SURFACES`、タブの種類の違いは `tabs/tabKinds.ts` の `TAB_KINDS`、状態の変え方は `state/panelState.ts` の reducer。チャットの画面の操作は `features/chat/pane/chatPaneContext.ts` の 1 つの context。
 - IPC は `shared/ipc/contract.ts` の表 `NATIVE_API` 1 つから、preload の `window.kickoff`・画面の型・main の型付きの登録（送り手と引数の確かめ）を作る。
 - テストのデータは `shared/testing/factories.ts`、一時フォルダ・Git の作業場所・コアの準備は `core/testing/`。
 - CLAUDE.md はルートを決まりだけにし、説明は各フォルダの `CLAUDE.md` に分けた。

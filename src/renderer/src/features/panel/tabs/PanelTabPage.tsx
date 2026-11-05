@@ -2,6 +2,7 @@ import { lazy, Suspense, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BrowserPane } from "@/features/browser/BrowserPane";
 import { ChatPane } from "@/features/chat/pane/ChatPane";
+import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { NewChatPane } from "./NewChatPane";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
@@ -50,6 +51,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       onDraftChange={(text) => panel.patchTab(t.key, { kind: "new", fields: { draftText: text || undefined } })}
     />
   ),
+  // チャットの画面の右の欄（サブエージェントの欄）だけに開く。中身はそのチャットの画面の中にあり、チャットの記録・操作をそのまま使う
+  subagent: ({ tab: t }) => <SubagentScreen agentKey={t.agentKey} />,
   terminal: ({ tab: t, panel, visible, focused }) => (
     <Suspense fallback={<div className="page muted">読み込み中…</div>}>
       <TerminalPane termKey={t.key} cwd={t.cwd} visible={visible} focused={visible && focused} onOpenUrl={(url) => panel.openBrowser(url)} />

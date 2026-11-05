@@ -14,6 +14,7 @@ import type { OpenWithKind } from "@/features/openWith/useOpenWithMenu";
 import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
 import { specOf } from "./tabKinds";
+import { SURFACES } from "@/features/panel/surfaces";
 
 /**
  * パネルの 1 つのペインのタブの列。左にタブの列の道具（controls。左上のペインだけ）、タブ、
@@ -159,7 +160,8 @@ export function PaneTabBar({
           })
         : display.map(tab)}
       </div>
-      {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右） */}
+      {/* 新しいタブ: チャット・ブラウザ・ターミナルを 1 回で開く（タブのすぐ右。出す種類が決まっている欄（サブエージェントの欄）では出さない） */}
+      {!SURFACES[panel.surface].fixedKinds && (
       <PanelTabAdds
         panel={panel}
         pane={pane}
@@ -170,6 +172,7 @@ export function PaneTabBar({
         onOpenWith={onOpenWith}
         openWithShown={openWithShown}
       />
+      )}
       {/* ペインを分ける・閉じる（右端） */}
       <span className="panel-bar-buttons panel-pane-tools">
         <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />

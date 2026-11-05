@@ -64,7 +64,11 @@
   margin: 0;
 }
 
-/* 中身はボードの右のパネルと同じもの。欄いっぱいに広げ、浮いたパネルの見た目（枠・影・動き）はなくす */
+/*
+ * 中身はボードの右のパネルと同じもの。欄いっぱいに広げ、浮いたパネルの見た目（枠・影・動き）はなくす。
+ * 下のタブの列の規則は、チャットのタブの中に入れ子で置く右の欄（.agent-panel。サブエージェントの欄）のタブの列には効かせない
+ * （:not(:where(.agent-panel *)) で外す。:where なので詳細度は変わらない。効かせると、内側のタブの列までウィンドウのドラッグ領域・2 段になる）
+ */
 .board-panel.as-sidebar {
   flex: 1;
   border: none;
@@ -75,7 +79,7 @@
 }
 
 /* タブの列は信号機ボタンと同じ高さの、ウィンドウのドラッグ領域。右端は右上のレイアウトの開閉のために空ける */
-.board-panel.as-sidebar .panel-tabs {
+.board-panel.as-sidebar .panel-tabs:not(:where(.agent-panel *)) {
   min-height: 40px;
   padding-right: 100px;
   -webkit-app-region: drag;
@@ -90,19 +94,19 @@
  * ペインを分けたとき: タブの列の高さは信号機ボタンの行にそろえ、ドラッグ領域は上の段のペインだけ。
  * 右上のレイアウトの開閉のために空けるのは、右上のペインだけ
  */
-.board-panel.as-sidebar .split-view {
+.board-panel.as-sidebar .split-view:not(:where(.agent-panel *)) {
   --split-tabs-h: 40px;
 }
 
-.board-panel.as-sidebar .split-pane .panel-tabs {
+.board-panel.as-sidebar .split-pane .panel-tabs:not(:where(.agent-panel *)) {
   padding-right: var(--gutter);
 }
 
-.board-panel.as-sidebar .split-pane:not(.top-row) .panel-tabs {
+.board-panel.as-sidebar .split-pane:not(.top-row) .panel-tabs:not(:where(.agent-panel *)) {
   -webkit-app-region: no-drag;
 }
 
-.board-panel.as-sidebar .split-pane.top-right .panel-tabs {
+.board-panel.as-sidebar .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
   padding-right: 100px;
 }
 
@@ -111,7 +115,7 @@
  * 下の段にタブの列の道具（まとめ方・表示するタブ・アーカイブ・新しいタブ・ペインの分割）。1 段に並べるとタブの入る幅がほとんど残らなかった。
  * 並びは DOM を変えず order で入れ替え、間の改行は幅いっぱいの ::before で入れる。フッター（.in-footer）は横に広いので 1 段のまま
  */
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs {
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) {
   flex-wrap: wrap;
   align-content: flex-start;
   row-gap: 4px;
@@ -119,7 +123,7 @@
   padding-bottom: 4px;
 }
 
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs::before {
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *))::before {
   content: "";
   order: 0;
   flex-basis: 100%;
@@ -127,32 +131,32 @@
 }
 
 /* 上の段: 「チャット」の札とタブの並び。右端は右上のレイアウトの開閉のために空ける（右上のペインだけ。下の段は欄の端まで使う） */
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs > .panel-tab-cluster.all,
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs > .panel-tab-strip {
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-cluster.all,
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
   order: -1;
 }
 
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs > .panel-tab-strip {
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > .panel-tab-strip {
   flex: 1 1 0;
   min-height: 30px;
 }
 
 .board-panel.as-sidebar:not(.in-footer) > .panel-tabs > .panel-tab-strip,
-.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tab-strip {
+.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tab-strip:not(:where(.agent-panel *)) {
   margin-right: calc(100px - var(--gutter));
 }
 
 /* 下の段: 道具（左から、タブの列の道具・新しいタブ。ペインの分割は右端） */
-.board-panel.as-sidebar:not(.in-footer) .panel-tabs > :is(.panel-controls, .panel-tab-adds, .panel-pane-tools) {
+.board-panel.as-sidebar:not(.in-footer) .panel-tabs:not(:where(.agent-panel *)) > :is(.panel-controls, .panel-tab-adds, .panel-pane-tools) {
   order: 1;
 }
 
-.board-panel.as-sidebar:not(.in-footer) .split-view {
+.board-panel.as-sidebar:not(.in-footer) .split-view:not(:where(.agent-panel *)) {
   --split-tabs-h: 77px;
 }
 
-.board-panel.as-sidebar:not(.in-footer) .split-pane .panel-tabs,
-.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tabs {
+.board-panel.as-sidebar:not(.in-footer) .split-pane .panel-tabs:not(:where(.agent-panel *)),
+.board-panel.as-sidebar:not(.in-footer) .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
   padding-right: var(--gutter);
 }
 

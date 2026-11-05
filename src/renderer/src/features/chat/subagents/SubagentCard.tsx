@@ -1,28 +1,21 @@
-import { ChevronRight, GitBranch, Reply } from "lucide-react";
-import { memo, useMemo, type KeyboardEvent, type ReactNode } from "react";
-import type { ChatEvent } from "@shared/types";
-import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
-import { relayedText } from "@shared/chat/prompts";
+import { ChevronRight, ChevronsUpDown, GitBranch, PanelRight, Reply } from "lucide-react";
+import { memo, type KeyboardEvent } from "react";
+import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/lib/cx";
-import { formatTokens } from "@/lib/format";
-import { formatElapsed, formatFullStamp, formatRunTime, formatStampRange, formatStampRangeWithRunTime } from "@/lib/time";
 import { useTicker } from "@/hooks/useTicker";
+import { useSetting } from "@/hooks/useSetting";
+import { SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { useShownInAgentPanel } from "@/features/panel/agents/agentTabs";
 import { ClaudeMark } from "@/ui/ClaudeMark";
-import { Markdown } from "@/ui/markdown/Markdown";
 import { useChatPaneState, useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
-import { activityOf, activityText } from "@/features/chat/status/stall";
-import { Working } from "@/features/chat/status/Working";
-import { groupEvents, type TimelineItem, type ToolCall } from "@/features/chat/timeline/timelineItems";
-import { describeTool } from "@/features/chat/tools/toolDescribe";
+import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentWindow } from "./SubagentWindow";
 import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 import { useSubagentsView, type SubagentsView } from "./subagentsContext";
-import { childrenOf, latestActivity, pathOf, scopeOf } from "./subagentTree";
-
-/** カードの中身の流れを描く（TimelineItems。流れの部品をここから読むと輪になるので、描く側から渡す） */
-export type RenderItems = (items: TimelineItem[], active: boolean) => ReactNode;
+import { childrenOf, pathOf } from "./subagentTree";
+import { NowLine, SubagentPrompt, SubagentReport, SubagentSteps, SubagentTime, Summary, useSubagentItems, type RenderItems } from "./subagentParts";
 
 /** 字下げをやめる深さ（これより深い入れ子は字下げせず、見出しに外側からの道筋を添える） */
 const FLAT_DEPTH = 3;
@@ -36,7 +29,9 @@ interface CardProps {
 /**
  * 流れの中のサブエージェントのカード（Agent / Task の呼び出し 1 つ）。閉じた状態でも、状態・名前・開始〜終了（実行中は開始〜最後の動き）・
  * いまの動き（中で起動したサブエージェントのものも）・操作を出す。開くと、そのサブエージェントの流れ（依頼 → 発言・ツール（時刻付き）→ 報告）を
- * 字下げして出し、中で起動したサブエージェントも同じカードとして入れ子で出す。開閉はチャットの画面の状態（ピルから移ったときも開く）
+ * 字下げして出し、中で起動したサブエージェントも同じカードとして入れ子で出す。開閉はチャットの画面の状態（ピルから移ったときも開く）。
+ * 見出しを押したときの開き方は設定（SUBAGENT_OPEN_IN）で、流れの中で開く（今まで通り）か、チャットの画面の右の欄に開く。
+ * もう一方は操作の「右の欄で開く」/「流れの中で開く」でいつでも選べる。右の欄で表示しているカードには「右の欄で表示中」と添える
  */
 function SubagentCardView({ call, rel, renderItems }: CardProps) {
   const view = useSubagentsView();
@@ -47,11 +42,15 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
   const running = entry?.status === "running";
   // 実行中は「最後の動き」の表示を進める
   useTicker(running ? 15_000 : 3_600_000);
+  // 見出しを押したときに右の欄で開くか（設定。右の欄を置けない画面では、いつも流れの中）
+  const [openIn] = useSetting(SUBAGENT_OPEN_IN);
+  const sideFirst = openIn === "side" && Boolean(pane?.canOpenSide);
+  const inSide = useShownInAgentPanel(view?.chatId ?? 0, key);
   if (!view || !entry) return <PlainCard call={call} />;
 
   const path = pathOf(view.tree, key);
   const depth = path.length - 1;
-  const toggle = () => pane?.toggleSubagent(key);
+  const toggle = () => (sideFirst ? pane?.openSubagentSide(key) : pane?.toggleSubagent(key));
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();
@@ -86,13 +85,37 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
               {subagentStatusLabel(entry)}
             </span>
           )}
+          {inSide && <span className="subagent-card-side">右の欄で表示中</span>}
         </span>
         <SubagentTime entry={entry} />
       </div>
       <div className="subagent-card-now">
         {running ? <NowLine entry={entry} view={view} rel={rel} /> : <Summary entry={entry} childCount={childrenOf(view.tree, key).length} />}
         <span className="subagent-card-actions">
-          <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => pane?.revealSubagent(k)} />
+          <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => pane?.openSubagent(k)} />
+          {pane?.canOpenSide &&
+            (sideFirst ? (
+              <button
+                type="button"
+                className="link-button subagent-tell"
+                title="右の欄ではなく、この流れの中でカードの中身を開く・閉じる"
+                aria-expanded={open}
+                onClick={() => pane.toggleSubagent(key)}
+              >
+                <ChevronsUpDown size={12} aria-hidden />
+                {open ? "流れの中で閉じる" : "流れの中で開く"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="link-button subagent-tell"
+                title="このサブエージェントを、チャットの画面の右の欄に、メインと同じような画面で開く（右の欄の中で上下・左右に分けて並べられます）"
+                onClick={() => pane.openSubagentSide(key)}
+              >
+                <PanelRight size={12} aria-hidden />
+                右の欄で開く
+              </button>
+            ))}
           {pane && (
             <button
               type="button"
@@ -142,141 +165,24 @@ function PlainCard({ call }: { call: ToolCall }) {
   );
 }
 
-/** 開始〜終了の時刻と実行時間（実行中は開始〜最後の動き）。今日なら時刻だけ、別の日なら日付も。乗せると年月日とかかった時間 */
-function SubagentTime({ entry }: { entry: SubagentEntry }) {
-  const start = entry.startedAt;
-  if (!start) return null;
-  const running = entry.status === "running";
-  const end = running ? (entry.lastActivityAt ?? start) : (entry.endedAt ?? entry.lastActivityAt ?? start);
-  const title = running
-    ? `開始 ${formatFullStamp(start)}\n最後の動き ${formatFullStamp(end)}（実行中）`
-    : `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(end)}（実行時間 ${formatRunTime(Date.parse(end) - Date.parse(start))}）`;
-  return (
-    <span className={cx("tool-time", running && "running")} title={title}>
-      {running ? formatStampRange(start, end) : formatStampRangeWithRunTime(start, end)}
-    </span>
-  );
-}
-
-/** 実行中のいまの動き（いちばん新しいツールの呼び出し。子孫のものは「洗い出し › 検索: …」）と、最後の動きからの時間・トークン数 */
-function NowLine({ entry, view, rel }: { entry: SubagentEntry; view: SubagentsView; rel: (s: string) => string }) {
-  const latest = useMemo(() => latestActivity(view.tree, entry.key, view.events), [view.tree, entry.key, view.events]);
-  // いちばん新しいのが入れ子のサブエージェントの起動で、その子の中の記録が届かないとき（孫の中の手順は Claude Code が送らない）は、
-  // 子の途中経過（最後のツール）を出す
-  const child = latest && isSubagentTool(latest.use.data.name) ? view.tree.byKey.get(latest.use.data.id) : undefined;
-  const what =
-    child?.status === "running" && child.lastTool
-      ? `${latest?.by ? `${latest.by.description} › ` : ""}${child.description} › ${child.lastTool}`
-      : latest
-        ? `${latest.by ? `${latest.by.description} › ` : ""}${describeTool(latest.use.data.name, (latest.use.data.input ?? {}) as Record<string, unknown>)}`
-        : (entry.lastTool ?? "準備しています");
-  const activity = activityOf(entry.lastActivityAt);
-  const note = activityText(activity, entry.pendingTool);
-  return (
-    <span className="subagent-card-what">
-      <span className="subagent-card-label">いま</span>
-      <span className="subagent-card-activity" title={rel(what)}>
-        {rel(what)}
-      </span>
-      {note && <span className={activity.level === "stalled" ? "activity-stalled" : undefined}>{note}</span>}
-      {entry.tokens !== undefined && <span className="subagent-card-count">{formatTokens(entry.tokens)} tokens</span>}
-    </span>
-  );
-}
-
-/** 終わったサブエージェントのまとめ（完了・ツールの回数・トークン数・かかった時間・中で起動したサブエージェントの数） */
-function Summary({ entry, childCount }: { entry: SubagentEntry; childCount: number }) {
-  const end = entry.endedAt ?? entry.lastActivityAt;
-  const duration = entry.durationMs ?? (entry.startedAt && end ? Date.parse(end) - Date.parse(entry.startedAt) : undefined);
-  const parts = [
-    // 状態の文が見出しにあるもの（失敗・中断・受け取り待ちなど）は重ねない
-    showsSubagentStatus(entry) ? null : "完了",
-    entry.toolUses !== undefined ? `ツール ${entry.toolUses} 回` : null,
-    entry.tokens !== undefined ? `${formatTokens(entry.tokens)} tokens` : null,
-    duration !== undefined ? formatElapsed(duration) : null,
-    childCount > 0 ? `サブエージェント ${childCount} 件` : null,
-  ].filter(Boolean);
-  return <span className="subagent-card-what muted">{parts.join(" · ")}</span>;
-}
-
 /**
  * 開いたカードの中身: 親からの依頼（初めはたたむ）→ 手順（発言・ツール・入れ子のカード・実行中の印）→ 親への報告。
  * いちばん外側のカード（windowed）の手順は、高さを決めた窓の中に入れる（依頼と報告は窓の外で、いつも見える。入れ子のカードは窓の中でふつうに開く）
  */
 function SubagentCardBody({ entry, view, renderItems, windowed }: { entry: SubagentEntry; view: SubagentsView; renderItems: RenderItems; windowed: boolean }) {
-  const { key, agentId } = entry;
-  const scope = scopeOf(entry);
-  const scopeKey = scope.join(" ");
-  const items = useMemo(() => {
-    // チャット欄から伝えた追加の指示（メインのチャットの自分の発言）は、このサブエージェントの流れに自分の発言として混ぜる
-    const mixed = agentId
-      ? view.events.map((e) => {
-          if (e.type !== "user") return e;
-          const text = relayedText(e.data.text, agentId);
-          return text === undefined ? e : ({ ...e, data: { ...e.data, text, parent: key } } as ChatEvent);
-        })
-      : view.events;
-    return groupEvents(mixed, scopeKey.split(" "));
-  }, [view.events, key, agentId, scopeKey]);
-  const report = subagentReport(entry, view.events);
-  const running = entry.status === "running";
-  const steps = (
-    <>
-      {items.length === 0 && <p className="muted small">{emptyText(entry, running)}</p>}
-      {renderItems(items, view.busy && running)}
-      {running && <Working>{workingText(entry)}</Working>}
-    </>
-  );
+  const items = useSubagentItems(entry, view);
+  const steps = <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />;
   return (
     <div className="subagent-card-body">
       {entry.prompt && <SubagentPrompt text={entry.prompt} />}
       {windowed ? (
-        <SubagentWindow cardKey={key} running={running}>
+        <SubagentWindow cardKey={entry.key} running={entry.status === "running"}>
           {steps}
         </SubagentWindow>
       ) : (
         steps
       )}
-      {report && (
-        <div className="subagent-result">
-          <div className="subagent-label">親のエージェントへの報告</div>
-          <Markdown>{report}</Markdown>
-        </div>
-      )}
+      <SubagentReport entry={entry} view={view} />
     </div>
-  );
-}
-
-/**
- * 中身の記録がないときの文。サブエージェントの中で起動したサブエージェント（孫より深いもの）の中の手順は Claude Code が送ってこないので、
- * その旨と、届くもの（最後のツール・回数・報告）を伝える
- */
-function emptyText(entry: SubagentEntry, running: boolean): string {
-  if (entry.parentKey !== undefined)
-    return "サブエージェントの中で起動したサブエージェントの途中の手順は、Claude Code が送ってこないため出せません（実行中の最後のツール・ツールの回数・トークン数・報告は出ます）";
-  return running ? "まだ動きがありません…" : "このサブエージェントの中身は記録されていません";
-}
-
-/** 実行中のカードの中身の最後の行（子の結果を待っている・ツールを実行中・作業中） */
-function workingText(entry: SubagentEntry): string {
-  const tool = entry.pendingTool ?? entry.lastTool;
-  if (tool && isSubagentTool(tool)) return "中で起動したサブエージェントの終わりを待っています";
-  return tool ? `${tool} を実行中` : "作業中";
-}
-
-/** 親のエージェントからの依頼（初めは 1 行にたたみ、開くと全文） */
-function SubagentPrompt({ text }: { text: string }) {
-  const first = text.split("\n").find((line) => line.trim()) ?? "";
-  return (
-    <details className="subagent-prompt">
-      <summary>
-        <ChevronRight size={13} className="tool-chevron" />
-        <span className="subagent-label">親のエージェントからの依頼</span>
-        <span className="subagent-prompt-first">{first}</span>
-      </summary>
-      <div className="subagent-prompt-body">
-        <Markdown>{text}</Markdown>
-      </div>
-    </details>
   );
 }

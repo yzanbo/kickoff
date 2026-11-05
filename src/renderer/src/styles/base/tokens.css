@@ -98,7 +98,8 @@
 /*
  * 画面のコード（inline style / setProperty）が与える CSS 変数。ここでは定義せず、使う側は必要なら var(--x, 既定値) で受ける。
  *   --sidebar-w  左のサイドバーの幅（useSidebar.ts）
- *   --panel-w    ボードの右のパネルの幅（usePanelWidth.ts）
+ *   --panel-w    ボードの右のパネルの幅・--panel-shown 開き終えたときの幅（usePanelWidth.ts → useCoverableWidth.ts）
+ *   --agents-w   チャットの画面の右の欄（サブエージェントの欄）の幅・--agents-shown 開き終えたときの幅（AgentSplit.tsx → useCoverableWidth.ts）
  *   --bottom-h   下のパネルの高さ（useBottomPanel.ts）
  *   --chat-w     プロジェクトのチャット欄の幅（useProjectChat.ts・ProjectChat.tsx）
  *   --depth      ファイルの木の段の深さ（FileTree.tsx）

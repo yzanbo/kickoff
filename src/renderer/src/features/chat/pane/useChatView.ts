@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import type { Approval, Chat, ChatEvent, ChatLive, Project } from "@shared/types";
 import { api } from "@/api";
 import { createValueCell } from "@/lib/valueCell";
+import { readSetting } from "@/lib/storage";
+import { SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { panelActions } from "@/features/panel/state/panelActions";
+import { panelKey } from "@/features/panel/surfaces";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
 import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
@@ -37,12 +41,26 @@ export interface ChatViewInput {
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
 }
 
+/** 右の欄（サブエージェントの欄）の殻を外から動かす口（AgentPanel が入れる） */
+export interface SidePanelHandle {
+  /** メインの会話を覆っていれば、並べる形に戻す（流れの中のカードへ移るとき） */
+  uncover: () => void;
+}
+
+/** 右の欄の中のサブエージェントの画面（data-agent-screen）の、スクロールする欄 */
+const sideScroller = (chatId: number, key: string) =>
+  document.querySelector<HTMLElement>(`[data-agent-screen="${chatId}:${key}"] .subagent-screen-scroll`);
+
 /**
  * 1 つのチャットの画面（ChatView）の状態と操作: 選択（モデル・深さ・権限）・作業中の様子・サブエージェント・流れ（窓とスクロール）・
  * 自分の指示の一覧・送り方と、子の部品に配る操作（ChatPaneActions。チャットごとに 1 回だけ作る）。
  * ChatView は描くだけ（ChatView はチャットごとに作り直す = key がチャットの ID）
  */
-export function useChatView({ chat, project, events, approvals, live: coreLive, streaming, focus, onOpenNew }: ChatViewInput) {
+export function useChatView(
+  { chat, project, events, approvals, live: coreLive, streaming, focus, onOpenNew }: ChatViewInput,
+  /** 右の欄（サブエージェントの欄）を置けるか（パネルの中のチャット） */
+  canOpenSide = false,
+) {
   const options = useChatOptions(
     { model: chat.model, effort: chat.effort, permission_mode: chat.permission_mode, fast_mode: chat.fast_mode },
     chat.project_id,
@@ -63,21 +81,26 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
   // サブエージェントの入れ子（流れの中のカード・ピルの一覧・カードへ移るとき）と、カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
   const tree = useMemo(() => subagentTree(subagents), [subagents]);
   const hues = useMemo(() => agentHues(subagents), [subagents]);
-  const subagentsView = useMemo<SubagentsView>(() => ({ chatId: chat.id, busy, events, tree, hues }), [chat.id, busy, events, tree, hues]);
+  // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
+  const repoPath = project?.repo_path;
+  const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
+  const worktree = chat.worktree_path;
+  const subagentsView = useMemo<SubagentsView>(
+    () => ({ chatId: chat.id, projectId: chat.project_id, worktree, rel, busy, events, tree, hues }),
+    [chat.id, chat.project_id, worktree, rel, busy, events, tree, hues],
+  );
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
   const items = useMemo(() => groupEvents(events), [events]);
   // 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・チャット欄の ↑ の呼び出し。記録が変わったときだけ作り直す）
   const prompts = promptListOf(events);
-  // 流れの各項目の memo が効くよう、作業場所が変わらない間は同じ関数にする
-  const repoPath = project?.repo_path;
-  const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
   // 返答の中のファイルのパスを、押してエディタタブで開けるチップにする（作業場所のファイルだけ）
   const fileLinks = useFileLinks(chat, project?.repo_path);
 
   // 画面の要素・チャット欄・流れのスクロール（一番下に付いていくか）
   const rootRef = useRef<HTMLDivElement>(null);
   const composer = useRef<ComposerHandle | null>(null);
+  const side: MutableRefObject<SidePanelHandle | null> = useRef(null);
   const scroll = useTimelineScrollHandle();
   // 流れは最近の項目だけを描く（長いチャットでも軽くする。検索・移り先は、その前後だけを描く）
   const timeline = useTimelineWindow({ items, chatId: chat.id, focus, scroll });
@@ -116,6 +139,12 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
       if (el && jumpToEvent(el, eventId)) return;
       if (frames > 0) requestAnimationFrame(() => jumpWhenDrawn(eventId, frames - 1));
     };
+    /** 右の欄に開いたサブエージェントの画面の中の、その記録の要素へ移る（タブの中身が描かれるまで、数フレーム待つ） */
+    const jumpInSide = (key: string, eventId: number, frames = 20) => {
+      const el = sideScroller(chatId, key);
+      if (el && jumpToEvent(el, eventId)) return;
+      if (frames > 0) requestAnimationFrame(() => jumpInSide(key, eventId, frames - 1));
+    };
     const actions: ChatPaneActions = {
       chatId,
       root: rootRef,
@@ -123,6 +152,8 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
         const path = pathOf(now().tree, key);
         const target = path.at(-1);
         if (!target) return;
+        // 右の欄がメインの会話を覆っていれば、並べる形に戻してから移る
+        side.current?.uncover();
         // 外側のカードから自分まで開き、いちばん外側のカードを窓に入れてから移る（動きを見せていれば会話に戻す）
         patch({ openSubagents: new Set([...state.get().openSubagents, ...path.map((s) => s.key)]), showing: "conversation" });
         scroll.release();
@@ -132,6 +163,18 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
         const eventId = inside ?? target.toolUseEventId;
         if (eventId !== undefined) requestAnimationFrame(() => jumpWhenDrawn(eventId));
       },
+      openSubagent: (key, eventId) => {
+        if (canOpenSide && readSetting(SUBAGENT_OPEN_IN) === "side") actions.openSubagentSide(key, eventId);
+        else actions.revealSubagent(key, eventId);
+      },
+      openSubagentSide: (key, eventId) => {
+        const entry = now().tree.byKey.get(key);
+        if (!entry) return;
+        if (!canOpenSide) return actions.revealSubagent(key, eventId);
+        panelActions(panelKey("agents", chatId)).openSubagent({ chatId, agentKey: key, title: entry.description });
+        if (eventId !== undefined) requestAnimationFrame(() => jumpInSide(key, eventId));
+      },
+      canOpenSide,
       toggleSubagent: (key, open) => {
         const current = state.get().openSubagents;
         const next = new Set(current);
@@ -139,9 +182,13 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
         else next.delete(key);
         patch({ openSubagents: next });
       },
-      show: (showing, filter) => patch({ showing, ...(filter ? { activityFilter: filter } : {}) }),
+      show: (showing, filter) => {
+        // 右の欄がメインの会話を覆っていれば、並べる形に戻す（右の欄の「動きで見る」から、メインの動きを開くとき）
+        side.current?.uncover();
+        patch({ showing, ...(filter ? { activityFilter: filter } : {}) });
+      },
       revealInConversation: (eventId, agent) => {
-        if (agent !== null) return actions.revealSubagent(agent, eventId);
+        if (agent !== null) return actions.openSubagent(agent, eventId);
         patch({ showing: "conversation" });
         if (eventId === undefined) return;
         scroll.release();
@@ -196,5 +243,5 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
     if (pane.state.get().retry !== retry) pane.state.set({ ...pane.state.get(), retry });
   }, [pane, retry]);
 
-  return { pane, options, busy, live, subagents, subagentsView, items, prompts, rel, fileLinks, composer, scroll, timeline, send };
+  return { pane, options, busy, live, subagents, subagentsView, items, prompts, rel, fileLinks, composer, side, scroll, timeline, send };
 }

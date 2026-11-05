@@ -8,6 +8,8 @@ import { SelectionComment } from "@/features/chat/messages/SelectionComment";
 import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
 import { ActivityView } from "@/features/chat/activity/ActivityView";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
+import { AgentSplit } from "@/features/panel/agents/AgentSplit";
+import { usePanelHost } from "@/features/panel/panelHost";
 import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
 import { ChatHeaderTools } from "./ChatHeaderTools";
@@ -59,11 +61,12 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
 
 /**
  * 1 つのチャットの画面（見出し・流れ・チャット欄）。状態と操作は useChatView にあり、ここは描くだけ。
- * 子の部品への操作は ChatPaneContext 1 つで配る（流れの項目・ピル・送信待ち・検索など。値はチャットごとに 1 回だけ作る）
+ * 子の部品への操作は ChatPaneContext 1 つで配る（流れの項目・ピル・送信待ち・検索など。値はチャットごとに 1 回だけ作る）。
+ * パネルの中では、右にサブエージェントの画面を並べる右の欄（AgentSplit）を置く（同じ context の中なので、記録・操作をそのまま使う）
  */
 function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
   const { chat, project, events, approvals, streaming, focus } = input;
-  const view = useChatView(input);
+  const view = useChatView(input, usePanelHost() !== null);
   const { pane } = view;
   // 文の幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
   const [wide] = useWideText();
@@ -73,6 +76,7 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
     <FileLinksProvider value={view.fileLinks}>
       <ChatPaneContext.Provider value={pane}>
         <SubagentsContext.Provider value={view.subagentsView}>
+        <AgentSplit chatId={chat.id} handleRef={view.side}>
         <div ref={pane.root} className={cx("chat-page chat-panel", wide && "wide")}>
           <ChatHeader chat={chat} project={project} tools={<ChatHeaderTools items={view.items} version={view.timeline.visible} />} />
           {/* 返答の一部を選んでコメントし、チャット欄に添える */}
@@ -112,6 +116,7 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
             onDock={setPillDock}
           />
         </div>
+        </AgentSplit>
         </SubagentsContext.Provider>
       </ChatPaneContext.Provider>
     </FileLinksProvider>

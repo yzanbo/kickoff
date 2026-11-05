@@ -4,6 +4,7 @@ import type { PanelKind } from "@/features/panel/state/panelKinds";
 /**
  * タブがないときのパネル・ペインの中身（新しいチャット・ブラウザ・ターミナルを開くボタン）。
  * hint があれば、新しいチャットの代わりにその案内の文を出す（ボードの分けていないパネル。新しいチャットは見出しの「新規」から）。
+ * チャットを出さない欄でも、hint があれば出す（サブエージェントの欄。中身は外から開くタブだけなので、開き方を案内する）。
  * 欄で隠している種類（kinds）のボタンは出さない
  */
 export function PanelEmpty({
@@ -26,6 +27,7 @@ export function PanelEmpty({
 }) {
   return (
     <div className="panel-empty">
+      {!kinds.has("chat") && hint && <p className="muted small">{hint}</p>}
       {kinds.has("chat") &&
         (hint ? (
           <p className="muted small">{hint}</p>

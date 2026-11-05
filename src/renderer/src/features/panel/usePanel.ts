@@ -12,6 +12,7 @@ import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/t
 import { chatKey, kindOfTab, tabChat } from "@/features/panel/tabs/tabKinds";
 import { openNoProjectsGuide } from "@/features/project/new/openNewProject";
 import { isComposing } from "@/lib/keys";
+import { focusedPanelKey, focusInNestedPanel } from "./panelHost";
 
 export type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 export { terminalTargets } from "@/features/panel/tabs/panelTypes";
@@ -56,13 +57,17 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
   const chats = useLinkedTabs(key, scope, kinds.has("chat"));
   const actions = useMemo(() => panelActions(key), [key]);
 
-  // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先。日本語入力の変換をやめる Esc では閉じない）
+  // Esc で閉じる（Esc で閉じる欄だけ。メニューやダイアログが開いていればそちらを優先。日本語入力の変換をやめる Esc では閉じない）。
+  // ピントがこの欄の中の入れ子の欄（チャットの中の右の欄）にあるときは、そちらに任せる。focused の欄は、ピントが中にあるときだけ閉じる
+  const escRule = SURFACES[surface].closeOnEsc;
   useWindowEvent(
     "keydown",
     (e) => {
-      if (e.key === "Escape" && !isComposing(e) && !document.querySelector("dialog[open]")) actions.close();
+      if (e.key !== "Escape" || isComposing(e) || document.querySelector("dialog[open]")) return;
+      if (escRule === "focused" ? focusedPanelKey() !== key : focusInNestedPanel(key)) return;
+      actions.close();
     },
-    panelOpen && SURFACES[surface].closeOnEsc && !holdEsc,
+    panelOpen && escRule !== false && !holdEsc,
   );
 
   /** 欄でこのタブを見せているか（分割していれば、どれかのペインで表示中） */

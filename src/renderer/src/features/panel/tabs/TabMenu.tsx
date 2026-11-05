@@ -33,7 +33,8 @@ export function TabMenu({
   const tab = panel.tabs.find((t) => t.key === tabKey);
   // ボードの一覧にあればそれを、なければタブの中のチャットから届いたもの（まだ読み込んでいなければチャットの項目は出さない）
   const chat = panel.chatOf(tab);
-  const homeId = panes.length > 1 ? homePane(panel.layout).id : undefined;
+  // 一覧のペインはサイドバーと連動したチャットが入るペインなので、チャットを出す欄だけで「（一覧）」と添える
+  const homeId = panes.length > 1 && panel.kinds.has("chat") ? homePane(panel.layout).id : undefined;
   // 分けたペインにある、サイドバーと連動したチャット（× と同じく、一覧のペインへ戻せる）
   const canReturn = homeId !== undefined && pane.id !== homeId && panel.isLinkedTab(tabKey);
   const paneItems = (

@@ -1,9 +1,11 @@
-import { Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Bot, Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { normalizeUrl } from "@/lib/url";
+import { SubagentTabLead } from "@/features/chat/subagents/SubagentTabLead";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
@@ -41,6 +43,18 @@ export const newChatTab = (target: NewChatTarget, seed?: NewChatSeed, key = newT
   ...(seed ? { seed, draftText: seed.text } : {}),
 });
 
+/** サブエージェントのタブのキー（同じサブエージェントは、その欄に 1 つのタブ） */
+export const agentTabKey = (agentKey: string) => `agent:${agentKey}`;
+
+/** サブエージェントの画面のタブ（チャットの画面の右の欄に開く。agentKey は一覧の行のキー） */
+export const subagentTab = ({ chatId, agentKey, title }: { chatId: number; agentKey: string; title: string }): TabOf<"subagent"> => ({
+  key: agentTabKey(agentKey),
+  kind: "subagent",
+  chatId,
+  agentKey,
+  title,
+});
+
 /** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
 export const browserTab = (url = ""): TabOf<"browser"> => ({ key: newTabKey("browser"), kind: "browser", url, title: "" });
 
@@ -69,11 +83,13 @@ export interface ClusterResolver {
 }
 
 interface TabKindSpec<T extends PanelTab> {
-  /** 欄の「表示するタブ」でどの種類に入るか（新しいチャット・サブエージェントはチャット） */
+  /** 欄の「表示するタブ」でどの種類に入るか（新しいチャットはチャット） */
   shows: PanelKind;
   /** タブのアイコン（チャットのタブは、状態の印に置き換わる） */
   icon: LucideIcon;
   iconClass?: string;
+  /** アイコンの代わりに名前の前に置く部品（サブエージェントのタブの状態のアイコン。チャットのタブの状態の印は PaneTab が出す） */
+  Lead?: ComponentType<{ tab: T }>;
   /** タブに出す名前（chat はタブのチャット（サイドバーの一覧にあれば最新のもの）） */
   label: (tab: T, chat: Chat | undefined) => string;
   /** マウスを乗せたときの説明（なければ名前とグループ名） */
@@ -120,6 +136,16 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     groupName: (t) => t.groupName,
     projectOf: (t) => t.projectId,
     cluster: (t, r) => r.ofTarget(t.projectId, t.group),
+  },
+  subagent: {
+    shows: "subagent",
+    icon: Bot,
+    Lead: SubagentTabLead,
+    label: (t) => t.title,
+    projectOf: () => undefined,
+    // そのチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
   },
   browser: {
     shows: "browser",
