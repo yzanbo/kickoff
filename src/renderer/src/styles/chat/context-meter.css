@@ -64,7 +64,7 @@
 .working.compacting,
 .compacted {
   display: grid;
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   color: var(--muted);
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -101,7 +101,7 @@
 
 .compacting-note {
   grid-column: 2;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   line-height: 1.6;
   color: var(--muted);
 }
@@ -110,7 +110,7 @@
 .context-popover {
   width: 300px;
   padding: 4px 16px;
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   color: var(--text);
 }
 
@@ -125,12 +125,12 @@
 }
 
 .context-title {
-  font-size: 14px;
+  font-size: calc(14px * var(--chat-scale, 1));
   font-weight: 600;
 }
 
 .context-pct {
-  font-size: 15px;
+  font-size: calc(15px * var(--chat-scale, 1));
 }
 
 .context-sub {
@@ -145,13 +145,13 @@
 }
 
 .context-plan-name {
-  font-size: 15px;
+  font-size: calc(15px * var(--chat-scale, 1));
 }
 
 .context-plan-chip {
   padding: 1px 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--muted);
   background: var(--bg-hover);
 }

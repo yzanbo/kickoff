@@ -37,6 +37,7 @@ import { useAppShortcuts } from "./shortcuts";
 import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
 import { setProjectHues } from "@/features/project/projectColor";
 import { forgetDraftsOfMissingProjects } from "@/features/panel/state/panelDrafts";
+import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 
 export function App() {
@@ -95,6 +96,8 @@ export function App() {
     else setNoProjectsGuide(true);
   };
 
+  // 会話の文字の大きさ（<html> の CSS 変数）
+  useApplyChatFontSize();
   useAppShortcuts({
     toggleSidebar: sidebar.toggle,
     openPalette: () => setPalette(true),

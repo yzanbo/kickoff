@@ -32,7 +32,7 @@
   padding: 0;
   border: none;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   font-weight: 600;
   color: var(--muted);
   background: transparent;
@@ -49,7 +49,7 @@
   align-items: center;
   gap: 4px;
   margin-top: 2px;
-  font-size: 12px;
+  font-size: calc(12px * var(--chat-scale, 1));
   color: var(--extra-muted);
 }
 
@@ -128,7 +128,7 @@
   /* 文の 1 行目の並びにそろえる（文の枠の 2px ＋ 文 13px と見出し 11px の行の高さの差） */
   padding-top: 4px;
   margin-right: 4px;
-  font-size: 11px;
+  font-size: calc(11px * var(--chat-scale, 1));
   font-weight: 600;
   color: var(--muted);
 }
@@ -139,7 +139,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   line-height: 1.5;
 }
 
@@ -191,7 +191,7 @@
   padding: 6px 8px;
   border: none;
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--chat-scale, 1));
   text-align: left;
   color: inherit;
   background: transparent;
@@ -201,7 +201,7 @@
 .prompt-index {
   flex: none;
   min-width: 16px;
-  font-size: 11px;
+  font-size: calc(11px * var(--chat-scale, 1));
   color: var(--muted);
   text-align: right;
 }
@@ -216,7 +216,7 @@
 
 .prompt-time {
   flex: none;
-  font-size: 11px;
+  font-size: calc(11px * var(--chat-scale, 1));
   color: var(--muted);
 }
 

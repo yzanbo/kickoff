@@ -8,14 +8,14 @@
   --node-y: 13px;
   --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
   display: grid;
-  grid-template-columns: var(--activity-time-w, 62px) auto minmax(0, 1fr);
+  grid-template-columns: calc(var(--activity-time-w, 62px) * var(--chat-scale, 1)) auto minmax(0, 1fr);
   column-gap: 6px;
 }
 
 .activity-time {
   overflow: hidden;
-  font-size: 12px;
-  line-height: 26px;
+  font-size: calc(12px * var(--chat-scale, 1));
+  line-height: calc(26px * var(--chat-scale, 1));
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--muted);

@@ -13,6 +13,8 @@ import {
   type ChatHeaderItem,
 } from "./chatHeaderItems";
 import { useWideText } from "./TextWidthToggle";
+import { CHAT_FONT_SIZE_LABELS, useChatFontSize } from "./chatFontSize";
+import { ChatFontSizeItems } from "./ChatFontSizeButton";
 
 /** 見出しの行のどの項目を出すか（どのチャットでも同じ。タブの列の「表示」→「見出しの項目」で選ぶ） */
 export function useChatHeaderItems() {
@@ -46,7 +48,7 @@ function CheckItem({ on, title, keepOpen, onToggle, children }: { on: boolean; t
 
 /**
  * 「チャットの画面」のメニューの項目（どのチャットでも共通の表示の設定）: 見出しの行・見出しの項目（横に開く子のメニューで 1 つずつ）・
- * 指示の帯・文の幅・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄）と、見出しの右クリックで同じものを出す。
+ * 指示の帯・会話の文字の大きさ（横に開く子のメニューで 5 段階）・文の幅・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄）と、見出しの右クリックで同じものを出す。
  * 見出しを隠しても戻せるよう、切り替えは見出しの外（タブの列）に置く。設定の「表示」と同じ値
  */
 export function ChatDisplayItems() {
@@ -56,6 +58,8 @@ export function ChatDisplayItems() {
   const [wide, setWide] = useWideText();
   const [compact, setCompact] = useSetting(COMPOSER_COMPACT);
   const items = useSubmenu();
+  const fontSizes = useSubmenu();
+  const [fontSize] = useChatFontSize();
   const hidden = hiddenHeaderItems(saved);
   return (
     <div className="menu-items">
@@ -106,6 +110,17 @@ export function ChatDisplayItems() {
       >
         指示の帯
       </CheckItem>
+      {/* 乗せる・押す・→ で横に 5 段階を開く */}
+      <button {...fontSizes.trigger} title="会話の文字だけを大きく・小さくします（見出し・入力欄はそのまま）">
+        <span className="project-switch-item">会話の文字の大きさ</span>
+        <span className="muted small">{CHAT_FONT_SIZE_LABELS[fontSize]}</span>
+        <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
+      </button>
+      {fontSizes.anchor && (
+        <MenuFlyout anchor={fontSizes.anchor} label="会話の文字の大きさ" onBack={fontSizes.back}>
+          <ChatFontSizeItems />
+        </MenuFlyout>
+      )}
       <CheckItem on={wide} title="発言の流れとチャット欄の幅の上限を外し、パネルいっぱいまで広げます" onToggle={() => setWide(!wide)}>
         文の幅を広げる
       </CheckItem>
