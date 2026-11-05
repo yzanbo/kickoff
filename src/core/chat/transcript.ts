@@ -1,5 +1,5 @@
 // 別のチャットの内容を、いまのチャットに読み込ませるための記録（Markdown。添付ファイルとして渡し、AI が Read で読む。Node 依存なし）
-import type { Project, Chat, ChatEvent } from "@shared/types";
+import { UNTITLED_CHAT_TITLE, type Project, type Chat, type ChatEvent } from "@shared/types";
 import { workdirOf } from "./workdir.js";
 
 /** ファイルを変える編集のツール（変えたファイルを作業ごとに書き添える） */
@@ -22,7 +22,7 @@ const relative = (file: string, root: string) => (file.startsWith(`${root}/`) ? 
 export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]): string {
   const root = workdirOf(chat, project);
   const lines = [
-    `# チャット「${chat.title || "無題のチャット"}」の記録`,
+    `# チャット「${chat.title || UNTITLED_CHAT_TITLE}」の記録`,
     "",
     `- プロジェクト: ${project.name}（${root}${chat.branch ? `・ブランチ ${chat.branch}` : ""}）`,
     `- 作成: ${stamp(chat.created_at)}`,
@@ -62,6 +62,6 @@ export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]
 
 /** 添付にするときのファイル名（「チャット履歴-名前.md」。ファイル名に使えない文字は除く） */
 export function transcriptFileName(chat: Chat): string {
-  const title = (chat.title || "無題のチャット").replace(/[\\/:*?"<>|\n\r\t]+/g, " ").trim().slice(0, 60);
+  const title = (chat.title || UNTITLED_CHAT_TITLE).replace(/[\\/:*?"<>|\n\r\t]+/g, " ").trim().slice(0, 60);
   return `チャット履歴-${title}.md`;
 }

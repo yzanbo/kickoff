@@ -3,7 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { chatMemoName, safeMemoName, uniqueMemoName } from "@shared/memo/names";
-import { MEMO_EXTENSION, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
+import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js";
 import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
@@ -36,7 +36,7 @@ async function moveToTrash(file: string): Promise<void> {
 export function memoSourceLine(chat: Chat, at: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const time = `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${pad(at.getHours())}:${pad(at.getMinutes())}`;
-  return `> チャット「${chat.title || "無題のチャット"}」から（${time}）`;
+  return `> チャット「${chat.title || UNTITLED_CHAT_TITLE}」から（${time}）`;
 }
 
 export class MemoService {
@@ -161,7 +161,7 @@ export class MemoService {
     const names = entries
       .filter((e) => !e.dir && parentOf(e.path) === folder && e.path.endsWith(MEMO_EXTENSION))
       .map((e) => path.posix.basename(e.path, MEMO_EXTENSION));
-    const name = chatMemoName(chat.title || "無題のチャット", names);
+    const name = chatMemoName(chat.title || UNTITLED_CHAT_TITLE, names);
     const file = folder ? `${folder}/${name}${MEMO_EXTENSION}` : `${name}${MEMO_EXTENSION}`;
     return this.create(project, file, { dir: false, content: `# ${name}\n\n${block}` });
   }
