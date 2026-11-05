@@ -1,0 +1,98 @@
+import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { cx } from "@/lib/cx";
+
+/**
+ * メニューの項目の横に開く子のメニューの開閉。
+ * trigger は開く項目に渡す（乗せる・押す・→ で開く。メニューは閉じない）。onMenuHover はメニューの項目の入れ物の onMouseOver に渡す
+ * （ほかの項目に乗せたら閉じる）。back は ← で子のメニューを閉じて、開いた項目にピントを戻す
+ */
+export function useSubmenu() {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const open = (e: { currentTarget: HTMLElement }) => setAnchor(e.currentTarget);
+  return {
+    /** 開いている項目（閉じていれば null） */
+    anchor,
+    close: () => setAnchor(null),
+    back: () => {
+      anchor?.focus();
+      setAnchor(null);
+    },
+    onMenuHover: (e: MouseEvent) => {
+      if (!anchor) return;
+      const target = e.target as HTMLElement;
+      if (target.closest(".menu-flyout, .menu-submenu")) return;
+      if (target.closest("button")) setAnchor(null);
+    },
+    trigger: {
+      role: "menuitem" as const,
+      className: cx("menu-submenu", anchor && "open"),
+      "aria-haspopup": "menu" as const,
+      "aria-expanded": anchor !== null,
+      onMouseEnter: open,
+      onClick: open,
+      onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+        if (e.key !== "ArrowRight") return;
+        e.preventDefault();
+        open(e);
+      },
+    },
+  };
+}
+
+/**
+ * 項目の横に開く子のメニュー（useSubmenu の anchor の横）。右に入らなければメニューの左に出し、下にはみ出すなら上へ寄せる
+ * （自分の大きさが変わったら置き直す）。メニューの中の要素なので、外側のクリックでメニューごと閉じる。
+ * ↑↓ はこの中だけで動き（data-menu-scope）、項目の上の ← で閉じて開いた項目に戻る（onBack）
+ */
+export function MenuFlyout({
+  anchor,
+  label,
+  className,
+  onBack,
+  children,
+}: {
+  anchor: HTMLElement;
+  label: string;
+  className?: string;
+  onBack: () => void;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  // 位置が決まるまでは見せない（visibility: hidden にすると中の欄にピントを置けないので、透明にする）
+  const [style, setStyle] = useState<CSSProperties>({ opacity: 0 });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const place = () => {
+      const item = anchor.getBoundingClientRect();
+      const menu = anchor.closest(".menu")?.getBoundingClientRect() ?? item;
+      const { offsetWidth: width, offsetHeight: height } = el;
+      const left = menu.right + 4 + width <= window.innerWidth ? menu.right + 4 : Math.max(8, menu.left - 4 - width);
+      const top = Math.max(8, Math.min(item.top - 6, window.innerHeight - height - 8));
+      setStyle({ left, top });
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [anchor]);
+  return (
+    <div
+      ref={ref}
+      className={cx("menu menu-flyout", className)}
+      style={style}
+      role="menu"
+      aria-label={label}
+      data-menu-scope
+      onKeyDown={(e) => {
+        // ← は項目の上でだけ（入力欄では文字の間を動く）
+        if (e.key === "ArrowLeft" && (e.target as HTMLElement).tagName === "BUTTON") {
+          e.preventDefault();
+          onBack();
+        }
+      }}
+    >
+      {children}
+    </div>
+  );
+}

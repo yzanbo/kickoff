@@ -1,5 +1,5 @@
 import { Archive, ArchiveRestore, ChevronRight, Copy, FolderInput, Mail, MailOpen, PanelRight, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
-import { useState, type MouseEvent, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
 import { chatTitle } from "./chatTitle";
@@ -9,6 +9,7 @@ import { openChat, useRoute } from "@/app/router";
 import { confirmDeleteChat, toggleArchiveChat, togglePinChat } from "./chatActions";
 import { openNewProject } from "@/features/project/new/openNewProject";
 import { MenuItem } from "@/ui/PopupMenu";
+import { useSubmenu } from "@/ui/MenuFlyout";
 import { ProjectPickFlyout } from "@/features/project/ProjectPickFlyout";
 
 /**
@@ -35,8 +36,8 @@ export function ChatMenuItems({
   before?: ReactNode;
   after?: ReactNode;
 }) {
-  // 「プロジェクトを変更」の項目（横に一覧を開いているとき）
-  const [moving, setMoving] = useState<HTMLElement | null>(null);
+  // 「プロジェクトを変更」の横に開く一覧
+  const moving = useSubmenu();
   const route = useRoute();
   // いま開いているチャットを移したら、移した先のプロジェクトで開き直す（元のボードからは消えるため）
   const viewing = route.name === "chat" && route.chatId === chat.id;
@@ -45,14 +46,8 @@ export function ChatMenuItems({
     onClose();
     void fn().catch((e: unknown) => onError(errorMessage(e)));
   };
-  // ほかの項目に乗せたら横の一覧を閉じる
-  const onHover = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (!moving || target.closest(".project-pick") || target.closest(".menu-submenu")) return;
-    if (target.closest("button")) setMoving(null);
-  };
   return (
-    <div className="menu-items" onMouseOver={onHover}>
+    <div className="menu-items" onMouseOver={moving.onMenuHover}>
       {before}
       {onOpen && (
         <MenuItem onSelect={() => onOpen(chat)}>
@@ -85,26 +80,13 @@ export function ChatMenuItems({
         </MenuItem>
       )}
       {/* 乗せる・押す・→ で横にプロジェクトの一覧を開く（メニューは閉じない） */}
-      <button
-        role="menuitem"
-        className={moving ? "menu-submenu open" : "menu-submenu"}
-        aria-haspopup="menu"
-        aria-expanded={moving !== null}
-        onMouseEnter={(e) => setMoving(e.currentTarget)}
-        onClick={(e) => setMoving(e.currentTarget)}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowRight") {
-            e.preventDefault();
-            setMoving(e.currentTarget);
-          }
-        }}
-      >
+      <button {...moving.trigger}>
         <FolderInput size={14} /> プロジェクトを変更
         <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
       </button>
-      {moving && (
+      {moving.anchor && (
         <ProjectPickFlyout
-          anchor={moving}
+          anchor={moving.anchor}
           current={chat.project_id}
           onPick={(project) => act(() => moveChat(chat, project, viewing))}
           onCreate={(name) => {
@@ -112,10 +94,7 @@ export function ChatMenuItems({
             // 作ったら、そのプロジェクトへこのチャットを移す（確かめてから）
             openNewProject({ name, onCreated: (project) => void moveChat(chat, project, viewing).catch((e: unknown) => onError(errorMessage(e))) });
           }}
-          onBack={() => {
-            moving.focus();
-            setMoving(null);
-          }}
+          onBack={moving.back}
         />
       )}
       <div className="menu-separator" role="separator" />
