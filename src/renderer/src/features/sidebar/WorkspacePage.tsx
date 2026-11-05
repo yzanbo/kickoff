@@ -1,5 +1,5 @@
-import { Archive, Folder, Pin, Plus } from "lucide-react";
-import { memo, useState } from "react";
+import { Archive, Folder, Inbox, Pin, Plus } from "lucide-react";
+import { memo, useMemo, useState } from "react";
 import { BOARD_COLUMN_LABELS, type Project, type Chat, type ChatGroup } from "@shared/types";
 import { api } from "@/api";
 import { alertDialog } from "@/ui/dialogs";
@@ -25,6 +25,11 @@ import { useWorkspaceRows } from "./useWorkspaceRows";
 import { WorkspaceHead } from "./WorkspaceHead";
 import { Collapse } from "@/ui/Collapse";
 import { useContextMenu } from "@/ui/useContextMenu";
+import { useSetting } from "@/hooks/useSetting";
+import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
+import { inboxSections, waitingSince } from "./inboxOrder";
+import { waitingAxes } from "./waitingAxes";
+import { useWaitingView } from "./waitingView";
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -59,7 +64,17 @@ export const WorkspacePage = memo(function WorkspacePage({
   // 行の絞り込み（検索・自分待ち・状態）と、固定・グループ・グループなし・アーカイブ済みへの分け方（bucketChats）
   const list = useWorkspaceRows({ projectId: project.id, chats, groupCount: groups.length, searchAll, collapsed });
   const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived } = list;
-  const { stateOf } = useChatStates();
+  const { stateOf, approvals } = useChatStates();
+  // 自分待ちの「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す）。
+  // 検索・状態で絞っている間は出さない
+  const [waitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
+  const [waitingView] = useWaitingView();
+  const showWaitingTop = waitingOn && waitingAxes(waitingView).scope === "project" && !keyword && !stateFilter;
+  const waitingTop = useMemo(
+    () => (showWaitingTop ? inboxSections(chats, stateOf, (chat, state) => waitingSince(chat, state, approvals)).flatMap((s) => s.chats) : []),
+    [showWaitingTop, chats, stateOf, approvals],
+  );
+  const waitingFold = useFold("sidebar", `waiting:in:${project.id}`);
   // 開閉の記憶（まとまりのキーで覚え、見出しの行の「すべて閉じる / 開く」にも従う）: 固定・グループなし・自分で作ったグループ（絞り込み中は開いて見せる）、
   // アーカイブ済み（初めは閉じる。検索中は開いて見せる）
   const pinnedFold = useFold("sidebar", pinnedKey(project.id), { forceOpen: filtering });
@@ -149,6 +164,12 @@ export const WorkspacePage = memo(function WorkspacePage({
               onCancel={() => setCreating(false)}
             />
           </div>
+        )}
+        {/* 自分待ちの「プロジェクト内の上に」: プロジェクトの中のいちばん上（下書き・固定より上） */}
+        {waitingTop.length > 0 && (
+          <FoldSection look="row" icon={Inbox} label="自分待ち" count={waitingTop.length} open={waitingFold.open} onToggle={waitingFold.toggle}>
+            <ul className="chat-rows">{waitingTop.map(renderRow)}</ul>
+          </FoldSection>
         )}
         {/* グループの見出しを出していないときの下書き（グループでまとめていないときは、グループに入れたものも含めていちばん上に） */}
         <DraftRows drafts={list.topDrafts} />

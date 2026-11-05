@@ -1,4 +1,4 @@
-import { ArrowUpToLine, FolderTree, ListFilter, ListTree, type LucideIcon } from "lucide-react";
+import { ArrowUpToLine, FolderTree, FolderUp, ListFilter, ListTree, type LucideIcon } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
 import { SIDEBAR_WAITING_VIEW } from "@/lib/storageKeys";
 import type { WaitingOrder, WaitingScope, WaitingView } from "./waitingAxes";
@@ -16,10 +16,11 @@ interface AxisMeta {
   label: string;
 }
 
-/** 出し方（自分待ちだけ / 上にまとめる） */
+/** 出し方（自分待ちだけ / 一覧の上に / プロジェクト内の上に） */
 export const WAITING_SCOPE_META: Record<WaitingScope, AxisMeta> = {
   only: { icon: ListFilter, short: "自分待ちだけ", label: "自分待ちだけ（待っているチャットだけを並べる）" },
-  top: { icon: ArrowUpToLine, short: "上にまとめる", label: "上にまとめる（待っているチャットを一覧の上に。その下はすべて）" },
+  top: { icon: ArrowUpToLine, short: "一覧の上に", label: "一覧の上にまとめる（待っているチャットを一覧全体のいちばん上に。その下はすべて）" },
+  project: { icon: FolderUp, short: "プロジェクト内", label: "プロジェクト内の上にまとめる（待っているチャットを各プロジェクトの中のいちばん上に。その下はすべて）" },
 };
 
 /**
