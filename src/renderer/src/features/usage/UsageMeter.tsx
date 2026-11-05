@@ -22,7 +22,20 @@ const SEVERITY_LABELS: Record<Severity, string | null> = {
  * 使用率のバー（使用枠のメーター・チャット欄のコンテキストウィンドウで共通）。使用率に応じて 通常 → 注意 → 上限間近 と色が変わる。
  * percent が null なら、まだ始まっていない枠（灰色）。label は読み上げの名前、valueText は読み上げる値
  */
-export function UsageBar({ percent, label, valueText, className }: { percent: number | null; label: string; valueText: string; className?: string }) {
+export function UsageBar({
+  percent,
+  label,
+  valueText,
+  className,
+  mark = null,
+}: {
+  percent: number | null;
+  label: string;
+  valueText: string;
+  className?: string;
+  /** 目印の縦線を引く位置（%。コンテキストの自動圧縮が始まるところなど。null なら引かない） */
+  mark?: number | null;
+}) {
   const width = Math.min(100, Math.max(0, percent ?? 0));
   return (
     <span
@@ -35,6 +48,7 @@ export function UsageBar({ percent, label, valueText, className }: { percent: nu
       aria-valuetext={valueText}
     >
       <span className="meter-fill" style={{ width: `${width}%` }} />
+      {mark !== null && <span className="meter-mark" style={{ left: `${Math.min(100, Math.max(0, mark))}%` }} aria-hidden />}
     </span>
   );
 }

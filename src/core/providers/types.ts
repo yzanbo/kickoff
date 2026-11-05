@@ -56,6 +56,8 @@ export interface ProviderTurnParams {
   permissionMode: PermissionMode;
   /** ファストモード（対応していないモデル・プランでは通常の速度になる） */
   fastMode: boolean;
+  /** 自動圧縮を始めるコンテキストの使用率（%。null なら指定しない＝ Claude Code の既定） */
+  autoCompactPct: number | null;
   /** 作業フォルダ以外に読み取りを許すフォルダ（添付ファイルの保存先・参照資料など） */
   additionalDirectories: string[];
   /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */

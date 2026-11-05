@@ -44,6 +44,16 @@ test("チャット欄で指定がなければ設定の既定（モデル・深�
   assert.deepEqual([call.model, call.effort, call.permissionMode, call.fastMode], ["fable", "high", "auto", true]);
 });
 
+test("自動圧縮を始める使用率は設定の値を渡す（決めていなければ null）", async () => {
+  const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
+  const first = await runner.start({ projectId: project.id, prompt: "x" });
+  await until(() => store.chats.get(first.id)?.status === "completed");
+  store.settings.update({ auto_compact_pct: 50 });
+  const second = await runner.start({ projectId: project.id, prompt: "y" });
+  await until(() => store.chats.get(second.id)?.status === "completed");
+  assert.deepEqual(provider.calls.map((c) => c.autoCompactPct), [null, 50]);
+});
+
 test("どこでも決めていなければ、推論の深さは指定せず（null）、権限モードは毎回確認。指示と権限はどのチャットも同じ", async () => {
   const { store, runner, provider, project } = setup(async () => ({ status: "completed", sessionId: "s" }));
   const chat = await runner.start({ projectId: project.id, prompt: "x" });

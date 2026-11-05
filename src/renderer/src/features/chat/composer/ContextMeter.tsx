@@ -2,6 +2,8 @@ import { Shrink, X } from "lucide-react";
 import type { Chat, CompactingState, UsageWindow } from "@shared/types";
 import { api } from "@/api";
 import { useProviders } from "@/stores/providers";
+import { useAppSettings } from "@/stores/settings";
+import { autoCompactThreshold } from "@shared/chat/autoCompact";
 import { cx } from "@/lib/cx";
 import { useAction } from "@/hooks/useAction";
 import { formatTokens } from "@/lib/format";
@@ -21,6 +23,7 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
  * チャット欄の右下の丸いメーター: コンテキストウィンドウの使用率。
  * 押すと、コンテキストの詳細とプランの使用枠を出す（もう一度押す・ポップオーバーの外を押す・Esc で閉じる。マウスを乗せただけでは出さない）。
  * 会話を圧縮している間（手で圧縮した・上限に近づいて自動で）は、弧を回して知らせる（終わるとコンテキストの大きさが届き、弧が縮む）。
+ * 設定で自動圧縮を始める使用率を決めていれば、円の外にそこを指す矢印を、詳細の棒に縦線を出す（Claude Code の既定のままなら出さない）。
  * 作業中の「会話を圧縮」は「このやり取りのあとで圧縮」（予約。終わったら送信待ちより先にすぐ圧縮する）になり、予約中は「取り消す」を出す。
  */
 export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; compacting: CompactingState | null; compactNext: boolean }) {
@@ -36,6 +39,11 @@ export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; co
   const tokens = chat.context_tokens ?? 0;
   const windowSize = chat.context_window;
   const pct = windowSize ? Math.min(100, Math.round((tokens / windowSize) * 100)) : 0;
+  // 自動圧縮が始まるところ（設定で決めたときだけ。トークン数と、窓に対する %）
+  const compactPct = useAppSettings().data?.auto_compact_pct ?? null;
+  const compactAt = compactPct === null ? null : autoCompactThreshold(windowSize, compactPct);
+  const markPct = compactAt !== null && windowSize ? (compactAt / windowSize) * 100 : null;
+  const markText = compactAt !== null && markPct !== null ? `${Math.round(markPct)}%（${formatTokens(compactAt)} トークン）で自動圧縮` : null;
 
   const usage = planUsage?.usage;
   const windows: UsageWindow[] = usage?.available
@@ -64,13 +72,13 @@ export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; co
       <button
         type="button"
         className="context-ring-button"
-        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${compactNext ? "・このやり取りのあとで圧縮します" : ""}`}
+        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${markText ? `・${markText}` : ""}${compactNext ? "・このやり取りのあとで圧縮します" : ""}`}
         aria-busy={compacting ? true : undefined}
         aria-expanded={open}
         title={open ? "閉じる" : compactingText ? `${compactingText}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストと使用枠の詳細を表示"}
         onClick={popover.toggle}
       >
-        <Ring pct={pct} compacting={compacting !== null} />
+        <Ring pct={pct} mark={markPct} compacting={compacting !== null} />
       </button>
       {open && (
         <Popover anchor={popover.anchor} side="above" align="end" gap={8} label="コンテキストウィンドウと使用枠" className="context-popover" onClose={popover.close}>
@@ -85,7 +93,11 @@ export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; co
               )}
             </div>
             {/* どれだけ使っているかを、数字だけでなく棒でも見せる（使用枠と同じバー） */}
-            <UsageBar percent={pct} label="コンテキストウィンドウの使用率" valueText={`${pct}% 使用`} />
+            <UsageBar percent={pct} mark={markPct} label="コンテキストウィンドウの使用率" valueText={`${pct}% 使用`} />
+            {/* 自動圧縮が始まるところ（設定の「チャット」で決める） */}
+            <div className="context-sub">
+              {markText ?? "自動圧縮: Claude Code の既定（上限の少し手前）"}（設定の「チャット」で変更）
+            </div>
             {/* チャットの見出しの行を隠していても見られるよう、見出しのターン数と API 換算をここにも出す */}
             <div className="context-sub">
               {chat.num_turns > 0 && `${chat.num_turns} ターン · `}セッションコスト: ${chat.cost_usd.toFixed(2)}（API 換算）
@@ -149,12 +161,15 @@ export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; co
 /** 圧縮している間に回す弧の長さ（%） */
 const COMPACTING_ARC = 28;
 
-/** 丸い進み具合（使用率に合わせて弧が伸びる。圧縮している間は、短い弧をアクセントの色で回す（使用率が高いときは弧がほぼ一周で、回しても分かりにくいため）） */
-function Ring({ pct, compacting }: { pct: number; compacting: boolean }) {
+/**
+ * 丸い進み具合（使用率に合わせて弧が伸びる。圧縮している間は、短い弧をアクセントの色で回す（使用率が高いときは弧がほぼ一周で、回しても分かりにくいため））。
+ * mark があれば、円の外にその位置（自動圧縮が始まるところ）を指す小さな矢印を出す（円の大きさは変えず、矢印の分だけ描く範囲を外へ広げる）
+ */
+function Ring({ pct, mark, compacting }: { pct: number; mark: number | null; compacting: boolean }) {
   const r = 7;
   const c = 2 * Math.PI * r;
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" className={cx("context-ring", `tone-${tone(pct)}`, compacting && "compacting")} aria-hidden>
+    <svg width="24" height="24" viewBox="-3 -3 24 24" className={cx("context-ring", `tone-${tone(pct)}`, compacting && "compacting")} aria-hidden>
       <circle cx="9" cy="9" r={r} className="context-ring-track" />
       <circle
         cx="9"
@@ -164,6 +179,8 @@ function Ring({ pct, compacting }: { pct: number; compacting: boolean }) {
         strokeDasharray={`${(c * (compacting ? COMPACTING_ARC : pct)) / 100} ${c}`}
         transform="rotate(-90 9 9)"
       />
+      {/* 真上（0%）に描いた内向きの矢印を、位置の分だけ回す（50% なら真下） */}
+      {mark !== null && !compacting && <path className="context-ring-mark" d="M9 0.6 L7.1 -2.4 L10.9 -2.4 Z" transform={`rotate(${(mark * 3.6).toFixed(1)} 9 9)`} />}
     </svg>
   );
 }

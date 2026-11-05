@@ -45,6 +45,7 @@
 }
 
 .meter-track {
+  position: relative;
   display: block;
   height: 8px;
   overflow: hidden;
@@ -92,3 +93,12 @@
   min-width: 2.5em;
 }
 
+/* 目印の縦線（UsageBar の mark。コンテキストの自動圧縮が始まるところ） */
+.meter-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+}

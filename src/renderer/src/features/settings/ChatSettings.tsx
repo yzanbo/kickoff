@@ -17,7 +17,10 @@ const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
   { value: 30, label: "30 日" },
 ];
 
-/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・通信が切れて止まったときの自動の再開・✕ を押したときの扱い・作業中の作業場所で始めるときの扱い） */
+/** 自動圧縮を始める使用率の選択肢（null は Claude Code の既定） */
+const COMPACT_CHOICES: (number | null)[] = [null, 30, 40, 50, 60, 70, 80, 90];
+
+/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・自動圧縮を始める量・通信が切れて止まったときの自動の再開・✕ を押したときの扱い・作業中の作業場所で始めるときの扱い） */
 export function ChatSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
   // ✕ を押したときの扱い（この Mac の画面の設定なので、選んだらすぐ反映する）
@@ -44,6 +47,21 @@ export function ChatSettings() {
             ))}
           </select>
         </Field>
+        <Field
+          label="自動圧縮を始める量"
+          help="コンテキストウィンドウをこの割合まで使ったら、Claude Code が会話を自動で要約してコンテキストを空けます（200k の窓で 50% なら 100k トークン）。早めにすると、長い作業でも上限の手前で慌てて圧縮せずに済みますが、要約の回数は増えます。次に送ったやり取りから効きます。チャット欄の円の外の矢印と、円を押した詳細の棒の縦線が、その位置です。"
+        >
+          <select
+            value={draft.auto_compact_pct ?? ""}
+            onChange={(e) => setDraft({ ...draft, auto_compact_pct: e.target.value ? Number(e.target.value) : null })}
+          >
+            {COMPACT_CHOICES.map((pct) => (
+              <option key={pct ?? "default"} value={pct ?? ""}>
+                {pct === null ? "Claude Code の既定（上限の少し手前）" : `コンテキストの ${pct}% を使ったら`}
+              </option>
+            ))}
+          </select>
+        </Field>
         <CheckField
           label="通信が切れて止まったら、つながったときに自動で再開する"
           help="作業中に Wi-Fi が切れるなどして止まったチャットに、つながったら「続けて」を送ります。続けて 3 回止まったら、再開するかをチャットの中で聞きます。止まっている間、送信待ちの指示は送らずに止めておきます。"
@@ -54,7 +72,9 @@ export function ChatSettings() {
       <SaveActions
         save={save}
         disabled={!dirty}
-        onSave={() => saveFields({ auto_archive_days: draft.auto_archive_days, auto_resume_on_reconnect: draft.auto_resume_on_reconnect })}
+        onSave={() =>
+          saveFields({ auto_archive_days: draft.auto_archive_days, auto_compact_pct: draft.auto_compact_pct, auto_resume_on_reconnect: draft.auto_resume_on_reconnect })
+        }
       />
       <div className="form">
         <Field
