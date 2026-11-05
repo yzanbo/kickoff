@@ -28,6 +28,7 @@
 @import "./ui/empty-state.css";
 @import "./chat/chat.css";
 @import "./chat/chat-tools.css";
+@import "./chat/tool-status.css";
 @import "./chat/command-live.css";
 @import "./chat/messages.css";
 @import "./chat/chat-find.css";
