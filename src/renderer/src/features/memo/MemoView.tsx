@@ -1,4 +1,4 @@
-import { FileCode2, FolderSearch, Save, Type } from "lucide-react";
+import { CodeXml, Eye, FolderSearch, Save } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
@@ -93,8 +93,9 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
           value={view}
           onChange={setView}
           options={[
-            { value: "preview", label: "Markdown", icon: Type, tip: "見出し・太字・リストなどを整えて見せる（カーソルのある行だけ記号を見せる）" },
-            { value: "edit", label: "そのまま", icon: FileCode2, tip: "記号もそのまま見せる" },
+            // アイコンだけ（名前と説明は乗せたときに出す）。整えて見せる = 目、記号のまま = ソースの </>
+            { value: "preview", label: "Markdown で表示（見出し・太字・リストなどを整えて見せる。カーソルのある行だけ記号を見せる）", icon: Eye, iconOnly: true },
+            { value: "edit", label: "そのまま表示（Markdown の記号もそのまま見せる）", icon: CodeXml, iconOnly: true },
           ]}
         />
         {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(`${dir}/${path}`)} />}
