@@ -114,6 +114,11 @@ dialog[open] {
   max-width: none;
 }
 
+/* 保存のボタンのあとに続くフォーム（設定の「チャット」の「✕ を押したとき」など）は、ボタンとの間を空ける（くっついて見えた） */
+.tabbed-dialog-content .dialog-actions + .form {
+  margin-top: 28px;
+}
+
 /* 設定の「通知」: テスト通知を送る・Mac の通知の設定を開く・結果 */
 .notification-test {
   display: flex;
