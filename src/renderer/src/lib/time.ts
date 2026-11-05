@@ -125,12 +125,12 @@ export function formatRunTime(ms: number): string {
 }
 
 /**
- * 終わった処理の範囲と実行時間（"08:34:12 – 08:36:40（実行時間 2分28秒）"）。
+ * 終わった処理の範囲と実行時間（"08:34:12 – 08:36:40 · 2分28秒"。1 件の行の「始めた時刻 · かかった時間」と同じ形）。
  * 始まりと終わりが同じ秒で時刻が 1 つだけになるときは、実行時間を添えない
  */
 export function formatStampRangeWithRunTime(start: string, end: string, now = new Date()): string {
   const range = formatStampRange(start, end, now);
-  return range === formatStamp(start, now) ? range : `${range}（実行時間 ${formatRunTime(Date.parse(end) - Date.parse(start))}）`;
+  return range === formatStamp(start, now) ? range : `${range} · ${formatRunTime(Date.parse(end) - Date.parse(start))}`;
 }
 
 /** 年月日と秒までの時刻（"2026/11/5 08:34:12"。処理の時刻に乗せたときの title に） */

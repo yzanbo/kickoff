@@ -6,7 +6,7 @@ import { callDuration, toolSpan } from "./toolTimes";
 
 /**
  * ツールのまとまりの時刻（見出しの要約の後ろ）。実行中は「最初に始めた時刻 – 最後に始めた時刻」（回る印は左端の状態のアイコン）、
- * 終われば「最初に始めた時刻 – 最後に終わった時刻（実行時間 ◯分◯秒）」。今日なら時刻だけ、別の日なら日付も。乗せると年月日とかかった時間
+ * 終われば「最初に始めた時刻 – 最後に終わった時刻 · ◯分◯秒」（1 件の行と同じ形）。今日なら時刻だけ、別の日なら日付も。乗せると年月日とかかった時間
  */
 export function GroupTime({ tools, running }: { tools: ToolCall[]; running: boolean }) {
   const { start, latestStart, end } = toolSpan(tools);
