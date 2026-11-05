@@ -17,6 +17,7 @@ import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { flattenTree, subagentTree } from "./subagentTree";
+import { agentHues } from "./agentHues";
 
 /**
  * チャット欄の上の「サブエージェント N 件」（流れの中のカードの目次）。押すと一覧が開き（入れ子は親のすぐ下に字下げして並べる）、
@@ -37,6 +38,8 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
   const [archivedKeys, saveArchived] = useSetting(subagentsArchived(chat.id));
   const archived = useMemo(() => new Set(archivedKeys), [archivedKeys]);
+  // 色はカード・動きと同じ（隠したものも含めた一覧全体の、起動した順）
+  const hues = useMemo(() => agentHues(entries), [entries]);
 
   if (entries.length === 0) return null;
   // 新しいものを上に（入れ子は親のすぐ下に、起動した順で）
@@ -83,7 +86,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
         role="button"
         tabIndex={0}
         className={`subagent-row status-${s.status} ${isArchived ? "archived" : ""}`}
-        style={depth > 0 ? ({ "--depth": Math.min(depth, 4) } as CSSProperties) : undefined}
+        style={{ ...(depth > 0 ? { "--depth": Math.min(depth, 4) } : {}), "--agent-hue": `${hues.get(s.key) ?? 0}` } as CSSProperties}
         onClick={() => openRow(s.key)}
         onKeyDown={(e) => e.key === "Enter" && openRow(s.key)}
       >
@@ -91,7 +94,10 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
           <ClaudeMark size={16} />
         </span>
         <span className="subagent-text">
-          <span className="subagent-title">{s.description}</span>
+          <span className="subagent-title">
+            <span className="agent-dot" aria-hidden />
+            {s.description}
+          </span>
           <span className="subagent-meta">
             {meta.join(" · ")}
             {showsSubagentStatus(s) && <span className={`subagent-status ${subagentStatusClass(s)}`} title={subagentStatusTitle(s)}> · {subagentStatusLabel(s)}</span>}

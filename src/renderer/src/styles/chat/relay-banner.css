@@ -1,0 +1,35 @@
+/* チャット欄の宛先の札（カードの「伝える」。送るとメインのエージェントから SendMessage で渡す） */
+.relay-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.relay-banner-icon {
+  flex: none;
+  color: var(--accent-bright);
+}
+
+.relay-banner-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relay-banner-note {
+  flex: none;
+  margin-right: auto;
+  color: var(--muted);
+}
+
+.composer-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}

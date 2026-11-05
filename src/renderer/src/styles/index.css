@@ -42,6 +42,8 @@
 @import "./chat/composer-select.css";
 @import "./chat/subagents.css";
 @import "./chat/subagent-card.css";
+@import "./chat/subagent-window.css";
+@import "./chat/relay-banner.css";
 @import "./chat/context-meter.css";
 @import "./chat/attachments.css";
 @import "./ui/image-viewer.css";

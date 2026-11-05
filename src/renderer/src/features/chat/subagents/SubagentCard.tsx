@@ -15,6 +15,8 @@ import { Working } from "@/features/chat/status/Working";
 import { groupEvents, type TimelineItem, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool } from "@/features/chat/tools/toolDescribe";
 import { SubagentActions } from "./SubagentActions";
+import { SubagentWindow } from "./SubagentWindow";
+import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 import { useSubagentsView, type SubagentsView } from "./subagentsContext";
 import { childrenOf, latestActivity, pathOf, scopeOf } from "./subagentTree";
@@ -56,7 +58,12 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
     toggle();
   };
   return (
-    <div id={`ev-${call.use.id}`} className={cx("subagent-card", running && "running", open && "open", depth >= FLAT_DEPTH && "flat")} data-depth={depth}>
+    <div
+      id={`ev-${call.use.id}`}
+      className={cx("subagent-card", running && "running", open && "open", depth >= FLAT_DEPTH && "flat")}
+      data-depth={depth}
+      style={agentHueStyle(view.hues.get(key))}
+    >
       <div className="subagent-card-head" role="button" tabIndex={0} aria-expanded={open} onClick={toggle} onKeyDown={onKeyDown}>
         <ChevronRight size={14} className="tool-chevron" />
         <span className={cx("subagent-icon", running && "spinning")}>
@@ -99,7 +106,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
           )}
         </span>
       </div>
-      {open && <SubagentCardBody entry={entry} view={view} renderItems={renderItems} />}
+      {open && <SubagentCardBody entry={entry} view={view} renderItems={renderItems} windowed={depth === 0} />}
     </div>
   );
 }
@@ -181,8 +188,11 @@ function Summary({ entry, childCount }: { entry: SubagentEntry; childCount: numb
   return <span className="subagent-card-what muted">{parts.join(" · ")}</span>;
 }
 
-/** 開いたカードの中身: 親からの依頼（初めはたたむ）→ 発言・ツール・入れ子のカード → 親への報告 → 実行中の印 */
-function SubagentCardBody({ entry, view, renderItems }: { entry: SubagentEntry; view: SubagentsView; renderItems: RenderItems }) {
+/**
+ * 開いたカードの中身: 親からの依頼（初めはたたむ）→ 手順（発言・ツール・入れ子のカード・実行中の印）→ 親への報告。
+ * いちばん外側のカード（windowed）の手順は、高さを決めた窓の中に入れる（依頼と報告は窓の外で、いつも見える。入れ子のカードは窓の中でふつうに開く）
+ */
+function SubagentCardBody({ entry, view, renderItems, windowed }: { entry: SubagentEntry; view: SubagentsView; renderItems: RenderItems; windowed: boolean }) {
   const { key, agentId } = entry;
   const scope = scopeOf(entry);
   const scopeKey = scope.join(" ");
@@ -199,18 +209,29 @@ function SubagentCardBody({ entry, view, renderItems }: { entry: SubagentEntry; 
   }, [view.events, key, agentId, scopeKey]);
   const report = subagentReport(entry, view.events);
   const running = entry.status === "running";
+  const steps = (
+    <>
+      {items.length === 0 && <p className="muted small">{emptyText(entry, running)}</p>}
+      {renderItems(items, view.busy && running)}
+      {running && <Working>{workingText(entry)}</Working>}
+    </>
+  );
   return (
     <div className="subagent-card-body">
       {entry.prompt && <SubagentPrompt text={entry.prompt} />}
-      {items.length === 0 && <p className="muted small">{emptyText(entry, running)}</p>}
-      {renderItems(items, view.busy && running)}
+      {windowed ? (
+        <SubagentWindow cardKey={key} running={running}>
+          {steps}
+        </SubagentWindow>
+      ) : (
+        steps
+      )}
       {report && (
         <div className="subagent-result">
           <div className="subagent-label">親のエージェントへの報告</div>
           <Markdown>{report}</Markdown>
         </div>
       )}
-      {running && <Working>{workingText(entry)}</Working>}
     </div>
   );
 }

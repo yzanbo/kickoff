@@ -1,3 +1,4 @@
+import { useLayoutEffect } from "react";
 import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
@@ -75,6 +76,16 @@ export function ChatTimeline({
     endKey: busy ? (live.compacting !== null ? "compacting" : "working") : "idle",
   });
   const sticky = useStickyPrompt(scroll.ref, prompts, s.firstKey, s.lastKey);
+  // 流れの見えている高さを CSS の --timeline-h に入れる（サブエージェントのカードの窓を、その半分ほどの高さにする）
+  useLayoutEffect(() => {
+    const el = scroll.ref.current;
+    if (!el) return;
+    const measure = () => el.style.setProperty("--timeline-h", `${el.clientHeight}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [scroll]);
   // 作業中の行と一番下へ戻るボタンの文（1 回だけ組み立てる）
   const working = useWorkingStatus({ chat, events, last: w.last, streaming, live, agents, busy });
   const pill = useScrollPill({ away: s.away, waiting: approvals.length > 0, busy, chat, live, events, working });

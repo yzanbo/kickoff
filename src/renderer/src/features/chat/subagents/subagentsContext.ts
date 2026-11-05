@@ -12,6 +12,8 @@ export interface SubagentsView {
   busy: boolean;
   events: ChatEvent[];
   tree: SubagentTree;
+  /** サブエージェントの色相（起動した順。カードの縦線・目次の点・動きの線で同じ色。agentHues） */
+  hues: ReadonlyMap<string, number>;
 }
 
 /** ChatView が配る（チャットの画面の外では null） */
