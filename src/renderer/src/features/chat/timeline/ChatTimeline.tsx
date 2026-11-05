@@ -37,6 +37,7 @@ export function ChatTimeline({
   prompts,
   visible,
   pillDock,
+  hidden,
 }: {
   /** 描く範囲（長いチャットでは最近の項目だけ。窓の外の上・下の項目の数と、それを足す・最新に戻す操作） */
   window: TimelineWindow;
@@ -64,6 +65,8 @@ export function ChatTimeline({
   visible: boolean;
   /** 一番下へ戻るボタンを置くピルの列の右端（入る幅があれば、流れに浮かせずそこに置く） */
   pillDock?: HTMLElement | null;
+  /** 動きを見せている間は隠す（描いたまま残し、読んでいた位置・開いたカードを保つ） */
+  hidden?: boolean;
 }) {
   const pane = useChatPane();
   const s = useTimelineScroll({
@@ -94,7 +97,7 @@ export function ChatTimeline({
   const pinned = sticky.pinned;
 
   return (
-    <div className="timeline-wrap">
+    <div className="timeline-wrap" hidden={hidden}>
       {/* 押すとピントが入り、↑↓・PageUp / PageDown・End でもスクロールできる（枠は出さない） */}
       <div
         className="timeline"

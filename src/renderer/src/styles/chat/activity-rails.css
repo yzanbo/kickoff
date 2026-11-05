@@ -1,0 +1,128 @@
+/* ==== 動きの 1 行の並び（時刻・線・中身）と、左の線（メインの線から枝分かれするサブエージェントの線・節） ==== */
+
+/*
+ * 1 行: 時刻・線・中身（誰が・何を・かかった時間）。線は行の高さいっぱいに引き（広げたツールの行も通す）、節は 1 行目の高さの真ん中（--node-y）。
+ * 色は持ち主のサブエージェントの色（--agent-hue。カードの帯・目次の点と同じ）、メインは灰色
+ */
+.activity-row {
+  --node-y: 13px;
+  --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
+  display: grid;
+  grid-template-columns: var(--activity-time-w, 62px) auto minmax(0, 1fr);
+  column-gap: 6px;
+}
+
+.activity-time {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 26px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.activity-rails {
+  position: relative;
+  align-self: stretch;
+  min-height: 26px;
+}
+
+.activity-rails > * {
+  --rail-color: hsl(var(--agent-hue, 25) 60% 65%);
+}
+
+.activity-rails > .main {
+  --rail-color: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+
+.rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--rail-color);
+}
+
+.rail.from-node {
+  top: var(--node-y);
+}
+
+.rail.to-node {
+  bottom: auto;
+  height: var(--node-y);
+}
+
+.rail.from-node.to-node {
+  height: 0;
+}
+
+/* 起動の行: 親の節から右へ出て、子の線へ曲がって入る */
+.rail-branch {
+  position: absolute;
+  top: calc(var(--node-y) - 1px);
+  height: 10px;
+  border-top: 2px solid var(--rail-color);
+  border-right: 2px solid var(--rail-color);
+  border-top-right-radius: 8px;
+}
+
+.rail-node {
+  position: absolute;
+  top: calc(var(--node-y) - 4px);
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--agent-color);
+}
+
+.activity-row.main .rail-node {
+  background: var(--muted);
+}
+
+/* 自分の指示は白抜きの丸、起動は少し大きく、終わりはひし形、失敗は赤、実行中は明滅 */
+.activity-row.kind-prompt .rail-node {
+  border: 2px solid var(--text);
+  background: var(--bg);
+}
+
+.activity-row.kind-launch .rail-node {
+  top: calc(var(--node-y) - 5px);
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+}
+
+.activity-row.kind-end .rail-node {
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+
+.activity-row.failed .rail-node {
+  background: var(--ng);
+}
+
+.activity-row.running .rail-node {
+  animation: activity-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes activity-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ライトでは、色を地に負けない濃さに */
+:root[data-theme="light"] .activity-row {
+  --agent-color: hsl(var(--agent-hue, 25) 55% 42%);
+}
+
+:root[data-theme="light"] .activity-rails > * {
+  --rail-color: hsl(var(--agent-hue, 25) 55% 42%);
+}
+
+/* メインの線はライトでも灰色（上の規則より詳しく指定して勝たせる。行の --agent-hue を受け継がない） */
+:root[data-theme="light"] .activity-rails > .main {
+  --rail-color: color-mix(in srgb, var(--muted) 55%, transparent);
+}

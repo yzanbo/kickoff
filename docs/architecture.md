@@ -30,6 +30,7 @@
 | 権限モード | `PermissionMode` | `PermissionChoice` |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
+| 会話 / 動き（チャットの画面の見え方。動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 
 ## 2. 名前の決まり
 

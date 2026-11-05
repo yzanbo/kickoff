@@ -101,7 +101,14 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
   const [pane] = useState<ChatPaneActions>(() => {
     const now = () => latest.current;
     const chatId = chat.id;
-    const state = createValueCell<ChatPaneState>({ retry, openSubagents: new Set(), fullSubagents: new Set(), relayTarget: null });
+    const state = createValueCell<ChatPaneState>({
+      retry,
+      openSubagents: new Set(),
+      fullSubagents: new Set(),
+      showing: "conversation",
+      activityFilter: { kind: "all" },
+      relayTarget: null,
+    });
     const patch = (next: Partial<ChatPaneState>) => state.set({ ...state.get(), ...next });
     /** 描いたあとに、その記録の要素へ移る（開いたカードの中身が描かれるまで、数フレーム待つ） */
     const jumpWhenDrawn = (eventId: number, frames = 20) => {
@@ -109,20 +116,20 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
       if (el && jumpToEvent(el, eventId)) return;
       if (frames > 0) requestAnimationFrame(() => jumpWhenDrawn(eventId, frames - 1));
     };
-    return {
+    const actions: ChatPaneActions = {
       chatId,
       root: rootRef,
-      revealSubagent: (key) => {
+      revealSubagent: (key, inside) => {
         const path = pathOf(now().tree, key);
         const target = path.at(-1);
         if (!target) return;
-        // 外側のカードから自分まで開き、いちばん外側のカードを窓に入れてから移る
-        patch({ openSubagents: new Set([...state.get().openSubagents, ...path.map((s) => s.key)]) });
+        // 外側のカードから自分まで開き、いちばん外側のカードを窓に入れてから移る（動きを見せていれば会話に戻す）
+        patch({ openSubagents: new Set([...state.get().openSubagents, ...path.map((s) => s.key)]), showing: "conversation" });
         scroll.release();
         const root = path[0].toolUseEventId;
         if (root !== undefined) now().timeline.reveal(root);
         // 開いた状態が描かれてから移る（先に移ると、描き直しで強調の印が消える）
-        const eventId = target.toolUseEventId;
+        const eventId = inside ?? target.toolUseEventId;
         if (eventId !== undefined) requestAnimationFrame(() => jumpWhenDrawn(eventId));
       },
       toggleSubagent: (key, open) => {
@@ -131,6 +138,16 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
         if (open ?? !current.has(key)) next.add(key);
         else next.delete(key);
         patch({ openSubagents: next });
+      },
+      show: (showing, filter) => patch({ showing, ...(filter ? { activityFilter: filter } : {}) }),
+      revealInConversation: (eventId, agent) => {
+        if (agent !== null) return actions.revealSubagent(agent, eventId);
+        patch({ showing: "conversation" });
+        if (eventId === undefined) return;
+        scroll.release();
+        // 会話を描き直してから移る（隠している間の流れの中では、移っても見えない）
+        if (now().timeline.reveal(eventId)) requestAnimationFrame(() => jumpWhenDrawn(eventId));
+        else setJumpTarget(eventId);
       },
       toggleSubagentFull: (key) => {
         const next = new Set(state.get().fullSubagents);
@@ -172,6 +189,7 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
       askInNewChat: onOpenNew && ((seed) => now().onOpenNew?.({ projectId: now().chat.project_id, group: now().chat.group_id ?? undefined }, seed)),
       state,
     };
+    return actions;
   });
   // 変わる様子を配る（変わったときだけ。読んでいる部品だけが描き直る）
   useLayoutEffect(() => {
