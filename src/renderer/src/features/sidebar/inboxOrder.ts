@@ -1,7 +1,7 @@
-// 自分待ちのチャットを、プロジェクトをまたいで急ぐ順に並べる（自分待ちの表示の「上にまとめる」「1 列にまとめる」）
+// 自分待ちのチャットを、状態順（プロジェクトをまたいで急ぐもの順）・プロジェクト別に並べる（自分待ちの表示の並べ方）
 import type { AgentState, Approval, Chat } from "@shared/types";
 
-/** 見出しの順（急ぐ順）: 回答待ち（承認・質問で AI が止まっている）→ エラー → 未読 */
+/** 見出しの順（状態順。急ぐものが先）: 回答待ち（承認・質問で AI が止まっている）→ エラー → 未読 */
 export const INBOX_STATES = ["needs_input", "failed", "unread"] as const satisfies readonly AgentState[];
 export type InboxState = (typeof INBOX_STATES)[number];
 
@@ -22,7 +22,7 @@ export function waitingSince(chat: Chat, state: AgentState, approvals: readonly 
 }
 
 /**
- * 自分待ちのチャット（アーカイブしたものは除く）を急ぐ順の見出しに分け、見出しの中は待っている時間の長い順（待ち始めた時刻の古いものが上）に並べる。
+ * 自分待ちのチャット（アーカイブしたものは除く）を状態順の見出しに分け、見出しの中は待っている時間の長い順（待ち始めた時刻の古いものが上）に並べる。
  * 空の見出しは返さない
  */
 export function inboxSections(
@@ -42,5 +42,26 @@ export function inboxSections(
   return INBOX_STATES.flatMap((state) => {
     const list = byState.get(state);
     return list ? [{ state, chats: list.sort((a, b) => a.at - b.at || a.chat.id - b.chat.id).map((x) => x.chat) }] : [];
+  });
+}
+
+export interface InboxProjectSection<P> {
+  project: P;
+  chats: Chat[];
+}
+
+/**
+ * 自分待ちのチャットを、プロジェクト別の見出しに分ける（自分待ちの表示の「上にまとめる × プロジェクト別」）。見出しはサイドバーのプロジェクトの並び（projects の順）、
+ * 見出しの中は状態順（inboxSections と同じく回答待ち → エラー → 未読、その中は待っている時間の長い順）。待っているチャットのないプロジェクトは返さない
+ */
+export function inboxByProject<P extends { id: number }>(
+  projects: readonly P[],
+  chatsOf: (projectId: number) => readonly Chat[],
+  stateOf: (chat: Chat) => AgentState,
+  since: (chat: Chat, state: AgentState) => string,
+): InboxProjectSection<P>[] {
+  return projects.flatMap((project) => {
+    const chats = inboxSections(chatsOf(project.id), stateOf, since).flatMap((s) => s.chats);
+    return chats.length ? [{ project, chats }] : [];
   });
 }

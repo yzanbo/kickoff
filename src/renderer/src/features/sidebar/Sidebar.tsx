@@ -14,9 +14,9 @@ import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { IconButton } from "@/ui/IconButton";
-import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { useWaitingView, WAITING_VIEW_META, WAITING_VIEWS, type WaitingView } from "./waitingView";
+import { useWaitingView } from "./waitingView";
+import { WaitingViewMenu } from "./WaitingViewMenu";
 
 interface Props {
   sidebar: SidebarController;
@@ -79,7 +79,7 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
         </a>
         {/*
           自分待ちは画面ではなく一覧の絞り込みなので、オンは開いている画面の印（active）と別の見た目（on と「オン」の札）。
-          右クリックで、オンのときの表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）を選ぶ（選ぶとオンにする）
+          右クリックで、オンのときの表示（出し方 = 自分待ちだけ / 上にまとめる、並べ方 = プロジェクト別 / 状態順）を選ぶ（選ぶとオンにする）
         */}
         <button
           className={cx("nav-row waiting-toggle", waitingOnly && "on")}
@@ -93,13 +93,9 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
           {waitingCount > 0 && <span className="count-badge">{waitingCount}</span>}
         </button>
         {waitingMenu.menu && (
-          <ChoiceMenu
+          <WaitingViewMenu
             at={waitingMenu.menu.at}
-            title="自分待ちの表示"
-            values={WAITING_VIEWS}
-            labels={Object.fromEntries(WAITING_VIEWS.map((v) => [v, WAITING_VIEW_META[v].label])) as Record<WaitingView, string>}
-            icons={Object.fromEntries(WAITING_VIEWS.map((v) => [v, WAITING_VIEW_META[v].icon]))}
-            value={waitingView}
+            view={waitingView}
             ignore=".waiting-toggle"
             onPick={(view) => {
               setWaitingView(view);

@@ -41,12 +41,12 @@ export const PROJECT_TAG_FILTER = defineSetting("kickoff:project-tag-filter", li
 // サイドバーのチャットの並べ方（どのプロジェクトでも同じ）
 /** チャットのまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別） */
 export const SIDEBAR_CHAT_SECTIONS = defineSetting("kickoff:sidebar-chat-sections", choice(["none", "group", "worktree"], "group"));
-/** チャットの並び順（recent = 新しい順 / status = 状態別） */
+/** チャットの並び順（recent = 最近動いた順 / status = 状態順） */
 export const SIDEBAR_CHAT_ORDER = defineSetting("kickoff:sidebar-chat-order", choice(["recent", "status"], "recent"));
 /** 自分待ち（回答待ち・未読）のチャットだけを出すか */
 export const SIDEBAR_WAITING_ONLY = defineSetting("kickoff:sidebar-waiting-only", flag());
-/** 自分待ちがオンのときの表示（filter = プロジェクトで絞る / inbox = 一覧の上にまとめる / list = 1 列にまとめる） */
-export const SIDEBAR_WAITING_VIEW = defineSetting("kickoff:sidebar-waiting-view", choice(["filter", "inbox", "list"], "filter"));
+/** 自分待ちがオンのときの表示（出し方 × 並べ方。filter = 自分待ちだけ × プロジェクト別 / list = 自分待ちだけ × 状態順 / inbox = 上にまとめる × 状態順 / inbox-project = 上にまとめる × プロジェクト別。sidebar/waitingAxes.ts） */
+export const SIDEBAR_WAITING_VIEW = defineSetting("kickoff:sidebar-waiting-view", choice(["filter", "inbox", "list", "inbox-project"], "filter"));
 /** チャットを 1 行で出すか（2 行目のブランチを隠す） */
 export const SIDEBAR_COMPACT = defineSetting("kickoff:sidebar-compact", flag(true));
 /** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブ・ボードの絞り込みで共通） */

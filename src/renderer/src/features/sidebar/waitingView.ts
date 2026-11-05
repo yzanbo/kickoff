@@ -1,17 +1,34 @@
-import { ArrowUpToLine, ListFilter, ListOrdered, type LucideIcon } from "lucide-react";
+import { ArrowUpToLine, FolderTree, ListFilter, ListTree, type LucideIcon } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import type { SettingValue } from "@/lib/storage";
 import { SIDEBAR_WAITING_VIEW } from "@/lib/storageKeys";
+import type { WaitingOrder, WaitingScope, WaitingView } from "./waitingAxes";
 
-/** 自分待ちがオンのときの表示: filter = プロジェクトで絞る / inbox = 一覧の上にまとめる / list = 1 列にまとめる */
-export type WaitingView = SettingValue<typeof SIDEBAR_WAITING_VIEW>;
-export const WAITING_VIEWS: readonly WaitingView[] = ["filter", "inbox", "list"];
+// 保存する値の一覧が、2 つの軸で扱う表示（waitingAxes.ts）と食い違わないことを型で確かめる
+const _views: readonly WaitingView[] = SIDEBAR_WAITING_VIEW.choices;
+void _views;
 
-/** 表示の名前（見出しのボタンの短い名前・メニューの説明）とアイコン */
-export const WAITING_VIEW_META: Record<WaitingView, { icon: LucideIcon; short: string; label: string }> = {
-  filter: { icon: ListFilter, short: "絞る", label: "プロジェクトで絞る（待っているチャットのあるプロジェクトだけを並べる）" },
-  inbox: { icon: ArrowUpToLine, short: "上にまとめる", label: "上にまとめる（待っているチャットを一覧の上に。その下はすべて）" },
-  list: { icon: ListOrdered, short: "1 列", label: "1 列にまとめる（プロジェクトをまたいで急ぐ順に並べる）" },
+/** 名前とアイコン（見出しの「自分待ち」の行の 2 つの切り替え・上の行の「自分待ち」の右クリックで共通） */
+interface AxisMeta {
+  icon: LucideIcon;
+  /** 切り替えに出す短い名前 */
+  short: string;
+  /** 説明（乗せたとき・メニュー） */
+  label: string;
+}
+
+/** 出し方（自分待ちだけ / 上にまとめる） */
+export const WAITING_SCOPE_META: Record<WaitingScope, AxisMeta> = {
+  only: { icon: ListFilter, short: "自分待ちだけ", label: "自分待ちだけ（待っているチャットだけを並べる）" },
+  top: { icon: ArrowUpToLine, short: "上にまとめる", label: "上にまとめる（待っているチャットを一覧の上に。その下はすべて）" },
+};
+
+/**
+ * 並べ方（プロジェクト別 / 状態順）。「〜別」は見出しに分ける、「〜順」は並べる順（チャットの並び順の「最近動いた順 / 状態順」と同じ言い方）。
+ * 状態順のアイコンはチャットの並び順の状態順と同じ
+ */
+export const WAITING_ORDER_META: Record<WaitingOrder, AxisMeta> = {
+  project: { icon: FolderTree, short: "プロジェクト別", label: "プロジェクト別（プロジェクトの見出しに分ける）" },
+  status: { icon: ListTree, short: "状態順", label: "状態順（プロジェクトをまたいで、回答待ち → エラー → 未読の見出しに分ける）" },
 };
 
 /** 自分待ちがオンのときの表示（どの部品から読んでもそろう） */
