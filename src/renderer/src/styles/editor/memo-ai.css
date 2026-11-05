@@ -1,28 +1,6 @@
-/* ==== メモの AI の整理（見出しの「AI で直す」のポップオーバー・本文の上の様子と案の差分） ==== */
+/* ==== メモの AI（会話の案の差分・選んだ部分の引用・選択の上の「AI と話す」・フォルダの整理案のダイアログ。会話の欄は memo-chat.css） ==== */
 
-.memo-ai-popover {
-  display: grid;
-  gap: 10px;
-  width: min(460px, calc(100vw - 32px));
-  padding: 12px 14px 14px;
-}
-
-/* 見出しの下は grid の間で空ける（見出しの下の余白と重ねない） */
-.memo-ai-popover .popover-head {
-  margin-bottom: 0;
-}
-
-.memo-ai-scope {
-  margin: 0;
-}
-
-.memo-ai-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* 選んだ部分（どの文を直すか。長ければ中でスクロール） */
+/* 選んだ部分の引用（どの文の話か。長ければ中でスクロール） */
 .memo-ai-quote {
   max-height: 120px;
   margin: 0;
@@ -37,46 +15,6 @@
   background: var(--bg);
 }
 
-/* 頼みの欄（長い頼みも書けるよう、4 行から書いた分だけ伸ばし、画面の 4 割を超えたら中でスクロール） */
-.memo-ai-input {
-  field-sizing: content;
-  min-height: calc(4lh + 16px);
-  max-height: 40vh;
-  font-size: 13px;
-  resize: none;
-}
-
-.memo-ai-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* 本文の上の 1 行（頼んでいる間・失敗・案の見出しと取り込む / やめる） */
-.memo-ai-bar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-  padding: 6px var(--gutter) 6px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--accent-fg);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.memo-ai-bar.error {
-  color: var(--ng);
-  background: color-mix(in srgb, var(--ng) 8%, transparent);
-}
-
-.memo-ai-bar-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .memo-ai-spin {
   flex: none;
   animation: memo-ai-pulse 1.2s ease-in-out infinite;
@@ -86,15 +24,6 @@
   50% {
     opacity: 0.35;
   }
-}
-
-/* 案: 見出しの行と、行ごとの差分（本文の上の半分まで。長ければその中でスクロール） */
-.memo-ai-proposal {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  max-height: 50%;
-  border-bottom: 1px solid var(--border-strong);
 }
 
 .memo-ai-diff {
@@ -187,7 +116,7 @@
   grid-column: 2;
 }
 
-/* 本文で範囲を選んだときに、その上に出す「AI で直す」（CodeMirror の吹き出し。押すと同じポップオーバーをここから開く） */
+/* 本文で範囲を選んだときに、その上に出す「AI と話す」（CodeMirror の吹き出し。押すとメモの会話の欄を開く） */
 .md-editor .cm-tooltip.memo-ai-tip {
   border: none;
   background: transparent;
@@ -210,12 +139,4 @@
 
 .memo-ai-tip-button:hover {
   background: var(--bg-hover);
-}
-
-/* 選択から頼みの欄を開くときの基準（選んだ行の上端・下端の座標に置く見えない印。エディタの行は描き直されて消えるため） */
-.memo-ai-anchor {
-  position: fixed;
-  width: 1px;
-  height: 1px;
-  pointer-events: none;
 }

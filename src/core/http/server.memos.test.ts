@@ -99,22 +99,23 @@ test("チャットの文からメモ: 「<チャット名> チャットメモ<n>
   assert.equal((await call("POST", `${base}/memos/from-chat`, { chat_id: otherChat.id, text: "x", summarize: false, append_to: null, folder: null })).status, 400);
 });
 
-test("メモの AI: 直した文を返すだけで保存しない（sonnet で聞き、全体を囲む ``` は外す）・選んだ部分のときはそう伝える", async () => {
+test("メモの AI: 会話の返事と変更の案を返すだけで保存しない（sonnet で聞く。選んだ部分がないのに selection の案なら案は付けない）", async () => {
   const { call, project, provider } = setup();
   const base = `/api/projects/${project.id}`;
   await call("POST", `${base}/memos`, { path: "a.md", content: "# 元\n" });
-  provider.askReply = "```markdown\n# 直した\n```";
-  const edited = await call("POST", `${base}/memo/ai`, { text: "# 元\n", instruction: "整理して", part: false });
-  assert.equal(edited.status, 200);
-  assert.deepEqual(edited.body, { text: "# 直した" });
+  provider.askReply = '表にしました。\n<memo-edit target="selection">\n| 形式 |\n</memo-edit>';
+  const messages = [{ role: "user", text: "表にして" }];
+  const withSel = await call("POST", `${base}/memo/chat`, { messages, memo: "# 元\n- Excel", selection: "- Excel" });
+  assert.equal(withSel.status, 200);
+  assert.deepEqual(withSel.body, { reply: "表にしました。", edit: { target: "selection", text: "| 形式 |" } });
   assert.equal(provider.asked[0].model, "sonnet");
-  assert.match(provider.asked[0].prompt, /頼み: 整理して/);
+  assert.match(provider.asked[0].prompt, /利用者: 表にして$/);
+  const noSel = await call("POST", `${base}/memo/chat`, { messages, memo: "# 元", selection: null });
+  assert.deepEqual(noSel.body, { reply: "表にしました。", edit: null });
   assert.equal((await call("GET", `${base}/memo?path=a.md`)).body.content, "# 元\n");
-  await call("POST", `${base}/memo/ai`, { text: "- x", instruction: "短く", part: true });
-  assert.match(provider.asked[1].prompt, /選んだ部分/);
-  // 空の文・空の頼みは 400
-  assert.equal((await call("POST", `${base}/memo/ai`, { text: "  ", instruction: "整理", part: false })).status, 400);
-  assert.equal((await call("POST", `${base}/memo/ai`, { text: "x", instruction: " ", part: false })).status, 400);
+  // 最後が利用者の空でない発言でなければ 400
+  assert.equal((await call("POST", `${base}/memo/chat`, { messages: [{ role: "assistant", text: "x" }], memo: "", selection: null })).status, 400);
+  assert.equal((await call("POST", `${base}/memo/chat`, { messages: [{ role: "user", text: " " }], memo: "", selection: null })).status, 400);
 });
 
 test("メモの AI: フォルダの整理案は使える案だけを返し、動かさない（メモがなければ AI に聞かない）", async () => {

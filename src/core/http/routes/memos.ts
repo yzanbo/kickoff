@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import type { MemoAiEditBody, MemoAiEditResult, MemoAiPlanBody, MemoCreateBody, MemoDefaults, MemoFromChatBody, MemoMoveBody, MemoWriteBody } from "@shared/types";
+import type { MemoAiPlanBody, MemoChatBody, MemoCreateBody, MemoDefaults, MemoFromChatBody, MemoMoveBody, MemoWriteBody } from "@shared/types";
 import { MAX_MEMO_AI_CHARS } from "../../memos/memoAi.js";
 import { MAX_MEMO_SOURCE_CHARS } from "../../memos/memos.js";
 import type { ServerDeps } from "../server.js";
@@ -23,11 +23,18 @@ const fromChatSchema = z.object({
   folder: repoPath.nullable(),
 }) satisfies z.ZodType<MemoFromChatBody>;
 const instructionText = z.string().trim().min(1).max(2000);
-const aiEditSchema = z.object({ text: z.string().max(MAX_MEMO_AI_CHARS), instruction: instructionText, part: z.boolean() }) satisfies z.ZodType<MemoAiEditBody>;
+const chatSchema = z.object({
+  messages: z
+    .array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(MAX_MEMO_AI_CHARS) }))
+    .min(1)
+    .max(200),
+  memo: z.string().max(MAX_MEMO_CHARS),
+  selection: z.string().max(MAX_MEMO_AI_CHARS).nullable(),
+}) satisfies z.ZodType<MemoChatBody>;
 const aiPlanSchema = z.object({ instruction: instructionText.nullable() }) satisfies z.ZodType<MemoAiPlanBody>;
 
 /**
- * プロジェクトのメモ（一覧・中身・保存・作成・名前の変更と移動・ゴミ箱・チャットの文から作る・AI の整理（内容を直した文・フォルダの整理案。どちらも書き換えない））。
+ * プロジェクトのメモ（一覧・中身・保存・作成・名前の変更と移動・ゴミ箱・チャットの文から作る・AI（メモについての会話・フォルダの整理案。どちらも書き換えない））。
  * 保存先はプロジェクトの外（設定の memos_dir の下の、プロジェクトごとのフォルダ）。パスはメモのフォルダからの相対
  */
 export function memoRoutes(app: Hono, { store, memos }: ServerDeps) {
@@ -64,12 +71,12 @@ export function memoRoutes(app: Hono, { store, memos }: ServerDeps) {
     return c.body(null, 204);
   });
 
-  // AI で直した文を返す（保存しない。取り込むかは画面で決める）
-  app.post("/api/projects/:id/memo/ai", withProject, async (c) => {
-    const body = aiEditSchema.parse(await jsonBody(c));
-    if (!body.text.trim()) throw new Invalid("直す文がありません");
-    const text = await memos.aiEdit(c.var.project, { text: body.text, instruction: body.instruction, part: body.part });
-    return c.json({ text } satisfies MemoAiEditResult);
+  // メモについての会話の返事（保存しない。変更の案を取り込むかは画面で決める）。最後の発言は利用者の空でない発言
+  app.post("/api/projects/:id/memo/chat", withProject, async (c) => {
+    const body = chatSchema.parse(await jsonBody(c));
+    const last = body.messages.at(-1);
+    if (last?.role !== "user" || !last.text.trim()) throw new Invalid("話しかける文がありません");
+    return c.json(await memos.aiChat(c.var.project, body));
   });
 
   // フォルダの整理案を返す（動かさない）

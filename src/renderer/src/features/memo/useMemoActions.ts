@@ -4,6 +4,7 @@ import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { memosStore } from "@/stores/memos";
 import { confirmDialog, promptDialog, reportFailure } from "@/ui/dialogs";
+import { forgetMemoChats, moveMemoChats } from "./memoChats";
 import { baseName, joinMemoPath, memoTitle, parentOf, remapPath, renamedPath } from "./memoPaths";
 
 /**
@@ -57,6 +58,7 @@ export function useMemoActions(
   const move = async (from: string, to: string) => {
     if (from === to || !(await beforeChange(from))) return;
     await api.moveMemo(projectId, from, to).then(() => {
+      moveMemoChats(projectId, from, to);
       refresh();
       onMoved(from, to);
     }, reportFailure("動かせませんでした"));
@@ -83,6 +85,7 @@ export function useMemoActions(
     });
     if (!ok || !(await beforeChange(path))) return;
     await api.trashMemo(projectId, path).then(() => {
+      forgetMemoChats(projectId, path);
       refresh();
       onTrashed(path);
     }, reportFailure("ゴミ箱に入れられませんでした"));
@@ -99,6 +102,7 @@ export function useMemoActions(
       if (!(await beforeChange(m.from))) continue;
       try {
         await api.moveMemo(projectId, m.from, m.to);
+        moveMemoChats(projectId, m.from, m.to);
         onMoved(m.from, m.to);
         moved++;
       } catch (e) {

@@ -197,6 +197,12 @@ export const memoOpenFolders = defineSettingFamily("kickoff:memo-open-folders:",
 export const MEMO_VIEW = defineSetting("kickoff:memo-view", choice(["edit", "preview"], "preview"));
 /** まだ保存していないメモ（キーは「プロジェクト:メモのパス」。値は書いたものと、書き始めたときのメモの指紋。保存する・捨てると消す。アプリを閉じても残す） */
 export const memoDraft = defineSettingFamily("kickoff:memo-draft:", json(parseMemoDraft, null, (v) => v === null), { ids: true });
+/** メモの会話（キーは「プロジェクト:メモのパス」。値は発言と返事の列（新しい 100 件まで）。名前を変える・動かすと付いていく。アプリを閉じても残す） */
+export const memoChat = defineSettingFamily("kickoff:memo-chat:", json(parseMemoChat, [], (v) => v.length === 0), { ids: true });
+/** メモの会話の欄（本文の右）を開いているか（どのメモでも同じ） */
+export const MEMO_CHAT_OPEN = defineSetting("kickoff:memo-chat-open", flag(false));
+/** メモの会話の欄の幅（本文の右に並べたとき。境目のつまみで変える） */
+export const MEMO_CHAT_WIDTH = defineSetting("kickoff:memo-chat-width", number(380));
 /** チャットの画面の右の欄の「変更」で確認済みにしたファイル（キーは「プロジェクト:ワークツリーのフォルダ（本体は空）」。値はパス → 確認したときの差分の指紋） */
 export const sideViewedFiles = defineSettingFamily("kickoff:side-viewed:", record(isString), { ids: true });
 
@@ -216,6 +222,23 @@ export interface MemoDraft {
   text: string;
   /** 書き始めたときのメモの指紋（いまのメモと違えば、ほかで変わっている） */
   hash: string;
+}
+
+/** メモの会話の 1 件（memoChat の値の要素）。selection は話したときに選んでいた部分、edit は AI の変更の案（どこを何に。取り込んだら applied） */
+export interface MemoChatEntry {
+  role: "user" | "assistant";
+  text: string;
+  selection?: string;
+  edit?: { from: number; to: number; original: string; text: string; part: boolean; applied?: boolean };
+  /** 返事の代わりの失敗の文 */
+  error?: boolean;
+}
+
+function parseMemoChat(value: unknown): MemoChatEntry[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.filter(
+    (e): e is MemoChatEntry => !!e && typeof e === "object" && (e.role === "user" || e.role === "assistant") && typeof (e as { text?: unknown }).text === "string",
+  );
 }
 
 function parseMemoDraft(value: unknown): MemoDraft | null | undefined {

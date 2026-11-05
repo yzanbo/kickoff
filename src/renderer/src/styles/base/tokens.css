@@ -102,6 +102,7 @@
  *   --agents-w   チャットの画面の右の欄（サブエージェントの欄）の幅・--agents-shown 開き終えたときの幅（AgentSplit.tsx → useCoverableWidth.ts）
  *   --bottom-h   下のパネルの高さ（useBottomPanel.ts）
  *   --chat-w     プロジェクトのチャット欄の幅（useProjectChat.ts・ProjectChat.tsx）
+ *   --memo-chat-w メモの会話の欄の幅（MemoView.tsx）
  *   --depth      ファイルの木の段の深さ（FileTree.tsx）
  *   --tone       状態ごとのチャット数の色（サイドバー HeadCounts.tsx・画面の見出し StateStats.tsx）
  *   --ws-hue     プロジェクトの色相（ProjectMark.tsx・WorkspacePage.tsx（固定のピンの色）・WorkspaceDots.tsx・BasicInfo.tsx）

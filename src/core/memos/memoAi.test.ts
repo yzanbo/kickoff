@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { memoEditPrompt, memoPlanPrompt, parseMemoPlan, unwrapFence } from "./memoAi.js";
+import { memoChatPrompt, memoPlanPrompt, parseMemoChatReply, parseMemoPlan, stripEchoedFrame, unwrapFence } from "./memoAi.js";
 
 const entries = [
   { path: "設計", dir: true },
@@ -10,15 +10,47 @@ const entries = [
   { path: "readme.md", dir: false },
 ];
 
-test("memoEditPrompt: 頼みと本文を入れ、選んだ部分のときは前後とつながるよう添える", () => {
-  const all = memoEditPrompt("# 本文", " 整理して ", false);
-  assert.match(all, /Markdown のメモを、頼みに沿って/);
-  assert.match(all, /頼み: 整理して\n/);
-  assert.ok(all.endsWith("---\n# 本文"));
-  assert.doesNotMatch(all, /前後の文につながる/);
-  const part = memoEditPrompt("- a", "短く", true);
-  assert.match(part, /メモの一部（選んだ部分）/);
-  assert.match(part, /前後の文につながる/);
+test("memoChatPrompt: メモ・選んだ部分・会話を入れ、選んだ部分の有無で案の的を変える", () => {
+  const messages = [
+    { role: "user" as const, text: "機能案を考えたい" },
+    { role: "assistant" as const, text: "どんな利用者向けですか？" },
+    { role: "user" as const, text: "反映して" },
+  ];
+  const all = memoChatPrompt(messages, "# 機能案", null);
+  assert.match(all, /\n<memo>\n# 機能案\n<\/memo>/);
+  assert.match(all, /target="memo"/);
+  assert.doesNotMatch(all, /# 選んだ部分/);
+  assert.ok(all.endsWith("利用者: 機能案を考えたい\nAI: どんな利用者向けですか？\n利用者: 反映して"));
+  const part = memoChatPrompt(messages, "", "- エクセル");
+  assert.match(part, /target="selection"/);
+  assert.match(part, /\n<selection>\n- エクセル\n<\/selection>/);
+  assert.match(part, /（まだ空）/);
+});
+
+test("memoChatPrompt: 長い会話は新しいものから残す", () => {
+  const long = Array.from({ length: 40 }, (_, i) => ({ role: "user" as const, text: `${i}:${"あ".repeat(1500)}` }));
+  const prompt = memoChatPrompt(long, "", null);
+  assert.match(prompt, /利用者: 39:/);
+  assert.doesNotMatch(prompt, /利用者: 0:/);
+});
+
+test("parseMemoChatReply: 返事と変更の案を分ける（案は最後のもの。印がなければ案なし）", () => {
+  assert.deepEqual(parseMemoChatReply("  いいですね。どの形式から？ "), { reply: "いいですね。どの形式から？", edit: null });
+  assert.deepEqual(parseMemoChatReply('表にしました。\n<memo-edit target="selection">\n| 形式 |\n|---|\n| Excel |\n</memo-edit>\n確認してください'), {
+    reply: "表にしました。\n\n確認してください",
+    edit: { target: "selection", text: "| 形式 |\n|---|\n| Excel |" },
+  });
+  // 閉じていない・``` で囲んだ案・空の案
+  assert.deepEqual(parseMemoChatReply('まとめます\n<memo-edit target="memo">\n```markdown\n# 案\n```'), { reply: "まとめます", edit: { target: "memo", text: "# 案" } });
+  assert.deepEqual(parseMemoChatReply('<memo-edit target="memo">\n</memo-edit>'), { reply: "", edit: null });
+});
+
+test("stripEchoedFrame: 元の文にない「---」・印の囲みだけを外す", () => {
+  assert.equal(stripEchoedFrame("---\n# 機能案\n\n- 共有\n\n---", "# 機能案"), "# 機能案\n\n- 共有");
+  assert.equal(stripEchoedFrame("<memo>\n# 案\n</memo>", "# 案"), "# 案");
+  // 元のメモがフロントマターで始まる・囲みがない
+  assert.equal(stripEchoedFrame("---\ntitle: x\n---", "---\ntitle: y\n---"), "---\ntitle: x\n---");
+  assert.equal(stripEchoedFrame("# 案\n---", "# 案"), "# 案\n---");
 });
 
 test("unwrapFence: 全体を囲む ``` だけを外す（中にあるコードの囲みは残す）", () => {
