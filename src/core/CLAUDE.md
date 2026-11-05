@@ -74,14 +74,15 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 
 ## メモ（memos/）
 
-- プロジェクトの「メモ」タブのメモは、プロジェクトの外のフォルダの Markdown（DB に入れない。Finder・ほかのアプリでも開け、Kickoff を作り直しても残る）。画面の説明は `src/renderer/src/features/memo/CLAUDE.md`。
+- プロジェクトの「メモ」タブのメモは、プロジェクトの外のフォルダの Markdown と HTML（HTML と CSS で書くページのメモ。種類は拡張子で決める `@shared/memo/kinds` の `memoKindOf`。DB に入れない。Finder・ほかのアプリでも開け、Kickoff を作り直しても残る）。画面の説明は `src/renderer/src/features/memo/CLAUDE.md`。
 - フォルダは `MemoService.dirOf(project)`: プロジェクトの `memo_path`（このプロジェクトだけ別の場所）があればそこ、なければ設定の `memos_dir`（null なら既定の `~/Documents/<保存先のフォルダ名> メモ`。`startCore` が決める。開発版は「Kickoff Dev メモ」）の下の `memo_folder`。`memo_folder` は初めて使ったときにプロジェクト名から決めて覚える（`@shared/memo/names` の `safeMemoName`。ほかのプロジェクトのフォルダ名とは `uniqueMemoName` で重ねない）。
 - パスはメモのフォルダからの相対で受け、`git/files.ts` の `assertInside` で外を断る。「.」で始まる名前（隠しファイル）は扱わない。中身の読み書きはエディタのファイルと同じ `readProjectFile` / `writeProjectFile`（保存は開いたときの指紋と比べて 409）。一覧は隠しファイル・リンクを除いて 5000 件まで。ゴミ箱へは `/usr/bin/trash`（テストでは差し替える）。
 - 変えたら SSE の `memos`（`project_id` と変えたメモ。ゴミ箱は null）を出す。Kickoff の外での変更は知らせない（画面がウィンドウに戻ったときなどに取り直す）。
-- チャットの文から作る（`fromChat`）: 新しいメモは `chatMemoName` の「<チャット名> チャットメモ<n>.md」（見出し・出どころの行 `memoSourceLine`・本文）、追記は区切り線を挟んで最後に足す。要約はプロジェクトのプロバイダーの `summarize`（対応していなければ 400）。
-- メモのチャット: メモごとに 1 つのふつうのチャット（`chats.memo_path`。`POST /api/projects/:id/memo/chat` で最初の指示を送って作る（メモがなければ 404、もうあれば 409）。続きはふつうのチャットと同じ API）。作業場所はプロジェクトのまま（コードも読める）で、実行のときにメモのフォルダを読み書きできる場所に足し、どのメモの横で話しているかをシステムプロンプトに書く（`Runner` の `memoDirOf` → `turn.ts` の `buildTurnParams`・`policy.ts` の `buildSystemPrompt` の `memo`）。AI はメモのファイルを直接書き換え、ツールの結果が届くたびに SSE の `memos` を出す（開いているメモが、書きかけでなければ読み直す）。メモの名前を変える・動かすと `store.chats.remapMemoPath` で付け替え、ゴミ箱に入れたら、そのメモのチャット（作業中でないもの）をアーカイブする。
+- チャットの文から作る（`fromChat`）: 新しいメモは `chatMemoName` の「<チャット名> チャットメモ<n>.md」（見出し・出どころの行 `memoSourceLine`・本文）、追記は区切り線を挟んで最後に足す（Markdown のメモだけ。HTML のメモは 400）。
+- HTML のメモが相対パスで読むファイル（CSS・画像・フォント）: `GET /api/projects/:id/memo/file/<メモのフォルダからの相対パス>` が `MemoService.asset` で中身をそのまま返す（拡張子で Content-Type、`Content-Security-Policy: sandbox`・`nosniff`。リンクの先もメモのフォルダの中だけ、50MB まで）。パスは URL の生のパスから段ごとに解く。画面は HTML のメモの `<base>` をここに向ける。要約はプロジェクトのプロバイダーの `summarize`（対応していなければ 400）。
+- メモのチャット: メモごとに 1 つのふつうのチャット（`chats.memo_path`。`POST /api/projects/:id/memo/chat` で最初の指示を送って作る（メモがなければ 404、もうあれば 409）。続きはふつうのチャットと同じ API）。作業場所はプロジェクトのまま（コードも読める）で、実行のときにメモのフォルダを読み書きできる場所に足し、どのメモの横で話しているかと、HTML のメモなら HTML と CSS で書くこと（JavaScript・インターネット上の画像やフォントは使えない）をシステムプロンプトに書く（`Runner` の `memoDirOf` → `turn.ts` の `buildTurnParams`・`policy.ts` の `buildSystemPrompt` の `memo`）。AI はメモのファイルを直接書き換え、ツールの結果が届くたびに SSE の `memos` を出す（開いているメモが、書きかけでなければ読み直す）。メモの名前を変える・動かすと `store.chats.remapMemoPath` で付け替え、ゴミ箱に入れたら、そのメモのチャット（作業中でないもの）をアーカイブする。
 - AI のフォルダの整理案（`memoAi.ts`。動かさず、案を返すだけ）: `aiPlan`（メモのパスと書き出しを見せて、名前の変更・移動の案を JSON で受け、使える案だけを残す `parseMemoPlan`: 一覧にないメモ・使えない行き先・拡張子が変わる・行き先が重なる・もうある名前は除く）。プロジェクトのプロバイダーの `ask`（sonnet）で聞く。
-- API は `http/routes/memos.ts`（`GET /api/memos/defaults`・`GET /api/projects/:id/memos`・`GET|PUT|DELETE /api/projects/:id/memo`・`POST /api/projects/:id/memos`（作る）・`/memos/move`・`/memos/from-chat`・メモのチャットを始める `POST /api/projects/:id/memo/chat`・AI の整理案 `POST /api/projects/:id/memos/ai-plan`）。
+- API は `http/routes/memos.ts`（`GET /api/memos/defaults`・`GET /api/projects/:id/memos`・`GET|PUT|DELETE /api/projects/:id/memo`・HTML のメモが読むファイル `GET /api/projects/:id/memo/file/*`・`POST /api/projects/:id/memos`（作る）・`/memos/move`・`/memos/from-chat`・メモのチャットを始める `POST /api/projects/:id/memo/chat`・AI の整理案 `POST /api/projects/:id/memos/ai-plan`）。
 
 ## テスト
 

@@ -2,6 +2,7 @@
 // パスはメモのフォルダからの相対で受け、フォルダの外を指さないか必ず確かめる（中身の読み書きはエディタのファイルと同じ readProjectFile / writeProjectFile）
 import fs from "node:fs/promises";
 import path from "node:path";
+import { memoKindOf } from "@shared/memo/kinds";
 import { chatMemoName, safeMemoName, uniqueMemoName } from "@shared/memo/names";
 import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoPlan, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
 import type { Store } from "../db/store.js";
@@ -14,6 +15,9 @@ import { memoPlanPrompt, parseMemoPlan, type PlanFile } from "./memoAi.js";
 
 /** 一覧に出す数の上限（大きなフォルダを指しても重くならないように） */
 const MAX_ENTRIES = 5000;
+
+/** HTML のメモが読むファイル（CSS・画像・フォント）の大きさの上限（バイト） */
+const MAX_ASSET_BYTES = 50 * 1024 * 1024;
 
 /** チャットから作るメモの元の文の上限（文字） */
 export const MAX_MEMO_SOURCE_CHARS = 200_000;
@@ -99,6 +103,20 @@ export class MemoService {
     return readProjectFile(await this.existingDir(project), file);
   }
 
+  /** メモのフォルダのファイルの中身そのもの（HTML のメモが相対パスで読む CSS・画像など。なければ 404・大きすぎれば 400） */
+  async asset(project: Project, file: string): Promise<Buffer> {
+    const dir = await this.existingDir(project);
+    const target = await assertInside(dir, file);
+    // リンクをたどった先も、メモのフォルダの中だけにする
+    const real = await fs.realpath(target).catch(() => null);
+    if (!real) throw new NotFound(`ファイルが見つかりません: ${file}`);
+    if (!isWithin(await fs.realpath(dir), real)) throw new Invalid("メモのフォルダの外のファイルです");
+    const stat = await fs.stat(real);
+    if (!stat.isFile()) throw new NotFound(`ファイルが見つかりません: ${file}`);
+    if (stat.size > MAX_ASSET_BYTES) throw new Invalid("大きすぎるので読み込みません");
+    return fs.readFile(real);
+  }
+
   /** メモを保存する（開いたときの指紋 baseHash といまの中身が違えば 409。null なら上書き） */
   async write(project: Project, file: string, content: string, baseHash: string | null): Promise<SavedFile> {
     const saved = await writeProjectFile(await this.existingDir(project), file, content, baseHash);
@@ -158,6 +176,8 @@ export class MemoService {
     const body = input.summarize ? await this.summarize(project, input.text) : input.text.trim();
     const block = `${memoSourceLine(chat, new Date())}\n\n${body}\n`;
     if (input.appendTo) {
+      // HTML のメモの最後に Markdown の文を足すと、ページの外（</html> のあと）に出てしまうので足さない
+      if (memoKindOf(input.appendTo) !== "markdown") throw new Invalid("HTML のメモには追記できません（Markdown のメモを選んでください）");
       const current = await this.read(project, input.appendTo);
       if (current.binary || current.truncated) throw new Invalid("このメモには足せません（大きすぎるか、文字のファイルではありません）");
       const content = `${current.content.replace(/\s+$/, "")}\n\n---\n\n${block}`;

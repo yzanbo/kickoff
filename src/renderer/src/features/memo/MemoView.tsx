@@ -1,4 +1,5 @@
 import { CodeXml, Eye, FolderSearch, MessagesSquare, Save } from "lucide-react";
+import { memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
@@ -10,14 +11,27 @@ import { IconButton } from "@/ui/IconButton";
 import { reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
-import type { MemoEditorHandle } from "./MarkdownEditor";
+import { HtmlMemoPage } from "./HtmlMemoPage";
+import type { MemoEditorHandle } from "./MemoEditor";
 import { MemoChat, type MemoChatHandle } from "./MemoChat";
 import { memoTitle, parentOf } from "./memoPaths";
 import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
 import { useMemoEditMenu } from "./useMemoEditMenu";
 
 // 編集の部品（CodeMirror）は大きいので、メモを開いたときに初めて読み込む
-const MarkdownEditor = lazy(() => import("./MarkdownEditor"));
+const MemoEditor = lazy(() => import("./MemoEditor"));
+
+/** 表示の切り替えの説明（種類ごと。preview = 整えて見せる / edit = 中身をそのまま） */
+const VIEW_LABELS: Record<MemoKind, { preview: string; edit: string }> = {
+  markdown: {
+    preview: "Markdown で表示（見出し・太字・リストなどを整えて見せる。カーソルのある行だけ記号を見せる）",
+    edit: "そのまま表示（Markdown の記号もそのまま見せる）",
+  },
+  html: {
+    preview: "ページで表示（HTML と CSS を描いた見た目。ここでは書けない）",
+    edit: "ソースを表示（HTML と CSS をそのまま書く）",
+  },
+};
 
 /** 保存の様子の文（見出しの右） */
 const SAVE_LABELS: Record<MemoSaveState, string> = {
@@ -31,7 +45,8 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
 /**
  * 開いているメモ（見出しに題名とフォルダ・保存の様子・保存・表示の切り替え・Finder で表示）。
  * 表示は Markdown（Obsidian のライブプレビューと同じ。カーソルの行だけ記号を見せる）/ そのまま（記号もそのまま）。
- * どちらでも書けて、⌘S で保存する（書いている間は保存しない。まだ保存していない書きかけは残り、離れるときに聞く）。
+ * HTML のメモ（.html）は、ページ（描いた見た目。書けない）/ ソース（HTML をそのまま書く）。ソースの編集の部品はページの間も隠して置く（元に戻す履歴を残す）。
+ * 書いた所で ⌘S で保存する（書いている間は保存しない。まだ保存していない書きかけは残り、離れるときに聞く）。
  * 題名はいつでも書き換えられる欄（押せばそのままキャレットが入る。入力の画面に切り替えない）で、本文と同じく ⌘S（題名の欄では Enter も）で
  * 本文を保存してからファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）。Esc で元の題名に戻す
  */
@@ -72,6 +87,9 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
     if (!(await doc.save())) throw new Error("メモを保存できなかったので送りませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから送ってください）");
   };
   const [view, setView] = useSetting(MEMO_VIEW);
+  const kind = memoKindOf(path);
+  // HTML のメモをページで見ているか（ページの中身は、いま書いてあるもの。表示を切り替えた・読み直したときに描き直す）
+  const page = kind === "html" && view === "preview";
   const folder = parentOf(path);
   const unreadable = doc.file && (doc.file.binary || doc.file.truncated);
   const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error" || titleChanged;
@@ -116,8 +134,8 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
           onChange={setView}
           options={[
             // アイコンだけ（名前と説明は乗せたときに出す）。整えて見せる = 目、記号のまま = ソースの </>
-            { value: "preview", label: "Markdown で表示（見出し・太字・リストなどを整えて見せる。カーソルのある行だけ記号を見せる）", icon: Eye, iconOnly: true },
-            { value: "edit", label: "そのまま表示（Markdown の記号もそのまま見せる）", icon: CodeXml, iconOnly: true },
+            { value: "preview", label: VIEW_LABELS[kind].preview, icon: Eye, iconOnly: true },
+            { value: "edit", label: VIEW_LABELS[kind].edit, icon: CodeXml, iconOnly: true },
           ]}
         />
         {doc.initial !== null && !unreadable && (
@@ -158,11 +176,14 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
           <p className="muted small memo-message">{doc.file?.binary ? "文字のファイルではないので、ここでは開けません。Finder から開いてください。" : "大きすぎるので、ここでは開けません。"}</p>
         ) : (
           <>
+            {page && <HtmlMemoPage projectId={projectId} path={path} html={doc.text() ?? doc.initial} onContextMenu={editMenu.open} onSave={saveNow} />}
             <Suspense fallback={<p className="muted small memo-message">編集の準備中…</p>}>
-              <MarkdownEditor
+              <MemoEditor
                 key={`${path}:${doc.revision}`}
                 initialValue={doc.initial}
+                kind={kind}
                 live={view === "preview"}
+                hidden={page}
                 onChange={doc.change}
                 onSave={saveNow}
                 handleRef={editor}

@@ -102,7 +102,7 @@ function build(view: EditorView): DecorationSet {
   return Decoration.set(ranges, true);
 }
 
-/** Markdown 表示の飾り（MarkdownEditor が、表示の切り替えで付け外しする） */
+/** Markdown 表示の飾り（MemoEditor が、表示の切り替えで付け外しする） */
 export const livePreview = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;

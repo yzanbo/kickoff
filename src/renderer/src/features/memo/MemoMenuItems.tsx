@@ -15,9 +15,9 @@ export const RECENT_MEMOS = 12;
  */
 export function MemoMenuItems({ projectId, chatId, text }: { projectId: number; chatId: number; text: string }) {
   const append = useSubmenu();
-  // 一覧は追記の子のメニューを開いたときだけ読む
+  // 一覧は追記の子のメニューを開いたときだけ読む（追記できるのは Markdown のメモだけ）
   const list = useMemoList(projectId, append.anchor !== null);
-  const recent = useMemo(() => recentMemos(list.data?.entries ?? [], RECENT_MEMOS), [list.data]);
+  const recent = useMemo(() => recentMemos(list.data?.entries ?? [], RECENT_MEMOS, "markdown"), [list.data]);
   const add = (summarize: boolean, appendTo: string | null = null) => void addToMemo({ projectId, chatId, text, summarize, appendTo });
   return (
     <>

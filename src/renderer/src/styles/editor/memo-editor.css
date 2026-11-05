@@ -1,4 +1,4 @@
-/* ==== メモの編集（CodeMirror。features/memo/MarkdownEditor）: Markdown 表示（ライブプレビュー）とそのまま表示 ==== */
+/* ==== メモの編集（CodeMirror。features/memo/MemoEditor）: Markdown 表示（ライブプレビュー）とそのまま表示 ==== */
 
 /* 本文の上に AI の案（memo-ai.css）を出すときは、残りの高さを使う */
 .md-editor {
@@ -192,3 +192,12 @@
   background-color: var(--warn);
 }
 
+
+/* HTML のメモのページの表示（HtmlMemoPage）。中身のページの見た目のまま描くので、ページの既定と同じ白地に置く */
+.memo-html-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: #fff;
+}

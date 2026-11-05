@@ -20,6 +20,8 @@ test("名前の変更・移動のパス", () => {
   assert.equal(renamedPath("設計/DB.md", false, "データベース"), "設計/データベース.md");
   assert.equal(renamedPath("設計", true, "設計メモ"), "設計メモ");
   assert.equal(renamedPath("図.png", false, "図2.png"), "図2.png");
+  assert.equal(memoTitle("資料/計画.html"), "計画");
+  assert.equal(renamedPath("資料/計画.HTML", false, "企画"), "資料/企画.html");
   assert.equal(remapPath("設計/DB.md", "設計", "設計メモ"), "設計メモ/DB.md");
   assert.equal(remapPath("設計2/DB.md", "設計", "設計メモ"), "設計2/DB.md");
   assert.equal(remapPath("a.md", "a.md", "b/a.md"), "b/a.md");
@@ -27,9 +29,10 @@ test("名前の変更・移動のパス", () => {
   assert.deepEqual(ancestorsOf("a/b/c.md"), ["a", "a/b"]);
 });
 
-test("recentMemos: Markdown のファイルだけを、新しく変えた順に limit 件", () => {
-  const list = recentMemos([entry("設計", true), entry("a.md", false, "2026-11-01T00:00:00Z"), entry("b.md", false, "2026-11-03T00:00:00Z"), entry("c.txt", false, "2026-11-04T00:00:00Z"), entry("d.md", false, "2026-10-01T00:00:00Z")], 2);
-  assert.deepEqual(list.map((e) => e.path), ["b.md", "a.md"]);
+test("recentMemos: メモのファイルだけを、新しく変えた順に limit 件（種類を渡せばその種類だけ）", () => {
+  const entries = [entry("設計", true), entry("a.md", false, "2026-11-01T00:00:00Z"), entry("b.md", false, "2026-11-03T00:00:00Z"), entry("c.txt", false, "2026-11-04T00:00:00Z"), entry("d.md", false, "2026-10-01T00:00:00Z"), entry("e.html", false, "2026-11-02T00:00:00Z")];
+  assert.deepEqual(recentMemos(entries, 2).map((e) => e.path), ["b.md", "e.html"]);
+  assert.deepEqual(recentMemos(entries, 2, "markdown").map((e) => e.path), ["b.md", "a.md"]);
 });
 
 test("filterMemos: ファイルだけを名前で絞り、新しく変えた順", () => {
