@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Project, Chat } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { isTabVisible, type PaneLeaf } from "@/features/panel/layout/paneTree";
 import { panelActions } from "@/features/panel/state/panelActions";
@@ -31,8 +31,6 @@ interface Options {
   newChat: NewChatTarget | undefined;
   /** 開けるターミナルの場所（Mac のアプリでだけ使う。チャットを表示しているペインでは、そのチャットの作業場所で開く） */
   terminals: readonly TerminalTarget[];
-  /** 全プロジェクトの画面のフッターでは、新しいチャットのプロジェクトを選べるようにする（全プロジェクトのボードはパネルを持たない） */
-  projects?: Project[];
   /** 新しいチャットができたとき（URL をそのチャットにするなど） */
   onCreated?: (chat: Chat) => void;
   /**
@@ -51,7 +49,7 @@ export type PanelController = ReturnType<typeof usePanel>;
  * サイドバーと連動して自動で足すチャットのタブは一覧のペイン（homePane。分けた元のペイン）に入る）。
  * 表示は Panel。大きさ（幅・高さ・最大化）は欄の殻（useBoardPanel・useProjectChat・useBottomPanel）が持つ
  */
-export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, projects, onCreated, noChat = false }: Options) {
+export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, onCreated, noChat = false }: Options) {
   const key = panelKey(surface, scope);
   const state = usePanelState(key);
   const { tabs, layout, open: panelOpen } = state;
@@ -100,7 +98,6 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
     chats,
     /** チャットのタブのチャット（サイドバーの一覧にあれば最新のもの、なければタブの中のチャットから届いたもの） */
     chatOf: (tab: PanelTab | undefined) => tabChat(tab, chats),
-    projects,
     /** 開けるターミナルの場所（Mac のアプリでなければ空） */
     terminals: window.kickoff?.terminal ? terminals : NO_TERMINALS,
     /** 「新しいチャット」（欄が決めた作成先で始める。作成先がない = 出せるプロジェクトがなければ、チャットはプロジェクトの中で始めることを案内する） */
