@@ -1,7 +1,8 @@
-import { ArrowRightLeft, Columns2, Rows2, Undo2, X } from "lucide-react";
+import { ArrowRightLeft, Columns2, GitBranch, MessageSquare, Rows2, Undo2, X } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
+import { chatPaneAt, chatPaneSlot } from "@/features/chat/pane/chatPaneContext";
 import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneTree";
@@ -10,7 +11,8 @@ import type { PanelController } from "@/features/panel/usePanel";
 /**
  * 右のパネルのタブの右クリックのメニュー: 右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
  * 一覧のペインに「（一覧）」と添える）、分けたペインのサイドバーと連動したチャットは一覧のペインに戻す、閉じる。
- * チャットのタブには、サイドバーの行と同じチャットの項目（名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる
+ * チャットのタブには、会話 / 動きの切り替え（見出しの行を隠していても切り替えられるように）と、サイドバーの行と同じチャットの項目
+ * （名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを移動・アーカイブ・削除）も並べる
  */
 export function TabMenu({
   panel,
@@ -37,6 +39,19 @@ export function TabMenu({
   const homeId = panes.length > 1 && panel.kinds.has("chat") ? homePane(panel.layout).id : undefined;
   // 分けたペインにある、サイドバーと連動したチャット（× と同じく、一覧のペインへ戻せる）
   const canReturn = homeId !== undefined && pane.id !== homeId && panel.isLinkedTab(tabKey);
+  // そのタブで描いているチャットの画面（会話 / 動きを切り替える。描いていなければ出さない）
+  const chatPane = chat ? chatPaneAt(chatPaneSlot(panel.key, tabKey)) : undefined;
+  const activity = chatPane?.state.get().showing === "activity";
+  const showItem = chatPane && (
+    <MenuItem
+      onSelect={() => {
+        panel.showTab(tabKey);
+        chatPane.show(activity ? "conversation" : "activity");
+      }}
+    >
+      {activity ? <MessageSquare size={14} /> : <GitBranch size={14} />} {activity ? "会話に戻る" : "動きを見る"}
+    </MenuItem>
+  );
   const paneItems = (
     <>
       <MenuItem onSelect={() => panel.splitPane(pane.id, "row", "after", tabKey)}>
@@ -78,6 +93,8 @@ export function TabMenu({
           onError={(m) => void alertDialog("操作できませんでした", m)}
           before={
             <>
+              {showItem}
+              {showItem && <div className="menu-separator" role="separator" />}
               {paneItems}
               <div className="menu-separator" role="separator" />
             </>

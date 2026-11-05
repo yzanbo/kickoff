@@ -1,6 +1,6 @@
 import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_WIDE, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -76,6 +76,7 @@ function DisplaySettings() {
   const [compactComposer, setCompactComposer] = useSetting(COMPOSER_COMPACT);
   const [wideChat, setWideChat] = useSetting(CHAT_WIDE);
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
+  const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
@@ -117,6 +118,21 @@ function DisplaySettings() {
             options={[
               { value: "normal", label: "標準" },
               { value: "wide", label: "広げる" },
+            ]}
+          />
+        </Field>
+        <Field
+          label="チャットの見出し"
+          help="チャットの上の、プロジェクト・ブランチのバッジ、会話 / 動きの切り替え、検索欄、ターン数などが並ぶ行です。隠すと、その分チャットの縦の幅が広がります（動きを見ている間とアーカイブ済みのチャットでは出し、検索は ⌘F でチャットの右上に出ます）。⌥⌘T でも切り替えられ、出す項目はタブの列の「表示」→「見出しの項目」で 1 つずつ選べます。"
+        >
+          <Segmented<"show" | "hide">
+            className="segmented theme-switch"
+            label="チャットの見出し"
+            value={headerHidden ? "hide" : "show"}
+            onChange={(v) => setHeaderHidden(v === "hide")}
+            options={[
+              { value: "show", label: "表示する" },
+              { value: "hide", label: "隠す" },
             ]}
           />
         </Field>

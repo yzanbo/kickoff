@@ -132,8 +132,13 @@ export const QUEUE_HEIGHT = defineSetting("kickoff:queue-height", number(150));
 export const STICKY_PROMPT_EXPANDED = defineSetting("kickoff:sticky-prompt-expanded", flag());
 /** 上に貼り付ける自分の指示の帯を出さないか（設定の「表示」。どのチャットでも同じ） */
 export const STICKY_PROMPT_HIDDEN = defineSetting("kickoff:sticky-prompt-hidden", flag());
-/** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。見出しの「表示」のメニュー。どのチャットでも同じ） */
-export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list());
+/** チャットの見出しの行を隠すか（タブの列の「表示」・設定の「表示」・⌥⌘T。どのチャットでも同じ） */
+export const CHAT_HEADER_ROW_HIDDEN = defineSetting("kickoff:chat-header-row-hidden", flag());
+/**
+ * チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。タブの列の「表示」→「見出しの項目」。どのチャットでも同じ）。
+ * 初めは、タブの列の「表示」で切り替えられる文の幅と指示の帯のボタンを隠す
+ */
+export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list(Object.freeze(["textWidth", "sticky"])));
 /** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く） */
 export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag());
 /** チャットの文の幅を広げるか（どのチャットでも同じ） */

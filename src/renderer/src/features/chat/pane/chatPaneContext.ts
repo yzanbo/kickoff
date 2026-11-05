@@ -1,4 +1,4 @@
-import { createContext, useContext, useSyncExternalStore, type RefObject } from "react";
+import { createContext, useContext, useEffect, useSyncExternalStore, type RefObject } from "react";
 import type { EffortLevel } from "@shared/types";
 import type { ValueCell } from "@/lib/valueCell";
 import type { ComposerFill } from "@/features/chat/composer/composerHandle";
@@ -131,4 +131,26 @@ const noSubscribe = () => () => {};
 export function useChatPaneState<T>(select: (state: ChatPaneState) => T): T | undefined {
   const pane = useContext(ChatPaneContext);
   return useSyncExternalStore(pane ? pane.state.subscribe : noSubscribe, () => (pane ? select(pane.state.get()) : undefined));
+}
+
+/**
+ * パネルのタブごとの、開いているチャットの画面の操作（タブの右クリックから会話 / 動きを切り替えるため。見出しを隠していても切り替えられるように）。
+ * 置き場所は chatPaneSlot(パネル, タブ)。同じチャットをほかの欄でも開いていることがあるので、チャットの ID ではなくタブで引く
+ */
+const slots = new Map<string, ChatPaneActions>();
+
+export const chatPaneSlot = (panelKey: string, tabKey: string) => `${panelKey}\n${tabKey}`;
+
+/** そのタブで描いているチャットの画面の操作（描いていなければ undefined） */
+export const chatPaneAt = (slot: string): ChatPaneActions | undefined => slots.get(slot);
+
+/** チャットの画面を、そのタブの置き場所に登録する（描いている間だけ） */
+export function useChatPaneSlot(slot: string | undefined, pane: ChatPaneActions) {
+  useEffect(() => {
+    if (!slot) return;
+    slots.set(slot, pane);
+    return () => {
+      if (slots.get(slot) === pane) slots.delete(slot);
+    };
+  }, [slot, pane]);
 }

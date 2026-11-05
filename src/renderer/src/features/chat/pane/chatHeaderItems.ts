@@ -1,5 +1,5 @@
 /**
- * チャットの見出しの行に出す項目（見出しの「表示」のメニューで、項目ごとに表示・非表示を選ぶ）。
+ * チャットの見出しの行に出す項目（タブの列の「表示」→「見出しの項目」で、項目ごとに表示・非表示を選ぶ）。
  * 覚えるのは隠した項目だけ（CHAT_HEADER_HIDDEN）なので、項目を増やしても初めは表示になる
  */
 export const CHAT_HEADER_ITEMS = ["project", "worktree", "group", "showing", "textWidth", "sticky", "find", "turns", "cost"] as const;
@@ -20,7 +20,7 @@ export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
 /** 隠しても使えることの補足（メニューの項目に乗せたときに出す） */
 export const CHAT_HEADER_ITEM_NOTES: Partial<Record<ChatHeaderItem, string>> = {
   showing: "隠しても、動きを見ている間は出します（会話へ戻れるように）",
-  find: "隠しても、⌘F で検索欄が出ます（文を消すと隠れます）",
+  find: "隠しても、⌘F でチャットの右上に検索欄が出ます（文を消すと隠れます）",
 };
 
 /** メニューのまとまり（見出しの行の左から） */
@@ -39,4 +39,10 @@ export function hiddenHeaderItems(saved: readonly string[]): ReadonlySet<ChatHea
 export function toggleHeaderItem(saved: readonly string[], item: ChatHeaderItem): string[] {
   const hidden = hiddenHeaderItems(saved);
   return CHAT_HEADER_ITEMS.filter((i) => (i === item ? !hidden.has(i) : hidden.has(i)));
+}
+
+/** saved で、既定（initial）より多く隠している項目があるか（タブの列の「表示」のボタンの点。隠れた状態に気づけるように） */
+export function hidesMoreHeaderItems(saved: readonly string[], initial: readonly string[]): boolean {
+  const defaults = hiddenHeaderItems(initial);
+  return [...hiddenHeaderItems(saved)].some((i) => !defaults.has(i));
 }

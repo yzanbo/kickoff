@@ -1,22 +1,21 @@
 import { GitBranch, MessageSquare, PanelTop } from "lucide-react";
+import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
 import { STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 import { IconButton } from "@/ui/IconButton";
 import { Segmented } from "@/ui/Segmented";
-import { ChatFind } from "@/features/chat/find/ChatFind";
-import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { useChatPane, useChatPaneState, type ChatShowing } from "./chatPaneContext";
-import { useChatHeaderItems } from "./ChatHeaderView";
+import { useChatHeaderItems } from "./ChatDisplayMenu";
 import { TextWidthToggle } from "./TextWidthToggle";
 
 /**
  * チャットの見出しの行の右の道具: 会話 / 動きの切り替え（同じタブの中で見え方を変える。動きの間は、会話だけに効く道具を出さない）・文の幅（パネルの大きさは変えず、発言の流れとチャット欄の幅の上限を外す。パネルが狭くて変わらないときは押せない）・
  * 上に置く指示の帯の表示・非表示（出しているかは色で示す。どのチャットでも同じ）・このチャットの中の検索欄（いつもここにあり、⌘F でピントが入る）。
- * 見出しの「表示」で隠した道具は出さない。ただし会話 / 動きは、動きを見ている間は出し（会話へ戻れるように）、検索欄は隠していても
- * ⌘F でピントが入ったとき・文が残っている間だけ出す（concealed）
+ * タブの列の「表示」→「見出しの項目」で隠した道具は出さない。ただし会話 / 動きは、動きを見ている間は出す（会話へ戻れるように）。
+ * 検索欄は見出しが渡す（隠したときは見出しが浮かせて出すので、ここには null）
  */
-export function ChatHeaderTools({ items, version }: { items: TimelineItem[]; version: unknown }) {
+export function ChatHeaderTools({ find }: { find: ReactNode }) {
   const { root, show } = useChatPane();
   const showing = useChatPaneState((s) => s.showing) ?? "conversation";
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
@@ -58,7 +57,7 @@ export function ChatHeaderTools({ items, version }: { items: TimelineItem[]; ver
               onClick={() => setStickyHidden(!stickyHidden)}
             />
           )}
-          <ChatFind items={items} version={version} concealed={!shows("find")} />
+          {find}
         </>
       )}
     </>

@@ -2,6 +2,7 @@ import { lazy, Suspense, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BrowserPane } from "@/features/browser/BrowserPane";
 import { ChatPane } from "@/features/chat/pane/ChatPane";
+import { chatPaneSlot } from "@/features/chat/pane/chatPaneContext";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { NewChatPane } from "./NewChatPane";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
@@ -34,6 +35,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       onOpenNew={panel.openNew}
       // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
       onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, projectId: chat.project_id, chat } })}
+      slot={chatPaneSlot(panel.key, t.key)}
     />
   ),
   new: ({ tab: t, panel, visible }) => (

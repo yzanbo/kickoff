@@ -1,5 +1,7 @@
 import { focusChatComposer } from "@/features/chat/composer/composerKeys";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { readSetting, writeSetting } from "@/lib/storage";
+import { CHAT_HEADER_ROW_HIDDEN } from "@/lib/storageKeys";
 
 interface Actions {
   toggleSidebar: () => void;
@@ -14,10 +16,17 @@ interface Actions {
  * アプリ全体のショートカット: ⌘B サイドバーの開閉 / ⌘K 検索・移動 / ⌘F チャットを名前で探す /
  * ⌘⇧F チャットの中の文言を全文検索 / ⌘N / ⌘T 今のプロジェクトで新しいチャット（プロジェクトが 1 つもなければ、チャットはプロジェクトの中で始めることを案内して新しいプロジェクトへ誘う。⌘T はブラウザの「新しいタブ」と同じ手の動き。チャットは右のパネルのタブで開く） /
  * ⌘, 設定（Mac の環境設定と同じ）/ ⌘⇧A 作業中・回答待ち・未読のチャットの一覧（Chrome の「タブを検索」と同じキー）/
- * ⌘L チャット欄にピントを移す（ピントのあるパネルのチャット欄を優先）
+ * ⌘L チャット欄にピントを移す（ピントのあるパネルのチャット欄を優先）/
+ * ⌥⌘T チャットの見出しの行の表示・非表示（Finder・Safari の「ツールバーを隠す」と同じキー。どのチャットでも共通）
  */
 export function useAppShortcuts(actions: Actions) {
   useWindowEvent("keydown", (e) => {
+    // ⌥ を押すと文字が変わるので、キーの位置で見る
+    if (e.metaKey && e.altKey && !e.ctrlKey && !e.shiftKey && e.code === "KeyT") {
+      e.preventDefault();
+      writeSetting(CHAT_HEADER_ROW_HIDDEN, !readSetting(CHAT_HEADER_ROW_HIDDEN));
+      return;
+    }
     if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
     // Shift つきは ⌘⇧F と ⌘⇧A だけ受け付ける
     if (e.shiftKey && !["f", "a"].includes(e.key.toLowerCase())) return;

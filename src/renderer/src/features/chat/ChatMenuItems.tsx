@@ -47,7 +47,7 @@ export function ChatMenuItems({
     void fn().catch((e: unknown) => onError(errorMessage(e)));
   };
   return (
-    <div className="menu-items" onMouseOver={moving.onMenuHover}>
+    <div className="menu-items">
       {before}
       {onOpen && (
         <MenuItem onSelect={() => onOpen(chat)}>

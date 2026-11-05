@@ -11,6 +11,7 @@ import type { PanelController } from "@/features/panel/usePanel";
 import { PanelTab } from "./PanelTab";
 import type { PanelTab as Tab } from "./panelTypes";
 import { specOf } from "./tabKinds";
+import { useChatTabHint } from "./useChatTabHint";
 
 /**
  * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の表（tabKinds）から引き、チャットのタブはサイドバーの行と同じ状態の印を出す
@@ -53,6 +54,7 @@ export function PaneTab({
   const busyUnread = Boolean(chat && state && busyWithUnread(chat, state));
   const label = spec.label(t, chat);
   const group = spec.groupName?.(t, chat, groupName);
+  const chatHint = useChatTabHint(t.kind === "chat" ? chat : undefined, label, group);
   const backHome = !home && panel.isLinkedTab(t.key);
   const close = () => {
     if (backHome) return panel.returnToHome(t.key);
@@ -67,7 +69,7 @@ export function PaneTab({
       iconClass={spec.iconClass}
       label={label}
       group={showGroup ? group : undefined}
-      title={spec.hint?.(t) ?? (group ? `${label}（グループ: ${group}）` : label)}
+      title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group}）` : label)}
       className={cx(className, (state === "unread" || state === "failed" || busyUnread) && "unread")}
       extra={extra}
       onSelect={() => panel.showTab(t.key)}

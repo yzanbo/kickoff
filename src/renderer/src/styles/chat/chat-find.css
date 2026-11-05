@@ -58,11 +58,19 @@
 }
 
 /*
- * 見出しの「表示」で検索欄を隠したとき（concealed）: ⌘F でピントが入っている・文が残っている間だけ出す。
- * 隠している間もピントを受けられるよう、display: none にせず、場所を取らずに見えなくする（詳細度で上の @container の規則に勝つ）
+ * 見出しに出さないとき（見出しの行・項目を隠した）の検索欄（floating）: チャットの右上（見出しのすぐ下）に浮かせ、下の会話は動かさない。
+ * ⌘F でピントが入っている・文が残っている間だけ出し、ふだんはピントを受けられるよう、display: none にせず場所を取らずに見えなくする
+ * （詳細度で上の @container の規則に勝つ）
  */
-.chat-find.concealed:not(:focus-within, .active) {
+.chat-find.floating {
   position: absolute;
+  top: calc(100% + 6px);
+  right: var(--gutter);
+  z-index: 5;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+
+.chat-find.floating:not(:focus-within, .active) {
   width: 1px;
   height: 1px;
   padding: 0;

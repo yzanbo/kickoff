@@ -80,9 +80,9 @@ export function text(): Shape<string> {
 
 const NO_STRINGS: readonly string[] = Object.freeze([]);
 
-/** 文字列の配列（JSON。壊れた値は空、文字でない要素は捨てる） */
-export function list(): Shape<readonly string[]> {
-  return json((value) => (Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : undefined), NO_STRINGS);
+/** 文字列の配列（JSON。壊れた値は空、文字でない要素は捨てる）。initial は保存していないときの値（空にして保存したら空のまま） */
+export function list(initial: readonly string[] = NO_STRINGS): Shape<readonly string[]> {
+  return json((value) => (Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : undefined), initial);
 }
 
 const NO_ENTRIES: Readonly<Record<string, never>> = Object.freeze({});
