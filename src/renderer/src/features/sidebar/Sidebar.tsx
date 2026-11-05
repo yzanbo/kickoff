@@ -14,6 +14,9 @@ import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { IconButton } from "@/ui/IconButton";
+import { ChoiceMenu } from "@/ui/ChoiceMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
+import { useWaitingView, WAITING_VIEW_META, WAITING_VIEWS, type WaitingView } from "./waitingView";
 
 interface Props {
   sidebar: SidebarController;
@@ -34,6 +37,9 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   const groups = Object.fromEntries(projects.map((p) => [p.id, groupsOf(p.id)]));
   // 自分待ち（回答待ち・未読）のチャットだけを出す切り替えと、その数（しまったプロジェクトは数えない）。
   const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
+  // 自分待ちがオンのときの表示（上の行の「自分待ち」の右クリックで選ぶ）
+  const [waitingView, setWaitingView] = useWaitingView();
+  const waitingMenu = useContextMenu();
   // タグで絞り込んでいれば、出しているプロジェクトの分だけを数える（押して出る一覧と合わせる）
   const { visible } = useVisibleProjects();
   const waitingCount = visible.reduce((n, p) => n + waitingChats(chats[p.id] ?? [], pending).length, 0);
@@ -71,17 +77,37 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
         <a className={`nav-row ${route.name === "allProjects" ? "active" : ""}`} href={href({ name: "allProjects" })}>
           <LayoutGrid size={15} /> 全プロジェクト
         </a>
-        {/* 自分待ちは画面ではなく一覧の絞り込みなので、オンは開いている画面の印（active）と別の見た目（on と「オン」の札） */}
+        {/*
+          自分待ちは画面ではなく一覧の絞り込みなので、オンは開いている画面の印（active）と別の見た目（on と「オン」の札）。
+          右クリックで、オンのときの表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）を選ぶ（選ぶとオンにする）
+        */}
         <button
-          className={cx("nav-row", waitingOnly && "on")}
+          className={cx("nav-row waiting-toggle", waitingOnly && "on")}
           aria-pressed={waitingOnly}
-          title={waitingOnly ? "すべてのチャットを表示" : "回答待ち・未読のチャットだけを表示"}
+          title={waitingOnly ? "すべてのチャットを表示（右クリックで表示を選ぶ）" : "回答待ち・未読のチャットだけを表示（右クリックで表示を選ぶ）"}
           onClick={() => setWaitingOnly(!waitingOnly)}
+          onContextMenu={waitingMenu.open}
         >
           <Inbox size={15} /> 自分待ち
           {waitingOnly && <span className="nav-row-state">オン</span>}
           {waitingCount > 0 && <span className="count-badge">{waitingCount}</span>}
         </button>
+        {waitingMenu.menu && (
+          <ChoiceMenu
+            at={waitingMenu.menu.at}
+            title="自分待ちの表示"
+            values={WAITING_VIEWS}
+            labels={Object.fromEntries(WAITING_VIEWS.map((v) => [v, WAITING_VIEW_META[v].label])) as Record<WaitingView, string>}
+            icons={Object.fromEntries(WAITING_VIEWS.map((v) => [v, WAITING_VIEW_META[v].icon]))}
+            value={waitingView}
+            ignore=".waiting-toggle"
+            onPick={(view) => {
+              setWaitingView(view);
+              setWaitingOnly(true);
+            }}
+            onClose={waitingMenu.close}
+          />
+        )}
         <button className="nav-row" onClick={onSearch}>
           <Search size={15} /> 検索 <kbd>⌘K</kbd>
         </button>
