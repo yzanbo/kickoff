@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Setting } from "@/lib/storage";
 import { useDragSize } from "./useDragSize";
-import { useSetting } from "./useSetting";
+import { useOptionalSetting } from "./useSetting";
 
 /** 横幅いっぱいの切り替えで、欄の幅が動いている時間（tokens.css の --panel-motion-duration（0.24s）に少し足す） */
 const STRETCH_MS = 300;
@@ -24,8 +24,8 @@ export function leavesNarrowRest(whole: number, width: number, { gap, minRest }:
 interface CoverableWidthOptions extends CoverRules {
   /** 覚える欄の幅（px。ダブルクリックでその初めの値に戻す） */
   width: Setting<number>;
-  /** 横幅いっぱい（もう一方を覆う）にしているかを覚える設定 */
-  maximized: Setting<boolean>;
+  /** 横幅いっぱい（もう一方を覆う）にしているかを覚える設定（ない = 横幅いっぱいの切り替えを置かない欄。狭いときに覆うだけ） */
+  maximized?: Setting<boolean>;
   /** 欄のいちばん狭い幅 */
   min: number;
   /** 欄の幅を書き込む CSS 変数（並べる要素に付ける） */
@@ -42,7 +42,7 @@ interface CoverableWidthOptions extends CoverRules {
  */
 export function useCoverableWidth({ width: widthSetting, maximized: maximizedSetting, min, gap, minRest, widthVar, shownVar }: CoverableWidthOptions) {
   // 横幅いっぱい（もう一方を覆う）。戻すと、元の幅に戻る
-  const [maximized, setMaximized] = useSetting(maximizedSetting);
+  const [maximized, setMaximized] = useOptionalSetting(maximizedSetting, false);
   const [body, setBody] = useState<HTMLDivElement | null>(null);
   /**
    * 欄の左端をドラッグして幅を変える（もう一方を覆うところまで広げられる）。いま見えている幅から始め（横幅いっぱい・覆っているときは
