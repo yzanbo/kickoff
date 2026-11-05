@@ -43,9 +43,12 @@ export function ContextMeter({ chat, compacting }: { chat: Chat; compacting: Com
 
   // 手で圧縮する（作業中・まだ会話がないときはできない）。終わると compact イベントとコンテキストの大きさが届く
   const canCompact = Boolean(chat.session_id) && chat.status !== "running";
-  // 手で圧縮する操作の失敗（始めたら、終わるまでは圧縮中の弧で知らせる）
+  // 手で圧縮する。押したらポップオーバーを閉じ、終わるまでは圧縮中の弧で知らせる（始められなかったときは開き直して失敗の文を見せる）
   const compactAction = useAction<"compact">();
-  const compact = () => compactAction.run("compact", () => api.compactChat(chat.id));
+  const compact = async () => {
+    popover.close();
+    if (!(await compactAction.run("compact", () => api.compactChat(chat.id)))) popover.setOpen(true);
+  };
 
   return (
     <div ref={popover.anchor} className="context-meter">
