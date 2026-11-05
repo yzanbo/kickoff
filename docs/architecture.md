@@ -32,7 +32,7 @@
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
 | 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインとのつながりが見えないのでやめた） |
 | チャットタブ（チャットをボードと分けて横幅いっぱいに開くプロジェクトのタブ。設定でボードの右のパネルにも戻せる） | タブ `chats`（`#/projects/:id/chats`）・`ChatsTab`・置き方の設定 `CHAT_PLACEMENT`（`separate` / `together`）。中身はボードの右のパネルと同じ `kanban:<プロジェクト>` のパネル | ボードの右のパネルだけ |
-| メモ（プロジェクトの「メモ」タブ。プロジェクトの外のフォルダの Markdown） | メモのフォルダ（設定 `memos_dir` の下の、プロジェクトの `memo_folder`。別の場所なら `memo_path`）・`MemoService`（`core/memos/`）・`MemoTab`（`features/memo/`） | なし |
+| メモ（プロジェクトの「メモ」タブ。プロジェクトの外のフォルダの Markdown か HTML（HTML のメモ = HTML と CSS で書くページ。描いた見た目で見る）） | メモのフォルダ（設定 `memos_dir` の下の、プロジェクトの `memo_folder`。別の場所なら `memo_path`）・`MemoService`（`core/memos/`）・`MemoTab`（`features/memo/`） | なし |
 | メモのチャット（メモの右の欄で話す、メモごとに 1 つのふつうのチャット。一覧には並べず、そのメモの右の欄から開く。AI はメモのファイルを直接読み書きする） | `Chat` の `memo_path`・`POST /api/projects/:id/memo/chat`・`MemoChat`（`features/memo/`） | なし |
 | 子チャット（チャットの発言から「子チャットで聞く」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`）。孫・ひ孫も作れる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`features/chat/children/` | なし |
 | 会話 / 動き（チャットの画面の見え方。動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
@@ -169,7 +169,7 @@ src/
     types/             API・SSE・DB の形（chat / chatEvent / chatLive / project / approval / settings / provider / git / voice / events / api）
     chat/              チャットの決まり（状態と列 state・サブエージェントの一覧 subagents・選択の解決 chatOptions・送信待ちの印 queueStops・失敗の見分け・AI への定型文）
     project/           プロジェクトの決まり（タグ・色）
-    memo/              メモの名前の決まり（ファイル名に使える形・重ならない名前・チャットから作るメモの名前）
+    memo/              メモの名前の決まり（ファイル名に使える形・重ならない名前・チャットから作るメモの名前）と種類（Markdown / HTML）
     ipc/               Electron の IPC の取り決め（チャンネル名・画面に出す API の型・中身の型）
     testing/           テストのデータを作る関数（コアと画面のテストで共通）
     errors.ts          errorMessage
@@ -184,7 +184,7 @@ src/
     git/               Git（exec・status・files・changes・history・worktrees）・GitHub・取り込みの点検・ワークツリーの準備
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
     voice/             音声入力の文字起こし
-    memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown の一覧・読み書き・移動・ゴミ箱・チャットの文から作る）
+    memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown・HTML の一覧・読み書き・移動・ゴミ箱・チャットの文から作る・HTML のメモが読むファイルを返す）
     system/            外部コマンド・パス・ログインシェルの環境・期限付きキャッシュ・保存先と名前（appEnv）・開発版のデータの写し
     testing/           テストの補助（サーバーの準備・偽のプロバイダー・一時フォルダ・Git の作業場所）
   main/                Electron のメインプロセス

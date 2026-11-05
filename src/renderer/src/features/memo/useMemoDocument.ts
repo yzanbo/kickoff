@@ -218,6 +218,8 @@ export function useMemoDocument(projectId: number, path: string) {
     revision,
     state,
     error,
+    /** いま書いてある中身（保存していない書きかけも。読み込むまでは null。描き直しの合図にはならない） */
+    text: () => text.current,
     change,
     /** 本文を保存する（変わっていなければ何もしない）。保存できた（する必要がなかった）か */
     save: () => save(),

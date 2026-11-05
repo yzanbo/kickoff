@@ -3,53 +3,66 @@ import { reportFailure } from "@/ui/dialogs";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { quoteComment } from "@/features/chat/messages/quoteComment";
-import type { MemoEditorHandle } from "./MarkdownEditor";
+import type { MemoEditorHandle } from "./MemoEditor";
+
+/** 開いたときの様子（選んでいた文と、書ける所か。HTML のメモのページの表示は書けないので、切り取り・貼り付けを出さない） */
+interface MenuSource {
+  text: string;
+  editable: boolean;
+}
 
 /**
  * メモの本文の右クリックのメニュー: チャットに追加（選んだ文を引用にして、メモのチャットの入力欄の後ろに足す。送るのは自分で）・
- * 切り取り・コピー・貼り付け。文を選んだだけではチャットに足さない（右クリックで選んだときだけ）
+ * 切り取り・コピー・貼り付け。文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
+ * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに追加・コピーだけ）
  */
 export function useMemoEditMenu(editor: MutableRefObject<MemoEditorHandle | null>, addToChat: (quote: string) => void): {
-  open: (at: { x: number; y: number }) => void;
+  open: (at: { x: number; y: number }, pageSelection?: string) => void;
   element: ReactNode;
 } {
-  const menu = useContextMenu<string>();
+  const menu = useContextMenu<MenuSource>();
   const shown = menu.menu;
-  const selected = shown?.value ?? "";
+  const selected = shown?.value.text ?? "";
+  const editable = shown?.value.editable ?? false;
   const copy = () => navigator.clipboard.writeText(selected);
   return {
     // 開いたときに選んでいた文を覚える（メニューを押すまでに選択が変わっても、開いたときの文を使う）
-    open: (at) => menu.openAt(at, editor.current?.selectedText() ?? ""),
+    open: (at, pageSelection) =>
+      menu.openAt(at, pageSelection === undefined ? { text: editor.current?.selectedText() ?? "", editable: true } : { text: pageSelection, editable: false }),
     element: shown && (
       <PopupMenu at={shown.at} label="メモの本文の操作" onClose={menu.close}>
         <MenuItem disabled={!selected.trim()} title={selected.trim() ? "選んだ文を引用にして、メモのチャットの入力欄に足します" : "本文で文を選んでから使えます"} onSelect={() => addToChat(quoteComment(selected, ""))}>
           チャットに追加
         </MenuItem>
         <div className="menu-separator" role="separator" />
-        <MenuItem
-          disabled={!selected}
-          onSelect={() =>
-            void copy().then(
-              () => editor.current?.insert(""),
-              reportFailure("切り取れませんでした"),
-            )
-          }
-        >
-          切り取り
-        </MenuItem>
+        {editable && (
+          <MenuItem
+            disabled={!selected}
+            onSelect={() =>
+              void copy().then(
+                () => editor.current?.insert(""),
+                reportFailure("切り取れませんでした"),
+              )
+            }
+          >
+            切り取り
+          </MenuItem>
+        )}
         <MenuItem disabled={!selected} onSelect={() => void copy().catch(reportFailure("コピーできませんでした"))}>
           コピー
         </MenuItem>
-        <MenuItem
-          onSelect={() =>
-            void navigator.clipboard.readText().then(
-              (text) => editor.current?.insert(text),
-              reportFailure("貼り付けられませんでした"),
-            )
-          }
-        >
-          貼り付け
-        </MenuItem>
+        {editable && (
+          <MenuItem
+            onSelect={() =>
+              void navigator.clipboard.readText().then(
+                (text) => editor.current?.insert(text),
+                reportFailure("貼り付けられませんでした"),
+              )
+            }
+          >
+            貼り付け
+          </MenuItem>
+        )}
       </PopupMenu>
     ),
   };

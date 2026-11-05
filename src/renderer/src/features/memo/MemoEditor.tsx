@@ -1,9 +1,13 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { html } from "@codemirror/lang-html";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import { search, searchKeymap } from "@codemirror/search";
 import { Compartment, EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import type { MemoKind } from "@shared/memo/kinds";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
 
@@ -37,8 +41,12 @@ export interface MemoEditorHandle {
 interface Props {
   /** 書き始めの中身（作ったときだけ読む。読み直したときは key を変えて作り直す） */
   initialValue: string;
-  /** Markdown 表示（Obsidian のライブプレビューと同じ）か、そのまま表示か。切り替えても書いたもの・元に戻す履歴はそのまま */
+  /** メモの種類（Markdown か HTML か。言語の色分けと Enter の続け方。作ったときだけ読む） */
+  kind: MemoKind;
+  /** Markdown 表示（Obsidian のライブプレビューと同じ）か、そのまま表示か（Markdown のメモだけ）。切り替えても書いたもの・元に戻す履歴はそのまま */
   live: boolean;
+  /** 隠す（HTML のメモをページで見ている間。作り直さずに置いて、書いたもの・元に戻す履歴を残す） */
+  hidden?: boolean;
   onChange: (text: string) => void;
   /** ⌘S */
   onSave: () => void;
@@ -48,6 +56,17 @@ interface Props {
   onContextMenu?: (at: { x: number; y: number }) => void;
 }
 
+/** HTML のソースの色分け（アプリの色の変数で、ダークでもライトでも読める色に。Markdown のメモには付けない） */
+const htmlHighlight = HighlightStyle.define([
+  { tag: [tags.tagName, tags.angleBracket], color: "var(--info)" },
+  { tag: tags.attributeName, color: "var(--warn)" },
+  { tag: [tags.attributeValue, tags.string], color: "var(--ok)" },
+  { tag: [tags.propertyName, tags.keyword], color: "var(--accent-text)" },
+  { tag: [tags.number, tags.unit, tags.color], color: "var(--warn)" },
+  { tag: tags.comment, color: "var(--muted)", fontStyle: "italic" },
+  { tag: tags.documentMeta, color: "var(--muted)" },
+]);
+
 /** 選んだ範囲の色（ピントがあってもなくても同じ。drawSelection の層） */
 const selectionTheme = EditorView.theme({
   "& .cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
@@ -56,12 +75,13 @@ const selectionTheme = EditorView.theme({
 });
 
 /**
- * メモの編集（CodeMirror 6）。Markdown 表示は、カーソルのある行だけ記号を見せ、ほかの行は見出し・太字・リストなどを整えて見せる
+ * メモの編集（CodeMirror 6）。HTML のメモは HTML のソースをそのまま書く（色分けと、タグを閉じる補助。ページの見た目は MemoView が別に描く）。
+ * Markdown のメモの Markdown 表示は、カーソルのある行だけ記号を見せ、ほかの行は見出し・太字・リストなどを整えて見せる
  * （livePreviewExtension。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
  * 行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、メモを開いたときに初めて読み込む（default export）
  * 右クリックは自前のメニュー（onContextMenu。チャットに追加・コピーなど）。
  */
-export default function MarkdownEditor({ initialValue, live, onChange, onSave, handleRef, onContextMenu }: Props) {
+export default function MemoEditor({ initialValue, kind, live, hidden = false, onChange, onSave, handleRef, onContextMenu }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const [mode] = useState(() => new Compartment());
@@ -98,10 +118,10 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
           // ⌘F でエディタの中を探す（上に検索の欄。見えていない行も探せる）
           search({ top: true }),
           EditorState.phrases.of(SEARCH_PHRASES),
-          markdown({ base: markdownLanguage }),
+          kind === "html" ? [html(), syntaxHighlighting(htmlHighlight)] : markdown({ base: markdownLanguage }),
           EditorView.lineWrapping,
-          EditorView.contentAttributes.of({ "aria-label": "メモ" }),
-          mode.of(live ? livePreview : []),
+          EditorView.contentAttributes.of({ "aria-label": kind === "html" ? "メモ（HTML のソース）" : "メモ" }),
+          mode.of(live && kind === "markdown" ? livePreview : []),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) handlers.current.onChange(u.state.doc.toString());
           }),
@@ -141,8 +161,8 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
   }, []);
 
   useEffect(() => {
-    view.current?.dispatch({ effects: mode.reconfigure(live ? livePreview : []) });
-  }, [live, mode]);
+    view.current?.dispatch({ effects: mode.reconfigure(live && kind === "markdown" ? livePreview : []) });
+  }, [live, kind, mode]);
 
-  return <div ref={host} className={cx("md-editor", live ? "live" : "source")} />;
+  return <div ref={host} hidden={hidden} className={cx("md-editor", live && kind === "markdown" ? "live" : "source")} />;
 }

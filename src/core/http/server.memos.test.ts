@@ -1,11 +1,11 @@
-// API のテスト: プロジェクトのメモ（保存先・一覧・中身・保存・作成・動かす・ゴミ箱・チャットの文から作る・メモのチャット・整理案。共通の準備は testing/testServer.ts）
+// API のテスト: プロジェクトのメモ（保存先・一覧・中身・保存・作成・動かす・ゴミ箱・チャットの文から作る・HTML のメモが読むファイル・メモのチャット・整理案。共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 import type { BusEvent, MemoList } from "@shared/types";
 import { tempDir } from "../testing/tempDir.js";
-import { setup } from "../testing/testServer.js";
+import { AUTH, setup } from "../testing/testServer.js";
 import { until } from "../testing/testCore.js";
 
 test("メモの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {
@@ -98,6 +98,31 @@ test("チャットの文からメモ: 「<チャット名> チャットメモ<n>
   const other = store.projects.create({ name: "別", repo_path: tempDir(), provider: "claude" });
   const otherChat = store.chats.create({ project_id: other.id, title: "別", provider: "claude", status: "completed" });
   assert.equal((await call("POST", `${base}/memos/from-chat`, { chat_id: otherChat.id, text: "x", summarize: false, append_to: null, folder: null })).status, 400);
+
+  // HTML のメモには追記しない（ページの外に出てしまうため）
+  await call("POST", `${base}/memos`, { path: "資料.html", content: "<p>x</p>" });
+  assert.equal((await call("POST", `${base}/memos/from-chat`, { chat_id: chat.id, text: "x", summarize: false, append_to: "資料.html", folder: null })).status, 400);
+});
+
+test("HTML のメモが読むファイル: メモのフォルダのファイルをそのまま返し（種類と sandbox の CSP 付き）、フォルダの外は読ませない", async () => {
+  const { app, call, project } = setup();
+  const base = `/api/projects/${project.id}`;
+  await call("POST", `${base}/memos`, { path: "資料/ページ.html", content: "<link rel=stylesheet href=\"style.css\">" });
+  await call("POST", `${base}/memos`, { path: "資料/見た目 #1.css", content: "body { color: red }" });
+  const get = (rel: string) => app.request(`${base}/memo/file/${rel}`, { headers: AUTH });
+
+  const css = await get(`${encodeURIComponent("資料")}/${encodeURIComponent("見た目 #1.css")}`);
+  assert.equal(css.status, 200);
+  assert.equal(css.headers.get("content-type"), "text/css; charset=utf-8");
+  assert.equal(css.headers.get("content-security-policy"), "sandbox");
+  assert.equal(await css.text(), "body { color: red }");
+  // ないファイル・フォルダは 404、フォルダの外・段の中の / は 400
+  assert.equal((await get("資料/ない.png")).status, 404);
+  assert.equal((await get("資料")).status, 404);
+  assert.equal((await get("..%2F..%2Fsecret")).status, 400);
+  assert.equal((await get("%E0%A4%A")).status, 400);
+  // トークンがなければ読ませない
+  assert.equal((await app.request(`${base}/memo/file/${encodeURIComponent("資料")}/x.css`)).status, 401);
 });
 
 test("メモのチャット: メモごとに 1 つのふつうのチャット。メモのフォルダも読めるようにし、名前の変更・移動で付け替え、ゴミ箱でアーカイブする", async () => {
@@ -133,6 +158,12 @@ test("メモのチャット: メモごとに 1 つのふつうのチャット。
   // ゴミ箱に入れたら、そのメモのチャットはアーカイブする
   await call("DELETE", `${base}/memo?path=${encodeURIComponent("仕様/画面.md")}`);
   assert.ok(store.chats.get(created.body.id)?.archived_at);
+  // HTML のメモなら、HTML と CSS で書くことを伝える
+  assert.match(provider.lastSystemPrompt, /メモは Markdown のファイルです/);
+  await call("POST", `${base}/memos`, { path: "資料.html", content: "<p>x</p>" });
+  const html = await call("POST", `${base}/memo/chat`, { path: "資料.html", text: "見た目を整えて" });
+  await until(() => store.chats.get(html.body.id)?.status === "completed");
+  assert.match(provider.lastSystemPrompt, /メモは HTML のファイルです/);
 });
 
 test("メモの AI: フォルダの整理案は使える案だけを返し、動かさない（メモがなければ AI に聞かない）", async () => {

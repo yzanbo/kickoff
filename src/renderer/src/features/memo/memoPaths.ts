@@ -1,5 +1,6 @@
 // メモのタブの木と、パスの補助（純粋な関数。パスはメモのフォルダからの相対で、区切りは /）
-import { MEMO_EXTENSION, type MemoEntry } from "@shared/types";
+import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
+import type { MemoEntry } from "@shared/types";
 import type { TreeNode } from "@/features/editor/treeModel";
 
 /** フォルダを先に、名前の順（大文字・小文字を区別しない。数は数として比べる。エディタの木と同じ） */
@@ -44,16 +45,18 @@ export function joinMemoPath(folder: string, name: string): string {
   return folder ? `${folder}/${name}` : name;
 }
 
-/** メモの題名（ファイル名から .md を除いたもの） */
+/** メモの題名（ファイル名からメモの拡張子 .md・.html などを除いたもの。ほかのファイルは名前のまま） */
 export function memoTitle(path: string): string {
   const name = baseName(path);
-  return name.toLowerCase().endsWith(MEMO_EXTENSION) ? name.slice(0, -MEMO_EXTENSION.length) : name;
+  const ext = memoExtensionOf(name);
+  return ext ? name.slice(0, -ext.length) : name;
 }
 
-/** 名前を変えたあとのパス（ファイルは元の拡張子を保つ。.md なら付け直す） */
+/** 名前を変えたあとのパス（メモは元の拡張子 .md・.html などを付け直す。ほかのファイルは書いた名前のまま） */
 export function renamedPath(path: string, dir: boolean, name: string): string {
-  const keepExtension = !dir && !path.toLowerCase().endsWith(MEMO_EXTENSION) && baseName(path).includes(".");
-  return joinMemoPath(parentOf(path), dir || keepExtension ? name : `${name}${MEMO_EXTENSION}`);
+  const ext = dir ? null : memoExtensionOf(path);
+  const keepAsTyped = !dir && !ext && baseName(path).includes(".");
+  return joinMemoPath(parentOf(path), dir || keepAsTyped ? name : `${name}${ext ?? ".md"}`);
 }
 
 /**
@@ -83,10 +86,13 @@ export function filterMemos(entries: readonly MemoEntry[], query: string): MemoE
   return entries.filter((e) => !e.dir && baseName(e.path).toLowerCase().includes(q)).sort((a, b) => b.modified_at.localeCompare(a.modified_at));
 }
 
-/** 最近変えたメモ（Markdown のファイルだけ。新しく変えた順に limit 件。「既存のメモに追記」・入力欄の上のメモの一覧） */
-export function recentMemos(entries: readonly MemoEntry[], limit: number): MemoEntry[] {
+/**
+ * 最近変えたメモ（メモの拡張子 .md・.html などのファイルだけ。kind を渡せばその種類だけ。新しく変えた順に limit 件。
+ * 「既存のメモに追記」（Markdown だけ）・入力欄の上のメモの一覧）
+ */
+export function recentMemos(entries: readonly MemoEntry[], limit: number, kind?: MemoKind): MemoEntry[] {
   return entries
-    .filter((e) => !e.dir && e.path.endsWith(MEMO_EXTENSION))
+    .filter((e) => !e.dir && memoExtensionOf(e.path) !== null && (kind === undefined || memoKindOf(e.path) === kind))
     .sort((a, b) => b.modified_at.localeCompare(a.modified_at))
     .slice(0, limit);
 }

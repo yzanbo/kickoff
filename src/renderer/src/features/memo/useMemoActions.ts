@@ -1,5 +1,5 @@
+import { MEMO_KIND_EXTENSIONS, newHtmlMemo, type MemoKind } from "@shared/memo/kinds";
 import { safeMemoName, uniqueMemoName } from "@shared/memo/names";
-import { MEMO_EXTENSION } from "@shared/types";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { memosStore } from "@/stores/memos";
@@ -34,11 +34,20 @@ export function useMemoActions(
     return uniqueMemoName(safeMemoName(name), taken);
   };
 
-  const createMemo = async (folder: string) => {
-    const name = await promptDialog({ title: "新しいメモ", label: "名前", placeholder: "無題のメモ", confirmLabel: "作る", message: folder ? `「${folder}」の中に作ります。` : undefined });
+  /** 新しいメモ（HTML なら、題名の見出しと <style> の入ったひな形から始める） */
+  const createMemo = async (folder: string, kind: MemoKind = "markdown") => {
+    const html = kind === "html";
+    const name = await promptDialog({
+      title: html ? "新しい HTML メモ" : "新しいメモ",
+      label: "名前",
+      placeholder: "無題のメモ",
+      confirmLabel: "作る",
+      message: [folder ? `「${folder}」の中に作ります。` : "", html ? "HTML と CSS で書くページのメモです（.html）。メモのチャットに頼んで作ってもらうこともできます。" : ""].filter(Boolean).join("") || undefined,
+    });
     if (name === null) return;
-    const path = joinMemoPath(folder, `${freeName(folder, name)}${MEMO_EXTENSION}`);
-    await api.createMemo(projectId, path).then(() => {
+    const title = freeName(folder, name);
+    const path = joinMemoPath(folder, `${title}${MEMO_KIND_EXTENSIONS[kind]}`);
+    await api.createMemo(projectId, path, html ? { content: newHtmlMemo(title) } : {}).then(() => {
       refresh();
       onCreated(path, false);
     }, reportFailure("メモを作れませんでした"));
