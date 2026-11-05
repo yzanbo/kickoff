@@ -47,6 +47,8 @@ export interface ChatPaneState {
  */
 export interface ChatPaneActions {
   readonly chatId: number;
+  /** いまのプロジェクト（チャットをほかのプロジェクトへ移すと変わる。メモに追加する先） */
+  projectId: () => number;
   /** チャットの画面の要素（ピントがこのチャットにあるかを見る・文の幅を測る・検索の印を付ける範囲） */
   readonly root: RefObject<HTMLDivElement | null>;
   /**

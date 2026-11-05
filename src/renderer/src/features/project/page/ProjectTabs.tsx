@@ -1,4 +1,4 @@
-import { Code2, History, SquareKanban, type LucideIcon } from "lucide-react";
+import { Code2, History, SquareKanban, StickyNote, type LucideIcon } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -33,10 +33,11 @@ const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
   { tab: "board", label: "ボード", icon: SquareKanban },
   { tab: "changes", label: "エディタ", icon: Code2 },
   { tab: "history", label: "履歴", icon: History },
+  { tab: "memos", label: "メモ", icon: StickyNote },
 ];
 
 /**
- * プロジェクトの画面のタブ（ボード・エディタ）。ボードには状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
+ * プロジェクトの画面のタブ（ボード・エディタ・履歴・メモ）。ボードには状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
  * 縦並びはアイコンの角に重ね（左上 = 作業中・右上 = 未読・左下 = 回答待ち）、横並びは名前の後ろに並べる。作業中のまま未読のものは未読に数えない）、
  * エディタには変更のあるファイルの数を添える。取り直している最中（refreshing）は、VS Code のバッジと同じく数の代わりに回る印を出す。
  * vertical: 左に縦並び（アイコンだけ。名前と数は title と aria-label）。右クリックで置き方（横並び / 縦並び）を切り替える
@@ -74,7 +75,7 @@ export function ProjectTabs({
         // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
         const selected = tab === t || (t === "board" && tab === "groups");
         const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
-        // 数はボード（状態ごとのチャット）とエディタ（変更のあるファイル）だけ。履歴には出さない
+        // 数はボード（状態ごとのチャット）とエディタ（変更のあるファイル）だけ。履歴・メモには出さない
         const count = t === "board" ? (countsText ? 1 : 0) : t === "changes" ? changeCount : 0;
         const countLabel = t === "board" ? countsText : `変更のあるファイル ${count} 件`;
         return (

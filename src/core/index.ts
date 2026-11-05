@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { loadOrCreateToken } from "./http/auth.js";
 import { Bus } from "./bus.js";
@@ -15,6 +16,7 @@ import { Runner } from "./chat/runner.js";
 import { UploadStore } from "./chat/uploads.js";
 import { startAutoArchive } from "./chat/autoArchive.js";
 import { VoiceService } from "./voice/service.js";
+import { MemoService } from "./memos/memos.js";
 import type { DatabaseStats } from "./db/stats.js";
 
 interface CoreOptions {
@@ -57,6 +59,13 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const runner = new Runner({ store, approvals, providers, usage, uploads, bus });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), publish: (e) => bus.publish(e) });
+  // メモの親フォルダの既定は ~/Documents/<アプリ名> メモ（保存先のフォルダ名がアプリ名。開発版は「Kickoff Dev メモ」で、製品版のメモに触らない）
+  const memos = new MemoService({
+    store,
+    defaultDir: path.join(os.homedir(), "Documents", `${path.basename(opts.dataDir)} メモ`),
+    providers,
+    publish: (e) => bus.publish(e),
+  });
   const host = opts.host ?? "127.0.0.1";
   const app = createApp({
     store,
@@ -69,6 +78,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     approvals,
     uploads,
     voice,
+    memos,
     staticDir: opts.staticDir,
     listen: { host, port: opts.port },
   });

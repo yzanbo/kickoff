@@ -31,6 +31,7 @@
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
 | 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインとのつながりが見えないのでやめた） |
+| メモ（プロジェクトの「メモ」タブ。プロジェクトの外のフォルダの Markdown） | メモのフォルダ（設定 `memos_dir` の下の、プロジェクトの `memo_folder`。別の場所なら `memo_path`）・`MemoService`（`core/memos/`）・`MemoTab`（`features/memo/`） | なし |
 | 会話 / 動き（チャットの画面の見え方。動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
 
 ## 2. 名前の決まり
@@ -65,7 +66,11 @@ CREATE TABLE projects (
   chat_defaults TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(chat_defaults) AND json_type(chat_defaults) = 'object'),  -- Partial<ChatOptions>
   reference_paths TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(reference_paths) AND json_type(reference_paths) = 'array'),
   archived_at TEXT,
-  created_at TEXT NOT NULL DEFAULT (NOW)
+  created_at TEXT NOT NULL DEFAULT (NOW),
+  -- v2: メモのフォルダ（memo_folder = 設定の親フォルダの下のフォルダ名。初めてメモを使ったときに決めて覚える /
+  -- memo_path = このプロジェクトだけ別の場所にするときの絶対パス）。ALTER TABLE で末尾に足す
+  memo_folder TEXT CHECK (memo_folder <> ''),
+  memo_path TEXT CHECK (memo_path <> '')
 ) STRICT;
 -- 以前の active_at（画面は使っていなかった。最近動いた順はチャットの active_at で決める）と、一覧の集計（費用・動いている数。未使用）はなくす
 
@@ -154,6 +159,7 @@ src/
     types/             API・SSE・DB の形（chat / chatEvent / chatLive / project / approval / settings / provider / git / voice / events / api）
     chat/              チャットの決まり（状態と列 state・サブエージェントの一覧 subagents・選択の解決 chatOptions・送信待ちの印 queueStops・失敗の見分け・AI への定型文）
     project/           プロジェクトの決まり（タグ・色）
+    memo/              メモの名前の決まり（ファイル名に使える形・重ならない名前・チャットから作るメモの名前）
     ipc/               Electron の IPC の取り決め（チャンネル名・画面に出す API の型・中身の型）
     testing/           テストのデータを作る関数（コアと画面のテストで共通）
     errors.ts          errorMessage
@@ -168,6 +174,7 @@ src/
     git/               Git（exec・status・files・changes・history・worktrees）・GitHub・取り込みの点検・ワークツリーの準備
     usage/             使用状況（Claude のプランの枠と、ほかのサービス services/）
     voice/             音声入力の文字起こし
+    memos/             プロジェクトのメモ（プロジェクトの外のフォルダの Markdown の一覧・読み書き・移動・ゴミ箱・チャットの文から作る）
     system/            外部コマンド・パス・ログインシェルの環境・期限付きキャッシュ・保存先と名前（appEnv）・開発版のデータの写し
     testing/           テストの補助（サーバーの準備・偽のプロバイダー・一時フォルダ・Git の作業場所）
   main/                Electron のメインプロセス

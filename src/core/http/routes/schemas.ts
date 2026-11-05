@@ -1,4 +1,6 @@
+import path from "node:path";
 import { z } from "zod";
+import { expandHome } from "../../system/paths.js";
 import type { ChatOptionsPatch, MessageBody, NewChatBody, QueueMessageBody } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
 
@@ -19,6 +21,10 @@ export const repoPath = z.string().min(1).max(1000);
 
 /** 作業場所のフォルダ（ワークツリーの絶対パス） */
 export const folderPath = z.string().min(1).max(2000);
+
+/** 絶対パス（~ で始めてもよい）のフォルダの指定か（メモの親フォルダ・プロジェクトのメモのフォルダ） */
+export const isAbsoluteFolder = (p: string) => path.isAbsolute(expandHome(p));
+export const ABSOLUTE_FOLDER = "フォルダは / か ~ から始まる場所で指定してください";
 
 /** ?staged=1 などの切り替え（"0" / "1"） */
 export const flag = z.enum(["0", "1"]);

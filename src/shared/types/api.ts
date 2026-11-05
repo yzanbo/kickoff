@@ -31,7 +31,7 @@ export interface ImportProjectBody {
  * プロジェクトの変更（PATCH /api/projects/:id。書いた項目だけ変える）。tags・chat_defaults・reference_paths は送った内容で置き換える。
  * 参照資料はパスだけ送れば、フォルダかファイルかはサーバーで調べる。archived はしまう（アーカイブ）・戻す
  */
-export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults">> & {
+export type ProjectPatch = Partial<Pick<Project, "name" | "description" | "provider" | "hue" | "tags" | "pinned" | "chat_defaults" | "memo_path">> & {
   archived?: boolean;
   reference_paths?: Pick<ProjectReference, "path">[];
 };
@@ -64,6 +64,38 @@ export interface NewChatBody extends MessageBody {
 /** 送信待ちに送る指示（POST /api/chats/:id/queue）。hold なら、作業していなくても送らずに列の最後に足す */
 export interface QueueMessageBody extends MessageBody {
   hold?: boolean;
+}
+
+/** メモを保存する（PUT /api/projects/:id/memo。base_hash は開いたときの指紋。null なら確かめずに上書き） */
+export interface MemoWriteBody {
+  path: string;
+  content: string;
+  base_hash: string | null;
+}
+
+/** 新しいメモ・フォルダ（POST /api/projects/:id/memos。dir ならフォルダ） */
+export interface MemoCreateBody {
+  path: string;
+  dir?: boolean;
+  content?: string;
+}
+
+/** メモの名前を変える・動かす（POST /api/projects/:id/memos/move） */
+export interface MemoMoveBody {
+  from: string;
+  to: string;
+}
+
+/**
+ * チャットの文からメモを作る・足す（POST /api/projects/:id/memos/from-chat）。summarize なら AI で要約してから。
+ * append_to があればそのメモに足し、なければ folder（null なら直下）に「<チャット名> チャットメモ<n>」を作る
+ */
+export interface MemoFromChatBody {
+  chat_id: number;
+  text: string;
+  summarize: boolean;
+  append_to: string | null;
+  folder: string | null;
 }
 
 // ---- 応答 ----

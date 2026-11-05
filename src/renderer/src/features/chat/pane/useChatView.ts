@@ -147,6 +147,7 @@ export function useChatView(
     };
     const actions: ChatPaneActions = {
       chatId,
+      projectId: () => now().chat.project_id,
       root: rootRef,
       revealSubagent: (key, inside) => {
         const path = pathOf(now().tree, key);

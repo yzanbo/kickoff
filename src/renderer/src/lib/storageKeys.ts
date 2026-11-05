@@ -169,6 +169,12 @@ export const COMMIT_FILES_WIDTH = defineSetting("kickoff:commit-files-width", nu
 export const HISTORY_SPLIT = defineSetting("kickoff:history-split", number(43));
 /** プロジェクトごとの、エディタタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
 export const editorWorktree = defineSettingFamily("kickoff:editor-worktree:", text(), { ids: true });
+/** プロジェクトごとの、メモのタブで開いているメモ（メモのフォルダからの相対パス。空なら選んでいない） */
+export const memoSelected = defineSettingFamily("kickoff:memo-selected:", text(), { ids: true });
+/** プロジェクトごとの、メモのタブの木で開いているフォルダ */
+export const memoOpenFolders = defineSettingFamily("kickoff:memo-open-folders:", list(), { ids: true });
+/** メモの出し方（edit = 書く / preview = 読む（Markdown を整えて出す）） */
+export const MEMO_VIEW = defineSetting("kickoff:memo-view", choice(["edit", "preview"], "edit"));
 /** チャットの画面の右の欄の「変更」で確認済みにしたファイル（キーは「プロジェクト:ワークツリーのフォルダ（本体は空）」。値はパス → 確認したときの差分の指紋） */
 export const sideViewedFiles = defineSettingFamily("kickoff:side-viewed:", record(isString), { ids: true });
 

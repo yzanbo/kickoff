@@ -20,6 +20,7 @@ import { useProjectChat } from "@/features/panel/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "@/features/settings/SettingsDialog";
 import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicator";
 import { HoverTip } from "@/ui/HoverTip";
+import { MemoProgress } from "@/features/memo/MemoProgress";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/Sidebar";
 import { useFallbackProject } from "@/features/sidebar/currentProject";
@@ -30,7 +31,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatNotifications } from "./notifications";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
-import { boardTabOf, openNewChat, openProjectFile, RouteContext, routeProjectId, useHashRoute } from "./router";
+import { boardTabOf, openMemo, openNewChat, openProjectFile, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { subscribeWindowMessages } from "./windowBus";
 import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { useChatHistory } from "./useChatHistory";
@@ -113,7 +114,14 @@ export function App() {
   useWindowEvent(OPEN_NO_PROJECTS_GUIDE_EVENT, () => setNoProjectsGuide(true));
   useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
   // 別ウィンドウの「エディタタブで開く」は、このウィンドウのエディタタブで開く
-  useEffect(() => subscribeWindowMessages((m) => m.type === "openProjectFile" && openProjectFile(m.projectId, m.file)), []);
+  useEffect(
+    () =>
+      subscribeWindowMessages((m) => {
+        if (m.type === "openProjectFile") openProjectFile(m.projectId, m.file);
+        else if (m.type === "openMemo") openMemo(m.projectId, m.path);
+      }),
+    [],
+  );
 
   return (
     <PlanUsageContext.Provider value={planUsage}>
@@ -138,6 +146,7 @@ export function App() {
               focus={route.name === "project" ? undefined : route}
               highlightGroup={route.name === "project" ? route.group : undefined}
               openFile={route.name === "project" ? route.file : undefined}
+              openMemo={route.name === "project" ? route.memo : undefined}
             />
           ) : (
             <AllProjectsPage />
@@ -167,6 +176,7 @@ export function App() {
         <DiagnosticsIndicator />
         {/* マウスを乗せたときの説明（data-tip を付けた要素。アプリ全体で 1 つ） */}
         <HoverTip />
+        <MemoProgress />
         {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}
         <SidebarOpenButton sidebar={sidebar} />
         {/* 右上のレイアウトの開閉（ドラッグ領域より優先されるよう、開くボタンと同じく後ろに置く） */}

@@ -62,7 +62,7 @@
 
 ## 発言（`messages/`）
 
-- 自分の発言は `UserMessage`（長文の折りたたみ「もっと見る / たたむ」・時刻 `formatMessageTime`（乗せると年月日）・コピー・書き直し。右クリックでも同じ操作）、AI の返答は `AssistantMessage`。右クリックは `useMessageMenu`（「メッセージをコピー」。返答は書式付き `copyRich`（Markdown を HTML にし、text/html と text/plain（Markdown のまま）の両方を入れる。貼る先が書式を受け取れれば見出し・表・コードのまま。文中の HTML は文字として書く）で、「Markdown のままコピー」も並べる。自分の発言は文のまま。リンク・コードブロックの上でもこの 1 つにそろえる）。作業の終わりの行には「返答をコピー」（書式付き）と「ここから分岐」（`api.forkChat`。止めた・失敗した作業の終わりからは分岐できない）。
+- 自分の発言は `UserMessage`（長文の折りたたみ「もっと見る / たたむ」・時刻 `formatMessageTime`（乗せると年月日）・コピー・書き直し。右クリックでも同じ操作）、AI の返答は `AssistantMessage`。右クリックは `useMessageMenu`（「メッセージをコピー」。返答は書式付き `copyRich`（Markdown を HTML にし、text/html と text/plain（Markdown のまま）の両方を入れる。貼る先が書式を受け取れれば見出し・表・コードのまま。文中の HTML は文字として書く）で、「Markdown のままコピー」も並べる。自分の発言は文のまま。リンク・コードブロックの上でもこの 1 つにそろえる。チャットの画面の中では「メモに追加」の項目 `MemoMenuItems` も並べる。`features/memo/CLAUDE.md`）。作業の終わりの行には「返答をコピー」（書式付き）と「ここから分岐」（`api.forkChat`。止めた・失敗した作業の終わりからは分岐できない）。
 - 書き直しは吹き出しの中の `BubbleEditor` で直して送り直す（その発言から後ろを消して巻き戻す。`ChatPaneActions.rewind` → `api.rewindChat`）。その発言のあとに AI が変えたファイルがあれば「会話だけ戻して送り直す / ファイルも戻して送り直す」を選ぶ（`rewind/rewindActions.ts` の `confirmRewindSend`）。ファイルだけ戻すのは吹き出しの下・右クリックの「ファイルをこの発言の前に戻す」（`restoreFilesBefore`。戻すファイルと「戻すと +a −b 行」を見せて確かめる。`api.rewindFiles` を先に dry run）。戻るのは Claude Code の編集のツールで変えたファイルだけ（コマンド・アプリの外で変えたものは戻らない）。書き直し・ファイルを戻すのはチャットの画面の中だけで、作業中はできない。
 - 自分の発言に、届かなかったサブエージェントの報告を添えたときは、吹き出しの下に「サブエージェントの報告 n 件を添えました」（記録の `handover`）。
 - AI からの質問に答えた内容は `QuestionAnswerMessage`（自分の発言と同じ吹き出しに「質問への回答」と添え、質問ごとに質問の文と答え・添付を並べる。スキップは「質問をスキップしました」）。

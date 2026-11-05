@@ -1,4 +1,4 @@
-import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
+import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
@@ -15,11 +15,12 @@ import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
 import { ConnectionSettings } from "./ConnectionSettings";
 import { DiagnosticsSettings } from "./DiagnosticsSettings";
+import { MemoSettings } from "./MemoSettings";
 import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
 import { VoiceSettings } from "./VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
+export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -27,6 +28,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "connection", label: "接続", icon: PlugZap },
   { key: "ai", label: "AI の既定", icon: Bot },
   { key: "chats", label: "チャット", icon: Archive },
+  { key: "memos", label: "メモ", icon: StickyNote },
   { key: "voice", label: "音声入力", icon: Mic },
   { key: "notifications", label: "通知", icon: Bell },
   { key: "terminal", label: "ターミナル", icon: SquareTerminal },
@@ -46,6 +48,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
           {section === "connection" && <ConnectionSettings />}
           {section === "ai" && <AiDefaultsSettings />}
           {section === "chats" && <ChatSettings />}
+          {section === "memos" && <MemoSettings />}
           {section === "voice" && <VoiceSettings />}
           {section === "notifications" && <NotificationSettings />}
           {section === "terminal" && <TerminalSettings />}

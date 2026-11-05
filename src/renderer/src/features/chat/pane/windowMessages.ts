@@ -13,7 +13,7 @@ function paneFor(chatId: number): ChatPaneActions | undefined {
 }
 
 function handle(message: WindowMessage) {
-  if (message.type === "openProjectFile" || message.type === "popoutFocus") return;
+  if (message.type === "openProjectFile" || message.type === "popoutFocus" || message.type === "openMemo") return;
   const pane = paneFor(message.chatId);
   if (!pane) return;
   if (message.type === "fillComposer") pane.fillComposer(message.text, { append: true });

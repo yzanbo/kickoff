@@ -121,8 +121,17 @@ CREATE TABLE chat_queues (
 ) STRICT;
 `;
 
+/**
+ * v2: プロジェクトのメモのフォルダ（memo_folder = 親フォルダの下のフォルダ名。初めてメモを使ったときに決める /
+ * memo_path = このプロジェクトだけ別の場所にするときの絶対パス）
+ */
+const SCHEMA_V2 = `
+ALTER TABLE projects ADD COLUMN memo_folder TEXT CHECK (memo_folder <> '');
+ALTER TABLE projects ADD COLUMN memo_path TEXT CHECK (memo_path <> '');
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

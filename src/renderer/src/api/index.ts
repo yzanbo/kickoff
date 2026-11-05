@@ -6,6 +6,7 @@ import { chatsApi } from "./chats";
 import { filesApi } from "./files";
 import { gitApi } from "./git";
 import { groupsApi } from "./groups";
+import { memosApi } from "./memos";
 import { projectsApi } from "./projects";
 import { providersApi } from "./providers";
 import { queueApi } from "./queue";
@@ -31,6 +32,7 @@ export const api = {
   ...filesApi,
   ...worktreesApi,
   ...voiceApi,
+  ...memosApi,
 };
 
 export { ApiError } from "./http";

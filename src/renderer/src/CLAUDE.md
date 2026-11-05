@@ -15,7 +15,7 @@
 | `features/<領域>/` | 領域ごとの部品と hooks |
 | `styles/` | CSS（`styles/CLAUDE.md`） |
 
-`features/` の領域と説明の置き場所: `chat/`（チャット全般と 1 つのチャットの画面。`dictation/`（チャット欄の音声入力）・`fileLinks/`（返答のファイルのチップ）もここに書く）・`chatList/`（まとめ方・数え方・開閉）・`sidebar/`（`group/` もここ）・`board/`・`panel/`（右のパネル・チャット欄・下のパネルのタブ）・`project/`・`palette/`・`editor/`（`history/` もここ）・`worktree/`・`settings/`（`usage/` `footer/` `diagnostics/` もここ）・`terminal/`（`browser/` `openWith/` もここ）・`popout/`（右の欄のサブエージェント・変更・ファイルの別ウィンドウ）。
+`features/` の領域と説明の置き場所: `chat/`（チャット全般と 1 つのチャットの画面。`dictation/`（チャット欄の音声入力）・`fileLinks/`（返答のファイルのチップ）もここに書く）・`chatList/`（まとめ方・数え方・開閉）・`sidebar/`（`group/` もここ）・`board/`・`panel/`（右のパネル・チャット欄・下のパネルのタブ）・`project/`・`palette/`・`editor/`（`history/` もここ）・`worktree/`・`settings/`（`usage/` `footer/` `diagnostics/` もここ）・`terminal/`（`browser/` `openWith/` もここ）・`popout/`（右の欄のサブエージェント・変更・ファイルの別ウィンドウ）・`memo/`（プロジェクトの「メモ」タブとチャットの「メモに追加」）。
 
 - 依存の向きは `app → features → stores / api / ui / hooks / lib → @shared`。ui / hooks / lib / stores / api は features を import しない。app の全体のもの（`router.ts` の `useRoute` / `openChat` など・`chatStatesContext.ts` の `useChatStates`）は features から読んでよい。
 - import は、同じフォルダなら `./`、それ以外は `@/…`、プロセスをまたぐ型と純粋な関数は `@shared/…`（型は `@shared/types`、`errorMessage` は `@shared/errors`）。`../` で上のフォルダをたどらない。
@@ -26,7 +26,7 @@
 ## データ（`stores/` と全体の context）
 
 - サーバーのデータは店に 1 つずつ持ち、部品ごとに取り直さない・props で 3 段以上中継しない。店は `createStore`（値 1 つ）/ `createKeyedStore`（プロジェクトの ID などの key ごと）で作り、読み込み（同時に頼まれても 1 回）・失敗（覚えずに、間隔を伸ばして自動で取り直す）・サーバーの知らせでの更新（`reduce` / `reloadOn` / `dropOn`）・SSE がつながったときの取り直し・`maxAge` / `refreshOnFocus` を同じ形で持つ（考え方は `stores/createStore.ts` の先頭）。React からは `useStore` / `useKeyedStore` / `useKeyedStores`（いくつかの key。渡した key が変わったときだけ描き直す）/ `useStoreStatus`。閉じているポップオーバーなどは `active: false` で読み込みを頼まない。
-- 店: チャットの一覧 `stores/chats.ts`（`useChats({ projectId?, archived?, enabled? })`。全プロジェクトで 1 つで、アーカイブ済みは頼まれたときだけ読む。`useChatsValue`・`useChatsByProject`・部品の外では `currentChats`）、`useProjects()`（`projects` / `projectsById` / `projectName(id)` / `loaded` / もうないとわかったか `missing(id)`。`projects.find((p) => p.id === …)?.name` を書かない）、`useGroups` / `useGroupsOf` / `useGroupName`、`useWorktrees` / `useWorktreesOf`、`useApprovals`、`useAppSettings`（`settingsStore`）、`usageStore`、`useProviders` / `useGitHubStatus` / `useModels`、`useVoiceStatus`。領域だけのデータは、その領域で店を作ってよい（`/` `@` の候補・外で開くアプリの一覧など）。
+- 店: チャットの一覧 `stores/chats.ts`（`useChats({ projectId?, archived?, enabled? })`。全プロジェクトで 1 つで、アーカイブ済みは頼まれたときだけ読む。`useChatsValue`・`useChatsByProject`・部品の外では `currentChats`）、`useProjects()`（`projects` / `projectsById` / `projectName(id)` / `loaded` / もうないとわかったか `missing(id)`。`projects.find((p) => p.id === …)?.name` を書かない）、`useGroups` / `useGroupsOf` / `useGroupName`、`useWorktrees` / `useWorktreesOf`、`useApprovals`、`useAppSettings`（`settingsStore`）、`usageStore`、`useProviders` / `useGitHubStatus` / `useModels`、`useVoiceStatus`、プロジェクトのメモの一覧 `useMemoList`（`stores/memos.ts`）。領域だけのデータは、その領域で店を作ってよい（`/` `@` の候補・外で開くアプリの一覧など）。
 - 操作の応答で届いた値は `set` / `update` で入れ、知らせを待たずに画面をそろえる（作ったプロジェクトは `addProject`、ワークツリーの一覧は `worktreesStore.set`）。
 - チャットの状態（作業中・回答待ちなど）は `features/chat/chatState.ts` の `chatStateOf(chat, pending)` で決める。回答待ちの引き当ては App が `indexApprovals` で 1 回作り、`useChatStates()`（`approvals` / `pending` / `stateOf(chat)` / `pendingCount(chatId)`）で配る（部品で `api.approvals()` を呼ばない）。
 - いまのルートは `useRoute()`（App が `useHashRoute()` で 1 回購読して `RouteContext` で配る）。

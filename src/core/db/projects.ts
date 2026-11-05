@@ -6,7 +6,7 @@ import { bit, updateRow, type Notify, type Row } from "./common.js";
 import type { NewProject } from "./types.js";
 
 /** プロジェクトの変えられる列（型と UPDATE の対象をここ 1 つで決める） */
-const PROJECT_COLUMNS = ["name", "description", "repo_path", "provider", "hue", "pinned", "archived_at", "tags", "chat_defaults", "reference_paths"] as const satisfies readonly (keyof Project)[];
+const PROJECT_COLUMNS = ["name", "description", "repo_path", "provider", "hue", "pinned", "archived_at", "tags", "chat_defaults", "reference_paths", "memo_folder", "memo_path"] as const satisfies readonly (keyof Project)[];
 
 /** プロジェクトの変えられる項目 */
 export type ProjectPatch = Partial<Pick<Project, (typeof PROJECT_COLUMNS)[number]>>;

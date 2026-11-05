@@ -56,6 +56,8 @@ export interface AppSettings {
   voice_openai_base_url: string;
   /** OpenAI の文字起こしのモデル */
   voice_openai_model: string;
+  /** メモの親フォルダ（この下にプロジェクトごとのフォルダを作る。null なら既定の ~/Documents/<アプリ名> メモ） */
+  memos_dir: string | null;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -73,4 +75,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   voice_model: "large-v3-turbo-q5_0",
   voice_openai_base_url: "",
   voice_openai_model: "gpt-4o-transcribe",
+  memos_dir: null,
 };

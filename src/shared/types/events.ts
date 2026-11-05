@@ -32,4 +32,6 @@ export type BusEvent =
   | { type: "settings"; settings: AppSettings }
   | { type: "usage"; usage: PlanUsage }
   /** 音声入力のモデルのダウンロードの進み具合（download が null なら終わった・やめた。downloaded はファイルがあるか） */
-  | { type: "voice_model"; id: string; download: VoiceDownload | null; downloaded: boolean };
+  | { type: "voice_model"; id: string; download: VoiceDownload | null; downloaded: boolean }
+  /** プロジェクトのメモを作った・書いた・動かした・ゴミ箱へ移した（Kickoff の中の操作だけ。一覧と開いているメモを取り直す） */
+  | { type: "memos"; project_id: number; path: string | null };

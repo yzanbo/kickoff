@@ -1,3 +1,4 @@
+import os from "node:os";
 import {
   forkSession,
   query,
@@ -22,6 +23,9 @@ import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
 import { runCommand } from "../../system/exec.js";
+
+/** 要約に渡す文の上限（文字。haiku のコンテキストと時間に収める） */
+const MAX_SUMMARIZE_CHARS = 60_000;
 
 export class ClaudeProvider implements AgentProvider {
   readonly id = "claude" as const;
@@ -286,9 +290,29 @@ export class ClaudeProvider implements AgentProvider {
 
   /** 最初のメッセージから短いチャット名を作る（軽いモデルで 1 回だけ問い合わせる） */
   async title(text: string): Promise<string> {
+    const result = await this.askOnce(`次の依頼内容に、20 文字以内の日本語のタイトルを付けてください。タイトルだけを出力し、記号や引用符は付けないでください。\n\n---\n${text.slice(0, 2000)}`);
+    return result.trim().replace(/^["'「『]|["'」』]$/g, "").split("\n")[0].slice(0, 40);
+  }
+
+  async summarize(text: string): Promise<string> {
+    const result = await this.askOnce(
+      `次の「---」より後ろの文を、あとで読み返すためのメモとして、日本語の Markdown で要点を短くまとめてください。` +
+        `文に書いてあることだけを使い、書いていないこと（推測・助言・次にやること・ほかで知っている決まり）は足さないでください。` +
+        `大事な決定・理由・手順・名前（ファイル名・コマンドなど）は残してください。短い文なら、ほぼそのままでかまいません。` +
+        `前置きや「以下は要約です」などの文は書かず、まとめた本文だけを出力してください。見出し（#）は使わないでください。\n\n---\n${text.slice(0, MAX_SUMMARIZE_CHARS)}`,
+    );
+    return result.trim();
+  }
+
+  /**
+   * ツールを使わずに haiku に 1 回だけ聞く（名前を付ける・要約する。チャットの記録には残さない）。
+   * 空の一時フォルダで動かす（Kickoff を起動したフォルダで動かすと、そこの CLAUDE.md・自動のメモリーを読み込み、答えに混ざる）
+   */
+  private async askOnce(prompt: string): Promise<string> {
     const q = query({
-      prompt: `次の依頼内容に、20 文字以内の日本語のタイトルを付けてください。タイトルだけを出力し、記号や引用符は付けないでください。\n\n---\n${text.slice(0, 2000)}`,
+      prompt,
       options: {
+        cwd: os.tmpdir(),
         model: "haiku",
         effort: "low",
         maxTurns: 1,
@@ -303,7 +327,7 @@ export class ClaudeProvider implements AgentProvider {
       for await (const msg of q) {
         if (msg.type === "result" && msg.subtype === "success") result = msg.result;
       }
-      return result.trim().replace(/^["'「『]|["'」』]$/g, "").split("\n")[0].slice(0, 40);
+      return result;
     } finally {
       // 途中で失敗しても Claude Code のプロセスを残さない（withIdleSession と同じ）
       q.close();
