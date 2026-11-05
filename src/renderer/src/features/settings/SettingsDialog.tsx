@@ -6,6 +6,7 @@ import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
 import { Segmented } from "@/ui/Segmented";
 import { BOARD_HEADER_LAYOUT_LABELS, useBoardHeaderLayout, type BoardHeaderLayout } from "@/features/board/boardHeaderLayout";
+import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode, type FooterMode } from "@/features/footer/footerMode";
 import { PROJECT_TABS_LAYOUT_LABELS, useProjectTabsLayout, type ProjectTabsLayout } from "@/features/project/page/ProjectTabs";
 import { TabbedDialog, type DialogSection } from "@/ui/TabbedDialog";
 import { UsagePanel } from "@/features/usage/UsagePanel";
@@ -80,6 +81,7 @@ function DisplaySettings() {
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
+  const [footerMode, setFooterMode] = useFooterMode();
   return (
     <section className="section">
       <h2>表示</h2>
@@ -188,6 +190,18 @@ function DisplaySettings() {
               { value: "top", label: BOARD_HEADER_LAYOUT_LABELS.top },
               { value: "beside", label: BOARD_HEADER_LAYOUT_LABELS.beside },
             ]}
+          />
+        </Field>
+        <Field
+          label="下の帯"
+          help="画面のいちばん下の、設定・接続・ブランチ・使用状況が並ぶ帯です。「寄せたときだけ表示」は、マウスを画面の下端に寄せると画面の上に重ねて出し、ふだんは縦の幅を取りません。非表示にしても、設定は ⌘, で開けます。帯の右クリックでも切り替えられます。"
+        >
+          <Segmented<FooterMode>
+            className="segmented theme-switch"
+            label="下の帯の出し方"
+            value={footerMode}
+            onChange={setFooterMode}
+            options={FOOTER_MODES.map((m) => ({ value: m, label: FOOTER_MODE_LABELS[m] }))}
           />
         </Field>
       </div>
