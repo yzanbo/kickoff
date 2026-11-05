@@ -231,17 +231,6 @@
   text-align: center;
 }
 
-.empty-hero {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  padding: 48px 24px;
-}
-
-.empty-hero p {
-  margin: 0 0 8px;
-}
-
 /*
  * 外側のクリックで閉じるメニュー・ポップオーバーが開いている間は、ウィンドウのドラッグ領域を止める（useDismiss が <html> に付ける）。
  * ドラッグ領域（見出しの行など）を押してもページにクリックが届かず、メニューが閉じなかったため。閉じればまたドラッグで動かせる

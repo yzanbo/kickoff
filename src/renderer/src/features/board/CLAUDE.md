@@ -1,6 +1,6 @@
 # ボード（`features/board`）
 
-チャットのカンバン（`KanbanBoard`。プロジェクトのボードと、全プロジェクトの画面 `AllProjectsPage`）と、自分で作ったグループの列のボード（`GroupBoard`）。列・段・リストのまとまりは `bucketChats`（`features/chatList/CLAUDE.md`）、右のパネルは `features/panel/CLAUDE.md`。
+チャットのカンバン（`KanbanBoard`。プロジェクトのボードと、全プロジェクトの画面 `AllProjectsPage`。プロジェクトがないときは `NoProjectsWelcome`、タグの絞り込みに合うものがないときは `EmptyState` と「絞り込みを外す」。`features/project/CLAUDE.md`）と、自分で作ったグループの列のボード（`GroupBoard`）。列・段・リストのまとまりは `bucketChats`（`features/chatList/CLAUDE.md`）、右のパネルは `features/panel/CLAUDE.md`。
 
 ## 列の分け方と表示
 

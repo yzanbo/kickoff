@@ -1,4 +1,4 @@
-import { FolderGit2, Plus, Tags } from "lucide-react";
+import { Tags } from "lucide-react";
 import { ProjectSwitcher } from "@/features/project/page/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
 import { KanbanBoard } from "./KanbanBoard";
@@ -8,18 +8,16 @@ import { TagFilterNotice } from "@/features/project/TagFilterNotice";
 import { useChats } from "@/stores/chats";
 import { useGitHubStatus, useProviders } from "@/stores/providers";
 import { StateStats } from "@/features/project/page/StateStats";
-
-interface Props {
-  onNewProject: () => void;
-}
+import { NoProjectsWelcome } from "@/features/project/ProjectsEmpty";
+import { EmptyState } from "@/ui/EmptyState";
 
 /** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
-export function AllProjectsPage({ onNewProject }: Props) {
+export function AllProjectsPage() {
   const providers = useProviders();
   const github = useGitHubStatus();
   const claude = providers.data?.find((p) => p.id === "claude");
   // しまった（アーカイブした）プロジェクトは、全プロジェクトの画面に出さない。サイドバーの「タグ」で絞り込んでいれば、合うものだけ
-  const { active: all, visible: shown, tagFilter } = useVisibleProjects();
+  const { active: all, visible: shown, archived, tagFilter } = useVisibleProjects();
   const notReady = (!providers.loading && !claude?.logged_in) || (!github.loading && !github.data?.logged_in);
   // 状態ごとの数: すぐ下の全プロジェクトのカンバンと同じチャット（しまったプロジェクトの分は除く）を、プロジェクトの画面・サイドバーと同じ数え方で
   const { chats } = useChats();
@@ -48,21 +46,19 @@ export function AllProjectsPage({ onNewProject }: Props) {
       )}
       {shown.length === 0 && all.length > 0 ? (
         // タグで絞り込んで、合うプロジェクトがないとき
-        <div className="empty empty-hero">
-          <Tags size={28} />
-          <p>タグ「{tagFilter.selected.map(tagLabel).join("、")}」に合うプロジェクトはありません。</p>
-          <button className="btn" onClick={tagFilter.clear}>
-            絞り込みを外す
-          </button>
-        </div>
+        <EmptyState
+          icon={Tags}
+          title="合うプロジェクトがありません"
+          actions={
+            <button type="button" className="btn" onClick={tagFilter.clear}>
+              絞り込みを外す
+            </button>
+          }
+        >
+          タグ「{tagFilter.selected.map(tagLabel).join("、")}」が付いたプロジェクトはありません。
+        </EmptyState>
       ) : shown.length === 0 ? (
-        <div className="empty empty-hero">
-          <FolderGit2 size={28} />
-          <p>アイデアから始めましょう。新しいフォルダを作るか、既存のフォルダを取り込めます。</p>
-          <button className="btn btn-primary" onClick={onNewProject}>
-            <Plus size={15} /> 新しいプロジェクト
-          </button>
-        </div>
+        <NoProjectsWelcome archived={archived.length} />
       ) : (
         <KanbanBoard title="カンバン" />
       )}

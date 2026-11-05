@@ -30,6 +30,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
   if (projects.length === 0) {
     return (
       <div className="workspace-empty">
+        <p className="workspace-empty-text">プロジェクトがまだありません。作ると、ここにプロジェクトとチャットが並び、答えを待っているものは「自分待ち」に集まります。</p>
         <button className="sidebar-new" onClick={onNewProject}>
           <Plus size={14} /> 新しいプロジェクト
         </button>
