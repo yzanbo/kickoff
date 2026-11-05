@@ -135,3 +135,63 @@
   vertical-align: middle;
   border-top: 1px solid var(--border-strong);
 }
+
+/* ⌘F の検索の欄（@codemirror/search。エディタの上に出す）と、見つかった文字の印（チャットの検索と同じ色） */
+.md-editor .cm-panels {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--bg-sidebar);
+}
+
+.md-editor .cm-panels-top {
+  border-bottom: 1px solid var(--border);
+}
+
+.md-editor .cm-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.md-editor .cm-search input,
+.md-editor .cm-search button {
+  font: inherit;
+  font-size: 12px;
+}
+
+.md-editor .cm-search .cm-textfield {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  background: var(--bg-elev);
+}
+
+.md-editor .cm-search .cm-button {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  background: var(--bg-hover);
+  background-image: none;
+}
+
+.md-editor .cm-search button[name="close"] {
+  margin-left: auto;
+  border: none;
+  color: var(--muted);
+  background: none;
+}
+
+.md-editor .cm-searchMatch {
+  background-color: color-mix(in srgb, var(--warn) 35%, transparent);
+}
+
+.md-editor .cm-searchMatch-selected {
+  color: #000;
+  background-color: var(--warn);
+}
+
