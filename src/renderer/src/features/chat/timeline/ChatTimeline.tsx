@@ -65,7 +65,15 @@ export function ChatTimeline({
   pillDock?: HTMLElement | null;
 }) {
   const pane = useChatPane();
-  const s = useTimelineScroll({ scroll, root: pane.root, window: w, focus, approvalsCount: approvals.length, streaming });
+  const s = useTimelineScroll({
+    scroll,
+    root: pane.root,
+    window: w,
+    focus,
+    approvalsCount: approvals.length,
+    streaming,
+    endKey: busy ? (live.compacting !== null ? "compacting" : "working") : "idle",
+  });
   const sticky = useStickyPrompt(scroll.ref, prompts, s.firstKey, s.lastKey);
   // 作業中の行と一番下へ戻るボタンの文（1 回だけ組み立てる）
   const working = useWorkingStatus({ chat, events, last: w.last, streaming, live, agents, busy });

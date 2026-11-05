@@ -17,7 +17,8 @@ export const BOTTOM_SLACK_PX = 80;
 
 /**
  * 流れのスクロール（ChatTimeline）:
- * - 一番下を見ているときだけ、新しい発言・確認のカード・書いている途中の返答に合わせて下へ（窓は数が変わらないまま進むので、最後の項目で見分ける）
+ * - 一番下を見ているときだけ、新しい発言・確認のカード・書いている途中の返答・流れの終わりの様子（作業中の行が出た・圧縮中の行に替わった）に合わせて下へ
+ *   （窓は数が変わらないまま進むので、最後の項目で見分ける）
  * - 上の端に近づいたら（着く前に）前の項目を足し、読んでいた位置を動かさない。下の端に近づいたら後ろの項目を足す（途中の一部分を描いているとき）
  * - 一番下へ戻る（途中の一部分を描いているときは、最新の窓に戻して描いてから）。⌘↓ でも（このチャットにピントがあり、上を読んでいるとき）
  * - 検索結果から開いた発言（focus）へ移って一瞬強調する
@@ -30,6 +31,7 @@ export function useTimelineScroll({
   focus,
   approvalsCount,
   streaming,
+  endKey,
 }: {
   scroll: TimelineScroll;
   /** チャットの画面の要素（⌘↓ をこのチャットで受け取るか） */
@@ -38,6 +40,11 @@ export function useTimelineScroll({
   focus?: number;
   approvalsCount: number;
   streaming: string;
+  /**
+   * 流れの終わりの様子（作業中の行を出しているか・圧縮中の行か）。項目が増えなくても終わりの高さが変わるので、変わったら付いていく
+   * （手で圧縮を始めたときの作業中の行・作業の途中で圧縮中の行に替わったときに、下が切れたままになっていた）
+   */
+  endKey: string;
 }) {
   const [away, setAway] = useState(false);
   const { hidden, hiddenAfter: after } = w;
@@ -76,7 +83,7 @@ export function useTimelineScroll({
     const el = scroll.ref.current;
     if (el && scroll.following() && !focus) el.scrollTop = el.scrollHeight;
     // 窓（最近の項目だけ描く）は数が変わらないまま進むので、最後の項目で新しい発言を見分ける
-  }, [lastKey, approvalsCount, streaming, focus, scroll]);
+  }, [lastKey, approvalsCount, streaming, endKey, focus, scroll]);
 
   // 途中の一部分を描いているときに一番下へ戻る: 最新の窓に戻して、描いてから一番下へ
   const toLatest = useRef(false);
