@@ -58,7 +58,8 @@ export interface ChatPaneActions {
   revealSubagent: (key: string, eventId?: number) => void;
   /**
    * サブエージェントを、設定の開き方（SUBAGENT_OPEN_IN）で開く: 流れの中 = そのカードへ移って開く（revealSubagent）/
-   * 右の欄 = チャットの画面の右の欄にそのサブエージェントの画面を開く（openSubagentSide）。eventId を渡すと、その中のその記録へ移る
+   * 右の欄 = チャットの画面の右の欄にそのサブエージェントの画面を開く（openSubagentSide）/ 別ウィンドウ（openSubagentWindow）。
+   * eventId を渡すと、その中のその記録へ移る（別ウィンドウでは移らない）
    */
   openSubagent: (key: string, eventId?: number) => void;
   /**
@@ -66,6 +67,8 @@ export interface ChatPaneActions {
    * eventId を渡すと、その画面の中のその記録へ移る。右の欄を置けない画面（パネルの外）では、流れの中のカードへ移る
    */
   openSubagentSide: (key: string, eventId?: number) => void;
+  /** そのサブエージェントの画面を別ウィンドウで開く（もう開いていれば前に出す。別ウィンドウを開けなければ右の欄） */
+  openSubagentWindow: (key: string) => void;
   /** 右の欄を置ける画面か（パネルの中のチャット。外では「右の欄で開く」を出さない） */
   readonly canOpenSide: boolean;
   /** サブエージェントのカードを開く・閉じる（open を省けば切り替え） */

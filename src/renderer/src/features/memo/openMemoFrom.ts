@@ -8,8 +8,9 @@ import { readSetting } from "@/lib/storage";
 import { openInRootSide } from "@/features/chat/children/openChild";
 import { memoTitle } from "./memoPaths";
 
-export function openMemoFromChat({ projectId, path, chatId }: { projectId: number; path: string; chatId: number | null }) {
-  if (readSetting(MEMO_OPEN_IN) === "window" && canPopout()) return openPopout({ kind: "memo", projectId, path }, `${memoTitle(path)} — メモ`);
+export function openMemoFromChat({ projectId, path, chatId, place }: { projectId: number; path: string; chatId: number | null; place?: "side" | "window" }) {
+  // place を渡すと設定によらずその場所に（入力欄の上のメモの一覧の行のボタン）
+  if ((place ?? readSetting(MEMO_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "memo", projectId, path }, `${memoTitle(path)} — メモ`);
   if (parsePopout(location.hash)) return postToMainWindow({ type: "openMemo", projectId, path, chatId });
   if (chatId !== null && openInRootSide(chatId, (rootId, side) => side.openMemo({ chatId: rootId, projectId, path }))) return;
   openMemo(projectId, path);

@@ -3,6 +3,7 @@ import type { Approval, Chat, ChatEvent, ChatLive, Project } from "@shared/types
 import { api } from "@/api";
 import { createValueCell } from "@/lib/valueCell";
 import { readSetting } from "@/lib/storage";
+import { canPopout, openPopout } from "@/app/popout";
 import { SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { panelActions } from "@/features/panel/state/panelActions";
 import { panelKey } from "@/features/panel/surfaces";
@@ -165,8 +166,15 @@ export function useChatView(
         if (eventId !== undefined) requestAnimationFrame(() => jumpWhenDrawn(eventId));
       },
       openSubagent: (key, eventId) => {
-        if (canOpenSide && readSetting(SUBAGENT_OPEN_IN) === "side") actions.openSubagentSide(key, eventId);
+        const place = readSetting(SUBAGENT_OPEN_IN);
+        if (place === "window" && canPopout()) actions.openSubagentWindow(key);
+        else if (place !== "inline" && canOpenSide) actions.openSubagentSide(key, eventId);
         else actions.revealSubagent(key, eventId);
+      },
+      openSubagentWindow: (key) => {
+        if (!canPopout()) return actions.openSubagentSide(key);
+        const entry = now().tree.byKey.get(key);
+        openPopout({ kind: "subagent", chatId, agentKey: key }, `${entry?.description ?? "サブエージェント"} — サブエージェント`);
       },
       openSubagentSide: (key, eventId) => {
         const entry = now().tree.byKey.get(key);

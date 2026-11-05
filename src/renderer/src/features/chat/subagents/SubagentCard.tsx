@@ -4,6 +4,7 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/lib/cx";
 import { useTicker } from "@/hooks/useTicker";
 import { useSetting } from "@/hooks/useSetting";
+import { canPopout } from "@/app/popout";
 import { SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useShownInAgentPanel } from "@/features/panel/agents/agentTabs";
 import { ClaudeMark } from "@/ui/ClaudeMark";
@@ -42,7 +43,7 @@ interface CardProps {
  * 流れの中のサブエージェントのカード（Agent / Task の呼び出し 1 つ）。閉じた状態でも、状態・名前・開始〜終了（実行中は開始〜最後の動き）・
  * いまの動き（中で起動したサブエージェントのものも）・操作を出す。開くと、そのサブエージェントの流れ（依頼 → 発言・ツール（時刻付き）→ 報告）を
  * 字下げして出し、中で起動したサブエージェントも同じカードとして入れ子で出す。開閉はチャットの画面の状態（ピルから移ったときも開く）。
- * 見出しを押したときの開き方は設定（SUBAGENT_OPEN_IN）で、流れの中で開く（今まで通り）か、チャットの画面の右の欄に開く。
+ * 見出しを押したときの開き方は設定（SUBAGENT_OPEN_IN）で、流れの中で開く・チャットの画面の右の欄に開く・別ウィンドウで開く。
  * もう一方は操作の「右の欄で開く」/「流れの中で開く」でいつでも選べる。右の欄で表示しているカードには「右の欄で表示中」と添える
  */
 function SubagentCardView({ call, rel, renderItems }: CardProps) {
@@ -59,12 +60,13 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
   // 見出しを押したときに右の欄で開くか（設定。右の欄を置けない画面では、いつも流れの中）
   const [openIn] = useSetting(SUBAGENT_OPEN_IN);
   const sideFirst = openIn === "side" && Boolean(pane?.canOpenSide);
+  const windowFirst = openIn === "window" && canPopout();
   const inSide = useShownInAgentPanel(view?.chatId ?? 0, key);
   if (!view || !entry) return <PlainCard call={call} />;
 
   const path = pathOf(view.tree, key);
   const depth = path.length - 1;
-  const toggle = () => (sideFirst ? pane?.openSubagentSide(key) : pane?.toggleSubagent(key));
+  const toggle = () => (windowFirst ? pane?.openSubagentWindow(key) : sideFirst ? pane?.openSubagentSide(key) : pane?.toggleSubagent(key));
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key !== "Enter" && e.key !== " ") return;
     e.preventDefault();

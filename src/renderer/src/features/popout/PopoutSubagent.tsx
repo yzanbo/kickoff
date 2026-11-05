@@ -35,6 +35,7 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
     return {
       ...base,
       openSubagentSide: (key) => openScreen(key),
+      openSubagentWindow: (key) => openScreen(key),
       openSubagent: (key) => openScreen(key),
       revealSubagent: (key, inside) => reveal(inside, key),
       revealInConversation: reveal,
