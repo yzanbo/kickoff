@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decodeKinds, shownActiveOf, toggleKind } from "./panelKinds";
+import { decodeKinds, shownActiveOf, toggleKind, withoutChat } from "./panelKinds";
 
 test("表示するタブ: 未保存なら欄ごとの既定（ボード = チャット / チャット欄 = ブラウザ・ターミナル / フッター = ターミナル・ブラウザ）", () => {
   assert.deepEqual(decodeKinds([], "board"), ["chat"]);
@@ -30,4 +30,11 @@ test("表示するタブ: チャットの画面の右の欄は、保存した値
   // ほかの欄の付け外しの選択肢には入らない
   assert.deepEqual(toggleKind(["chat"], "subagent"), ["chat"]);
   assert.deepEqual(toggleKind(["chat"], "file"), ["chat"]);
+});
+
+test("表示するタブ: チャットを出さない欄（全プロジェクトの画面）では、チャットを除く。チャットだけならターミナルとブラウザ", () => {
+  assert.deepEqual(withoutChat(["chat", "terminal"], true), ["terminal"]);
+  assert.deepEqual(withoutChat(["chat"], true), ["browser", "terminal"]);
+  assert.deepEqual(withoutChat(["chat", "browser"], false), ["chat", "browser"]);
+  assert.deepEqual(withoutChat(["terminal"], true), ["terminal"]);
 });
