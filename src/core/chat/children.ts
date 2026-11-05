@@ -29,6 +29,16 @@ function quoteBlock(quote: string): string {
 }
 
 /**
+ * 名前を付けるもとの文: 頭の引用（`> ` の行）と空行を除いた残り（画面は選んだ文を引用として文に入れて送るので、名前が引用にならないように）。
+ * 引用しかなければ文のまま
+ */
+function titleSourceOf(text: string): string {
+  const lines = text.split("\n");
+  const start = lines.findIndex((line) => !/^\s*(>.*)?$/.test(line));
+  return start < 0 ? text : lines.slice(start).join("\n");
+}
+
+/**
  * 子チャットを作って動かす（作業場所は親と同じ。グループには入れない）。親の会話を引き継ぐときは、親の最後まで終わった作業の時点から
  * 会話を写す（親が作業中でも、1 つ前の終わった時点から始められる）。引き継げない（まだ終わった作業がない・分岐できないプロバイダー）
  * ときは、選んだ文と質問だけで始め、そのことをお知らせに残す
@@ -61,7 +71,7 @@ export async function startChildChat(
   return runner.start({
     projectId: parent.project_id,
     prompt,
-    titleText: input.text,
+    titleText: titleSourceOf(input.text),
     options: input.options,
     worktreePath: parent.worktree_path ?? undefined,
     parentChatId: parent.id,

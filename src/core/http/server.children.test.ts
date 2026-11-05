@@ -38,6 +38,16 @@ test("子チャット: 親の会話を引き継ぐと、親の最後まで終わ
   await until(() => !runner.isBusy(parentId) && !runner.isBusy(child.id));
 });
 
+test("子チャット: 文の頭に引用を入れて送ると、引用はそのまま指示に入り、名前は引用のあとの文から付ける", async () => {
+  const ctx = setup();
+  const parentId = await finishedChat(ctx);
+  const child = (await ctx.call("POST", `/api/chats/${parentId}/children`, { text: "> 選んだ文\n>\n> 2 行目\n\nここを直したい", quote: null, inherit: false })).body;
+  assert.equal(child.title, "ここを直したい");
+  const user = ctx.store.events.list(child.id).find((e) => e.type === "user");
+  assert.equal(user?.type === "user" && user.data.text, "> 選んだ文\n>\n> 2 行目\n\nここを直したい");
+  await until(() => !ctx.runner.isBusy(child.id));
+});
+
 test("子チャット: 引き継がない・引き継げる会話がないときは、選んだ文と質問だけで始める", async () => {
   const ctx = setup();
   const { call, store, provider } = ctx;
