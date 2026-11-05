@@ -1,6 +1,7 @@
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_CLOSE_ACTION } from "@/lib/storageKeys";
+import { BUSY_WORKPLACE_ACTION, CHAT_CLOSE_ACTION } from "@/lib/storageKeys";
 import { CHAT_CLOSE_ACTION_LABELS, CHAT_CLOSE_ACTIONS, type ChatCloseAction } from "@/features/chat/closeChat";
+import { BUSY_WORKPLACE_ACTION_LABELS, BUSY_WORKPLACE_ACTIONS, type BusyWorkplaceAction } from "@/features/worktree/busyWorkplace";
 import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { SaveActions } from "@/ui/SaveActions";
@@ -16,11 +17,13 @@ const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
   { value: 30, label: "30 日" },
 ];
 
-/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・通信が切れて止まったときの自動の再開・✕ を押したときの扱い） */
+/** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・通信が切れて止まったときの自動の再開・✕ を押したときの扱い・作業中の作業場所で始めるときの扱い） */
 export function ChatSettings() {
   const { draft, setDraft, dirty, save, saveFields } = useSettingsDraft();
   // ✕ を押したときの扱い（この Mac の画面の設定なので、選んだらすぐ反映する）
   const [closeAction, setCloseAction] = useSetting(CHAT_CLOSE_ACTION);
+  // ほかのチャットが作業中の作業場所へ新しいチャットを送るとき（これもこの Mac の画面の設定なので、選んだらすぐ反映する）
+  const [busyAction, setBusyAction] = useSetting(BUSY_WORKPLACE_ACTION);
   if (!draft) return null;
   return (
     <section className="section">
@@ -64,6 +67,18 @@ export function ChatSettings() {
             value={closeAction}
             onChange={setCloseAction}
             options={CHAT_CLOSE_ACTIONS.map((value) => ({ value, label: CHAT_CLOSE_ACTION_LABELS[value] }))}
+          />
+        </Field>
+        <Field
+          label="ほかのチャットが作業中の作業場所で、新しいチャットを始めるとき"
+          help="同じ作業場所（本体・ワークツリー）でほかのチャットが作業中のときに、新しいチャットを送ったときの扱いです（選んだらすぐ反映）。毎回聞くときは確かめのダイアログを出し、「次からはこれにする」でここを変えられます。新しいワークツリーで始めるときは、ブランチ名を聞いてから作ります。"
+        >
+          <Segmented<BusyWorkplaceAction>
+            className="segmented theme-switch"
+            label="ほかのチャットが作業中の作業場所で、新しいチャットを始めるとき"
+            value={busyAction}
+            onChange={setBusyAction}
+            options={BUSY_WORKPLACE_ACTIONS.map((value) => ({ value, label: BUSY_WORKPLACE_ACTION_LABELS[value] }))}
           />
         </Field>
       </div>

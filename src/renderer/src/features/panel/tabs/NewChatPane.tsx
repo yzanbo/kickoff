@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import type { Project, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
-import { choiceDialog } from "@/ui/dialogs";
 import { Composer } from "@/features/chat/composer/Composer";
 import { SendCancelled } from "@/features/chat/composer/useComposerSend";
 import { ProjectChip } from "@/features/project/ProjectChip";
@@ -11,6 +10,7 @@ import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { askNewWorktreeBranch, WorkplacePicker, workplacePath, type Workplace } from "@/features/worktree/WorkplacePicker";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { countBusyAt } from "@/features/worktree/workplace";
+import { chooseBusyWorkplaceAction } from "@/features/worktree/busyWorkplace";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { currentChats, useChats } from "@/stores/chats";
@@ -175,19 +175,13 @@ export function NewChatPane({
             suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
             placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"
             onSend={async (prompt, attachments) => {
-              // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい）。
+              // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい。既定を決めていればそのとおりに）。
               // チャットの一覧はサーバーの知らせで直っているので、送るときのいまの一覧で確かめる
               let target = place;
               const path = workplacePath(place);
               if (path !== undefined && countBusyAt(currentChats({ projectId }), path) > 0) {
-                const choice = await choiceDialog({
-                  title: "この作業場所では、ほかのチャットが作業中です",
-                  message: "同じファイルを書き換えると、作業がぶつかることがあります。新しいワークツリーで始めると、別のフォルダで並行して進められます。質問だけなど、ファイルを書き換えないチャットなら、このまま送っても大丈夫です。",
-                  choices: [
-                    { value: "here", label: "このまま送る" },
-                    { value: "worktree", label: "新しいワークツリーで始める", primary: true },
-                  ],
-                });
+                // 既定（設定の「チャット」）を決めていれば聞かない
+                const choice = await chooseBusyWorkplaceAction();
                 if (!choice) throw new SendCancelled();
                 if (choice === "worktree") {
                   const branch = await askNewWorktreeBranch();
