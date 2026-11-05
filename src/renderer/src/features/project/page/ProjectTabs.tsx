@@ -41,7 +41,7 @@ interface TabSpec {
 /**
  * タブの列に出すタブを、まとまりごとに（グループは「ボード」の中の列の切り替えにまとめたので出さない。チャットはボードと分ける置き方のときだけ）。
  * 同じまとまりのタブは薄い地でつなぎ、まとまりの間を空けて、どれが同じ仲間かを見て分かるようにする（タブが 1 つのまとまりは地を付けない）:
- * チャットの作業（ボード・チャット）/ コード（ファイル・検索・変更。以前の「エディタ」タブの中の切り替え）/ 履歴 / メモ。
+ * チャットの作業（ボード・チャット）/ コード（ファイル・検索・変更・履歴。どれも作業場所のコードと Git。以前の「エディタ」タブの中の切り替えと履歴）/ メモ。
  * ドラッグで並べ替えられる（ほかのまとまりへはまとまりごと、同じまとまりの中では 1 つずつ。useProjectTabOrder）
  */
 const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
@@ -60,9 +60,9 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
       { tab: "files", label: "ファイル", icon: Files },
       { tab: "search", label: "検索", icon: Search },
       { tab: "changes", label: "変更", icon: GitBranch },
+      { tab: "history", label: "履歴", icon: History },
     ],
   },
-  { key: "history", label: "履歴", tabs: [{ tab: "history", label: "履歴", icon: History }] },
   { key: "memos", label: "メモ", tabs: [{ tab: "memos", label: "メモ", icon: StickyNote }] },
 ];
 
