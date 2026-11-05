@@ -159,6 +159,8 @@ export const CHAT_FIND_CASE = defineSetting("kickoff:chat-find-case-sensitive", 
 export const QUESTION_LAYOUT = defineSetting("kickoff:question-layout", choice(["steps", "all"], "steps"));
 /** チャットの ✕ を押したときの扱い（ask = 毎回聞く / close = 表示だけ消す / archive = アーカイブ / delete = 削除） */
 export const CHAT_CLOSE_ACTION = defineSetting("kickoff:chat-close-action", choice(["ask", "close", "archive", "delete"], "ask"));
+/** ほかのチャットが作業中の作業場所へ新しいチャットを送るとき（ask = 毎回聞く / here = このまま送る / worktree = 新しいワークツリーで始める。features/worktree/busyWorkplace.ts） */
+export const BUSY_WORKPLACE_ACTION = defineSetting("kickoff:busy-workplace-action", choice(["ask", "here", "worktree"], "ask"));
 
 // ファイル・検索・変更・履歴のタブ
 /** 変更の一覧を木で出すか */
