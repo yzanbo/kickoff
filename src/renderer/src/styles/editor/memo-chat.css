@@ -63,6 +63,16 @@
   color: var(--text);
 }
 
+/* 変更の案の入れ方（承認 / 直接編集）。見出しの行に収まる小ささ */
+.memo-chat-apply {
+  padding: 2px;
+}
+
+.memo-chat-apply button {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
 /* 会話の流れ（いちばん下に新しいもの） */
 .memo-chat-list {
   display: flex;
