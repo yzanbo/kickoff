@@ -65,6 +65,15 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
   const inWorktree = (projectId: number, worktreePath: string): Chat[] =>
     db.prepare("SELECT * FROM chats WHERE project_id = ? AND worktree_path = ? ORDER BY id").all(projectId, worktreePath).map(toChat);
 
+  const descendants = (id: number): Chat[] =>
+    db
+      .prepare(
+        `WITH RECURSIVE tree(id, depth) AS (SELECT id, 1 FROM chats WHERE parent_chat_id = ? UNION ALL SELECT c.id, t.depth + 1 FROM chats c JOIN tree t ON c.parent_chat_id = t.id)
+         SELECT chats.* FROM chats JOIN tree ON chats.id = tree.id ORDER BY tree.depth DESC, chats.id`,
+      )
+      .all(id)
+      .map(toChat);
+
   return {
     get,
     list(filter: ChatFilter = {}): Chat[] {
@@ -84,8 +93,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewChat): Chat {
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           input.project_id,
@@ -98,6 +107,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
           bit(input.fast_mode ?? false),
           input.group_id ?? null,
           input.worktree_path ?? null,
+          input.parent_chat_id ?? null,
+          input.parent_event_id ?? null,
         );
       const chat = get(Number(lastInsertRowid))!;
       onChange({ type: "chat", chat });
@@ -113,12 +124,15 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       onChange({ type: "chat", chat });
       return chat;
     },
-    /** チャットを完全に削除する（会話の記録・送信待ちも消える） */
+    /** 子孫の子チャット（子・孫・ひ孫…。深い方から順に。自分は含まない） */
+    descendants,
+    /** チャットを完全に削除する（会話の記録・送信待ち・子孫の子チャットも消える。子孫の分も知らせる） */
     delete(id: number) {
       const chat = get(id);
       if (!chat) return;
+      const gone = [...descendants(id), chat];
       db.prepare("DELETE FROM chats WHERE id = ?").run(id);
-      onChange({ type: "chat_deleted", id, project_id: chat.project_id });
+      for (const c of gone) onChange({ type: "chat_deleted", id: c.id, project_id: c.project_id });
     },
     /** 未読の印を付ける・外す */
     setUnread: (id: number, unread: boolean) => setColumn(id, "unread", bit(unread)),

@@ -1,4 +1,4 @@
-// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェントを、メインのウィンドウの外に出して見る）の行き先
+// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットを、メインのウィンドウの外に出して見る）の行き先
 import { postWindowMessage } from "./windowBus";
 
 /** 別ウィンドウで開くもの（どれも、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
@@ -8,7 +8,9 @@ export type PopoutRoute =
   /** 作業場所のファイルの中身（line を目立たせる） */
   | { kind: "file"; chatId: number; projectId: number; worktree?: string; path: string; line?: number }
   /** サブエージェントの画面（agentKey はサブエージェントの一覧の行のキー） */
-  | { kind: "subagent"; chatId: number; agentKey: string };
+  | { kind: "subagent"; chatId: number; agentKey: string }
+  /** 子チャット（チャットの画面そのもの。chatId は子チャット） */
+  | { kind: "chat"; chatId: number };
 
 const PREFIX = "/popout/";
 
@@ -17,7 +19,7 @@ export function popoutPath(route: PopoutRoute): string {
   const params = new URLSearchParams();
   params.set("chat", String(route.chatId));
   if (route.kind === "subagent") params.set("agent", route.agentKey);
-  else {
+  else if (route.kind !== "chat") {
     params.set("project", String(route.projectId));
     if (route.worktree) params.set("worktree", route.worktree);
     if (route.kind === "file") {
@@ -47,6 +49,7 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
     const agentKey = params.get("agent");
     return agentKey ? { kind, chatId, agentKey } : undefined;
   }
+  if (kind === "chat") return { kind, chatId };
   const projectId = positive(params.get("project"));
   if (projectId === undefined) return undefined;
   const worktree = params.get("worktree") || undefined;

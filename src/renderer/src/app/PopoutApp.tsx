@@ -11,12 +11,14 @@ import { setProjectHues } from "@/features/project/projectColor";
 import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
 import { PopoutFiles } from "@/features/popout/PopoutFiles";
 import { PopoutSubagent } from "@/features/popout/PopoutSubagent";
+import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
+import { AskChildHost } from "@/features/chat/children/AskChildHost";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 import type { PopoutRoute } from "./popout";
 import { RouteContext, useHashRoute } from "./router";
 
 /**
- * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント）の画面。メインのウィンドウの App は使わない
+ * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット）の画面。メインのウィンドウの App は使わない
  * （サイドバー・通知・ショートカット・下の帯などを 2 つ動かさないため）。サーバーとのつながり・回答待ち・プロジェクトの色・会話の文字の大きさだけを持つ。
  * 表示の設定は localStorage をメインのウィンドウと共有し、書き換えは storage の知らせでそろう（lib/storage）
  */
@@ -34,10 +36,17 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
       <RouteContext.Provider value={hashRoute}>
         <ChatStatesContext.Provider value={chatStates}>
           <div className="popout">
-            {route.kind === "subagent" ? <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} /> : <PopoutFiles route={route} />}
+            {route.kind === "subagent" ? (
+              <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} />
+            ) : route.kind === "chat" ? (
+              <PopoutChildChat chatId={route.chatId} />
+            ) : (
+              <PopoutFiles route={route} />
+            )}
           </div>
           <HoverTip />
           <MemoProgress />
+          <AskChildHost />
           <DialogHost />
         </ChatStatesContext.Provider>
       </RouteContext.Provider>

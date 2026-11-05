@@ -16,6 +16,10 @@ import { ChatMenu } from "@/features/chat/ChatMenu";
 import { InlineName } from "@/ui/InlineName";
 import { SearchField } from "@/ui/SearchField";
 import { ChatRow } from "./ChatRow";
+import { ChildChatRows } from "./ChildChatRows";
+import { openChildChat } from "@/features/chat/children/childChats";
+import { useChildChats } from "@/stores/chats";
+import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useChatLayout } from "./chatGroupings";
 import { GroupedChatRows } from "./GroupedChatRows";
 import { CustomGroupSection } from "./CustomGroupSection";
@@ -68,6 +72,9 @@ export const WorkspacePage = memo(function WorkspacePage({
   const list = useWorkspaceRows({ projectId: project.id, chats, groupCount: groups.length, searchAll, collapsed });
   const { showGroups, query, setQuery, keyword, stateFilter, setStateFilter, filtering, pending, chatCount, visibleCount, pinned, ungrouped, mainRows, mainSections, archived } = list;
   const { stateOf, approvals } = useChatStates();
+  // 子チャット（親ごと。サイドバーの一覧には並べず、親の行の中に開閉で出す。アーカイブ済みはサイドバーの表示の切り替えに従う）
+  const [showArchivedChats] = useShowArchivedChats();
+  const childChats = useChildChats({ archived: showArchivedChats });
   // 自分待ちの「プロジェクト内の上に」: このプロジェクトの待っているチャットを、いちばん上のまとまりに状態順で並べる（下のいつもの一覧にも残す）。
   // 検索・状態で絞っている間は出さない
   const [waitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
@@ -128,6 +135,9 @@ export const WorkspacePage = memo(function WorkspacePage({
       onCloseMenu={rowMenu.close}
       onRename={() => rename.start(chat)}
       rename={rename.editorFor(chat)}
+      // 子チャットは親の行の中にだけ置く（開閉と数。孫・ひ孫も同じ形で）。子チャットは別ウィンドウで開く
+      after={<ChildChatRows parentId={chat.id} childrenOf={childChats} renderRow={renderRow} />}
+      onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
     />
   );
 

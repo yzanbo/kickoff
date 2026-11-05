@@ -10,6 +10,7 @@ import { AttachmentChips } from "@/features/chat/attachments/AttachmentChip";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { BubbleEditor } from "./BubbleEditor";
 import { useMessageMenu } from "./useMessageMenu";
+import { ChildChatMarks } from "@/features/chat/children/ChildChatChips";
 
 /** 自分の発言を折りたたむ高さ（これより高い発言は、ここまで出して下を薄くする） */
 const COLLAPSE_PX = 240;
@@ -46,6 +47,7 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
       {startEdit && <MenuItem onSelect={startEdit}>書き直して送り直す</MenuItem>}
       {restoreFiles && !busy && <MenuItem onSelect={restoreFiles}>ファイルをこの発言の前に戻す</MenuItem>}
     </>,
+    { eventId: event.id },
   );
   return (
     <div className={cx("user-message", draft !== undefined && "editing")}>
@@ -107,6 +109,8 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
           />
         )}
       </div>
+      {/* この発言から聞いた子チャットの札 */}
+      {pane && <ChildChatMarks chatId={pane.chatId} eventId={event.id} />}
       {menu.element}
     </div>
   );

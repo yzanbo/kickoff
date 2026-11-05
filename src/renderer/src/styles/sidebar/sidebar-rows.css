@@ -191,3 +191,42 @@ button.chat-row {
   font-size: 11px;
   color: var(--muted);
 }
+
+/* 親のチャットの下の子チャット（フォルダと同じく開閉。子の数と、自分待ちの子がいれば点。段下げは 3 段（子・孫・ひ孫）まで） */
+.chat-children {
+  margin: 0 0 2px 22px;
+}
+
+.chat-children-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 11px;
+  color: var(--muted);
+  background: none;
+  cursor: pointer;
+}
+
+.chat-children-toggle:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.chat-children-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-children-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-bright);
+}
+
+.chat-children .chat-children .chat-children .chat-children {
+  margin-left: 0;
+}

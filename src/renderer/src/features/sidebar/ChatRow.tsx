@@ -1,4 +1,5 @@
 import { MoreHorizontal } from "lucide-react";
+import type { ReactNode } from "react";
 import { busyWithUnread } from "@shared/chat/state";
 import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -32,6 +33,8 @@ export function ChatRow({
   onRename,
   rename,
   project,
+  after,
+  onOpen,
 }: {
   chat: Chat;
   state: AgentState;
@@ -46,6 +49,10 @@ export function ChatRow({
   rename?: ChatTitleEditor;
   /** プロジェクトをまたぐ一覧（自分待ちのまとまり）では、どのプロジェクトのチャットかを印で添える */
   project?: { id: number; name: string };
+  /** 行の下に添えるもの（子チャットの開閉。ChildChatRows） */
+  after?: ReactNode;
+  /** 押したときの開き方（省けばプロジェクトのチャットのパネルで開く。子チャットは別ウィンドウ） */
+  onOpen?: () => void;
 }) {
   // hooks は、下の早い return（名前の変更中）より前に呼ぶ
   const selection = useChatSelection();
@@ -99,7 +106,8 @@ export function ChatRow({
           // ⌘ を押しながら: 選ぶ・外す / Shift: 前に選んだものからの範囲を足す（どちらも開かない）。ふつうのクリックは選ぶのをやめて開く
           if (selection?.click(e, chat.id)) return;
           // 開いているチャットをもう一度押したときも、閉じたパネルを開き直す
-          openChat(chat.project_id, chat.id);
+          if (onOpen) onOpen();
+          else openChat(chat.project_id, chat.id);
         }}
       >
         <StatusSlot state={state} unread={busyUnread} />
@@ -137,6 +145,7 @@ export function ChatRow({
           }}
         />
       </span>
+      {after}
     </li>
   );
 }

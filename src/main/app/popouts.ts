@@ -1,10 +1,10 @@
 import { BrowserWindow, type Rectangle } from "electron";
-import type { IpcHandlers } from "../ipc/register.js";
+import { sendEvent, type IpcHandlers } from "../ipc/register.js";
 import { PRELOAD_FILE } from "./environment.js";
 import { openLinksExternally } from "./externalLinks.js";
 import { showMainWindow } from "./window.js";
 
-// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェントを、メインのウィンドウの外に出して見る。2 枚目の画面に置くなど）
+// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットを、メインのウィンドウの外に出して見る。2 枚目の画面に置くなど）
 
 /** 画面を読み込む前に見える地の色（メインのウィンドウと同じ） */
 const BACKGROUND = "#181b1a";
@@ -13,13 +13,27 @@ const BACKGROUND = "#181b1a";
 const popouts = new Map<string, BrowserWindow>();
 /** 最後に閉じた（動かした）別ウィンドウの位置と大きさ（次に開くとき、少しずらして同じ大きさで開く。アプリを閉じるまで覚える） */
 let lastBounds: Rectangle | undefined;
+/** 閉じ方を聞かずに閉じてよい別ウィンドウ（closeSelf で閉じるもの） */
+const closingQuietly = new WeakSet<BrowserWindow>();
 
 /** IPC の windows（画面から頼まれて開く）。appUrl は Kickoff の画面の URL（同じ画面を、route のハッシュで開く） */
 export function popoutHandlers(appUrl: string): IpcHandlers["windows"] {
   return {
     openPopout: (_e, route, title) => openPopout(appUrl, route, title),
     focusMain: () => showMainWindow(),
+    closeSelf: (e) => {
+      const win = BrowserWindow.fromWebContents(e.sender);
+      if (!win || !isPopout(win)) return;
+      closingQuietly.add(win);
+      win.close();
+    },
   };
+}
+
+/** 開いている別ウィンドウか（メインのウィンドウから closeSelf を呼ばれても閉じない） */
+function isPopout(win: BrowserWindow): boolean {
+  for (const w of popouts.values()) if (w === win) return true;
+  return false;
 }
 
 function openPopout(appUrl: string, route: string, title: string) {
@@ -60,5 +74,18 @@ function openPopout(appUrl: string, route: string, title: string) {
   win.on("closed", () => {
     if (popouts.get(route) === win) popouts.delete(route);
   });
+  if (route.startsWith("/popout/chat?")) {
+    // 子チャットのウィンドウは、最小化（黄色）で Dock に入れず「しまう」（閉じて、メインの会話の札に戻す。✕ と違い、閉じ方を聞かない）
+    win.on("minimize", () => win.destroy());
+    // ✕・⌘W は閉じるのを止めて画面に知らせ、閉じ方（しまう / アーカイブ / 削除）を聞く。選んだら画面が closeSelf で閉じる。
+    // 画面の beforeunload では止められない（利用者の操作がないページの beforeunload は Chromium が無視する）。
+    // アプリの終了は app.exit で閉じる（close が来ない）ので、ここで止めても終われる
+    win.on("close", (e) => {
+      if (closingQuietly.has(win) || win.webContents.isLoading()) return;
+      e.preventDefault();
+      win.focus();
+      sendEvent(win.webContents, "windows", "onCloseRequested");
+    });
+  }
   popouts.set(route, win);
 }

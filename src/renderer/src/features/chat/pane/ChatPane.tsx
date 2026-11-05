@@ -67,7 +67,7 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
  * 子の部品への操作は ChatPaneContext 1 つで配る（流れの項目・ピル・送信待ち・検索など。値はチャットごとに 1 回だけ作る）。
  * パネルの中では、右にサブエージェントの画面を並べる右の欄（AgentSplit）を置く（同じ context の中なので、記録・操作をそのまま使う）
  */
-function ChatView({ visible, slot, ...input }: ChatViewInput & { visible: boolean; slot?: string }) {
+export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible: boolean; slot?: string }) {
   const { chat, project, events, approvals, streaming, focus } = input;
   const view = useChatView(input, usePanelHost() !== null);
   const { pane } = view;

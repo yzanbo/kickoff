@@ -98,6 +98,15 @@ export interface MemoFromChatBody {
   folder: string | null;
 }
 
+/** 子チャットで聞く（POST /api/chats/:id/children）。inherit なら親の会話を引き継ぐ。quote は親の会話から選んだ文、event_id は聞いた位置の記録 */
+export interface ChildChatBody {
+  text: string;
+  quote?: string | null;
+  inherit?: boolean;
+  event_id?: number | null;
+  options?: ChatOptionsPatch;
+}
+
 // ---- 応答 ----
 
 /** チャットの詳細（GET /api/chats/:id）。作業中の様子 live は SSE の chat_live と同じ形（あとはそれで追いかける） */

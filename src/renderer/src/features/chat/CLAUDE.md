@@ -20,6 +20,7 @@
 | `prompts/` | 自分の指示の一覧（指示の履歴・上に貼り付ける指示・前後の指示へ） |
 | `find/` | チャットの中の検索 |
 | `rewind/` | 巻き戻し・ファイルを戻す・失敗した作業の直す操作 |
+| `children/` | 子チャット（聞くダイアログ `AskChildHost`・会話の中と入力欄の上の札 `ChildChatChips`・開き方と受け渡し `childChats.ts`） |
 
 ## 状態と未読
 
@@ -194,3 +195,11 @@
 - ⌘クリックはファイルタブへ直接（`openByClick`）。右クリックはファイルのメニュー `FileMenu`（右の欄で開く・ファイルタブで開く・VS Code / 既定のアプリで開く・Finder で表示（IPC の `externalApps.revealPath`）・パスのコピー（相対・絶対）。`FileLinksProvider` が 1 つだけ描く。チップの右クリックは返答のメニューより先に受け取る）。開く関数は同じものにして、返答の Markdown を描き直させない。
 - 右の欄の中身は `features/editor/CLAUDE.md` の「右の欄の変更とファイル」。
 判定と Markdown の木の書き換え（`remarkFileLinks`）は純粋関数の `fileRefs.ts`（作業場所のファイルの一覧にあるものだけ。インラインコード・リンク先・地の文の絶対パス）。
+
+## 子チャット（`children/`）
+
+- 横道の質問を、親の会話とは別のチャットで聞く（データとサーバーは `src/core/chat/CLAUDE.md` の「子チャット」）。一覧（`selectChats`。サイドバー・ボード・⌘K など）には出さず、親の中にだけ置く（`stores/chats.ts` の `childChatsOf` / `useChildChats`。親 → 子の一覧）。
+- 始め方: 発言の右クリックの「子チャットで聞く」（`useMessageMenu`。選んだ文、なければ発言の全体）→ `openAskChild` で `AskChildHost`（App と別ウィンドウに 1 つ）が聞く: 選んだ文・聞くこと（Enter で送る）・「会話を引き継ぐ」（初めはオン）。送ったら閉じるだけで、画面は移らず子も開かない（親は作業を続けられる）。
+- 札: 聞いた発言の下に `ChildChatMarks`（子ごとに状態 = 作業中・回答待ち・失敗・答えあり（未読）・既読）、入力欄の上のピルに `ChildChatsChip`（数と答えありの数。押すと一覧）。札を押すと `openChildChat`（Mac のアプリなら別ウィンドウ、ブラウザならチャットを開く）。
+- 答えが来ても開かない。通知（`app/notifications.ts`。題名に「子チャット: 」）を押すと別ウィンドウで開く。
+- 別ウィンドウ（`features/popout/PopoutChildChat`）の帯: 「親を見る」（メインの親の、聞いた発言へ）・「メインに渡す」（いちばん新しい答えを引用にして親の入力欄に入れる `handBackText`。送るのは自分で）・「しまう」（閉じ方を聞かずに閉じる。子は残り、札から開き直せる）。最小化も「しまう」と同じ。✕・⌘W はチャットの ✕ と同じ `closeChatWithChoice`（既定は `CHAT_CLOSE_ACTION`）。

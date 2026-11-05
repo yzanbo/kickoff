@@ -17,4 +17,7 @@ export interface NewChat extends ChatOptionsPatch {
   group_id?: number | null;
   /** 作業場所（ワークツリーのフォルダ。省略・null なら本体） */
   worktree_path?: string | null;
+  /** 子チャットの親と、親の会話のどの記録から聞いたか */
+  parent_chat_id?: number | null;
+  parent_event_id?: number | null;
 }

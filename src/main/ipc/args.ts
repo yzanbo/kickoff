@@ -28,6 +28,7 @@ export const IPC_ARGS = defineArgSchemas({
   windows: {
     openPopout: z.tuple([z.string().startsWith("/popout/").max(4000), z.string().max(300)]),
     focusMain: none,
+    closeSelf: none,
   },
   externalApps: {
     openPath: z.tuple([absolutePath]),

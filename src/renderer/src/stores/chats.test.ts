@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Chat } from "@shared/types";
 import { makeChat } from "@shared/testing/factories";
-import { chatsByProject, NO_CHATS, reduceChats, selectChats, upsertChat } from "./chats";
+import { chatsByProject, childChatsOf, NO_CHATS, reduceChats, selectChats, upsertChat } from "./chats";
 
 const chat = (id: number, project_id: number, active_at: string, archived_at: string | null = null) => makeChat(id, { project_id, active_at, archived_at });
 const ids = (list: readonly Chat[]) => list.map((r) => r.id);
@@ -58,4 +58,16 @@ test("chatsByProject: プロジェクトごとに分け、中身の同じプロ�
   assert.deepEqual(ids(changed[2]), [4, 2]);
   // チャットのなくなったプロジェクトは消える
   assert.deepEqual(Object.keys(chatsByProject([list[1]], first)), ["2"]);
+});
+
+test("子チャット: 一覧（selectChats）には入れず、childChatsOf で親ごとに引く", () => {
+  const parent = makeChat(1, { active_at: "2026-01-01T00:00:00Z" });
+  const child = makeChat(2, { parent_chat_id: 1, active_at: "2026-01-03T00:00:00Z" });
+  const grandchild = makeChat(3, { parent_chat_id: 2, active_at: "2026-01-02T00:00:00Z" });
+  const archivedChild = makeChat(4, { parent_chat_id: 1, archived_at: "2026-01-04T00:00:00Z", active_at: "2026-01-04T00:00:00Z" });
+  assert.deepEqual(ids(selectChats([parent, child, grandchild], [archivedChild])), [1]);
+  const map = childChatsOf([parent, child, grandchild], [archivedChild]);
+  assert.deepEqual(ids(map.get(1)!), [4, 2]);
+  assert.deepEqual(ids(map.get(2)!), [3]);
+  assert.equal(childChatsOf([parent], undefined).size, 0);
 });

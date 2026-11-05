@@ -21,6 +21,7 @@ import { SettingsDialog, type SettingsSection } from "@/features/settings/Settin
 import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicator";
 import { HoverTip } from "@/ui/HoverTip";
 import { MemoProgress } from "@/features/memo/MemoProgress";
+import { AskChildHost } from "@/features/chat/children/AskChildHost";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/Sidebar";
 import { useFallbackProject } from "@/features/sidebar/currentProject";
@@ -180,6 +181,7 @@ export function App() {
         {/* マウスを乗せたときの説明（data-tip を付けた要素。アプリ全体で 1 つ） */}
         <HoverTip />
         <MemoProgress />
+        <AskChildHost />
         {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}
         <SidebarOpenButton sidebar={sidebar} />
         {/* 右上のレイアウトの開閉（ドラッグ領域より優先されるよう、開くボタンと同じく後ろに置く） */}
