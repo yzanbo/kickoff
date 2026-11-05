@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { usePopover } from "@/ui/Popover";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
@@ -20,8 +21,8 @@ import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
  * 札を押すと、まとまりのチャットを状態ごと（作業中 → 回答待ち → 未読）にまとめた一覧を開く（画面の見出しの状態ごとの数と同じ一覧。行でそのチャットのタブを開く）。
  * runs が undefined の「その他」（ブラウザなど）は押せない札。まとまりはプロジェクトごとなので、一覧の行にプロジェクト名は出さない。
  * まとめないときも、タブの列の左端に「チャット」の札（all）として置き、パネルのチャット全体の状態ごとの数と一覧を出す（タブの数は出さない）。
- * 札の右クリック（プロジェクトの分かるまとまりだけ）: このグループで新しいチャット（グループ別のとき）・新しいグループを作成・
- * このグループをタブの列から隠す・表示する（自分で作ったグループのとき。useHiddenTabGroups）・このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
+ * 札の右クリック（プロジェクトの分かるまとまりだけ）: 新しいグループを作成・
+ * このグループをタブの列から隠す・表示する（自分で作ったグループのとき。useHiddenTabGroups）・表示するグループ / チャットのないグループを隠す（グループ別のとき。menuExtra）・このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
  * 自分で作ったグループの札はつかんで並べ替えられる（dragProps。サイドバーのグループの並びも同じに変わる）。
  * 札は左右 2 つに区切った 1 つの丸い札: 左 = 名前（押すと一覧）、右 = タブを畳む・開く（onToggleCollapsed。ブラウザのタブのグループを畳むのと同じ。右クリックにも同じ項目）。
  * 右側は、開いているときは「‹」（札へ畳む向き）、畳んでいるときは「3」（まとまりのタブの数 tabCount。表示中のタブを残しているかに関係なく同じ形。
@@ -45,6 +46,7 @@ export function TabClusterHead({
   tabCount = cluster.tabs.length,
   hidden = false,
   onToggleHidden,
+  menuExtra,
 }: {
   cluster: TabCluster;
   chats: Chat[] | undefined;
@@ -68,6 +70,8 @@ export function TabClusterHead({
   hidden?: boolean;
   /** 自分で作ったグループを、タブの列から隠す・出す（グループ別のとき。右クリックの項目） */
   onToggleHidden?: () => void;
+  /** 右クリックのメニューの下に足す項目（グループ別のときの「表示するグループ」「チャットのないグループを隠す」） */
+  menuExtra?: ReactNode;
 }) {
   const { pending } = useChatStates();
   // 札を押すと開く、まとまりのチャットの一覧（札の下に出す。タブの列に切り取られないよう top layer に出る）
@@ -158,7 +162,6 @@ export function TabClusterHead({
               <div className="menu-separator" role="separator" />
             </>
           )}
-          {newChatTarget && <MenuItem onSelect={() => onNewChat?.(newChatTarget)}>{newChatLabel}</MenuItem>}
           <MenuItem onSelect={() => void createGroup()} title="このプロジェクトに、自分で使うグループを作ります">
             新しいグループを作成…
           </MenuItem>
@@ -169,6 +172,12 @@ export function TabClusterHead({
             >
               {hidden ? `「${group.name}」をタブの列に表示する` : `「${group.name}」をタブの列から隠す`}
             </MenuItem>
+          )}
+          {menuExtra && (
+            <>
+              <div className="menu-separator" role="separator" />
+              {menuExtra}
+            </>
           )}
           {group && (
             <>
