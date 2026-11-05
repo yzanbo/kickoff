@@ -85,3 +85,37 @@
 .project-side-tabs .tab {
   --corner-offset: -4px;
 }
+
+/*
+ * タブのまとまり（ボード・チャット / ファイル・検索・変更）。同じまとまりのタブは薄い地でつなぎ（.boxed。タブが 1 つのまとまりは付けない）、
+ * まとまりの間を空けて、どれが同じ仲間か見て分かるようにする
+ */
+.project-tab-group {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.project-tab-group + .project-tab-group {
+  margin-left: 10px;
+}
+
+.project-tab-group.boxed {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.project-side-tabs .project-tab-group {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-side-tabs .project-tab-group + .project-tab-group {
+  margin-top: 8px;
+  margin-left: 0;
+}
+
+.project-side-tabs .project-tab-group.boxed {
+  padding: 3px 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
