@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { ChildChatBar } from "@/features/chat/children/ChildChatBar";
+import { PopoutDockButton } from "./PopoutDockButton";
 import { ChatView } from "@/features/chat/pane/ChatPane";
 import { useChatDetail } from "@/features/chat/pane/useChatDetail";
 import { reportFailure } from "@/ui/dialogs";
@@ -37,7 +38,13 @@ export function PopoutChildChat({ chatId }: { chatId: number }) {
   if (!chat) return <div className="page muted">読み込み中…</div>;
   return (
     <>
-      <ChildChatBar chat={chat} events={events} putAwayTitle="ウィンドウを閉じる（子チャットは残り、親の会話の札から開き直せる。最小化でも同じ）" onPutAway={closeWindow} />
+      <ChildChatBar
+        chat={chat}
+        events={events}
+        putAwayTitle="ウィンドウを閉じる（子チャットは残り、親の会話の札から開き直せる。最小化でも同じ）"
+        onPutAway={closeWindow}
+        extra={<PopoutDockButton route={{ kind: "chat", chatId }} />}
+      />
       <div className="popout-body">
         <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} visible />
       </div>

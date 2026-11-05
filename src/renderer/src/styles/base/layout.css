@@ -251,6 +251,22 @@
   background: var(--bg);
 }
 
+/* 別ウィンドウの上の細い帯（何のウィンドウか・右の欄に戻す。子チャットは自分の帯に同じボタン） */
+.popout-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.popout-bar-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .popout-body {
   display: flex;
   flex: 1;

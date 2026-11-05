@@ -1,4 +1,5 @@
 // ウィンドウの間の知らせ（メインのウィンドウと別ウィンドウ。同じ出どころなので BroadcastChannel で届く）
+import type { PopoutRoute } from "./popout";
 import type { FileTarget } from "./router";
 
 export type WindowMessage =
@@ -14,6 +15,8 @@ export type WindowMessage =
   | { type: "openMemo"; projectId: number; path: string; chatId: number | null }
   /** メインのウィンドウで子チャットを開く（設定が右の欄のとき。別ウィンドウの子チャットの札・通知から） */
   | { type: "openChild"; chatId: number }
+  /** 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（別ウィンドウの「右の欄に戻す」。別ウィンドウは閉じる） */
+  | { type: "dockPopout"; route: PopoutRoute }
   /** 別ウィンドウの子チャットから親へ: 親の聞いた位置を見る（reveal）/ 答えを親の入力欄に入れる（handBack） */
   | { type: "childToParent"; childId: number; action: "reveal" | "handBack"; text?: string }
   /** もう開いている別ウィンドウの「変更」を、そのファイルの位置へ移す（key は popoutKey） */

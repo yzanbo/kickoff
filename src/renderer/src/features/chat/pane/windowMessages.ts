@@ -21,6 +21,11 @@ export const isChatPaneShown = (chatId: number): boolean => {
   return Boolean(el?.isConnected && el.offsetParent !== null);
 };
 
+/** このウィンドウで見えているチャットの画面のチャットの ID（右の欄の子チャットも含む） */
+export function shownChatIds(): number[] {
+  return [...panes.keys()].filter((id) => isChatPaneShown(id));
+}
+
 function handle(message: WindowMessage) {
   if (message.type !== "fillComposer" && message.type !== "reveal" && message.type !== "showActivity") return;
   const pane = paneFor(message.chatId);
