@@ -1,4 +1,5 @@
-import { Inbox, LayoutGrid, PanelLeftClose, PanelLeftOpen, Search, SquarePen } from "lucide-react";
+import { Inbox, LayoutGrid, Search, SquarePen } from "lucide-react";
+import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/stores/projects";
@@ -13,20 +14,21 @@ import { useGroupsOf } from "@/stores/groups";
 import type { SidebarController } from "./useSidebar";
 import { ChatSelectionContext, useChatSelectionState, visibleRows } from "./chatSelection";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
-import { IconButton } from "@/ui/IconButton";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useWaitingView } from "./waitingView";
 import { WaitingViewMenu } from "./WaitingViewMenu";
 
 interface Props {
   sidebar: SidebarController;
+  /** いちばん上の行の右端に置く道具（レイアウトの開閉 LayoutToggles。サイドバーを閉じる「左」もここ） */
+  toolbar: ReactNode;
   onNewChat: () => void;
   onSearch: () => void;
   onNewProject: () => void;
 }
 
 /** 左のサイドバー（新しいチャット・全プロジェクト・自分待ち・検索、プロジェクトごとのチャット一覧、設定） */
-export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
+export function Sidebar({ sidebar, toolbar, onNewChat, onSearch, onNewProject }: Props) {
   const route = useRoute();
   const { projects } = useProjects();
   const { pending } = useChatStates();
@@ -66,10 +68,8 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   return (
     <aside ref={sidebar.paneRef} className="sidebar" aria-hidden={!sidebar.open} inert={!sidebar.open}>
       <div className="sidebar-resizer" aria-label="サイドバーの幅を変える" {...sidebar.resizeHandle} />
-      {/* 一番上の行は macOS の信号機ボタンの行。右端に開閉ボタンを置き、残りはウィンドウのドラッグ領域 */}
-      <div className="sidebar-header">
-        <IconButton icon={PanelLeftClose} className="titlebar-toggle" label="サイドバーを閉じる" keys="⌘B" onClick={sidebar.toggle} />
-      </div>
+      {/* 一番上の行は macOS の信号機ボタンの行。右端にレイアウトの開閉（サイドバーを閉じるのもここ）を置き、残りはウィンドウのドラッグ領域 */}
+      <div className="sidebar-header">{sidebar.open && toolbar}</div>
       <div className="nav-rows">
         <button className="nav-row" onClick={onNewChat} title="新しいチャット（⌘N）">
           <SquarePen size={15} /> 新しいチャット <kbd>⌘N</kbd>
@@ -117,13 +117,3 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
   );
 }
 
-/**
- * 閉じているときの「開く」ボタン。Electron のドラッグ領域（見出しなど）は後に書かれた要素が優先されるので、
- * 押せなくならないよう、画面のいちばん後ろに置く
- */
-export function SidebarOpenButton({ sidebar }: { sidebar: SidebarController }) {
-  if (sidebar.open) return null;
-  return (
-    <IconButton icon={PanelLeftOpen} className="titlebar-toggle floating" label="サイドバーを開く" keys="⌘B" onClick={sidebar.toggle} />
-  );
-}

@@ -90,70 +90,35 @@
 }
 
 /*
- * 信号機ボタンと同じ行、そのすぐ右に置く開閉ボタン（開いていても閉じていても同じ位置）。IconButton なので、
- * 後ろの .icon-button（buttons-forms.css）に勝つよう .icon-button と重ねて書く
- */
-.icon-button.titlebar-toggle {
-  /*
-   * 信号機ボタン（1 つの枠 14×16px・丸は直径 12px・20px 間隔。左上 14px,14px から並ぶので
-   * 中心の高さは約 22px、右端は約 68px）と同じ行・同じ高さ・同じくらいの大きさにする
-   */
-  position: absolute;
-  top: 12px;
-  left: 76px;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: 5px;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
-  -webkit-app-region: no-drag;
-}
-
-.titlebar-toggle.floating {
-  position: fixed;
-}
-
-.icon-button.titlebar-toggle:hover {
-  color: var(--text);
-  background: var(--bg-elev);
-}
-
-/* 信号機ボタンに合わせて線を少し細くする */
-.icon-button.titlebar-toggle svg {
-  stroke-width: 1.75;
-}
-
-/*
  * 画面のいちばん上の行（タイトルと編集ボタンなど）は、サイドバーの開閉に関係なく信号機ボタンと同じ高さに置く
  * （開閉で縦の位置が変わらないように）。閉じている間だけ、その行を開閉ボタンの右へずらす。
  * その下（パス・タブ）は、どちらでも左端にそろえる
  */
 .page-header > :first-child {
   min-height: 34px;
-  /* 右端は、右上のレイアウトの開閉（LayoutToggles）のために空けておく（チャット欄の上の行も同じ） */
-  padding-right: 100px;
 }
 
-/* 右上のレイアウトの開閉（VS Code と同じ。信号機ボタンと同じ高さ） */
+/*
+ * レイアウトの開閉（LayoutToggles。VS Code の右上と同じ並び）。サイドバーを開いているときはサイドバーのいちばん上の行の右端（sidebar.css）、
+ * 閉じているときは画面の左上の信号機ボタンの右（floating。信号機ボタン（右端が約 68px）と同じ行・同じ高さ）。
+ * 右側の画面の上には浮かせない（見出しの行を隠したとき、ボード・チャットを画面のいちばん上まで詰めるため）
+ */
 .layout-toggles {
-  position: fixed;
-  top: 8px;
-  right: 10px;
-  z-index: 30;
   display: flex;
   gap: 2px;
   -webkit-app-region: no-drag;
 }
 
+.layout-toggles.floating {
+  position: fixed;
+  top: 8px;
+  left: 76px;
+  z-index: 30;
+}
+
+/* サイドバーを閉じている間は、画面のいちばん上の行を、左上の信号機ボタンとレイアウトの開閉（--layout-toggles-end まで）の右へずらす */
 .sidebar-collapsed .page-header > :first-child {
-  /* 開閉ボタン（左から 96px まで）の右に置く。画面の左右の余白の分を差し引く */
-  padding-left: calc(104px - var(--page-x));
+  padding-left: calc(var(--layout-toggles-end) - var(--page-x));
   transition: padding-left var(--panel-motion-duration) var(--panel-motion-ease);
 }
 

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSetting } from "@/hooks/useSetting";
+import { PAGE_TITLE_HIDDEN } from "@/lib/storageKeys";
 import { publishServerEvent } from "@/api/events";
 import { useServerConnection } from "@/api/useServerConnection";
 import { useApprovals } from "@/stores/approvals";
@@ -21,7 +23,7 @@ import { SettingsDialog, type SettingsSection } from "@/features/settings/Settin
 import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicator";
 import { HoverTip } from "@/ui/HoverTip";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
-import { Sidebar, SidebarOpenButton } from "@/features/sidebar/Sidebar";
+import { Sidebar } from "@/features/sidebar/Sidebar";
 import { useCurrentProject } from "@/features/sidebar/currentProject";
 import { useSidebar } from "@/features/sidebar/useSidebar";
 import { terminalTargets } from "@/features/panel/usePanel";
@@ -98,6 +100,11 @@ export function App() {
 
   // 会話の文字の大きさ（<html> の CSS 変数）
   useApplyChatFontSize();
+  // 画面の見出しの行を隠すか（<html> の data-page-title-hidden。隠すのは CSS。右上のレイアウトの開閉の「見出し」）
+  const [pageTitleHidden, setPageTitleHidden] = useSetting(PAGE_TITLE_HIDDEN);
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-page-title-hidden", pageTitleHidden);
+  }, [pageTitleHidden]);
   useAppShortcuts({
     toggleSidebar: sidebar.toggle,
     openPalette: () => setPalette(true),
@@ -113,6 +120,16 @@ export function App() {
   useWindowEvent(OPEN_NO_PROJECTS_GUIDE_EVENT, () => setNoProjectsGuide(true));
   useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
 
+  // レイアウトの開閉（サイドバーを開いているときはサイドバーのいちばん上の行、閉じているときは左上に floating で置く）
+  const layoutToggles = (floating: boolean) => (
+    <LayoutToggles
+      floating={floating}
+      sidebar={{ open: sidebar.open, onToggle: sidebar.toggle }}
+      title={{ open: !pageTitleHidden, onToggle: () => setPageTitleHidden(!pageTitleHidden) }}
+      bottom={bottomPanel.available ? { open: bottomPanel.open, onToggle: bottomPanel.toggle } : undefined}
+      chat={chat.projectId !== undefined ? { open: chat.open, onToggle: chat.toggle } : undefined}
+    />
+  );
   return (
     <PlanUsageContext.Provider value={planUsage}>
       <RouteContext.Provider value={route}>
@@ -120,6 +137,7 @@ export function App() {
       <div {...sidebar.layout}>
         <Sidebar
           sidebar={sidebar}
+          toolbar={layoutToggles(false)}
           onNewChat={startNewChat}
           onSearch={() => setPalette(true)}
           onNewProject={() => setCreating({})}
@@ -165,14 +183,11 @@ export function App() {
         <DiagnosticsIndicator />
         {/* マウスを乗せたときの説明（data-tip を付けた要素。アプリ全体で 1 つ） */}
         <HoverTip />
-        {/* 開くボタンは、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く */}
-        <SidebarOpenButton sidebar={sidebar} />
-        {/* 右上のレイアウトの開閉（ドラッグ領域より優先されるよう、開くボタンと同じく後ろに置く） */}
-        <LayoutToggles
-          sidebar={{ open: sidebar.open, onToggle: sidebar.toggle }}
-          bottom={bottomPanel.available ? { open: bottomPanel.open, onToggle: bottomPanel.toggle } : undefined}
-          chat={chat.projectId !== undefined ? { open: chat.open, onToggle: chat.toggle } : undefined}
-        />
+        {/*
+          サイドバーを閉じているときのレイアウトの開閉（左上の信号機ボタンの右。Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く）。
+          開いているときはサイドバーのいちばん上の行に置く（Sidebar の toolbar）
+        */}
+        {!sidebar.open && layoutToggles(true)}
         <DialogHost />
         {palette && <CommandPalette onClose={() => setPalette(false)} />}
         {activeChats && <ActiveChatsPalette onClose={() => setActiveChats(false)} />}
