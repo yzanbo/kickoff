@@ -106,8 +106,8 @@
   display: flex;
   align-items: flex-start;
   gap: 4px;
-  /* 中身は発言の流れ（.timeline-inner）と同じ幅にそろえる */
-  padding: 6px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
+  /* 中身は発言の流れ（.timeline-inner）と同じ幅にそろえる。縦は詰めて、流れに場所を回す */
+  padding: 3px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
   border-bottom: 1px solid var(--border);
   background: var(--bg-elev);
 }
@@ -119,14 +119,14 @@
   align-items: baseline;
   gap: 8px;
   min-width: 0;
-  padding: 2px 0;
+  padding: 1px 0;
   color: var(--text);
 }
 
 .sticky-prompt-label {
   flex: none;
-  /* 文の 1 行目の並びにそろえる（文の枠の 2px ＋ 文 13px と見出し 11px の行の高さの差） */
-  padding-top: 4px;
+  /* 文の 1 行目の並びにそろえる（文の枠の 1px ＋ 文 13px と見出し 11px の行の高さの差） */
+  padding-top: 3px;
   margin-right: 4px;
   font-size: calc(11px * var(--chat-scale, 1));
   font-weight: 600;
@@ -158,9 +158,14 @@
   margin-right: 4px;
 }
 
+/* 帯の高さを抑えるよう、ボタンは文の 1 行ぶんの高さにする（幅はそのまま） */
+.sticky-prompt-nav .icon-button {
+  height: 22px;
+}
+
 /* 指示の添付（1 つ目だけ）。帯の高さを変えないよう、文の 1 行目の高さに収める */
 .sticky-prompt .attach-peek {
-  margin-top: 2px;
+  margin-top: 1px;
   /* 右下に重ねた数（+n）が文にかからないように */
   margin-right: 6px;
 }
