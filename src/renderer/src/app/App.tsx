@@ -22,7 +22,7 @@ import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicato
 import { HoverTip } from "@/ui/HoverTip";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/Sidebar";
-import { loadCurrentProject } from "@/features/sidebar/currentProject";
+import { useCurrentProject } from "@/features/sidebar/currentProject";
 import { useSidebar } from "@/features/sidebar/useSidebar";
 import { terminalTargets } from "@/features/panel/usePanel";
 import { DialogHost } from "@/ui/dialogs";
@@ -76,17 +76,20 @@ export function App() {
   // （チャット欄・下のパネル・下の帯に出さず、そのプロジェクトのワークツリー・グループなどを読みに行かない）
   const routeProject = routeProjectId(route);
   const projectId = missingProject(routeProject) ? undefined : routeProject;
+  // URL にプロジェクトがない画面（全プロジェクト）で使うプロジェクト: サイドバーで最後に選んでいたもの（もうなければ先頭）。
+  // ⌘N の新しいチャットの作成先と、チャット欄の持ち主
+  const currentProject = useCurrentProject();
+  const fallbackProject = (missingProject(currentProject) ? undefined : currentProject) ?? projects[0]?.id;
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
-  // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。プロジェクトの画面でだけ出す）
-  const chat = useProjectChat(projectId);
+  // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの）
+  const chat = useProjectChat(projectId ?? fallbackProject);
   const bottomPanel = useBottomPanel(projectId ?? "all", terminalTargets(projects, projectId));
   // チャット・新しいチャットの URL では、最後に見たボード（カンバン / グループのボード）のパネルで開く
   const [boardColumns] = useBoardColumns();
 
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める（もうないプロジェクトは飛ばす） */
   const startNewChat = () => {
-    const current = loadCurrentProject();
-    const target = projectId ?? (missingProject(current) ? undefined : current) ?? projects[0]?.id;
+    const target = projectId ?? fallbackProject;
     if (target) openNewChat(target);
     // いきなり新しいプロジェクトのダイアログを開かず、チャットはプロジェクトの中で始めることを説明してから作るよう誘う
     else setNoProjectsGuide(true);

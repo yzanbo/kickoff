@@ -8,7 +8,7 @@ interface Toggle {
 
 /**
  * 画面の右上の、レイアウトの開閉（VS Code の右上と同じ）: 左のサイドバー（⌘B）・下のパネル（ターミナル。⌃` / ⌘J）・
- * 右のチャット欄（⌥⌘B。プロジェクトの画面だけ）。出せないものは渡さない
+ * 右のチャット欄（⌥⌘B。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの。プロジェクトが 1 つもなければ出さない）。出せないものは渡さない
  */
 export function LayoutToggles({ sidebar, bottom, chat }: { sidebar: Toggle; bottom?: Toggle; chat?: Toggle }) {
   return (
