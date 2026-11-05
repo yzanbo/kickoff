@@ -57,6 +57,9 @@ export function useCoverableWidth({ width: widthSetting, maximized: maximizedSet
     write: widthVar,
     target: () => body,
     onStart: () => maximized && setMaximized(false),
+    // ドラッグ中は描き直さずに幅を直接書き込むので、離したら描き直しで決まる値をここでも書く。覆うところで始めて覆うところで離すと、
+    // 描き直しの値（100vw）は前と同じなので React が書き直さず、離した位置の幅が残っていた（もう一方は隠れたのに、その幅の空白が残った）
+    onChange: (size) => body?.style.setProperty(widthVar, leavesNarrowRest(body.clientWidth, size, { gap, minRest }) ? "100vw" : `${size}px`),
   });
   const width = resize.size;
   /**
