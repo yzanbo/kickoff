@@ -11,7 +11,7 @@ export type ProjectChatController = ReturnType<typeof useProjectChat>;
  * プロジェクトのチャット欄（画面の右端。どのタブでも開ける。Cursor・VS Code の右のチャットと同じ）の殻: 開閉・幅・⌥⌘B。App が持つ。
  * 中身はボードの右のパネルと同じタブ（チャット・新しいチャット・ブラウザ・ターミナル。ProjectChat の中の usePanel）。
  * 開いているかはプロジェクトごと（localStorage）、タブはプロジェクトごと（アプリを閉じるまで）、幅はアプリ全体で覚える。
- * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。projectId がない画面（全プロジェクト）では出さない
+ * 画面の右端に、下のパネル（ターミナル）より下まで置く（App）。全プロジェクトの画面では、App がサイドバーで最後に選んでいたプロジェクト（もうなければ先頭）を渡す。projectId がない（プロジェクトが 1 つもない）ときは出さない
  */
 export function useProjectChat(projectId: number | undefined) {
   const key = projectId === undefined ? undefined : panelKey("side", projectId);
