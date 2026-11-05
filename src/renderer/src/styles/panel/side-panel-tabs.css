@@ -20,9 +20,7 @@
   align-items: center;
   min-width: 36px;
   height: 30px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border-top: 1px solid transparent;
   color: var(--muted);
 }
 
@@ -32,15 +30,16 @@
 }
 
 /*
- * 表示中のタブ: 地を明るくし、上と左右を同じ太さ（1px）の色の枠で囲み、名前を太字にする。
- * 以前は枠の上に 2px の色の線を重ねていて、上だけ太く、角の丸みとも合わずに見えた。
- * 隣のタブ・タブの列の線より上に重ねて、タブが中身とつながって見えるようにする（z-index）。色のあるタブ（まとまり・右の欄の種類）は枠の色だけを変える（side-panel-tab-kinds.css）
+ * 表示中のタブだけを目立たせる: 地をタブの色（--tab-color。まとまり・右の欄の種類の色。なければアクセントの色）で薄く染め、上の端に 1px のその色の線を引く。
+ * 左右の枠は付けない。色のあるタブ（まとまり・右の欄の種類）は、表示していなくても上の線を薄くその色にする（side-panel-tab-kinds.css）。
+ * タブは角を丸めない（以前は角を丸め、表示中のタブを上と左右の色の枠で囲んでいて、にぎやかだった）。
+ * 隣のタブ・タブの列の線より上に重ねて、タブが中身とつながって見えるようにする（z-index）
  */
 .panel-tab.active {
   z-index: 1;
-  border-color: color-mix(in srgb, var(--accent-bright) 55%, var(--border));
+  border-top-color: var(--tab-color, var(--accent-bright));
   color: var(--text);
-  background: var(--bg-hover);
+  background: color-mix(in srgb, var(--tab-color, var(--accent-bright)) 12%, var(--bg-hover));
 }
 
 .panel-tab.active .panel-tab-label span:not(.status-slot, .panel-tab-group-name) {
@@ -84,6 +83,19 @@
   color: inherit;
   background: transparent;
   cursor: pointer;
+}
+
+/*
+ * 名前のボタンにキーボードでピントが来たときは、ボタンの外の枠（アクセントの色）を出さず、タブの地で示す
+ * （枠の上下はタブの列に切り取られ、表示中のタブの両側に緑の縦線だけが出ていた）
+ */
+.panel-tab-label:focus-visible {
+  outline: none;
+}
+
+.panel-tab:not(.active):has(.panel-tab-label:focus-visible) {
+  color: var(--text);
+  background: var(--bg-elev);
 }
 
 /*

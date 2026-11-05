@@ -1,7 +1,8 @@
 /*
  * 色のあるタブ: グループ別にまとめたときのまとまりの中のタブ（まとまりの色）と、右の欄のメモ・サブエージェント・子チャットのタブ（種類の色）。
- * どちらも同じ見せ方にする: 色は --tab-color 1 つで、表示していないタブは上の枠だけ（1px）、表示中のタブは上と左右の枠をその色にする。
- * まとまりの頭の札と種類の札も、同じ「薄い地に色の文字」の丸い札（side-panel-tab-groups.css の .panel-tab-cluster-pill と、下の .panel-tab-kind）
+ * どちらも色は --tab-color 1 つで、上の端の 1px の線に使う（表示していないタブは少し薄く、表示中のタブはその色のまま地も薄く染める。
+ * side-panel-tabs.css の .panel-tab.active）。まとまりの頭の札と種類の札は、同じ「薄い地に色の文字」の丸い札
+ * （side-panel-tab-groups.css の .panel-tab-cluster-pill と、下の .panel-tab-kind）
  */
 
 /* 種類の色（右の欄のタブ。タブを見ただけで種類が分かるように、種類ごとに決まった色） */
@@ -29,14 +30,9 @@
   --tab-color: hsl(205 70% 40%);
 }
 
-/* 表示していないタブ: 上の枠だけを色にする（タブの枠と同じ 1px。少し薄めて、表示中の枠と見分ける） */
-:is(.panel-tab-group:not(.plain) .panel-tab, .panel-tab.panel-tab-typed) {
-  border-top-color: color-mix(in srgb, var(--tab-color) 70%, transparent);
-}
-
-/* 表示中のタブ: ふつうのタブと同じく上と左右を 1px の枠で囲み、その色をタブの色にする */
-.panel-tabs :is(.panel-tab-group:not(.plain) .panel-tab, .panel-tab.panel-tab-typed).active {
-  border-color: var(--tab-color);
+/* 表示していないタブ: 上の端の線だけをタブの色にする（少し薄めて、表示中のタブと見分ける） */
+:is(.panel-tab-group:not(.plain) .panel-tab, .panel-tab.panel-tab-typed):not(.active) {
+  border-top-color: color-mix(in srgb, var(--tab-color) 55%, transparent);
 }
 
 /* 名前の前の種類の札（まとまりの頭の札と同じ、薄い地に色の文字の丸い札。名前より先に省かない） */
