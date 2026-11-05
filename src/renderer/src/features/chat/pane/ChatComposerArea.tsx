@@ -1,8 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import type { MutableRefObject } from "react";
-import type { Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
-import { relayMessage } from "@shared/chat/prompts";
-import { api } from "@/api";
+import type { Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { chatDraft } from "@/lib/storageKeys";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
@@ -16,8 +14,6 @@ import { PromptsChip } from "@/features/chat/prompts/PromptsChip";
 import { QueuedMessages } from "@/features/chat/queue/QueuedMessages";
 import { TodoChip } from "@/features/chat/status/TodoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
-import { RelayBanner } from "@/features/chat/subagents/RelayBanner";
-import { useChatPane, useChatPaneState } from "./chatPaneContext";
 import type { useChatSend } from "./useChatSend";
 
 /**
@@ -51,15 +47,6 @@ export function ChatComposerArea({
 }) {
   const busyNeighbors = useBusyNeighbors(chat.project_id, chat.worktree_path, chat.id);
   const queued = live.queue.messages.length > 0;
-  // 宛先をサブエージェントにしているとき（カードの「伝える」）: メインのエージェントに SendMessage でそのまま渡してもらう。
-  // 作業中なら止めずに伝え、作業中でなければすぐ送る（どちらも tell の API が決める）。送ったら宛先をメインに戻す
-  const pane = useChatPane();
-  const relay = useChatPaneState((s) => s.relayTarget) ?? null;
-  const relaySend = async (text: string, attachments: Attachment[]) => {
-    if (!relay) return;
-    await api.tellChat(chat.id, relayMessage(relay.agentId, relay.description, text), {}, attachments);
-    pane.clearRelay();
-  };
   return (
     <div className="chat-composer">
       {/*
@@ -86,13 +73,12 @@ export function ChatComposerArea({
         chatContext={{ projectId: chat.project_id, exclude: chat.id }}
         options={options}
         busy={busy}
-        queueWhileIdle={!relay && !busy && queued}
-        placeholder={relay ? `サブエージェント「${relay.description}」への追加の指示（メインのエージェントが SendMessage で渡します。Enter で送信）` : send.placeholder}
-        sendLabel={relay ? "伝える" : send.sendLabel}
-        onSend={relay ? relaySend : send.onSend}
-        onQueue={relay ? (text, attachments) => relaySend(text, attachments) : send.onQueue}
-        busyControls={relay ? undefined : <QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
-        banner={relay && <RelayBanner target={relay} onClear={pane.clearRelay} />}
+        queueWhileIdle={!busy && queued}
+        placeholder={send.placeholder}
+        sendLabel={send.sendLabel}
+        onSend={send.onSend}
+        onQueue={send.onQueue}
+        busyControls={<QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={live.stopping}
         onStop={send.onStop}
         trailing={<ContextMeter chat={chat} compacting={live.compacting} />}

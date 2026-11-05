@@ -271,3 +271,11 @@
 .composer-notice svg {
   flex: none;
 }
+
+/* 入力欄の右下の操作の並び（中断・送信・送り方の切り替え・メーター） */
+.composer-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}

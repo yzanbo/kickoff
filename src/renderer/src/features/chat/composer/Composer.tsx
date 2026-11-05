@@ -57,8 +57,6 @@ interface Props {
   handleRef?: MutableRefObject<ComposerHandle | null>;
   /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
   chatContext?: { projectId?: number; exclude?: number };
-  /** 入力欄の枠のいちばん上に置くもの（伝える先のサブエージェントの札など） */
-  banner?: ReactNode;
 }
 
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
@@ -72,7 +70,7 @@ const ignoreStop = () => {};
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
  * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext, banner }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
@@ -191,7 +189,6 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && held.clear()}
       {...attach.dropProps}
     >
-      {banner}
       {attach.files.length > 0 && (
         <div className="composer-attachments">
           <PendingFileChips files={attach.files} onRemove={attach.removeFile} />

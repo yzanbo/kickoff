@@ -1,18 +1,15 @@
 import { Bot, GitBranch, MessagesSquare } from "lucide-react";
 import { Fragment } from "react";
-import type { Attachment } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
-import { relayMessage } from "@shared/chat/prompts";
-import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { useFollowScroll } from "@/hooks/useFollowScroll";
 import { useTicker } from "@/hooks/useTicker";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { EmptyState } from "@/ui/EmptyState";
-import { Composer } from "@/features/chat/composer/Composer";
 import { useOptionalChatPane, type ChatPaneActions } from "@/features/chat/pane/chatPaneContext";
 import { TimelineItems } from "@/features/chat/timeline/Timeline";
 import { SubagentActions } from "./SubagentActions";
+import { SubagentTellComposer } from "./SubagentTell";
 import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 import {
@@ -161,33 +158,11 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
   );
 }
 
-/**
- * そのサブエージェントに伝える入力欄（メインのエージェントが SendMessage でそのまま渡す。メインが作業中なら止めずに伝え、
- * 作業中でなければすぐ送る。どちらも tell の API が決める）。送った文は、このサブエージェントの流れに自分の発言として出る。
- * Claude Code がサブエージェントの ID を知らせていなければ送れないので、その旨を出す
- */
+/** そのサブエージェントに伝える入力欄（カードの「伝える」と同じもの。SubagentTell） */
 function RelayComposer({ entry, view }: { entry: SubagentEntry; view: SubagentsView }) {
-  const { agentId, description } = entry;
-  if (!agentId) {
-    return (
-      <div className="chat-composer subagent-screen-composer">
-        <p className="muted small">このサブエージェントには追加の指示を送れません（Claude Code がサブエージェントの ID を知らせていないため）。</p>
-      </div>
-    );
-  }
-  const relay = async (text: string, attachments: Attachment[]) => {
-    await api.tellChat(view.chatId, relayMessage(agentId, description, text), {}, attachments);
-  };
   return (
     <div className="chat-composer subagent-screen-composer">
-      <Composer
-        busy={view.busy}
-        placeholder={`サブエージェント「${description}」への追加の指示（メインのエージェントが SendMessage で渡します。Enter で送信）`}
-        sendLabel="伝える"
-        onSend={relay}
-        onQueue={(text, attachments) => relay(text, attachments)}
-        suggestTarget={{ projectId: view.projectId, worktree: view.worktree ?? undefined }}
-      />
+      <SubagentTellComposer entry={entry} view={view} />
     </div>
   );
 }

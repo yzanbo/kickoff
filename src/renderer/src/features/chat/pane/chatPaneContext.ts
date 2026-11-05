@@ -21,15 +21,6 @@ export interface RetryChoices {
   models: { value: string; label: string }[];
 }
 
-/** チャット欄から伝える先のサブエージェント（メインのエージェントに SendMessage でそのまま渡してもらう） */
-export interface RelayTarget {
-  /** 一覧の行のキー */
-  key: string;
-  /** SendMessage の宛先（Claude Code のサブエージェントの ID） */
-  agentId: string;
-  description: string;
-}
-
 /** チャットの画面の見え方（会話 = 発言の流れ / 動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） */
 export type ChatShowing = "conversation" | "activity";
 
@@ -45,8 +36,8 @@ export interface ChatPaneState {
   showing: ChatShowing;
   /** 動きの絞り込み（すべて・メインだけ・そのサブエージェントと配下） */
   activityFilter: ActivityFilter;
-  /** チャット欄から伝える先のサブエージェント（なければ null = メインのエージェントへ送る） */
-  relayTarget: RelayTarget | null;
+  /** 「伝える」の入力欄を開いているサブエージェントのカード（行のキー。カードのいちばん下に開く） */
+  tellOpen: ReadonlySet<string>;
 }
 
 /**
@@ -86,10 +77,13 @@ export interface ChatPaneActions {
    * 右の欄 = 右の欄のその画面の中へ。右の欄のときは、会話に戻さず動きを見せたまま）
    */
   revealInConversation: (eventId: number | undefined, agent: string | null) => void;
-  /** チャット欄の宛先をそのサブエージェントにする（送るとメインのエージェントから SendMessage で伝える）。ピントもチャット欄へ */
+  /**
+   * そのサブエージェントのカードのいちばん下に「伝える」の入力欄を開く（送るとメインのエージェントから SendMessage で伝える）。
+   * 書いている欄が流れていかないよう、流れの一番下への付いていきを止める
+   */
   tellSubagent: (key: string) => void;
-  /** チャット欄の宛先をメインのエージェントに戻す */
-  clearRelay: () => void;
+  /** カードの「伝える」の入力欄を閉じる（送った・やめた。書きかけの文は残る） */
+  closeTell: (key: string) => void;
   /** 自分の発言を書き直して送り直す（確かめ（会話だけ / ファイルも）てから送る。やめたら false。作業中は呼ばない） */
   rewind: (eventId: number, text: string) => Promise<boolean>;
   /** ファイルだけを、その発言を送る前の状態に戻す（会話はそのまま。変わる量を見せて確かめてから） */
