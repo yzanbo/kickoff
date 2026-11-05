@@ -5,6 +5,7 @@ import { BashOutput } from "./BashOutput";
 import { summarizeTools, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
 import { CallTime, GroupTime } from "./ToolTime";
+import { HighlightedCode } from "@/ui/HighlightedCode";
 
 /**
  * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
@@ -17,10 +18,13 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
   const current = active ? tools.findLast((t) => !t.result) : undefined;
   const currentData = current && { name: current.use.data.name, input: current.use.data.input as Record<string, unknown> | undefined };
   const running = currentData !== undefined;
+  // 一度でも開いたか（一覧の行のコマンドの色付けは、まとまりを開いてから始める）
+  const [opened, setOpened] = useState(false);
 
   return (
     <details
       className={cx("tool-group", failed > 0 && "has-error", running && "active")}
+      onToggle={(e) => e.currentTarget.open && setOpened(true)}
       // サブエージェントの一覧から、その呼び出しを含むまとまりへ移れるようにする
       data-tool-ids={tools.map((t) => t.use.id).join(" ")}
     >
@@ -37,15 +41,18 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
       </summary>
       <div className="tool-calls">
         {tools.map((t) => (
-          <ToolItem key={t.use.id} call={t} rel={rel} running={active && !t.result} />
+          <ToolItem key={t.use.id} call={t} rel={rel} running={active && !t.result} listed={opened} />
         ))}
       </div>
     </details>
   );
 }
 
-/** ツールの呼び出し 1 件（右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: 結果を待っている（作業中のチャットのいまの作業） */
-function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => string; running: boolean }) {
+/**
+ * ツールの呼び出し 1 件（右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: 結果を待っている（作業中のチャットのいまの作業）。
+ * listed: まとまりを開いて一覧が見えている（コマンドの行は、1 行の表示にもシェルの文法で色を付ける）
+ */
+function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: string) => string; running: boolean; listed: boolean }) {
   const { name } = call.use.data;
   const input = (call.use.data.input ?? {}) as Record<string, unknown>;
   // 一度でも開いたか（コマンドの色付けは、開いてから始める。閉じたままの呼び出しが多くても重くしない）
@@ -67,7 +74,14 @@ function ToolItem({ call, rel, running }: { call: ToolCall; rel: (s: string) => 
     <details className={cx("tool-call", r?.is_error && "error")} onToggle={(e) => e.currentTarget.open && setOpened(true)}>
       <summary>
         <span className="tool-name">{toolLabel(name)}</span>
-        <span className="tool-arg">{rel(describeToolInput(name, input))}</span>
+        <span className="tool-arg">
+          {/* コマンドは 1 行に収めた表示にも色を付ける（改行は空白に見える。色付けの結果は開いた欄と共有） */}
+          {isCommand ? (
+            <HighlightedCode code={rel(String(input.command))} lang={listed || opened ? "shellscript" : undefined} />
+          ) : (
+            rel(describeToolInput(name, input))
+          )}
+        </span>
         <CallTime call={call} running={running} />
       </summary>
       {detail}
