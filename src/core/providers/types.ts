@@ -6,6 +6,9 @@ import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, Eff
  * Claude Code（Agent SDK）を最初の実装とし、Codex / Gemini などは同じインターフェースで追加する。
  * 認証は各 CLI のログイン（claude / codex login など）をそのまま使い、アプリは資格情報を保持しない。
  */
+/** 1 回だけ聞くときのモデル（ask） */
+export type AskModel = "haiku" | "sonnet";
+
 export interface AgentProvider {
   readonly id: ProviderId;
   readonly label: string;
@@ -23,6 +26,11 @@ export interface AgentProvider {
   title?(text: string): Promise<string>;
   /** あとで読み返すメモにするため、文を短くまとめる（チャットの文を「AI で要約してメモに追加」） */
   summarize?(text: string): Promise<string>;
+  /**
+   * ツールを使わずに 1 回だけ聞いて、答えの文を返す（メモの AI の整理。チャットの記録には残さない）。
+   * model: 軽い問い合わせは haiku（既定）、文を書き直すなど質が要るものは sonnet
+   */
+  ask?(prompt: string, options?: { model?: AskModel }): Promise<string>;
   /** 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装） */
   fork?(sessionId: string, messageId: string, cwd: string): Promise<string>;
   /** ファイルを、その会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけを返す）。作業中でないときに呼ぶ */

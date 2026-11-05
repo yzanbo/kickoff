@@ -98,3 +98,39 @@ test("チャットの文からメモ: 「<チャット名> チャットメモ<n>
   const otherChat = store.chats.create({ project_id: other.id, title: "別", provider: "claude", status: "completed" });
   assert.equal((await call("POST", `${base}/memos/from-chat`, { chat_id: otherChat.id, text: "x", summarize: false, append_to: null, folder: null })).status, 400);
 });
+
+test("メモの AI: 直した文を返すだけで保存しない（sonnet で聞き、全体を囲む ``` は外す）・選んだ部分のときはそう伝える", async () => {
+  const { call, project, provider } = setup();
+  const base = `/api/projects/${project.id}`;
+  await call("POST", `${base}/memos`, { path: "a.md", content: "# 元\n" });
+  provider.askReply = "```markdown\n# 直した\n```";
+  const edited = await call("POST", `${base}/memo/ai`, { text: "# 元\n", instruction: "整理して", part: false });
+  assert.equal(edited.status, 200);
+  assert.deepEqual(edited.body, { text: "# 直した" });
+  assert.equal(provider.asked[0].model, "sonnet");
+  assert.match(provider.asked[0].prompt, /頼み: 整理して/);
+  assert.equal((await call("GET", `${base}/memo?path=a.md`)).body.content, "# 元\n");
+  await call("POST", `${base}/memo/ai`, { text: "- x", instruction: "短く", part: true });
+  assert.match(provider.asked[1].prompt, /選んだ部分/);
+  // 空の文・空の頼みは 400
+  assert.equal((await call("POST", `${base}/memo/ai`, { text: "  ", instruction: "整理", part: false })).status, 400);
+  assert.equal((await call("POST", `${base}/memo/ai`, { text: "x", instruction: " ", part: false })).status, 400);
+});
+
+test("メモの AI: フォルダの整理案は使える案だけを返し、動かさない（メモがなければ AI に聞かない）", async () => {
+  const { call, project, provider } = setup();
+  const base = `/api/projects/${project.id}`;
+  assert.deepEqual((await call("POST", `${base}/memos/ai-plan`, { instruction: null })).body, { moves: [], skipped: 0 });
+  assert.equal(provider.asked.length, 0);
+  await call("POST", `${base}/memos`, { path: "メモ1.md", content: "ログイン画面の設計" });
+  await call("POST", `${base}/memos`, { path: "設計/画面.md", content: "画面" });
+  provider.askReply = (prompt) => {
+    assert.match(prompt, /- メモ1\.md: ログイン画面の設計/);
+    assert.match(prompt, /頼み: 設計でまとめて/);
+    return '{"moves":[{"from":"メモ1.md","to":"設計/ログイン","reason":"設計"},{"from":"ない.md","to":"x.md"}]}';
+  };
+  const plan = await call("POST", `${base}/memos/ai-plan`, { instruction: "設計でまとめて" });
+  assert.deepEqual(plan.body, { moves: [{ from: "メモ1.md", to: "設計/ログイン.md", reason: "設計" }], skipped: 1 });
+  const paths = (await call("GET", `${base}/memos`)).body.entries.map((e: { path: string }) => e.path);
+  assert.ok(paths.includes("メモ1.md"));
+});

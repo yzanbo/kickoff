@@ -35,3 +35,22 @@ export interface MemoRef {
 
 /** メモの拡張子（新しいメモ・チャットから作るメモ） */
 export const MEMO_EXTENSION = ".md";
+
+/** AI で直したメモの文（POST /api/projects/:id/memo/ai。保存はしない。取り込むかは画面で決める） */
+export interface MemoAiEditResult {
+  text: string;
+}
+
+/** AI のフォルダの整理案の 1 件（名前の変更・ほかのフォルダへの移動。行き先のフォルダがなければ動かすときに作る） */
+export interface MemoPlanMove {
+  from: string;
+  to: string;
+  /** なぜそうするか（短い文） */
+  reason: string;
+}
+
+/** AI のメモのフォルダの整理案（POST /api/projects/:id/memos/ai-plan。動かしはしない。skipped は、ないメモ・重なる行き先など、使えなかった案の数） */
+export interface MemoPlan {
+  moves: MemoPlanMove[];
+  skipped: number;
+}

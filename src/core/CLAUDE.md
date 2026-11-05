@@ -79,7 +79,8 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - パスはメモのフォルダからの相対で受け、`git/files.ts` の `assertInside` で外を断る。「.」で始まる名前（隠しファイル）は扱わない。中身の読み書きはエディタのファイルと同じ `readProjectFile` / `writeProjectFile`（保存は開いたときの指紋と比べて 409）。一覧は隠しファイル・リンクを除いて 5000 件まで。ゴミ箱へは `/usr/bin/trash`（テストでは差し替える）。
 - 変えたら SSE の `memos`（`project_id` と変えたメモ。ゴミ箱は null）を出す。Kickoff の外での変更は知らせない（画面がウィンドウに戻ったときなどに取り直す）。
 - チャットの文から作る（`fromChat`）: 新しいメモは `chatMemoName` の「<チャット名> チャットメモ<n>.md」（見出し・出どころの行 `memoSourceLine`・本文）、追記は区切り線を挟んで最後に足す。要約はプロジェクトのプロバイダーの `summarize`（対応していなければ 400）。
-- API は `http/routes/memos.ts`（`GET /api/memos/defaults`・`GET /api/projects/:id/memos`・`GET|PUT|DELETE /api/projects/:id/memo`・`POST /api/projects/:id/memos`（作る）・`/memos/move`・`/memos/from-chat`）。
+- AI の整理（`memoAi.ts`。どちらも書き換えず、案を返すだけ）: 内容を直す `aiEdit`（メモ全体か選んだ部分と頼みから、直した文。`memoEditPrompt`・全体を囲む ``` を外す `unwrapFence`）と、フォルダの整理案 `aiPlan`（メモのパスと書き出しを見せて、名前の変更・移動の案を JSON で受け、使える案だけを残す `parseMemoPlan`: 一覧にないメモ・使えない行き先・拡張子が変わる・行き先が重なる・もうある名前は除く）。プロジェクトのプロバイダーの `ask`（sonnet）で聞く。
+- API は `http/routes/memos.ts`（`GET /api/memos/defaults`・`GET /api/projects/:id/memos`・`GET|PUT|DELETE /api/projects/:id/memo`・`POST /api/projects/:id/memos`（作る）・`/memos/move`・`/memos/from-chat`・AI の整理 `POST /api/projects/:id/memo/ai`・`POST /api/projects/:id/memos/ai-plan`）。
 
 ## テスト
 
