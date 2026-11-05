@@ -15,7 +15,7 @@ import { useChatLayout, type ChatOrder } from "./chatGroupings";
 import { useProjectDrafts } from "./DraftRows";
 import type { ChatGrouping } from "@/features/chatList/chatGrouping";
 
-/** サイドバーの段: まとめ方（グループ・作業場所）の中を、状態別なら状態ごとに分ける（まとめない × 新しい順は分けない） */
+/** サイドバーの段: まとめ方（グループ・作業場所）の中を、状態順なら状態ごとに分ける（まとめない × 最近動いた順は分けない） */
 const levelsOf = (grouping: ChatGrouping, order: ChatOrder): BucketBy[] => [
   ...(grouping === "none" ? [] : [grouping]),
   ...(order === "status" ? (["status"] as const) : []),
@@ -45,7 +45,7 @@ export function useWorkspaceRows({
   /** チャット一覧を閉じているか（閉じている間は、作業場所で分けるためのワークツリーの一覧を読みに行かない） */
   collapsed: boolean;
 }) {
-  // まとめ方（まとめない / グループ / 作業場所）と並び順（新しい順 / 状態別）。グループの見出しは「グループ」のときだけ出す
+  // まとめ方（まとめない / グループ / 作業場所）と並び順（最近動いた順 / 状態順）。グループの見出しは「グループ」のときだけ出す
   const { grouping, order } = useChatLayout();
   // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替え、表示が「プロジェクトで絞る」のときだけ絞る。
   // 「上にまとめる」では一覧はすべてを出し、待っているものは上のまとまりに出す）
@@ -114,7 +114,7 @@ export function useWorkspaceRows({
     ungrouped,
     /** 見出しの下に並べるチャット（グループでまとめているときはグループなしのもの、ほかは固定・アーカイブ済み以外のすべて） */
     mainRows: main.flatMap((b) => b.chats),
-    /** その見出しのまとまり（作業場所・状態。グループなしの中も状態別なら状態ごと）。見出しなしで並べるときは undefined */
+    /** その見出しのまとまり（作業場所・状態。グループなしの中も状態順なら状態ごと）。見出しなしで並べるときは undefined */
     mainSections: ungrouped ? ungrouped.children : main[0]?.kind === "all" ? undefined : main,
     /** 検索に一致するアーカイブ済み（中は、ほかのチャットと同じまとめ方。グループには分けない） */
     archived: buckets.find((b) => b.kind === "archived"),

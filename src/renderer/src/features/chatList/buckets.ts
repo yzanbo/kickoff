@@ -141,7 +141,7 @@ const levelsOf = (by: BucketBy | readonly BucketBy[]): readonly BucketBy[] => (t
 
 /**
  * チャット（と下書き）をまとまりに分ける（純粋な関数。決まりはファイルの先頭）。
- * 例: サイドバーのグループ別 × 状態別 = bucketChats(chats, { by: ["group", "status"], project, pinned: true, archived: "bucket", ... })、
+ * 例: サイドバーのグループ別 × 状態順 = bucketChats(chats, { by: ["group", "status"], project, pinned: true, archived: "bucket", ... })、
  * ボードの列 = bucketChats(chats, { by: "status", keepEmpty: true })、⌘⇧A = bucketChats(chats, { by: "status", columns: COUNTED_COLUMNS, archived: "drop" })
  */
 export function bucketChats<D extends DraftTarget = DraftTarget>(chats: readonly Chat[], options: BucketOptions<D>): ChatBucket<D>[] {

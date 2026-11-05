@@ -4,7 +4,7 @@
 
 ## まとまりに分ける（`buckets.ts` の `bucketChats`）
 
-- 純粋な関数 `bucketChats(chats, options)` で分ける（画面では店から状態を渡す `useChatBuckets`。グループ・作業場所で分けるときだけ、その一覧を読む `useBucketContext`。閉じているサイドバーのプロジェクトでは読みに行かない）。例: サイドバーのグループ別 × 状態別 = `by: ["group", "status"]`・`project`・`pinned: true`・`archived: "bucket"`、ボードの列 = `by: "status"`・`keepEmpty: true`、⌘⇧A = `by: "status"`・`columns: COUNTED_COLUMNS`・`archived: "drop"`。
+- 純粋な関数 `bucketChats(chats, options)` で分ける（画面では店から状態を渡す `useChatBuckets`。グループ・作業場所で分けるときだけ、その一覧を読む `useBucketContext`。閉じているサイドバーのプロジェクトでは読みに行かない）。例: サイドバーのグループ別 × 状態順 = `by: ["group", "status"]`・`project`・`pinned: true`・`archived: "bucket"`、ボードの列 = `by: "status"`・`keepEmpty: true`、⌘⇧A = `by: "status"`・`columns: COUNTED_COLUMNS`・`archived: "drop"`。
 - 分け方 `BucketBy`: `project` / `group` / `worktree`（作業場所 = ブランチ）/ `status`（カンバンの列）。外の段から順に渡し、空ならまとめない（見出しのないまとまり `all` 1 つ）。オプション: `project`（1 つのプロジェクトの中だけ）・`columns`・`pinned`（固定を抜き出す）・`archived`（`keep` / `bucket` = 「アーカイブ済み」に抜き出す / `drop`）・`drafts`（下書き）・`keepEmpty`（チャットも下書きもないまとまりも出す）。
 - まとまりのキーは、プロジェクトを根にした道のりの 1 つの形にそろえ、開閉の記憶・React の key・タブのまとまりのキーにそのまま使う（どこで分けても、同じまとまりは同じキー）: プロジェクト `p3` / グループ `p3/g5` / グループなし `p3/ungrouped` / 作業場所 `p3/w:main`・`p3/w:<フォルダ>`・`p3/w:branch:<ブランチ>` / 固定 `p3/pinned` / アーカイブ済み `p3/archived` / 状態 `status:running`（プロジェクトの中なら `p3/status:running`）。中の段は親のキーに `/` でつなぐ（`p3/g5/status:read`）。キーと見出しは `bucketHeads.ts`（`projectKey` / `groupKey` / `pinnedKey` / `archivedKey`・`chatHead` / `draftHead` / `workplaceHead`。パネルのタブのまとまりもこれで決める）。
 - 決まり（どこで分けても同じ）:

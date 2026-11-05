@@ -21,6 +21,17 @@
   align-items: center;
 }
 
+/*
+ * 「自分待ち」の行は 2 択のボタンが 2 つだけなので、それぞれ 2 列分の幅に置く（「プロジェクト別」など長い名前でも、上の行の列を広げず横幅に収める）
+ */
+.head-toggle-waiting-scope {
+  grid-column: 2 / span 2;
+}
+
+.head-toggle-waiting-order {
+  grid-column: 4 / span 2;
+}
+
 /* 行の名前（2 行のボタンの左端をそろえるため、幅を固定する） */
 .project-list-row-label {
   display: flex;

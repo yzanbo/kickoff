@@ -128,7 +128,7 @@ export function CustomGroupSection({
           <p className="custom-group-empty">チャットをここへドラッグ</p>
           )
         ) : bucket.children ? (
-          // 状態別のときは、グループの中を状態ごとの見出しに分ける
+          // 状態順のときは、グループの中を状態ごとの見出しに分ける
           <div className="custom-group-grouped">
             <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={filtering} />
           </div>

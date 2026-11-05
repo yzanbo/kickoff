@@ -10,26 +10,31 @@ import { useChatStates } from "@/app/chatStatesContext";
 import { ChatMenu } from "@/features/chat/ChatMenu";
 import { STATE_TONE } from "@/features/chat/tones";
 import { useChatRename } from "@/features/chat/useChatRename";
+import { ProjectMark } from "@/features/project/ProjectMark";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { ChatRow } from "./ChatRow";
-import { inboxSections, waitingSince, type InboxSection } from "./inboxOrder";
+import { inboxByProject, inboxSections, waitingSince, type InboxSection } from "./inboxOrder";
+import type { WaitingOrder } from "./waitingAxes";
 
 /**
- * 自分待ちのチャットを、プロジェクトをまたいで急ぐ順（回答待ち → エラー → 未読。見出しの中は待っている時間の長い順）に並べる。
- * variant: top = 一覧の上にまとめる（「自分待ち n 件」の見出しで開閉し、その下にプロジェクトの一覧が続く）/ list = 1 列にまとめる（これだけを並べる）。
- * 行はプロジェクトの一覧と同じ ChatRow（右クリック・名前の変更・複数選択）に、どのプロジェクトかの印を添える。
- * 出すのはサイドバーと同じく、しまっていない・タグの絞り込みに合うプロジェクトのチャット
+ * 自分待ちのチャットのまとまり。並べ方（order）は、状態順 = プロジェクトをまたいで回答待ち → エラー → 未読の見出しに分ける（見出しの中は待っている時間の長い順。
+ * 行にどのプロジェクトかの印を添える）/ プロジェクト別 = サイドバーのプロジェクトの並びで見出しに分ける（見出しの中は状態順）。
+ * variant: top = 一覧の上にまとめる（「自分待ち n 件」の見出しで開閉し、その下にプロジェクトの一覧が続く）/ list = 自分待ちだけを並べる（これだけを並べる）。
+ * 行はプロジェクトの一覧と同じ ChatRow（右クリック・名前の変更・複数選択）。出すのはサイドバーと同じく、しまっていない・タグの絞り込みに合うプロジェクトのチャット
  */
-export function WaitingInbox({ chats, variant }: { chats: Record<number, Chat[]>; variant: "top" | "list" }) {
+export function WaitingInbox({ chats, variant, order }: { chats: Record<number, Chat[]>; variant: "top" | "list"; order: WaitingOrder }) {
   const route = useRoute();
   const { stateOf, approvals } = useChatStates();
   const { visible } = useVisibleProjects();
-  const sections = useMemo(
-    () => inboxSections(visible.flatMap((p) => chats[p.id] ?? []), stateOf, (chat, state) => waitingSince(chat, state, approvals)),
-    [visible, chats, stateOf, approvals],
-  );
+  // 並べ方ごとの見出し（状態順 = 状態の見出し / プロジェクト別 = プロジェクトの見出し。使わない方は空）
+  const { sections, byProject } = useMemo(() => {
+    const since = (chat: Chat, state: Parameters<typeof waitingSince>[1]) => waitingSince(chat, state, approvals);
+    return order === "status"
+      ? { sections: inboxSections(visible.flatMap((p) => chats[p.id] ?? []), stateOf, since), byProject: [] }
+      : { sections: [], byProject: inboxByProject(visible, (id) => chats[id] ?? [], stateOf, since) };
+  }, [order, visible, chats, stateOf, approvals]);
   const projectOf = useMemo(() => new Map(visible.map((p) => [p.id, p])), [visible]);
-  const total = sections.reduce((n, s) => n + s.chats.length, 0);
+  const total = [...sections, ...byProject].reduce((n, s) => n + s.chats.length, 0);
   // 行の右クリックのメニューと、名前をその場で変える（プロジェクトの一覧の行と同じ）
   const rowMenu = useContextMenu<Chat>();
   const rename = useChatRename((m) => void alertDialog("名前を変更できませんでした", m));
@@ -46,14 +51,22 @@ export function WaitingInbox({ chats, variant }: { chats: Record<number, Chat[]>
       onCloseMenu={rowMenu.close}
       onRename={() => rename.start(chat)}
       rename={rename.editorFor(chat)}
-      project={projectOf.get(chat.project_id)}
+      // 状態順はプロジェクトをまたぐので、どのプロジェクトかの印を添える（プロジェクト別は見出しで分かる）
+      project={order === "status" ? projectOf.get(chat.project_id) : undefined}
     />
   );
   const body =
     total === 0 ? (
       <p className="chat-search-empty waiting-inbox-empty">自分待ちのチャットはありません</p>
     ) : (
-      sections.map((section) => <InboxGroup key={section.state} section={section} renderRow={renderRow} />)
+      <>
+        {sections.map((section) => (
+          <InboxGroup key={section.state} section={section} renderRow={renderRow} />
+        ))}
+        {byProject.map(({ project, chats: list }) => (
+          <InboxProjectGroup key={project.id} project={project} chats={list} renderRow={renderRow} />
+        ))}
+      </>
     );
   return (
     <div className={`waiting-inbox ${variant}`}>
@@ -79,7 +92,7 @@ export function WaitingInbox({ chats, variant }: { chats: Record<number, Chat[]>
   );
 }
 
-/** 急ぐ順の見出し 1 つ（状態の色の点・名前・件数。開閉は状態ごとに覚える） */
+/** 状態順の見出し 1 つ（状態の色の点・名前・件数。開閉は状態ごとに覚える） */
 function InboxGroup({ section, renderRow }: { section: InboxSection; renderRow: (chat: Chat) => ReactNode }) {
   const fold = useFold("sidebar", `waiting:${section.state}`);
   const label = (
@@ -91,6 +104,22 @@ function InboxGroup({ section, renderRow }: { section: InboxSection; renderRow: 
   return (
     <FoldSection look="section" open={fold.open} onToggle={fold.toggle} label={label} count={section.chats.length}>
       <ul className="chat-rows">{section.chats.map(renderRow)}</ul>
+    </FoldSection>
+  );
+}
+
+/** プロジェクト別の見出し 1 つ（プロジェクトの印・名前・件数。開閉はプロジェクトごとに覚える） */
+function InboxProjectGroup({ project, chats, renderRow }: { project: { id: number; name: string }; chats: Chat[]; renderRow: (chat: Chat) => ReactNode }) {
+  const fold = useFold("sidebar", `waiting:project:${project.id}`);
+  const label = (
+    <>
+      <ProjectMark project={project} />
+      <span className="status-group-label">{project.name}</span>
+    </>
+  );
+  return (
+    <FoldSection look="section" open={fold.open} onToggle={fold.toggle} label={label} count={chats.length}>
+      <ul className="chat-rows">{chats.map(renderRow)}</ul>
     </FoldSection>
   );
 }

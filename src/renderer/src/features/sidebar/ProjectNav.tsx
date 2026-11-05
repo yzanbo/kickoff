@@ -9,6 +9,7 @@ import { ProjectStack } from "./ProjectStack";
 import { SelectionBar } from "./SelectionBar";
 import { useProjectNav } from "./useProjectNav";
 import { WaitingInbox } from "./WaitingInbox";
+import { waitingAxes } from "./waitingAxes";
 import { ProjectListHead } from "./ProjectListHead";
 
 interface Props {
@@ -70,20 +71,22 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
 
   const selectionBar = selection && <SelectionBar selection={selection} chats={chats} groups={groups} />;
 
-  // 1 列にまとめる: プロジェクトの一覧の代わりに、待っているチャットだけをプロジェクトをまたいで急ぐ順に並べる
-  if (waitingOnly && waitingView === "list") {
+  // 自分待ちの表示の出し方と並べ方（自分待ちだけ × プロジェクト別は、プロジェクトの一覧そのものを絞る filterByWaiting）
+  const { scope: waitingScope, order: waitingOrder } = waitingAxes(waitingView);
+  // 自分待ちだけ × 状態順: プロジェクトの一覧の代わりに、待っているチャットだけをプロジェクトをまたいで状態順に並べる
+  if (waitingOnly && waitingScope === "only" && waitingOrder === "status") {
     return (
       <div className={cx("workspaces", nav.compact && "compact")}>
         <ProjectListHead {...nav.head} />
         <div className="workspace-stack">
-          {tagEmptyNotice || <WaitingInbox chats={chats} variant="list" />}
+          {tagEmptyNotice || <WaitingInbox chats={chats} variant="list" order="status" />}
         </div>
         {selectionBar}
       </div>
     );
   }
-  // 上にまとめる: 一覧の上に待っているチャットのまとまりを置き、その下はすべてのプロジェクト
-  const topInbox = waitingOnly && waitingView === "inbox" && !tagEmpty ? <WaitingInbox chats={chats} variant="top" /> : null;
+  // 上にまとめる: 一覧の上に待っているチャットのまとまり（並べ方は状態順 / プロジェクト別）を置き、その下はすべてのプロジェクト
+  const topInbox = waitingOnly && waitingScope === "top" && !tagEmpty ? <WaitingInbox chats={chats} variant="top" order={waitingOrder} /> : null;
   if (nav.layout === "stack") {
     return <ProjectStack nav={nav} chats={chats} groups={groups} onNewProject={onNewProject} archivedHead={archivedHead} waitingEmpty={waitingEmpty} topInbox={topInbox} selectionBar={selectionBar} />;
   }
