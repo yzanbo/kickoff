@@ -71,13 +71,15 @@ export function Sidebar({ sidebar, onNewChat, onSearch, onNewProject }: Props) {
         <a className={`nav-row ${route.name === "allProjects" ? "active" : ""}`} href={href({ name: "allProjects" })}>
           <LayoutGrid size={15} /> 全プロジェクト
         </a>
+        {/* 自分待ちは画面ではなく一覧の絞り込みなので、オンは開いている画面の印（active）と別の見た目（on と「オン」の札） */}
         <button
-          className={cx("nav-row", waitingOnly && "active")}
+          className={cx("nav-row", waitingOnly && "on")}
           aria-pressed={waitingOnly}
           title={waitingOnly ? "すべてのチャットを表示" : "回答待ち・未読のチャットだけを表示"}
           onClick={() => setWaitingOnly(!waitingOnly)}
         >
           <Inbox size={15} /> 自分待ち
+          {waitingOnly && <span className="nav-row-state">オン</span>}
           {waitingCount > 0 && <span className="count-badge">{waitingCount}</span>}
         </button>
         <button className="nav-row" onClick={onSearch}>
