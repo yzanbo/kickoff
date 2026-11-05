@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
 import type { ChatBucket } from "@/features/chatList/buckets";
-import type { PanelController } from "@/features/panel/usePanel";
+import type { NewChatTarget } from "@/features/panel/usePanel";
 import { ArchivedFold, splitArchived } from "./ArchivedFold";
 import { DraftCards } from "./DraftCards";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
@@ -20,7 +20,7 @@ export function GroupSections({
   projectId,
   buckets,
   board,
-  panel,
+  onNewChat,
   render,
   foldPlace,
   highlight,
@@ -30,7 +30,8 @@ export function GroupSections({
   projectId: number;
   buckets: readonly ChatBucket<PanelDraft>[];
   board: GroupBoardState;
-  panel: PanelController;
+  /** グループの列の＋（そのグループで新しいチャットを始める。開く先はボードのチャットの置き方で決まる） */
+  onNewChat: (target: NewChatTarget) => void;
   /** カード（ボード）・行（リスト）の描き方 */
   render: (chat: Chat) => ReactNode;
   /** アーカイブ済みのまとまりの開閉を覚える場所（ボード） */
@@ -67,7 +68,7 @@ export function GroupSections({
           data-group-id={g?.id}
           {...dropProps(g?.id ?? null)}
         >
-          <GroupColumnHead group={g} count={members.length} board={board} onNewChat={() => panel.openNew(g ? { projectId, group: g.id } : { projectId })} />
+          <GroupColumnHead group={g} count={members.length} board={board} onNewChat={() => onNewChat(g ? { projectId, group: g.id } : { projectId })} />
           {list ? body : <div className="column-cards">{body}</div>}
         </section>
       </Fragment>

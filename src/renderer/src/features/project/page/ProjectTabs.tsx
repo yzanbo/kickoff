@@ -1,4 +1,4 @@
-import { Code2, History, SquareKanban, StickyNote, type LucideIcon } from "lucide-react";
+import { Code2, History, MessagesSquare, SquareKanban, StickyNote, type LucideIcon } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -11,6 +11,7 @@ import { PROJECT_TABS_LAYOUT } from "@/lib/storageKeys";
 import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
+import { useChatPlacement } from "./chatPlacement";
 
 /** タブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。縦の幅を本体に回せる） */
 export type ProjectTabsLayout = SettingValue<typeof PROJECT_TABS_LAYOUT>;
@@ -28,16 +29,17 @@ export interface TabRefreshing {
   changes: boolean;
 }
 
-/** タブの列に出すタブ（グループは「ボード」の中の列の切り替えにまとめたので出さない） */
+/** タブの列に出すタブ（グループは「ボード」の中の列の切り替えにまとめたので出さない。チャットはボードと分ける置き方のときだけ） */
 const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
   { tab: "board", label: "ボード", icon: SquareKanban },
+  { tab: "chats", label: "チャット", icon: MessagesSquare },
   { tab: "changes", label: "エディタ", icon: Code2 },
   { tab: "history", label: "履歴", icon: History },
   { tab: "memos", label: "メモ", icon: StickyNote },
 ];
 
 /**
- * プロジェクトの画面のタブ（ボード・エディタ・履歴・メモ）。ボードには状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
+ * プロジェクトの画面のタブ（ボード・チャット（ボードと分ける置き方のとき）・エディタ・履歴・メモ）。ボードには状態ごとのチャット数（サイドバーのプロジェクトの丸と同じ StateCornerCounts。
  * 縦並びはアイコンの角に重ね（左上 = 作業中・右上 = 未読・左下 = 回答待ち）、横並びは名前の後ろに並べる。作業中のまま未読のものは未読に数えない）、
  * エディタには変更のあるファイルの数を添える。取り直している最中（refreshing）は、VS Code のバッジと同じく数の代わりに回る印を出す。
  * vertical: 左に縦並び（アイコンだけ。名前と数は title と aria-label）。右クリックで置き方（横並び / 縦並び）を切り替える
@@ -59,6 +61,7 @@ export function ProjectTabs({
 }) {
   const [columns] = useBoardColumns();
   const [layout, setLayout] = useProjectTabsLayout();
+  const [placement] = useChatPlacement();
   const menu = useContextMenu();
   // 状態ごとのチャット数（カンバンの列と同じ数え方。アーカイブ済みは数えない）
   const { pending } = useChatStates();
@@ -71,7 +74,7 @@ export function ProjectTabs({
       aria-orientation={vertical ? "vertical" : undefined}
       onContextMenu={menu.open}
     >
-      {TABS.map(({ tab: t, label, icon: Icon }) => {
+      {TABS.filter((t) => t.tab !== "chats" || placement === "separate").map(({ tab: t, label, icon: Icon }) => {
         // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
         const selected = tab === t || (t === "board" && tab === "groups");
         const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;

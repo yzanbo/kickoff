@@ -5,6 +5,8 @@ import { KanbanBoard } from "@/features/board/KanbanBoard";
 import { EditorTab } from "@/features/editor/EditorTab";
 import { HistoryTab } from "@/features/history/HistoryTab";
 import { MemoTab } from "@/features/memo/MemoTab";
+import { ChatsTab } from "@/features/panel/board/ChatsTab";
+import { useChatPlacement } from "./chatPlacement";
 import { useGitStatus } from "@/features/editor/useGitStatus";
 import { ProjectEditDialog } from "@/features/project/settings/ProjectEditDialog";
 import { ProjectHeader } from "./ProjectHeader";
@@ -31,7 +33,10 @@ interface ProjectPageProps {
   openMemo?: string;
 }
 
-/** プロジェクト画面: ボード（カンバン）・グループ・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・履歴（コミット）・メモをタブで */
+/**
+ * プロジェクト画面: ボード（カンバン）・グループ・チャット（ボードと分ける置き方のとき）・エディタ（Git の変更とファイル。文書もここでファイルとして見る）・
+ * 履歴（コミット）・メモをタブで
+ */
 export function ProjectPage(props: ProjectPageProps) {
   // 一覧が届いたのに見つからないプロジェクト（消した・URL の番号が違う）は、前の画面を出さずに案内だけを出す
   // （中身の部品を出さないので、そのプロジェクトのグループ・Git の状態を読みに行かない）。プロジェクトが 1 つもなければ始め方の案内
@@ -41,7 +46,10 @@ export function ProjectPage(props: ProjectPageProps) {
   return <ProjectPageBody {...props} />;
 }
 
-function ProjectPageBody({ id, tab, focus, highlightGroup, openFile, openMemo }: ProjectPageProps) {
+function ProjectPageBody({ id, tab: routeTab, focus, highlightGroup, openFile, openMemo }: ProjectPageProps) {
+  // チャットをボードの右で開く置き方では「チャット」タブはないので、そのタブの URL はボードで出す
+  const [placement] = useChatPlacement();
+  const tab: ProjectTab = routeTab === "chats" && placement === "together" ? "board" : routeTab;
   const { data: shown, error, loading: chatsLoading } = useProjectData(id);
   const [editing, setEditing] = useState(false);
   // ボードの列の分け方は、最後に見た方を覚える（サイドバーのグループから来たときも、次にボードのタブを押すとグループの列で開く）
@@ -81,6 +89,8 @@ function ProjectPageBody({ id, tab, focus, highlightGroup, openFile, openMemo }:
       <div className="project-content">
 
       {tab === "board" && <KanbanBoard projectId={project.id} focus={focus} />}
+      {/* ボードと分けたチャット（ボードの右のパネルと同じパネルを横幅いっぱいに） */}
+      {tab === "chats" && <ChatsTab key={project.id} projectId={project.id} focus={stale ? undefined : focus} />}
       {tab === "groups" && <GroupBoard projectId={project.id} groups={groups} focus={focus} highlight={highlightGroup} />}
       {tab === "changes" && (
         <WorktreeContext.Provider value={worktree}>

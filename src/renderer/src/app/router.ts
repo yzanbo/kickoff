@@ -3,7 +3,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 
 // プロジェクトの設定は、タブではなくプロジェクト名の横の「編集」から開く。文書はエディタ（changes）でファイルとして見る
 // （以前の要件定義書・スケジュール・タスク・レポートのタブの URL は、知らないタブとしてボードに戻る）
-const PROJECT_TABS = ["board", "groups", "changes", "history", "memos"] as const;
+const PROJECT_TABS = ["board", "groups", "chats", "changes", "history", "memos"] as const;
 export type ProjectTab = (typeof PROJECT_TABS)[number];
 
 /** エディタタブで開くファイル（チャットの返答のファイルのチップから。worktree はワークツリーのフォルダ、なければ本体） */
@@ -128,10 +128,12 @@ export const REOPEN_EVENT = "kickoff:reopen";
 export type ReopenRoute = Extract<Route, { name: "chat" } | { name: "newChat" }>;
 
 /**
- * チャット・新しいチャットの URL で出すプロジェクトのボード（どちらのボードも同じ右のパネルで開く）: サイドバーのグループの＋から来た新しいチャットは
- * グループのボード、ほかは最後に見たボードの列の分け方（columns。グループのボードで開いたチャットの URL でも、グループのボードのまま）
+ * チャット・新しいチャットの URL で出すプロジェクトのタブ。チャットをボードと分けている（placement が separate）ときは「チャット」タブ。
+ * ボードの右のパネルで開くときは、サイドバーのグループの＋から来た新しいチャットはグループのボード、ほかは最後に見たボードの列の分け方
+ * （columns。グループのボードで開いたチャットの URL でも、グループのボードのまま）
  */
-export function boardTabOf(route: ReopenRoute, columns: "state" | "groups"): ProjectTab {
+export function boardTabOf(route: ReopenRoute, columns: "state" | "groups", placement: "separate" | "together"): ProjectTab {
+  if (placement === "separate") return "chats";
   if (route.name === "newChat" && route.group) return "groups";
   return columns === "groups" ? "groups" : "board";
 }

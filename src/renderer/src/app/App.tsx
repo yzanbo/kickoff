@@ -34,6 +34,7 @@ import { ProjectPage } from "@/features/project/page/ProjectPage";
 import { boardTabOf, openMemo, openNewChat, openProjectFile, RouteContext, routeProjectId, useHashRoute } from "./router";
 import { subscribeWindowMessages } from "./windowBus";
 import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
+import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useChatHistory } from "./useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
 import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
@@ -88,6 +89,8 @@ export function App() {
   const bottomPanel = useBottomPanel(projectId ?? "all", terminalTargets(projects, projectId));
   // チャット・新しいチャットの URL では、最後に見たボード（カンバン / グループのボード）のパネルで開く
   const [boardColumns] = useBoardColumns();
+  // チャットを開く場所（ボードと分けた「チャット」タブ / ボードの右のパネル）
+  const [chatPlacement] = useChatPlacement();
 
   /** 新しいチャット: 開いている（なければサイドバーで選んでいる）プロジェクトで始める（もうないプロジェクトは飛ばす） */
   const startNewChat = () => {
@@ -142,7 +145,7 @@ export function App() {
             <ProjectPage
               id={route.name === "project" ? route.id : route.projectId}
               // 最後に見たボードで開く（サイドバーのグループの＋から来たときは、グループのボードで始める）
-              tab={route.name === "project" ? route.tab : boardTabOf(route, boardColumns)}
+              tab={route.name === "project" ? route.tab : boardTabOf(route, boardColumns, chatPlacement)}
               focus={route.name === "project" ? undefined : route}
               highlightGroup={route.name === "project" ? route.group : undefined}
               openFile={route.name === "project" ? route.file : undefined}

@@ -9,6 +9,8 @@ import { openNoProjectsGuide } from "@/features/project/new/openNewProject";
 import { useFallbackProject } from "@/features/sidebar/currentProject";
 import { openChat, openNewChat, type ReopenRoute } from "@/app/router";
 import { useBoardPanel } from "@/features/panel/board/useBoardPanel";
+import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/board/boardChats";
+import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
 import { panelKey } from "@/features/panel/surfaces";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
@@ -28,24 +30,40 @@ import { useChats } from "@/stores/chats";
 const keepColumns = (head: BucketHead) => head.kind === "status";
 
 /**
- * プロジェクトのカンバン。カードを押すと右側から出てくるパネルで開き、URL もそのチャットにする
- * （サイドバー・検索などから開いたチャット・新しいチャット（focus）もパネルで開く）
+ * プロジェクトのカンバン。チャットを開く先は設定の「チャットの置き方」で決まる: ボードと分ける（初め）なら、カードを押すと「チャット」タブへ移って開く。
+ * ボードの右で開くなら、右側から出てくるパネルで開き、URL もそのチャットにする（サイドバー・検索などから開いたチャット・新しいチャット（focus）もパネルで開く）
  */
 export function KanbanBoard({ projectId, focus }: { projectId: number; focus?: ReopenRoute }) {
+  const [placement] = useChatPlacement();
+  return placement === "together" ? <KanbanWithPanel projectId={projectId} focus={focus} /> : <KanbanApart projectId={projectId} />;
+}
+
+/** ボードの右のパネルで開くカンバン */
+function KanbanWithPanel({ projectId, focus }: { projectId: number; focus?: ReopenRoute }) {
   // カードの右クリックメニュー（開いている間はパネルを Esc で閉じない）
   const menu = useCardMenu();
   // 右側から出てくるパネル（チャット・新しいチャット・ブラウザのタブ。チャットのタブはサイドバーの一覧にそろえる）と、
   // まだ送っていない新しいチャット（右のパネル・プロジェクトのチャット欄で書いている途中。いちばん左の「下書き」の列に出す）
-  const rightPanel = useBoardPanel({ projectId, holdEsc: menu.isOpen, focus });
+  const chats = panelChats(useBoardPanel({ projectId, holdEsc: menu.isOpen, focus }));
+  return <ProjectKanban projectId={projectId} menu={menu} chats={chats} />;
+}
+
+/** チャットタブへ移って開くカンバン */
+function KanbanApart({ projectId }: { projectId: number }) {
+  const menu = useCardMenu();
+  const chats = useChatsTabLinks(projectId);
+  return <ProjectKanban projectId={projectId} menu={menu} chats={chats} />;
+}
+
+function ProjectKanban({ projectId, menu, chats }: { projectId: number; menu: ReturnType<typeof useCardMenu>; chats: BoardChats }) {
   return (
     <KanbanView
       projectId={projectId}
       menu={menu}
-      rightPanel={rightPanel}
-      onOpen={rightPanel.open}
-      // 画面は移らず、右側のパネルで新しいチャットを始める
-      newChat={{ onClick: rightPanel.panel.startNewChat }}
-      drafts={rightPanel.drafts}
+      rightPanel={chats.rightPanel}
+      onOpen={chats.open}
+      newChat={{ onClick: chats.startNewChat, title: chats.newChatTitle }}
+      drafts={chats.drafts}
     />
   );
 }
@@ -141,8 +159,11 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
     drafts,
     keepEmpty: keepColumns,
   });
-  /** 段・アーカイブ済みのまとまりの開閉を覚える場所（ボードごと。列・段はまとまりのキーで分ける。全プロジェクトのボードは、パネルがあったときと同じ名前のまま） */
-  const foldPlace = `board:${rightPanel?.panel.key ?? panelKey("board", "all")}`;
+  /**
+   * 段・アーカイブ済みのまとまりの開閉を覚える場所（ボードごと。列・段はまとまりのキーで分ける。チャットの置き方を変えても、
+   * 全プロジェクトのボードも、パネルがあったときと同じ名前のまま）
+   */
+  const foldPlace = `board:${panelKey("board", projectId ?? "all")}`;
 
   const header = (
     <BoardHeader
