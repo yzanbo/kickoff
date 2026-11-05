@@ -5,7 +5,7 @@ import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/la
 import { equalizeSplit, setSplitSizes } from "@/features/panel/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
-import { browserTab, chatTab, kindOfTab, newChatTab, newTabKey, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
+import { browserTab, changesTab, chatTab, fileTab, kindOfTab, newChatTab, newTabKey, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
 import { readKinds, showKind } from "./panelKinds";
 import type { PanelAction, TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf } from "./panelStore";
@@ -55,6 +55,19 @@ export function panelActions(key: string) {
     openNew,
     /** サブエージェントの画面をタブで開く（チャットの画面の右の欄。同じサブエージェントのタブがあればそのペインで表示する） */
     openSubagent: (target: { chatId: number; agentKey: string; title: string; path?: string }) => openTab(subagentTab(target)),
+    /**
+     * 作業場所のコミットしていない変更をタブで開く（チャットの画面の右の欄。作業場所ごとに 1 つのタブで、あればそのペインで表示する）。
+     * focus を渡すとそのファイルの差分の位置へ移る（押し直しても移るよう、頼んだ時刻も変える）
+     */
+    openChanges: (target: { chatId: number; projectId: number; worktree?: string; focus?: string }) => {
+      const tab = changesTab(target);
+      openTab(tab, tab.focus ? { kind: "changes", fields: { focus: tab.focus, focusAt: tab.focusAt } } : undefined);
+    },
+    /**
+     * 作業場所のファイルの中身をタブで開く（チャットの画面の右の欄。同じファイルのタブがあればそのペインで表示し、目立たせる行だけを変える）
+     */
+    openFile: (target: { chatId: number; projectId: number; worktree?: string; path: string; line?: number }) =>
+      openTab(fileTab(target), { kind: "file", fields: { line: target.line } }),
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => openTab(browserTab(url)),
     openTerminal,

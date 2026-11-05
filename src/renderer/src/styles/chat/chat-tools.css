@@ -140,6 +140,19 @@
   color: var(--muted);
 }
 
+/* ファイルを変えるツールの行のファイル名（押すと右の欄で開く。乗せると下線） */
+.tool-file-link {
+  max-width: 100%;
+  overflow: hidden;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tool-file-link:hover {
+  text-decoration: underline;
+}
+
 .tool-output,
 .diff,
 .bash-text,
@@ -267,6 +280,15 @@ button.turn-change-file:hover {
 
 .turn-changes > summary .turn-change-counts {
   margin-left: 0;
+}
+
+/* 見出しの右端の「差分を見る」（右の欄の変更を、この作業で変えた最初のファイルの位置で開く） */
+.turn-changes-diff {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .turn-change-add {

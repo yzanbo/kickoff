@@ -1,0 +1,137 @@
+/* ==== チャットの画面の右の欄の「変更」（SideChanges）と「ファイル」（SideFileView） ==== */
+
+.side-changes,
+.side-file {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 上の帯（件数・表示のしかた・取り直し / 差分を見る・エディタタブで開く） */
+.side-changes-head,
+.side-file-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--gutter);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+/* 狭い欄では帯を折り返す（文字の途中では折り返さない） */
+.side-changes-head {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.side-changes-head > * {
+  white-space: nowrap;
+}
+
+.side-changes-count {
+  font-weight: 600;
+}
+
+.side-changes-error {
+  padding: 4px var(--gutter);
+}
+
+/* 一覧と差分はまとめて 1 つにスクロールする（ファイルごとの差分は中でスクロールさせない） */
+.side-changes-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.side-changes-empty {
+  margin: auto;
+}
+
+/* 上のファイルの一覧（押すとその差分へ移る） */
+.side-changes-list {
+  margin: 0;
+  padding: 4px;
+  border-bottom: 1px solid var(--border);
+  list-style: none;
+}
+
+.side-changes-item,
+.side-change-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  cursor: pointer;
+}
+
+.side-changes-item:hover,
+.side-changes-item.focused {
+  background: var(--bg-hover);
+}
+
+.side-changes-name {
+  flex: none;
+  font-family: var(--mono);
+}
+
+.side-changes-dir {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--extra-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.side-changes-kind {
+  font-family: inherit;
+  font-weight: 600;
+}
+
+/* 1 つのファイルの見出し（スクロールしても上に残す）と差分 */
+.side-change {
+  border-bottom: 1px solid var(--border);
+}
+
+.side-change-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--gutter) 2px 2px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.side-change-chevron {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.12s;
+}
+
+.side-change-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* 差分はファイルの高さのまま並べる（外側の欄でスクロールする） */
+.side-change .diff-view {
+  flex: none;
+}
+
+.side-change .diff-body {
+  overflow: visible;
+}

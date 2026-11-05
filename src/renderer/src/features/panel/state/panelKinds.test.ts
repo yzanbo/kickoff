@@ -24,9 +24,10 @@ test("表示するタブ: 隠した種類のタブを表示中にしていたら
   assert.equal(shownActiveOf(pane, () => false), null);
 });
 
-test("表示するタブ: サブエージェントの欄は、保存した値によらずいつもサブエージェントだけ", () => {
-  assert.deepEqual(decodeKinds([], "agents"), ["subagent"]);
-  assert.deepEqual(decodeKinds(["chat", "browser"], "agents"), ["subagent"]);
+test("表示するタブ: チャットの画面の右の欄は、保存した値によらずいつもサブエージェントとファイル（変更・中身）だけ", () => {
+  assert.deepEqual(decodeKinds([], "agents"), ["subagent", "file"]);
+  assert.deepEqual(decodeKinds(["chat", "browser"], "agents"), ["subagent", "file"]);
   // ほかの欄の付け外しの選択肢には入らない
   assert.deepEqual(toggleKind(["chat"], "subagent"), ["chat"]);
+  assert.deepEqual(toggleKind(["chat"], "file"), ["chat"]);
 });

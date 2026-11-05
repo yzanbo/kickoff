@@ -17,12 +17,22 @@ const link: Components["a"] = ({ node, href, children }) => {
   );
 };
 
-/** 押すとエディタタブでファイルを開くチップ（中はインラインコードかリンクの文字） */
+/** 押すとファイルを開くチップ（中はインラインコードかリンクの文字。開き方・右クリックのメニューは渡す側が決める） */
 function FileLink({ path, line, children }: { path: string; line?: number; children: ReactNode }) {
   const links = useContext(MarkdownFileLinksContext);
   if (!links) return <>{children}</>;
   return (
-    <button type="button" className="file-link" title={`エディタで開く: ${path}${line ? `（${line} 行目）` : ""}`} onClick={() => links.open(path, line)}>
+    <button
+      type="button"
+      className="file-link"
+      title={links.title(path, line)}
+      onClick={(e) => links.open(e, path, line)}
+      onContextMenu={(e) => {
+        // 返答の右クリックのメニュー（メッセージをコピー）ではなく、ファイルのメニューを出す
+        e.stopPropagation();
+        links.menu(e, path, line);
+      }}
+    >
       {children}
     </button>
   );

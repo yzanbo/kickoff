@@ -8,6 +8,8 @@ import { isWebUrl } from "./urls.js";
 export const externalAppHandlers: IpcHandlers["externalApps"] = {
   // 開けなかったときの理由（shell.openPath が返す文）は、これまでどおり画面に返さない
   openPath: async (_e, target) => void (await shell.openPath(target)),
+  // Finder で入っているフォルダを開いて選ぶ
+  revealPath: (_e, target) => shell.showItemInFolder(target),
   // VS Code がなければ失敗を返す
   openInVSCode: (_e, target, line) => shell.openExternal(vscodeFileUrl(target, line)),
   // 設定・パネルのターミナルの ▾ で選ぶ

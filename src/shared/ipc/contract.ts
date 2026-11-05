@@ -52,6 +52,8 @@ export const NATIVE_API = {
   externalApps: {
     /** ファイル・フォルダを既定のアプリで開く（フォルダは Finder） */
     openPath: invoke<[path: string]>(),
+    /** ファイル・フォルダを Finder で表示する（入っているフォルダを開いて選ぶ） */
+    revealPath: invoke<[path: string]>(),
     /** VS Code でファイル・フォルダを開く（line があればその行へ） */
     openInVSCode: invoke<[path: string, line?: number]>(),
     /** この Mac に入っている外部のターミナル */

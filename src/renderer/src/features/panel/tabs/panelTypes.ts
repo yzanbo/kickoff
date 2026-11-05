@@ -10,7 +10,7 @@ export interface NewChatTarget {
   worktree?: string;
 }
 
-/** パネルのタブ（チャット・新しいチャット・サブエージェント・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
+/** パネルのタブ（チャット・新しいチャット・サブエージェント・変更・ファイル・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
 export type PanelTab =
   /**
    * title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる）。
@@ -25,6 +25,16 @@ export type PanelTab =
    * path: サブエージェントの中で起動したもの（入れ子）の、外側からの道筋（「調査 › 洗い出し」。名前の前に「↳」を付け、乗せると出す。入れ子でなければない）
    */
   | { key: string; kind: "subagent"; chatId: number; agentKey: string; title: string; path?: string }
+  /**
+   * チャットの画面の右の欄に開いた、作業場所のコミットしていない変更（変更のあるファイルの差分を縦に並べる。作業場所ごとに 1 つ）。chatId: どのチャットから開いたか。
+   * worktree: チャットの作業場所のワークツリーのフォルダ（本体ならない）。focus: 移るファイル（作業場所からの相対パス）。focusAt: 移るように頼んだ時刻（同じファイルを押し直しても移る）
+   */
+  | { key: string; kind: "changes"; chatId: number; projectId: number; worktree?: string; focus?: string; focusAt?: number }
+  /**
+   * チャットの画面の右の欄に開いた、作業場所のファイルの中身（変更のないファイル・返答のチップに行の番号があったとき）。
+   * path: 作業場所からの相対パス。line: 目立たせる行
+   */
+  | { key: string; kind: "file"; chatId: number; projectId: number; worktree?: string; path: string; line?: number }
   /** url は開いたときのページ（webview の初めの src）、current はいま表示しているページ（外のブラウザで開くときに渡す） */
   | { key: string; kind: "browser"; url: string; title: string; current?: string }
   /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う */
