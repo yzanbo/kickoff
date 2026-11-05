@@ -1,8 +1,8 @@
 import { PanelBottomClose, PanelRight, PanelRightClose, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Route } from "@/app/router";
-import type { SettingFamily } from "@/lib/storage";
-import { projectChatOpen } from "@/lib/storageKeys";
+import { readSetting, type SettingFamily } from "@/lib/storage";
+import { CHAT_PLACEMENT, projectChatOpen } from "@/lib/storageKeys";
 import type { PanelKind } from "./state/panelKinds";
 
 /**
@@ -137,11 +137,14 @@ export function parsePanelKey(key: string): { surface: PanelSurface; scope: Pane
 
 /**
  * その欄が出る画面（画面に出ていない欄の下書きを開くとき、ここへ移ってから開く）: 全プロジェクトの欄は全プロジェクトの画面、
- * プロジェクトの欄（ボードの右のパネル・チャット欄・フッター）はそのプロジェクトのボード。知らない形なら undefined
+ * プロジェクトの欄（チャット欄・フッター）はそのプロジェクトのボード。ボードの右のパネルは、チャットをボードと分けていれば
+ * （設定の CHAT_PLACEMENT）「チャット」タブ、そうでなければボード。知らない形なら undefined
  */
 export function panelScreen(key: string): Route | undefined {
   const at = parsePanelKey(key);
   // サブエージェントの欄はチャットの中にあり、下書きを持たないので移る先はない
   if (!at || at.surface === "agents") return undefined;
-  return at.scope === "all" ? { name: "allProjects" } : { name: "project", id: at.scope, tab: "board" };
+  if (at.scope === "all") return { name: "allProjects" };
+  const chats = at.surface === "board" && readSetting(CHAT_PLACEMENT) === "separate";
+  return { name: "project", id: at.scope, tab: chats ? "chats" : "board" };
 }

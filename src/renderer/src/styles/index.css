@@ -70,6 +70,7 @@
 @import "./panel/side-panel-tabs.css";
 @import "./panel/side-panel-tab-groups.css";
 @import "./panel/side-panel-split.css";
+@import "./panel/chats-tab.css";
 @import "./browser/browser.css";
 @import "./board/board-list.css";
 @import "./ui/menu.css";

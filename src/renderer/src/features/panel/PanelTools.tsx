@@ -15,6 +15,8 @@ export interface PanelFrame {
   resizeHandle?: HTMLAttributes<HTMLDivElement>;
   /** 大きくする切り替えの状態（欄の決まり SURFACES の maximize で出す。disabled: 狭くて元の大きさに戻せない） */
   maximize?: { on: boolean; disabled?: boolean; toggle: () => void };
+  /** 欄が画面そのもの（ボードと分けた「チャット」タブ）で、閉じるボタンを出さない */
+  fixed?: boolean;
 }
 
 /**
@@ -27,7 +29,7 @@ export function PanelTools({ panel, frame, view }: { panel: PanelController; fra
   const { closeButton, maximize, maximizeLabels, heading } = SURFACES[panel.surface];
   // 分けているときは、欄の名前の札をアイコンだけにする（左上のペインのタブの入る幅を残す）
   const split = leavesOf(panel.layout.root).length > 1;
-  const close = closeButton && (
+  const close = closeButton && !frame?.fixed && (
     <IconButton type="button" icon={closeButton.icon} size={15} className="panel-control" label={closeButton.label} keys={closeButton.keys} onClick={panel.close} />
   );
   const state = frame?.maximize;

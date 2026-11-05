@@ -9,6 +9,7 @@ import { BOARD_HEADER_LAYOUT_LABELS, useBoardHeaderLayout, type BoardHeaderLayou
 import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode, type FooterMode } from "@/features/footer/footerMode";
 import { CHAT_FONT_SIZE_LABELS, CHAT_FONT_SIZES, useChatFontSize, type ChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { PROJECT_TABS_LAYOUT_LABELS, useProjectTabsLayout, type ProjectTabsLayout } from "@/features/project/page/ProjectTabs";
+import { CHAT_PLACEMENT_LABELS, useChatPlacement, type ChatPlacement } from "@/features/project/page/chatPlacement";
 import { TabbedDialog, type DialogSection } from "@/ui/TabbedDialog";
 import { UsagePanel } from "@/features/usage/UsagePanel";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
@@ -85,6 +86,7 @@ function DisplaySettings() {
   const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
+  const [chatPlacement, setChatPlacement] = useChatPlacement();
   const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
   const [footerMode, setFooterMode] = useFooterMode();
   return (
@@ -188,6 +190,21 @@ function DisplaySettings() {
             options={[
               { value: "top", label: PROJECT_TABS_LAYOUT_LABELS.top },
               { value: "side", label: PROJECT_TABS_LAYOUT_LABELS.side },
+            ]}
+          />
+        </Field>
+        <Field
+          label="チャットを開く場所"
+          help="チャットタブで開くと、ボードと分けた「チャット」タブにチャットを横幅いっぱいに出し、ボードのカードを押すとそのタブへ移ります。ボードの右で開くと、ボードを見ながら右のパネルでチャットを開きます。どちらも同じタブなので、切り替えても開いているチャットはそのままです。"
+        >
+          <Segmented<ChatPlacement>
+            className="segmented theme-switch"
+            label="チャットを開く場所"
+            value={chatPlacement}
+            onChange={setChatPlacement}
+            options={[
+              { value: "separate", label: CHAT_PLACEMENT_LABELS.separate },
+              { value: "together", label: CHAT_PLACEMENT_LABELS.together },
             ]}
           />
         </Field>

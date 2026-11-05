@@ -18,6 +18,8 @@ test("欄が出る画面: 全プロジェクトの欄（ボード・フッター
   assert.deepEqual(panelScreen("bottom:all"), { name: "allProjects" });
   assert.deepEqual(panelScreen("bottom:4"), { name: "project", id: 4, tab: "board" });
   assert.deepEqual(panelScreen("side:4"), { name: "project", id: 4, tab: "board" });
+  // ボードの右のパネルは、チャットをボードと分けているとき（初め）は「チャット」タブ
+  assert.deepEqual(panelScreen("kanban:4"), { name: "project", id: 4, tab: "chats" });
   assert.equal(panelScreen("side:none"), undefined);
 });
 

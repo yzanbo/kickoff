@@ -52,6 +52,7 @@ test("href と parse の往復: 画面 → URL → 画面で同じになる", ()
     { name: "project", id: 1, tab: "changes", file: { path: "src/a b.ts", line: 3, worktree: "/x/app-worktrees/w" } },
     { name: "project", id: 1, tab: "changes", file: { path: "README.md" } },
     { name: "project", id: 1, tab: "memos" },
+    { name: "project", id: 1, tab: "chats" },
     { name: "project", id: 1, tab: "memos", memo: "設計/DB の方針.md" },
     { name: "newChat", projectId: 2, group: 4 },
     { name: "chat", projectId: 2, chatId: 30 },
@@ -72,10 +73,13 @@ test("routeProjectId: プロジェクトの画面・新しいチャット・チ�
 });
 
 test("boardTabOf: チャット・新しいチャットの URL では、最後に見たボードの列の分け方で開く（グループの＋から来た新しいチャットはグループのボード）", () => {
-  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "state"), "board");
+  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "state", "together"), "board");
   // グループのボードで開いたチャットの URL でも、カンバンに切り替えない
-  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "groups"), "groups");
-  assert.equal(boardTabOf({ name: "newChat", projectId: 1 }, "groups"), "groups");
-  assert.equal(boardTabOf({ name: "newChat", projectId: 1, group: 3 }, "state"), "groups");
-  assert.equal(boardTabOf({ name: "newChat", projectId: 1 }, "state"), "board");
+  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "groups", "together"), "groups");
+  assert.equal(boardTabOf({ name: "newChat", projectId: 1 }, "groups", "together"), "groups");
+  assert.equal(boardTabOf({ name: "newChat", projectId: 1, group: 3 }, "state", "together"), "groups");
+  assert.equal(boardTabOf({ name: "newChat", projectId: 1 }, "state", "together"), "board");
+  // チャットをボードと分けているときは、どれも「チャット」タブ
+  assert.equal(boardTabOf({ name: "chat", projectId: 1, chatId: 2 }, "groups", "separate"), "chats");
+  assert.equal(boardTabOf({ name: "newChat", projectId: 1, group: 3 }, "state", "separate"), "chats");
 });

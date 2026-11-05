@@ -1,0 +1,24 @@
+/* ==== プロジェクトの「チャット」タブ（チャットをボードと分ける置き方。ボードの右のパネルと同じパネルを横幅いっぱいに） ==== */
+
+/* エディタ・メモのタブ（.changes）と同じく、枠で囲んでタブの中いっぱいに広げる */
+.chats-tab {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ボードの右のパネルの開閉の動き（幅 0 の列から滑り込む・閉じたら透明）を使わず、いつも見せる */
+.chats-tab > .board-panel {
+  flex: 1;
+  border-left: 0;
+  opacity: 1;
+}
+
+.chats-tab > .board-panel > .panel-tabs,
+.chats-tab > .board-panel > .panel-content {
+  width: auto;
+}

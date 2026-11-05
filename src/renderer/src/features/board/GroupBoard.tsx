@@ -6,6 +6,8 @@ import { GROUP_FLASH_EVENT } from "@/features/group/groups";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import type { ReopenRoute } from "@/app/router";
 import { useBoardPanel } from "@/features/panel/board/useBoardPanel";
+import { panelChats, useChatsTabLinks, type BoardChats } from "@/features/panel/board/boardChats";
+import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { ArchiveFilterSelect } from "./ArchiveFilterSelect";
 import { BoardColumnsToggle } from "./BoardColumnsToggle";
 import { BoardHeader } from "./BoardHeader";
@@ -34,13 +36,27 @@ interface Props {
  * 自分で作ったグループを管理するボード。列 = グループ、カード = チャット。
  * カードをドラッグしてグループを移し、列の見出しをドラッグしてグループを並べ替える。
  */
-export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
-  const board = useGroupBoard({ projectId, groups });
+export function GroupBoard(props: Props) {
+  const board = useGroupBoard({ projectId: props.projectId, groups: props.groups });
+  // チャットを開く先は、カンバンと同じく設定の「チャットの置き方」で決まる（ボードと分ける = チャットタブへ移って開く / ボードの右のパネル）
+  const [placement] = useChatPlacement();
+  const apart = useChatsTabLinks(props.projectId);
+  return placement === "together" ? <GroupBoardWithPanel {...props} board={board} /> : <GroupBoardView {...props} board={board} chats={apart} />;
+}
+
+/**
+ * ボードの右のパネルで開くグループのボード。カンバンと同じく、カードを押すと右側から出てくるパネルで開き、URL もそのチャットにする
+ * （下書きもカンバンと同じく、このボードのパネルとチャット欄のもの）。サイドバー・検索から開いたチャット、サイドバーのグループの＋から来た
+ * 新しいチャットも右側に開く（同じ＋を押し直したときも）
+ */
+function GroupBoardWithPanel(props: Props & { board: ReturnType<typeof useGroupBoard> }) {
+  const chats = panelChats(useBoardPanel({ projectId: props.projectId, holdEsc: props.board.menu.isOpen, focus: props.focus, tab: "groups" }));
+  return <GroupBoardView {...props} chats={chats} />;
+}
+
+function GroupBoardView({ projectId, highlight, board, chats }: Props & { board: ReturnType<typeof useGroupBoard>; chats: BoardChats }) {
   const { view, split, menu, rename, over, dropProps } = board;
-  // カンバンと同じく、カードを押すと右側から出てくるパネルで開き、URL もそのチャットにする（下書きもカンバンと同じく、このボードのパネルとチャット欄のもの）。
-  // サイドバー・検索から開いたチャット、サイドバーのグループの＋から来た新しいチャットも右側に開く（同じ＋を押し直したときも）
-  const rightPanel = useBoardPanel({ projectId, holdEsc: menu.isOpen, focus, tab: "groups" });
-  const { panel, drafts, open } = rightPanel;
+  const { panel, drafts, open } = chats;
 
   // サイドバーで選んだグループが見えるところまでスクロールする
   useEffect(() => {
@@ -81,7 +97,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
         </button>
       }
       primary={
-        <button className="btn btn-sm" onClick={panel.startNewChat} title="右側で新しいチャットを始める">
+        <button className="btn btn-sm" onClick={chats.startNewChat} title={chats.newChatTitle}>
           <Plus size={13} /> <span className="btn-label">新規</span>
         </button>
       }
@@ -99,7 +115,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       className="group-board"
       header={header}
       error={board.error}
-      rightPanel={rightPanel}
+      rightPanel={chats.rightPanel}
       menu={menu}
       onOpenChat={open}
       rename={rename}
@@ -120,7 +136,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
         </BoardLanes>
       ) : view === "board" ? (
         <div className="board-columns">
-          <GroupSections projectId={projectId} buckets={buckets} board={board} panel={panel} render={cards.card} foldPlace={foldPlace} highlight={highlight} />
+          <GroupSections projectId={projectId} buckets={buckets} board={board} onNewChat={chats.openNew} render={cards.card} foldPlace={foldPlace} highlight={highlight} />
           <section className="board-column group-add-column">
             <GroupCreateForm board={board} />
           </section>
@@ -131,7 +147,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
             projectId={projectId}
             buckets={buckets}
             board={board}
-            panel={panel}
+            onNewChat={chats.openNew}
             render={cards.row}
             foldPlace={foldPlace}
             highlight={highlight}
