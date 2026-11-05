@@ -74,6 +74,22 @@ export interface SubagentInfo {
   summary?: string;
 }
 
+/**
+ * 実行中のコマンド（Bash。手前で待つものも裏で動かしたものも）の出力の終わりの部分（保存しない。chat_command_output で届く）。
+ * 色の制御文字は除き、\r で上書きした行は最後の状態だけにしてある。終わったら届かなくなり、結果はツールの結果の記録で届く
+ */
+export interface CommandOutput {
+  /** コマンドを実行した Bash の呼び出し ID（流れのツールの呼び出しと結びつける） */
+  tool_use_id: string;
+  /** Claude Code の作業 ID（裏で動いている作業の一覧と結びつける） */
+  task_id: string;
+  /** 出力の最後の行（COMMAND_OUTPUT_LINES 行まで） */
+  text: string;
+}
+
+/** 実行中のコマンドの出力として画面に送る行数（最後の分） */
+export const COMMAND_OUTPUT_LINES = 40;
+
 export type ChatEventType = ChatEventData["type"];
 
 /** union の形ごとに Omit する（ふつうの Omit は union の形を 1 つに混ぜてしまい、action などで絞り込めなくなる） */

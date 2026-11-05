@@ -91,6 +91,27 @@ test("返答の途中経過は配信だけされ、チャット名は AI が付�
   );
 });
 
+test("実行中のコマンドの出力は、チャットとプロジェクトを添えて配信だけされ、保存しない", async () => {
+  const { store, runner, project, bus } = setup(async (_p, cb) => {
+    cb.commandOutput?.({ tool_use_id: "tu1", task_id: "b1", text: "line1" });
+    cb.commandOutput?.({ tool_use_id: "tu1", task_id: "b1", text: "line1\nline2" });
+    return { status: "completed", sessionId: "s" };
+  });
+  const outputs: { chat_id: number; project_id: number; text: string }[] = [];
+  bus.subscribe((e) => e.type === "chat_command_output" && outputs.push({ chat_id: e.chat_id, project_id: e.project_id, text: e.output.text }));
+
+  const chat = await runner.start({ projectId: project.id, prompt: "ビルドして" });
+  await until(() => store.chats.get(chat.id)?.status === "completed");
+  assert.deepEqual(outputs, [
+    { chat_id: chat.id, project_id: project.id, text: "line1" },
+    { chat_id: chat.id, project_id: project.id, text: "line1\nline2" },
+  ]);
+  assert.deepEqual(
+    store.events.list(chat.id).map((e) => e.type),
+    ["user", "result"],
+  );
+});
+
 test("作業が終わると未読になり、続けて送ると消える。中断では付かない", async () => {
   // 2 回目の実行は、合図があるまで終わらせない
   let release!: () => void;

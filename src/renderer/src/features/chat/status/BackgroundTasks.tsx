@@ -6,13 +6,15 @@ import { confirmDialog, reportFailure } from "@/ui/dialogs";
 import { IconButton } from "@/ui/IconButton";
 import { ActivityNote } from "@/features/chat/subagents/SubagentChip";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { useTaskOutput } from "@/features/chat/tools/commandOutputs";
 
 const ICONS: Record<BackgroundTask["kind"], typeof Bot> = { agent: Bot, command: SquareTerminal, other: SquareTerminal };
 
 /**
  * 裏で動いている作業の一覧（作業中の行の下）。1 件ずつ止められる（チャット全体は止めない。
  * 開発サーバーだけ止めて、サブエージェントは動かしたままにするなど）。サブエージェントは、止めると報告が届かないので確かめる。
- * サブエージェントは名前を押すと中身をタブで開き、しばらく動きがなければ最後の動き（長く動きがなければ注意の色）を添える
+ * サブエージェントは名前を押すと中身をタブで開き、しばらく動きがなければ最後の動き（長く動きがなければ注意の色）を添える。
+ * コマンドは、出力の最後の 1 行を添える（乗せると最後の数行）
  */
 export function BackgroundTasks({ chatId, background, agents = [] }: { chatId: number; background: BackgroundState | null; agents?: SubagentEntry[] }) {
   // サブエージェントの中身を開く（チャットの画面の中だけ）
@@ -50,10 +52,23 @@ export function BackgroundTasks({ chatId, background, agents = [] }: { chatId: n
               </span>
             )}
             {entry && <ActivityNote entry={entry} />}
+            {task.kind === "command" && <TaskOutputLine taskId={task.task_id} />}
             <IconButton icon={Square} label={`「${task.description}」を止める`} title="この作業だけを止める（チャットは止めない）" size={12} onClick={() => void stop(task)} />
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/** 裏で動いているコマンドの出力の、空でない最後の 1 行（乗せると最後の 10 行） */
+function TaskOutputLine({ taskId }: { taskId: string }) {
+  const text = useTaskOutput(taskId);
+  const lines = text?.split("\n").filter((l) => l.trim() !== "") ?? [];
+  if (lines.length === 0) return null;
+  return (
+    <span className="background-task-output" title={lines.slice(-10).join("\n")}>
+      {lines.at(-1)}
+    </span>
   );
 }
