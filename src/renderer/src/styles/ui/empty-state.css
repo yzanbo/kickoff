@@ -81,7 +81,7 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  color: var(--accent-bright);
+  color: var(--accent-fg);
   background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 

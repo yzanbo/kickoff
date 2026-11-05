@@ -22,6 +22,7 @@
 - 2 つのボタンを 1 つに見せる組（アイコン ＋ ▾ など）は、乗せたときの地を外側の入れ物に付け、中の各ボタンの地は透明にする（それぞれに地を付けると、別々に光って 2 つのボタンに見える。`.panel-split-button`）。
 - 使わなくなったクラスの CSS は消す。消すときは、名前を組み立てて付けるクラスに気をつける（いまの頭: `state-` `status-` `tone-` `meter-` `conn-` `drop-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、PR の状態の `open` / `merged` / `closed`（`.pr-chip`）、一番下へ戻るボタンの状態 `waiting` / `arrived` / `working` / `idle` / `failed` / `offline`）。
 - 新しいクラス名は、既存のものと重ならないか `styles/` 全体を検索してから付ける（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
+- アクセントの色の文字（オンになっている切り替えなど）は `--accent-fg`（ダークは `--accent-bright`、ライトは地に負けない `--accent`）。
 - 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾の一覧に書き、使う側は必要なら `var(--x, 既定値)` で受ける。`getComputedStyle` で読まれている変数（Mermaid の配色・ターミナル・エディタ）は、名前を変えるときに読む側も直す。
 - プロジェクトの名前の札の地と枠の色は `project/project-mark.css` に 1 か所で持つ（`features/project/CLAUDE.md`）。
 

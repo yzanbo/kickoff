@@ -59,6 +59,24 @@
   background: var(--bg-elev);
 }
 
+/*
+ * 自分待ちの絞り込みがオン。いま開いている画面の印（.active の背景）とは分け、背景を付けずにアクセントの色と「オン」の札で示す
+ * （同じ見た目だと、絞り込むだけの自分待ちも開いている画面に見えた）
+ */
+.nav-row.on {
+  color: var(--accent-fg);
+}
+
+.nav-row-state {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--accent-fg);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
 .nav-row kbd,
 .nav-row .count-badge {
   margin-left: auto;
