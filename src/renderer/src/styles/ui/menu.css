@@ -62,8 +62,14 @@
   cursor: pointer;
 }
 
-.menu button:hover {
+.menu button:hover:not(:disabled) {
   background: var(--bg-hover);
+}
+
+/* 押せない項目（MenuItem の disabled。理由は乗せたときの説明に） */
+.menu button:disabled {
+  color: var(--muted);
+  cursor: default;
 }
 
 /* ↑↓ で移った項目は、乗せたときと同じ地の色で示す（ボタンの共通のピントの枠は出さない）。メニューそのもの（開いた直後のピント）にも枠を出さない */

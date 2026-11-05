@@ -8,7 +8,7 @@ import { HeadMenu, HeadToggle } from "./HeadMenu";
 import { IconButton } from "@/ui/IconButton";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { TagFilterRow } from "./TagFilterRow";
-import { waitingAxes, waitingViewOf, type WaitingView } from "./waitingAxes";
+import { canChooseOrder, WAITING_SCOPES, waitingAxes, waitingViewOf, type WaitingView } from "./waitingAxes";
 import { WAITING_ORDER_META, WAITING_SCOPE_META } from "./waitingView";
 
 /** slide: 1 プロジェクトずつ横にスライド（丸は下） / rail: 1 プロジェクトずつ縦にスライド（丸は左に縦に並べる） / stack: すべてのプロジェクトを縦に並べる */
@@ -33,7 +33,7 @@ interface Props {
   archivedCount: number;
   showArchived: boolean;
   onShowArchived: (show: boolean) => void;
-  /** 自分待ちがオンのときだけ: その表示（出し方 = 自分待ちだけ / 上にまとめる、並べ方 = プロジェクト別 / 状態順）を選ぶ行を出す */
+  /** 自分待ちがオンのときだけ: その表示（出し方 = 自分待ちだけ / 一覧の上に / プロジェクト内の上に、並べ方 = プロジェクト別 / 状態順）を選ぶ行を出す */
   waiting?: { view: WaitingView; onView: (view: WaitingView) => void };
 }
 
@@ -148,22 +148,26 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
   );
 }
 
-/** 「自分待ち」の行: 出し方（自分待ちだけ ⇔ 上にまとめる）と並べ方（プロジェクト別 ⇔ 状態順）の 2 つの切り替え。4 通りの組み合わせを選べる */
+/**
+ * 「自分待ち」の行: 出し方（自分待ちだけ / 一覧の上に / プロジェクト内の上に。3 つなのでメニュー）と並べ方（プロジェクト別 ⇔ 状態順）。
+ * プロジェクト内の上には、プロジェクトの中に置くので並べ方はプロジェクト別だけ（並べ方のボタンは押せない）
+ */
 function WaitingRow({ view, onView }: { view: WaitingView; onView: (view: WaitingView) => void }) {
   const { scope, order } = waitingAxes(view);
   const scopeMeta = WAITING_SCOPE_META[scope];
   const orderMeta = WAITING_ORDER_META[order];
+  const orderFree = canChooseOrder(scope);
   return (
     <div className="project-list-row">
       <span className="project-list-row-label">自分待ち</span>
-      <HeadToggle
+      <HeadMenu
         id="waiting-scope"
         icon={scopeMeta.icon}
         label="出し方"
         value={scopeMeta.short}
-        values={[WAITING_SCOPE_META.only.short, WAITING_SCOPE_META.top.short]}
-        title={`自分待ちの出し方（${WAITING_SCOPE_META.only.label} / ${WAITING_SCOPE_META.top.label}）`}
-        onToggle={() => onView(waitingViewOf(scope === "only" ? "top" : "only", order))}
+        values={WAITING_SCOPES.map((s) => WAITING_SCOPE_META[s].short)}
+        title={`自分待ちの出し方（いまは「${scopeMeta.label}」）`}
+        menu={{ title: "自分待ちの出し方", choices: WAITING_SCOPES, meta: WAITING_SCOPE_META, current: scope, onPick: (s) => onView(waitingViewOf(s, order)) }}
       />
       <HeadToggle
         id="waiting-order"
@@ -171,7 +175,12 @@ function WaitingRow({ view, onView }: { view: WaitingView; onView: (view: Waitin
         label="並べ方"
         value={orderMeta.short}
         values={[WAITING_ORDER_META.project.short, WAITING_ORDER_META.status.short]}
-        title={`自分待ちの並べ方（${WAITING_ORDER_META.project.label} / ${WAITING_ORDER_META.status.label}）`}
+        title={
+          orderFree
+            ? `自分待ちの並べ方（${WAITING_ORDER_META.project.label} / ${WAITING_ORDER_META.status.label}）`
+            : "自分待ちの並べ方: プロジェクト内の上にまとめるときは、プロジェクトの中に置くのでプロジェクト別だけです（中は状態順）"
+        }
+        disabled={!orderFree}
         onToggle={() => onView(waitingViewOf(scope, order === "project" ? "status" : "project"))}
       />
     </div>

@@ -47,7 +47,7 @@ const MenuCloseContext = createContext<() => void>(() => {});
 /**
  * メニューの 1 項目。押すと、メニューを閉じてから onSelect を行う（閉じるのは PopupMenu から受け取る）。
  * role は選択肢なら menuitemradio / menuitemcheckbox（checked を付ける）。danger は削除などの赤い項目。
- * keepOpen はメニューを閉じない（子のメニューのチェックを続けて切り替えるとき）
+ * keepOpen はメニューを閉じない（子のメニューのチェックを続けて切り替えるとき）。disabled は押せない項目（理由は title に）
  */
 export function MenuItem({
   role = "menuitem",
@@ -56,6 +56,7 @@ export function MenuItem({
   className,
   title,
   keepOpen,
+  disabled,
   onSelect,
   children,
 }: {
@@ -65,6 +66,7 @@ export function MenuItem({
   className?: string;
   title?: string;
   keepOpen?: boolean;
+  disabled?: boolean;
   onSelect: () => void;
   children: ReactNode;
 }) {
@@ -75,6 +77,7 @@ export function MenuItem({
       aria-checked={checked}
       className={cx(className, danger && "danger") || undefined}
       title={title}
+      disabled={disabled}
       onClick={() => {
         if (!keepOpen) close();
         onSelect();

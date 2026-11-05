@@ -75,6 +75,7 @@ export function HeadToggle({
   value,
   values,
   title,
+  disabled,
   onToggle,
 }: {
   id: string;
@@ -85,11 +86,19 @@ export function HeadToggle({
   values: [string, string];
   /** 何の設定か（説明の先頭） */
   title: string;
+  /** 押せない（ほかの設定で値が決まっているとき。理由は title に書く） */
+  disabled?: boolean;
   onToggle: () => void;
 }) {
   const next = values[0] === value ? values[1] : values[0];
   return (
-    <button className={`head-chip head-toggle-${id}`} title={`${title}: ${value}（押すと「${next}」に切り替え）`} aria-label={`${label}: ${value}（押すと「${next}」）`} onClick={onToggle}>
+    <button
+      className={`head-chip head-toggle-${id}`}
+      title={disabled ? title : `${title}: ${value}（押すと「${next}」に切り替え）`}
+      aria-label={disabled ? `${label}: ${value}` : `${label}: ${value}（押すと「${next}」）`}
+      disabled={disabled}
+      onClick={onToggle}
+    >
       <ChipFace icon={icon} label={label} value={value} values={values} />
     </button>
   );

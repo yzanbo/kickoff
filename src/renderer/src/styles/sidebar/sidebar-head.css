@@ -24,7 +24,7 @@
 /*
  * 「自分待ち」の行は 2 択のボタンが 2 つだけなので、それぞれ 2 列分の幅に置く（「プロジェクト別」など長い名前でも、上の行の列を広げず横幅に収める）
  */
-.head-toggle-waiting-scope {
+.head-menu-waiting-scope {
   grid-column: 2 / span 2;
 }
 
@@ -67,9 +67,15 @@
   cursor: pointer;
 }
 
-.head-chip:hover,
+.head-chip:hover:not(:disabled),
 .head-chip.active {
   background: var(--bg-hover);
+}
+
+/* ほかの設定で値が決まっていて押せないとき（自分待ちの「プロジェクト内の上に」の並べ方）。隠さず薄くする */
+.head-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .head-chip-text {

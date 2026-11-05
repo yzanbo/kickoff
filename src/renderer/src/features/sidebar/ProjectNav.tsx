@@ -85,7 +85,7 @@ export function ProjectNav({ chats, groups, onNewProject }: Props) {
       </div>
     );
   }
-  // 上にまとめる: 一覧の上に待っているチャットのまとまり（並べ方は状態順 / プロジェクト別）を置き、その下はすべてのプロジェクト
+  // 一覧の上に: 一覧の上に待っているチャットのまとまり（並べ方は状態順 / プロジェクト別）を置き、その下はすべてのプロジェクト（プロジェクト内の上には WorkspacePage が置く）
   const topInbox = waitingOnly && waitingScope === "top" && !tagEmpty ? <WaitingInbox chats={chats} variant="top" order={waitingOrder} /> : null;
   if (nav.layout === "stack") {
     return <ProjectStack nav={nav} chats={chats} groups={groups} onNewProject={onNewProject} archivedHead={archivedHead} waitingEmpty={waitingEmpty} topInbox={topInbox} selectionBar={selectionBar} />;
