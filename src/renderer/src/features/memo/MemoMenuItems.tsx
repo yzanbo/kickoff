@@ -1,14 +1,13 @@
 import { ChevronRight, NotebookPen, Sparkles, StickyNote } from "lucide-react";
 import { useMemo } from "react";
-import { MEMO_EXTENSION } from "@shared/types";
 import { useMemoList } from "@/stores/memos";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem } from "@/ui/PopupMenu";
 import { addToMemo } from "./addToMemo";
-import { memoTitle, parentOf } from "./memoPaths";
+import { memoTitle, parentOf, recentMemos } from "./memoPaths";
 
-/** 「既存のメモに追記」に並べる数（最近変えた順） */
-const RECENT_MEMOS = 12;
+/** 「既存のメモに追記」・入力欄の上のメモの一覧に並べる数（最近変えた順） */
+export const RECENT_MEMOS = 12;
 
 /**
  * 発言の右クリックのメニューの「メモに追加」の項目（新しいメモ・AI で要約して新しいメモ・既存のメモに追記 ▸）。
@@ -18,14 +17,7 @@ export function MemoMenuItems({ projectId, chatId, text }: { projectId: number; 
   const append = useSubmenu();
   // 一覧は追記の子のメニューを開いたときだけ読む
   const list = useMemoList(projectId, append.anchor !== null);
-  const recent = useMemo(
-    () =>
-      (list.data?.entries ?? [])
-        .filter((e) => !e.dir && e.path.endsWith(MEMO_EXTENSION))
-        .sort((a, b) => b.modified_at.localeCompare(a.modified_at))
-        .slice(0, RECENT_MEMOS),
-    [list.data],
-  );
+  const recent = useMemo(() => recentMemos(list.data?.entries ?? [], RECENT_MEMOS), [list.data]);
   const add = (summarize: boolean, appendTo: string | null = null) => void addToMemo({ projectId, chatId, text, summarize, appendTo });
   return (
     <>

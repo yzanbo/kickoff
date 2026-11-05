@@ -6,7 +6,7 @@
 
 | フォルダ | 役割 |
 |---|---|
-| `app/` | App・ルーター（`router.ts`）・全体の context（`chatStatesContext.ts`）・アプリ全体のショートカット（`shortcuts.ts`）・通知（`notifications.ts`）・テーマ（`theme.ts`）・右上のレイアウトの開閉（`LayoutToggles`）・⌘[ / ⌘]（`useChatHistory`）・起動したときの保存の片付け（`prepareStorage.ts`）・別ウィンドウの行き先と画面（`popout.ts`・`PopoutApp`）・ウィンドウの間の知らせ（`windowBus.ts`） |
+| `app/` | App・ルーター（`router.ts`）・全体の context（`chatStatesContext.ts`）・アプリ全体のショートカット（`shortcuts.ts`）・通知（`notifications.ts`）・テーマ（`theme.ts`）・右上のレイアウトの開閉（`LayoutToggles`）・⌘[ / ⌘]（`useChatHistory`）・起動したときの保存の片付け（`prepareStorage.ts`）・別ウィンドウの行き先と画面（`popout.ts`・`PopoutApp`）・ウィンドウの間の知らせ（`windowBus.ts`。App が受けるものは `mainWindowMessages.ts`） |
 | `api/` | サーバーとのやり取り（下の「API」） |
 | `stores/` | 画面全体で 1 つずつ持つサーバーのデータ（下の「データ」） |
 | `lib/` | React に依存しない小さな補助（`cx` `time` `format` `url` `keys` `floating` `highlight` `languages` `richCopy` `valueCell`、保存の `storage` とその一覧 `storageKeys`） |
@@ -15,7 +15,7 @@
 | `features/<領域>/` | 領域ごとの部品と hooks |
 | `styles/` | CSS（`styles/CLAUDE.md`） |
 
-`features/` の領域と説明の置き場所: `chat/`（チャット全般と 1 つのチャットの画面。`dictation/`（チャット欄の音声入力）・`fileLinks/`（返答のファイルのチップ）もここに書く）・`chatList/`（まとめ方・数え方・開閉）・`sidebar/`（`group/` もここ）・`board/`・`panel/`（右のパネル・チャット欄・下のパネルのタブ）・`project/`・`palette/`・`editor/`（`history/` もここ）・`worktree/`・`settings/`（`usage/` `footer/` `diagnostics/` もここ）・`terminal/`（`browser/` `openWith/` もここ）・`popout/`（右の欄のサブエージェント・変更・ファイルの別ウィンドウ）・`memo/`（プロジェクトの「メモ」タブとチャットの「メモに追加」）。
+`features/` の領域と説明の置き場所: `chat/`（チャット全般と 1 つのチャットの画面。`dictation/`（チャット欄の音声入力）・`fileLinks/`（返答のファイルのチップ）もここに書く）・`chatList/`（まとめ方・数え方・開閉）・`sidebar/`（`group/` もここ）・`board/`・`panel/`（右のパネル・チャット欄・下のパネルのタブ）・`project/`・`palette/`・`editor/`（`history/` もここ）・`worktree/`・`settings/`（`usage/` `footer/` `diagnostics/` もここ）・`terminal/`（`browser/` `openWith/` もここ）・`popout/`（右の欄のサブエージェント・変更・ファイル・メモと子チャットの別ウィンドウ）・`memo/`（プロジェクトの「メモ」タブとチャットの「メモに追加」）。
 
 - 依存の向きは `app → features → stores / api / ui / hooks / lib → @shared`。ui / hooks / lib / stores / api は features を import しない。app の全体のもの（`router.ts` の `useRoute` / `openChat` など・`chatStatesContext.ts` の `useChatStates`）は features から読んでよい。
 - import は、同じフォルダなら `./`、それ以外は `@/…`、プロセスをまたぐ型と純粋な関数は `@shared/…`（型は `@shared/types`、`errorMessage` は `@shared/errors`）。`../` で上のフォルダをたどらない。

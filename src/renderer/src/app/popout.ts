@@ -1,7 +1,7 @@
-// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャットを、メインのウィンドウの外に出して見る）の行き先
+// 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモを、メインのウィンドウの外に出して見る）の行き先
 import { postWindowMessage } from "./windowBus";
 
-/** 別ウィンドウで開くもの（どれも、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
+/** 別ウィンドウで開くもの（メモのほかは、開いたチャットに結びつく。chatId はメインのウィンドウのそのチャットへ知らせるのに使う） */
 export type PopoutRoute =
   /** 作業場所のコミットしていない変更（focus のファイルの位置へ移る） */
   | { kind: "changes"; chatId: number; projectId: number; worktree?: string; focus?: string }
@@ -10,13 +10,20 @@ export type PopoutRoute =
   /** サブエージェントの画面（agentKey はサブエージェントの一覧の行のキー） */
   | { kind: "subagent"; chatId: number; agentKey: string }
   /** 子チャット（チャットの画面そのもの。chatId は子チャット） */
-  | { kind: "chat"; chatId: number };
+  | { kind: "chat"; chatId: number }
+  /** プロジェクトのメモ（path はメモのフォルダからの相対。どのチャットから開いても同じウィンドウ） */
+  | { kind: "memo"; projectId: number; path: string };
 
 const PREFIX = "/popout/";
 
 /** 別ウィンドウの URL のハッシュ（"/popout/<種類>?…"。同じものは同じ文字になり、メインプロセスが同じウィンドウを前に出す） */
 export function popoutPath(route: PopoutRoute): string {
   const params = new URLSearchParams();
+  if (route.kind === "memo") {
+    params.set("project", String(route.projectId));
+    params.set("path", route.path);
+    return `${PREFIX}${route.kind}?${params.toString()}`;
+  }
   params.set("chat", String(route.chatId));
   if (route.kind === "subagent") params.set("agent", route.agentKey);
   else if (route.kind !== "chat") {
@@ -43,6 +50,11 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
   if (!path.startsWith(PREFIX)) return undefined;
   const [kind, query = ""] = path.slice(PREFIX.length).split("?");
   const params = new URLSearchParams(query);
+  if (kind === "memo") {
+    const projectId = positive(params.get("project"));
+    const memoPath = params.get("path");
+    return projectId !== undefined && memoPath ? { kind, projectId, path: memoPath } : undefined;
+  }
   const chatId = positive(params.get("chat"));
   if (chatId === undefined) return undefined;
   if (kind === "subagent") {

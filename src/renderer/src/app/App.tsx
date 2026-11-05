@@ -32,7 +32,8 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatNotifications } from "./notifications";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
 import { ProjectPage } from "@/features/project/page/ProjectPage";
-import { boardTabOf, openMemo, openNewChat, openProjectFile, RouteContext, routeProjectId, useHashRoute } from "./router";
+import { boardTabOf, openNewChat, RouteContext, routeProjectId, useHashRoute } from "./router";
+import { handleMainWindowMessage } from "./mainWindowMessages";
 import { subscribeWindowMessages } from "./windowBus";
 import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
@@ -117,15 +118,8 @@ export function App() {
   useWindowEvent(OPEN_NEW_PROJECT_EVENT, (e) => setCreating((e as CustomEvent<NewProjectRequest>).detail));
   useWindowEvent(OPEN_NO_PROJECTS_GUIDE_EVENT, () => setNoProjectsGuide(true));
   useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
-  // 別ウィンドウの「ファイルタブで開く」は、このウィンドウのファイルタブで開く
-  useEffect(
-    () =>
-      subscribeWindowMessages((m) => {
-        if (m.type === "openProjectFile") openProjectFile(m.projectId, m.file);
-        else if (m.type === "openMemo") openMemo(m.projectId, m.path);
-      }),
-    [],
-  );
+  // 別ウィンドウからの「ファイルタブで開く」・メモ・子チャットを開く・子チャットから親へは、このウィンドウで
+  useEffect(() => subscribeWindowMessages(handleMainWindowMessage), []);
 
   return (
     <PlanUsageContext.Provider value={planUsage}>

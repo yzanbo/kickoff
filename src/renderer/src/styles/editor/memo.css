@@ -177,3 +177,69 @@
   flex: none;
   color: var(--ok);
 }
+
+/* 右の欄・別ウィンドウに開いたメモ（メモのタブの右と同じ中身） */
+.side-memo {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 入力欄の上の「メモ」の一覧（最近変えたメモ。題名と、入っているフォルダ） */
+.memo-chip-popover {
+  display: grid;
+  min-width: 260px;
+  max-width: 380px;
+  padding: 4px;
+}
+
+.memo-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  cursor: pointer;
+}
+
+.memo-chip-row:hover {
+  background: var(--bg-hover);
+}
+
+.memo-chip-row svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.memo-chip-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memo-chip-folder {
+  flex: none;
+  max-width: 120px;
+  margin-left: auto;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--extra-muted);
+}
+
+.memo-chip-row.more {
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 6px 6px;
+  color: var(--muted);
+}

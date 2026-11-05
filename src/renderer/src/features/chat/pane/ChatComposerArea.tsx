@@ -14,6 +14,7 @@ import { PromptsChip } from "@/features/chat/prompts/PromptsChip";
 import { QueuedMessages } from "@/features/chat/queue/QueuedMessages";
 import { TodoChip } from "@/features/chat/status/TodoChip";
 import { ChildChatsChip } from "@/features/chat/children/ChildChatChips";
+import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import type { useChatSend } from "./useChatSend";
 
@@ -66,6 +67,7 @@ export function ChatComposerArea({
         <TodoChip chatId={chat.id} events={events} />
         <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} />
         <ChildChatsChip chatId={chat.id} />
+        <MemoChip projectId={chat.project_id} chatId={chat.id} />
         {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
         <span ref={onDock} className="composer-chips-dock" />
       </div>

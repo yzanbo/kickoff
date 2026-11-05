@@ -1,14 +1,12 @@
 // チャットの文をメモに追加する（新しいメモ・既存のメモへの追記。AI で要約してからも）。
 // 画面は移らず（続けてほかの文もメモできるように）、画面の下に様子を出す（MemoProgress。要約は数秒かかる）。
-// 終わったら「開く」でメモのタブのそのメモを開ける（別ウィンドウからなら、メインのウィンドウで）
+// 終わったら「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのメモを開ける（openMemoFromChat）
 import { useSyncExternalStore } from "react";
 import { api } from "@/api";
-import { openMemo } from "@/app/router";
-import { parsePopout } from "@/app/popout";
-import { postToMainWindow } from "@/app/windowBus";
 import { memosStore } from "@/stores/memos";
 import { reportFailure } from "@/ui/dialogs";
 import { memoTitle } from "./memoPaths";
+import { openMemoFromChat } from "./openMemoFrom";
 
 /** 終わった知らせを出しておく時間（ミリ秒） */
 const DONE_SHOWN_MS = 6000;
@@ -40,12 +38,6 @@ export function useMemoProgress(): MemoProgressState | null {
 /** 知らせを閉じる */
 export const dismissMemoProgress = () => setProgress(null);
 
-/** メモのタブでそのメモを開く（別ウィンドウなら、メインのウィンドウで） */
-function showMemo(projectId: number, path: string) {
-  if (parsePopout(location.hash)) postToMainWindow({ type: "openMemo", projectId, path });
-  else openMemo(projectId, path);
-}
-
 interface AddToMemoInput {
   projectId: number;
   chatId: number;
@@ -67,7 +59,7 @@ export async function addToMemo({ projectId, chatId, text, summarize, appendTo }
       text: appendTo ? `「${memoTitle(ref.path)}」に追記しました` : `「${memoTitle(ref.path)}」を作りました`,
       open: () => {
         setProgress(null);
-        showMemo(projectId, ref.path);
+        openMemoFromChat({ projectId, path: ref.path, chatId });
       },
     });
   } catch (e) {

@@ -156,9 +156,9 @@ export function openProjectFile(projectId: number, file: FileTarget) {
   navigate({ name: "project", id: projectId, tab: "files", file });
 }
 
-/** メモのタブでそのメモを開く（チャットの「メモに追加」のあと。開いているチャットは右のパネルに残る） */
-export function openMemo(projectId: number, path: string) {
-  navigate({ name: "project", id: projectId, tab: "memos", memo: path });
+/** メモのタブでそのメモを開く（path を省くとメモのタブへ移るだけ。開いているチャットは右のパネルに残る） */
+export function openMemo(projectId: number, path?: string) {
+  navigate({ name: "project", id: projectId, tab: "memos", ...(path ? { memo: path } : {}) });
 }
 
 /** 画面がどのプロジェクトに属するか（サイドバーの強調表示や ⌘N 用） */

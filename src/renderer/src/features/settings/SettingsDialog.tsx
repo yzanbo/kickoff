@@ -1,6 +1,6 @@
 import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -85,6 +85,8 @@ function DisplaySettings() {
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
+  const [childChatOpenIn, setChildChatOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
+  const [memoOpenIn, setMemoOpenIn] = useSetting(MEMO_OPEN_IN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   const [chatPlacement, setChatPlacement] = useChatPlacement();
   const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
@@ -181,6 +183,18 @@ function DisplaySettings() {
             ]}
           />
         </Field>
+        <OpenPlaceField
+          label="子チャットを開く場所"
+          help="会話の中・入力欄の上の子チャットの札、サイドバーの子チャットの行、答えの通知を押したときの開き方です。右の欄は、いちばん上の親のチャットの画面の右にタブで開きます（孫・ひ孫も同じ右の欄に並びます）。別ウィンドウは、子チャットごとに新しいウィンドウで開きます。右の欄のタブは、タブの右クリックの「別ウィンドウで開く」でいつでも移せます。"
+          value={childChatOpenIn}
+          onChange={setChildChatOpenIn}
+        />
+        <OpenPlaceField
+          label="チャットからメモを開く場所"
+          help="「メモに追加」のあとの「開く」と、入力欄の上の「メモ」の一覧から開くときの開き方です。右の欄は、チャットの画面の右にタブで開き、会話を見ながら書けます。別ウィンドウは、メモごとに新しいウィンドウで開きます。"
+          value={memoOpenIn}
+          onChange={setMemoOpenIn}
+        />
         <Field label="プロジェクトのタブ" help="左に縦並びにすると、ボード・ファイルなどのタブをアイコンだけにして本体の左に並べます。見出しの下の行がなくなるので、ボードやチャット欄の縦の幅が少し広がります。">
           <Segmented<ProjectTabsLayout>
             className="segmented theme-switch"
@@ -237,5 +251,23 @@ function DisplaySettings() {
         </Field>
       </div>
     </section>
+  );
+}
+
+/** 右の欄か別ウィンドウかを選ぶ欄（子チャット・メモを開く場所） */
+function OpenPlaceField({ label, help, value, onChange }: { label: string; help: string; value: "side" | "window"; onChange: (v: "side" | "window") => void }) {
+  return (
+    <Field label={label} help={help}>
+      <Segmented<"side" | "window">
+        className="segmented theme-switch"
+        label={label}
+        value={value}
+        onChange={onChange}
+        options={[
+          { value: "side", label: "右の欄" },
+          { value: "window", label: "別ウィンドウ" },
+        ]}
+      />
+    </Field>
   );
 }

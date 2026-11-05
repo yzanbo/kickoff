@@ -1,18 +1,7 @@
-// 子チャット（チャットの寄り道の質問を、親に紐づいた別のチャットで聞く）の開き方・聞く画面の開き方・親へ渡す文
+// 子チャット（チャットの寄り道の質問を、親に紐づいた別のチャットで聞く）の聞く画面の開き方・親へ渡す文・いちばん上の親（純粋な部分。開き方は openChild.ts）
 import { useSyncExternalStore } from "react";
 import type { Chat } from "@shared/types";
-import { canPopout, openPopout } from "@/app/popout";
-import { openChat } from "@/app/router";
 import { chatTitle } from "@/features/chat/chatTitle";
-
-/**
- * 子チャットを開く（Mac のアプリなら別ウィンドウ。もう開いていれば前に出す。別ウィンドウを開けないスマホのブラウザなどでは、
- * ふつうのチャットと同じくプロジェクトのチャットのパネルで開く）
- */
-export function openChildChat(chat: Pick<Chat, "id" | "project_id" | "title">) {
-  if (canPopout()) openPopout({ kind: "chat", chatId: chat.id }, `${chatTitle(chat.title)} — 子チャット`);
-  else openChat(chat.project_id, chat.id);
-}
 
 /** 聞く画面に渡すもの（どのチャットの、どの記録から、どの文を） */
 export interface AskChildRequest {
@@ -51,4 +40,17 @@ export function handBackText(child: Pick<Chat, "title">, answer: string): string
     .map((line) => (line ? `> ${line}` : ">"))
     .join("\n");
   return `子チャット「${chatTitle(child.title)}」の答え:\n${quoted}\n\n`;
+}
+
+/** いちばん上の親（子チャットでないチャット）。親が読み込んだ一覧になければ、たどれたところまで（輪になっていても止まる） */
+export function rootChatOf<T extends Pick<Chat, "id" | "parent_chat_id">>(chat: T, lookup: (id: number) => T | undefined): T {
+  let current = chat;
+  const seen = new Set<number>();
+  while (current.parent_chat_id !== null && !seen.has(current.id)) {
+    seen.add(current.id);
+    const parent = lookup(current.parent_chat_id);
+    if (!parent) break;
+    current = parent;
+  }
+  return current;
 }

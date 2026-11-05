@@ -6,7 +6,7 @@ import { useChildChats } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
-import { openChildChat } from "./childChats";
+import { openChildChat } from "./openChild";
 
 /** 子チャットの様子の文（札に添える。作業中・回答待ち・答えあり（未読）・失敗・見た） */
 const CHILD_STATE_LABELS: Record<AgentState, string> = {
@@ -17,7 +17,7 @@ const CHILD_STATE_LABELS: Record<AgentState, string> = {
   read: "既読",
 };
 
-/** 子チャットの札 1 つ（押すと別ウィンドウで開く） */
+/** 子チャットの札 1 つ（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く） */
 function ChildChip({ chat }: { chat: Chat }) {
   const { stateOf } = useChatStates();
   const state = stateOf(chat);
@@ -47,7 +47,7 @@ export function ChildChatMarks({ chatId, eventId }: { chatId: number; eventId: n
 }
 
 /**
- * 入力欄の上の「子チャット 2 · 1 件答えあり」（指示の履歴・サブエージェントと同じピルの列）。押すと子チャットの一覧を開き、行を押すと別ウィンドウで開く。
+ * 入力欄の上の「子チャット 2 · 1 件答えあり」（指示の履歴・サブエージェントと同じピルの列）。押すと子チャットの一覧を開き、行を押すと設定の開き方で開く。
  * 会話を遡らなくても、答えが来たこととどこにあるかが分かる（自分待ちの子があればピルに点）
  */
 export function ChildChatsChip({ chatId }: { chatId: number }) {
@@ -66,7 +66,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
           {waiting > 0 && <span className="child-chats-waiting"> · {waiting} 件答えあり</span>}
         </>
       }
-      title="このチャットから聞いた子チャット（行を押すと別ウィンドウで開く）"
+      title="このチャットから聞いた子チャット（行を押すと右の欄で開く。開き方は設定の「表示」）"
       label="子チャット"
       className="child-chats-popover"
     >

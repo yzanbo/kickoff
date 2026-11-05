@@ -10,7 +10,7 @@ export interface NewChatTarget {
   worktree?: string;
 }
 
-/** パネルのタブ（チャット・新しいチャット・サブエージェント・変更・ファイル・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
+/** パネルのタブ（チャット・新しいチャット・サブエージェント・変更・ファイル・メモ・子チャット・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
 export type PanelTab =
   /**
    * title: タブに出すチャットの名前（開いたとき・チャットの画面が読み込んだときに入れる）。
@@ -35,6 +35,13 @@ export type PanelTab =
    * path: 作業場所からの相対パス。line: 目立たせる行
    */
   | { key: string; kind: "file"; chatId: number; projectId: number; worktree?: string; path: string; line?: number }
+  /** チャットの画面の右の欄に開いた、プロジェクトのメモ（自動で保存）。chatId: どのチャットの右の欄か。path: メモのフォルダからの相対パス */
+  | { key: string; kind: "memo"; chatId: number; projectId: number; path: string }
+  /**
+   * チャットの画面の右の欄に開いた子チャット（孫・ひ孫も、いちばん上の親の右の欄に開く）。chatId: どのチャットの右の欄か（いちばん上の親）。
+   * childId: 子チャット。title: タブに出す名前（開いたときの名前。中身が読み込んだら最新にする）
+   */
+  | { key: string; kind: "child"; chatId: number; childId: number; projectId: number; title: string }
   /** url は開いたときのページ（webview の初めの src）、current はいま表示しているページ（外のブラウザで開くときに渡す） */
   | { key: string; kind: "browser"; url: string; title: string; current?: string }
   /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う */
