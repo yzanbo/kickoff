@@ -6,9 +6,10 @@ import { clipLines, parseBashResult } from "./bashResult";
 const SHOWN_LINES = 30;
 
 /**
- * コマンド（Bash）の呼び出しを開いたときの中身: 「$ コマンド」と出力を 1 つの枠に等幅で並べる。
+ * コマンド（Bash）の呼び出しを開いたときの中身: 上に「コマンド」の欄（「$ コマンド」）、下に「出力」の欄を、見出しと地の色で分けて並べる
+ * （長いコマンド・heredoc と出力の境目が分かるように。それぞれの欄の中でスクロールする）。
  * コマンドはシェルの文法で色を付け（heredoc の本文は、分かればその言語で）、出力は色を付けない。
- * 出力がなければ「出力なし」、失敗したら終了コード（取れなければ「失敗」）を赤で出す
+ * 出力がなければ「出力なし」、失敗したら終了コード（取れなければ「失敗」）を出力の見出しの右に赤で出す。結果が届くまでは出力の欄を出さない
  */
 export function BashOutput({
   command,
@@ -26,21 +27,28 @@ export function BashOutput({
   const parsed = result ? parseBashResult(result.content ?? "", Boolean(result.is_error)) : null;
   const { shown, hidden } = parsed ? (showAll ? { shown: parsed.output, hidden: 0 } : clipLines(parsed.output, SHOWN_LINES)) : { shown: "", hidden: 0 };
   return (
-    <>
-      <pre className="bash-text">
-        <span className="bash-command">
+    <div className="bash-block">
+      <section className="bash-section" aria-label="コマンド">
+        <div className="bash-section-head">コマンド</div>
+        <pre className="bash-text bash-command">
           <span className="bash-prompt">$ </span>
           <HighlightedCode code={rel(command)} lang={highlight ? "shellscript" : undefined} />
-        </span>
-        {parsed && "\n"}
-        {parsed && (shown ? rel(shown) : <span className="bash-empty">出力なし</span>)}
-      </pre>
-      {hidden > 0 && (
-        <button type="button" className="link-button bash-more" onClick={() => setShowAll(true)}>
-          … ほか {hidden} 行
-        </button>
+        </pre>
+      </section>
+      {parsed && (
+        <section className="bash-section bash-result" aria-label="出力">
+          <div className="bash-section-head">
+            出力
+            {parsed.failed && <span className="bash-exit">{parsed.exitCode !== undefined ? `終了コード ${parsed.exitCode}` : "失敗"}</span>}
+          </div>
+          <pre className="bash-text">{shown ? rel(shown) : <span className="bash-empty">出力なし</span>}</pre>
+          {hidden > 0 && (
+            <button type="button" className="link-button bash-more" onClick={() => setShowAll(true)}>
+              … ほか {hidden} 行
+            </button>
+          )}
+        </section>
       )}
-      {parsed?.failed && <div className="bash-exit">{parsed.exitCode !== undefined ? `終了コード ${parsed.exitCode}` : "失敗"}</div>}
-    </>
+    </div>
   );
 }

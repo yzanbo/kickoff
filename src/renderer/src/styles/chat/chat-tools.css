@@ -157,32 +157,6 @@
   color: var(--ng);
 }
 
-/* コマンド（Bash）: 「$ コマンド」と出力を 1 つの枠に。長い出力の続き・失敗の終了コードはその下 */
-.bash-command {
-  font-weight: 600;
-}
-
-.bash-prompt {
-  color: var(--extra-muted);
-  user-select: none;
-}
-
-.bash-empty {
-  color: var(--extra-muted);
-}
-
-.bash-more,
-.bash-exit {
-  display: block;
-  padding: 0 12px 8px;
-  font-family: var(--mono);
-  font-size: 12px;
-}
-
-.bash-exit {
-  color: var(--ng);
-}
-
 .diff-add {
   display: block;
   color: var(--ok);

@@ -1,0 +1,62 @@
+/*
+ * コマンド（Bash）の呼び出しを開いた中身（BashOutput）: 上の「コマンド」の欄と下の「出力」の欄を、見出しと地の色で分ける。
+ * 枠と等幅の文字・スクロールは chat-tools.css の .bash-text（ツールの出力と共通）。欄ごとに中でスクロールする
+ */
+.bash-section + .bash-section {
+  border-top: 1px solid var(--border);
+}
+
+/* 欄の見出し（「コマンド」「出力」と、失敗したときの終了コード） */
+.bash-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 0;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--extra-muted);
+}
+
+/* 見出しと中身は 1 つの欄なので、中身の上の線は引かない（欄の境目の線だけ） */
+.bash-section .bash-text {
+  padding-top: 4px;
+  border-top: none;
+}
+
+.bash-section + .bash-section .bash-section-head {
+  border-top: none;
+}
+
+/* コマンドの欄: 出力より少し沈んだ地で、入力したものだと分かるように。長い heredoc は欄の中でスクロールする */
+.bash-section:first-child {
+  background: var(--bg);
+}
+
+.bash-command {
+  max-height: 240px;
+  font-weight: 600;
+}
+
+.bash-prompt {
+  color: var(--extra-muted);
+  user-select: none;
+}
+
+.bash-empty {
+  color: var(--extra-muted);
+}
+
+.bash-more {
+  display: block;
+  padding: 0 12px 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.bash-exit {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-weight: 400;
+  color: var(--ng);
+}
