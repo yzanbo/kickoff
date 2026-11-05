@@ -135,3 +135,35 @@
 .side-change .diff-body {
   overflow: visible;
 }
+
+/* 見出しの「確認済み」（付けると差分を畳む）と「確認後に変更」 */
+.side-change-viewed {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.side-change-viewed.on {
+  color: var(--accent-fg);
+}
+
+.side-change-viewed input {
+  margin: 0;
+}
+
+.side-change-changed {
+  flex: none;
+  font-size: 11px;
+  color: var(--warn);
+  white-space: nowrap;
+}
+
+/* 一覧の確認済みの印 */
+.side-changes-viewed {
+  flex: none;
+  color: var(--accent-fg);
+}
