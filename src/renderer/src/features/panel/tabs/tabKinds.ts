@@ -1,17 +1,19 @@
-import { Bot, Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Bot, FileDiff, FileText, Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { BucketHead } from "@/features/chatList/buckets";
+import { baseName } from "@/lib/format";
 import { normalizeUrl } from "@/lib/url";
 import { SubagentTabLead } from "@/features/chat/subagents/SubagentTabLead";
+import { FileTabLead } from "@/features/editor/FileTabLead";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
 
 /**
- * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・ブラウザ・ターミナル）ごとの違いを集めた表。
+ * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・ファイル・ブラウザ・ターミナル）ごとの違いを集めた表。
  * タブを作る（キーの決め方）・欄の「表示するタブ」のどれに入るか・アイコンと名前・どのプロジェクトのものか・中身を作る時・閉じたときの後始末・
  * どのまとまりに入るかを、種類で分岐させずにここから引く。中身（どの部品を描き、中身からの知らせでタブをどう変えるか）は PanelTabPage の PAGES
  */
@@ -54,6 +56,33 @@ export const subagentTab = ({ chatId, agentKey, title, path }: { chatId: number;
   agentKey,
   title,
   ...(path ? { path } : {}),
+});
+
+/** 変更のタブのキー（作業場所ごとに、その欄に 1 つのタブ） */
+export const changesTabKey = (worktree: string | undefined) => `changes:${worktree ?? ""}`;
+
+/** 右の欄に開く変更のタブ（作業場所のコミットしていない変更。focus は移るファイル） */
+export const changesTab = ({ chatId, projectId, worktree, focus }: { chatId: number; projectId: number; worktree?: string; focus?: string }): TabOf<"changes"> => ({
+  key: changesTabKey(worktree),
+  kind: "changes",
+  chatId,
+  projectId,
+  ...(worktree ? { worktree } : {}),
+  ...(focus ? { focus, focusAt: Date.now() } : {}),
+});
+
+/** ファイルのタブのキー（同じ作業場所の同じファイルは、その欄に 1 つのタブ） */
+export const fileTabKey = (worktree: string | undefined, path: string) => `file:${worktree ?? ""}:${path}`;
+
+/** 右の欄に開くファイルのタブ（作業場所のファイルの中身。line は目立たせる行） */
+export const fileTab = ({ chatId, projectId, worktree, path, line }: Omit<TabOf<"file">, "key" | "kind">): TabOf<"file"> => ({
+  key: fileTabKey(worktree, path),
+  kind: "file",
+  chatId,
+  projectId,
+  path,
+  ...(worktree ? { worktree } : {}),
+  ...(line ? { line } : {}),
 });
 
 /** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
@@ -147,6 +176,28 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     hint: (t) => t.path ?? t.title,
     projectOf: () => undefined,
     // そのチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
+  },
+  changes: {
+    shows: "file",
+    icon: FileDiff,
+    label: () => "変更",
+    hint: (t) => `コミットしていない変更（${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}）`,
+    projectOf: (t) => t.projectId,
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
+  },
+  file: {
+    shows: "file",
+    icon: FileText,
+    // アイコンはエディタと同じファイルの種類のアイコン
+    Lead: FileTabLead,
+    label: (t) => baseName(t.path),
+    hint: (t) => (t.line ? `${t.path}（${t.line} 行目）` : t.path),
+    projectOf: (t) => t.projectId,
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
   },

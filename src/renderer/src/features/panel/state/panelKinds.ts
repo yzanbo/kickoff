@@ -5,12 +5,12 @@ import type { PaneLeaf } from "@/features/panel/layout/paneTree";
 import { SURFACES, type PanelSurface } from "@/features/panel/surfaces";
 
 /**
- * 欄に出すタブの種類（チャットには、新しいチャットのタブも入る。サブエージェントはチャットの画面の右の欄（サブエージェントの欄）だけに出す種類）
+ * 欄に出すタブの種類（チャットには、新しいチャットのタブも入る。サブエージェント・ファイルはチャットの画面の右の欄だけに出す種類）
  */
-export type PanelKind = "chat" | "browser" | "terminal" | "subagent";
-/** 「表示するタブ」で付け外しできる種類（サブエージェントの欄は出す種類が決まっているので入れない） */
+export type PanelKind = "chat" | "browser" | "terminal" | "subagent" | "file";
+/** 「表示するタブ」で付け外しできる種類（右の欄は出す種類が決まっているので入れない） */
 export const PANEL_KINDS: readonly PanelKind[] = ["chat", "browser", "terminal"];
-export const PANEL_KIND_LABELS: Record<PanelKind, string> = { chat: "チャット", browser: "ブラウザ", terminal: "ターミナル", subagent: "サブエージェント" };
+export const PANEL_KIND_LABELS: Record<PanelKind, string> = { chat: "チャット", browser: "ブラウザ", terminal: "ターミナル", subagent: "サブエージェント", file: "ファイル" };
 
 /** 保存した値を読む（知らない値は捨て、何もなければ欄の既定 SURFACES の defaultKinds。出す種類が決まっている欄はいつも既定） */
 export function decodeKinds(stored: readonly string[], surface: PanelSurface): readonly PanelKind[] {

@@ -94,8 +94,8 @@ export function useChatView(
   const items = useMemo(() => groupEvents(events), [events]);
   // 自分の指示の一覧（指示の履歴・⌘⌥↑ / ↓・上に貼り付ける指示の帯・チャット欄の ↑ の呼び出し。記録が変わったときだけ作り直す）
   const prompts = promptListOf(events);
-  // 返答の中のファイルのパスを、押してエディタタブで開けるチップにする（作業場所のファイルだけ）
-  const fileLinks = useFileLinks(chat, project?.repo_path);
+  // 返答の中のファイルのパス・変更カード・ツールの行のファイルを、押して右の欄（置けなければエディタタブ）で開けるようにする（作業場所のファイルだけ）
+  const fileLinks = useFileLinks(chat, project?.repo_path, canOpenSide);
 
   // 画面の要素・チャット欄・流れのスクロール（一番下に付いていくか）
   const rootRef = useRef<HTMLDivElement>(null);

@@ -1,14 +1,13 @@
-import { PanelBottomClose, PanelRightClose, type LucideIcon } from "lucide-react";
+import { PanelBottomClose, PanelRight, PanelRightClose, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Route } from "@/app/router";
-import { ClaudeMark } from "@/ui/ClaudeMark";
 import type { SettingFamily } from "@/lib/storage";
 import { projectChatOpen } from "@/lib/storageKeys";
 import type { PanelKind } from "./state/panelKinds";
 
 /**
  * タブの欄（board = ボードの右のパネル / side = 画面の右端のチャット欄 / bottom = フッター（下のパネル） /
- * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面を並べる。チャットのタブの中に入れ子で置く））
+ * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く））
  */
 export type PanelSurface = "board" | "side" | "bottom" | "agents";
 
@@ -98,16 +97,20 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
   },
   agents: {
     memoryPrefix: "agents",
-    defaultKinds: ["subagent"],
+    defaultKinds: ["subagent", "file"],
     closeOnEsc: "focused",
     closeWhenEmpty: true,
     openWhenEmpty: null,
     closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "start" },
     maximize: "width",
     maximizeLabels: { on: "メインと並べる（元の幅に戻す）", off: "メインを覆う（右の欄を横幅いっぱいに広げる）" },
-    emptyHint: "サブエージェントのカードの「右の欄で開く」で、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
-    // サブエージェントのアイコンは、カード・ピルの一覧と同じ Claude のマーク
-    heading: { icon: ClaudeMark, label: "サブエージェント", title: "サブエージェントの欄（このチャットのサブエージェントを、メインと同じような画面で並べて見ます）" },
+    emptyHint:
+      "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップを押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
+    heading: {
+      icon: PanelRight,
+      label: "右の欄",
+      title: "右の欄（このチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを、会話の横に並べて見ます）",
+    },
     fixedKinds: true,
     rootClass: "agent-panel",
   },

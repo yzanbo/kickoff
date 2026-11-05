@@ -7,6 +7,7 @@ import type { CodeToken } from "@/lib/highlight";
 import { languageOf } from "@/lib/languages";
 import { useHighlight } from "@/hooks/useHighlight";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
+import { useNarrowerThan } from "@/hooks/useNarrowerThan";
 import { useSetting } from "@/hooks/useSetting";
 import { DIFF_LAYOUT } from "@/lib/storageKeys";
 import { CodeLine } from "@/ui/CodeLine";
@@ -28,6 +29,9 @@ export const CHANGE_LABELS: Record<GitFileChange["kind"], string> = {
   "!": "競合",
 };
 
+/** これより狭いときは、左右に並べる設定でも 1 列で出す */
+const SPLIT_MIN_WIDTH = 560;
+
 /**
  * 選んだファイルの差分。VS Code と同じく左右に並べて出し、git diff と同じ 1 列にもできる（選んだ方を覚えておく）。
  * version が変わったら（変更の一覧を取り直したら）、差分も取り直す
@@ -39,6 +43,7 @@ export function DiffView({
   version,
   onEdit,
   commit,
+  bare = false,
 }: {
   projectId: number;
   file: GitFileChange;
@@ -48,8 +53,13 @@ export function DiffView({
   onEdit?: () => void;
   /** コミットでの差分を出すとき（履歴から開いたとき）。staged は使わない */
   commit?: string;
+  /** 見出し（パス・状態・編集・表示のしかた）を出さない（右の欄の「変更」のように、見出しを外で並べるとき） */
+  bare?: boolean;
 }) {
   const [layout, setLayout] = useSetting(DIFF_LAYOUT);
+  // 左右に並べる設定でも、2 つ並べると読めない狭い欄（チャットの画面の右の欄など）では 1 列で出す（設定は変えない）
+  const { ref, narrow } = useNarrowerThan<HTMLDivElement>(SPLIT_MIN_WIDTH);
+  const shown = layout === "split" && narrow ? "unified" : layout;
   const { target, key: at } = useGitTarget(projectId);
   const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
   // 取り直している間は、前の差分を出しておく（同じファイルのとき。ちらつかないように）
@@ -59,7 +69,8 @@ export function DiffView({
   const tokensOf = useDiffHighlight(lines, file);
 
   return (
-    <div className="diff-view">
+    <div ref={ref} className="diff-view">
+      {!bare && (
       <header className="diff-head">
         <span className="diff-path" title={file.path}>
           {file.old_path && <span className="muted">{file.old_path} → </span>}
@@ -85,6 +96,7 @@ export function DiffView({
           ]}
         />
       </header>
+      )}
       <div className="diff-body">
         {!current ? (
           <p className="muted small diff-message">読み込み中…</p>
@@ -94,7 +106,7 @@ export function DiffView({
           <p className="muted small diff-message">バイナリのファイルなので、差分は表示できません。</p>
         ) : lines.length === 0 ? (
           <p className="muted small diff-message">中身の変更はありません（名前や権限だけの変更です）。</p>
-        ) : layout === "split" ? (
+        ) : shown === "split" ? (
           <SplitDiff lines={lines} tokensOf={tokensOf} />
         ) : (
           <UnifiedDiff lines={lines} tokensOf={tokensOf} />
@@ -149,7 +161,8 @@ function UnifiedDiff({ lines, tokensOf }: { lines: DiffLine[]; tokensOf: TokensO
             <tr key={i} className={`line-${line.type}`}>
               <td className="diff-no">{line.oldNo}</td>
               <td className="diff-no">{line.newNo}</td>
-              <td className="diff-code">
+              {/* 行の番号と変更前・変更後のどちらか（チャットの画面の右の欄で、選んだ行へのコメントに使う） */}
+              <td className="diff-code" data-no={line.newNo ?? line.oldNo} data-side={line.newNo !== undefined ? "new" : "old"}>
                 <span className="diff-sign">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
                 <CodeLine tokens={tokensOf.get(line)} text={line.text} />
               </td>
@@ -169,7 +182,7 @@ function SplitDiff({ lines, tokensOf }: { lines: DiffLine[]; tokensOf: TokensOf 
     <td key={`${no}-no`} className={cx("diff-no", line ? `line-${line.type}` : "line-empty")}>
       {line?.[no]}
     </td>,
-    <td key={`${no}-code`} className={cx("diff-code", line ? `line-${line.type}` : "line-empty")}>
+    <td key={`${no}-code`} className={cx("diff-code", line ? `line-${line.type}` : "line-empty")} data-no={line?.[no]} data-side={no === "newNo" ? "new" : "old"}>
       {line && <CodeLine tokens={tokensOf.get(line)} text={line.text} />}
     </td>,
   ];

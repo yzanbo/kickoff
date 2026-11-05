@@ -23,3 +23,18 @@ export function appendBlock(current: string, block: string): string {
   const head = current.replace(/\s+$/, "");
   return head ? `${head}\n\n${block}` : block;
 }
+
+/**
+ * 差分の行を選んでコメントするときの、チャット欄に添える文: 「`パス` の 12〜15 行目（変更後）:」の下にコードのブロック、その下にコメント。
+ * コードに ``` があれば、それより長い囲みにする。長すぎる選択は頭だけにする。コメントが空なら引用だけ
+ */
+export function quoteCode({ path, from, to, side, code, comment }: { path: string; from: number; to: number; side: "new" | "old"; code: string; comment: string }): string {
+  let text = code.replace(/\r\n?/g, "\n").replace(/[ \t]+$/gm, "").replace(/^\n+|\n+$/g, "");
+  if (text.length > MAX_QUOTE) text = `${text.slice(0, MAX_QUOTE)}…`;
+  const fence = "`".repeat(Math.max(3, ...[...text.matchAll(/`{3,}/g)].map((m) => m[0].length + 1)));
+  const lines = from === to ? `${from} 行目` : `${from}〜${to} 行目`;
+  const head = `\`${path}\` の ${lines}（${side === "new" ? "変更後" : "変更前"}）:`;
+  const block = `${head}\n${fence}\n${text}\n${fence}`;
+  const note = comment.trim();
+  return note ? `${block}\n\n${note}` : block;
+}

@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useContext, useState, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BashOutput } from "./BashOutput";
 import { CommandLive } from "./CommandLive";
@@ -10,6 +10,7 @@ import { CallTime, GroupTime } from "./ToolTime";
 import { callStatus, groupStatus } from "./toolStatus";
 import { ToolStatusIcon } from "./ToolStatusIcon";
 import { HighlightedCode } from "@/ui/HighlightedCode";
+import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
 
 /**
  * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
@@ -91,6 +92,8 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
           {/* コマンドは 1 行に収めた表示にも色を付ける（改行は空白に見える。色付けの結果は開いた欄と共有） */}
           {isCommand ? (
             <HighlightedCode code={rel(String(input.command))} lang={listed || opened ? "shellscript" : undefined} />
+          ) : FILE_TOOLS.has(name) && typeof input.file_path === "string" ? (
+            <ToolFileArg path={input.file_path} label={rel(describeToolInput(name, input))} />
           ) : (
             rel(describeToolInput(name, input))
           )}
@@ -104,6 +107,37 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
         </pre>
       )}
     </details>
+  );
+}
+
+/** ファイルを変えるツール（行のファイル名を押して開ける） */
+const FILE_TOOLS = new Set(["Edit", "MultiEdit", "Write"]);
+
+/**
+ * ファイルを変えるツールの行のファイル名。作業場所の中のファイルなら押して開ける（右の欄。コミットしていない変更があれば変更のタブのその位置、なければ中身。
+ * ⌘クリックでエディタタブ・右クリックでほかの開き方）。行の開閉はしない
+ */
+function ToolFileArg({ path, label }: { path: string; label: string }) {
+  const links = useContext(FileLinkContext);
+  const root = links ? `${links.index.root}/` : undefined;
+  if (!links || !root || !path.startsWith(root)) return <>{label}</>;
+  const ref = { path: path.slice(root.length) };
+  return (
+    <button
+      type="button"
+      className="link-button tool-file-link"
+      title={`${ref.path} を${links.side ? "右の欄" : "エディタタブ"}で開く（⌘クリックでエディタタブ・右クリックでほかの開き方）`}
+      onClick={(e) => {
+        e.preventDefault();
+        openByClick(links, e, ref);
+      }}
+      onContextMenu={(e) => {
+        e.stopPropagation();
+        links.showMenu(e, ref);
+      }}
+    >
+      {label}
+    </button>
   );
 }
 
