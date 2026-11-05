@@ -9,6 +9,7 @@ import { groupNameIn, useGroupsOf } from "@/stores/groups";
 import type { PanelController } from "@/features/panel/usePanel";
 import { paneIndexOf } from "@/features/panel/clusters/tabClusters";
 import { TabClusterHead } from "@/features/panel/clusters/TabClusterHead";
+import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
 import { useTabStrip } from "@/features/panel/clusters/useTabStrip";
 import type { OpenWithKind } from "@/features/openWith/useOpenWithMenu";
 import { PaneTab } from "./PaneTab";
@@ -159,6 +160,7 @@ export function PaneTabBar({
                   tabCount={c.tabs.length}
                   hidden={strip.isHidden(c)}
                   onToggleHidden={strip.toggleHidden && c.group ? () => strip.toggleHidden?.(c) : undefined}
+                  menuExtra={strip.grouping === "group" ? <HiddenGroupItems panel={panel} /> : undefined}
                 />
                 {shown.map((key) => tab(key, display.indexOf(key)))}
               </div>
