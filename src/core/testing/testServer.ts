@@ -104,6 +104,14 @@ class FakeProvider extends FakeProviderBase {
     this.summarized.push(text);
     return `要約: ${text.slice(0, 10)}`;
   }
+  /** 1 回だけ聞いた文とモデル（順に）。返すのは askReply（関数なら聞いた文から作る。なければ「答え: 」＋ 文の最後の行） */
+  asked: { prompt: string; model: string | undefined }[] = [];
+  askReply: string | ((prompt: string) => string) | null = null;
+  async ask(prompt: string, options?: { model?: string }) {
+    this.asked.push({ prompt, model: options?.model });
+    if (typeof this.askReply === "function") return this.askReply(prompt);
+    return this.askReply ?? `答え: ${prompt.split("\n").at(-1)}`;
+  }
   /** チャット欄の / のコマンド（返すものと、調べた作業フォルダ） */
   commandList: SlashCommandOption[] = [];
   lastCommandsCwd = "";

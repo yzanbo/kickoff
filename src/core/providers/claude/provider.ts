@@ -21,7 +21,7 @@ import { createMessageState, emitSdkMessage } from "./messages.js";
 import { turnHooks, toAllowedTools } from "./policy.js";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
-import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
+import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
 import { runCommand } from "../../system/exec.js";
 
 /** 要約に渡す文の上限（文字。haiku のコンテキストと時間に収める） */
@@ -304,16 +304,20 @@ export class ClaudeProvider implements AgentProvider {
     return result.trim();
   }
 
+  async ask(prompt: string, options?: { model?: AskModel }): Promise<string> {
+    return (await this.askOnce(prompt, options?.model)).trim();
+  }
+
   /**
-   * ツールを使わずに haiku に 1 回だけ聞く（名前を付ける・要約する。チャットの記録には残さない）。
+   * ツールを使わずに 1 回だけ聞く（名前を付ける・要約する・メモの整理。チャットの記録には残さない。既定は haiku）。
    * 空の一時フォルダで動かす（Kickoff を起動したフォルダで動かすと、そこの CLAUDE.md・自動のメモリーを読み込み、答えに混ざる）
    */
-  private async askOnce(prompt: string): Promise<string> {
+  private async askOnce(prompt: string, model: AskModel = "haiku"): Promise<string> {
     const q = query({
       prompt,
       options: {
         cwd: os.tmpdir(),
-        model: "haiku",
+        model,
         effort: "low",
         maxTurns: 1,
         tools: [],

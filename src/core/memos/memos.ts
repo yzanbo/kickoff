@@ -3,13 +3,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { chatMemoName, safeMemoName, uniqueMemoName } from "@shared/memo/names";
-import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
+import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoPlan, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js";
 import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
 import { runCommand } from "../system/exec.js";
 import { expandHome } from "../system/paths.js";
+import { memoEditPrompt, memoPlanPrompt, parseMemoPlan, unwrapFence, type PlanFile } from "./memoAi.js";
 
 /** 一覧に出す数の上限（大きなフォルダを指しても重くならないように） */
 const MAX_ENTRIES = 5000;
@@ -166,6 +167,33 @@ export class MemoService {
     return this.create(project, file, { dir: false, content: `# ${name}\n\n${block}` });
   }
 
+  /** メモ（part なら本文で選んだ部分）を、頼みに沿って AI で書き直した文（保存はしない。取り込むかは画面で決める） */
+  async aiEdit(project: Project, input: { text: string; instruction: string; part: boolean }): Promise<string> {
+    const answer = await this.ask(project, memoEditPrompt(input.text, input.instruction, input.part));
+    return unwrapFence(answer);
+  }
+
+  /** メモのフォルダの整理案（名前の変更・移動。AI に一覧と書き出しを見せて作り、使える案だけを返す。動かしはしない） */
+  async aiPlan(project: Project, instruction: string | null): Promise<MemoPlan> {
+    const list = await this.list(project);
+    const files = list.entries.filter((e) => !e.dir);
+    if (files.length === 0) return { moves: [], skipped: 0 };
+    const heads: PlanFile[] = await Promise.all(
+      files.slice(0, 300).map(async (e) => ({ path: e.path, head: await readHead(path.join(list.dir, e.path)) })),
+    );
+    const dirs = list.entries.filter((e) => e.dir).map((e) => e.path);
+    return parseMemoPlan(await this.ask(project, memoPlanPrompt(heads, dirs, instruction)), list.entries);
+  }
+
+  /** プロジェクトのプロバイダーに 1 回だけ聞く（質が要るので sonnet。対応していない・答えがなければ 400） */
+  private async ask(project: Project, prompt: string): Promise<string> {
+    const provider = this.opts.providers[project.provider];
+    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、メモの整理に対応していません");
+    const answer = await provider.ask(prompt, { model: "sonnet" }).catch(asInvalid);
+    if (!answer.trim()) throw new Invalid("AI から答えがありませんでした");
+    return answer;
+  }
+
   /** プロジェクトのプロバイダーで要約する（対応していなければ 400） */
   private async summarize(project: Project, text: string): Promise<string> {
     const provider = this.opts.providers[project.provider];
@@ -223,4 +251,17 @@ async function isDirectory(dir: string): Promise<boolean> {
     (s) => s.isDirectory(),
     () => false,
   );
+}
+
+/** メモの書き出し（整理案を作るときに見せる。読めなければ空） */
+async function readHead(file: string): Promise<string> {
+  const handle = await fs.open(file, "r").catch(() => null);
+  if (!handle) return "";
+  try {
+    const buf = Buffer.alloc(1024);
+    const { bytesRead } = await handle.read(buf, 0, buf.length, 0);
+    return buf.subarray(0, bytesRead).toString("utf8").replace(/\uFFFD+$/, "");
+  } finally {
+    await handle.close();
+  }
 }
