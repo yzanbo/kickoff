@@ -25,7 +25,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
     <details
       className={cx("tool-group", failed > 0 && "has-error", running && "active")}
       onToggle={(e) => e.currentTarget.open && setOpened(true)}
-      // サブエージェントの一覧から、その呼び出しを含むまとまりへ移れるようにする
+      // 動きの行などから、その呼び出しを含むまとまりへ移れるようにする（jumpToEvent）
       data-tool-ids={tools.map((t) => t.use.id).join(" ")}
     >
       <summary>

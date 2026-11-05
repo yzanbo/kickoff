@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
@@ -6,11 +6,12 @@ import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import { SelectionComment } from "@/features/chat/messages/SelectionComment";
 import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
+import { ActivityView } from "@/features/chat/activity/ActivityView";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
 import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
 import { ChatHeaderTools } from "./ChatHeaderTools";
-import { ChatPaneContext } from "./chatPaneContext";
+import { ChatPaneContext, useChatPaneState } from "./chatPaneContext";
 import { useWideText } from "./TextWidthToggle";
 import { useChatDetail } from "./useChatDetail";
 import { useChatView, type ChatViewInput } from "./useChatView";
@@ -76,21 +77,27 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
           <ChatHeader chat={chat} project={project} tools={<ChatHeaderTools items={view.items} version={view.timeline.visible} />} />
           {/* 返答の一部を選んでコメントし、チャット欄に添える */}
           <SelectionComment />
-          <ChatTimeline
-            window={view.timeline}
-            rel={view.rel}
-            chat={chat}
-            busy={view.busy}
-            agents={view.subagents}
-            live={view.live}
-            streaming={streaming}
-            approvals={approvals}
-            focus={focus}
-            scroll={view.scroll}
-            events={events}
-            prompts={view.prompts}
-            visible={visible}
-            pillDock={pillDock}
+          <ChatBody
+            activity={<ActivityView rel={view.rel} />}
+            conversation={(shown) => (
+              <ChatTimeline
+                window={view.timeline}
+                rel={view.rel}
+                chat={chat}
+                busy={view.busy}
+                agents={view.subagents}
+                live={view.live}
+                streaming={streaming}
+                approvals={approvals}
+                focus={focus}
+                scroll={view.scroll}
+                events={events}
+                prompts={view.prompts}
+                visible={visible && shown}
+                pillDock={pillDock}
+                hidden={!shown}
+              />
+            )}
           />
           <ChatComposerArea
             chat={chat}
@@ -108,5 +115,19 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
         </SubagentsContext.Provider>
       </ChatPaneContext.Provider>
     </FileLinksProvider>
+  );
+}
+
+/**
+ * 会話（発言の流れ）と動き（メインとすべてのサブエージェントの動きを 1 本の時系列に）を、見出しの「会話 / 動き」で切り替えて出す。
+ * 会話は隠しても描いたまま残す（読んでいた位置・開いたカード・窓の中の位置を保ち、動きの行から戻ってすぐ移れるように）
+ */
+function ChatBody({ conversation, activity }: { conversation: (shown: boolean) => ReactNode; activity: ReactNode }) {
+  const showing = useChatPaneState((s) => s.showing) ?? "conversation";
+  return (
+    <>
+      {conversation(showing === "conversation")}
+      {showing === "activity" && activity}
+    </>
   );
 }

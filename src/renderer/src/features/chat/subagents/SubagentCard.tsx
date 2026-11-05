@@ -1,11 +1,11 @@
-import { ChevronRight, Reply } from "lucide-react";
+import { ChevronRight, GitBranch, Reply } from "lucide-react";
 import { memo, useMemo, type KeyboardEvent, type ReactNode } from "react";
-import type { ChatEvent, ChatEventOf } from "@shared/types";
+import type { ChatEvent } from "@shared/types";
 import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
 import { relayedText } from "@shared/chat/prompts";
 import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
-import { formatElapsed, formatFullStamp, formatStamp, formatStampRange } from "@/lib/time";
+import { formatElapsed, formatFullStamp, formatStampRange } from "@/lib/time";
 import { useTicker } from "@/hooks/useTicker";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { Markdown } from "@/ui/markdown/Markdown";
@@ -93,6 +93,17 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
         {running ? <NowLine entry={entry} view={view} rel={rel} /> : <Summary entry={entry} childCount={childrenOf(view.tree, key).length} />}
         <span className="subagent-card-actions">
           <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => pane?.revealSubagent(k)} />
+          {pane && (
+            <button
+              type="button"
+              className="link-button subagent-tell"
+              title="このサブエージェントと、その中で起動したものの動きを、時刻の順に見る（見出しの「動き」をこのサブエージェントに絞って開きます）"
+              onClick={() => pane.show("activity", { kind: "agent", key })}
+            >
+              <GitBranch size={12} aria-hidden />
+              動きで見る
+            </button>
+          )}
           {pane && entry.agentId && (
             <button
               type="button"
@@ -267,31 +278,5 @@ function SubagentPrompt({ text }: { text: string }) {
         <Markdown>{text}</Markdown>
       </div>
     </details>
-  );
-}
-
-/** 裏で動かしたサブエージェントが終わった（その時刻の位置に 1 行）。押すとそのカードへ移って開く */
-export function SubagentEndNote({ event, agentKey }: { event: ChatEventOf<"subagent">; agentKey: string }) {
-  const view = useSubagentsView();
-  const pane = useOptionalChatPane();
-  const name = view?.tree.byKey.get(agentKey)?.description ?? (event.data.description || "サブエージェント");
-  const verb = event.data.status === "completed" ? "終わりました" : event.data.status === "failed" ? "失敗しました" : "止まりました";
-  return (
-    <div className={cx("event-note subagent-end", event.data.status === "failed" && "error")}>
-      <span className="subagent-icon">
-        <ClaudeMark size={12} />
-      </span>
-      <span>
-        裏で動かしたサブエージェント「{name}」が{verb}
-      </span>
-      <span className="event-time" title={formatFullStamp(event.created_at)}>
-        {formatStamp(event.created_at)}
-      </span>
-      {pane && (
-        <button type="button" className="link-button" onClick={() => pane.revealSubagent(agentKey)}>
-          カードへ
-        </button>
-      )}
-    </div>
   );
 }

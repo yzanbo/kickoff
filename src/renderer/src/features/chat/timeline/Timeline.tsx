@@ -18,7 +18,8 @@ import { UserMessage } from "@/features/chat/messages/UserMessage";
 import { QuestionAnswerMessage } from "@/features/chat/messages/QuestionAnswerMessage";
 import { copyRich } from "@/lib/richCopy";
 import { FailedTurnActions } from "@/features/chat/rewind/FailedTurnActions";
-import { SubagentCard, SubagentEndNote, type RenderItems } from "@/features/chat/subagents/SubagentCard";
+import { SubagentCard, type RenderItems } from "@/features/chat/subagents/SubagentCard";
+import { SubagentEndNote } from "@/features/chat/subagents/SubagentEndNote";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -110,7 +111,7 @@ function TurnFooter({ event, turnStart, turnText, busy }: TurnFooterProps) {
   const worked = turnStart && formatElapsed(new Date(event.created_at).getTime() - new Date(turnStart).getTime());
   if (!status && !worked && !turnText) return null;
   return (
-    <div className={cx("turn-footer event-note", data.status === "failed" && "error")}>
+    <div className={cx("turn-footer event-note", data.status === "failed" && "error")} id={`ev-${event.id}`}>
       {status && <span>{status}</span>}
       {worked && <span title={`${formatClock(event.created_at)} に終了`}>作業時間 {worked}</span>}
       {/* 書式付き（見出し・表がほかのアプリでも崩れない）と Markdown の文の両方でコピーする */}
@@ -176,14 +177,22 @@ function EventItem({
     case "result":
       return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} busy={busy} />;
     case "error":
-      return <div className="event-note error">{event.data.message}</div>;
+      return (
+        <div className="event-note error" id={`ev-${event.id}`}>
+          {event.data.message}
+        </div>
+      );
     case "notice":
-      return <div className="event-note">{event.data.message}</div>;
+      return (
+        <div className="event-note" id={`ev-${event.id}`}>
+          {event.data.message}
+        </div>
+      );
     case "compact": {
       // 手で圧縮したとき・上限に近づいて自動で圧縮されたとき
       const { trigger, pre_tokens, post_tokens } = event.data;
       return (
-        <div className="event-note">
+        <div className="event-note" id={`ev-${event.id}`}>
           ここまでの会話を要約しました（{trigger === "auto" ? "自動" : "手動"}・{formatTokens(pre_tokens)}
           {post_tokens !== undefined && ` → ${formatTokens(post_tokens)}`} トークン）
         </div>

@@ -4,6 +4,7 @@ import type { ValueCell } from "@/lib/valueCell";
 import type { ComposerFill } from "@/features/chat/composer/composerHandle";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 import type { FailedTurn } from "@/features/chat/rewind/retryActions";
+import type { ActivityFilter } from "@/features/chat/activity/activityRows";
 
 /** 失敗した作業を再試行するときに変えるもの（推論の深さ・モデル） */
 export interface RetryChange {
@@ -29,6 +30,9 @@ export interface RelayTarget {
   description: string;
 }
 
+/** チャットの画面の見え方（会話 = 発言の流れ / 動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） */
+export type ChatShowing = "conversation" | "activity";
+
 /** 1 つのチャットの画面の、変わる様子（useChatPaneState で読む） */
 export interface ChatPaneState {
   /** 失敗した作業の直し方（作業中・失敗していなければ null） */
@@ -37,6 +41,10 @@ export interface ChatPaneState {
   openSubagents: ReadonlySet<string>;
   /** 高さの制限を外して、中身をすべて流れに出しているカード（「全体を表示」。行のキー） */
   fullSubagents: ReadonlySet<string>;
+  /** 会話と動きのどちらを見せているか（見出しの「会話 / 動き」） */
+  showing: ChatShowing;
+  /** 動きの絞り込み（すべて・メインだけ・そのサブエージェントと配下） */
+  activityFilter: ActivityFilter;
   /** チャット欄から伝える先のサブエージェント（なければ null = メインのエージェントへ送る） */
   relayTarget: RelayTarget | null;
 }
@@ -50,12 +58,19 @@ export interface ChatPaneActions {
   readonly chatId: number;
   /** チャットの画面の要素（ピントがこのチャットにあるかを見る・文の幅を測る・検索の印を付ける範囲） */
   readonly root: RefObject<HTMLDivElement | null>;
-  /** サブエージェントのカードへ移って開く（入れ子なら外側のカードも開く。key = 一覧の行のキー = 起動した呼び出し ID） */
-  revealSubagent: (key: string) => void;
+  /**
+   * サブエージェントのカードへ移って開く（入れ子なら外側のカードも開く。key = 一覧の行のキー = 起動した呼び出し ID）。
+   * eventId を渡すと、カードの中のその記録（発言・ツールのまとまり）へ移る。動きを見せていれば会話に戻す
+   */
+  revealSubagent: (key: string, eventId?: number) => void;
   /** サブエージェントのカードを開く・閉じる（open を省けば切り替え） */
   toggleSubagent: (key: string, open?: boolean) => void;
   /** カードの中身の高さの制限を外す・戻す（「全体を表示」） */
   toggleSubagentFull: (key: string) => void;
+  /** 会話・動きを切り替える（動きは filter を渡せば、その絞り込みで） */
+  show: (showing: ChatShowing, filter?: ActivityFilter) => void;
+  /** 会話に戻って、その記録へ移って強調する（agent を渡せば、そのサブエージェントのカードを開いてその中へ） */
+  revealInConversation: (eventId: number | undefined, agent: string | null) => void;
   /** チャット欄の宛先をそのサブエージェントにする（送るとメインのエージェントから SendMessage で伝える）。ピントもチャット欄へ */
   tellSubagent: (key: string) => void;
   /** チャット欄の宛先をメインのエージェントに戻す */
