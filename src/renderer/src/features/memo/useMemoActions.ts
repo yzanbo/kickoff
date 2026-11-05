@@ -15,12 +15,15 @@ export function useMemoActions(
     onCreated,
     onMoved,
     onTrashed,
+    beforeChange,
   }: {
     /** 作ったメモを開く・フォルダを開く */
     onCreated: (path: string, dir: boolean) => void;
     /** 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える） */
     onMoved: (from: string, to: string) => void;
     onTrashed: (path: string) => void;
+    /** 名前を変える・動かす・ゴミ箱に入れる前（開いているメモにかかるなら、まだ保存していない書きかけをどうするか聞く。やめたら false） */
+    beforeChange: (path: string) => Promise<boolean>;
   },
 ) {
   const refresh = () => memosStore.invalidate(projectId);
@@ -51,7 +54,7 @@ export function useMemoActions(
   };
 
   const move = async (from: string, to: string) => {
-    if (from === to) return;
+    if (from === to || !(await beforeChange(from))) return;
     await api.moveMemo(projectId, from, to).then(() => {
       refresh();
       onMoved(from, to);
@@ -77,7 +80,7 @@ export function useMemoActions(
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
     });
-    if (!ok) return;
+    if (!ok || !(await beforeChange(path))) return;
     await api.trashMemo(projectId, path).then(() => {
       refresh();
       onTrashed(path);

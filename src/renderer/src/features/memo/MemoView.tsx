@@ -1,65 +1,75 @@
-import { BookOpen, FolderSearch, PenLine } from "lucide-react";
+import { FileCode2, FolderSearch, Save, Type } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 import { cx } from "@/lib/cx";
 import { MEMO_VIEW } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
-import { Markdown } from "@/ui/markdown/Markdown";
+import { InlineName } from "@/ui/InlineName";
+import { reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { memoTitle, parentOf } from "./memoPaths";
 import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
 
-// 編集の部品（Monaco）は大きいので、メモを開いたときに初めて読み込む
-const CodeEditor = lazy(() => import("@/features/editor/CodeEditor"));
+// 編集の部品（CodeMirror）は大きいので、メモを開いたときに初めて読み込む
+const MarkdownEditor = lazy(() => import("./MarkdownEditor"));
 
 /** 保存の様子の文（見出しの右） */
 const SAVE_LABELS: Record<MemoSaveState, string> = {
-  idle: "保存しました",
-  pending: "未保存",
+  saved: "保存済み",
+  dirty: "未保存（⌘S で保存）",
   saving: "保存中…",
   conflict: "ほかで変わりました",
   error: "保存できませんでした",
 };
 
 /**
- * 開いているメモ（見出しに題名とフォルダ・保存の様子・書く / 読むの切り替え・Finder で表示）。
- * 書く = Markdown をそのまま書く（行を折り返す。書くのが止まったら自動で保存）、読む = 整えて出す
+ * 開いているメモ（見出しに題名とフォルダ・保存の様子・保存・表示の切り替え・Finder で表示）。
+ * 表示は Markdown（Obsidian のライブプレビューと同じ。カーソルの行だけ記号を見せる）/ そのまま（記号もそのまま）。
+ * どちらでも書けて、⌘S で保存する（書いている間は保存しない。まだ保存していない書きかけは残り、離れるときに聞く）。
+ * 題名を押すとその場で名前を変えられ、Enter・ピントを外すとファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）
  */
-export function MemoView({ projectId, path, dir }: { projectId: number; path: string; dir: string }) {
+export function MemoView({ projectId, path, dir, onRenamed }: { projectId: number; path: string; dir: string; onRenamed: (path: string) => void }) {
   const doc = useMemoDocument(projectId, path);
-  const [view, setView] = useSetting(MEMO_VIEW);
-  // 読む表示に切り替えたときの中身（書いている途中のものも出す）
-  const [previewText, setPreviewText] = useState<string | null>(null);
-  const folder = parentOf(path);
-  const changeView = (next: "edit" | "preview") => {
-    if (next === "preview") {
-      setPreviewText(doc.currentText());
-      doc.saveNow();
-    }
-    setView(next);
+  const [renaming, setRenaming] = useState(false);
+  const rename = (name: string) => {
+    setRenaming(false);
+    void doc.rename(name).then((to) => to && onRenamed(to), reportFailure("名前を変えられませんでした"));
   };
-  const preview = view === "preview";
+  const [view, setView] = useSetting(MEMO_VIEW);
+  const folder = parentOf(path);
   const unreadable = doc.file && (doc.file.binary || doc.file.truncated);
+  const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error";
 
   return (
     <div className="memo-view">
       <header className="memo-head">
         <div className="memo-head-title">
-          <h2 title={path}>{memoTitle(path)}</h2>
+          {renaming ? (
+            <InlineName initial={memoTitle(path)} maxLength={120} className="memo-title-input" onSubmit={rename} onCancel={() => setRenaming(false)} />
+          ) : (
+            <h2>
+              <button type="button" className="memo-title" title={`${path}（押すと名前を変える）`} onClick={() => setRenaming(true)}>
+                {memoTitle(path)}
+              </button>
+            </h2>
+          )}
           {folder && <span className="memo-head-folder">{folder}</span>}
         </div>
-        <span className={cx("memo-save-state", (doc.state === "error" || doc.state === "conflict") && "warn")} role="status">
+        <span className={cx("memo-save-state", unsaved && "warn")} role="status">
           {doc.initial !== null && SAVE_LABELS[doc.state]}
         </span>
+        {doc.initial !== null && !unreadable && (
+          <IconButton icon={Save} label="保存" keys="⌘S" disabled={doc.state === "saved" || doc.state === "saving"} onClick={doc.saveNow} />
+        )}
         <Segmented
           className="segmented"
-          label="メモの出し方"
+          label="メモの表示"
           value={view}
-          onChange={changeView}
+          onChange={setView}
           options={[
-            { value: "edit", label: "書く", icon: PenLine },
-            { value: "preview", label: "読む", icon: BookOpen },
+            { value: "preview", label: "Markdown", icon: Type, tip: "見出し・太字・リストなどを整えて見せる（カーソルのある行だけ記号を見せる）" },
+            { value: "edit", label: "そのまま", icon: FileCode2, tip: "記号もそのまま見せる" },
           ]}
         />
         {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(`${dir}/${path}`)} />}
@@ -76,32 +86,16 @@ export function MemoView({ projectId, path, dir }: { projectId: number; path: st
         </div>
       )}
       {doc.error && <ErrorText message={doc.error} className="memo-message" />}
-      <div className={cx("memo-body", preview && "preview")}>
+      <div className="memo-body">
         {doc.loadError ? (
           <ErrorText message={doc.loadError} className="memo-message" />
         ) : doc.initial === null ? (
           <p className="muted small memo-message">読み込み中…</p>
         ) : unreadable ? (
           <p className="muted small memo-message">{doc.file?.binary ? "文字のファイルではないので、ここでは開けません。Finder から開いてください。" : "大きすぎるので、ここでは開けません。"}</p>
-        ) : preview ? (
-          <div className="memo-preview">
-            {(previewText ?? doc.initial).trim() ? <Markdown>{previewText ?? doc.initial}</Markdown> : <p className="muted small">まだ何も書いていません。「書く」に切り替えて書けます。</p>}
-          </div>
         ) : (
           <Suspense fallback={<p className="muted small memo-message">編集の準備中…</p>}>
-            <CodeEditor
-              key={`${path}:${doc.revision}`}
-              // ほかのタブで同じ名前のファイルを開いていても重ならないよう、メモの印を付けた場所にする（拡張子で色付けが決まる）
-              path={`/kickoff-memos/${projectId}/${path}`}
-              // 読む表示から戻ったときも、書きかけの中身から（保存はまだのことがある）
-              initialValue={doc.currentText()}
-              savedValue={doc.initial}
-              valueRef={{ current: null }}
-              prose
-              onDirtyChange={() => {}}
-              onChange={doc.change}
-              onSave={doc.saveNow}
-            />
+            <MarkdownEditor key={`${path}:${doc.revision}`} initialValue={doc.initial} live={view === "preview"} onChange={doc.change} onSave={doc.saveNow} />
           </Suspense>
         )}
       </div>

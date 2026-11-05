@@ -7,7 +7,7 @@
  *   ID が 1 から振り直され、別のものを指すため）。ID ごとのものは defineSettingFamily（キーは頭 ＋ ID）
  */
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
-import { choice, defineSetting, defineSettingFamily, flag, list, number, optionalFlag, record, text } from "./storage";
+import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
 
 const isString = (value: unknown): value is string => typeof value === "string";
 
@@ -194,8 +194,10 @@ export const editorWorktree = defineSettingFamily("kickoff:editor-worktree:", te
 export const memoSelected = defineSettingFamily("kickoff:memo-selected:", text(), { ids: true });
 /** プロジェクトごとの、メモのタブの木で開いているフォルダ */
 export const memoOpenFolders = defineSettingFamily("kickoff:memo-open-folders:", list(), { ids: true });
-/** メモの出し方（edit = 書く / preview = 読む（Markdown を整えて出す）） */
-export const MEMO_VIEW = defineSetting("kickoff:memo-view", choice(["edit", "preview"], "edit"));
+/** メモの表示（preview = Markdown 表示（Obsidian のライブプレビューと同じ。カーソルの行だけ記号を見せる）/ edit = そのまま表示（記号もそのまま）。どちらも書ける） */
+export const MEMO_VIEW = defineSetting("kickoff:memo-view", choice(["edit", "preview"], "preview"));
+/** まだ保存していないメモ（キーは「プロジェクト:メモのパス」。値は書いたものと、書き始めたときのメモの指紋。保存する・捨てると消す。アプリを閉じても残す） */
+export const memoDraft = defineSettingFamily("kickoff:memo-draft:", json(parseMemoDraft, null, (v) => v === null), { ids: true });
 /** チャットの画面の右の欄の「変更」で確認済みにしたファイル（キーは「プロジェクト:ワークツリーのフォルダ（本体は空）」。値はパス → 確認したときの差分の指紋） */
 export const sideViewedFiles = defineSettingFamily("kickoff:side-viewed:", record(isString), { ids: true });
 
@@ -208,3 +210,17 @@ export const EXTERNAL_BROWSER = defineSetting("kickoff:external-browser", choice
 export const BROWSER_DEVTOOLS_DOCK = defineSetting("kickoff:browser-devtools-dock", choice(["right", "bottom", "window"], "window"));
 export const BROWSER_DEVTOOLS_WIDTH = defineSetting("kickoff:browser-devtools-width", number(420));
 export const BROWSER_DEVTOOLS_HEIGHT = defineSetting("kickoff:browser-devtools-height", number(300));
+
+/** まだ保存していないメモ（memoDraft の値） */
+export interface MemoDraft {
+  /** 書いたもの */
+  text: string;
+  /** 書き始めたときのメモの指紋（いまのメモと違えば、ほかで変わっている） */
+  hash: string;
+}
+
+function parseMemoDraft(value: unknown): MemoDraft | null | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const { text: body, hash } = value as Record<string, unknown>;
+  return typeof body === "string" && typeof hash === "string" ? { text: body, hash } : undefined;
+}

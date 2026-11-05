@@ -15,7 +15,7 @@ import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { AskChildHost } from "@/features/chat/children/AskChildHost";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
-import type { PopoutRoute } from "./popout";
+import { popoutPath, type PopoutRoute } from "./popout";
 import { RouteContext, useHashRoute } from "./router";
 
 /**
@@ -43,7 +43,12 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
               <PopoutChildChat chatId={route.chatId} />
             ) : route.kind === "memo" ? (
               <div className="popout-body">
-                <SideMemo projectId={route.projectId} path={route.path} />
+                <SideMemo
+                  projectId={route.projectId}
+                  path={route.path}
+                  // 名前を変えたら、ウィンドウの URL も新しい名前に（読み込み直しても同じメモを開く）
+                  onRenamed={(to) => history.replaceState(null, "", `#${popoutPath({ kind: "memo", projectId: route.projectId, path: to })}`)}
+                />
               </div>
             ) : (
               <PopoutFiles route={route} />

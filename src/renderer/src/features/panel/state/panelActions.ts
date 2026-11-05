@@ -83,6 +83,8 @@ export function panelActions(key: string) {
     },
     /** タブの中身を変える（新しいチャットのプロジェクト・グループ、ブラウザのタイトルなど。その種類のタブだけ） */
     patchTab: (tabKey: string, patch: TabPatch) => dispatch({ type: "patch", key: tabKey, ...patch }),
+    /** タブを別のタブに置き換える（同じペインの同じ位置のまま。名前を変えたメモのタブなど、キーが変わるとき） */
+    replaceTab: (tabKey: string, tab: PanelTab) => dispatch({ type: "replace", key: tabKey, tab }),
     /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
     replaceWithChat: (tabKey: string, chat: Chat) => dispatch({ type: "replace", key: tabKey, tab: chatTab(chat) }),
     /**
