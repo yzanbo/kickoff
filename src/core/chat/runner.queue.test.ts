@@ -128,3 +128,43 @@ test("作業が終わるのと同時に「いま」で送って待ちの列に�
   assert.match(provider.calls[1].prompt, /いまの指示/);
   assert.equal(store.chats.get(chat.id)?.status, "completed");
 });
+
+test("圧縮の予約: 作業中に圧縮を頼むと予約し、やり取りが終わったら送信待ちより先に圧縮する。予約はやめられる", async () => {
+  const { gates, script } = gatedScript();
+  const { runner, provider, project } = setup(script);
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  await runner.queueMessage(chat.id, "2");
+  // 作業中に頼むと予約になる（409 にしない）。やめる → また頼む
+  await runner.compact(chat.id);
+  assert.equal(runner.live(chat.id).compact_next, true);
+  runner.cancelCompact(chat.id);
+  assert.equal(runner.live(chat.id).compact_next, false);
+  await runner.compact(chat.id);
+  // 終わったら、送信待ちの「2」より先に圧縮する（始めたら予約は外れる）
+  gates[0]();
+  await until(() => gates.length === 2);
+  assert.equal(provider.calls[1].prompt, "/compact");
+  assert.equal(runner.live(chat.id).compact_next, false);
+  // 圧縮が終わったら、送信待ちの次を送る
+  gates[1]();
+  await until(() => gates.length === 3);
+  assert.equal(provider.calls[2].prompt, "2");
+  gates[2]();
+  await until(() => !runner.isBusy(chat.id));
+});
+
+test("圧縮の予約: やめたら、終わっても圧縮せずに送信待ちの次を送る", async () => {
+  const { gates, script } = gatedScript();
+  const { runner, provider, project } = setup(script);
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  await runner.queueMessage(chat.id, "2");
+  await runner.compact(chat.id);
+  runner.cancelCompact(chat.id);
+  gates[0]();
+  await until(() => gates.length === 2);
+  assert.equal(provider.calls[1].prompt, "2");
+  gates[1]();
+  await until(() => !runner.isBusy(chat.id));
+});

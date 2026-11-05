@@ -71,4 +71,6 @@ export interface ChatLive {
   compacting: CompactingState | null;
   /** 停止を頼んで、作業が終わるのを待っているか（サブエージェント・裏のコマンドごと終わるまで数秒かかる） */
   stopping: boolean;
+  /** 作業中に「会話を圧縮」を押した（いまのやり取りが終わったら、送信待ちより先にすぐ圧縮を始める。始めたら false） */
+  compact_next: boolean;
 }
