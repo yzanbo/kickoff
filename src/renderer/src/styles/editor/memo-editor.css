@@ -193,11 +193,16 @@
 }
 
 
-/* HTML のメモのページの表示（HtmlMemoPage）。中身のページの見た目のまま描くので、ページの既定と同じ白地に置く */
+/*
+ * HTML のメモのページの表示（HtmlMemoPage）。中身のページの見た目のまま描くので、ページの既定と同じ白地に置く。
+ * 配色は明るい側に決める: iframe の中のページは、この要素の color-scheme を「周りの配色」として受け継ぐので、アプリのダーク
+ * （tokens.css の color-scheme: dark）のままだと、color-scheme: light dark と書いたページが暗い配色を選び、白い地に白い文字になった
+ */
 .memo-html-page {
   flex: 1;
   min-width: 0;
   min-height: 0;
   border: 0;
+  color-scheme: light;
   background: #fff;
 }

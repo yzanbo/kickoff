@@ -20,7 +20,7 @@
 
 - 拡張子 `.html`・`.htm` のメモ。「新しいメモ」の HTML（`useMemoActions` の `createMemo(folder, "html")`）で、題名の見出しと `<style>` の入ったひな形 `newHtmlMemo` から作る。メモのチャットに頼めば、AI が HTML と CSS で書く（コアがシステムプロンプトで HTML のメモだと伝える）。
 - 表示の切り替え（`MEMO_VIEW` を Markdown のメモと共有）は、`preview` = ページ（`HtmlMemoPage`。描いた見た目で、ここでは書けない）/ `edit` = ソース（`MemoEditor` に HTML の言語と色分け `htmlHighlight`）。ソースの部品はページの間も `hidden` で置き、書いたもの・元に戻す履歴を残す。ページはいま書いてあるもの（`useMemoDocument` の `text()`。保存していない書きかけも）を描き、表示を切り替えた・読み直したときに描き直す（AI が書き換えたときもスクロールの位置は保つ）。
-- `HtmlMemoPage` は iframe の srcdoc に中身を入れ、`<base>` をメモの入ったフォルダの、コアのファイルの口（`GET /api/projects/:id/memo/file/…`。`htmlPage.ts` の `memoAssetBase` / `withBaseHref`）へ向けて、相対パスの CSS・画像を読む。sandbox は `allow-same-origin` だけ（中の JavaScript・フォーム・ポップアップは動かさない。外から中の文書に手を付けられる）。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない。
+- `HtmlMemoPage` は iframe の srcdoc に中身を入れ、`<base>` をメモの入ったフォルダの、コアのファイルの口（`GET /api/projects/:id/memo/file/…`。`htmlPage.ts` の `memoAssetBase` / `withBaseHref`）へ向けて、相対パスの CSS・画像を読む。sandbox は `allow-same-origin` だけ（中の JavaScript・フォーム・ポップアップは動かさない。外から中の文書に手を付けられる）。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない。iframe は `color-scheme: light`（白い地とそろえる。アプリのダークを受け継ぐと、`color-scheme: light dark` と書いたページが暗い配色を選び、白い地に白い文字になる）。
 - ページの中: リンクは中で開かない（`#` はページの中で飛ぶ、外のサイト・メールは `window.open` でブラウザなどへ、メモのフォルダの中へのリンクは何もしない）。右クリックは選んだ文を渡して本文のメニューを開く（チャットに追加・コピーだけ）。⌘S で保存。
 - 「既存のメモに追記」は Markdown のメモだけ（`recentMemos(…, "markdown")`。HTML の最後に足すとページの外に出るため。コアも 400 にする）。
 
