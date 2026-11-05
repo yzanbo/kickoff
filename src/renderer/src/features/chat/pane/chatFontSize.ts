@@ -11,7 +11,7 @@ export type ChatFontSize = SettingValue<typeof CHAT_FONT_SIZE>;
 export const CHAT_FONT_SIZES = CHAT_FONT_SIZE.choices;
 
 /** 名前（見出しの行のボタンのメニュー・タブの列の「表示」・設定の「表示」で共通） */
-export const CHAT_FONT_SIZE_LABELS: Record<ChatFontSize, string> = { xs: "小", sm: "やや小", md: "標準", lg: "大", xl: "特大" };
+export const CHAT_FONT_SIZE_LABELS: Record<ChatFontSize, string> = { xs: "極小", sm: "小", md: "標準", lg: "大", xl: "特大" };
 
 /** 標準を 1 とした倍率（本文の大きさがおよそ 12 / 13 / 14 / 16 / 18px になる。大きい側は読み疲れたとき用に広めに取る） */
 const SCALES: Record<ChatFontSize, number> = { xs: 12 / 14, sm: 13 / 14, md: 1, lg: 16 / 14, xl: 18 / 14 };
