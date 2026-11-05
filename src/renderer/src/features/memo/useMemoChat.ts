@@ -3,7 +3,7 @@ import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { useSetting } from "@/hooks/useSetting";
 import { readSetting, writeSetting } from "@/lib/storage";
-import { memoChat, type MemoChatEntry } from "@/lib/storageKeys";
+import { MEMO_CHAT_APPLY, memoChat, type MemoChatEntry } from "@/lib/storageKeys";
 import type { MemoEditorHandle } from "./MarkdownEditor";
 
 /** 会話に残す件数（古いものから落とす） */
@@ -21,6 +21,7 @@ export const MEMO_CHAT_PRESETS: readonly { label: string; text: string }[] = [
  * メモについての会話（本文の右の欄 MemoChat）。会話はメモごとに memoChat に残す（閉じても・アプリを閉じても続きから）。
  * 送るたびに、いまのメモ（まだ保存していない書きかけも）と選んでいる部分を添えて AI に聞く。返事に変更の案があれば、その発言に
  * 「どこを・何に」を持たせ、取り込む（apply）と編集の部品の取引で置き換える（⌘Z で戻せる。保存はしない）。案を作ったあとにその範囲が書き換わっていれば取り込まない。
+ * 入れ方が直接編集（MEMO_CHAT_APPLY が direct）なら、届いたときにすぐ取り込む（取り込めなければ、承認式と同じく案のまま残す）。
  * 頼んでいる間に別のメモへ移った・やめたときに届いた返事は使わない
  */
 export function useMemoChat(projectId: number, path: string, editor: MutableRefObject<MemoEditorHandle | null>) {
@@ -60,6 +61,7 @@ export function useMemoChat(projectId: number, path: string, editor: MutableRefO
         setBusy(false);
         const range = r.edit && (r.edit.target === "selection" && sel ? { from: sel.from, to: sel.to, original: sel.text, part: true } : { from: 0, to: memo.length, original: memo, part: false });
         append({ role: "assistant", text: r.reply || (r.edit ? "メモの変更の案です。" : "（返事がありませんでした）"), ...(r.edit && range ? { edit: { ...range, text: r.edit.text } } : {}) });
+        if (range && readSetting(MEMO_CHAT_APPLY) === "direct") apply(readSetting(memoChat(key)).length - 1);
       },
       (e: unknown) => {
         if (id !== request.current) return;

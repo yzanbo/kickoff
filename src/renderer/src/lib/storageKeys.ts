@@ -201,6 +201,8 @@ export const memoDraft = defineSettingFamily("kickoff:memo-draft:", json(parseMe
 export const memoChat = defineSettingFamily("kickoff:memo-chat:", json(parseMemoChat, [], (v) => v.length === 0), { ids: true });
 /** メモの会話の欄（本文の右）を開いているか（どのメモでも同じ） */
 export const MEMO_CHAT_OPEN = defineSetting("kickoff:memo-chat-open", flag(false));
+/** メモの会話で AI の変更の案をどう入れるか（review = 差分を見て「取り込む」/ direct = 届いたらすぐ本文に入れる。どちらも ⌘Z で戻せ、保存は ⌘S） */
+export const MEMO_CHAT_APPLY = defineSetting("kickoff:memo-chat-apply", choice(["review", "direct"], "review"));
 /** メモの会話の欄の幅（本文の右に並べたとき。境目のつまみで変える） */
 export const MEMO_CHAT_WIDTH = defineSetting("kickoff:memo-chat-width", number(380));
 /** チャットの画面の右の欄の「変更」で確認済みにしたファイル（キーは「プロジェクト:ワークツリーのフォルダ（本体は空）」。値はパス → 確認したときの差分の指紋） */

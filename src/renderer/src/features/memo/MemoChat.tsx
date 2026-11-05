@@ -2,16 +2,19 @@ import { Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { cx } from "@/lib/cx";
 import { lineCounts, lineDiff } from "@/lib/lineDiff";
-import type { MemoChatEntry } from "@/lib/storageKeys";
+import { MEMO_CHAT_APPLY, type MemoChatEntry } from "@/lib/storageKeys";
 import { useEditKeys } from "@/hooks/useEditKeys";
+import { useSetting } from "@/hooks/useSetting";
 import { CloseButton, IconButton } from "@/ui/IconButton";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { confirmDialog } from "@/ui/dialogs";
+import { Segmented } from "@/ui/Segmented";
 import { ChangeCounts } from "@/features/chat/tools/TurnChanges";
 import { MEMO_CHAT_PRESETS, type MemoChatState } from "./useMemoChat";
 
 /**
  * メモの会話の欄（本文の右。狭いときは下）: メモについて AI と何往復も話し、変更の案が出たら差分を見て取り込む（取り込むまでメモは変わらない）。
+ * 案の入れ方は見出しで選ぶ（承認 = 差分を見て「取り込む」/ 直接編集 = 届いたらすぐ本文に入れる。MEMO_CHAT_APPLY）。
  * 本文で範囲を選んでいれば、それを話の的として送る（入力の上に引用で見せ、× で外せる）。会話はメモごとに残る（useMemoChat）
  */
 export function MemoChat({
@@ -31,6 +34,7 @@ export function MemoChat({
   onClose: () => void;
 }) {
   const [text, setText] = useState("");
+  const [applyMode, setApplyMode] = useSetting(MEMO_CHAT_APPLY);
   // 選んでいる部分を話の的にしない（× で外した。選び直したら、また的にする）
   const [ignored, setIgnored] = useState<string | null>(null);
   const useSelection = selection !== null && selection !== ignored;
@@ -53,6 +57,16 @@ export function MemoChat({
         <Sparkles size={14} aria-hidden />
         <span className="memo-chat-title">メモの会話</span>
         <span className="spacer" />
+        <Segmented
+          className="segmented memo-chat-apply"
+          label="変更の案の入れ方"
+          value={applyMode}
+          onChange={setApplyMode}
+          options={[
+            { value: "review", label: "承認", tip: "承認（AI の変更の案を差分で見て、「取り込む」を押したときだけ本文に入れる）" },
+            { value: "direct", label: "直接編集", tip: "直接編集（AI の変更の案を、届いたらすぐ本文に入れる。⌘Z で戻せる。保存は ⌘S）" },
+          ]}
+        />
         <IconButton
           icon={Trash2}
           size={14}
@@ -66,7 +80,10 @@ export function MemoChat({
         {chat.entries.length === 0 && (
           <div className="memo-chat-empty muted small">
             <p>このメモについて、相談・アイデア出し・書き直しを頼めます。AI はいまのメモ（まだ保存していない書きかけも）を見て答えます。</p>
-            <p>「反映して」と頼むと、メモの変更の案を差分で出します。取り込むまでメモは変わりません。本文で範囲を選ぶと、その部分についての話になります。</p>
+            <p>
+              「反映して」と頼むと、メモの変更の案を出します。{applyMode === "review" ? "差分を見て「取り込む」まで、メモは変わりません。" : "直接編集なので、届いたらすぐ本文に入れます（⌘Z で戻せます）。"}
+              保存は ⌘S です。本文で範囲を選ぶと、その部分についての話になります。
+            </p>
           </div>
         )}
         {chat.entries.map((e, i) => (
@@ -141,10 +158,12 @@ function EditCard({ edit, onApply }: { edit: NonNullable<MemoChatEntry["edit"]>;
   return (
     <section className="memo-chat-edit" aria-label="メモの変更の案">
       <div className="memo-chat-edit-head">
-        <span className="small">変更の案（{edit.part ? "選んだ部分" : "メモ全体"}）</span>
+        <span className="small">
+          {edit.applied ? "入れた変更" : "変更の案"}（{edit.part ? "選んだ部分" : "メモ全体"}）
+        </span>
         <ChangeCounts {...lineCounts(diff)} />
         <span className="spacer" />
-        <button type="button" className="btn btn-sm btn-primary" disabled={edit.applied} title="本文を置き換えます（保存はしません。⌘Z で戻せます）" onClick={onApply}>
+        <button type="button" className="btn btn-sm btn-primary" disabled={edit.applied} title={edit.applied ? "本文に入れました（⌘Z で戻せます。保存は ⌘S）" : "本文を置き換えます（保存はしません。⌘Z で戻せます）"} onClick={onApply}>
           {edit.applied ? "取り込みました" : "取り込む"}
         </button>
       </div>
