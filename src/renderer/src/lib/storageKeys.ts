@@ -101,12 +101,21 @@ export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", lis
 export const projectChatOpen = defineSettingFamily("kickoff:project-chat-open:", flag(), { ids: true });
 export const PROJECT_CHAT_WIDTH = defineSetting("kickoff:project-chat-width", number(367));
 export const BOTTOM_PANEL_HEIGHT = defineSetting("kickoff:bottom-panel-height", number(198));
+/** チャットの画面の右の欄（サブエージェントの欄）の幅（px。左端のつまみのドラッグで変える。どのチャットでも同じ） */
+export const SUBAGENT_PANEL_WIDTH = defineSetting("kickoff:subagent-panel-width", number(520));
+/** 右の欄（サブエージェントの欄）でメインの会話を覆っているか（右の欄を横幅いっぱいにする。どのチャットでも同じ） */
+export const SUBAGENT_PANEL_MAXIMIZED = defineSetting("kickoff:subagent-panel-maximized", flag());
 /** 送る前の新しいチャット（下書きのタブ）。パネルごとのタブ（{ [パネル]: タブ[] }。中身は panel/state/draftPersistence.ts が確かめる）。送った・閉じたら消える */
 export const NEW_CHAT_DRAFTS = defineSetting("kickoff:new-chat-drafts", record(), { ids: true });
 
 // チャット
 /** チャットごとの、入力欄の書きかけの文（空にした・送った・チャットを削除したら消す） */
 export const chatDraft = defineSettingFamily("kickoff:chat-draft:", text(), { ids: true });
+/**
+ * サブエージェントを押したときに開く場所（inline = メインの流れの中のカードを開く / side = チャットの画面の右の欄にサブエージェントの画面を開く。
+ * カードの見出し・動きの行・ピルの一覧・裏の作業の一覧で共通。もう一方はカードのボタン・右クリックで選べる。設定の「表示」）
+ */
+export const SUBAGENT_OPEN_IN = defineSetting("kickoff:subagent-open-in", choice(["inline", "side"], "inline"));
 /** チャットごとの、アーカイブしたサブエージェント（呼び出し ID） */
 export const subagentsArchived = defineSettingFamily("kickoff:subagents-archived:", list(), { ids: true });
 /** 作業中・送信待ちがあるときに送った指示の扱い（queue = あとで（送信待ちに足す）/ tell = いま（止めずに伝える）） */

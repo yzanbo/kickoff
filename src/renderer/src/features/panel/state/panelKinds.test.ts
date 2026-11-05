@@ -23,3 +23,10 @@ test("表示するタブ: 隠した種類のタブを表示中にしていたら
   assert.equal(shownActiveOf(pane, (k) => !k.startsWith("chat")), "terminal:a");
   assert.equal(shownActiveOf(pane, () => false), null);
 });
+
+test("表示するタブ: サブエージェントの欄は、保存した値によらずいつもサブエージェントだけ", () => {
+  assert.deepEqual(decodeKinds([], "agents"), ["subagent"]);
+  assert.deepEqual(decodeKinds(["chat", "browser"], "agents"), ["subagent"]);
+  // ほかの欄の付け外しの選択肢には入らない
+  assert.deepEqual(toggleKind(["chat"], "subagent"), ["chat"]);
+});

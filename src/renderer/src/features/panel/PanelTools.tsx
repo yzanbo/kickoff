@@ -1,6 +1,7 @@
 import { FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
 import type { HTMLAttributes, RefObject } from "react";
 import { IconButton } from "@/ui/IconButton";
+import { leavesOf } from "./layout/paneTree";
 import { SURFACES } from "./surfaces";
 import { TabArchiveToggle } from "./tabs/TabArchiveToggle";
 import { TabGroupingButton } from "./tabs/TabGroupingButton";
@@ -24,15 +25,23 @@ export interface PanelFrame {
  * 大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）
  */
 export function PanelTools({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
-  const { closeButton, maximize } = SURFACES[panel.surface];
+  const { closeButton, maximize, maximizeLabels, fixedKinds, heading } = SURFACES[panel.surface];
+  // 分けているときは、欄の名前の札をアイコンだけにする（左上のペインのタブの入る幅を残す）
+  const split = leavesOf(panel.layout.root).length > 1;
   const close = closeButton && (
     <IconButton type="button" icon={closeButton.icon} size={15} className="panel-control" label={closeButton.label} keys={closeButton.keys} onClick={panel.close} />
   );
   const state = frame?.maximize;
   return (
     <div className="panel-controls">
+      {heading && (
+        <span className="panel-heading" title={heading.title}>
+          <heading.icon size={13} />
+          {!split && <span>{heading.label}</span>}
+        </span>
+      )}
       {closeButton?.at === "start" && close}
-      <TabKindsButton panel={panel} />
+      {!fixedKinds && <TabKindsButton panel={panel} />}
       {panel.kinds.has("chat") && <TabGroupingButton surface={panel.surface} />}
       {panel.kinds.has("chat") && <TabArchiveToggle />}
       {maximize === "width" && state && (
@@ -43,8 +52,12 @@ export function PanelTools({ panel, frame }: { panel: PanelController; frame?: P
           icon={state.on ? FoldHorizontal : UnfoldHorizontal}
           size={15}
           className="panel-control"
-          label={state.on ? "元の幅に戻す" : "横幅いっぱいに広げる"}
-          title={state.on ? (state.disabled ? "元の幅に戻す（画面が狭いため、元の幅に戻せません）" : "元の幅に戻す") : "横幅いっぱいに広げる"}
+          label={state.on ? (maximizeLabels?.on ?? "元の幅に戻す") : (maximizeLabels?.off ?? "横幅いっぱいに広げる")}
+          title={
+            state.on
+              ? `${maximizeLabels?.on ?? "元の幅に戻す"}${state.disabled ? "（画面が狭いため、元の幅に戻せません）" : ""}`
+              : (maximizeLabels?.off ?? "横幅いっぱいに広げる")
+          }
           aria-pressed={state.on}
           disabled={state.disabled}
           onClick={state.toggle}

@@ -8,6 +8,11 @@ import type { SubagentTree } from "./subagentTree";
  */
 export interface SubagentsView {
   chatId: number;
+  /** チャットのプロジェクトと作業場所（右の欄の入力欄の / と @ の候補を探す場所。本体なら null） */
+  projectId: number;
+  worktree: string | null;
+  /** リポジトリの絶対パスを相対パスにする（右の欄のサブエージェントの画面の流れに使う。作業場所が変わらない間は同じ関数） */
+  rel: (s: string) => string;
   /** メインのエージェントが作業中か */
   busy: boolean;
   events: ChatEvent[];

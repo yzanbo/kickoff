@@ -17,7 +17,8 @@ import { UserMessage } from "@/features/chat/messages/UserMessage";
 import { QuestionAnswerMessage } from "@/features/chat/messages/QuestionAnswerMessage";
 import { copyRich } from "@/lib/richCopy";
 import { FailedTurnActions } from "@/features/chat/rewind/FailedTurnActions";
-import { SubagentCard, type RenderItems } from "@/features/chat/subagents/SubagentCard";
+import { SubagentCard } from "@/features/chat/subagents/SubagentCard";
+import type { RenderItems } from "@/features/chat/subagents/subagentParts";
 import { SubagentEndNote } from "@/features/chat/subagents/SubagentEndNote";
 import { CompactedRow } from "@/features/chat/status/CompactingRow";
 

@@ -155,6 +155,7 @@
 }
 
 .activity-head {
+  position: relative;
   display: flex;
   align-items: center;
   min-height: 26px;

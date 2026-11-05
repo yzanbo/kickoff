@@ -1,11 +1,13 @@
-import { ChevronRight } from "lucide-react";
-import { memo } from "react";
+import { ChevronRight, MessagesSquare, PanelRight } from "lucide-react";
+import { memo, type MouseEvent } from "react";
 import { cx } from "@/lib/cx";
 import { formatElapsed, formatFullStamp, formatStamp } from "@/lib/time";
 import { Elapsed } from "@/features/chat/status/Elapsed";
 import { callDuration } from "@/features/chat/tools/toolTimes";
 import { describeTool } from "@/features/chat/tools/toolDescribe";
 import { agentHueStyle } from "@/features/chat/subagents/agentHues";
+import { IconButton } from "@/ui/IconButton";
+import { agentTargetOf } from "./activityRows";
 import type { ActivityRow } from "./activityRows";
 import type { RailRow } from "./activityRails";
 
@@ -25,14 +27,22 @@ interface LineProps {
   onToggle: (key: string) => void;
   /** 会話のその場所へ移る（eventId を渡せば、まとめたツールのうちのその 1 回へ） */
   onOpen: (row: ActivityRow, eventId?: number) => void;
+  /** 右クリック（サブエージェントの行は、流れの中 / 右の欄のどちらで開くかを選ぶメニュー） */
+  onMenu: (row: ActivityRow, e: MouseEvent, eventId?: number) => void;
+  /**
+   * 行の右端の 2 つのボタン（サブエージェントの行だけ。会話の流れの中で見る / 右の欄で開く）。右の欄を置けない画面では渡さない。
+   * 行が多いので、マウスを乗せた行・ピントのある行にだけ出す（右クリックのメニューにも同じ操作）
+   */
+  onPick?: (row: ActivityRow, where: "inline" | "side") => void;
 }
 
 /**
  * 動きの 1 行: 時刻・線（メインの線から枝分かれするサブエージェントの線）・誰が・何を・かかった時間（実行中は回る印と経過）。
  * 押すと会話のその場所へ移る。いくつものツールをまとめた行は、左の矢印で 1 回ずつに広げる
  */
-function ActivityLineView({ row, rail, width, name, hues, rel, expanded, onToggle, onOpen }: LineProps) {
+function ActivityLineView({ row, rail, width, name, hues, rel, expanded, onToggle, onOpen, onMenu, onPick }: LineProps) {
   const expandable = row.kind === "tools" && (row.tools?.length ?? 0) > 1;
+  const pickable = onPick !== undefined && agentTargetOf(row) !== null;
   return (
     <div className={cx("activity-row", `kind-${row.kind}`, row.agent === null && "main", row.running && "running", row.failed && "failed")} style={agentHueStyle(hueOf(hues, row.agent))}>
       <span className="activity-time" title={formatFullStamp(row.at)}>
@@ -48,18 +58,31 @@ function ActivityLineView({ row, rail, width, name, hues, rel, expanded, onToggl
           ) : (
             <span className="activity-expand-space" />
           )}
-          <button type="button" className="activity-line" title="会話のこの場所へ移る" onClick={() => onOpen(row)}>
+          <button type="button" className="activity-line" title="会話のこの場所へ移る" onClick={() => onOpen(row)} onContextMenu={(e) => onMenu(row, e)}>
             <span className="activity-agent">{name}</span>
             <span className="activity-text">{rel(row.text)}</span>
             <Meta row={row} />
           </button>
+          {pickable && (
+            <span className="activity-open-actions">
+              <IconButton icon={MessagesSquare} size={13} label="会話の流れの中で見る" onClick={() => onPick(row, "inline")} />
+              <IconButton icon={PanelRight} size={13} label="右の欄で開く" onClick={() => onPick(row, "side")} />
+            </span>
+          )}
         </div>
         {expandable && expanded && (
           <div className="activity-calls">
             {row.tools!.map((call) => {
               const ms = callDuration(call);
               return (
-                <button key={call.use.id} type="button" className="activity-call" title="会話のこの場所へ移る" onClick={() => onOpen(row, call.use.id)}>
+                <button
+                  key={call.use.id}
+                  type="button"
+                  className="activity-call"
+                  title="会話のこの場所へ移る"
+                  onClick={() => onOpen(row, call.use.id)}
+                  onContextMenu={(e) => onMenu(row, e, call.use.id)}
+                >
                   <span className="activity-call-time">{formatStamp(call.use.created_at)}</span>
                   <span className="activity-text">{rel(describeTool(call.use.data.name, (call.use.data.input ?? {}) as Record<string, unknown>))}</span>
                   <span className="activity-meta">{ms !== undefined ? formatElapsed(ms) : row.running ? <Elapsed since={call.use.created_at} /> : null}</span>
@@ -87,7 +110,8 @@ export const ActivityLine = memo(
     a.name === b.name &&
     a.hues === b.hues &&
     a.rel === b.rel &&
-    a.expanded === b.expanded,
+    a.expanded === b.expanded &&
+    (a.onPick === undefined) === (b.onPick === undefined),
 );
 
 const hueOf = (hues: ReadonlyMap<string, number>, agent: string | null) => (agent === null ? undefined : hues.get(agent));

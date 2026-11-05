@@ -20,3 +20,10 @@ test("欄が出る画面: 全プロジェクトの欄（ボード・フッター
   assert.deepEqual(panelScreen("side:4"), { name: "project", id: 4, tab: "board" });
   assert.equal(panelScreen("side:none"), undefined);
 });
+
+test("サブエージェントの欄: チャットごとの名前（agents:<チャット>）で覚え、下書きを持たないので移る先はない", () => {
+  assert.equal(panelKey("agents", 33), "agents:33");
+  assert.deepEqual(parsePanelKey("agents:33"), { surface: "agents", scope: 33 });
+  // チャットの ID をプロジェクトの ID と取り違えて、別のプロジェクトのボードへ移らない
+  assert.equal(panelScreen("agents:33"), undefined);
+});

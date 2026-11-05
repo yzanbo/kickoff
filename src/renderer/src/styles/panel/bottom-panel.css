@@ -71,27 +71,28 @@
 
 /*
  * 中身は右のパネル・右端のチャット欄と同じタブ（.board-panel.as-sidebar.in-footer）。右端のチャット欄と違い、
- * タブの列はウィンドウのドラッグ領域にせず、右上のレイアウトの開閉のための空きも要らない（後ろの project-chat.css に勝つよう詳細度を上げる）
+ * タブの列はウィンドウのドラッグ領域にせず、右上のレイアウトの開閉のための空きも要らない（後ろの project-chat.css に勝つよう詳細度を上げる）。
+ * チャットのタブの中の右の欄（.agent-panel）のタブの列には効かせない（project-chat.css と同じく :not(:where(.agent-panel *))）
  */
 .bottom-panel .board-panel.in-footer {
   min-height: 0;
 }
 
-.bottom-panel .board-panel.in-footer .panel-tabs {
+.bottom-panel .board-panel.in-footer .panel-tabs:not(:where(.agent-panel *)) {
   min-height: 0;
   padding-right: var(--gutter);
   -webkit-app-region: no-drag;
 }
 
-.bottom-panel .board-panel.in-footer .split-view {
+.bottom-panel .board-panel.in-footer .split-view:not(:where(.agent-panel *)) {
   --split-tabs-h: 37px;
 }
 
-.bottom-panel .board-panel.in-footer .split-pane.top-right .panel-tabs {
+.bottom-panel .board-panel.in-footer .split-pane.top-right .panel-tabs:not(:where(.agent-panel *)) {
   padding-right: var(--gutter);
 }
 
 /* 最大化して画面のいちばん上に来たとき、サイドバーを閉じていれば信号機ボタンと開閉ボタンの右から並べる */
-.sidebar-collapsed .bottom-panel.maximized .board-panel.in-footer .panel-tabs {
+.sidebar-collapsed .bottom-panel.maximized .board-panel.in-footer .panel-tabs:not(:where(.agent-panel *)) {
   padding-left: 104px;
 }

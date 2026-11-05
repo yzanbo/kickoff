@@ -4,7 +4,7 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
 import { eventSequence } from "@shared/testing/factories";
 import { subagentTree } from "@/features/chat/subagents/subagentTree";
-import { activityRows, filterActivity } from "./activityRows";
+import { activityRows, agentTargetOf, filterActivity, type ActivityRow } from "./activityRows";
 
 /** 2026-11-01 00:00:00 から sec 秒後の時刻 */
 const at = (sec: number) => new Date(Date.UTC(2026, 10, 1, 0, 0, sec)).toISOString();
@@ -123,4 +123,15 @@ test("filterActivity: メインだけ・そのサブエージェントと配下�
     "発言「探します」",
   ]);
   assert.equal(filterActivity(rows, tree, { kind: "all" }), rows);
+});
+
+test("agentTargetOf: 起動の行は起動した子・終わりといまの行はそのサブエージェント・中の行はその記録、メインの行はなし", () => {
+  const row = (extra: Partial<ActivityRow>): ActivityRow => ({ key: "k", kind: "tools", agent: null, at: at(0), text: "", ...extra });
+  assert.deepEqual(agentTargetOf(row({ kind: "launch", agent: null, child: "a1", eventId: 3 })), { key: "a1" });
+  assert.deepEqual(agentTargetOf(row({ kind: "end", agent: "a1", eventId: 9 })), { key: "a1" });
+  assert.deepEqual(agentTargetOf(row({ kind: "now", agent: "a1" })), { key: "a1" });
+  assert.deepEqual(agentTargetOf(row({ kind: "tools", agent: "a1", eventId: 5 })), { key: "a1", eventId: 5 });
+  // まとめたツールのうちの 1 回
+  assert.deepEqual(agentTargetOf(row({ kind: "tools", agent: "a1", eventId: 5 }), 6), { key: "a1", eventId: 6 });
+  assert.equal(agentTargetOf(row({ kind: "tools", agent: null, eventId: 5 })), null);
 });

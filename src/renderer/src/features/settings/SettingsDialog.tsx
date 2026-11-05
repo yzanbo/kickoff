@@ -1,6 +1,6 @@
 import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_WIDE, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
+import { CHAT_WIDE, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -76,6 +76,7 @@ function DisplaySettings() {
   const [compactComposer, setCompactComposer] = useSetting(COMPOSER_COMPACT);
   const [wideChat, setWideChat] = useSetting(CHAT_WIDE);
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
+  const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
   return (
@@ -128,6 +129,21 @@ function DisplaySettings() {
             options={[
               { value: "show", label: "表示する" },
               { value: "hide", label: "表示しない" },
+            ]}
+          />
+        </Field>
+        <Field
+          label="サブエージェントを開く場所"
+          help="サブエージェントのカードの見出し・動きの行・「サブエージェント N 件」の一覧・裏の作業の一覧を押したときの開き方です。流れの中は、メインの会話の流れの中でカードを開きます。右の欄は、チャットの画面の右に、メインと同じような画面で開きます（右の欄の中で上下・左右に分けて並べられ、幅はつまみのドラッグで変えられます）。もう一方は、カードのボタンや動きの行の右クリックでいつでも選べます。"
+        >
+          <Segmented<"inline" | "side">
+            className="segmented theme-switch"
+            label="サブエージェントを開く場所"
+            value={subagentOpenIn}
+            onChange={setSubagentOpenIn}
+            options={[
+              { value: "inline", label: "流れの中" },
+              { value: "side", label: "右の欄" },
             ]}
           />
         </Field>

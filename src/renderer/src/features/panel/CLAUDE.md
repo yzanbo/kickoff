@@ -1,6 +1,6 @@
 # タブの入れ物（`features/panel`）
 
-チャット・新しいチャット・ブラウザ・ターミナルのタブを並べる欄（サブエージェントはタブにせず、チャットの流れの中のカードで見せる。`features/chat/CLAUDE.md`）。3 つの欄（ボードの右のパネル・画面の右端のチャット欄・下のパネル（フッター））は同じ `Panel` / `usePanel` で、違いは `surfaces.ts` の `SURFACES` と、欄の殻が渡す `frame` だけ。タブの中身のうちチャットは `features/chat/CLAUDE.md`、ターミナル・ブラウザ・▾ のメニューは `features/terminal/CLAUDE.md`。
+チャット・新しいチャット・ブラウザ・ターミナル・サブエージェントのタブを並べる欄。4 つの欄（ボードの右のパネル・画面の右端のチャット欄・下のパネル（フッター）・チャットの画面の右の欄（サブエージェントの欄））は同じ `Panel` / `usePanel` で、違いは `surfaces.ts` の `SURFACES` と、欄の殻が渡す `frame` だけ。サブエージェントのタブは右の欄（チャットのタブの中に入れ子にしたパネル）だけに開く（ボード・チャット欄・フッターのタブにはしない。メインとのつながりのまま見るため。サブエージェントの見せ方は `features/chat/CLAUDE.md`）。タブの中身のうちチャットは `features/chat/CLAUDE.md`、ターミナル・ブラウザ・▾ のメニューは `features/terminal/CLAUDE.md`。
 
 | フォルダ | 中身 |
 |---|---|
@@ -9,21 +9,23 @@
 | `layout/` | ペインの分割（形 `paneTree.ts`・変え方 `paneLayout.ts`・割合 `paneSizes.ts`・位置 `paneGeometry.ts`・境目 `PaneSash`・タブのドラッグ `useTabDrag`） |
 | `tabs/` | タブの種類の表（`tabKinds.ts`）・型（`panelTypes.ts`）・タブの列（`PaneTabBar` / `PaneTab` / `PanelTab` / `PanelTabAdds`）・中身（`PanelTabPage`・`NewChatPane`）・メニューと道具（`TabMenu` / `TabKindsButton` / `TabGroupingButton` / `TabArchiveToggle`） |
 | `clusters/` | タブのまとまり（`useTabClusters`・`tabClusters.ts`・`useTabStrip`・札 `TabClusterHead`・並べ替え `useClusterReorder`） |
-| `board/` `projectChat/` `bottom/` | 欄の殻（大きさ・開閉・ショートカット）: `useBoardPanel` ＋ `usePanelWidth` ＋ `PanelToggle` / `useProjectChat` ＋ `ProjectChat` / `useBottomPanel` ＋ `BottomPanel` |
+| `board/` `projectChat/` `bottom/` `agents/` | 欄の殻（大きさ・開閉・ショートカット）: `useBoardPanel` ＋ `usePanelWidth` ＋ `PanelToggle` / `useProjectChat` ＋ `ProjectChat` / `useBottomPanel` ＋ `BottomPanel` / `AgentSplit`（右の欄。カードの印は `agentTabs.ts` の `useShownInAgentPanel`） |
+| 直下（入れ子） | `panelHost.ts`（パネルの中身からパネルを入れ子にする口 `PanelHostContext`・ピントのある欄 `focusedPanelKey` / `focusInNestedPanel`） |
 
 ## 欄の決まり（`SURFACES`）
 
-欄ごとの違いは作る側・描く側で分岐させず `SURFACES` に集める（覚える名前の頭 `memoryPrefix`・初めに見せるタブの種類 `defaultKinds`・Esc で閉じるか・最後のタブを閉じたら欄も閉じるか・タブがないまま開いたときに始めるもの・開閉を覚える設定・閉じるボタン・大きくする切り替え・タブがないときの案内・ツールバーの置き方のメニュー・クラス）。
+欄ごとの違いは作る側・描く側で分岐させず `SURFACES` に集める（覚える名前の頭 `memoryPrefix`・初めに見せるタブの種類 `defaultKinds`・Esc で閉じるか・最後のタブを閉じたら欄も閉じるか・タブがないまま開いたときに始めるもの・開閉を覚える設定・閉じるボタン・大きくする切り替えとその名前 `maximizeLabels`・タブがないときの案内・ツールバーの置き方のメニュー・出す種類が決まっているか `fixedKinds`・タブの列の左端の欄の名前の札 `heading`・クラス・根のクラス `rootClass`）。
 
-| | ボードの右のパネル `board` | チャット欄 `side` | 下のパネル `bottom` |
-|---|---|---|---|
-| 初めのタブの種類 | チャット | ブラウザ・ターミナル | ターミナル・ブラウザ |
-| Esc で閉じる | 閉じる | 閉じない（文字を打つ欄） | 閉じない（ターミナルで使う） |
-| 最後のタブを閉じたら | 閉じる | 開いたまま | 閉じる |
-| 開いたときに始めるもの | — | 新しいチャット | ターミナル（開く場所が 1 つのとき） |
-| 大きくする | 横幅いっぱい | — | 最大化 |
+| | ボードの右のパネル `board` | チャット欄 `side` | 下のパネル `bottom` | 右の欄 `agents` |
+|---|---|---|---|---|
+| 初めのタブの種類 | チャット | ブラウザ・ターミナル | ターミナル・ブラウザ | サブエージェント（変えられない `fixedKinds`。表示するタブ・新しいタブのボタンを出さない） |
+| Esc で閉じる | 閉じる | 閉じない（文字を打つ欄） | 閉じない（ターミナルで使う） | ピントが中にあるときだけ閉じる（`"focused"`） |
+| 最後のタブを閉じたら | 閉じる | 開いたまま | 閉じる | 閉じる |
+| 開いたときに始めるもの | — | 新しいチャット | ターミナル（開く場所が 1 つのとき） | — |
+| 大きくする | 横幅いっぱい | — | 最大化 | メインを覆う（横幅いっぱい） |
+| 欄の名前の札 | — | — | — | 「✳ サブエージェント」（閉じるボタンのすぐ左。分けているときはマークだけ。タブの列の地も欄の色で薄く染める） |
 
-- 状態は欄・画面ごとに `panelKey(surface, scope)`（`kanban:<プロジェクト | all>`・`side:<プロジェクト>`・`bottom:<プロジェクト | all>`）で覚える。ボードはカンバンとグループのボードで同じパネル（列の分け方を切り替えても開閉・タブ・分割はそのまま）。`memoryPrefix` は下書きの保存のキーにも使うので変えない。
+- 状態は欄・画面ごとに `panelKey(surface, scope)`（`kanban:<プロジェクト | all>`・`side:<プロジェクト>`・`bottom:<プロジェクト | all>`・`agents:<チャット>`）で覚える。右の欄はチャットごとで、移る先の画面はない（`panelScreen` は undefined。チャットの ID をプロジェクトの ID と取り違えない）。ボードはカンバンとグループのボードで同じパネル（列の分け方を切り替えても開閉・タブ・分割はそのまま）。`memoryPrefix` は下書きの保存のキーにも使うので変えない。
 
 ## 状態（`state/`）
 
@@ -34,16 +36,18 @@
 
 ## タブの種類（`tabs/tabKinds.ts`）
 
-種類（`chat` / `new` / `browser` / `terminal`。型は `panelTypes.ts` の `PanelTab`）ごとの違い（キーの決め方・「表示するタブ」のどれに入るか `shows`・アイコンと名前・どのプロジェクトのものか・どのチャットのものか（そのチャットを消したら閉じる）・中身を作る時・閉じたときの後始末（ターミナルはシェルも止める）・どのまとまりに入るか）は、種類で分岐させずに `TAB_KINDS` から引く。チャットのタブのキーは `chatKey(id)`（同じチャットは 1 つのタブ）、ほかは押すたびに新しいキー（`newTabKey`。ターミナルのキーは裏のシェルのキーにも使うので乱数を添える）。
+種類（`chat` / `new` / `browser` / `terminal` / `subagent`。型は `panelTypes.ts` の `PanelTab`）ごとの違い（キーの決め方・「表示するタブ」のどれに入るか `shows`・アイコンと名前・どのプロジェクトのものか・どのチャットのものか（そのチャットを消したら閉じる）・中身を作る時・閉じたときの後始末（ターミナルはシェルも止める）・どのまとまりに入るか）は、種類で分岐させずに `TAB_KINDS` から引く。チャットのタブのキーは `chatKey(id)`（同じチャットは 1 つのタブ）、サブエージェントのタブは `agentTabKey(行のキー)`（その欄に 1 つ）、ほかは押すたびに新しいキー（`newTabKey`。ターミナルのキーは裏のシェルのキーにも使うので乱数を添える）。
+
+- サブエージェントのタブ（`subagentTab`。右の欄だけ）: 名前は開いたときのサブエージェントの名前、名前の前の印は `TabKindSpec.Lead` の部品 `SubagentTabLead`（ツールと同じ状態のアイコン。乗せると状態の文。タブの上の端に、そのサブエージェントの色の線）、中身は `SubagentScreen`（`PAGES.subagent`。チャットの画面の context の中に描かれるので、記録・操作をそのまま使う）。そのチャットを消したら閉じる（`chatIdOf`）。開くのは `panelActions(key).openSubagent`（チャットの画面の操作 `openSubagentSide` から）。
 
 - チャットのタブは吹き出しの代わりに状態の印 `StatusSlot`（サイドバーの行と同じ）を出し、未読・失敗は名前を太字（`.panel-tab.unread`）。名前のダブルクリックでタブの中で名前を変える（`PanelTab` の `onRename` / `editor`。`useChatRename`）。チャットの見出しには名前を出さない。
 - どのグループのチャットかは、タブの名前の後ろに控えめに「· グループ名」（`PanelTab` の `group`、`.panel-tab-group-name`。送る前の新しいチャットは `groupName`）。グループ別にまとめているときは出さない。
-- タブの × は種類による: チャットは `closeChatWithChoice`（表示だけ消す・アーカイブ・削除）、分けたペインのサイドバーと連動したチャットは聞かずに一覧のペインへ戻す、ほかはそのまま閉じる。右クリックは `TabMenu`（右・下に分けて開く・ペイン n へ移す（一覧のペインに「（一覧）」と添える）・一覧のペインに戻す・閉じる。チャットのタブにはチャットのメニューの項目 `ChatMenuItems` も並べる）。
+- タブの × は種類による: チャットは `closeChatWithChoice`（表示だけ消す・アーカイブ・削除）、分けたペインのサイドバーと連動したチャットは聞かずに一覧のペインへ戻す、ほかはそのまま閉じる。右クリックは `TabMenu`（右・下に分けて開く・ペイン n へ移す（チャットを出す欄では、一覧のペインに「（一覧）」と添える）・一覧のペインに戻す・閉じる。チャットのタブにはチャットのメニューの項目 `ChatMenuItems` も並べる）。
 - 新しいチャットのタブ（`NewChatPane`）: 最初のメッセージを送ると、同じペインの同じ位置のまま、できたチャットのタブに置き換わる（`replaceWithChat`）。送信待ちから始めたときは `seed` の文と添付をチャット欄に入れる。新しいチャットの URL は開いたらボードに戻し、ボードを開き直しても増やさない。作業中のチャットがある作業場所に送るときの確かめは `features/worktree/CLAUDE.md`。
 
 ## 表示するタブの種類（`state/panelKinds.ts`）
 
-タブの列の `TabKindsButton`（目のアイコン）で、欄に出すタブの種類（チャット（新しいチャットも）・ブラウザ・ターミナル）をチェックのメニューで付け外しする（`usePanelKinds`。保存は欄ごとの `panelTabKinds(surface)`、未保存なら `SURFACES` の `defaultKinds`。最後の 1 つは外せない）。隠した種類のタブは閉じずに残し（シェル・ページ・書きかけの文を保つ）、タブの列・中身・新しいタブのボタン・`PanelEmpty` に出さない（表示中のタブを隠したら `shownActiveOf` で見せている種類の最初のタブ）。チャットを隠している欄では、まとめ方・アーカイブ済みの切り替え・「チャット」の札・タブのないグループの札も出さず、サイドバーのチャットを読みもしない（表示に戻したらそろえる）。
+タブの列の `TabKindsButton`（目のアイコン）で、欄に出すタブの種類（チャット（新しいチャットも）・ブラウザ・ターミナル。付け外しできるのは `PANEL_KINDS`。右の欄はサブエージェントだけに決まっているので、このメニューを出さない `fixedKinds`）をチェックのメニューで付け外しする（`usePanelKinds`。保存は欄ごとの `panelTabKinds(surface)`、未保存なら `SURFACES` の `defaultKinds`。最後の 1 つは外せない）。隠した種類のタブは閉じずに残し（シェル・ページ・書きかけの文を保つ）、タブの列・中身・新しいタブのボタン・`PanelEmpty` に出さない（表示中のタブを隠したら `shownActiveOf` で見せている種類の最初のタブ）。チャットを隠している欄では、まとめ方・アーカイブ済みの切り替え・「チャット」の札・タブのないグループの札も出さず、サイドバーのチャットを読みもしない（表示に戻したらそろえる）。
 
 ## サイドバーとの連動（`state/linkedTabs.ts`）
 
@@ -93,4 +97,7 @@
 - 幅（`usePanelWidth`。左端のつまみで変えて覚える `PANEL_WIDTH`）: パネルは外枠・角の丸み・影を付けず、ボードとの境目に左の 1 本線だけを引き、開いているときは画面の右・下の余白まで伸ばして端に付ける。開閉ではタブの列と中身を開き終えたときの幅 `--panel-shown` のまま左端にそろえ、パネルの枠で切り取って右から滑り込ませる（動いている間に中身を並べ直さない。切り取りはパネル自身で行い、`.board-body` に `overflow-x: clip` を付けない）。横に残るボードが狭すぎる（`MIN_BOARD_WIDTH`（200px）未満）ならボードを覆う（`covering`）。横幅いっぱいの切り替え（`PANEL_MAXIMIZED`）は覆っているときも隠さず「元の幅に戻す」として出し、押すとボードが残る幅（`fitWidth`）まで縮める。それでもパネルの最小の幅に足りないほど狭ければ押せなくする（`canRestore`）。覆っている・横幅いっぱいのときは `.board-body.panel-full` で見えないボードとの間隔も消す（列の指定はふだんと同じ形のままパネルの幅だけを 100% にする。形を変えると、ブラウザが間をなめらかにつながない）。横幅いっぱいを切り替えて幅が動いている間（`stretching`）は、右端は動かず左端だけが伸び縮みするので、中身を枠の幅に合わせて並べ直す。左端のつまみのドラッグ中は判定で張り付けず指の位置どおりの幅にし、離したときにボードが狭すぎれば覆う。
 - チャット欄（`useProjectChat` ＋ `ProjectChat`）: 画面の右端の、どのタブでも開ける欄（ボードの右のパネルとは別のもの）。全プロジェクトの画面でも開け、そのときはサイドバーで最後に選んでいたプロジェクト（`useCurrentProject`。もうなければ先頭。⌘N の新しいチャットの作成先と同じ）のチャット欄を出す（以前はプロジェクトの画面だけで、全プロジェクトの画面では右上の開閉ボタンごと消えていた）。プロジェクトが 1 つもなければ出さない。App のレイアウトの 3 列目に置き、下のパネルより下まで伸ばす。開閉は右上のレイアウトの開閉（`app/LayoutToggles`）か ⌥⌘B。開閉はプロジェクトごと、幅はアプリ全体（`PROJECT_CHAT_WIDTH`）。真ん中に `--main-min-w` を残すところまでしか広げない（`--chat-shown`）。閉じても要素は残し（幅 0）、書きかけの文をなくさない（閉じ終えたら `visibility: hidden` にし、はみ出した中身のドラッグ領域をボードの上に残さない。`styles/CLAUDE.md`）。幅が狭いので、タブの列は 2 段にする: 上の段（信号機ボタン・右上のレイアウトの開閉と同じ行）にタブ、下の段に道具（DOM は変えず `project-chat.css` の `order` と幅いっぱいの `::before` で折り返し、分けたペインのタブの列の高さ `--split-tabs-h` も 2 段分にする）。
 - 下のパネル（`useBottomPanel` ＋ `BottomPanel`。VS Code の「パネル」と同じ）: どの画面でも ⌃\` / ⌘J で開閉（ターミナルの中で押しても効くよう、ほかより先に受け取る）。高さは上の端のつまみのドラッグ（`BOTTOM_PANEL_HEIGHT`）、最大化と閉じるはタブの列の道具。タブ・開いているかはプロジェクトごと（全プロジェクトの画面は別）。Esc では閉じない。見せている最後のタブを閉じると閉じる（閉じたら最大化もやめる）。閉じても要素は残し（高さ 0。閉じ終えたら `visibility: hidden`）、シェルはメインプロセスで動き続ける。フッターにピントがあるときの ⌘\ で右に分ける。開閉は右上の `LayoutToggles`（下の帯には置かない）。
+- 右の欄（`AgentSplit`。サブエージェントの欄 `agents`）: チャットの画面を、左のメインの会話と右の欄に横に並べる殻（`ChatView` が自分の中身を包む）。右の欄は通常のパネル（タブ・上下左右の分割・タブのドラッグ・境目・⌘\・タブの右クリック）をチャットのタブの中に入れ子にしたもの。幅は左端のつまみのドラッグで変えて覚え（`SUBAGENT_PANEL_WIDTH`。アプリ全体）、メインの残りが `MIN_MAIN_WIDTH`（320px）より狭くなる幅まで広げる・チャットのタブが狭いときは右の欄でメインを覆う。タブの列の道具の「メインを覆う / メインと並べる」（`SUBAGENT_PANEL_MAXIMIZED`）でも切り替える。覆っている間、メインは描いたまま隠す（`inert`・覆い終えたら `visibility: hidden`）。流れの中のカードへ移るとき（`revealSubagent`・`show`）は並べる形に戻し、狭くて戻せなければ右の欄を閉じる（`SidePanelHandle.uncover`）。一度タブを開いたら閉じても右の欄の中身を残す（入力中の文・読んでいた位置）。パネルの外（`PanelHostContext` がない）では置かない。
+- 幅と覆う決まり（`hooks/useCoverableWidth`）はボードの右のパネル（`usePanelWidth`）と共通: 欄の幅・横幅いっぱい・残す側が狭すぎれば覆う（`leavesNarrowRest`）・元の幅に戻すときは残す側が入る幅まで縮める（`fitWidth` / `canRestore`）・開閉で動いている間は開き終えたときの幅（`shownVar`）のまま切り取る。
+- 入れ子のパネル: `Panel` が自分の中身に `PanelHostContext` で自分を渡し、チャットの画面はそこから受け取って右の欄を描く（Panel → `PanelTabPage` → チャットの画面 → Panel と import すると輪になるため）。根のクラスは `rootClass`（`agent-panel`。外側の `.board-panel` の規則が効かないように）、根に `data-panel-key`。キーは、ピントのあるいちばん内側の欄だけが受け取る（⌘\ は `focusedPanelKey()` がその欄のときだけ、外側の欄の Esc は `focusInNestedPanel` なら内側に任せる）。タブのドラッグは欄ごとの `dragging` で受けるので、欄をまたいで移らない。外側の欄のタブの列の CSS（チャット欄・フッター）は `:not(:where(.agent-panel *))` で内側に効かせない（`styles/CLAUDE.md`）。
 - 欄の開閉の動きは `--panel-motion-duration` / `--panel-motion-ease` にそろえる（`styles/CLAUDE.md`）。

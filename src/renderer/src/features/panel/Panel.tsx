@@ -16,6 +16,7 @@ import type { PanelController } from "./usePanel";
 import { useBoardHeaderLayoutMenu } from "@/features/board/useBoardHeaderLayoutMenu";
 import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
 import { SURFACES } from "./surfaces";
+import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { specOf } from "@/features/panel/tabs/tabKinds";
 
 /**
@@ -48,12 +49,13 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   // ブラウザ・ターミナルを開く（ターミナルの開く場所の決め方と、開く場所を選ぶメニュー・▾ のメニュー）
   const openWith = useOpenWithMenu(panel);
 
-  // ⌘\ で、ピントのあるペインを右に分ける（パネルの中にピントがあるとき。下のパネルの ⌘\ はそちらにピントがあるときだけ）
+  // ⌘\ で、ピントのあるペインを右に分ける（パネルの中にピントがあるとき。下のパネルの ⌘\ はそちらにピントがあるときだけ。
+  // チャットの中の右の欄（入れ子のパネル）にピントがあるときは、いちばん内側の欄だけが分ける）
   useWindowEvent(
     "keydown",
     (e) => {
       if (!e.metaKey || e.altKey || e.ctrlKey || e.shiftKey || e.code !== "Backslash") return;
-      if (!asideRef.current?.contains(document.activeElement)) return;
+      if (focusedPanelKey() !== panel.key) return;
       e.preventDefault();
       const pane = focusedPane(layout);
       panel.splitPane(pane.id, "row", "after", pane.tabs.length > 1 ? (pane.active ?? undefined) : undefined);
@@ -92,8 +94,8 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   );
   const empty = (pane: PaneLeaf) => (
     <PanelEmpty
-      // 分けたペインには、案内の代わりに新しいチャットも出す
-      hint={split ? undefined : rules.emptyHint}
+      // 分けたペインには、案内の代わりに新しいチャットも出す（チャットを出さない欄（サブエージェントの欄）は、分けたペインにも案内を出す）
+      hint={split && panel.kinds.has("chat") ? undefined : rules.emptyHint}
       kinds={panel.kinds}
       hasTerminals={terminals.length > 0}
       manyTerminals={terminals.length > 1}
@@ -105,7 +107,8 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const rectOf = new Map(panes.map((p) => [p.id, p.rect]));
 
   return (
-    <aside ref={asideRef} className={cx("board-panel", rules.className)} aria-hidden={!panelOpen}>
+    <PanelHostContext.Provider value={Panel}>
+    <aside ref={asideRef} className={cx(rules.rootClass ?? "board-panel", rules.className)} aria-hidden={!panelOpen} data-panel-key={panel.key}>
       {frame?.resizeHandle && <div inert={!panelOpen} className="panel-resizer" aria-label="パネルの幅を変える" {...frame.resizeHandle} />}
       {!split && bar(leaves[0])}
       <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing")} inert={!panelOpen}>
@@ -176,5 +179,6 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
       </div>
       {tabMenu.menu && <TabMenu panel={panel} tabKey={tabMenu.menu.value} at={tabMenu.menu.at} onRename={(chat) => rename.start(chat)} onClose={tabMenu.close} />}
     </aside>
+    </PanelHostContext.Provider>
   );
 }

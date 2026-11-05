@@ -21,15 +21,15 @@ import { agentHues } from "./agentHues";
 
 /**
  * チャット欄の上の「サブエージェント N 件」（流れの中のカードの目次）。押すと一覧が開き（入れ子は親のすぐ下に字下げして並べる）、
- * 行を押すと、流れの中のそのサブエージェントのカードへ移って開く（入れ子なら外側のカードも開く）
+ * 行を押すと、そのサブエージェントを設定の開き方で開く（流れの中 = カードへ移って開く。入れ子なら外側のカードも開く / 右の欄 = 右の欄にその画面を開く）
  */
 export function SubagentChip({ entries, chat, busy, models }: { entries: SubagentEntry[]; chat: Chat; busy: boolean; models: ModelOption[] }) {
   const popover = usePopover();
   const { open, setOpen } = popover;
   const pane = useChatPane();
-  /** カードへ移って開き、一覧を閉じる（key = 一覧の行のキー） */
+  /** 設定の開き方（流れの中のカード / 右の欄）で開き、一覧を閉じる（key = 一覧の行のキー） */
   const openRow = (key: string) => {
-    pane.revealSubagent(key);
+    pane.openSubagent(key);
     setOpen(false);
   };
   // 最後の動きの表示を進める（開いている間だけ）

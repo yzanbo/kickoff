@@ -4,7 +4,7 @@ import { makeChat } from "@shared/testing/factories";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelTab } from "./panelTypes";
-import { browserTab, chatTab, kindOfTab, newChatTab, specOf, tabChat, terminalTab, type ClusterResolver } from "./tabKinds";
+import { agentTabKey, browserTab, chatTab, kindOfTab, newChatTab, specOf, subagentTab, tabChat, terminalTab, type ClusterResolver } from "./tabKinds";
 
 const head = (key: string): BucketHead => ({ key, kind: "group", label: key });
 const target = { cwd: "/repo/a", label: "a", projectId: 3 };
@@ -59,4 +59,14 @@ test("まとまり: チャットはチャットの（分からなければ作成
   assert.equal(of(newChatTab({ projectId: 2, group: 4 })), "target:2:4");
   assert.equal(of(terminalTab(target)), "folder:3:/repo/a");
   assert.equal(specOf(browserTab()).cluster(browserTab(), resolve), OTHER_CLUSTER);
+});
+
+test("サブエージェントのタブ: 同じサブエージェントは 1 つのタブ、表示の種類はサブエージェント、名前は開いたときの名前、そのチャットを消したら閉じる", () => {
+  const tab = subagentTab({ chatId: 33, agentKey: "toolu_1", title: "調査" });
+  assert.equal(tab.key, agentTabKey("toolu_1"));
+  assert.equal(subagentTab({ chatId: 33, agentKey: "toolu_1", title: "名前が変わった" }).key, tab.key);
+  assert.equal(kindOfTab(tab), "subagent");
+  assert.equal(specOf(tab).label(tab, undefined), "調査");
+  assert.equal(specOf(tab).chatIdOf?.(tab), 33);
+  assert.equal(specOf(tab).projectOf(tab), undefined);
 });

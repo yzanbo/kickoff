@@ -74,7 +74,10 @@
   text-overflow: ellipsis;
 }
 
+/* 「1 件失敗」は狭い欄でも 1 文字ずつ折り返さない（要約・時刻の方を縮める） */
 .tool-failed {
+  flex: none;
+  white-space: nowrap;
   color: var(--ng);
 }
 

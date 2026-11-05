@@ -1,12 +1,15 @@
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type UIEvent } from "react";
+import { MessagesSquare, PanelRight } from "lucide-react";
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type UIEvent } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/lib/cx";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { formatStamp } from "@/lib/time";
 import { useChatPane, useChatPaneState } from "@/features/chat/pane/chatPaneContext";
 import { useSubagentsView } from "@/features/chat/subagents/subagentsContext";
 import { childrenOf, type SubagentTree } from "@/features/chat/subagents/subagentTree";
 import { agentHueStyle } from "@/features/chat/subagents/agentHues";
-import { activityRows, filterActivity, type ActivityFilter, type ActivityRow } from "./activityRows";
+import { activityRows, agentTargetOf, filterActivity, type ActivityFilter, type ActivityRow } from "./activityRows";
 import { layoutRails } from "./activityRails";
 import { ActivityLine } from "./ActivityLine";
 
@@ -25,6 +28,8 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const view = useSubagentsView();
   const pane = useChatPane();
   const filter = useChatPaneState((s) => s.activityFilter) ?? ALL;
+  // サブエージェントの行の右クリック: 開き方を選ぶ（流れの中のカード / 右の欄）
+  const menu = useContextMenu<{ key: string; eventId?: number }>();
   const [limit, setLimit] = useState(ACTIVITY_WINDOW);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const events = view?.events;
@@ -60,11 +65,24 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
       if (!next.delete(key)) next.add(key);
       return next;
     });
-  // 行を押したら会話のその場所へ（起動・終わり・いまの動きの行は、そのサブエージェントのカードへ）
+  // 行を押したら会話のその場所へ。サブエージェントの行は設定の開き方で（流れの中 = そのカードの中へ / 右の欄 = 右の欄のその画面の中へ。
+  // 起動・終わり・いまの動きの行は、そのサブエージェントを開く）
   const open = (row: ActivityRow, eventId = row.eventId) => {
-    if (row.kind === "launch" && row.child) return pane.revealSubagent(row.child);
-    if ((row.kind === "end" || row.kind === "now") && row.agent !== null) return pane.revealSubagent(row.agent);
-    pane.revealInConversation(eventId, row.agent);
+    const target = agentTargetOf(row, eventId);
+    if (target) pane.openSubagent(target.key, target.eventId);
+    else pane.revealInConversation(eventId, null);
+  };
+  // 右クリック（サブエージェントの行で、右の欄を置ける画面だけ）: 設定によらず、どちらで開くかを選ぶ
+  const openMenu = (row: ActivityRow, e: MouseEvent, eventId = row.eventId) => {
+    const target = agentTargetOf(row, eventId);
+    if (target && pane.canOpenSide) menu.open(e, target);
+  };
+  // 行の右端の 2 つのボタン（右クリックのメニューと同じ）: 会話の流れの中で見る / 右の欄で開く
+  const pick = (row: ActivityRow, where: "inline" | "side") => {
+    const target = agentTargetOf(row);
+    if (!target) return;
+    if (where === "side") pane.openSubagentSide(target.key, target.eventId);
+    else pane.revealSubagent(target.key, target.eventId);
   };
   const running = [...tree.byKey.values()].filter((s) => s.status === "running").length;
   // 別の日の行があれば、時刻の欄を日付の入る幅に（すべての行で同じ幅にそろえる）
@@ -93,10 +111,22 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
               expanded={expanded.has(row.key)}
               onToggle={toggle}
               onOpen={open}
+              onMenu={openMenu}
+              onPick={pane.canOpenSide ? pick : undefined}
             />
           ))}
         </div>
       </div>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="サブエージェントの開き方" onClose={menu.close}>
+          <MenuItem onSelect={() => pane.revealSubagent(menu.menu!.value.key, menu.menu!.value.eventId)}>
+            <MessagesSquare size={14} /> 会話の流れの中で見る
+          </MenuItem>
+          <MenuItem onSelect={() => pane.openSubagentSide(menu.menu!.value.key, menu.menu!.value.eventId)}>
+            <PanelRight size={14} /> 右の欄で開く
+          </MenuItem>
+        </PopupMenu>
+      )}
     </div>
   );
 }

@@ -1,0 +1,127 @@
+/* ==== チャットの画面の右の欄（サブエージェントの欄。AgentSplit と Panel の agents。中身は chat/subagent-screen.css） ==== */
+
+/*
+ * 左にメインの会話、右に右の欄を横に並べる。右の欄の列の幅は --agents-w（左端のつまみのドラッグ。useCoverableWidth）で、
+ * メインを覆うときは 100vw を入れて、並べる要素いっぱい（メインの列は 0）にする。開閉は列の幅の動きで見せる
+ */
+.chat-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0px;
+  height: 100%;
+  min-height: 0;
+  transition: grid-template-columns var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.chat-split.with-agents {
+  grid-template-columns: minmax(0, 1fr) min(var(--agents-w, 520px), 100%);
+}
+
+/* 幅をドラッグで変えている間は、動きを止めて指に追従させる */
+.chat-split.resizing {
+  transition: none;
+  user-select: none;
+}
+
+.chat-split-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 右の欄がメインを覆っている間は、覆い終えたらメインを隠す（描いたまま残す。見出しのドラッグ領域も残さない） */
+.chat-split.agents-full > .chat-split-main {
+  visibility: hidden;
+  transition: visibility 0s linear var(--panel-motion-duration);
+}
+
+/*
+ * 右の欄の根（パネルの根。外側の欄の .board-panel の規則が効かないよう別の名前）。メインとの境目に左の 1 本線。
+ * 閉じたら閉じ終えてから隠す（右の欄の中身を開いたときの幅のまま置いて切り取るので、閉じた後もはみ出した中身が押せる場所に残らないように）
+ */
+.agent-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  visibility: hidden;
+  transition: visibility 0s linear var(--panel-motion-duration);
+}
+
+.chat-split.with-agents > .agent-panel {
+  visibility: visible;
+  transition: visibility 0s;
+}
+
+/* メインを覆っているときは、境目の線を消す */
+.chat-split.agents-full > .agent-panel {
+  border-left-color: transparent;
+}
+
+/*
+ * 開閉で列の幅が動いている間も、タブの列と中身は開き終えたときの幅（--agents-shown から左の線の分を引く）のまま左端にそろえて置き、
+ * 右の欄の枠で切り取る（右から滑り込んでくる）。幅をドラッグしている間・覆う / 並べるを切り替えている間は、枠に合わせる
+ */
+.agent-panel > .panel-tabs,
+.agent-panel > .panel-content {
+  width: calc(var(--agents-shown, calc(100% + 1px)) - 1px);
+}
+
+.chat-split.resizing > .agent-panel > .panel-tabs,
+.chat-split.resizing > .agent-panel > .panel-content,
+.chat-split.stretching > .agent-panel > .panel-tabs,
+.chat-split.stretching > .agent-panel > .panel-content {
+  width: auto;
+}
+
+/* 左端のつまみ: ドラッグしている間も、乗せたときと同じ青い線を出す（base/layout.css の .panel-resizer:hover と同じ） */
+.chat-split.resizing > .agent-panel > .panel-resizer {
+  background: linear-gradient(var(--info), var(--info)) left / 2px 100% no-repeat;
+}
+
+/*
+ * 外側のパネルを分けているときの、ピントのあるペインの印（チャット欄の枠の色。side-panel-split.css）は、右の欄の中の入力欄には付けない。
+ * 右の欄の中を分けたときは、右の欄の中のピントのあるペインの入力欄にだけ付ける
+ */
+.panel-tab-page.pane-focused .agent-panel .composer {
+  border-color: var(--border-strong);
+}
+
+.agent-panel .split-view > .panel-tab-page.pane-focused .composer {
+  border-color: color-mix(in srgb, var(--info) 60%, var(--border-strong));
+}
+
+/*
+ * サブエージェントの欄だと見て分かるように: 欄の色（--agents-tone。実行中のサブエージェントのアイコンと同じ Claude の橙）で、
+ * タブの列の左端に「サブエージェント」の札（閉じるボタンのすぐ左。分けているときはマークだけ）を置き、タブの列の地を薄く染める
+ */
+.agent-panel {
+  --agents-tone: #d97757;
+}
+
+:root[data-theme="light"] .agent-panel {
+  --agents-tone: #c15f3c;
+}
+
+.agent-panel .panel-tabs {
+  background: color-mix(in srgb, var(--agents-tone) 6%, var(--bg));
+}
+
+.agent-panel .panel-heading {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  margin-top: 3px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--agents-tone);
+  background: color-mix(in srgb, var(--agents-tone) 16%, transparent);
+}
