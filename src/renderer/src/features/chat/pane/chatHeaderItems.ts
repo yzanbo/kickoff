@@ -11,7 +11,7 @@ export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
   group: "グループ",
   showing: "会話 / 動きの切り替え",
   textWidth: "文の幅",
-  fontSize: "文字の大きさ",
+  fontSize: "会話の文字の大きさ",
   sticky: "指示の帯の表示",
   find: "検索欄",
   turns: "ターン数",
