@@ -46,13 +46,14 @@ export const newChatTab = (target: NewChatTarget, seed?: NewChatSeed, key = newT
 /** サブエージェントのタブのキー（同じサブエージェントは、その欄に 1 つのタブ） */
 export const agentTabKey = (agentKey: string) => `agent:${agentKey}`;
 
-/** サブエージェントの画面のタブ（チャットの画面の右の欄に開く。agentKey は一覧の行のキー） */
-export const subagentTab = ({ chatId, agentKey, title }: { chatId: number; agentKey: string; title: string }): TabOf<"subagent"> => ({
+/** サブエージェントの画面のタブ（チャットの画面の右の欄に開く。agentKey は一覧の行のキー。path は入れ子のときの外側からの道筋） */
+export const subagentTab = ({ chatId, agentKey, title, path }: { chatId: number; agentKey: string; title: string; path?: string }): TabOf<"subagent"> => ({
   key: agentTabKey(agentKey),
   kind: "subagent",
   chatId,
   agentKey,
   title,
+  ...(path ? { path } : {}),
 });
 
 /** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
@@ -141,7 +142,9 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     shows: "subagent",
     icon: Bot,
     Lead: SubagentTabLead,
-    label: (t) => t.title,
+    // サブエージェントの中で起動したもの（入れ子）は「↳」を付け、乗せると外側からの道筋（「調査 › 洗い出し」）
+    label: (t) => (t.path ? `↳ ${t.title}` : t.title),
+    hint: (t) => t.path ?? t.title,
     projectOf: () => undefined,
     // そのチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
     chatIdOf: (t) => t.chatId,

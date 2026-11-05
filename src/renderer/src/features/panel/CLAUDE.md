@@ -38,7 +38,7 @@
 
 種類（`chat` / `new` / `browser` / `terminal` / `subagent`。型は `panelTypes.ts` の `PanelTab`）ごとの違い（キーの決め方・「表示するタブ」のどれに入るか `shows`・アイコンと名前・どのプロジェクトのものか・どのチャットのものか（そのチャットを消したら閉じる）・中身を作る時・閉じたときの後始末（ターミナルはシェルも止める）・どのまとまりに入るか）は、種類で分岐させずに `TAB_KINDS` から引く。チャットのタブのキーは `chatKey(id)`（同じチャットは 1 つのタブ）、サブエージェントのタブは `agentTabKey(行のキー)`（その欄に 1 つ）、ほかは押すたびに新しいキー（`newTabKey`。ターミナルのキーは裏のシェルのキーにも使うので乱数を添える）。
 
-- サブエージェントのタブ（`subagentTab`。右の欄だけ）: 名前は開いたときのサブエージェントの名前、名前の前の印は `TabKindSpec.Lead` の部品 `SubagentTabLead`（ツールと同じ状態のアイコン。乗せると状態の文。タブの上の端に、そのサブエージェントの色の線）、中身は `SubagentScreen`（`PAGES.subagent`。チャットの画面の context の中に描かれるので、記録・操作をそのまま使う）。そのチャットを消したら閉じる（`chatIdOf`）。開くのは `panelActions(key).openSubagent`（チャットの画面の操作 `openSubagentSide` から）。
+- サブエージェントのタブ（`subagentTab`。右の欄だけ）: 名前は開いたときのサブエージェントの名前（サブエージェントの中で起動したもの（入れ子）は頭に「↳」、乗せると外側からの道筋「調査 › 洗い出し」。開いたときに `path` として持つ）、名前の前の印は `TabKindSpec.Lead` の部品 `SubagentTabLead`（ツールと同じ状態のアイコン。乗せると状態の文。タブの上の端に、そのサブエージェントの色の線）、中身は `SubagentScreen`（`PAGES.subagent`。チャットの画面の context の中に描かれるので、記録・操作をそのまま使う）。そのチャットを消したら閉じる（`chatIdOf`）。開くのは `panelActions(key).openSubagent`（チャットの画面の操作 `openSubagentSide` から）。
 
 - チャットのタブは吹き出しの代わりに状態の印 `StatusSlot`（サイドバーの行と同じ）を出し、未読・失敗は名前を太字（`.panel-tab.unread`）。名前のダブルクリックでタブの中で名前を変える（`PanelTab` の `onRename` / `editor`。`useChatRename`）。チャットの見出しには名前を出さない。
 - どのグループのチャットかは、タブの名前の後ろに控えめに「· グループ名」（`PanelTab` の `group`、`.panel-tab-group-name`。送る前の新しいチャットは `groupName`）。グループ別にまとめているときは出さない。

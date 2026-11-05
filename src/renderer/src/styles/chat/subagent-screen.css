@@ -31,22 +31,6 @@
   background: color-mix(in srgb, var(--agent-color) 9%, var(--bg));
 }
 
-/*
- * 名前の前の「サブエージェント」の札（そのサブエージェントの色。右の欄の画面の見出しと、流れの中のカードの見出しで同じ）。
- * 狭い見出しでは名前を残すために隠す（カード・見出しの幅で決める @container）
- */
-.subagent-kind {
-  flex: none;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 18px;
-  white-space: nowrap;
-  color: var(--agent-color);
-  background: color-mix(in srgb, var(--agent-color) 16%, transparent);
-}
-
 /* 右の欄のタブの名前の前の状態のアイコンと、タブの上の端の、そのサブエージェントの色の線（SubagentTabLead。線はタブいっぱいに引く） */
 .subagent-tab-lead {
   --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
@@ -178,45 +162,6 @@
   padding: 4px 0;
 }
 
-/* 右の欄で表示している、流れの中のカードの印（見出しの名前の後ろ。アクセントの色の控えめな札） */
-.subagent-card-side {
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 11px;
-  line-height: 18px;
-  color: var(--accent-fg);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
-/*
- * 狭い欄（右の欄を分けたペインなど）でも名前が消えないよう、カードの見出し・画面の見出しは名前を先に残し、
- * 種類・「右の欄で表示中」・時刻から縮める（以前は名前だけが縮み、「general-purpose 失敗」だけが見えた）。状態の文は折り返さない
- */
-:is(.subagent-card-title, .subagent-screen-title) > :is(.subagent-card-name, .subagent-screen-name) {
-  flex: 0 1 auto;
-  min-width: 3em;
-}
-
-:is(.subagent-card-title, .subagent-screen-title) > :is(.subagent-card-type, .subagent-card-side) {
-  flex: 0 100 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-:is(.subagent-card-title, .subagent-screen-title) > .subagent-status {
-  flex: none;
-  white-space: nowrap;
-}
-
-:is(.subagent-card-head, .subagent-screen-title) > .tool-time {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 /*
  * 動きのサブエージェントの行の右端の 2 つのボタン（会話の流れの中で見る / 右の欄で開く。ActivityLine）。行が多いので、
  * 乗せた行・ピントのある行にだけ出し、行の右端（かかった時間）の上に重ねる（出し入れで行の文の幅を変えない）
@@ -247,16 +192,4 @@
 /* ボタンに乗せている間も、行は乗せたときの地のまま */
 .activity-head:hover > .activity-line {
   background: var(--bg-hover);
-}
-
-/* 札を隠すかを、カード・画面の見出しの幅で決める（狭いペインや狭いチャット欄では名前を優先する） */
-.subagent-card,
-.subagent-screen-head {
-  container: subagent-head / inline-size;
-}
-
-@container subagent-head (max-width: 440px) {
-  .subagent-kind {
-    display: none;
-  }
 }

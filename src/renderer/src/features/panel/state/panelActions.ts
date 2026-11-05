@@ -54,7 +54,7 @@ export function panelActions(key: string) {
       openTab(chatTab(chat, focus), focus ? { kind: "chat", fields: { focus } } : undefined),
     openNew,
     /** サブエージェントの画面をタブで開く（チャットの画面の右の欄。同じサブエージェントのタブがあればそのペインで表示する） */
-    openSubagent: (target: { chatId: number; agentKey: string; title: string }) => openTab(subagentTab(target)),
+    openSubagent: (target: { chatId: number; agentKey: string; title: string; path?: string }) => openTab(subagentTab(target)),
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => openTab(browserTab(url)),
     openTerminal,

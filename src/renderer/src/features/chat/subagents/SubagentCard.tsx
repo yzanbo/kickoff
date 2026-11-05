@@ -15,7 +15,18 @@ import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 import { useSubagentsView, type SubagentsView } from "./subagentsContext";
 import { childrenOf, pathOf } from "./subagentTree";
-import { NowLine, SubagentPrompt, SubagentReport, SubagentSteps, SubagentTime, Summary, useSubagentItems, type RenderItems } from "./subagentParts";
+import {
+  NowLine,
+  SubagentChildRows,
+  SubagentKind,
+  SubagentPrompt,
+  SubagentReport,
+  SubagentSteps,
+  SubagentTime,
+  Summary,
+  useSubagentItems,
+  type RenderItems,
+} from "./subagentParts";
 
 /** 字下げをやめる深さ（これより深い入れ子は字下げせず、見出しに外側からの道筋を添える） */
 const FLAT_DEPTH = 3;
@@ -78,7 +89,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
               ›{" "}
             </span>
           )}
-          <span className="subagent-kind">サブエージェント</span>
+          <SubagentKind entry={entry} view={view} />
           <span className="subagent-card-name">{entry.description}</span>
           <span className="subagent-card-type">{entry.subagentType ?? "general-purpose"}</span>
           {showsSubagentStatus(entry) && (
@@ -141,6 +152,10 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
           )}
         </span>
       </div>
+      {/* 閉じているときは、中で起動したサブエージェントを木の枝の形で並べる（開くと中にカードが並ぶので出さない） */}
+      {!open && pane && (
+        <SubagentChildRows entry={entry} view={view} onOpen={(k) => pane.openSubagent(k)} onMore={() => pane.toggleSubagent(key, true)} />
+      )}
       {open && <SubagentCardBody entry={entry} view={view} renderItems={renderItems} windowed={depth === 0} />}
     </div>
   );

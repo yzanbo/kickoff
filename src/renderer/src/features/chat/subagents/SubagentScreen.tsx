@@ -15,7 +15,18 @@ import { TimelineItems } from "@/features/chat/timeline/Timeline";
 import { SubagentActions } from "./SubagentActions";
 import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
-import { NowLine, SubagentPrompt, SubagentReport, SubagentSteps, SubagentTime, Summary, useSubagentItems, type RenderItems } from "./subagentParts";
+import {
+  NowLine,
+  SubagentChildren,
+  SubagentKind,
+  SubagentPrompt,
+  SubagentReport,
+  SubagentSteps,
+  SubagentTime,
+  Summary,
+  useSubagentItems,
+  type RenderItems,
+} from "./subagentParts";
 import { useSubagentsView, type SubagentsView } from "./subagentsContext";
 import { childrenOf, pathOf } from "./subagentTree";
 
@@ -103,9 +114,18 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
         <span className={cx("subagent-icon", running && "spinning")}>
           <ClaudeMark size={15} />
         </span>
-        <span className="subagent-kind">サブエージェント</span>
+        <SubagentKind entry={entry} view={view} />
         <span className="subagent-screen-name">{entry.description}</span>
         <span className="subagent-card-type">{entry.subagentType ?? "general-purpose"}</span>
+        {/* 中に子がいれば。押すと、この画面の中の最初の子のカードへ移る */}
+        <SubagentChildren
+          entry={entry}
+          view={view}
+          onOpen={() => {
+            const first = childrenOf(view.tree, entry.key)[0]?.toolUseEventId;
+            if (first !== undefined) pane.openSubagentSide(entry.key, first);
+          }}
+        />
         {showsSubagentStatus(entry) && (
           <span className={cx("subagent-status", subagentStatusClass(entry))} title={subagentStatusTitle(entry)}>
             {subagentStatusLabel(entry)}
