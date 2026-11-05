@@ -1,5 +1,6 @@
 import { readSetting, writeSetting } from "@/lib/storage";
 import { NEW_CHAT_DRAFTS } from "@/lib/storageKeys";
+import { panelKey } from "@/features/panel/surfaces";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
 
 /** 送る前の新しいチャットのタブ */
@@ -19,6 +20,25 @@ export function readSavedDrafts(): Map<string, DraftTab[]> {
   for (const [panel, tabs] of Object.entries(readSetting(NEW_CHAT_DRAFTS))) {
     const drafts = Array.isArray(tabs) ? tabs.filter(isDraftTab) : [];
     if (drafts.length > 0) out.set(panel, drafts);
+  }
+  return out;
+}
+
+/**
+ * 全プロジェクトのボードの右のパネル（いまは持たない。チャットはそのプロジェクトへ移って開く）に残っていた下書きを、
+ * 作成先のプロジェクトのボードのパネルへ移す（そのパネルの下書きの後ろに足す。同じタブがすでにあれば重ねない）。
+ * 開けない欄に下書きが残り続けないように、読み戻すときに 1 度だけ行う。移すものがなければ同じ Map を返す
+ */
+export function moveAllProjectsBoardDrafts(saved: ReadonlyMap<string, DraftTab[]>): ReadonlyMap<string, DraftTab[]> {
+  const from = panelKey("board", "all");
+  const stray = saved.get(from);
+  if (!stray) return saved;
+  const out = new Map(saved);
+  out.delete(from);
+  for (const tab of stray) {
+    const to = panelKey("board", tab.projectId);
+    const tabs = out.get(to) ?? [];
+    if (!tabs.some((t) => t.key === tab.key)) out.set(to, [...tabs, tab]);
   }
   return out;
 }

@@ -31,7 +31,7 @@ interface Options {
   newChat: NewChatTarget | undefined;
   /** 開けるターミナルの場所（Mac のアプリでだけ使う。チャットを表示しているペインでは、そのチャットの作業場所で開く） */
   terminals: readonly TerminalTarget[];
-  /** 全プロジェクトの画面では、新しいチャットのプロジェクトを選べるようにする */
+  /** 全プロジェクトの画面のフッターでは、新しいチャットのプロジェクトを選べるようにする（全プロジェクトのボードはパネルを持たない） */
   projects?: Project[];
   /** 新しいチャットができたとき（URL をそのチャットにするなど） */
   onCreated?: (chat: Chat) => void;

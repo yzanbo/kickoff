@@ -117,6 +117,11 @@
   font-size: 12px;
 }
 
+/* 全プロジェクトのボードでは、どのプロジェクトの下書きかを右端のバッジで示す（長い名前は省く） */
+.draft-card-head .project-chip {
+  margin-left: auto;
+}
+
 /* 書いている途中の文（初めの 3 行まで） */
 .draft-card-text {
   display: -webkit-box;

@@ -49,19 +49,20 @@ interface Props {
   viewOptions?: ReactNode;
   /** 表示のまとまりの先頭に置く、列の分け方の切り替え（プロジェクトのボードだけ。状態 / グループ） */
   columns?: ReactNode;
-  panel: PanelController;
+  /** 右のパネル（右端に開閉のボタンを置く。プロジェクトのボードだけ。全プロジェクトのボードはチャットをそのプロジェクトで開くので持たない） */
+  panel?: PanelController;
 }
 
 /**
  * ボード（全プロジェクトのカンバン・プロジェクトのカンバン・グループ）の見出し。道具を概念ごとにまとめて並べる:
  * 左に 主な操作（新規） / 表示（ボード・リスト） / 整える（グループを作成） / 探す・絞り込む（検索・絞り込み・アーカイブの表示）、
- * 右に パネルの開閉（ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
+ * 右に パネルの開閉（右のパネルのあるプロジェクトのボードだけ。ブラウザ・ターミナルは、パネルのタブの列の＋から開く）
  */
 export function BoardHeader({ heading, query, onQuery, filters, organize, primary, view, onView, viewOptions, columns, panel }: Props) {
   // ツールバーを「パネル優先」にしてパネルを開いているときは、パネルが上端まで伸びてそのタブの列の左端に閉じるがあるので、
   // ツールバーの右端の開閉は出さない（すぐ隣に同じボタンが 2 つ並んでいた）。閉じているときは開くために出す
   const [headerLayout] = useBoardHeaderLayout();
-  const showToggle = !(headerLayout === "beside" && panel.panelOpen);
+  const showToggle = !(headerLayout === "beside" && panel?.panelOpen);
   return (
     <div className="board-header">
       {heading && (
@@ -99,7 +100,7 @@ export function BoardHeader({ heading, query, onQuery, filters, organize, primar
           {filters}
         </div>
       </div>
-      {showToggle && (
+      {panel && showToggle && (
         <div className="board-tools board-tools-end">
           <div className="board-tool-group">
             <PanelToggle panel={panel} />

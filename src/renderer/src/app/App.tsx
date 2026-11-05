@@ -22,7 +22,7 @@ import { DiagnosticsIndicator } from "@/features/diagnostics/DiagnosticsIndicato
 import { HoverTip } from "@/ui/HoverTip";
 import { OPEN_SETTINGS_EVENT } from "@/features/settings/openSettings";
 import { Sidebar, SidebarOpenButton } from "@/features/sidebar/Sidebar";
-import { useCurrentProject } from "@/features/sidebar/currentProject";
+import { useFallbackProject } from "@/features/sidebar/currentProject";
 import { useSidebar } from "@/features/sidebar/useSidebar";
 import { terminalTargets } from "@/features/panel/usePanel";
 import { DialogHost } from "@/ui/dialogs";
@@ -78,9 +78,8 @@ export function App() {
   const routeProject = routeProjectId(route);
   const projectId = missingProject(routeProject) ? undefined : routeProject;
   // URL にプロジェクトがない画面（全プロジェクト）で使うプロジェクト: サイドバーで最後に選んでいたもの（もうなければ先頭）。
-  // ⌘N の新しいチャットの作成先と、チャット欄の持ち主
-  const currentProject = useCurrentProject();
-  const fallbackProject = (missingProject(currentProject) ? undefined : currentProject) ?? projects[0]?.id;
+  // ⌘N の新しいチャットの作成先と、チャット欄の持ち主（全プロジェクトのボードの「新規」も同じ）
+  const fallbackProject = useFallbackProject();
   // 下のパネルのターミナル（プロジェクトごと。全プロジェクトの画面ではすべてのプロジェクトのものを出し、開くときにプロジェクトを選ぶ）
   // プロジェクトのチャット欄（画面の右端に、下のパネルより下まで。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの）
   const chat = useProjectChat(projectId ?? fallbackProject);

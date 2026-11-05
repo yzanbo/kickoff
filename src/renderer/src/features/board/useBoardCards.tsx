@@ -14,11 +14,14 @@ import { useContextMenu } from "@/ui/useContextMenu";
 export const useCardMenu = () => useContextMenu<Chat>();
 
 interface Options {
-  panel: PanelController;
+  /** 右のパネル（表示中のチャットのカードを選択中に見せる。全プロジェクトのボードはパネルを持たない） */
+  panel?: PanelController;
   rename: ReturnType<typeof useChatRename>;
   menu: ReturnType<typeof useCardMenu>;
-  /** カードを押したとき（パネルで開く。プロジェクトのボードは URL も変える） */
+  /** カードを押したとき（プロジェクトのボードはパネルで開いて URL も変える。全プロジェクトのボードはそのプロジェクトへ移って開く） */
   onOpen: (chat: Chat) => void;
+  /** 押すと何が起きるかの説明（乗せたときに出す。全プロジェクトのボードの「プロジェクト「○○」で開く」） */
+  openTitle?: (chat: Chat) => string | undefined;
   /** ドラッグで移せるボード（グループのボード）だけ。hint は読み上げの「（ドラッグで…）」 */
   drag?: { hint: string };
   /** ボードごとのカードのクラス（プロジェクト名つきなど。共通の archived の後・selected より前に付く） */
@@ -34,7 +37,7 @@ interface Options {
  * どのボードでも、アーカイブ済みのカードは archived（ArchivedFold の中で薄く出す）、ボードのカードには回答待ちの依頼の数（「回答 n件」）を付ける。
  * パネルで表示中なら selected（チャットはどれもサイドバーと連動してタブにあるので、タブで開いているかの印は付けない）
  */
-export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, style, projectName }: Options) {
+export function useBoardCards({ panel, rename, menu, onOpen, openTitle, drag, classFor, style, projectName }: Options) {
   const { pendingCount, stateOf } = useChatStates();
   // リストの行を 1 行にまとめるか（見出しの切り替えとそろう）
   const [compactRows] = useBoardListCompact();
@@ -54,9 +57,10 @@ export function useBoardCards({ panel, rename, menu, onOpen, drag, classFor, sty
       onDragEnd: drag ? () => setDragChat(undefined) : undefined,
       editing: Boolean(rename.editorFor(chat)),
     }),
+    title: openTitle?.(chat),
     style: style?.(chat),
   });
-  const cardClass = (chat: Chat) => cx(chat.archived_at && "archived", classFor?.(chat), dragChat === chat.id && "dragging", panel.isShowing(chat.id) && "selected");
+  const cardClass = (chat: Chat) => cx(chat.archived_at && "archived", classFor?.(chat), dragChat === chat.id && "dragging", panel?.isShowing(chat.id) && "selected");
   return {
     cardProps,
     cardClass,
