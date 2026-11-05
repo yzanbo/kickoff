@@ -101,6 +101,17 @@
   background: var(--bg-hover);
 }
 
+/* 子のメニューを開く項目の右に添える、いまの様子（「表示するグループ」の「2 件を隠し中」など） */
+.menu .menu-submenu-note {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--extra-muted);
+}
+
+.menu .menu-submenu-note + .menu-submenu-chevron {
+  margin-left: 6px;
+}
+
 /* 「プロジェクトを変更」の横に開く一覧（ProjectPickFlyout。: 検索欄・新規プロジェクト・一覧） */
 .project-pick {
   width: 280px;

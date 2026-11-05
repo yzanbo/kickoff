@@ -157,6 +157,8 @@ export function PaneTabBar({
                   dragProps={strip.reorder.handle(c)}
                   count={strip.clusterCount(c)}
                   tabCount={c.tabs.length}
+                  hidden={strip.isHidden(c)}
+                  onToggleHidden={strip.toggleHidden && c.group ? () => strip.toggleHidden?.(c) : undefined}
                 />
                 {shown.map((key) => tab(key, display.indexOf(key)))}
               </div>

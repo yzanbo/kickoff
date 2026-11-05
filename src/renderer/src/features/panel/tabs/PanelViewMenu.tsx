@@ -9,13 +9,15 @@ import { ChatDisplayItems, useChatDisplayHides } from "@/features/chat/pane/Chat
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
+import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
+import { useHiddenTabGroups } from "@/features/panel/clusters/useHiddenTabGroups";
 import { PANEL_KINDS, PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
- * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・アーカイブ済みのチャットを出すか・チャットの画面
+ * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・グループ別のときに出すグループ（HiddenGroupItems）・アーカイブ済みのチャットを出すか・チャットの画面
  * （見出しの行・見出しの項目・指示の帯・文の幅・チャット欄。ChatDisplayItems。どのチャットでも共通）・ボードツールバーの置き方
  * （ボードの右のパネルだけ）を 1 つにまとめる（以前はそれぞれのアイコンが並び、タブの列の道具が多かった）。
  * チャットの画面の切り替えは、見出しを隠しても戻せるよう、見出しの外のここに置く。
@@ -35,7 +37,9 @@ export function usePanelViewMenu(panel: PanelController) {
   const has = showKinds || showChat || showLayout;
   const defaultKinds = rules.defaultKinds.join(",") === kinds.kinds.join(",");
   const chatHides = useChatDisplayHides();
-  const changed = (showKinds && !defaultKinds) || (showChat && (grouping !== "none" || archived || chatHides)) || (showLayout && layout !== "top");
+  const hiddenGroups = useHiddenTabGroups();
+  const groupsHidden = grouping === "group" && (hiddenGroups.hidden.size > 0 || hiddenGroups.hideEmpty);
+  const changed = (showKinds && !defaultKinds) || (showChat && (grouping !== "none" || archived || chatHides || groupsHidden)) || (showLayout && layout !== "top");
   // 欄ごとにボタンを分ける（ほかの欄のボタンを押したときは、こちらのメニューを外側のクリックとして閉じる）
   const buttonClass = `panel-view-${panel.surface}`;
 
@@ -81,6 +85,8 @@ export function usePanelViewMenu(panel: PanelController) {
         )),
       ),
     );
+    // グループ別のときだけ: タブの列に出すグループ（自分で作ったグループを隠す・チャットのないグループを隠す）
+    if (grouping === "group") sections.push(<HiddenGroupItems panel={panel} />);
     sections.push(
       <MenuItem
         role="menuitemcheckbox"
