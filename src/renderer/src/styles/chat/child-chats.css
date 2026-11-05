@@ -141,14 +141,9 @@
   white-space: nowrap;
 }
 
-/* 子チャットで聞く画面の、選んだ文の引用 */
-.ask-child-quote {
-  max-height: 120px;
-  margin: 0;
-  padding: 6px 10px;
-  overflow: auto;
-  border-left: 3px solid var(--border-strong);
-  font-size: 12px;
-  white-space: pre-wrap;
-  color: var(--muted);
+/* 子チャットで聞く画面の聞く欄（選んだ文の引用を初めから入れておくので、書いた分だけ伸ばし、上限を超えたら中でスクロール） */
+.ask-child-input {
+  field-sizing: content;
+  min-height: calc(3lh + 16px);
+  max-height: 50vh;
 }
