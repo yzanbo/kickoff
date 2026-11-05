@@ -20,7 +20,6 @@
   align-items: center;
   min-width: 36px;
   height: 30px;
-  border-top: 1px solid transparent;
   color: var(--muted);
 }
 
@@ -30,42 +29,18 @@
 }
 
 /*
- * 表示中のタブだけを目立たせる: 地をタブの色（--tab-color。まとまり・右の欄の種類の色。なければアクセントの色）で薄く染め、上の端に 1px のその色の線を引く。
- * 左右の枠は付けない。色のあるタブ（まとまり・右の欄の種類）は、表示していなくても上の線を薄くその色にする（side-panel-tab-kinds.css）。
- * タブは角を丸めない（以前は角を丸め、表示中のタブを上と左右の色の枠で囲んでいて、にぎやかだった）。
- * 隣のタブ・タブの列の線より上に重ねて、タブが中身とつながって見えるようにする（z-index）
+ * 表示中のタブだけを、地をタブの色（--tab-color。まとまり・右の欄の種類の色。なければアクセントの色）で薄く染めて目立たせる。
+ * タブには線も枠も引かず（上の線・左右の枠・タブとタブの間の縦線もなし）、角も丸めない（以前は角を丸め、表示中のタブを色の枠で囲み、
+ * 上の色の線や間の縦線も引いていて、にぎやかだった）。隣のタブ・タブの列の線より上に重ねる（z-index）
  */
 .panel-tab.active {
   z-index: 1;
-  border-top-color: var(--tab-color, var(--accent-bright));
   color: var(--text);
   background: color-mix(in srgb, var(--tab-color, var(--accent-bright)) 12%, var(--bg-hover));
 }
 
 .panel-tab.active .panel-tab-label span:not(.status-slot, .panel-tab-group-name) {
   font-weight: 600;
-}
-
-/*
- * タブとタブの境目（Chrome と同じ細い縦線。タブの間の隙間の真ん中に、高さの半分ほどで引く）。
- * 表示中・マウスを乗せたタブは地の色で分かるので、その両側の線は消す
- */
-.panel-tab + .panel-tab::before {
-  content: "";
-  position: absolute;
-  top: 25%;
-  bottom: 25%;
-  left: -2px;
-  width: 1px;
-  background: var(--divider-strong);
-  pointer-events: none;
-}
-
-.panel-tab.active::before,
-.panel-tab:hover::before,
-.panel-tab.active + .panel-tab::before,
-.panel-tab:hover + .panel-tab::before {
-  opacity: 0;
 }
 
 .panel-tab-label {
