@@ -1,6 +1,6 @@
 import { Pencil } from "lucide-react";
 import { useMemo } from "react";
-import type { GitFileChange } from "@shared/types";
+import type { GitDiff, GitFileChange } from "@shared/types";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import type { CodeToken } from "@/lib/highlight";
@@ -29,6 +29,20 @@ export const CHANGE_LABELS: Record<GitFileChange["kind"], string> = {
   "!": "競合",
 };
 
+/** 読み込んだ差分（まだ読み込んでいなければ undefined） */
+export type LoadedDiff = { diff: GitDiff | undefined; error: string | undefined } | undefined;
+
+/**
+ * 1 つのファイルの差分を読む（作業場所は WorktreeContext。version が変わったら取り直し、取り直している間は前の差分を出しておく。
+ * 同じファイルのとき・ちらつかないように）。active: false なら読まない
+ */
+export function useFileDiff({ projectId, file, staged, version, commit, active = true }: { projectId: number; file: GitFileChange; staged: boolean; version: number; commit?: string; active?: boolean }): LoadedDiff {
+  const { target, key: at } = useGitTarget(projectId);
+  const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
+  const loaded = useKeyedAsync(key, () => (commit ? api.gitCommitDiff(target, commit, file) : api.gitDiff(target, file, staged)), { deps: [version], active });
+  return loaded.loaded ? { diff: loaded.data, error: loaded.error } : undefined;
+}
+
 /** これより狭いときは、左右に並べる設定でも 1 列で出す */
 const SPLIT_MIN_WIDTH = 560;
 
@@ -44,6 +58,7 @@ export function DiffView({
   onEdit,
   commit,
   bare = false,
+  source,
 }: {
   projectId: number;
   file: GitFileChange;
@@ -55,16 +70,15 @@ export function DiffView({
   commit?: string;
   /** 見出し（パス・状態・編集・表示のしかた）を出さない（右の欄の「変更」のように、見出しを外で並べるとき） */
   bare?: boolean;
+  /** 読み込み済みの差分（useFileDiff。外で読んでいるときは、ここでは読まない） */
+  source?: LoadedDiff;
 }) {
   const [layout, setLayout] = useSetting(DIFF_LAYOUT);
   // 左右に並べる設定でも、2 つ並べると読めない狭い欄（チャットの画面の右の欄など）では 1 列で出す（設定は変えない）
   const { ref, narrow } = useNarrowerThan<HTMLDivElement>(SPLIT_MIN_WIDTH);
   const shown = layout === "split" && narrow ? "unified" : layout;
-  const { target, key: at } = useGitTarget(projectId);
-  const key = `${at}:${commit ?? (staged ? "staged" : "unstaged")}:${file.path}:${file.old_path ?? ""}`;
-  // 取り直している間は、前の差分を出しておく（同じファイルのとき。ちらつかないように）
-  const loaded = useKeyedAsync(key, () => (commit ? api.gitCommitDiff(target, commit, file) : api.gitDiff(target, file, staged)), { deps: [version] });
-  const current = loaded.loaded ? { diff: loaded.data, error: loaded.error } : undefined;
+  const own = useFileDiff({ projectId, file, staged, version, commit, active: source === undefined });
+  const current = source ?? own;
   const lines = useMemo(() => (current?.diff ? parseDiff(current.diff.diff) : []), [current?.diff]);
   const tokensOf = useDiffHighlight(lines, file);
 

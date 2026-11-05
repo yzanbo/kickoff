@@ -169,6 +169,8 @@ export const COMMIT_FILES_WIDTH = defineSetting("kickoff:commit-files-width", nu
 export const HISTORY_SPLIT = defineSetting("kickoff:history-split", number(43));
 /** プロジェクトごとの、エディタタブで見ている作業場所（ワークツリーのフォルダ。空なら本体） */
 export const editorWorktree = defineSettingFamily("kickoff:editor-worktree:", text(), { ids: true });
+/** チャットの画面の右の欄の「変更」で確認済みにしたファイル（キーは「プロジェクト:ワークツリーのフォルダ（本体は空）」。値はパス → 確認したときの差分の指紋） */
+export const sideViewedFiles = defineSettingFamily("kickoff:side-viewed:", record(isString), { ids: true });
 
 // 外のアプリ・埋め込みブラウザ
 /** 外部のターミナルとして開くアプリ（EXTERNAL_TERMINALS の id） */
