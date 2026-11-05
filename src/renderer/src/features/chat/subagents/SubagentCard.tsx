@@ -143,9 +143,15 @@ function SubagentTime({ entry }: { entry: SubagentEntry }) {
 /** 実行中のいまの動き（いちばん新しいツールの呼び出し。子孫のものは「洗い出し › 検索: …」）と、最後の動きからの時間・トークン数 */
 function NowLine({ entry, view, rel }: { entry: SubagentEntry; view: SubagentsView; rel: (s: string) => string }) {
   const latest = useMemo(() => latestActivity(view.tree, entry.key, view.events), [view.tree, entry.key, view.events]);
-  const what = latest
-    ? `${latest.by ? `${latest.by.description} › ` : ""}${describeTool(latest.use.data.name, (latest.use.data.input ?? {}) as Record<string, unknown>)}`
-    : (entry.lastTool ?? "準備しています");
+  // いちばん新しいのが入れ子のサブエージェントの起動で、その子の中の記録が届かないとき（孫の中の手順は Claude Code が送らない）は、
+  // 子の途中経過（最後のツール）を出す
+  const child = latest && isSubagentTool(latest.use.data.name) ? view.tree.byKey.get(latest.use.data.id) : undefined;
+  const what =
+    child?.status === "running" && child.lastTool
+      ? `${latest?.by ? `${latest.by.description} › ` : ""}${child.description} › ${child.lastTool}`
+      : latest
+        ? `${latest.by ? `${latest.by.description} › ` : ""}${describeTool(latest.use.data.name, (latest.use.data.input ?? {}) as Record<string, unknown>)}`
+        : (entry.lastTool ?? "準備しています");
   const activity = activityOf(entry.lastActivityAt);
   const note = activityText(activity, entry.pendingTool);
   return (
@@ -196,7 +202,7 @@ function SubagentCardBody({ entry, view, renderItems }: { entry: SubagentEntry; 
   return (
     <div className="subagent-card-body">
       {entry.prompt && <SubagentPrompt text={entry.prompt} />}
-      {items.length === 0 && <p className="muted small">{running ? "まだ動きがありません…" : "このサブエージェントの中身は記録されていません"}</p>}
+      {items.length === 0 && <p className="muted small">{emptyText(entry, running)}</p>}
       {renderItems(items, view.busy && running)}
       {report && (
         <div className="subagent-result">
@@ -207,6 +213,16 @@ function SubagentCardBody({ entry, view, renderItems }: { entry: SubagentEntry; 
       {running && <Working>{workingText(entry)}</Working>}
     </div>
   );
+}
+
+/**
+ * 中身の記録がないときの文。サブエージェントの中で起動したサブエージェント（孫より深いもの）の中の手順は Claude Code が送ってこないので、
+ * その旨と、届くもの（最後のツール・回数・報告）を伝える
+ */
+function emptyText(entry: SubagentEntry, running: boolean): string {
+  if (entry.parentKey !== undefined)
+    return "サブエージェントの中で起動したサブエージェントの途中の手順は、Claude Code が送ってこないため出せません（実行中の最後のツール・ツールの回数・トークン数・報告は出ます）";
+  return running ? "まだ動きがありません…" : "このサブエージェントの中身は記録されていません";
 }
 
 /** 実行中のカードの中身の最後の行（子の結果を待っている・ツールを実行中・作業中） */

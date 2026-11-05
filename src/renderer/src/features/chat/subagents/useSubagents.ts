@@ -21,9 +21,29 @@ export function useSubagents(chatId: number, events: ChatEvent[], busy: boolean,
   // 記録・途中経過・裏の作業が変わったときだけ組み立て直す（返答が届くたびの描き直しで、記録を全部たどらない）
   return useMemo(() => {
     const entries = collectSubagents(events, progress, busy, background ? new Set(background.tasks.map((t) => t.task_id)) : undefined);
-    return entries.map((s) => {
+    const withProgress = entries.map((s) => {
       const at = s.agentId ? progressAt[s.agentId] : undefined;
       return at && s.status === "running" ? { ...s, lastActivityAt: latestOf(s.lastActivityAt, at) } : s;
     });
+    return bubbleProgress(withProgress);
   }, [events, progress, progressAt, busy, background]);
+}
+
+/**
+ * 途中経過の時刻を、入れ子の祖先の「最後の動き」にも伝える（孫の中の記録は届かず、途中経過だけが届くことがあるため。
+ * 子の結果を待っている親を「動きがない」としない）。変わった行だけを作り直す
+ */
+function bubbleProgress(entries: SubagentEntry[]): SubagentEntry[] {
+  const byKey = new Map(entries.map((s) => [s.key, s]));
+  for (const s of entries) {
+    let up = s.parentKey;
+    for (let depth = 0; up !== undefined && s.lastActivityAt !== undefined && depth < 32; depth++) {
+      const ancestor = byKey.get(up);
+      if (!ancestor) break;
+      const at = latestOf(ancestor.lastActivityAt, s.lastActivityAt);
+      if (at !== ancestor.lastActivityAt) byKey.set(up, { ...ancestor, lastActivityAt: at });
+      up = ancestor.parentKey;
+    }
+  }
+  return entries.map((s) => byKey.get(s.key) ?? s);
 }
