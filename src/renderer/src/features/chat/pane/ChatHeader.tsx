@@ -6,13 +6,15 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 import { ChatFind } from "@/features/chat/find/ChatFind";
+import { AgentPanelToggle } from "@/features/panel/agents/AgentPanelToggle";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { ChatDisplayItems, useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
 import { ChatHeaderTools } from "./ChatHeaderTools";
-import { useChatPaneState } from "./chatPaneContext";
+import { useChatPane, useChatPaneState } from "./chatPaneContext";
 
 /**
  * チャットの見出し: プロジェクト・作業場所・グループのバッジ、右に道具（会話 / 動き・検索など。アーカイブはタブ・サイドバーの右クリックから）・ターン数と API 換算。
+ * 右端に右の欄の開閉（右の欄を置ける画面だけ。子チャットの画面の中には右の欄を重ねないので出さない）。
  * 名前・閉じる・状態の印（作業中・回答待ちなど）はパネルのタブにあるので、ここには出さない（名前はタブのダブルクリックで変える）。
  * 行を出すか・どの項目を出すかは、タブの列の「表示」の「チャットの画面」（見出しの何もないところの右クリックでも同じもの）で選ぶ。
  * 行を隠していても、動きを見ている間（会話へ戻れるように）とアーカイブ済みのチャット（気づけるように）は出す。
@@ -33,6 +35,7 @@ export function ChatHeader({
 }) {
   const groupName = useGroupName(chat.project_id, chat.group_id);
   const shows = useChatHeaderItems();
+  const { canOpenSide } = useChatPane();
   const rowHidden = useChatHeaderRowHidden();
   const showing = useChatPaneState((s) => s.showing) ?? "conversation";
   const menu = useContextMenu();
@@ -78,6 +81,7 @@ export function ChatHeader({
             {cost && <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${chat.cost_usd.toFixed(2)}</span>}
           </span>
         )}
+        {canOpenSide && shows("agents") && <AgentPanelToggle chatId={chat.id} />}
       </div>
       {!findInline && find}
       {menu.menu && (

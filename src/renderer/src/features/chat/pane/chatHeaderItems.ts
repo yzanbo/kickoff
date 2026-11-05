@@ -2,7 +2,7 @@
  * チャットの見出しの行に出す項目（タブの列の「表示」→「見出しの項目」で、項目ごとに表示・非表示を選ぶ）。
  * 覚えるのは隠した項目だけ（CHAT_HEADER_HIDDEN）なので、項目を増やしても初めは表示になる
  */
-export const CHAT_HEADER_ITEMS = ["project", "worktree", "group", "showing", "textWidth", "fontSize", "sticky", "find", "turns", "cost"] as const;
+export const CHAT_HEADER_ITEMS = ["project", "worktree", "group", "showing", "textWidth", "fontSize", "sticky", "find", "turns", "cost", "agents"] as const;
 export type ChatHeaderItem = (typeof CHAT_HEADER_ITEMS)[number];
 
 export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
@@ -16,6 +16,7 @@ export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
   find: "検索欄",
   turns: "ターン数",
   cost: "API 換算",
+  agents: "右の欄の開閉",
 };
 
 /** 隠しても使えることの補足（メニューの項目に乗せたときに出す） */
@@ -29,6 +30,7 @@ export const CHAT_HEADER_SECTIONS: readonly { title: string; items: readonly Cha
   { title: "バッジ", items: ["project", "worktree", "group"] },
   { title: "道具", items: ["showing", "textWidth", "fontSize", "sticky", "find"] },
   { title: "数", items: ["turns", "cost"] },
+  { title: "右の欄", items: ["agents"] },
 ];
 
 /** 保存した値から、知っている項目だけを取り出す（消した項目の名前が残っていても無視する） */
