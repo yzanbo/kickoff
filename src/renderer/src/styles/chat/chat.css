@@ -67,9 +67,15 @@
   display: none;
 }
 
-/* 見出しの行の、指示の帯の表示・非表示（出しているときはアクセントの色） */
-.chat-sticky-toggle.on {
+/* 見出しの行の、指示の帯の表示・非表示と、右端の右の欄の開閉（出している・開いているときはアクセントの色） */
+.chat-sticky-toggle.on,
+.chat-agents-toggle.on {
   color: var(--accent-bright);
+}
+
+/* 見出しの右端の右の欄の開閉は、狭い見出しでも縮めない（道具と同じく flex: none の入れ物に入っていないため） */
+.chat-agents-toggle {
+  flex: none;
 }
 
 /* 状態の前のターン数・費用 */
