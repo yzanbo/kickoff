@@ -69,8 +69,12 @@
   -webkit-app-region: drag;
 }
 
-/* タブは全体を押せるので、ボタンの隙間（枠・閉じるの周り）もウィンドウのドラッグにしない */
-.board-panel.as-sidebar .panel-tabs :is(button, .panel-tab) {
+/*
+ * タブの並び（と、まとめないときの左端の「チャット」の札）は、まるごと no-drag にする（中のまとまり・札・タブ・名前・まとまりの下線も no-drag を受け継ぎ、並びの中にドラッグの所を残さない）。
+ * 以前は並びをドラッグのままにして、タブとボタンだけを no-drag にしていた。並びの中にドラッグと no-drag の区切りが入り組み
+ * （まとまりの地・札・下線はドラッグのまま）、製品版で、タブの名前の文字や下線の上に乗せるとカーソルが一瞬矢印に戻った
+ */
+.board-panel.as-sidebar .panel-tabs :is(button, .panel-tab-strip, .panel-tab-cluster) {
   -webkit-app-region: no-drag;
 }
 
@@ -120,8 +124,8 @@
   order: -1;
 }
 
+/* 並びは中身の幅だけにする（並びは no-drag なので、上の段の空いたところをウィンドウのドラッグに残す） */
 .board-panel.as-sidebar:not(.in-footer) .panel-tabs > .panel-tab-strip {
-  flex: 1 1 0;
   min-height: 30px;
 }
 
