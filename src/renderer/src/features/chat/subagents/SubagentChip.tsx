@@ -6,7 +6,9 @@ import { confirmDialog } from "@/ui/dialogs";
 import { formatTokens } from "@/lib/format";
 import { useSetting } from "@/hooks/useSetting";
 import { useTicker } from "@/hooks/useTicker";
-import { subagentsArchived } from "@/lib/storageKeys";
+import { SUBAGENT_OPEN_IN, subagentsArchived } from "@/lib/storageKeys";
+import { canPopout } from "@/app/popout";
+import { DefaultOpenPlace, OpenPlaceButtons, type OpenPlace } from "@/features/chat/composer/OpenPlaceControls";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
 import { activityOf, activityText } from "@/features/chat/status/stall";
@@ -21,15 +23,26 @@ import { agentHues } from "./agentHues";
 
 /**
  * チャット欄の上の「サブエージェント N 件」（流れの中のカードの目次）。押すと一覧が開き（入れ子は親のすぐ下に字下げして並べる）、
- * 行を押すと、そのサブエージェントを設定の開き方で開く（流れの中 = カードへ移って開く。入れ子なら外側のカードも開く / 右の欄 = 右の欄にその画面を開く）
+ * 行を押すと、そのサブエージェントを設定の開き方で開く（流れの中 = カードへ移って開く。入れ子なら外側のカードも開く / 右の欄 = 右の欄にその画面を開く /
+ * 別ウィンドウ）。行の右のボタンで、設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられる
  */
 export function SubagentChip({ entries, chat, busy, models }: { entries: SubagentEntry[]; chat: Chat; busy: boolean; models: ModelOption[] }) {
   const popover = usePopover();
   const { open, setOpen } = popover;
   const pane = useChatPane();
-  /** 設定の開き方（流れの中のカード / 右の欄）で開き、一覧を閉じる（key = 一覧の行のキー） */
+  /** 設定の開き方（流れの中のカード / 右の欄 / 別ウィンドウ）で開き、一覧を閉じる（key = 一覧の行のキー） */
   const openRow = (key: string) => {
     pane.openSubagent(key);
+    setOpen(false);
+  };
+  // 開ける場所（右の欄はパネルの中のチャットだけ、別ウィンドウは Mac のアプリだけ）と、行を押したときの既定（設定）
+  const places: OpenPlace[] = ["inline", ...(pane.canOpenSide ? (["side"] as const) : []), ...(canPopout() ? (["window"] as const) : [])];
+  const [openIn, setOpenIn] = useSetting(SUBAGENT_OPEN_IN);
+  /** 行のボタン: 設定によらず、その場所に開く */
+  const openAt = (key: string, place: OpenPlace) => {
+    if (place === "window") pane.openSubagentWindow(key);
+    else if (place === "side") pane.openSubagentSide(key);
+    else pane.revealSubagent(key);
     setOpen(false);
   };
   // 最後の動きの表示を進める（開いている間だけ）
@@ -115,6 +128,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
             />
           )}
         </span>
+        <OpenPlaceButtons places={places} onOpen={(place) => openAt(s.key, place)} />
         {isArchived ? (
           <IconButton
             icon={ArchiveRestore}
@@ -163,6 +177,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
       label="サブエージェント"
       ignore="dialog"
     >
+      {places.length > 1 && <DefaultOpenPlace places={places} value={places.includes(openIn) ? openIn : places[0]} onChange={setOpenIn} />}
       <button type="button" className="subagent-archive-all" disabled={finished.length === 0} onClick={() => void archive(finished.map((s) => s.key))}>
         <Archive size={15} aria-hidden />
         完了したサブエージェントをアーカイブ
