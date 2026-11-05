@@ -12,8 +12,7 @@ import { AgentSplit } from "@/features/panel/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/panelHost";
 import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
-import { ChatHeaderTools } from "./ChatHeaderTools";
-import { ChatPaneContext, useChatPaneState } from "./chatPaneContext";
+import { ChatPaneContext, useChatPaneSlot, useChatPaneState } from "./chatPaneContext";
 import { useWideText } from "./TextWidthToggle";
 import { useChatDetail } from "./useChatDetail";
 import { useChatView, type ChatViewInput } from "./useChatView";
@@ -28,10 +27,12 @@ interface ChatPaneProps {
   visible?: boolean;
   /** 新しいチャットのタブを開く（送信待ちの指示を新しいチャットで聞くとき。パネルの外では渡さない） */
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
+  /** パネルのタブの置き場所（chatPaneSlot。タブの右クリックから会話 / 動きを切り替える） */
+  slot?: string;
 }
 
 /** エージェントとのチャット（パネルのタブに出す）。中身を読み込み、読めたら ChatView を描く（チャットごとに作り直す） */
-export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNew }: ChatPaneProps) {
+export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNew, slot }: ChatPaneProps) {
   const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
 
   // パネルのタブに、チャット（名前・状態・固定など）を知らせる（変わったらタブとその右クリックのメニューもすぐ変わる）
@@ -55,6 +56,7 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
       focus={focus}
       visible={visible}
       onOpenNew={onOpenNew}
+      slot={slot}
     />
   );
 }
@@ -64,10 +66,11 @@ export function ChatPane({ chatId, focus, onChatChange, visible = true, onOpenNe
  * 子の部品への操作は ChatPaneContext 1 つで配る（流れの項目・ピル・送信待ち・検索など。値はチャットごとに 1 回だけ作る）。
  * パネルの中では、右にサブエージェントの画面を並べる右の欄（AgentSplit）を置く（同じ context の中なので、記録・操作をそのまま使う）
  */
-function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
+function ChatView({ visible, slot, ...input }: ChatViewInput & { visible: boolean; slot?: string }) {
   const { chat, project, events, approvals, streaming, focus } = input;
   const view = useChatView(input, usePanelHost() !== null);
   const { pane } = view;
+  useChatPaneSlot(slot, pane);
   // 文の幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
   const [wide] = useWideText();
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
@@ -78,7 +81,7 @@ function ChatView({ visible, ...input }: ChatViewInput & { visible: boolean }) {
         <SubagentsContext.Provider value={view.subagentsView}>
         <AgentSplit chatId={chat.id} handleRef={view.side}>
         <div ref={pane.root} className={cx("chat-page chat-panel", wide && "wide")}>
-          <ChatHeader chat={chat} project={project} tools={<ChatHeaderTools items={view.items} version={view.timeline.visible} />} />
+          <ChatHeader chat={chat} project={project} items={view.items} version={view.timeline.visible} />
           {/* 返答の一部を選んでコメントし、チャット欄に添える */}
           <SelectionComment />
           <ChatBody

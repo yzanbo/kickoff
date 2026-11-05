@@ -5,6 +5,7 @@ import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { BOARD_HEADER_LAYOUT_LABELS, BOARD_HEADER_LAYOUTS, useBoardHeaderLayout } from "@/features/board/boardHeaderLayout";
+import { ChatDisplayItems, useChatDisplayHides } from "@/features/chat/pane/ChatDisplayMenu";
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
@@ -14,8 +15,10 @@ import type { PanelController } from "@/features/panel/usePanel";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
- * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・アーカイブ済みのチャットを出すか・ボードツールバーの置き方
+ * 表示するタブの種類（チャット・ブラウザ・ターミナル）・チャットのまとめ方・アーカイブ済みのチャットを出すか・チャットの画面
+ * （見出しの行・見出しの項目・指示の帯・文の幅・チャット欄。ChatDisplayItems。どのチャットでも共通）・ボードツールバーの置き方
  * （ボードの右のパネルだけ）を 1 つにまとめる（以前はそれぞれのアイコンが並び、タブの列の道具が多かった）。
+ * チャットの画面の切り替えは、見出しを隠しても戻せるよう、見出しの外のここに置く。
  * 欄に関係のない項目は出さない（サブエージェントの欄は項目がないので、ボタンも右クリックも出さない）。
  * 既定と違う選び方をしていれば changed（ボタンに点を付けて、隠れた状態に気づけるように）
  */
@@ -31,7 +34,8 @@ export function usePanelViewMenu(panel: PanelController) {
   const showLayout = rules.layoutMenu === true;
   const has = showKinds || showChat || showLayout;
   const defaultKinds = rules.defaultKinds.join(",") === kinds.kinds.join(",");
-  const changed = (showKinds && !defaultKinds) || (showChat && (grouping !== "none" || archived)) || (showLayout && layout !== "top");
+  const chatHides = useChatDisplayHides();
+  const changed = (showKinds && !defaultKinds) || (showChat && (grouping !== "none" || archived || chatHides)) || (showLayout && layout !== "top");
   // 欄ごとにボタンを分ける（ほかの欄のボタンを押したときは、こちらのメニューを外側のクリックとして閉じる）
   const buttonClass = `panel-view-${panel.surface}`;
 
@@ -88,6 +92,7 @@ export function usePanelViewMenu(panel: PanelController) {
         {archived && <Check size={14} aria-hidden />}
       </MenuItem>,
     );
+    sections.push(<ChatDisplayItems />);
   }
   if (showLayout)
     sections.push(
@@ -140,7 +145,7 @@ export function PanelViewButton({ view }: { view: PanelViewMenu }) {
       size={15}
       className={cx("panel-control panel-view-button", view.buttonClass, view.changed && "changed")}
       label={label}
-      title={`${label}: 表示するタブ・チャットのまとめ方・アーカイブ済みなど（タブの列の何もないところの右クリックでも開きます）`}
+      title={`${label}: 表示するタブ・チャットのまとめ方・アーカイブ済み・チャットの見出しや指示の帯など（タブの列の何もないところの右クリックでも開きます）`}
       aria-haspopup="menu"
       aria-expanded={view.isOpen}
       onClick={view.toggle}

@@ -7,20 +7,22 @@
   height: 100%;
 }
 
+/*
+ * 見出しの行（36px）。いつもパネルのタブの列の下にあり、ウィンドウの上端ではないので、ウィンドウのドラッグ領域にしない
+ * （ドラッグ領域では右クリックが画面に届かず、見出しの右クリックのメニューが開かなかった）。
+ * 浮かせた検索欄（.chat-find.floating）の置き場所の基準にする
+ */
 .chat-header {
-  /* macOS の信号機ボタンの高さ分を上に空け、見出し自体は 36px */
-  padding: 22px var(--gutter) 0;
+  position: relative;
+  padding: 4px var(--gutter) 0;
   border-bottom: 1px solid var(--border);
-  -webkit-app-region: drag;
 }
 
-/* 見出しはウィンドウのドラッグ領域なので、操作するものは外す（外さないと押してもウィンドウのドラッグになる） */
-.chat-header a,
-.chat-header button,
-.chat-header input,
-.chat-header select,
-.chat-header label {
-  -webkit-app-region: no-drag;
+/* 見出しの行を隠したとき（タブの列の「表示」）: 高さを持たず、浮かせた検索欄の基準だけに残す */
+.chat-header.collapsed {
+  height: 0;
+  padding: 0;
+  border-bottom: none;
 }
 
 .chat-title-row {

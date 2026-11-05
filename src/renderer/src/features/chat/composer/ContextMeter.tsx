@@ -77,7 +77,10 @@ export function ContextMeter({ chat, compacting }: { chat: Chat; compacting: Com
             </div>
             {/* どれだけ使っているかを、数字だけでなく棒でも見せる（使用枠と同じバー） */}
             <UsageBar percent={pct} label="コンテキストウィンドウの使用率" valueText={`${pct}% 使用`} />
-            <div className="context-sub">セッションコスト: ${chat.cost_usd.toFixed(2)}（API 換算）</div>
+            {/* チャットの見出しの行を隠していても見られるよう、見出しのターン数と API 換算をここにも出す */}
+            <div className="context-sub">
+              {chat.num_turns > 0 && `${chat.num_turns} ターン · `}セッションコスト: ${chat.cost_usd.toFixed(2)}（API 換算）
+            </div>
             {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
             <div className="context-compact">
               <button

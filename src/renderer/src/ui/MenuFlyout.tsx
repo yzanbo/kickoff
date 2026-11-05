@@ -1,14 +1,26 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 
 /**
  * メニューの項目の横に開く子のメニューの開閉。
- * trigger は開く項目に渡す（乗せる・押す・→ で開く。メニューは閉じない）。onMenuHover はメニューの項目の入れ物の onMouseOver に渡す
- * （ほかの項目に乗せたら閉じる）。back は ← で子のメニューを閉じて、開いた項目にピントを戻す
+ * trigger は開く項目に渡す（乗せる・押す・→ で開く。メニューは閉じない）。同じメニューのほかの項目に乗せたら閉じる。
+ * back は ← で子のメニューを閉じて、開いた項目にピントを戻す
  */
 export function useSubmenu() {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const open = (e: { currentTarget: HTMLElement }) => setAnchor(e.currentTarget);
+  // ほかの項目に乗せたら閉じる（子のメニューと開く項目の上では閉じない）
+  useEffect(() => {
+    const menu = anchor?.closest<HTMLElement>(".menu");
+    if (!menu) return;
+    const onOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest(".menu-flyout") || target.closest(".menu-submenu") === anchor) return;
+      if (target.closest("button")) setAnchor(null);
+    };
+    menu.addEventListener("mouseover", onOver);
+    return () => menu.removeEventListener("mouseover", onOver);
+  }, [anchor]);
   return {
     /** 開いている項目（閉じていれば null） */
     anchor,
@@ -16,12 +28,6 @@ export function useSubmenu() {
     back: () => {
       anchor?.focus();
       setAnchor(null);
-    },
-    onMenuHover: (e: MouseEvent) => {
-      if (!anchor) return;
-      const target = e.target as HTMLElement;
-      if (target.closest(".menu-flyout, .menu-submenu")) return;
-      if (target.closest("button")) setAnchor(null);
     },
     trigger: {
       role: "menuitem" as const,

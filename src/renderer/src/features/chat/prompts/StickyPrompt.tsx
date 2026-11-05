@@ -1,17 +1,20 @@
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, EyeOff } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { useSetting } from "@/hooks/useSetting";
-import { STICKY_PROMPT_EXPANDED } from "@/lib/storageKeys";
+import { STICKY_PROMPT_EXPANDED, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 import { IconButton } from "@/ui/IconButton";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
 
 /**
  * チャットの上に置く、いま読んでいる返答の元の自分の指示。いつも出し、流れに重ねずに流れの上の段に置く（スクロールに合わせて中身を変える）。
  * 初めは 1 行にたたみ（長い指示で縦をとらないように）、見出しの右の ↑ / ↓ の隣の矢印で全文を出す（長ければ中でスクロール。開閉はどのチャットでも同じに覚える）。
  * 押して何かが起きるのは、見出しのすぐ右の ↑ / ↓（前・次の指示へ。⌘⌥↑ / ↓ と同じ）とその右の開閉の矢印・添付だけ（見出しと文は押しても何もしない。以前は押すとその発言へ移っていた）。
- * 添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）
+ * 添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）。
+ * 右クリックで、全文の開閉と「指示の帯を隠す」（戻すのはタブの列の「表示」・設定の「表示」）
  */
 export function StickyPrompt({
   text,
@@ -26,6 +29,8 @@ export function StickyPrompt({
   onNext?: () => void;
 }) {
   const [expanded, setExpanded] = useSetting(STICKY_PROMPT_EXPANDED);
+  const [, setHidden] = useSetting(STICKY_PROMPT_HIDDEN);
+  const menu = useContextMenu();
   const textRef = useRef<HTMLSpanElement>(null);
   // 1 行に収まらないか（収まるなら開閉の矢印を押せなくする）。欄の幅が変わったら測り直す
   const [overflowing, setOverflowing] = useState(false);
@@ -39,7 +44,14 @@ export function StickyPrompt({
     return () => observer.disconnect();
   }, [text, expanded]);
   return (
-    <div className={cx("sticky-prompt", expanded && "expanded")}>
+    <div
+      className={cx("sticky-prompt", expanded && "expanded")}
+      onContextMenu={(e) => {
+        // 添付・ボタンの上では、そのものの右クリックを残す
+        if ((e.target as HTMLElement).closest("button")) return;
+        menu.open(e);
+      }}
+    >
       {/* 見出しと文は押しても何もしない（添付は送信待ちの行と同じく文の前） */}
       <span className="sticky-prompt-label" aria-hidden>
         指示
@@ -67,6 +79,18 @@ export function StickyPrompt({
           {text}
         </span>
       </span>
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="指示の帯" onClose={menu.close}>
+          {(expanded || overflowing) && (
+            <MenuItem onSelect={() => setExpanded(!expanded)}>
+              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expanded ? "1 行にたたむ" : "指示の全文を表示"}
+            </MenuItem>
+          )}
+          <MenuItem title="戻すときは、タブの列の「表示」か設定の「表示」から" onSelect={() => setHidden(true)}>
+            <EyeOff size={14} /> 指示の帯を隠す
+          </MenuItem>
+        </PopupMenu>
+      )}
     </div>
   );
 }
