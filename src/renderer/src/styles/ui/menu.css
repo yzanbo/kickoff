@@ -85,7 +85,7 @@
   display: contents;
 }
 
-/* チャットのメニューの「プロジェクトを変更」: 右端に › を出す。横に一覧を開いている間は、乗せたときと同じ色のまま */
+/* 横に子のメニューを開く項目（useSubmenu。「プロジェクトを変更」など）: 右端に › を出す。横に開いている間は、乗せたときと同じ色のまま */
 .menu .menu-submenu-chevron {
   margin-left: auto;
   color: var(--muted);
