@@ -29,16 +29,36 @@ export interface TabRefreshing {
   changes: boolean;
 }
 
-/** タブの列に出すタブ（グループは「ボード」の中の列の切り替えにまとめたので出さない。チャットはボードと分ける置き方のときだけ） */
-const TABS: { tab: ProjectTab; label: string; icon: LucideIcon }[] = [
-  { tab: "board", label: "ボード", icon: SquareKanban },
-  { tab: "chats", label: "チャット", icon: MessagesSquare },
-  // 以前の「エディタ」タブの中の切り替え（ファイル・検索・変更）を、そのままタブにしたもの
-  { tab: "files", label: "ファイル", icon: Files },
-  { tab: "search", label: "検索", icon: Search },
-  { tab: "changes", label: "変更", icon: GitBranch },
-  { tab: "history", label: "履歴", icon: History },
-  { tab: "memos", label: "メモ", icon: StickyNote },
+/** タブの列に出すタブ 1 つ */
+interface TabSpec {
+  tab: ProjectTab;
+  label: string;
+  icon: LucideIcon;
+}
+
+/**
+ * タブの列に出すタブを、まとまりごとに（グループは「ボード」の中の列の切り替えにまとめたので出さない。チャットはボードと分ける置き方のときだけ）。
+ * 同じまとまりのタブは薄い地でつなぎ、まとまりの間を空けて、どれが同じ仲間かを見て分かるようにする（タブが 1 つのまとまりは地を付けない）:
+ * チャットの作業（ボード・チャット）/ コード（ファイル・検索・変更。以前の「エディタ」タブの中の切り替え）/ 履歴 / メモ
+ */
+const TAB_GROUPS: { label: string; tabs: TabSpec[] }[] = [
+  {
+    label: "チャット",
+    tabs: [
+      { tab: "board", label: "ボード", icon: SquareKanban },
+      { tab: "chats", label: "チャット", icon: MessagesSquare },
+    ],
+  },
+  {
+    label: "コード",
+    tabs: [
+      { tab: "files", label: "ファイル", icon: Files },
+      { tab: "search", label: "検索", icon: Search },
+      { tab: "changes", label: "変更", icon: GitBranch },
+    ],
+  },
+  { label: "履歴", tabs: [{ tab: "history", label: "履歴", icon: History }] },
+  { label: "メモ", tabs: [{ tab: "memos", label: "メモ", icon: StickyNote }] },
 ];
 
 /**
@@ -77,40 +97,47 @@ export function ProjectTabs({
       aria-orientation={vertical ? "vertical" : undefined}
       onContextMenu={menu.open}
     >
-      {TABS.filter((t) => t.tab !== "chats" || placement === "separate").map(({ tab: t, label, icon: Icon }) => {
-        // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
-        const selected = tab === t || (t === "board" && tab === "groups");
-        const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
-        // 数はボード（状態ごとのチャット）と変更（変更のあるファイル）だけ。ほかには出さない
-        const count = t === "board" ? (countsText ? 1 : 0) : t === "changes" ? changeCount : 0;
-        const countLabel = t === "board" ? countsText : `変更のあるファイル ${count} 件`;
+      {TAB_GROUPS.map((group) => {
+        const shown = group.tabs.filter((t) => t.tab !== "chats" || placement === "separate");
         return (
-          <a
-            key={t}
-            role="tab"
-            aria-selected={selected}
-            aria-label={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : undefined}
-            title={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : t === "board" && count > 0 ? countLabel : undefined}
-            className={`tab ${selected ? "active" : ""}`}
-            href={href({ name: "project", id: projectId, tab: target })}
-          >
-            {vertical ? <Icon size={18} aria-hidden /> : label}
-            {/* 取り直している最中は数の代わりに更新中の印（終わったら数に戻す） */}
-            {(t === "board" && refreshing.chats) || (t === "changes" && refreshing.changes) ? (
-              <span className="tab-refreshing" role="status" aria-label="更新中" title="更新中…">
-                <span className="spinner" aria-hidden />
-              </span>
-            ) : t === "board" ? (
-              <StateCornerCounts counts={counts} inline={!vertical} />
-            ) : (
-              t === "changes" &&
-              count > 0 && (
-                <span className="change-count" aria-label={vertical ? undefined : countLabel}>
-                  {count}
-                </span>
-              )
-            )}
-          </a>
+          <div key={group.label} className={cx("project-tab-group", shown.length > 1 && "boxed")} aria-label={group.label}>
+            {shown.map(({ tab: t, label, icon: Icon }) => {
+              // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
+              const selected = tab === t || (t === "board" && tab === "groups");
+              const target: ProjectTab = t === "board" && columns === "groups" ? "groups" : t;
+              // 数はボード（状態ごとのチャット）と変更（変更のあるファイル）だけ。ほかには出さない
+              const count = t === "board" ? (countsText ? 1 : 0) : t === "changes" ? changeCount : 0;
+              const countLabel = t === "board" ? countsText : `変更のあるファイル ${count} 件`;
+              return (
+                <a
+                  key={t}
+                  role="tab"
+                  aria-selected={selected}
+                  aria-label={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : undefined}
+                  title={vertical ? `${label}${count > 0 ? `（${countLabel}）` : ""}` : t === "board" && count > 0 ? countLabel : undefined}
+                  className={`tab ${selected ? "active" : ""}`}
+                  href={href({ name: "project", id: projectId, tab: target })}
+                >
+                  {vertical ? <Icon size={18} aria-hidden /> : label}
+                  {/* 取り直している最中は数の代わりに更新中の印（終わったら数に戻す） */}
+                  {(t === "board" && refreshing.chats) || (t === "changes" && refreshing.changes) ? (
+                    <span className="tab-refreshing" role="status" aria-label="更新中" title="更新中…">
+                      <span className="spinner" aria-hidden />
+                    </span>
+                  ) : t === "board" ? (
+                    <StateCornerCounts counts={counts} inline={!vertical} />
+                  ) : (
+                    t === "changes" &&
+                    count > 0 && (
+                      <span className="change-count" aria-label={vertical ? undefined : countLabel}>
+                        {count}
+                      </span>
+                    )
+                  )}
+                </a>
+              );
+            })}
+          </div>
         );
       })}
       {menu.menu && (
