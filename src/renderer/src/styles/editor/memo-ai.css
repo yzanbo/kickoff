@@ -2,8 +2,14 @@
 
 .memo-ai-popover {
   display: grid;
-  gap: 8px;
-  width: 340px;
+  gap: 10px;
+  width: min(460px, calc(100vw - 32px));
+  padding: 12px 14px 14px;
+}
+
+/* 見出しの下は grid の間で空ける（見出しの下の余白と重ねない） */
+.memo-ai-popover .popover-head {
+  margin-bottom: 0;
 }
 
 .memo-ai-scope {
@@ -16,10 +22,28 @@
   gap: 6px;
 }
 
+/* 選んだ部分（どの文を直すか。長ければ中でスクロール） */
+.memo-ai-quote {
+  max-height: 120px;
+  margin: 0;
+  padding: 6px 10px;
+  overflow: auto;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+/* 頼みの欄（長い頼みも書けるよう、4 行から書いた分だけ伸ばし、画面の 4 割を超えたら中でスクロール） */
 .memo-ai-input {
   field-sizing: content;
-  max-height: 160px;
+  min-height: calc(4lh + 16px);
+  max-height: 40vh;
   font-size: 13px;
+  resize: none;
 }
 
 .memo-ai-actions {
@@ -161,4 +185,37 @@
 
 .memo-plan-reason {
   grid-column: 2;
+}
+
+/* 本文で範囲を選んだときに、その上に出す「AI で直す」（CodeMirror の吹き出し。押すと同じポップオーバーをここから開く） */
+.md-editor .cm-tooltip.memo-ai-tip {
+  border: none;
+  background: transparent;
+}
+
+.memo-ai-tip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg-elev);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+  cursor: pointer;
+}
+
+.memo-ai-tip-button:hover {
+  background: var(--bg-hover);
+}
+
+/* 選択から頼みの欄を開くときの基準（選んだ行の上端・下端の座標に置く見えない印。エディタの行は描き直されて消えるため） */
+.memo-ai-anchor {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
 }
