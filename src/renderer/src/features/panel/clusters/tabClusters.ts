@@ -29,6 +29,28 @@ export function clusterTabs(keys: readonly string[], clusterOf: (key: string) =>
 }
 
 /**
+ * タブの列に出すまとまり（グループ別のとき）: 隠したグループ（hiddenGroups。自分で作ったグループだけ）と、hideEmpty なら
+ * チャットもタブもないグループ（countOf が 0）を外す。隠したグループでも、ペインで表示中のタブ（active）があれば、
+ * そのタブがどれか分かるよう札ごと残し、畳んだ形で見せる（forced。そのタブだけが見える）。グループなし・固定・アーカイブ済み・作業場所・その他は外さない
+ */
+export function shownClusters(
+  clusters: readonly TabCluster[],
+  { hiddenGroups, hideEmpty, countOf, active }: { hiddenGroups: ReadonlySet<number>; hideEmpty: boolean; countOf: (cluster: TabCluster) => number; active: string | null },
+): { clusters: TabCluster[]; forced: Set<string> } {
+  const forced = new Set<string>();
+  const shown = clusters.filter((c) => {
+    if (c.kind !== "group" || !c.group) return true;
+    if (hiddenGroups.has(c.group.id)) {
+      if (active === null || !c.tabs.includes(active)) return false;
+      forced.add(c.key);
+      return true;
+    }
+    return !(hideEmpty && c.tabs.length === 0 && countOf(c) === 0);
+  });
+  return { clusters: shown, forced };
+}
+
+/**
  * 畳んだまとまりで見せるタブ。畳んでいれば、そのペインで表示中のタブ（中身が見えているもの）だけを残し、ほかは隠す
  * （表示中のタブまで隠すと、いま見ている中身がどのタブか分からなくなるため。隠したタブを一覧から開けば、そのタブが表示中になって出る）
  */

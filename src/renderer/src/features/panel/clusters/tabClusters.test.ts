@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { PROJECT_HUES } from "@shared/project/colors";
 import { makeGroup } from "@shared/testing/factories";
 import type { BucketHead } from "@/features/chatList/buckets";
-import { OTHER_CLUSTER, clusterHue, clusterHues, clusterTabs, paneIndexOf, visibleClusterTabs } from "./tabClusters";
+import { OTHER_CLUSTER, clusterHue, clusterHues, clusterTabs, paneIndexOf, shownClusters, visibleClusterTabs } from "./tabClusters";
 
 const group = (id: number, position: number, hue = 0) => makeGroup(id, { position, hue });
 const head = (key: string, kind: BucketHead["kind"], extra: Partial<BucketHead> = {}): BucketHead => ({ key, kind, label: key, projectId: 1, ...extra });
@@ -95,4 +95,25 @@ test("タブのまとめ方: 畳んだまとまりは、ペインで表示中の
   // 表示中のタブがほかのまとまりにあれば、すべて隠す
   assert.deepEqual(visibleClusterTabs(cluster, true, "x"), []);
   assert.deepEqual(visibleClusterTabs(cluster, true, null), []);
+});
+
+test("タブのまとめ方: 隠したグループと、チャットもタブもないグループ（hideEmpty）を外す。表示中のタブがある隠したグループは畳んで残す", () => {
+  const g1 = { ...head("p1/g1", "group", { group: group(1, 1) }), tabs: ["a"] };
+  const g2 = { ...head("p1/g2", "group", { group: group(2, 2) }), tabs: ["b"] };
+  const g3 = { ...head("p1/g3", "group", { group: group(3, 3) }), tabs: [] };
+  const g4 = { ...head("p1/g4", "group", { group: group(4, 4) }), tabs: [] };
+  const none = { ...head("p1/ungrouped", "ungrouped"), tabs: [] };
+  const counts: Record<string, number> = { "p1/g3": 0, "p1/g4": 2, "p1/ungrouped": 0 };
+  const countOf = (c: { key: string }) => counts[c.key] ?? 1;
+  const all = [g1, g2, g3, g4, none];
+  // 隠すものがなければそのまま
+  assert.deepEqual(shownClusters(all, { hiddenGroups: new Set(), hideEmpty: false, countOf, active: null }).clusters.map((c) => c.key), all.map((c) => c.key));
+  // g1 を隠す（表示中のタブがなければ外す）・チャットのない g3 を外す（チャットのある g4、グループなしは残す）
+  const hidden = shownClusters(all, { hiddenGroups: new Set([1]), hideEmpty: true, countOf, active: "b" });
+  assert.deepEqual(hidden.clusters.map((c) => c.key), ["p1/g2", "p1/g4", "p1/ungrouped"]);
+  assert.deepEqual([...hidden.forced], []);
+  // 隠した g1 のタブを表示中なら、畳んだ形で残す
+  const forced = shownClusters(all, { hiddenGroups: new Set([1]), hideEmpty: false, countOf, active: "a" });
+  assert.deepEqual(forced.clusters.map((c) => c.key), ["p1/g1", "p1/g2", "p1/g3", "p1/g4", "p1/ungrouped"]);
+  assert.deepEqual([...forced.forced], ["p1/g1"]);
 });

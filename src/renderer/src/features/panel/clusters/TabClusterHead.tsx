@@ -21,7 +21,7 @@ import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
  * runs が undefined の「その他」（ブラウザなど）は押せない札。まとまりはプロジェクトごとなので、一覧の行にプロジェクト名は出さない。
  * まとめないときも、タブの列の左端に「チャット」の札（all）として置き、パネルのチャット全体の状態ごとの数と一覧を出す（タブの数は出さない）。
  * 札の右クリック（プロジェクトの分かるまとまりだけ）: このグループで新しいチャット（グループ別のとき）・新しいグループを作成・
- * このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
+ * このグループをタブの列から隠す・表示する（自分で作ったグループのとき。useHiddenTabGroups）・このグループを削除（自分で作ったグループのとき。サイドバーと同じく確かめてから。中のチャットはグループなしに戻る）。
  * 自分で作ったグループの札はつかんで並べ替えられる（dragProps。サイドバーのグループの並びも同じに変わる）。
  * 札は左右 2 つに区切った 1 つの丸い札: 左 = 名前（押すと一覧）、右 = タブを畳む・開く（onToggleCollapsed。ブラウザのタブのグループを畳むのと同じ。右クリックにも同じ項目）。
  * 右側は、開いているときは「‹」（札へ畳む向き）、畳んでいるときは「3」（まとまりのタブの数 tabCount。表示中のタブを残しているかに関係なく同じ形。
@@ -43,6 +43,8 @@ export function TabClusterHead({
   dragProps,
   count = cluster.tabs.length,
   tabCount = cluster.tabs.length,
+  hidden = false,
+  onToggleHidden,
 }: {
   cluster: TabCluster;
   chats: Chat[] | undefined;
@@ -62,6 +64,10 @@ export function TabClusterHead({
   count?: number;
   /** まとまりのタブの数（畳んだときに札の右側に出す。表示中のタブも数える） */
   tabCount?: number;
+  /** タブの列から隠したグループか（表示中のタブがあるので、畳んだ形で残している） */
+  hidden?: boolean;
+  /** 自分で作ったグループを、タブの列から隠す・出す（グループ別のとき。右クリックの項目） */
+  onToggleHidden?: () => void;
 }) {
   const { pending } = useChatStates();
   // 札を押すと開く、まとまりのチャットの一覧（札の下に出す。タブの列に切り取られないよう top layer に出る）
@@ -129,8 +135,14 @@ export function TabClusterHead({
             type="button"
             className="panel-tab-cluster-fold"
             aria-expanded={!collapsed}
-            aria-label={collapsed ? `タブを表示する（${tabCount} 個のタブを畳んでいます）` : "タブを畳む"}
-            title={collapsed ? `タブを表示する（${tabCount} 個のタブを畳んでいます）` : "タブを畳む（表示中のタブは残す）"}
+            aria-label={hidden ? "タブの列に表示する（隠しているグループ）" : collapsed ? `タブを表示する（${tabCount} 個のタブを畳んでいます）` : "タブを畳む"}
+            title={
+              hidden
+                ? "タブの列から隠しているグループです（表示中のタブだけを出しています）。押すとタブの列に戻します"
+                : collapsed
+                  ? `タブを表示する（${tabCount} 個のタブを畳んでいます）`
+                  : "タブを畳む（表示中のタブは残す）"
+            }
             onClick={onToggleCollapsed}
           >
             {collapsed ? tabCount : <ChevronLeft size={12} aria-hidden />}
@@ -150,6 +162,14 @@ export function TabClusterHead({
           <MenuItem onSelect={() => void createGroup()} title="このプロジェクトに、自分で使うグループを作ります">
             新しいグループを作成…
           </MenuItem>
+          {group && onToggleHidden && (
+            <MenuItem
+              onSelect={onToggleHidden}
+              title={hidden ? "このグループの札とタブを、タブの列に戻します" : "このグループの札とタブを、タブの列に出さないようにします（チャットはそのまま。タブの列の「表示」から戻せます）"}
+            >
+              {hidden ? `「${group.name}」をタブの列に表示する` : `「${group.name}」をタブの列から隠す`}
+            </MenuItem>
+          )}
           {group && (
             <>
               <div className="menu-separator" role="separator" />

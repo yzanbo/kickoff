@@ -2,7 +2,8 @@ import type { Chat } from "@shared/types";
 import { useFolds } from "@/hooks/useFold";
 import type { PaneLeaf } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
-import { OTHER_CLUSTER, clusterHues, clusterTabs, visibleClusterTabs, type TabCluster } from "./tabClusters";
+import { OTHER_CLUSTER, clusterHues, clusterTabs, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
+import { useHiddenTabGroups } from "./useHiddenTabGroups";
 import { useClusterReorder } from "./useClusterReorder";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
 
@@ -21,7 +22,16 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
   // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない
   const shownSeeds = showChat && home ? seeds : [];
   // チャットを隠している欄では、まとめ方のボタンも出さないので、まとめない（ターミナル・ブラウザのタブはそのまま並べる）
-  const clusters = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, shownSeeds, projectOrder);
+  const all = grouping === "none" || !showChat ? null : clusterTabs(known, clusterOf, shownSeeds, projectOrder);
+  // そのまとまりに入るサイドバーのチャットの数（サイドバーの見出しと同じ数え方）
+  const chatCount = (c: TabCluster) => panel.chats.filter((r) => clusterOfChat(r).key === c.key).length;
+  // グループ別では、隠したグループ・チャットのないグループ（設定）を外す。隠したグループでも表示中のタブがあれば、畳んだ形で残す（forced）
+  const hiddenGroups = useHiddenTabGroups();
+  const shown =
+    all && grouping === "group"
+      ? shownClusters(all, { hiddenGroups: hiddenGroups.hidden, hideEmpty: hiddenGroups.hideEmpty, countOf: chatCount, active })
+      : { clusters: all, forced: new Set<string>() };
+  const clusters = shown.clusters;
   // タブを畳んだまとまり（まとまりのキーで覚え、すべてのパネル・ペインで共通）。畳んだまとまりは表示中のタブだけを見せ、display（見た目の並び）にも入れない。
   // アーカイブ済みのまとまりは、サイドバーと同じく初めは畳んでおく
   const folds = useFolds(
@@ -29,7 +39,9 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
     (clusters ?? []).map((c) => c.key),
   );
   const openByDefault = (c: TabCluster) => c.kind !== "archived";
-  const isCollapsed = (c: TabCluster) => !folds.isOpen(c.key, openByDefault(c));
+  const isCollapsed = (c: TabCluster) => shown.forced.has(c.key) || !folds.isOpen(c.key, openByDefault(c));
+  /** タブの列から隠したグループか（表示中のタブがあるので、畳んだ形で残しているもの） */
+  const isHidden = (c: TabCluster) => shown.forced.has(c.key);
   const shownTabs = (c: TabCluster) => visibleClusterTabs(c, isCollapsed(c), active);
   /** タブのチャット（チャットのタブのものだけ） */
   const chatsOf = (keys: readonly string[]) => keys.flatMap((key) => panel.chatOf(panel.tabs.find((x) => x.key === key)) ?? []);
@@ -43,7 +55,11 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
     /** 見た目の並び（ドラッグで落とす位置の印もこの並びで付ける） */
     display: clusters ? clusters.flatMap(shownTabs) : known,
     isCollapsed,
-    toggleCollapsed: (c: TabCluster) => folds.toggle(c.key, openByDefault(c)),
+    isHidden,
+    // 隠したグループ（表示中のタブだけを残している）を開くときは、隠すのをやめる
+    toggleCollapsed: (c: TabCluster) => (isHidden(c) && c.group ? hiddenGroups.toggle(c.group.id) : folds.toggle(c.key, openByDefault(c))),
+    /** 自分で作ったグループを、タブの列から隠す・出す（グループ別のときだけ） */
+    toggleHidden: grouping === "group" ? (c: TabCluster) => c.group && hiddenGroups.toggle(c.group.id) : undefined,
     shownTabs,
     /** まとまりの色（同じ列のまとまりどうしで被らないように決める。グループは覚えた色を先に取る） */
     hues: clusterHues(clusters ?? []),
@@ -62,7 +78,7 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
      * 札の右の数: 一覧のペインでは、サイドバーの見出しと同じく、そのまとまりに入るサイドバーのチャットの数（表示だけ消したタブも数え、下書き・ブラウザは数えない）。
      * 「その他」と分けたペインでは、そのペインのタブの数
      */
-    clusterCount: (c: TabCluster) => (c.key === OTHER_CLUSTER.key || !home ? c.tabs.length : panel.chats.filter((r) => clusterOfChat(r).key === c.key).length),
+    clusterCount: (c: TabCluster) => (c.key === OTHER_CLUSTER.key || !home ? c.tabs.length : chatCount(c)),
     /**
      * まとめないときの「チャット」の札に出すチャット: タブで開いているチャットと、ボードの一覧のチャットすべて
      * （まとめているときと同じく、作業中・回答待ち・未読をひと目で分かるように。チャットが 1 つもなければ札を出さない）

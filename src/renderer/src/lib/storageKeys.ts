@@ -104,6 +104,10 @@ export const PANEL_WIDTH = defineSetting("kickoff:panel-width", number(1127));
 export const PANEL_MAXIMIZED = defineSetting("kickoff:panel-maximized", flag());
 /** 欄（board = ボードの右のパネル / side = 右端のチャット欄 / bottom = フッター）ごとの、タブの列のまとめ方（選べる値はサイドバーのまとめ方と同じ） */
 export const panelTabGrouping = defineSettingFamily("kickoff:panel-tab-grouping:", choice(SIDEBAR_CHAT_SECTIONS.choices, "none"));
+/** タブの列（グループ別）で隠す、自分で作ったグループの ID（すべてのパネル・ペインで共通。グループなし・固定・アーカイブ済みは隠せない） */
+export const PANEL_HIDDEN_GROUPS = defineSetting("kickoff:panel-hidden-groups", list(), { ids: true });
+/** タブの列（グループ別）で、チャットが 1 つもないグループの札を隠すか（すべてのパネルで共通。初めは出す） */
+export const PANEL_HIDE_EMPTY_GROUPS = defineSetting("kickoff:panel-hide-empty-groups", flag(false));
 /** 欄ごとの、表示するタブの種類（chat / browser / terminal。空なら欄ごとの既定） */
 export const panelTabKinds = defineSettingFamily("kickoff:panel-tab-kinds:", list());
 /** プロジェクトごとの、右のチャット欄を開いているか */
