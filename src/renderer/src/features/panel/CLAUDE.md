@@ -7,7 +7,7 @@
 | 直下 | `Panel`（表示）・`usePanel`（状態と操作を束ねる）・`surfaces.ts`（欄の決まり）・`PanelTools`（タブの列の左の道具）・`PanelEmpty` |
 | `state/` | 状態（`panelState.ts` の `panelReducer`・店 `panelStore.ts`・操作 `panelActions.ts`）・サイドバーとの連動（`linkedTabs.ts`・`useLinkedChats.ts`）・表示するタブの種類（`panelKinds.ts`）・下書き（`panelDrafts.ts`・`draftPersistence.ts`） |
 | `layout/` | ペインの分割（形 `paneTree.ts`・変え方 `paneLayout.ts`・割合 `paneSizes.ts`・位置 `paneGeometry.ts`・境目 `PaneSash`・タブのドラッグ `useTabDrag`） |
-| `tabs/` | タブの種類の表（`tabKinds.ts`）・型（`panelTypes.ts`）・タブの列（`PaneTabBar` / `PaneTab` / `PanelTab` / `PanelTabAdds`）・中身（`PanelTabPage`・`NewChatPane`）・メニューと道具（`TabMenu` / `TabKindsButton` / `TabGroupingButton` / `TabArchiveToggle`） |
+| `tabs/` | タブの種類の表（`tabKinds.ts`）・型（`panelTypes.ts`）・タブの列（`PaneTabBar` / `PaneTab` / `PanelTab` / `PanelTabAdds`）・中身（`PanelTabPage`・`NewChatPane`）・メニューと道具（`TabMenu`・「表示」のメニュー `PanelViewMenu`（`usePanelViewMenu` ＋ `PanelViewButton`）） |
 | `clusters/` | タブのまとまり（`useTabClusters`・`tabClusters.ts`・`useTabStrip`・札 `TabClusterHead`・並べ替え `useClusterReorder`） |
 | `board/` `projectChat/` `bottom/` `agents/` | 欄の殻（大きさ・開閉・ショートカット）: `useBoardPanel` ＋ `usePanelWidth` ＋ `PanelToggle` / `useProjectChat` ＋ `ProjectChat` / `useBottomPanel` ＋ `BottomPanel` / `AgentSplit`（右の欄。カードの印は `agentTabs.ts` の `useShownInAgentPanel`） |
 | 直下（入れ子） | `panelHost.ts`（パネルの中身からパネルを入れ子にする口 `PanelHostContext`・ピントのある欄 `focusedPanelKey` / `focusInNestedPanel`） |
@@ -47,14 +47,14 @@
 
 ## 表示するタブの種類（`state/panelKinds.ts`）
 
-タブの列の `TabKindsButton`（目のアイコン）で、欄に出すタブの種類（チャット（新しいチャットも）・ブラウザ・ターミナル。付け外しできるのは `PANEL_KINDS`。右の欄はサブエージェントだけに決まっているので、このメニューを出さない `fixedKinds`）をチェックのメニューで付け外しする（`usePanelKinds`。保存は欄ごとの `panelTabKinds(surface)`、未保存なら `SURFACES` の `defaultKinds`。最後の 1 つは外せない）。隠した種類のタブは閉じずに残し（シェル・ページ・書きかけの文を保つ）、タブの列・中身・新しいタブのボタン・`PanelEmpty` に出さない（表示中のタブを隠したら `shownActiveOf` で見せている種類の最初のタブ）。チャットを隠している欄では、まとめ方・アーカイブ済みの切り替え・「チャット」の札・タブのないグループの札も出さず、サイドバーのチャットを読みもしない（表示に戻したらそろえる）。
+タブの列の「表示」のメニュー（`PanelViewMenu` の「表示するタブ」）で、欄に出すタブの種類（チャット（新しいチャットも）・ブラウザ・ターミナル。付け外しできるのは `PANEL_KINDS`。右の欄はサブエージェントだけに決まっているので、このメニューを出さない `fixedKinds`）をチェックのメニューで付け外しする（`usePanelKinds`。保存は欄ごとの `panelTabKinds(surface)`、未保存なら `SURFACES` の `defaultKinds`。最後の 1 つは外せない）。隠した種類のタブは閉じずに残し（シェル・ページ・書きかけの文を保つ）、タブの列・中身・新しいタブのボタン・`PanelEmpty` に出さない（表示中のタブを隠したら `shownActiveOf` で見せている種類の最初のタブ）。チャットを隠している欄では、まとめ方・アーカイブ済みの切り替え・「チャット」の札・タブのないグループの札も出さず、サイドバーのチャットを読みもしない（表示に戻したらそろえる）。
 
 ## サイドバーとの連動（`state/linkedTabs.ts`）
 
 - パネルのチャットのタブは、サイドバーに出ているチャット（`useLinkedChats`。チャットの店から読み、全プロジェクトはしまったプロジェクトとタグの絞り込みに合わないものを除く。アーカイブ済みは `SIDEBAR_SHOW_ARCHIVED` のときだけ）に、一覧が届いてから `syncLinkedTabs` でそろえる: 一覧にあってタブのないチャットは足し、一覧から外れたチャット（アーカイブして隠した・移した・消した）のタブは閉じる。
 - 足すのはピントのあるペインではなく一覧のペイン（`homePane`。分けた元のペイン `PaneLayout.home`。左・上に分けても移らず、閉じた・なくなったら左上のペイン）だけ（1 つのタブだけを見せるために分けたペインに、ほかのチャットが流れ込まないように）。
 - タブの × の「表示だけ消す」・タブのメニューの「閉じる」・ペインを閉じたチャットは `dismissed` に覚えて出し直さない（もう一度開けば出す。一覧から外れたら忘れる）。アーカイブ・削除のあとは覚えない（`closeTab(key, { dismiss })`）。一覧にないのに自分で開いたチャット（隠しているアーカイブ済みを検索から開いたなど）は `extra` で閉じるまで残す。
-- どのチャットもタブにあるので、ボードのカードにタブで開いているかの印は付けない。アーカイブ済みはタブの列の `TabArchiveToggle`（まとめ方のボタンのすぐ右。出しているときはアクセントの色）でも切り替える（サイドバーと同じ設定）。
+- どのチャットもタブにあるので、ボードのカードにタブで開いているかの印は付けない。アーカイブ済みはタブの列の「表示」のメニューの「アーカイブ済みのチャットを表示」でも切り替える（サイドバーと同じ設定）。
 
 ## ペインの分割（`layout/`）
 
@@ -67,14 +67,14 @@
 
 ## タブの列（`tabs/PaneTabBar`）
 
-- 並び: 左に道具（`PanelTools`。左上のペインだけ。閉じる（欄の決まりで先頭か最後。チャット欄は右上のレイアウトの開閉で閉じるので出さない）・表示するタブの種類（閉じるのすぐ右、チャット欄では左端。ほかの道具の前提になるため）・まとめ方（`TabGroupingButton`）・アーカイブ済み（`TabArchiveToggle`）・大きくする切り替え）→ タブの並び `.panel-tab-strip` → すぐ右に新しいタブ（チャット・ブラウザ・ターミナル。`PanelTabAdds`・`.panel-tab-adds`）→ 右端にペインの分割。
+- 並び: 左に道具（`PanelTools`。左上のペインだけ。左から、欄の名前の札（右の欄）・閉じる（欄の決まりで先頭か最後。チャット欄は右上のレイアウトの開閉で閉じるので出さない）・大きくする切り替え・「表示」のボタン（`PanelViewButton`）。よく使い状態を見せたい閉じる・大きくするはアイコンのまま、たまにしか変えない表示の選び方（表示するタブ・チャットのまとめ方・アーカイブ済み・ボードツールバーの置き方）は「表示」の 1 つのメニュー `usePanelViewMenu` にまとめる（以前はそれぞれのアイコンが並んでいた）。欄に関係のない項目は出さず、項目がない欄（右の欄）はボタンも出さない。既定と違う選び方をしていればボタンに点 `.changed`）→ タブの並び `.panel-tab-strip` → すぐ右に新しいタブ（チャット・ブラウザ・ターミナル。`PanelTabAdds`・`.panel-tab-adds`）→ 右端にペインの分割。
 - タブが増えたら Chrome と同じくタブを細くして収める（ふだん 180px・いちばん細くて 36px）。タブ 1 つずつを入れ物（`container: panel-tab`。並びの幅を決めるときは `contain-intrinsic-inline-size` の 180px で数える）にして、細さに合わせて 130px 以下で添えたグループ名・96px 以下で表示中でないタブの閉じる・60px 以下で名前を隠し、表示中のタブは閉じるだけにする（マウスを乗せたタブは細くても閉じるを出し、60px 以下ではアイコンの代わりに閉じるだけ）。いちばん細くしても入らないときだけ並びを横にスクロールし、表示中のタブを見えるところへ動かす。
 - タブとタブの境目には Chrome と同じ細い縦線（`.panel-tab + .panel-tab::before`。色は `--divider-strong`、表示中・乗せたタブの両側では消す）。表示中のタブは、明るい地・上と左右を同じ太さ（1px）で囲む色の枠・太字の名前で示し、まとまりの中では枠をまとまりの色にし、まとまりの下の線より上に重ねて線を切る（中身とつながって見える）。
-- タブの列の何もないところの右クリックは、ボードの右のパネルだけボードツールバーの置き方のメニュー（`features/board/CLAUDE.md`）。
+- タブの列の何もないところの右クリックは、「表示」のボタンと同じメニュー（ボードの右のパネルでは「ボードツールバーの置き方」も入る。`features/board/CLAUDE.md`）。
 
 ## タブのまとまり（`clusters/`）
 
-- まとめ方（`TabGroupingButton`。「まとめない / グループ別 / 作業場所別」。見出しはサイドバーと同じ「チャットのまとめ方」）は欄ごとに覚える（`useTabGrouping(surface)` → `panelTabGrouping(surface)`。欄の中のペインでは共通。初めはまとめない）。まとめ方とアーカイブ済みの切り替えはチャットのタブにだけ効く。
+- まとめ方（「表示」のメニューの「チャットのまとめ方」。「まとめない / グループ別 / 作業場所別」。見出しはサイドバーと同じ「チャットのまとめ方」）は欄ごとに覚える（`useTabGrouping(surface)` → `panelTabGrouping(surface)`。欄の中のペインでは共通。初めはまとめない）。まとめ方とアーカイブ済みの切り替えはチャットのタブにだけ効く。
 - どのまとまりに入るかは `useTabClusters`（種類の表の `cluster` で決め、まとまりはサイドバー・ボードと同じ `bucketChats` の決め方・同じキー）: グループ別はチャットのグループ／新しいチャットは作成先のグループ（もうないグループのものはグループなし）、作業場所別はチャットの作業場所（`workplaceOf`）／新しいチャットは本体／ターミナルは開いたフォルダ、ブラウザ（グループ別ではターミナルも）は「その他」（`OTHER_CLUSTER`）。サイドバーと同じく、固定したチャットは「固定」（いちばん前）、アーカイブ済みは「アーカイブ済み」（後ろ。初めは畳む）に抜き出す。いくつかのプロジェクトのタブが並ぶときはプロジェクト名を前に添える。
 - 並べるのは `clusterTabs`（`sortBuckets` と同じ順。まとまりの中はペインの並びのまま）。グループ別では、自分で作ったグループをサイドバーと同じ並び（グループの店）で、チャットのタブがなくても札を出す（`seeds`。グループを作る・名前を変える・並べ替える・消すとサーバーの知らせですぐ追従する）。札を出すのは一覧のペインだけで、分けたほかのペインは自分で置いたタブだけの列にし、タブのないグループの札・「チャット」の札を出さず、札の数はそのペインのタブの数（`useTabStrip` の `home`）。
 - 見た目: まとまりを 1 つの枠 `.panel-tab-group` に入れ、まとまりの色の薄い地と下の線でどこまでが 1 つかを見せる（ブラウザのタブのグループと同じ）。色はプロジェクトの色と同じ 10 色（`PROJECT_HUES`）から、同じ列のまとまりどうしで被らないように決める（`clusterHues`。自分で作ったグループは覚えた色 `ChatGroup.hue` を先に取り、ほかはキーから決まる好みの色 `clusterHue`、使われていれば空いている色へ。10 色を使い切ったら被ってよい）。「その他」は色なし `.plain`。まとまりの枠も一緒に細くなり、どこまで細くできるかは見せているタブの数 `--cluster-tabs` から決める。札よりタブを先に細くする。
