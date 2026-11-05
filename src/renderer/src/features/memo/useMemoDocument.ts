@@ -8,6 +8,7 @@ import { memoDraft } from "@/lib/storageKeys";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { safeMemoName } from "@shared/memo/names";
 import { memosStore } from "@/stores/memos";
+import { moveMemoChats } from "./memoChats";
 import { registerMemoGuard } from "./memoGuards";
 import { renamedPath } from "./memoPaths";
 
@@ -147,6 +148,8 @@ export function useMemoDocument(projectId: number, path: string) {
     const body = text.current;
     writeSetting(memoDraft(b.key), null);
     if (body !== null && body !== b.content) writeSetting(memoDraft(`${b.projectId}:${to}`), { text: body, hash: b.hash });
+    // メモの会話も新しい名前へ持っていく
+    moveMemoChats(b.projectId, b.path, to);
     // 閉じるときに、前の名前で書きかけを残さない
     current.current = { base: null };
     memosStore.invalidate(b.projectId);

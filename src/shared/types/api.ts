@@ -4,6 +4,7 @@ import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent } from "./chatEvent";
 import type { ChatLive, QueueState } from "./chatLive";
+import type { MemoChatTurn } from "./memo";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
 
@@ -99,13 +100,13 @@ export interface MemoFromChatBody {
 }
 
 /**
- * メモを AI で直す（POST /api/projects/:id/memo/ai）。text はいま書いてある中身（まだ保存していない書きかけも）か、part なら本文で選んだ部分。
- * instruction は頼み（「見出しと箇条書きで整理」など）。保存はしない
+ * メモについて AI と話す（POST /api/projects/:id/memo/chat）。messages はこれまでの会話（最後が今回の発言）、memo はいま書いてある中身
+ * （まだ保存していない書きかけも）、selection は本文で選んでいる部分（話の的。なければ null）。保存はしない
  */
-export interface MemoAiEditBody {
-  text: string;
-  instruction: string;
-  part: boolean;
+export interface MemoChatBody {
+  messages: MemoChatTurn[];
+  memo: string;
+  selection: string | null;
 }
 
 /** AI でメモのフォルダの整理案を作る（POST /api/projects/:id/memos/ai-plan）。instruction は頼み（null ならおまかせ） */

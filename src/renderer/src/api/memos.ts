@@ -1,4 +1,4 @@
-import type { FileContent, MemoAiEditBody, MemoAiEditResult, MemoDefaults, MemoFromChatBody, MemoList, MemoPlan, MemoRef, SavedFile } from "@shared/types";
+import type { FileContent, MemoChatBody, MemoChatReply, MemoDefaults, MemoFromChatBody, MemoList, MemoPlan, MemoRef, SavedFile } from "@shared/types";
 import { request, withQuery } from "./http";
 
 /** プロジェクトのメモ（保存先はプロジェクトの外。パスはメモのフォルダからの相対。コアの routes/memos.ts） */
@@ -17,8 +17,8 @@ export const memosApi = {
   trashMemo: (projectId: number, path: string) => request<void>("DELETE", withQuery(`/api/projects/${projectId}/memo`, { path })),
   /** チャットの文からメモを作る・足す（summarize なら AI で要約してから） */
   memoFromChat: (projectId: number, body: MemoFromChatBody) => request<MemoRef>("POST", `/api/projects/${projectId}/memos/from-chat`, body),
-  /** AI で直した文（メモ全体か、part なら選んだ部分。保存はしない） */
-  aiEditMemo: (projectId: number, body: MemoAiEditBody) => request<MemoAiEditResult>("POST", `/api/projects/${projectId}/memo/ai`, body),
+  /** メモについての会話の返事（変更の案が固まれば、変えたあとの文も。保存はしない） */
+  memoChat: (projectId: number, body: MemoChatBody) => request<MemoChatReply>("POST", `/api/projects/${projectId}/memo/chat`, body),
   /** AI のメモのフォルダの整理案（動かしはしない。instruction が null ならおまかせ） */
   aiPlanMemos: (projectId: number, instruction: string | null) => request<MemoPlan>("POST", `/api/projects/${projectId}/memos/ai-plan`, { instruction }),
 };

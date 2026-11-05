@@ -32,8 +32,6 @@ export interface MemoEditorHandle {
   text: () => string;
   /** 選んでいる範囲（何も選んでいなければ null） */
   selection: () => { from: number; to: number; text: string } | null;
-  /** 選んでいる範囲の最初と最後の行の要素（頼みの欄を、選んだ文を隠さない所に出すため。選んでいなければ null） */
-  selectionLines: () => { first: HTMLElement; last: HTMLElement } | null;
   /**
    * from〜to を text に置き換え、置き換えた範囲を選ぶ（元に戻す ⌘Z で戻せる）。その範囲がもう expected でなければ（あとから書き換えた）置き換えずに false
    */
@@ -50,8 +48,10 @@ interface Props {
   onSave: () => void;
   /** 外から動かす口を入れる入れ物 */
   handleRef?: MutableRefObject<MemoEditorHandle | null>;
-  /** 範囲を選んだときに、その上に出す「AI で直す」を押した（anchor は押したボタン。その場所から頼みの欄を開く）。なければ出さない */
-  onAskAi?: (anchor: HTMLElement) => void;
+  /** 範囲を選んだときに、その上に出す「AI と話す」を押した（メモの会話の欄を開いて、選んだ部分を話の的にする）。なければ出さない */
+  onAskAi?: () => void;
+  /** 選んでいる部分が変わった（選んでいなければ null。メモの会話の欄に、どこについて話すかを見せる） */
+  onSelectionChange?: (text: string | null) => void;
 }
 
 /**
@@ -66,13 +66,13 @@ const selectionTheme = EditorView.theme({
   },
 });
 
-export default function MarkdownEditor({ initialValue, live, onChange, onSave, handleRef, onAskAi }: Props) {
+export default function MarkdownEditor({ initialValue, live, onChange, onSave, handleRef, onAskAi, onSelectionChange }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const [mode] = useState(() => new Compartment());
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const handlers = useRef({ onChange, onSave, onAskAi });
-  handlers.current = { onChange, onSave, onAskAi };
+  const handlers = useRef({ onChange, onSave, onAskAi, onSelectionChange });
+  handlers.current = { onChange, onSave, onAskAi, onSelectionChange };
 
   useEffect(() => {
     if (!host.current) return;
@@ -82,7 +82,7 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
         doc: initialValue,
         extensions: [
           history(),
-          // 選んだ範囲を、ピントが外れても（AI の頼みの欄を書いている間も）見えるように描く。色は CodeMirror の既定（明るい紫）より
+          // 選んだ範囲を、ピントが外れても（会話の欄に書いている間も）見えるように描く。色は CodeMirror の既定（明るい紫）より
           // 詳細度の高い既定の規則に CSS では勝てないので、テーマで上書きする（アクセントの薄い色。文字が読めるように）
           drawSelection(),
           selectionTheme,
@@ -110,6 +110,10 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
           ...(onAskAi ? [askAiTooltip(() => handlers.current.onAskAi)] : []),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) handlers.current.onChange(u.state.doc.toString());
+            if (u.docChanged || u.selectionSet) {
+              const { from, to, empty } = u.state.selection.main;
+              handlers.current.onSelectionChange?.(empty ? null : u.state.sliceDoc(from, to));
+            }
           }),
         ],
       }),
@@ -122,20 +126,10 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
           const { from, to } = v.state.selection.main;
           return from === to ? null : { from, to, text: v.state.sliceDoc(from, to) };
         },
-        selectionLines: () => {
-          const { from, to, empty } = v.state.selection.main;
-          if (empty) return null;
-          const lineAt = (pos: number) => {
-            const { node } = v.domAtPos(pos);
-            return (node instanceof HTMLElement ? node : node.parentElement)?.closest<HTMLElement>(".cm-line") ?? null;
-          };
-          const first = lineAt(from);
-          const last = lineAt(to);
-          return first && last ? { first, last } : null;
-        },
         replace: (from, to, expected, text) => {
           if (to > v.state.doc.length || v.state.sliceDoc(from, to) !== expected) return false;
-          v.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from, head: from + text.length }, scrollIntoView: true, userEvent: "input.ai" });
+          // 置き換えたあとはカーソルを末尾に置く（全体を選んだままにすると、会話の欄がそれを「選んだ部分」として話の的にしてしまう）
+          v.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, scrollIntoView: true, userEvent: "input.ai" });
           v.focus();
           return true;
         },
@@ -158,10 +152,10 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
 }
 
 /**
- * 範囲を選んでいる間、その上に出す「✨ AI で直す」の吹き出し（押すと、選んだ範囲を直す頼みの欄を開く）。
+ * 範囲を選んでいる間、その上に出す「✨ AI と話す」の吹き出し（押すと、メモの会話の欄を開いて、選んだ範囲を話の的にする）。
  * 押しても選択が外れないよう、mousedown の既定の動き（ピントを移す）を止める
  */
-function askAiTooltip(handler: () => ((anchor: HTMLElement) => void) | undefined) {
+function askAiTooltip(handler: () => (() => void) | undefined) {
   const tip = (state: EditorState): Tooltip | null => {
     const { from, to, empty } = state.selection.main;
     if (empty || !state.sliceDoc(from, to).trim()) return null;
@@ -175,10 +169,10 @@ function askAiTooltip(handler: () => ((anchor: HTMLElement) => void) | undefined
         const button = document.createElement("button");
         button.type = "button";
         button.className = "memo-ai-tip-button";
-        button.textContent = "✨ AI で直す";
-        button.title = "選んだ範囲を AI で直す（案を差分で見てから取り込む）";
+        button.textContent = "✨ AI と話す";
+        button.title = "選んだ範囲について AI と話す（メモの変更は、案を見てから取り込む）";
         button.addEventListener("mousedown", (e) => e.preventDefault());
-        button.addEventListener("click", () => handler()?.(button));
+        button.addEventListener("click", () => handler()?.());
         dom.append(button);
         return { dom };
       },
