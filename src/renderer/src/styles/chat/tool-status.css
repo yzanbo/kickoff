@@ -1,0 +1,26 @@
+/* ==== ツールの呼び出し・まとまりの状態のアイコン（行の左端。ToolStatusIcon）: 実行中 = 回る印 / 完了 = 緑の ✓ / 失敗 = 赤の ✕ / 中断 = 灰色の − ==== */
+
+.tool-status {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+}
+
+.tool-status.done {
+  color: var(--ok);
+}
+
+.tool-status.failed {
+  color: var(--ng);
+}
+
+.tool-status.stopped {
+  color: var(--extra-muted);
+}
+
+/* 回る印は枠の真ん中に（.spinner.small の左の自動の余白を打ち消す） */
+.tool-status .spinner.small {
+  margin: 0;
+}

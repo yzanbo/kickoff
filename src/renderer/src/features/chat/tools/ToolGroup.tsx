@@ -1,4 +1,4 @@
-import { ChevronRight, Wrench } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BashOutput } from "./BashOutput";
@@ -7,10 +7,13 @@ import { useCommandOutput } from "./commandOutputs";
 import { summarizeTools, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
 import { CallTime, GroupTime } from "./ToolTime";
+import { callStatus, groupStatus } from "./toolStatus";
+import { ToolStatusIcon } from "./ToolStatusIcon";
 import { HighlightedCode } from "@/ui/HighlightedCode";
 
 /**
  * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
+ * 開閉の矢印の右に、まとまりの状態のアイコン（実行中 → 失敗 → 中断 → 完了。groupStatus）。
  * 実行中のコマンドの出力が届いていれば、まとまりの下に最後の行を流す（CommandLive。閉じていても見える）。
  * active: いまの作業の中のまとまり（作業中のチャットで、結果の届いていない呼び出しを実行中として見せる）
  */
@@ -21,6 +24,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
   const current = active ? tools.findLast((t) => !t.result) : undefined;
   const currentData = current && { name: current.use.data.name, input: current.use.data.input as Record<string, unknown> | undefined };
   const running = currentData !== undefined;
+  const status = groupStatus(tools.map((t) => callStatus(t, active && !t.result)));
   // 一度でも開いたか（一覧の行のコマンドの色付けは、まとまりを開いてから始める）
   const [opened, setOpened] = useState(false);
   // 実行中のコマンドの出力（まとまりを閉じていても、下に最後の行を流す）
@@ -36,7 +40,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
     >
       <summary>
         <ChevronRight size={14} className="tool-chevron" />
-        <Wrench size={13} className="muted" />
+        <ToolStatusIcon status={status} />
         <span className="tool-summary">{summary}</span>
         {currentData ? (
           <span className="tool-current">{rel(describeTool(currentData.name, currentData.input ?? {}))}</span>
@@ -57,7 +61,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
 }
 
 /**
- * ツールの呼び出し 1 件（右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: 結果を待っている（作業中のチャットのいまの作業）。
+ * ツールの呼び出し 1 件（左端に状態のアイコン、右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: 結果を待っている（作業中のチャットのいまの作業）。
  * listed: まとまりを開いて一覧が見えている（コマンドの行は、1 行の表示にもシェルの文法で色を付ける）
  */
 function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: string) => string; running: boolean; listed: boolean }) {
@@ -81,6 +85,7 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
   return (
     <details className={cx("tool-call", r?.is_error && "error")} onToggle={(e) => e.currentTarget.open && setOpened(true)}>
       <summary>
+        <ToolStatusIcon status={callStatus(call, running)} />
         <span className="tool-name">{toolLabel(name)}</span>
         <span className="tool-arg">
           {/* コマンドは 1 行に収めた表示にも色を付ける（改行は空白に見える。色付けの結果は開いた欄と共有） */}
