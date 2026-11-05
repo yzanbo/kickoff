@@ -69,10 +69,23 @@
 }
 
 /* 入力欄の上の「子チャット」の一覧（札を縦に並べる） */
-.child-chats-popover {
-  display: grid;
+/* 一覧の行はサブエージェントの一覧と同じ形（.subagent-row）。名前の前の状態の印と、様子の色だけ足す */
+.child-chat-row .subagent-title {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  justify-items: start;
+}
+
+.child-chat-row-state.child-unread {
+  color: var(--ok);
+}
+
+.child-chat-row-state.child-needs_input {
+  color: var(--warn);
+}
+
+.child-chat-row-state.child-failed {
+  color: var(--ng);
 }
 
 .child-chats-waiting {

@@ -47,8 +47,9 @@ export function openChildSide(chat: Pick<Chat, "id" | "project_id" | "title">) {
  * 子チャットを、設定の開き方（CHILD_CHAT_OPEN_IN）で開く: 右の欄 = いちばん上の親の右の欄のタブ / 別ウィンドウ（もう開いていれば前に出す）。
  * 別ウィンドウを開けない（スマホのブラウザ）なら右の欄。別ウィンドウの中から右の欄に開くときは、メインのウィンドウに頼む
  */
-export function openChildChat(chat: Pick<Chat, "id" | "project_id" | "title">) {
-  if (readSetting(CHILD_CHAT_OPEN_IN) === "window" && canPopout()) return openPopout({ kind: "chat", chatId: chat.id }, `${chatTitle(chat.title)} — 子チャット`);
+export function openChildChat(chat: Pick<Chat, "id" | "project_id" | "title">, place?: "side" | "window") {
+  // place を渡すと設定によらずその場所に（入力欄の上の子チャットの一覧の行のボタン）
+  if ((place ?? readSetting(CHILD_CHAT_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "chat", chatId: chat.id }, `${chatTitle(chat.title)} — 子チャット`);
   if (inPopout()) return postToMainWindow({ type: "openChild", chatId: chat.id });
   openChildSide(chat);
 }
