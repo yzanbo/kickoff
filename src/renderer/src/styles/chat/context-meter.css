@@ -171,6 +171,26 @@
   font-weight: 600;
 }
 
+/* 自動圧縮を始める量の選択（見出しの文字と小さな選択欄を 1 行に） */
+.context-auto-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.context-auto-compact label {
+  flex: none;
+  color: var(--muted);
+}
+
+.context-auto-compact select {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 12px;
+}
+
 /* 手で圧縮するボタン（上の文字のすぐ下に置く） */
 .context-compact {
   display: flex;
