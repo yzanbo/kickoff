@@ -1,5 +1,4 @@
-import { PanelBottomClose, PanelRight, PanelRightClose, type LucideIcon } from "lucide-react";
-import type { ComponentType } from "react";
+import { PanelBottomClose, PanelRightClose, type LucideIcon } from "lucide-react";
 import type { Route } from "@/app/router";
 import { readSetting, type SettingFamily } from "@/lib/storage";
 import { CHAT_PLACEMENT, projectChatOpen } from "@/lib/storageKeys";
@@ -40,11 +39,6 @@ export interface SurfaceRules {
   maximize?: "width" | "height";
   /** 大きくする切り替えの名前（なければ「横幅いっぱいに広げる / 元の幅に戻す」など。on = 大きくしているときの名前） */
   maximizeLabels?: { on: string; off: string };
-  /**
-   * タブの列の左端に出す欄の名前の札（右の欄の「サブエージェント」。チャットのタブの中に入れ子で置く欄が、何の欄かを見分けられるように）。
-   * 分けているときは、左上のペインにアイコンだけ出す
-   */
-  heading?: { icon: ComponentType<{ size?: number }>; label: string; title: string };
   /**
    * 出すタブの種類が決まっている欄か（サブエージェントの欄）。表示するタブの種類のメニュー・新しいタブのボタンを出さない
    * （中身は外から開くタブだけ）
@@ -104,11 +98,6 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "start" },
     emptyHint:
       "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
-    heading: {
-      icon: PanelRight,
-      label: "右の欄",
-      title: "右の欄（このチャットのサブエージェントの画面・変更したファイル・返答に出てきたファイル・子チャット・メモを、会話の横に並べて見ます）",
-    },
     fixedKinds: true,
     rootClass: "agent-panel",
   },
