@@ -38,3 +38,22 @@
 .inspection-info .inspection-icon {
   color: var(--muted);
 }
+
+/* ==== プロジェクトがないのに新しいチャットを始めようとしたときの案内（NoProjectsGuide） ====
+ * 中身は全プロジェクトの画面の空のときと同じ EmptyState。枠と余白はダイアログに任せ、✕ は右上に重ねる
+ * （見出しの行を作らず、案内のアイコンと見出しを真ん中に置いたままにする。ダイアログは top layer で position: fixed なので、そこを基準に置く） */
+.no-projects-guide:focus {
+  outline: none;
+}
+
+.no-projects-guide .empty-state {
+  max-width: none;
+  margin: 0;
+  border: none;
+}
+
+.no-projects-guide-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}

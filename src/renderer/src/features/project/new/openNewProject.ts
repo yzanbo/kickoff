@@ -15,6 +15,16 @@ export interface NewProjectRequest {
 /** 新しいプロジェクトの作り方 */
 export type NewProjectMode = "create" | "import";
 
+/**
+ * プロジェクトがないのに新しいチャットを始めようとしたとき（サイドバー・⌘N・パネル・カンバンの「新しいチャット」）の案内を開く（App が受け取る）。
+ * すべてのチャットはプロジェクトの中で行うことを説明し、新しいプロジェクトへ誘う（作ると、そのプロジェクトで新しいチャットが開く）
+ */
+export const OPEN_NO_PROJECTS_GUIDE_EVENT = "kickoff:open-no-projects-guide";
+
+export function openNoProjectsGuide() {
+  window.dispatchEvent(new CustomEvent(OPEN_NO_PROJECTS_GUIDE_EVENT));
+}
+
 export function openNewProject(request: NewProjectRequest = {}) {
   window.dispatchEvent(new CustomEvent<NewProjectRequest>(OPEN_NEW_PROJECT_EVENT, { detail: request }));
 }

@@ -8,15 +8,22 @@ import { openNewProject } from "./new/openNewProject";
 /** 移れる先として並べるプロジェクトの数 */
 const LISTED_PROJECTS = 6;
 
-/** 作る（・取り込む）のボタン（新しいプロジェクトのダイアログを、その作り方で開く。取り込むはダイアログの中でも選べる） */
-function NewProjectActions({ primary, withImport }: { primary: boolean; withImport: boolean }) {
+/**
+ * 作る（・取り込む）のボタン（新しいプロジェクトのダイアログを、その作り方で開く。取り込むはダイアログの中でも選べる）。
+ * onPick: 開く前に呼ぶ（案内のダイアログから押したときに、それを閉じる）
+ */
+function NewProjectActions({ primary, withImport, onPick }: { primary: boolean; withImport: boolean; onPick?: () => void }) {
+  const open = (mode: "create" | "import") => {
+    onPick?.();
+    openNewProject(mode === "import" ? { mode } : {});
+  };
   return (
     <>
-      <button type="button" className={primary ? "btn btn-primary" : "btn"} onClick={() => openNewProject()}>
+      <button type="button" className={primary ? "btn btn-primary" : "btn"} onClick={() => open("create")}>
         <Plus size={15} aria-hidden /> 新しいプロジェクト
       </button>
       {withImport && (
-        <button type="button" className="btn" onClick={() => openNewProject({ mode: "import" })}>
+        <button type="button" className="btn" onClick={() => open("import")}>
           <FolderInput size={15} aria-hidden /> 既存のフォルダを取り込む
         </button>
       )}
@@ -32,15 +39,17 @@ const STEPS = [
 ];
 
 /**
- * プロジェクトがまだないときの案内（全プロジェクトの画面・見つからないプロジェクトの画面で共通）。
- * Kickoff で何をするか・始め方の 3 段・作る / 取り込むのボタン。archived: しまったプロジェクトの数（あれば「まだない」とは言わず、その旨を添える）
+ * プロジェクトがまだないときの案内（全プロジェクトの画面・見つからないプロジェクトの画面・新しいチャットを始めようとしたときの案内のダイアログで共通）。
+ * Kickoff で何をするか・始め方の 3 段・作る / 取り込むのボタン。archived: しまったプロジェクトの数（あれば「まだない」とは言わず、その旨を添える）。
+ * forNewChat: 新しいチャットを始めようとしたとき（すべてのチャットはプロジェクトの中で行うことを先に伝え、作るとそこで新しいチャットが開くと添える）。
+ * onPick: 作る・取り込むを押したとき（ダイアログを閉じる）
  */
-export function NoProjectsWelcome({ archived = 0 }: { archived?: number }) {
+export function NoProjectsWelcome({ archived = 0, forNewChat = false, onPick }: { archived?: number; forNewChat?: boolean; onPick?: () => void }) {
   return (
     <EmptyState
-      icon={FolderGit2}
-      title={archived > 0 ? "表示中のプロジェクトがありません" : "まだプロジェクトがありません"}
-      actions={<NewProjectActions primary withImport />}
+      icon={forNewChat ? MessageSquare : FolderGit2}
+      title={forNewChat ? "チャットはプロジェクトの中で始めます" : archived > 0 ? "表示中のプロジェクトがありません" : "まだプロジェクトがありません"}
+      actions={<NewProjectActions primary withImport onPick={onPick} />}
       footer={
         <ol className="empty-state-steps">
           {STEPS.map(({ icon: Icon, title, text }, i) => (
@@ -59,7 +68,15 @@ export function NoProjectsWelcome({ archived = 0 }: { archived?: number }) {
         </ol>
       }
     >
-      Kickoff では、フォルダ 1 つが 1 つのプロジェクトです。プロジェクトを作ると、その中で AI とのチャットを始められます。
+      {forNewChat ? (
+        <>
+          Kickoff では、すべてのチャットをプロジェクト（AI が作業するフォルダ）の中で行います。
+          {archived > 0 ? "表示中のプロジェクトがないので、新しく作るか、アーカイブしたプロジェクトを戻してください。" : "まだプロジェクトがないので、先に 1 つ作りましょう。"}
+          作ると、そのプロジェクトで新しいチャットが開きます。
+        </>
+      ) : (
+        "Kickoff では、フォルダ 1 つが 1 つのプロジェクトです。プロジェクトを作ると、その中で AI とのチャットを始められます。"
+      )}
       {archived > 0 && <p className="empty-state-note">アーカイブしたプロジェクトが {archived} 件あります（サイドバーの見出しの「アーカイブ」で表示して戻せます）。</p>}
     </EmptyState>
   );
