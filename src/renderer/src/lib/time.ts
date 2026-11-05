@@ -113,6 +113,26 @@ export function formatStampRange(start: string, end: string, now = new Date()): 
   return `${formatStamp(start, now)} – ${sameDay(from, to) ? clockWithSeconds(to) : `${shortDay(to, now)} ${clockWithSeconds(to)}`}`;
 }
 
+/** 実行時間（"8秒" / "1分0秒" / "1時間2分5秒"）。いちばん大きい単位から下はすべて出す（formatElapsed と違い、ちょうどでも下の単位を省かない） */
+export function formatRunTime(ms: number): string {
+  const sec = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}時間${m}分${s}秒`;
+  if (m > 0) return `${m}分${s}秒`;
+  return `${s}秒`;
+}
+
+/**
+ * 終わった処理の範囲と実行時間（"08:34:12 – 08:36:40（実行時間 2分28秒）"）。
+ * 始まりと終わりが同じ秒で時刻が 1 つだけになるときは、実行時間を添えない
+ */
+export function formatStampRangeWithRunTime(start: string, end: string, now = new Date()): string {
+  const range = formatStampRange(start, end, now);
+  return range === formatStamp(start, now) ? range : `${range}（実行時間 ${formatRunTime(Date.parse(end) - Date.parse(start))}）`;
+}
+
 /** 年月日と秒までの時刻（"2026/11/5 08:34:12"。処理の時刻に乗せたときの title に） */
 export function formatFullStamp(iso: string): string {
   const date = new Date(iso);
