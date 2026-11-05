@@ -5,7 +5,7 @@ import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat
 import { relayedText } from "@shared/chat/prompts";
 import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
-import { formatElapsed, formatFullStamp, formatStampRange } from "@/lib/time";
+import { formatElapsed, formatFullStamp, formatRunTime, formatStampRange, formatStampRangeWithRunTime } from "@/lib/time";
 import { useTicker } from "@/hooks/useTicker";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { Markdown } from "@/ui/markdown/Markdown";
@@ -142,7 +142,7 @@ function PlainCard({ call }: { call: ToolCall }) {
   );
 }
 
-/** 開始〜終了の時刻（実行中は開始〜最後の動き）。今日なら時刻だけ、別の日なら日付も。乗せると年月日とかかった時間 */
+/** 開始〜終了の時刻と実行時間（実行中は開始〜最後の動き）。今日なら時刻だけ、別の日なら日付も。乗せると年月日とかかった時間 */
 function SubagentTime({ entry }: { entry: SubagentEntry }) {
   const start = entry.startedAt;
   if (!start) return null;
@@ -150,10 +150,10 @@ function SubagentTime({ entry }: { entry: SubagentEntry }) {
   const end = running ? (entry.lastActivityAt ?? start) : (entry.endedAt ?? entry.lastActivityAt ?? start);
   const title = running
     ? `開始 ${formatFullStamp(start)}\n最後の動き ${formatFullStamp(end)}（実行中）`
-    : `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(end)}（${formatElapsed(Date.parse(end) - Date.parse(start))}）`;
+    : `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(end)}（実行時間 ${formatRunTime(Date.parse(end) - Date.parse(start))}）`;
   return (
     <span className={cx("tool-time", running && "running")} title={title}>
-      {formatStampRange(start, end)}
+      {running ? formatStampRange(start, end) : formatStampRangeWithRunTime(start, end)}
     </span>
   );
 }
