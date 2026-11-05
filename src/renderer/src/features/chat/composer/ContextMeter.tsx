@@ -1,5 +1,5 @@
 import { Shrink } from "lucide-react";
-import type { Chat, UsageWindow } from "@shared/types";
+import type { Chat, CompactingState, UsageWindow } from "@shared/types";
 import { api } from "@/api";
 import { useProviders } from "@/stores/providers";
 import { cx } from "@/lib/cx";
@@ -11,7 +11,7 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ErrorText } from "@/ui/ErrorText";
 import { RefreshButton } from "@/ui/IconButton";
 import { Popover, usePopover } from "@/ui/Popover";
-import { COMPACTING_LABEL } from "@/features/chat/status/workingLabel";
+import { compactingLabel } from "@/features/chat/status/workingLabel";
 
 /** 丸いメーターの色（70% から注意、90% から警告） */
 const TONES = { normal: "ok", warning: "warn", critical: "danger" } as const;
@@ -22,7 +22,8 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
  * 押すと、コンテキストの詳細とプランの使用枠を出す（もう一度押す・ポップオーバーの外を押す・Esc で閉じる。マウスを乗せただけでは出さない）。
  * 会話を圧縮している間（手で圧縮した・上限に近づいて自動で）は、弧を回して知らせる（終わるとコンテキストの大きさが届き、弧が縮む）。
  */
-export function ContextMeter({ chat, compacting = false }: { chat: Chat; compacting?: boolean }) {
+export function ContextMeter({ chat, compacting }: { chat: Chat; compacting: CompactingState | null }) {
+  const compactingText = compacting ? compactingLabel(compacting.trigger) : null;
   const planUsage = useSharedPlanUsage();
   // 押すとメーターの上に開く詳細（もう一度押す・外を押す・Esc で閉じる。右端をメーターにそろえる）
   const popover = usePopover<HTMLDivElement>();
@@ -51,13 +52,13 @@ export function ContextMeter({ chat, compacting = false }: { chat: Chat; compact
       <button
         type="button"
         className="context-ring-button"
-        aria-label={compacting ? `${COMPACTING_LABEL}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用`}
-        aria-busy={compacting || undefined}
+        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用`}
+        aria-busy={compacting ? true : undefined}
         aria-expanded={open}
-        title={open ? "閉じる" : compacting ? `${COMPACTING_LABEL}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストと使用枠の詳細を表示"}
+        title={open ? "閉じる" : compactingText ? `${compactingText}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストと使用枠の詳細を表示"}
         onClick={popover.toggle}
       >
-        <Ring pct={pct} compacting={compacting} />
+        <Ring pct={pct} compacting={compacting !== null} />
       </button>
       {open && (
         <Popover anchor={popover.anchor} side="above" align="end" gap={8} label="コンテキストウィンドウと使用枠" className="context-popover" onClose={popover.close}>

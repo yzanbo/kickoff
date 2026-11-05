@@ -95,7 +95,7 @@ export function ChatComposerArea({
         banner={relay && <RelayBanner target={relay} onClear={pane.clearRelay} />}
         stopping={live.stopping}
         onStop={send.onStop}
-        trailing={<ContextMeter chat={chat} compacting={live.compacting !== null} />}
+        trailing={<ContextMeter chat={chat} compacting={live.compacting} />}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
         handleRef={composer}
         history={prompts.recalls}

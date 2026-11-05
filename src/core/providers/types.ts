@@ -85,6 +85,11 @@ export interface ProviderCallbacks {
   background?(state: BackgroundState): void;
   /** 会話を圧縮（要約）し始めた・終わった（手で圧縮したときも、上限に近づいて自動で圧縮されたときも。保存しない） */
   compacting?(active: boolean): void;
+  /**
+   * 会話の圧縮に失敗した（理由。分からなければ null）。知らせるかはコアが決める（手で圧縮したときだけお知らせに残す。
+   * 自動の圧縮の失敗は、要約するものがない（too_few_groups）なども含むので Claude Code も知らせない）
+   */
+  compactFailed?(reason: string | null): void;
   /** 作業中のチャットへの操作を渡す（終わったら null） */
   control?(control: TurnControl | null): void;
 }

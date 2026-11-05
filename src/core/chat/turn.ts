@@ -10,7 +10,7 @@ import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
-import type { Project, ProviderId, Chat } from "@shared/types";
+import type { Project, ProviderId, Chat, CompactTrigger } from "@shared/types";
 import type { UploadStore } from "./uploads.js";
 import type { ChatRuntime } from "./runtime.js";
 import { workdirOf } from "./workdir.js";
@@ -72,7 +72,11 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
     const result: ProviderTurnResult = signal.aborted
       ? { status: "cancelled", sessionId: chat.session_id }
-      : await providers[chat.provider].run(buildTurnParams(deps, chat, project, cwd, prompt, promptId), callbacksFor(deps, runtime, chat, signal, compact), signal);
+      : await providers[chat.provider].run(
+          buildTurnParams(deps, chat, project, cwd, prompt, promptId),
+          callbacksFor(deps, runtime, chat, signal, compact, compactTriggerOf(prompt, compact)),
+          signal,
+        );
     const network = result.status === "failed" && Boolean(result.network);
     applyResult(store, chatId, result, compact, since, network);
     const usageLimit = result.status === "failed" && !network ? result.usageLimit : undefined;
@@ -90,6 +94,14 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     runtime.control = null;
     runtime.update({ retry: null, background: null, compacting: null });
   }
+}
+
+/**
+ * この実行の中の圧縮のきっかけ: 手で圧縮した（圧縮のボタン = compact、チャット欄から /compact を送った）なら manual、
+ * ほかの指示の途中で起きた圧縮は、コンテキストが上限に近づいて Claude Code が自動で始めたもの
+ */
+function compactTriggerOf(prompt: string, compact: boolean): CompactTrigger {
+  return compact || /^\/compact(?:\s|$)/.test(prompt.trimStart()) ? "manual" : "auto";
 }
 
 /** 作業場所（workdirOf）。フォルダが消えていれば（ワークツリーをアプリの外で消したときなど）分かる文で止める */
@@ -124,7 +136,14 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
  * プロバイダーからの知らせ: 途中経過は配るだけ、作業中の様子は runtime に書き（runtime が画面に配る）、イベントは記録、
  * 承認依頼は回答を待つ（待つ間は回答待ち）
  */
-function callbacksFor({ store, approvals, bus }: ExecutionDeps, runtime: ChatRuntime, chat: Chat, signal: AbortSignal, compact: boolean): ProviderCallbacks {
+function callbacksFor(
+  { store, approvals, bus }: ExecutionDeps,
+  runtime: ChatRuntime,
+  chat: Chat,
+  signal: AbortSignal,
+  compact: boolean,
+  compactTrigger: CompactTrigger,
+): ProviderCallbacks {
   const chatId = chat.id;
   const projectId = chat.project_id;
   return {
@@ -136,8 +155,14 @@ function callbacksFor({ store, approvals, bus }: ExecutionDeps, runtime: ChatRun
       runtime.control = control;
     },
     background: (background) => runtime.update({ background }),
-    // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま）
-    compacting: (active) => runtime.update({ compacting: active ? (runtime.compacting ?? new Date().toISOString()) : null }),
+    // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
+    compacting: (active) =>
+      runtime.update({ compacting: active ? (runtime.compacting ?? { since: new Date().toISOString(), trigger: compactTrigger }) : null }),
+    // 失敗は、手で圧縮したときだけお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない too_few_groups なども含み、
+    // Claude Code も知らせない。本当にあふれたら、作業そのものが失敗として残る）
+    compactFailed: (reason) => {
+      if (compactTrigger === "manual") store.events.add(chatId, { type: "notice", message: `会話の圧縮に失敗しました${reason ? `（${reason}）` : ""}` });
+    },
     stream: (text) => {
       bus?.publish({ type: "chat_delta", project_id: projectId, chat_id: chatId, text });
     },

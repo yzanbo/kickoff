@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTicker } from "@/hooks/useTicker";
-import type { Chat, ChatEvent, ChatLive } from "@shared/types";
+import type { Chat, ChatEvent, ChatLive, CompactTrigger } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { activityOf, activityText, type Activity } from "./stall";
 import { backgroundWaitLabel, countBackground } from "./backgroundLabel";
@@ -21,7 +21,7 @@ export function workingLabel(chat: Chat, last: TimelineItem | undefined, streami
   if (live.stopping) return "停止中…";
   if (live.retry) return <RetryLabel retry={live.retry} agents={Math.max(runningAgents, countBackground(live.background).agents)} />;
   // 会話を要約して、コンテキストを空けている（手で圧縮した・上限に近づいて自動で。終わると続きを始める）
-  if (live.compacting !== null) return COMPACTING_LABEL;
+  if (live.compacting !== null) return compactingLabel(live.compacting.trigger);
   // 長く動きのないサブエージェント（親はその終わりを待っている）。ほかの文より先に知らせる
   if (activity.stalled.length > 0) return <StalledAgentsLabel agents={activity.stalled} />;
   const pendingTool = last?.kind === "tools" ? last.tools[last.tools.length - 1] : last?.kind === "subagent" ? last.call : undefined;
@@ -47,8 +47,8 @@ export function workingLabel(chat: Chat, last: TimelineItem | undefined, streami
   );
 }
 
-/** 会話を圧縮している間の文（作業中の行・一番下へ戻るボタン・チャット欄のメーター） */
-export const COMPACTING_LABEL = "会話を圧縮しています";
+/** 会話を圧縮している間の文（作業中の行・一番下へ戻るボタン・チャット欄のメーター。自動のときは、自分で始めたものではないと分かるように） */
+export const compactingLabel = (trigger: CompactTrigger) => (trigger === "auto" ? "会話を自動で圧縮しています" : "会話を圧縮しています");
 
 /** 長く動きのないサブエージェントを、作業中の行で知らせる（「サブエージェント『調査』が 12 分動いていません（ほか 1 件）」） */
 function StalledAgentsLabel({ agents }: { agents: SubagentEntry[] }) {

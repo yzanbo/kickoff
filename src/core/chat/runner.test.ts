@@ -5,6 +5,7 @@ import { ScriptedProvider, type Script } from "../testing/fakeProvider.js";
 import { tempDir } from "../testing/tempDir.js";
 import { setupCore, until } from "../testing/testCore.js";
 import { UploadStore } from "./uploads.js";
+import type { CompactingState } from "@shared/types";
 
 /** 台本どおりの偽のプロバイダーで、コアを組み立てる（API のテストと同じ準備。testing/testCore.ts） */
 const setup = (script: Script, uploads?: UploadStore) => setupCore(new ScriptedProvider(script), { uploads });
@@ -194,6 +195,42 @@ test("送った指示は数に関係なくすぐ動き、中断すると承認�
   );
   for (const r of chats.slice(1)) runner.cancel(r.id);
   await until(() => chats.every((r) => store.chats.get(r.id)?.status === "cancelled"));
+});
+
+test("圧縮のきっかけ: 手で圧縮した（ボタン・/compact を送った）ときは manual、ほかの指示の途中の圧縮は auto。失敗は手で圧縮したときだけお知らせに残す", async () => {
+  const seen: [string, CompactingState | null][] = [];
+  let chatId = 0;
+  const { store, runner, project } = setup(async (params, cb) => {
+    // 作ったチャットの ID を受け取ってから動く（runner.live で様子を読むため）
+    await until(() => chatId !== 0);
+    cb.emit({ type: "init", session_id: "s1" });
+    cb.compacting?.(true);
+    seen.push([params.prompt, runner.live(chatId).compacting]);
+    // 要約するものがないなど、圧縮が失敗して終わる
+    cb.compacting?.(false);
+    cb.compactFailed?.(params.prompt.startsWith("/compact") ? "too long" : "too_few_groups");
+    return { status: "completed", sessionId: "s1", result: "ok", turns: 1 };
+  });
+  const chat = await runner.start({ projectId: project.id, prompt: "続けて" });
+  chatId = chat.id;
+  await until(() => store.chats.get(chat.id)?.status === "completed" && !runner.isBusy(chat.id));
+  await runner.send(chat.id, "/compact 決めたことを残して");
+  await until(() => seen.length === 2 && !runner.isBusy(chat.id));
+  await runner.compact(chat.id);
+  await until(() => seen.length === 3 && !runner.isBusy(chat.id));
+  assert.deepEqual(
+    seen.map(([prompt, live]) => [prompt.split(" ")[0], live?.trigger]),
+    [
+      ["続けて", "auto"],
+      ["/compact", "manual"],
+      ["/compact", "manual"],
+    ],
+  );
+  // 圧縮している間は始めた時刻を持ち、終われば消える
+  assert.ok(seen.every(([, live]) => typeof live?.since === "string"));
+  assert.equal(runner.live(chat.id).compacting, null);
+  const notices = store.events.list(chat.id).flatMap((e) => (e.type === "notice" ? [e.data.message] : []));
+  assert.deepEqual(notices, ["会話の圧縮に失敗しました（too long）", "会話の圧縮に失敗しました（too long）"]);
 });
 
 test("手で圧縮すると /compact を送り、要約したことだけを残す（発言・未読・会話の回数には数えない）", async () => {

@@ -1,5 +1,6 @@
 // 作業中のチャットの様子（保存しない。チャットの詳細の live と SSE の chat_live で同じ形で配る）。型と定数のみ
 import type { QueuedMessage } from "./chat";
+import type { CompactTrigger } from "./chatEvent";
 
 /** AI の API への通信を Claude Code が再試行しているところ（通信が切れたときなど。保存しない） */
 export interface ApiRetryInfo {
@@ -49,6 +50,14 @@ export interface QueueState {
   waiting_edit: boolean;
 }
 
+/** 会話を圧縮（要約）している最中の様子 */
+export interface CompactingState {
+  /** 圧縮を始めた時刻（終わるまで変えない） */
+  since: string;
+  /** 手で圧縮したか、上限に近づいて自動でか（自動のときは、なぜ作業が止まって見えるかを画面で添える） */
+  trigger: CompactTrigger;
+}
+
 /** 作業中のチャットの様子の全体（どれかが変わるたびに、SSE の chat_live で丸ごと配る） */
 export interface ChatLive {
   queue: QueueState;
@@ -58,8 +67,8 @@ export interface ChatLive {
   retry: ApiRetryInfo | null;
   /** 通信が切れて止まり、つながったら自動で再開するのを待っているところ（待っていなければ null） */
   reconnect: ReconnectState | null;
-  /** 会話を圧縮している最中なら、始めた時刻（していなければ null。手で圧縮したときも、上限に近づいて自動で圧縮されたときも） */
-  compacting: string | null;
+  /** 会話を圧縮している最中の様子（していなければ null。手で圧縮したときも、上限に近づいて自動で圧縮されたときも） */
+  compacting: CompactingState | null;
   /** 停止を頼んで、作業が終わるのを待っているか（サブエージェント・裏のコマンドごと終わるまで数秒かかる） */
   stopping: boolean;
 }

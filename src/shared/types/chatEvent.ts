@@ -51,9 +51,12 @@ export type ChatEventData =
   | { type: "error"; message: string }
   | { type: "notice"; message: string }
   /** 会話を要約してコンテキストを空けた（manual: 手で圧縮 / auto: 上限に近づいて自動で）。前後のトークン数 */
-  | { type: "compact"; trigger: "manual" | "auto"; pre_tokens: number; post_tokens?: number }
+  | { type: "compact"; trigger: CompactTrigger; pre_tokens: number; post_tokens?: number }
   /** サブエージェントの開始・終了（途中経過は保存せず、chat_subagent で届く） */
   | ({ type: "subagent" } & SubagentInfo);
+
+/** 会話の圧縮のきっかけ（manual: 手で圧縮した（圧縮のボタン・/compact）/ auto: コンテキストが上限に近づいて Claude Code が自動で） */
+export type CompactTrigger = "manual" | "auto";
 
 /** サブエージェント（Task / Agent ツールで起動された別のエージェント）の状態 */
 export interface SubagentInfo {
