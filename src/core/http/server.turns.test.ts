@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setup, until } from "../testing/testServer.js";
-import type { ChatLive } from "@shared/types";
+import type { ChatLive, CompactingState } from "@shared/types";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
   const { call, project, store, runner, provider } = setup();
@@ -56,9 +56,9 @@ test("裏で動いている作業: 作業中はチャットの詳細で返し、
   assert.deepEqual(seen, [state, null]);
 });
 
-test("圧縮: 圧縮している間はチャットの詳細で始めた時刻を返し、SSE の chat_live でも知らせ、作業が終わったら消す", async () => {
+test("圧縮: 圧縮している間はチャットの詳細で始めた時刻ときっかけ（ふつうの指示の途中なら自動）を返し、SSE の chat_live でも知らせ、作業が終わったら消す", async () => {
   const { call, project, runner, provider, bus } = setup();
-  const seen: (string | null)[] = [];
+  const seen: (CompactingState | null)[] = [];
   bus.subscribe((e) => {
     if (e.type === "chat_live") seen.push(e.live.compacting);
   });
@@ -66,12 +66,13 @@ test("圧縮: 圧縮している間はチャットの詳細で始めた時刻を
   const release = provider.hold();
   const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "続けて" })).body.id;
   await until(() => runner.live(chatId).compacting !== null);
-  const since = (await call("GET", `/api/chats/${chatId}`)).body.live.compacting;
-  assert.equal(typeof since, "string");
+  const compacting: CompactingState = (await call("GET", `/api/chats/${chatId}`)).body.live.compacting;
+  assert.equal(typeof compacting.since, "string");
+  assert.equal(compacting.trigger, "auto");
   release();
   await until(() => !runner.isBusy(chatId));
   assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.compacting, null);
-  assert.deepEqual(seen, [since, null]);
+  assert.deepEqual(seen, [compacting, null]);
 });
 
 test("作業中の様子: チャットの詳細の live と SSE の chat_live は同じ形で、どれかが変わったときだけ丸ごと届く", async () => {

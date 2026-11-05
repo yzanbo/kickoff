@@ -1,4 +1,4 @@
-/* ==== コンテキストウィンドウのメーターと手で圧縮するボタン ==== */
+/* ==== コンテキストウィンドウのメーター・手で圧縮するボタン・圧縮している間の作業中の行 ==== */
 
 /* コンテキストウィンドウのメーター */
 .context-meter {
@@ -43,14 +43,63 @@
   stroke: var(--dot-failed);
 }
 
-/* 会話を圧縮している間: 短い弧をアクセントの色で回す（使用率の色より後ろに置いて勝たせる。弧の長さの変化はなめらかにしない） */
+/*
+ * 会話を圧縮している間: 短い弧をアクセントの色で回す（使用率の色より後ろに置いて勝たせる。弧の長さの変化はなめらかにしない）。
+ * 色は文字のアクセント --accent-fg（ダークの --accent は暗い緑で、暗い地の上では回っているのが見えなかった）
+ */
 .context-ring.compacting {
   animation: spin 0.9s linear infinite;
 }
 
 .context-ring.compacting .context-ring-fill {
-  stroke: var(--accent);
+  stroke: var(--accent-fg);
   transition: none;
+}
+
+/*
+ * 会話を圧縮している間の作業中の行（CompactingRow）。ふだんの作業中の行（灰色の 1 行）と見分けがつくよう、アクセントの色の枠と薄い地に、
+ * 見出し・始めた時刻と経過・きっかけの説明を出す。左の列にアイコン、右の列に見出しと説明（アイコンは見出しの行の高さの真ん中）
+ */
+.working.compacting {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.compacting-icon {
+  color: var(--accent-fg);
+}
+
+.compacting-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-weight: 600;
+  color: var(--accent-fg);
+}
+
+/* 動いている印の点も見出しと同じ明るさに（ふだんの --accent は、薄い緑の地の上では沈んで見えた） */
+.compacting-title .dots span {
+  background: var(--accent-fg);
+}
+
+.compacting-time {
+  font-weight: 400;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.compacting-note {
+  grid-column: 2;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
 }
 
 /* メーターの上に開く詳細（右端をメーターにそろえる。枠と地は .popover） */

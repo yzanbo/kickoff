@@ -57,12 +57,10 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
         cb.emit({ type: "compact", trigger, pre_tokens, ...(post_tokens !== undefined ? { post_tokens } : {}) });
         return undefined;
       }
-      // いまの段階（圧縮中・API に問い合わせ中）。圧縮の始まりと終わりを画面に知らせ、失敗したら理由を残す
+      // いまの段階（圧縮中・API に問い合わせ中）。圧縮の始まりと終わりを画面に知らせ、失敗したら理由を渡す（お知らせに残すかはコアが決める）
       if (msg.subtype === "status") {
         setCompacting(state, cb, msg.status === "compacting");
-        if (msg.compact_result === "failed") {
-          cb.emit({ type: "notice", message: `会話の圧縮に失敗しました${msg.compact_error ? `（${msg.compact_error}）` : ""}` });
-        }
+        if (msg.compact_result === "failed") cb.compactFailed?.(msg.compact_error ?? null);
         return undefined;
       }
       // サブエージェント: 開始と終了は記録し、途中経過（トークン数・直近のツール）は画面にだけ流す。

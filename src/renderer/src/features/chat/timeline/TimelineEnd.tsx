@@ -6,10 +6,11 @@ import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
 import { BackgroundTasks } from "@/features/chat/status/BackgroundTasks";
 import { ReconnectRow } from "@/features/chat/status/ConnectionStatus";
 import { Working } from "@/features/chat/status/Working";
+import { CompactingRow } from "@/features/chat/status/CompactingRow";
 
 /**
  * 流れの終わり（最新の分）: 書いている途中の返答・確認のカード・作業中の行（返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える。
- * ）・裏で動いている作業（1 件ずつ止められる）・通信が切れて止まり、つながるのを待っている行。
+ * 会話を圧縮している間は、見分けのつく圧縮中の行）・裏で動いている作業（1 件ずつ止められる）・通信が切れて止まり、つながるのを待っている行。
  * working は作業中の行の文（useWorkingStatus。作業中でなければ null）
  */
 export function TimelineEnd({
@@ -39,7 +40,9 @@ export function TimelineEnd({
       {approvals.map((a) => (
         <ApprovalCard key={a.id} approval={a} />
       ))}
-      {busy && approvals.length === 0 && <Working since={chat.turn_started_at}>{working}</Working>}
+      {busy &&
+        approvals.length === 0 &&
+        (live.compacting ? <CompactingRow compacting={live.compacting} /> : <Working since={chat.turn_started_at}>{working}</Working>)}
       {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} />}
       {!busy && live.reconnect && <ReconnectRow chatId={chat.id} reconnect={live.reconnect} />}
     </>

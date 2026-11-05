@@ -4,13 +4,13 @@ import type { TurnControl } from "../providers/types.js";
 import { ChatQueue, type QueuePersistence } from "./queue.js";
 import { QueueEdits } from "./queueEdits.js";
 import { createRecoveryState, reconnectStateOf, type RecoveryState } from "./recovery/state.js";
-import type { ApiRetryInfo, BackgroundState, ChatLive, QueueState } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueueState } from "@shared/types";
 
 /** ChatRuntime がそのまま持つ、画面に配る様子（送信待ちの列は queue、再接続待ちは recovery から組み立てる） */
 interface LiveFields {
   background: BackgroundState | null;
   retry: ApiRetryInfo | null;
-  compacting: string | null;
+  compacting: CompactingState | null;
   stopping: boolean;
   /** 次の指示を書き直していたので、送らずに書き直しが終わるのを待っている（QueueState の waiting_edit） */
   waitingEdit: boolean;
@@ -52,8 +52,8 @@ export class ChatRuntime {
     return this.turn !== null || this.preparing;
   }
 
-  /** 会話を圧縮している最中なら、始めた時刻 */
-  get compacting(): string | null {
+  /** 会話を圧縮している最中なら、その様子（始めた時刻ときっかけ） */
+  get compacting(): CompactingState | null {
     return this.fields.compacting;
   }
 

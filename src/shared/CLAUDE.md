@@ -12,7 +12,7 @@
 
 ## フォルダ
 
-- `types/`: API・SSE・DB の形（入口は `index.ts`）。`chat`（`Chat`・`ChatGroup`・`ChatOptions`・`QueuedMessage`・`Attachment`・カンバンの列と状態）/ `chatEvent`（記録）/ `chatLive`（作業中の様子 `ChatLive`・`QueueState`）/ `project` / `approval` / `settings`（`AppSettings`・`DEFAULT_SETTINGS`・プロバイダー・推論の深さ・権限モード）/ `provider`（CLI の状態・使用枠）/ `git` / `voice` / `server`（`ServerStatus`）/ `events`（SSE の `BusEvent`）/ `api`（API にだけ出る本文 `…Body` と応答の形。コアの zod は `satisfies` でこの型に合わせる）。
+- `types/`: API・SSE・DB の形（入口は `index.ts`）。`chat`（`Chat`・`ChatGroup`・`ChatOptions`・`QueuedMessage`・`Attachment`・カンバンの列と状態）/ `chatEvent`（記録）/ `chatLive`（作業中の様子 `ChatLive`・`QueueState`・圧縮中の様子 `CompactingState`）/ `project` / `approval` / `settings`（`AppSettings`・`DEFAULT_SETTINGS`・プロバイダー・推論の深さ・権限モード）/ `provider`（CLI の状態・使用枠）/ `git` / `voice` / `server`（`ServerStatus`）/ `events`（SSE の `BusEvent`）/ `api`（API にだけ出る本文 `…Body` と応答の形。コアの zod は `satisfies` でこの型に合わせる）。
 - `chat/`: チャットの決まり（状態と列 `state.ts`・選択の決め方 `chatOptions.ts`・サブエージェントの一覧 `subagents.ts` / `subagentSupersede.ts` / `backgroundTasks.ts`・送信待ちの印 `queueStops.ts`・書き直しの持ち時間 `queueEditHolds.ts`・失敗の見分け `networkErrors.ts` / `usageLimit.ts`・AI への定型文 `prompts.ts`）。
 - `project/`: プロジェクトの色（`colors.ts` の `PROJECT_HUES` と `pickProjectHue`。グループの色も同じ選び方）とタグ（`tags.ts` の `normalizeTags` / `matchesTags` / `collectTags`・`MAX_TAG_LENGTH` / `MAX_TAGS`・タグなしを表す `UNTAGGED`）。
 - `ipc/`: Electron の IPC の取り決め（→「IPC の取り決め」）。
