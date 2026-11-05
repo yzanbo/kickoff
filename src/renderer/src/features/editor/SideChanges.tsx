@@ -32,7 +32,7 @@ interface Props {
 
 /**
  * チャットの画面の右の欄の「変更」: チャットの作業場所のコミットしていない変更のあるファイルを、上に一覧、下に差分を縦に並べて出す。
- * 押したファイル（focus）の位置へ移る。ファイルごとに畳め、一覧を押すとそのファイルへ移る。差分はエディタタブと同じ（DiffView。表示のしかたも共通）。
+ * 押したファイル（focus）の位置へ移る。ファイルごとに畳め、一覧を押すとそのファイルへ移る。差分はファイルタブと同じ（DiffView。表示のしかたも共通）。
  * チャットが動いた・ウィンドウに戻ったら取り直す（useGitStatus）
  */
 export function SideChanges(props: Props) {
@@ -265,7 +265,7 @@ function ChangeSection({
           />
           確認済み
         </label>
-        <IconButton icon={SquareArrowOutUpRight} size={13} label="エディタタブで開く" onClick={openInEditor} />
+        <IconButton icon={SquareArrowOutUpRight} size={13} label="ファイルタブで開く" onClick={openInEditor} />
       </div>
       {open && <DiffView projectId={projectId} file={file} staged={staged} version={version} bare source={source} />}
     </section>

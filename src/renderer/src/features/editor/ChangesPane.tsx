@@ -11,7 +11,7 @@ import type { ChangeGroups, Selection } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 
 /**
- * エディタタブの左の「変更」（ソース管理）: 見出しにブランチと進み・遅れ、一覧 / ツリーの切り替え、取り直し。
+ * ファイルタブの左の「変更」（ソース管理）: 見出しにブランチと進み・遅れ、一覧 / ツリーの切り替え、取り直し。
  * 下にコミットの欄と「ステージされている変更」「変更」。操作の実行中と失敗は action（親が持ち、表示を切り替えても残る）
  */
 export function ChangesPane({

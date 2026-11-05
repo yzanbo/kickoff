@@ -31,7 +31,7 @@ export function openFileRef(ref: FileRef, place: { projectId: number; worktree?:
  * チャットの中のファイルを押して開くための情報（FileLinkContext に入れる）。
  * チャットの作業場所（ワークツリーならそのフォルダ、なければ本体）のファイルの一覧を読み、作業が終わるたびに読み直す（新しく作ったファイルもチップにする）。
  * side（チャットの画面の右の欄を置ける）なら、押したファイルを右の欄に開き、会話は左に残す（コミットしていない変更があれば変更のタブのその位置、
- * なければ・行の番号があればファイルのタブ）。置けなければエディタタブ。一覧が読めない（フォルダが消えたなど）間は undefined（チップにしない）
+ * なければ・行の番号があればファイルのタブ）。置けなければファイルタブ。一覧が読めない（フォルダが消えたなど）間は undefined（チップにしない）
  */
 export function useFileLinks(
   chat: { id: number; project_id: number; worktree_path: string | null; status: string },

@@ -1,35 +1,34 @@
-import { Files, GitBranch, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cx } from "@/lib/cx";
 import { baseName } from "@/lib/format";
 import { useAction } from "@/hooks/useAction";
 import type { CommitBusy } from "./CommitBox";
 import { useDragSize } from "@/hooks/useDragSize";
-import { useSetting } from "@/hooks/useSetting";
 import { navigate, type FileTarget } from "@/app/router";
-import { CHANGES_LIST_WIDTH, CHANGES_VIEW } from "@/lib/storageKeys";
+import { CHANGES_LIST_WIDTH } from "@/lib/storageKeys";
 import { WorktreePicker } from "@/features/worktree/WorktreePicker";
 import { ErrorText } from "@/ui/ErrorText";
-import { Segmented } from "@/ui/Segmented";
 import { ChangesDetail } from "./ChangesDetail";
 import { ChangesPane } from "./ChangesPane";
 import { FilesPane } from "./FilesPane";
 import { SearchView } from "./SearchView";
 import { changeKinds, parentFolders } from "./treeModel";
-import { selectedChange, useChangesSelection } from "./useChangesSelection";
+import { selectedChange, useChangesSelection, type ChangesView } from "./useChangesSelection";
 import type { GitStatusController } from "./useGitStatus";
 import { useProjectFiles } from "./useProjectFiles";
 import { useProjectSearch } from "./useProjectSearch";
 import { WorktreeBar } from "@/features/worktree/WorktreeBar";
 
 /**
- * プロジェクトの「エディタ」タブ（VS Code と同じく、左端で表示を切り替える）。
- * - すべてのファイル（エクスプローラー）: フォルダの木。変更のあるファイルとフォルダだけ色を変える（FilesPane）
+ * プロジェクトの「ファイル」「検索」「変更」タブ（VS Code のアクティビティバーと同じく、プロジェクトの左の縦の列で切り替える。view がいまのタブ）。
+ * - ファイル（エクスプローラー）: フォルダの木。変更のあるファイルとフォルダだけ色を変える（FilesPane）
  * - 検索: ファイルの中を探す（SearchView）
  * - 変更（ソース管理）: ステージされている変更・変更（未追跡・競合を含む）（ChangesPane）
- * ファイルを選ぶと、変更があれば差分、なければ中身を右に出す（ChangesDetail）。履歴はボード・エディタと並ぶ「履歴」タブ（HistoryTab）
+ * ファイルを選ぶと、変更があれば差分、なければ中身を右に出す（ChangesDetail）。3 つのタブを行き来しても同じ部品のままなので、
+ * 開いたファイル・編集中の状態・開いたフォルダ・検索・Git の操作の様子は共有する。履歴は「履歴」タブ（HistoryTab）
  */
 export function EditorTab({
+  view,
   projectId,
   repoPath,
   git,
@@ -37,6 +36,8 @@ export function EditorTab({
   onWorktreeChange,
   openFile,
 }: {
+  /** 左の一覧の表示（いまのタブ） */
+  view: ChangesView;
   projectId: number;
   repoPath: string;
   git: GitStatusController;
@@ -48,7 +49,6 @@ export function EditorTab({
 }) {
   const rootName = baseName(worktree ?? repoPath);
   const { status } = git;
-  const [view, setView] = useSetting(CHANGES_VIEW);
   const selection = useChangesSelection();
   const { selected, setSelected } = selection;
   // エクスプローラーで開いているフォルダ（表示を切り替えても残す）
@@ -60,15 +60,14 @@ export function EditorTab({
   const gitAction = useAction<CommitBusy>();
   // 左の一覧の幅（右端のつまみをドラッグで変える。ダブルクリックで元に戻す。覚えておく）
   const list = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
-  // チャットの返答のファイルのチップから来たとき: エクスプローラーでそのファイルを選び（行があればその行へ）、
+  // チャットの返答のファイルのチップから来たとき（ファイルタブ）: エクスプローラーでそのファイルを選び（行があればその行へ）、
   // 上のフォルダを開いて、URL からは外す（同じファイルをもう一度押しても開けるように）
   useEffect(() => {
     if (!openFile) return;
     const { path, line } = openFile;
-    setView("files");
     setOpenFolders((prev) => new Set([...prev, ...parentFolders(path)]));
     void setSelected(line ? { path, line } : { path });
-    navigate({ name: "project", id: projectId, tab: "changes" }, { replace: true });
+    navigate({ name: "project", id: projectId, tab: "files" }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openFile]);
 
@@ -100,19 +99,6 @@ export function EditorTab({
       {worktree && <WorktreeBar projectId={projectId} worktree={worktree} git={git} onFinished={() => onWorktreeChange(undefined)} />}
     </div>
     <div className={cx("changes", list.resizing && "resizing")}>
-      {/* 左端の表示の切り替え（VS Code のアクティビティバーと同じ） */}
-      <Segmented
-        className="changes-activity"
-        label="左側の表示"
-        value={view}
-        onChange={setView}
-        iconSize={18}
-        options={[
-          { value: "files", label: "すべてのファイル（エクスプローラー）", icon: Files, iconOnly: true },
-          { value: "search", label: "検索", icon: Search, iconOnly: true },
-          { value: "changes", label: "変更（ソース管理）", icon: GitBranch, iconOnly: true, badge: git.count },
-        ]}
-      />
       <aside
         ref={list.paneRef}
         className="changes-list"

@@ -13,8 +13,8 @@ import { pickedInDiff, SelectionCommentBox } from "@/features/chat/messages/Sele
 type FilesRoute = Extract<PopoutRoute, { kind: "changes" | "file" }>;
 
 /**
- * 別ウィンドウのファイル（作業場所の変更・中身）の開き方: 変更・中身は別ウィンドウで開き、「エディタタブで開く」はメインのウィンドウで開く
- * （このウィンドウには、エディタタブがないため）
+ * 別ウィンドウのファイル（作業場所の変更・中身）の開き方: 変更・中身は別ウィンドウで開き、「ファイルタブで開く」はメインのウィンドウで開く
+ * （このウィンドウには、ファイルタブがないため）
  */
 export function usePopoutFileLinks(base: ChatFileLinks | undefined, place: { chatId: number; projectId: number; worktree?: string }): ChatFileLinks | undefined {
   const { chatId, projectId, worktree } = place;

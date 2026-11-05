@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo } from "react";
 import type { GitTarget } from "@/api";
 
-/** エディタタブで見ている作業場所（ワークツリーのフォルダ。undefined なら本体） */
+/** ファイルタブで見ている作業場所（ワークツリーのフォルダ。undefined なら本体） */
 export const WorktreeContext = createContext<string | undefined>(undefined);
 
 /**

@@ -181,7 +181,7 @@ function DisplaySettings() {
             ]}
           />
         </Field>
-        <Field label="プロジェクトのタブ" help="左に縦並びにすると、ボード・エディタのタブをアイコンだけにして本体の左に並べます。見出しの下の行がなくなるので、ボードやチャット欄の縦の幅が少し広がります。">
+        <Field label="プロジェクトのタブ" help="左に縦並びにすると、ボード・ファイルなどのタブをアイコンだけにして本体の左に並べます。見出しの下の行がなくなるので、ボードやチャット欄の縦の幅が少し広がります。">
           <Segmented<ProjectTabsLayout>
             className="segmented theme-switch"
             label="プロジェクトのタブの置き方"

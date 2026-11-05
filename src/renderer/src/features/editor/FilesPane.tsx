@@ -7,7 +7,7 @@ import type { GitStatusController } from "./useGitStatus";
 import type { useProjectFiles } from "./useProjectFiles";
 
 /**
- * エディタタブの左の「すべてのファイル」（エクスプローラー）: 見出しにフォルダ名・取り直し・フォルダをすべて閉じる、
+ * ファイルタブの左の「すべてのファイル」（エクスプローラー）: 見出しにフォルダ名・取り直し・フォルダをすべて閉じる、
  * 下にフォルダの木（変更のあるファイルとフォルダだけ色を変える）。フォルダの開閉は親が持つ（表示を切り替えても残る）
  */
 export function FilesPane({

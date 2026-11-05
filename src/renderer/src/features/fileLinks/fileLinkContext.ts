@@ -10,23 +10,23 @@ export interface FileLinks {
   index: FileIndex;
   /**
    * 押したとき: 右の欄があれば右の欄（行の番号があればファイルのタブでその行、コミットしていない変更があれば変更のタブのそのファイルの位置、
-   * なければファイルのタブ）。右の欄がなければエディタタブ
+   * なければファイルのタブ）。右の欄がなければファイルタブ
    */
   open: (ref: FileRef) => void;
-  /** エディタタブで開く（⌘クリック・右クリックのメニュー・右の欄の「エディタタブで開く」） */
+  /** ファイルタブで開く（⌘クリック・右クリックのメニュー・右の欄の「ファイルタブで開く」） */
   openInEditor: (ref: FileRef) => void;
-  /** 右の欄の変更のタブを開く（focus のファイルの位置へ。右の欄がなければエディタタブ） */
+  /** 右の欄の変更のタブを開く（focus のファイルの位置へ。右の欄がなければファイルタブ） */
   openChanges: (focus?: string) => void;
   /** 右の欄に開くか（右クリックのメニューに「右の欄で開く」を出すか） */
   side: boolean;
-  /** 右クリックのメニュー（右の欄で開く・エディタタブで開く・外のアプリで開く・パスのコピー・Finder で表示。FileLinksProvider が描く） */
+  /** 右クリックのメニュー（右の欄で開く・ファイルタブで開く・外のアプリで開く・パスのコピー・Finder で表示。FileLinksProvider が描く） */
   showMenu: (e: MouseEvent, ref: FileRef) => void;
 }
 
 /** ないとき（チャット以外の画面）は、今までどおりチップにしない */
 export const FileLinkContext = createContext<FileLinks | undefined>(undefined);
 
-/** 押したとき: ⌘ を押しながらならエディタタブ、そうでなければ open（右の欄） */
+/** 押したとき: ⌘ を押しながらならファイルタブ、そうでなければ open（右の欄） */
 export function openByClick(links: FileLinks, e: MouseEvent, ref: FileRef) {
   if (e.metaKey) links.openInEditor(ref);
   else links.open(ref);

@@ -115,7 +115,7 @@ const FILE_TOOLS = new Set(["Edit", "MultiEdit", "Write"]);
 
 /**
  * ファイルを変えるツールの行のファイル名。作業場所の中のファイルなら押して開ける（右の欄。コミットしていない変更があれば変更のタブのその位置、なければ中身。
- * ⌘クリックでエディタタブ・右クリックでほかの開き方）。行の開閉はしない
+ * ⌘クリックでファイルタブ・右クリックでほかの開き方）。行の開閉はしない
  */
 function ToolFileArg({ path, label }: { path: string; label: string }) {
   const links = useContext(FileLinkContext);
@@ -126,7 +126,7 @@ function ToolFileArg({ path, label }: { path: string; label: string }) {
     <button
       type="button"
       className="link-button tool-file-link"
-      title={`${ref.path} を${links.side ? "右の欄" : "エディタタブ"}で開く（⌘クリックでエディタタブ・右クリックでほかの開き方）`}
+      title={`${ref.path} を${links.side ? "右の欄" : "ファイルタブ"}で開く（⌘クリックでファイルタブ・右クリックでほかの開き方）`}
       onClick={(e) => {
         e.preventDefault();
         openByClick(links, e, ref);

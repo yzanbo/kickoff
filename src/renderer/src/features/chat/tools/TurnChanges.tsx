@@ -18,7 +18,7 @@ function Counts({ added, removed }: { added: number; removed: number }) {
 
 /**
  * ターンの変更カード: その作業で変えたファイルの数と、足した・消した行の合計。開くとファイルの一覧で、
- * 押すと右の欄でそのファイルを開く（コミットしていない変更があれば変更のタブのその位置、なければ中身。⌘クリックはエディタタブ・右クリックでほかの開き方）。
+ * 押すと右の欄でそのファイルを開く（コミットしていない変更があれば変更のタブのその位置、なければ中身。⌘クリックはファイルタブ・右クリックでほかの開き方）。
  * 見出しの「差分を見る」は、右の欄の変更のタブを、この作業で変えた最初のファイルの位置で開く。作業場所の外のファイル・一覧が読めないときは、押せない行にする
  */
 export function TurnChanges({ files }: { files: FileChange[] }) {
@@ -39,7 +39,7 @@ export function TurnChanges({ files }: { files: FileChange[] }) {
           <button
             type="button"
             className="link-button turn-changes-diff"
-            title={links.side ? "この作業の変更を、右の欄の「変更」で見ます（変えた最初のファイルの位置へ）" : "変えた最初のファイルを、エディタタブで見ます"}
+            title={links.side ? "この作業の変更を、右の欄の「変更」で見ます（変えた最初のファイルの位置へ）" : "変えた最初のファイルを、ファイルタブで見ます"}
             onClick={(e) => {
               // 見出しの開閉はしない
               e.preventDefault();
@@ -68,7 +68,7 @@ export function TurnChanges({ files }: { files: FileChange[] }) {
                 <button
                   type="button"
                   className="turn-change-file"
-                  title={`${rel} を${links.side ? "右の欄" : "エディタタブ"}で開く（変わっていれば差分。⌘クリックでエディタタブ・右クリックでほかの開き方）`}
+                  title={`${rel} を${links.side ? "右の欄" : "ファイルタブ"}で開く（変わっていれば差分。⌘クリックでファイルタブ・右クリックでほかの開き方）`}
                   onClick={(e) => openByClick(links, e, { path: rel })}
                   onContextMenu={(e) => links.showMenu(e, { path: rel })}
                 >

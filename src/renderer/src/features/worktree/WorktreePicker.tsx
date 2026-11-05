@@ -9,7 +9,7 @@ import { useWorktrees, worktreesStore } from "@/stores/worktrees";
 export const worktreeLabel = (w: Pick<GitWorktree, "branch" | "path">) => w.branch ?? baseName(w.path);
 
 /**
- * エディタタブで見る作業場所（本体・ワークツリー）を選ぶ。ワークツリーが本体だけなら出さない。
+ * ファイルタブで見る作業場所（本体・ワークツリー）を選ぶ。ワークツリーが本体だけなら出さない。
  * 選んでいたワークツリーがなくなったら、本体に戻す
  */
 export function WorktreePicker({
