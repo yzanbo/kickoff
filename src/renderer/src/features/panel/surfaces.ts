@@ -102,8 +102,6 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeWhenEmpty: true,
     openWhenEmpty: null,
     closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "start" },
-    maximize: "width",
-    maximizeLabels: { on: "メインと並べる（元の幅に戻す）", off: "メインを覆う（右の欄を横幅いっぱいに広げる）" },
     emptyHint:
       "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
     heading: {
