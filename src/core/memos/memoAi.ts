@@ -1,92 +1,11 @@
-// メモの AI（メモについての会話・フォルダの整理案）の、AI に送る文と、答えの読み方（純粋関数）。
-// どちらも提案を返すだけで、メモは書き換えない（取り込む・動かすかは画面で決める）
+// メモの AI のフォルダの整理案の、AI に送る文と、答えの読み方（純粋関数）。案を返すだけで、メモは動かさない（動かすかは画面で決める）
 import path from "node:path";
-import type { MemoChatReply, MemoChatTurn, MemoEntry, MemoPlan, MemoPlanMove } from "@shared/types";
-
-/** AI に渡すメモの文の上限（文字） */
-export const MAX_MEMO_AI_CHARS = 60_000;
+import type { MemoEntry, MemoPlan, MemoPlanMove } from "@shared/types";
 
 /** 整理案を作るときに見せるメモの数・1 つのメモの書き出しの長さ・整理案の数の上限 */
 const MAX_PLAN_FILES = 300;
 const PLAN_HEAD_CHARS = 200;
 const MAX_PLAN_MOVES = 100;
-
-/** 会話で AI に渡す、選んだ部分・これまでの会話の上限（文字。会話は新しいものから残す） */
-const MAX_SELECTION_CHARS = 20_000;
-const MAX_HISTORY_CHARS = 30_000;
-
-/** 変更の案を囲む印（返事の最後に付けてもらう） */
-const EDIT_OPEN = /<memo-edit\s+target="(selection|memo)"\s*>/g;
-const EDIT_CLOSE = "</memo-edit>";
-
-/**
- * メモについての会話の文: いまのメモ・選んだ部分（話の的）・これまでの会話（古いものは上限で落とす）。
- * 返事はふつうの文で、メモを変える案が固まったとき（書き込み・反映を頼まれたとき）だけ、最後に変えたあとの文を <memo-edit> で囲んで付けてもらう
- */
-export function memoChatPrompt(messages: readonly MemoChatTurn[], memo: string, selection: string | null): string {
-  const history: string[] = [];
-  let used = 0;
-  for (const m of [...messages].reverse()) {
-    const line = `${m.role === "user" ? "利用者" : "AI"}: ${m.text}`;
-    if (history.length > 0 && used + line.length > MAX_HISTORY_CHARS) break;
-    history.unshift(line);
-    used += line.length;
-  }
-  const target = selection ? "selection" : "memo";
-  return [
-    "あなたは、利用者と話しながら 1 つのメモ（Markdown）を作り上げる相手です。利用者の最後の発言に、日本語で短く要点から答えてください。",
-    "",
-    "守ること:",
-    "- 相談・質問・アイデア出しには、ふつうの文で答える（メモはまだ変えない）。",
-    `- メモを変える案が固まったとき（「直して」「反映して」「メモにまとめて」などと頼まれたとき）だけ、返事の最後に、変えたあとの文を <memo-edit target="${target}"> と </memo-edit> で囲んで 1 つだけ付ける。`,
-    `- ${selection ? "選んだ部分があるので、memo-edit の中は選んだ部分を置き換える文だけにする（前後の文とつながるように）。" : "memo-edit の中は、そのまま置き換えられるメモ全体の文にする（変えない部分も省かない）。"}`,
-    "- memo-edit の外では、変えた点を短く説明する。memo-edit の中を ``` で囲まない。",
-    "- 会話で決めたことは足してよいが、話に出ていない事実は足さない。リンク・コード・ファイル名・数値はそのまま残す。",
-    "",
-    "# いまのメモ（<memo> と </memo> の間。この印は memo-edit に写さない）",
-    "<memo>",
-    memo.slice(0, MAX_MEMO_AI_CHARS) || "（まだ空）",
-    "</memo>",
-    ...(selection ? ["", "# 選んだ部分（ここについての話。<selection> と </selection> の間）", "<selection>", selection.slice(0, MAX_SELECTION_CHARS), "</selection>"] : []),
-    "",
-    "# これまでの会話（最後が今回の発言）",
-    ...history,
-  ].join("\n");
-}
-
-/** 返事を、見せる文と変更の案に分ける（案は最後の <memo-edit> だけ。閉じていなければ最後まで。案の外の文は前後の空白を詰める） */
-export function parseMemoChatReply(answer: string): MemoChatReply {
-  const opens = [...answer.matchAll(EDIT_OPEN)];
-  const last = opens.at(-1);
-  if (!last || last.index === undefined) return { reply: answer.trim(), edit: null };
-  const start = last.index + last[0].length;
-  const close = answer.indexOf(EDIT_CLOSE, start);
-  const inner = answer.slice(start, close < 0 ? undefined : close);
-  const after = close < 0 ? "" : answer.slice(close + EDIT_CLOSE.length);
-  const reply = `${answer.slice(0, last.index)}${after}`.trim();
-  const text = unwrapFence(inner.replace(/^\n+|\n+$/g, ""));
-  return { reply, edit: text.trim() ? { target: last[1] as "selection" | "memo", text } : null };
-}
-
-/**
- * 案の文が、元の文（メモ・選んだ部分）にない囲み（頭と末尾の「---」の行・<memo> / <selection> の印）で包まれていたら外す
- * （メモを区切った印まで写してくることがある）。元の文も同じ形で始まっていれば、そのまま
- */
-export function stripEchoedFrame(text: string, original: string): string {
-  for (const [open, close] of [["---", "---"], ["<memo>", "</memo>"], ["<selection>", "</selection>"]]) {
-    const lines = text.split("\n");
-    if (lines.length >= 2 && lines[0].trim() === open && lines.at(-1)?.trim() === close && original.trimStart().split("\n")[0].trim() !== open) {
-      return lines.slice(1, -1).join("\n").replace(/^\n+|\n+$/g, "");
-    }
-  }
-  return text;
-}
-
-/** 答えの全体が ``` で囲まれていたら外す（言われても囲んでくることがある） */
-export function unwrapFence(answer: string): string {
-  const m = answer.trim().match(/^```[\w-]*\n([\s\S]*?)\n```$/);
-  return m ? m[1] : answer.trim();
-}
 
 /** 整理案を作るときに見せるメモ（パスと書き出し） */
 export interface PlanFile {

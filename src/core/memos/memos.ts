@@ -3,14 +3,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { chatMemoName, safeMemoName, uniqueMemoName } from "@shared/memo/names";
-import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoChatReply, type MemoChatTurn, type MemoList, type MemoPlan, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
+import { MEMO_EXTENSION, UNTITLED_CHAT_TITLE, type BusEvent, type Chat, type FileContent, type MemoEntry, type MemoList, type MemoPlan, type MemoRef, type Project, type ProviderId, type SavedFile } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { assertInside, readProjectFile, writeProjectFile } from "../git/index.js";
 import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
 import { runCommand } from "../system/exec.js";
 import { expandHome } from "../system/paths.js";
-import { memoChatPrompt, memoPlanPrompt, parseMemoChatReply, parseMemoPlan, stripEchoedFrame, type PlanFile } from "./memoAi.js";
+import { memoPlanPrompt, parseMemoPlan, type PlanFile } from "./memoAi.js";
 
 /** 一覧に出す数の上限（大きなフォルダを指しても重くならないように） */
 const MAX_ENTRIES = 5000;
@@ -130,6 +130,8 @@ export class MemoService {
     if (source.toLowerCase() !== target.toLowerCase() && (await exists(target))) throw new Conflict("行き先に同じ名前のメモ・フォルダがあります");
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.rename(source, target);
+    // メモのチャットも新しい名前へ付け替える（フォルダなら中のメモのものも）
+    this.opts.store.chats.remapMemoPath(project.id, from, to);
     this.changed(project, to);
     return { path: to };
   }
@@ -139,6 +141,11 @@ export class MemoService {
     const target = await this.pathIn(project, file);
     if (!(await exists(target))) throw new NotFound(`メモが見つかりません: ${file}`);
     await (this.opts.trash ?? moveToTrash)(target);
+    // メモのチャットはアーカイブする（作業中のものはそのまま。Finder のゴミ箱から戻しても、アーカイブ済みから戻せる）
+    const now = new Date().toISOString();
+    for (const chat of this.opts.store.chats.memoChats(project.id, file)) {
+      if (!chat.archived_at && chat.status !== "running") this.opts.store.chats.update(chat.id, { archived_at: now });
+    }
     this.changed(project, null);
   }
 
@@ -165,19 +172,6 @@ export class MemoService {
     const name = chatMemoName(chat.title || UNTITLED_CHAT_TITLE, names);
     const file = folder ? `${folder}/${name}${MEMO_EXTENSION}` : `${name}${MEMO_EXTENSION}`;
     return this.create(project, file, { dir: false, content: `# ${name}\n\n${block}` });
-  }
-
-  /**
-   * メモについての会話の返事（いまのメモ・選んだ部分・これまでの会話から）。メモを変える案が固まったときだけ、変えたあとの文を添える
-   * （保存はしない。取り込むかは画面で決める。選んだ部分がないのに selection の案が来たら、案は付けない。元の文にない囲みを写してきたら外す）
-   */
-  async aiChat(project: Project, input: { messages: MemoChatTurn[]; memo: string; selection: string | null }): Promise<MemoChatReply> {
-    const answer = await this.ask(project, memoChatPrompt(input.messages, input.memo, input.selection));
-    const parsed = parseMemoChatReply(answer);
-    if (!parsed.edit) return parsed;
-    if (parsed.edit.target === "selection" && !input.selection) return { reply: parsed.reply, edit: null };
-    const original = parsed.edit.target === "selection" ? (input.selection ?? "") : input.memo;
-    return { reply: parsed.reply, edit: { ...parsed.edit, text: stripEchoedFrame(parsed.edit.text, original) } };
   }
 
   /** メモのフォルダの整理案（名前の変更・移動。AI に一覧と書き出しを見せて作り、使える案だけを返す。動かしはしない） */

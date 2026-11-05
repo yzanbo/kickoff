@@ -46,11 +46,11 @@ const activeChats = createStore<Chat[]>({ load: () => api.allChats(), reduce: (l
 const archivedChats = createStore<Chat[]>({ load: () => api.allChats({ archived: true }), reduce: (list, e) => reduceChats(list, e, true) });
 
 /**
- * 2 つの一覧から、そのプロジェクト（省けば全プロジェクト）のチャットを最後に動いた順に。子チャット（親のあるもの）は入れない
- * （サイドバー・ボード・パネルのタブなどの一覧には並べず、親の中から開く。子チャットは childChatsOf / useChildChats）
+ * 2 つの一覧から、そのプロジェクト（省けば全プロジェクト）のチャットを最後に動いた順に。子チャット（親のあるもの）とメモのチャットは入れない
+ * （サイドバー・ボード・パネルのタブなどの一覧には並べず、子チャットは親の中（childChatsOf / useChildChats）、メモのチャットはそのメモの右の欄（useMemoChatOf）から開く）
  */
 export function selectChats(active: readonly Chat[] | undefined, archived: readonly Chat[] | undefined, projectId?: number): Chat[] {
-  const inProject = (r: Chat) => r.parent_chat_id === null && (projectId === undefined || r.project_id === projectId);
+  const inProject = (r: Chat) => r.parent_chat_id === null && r.memo_path === null && (projectId === undefined || r.project_id === projectId);
   const list = [...(active ?? []).filter(inProject), ...(archived ?? []).filter(inProject)];
   if (archived?.length) list.sort(byActive);
   return list.length > 0 ? list : NO_CHATS;
@@ -202,3 +202,17 @@ export function useChatsByProject({ archived = false }: { archived?: boolean } =
   useStoreStatus(archivedChats, { active: archived });
   return useSyncExternalStore(subscribeChats, () => byProjectView(archived));
 }
+
+/** そのメモのチャット（アーカイブしていない、いちばん新しいもの。まだなければ undefined。一覧が届くまでも undefined） */
+export function useMemoChatOf(projectId: number, memoPath: string): Chat | undefined {
+  useStoreStatus(activeChats);
+  return useSyncExternalStore(subscribeChats, () => memoChatIn(activeChats.get().data, projectId, memoPath));
+}
+
+const memoChatIn = (list: readonly Chat[] | undefined, projectId: number, memoPath: string): Chat | undefined => {
+  let found: Chat | undefined;
+  for (const chat of list ?? []) {
+    if (chat.project_id === projectId && chat.memo_path === memoPath && !chat.archived_at && (!found || chat.id > found.id)) found = chat;
+  }
+  return found;
+};

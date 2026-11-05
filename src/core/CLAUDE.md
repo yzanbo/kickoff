@@ -79,8 +79,9 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - パスはメモのフォルダからの相対で受け、`git/files.ts` の `assertInside` で外を断る。「.」で始まる名前（隠しファイル）は扱わない。中身の読み書きはエディタのファイルと同じ `readProjectFile` / `writeProjectFile`（保存は開いたときの指紋と比べて 409）。一覧は隠しファイル・リンクを除いて 5000 件まで。ゴミ箱へは `/usr/bin/trash`（テストでは差し替える）。
 - 変えたら SSE の `memos`（`project_id` と変えたメモ。ゴミ箱は null）を出す。Kickoff の外での変更は知らせない（画面がウィンドウに戻ったときなどに取り直す）。
 - チャットの文から作る（`fromChat`）: 新しいメモは `chatMemoName` の「<チャット名> チャットメモ<n>.md」（見出し・出どころの行 `memoSourceLine`・本文）、追記は区切り線を挟んで最後に足す。要約はプロジェクトのプロバイダーの `summarize`（対応していなければ 400）。
-- AI（`memoAi.ts`。どちらも書き換えず、案を返すだけ）: メモについての会話 `aiChat`（これまでの会話・いまのメモ・選んだ部分から返事を作る `memoChatPrompt`。メモを変える案が固まったときだけ、返事の最後に変えたあとの文を `<memo-edit target="selection|memo">` で囲んでもらい、`parseMemoChatReply` で返事と案に分ける。全体を囲む ``` は `unwrapFence` で外す。選んだ部分がないのに selection の案なら案は付けない。会話は保存せず、画面が毎回送る）と、フォルダの整理案 `aiPlan`（メモのパスと書き出しを見せて、名前の変更・移動の案を JSON で受け、使える案だけを残す `parseMemoPlan`: 一覧にないメモ・使えない行き先・拡張子が変わる・行き先が重なる・もうある名前は除く）。プロジェクトのプロバイダーの `ask`（sonnet）で聞く。
-- API は `http/routes/memos.ts`（`GET /api/memos/defaults`・`GET /api/projects/:id/memos`・`GET|PUT|DELETE /api/projects/:id/memo`・`POST /api/projects/:id/memos`（作る）・`/memos/move`・`/memos/from-chat`・AI `POST /api/projects/:id/memo/chat`（会話）・`POST /api/projects/:id/memos/ai-plan`）。
+- メモのチャット: メモごとに 1 つのふつうのチャット（`chats.memo_path`。`POST /api/projects/:id/memo/chat` で最初の指示を送って作る（メモがなければ 404、もうあれば 409）。続きはふつうのチャットと同じ API）。作業場所はプロジェクトのまま（コードも読める）で、実行のときにメモのフォルダを読み書きできる場所に足し、どのメモの横で話しているかをシステムプロンプトに書く（`Runner` の `memoDirOf` → `turn.ts` の `buildTurnParams`・`policy.ts` の `buildSystemPrompt` の `memo`）。AI はメモのファイルを直接書き換え、ツールの結果が届くたびに SSE の `memos` を出す（開いているメモが、書きかけでなければ読み直す）。メモの名前を変える・動かすと `store.chats.remapMemoPath` で付け替え、ゴミ箱に入れたら、そのメモのチャット（作業中でないもの）をアーカイブする。
+- AI のフォルダの整理案（`memoAi.ts`。動かさず、案を返すだけ）: `aiPlan`（メモのパスと書き出しを見せて、名前の変更・移動の案を JSON で受け、使える案だけを残す `parseMemoPlan`: 一覧にないメモ・使えない行き先・拡張子が変わる・行き先が重なる・もうある名前は除く）。プロジェクトのプロバイダーの `ask`（sonnet）で聞く。
+- API は `http/routes/memos.ts`（`GET /api/memos/defaults`・`GET /api/projects/:id/memos`・`GET|PUT|DELETE /api/projects/:id/memo`・`POST /api/projects/:id/memos`（作る）・`/memos/move`・`/memos/from-chat`・メモのチャットを始める `POST /api/projects/:id/memo/chat`・AI の整理案 `POST /api/projects/:id/memos/ai-plan`）。
 
 ## テスト
 

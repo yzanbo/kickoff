@@ -47,8 +47,13 @@ class FakeProvider extends FakeProviderBase {
   private gate: Promise<void> | null = null;
   /** これがあれば、止められてもすぐには終わらない（サブエージェント・裏のコマンドが終わるのを待つ Claude Code の代わり） */
   slowStop: Promise<void> | null = null;
-  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "control" | "retry">, signal: AbortSignal): Promise<ProviderTurnResult> {
+  /** 最後に読めるようにしたフォルダと、足したシステムプロンプト（メモのチャットの確かめに使う） */
+  lastDirs: string[] = [];
+  lastSystemPrompt = "";
+  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "control" | "retry">, signal: AbortSignal): Promise<ProviderTurnResult> {
     this.lastCwd = params.cwd;
+    this.lastDirs = params.additionalDirectories;
+    this.lastSystemPrompt = params.systemPrompt;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);
     this.resumes.push(params.resumeSessionId);
@@ -135,6 +140,8 @@ export function setup(opts: { staticDir?: string } = {}) {
     usageLimit: { checkMs: 5 },
     // 書き直している印は短い持ち時間にする（知らせが途絶えたら外れて送るのを確かめる）
     editHoldTtlMs: 300,
+    // メモのチャットの実行では、メモのフォルダも読めるようにする（MemoService は下で作るので、呼ばれたときに引く）
+    memoDirOf: (p) => memos.dirOf(p),
   });
   // ほかのサービスは、ネットワークに出ない偽物にする
   let codexCalls = 0;

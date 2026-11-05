@@ -1,4 +1,4 @@
-// API のテスト: プロジェクトのメモ（保存先・一覧・中身・保存・作成・動かす・ゴミ箱・チャットの文から作る。共通の準備は testing/testServer.ts）
+// API のテスト: プロジェクトのメモ（保存先・一覧・中身・保存・作成・動かす・ゴミ箱・チャットの文から作る・メモのチャット・整理案。共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -6,6 +6,7 @@ import { test } from "node:test";
 import type { BusEvent, MemoList } from "@shared/types";
 import { tempDir } from "../testing/tempDir.js";
 import { setup } from "../testing/testServer.js";
+import { until } from "../testing/testCore.js";
 
 test("メモの保存先: 既定は親フォルダの下のプロジェクト名のフォルダ。名前を変えても同じフォルダ、ほかのプロジェクトとは重ねない", async () => {
   const { call, project, store, memoFake } = setup();
@@ -99,23 +100,39 @@ test("チャットの文からメモ: 「<チャット名> チャットメモ<n>
   assert.equal((await call("POST", `${base}/memos/from-chat`, { chat_id: otherChat.id, text: "x", summarize: false, append_to: null, folder: null })).status, 400);
 });
 
-test("メモの AI: 会話の返事と変更の案を返すだけで保存しない（sonnet で聞く。選んだ部分がないのに selection の案なら案は付けない）", async () => {
-  const { call, project, provider } = setup();
+test("メモのチャット: メモごとに 1 つのふつうのチャット。メモのフォルダも読めるようにし、名前の変更・移動で付け替え、ゴミ箱でアーカイブする", async () => {
+  const { call, project, provider, store, bus, memoFake } = setup();
+  const events: BusEvent[] = [];
+  bus.subscribe((e) => events.push(e));
   const base = `/api/projects/${project.id}`;
-  await call("POST", `${base}/memos`, { path: "a.md", content: "# 元\n" });
-  provider.askReply = '表にしました。\n<memo-edit target="selection">\n| 形式 |\n</memo-edit>';
-  const messages = [{ role: "user", text: "表にして" }];
-  const withSel = await call("POST", `${base}/memo/chat`, { messages, memo: "# 元\n- Excel", selection: "- Excel" });
-  assert.equal(withSel.status, 200);
-  assert.deepEqual(withSel.body, { reply: "表にしました。", edit: { target: "selection", text: "| 形式 |" } });
-  assert.equal(provider.asked[0].model, "sonnet");
-  assert.match(provider.asked[0].prompt, /利用者: 表にして$/);
-  const noSel = await call("POST", `${base}/memo/chat`, { messages, memo: "# 元", selection: null });
-  assert.deepEqual(noSel.body, { reply: "表にしました。", edit: null });
-  assert.equal((await call("GET", `${base}/memo?path=a.md`)).body.content, "# 元\n");
-  // 最後が利用者の空でない発言でなければ 400
-  assert.equal((await call("POST", `${base}/memo/chat`, { messages: [{ role: "assistant", text: "x" }], memo: "", selection: null })).status, 400);
-  assert.equal((await call("POST", `${base}/memo/chat`, { messages: [{ role: "user", text: " " }], memo: "", selection: null })).status, 400);
+  await call("POST", `${base}/memos`, { path: "設計/画面.md", content: "# 画面\n" });
+  // メモがなければ 404、文も添付もなければ 400
+  assert.equal((await call("POST", `${base}/memo/chat`, { path: "ない.md", text: "x" })).status, 404);
+  assert.equal((await call("POST", `${base}/memo/chat`, { path: "設計/画面.md", text: " " })).status, 400);
+  const created = await call("POST", `${base}/memo/chat`, { path: "設計/画面.md", text: "構成を相談したい" });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.memo_path, "設計/画面.md");
+  await until(() => store.chats.get(created.body.id)?.status === "completed");
+  // 作業場所はプロジェクトのまま、メモのフォルダも読み書きできる場所に足し、どのメモかを伝える
+  const memoDir = path.join(memoFake.defaultDir, project.name);
+  assert.equal(provider.lastCwd, project.repo_path);
+  assert.ok(provider.lastDirs.includes(memoDir));
+  assert.match(provider.lastSystemPrompt, new RegExp(`メモ ${path.join(memoDir, "設計/画面.md")}`));
+  // 同じメモのチャットは 1 つだけ（続きはふつうのチャットと同じく送る）
+  assert.equal((await call("POST", `${base}/memo/chat`, { path: "設計/画面.md", text: "もう一度" })).status, 409);
+  // ツールの結果が届いたら、メモが変わったと知らせる（開いているメモが読み直す）
+  provider.emits = [{ type: "tool_result", tool_use_id: "t1", content: "ok", is_error: false }];
+  events.length = 0;
+  await call("POST", `/api/chats/${created.body.id}/messages`, { text: "反映して" });
+  await until(() => events.some((e) => e.type === "memos" && e.path === null));
+  provider.emits = [];
+  await until(() => store.chats.get(created.body.id)?.status === "completed");
+  // フォルダの名前を変えると、中のメモのチャットも付け替える
+  await call("POST", `${base}/memos/move`, { from: "設計", to: "仕様" });
+  assert.equal(store.chats.get(created.body.id)?.memo_path, "仕様/画面.md");
+  // ゴミ箱に入れたら、そのメモのチャットはアーカイブする
+  await call("DELETE", `${base}/memo?path=${encodeURIComponent("仕様/画面.md")}`);
+  assert.ok(store.chats.get(created.body.id)?.archived_at);
 });
 
 test("メモの AI: フォルダの整理案は使える案だけを返し、動かさない（メモがなければ AI に聞かない）", async () => {

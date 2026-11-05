@@ -140,8 +140,17 @@ ALTER TABLE chats ADD COLUMN parent_event_id INTEGER CHECK (parent_event_id > 0)
 CREATE INDEX idx_chats_parent ON chats(parent_chat_id) WHERE parent_chat_id IS NOT NULL;
 `;
 
+/**
+ * v4: メモのチャット（memo_path = どのメモについてのチャットか。メモのフォルダからの相対パス）。
+ * メモのチャットはサイドバー・ボードに並べず、そのメモの右の欄から開く。メモの名前を変える・動かすと付け替える
+ */
+const SCHEMA_V4 = `
+ALTER TABLE chats ADD COLUMN memo_path TEXT CHECK (memo_path <> '');
+CREATE INDEX idx_chats_memo ON chats(project_id, memo_path) WHERE memo_path IS NOT NULL;
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

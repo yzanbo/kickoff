@@ -22,6 +22,8 @@ export interface ExecutionDeps {
   providers: Record<ProviderId, AgentProvider>;
   uploads?: UploadStore;
   bus?: Bus;
+  /** プロジェクトのメモのフォルダ（メモのチャットで、AI にメモを読み書きさせるため。なければメモのチャットでもメモのフォルダを足さない） */
+  memoDirOf?: (project: Project) => string;
 }
 
 /** 1 回の実行の依頼（送った指示。すぐ動かす） */
@@ -114,11 +116,13 @@ async function resolveWorkdir(chat: Chat, project: Project): Promise<string> {
 
 /** プロバイダーに渡すもの（作業場所・指示・権限） */
 function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd: string, prompt: string, promptId?: string): ProviderTurnParams {
+  // メモのチャット: メモのフォルダも読み書きできる場所に足し、どのメモについての会話かを伝える（作業場所はプロジェクトのまま。コードも読める）
+  const memoDir = chat.memo_path && deps.memoDirOf ? deps.memoDirOf(project) : null;
   return {
     cwd,
     prompt,
     ...(promptId ? { promptId } : {}),
-    systemPrompt: buildSystemPrompt(project, cwd),
+    systemPrompt: buildSystemPrompt(project, cwd, memoDir && chat.memo_path ? { dir: memoDir, file: path.join(memoDir, chat.memo_path) } : undefined),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,
     model: chat.model,
@@ -127,7 +131,7 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     fastMode: chat.fast_mode,
     autoCompactPct: deps.store.settings.get().auto_compact_pct,
     // 添付ファイルの保存先と参照資料を読めるようにし、リポジトリの外の参照資料には書き込ませない
-    additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project)],
+    additionalDirectories: [...(deps.uploads ? [deps.uploads.dir] : []), ...referenceDirectories(project), ...(memoDir ? [memoDir] : [])],
     // 作業場所の外の参照資料は読むだけ（ワークツリーのチャットからは、本体の中の資料も読むだけ）
     readOnlyPaths: project.reference_paths.map((r) => r.path).filter((p) => !isInside(cwd, p)),
   };
@@ -148,6 +152,7 @@ function callbacksFor(
   const chatId = chat.id;
   const projectId = chat.project_id;
   return {
+    // メモのチャットでツールの結果が届いたら（AI がメモを書き換えたかもしれない）、メモが変わったと知らせる（開いているメモは、書きかけでなければ読み直す）
     subagentProgress: (subagent) => {
       bus?.publish({ type: "chat_subagent", project_id: projectId, chat_id: chatId, subagent });
     },
@@ -175,6 +180,7 @@ function callbacksFor(
         store.chats.update(chatId, { session_id: event.session_id });
       }
       const saved = store.events.add(chatId, event);
+      if (chat.memo_path && event.type === "tool_result") bus?.publish({ type: "memos", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
       if (!compact && isUnreadEvent(saved) && !store.chats.get(chatId)?.unread) store.chats.setUnread(chatId, true);
     },

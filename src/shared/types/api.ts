@@ -4,7 +4,6 @@ import type { Approval } from "./approval";
 import type { Attachment, Chat, ChatOptionsPatch } from "./chat";
 import type { ChatEvent } from "./chatEvent";
 import type { ChatLive, QueueState } from "./chatLive";
-import type { MemoChatTurn } from "./memo";
 import type { Project, ProjectReference } from "./project";
 import type { ProviderId } from "./settings";
 
@@ -100,13 +99,11 @@ export interface MemoFromChatBody {
 }
 
 /**
- * メモについて AI と話す（POST /api/projects/:id/memo/chat）。messages はこれまでの会話（最後が今回の発言）、memo はいま書いてある中身
- * （まだ保存していない書きかけも）、selection は本文で選んでいる部分（話の的。なければ null）。保存はしない
+ * メモのチャットを始める（POST /api/projects/:id/memo/chat。最初の指示）。path はどのメモについてのチャットか（メモのフォルダからの相対パス）。
+ * 続きはふつうのチャットと同じく POST /api/chats/:id/messages
  */
-export interface MemoChatBody {
-  messages: MemoChatTurn[];
-  memo: string;
-  selection: string | null;
+export interface MemoChatBody extends MessageBody {
+  path: string;
 }
 
 /** AI でメモのフォルダの整理案を作る（POST /api/projects/:id/memos/ai-plan）。instruction は頼み（null ならおまかせ） */

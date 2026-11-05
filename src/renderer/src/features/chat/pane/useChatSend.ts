@@ -20,6 +20,7 @@ export function useChatSend({
   background,
   runningAgents,
   onStopping,
+  beforeSend,
 }: {
   chatId: number;
   busy: boolean;
@@ -31,6 +32,8 @@ export function useChatSend({
   /** 裏で動いているサブエージェントの数（一覧の知らせがない古い Claude Code のとき、一覧の行から数えたもの） */
   runningAgents: number;
   onStopping: (stopping: boolean) => void;
+  /** 送る前にすること（メモのチャットで、書きかけのメモを保存してから送る。SendCancelled を投げれば送らない） */
+  beforeSend?: () => Promise<void>;
 }) {
   const [queueMode, setQueueMode] = useQueueMode();
   const texts = queueModeTexts(busy, queued, queueMode);
@@ -40,10 +43,12 @@ export function useChatSend({
     placeholder: texts.placeholder,
     sendLabel: texts.sendLabel,
     onSend: async (text: string, attachments: Attachment[]) => {
+      await beforeSend?.();
       scroll.follow();
       await api.sendMessage(chatId, text, options.options, attachments);
     },
     onQueue: async (text: string, attachments: Attachment[], mode: QueueSendMode = queueMode) => {
+      await beforeSend?.();
       // 伝える: 止めずに、いまのやり取りに足す（裏のサブエージェント・コマンドも動き続ける。足せなければ待ちの列へ）。
       // ⌘Enter / ⌘⇧Enter で送ったときは、切り替えに関係なくそのキーの送り方にする
       // 作業していない（送信待ちを止めている）とき: すぐ送る = 送信待ちより先にいま送る / ためておく = 送信待ちの最後に足す

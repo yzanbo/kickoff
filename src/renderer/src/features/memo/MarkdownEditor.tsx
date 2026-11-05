@@ -1,8 +1,8 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { search, searchKeymap } from "@codemirror/search";
-import { Compartment, EditorState, StateField } from "@codemirror/state";
-import { drawSelection, EditorView, keymap, showTooltip, type Tooltip } from "@codemirror/view";
+import { Compartment, EditorState } from "@codemirror/state";
+import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
@@ -26,16 +26,12 @@ const SEARCH_PHRASES: Record<string, string> = {
   "on line": "行",
 };
 
-/** 外から編集の部品を動かす口（メモの AI の整理。選んだ範囲を読む・範囲を置き換える） */
+/** 外から編集の部品を動かす口（右クリックのメニュー。選んだ文を読む・選んだ所に入れる） */
 export interface MemoEditorHandle {
-  /** いま書いてある中身 */
-  text: () => string;
-  /** 選んでいる範囲（何も選んでいなければ null） */
-  selection: () => { from: number; to: number; text: string } | null;
-  /**
-   * from〜to を text に置き換え、置き換えた範囲を選ぶ（元に戻す ⌘Z で戻せる）。その範囲がもう expected でなければ（あとから書き換えた）置き換えずに false
-   */
-  replace: (from: number, to: number, expected: string, text: string) => boolean;
+  /** 選んでいる文（何も選んでいなければ空） */
+  selectedText: () => string;
+  /** 選んでいる所を text に置き換える（選んでいなければカーソルの位置に入れる。⌘Z で戻せる） */
+  insert: (text: string) => void;
 }
 
 interface Props {
@@ -48,17 +44,10 @@ interface Props {
   onSave: () => void;
   /** 外から動かす口を入れる入れ物 */
   handleRef?: MutableRefObject<MemoEditorHandle | null>;
-  /** 範囲を選んだときに、その上に出す「AI と話す」を押した（メモの会話の欄を開いて、選んだ部分を話の的にする）。なければ出さない */
-  onAskAi?: () => void;
-  /** 選んでいる部分が変わった（選んでいなければ null。メモの会話の欄に、どこについて話すかを見せる） */
-  onSelectionChange?: (text: string | null) => void;
+  /** 本文の右クリック（画面の位置。メモの右クリックのメニューを開く） */
+  onContextMenu?: (at: { x: number; y: number }) => void;
 }
 
-/**
- * メモの編集（CodeMirror 6）。Markdown 表示は、カーソルのある行だけ記号を見せ、ほかの行は見出し・太字・リストなどを整えて見せる
- * （livePreviewExtension。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
- * 行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、メモを開いたときに初めて読み込む（default export）
- */
 /** 選んだ範囲の色（ピントがあってもなくても同じ。drawSelection の層） */
 const selectionTheme = EditorView.theme({
   "& .cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
@@ -66,13 +55,19 @@ const selectionTheme = EditorView.theme({
   },
 });
 
-export default function MarkdownEditor({ initialValue, live, onChange, onSave, handleRef, onAskAi, onSelectionChange }: Props) {
+/**
+ * メモの編集（CodeMirror 6）。Markdown 表示は、カーソルのある行だけ記号を見せ、ほかの行は見出し・太字・リストなどを整えて見せる
+ * （livePreviewExtension。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
+ * 行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、メモを開いたときに初めて読み込む（default export）
+ * 右クリックは自前のメニュー（onContextMenu。チャットに追加・コピーなど）。
+ */
+export default function MarkdownEditor({ initialValue, live, onChange, onSave, handleRef, onContextMenu }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const [mode] = useState(() => new Compartment());
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const handlers = useRef({ onChange, onSave, onAskAi, onSelectionChange });
-  handlers.current = { onChange, onSave, onAskAi, onSelectionChange };
+  const handlers = useRef({ onChange, onSave, onContextMenu });
+  handlers.current = { onChange, onSave, onContextMenu };
 
   useEffect(() => {
     if (!host.current) return;
@@ -82,7 +77,7 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
         doc: initialValue,
         extensions: [
           history(),
-          // 選んだ範囲を、ピントが外れても（会話の欄に書いている間も）見えるように描く。色は CodeMirror の既定（明るい紫）より
+          // 選んだ範囲を、ピントが外れても（右クリックのメニュー・チャットの欄に移っても）見えるように描く。色は CodeMirror の既定（明るい紫）より
           // 詳細度の高い既定の規則に CSS では勝てないので、テーマで上書きする（アクセントの薄い色。文字が読めるように）
           drawSelection(),
           selectionTheme,
@@ -107,13 +102,18 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ "aria-label": "メモ" }),
           mode.of(live ? livePreview : []),
-          ...(onAskAi ? [askAiTooltip(() => handlers.current.onAskAi)] : []),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) handlers.current.onChange(u.state.doc.toString());
-            if (u.docChanged || u.selectionSet) {
-              const { from, to, empty } = u.state.selection.main;
-              handlers.current.onSelectionChange?.(empty ? null : u.state.sliceDoc(from, to));
-            }
+          }),
+          // 右クリックは自前のメニュー（選んだ範囲はそのまま残す）
+          EditorView.domEventHandlers({
+            contextmenu: (e) => {
+              const open = handlers.current.onContextMenu;
+              if (!open) return false;
+              e.preventDefault();
+              open({ x: e.clientX, y: e.clientY });
+              return true;
+            },
           }),
         ],
       }),
@@ -121,17 +121,13 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
     view.current = v;
     if (handleRef) {
       handleRef.current = {
-        text: () => v.state.doc.toString(),
-        selection: () => {
+        selectedText: () => {
           const { from, to } = v.state.selection.main;
-          return from === to ? null : { from, to, text: v.state.sliceDoc(from, to) };
+          return v.state.sliceDoc(from, to);
         },
-        replace: (from, to, expected, text) => {
-          if (to > v.state.doc.length || v.state.sliceDoc(from, to) !== expected) return false;
-          // 置き換えたあとはカーソルを末尾に置く（全体を選んだままにすると、会話の欄がそれを「選んだ部分」として話の的にしてしまう）
-          v.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, scrollIntoView: true, userEvent: "input.ai" });
+        insert: (text) => {
+          v.dispatch(v.state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.paste" });
           v.focus();
-          return true;
         },
       };
     }
@@ -149,38 +145,4 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
   }, [live, mode]);
 
   return <div ref={host} className={cx("md-editor", live ? "live" : "source")} />;
-}
-
-/**
- * 範囲を選んでいる間、その上に出す「✨ AI と話す」の吹き出し（押すと、メモの会話の欄を開いて、選んだ範囲を話の的にする）。
- * 押しても選択が外れないよう、mousedown の既定の動き（ピントを移す）を止める
- */
-function askAiTooltip(handler: () => (() => void) | undefined) {
-  const tip = (state: EditorState): Tooltip | null => {
-    const { from, to, empty } = state.selection.main;
-    if (empty || !state.sliceDoc(from, to).trim()) return null;
-    return {
-      pos: from,
-      above: true,
-      arrow: false,
-      create: () => {
-        const dom = document.createElement("div");
-        dom.className = "memo-ai-tip";
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "memo-ai-tip-button";
-        button.textContent = "✨ AI と話す";
-        button.title = "選んだ範囲について AI と話す（メモの変更は、案を見てから取り込む）";
-        button.addEventListener("mousedown", (e) => e.preventDefault());
-        button.addEventListener("click", () => handler()?.());
-        dom.append(button);
-        return { dom };
-      },
-    };
-  };
-  return StateField.define<Tooltip | null>({
-    create: tip,
-    update: (value, tr) => (tr.docChanged || tr.selection ? tip(tr.state) : value),
-    provide: (field) => showTooltip.from(field),
-  });
 }

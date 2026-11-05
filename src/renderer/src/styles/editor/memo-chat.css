@@ -102,154 +102,52 @@
   color: var(--text);
 }
 
-/* 変更の案の入れ方（承認 / 直接編集）。見出しの行に収まる小ささ */
-.memo-chat-apply {
-  padding: 2px;
-}
-
-.memo-chat-apply button {
-  padding: 2px 8px;
-  font-size: 11px;
-}
-
-/* 会話の流れ（いちばん下に新しいもの） */
-.memo-chat-list {
+/* 中身はふつうのチャットの画面（ChatView）か、まだチャットがないときの最初の入力欄。欄の高さいっぱいに置く */
+.memo-chat-body {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
   min-height: 0;
-  padding: 12px;
-  overflow-y: auto;
 }
 
-.memo-chat-empty p {
-  margin: 0 0 8px;
-  line-height: 1.6;
+.memo-chat-body > .chat-page {
+  flex: 1;
+  min-height: 0;
 }
 
-/* 自分の発言（右寄せの吹き出し。話の的にした選んだ部分を上に引用） */
-.memo-chat-user {
+/* まだチャットがないときの案内（入力欄の上の空いた所の真ん中） */
+.memo-chat-hero {
   display: grid;
-  gap: 4px;
-  justify-items: end;
-  margin-left: 24px;
-}
-
-.memo-chat-user .memo-ai-quote {
-  justify-self: stretch;
-  max-height: 72px;
-}
-
-.memo-chat-bubble {
-  padding: 6px 10px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  background: var(--bg-hover);
-}
-
-/* AI の返事（Markdown）と変更の案 */
-.memo-chat-reply {
-  display: grid;
+  justify-items: center;
   gap: 8px;
-  font-size: 13px;
-}
-
-.memo-chat-reply .markdown > :first-child {
-  margin-top: 0;
-}
-
-.memo-chat-reply .markdown > :last-child {
-  margin-bottom: 0;
-}
-
-.memo-chat-error-text {
-  margin: 0;
-  color: var(--ng);
-}
-
-.memo-chat-edit {
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--bg);
-}
-
-.memo-chat-edit-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.memo-chat-edit .memo-ai-diff {
-  max-height: 260px;
-}
-
-.memo-chat-busy {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  max-width: 320px;
+  margin: auto;
+  padding: 24px 12px;
+  text-align: center;
   color: var(--accent-fg);
 }
 
-.memo-chat-error {
+.memo-chat-hero p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.memo-chat-hero p.muted {
+  color: var(--muted);
+}
+
+/* 見出しの行はないが、チャットの画面と同じ段（見出し・流れ・入力欄）のまま、流れの段に案内を置く */
+.memo-chat-start .timeline {
   display: flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
-  color: var(--ng);
-  background: color-mix(in srgb, var(--ng) 8%, transparent);
 }
 
-.memo-chat-error span {
-  flex: 1;
+/* 見出しの段が空なので、入力欄が上の段へ詰まらないよう、いちばん下の段に置く */
+.memo-chat-start .chat-composer {
+  grid-row: 3;
 }
 
-/* 入力（話の的にする選んだ部分・定型の頼み・発言の欄） */
-.memo-chat-compose {
-  display: grid;
-  flex: none;
-  gap: 8px;
-  padding: 10px 12px 12px;
-  border-top: 1px solid var(--border);
-}
-
-.memo-chat-selection {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  row-gap: 4px;
-}
-
-.memo-chat-selection .memo-ai-quote {
-  grid-column: 1 / -1;
-  max-height: 80px;
-}
-
-.memo-chat-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-/* 発言の欄（長い相談も書けるよう、3 行から書いた分だけ伸ばし、欄の 4 割を超えたら中でスクロール） */
-.memo-chat-input {
-  field-sizing: content;
-  min-height: calc(3lh + 16px);
-  max-height: 40cqh;
-  font-size: 13px;
-  resize: none;
-}
-
-/* 見出しの会話の開閉（開いているときはアクセントの色） */
+/* 見出しのチャットの開閉（開いているときはアクセントの色） */
 .memo-chat-toggle.on {
   color: var(--accent-fg);
 }

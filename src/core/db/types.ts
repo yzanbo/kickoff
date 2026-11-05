@@ -20,4 +20,6 @@ export interface NewChat extends ChatOptionsPatch {
   /** 子チャットの親と、親の会話のどの記録から聞いたか */
   parent_chat_id?: number | null;
   parent_event_id?: number | null;
+  /** メモのチャットのメモ（メモのフォルダからの相対パス） */
+  memo_path?: string | null;
 }

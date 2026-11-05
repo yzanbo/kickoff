@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import type { Chat, ChatStatus } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { useServerEvent } from "@/api/events";
-import { openChat, type Route } from "./router";
+import { openChat, openMemo, type Route } from "./router";
 import { openChildChat } from "@/features/chat/children/openChild";
 
 /**
@@ -18,8 +18,14 @@ export function useChatNotifications({ enabled, projectName, route }: { enabled:
   const titles = useRef(new Map<number, string>());
   // 子チャット（押したら、パネルではなく別ウィンドウで開く）
   const children = useRef(new Set<number>());
-  const open = (projectId: number, chatId: number) =>
-    children.current.has(chatId) ? openChildChat({ id: chatId, project_id: projectId, title: titles.current.get(chatId) ?? "" }) : openChat(projectId, chatId);
+  // メモのチャット（押したら、そのメモをメモのタブで開く。チャットはメモの右の欄にある）
+  const memos = useRef(new Map<number, string>());
+  const open = (projectId: number, chatId: number) => {
+    const memo = memos.current.get(chatId);
+    if (memo !== undefined) return openMemo(projectId, memo);
+    if (children.current.has(chatId)) return openChildChat({ id: chatId, project_id: projectId, title: titles.current.get(chatId) ?? "" });
+    openChat(projectId, chatId);
+  };
   const state = useRef({ enabled, projectName, route });
   state.current = { enabled, projectName, route };
 
@@ -46,12 +52,13 @@ export function useChatNotifications({ enabled, projectName, route }: { enabled:
       const chat = e.chat;
       titles.current.set(chat.id, chat.title);
       if (chat.parent_chat_id !== null) children.current.add(chat.id);
+      if (chat.memo_path !== null) memos.current.set(chat.id, chat.memo_path);
       const prev = last.current.get(chat.id);
       last.current.set(chat.id, chat.status);
       if (!prev || prev !== "running" || chat.status === "running") return;
       const project = state.current.projectName(chat.project_id);
-      // 子チャットは名前の前に「子チャット」と添える
-      const name = `${chat.parent_chat_id !== null ? "子チャット: " : ""}${chatTitle(chat.title)}`;
+      // 子チャットは名前の前に「子チャット」、メモのチャットは「メモ」と添える
+      const name = `${chat.parent_chat_id !== null ? "子チャット: " : chat.memo_path !== null ? "メモ: " : ""}${chatTitle(chat.title)}`;
       if (chat.status === "completed") notify(chat, `✓ 完了: ${name}`, `${project} ・ AI の作業が終わりました`);
       else if (chat.status === "failed") notify(chat, `✕ 失敗: ${name}`, `${project} ・ ${chat.error?.slice(0, 120) ?? "エラーで止まりました"}`);
     } else if (e.type === "approval") {

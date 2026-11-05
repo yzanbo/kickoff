@@ -74,6 +74,12 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       .all(id)
       .map(toChat);
 
+  const memoChats = (projectId: number, memoPath: string): Chat[] =>
+    db
+      .prepare("SELECT * FROM chats WHERE project_id = ? AND (memo_path = ? OR substr(memo_path, 1, length(?) + 1) = ? || '/') ORDER BY id DESC")
+      .all(projectId, memoPath, memoPath, memoPath)
+      .map(toChat);
+
   return {
     get,
     list(filter: ChatFilter = {}): Chat[] {
@@ -93,8 +99,8 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     create(input: NewChat): Chat {
       const { lastInsertRowid } = db
         .prepare(
-          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO chats (project_id, provider, title, status, model, effort, permission_mode, fast_mode, group_id, worktree_path, parent_chat_id, parent_event_id, memo_path)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           input.project_id,
@@ -109,6 +115,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
           input.worktree_path ?? null,
           input.parent_chat_id ?? null,
           input.parent_event_id ?? null,
+          input.memo_path ?? null,
         );
       const chat = get(Number(lastInsertRowid))!;
       onChange({ type: "chat", chat });
@@ -126,6 +133,16 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     },
     /** 子孫の子チャット（子・孫・ひ孫…。深い方から順に。自分は含まない） */
     descendants,
+    /** メモのチャット（そのメモ、フォルダならその中のメモのもの。アーカイブ済みも含む。新しい順） */
+    memoChats,
+    /** メモの名前を変えた・動かしたとき、メモのチャットの memo_path を付け替える（フォルダなら中のメモのものも。並び順は変えない） */
+    remapMemoPath(projectId: number, from: string, to: string) {
+      for (const chat of memoChats(projectId, from)) {
+        const next = chat.memo_path === from ? to : `${to}${chat.memo_path!.slice(from.length)}`;
+        db.prepare("UPDATE chats SET memo_path = ? WHERE id = ?").run(next, chat.id);
+        onChange({ type: "chat", chat: get(chat.id)! });
+      }
+    },
     /** チャットを完全に削除する（会話の記録・送信待ち・子孫の子チャットも消える。子孫の分も知らせる） */
     delete(id: number) {
       const chat = get(id);
