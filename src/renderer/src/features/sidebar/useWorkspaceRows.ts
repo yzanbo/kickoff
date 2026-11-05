@@ -9,6 +9,7 @@ import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import { isWaitingState, useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useSetting } from "@/hooks/useSetting";
 import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
+import { useWaitingView } from "./waitingView";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { useChatLayout, type ChatOrder } from "./chatGroupings";
 import { useProjectDrafts } from "./DraftRows";
@@ -46,8 +47,11 @@ export function useWorkspaceRows({
 }) {
   // まとめ方（まとめない / グループ / 作業場所）と並び順（新しい順 / 状態別）。グループの見出しは「グループ」のときだけ出す
   const { grouping, order } = useChatLayout();
-  // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替える）
-  const [waitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
+  // 自分待ち（回答待ち・未読）だけを出すか（上の行の「自分待ち」で切り替え、表示が「プロジェクトで絞る」のときだけ絞る。
+  // 「上にまとめる」では一覧はすべてを出し、待っているものは上のまとまりに出す）
+  const [waitingOn] = useSetting(SIDEBAR_WAITING_ONLY);
+  const [waitingView] = useWaitingView();
+  const waitingOnly = waitingOn && waitingView === "filter";
   // アーカイブ済みのチャットを一覧の下に出すか（どのプロジェクトでも同じ）
   const [showArchived] = useShowArchivedChats();
   // プロジェクト内の検索: チャット名と、やり取りの中身（サーバーで全文検索）の両方で絞り込む

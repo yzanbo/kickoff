@@ -16,6 +16,7 @@ import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import { IconButton } from "@/ui/IconButton";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
+import { ProjectMark } from "@/features/project/ProjectMark";
 
 /**
  * サイドバーのチャットの行（押すと右のパネルで開く・⌘ / Shift を押しながらで複数選ぶ・ダブルクリックで名前を変える・ドラッグでグループへ移す・
@@ -30,6 +31,7 @@ export function ChatRow({
   onCloseMenu,
   onRename,
   rename,
+  project,
 }: {
   chat: Chat;
   state: AgentState;
@@ -42,6 +44,8 @@ export function ChatRow({
   onRename: () => void;
   /** 名前をその場で変えている途中のとき */
   rename?: ChatTitleEditor;
+  /** プロジェクトをまたぐ一覧（自分待ちのまとまり）では、どのプロジェクトのチャットかを印で添える */
+  project?: { id: number; name: string };
 }) {
   // hooks は、下の早い return（名前の変更中）より前に呼ぶ
   const selection = useChatSelection();
@@ -79,7 +83,7 @@ export function ChatRow({
         data-chat-id={chat.id}
         aria-selected={selection && selection.ids.size > 0 ? selected : undefined}
         href={href({ name: "chat", projectId: chat.project_id, chatId: chat.id })}
-        title={`${chatTitle(chat.title)}（${AGENT_STATE_LABELS[state]}${busyUnread ? "・未読あり" : ""}）`}
+        title={`${chatTitle(chat.title)}（${project ? `${project.name}・` : ""}${AGENT_STATE_LABELS[state]}${busyUnread ? "・未読あり" : ""}）`}
         draggable
         onDragStart={(e) => startChatDrag(e, chat.id)}
         onDoubleClick={(e) => {
@@ -101,6 +105,7 @@ export function ChatRow({
         <StatusSlot state={state} unread={busyUnread} />
         <span className="chat-row-body">
           <span className="chat-row-line">
+            {project && <ProjectMark project={project} className="chat-row-project" />}
             <span className="chat-row-title">{chatTitle(chat.title)}</span>
             {state === "running" ? (
               <RunningTime chat={chat} />

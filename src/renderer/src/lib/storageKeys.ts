@@ -45,6 +45,8 @@ export const SIDEBAR_CHAT_SECTIONS = defineSetting("kickoff:sidebar-chat-section
 export const SIDEBAR_CHAT_ORDER = defineSetting("kickoff:sidebar-chat-order", choice(["recent", "status"], "recent"));
 /** 自分待ち（回答待ち・未読）のチャットだけを出すか */
 export const SIDEBAR_WAITING_ONLY = defineSetting("kickoff:sidebar-waiting-only", flag());
+/** 自分待ちがオンのときの表示（filter = プロジェクトで絞る / inbox = 一覧の上にまとめる / list = 1 列にまとめる） */
+export const SIDEBAR_WAITING_VIEW = defineSetting("kickoff:sidebar-waiting-view", choice(["filter", "inbox", "list"], "filter"));
 /** チャットを 1 行で出すか（2 行目のブランチを隠す） */
 export const SIDEBAR_COMPACT = defineSetting("kickoff:sidebar-compact", flag(true));
 /** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブ・ボードの絞り込みで共通） */

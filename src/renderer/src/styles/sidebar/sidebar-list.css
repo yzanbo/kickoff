@@ -192,3 +192,43 @@
 .workspace-dot {
   --corner-ring: var(--bg-sidebar);
 }
+
+/* ==== 自分待ちを上にまとめる / 1 列にまとめる（WaitingInbox） ==== */
+
+/* 上にまとめる: プロジェクトの一覧の上のまとまり（下の一覧と線で分ける） */
+.waiting-inbox.top {
+  margin: 0 var(--gutter) 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 縦並びの一覧の中ではスクロールバーの場所を空けているので、そのぶん右を減らす */
+.workspace-stack > .waiting-inbox.top {
+  margin-right: calc(var(--gutter) - var(--scrollbar-w));
+}
+
+/* スライドでは、スライドの上に置き、高さに上限を付けて中でスクロールする */
+.waiting-inbox-slot {
+  flex: none;
+  max-height: 40%;
+  overflow-y: auto;
+}
+
+/* 1 列にまとめる: 一覧の代わりに置く */
+.waiting-inbox.list {
+  padding: 0 var(--gutter);
+}
+
+.workspace-stack > .waiting-inbox.list {
+  padding-right: calc(var(--gutter) - var(--scrollbar-w));
+}
+
+.waiting-inbox-empty {
+  margin: 6px 4px;
+}
+
+/* プロジェクトをまたぐ一覧の行に添える、プロジェクトの印 */
+.chat-row-project {
+  flex: none;
+  align-self: center;
+}

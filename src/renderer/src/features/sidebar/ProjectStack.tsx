@@ -20,6 +20,7 @@ export function ProjectStack({
   onNewProject,
   archivedHead,
   waitingEmpty,
+  topInbox,
   selectionBar,
 }: {
   nav: ProjectNavController;
@@ -28,9 +29,11 @@ export function ProjectStack({
   onNewProject: () => void;
   archivedHead: ReactNode;
   waitingEmpty: ReactNode;
+  /** 自分待ちを上にまとめる表示のとき、プロジェクトの一覧の上に置くまとまり */
+  topInbox: ReactNode;
   selectionBar: ReactNode;
 }) {
-  const { ordered, visible, isArchived, reorder, collapsedMap, waitingOnly, allSearch, showArchived, compact, compactProjects } = nav;
+  const { ordered, visible, isArchived, reorder, collapsedMap, filterByWaiting, allSearch, showArchived, compact, compactProjects } = nav;
   // 固定したプロジェクト（並びの先頭にある）と、その後ろの最初のプロジェクト
   const hasPinned = ordered.some((p) => p.pinned && !isArchived(p.id));
   const firstUnpinned = ordered.findIndex((p) => !p.pinned && !isArchived(p.id));
@@ -41,6 +44,7 @@ export function ProjectStack({
         <SearchField value={nav.searchAll} onChange={nav.setSearchAll} placeholder="すべてのプロジェクトのチャットを検索" label="すべてのプロジェクトのチャットを検索" />
       </div>
       <div className="workspace-stack">
+        {topInbox}
         {ordered.map((p, i) => (
           <Fragment key={p.id}>
           {/* 固定したプロジェクトがあるときは、「固定」と「プロジェクト」の見出しで分ける（Slack のスターと同じ） */}
@@ -54,7 +58,7 @@ export function ProjectStack({
               chats={chats[p.id] ?? NO_CHATS}
               groups={groups[p.id] ?? NO_GROUPS}
               hidden={false}
-              collapsed={!waitingOnly && !allSearch.keyword && collapsedMap.get(p.id)}
+              collapsed={!filterByWaiting && !allSearch.keyword && collapsedMap.get(p.id)}
               onCollapsedChange={collapsedMap.set}
               searchAll={allSearch.keyword}
               headDrag={reorder.handle(p.id)}

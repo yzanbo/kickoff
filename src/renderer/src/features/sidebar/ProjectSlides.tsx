@@ -20,6 +20,7 @@ export function ProjectSlides({
   groups,
   onNewProject,
   waitingEmpty,
+  topInbox,
   selectionBar,
 }: {
   nav: ProjectNavController;
@@ -27,9 +28,11 @@ export function ProjectSlides({
   groups: Record<number, ChatGroup[]>;
   onNewProject: () => void;
   waitingEmpty: ReactNode;
+  /** 自分待ちを上にまとめる表示のとき、スライドの上に置くまとまり（高さに上限を付けて、中でスクロールする） */
+  topInbox: ReactNode;
   selectionBar: ReactNode;
 }) {
-  const { ordered, index, swipe, collapsedMap, waitingOnly, isArchived, reorder, go, projectMenu, pending, compact, compactProjects } = nav;
+  const { ordered, index, swipe, collapsedMap, filterByWaiting, isArchived, reorder, go, projectMenu, pending, compact, compactProjects } = nav;
   const rail = nav.layout === "rail";
   const switcher = (
     <div className="workspace-switcher" {...swipe.stripHandlers}>
@@ -48,6 +51,7 @@ export function ProjectSlides({
   return (
     <div className={cx("workspaces", rail && "rail", compact && "compact", compactProjects && "compact-projects")}>
       <ProjectListHead {...nav.head} />
+      {topInbox && <div className="waiting-inbox-slot">{topInbox}</div>}
       <div className="workspace-body">
       {rail && switcher}
       <div
@@ -64,7 +68,7 @@ export function ProjectSlides({
               chats={chats[p.id] ?? NO_CHATS}
               groups={groups[p.id] ?? NO_GROUPS}
               hidden={i !== index}
-              collapsed={!waitingOnly && collapsedMap.get(p.id)}
+              collapsed={!filterByWaiting && collapsedMap.get(p.id)}
               onCollapsedChange={collapsedMap.set}
             />
           ))}

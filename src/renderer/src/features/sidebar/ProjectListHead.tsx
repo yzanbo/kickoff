@@ -8,6 +8,7 @@ import { HeadMenu, HeadToggle } from "./HeadMenu";
 import { IconButton } from "@/ui/IconButton";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { TagFilterRow } from "./TagFilterRow";
+import { WAITING_VIEW_META, WAITING_VIEWS, type WaitingView } from "./waitingView";
 
 /** slide: 1 プロジェクトずつ横にスライド（丸は下） / rail: 1 プロジェクトずつ縦にスライド（丸は左に縦に並べる） / stack: すべてのプロジェクトを縦に並べる */
 export type NavLayout = SettingValue<typeof SIDEBAR_LAYOUT>;
@@ -31,6 +32,8 @@ interface Props {
   archivedCount: number;
   showArchived: boolean;
   onShowArchived: (show: boolean) => void;
+  /** 自分待ちがオンのときだけ: その表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）を選ぶ行を出す */
+  waiting?: { view: WaitingView; onView: (view: WaitingView) => void };
 }
 
 /**
@@ -43,7 +46,7 @@ interface Props {
  * 「すべて閉じる / 開く」は、並べ方にかかわらず「チャット」の行の名前のすぐ右に、小さなアイコンのボタンで置く
  * （ボタンを 5 つ並べる幅はないため。以前はアーカイブの右に同じ形のボタンで置いていたが、並び順を足して収まらなくなった）
  */
-export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived }: Props) {
+export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archivedCount, showArchived, onShowArchived, waiting }: Props) {
   const { grouping, setGrouping, order: chatOrder, setOrder: setChatOrder } = useChatLayout();
   const [showArchivedChats, setShowArchivedChats] = useShowArchivedChats();
   const [compact, setCompact] = useCompactRows();
@@ -136,6 +139,21 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
         {/* アーカイブはプロジェクトの行と同じく右端 */}
         {archiveToggle("archive-chats", "チャット", showArchivedChats, setShowArchivedChats)}
       </div>
+      {/* 自分待ちがオンのときだけ、その表示を選ぶ行（上の行の「自分待ち」の右クリックでも選べる） */}
+      {waiting && (
+        <div className="project-list-row">
+          <span className="project-list-row-label">自分待ち</span>
+          <HeadMenu
+            id="waiting-view"
+            icon={WAITING_VIEW_META[waiting.view].icon}
+            label="表示"
+            value={WAITING_VIEW_META[waiting.view].short}
+            values={WAITING_VIEWS.map((v) => WAITING_VIEW_META[v].short)}
+            title={`自分待ちがオンのときの表示（いまは「${WAITING_VIEW_META[waiting.view].label}」）`}
+            menu={{ title: "自分待ちの表示", choices: WAITING_VIEWS, meta: WAITING_VIEW_META, current: waiting.view, onPick: waiting.onView }}
+          />
+        </div>
+      )}
       {/* タグがあるときだけ、タグでの絞り込みの行（押すたびに付け外し） */}
       <TagFilterRow />
     </div>

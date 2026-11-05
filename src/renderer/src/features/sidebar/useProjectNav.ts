@@ -16,6 +16,7 @@ import { useProjectMenu } from "@/features/project/ProjectMenu";
 import { useAllDrafts } from "@/features/panel/state/panelDrafts";
 import { useCompactProjects, useCompactRows, useShowArchivedChats, waitingChats } from "@/features/chatList/chatListFlags";
 import { useProjectReorder } from "./useProjectReorder";
+import { useWaitingView } from "./waitingView";
 import { useWorkspaceSwipe } from "./useWorkspaceSwipe";
 
 /**
@@ -38,6 +39,9 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const canReorder = projectOrder === "manual";
   // 自分待ちだけを出すときは、自分待ちのチャットか、送る前の新しいチャット（下書き）があるプロジェクトだけを並べる（チャットの一覧も開いて見せる）
   const [waitingOnly, setWaitingOnly] = useSetting(SIDEBAR_WAITING_ONLY);
+  // オンのときの表示（プロジェクトで絞る / 上にまとめる / 1 列にまとめる）。プロジェクトとチャットを絞るのは「絞る」のときだけ
+  const [waitingView, setWaitingView] = useWaitingView();
+  const filterByWaiting = waitingOnly && waitingView === "filter";
   const [compact] = useCompactRows();
   const [compactProjects] = useCompactProjects();
   const drafts = useAllDrafts();
@@ -47,7 +51,7 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
   const allSearch = useChatSearch(layout === "stack" ? searchAll : "");
   const [showArchivedChats] = useShowArchivedChats();
   const hasMatch = (p: Project) => (chats[p.id] ?? []).some((r) => (!r.archived_at || showArchivedChats) && allSearch.matches(r));
-  const base = waitingOnly ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
+  const base = filterByWaiting ? visible.filter(hasWaiting) : showArchived ? [...visible, ...archived] : visible;
   const ordered = allSearch.keyword ? base.filter(hasMatch) : base;
   const isArchived = (id: number) => archived.some((p) => p.id === id);
   // ドラッグでの並べ替え（縦並びのカード・横スライドの丸で共通。しまったものは除く）。
@@ -142,6 +146,8 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     showArchived,
     onShowArchived: setShowArchived,
     fold: { allCollapsed, set: setAllCollapsed },
+    // 自分待ちがオンのときだけ、その表示を選ぶ行を出す
+    waiting: waitingOnly ? { view: waitingView, onView: setWaitingView } : undefined,
   };
 
   return {
@@ -162,6 +168,9 @@ export function useProjectNav(chats: Record<number, Chat[]>) {
     swipe,
     waitingOnly,
     setWaitingOnly,
+    /** 自分待ちがオンのときの表示と、プロジェクト・チャットを自分待ちで絞っているか（表示が「絞る」のとき） */
+    waitingView,
+    filterByWaiting,
     tagFilter,
     showArchived,
     setShowArchived,
