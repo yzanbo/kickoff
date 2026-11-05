@@ -21,7 +21,7 @@
 - ボタンは、ブラウザの既定の余白（`padding: 1px 6px`）・行の高さ・文字の大きさを持っている。大きさを決めたボタン（アイコンだけ・丸・ピルの中の小さな ×・▾ など）には必ず `padding: 0` を書き、中身は `display: grid; place-items: center`（文字と並べるなら `inline-flex; align-items: center; justify-content: center`）で真ん中に置く。余白を残すと、幅を狭めたときに中身の幅がアイコンより狭くなり、アイコンが右へはみ出して真ん中からずれる。`margin` の負の値や `top` で見た目だけ合わせない。アイコンだけのボタンは `IconButton` を使えばこの形になる（`.icon-button` は `display: inline-grid; place-items: center; padding: 0`）。大きさを変えるときは className で `width` / `height` だけを上書きし、真ん中寄せは崩さない。
 - 2 つのボタンを 1 つに見せる組（アイコン ＋ ▾ など）は、乗せたときの地を外側の入れ物に付け、中の各ボタンの地は透明にする（それぞれに地を付けると、別々に光って 2 つのボタンに見える。`.panel-split-button`）。
 - 使わなくなったクラスの CSS は消す。消すときは、名前を組み立てて付けるクラスに気をつける（いまの頭: `state-` `status-` `tone-` `meter-` `conn-` `drop-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、PR の状態の `open` / `merged` / `closed`（`.pr-chip`）、一番下へ戻るボタンの状態 `waiting` / `arrived` / `working` / `idle` / `failed` / `offline`）。
-- 新しいクラス名は、既存のものと重ならないか `styles/` 全体を検索してから付ける（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
+- 新しいクラス名は、既存のものと重ならないか `styles/` 全体と、組み立てて付けるクラス（サイドバーの並べ方 `stack` / `slide` / `rail` など）を検索してから付ける。1 語の名前は避け、領域の頭を付ける（動きの線を `.rail` にして、サイドバーの縦スライドの `.workspaces.rail` に当たり、一覧がつぶれた）（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
 - アクセントの色の文字（オンになっている切り替えなど）は `--accent-fg`（ダークは `--accent-bright`、ライトは地に負けない `--accent`）。
 - 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾の一覧に書き、使う側は必要なら `var(--x, 既定値)` で受ける。`getComputedStyle` で読まれている変数（Mermaid の配色・ターミナル・エディタ）は、名前を変えるときに読む側も直す。
 - プロジェクトの名前の札の地と枠の色は `project/project-mark.css` に 1 か所で持つ（`features/project/CLAUDE.md`）。
