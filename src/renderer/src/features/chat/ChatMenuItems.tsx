@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ChevronRight, Copy, FolderInput, Mail, MailOpen, PanelRight, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronRight, Copy, FolderInput, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
@@ -11,10 +11,11 @@ import { openNewProject } from "@/features/project/new/openNewProject";
 import { MenuItem } from "@/ui/PopupMenu";
 import { useSubmenu } from "@/ui/MenuFlyout";
 import { ProjectPickFlyout } from "@/features/project/ProjectPickFlyout";
+import { openAskChild } from "./children/childChats";
 
 /**
  * チャットの右クリックのメニューの項目（サイドバーの行・ボードのカード・パネルのチャットのタブで共通）:
- * 開く・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを変更・アーカイブ・削除。
+ * 開く・子チャットを作成・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを変更・アーカイブ・削除。
  * before / after: その場所だけの項目（タブの分割・閉じるなど）。「プロジェクトを変更」に乗せる・押すと、横にプロジェクトの一覧（ProjectPickFlyout）を開く
  */
 export function ChatMenuItems({
@@ -52,6 +53,17 @@ export function ChatMenuItems({
       {onOpen && (
         <MenuItem onSelect={() => onOpen(chat)}>
           <PanelRight size={14} /> 開く
+        </MenuItem>
+      )}
+      {/* このチャットの子チャットを始める（発言の右クリックと同じ聞く画面。引用はなし。アーカイブしたチャットからは始めない） */}
+      {!chat.archived_at && (
+        <MenuItem
+          onSelect={() => {
+            onClose();
+            openAskChild({ parentId: chat.id, eventId: null, quote: "" });
+          }}
+        >
+          <MessageSquarePlus size={14} /> 子チャットを作成…
         </MenuItem>
       )}
       <MenuItem onSelect={() => onRename(chat)}>
