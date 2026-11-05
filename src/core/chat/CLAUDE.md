@@ -7,7 +7,7 @@
 - 受付（API から呼ぶ窓口）は `runner.ts` の `Runner`（送信待ちの操作は土台のクラス `runnerQueue.ts` の `RunnerQueue`）。送った指示はすぐ動かす（同時に動かす数は決めない）。続きは同じセッション（`session_id`）を再開する。
 - チャットごとの作業中の状態（実行の止め方 `turn`・送る準備中 `preparing`・作業中の操作 `control`・送信待ち `queue`・書き直し中の指示 `edits`・再開の段取り `recovery`・画面に配る様子）は `runtime.ts` の `ChatRuntime` に集める（入れ物は `ChatRuntimes`。保存しない）。
 - 1 回の実行は `turn.ts` の `executeTurn`、チャットの作成と続きの指示の下ごしらえ（添付のパス・届かなかった報告を添える）は `input.ts` の `createChat` / `followupPrompt`。
-- 作業中（`isBusy`）= 動かしている（`turn`）か、送る準備中（`preparing`）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ・圧縮）は `requireIdle` で 409。チャットを消したら `forget` で作業中の状態と再開の段取りを捨てる。
+- 作業中（`isBusy`）= 動かしている（`turn`）か、送る準備中（`preparing`）。作業中にできない操作（送る・削除・分岐・巻き戻し・移動・アーカイブ）は `requireIdle` で 409（圧縮は作業中なら予約になる）。チャットを消したら `forget` で作業中の状態と再開の段取りを捨てる。
 
 ## 送る・伝える
 
@@ -22,13 +22,13 @@
 - プロバイダーには、システムプロンプト（`buildSystemPrompt`）・許可（`CHAT_POLICY`）・選択・続きのセッション・読めるフォルダ（添付の保存先と参照資料）・作業場所の外の参照資料（`readOnlyPaths`。読むだけ）を渡す。知らせは、記録を `store.events.add`（`init` のセッション ID はチャットに書く）、作業中の様子を `ChatRuntime.update`、返答の途中経過 `chat_delta`・サブエージェントの途中経過 `chat_subagent`・実行中のコマンドの出力 `chat_command_output` は配るだけ（保存しない）。
 - 結果の反映（`applyResult`）: 状態・費用・回数・コンテキストの大きさ・未読を書き、作業の終わりの記録 `result` を残す（`network`・`usage_limit`、最後まで終わったときだけ分岐の起点の `session_id` / `message_id`）。この実行で始めたサブエージェントが終わっていなければ、作業の終わりとともに止まったことをお知らせに残す（`unfinishedSubagents`。Claude Code のプロセスが終わるため。通信の切断のときは再開の段取りが知らせる）。
 - 失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。終わったら再試行・裏の作業・圧縮中の表示と作業中の操作を外す。
-- 終わったら（完了でも、止めた・失敗したときも）`Runner` が送信待ちの次を送り、使用枠を取り直す。アプリを終えるとき、通信の切断・使用枠の上限で止まったときは送らない（送っても失敗して消えるため）。
+- 終わったら（完了でも、止めた・失敗したときも）`Runner` が送信待ちの次を送り（圧縮を予約していれば、先に圧縮する）、使用枠を取り直す。アプリを終えるとき、通信の切断・使用枠の上限で止まったときは送らない（送っても失敗して消えるため）。
 
 ## 作業中の様子（ChatLive）
 
-- 画面に配る作業中の様子は `@shared/types` の `ChatLive`（送信待ち `queue`・裏の作業 `background`・通信の再試行 `retry`・つながるのを待っている `reconnect`・圧縮中の様子 `compacting`（始めた時刻ときっかけ）・停止中 `stopping`）。チャットの詳細（`GET /api/chats/:id`）の `live` と SSE の `chat_live` で同じ形にし、どれかが変わるたびに丸ごと配る。保存しない。
+- 画面に配る作業中の様子は `@shared/types` の `ChatLive`（送信待ち `queue`・裏の作業 `background`・通信の再試行 `retry`・つながるのを待っている `reconnect`・圧縮中の様子 `compacting`（始めた時刻ときっかけ）・停止中 `stopping`・圧縮の予約 `compact_next`）。チャットの詳細（`GET /api/chats/:id`）の `live` と SSE の `chat_live` で同じ形にし、どれかが変わるたびに丸ごと配る。保存しない。
 - 再試行（Claude Code の `api_retry`）は返答が届き始めたら消す。裏の作業は Claude Code の `background_tasks_changed`（いま動いているものの一覧）と、メインの返答が終わったか（`replied`）。1 件ずつ止めるのは `POST /api/chats/:id/background/:taskId/stop`（`TurnControl.stopTask`。作業中でなければ 409）。
-- 圧縮: Claude Code の `status`（`compacting` → null）を `ProviderCallbacks.compacting` で受け、始めた時刻ときっかけ（`CompactingState`）を終わるまで変えずに持つ（Claude Code は待っている間も 30 秒ごとに知らせ直す）。きっかけは、手で圧縮した実行（圧縮のボタン・`/compact` で始まる指示）なら `manual`、ほかの指示の途中で起きたものは上限に近づいた自動の `auto`（`compactTriggerOf`。画面は自動のとき、なぜ作業が止まって見えるかを添える）。失敗（`compactFailed`）は、手で圧縮したときだけ理由をお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない `too_few_groups` なども含み、Claude Code も知らせない）。要約したら記録に `compact`（前後のトークン数と、Claude Code が知らせたときはかかった時間 `duration_ms`）が残る。手で圧縮する（`POST /api/chats/:id/compact` → `/compact` を送る）ときは、発言・結果を残さず、回数に数えず、未読にもしない（まだ会話がなければ 409）。
+- 圧縮: Claude Code の `status`（`compacting` → null）を `ProviderCallbacks.compacting` で受け、始めた時刻ときっかけ（`CompactingState`）を終わるまで変えずに持つ（Claude Code は待っている間も 30 秒ごとに知らせ直す）。きっかけは、手で圧縮した実行（圧縮のボタン・`/compact` で始まる指示）なら `manual`、ほかの指示の途中で起きたものは上限に近づいた自動の `auto`（`compactTriggerOf`。画面は自動のとき、なぜ作業が止まって見えるかを添える）。失敗（`compactFailed`）は、手で圧縮したときだけ理由をお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない `too_few_groups` なども含み、Claude Code も知らせない）。要約したら記録に `compact`（前後のトークン数と、Claude Code が知らせたときはかかった時間 `duration_ms`）が残る。手で圧縮する（`POST /api/chats/:id/compact` → `/compact` を送る）ときは、発言・結果を残さず、回数に数えず、未読にもしない（まだ会話がなければ 409）。作業中に頼むと予約にする（`ChatRuntime` の `compactNext` → `ChatLive.compact_next`）: いまのやり取りが終わったら（通信の切断・使用枠の上限で止まったときは除く）、送信待ちより先にすぐ圧縮を始め（`startReservedCompact`。始めたら予約は外れる）、圧縮が終わったらその終わりで送信待ちの次を送る。予約をやめるのは `DELETE /api/chats/:id/compact`（予約していなければ何もしない）。テストは `runner.queue.test.ts`・`server.turns.test.ts`。
 - 停止: `cancel`（`POST /api/chats/:id/cancel`）は `stopping` を立てて実行を止める。Claude Code のプロセスがサブエージェント・裏のコマンドごと終わるまで（ふつうは 2 秒ほど、応じなければ SDK が 5 秒後に強制終了する）立てたままにし、終わったら消す。
 
 ## 送信待ち（queue.ts・runnerQueue.ts）

@@ -85,7 +85,7 @@ export function ChatComposerArea({
         busyControls={<QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={live.stopping}
         onStop={send.onStop}
-        trailing={<ContextMeter chat={chat} compacting={live.compacting} />}
+        trailing={<ContextMeter chat={chat} compacting={live.compacting} compactNext={live.compact_next} />}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
         handleRef={composer}
         history={prompts.recalls}

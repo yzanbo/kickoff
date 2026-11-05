@@ -14,6 +14,8 @@ interface LiveFields {
   stopping: boolean;
   /** 次の指示を書き直していたので、送らずに書き直しが終わるのを待っている（QueueState の waiting_edit） */
   waitingEdit: boolean;
+  /** いまのやり取りが終わったら圧縮する（ChatLive の compact_next） */
+  compactNext: boolean;
 }
 
 /**
@@ -36,7 +38,7 @@ export class ChatRuntime {
   readonly edits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, compactNext: false };
 
   constructor(
     readonly chatId: number,
@@ -55,6 +57,11 @@ export class ChatRuntime {
   /** 会話を圧縮している最中なら、その様子（始めた時刻ときっかけ） */
   get compacting(): CompactingState | null {
     return this.fields.compacting;
+  }
+
+  /** いまのやり取りが終わったら圧縮するか */
+  get compactNext(): boolean {
+    return this.fields.compactNext;
   }
 
   /** 次の指示の書き直しが終わるのを待っているか */
@@ -77,8 +84,8 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping } = this.fields;
-    return { queue: this.queueState(), background, retry, reconnect: reconnectStateOf(this.recovery), compacting, stopping };
+    const { background, retry, compacting, stopping, compactNext } = this.fields;
+    return { queue: this.queueState(), background, retry, reconnect: reconnectStateOf(this.recovery), compacting, stopping, compact_next: compactNext };
   }
 
   /** チャットを消したとき（書き直しの持ち時間の待ちを止める） */

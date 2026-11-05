@@ -75,6 +75,19 @@ test("圧縮: 圧縮している間はチャットの詳細で始めた時刻と
   assert.deepEqual(seen, [compacting, null]);
 });
 
+test("圧縮の予約: 作業中の POST /compact は予約（compact_next）にし、DELETE /compact でやめる", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "続けて" })).body.id;
+  await until(() => runner.isBusy(chatId));
+  assert.equal((await call("POST", `/api/chats/${chatId}/compact`)).status, 200);
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.compact_next, true);
+  assert.equal((await call("DELETE", `/api/chats/${chatId}/compact`)).status, 204);
+  assert.equal((await call("GET", `/api/chats/${chatId}`)).body.live.compact_next, false);
+  release();
+  await until(() => !runner.isBusy(chatId));
+});
+
 test("作業中の様子: チャットの詳細の live と SSE の chat_live は同じ形で、どれかが変わったときだけ丸ごと届く", async () => {
   const { call, project, runner, provider, bus } = setup();
   const lives: ChatLive[] = [];
@@ -97,7 +110,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
   );
   assert.deepEqual(
     { ...last, queue: { ...last.queue, messages: [] } },
-    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false },
+    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, compact_next: false },
   );
   await call("DELETE", `/api/chats/${chatId}/queue`);
   release();
