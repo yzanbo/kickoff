@@ -49,7 +49,8 @@
   top: -1px;
   right: -1px;
   left: -1px;
-  height: 3px;
+  /* タブの枠と同じ 1px（色だけで見分ける。3px では上が太く見えた） */
+  height: 1px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   background: var(--agent-color);
   content: "";
