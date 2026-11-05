@@ -41,6 +41,9 @@ export type ChatOptionsPatch = Partial<ChatOptions>;
  * 作業中（考えている・順番待ち）→ 回答待ち（承認・質問に答えてほしい）→ 未読（作業が終わった・失敗した。まだ見ていない）→ 既読（見た）。
  * 終わったかどうかより、終わった結果を見たかどうかを分ける（見ていないものを「完了」と呼ばない）
  */
+/** 名前が空のチャット（文字を書かずに添付だけで送ったときなど）の代わりの名前（画面・メモ・会話の書き出しで共通。New Chat・No Group とそろえて英語） */
+export const UNTITLED_CHAT_TITLE = "Untitled Chat";
+
 export const BOARD_COLUMNS = ["running", "needs_input", "unread", "read"] as const;
 export type BoardColumn = (typeof BOARD_COLUMNS)[number];
 
