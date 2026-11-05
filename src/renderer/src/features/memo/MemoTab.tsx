@@ -1,4 +1,4 @@
-import { ChevronsDownUp, FileCode2, FilePlus, FolderOpen, FolderPlus, PanelLeftClose, PanelLeftOpen, Sparkles, StickyNote } from "lucide-react";
+import { FileCode2, FilePlus, FolderOpen, PanelLeftOpen, StickyNote } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { navigate } from "@/app/router";
 import { cx } from "@/lib/cx";
@@ -9,13 +9,14 @@ import { useSetting } from "@/hooks/useSetting";
 import { memosStore, useMemoList } from "@/stores/memos";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
-import { IconButton, RefreshButton } from "@/ui/IconButton";
+import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { SearchField } from "@/ui/SearchField";
 import { useContextMenu } from "@/ui/useContextMenu";
 import type { TreeNode } from "@/features/editor/treeModel";
 import { FileIcon } from "@/features/editor/FileIcon";
 import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf, remapPath } from "./memoPaths";
+import { MemoListHead } from "./MemoListHead";
 import { isMemoDrag, MEMO_DRAG_TYPE, MemoTree } from "./MemoTree";
 import { confirmLeaveMemo } from "./memoGuards";
 import { MemoView } from "./MemoView";
@@ -33,8 +34,6 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   const open = useMemo(() => new Set(openList), [openList]);
   const [query, setQuery] = useState("");
   const menu = useContextMenu<TreeNode | null>();
-  // 見出しの「新しいメモ」: Markdown か HTML かを選ぶメニュー（値は作る先のフォルダ）
-  const newMenu = useContextMenu<string>({ align: "end" });
   // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
   const width = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   const [listHidden, setListHidden] = useSetting(MEMO_LIST_HIDDEN);
@@ -124,25 +123,18 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
             if (path) void actions.moveInto(path, "");
           }}
         >
-          <header className="changes-head">
-            <span className="changes-branch" title={dir}>
-              メモ
-            </span>
-            <span className="spacer" />
-            <IconButton
-              icon={FilePlus}
-              label="新しいメモ（Markdown / HTML）"
-              className="memo-new-button"
-              aria-haspopup="menu"
-              aria-expanded={newMenu.isOpen}
-              onClick={(e) => newMenu.toggle(e, folderForNew(null))}
-            />
-            <IconButton icon={FolderPlus} label="新しいフォルダ" onClick={() => void actions.createFolder(folderForNew(null))} />
-            <IconButton icon={Sparkles} label="AI でフォルダを整理（案を見て、選んだものだけ動かす）" disabled={!hasMemos} onClick={() => setPlanning(true)} />
-            <RefreshButton label="メモの一覧を取り直す" busy={list.loading} onClick={() => memosStore.invalidate(projectId)} />
-            <IconButton icon={ChevronsDownUp} label="フォルダをすべて閉じる" disabled={openList.length === 0} onClick={() => setOpenList([])} />
-            <IconButton icon={PanelLeftClose} label="メモの一覧を隠す" onClick={() => setListHidden(true)} />
-          </header>
+          <MemoListHead
+            dir={dir}
+            hasMemos={hasMemos}
+            refreshing={list.loading}
+            canCollapse={openList.length > 0}
+            onCreate={(kind) => void actions.createMemo(folderForNew(null), kind)}
+            onCreateFolder={() => void actions.createFolder(folderForNew(null))}
+            onPlan={() => setPlanning(true)}
+            onRefresh={() => memosStore.invalidate(projectId)}
+            onCollapse={() => setOpenList([])}
+            onHide={() => setListHidden(true)}
+          />
           <SearchField className="memo-search" value={query} onChange={setQuery} placeholder="メモを名前で探す" label="メモを名前で探す" />
           <ErrorText message={list.error} />
           {!list.data ? (
@@ -213,16 +205,6 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
           )
         )}
       </div>
-      {newMenu.menu && (
-        <PopupMenu at={newMenu.menu.at} label="新しいメモ" onClose={newMenu.close} ignore=".memo-new-button">
-          <MenuItem onSelect={() => newMenu.menu && void actions.createMemo(newMenu.menu.value)}>
-            <FilePlus size={14} /> 新しいメモ（Markdown）
-          </MenuItem>
-          <MenuItem onSelect={() => newMenu.menu && void actions.createMemo(newMenu.menu.value, "html")}>
-            <FileCode2 size={14} /> 新しい HTML メモ（HTML と CSS で書くページ）
-          </MenuItem>
-        </PopupMenu>
-      )}
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="メモの操作" onClose={menu.close}>
           {(menu.menu.value === null || menu.menu.value.dir) && (
