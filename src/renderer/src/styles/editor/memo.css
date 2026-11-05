@@ -250,3 +250,14 @@
   border-radius: 0 0 6px 6px;
   color: var(--muted);
 }
+
+/* メモの一覧を隠している間の、左端の細い帯（一覧を表示に戻すボタンだけ。一覧の見出しと同じ高さに置く） */
+.memo-list-rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 4px;
+  border-right: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}

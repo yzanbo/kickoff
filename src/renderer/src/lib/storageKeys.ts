@@ -197,6 +197,8 @@ export const memoOpenFolders = defineSettingFamily("kickoff:memo-open-folders:",
 export const MEMO_VIEW = defineSetting("kickoff:memo-view", choice(["edit", "preview"], "preview"));
 /** まだ保存していないメモ（キーは「プロジェクト:メモのパス」。値は書いたものと、書き始めたときのメモの指紋。保存する・捨てると消す。アプリを閉じても残す） */
 export const memoDraft = defineSettingFamily("kickoff:memo-draft:", json(parseMemoDraft, null, (v) => v === null), { ids: true });
+/** メモのタブの左の一覧（メモのフォルダの木）を隠しているか（どのプロジェクトでも同じ） */
+export const MEMO_LIST_HIDDEN = defineSetting("kickoff:memo-list-hidden", flag(false));
 /** メモのチャットの欄（本文の右）を開いているか（どのメモでも同じ。チャットそのものは DB の chats.memo_path） */
 export const MEMO_CHAT_OPEN = defineSetting("kickoff:memo-chat-open", flag(false));
 /** メモのチャットの欄の幅（本文の右に並べたとき。境目のつまみで変える） */

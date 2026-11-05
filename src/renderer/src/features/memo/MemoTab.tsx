@@ -1,9 +1,9 @@
-import { ChevronsDownUp, FilePlus, FolderOpen, FolderPlus, Sparkles, StickyNote } from "lucide-react";
+import { ChevronsDownUp, FilePlus, FolderOpen, FolderPlus, PanelLeftClose, PanelLeftOpen, Sparkles, StickyNote } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { navigate } from "@/app/router";
 import { cx } from "@/lib/cx";
 import { readSetting } from "@/lib/storage";
-import { CHANGES_LIST_WIDTH, memoOpenFolders, memoSelected } from "@/lib/storageKeys";
+import { CHANGES_LIST_WIDTH, MEMO_LIST_HIDDEN, memoOpenFolders, memoSelected } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { memosStore, useMemoList } from "@/stores/memos";
@@ -23,7 +23,7 @@ import { MemoPlanDialog } from "./MemoPlanDialog";
 import { remapPaths, useMemoActions } from "./useMemoActions";
 
 /**
- * プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ）。メモはプロジェクトの外（設定の親フォルダの下の、
+ * プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ）。左の一覧は隠せる（MEMO_LIST_HIDDEN。隠している間は左端の細い帯に「一覧を表示」）。メモはプロジェクトの外（設定の親フォルダの下の、
  * プロジェクトごとのフォルダ）の Markdown。openMemo は URL の ?memo= で来たメモ（チャットの「メモに追加」から。開いたら URL から外す）
  */
 export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?: string }) {
@@ -35,6 +35,7 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   const menu = useContextMenu<TreeNode | null>();
   // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
   const width = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
+  const [listHidden, setListHidden] = useSetting(MEMO_LIST_HIDDEN);
   const [rootDrop, setRootDrop] = useState(false);
 
   const entries = list.data?.entries;
@@ -95,72 +96,82 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
 
   return (
     <div className={cx("changes", "memo-tab", width.resizing && "resizing")}>
-      <aside
-        ref={width.paneRef}
-        className={cx("changes-list", "memo-list", rootDrop && "drop-target")}
-        style={{ width: width.size }}
-        aria-label="メモ"
-        onContextMenu={(e) => menu.open(e, null)}
-        // 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす
-        onDragOver={(e) => {
-          if (!isMemoDrag(e)) return;
-          e.preventDefault();
-          setRootDrop(true);
-        }}
-        onDragLeave={() => setRootDrop(false)}
-        onDrop={(e) => {
-          setRootDrop(false);
-          const path = e.dataTransfer.getData(MEMO_DRAG_TYPE);
-          if (path) void actions.moveInto(path, "");
-        }}
-      >
-        <header className="changes-head">
-          <span className="changes-branch" title={dir}>
-            メモ
-          </span>
-          <span className="spacer" />
-          <IconButton icon={FilePlus} label="新しいメモ" onClick={() => void actions.createMemo(folderForNew(null))} />
-          <IconButton icon={FolderPlus} label="新しいフォルダ" onClick={() => void actions.createFolder(folderForNew(null))} />
-          <IconButton icon={Sparkles} label="AI でフォルダを整理（案を見て、選んだものだけ動かす）" disabled={!hasMemos} onClick={() => setPlanning(true)} />
-          <RefreshButton label="メモの一覧を取り直す" busy={list.loading} onClick={() => memosStore.invalidate(projectId)} />
-          <IconButton icon={ChevronsDownUp} label="フォルダをすべて閉じる" disabled={openList.length === 0} onClick={() => setOpenList([])} />
-        </header>
-        <SearchField className="memo-search" value={query} onChange={setQuery} placeholder="メモを名前で探す" label="メモを名前で探す" />
-        <ErrorText message={list.error} />
-        {!list.data ? (
-          !list.error && <p className="muted small changes-empty">読み込み中…</p>
-        ) : found ? (
-          found.length === 0 ? (
-            <p className="muted small changes-empty">「{query.trim()}」に合うメモはありません。</p>
+      {listHidden ? (
+        // 一覧を隠している間は、左端の細い帯に戻すボタンだけを置く（メモを開いていなくても戻せるように）
+        <div className="memo-list-rail">
+          <IconButton icon={PanelLeftOpen} label="メモの一覧を表示" onClick={() => setListHidden(false)} />
+        </div>
+      ) : (
+        <>
+        <aside
+          ref={width.paneRef}
+          className={cx("changes-list", "memo-list", rootDrop && "drop-target")}
+          style={{ width: width.size }}
+          aria-label="メモ"
+          onContextMenu={(e) => menu.open(e, null)}
+          // 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす
+          onDragOver={(e) => {
+            if (!isMemoDrag(e)) return;
+            e.preventDefault();
+            setRootDrop(true);
+          }}
+          onDragLeave={() => setRootDrop(false)}
+          onDrop={(e) => {
+            setRootDrop(false);
+            const path = e.dataTransfer.getData(MEMO_DRAG_TYPE);
+            if (path) void actions.moveInto(path, "");
+          }}
+        >
+          <header className="changes-head">
+            <span className="changes-branch" title={dir}>
+              メモ
+            </span>
+            <span className="spacer" />
+            <IconButton icon={FilePlus} label="新しいメモ" onClick={() => void actions.createMemo(folderForNew(null))} />
+            <IconButton icon={FolderPlus} label="新しいフォルダ" onClick={() => void actions.createFolder(folderForNew(null))} />
+            <IconButton icon={Sparkles} label="AI でフォルダを整理（案を見て、選んだものだけ動かす）" disabled={!hasMemos} onClick={() => setPlanning(true)} />
+            <RefreshButton label="メモの一覧を取り直す" busy={list.loading} onClick={() => memosStore.invalidate(projectId)} />
+            <IconButton icon={ChevronsDownUp} label="フォルダをすべて閉じる" disabled={openList.length === 0} onClick={() => setOpenList([])} />
+            <IconButton icon={PanelLeftClose} label="メモの一覧を隠す" onClick={() => setListHidden(true)} />
+          </header>
+          <SearchField className="memo-search" value={query} onChange={setQuery} placeholder="メモを名前で探す" label="メモを名前で探す" />
+          <ErrorText message={list.error} />
+          {!list.data ? (
+            !list.error && <p className="muted small changes-empty">読み込み中…</p>
+          ) : found ? (
+            found.length === 0 ? (
+              <p className="muted small changes-empty">「{query.trim()}」に合うメモはありません。</p>
+            ) : (
+              <ul className="memo-found" role="listbox" aria-label="見つかったメモ">
+                {found.map((e) => (
+                  <li key={e.path}>
+                    <button role="option" aria-selected={selected === e.path} className={cx("tree-row", selected === e.path && "selected")} onClick={() => select(e.path)}>
+                      <FileIcon name={baseName(e.path)} dir={false} />
+                      <span className="tree-name">{baseName(e.path)}</span>
+                      {parentOf(e.path) && <span className="memo-found-folder">{parentOf(e.path)}</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : tree.length === 0 ? (
+            <p className="muted small changes-empty">まだメモはありません。上の ＋ から作るか、チャットの文を右クリックして「メモに追加」で作れます。</p>
           ) : (
-            <ul className="memo-found" role="listbox" aria-label="見つかったメモ">
-              {found.map((e) => (
-                <li key={e.path}>
-                  <button role="option" aria-selected={selected === e.path} className={cx("tree-row", selected === e.path && "selected")} onClick={() => select(e.path)}>
-                    <FileIcon name={baseName(e.path)} dir={false} />
-                    <span className="tree-name">{baseName(e.path)}</span>
-                    {parentOf(e.path) && <span className="memo-found-folder">{parentOf(e.path)}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )
-        ) : tree.length === 0 ? (
-          <p className="muted small changes-empty">まだメモはありません。上の ＋ から作るか、チャットの文を右クリックして「メモに追加」で作れます。</p>
-        ) : (
-          <MemoTree
-            nodes={tree}
-            open={open}
-            onToggle={toggle}
-            selected={selected || undefined}
-            onSelect={select}
-            onMenu={(e, node) => menu.open(e, node)}
-            onDropInto={(path, folder) => void actions.moveInto(path, folder)}
-          />
-        )}
-        {list.data?.truncated && <p className="muted small changes-empty">メモが多いため、途中までを表示しています。</p>}
-      </aside>
-      <div className="pane-resizer" aria-label="一覧の幅を変える" {...width.handle} />
+            <MemoTree
+              nodes={tree}
+              open={open}
+              onToggle={toggle}
+              selected={selected || undefined}
+              onSelect={select}
+              onMenu={(e, node) => menu.open(e, node)}
+              onDropInto={(path, folder) => void actions.moveInto(path, folder)}
+            />
+          )}
+          {list.data?.truncated && <p className="muted small changes-empty">メモが多いため、途中までを表示しています。</p>}
+        </aside>
+        <div className="pane-resizer" aria-label="一覧の幅を変える" {...width.handle} />
+        </>
+      )}
       <div className="changes-diff memo-main">
         {selected && selectedExists ? (
           <MemoView key={selected} projectId={projectId} path={selected} dir={dir} onRenamed={(to) => moved(selected, to)} />
