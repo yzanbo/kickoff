@@ -13,6 +13,7 @@ export function PanelTab({
   active,
   icon: Icon,
   iconClass,
+  badge,
   label,
   group,
   title,
@@ -28,6 +29,8 @@ export function PanelTab({
   active: boolean;
   icon: LucideIcon;
   iconClass?: string;
+  /** 名前の前に置く種類の札（メモ・サブ・子）。タブの枠もその種類の色にする（kind で色を分ける。CSS の .tab-kind-<kind>） */
+  badge?: { text: string; kind: string };
   label: string;
   /** チャットのグループ名（名前の後ろに控えめに添える。グループなしなら出さない） */
   group?: string;
@@ -47,7 +50,7 @@ export function PanelTab({
   editor?: { initial: string; maxLength: number; onSubmit: (name: string) => void; onCancel: () => void };
 }) {
   return (
-    <div className={cx("panel-tab", active && "active", className)} role="tab" aria-selected={active} {...extra}>
+    <div className={cx("panel-tab", active && "active", badge && `panel-tab-typed tab-kind-${badge.kind}`, className)} role="tab" aria-selected={active} {...extra}>
       {editor ? (
         <span className="panel-tab-label editing">
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
@@ -56,6 +59,7 @@ export function PanelTab({
       ) : (
         <button className="panel-tab-label" onClick={onSelect} onDoubleClick={onRename} title={onRename ? `${title ?? label}（ダブルクリックで名前を変更）` : (title ?? label)}>
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
+          {badge && <span className="panel-tab-kind">{badge.text}</span>}
           <span>{label}</span>
           {group && <span className="panel-tab-group-name">{group}</span>}
         </button>

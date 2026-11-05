@@ -73,6 +73,7 @@ export function PaneTab({
       active={active}
       icon={spec.icon}
       iconClass={spec.iconClass}
+      badge={spec.badge ? { text: spec.badge, kind: t.kind } : undefined}
       label={label}
       group={showGroup ? group : undefined}
       title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group}）` : label)}

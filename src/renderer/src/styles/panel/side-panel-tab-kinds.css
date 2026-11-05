@@ -1,0 +1,55 @@
+/*
+ * 種類の札があるタブ（チャットの画面の右の欄のメモ・サブエージェント・子チャット）。タブを見ただけで種類が分かるように、
+ * 名前の前の札（「メモ」「サブ」「子」）・上の 1px の線・表示中の枠を、3 つとも同じ形にして、色だけ種類ごとに変える
+ * （以前はサブエージェントだけ上にそのサブエージェントの色の線があり、ほかはふつうのタブと同じで、そろっていなかった）
+ */
+.panel-tab.tab-kind-memo {
+  --tab-kind-color: hsl(36 70% 62%);
+}
+
+.panel-tab.tab-kind-subagent {
+  --tab-kind-color: hsl(265 65% 72%);
+}
+
+.panel-tab.tab-kind-child {
+  --tab-kind-color: hsl(200 70% 62%);
+}
+
+:root[data-theme="light"] .panel-tab.tab-kind-memo {
+  --tab-kind-color: hsl(32 70% 38%);
+}
+
+:root[data-theme="light"] .panel-tab.tab-kind-subagent {
+  --tab-kind-color: hsl(265 50% 48%);
+}
+
+:root[data-theme="light"] .panel-tab.tab-kind-child {
+  --tab-kind-color: hsl(205 70% 40%);
+}
+
+/* 表示していないタブ: 上の枠だけを種類の色にする（タブの枠と同じ 1px） */
+.panel-tab.panel-tab-typed {
+  border-top-color: color-mix(in srgb, var(--tab-kind-color) 70%, transparent);
+}
+
+/* 表示中のタブ: ふつうのタブと同じく上と左右を 1px の枠で囲み、その色を種類の色にする（まとまりの色の枠より優先） */
+.panel-tabs .panel-tab.panel-tab-typed.active {
+  border-color: var(--tab-kind-color);
+}
+
+/* 名前の前の種類の札（名前と同じ行に収まる小さなピル。名前より先に省かない） */
+.panel-tab-label .panel-tab-kind {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--tab-kind-color);
+  background: color-mix(in srgb, var(--tab-kind-color) 16%, transparent);
+}
+
+/* 未読のタブの名前の色（.panel-tab.unread .panel-tab-label span）に札の色を上書きさせない */
+.panel-tab.unread .panel-tab-label .panel-tab-kind {
+  color: var(--tab-kind-color);
+}
