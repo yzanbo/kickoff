@@ -7,6 +7,7 @@ import {
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import { createBackgroundTracker } from "./background.js";
+import { createCommandOutputWatcher } from "./commandOutput.js";
 import { createInputChannel } from "./input.js";
 import { errorMessage } from "@shared/errors";
 import { isNetworkError } from "@shared/chat/networkErrors";
@@ -151,6 +152,8 @@ export class ClaudeProvider implements AgentProvider {
 
     // 入力はストリーミング（作業中に発言を足す・裏の作業を止めるため、返答が終わり裏の作業もなくなるまで開いておく）
     const input = createInputChannel(params.prompt, params.promptId);
+    // 実行中のコマンドの出力（Claude Code が書いているファイルを読み続け、終わる前から画面に届ける）
+    const commandOutput = createCommandOutputWatcher((output) => cb.commandOutput?.(output));
     try {
       const q = query({
         prompt: input.messages,
@@ -199,6 +202,7 @@ export class ClaudeProvider implements AgentProvider {
           limitResetsAt = resetTimeOf(msg.rate_limit_info.resetsAt) ?? limitResetsAt;
         }
         if (msg.type === "assistant" && msg.error === "rate_limit") limited = true;
+        commandOutput.handle(msg);
         const sid = emitSdkMessage(msg, cb, messageState);
         const background = trackBackground(msg);
         if (background) {
@@ -228,6 +232,7 @@ export class ClaudeProvider implements AgentProvider {
       signal.removeEventListener("abort", onAbort);
       input.close(true);
       cb.control?.(null);
+      commandOutput.stopAll();
     }
 
     if (signal.aborted) return { status: "cancelled", sessionId, lastMessageId };

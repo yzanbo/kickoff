@@ -2,6 +2,8 @@ import { ChevronRight, Wrench } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { BashOutput } from "./BashOutput";
+import { CommandLive } from "./CommandLive";
+import { useCommandOutput } from "./commandOutputs";
 import { summarizeTools, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
 import { CallTime, GroupTime } from "./ToolTime";
@@ -9,6 +11,7 @@ import { HighlightedCode } from "@/ui/HighlightedCode";
 
 /**
  * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
+ * 実行中のコマンドの出力が届いていれば、まとまりの下に最後の行を流す（CommandLive。閉じていても見える）。
  * active: いまの作業の中のまとまり（作業中のチャットで、結果の届いていない呼び出しを実行中として見せる）
  */
 export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
@@ -20,8 +23,11 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
   const running = currentData !== undefined;
   // 一度でも開いたか（一覧の行のコマンドの色付けは、まとまりを開いてから始める）
   const [opened, setOpened] = useState(false);
+  // 実行中のコマンドの出力（まとまりを閉じていても、下に最後の行を流す）
+  const live = useCommandOutput(current?.use.data.name === "Bash" ? current.use.data.id : undefined);
 
   return (
+    <>
     <details
       className={cx("tool-group", failed > 0 && "has-error", running && "active")}
       onToggle={(e) => e.currentTarget.open && setOpened(true)}
@@ -45,6 +51,8 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
         ))}
       </div>
     </details>
+    {live !== null && <CommandLive text={live} rel={rel} />}
+    </>
   );
 }
 

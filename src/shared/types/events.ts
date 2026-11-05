@@ -4,7 +4,7 @@ import type { AppSettings } from "./settings";
 import type { Project } from "./project";
 import type { PlanUsage } from "./provider";
 import type { Chat, ChatGroup } from "./chat";
-import type { ChatEvent, SubagentInfo } from "./chatEvent";
+import type { ChatEvent, CommandOutput, SubagentInfo } from "./chatEvent";
 import type { ChatLive } from "./chatLive";
 import type { VoiceDownload } from "./voice";
 
@@ -23,6 +23,8 @@ export type BusEvent =
   | { type: "chat_delta"; project_id: number; chat_id: number; text: string }
   /** サブエージェントの途中経過（トークン数・直近のツール。保存しない） */
   | { type: "chat_subagent"; project_id: number; chat_id: number; subagent: SubagentInfo }
+  /** 実行中のコマンドの出力の終わりの部分（増えるたびに丸ごと。保存しない。結果はツールの結果の記録で届く） */
+  | { type: "chat_command_output"; project_id: number; chat_id: number; output: CommandOutput }
   /** 作業中の様子（送信待ち・裏の作業・再試行・再接続待ち・圧縮中・停止中）。どれかが変わるたびに全体を送る（チャットの詳細の live と同じ形） */
   | { type: "chat_live"; project_id: number; chat_id: number; live: ChatLive }
   | { type: "approval"; approval: Approval }

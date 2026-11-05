@@ -150,6 +150,9 @@ function callbacksFor(
     subagentProgress: (subagent) => {
       bus?.publish({ type: "chat_subagent", project_id: projectId, chat_id: chatId, subagent });
     },
+    commandOutput: (output) => {
+      bus?.publish({ type: "chat_command_output", project_id: projectId, chat_id: chatId, output });
+    },
     retry: (retry) => runtime.update({ retry }),
     control: (control) => {
       runtime.control = control;

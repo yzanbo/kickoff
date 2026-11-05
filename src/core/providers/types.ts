@@ -1,5 +1,5 @@
 import type { ChatPolicy } from "../chat/policy.js";
-import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, SlashCommandOption, SubagentInfo } from "@shared/types";
+import type { ApiRetryInfo, ApprovalDecision, ApprovalKind, BackgroundState, EffortLevel, FileRewindResult, ModelOption, PermissionMode, PlanUsage, ProviderId, ProviderStatus, ChatEventData, CommandOutput, SlashCommandOption, SubagentInfo } from "@shared/types";
 
 /**
  * エージェント実行基盤の抽象化。
@@ -78,6 +78,8 @@ export interface ProviderCallbacks {
   stream?(text: string): void;
   /** サブエージェントの途中経過（保存しない） */
   subagentProgress?(info: SubagentInfo): void;
+  /** 実行中のコマンドの出力の終わりの部分（増えたときだけ。保存しない） */
+  commandOutput?(output: CommandOutput): void;
   requestApproval(request: ApprovalRequest, signal: AbortSignal): Promise<ApprovalDecision>;
   /** AI の API への通信を再試行しているところ（通信が切れたときなど）。返答が届き始めたら null（保存しない） */
   retry?(info: ApiRetryInfo | null): void;
