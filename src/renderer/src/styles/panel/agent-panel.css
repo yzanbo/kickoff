@@ -109,19 +109,3 @@
 .agent-panel .panel-tabs {
   background: color-mix(in srgb, var(--agents-tone) 6%, var(--bg));
 }
-
-.agent-panel .panel-heading {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  height: 22px;
-  margin-top: 3px;
-  padding: 0 7px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--agents-tone);
-  background: color-mix(in srgb, var(--agents-tone) 16%, transparent);
-}

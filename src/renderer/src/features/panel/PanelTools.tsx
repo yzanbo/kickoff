@@ -1,7 +1,7 @@
 import { AppWindow, FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
 import type { HTMLAttributes, RefObject } from "react";
 import { IconButton } from "@/ui/IconButton";
-import { focusedPane, leavesOf } from "./layout/paneTree";
+import { focusedPane } from "./layout/paneTree";
 import { canPopOut, popOutTab } from "./tabs/popOutTab";
 import { SURFACES } from "./surfaces";
 import { PanelViewButton, type PanelViewMenu } from "./tabs/PanelViewMenu";
@@ -20,15 +20,13 @@ export interface PanelFrame {
 }
 
 /**
- * タブの列の左の道具（左上のペインにだけ置く）: 左から、欄の名前の札（サブエージェントの欄）・閉じる（欄の決まりで先頭か最後。チャット欄は右上のレイアウトの開閉で
+ * タブの列の左の道具（左上のペインにだけ置く）: 左から、閉じる（欄の決まりで先頭か最後。チャット欄は右上のレイアウトの開閉で
  * 閉じるので出さない）・大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）・「表示」のメニューのボタン（表示するタブ・チャットのまとめ方・
  * アーカイブ済み・ボードツールバーの置き方。usePanelViewMenu。タブの列の何もないところの右クリックでも同じメニュー）。
  * よく使い、状態が見た目で分かってほしい閉じる・大きくするはアイコンのまま、たまにしか変えない表示の選び方は 1 つのメニューにまとめる
  */
 export function PanelTools({ panel, frame, view }: { panel: PanelController; frame?: PanelFrame; view: PanelViewMenu }) {
-  const { closeButton, maximize, maximizeLabels, heading } = SURFACES[panel.surface];
-  // 分けているときは、欄の名前の札をアイコンだけにする（左上のペインのタブの入る幅を残す）
-  const split = leavesOf(panel.layout.root).length > 1;
+  const { closeButton, maximize, maximizeLabels } = SURFACES[panel.surface];
   const close = closeButton && !frame?.fixed && (
     <IconButton type="button" icon={closeButton.icon} size={15} className="panel-control" label={closeButton.label} keys={closeButton.keys} onClick={panel.close} />
   );
@@ -38,12 +36,6 @@ export function PanelTools({ panel, frame, view }: { panel: PanelController; fra
   const poppable = shown !== null && canPopOut(panel.tabs.find((t) => t.key === shown));
   return (
     <div className="panel-controls">
-      {heading && (
-        <span className="panel-heading" title={heading.title}>
-          <heading.icon size={13} />
-          {!split && <span>{heading.label}</span>}
-        </span>
-      )}
       {closeButton?.at === "start" && close}
       {maximize === "width" && state && (
         // 横にだけ広がるので、横向きの矢印。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
