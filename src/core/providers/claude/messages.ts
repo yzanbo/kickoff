@@ -63,9 +63,12 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
         });
         return undefined;
       }
-      // いまの段階（圧縮中・API に問い合わせ中）。圧縮の始まりと終わりを画面に知らせ、失敗したら理由を渡す（お知らせに残すかはコアが決める）
+      // いまの段階（圧縮中・API に問い合わせ中）。圧縮の始まりと終わりを画面に知らせ、失敗したら理由を渡す（お知らせに残すかはコアが決める）。
+      // 終わりは段階のなくなった知らせ（null）だけで見る。Claude Code は API に問い合わせを始めるたびに requesting を送り、長い圧縮の間にも挟まりうる。
+      // それで圧縮中を外すと、圧縮が続いているのに画面の圧縮中の表示（円・圧縮中の行）が消える（区切り compact_boundary と作業の終わりでも外れる）
       if (msg.subtype === "status") {
-        setCompacting(state, cb, msg.status === "compacting");
+        if (msg.status === "compacting") setCompacting(state, cb, true);
+        else if (msg.status === null) setCompacting(state, cb, false);
         if (msg.compact_result === "failed") cb.compactFailed?.(msg.compact_error ?? null);
         return undefined;
       }
