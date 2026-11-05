@@ -116,6 +116,8 @@ export const chatDraft = defineSettingFamily("kickoff:chat-draft:", text(), { id
  * カードの見出し・動きの行・ピルの一覧・裏の作業の一覧で共通。もう一方はカードのボタン・右クリックで選べる。設定の「表示」）
  */
 export const SUBAGENT_OPEN_IN = defineSetting("kickoff:subagent-open-in", choice(["inline", "side"], "inline"));
+/** チャットごとの、手で隠した ToDo の一覧（その一覧の印 todoSignature。一覧が書き換わったらまた出す） */
+export const todoHidden = defineSettingFamily("kickoff:todo-hidden:", text(), { ids: true });
 /** チャットごとの、アーカイブしたサブエージェント（呼び出し ID） */
 export const subagentsArchived = defineSettingFamily("kickoff:subagents-archived:", list(), { ids: true });
 /** 作業中・送信待ちがあるときに送った指示の扱い（queue = あとで（送信待ちに足す）/ tell = いま（止めずに伝える）） */

@@ -1,0 +1,66 @@
+/* ==== チャット欄の上の ToDo のピルと一覧（TodoChip） ==== */
+
+.todo-current {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.todo-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.todo-in_progress .todo-icon {
+  color: var(--accent);
+}
+
+.todo-completed .todo-icon {
+  color: var(--ok);
+}
+
+.todo-completed .todo-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* すべて完了した一覧のピルは控えめに（✓ と薄い文字。次の指示を送ると隠れる） */
+.todo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.todo-chip.finished {
+  color: var(--muted);
+}
+
+.todo-chip.finished .chip-icon {
+  color: var(--ok);
+}
+
+/* 一覧の下の「この一覧を隠す」 */
+.todo-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 10px 4px;
+  border-top: 1px solid var(--border);
+}
+
+.todo-actions .link-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}

@@ -75,7 +75,7 @@ export function ChatComposerArea({
       {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる */}
       <div className="composer-chips">
         <PromptsChip prompts={prompts.entries} />
-        <TodoChip events={events} />
+        <TodoChip chatId={chat.id} events={events} />
         <SubagentChip entries={subagents} chat={chat} busy={busy} models={options.models} />
         {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
         <span ref={onDock} className="composer-chips-dock" />

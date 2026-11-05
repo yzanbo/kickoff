@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { eventSequence } from "@shared/testing/factories";
-import { collectTodos } from "./todoList";
+import { collectTodoList, collectTodos, todoSignature, todoVisibility } from "./todoList";
 
 const ev = eventSequence();
 let tools = 0;
@@ -41,4 +41,22 @@ test("ToDo: TaskCreate で足し、TaskUpdate で状態を変え、deleted で�
 
 test("ToDo: 何もなければ空", () => {
   assert.deepEqual(collectTodos([use("Bash", { command: "ls" })]), []);
+});
+
+test("ToDo のピル: すべて完了なら控えめに、そのあと次の指示を送ったら隠す。手で隠した一覧は書き換わるまで隠す", () => {
+  const ev2 = eventSequence();
+  const working = [ev2("tool_use", { id: "w1", name: "TodoWrite", input: { todos: [{ content: "A", status: "completed" }, { content: "B", status: "in_progress" }] } })];
+  assert.equal(todoVisibility(collectTodoList(working), working, ""), "full");
+  const done = [...working, ev2("tool_use", { id: "w2", name: "TodoWrite", input: { todos: [{ content: "A", status: "completed" }, { content: "B", status: "completed" }] } })];
+  const doneList = collectTodoList(done);
+  assert.equal(doneList.changedAt, done[1].id);
+  assert.equal(todoVisibility(doneList, done, ""), "done");
+  // すべて完了したあとに自分が次の指示を送ったら、前の作業の一覧として隠す
+  const next = [...done, ev2("user", { text: "次をお願い", message_uuid: "u1" })];
+  assert.equal(todoVisibility(collectTodoList(next), next, ""), "hidden");
+  // 手で隠した一覧は隠したまま、書き換わったらまた出す
+  assert.equal(todoVisibility(collectTodoList(working), working, todoSignature(collectTodos(working))), "hidden");
+  assert.equal(todoVisibility(doneList, done, todoSignature(collectTodos(working))), "done");
+  // 一覧がなければ出さない
+  assert.equal(todoVisibility(collectTodoList([]), [], ""), "hidden");
 });
