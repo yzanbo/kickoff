@@ -8,7 +8,7 @@ import { panelKey } from "@/features/panel/surfaces";
 import { quoteCode, quoteComment } from "./quoteComment";
 
 /** 選んだ範囲（見せる文・ボタンを出す位置・コメントを添えた文の作り方） */
-interface Picked {
+export interface Picked {
   text: string;
   x: number;
   y: number;
@@ -37,7 +37,7 @@ function currentRange(): { selection: Selection; range: Range; element: Element 
 }
 
 /** 選んでいる文が、root の中の 1 つの AI の返答（.assistant）の中にあれば、その文と位置（返答の文を引用する） */
-function pickedInReply(root: HTMLElement | null): Picked | undefined {
+export function pickedInReply(root: Element | null): Picked | undefined {
   const at = currentRange();
   const message = at?.element?.closest(".assistant");
   if (!at || !root || !message || !root.contains(message)) return undefined;
@@ -50,7 +50,7 @@ function pickedInReply(root: HTMLElement | null): Picked | undefined {
  * 選んでいる範囲が、side（このチャットの右の欄）の「変更」の 1 つのファイルの差分の中にあれば、その行と位置（パスと行番号付きでコードを引用する）。
  * 変更後の行を選んでいれば変更後の行だけ、なければ変更前の行を使う（左右に並べた表では、行ごと選ばれて両側が入るため）
  */
-function pickedInDiff(side: Element | null): Picked | undefined {
+export function pickedInDiff(side: Element | null): Picked | undefined {
   const at = currentRange();
   const section = at?.element?.closest<HTMLElement>(".side-change[data-change-path]");
   if (!at || !side || !section || !side.contains(section)) return undefined;
@@ -74,6 +74,19 @@ function pickedInDiff(side: Element | null): Picked | undefined {
  */
 export function SelectionComment() {
   const { root, chatId, fillComposer } = useChatPane();
+  return (
+    <SelectionCommentBox
+      pick={() => pickedInReply(root.current) ?? pickedInDiff(document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`))}
+      onAdd={(text) => fillComposer(text, { append: true })}
+    />
+  );
+}
+
+/**
+ * 選んだ範囲の上の「コメント」とコメントの欄（pick が、いま選んでいる範囲がコメントできる所かを決める）。onAdd に、引用とコメントを添えた文を渡す。
+ * 別ウィンドウ（変更・サブエージェント）では、メインのウィンドウのチャット欄へ知らせる onAdd で使う
+ */
+export function SelectionCommentBox({ pick, onAdd }: { pick: () => Picked | undefined; onAdd: (text: string) => void }) {
   const [picked, setPicked] = useState<Picked>();
   const [writing, setWriting] = useState(false);
   const [comment, setComment] = useState("");
@@ -86,7 +99,7 @@ export function SelectionComment() {
   // 選び終えたとき（マウスを離した・Shift と矢印で選んだ）に見る。コメントを書いている間は選び直さない
   const check = (e: Event) => {
     if (writing || boxRef.current?.contains(e.target as Node)) return;
-    requestAnimationFrame(() => setPicked(pickedInReply(root.current) ?? pickedInDiff(document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`))));
+    requestAnimationFrame(() => setPicked(pick()));
   };
   useWindowEvent("mouseup", check);
   useWindowEvent("keyup", (e) => e.shiftKey && check(e));
@@ -95,7 +108,7 @@ export function SelectionComment() {
   useDismiss(boxRef, close, { enabled: Boolean(picked) });
   const add = () => {
     if (!picked) return;
-    fillComposer(picked.quote(comment), { append: true });
+    onAdd(picked.quote(comment));
     window.getSelection()?.removeAllRanges();
     close();
   };

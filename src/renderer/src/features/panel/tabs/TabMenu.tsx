@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Columns2, GitBranch, MessageSquare, Rows2, Undo2, X } from "lucide-react";
+import { AppWindow, ArrowRightLeft, Columns2, GitBranch, MessageSquare, Rows2, Undo2, X } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { alertDialog } from "@/ui/dialogs";
 import { ChatMenuItems } from "@/features/chat/ChatMenuItems";
@@ -7,6 +7,7 @@ import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { homePane, leavesOf, paneOfTab } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
+import { canPopOut, popOutTab } from "./popOutTab";
 
 /**
  * 右のパネルのタブの右クリックのメニュー: 右・下に分けて開く、ほかのペインへ移す（ペインが 2 つ以上のとき。ペインは並び順の番号で呼び、
@@ -72,6 +73,12 @@ export function TabMenu({
   );
   const closeItem = (
     <>
+      {/* チャットの画面の右の欄のサブエージェント・変更・ファイルは、別ウィンドウへ移せる（2 枚目の画面に置くなど） */}
+      {canPopOut(tab) && (
+        <MenuItem onSelect={() => popOutTab(panel, tabKey)}>
+          <AppWindow size={14} /> 別ウィンドウで開く
+        </MenuItem>
+      )}
       {canReturn && (
         <MenuItem onSelect={() => panel.returnToHome(tabKey)}>
           <Undo2 size={14} /> 一覧のペインに戻す

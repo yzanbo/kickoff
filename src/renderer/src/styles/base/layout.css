@@ -238,3 +238,28 @@
 :root[data-dismissable] * {
   -webkit-app-region: no-drag !important;
 }
+
+/*
+ * 別ウィンドウ（PopoutApp。チャットの画面の右の欄の変更・ファイル・サブエージェントを、メインのウィンドウの外に出したもの）:
+ * ウィンドウいっぱいに 1 つの中身を置く（右の欄のタブの中身と同じ部品を、そのまま縦に伸ばす）
+ */
+.popout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.popout-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.popout-body > * {
+  flex: 1;
+  min-height: 0;
+}
