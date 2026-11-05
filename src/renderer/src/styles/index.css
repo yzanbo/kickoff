@@ -40,7 +40,7 @@
 @import "./chat/queued-attachments.css";
 @import "./chat/composer-select.css";
 @import "./chat/subagents.css";
-@import "./chat/subagents-drawer.css";
+@import "./chat/subagent-card.css";
 @import "./chat/context-meter.css";
 @import "./chat/attachments.css";
 @import "./ui/image-viewer.css";

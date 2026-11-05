@@ -18,7 +18,6 @@ export type PanelTab =
   /** groupName: タブに出す作成先のグループ名（パネルの中で分かりしだい入れる）。draftText: 書いている途中の文（下書きのカードに出す）。seed: 初めに入力欄に入れるもの（送信待ちの指示から始めたとき） */
   | ({ key: string; kind: "new"; groupName?: string; draftText?: string; seed?: NewChatSeed } & NewChatTarget)
   /** チャットの中のサブエージェントの中身（toolUseId: Task / Agent の呼び出し ID。title: タブに出す名前） */
-  | { key: string; kind: "subagent"; chatId: number; projectId: number; toolUseId: string; title: string }
   /** url は開いたときのページ（webview の初めの src）、current はいま表示しているページ（外のブラウザで開くときに渡す） */
   | { key: string; kind: "browser"; url: string; title: string; current?: string }
   /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う */

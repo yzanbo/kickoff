@@ -4,14 +4,13 @@ import { makeChat } from "@shared/testing/factories";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelTab } from "./panelTypes";
-import { browserTab, chatTab, kindOfTab, newChatTab, specOf, subagentTab, tabChat, terminalTab, type ClusterResolver } from "./tabKinds";
+import { browserTab, chatTab, kindOfTab, newChatTab, specOf, tabChat, terminalTab, type ClusterResolver } from "./tabKinds";
 
 const head = (key: string): BucketHead => ({ key, kind: "group", label: key });
 const target = { cwd: "/repo/a", label: "a", projectId: 3 };
 
-test("タブのキー: チャット・サブエージェントは中身から決まり（同じものは 1 つのタブ）、新しいチャット・ブラウザ・ターミナルは開くたびに別のキー", () => {
+test("タブのキー: チャットは中身から決まり（同じものは 1 つのタブ）、新しいチャット・ブラウザ・ターミナルは開くたびに別のキー", () => {
   assert.equal(chatTab(makeChat(5)).key, chatTab(makeChat(5)).key);
-  assert.equal(subagentTab({ chatId: 5, projectId: 1, toolUseId: "t1", title: "調査" }).key, "subagent:5:t1");
   assert.notEqual(newChatTab({ projectId: 1 }).key, newChatTab({ projectId: 1 }).key);
   assert.notEqual(terminalTab(target).key, terminalTab(target).key);
   // ブラウザも、同じ瞬間に 2 つ開いても重ならない（以前は時刻だけで、続けて開くと同じキーになることがあった）
@@ -20,9 +19,9 @@ test("タブのキー: チャット・サブエージェントは中身から決
   assert.equal(terminalTab(target).projectId, 3);
 });
 
-test("表示の種類: 新しいチャット・サブエージェントはチャットに入る", () => {
-  const tabs: PanelTab[] = [chatTab(makeChat(1)), newChatTab({ projectId: 1 }), subagentTab({ chatId: 1, projectId: 1, toolUseId: "t", title: "x" }), browserTab(), terminalTab(target)];
-  assert.deepEqual(tabs.map(kindOfTab), ["chat", "chat", "chat", "browser", "terminal"]);
+test("表示の種類: 新しいチャットはチャットに入る", () => {
+  const tabs: PanelTab[] = [chatTab(makeChat(1)), newChatTab({ projectId: 1 }), browserTab(), terminalTab(target)];
+  assert.deepEqual(tabs.map(kindOfTab), ["chat", "chat", "browser", "terminal"]);
 });
 
 test("名前: チャットは一覧の最新の名前 → タブが覚えた名前 → 「チャット」、ブラウザはタイトル → ホスト → 「新しいタブ」", () => {
@@ -46,7 +45,7 @@ test("タブのチャット: チャットのタブだけ。一覧にあれば最
   assert.equal(tabChat(undefined, [listed]), undefined);
 });
 
-test("まとまり: チャット・サブエージェントはチャットの（分からなければ作成先の）、新しいチャットは作成先の、ターミナルはフォルダの、ブラウザはその他", () => {
+test("まとまり: チャットはチャットの（分からなければ作成先の）、新しいチャットは作成先の、ターミナルはフォルダの、ブラウザはその他", () => {
   const resolve: ClusterResolver = {
     chatById: (id) => (id === 1 ? makeChat(1) : undefined),
     ofChat: (c) => head(`chat:${c.id}`),
@@ -57,7 +56,6 @@ test("まとまり: チャット・サブエージェントはチャットの（
   assert.equal(of(chatTab(makeChat(1))), "chat:1");
   assert.equal(of(chatTab(makeChat(9))), "target:1:");
   assert.equal(of({ ...chatTab(makeChat(9)), chat: makeChat(9) }), "chat:9");
-  assert.equal(of(subagentTab({ chatId: 1, projectId: 1, toolUseId: "t", title: "x" })), "chat:1");
   assert.equal(of(newChatTab({ projectId: 2, group: 4 })), "target:2:4");
   assert.equal(of(terminalTab(target)), "folder:3:/repo/a");
   assert.equal(specOf(browserTab()).cluster(browserTab(), resolve), OTHER_CLUSTER);

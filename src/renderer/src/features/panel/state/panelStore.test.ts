@@ -105,10 +105,9 @@ test("開いているチャットを検索から（focus 付きで）開き直�
   assert.deepEqual(panelStateOf("kanban:13").tabs, [{ key: "chat:130", kind: "chat", id: 130, projectId: 13, title: "調べもの", chat: loaded, focus: 42 }]);
 });
 
-test("削除したチャットのタブは、画面に出ていない欄でも閉じる（そのチャットのサブエージェントのタブも）", () => {
+test("削除したチャットのタブは、画面に出ていない欄でも閉じる", () => {
   const actions = panelActions("kanban:6");
   actions.open({ id: 60, project_id: 6 });
-  actions.openSubagent({ chatId: 60, projectId: 6, toolUseId: "t1", title: "調査" });
   actions.open({ id: 61, project_id: 6 });
   publishServerEvent({ type: "chat_deleted", id: 60, project_id: 6 });
   assert.deepEqual(keys("kanban:6"), ["chat:61"]);

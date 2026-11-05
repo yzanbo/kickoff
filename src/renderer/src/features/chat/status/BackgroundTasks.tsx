@@ -41,7 +41,7 @@ export function BackgroundTasks({ chatId, background, agents = [] }: { chatId: n
           <li key={task.task_id} className="background-task">
             <Icon size={13} aria-hidden className="muted" />
             {entry && pane ? (
-              <button type="button" className="link-button background-task-name" title={`「${task.description}」の中身を開く`} onClick={() => pane.openSubagent(entry.key)}>
+              <button type="button" className="link-button background-task-name" title={`「${task.description}」のカードへ移る`} onClick={() => pane.revealSubagent(entry.key)}>
                 {task.description}
               </button>
             ) : (

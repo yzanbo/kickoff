@@ -1,0 +1,323 @@
+/* 裏で動いている作業の一覧（作業中の行の下。BackgroundTasks）。1 件ずつ止めるボタン付き */
+.background-tasks {
+  display: grid;
+  gap: 2px;
+  margin: -4px 0 8px;
+  padding: 0 0 0 22px;
+  list-style: none;
+}
+
+.background-task {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.background-task-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* サブエージェントは名前を押すと流れの中のカードへ移る */
+.link-button.background-task-name:hover {
+  text-decoration: underline;
+}
+
+/* チャットのパネルの中で重ねて出すもの（下へ戻るボタンなど）の基準 */
+.chat-panel {
+  position: relative;
+}
+
+/* ==== 流れの中のサブエージェントのカード（SubagentCard）。入れ子のカードは、開いた中身の中にさらにカードとして入る ==== */
+
+.subagent-card {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+}
+
+/* 実行中は、回る印と同じ Claude の色で枠を染める */
+.subagent-card.running {
+  border-color: color-mix(in srgb, #d97757 45%, var(--border));
+}
+
+/* 入れ子のカードは地の色を交互にして、どこまでが 1 つかを分かりやすくする */
+.subagent-card .subagent-card {
+  background: var(--bg);
+}
+
+.subagent-card .subagent-card .subagent-card {
+  background: var(--bg-elev);
+}
+
+.subagent-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 10px 2px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.subagent-card-head.static {
+  padding-bottom: 6px;
+  cursor: default;
+}
+
+.subagent-card-head:not(.static):hover .subagent-card-name {
+  text-decoration: underline;
+}
+
+.subagent-card.open > .subagent-card-head .tool-chevron {
+  transform: rotate(90deg);
+}
+
+.subagent-card-head .subagent-icon {
+  margin-top: 0;
+}
+
+.subagent-card-title {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.subagent-card-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.subagent-card-type,
+.subagent-card-path {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 深い入れ子の、外側からの道筋（「調査 › 洗い出し ›」）。狭ければ先に省く */
+.subagent-card-path {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 2 行目: いまの動き（実行中）かまとめ（終わったもの）と、操作。名前の位置にそろえる */
+.subagent-card-now {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 22px;
+  padding: 0 10px 6px 54px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.subagent-card-what {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.subagent-card-label {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.subagent-card-activity {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  text-overflow: ellipsis;
+}
+
+.subagent-card-count {
+  flex: none;
+}
+
+.subagent-card-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* カードの 2 行目は狭いので、再開などの添え書きはボタンの title に任せる */
+.subagent-card-actions .subagent-recovery-note {
+  display: none;
+}
+
+.subagent-tell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+/* 開いた中身: 左の縦線で字下げし、そのサブエージェントの流れ（依頼 → 発言・ツール・入れ子のカード → 報告）を並べる */
+.subagent-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 2px 10px 10px 17px;
+  padding: 6px 0 0 14px;
+  border-left: 2px solid color-mix(in srgb, #d97757 35%, var(--border));
+}
+
+/* カードの中の返答は、カードの縦線があるので自分の縦線を引かず、メインの返答より小さく出す */
+.subagent-card-body .assistant.sub {
+  padding: 2px 0;
+  border-left: none;
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* 深い入れ子は字下げをやめる（見出しに道筋を添える） */
+.subagent-card.flat > .subagent-card-body {
+  margin-left: 10px;
+  padding-left: 0;
+  border-left: none;
+}
+
+.subagent-label {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* 親からの依頼（初めは 1 行にたたむ） */
+.subagent-prompt > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.subagent-prompt > summary::-webkit-details-marker {
+  display: none;
+}
+
+.subagent-prompt > summary:hover {
+  color: var(--text);
+}
+
+.subagent-prompt[open] > summary .tool-chevron {
+  transform: rotate(90deg);
+}
+
+.subagent-prompt > summary .subagent-label {
+  flex: none;
+  margin: 0;
+}
+
+.subagent-prompt-first {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-prompt[open] .subagent-prompt-first {
+  display: none;
+}
+
+.subagent-prompt-body {
+  margin-top: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  background: var(--bg-hover);
+}
+
+.subagent-result {
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+}
+
+/* 裏で動かしたサブエージェントが終わった 1 行（押すとカードへ） */
+.subagent-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.subagent-end .subagent-icon {
+  margin-top: 0;
+}
+
+.subagent-end .event-time {
+  margin-left: 0;
+}
+
+/* 一覧から移ったツールのまとまりを、少しのあいだ強調する */
+.tool-group.flash {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+  transition: outline-color 1s;
+}
+
+/* チャット欄の宛先の札（カードの「伝える」。送るとメインのエージェントから SendMessage で渡す） */
+.relay-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.relay-banner-icon {
+  flex: none;
+  color: var(--accent-bright);
+}
+
+.relay-banner-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relay-banner-note {
+  flex: none;
+  margin-right: auto;
+  color: var(--muted);
+}
+
+.composer-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}

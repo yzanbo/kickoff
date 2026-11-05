@@ -1,5 +1,7 @@
 // チャットのタイムラインの組み立て（イベント → 表示の単位）
 import type { ChatEvent, ChatEventOf } from "@shared/types";
+import { isBackgroundLaunch } from "@shared/chat/backgroundTasks";
+import { isSubagentTool } from "@shared/chat/subagents";
 import { changesOf, type EditCall, type FileChange } from "@/features/chat/tools/turnFileChanges";
 
 export interface ToolCall {
@@ -13,7 +15,11 @@ export interface ToolCall {
  */
 export type TimelineItem =
   | { kind: "event"; key: string; event: ChatEvent; turnStart?: string; turnText?: string; turnChanges?: FileChange[] }
-  | { kind: "tools"; key: string; tools: ToolCall[] };
+  | { kind: "tools"; key: string; tools: ToolCall[] }
+  /** サブエージェントの起動（Agent / Task の呼び出し。ツールのまとまりに入れず、流れの中のカードにする） */
+  | { kind: "subagent"; key: string; call: ToolCall }
+  /** 裏で動かしたサブエージェントが終わった（その時刻の位置に 1 行。agentKey は一覧の行のキー = 起動した呼び出し ID） */
+  | { kind: "subagentEnd"; key: string; event: ChatEventOf<"subagent">; agentKey: string };
 
 /**
  * 作業の終わりごとの変えたファイル（作業の終わりの記録 → 一覧）。終わった作業の編集はもう変わらないので覚えておき、
@@ -28,25 +34,49 @@ const parentOf = (e: ChatEvent): string | undefined => ("parent" in e.data ? e.d
 const THINKING_MIN_MS = 2000;
 
 /**
- * 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる）。
- * parent を渡すとそのサブエージェントの中身だけ、渡さなければ親のエージェントの分だけを並べる
+ * 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる）。サブエージェントの起動は、まとまりに入れずカードの項目にする。
+ * scope を渡すとそのサブエージェントの中身だけ（行のキーと、再開した回の呼び出し ID。SubagentEntry の key と aliases）、
+ * 渡さなければメインのエージェントの分だけを並べる
  */
-export function groupEvents(events: ChatEvent[], parent?: string): TimelineItem[] {
+export function groupEvents(events: ChatEvent[], scope?: readonly string[]): TimelineItem[] {
   const items: TimelineItem[] = [];
   const byId = new Map<string, ToolCall>();
+  const inScope = (parent: string | undefined) => (scope === undefined ? parent === undefined : parent !== undefined && scope.includes(parent));
+  // サブエージェントの起動: どの流れで起動したか（その流れに終わりの 1 行を出す）・裏で動かしたか・作業 ID → 起動した呼び出し ID
+  const launchedHere = new Set<string>();
+  const backgrounded = new Set<string>();
+  const agentOfTask = new Map<string, string>();
   let turnStart: string | undefined;
   let turnTexts: string[] = [];
   // その作業の編集のツール（サブエージェントのものも含める。親の流れのときだけ数える）
   let turnEdits = new Map<string, EditCall>();
   for (const e of events) {
-    if (parent === undefined) {
+    if (scope === undefined) {
       if (e.type === "tool_use" && EDIT_TOOLS.has(e.data.name)) turnEdits.set(e.data.id, { use: e });
       else if (e.type === "tool_result" && turnEdits.has(e.data.tool_use_id)) turnEdits.get(e.data.tool_use_id)!.result = e;
     }
-    if (parentOf(e) !== parent) continue;
+    // サブエージェントの知らせ（parent を持たない）: 裏で動かしたものが終わったら、起動した流れに 1 行
+    if (e.type === "subagent") {
+      const d = e.data;
+      const agentKey = agentOfTask.get(d.task_id) ?? d.tool_use_id;
+      if (agentKey === undefined) continue;
+      if (d.tool_use_id === agentKey) agentOfTask.set(d.task_id, agentKey);
+      // 再開した回（呼び出し ID が SendMessage のもの）は、いつも裏で動く
+      else if (d.tool_use_id !== undefined) backgrounded.add(agentKey);
+      if (d.status !== "running" && backgrounded.has(agentKey) && launchedHere.has(agentKey)) items.push({ kind: "subagentEnd", key: `x${e.id}`, event: e, agentKey });
+      continue;
+    }
+    // 裏で動かしたサブエージェント（結果が「起動した」という知らせ）。どの流れの記録でも数える
+    if (e.type === "tool_result" && isBackgroundLaunch(e.data.content)) backgrounded.add(e.data.tool_use_id);
+    if (!inScope(parentOf(e))) continue;
     if (e.type === "tool_use") {
       const call: ToolCall = { use: e };
       byId.set(e.data.id, call);
+      if (isSubagentTool(e.data.name)) {
+        launchedHere.add(e.data.id);
+        items.push({ kind: "subagent", key: `s${e.id}`, call });
+        continue;
+      }
       const last = items[items.length - 1];
       if (last?.kind === "tools") last.tools.push(call);
       else items.push({ kind: "tools", key: `t${e.id}`, tools: [call] });
@@ -57,8 +87,8 @@ export function groupEvents(events: ChatEvent[], parent?: string): TimelineItem[
       // 中身があるか、しばらく考えたものだけ出す（短い思考でツールのまとまりを細切れにしない）
       const { text, duration_ms } = e.data;
       if (text.trim() || (duration_ms ?? 0) >= THINKING_MIN_MS) items.push({ kind: "event", key: `e${e.id}`, event: e });
-    } else if (e.type === "init" || e.type === "approval" || e.type === "subagent") {
-      // 表示しない（サブエージェントはチャット欄の下の一覧で見せる）
+    } else if (e.type === "init" || e.type === "approval") {
+      // 表示しない
     } else if (e.type === "result") {
       const turnText = turnTexts.join("\n\n");
       let turnChanges = turnChangesCache.get(e);

@@ -1,5 +1,5 @@
 import { Archive, ArchiveRestore } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { confirmDialog } from "@/ui/dialogs";
@@ -16,17 +16,19 @@ import { IconButton } from "@/ui/IconButton";
 import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
+import { flattenTree, subagentTree } from "./subagentTree";
 
 /**
- * チャット欄の下の「サブエージェント N 件」。押すと一覧が開き、行を押すとそのサブエージェントの中身をパネルのタブで開く
+ * チャット欄の上の「サブエージェント N 件」（流れの中のカードの目次）。押すと一覧が開き（入れ子は親のすぐ下に字下げして並べる）、
+ * 行を押すと、流れの中のそのサブエージェントのカードへ移って開く（入れ子なら外側のカードも開く）
  */
 export function SubagentChip({ entries, chat, busy, models }: { entries: SubagentEntry[]; chat: Chat; busy: boolean; models: ModelOption[] }) {
   const popover = usePopover();
   const { open, setOpen } = popover;
   const pane = useChatPane();
-  /** 中身を開いて、一覧を閉じる（key = 一覧の行のキー） */
+  /** カードへ移って開き、一覧を閉じる（key = 一覧の行のキー） */
   const openRow = (key: string) => {
-    pane.openSubagent(key);
+    pane.revealSubagent(key);
     setOpen(false);
   };
   // 最後の動きの表示を進める（開いている間だけ）
@@ -37,8 +39,9 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   const archived = useMemo(() => new Set(archivedKeys), [archivedKeys]);
 
   if (entries.length === 0) return null;
-  // 新しいものを上に
+  // 新しいものを上に（入れ子は親のすぐ下に、起動した順で）
   const visible = entries.filter((s) => !archived.has(s.key)).reverse();
+  const rows = flattenTree(subagentTree(entries.filter((s) => !archived.has(s.key))));
   const hidden = entries.filter((s) => archived.has(s.key)).reverse();
   const running = visible.filter((s) => s.status === "running").length;
   // 実行中なのに長く動きがないもの（ピルにも出して、開かなくても気づけるようにする）
@@ -67,7 +70,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
     saveArchived(archivedKeys.filter((k) => k !== key));
   };
 
-  const renderRow = (s: SubagentEntry, isArchived: boolean) => {
+  const renderRow = (s: SubagentEntry, isArchived: boolean, depth = 0) => {
     const meta = [
       s.subagentType ?? "general-purpose",
       modelDisplayName(models, s.model ?? chat.model),
@@ -80,6 +83,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
         role="button"
         tabIndex={0}
         className={`subagent-row status-${s.status} ${isArchived ? "archived" : ""}`}
+        style={depth > 0 ? ({ "--depth": Math.min(depth, 4) } as CSSProperties) : undefined}
         onClick={() => openRow(s.key)}
         onKeyDown={(e) => e.key === "Enter" && openRow(s.key)}
       >
@@ -159,7 +163,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
         {finished.length > 0 && <span className="muted">（{finished.length} 件）</span>}
       </button>
       {visible.length === 0 && <p className="muted small subagent-empty">表示中のサブエージェントはありません</p>}
-      {visible.map((s) => renderRow(s, false))}
+      {rows.map((r) => renderRow(r.entry, false, r.depth))}
       {hidden.length > 0 && (
         <>
           <button type="button" className="subagent-archived-toggle" onClick={() => setShowArchived(!showArchived)}>

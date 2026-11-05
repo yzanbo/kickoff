@@ -5,7 +5,7 @@ import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/la
 import { equalizeSplit, setSplitSizes } from "@/features/panel/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
-import { browserTab, chatTab, kindOfTab, newChatTab, newTabKey, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
+import { browserTab, chatTab, kindOfTab, newChatTab, newTabKey, terminalTab } from "@/features/panel/tabs/tabKinds";
 import { readKinds, showKind } from "./panelKinds";
 import type { PanelAction, TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf } from "./panelStore";
@@ -54,7 +54,6 @@ export function panelActions(key: string) {
       openTab(chatTab(chat, focus), focus ? { kind: "chat", fields: { focus } } : undefined),
     openNew,
     /** サブエージェントの中身をタブで開く（同じサブエージェントのタブがあればそこへ） */
-    openSubagent: (target: Parameters<typeof subagentTab>[0]) => openTab(subagentTab(target)),
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => openTab(browserTab(url)),
     openTerminal,
