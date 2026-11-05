@@ -146,6 +146,11 @@ interface TabKindSpec<T extends PanelTab> {
   /** タブのアイコン（チャットのタブは、状態の印に置き換わる） */
   icon: LucideIcon;
   iconClass?: string;
+  /**
+   * 名前の前に置く種類の札（チャットの画面の右の欄に並ぶメモ・サブエージェント・子チャットを、タブを見ただけで見分ける）。札があるタブは、
+   * 上の 1px の線と表示中の枠も同じ形で、色だけ種類ごとに変える（CSS の panel/side-panel-tab-kinds.css）
+   */
+  badge?: string;
   /** アイコンの代わりに名前の前に置く部品（サブエージェントのタブの状態のアイコン。チャットのタブの状態の印は PaneTab が出す） */
   Lead?: ComponentType<{ tab: T }>;
   /** タブに出す名前（chat はタブのチャット（サイドバーの一覧にあれば最新のもの）） */
@@ -201,6 +206,7 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     shows: "subagent",
     icon: Bot,
     Lead: SubagentTabLead,
+    badge: "サブ",
     // サブエージェントの中で起動したもの（入れ子）は「↳」を付け、乗せると外側からの道筋（「調査 › 洗い出し」）
     label: (t) => (t.path ? `↳ ${t.title}` : t.title),
     hint: (t) => t.path ?? t.title,
@@ -243,6 +249,7 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
   memo: {
     shows: "file",
     icon: StickyNote,
+    badge: "メモ",
     label: (t) => memoTitle(t.path),
     hint: (t) => `メモ: ${t.path}`,
     projectOf: (t) => t.projectId,
@@ -255,7 +262,9 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     shows: "subagent",
     icon: MessagesSquare,
     Lead: ChildTabLead,
-    label: (t) => `↳ ${chatTitle(t.title)}`,
+    // 子チャットであることは札で見せる（前は名前の頭の「↳」だけで、サブエージェントの入れ子と見分けにくかった）
+    badge: "子",
+    label: (t) => chatTitle(t.title),
     hint: (t) => `子チャット: ${chatTitle(t.title)}`,
     projectOf: (t) => t.projectId,
     // 子チャットを消したら閉じる（親を消すと子孫も消える）

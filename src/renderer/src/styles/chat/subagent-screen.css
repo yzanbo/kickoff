@@ -31,29 +31,11 @@
   background: color-mix(in srgb, var(--agent-color) 9%, var(--bg));
 }
 
-/* 右の欄のタブの名前の前の状態のアイコンと、タブの上の端の、そのサブエージェントの色の線（SubagentTabLead。線はタブいっぱいに引く） */
+/* 右の欄のサブエージェントのタブの名前の前の、状態のアイコン（タブの種類の色の線・札は panel/side-panel-tab-kinds.css） */
 .subagent-tab-lead {
-  --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
-
   display: inline-grid;
   flex: none;
   place-items: center;
-}
-
-:root[data-theme="light"] .subagent-tab-lead {
-  --agent-color: hsl(var(--agent-hue, 25) 55% 42%);
-}
-
-.subagent-tab-lead::before {
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  left: -1px;
-  /* タブの枠と同じ 1px（色だけで見分ける。3px では上が太く見えた） */
-  height: 1px;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  background: var(--agent-color);
-  content: "";
 }
 
 /* 階層（メイン › 調査 › 洗い出し）。押せる階層は控えめなリンク、いまのサブエージェントは押せない文字 */
