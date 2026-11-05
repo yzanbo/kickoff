@@ -2,6 +2,7 @@ import { ArrowUpLeft, Send } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat, ChatEvent } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
+import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { handBackText } from "./childChats";
 import { handBackToParent, revealInParent } from "./openChild";
 
@@ -44,6 +45,8 @@ export function ChildChatBar({
         </>
       )}
       {extra}
+      {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
+      <PopOutTabButton />
     </div>
   );
 }

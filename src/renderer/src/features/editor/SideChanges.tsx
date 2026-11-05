@@ -16,6 +16,7 @@ import { CHANGE_LABELS, DiffView, useFileDiff } from "./DiffView";
 import { FileIcon } from "./FileIcon";
 import { changedFiles, diffFingerprint, pruneViewed, viewedStateOf } from "./sideFile";
 import { useGitStatus } from "./useGitStatus";
+import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 
 /** これより多いときは、初めはファイルを畳んでおく（差分を一度に読み込みすぎない。移る先のファイルだけ開く） */
 const OPEN_ALL_MAX = 20;
@@ -134,6 +135,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
           ]}
         />
         <RefreshButton label="取り直す" busy={git.refreshing} onClick={git.refresh} />
+        <PopOutTabButton />
       </header>
       <ErrorText message={git.error} className="side-changes-error" />
       <div ref={scroller} className="side-changes-body">

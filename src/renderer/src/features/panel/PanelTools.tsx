@@ -1,8 +1,6 @@
-import { AppWindow, FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
+import { FoldHorizontal, Maximize2, Minimize2, UnfoldHorizontal } from "lucide-react";
 import type { HTMLAttributes, RefObject } from "react";
 import { IconButton } from "@/ui/IconButton";
-import { focusedPane } from "./layout/paneTree";
-import { canPopOut, popOutTab } from "./tabs/popOutTab";
 import { SURFACES } from "./surfaces";
 import { PanelViewButton, type PanelViewMenu } from "./tabs/PanelViewMenu";
 import type { PanelController } from "./usePanel";
@@ -31,9 +29,6 @@ export function PanelTools({ panel, frame, view }: { panel: PanelController; fra
     <IconButton type="button" icon={closeButton.icon} size={15} className="panel-control" label={closeButton.label} keys={closeButton.keys} onClick={panel.close} />
   );
   const state = frame?.maximize;
-  // ピントのあるペインで表示しているタブ（別ウィンドウで開けるものなら、ボタンを出す）
-  const shown = panel.shownTabOf(focusedPane(panel.layout));
-  const poppable = shown !== null && canPopOut(panel.tabs.find((t) => t.key === shown));
   return (
     <div className="panel-controls">
       {closeButton?.at === "start" && close}
@@ -64,16 +59,6 @@ export function PanelTools({ panel, frame, view }: { panel: PanelController; fra
           label={state.on ? "元の高さに戻す" : "フッターを最大化"}
           aria-pressed={state.on}
           onClick={state.toggle}
-        />
-      )}
-      {poppable && (
-        <IconButton
-          type="button"
-          icon={AppWindow}
-          size={15}
-          className="panel-control"
-          label="表示しているタブを別ウィンドウで開く"
-          onClick={() => popOutTab(panel, shown)}
         />
       )}
       <PanelViewButton view={view} />

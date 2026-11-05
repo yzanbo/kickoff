@@ -8,6 +8,7 @@ import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
 import { reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
+import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { memoTitle, parentOf } from "./memoPaths";
 import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
 
@@ -87,7 +88,7 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
           <IconButton icon={Save} label="保存" keys="⌘S" disabled={(doc.state === "saved" && !titleChanged) || doc.state === "saving"} onClick={saveNow} />
         )}
         <Segmented
-          className="segmented"
+          className="view-toggle"
           label="メモの表示"
           value={view}
           onChange={setView}
@@ -97,6 +98,8 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
           ]}
         />
         {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(`${dir}/${path}`)} />}
+        {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
+        <PopOutTabButton />
       </header>
       {doc.state === "conflict" && (
         <div className="file-changed-notice" role="status">

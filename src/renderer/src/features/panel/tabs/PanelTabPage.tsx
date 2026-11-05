@@ -9,6 +9,8 @@ import { SideChildChat } from "@/features/chat/children/SideChildChat";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { SideFileView } from "@/features/editor/SideFileView";
 import { memoTab } from "./tabKinds";
+import { canPopOut, popOutTab } from "./popOutTab";
+import { TabPageContext } from "./tabPageContext";
 import { NewChatPane } from "./NewChatPane";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
@@ -122,9 +124,13 @@ export function PanelTabPage({
 }) {
   const focus = () => panel.focusPane(paneId);
   const Page = pageOf(tab);
+  // 中身の見出しの右端の「別ウィンドウで開く」（PopOutTabButton）に渡す
+  const actions = { popOut: canPopOut(tab) ? () => popOutTab(panel, tab.key) : null };
   return (
     <div className={cx("panel-tab-page", split && focused && "pane-focused")} hidden={!active} style={style} onPointerDownCapture={focus} onFocusCapture={focus}>
-      <Page tab={tab} panel={panel} visible={panelOpen && active} focused={focused} />
+      <TabPageContext.Provider value={actions}>
+        <Page tab={tab} panel={panel} visible={panelOpen && active} focused={focused} />
+      </TabPageContext.Provider>
     </div>
   );
 }
