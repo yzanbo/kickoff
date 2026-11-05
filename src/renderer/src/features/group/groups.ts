@@ -1,4 +1,5 @@
 import { useState, type DragEvent } from "react";
+import { useWindowEvent } from "@/hooks/useWindowEvent";
 import type { Chat, ChatGroup } from "@shared/types";
 import { confirmDialog } from "@/ui/dialogs";
 import type { DraftRef } from "@/features/panel/state/panelDrafts";
@@ -62,6 +63,45 @@ export function reorderIds(ids: number[], moved: number, target: number): number
 function droppedChatId(e: DragEvent): number | undefined {
   const id = Number(e.dataTransfer.getData(CHAT_DRAG_TYPE));
   return Number.isInteger(id) && id > 0 ? id : undefined;
+}
+
+/** いまチャットをドラッグしているか（ドラッグの間だけ出す落とし先に使う。アーカイブ済みのまとまりがないときの「アーカイブ済み」など） */
+export function useChatDragging(): boolean {
+  const [dragging, setDragging] = useState(false);
+  // 行がドラッグのデータを入れたあと（React の onDragStart のあと）に見るので、window の bubble で受ける
+  useWindowEvent("dragstart", (e) => e.dataTransfer?.types.includes(CHAT_DRAG_TYPE) && setDragging(true));
+  useWindowEvent("dragend", () => setDragging(false), dragging, true);
+  useWindowEvent("drop", () => setDragging(false), dragging, true);
+  return dragging;
+}
+
+/**
+ * チャットを落とせる所（サイドバーの「アーカイブ済み」など、グループ以外のドロップ先）。チャットを重ねている間は over が true になり、
+ * 落とすと onDrop にチャットの ID を渡す（下書き・グループ・プロジェクトのドラッグは受けない）。props をドロップ先の要素に渡す
+ */
+export function useChatDropTarget(onDrop: (chatId: number) => void) {
+  const [over, setOver] = useState(false);
+  return {
+    over,
+    props: {
+      onDragOver: (e: DragEvent) => {
+        if (!isChatDrag(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setOver(true);
+      },
+      onDragLeave: (e: DragEvent) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+      },
+      onDrop: (e: DragEvent) => {
+        setOver(false);
+        const id = droppedChatId(e);
+        if (id === undefined) return;
+        e.preventDefault();
+        onDrop(id);
+      },
+    },
+  };
 }
 
 /**
