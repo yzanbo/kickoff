@@ -60,6 +60,37 @@
 }
 
 /*
+ * 見出しの行を隠したとき（レイアウトの開閉の「見出し」。<html data-page-title-hidden>）: 名前・フォルダ・状態ごとの数の行を隠し、
+ * その分ボード・チャットを画面のいちばん上まで詰める（レイアウトの開閉は右側の画面の上に浮かせないので、右端を空けなくてよい）。
+ * タブの列（横並びのとき）は残し、ほかに何もなければ見出しごと隠す
+ */
+html[data-page-title-hidden] .project-title-row {
+  display: none;
+}
+
+html[data-page-title-hidden] .project-header:not(:has(.project-tabs-row)) {
+  display: none;
+}
+
+/*
+ * サイドバーを閉じているときは、いちばん上に来た行が、左上の信号機ボタンとレイアウトの開閉に重ならないようにする（帯は残さない）:
+ * ボードのツールバーは左端をずらし、縦に並べたタブの列と、エディタ・履歴の中身は、そのボタンの高さの分だけ下げる
+ */
+html[data-page-title-hidden] .sidebar-collapsed .page-board:not(:has(.project-tabs-row)) .board-header {
+  padding-left: calc(var(--layout-toggles-end) - var(--page-x));
+}
+
+/* 左にタブを縦に並べているときは、ツールバーがタブの列（幅 36px。project-tabs.css）とすき間の右から始まるので、その分を差し引く */
+html[data-page-title-hidden] .sidebar-collapsed .page-board:has(.project-side-tabs) .board-header {
+  padding-left: calc(var(--layout-toggles-end) - var(--page-x) - 36px - var(--gutter));
+}
+
+html[data-page-title-hidden] .sidebar-collapsed .page-board:not(:has(.project-tabs-row)) .project-side-tabs,
+html[data-page-title-hidden] .sidebar-collapsed .page-board:not(:has(.project-tabs-row)) .project-content:not(:has(> .board)) {
+  padding-top: 36px;
+}
+
+/*
  * タブの列と、右端のチャット欄の開閉。名前の行との間は少し空ける（開いているタブの地の色が、名前のカードにくっつかないように。
  * 高さは取りすぎない）。下の線はこの行に引く
  */
