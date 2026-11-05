@@ -1,0 +1,164 @@
+/* ==== メモの AI の整理（見出しの「AI で直す」のポップオーバー・本文の上の様子と案の差分） ==== */
+
+.memo-ai-popover {
+  display: grid;
+  gap: 8px;
+  width: 340px;
+}
+
+.memo-ai-scope {
+  margin: 0;
+}
+
+.memo-ai-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.memo-ai-input {
+  field-sizing: content;
+  max-height: 160px;
+  font-size: 13px;
+}
+
+.memo-ai-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 本文の上の 1 行（頼んでいる間・失敗・案の見出しと取り込む / やめる） */
+.memo-ai-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--gutter) 6px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--accent-fg);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.memo-ai-bar.error {
+  color: var(--ng);
+  background: color-mix(in srgb, var(--ng) 8%, transparent);
+}
+
+.memo-ai-bar-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memo-ai-spin {
+  flex: none;
+  animation: memo-ai-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes memo-ai-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* 案: 見出しの行と、行ごとの差分（本文の上の半分まで。長ければその中でスクロール） */
+.memo-ai-proposal {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  max-height: 50%;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.memo-ai-diff {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 0;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.memo-ai-line {
+  display: flex;
+  padding: 0 var(--gutter) 0 8px;
+}
+
+.memo-ai-mark {
+  flex: none;
+  width: 16px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.memo-ai-line.add {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+}
+
+.memo-ai-line.del {
+  color: var(--muted);
+  text-decoration: line-through;
+  background: color-mix(in srgb, var(--ng) 12%, transparent);
+}
+
+/* メモのタブの「AI でフォルダを整理」のダイアログ（整理案のチェックの一覧。多ければ中でスクロール） */
+.dialog.app-dialog.memo-plan-dialog {
+  width: min(640px, calc(100vw - 48px));
+}
+
+.memo-plan-list {
+  display: grid;
+  gap: 2px;
+  max-height: 50vh;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.memo-plan-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: start;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.memo-plan-row:hover {
+  background: var(--bg-hover);
+}
+
+.memo-plan-row input {
+  margin-top: 3px;
+}
+
+.memo-plan-paths {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  min-width: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.memo-plan-from {
+  color: var(--muted);
+}
+
+.memo-plan-to {
+  font-weight: 600;
+}
+
+.memo-plan-reason {
+  grid-column: 2;
+}

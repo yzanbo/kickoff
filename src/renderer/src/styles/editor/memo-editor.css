@@ -1,7 +1,9 @@
 /* ==== メモの編集（CodeMirror。features/memo/MarkdownEditor）: Markdown 表示（ライブプレビュー）とそのまま表示 ==== */
 
+/* 本文の上に AI の案（memo-ai.css）を出すときは、残りの高さを使う */
 .md-editor {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .md-editor .cm-editor {

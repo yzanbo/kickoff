@@ -1,6 +1,7 @@
 import { safeMemoName, uniqueMemoName } from "@shared/memo/names";
 import { MEMO_EXTENSION } from "@shared/types";
 import { api } from "@/api";
+import { errorMessage } from "@shared/errors";
 import { memosStore } from "@/stores/memos";
 import { confirmDialog, promptDialog, reportFailure } from "@/ui/dialogs";
 import { baseName, joinMemoPath, memoTitle, parentOf, remapPath, renamedPath } from "./memoPaths";
@@ -87,7 +88,28 @@ export function useMemoActions(
     }, reportFailure("ゴミ箱に入れられませんでした"));
   };
 
-  return { createMemo, createFolder, rename, moveInto, trash };
+  /**
+   * いくつかのメモをまとめて動かす（AI のフォルダの整理案）。1 件ずつ順に動かし、失敗したものは飛ばして最後にまとめて返す。
+   * 開いているメモの書きかけは、ほかの操作と同じく動かす前に聞く（やめたものは動かさない）
+   */
+  const moveMany = async (moves: readonly { from: string; to: string }[]) => {
+    const failed: string[] = [];
+    let moved = 0;
+    for (const m of moves) {
+      if (!(await beforeChange(m.from))) continue;
+      try {
+        await api.moveMemo(projectId, m.from, m.to);
+        onMoved(m.from, m.to);
+        moved++;
+      } catch (e) {
+        failed.push(`${m.from}: ${errorMessage(e)}`);
+      }
+    }
+    refresh();
+    return { moved, failed };
+  };
+
+  return { createMemo, createFolder, rename, moveInto, moveMany, trash };
 }
 
 /** 動かしたあとに、覚えているパスの組を付け替える（開いているフォルダ） */

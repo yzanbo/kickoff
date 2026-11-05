@@ -1,7 +1,8 @@
-import { ChevronsDownUp, FilePlus, FolderOpen, FolderPlus, StickyNote } from "lucide-react";
+import { ChevronsDownUp, FilePlus, FolderOpen, FolderPlus, Sparkles, StickyNote } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { navigate } from "@/app/router";
 import { cx } from "@/lib/cx";
+import { readSetting } from "@/lib/storage";
 import { CHANGES_LIST_WIDTH, memoOpenFolders, memoSelected } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
@@ -18,6 +19,7 @@ import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf, r
 import { isMemoDrag, MEMO_DRAG_TYPE, MemoTree } from "./MemoTree";
 import { confirmLeaveMemo } from "./memoGuards";
 import { MemoView } from "./MemoView";
+import { MemoPlanDialog } from "./MemoPlanDialog";
 import { remapPaths, useMemoActions } from "./useMemoActions";
 
 /**
@@ -57,22 +59,33 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openMemo]);
 
-  /** 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える。一覧の操作と、題名での名前の変更で共通） */
+  /**
+   * 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える。一覧の操作と、題名での名前の変更・AI の整理案のまとめての移動で共通）。
+   * まとめて動かすと続けて呼ばれるので、描いたときの値ではなく、いま覚えている値から付け替える（前の付け替えを上書きしないように）
+   */
   const moved = (from: string, to: string) => {
-    if (selected) setSelected(remapPath(selected, from, to));
-    setOpenList([...new Set([...remapPaths(openList, from, to), ...ancestorsOf(to)])]);
+    const current = readSetting(memoSelected(projectId));
+    if (current) setSelected(remapPath(current, from, to));
+    setOpenList([...new Set([...remapPaths(readSetting(memoOpenFolders(projectId)), from, to), ...ancestorsOf(to)])]);
   };
 
   const actions = useMemoActions(projectId, {
     onCreated: (path, isDir) => (isDir ? openFolders([...ancestorsOf(path), path]) : void select(path)),
     // 開いているメモ（とその入ったフォルダ）の名前を変える・動かす・ゴミ箱に入れる前も聞く
-    beforeChange: (path) => (selected && isUnder(selected, path) ? confirmLeaveMemo(projectId, selected) : Promise.resolve(true)),
+    beforeChange: (path) => {
+      const current = readSetting(memoSelected(projectId));
+      return current && isUnder(current, path) ? confirmLeaveMemo(projectId, current) : Promise.resolve(true);
+    },
     onMoved: (from, to) => moved(from, to),
     onTrashed: (path) => {
       if (selected && isUnder(selected, path)) setSelected("");
       setOpenList(openList.filter((p) => !isUnder(p, path)));
     },
   });
+
+  // AI でフォルダを整理するダイアログ
+  const [planning, setPlanning] = useState(false);
+  const hasMemos = Boolean(entries?.some((e) => !e.dir));
 
   // 開いていたメモがもうない（Finder で消した・名前を変えた）なら、右は案内に戻す
   const selectedExists = Boolean(selected && entries?.some((e) => e.path === selected && !e.dir));
@@ -108,6 +121,7 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
           <span className="spacer" />
           <IconButton icon={FilePlus} label="新しいメモ" onClick={() => void actions.createMemo(folderForNew(null))} />
           <IconButton icon={FolderPlus} label="新しいフォルダ" onClick={() => void actions.createFolder(folderForNew(null))} />
+          <IconButton icon={Sparkles} label="AI でフォルダを整理（案を見て、選んだものだけ動かす）" disabled={!hasMemos} onClick={() => setPlanning(true)} />
           <RefreshButton label="メモの一覧を取り直す" busy={list.loading} onClick={() => memosStore.invalidate(projectId)} />
           <IconButton icon={ChevronsDownUp} label="フォルダをすべて閉じる" disabled={openList.length === 0} onClick={() => setOpenList([])} />
         </header>
@@ -198,6 +212,7 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
           )}
         </PopupMenu>
       )}
+      {planning && <MemoPlanDialog projectId={projectId} onApply={actions.moveMany} onClose={() => setPlanning(false)} />}
     </div>
   );
 }

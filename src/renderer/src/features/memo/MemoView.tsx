@@ -1,5 +1,5 @@
 import { CodeXml, Eye, FolderSearch, Save } from "lucide-react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
 import { MEMO_VIEW } from "@/lib/storageKeys";
@@ -9,7 +9,11 @@ import { IconButton } from "@/ui/IconButton";
 import { reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
+import type { MemoEditorHandle } from "./MarkdownEditor";
+import { MemoAiButton } from "./MemoAiButton";
+import { MemoAiProposal } from "./MemoAiProposal";
 import { memoTitle, parentOf } from "./memoPaths";
+import { useMemoAi } from "./useMemoAi";
 import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
 
 // 編集の部品（CodeMirror）は大きいので、メモを開いたときに初めて読み込む
@@ -33,6 +37,9 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  */
 export function MemoView({ projectId, path, dir, onRenamed }: { projectId: number; path: string; dir: string; onRenamed: (path: string) => void }) {
   const doc = useMemoDocument(projectId, path);
+  // 編集の部品を外から動かす口（AI の案を取り込む）と、AI の整理
+  const editor = useRef<MemoEditorHandle | null>(null);
+  const ai = useMemoAi(projectId, path, editor);
   const savedTitle = memoTitle(path);
   // 書いている題名（別のメモへ移った・名前を変えたら、そのメモの題名に入れ直す）
   const [title, setTitle] = useState(savedTitle);
@@ -98,6 +105,7 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
             { value: "edit", label: "そのまま表示（Markdown の記号もそのまま見せる）", icon: CodeXml, iconOnly: true },
           ]}
         />
+        {doc.initial !== null && !unreadable && <MemoAiButton ai={ai} />}
         {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(`${dir}/${path}`)} />}
         {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
         <PopOutTabButton />
@@ -123,7 +131,8 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
           <p className="muted small memo-message">{doc.file?.binary ? "文字のファイルではないので、ここでは開けません。Finder から開いてください。" : "大きすぎるので、ここでは開けません。"}</p>
         ) : (
           <Suspense fallback={<p className="muted small memo-message">編集の準備中…</p>}>
-            <MarkdownEditor key={`${path}:${doc.revision}`} initialValue={doc.initial} live={view === "preview"} onChange={doc.change} onSave={saveNow} />
+            <MemoAiProposal ai={ai} />
+            <MarkdownEditor key={`${path}:${doc.revision}`} initialValue={doc.initial} live={view === "preview"} onChange={doc.change} onSave={saveNow} handleRef={editor} />
           </Suspense>
         )}
       </div>
