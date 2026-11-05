@@ -13,7 +13,8 @@ import { CommandPalette } from "@/features/palette/CommandPalette";
 import { LayoutToggles } from "./LayoutToggles";
 import { SearchPanel } from "@/features/palette/SearchPanel";
 import { NewProjectDialog } from "@/features/project/new/NewProjectDialog";
-import { OPEN_NEW_PROJECT_EVENT, type NewProjectRequest } from "@/features/project/new/openNewProject";
+import { OPEN_NEW_PROJECT_EVENT, OPEN_NO_PROJECTS_GUIDE_EVENT, type NewProjectRequest } from "@/features/project/new/openNewProject";
+import { NoProjectsGuide } from "@/features/project/NoProjectsGuide";
 import { ProjectChat } from "@/features/panel/projectChat/ProjectChat";
 import { useProjectChat } from "@/features/panel/projectChat/useProjectChat";
 import { SettingsDialog, type SettingsSection } from "@/features/settings/SettingsDialog";
@@ -63,6 +64,8 @@ export function App() {
   const sidebar = useSidebar();
   // 新しいプロジェクトのダイアログ（null = 閉じている。名前の初めの値・作ったあとの処理を持てる）
   const [creating, setCreating] = useState<NewProjectRequest | null>(null);
+  // プロジェクトがないのに新しいチャットを始めようとしたときの案内（チャットはプロジェクトの中で始めることを説明して、作るよう誘う）
+  const [noProjectsGuide, setNoProjectsGuide] = useState(false);
   const [palette, setPalette] = useState(false);
   // ⌘⇧A: 作業中・回答待ち・未読のチャットの一覧
   const [activeChats, setActiveChats] = useState(false);
@@ -85,7 +88,8 @@ export function App() {
     const current = loadCurrentProject();
     const target = projectId ?? (missingProject(current) ? undefined : current) ?? projects[0]?.id;
     if (target) openNewChat(target);
-    else setCreating({});
+    // いきなり新しいプロジェクトのダイアログを開かず、チャットはプロジェクトの中で始めることを説明してから作るよう誘う
+    else setNoProjectsGuide(true);
   };
 
   useAppShortcuts({
@@ -100,6 +104,7 @@ export function App() {
   useWindowEvent(OPEN_CONTENT_SEARCH_EVENT, () => setSearching(true));
   // 部品から設定をその項目で開く（チャット欄のマイクから「音声入力」など。開いていれば、その項目に切り替える）
   useWindowEvent(OPEN_NEW_PROJECT_EVENT, (e) => setCreating((e as CustomEvent<NewProjectRequest>).detail));
+  useWindowEvent(OPEN_NO_PROJECTS_GUIDE_EVENT, () => setNoProjectsGuide(true));
   useWindowEvent(OPEN_SETTINGS_EVENT, (e) => setSettings((e as CustomEvent<SettingsSection>).detail));
 
   return (
@@ -148,6 +153,7 @@ export function App() {
             }}
           />
         )}
+        {noProjectsGuide && <NoProjectsGuide onClose={() => setNoProjectsGuide(false)} />}
         {settings && <SettingsDialog key={settings} initial={settings} onClose={() => setSettings(null)} />}
         {/* 性能の記録の様子（メニューの「ヘルプ」・設定の「診断」から始まる） */}
         <DiagnosticsIndicator />

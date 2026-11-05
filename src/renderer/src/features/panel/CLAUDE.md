@@ -28,7 +28,7 @@
 ## 状態（`state/`）
 
 - 1 つの欄の状態（`PanelState`: タブ・分割の配置・開いているか・サイドバーとの連動の覚え）は店（`panelStore.ts`）が欄・画面ごとに覚え、変えるのはすべて純粋関数の `panelReducer`（閉じたタブの後始末・保存は店）。部品は `usePanelState` で読み、`dispatchPanel` で変える（画面に出ていない欄も、サイドバーの下書きなどから同じ方法で変えられる）。操作は `panelActions(key)`（部品の外からも使え、`usePanel` が束ねる）。タブやプロジェクトを切り替えて戻っても元どおり。覚えるのはアプリを閉じるまで（チャット欄の開閉だけはプロジェクトごとに `projectChatOpen`）。
-- `usePanel` が返すもの: `open(chat, focus?)` / `openNew(target, seed?)` / `openBrowser` / `openTerminal`（自分で開くタブはピントのあるペインに足し、すでにあればそのペインで表示。欄も開く。隠している種類のタブなら、その種類を出す）・`closeTab(key, { dismiss })`・`isShowingTab` / `isShowing(chatId)`（どれかのペインで表示中か）・`shownTabOf(pane)`・`chatOf(tab)`（タブのチャット。サイドバーの一覧にあれば最新、なければタブの中のチャットから届いたもの）・ペインの操作（`splitPane` / `moveTab` / `closePane` / `returnToHome` / `focusPane` / `resizeSplit` / `equalizeSplit`）など。
+- `usePanel` が返すもの: `open(chat, focus?)` / `openNew(target, seed?)` / `startNewChat`（欄が決めた作成先 `newChat` で新しいチャットを始める。作成先がない = プロジェクトがないときは、チャットはプロジェクトの中で始めることの案内 `openNoProjectsGuide`。`features/project/CLAUDE.md`）/ `openBrowser` / `openTerminal`（自分で開くタブはピントのあるペインに足し、すでにあればそのペインで表示。欄も開く。隠している種類のタブなら、その種類を出す）・`closeTab(key, { dismiss })`・`isShowingTab` / `isShowing(chatId)`（どれかのペインで表示中か）・`shownTabOf(pane)`・`chatOf(tab)`（タブのチャット。サイドバーの一覧にあれば最新、なければタブの中のチャットから届いたもの）・ペインの操作（`splitPane` / `moveTab` / `closePane` / `returnToHome` / `focusPane` / `resizeSplit` / `equalizeSplit`）など。
 - 配置を変える操作は、いまのタブにそろえた配置から変える（自動で足したタブがまだ配置に入っていないまま変えると、そのタブを移す・分ける操作が何もしなかった）。
 - タブの中身は `PanelTabPage`（種類ごとの中身は `PAGES`）。表示していないタブも hidden で残し、入力中の文・スクロール位置を保つ。チャットのタブはサイドバーと連動して自動で増えるので、中身は初めて表示したときに作る（`TabKindSpec.lazy` と `Panel` の `mountedTabs`）。
 

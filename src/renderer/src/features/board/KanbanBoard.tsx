@@ -102,8 +102,9 @@ export function KanbanBoard({ projectId, title, focus }: Props) {
         />
       }
       primary={
-        // 画面は移らず、右側のパネルで新しいチャットを始める（全プロジェクトのボードでは、最近のプロジェクトで。パネルでバッジから選び直せる）
-        <button className="btn btn-sm" onClick={panel.startNewChat} disabled={allProjects && projects.length === 0}>
+        // 画面は移らず、右側のパネルで新しいチャットを始める（全プロジェクトのボードでは、最近のプロジェクトで。パネルでバッジから選び直せる。
+        // 始められるプロジェクトがなければ、押せなくせずに、チャットはプロジェクトの中で始めることを案内する）
+        <button className="btn btn-sm" onClick={panel.startNewChat}>
           <Plus size={13} /> <span className="btn-label">新規</span>
         </button>
       }

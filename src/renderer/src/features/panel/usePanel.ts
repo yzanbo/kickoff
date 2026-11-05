@@ -10,6 +10,7 @@ import { useLinkedTabs } from "@/features/panel/state/useLinkedChats";
 import { panelKey, SURFACES, type PanelScope, type PanelSurface } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { chatKey, kindOfTab, tabChat } from "@/features/panel/tabs/tabKinds";
+import { openNoProjectsGuide } from "@/features/project/new/openNewProject";
 import { isComposing } from "@/lib/keys";
 
 export type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
@@ -92,9 +93,10 @@ export function usePanel({ surface, scope, holdEsc = false, newChat, terminals, 
     projects,
     /** 開けるターミナルの場所（Mac のアプリでなければ空） */
     terminals: window.kickoff?.terminal ? terminals : NO_TERMINALS,
-    /** 「新しいチャット」（欄が決めた作成先で始める。決まっていなければ何もしない） */
+    /** 「新しいチャット」（欄が決めた作成先で始める。作成先がない = 出せるプロジェクトがなければ、チャットはプロジェクトの中で始めることを案内する） */
     startNewChat: () => {
       if (newChat) actions.openNew(newChat);
+      else openNoProjectsGuide();
     },
     /** 新しいチャットを送ったら、そのタブをできたチャットのタブに置き換える（同じペインの同じ位置のまま） */
     replaceWithChat: (tabKey: string, chat: Chat) => {
