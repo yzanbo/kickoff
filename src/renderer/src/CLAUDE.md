@@ -21,7 +21,7 @@
 - import は、同じフォルダなら `./`、それ以外は `@/…`、プロセスをまたぐ型と純粋な関数は `@shared/…`（型は `@shared/types`、`errorMessage` は `@shared/errors`）。`../` で上のフォルダをたどらない。
 - 複数のファイルになる機能は `features/<領域>/` にまとめ、大きければサブフォルダに分ける（`chat/queue/` など）。どの領域にも属さない汎用のものだけを ui / hooks / lib に置く。
 - 大きな部品は「状態と操作の hook（`useXxx`）」と「描く部品」に分ける（`usePanel` ＋ `Panel` / `PaneTabBar` / `PanelTabPage`、`useSidebar` ＋ `Sidebar`、`useProjectNav` ＋ `ProjectStack` / `ProjectSlides`、`useWorkspaceRows` ＋ `WorkspacePage`、`useChatView` ＋ `ChatView`、`useProjectData` ＋ `ProjectPage`）。要素に渡す props の束も hook から返してよい（`sidebar.layout`、`useBoardPanel` の `body` / `frame`）。
-- 画面（ルート）を増やす前に、ダイアログや右のパネルで足りないか考える（設定は左下の歯車・⌘, から開くダイアログ）。ルートは `app/router.ts` の `Route`。チャット・新しいチャットは単体の画面を持たず、プロジェクトのボードの右のパネルで開く（`openChat` / `openNewChat`）。
+- 画面（ルート）を増やす前に、ダイアログや右のパネルで足りないか考える（設定は左下の歯車・⌘, から開くダイアログ）。ルートは `app/router.ts` の `Route`。チャット・新しいチャットは単体の画面を持たず、プロジェクトのボードの右のパネルで開く（`openChat` / `openNewChat`。全プロジェクトの画面からも、そのプロジェクトへ移って開く）。
 
 ## データ（`stores/` と全体の context）
 

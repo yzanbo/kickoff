@@ -29,7 +29,7 @@ interface Props {
   draftText?: string;
   /** いま見えているか（見えていないタブに文を戻すときは、入力欄にピントを移さない） */
   visible?: boolean;
-  /** 全プロジェクトのボードでは、どのプロジェクトで始めるかを選べるようにする */
+  /** 全プロジェクトの画面のフッターでは、どのプロジェクトで始めるかを選べるようにする */
   projects?: Project[];
   onProjectChange?: (projectId: number) => void;
   /** 作業場所を選び直したとき（いまあるワークツリーならそのフォルダ、本体・新しいワークツリーなら undefined。タブのまとまりに使う） */
@@ -110,7 +110,7 @@ export function NewChatPane({
         <div className="chat-sub muted small">
           {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
           {projects && projects.length > 1 && onProjectChange ? (
-            // 全プロジェクトのボードでは、バッジのまま選び直せる
+            // 全プロジェクトの画面のフッターでは、バッジのまま選び直せる
             <ProjectChip id={projectId} name={projectName(projectId)} className="project-chip-select">
               <select className="pill-select" aria-label="プロジェクト" value={projectId} onChange={(e) => onProjectChange(Number(e.target.value))}>
                 {projects.map((p) => (

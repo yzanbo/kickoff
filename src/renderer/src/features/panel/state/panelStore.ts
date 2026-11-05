@@ -4,7 +4,7 @@ import { readSetting, writeSetting } from "@/lib/storage";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import { kindOfTab, specOf } from "@/features/panel/tabs/tabKinds";
 import type { PanelTab } from "@/features/panel/tabs/panelTypes";
-import { readSavedDrafts, writeDrafts } from "./draftPersistence";
+import { moveAllProjectsBoardDrafts, readSavedDrafts, writeDrafts } from "./draftPersistence";
 import { readKinds } from "./panelKinds";
 import { emptyPanel, panelReducer, type PanelAction, type PanelRules, type PanelState } from "./panelState";
 
@@ -31,8 +31,11 @@ function initialState(key: string, tabs: readonly PanelTab[] = []): PanelState {
   return emptyPanel(tabs, setting ? readSetting(setting) : false);
 }
 
-// 前回残した下書きのタブを、閉じた欄のタブとして戻す
-for (const [key, tabs] of readSavedDrafts()) states.set(key, initialState(key, tabs));
+// 前回残した下書きのタブを、閉じた欄のタブとして戻す（全プロジェクトのボードのパネルに残っていたものは、作成先のプロジェクトのボードのパネルへ移して残し直す）
+const savedDrafts = readSavedDrafts();
+const restoredDrafts = moveAllProjectsBoardDrafts(savedDrafts);
+for (const [key, tabs] of restoredDrafts) states.set(key, initialState(key, tabs));
+if (restoredDrafts !== savedDrafts) writeDrafts(restoredDrafts);
 
 /** 欄のいまの状態（まだなければ初めの状態を作って覚える） */
 export function panelStateOf(key: string): PanelState {

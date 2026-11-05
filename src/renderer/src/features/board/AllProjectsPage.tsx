@@ -1,7 +1,7 @@
 import { Tags } from "lucide-react";
 import { ProjectSwitcher } from "@/features/project/page/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
-import { KanbanBoard } from "./KanbanBoard";
+import { AllProjectsKanban } from "./KanbanBoard";
 import { tagLabel } from "@/features/project/projectTagFilter";
 import { useVisibleProjects } from "@/features/project/useVisibleProjects";
 import { TagFilterNotice } from "@/features/project/TagFilterNotice";
@@ -11,7 +11,10 @@ import { StateStats } from "@/features/project/page/StateStats";
 import { NoProjectsWelcome } from "@/features/project/ProjectsEmpty";
 import { EmptyState } from "@/ui/EmptyState";
 
-/** 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる） */
+/**
+ * 全プロジェクト: 全プロジェクトのチャットのカンバン（見出しはプロジェクトの画面と同じ形。名前から各プロジェクトへ切り替えられる）。
+ * ここではチャットを開かず、カードを押すとそのプロジェクトへ移って開く（AllProjectsKanban）
+ */
 export function AllProjectsPage() {
   const providers = useProviders();
   const github = useGitHubStatus();
@@ -60,7 +63,7 @@ export function AllProjectsPage() {
       ) : shown.length === 0 ? (
         <NoProjectsWelcome archived={archived.length} />
       ) : (
-        <KanbanBoard title="カンバン" />
+        <AllProjectsKanban title="カンバン" />
       )}
     </div>
   );

@@ -39,7 +39,8 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
   const { view, split, menu, rename, over, dropProps } = board;
   // カンバンと同じく、カードを押すと右側から出てくるパネルで開き、URL もそのチャットにする（下書きもカンバンと同じく、このボードのパネルとチャット欄のもの）。
   // サイドバー・検索から開いたチャット、サイドバーのグループの＋から来た新しいチャットも右側に開く（同じ＋を押し直したときも）
-  const { panel, drafts, frame, body, open } = useBoardPanel({ projectId, holdEsc: menu.isOpen, focus, tab: "groups" });
+  const rightPanel = useBoardPanel({ projectId, holdEsc: menu.isOpen, focus, tab: "groups" });
+  const { panel, drafts, open } = rightPanel;
 
   // サイドバーで選んだグループが見えるところまでスクロールする
   useEffect(() => {
@@ -98,9 +99,7 @@ export function GroupBoard({ projectId, groups, focus, highlight }: Props) {
       className="group-board"
       header={header}
       error={board.error}
-      panel={panel}
-      frame={frame}
-      body={body}
+      rightPanel={rightPanel}
       menu={menu}
       onOpenChat={open}
       rename={rename}

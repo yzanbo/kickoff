@@ -54,12 +54,12 @@ export function StateColumn({
 
 /**
  * いちばん左の「下書き」の列（まだ送っていない新しいチャット。AI はまだ何もしていない）。
- * 新しいチャットは見出しの「新規」から始めるので、列に＋は置かない
+ * 新しいチャットは見出しの「新規」から始めるので、列に＋は置かない。showProject: 下書きにプロジェクトのバッジを付ける（全プロジェクトのボード）
  */
-export function DraftColumn({ drafts, list = false }: { drafts: readonly PanelDraft[]; list?: boolean }) {
+export function DraftColumn({ drafts, list = false, showProject = false }: { drafts: readonly PanelDraft[]; list?: boolean; showProject?: boolean }) {
   const body = (
     <>
-      <DraftCards drafts={drafts} />
+      <DraftCards drafts={drafts} showProject={showProject} />
       {drafts.length === 0 && <p className="column-empty">なし</p>}
     </>
   );
@@ -73,12 +73,24 @@ export function DraftColumn({ drafts, list = false }: { drafts: readonly PanelDr
 
 /**
  * ボードの列: いちばん左に下書き、続けて状態の列（columns は bucketChats の状態のまとまり。ボードと段の中で共通）。
- * アーカイブ済みのまとまりの開閉は、foldPlace（ボード）と列のキーで覚える
+ * アーカイブ済みのまとまりの開閉は、foldPlace（ボード）と列のキーで覚える。showDraftProject: 下書きにプロジェクトのバッジを付ける（全プロジェクトのボード）
  */
-export function StateColumns({ columns, drafts, foldPlace, render }: { columns: readonly ChatBucket<PanelDraft>[]; drafts: readonly PanelDraft[]; foldPlace: string; render: RenderChat }) {
+export function StateColumns({
+  columns,
+  drafts,
+  showDraftProject,
+  foldPlace,
+  render,
+}: {
+  columns: readonly ChatBucket<PanelDraft>[];
+  drafts: readonly PanelDraft[];
+  showDraftProject?: boolean;
+  foldPlace: string;
+  render: RenderChat;
+}) {
   return (
     <>
-      <DraftColumn drafts={drafts} />
+      <DraftColumn drafts={drafts} showProject={showDraftProject} />
       {columns.map((c) => (
         <StateColumn key={c.key} column={c} foldPlace={foldPlace} render={render} />
       ))}
@@ -93,19 +105,22 @@ export function StateColumns({ columns, drafts, foldPlace, render }: { columns: 
 export function ListSections({
   columns,
   drafts,
+  showDraftProject,
   foldPlace,
   archivedKey,
   render,
 }: {
   columns: readonly ChatBucket<PanelDraft>[];
   drafts: readonly PanelDraft[];
+  /** 下書きにプロジェクトのバッジを付ける（全プロジェクトのボード） */
+  showDraftProject?: boolean;
   foldPlace: string;
   archivedKey: string;
   render: RenderChat;
 }) {
   return (
     <>
-      <DraftColumn drafts={drafts} list />
+      <DraftColumn drafts={drafts} list showProject={showDraftProject} />
       {columns.map((c) => (
         <StateColumn key={c.key} column={c} render={render} list foldArchived={false} />
       ))}

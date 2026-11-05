@@ -115,7 +115,10 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
 
 const SURFACE_NAMES = Object.keys(SURFACES) as PanelSurface[];
 
-/** 欄の状態を覚える名前（ボード = kanban:<プロジェクト | all>（列を状態で分けても・グループで分けても同じパネル）/ チャット欄 = side:<プロジェクト> / フッター = bottom:<プロジェクト | all>） */
+/**
+ * 欄の状態を覚える名前（ボード = kanban:<プロジェクト>（列を状態で分けても・グループで分けても同じパネル。全プロジェクトのボードはパネルを持たず、
+ * 以前の kanban:all に残っていた下書きは起動したときに作成先のプロジェクトへ移す）/ チャット欄 = side:<プロジェクト> / フッター = bottom:<プロジェクト | all>）
+ */
 export const panelKey = (surface: PanelSurface, scope: PanelScope) => `${SURFACES[surface].memoryPrefix}:${scope}`;
 
 /** 覚える名前から、どの欄・どの画面のものか（知らない形なら undefined） */

@@ -3,7 +3,7 @@
 上に新しいチャット・全プロジェクト・自分待ち・検索、その下にプロジェクトごとのチャット一覧、左下に設定。グループの操作の共通部分（`features/group/`）もここに書く。まとめ方・数え方・開閉の仕組みは `features/chatList/CLAUDE.md`、プロジェクトの印・メニュー・並び・タグは `features/project/CLAUDE.md`。
 
 - 開閉（⌘B）と幅（右端のドラッグ、ダブルクリックで既定に戻す。200〜480px）は `useSidebar` ＋ `Sidebar`。閉じているときの「開く」ボタン `SidebarOpenButton` は、Electron のドラッグ領域より優先されるよう画面のいちばん後ろに置く。
-- プロジェクトの並びの状態と操作は `useProjectNav`（並べ方・並び順・しまったものを出すか・自分待ちだけ・検索・いま選んでいるプロジェクト（`saveCurrentProject`。⌘N の新しいチャットの作成先にも使う）と切り替え・ショートカット・スワイプ・すべて閉じる / 開く）、表示は `ProjectNav`（縦並び `ProjectStack` / スライド `ProjectSlides`）。1 プロジェクトのページは `WorkspacePage`（中身の変わらないページは描き直さない）、その行の絞り込みと分け方は `useWorkspaceRows`。
+- プロジェクトの並びの状態と操作は `useProjectNav`（並べ方・並び順・しまったものを出すか・自分待ちだけ・検索・いま選んでいるプロジェクト（`saveCurrentProject`。⌘N・全プロジェクトのボードの「新規」の作成先と、全プロジェクトの画面のチャット欄の持ち主にも使う。読むのは `currentProject.ts` の `useFallbackProject`（もうなければ先頭））と切り替え・ショートカット・スワイプ・すべて閉じる / 開く）、表示は `ProjectNav`（縦並び `ProjectStack` / スライド `ProjectSlides`）。1 プロジェクトのページは `WorkspacePage`（中身の変わらないページは描き直さない）、その行の絞り込みと分け方は `useWorkspaceRows`。
 
 ## 一覧の上の見出し（`ProjectListHead`）
 
