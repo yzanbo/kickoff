@@ -103,7 +103,7 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
         <span className={cx("subagent-icon", running && "spinning")}>
           <ClaudeMark size={15} />
         </span>
-        <span className="subagent-screen-kind">サブエージェント</span>
+        <span className="subagent-kind">サブエージェント</span>
         <span className="subagent-screen-name">{entry.description}</span>
         <span className="subagent-card-type">{entry.subagentType ?? "general-purpose"}</span>
         {showsSubagentStatus(entry) && (

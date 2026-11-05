@@ -31,8 +31,11 @@
   background: color-mix(in srgb, var(--agent-color) 9%, var(--bg));
 }
 
-/* 名前の前の「サブエージェント」の札（そのサブエージェントの色） */
-.subagent-screen-kind {
+/*
+ * 名前の前の「サブエージェント」の札（そのサブエージェントの色。右の欄の画面の見出しと、流れの中のカードの見出しで同じ）。
+ * 狭い見出しでは名前を残すために隠す（カード・見出しの幅で決める @container）
+ */
+.subagent-kind {
   flex: none;
   padding: 0 6px;
   border-radius: 999px;
@@ -244,4 +247,16 @@
 /* ボタンに乗せている間も、行は乗せたときの地のまま */
 .activity-head:hover > .activity-line {
   background: var(--bg-hover);
+}
+
+/* 札を隠すかを、カード・画面の見出しの幅で決める（狭いペインや狭いチャット欄では名前を優先する） */
+.subagent-card,
+.subagent-screen-head {
+  container: subagent-head / inline-size;
+}
+
+@container subagent-head (max-width: 440px) {
+  .subagent-kind {
+    display: none;
+  }
 }
