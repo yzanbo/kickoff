@@ -136,17 +136,17 @@ function Rails({ rail, width, hues }: { rail: RailRow; width: number; hues: Read
       {rail.segments.map((s) => (
         <span
           key={s.col}
-          className={cx("rail", s.agent === null && "main", s.from === "node" && "from-node", s.to === "node" && "to-node")}
+          className={cx("activity-rail", s.agent === null && "main", s.from === "node" && "from-node", s.to === "node" && "to-node")}
           style={{ left: x(s.col), ...agentHueStyle(hueOf(hues, s.agent)) }}
         />
       ))}
       {rail.branch && (
         <span
-          className="rail-branch"
+          className="activity-rail-branch"
           style={{ left: x(rail.branch.from), width: x(rail.branch.to) - x(rail.branch.from) + 1, ...agentHueStyle(hues.get(rail.branch.agent)) }}
         />
       )}
-      <span className="rail-node" style={{ left: x(rail.col) }} />
+      <span className="activity-rail-node" style={{ left: x(rail.col) }} />
     </span>
   );
 }

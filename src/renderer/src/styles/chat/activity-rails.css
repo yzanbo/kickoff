@@ -35,7 +35,7 @@
   --rail-color: color-mix(in srgb, var(--muted) 55%, transparent);
 }
 
-.rail {
+.activity-rail {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -44,21 +44,21 @@
   background: var(--rail-color);
 }
 
-.rail.from-node {
+.activity-rail.from-node {
   top: var(--node-y);
 }
 
-.rail.to-node {
+.activity-rail.to-node {
   bottom: auto;
   height: var(--node-y);
 }
 
-.rail.from-node.to-node {
+.activity-rail.from-node.to-node {
   height: 0;
 }
 
 /* 起動の行: 親の節から右へ出て、子の線へ曲がって入る */
-.rail-branch {
+.activity-rail-branch {
   position: absolute;
   top: calc(var(--node-y) - 1px);
   height: 10px;
@@ -67,7 +67,7 @@
   border-top-right-radius: 8px;
 }
 
-.rail-node {
+.activity-rail-node {
   position: absolute;
   top: calc(var(--node-y) - 4px);
   width: 8px;
@@ -77,33 +77,33 @@
   background: var(--agent-color);
 }
 
-.activity-row.main .rail-node {
+.activity-row.main .activity-rail-node {
   background: var(--muted);
 }
 
 /* 自分の指示は白抜きの丸、起動は少し大きく、終わりはひし形、失敗は赤、実行中は明滅 */
-.activity-row.kind-prompt .rail-node {
+.activity-row.kind-prompt .activity-rail-node {
   border: 2px solid var(--text);
   background: var(--bg);
 }
 
-.activity-row.kind-launch .rail-node {
+.activity-row.kind-launch .activity-rail-node {
   top: calc(var(--node-y) - 5px);
   width: 10px;
   height: 10px;
   margin-left: -5px;
 }
 
-.activity-row.kind-end .rail-node {
+.activity-row.kind-end .activity-rail-node {
   border-radius: 2px;
   transform: rotate(45deg);
 }
 
-.activity-row.failed .rail-node {
+.activity-row.failed .activity-rail-node {
   background: var(--ng);
 }
 
-.activity-row.running .rail-node {
+.activity-row.running .activity-rail-node {
   animation: activity-pulse 1.4s ease-in-out infinite;
 }
 
