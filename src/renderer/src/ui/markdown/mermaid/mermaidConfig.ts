@@ -37,6 +37,11 @@ export function mixColor(a: string, b: string, weight: number): string {
   return `#${pa.map((v, i) => Math.round(v * weight + pb[i] * (1 - weight)).toString(16).padStart(2, "0")).join("")}`;
 }
 
+/** 図の地の色（コードの欄と同じ色） */
+export function diagramBackground(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue("--bg-sidebar").trim();
+}
+
 /**
  * 図を描く設定。Mermaid の素の配色（base）に、アプリの色（CSS の変数）を当ててなじませる。
  * 文字は HTML ではなく SVG で描き（htmlLabels: false）、図の中のリンクやスクリプトは動かさない（securityLevel: strict）
@@ -46,8 +51,7 @@ export function mermaidConfig(theme: AppliedTheme): MermaidConfig {
   const v = (name: string) => style.getPropertyValue(name).trim();
   const dark = theme === "dark";
   const text = v("--text");
-  // 図の地は、コードの欄と同じ色
-  const bg = v("--bg-sidebar");
+  const bg = diagramBackground();
   // 図形の塗り（ライトでは地と同じ色になるので、白にする）
   const node = dark ? v("--bg-hover") : v("--bg");
   const border = mixColor(text, node, 0.3);

@@ -1,7 +1,7 @@
 import type { Mermaid } from "mermaid";
 import type { AppliedTheme } from "@/lib/appliedTheme";
 import { fixLabelContrast } from "./fixLabelContrast";
-import { mermaidConfig } from "./mermaidConfig";
+import { diagramBackground, mermaidConfig } from "./mermaidConfig";
 
 /** 描いた図（SVG）を覚えておく数（同じ図を開き直したとき・タブを切り替えたときに、描き直さない） */
 const CACHE_LIMIT = 50;
@@ -31,8 +31,8 @@ export function renderMermaid(code: string, theme: AppliedTheme): Promise<string
     const mermaid = await loadMermaid();
     mermaid.initialize(mermaidConfig(theme));
     const rendered = await mermaid.render(`mermaid-${++count}`, code);
-    // 塗りだけを指定した箱・サブグラフの文字が、テーマの文字色と重なって読めなくならないようにする
-    const svg = fixLabelContrast(rendered.svg);
+    // 図を書く側が指定した塗り・文字色と、テーマの色が重なって、文字が読めなくならないようにする
+    const svg = fixLabelContrast(rendered.svg, diagramBackground());
     cache.set(key, svg);
     // 古いものから捨てる
     for (const old of cache.keys()) {
