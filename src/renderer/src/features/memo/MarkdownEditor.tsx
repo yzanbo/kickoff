@@ -59,6 +59,13 @@ interface Props {
  * （livePreviewExtension。ファイルの中身は書いたとおり）。そのまま表示は記号もそのまま。どちらも書けて、⌘S で保存する。
  * 行を折り返し、Enter でリスト・引用を続ける（lang-markdown の決まり）。大きいので、メモを開いたときに初めて読み込む（default export）
  */
+/** 選んだ範囲の色（ピントがあってもなくても同じ。drawSelection の層） */
+const selectionTheme = EditorView.theme({
+  "& .cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+    background: "color-mix(in srgb, var(--accent) 28%, transparent)",
+  },
+});
+
 export default function MarkdownEditor({ initialValue, live, onChange, onSave, handleRef, onAskAi }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
@@ -75,8 +82,10 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave, h
         doc: initialValue,
         extensions: [
           history(),
-          // 選んだ範囲を、ピントが外れても（AI の頼みの欄を書いている間も）見えるように描く
+          // 選んだ範囲を、ピントが外れても（AI の頼みの欄を書いている間も）見えるように描く。色は CodeMirror の既定（明るい紫）より
+          // 詳細度の高い既定の規則に CSS では勝てないので、テーマで上書きする（アクセントの薄い色。文字が読めるように）
           drawSelection(),
+          selectionTheme,
           keymap.of([
             {
               key: "Mod-s",

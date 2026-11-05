@@ -33,11 +33,6 @@
   border-left-color: var(--text);
 }
 
-.md-editor .cm-selectionBackground,
-.md-editor .cm-editor.cm-focused .cm-selectionBackground {
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
-}
-
 /* そのまま表示: 記号も同じ幅の文字で */
 .md-editor.source .cm-scroller {
   font-family: var(--mono);
