@@ -48,11 +48,6 @@
   outline: none;
 }
 
-/* バッジのまま、どのプロジェクトで始めるかを選び直す（全プロジェクトの画面のフッターの新しいチャット） */
-.project-chip-select {
-  max-width: none;
-}
-
 .new-chat-hero {
   display: grid;
   justify-items: center;

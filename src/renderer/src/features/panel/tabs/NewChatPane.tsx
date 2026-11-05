@@ -1,6 +1,6 @@
 import { Folder, SquarePen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Project, Chat } from "@shared/types";
+import type { Chat } from "@shared/types";
 import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
 import { Composer } from "@/features/chat/composer/Composer";
@@ -30,9 +30,6 @@ interface Props {
   draftText?: string;
   /** いま見えているか（見えていないタブに文を戻すときは、入力欄にピントを移さない） */
   visible?: boolean;
-  /** 全プロジェクトの画面のフッターでは、どのプロジェクトで始めるかを選べるようにする */
-  projects?: Project[];
-  onProjectChange?: (projectId: number) => void;
   /** 作業場所を選び直したとき（いまあるワークツリーならそのフォルダ、本体・新しいワークツリーなら undefined。タブのまとまりに使う） */
   onWorktreeChange?: (worktree: string | undefined) => void;
   /** 作成先のグループを変えたとき・グループ名が分かったとき（タブの表示に使う） */
@@ -51,14 +48,12 @@ export function NewChatPane({
   seed,
   draftText,
   visible = true,
-  projects,
-  onProjectChange,
   onGroupChange,
   onWorktreeChange,
   onCreated,
   onDraftChange,
 }: Props) {
-  const { projectName, projectsById, loaded: projectsLoaded } = useProjects();
+  const { projectsById, loaded: projectsLoaded } = useProjects();
   const options = useChatOptions(undefined, projectId);
   const project = projectsById.get(projectId);
   const chats = useChats({ projectId });
@@ -110,20 +105,7 @@ export function NewChatPane({
         <div className="chat-title-row">
         <div className="chat-sub muted small">
           {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
-          {projects && projects.length > 1 && onProjectChange ? (
-            // 全プロジェクトの画面のフッターでは、バッジのまま選び直せる
-            <ProjectChip id={projectId} name={projectName(projectId)} className="project-chip-select">
-              <select className="pill-select" aria-label="プロジェクト" value={projectId} onChange={(e) => onProjectChange(Number(e.target.value))}>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </ProjectChip>
-          ) : (
-            project && <ProjectChip id={project.id} name={project.name} linked />
-          )}
+          {project && <ProjectChip id={project.id} name={project.name} linked />}
           <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />
           {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
           {groups.length > 0 && onGroupChange && (
