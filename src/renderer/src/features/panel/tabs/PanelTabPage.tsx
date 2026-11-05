@@ -5,6 +5,8 @@ import { ChatPane } from "@/features/chat/pane/ChatPane";
 import { chatPaneSlot } from "@/features/chat/pane/chatPaneContext";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { SideChanges } from "@/features/editor/SideChanges";
+import { SideChildChat } from "@/features/chat/children/SideChildChat";
+import { SideMemo } from "@/features/memo/SideMemo";
 import { SideFileView } from "@/features/editor/SideFileView";
 import { NewChatPane } from "./NewChatPane";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
@@ -63,6 +65,16 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   // チャットの画面の右の欄だけに開く。作業場所のコミットしていない変更（押したファイルの位置へ移る）と、ファイルの中身
   changes: ({ tab: t }) => <SideChanges projectId={t.projectId} worktree={t.worktree} focus={t.focus} focusAt={t.focusAt} />,
   file: ({ tab: t }) => <SideFileView projectId={t.projectId} worktree={t.worktree} path={t.path} line={t.line} />,
+  // チャットの画面の右の欄だけに開く。プロジェクトのメモ（自動で保存）と、子チャット（孫・ひ孫も、いちばん上の親の右の欄）
+  memo: ({ tab: t }) => <SideMemo projectId={t.projectId} path={t.path} />,
+  child: ({ tab: t, panel, visible }) => (
+    <SideChildChat
+      chatId={t.childId}
+      visible={visible}
+      onPutAway={() => panel.closeTab(t.key)}
+      onTitle={(title) => panel.patchTab(t.key, { kind: "child", fields: { title } })}
+    />
+  ),
   terminal: ({ tab: t, panel, visible, focused }) => (
     <Suspense fallback={<div className="page muted">読み込み中…</div>}>
       <TerminalPane termKey={t.key} cwd={t.cwd} visible={visible} focused={visible && focused} onOpenUrl={(url) => panel.openBrowser(url)} />

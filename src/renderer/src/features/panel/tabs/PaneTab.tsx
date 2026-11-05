@@ -4,6 +4,7 @@ import { busyWithUnread } from "@shared/chat/state";
 import { cx } from "@/lib/cx";
 import { useChatStates } from "@/app/chatStatesContext";
 import { CHAT_TITLE_MAX } from "@/features/chat/chatTitle";
+import { knownChat } from "@/stores/chats";
 import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import type { useChatRename } from "@/features/chat/useChatRename";
@@ -58,6 +59,8 @@ export function PaneTab({
   const backHome = !home && panel.isLinkedTab(t.key);
   const close = () => {
     if (backHome) return panel.returnToHome(t.key);
+    // 子チャットのタブは、チャットの ✕ と同じく閉じ方を聞く（表示だけ消す = タブを閉じる。子チャットは残る）
+    if (t.kind === "child") return void closeChatWithChoice({ id: t.childId, title: t.title, archived_at: knownChat(t.childId)?.archived_at }, () => panel.closeTab(t.key));
     if (t.kind !== "chat") return panel.closeTab(t.key);
     void closeChatWithChoice({ id: t.id, title: t.title ?? "", archived_at: chat?.archived_at }, (action) => panel.closeTab(t.key, { dismiss: action === "close" }));
   };

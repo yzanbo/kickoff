@@ -82,3 +82,11 @@ export function filterMemos(entries: readonly MemoEntry[], query: string): MemoE
   const q = query.trim().toLowerCase();
   return entries.filter((e) => !e.dir && baseName(e.path).toLowerCase().includes(q)).sort((a, b) => b.modified_at.localeCompare(a.modified_at));
 }
+
+/** 最近変えたメモ（Markdown のファイルだけ。新しく変えた順に limit 件。「既存のメモに追記」・入力欄の上のメモの一覧） */
+export function recentMemos(entries: readonly MemoEntry[], limit: number): MemoEntry[] {
+  return entries
+    .filter((e) => !e.dir && e.path.endsWith(MEMO_EXTENSION))
+    .sort((a, b) => b.modified_at.localeCompare(a.modified_at))
+    .slice(0, limit);
+}

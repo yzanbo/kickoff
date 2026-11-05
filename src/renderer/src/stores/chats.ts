@@ -130,6 +130,15 @@ export function useChatsValue<T extends string | number>(select: (chats: Chat[])
 /** いまの一覧（部品の外・操作の途中で読むとき。読み込みは頼まない） */
 export const currentChats = ({ projectId, archived = false }: Omit<ChatQuery, "enabled"> = {}): Chat[] => chatsView(projectId, archived);
 
+/** ID のチャット（読み込んでいる一覧から。子チャット・アーカイブ済みも。部品の外で引くとき。なければ undefined） */
+export const knownChat = (id: number): Chat | undefined => activeChats.get().data?.find((c) => c.id === id) ?? archivedChats.get().data?.find((c) => c.id === id);
+
+/** ID のチャット（knownChat を部品から。変わったときだけ描き直す。右の欄の子チャットのタブの状態の印） */
+export function useKnownChat(id: number): Chat | undefined {
+  useStoreStatus(activeChats);
+  return useSyncExternalStore(subscribeChats, () => knownChat(id));
+}
+
 /** プロジェクトごとのチャット（サイドバー。中身の変わらないプロジェクトの一覧は同じ配列のまま） */
 export type ChatsByProject = Record<number, Chat[]>;
 

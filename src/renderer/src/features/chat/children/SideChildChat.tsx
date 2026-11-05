@@ -1,0 +1,32 @@
+import { useEffect, useRef } from "react";
+import { ChatView } from "@/features/chat/pane/ChatPane";
+import { useChatDetail } from "@/features/chat/pane/useChatDetail";
+import { PanelHostContext } from "@/features/panel/panelHost";
+import { ChildChatBar } from "./ChildChatBar";
+
+/**
+ * チャットの画面の右の欄に開いた子チャット: 上の帯（親を見る・メインに渡す・しまう）と、ふつうのチャットの画面（ChatView）。
+ * 子チャットの画面の中には右の欄を置かない（右の欄の中に右の欄を重ねない。子のサブエージェントは流れの中、ファイルはファイルタブで開く）
+ */
+export function SideChildChat({ chatId, visible, onPutAway, onTitle }: { chatId: number; visible: boolean; onPutAway: () => void; onTitle: (title: string) => void }) {
+  const { chat, project, events, approvals, live, streaming, error } = useChatDetail(chatId);
+  const title = chat?.title;
+  // タブの名前を最新に（名前の自動生成・変更。渡される関数は描くたびに変わるので、名前が変わったときだけ呼ぶ）
+  const setTitle = useRef(onTitle);
+  setTitle.current = onTitle;
+  useEffect(() => {
+    if (title !== undefined) setTitle.current(title);
+  }, [title]);
+  if (error) return <div className="page error">{error}</div>;
+  if (!chat) return <div className="page muted">読み込み中…</div>;
+  return (
+    <div className="side-child-chat">
+      <ChildChatBar chat={chat} events={events} putAwayTitle="右の欄のタブを閉じる（子チャットは残り、親の会話の札から開き直せる）" onPutAway={onPutAway} />
+      <div className="side-child-chat-body">
+        <PanelHostContext.Provider value={null}>
+          <ChatView key={chat.id} chat={chat} project={project} events={events} approvals={approvals} live={live} streaming={streaming} visible={visible} />
+        </PanelHostContext.Provider>
+      </div>
+    </div>
+  );
+}

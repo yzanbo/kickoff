@@ -3,7 +3,7 @@ import type { Chat, ChatStatus } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { useServerEvent } from "@/api/events";
 import { openChat, type Route } from "./router";
-import { openChildChat } from "@/features/chat/children/childChats";
+import { openChildChat } from "@/features/chat/children/openChild";
 
 /**
  * チャットの完了・失敗・回答待ちを、Mac の通知で知らせる。押すと Kickoff が前面に出て、そのチャットを開く。

@@ -127,6 +127,16 @@ export const subagentTellDraft = defineSettingFamily("kickoff:subagent-tell-draf
  * カードの見出し・動きの行・ピルの一覧・裏の作業の一覧で共通。もう一方はカードのボタン・右クリックで選べる。設定の「表示」）
  */
 export const SUBAGENT_OPEN_IN = defineSetting("kickoff:subagent-open-in", choice(["inline", "side"], "inline"));
+/**
+ * 子チャットを開く場所（side = いちばん上の親のチャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」。
+ * 別ウィンドウを開けない（スマホのブラウザ）なら右の欄）。会話の中・入力欄の上の札・サイドバーの行・通知で共通
+ */
+export const CHILD_CHAT_OPEN_IN = defineSetting("kickoff:child-chat-open-in", choice(["side", "window"], "side"));
+/**
+ * チャットからメモを開く場所（side = チャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」）。
+ * 「メモに追加」のあとの「開く」・入力欄の上のメモの札で共通（メモのタブから開くのは、メモのタブの中）
+ */
+export const MEMO_OPEN_IN = defineSetting("kickoff:memo-open-in", choice(["side", "window"], "side"));
 /** チャットごとの、手で隠した ToDo の一覧（その一覧の印 todoSignature。一覧が書き換わったらまた出す） */
 export const todoHidden = defineSettingFamily("kickoff:todo-hidden:", text(), { ids: true });
 /** チャットごとの、アーカイブしたサブエージェント（呼び出し ID） */

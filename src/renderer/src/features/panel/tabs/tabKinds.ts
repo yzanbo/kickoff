@@ -1,4 +1,4 @@
-import { Bot, FileDiff, FileText, Globe, MessageSquare, SquarePen, SquareTerminal, type LucideIcon } from "lucide-react";
+import { Bot, FileDiff, FileText, Globe, MessageSquare, MessagesSquare, SquarePen, SquareTerminal, StickyNote, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
@@ -7,14 +7,16 @@ import type { BucketHead } from "@/features/chatList/buckets";
 import { baseName } from "@/lib/format";
 import { normalizeUrl } from "@/lib/url";
 import { SubagentTabLead } from "@/features/chat/subagents/SubagentTabLead";
+import { ChildTabLead } from "@/features/chat/children/ChildTabLead";
 import { FileTabLead } from "@/features/editor/FileTabLead";
+import { memoTitle } from "@/features/memo/memoPaths";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
 import type { PopoutRoute } from "@/app/popout";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
 
 /**
- * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・ファイル・ブラウザ・ターミナル）ごとの違いを集めた表。
+ * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・ファイル・メモ・子チャット・ブラウザ・ターミナル）ごとの違いを集めた表。
  * タブを作る（キーの決め方）・欄の「表示するタブ」のどれに入るか・アイコンと名前・どのプロジェクトのものか・中身を作る時・閉じたときの後始末・
  * どのまとまりに入るかを、種類で分岐させずにここから引く。中身（どの部品を描き、中身からの知らせでタブをどう変えるか）は PanelTabPage の PAGES
  */
@@ -86,6 +88,31 @@ export const fileTab = ({ chatId, projectId, worktree, path, line }: Omit<TabOf<
   ...(line ? { line } : {}),
 });
 
+/** メモのタブのキー（同じメモは、その欄に 1 つのタブ） */
+export const memoTabKey = (projectId: number, path: string) => `memo:${projectId}:${path}`;
+
+/** 右の欄に開くメモのタブ */
+export const memoTab = ({ chatId, projectId, path }: Omit<TabOf<"memo">, "key" | "kind">): TabOf<"memo"> => ({
+  key: memoTabKey(projectId, path),
+  kind: "memo",
+  chatId,
+  projectId,
+  path,
+});
+
+/** 子チャットのタブのキー（同じ子チャットは、その欄に 1 つのタブ） */
+export const childTabKey = (childId: number) => `child:${childId}`;
+
+/** 右の欄に開く子チャットのタブ */
+export const childTab = ({ chatId, childId, projectId, title }: Omit<TabOf<"child">, "key" | "kind">): TabOf<"child"> => ({
+  key: childTabKey(childId),
+  kind: "child",
+  chatId,
+  childId,
+  projectId,
+  title,
+});
+
 /** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
 export const browserTab = (url = ""): TabOf<"browser"> => ({ key: newTabKey("browser"), kind: "browser", url, title: "" });
 
@@ -137,7 +164,7 @@ interface TabKindSpec<T extends PanelTab> {
   dispose?: (tab: T) => void;
   /** どのまとまりに入るか（グループ別・作業場所別にまとめるとき） */
   cluster: (tab: T, resolve: ClusterResolver) => BucketHead;
-  /** 別ウィンドウで開けるタブ（チャットの画面の右の欄のサブエージェント・変更・ファイル）の行き先とウィンドウの名前 */
+  /** 別ウィンドウで開けるタブ（チャットの画面の右の欄のサブエージェント・変更・ファイル・メモ・子チャット）の行き先とウィンドウの名前 */
   popout?: (tab: T) => { route: PopoutRoute; title: string };
 }
 
@@ -212,6 +239,29 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
       route: { kind: "file", chatId: t.chatId, projectId: t.projectId, path: t.path, ...(t.worktree ? { worktree: t.worktree } : {}), ...(t.line ? { line: t.line } : {}) },
       title: t.path,
     }),
+  },
+  memo: {
+    shows: "file",
+    icon: StickyNote,
+    label: (t) => memoTitle(t.path),
+    hint: (t) => `メモ: ${t.path}`,
+    projectOf: (t) => t.projectId,
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
+    popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path }, title: `${memoTitle(t.path)} — メモ` }),
+  },
+  child: {
+    shows: "subagent",
+    icon: MessagesSquare,
+    Lead: ChildTabLead,
+    label: (t) => `↳ ${chatTitle(t.title)}`,
+    hint: (t) => `子チャット: ${chatTitle(t.title)}`,
+    projectOf: (t) => t.projectId,
+    // 子チャットを消したら閉じる（親を消すと子孫も消える）
+    chatIdOf: (t) => t.childId,
+    cluster: () => OTHER_CLUSTER,
+    popout: (t) => ({ route: { kind: "chat", chatId: t.childId }, title: `${chatTitle(t.title)} — 子チャット` }),
   },
   browser: {
     shows: "browser",

@@ -12,13 +12,14 @@ import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
 import { PopoutFiles } from "@/features/popout/PopoutFiles";
 import { PopoutSubagent } from "@/features/popout/PopoutSubagent";
 import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
+import { SideMemo } from "@/features/memo/SideMemo";
 import { AskChildHost } from "@/features/chat/children/AskChildHost";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
 import type { PopoutRoute } from "./popout";
 import { RouteContext, useHashRoute } from "./router";
 
 /**
- * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット）の画面。メインのウィンドウの App は使わない
+ * 別ウィンドウ（チャットの画面の右の欄の変更・ファイル・サブエージェント・子チャット・メモ）の画面。メインのウィンドウの App は使わない
  * （サイドバー・通知・ショートカット・下の帯などを 2 つ動かさないため）。サーバーとのつながり・回答待ち・プロジェクトの色・会話の文字の大きさだけを持つ。
  * 表示の設定は localStorage をメインのウィンドウと共有し、書き換えは storage の知らせでそろう（lib/storage）
  */
@@ -40,6 +41,10 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
               <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} />
             ) : route.kind === "chat" ? (
               <PopoutChildChat chatId={route.chatId} />
+            ) : route.kind === "memo" ? (
+              <div className="popout-body">
+                <SideMemo projectId={route.projectId} path={route.path} />
+              </div>
             ) : (
               <PopoutFiles route={route} />
             )}

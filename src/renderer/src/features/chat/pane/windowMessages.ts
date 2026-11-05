@@ -12,8 +12,17 @@ function paneFor(chatId: number): ChatPaneActions | undefined {
   return list.find((p) => p.root.current?.isConnected && p.root.current.offsetParent !== null) ?? list[0];
 }
 
+/** このウィンドウで描いているそのチャットの画面（見えているものを先に。なければ undefined） */
+export const chatPaneOf = (chatId: number): ChatPaneActions | undefined => paneFor(chatId);
+
+/** そのチャットの画面が、このウィンドウで見えているか */
+export const isChatPaneShown = (chatId: number): boolean => {
+  const el = paneFor(chatId)?.root.current;
+  return Boolean(el?.isConnected && el.offsetParent !== null);
+};
+
 function handle(message: WindowMessage) {
-  if (message.type === "openProjectFile" || message.type === "popoutFocus" || message.type === "openMemo") return;
+  if (message.type !== "fillComposer" && message.type !== "reveal" && message.type !== "showActivity") return;
   const pane = paneFor(message.chatId);
   if (!pane) return;
   if (message.type === "fillComposer") pane.fillComposer(message.text, { append: true });

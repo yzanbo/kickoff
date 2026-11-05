@@ -10,8 +10,12 @@ export type WindowMessage =
   | { type: "showActivity"; chatId: number; agent: string }
   /** メインのウィンドウでファイルタブのファイルを開く */
   | { type: "openProjectFile"; projectId: number; file: FileTarget }
-  /** メインのウィンドウでメモのタブのそのメモを開く（別ウィンドウのサブエージェントの返答から「メモに追加」したとき） */
-  | { type: "openMemo"; projectId: number; path: string }
+  /** メインのウィンドウでそのメモを開く（chatId があればそのチャットの右の欄、なければメモのタブ。別ウィンドウの返答から「メモに追加」したとき） */
+  | { type: "openMemo"; projectId: number; path: string; chatId: number | null }
+  /** メインのウィンドウで子チャットを開く（設定が右の欄のとき。別ウィンドウの子チャットの札・通知から） */
+  | { type: "openChild"; chatId: number }
+  /** 別ウィンドウの子チャットから親へ: 親の聞いた位置を見る（reveal）/ 答えを親の入力欄に入れる（handBack） */
+  | { type: "childToParent"; childId: number; action: "reveal" | "handBack"; text?: string }
   /** もう開いている別ウィンドウの「変更」を、そのファイルの位置へ移す（key は popoutKey） */
   | { type: "popoutFocus"; key: string; focus: string };
 

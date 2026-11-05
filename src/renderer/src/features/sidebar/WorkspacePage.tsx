@@ -17,7 +17,7 @@ import { InlineName } from "@/ui/InlineName";
 import { SearchField } from "@/ui/SearchField";
 import { ChatRow } from "./ChatRow";
 import { ChildChatRows } from "./ChildChatRows";
-import { openChildChat } from "@/features/chat/children/childChats";
+import { openChildChat } from "@/features/chat/children/openChild";
 import { useChildChats } from "@/stores/chats";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useChatLayout } from "./chatGroupings";
