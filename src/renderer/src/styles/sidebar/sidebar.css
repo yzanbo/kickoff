@@ -15,11 +15,10 @@
   -webkit-app-region: drag;
 }
 
-/* サイドバーを開いているときのレイアウトの開閉は、この行の右端に置く（信号機ボタンと同じ高さ。閉じているときは画面の左上 .layout-toggles.floating） */
-.sidebar-header .layout-toggles {
-  position: absolute;
-  top: 9px;
+/* 開いているときの開閉ボタンは、信号機ボタンの横ではなく行の右端に置く（閉じているときの「開く」は左上のまま） */
+.sidebar-header .titlebar-toggle {
   right: var(--gutter);
+  left: auto;
 }
 
 .sidebar-section {
