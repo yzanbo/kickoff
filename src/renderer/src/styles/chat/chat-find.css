@@ -57,6 +57,21 @@
   }
 }
 
+/*
+ * 見出しの「表示」で検索欄を隠したとき（concealed）: ⌘F でピントが入っている・文が残っている間だけ出す。
+ * 隠している間もピントを受けられるよう、display: none にせず、場所を取らずに見えなくする（詳細度で上の @container の規則に勝つ）
+ */
+.chat-find.concealed:not(:focus-within, .active) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  pointer-events: none;
+}
+
 .chat-find-count {
   flex: none;
   font-variant-numeric: tabular-nums;

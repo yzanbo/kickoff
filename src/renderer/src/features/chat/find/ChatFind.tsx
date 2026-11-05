@@ -25,7 +25,10 @@ const CURRENT = "chat-find-current";
 export function ChatFind({
   items,
   version,
+  concealed = false,
 }: {
+  /** 見出しの「表示」で隠している（⌘F でピントが入ったとき・文が残っている間だけ出す。ピントを受けられるよう、描いたまま見えなくする） */
+  concealed?: boolean;
   /** 流れ全体（描いていない分も含めて探す） */
   items: TimelineItem[];
   /** 描いている項目（変わったら印を付け直す） */
@@ -103,7 +106,7 @@ export function ChatFind({
 
   return (
     // 欄のどこを押しても入力欄にピント（虫眼鏡も。狭い見出しでは虫眼鏡だけになり、押す・⌘F で広がる）
-    <div className={cx("chat-find", query && "active")} role="search" onPointerDown={(e) => e.target === e.currentTarget && (e.preventDefault(), inputRef.current?.focus())}>
+    <div className={cx("chat-find", query && "active", concealed && "concealed")} role="search" onPointerDown={(e) => e.target === e.currentTarget && (e.preventDefault(), inputRef.current?.focus())}>
       <Search size={13} className="muted" aria-hidden onPointerDown={(e) => (e.preventDefault(), inputRef.current?.focus())} />
       <input
         ref={inputRef}
