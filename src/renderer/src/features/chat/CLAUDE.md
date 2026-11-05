@@ -33,7 +33,7 @@
 
 - アーカイブ・削除などは `chatActions.ts`（`toggleArchiveChat` / `confirmArchiveChats` / `confirmDeleteChat` / `confirmDeleteChats` / `markChatsSeen` / `moveChatsToGroup` / `togglePinChat`。まとめての操作で断られたものは最後にまとめて知らせる。削除したチャットの書きかけの文 `chatDraft` も消す）。
 - 名前をその場で変えるのは `useChatRename` ＋ `ChatTitleInput`（ダイアログは使わない。`onError` を省くとお知らせで出す）。上限は `CHAT_TITLE_MAX`。
-- 右クリックのメニューの項目は `ChatMenuItems` 1 つ（開く（タブでは出さない）・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを変更・アーカイブ・削除。場所だけの項目は `before` / `after`）。サイドバーの行・ボードのカードは `ChatMenu`、パネルのタブは `TabMenu` から使う。
+- 右クリックのメニューの項目は `ChatMenuItems` 1 つ（開く（タブでは出さない）・子チャットを作成（「子チャットで聞く」の画面を開く。アーカイブ済みでは出さない）・名前を変更・既読 / 未読・固定・セッション ID をコピー・プロジェクトを変更・アーカイブ・削除。場所だけの項目は `before` / `after`）。サイドバーの行・ボードのカードは `ChatMenu`、パネルのタブは `TabMenu` から使う。
 - 「プロジェクトを変更」は乗せる・押す・→ で項目の横に `ProjectPickFlyout`（`features/project/CLAUDE.md`）を開き、確かめてから `api.moveChat`（グループ・作業場所・ブランチは外れ、作業場所は移した先の本体。並び順は変えない。作業中は 409。会話は resume で続く）。いま開いているチャットを移したら、移した先で開き直す。移したチャットはチャットの店の知らせで元の一覧から外れる。
 - チャットのタブの ✕ は `closeChatWithChoice`（表示だけ消す・アーカイブ・削除を選んでから閉じる。既定は `CHAT_CLOSE_ACTION`（`ask` / `close` / `archive` / `delete`）で、設定の「チャット」と、聞いたときの「次からはこれにする」で変える。アーカイブ・削除は既定にしても毎回確かめる）。Esc・タブのメニューの「閉じる」は聞かずに閉じる。
 
@@ -199,7 +199,7 @@
 ## 子チャット（`children/`）
 
 - 横道の質問を、親の会話とは別のチャットで聞く（データとサーバーは `src/core/chat/CLAUDE.md` の「子チャット」）。一覧（`selectChats`。サイドバー・ボード・⌘K など）には出さず、親の中にだけ置く（`stores/chats.ts` の `childChatsOf` / `useChildChats`。親 → 子の一覧）。
-- 始め方: 発言の右クリックの「子チャットで聞く」（`useMessageMenu`。選んだ文、なければ発言の全体）→ `openAskChild` で `AskChildHost`（App と別ウィンドウに 1 つ）が聞く: 聞く欄（選んだ文を引用 `> ` にして初めから入れておき、書き換え・消しができる。キャレットは引用の下。Enter で送る）・「会話を引き継ぐ」（初めはオン）。選んだ文は聞く欄の文に入れて送るので、`quote` は送らない。送ったら閉じるだけで、画面は移らず子も開かない（親は作業を続けられる）。
+- 始め方: 発言の右クリックの「子チャットで聞く」（`useMessageMenu`。選んだ文、なければ発言の全体）と、チャットのメニューの「子チャットを作成」（サイドバーの行の「…」・右クリック・ボードのカード・パネルのタブ。`ChatMenuItems`。引用なし・聞いた位置なし）→ `openAskChild` で `AskChildHost`（App と別ウィンドウに 1 つ）が聞く: 聞く欄（選んだ文を引用 `> ` にして初めから入れておき、書き換え・消しができる。キャレットは引用の下。Enter で送る）・「会話を引き継ぐ」（初めはオン）。選んだ文は聞く欄の文に入れて送るので、`quote` は送らない。送ったら閉じるだけで、画面は移らず子も開かない（親は作業を続けられる）。
 - 札: 聞いた発言の下に `ChildChatMarks`（子ごとに状態 = 作業中・回答待ち・失敗・答えあり（未読）・既読）、入力欄の上のピルに `ChildChatsChip`（「子チャット n 件 · m 件答えあり」。押すと一覧。行はサブエージェントの一覧と同じ形（`.subagent-row`）で、状態の印・名前・様子 · モデル · 最後に動いた時刻、右に「右で開く」「新規ウィンドウで開く」（`OpenPlaceButtons`。`openChildChat` の `place`）とアーカイブ。上に「行を押したとき」の切り替え（`CHILD_CHAT_OPEN_IN`））。答えが来ても開かず、通知（`app/notifications.ts`。題名に「子チャット: 」）を出す。
 - 開き方（`openChildChat`。札・サイドバーの子の行・通知で共通）は設定の「子チャットを開く場所」（`CHILD_CHAT_OPEN_IN`。初めは右の欄。別ウィンドウを開けないブラウザでは右の欄）:
   - 右の欄（`openChildSide`）: いちばん上の親（`rootChatOf`。読み込んだ一覧を `knownChat` で引く）のチャットの画面の右の欄に、子チャットのタブ（`child`。孫・ひ孫も同じ欄に並べる）。親の画面が見えていなければ、先にチャットのパネルで親を開く（`openInRootSide`。見えているかは `pane/windowMessages.ts` の `isChatPaneShown`）。別ウィンドウの中からは、メインのウィンドウに頼む（知らせ `openChild`）。中身は `SideChildChat`（上の帯と `ChatView`。子の画面の中には右の欄を重ねない = `PanelHostContext` を null にする。子のサブエージェントは流れの中、ファイルはファイルタブ）。タブの名前の前は子の状態の印（`ChildTabLead`）、タブの × はチャットの ✕ と同じく閉じ方を聞く（表示だけ消す = タブを閉じる）。タブの右クリックの「別ウィンドウで開く」で別ウィンドウへ移せる。
