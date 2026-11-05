@@ -12,7 +12,7 @@ import type { useChatRename } from "@/features/chat/useChatRename";
 import type { PanelController } from "@/features/panel/usePanel";
 import { PanelTab } from "./PanelTab";
 import type { PanelTab as Tab } from "./panelTypes";
-import { specOf } from "./tabKinds";
+import { specOf, type TabGroupLookup } from "./tabKinds";
 import { useChatTabHint } from "./useChatTabHint";
 
 /**
@@ -27,7 +27,7 @@ export function PaneTab({
   active,
   home,
   showGroup,
-  groupName,
+  groupOf,
   className,
   extra,
   rename,
@@ -39,8 +39,8 @@ export function PaneTab({
   home: boolean;
   /** 名前の後ろにグループ名を添えるか（グループ別にまとめているときは、まとまりの頭に出るので添えない） */
   showGroup: boolean;
-  /** プロジェクトのグループ名を引く */
-  groupName: (projectId: number, groupId: number | null | undefined) => string | undefined;
+  /** プロジェクトのグループ（名前と色）を引く */
+  groupOf: TabGroupLookup;
   /** ドラッグで落とす位置の印など */
   className?: string;
   /** ドラッグ・右クリックのメニュー */
@@ -55,8 +55,8 @@ export function PaneTab({
   const state = chat && stateOf(chat);
   const busyUnread = Boolean(chat && state && busyWithUnread(chat, state));
   const label = spec.label(t, chat);
-  const group = spec.groupName?.(t, chat, groupName);
-  const chatHint = useChatTabHint(t.kind === "chat" ? chat : undefined, label, group);
+  const group = spec.group?.(t, chat, groupOf);
+  const chatHint = useChatTabHint(t.kind === "chat" ? chat : undefined, label, group?.name);
   const backHome = !home && panel.isLinkedTab(t.key);
   const close = () => {
     if (backHome) return panel.returnToHome(t.key);
@@ -76,7 +76,7 @@ export function PaneTab({
       badge={spec.badge ? { text: spec.badge, kind: t.kind } : undefined}
       label={label}
       group={showGroup ? group : undefined}
-      title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group}）` : label)}
+      title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group.name}）` : label)}
       className={cx(className, (state === "unread" || state === "failed" || busyUnread) && "unread")}
       extra={extra}
       onSelect={() => panel.showTab(t.key)}

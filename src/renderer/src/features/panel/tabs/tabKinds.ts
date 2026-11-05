@@ -140,6 +140,15 @@ export interface ClusterResolver {
   ofFolder: (projectId: number, cwd: string) => BucketHead;
 }
 
+/** タブの名前の後ろに添えるグループ（名前と色。色は分からないとき null） */
+export interface TabGroupBadge {
+  name: string;
+  hue: number | null;
+}
+
+/** プロジェクトのグループを引く（なければ undefined） */
+export type TabGroupLookup = (projectId: number, groupId: number | null | undefined) => TabGroupBadge | undefined;
+
 interface TabKindSpec<T extends PanelTab> {
   /** 欄の「表示するタブ」でどの種類に入るか（新しいチャットはチャット） */
   shows: PanelKind;
@@ -158,7 +167,7 @@ interface TabKindSpec<T extends PanelTab> {
   /** マウスを乗せたときの説明（なければ名前とグループ名） */
   hint?: (tab: T) => string;
   /** 名前の後ろに控えめに添えるグループ名（nameOf はプロジェクトのグループ名を引く） */
-  groupName?: (tab: T, chat: Chat | undefined, nameOf: (projectId: number, groupId: number | null | undefined) => string | undefined) => string | undefined;
+  group?: (tab: T, chat: Chat | undefined, groupOf: TabGroupLookup) => TabGroupBadge | undefined;
   /** どのプロジェクトのタブか（まとまり・グループ名を引くのに使う。ブラウザはどれにも入らない） */
   projectOf: (tab: T) => number | undefined;
   /** どのチャットのタブか（そのチャットを消したら閉じる。チャット・サブエージェント） */
@@ -183,7 +192,7 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
       const title = chat?.title ?? t.title;
       return title === undefined ? "チャット" : chatTitle(title);
     },
-    groupName: (t, chat, nameOf) => nameOf(t.projectId, chat?.group_id),
+    group: (t, chat, groupOf) => groupOf(t.projectId, chat?.group_id),
     projectOf: (t) => t.projectId,
     chatIdOf: (t) => t.id,
     lazy: true,
@@ -198,7 +207,7 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     icon: SquarePen,
     label: () => NEW_CHAT_TITLE,
     // 作成先のグループ名（パネルの中で分かりしだい入れる。送ったあとのチャットのタブも同じく添える）
-    groupName: (t) => t.groupName,
+    group: (t, _chat, groupOf) => groupOf(t.projectId, t.group) ?? (t.groupName ? { name: t.groupName, hue: null } : undefined),
     projectOf: (t) => t.projectId,
     cluster: (t, r) => r.ofTarget(t.projectId, t.group, t.worktree),
   },
