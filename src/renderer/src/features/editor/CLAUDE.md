@@ -8,7 +8,7 @@
 - 変更（`ChangesPane`）: 見出しにブランチと進み・遅れ、一覧 / 木の切り替え（`CHANGES_TREE`）、取り直し。上にコミットの欄 `CommitBox`（⌘Enter でコミット。ステージしたものがなければ、すべてステージするか確かめる。進んでいればプッシュ、追いかけるブランチがなければ「ブランチを公開」）、下に「ステージされている変更」「変更」（`ChangeGroup`。行の右にステージ・ステージの取り消し・元に戻すのボタン（薄い色。乗せたボタンだけ濃くする。`FileTree` の `actions`・`.row-actions`）。元に戻すは確かめてから）。操作の実行中と失敗は親が持ち、表示を切り替えても残る。
 - Git の状態は `useGitStatus`（開いたとき・ウィンドウに戻ったとき・このプロジェクトのチャットが動いたときに取り直し、変更のタブを開いている間は 5 秒ごとにも取り直す。`count` はタブのバッジ、`refreshing` はバッジの更新中の印（5 秒ごとの取り直しでは立てない））。
 - 差分は `DiffView`（左右に並べる・1 列。`DIFF_LAYOUT`）。行に分けるのは `parseDiff` / `toSplitRows`。差分の表の行のクラスは `line-add` など（タイムラインの `.diff-add` とは別）。
-- ファイルの中身は `FileView`（行番号つき。色付けは `useHighlight` ＋ `CodeLine`）。「編集」で `CodeEditor`（Monaco。押したときだけ読み込む。入口は補完・型チェックの言語サービスを除いた `monacoEditor.ts`。Monaco を上げたときは `editor.main.js` と見比べて作り直す。`prose` で文章を書く見た目（メモ）、`onChange` で書き換えるたびに知らせる）にし、⌘S・保存ボタンで保存する。保存は開いたときの指紋（`hash`）と比べ、ほかで（エージェントなどが）変えていれば上書きするか聞く。
+- ファイルの中身は `FileView`（行番号つき。色付けは `useHighlight` ＋ `CodeLine`）。「編集」で `CodeEditor`（Monaco。押したときだけ読み込む。入口は補完・型チェックの言語サービスを除いた `monacoEditor.ts`。Monaco を上げたときは `editor.main.js` と見比べて作り直す）にし、⌘S・保存ボタンで保存する。保存は開いたときの指紋（`hash`）と比べ、ほかで（エージェントなどが）変えていれば上書きするか聞く。
 - フォルダ・ファイルのアイコンは `FileIcon`（VS Code の Material Icon Theme。対応表 `fileIcons.ts` は使うときだけ読み込む）。
 - チャットのファイル（返答のチップ・ターンの変更カード・ツールの行）は、ふだんはチャットの画面の右の欄に開き（下の「右の欄の変更とファイル」）、⌘クリック・右クリックの「ファイルタブで開く」・右の欄の「ファイルタブで開く」で `openProjectFile` によりファイルタブでそのファイルを開く（URL の `#/projects/:id/files?file=&line=&worktree=`。以前の `changes?file=` もファイルタブで開く。開いたら URL から外す）。
 - 差分（`DiffView`）は、左右に並べる設定でも、2 つ並べると読めない幅（`SPLIT_MIN_WIDTH`。`hooks/useNarrowerThan`）では 1 列で出す（設定は変えない）。`bare` で見出しを出さない（右の欄の変更）。
