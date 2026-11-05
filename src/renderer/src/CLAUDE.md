@@ -51,7 +51,7 @@
 - 操作の実行中と失敗は `useAction`（`run` で busy と失敗の文、`guard` は失敗だけ受け止める）、保存のボタンは `useSave` ＋ `SaveActions`、送れたら閉じるフォームは `useSubmit`。失敗をお知らせのダイアログで出すなら `ui/dialogs.tsx` の `reportFailure(title)`。
 - キーの判定は `lib/keys.ts`（日本語入力の変換中 `isComposing`・送る Enter `isSubmitKey`・やめる Esc `isCancelKey`・修飾キー `hasModifiers` / `isKey`・使い切る `consumeKey`）。変換を確定する Enter・変換をやめる Esc を操作に使わない。書き直しの欄（Enter で決める・Shift+Enter で改行・Esc でやめる）は `useEditKeys`、⌘ を押している間は `useHeldMeta`。
 - ↑↓ で選ぶ位置は `stepIndex`（端で回り込む）、候補の一覧は `useListNavigation`、複数選択（⌘ / Ctrl で足す・外す、Shift で範囲を足す）は `useMultiSelect`。
-- つまみで欄の大きさを変えるのは `useDragSize`（設定に覚え、ダブルクリックで初めの値に戻す。つまみは `.pane-resizer`）。横に並べた右側の欄の幅と、もう一方を覆う（横幅いっぱい・残す側が狭すぎれば覆う）のは `useCoverableWidth`（ボードの右のパネル・チャットの画面の右の欄）。中身が伸びていく欄で最新に付いていくスクロール（上へ戻したら止まる）は `useFollowScroll`。時間とともに変わる表示は `useTicker`。取り直し中の印を少しの間は出すのは `useBusyBadge`。
+- つまみで欄の大きさを変えるのは `useDragSize`（設定に覚え、ダブルクリックで初めの値に戻す。つまみは `.pane-resizer`）。横に並べた右側の欄の幅と、もう一方を覆う（横幅いっぱい・残す側が狭すぎれば覆う）のは `useCoverableWidth`（ボードの右のパネル・チャットの画面の右の欄）。中身が伸びていく欄で最新に付いていくスクロール（上へ戻したら止まる）は `useFollowScroll`。中身が横にあふれるときだけ詰めた表示にするのは `useOverflowCompact`（決め打ちの幅で切り替えない）。時間とともに変わる表示は `useTicker`。取り直し中の印を少しの間は出すのは `useBusyBadge`。
 - 例外の文は `errorMessage`（`e instanceof Error ? e.message : String(e)` を書かない）、class 名は `cx`、時刻は `lib/time.ts`（`relativeTime` / `shortRelativeTime` / `formatClock` / `formatDayTime` / `formatMessageTime` / `formatElapsed` / `formatReset`）、トークン数は `formatTokens`、パスの名前とフォルダは `splitPath` ＋ `PathParts`。
 
 ## 共有部品（`ui/`。手書きしない）

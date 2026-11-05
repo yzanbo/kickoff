@@ -6,7 +6,6 @@
  * 列の幅は、上下の行のボタンのうち長いほうに合わせ、余った幅は均等に配って横幅いっぱいにする
  */
 .project-list-head {
-  container: project-list-head / inline-size;
   display: grid;
   flex: none;
   grid-template-columns: max-content repeat(4, minmax(max-content, 1fr));
@@ -111,25 +110,20 @@
   color: var(--muted);
 }
 
-/* 文字では収まらない幅（縦並びでサイドバーが約 285px 未満）では、文字を隠してアイコン（いまの値）だけにする */
-@container project-list-head (max-width: 259px) {
-  .head-chip {
-    height: 26px;
-    padding: 0 6px;
-  }
-
-  .head-chip-icon {
-    display: block;
-  }
-
-  .head-chip-text {
-    display: none;
-  }
+/*
+ * 文字では横幅に入らないとき（useOverflowCompact が実際にあふれるかで決めて icon-only を付ける）は、文字を隠してアイコン（いまの値）だけにし、
+ * アイコンをボタンの真ん中に置く。以前は見出しの幅 259px 以下で切り替えていて、ボタンの名前や数が変わると、切り替わる前に右端が見切れた
+ */
+.project-list-head.icon-only .head-chip {
+  justify-content: center;
+  height: 26px;
+  padding: 0 6px;
 }
 
-/* アイコンだけのときは、アイコンをボタンの真ん中に置く */
-@container project-list-head (max-width: 259px) {
-  .head-chip {
-    justify-content: center;
-  }
+.project-list-head.icon-only .head-chip-icon {
+  display: block;
+}
+
+.project-list-head.icon-only .head-chip-text {
+  display: none;
 }
