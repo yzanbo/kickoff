@@ -17,6 +17,15 @@ export interface StartChatInput {
   groupId?: number;
   /** 作業場所（ワークツリーのフォルダ。省略なら本体） */
   worktreePath?: string;
+  /** 子チャット: 親と、親の会話のどの記録から聞いたか */
+  parentChatId?: number;
+  parentEventId?: number;
+  /** 続きから始める会話（子チャットで親の会話を引き継ぐとき。親の会話を写したセッション） */
+  sessionId?: string;
+  /** 最初の発言の前に残すお知らせ（子チャットで、親の会話を引き継いだか） */
+  notice?: string;
+  /** 名前（1 行目・AI が付ける名前）のもとにする文（なければ prompt。子チャットでは引用を除いた質問だけ） */
+  titleText?: string;
 }
 
 /**
@@ -31,19 +40,25 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
 
   // チャット欄で指定がなければ、プロジェクトの既定 → アプリ全体の設定の順に使う
   const options = resolveChatOptions(store.settings.get(), project.chat_defaults, input.options);
-  const chat = store.chats.create({
+  const titleText = input.titleText ?? input.prompt;
+  const created = store.chats.create({
     project_id: project.id,
     provider: project.provider,
-    title: input.title ?? firstLine(input.prompt),
+    title: input.title ?? firstLine(titleText),
     status: "running",
     ...options,
     group_id: input.groupId ?? null,
     worktree_path: input.worktreePath || null,
+    parent_chat_id: input.parentChatId ?? null,
+    parent_event_id: input.parentEventId ?? null,
   });
+  // 親の会話を引き継ぐ子チャットは、親の会話を写したセッションの続きから始める
+  const chat = input.sessionId ? store.chats.update(created.id, { session_id: input.sessionId }) : created;
+  if (input.notice) store.events.add(chat.id, { type: "notice", message: input.notice });
   const attachments = input.attachments ?? [];
   const messageUuid = randomUUID();
   store.events.add(chat.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}), message_uuid: messageUuid });
-  if (!input.title) void autoTitle(deps, chat.id, input.prompt || attachments.map((a) => a.name).join("、"));
+  if (!input.title) void autoTitle(deps, chat.id, titleText || attachments.map((a) => a.name).join("、"));
   return { chat, prompt: await promptWithAttachments(deps, input.prompt, attachments), messageUuid };
 }
 

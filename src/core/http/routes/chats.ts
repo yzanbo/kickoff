@@ -79,12 +79,15 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     const { chat } = c.var;
     const { title, group_id, pinned, archived } = chatPatchSchema.parse(await jsonBody(c));
     if (group_id !== undefined && group_id !== null) requireGroupOf(store, group_id, chat.project_id);
-    if (archived) runner.requireIdle(chat.id, "アーカイブ");
+    // 子チャット（子・孫…）も一緒にしまう・戻す（作業中のものがあればしまえない）
+    const family = archived === undefined ? [] : store.chats.descendants(chat.id);
+    if (archived) for (const c of [chat, ...family]) runner.requireIdle(c.id, "アーカイブ");
     if (group_id !== undefined) store.chats.setGroup(chat.id, group_id);
     if (pinned !== undefined) store.chats.setPinned(chat.id, pinned);
     // しまったままもう一度しまっても、しまった日時は変えない（プロジェクトと同じ）
     const archivedAt = archived === undefined ? undefined : archived ? (chat.archived_at ?? new Date().toISOString()) : null;
     if (title !== undefined || archivedAt !== undefined) store.chats.update(chat.id, { title, archived_at: archivedAt });
+    for (const c of family) if (Boolean(c.archived_at) !== Boolean(archivedAt)) store.chats.update(c.id, { archived_at: archivedAt ?? null });
     return c.json(store.chats.get(chat.id));
   });
 
@@ -112,16 +115,21 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     const { project_id } = z.object({ project_id: z.number().int().positive() }).parse(await jsonBody(c));
     const target = requireProject(store, project_id);
     if (target.id === chat.project_id) return c.json(chat);
-    runner.requireIdle(chat.id, "移動");
+    // 子チャット（子・孫…）も一緒に移す
+    const family = store.chats.descendants(chat.id);
+    for (const c of [chat, ...family]) runner.requireIdle(c.id, "移動");
+    for (const c of family) store.chats.move(c.id, target.id);
     return c.json(store.chats.move(chat.id, target.id));
   });
 
   // 削除（会話の記録も消える）
   app.delete("/api/chats/:id", withChat, (c) => {
     const { chat } = c.var;
-    runner.requireIdle(chat.id, "削除");
+    // 子チャット（子・孫…）も一緒に消える（作業中のものがあれば消せない）
+    const family = store.chats.descendants(chat.id);
+    for (const c of [chat, ...family]) runner.requireIdle(c.id, "削除");
     store.chats.delete(chat.id);
-    runner.forget(chat.id);
+    for (const c of [chat, ...family]) runner.forget(c.id);
     return c.body(null, 204);
   });
 }

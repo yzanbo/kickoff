@@ -30,6 +30,8 @@ export function makeChat(id: number, patch: Partial<Chat> = {}): Chat {
     turn_started_at: null,
     context_tokens: null,
     context_window: null,
+    parent_chat_id: null,
+    parent_event_id: null,
     created_at: TEST_TIME,
     active_at: TEST_TIME,
     ...patch,

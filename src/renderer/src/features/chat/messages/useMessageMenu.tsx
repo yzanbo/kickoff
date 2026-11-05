@@ -5,14 +5,23 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { copyRich } from "@/lib/richCopy";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { MemoMenuItems } from "@/features/memo/MemoMenuItems";
+import { MessagesSquare } from "lucide-react";
+import { openAskChild } from "@/features/chat/children/childChats";
+
+/** 子チャットに引用として渡す文の上限（文字。発言の全体を渡すときに長すぎないように） */
+const MAX_QUOTE_CHARS = 4000;
 
 /**
  * 発言の右クリックのメニュー（メッセージをコピー。文を選んでいれば、選んだ文のコピーも）。
  * rich（AI の返答）なら「メッセージをコピー」は書式付き（ほかのアプリに貼っても見出し・表が崩れない）で、Markdown のままのコピーも並べる。
- * チャットの画面の中なら「メモに追加」（選んでいる文、なければ発言の全体をメモにする）も並べる。
+ * チャットの画面の中なら「子チャットで聞く」「メモに追加」（どちらも選んでいる文、なければ発言の全体を使う）も並べる。
  * リンク・入力欄・コードブロックの上などでは、Electron の既定のメニューに任せず、この 1 つにそろえる
  */
-export function useMessageMenu(text: string, extra?: ReactNode, { rich = false }: { rich?: boolean } = {}): { open: (e: MouseEvent) => void; element: ReactNode } {
+export function useMessageMenu(
+  text: string,
+  extra?: ReactNode,
+  { rich = false, eventId }: { rich?: boolean; /** この発言の記録（子チャットで聞いた位置） */ eventId?: number } = {},
+): { open: (e: MouseEvent) => void; element: ReactNode } {
   // 開いたときに選んでいた文（その発言の中で選んでいれば）
   const menu = useContextMenu<string>();
   const at = menu.menu;
@@ -33,6 +42,15 @@ export function useMessageMenu(text: string, extra?: ReactNode, { rich = false }
         <MenuItem onSelect={() => (rich ? copyFormatted(text) : copy(text))}>メッセージをコピー</MenuItem>
         {rich && <MenuItem onSelect={() => copy(text)}>Markdown のままコピー</MenuItem>}
         {extra}
+        {pane && (
+          <>
+            <div className="menu-separator" role="separator" />
+            {/* 選んだ文（なければ発言の全体）を引用して、このチャットの作業を止めずに横で聞く */}
+            <MenuItem onSelect={() => openAskChild({ parentId: pane.chatId, eventId: eventId ?? null, quote: (at.value || text).slice(0, MAX_QUOTE_CHARS) })}>
+              <MessagesSquare size={14} /> 子チャットで聞く
+            </MenuItem>
+          </>
+        )}
         {pane && <MemoMenuItems projectId={pane.projectId()} chatId={pane.chatId} text={at.value || text} />}
       </PopupMenu>
     ),

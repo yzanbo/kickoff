@@ -65,6 +65,13 @@
 - ファイルを戻す（`rewindFiles`、`POST /api/chats/:id/rewind-files`）: 実行はいつも編集の前のファイルを取っておき（`enableFileCheckpointing`）、プロバイダーの `rewindFiles` で発言（`message_uuid`）を送る前の状態に戻す。先に dryRun で量を測ってから戻し、お知らせを残す（`dry_run` なら測るだけ）。戻るのは Claude Code の編集のツールで変えたファイルだけ。
 - どれも作業中は 409、起点にできない・対応していない・ファイルを戻せないときは 400。
 
+## 子チャット（children.ts）
+
+- 子チャットは `chats` の `parent_chat_id`（親）と `parent_event_id`（聞いた親の発言の記録）を持つふつうのチャット。作るのは `startChildChat`（`POST /api/chats/:id/children`。本文 `ChildChatBody` = 文・選んだ文 `quote`・引き継ぐか `inherit`（既定 true）・`event_id`・選択。201 で子を返す）。親が作業中でも作れる（親は止めない）。
+- 引き継ぐときは、親の最後まで終わった作業（`result` の `session_id` / `message_id`）からプロバイダーの `fork` で会話を写し、子はそのセッションの続きとして送る。起点がなければ、お知らせ（「引き継げる会話がまだない」）を残して、選んだ文だけで始める。指示は選んだ文を引用（`> `）にして、その下に文。作業場所は親と同じ、名前は文から付ける（`createChat` の `titleText`）。
+- アーカイブ・アーカイブを戻す・別のプロジェクトへの移動・削除は、子孫ごと（`store.chats.descendants`。深い順。どれかが作業中なら 409）。削除の知らせは子孫の分も出す（DB は `ON DELETE CASCADE` でも消える）。
+- テストは `http/server.children.test.ts`。
+
 ## サブエージェントの報告の受け渡し
 
 - 数え方は、画面の一覧と共有の `@shared/chat/subagents`（`src/shared/CLAUDE.md`）を使う。

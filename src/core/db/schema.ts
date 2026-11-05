@@ -130,8 +130,18 @@ ALTER TABLE projects ADD COLUMN memo_folder TEXT CHECK (memo_folder <> '');
 ALTER TABLE projects ADD COLUMN memo_path TEXT CHECK (memo_path <> '');
 `;
 
+/**
+ * v3: 子チャット（parent_chat_id = 親のチャット。親を消すと子孫も消える / parent_event_id = 親の会話のどの記録から聞いたか）。
+ * 子チャットはサイドバー・ボードに並べず、親の中から開く
+ */
+const SCHEMA_V3 = `
+ALTER TABLE chats ADD COLUMN parent_chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE;
+ALTER TABLE chats ADD COLUMN parent_event_id INTEGER CHECK (parent_event_id > 0);
+CREATE INDEX idx_chats_parent ON chats(parent_chat_id) WHERE parent_chat_id IS NOT NULL;
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

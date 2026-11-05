@@ -45,9 +45,12 @@ export function reduceChats(list: Chat[], event: BusEvent, archived: boolean): C
 const activeChats = createStore<Chat[]>({ load: () => api.allChats(), reduce: (list, e) => reduceChats(list, e, false) });
 const archivedChats = createStore<Chat[]>({ load: () => api.allChats({ archived: true }), reduce: (list, e) => reduceChats(list, e, true) });
 
-/** 2 つの一覧から、そのプロジェクト（省けば全プロジェクト）のチャットを最後に動いた順に */
+/**
+ * 2 つの一覧から、そのプロジェクト（省けば全プロジェクト）のチャットを最後に動いた順に。子チャット（親のあるもの）は入れない
+ * （サイドバー・ボード・パネルのタブなどの一覧には並べず、親の中から開く。子チャットは childChatsOf / useChildChats）
+ */
 export function selectChats(active: readonly Chat[] | undefined, archived: readonly Chat[] | undefined, projectId?: number): Chat[] {
-  const inProject = (r: Chat) => projectId === undefined || r.project_id === projectId;
+  const inProject = (r: Chat) => r.parent_chat_id === null && (projectId === undefined || r.project_id === projectId);
   const list = [...(active ?? []).filter(inProject), ...(archived ?? []).filter(inProject)];
   if (archived?.length) list.sort(byActive);
   return list.length > 0 ? list : NO_CHATS;
@@ -153,6 +156,35 @@ function byProjectView(archived: boolean): ChatsByProject {
   const byProject = chatsByProject(chats, hit?.byProject);
   byProjectViews.set(archived, { chats, byProject });
   return byProject;
+}
+
+/** 子チャットを親ごとに（親の ID → 子。最後に動いた順。アーカイブ済みは archived のときだけ） */
+export function childChatsOf(active: readonly Chat[] | undefined, archived: readonly Chat[] | undefined): ReadonlyMap<number, Chat[]> {
+  const map = new Map<number, Chat[]>();
+  for (const chat of [...(active ?? []), ...(archived ?? [])]) {
+    if (chat.parent_chat_id !== null) (map.get(chat.parent_chat_id) ?? map.set(chat.parent_chat_id, []).get(chat.parent_chat_id)!).push(chat);
+  }
+  if (archived?.length) for (const list of map.values()) list.sort(byActive);
+  return map;
+}
+
+const childViews = new Map<boolean, { active: Chat[] | undefined; archived: Chat[] | undefined; map: ReadonlyMap<number, Chat[]> }>();
+
+function childView(archived: boolean): ReadonlyMap<number, Chat[]> {
+  const active = activeChats.get().data;
+  const old = archived ? archivedChats.get().data : undefined;
+  const hit = childViews.get(archived);
+  if (hit && hit.active === active && hit.archived === old) return hit.map;
+  const map = childChatsOf(active, old);
+  childViews.set(archived, { active, archived: old, map });
+  return map;
+}
+
+/** 子チャットを親ごとに（サイドバーの親の行の開閉・数、チャットの画面の札。archived: アーカイブ済みも含める） */
+export function useChildChats({ archived = false }: { archived?: boolean } = {}): ReadonlyMap<number, Chat[]> {
+  useStoreStatus(activeChats);
+  useStoreStatus(archivedChats, { active: archived });
+  return useSyncExternalStore(subscribeChats, () => childView(archived));
 }
 
 /** すべてのプロジェクトのチャットを、プロジェクトごとに（サイドバー。archived: アーカイブ済みも含める） */

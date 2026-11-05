@@ -1,0 +1,119 @@
+/* ==== 子チャット（発言・返答の下の札・入力欄の上の一覧・別ウィンドウの上の帯・聞く画面の引用） ==== */
+
+/* 発言・返答から聞いた子チャットの札（押すと別ウィンドウで開く。様子: 作業中・回答待ち・答えあり（未読）・失敗・既読） */
+.child-chat-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+
+.user-message .child-chat-marks {
+  justify-content: flex-end;
+}
+
+.child-chat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg-elev);
+  cursor: pointer;
+}
+
+.child-chat-chip:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.child-chat-chip-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.child-chat-chip-state {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.child-chat-chip .spinner {
+  width: 10px;
+  height: 10px;
+  border-width: 1.5px;
+}
+
+.child-chat-chip.child-unread {
+  border-color: color-mix(in srgb, var(--ok) 60%, var(--border));
+}
+
+.child-chat-chip.child-unread .child-chat-chip-state {
+  color: var(--ok);
+}
+
+.child-chat-chip.child-needs_input .child-chat-chip-state {
+  color: var(--warn);
+}
+
+.child-chat-chip.child-failed .child-chat-chip-state {
+  color: var(--ng);
+}
+
+/* 入力欄の上の「子チャット」の一覧（札を縦に並べる） */
+.child-chats-popover {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.child-chats-waiting {
+  color: var(--ok);
+}
+
+/* 子チャットの別ウィンドウの上の帯（子チャットの名前・親を見る・メインに渡す・しまう） */
+.child-chat-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-sidebar);
+}
+
+.child-chat-bar-label {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--accent-fg);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.child-chat-bar-title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 子チャットで聞く画面の、選んだ文の引用 */
+.ask-child-quote {
+  max-height: 120px;
+  margin: 0;
+  padding: 6px 10px;
+  overflow: auto;
+  border-left: 3px solid var(--border-strong);
+  font-size: 12px;
+  white-space: pre-wrap;
+  color: var(--muted);
+}

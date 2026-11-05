@@ -54,6 +54,10 @@ export const NATIVE_API = {
     openPopout: invoke<[route: string, title: string]>(),
     /** メインのウィンドウを前に出す（別ウィンドウから、メインの会話のその場所へ移る・チャット欄に入れるとき） */
     focusMain: invoke<[]>(),
+    /** 呼んだ別ウィンドウを、閉じ方を聞かずに閉じる（子チャットのウィンドウの「しまう」・閉じ方を選んだあと） */
+    closeSelf: invoke<[]>(),
+    /** ✕・⌘W で閉じようとした（子チャットのウィンドウ。メインプロセスが閉じるのを止めて知らせ、画面が閉じ方を聞く） */
+    onCloseRequested: event<[]>(),
   },
   /** アプリの外で開く（Finder・VS Code・外部のターミナル・ブラウザ） */
   externalApps: {
