@@ -28,3 +28,19 @@ export function withBaseHref(html: string, href: string): string {
   }
   return `${tag}${html}`;
 }
+
+/**
+ * HTML のメモのリンク（iframe が <base> で解決した URL）が指す、メモのフォルダの中のパス（メモのフォルダからの相対。段ごとに戻す）。
+ * root はメモのフォルダの口（memoAssetBase(origin, projectId, "")）。? と # は除く。メモのフォルダの外・形が壊れたもの・フォルダそのものは null
+ */
+export function memoLinkPath(url: string, root: string): string | null {
+  if (!url.startsWith(root)) return null;
+  const rest = url.slice(root.length).replace(/[?#].*$/, "").replace(/\/+$/, "");
+  if (!rest) return null;
+  try {
+    const segments = rest.split("/").map(decodeURIComponent);
+    return segments.some((s) => s === "" || s === "." || s === ".." || s.includes("/")) ? null : segments.join("/");
+  } catch {
+    return null;
+  }
+}
