@@ -6,6 +6,7 @@ import { CheckField, Field } from "@/ui/Field";
 import { Segmented } from "@/ui/Segmented";
 import { SaveActions } from "@/ui/SaveActions";
 import { useSettingsDraft } from "./useSettingsDraft";
+import { AUTO_COMPACT_CHOICES } from "@shared/chat/autoCompact";
 
 /** 自動のアーカイブで選べる日数（null はしない） */
 const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
@@ -16,9 +17,6 @@ const ARCHIVE_CHOICES: { value: number | null; label: string }[] = [
   { value: 14, label: "14 日" },
   { value: 30, label: "30 日" },
 ];
-
-/** 自動圧縮を始める使用率の選択肢（null は Claude Code の既定） */
-const COMPACT_CHOICES: (number | null)[] = [null, 30, 40, 50, 60, 70, 80, 90];
 
 /** 設定: チャットの扱い（完了したチャットの自動のアーカイブ・自動圧縮を始める量・通信が切れて止まったときの自動の再開・✕ を押したときの扱い・作業中の作業場所で始めるときの扱い） */
 export function ChatSettings() {
@@ -49,13 +47,13 @@ export function ChatSettings() {
         </Field>
         <Field
           label="自動圧縮を始める量"
-          help="コンテキストウィンドウをこの割合まで使ったら、Claude Code が会話を自動で要約してコンテキストを空けます（200k の窓で 50% なら 100k トークン）。早めにすると、長い作業でも上限の手前で慌てて圧縮せずに済みますが、要約の回数は増えます。次に送ったやり取りから効きます。チャット欄の円の外の矢印と、円を押した詳細の棒の縦線が、その位置です。"
+          help="コンテキストウィンドウをこの割合まで使ったら、Claude Code が会話を自動で要約してコンテキストを空けます（200k の窓で 50% なら 100k トークン）。早めにすると、長い作業でも上限の手前で慌てて圧縮せずに済みますが、要約の回数は増えます。次に送ったやり取りから効きます。チャット欄の円の外の矢印と、円を押した詳細の棒の縦線が、その位置です。円を押した詳細でも選べます。"
         >
           <select
             value={draft.auto_compact_pct ?? ""}
             onChange={(e) => setDraft({ ...draft, auto_compact_pct: e.target.value ? Number(e.target.value) : null })}
           >
-            {COMPACT_CHOICES.map((pct) => (
+            {[null, ...AUTO_COMPACT_CHOICES].map((pct) => (
               <option key={pct ?? "default"} value={pct ?? ""}>
                 {pct === null ? "Claude Code の既定（上限の少し手前）" : `コンテキストの ${pct}% を使ったら`}
               </option>

@@ -5,6 +5,9 @@
 export const AUTO_COMPACT_PCT_MIN = 10;
 export const AUTO_COMPACT_PCT_MAX = 95;
 
+/** 画面で選べる使用率（%。設定の「チャット」と、チャット欄のメーターの詳細） */
+export const AUTO_COMPACT_CHOICES = [30, 40, 50, 60, 70, 80, 90] as const;
+
 /** Claude Code が窓の終わりに残す余白（トークン。割合を大きくしても、ここより手前で圧縮が始まる） */
 const AUTO_COMPACT_BUFFER = 13_000;
 
