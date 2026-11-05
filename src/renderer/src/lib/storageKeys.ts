@@ -132,6 +132,8 @@ export const QUEUE_HEIGHT = defineSetting("kickoff:queue-height", number(150));
 export const STICKY_PROMPT_EXPANDED = defineSetting("kickoff:sticky-prompt-expanded", flag());
 /** 上に貼り付ける自分の指示の帯を出さないか（設定の「表示」。どのチャットでも同じ） */
 export const STICKY_PROMPT_HIDDEN = defineSetting("kickoff:sticky-prompt-hidden", flag());
+/** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。見出しの「表示」のメニュー。どのチャットでも同じ） */
+export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list());
 /** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く） */
 export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag());
 /** チャットの文の幅を広げるか（どのチャットでも同じ） */

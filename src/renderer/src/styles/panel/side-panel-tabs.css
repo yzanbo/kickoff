@@ -266,12 +266,17 @@
   cursor: default;
 }
 
-/* 「表示」のボタン（PanelViewButton）。既定と違う選び方をしているときは右上に点（まとめ方・アーカイブ済みなどが隠れた状態に気づけるように） */
-.panel-view-button {
+/*
+ * 「表示」のボタン（パネルの PanelViewButton・チャットの見出しの ChatHeaderView）。既定と違う選び方をしているときは右上に点
+ * （まとめ方・アーカイブ済み・隠した見出しの項目などが隠れた状態に気づけるように）
+ */
+.panel-view-button,
+.chat-view-button {
   position: relative;
 }
 
-.panel-view-button.changed::after {
+.panel-view-button.changed::after,
+.chat-view-button.changed::after {
   position: absolute;
   top: 4px;
   right: 5px;
