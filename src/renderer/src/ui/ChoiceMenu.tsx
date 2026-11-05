@@ -1,4 +1,5 @@
 import { Check, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import type { Placement } from "@/lib/floating";
 import { MenuItem, PopupMenu } from "./PopupMenu";
 
@@ -16,6 +17,7 @@ export function ChoiceMenu<T extends string>({
   ignore,
   onPick,
   onClose,
+  children,
 }: {
   /** 置く場所（useContextMenu の menu.at） */
   at: Placement;
@@ -30,6 +32,8 @@ export function ChoiceMenu<T extends string>({
   ignore?: string;
   onPick: (value: T) => void;
   onClose: () => void;
+  /** 選択肢の下に、区切り線を挟んで並べるほかの項目 */
+  children?: ReactNode;
 }) {
   return (
     <PopupMenu at={at} label={title} ignore={ignore} onClose={onClose}>
@@ -44,6 +48,8 @@ export function ChoiceMenu<T extends string>({
           </MenuItem>
         );
       })}
+      {children && <div className="menu-separator" role="separator" />}
+      {children}
     </PopupMenu>
   );
 }

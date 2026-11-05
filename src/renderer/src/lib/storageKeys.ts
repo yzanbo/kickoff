@@ -90,6 +90,8 @@ export const BOARD_HEADER_LAYOUT = defineSetting("kickoff:board-header-layout", 
 export const FOOTER_MODE = defineSetting("kickoff:footer-mode", choice(["show", "hover", "hide"], "show"));
 /** プロジェクトの画面のタブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */
 export const PROJECT_TABS_LAYOUT = defineSetting("kickoff:project-tabs-layout", choice(["top", "side"], "side"));
+/** プロジェクトのタブの並び（ドラッグで並べ替えたタブの名前の列。空なら初めの並び。features/project/page/tabOrder.ts） */
+export const PROJECT_TAB_ORDER = defineSetting("kickoff:project-tab-order", list());
 /**
  * プロジェクトのチャットを開く場所（separate = ボードと分けた「チャット」タブで横幅いっぱいに / together = ボードの右のパネル。設定の「表示」）。
  * どちらもボードの右のパネルと同じパネル（kanban:<プロジェクト>）なので、切り替えても開いているタブ・分割はそのまま
