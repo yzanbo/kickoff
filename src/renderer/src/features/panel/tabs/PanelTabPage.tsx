@@ -40,11 +40,14 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
     <NewChatPane
       projectId={t.projectId}
       group={t.group}
+      worktree={t.worktree}
       seed={t.seed}
       draftText={t.draftText}
       visible={visible}
       projects={panel.projects}
-      onProjectChange={(projectId) => panel.patchTab(t.key, { kind: "new", fields: { projectId, group: undefined, groupName: undefined } })}
+      onProjectChange={(projectId) => panel.patchTab(t.key, { kind: "new", fields: { projectId, group: undefined, groupName: undefined, worktree: undefined } })}
+      // 作業場所を選び直したら、タブのまとまり（作業場所別）も合わせる
+      onWorktreeChange={(worktree) => panel.patchTab(t.key, { kind: "new", fields: { worktree } })}
       onGroupChange={(group, groupName) => panel.patchTab(t.key, { kind: "new", fields: { group, groupName } })}
       onCreated={(chat) => panel.replaceWithChat(t.key, chat)}
       // 空の文は覚えない（書き始める前と同じ形のまま）

@@ -49,7 +49,7 @@ test("まとまり: チャットはチャットの（分からなければ作成
   const resolve: ClusterResolver = {
     chatById: (id) => (id === 1 ? makeChat(1) : undefined),
     ofChat: (c) => head(`chat:${c.id}`),
-    ofTarget: (projectId, group) => head(`target:${projectId}:${group ?? ""}`),
+    ofTarget: (projectId, group, worktree) => head(`target:${projectId}:${group ?? ""}${worktree ? `:${worktree}` : ""}`),
     ofFolder: (projectId, cwd) => head(`folder:${projectId}:${cwd}`),
   };
   const of = (t: PanelTab) => specOf(t).cluster(t, resolve).key;
@@ -57,6 +57,8 @@ test("まとまり: チャットはチャットの（分からなければ作成
   assert.equal(of(chatTab(makeChat(9))), "target:1:");
   assert.equal(of({ ...chatTab(makeChat(9)), chat: makeChat(9) }), "chat:9");
   assert.equal(of(newChatTab({ projectId: 2, group: 4 })), "target:2:4");
+  // 作業場所別のまとまりの「新しいチャット」から始めたものは、そのワークツリーのまとまり
+  assert.equal(of(newChatTab({ projectId: 2, worktree: "/repo/a-wt" })), "target:2::/repo/a-wt");
   assert.equal(of(terminalTab(target)), "folder:3:/repo/a");
   assert.equal(specOf(browserTab()).cluster(browserTab(), resolve), OTHER_CLUSTER);
 });

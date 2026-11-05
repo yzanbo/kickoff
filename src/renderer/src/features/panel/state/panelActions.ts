@@ -33,7 +33,7 @@ export function panelActions(key: string) {
    */
   const openNew = (target: NewChatTarget, seed?: NewChatSeed) => {
     // 同じ指定でほぼ同時に呼ばれたとき（開発時の effect の二重実行）だけ 1 つにまとめる（初めの入力があるものは利用者の操作なのでまとめない）
-    const sig = `${target.projectId}:${target.group ?? ""}`;
+    const sig = `${target.projectId}:${target.group ?? ""}:${target.worktree ?? ""}`;
     const recent = lastNew.get(key);
     const tabKey = !seed && recent && recent.target === sig && Date.now() - recent.at < 100 ? recent.key : newTabKey("new");
     lastNew.set(key, { target: sig, key: tabKey, at: Date.now() });
