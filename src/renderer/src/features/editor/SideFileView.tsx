@@ -7,6 +7,7 @@ import { WorktreeContext } from "@/features/worktree/worktreeContext";
 import { FileView } from "./FileView";
 import { changeOf } from "./sideFile";
 import { useGitStatus } from "./useGitStatus";
+import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 
 interface Props {
   projectId: number;
@@ -52,6 +53,7 @@ function SideFileBody({ projectId, worktree, path, line }: Props) {
         >
           <SquareArrowOutUpRight size={13} aria-hidden /> ファイルタブで開く
         </button>
+        <PopOutTabButton />
       </div>
       <FileView
         key={`${path}:${line ?? ""}`}

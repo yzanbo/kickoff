@@ -26,6 +26,7 @@ import {
 } from "./subagentParts";
 import { useSubagentsView, type SubagentsView } from "./subagentsContext";
 import { childrenOf, pathOf } from "./subagentTree";
+import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 
 /**
  * 右の欄（サブエージェントの欄）のタブの中身: 1 つのサブエージェントを、メインの会話と同じような画面で見る。
@@ -83,6 +84,8 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
   const path = pathOf(view.tree, entry.key);
   return (
     <header className="subagent-screen-head">
+      {/* 1 行目: 階層と、右の欄のタブのときだけ右端に「別ウィンドウで開く」 */}
+      <div className="subagent-screen-top">
       <nav className="subagent-screen-path" aria-label="サブエージェントの階層">
         <button
           type="button"
@@ -107,6 +110,8 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
         </span>
         <span className="subagent-screen-current">{entry.description}</span>
       </nav>
+        <PopOutTabButton />
+      </div>
       <div className="subagent-screen-title">
         <span className={cx("subagent-icon", running && "spinning")}>
           <ClaudeMark size={15} />
