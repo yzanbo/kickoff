@@ -1,4 +1,4 @@
-import { GitBranch, Settings, WifiOff } from "lucide-react";
+import { Check, GitBranch, Settings, WifiOff } from "lucide-react";
 import { useOnline } from "@/hooks/useOnline";
 import type { ConnectionState } from "@/api/useServerConnection";
 import { href } from "@/app/router";
@@ -7,6 +7,10 @@ import { useMainBranch } from "@/features/worktree/useWorkplace";
 import type { SettingsSection } from "@/features/settings/SettingsDialog";
 import { CONNECTION_LABELS, ConnectionPopover } from "./ConnectionPopover";
 import { IconButton } from "@/ui/IconButton";
+import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
+import { cx } from "@/lib/cx";
+import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode } from "./footerMode";
 import { usePopover } from "@/ui/Popover";
 import { UsageMeter } from "@/features/usage/UsageMeter";
 import { UsagePopover } from "@/features/usage/UsagePopover";
@@ -22,15 +26,20 @@ interface Props {
 
 /**
  * 下の帯（左: 設定とサーバーとの接続・ブランチ / 右: 契約プランと使用状況。ターミナルの開閉は右上）。
- * 接続と使用状況は押すと、その上に詳細を出す（画面は移らない）
+ * 接続と使用状況は押すと、その上に詳細を出す（画面は移らない）。
+ * 出し方（表示 / 下端に寄せたときだけ表示 / 非表示。useFooterMode）は、帯の右クリックと設定の「表示」で選ぶ。下端に寄せたときだけ出すときは、
+ * 画面の上に重ねて出し（縦の幅を取らない）、乗せている間・中の詳細を開いている間は出したままにする（.app-footer.auto-hide）
  */
 export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: Props) {
   const online = useOnline();
   const conn = usePopover();
   const usagePopover = usePopover();
   const usage = planUsage.usage;
+  const [mode, setMode] = useFooterMode();
+  const menu = useContextMenu();
+  if (mode === "hide") return null;
   return (
-    <footer className="app-footer">
+    <footer className={cx("app-footer", mode === "hover" && "auto-hide")} onContextMenu={menu.open}>
       {/* 設定は歯車だけ（ダイアログで開く）。サイドバーを閉じていても開ける */}
       <IconButton icon={Settings} label="設定" title="設定（⌘,）" className="footer-settings" onClick={() => onOpenSettings("usage")} />
       <button
@@ -83,6 +92,23 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
         usage && <span className="muted">使用状況を取得できません</span>
       )}
       {usagePopover.open && <UsagePopover anchor={usagePopover.anchor} planUsage={planUsage} onClose={usagePopover.close} />}
+      {menu.menu && (
+        <PopupMenu at={menu.menu.at} label="下の帯の出し方" onClose={menu.close}>
+          <div className="menu-label">下の帯</div>
+          {FOOTER_MODES.map((m) => (
+            <MenuItem
+              key={m}
+              role="menuitemradio"
+              checked={m === mode}
+              title={m === "hide" ? "戻すときは、設定（⌘,）の「表示」→「下の帯」から" : undefined}
+              onSelect={() => setMode(m)}
+            >
+              <span className="project-switch-item">{FOOTER_MODE_LABELS[m]}</span>
+              {m === mode && <Check size={14} aria-hidden />}
+            </MenuItem>
+          ))}
+        </PopupMenu>
+      )}
     </footer>
   );
 }

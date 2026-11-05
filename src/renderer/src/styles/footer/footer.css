@@ -12,6 +12,30 @@
   background: var(--bg-sidebar);
 }
 
+/*
+ * 下端に寄せたときだけ出す（設定の「表示」→「下の帯」）: 画面の上に重ね（縦の幅を取らない）、ふだんは下端の 4px だけを残して透明にする
+ * （そこにマウスを寄せると出る）。乗せている間・キーでピントを移している間・中の詳細（接続・使用状況）を開いている間は出したまま
+ */
+.app-footer.auto-hide {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  opacity: 0;
+  transform: translateY(calc(100% - 4px));
+  transition:
+    transform var(--panel-motion-duration) var(--panel-motion-ease),
+    opacity var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.app-footer.auto-hide:hover,
+.app-footer.auto-hide:has(:focus-visible),
+.app-footer.auto-hide:has([aria-expanded="true"]) {
+  opacity: 1;
+  transform: none;
+}
+
 /* 左下の設定（歯車だけ）。フッターの高さに収まる大きさにする */
 .footer-settings {
   flex: none;
