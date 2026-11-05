@@ -8,6 +8,7 @@ import { SideChanges } from "@/features/editor/SideChanges";
 import { SideChildChat } from "@/features/chat/children/SideChildChat";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { SideFileView } from "@/features/editor/SideFileView";
+import { memoTab } from "./tabKinds";
 import { NewChatPane } from "./NewChatPane";
 import type { PanelTab, PanelController } from "@/features/panel/usePanel";
 
@@ -64,7 +65,8 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
   changes: ({ tab: t }) => <SideChanges projectId={t.projectId} worktree={t.worktree} focus={t.focus} focusAt={t.focusAt} />,
   file: ({ tab: t }) => <SideFileView projectId={t.projectId} worktree={t.worktree} path={t.path} line={t.line} />,
   // チャットの画面の右の欄だけに開く。プロジェクトのメモ（自動で保存）と、子チャット（孫・ひ孫も、いちばん上の親の右の欄）
-  memo: ({ tab: t }) => <SideMemo projectId={t.projectId} path={t.path} />,
+  // 名前を変えたら、新しい名前のメモのタブに置き換える（同じ位置のまま）
+  memo: ({ tab: t, panel }) => <SideMemo projectId={t.projectId} path={t.path} onRenamed={(to) => panel.replaceTab(t.key, memoTab({ chatId: t.chatId, projectId: t.projectId, path: to }))} />,
   child: ({ tab: t, panel, visible }) => (
     <SideChildChat
       chatId={t.childId}

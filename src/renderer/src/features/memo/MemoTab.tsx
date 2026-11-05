@@ -16,6 +16,7 @@ import type { TreeNode } from "@/features/editor/treeModel";
 import { FileIcon } from "@/features/editor/FileIcon";
 import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf, remapPath } from "./memoPaths";
 import { isMemoDrag, MEMO_DRAG_TYPE, MemoTree } from "./MemoTree";
+import { confirmLeaveMemo } from "./memoGuards";
 import { MemoView } from "./MemoView";
 import { remapPaths, useMemoActions } from "./useMemoActions";
 
@@ -40,7 +41,9 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   const dir = list.data?.dir ?? "";
 
   const openFolders = (paths: string[]) => setOpenList([...new Set([...openList, ...paths])]);
-  const select = (path: string) => {
+  // 別のメモへ移るときは、まだ保存していない書きかけをどうするか聞く（保存 / 保存しない / キャンセル）
+  const select = async (path: string) => {
+    if (path !== selected && !(await confirmLeaveMemo(projectId, selected))) return;
     setSelected(path);
     openFolders(ancestorsOf(path));
   };
@@ -48,18 +51,23 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   // URL で来たメモを開いて、URL から外す（チャットの「メモに追加」のあと）
   useEffect(() => {
     if (!openMemo) return;
-    select(openMemo);
+    void select(openMemo);
     memosStore.invalidate(projectId);
     navigate({ name: "project", id: projectId, tab: "memos" }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openMemo]);
 
+  /** 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える。一覧の操作と、題名での名前の変更で共通） */
+  const moved = (from: string, to: string) => {
+    if (selected) setSelected(remapPath(selected, from, to));
+    setOpenList([...new Set([...remapPaths(openList, from, to), ...ancestorsOf(to)])]);
+  };
+
   const actions = useMemoActions(projectId, {
-    onCreated: (path, isDir) => (isDir ? openFolders([...ancestorsOf(path), path]) : select(path)),
-    onMoved: (from, to) => {
-      if (selected) setSelected(remapPath(selected, from, to));
-      setOpenList([...new Set([...remapPaths(openList, from, to), ...ancestorsOf(to)])]);
-    },
+    onCreated: (path, isDir) => (isDir ? openFolders([...ancestorsOf(path), path]) : void select(path)),
+    // 開いているメモ（とその入ったフォルダ）の名前を変える・動かす・ゴミ箱に入れる前も聞く
+    beforeChange: (path) => (selected && isUnder(selected, path) ? confirmLeaveMemo(projectId, selected) : Promise.resolve(true)),
+    onMoved: (from, to) => moved(from, to),
     onTrashed: (path) => {
       if (selected && isUnder(selected, path)) setSelected("");
       setOpenList(openList.filter((p) => !isUnder(p, path)));
@@ -141,7 +149,7 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
       <div className="pane-resizer" aria-label="一覧の幅を変える" {...width.handle} />
       <div className="changes-diff memo-main">
         {selected && selectedExists ? (
-          <MemoView key={selected} projectId={projectId} path={selected} dir={dir} />
+          <MemoView key={selected} projectId={projectId} path={selected} dir={dir} onRenamed={(to) => moved(selected, to)} />
         ) : (
           list.data && (
             <EmptyState

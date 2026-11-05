@@ -75,6 +75,36 @@
   white-space: nowrap;
 }
 
+/* 題名（押すとその場で名前を変える） */
+.memo-title {
+  max-width: 100%;
+  padding: 1px 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  font: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  background: none;
+  cursor: text;
+}
+
+.memo-title:hover {
+  background: var(--bg-hover);
+}
+
+.memo-head-title .inline-name-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.memo-title-input {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .memo-head-folder {
   flex: none;
   max-width: 40%;
@@ -100,16 +130,6 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-}
-
-.memo-body.preview {
-  overflow-y: auto;
-}
-
-/* 読む表示（チャットの返答と同じ Markdown の見た目を、読みやすい幅で） */
-.memo-preview {
-  max-width: 760px;
-  padding: 16px 24px 32px;
 }
 
 .memo-message {
