@@ -1,6 +1,8 @@
 /*
- * タブをまとめているときの 1 つのまとまり（ブラウザのタブのグループと同じ）。まとまりの色（--group-hue。clusterHues が同じ列のまとまりどうしで被らないように選ぶ）で
- * 薄い地と下の線を引き、どこからどこまでが同じまとまりかを見せる。「その他」（.plain）は色を付けず灰の線だけ
+ * タブをまとめているときの 1 つのまとまり（ブラウザのタブのグループと同じ）。まとまりの色（--group-hue。clusterHues が同じ列のまとまりどうしで被らないように選ぶ）を、
+ * 頭の札と、中のタブの色（--tab-color。上の 1px の線と表示中の枠。右の欄のメモ・サブ・子のタブと同じ見せ方。side-panel-tab-kinds.css）に使い、
+ * まとまりどうしは間隔で分ける。「その他」（.plain）は色を付けない。
+ * 以前はまとまりに色の地と下の 2px の線を引いていて、右の欄の種類の色（上の 1px の線）と作りがそろわず、色の面積も多くにぎやかだった
  */
 .panel-tab-group {
   position: relative;
@@ -12,37 +14,24 @@
   flex: 0 1 auto;
   min-width: calc(var(--cluster-tabs, 0) * 38px + 80px);
   gap: 2px;
-  padding: 0 3px;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  background: hsl(var(--group-hue) 50% 50% / 13%);
+  /* まとまりの色（札の文字・地、中のタブの線と枠）。ライトは地に負けない濃さ */
+  --group-color: hsl(var(--group-hue) 60% 68%);
 }
 
-.panel-tab-group::after {
-  content: "";
-  position: absolute;
-  right: 3px;
-  bottom: 0;
-  left: 3px;
-  height: 2px;
-  border-radius: 2px;
-  background: hsl(var(--group-hue) 55% 55%);
-  pointer-events: none;
+:root[data-theme="light"] .panel-tab-group {
+  --group-color: hsl(var(--group-hue) 55% 38%);
 }
 
-/* まとまりの中の表示中のタブ: 枠をまとまりの色にする（どのまとまりの、どのタブを見ているかが分かるように）。「その他」はふつうのタブと同じ色 */
-.panel-tab-group .panel-tab.active {
-  border-color: hsl(var(--group-hue) 55% 55%);
-}
-
-.panel-tab-group.plain .panel-tab.active {
-  border-color: color-mix(in srgb, var(--accent-bright) 55%, var(--border));
+/* まとまりの中のタブは、まとまりの色を自分の色にする（「その他」は付けない） */
+.panel-tab-group:not(.plain) .panel-tab {
+  --tab-color: var(--group-color);
 }
 
 .panel-tab-group + .panel-tab-group {
-  margin-left: 6px;
+  margin-left: 10px;
 }
 
-/* 自分で作ったグループの札をつかんで並べ替えているとき: 動かしているまとまりは薄く、入る位置（前・後ろ）に縦の線（::after は下の線に使っているので ::before） */
+/* 自分で作ったグループの札をつかんで並べ替えているとき: 動かしているまとまりは薄く、入る位置（前・後ろ）に縦の線 */
 .panel-tab-group.group-dragging {
   opacity: 0.45;
 }
@@ -68,16 +57,8 @@
   right: 0;
 }
 
-.panel-tab-group.plain {
-  background: transparent;
-}
-
-.panel-tab-group.plain::after {
-  background: var(--border-strong);
-}
-
 /*
- * まとまりの頭: まとまりの色の丸い札（左 = 名前・右 = 畳む / 開く）。札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す）。
+ * まとまりの頭: まとまりの色の丸い札（薄い地に色の文字。右の欄のタブの種類の札と同じ作り）（左 = 名前・右 = 畳む / 開く）。札は狭いときだけ名前を省く（中のタブの方を先に細くする。比を 1 未満にすると、札だけのまとまりで札が縮みきらずにはみ出す）。
  * 札の中身（2〜3 文字まで残す名前 ＋ 畳む / 開く）より細くはしない（以前は min-width: 0 で中身より細く縮み、右の「‹」が札の外にはみ出して隣のタブに隠れていた）
  */
 .panel-tab-cluster {
@@ -111,8 +92,8 @@
   align-items: stretch;
   border-radius: 999px;
   font-weight: 600;
-  color: #fff;
-  background: hsl(var(--group-hue) 45% 42%);
+  color: var(--group-color);
+  background: color-mix(in srgb, var(--group-color) 18%, transparent);
   --corner-offset: -7px;
 }
 
@@ -137,7 +118,7 @@
   min-width: 20px;
   padding: 0 6px 0 5px;
   border: none;
-  border-left: 1px solid rgb(255 255 255 / 28%);
+  border-left: 1px solid color-mix(in srgb, currentColor 30%, transparent);
   border-radius: 0 999px 999px 0;
   font: inherit;
   font-variant-numeric: tabular-nums;
@@ -146,7 +127,7 @@
   cursor: pointer;
 }
 
-/* 札は低く、下にまとまりの線があるので、数の丸を少し小さくし、下へのはみ出しを抑える（列の下端で切れないように） */
+/* 札は低いので、数の丸を少し小さくし、下へのはみ出しを抑える（列の下端で切れないように） */
 .panel-tab-cluster-pill .corner-count {
   min-width: 14px;
   height: 14px;
@@ -184,7 +165,7 @@ button.panel-tab-cluster-name {
 button.panel-tab-cluster-name:hover,
 button.panel-tab-cluster-name[aria-expanded="true"],
 .panel-tab-cluster-fold:hover {
-  background: rgb(255 255 255 / 16%);
+  background: color-mix(in srgb, currentColor 16%, transparent);
 }
 
 /* 札から開く一覧（top layer に出すので、タブの列に切り取られない）。札の太字などを受け継がない */
@@ -199,18 +180,6 @@ button.panel-tab-cluster-name[aria-expanded="true"],
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/*
- * 畳んだまとまり（Chrome と同じ）: 隠れたタブだけになったら、まとまりの薄い地と下の線を消して札だけを残す
- * （表示中のタブを残しているときは、そのタブがどのまとまりかが分かるよう地と線を残す）
- */
-.panel-tab-group.collapsed:not(:has(.panel-tab)) {
-  background: transparent;
-}
-
-.panel-tab-group.collapsed:not(:has(.panel-tab))::after {
-  display: none;
 }
 
 .panel-tab-group.plain .panel-tab-cluster-pill {
