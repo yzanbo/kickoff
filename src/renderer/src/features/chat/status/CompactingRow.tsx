@@ -49,7 +49,7 @@ export function CompactingRow({ compacting }: { compacting: CompactingState }) {
 
 /**
  * 終わった圧縮の記録（compact）。圧縮中の行と同じ枠のまま、見出しを「圧縮しました」にし、動いている印の代わりに
- * 始めた時刻 – 終わった時刻（実行時間）と、要約の前後のトークン数を出す。
+ * 始めた時刻 – 終わった時刻 · かかった時間と、要約の前後のトークン数を出す。
  * 記録の時刻は終わった時刻で、始めた時刻はかかった時間（Claude Code が知らせたときだけ）を引いて出す。なければ終わった時刻だけ
  */
 export function CompactedRow({ event }: { event: ChatEventOf<"compact"> }) {

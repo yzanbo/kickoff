@@ -93,7 +93,7 @@ test("実行時間: いちばん大きい単位から下はすべて出す", () 
 test("終わった処理の範囲と実行時間: 時刻が 1 つだけのときは添えない", () => {
   const now = new Date(2026, 10, 5, 12, 0);
   const at = (d: number, h: number, m: number, s: number) => new Date(2026, 10, d, h, m, s).toISOString();
-  assert.equal(formatStampRangeWithRunTime(at(5, 12, 6, 47), at(5, 12, 6, 55), now), "12:06:47 – 12:06:55（実行時間 8秒）");
-  assert.equal(formatStampRangeWithRunTime(at(4, 23, 58, 1), at(5, 1, 0, 13), now), "11/4 23:58:01 – 11/5 01:00:13（実行時間 1時間2分12秒）");
+  assert.equal(formatStampRangeWithRunTime(at(5, 12, 6, 47), at(5, 12, 6, 55), now), "12:06:47 – 12:06:55 · 8秒");
+  assert.equal(formatStampRangeWithRunTime(at(4, 23, 58, 1), at(5, 1, 0, 13), now), "11/4 23:58:01 – 11/5 01:00:13 · 1時間2分12秒");
   assert.equal(formatStampRangeWithRunTime(at(5, 8, 34, 12), at(5, 8, 34, 12), now), "08:34:12");
 });
