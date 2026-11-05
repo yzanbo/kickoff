@@ -35,6 +35,8 @@ export interface ChatPaneState {
   retry: RetryChoices | null;
   /** 開いているサブエージェントのカード（行のキー） */
   openSubagents: ReadonlySet<string>;
+  /** 高さの制限を外して、中身をすべて流れに出しているカード（「全体を表示」。行のキー） */
+  fullSubagents: ReadonlySet<string>;
   /** チャット欄から伝える先のサブエージェント（なければ null = メインのエージェントへ送る） */
   relayTarget: RelayTarget | null;
 }
@@ -52,6 +54,8 @@ export interface ChatPaneActions {
   revealSubagent: (key: string) => void;
   /** サブエージェントのカードを開く・閉じる（open を省けば切り替え） */
   toggleSubagent: (key: string, open?: boolean) => void;
+  /** カードの中身の高さの制限を外す・戻す（「全体を表示」） */
+  toggleSubagentFull: (key: string) => void;
   /** チャット欄の宛先をそのサブエージェントにする（送るとメインのエージェントから SendMessage で伝える）。ピントもチャット欄へ */
   tellSubagent: (key: string) => void;
   /** チャット欄の宛先をメインのエージェントに戻す */

@@ -14,6 +14,7 @@ import { retryTurn, useRetryChoices } from "@/features/chat/rewind/useRetryChoic
 import { useSubagents } from "@/features/chat/subagents/useSubagents";
 import type { SubagentsView } from "@/features/chat/subagents/subagentsContext";
 import { pathOf, subagentTree } from "@/features/chat/subagents/subagentTree";
+import { agentHues } from "@/features/chat/subagents/agentHues";
 import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
 import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems";
 import { useTimelineScrollHandle } from "@/features/chat/timeline/timelineScroll";
@@ -61,7 +62,8 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
   const subagents = useSubagents(chat.id, events, busy, live.background);
   // サブエージェントの入れ子（流れの中のカード・ピルの一覧・カードへ移るとき）と、カードが読むもの（変わったときだけ新しい値にし、カードだけが描き直る）
   const tree = useMemo(() => subagentTree(subagents), [subagents]);
-  const subagentsView = useMemo<SubagentsView>(() => ({ chatId: chat.id, busy, events, tree }), [chat.id, busy, events, tree]);
+  const hues = useMemo(() => agentHues(subagents), [subagents]);
+  const subagentsView = useMemo<SubagentsView>(() => ({ chatId: chat.id, busy, events, tree, hues }), [chat.id, busy, events, tree, hues]);
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
   const items = useMemo(() => groupEvents(events), [events]);
@@ -99,7 +101,7 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
   const [pane] = useState<ChatPaneActions>(() => {
     const now = () => latest.current;
     const chatId = chat.id;
-    const state = createValueCell<ChatPaneState>({ retry, openSubagents: new Set(), relayTarget: null });
+    const state = createValueCell<ChatPaneState>({ retry, openSubagents: new Set(), fullSubagents: new Set(), relayTarget: null });
     const patch = (next: Partial<ChatPaneState>) => state.set({ ...state.get(), ...next });
     /** 描いたあとに、その記録の要素へ移る（開いたカードの中身が描かれるまで、数フレーム待つ） */
     const jumpWhenDrawn = (eventId: number, frames = 20) => {
@@ -129,6 +131,11 @@ export function useChatView({ chat, project, events, approvals, live: coreLive, 
         if (open ?? !current.has(key)) next.add(key);
         else next.delete(key);
         patch({ openSubagents: next });
+      },
+      toggleSubagentFull: (key) => {
+        const next = new Set(state.get().fullSubagents);
+        if (!next.delete(key)) next.add(key);
+        patch({ fullSubagents: next });
       },
       tellSubagent: (key) => {
         const entry = now().tree.byKey.get(key);

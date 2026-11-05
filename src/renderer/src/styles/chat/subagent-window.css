@@ -1,0 +1,80 @@
+/* ==== サブエージェントの色・メインからの枝分かれの線・カードの手順の窓 ==== */
+
+/*
+ * そのサブエージェントの色（--agent-hue は起動した順に決まる色相。subagents/agentHues.ts）。カードの左の端の細い帯・開いた中身の縦線・
+ * 目次の点・動きの線で同じ色にする
+ */
+.subagent-card {
+  --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
+  box-shadow: inset 3px 0 0 var(--agent-color);
+}
+
+:root[data-theme="light"] .subagent-card {
+  --agent-color: hsl(var(--agent-hue, 25) 55% 42%);
+}
+
+/* メインの流れのカードは少し右へ寄せ、上から曲がって入る線で、メインから枝分かれした配下だと見せる（線はそのサブエージェントの色） */
+.timeline-inner > .subagent-card {
+  margin-left: 18px;
+}
+
+.timeline-inner > .subagent-card::before {
+  position: absolute;
+  top: -6px;
+  left: -16px;
+  width: 13px;
+  height: 22px;
+  border-bottom: 2px solid var(--agent-color);
+  border-left: 2px solid var(--agent-color);
+  border-bottom-left-radius: 8px;
+  content: "";
+}
+
+/*
+ * いちばん外側のカードの手順の窓（SubagentWindow）: 流れの見えている高さ（--timeline-h）の半分ほどで、中だけスクロールする。
+ * 枠で囲んで、中でスクロールする場所だと分かるようにする。「全体を表示」（.full）で高さの制限を外す
+ */
+.subagent-window {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.subagent-window-scroll {
+  max-height: clamp(180px, calc(var(--timeline-h, 70vh) * 0.5), 560px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.subagent-window.full .subagent-window-scroll {
+  max-height: none;
+  overflow: visible;
+}
+
+.subagent-window-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.subagent-window-toggle {
+  justify-self: end;
+  font-size: 12px;
+}
+
+/* 名前の前の、そのサブエージェントの色の点（カードの帯・動きの線と同じ色。--agent-hue は SubagentChip が入れる） */
+.subagent-row .agent-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: 1px;
+  background: hsl(var(--agent-hue, 25) 60% 65%);
+}
+
+:root[data-theme="light"] .subagent-row .agent-dot {
+  background: hsl(var(--agent-hue, 25) 55% 42%);
+}
