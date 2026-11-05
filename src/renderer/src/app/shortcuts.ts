@@ -28,6 +28,8 @@ export function useAppShortcuts(actions: Actions) {
       return;
     }
     if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+    // エディタ（メモの CodeMirror・ファイルの Monaco）などが先に受け取ったキーは扱わない（その中の検索など）
+    if (e.defaultPrevented) return;
     // Shift つきは ⌘⇧F と ⌘⇧A だけ受け付ける
     if (e.shiftKey && !["f", "a"].includes(e.key.toLowerCase())) return;
     if (e.shiftKey && e.key.toLowerCase() === "a") {

@@ -1,10 +1,30 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { search, searchKeymap } from "@codemirror/search";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { useEffect, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
+
+/** 検索の欄の文言（CodeMirror の英語を、アプリの言い方にそろえる） */
+const SEARCH_PHRASES: Record<string, string> = {
+  Find: "検索",
+  Replace: "置き換え",
+  next: "次へ",
+  previous: "前へ",
+  all: "すべて",
+  "match case": "大文字・小文字を区別",
+  regexp: "正規表現",
+  "by word": "単語単位",
+  replace: "置き換え",
+  "replace all": "すべて置き換え",
+  close: "閉じる",
+  "current match": "いまの一致",
+  "replaced match": "置き換えた一致",
+  "replaced $ matches": "$ 件を置き換えました",
+  "on line": "行",
+};
 
 interface Props {
   /** 書き始めの中身（作ったときだけ読む。読み直したときは key を変えて作り直す） */
@@ -47,9 +67,13 @@ export default function MarkdownEditor({ initialValue, live, onChange, onSave }:
               },
             },
             indentWithTab,
+            ...searchKeymap,
             ...defaultKeymap,
             ...historyKeymap,
           ]),
+          // ⌘F でエディタの中を探す（上に検索の欄。見えていない行も探せる）
+          search({ top: true }),
+          EditorState.phrases.of(SEARCH_PHRASES),
           markdown({ base: markdownLanguage }),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ "aria-label": "メモ" }),

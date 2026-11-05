@@ -5,6 +5,7 @@ import { SUBAGENT_PANEL_WIDTH } from "@/lib/storageKeys";
 import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
 import { usePanelHost } from "@/features/panel/panelHost";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
+import { AgentPanelFind } from "./AgentPanelFind";
 
 /** 右の欄のいちばん狭い幅 */
 const MIN_AGENT_PANEL_WIDTH = 300;
@@ -60,6 +61,8 @@ export function AgentSplit({ chatId, handleRef, children }: { chatId: number; ha
           }}
         />
       )}
+      {/* ⌘F でタブの中の文字を探す（右の欄の中にピントがあるとき） */}
+      {Host && panel.tabs.length > 0 && <AgentPanelFind chatId={chatId} />}
     </div>
   );
 }
