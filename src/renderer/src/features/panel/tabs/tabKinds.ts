@@ -78,7 +78,7 @@ export interface ClusterResolver {
   /** チャットが入るまとまり（サイドバー・ボードと同じ決め方） */
   ofChat: (chat: Chat) => BucketHead;
   /** 作成先（プロジェクト・グループ）のまとまり（チャットがまだ分からないタブ・新しいチャット） */
-  ofTarget: (projectId: number, group?: number) => BucketHead;
+  ofTarget: (projectId: number, group?: number, worktree?: string) => BucketHead;
   /** フォルダ（本体・ワークツリー）のまとまり（ターミナル。グループ別では「その他」） */
   ofFolder: (projectId: number, cwd: string) => BucketHead;
 }
@@ -136,7 +136,7 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     // 作成先のグループ名（パネルの中で分かりしだい入れる。送ったあとのチャットのタブも同じく添える）
     groupName: (t) => t.groupName,
     projectOf: (t) => t.projectId,
-    cluster: (t, r) => r.ofTarget(t.projectId, t.group),
+    cluster: (t, r) => r.ofTarget(t.projectId, t.group, t.worktree),
   },
   subagent: {
     shows: "subagent",

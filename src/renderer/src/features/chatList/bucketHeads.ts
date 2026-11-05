@@ -107,7 +107,7 @@ export function draftHead(target: DraftTarget, by: BucketBy | undefined, ctx: Bu
     case "group":
       return groupHead(target.projectId, target.group, ctx);
     case "worktree":
-      return workplaceHead(target.projectId, MAIN_PLACE, ctx);
+      return workplaceHead(target.projectId, target.worktree ? { worktree_path: target.worktree, branch: null } : MAIN_PLACE, ctx);
     case "status":
       return undefined;
   }

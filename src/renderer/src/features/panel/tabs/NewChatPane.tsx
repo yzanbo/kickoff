@@ -21,6 +21,8 @@ interface Props {
   projectId: number;
   /** グループの＋から始めたときのグループ */
   group?: number;
+  /** 作業場所別のまとまりの「新しいチャット」から始めたときのワークツリーのフォルダ（なければ本体） */
+  worktree?: string;
   /** 初めに入力欄に入れるもの（送信待ちの指示を新しいチャットで聞くとき。文と添付） */
   seed?: NewChatSeed;
   /** 書きかけていた文（ボードを開き直した・アプリを再起動したときに入力欄へ戻す） */
@@ -30,6 +32,8 @@ interface Props {
   /** 全プロジェクトのボードでは、どのプロジェクトで始めるかを選べるようにする */
   projects?: Project[];
   onProjectChange?: (projectId: number) => void;
+  /** 作業場所を選び直したとき（いまあるワークツリーならそのフォルダ、本体・新しいワークツリーなら undefined。タブのまとまりに使う） */
+  onWorktreeChange?: (worktree: string | undefined) => void;
   /** 作成先のグループを変えたとき・グループ名が分かったとき（タブの表示に使う） */
   onGroupChange?: (group: number | undefined, groupName: string | undefined) => void;
   /** 最初のメッセージを送ってチャットができたとき（このタブをそのチャットに置き換える） */
@@ -42,12 +46,14 @@ interface Props {
 export function NewChatPane({
   projectId,
   group,
+  worktree,
   seed,
   draftText,
   visible = true,
   projects,
   onProjectChange,
   onGroupChange,
+  onWorktreeChange,
   onCreated,
   onDraftChange,
 }: Props) {
@@ -55,9 +61,20 @@ export function NewChatPane({
   const options = useChatOptions(undefined, projectId);
   const project = projectsById.get(projectId);
   const chats = useChats({ projectId });
-  // 作業場所（初めは本体。並行して進めたいときにワークツリーを選ぶ）
-  const [place, setPlace] = useState<Workplace>({ kind: "main" });
-  useEffect(() => setPlace({ kind: "main" }), [projectId]);
+  // 作業場所（初めは本体か、作業場所別のまとまりから始めたときはそのワークツリー。並行して進めたいときにワークツリーを選ぶ）
+  const initialPlace = (): Workplace => (worktree ? { kind: "existing", path: worktree } : { kind: "main" });
+  const [place, setPlace] = useState<Workplace>(initialPlace);
+  const firstProject = useRef(projectId);
+  useEffect(() => {
+    // プロジェクトを選び直したら本体から（初めの描画では、渡された作業場所のまま）
+    if (firstProject.current === projectId) return;
+    firstProject.current = projectId;
+    setPlace({ kind: "main" });
+  }, [projectId]);
+  const changePlace = (next: Workplace) => {
+    setPlace(next);
+    onWorktreeChange?.(next.kind === "existing" ? next.path : undefined);
+  };
   // 同じ作業場所で、ほかのチャットが作業中か（同じファイルを触るとぶつかる。チャットの画面と同じ数え方）
   const busyHere = useBusyNeighbors(projectId, workplacePath(place)) > 0;
   // 作成先のグループ（作る・名前を変える・消すと、サーバーの知らせで選択肢も直る）
@@ -106,7 +123,7 @@ export function NewChatPane({
           ) : (
             project && <ProjectChip id={project.id} name={project.name} linked />
           )}
-          <WorkplacePicker projectId={projectId} value={place} onChange={setPlace} />
+          <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />
           {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
           {groups.length > 0 && onGroupChange && (
             <label className={`new-chat-group ${group ? "has-group" : ""}`} title="作成先のグループ">

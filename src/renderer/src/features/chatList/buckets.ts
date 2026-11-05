@@ -36,6 +36,8 @@ export type BucketKind = "project" | "group" | "ungrouped" | "worktree" | "statu
 export interface DraftTarget {
   projectId: number;
   group?: number;
+  /** 始める作業場所のワークツリーのフォルダ（なければ本体） */
+  worktree?: string;
 }
 
 /** まとまりの見出し（どのまとまりか。中身はまだ入れない） */

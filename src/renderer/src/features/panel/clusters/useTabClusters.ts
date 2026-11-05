@@ -54,7 +54,7 @@ export function useTabClusters(
   const resolve: ClusterResolver = {
     chatById: (id) => panel.chats.find((r) => r.id === id),
     ofChat: clusterOfChat,
-    ofTarget: (projectId, group) => present(draftHead({ projectId, group }, by, ctx) ?? OTHER_CLUSTER),
+    ofTarget: (projectId, group, worktree) => present(draftHead({ projectId, group, worktree }, by, ctx) ?? OTHER_CLUSTER),
     // ターミナルの開いたフォルダが、そのプロジェクトの本体かワークツリーか（グループ別では「その他」）
     ofFolder: (projectId, cwd) =>
       by === "group" ? OTHER_CLUSTER : present(workplaceHead(projectId, { worktree_path: projectsById.get(projectId)?.repo_path === cwd ? null : cwd, branch: null }, ctx)),

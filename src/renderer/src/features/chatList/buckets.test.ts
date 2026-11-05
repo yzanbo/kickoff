@@ -187,6 +187,8 @@ test("chatHead / draftHead: パネルのタブと同じ決め方（アーカイ�
   assert.equal(chatHead(chat(1, { group_id: 9, project_id: 2 }), "group", ctx, opts)?.key, "p2/g9");
   assert.equal(draftHead({ projectId: 2, group: 1 }, "group", ctx)?.key, "p2/ungrouped");
   assert.equal(draftHead({ projectId: 2 }, "worktree", ctx)?.key, "p2/w:main");
+  // 作業場所別のまとまりから始めた下書きは、そのワークツリーのまとまり
+  assert.equal(draftHead({ projectId: 2, worktree: "/repo-wt/x" }, "worktree", ctx)?.key, "p2/w:/repo-wt/x");
   assert.equal(draftHead({ projectId: 2 }, "status", ctx), undefined);
 });
 

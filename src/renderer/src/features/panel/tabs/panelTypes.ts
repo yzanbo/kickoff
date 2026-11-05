@@ -6,6 +6,8 @@ import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
 export interface NewChatTarget {
   projectId: number;
   group?: number;
+  /** 始める作業場所のワークツリーのフォルダ（作業場所別のまとまりの「新しいチャット」から。なければ本体） */
+  worktree?: string;
 }
 
 /** パネルのタブ（チャット・新しいチャット・サブエージェント・ブラウザ・ターミナル。種類ごとの違いは tabKinds.ts の表） */
