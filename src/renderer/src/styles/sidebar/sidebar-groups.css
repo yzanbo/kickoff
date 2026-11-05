@@ -94,7 +94,7 @@
   border-radius: var(--radius);
 }
 
-/* 「グループなし」は自分で作ったグループより控えめに */
+/* 「No Group」は自分で作ったグループより控えめに */
 .custom-group-name.ungrouped-name {
   font-weight: 400;
   color: var(--muted);
@@ -190,7 +190,7 @@
   flex: none;
 }
 
-/* 「グループなし」には「…」がないので、同じ幅（アイコンボタンの幅）を空けて＋の位置をそろえる */
+/* 「No Group」には「…」がないので、同じ幅（アイコンボタンの幅）を空けて＋の位置をそろえる */
 .group-menu-spacer {
   flex: none;
   width: 26px;

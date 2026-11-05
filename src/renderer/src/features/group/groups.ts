@@ -3,6 +3,7 @@ import { useWindowEvent } from "@/hooks/useWindowEvent";
 import type { Chat, ChatGroup } from "@shared/types";
 import { confirmDialog } from "@/ui/dialogs";
 import type { DraftRef } from "@/features/panel/state/panelDrafts";
+import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
 /** サイドバーでグループ名を押したときの知らせ（すでに表示しているグループでも、もう一度ハイライトするため） */
@@ -173,7 +174,7 @@ function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
 export function confirmDeleteGroup(group: Pick<ChatGroup, "name">): Promise<boolean> {
   return confirmDialog({
     title: `グループ「${group.name}」を削除しますか？`,
-    message: "中のチャットは消えず、グループなしに戻ります。",
+    message: `中のチャットは消えず、「${NO_GROUP_LABEL}」に戻ります。`,
     confirmLabel: "削除",
     danger: true,
   });

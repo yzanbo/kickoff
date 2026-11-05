@@ -4,9 +4,10 @@ import { openNewChat } from "@/app/router";
 import { IconButton } from "@/ui/IconButton";
 import { FoldHead } from "@/ui/FoldHead";
 import type { useGroupSections } from "./useGroupSections";
+import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
 /**
- * サイドバーの「グループなし」の見出し（グループがあるときだけ出す）。開閉・件数・グループなしで新しいチャット。
+ * サイドバーの「No Group」の見出し（グループがあるときだけ出す）。開閉・件数・グループなしで新しいチャット。
  * チャットをドロップするとグループから外す（drop は useGroupSections の ungroupedDrop）
  */
 export function UngroupedHead({
@@ -29,11 +30,11 @@ export function UngroupedHead({
       {...drop.props}
       open={open}
       onToggle={onToggle}
-      label="グループなし"
+      label={NO_GROUP_LABEL}
       count={count}
       actions={
         <>
-          <IconButton icon={Plus} label="グループなしで新しいチャット" size={13} className="custom-group-add" onClick={() => openNewChat(projectId)} />
+          <IconButton icon={Plus} label={`${NO_GROUP_LABEL} で新しいチャット`} size={13} className="custom-group-add" onClick={() => openNewChat(projectId)} />
           {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
           <span className="group-menu-spacer" aria-hidden />
         </>

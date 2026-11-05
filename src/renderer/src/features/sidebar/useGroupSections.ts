@@ -47,7 +47,7 @@ export function useGroupSections({ projectId, groups, chats }: { projectId: numb
       dropProps: dropProps(group.id),
       dragProps: reorder.handle(group.id),
     }),
-    /** 「グループなし」をドロップ先にする（チャットをグループから外す） */
+    /** 「No Group」をドロップ先にする（チャットをグループから外す） */
     ungroupedDrop: { over: over === "none", props: dropProps(null) },
     /** 開いているメニュー（プロジェクトの要素の中に描く） */
     menuElement: menu.menu,

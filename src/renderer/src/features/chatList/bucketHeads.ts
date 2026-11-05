@@ -5,6 +5,7 @@ import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type BoardColumn, type Chat } from 
 import { chatStateOf } from "@/features/chat/chatState";
 import { workplaceOf } from "@/features/worktree/workplace";
 import type { BucketBy, BucketContext, BucketHead, BucketOptions, DraftTarget } from "./buckets";
+import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
 /** プロジェクトのまとまりのキー（ほかのまとまりのキーの根） */
 export const projectKey = (projectId: number) => `p${projectId}`;
@@ -31,7 +32,7 @@ function projectHead(projectId: number, ctx: BucketContext, parent?: string): Bu
 /** グループのまとまり（グループがもうない・読み込み中・null ならグループなし） */
 function groupHead(projectId: number, groupId: number | null | undefined, ctx: BucketContext, parent?: string): BucketHead {
   const group = groupId == null ? undefined : ctx.groupsOf?.(projectId).find((g) => g.id === groupId);
-  if (!group) return { key: keyAt("ungrouped", projectId, parent), kind: "ungrouped", label: "グループなし", title: "グループに入っていないチャット", projectId };
+  if (!group) return { key: keyAt("ungrouped", projectId, parent), kind: "ungrouped", label: NO_GROUP_LABEL, title: "グループに入っていないチャット", projectId };
   return { key: keyAt(`g${group.id}`, projectId, parent), kind: "group", label: group.name, title: `グループ: ${group.name}`, projectId, group };
 }
 

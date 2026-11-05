@@ -16,6 +16,7 @@ import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { currentChats, useChats } from "@/stores/chats";
 import { groupNameIn, useGroups } from "@/stores/groups";
 import { worktreesStore } from "@/stores/worktrees";
+import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
 interface Props {
   projectId: number;
@@ -137,7 +138,7 @@ export function NewChatPane({
                   onGroupChange(next, groupNameIn(groups, next));
                 }}
               >
-                <option value="">グループなし</option>
+                <option value="">{NO_GROUP_LABEL}</option>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
