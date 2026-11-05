@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, CornerDownRight } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import type { ChatEvent } from "@shared/types";
 import { isSubagentTool, subagentReport, type SubagentEntry } from "@shared/chat/subagents";
@@ -6,22 +6,131 @@ import { relayedText } from "@shared/chat/prompts";
 import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
 import { formatElapsed, formatFullStamp, formatRunTime, formatStampRange, formatStampRangeWithRunTime } from "@/lib/time";
+import { ClaudeMark } from "@/ui/ClaudeMark";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { activityOf, activityText } from "@/features/chat/status/stall";
 import { Working } from "@/features/chat/status/Working";
 import { groupEvents, type TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { describeTool } from "@/features/chat/tools/toolDescribe";
-import { showsSubagentStatus } from "./subagentList";
+import { agentHueStyle } from "./agentHues";
+import { showsSubagentStatus, subagentStatusLabel } from "./subagentList";
 import type { SubagentsView } from "./subagentsContext";
-import { latestActivity, scopeOf } from "./subagentTree";
+import { childrenOf, latestActivity, scopeOf } from "./subagentTree";
 
 /*
  * サブエージェントの見せ方の部品（流れの中のカード SubagentCard と、右の欄のサブエージェントの画面 SubagentScreen で共通）:
- * 開始〜終了の時刻・いまの動き・終わったもののまとめ・親からの依頼・手順（発言・ツール・入れ子のカード・作業中の行）・親への報告
+ * 「サブエージェント」の札・中で起動したサブエージェントの札・開始〜終了の時刻・いまの動き・終わったもののまとめ・親からの依頼・
+ * 手順（発言・ツール・入れ子のカード・作業中の行）・親への報告
  */
+
+/** 中で起動したサブエージェントの札に並べる点の数（多ければ「+n」） */
+const MAX_CHILD_DOTS = 5;
+/** 閉じたカードの下に並べる、中で起動したサブエージェントの行の数（多ければ「ほか n 件」） */
+const MAX_CHILD_ROWS = 3;
+
+/**
+ * 名前の前の「サブエージェント」の札（そのサブエージェントの色）。サブエージェントの中で起動したもの（入れ子）は頭に「↳」を付け、
+ * 乗せると、どのサブエージェントの中で起動したかを出す（何段目かの数ではなく親の名前で。深さは右の欄の階層・乗せたときの道筋で見る）
+ */
+export function SubagentKind({ entry, view }: { entry: SubagentEntry; view: SubagentsView }) {
+  const parent = entry.parentKey === undefined ? undefined : view.tree.byKey.get(entry.parentKey);
+  return (
+    <span className={cx("subagent-kind", parent && "nested")} title={parent ? `「${parent.description}」の中で起動したサブエージェント` : "メインのエージェントが起動したサブエージェント"}>
+      {parent && <CornerDownRight size={11} aria-hidden />}
+      <span className="subagent-kind-text">サブエージェント</span>
+    </span>
+  );
+}
+
+/**
+ * 中で起動したサブエージェントがあるときの札（閉じたカードでも、中に子がいると分かるように）: 子の色の点（実行中の子は明滅）と「中に n 件」。
+ * 乗せると子の名前と状態の一覧。onOpen があれば押せる（カードを開く・右の欄の画面ではその子のカードへ移る）。子がなければ出さない
+ */
+export function SubagentChildren({ entry, view, onOpen }: { entry: SubagentEntry; view: SubagentsView; onOpen?: () => void }) {
+  const children = childrenOf(view.tree, entry.key);
+  if (children.length === 0) return null;
+  const title = [`中で起動したサブエージェント ${children.length} 件`, ...children.map((c) => `・${c.description}（${subagentStatusLabel(c)}）`)].join("\n");
+  const body = (
+    <>
+      <span className="subagent-children-dots" aria-hidden>
+        {children.slice(0, MAX_CHILD_DOTS).map((c) => (
+          <span key={c.key} className={cx("subagent-child-dot", c.status === "running" && "running")} style={agentHueStyle(view.hues.get(c.key))} />
+        ))}
+        {children.length > MAX_CHILD_DOTS && <span className="subagent-children-more">+{children.length - MAX_CHILD_DOTS}</span>}
+      </span>
+      <span className="subagent-children-text">中のサブエージェント {children.length} 件</span>
+    </>
+  );
+  if (!onOpen) {
+    return (
+      <span className="subagent-children" title={title}>
+        {body}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="subagent-children"
+      title={title}
+      // カードの見出し（押すと開く）の中にあるので、見出しの操作と重ねない
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen();
+      }}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      {body}
+    </button>
+  );
+}
 
 /** サブエージェントの手順の流れを描く（TimelineItems。流れの部品をここから読むと輪になるので、描く側から渡す） */
 export type RenderItems = (items: TimelineItem[], active: boolean) => ReactNode;
+
+/**
+ * 閉じたカードの下に、中で起動したサブエージェントを木の枝の形で 1 行ずつ並べる（「└ ✳ 洗い出し 完了 · 50秒」。枝はその子の色）。
+ * 閉じていても中にサブエージェントがいると分かるように（見出しの札だけでは分かりにくかった）。行を押すとその子を開き（onOpen。設定の開き方）、
+ * 多ければ MAX_CHILD_ROWS 件まで出して「ほか n 件」（onMore。カードを開く）。子がなければ出さない
+ */
+export function SubagentChildRows({ entry, view, onOpen, onMore }: { entry: SubagentEntry; view: SubagentsView; onOpen: (key: string) => void; onMore: () => void }) {
+  const children = childrenOf(view.tree, entry.key);
+  if (children.length === 0) return null;
+  const shown = children.slice(0, MAX_CHILD_ROWS);
+  return (
+    <ul className="subagent-child-rows" aria-label="中で起動したサブエージェント">
+      {shown.map((child) => (
+        <li key={child.key} style={agentHueStyle(view.hues.get(child.key))}>
+          <button type="button" className="subagent-child-row" title={`中で起動したサブエージェント「${child.description}」を開く`} onClick={() => onOpen(child.key)}>
+            <span className={cx("subagent-icon", child.status === "running" && "spinning")}>
+              <ClaudeMark size={12} />
+            </span>
+            <span className="subagent-child-name">{child.description}</span>
+            <span className="subagent-child-state">{childStateText(child, childrenOf(view.tree, child.key).length)}</span>
+          </button>
+        </li>
+      ))}
+      {children.length > shown.length && (
+        <li>
+          <button type="button" className="link-button subagent-child-more" onClick={onMore}>
+            ほか {children.length - shown.length} 件
+          </button>
+        </li>
+      )}
+    </ul>
+  );
+}
+
+/** 中の子の行の状態の文（実行中は最後のツール、終わったものは状態とかかった時間。孫がいれば「中に n 件」） */
+function childStateText(child: SubagentEntry, grandchildren: number): string {
+  const end = child.endedAt ?? child.lastActivityAt;
+  const duration = child.durationMs ?? (child.startedAt && end ? Date.parse(end) - Date.parse(child.startedAt) : undefined);
+  const parts =
+    child.status === "running"
+      ? ["実行中", child.lastTool ? `いま: ${child.lastTool}` : null]
+      : [subagentStatusLabel(child), duration !== undefined ? formatElapsed(duration) : null];
+  return [...parts, grandchildren > 0 ? `中に ${grandchildren} 件` : null].filter(Boolean).join(" · ");
+}
 
 /** 開始〜終了の時刻と実行時間（実行中は開始〜最後の動き）。今日なら時刻だけ、別の日なら日付も。乗せると年月日とかかった時間 */
 export function SubagentTime({ entry }: { entry: SubagentEntry }) {

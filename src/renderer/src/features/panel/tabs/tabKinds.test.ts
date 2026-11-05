@@ -70,3 +70,12 @@ test("サブエージェントのタブ: 同じサブエージェントは 1 つ
   assert.equal(specOf(tab).chatIdOf?.(tab), 33);
   assert.equal(specOf(tab).projectOf(tab), undefined);
 });
+
+test("サブエージェントのタブ: 入れ子のものは名前の前に「↳」、乗せると外側からの道筋。入れ子でなければ名前だけ", () => {
+  const nested = subagentTab({ chatId: 33, agentKey: "toolu_2", title: "洗い出し", path: "調査 › 洗い出し" });
+  assert.equal(specOf(nested).label(nested, undefined), "↳ 洗い出し");
+  assert.equal(specOf(nested).hint?.(nested), "調査 › 洗い出し");
+  const top = subagentTab({ chatId: 33, agentKey: "toolu_1", title: "調査" });
+  assert.equal("path" in top, false);
+  assert.equal(specOf(top).hint?.(top), "調査");
+});

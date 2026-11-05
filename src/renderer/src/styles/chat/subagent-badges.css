@@ -1,0 +1,244 @@
+/*
+ * ==== サブエージェントの札（流れの中のカードと、右の欄の画面の見出しで共通。subagentParts の SubagentKind・SubagentChildren）と、
+ * 狭い見出しで名前を残す並べ方 ====
+ */
+
+/*
+ * 名前の前の「サブエージェント」の札（そのサブエージェントの色。右の欄の画面の見出しと、流れの中のカードの見出しで同じ）。
+ * 狭い見出しでは名前を残すために隠す（カード・見出しの幅で決める @container）
+ */
+.subagent-kind {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--agent-color);
+  background: color-mix(in srgb, var(--agent-color) 16%, transparent);
+}
+
+/* 右の欄で表示している、流れの中のカードの印（見出しの名前の後ろ。アクセントの色の控えめな札） */
+.subagent-card-side {
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--accent-fg);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+/* 入れ子（サブエージェントの中で起動したもの）の札は頭に「↳」 */
+.subagent-kind.nested {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/*
+ * 中で起動したサブエージェントがあるときの札: 子の色の点（実行中の子は明滅）と「中に n 件」。閉じたカードでも中に子がいると分かるように。
+ * 押せるときはボタン（カードを開く・その子のカードへ移る）
+ */
+.subagent-children {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--muted);
+  background: transparent;
+}
+
+button.subagent-children {
+  cursor: pointer;
+}
+
+button.subagent-children:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.subagent-children-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.subagent-child-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: hsl(var(--agent-hue, 25) 60% 65%);
+}
+
+:root[data-theme="light"] .subagent-child-dot {
+  background: hsl(var(--agent-hue, 25) 55% 42%);
+}
+
+.subagent-child-dot.running {
+  animation: subagent-child-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes subagent-child-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.subagent-children-more {
+  margin-left: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * 閉じたカードの下の、中で起動したサブエージェントの行（SubagentChildRows）。名前の位置にそろえ、左に木の枝（└）をその子の色で引く。
+ * 行を押すとその子を開く
+ */
+.subagent-child-rows {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0 10px 6px 50px;
+  list-style: none;
+}
+
+.subagent-child-rows > li {
+  --agent-color: hsl(var(--agent-hue, 25) 60% 65%);
+
+  position: relative;
+  min-width: 0;
+  padding-left: 16px;
+}
+
+:root[data-theme="light"] .subagent-child-rows > li {
+  --agent-color: hsl(var(--agent-hue, 25) 55% 42%);
+}
+
+/* 木の枝（上から曲がって行に入る。「ほか n 件」の行には引かない） */
+.subagent-child-rows > li:has(.subagent-child-row)::before {
+  position: absolute;
+  top: -3px;
+  left: 2px;
+  width: 10px;
+  height: 14px;
+  border-bottom: 2px solid var(--agent-color);
+  border-left: 2px solid var(--agent-color);
+  border-bottom-left-radius: 5px;
+  content: "";
+}
+
+.subagent-child-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.subagent-child-row:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.subagent-child-row .subagent-icon {
+  margin-top: 0;
+}
+
+.subagent-child-name {
+  flex: 0 1 auto;
+  min-width: 3em;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.subagent-child-state {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-child-more {
+  margin-left: 6px;
+  font-size: 12px;
+}
+
+/*
+ * 狭い欄（右の欄を分けたペインなど）でも名前が消えないよう、カードの見出し・画面の見出しは名前を先に残し、
+ * 種類・「右の欄で表示中」・時刻から縮める（以前は名前だけが縮み、「general-purpose 失敗」だけが見えた）。状態の文は折り返さない
+ */
+:is(.subagent-card-title, .subagent-screen-title) > :is(.subagent-card-name, .subagent-screen-name) {
+  flex: 0 1 auto;
+  min-width: 3em;
+}
+
+:is(.subagent-card-title, .subagent-screen-title) > :is(.subagent-card-type, .subagent-card-side) {
+  flex: 0 100 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.subagent-card-title, .subagent-screen-title) > .subagent-status {
+  flex: none;
+  white-space: nowrap;
+}
+
+:is(.subagent-card-head, .subagent-screen-title) > .tool-time {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * 札を隠すかを、カード・画面の見出しの幅で決める（狭いペインや狭いチャット欄では名前を優先する）。縮めて 1 文字だけ残す（「g」「右」）より、
+ * 入らない札から順に隠す: 種類 → 「右の欄で表示中」→「サブエージェント」の札と「中に n 件」の文字（点は残す）
+ */
+.subagent-card,
+.subagent-screen-head {
+  container: subagent-head / inline-size;
+}
+
+@container subagent-head (max-width: 620px) {
+  :is(.subagent-card-title, .subagent-screen-title) > .subagent-card-type {
+    display: none;
+  }
+}
+
+@container subagent-head (max-width: 520px) {
+  .subagent-card-title > .subagent-card-side {
+    display: none;
+  }
+}
+
+/* 入れ子の札は文字だけ隠して「↳」は残す（狭くても、入れ子だと分かるように） */
+@container subagent-head (max-width: 440px) {
+  .subagent-kind:not(.nested),
+  .subagent-kind .subagent-kind-text,
+  .subagent-children .subagent-children-text {
+    display: none;
+  }
+}

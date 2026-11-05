@@ -171,7 +171,14 @@ export function useChatView(
         const entry = now().tree.byKey.get(key);
         if (!entry) return;
         if (!canOpenSide) return actions.revealSubagent(key, eventId);
-        panelActions(panelKey("agents", chatId)).openSubagent({ chatId, agentKey: key, title: entry.description });
+        // サブエージェントの中で起動したもの（入れ子）は、タブに外側からの道筋を持たせる（名前の前の「↳」と、乗せたときの道筋）
+        const path = pathOf(now().tree, key);
+        panelActions(panelKey("agents", chatId)).openSubagent({
+          chatId,
+          agentKey: key,
+          title: entry.description,
+          ...(path.length > 1 ? { path: path.map((s) => s.description).join(" › ") } : {}),
+        });
         if (eventId !== undefined) requestAnimationFrame(() => jumpInSide(key, eventId));
       },
       canOpenSide,

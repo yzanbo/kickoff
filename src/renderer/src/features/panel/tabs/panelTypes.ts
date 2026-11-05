@@ -19,9 +19,10 @@ export type PanelTab =
   | ({ key: string; kind: "new"; groupName?: string; draftText?: string; seed?: NewChatSeed } & NewChatTarget)
   /**
    * チャットの画面の右の欄（サブエージェントの欄）に開いた、サブエージェントの画面。chatId: どのチャットのものか。
-   * agentKey: サブエージェントの一覧の行のキー（起動した Task / Agent の呼び出し ID）。title: タブに出す名前（開いたときの名前）
+   * agentKey: サブエージェントの一覧の行のキー（起動した Task / Agent の呼び出し ID）。title: タブに出す名前（開いたときの名前）。
+   * path: サブエージェントの中で起動したもの（入れ子）の、外側からの道筋（「調査 › 洗い出し」。名前の前に「↳」を付け、乗せると出す。入れ子でなければない）
    */
-  | { key: string; kind: "subagent"; chatId: number; agentKey: string; title: string }
+  | { key: string; kind: "subagent"; chatId: number; agentKey: string; title: string; path?: string }
   /** url は開いたときのページ（webview の初めの src）、current はいま表示しているページ（外のブラウザで開くときに渡す） */
   | { key: string; kind: "browser"; url: string; title: string; current?: string }
   /** cwd: シェルを始めるフォルダ（プロジェクトの本体かワークツリー）。label: タブに出す名前。projectId: どのプロジェクトの作業場所か。key は裏のシェルのキーにも使う */
