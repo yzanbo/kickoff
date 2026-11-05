@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { dialogHandlers } from "../app/dialogs.js";
 import { externalAppHandlers } from "../app/externalApps.js";
+import { popoutHandlers } from "../app/popouts.js";
 import { devtoolsHandlers } from "../browser/devtools.js";
 import { browserExtensionHandlers } from "../browser/extensions.js";
 import { diagnosticsHandlers } from "../diagnostics/diagnostics.js";
@@ -19,6 +20,7 @@ export function registerIpc(appUrl: string) {
     trusted: fromApp(appUrl),
     handlers: {
       dialog: dialogHandlers,
+      windows: popoutHandlers(appUrl),
       externalApps: externalAppHandlers,
       devtools: devtoolsHandlers,
       browserExtensions: browserExtensionHandlers,

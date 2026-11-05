@@ -16,8 +16,21 @@ startTheme();
 void prepareStorage()
   .catch((e: unknown) => console.error("[storage] 表示の設定を整えられませんでした", e))
   .then(async () => {
+    const root = createRoot(document.getElementById("root")!);
+    // 別ウィンドウ（右の欄の変更・ファイル・サブエージェント）は、メインの App ではなく、その中身だけの画面を描く
+    const { parsePopout } = await import("@/app/popout");
+    const popout = parsePopout(location.hash);
+    if (popout) {
+      const { PopoutApp } = await import("@/app/PopoutApp");
+      root.render(
+        <StrictMode>
+          <PopoutApp route={popout} />
+        </StrictMode>,
+      );
+      return;
+    }
     const { App } = await import("@/app/App");
-    createRoot(document.getElementById("root")!).render(
+    root.render(
       <StrictMode>
         <App />
       </StrictMode>,

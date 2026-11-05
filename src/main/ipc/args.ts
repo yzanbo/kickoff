@@ -25,6 +25,10 @@ export const IPC_ARGS = defineArgSchemas({
     pickFolder: z.tuple([z.string().optional()]),
     pickReferences: none,
   },
+  windows: {
+    openPopout: z.tuple([z.string().startsWith("/popout/").max(4000), z.string().max(300)]),
+    focusMain: none,
+  },
   externalApps: {
     openPath: z.tuple([absolutePath]),
     revealPath: z.tuple([absolutePath]),

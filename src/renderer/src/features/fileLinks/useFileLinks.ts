@@ -16,6 +16,18 @@ const sameFiles = (a: ProjectFiles, b: ProjectFiles) => a.truncated === b.trunca
 export type ChatFileLinks = Omit<FileLinks, "showMenu">;
 
 /**
+ * 押したファイルの開き方を決める（右の欄・別ウィンドウで共通）: 行の番号があれば中身（その行を目立たせる）、作業場所にコミットしていない変更があれば
+ * 変更のそのファイルの位置、なければ中身（Git の状態が読めなければ中身）
+ */
+export function openFileRef(ref: FileRef, place: { projectId: number; worktree?: string }, to: { file: (ref: FileRef) => void; changes: (focus: string) => void }) {
+  if (ref.line) return to.file(ref);
+  api.gitStatus(place).then(
+    (status) => (changeOf(status, ref.path) ? to.changes(ref.path) : to.file(ref)),
+    () => to.file(ref),
+  );
+}
+
+/**
  * チャットの中のファイルを押して開くための情報（FileLinkContext に入れる）。
  * チャットの作業場所（ワークツリーならそのフォルダ、なければ本体）のファイルの一覧を読み、作業が終わるたびに読み直す（新しく作ったファイルもチップにする）。
  * side（チャットの画面の右の欄を置ける）なら、押したファイルを右の欄に開き、会話は左に残す（コミットしていない変更があれば変更のタブのその位置、
@@ -49,16 +61,7 @@ export function useFileLinks(
       side,
       openInEditor,
       openChanges,
-      open: (ref: FileRef) => {
-        if (!side) return openInEditor(ref);
-        // 行の番号があれば、中身でその行を目立たせる
-        if (ref.line) return openFile(ref);
-        // コミットしていない変更があれば、変更のタブのそのファイルの位置へ（Git の状態が読めなければ中身）
-        api.gitStatus({ projectId, worktree }).then(
-          (status) => (changeOf(status, ref.path) ? openChanges(ref.path) : openFile(ref)),
-          () => openFile(ref),
-        );
-      },
+      open: (ref: FileRef) => (side ? openFileRef(ref, place, { file: openFile, changes: openChanges }) : openInEditor(ref)),
     };
   }, [data, root, projectId, worktree, chatId, side]);
 }

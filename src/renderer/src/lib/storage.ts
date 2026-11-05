@@ -231,6 +231,24 @@ function notify(area: Area, key: string) {
   }
 }
 
+/**
+ * ほかのウィンドウ（別ウィンドウで開いた右の欄の変更・サブエージェントなど。同じ出どころなので localStorage を共有する）が書き換えた設定も、
+ * このウィンドウで読んでいるものに知らせる（会話の文字の大きさ・差分の表示のしかたなどを、どのウィンドウでもそろえる）。
+ * sessionStorage はウィンドウごとなので見ない
+ */
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.storageArea !== storageOf("local")) return;
+    // すべて消した（clear）ときは、読んでいた値を捨てて、どの設定にも知らせる
+    const keys = e.key === null ? [...keyListeners.keys()].map((id) => id.slice(id.indexOf("\n") + 1)) : [e.key];
+    for (const key of keys) {
+      if (!key.startsWith(KEY_PREFIX)) continue;
+      cache.delete(idOf("local", key));
+      notify("local", key);
+    }
+  });
+}
+
 /** その設定が書き換わったら listener を呼ぶ（やめるときは返り値を呼ぶ） */
 export function subscribeSetting(setting: Setting<unknown>, listener: () => void): () => void {
   return listen(keyListeners, idOf(setting.area, setting.key), listener);

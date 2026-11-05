@@ -36,7 +36,7 @@
 
 ## タブの種類（`tabs/tabKinds.ts`）
 
-種類（`chat` / `new` / `browser` / `terminal` / `subagent` / `changes` / `file`。変更（作業場所ごとに 1 つ。`changesTab`）とファイル（作業場所のファイルごとに 1 つ。`fileTab`）はサブエージェントと同じく右の欄だけで、開くのは `panelActions(key).openChanges` / `openFile`（開いていれば、移るファイル・目立たせる行だけを変える）。型は `panelTypes.ts` の `PanelTab`）ごとの違い（キーの決め方・「表示するタブ」のどれに入るか `shows`・アイコンと名前・どのプロジェクトのものか・どのチャットのものか（そのチャットを消したら閉じる）・中身を作る時・閉じたときの後始末（ターミナルはシェルも止める）・どのまとまりに入るか）は、種類で分岐させずに `TAB_KINDS` から引く。チャットのタブのキーは `chatKey(id)`（同じチャットは 1 つのタブ）、サブエージェントのタブは `agentTabKey(行のキー)`（その欄に 1 つ）、ほかは押すたびに新しいキー（`newTabKey`。ターミナルのキーは裏のシェルのキーにも使うので乱数を添える）。
+種類（`chat` / `new` / `browser` / `terminal` / `subagent` / `changes` / `file`。変更（作業場所ごとに 1 つ。`changesTab`）とファイル（作業場所のファイルごとに 1 つ。`fileTab`）はサブエージェントと同じく右の欄だけで、開くのは `panelActions(key).openChanges` / `openFile`（開いていれば、移るファイル・目立たせる行だけを変える）。この 3 つは別ウィンドウへ移せる（種類の表の `popout`。タブの右クリックの「別ウィンドウで開く」と、タブの列の左の道具のボタン（ピントのあるペインで表示しているタブ）。`tabs/popOutTab.ts`。`features/popout/CLAUDE.md`）。型は `panelTypes.ts` の `PanelTab`）ごとの違い（キーの決め方・「表示するタブ」のどれに入るか `shows`・アイコンと名前・どのプロジェクトのものか・どのチャットのものか（そのチャットを消したら閉じる）・中身を作る時・閉じたときの後始末（ターミナルはシェルも止める）・どのまとまりに入るか）は、種類で分岐させずに `TAB_KINDS` から引く。チャットのタブのキーは `chatKey(id)`（同じチャットは 1 つのタブ）、サブエージェントのタブは `agentTabKey(行のキー)`（その欄に 1 つ）、ほかは押すたびに新しいキー（`newTabKey`。ターミナルのキーは裏のシェルのキーにも使うので乱数を添える）。
 
 - サブエージェントのタブ（`subagentTab`。右の欄だけ）: 名前は開いたときのサブエージェントの名前（サブエージェントの中で起動したもの（入れ子）は頭に「↳」、乗せると外側からの道筋「調査 › 洗い出し」。開いたときに `path` として持つ）、名前の前の印は `TabKindSpec.Lead` の部品 `SubagentTabLead`（ツールと同じ状態のアイコン。乗せると状態の文。タブの上の端に、そのサブエージェントの色の線）、中身は `SubagentScreen`（`PAGES.subagent`。チャットの画面の context の中に描かれるので、記録・操作をそのまま使う）。そのチャットを消したら閉じる（`chatIdOf`）。開くのは `panelActions(key).openSubagent`（チャットの画面の操作 `openSubagentSide` から）。
 

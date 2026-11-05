@@ -14,6 +14,7 @@ import { ChatComposerArea } from "./ChatComposerArea";
 import { ChatHeader } from "./ChatHeader";
 import { ChatPaneContext, useChatPaneSlot, useChatPaneState } from "./chatPaneContext";
 import { useWideText } from "./TextWidthToggle";
+import { useWindowMessagesFor } from "./windowMessages";
 import { useChatDetail } from "./useChatDetail";
 import { useChatView, type ChatViewInput } from "./useChatView";
 
@@ -71,6 +72,8 @@ function ChatView({ visible, slot, ...input }: ChatViewInput & { visible: boolea
   const view = useChatView(input, usePanelHost() !== null);
   const { pane } = view;
   useChatPaneSlot(slot, pane);
+  // 別ウィンドウ（変更・サブエージェント）からの知らせ（チャット欄に足す・会話のその場所へ移る・動きを開く）
+  useWindowMessagesFor(pane);
   // 文の幅を広げるか（見出しの行のボタン・設定の「表示」と同じ値）
   const [wide] = useWideText();
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）

@@ -10,6 +10,7 @@ import { SubagentTabLead } from "@/features/chat/subagents/SubagentTabLead";
 import { FileTabLead } from "@/features/editor/FileTabLead";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
+import type { PopoutRoute } from "@/app/popout";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
 
 /**
@@ -136,6 +137,8 @@ interface TabKindSpec<T extends PanelTab> {
   dispose?: (tab: T) => void;
   /** どのまとまりに入るか（グループ別・作業場所別にまとめるとき） */
   cluster: (tab: T, resolve: ClusterResolver) => BucketHead;
+  /** 別ウィンドウで開けるタブ（チャットの画面の右の欄のサブエージェント・変更・ファイル）の行き先とウィンドウの名前 */
+  popout?: (tab: T) => { route: PopoutRoute; title: string };
 }
 
 export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
@@ -178,6 +181,7 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     // そのチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
+    popout: (t) => ({ route: { kind: "subagent", chatId: t.chatId, agentKey: t.agentKey }, title: `${t.title} — サブエージェント` }),
   },
   changes: {
     shows: "file",
@@ -188,6 +192,10 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
+    popout: (t) => ({
+      route: { kind: "changes", chatId: t.chatId, projectId: t.projectId, ...(t.worktree ? { worktree: t.worktree } : {}) },
+      title: `変更 — ${t.worktree ? `ワークツリー ${baseName(t.worktree)}` : "本体"}`,
+    }),
   },
   file: {
     shows: "file",
@@ -200,6 +208,10 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
+    popout: (t) => ({
+      route: { kind: "file", chatId: t.chatId, projectId: t.projectId, path: t.path, ...(t.worktree ? { worktree: t.worktree } : {}), ...(t.line ? { line: t.line } : {}) },
+      title: t.path,
+    }),
   },
   browser: {
     shows: "browser",

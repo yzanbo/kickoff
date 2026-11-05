@@ -6,7 +6,7 @@
 
 | フォルダ | 役割 |
 |---|---|
-| `app/` | App・ルーター（`router.ts`）・全体の context（`chatStatesContext.ts`）・アプリ全体のショートカット（`shortcuts.ts`）・通知（`notifications.ts`）・テーマ（`theme.ts`）・右上のレイアウトの開閉（`LayoutToggles`）・⌘[ / ⌘]（`useChatHistory`）・起動したときの保存の片付け（`prepareStorage.ts`） |
+| `app/` | App・ルーター（`router.ts`）・全体の context（`chatStatesContext.ts`）・アプリ全体のショートカット（`shortcuts.ts`）・通知（`notifications.ts`）・テーマ（`theme.ts`）・右上のレイアウトの開閉（`LayoutToggles`）・⌘[ / ⌘]（`useChatHistory`）・起動したときの保存の片付け（`prepareStorage.ts`）・別ウィンドウの行き先と画面（`popout.ts`・`PopoutApp`）・ウィンドウの間の知らせ（`windowBus.ts`） |
 | `api/` | サーバーとのやり取り（下の「API」） |
 | `stores/` | 画面全体で 1 つずつ持つサーバーのデータ（下の「データ」） |
 | `lib/` | React に依存しない小さな補助（`cx` `time` `format` `url` `keys` `floating` `highlight` `languages` `richCopy` `valueCell`、保存の `storage` とその一覧 `storageKeys`） |
@@ -15,7 +15,7 @@
 | `features/<領域>/` | 領域ごとの部品と hooks |
 | `styles/` | CSS（`styles/CLAUDE.md`） |
 
-`features/` の領域と説明の置き場所: `chat/`（チャット全般と 1 つのチャットの画面。`dictation/`（チャット欄の音声入力）・`fileLinks/`（返答のファイルのチップ）もここに書く）・`chatList/`（まとめ方・数え方・開閉）・`sidebar/`（`group/` もここ）・`board/`・`panel/`（右のパネル・チャット欄・下のパネルのタブ）・`project/`・`palette/`・`editor/`（`history/` もここ）・`worktree/`・`settings/`（`usage/` `footer/` `diagnostics/` もここ）・`terminal/`（`browser/` `openWith/` もここ）。
+`features/` の領域と説明の置き場所: `chat/`（チャット全般と 1 つのチャットの画面。`dictation/`（チャット欄の音声入力）・`fileLinks/`（返答のファイルのチップ）もここに書く）・`chatList/`（まとめ方・数え方・開閉）・`sidebar/`（`group/` もここ）・`board/`・`panel/`（右のパネル・チャット欄・下のパネルのタブ）・`project/`・`palette/`・`editor/`（`history/` もここ）・`worktree/`・`settings/`（`usage/` `footer/` `diagnostics/` もここ）・`terminal/`（`browser/` `openWith/` もここ）・`popout/`（右の欄のサブエージェント・変更・ファイルの別ウィンドウ）。
 
 - 依存の向きは `app → features → stores / api / ui / hooks / lib → @shared`。ui / hooks / lib / stores / api は features を import しない。app の全体のもの（`router.ts` の `useRoute` / `openChat` など・`chatStatesContext.ts` の `useChatStates`）は features から読んでよい。
 - import は、同じフォルダなら `./`、それ以外は `@/…`、プロセスをまたぐ型と純粋な関数は `@shared/…`（型は `@shared/types`、`errorMessage` は `@shared/errors`）。`../` で上のフォルダをたどらない。
@@ -34,6 +34,7 @@
 ## 表示の設定の保存（`lib/storage.ts`・`lib/storageKeys.ts`）
 
 - localStorage / sessionStorage に残すもの（開閉・切り替え・幅・書きかけの文など）は、`lib/storageKeys.ts` でだけ `defineSetting(key, 形, { ids?, session? })` / `defineSettingFamily(prefix, 形)`（ID ごと。キーは頭 ＋ ID）で宣言する。形は `flag` / `optionalFlag` / `choice` / `number` / `text` / `list` / `record` / `json`。部品にキーの文字列を書かない。ここに宣言していない `kickoff:` のキーは、起動したときに消える（`pruneUndeclared`）。
+- 別ウィンドウ（`features/popout/CLAUDE.md`）とは localStorage を共有し、ほかのウィンドウが書き換えた設定も `storage` の知らせで読んでいる部品に届く（sessionStorage はウィンドウごと）。
 - 読み書きは React なら `useSetting(SETTING)` / `useSetting(family(id))`（同じ設定を読む部品どうしでそろい、`set` は参照が変わらないので memo した部品に渡せる）、保存しない入力欄もあるなら `useOptionalSetting`、React の外は `readSetting` / `writeSetting`。localStorage を部品から直接読み書きしない。
 - キー名と保存する値は変えない（利用者の表示の好みを残すため）。選択肢を増やすときも、今までの値はそのままの意味で読めるようにする。
 - プロジェクト・チャット・グループなどの ID を、キーか値に含むものは `ids: true` を付ける。起動したときに `prepareStorage`（`main.tsx` が App より先に呼ぶ）が `/api/status` の `database_id` と覚えた値（`DATABASE_ID`）を比べ、違えば `forgetIdSettings` で捨てる（DB を作り直すと ID が 1 から振り直され、別のものを指すため）。

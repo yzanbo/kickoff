@@ -48,6 +48,13 @@ export const NATIVE_API = {
     /** 参照資料にするフォルダ・ファイルを選ぶ（複数可。やめたら空） */
     pickReferences: invoke<[], string[]>(),
   },
+  /** Kickoff の画面の一部（チャットの画面の右の欄の変更・ファイル・サブエージェント）を、別のウィンドウで開く */
+  windows: {
+    /** 画面の route（"/popout/…" で始まる URL のハッシュ）を、別のウィンドウで開く。同じものがもう開いていれば、それを前に出す */
+    openPopout: invoke<[route: string, title: string]>(),
+    /** メインのウィンドウを前に出す（別ウィンドウから、メインの会話のその場所へ移る・チャット欄に入れるとき） */
+    focusMain: invoke<[]>(),
+  },
   /** アプリの外で開く（Finder・VS Code・外部のターミナル・ブラウザ） */
   externalApps: {
     /** ファイル・フォルダを既定のアプリで開く（フォルダは Finder） */
