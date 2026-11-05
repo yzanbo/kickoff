@@ -1,12 +1,12 @@
 import { useMemo, useRef } from "react";
-import { memoAssetBase, withBaseHref } from "./htmlPage";
+import { memoAssetBase, memoLinkPath, withBaseHref } from "./htmlPage";
 import { parentOf } from "./memoPaths";
 
 /**
  * HTML のメモをページとして描く（ここでは書けない。書くのはソースの表示）。iframe の srcdoc に中身をそのまま入れ、
  * 相対パスの CSS・画像はメモのフォルダから読む（<base> をコアのファイルの口へ向ける）。
  * sandbox は allow-same-origin だけ: 中の JavaScript・フォーム・ポップアップは動かさず、外（この画面）からは中の文書に触れる。
- * リンクは中で開かない（ページ内の # は飛ぶ、外のサイトはブラウザで開く）。右クリックは選んだ文を添えてメモのメニューを開き、⌘S は保存。
+ * リンクは中で開かない（ページ内の # は飛ぶ、メモのフォルダの中は onOpenLink（開く側がメモを開く）、外のサイトはブラウザで開く）。右クリックは選んだ文を添えてメモのメニューを開き、⌘S は保存。
  * 読み直しても（AI が書き換えたときなど）スクロールの位置は保つ。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない
  */
 export function HtmlMemoPage({
@@ -15,18 +15,21 @@ export function HtmlMemoPage({
   html,
   onContextMenu,
   onSave,
+  onOpenLink,
 }: {
   projectId: number;
   path: string;
   html: string;
   onContextMenu: (at: { x: number; y: number }, selected: string) => void;
   onSave: () => void;
+  /** メモのフォルダの中へのリンクを押した（メモのフォルダからの相対パス） */
+  onOpenLink: (path: string) => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const scroll = useRef({ x: 0, y: 0 });
   // 渡される関数は描くたびに変わるので、いつも最新を呼ぶ
-  const handlers = useRef({ onContextMenu, onSave });
-  handlers.current = { onContextMenu, onSave };
+  const handlers = useRef({ onContextMenu, onSave, onOpenLink });
+  handlers.current = { onContextMenu, onSave, onOpenLink };
   const srcDoc = useMemo(() => withBaseHref(html, memoAssetBase(location.origin, projectId, parentOf(path))), [html, projectId, path]);
 
   // 読み込むたびに（中身が変わると文書が作り直される）、中の文書に手を付け直す
@@ -50,8 +53,11 @@ export function HtmlMemoPage({
         return;
       }
       const url = anchor.href;
-      // 外のサイト・メールはブラウザ・メールのアプリで開く（メインプロセスが外へ渡す）。メモのフォルダの中へのリンクは開かない
-      if (/^(https?|mailto):/i.test(url) && !url.startsWith(`${location.origin}/`)) window.open(url, "_blank", "noopener");
+      // メモのフォルダの中（相対パスのリンク。<base> でコアのファイルの口に解決される）は、開く側に渡す
+      const inMemos = memoLinkPath(url, memoAssetBase(location.origin, projectId, ""));
+      if (inMemos) handlers.current.onOpenLink(inMemos);
+      // 外のサイト・メールはブラウザ・メールのアプリで開く（メインプロセスが外へ渡す）。この画面のほかの URL は開かない
+      else if (/^(https?|mailto):/i.test(url) && !url.startsWith(`${location.origin}/`)) window.open(url, "_blank", "noopener");
     });
     doc.addEventListener("contextmenu", (e) => {
       e.preventDefault();

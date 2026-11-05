@@ -1,14 +1,15 @@
 import { CodeXml, Eye, FolderSearch, MessagesSquare, Save } from "lucide-react";
-import { memoKindOf, type MemoKind } from "@shared/memo/kinds";
+import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
 import { MEMO_CHAT_OPEN, MEMO_CHAT_WIDTH, MEMO_VIEW } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
+import { useMemoList } from "@/stores/memos";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton } from "@/ui/IconButton";
-import { reportFailure } from "@/ui/dialogs";
+import { alertDialog, reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { HtmlMemoPage } from "./HtmlMemoPage";
@@ -48,10 +49,24 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  * HTML のメモ（.html）は、ページ（描いた見た目。書けない）/ ソース（HTML をそのまま書く）。ソースの編集の部品はページの間も隠して置く（元に戻す履歴を残す）。
  * 書いた所で ⌘S で保存する（書いている間は保存しない。まだ保存していない書きかけは残り、離れるときに聞く）。
  * 題名はいつでも書き換えられる欄（押せばそのままキャレットが入る。入力の画面に切り替えない）で、本文と同じく ⌘S（題名の欄では Enter も）で
- * 本文を保存してからファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）。Esc で元の題名に戻す
+ * 本文を保存してからファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）。Esc で元の題名に戻す。
+ * HTML のメモのページのリンクがメモのフォルダの中を指すとき、メモなら onOpenMemo（開いている側が同じ場所で開く）、フォルダ・メモでないファイルは Finder で表示する
  */
-export function MemoView({ projectId, path, dir, onRenamed }: { projectId: number; path: string; dir: string; onRenamed: (path: string) => void }) {
+export function MemoView({
+  projectId,
+  path,
+  dir,
+  onRenamed,
+  onOpenMemo,
+}: {
+  projectId: number;
+  path: string;
+  dir: string;
+  onRenamed: (path: string) => void;
+  onOpenMemo: (path: string) => void;
+}) {
   const doc = useMemoDocument(projectId, path);
+  const list = useMemoList(projectId);
   // 編集の部品を外から動かす口（右クリックのメニュー）と、メモのチャットの欄を動かす口（チャットに追加）
   const editor = useRef<MemoEditorHandle | null>(null);
   const chat = useRef<MemoChatHandle | null>(null);
@@ -85,6 +100,14 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
   // メモのチャットで送る前に、書きかけの本文を保存する（AI はファイルを読むので。保存できなければ送らない）
   const saveBeforeSend = async () => {
     if (!(await doc.save())) throw new Error("メモを保存できなかったので送りませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから送ってください）");
+  };
+  // HTML のメモのページで、メモのフォルダの中へのリンクを押した
+  const openLink = (to: string) => {
+    const entry = list.data?.entries.find((e) => e.path === to);
+    if (!entry) void alertDialog("リンク先が見つかりません", `メモのフォルダに「${to}」がありません。`);
+    else if (!entry.dir && memoExtensionOf(to)) {
+      if (to !== path) onOpenMemo(to);
+    } else if (window.kickoff) void window.kickoff.externalApps.revealPath(`${dir}/${to}`);
   };
   const [view, setView] = useSetting(MEMO_VIEW);
   const kind = memoKindOf(path);
@@ -176,7 +199,7 @@ export function MemoView({ projectId, path, dir, onRenamed }: { projectId: numbe
           <p className="muted small memo-message">{doc.file?.binary ? "文字のファイルではないので、ここでは開けません。Finder から開いてください。" : "大きすぎるので、ここでは開けません。"}</p>
         ) : (
           <>
-            {page && <HtmlMemoPage projectId={projectId} path={path} html={doc.text() ?? doc.initial} onContextMenu={editMenu.open} onSave={saveNow} />}
+            {page && <HtmlMemoPage projectId={projectId} path={path} html={doc.text() ?? doc.initial} onContextMenu={editMenu.open} onSave={saveNow} onOpenLink={openLink} />}
             <Suspense fallback={<p className="muted small memo-message">編集の準備中…</p>}>
               <MemoEditor
                 key={`${path}:${doc.revision}`}

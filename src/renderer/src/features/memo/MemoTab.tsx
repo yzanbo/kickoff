@@ -175,7 +175,7 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
       )}
       <div className="changes-diff memo-main">
         {selected && selectedExists ? (
-          <MemoView key={selected} projectId={projectId} path={selected} dir={dir} onRenamed={(to) => moved(selected, to)} />
+          <MemoView key={selected} projectId={projectId} path={selected} dir={dir} onRenamed={(to) => moved(selected, to)} onOpenMemo={(to) => void select(to)} />
         ) : (
           list.data && (
             <EmptyState
