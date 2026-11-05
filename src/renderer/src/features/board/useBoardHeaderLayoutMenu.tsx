@@ -5,7 +5,7 @@ import { BOARD_HEADER_LAYOUT_LABELS, BOARD_HEADER_LAYOUTS, useBoardHeaderLayout 
 
 /**
  * ボードのツールバー（新規・表示・グループの作成・検索などの帯）の置き方（常時表示 / パネル優先）を右クリックで選ぶメニュー。
- * ボードのツールバーの何もないところと、右のパネルのタブの列の何もないところで開く。
+ * ボードのツールバーの何もないところで開く（右のパネルのタブの列では、同じ選び方を「表示」のメニュー PanelViewMenu に入れている）。
  * open を onContextMenu に渡し、menu を描く（入力欄・ボタン・タブの上ではふつうの右クリック・そのものの右クリックを残す）
  */
 export function useBoardHeaderLayoutMenu() {

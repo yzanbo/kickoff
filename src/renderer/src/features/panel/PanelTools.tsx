@@ -3,9 +3,7 @@ import type { HTMLAttributes, RefObject } from "react";
 import { IconButton } from "@/ui/IconButton";
 import { leavesOf } from "./layout/paneTree";
 import { SURFACES } from "./surfaces";
-import { TabArchiveToggle } from "./tabs/TabArchiveToggle";
-import { TabGroupingButton } from "./tabs/TabGroupingButton";
-import { TabKindsButton } from "./tabs/TabKindsButton";
+import { PanelViewButton, type PanelViewMenu } from "./tabs/PanelViewMenu";
 import type { PanelController } from "./usePanel";
 
 /** 欄の殻（大きさを持つ側）から Panel に渡すもの。大きさの変え方は欄ごとに違うので、殻に残す */
@@ -19,13 +17,13 @@ export interface PanelFrame {
 }
 
 /**
- * タブの列の左の道具（左上のペインにだけ置く）: 閉じる（欄の決まりで先頭か最後。チャット欄は右上のレイアウトの開閉で閉じるので出さない）、
- * 表示するタブの種類（ほかの道具の前提になるので、閉じるのすぐ右。チャット欄では左端）、チャットのタブのまとめ方（まとめない・グループ別・作業場所別）、
- * アーカイブ済みを出すか（サイドバーと共通。まとめ方・アーカイブ済みはチャットのタブにだけ効くので、チャットを隠している欄では出さない）、
- * 大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）
+ * タブの列の左の道具（左上のペインにだけ置く）: 左から、欄の名前の札（サブエージェントの欄）・閉じる（欄の決まりで先頭か最後。チャット欄は右上のレイアウトの開閉で
+ * 閉じるので出さない）・大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）・「表示」のメニューのボタン（表示するタブ・チャットのまとめ方・
+ * アーカイブ済み・ボードツールバーの置き方。usePanelViewMenu。タブの列の何もないところの右クリックでも同じメニュー）。
+ * よく使い、状態が見た目で分かってほしい閉じる・大きくするはアイコンのまま、たまにしか変えない表示の選び方は 1 つのメニューにまとめる
  */
-export function PanelTools({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
-  const { closeButton, maximize, maximizeLabels, fixedKinds, heading } = SURFACES[panel.surface];
+export function PanelTools({ panel, frame, view }: { panel: PanelController; frame?: PanelFrame; view: PanelViewMenu }) {
+  const { closeButton, maximize, maximizeLabels, heading } = SURFACES[panel.surface];
   // 分けているときは、欄の名前の札をアイコンだけにする（左上のペインのタブの入る幅を残す）
   const split = leavesOf(panel.layout.root).length > 1;
   const close = closeButton && (
@@ -41,9 +39,6 @@ export function PanelTools({ panel, frame }: { panel: PanelController; frame?: P
         </span>
       )}
       {closeButton?.at === "start" && close}
-      {!fixedKinds && <TabKindsButton panel={panel} />}
-      {panel.kinds.has("chat") && <TabGroupingButton surface={panel.surface} />}
-      {panel.kinds.has("chat") && <TabArchiveToggle />}
       {maximize === "width" && state && (
         // 横にだけ広がるので、横向きの矢印。いつも出し、見た目どおりに切り替える（狭くてボードを覆っているときは「元の幅に戻す」で、
         // ボードが残る幅まで縮める。サイドバー・チャット欄を開いて狭くなっても隠さない）
@@ -73,6 +68,7 @@ export function PanelTools({ panel, frame }: { panel: PanelController; frame?: P
           onClick={state.toggle}
         />
       )}
+      <PanelViewButton view={view} />
       {closeButton?.at === "end" && close}
     </div>
   );

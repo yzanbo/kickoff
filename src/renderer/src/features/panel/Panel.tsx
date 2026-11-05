@@ -13,11 +13,11 @@ import { TabMenu } from "@/features/panel/tabs/TabMenu";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTabDrag } from "@/features/panel/layout/useTabDrag";
 import type { PanelController } from "./usePanel";
-import { useBoardHeaderLayoutMenu } from "@/features/board/useBoardHeaderLayoutMenu";
 import { useOpenWithMenu } from "@/features/openWith/useOpenWithMenu";
 import { SURFACES } from "./surfaces";
 import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { specOf } from "@/features/panel/tabs/tabKinds";
+import { usePanelViewMenu } from "@/features/panel/tabs/PanelViewMenu";
 
 /**
  * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは SURFACES と、殻が渡す frame）。
@@ -63,8 +63,8 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
     panelOpen,
   );
 
-  // タブの列の何もないところの右クリックで、ボードツールバーの置き方を選ぶ（常時表示か、パネル優先にしてパネルを上まで伸ばすか。ボードの右のパネルだけ）
-  const layoutMenu = useBoardHeaderLayoutMenu();
+  // 「表示」のメニュー（表示するタブ・まとめ方・アーカイブ済み・ボードツールバーの置き方）。道具のボタンと、タブの列の何もないところの右クリックで同じものを開く
+  const view = usePanelViewMenu(panel);
   // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
   const mountedTabs = useRef(new Set<string>());
   /** ペインのタブの列（タブの列の左の道具は、左上のペインにだけ置く） */
@@ -76,7 +76,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
       // 一覧のペイン（サイドバーと連動したチャットのタブが自動で入るペイン）。分けていなければ、そのペインが一覧
       home={!split || pane.id === homeId}
       inert={!panelOpen}
-      controls={pane.id === leaves[0].id ? <PanelTools panel={panel} frame={frame} /> : undefined}
+      controls={pane.id === leaves[0].id ? <PanelTools panel={panel} frame={frame} view={view} /> : undefined}
       drag={drag}
       terminals={terminals.length}
       terminalMenuOpen={openWith.picking}
@@ -86,7 +86,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
       }}
       onTerminal={openWith.openTerminal}
       rename={rename}
-      onBarMenu={rules.layoutMenu ? layoutMenu.open : undefined}
+      onBarMenu={view.has ? view.open : undefined}
       onOpenWith={openWith.open}
       openWithShown={openWith.shown}
       onMenu={(key, e) => tabMenu.open(e, key)}
@@ -128,7 +128,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
               </div>
             );
           })}
-        {layoutMenu.menu}
+        {view.menu}
         {openWith.menu}
         {/*
           タブを切り替えても入力中の文章やスクロール位置が残るよう、一度表示したタブは保持する。
