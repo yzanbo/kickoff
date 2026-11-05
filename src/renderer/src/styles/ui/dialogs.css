@@ -109,8 +109,9 @@ dialog[open] {
   overflow-y: auto;
 }
 
+/* 左に項目・右に内容のダイアログのフォームは、右の欄の横幅いっぱいに使う（以前は 560px までで、ダイアログの右側が空いていた） */
 .tabbed-dialog-content .form {
-  max-width: 560px;
+  max-width: none;
 }
 
 /* 設定の「通知」: テスト通知を送る・Mac の通知の設定を開く・結果 */
