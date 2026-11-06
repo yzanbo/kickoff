@@ -170,6 +170,11 @@ export interface SavedFile {
   hash: string;
 }
 
+/** チャットのやり取りの記録（GET /api/chats/:id/transcript。自分の発言と AI の返答を古い順に並べた Markdown。右クリックの「全部のやり取りをコピー」） */
+export interface ChatTranscript {
+  markdown: string;
+}
+
 /** 録った音声を文にした結果（POST /api/transcribe） */
 export interface Transcription {
   text: string;
