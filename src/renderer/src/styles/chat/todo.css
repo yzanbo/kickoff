@@ -34,6 +34,61 @@
   text-decoration: line-through;
 }
 
+/* 下に閉じたまとまりがあるときの「いまの作業」の小見出し */
+.todo-section-label {
+  padding: 4px 10px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* 前の作業から残っているもの・これまでの ToDo（閉じたまとまり。枠は .composer-archived）の中は薄く出す */
+.todo-fold .todo-row {
+  opacity: 0.75;
+}
+
+/* これまでの ToDo の指示ごとのまとまり: 見出しは指示の 1 行目と時刻（押すとその指示へ移る） */
+.todo-group + .todo-group {
+  margin-top: 4px;
+}
+
+.todo-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px 2px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--muted);
+  background: transparent;
+}
+
+button.todo-group-head {
+  cursor: pointer;
+}
+
+button.todo-group-head:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.todo-group-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-group-time {
+  flex: none;
+  font-size: 11px;
+}
+
 /* すべて完了した一覧のピルは控えめに（✓ と薄い文字。次の指示を送ると隠れる） */
 .todo-chip {
   display: inline-flex;
