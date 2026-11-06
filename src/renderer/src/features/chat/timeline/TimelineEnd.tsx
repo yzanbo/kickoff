@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
-import { Markdown } from "@/ui/markdown/Markdown";
 import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
 import { BackgroundTasks } from "@/features/chat/status/BackgroundTasks";
 import { ReconnectRow } from "@/features/chat/status/ConnectionStatus";
 import { Working } from "@/features/chat/status/Working";
 import { CompactingRow } from "@/features/chat/status/CompactingRow";
 import { AfterCompactMessages } from "@/features/chat/status/AfterCompactMessages";
+import { StreamingReply } from "./StreamingReply";
+import type { TimelineScroll } from "./timelineScroll";
 
 /**
  * 流れの終わり（最新の分）: 書いている途中の返答・確認のカード・作業中の行（返答を書いている間・ツールの実行中も出し続け、送ってからの経過時間を数える。
@@ -23,6 +24,7 @@ export function TimelineEnd({
   live,
   agents,
   events,
+  scroll,
 }: {
   chat: Chat;
   busy: boolean;
@@ -33,14 +35,12 @@ export function TimelineEnd({
   agents: SubagentEntry[];
   /** 会話の記録（裏の作業の一覧の行から、流れの中のその呼び出しへ移る） */
   events: ChatEvent[];
+  /** 流れのスクロール（書いている途中の返答が伸びたら、一番下を見ているときだけ付いていく） */
+  scroll: TimelineScroll;
 }) {
   return (
     <>
-      {streaming && (
-        <div className="assistant live">
-          <Markdown streaming>{streaming}</Markdown>
-        </div>
-      )}
+      {streaming && <StreamingReply text={streaming} scroll={scroll} />}
       {approvals.map((a) => (
         <ApprovalCard key={a.id} approval={a} />
       ))}
