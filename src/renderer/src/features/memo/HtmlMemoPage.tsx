@@ -59,6 +59,15 @@ export function HtmlMemoPage({
       // 外のサイト・メールはブラウザ・メールのアプリで開く（メインプロセスが外へ渡す）。この画面のほかの URL は開かない
       else if (/^(https?|mailto):/i.test(url) && !url.startsWith(`${location.origin}/`)) window.open(url, "_blank", "noopener");
     });
+    // ページの中の押下は親の画面に届かないので、iframe の要素から伝え直す
+    // （開いているメニュー・ポップオーバーが外側のクリックとして閉じ（useDismiss）、マウスを乗せたときの説明も消える）
+    const forward = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const init = { bubbles: true, cancelable: true, button: e.button, buttons: e.buttons, clientX: rect.left + e.clientX, clientY: rect.top + e.clientY };
+      el.dispatchEvent(e.type === "pointerdown" ? new PointerEvent("pointerdown", init) : new MouseEvent("mousedown", init));
+    };
+    doc.addEventListener("pointerdown", forward);
+    doc.addEventListener("mousedown", forward);
     doc.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       const rect = el.getBoundingClientRect();
