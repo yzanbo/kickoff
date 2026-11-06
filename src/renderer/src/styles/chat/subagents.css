@@ -107,6 +107,11 @@
   margin-left: auto;
 }
 
+/* 操作が続けて並ぶとき（アーカイブ・削除）は、右へ寄せるのを最初の 1 つだけに */
+.subagent-row-action + .subagent-row-action {
+  margin-left: 0;
+}
+
 .subagent-row-action:not(:hover) {
   color: var(--extra-muted);
 }

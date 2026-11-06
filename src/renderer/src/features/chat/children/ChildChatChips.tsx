@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, MessagesSquare } from "lucide-react";
+import { Archive, ArchiveRestore, MessagesSquare, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { AgentState, Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
@@ -10,7 +10,7 @@ import { canPopout } from "@/app/popout";
 import { useModels } from "@/stores/providers";
 import { IconButton } from "@/ui/IconButton";
 import { StatusSlot } from "@/features/chat/StatusSlot";
-import { toggleArchiveChat } from "@/features/chat/chatActions";
+import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/chatActions";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/composer/OpenPlaceControls";
 import { useChildChats } from "@/stores/chats";
@@ -59,7 +59,7 @@ export function ChildChatMarks({ chatId, eventId }: { chatId: number; eventId: n
 
 /**
  * 入力欄の上の「子チャット 2 件 · 1 件答えあり」（指示の履歴・サブエージェントと同じピルの列）。押すと子チャットの一覧（サブエージェントの一覧と同じ形の行:
- * 状態の印・名前・様子 · モデル · 最後に動いた時刻、右に「右で開く」「新規ウィンドウで開く」とアーカイブ）を開く。行を押すと設定の開き方で開き、
+ * 状態の印・名前・様子 · モデル · 最後に動いた時刻、右に「右で開く」「新規ウィンドウで開く」とアーカイブ・削除）を開く。行を押すと設定の開き方で開き、
  * 一覧の上で行を押したときの開き方（設定）を変えられる。会話を遡らなくても、答えが来たこととどこにあるかが分かる。
  * アーカイブした子チャットは一覧と件数から外し、下の「アーカイブ済み n 件を表示」で出して戻せる（サブエージェントの一覧と同じ。すべてアーカイブしていれば
  * ピルは「アーカイブ済みの子チャット n 件」）
@@ -109,7 +109,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
           </span>
         </span>
         <OpenPlaceButtons places={places} onOpen={(place) => open(c, place === "window" ? "window" : "side")} />
-        {/* アーカイブ・戻すはチャットと同じ（確かめてから。戻すと、その子チャットの子も戻る） */}
+        {/* アーカイブ・戻す・削除はチャットと同じ（確かめてから。その子チャットの子も一緒に。作業中はできないので出さない） */}
         {c.archived_at ? (
           <IconButton
             icon={ArchiveRestore}
@@ -131,6 +131,16 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
             />
           )
         )}
+        {state !== "running" && (
+          <IconButton
+            icon={Trash2}
+            label={`${chatTitle(c.title)} を削除`}
+            title="削除（会話の記録も消えます）"
+            className="subagent-row-action"
+            type="button"
+            onClick={(e) => (e.stopPropagation(), void confirmDeleteChat(c))}
+          />
+        )}
       </div>
     );
   };
@@ -147,7 +157,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
         )
       }
       label="子チャット"
-      // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
+      // アーカイブ・戻す・削除の確かめのダイアログを押しても、一覧は閉じない
       ignore="dialog"
     >
       {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
