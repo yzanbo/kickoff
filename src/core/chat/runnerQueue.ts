@@ -1,12 +1,19 @@
 import { errorMessage } from "@shared/errors";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { ChatRuntimes } from "./runtime.js";
-import type { Attachment, QueuedMessage, Chat, ChatOptionsPatch, QueueState, TellResult } from "@shared/types";
+import { queueActionOf } from "@shared/chat/queueActions";
+import { QUEUE_ACTION_LABELS, type Attachment, type QueueAction, type QueuedMessage, type Chat, type ChatOptionsPatch, type QueueState, type TellResult } from "@shared/types";
 
 /** 送る・伝えるときの指定。pauseAfter: 質問として送る（この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する） */
 export interface SendOpts {
   pauseAfter?: boolean;
 }
+
+/** まだ会話がないので行えないとき（作業していないときの「すぐ送る」） */
+const NO_SESSION: Record<QueueAction, string> = {
+  compact: "まだ会話がないので、圧縮できません",
+  clear: "まだ会話がないので、消去するコンテキストがありません",
+};
 
 /** 列にない指示を指したとき（消した・送ったあと） */
 const missing = () => new NotFound("待ちの指示が見つかりません");
@@ -25,6 +32,8 @@ export abstract class RunnerQueue {
   abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts & { at?: number }): Promise<TellResult["result"]>;
   /** 会話を圧縮する（作業中なら、いまのやり取りが終わったらすぐ圧縮するよう、送信待ちのいちばん上に入れる） */
   abstract compact(chatId: number): Promise<Chat>;
+  /** コンテキストを消去する（作業中なら 409・まだ会話がなければ 409） */
+  abstract clearContext(chatId: number): Chat;
   /** チャット（なければ 404） */
   protected abstract requireChat(chatId: number): Chat;
   /** 送れなかった理由をチャットに残す */
@@ -73,12 +82,12 @@ export abstract class RunnerQueue {
   }
 
   /**
-   * 会話を圧縮する行を送信待ちに足す（after: その指示のすぐあと。null ならいちばん下）。
-   * 作業していなくても、すぐには圧縮しない（列の順が来たら、ほかの指示と同じく自動で・行の「すぐ送る」で圧縮する）
+   * 指示の代わりに挟む行（会話の圧縮・コンテキストの消去）を送信待ちに足す（after: その指示のすぐあと。null ならいちばん下）。
+   * 作業していなくても、すぐには行わない（列の順が来たら、ほかの指示と同じく自動で・行の「すぐ送る」で行う）
    */
-  queueCompact(chatId: number, after: string | null = null): void {
+  queueAction(chatId: number, action: QueueAction, after: string | null = null): void {
     this.requireChat(chatId);
-    if (!this.queueOf(chatId).addCompact(after ?? undefined)) throw missing();
+    if (!this.queueOf(chatId).addAction(action, after ?? undefined)) throw missing();
   }
 
   /** 待ちの列から消す */
@@ -91,7 +100,8 @@ export abstract class RunnerQueue {
     const queue = this.queueOf(chatId);
     const message = queue.list().find((m) => m.id === id);
     if (!message) throw missing();
-    if (message.compact) throw new Invalid("会話の圧縮の行は書き直せません");
+    const action = queueActionOf(message);
+    if (action) throw new Invalid(`「${QUEUE_ACTION_LABELS[action]}」の行は書き直せません`);
     const nextAttachments = attachments ?? message.attachments;
     if (!text.trim() && nextAttachments.length === 0) throw new Invalid("メッセージか添付ファイルが必要です");
     queue.edit(id, text.trim(), nextAttachments);
@@ -118,16 +128,27 @@ export abstract class RunnerQueue {
 
   /**
    * 待ちの 1 件をすぐ送る。作業中なら止めずに伝え、伝えられなければ列の先頭に戻す。
-   * 圧縮の行なら、すぐ圧縮する（作業中なら、いまのやり取りが終わったらすぐ圧縮するよう、いちばん上へ移す。まだ会話がなければ 409 で列に残す）
+   * 圧縮・消去の行なら、すぐ行う（作業中なら、いまのやり取りが終わったらすぐ行うよう、いちばん上へ移す。まだ会話がなければ 409 で列に残す）。
+   * 消去はその場で済むので、済んだら送信待ちの次を送る（止めているときは送らない。圧縮はその作業の終わりで送る）
    */
   async sendQueuedNow(chatId: number, id: string): Promise<void> {
     const queue = this.queueOf(chatId);
     const found = queue.list().find((m) => m.id === id);
     if (!found) throw missing();
-    if (found.compact && !this.isBusy(chatId) && !this.requireChat(chatId).session_id) throw new Conflict("まだ会話がないので、圧縮できません");
+    const action = queueActionOf(found);
+    if (action && !this.isBusy(chatId) && !this.requireChat(chatId).session_id) throw new Conflict(NO_SESSION[action]);
     const message = queue.take(id)!;
-    if (message.compact) {
+    if (action === "compact") {
       await this.compact(chatId);
+      return;
+    }
+    if (action === "clear") {
+      if (this.isBusy(chatId)) {
+        queue.reserve("clear");
+        return;
+      }
+      this.clearContext(chatId);
+      await this.sendNextQueued(chatId);
       return;
     }
     await this.tell(chatId, message.text, message.options, message.attachments, { at: 0 });
@@ -150,7 +171,7 @@ export abstract class RunnerQueue {
    */
   mergeQueued(chatId: number, ids: string[]): QueuedMessage {
     const queue = this.queueOf(chatId);
-    const merged = queue.list().filter((m) => ids.includes(m.id) && !m.compact).length >= 2 ? queue.merge({ ids }) : undefined;
+    const merged = queue.list().filter((m) => ids.includes(m.id) && !queueActionOf(m)).length >= 2 ? queue.merge({ ids }) : undefined;
     if (!merged) throw new Invalid("まとめるには、送信待ちの指示を 2 件以上選んでください");
     return merged;
   }
@@ -224,6 +245,12 @@ export abstract class RunnerQueue {
         this.reportError(chatId, `送信待ちの会話の圧縮を始められませんでした: ${errorMessage(e)}`);
         await this.sendNextQueued(chatId);
       }
+      return;
+    }
+    if (next.clear) {
+      // 消去の行: その場で済むので、すぐ次を送る（次の指示は新しい会話で始まる）。まだ会話がなければ消すものがないので、そのまま次へ
+      if (this.requireChat(chatId).session_id) this.clearContext(chatId);
+      await this.sendNextQueued(chatId);
       return;
     }
     try {

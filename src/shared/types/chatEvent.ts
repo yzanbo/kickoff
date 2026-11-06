@@ -55,6 +55,11 @@ export type ChatEventData =
    * duration_ms: 圧縮にかかった時間（Claude Code が知らせたときだけ。記録の時刻 = 終わった時刻から引くと始めた時刻）
    */
   | { type: "compact"; trigger: CompactTrigger; pre_tokens: number; post_tokens?: number; duration_ms?: number }
+  /**
+   * コンテキストを消去した（送信待ちのコンテキスト消去の行。チャットのセッションを外し、次の指示から新しい会話で始める。
+   * これより前の作業の終わりからは、巻き戻し・子チャットで会話を引き継がない）
+   */
+  | { type: "context_cleared" }
   /** サブエージェントの開始・終了（途中経過は保存せず、chat_subagent で届く） */
   | ({ type: "subagent" } & SubagentInfo);
 

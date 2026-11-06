@@ -1,9 +1,42 @@
-/* ==== 送信待ちの見出しの行（件数・すべて表示・並べ替え・自動で送る・まとめて送る・消す） ==== */
+/* ==== 送信待ちの見出しの行（件数・すべて表示 ｜ 操作のまとまり: 挟む・送り方・すべて消す / 選んでいるときは並べ替え・選んだものへの操作） ==== */
 .queued-head-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 4px 6px;
   margin-bottom: 3px;
+}
+
+/*
+ * 右の操作のまとまりの入れ物。件数の側に幅が足りなければ、まるごと 2 行目へ回り（右に寄せる）、
+ * それでも入らなければまとまりごとに折り返す（まとまりの中は折り返さない）
+ */
+.queued-head-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px 14px;
+  margin-left: auto;
+}
+
+.queued-head-group {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 「挟む」のまとまりの見出し（押すと列に 1 行足す物だと分かるように。ボタンではない） */
+.queued-head-group-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 1px;
+  font-size: 11px;
+  color: var(--extra-muted);
+  white-space: nowrap;
+  cursor: default;
 }
 
 .queued-head-btn {
@@ -16,21 +49,9 @@
   line-height: 1;
 }
 
-/*
- * ここから右を操作にまとめる（左は件数と、一覧の見え方の「すべて表示 / 縮める」）。
- * 自動で送る（列全体の設定）→ 選んでいるときは、行と同じく 並べ替え（いちばん上へ・いちばん下へ）｜ まとめて送る・消す・選ぶのをやめる の順
- */
-.queued-head-btn.queued-mode {
-  margin-left: auto;
-}
-
-/* 並べ替えのまとまり: 右の送る・消すと縦線で区切る（行の ↑↓ と同じ） */
-.queued-head-moves {
-  display: flex;
-  flex: none;
+/* 選んでいるときの並べ替えのまとまり（いちばん上へ・いちばん下へ。行の ↑↓ と同じアイコンだけ） */
+.queued-head-group.queued-head-moves {
   gap: 2px;
-  padding-right: 6px;
-  border-right: 1px solid var(--border);
 }
 
 /* 止めているとき（終わっても送らない）: 黄で目立たせる */
@@ -56,27 +77,53 @@
   opacity: 0.45;
 }
 
-/* 会話の圧縮の行を足す: 圧縮の行・圧縮中の行と同じアクセントの色 */
-.queued-head-btn.queued-add-compact {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  color: var(--accent-fg);
+/*
+ * 挟む行の色（queueActionLooks の tone。行の文と見出しの「挟む」のボタンで同じ色）:
+ * 会話の圧縮 = 圧縮中の行と同じアクセントの色、コンテキストの消去 = 青（一時停止の黄・消すの赤と見分ける）
+ */
+.queued-action-compact {
+  --queued-tone: var(--accent-fg);
+  --queued-tone-line: var(--accent);
+}
+
+.queued-action-clear {
+  --queued-tone: var(--info);
+  --queued-tone-line: var(--info);
+}
+
+/* 会話の圧縮・コンテキストの消去の行を足す: 足す行と同じ色（queued.css の --queued-tone） */
+.queued-head-btn.queued-add-action {
+  border-color: color-mix(in srgb, var(--queued-tone-line) 45%, transparent);
+  color: var(--queued-tone);
   background: transparent;
 }
 
-.queued-head-btn.queued-add-compact:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+.queued-head-btn.queued-add-action:hover {
+  border-color: var(--queued-tone-line);
+  background: color-mix(in srgb, var(--queued-tone-line) 12%, transparent);
 }
 
-.queued-head-btn.queued-clear {
+.queued-head-btn.queued-remove {
   border-color: color-mix(in srgb, var(--ng) 55%, transparent);
   color: var(--ng);
   background: transparent;
 }
 
-.queued-head-btn.queued-clear:hover:not(:disabled) {
+.queued-head-btn.queued-remove:hover:not(:disabled) {
   border-color: var(--ng);
   background: color-mix(in srgb, var(--ng) 12%, transparent);
+}
+
+/*
+ * 左の件数の側（件数・案内・次: の見出しと「すべて表示」）。操作と同じ行に並ぶかを 240px として決め
+ * （それより狭くなるなら操作が 2 行目へ回る）、余りの幅まで伸びる（長い「次: …」で操作を押し出さない）
+ */
+.queued-head-main {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 6px;
+  min-width: min(100%, 240px);
 }
 
 .queued-head {
@@ -169,15 +216,35 @@
   transform: none;
 }
 
-/* 狭い欄: 案内と、見出しのボタンの文字を隠す（アイコンだけにする。読み上げは aria-label） */
-@container queued (max-width: 440px) {
-  .queued-messages:not(.collapsed) .queued-hint,
+/*
+ * 狭い欄: 見出しが 2 行（件数 / 操作）に収まるよう、ボタンの文字を隠してアイコンだけにする（読み上げは aria-label）。
+ * 先にアイコンで分かる送り方（自動で送る・すべて送る）とすべて消すを、もっと狭ければ挟むものも。いちばん狭いときは案内も隠す
+ */
+@container queued (max-width: 640px) {
+  .queued-head-send .queued-head-label,
+  .queued-head-tools > .queued-remove .queued-head-label {
+    display: none;
+  }
+
+  .queued-head-send .queued-head-btn,
+  .queued-head-tools > .queued-remove {
+    padding-inline: 6px;
+  }
+}
+
+@container queued (max-width: 520px) {
   .queued-head-label {
     display: none;
   }
 
   .queued-head-btn {
     padding-inline: 6px;
+  }
+}
+
+@container queued (max-width: 440px) {
+  .queued-messages:not(.collapsed) .queued-hint {
+    display: none;
   }
 }
 

@@ -404,3 +404,30 @@ test("送信待ちの圧縮の行（POST /queue/compact）: いちばん下・�
   assert.equal(provider.prompts[2], "/compact");
   assert.deepEqual(labels((await call("GET", `/api/chats/${chatId}`)).body.live.queue), ["2\n\n3"]);
 });
+
+test("送信待ちのコンテキスト消去の行（POST /queue/clear）: 足して、書き直せず、作業していないときにすぐ送ると消去して記録に残す", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  const two = (await call("POST", `/api/chats/${chatId}/queue`, { text: "2" })).body.id as string;
+  const labels = (body: { messages: { text: string; clear?: boolean }[] }) => body.messages.map((m) => (m.clear ? "消去" : m.text));
+  const added = (await call("POST", `/api/chats/${chatId}/queue/clear`, { after: two })).body;
+  assert.deepEqual(labels(added), ["2", "消去"]);
+  assert.equal((await call("POST", `/api/chats/${chatId}/queue/clear`, { after: "nope" })).status, 404);
+  const clearId = added.messages[1].id as string;
+  assert.equal((await call("PATCH", `/api/chats/${chatId}/queue/${clearId}`, { text: "x" })).status, 400);
+  // 止めておいて作業を終え、消去の行だけを「すぐ送る」
+  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
+  release();
+  await until(() => !runner.isBusy(chatId));
+  assert.ok((await call("GET", `/api/chats/${chatId}`)).body.chat.session_id);
+  const sent = (await call("POST", `/api/chats/${chatId}/queue/${clearId}/send`)).body;
+  assert.deepEqual(labels(sent), ["2"]);
+  const detail = (await call("GET", `/api/chats/${chatId}`)).body;
+  assert.equal(detail.chat.session_id, null);
+  assert.equal(detail.events.at(-1).type, "context_cleared");
+  // 会話がないので、もう一度足して「すぐ送る」と 409
+  const again = (await call("POST", `/api/chats/${chatId}/queue/clear`, {})).body.messages[1].id as string;
+  assert.equal((await call("POST", `/api/chats/${chatId}/queue/${again}/send`)).status, 409);
+});

@@ -148,8 +148,17 @@ export interface SearchHit {
 }
 
 /**
+ * 送信待ちに指示の代わりに挟む行の種類（compact: 会話を圧縮する / clear: コンテキストを消去する = 次の指示から新しい会話で始める）。
+ * 画面の文言は QUEUE_ACTION_LABELS
+ */
+export const QUEUE_ACTIONS = ["compact", "clear"] as const;
+export type QueueAction = (typeof QUEUE_ACTIONS)[number];
+export const QUEUE_ACTION_LABELS: Record<QueueAction, string> = { compact: "会話を圧縮", clear: "コンテキストを消去" };
+
+/**
  * 作業中のチャットに送った、次の指示の待ちの列（送信待ち）の 1 件（いまの作業が終わったら順に送る。chat_queues に保存する）。
- * compact なら、指示の代わりに会話を圧縮する行（そこまで送ったら会話を要約してコンテキストを空け、終わったら続きを送る。文・添付・選択は空）
+ * compact なら、指示の代わりに会話を圧縮する行（そこまで送ったら会話を要約してコンテキストを空け、終わったら続きを送る）。
+ * clear なら、コンテキストを消去する行（そこまで送ったら、次の指示から新しい会話で始める。記録は残る）。どちらも文・添付・選択は空
  */
 export interface QueuedMessage {
   id: string;
@@ -158,6 +167,7 @@ export interface QueuedMessage {
   options: ChatOptionsPatch;
   created_at: string;
   compact?: boolean;
+  clear?: boolean;
 }
 
 /**

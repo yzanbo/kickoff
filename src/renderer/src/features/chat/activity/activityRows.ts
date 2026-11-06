@@ -171,6 +171,8 @@ function rowOf(item: TimelineItem, agent: string | null, owner: SubagentEntry | 
     }
     case "compact":
       return { ...base, kind: "note", text: `会話を要約しました（${e.data.trigger === "auto" ? "自動" : "手動"}）` };
+    case "context_cleared":
+      return { ...base, kind: "note", text: "コンテキストを消去（ここから新しい会話）" };
     case "notice":
       return { ...base, kind: "note", text: firstLine(e.data.message) };
     case "error":

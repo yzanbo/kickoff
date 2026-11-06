@@ -219,13 +219,30 @@ export class Runner extends RunnerQueue {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
     if (this.isBusy(chatId)) {
-      this.runtimes.get(chatId).queue.reserveCompact();
+      this.runtimes.get(chatId).queue.reserve("compact");
       return chat;
     }
     if (!chat.session_id) throw new Conflict("まだ会話がないので、圧縮できません");
     store.chats.update(chat.id, { status: "running", error: null });
     void this.execute({ chatId: chat.id, prompt: "/compact", compact: true });
     return store.chats.get(chat.id)!;
+  }
+
+  /**
+   * コンテキストを消去する（送信待ちのコンテキスト消去の行）: チャットのセッションを外し、次の指示から新しい会話で始める。
+   * 会話の記録は残し、消去したこと（context_cleared イベント）を残す。作業中なら 409、まだ会話がなければ 409
+   */
+  clearContext(chatId: number): Chat {
+    const { store } = this.deps;
+    const chat = this.requireChat(chatId);
+    this.requireIdle(chatId, "コンテキストの消去");
+    if (!chat.session_id) throw new Conflict("まだ会話がないので、消去するコンテキストがありません");
+    // 自分で頼んだ: 止まったあとの再開の段取り（前の会話の続きを頼むもの）をやめる
+    this.forgetRecovery(chatId);
+    // コンテキストの大きさは、次の応答まで分からない
+    const cleared = store.chats.update(chat.id, { session_id: null, context_tokens: null });
+    store.events.add(chat.id, { type: "context_cleared" });
+    return cleared;
   }
 
   /**

@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { moveToSlot, normalizeStops, remapStops, type QueueSlot } from "@shared/chat/queueStops";
+import { isQueueAction, queueActionOf } from "@shared/chat/queueActions";
 import type { SavedQueue } from "../db/queues.js";
-import type { Attachment, QueuedMessage, ChatOptionsPatch, QueueState } from "@shared/types";
+import type { Attachment, QueueAction, QueuedMessage, ChatOptionsPatch, QueueState } from "@shared/types";
 
 /** 送信待ちの保存先（Store の queues。省けば保存しない） */
 export interface QueuePersistence {
@@ -126,11 +127,11 @@ export class ChatQueue {
   }
 
   /**
-   * 会話を圧縮する行を足す。after を渡すとその指示のすぐあと（すぐあとに一時停止の線があれば線の上 = 止まる前に圧縮する）、
-   * 省けばいちばん下（指示を足したときと同じく、すべて送ったあとの線の下）。after が列になければ undefined
+   * 指示の代わりに挟む行（会話の圧縮・コンテキストの消去）を足す。after を渡すとその指示のすぐあと（すぐあとに一時停止の線があれば線の上 =
+   * 止まる前に行う）、省けばいちばん下（指示を足したときと同じく、すべて送ったあとの線の下）。after が列になければ undefined
    */
-  addCompact(after?: string): QueuedMessage | undefined {
-    const message = compactItem();
+  addAction(action: QueueAction, after?: string): QueuedMessage | undefined {
+    const message = actionItem(action);
     if (after === undefined) {
       this.set([...this.messages, message]);
       return message;
@@ -142,22 +143,23 @@ export class ChatQueue {
   }
 
   /**
-   * いまのやり取りが終わったら、すぐ会話を圧縮する（作業中の「会話を圧縮」）。圧縮の行をいちばん上（1 件目の上の線よりも上）に入れる。
-   * 止めているときは、止めるのを 1 件目の上の線に置き換える（圧縮だけは送り、そのあとで止まる）。もう予約していれば、その行を返す
+   * いまのやり取りが終わったら、すぐ行う（作業中の「会話を圧縮」・作業中に押した行の「すぐ送る」）。その行をいちばん上（1 件目の上の線よりも上）に入れる。
+   * 止めているときは、止めるのを 1 件目の上の線に置き換える（この行だけは行い、そのあとで止まる）。もう予約していれば、その行を返す
    */
-  reserveCompact(): QueuedMessage {
+  reserve(action: QueueAction): QueuedMessage {
     const head = this.messages[0];
-    if (head?.compact && !this.paused && this.stops[0] !== 0) return head;
+    const same = head !== undefined && queueActionOf(head) === action;
+    if (same && !this.paused && this.stops[0] !== 0) return head;
     if (this.paused) {
       this.paused = false;
       this.stops = normalizeStops([0, ...this.stops], this.messages.length);
     }
-    // いちばん上がもう圧縮の行なら、足さずにその行を線の上へ出す
-    if (head?.compact) {
+    // いちばん上がもう同じ行なら、足さずにその行を線の上へ出す
+    if (same) {
       this.moveTo([head.id], { at: 0, belowStop: false });
       return head;
     }
-    const message = compactItem();
+    const message = actionItem(action);
     this.insert(message, { at: 0, belowStop: false });
     return message;
   }
@@ -201,8 +203,8 @@ export class ChatQueue {
    */
   merge({ silent = false, ids }: { silent?: boolean; ids?: string[] } = {}): QueuedMessage | undefined {
     const list = this.messages;
-    // 圧縮の行はまとめない（列に残す）
-    const picked = (ids ? list.filter((m) => ids.includes(m.id)) : list).filter((m) => !m.compact);
+    // 圧縮・消去の行はまとめない（列に残す）
+    const picked = (ids ? list.filter((m) => ids.includes(m.id)) : list).filter((m) => !isQueueAction(m));
     if (picked.length === 0) return undefined;
     const merged: QueuedMessage = {
       ...picked[picked.length - 1],
@@ -301,7 +303,7 @@ export class ChatQueue {
   }
 }
 
-/** 会話を圧縮する行（文・添付・選択は空） */
-function compactItem(): QueuedMessage {
-  return { id: randomUUID(), text: "", options: {}, attachments: [], created_at: new Date().toISOString(), compact: true };
+/** 指示の代わりに挟む行（文・添付・選択は空） */
+function actionItem(action: QueueAction): QueuedMessage {
+  return { id: randomUUID(), text: "", options: {}, attachments: [], created_at: new Date().toISOString(), [action]: true };
 }

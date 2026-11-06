@@ -25,13 +25,13 @@
 - 圧縮の直後のコンテキストの大きさ（`ProviderCallbacks.context`）は、作業の終わりを待たずにチャットの `context_tokens` に書く（自動の圧縮は作業の途中で起き、そのあとも作業が続くので、終わりまで入力欄のメーターが圧縮の前の値のままだった）。作業の終わりには最後の応答の大きさで書き直す。
 - 結果の反映（`applyResult`）: 状態・費用・回数・コンテキストの大きさ・未読を書き、作業の終わりの記録 `result` を残す（`network`・`usage_limit`、最後まで終わったときだけ分岐の起点の `session_id` / `message_id`）。この実行で始めたサブエージェントが終わっていなければ、作業の終わりとともに止まったことをお知らせに残す（`unfinishedSubagents`。Claude Code のプロセスが終わるため。通信の切断のときは再開の段取りが知らせる）。
 - 失敗は投げずに、チャットの失敗（未読）と `error` の記録にする。終わったら再試行・裏の作業・圧縮中の表示と作業中の操作を外す。
-- 終わったら（完了でも、止めた・失敗したときも）`Runner` が送信待ちの次を送り（次が会話の圧縮の行なら圧縮する。下の「送信待ち」）、使用枠を取り直す。アプリを終えるとき、通信の切断・使用枠の上限で止まったときは送らない（送っても失敗して消えるため）。
+- 終わったら（完了でも、止めた・失敗したときも）`Runner` が送信待ちの次を送り（次が会話の圧縮の行なら圧縮し、コンテキストの消去の行なら消してから次を送る。下の「送信待ち」）、使用枠を取り直す。アプリを終えるとき、通信の切断・使用枠の上限で止まったときは送らない（送っても失敗して消えるため）。
 
 ## 作業中の様子（ChatLive）
 
 - 画面に配る作業中の様子は `@shared/types` の `ChatLive`（送信待ち `queue`・裏の作業 `background`・通信の再試行 `retry`・つながるのを待っている `reconnect`・圧縮中の様子 `compacting`（始めた時刻ときっかけ）・停止中 `stopping`・圧縮中に預かった「いま」`after_compact`）。チャットの詳細（`GET /api/chats/:id`）の `live` と SSE の `chat_live` で同じ形にし、どれかが変わるたびに丸ごと配る。保存しない。
 - 再試行（Claude Code の `api_retry`）は返答が届き始めたら消す。裏の作業は Claude Code の `background_tasks_changed`（いま動いているものの一覧）と、メインの返答が終わったか（`replied`）。1 件ずつ止めるのは `POST /api/chats/:id/background/:taskId/stop`（`TurnControl.stopTask`。作業中でなければ 409）。
-- 圧縮: Claude Code の `status`（`compacting` → null）を `ProviderCallbacks.compacting` で受け（終わりは null・`compact_boundary`・作業の終わりだけで見る。API に問い合わせるたびの `requesting` は圧縮の途中にも挟まりうるので、それでは外さない）、始めた時刻ときっかけ（`CompactingState`）を終わるまで変えずに持つ（Claude Code は待っている間も 30 秒ごとに知らせ直す）。きっかけは、手で圧縮した実行（圧縮のボタン・`/compact` で始まる指示）なら `manual`、ほかの指示の途中で起きたものは上限に近づいた自動の `auto`（`compactTriggerOf`。画面は自動のとき、なぜ作業が止まって見えるかを添える）。失敗（`compactFailed`）は、手で圧縮したときだけ理由をお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない `too_few_groups` なども含み、Claude Code も知らせない）。要約したら記録に `compact`（前後のトークン数と、Claude Code が知らせたときはかかった時間 `duration_ms`）が残る。手で圧縮する（`POST /api/chats/:id/compact` → `/compact` を送る）ときは、発言・結果を残さず、回数に数えず、未読にもしない（まだ会話がなければ 409）。作業中に頼むと予約にする（`ChatQueue.reserveCompact`）: 送信待ちのいちばん上（1 件目の上の線よりも上）に会話の圧縮の行を入れ、いまのやり取りが終わったら（通信の切断・使用枠の上限で止まったときは除く）送信待ちより先にすぐ圧縮し、圧縮が終わったらその終わりで送信待ちの次を送る。もう予約していれば足さない。止めているときは、止めるのを 1 件目の上の線に置き換える（予約した圧縮だけは送り、そのあとで止まる）。予約をやめるのは、その行を送信待ちから消す（`DELETE …/queue/:queueId`）。テストは `runner.queue.test.ts`・`server.turns.test.ts`。
+- 圧縮: Claude Code の `status`（`compacting` → null）を `ProviderCallbacks.compacting` で受け（終わりは null・`compact_boundary`・作業の終わりだけで見る。API に問い合わせるたびの `requesting` は圧縮の途中にも挟まりうるので、それでは外さない）、始めた時刻ときっかけ（`CompactingState`）を終わるまで変えずに持つ（Claude Code は待っている間も 30 秒ごとに知らせ直す）。きっかけは、手で圧縮した実行（圧縮のボタン・`/compact` で始まる指示）なら `manual`、ほかの指示の途中で起きたものは上限に近づいた自動の `auto`（`compactTriggerOf`。画面は自動のとき、なぜ作業が止まって見えるかを添える）。失敗（`compactFailed`）は、手で圧縮したときだけ理由をお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない `too_few_groups` なども含み、Claude Code も知らせない）。要約したら記録に `compact`（前後のトークン数と、Claude Code が知らせたときはかかった時間 `duration_ms`）が残る。手で圧縮する（`POST /api/chats/:id/compact` → `/compact` を送る）ときは、発言・結果を残さず、回数に数えず、未読にもしない（まだ会話がなければ 409）。作業中に頼むと予約にする（`ChatQueue.reserve("compact")`）: 送信待ちのいちばん上（1 件目の上の線よりも上）に会話の圧縮の行を入れ、いまのやり取りが終わったら（通信の切断・使用枠の上限で止まったときは除く）送信待ちより先にすぐ圧縮し、圧縮が終わったらその終わりで送信待ちの次を送る。もう予約していれば足さない。止めているときは、止めるのを 1 件目の上の線に置き換える（予約した圧縮だけは送り、そのあとで止まる）。予約をやめるのは、その行を送信待ちから消す（`DELETE …/queue/:queueId`）。テストは `runner.queue.test.ts`・`server.turns.test.ts`。
 - 停止: `cancel`（`POST /api/chats/:id/cancel`）は `stopping` を立てて実行を止める。Claude Code のプロセスがサブエージェント・裏のコマンドごと終わるまで（ふつうは 2 秒ほど、応じなければ SDK が 5 秒後に強制終了する）立てたままにし、終わったら消す。
 
 ## 送信待ち（queue.ts・runnerQueue.ts）
@@ -42,7 +42,8 @@
 - `send-all` は 1 つにまとめていま送る（作業中なら伝える）。`send-in-order` は止めておくのをやめ、印も外して、終わるたびに 1 件ずつ最後まで送る。`merge` は送らずに 1 件にまとめる（列の順に空行でつなぎ、選んだうちのいちばん上に残す）。列にない指示は 404、送るものがないなどは 409。応答はどれも変えたあとの `QueueState`。
 - 一時停止の印（`stops`。0 = 1 件目の上、n = n 件目のあと）は指示に付けず、列の中の位置で持つ。前の指示を送った・消した・まとめた分だけ上に寄る（`remapStops`）。自動で送る次の指示の上に印があれば、送らずに止めておき（`takeNext`。印は残る）、自動に戻すとその印を越えて次の印まで送る。すべて送ったあとの印は、その作業のあいだに次に来た指示の前で止める（列が空でも印があれば `chat_queues` の行を残す）。次の指示が来ないまま作業が終わった・消して空にしたら外れる（残すと、あとで自分ですぐ送った作業の送信待ちの前で思いがけず止まる）。空の列の印は読み戻さない（待っていた作業はアプリの終了で終わっている）。
 - 並べ替えでは、印の線を見た目の並びの 1 行として扱い、動かした指示だけが線を越える（`@shared/chat/queueStops` の `moveToSlot`。いちばん上・下へ移しても端の線は端に残り、1 つ上・下へ移すときに隣が線なら、並びを変えずに線だけを越える。`move-many` は `before` と `below_stop` で落とした位置を決める）。
-- 会話の圧縮の行（`QueuedMessage.compact`。文・添付は空）: 指示と同じく列に並び、並べ替え・消す・一時停止の印の扱いも同じ。`POST …/queue/compact`（`after` を渡せばその指示のすぐあと（すぐあとに印があれば印の上 = 止まる前に圧縮する）、省けばいちばん下。`RunnerQueue.queueCompact` → `ChatQueue.addCompact`）で足す。自動で送る次がこの行なら `/compact` を送り（`Runner.compact`。始められなければ理由をチャットに残して次を送る）、「すぐ送る」は作業中ならいちばん上に移して予約にし、作業していなければすぐ圧縮する（まだ会話がなければ 409 で列に残す）。書き直す（400）・まとめる（`merge` は除いて列に残し、まとめる数にも数えない）ことはできない。
+- 会話の圧縮の行（`QueuedMessage.compact`。文・添付は空）: 指示と同じく列に並び、並べ替え・消す・一時停止の印の扱いも同じ。`POST …/queue/compact`（`after` を渡せばその指示のすぐあと（すぐあとに印があれば印の上 = 止まる前に圧縮する）、省けばいちばん下。`RunnerQueue.queueAction` → `ChatQueue.addAction`）で足す。自動で送る次がこの行なら `/compact` を送り（`Runner.compact`。始められなければ理由をチャットに残して次を送る）、「すぐ送る」は作業中ならいちばん上に移して予約にし、作業していなければすぐ圧縮する（まだ会話がなければ 409 で列に残す）。書き直す（400）・まとめる（`merge` は除いて列に残し、まとめる数にも数えない）ことはできない。
+- コンテキストの消去の行（`QueuedMessage.clear`。文・添付は空）: 圧縮の行と同じ「指示の代わりに挟む行」（`QueueAction`。見分けは `@shared/chat/queueActions` の `queueActionOf` / `isQueueAction`。足すのは `POST …/queue/clear`、`after` も同じ）。自動で送る次がこの行なら `Runner.clearContext` でセッションを外し（`chats.session_id` と `context_tokens` を null にして、記録に `context_cleared` を残す。実行はしないので、終わったらそのまま次を送る）、次の指示は新しいセッションで始まる。まだ会話がなければ何もせずに次へ。「すぐ送る」は作業中ならいちばん上に移して予約にし（`ChatQueue.reserve("clear")`）、作業していなければすぐ消して、止めていなければ次を送る（まだ会話がなければ 409 で列に残す）。書き直す・まとめるは圧縮の行と同じくできない。
 - 書き直し中の保留: 画面は書き直す欄を開いている指示を `PUT …/queue/editing` で丸ごと知らせ、開いている間は持ち時間（`@shared/chat/queueEditHolds` の `EDIT_HOLD_TTL_MS`、20 秒）より短い間隔で知らせ直す。コアは `queueEdits.ts` の `QueueEdits` で覚え、自動で送る先頭を書き直していれば送らずに待つ（`QueueState.waiting_edit`）。知らせが途絶えたら（画面を閉じた・落ちた）持ち時間で外れて送り、止まったままにしない。
 
 ## 止まったあとの再開（recovery/）
@@ -65,14 +66,14 @@
 ## 分岐・巻き戻し・ファイルを戻す
 
 - 分岐（`fork.ts` の `forkChat`、`POST /api/chats/:id/fork`）: 作業の終わり（`result` の `session_id` / `message_id`）から会話を新しいセッションに写し、そこまでの記録を写した新しいチャットを作る。起点は最後まで終わった作業だけ（止めた・失敗した作業の最後のメッセージはセッションに残らないことがある）。ファイルは戻さない。
-- 巻き戻し（`rewind.ts` の `rewindChat`、`POST /api/chats/:id/rewind`）: 自分の発言より前の、いちばん近い起点から分岐し（なければ最初から）、その発言から後ろの記録と送信待ちを消して、書き直した文で送り直す（添付は元の発言のもの）。`restore_files` ならファイルも戻す（ファイルの記録は元のセッションにしかないので、分岐の前に戻す）。
-- ファイルを戻す（`rewindFiles`、`POST /api/chats/:id/rewind-files`）: 実行はいつも編集の前のファイルを取っておき（`enableFileCheckpointing`）、プロバイダーの `rewindFiles` で発言（`message_uuid`）を送る前の状態に戻す。先に dryRun で量を測ってから戻し、お知らせを残す（`dry_run` なら測るだけ）。戻るのは Claude Code の編集のツールで変えたファイルだけ。
+- 巻き戻し（`rewind.ts` の `rewindChat`、`POST /api/chats/:id/rewind`）: 自分の発言より前の、いちばん近い起点から分岐し（なければ最初から。間にコンテキストの消去 `context_cleared` があれば、その手前の起点は使わず最初から = `sessionPoints.ts` の `resumePointBefore`）、その発言から後ろの記録と送信待ちを消して、書き直した文で送り直す（添付は元の発言のもの）。`restore_files` ならファイルも戻す（ファイルの記録は元のセッションにしかないので、分岐の前に戻す）。
+- ファイルを戻す（`rewindFiles`、`POST /api/chats/:id/rewind-files`）: 実行はいつも編集の前のファイルを取っておき（`enableFileCheckpointing`）、プロバイダーの `rewindFiles` で発言（`message_uuid`）を送る前の状態に戻す。先に dryRun で量を測ってから戻し、お知らせを残す（`dry_run` なら測るだけ）。その発言のあとでコンテキストを消去していれば、ファイルの記録は消去の前のセッションにあるので、そのセッションで戻す（`sessionAt`）。戻るのは Claude Code の編集のツールで変えたファイルだけ。
 - どれも作業中は 409、起点にできない・対応していない・ファイルを戻せないときは 400。
 
 ## 子チャット（children.ts）
 
 - 子チャットは `chats` の `parent_chat_id`（親）と `parent_event_id`（聞いた親の発言の記録）を持つふつうのチャット。作るのは `startChildChat`（`POST /api/chats/:id/children`。本文 `ChildChatBody` = 文・添付 `attachments`・選んだ文 `quote`・引き継ぐか `inherit`（既定 true）・`event_id`・選択。文か添付のどちらかが要る（チャット欄の「子チャットに送る」は添付だけでも送れる）。201 で子を返す）。親が作業中でも作れる（親は止めない）。
-- 引き継ぐときは、親の最後まで終わった作業（`result` の `session_id` / `message_id`）からプロバイダーの `fork` で会話を写し、子はそのセッションの続きとして送る。起点がなければ、お知らせ（「引き継げる会話がまだない」）を残して、選んだ文だけで始める。指示は選んだ文を引用（`> `）にして、その下に文。作業場所は親と同じ、名前は文から付ける（`createChat` の `titleText`。画面は選んだ文を引用にして文の頭に入れて送るので、頭の引用の行は名前に使わない `titleSourceOf`）。
+- 引き継ぐときは、親の最後まで終わった作業（`result` の `session_id` / `message_id`。コンテキストの消去より前のものは使わない `resumePointBefore`）からプロバイダーの `fork` で会話を写し、子はそのセッションの続きとして送る。起点がなければ、お知らせ（「引き継げる会話がまだない」）を残して、選んだ文だけで始める。指示は選んだ文を引用（`> `）にして、その下に文。作業場所は親と同じ、名前は文から付ける（`createChat` の `titleText`。画面は選んだ文を引用にして文の頭に入れて送るので、頭の引用の行は名前に使わない `titleSourceOf`）。
 - アーカイブ・アーカイブを戻す・別のプロジェクトへの移動・削除は、子孫ごと（`store.chats.descendants`。深い順。どれかが作業中なら 409）。削除の知らせは子孫の分も出す（DB は `ON DELETE CASCADE` でも消える）。
 - テストは `http/server.children.test.ts`。
 
