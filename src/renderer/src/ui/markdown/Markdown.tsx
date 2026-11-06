@@ -1,6 +1,7 @@
 import { useContext, useMemo, type ReactNode } from "react";
 import ReactMarkdown, { type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { rehypeStreamTail } from "@/lib/streamReveal";
 import { MarkdownFileLinksContext } from "./markdownFileLinks";
 import { MermaidDiagram, MermaidPlaceholder } from "@/ui/markdown/mermaid/MermaidDiagram";
 import { codeBlockOf } from "@/ui/markdown/mermaid/mermaidSource";
@@ -73,14 +74,15 @@ const STREAMING_COMPONENTS: Components = { a: link, pre: codeBlock(true), table 
 /**
  * AI の発言などの Markdown 表示（HTML は描画しない）。```mermaid は図にする。
  * チャットのパネルの中（MarkdownFileLinksContext があるとき）は、作業場所のファイルのパスを押して開けるチップにする。
- * streaming: 生成中の返答
+ * streaming: 生成中の返答。tail: 生成中に出たばかりの文字の数（出てからの時間で分けた段。新しい順。終わりの文字を段ごとに薄く出す。`useStreamReveal`）
  */
-export function Markdown({ children, streaming = false }: { children: string; streaming?: boolean }) {
+export function Markdown({ children, streaming = false, tail }: { children: string; streaming?: boolean; tail?: readonly number[] }) {
   const links = useContext(MarkdownFileLinksContext);
   const remarkPlugins = useMemo<Options["remarkPlugins"]>(() => (links ? [remarkGfm, links.remarkPlugin] : [remarkGfm]), [links]);
+  const rehypePlugins = useMemo<Options["rehypePlugins"]>(() => (tail?.some((n) => n > 0) ? [rehypeStreamTail(tail)] : []), [tail]);
   return (
     <div className="markdown">
-      <ReactMarkdown remarkPlugins={remarkPlugins} components={streaming ? STREAMING_COMPONENTS : COMPONENTS}>
+      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={streaming ? STREAMING_COMPONENTS : COMPONENTS}>
         {children}
       </ReactMarkdown>
     </div>
