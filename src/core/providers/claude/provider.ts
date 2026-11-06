@@ -20,7 +20,7 @@ import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOptio
 import { createCanUseTool } from "./approvals.js";
 import { agentEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
-import { turnHooks, toAllowedTools } from "./policy.js";
+import { turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
@@ -186,7 +186,12 @@ export class ClaudeProvider implements AgentProvider {
           // 自動圧縮を始める使用率を決めていれば渡す（決めていなければ Claude Code の既定）
           env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct) },
           pathToClaudeCodeExecutable: this.executable,
-          hooks: { ...turnHooks(params, this.self), ...(preCompact ? { PreCompact: [preCompactHook(preCompact)] } : {}) },
+          hooks: {
+            ...turnHooks(params, this.self),
+            ...(preCompact ? { PreCompact: [preCompactHook(preCompact)] } : {}),
+            // このチャットの文脈（子チャットの親など）は、実行の初めの指示に添える
+            ...(params.turnContext ? { UserPromptSubmit: [turnContextHook(params.turnContext)] } : {}),
+          },
           includePartialMessages: true,
           // 編集の前のファイルを取っておく（巻き戻しで、自分の発言の時点のファイルに戻せるように）
           enableFileCheckpointing: true,

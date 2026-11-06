@@ -46,6 +46,13 @@ test("子チャット: 文の頭に引用を入れて送ると、引用はその
   const user = ctx.store.events.list(child.id).find((e) => e.type === "user");
   assert.equal(user?.type === "user" && user.data.text, "> 選んだ文\n>\n> 2 行目\n\nここを直したい");
   await until(() => !ctx.runner.isBusy(child.id));
+  // AI からは Kickoff のチャットが見えないので、自分と親チャットの名前と ID を指示に添える（親のないチャットには添えない）
+  const parent = ctx.store.chats.get(parentId)!;
+  assert.ok(ctx.provider.lastTurnContext?.includes(`Kickoff のチャット ID: ${child.id}`));
+  assert.ok(ctx.provider.lastTurnContext?.includes(`- 親チャット: 「${parent.title}」（Kickoff のチャット ID: ${parentId}、Claude Code のセッション ID: ${parent.session_id}）`));
+  await ctx.call("POST", `/api/chats/${parentId}/messages`, { text: "親の続き" });
+  await until(() => !ctx.runner.isBusy(parentId));
+  assert.equal(ctx.provider.lastTurnContext, null);
 });
 
 test("子チャット: 引き継がない・引き継げる会話がないときは、選んだ文と質問だけで始める", async () => {

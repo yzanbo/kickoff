@@ -44,3 +44,20 @@ export function toAllowedTools(policy: ChatPolicy): string[] {
     ...policy.allowedCommands.map((cmd) => `Bash(${cmd}:*)`),
   ];
 }
+
+/**
+ * 実行の初めの指示に文脈を添えるフック（UserPromptSubmit の additionalContext）。作業中に足した発言には添えない（同じ実行の中で 1 回で足りる）。
+ * システムプロンプトでは、続きのセッションに届かないため（Claude Code はセッションの prompt_snapshot を使い回す）
+ */
+export function turnContextHook(context: string): HookCallbackMatcher {
+  let sent = false;
+  return {
+    hooks: [
+      async (input) => {
+        if (input.hook_event_name !== "UserPromptSubmit" || sent) return {};
+        sent = true;
+        return { hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: context } };
+      },
+    ],
+  };
+}
