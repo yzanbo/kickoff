@@ -69,15 +69,3 @@
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
-
-
-/* 新しい子チャットの「会話を引き継ぐ」（作成先のグループと同じピルの中のチェック） */
-.new-child-inherit {
-  padding-right: 8px;
-  cursor: pointer;
-}
-
-.new-child-inherit input {
-  width: auto;
-  margin: 0;
-}
