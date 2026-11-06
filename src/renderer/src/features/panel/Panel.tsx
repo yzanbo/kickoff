@@ -18,6 +18,7 @@ import { SURFACES } from "./surfaces";
 import { focusedPanelKey, PanelHostContext } from "./panelHost";
 import { specOf } from "@/features/panel/tabs/tabKinds";
 import { usePanelViewMenu } from "@/features/panel/tabs/PanelViewMenu";
+import { useNewChild } from "@/features/panel/agents/useNewChild";
 
 /**
  * 欄のパネル（ボードの右のパネル・プロジェクトのチャット欄・フッターで共通。欄ごとの違いは SURFACES と、殻が渡す frame）。
@@ -65,6 +66,8 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
 
   // 「表示」のメニュー（表示するタブ・まとめ方・アーカイブ済み・ボードツールバーの置き方）。道具のボタンと、タブの列の何もないところの右クリックで同じものを開く
   const view = usePanelViewMenu(panel);
+  // 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。タブの列の「＋」と空の欄のボタン）
+  const newChild = useNewChild(panel);
   // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
   const mountedTabs = useRef(new Set<string>());
   /** ペインのタブの列（タブの列の左の道具は、左上のペインにだけ置く） */
@@ -85,6 +88,13 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
         panel.startNewChat();
       }}
       onTerminal={openWith.openTerminal}
+      onNewChild={
+        newChild &&
+        (() => {
+          panel.focusPane(pane.id);
+          newChild();
+        })
+      }
       rename={rename}
       onBarMenu={view.has ? view.open : undefined}
       onOpenWith={openWith.open}
@@ -100,6 +110,13 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
       hasTerminals={terminals.length > 0}
       manyTerminals={terminals.length > 1}
       onNewChat={panel.startNewChat}
+      onNewChild={
+        newChild &&
+        (() => {
+          panel.focusPane(pane.id);
+          newChild();
+        })
+      }
       onBrowser={() => panel.openBrowser()}
       onTerminal={(e) => openWith.openTerminal(e, pane)}
     />

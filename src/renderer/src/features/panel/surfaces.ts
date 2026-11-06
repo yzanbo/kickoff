@@ -41,9 +41,14 @@ export interface SurfaceRules {
   maximizeLabels?: { on: string; off: string };
   /**
    * 出すタブの種類が決まっている欄か（サブエージェントの欄）。表示するタブの種類のメニュー・新しいタブのボタンを出さない
-   * （中身は外から開くタブだけ）
+   * （中身は外から開くタブと、newChild の新しい子チャットだけ）
    */
   fixedKinds?: boolean;
+  /**
+   * 新しい子チャットを開けるか（サブエージェントの欄。タブの列の「＋」と空の欄のボタンで、この欄のチャットの子チャットを入力欄だけのタブで始める。
+   * メモのチャット・アーカイブ済みのチャットでは出さない）
+   */
+  newChild?: boolean;
   /** タブがないときに、新しいチャットのボタンの代わりに出す案内（分けていない欄だけ。ボードの右のパネル: 新しいチャットは見出しの「新規」から） */
   emptyHint?: string;
   /** タブの列の何もないところの右クリックで、ボードツールバーの置き方を選ぶか（ボードの右のパネルだけ） */
@@ -97,8 +102,9 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     openWhenEmpty: null,
     closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "start" },
     emptyHint:
-      "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
+      "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。「＋」で新しい子チャットを始められます。タブをドラッグすると、上下・左右に分けて並べられます。",
     fixedKinds: true,
+    newChild: true,
     rootClass: "agent-panel",
   },
 };
