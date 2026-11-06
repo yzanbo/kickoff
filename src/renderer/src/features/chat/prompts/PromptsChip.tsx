@@ -89,20 +89,23 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
       onToggle={() => (open ? close() : setOpen(true))}
       onClose={close}
     >
-      <SearchField
-        autoFocus
-        value={query}
-        onChange={setQuery}
-        onKeyDown={(e) => {
-          // ⌘Enter はその指示へ移る（Enter は入力欄に入れる）
-          if (isKey(e, "Enter", { meta: true })) {
-            e.preventDefault();
-            jump(items[nav.index]);
-          } else nav.onKeyDown(e);
-        }}
-        placeholder="指示を探す（Enter で入力欄に入れる・⌘Enter でその指示へ移る）"
-        label="指示の履歴を探す"
-      />
+      {/* 絞り込みの欄は、一覧をスクロールしても上に残す帯に入れる（欄そのものを貼り付けると、帯の余白で欄の枠と高さが崩れる） */}
+      <div className="prompts-search">
+        <SearchField
+          autoFocus
+          value={query}
+          onChange={setQuery}
+          onKeyDown={(e) => {
+            // ⌘Enter はその指示へ移る（Enter は入力欄に入れる）
+            if (isKey(e, "Enter", { meta: true })) {
+              e.preventDefault();
+              jump(items[nav.index]);
+            } else nav.onKeyDown(e);
+          }}
+          placeholder="指示を探す（Enter で入力欄に入れる・⌘Enter でその指示へ移る）"
+          label="指示の履歴を探す"
+        />
+      </div>
       {items.length === 0 && <p className="muted small">合う指示はありません</p>}
       {items.map((p, index) => {
         return (
