@@ -35,16 +35,15 @@ export function useComposerSend({
   const queueing = Boolean((busy || queueWhileIdle) && onQueue);
   const hasContent = Boolean(text.trim() || files.attachments.length > 0);
   const ready = !files.uploading && !sending && (!busy || queueing);
+  // 別の送り先へ送れるか（作業中かは問わない）
+  const viaReady = !files.uploading && !sending && hasContent;
 
-  /** 送る（body を渡せば、いまの文の代わりにそれを送る。音声入力で入れてそのまま送るとき。mode は作業中の送り方をキーで決めたとき） */
-  async function send(body?: string, mode?: QueueSendMode) {
-    const message = (body ?? text).trim();
-    if (!ready || !(message || files.attachments.length > 0)) return;
+  /** 文と添付を action で送る（送れたら空にする。SendCancelled ならやめただけ） */
+  async function deliver(message: string, action: (text: string, attachments: Attachment[]) => Promise<void>) {
     setSending(true);
     setError(undefined);
     try {
-      if (queueing) await onQueue!(message, files.attachments, mode);
-      else await onSend(message, files.attachments);
+      await action(message, files.attachments);
       onSent();
     } catch (e) {
       if (!(e instanceof SendCancelled)) setError(errorMessage(e));
@@ -53,5 +52,17 @@ export function useComposerSend({
     }
   }
 
-  return { send, error, queueing, hasContent, ready };
+  /** 送る（body を渡せば、いまの文の代わりにそれを送る。音声入力で入れてそのまま送るとき。mode は作業中の送り方をキーで決めたとき） */
+  async function send(body?: string, mode?: QueueSendMode) {
+    const message = (body ?? text).trim();
+    if (!ready || !(message || files.attachments.length > 0)) return;
+    await deliver(message, (t, a) => (queueing ? onQueue!(t, a, mode) : onSend(t, a)));
+  }
+
+  /** このチャットの代わりに、別の送り先（子チャットなど）へ送る。作業中でも送れる（このチャットの作業とは別に動くので） */
+  async function sendVia(action: (text: string, attachments: Attachment[]) => Promise<void>) {
+    if (viaReady) await deliver(text.trim(), action);
+  }
+
+  return { send, sendVia, error, queueing, hasContent, ready, viaReady };
 }

@@ -1,6 +1,6 @@
 // 子チャット: チャットの寄り道の質問を、親に紐づいた別のチャットで聞く（親の作業を止めずに並行して動く。何往復でも会話でき、
 // 結果は自分で選んで親に渡す）。親の会話を引き継ぐなら、親のいちばん新しい「最後まで終わった作業」の時点から会話を写して始める
-import type { Chat, ChatOptionsPatch, ProviderId } from "@shared/types";
+import type { Attachment, Chat, ChatOptionsPatch, ProviderId } from "@shared/types";
 import type { Store } from "../db/store.js";
 import { asInvalid } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
@@ -17,6 +17,8 @@ export interface ChildChatInput {
   /** 親の会話のどの記録から聞いたか */
   eventId: number | null;
   options?: ChatOptionsPatch;
+  /** 添付（チャット欄から子チャットに送ったとき） */
+  attachments?: Attachment[];
 }
 
 /** 選んだ文を Markdown の引用にする */
@@ -73,6 +75,7 @@ export async function startChildChat(
     prompt,
     titleText: titleSourceOf(input.text),
     options: input.options,
+    attachments: input.attachments,
     worktreePath: parent.worktree_path ?? undefined,
     parentChatId: parent.id,
     parentEventId: input.eventId ?? undefined,

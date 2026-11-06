@@ -120,6 +120,8 @@ export interface ChildChatBody {
   inherit?: boolean;
   event_id?: number | null;
   options?: ChatOptionsPatch;
+  /** 添付（チャット欄から子チャットに送るとき。文が空でも添付があれば送れる） */
+  attachments?: Attachment[];
 }
 
 // ---- 応答 ----
