@@ -1,6 +1,7 @@
-import { History, Inbox, Pencil, RotateCcw } from "lucide-react";
+import { History, Inbox, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatEventOf } from "@shared/types";
+import { subagentAskOf } from "@shared/chat/prompts";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { formatFullDateTime, formatMessageTime } from "@/lib/time";
@@ -23,11 +24,15 @@ const COLLAPSE_PX = 240;
  * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）。
  * 「もう一度送る」は、同じ文と添付を新しい指示として送る（前のやり取りは消さない。途中で圧縮が入って依頼が薄れたときに、すぐ頼み直せるように）。作業中でも送れる。
  * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない。
- * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact）は、上に「圧縮前指示」「圧縮後指示」と添えて、自分で書いた指示と見分けられるようにする
+ * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact）は、上に「圧縮前指示」「圧縮後指示」と添えて、自分で書いた指示と見分けられるようにする。
+ * サブエージェントに子チャットで直接聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』に直接聞く」と添える（コピー・書き直しは書いた文で）
  */
 export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
   const data = event.data;
-  const text = data.text;
+  const subagentAsk = subagentAskOf(data.text);
+  const text = subagentAsk?.text ?? data.text;
+  // 送り直す・書き直すときは前置きを付け直す（添付の記録の読み方を AI に渡したままにする）
+  const withHead = (t: string) => (subagentAsk ? data.text.slice(0, data.text.length - subagentAsk.text.length) + t : t);
   const compactKind = compactKindOf(data);
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
@@ -46,7 +51,7 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
   const startEdit = pane && !busy ? () => setDraft(text) : undefined;
   // ファイルだけを、この発言を送る前の状態に戻す（ファイルの記録を取り始めてからの発言だけ）
   // 同じ文と添付を、新しい指示としてもう一度送る（文も添付もない発言では出さない）
-  const resend = pane && (text || attachments.length > 0) ? () => void pane.resend(text, attachments) : undefined;
+  const resend = pane && (text || attachments.length > 0) ? () => void pane.resend(withHead(text), attachments) : undefined;
   const restoreFiles = pane && data.message_uuid ? () => void pane.restoreFiles(event.id) : undefined;
   const menu = useMessageMenu(
     text,
@@ -61,6 +66,12 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
     <div className={cx("user-message", draft !== undefined && "editing", compactKind && "compact-prompt", compactKind && COMPACT_PROMPT_KINDS[compactKind].className)}>
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
         {compactKind && <CompactPromptMark kind={compactKind} className="message-kind-label" title={COMPACT_PROMPT_KINDS[compactKind].sentTitle} />}
+        {subagentAsk && (
+          <div className="message-kind-label" title="親のチャットのサブエージェントの会話の記録（添付）を読んでから答えるよう、AI に頼んで始めました">
+            <MessageSquarePlus size={12} aria-hidden />
+            サブエージェント「{subagentAsk.name}」に直接聞く
+          </div>
+        )}
         {attachments.length > 0 && (
           <div className="bubble-attachments">
             <AttachmentChips attachments={attachments} />
@@ -71,7 +82,7 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
             text={draft}
             onChange={setDraft}
             onCancel={() => setDraft(undefined)}
-            onSend={() => pane.rewind(event.id, draft)}
+            onSend={() => pane.rewind(event.id, withHead(draft))}
           />
         ) : (
           <div ref={bodyRef} className={cx("bubble-text", long && !expanded && "clamped")}>

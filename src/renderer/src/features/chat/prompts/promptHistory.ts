@@ -1,4 +1,5 @@
 import type { Attachment, ChatEvent, ChatEventOf } from "@shared/types";
+import { subagentAskOf } from "@shared/chat/prompts";
 import { compactKindOf, type CompactPromptKind } from "@/features/snippet/compactPromptKinds";
 
 /**
@@ -46,7 +47,8 @@ export function promptListOf(events: readonly ChatEvent[]): PromptList {
     .filter((e): e is ChatEventOf<"user"> => e.type === "user")
     .map((e): PromptEntry => {
       const data = e.data;
-      const text = data.text.trim();
+      // サブエージェントに子チャットで直接聞いた発言は、前置きを除いた聞いた文だけ
+      const text = (subagentAskOf(data.text)?.text ?? data.text).trim();
       const attachments = data.attachments ?? NO_ATTACHMENTS;
       return { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments, compactKind: compactKindOf(data) };
     });

@@ -3,9 +3,10 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups, requireProject } from "../lookups.js";
-import { chatOptionsSchema, childChatSchema, messageInputSchema, messageText } from "./schemas.js";
+import { chatOptionsSchema, childChatSchema, messageInputSchema, messageText, subagentChildSchema } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
 import { startChildChat } from "../../chat/children.js";
+import { startSubagentChildChat } from "../../chat/subagentChild.js";
 import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import { workdirOf } from "../../chat/workdir.js";
 import type { TellResult } from "@shared/types";
@@ -14,7 +15,7 @@ import type { TellResult } from "@shared/types";
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
  * 作業中にはできない操作は 409（Runner の requireIdle）。様子が変わるだけ（止める・やめる）で返すものがなければ 204（変わった様子は SSE の chat_live で届く）
  */
-export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) {
+export function turnRoutes(app: Hono, { store, runner, providers, uploads }: ServerDeps) {
   const { withChat } = lookups(store);
   /** 分岐・巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
@@ -66,6 +67,13 @@ export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) 
   app.post("/api/chats/:id/children", withChat, async (c) => {
     const body = childChatSchema.parse(await jsonBody(c));
     const child = await startChildChat(deps, c.var.chat, { text: body.text, quote: body.quote, inherit: body.inherit, eventId: body.event_id, options: body.options, attachments: body.attachments });
+    return c.json(child, 201);
+  });
+
+  // サブエージェントに子チャットで直接聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作る。201 で子を返す）
+  app.post("/api/chats/:id/subagents/:agentId/children", withChat, async (c) => {
+    const body = subagentChildSchema.parse(await jsonBody(c));
+    const child = await startSubagentChildChat({ ...deps, uploads }, c.var.chat, { agentId: c.req.param("agentId"), text: body.text, attachments: body.attachments, options: body.options });
     return c.json(child, 201);
   });
 

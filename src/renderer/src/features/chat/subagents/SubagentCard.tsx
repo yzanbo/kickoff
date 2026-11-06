@@ -12,6 +12,7 @@ import { useChatPaneState, useOptionalChatPane } from "@/features/chat/pane/chat
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellBox } from "./SubagentTell";
+import { ChildChatMarks } from "@/features/chat/children/ChildChatChips";
 import { SubagentWindow } from "./SubagentWindow";
 import { agentHueStyle } from "./agentHues";
 import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
@@ -164,6 +165,8 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
       )}
       {open && <SubagentCardBody entry={entry} view={view} renderItems={renderItems} windowed={depth === 0} />}
       {pane && telling && <SubagentTellBox entry={entry} view={view} onClose={() => pane.closeTell(key)} />}
+      {/* このサブエージェントに子チャットで直接聞いたら、その子チャットの札（発言の下と同じ。始めた位置は起動の呼び出し） */}
+      {pane && entry.toolUseEventId !== undefined && <ChildChatMarks chatId={pane.chatId} eventId={entry.toolUseEventId} />}
     </div>
   );
 }

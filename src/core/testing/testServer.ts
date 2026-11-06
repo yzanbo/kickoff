@@ -1,6 +1,6 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
 import fs from "node:fs/promises";
-import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
+import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../providers/types.js";
 import { createApp } from "../http/server.js";
 import type { ApiRetryInfo, BackgroundState, FileRewindResult, SlashCommandOption } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
@@ -125,6 +125,13 @@ class FakeProvider extends FakeProviderBase {
     this.forks.push([sessionId, messageId, cwd]);
     return `fork-${this.forks.length}`;
   }
+  /** サブエージェントの会話（サブエージェントの ID ごと。なければ空）と、読んだ呼び出し（親のセッション・ID・作業フォルダ） */
+  subagentLogs: Record<string, SubagentLogItem[]> = {};
+  subagentLogCalls: [string, string, string][] = [];
+  async subagentLog(sessionId: string, agentId: string, cwd: string) {
+    this.subagentLogCalls.push([sessionId, agentId, cwd]);
+    return this.subagentLogs[agentId] ?? [];
+  }
   /** 次からの実行を、返した関数を呼ぶまで作業中のままにする */
   hold(): () => void {
     let release = () => {};
@@ -226,6 +233,6 @@ export function setup(opts: { staticDir?: string } = {}) {
     const text = await res.text();
     return { status: res.status, body: text ? JSON.parse(text) : undefined };
   };
-  return { app, store, bus, runner, project, call, provider, voiceFake, memoFake, network, approvals, codexCalls: () => codexCalls };
+  return { app, store, bus, runner, project, call, provider, uploads, voiceFake, memoFake, network, approvals, codexCalls: () => codexCalls };
 }
 

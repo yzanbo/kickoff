@@ -132,6 +132,13 @@ export interface ChildChatBody {
   attachments?: Attachment[];
 }
 
+/** サブエージェントに子チャットで直接聞く（POST /api/chats/:id/subagents/:agentId/children。サブエージェントの会話の記録を添付にして始める） */
+export interface SubagentChildBody {
+  text: string;
+  options?: ChatOptionsPatch;
+  attachments?: Attachment[];
+}
+
 // ---- 応答 ----
 
 /** チャットの詳細（GET /api/chats/:id）。作業中の様子 live は SSE の chat_live と同じ形（あとはそれで追いかける） */

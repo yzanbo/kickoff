@@ -53,7 +53,7 @@
 - `queueStops.ts`: 送信待ちの一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと）の整え方 `normalizeStops`・列が変わったときの寄せ方 `remapStops`・印の線を見た目の 1 行として扱う並べ替え `moveToSlot`。コアの `ChatQueue` と、画面の「動かすと変わるか」で同じものを使う。
 - `queueEditHolds.ts` の `EDIT_HOLD_TTL_MS`: 送信待ちを書き直している印の持ち時間（コアが覚え、画面はこれより短い間隔で知らせ直す）。
 - `networkErrors.ts` の `isNetworkError`・`usageLimit.ts` の `isUsageLimitError` / `resetTimeOf` / `exhaustedResetOf`: 失敗の文・Claude Code の知らせ・使用枠から、通信の切断と使用枠の上限を見分け、枠が戻る時刻を決める。
-- `prompts.ts`: AI へ送る定型文（送るとチャットに自分の発言として残る）。止まったあとの再開（`resumePrompt` / `USAGE_RESUME_PROMPT`）・続きから再試行（`RETRY_PROMPT`）・サブエージェントへの指示（`relayMessage` / `relayedText` / `resumeRequest` / `retryRequest` / `HAND_OVER_NOW`）・圧縮前指示・圧縮後指示（共通 → プロジェクトにつなぐ `compactPromptFor`・上限 `COMPACT_PROMPT_MAX`・圧縮後指示の前置き `postCompactMessage`・手で圧縮するときの前置き `manualPreCompactMessage`・自動の圧縮のときの前置き `autoPreCompactMessage`（済んだら合図の一文 `PRE_COMPACT_DONE` を書いてもらう。見分けは `isPreCompactDone`））。文を手で組み立てずに、ここに足して使う。
+- `prompts.ts`: AI へ送る定型文（送るとチャットに自分の発言として残る）。止まったあとの再開（`resumePrompt` / `USAGE_RESUME_PROMPT`）・続きから再試行（`RETRY_PROMPT`）・サブエージェントへの指示（`relayMessage` / `relayedText` / `resumeRequest` / `retryRequest` / `HAND_OVER_NOW`）・サブエージェントに子チャットで直接聞く指示（`subagentAskMessage`。画面で前置きを隠すための読み取り `subagentAskOf`）・圧縮前指示・圧縮後指示（共通 → プロジェクトにつなぐ `compactPromptFor`・上限 `COMPACT_PROMPT_MAX`・圧縮後指示の前置き `postCompactMessage`・手で圧縮するときの前置き `manualPreCompactMessage`・自動の圧縮のときの前置き `autoPreCompactMessage`（済んだら合図の一文 `PRE_COMPACT_DONE` を書いてもらう。見分けは `isPreCompactDone`））。文を手で組み立てずに、ここに足して使う。
 
 ## IPC の取り決め（ipc/）
 
