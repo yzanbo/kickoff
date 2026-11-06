@@ -18,7 +18,7 @@ export function WorktreeChip({ chat }: { chat: Pick<Chat, "project_id" | "worktr
       title={place.title}
     >
       <GitBranch size={11} aria-hidden />
-      {place.name}
+      <span className="chip-name">{place.name}</span>
     </span>
   );
 }

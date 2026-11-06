@@ -186,6 +186,7 @@ button.chat-row {
 
 .chat-row-meta {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 4px;
   font-size: 11px;
