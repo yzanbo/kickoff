@@ -1,4 +1,4 @@
-import { ChevronRight, GitBranch } from "lucide-react";
+import { ChevronRight, Eraser, GitBranch } from "lucide-react";
 import { memo } from "react";
 import type { ChatEvent, ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -192,6 +192,14 @@ function EventItem({
     case "compact":
       // 手で圧縮したとき・上限に近づいて自動で圧縮されたとき（圧縮中の行と同じ枠のまま残す）
       return <CompactedRow event={event} />;
+    case "context_cleared":
+      // 送信待ちの「コンテキストを消去」で、ここから新しい会話にした境目（上の会話は AI に引き継いでいない）
+      return (
+        <div className="context-cleared-divider" id={`ev-${event.id}`} role="separator" aria-label="コンテキストを消去しました">
+          <Eraser size={12} aria-hidden />
+          <span>コンテキストを消去しました（ここから新しい会話）</span>
+        </div>
+      );
     default:
       return null;
   }

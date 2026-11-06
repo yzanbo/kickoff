@@ -22,3 +22,9 @@ test("reservedCompact: いちばん上の圧縮の行で、その上で止めて
   assert.equal(reservedCompact({ ...queue, messages: [row("2"), compact] }), null);
   assert.equal(nextQueuedText(compact), "会話を圧縮");
 });
+
+test("reservedCompact: いちばん上がコンテキストの消去の行なら圧縮の予約ではない。畳んだ 1 行の「次:」は「コンテキストを消去」", () => {
+  const clear: QueuedMessage = { id: "c", text: "", options: {}, attachments: [], created_at: "", clear: true };
+  assert.equal(reservedCompact({ messages: [clear], paused: false, stops: [], waiting_edit: false }), null);
+  assert.equal(nextQueuedText(clear), "コンテキストを消去");
+});

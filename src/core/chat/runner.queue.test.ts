@@ -177,7 +177,7 @@ test("送信待ちの圧縮の行: 指示のあいだに挟むと、その順で
   await until(() => gates.length === 1);
   const two = await runner.queueMessage(chat.id, "2");
   await runner.queueMessage(chat.id, "3");
-  runner.queueCompact(chat.id, two.id);
+  runner.queueAction(chat.id, "compact", two.id);
   assert.deepEqual(
     runner.live(chat.id).queue.messages.map((m) => (m.compact ? "圧縮" : m.text)),
     ["2", "圧縮", "3"],
@@ -199,4 +199,70 @@ test("送信待ちの圧縮の行: 指示のあいだに挟むと、その順で
   gates[3]();
   await until(() => !runner.isBusy(chat.id) && runner.live(chat.id).queue.paused);
   assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["3"]);
+});
+
+test("送信待ちのコンテキスト消去の行: そこまで送ったらセッションを外して記録を残し、次の指示は新しい会話で送る", async () => {
+  const { gates, script } = gatedScript();
+  const { store, runner, provider, project } = setup(script);
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  const two = await runner.queueMessage(chat.id, "2");
+  await runner.queueMessage(chat.id, "3");
+  runner.queueAction(chat.id, "clear", two.id);
+  assert.deepEqual(
+    runner.live(chat.id).queue.messages.map((m) => (m.clear ? "消去" : m.text)),
+    ["2", "消去", "3"],
+  );
+  // 書き直せない・まとめる数に数えない
+  assert.throws(() => runner.editQueued(chat.id, runner.live(chat.id).queue.messages[1].id, "x"), /書き直せません/);
+  gates[0]();
+  await until(() => gates.length === 2);
+  assert.equal(provider.calls[1].resumeSessionId, "s");
+  gates[1]();
+  // 「2」が終わったら消去して、すぐ「3」を新しい会話で送る
+  await until(() => gates.length === 3);
+  assert.equal(provider.calls[2].prompt, "3");
+  assert.equal(provider.calls[2].resumeSessionId, null);
+  assert.equal(store.events.list(chat.id).filter((e) => e.type === "context_cleared").length, 1);
+  gates[2]();
+  await until(() => !runner.isBusy(chat.id));
+  assert.equal(store.chats.get(chat.id)?.session_id, "s");
+});
+
+test("送信待ちのコンテキスト消去の行: 作業中の「すぐ送る」はいちばん上へ移して予約し、作業していなければすぐ消去する（会話がなければ 409）", async () => {
+  const { gates, script } = gatedScript();
+  const { store, runner, provider, project } = setup(script);
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  await runner.queueMessage(chat.id, "2");
+  runner.queueAction(chat.id, "clear");
+  const clearRow = runner.live(chat.id).queue.messages[1];
+  await runner.sendQueuedNow(chat.id, clearRow.id);
+  assert.deepEqual(
+    runner.live(chat.id).queue.messages.map((m) => (m.clear ? "消去" : m.text)),
+    ["消去", "2"],
+  );
+  // 止めておくと、予約した消去だけが残る
+  await runner.setQueuePaused(chat.id, true);
+  gates[0]();
+  await until(() => !runner.isBusy(chat.id));
+  assert.equal(store.chats.get(chat.id)?.session_id, "s");
+  // 作業していないときの「すぐ送る」はその場で消去する（止めているので、次は送らない）
+  await runner.sendQueuedNow(chat.id, runner.live(chat.id).queue.messages[0].id);
+  assert.equal(store.chats.get(chat.id)?.session_id, null);
+  assert.equal(store.chats.get(chat.id)?.context_tokens, null);
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["2"]);
+  assert.equal(provider.calls.length, 1);
+  // もう会話がないので、消去の行を「すぐ送る」と 409 で列に残す
+  runner.queueAction(chat.id, "clear");
+  const again = runner.live(chat.id).queue.messages[1];
+  await assert.rejects(runner.sendQueuedNow(chat.id, again.id), /消去するコンテキストがありません/);
+  assert.equal(runner.live(chat.id).queue.messages.length, 2);
+  // 自動で送るに戻すと「2」を新しい会話で送り、そのあとの消去の行は会話ができたあとなので消去する
+  await runner.setQueuePaused(chat.id, false);
+  await until(() => gates.length === 2);
+  assert.equal(provider.calls[1].resumeSessionId, null);
+  gates[1]();
+  await until(() => !runner.isBusy(chat.id) && runner.live(chat.id).queue.messages.length === 0);
+  assert.equal(store.chats.get(chat.id)?.session_id, null);
 });

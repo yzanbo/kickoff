@@ -4,7 +4,7 @@ import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
 import { attachmentsSchema, editingIdsSchema, messageText, queueId, queueIdsSchema, queueMessageSchema } from "./schemas.js";
-import type { QueueAddResult, QueueMergeResult } from "@shared/types";
+import { QUEUE_ACTIONS, type QueueAddResult, type QueueMergeResult } from "@shared/types";
 
 /**
  * 作業中のチャットに送った次の指示の待ちの列（送信待ち）: ためる・消す・書き換える・並べ替える・まとめて送る・すぐ送る・
@@ -24,13 +24,16 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json(result);
   });
 
-  // 会話を圧縮する行を足す（after: その指示のすぐあと。なければいちばん下。作業していなくても、すぐには圧縮しない）
-  app.post("/api/chats/:id/queue/compact", withChat, async (c) => {
-    const chat = c.var.chat;
-    const { after } = z.object({ after: queueId.nullable().default(null) }).parse(await jsonBody(c));
-    runner.queueCompact(chat.id, after);
-    return c.json(runner.queueState(chat.id));
-  });
+  // 指示の代わりに挟む行を足す（compact: 会話の圧縮 / clear: コンテキストの消去。after: その指示のすぐあと。なければいちばん下。
+  // 作業していなくても、すぐには行わない）
+  for (const action of QUEUE_ACTIONS) {
+    app.post(`/api/chats/:id/queue/${action}`, withChat, async (c) => {
+      const chat = c.var.chat;
+      const { after } = z.object({ after: queueId.nullable().default(null) }).parse(await jsonBody(c));
+      runner.queueAction(chat.id, action, after);
+      return c.json(runner.queueState(chat.id));
+    });
+  }
 
   // 待ちの指示をすべて消す
   app.delete("/api/chats/:id/queue", withChat, (c) => {

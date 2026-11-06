@@ -3,6 +3,7 @@ import type { Runner } from "./runner.js";
 import type { Store } from "../db/store.js";
 import type { FileRewindResult, ProviderId, Chat, ChatOptionsPatch } from "@shared/types";
 import { asInvalid, Invalid } from "../http/errors.js";
+import { resumePointBefore, sessionAt } from "./sessionPoints.js";
 
 /**
  * チャットを、自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す。
@@ -26,13 +27,8 @@ export async function rewindChat(
   const attachments = target.data.attachments ?? [];
   if (!input.text && attachments.length === 0) throw new Invalid("メッセージか添付ファイルが必要です");
 
-  // その発言より前の、いちばん近い、最後まで終わった作業の終わり（分岐できる時点）。なければ最初から。
-  // 止めた・失敗した作業の終わりの message_id はセッションに残っていないことがあり、そこからは分岐できないので飛ばす
-  const point = events
-    .slice(0, index)
-    .reverse()
-    .map((e) => (e.type === "result" ? e.data : undefined))
-    .find((d) => d?.status === "completed" && d.session_id && d.message_id);
+  // その発言より前の、いちばん近い、最後まで終わった作業の終わり（分岐できる時点）。なければ（間でコンテキストを消去していても）最初から
+  const point = resumePointBefore(events, index);
   // ファイルも戻す: 分岐すると新しいセッションになり、ファイルの記録は元のセッションにしか残らないので先に戻す
   const restored = input.restoreFiles ? await rewindFiles(deps, chat, { eventId: target.id, cwd: input.cwd, dryRun: false }) : undefined;
   let sessionId: string | null = null;
@@ -77,17 +73,21 @@ export async function rewindFiles(
 ): Promise<FileRewindResult> {
   const { store, runner, providers } = deps;
   runner.requireIdle(chat.id, "巻き戻し");
-  const target = store.events.list(chat.id).find((e) => e.id === input.eventId);
+  const events = store.events.list(chat.id);
+  const index = events.findIndex((e) => e.id === input.eventId);
+  const target = events[index];
   if (target?.type !== "user") throw new Invalid("自分の発言のところからだけ戻せます");
   const provider = providers[chat.provider];
   if (!provider.rewindFiles) throw new Invalid(`${provider.label} はファイルを戻すのに対応していません`);
-  if (!chat.session_id) throw new Invalid("この発言のときのファイルの記録がないため、ファイルは戻せません");
+  // ファイルの記録は、その発言を送ったセッションにある（あとでコンテキストを消去していれば、消去の前のセッション）
+  const sessionId = sessionAt(events, index, chat.session_id);
+  if (!sessionId) throw new Invalid("この発言のときのファイルの記録がないため、ファイルは戻せません");
   const messageId = target.data.message_uuid;
   // 本当に戻したときの結果には、変わったファイルが付かないので、先に量を測っておく
-  const preview = await provider.rewindFiles(chat.session_id, messageId, input.cwd, true).catch(asInvalid);
+  const preview = await provider.rewindFiles(sessionId, messageId, input.cwd, true).catch(asInvalid);
   if (!preview.can_rewind) throw new Invalid(`ファイルを戻せませんでした${preview.error ? `: ${preview.error}` : ""}`);
   if (input.dryRun) return preview;
-  const done = await provider.rewindFiles(chat.session_id, messageId, input.cwd, false).catch(asInvalid);
+  const done = await provider.rewindFiles(sessionId, messageId, input.cwd, false).catch(asInvalid);
   if (!done.can_rewind) throw new Invalid(`ファイルを戻せませんでした${done.error ? `: ${done.error}` : ""}`);
   const result = { ...preview, ...done, filesChanged: preview.files_changed, insertions: preview.insertions, deletions: preview.deletions };
   store.events.add(chat.id, { type: "notice", message: `ファイルを、この発言を送る前の状態に戻しました（${restoredSummary(result)}。会話はそのまま）` });

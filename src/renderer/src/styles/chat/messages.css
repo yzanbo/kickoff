@@ -260,3 +260,24 @@
 .prompt-row.active {
   background: var(--bg-hover);
 }
+
+/* 送信待ちの「コンテキストを消去」で新しい会話にした境目（Timeline の context_cleared）: 送信待ちの消去の行と同じ青の線と文 */
+.context-cleared-divider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+  font-size: calc(11px * var(--chat-scale, 1));
+  color: var(--info);
+}
+
+.context-cleared-divider::before,
+.context-cleared-divider::after {
+  flex: 1;
+  border-top: 1px dashed color-mix(in srgb, var(--info) 55%, transparent);
+  content: "";
+}
+
+.context-cleared-divider svg {
+  flex: none;
+}

@@ -5,6 +5,7 @@ import type { Store } from "../db/store.js";
 import { asInvalid } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
 import type { Runner } from "./runner.js";
+import { resumePointBefore } from "./sessionPoints.js";
 import { workdirOf } from "./workdir.js";
 
 export interface ChildChatInput {
@@ -56,12 +57,8 @@ export async function startChildChat(
   let sessionId: string | undefined;
   let notice = input.inherit ? `親のチャット「${parentName}」の会話を引き継いで始めました` : `親のチャット「${parentName}」から、会話を引き継がずに始めました`;
   if (input.inherit && project) {
-    const point = store.events
-      .list(parent.id)
-      .filter((e) => e.type === "result")
-      .map((e) => (e.type === "result" ? e.data : undefined))
-      .reverse()
-      .find((r) => r?.status === "completed" && r.session_id && r.message_id);
+    // 親の最後まで終わった作業の終わり（そのあとでコンテキストを消去していれば、引き継げる会話はない）
+    const point = resumePointBefore(store.events.list(parent.id));
     const provider = providers[parent.provider];
     if (point?.session_id && point.message_id && provider.fork) {
       sessionId = await provider.fork(point.session_id, point.message_id, workdirOf(parent, project)).catch(asInvalid);

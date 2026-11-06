@@ -1,14 +1,58 @@
-import { ArrowDownToLine, ArrowUpToLine, Merge, OctagonPause, Pause, Pencil, Play, SendHorizontal, Shrink, Trash2, X } from "lucide-react";
+import { OctagonPause, Pause, Play, Plus, Trash2 } from "lucide-react";
+import { QUEUE_ACTIONS, type QueueAction } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { api } from "@/api";
 import { confirmDialog } from "@/ui/dialogs";
-import { IconButton } from "@/ui/IconButton";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { queueFailed as failed } from "./queueFailed";
+import { QUEUE_ACTION_LOOKS } from "./queueActionLooks";
 import { SendAllMenu } from "./SendAllMenu";
 
+/**
+ * 送信待ちの見出しの右の操作（選んでいないとき。選んでいるときは QueuedSelectionActions と入れ替える）。
+ * 何に効くかで 3 つのまとまりに分ける（まとまりの中は折り返さず、狭ければまとまりごと次の行へ回る）:
+ * - 挟む: 列に行（線）を 1 つ足す物（一時停止・会話の圧縮・コンテキストの消去）。足したあとはドラッグ・↑↓ で位置を決める
+ * - 送り方: 終わったら自動で送るか（列全体の設定）と、いますべて送る
+ * - すべて消す（取り消せないので、ほかと離していちばん右に）
+ * すべて送る・すべて消すは 2 件以上のときだけ（1 件なら行のボタンと同じになるため）。onAdded は挟んだあと（たたんでいれば一覧を開いて見せる）
+ */
+export function QueuedHeadTools({
+  count,
+  busy,
+  paused,
+  stops,
+  onAdded,
+}: {
+  count: number;
+  busy: boolean;
+  paused: boolean;
+  stops: number[];
+  onAdded: () => void;
+}) {
+  return (
+    <div className="queued-head-tools">
+      <span className="queued-head-group" role="group" aria-label="列に挟む">
+        <span className="queued-head-group-label" aria-hidden title="押すと列に 1 行足します。足した行はドラッグ・↑↓ で位置を決めます">
+          <Plus size={11} />
+          挟む
+        </span>
+        <QueuedStopButton stops={stops} onAdded={onAdded} />
+        {QUEUE_ACTIONS.map((a) => (
+          <QueuedActionButton key={a} action={a} onAdded={onAdded} />
+        ))}
+      </span>
+      <span className="queued-head-group queued-head-send" role="group" aria-label="送り方">
+        <QueuedModeButton paused={paused} busy={busy} />
+        {/* 押すと、まとめて 1 件で送るか・1 件ずつ順に送るかを選ぶ */}
+        {count > 1 && <SendAllMenu count={count} busy={busy} holds={paused || stops.length > 0} />}
+      </span>
+      {count > 1 && <QueuedRemoveAllButton count={count} />}
+    </div>
+  );
+}
+
 /** 終わったら自動で送るか、送らずに止めておくか（いまの状態を出し、押すと切り替える。チャットごと） */
-export function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) {
+function QueuedModeButton({ paused, busy }: { paused: boolean; busy: boolean }) {
   const { chatId } = useChatPane();
   return (
     <button
@@ -32,9 +76,9 @@ export function QueuedModeButton({ paused, busy }: { paused: boolean; busy: bool
 /**
  * 「一時停止」（自動で送るのを一度止める位置。以前の一時停止の印）を、いちばん上（1 件目の上 = 位置 0）に挟む。
  * 名前は、押した結果（「今の分で止める」など）ではなく、列に挟む物の名前で呼ぶ。置いたあとは、線のつまみのドラッグ・↑↓ で止める位置へ動かす。
- * もう 1 件目の上に印があれば押せない。onAdded は置いたあと（たたんでいれば一覧を開いて線を見せる）
+ * もう 1 件目の上に印があれば押せない
  */
-export function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => void }) {
+function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded: () => void }) {
   const { chatId } = useChatPane();
   const atTop = stops.includes(0);
   return (
@@ -57,147 +101,48 @@ export function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded:
 }
 
 /**
- * 「圧縮」: 会話を圧縮する行を、列のいちばん下に足す（ここまで送ったら、会話を要約してコンテキストを空ける）。
- * 置いたあとは、行のつまみのドラッグ・↑↓ で圧縮したい位置へ動かす。onAdded は置いたあと（たたんでいれば一覧を開いて行を見せる）
+ * 「圧縮」「コンテキスト消去」: その行を列のいちばん下に足す（そこまで送ったら、会話を要約する・新しい会話で始める）。
+ * 置いたあとは、行のつまみのドラッグ・↑↓ で位置を決める。色は行と同じ（queueActionLooks の tone）
  */
-export function QueuedCompactButton({ onAdded }: { onAdded: () => void }) {
+function QueuedActionButton({ action, onAdded }: { action: QueueAction; onAdded: () => void }) {
   const { chatId } = useChatPane();
+  const look = QUEUE_ACTION_LOOKS[action];
   return (
     <button
       type="button"
-      className="btn btn-sm queued-head-btn queued-add-compact"
-      aria-label="会話の圧縮をいちばん下に足す"
-      title="「会話を圧縮」を送信待ちのいちばん下に足します。そこまで送ったら、これまでの会話を要約してコンテキストを空けます。行をドラッグ・↑↓ で、圧縮したい位置へ動かせます（行の右クリックの「このあとで会話を圧縮」でも足せます）"
-      onClick={() => void api.queueCompact(chatId).then(onAdded, failed)}
+      className={cx("btn btn-sm queued-head-btn queued-add-action", look.tone)}
+      aria-label={`${look.button}の行をいちばん下に足す`}
+      title={look.addTitle}
+      onClick={() => void api.queueAction(chatId, action).then(onAdded, failed)}
     >
-      <Shrink size={12} aria-hidden />
-      <span className="queued-head-label">圧縮</span>
+      <look.icon size={12} aria-hidden />
+      <span className="queued-head-label">{look.button}</span>
     </button>
   );
 }
 
-/**
- * 選んだ指示の並べ替え（いちばん上へ・いちばん下へ）。行の ↑↓ と同じく、送る・消すのまとまりの左に区切って置く
- */
-export function QueuedMoveActions({ selected }: { selected: string[] }) {
+/** 送信待ちをすべて消す（確かめてから） */
+function QueuedRemoveAllButton({ count }: { count: number }) {
   const { chatId } = useChatPane();
-  const n = selected.length;
   return (
-    <span className="queued-head-moves">
-      <IconButton icon={ArrowUpToLine} size={13} label={`選んだ ${n} 件をいちばん上へ移動`} onClick={() => void api.moveQueuedMany(chatId, selected, "top").catch(failed)} />
-      <IconButton icon={ArrowDownToLine} size={13} label={`選んだ ${n} 件をいちばん下へ移動`} onClick={() => void api.moveQueuedMany(chatId, selected, "bottom").catch(failed)} />
-    </span>
-  );
-}
-
-/**
- * 送信待ちの見出しの右の、全体・選んだものへの操作。
- * 選んでいなければ「すべて送る」（すべてを 1 つにまとめてすぐ送る）と「すべて消す」（2 件以上のときだけ。1 件なら行のボタンと同じになるため）、
- * 選んでいれば「書き直す」（選んだ指示の書き直す欄をまとめて開く）・「まとめて送る」（選んだものだけを 1 つにまとめてすぐ送る）・消す・選ぶのをやめる（並べ替えは QueuedMoveActions）
- */
-export function QueuedHeadActions({
-  count,
-  selected,
-  busy,
-  holds,
-  onClearSelection,
-  onEditSelected,
-}: {
-  count: number;
-  /** 止めている・一時停止の印がある */
-  holds: boolean;
-  /** 選んでいる指示（列の順） */
-  selected: string[];
-  busy: boolean;
-  onClearSelection: () => void;
-  /** 選んだ指示の書き直す欄をまとめて開く（いくつでも同時に書き直せる） */
-  onEditSelected: () => void;
-}) {
-  const { chatId } = useChatPane();
-  // 作業中は止めずに、いまのやり取りに伝える（Runner の tell。メインのエージェントがいまの手順の切れ目で読む）
-  const stopping = busy ? "（作業は止めずに、いまのやり取りに足す）" : "";
-  if (selected.length > 0) {
-    const n = selected.length;
-    const done = () => onClearSelection();
-    return (
-      <>
-        <button
-          type="button"
-          className="btn btn-sm queued-head-btn"
-          aria-label={`選んだ ${n} 件を書き直す`}
-          title={`選んだ ${n} 件の書き直す欄をまとめて開く（1 件ずつ保存・やめるができる）`}
-          onClick={onEditSelected}
-        >
-          <Pencil size={12} aria-hidden />
-          <span className="queued-head-label">書き直す</span>
-        </button>
-        {/* 送らずに、選んだ指示を 1 件にまとめる（列の順に空行でつなぐ。選んだうちのいちばん上の位置に残る） */}
-        {n > 1 && (
-          <button
-            type="button"
-            className="btn btn-sm queued-head-btn"
-            aria-label={`選んだ ${n} 件を 1 つにまとめる`}
-            title={`選んだ ${n} 件を、送らずに 1 つの指示にまとめる（列の順に空行でつなぎ、添付も合わせる。選んだうちのいちばん上の位置に残る）`}
-            onClick={() => void api.mergeQueued(chatId, selected).then(done, failed)}
-          >
-            <Merge size={12} aria-hidden />
-            <span className="queued-head-label">1 つにまとめる</span>
-          </button>
-        )}
-        <button
-          type="button"
-          className="btn btn-sm btn-primary queued-head-btn"
-          aria-label={`選んだ ${n} 件をまとめて送る`}
-          title={`選んだ ${n} 件を 1 つにまとめて、すぐ送る${stopping}`}
-          onClick={() => void api.sendAllQueued(chatId, selected).then(done, failed)}
-        >
-          <SendHorizontal size={12} aria-hidden />
-          <span className="queued-head-label">まとめて送る</span>
-        </button>
-        <button
-          type="button"
-          className="btn btn-sm queued-head-btn queued-clear"
-          aria-label={`選んだ ${n} 件を消す`}
-          title={`選んだ ${n} 件を消す（確かめてから）`}
-          onClick={() =>
-            void confirmDialog({ title: `選んだ ${n} 件を消しますか？`, message: "消した指示は送られません。元に戻せません。", confirmLabel: "消す", danger: true }).then(
-              async (ok) => {
-                if (ok) await api.removeQueuedMany(chatId, selected).then(done, failed);
-              },
-            )
-          }
-        >
-          <Trash2 size={12} aria-hidden />
-          <span className="queued-head-label">消す</span>
-        </button>
-        <IconButton icon={X} size={13} label="選ぶのをやめる" title="選ぶのをやめる（Esc）" onClick={onClearSelection} />
-      </>
-    );
-  }
-  if (count < 2) return null;
-  return (
-    <>
-      {/* 押すと、まとめて 1 件で送るか・1 件ずつ順に送るかを選ぶ */}
-      <SendAllMenu count={count} busy={busy} holds={holds} />
-      <button
-        type="button"
-        className="btn btn-sm queued-head-btn queued-clear"
-        aria-label="すべて消す"
-        title={`送信待ちの ${count} 件をすべて消す（確かめてから）`}
-        onClick={() =>
-          void confirmDialog({
-            title: `送信待ちの ${count} 件をすべて消しますか？`,
-            message: "消した指示は送られません。元に戻せません。",
-            confirmLabel: "すべて消す",
-            danger: true,
-          }).then(async (ok) => {
-            if (ok) await api.clearQueued(chatId).catch(failed);
-          })
-        }
-      >
-        <Trash2 size={12} aria-hidden />
-        <span className="queued-head-label">すべて消す</span>
-      </button>
-    </>
+    <button
+      type="button"
+      className="btn btn-sm queued-head-btn queued-remove"
+      aria-label="すべて消す"
+      title={`送信待ちの ${count} 件をすべて消す（確かめてから）`}
+      onClick={() =>
+        void confirmDialog({
+          title: `送信待ちの ${count} 件をすべて消しますか？`,
+          message: "消した指示は送られません。元に戻せません。",
+          confirmLabel: "すべて消す",
+          danger: true,
+        }).then(async (ok) => {
+          if (ok) await api.clearQueued(chatId).catch(failed);
+        })
+      }
+    >
+      <Trash2 size={12} aria-hidden />
+      <span className="queued-head-label">すべて消す</span>
+    </button>
   );
 }

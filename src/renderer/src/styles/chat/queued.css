@@ -256,16 +256,16 @@
   white-space: nowrap;
 }
 
-/* 会話の圧縮の行（QueuedRow の message.compact）: 文ではなく列に挟む物なので、圧縮中の行と同じアクセントの色とアイコンで見分ける */
-.queued-text.queued-compact {
+/* 挟む行（QueuedRow の会話の圧縮・コンテキストの消去）: 文ではなく列に挟む物なので、色（queued-head.css の --queued-tone）とアイコンで見分ける */
+.queued-text.queued-action {
   display: flex;
   align-items: center;
   gap: 5px;
   cursor: default;
-  color: var(--accent-fg);
+  color: var(--queued-tone);
 }
 
-.queued-text.queued-compact svg {
+.queued-text.queued-action svg {
   flex: none;
 }
 

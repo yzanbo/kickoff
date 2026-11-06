@@ -1,11 +1,13 @@
-import { ArrowDown, ArrowUp, GripVertical, Pencil, SendHorizontal, Shrink, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Pencil, SendHorizontal, Trash2 } from "lucide-react";
 import type { DragEvent, MouseEvent } from "react";
-import type { QueuedMessage } from "@shared/types";
+import { QUEUE_ACTIONS, QUEUE_ACTION_LABELS, type QueueAction, type QueuedMessage } from "@shared/types";
+import { queueActionOf } from "@shared/chat/queueActions";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { startQueueDragGhost } from "./queueDragImage";
-import { COMPACT_ROW_TEXT } from "./queuedHint";
+import { QUEUE_ACTION_LOOKS } from "./queueActionLooks";
+import { cx } from "@/lib/cx";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
 
 /** 送信待ちの 1 行への操作（行のボタンと右クリックのメニューで共通） */
@@ -15,8 +17,8 @@ export interface QueuedRowActions {
   toggleStop: () => void;
   /** この指示のすぐ前の一時停止を付ける・外す */
   toggleStopBefore: () => void;
-  /** この指示のすぐあとに会話の圧縮の行を足す */
-  compactAfter: () => void;
+  /** この指示のすぐあとに挟む行（会話の圧縮・コンテキストの消去）を足す */
+  actionAfter: (action: QueueAction) => void;
   move: (to: number) => void;
   sendNow: () => void;
   remove: () => void;
@@ -26,7 +28,8 @@ export interface QueuedRowActions {
  * 送信待ちの 1 行: つまみ（ドラッグで並べ替え。2 件以上のとき）・番号・添付・文・操作のボタン。
  * 文は選んでコピーでき、ダブルクリックで書き直す。右クリックでも同じ操作（狭いときに隠す ↑↓ もここに残す）。
  * ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選び、選んでいる行の右クリックは選んだもの全体への操作になる。
- * 会話の圧縮の行（message.compact）は「会話を圧縮」と出し、書き直す・新しいチャットで聞くを出さない（送ると圧縮する）
+ * 挟む行（会話の圧縮 message.compact・コンテキストの消去 message.clear）は「会話を圧縮」「コンテキストを消去」と出し、
+ * 書き直す・新しいチャットで聞くを出さない（送ると圧縮・消去する）
  */
 export function QueuedRow({
   message: m,
@@ -74,9 +77,10 @@ export function QueuedRow({
 }) {
   // 右クリックのメニュー（行は画面の下のほう（チャット欄のすぐ上）にあるので、下に入らなければ上へ寄せる。PopupMenu が大きさを測って収める）
   const menu = useContextMenu();
-  const compact = Boolean(m.compact);
-  // 作業中は止めずに、いまのやり取りに伝える（作業していなければ、すぐ送る）。圧縮の行は、作業中ならいちばん上へ移して、いまのやり取りが終わったらすぐ圧縮する
-  const sendLabel = compact ? (busy ? "このやり取りのあとですぐ圧縮" : "いますぐ圧縮") : busy ? "いま送る（作業は止めない）" : "いますぐ送る";
+  const action = queueActionOf(m);
+  const look = action && QUEUE_ACTION_LOOKS[action];
+  // 作業中は止めずに、いまのやり取りに伝える（作業していなければ、すぐ送る）。挟む行は、作業中ならいちばん上へ移して、いまのやり取りが終わったらすぐ圧縮・消去する
+  const sendLabel = look ? (busy ? look.sendBusy : look.sendIdle) : busy ? "いま送る（作業は止めない）" : "いますぐ送る";
   return (
     <>
     <div
@@ -95,7 +99,7 @@ export function QueuedRow({
       }}
       onDoubleClick={(e) => {
         // ボタン・サムネイルのダブルクリックは除く
-        if (compact || (e.target as HTMLElement).closest("button")) return;
+        if (action || (e.target as HTMLElement).closest("button")) return;
         actions.edit();
       }}
       onContextMenu={(e: MouseEvent) => {
@@ -126,10 +130,10 @@ export function QueuedRow({
       <span className="queued-index" aria-label={`${i + 1} 番目`}>
         {i + 1}
       </span>
-      {compact ? (
-        <span className="queued-text queued-compact" title="ここまで送ったら、これまでの会話を要約してコンテキストを空けます（Claude Code の /compact）">
-          <Shrink size={13} aria-hidden />
-          {COMPACT_ROW_TEXT}
+      {action && look ? (
+        <span className={cx("queued-text queued-action", look.tone)} title={look.rowTitle}>
+          <look.icon size={13} aria-hidden />
+          {QUEUE_ACTION_LABELS[action]}
         </span>
       ) : (
         <>
@@ -145,7 +149,7 @@ export function QueuedRow({
         <IconButton icon={ArrowDown} label="1 つ下へ移動" size={13} disabled={i === count - 1} onClick={() => actions.move(i + 1)} />
       </span>
       <span className="queued-row-actions">
-        {compact ? (
+        {action ? (
           // 書き直すボタンの場所は空けておく（ほかの行と送る・消すの位置をそろえる）
           <span className="queued-stop-space" aria-hidden />
         ) : (
@@ -181,8 +185,8 @@ export function QueuedRow({
           ) : (
             // 1 件への操作（書き直す → 送る → 止める（前・あと）→ 並べ替え → 新しいチャットへ → 消す）
             <>
-              {!compact && <MenuItem onSelect={actions.edit}>文を書き直す</MenuItem>}
-              {!compact && <div className="menu-separator" role="separator" />}
+              {!action && <MenuItem onSelect={actions.edit}>文を書き直す</MenuItem>}
+              {!action && <div className="menu-separator" role="separator" />}
               <MenuItem onSelect={actions.sendNow}>{sendLabel}</MenuItem>
               <div className="menu-separator" role="separator" />
               <MenuItem
@@ -201,21 +205,20 @@ export function QueuedRow({
               >
                 {isStop ? "この指示のあとの一時停止を外す" : "この指示のあとに一時停止を挟む"}
               </MenuItem>
-              {!compact && (
-                <MenuItem
-                  onSelect={actions.compactAfter}
-                  title="この指示のすぐあとに「会話を圧縮」を挟みます。この指示の作業が終わったら、次を送る前に会話を要約してコンテキストを空けます（すぐあとに一時停止があれば、止まる前に圧縮します）"
-                >
-                  このあとで会話を圧縮
-                </MenuItem>
-              )}
+              {/* 挟む行のすぐあとにさらに挟むことはしない（指示のあとにだけ） */}
+              {!action &&
+                QUEUE_ACTIONS.map((a) => (
+                  <MenuItem key={a} onSelect={() => actions.actionAfter(a)} title={QUEUE_ACTION_LOOKS[a].afterTitle}>
+                    {QUEUE_ACTION_LOOKS[a].after}
+                  </MenuItem>
+                ))}
               {count > 1 && <div className="menu-separator" role="separator" />}
               {i > 0 && <MenuItem onSelect={() => actions.move(0)}>いちばん上へ移動</MenuItem>}
               {i > 0 && <MenuItem onSelect={() => actions.move(i - 1)}>1 つ上へ移動</MenuItem>}
               {i < count - 1 && <MenuItem onSelect={() => actions.move(i + 1)}>1 つ下へ移動</MenuItem>}
               {i < count - 1 && <MenuItem onSelect={() => actions.move(count - 1)}>いちばん下へ移動</MenuItem>}
-              {onAsk && !compact && <div className="menu-separator" role="separator" />}
-              {onAsk && !compact && <AskMenuItems onAsk={onAsk} what="この指示" />}
+              {onAsk && !action && <div className="menu-separator" role="separator" />}
+              {onAsk && !action && <AskMenuItems onAsk={onAsk} what="この指示" />}
               <div className="menu-separator" role="separator" />
               <MenuItem danger onSelect={actions.remove}>
                 送信待ちから消す
