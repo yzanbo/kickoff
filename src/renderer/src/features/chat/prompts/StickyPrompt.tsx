@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, EyeOff, MessageCircleQuestion, Shrink } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, EyeOff, MessageCircleQuestion } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -8,6 +8,8 @@ import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
+import { COMPACT_PROMPT_KINDS, type CompactPromptKind } from "@/features/snippet/compactPromptKinds";
+import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 
 /** AI からの質問への回答の 1 問（質問の文と選んだ答え） */
 export interface PinnedAnswer {
@@ -20,14 +22,14 @@ export interface PinnedPrompt {
   id: number;
   text: string;
   answers?: PinnedAnswer[];
-  /** 圧縮の前に送った圧縮前指示か */
-  preCompact?: boolean;
+  /** 圧縮の前後に送った圧縮前指示・圧縮後指示か */
+  compactKind?: CompactPromptKind;
 }
 
 /** 同じものを貼り付けたままか（スクロールのたびに描き直さないため） */
 export function samePinned(a: PinnedPrompt | undefined, b: PinnedPrompt | undefined): boolean {
   if (a === b) return true;
-  if (!a || !b || a.id !== b.id || a.text !== b.text || a.preCompact !== b.preCompact) return false;
+  if (!a || !b || a.id !== b.id || a.text !== b.text || a.compactKind !== b.compactKind) return false;
   const qa = a.answers?.map((x) => x.question).join("\n");
   const qb = b.answers?.map((x) => x.question).join("\n");
   return qa === qb;
@@ -40,12 +42,12 @@ export function samePinned(a: PinnedPrompt | undefined, b: PinnedPrompt | undefi
  * 添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）。
  * 右クリックで、全文の開閉と「指示の帯を隠す」（戻すのはタブの列の「表示」・設定の「表示」）。
  * 読んでいるのが AI からの質問への回答なら、「質問への回答」と添えて、たたんでいる間は答えだけを 1 行に、全文では質問ごとに質問の文と答えを出す。
- * 圧縮前指示なら「圧縮前指示」と添える
+ * 圧縮前指示・圧縮後指示なら「圧縮前指示」「圧縮後指示」と添える
  */
 export function StickyPrompt({
   text,
   answers,
-  preCompact,
+  compactKind,
   attachments,
   onPrev,
   onNext,
@@ -53,8 +55,8 @@ export function StickyPrompt({
   text: string;
   /** 質問への回答なら、その問いと答え */
   answers?: PinnedAnswer[];
-  /** 圧縮前指示か */
-  preCompact?: boolean;
+  /** 圧縮前指示・圧縮後指示か */
+  compactKind?: CompactPromptKind;
   attachments: Attachment[];
   /** 前・次の指示へ移る（ないときは押せない。⌘⌥↑ / ↓ と同じ） */
   onPrev?: () => void;
@@ -108,19 +110,14 @@ export function StickyPrompt({
         />
       </span>
       <AttachmentPeek attachments={attachments} />
-      <span className="sticky-prompt-body" aria-label={answers ? `質問への回答: ${text}` : preCompact ? `圧縮前指示: ${text}` : `指示: ${text}`}>
+      <span className="sticky-prompt-body" aria-label={answers ? `質問への回答: ${text}` : compactKind ? `${COMPACT_PROMPT_KINDS[compactKind].label}: ${text}` : `指示: ${text}`}>
         {answers && (
           <span className="sticky-prompt-kind">
             <MessageCircleQuestion size={12} aria-hidden />
             質問への回答
           </span>
         )}
-        {preCompact && (
-          <span className="sticky-prompt-kind pre-compact-kind">
-            <Shrink size={12} aria-hidden />
-            圧縮前指示
-          </span>
-        )}
+        {compactKind && <CompactPromptMark kind={compactKind} className="sticky-prompt-kind" />}
         <span ref={textRef} className="sticky-prompt-text">
           {answers && expanded ? <AnswerList answers={answers} /> : text}
         </span>
@@ -166,7 +163,7 @@ function answersOf(bubble: HTMLElement): PinnedAnswer[] {
 /**
  * いま読んでいる返答の元の自分の発言（帯に出す指示）: 流れの上端まで流れた（上端より上から始まる）いちばん下の吹き出し。
  * どれも流れていなければ（いちばん上を見ている）、最初の吹き出し。吹き出しがなければ undefined。
- * AI からの質問への回答も同じ吹き出しなので数え、問いと答えを添える（文は答えだけを並べた 1 行）。圧縮前指示（`.pre-compact`）はその印を添える。
+ * AI からの質問への回答も同じ吹き出しなので数え、問いと答えを添える（文は答えだけを並べた 1 行）。圧縮前指示・圧縮後指示（`.pre-compact` / `.post-compact`）はその印を添える。
  * 帯は流れの上に置き、流れに重ねないので、流れの上端をそのまま線にする
  */
 export function readingPrompt(timeline: HTMLElement): PinnedPrompt | undefined {
@@ -186,5 +183,6 @@ export function readingPrompt(timeline: HTMLElement): PinnedPrompt | undefined {
   }
   // 添付だけの発言は文が空（帯には添付だけを出す）
   const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
-  return found.closest(".pre-compact") ? { id, text, preCompact: true } : { id, text };
+  const compactKind = found.closest(".pre-compact") ? "pre" : found.closest(".post-compact") ? "post" : undefined;
+  return compactKind ? { id, text, compactKind } : { id, text };
 }

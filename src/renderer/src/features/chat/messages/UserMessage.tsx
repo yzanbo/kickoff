@@ -1,4 +1,4 @@
-import { History, Inbox, Pencil, RotateCcw, Shrink } from "lucide-react";
+import { History, Inbox, Pencil, RotateCcw } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -11,6 +11,8 @@ import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { BubbleEditor } from "./BubbleEditor";
 import { useMessageMenu } from "./useMessageMenu";
 import { ChildChatMarks } from "@/features/chat/children/ChildChatChips";
+import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/snippet/compactPromptKinds";
+import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 
 /** 自分の発言を折りたたむ高さ（これより高い発言は、ここまで出して下を薄くする） */
 const COLLAPSE_PX = 240;
@@ -21,11 +23,12 @@ const COLLAPSE_PX = 240;
  * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）。
  * 「もう一度送る」は、同じ文と添付を新しい指示として送る（前のやり取りは消さない。途中で圧縮が入って依頼が薄れたときに、すぐ頼み直せるように）。作業中でも送れる。
  * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない。
- * 圧縮の前に送った圧縮前指示（記録の pre_compact）は、上に「圧縮前指示」と添えて、自分で書いた指示と見分けられるようにする
+ * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact）は、上に「圧縮前指示」「圧縮後指示」と添えて、自分で書いた指示と見分けられるようにする
  */
 export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
   const data = event.data;
   const text = data.text;
+  const compactKind = compactKindOf(data);
   // 届いていなかったサブエージェントの報告を、この発言に添えて渡した数（reportHandover.ts）
   const handover = data.handover?.length ?? 0;
   const attachments = data.attachments ?? [];
@@ -55,14 +58,9 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
     { eventId: event.id },
   );
   return (
-    <div className={cx("user-message", draft !== undefined && "editing", data.pre_compact && "pre-compact")}>
+    <div className={cx("user-message", draft !== undefined && "editing", compactKind && "compact-prompt", compactKind && COMPACT_PROMPT_KINDS[compactKind].className)}>
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
-        {data.pre_compact && (
-          <div className="message-kind-label pre-compact-kind" title="会話を圧縮する前に、設定の「圧縮前指示」を送りました">
-            <Shrink size={12} aria-hidden />
-            圧縮前指示
-          </div>
-        )}
+        {compactKind && <CompactPromptMark kind={compactKind} className="message-kind-label" title={COMPACT_PROMPT_KINDS[compactKind].sentTitle} />}
         {attachments.length > 0 && (
           <div className="bubble-attachments">
             <AttachmentChips attachments={attachments} />

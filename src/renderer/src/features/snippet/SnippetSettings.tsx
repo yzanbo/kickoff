@@ -1,11 +1,11 @@
-import { PreCompactPromptForm } from "./PreCompactPromptForm";
+import { CompactPromptForm } from "./CompactPromptForm";
 import { SnippetBarField } from "./SnippetBarField";
 import { SnippetManager } from "./SnippetManager";
 
 /**
  * 設定の「定型文」（projectId なし: すべてのプロジェクトのもの）と、プロジェクトの設定の「定型文」（そのプロジェクトで使うもの）。
  * アプリの設定では、いちばん上に帯を表示するかの切り替え（SnippetBarField）。
- * チャット欄の帯の「定型文を管理」と同じ一覧（1 つの一覧で、範囲を共通 / プロジェクトから選ぶ）と、その下に圧縮前指示
+ * チャット欄の帯の「定型文を管理」と同じ一覧（1 つの一覧で、範囲を共通 / プロジェクトから選ぶ）と、その下に圧縮前指示・圧縮後指示
  */
 export function SnippetSettings({ projectId = null }: { projectId?: number | null }) {
   return (
@@ -24,7 +24,8 @@ export function SnippetSettings({ projectId = null }: { projectId?: number | nul
         )}
         <SnippetManager projectId={projectId} />
       </section>
-      <PreCompactPromptForm projectId={projectId} />
+      <CompactPromptForm kind="pre" projectId={projectId} />
+      <CompactPromptForm kind="post" projectId={projectId} />
     </>
   );
 }

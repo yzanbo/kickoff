@@ -1,4 +1,4 @@
-import { CornerDownLeft, History, Shrink } from "lucide-react";
+import { CornerDownLeft, History } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { isKey } from "@/lib/keys";
@@ -11,12 +11,14 @@ import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { SearchField } from "@/ui/SearchField";
 import type { PromptEntry } from "./promptHistory";
+import { COMPACT_PROMPT_KINDS } from "@/features/snippet/compactPromptKinds";
+import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 
 /**
  * チャット欄の上の「指示の履歴 12」（ToDo・サブエージェントと同じピルの列）。押すと、このチャットで自分が送った指示の一覧を上に開く。
  * 呼び方は、入力欄の「続けて指示する」・「送信待ちの指示」にそろえる。
  * 行を押すとその指示へ移って強調し、行の右のボタンで同じ文を入力欄に入れる（もう一度送る・少し直して送る）。
- * 一覧は会話の順（下ほど新しい）で、開いたらいちばん下（入力欄に近い新しい指示）を見せる。圧縮の前に送った圧縮前指示は、文の前に「圧縮前指示」の札を付ける。
+ * 一覧は会話の順（下ほど新しい）で、開いたらいちばん下（入力欄に近い新しい指示）を見せる。圧縮の前後に送った圧縮前指示・圧縮後指示は、文の前に「圧縮前指示」「圧縮後指示」の札を付ける。
  * 上の欄で絞り込め、↑↓ で選んで Enter で入力欄に入れる・⌘Enter でその指示へ移る。
  * チャットにピントがあるときの ⌃R でも開く（シェルの履歴の検索と同じ。開いている間の ⌃R は 1 つ前の一致へ）
  */
@@ -109,15 +111,10 @@ export function PromptsChip({ prompts }: { prompts: PromptEntry[] }) {
       {items.length === 0 && <p className="muted small">合う指示はありません</p>}
       {items.map((p, index) => {
         return (
-          <div key={p.id} className={cx("prompt-row", index === nav.index && "active", p.preCompact && "pre-compact")} onMouseEnter={() => nav.setIndex(index)}>
-            <button type="button" className="prompt-jump" title={p.preCompact ? `圧縮前指示: ${p.label}` : p.label} onClick={() => jump(p)}>
+          <div key={p.id} className={cx("prompt-row", index === nav.index && "active")} onMouseEnter={() => nav.setIndex(index)}>
+            <button type="button" className="prompt-jump" title={p.compactKind ? `${COMPACT_PROMPT_KINDS[p.compactKind].label}: ${p.label}` : p.label} onClick={() => jump(p)}>
               <span className="prompt-index">{numbers.get(p.id)}</span>
-              {p.preCompact && (
-                <span className="pre-compact-tag">
-                  <Shrink size={11} aria-hidden />
-                  圧縮前指示
-                </span>
-              )}
+              {p.compactKind && <CompactPromptMark kind={p.compactKind} className="compact-prompt-tag" size={11} />}
               <span className="prompt-text">{p.label}</span>
               <time className="prompt-time">{formatMessageTime(p.at)}</time>
             </button>

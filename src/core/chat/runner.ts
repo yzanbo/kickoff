@@ -8,7 +8,7 @@ import type { Attachment, Chat, ChatLive, ChatOptionsPatch, CompactTrigger, Queu
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { Conflict, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
-import { manualPreCompactMessage } from "@shared/chat/prompts";
+import { manualPreCompactMessage, postCompactMessage } from "@shared/chat/prompts";
 import { preCompactPromptOf } from "./preCompact.js";
 
 /**
@@ -76,8 +76,11 @@ export class Runner extends RunnerQueue {
     return this.deps.store.chats.get(chat.id)!;
   }
 
-  /** 終了した会話に追加の指示を送り、続きから再開する（pauseAfter なら、この作業が終わったら送信待ちを一時停止する） */
-  async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { pauseAfter = false }: SendOpts = {}): Promise<Chat> {
+  /**
+   * 終了した会話に追加の指示を送り、続きから再開する（pauseAfter なら、この作業が終わったら送信待ちを一時停止する。
+   * postCompact なら圧縮後指示として、記録に札を付け、AI には前置きを付けて送る）
+   */
+  async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { pauseAfter = false, postCompact = false }: SendOpts = {}): Promise<Chat> {
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "送信");
     const { store } = this.deps;
@@ -86,7 +89,7 @@ export class Runner extends RunnerQueue {
     runtime.preparing = true;
     let prepared: Awaited<ReturnType<typeof followupPrompt>>;
     try {
-      prepared = await followupPrompt(this.deps, chatId, text, attachments);
+      prepared = await followupPrompt(this.deps, chatId, postCompact ? postCompactMessage(text) : text, attachments);
     } catch (e) {
       runtime.preparing = false;
       // 送れなかった間に届いた指示（待ちの列）は取り残さない
@@ -97,7 +100,7 @@ export class Runner extends RunnerQueue {
     this.forgetRecovery(chatId);
     const { prompt, handover } = prepared;
     const messageUuid = randomUUID();
-    store.events.add(chat.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
+    store.events.add(chat.id, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), message_uuid: messageUuid });
     // チャット欄でモデルや権限モードを変えた場合は、この続きから反映する
     store.chats.update(chat.id, {
       status: "running",
@@ -125,34 +128,35 @@ export class Runner extends RunnerQueue {
     text: string,
     options: ChatOptionsPatch = {},
     attachments: Attachment[] = [],
-    { at, pauseAfter = false }: SendOpts & { at?: number } = {},
+    { at, pauseAfter = false, postCompact = false, draining = false }: SendOpts & { at?: number; draining?: boolean } = {},
   ): Promise<TellResult["result"]> {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
     if (!this.isBusy(chatId)) {
-      await this.send(chatId, text, options, attachments, { pauseAfter });
+      await this.send(chatId, text, options, attachments, { pauseAfter, postCompact });
       return "sent";
     }
     const runtime = this.runtimes.get(chatId);
     const hold = (): "held" => {
       if (pauseAfter) this.pauseAfterTurn(chatId);
-      return this.holdUntilCompacted(runtime, text, options, attachments);
+      return this.holdUntilCompacted(runtime, text, options, attachments, postCompact);
     };
-    if (runtime.holdsTells) return hold();
-    const { prompt, handover } = await followupPrompt(this.deps, chatId, text, attachments);
+    // 預かった指示を送っている途中（draining）のものは、預かり直さない
+    if (runtime.holdsTells && !draining) return hold();
+    const { prompt, handover } = await followupPrompt(this.deps, chatId, postCompact ? postCompactMessage(text) : text, attachments);
     const messageUuid = randomUUID();
     // 組み立てている間に圧縮が始まったら、預かる（届いた報告の添え書きは、伝えるときに組み立て直す）
-    if (runtime.holdsTells) return hold();
+    if (runtime.holdsTells && !(draining && !runtime.compacting && !runtime.awaitingCompact)) return hold();
     // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す
     if (runtime.control?.tell(prompt, messageUuid)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
       this.forgetRecovery(chatId);
-      store.events.add(chatId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
+      store.events.add(chatId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, ...postCompactMark(postCompact), message_uuid: messageUuid });
       if (chat.unread) store.chats.setUnread(chatId, false);
       if (pauseAfter) this.pauseAfterTurn(chatId);
       return "told";
     }
-    const { id } = runtime.queue.add(text, options, attachments);
+    const { id } = runtime.queue.add(text, options, attachments, { postCompact });
     if (at !== undefined) runtime.queue.move(id, at);
     if (pauseAfter) runtime.queue.setStopAfter(id);
     // 組み立てている間に作業が終わっていたら、終わったときの自動送信はもう済んでいるので、ここで送る（列に取り残さない）
@@ -164,53 +168,65 @@ export class Runner extends RunnerQueue {
    * 圧縮中・圧縮前指示から圧縮が終わるまでの「いま」を預かる（ChatLive の after_compact。流れの終わりに「圧縮が終わったら伝えます」と出す）。
    * この間に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため、圧縮が終わってから伝える
    */
-  private holdUntilCompacted(runtime: ChatRuntime, text: string, options: ChatOptionsPatch, attachments: Attachment[]): "held" {
-    const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString() };
+  private holdUntilCompacted(runtime: ChatRuntime, text: string, options: ChatOptionsPatch, attachments: Attachment[], postCompact: boolean): "held" {
+    const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString(), ...(postCompact ? { post_compact: true } : {}) };
     runtime.update({ afterCompact: [...runtime.afterCompact, message] });
     return "held";
   }
 
   /**
-   * 圧縮が終わったら、預かった「いま」を送った順にいまのやり取りへ伝える。いまのやり取りに足せない（手で圧縮する実行・作業ごと終わった）ときは、
-   * 実行の終わり（execute）で送る（deliverHeld）
+   * 圧縮が終わったら、預かった「いま」を送った順にいまのやり取りへ伝える（圧縮後指示があれば、先頭に置いてあるので最初に伝える）。
+   * いまのやり取りに足せない（手で圧縮する実行・作業ごと終わった）ときは、実行の終わり（execute）で送る（deliverHeld）
    */
   private deliverAfterCompact(chatId: number) {
     const runtime = this.runtimes.get(chatId);
-    const held = runtime.afterCompact;
-    if (held.length === 0 || !runtime.control) return;
-    runtime.update({ afterCompact: [] });
-    void (async () => {
-      for (const [i, m] of held.entries()) {
-        try {
-          await this.tell(chatId, m.text, m.options, m.attachments, { at: i });
-        } catch (e) {
-          this.reportError(chatId, `圧縮のあとに指示を伝えられませんでした: ${errorMessage(e)}`);
-        }
-      }
-    })();
+    if (runtime.afterCompact.length === 0 || !runtime.control) return;
+    this.drainAfterCompact(chatId, false);
   }
 
   /**
-   * 実行が終わったときに残っている預かった「いま」を送る: 1 件目をすぐ送り、残りはその作業に伝える（送信待ちを止めていても送る。
+   * 実行が終わったときに残っている預かった「いま」を送る: 1 件目（圧縮後指示があればそれ）をすぐ送り、残りはその作業に伝える（送信待ちを止めていても送る。
    * 作業していないときの「いま」と同じ）。送れない終わり方（通信の切断・使用枠の上限・アプリの終了）なら、送信待ちの先頭に入れる
    */
   private deliverHeld(chatId: number, sendNow: boolean) {
     const runtime = this.runtimes.get(chatId);
     const held = runtime.afterCompact;
-    if (held.length === 0) return;
-    runtime.update({ afterCompact: [] });
+    // 送っている途中なら、その続きに任せる（残りを送ると、その作業の終わりで送信待ちの次へ進む）
+    if (held.length === 0 || runtime.deliveringAfterCompact) return;
     if (!sendNow) {
-      held.forEach((m, i) => runtime.queue.move(runtime.queue.add(m.text, m.options, m.attachments).id, i));
+      runtime.update({ afterCompact: [] });
+      held.forEach((m, i) => runtime.queue.move(runtime.queue.add(m.text, m.options, m.attachments, { postCompact: m.post_compact }).id, i));
       return;
     }
+    this.drainAfterCompact(chatId, true);
+  }
+
+  /**
+   * 預かった「いま」を先頭から 1 件ずつ送る（sendFirst なら 1 件目は新しい作業として送り、残りはその作業に伝える）。
+   * 送り終えるまでは「いま」を預かったままにし（deliveringAfterCompact）、その間に来た指示も列の後ろに足して続けて送る
+   * （圧縮後指示・前に預かった指示より先に、あとから送った指示が入らないように）
+   */
+  private drainAfterCompact(chatId: number, sendFirst: boolean) {
+    const runtime = this.runtimes.get(chatId);
+    runtime.update({ deliveringAfterCompact: true });
     void (async () => {
-      for (const [i, m] of held.entries()) {
-        try {
-          if (i === 0) await this.send(chatId, m.text, m.options, m.attachments);
-          else await this.tell(chatId, m.text, m.options, m.attachments, { at: i - 1 });
-        } catch (e) {
-          this.reportError(chatId, `圧縮のあとに指示を送れませんでした: ${errorMessage(e)}`);
+      try {
+        for (let i = 0; ; i++) {
+          const [m, ...rest] = runtime.afterCompact;
+          if (!m) break;
+          runtime.update({ afterCompact: rest });
+          try {
+            if (i === 0 && sendFirst) {
+              await this.send(chatId, m.text, m.options, m.attachments, { postCompact: m.post_compact });
+              // 残りはその作業に伝えるので、足し先（作業中の操作）ができるまで待つ（先に伝えると、足せずに送信待ちへ回る）
+              await untilTellable(runtime);
+            } else await this.tell(chatId, m.text, m.options, m.attachments, { at: sendFirst ? i - 1 : i, postCompact: m.post_compact, draining: true });
+          } catch (e) {
+            this.reportError(chatId, `圧縮のあとに指示を${i === 0 && sendFirst ? "送れません" : "伝えられません"}でした: ${errorMessage(e)}`);
+          }
         }
+      } finally {
+        runtime.update({ deliveringAfterCompact: false });
       }
     })();
   }
@@ -366,4 +382,14 @@ export class Runner extends RunnerQueue {
       }
     }
   }
+}
+
+/** 圧縮後指示として送った発言の記録の印（ほかの発言には付けない） */
+function postCompactMark(postCompact: boolean): { post_compact?: true } {
+  return postCompact ? { post_compact: true } : {};
+}
+
+/** 動かし始めた作業に発言を足せるようになる（作業中の操作ができる）か、作業が終わるまで待つ */
+async function untilTellable(runtime: ChatRuntime) {
+  while (!runtime.control && runtime.busy) await new Promise((resolve) => setTimeout(resolve, 20));
 }

@@ -4,9 +4,13 @@ import type { ChatRuntimes } from "./runtime.js";
 import { queueActionOf } from "@shared/chat/queueActions";
 import { QUEUE_ACTION_LABELS, type Attachment, type QueueAction, type QueuedMessage, type Chat, type ChatOptionsPatch, type QueueState, type TellResult } from "@shared/types";
 
-/** 送る・伝えるときの指定。pauseAfter: 質問として送る（この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する） */
+/**
+ * 送る・伝えるときの指定。pauseAfter: 質問として送る（この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する）。
+ * postCompact: 圧縮後指示として送る（記録に「圧縮後指示」の札を付け、AI には前置きを付ける）
+ */
 export interface SendOpts {
   pauseAfter?: boolean;
+  postCompact?: boolean;
 }
 
 /** まだ会話がないので行えないとき（作業していないときの「すぐ送る」） */
@@ -157,7 +161,7 @@ export abstract class RunnerQueue {
       await this.sendNextQueued(chatId);
       return;
     }
-    await this.tell(chatId, message.text, message.options, message.attachments, { at: 0 });
+    await this.tell(chatId, message.text, message.options, message.attachments, { at: 0, postCompact: message.post_compact });
   }
 
   /**
@@ -273,7 +277,7 @@ export abstract class RunnerQueue {
       return;
     }
     try {
-      await this.send(chatId, next.text, next.options, next.attachments);
+      await this.send(chatId, next.text, next.options, next.attachments, { postCompact: next.post_compact });
     } catch (e) {
       this.reportError(chatId, `待ちの指示を送れませんでした: ${errorMessage(e)}`);
     }

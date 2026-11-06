@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { PRE_COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
+import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 import { useFold } from "@/hooks/useFold";
 import { useProjects } from "@/stores/projects";
 import { Chevron } from "@/ui/Chevron";
 import { ResultMessage } from "@/ui/SaveActions";
 import { Segmented } from "@/ui/Segmented";
-import { usePreCompactPrompt } from "./usePreCompactPrompt";
+import { COMPACT_PROMPT_KINDS, type CompactPromptKind } from "./compactPromptKinds";
+import { useCompactPrompt } from "./useCompactPrompt";
 
 type Scope = "common" | "project";
 
@@ -18,14 +19,15 @@ function summaryOf(common: boolean, project: boolean, projectName: string): stri
 }
 
 /**
- * チャット欄のメーターの詳細の「圧縮前指示」: 会話を圧縮する前に AI に送る指示を、その場で書いて保存する（設定の「定型文」の欄と同じ値）。
- * 開閉の行（初めは閉じる。開いているかは覚える）に、いま送る指示の範囲を添える。開くと、共通 / プロジェクト（名前で出す）を切り替えて書く
+ * チャット欄のメーターの詳細の「圧縮前指示」「圧縮後指示」: 会話を圧縮する前・後に AI に送る指示を、その場で書いて保存する（設定の「定型文」の欄と同じ値）。
+ * 開閉の行（初めは閉じる。開いているかは種類ごとに覚える）に、いま送る指示の範囲を添える。開くと、共通 / プロジェクト（名前で出す）を切り替えて書く
  * （両方の書きかけを持ち、切り替えても消さない。送るときは共通 → プロジェクトの順につなぐ）
  */
-export function PreCompactPromptEditor({ projectId }: { projectId: number }) {
-  const fold = useFold("composer", "pre-compact", { defaultOpen: false });
-  const common = usePreCompactPrompt(null);
-  const project = usePreCompactPrompt(projectId);
+export function CompactPromptEditor({ kind, projectId }: { kind: CompactPromptKind; projectId: number }) {
+  const { label, placeholder, when } = COMPACT_PROMPT_KINDS[kind];
+  const fold = useFold("composer", `${kind}-compact`, { defaultOpen: false });
+  const common = useCompactPrompt(kind, null);
+  const project = useCompactPrompt(kind, projectId);
   const projectName = useProjects().projectsById.get(projectId)?.name ?? "このプロジェクト";
   // 初めは、指示のあるほう（どちらにもなければ共通）
   const [scope, setScope] = useState<Scope>(() => (project.saved !== null && common.saved === null ? "project" : "common"));
@@ -34,7 +36,7 @@ export function PreCompactPromptEditor({ projectId }: { projectId: number }) {
   return (
     <div className="context-pre-compact">
       <button type="button" className="context-pre-compact-toggle" aria-expanded={fold.open} onClick={fold.toggle}>
-        <span className="context-pre-compact-label">圧縮前指示</span>
+        <span className="context-pre-compact-label">{label}</span>
         <span className="context-pre-compact-summary">{summaryOf(common.saved !== null, project.saved !== null, projectName)}</span>
         <Chevron open={fold.open} />
       </button>
@@ -42,7 +44,7 @@ export function PreCompactPromptEditor({ projectId }: { projectId: number }) {
         <div className="context-pre-compact-body">
           <Segmented
             className="segmented context-pre-compact-scope"
-            label="圧縮前指示の範囲"
+            label={`${label}の範囲`}
             value={scope}
             onChange={setScope}
             options={[
@@ -53,13 +55,13 @@ export function PreCompactPromptEditor({ projectId }: { projectId: number }) {
           <textarea
             rows={3}
             value={current.draft}
-            maxLength={PRE_COMPACT_PROMPT_MAX}
-            aria-label={scope === "common" ? "すべてのプロジェクトの圧縮前指示" : `「${projectName}」の圧縮前指示`}
-            placeholder="例: いまの作業の進捗・決めたこと・次にやることを memo.md に書き残してください"
+            maxLength={COMPACT_PROMPT_MAX}
+            aria-label={scope === "common" ? `すべてのプロジェクトの${label}` : `「${projectName}」の${label}`}
+            placeholder={placeholder}
             onChange={(e) => current.setDraft(e.target.value)}
           />
           <div className="context-pre-compact-actions">
-            <p className="context-sub">圧縮の前（手で・自動）に送ります。空なら送りません。</p>
+            <p className="context-sub">{when}</p>
             <ResultMessage result={current.save.message} />
             <button type="button" className="btn btn-sm btn-primary" disabled={!current.dirty || current.save.saving} onClick={() => void current.save.run(current.submit)}>
               {current.save.saving ? "保存中…" : "保存"}

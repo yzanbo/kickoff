@@ -14,10 +14,15 @@ interface LiveFields {
   stopping: boolean;
   /** 次の指示を書き直していたので、送らずに書き直しが終わるのを待っている（QueueState の waiting_edit） */
   waitingEdit: boolean;
-  /** 圧縮中・圧縮前指示から圧縮が終わるまでに「いま」で送った指示（圧縮が終わったら伝える。ChatLive の after_compact） */
+  /**
+   * 圧縮中・圧縮前指示から圧縮が終わるまでに「いま」で送った指示（圧縮が終わったら伝える。ChatLive の after_compact）。
+   * 圧縮したら、先頭に圧縮後指示（post_compact）を置き、それから順に伝える
+   */
   afterCompact: QueuedMessage[];
   /** 圧縮前指示を送ってから、圧縮が終わるまで（手で頼んだ圧縮の実行の間も。ChatLive の awaiting_compact） */
   awaitingCompact: boolean;
+  /** 圧縮が終わって、預かった「いま」を順に送っている途中（送り終えるまで、新しい「いま」も預かって後ろに足す。画面には配らない） */
+  deliveringAfterCompact: boolean;
 }
 
 /**
@@ -42,7 +47,7 @@ export class ChatRuntime {
   readonly edits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false, deliveringAfterCompact: false };
   /** 圧縮が終わった（預かった「いま」を伝える。holdsTells が外れたとき） */
   private readonly onCompactEnded: () => void;
 
@@ -67,16 +72,22 @@ export class ChatRuntime {
   }
 
   /**
-   * 「いま」を預かるか: 圧縮中か、圧縮前指示を送ってから圧縮が終わるまで（awaitingCompact）。
-   * この間に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため
+   * 「いま」を預かるか: 圧縮中か、圧縮前指示を送ってから圧縮が終わるまで（awaitingCompact）か、圧縮のあとに預かった指示を送っている途中。
+   * 圧縮の前に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため。
+   * 送っている途中に足すと、圧縮後指示・前に預かった指示より先に入りうるため
    */
   get holdsTells(): boolean {
-    return this.fields.compacting !== null || this.fields.awaitingCompact;
+    return this.fields.compacting !== null || this.fields.awaitingCompact || this.fields.deliveringAfterCompact;
   }
 
   /** 圧縮前指示を送ってから、圧縮が終わるまでか */
   get awaitingCompact(): boolean {
     return this.fields.awaitingCompact;
+  }
+
+  /** 圧縮のあとに、預かった「いま」を順に送っている途中か */
+  get deliveringAfterCompact(): boolean {
+    return this.fields.deliveringAfterCompact;
   }
 
   /** 圧縮中に「いま」で送り、圧縮が終わるのを待っている指示 */
@@ -87,6 +98,11 @@ export class ChatRuntime {
   /** 次の指示の書き直しが終わるのを待っているか */
   get waitingEdit(): boolean {
     return this.fields.waitingEdit;
+  }
+
+  /** もう預かる間でないのに、伝えていない預かった指示があれば伝える（圧縮中を外したあとで、圧縮後指示を先頭に置いたときなど） */
+  flushAfterCompact() {
+    if (!this.holdsTells && this.fields.afterCompact.length > 0) this.onCompactEnded();
   }
 
   /** 画面に配る様子を変える（変わったものがあれば、まとめて 1 回だけ知らせる） */

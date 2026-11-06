@@ -39,6 +39,10 @@ class FakeProvider extends FakeProviderBase {
   compacting = false;
   /** いまの実行の圧縮を終える（作業を続けたまま、圧縮が終わったと知らせる。作業中の圧縮のあとの確かめに使う） */
   finishCompacting: () => void = () => {};
+  /** いまの実行で要約が済んだと知らせる（Claude Code の compact_boundary と同じく、要約の記録を残してから圧縮中を外す） */
+  compactBoundary: () => void = () => {};
+  /** これが true なら、/compact の実行で要約の記録（compact）を知らせる（手で圧縮したあとの確かめに使う） */
+  emitCompactOnCompact = false;
   /** これがあれば実行の初めに、作業の途中のコンテキストの大きさ（圧縮の直後）として知らせる */
   contextTokens: number | null = null;
   /** これがあれば実行の初めに、AI の API への通信を再試行していると知らせる（終わりは知らせない。作業の終わりで消えるかの確かめに使う） */
@@ -78,6 +82,11 @@ class FakeProvider extends FakeProviderBase {
     if (this.background) cb.background?.(this.background);
     if (this.compacting) cb.compacting?.(true);
     this.finishCompacting = () => cb.compacting?.(false);
+    this.compactBoundary = () => {
+      cb.emit({ type: "compact", trigger: "auto", pre_tokens: 1000 });
+      cb.compacting?.(false);
+    };
+    if (this.emitCompactOnCompact && params.prompt === "/compact") cb.emit({ type: "compact", trigger: "manual", pre_tokens: 1000 });
     if (this.contextTokens !== null) cb.context?.(this.contextTokens);
     if (this.retry) cb.retry?.(this.retry);
     cb.control?.({

@@ -89,14 +89,16 @@ export function retryRequest(entry: { description: string; subagentType?: string
  */
 export const HAND_OVER_NOW = "届いていなかったサブエージェントの報告を渡します。読んで、必要なら作業を続けてください。";
 
-// ---- 圧縮前指示（会話を圧縮する前に AI に送る指示。設定の共通の指示と、プロジェクトの指示） ----
-// 要約するといまの会話の細かい内容が失われるので、その前にメモを残すなどを頼む。送ったものはチャットに「圧縮前指示」の札付きの自分の発言として残る
+// ---- 圧縮前指示・圧縮後指示（会話を圧縮する前・後に AI に送る指示。どちらも設定の共通の指示と、プロジェクトの指示） ----
+// 圧縮前指示: 要約するといまの会話の細かい内容が失われるので、その前にメモを残すなどを頼む。
+// 圧縮後指示: 要約したあとの会話で、残したメモを読み直すなどを頼む（圧縮が終わったら、預かっていた指示より先に送る）。
+// 送ったものはチャットに「圧縮前指示」「圧縮後指示」の札付きの自分の発言として残る
 
-/** 圧縮前指示の長さの上限（文字。共通・プロジェクトのそれぞれ） */
-export const PRE_COMPACT_PROMPT_MAX = 4000;
+/** 圧縮前指示・圧縮後指示の長さの上限（文字。共通・プロジェクトのそれぞれ） */
+export const COMPACT_PROMPT_MAX = 4000;
 
-/** そのプロジェクトで送る圧縮前指示（共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null） */
-export function preCompactPromptFor(common: string | null, project: string | null): string | null {
+/** そのプロジェクトで送る圧縮前指示・圧縮後指示（共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null） */
+export function compactPromptFor(common: string | null, project: string | null): string | null {
   const parts = [common, project].map((p) => p?.trim()).filter((p): p is string => Boolean(p));
   return parts.length > 0 ? parts.join("\n\n") : null;
 }
@@ -117,6 +119,15 @@ export function autoPreCompactMessage(text: string): string {
   return [
     `${PRE_COMPACT_HEAD}コンテキストが上限に近づいたので、まもなく会話を自動で圧縮します${PRE_COMPACT_LOSS}。圧縮の前に、次のことをしてください。` +
       `済んだら「${PRE_COMPACT_DONE}」とだけ書いてから、元の作業に戻ってください（その一文を合図に圧縮します）。`,
+    "---",
+    text,
+  ].join("\n");
+}
+
+/** 圧縮が終わったら、預かっていた指示より先に送る文（自動の圧縮のときは作業の途中に足すので、済んだら元の作業に戻ってもらう） */
+export function postCompactMessage(text: string): string {
+  return [
+    "【圧縮後指示】会話を圧縮しました（それより前の会話は要約になっています）。続ける前に、次のことをしてください。済んだら、途中の作業があればそのまま続けてください。",
     "---",
     text,
   ].join("\n");

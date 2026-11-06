@@ -5,7 +5,8 @@ import {
   isPreCompactDone,
   manualPreCompactMessage,
   PRE_COMPACT_DONE,
-  preCompactPromptFor,
+  compactPromptFor,
+  postCompactMessage,
   relayedText,
   relayMessage,
   RESUME_PROMPT,
@@ -50,11 +51,17 @@ test("通信が戻って自動で再開する指示: 止まったサブエージ
   assert.match(prompt, /- 「調査」（ID: a1）/);
 });
 
-test("圧縮前指示: 共通 → プロジェクトの順に空行でつなぎ、空のものは除く", () => {
-  assert.equal(preCompactPromptFor("メモを残す", "TODO を書く"), "メモを残す\n\nTODO を書く");
-  assert.equal(preCompactPromptFor(null, " TODO を書く "), "TODO を書く");
-  assert.equal(preCompactPromptFor("  ", null), null);
-  assert.equal(preCompactPromptFor(null, null), null);
+test("圧縮前指示・圧縮後指示: 共通 → プロジェクトの順に空行でつなぎ、空のものは除く", () => {
+  assert.equal(compactPromptFor("メモを残す", "TODO を書く"), "メモを残す\n\nTODO を書く");
+  assert.equal(compactPromptFor(null, " TODO を書く "), "TODO を書く");
+  assert.equal(compactPromptFor("  ", null), null);
+  assert.equal(compactPromptFor(null, null), null);
+});
+
+test("圧縮後指示: 圧縮したことを前置きにして、指示の文をそのまま添える", () => {
+  const message = postCompactMessage("memo.md を読み直す");
+  assert.match(message, /^【圧縮後指示】会話を圧縮しました/);
+  assert.ok(message.endsWith("---\nmemo.md を読み直す"));
 });
 
 test("圧縮前指示: 自動のときだけ合図の一文を頼み、その一文で済んだと分かる", () => {

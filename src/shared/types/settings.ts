@@ -62,6 +62,8 @@ export interface AppSettings {
   auto_compact_pct: number | null;
   /** 共通の圧縮前指示（会話を圧縮する前に AI に送る指示。プロジェクトの指示があれば、そのあとにつなぐ。null ならなし。@shared/chat/prompts） */
   pre_compact_prompt: string | null;
+  /** 共通の圧縮後指示（会話を圧縮したあと、預かっていた指示より先に AI に送る指示。プロジェクトの指示があれば、そのあとにつなぐ。null ならなし） */
+  post_compact_prompt: string | null;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -82,4 +84,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   memos_dir: null,
   auto_compact_pct: null,
   pre_compact_prompt: null,
+  post_compact_prompt: null,
 };
