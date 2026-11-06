@@ -4,7 +4,9 @@ import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { memosStore } from "@/stores/memos";
 import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
-import { baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./memoPaths";
+import { readSetting, writeSetting } from "@/lib/storage";
+import { memoOpenFolders, memoSelected } from "@/lib/storageKeys";
+import { ancestorsOf, baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./memoPaths";
 
 /** 新しく作るメモ・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ） */
 const UNTITLED_MEMO = "無題のメモ";
@@ -28,10 +30,10 @@ export function useMemoActions(
     beforeChange,
   }: {
     /** 作った（メモは開く・フォルダは開いて、どちらも一覧の行で名前を変え始める） */
-    onCreated: (path: string, dir: boolean) => void;
+    onCreated?: (path: string, dir: boolean) => void;
     /** 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える） */
     onMoved: (from: string, to: string) => void;
-    onTrashed: (path: string) => void;
+    onTrashed?: (path: string) => void;
     /** 名前を変える・動かす・ゴミ箱に入れる前（開いているメモにかかるなら、まだ保存していない書きかけをどうするか聞く。やめたら false） */
     beforeChange: (path: string) => Promise<boolean>;
   },
@@ -45,7 +47,7 @@ export function useMemoActions(
     const path = untitledPath(entries(), folder, UNTITLED_MEMO, MEMO_KIND_EXTENSIONS[kind]);
     await api.createMemo(projectId, path, html ? { content: newHtmlMemo(memoTitle(path)) } : {}).then(() => {
       refresh();
-      onCreated(path, false);
+      onCreated?.(path, false);
     }, reportFailure("メモを作れませんでした"));
   };
 
@@ -53,7 +55,7 @@ export function useMemoActions(
     const path = untitledPath(entries(), folder, UNTITLED_FOLDER);
     await api.createMemo(projectId, path, { dir: true }).then(() => {
       refresh();
-      onCreated(path, true);
+      onCreated?.(path, true);
     }, reportFailure("フォルダを作れませんでした"));
   };
 
@@ -111,7 +113,7 @@ export function useMemoActions(
     if (!ok || !(await beforeChange(path))) return;
     await api.trashMemo(projectId, path).then(() => {
       refresh();
-      onTrashed(path);
+      onTrashed?.(path);
     }, reportFailure("ゴミ箱に入れられませんでした"));
   };
 
@@ -137,6 +139,16 @@ export function useMemoActions(
   };
 
   return { createMemo, createFolder, renameTo, moveInto, moveMany, trash };
+}
+
+/**
+ * 名前を変えた・動かしたあとに、プロジェクトごとに覚えている「メモのタブで選んでいるメモ」と「開いているフォルダ」を付け替え、動かした先を見せるよう親のフォルダを開く
+ * （メモのタブと入力欄の上の「メモ」の木で共通。どちらも同じ覚えを読む）。まとめて動かすと続けて呼ばれるので、いま覚えている値から付け替える（前の付け替えを上書きしないように）
+ */
+export function followMovedMemo(projectId: number, from: string, to: string) {
+  const selected = readSetting(memoSelected(projectId));
+  if (selected) writeSetting(memoSelected(projectId), remapPath(selected, from, to));
+  writeSetting(memoOpenFolders(projectId), [...new Set([...remapPaths(readSetting(memoOpenFolders(projectId)), from, to), ...ancestorsOf(to)])]);
 }
 
 /** 動かしたあとに、覚えているパスの組を付け替える（開いているフォルダ） */

@@ -2,7 +2,6 @@ import { FileCode2, FilePlus, FolderOpen, PanelLeftOpen, StickyNote } from "luci
 import { useEffect, useMemo, useState } from "react";
 import { navigate } from "@/app/router";
 import { cx } from "@/lib/cx";
-import { readSetting } from "@/lib/storage";
 import { CHANGES_LIST_WIDTH, MEMO_LIST_HIDDEN, memoOpenFolders, memoSelected } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
@@ -15,13 +14,14 @@ import { SearchField } from "@/ui/SearchField";
 import { useContextMenu } from "@/ui/useContextMenu";
 import type { TreeNode } from "@/features/editor/treeModel";
 import { FileIcon } from "@/features/editor/FileIcon";
-import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf, remapPath } from "./memoPaths";
+import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf } from "./memoPaths";
 import { MemoListHead } from "./MemoListHead";
-import { canDropInto, isMemoDrag, MEMO_DRAG_TYPE, MemoTree, type MemoRenaming } from "./MemoTree";
-import { confirmLeaveMemo } from "./memoGuards";
+import { memoListDropProps } from "./memoDrag";
+import { MemoTree, type MemoRenaming } from "./MemoTree";
+import { confirmLeaveMemo, confirmLeaveMemosUnder } from "./memoGuards";
 import { MemoView } from "./MemoView";
 import { MemoPlanDialog } from "./MemoPlanDialog";
-import { remapPaths, useMemoActions } from "./useMemoActions";
+import { followMovedMemo, useMemoActions } from "./useMemoActions";
 
 /**
  * プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ）。左の一覧は隠せる（MEMO_LIST_HIDDEN。隠している間は左端の細い帯に「一覧を表示」）。メモはプロジェクトの外（設定の親フォルダの下の、
@@ -65,15 +65,8 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openMemo]);
 
-  /**
-   * 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える。一覧の操作と、題名での名前の変更・AI の整理案のまとめての移動で共通）。
-   * まとめて動かすと続けて呼ばれるので、描いたときの値ではなく、いま覚えている値から付け替える（前の付け替えを上書きしないように）
-   */
-  const moved = (from: string, to: string) => {
-    const current = readSetting(memoSelected(projectId));
-    if (current) setSelected(remapPath(current, from, to));
-    setOpenList([...new Set([...remapPaths(readSetting(memoOpenFolders(projectId)), from, to), ...ancestorsOf(to)])]);
-  };
+  /** 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える。一覧の操作と、題名での名前の変更・AI の整理案のまとめての移動で共通） */
+  const moved = (from: string, to: string) => followMovedMemo(projectId, from, to);
 
   const actions = useMemoActions(projectId, {
     // 作ったら、探している文を消して一覧のその行を見せ、名前を変え始める（メモは右に開く）
@@ -84,11 +77,8 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
       else void select(path);
       startRename(path);
     },
-    // 開いているメモ（とその入ったフォルダ）の名前を変える・動かす・ゴミ箱に入れる前も聞く
-    beforeChange: (path) => {
-      const current = readSetting(memoSelected(projectId));
-      return current && isUnder(current, path) ? confirmLeaveMemo(projectId, current) : Promise.resolve(true);
-    },
+    // 開いているメモ（とその入ったフォルダ）の名前を変える・動かす・ゴミ箱に入れる前も聞く（右の欄・別ウィンドウで開いているものも）
+    beforeChange: (path) => confirmLeaveMemosUnder(projectId, path),
     onMoved: (from, to) => moved(from, to),
     onTrashed: (path) => {
       if (selected && isUnder(selected, path)) setSelected("");
@@ -128,25 +118,7 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
           aria-label="メモ"
           onContextMenu={(e) => menu.open(e, null)}
           // 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす
-          onDragOver={(e) => {
-            if (!isMemoDrag(e)) return;
-            if (!canDropInto("")) {
-              e.dataTransfer.dropEffect = "none";
-              setDropTarget(null);
-              return;
-            }
-            e.preventDefault();
-            setDropTarget("");
-          }}
-          onDragLeave={(e) => {
-            // 一覧の中の行へ移っただけなら、行が付け直す
-            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropTarget(null);
-          }}
-          onDrop={(e) => {
-            setDropTarget(null);
-            const path = e.dataTransfer.getData(MEMO_DRAG_TYPE);
-            if (path) void actions.moveInto(path, "");
-          }}
+          {...memoListDropProps({ onDropInto: (path, folder) => void actions.moveInto(path, folder), onDropTarget: setDropTarget })}
         >
           <MemoListHead
             dir={dir}
