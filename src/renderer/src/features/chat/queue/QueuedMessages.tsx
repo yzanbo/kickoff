@@ -85,7 +85,7 @@ export function QueuedMessages({
   const dnd = useQueueDrag(chatId, messages, stops, failed);
   // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
   const ask = useAskInNewChat(messages);
-  // 右クリックの「子チャットで開く / 移す」（会話を引き継いだ子チャットを作って送り、設定の開き方で開く）
+  // 右クリックの「子チャットで開く / 移す」（会話を引き継ぐ / 新しく始めるを選んで子チャットを作って送り、設定の開き方で開く）
   const askChild = useAskInChildChat(messages, childChats);
   // 書き直す欄（いくつでも同時に開ける。指示ごとに書いている途中の文を持つ）
   const edit = useQueuedEdits(chatId, messages, listRef, failed);
@@ -228,7 +228,7 @@ export function QueuedMessages({
                 isStopBefore={stops.includes(i)}
                 onAsk={
                   ask || askChild
-                    ? { newChat: ask && ((remove) => askWith(ask, m.id, remove)), child: askChild && ((remove) => askWith(askChild, m.id, remove)) }
+                    ? { newChat: ask && ((remove) => askWith(ask, m.id, remove)), child: askChild && ((remove, inherit) => askWith((ids, r) => askChild(ids, r, inherit), m.id, remove)) }
                     : undefined
                 }
                 onSelect={(e) => selectRow(e, m.id)}
