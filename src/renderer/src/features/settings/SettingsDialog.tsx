@@ -5,7 +5,6 @@ import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
 import { Segmented } from "@/ui/Segmented";
-import { BOARD_HEADER_LAYOUT_LABELS, useBoardHeaderLayout, type BoardHeaderLayout } from "@/features/board/boardHeaderLayout";
 import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode, type FooterMode } from "@/features/footer/footerMode";
 import { CHAT_FONT_SIZE_LABELS, CHAT_FONT_SIZES, useChatFontSize, type ChatFontSize } from "@/features/chat/pane/chatFontSize";
 import { PROJECT_TABS_LAYOUT_LABELS, useProjectTabsLayout, type ProjectTabsLayout } from "@/features/project/page/ProjectTabs";
@@ -94,7 +93,6 @@ function DisplaySettings() {
   const [memoOpenIn, setMemoOpenIn] = useSetting(MEMO_OPEN_IN);
   const [tabsLayout, setTabsLayout] = useProjectTabsLayout();
   const [chatPlacement, setChatPlacement] = useChatPlacement();
-  const [headerLayout, setHeaderLayout] = useBoardHeaderLayout();
   const [footerMode, setFooterMode] = useFooterMode();
   return (
     <section className="section">
@@ -227,21 +225,6 @@ function DisplaySettings() {
             options={[
               { value: "separate", label: CHAT_PLACEMENT_LABELS.separate },
               { value: "together", label: CHAT_PLACEMENT_LABELS.together },
-            ]}
-          />
-        </Field>
-        <Field
-          label="ボードツールバーの置き方"
-          help="ボードの上の、新規・表示・グループの作成・検索などが並ぶ帯の置き方です。常時表示は、右のパネルの上にも横幅いっぱいに通して出し、パネルがボードを覆っても見えます。パネル優先は、ボードでチャットのパネルを開いたとき、パネルを上端まで伸ばし（チャットの縦の幅が広がります）、ツールバーはボードの側だけに出します（パネルがボードを覆うと隠れます）。ツールバーの何もないところの右クリックでも切り替えられます。"
-        >
-          <Segmented<BoardHeaderLayout>
-            className="segmented theme-switch"
-            label="ボードツールバーの置き方"
-            value={headerLayout}
-            onChange={setHeaderLayout}
-            options={[
-              { value: "top", label: BOARD_HEADER_LAYOUT_LABELS.top },
-              { value: "beside", label: BOARD_HEADER_LAYOUT_LABELS.beside },
             ]}
           />
         </Field>

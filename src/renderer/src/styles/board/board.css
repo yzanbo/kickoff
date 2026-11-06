@@ -84,17 +84,3 @@
   /* 見出しの並びを、ボードの幅に合わせて変える（下の @container） */
   container-type: inline-size;
 }
-
-/* ボードツールバーを「パネル優先」にしたとき、見出し・失敗の文・ボードの中身をまとめる列（パネルの左）。見出しの並びはこの幅で変える */
-.board-side {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  container-type: inline-size;
-}
-
-/* 見出し・失敗の文を右クリックの受け口で包む（並びは変えない） */
-.board-top {
-  display: contents;
-}

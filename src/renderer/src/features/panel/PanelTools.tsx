@@ -20,7 +20,7 @@ export interface PanelFrame {
 /**
  * タブの列の左の道具（左上のペインにだけ置く）: 左から、閉じる（欄の決まりで先頭か最後。チャット欄は右上のレイアウトの開閉で
  * 閉じるので出さない）・大きくする切り替え（横幅いっぱい ⇔ 元の幅 / 最大化 ⇔ 元の高さ）・「表示」のメニューのボタン（表示するタブ・チャットのまとめ方・
- * アーカイブ済み・ボードツールバーの置き方。usePanelViewMenu。タブの列の何もないところの右クリックでも同じメニュー）。
+ * アーカイブ済み・チャットの画面。usePanelViewMenu。タブの列の何もないところの右クリックでも同じメニュー）。
  * よく使い、状態が見た目で分かってほしい閉じる・大きくするはアイコンのまま、たまにしか変えない表示の選び方は 1 つのメニューにまとめる
  */
 export function PanelTools({ panel, frame, view }: { panel: PanelController; frame?: PanelFrame; view: PanelViewMenu }) {
