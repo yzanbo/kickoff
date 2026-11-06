@@ -5,10 +5,10 @@ import { useEditKeys } from "@/hooks/useEditKeys";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { DialogActions } from "@/ui/DialogActions";
 import { ErrorText } from "@/ui/ErrorText";
-import { CheckField } from "@/ui/Field";
 import { quoteComment } from "@/features/chat/messages/quoteComment";
 import { closeAskChild, useAskChildRequest, type AskChildRequest } from "./childChats";
 import { openCreatedChild } from "./openChild";
+import { InheritChoice } from "./InheritChoice";
 
 /** 「子チャットで聞く」の画面（App と別ウィンドウに 1 つずつ置く。openAskChild で開く） */
 export function AskChildHost() {
@@ -21,7 +21,7 @@ export function AskChildHost() {
 const initialText = (quote: string) => (quote.trim() ? `${quoteComment(quote, "")}\n\n` : "");
 
 /**
- * 子チャットで聞く: 聞く欄（選んだ文を引用（`> `）にして初めから入れておき、書き換えられる。キャレットは引用の下）・「会話を引き継ぐ」（初めはオン）。
+ * 子チャットで聞く: 聞く欄（選んだ文を引用（`> `）にして初めから入れておき、書き換えられる。キャレットは引用の下）・「会話を引き継ぐ / 新しく始める」（初めは引き継ぐ）。
  * 聞くと子チャットが動き始め、設定の「子チャットを作ったとき」（右の欄 / 別ウィンドウ / 開かない）で開く（親の会話の聞いた位置と入力欄の上に札が出て、答えが来たら点と通知で分かる）。
  * Enter で聞く・Shift+Enter で改行・Esc でやめる
  */
@@ -68,6 +68,8 @@ function AskChildDialog({ request }: { request: AskChildRequest }) {
           このチャットの作業を止めずに、横で聞きます。答えが来たら、聞いた位置と入力欄の上の札に印が付きます。
           {request.quote.trim() && "選択部分は引用として入れてあります。書き換えたり、消したりできます。"}
         </p>
+        {/* 会話を引き継ぐか（初めは引き継ぐ。新しい子チャットのタブと同じく聞く欄のすぐ上） */}
+        <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="このチャット" />
         <textarea
           ref={inputRef}
           className="ask-child-input"
@@ -76,12 +78,6 @@ function AskChildDialog({ request }: { request: AskChildRequest }) {
           placeholder="聞きたいこと（Enter で聞く、Shift+Enter で改行）"
           onChange={(e) => setText(e.target.value)}
           {...keys.keyProps}
-        />
-        <CheckField
-          label="会話を引き継ぐ"
-          help="このチャットのいちばん新しい終わった作業までの会話を引き継ぎます（「これってどういう意味？」がそのまま通じます）。外すと、聞く欄の文だけで始めます。"
-          checked={inherit}
-          onChange={setInherit}
         />
         <ErrorText message={error} />
         <DialogActions className="app-dialog-actions" onCancel={dialog.close} submit={{ label: "聞く", busyLabel: "始めています…", busy, disabled: !text.trim() }} />

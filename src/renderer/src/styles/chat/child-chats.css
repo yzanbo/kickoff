@@ -1,4 +1,4 @@
-/* ==== 子チャット（発言・返答の下の札・入力欄の上の一覧・別ウィンドウと右の欄の上の帯・聞く画面の引用） ==== */
+/* ==== 子チャット（発言・返答の下の札・入力欄の上の一覧・別ウィンドウと右の欄の上の帯・聞く画面の引用・引き継ぐかの切り替え） ==== */
 
 /* 発言・返答から聞いた子チャットの札（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。様子: 作業中・回答待ち・答えあり（未読）・失敗・既読） */
 .child-chat-marks {
@@ -184,4 +184,26 @@
   field-sizing: content;
   min-height: calc(3lh + 16px);
   max-height: 50vh;
+}
+
+/* 子チャットを作るときの「会話を引き継ぐ / 新しく始める」と、選んだ方の説明 1 行（新しい子チャットのタブの入力欄のすぐ上・聞く画面の聞く欄のすぐ上） */
+.inherit-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+/* 新しい子チャットのタブでは入力欄との間を空ける（聞く画面はフォームの間隔に任せる） */
+.chat-composer > .inherit-choice {
+  margin-bottom: 6px;
+}
+
+.segmented.inherit-choice-switch button {
+  padding: 3px 12px;
+  font-size: 12px;
+}
+
+.inherit-choice-help {
+  min-width: 0;
 }
