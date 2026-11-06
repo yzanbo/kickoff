@@ -11,7 +11,8 @@ import { SendAllMenu } from "./SendAllMenu";
 /**
  * 送信待ちの見出しの右の操作（選んでいないとき。選んでいるときは QueuedSelectionActions と入れ替える）。
  * 何に効くかで 3 つのまとまりに分ける（まとまりの中は折り返さず、狭ければまとまりごと次の行へ回る）:
- * - 挟む: 列に行（線）を 1 つ足す物（一時停止・会話の圧縮・コンテキストの消去）。足したあとはドラッグ・↑↓ で位置を決める
+ * - 追加: 列に行（線）を 1 つ足す物（一時停止・会話の圧縮・コンテキストの消去）。足したあとはドラッグ・↑↓ で位置を決める。
+ *   見出しは「＋追加」（前は「＋挟む」だったが、押すと何が起きるのか分かりにくかった）
  * - 送り方: 終わったら自動で送るか（列全体の設定）と、いますべて送る
  * - すべて消す（取り消せないので、ほかと離していちばん右に）
  * すべて送る・すべて消すは 2 件以上のときだけ（1 件なら行のボタンと同じになるため）。onAdded は挟んだあと（たたんでいれば一覧を開いて見せる）
@@ -31,10 +32,10 @@ export function QueuedHeadTools({
 }) {
   return (
     <div className="queued-head-tools">
-      <span className="queued-head-group" role="group" aria-label="列に挟む">
-        <span className="queued-head-group-label" aria-hidden title="押すと列に 1 行足します。足した行はドラッグ・↑↓ で位置を決めます">
+      <span className="queued-head-group" role="group" aria-label="送信待ちに追加">
+        <span className="queued-head-group-label" aria-hidden title="右のボタンで、送信待ちに一時停止・圧縮・コンテキスト消去の行を追加します。追加した行はドラッグ・↑↓ で位置を決めます">
           <Plus size={11} />
-          挟む
+          追加
         </span>
         <QueuedStopButton stops={stops} onAdded={onAdded} />
         {QUEUE_ACTIONS.map((a) => (
