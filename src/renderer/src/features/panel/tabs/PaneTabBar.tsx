@@ -197,10 +197,14 @@ export function PaneTabBar({
           <IconButton icon={Plus} label="新しい子チャット" size={14} onClick={onNewChild} />
         </span>
       )}
-      {/* ペインを分ける・閉じる（右端） */}
+      {/* ペインを分ける・閉じる（右端。右の欄は分けるボタンを置かない noSplitButtons） */}
       <span className="panel-bar-buttons panel-pane-tools">
-        <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />
-        {!SURFACES[panel.surface].splitRightOnly && <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />}
+        {!SURFACES[panel.surface].noSplitButtons && (
+          <>
+            <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />
+            <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />
+          </>
+        )}
         {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" size={15} onClick={() => panel.closePane(pane.id)} />}
         {endControls}
       </span>
