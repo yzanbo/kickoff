@@ -6,6 +6,7 @@ import type { PlanUsage } from "./provider";
 import type { Chat, ChatGroup } from "./chat";
 import type { ChatEvent, CommandOutput, SubagentInfo } from "./chatEvent";
 import type { ChatLive } from "./chatLive";
+import type { Snippet } from "./snippet";
 import type { VoiceDownload } from "./voice";
 
 /** サーバーからクライアントへ配信するイベント（SSE） */
@@ -16,6 +17,9 @@ export type BusEvent =
   | { type: "chat_deleted"; id: number; project_id: number }
   | { type: "group"; group: ChatGroup }
   | { type: "group_deleted"; id: number; project_id: number }
+  /** 定型文を作った・変えた・並べ替えた（並べ替えはすべての定型文を 1 件ずつ）。プロジェクトを消して一緒に消えたものは project_deleted で外す */
+  | { type: "snippet"; snippet: Snippet }
+  | { type: "snippet_deleted"; id: number }
   | { type: "chat_event"; project_id: number; event: ChatEvent }
   /** 会話の記録の from_event_id から後ろ（それを含む）を消した（巻き戻し。画面の記録からも消す） */
   | { type: "chat_events_deleted"; project_id: number; chat_id: number; from_event_id: number }

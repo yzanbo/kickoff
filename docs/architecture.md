@@ -24,6 +24,7 @@
 | 1 回の実行（送ってから終わるまで） | `Turn`（`executeTurn` / `TurnOutcome` / `TurnControl`） | `executeRun` / `RunOutcome` / `RunControl` |
 | チャットの記録 | `ChatEvent` / 表 `chat_events` | `RunEvent` / `run_events` |
 | グループ | `ChatGroup` / 表 `chat_groups` | `RunGroup` / `run_groups` |
+| 定型文（チャット欄の上の帯から入れる・送る、よく使う指示。共通かプロジェクトだけ） | `Snippet` / 表 `snippets`（`project_id` が NULL = 共通）・`features/snippet/` | なし |
 | 送信待ち | `Queue`（`chat_queues`） | `followups` / `run_queues` |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |
@@ -137,6 +138,18 @@ CREATE TABLE chat_queues (
   stops TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(stops) AND json_type(stops) = 'array'),           -- 一時停止の位置（以前の stop_after。古い形の読み替えはなくす）
   paused INTEGER NOT NULL DEFAULT 0 CHECK (paused IN (0, 1))
 ) STRICT;
+-- v5: 定型文（project_id = NULL なら共通、番号ならそのプロジェクトだけ。label = NULL なら本文の 1 行目を名前に見せる。
+-- position = 全体で 1 本の並び）
+CREATE TABLE snippets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+  label TEXT CHECK (label <> ''),
+  text TEXT NOT NULL CHECK (text <> ''),
+  position INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (NOW),
+  updated_at TEXT NOT NULL DEFAULT (NOW)
+) STRICT;
+-- v5: CREATE INDEX idx_snippets_position ON snippets(position);
 ```
 
 ### 記録（chat_events の data）
@@ -179,7 +192,7 @@ src/
     index.ts           組み立てと終了（startCore）
     daemon.ts          Electron なしで起動
     bus.ts             変更の知らせ（SSE へ）
-    db/                schema・open（開く・版・リリース前の後片付け）・store（表ごとの店をまとめるだけ）・chats・events（記録と全文検索）・projects・groups・queues・settings（設定・秘密・meta）
+    db/                schema・open（開く・版・リリース前の後片付け）・store（表ごとの店をまとめるだけ）・chats・events（記録と全文検索）・projects・groups・queues・snippets（定型文）・settings（設定・秘密・meta）
     http/              server（組み立て・認証・失敗の変換・SSE・画面の配信）・httpServer・auth・errors（NotFound など）・routes/（領域ごとに xxxRoutes）
     chat/              チャットの実行: runner（受付）・turn（1 回の実行）・input・runtime（チャットごとの作業中の状態）・queue（送信待ち）・recovery/（通信の切断・使用枠の上限からの再開）・approvals・fork・rewind・policy（AI への指示と許可）・guard/（書き込みの守り: 参照資料・Kickoff 自身）・transcript・uploads・autoArchive
     providers/         プロバイダーの抽象（types）と実装（claude/）

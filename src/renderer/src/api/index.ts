@@ -11,6 +11,7 @@ import { projectsApi } from "./projects";
 import { providersApi } from "./providers";
 import { queueApi } from "./queue";
 import { settingsApi } from "./settings";
+import { snippetsApi } from "./snippets";
 import { turnsApi } from "./turns";
 import { uploadsApi } from "./uploads";
 import { usageApi } from "./usage";
@@ -33,6 +34,7 @@ export const api = {
   ...worktreesApi,
   ...voiceApi,
   ...memosApi,
+  ...snippetsApi,
 };
 
 export { ApiError } from "./http";

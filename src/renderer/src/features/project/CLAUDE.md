@@ -32,7 +32,7 @@
 
 ## 編集のダイアログ（`settings/`）
 
-プロジェクト名の横の歯車・サイドバーの右クリックから開く `ProjectEditDialog`（`TabbedDialog`。画面は移らない）。項目は `PROJECT_SETTINGS_SECTIONS`: 基本情報（名前・説明・色・タグ。`BasicInfo`）・参照資料（AI がいつでも読めるフォルダ・ファイル。その場で保存。`ReferenceEditor`）・AI（どの AI を使うかのカードと、その AI の既定 `AiSection` / `AiDefaults`。「アプリの設定に従う」を選べる）・メモ（このプロジェクトだけメモを別の場所にする。`MemoLocation`）・削除（`DeleteProject`）。
+プロジェクト名の横の歯車・サイドバーの右クリックから開く `ProjectEditDialog`（`TabbedDialog`。画面は移らない）。項目は `PROJECT_SETTINGS_SECTIONS`: 基本情報（名前・説明・色・タグ。`BasicInfo`）・参照資料（AI がいつでも読めるフォルダ・ファイル。その場で保存。`ReferenceEditor`）・AI（どの AI を使うかのカードと、その AI の既定 `AiSection` / `AiDefaults`。「アプリの設定に従う」を選べる）・メモ（このプロジェクトだけメモを別の場所にする。`MemoLocation`）・定型文（このプロジェクトで使う定型文。`features/snippet` の `SnippetSettings`）・削除（`DeleteProject`）。
 
 ## 新しいプロジェクト（`new/`）
 

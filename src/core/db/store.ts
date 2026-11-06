@@ -7,6 +7,7 @@ import { openDatabase } from "./open.js";
 import { createProjectStore } from "./projects.js";
 import { createQueueStore } from "./queues.js";
 import { createSecretStore, createSettingsStore, readDatabaseId } from "./settings.js";
+import { createSnippetStore } from "./snippets.js";
 import { databaseStats, type DatabaseStats } from "./stats.js";
 
 /**
@@ -24,6 +25,7 @@ export class Store {
   readonly chats;
   readonly events;
   readonly queues;
+  readonly snippets;
 
   constructor(
     private readonly file: string,
@@ -38,6 +40,7 @@ export class Store {
     this.groups = createGroupStore(this.db, onChange, this.chats.get);
     this.events = createEventStore(this.db, onChange, this.chats.get);
     this.queues = createQueueStore(this.db);
+    this.snippets = createSnippetStore(this.db, onChange);
   }
 
   /** 性能の記録（診断）に載せる DB の様子（ファイルの大きさ・チャットと記録の数・記録の多いチャット） */

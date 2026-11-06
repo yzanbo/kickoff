@@ -149,8 +149,25 @@ ALTER TABLE chats ADD COLUMN memo_path TEXT CHECK (memo_path <> '');
 CREATE INDEX idx_chats_memo ON chats(project_id, memo_path) WHERE memo_path IS NOT NULL;
 `;
 
+/**
+ * v5: 定型文（snippets）。チャット欄の上の帯から入力欄に入れる文。一覧は 1 つで、project_id が NULL なら共通（すべてのプロジェクト）、
+ * 番号ならそのプロジェクトだけ（プロジェクトを消すと一緒に消える）。並び順 position はすべての定型文で 1 つの並び
+ */
+const SCHEMA_V5 = `
+CREATE TABLE snippets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+  label TEXT CHECK (label <> ''),
+  text TEXT NOT NULL CHECK (text <> ''),
+  position INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (${NOW}),
+  updated_at TEXT NOT NULL DEFAULT (${NOW})
+) STRICT;
+CREATE INDEX idx_snippets_position ON snippets(position);
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

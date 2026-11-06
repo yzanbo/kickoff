@@ -10,6 +10,8 @@ export type ComposerFill = (text: string, opts?: { append?: boolean; attachments
 export interface ComposerHandle {
   /** 文を入れる（入れたら文の終わりにピントを置く） */
   fill: ComposerFill;
+  /** 文をキャレットの位置に入れる（選んでいればその範囲と置き換える。書いている文は残す。入れたらその後ろにキャレットを置く。定型文の帯から） */
+  insert: (text: string) => void;
   /** 入力欄にピントを移す */
   focus: () => void;
 }

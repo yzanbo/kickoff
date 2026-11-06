@@ -1,0 +1,148 @@
+/* 定型文の一覧と編集（SnippetManager・SnippetForm）と、帯の「定型文を管理」のダイアログ（SnippetDialog） */
+.dialog.app-dialog.snippet-dialog {
+  width: min(640px, calc(100vw - 48px));
+}
+
+.snippet-dialog .app-dialog-body {
+  max-height: min(720px, calc(100vh - 80px));
+  overflow-y: auto;
+}
+
+.snippet-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.snippet-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.snippet-manager {
+  display: grid;
+  gap: 10px;
+}
+
+.snippet-manager-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.snippet-manager-head .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.snippet-empty {
+  padding: 24px 12px;
+}
+
+.snippet-manager-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.snippet-manager-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 8px 8px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.snippet-manager-row:hover {
+  background: var(--bg-hover);
+}
+
+.snippet-manager-moves {
+  display: grid;
+  flex: none;
+}
+
+.snippet-manager-moves .icon-button {
+  width: 22px;
+  height: 20px;
+}
+
+.snippet-manager-body {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.snippet-manager-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.snippet-manager-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 本文は 3 行まで（全文は編集で見る） */
+.snippet-manager-text {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.snippet-manager-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+/* 編集欄（新しく作る・行を直す） */
+.snippet-form {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.snippet-form input[type="text"],
+.snippet-form select {
+  width: 100%;
+}
+
+.snippet-form-text {
+  width: 100%;
+  min-height: 84px;
+  max-height: 320px;
+  resize: vertical;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  field-sizing: content;
+}
+
+.snippet-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

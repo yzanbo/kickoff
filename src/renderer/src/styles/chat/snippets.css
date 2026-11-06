@@ -1,0 +1,200 @@
+/*
+ * 入力欄の上の定型文の帯（SnippetBar）と、帯の「一覧」（SnippetPicker）。
+ * 帯は 1 行で、ピルが入りきらなければ横にスクロールする（スクロールバーは出さず、端の先に続きがあればその側を薄くぼかす）
+ */
+.snippet-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 0 6px;
+}
+
+.snippet-bar-scroll {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.snippet-bar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* 端の先に続きがあるとき（useHorizontalScroller）、その側をぼかして、横に流せることを示す */
+.snippet-bar-scroll.fade-start {
+  mask-image: linear-gradient(to right, transparent, #000 24px);
+}
+
+.snippet-bar-scroll.fade-end {
+  mask-image: linear-gradient(to left, transparent, #000 24px);
+}
+
+.snippet-bar-scroll.fade-start.fade-end {
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+
+/* 定型文のピル（入力欄の上の情報のピルより低く・薄く、押すと入れる道具に見せる） */
+.snippet-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  max-width: 220px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: calc(12px * var(--chat-scale, 1));
+  color: var(--text);
+  white-space: nowrap;
+  background: transparent;
+  cursor: pointer;
+}
+
+.snippet-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.snippet-chip:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.snippet-chip:active {
+  background: var(--bg-active);
+}
+
+/* まだ定型文がないときの「定型文を追加」（点線で、ほかのピルと分ける） */
+.snippet-chip.snippet-chip-add {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.snippet-bar-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.snippet-bar-tool {
+  width: 24px;
+  height: 24px;
+}
+
+.snippet-bar-tool.active {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+/* 帯の「一覧」: 絞り込みの欄（上に残す）・定型文の行・下の操作 */
+.popover.snippet-picker {
+  display: flex;
+  flex-direction: column;
+  width: min(460px, 80vw);
+  max-height: min(480px, 60vh);
+  overflow: hidden;
+}
+
+.snippet-picker .chat-search {
+  margin: 8px 8px 4px;
+}
+
+.snippet-picker-list {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-height: 0;
+  padding: 4px 6px;
+  overflow-y: auto;
+}
+
+.snippet-picker-row {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.snippet-picker-row.active {
+  background: var(--bg-hover);
+}
+
+.snippet-picker-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.snippet-picker-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 本文は 2 行まで（改行はそのまま） */
+.snippet-picker-text {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.snippet-picker-empty {
+  margin: 0;
+  padding: 12px 8px;
+  line-height: 1.6;
+}
+
+.snippet-picker-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.snippet-picker-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* 範囲の札（共通 / このプロジェクト / プロジェクトの名前）。帯の一覧と管理の一覧で共通 */
+.snippet-scope {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--muted);
+}
+
+.snippet-scope.common {
+  border-color: color-mix(in srgb, var(--info) 45%, transparent);
+  color: var(--info);
+}

@@ -18,6 +18,7 @@ import { TodoChip } from "@/features/chat/status/TodoChip";
 import { ChildChatsChip } from "@/features/chat/children/ChildChatChips";
 import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
+import { SnippetBar } from "@/features/snippet/SnippetBar";
 import type { useChatSend } from "./useChatSend";
 
 /** 「質問として送る」の説明 */
@@ -29,7 +30,7 @@ const CHILD_SEND_TITLE = "この文を、このチャットの会話を引き継
 
 /**
  * チャット欄の場所（流れの下）: 同じ作業場所で作業中のほかのチャットの知らせ → チャットの情報のピル（指示の履歴・ToDo・サブエージェント・一番下へ戻るボタンの置き場所）→
- * 送信待ち（次に送るもの）→ 入力欄（いま書いているもの）
+ * 定型文の帯 → 送信待ち（次に送るもの）→ 入力欄（いま書いているもの）
  */
 export function ChatComposerArea({
   chat,
@@ -66,6 +67,8 @@ export function ChatComposerArea({
   const sendToChild = async (text: string, attachments: Attachment[]) => {
     await api.createChildChat(chat.id, { text, attachments, quote: null, inherit: true, event_id: null, options: options.options });
   };
+  // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
+  const sendSnippet = (text: string) => (busy || queued ? send.onQueue(text, []) : send.onSend(text, []));
   return (
     <div className="chat-composer">
       {/*
@@ -88,6 +91,8 @@ export function ChatComposerArea({
         {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
         <span ref={onDock} className="composer-chips-dock" />
       </div>
+      {/* よく送る指示（このプロジェクトで使う定型文）。押すと入力欄に入れる */}
+      <SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
       <QueuedMessages queue={live.queue} busy={busy} />
       <Composer

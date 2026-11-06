@@ -12,10 +12,11 @@
 
 ## フォルダ
 
-- `types/`: API・SSE・DB の形（入口は `index.ts`）。`chat`（`Chat`・`ChatGroup`・`ChatOptions`・`QueuedMessage`・`Attachment`・カンバンの列と状態）/ `chatEvent`（記録）/ `chatLive`（作業中の様子 `ChatLive`・`QueueState`・圧縮中の様子 `CompactingState`）/ `project` / `approval` / `settings`（`AppSettings`・`DEFAULT_SETTINGS`・プロバイダー・推論の深さ・権限モード）/ `provider`（CLI の状態・使用枠）/ `git` / `voice` / `memo`（メモの一覧・作った場所）/ `server`（`ServerStatus`）/ `events`（SSE の `BusEvent`）/ `api`（API にだけ出る本文 `…Body` と応答の形。コアの zod は `satisfies` でこの型に合わせる）。
+- `types/`: API・SSE・DB の形（入口は `index.ts`）。`chat`（`Chat`・`ChatGroup`・`ChatOptions`・`QueuedMessage`・`Attachment`・カンバンの列と状態）/ `chatEvent`（記録）/ `chatLive`（作業中の様子 `ChatLive`・`QueueState`・圧縮中の様子 `CompactingState`）/ `project` / `approval` / `settings`（`AppSettings`・`DEFAULT_SETTINGS`・プロバイダー・推論の深さ・権限モード）/ `provider`（CLI の状態・使用枠）/ `git` / `voice` / `memo`（メモの一覧・作った場所）/ `snippet`（定型文 `Snippet`・長さの上限）/ `server`（`ServerStatus`）/ `events`（SSE の `BusEvent`）/ `api`（API にだけ出る本文 `…Body` と応答の形。コアの zod は `satisfies` でこの型に合わせる）。
 - `chat/`: チャットの決まり（状態と列 `state.ts`・選択の決め方 `chatOptions.ts`・サブエージェントの一覧 `subagents.ts` / `subagentSupersede.ts` / `backgroundTasks.ts`・送信待ちの印 `queueStops.ts`・書き直しの持ち時間 `queueEditHolds.ts`・失敗の見分け `networkErrors.ts` / `usageLimit.ts`・AI への定型文 `prompts.ts`）。
 - `project/`: プロジェクトの色（`colors.ts` の `PROJECT_HUES` と `pickProjectHue`。グループの色も同じ選び方）とタグ（`tags.ts` の `normalizeTags` / `matchesTags` / `collectTags`・`MAX_TAG_LENGTH` / `MAX_TAGS`・タグなしを表す `UNTAGGED`）。
 - `memo/`: メモの名前（`names.ts` の `safeMemoName`（ファイル名に使える形）/ `uniqueMemoName`（重ならない名前）/ `chatMemoName`（チャットから作るメモの名前））と種類（`kinds.ts` の `MEMO_KINDS`（Markdown / HTML）・拡張子で決める `memoKindOf`・メモの拡張子 `memoExtensionOf`・新しい HTML のメモのひな形 `newHtmlMemo`）。コアと画面で同じものを使う。
+- `snippet/`: 定型文の決まり（`snippets.ts` の `snippetLabel`（名前がなければ本文の 1 行目）/ `snippetsFor`（そのプロジェクトで使うもの = 共通 ＋ そのプロジェクトだけのもの）/ `bySnippetPosition`（並び）/ `moveWithin`（見えている行だけで動かした並び））。
 - `ipc/`: Electron の IPC の取り決め（→「IPC の取り決め」）。
 - `testing/factories.ts`: テストのデータを作る関数（`makeChat` / `makeProject` / `makeGroup` / `makeEvent` / `eventSequence`。省いた項目はそれらしい既定値で埋める）。コアと画面のテストで共通にし、テストごとに作る関数を書かない。
 - `errors.ts`: `errorMessage`（例外を画面に出す文にする。`e instanceof Error ? e.message : String(e)` を書かない）。

@@ -21,6 +21,7 @@ import { chatRoutes } from "./routes/chats.js";
 import { filesRoutes } from "./routes/files.js";
 import { gitRoutes } from "./routes/git.js";
 import { groupRoutes } from "./routes/groups.js";
+import { snippetRoutes } from "./routes/snippets.js";
 import { memoRoutes } from "./routes/memos.js";
 import { projectRoutes } from "./routes/projects.js";
 import { providerRoutes } from "./routes/providers.js";
@@ -109,6 +110,7 @@ export function createApp(deps: ServerDeps): Hono {
   turnRoutes(app, deps);
   queueRoutes(app, deps);
   groupRoutes(app, deps);
+  snippetRoutes(app, deps);
   uploadRoutes(app, deps);
   approvalRoutes(app, deps);
   providerRoutes(app, deps);

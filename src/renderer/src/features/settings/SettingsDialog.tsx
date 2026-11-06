@@ -1,6 +1,6 @@
-import { Activity, Archive, Bell, Bot, Gauge, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
+import { Activity, Archive, Bell, Bot, Gauge, MessageSquareQuote, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, SNIPPET_BAR_HIDDEN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -12,6 +12,7 @@ import { PROJECT_TABS_LAYOUT_LABELS, useProjectTabsLayout, type ProjectTabsLayou
 import { CHAT_PLACEMENT_LABELS, useChatPlacement, type ChatPlacement } from "@/features/project/page/chatPlacement";
 import { TabbedDialog, type DialogSection } from "@/ui/TabbedDialog";
 import { UsagePanel } from "@/features/usage/UsagePanel";
+import { SnippetSettings } from "@/features/snippet/SnippetSettings";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
 import { ConnectionSettings } from "./ConnectionSettings";
@@ -21,7 +22,7 @@ import { NotificationSettings } from "./NotificationSettings";
 import { TerminalSettings } from "./TerminalSettings";
 import { VoiceSettings } from "./VoiceSettings";
 
-export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
+export type SettingsSection = "usage" | "display" | "connection" | "ai" | "chats" | "snippets" | "memos" | "voice" | "notifications" | "terminal" | "browser" | "mobile" | "diagnostics";
 
 const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "usage", label: "使用状況", icon: Gauge },
@@ -29,6 +30,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "connection", label: "接続", icon: PlugZap },
   { key: "ai", label: "AI の既定", icon: Bot },
   { key: "chats", label: "チャット", icon: Archive },
+  { key: "snippets", label: "定型文", icon: MessageSquareQuote },
   { key: "memos", label: "メモ", icon: StickyNote },
   { key: "voice", label: "音声入力", icon: Mic },
   { key: "notifications", label: "通知", icon: Bell },
@@ -49,6 +51,7 @@ export function SettingsDialog({ initial, onClose }: { initial?: SettingsSection
           {section === "connection" && <ConnectionSettings />}
           {section === "ai" && <AiDefaultsSettings />}
           {section === "chats" && <ChatSettings />}
+          {section === "snippets" && <SnippetSettings />}
           {section === "memos" && <MemoSettings />}
           {section === "voice" && <VoiceSettings />}
           {section === "notifications" && <NotificationSettings />}
@@ -83,6 +86,7 @@ function DisplaySettings() {
   const [wideChat, setWideChat] = useSetting(CHAT_WIDE);
   const [fontSize, setFontSize] = useChatFontSize();
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
+  const [snippetBarHidden, setSnippetBarHidden] = useSetting(SNIPPET_BAR_HIDDEN);
   const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [childChatOpenIn, setChildChatOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
@@ -162,6 +166,18 @@ function DisplaySettings() {
             label="上に貼り付ける指示"
             value={stickyHidden ? "hide" : "show"}
             onChange={(v) => setStickyHidden(v === "hide")}
+            options={[
+              { value: "show", label: "表示する" },
+              { value: "hide", label: "表示しない" },
+            ]}
+          />
+        </Field>
+        <Field label="定型文の帯" help="チャット欄の上に、このプロジェクトで使う定型文を横に並べます。定型文そのものは「定型文」の項目で足せます。">
+          <Segmented<"show" | "hide">
+            className="segmented theme-switch"
+            label="定型文の帯"
+            value={snippetBarHidden ? "hide" : "show"}
+            onChange={(v) => setSnippetBarHidden(v === "hide")}
             options={[
               { value: "show", label: "表示する" },
               { value: "hide", label: "表示しない" },
