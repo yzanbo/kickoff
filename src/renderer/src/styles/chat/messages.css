@@ -68,6 +68,13 @@
   color: var(--muted);
 }
 
+/* 圧縮中に「いま」で送り、圧縮が終わるのを待っている指示（AfterCompactMessages）: 送る前なので薄く、点線の枠 */
+.user-message.after-compact .bubble.user {
+  opacity: 0.7;
+  outline: 1px dashed var(--muted);
+  outline-offset: -1px;
+}
+
 /* 吹き出しの中の書き直しの欄 */
 .user-message.editing {
   width: 80%;

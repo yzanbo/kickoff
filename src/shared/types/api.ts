@@ -135,9 +135,12 @@ export interface ChatDetail {
   live: ChatLive;
 }
 
-/** 止めずに伝えた結果（POST /api/chats/:id/tell）: told = いまのやり取りに足した / queued = 待ちの列に入れた / sent = すぐ送った */
+/**
+ * 止めずに伝えた結果（POST /api/chats/:id/tell）: told = いまのやり取りに足した / queued = 待ちの列に入れた / sent = すぐ送った /
+ * held = 圧縮中なので預かった（圧縮が終わったら伝える。ChatLive の after_compact）
+ */
 export interface TellResult {
-  result: "told" | "queued" | "sent";
+  result: "told" | "queued" | "sent" | "held";
 }
 
 /**

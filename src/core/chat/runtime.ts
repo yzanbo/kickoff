@@ -4,7 +4,7 @@ import type { TurnControl } from "../providers/types.js";
 import { ChatQueue, type QueuePersistence } from "./queue.js";
 import { QueueEdits } from "./queueEdits.js";
 import { createRecoveryState, reconnectStateOf, type RecoveryState } from "./recovery/state.js";
-import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueueState } from "@shared/types";
+import type { ApiRetryInfo, BackgroundState, ChatLive, CompactingState, QueuedMessage, QueueState } from "@shared/types";
 
 /** ChatRuntime がそのまま持つ、画面に配る様子（送信待ちの列は queue、再接続待ちは recovery から組み立てる） */
 interface LiveFields {
@@ -16,6 +16,8 @@ interface LiveFields {
   waitingEdit: boolean;
   /** いまのやり取りが終わったら圧縮する（ChatLive の compact_next） */
   compactNext: boolean;
+  /** 圧縮中に「いま」で送った指示（圧縮が終わったら伝える。ChatLive の after_compact） */
+  afterCompact: QueuedMessage[];
 }
 
 /**
@@ -38,13 +40,16 @@ export class ChatRuntime {
   readonly edits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, compactNext: false };
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, compactNext: false, afterCompact: [] };
+  /** 圧縮が終わった（圧縮中に「いま」で送った指示を伝える） */
+  private readonly onCompactEnded: () => void;
 
   constructor(
     readonly chatId: number,
     private readonly onChange: () => void,
-    opts: { persistence?: QueuePersistence; editTtlMs?: number; onEditsChanged: () => void },
+    opts: { persistence?: QueuePersistence; editTtlMs?: number; onEditsChanged: () => void; onCompactEnded?: () => void },
   ) {
+    this.onCompactEnded = opts.onCompactEnded ?? (() => {});
     this.queue = new ChatQueue(chatId, onChange, opts.persistence);
     this.edits = new QueueEdits(opts.onEditsChanged, opts.editTtlMs);
   }
@@ -64,6 +69,11 @@ export class ChatRuntime {
     return this.fields.compactNext;
   }
 
+  /** 圧縮中に「いま」で送り、圧縮が終わるのを待っている指示 */
+  get afterCompact(): QueuedMessage[] {
+    return this.fields.afterCompact;
+  }
+
   /** 次の指示の書き直しが終わるのを待っているか */
   get waitingEdit(): boolean {
     return this.fields.waitingEdit;
@@ -73,8 +83,10 @@ export class ChatRuntime {
   update(patch: Partial<LiveFields>) {
     const changed = (Object.keys(patch) as (keyof LiveFields)[]).some((key) => patch[key] !== this.fields[key]);
     if (!changed) return;
+    const compactEnded = this.fields.compacting !== null && patch.compacting === null;
     this.fields = { ...this.fields, ...patch };
     this.onChange();
+    if (compactEnded) this.onCompactEnded();
   }
 
   /** 送信待ちの様子（チャットの詳細・SSE・送信待ちを変える API の応答で同じ形） */
@@ -84,8 +96,8 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, compactNext } = this.fields;
-    return { queue: this.queueState(), background, retry, reconnect: reconnectStateOf(this.recovery), compacting, stopping, compact_next: compactNext };
+    const { background, retry, compacting, stopping, compactNext, afterCompact } = this.fields;
+    return { queue: this.queueState(), background, retry, reconnect: reconnectStateOf(this.recovery), compacting, stopping, compact_next: compactNext, after_compact: afterCompact };
   }
 
   /** チャットを消したとき（書き直しの持ち時間の待ちを止める） */
@@ -109,6 +121,8 @@ export class ChatRuntimes {
       editTtlMs?: number;
       /** 書き直している送信待ちの指示が変わった・外れた */
       onEditsChanged: (chatId: number) => void;
+      /** 圧縮が終わった */
+      onCompactEnded?: (chatId: number) => void;
     },
   ) {
     for (const saved of deps.store.queues.list()) this.get(saved.chatId).queue.restore(saved);
@@ -122,6 +136,7 @@ export class ChatRuntimes {
         persistence: this.deps.store.queues,
         editTtlMs: this.deps.editTtlMs,
         onEditsChanged: () => this.deps.onEditsChanged(chatId),
+        onCompactEnded: () => this.deps.onCompactEnded?.(chatId),
       });
       this.runtimes.set(chatId, runtime);
     }

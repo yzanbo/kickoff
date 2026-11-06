@@ -130,7 +130,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
   );
   assert.deepEqual(
     { ...last, queue: { ...last.queue, messages: [] } },
-    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, compact_next: false },
+    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, compact_next: false, after_compact: [] },
   );
   await call("DELETE", `/api/chats/${chatId}/queue`);
   release();
@@ -216,6 +216,60 @@ test("届かなかったサブエージェントの報告: 次に送る指示に
   await call("POST", `/api/chats/${chatId}/messages`, { text: "その次" });
   await until(() => provider.prompts.length === 3);
   assert.equal(provider.prompts[2], "その次");
+});
+
+test("圧縮中に止めずに伝える: 預かって作業中の様子に出し、圧縮が終わったら送った順に伝える。作業ごと終わったら送信待ちの先頭へ", async () => {
+  const { call, project, runner, provider, store } = setup();
+  const release = provider.hold();
+  provider.compacting = true;
+  const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => runner.live(chatId).compacting !== null);
+  // 圧縮中: 足さずに預かる（記録にも、送信待ちにも入れない）
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "あ" })).body, { result: "held" });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "い" })).body, { result: "held" });
+  assert.deepEqual(provider.told, []);
+  assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.after_compact.map((m: { text: string }) => m.text), ["あ", "い"]);
+  assert.deepEqual(runner.live(chatId).queue.messages, []);
+  const users = () => store.events.list(chatId).filter((e) => e.type === "user").map((e) => (e.data as { text: string }).text);
+  assert.deepEqual(users(), ["1"]);
+  // 圧縮が終わったら、送った順に伝えて自分の発言に残す
+  provider.finishCompacting();
+  await until(() => provider.told.length === 2);
+  assert.deepEqual(provider.told, ["あ", "い"]);
+  assert.deepEqual(users(), ["1", "あ", "い"]);
+  assert.deepEqual(runner.live(chatId).after_compact, []);
+  release();
+  await until(() => !runner.isBusy(chatId));
+
+  // 圧縮中に作業ごと終わった（止めた）: 送信待ちの先頭に入れ、終わりの自動送信でほかより先に送る
+  provider.hold();
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "2" });
+  await until(() => runner.live(chatId).compacting !== null);
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "前からの送信待ち" });
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "う" })).body, { result: "held" });
+  provider.compacting = false;
+  await call("POST", `/api/chats/${chatId}/cancel`);
+  await until(() => provider.prompts.length === 3);
+  assert.equal(provider.prompts[2], "う");
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["前からの送信待ち"]);
+  assert.deepEqual(runner.live(chatId).after_compact, []);
+  await call("DELETE", `/api/chats/${chatId}/queue`);
+  await call("POST", `/api/chats/${chatId}/cancel`);
+  await until(() => !runner.isBusy(chatId));
+
+  // 手で圧縮した実行（圧縮のボタン）には足さず、圧縮の実行が終わってから送る
+  const releaseCompact = provider.hold();
+  provider.compacting = true;
+  await call("POST", `/api/chats/${chatId}/compact`);
+  await until(() => runner.live(chatId).compacting !== null);
+  assert.deepEqual((await call("POST", `/api/chats/${chatId}/tell`, { text: "え" })).body, { result: "held" });
+  provider.finishCompacting();
+  assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["え"]);
+  provider.compacting = false;
+  releaseCompact();
+  await until(() => provider.prompts.at(-1) === "え");
+  assert.deepEqual(provider.told, ["あ", "い"]);
+  await until(() => !runner.isBusy(chatId));
 });
 
 test("止めずに伝える API: 作業中なら止めずに足して自分の発言に残し、足せなければ待ちの列へ。作業中でなければすぐ送る", async () => {
