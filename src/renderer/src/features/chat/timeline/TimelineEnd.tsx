@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Approval, Chat, ChatLive } from "@shared/types";
+import type { Approval, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { Markdown } from "@/ui/markdown/Markdown";
 import { ApprovalCard } from "@/features/chat/approvals/ApprovalCard";
@@ -22,6 +22,7 @@ export function TimelineEnd({
   working,
   live,
   agents,
+  events,
 }: {
   chat: Chat;
   busy: boolean;
@@ -30,6 +31,8 @@ export function TimelineEnd({
   working: ReactNode | null;
   live: ChatLive;
   agents: SubagentEntry[];
+  /** 会話の記録（裏の作業の一覧の行から、流れの中のその呼び出しへ移る） */
+  events: ChatEvent[];
 }) {
   return (
     <>
@@ -46,7 +49,7 @@ export function TimelineEnd({
         (live.compacting ? <CompactingRow compacting={live.compacting} /> : <Working since={chat.turn_started_at}>{working}</Working>)}
       {/* 圧縮中に「いま」で送った指示は、圧縮の行の下に（圧縮が終わったら伝える） */}
       {live.after_compact.length > 0 && <AfterCompactMessages messages={live.after_compact} />}
-      {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} />}
+      {busy && <BackgroundTasks chatId={chat.id} background={live.background} agents={agents} events={events} />}
       {!busy && live.reconnect && <ReconnectRow chatId={chat.id} reconnect={live.reconnect} />}
     </>
   );
