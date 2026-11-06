@@ -1,4 +1,5 @@
 import { useMemo, useRef, type MutableRefObject } from "react";
+import { useServerEvent } from "@/api/events";
 import { memoAssetBase, memoLinkPath, withBaseHref } from "./htmlPage";
 import { parentOf } from "./memoPaths";
 
@@ -8,7 +9,7 @@ import { parentOf } from "./memoPaths";
  * sandbox は allow-same-origin だけ: 中の JavaScript・フォーム・ポップアップは動かさず、外（この画面）からは中の文書に触れる。
  * リンクは中で開かない（ページ内の # は飛ぶ、メモのフォルダの中は onOpenLink（開く側がメモを開く）、外のサイトはブラウザで開く）。右クリックは選んだ文を添えてメモのメニューを開き、⌘S は保存。
  * 選んだ文とその位置は handleRef の selected で読む（選び終えた mouseup とスクロールは、親の画面へ伝え直す。「チャットに追加」のボタン）。
- * 読み直しても（AI が書き換えたときなど）スクロールの位置は保つ。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない
+ * 読み直しても（AI が書き換えたときなど）スクロールの位置は保つ。ページが読む CSS・画像などのファイルがメモのフォルダで変わったときも描き直す（いつも最新の見た目）。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない
  */
 /** 外からページを読む口 */
 export interface HtmlMemoPageHandle {
@@ -40,6 +41,12 @@ export function HtmlMemoPage({
   const handlers = useRef({ onContextMenu, onSave, onOpenLink });
   handlers.current = { onContextMenu, onSave, onOpenLink };
   const srcDoc = useMemo(() => withBaseHref(html, memoAssetBase(location.origin, projectId, parentOf(path))), [html, projectId, path]);
+
+  // メモのフォルダのほかのファイル（ページが読む CSS・画像など）が変わったら、描き直して読み直す（ファイルの口は no-cache なので、変わったものを取り直す）。
+  // このメモ自体の変更は、読み直した中身が html で届いて描き直す
+  useServerEvent((e) => {
+    if (e.type === "memos" && e.project_id === projectId && e.path !== path) frame.current?.contentWindow?.location.reload();
+  });
 
   // 読み込むたびに（中身が変わると文書が作り直される）、中の文書に手を付け直す
   const attach = () => {
