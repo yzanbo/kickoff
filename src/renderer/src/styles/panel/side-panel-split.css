@@ -191,3 +191,8 @@ input[type="text"].panel-tab-input {
 .panel-split-button .icon-button:first-child {
   width: 24px;
 }
+
+/* タブの列を隠しているとき（チャットのパネル。CHAT_TAB_ROW_HIDDEN）は、ペインのタブの中身をタブの列の高さだけ下げない */
+.tabs-hidden > .panel-content.split-view {
+  --split-tabs-h: 0px;
+}

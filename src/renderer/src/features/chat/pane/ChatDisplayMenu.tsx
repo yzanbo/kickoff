@@ -1,6 +1,6 @@
 import { Check, ChevronRight } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
-import { CHAT_HEADER_HIDDEN, CHAT_HEADER_ROW_HIDDEN, COMPOSER_COMPACT, SNIPPET_BAR_HIDDEN, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
+import { CHAT_HEADER_HIDDEN, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, COMPOSER_COMPACT, SNIPPET_BAR_HIDDEN, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem } from "@/ui/PopupMenu";
@@ -30,11 +30,12 @@ export function useChatHeaderRowHidden(): boolean {
 
 /** チャットの画面で、既定より多く隠しているものがあるか（タブの列の「表示」のボタンに点を付け、隠れた状態に気づけるように） */
 export function useChatDisplayHides(): boolean {
+  const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const [rowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [saved] = useSetting(CHAT_HEADER_HIDDEN);
   const [stickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [snippetBarHidden] = useSetting(SNIPPET_BAR_HIDDEN);
-  return rowHidden || stickyHidden || snippetBarHidden || hiddenHeaderItems(saved).size > 0;
+  return tabRowHidden || rowHidden || stickyHidden || snippetBarHidden || hiddenHeaderItems(saved).size > 0;
 }
 
 /** チェックの付く項目（keepOpen: 押してもメニューを閉じない） */
@@ -48,11 +49,12 @@ function CheckItem({ on, title, keepOpen, onToggle, children }: { on: boolean; t
 }
 
 /**
- * 「チャットの画面」のメニューの項目（どのチャットでも共通の表示の設定）: 見出しの行・見出しの項目（横に開く子のメニューで 1 つずつ）・
- * 指示の帯・会話の文字の大きさ（横に開く子のメニューで 5 段階）・文の幅・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄）と、見出しの右クリックで同じものを出す。
- * 見出しを隠しても戻せるよう、切り替えは見出しの外（タブの列）に置く。設定の「表示」と同じ値
+ * 「チャットの画面」のメニューの項目（どのチャットでも共通の表示の設定）: タブの列・見出しの行・見出しの項目（横に開く子のメニューで 1 つずつ）・
+ * 指示の帯・会話の文字の大きさ（横に開く子のメニューで 5 段階）・文の幅・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄）と、
+ * 見出し・会話の何もないところの右クリックで同じものを出す。見出し・タブの列のどちらを隠しても、もう一方と会話の右クリックから戻せる。設定の「表示」と同じ値
  */
 export function ChatDisplayItems() {
+  const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const [rowHidden, setRowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [saved, setSaved] = useSetting(CHAT_HEADER_HIDDEN);
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
@@ -66,6 +68,17 @@ export function ChatDisplayItems() {
   return (
     <div className="menu-items">
       <div className="menu-label">チャットの画面（どのチャットでも共通）</div>
+      <CheckItem
+        on={!tabRowHidden}
+        title={
+          tabRowHidden
+            ? "チャットのタブの列を表示する"
+            : "チャットのタブの列を隠す（タブの列の道具も隠れます）。会話の何もないところ・見出しの右クリックと、設定の「表示」で戻せます"
+        }
+        onToggle={() => setTabRowHidden(!tabRowHidden)}
+      >
+        タブの列
+      </CheckItem>
       <CheckItem
         on={!rowHidden}
         title={rowHidden ? "見出しの行を表示する（⌥⌘T）" : "見出しの行を隠す（⌥⌘T）。隠しても、動きを見ている間とアーカイブ済みのチャットでは出し、⌘F でチャットの右上に検索欄が出ます"}
