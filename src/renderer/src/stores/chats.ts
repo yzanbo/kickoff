@@ -130,6 +130,9 @@ export function useChatsValue<T extends string | number>(select: (chats: Chat[])
 /** いまの一覧（部品の外・操作の途中で読むとき。読み込みは頼まない） */
 export const currentChats = ({ projectId, archived = false }: Omit<ChatQuery, "enabled"> = {}): Chat[] => chatsView(projectId, archived);
 
+/** 操作の応答で届いたチャットを一覧に入れる（知らせを待たずに knownChat で引けるように。作った子チャットを、親の右の欄で開くときなど） */
+export const addChat = (chat: Chat) => (chat.archived_at ? archivedChats : activeChats).update((list) => upsertChat(list, chat));
+
 /** ID のチャット（読み込んでいる一覧から。子チャット・アーカイブ済みも。部品の外で引くとき。なければ undefined） */
 export const knownChat = (id: number): Chat | undefined => activeChats.get().data?.find((c) => c.id === id) ?? archivedChats.get().data?.find((c) => c.id === id);
 

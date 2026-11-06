@@ -13,6 +13,7 @@ import { useQueueDrag } from "./useQueueDrag";
 import { useQueuedEdits } from "./useQueuedEdits";
 import { useQueueSelection } from "./useQueueSelection";
 import { useAskInNewChat } from "./askInNewChat";
+import { useAskInChildChat } from "./askInChildChat";
 import { nextQueuedText, queuedHint } from "./queuedHint";
 import { queueFailed as failed } from "./queueFailed";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
@@ -44,6 +45,7 @@ const MIN_LIST_HEIGHT = 36;
 export function QueuedMessages({
   queue,
   busy,
+  childChats,
 }: {
   /**
    * 送信待ちの様子（作業中の様子の queue）。stops は一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも）、
@@ -51,6 +53,8 @@ export function QueuedMessages({
    */
   queue: QueueState;
   busy: boolean;
+  /** 右クリックの「子チャットで開く / 移す」を出すか（メモのチャット・アーカイブ済みでは子チャットを作れない） */
+  childChats: boolean;
 }) {
   const { chatId } = useChatPane();
   const { messages, paused, stops, waiting_edit: waitingEdit } = queue;
@@ -81,6 +85,8 @@ export function QueuedMessages({
   const dnd = useQueueDrag(chatId, messages, stops, failed);
   // 右クリックの「新しいチャットで聞く / 移す」（文と添付を新しいチャットのタブに入れて開く。パネルの外では出さない）
   const ask = useAskInNewChat(messages);
+  // 右クリックの「子チャットで開く / 移す」（会話を引き継いだ子チャットを作って送り、設定の開き方で開く）
+  const askChild = useAskInChildChat(messages, childChats);
   // 書き直す欄（いくつでも同時に開ける。指示ごとに書いている途中の文を持つ）
   const edit = useQueuedEdits(chatId, messages, listRef, failed);
   const editSelected = () => {
@@ -94,6 +100,16 @@ export function QueuedMessages({
   }, [messages, edit.edits, collapsed, expanded, height]);
   // 空のときは出さない。いまの作業が終わったら止める印だけがあれば（質問として送った）、その予定の 1 行だけ出す
   if (messages.length === 0) return busy && stops.includes(0) ? <QueuedPauseNotice chatId={chatId} /> : null;
+  // 新しいチャット・子チャットで聞く指示（選んでいる行なら選んだものすべて）。挟む行（会話の圧縮・コンテキストの消去）は持っていかない（送信待ちに残す）
+  const askWith = (run: (ids: string[], remove: boolean) => void, id: string, remove: boolean) => {
+    const ids = selected.includes(id) && selected.length > 1 ? selected : [id];
+    const asked = ids.filter((x) => {
+      const q = messages.find((m) => m.id === x);
+      return q && !isQueueAction(q);
+    });
+    if (asked.length > 0) run(asked, remove);
+    clearSelection();
+  };
   // 次に止まる位置（いちばん上の印。なければ -1）。行の右クリックの「この指示のあとで止める」は、その行のすぐあとの印を付け外しする
   const stopIndex = stops.length > 0 ? stops[0] : -1;
   const toggleStop = (id: string, i: number) => void api.setQueueStopAfter(chatId, id, !stops.includes(i + 1)).catch(failed);
@@ -211,17 +227,9 @@ export function QueuedMessages({
                 isStop={stops.includes(i + 1)}
                 isStopBefore={stops.includes(i)}
                 onAsk={
-                  ask &&
-                  ((remove) => {
-                    // 挟む行（会話の圧縮・コンテキストの消去）は新しいチャットへ持っていかない（送信待ちに残す）
-                    const ids = selected.includes(m.id) && selected.length > 1 ? selected : [m.id];
-                    const asked = ids.filter((id) => {
-                      const q = messages.find((x) => x.id === id);
-                      return q && !isQueueAction(q);
-                    });
-                    if (asked.length > 0) ask(asked, remove);
-                    clearSelection();
-                  })
+                  ask || askChild
+                    ? { newChat: ask && ((remove) => askWith(ask, m.id, remove)), child: askChild && ((remove) => askWith(askChild, m.id, remove)) }
+                    : undefined
                 }
                 onSelect={(e) => selectRow(e, m.id)}
                 groupActions={{
