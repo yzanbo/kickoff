@@ -16,8 +16,8 @@ interface MemoMenuSource {
 }
 
 /**
- * メモの本文の右クリックのメニュー: メモのチャットに追加（選んだ文を引用にして、メモのチャットの入力欄の後ろに足す。送るのは自分で）・
- * メインのチャットに追加・添付（attachToMain を渡したとき。チャットの右の欄・別ウィンドウのメモ。選んでいればその部分の引用を足し、なければメモ全体を添付）・
+ * メモの本文の右クリックのメニュー: メインのチャットに追加・添付（attachToMain を渡したとき。チャットの右の欄・別ウィンドウのメモ。選んでいればその部分の引用を足し、なければメモ全体を添付）・
+ * 選んだ部分をメモのチャットに追加（選んだ文を引用にして、メモのチャットの入力欄の後ろに足す。送るのは自分で）・
  * 切り取り・コピー・貼り付け。文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
  * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに追加・添付・コピーだけ）。
  * 見出しの題名の欄からも同じメニューを開く（openFor。切り取り・貼り付けは題名の欄に効き、何も選んでいなければコピーは題名の全体）
@@ -49,14 +49,14 @@ export function useMemoEditMenu(
     openFor: (at, source) => menu.openAt(at, source),
     element: shown && (
       <PopupMenu at={shown.at} label="メモの本文の操作" onClose={menu.close}>
-        <MenuItem disabled={!selected.trim()} title={selected.trim() ? "選んだ文を引用にして、メモのチャットの入力欄に足します" : "本文で文を選んでから使えます"} onSelect={() => addToChat(quoteComment(selected, ""))}>
-          メモのチャットに追加
-        </MenuItem>
         {attachToMain && (
           <MenuItem title={selected.trim() ? "選んだ文を引用にして、開いたチャットの入力欄に足します" : "このメモを、開いたチャットの入力欄に添付します"} onSelect={() => attachToMain(selected)}>
             {selected.trim() ? "選んだ部分をメインのチャットに追加" : "メモをメインのチャットに添付"}
           </MenuItem>
         )}
+        <MenuItem disabled={!selected.trim()} title={selected.trim() ? "選んだ文を引用にして、メモのチャットの入力欄に足します" : "本文で文を選んでから使えます"} onSelect={() => addToChat(quoteComment(selected, ""))}>
+          選んだ部分をメモのチャットに追加
+        </MenuItem>
         <div className="menu-separator" role="separator" />
         {insert && (
           <MenuItem
