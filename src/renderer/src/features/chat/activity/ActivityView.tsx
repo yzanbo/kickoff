@@ -12,6 +12,8 @@ import { agentHueStyle } from "@/features/chat/subagents/agentHues";
 import { activityRows, agentTargetOf, filterActivity, type ActivityFilter, type ActivityRow } from "./activityRows";
 import { layoutRails } from "./activityRails";
 import { ActivityLine } from "./ActivityLine";
+import { ActivityFocusBar } from "./ActivityFocusBar";
+import { useActivityFocus } from "./useActivityFocus";
 
 /** 一度に描く行の数（上の「以前の動きを表示」で、この数ずつ前を足す。長いチャットでも全部は描かない） */
 const ACTIVITY_WINDOW = 300;
@@ -22,7 +24,8 @@ const ALL: ActivityFilter = { kind: "all" };
 /**
  * 動き: メインとすべてのサブエージェントの動きを、1 本の時系列に並べる（チャットの見出しの「会話 / 動き」で、会話と同じ場所に出す）。
  * 左の線は、メインの線から起動した時刻でサブエージェントの線が枝分かれし、終わった時刻で閉じる（配下であること・いつ始まりいつ終わったか・
- * どこが並行していたかを 1 枚で見せる）。上のチップでエージェントを絞り込み（その配下ごと）、行を押すと会話のその場所へ移る
+ * どこが並行していたかを 1 枚で見せる）。上のチップでエージェントを絞り込み（その配下ごと）、行を押すと会話のその場所へ移る。
+ * カードの「動きで見る」では、絞り込まずにそのサブエージェントと配下の行をすべて強調し、初めの行へ移る（useActivityFocus。↑↓ で順に）
  */
 export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const view = useSubagentsView();
@@ -39,7 +42,6 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   const shown = useMemo(() => (tree ? filterActivity(rows, tree, filter) : rows), [rows, tree, filter]);
   // 線は絞り込んだ行の全体で決める（描くのが最近の分だけでも、それより前から続く線を上から通す）
   const rails = useMemo(() => layoutRails(shown), [shown]);
-  const start = Math.max(0, shown.length - limit);
 
   // 一番下を見ている間は、新しい行に付いていく（初めと、絞り込みを変えたときは一番下から）
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,12 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
     const el = scrollRef.current;
     if (el && following.current) el.scrollTop = el.scrollHeight;
   }, [lastKey, shown.length, filter]);
+  const focus = useActivityFocus(shown, tree, scrollRef, following);
+  // 強調している行が描く範囲より前なら、そこから描く（描き足した分は、次からも描いたまま）
+  const start = Math.min(Math.max(0, shown.length - limit), focus.currentIndex ?? Infinity);
+  useLayoutEffect(() => {
+    if (focus.currentIndex !== undefined) setLimit((n) => Math.max(n, shown.length - focus.currentIndex!));
+  }, [focus.currentIndex, shown.length]);
   const onScroll = (e: UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
     following.current = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_SLACK_PX;
@@ -91,6 +99,7 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   return (
     <div className="activity-wrap">
       <Filters tree={tree} hues={view.hues} filter={filter} running={running} onChange={(f) => pane.show("activity", f)} />
+      {focus.key !== null && <ActivityFocusBar focus={focus} name={name(focus.key)} hue={view.hues.get(focus.key)} onClear={pane.clearActivityFocus} />}
       <div ref={scrollRef} className="activity" tabIndex={-1} onScroll={onScroll}>
         <div className="activity-inner" style={timeWidth}>
           {start > 0 && (
@@ -109,6 +118,8 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
               hues={view.hues}
               rel={rel}
               expanded={expanded.has(row.key)}
+              highlighted={focus.keys.has(row.key)}
+              current={focus.currentKey === row.key}
               onToggle={toggle}
               onOpen={open}
               onMenu={openMenu}

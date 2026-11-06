@@ -133,6 +133,7 @@ export function useChatView(
       fullSubagents: new Set(),
       showing: "conversation",
       activityFilter: { kind: "all" },
+      activityFocus: null,
       tellOpen: new Set(),
     });
     const patch = (next: Partial<ChatPaneState>) => state.set({ ...state.get(), ...next });
@@ -201,10 +202,17 @@ export function useChatView(
         patch({ openSubagents: next });
       },
       show: (showing, filter) => {
-        // 右の欄がメインの会話を覆っていれば、並べる形に戻す（右の欄の「動きで見る」から、メインの動きを開くとき）
+        // 右の欄がメインの会話を覆っていれば、並べる形に戻す（右の欄から、メインの動きを開くとき）
         side.current?.uncover();
-        patch({ showing, ...(filter ? { activityFilter: filter } : {}) });
+        // 絞り込みを選び直したら、強調はやめる
+        patch({ showing, ...(filter ? { activityFilter: filter, activityFocus: null } : {}) });
       },
+      focusActivity: (key) => {
+        side.current?.uncover();
+        const nonce = (state.get().activityFocus?.nonce ?? 0) + 1;
+        patch({ showing: "activity", activityFilter: { kind: "all" }, activityFocus: { key, nonce } });
+      },
+      clearActivityFocus: () => patch({ activityFocus: null }),
       revealInConversation: (eventId, agent) => {
         if (agent !== null) return actions.openSubagent(agent, eventId);
         patch({ showing: "conversation" });

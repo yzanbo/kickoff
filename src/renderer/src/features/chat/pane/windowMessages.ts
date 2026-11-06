@@ -32,12 +32,12 @@ function handle(message: WindowMessage) {
   if (!pane) return;
   if (message.type === "fillComposer") pane.fillComposer(message.text, { append: true, attachments: message.attachments });
   else if (message.type === "reveal") pane.revealInConversation(message.eventId, message.agent);
-  else pane.show("activity", { kind: "agent", key: message.agent });
+  else pane.focusActivity(message.agent);
 }
 
 /**
  * 別ウィンドウ（変更・サブエージェント）からの、このチャットへの知らせを受け取る（メインのウィンドウの ChatView だけが呼ぶ）:
- * チャット欄に足す（選んだ部分の「チャットに追加」・右クリックの「メインのチャット」・メモ）・会話のその場所へ移る・動きを開く
+ * チャット欄に足す（選んだ部分の「チャットに追加」・右クリックの「メインのチャット」・メモ）・会話のその場所へ移る・動きでそのサブエージェントを強調する
  */
 export function useWindowMessagesFor(pane: ChatPaneActions) {
   useEffect(() => {
