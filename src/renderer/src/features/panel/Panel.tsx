@@ -5,10 +5,10 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { PaneSash, fracStyle } from "@/features/panel/layout/PaneSash";
 import { PaneTabBar } from "@/features/panel/tabs/PaneTabBar";
 import { PanelEmpty } from "./PanelEmpty";
-import { PanelTools, type PanelFrame } from "./PanelTools";
+import { PanelCloseButton, PanelTools, type PanelFrame } from "./PanelTools";
 import { PanelTabPage } from "@/features/panel/tabs/PanelTabPage";
 import { layoutRects } from "@/features/panel/layout/paneGeometry";
-import { focusedPane, homePane, leavesOf, type PaneLeaf } from "@/features/panel/layout/paneTree";
+import { focusedPane, homePane, leavesOf, topRightPane, type PaneLeaf } from "@/features/panel/layout/paneTree";
 import { TabMenu } from "@/features/panel/tabs/TabMenu";
 import { useChatRename } from "@/features/chat/useChatRename";
 import { useTabDrag } from "@/features/panel/layout/useTabDrag";
@@ -45,6 +45,9 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const leaves = leavesOf(layout.root);
   const split = leaves.length > 1;
   const homeId = homePane(layout).id;
+  // 閉じるボタンをタブの列の右端に置く欄（サブエージェントの欄）は、右上のペインにだけ置く
+  const closeAtRight = SURFACES[panel.surface].closeButton?.at === "right";
+  const topRightId = topRightPane(layout.root).id;
   const { panes, sashes } = layoutRects(layout.root);
   const anyShown = (keys: readonly string[]) => keys.some(panel.isKindShown);
   // ブラウザ・ターミナルを開く（ターミナルの開く場所の決め方と、開く場所を選ぶメニュー・▾ のメニュー）
@@ -70,7 +73,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
   const newChild = useNewChild(panel);
   // 一度表示したタブ（中身を作ったもの。チャットのタブは、ここにあるか表示中のときだけ中身を作る）
   const mountedTabs = useRef(new Set<string>());
-  /** ペインのタブの列（タブの列の左の道具は、左上のペインにだけ置く） */
+  /** ペインのタブの列（タブの列の左の道具は左上のペインに、右端の閉じるボタンは右上のペインにだけ置く） */
   const bar = (pane: PaneLeaf) => (
     <PaneTabBar
       panel={panel}
@@ -80,6 +83,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
       home={!split || pane.id === homeId}
       inert={!panelOpen}
       controls={pane.id === leaves[0].id ? <PanelTools panel={panel} frame={frame} view={view} /> : undefined}
+      endControls={closeAtRight && pane.id === topRightId ? <PanelCloseButton panel={panel} frame={frame} /> : undefined}
       drag={drag}
       terminals={terminals.length}
       terminalMenuOpen={openWith.picking}

@@ -19,7 +19,8 @@ import { SURFACES } from "@/features/panel/surfaces";
 
 /**
  * パネルの 1 つのペインのタブの列。左にタブの列の道具（controls。左上のペインだけ）、タブ、
- * タブのすぐ右に新しいタブ（チャット・ブラウザ・ターミナル）、右端に右・下に分ける・ペインを閉じる（分けているときだけ）。
+ * タブのすぐ右に新しいタブ（チャット・ブラウザ・ターミナル）、右端に右・下に分ける（欄の決まりで右だけ）・ペインを閉じる（分けているときだけ）と、
+ * その後ろに endControls（右上のペインだけ。サブエージェントの欄の閉じるボタン）。
  * タブが多いときはタブの並びの中だけを横にスクロールし、新しいタブのボタンはいつもタブのすぐ右に見せる。
  * 押すとこのペインにピントを移す（新しく開くタブはここに入る）。
  * タブのまとめ方（グループ別・作業場所別）を選んでいるときは、まとまりごとに頭に名前を付けて並べる（並べ方は useTabStrip。
@@ -32,6 +33,7 @@ export function PaneTabBar({
   home,
   inert,
   controls,
+  endControls,
   drag,
   terminals,
   terminalMenuOpen,
@@ -55,6 +57,8 @@ export function PaneTabBar({
   home: boolean;
   inert?: boolean;
   controls?: ReactNode;
+  /** タブの列の右端（分ける・ペインを閉じるの後ろ）に置くもの（右上のペインだけ） */
+  endControls?: ReactNode;
   drag: TabDrag;
   /** 開けるターミナルの場所の数（0 なら出さない） */
   terminals: number;
@@ -196,8 +200,9 @@ export function PaneTabBar({
       {/* ペインを分ける・閉じる（右端） */}
       <span className="panel-bar-buttons panel-pane-tools">
         <IconButton icon={Columns2} label="右に分ける" title="右に分ける（⌘\）" size={14} onClick={() => splitTo("row")} />
-        <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />
+        {!SURFACES[panel.surface].splitRightOnly && <IconButton icon={Rows2} label="下に分ける" size={14} onClick={() => splitTo("column")} />}
         {split && <IconButton icon={X} label="ペインを閉じる" title="ペインを閉じる（チャットは一覧のペインに戻し、ほかのタブは閉じる）" size={15} onClick={() => panel.closePane(pane.id)} />}
+        {endControls}
       </span>
     </div>
   );
