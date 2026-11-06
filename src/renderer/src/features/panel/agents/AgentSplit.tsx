@@ -5,6 +5,9 @@ import { SUBAGENT_PANEL_WIDTH } from "@/lib/storageKeys";
 import type { SidePanelHandle } from "@/features/chat/pane/useChatView";
 import { usePanelHost } from "@/features/panel/panelHost";
 import { usePanel, type TerminalTarget } from "@/features/panel/usePanel";
+import { SideSelectionAttach } from "@/features/chat/messages/SelectionAttach";
+import { MainChatContext } from "@/features/chat/pane/mainChatContext";
+import { panelKey } from "@/features/panel/surfaces";
 import { AgentPanelFind } from "./AgentPanelFind";
 
 /** 右の欄のいちばん狭い幅 */
@@ -19,7 +22,8 @@ const NO_TERMINALS: readonly TerminalTarget[] = [];
  * 幅は左端のつまみのドラッグで変えて覚え（アプリ全体）、メインが狭すぎる幅まで広げる・メインの残りが狭いときは、右の欄でメインを覆う
  * （覆っている間、メインは隠すが描いたまま残す）。「メインを覆う」の切り替えのボタンは置かない。
  * 一度サブエージェントを開いたら、閉じても右の欄の中身は残す（入力中の文・読んでいた位置を保つ。閉じ終えたら隠す）。
- * パネルの外（PanelHostContext がない）では右の欄を置かない
+ * パネルの外（PanelHostContext がない）では右の欄を置かない。
+ * 右の欄の中（どのタブでも）は、このチャットを「メインのチャット」とする（MainChatContext。右クリックの「メインのチャット」の組と、選んだときの「チャットに追加」）
  */
 export function AgentSplit({ chatId, handleRef, children }: { chatId: number; handleRef: MutableRefObject<SidePanelHandle | null>; children: ReactNode }) {
   const Host = usePanelHost();
@@ -53,13 +57,16 @@ export function AgentSplit({ chatId, handleRef, children }: { chatId: number; ha
         {children}
       </div>
       {Host && (panel.panelOpen || panel.tabs.length > 0) && (
-        <Host
-          panel={panel}
-          frame={{
-            paneRef: width.paneRef,
-            resizeHandle: width.resizeHandle,
-          }}
-        />
+        <MainChatContext.Provider value={chatId}>
+          <Host
+            panel={panel}
+            frame={{
+              paneRef: width.paneRef,
+              resizeHandle: width.resizeHandle,
+            }}
+          />
+          <SideSelectionAttach mainChatId={chatId} container={() => document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`)} />
+        </MainChatContext.Provider>
       )}
       {/* ⌘F でタブの中の文字を探す（右の欄の中にピントがあるとき） */}
       {Host && panel.tabs.length > 0 && <AgentPanelFind chatId={chatId} />}

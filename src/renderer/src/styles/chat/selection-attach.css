@@ -1,7 +1,8 @@
-/* ==== 選んだ範囲をチャットに添付（SelectionAttach）: 返答・差分・メモの一部を選ぶと上に出るボタン ==== */
+/* ==== 選んだ範囲をチャットに追加（SelectionAttach）: 返答・差分・ファイル・メモの一部を選ぶと上に出るボタン（足す先が 2 つなら区切り線で並べる） ==== */
 
 .selection-attach {
   position: fixed;
+  display: flex;
   z-index: 40;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
@@ -17,4 +18,8 @@
   border: 0;
   font-size: 12px;
   white-space: nowrap;
+}
+
+.selection-attach-button + .selection-attach-button {
+  border-left: 1px solid var(--border);
 }

@@ -5,6 +5,7 @@ import { openProjectFile } from "@/app/router";
 import { cx } from "@/lib/cx";
 import { DIFF_LAYOUT, sideViewedFiles } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
+import { useProjects } from "@/stores/projects";
 import { EmptyState } from "@/ui/EmptyState";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
@@ -15,6 +16,7 @@ import { WorktreeContext } from "@/features/worktree/worktreeContext";
 import { CHANGE_LABELS, DiffView, useFileDiff } from "./DiffView";
 import { FileIcon } from "./FileIcon";
 import { changedFiles, diffFingerprint, pruneViewed, viewedStateOf } from "./sideFile";
+import { useCodeQuoteMenu } from "./useCodeQuoteMenu";
 import { useGitStatus } from "./useGitStatus";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 
@@ -46,6 +48,9 @@ export function SideChanges(props: Props) {
 
 function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
   const git = useGitStatus(projectId, false, worktree);
+  // 差分の行の右クリックは「メインのチャット」に足すメニュー（パスは作業場所のフルパス）
+  const { projectsById } = useProjects();
+  const codeMenu = useCodeQuoteMenu(worktree ?? projectsById.get(projectId)?.repo_path);
   const files = useMemo(() => changedFiles(git.status), [git.status]);
   const [layout, setLayout] = useSetting(DIFF_LAYOUT);
   // 自分で開閉したファイル（ないものは、確認済みなら畳み、そうでなければファイルが少なければ開き、多ければ移る先のファイルだけ開く）
@@ -138,7 +143,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
         <PopOutTabButton />
       </header>
       <ErrorText message={git.error} className="side-changes-error" />
-      <div ref={scroller} className="side-changes-body">
+      <div ref={scroller} className="side-changes-body" onContextMenu={codeMenu.onContextMenu}>
         {git.status && files.length === 0 ? (
           <EmptyState icon={FileCheck2} title="コミットしていない変更はありません" className="side-changes-empty">
             この作業場所のファイルは、どれも最後のコミットのままです。
@@ -186,6 +191,7 @@ function ChangesStack({ projectId, worktree, focus, focusAt }: Props) {
           </>
         )}
       </div>
+      {codeMenu.element}
     </div>
   );
 }
@@ -238,7 +244,8 @@ function ChangeSection({
   const links = useContext(FileLinkContext);
   const openInEditor = () => (links ? links.openInEditor({ path: file.path }) : openProjectFile(projectId, { path: file.path, ...(worktree ? { worktree } : {}) }));
   return (
-    <section className="side-change" data-change-path={file.path}>
+    // data-quote-path: 差分の行を選んでチャットに足すとき（useCodeQuoteMenu・SideSelectionAttach）に読む
+    <section className="side-change" data-change-path={file.path} data-quote-path={file.path}>
       <div className="side-change-head" onContextMenu={(e) => links?.showMenu(e, { path: file.path })}>
         <button type="button" className="side-change-toggle" aria-expanded={open} title={open ? "差分を畳む" : "差分を開く"} onClick={() => onToggle(open)}>
           <ChevronRight size={13} className={cx("side-change-chevron", open && "open")} aria-hidden />

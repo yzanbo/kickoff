@@ -37,7 +37,7 @@ function handle(message: WindowMessage) {
 
 /**
  * 別ウィンドウ（変更・サブエージェント）からの、このチャットへの知らせを受け取る（メインのウィンドウの ChatView だけが呼ぶ）:
- * チャット欄に足す（差分の行・返答の「チャットに添付」・メモ）・会話のその場所へ移る・動きを開く
+ * チャット欄に足す（選んだ部分の「チャットに追加」・右クリックの「メインのチャット」・メモ）・会話のその場所へ移る・動きを開く
  */
 export function useWindowMessagesFor(pane: ChatPaneActions) {
   useEffect(() => {
