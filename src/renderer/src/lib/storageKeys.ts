@@ -76,8 +76,8 @@ export const BOARD_VIEW = defineSetting("kickoff:board-view", choice(["board", "
 export const BOARD_SPLIT = defineSetting("kickoff:board-split", flag());
 /** ボードのリスト表示の行を 1 行にまとめるか（すべてのボードで共通。初めは 2 行） */
 export const BOARD_LIST_COMPACT = defineSetting("kickoff:board-list-compact", flag());
-/** プロジェクトのボードの段の分け方（worktree = 作業場所 / group = グループ / project = プロジェクト） */
-export const PROJECT_BOARD_LANES = defineSetting("kickoff:board-lanes", choice(["worktree", "group", "project"], "worktree"));
+/** プロジェクトのボードの段の分け方（group = グループ / worktree = 作業場所 / project = プロジェクト） */
+export const PROJECT_BOARD_LANES = defineSetting("kickoff:board-lanes", choice(["group", "worktree", "project"], "worktree"));
 /** 全プロジェクトのボードの段の分け方（プロジェクトのボードとは別に覚える。初めはプロジェクト別） */
 export const ALL_PROJECTS_BOARD_LANES = defineSetting("kickoff:board-lanes-all", choice(PROJECT_BOARD_LANES.choices, "project"));
 /** カンバンのアーカイブでの絞り込み（all = すべて / active = 未アーカイブ / archived = アーカイブ済みだけ） */

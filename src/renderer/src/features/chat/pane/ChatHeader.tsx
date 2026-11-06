@@ -12,7 +12,7 @@ import { ChatHeaderTools } from "./ChatHeaderTools";
 import { useChatPane, useChatPaneState } from "./chatPaneContext";
 
 /**
- * チャットの見出し: プロジェクト・作業場所・グループのバッジ、右に道具（会話 / 動き・検索など。アーカイブはタブ・サイドバーの右クリックから）・ターン数と API 換算。
+ * チャットの見出し: プロジェクト・グループ・作業場所のバッジ、右に道具（会話 / 動き・検索など。アーカイブはタブ・サイドバーの右クリックから）・ターン数と API 換算。
  * 右端に右の欄の開閉（右の欄を置ける画面だけ。子チャットの画面の中には右の欄を重ねないので出さない）。
  * 名前・閉じる・状態の印（作業中・回答待ちなど）はパネルのタブにあるので、ここには出さない（名前はタブのダブルクリックで変える）。
  * 行を出すか・どの項目を出すかは、タブの列の「表示」の「チャットの画面」（見出しの何もないところの右クリックでも同じもの）で選ぶ。
@@ -58,8 +58,8 @@ export function ChatHeader({
         {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン） */}
         <span className="chat-sub muted small">
           {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
-          {shows("worktree") && <WorktreeChip chat={chat} />}
           {shows("group") && <GroupChip chat={chat} />}
+          {shows("worktree") && <WorktreeChip chat={chat} />}
         </span>
         {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
         <span className="spacer" />

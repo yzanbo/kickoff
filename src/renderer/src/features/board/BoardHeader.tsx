@@ -15,7 +15,7 @@ export type BoardView = SettingValue<typeof BOARD_VIEW>;
 
 /**
  * 表示の種類と、段（スイムレーン）に分けるか（列を状態で分けるカンバン・グループのボード・全プロジェクトのボードで共通。列の分け方を切り替えてもそのまま）。
- * 段の分け方（作業場所・グループ・プロジェクト）はボードとリストで共通（useKanbanLanes）で、表示を切り替えても段に分けたまま
+ * 段の分け方（グループ・作業場所・プロジェクト）はボードとリストで共通（useKanbanLanes）で、表示を切り替えても段に分けたまま
  */
 export function useBoardView() {
   const [view, setView] = useSetting(BOARD_VIEW);

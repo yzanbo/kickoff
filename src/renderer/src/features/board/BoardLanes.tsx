@@ -12,19 +12,19 @@ import { FoldHead } from "@/ui/FoldHead";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 
 /**
- * スイムレーンの段の分け方（列はどれも状態）。カンバンでは 作業場所・グループ（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
+ * スイムレーンの段の分け方（列はどれも状態）。カンバンでは グループ・作業場所（プロジェクトのボード）・プロジェクト（全プロジェクトのボード）、
  * グループのタブではグループで分ける
  */
 export type BoardLane = SettingValue<typeof PROJECT_BOARD_LANES>;
 
 export const BOARD_LANE_LABELS: Record<BoardLane, string> = {
-  worktree: "作業場所（ブランチ）",
   group: "グループ",
+  worktree: "作業場所（ブランチ）",
   project: "プロジェクト",
 };
 
 /**
- * ボードの見出しの段の分け方の選択（「段: 分けない / 作業場所 / グループ / プロジェクト」。ボード・リストで共通）。
+ * ボードの見出しの段の分け方の選択（「段: 分けない / グループ / 作業場所 / プロジェクト」。ボード・リストで共通）。
  * value は段に分けていなければ "none"
  */
 export function LaneSelect({ value, options, onChange }: { value: BoardLane | "none"; options: readonly BoardLane[]; onChange: (value: BoardLane | "none") => void }) {
