@@ -124,10 +124,10 @@ export function ChatRow({
               </span>
             )}
           </span>
-          {/* 2 行目: 作業場所（ブランチ）とグループ（1 行で出すときは隠す） */}
+          {/* 2 行目: グループと作業場所（ブランチ）（1 行で出すときは隠す） */}
           <span className="chat-row-meta">
-            <WorktreeChip chat={chat} />
             <GroupChip chat={chat} />
+            <WorktreeChip chat={chat} />
           </span>
         </span>
       </a>

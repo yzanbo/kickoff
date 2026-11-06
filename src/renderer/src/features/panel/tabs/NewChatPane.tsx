@@ -106,7 +106,6 @@ export function NewChatPane({
         <div className="chat-sub muted small">
           {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
           {project && <ProjectChip id={project.id} name={project.name} linked />}
-          <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />
           {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
           {groups.length > 0 && onGroupChange && (
             <label className={`new-chat-group ${group ? "has-group" : ""}`} title="作成先のグループ">
@@ -129,6 +128,8 @@ export function NewChatPane({
               </select>
             </label>
           )}
+          {/* 作業場所（グループ → 作業場所の順は、チャットの見出しのバッジと同じ） */}
+          <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />
         </div>
         </div>
       </header>

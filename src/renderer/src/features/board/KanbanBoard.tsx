@@ -151,7 +151,7 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
     openTitle: allProjects ? (chat) => `プロジェクト「${projectName(chat.project_id)}」で開く（そのプロジェクトの画面へ移ります）` : undefined,
     projectName: (chat) => (allProjects ? projectName(chat.project_id) : undefined),
   });
-  // 状態の列（段に分けるときは、段（作業場所・グループ・プロジェクト）ごとに状態の列。段には、その段に入る作成先の下書きも入る）
+  // 状態の列（段に分けるときは、段（グループ・作業場所・プロジェクト）ごとに状態の列。段には、その段に入る作成先の下書きも入る）
   const buckets = useChatBuckets(shown, {
     by: split ? [lanes, "status"] : "status",
     project: projectId,
