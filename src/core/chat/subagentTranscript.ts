@@ -54,15 +54,15 @@ export function subagentTranscript(entry: SubagentEntry, log: readonly SubagentL
   const lines = [
     `# サブエージェント「${entry.description}」の会話の記録`,
     "",
-    `- チャット「${chatTitle}」のメインのエージェントが起動したサブエージェント（ID: ${entry.agentId ?? "不明"}${entry.subagentType ? `・種類 ${entry.subagentType}` : ""}）`,
+    `- チャット「${chatTitle}」のメインエージェントが起動したサブエージェント（ID: ${entry.agentId ?? "不明"}${entry.subagentType ? `・種類 ${entry.subagentType}` : ""}）`,
     `- 状態: ${STATUS_LABELS[entry.status]}`,
     "",
-    "このファイルは、サブエージェントの会話を参照のために書き出したものです。依頼（メインのエージェントから）・サブエージェントの発言・使ったツールと結果を古い順に並べています。ツールの長い出力は頭だけです。",
+    "このファイルは、サブエージェントの会話を参照のために書き出したものです。依頼（メインエージェントから）・サブエージェントの発言・使ったツールと結果を古い順に並べています。ツールの長い出力は頭だけです。",
   ];
   let asked = false;
   for (const item of log) {
     if (item.kind === "user") {
-      lines.push("", asked ? "## 追加の指示（メインのエージェントから）" : "## 依頼（メインのエージェントから）", "", item.text);
+      lines.push("", asked ? "## 追加の指示（メインエージェントから）" : "## 依頼（メインエージェントから）", "", item.text);
       asked = true;
     } else if (item.kind === "assistant") lines.push("", "## サブエージェント", "", item.text);
     else {

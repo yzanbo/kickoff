@@ -143,7 +143,7 @@ export class ClaudeProvider implements AgentProvider {
 
     let sessionId = params.resumeSessionId;
     let final: SDKResultMessage | undefined;
-    // メインのエージェントの最後の応答で、コンテキストに入っていたトークン数
+    // メインエージェントの最後の応答で、コンテキストに入っていたトークン数
     let contextTokens: number | undefined;
     // 要約したあとの大きさが分からず、次のメインの応答で知らせるところか
     let contextAfterCompact = false;

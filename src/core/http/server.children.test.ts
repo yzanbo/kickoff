@@ -164,9 +164,9 @@ test("サブエージェントに子チャットで聞く: 会話の記録を Cl
   assert.deepEqual(ctx.provider.forks, []);
   const { text, attachments, markdown } = await firstMessage(ctx, child.id);
   assert.equal(attachments[0].name, "サブエージェントの記録-調査.md");
-  assert.ok(text.startsWith("【サブエージェントに直接聞く】「調査」（ID: a1）"));
+  assert.ok(text.startsWith("【サブエージェントについて聞く】「調査」（ID: a1）"));
   assert.ok(text.endsWith("\n---\ncore には何がある？"));
-  for (const part of ["## 依頼（メインのエージェントから）\n\nsrc の構成を調べて", "## サブエージェント\n\n見ていきます。", "### ツール Bash", "ls src", "core\nrenderer", "## 追加の指示（メインのエージェントから）\n\nテストも見て", "## 親への報告\n\n見つけたのは 3 件", "種類 Explore"]) {
+  for (const part of ["## 依頼（メインエージェントから）\n\nsrc の構成を調べて", "## サブエージェント\n\n見ていきます。", "### ツール Bash", "ls src", "core\nrenderer", "## 追加の指示（メインエージェントから）\n\nテストも見て", "## 親への報告\n\n見つけたのは 3 件", "種類 Explore"]) {
     assert.ok(markdown.includes(part), part);
   }
   const notice = ctx.store.events.list(child.id).find((e) => e.type === "notice");
@@ -180,7 +180,7 @@ test("サブエージェントに子チャットで聞く: Claude Code から記
   const parentId = await chatWithSubagent(ctx);
   const child = (await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "どうだった？" })).body;
   const { markdown } = await firstMessage(ctx, child.id);
-  assert.ok(markdown.includes("## 依頼（メインのエージェントから）\n\nsrc の構成を調べて"));
+  assert.ok(markdown.includes("## 依頼（メインエージェントから）\n\nsrc の構成を調べて"));
   assert.ok(markdown.includes("## 親への報告\n\n見つけたのは 3 件"));
   const notice = ctx.store.events.list(child.id).find((e) => e.type === "notice");
   assert.ok(notice?.type === "notice" && notice.data.message.includes("読めなかったので"));

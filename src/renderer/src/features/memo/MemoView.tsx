@@ -83,7 +83,7 @@ export function MemoView({
   const chat = useRef<MemoChatHandle | null>(null);
   const pageHandle = useRef<HtmlMemoPageHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
-  // 足す先のチャット（メインのチャット・メモのチャット）。本文の右クリック・見出しの添付のボタンから
+  // 足す先のチャット（開いたチャット・メモのチャット）。本文の右クリック・見出しの添付のボタンから
   const file = `${dir}/${path}`;
   const targets = memoChatTargets({ file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
   const editMenu = useMemoEditMenu(editor, targets, file);
@@ -199,7 +199,7 @@ export function MemoView({
           ]}
         />
         {targets.main && doc.initial !== null && !unreadable && (
-          <IconButton icon={Paperclip} label="メインのチャットに添付" title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => targets.main?.add("", null)} />
+          <IconButton icon={Paperclip} label={`${targets.main.name}に添付`} title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => targets.main?.add("", null)} />
         )}
         {doc.initial !== null && !unreadable && (
           <IconButton

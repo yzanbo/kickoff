@@ -24,7 +24,7 @@ export function QueuedSelectionActions({
 }) {
   const { chatId } = useChatPane();
   const n = selected.length;
-  // 作業中は止めずに、いまのやり取りに伝える（Runner の tell。メインのエージェントがいまの手順の切れ目で読む）
+  // 作業中は止めずに、いまのやり取りに伝える（Runner の tell。メインエージェントがいまの手順の切れ目で読む）
   const stopping = busy ? "（作業は止めずに、いまのやり取りに足す）" : "";
   const done = () => onClearSelection();
   return (

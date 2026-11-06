@@ -70,7 +70,7 @@ export function turnRoutes(app: Hono, { store, runner, providers, uploads }: Ser
     return c.json(child, 201);
   });
 
-  // サブエージェントに子チャットで直接聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作る。201 で子を返す）
+  // サブエージェントに子チャットで聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作る。201 で子を返す）
   app.post("/api/chats/:id/subagents/:agentId/children", withChat, async (c) => {
     const body = subagentChildSchema.parse(await jsonBody(c));
     const child = await startSubagentChildChat({ ...deps, uploads }, c.var.chat, { agentId: c.req.param("agentId"), text: body.text, attachments: body.attachments, options: body.options });

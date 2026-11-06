@@ -40,7 +40,7 @@ export function ChatHeaderTools({ find }: { find: ReactNode }) {
               value: "activity",
               label: "動き",
               icon: GitBranch,
-              tip: "動き（メインとすべてのサブエージェントの動きを、時刻の順に 1 本に並べる）",
+              tip: "動き（メインエージェントとすべてのサブエージェントの動きを、時刻の順に 1 本に並べる）",
             },
           ]}
         />

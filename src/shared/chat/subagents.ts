@@ -23,7 +23,7 @@ export interface SubagentEntry {
   agentId?: string;
   /** いちばん新しい親への報告（終わりの知らせの要約。再開したら、その回の報告に置き換わる） */
   summary?: string;
-  /** 親のエージェントからの依頼（やり直すときに同じ依頼を渡す） */
+  /** 起動したエージェントからの依頼（やり直すときに同じ依頼を渡す） */
   prompt?: string;
   /** 通信の切断で止まった（失敗・中断のときだけ。API のエラーで終わった・通信で親ごと終わったときに動いていた） */
   network?: boolean;
@@ -46,7 +46,7 @@ export interface SubagentEntry {
   outputLimit?: boolean;
   /** 止まったあとに、親が同じ仕事をやり直した新しいサブエージェント（subagentSupersede.ts） */
   supersededBy?: { key: string; description: string };
-  /** 入れ子のとき、このサブエージェントを起動したサブエージェント（行のキー）。メインのエージェントが起動したものは undefined */
+  /** 入れ子のとき、このサブエージェントを起動したサブエージェント（行のキー）。メインエージェントが起動したものは undefined */
   parentKey?: string;
   /** 行のキーのほかに、このサブエージェントの記録の parent に入る呼び出し ID（SendMessage で再開した回は、その SendMessage の ID） */
   aliases?: string[];
@@ -104,7 +104,7 @@ export function collectSubagents(events: ChatEvent[], progress: Record<string, S
     for (const key of awaitingParent) delivery.set(key, state);
     awaitingParent.clear();
   };
-  // 親（メインのエージェント）が動いた記録か（サブエージェントの中の発言・ツールは除く）
+  // 親（メインエージェント）が動いた記録か（サブエージェントの中の発言・ツールは除く）
   const isParentActivity = (e: ChatEvent) => (e.type === "text" || e.type === "thinking" || e.type === "tool_use") && !e.data.parent;
   // 入れ子の子孫の動きは、祖先のサブエージェントも動いているとみなす（子の結果を待っている間に「動きがない」としない）
   const bubble = (entry: SubagentEntry, at: string) => {

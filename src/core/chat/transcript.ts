@@ -16,7 +16,7 @@ function stamp(iso: string): string {
 const relative = (file: string, root: string) => (file.startsWith(`${root}/`) ? file.slice(root.length + 1) : file);
 
 /**
- * チャットのやり取りを Markdown にする（自分の発言・AI の返答（メインのエージェントのもの）を古い順に。作業ごとに、
+ * チャットのやり取りを Markdown にする（自分の発言・AI の返答（メインエージェントのもの）を古い順に。作業ごとに、
  * 変えたファイルと、失敗・中断したことを添える）。ツールの細かい出力・考えている途中・サブエージェントの中の発言は入れない。
  * note: 別のチャットに読ませるための断り書き（参照のために書き出したもの）を入れるか（コピーするときは入れない）
  */

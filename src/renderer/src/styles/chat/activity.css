@@ -261,9 +261,10 @@
   background: var(--bg-hover);
 }
 
+/* 誰が（「メインエージェント」が切れずに入る幅） */
 .activity-agent {
   flex: none;
-  width: 7.5em;
+  width: 9.5em;
   overflow: hidden;
   font-size: calc(12px * var(--chat-scale, 1));
   font-weight: 600;

@@ -36,7 +36,7 @@ const THINKING_MIN_MS = 2000;
 /**
  * 連続するツールの実行を 1 つのまとまりにする（結果は対応する呼び出しにぶら下げる）。サブエージェントの起動は、まとまりに入れずカードの項目にする。
  * scope を渡すとそのサブエージェントの中身だけ（行のキーと、再開した回の呼び出し ID。SubagentEntry の key と aliases）、
- * 渡さなければメインのエージェントの分だけを並べる
+ * 渡さなければメインエージェントの分だけを並べる
  */
 export function groupEvents(events: ChatEvent[], scope?: readonly string[]): TimelineItem[] {
   const items: TimelineItem[] = [];

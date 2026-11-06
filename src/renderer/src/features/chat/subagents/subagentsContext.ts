@@ -13,7 +13,7 @@ export interface SubagentsView {
   worktree: string | null;
   /** リポジトリの絶対パスを相対パスにする（右の欄のサブエージェントの画面の流れに使う。作業場所が変わらない間は同じ関数） */
   rel: (s: string) => string;
-  /** メインのエージェントが作業中か */
+  /** メインエージェントが作業中か */
   busy: boolean;
   events: ChatEvent[];
   tree: SubagentTree;

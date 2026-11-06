@@ -11,8 +11,8 @@ import { HAND_OVER_NOW, resumeRequest, retryRequest } from "@shared/chat/prompts
  * サブエージェントの行・タブの見出しの操作。実行中なのに長く動きがないものは「止める」（Claude Code の stopTask。作業中だけ。
  * 止めると中断になり、そこから再開・やり直すができる）。
  * 止まった（失敗・中断）ものは戻すボタン。Kickoff からサブエージェントへは直接送れないので、
- * メインのエージェントに頼む: 再開 = SendMessage で止まったところから続ける / やり直す = 同じ依頼で新しく立ち上げ直す。
- * メインが作業中なら止めずに伝え、作業中でなければすぐ送る（tell の API が決める）
+ * メインエージェントに頼む: 再開 = SendMessage で止まったところから続ける / やり直す = 同じ依頼で新しく立ち上げ直す。
+ * メインエージェントが作業中なら止めずに伝え、作業中でなければすぐ送る（tell の API が決める）
  */
 export function SubagentActions({
   chatId,
@@ -32,27 +32,27 @@ export function SubagentActions({
     const stalled = busy && entry.agentId && activityOf(entry.lastActivityAt).level === "stalled";
     return stalled ? <StopStalled chatId={chatId} entry={entry} agentId={entry.agentId!} className={className} /> : null;
   }
-  // 報告を送ったのに親に届かなかった: 次の指示に添えて渡すが、待たずにいま渡すこともできる（本文はコアが添える）
+  // 報告を送ったのに、起動したエージェントに届かなかった: 次の指示に添えて渡すが、待たずにいま渡すこともできる（本文はコアが添える）
   if (entry.status === "completed" && entry.delivery === "lost" && entry.undeliveredReport) {
     return (
       <span className={cx("subagent-recovery", className)}>
         <button
           type="button"
           className="btn"
-          title="次の指示を待たずに、届いていなかった報告をメインのエージェントにいま渡します（渡さなくても、次に送る指示に自動で添えます）"
+          title="次の指示を待たずに、届いていなかった報告をメインエージェントにいま渡します（渡さなくても、次に送る指示に自動で添えます）"
           onClick={(e) => {
             e.stopPropagation();
             void api.tellChat(chatId, HAND_OVER_NOW, {}).catch(reportFailure("報告を渡せませんでした"));
           }}
         >
           <Inbox size={12} aria-hidden />
-          いま親に渡す
+          報告をいま渡す
         </button>
         <span className="subagent-recovery-note">次に送る指示にも自動で添えます</span>
       </span>
     );
   }
-  // 止まったあと、親が新しいサブエージェントでやり直したもの: 再開・やり直すは仕事が重なるので出さず、やり直した回へ案内する
+  // 止まったあと、起動したエージェントが新しいサブエージェントでやり直したもの: 再開・やり直すは仕事が重なるので出さず、やり直した回へ案内する
   const next = entry.supersededBy;
   if (next) {
     return onOpen ? (
@@ -60,7 +60,7 @@ export function SubagentActions({
         <button
           type="button"
           className="btn"
-          title={`親のエージェントが「${next.description}」としてやり直しています。その中身を開きます`}
+          title={`「${next.description}」としてやり直しています。その中身を開きます`}
           onClick={(e) => (e.stopPropagation(), onOpen(next.key))}
         >
           <CornerDownRight size={12} aria-hidden />
@@ -87,12 +87,12 @@ export function SubagentActions({
   return (
     <span className={cx("subagent-recovery", className)}>
       {entry.agentId && (
-        <button type="button" className="btn" title="止まったところから続けるよう、メインのエージェントに頼みます" onClick={resume}>
+        <button type="button" className="btn" title="止まったところから続けるよう、メインエージェントに頼みます" onClick={resume}>
           <Play size={12} aria-hidden />
           再開
         </button>
       )}
-      <button type="button" className="btn" title="同じ依頼で最初から立ち上げ直すよう、メインのエージェントに頼みます" onClick={(e) => void retry(e)}>
+      <button type="button" className="btn" title="同じ依頼で最初から立ち上げ直すよう、メインエージェントに頼みます" onClick={(e) => void retry(e)}>
         <RotateCcw size={12} aria-hidden />
         やり直す
       </button>

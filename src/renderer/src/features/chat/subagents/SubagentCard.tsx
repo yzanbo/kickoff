@@ -127,7 +127,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
               <button
                 type="button"
                 className="link-button subagent-tell"
-                title="このサブエージェントを、チャットの画面の右の欄に、メインと同じような画面で開く（右の欄の中で上下・左右に分けて並べられます）"
+                title="このサブエージェントを、チャットの画面の右の欄に、チャットと同じような画面で開く（右の欄の中で上下・左右に分けて並べられます）"
                 onClick={() => pane.openSubagentSide(key)}
               >
                 <PanelRight size={12} aria-hidden />
@@ -149,7 +149,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
             <button
               type="button"
               className="link-button subagent-tell"
-              title="このサブエージェントに追加の指示を伝える（カードの下に入力欄を開きます。メインのエージェントから SendMessage で渡します）"
+              title="このサブエージェントに追加の指示を伝える（カードの下に入力欄を開きます。メインエージェントから SendMessage で渡します）"
               aria-expanded={telling}
               onClick={() => (telling ? pane.closeTell(key) : pane.tellSubagent(key))}
             >
@@ -165,7 +165,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
       )}
       {open && <SubagentCardBody entry={entry} view={view} renderItems={renderItems} windowed={depth === 0} />}
       {pane && telling && <SubagentTellBox entry={entry} view={view} onClose={() => pane.closeTell(key)} />}
-      {/* このサブエージェントに子チャットで直接聞いたら、その子チャットの札（発言の下と同じ。始めた位置は起動の呼び出し） */}
+      {/* このサブエージェントに子チャットで聞いたら、その子チャットの札（発言の下と同じ。始めた位置は起動の呼び出し） */}
       {pane && entry.toolUseEventId !== undefined && <ChildChatMarks chatId={pane.chatId} eventId={entry.toolUseEventId} />}
     </div>
   );

@@ -1,5 +1,5 @@
-// サブエージェントに子チャットで直接聞く: サブエージェントの会話の記録を添付にして、メインのチャットの子チャットで聞く
-// （メインのエージェントにもサブエージェント本人にも伝わらず、記録を読んだ別の AI がサブエージェントの続きとして答える）
+// サブエージェントについて子チャットで聞く: サブエージェントの会話の記録を添付にして、そのチャットの子チャットで聞く
+// （メインエージェントにもサブエージェント本人にも伝わらず、記録を読んだ別の AI がサブエージェントの続きとして答える）
 import { UNTITLED_CHAT_TITLE, type Attachment, type Chat, type ChatOptionsPatch, type ProviderId } from "@shared/types";
 import { collectSubagents } from "@shared/chat/subagents";
 import { subagentAskMessage } from "@shared/chat/prompts";

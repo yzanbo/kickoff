@@ -40,7 +40,7 @@ export function createPreCompactGate(opts: PreCompactGateOptions) {
   let repliedSinceHook = true;
 
   return {
-    /** メインのエージェントの応答（tokens: そのときのコンテキストの大きさ・text: 文の返答なら、その文） */
+    /** メインエージェントの応答（tokens: そのときのコンテキストの大きさ・text: 文の返答なら、その文） */
     noteReply(replyTokens: number, text: string | null) {
       repliedSinceHook = true;
       tokens = replyTokens;

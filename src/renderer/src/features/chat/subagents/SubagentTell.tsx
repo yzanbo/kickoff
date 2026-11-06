@@ -16,21 +16,21 @@ import type { SubagentsView } from "./subagentsContext";
 type AskMode = "relay" | "child";
 
 /** 送り先の名前（切り替え・案内で同じ言葉にする） */
-const ASK_MODE_LABELS: Record<AskMode, string> = { relay: "メインから伝える", child: "子チャットで直接聞く" };
+const ASK_MODE_LABELS: Record<AskMode, string> = { relay: "サブエージェントに伝える", child: "子チャットで聞く" };
 
 /** 選んだ送り先の説明 1 行（子チャットの「会話を引き継ぐ / 新しく始める」と同じく、切り替えのすぐ横に短く） */
 const ASK_MODE_HELP: Record<AskMode, string> = {
-  relay: "メインのエージェントが SendMessage で渡し、サブエージェント本人が続けます",
-  child: "このサブエージェントの会話の記録を添えた子チャットで聞きます（本人とメインには伝わりません）",
+  relay: "メインエージェント経由でサブエージェントに届き、作業に反映されます",
+  child: "会話の記録を読んだ別の AI が答えます（サブエージェントとメインエージェントには届きません）",
 };
 
 /**
  * そのサブエージェントへの入力欄（右の欄の画面のいちばん下・流れの中のカードの「伝える」で共通）。上の切り替えで送り先を選ぶ（最後に選んだ方を覚える SUBAGENT_ASK_MODE）:
- * - メインから伝える: Kickoff から直接は送れないので、メインのエージェントに SendMessage でそのまま渡してもらう（メインが作業中なら止めずに伝え、
+ * - サブエージェントに伝える: Kickoff から直接は送れないので、メインエージェントに  SendMessage でそのまま渡してもらう（メインエージェントが作業中なら止めずに伝え、
  *   作業中でなければすぐ送る。どちらも tell の API が決める）。送った文は、そのサブエージェントの流れに自分の発言として出る。
  *   終わったサブエージェントに伝えると、終わったところから再開する（案内に出す）。
- * - 子チャットで直接聞く: サブエージェントの会話の記録（コアが Claude Code の記録から読む）を添付にした子チャットを作って聞く（`api.askSubagentInChild`）。
- *   メインのエージェントにもサブエージェント本人にも伝わらず、メインが作業中でもすぐ送る。作った子チャットは設定の「子チャットを作ったとき」で開く。
+ * - 子チャットで聞く: サブエージェントの会話の記録（コアが Claude Code の記録から読む）を添付にした子チャットを作って聞く（`api.askSubagentInChild`）。
+ *   メインエージェントにもサブエージェント本人にも伝わらず、メインエージェントが作業中でもすぐ送る。作った子チャットは設定の「子チャットを作ったとき」で開く。
  * 書きかけの文はサブエージェントごとに残す（subagentTellDraft。送り先によらず共通）。Claude Code がサブエージェントの ID を知らせていなければどちらも送れないので、その旨を出す
  */
 export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry: SubagentEntry; view: SubagentsView; autoFocus?: boolean; onSent?: () => void }) {
@@ -48,10 +48,10 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
   };
   const child = mode === "child";
   const placeholder = child
-    ? `サブエージェント「${description}」に直接聞きたいこと（会話の記録を添えた子チャットを作ります。Enter で送信）`
+    ? `サブエージェント「${description}」について聞きたいこと（会話の記録を添えた子チャットを作ります。Enter で送信）`
     : entry.status === "running"
-      ? `サブエージェント「${description}」への追加の指示（メインのエージェントが SendMessage で渡します。Enter で送信）`
-      : `サブエージェント「${description}」への指示（伝えると、終わったところから再開します。メインのエージェントが SendMessage で渡します）`;
+      ? `サブエージェント「${description}」への追加の指示（メインエージェントが SendMessage で渡します。Enter で送信）`
+      : `サブエージェント「${description}」への指示（伝えると、終わったところから再開します。メインエージェントが SendMessage で渡します）`;
   return (
     <>
       <div className="inherit-choice subagent-ask-choice">
@@ -68,7 +68,7 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
         <span className="inherit-choice-help muted small">{ASK_MODE_HELP[mode]}</span>
       </div>
       <Composer
-        // 子チャットで聞くときは、メインが作業中でもいま / あとでを聞かずにすぐ送る（メインの作業には関わらない）
+        // 子チャットで聞くときは、メインエージェントが作業中でもいま / あとでを聞かずにすぐ送る（メインエージェントの作業には関わらない）
         busy={child ? false : view.busy}
         autoFocus={autoFocus}
         placeholder={placeholder}

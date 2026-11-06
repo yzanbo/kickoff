@@ -29,7 +29,7 @@ export const USAGE_RESUME_PROMPT = "（使用枠が戻ったので再開しま�
 export const RETRY_PROMPT = "（再試行）さきほどの作業は途中で失敗しました。止まったところから、作業を続けてください。";
 
 // ---- サブエージェント（画面のサブエージェントの一覧・タブ） ----
-// Kickoff からサブエージェントへ直接は送れないので、メインのエージェントに SendMessage で同じサブエージェントへそのまま伝えてもらう
+// Kickoff からサブエージェントへ直接は送れないので、メインエージェントに SendMessage で同じサブエージェントへそのまま伝えてもらう
 // （サブエージェントは記録から続きを始める）。メインのチャットには自分の発言として残り、サブエージェントのタブでは、その指示だけを自分の発言として出す
 
 const RELAY_HEAD = "【サブエージェントへの追加の指示】";
@@ -37,7 +37,7 @@ const RELAY_HEAD = "【サブエージェントへの追加の指示】";
 /** やり直すときに依頼文をそのまま添える長さの上限（超えたら、前の依頼と同じものを使うよう頼む） */
 const MAX_PROMPT_IN_RETRY = 6000;
 
-/** サブエージェントへの追加の指示として、メインのエージェントに送る文（1 行目に宛先、本文は区切りの後ろにそのまま） */
+/** サブエージェントへの追加の指示として、メインエージェントに送る文（1 行目に宛先、本文は区切りの後ろにそのまま） */
 export function relayMessage(agentId: string, name: string, text: string): string {
   return [
     `${RELAY_HEAD}「${name}」（ID: ${agentId}）`,
@@ -47,30 +47,32 @@ export function relayMessage(agentId: string, name: string, text: string): strin
   ].join("\n");
 }
 
-const SUBAGENT_ASK_HEAD = "【サブエージェントに直接聞く】";
+const SUBAGENT_ASK_HEAD = "【サブエージェントについて聞く】";
+/** 見分けるときの頭（言葉を整理する前の「【サブエージェントに直接聞く】」で始めた子チャットも見分ける） */
+const SUBAGENT_ASK_HEADS = [SUBAGENT_ASK_HEAD, "【サブエージェントに直接聞く】"];
 
 /**
- * サブエージェントに子チャットで直接聞くときの最初の指示（1 行目に宛先、本文は区切りの後ろにそのまま）。
- * 子チャットの AI は、添付したサブエージェントの会話の記録を読んで、そのサブエージェントの続きとして答える（メインのエージェントの会話には混ざらない）
+ * サブエージェントについて子チャットで聞くときの最初の指示（1 行目に宛先、本文は区切りの後ろにそのまま）。
+ * 子チャットの AI は、添付したサブエージェントの会話の記録を読んで、そのサブエージェントの続きとして答える（メインエージェントの会話には混ざらない）
  */
 export function subagentAskMessage(agentId: string, name: string, fileName: string, text: string): string {
   return [
     `${SUBAGENT_ASK_HEAD}「${name}」（ID: ${agentId}）`,
-    `添付の「${fileName}」は、親のチャットのサブエージェント「${name}」の会話の記録（依頼・発言・使ったツールと結果・報告）です。あなたはこのサブエージェントの続きとして、まず記録を読んでから、下の質問に答えてください。続きの作業を頼まれたら、この子チャットで行ってください（サブエージェント本人とメインのエージェントには伝わりません）。`,
+    `添付の「${fileName}」は、親のチャットのサブエージェント「${name}」の会話の記録（依頼・発言・使ったツールと結果・報告）です。あなたはこのサブエージェントの続きとして、まず記録を読んでから、下の質問に答えてください。続きの作業を頼まれたら、この子チャットで行ってください（サブエージェント本人とメインエージェントには伝わりません）。`,
     "---",
     text,
   ].join("\n");
 }
 
-/** 子チャットの最初の発言が、サブエージェントに直接聞いたものなら、宛先の名前と本文（違えば undefined） */
+/** 子チャットの最初の発言が、サブエージェントについて聞いたものなら、宛先の名前と本文（違えば undefined） */
 export function subagentAskOf(message: string): { name: string; text: string } | undefined {
-  if (!message.startsWith(SUBAGENT_ASK_HEAD)) return undefined;
+  if (!SUBAGENT_ASK_HEADS.some((head) => message.startsWith(head))) return undefined;
   const at = message.indexOf("\n---\n");
   const name = /「(.*)」（ID: /.exec(message.split("\n")[0])?.[1];
   return at < 0 || name === undefined ? undefined : { name, text: message.slice(at + 5) };
 }
 
-/** メインのチャットの自分の発言が、このサブエージェントへの追加の指示なら、その本文（違えば undefined） */
+/** チャットの自分の発言が、このサブエージェントへの追加の指示なら、その本文（違えば undefined） */
 export function relayedText(message: string, agentId: string): string | undefined {
   if (!message.startsWith(RELAY_HEAD) || !message.split("\n")[0].includes(`（ID: ${agentId}）`)) return undefined;
   const at = message.indexOf("\n---\n");
@@ -78,7 +80,7 @@ export function relayedText(message: string, agentId: string): string | undefine
 }
 
 /**
- * 止まったサブエージェントの再開を頼む文。メインのエージェントに、SendMessage で止まったところから続けさせる
+ * 止まったサブエージェントの再開を頼む文。メインエージェントに、SendMessage で止まったところから続けさせる
  * （記録が見つからないなど再開できないときだけ、同じ依頼で立ち上げ直してもらう）
  */
 export function resumeRequest(agentId: string, name: string, { outputLimit = false }: { outputLimit?: boolean } = {}): string {

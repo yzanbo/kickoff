@@ -66,7 +66,7 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
   };
 
   if (!view || !tree) return null;
-  const name = (agent: string | null) => (agent === null ? "メイン" : (tree.byKey.get(agent)?.description ?? "サブエージェント"));
+  const name = (agent: string | null) => (agent === null ? "メインエージェント" : (tree.byKey.get(agent)?.description ?? "サブエージェント"));
   const toggle = (key: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -182,7 +182,7 @@ function Filters({
   return (
     <div className="activity-filters" role="radiogroup" aria-label="動きの絞り込み">
       {chip(filter.kind === "all", "すべて", { kind: "all" })}
-      {chip(filter.kind === "main", "メイン", { kind: "main" })}
+      {chip(filter.kind === "main", "メインエージェント", { kind: "main" })}
       {agents.map(({ entry, path }) =>
         chip(filter.kind === "agent" && filter.key === entry.key, entry.description, { kind: "agent", key: entry.key }, {
           hue: hues.get(entry.key),

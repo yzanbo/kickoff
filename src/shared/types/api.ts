@@ -132,7 +132,7 @@ export interface ChildChatBody {
   attachments?: Attachment[];
 }
 
-/** サブエージェントに子チャットで直接聞く（POST /api/chats/:id/subagents/:agentId/children。サブエージェントの会話の記録を添付にして始める） */
+/** サブエージェントに子チャットで聞く（POST /api/chats/:id/subagents/:agentId/children。サブエージェントの会話の記録を添付にして始める） */
 export interface SubagentChildBody {
   text: string;
   options?: ChatOptionsPatch;

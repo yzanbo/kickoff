@@ -13,7 +13,7 @@ const userMessage = (text: string, uuid?: string): SDKUserMessage => ({
 
 /**
  * Claude Code への入力（ストリーミング入力）。最初の指示のあとも開いたままにして、作業中に発言を足せるようにする
- * （足した発言は、いまの手順の切れ目でメインのエージェントが読む）。裏の作業を止める（stopTask）にも、入力が開いている必要がある。
+ * （足した発言は、いまの手順の切れ目でメインエージェントが読む）。裏の作業を止める（stopTask）にも、入力が開いている必要がある。
  * close は、まだ渡していない発言があるときは閉じない（足した発言を落とさない）。閉じたあとの push は false
  */
 export function createInputChannel(first: string, firstUuid?: string) {

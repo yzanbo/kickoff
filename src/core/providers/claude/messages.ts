@@ -5,7 +5,7 @@ const TOOL_RESULT_LIMIT = 4000;
 
 /**
  * 1 回の実行の間だけ持つ、メッセージの変換の状態。
- * 思考の時間（メインのエージェントの分だけ）: 思考のブロックは、流れてくる途中経過（stream_event）で始まりと終わりが分かり、
+ * 思考の時間（メインエージェントの分だけ）: 思考のブロックは、流れてくる途中経過（stream_event）で始まりと終わりが分かり、
  * 中身は後から届く assistant に入る。
  * サブエージェントでないタスク（裏のコマンドなど）: 途中経過・終了の知らせには種類が入らないので、始まりで覚えておいて除く
  */
@@ -160,7 +160,7 @@ export function emitSdkMessage(msg: SDKMessage, cb: ProviderCallbacks, state: Me
     }
 
     case "stream_event": {
-      // メインのエージェントの文章だけを流す（サブエージェントの途中経過は出さない）
+      // メインエージェントの文章だけを流す（サブエージェントの途中経過は出さない）
       if (msg.parent_tool_use_id !== null) return undefined;
       const event = msg.event;
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {

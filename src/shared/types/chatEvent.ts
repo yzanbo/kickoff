@@ -17,7 +17,7 @@ export type ChatEventData =
   | { type: "init"; session_id: string; model?: string; permission_mode?: string; effort?: string | null }
   /** parent: サブエージェントの発言なら、そのサブエージェントを起動した Task / Agent ツールの呼び出し ID（メインの発言にはない） */
   | { type: "text"; text: string; parent?: string }
-  /** 思考（text は既定では空）。duration_ms: 考えていた時間（メインのエージェントで、測れたときだけ） */
+  /** 思考（text は既定では空）。duration_ms: 考えていた時間（メインエージェントで、測れたときだけ） */
   | { type: "thinking"; text: string; duration_ms?: number; parent?: string }
   | { type: "tool_use"; id: string; name: string; input: unknown; parent?: string }
   | { type: "tool_result"; tool_use_id: string; content: string; is_error: boolean; parent?: string }

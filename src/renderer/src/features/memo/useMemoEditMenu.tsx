@@ -16,17 +16,16 @@ interface MemoMenuSource {
   copyAll?: string;
 }
 
-/** メモを足す先のチャット（メインのチャット・メモのチャット）。選んでいれば、その部分の引用を足し、なければメモ全体を添付する。path なら、メモのパスを足す */
+/** メモを足す先のチャット（開いたチャット・メモのチャット）。選んでいれば、その部分の引用を足し、なければメモ全体を添付する。path なら、メモのパスを足す */
 export interface MemoChatTarget {
+  /** 見出し・ボタンに出す呼び名（開いたチャットは名前。「機能開発」など） */
+  name: string;
   add: (selection: string, lines: MemoLines | null) => void;
   addPath: () => void;
 }
 
-/** 足す先ごとの見出し */
-const TARGET_NAMES = { main: "メインのチャット", memo: "メモのチャット" } as const;
-
 /**
- * メモの本文の右クリックのメニュー。足す先ごとに見出しを付けて組に分ける: メインのチャット（main を渡したとき。チャットの右の欄・別ウィンドウのメモ）・メモのチャット。
+ * メモの本文の右クリックのメニュー。足す先ごとに見出しを付けて組に分ける: 開いたチャット（main を渡したとき。見出しはチャットの名前。チャットの右の欄・別ウィンドウのメモ）・メモのチャット。
  * それぞれ「選択部分を追加」（選んでいなければ「メモを添付」）と「パスを追加」。送るのは自分で。
  * その下に「クリップボード」の組（ClipboardItems: 切り取り・コピー・パスを含めてコピー・パスをコピー・貼り付け。file = メモのファイルのフルパス）。
  * 文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
@@ -62,7 +61,7 @@ export function useMemoEditMenu(
         {(["main", "memo"] as const).map((key) => {
           const target = targets[key];
           if (!target) return null;
-          const name = TARGET_NAMES[key];
+          const name = target.name;
           return (
             <Fragment key={key}>
               <div className="menu-label">{name}</div>

@@ -43,7 +43,7 @@ const STALE_AFTER_RESULTS = 2;
 export const collectTodos = (events: ChatEvent[]): TodoItem[] => collectTodoList(events).items;
 
 /**
- * メインのエージェントのツールの呼び出しから ToDo を組み立てる。
+ * メインエージェントのツールの呼び出しから ToDo を組み立てる。
  * TodoWrite は毎回すべてを書き直す（最後のものが今の一覧。消えた完了済みはこれまでの ToDo に移す）。TaskCreate は 1 件ずつ足し（番号は結果の「Task #3」から）、
  * TaskUpdate は番号で状態を変える（deleted は消す）。TodoWrite と Task の両方があれば、後に使った方を今の一覧にする。
  * Claude Code のセッションが替わる（コンテキストの消去など）と番号は #1 から振り直されるので、それまでの分は締めて、新しい番号と混ぜない。
