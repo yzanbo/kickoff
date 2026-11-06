@@ -8,6 +8,7 @@ import { SelectionAttach } from "@/features/chat/messages/SelectionAttach";
 import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
 import { ActivityView } from "@/features/chat/activity/ActivityView";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
+import { BackgroundCallsContext, useBackgroundCalls } from "@/features/chat/tools/backgroundCalls";
 import { AgentSplit } from "@/features/panel/agents/AgentSplit";
 import { usePanelHost } from "@/features/panel/panelHost";
 import { ChatComposerArea } from "./ChatComposerArea";
@@ -78,10 +79,13 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
   const [wide] = useWideText();
   // 一番下へ戻るボタンを置く、ピルの列の右端（描いたら要素が届き、流れの側で置けるか測る）
   const [pillDock, setPillDock] = useState<HTMLSpanElement | null>(null);
+  // 裏でまだ動いている作業を起動した呼び出し（流れの中の裏のコマンドを、終わるまで実行中に見せる）
+  const backgroundCalls = useBackgroundCalls(view.live.background);
   return (
     <FileLinksProvider value={view.fileLinks}>
       <ChatPaneContext.Provider value={pane}>
         <SubagentsContext.Provider value={view.subagentsView}>
+        <BackgroundCallsContext.Provider value={backgroundCalls}>
         <AgentSplit chatId={chat.id} handleRef={view.side}>
         {/* data-chat-id・data-chat-role: 右の欄・別ウィンドウで、選んだ所・右クリックした所のチャット（子チャット・メモのチャット）を見分ける */}
         <div
@@ -129,6 +133,7 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
           />
         </div>
         </AgentSplit>
+        </BackgroundCallsContext.Provider>
         </SubagentsContext.Provider>
       </ChatPaneContext.Provider>
     </FileLinksProvider>
