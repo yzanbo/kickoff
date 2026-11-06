@@ -3,7 +3,7 @@ import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
-import { MEMO_CHAT_OPEN, MEMO_CHAT_WIDTH, MEMO_VIEW } from "@/lib/storageKeys";
+import { MEMO_CHAT_HEIGHT, MEMO_CHAT_OPEN, MEMO_CHAT_PLACE, MEMO_CHAT_WIDTH, MEMO_VIEW } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { useMemoList } from "@/stores/memos";
@@ -92,6 +92,10 @@ export function MemoView({
   const body = useRef<HTMLDivElement>(null);
   const chatPane = useRef<HTMLDivElement>(null);
   const chatWidth = useDragSize({ setting: MEMO_CHAT_WIDTH, edge: "start", min: 280, keep: 280, write: "--memo-chat-w", pane: chatPane, target: () => body.current });
+  // 本文の下に置くとき（見出しで選ぶ）は、高さを本文と欄を合わせた高さの % で覚える（つまみは上下）
+  const [chatPlace, setChatPlace] = useSetting(MEMO_CHAT_PLACE);
+  const chatHeight = useDragSize({ setting: MEMO_CHAT_HEIGHT, axis: "y", edge: "start", unit: "%", min: 20, max: 85, write: "--memo-chat-h", pane: chatPane, target: () => body.current });
+  const chatSize = chatPlace === "bottom" ? chatHeight : chatWidth;
   const savedTitle = memoTitle(path);
   // 書いている題名（別のメモへ移った・名前を変えたら、そのメモの題名に入れ直す）
   const [title, setTitle] = useState(savedTitle);
@@ -224,8 +228,14 @@ export function MemoView({
       {doc.error && <ErrorText message={doc.error} className="memo-message" />}
       <div
         ref={body}
-        className={cx("memo-body", !unreadable && doc.initial !== null && "with-chat", chatOpen && "chat-open", chatWidth.resizing && "resizing")}
-        style={{ "--memo-chat-w": `${chatWidth.size}px` } as CSSProperties}
+        className={cx(
+          "memo-body",
+          !unreadable && doc.initial !== null && "with-chat",
+          chatOpen && "chat-open",
+          chatPlace === "bottom" && "chat-bottom",
+          chatSize.resizing && "resizing",
+        )}
+        style={{ "--memo-chat-w": `${chatWidth.size}px`, "--memo-chat-h": `${chatHeight.size}%` } as CSSProperties}
       >
         {doc.loadError ? (
           <ErrorText message={doc.loadError} className="memo-message" />
@@ -251,9 +261,24 @@ export function MemoView({
             </Suspense>
             {editMenu.element}
             {attachTo !== null && <MemoSelectionAttach chatId={attachTo} file={file} path={path} editor={editor} page={page ? pageHandle : null} />}
-            {chatOpen && <div className="pane-resizer memo-chat-resizer" aria-label="メモのチャットの欄の幅を変える" {...chatWidth.handle} />}
+            {chatOpen && (
+              <div
+                className={chatPlace === "bottom" ? "memo-chat-resizer-y" : "pane-resizer memo-chat-resizer"}
+                aria-label={chatPlace === "bottom" ? "メモのチャットの欄の高さを変える" : "メモのチャットの欄の幅を変える"}
+                {...chatSize.handle}
+              />
+            )}
             <div ref={chatPane} className="memo-chat-slot" aria-hidden={!chatOpen} inert={!chatOpen}>
-              <MemoChat projectId={projectId} path={path} visible={chatOpen} beforeSend={saveBeforeSend} handleRef={chat} onClose={() => setChatOpen(false)} />
+              <MemoChat
+                projectId={projectId}
+                path={path}
+                visible={chatOpen}
+                beforeSend={saveBeforeSend}
+                handleRef={chat}
+                place={chatPlace}
+                onPlaceChange={setChatPlace}
+                onClose={() => setChatOpen(false)}
+              />
             </div>
           </>
         )}

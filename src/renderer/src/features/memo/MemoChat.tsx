@@ -1,9 +1,10 @@
-import { MessagesSquare } from "lucide-react";
+import { MessagesSquare, PanelBottom, PanelRight } from "lucide-react";
 import { useRef, useState, type MutableRefObject } from "react";
 import type { Attachment, ChatOptions } from "@shared/types";
 import { api } from "@/api";
 import { useMemoChatOf } from "@/stores/chats";
 import { CloseButton } from "@/ui/IconButton";
+import { Segmented } from "@/ui/Segmented";
 import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
@@ -18,8 +19,11 @@ export interface MemoChatHandle {
   add: (text: string, attachments?: Attachment[]) => void;
 }
 
+/** 欄の置き場所（本文の右 / 下。lib/storageKeys.ts の MEMO_CHAT_PLACE） */
+export type MemoChatPlace = "right" | "bottom";
+
 /**
- * メモのチャットの欄（本文の右。狭いときは下）: メモごとに 1 つの、ふつうのチャット（Claude Code。モデルの選択・音声入力・返事を書きながら見せる・
+ * メモのチャットの欄（本文の右か下を見出しで選ぶ。右でも狭いときは下）: メモごとに 1 つの、ふつうのチャット（Claude Code。モデルの選択・音声入力・返事を書きながら見せる・
  * 送信待ち・添付などはメインのチャットと同じ）。AI はメモのファイルを直接読み書きし、書き換えると開いているメモが読み直す（コアがメモの変更を知らせる）。
  * まだチャットがなければ、最初の指示の入力欄だけを出し、送るとチャットを作る。送る前に、書きかけのメモを保存する（beforeSend）
  */
@@ -29,6 +33,8 @@ export function MemoChat({
   visible,
   beforeSend,
   handleRef,
+  place,
+  onPlaceChange,
   onClose,
 }: {
   projectId: number;
@@ -37,6 +43,8 @@ export function MemoChat({
   /** 送る前にすること（書きかけのメモを保存する。保存できなければ SendCancelled を投げて送らない） */
   beforeSend: () => Promise<void>;
   handleRef: MutableRefObject<MemoChatHandle | null>;
+  place: MemoChatPlace;
+  onPlaceChange: (place: MemoChatPlace) => void;
   onClose: () => void;
 }) {
   const stored = useMemoChatOf(projectId, path);
@@ -56,6 +64,16 @@ export function MemoChat({
         <MessagesSquare size={14} aria-hidden />
         <span className="memo-chat-title">メモのチャット</span>
         <span className="spacer" />
+        <Segmented<MemoChatPlace>
+          className="view-toggle"
+          label="メモのチャットの置き場所"
+          value={place}
+          onChange={onPlaceChange}
+          options={[
+            { value: "bottom", label: "下に表示（本文の下に置く）", icon: PanelBottom, iconOnly: true },
+            { value: "right", label: "右に表示（本文の右に置く。狭いときは下）", icon: PanelRight, iconOnly: true },
+          ]}
+        />
         <CloseButton size={15} label="チャットの欄を閉じる" onClick={onClose} />
       </header>
       <div className="memo-chat-body">
