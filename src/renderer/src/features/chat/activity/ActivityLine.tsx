@@ -24,6 +24,9 @@ interface LineProps {
   hues: ReadonlyMap<string, number>;
   rel: (s: string) => string;
   expanded: boolean;
+  /** 強調している行（カードの「動きで見る」のサブエージェントと配下の行）と、そのうちいま移っている行 */
+  highlighted: boolean;
+  current: boolean;
   onToggle: (key: string) => void;
   /** 会話のその場所へ移る（eventId を渡せば、まとめたツールのうちのその 1 回へ） */
   onOpen: (row: ActivityRow, eventId?: number) => void;
@@ -40,11 +43,15 @@ interface LineProps {
  * 動きの 1 行: 時刻・線（メインの線から枝分かれするサブエージェントの線）・誰が・何を・かかった時間（実行中は回る印と経過）。
  * 押すと会話のその場所へ移る。いくつものツールをまとめた行は、左の矢印で 1 回ずつに広げる
  */
-function ActivityLineView({ row, rail, width, name, hues, rel, expanded, onToggle, onOpen, onMenu, onPick }: LineProps) {
+function ActivityLineView({ row, rail, width, name, hues, rel, expanded, highlighted, current, onToggle, onOpen, onMenu, onPick }: LineProps) {
   const expandable = row.kind === "tools" && (row.tools?.length ?? 0) > 1;
   const pickable = onPick !== undefined && agentTargetOf(row) !== null;
   return (
-    <div className={cx("activity-row", `kind-${row.kind}`, row.agent === null && "main", row.running && "running", row.failed && "failed")} style={agentHueStyle(hueOf(hues, row.agent))}>
+    <div
+      className={cx("activity-row", `kind-${row.kind}`, row.agent === null && "main", row.running && "running", row.failed && "failed", highlighted && "focused", current && "focus-current")}
+      style={agentHueStyle(hueOf(hues, row.agent))}
+      data-row-key={row.key}
+    >
       <span className="activity-time" title={formatFullStamp(row.at)}>
         {formatStamp(row.at)}
       </span>
@@ -111,6 +118,8 @@ export const ActivityLine = memo(
     a.hues === b.hues &&
     a.rel === b.rel &&
     a.expanded === b.expanded &&
+    a.highlighted === b.highlighted &&
+    a.current === b.current &&
     (a.onPick === undefined) === (b.onPick === undefined),
 );
 

@@ -19,7 +19,7 @@ export function PopoutSubagent({ chatId, agentKey }: { chatId: number; agentKey:
 
 /**
  * チャットの画面と同じ状態と操作（useChatView）で、サブエージェントの画面だけを描く。メインの会話・右の欄が要る操作はこのウィンドウにないので、
- * ほかのサブエージェントの画面は別ウィンドウで開き、会話のその場所へ移る・動きを開く・チャット欄に足すは、メインのウィンドウに知らせる
+ * ほかのサブエージェントの画面は別ウィンドウで開き、会話のその場所へ移る・動きで強調する・チャット欄に足すは、メインのウィンドウに知らせる
  */
 function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: string }) {
   const view = useChatView(input, false);
@@ -38,9 +38,7 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
       openSubagent: (key) => openScreen(key),
       revealSubagent: (key, inside) => reveal(inside, key),
       revealInConversation: reveal,
-      show: (showing, filter) => {
-        if (showing === "activity" && filter?.kind === "agent") postToMainWindow({ type: "showActivity", chatId: chat.id, agent: filter.key });
-      },
+      focusActivity: (key) => postToMainWindow({ type: "showActivity", chatId: chat.id, agent: key }),
       fillComposer: (text) => postToMainWindow({ type: "fillComposer", chatId: chat.id, text }),
     };
     // チャットの画面の操作はチャットごとに 1 回だけ作る（view.pane と同じ）

@@ -151,8 +151,8 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
           <button
             type="button"
             className="link-button subagent-tell"
-            title="このサブエージェントと、その中で起動したものの動きを、時刻の順に見る（メインの見出しの「動き」をこのサブエージェントに絞って開きます）"
-            onClick={() => pane.show("activity", { kind: "agent", key: entry.key })}
+            title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（↑↓ で順に移る）"
+            onClick={() => pane.focusActivity(entry.key)}
           >
             <GitBranch size={12} aria-hidden />
             動きで見る

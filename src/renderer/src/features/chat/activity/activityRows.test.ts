@@ -4,7 +4,7 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 import { relayMessage } from "@shared/chat/prompts";
 import { eventSequence } from "@shared/testing/factories";
 import { subagentTree } from "@/features/chat/subagents/subagentTree";
-import { activityRows, agentTargetOf, filterActivity, type ActivityRow } from "./activityRows";
+import { activityRows, agentScope, agentTargetOf, filterActivity, focusedRowIndexes, type ActivityRow } from "./activityRows";
 
 /** 2026-11-01 00:00:00 から sec 秒後の時刻 */
 const at = (sec: number) => new Date(Date.UTC(2026, 10, 1, 0, 0, sec)).toISOString();
@@ -123,6 +123,25 @@ test("filterActivity: メインだけ・そのサブエージェントと配下�
     "発言「探します」",
   ]);
   assert.equal(filterActivity(rows, tree, { kind: "all" }), rows);
+});
+
+test("focusedRowIndexes: そのサブエージェントの起動の行・中の行・配下の行の位置（メインとほかのサブエージェントは外す）", () => {
+  const ev = eventSequence();
+  const events = [
+    ev("tool_use", { id: "a1", name: "Agent", input: { description: "調査" } }, { created_at: at(0) }),
+    ev("tool_use", { id: "c1", name: "Agent", input: { description: "別" } }, { created_at: at(0) }),
+    ev("text", { text: "読みます", parent: "a1" }, { created_at: at(1) }),
+    ev("text", { text: "書きます", parent: "c1" }, { created_at: at(1) }),
+    ev("tool_use", { id: "b1", name: "Agent", input: { description: "内側" }, parent: "a1" }, { created_at: at(2) }),
+    ev("text", { text: "探します", parent: "b1" }, { created_at: at(3) }),
+    ev("text", { text: "待っています" }, { created_at: at(4) }),
+  ];
+  const tree = subagentTree([agent("a1"), agent("c1"), agent("b1", { parentKey: "a1" })]);
+  const rows = activityRows(events, tree, true);
+  const texts = (scope: Set<string>) => focusedRowIndexes(rows, scope).map((i) => rows[i].text);
+  assert.deepEqual([...agentScope(tree, "a1")].sort(), ["a1", "b1"]);
+  assert.deepEqual(texts(agentScope(tree, "a1")), ["サブエージェント「a1」を起動", "発言「読みます」", "サブエージェント「b1」を起動", "発言「探します」"]);
+  assert.deepEqual(texts(agentScope(tree, "b1")), ["サブエージェント「b1」を起動", "発言「探します」"]);
 });
 
 test("agentTargetOf: 起動の行は起動した子・終わりといまの行はそのサブエージェント・中の行はその記録、メインの行はなし", () => {

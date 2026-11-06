@@ -36,6 +36,11 @@ export interface ChatPaneState {
   showing: ChatShowing;
   /** 動きの絞り込み（すべて・メインだけ・そのサブエージェントと配下） */
   activityFilter: ActivityFilter;
+  /**
+   * 動きで強調しているサブエージェント（カードの「動きで見る」。その配下ごとの行を強調して、順に移る）。
+   * nonce は押すたびに増やす（同じサブエージェントでもう一度押したら、また初めの行へ移る）。強調していなければ null
+   */
+  activityFocus: { key: string; nonce: number } | null;
   /** 「伝える」の入力欄を開いているサブエージェントのカード（行のキー。カードのいちばん下に開く） */
   tellOpen: ReadonlySet<string>;
 }
@@ -77,6 +82,10 @@ export interface ChatPaneActions {
   toggleSubagentFull: (key: string) => void;
   /** 会話・動きを切り替える（動きは filter を渡せば、その絞り込みで） */
   show: (showing: ChatShowing, filter?: ActivityFilter) => void;
+  /** 絞り込まない動きを開き、そのサブエージェントと配下の行をすべて強調して、初めの行へ移る（カードの「動きで見る」） */
+  focusActivity: (key: string) => void;
+  /** 動きの強調をやめる */
+  clearActivityFocus: () => void;
   /**
    * 会話に戻って、その記録へ移って強調する（agent を渡せば、そのサブエージェントを設定の開き方で開いてその中へ: 流れの中 = カードを開いてその中へ /
    * 右の欄 = 右の欄のその画面の中へ。右の欄のときは、会話に戻さず動きを見せたまま）

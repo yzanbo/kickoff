@@ -180,15 +180,30 @@ function rowOf(item: TimelineItem, agent: string | null, owner: SubagentEntry | 
   }
 }
 
+/** そのサブエージェントと、その中で起動したもの（入れ子ごと）のキー */
+export function agentScope(tree: SubagentTree, key: string): Set<string> {
+  const keys = new Set<string>();
+  const collect = (k: string, depth: number) => {
+    keys.add(k);
+    if (depth < 32) for (const child of childrenOf(tree, k)) collect(child.key, depth + 1);
+  };
+  collect(key, 0);
+  return keys;
+}
+
 /** 絞り込んだ行（メインだけ = メインの行、サブエージェント = そのサブエージェントと配下の行。その起動の行は外し、自分の線から始める） */
 export function filterActivity(rows: ActivityRow[], tree: SubagentTree, filter: ActivityFilter): ActivityRow[] {
   if (filter.kind === "all") return rows;
   if (filter.kind === "main") return rows.filter((r) => r.agent === null);
-  const keys = new Set<string>();
-  const collect = (key: string, depth: number) => {
-    keys.add(key);
-    if (depth < 32) for (const child of childrenOf(tree, key)) collect(child.key, depth + 1);
-  };
-  collect(filter.key, 0);
+  const keys = agentScope(tree, filter.key);
   return rows.filter((r) => r.agent !== null && keys.has(r.agent));
+}
+
+/** そのサブエージェント（agentScope）の行の位置（その起動の行も含む。「動きで見る」で強調して順に移る） */
+export function focusedRowIndexes(rows: readonly ActivityRow[], scope: ReadonlySet<string>): number[] {
+  const hits: number[] = [];
+  rows.forEach((r, i) => {
+    if ((r.agent !== null && scope.has(r.agent)) || (r.child !== undefined && scope.has(r.child))) hits.push(i);
+  });
+  return hits;
 }

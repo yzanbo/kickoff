@@ -10,6 +10,17 @@
   display: grid;
   grid-template-columns: calc(var(--activity-time-w, 62px) * var(--chat-scale, 1)) auto minmax(0, 1fr);
   column-gap: 6px;
+  border-radius: var(--radius);
+}
+
+/* カードの「動きで見る」で強調した行（そのサブエージェントと配下）と、いま移っている行（枠を足す） */
+.activity-row.focused {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.activity-row.focus-current {
+  outline: 2px solid var(--accent-bright);
+  outline-offset: 1px;
 }
 
 .activity-time {
