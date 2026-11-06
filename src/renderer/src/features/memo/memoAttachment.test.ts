@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { memoAttachment, memoQuote } from "./memoAttachment";
+import { memoAttachment, memoLocation, memoQuote } from "./memoAttachment";
 
 test("memoAttachment: メモ全体の添付（名前はファイル名、種類は拡張子から、大きさは 0）", () => {
   const a = memoAttachment("設計/DB.md");
@@ -10,5 +10,11 @@ test("memoAttachment: メモ全体の添付（名前はファイル名、種類�
 });
 
 test("memoQuote: 出どころの行の下に、選んだ部分の引用", () => {
-  assert.equal(memoQuote("設計/DB.md", "一行目\n\n二行目 "), "メモ「設計/DB.md」から:\n> 一行目\n>\n> 二行目");
+  assert.equal(memoQuote("/メモ/設計/DB.md:3-5", "一行目\n\n二行目 "), "メモ「/メモ/設計/DB.md:3-5」から:\n> 一行目\n>\n> 二行目");
+});
+
+test("memoLocation: フルパスに行番号を付ける（1 行なら 1 つ、行が分からなければパスだけ）", () => {
+  assert.equal(memoLocation("/メモ/DB.md", { from: 3, to: 5 }), "/メモ/DB.md:3-5");
+  assert.equal(memoLocation("/メモ/DB.md", { from: 7, to: 7 }), "/メモ/DB.md:7");
+  assert.equal(memoLocation("/メモ/DB.md", null), "/メモ/DB.md");
 });

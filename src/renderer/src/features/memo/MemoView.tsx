@@ -12,10 +12,10 @@ import { IconButton } from "@/ui/IconButton";
 import { alertDialog, reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
-import { attachMemoToChat } from "./attachMemo";
 import { HtmlMemoPage } from "./HtmlMemoPage";
 import type { MemoEditorHandle } from "./MemoEditor";
 import { MemoChat, type MemoChatHandle } from "./MemoChat";
+import { memoChatTargets } from "./memoChatTargets";
 import { memoTitle, parentOf } from "./memoPaths";
 import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
 import { useMemoEditMenu } from "./useMemoEditMenu";
@@ -79,26 +79,9 @@ export function MemoView({
   const editor = useRef<MemoEditorHandle | null>(null);
   const chat = useRef<MemoChatHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
-  // メインのチャットに添付: 選んだ部分は引用、なければメモ全体（AI は保存したファイルを読むので、書きかけは先に保存する）
-  const attachToMain =
-    attachTo === null
-      ? undefined
-      : async (selection: string) => {
-          if (!selection.trim() && !(await doc.save())) {
-            void alertDialog("添付できませんでした", "メモを保存できなかったので、添付しませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから添付してください）。");
-            return;
-          }
-          attachMemoToChat(attachTo, path, selection);
-        };
-  // 本文の右クリック: 「選んだ部分をメモのチャットに追加」は欄を開いて、選んだ文の引用を入力欄に足す。「メインのチャットに添付」は上
-  const editMenu = useMemoEditMenu(
-    editor,
-    (quote) => {
-      setChatOpen(true);
-      chat.current?.add(quote);
-    },
-    attachToMain,
-  );
+  // 足す先のチャット（メインのチャット・メモのチャット）。本文の右クリック・見出しの添付のボタンから
+  const targets = memoChatTargets({ file: `${dir}/${path}`, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
+  const editMenu = useMemoEditMenu(editor, targets);
   // チャットの欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）。
   // 欄は閉じても描いたまま置き（書きかけの文も残る）、開け閉めは幅（狭いときは高さ）をスライドさせる
   const body = useRef<HTMLDivElement>(null);
@@ -206,8 +189,8 @@ export function MemoView({
             { value: "edit", label: VIEW_LABELS[kind].edit, icon: CodeXml, iconOnly: true },
           ]}
         />
-        {attachToMain && doc.initial !== null && !unreadable && (
-          <IconButton icon={Paperclip} label="メインのチャットに添付" title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => void attachToMain("")} />
+        {targets.main && doc.initial !== null && !unreadable && (
+          <IconButton icon={Paperclip} label="メインのチャットに添付" title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => targets.main?.add("", null)} />
         )}
         {doc.initial !== null && !unreadable && (
           <IconButton

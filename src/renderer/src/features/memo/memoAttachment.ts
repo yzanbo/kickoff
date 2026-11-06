@@ -9,7 +9,19 @@ export function memoAttachment(path: string): Attachment {
   return { id: crypto.randomUUID(), name: baseName(path), mime: memoKindOf(path) === "html" ? "text/html" : "text/markdown", size: 0, memo: path };
 }
 
-/** メモの選んだ部分の引用（どのメモから引いたかを 1 行目に書く） */
-export function memoQuote(path: string, selection: string): string {
-  return `メモ「${path}」から:\n${quoteComment(selection, "")}`;
+/** 選んだ範囲の行（1 から数える。1 行の中なら from と to は同じ） */
+export interface MemoLines {
+  from: number;
+  to: number;
+}
+
+/** メモのファイルの場所: フルパスと行番号（AI がファイルを開いて前後も読めるように。行が分からなければパスだけ） */
+export function memoLocation(file: string, lines: MemoLines | null): string {
+  if (!lines) return file;
+  return lines.from === lines.to ? `${file}:${lines.from}` : `${file}:${lines.from}-${lines.to}`;
+}
+
+/** メモの選んだ部分の引用（どこから引いたか（memoLocation）を 1 行目に書く） */
+export function memoQuote(location: string, selection: string): string {
+  return `メモ「${location}」から:\n${quoteComment(selection, "")}`;
 }
