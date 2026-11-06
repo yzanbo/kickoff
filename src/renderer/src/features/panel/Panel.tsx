@@ -64,7 +64,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
     panelOpen,
   );
 
-  // 「表示」のメニュー（表示するタブ・まとめ方・アーカイブ済み・ボードツールバーの置き方）。道具のボタンと、タブの列の何もないところの右クリックで同じものを開く
+  // 「表示」のメニュー（表示するタブ・まとめ方・アーカイブ済み・チャットの画面）。道具のボタンと、タブの列の何もないところの右クリックで同じものを開く
   const view = usePanelViewMenu(panel);
   // 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。タブの列の「＋」と空の欄のボタン）
   const newChild = useNewChild(panel);

@@ -81,7 +81,7 @@ export function TabClusterHead({
   const projectId = cluster.projectId;
   const openMenu = (e: React.MouseEvent) => {
     if (projectId === undefined) return;
-    // タブの列の何もないところの右クリック（ツールバーの置き方のメニュー）に渡さない
+    // タブの列の何もないところの右クリック（「表示」のメニュー）に渡さない
     e.stopPropagation();
     menu.open(e);
   };

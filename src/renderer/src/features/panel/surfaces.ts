@@ -51,8 +51,6 @@ export interface SurfaceRules {
   newChild?: boolean;
   /** タブがないときに、新しいチャットのボタンの代わりに出す案内（分けていない欄だけ。ボードの右のパネル: 新しいチャットは見出しの「新規」から） */
   emptyHint?: string;
-  /** タブの列の何もないところの右クリックで、ボードツールバーの置き方を選ぶか（ボードの右のパネルだけ） */
-  layoutMenu?: boolean;
   /** パネルに付けるクラス（欄ごとの見た目。as-sidebar = 欄いっぱいに置く（枠・影なし）/ in-footer = フッター） */
   className?: string;
   /**
@@ -73,7 +71,6 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeButton: { icon: PanelRightClose, label: "パネルを閉じる", keys: "Esc", at: "start" },
     maximize: "width",
     emptyHint: "カードを押すと、ここにチャットが開きます。",
-    layoutMenu: true,
   },
   side: {
     memoryPrefix: "side",

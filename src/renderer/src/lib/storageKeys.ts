@@ -84,8 +84,6 @@ export const ALL_PROJECTS_BOARD_LANES = defineSetting("kickoff:board-lanes-all",
 export const BOARD_ARCHIVE_FILTER = defineSetting("kickoff:show-archived", choice(["all", "active", "archived"], "all"));
 /** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える） */
 export const GROUP_BOARD_ARCHIVE_FILTER = defineSetting("kickoff:group-show-archived", choice(BOARD_ARCHIVE_FILTER.choices, "all"));
-/** ボードツールバーの置き方（top = 常時表示 / beside = パネル優先。設定の「表示」） */
-export const BOARD_HEADER_LAYOUT = defineSetting("kickoff:board-header-layout", choice(["top", "beside"], "top"));
 /** 下の帯（フッター）の出し方（show = 表示 / hover = 下端に寄せたときだけ表示 / hide = 非表示。features/footer/footerMode.ts） */
 export const FOOTER_MODE = defineSetting("kickoff:footer-mode", choice(["show", "hover", "hide"], "show"));
 /** プロジェクトの画面のタブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */
