@@ -3,6 +3,7 @@ import type { Approval, Chat, ChatEvent, ChatLive, Project } from "@shared/types
 import { api } from "@/api";
 import { createValueCell } from "@/lib/valueCell";
 import { readSetting } from "@/lib/storage";
+import { reportFailure } from "@/ui/dialogs";
 import { canPopout, openPopout } from "@/app/popout";
 import { SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { panelActions } from "@/features/panel/state/panelActions";
@@ -10,6 +11,7 @@ import { panelKey } from "@/features/panel/surfaces";
 import { useFileLinks } from "@/features/fileLinks/useFileLinks";
 import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
+import { SendCancelled } from "@/features/chat/composer/useComposerSend";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { promptListOf } from "@/features/chat/prompts/promptHistory";
 import { usePromptKeys } from "@/features/chat/prompts/usePromptKeys";
@@ -120,7 +122,7 @@ export function useChatView(
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
   const promptKeys = usePromptKeys({ root: rootRef, timeline: scroll.ref, promptIds: prompts.ids, onJump: (id) => pane.jumpTo(id) });
   // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
-  const fresh = { chat, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go };
+  const fresh = { chat, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go, send, queueing: busy || live.queue.messages.length > 0 };
   const latest = useRef(fresh);
   latest.current = fresh;
 
@@ -243,6 +245,15 @@ export function useChatView(
         scroll.follow();
         await api.rewindChat(chatId, eventId, text, now().options.options, choice.restoreFiles);
         return true;
+      },
+      resend: async (text, attachments) => {
+        const { send, queueing } = now();
+        try {
+          await (queueing ? send.onQueue(text, attachments) : send.onSend(text, attachments));
+        } catch (e) {
+          // 送る前の確かめでやめたときは、何も出さない
+          if (!(e instanceof SendCancelled)) void reportFailure("もう一度送れませんでした")(e);
+        }
       },
       restoreFiles: (eventId) => restoreFilesBefore(chatId, eventId),
       retry: (change) => retryTurn(chatId, now().options, change),

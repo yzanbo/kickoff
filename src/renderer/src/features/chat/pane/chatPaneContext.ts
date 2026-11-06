@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type RefObject } from "react";
-import type { EffortLevel } from "@shared/types";
+import type { Attachment, EffortLevel } from "@shared/types";
 import type { ValueCell } from "@/lib/valueCell";
 import type { ComposerFill } from "@/features/chat/composer/composerHandle";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
@@ -100,6 +100,11 @@ export interface ChatPaneActions {
   closeTell: (key: string) => void;
   /** 自分の発言を書き直して送り直す（確かめ（会話だけ / ファイルも）てから送る。やめたら false。作業中は呼ばない） */
   rewind: (eventId: number, text: string) => Promise<boolean>;
+  /**
+   * 自分の発言を、新しい指示としてもう一度送る（文と添付をそのまま。前のやり取りは消さない）。
+   * 送り方はチャット欄の送信と同じ（作業中・送信待ちがあれば、チャット欄の切り替え（いま / あとで）。圧縮中の「いま」は圧縮が終わってから伝わる）
+   */
+  resend: (text: string, attachments: Attachment[]) => Promise<void>;
   /** ファイルだけを、その発言を送る前の状態に戻す（会話はそのまま。変わる量を見せて確かめてから） */
   restoreFiles: (eventId: number) => Promise<void>;
   /** 失敗した作業を、続きから再試行する（深さ・モデルを変えるときは、チャット欄の選択も同じに変える） */
