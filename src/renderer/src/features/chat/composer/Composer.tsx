@@ -233,7 +233,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         onContextMenu={textMenu.onContextMenu}
       />
       {textMenu.element}
-      <div className="composer-bar">
+      <div className="composer-bar" onContextMenu={textMenu.onBarContextMenu}>
         <div className="composer-tools">
           <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />
           {chatContext && <ChatContextButton {...chatContext} onPick={attach.addChat} />}
