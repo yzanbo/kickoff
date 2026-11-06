@@ -85,10 +85,9 @@
   color: var(--muted);
 }
 
+/* リンクは色だけで示す（このアプリは下線を使わない） */
 .md-editor .cm-md-link {
   color: var(--accent-fg);
-  text-decoration: underline;
-  text-underline-offset: 2px;
 }
 
 .md-editor .cm-md-code {

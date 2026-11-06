@@ -114,6 +114,16 @@
   color: var(--accent);
 }
 
+/*
+ * 文の中の押せる名前（裏の作業の名前・ツールの行のファイル名など）に乗せたとき: 下線は使わず、地の色で示す（このアプリは、押せることを下線で示さない。
+ * 行・カードと同じく背景のハイライトにそろえる）。地は文字の外へ少しはみ出させる（box-shadow。余白を足すと並びがずれるため）
+ */
+.link-button.hover-bg:hover {
+  border-radius: 3px;
+  background: var(--bg-hover);
+  box-shadow: 0 0 0 2px var(--bg-hover);
+}
+
 input[type="text"],
 input[type="url"],
 input[type="number"],

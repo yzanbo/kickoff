@@ -129,7 +129,7 @@ function ToolFileArg({ path, label }: { path: string; label: string }) {
   return (
     <button
       type="button"
-      className="link-button tool-file-link"
+      className="link-button hover-bg tool-file-link"
       title={`${ref.path} を${links.side ? "右の欄" : "ファイルタブ"}で開く（⌘クリックでファイルタブ・右クリックでほかの開き方）`}
       onClick={(e) => {
         e.preventDefault();

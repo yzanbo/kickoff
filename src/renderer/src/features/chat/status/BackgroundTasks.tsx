@@ -55,13 +55,13 @@ export function BackgroundTasks({
           <li key={task.task_id} className="background-task">
             <Icon size={13} aria-hidden className="muted" />
             {entry && pane ? (
-              <button type="button" className="link-button background-task-name" title={`「${task.description}」を開く（設定の開き方で、流れの中のカードか右の欄）`} onClick={() => pane.openSubagent(entry.key)}>
+              <button type="button" className="link-button hover-bg background-task-name" title={`「${task.description}」を開く（設定の開き方で、流れの中のカードか右の欄）`} onClick={() => pane.openSubagent(entry.key)}>
                 {task.description}
               </button>
             ) : task.kind !== "agent" && task.tool_use_id && pane ? (
               <button
                 type="button"
-                className="link-button background-task-name"
+                className="link-button hover-bg background-task-name"
                 title={`「${task.description}」の、流れの中の行へ移る（実行中の様子と出力）`}
                 onClick={() => {
                   const target = backgroundCallTarget(task, events, agents);

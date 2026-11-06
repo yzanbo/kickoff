@@ -22,11 +22,6 @@
   white-space: nowrap;
 }
 
-/* サブエージェントは名前を押すと流れの中のカードへ移る */
-.link-button.background-task-name:hover {
-  text-decoration: underline;
-}
-
 /* チャットのパネルの中で重ねて出すもの（下へ戻るボタンなど）の基準 */
 .chat-panel {
   position: relative;
@@ -43,9 +38,9 @@
   background: var(--bg-elev);
 }
 
-/* 実行中は、回る印と同じ Claude の色で枠を染める */
+/* 実行中は、回る印と同じ作業中の色で枠を染める */
 .subagent-card.running {
-  border-color: color-mix(in srgb, #d97757 45%, var(--border));
+  border-color: color-mix(in srgb, var(--dot-running) 45%, var(--border));
 }
 
 /* 入れ子のカードは地の色を交互にして、どこまでが 1 つかを分かりやすくする */
@@ -73,8 +68,9 @@
   cursor: default;
 }
 
-.subagent-card-head:not(.static):hover .subagent-card-name {
-  text-decoration: underline;
+/* 押すと開閉する見出しは、乗せると地の色で示す（下線は使わない） */
+.subagent-card-head:not(.static):hover {
+  background: var(--bg-hover);
 }
 
 .subagent-card.open > .subagent-card-head .tool-chevron {
