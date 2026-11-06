@@ -1,24 +1,45 @@
-/* ==== 実行中のコマンドの出力（ツールのまとまりの下に最後の行を流す CommandLive・裏のコマンドの最後の 1 行） ==== */
-
+/*
+ * ==== 実行中のコマンドの枠（ツールのまとまりの下に出す CommandLive・裏のコマンドの最後の 1 行） ====
+ * 中身の「コマンド」「出力」の欄は、終わったあとの BashOutput と同じ見た目（bash-output.css・chat-tools.css の .bash-text）。
+ * ここでは外の枠と、実行中だけの違い（コマンドの欄を低く・出力を薄く・見出しの「実行中」）だけを決める
+ */
 .command-live {
   max-width: 100%;
-  max-height: 180px;
   margin: 2px 0 6px 22px;
-  padding: 6px 10px;
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-family: var(--mono);
-  font-size: calc(11.5px * var(--chat-scale, 1));
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: var(--muted);
   background: var(--bg-elev);
 }
 
-.command-live-empty {
-  color: var(--extra-muted);
+/* 外の枠が線を持つので、いちばん上の見出しの線は引かない */
+.command-live > .bash-section:first-child .bash-section-head {
+  border-top: none;
+}
+
+/* 打ったコマンドは低めに（出力のほうを見せたい。長い heredoc は欄の中でスクロールする） */
+.command-live .bash-command {
+  max-height: 120px;
+}
+
+/* いま流れている出力（いちばん下に付いていく） */
+.command-live-output {
+  max-height: 180px;
+  color: var(--muted);
+}
+
+/* 出力の見出しの右の「実行中」 */
+.command-live-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.command-live-state .spinner.small {
+  margin: 0;
 }
 
 /* 裏で動いているコマンドの出力の最後の 1 行（名前の後ろ。狭ければ省く） */

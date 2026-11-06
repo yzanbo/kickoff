@@ -28,13 +28,7 @@ export function BashOutput({
   const { shown, hidden } = parsed ? (showAll ? { shown: parsed.output, hidden: 0 } : clipLines(parsed.output, SHOWN_LINES)) : { shown: "", hidden: 0 };
   return (
     <div className="bash-block">
-      <section className="bash-section" aria-label="コマンド">
-        <div className="bash-section-head">コマンド</div>
-        <pre className="bash-text bash-command">
-          <span className="bash-prompt">$ </span>
-          <HighlightedCode code={rel(command)} lang={highlight ? "shellscript" : undefined} />
-        </pre>
-      </section>
+      <BashCommandSection command={command} rel={rel} highlight={highlight} />
       {parsed && (
         <section className="bash-section bash-result" aria-label="出力">
           <div className="bash-section-head">
@@ -50,5 +44,18 @@ export function BashOutput({
         </section>
       )}
     </div>
+  );
+}
+
+/** 「コマンド」の欄（「$ コマンド」。結果の欄と、実行中の出力の枠 CommandLive で共通） */
+export function BashCommandSection({ command, rel, highlight }: { command: string; rel: (s: string) => string; highlight: boolean }) {
+  return (
+    <section className="bash-section" aria-label="コマンド">
+      <div className="bash-section-head">コマンド</div>
+      <pre className="bash-text bash-command">
+        <span className="bash-prompt">$ </span>
+        <HighlightedCode code={rel(command)} lang={highlight ? "shellscript" : undefined} />
+      </pre>
+    </section>
   );
 }

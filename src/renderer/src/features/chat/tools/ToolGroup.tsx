@@ -16,7 +16,7 @@ import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkConte
 /**
  * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
  * 開閉の矢印の右に、まとまりの状態のアイコン（実行中 → 失敗 → 中断 → 完了。groupStatus）。
- * 実行中のコマンドの出力が届いていれば、まとまりの下に最後の行を流す（CommandLive。閉じていても見える）。
+ * 実行中のコマンドの出力が届いていれば、まとまりの下に、打ったコマンドと出力の最後の行を流す（CommandLive。閉じていても見える）。
  * active: いまの作業の中のまとまり（作業中のチャットで、結果の届いていない呼び出しを実行中として見せる）。
  * 裏で動かしたコマンドは、終わるまで（裏の作業の一覧に残っている間）作業をまたいでも実行中として見せる（BackgroundCallsContext）
  */
@@ -60,7 +60,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
         ))}
       </div>
     </details>
-    {live !== null && <CommandLive text={live} rel={rel} />}
+    {live !== null && <CommandLive command={typeof currentData?.input?.command === "string" ? currentData.input.command : ""} text={live} rel={rel} />}
     </>
   );
 }
