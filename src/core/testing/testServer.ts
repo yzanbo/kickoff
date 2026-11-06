@@ -54,12 +54,14 @@ class FakeProvider extends FakeProviderBase {
   /** 最後に読めるようにしたフォルダと、足したシステムプロンプト（メモのチャットの確かめに使う） */
   lastDirs: string[] = [];
   lastSystemPrompt = "";
+  /** 最後に指示に添えた文脈（子チャットの親など。なければ null） */
+  lastTurnContext: string | null = null;
   /** 実行ごとに渡された、自動の圧縮の前に足す圧縮前指示（順に） */
   preCompacts: ProviderTurnParams["preCompact"][] = [];
   /** これがあれば実行の初めに、自動の圧縮の前に圧縮前指示を足したと知らせる（値は足した発言の ID） */
   preCompactSentId: string | null = null;
   async run(
-    params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"] },
+    params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"]; turnContext?: string | null },
     cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry" | "preCompactSent">,
     signal: AbortSignal,
   ): Promise<ProviderTurnResult> {
@@ -68,6 +70,7 @@ class FakeProvider extends FakeProviderBase {
     if (params.preCompact && this.preCompactSentId) cb.preCompactSent?.(this.preCompactSentId);
     this.lastDirs = params.additionalDirectories;
     this.lastSystemPrompt = params.systemPrompt;
+    this.lastTurnContext = params.turnContext ?? null;
     this.prompts.push(params.prompt);
     this.promptIds.push(params.promptId);
     this.resumes.push(params.resumeSessionId);

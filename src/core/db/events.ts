@@ -55,6 +55,11 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       if (chat) onChange({ type: "chat_event", project_id: chat.project_id, event: saved });
       return saved;
     },
+    /** 記録を 1 件（なければ null） */
+    get(eventId: number): ChatEvent | null {
+      const row = db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE id = ?`).get(eventId) as unknown as EventRow | undefined;
+      return row ? toEvent(row) : null;
+    },
     list(chatId: number): ChatEvent[] {
       return (db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? ORDER BY id`).all(chatId) as unknown as EventRow[]).map(toEvent);
     },

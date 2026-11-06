@@ -8,6 +8,7 @@ import { errorMessage } from "@shared/errors";
 import { currentBranch } from "../git/index.js";
 import { isInside } from "../system/paths.js";
 import { buildSystemPrompt, CHAT_POLICY } from "./policy.js";
+import { chatContextNote, chatContextOf } from "./chatContext.js";
 import type { AgentProvider, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import type { Store } from "../db/store.js";
 import { networkStoppedSubagents, unfinishedSubagents } from "@shared/chat/subagents";
@@ -136,6 +137,7 @@ function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd:
     prompt,
     ...(promptId ? { promptId } : {}),
     systemPrompt: buildSystemPrompt(project, cwd, memoDir && chat.memo_path ? { dir: memoDir, file: path.join(memoDir, chat.memo_path) } : undefined),
+    turnContext: chatContextNote(chatContextOf(deps.store, chat)),
     policy: CHAT_POLICY,
     resumeSessionId: chat.session_id,
     model: chat.model,

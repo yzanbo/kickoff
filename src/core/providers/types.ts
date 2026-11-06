@@ -63,6 +63,12 @@ export interface ProviderTurnParams {
    * contextWindow: コンテキストウィンドウ（前の作業で分かったもの）・contextTokens: いまのコンテキストの大きさ（前の作業の終わりの値。分からなければ null）
    */
   preCompact?: { message: string; contextWindow: number; contextTokens: number | null } | null;
+  /**
+   * 指示に添える文脈（このチャットの名前と親チャットなど。null・省略なら添えない）。Claude Code は続きのセッションでは
+   * システムプロンプトを取り直さず（記録の prompt_snapshot を使い回す。分岐した子チャットは親のもの）、送るたびに変わる文脈が届かないため、
+   * 実行の初めの指示にだけ添える
+   */
+  turnContext?: string | null;
   /** 作業フォルダ以外に読み取りを許すフォルダ（添付ファイルの保存先・参照資料など） */
   additionalDirectories: string[];
   /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
