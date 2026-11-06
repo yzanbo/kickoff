@@ -2,6 +2,7 @@ import { Paperclip } from "lucide-react";
 import type { CSSProperties } from "react";
 import { IconButton } from "@/ui/IconButton";
 import { Chevron } from "@/ui/Chevron";
+import { Collapse } from "@/ui/Collapse";
 import { FileIcon } from "@/features/editor/FileIcon";
 import type { TreeNode } from "@/features/editor/treeModel";
 import { OpenPlaceButtons, type OpenPlace } from "@/features/chat/composer/OpenPlaceControls";
@@ -21,7 +22,7 @@ interface Props {
 }
 
 /**
- * 入力欄の上の「メモ」の一覧の木（メモのタブと同じフォルダの並び。開いているフォルダの中だけ描く）。
+ * 入力欄の上の「メモ」の一覧の木（メモのタブと同じフォルダの並び。開いているフォルダの中だけ描き、開閉は高さをなめらかに変える `Collapse`）。
  * フォルダの行は押すと開閉し、メモの行は押すと開く。メモの行の右に「このチャットに添付」と開く場所のボタン
  */
 export function MemoChipTree({ nodes, open, onToggle, onOpen, onAttach, places, depth = 0 }: Props) {
@@ -38,7 +39,10 @@ export function MemoChipTree({ nodes, open, onToggle, onOpen, onAttach, places, 
                 <FileIcon name={node.name} dir open={isOpen} />
                 <span className="memo-chip-title">{node.name}</span>
               </button>
-              {isOpen && <MemoChipTree nodes={node.children} open={open} onToggle={onToggle} onOpen={onOpen} onAttach={onAttach} places={places} depth={depth + 1} />}
+              {/* 開閉で高さをなめらかに変える（メモのタブの木と同じ動き） */}
+              <Collapse open={isOpen}>
+                <MemoChipTree nodes={node.children} open={open} onToggle={onToggle} onOpen={onOpen} onAttach={onAttach} places={places} depth={depth + 1} />
+              </Collapse>
             </li>
           );
         }
