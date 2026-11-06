@@ -1,16 +1,17 @@
-import type { Chat, ChatOptionsPatch, Attachment, ChildChatBody, FileRewindResult, MessageBody, TellResult } from "@shared/types";
+import type { Chat, ChatOptionsPatch, Attachment, ChildChatBody, FileRewindResult, SendMessageBody, TellResult } from "@shared/types";
 import { request } from "./http";
 
 /** チャットの実行（続きを送る・止めずに伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し。コアの routes/turns.ts） */
 export const turnsApi = {
-  sendMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = []) =>
-    request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments } satisfies MessageBody),
+  /** pauseAfter: 質問として送る（この作業が終わったら、送信待ちを自動で送らずに一時停止する） */
+  sendMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false) =>
+    request<Chat>("POST", `/api/chats/${chatId}/messages`, { text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}) } satisfies SendMessageBody),
   /**
    * 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）。
-   * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った
+   * result: told = 足した / queued = 待ちの列に入れた / sent = すぐ送った / held = 圧縮中なので預かった。pauseAfter は sendMessage と同じ
    */
-  tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = []) =>
-    request<TellResult>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments } satisfies MessageBody),
+  tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false) =>
+    request<TellResult>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}) } satisfies SendMessageBody),
   cancelChat: (chatId: number) => request<void>("POST", `/api/chats/${chatId}/cancel`),
   /** 会話を要約して、コンテキストを空ける */
   /** 会話を圧縮する（作業中なら、いまのやり取りが終わったら圧縮するよう予約する） */

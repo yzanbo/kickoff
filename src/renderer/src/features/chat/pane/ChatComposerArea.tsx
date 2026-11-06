@@ -19,6 +19,10 @@ import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import type { useChatSend } from "./useChatSend";
 
+/** 「質問として送る」の説明 */
+const ASK_SEND_TITLE =
+  "いまの送り方で送り、この指示の作業が終わったら、送信待ちを自動で送らずに一時停止します（答えを見てから次を決めるとき。送信待ちに入れたときは、その指示のすぐあとに一時停止を挟みます）";
+
 /** 「子チャットに送る」の説明 */
 const CHILD_SEND_TITLE = "この文を、このチャットの会話を引き継いだ子チャットで送ります（このチャットの作業は止めません。画面は移らず、上のピルの子チャットに並びます）";
 
@@ -53,7 +57,9 @@ export function ChatComposerArea({
 }) {
   const busyNeighbors = useBusyNeighbors(chat.project_id, chat.worktree_path, chat.id);
   const queued = live.queue.messages.length > 0;
-  // 送信ボタンの右クリックの「子チャットに送る」: この文と添付で、このチャットの会話を引き継いだ子チャットを作って送る（このチャットの作業は止めない。
+  // 送信ボタンの右クリック:
+  // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
+  // 「子チャットに送る」: この文と添付で、このチャットの会話を引き継いだ子チャットを作って送る（このチャットの作業は止めない。
   // 「子チャットで聞く」と同じく画面は移らない。上のピルの子チャットに並ぶ）。メモのチャット・アーカイブ済みでは出さない
   const memoOrArchived = Boolean(chat.memo_path) || chat.archived_at !== null;
   const sendToChild = async (text: string, attachments: Attachment[]) => {
@@ -100,7 +106,10 @@ export function ChatComposerArea({
         handleRef={composer}
         history={prompts.recalls}
         draft={chatDraft(chat.id)}
-        sendTo={memoOrArchived ? undefined : [{ label: "子チャットに送る", title: CHILD_SEND_TITLE, onSend: sendToChild }]}
+        sendTo={[
+          { label: "質問として送る（答えのあとで一時停止）", title: ASK_SEND_TITLE, onSend: send.onAsk },
+          ...(memoOrArchived ? [] : [{ label: "子チャットに送る", title: CHILD_SEND_TITLE, onSend: sendToChild }]),
+        ]}
       />
     </div>
   );

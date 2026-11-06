@@ -61,8 +61,16 @@ export interface NewChatBody extends MessageBody {
   new_worktree_branch?: string;
 }
 
-/** 送信待ちに送る指示（POST /api/chats/:id/queue）。hold なら、作業していなくても送らずに列の最後に足す */
-export interface QueueMessageBody extends MessageBody {
+/**
+ * 続きを送る・止めずに伝える指示（POST /api/chats/:id/messages・/tell）。
+ * pause_after なら「質問として送る」: この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する（答えを見て次を決める）
+ */
+export interface SendMessageBody extends MessageBody {
+  pause_after?: boolean;
+}
+
+/** 送信待ちに送る指示（POST /api/chats/:id/queue）。hold なら、作業していなくても送らずに列の最後に足す。pause_after は SendMessageBody と同じ（列に入れたら、その指示のすぐあとに一時停止の印を付ける） */
+export interface QueueMessageBody extends SendMessageBody {
   hold?: boolean;
 }
 

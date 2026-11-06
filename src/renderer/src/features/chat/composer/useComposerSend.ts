@@ -59,7 +59,7 @@ export function useComposerSend({
     await deliver(message, (t, a) => (queueing ? onQueue!(t, a, mode) : onSend(t, a)));
   }
 
-  /** このチャットの代わりに、別の送り先（子チャットなど）へ送る。作業中でも送れる（このチャットの作業とは別に動くので） */
+  /** 右クリックで選んだ送り方・送り先（質問として送る・子チャットなど）で送る。作業中でも送れる（作業中にどう送るかは action が決める） */
   async function sendVia(action: (text: string, attachments: Attachment[]) => Promise<void>) {
     if (viaReady) await deliver(text.trim(), action);
   }

@@ -70,6 +70,11 @@ export class ChatQueue {
     this.notify();
   }
 
+  /** 印を 1 つ足す（0 = 1 件目の上。いまの作業が終わったら止める = 質問として送る） */
+  addStop(position: number) {
+    this.setStops([...this.stops, position]);
+  }
+
   /** その指示のすぐあとに印を付ける・外す（右クリックの「この指示のあとで止める」。id が null ならすべて外す。id が列になければ false） */
   setStopAfter(id: string | null, stop = true): boolean {
     if (id === null) {

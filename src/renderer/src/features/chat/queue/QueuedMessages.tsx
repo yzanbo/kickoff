@@ -6,6 +6,7 @@ import { QueuedHeadActions, QueuedModeButton, QueuedMoveActions, QueuedStopButto
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
 import { QueuedStopLine } from "./QueuedStopLine";
+import { QueuedPauseNotice } from "./QueuedPauseNotice";
 import { useQueueDrag } from "./useQueueDrag";
 import { useQueuedEdits } from "./useQueuedEdits";
 import { useQueueSelection } from "./useQueueSelection";
@@ -28,6 +29,7 @@ const MIN_LIST_HEIGHT = 36;
  * ⌘ / Shift ＋クリックで行を選ぶと、選んだものだけをまとめて送る・消す・いちばん上か下へ移せる（見出しと右クリック。Esc でやめる）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
  * 一時停止の線（指示とは別の行。ドラッグで動かせ、1 件目の上にも置ける）まで自動で送ったら、残りは止めておく。
+ * 列が空でも、いまの作業が終わったら止める印があれば（質問として送った）、その予定の 1 行（QueuedPauseNotice）を出す。
  * 行の右クリックの「この指示のあとで止める」でも付けられる。
  * 見出しの「自動で送る / 止めておく」で、いまの作業が終わったときに先頭を自動で送るか、送らずに止めておくかを切り替える
  * （チャットごと。止めておくと、行の「すぐ送る」で 1 件ずつ送れる。送り終えて列が空になったら、自動で送るに戻る）。
@@ -85,7 +87,8 @@ export function QueuedMessages({
     const el = listRef.current;
     setOverflowing(Boolean(el && !expanded && el.scrollHeight > el.clientHeight + 1));
   }, [messages, edit.edits, collapsed, expanded, height]);
-  if (messages.length === 0) return null;
+  // 空のときは出さない。いまの作業が終わったら止める印だけがあれば（質問として送った）、その予定の 1 行だけ出す
+  if (messages.length === 0) return busy && stops.includes(0) ? <QueuedPauseNotice chatId={chatId} /> : null;
   // 次に止まる位置（いちばん上の印。なければ -1）。行の右クリックの「この指示のあとで止める」は、その行のすぐあとの印を付け外しする
   const stopIndex = stops.length > 0 ? stops[0] : -1;
   const toggleStop = (id: string, i: number) => void api.setQueueStopAfter(chatId, id, !stops.includes(i + 1)).catch(failed);
