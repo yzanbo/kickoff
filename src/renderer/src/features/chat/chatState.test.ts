@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Chat } from "@shared/types";
 import { makeChat } from "@shared/testing/factories";
-import { approvalIndex, chatStateOf, stateCounts } from "./chatState";
+import { approvalIndex, chatStateOf, stateCounts, summaryState } from "./chatState";
 
 const chat = (id: number, status: Chat["status"], unread = false) => makeChat(id, { status, unread });
 
@@ -49,4 +49,18 @@ test("stateCounts: 作業中・回答待ち・未読の数（カンバンの列�
 test("stateCounts: 依頼と状態がずれた一瞬（依頼が残ったまま止まった・依頼が消えて状態が戻る前）も、0 未満や二重には数えない", () => {
   // 以前の見出しは「作業中 = 動いている数 − 回答待ちの数」の引き算で、ここが -1 になっていた
   assert.deepEqual(stateCounts([chat(1, "completed")], approvalIndex([{ chat_id: 1 }])), { running: 0, needs_input: 1, unread: 0 });
+});
+
+test("summaryState: 回答待ち > 作業中 > 失敗 > 未読 > 既読 の順で強いものを 1 つ出す（空なら既読）", () => {
+  assert.deepEqual(summaryState([]), { state: "read", unread: false });
+  assert.deepEqual(summaryState(["read", "read"]), { state: "read", unread: false });
+  assert.deepEqual(summaryState(["read", "unread"]), { state: "unread", unread: false });
+  assert.deepEqual(summaryState(["unread", "failed"]), { state: "failed", unread: false });
+  assert.deepEqual(summaryState(["failed", "running"]), { state: "running", unread: false });
+  assert.deepEqual(summaryState(["running", "needs_input", "unread"]), { state: "needs_input", unread: false });
+});
+
+test("summaryState: 作業中で、ほかに未読があれば、リングに緑の点を重ねる（unread）", () => {
+  assert.deepEqual(summaryState(["running", "unread", "read"]), { state: "running", unread: true });
+  assert.deepEqual(summaryState(["running", "read"]), { state: "running", unread: false });
 });

@@ -41,10 +41,27 @@
   background: var(--bg-hover);
 }
 
-.chip-mark {
-  display: inline-flex;
-  color: #d97757;
-  animation: spin 2.4s linear infinite;
+/*
+ * ピルの左の状態の印（子チャット・サブエージェント。StatusSlot をサイドバーの行と同じ見た目で、ピルの高さに収める）。
+ * リングの右上の緑の点の縁と回答待ちの！の縁は、サイドバーの地ではなくピルの地の色にする
+ */
+.composer-chip .status-slot {
+  width: 14px;
+  height: 16px;
+  margin-left: -3px;
+}
+
+.composer-chip .status-unread-badge {
+  border-color: var(--bg-elev);
+}
+
+.composer-chip .status-slot svg {
+  stroke: var(--bg-elev);
+}
+
+.composer-chip:hover .status-unread-badge,
+.composer-chip.open .status-unread-badge {
+  border-color: var(--bg-hover);
 }
 
 .chip-running {
