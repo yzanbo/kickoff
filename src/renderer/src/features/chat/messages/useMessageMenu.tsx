@@ -20,8 +20,8 @@ interface Selected {
 
 /**
  * 発言の右クリックのメニュー。文を選んでいれば「選んだ部分をコピー」、いつも「メッセージ全体をコピー」。
- * rich（AI の返答）なら見出し「テキスト」（書式付き。ほかのアプリに貼っても見出し・表が崩れない）と「Markdown」（Markdown の文のまま）の
- * 2 組に同じ項目を並べる（選んだ部分の Markdown は、描いた表示を Markdown に戻してから。`selectionToMarkdown`）。
+ * rich（AI の返答）ならコピーは書式付き（ほかのアプリに貼っても見出し・表が崩れない。書式を受け取れない所には Markdown の文）で、
+ * 選んだ部分は描いた表示を Markdown に戻してから（`selectionToMarkdown`）。
  * チャットの画面の中なら「子チャットで聞く」「メモ」の項目（どちらも選んでいる部分、なければ発言の全体を使う）も並べる。
  * リンク・入力欄・コードブロックの上などでは、Electron の既定のメニューに任せず、この 1 つにそろえる
  */
@@ -53,26 +53,9 @@ export function useMessageMenu(
     },
     element: at && (
       <PopupMenu at={at.at} label="発言の操作" onClose={menu.close}>
-        {rich ? (
-          <>
-            <div className="menu-label" title="書式付きでコピーします（貼る先が書式を受け取れれば、見出し・表・コードのまま）">
-              テキスト
-            </div>
-            {selected && <MenuItem onSelect={() => copyFormatted(selected.markdown)}>選んだ部分をコピー</MenuItem>}
-            <MenuItem onSelect={() => copyFormatted(text)}>メッセージ全体をコピー</MenuItem>
-            <div className="menu-separator" role="separator" />
-            <div className="menu-label" title="Markdown の文のままコピーします">
-              Markdown
-            </div>
-            {selected && <MenuItem onSelect={() => copy(selected.markdown)}>選んだ部分をコピー</MenuItem>}
-            <MenuItem onSelect={() => copy(text)}>メッセージ全体をコピー</MenuItem>
-          </>
-        ) : (
-          <>
-            {selected && <MenuItem onSelect={() => copy(selected.text)}>選んだ部分をコピー</MenuItem>}
-            <MenuItem onSelect={() => copy(text)}>メッセージ全体をコピー</MenuItem>
-          </>
-        )}
+        {/* 返答は書式付き（貼る先が書式を受け取れれば見出し・表・コードのまま。受け取れなければ Markdown の文） */}
+        {selected && <MenuItem onSelect={() => (rich ? copyFormatted(selected.markdown) : copy(selected.text))}>選んだ部分をコピー</MenuItem>}
+        <MenuItem onSelect={() => (rich ? copyFormatted(text) : copy(text))}>メッセージ全体をコピー</MenuItem>
         {extra}
         {pane && (
           <>

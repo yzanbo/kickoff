@@ -6,12 +6,12 @@ import { MenuItem } from "@/ui/PopupMenu";
 import { addToMemo, type MemoAddMode } from "./addToMemo";
 import { baseName, parentOf, recentMemos } from "./memoPaths";
 
-/** 「既存のメモに追記 ▸」「既存のメモと AI でまとめる ▸」・入力欄の上のメモの一覧に並べる数（最近変えた順） */
+/** 「既存のメモに追記 ▸」「既存のメモに AI で組み込んで書き直す ▸」・入力欄の上のメモの一覧に並べる数（最近変えた順） */
 export const RECENT_MEMOS = 12;
 
 /**
  * 発言の右クリックのメニューのメモの項目。新しく作るのか・既存のメモに足すのかを名前で分ける:
- * 新しいメモを作成・AI で要約して新しいメモを作成・既存のメモに追記 ▸・既存のメモと AI でまとめる ▸（AI がメモ全体を書き直す）。
+ * 新しいメモを作成・AI で要約して新しいメモを作成・既存のメモに追記 ▸・既存のメモに AI で組み込んで書き直す ▸（AI がこの文をメモに組み込み、メモ全体を書き直す）。
  * text は選んでいる部分（なければ発言の全体）。既存のメモの一覧は、最近変えた Markdown のメモから
  */
 export function MemoMenuItems({ projectId, chatId, text }: { projectId: number; chatId: number; text: string }) {
@@ -52,11 +52,11 @@ export function MemoMenuItems({ projectId, chatId, text }: { projectId: number; 
         <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
       </button>
       {pickMemo(append, "追記するメモ", "append")}
-      <button {...merge.trigger} title="選んだメモの中身とこの文を、AI が 1 つのメモにまとめ直して書き換えます">
-        <WandSparkles size={14} /> 既存のメモと AI でまとめる
+      <button {...merge.trigger} title="選んだメモにこの文を AI が組み込み、重なりを整理しながらメモ全体を書き直します（すぐ書き換えます）">
+        <WandSparkles size={14} /> 既存のメモに AI で組み込んで書き直す
         <ChevronRight size={14} className="menu-submenu-chevron" aria-hidden />
       </button>
-      {pickMemo(merge, "まとめるメモ", "merge")}
+      {pickMemo(merge, "組み込むメモ", "merge")}
     </>
   );
 }
