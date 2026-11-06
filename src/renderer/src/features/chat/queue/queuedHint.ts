@@ -21,6 +21,8 @@ export function queuedHint({
 }): string {
   if (readyForEdit) return "次の指示の送信準備ができています。書き直しを保存すると送ります";
   if (paused) return collapsed ? "止めています" : busy ? "終わっても送らずに止めておきます" : "止めています。行の「すぐ送る」で 1 件ずつ送れます";
+  // 作業が終わり、1 件目の上の一時停止の線で待っている（止めておくにはしない。線を消す・動かすと続きを送る）
+  if (!busy && stopIndex === 0) return collapsed ? "一時停止中" : "一時停止の線まで送りました。線を消すと続きを送ります";
   if (!busy) return collapsed ? "自動で送れませんでした" : "自動で送れませんでした。行の「すぐ送る」で送れます";
   if (stopIndex === 0) return collapsed ? "1 件目の前で一時停止" : "終わっても送らずに一時停止します（1 件目の上に一時停止）";
   if (stopIndex > 0) return collapsed ? `${stopIndex} 件目のあとで一時停止` : `終わったら ${stopIndex} 件目まで順に送り、そこで一時停止します`;

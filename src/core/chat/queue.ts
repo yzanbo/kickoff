@@ -13,7 +13,7 @@ export interface QueuePersistence {
  * 1 つのチャットの、作業中に送った次の指示の待ちの列（送信待ち。ChatRuntime が持つ）。
  * いまの作業が終わったら、Runner が先頭から 1 件ずつ送る（止めておくなら送らず、行の「すぐ送る」で 1 件ずつ送る）。
  * 「ここまで送ったら止めます」の印（指示とは別に、列の中の位置で持つ。いくつでも・1 件目の上にも置ける）まで自動で送ったら、
- * そこで止めておく（途中まで自動で送る）。自動で送るに戻すと、その印を越えて次の印まで送る。
+ * その印の所で待つ（途中まで自動で送る。止めておく paused には切り替えない）。印を消すと、そのまま次の印まで送る（RunnerQueue）。
  * 変わるたびに DB に丸ごと書き（persistence）、起動したら読み戻す（restore）。前回の作業はアプリの終了で中断しているので、
  * 読み戻した列は止めておく（勝手に送らない。見出しの「自動で送る」・行の「すぐ送る」で送る）
  */
@@ -61,6 +61,11 @@ export class ChatQueue {
     return this.stops;
   }
 
+  /** 先頭の上に印がある（自動で送るとき、そこで待つ） */
+  stopsAtHead(): boolean {
+    return this.stops[0] === 0;
+  }
+
   has(id: string): boolean {
     return this.messages.some((m) => m.id === id);
   }
@@ -91,7 +96,7 @@ export class ChatQueue {
 
   /**
    * 自動で送る次の指示を取り出す（作業が終わったとき）。止めておくとき・列が空なら undefined。
-   * 先頭の上に印があれば（印のところまで送った）、送らずに止めておく（印は残し、自動で送るに戻したときに越える）。
+   * 先頭の上に印があれば（印のところまで送った）、送らずにその印の所で待つ（止めておくには切り替えない。印を消したら送る）。
    * 列が空なら、すべて送ったあとの印も外す（その作業のあいだに次の指示は来なかったので、印の役目は済んだ。
    * 残すと、あとで自分ですぐ送った作業の送信待ちの前で、思いがけず止まる）
    */
@@ -100,12 +105,7 @@ export class ChatQueue {
       if (this.stops.length > 0) this.setStops([]);
       return undefined;
     }
-    if (this.paused) return undefined;
-    if (this.stops[0] === 0) {
-      this.paused = true;
-      this.notify();
-      return undefined;
-    }
+    if (this.paused || this.stops[0] === 0) return undefined;
     return this.take();
   }
 

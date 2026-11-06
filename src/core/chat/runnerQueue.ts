@@ -117,13 +117,19 @@ export abstract class RunnerQueue {
     return this.queueOf(chatId).removeMany(ids);
   }
 
-  moveQueuedMany(chatId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }): number {
-    return this.queueOf(chatId).moveMany(ids, to);
+  async moveQueuedMany(chatId: number, ids: string[], to: "top" | "bottom" | { before: string | null; belowStop?: boolean }): Promise<number> {
+    let moved = 0;
+    await this.releasingStop(chatId, () => {
+      moved = this.queueOf(chatId).moveMany(ids, to);
+    });
+    return moved;
   }
 
   /** 待ちの列を並べ替える */
-  moveQueued(chatId: number, id: string, index: number): void {
-    if (!this.queueOf(chatId).move(id, index)) throw missing();
+  moveQueued(chatId: number, id: string, index: number): Promise<void> {
+    return this.releasingStop(chatId, () => {
+      if (!this.queueOf(chatId).move(id, index)) throw missing();
+    });
   }
 
   /**
@@ -189,13 +195,26 @@ export abstract class RunnerQueue {
   }
 
   /** 印の位置をまとめて置き換える（ドラッグで動かした・× で外した） */
-  setQueueStops(chatId: number, stops: number[]) {
-    this.queueOf(chatId).setStops(stops);
+  setQueueStops(chatId: number, stops: number[]): Promise<void> {
+    return this.releasingStop(chatId, () => this.queueOf(chatId).setStops(stops));
   }
 
   /** その指示のすぐあとに印を付ける・外す（id が null ならすべて外す） */
-  setQueueStopAfter(chatId: number, id: string | null, stop = true): void {
-    if (!this.queueOf(chatId).setStopAfter(id, stop)) throw missing();
+  setQueueStopAfter(chatId: number, id: string | null, stop = true): Promise<void> {
+    return this.releasingStop(chatId, () => {
+      if (!this.queueOf(chatId).setStopAfter(id, stop)) throw missing();
+    });
+  }
+
+  /**
+   * 印・並びを変える。作業が終わって先頭の上の印で待っていたのに、その印がなくなった（消した・動かした・指示を線の上へ移した）なら、
+   * そのまま次を送る（止めておくときは送らない）
+   */
+  private async releasingStop(chatId: number, change: () => void): Promise<void> {
+    const queue = this.queueOf(chatId);
+    const waiting = queue.stopsAtHead();
+    change();
+    if (waiting && !queue.stopsAtHead() && !queue.isPaused() && !this.isBusy(chatId)) await this.sendNextQueued(chatId);
   }
 
   /**

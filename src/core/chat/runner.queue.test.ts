@@ -18,7 +18,7 @@ test("待ちの列: 作業中に送った指示は列に入り、終わったら
   await runner.queueMessage(chat.id, "3");
   assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["2", "3"]);
   // 並べ替え: 3 を先頭に
-  runner.moveQueued(chat.id, runner.live(chat.id).queue.messages[1].id, 0);
+  await runner.moveQueued(chat.id, runner.live(chat.id).queue.messages[1].id, 0);
   gates[0]();
   await until(() => gates.length === 2);
   assert.equal(provider.calls[1].prompt, "3");
@@ -197,8 +197,16 @@ test("送信待ちの圧縮の行: 指示のあいだに挟むと、その順で
   await until(() => gates.length === 4);
   assert.equal(provider.calls[3].prompt, "/compact");
   gates[3]();
-  await until(() => !runner.isBusy(chat.id) && runner.live(chat.id).queue.paused);
+  // 予約した圧縮のあとは、1 件目の上の線で待つ（止めておくには切り替えない）
+  await until(() => !runner.isBusy(chat.id) && runner.live(chat.id).queue.stops[0] === 0);
+  assert.equal(runner.live(chat.id).queue.paused, false);
   assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["3"]);
+  // 線を消すと、そのまま次を送る
+  await runner.setQueueStops(chat.id, []);
+  await until(() => gates.length === 5);
+  assert.equal(provider.calls[4].prompt, "3");
+  gates[4]();
+  await until(() => !runner.isBusy(chat.id));
 });
 
 test("送信待ちのコンテキスト消去の行: そこまで送ったらセッションを外して記録を残し、次の指示は新しい会話で送る", async () => {
