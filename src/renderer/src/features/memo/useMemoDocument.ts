@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FileContent } from "@shared/types";
 import { api, ApiError } from "@/api";
-import { useServerEvent } from "@/api/events";
+import { subscribeServerOpen, useServerEvent } from "@/api/events";
 import { errorMessage } from "@shared/errors";
 import { useKeyedAsync } from "@/hooks/useKeyedAsync";
+import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { memoDraft } from "@/lib/storageKeys";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { safeMemoName } from "@shared/memo/names";
@@ -34,7 +35,8 @@ export type MemoSaveState = "saved" | "dirty" | "saving" | "conflict" | "error";
  * まだ保存していない書きかけは、メモを離れても・アプリを閉じても失わないよう memoDraft に残し、開き直したら「未保存」のまま戻す。
  * 別のメモへ移る・右の欄のタブを閉じるときは、memoGuards で保存するかを聞く。
  * 保存は開いたときの指紋と比べ、ほかで（チャットからの追記・Finder・ほかのアプリで）変わっていれば保存せずに conflict にする。
- * このメモが変わった知らせ（Kickoff の中でも、Finder・ほかのアプリでも）が届いたら、書きかけでなければ読み直す（書きかけなら conflict にして選んでもらう）
+ * このメモが変わった知らせ（Kickoff の中でも、Finder・ほかのアプリでも）が届いたら、書きかけでなければ読み直す（書きかけなら conflict にして選んでもらう）。
+ * 知らせを取りこぼしても古いまま見せないよう、ウィンドウに戻ったとき・サーバーにつなぎ直したときも確かめる（いつも最新を見せる）
  */
 export function useMemoDocument(projectId: number, path: string) {
   const key = `${projectId}:${path}`;
@@ -194,9 +196,8 @@ export function useMemoDocument(projectId: number, path: string) {
     [key, save, writeDraft],
   );
 
-  // このメモが変わった（チャットからの追記・Finder・ほかのアプリなど）。自分の保存の知らせなら、指紋が同じなので何もしない
-  useServerEvent((e) => {
-    if (e.type !== "memos" || e.project_id !== projectId || (e.path !== null && e.path !== path)) return;
+  /** ファイルがいまも開いたときのままかを確かめ、変わっていれば読み直す（書きかけなら conflict）。自分の保存なら指紋が同じなので何もしない */
+  const checkFresh = () => {
     const b = current.current.base;
     if (!b || b.key !== key) return;
     void api.memo(projectId, path).then(
@@ -208,7 +209,16 @@ export function useMemoDocument(projectId: number, path: string) {
       },
       () => {},
     );
+  };
+  const checkRef = useRef(checkFresh);
+  checkRef.current = checkFresh;
+  // このメモが変わった（チャットからの追記・Finder・ほかのアプリ・ほかの場所で開いた同じメモの保存など）
+  useServerEvent((e) => {
+    if (e.type === "memos" && e.project_id === projectId && (e.path === null || e.path === path)) checkFresh();
   });
+  // 知らせを取りこぼしたときのために: ウィンドウに戻ったとき・サーバーにつなぎ直したとき（切れている間の知らせは届かない）
+  useWindowEvent("focus", checkFresh);
+  useEffect(() => subscribeServerOpen(() => checkRef.current()), []);
 
   return {
     file,
