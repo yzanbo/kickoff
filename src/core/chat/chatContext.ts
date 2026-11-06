@@ -1,5 +1,6 @@
 // AI に伝える「このチャット」の文脈: 自分の名前と ID、子チャットなら親までの系譜と、親の会話のどこで聞いたか。
 // AI からは Kickoff のチャットが見えない（分かるのは Claude Code のセッションだけ）ので、「親チャットはどれ？」に答えられるように渡す
+import { childDepthLabel } from "@shared/chat/childDepth";
 import type { Chat, ChatEvent } from "@shared/types";
 import type { Store } from "../db/store.js";
 
@@ -63,11 +64,13 @@ export function chatContextOf(store: Store, chat: Chat): ChatContext {
 export function chatContextNote(chat: ChatContext): string | null {
   const parent = chat.ancestors.at(-1);
   if (!parent) return null;
+  // 根のチャットから何段目か（1 = 子・2 = 孫）
+  const depth = chat.ancestors.length;
   const session = parent.sessionId ? `、Claude Code のセッション ID: ${parent.sessionId}` : "";
   const lines = [
     `Kickoff からの文脈（利用者の発言ではありません）:`,
-    `- このチャット: 「${chatName(chat.title)}」（Kickoff のチャット ID: ${chat.id}）。親チャットから寄り道の質問をするために作った子チャットです。`,
-    `- 親チャット: 「${chatName(parent.title)}」（Kickoff のチャット ID: ${parent.id}${session}）`,
+    `- このチャット: 「${chatName(chat.title)}」（Kickoff のチャット ID: ${chat.id}）。親チャットから寄り道の質問をするために作った${childDepthLabel(depth)}です。`,
+    `- 親チャット: 「${chatName(parent.title)}」（Kickoff のチャット ID: ${parent.id}${session}${depth > 1 ? `。親チャットも${childDepthLabel(depth - 1)}です` : ""}）`,
   ];
   if (chat.ancestors.length > 1) {
     lines.push(`- 親までの系譜（根から順に）: ${[...chat.ancestors.map((a) => `「${chatName(a.title)}」（ID: ${a.id}）`), "このチャット"].join(" › ")}`);

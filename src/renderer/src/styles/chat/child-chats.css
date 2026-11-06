@@ -154,6 +154,8 @@
 
 /* 子チャットの別ウィンドウ・右の欄の上の帯（子チャットの名前・親を見る・メインに渡す） */
 .child-chat-bar {
+  /* 狭い帯では、親より上の系譜 → 「子チャット」の札 → ボタンの文字の順に隠す（下の @container） */
+  container: child-chat-bar / inline-size;
   display: flex;
   flex: none;
   align-items: center;
@@ -168,15 +170,115 @@
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 11px;
-  color: var(--accent-fg);
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  font-weight: 600;
+}
+
+/* 深さの呼び名の色（子・孫・ひ孫より深い。右の欄のタブの札と同じ --child-depth-<n>） */
+.child-chat-bar-label.child-depth-1 {
+  color: var(--child-depth-1);
+  background: color-mix(in srgb, var(--child-depth-1) 16%, transparent);
+}
+
+.child-chat-bar-label.child-depth-2 {
+  color: var(--child-depth-2);
+  background: color-mix(in srgb, var(--child-depth-2) 16%, transparent);
+}
+
+.child-chat-bar-label.child-depth-3 {
+  color: var(--child-depth-3);
+  background: color-mix(in srgb, var(--child-depth-3) 16%, transparent);
 }
 
 .child-chat-bar-title {
   overflow: hidden;
+  min-width: 4em;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 親チャットまでの系譜（根 › … › 親 › この子チャット）。親は状態の印と名前の札で、押すとその親の聞いた位置へ。
+   狭いときは子チャットの名前より先に親の名前を縮める */
+.child-chat-lineage {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  /* 札は 5em より縮めず、それでも入らない分は隠す（隣の札・子チャットの名前に重ねない）。ピントの枠が切れないよう上下に余白 */
+  padding: 2px 0;
+  overflow: hidden;
+}
+
+.child-chat-lineage-lead {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.child-chat-lineage-sep {
+  flex: none;
+  color: var(--extra-muted);
+}
+
+.child-chat-crumb {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 5px;
+  /* 縮めても、状態の印と名前の頭の数文字は残す */
+  min-width: 5em;
+  max-width: 16em;
+  height: 22px;
+  padding: 0 8px 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--bg-elev);
+  cursor: pointer;
+}
+
+.child-chat-crumb:hover {
+  border-color: var(--divider-strong);
+  background: var(--bg-hover);
+}
+
+.child-chat-crumb .status-slot {
+  flex: none;
+}
+
+.child-chat-crumb-name {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.child-chat-lineage-up {
+  display: contents;
+}
+
+@container child-chat-bar (max-width: 560px) {
+  .child-chat-lineage-up,
+  .child-chat-lineage-lead-text {
+    display: none;
+  }
+}
+
+@container child-chat-bar (max-width: 440px) {
+  .child-chat-bar-label {
+    display: none;
+  }
+}
+
+@container child-chat-bar (max-width: 340px) {
+  .child-chat-hand-back-text {
+    display: none;
+  }
 }
 
 /* 子チャットで聞く画面の聞く欄（選んだ文の引用を初めから入れておくので、書いた分だけ伸ばし、上限を超えたら中でスクロール） */

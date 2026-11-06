@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { handBackText, rootChatOf } from "./childChats";
+import { ancestorsOf, handBackText, rootChatOf } from "./childChats";
 
 test("handBackText: どの子チャットの答えかを添えて、答えを引用にする（空行も引用の中に残す）", () => {
   assert.equal(handBackText({ title: "違い" }, "A です。\n\nB です。\n"), "子チャット「違い」の答え:\n> A です。\n>\n> B です。\n\n");
@@ -21,4 +21,10 @@ test("rootChatOf: 親をたどって、いちばん上のチャットを返す�
   assert.equal(rootChatOf(chats.get(1)!, lookup).id, 1);
   assert.equal(rootChatOf(chats.get(4)!, lookup).id, 4);
   assert.ok([5, 6].includes(rootChatOf(chats.get(5)!, lookup).id));
+  // 祖先は根 → 親の順（親のないチャットは空・分からない親の手前まで・輪でも止まる）
+  const ids = (id: number) => ancestorsOf(chats.get(id)!, lookup).map((c) => c.id);
+  assert.deepEqual(ids(3), [1, 2]);
+  assert.deepEqual(ids(1), []);
+  assert.deepEqual(ids(4), []);
+  assert.deepEqual(ids(5), [6]);
 });

@@ -1,7 +1,9 @@
 import { MessagesSquare } from "lucide-react";
+import { childDepthLabel, childDepthShort } from "@shared/chat/childDepth";
 import { useChatStates } from "@/app/chatStatesContext";
-import { useKnownChat } from "@/stores/chats";
+import { knownChat, useChatsValue, useKnownChat } from "@/stores/chats";
 import { StatusSlot } from "@/features/chat/StatusSlot";
+import { ancestorsOf } from "./childChats";
 
 /** 右の欄の子チャットのタブの名前の前に置く、子チャットの状態の印（サイドバーの行・チャットのタブと同じ。分からなければふつうのアイコン） */
 export function ChildTabLead({ tab }: { tab: { childId: number } }) {
@@ -9,4 +11,18 @@ export function ChildTabLead({ tab }: { tab: { childId: number } }) {
   const { stateOf } = useChatStates();
   if (!chat) return <MessagesSquare size={12} className="muted" aria-hidden />;
   return <StatusSlot state={stateOf(chat)} />;
+}
+
+/**
+ * 子チャットのタブの種類の札の文: 深さで「子 / 孫 / ひ孫」（`childDepthShort`）。孫・ひ孫も同じ欄に子と並ぶので見分ける。
+ * 札と下線の色は、印の class（.child-depth-mark-<n>）を見て CSS が深さの色にする（panel/side-panel-tab-kinds.css）。親が読み込んだ一覧になければ子
+ */
+export function ChildTabBadge({ tab }: { tab: { childId: number } }) {
+  const chat = useKnownChat(tab.childId);
+  const depth = Math.max(useChatsValue(() => (chat ? ancestorsOf(chat, knownChat).length : 0)) ?? 0, 1);
+  return (
+    <span className={`child-depth-mark-${Math.min(depth, 3)}`} data-tip={childDepthLabel(depth)}>
+      {childDepthShort(depth)}
+    </span>
+  );
 }
