@@ -16,6 +16,7 @@ import { PromptsChip } from "@/features/chat/prompts/PromptsChip";
 import { QueuedMessages } from "@/features/chat/queue/QueuedMessages";
 import { TodoChip } from "@/features/chat/status/TodoChip";
 import { ChildChatsChip } from "@/features/chat/children/ChildChatChips";
+import { openCreatedChild } from "@/features/chat/children/openChild";
 import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import { SnippetBar } from "@/features/snippet/SnippetBar";
@@ -26,7 +27,7 @@ const ASK_SEND_TITLE =
   "いまの送り方で送り、この指示の作業が終わったら、送信待ちを自動で送らずに一時停止します（答えを見てから次を決めるとき。送信待ちに入れたときは、その指示のすぐあとに一時停止を挟みます）";
 
 /** 「子チャットに送る」の説明 */
-const CHILD_SEND_TITLE = "この文を、このチャットの会話を引き継いだ子チャットで送ります（このチャットの作業は止めません。画面は移らず、上のピルの子チャットに並びます）";
+const CHILD_SEND_TITLE = "この文を、このチャットの会話を引き継いだ子チャットで送ります（このチャットの作業は止めません。作った子チャットは設定の「子チャットを作ったとき」で開き、上のピルの子チャットにも並びます）";
 
 /**
  * チャット欄の場所（流れの下）: 同じ作業場所で作業中のほかのチャットの知らせ → チャットの情報のピル（指示の履歴・ToDo・サブエージェント・一番下へ戻るボタンの置き場所）→
@@ -62,10 +63,10 @@ export function ChatComposerArea({
   // 送信ボタンの右クリック:
   // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
   // 「子チャットに送る」: この文と添付で、このチャットの会話を引き継いだ子チャットを作って送る（このチャットの作業は止めない。
-  // 「子チャットで聞く」と同じく画面は移らない。上のピルの子チャットに並ぶ）。メモのチャット・アーカイブ済みでは出さない
+  // 作った子チャットは設定の「子チャットを作ったとき」で開く。上のピルの子チャットにも並ぶ）。メモのチャット・アーカイブ済みでは出さない
   const memoOrArchived = Boolean(chat.memo_path) || chat.archived_at !== null;
   const sendToChild = async (text: string, attachments: Attachment[]) => {
-    await api.createChildChat(chat.id, { text, attachments, quote: null, inherit: true, event_id: null, options: options.options });
+    openCreatedChild(await api.createChildChat(chat.id, { text, attachments, quote: null, inherit: true, event_id: null, options: options.options }));
   };
   // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
   const sendSnippet = (text: string) => (busy || queued ? send.onQueue(text, []) : send.onSend(text, []));
