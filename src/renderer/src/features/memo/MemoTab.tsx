@@ -17,7 +17,7 @@ import type { TreeNode } from "@/features/editor/treeModel";
 import { FileIcon } from "@/features/editor/FileIcon";
 import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf, remapPath } from "./memoPaths";
 import { MemoListHead } from "./MemoListHead";
-import { isMemoDrag, MEMO_DRAG_TYPE, MemoTree } from "./MemoTree";
+import { isMemoDrag, MEMO_DRAG_TYPE, MemoTree, type MemoRenaming } from "./MemoTree";
 import { confirmLeaveMemo } from "./memoGuards";
 import { MemoView } from "./MemoView";
 import { MemoPlanDialog } from "./MemoPlanDialog";
@@ -38,6 +38,9 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   const width = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   const [listHidden, setListHidden] = useSetting(MEMO_LIST_HIDDEN);
   const [rootDrop, setRootDrop] = useState(false);
+  // 一覧の行で名前を変えているメモ・フォルダ（新しく作ったとき・ダブルクリック・右クリックの「名前を変更」）
+  const [renaming, setRenaming] = useState<MemoRenaming | null>(null);
+  const startRename = (path: string) => setRenaming({ path, round: 0 });
 
   const entries = list.data?.entries;
   const tree = useMemo(() => buildMemoTree(entries ?? []), [entries]);
@@ -72,7 +75,14 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   };
 
   const actions = useMemoActions(projectId, {
-    onCreated: (path, isDir) => (isDir ? openFolders([...ancestorsOf(path), path]) : void select(path)),
+    // 作ったら、探している文を消して一覧のその行を見せ、名前を変え始める（メモは右に開く）
+    onCreated: (path, isDir) => {
+      setQuery("");
+      setListHidden(false);
+      if (isDir) openFolders(ancestorsOf(path));
+      else void select(path);
+      startRename(path);
+    },
     // 開いているメモ（とその入ったフォルダ）の名前を変える・動かす・ゴミ箱に入れる前も聞く
     beforeChange: (path) => {
       const current = readSetting(memoSelected(projectId));
@@ -84,6 +94,12 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
       setOpenList(openList.filter((p) => !isUnder(p, path)));
     },
   });
+
+  // 行で書いた名前に変える。同じ名前があれば、書いた名前のまま欄を開き直して書き直してもらう
+  const rename = async (node: TreeNode, name: string) => {
+    const result = await actions.renameTo(node.path, node.dir, name);
+    setRenaming((r) => (result === "taken" && r?.path === node.path ? { path: node.path, initial: name, round: r.round + 1 } : null));
+  };
 
   // AI でフォルダを整理するダイアログ
   const [planning, setPlanning] = useState(false);
@@ -165,7 +181,12 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
               selected={selected || undefined}
               onSelect={select}
               onMenu={(e, node) => menu.open(e, node)}
+              onExpand={(path) => openFolders([path])}
               onDropInto={(path, folder) => void actions.moveInto(path, folder)}
+              renaming={renaming}
+              onStartRename={(node) => startRename(node.path)}
+              onRename={(node, name) => void rename(node, name)}
+              onRenameEnd={() => setRenaming(null)}
             />
           )}
           {list.data?.truncated && <p className="muted small changes-empty">メモが多いため、途中までを表示しています。</p>}
@@ -215,7 +236,7 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
             </>
           )}
           {menu.menu.value && (
-            <MenuItem onSelect={() => menu.menu?.value && void actions.rename(menu.menu.value.path, menu.menu.value.dir)}>名前を変更…</MenuItem>
+            <MenuItem onSelect={() => menu.menu?.value && startRename(menu.menu.value.path)}>名前を変更</MenuItem>
           )}
           {window.kickoff && <MenuItem onSelect={() => void reveal(menu.menu?.value?.path ?? "")}>Finder で表示</MenuItem>}
           {menu.menu.value && (

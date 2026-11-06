@@ -1,5 +1,6 @@
 // メモのタブの木と、パスの補助（純粋な関数。パスはメモのフォルダからの相対で、区切りは /）
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
+import { uniqueMemoName } from "@shared/memo/names";
 import type { MemoEntry } from "@shared/types";
 import type { TreeNode } from "@/features/editor/treeModel";
 
@@ -59,6 +60,20 @@ export function memoTitle(path: string): string {
 export function pathTaken(entries: readonly MemoEntry[], path: string, except?: string): boolean {
   const target = path.toLowerCase();
   return entries.some((e) => e.path !== except && e.path.toLowerCase() === target);
+}
+
+/**
+ * 新しく作るメモ・フォルダのパス（Finder の「新規フォルダ」と同じく、先に仮の名前で作ってから名前を変えてもらう）。
+ * folder の中で、base ＋ ext と重ならない名前（base・base-2 …。大文字・小文字は同じとみなす）
+ */
+export function untitledPath(entries: readonly MemoEntry[], folder: string, base: string, ext = ""): string {
+  const suffix = ext.toLowerCase();
+  const taken = entries
+    .filter((e) => parentOf(e.path) === folder)
+    .map((e) => baseName(e.path))
+    .filter((name) => name.toLowerCase().endsWith(suffix))
+    .map((name) => name.slice(0, name.length - suffix.length));
+  return joinMemoPath(folder, `${uniqueMemoName(base, taken)}${ext}`);
 }
 
 /** 名前を変えたあとのパス（メモは元の拡張子 .md・.html などを付け直す。ほかのファイルは書いた名前のまま） */

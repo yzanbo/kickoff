@@ -9,6 +9,8 @@ interface Props {
   className?: string;
   /** 文字数の上限（グループ名は 60、チャット名は 100） */
   maxLength?: number;
+  /** 入力欄のすぐ右に添える文（メモの拡張子など。名前には含めない） */
+  suffix?: string;
   onSubmit: (name: string) => void;
   onCancel: () => void;
 }
@@ -17,7 +19,7 @@ interface Props {
  * その場で名前を入力・変更する欄（Enter・フォーカスを外すと決定、Esc で取り消し）。
  * 横の ✓ / ✕ でも決定・取り消しできる（押しても入力欄からフォーカスが外れないようにして、二重に動かない）
  */
-export function InlineName({ initial = "", placeholder, className, maxLength = 60, onSubmit, onCancel }: Props) {
+export function InlineName({ initial = "", placeholder, className, maxLength = 60, suffix, onSubmit, onCancel }: Props) {
   const [value, setValue] = useState(initial);
   const ref = useRef<HTMLInputElement>(null);
   const done = useRef(false);
@@ -60,6 +62,7 @@ export function InlineName({ initial = "", placeholder, className, maxLength = 6
       }}
       onBlur={() => finish(true)}
     />
+    {suffix && <span className="inline-name-suffix">{suffix}</span>}
     <IconButton
       icon={Check}
       label="決定"

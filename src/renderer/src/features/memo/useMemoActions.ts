@@ -3,12 +3,20 @@ import { safeMemoName } from "@shared/memo/names";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { memosStore } from "@/stores/memos";
-import { alertDialog, confirmDialog, promptDialog, reportFailure } from "@/ui/dialogs";
-import { baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath } from "./memoPaths";
+import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
+import { baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./memoPaths";
+
+/** 新しく作るメモ・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ） */
+const UNTITLED_MEMO = "無題のメモ";
+const UNTITLED_FOLDER = "名称未設定フォルダ";
+
+/** 一覧で名前を変えた結果（taken: 同じ名前があったので、書いた名前のまま書き直してもらう） */
+export type MemoRenameResult = "done" | "taken";
 
 /**
- * メモのタブの操作（新しいメモ・フォルダ・名前の変更・動かす・ゴミ箱）。名前はダイアログで聞き、ファイル名に使えない文字はそろえる。
- * 書いた名前がそのままファイル名になる（同じフォルダに同じ名前があれば、番号を付けずに知らせて聞き直す。拡張子が違えば同じ題名でも作れる）。
+ * メモのタブの操作（新しいメモ・フォルダ・名前の変更・動かす・ゴミ箱）。新しいメモ・フォルダは Finder と同じく、仮の名前ですぐ作り、
+ * 一覧のその行で名前を変えてもらう（onCreated。ダイアログで聞かない）。名前の変更も一覧の行で書く（renameTo。ファイル名に使えない文字はそろえ、
+ * 書いた名前がそのままファイル名になる。同じフォルダに同じ名前があれば、番号を付けずに知らせて書き直してもらう。拡張子が違えば同じ題名でも作れる）。
  * 終わったら一覧を取り直し（知らせを待たない）、開いているメモ・フォルダを付いていかせる（onMoved）。失敗はお知らせで出す
  */
 export function useMemoActions(
@@ -19,7 +27,7 @@ export function useMemoActions(
     onTrashed,
     beforeChange,
   }: {
-    /** 作ったメモを開く・フォルダを開く */
+    /** 作った（メモは開く・フォルダは開いて、どちらも一覧の行で名前を変え始める） */
     onCreated: (path: string, dir: boolean) => void;
     /** 名前を変えた・動かした（開いているメモ・フォルダのパスを付け替える） */
     onMoved: (from: string, to: string) => void;
@@ -29,58 +37,20 @@ export function useMemoActions(
   },
 ) {
   const refresh = () => memosStore.invalidate(projectId);
-  /**
-   * 名前を聞く（toPath で、そろえた名前からパスを作る）。同じフォルダに同じ名前（拡張子まで同じ）があれば知らせて、書いた名前のまま聞き直す。
-   * except は名前を変える元。やめたら null（allowEmpty でなければ、空のときもやめる）
-   */
-  const askName = async (
-    options: Parameters<typeof promptDialog>[0],
-    toPath: (name: string) => string,
-    { except, allowEmpty = false }: { except?: string; allowEmpty?: boolean } = {},
-  ): Promise<{ name: string; path: string } | null> => {
-    let initial = options.initial;
-    for (;;) {
-      const typed = await promptDialog({ ...options, initial });
-      if (typed === null || (!allowEmpty && !typed.trim())) return null;
-      const name = safeMemoName(typed);
-      const path = toPath(name);
-      if (!pathTaken(memosStore.get(projectId).data?.entries ?? [], path, except)) return { name, path };
-      const where = parentOf(path) ? `「${parentOf(path)}」に` : "";
-      const hint = memoExtensionOf(path) ? "拡張子が違うメモ（Markdown と HTML）なら、同じ名前でも作れます。" : "";
-      await alertDialog("同じ名前があります", `${where}「${baseName(path)}」がもうあります。別の名前にしてください。${hint}`);
-      initial = typed;
-    }
-  };
+  const entries = () => memosStore.get(projectId).data?.entries ?? [];
 
-  /** 新しいメモ（HTML なら、題名の見出しと <style> の入ったひな形から始める） */
+  /** 新しいメモ（HTML なら、題名の見出しと <style> の入ったひな形から始める）。仮の名前ですぐ作る */
   const createMemo = async (folder: string, kind: MemoKind = "markdown") => {
     const html = kind === "html";
-    const ext = MEMO_KIND_EXTENSIONS[kind];
-    const asked = await askName(
-      {
-        title: html ? "新しい HTML メモ" : "新しいメモ",
-        label: `名前（ファイル名。${ext} を付けて保存します）`,
-        placeholder: "無題のメモ",
-        confirmLabel: "作る",
-        message: [folder ? `「${folder}」の中に作ります。` : "", html ? "HTML と CSS で書くページのメモです（.html）。メモのチャットに頼んで作ってもらうこともできます。" : ""].filter(Boolean).join("") || undefined,
-      },
-      (name) => joinMemoPath(folder, `${name}${ext}`),
-      { allowEmpty: true },
-    );
-    if (!asked) return;
-    const { name: title, path } = asked;
-    await api.createMemo(projectId, path, html ? { content: newHtmlMemo(title) } : {}).then(() => {
+    const path = untitledPath(entries(), folder, UNTITLED_MEMO, MEMO_KIND_EXTENSIONS[kind]);
+    await api.createMemo(projectId, path, html ? { content: newHtmlMemo(memoTitle(path)) } : {}).then(() => {
       refresh();
       onCreated(path, false);
     }, reportFailure("メモを作れませんでした"));
   };
 
   const createFolder = async (folder: string) => {
-    const asked = await askName({ title: "新しいフォルダ", label: "名前", confirmLabel: "作る", message: folder ? `「${folder}」の中に作ります。` : undefined }, (name) =>
-      joinMemoPath(folder, name),
-    );
-    if (!asked) return;
-    const { path } = asked;
+    const path = untitledPath(entries(), folder, UNTITLED_FOLDER);
     await api.createMemo(projectId, path, { dir: true }).then(() => {
       refresh();
       onCreated(path, true);
@@ -95,14 +65,34 @@ export function useMemoActions(
     }, reportFailure("動かせませんでした"));
   };
 
-  const rename = async (path: string, dir: boolean) => {
-    const ext = dir ? null : memoExtensionOf(path);
-    const asked = await askName(
-      { title: dir ? "フォルダの名前を変更" : "メモの名前を変更", label: ext ? `名前（${ext} はそのまま）` : "名前", initial: dir ? baseName(path) : memoTitle(path), confirmLabel: "変更" },
-      (name) => renamedPath(path, dir, name),
-      { except: path },
-    );
-    if (asked) await move(path, asked.path);
+  /** HTML のメモが作ったときのひな形のままなら、ひな形の題名（<title> と見出し）も新しい名前にする（できなければそのまま） */
+  const retitleHtml = async (from: string, to: string) => {
+    if (memoExtensionOf(to) !== MEMO_KIND_EXTENSIONS.html) return;
+    try {
+      const file = await api.memo(projectId, to);
+      if (file.content === newHtmlMemo(memoTitle(from))) await api.saveMemo(projectId, to, newHtmlMemo(memoTitle(to)), file.hash);
+    } catch {
+      // 題名を付け直せなくても、名前の変更はできている
+    }
+  };
+
+  /** 一覧の行で書いた名前に変える（メモは元の拡張子を付け直す）。同じ名前があれば知らせて "taken"（書き直してもらう） */
+  const renameTo = async (path: string, dir: boolean, typed: string): Promise<MemoRenameResult> => {
+    const to = renamedPath(path, dir, safeMemoName(typed));
+    if (to === path) return "done";
+    if (pathTaken(entries(), to, path)) {
+      const where = parentOf(to) ? `「${parentOf(to)}」に` : "";
+      const hint = memoExtensionOf(to) ? "拡張子が違うメモ（Markdown と HTML）なら、同じ名前でも作れます。" : "";
+      await alertDialog("同じ名前があります", `${where}「${baseName(to)}」がもうあります。別の名前にしてください。${hint}`);
+      return "taken";
+    }
+    if (!(await beforeChange(path))) return "done";
+    await api.moveMemo(projectId, path, to).then(async () => {
+      await retitleHtml(path, to);
+      refresh();
+      onMoved(path, to);
+    }, reportFailure("名前を変更できませんでした"));
+    return "done";
   };
 
   /** フォルダ（folder。"" は直下）へ動かす（同じ場所・自分の中へは動かさない） */
@@ -146,7 +136,7 @@ export function useMemoActions(
     return { moved, failed };
   };
 
-  return { createMemo, createFolder, rename, moveInto, moveMany, trash };
+  return { createMemo, createFolder, renameTo, moveInto, moveMany, trash };
 }
 
 /** 動かしたあとに、覚えているパスの組を付け替える（開いているフォルダ） */
