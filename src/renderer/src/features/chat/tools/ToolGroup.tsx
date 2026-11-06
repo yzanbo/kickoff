@@ -7,7 +7,8 @@ import { useCommandOutput } from "./commandOutputs";
 import { summarizeTools, type ToolCall } from "@/features/chat/timeline/timelineItems";
 import { describeTool, describeToolInput, toolLabel, visibleToolResult } from "./toolDescribe";
 import { CallTime, GroupTime } from "./ToolTime";
-import { callStatus, groupStatus } from "./toolStatus";
+import { BackgroundCallsContext } from "./backgroundCalls";
+import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
 import { ToolStatusIcon } from "./ToolStatusIcon";
 import { HighlightedCode } from "@/ui/HighlightedCode";
 import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
@@ -16,16 +17,19 @@ import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkConte
  * ツールのまとまり（閉じた状態では「2個のファイルを編集 および 3個のコマンドを実行」のように要約し、後ろに時刻を出す）。
  * 開閉の矢印の右に、まとまりの状態のアイコン（実行中 → 失敗 → 中断 → 完了。groupStatus）。
  * 実行中のコマンドの出力が届いていれば、まとまりの下に最後の行を流す（CommandLive。閉じていても見える）。
- * active: いまの作業の中のまとまり（作業中のチャットで、結果の届いていない呼び出しを実行中として見せる）
+ * active: いまの作業の中のまとまり（作業中のチャットで、結果の届いていない呼び出しを実行中として見せる）。
+ * 裏で動かしたコマンドは、終わるまで（裏の作業の一覧に残っている間）作業をまたいでも実行中として見せる（BackgroundCallsContext）
  */
 export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: string) => string; active: boolean }) {
+  const background = useContext(BackgroundCallsContext);
+  const isRunning = (t: ToolCall) => isCallRunning(t, active, background);
   const summary = summarizeTools(tools);
   const failed = tools.filter((t) => t.result?.data.is_error).length;
-  // 実行中の呼び出し（並べて呼んだものは、結果の届いていないうちいちばん後ろ）
-  const current = active ? tools.findLast((t) => !t.result) : undefined;
+  // 実行中の呼び出し（並べて呼んだものは、動いているうちいちばん後ろ）
+  const current = tools.findLast(isRunning);
   const currentData = current && { name: current.use.data.name, input: current.use.data.input as Record<string, unknown> | undefined };
   const running = currentData !== undefined;
-  const status = groupStatus(tools.map((t) => callStatus(t, active && !t.result)));
+  const status = groupStatus(tools.map((t) => callStatus(t, isRunning(t))));
   // 一度でも開いたか（一覧の行のコマンドの色付けは、まとまりを開いてから始める）
   const [opened, setOpened] = useState(false);
   // 実行中のコマンドの出力（まとまりを閉じていても、下に最後の行を流す）
@@ -52,7 +56,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
       </summary>
       <div className="tool-calls">
         {tools.map((t) => (
-          <ToolItem key={t.use.id} call={t} rel={rel} running={active && !t.result} listed={opened} />
+          <ToolItem key={t.use.id} call={t} rel={rel} running={isRunning(t)} listed={opened} />
         ))}
       </div>
     </details>
@@ -62,7 +66,7 @@ export function ToolGroup({ tools, rel, active }: { tools: ToolCall[]; rel: (s: 
 }
 
 /**
- * ツールの呼び出し 1 件（左端に状態のアイコン、右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: 結果を待っている（作業中のチャットのいまの作業）。
+ * ツールの呼び出し 1 件（左端に状態のアイコン、右に始めた時刻とかかった時間。開くと編集内容・結果を出す）。running: まだ動いている（作業中のチャットのいまの作業で結果を待っている・裏で動かしたコマンドが終わっていない）。
  * listed: まとまりを開いて一覧が見えている（コマンドの行は、1 行の表示にもシェルの文法で色を付ける）
  */
 function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: string) => string; running: boolean; listed: boolean }) {

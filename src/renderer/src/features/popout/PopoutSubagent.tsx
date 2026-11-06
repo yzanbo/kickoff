@@ -6,6 +6,7 @@ import { useChatDetail } from "@/features/chat/pane/useChatDetail";
 import { useChatView, type ChatViewInput } from "@/features/chat/pane/useChatView";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
+import { BackgroundCallsContext, useBackgroundCalls } from "@/features/chat/tools/backgroundCalls";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import { usePopoutFileLinks } from "./PopoutFiles";
 
@@ -44,14 +45,17 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
     // チャットの画面の操作はチャットごとに 1 回だけ作る（view.pane と同じ）
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.pane]);
+  const backgroundCalls = useBackgroundCalls(view.live.background);
   const links = usePopoutFileLinks(view.fileLinks, { chatId: chat.id, projectId: chat.project_id, worktree: chat.worktree_path ?? undefined });
   return (
     <FileLinksProvider value={links}>
       <ChatPaneContext.Provider value={pane}>
         <SubagentsContext.Provider value={view.subagentsView}>
-          <div className="popout-body">
-            <SubagentScreen agentKey={agentKey} />
-          </div>
+          <BackgroundCallsContext.Provider value={backgroundCalls}>
+            <div className="popout-body">
+              <SubagentScreen agentKey={agentKey} />
+            </div>
+          </BackgroundCallsContext.Provider>
         </SubagentsContext.Provider>
       </ChatPaneContext.Provider>
     </FileLinksProvider>

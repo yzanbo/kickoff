@@ -18,6 +18,8 @@ export interface BackgroundTask {
   kind: "agent" | "command" | "other";
   description: string;
   subagent_type?: string;
+  /** 作業を起動した呼び出しの ID（Bash・Agent など。開始の知らせが届いていなければない） */
+  tool_use_id?: string;
 }
 
 /**

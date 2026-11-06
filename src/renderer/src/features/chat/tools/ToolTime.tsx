@@ -20,10 +20,13 @@ export function GroupTime({ tools, running }: { tools: ToolCall[]; running: bool
   );
 }
 
-/** ツールの呼び出し 1 件の時刻（行の右）: 始めた時刻 · かかった時間。実行中は始めてからの経過時間（回る印は左端の状態のアイコン） */
+/**
+ * ツールの呼び出し 1 件の時刻（行の右）: 始めた時刻 · かかった時間。実行中は始めてからの経過時間（回る印は左端の状態のアイコン。
+ * 裏で動かしたコマンドは「裏で始めた」結果がすぐ届くので、動いている間は結果があっても経過時間）
+ */
 export function CallTime({ call, running }: { call: ToolCall; running: boolean }) {
   const start = call.use.created_at;
-  const duration = callDuration(call);
+  const duration = running ? undefined : callDuration(call);
   const title =
     duration !== undefined
       ? `開始 ${formatFullStamp(start)}\n終了 ${formatFullStamp(call.result!.created_at)}（${formatElapsed(duration)}）`
