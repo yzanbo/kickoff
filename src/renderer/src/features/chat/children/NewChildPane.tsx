@@ -8,12 +8,12 @@ import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { useProjects } from "@/stores/projects";
-import { GroupChip } from "@/features/group/GroupChip";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import { DraftChatPage } from "@/features/chat/pane/DraftChatPage";
 import { useChatHeaderItems } from "@/features/chat/pane/ChatDisplayMenu";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
+import { NewChildBar } from "./ChildChatBar";
 import { InheritChoice } from "./InheritChoice";
 
 interface Props {
@@ -24,7 +24,8 @@ interface Props {
 }
 
 /**
- * チャットの画面の右の欄の「＋」で開く、新しい子チャット（入力欄だけのタブ）。
+ * チャットの画面の右の欄の「＋」で開く、新しい子チャット（入力欄だけのタブ）。右の欄のチャットの子チャットになるので、作ったあとの子チャットの画面と同じく、
+ * 上の帯に親までの系譜と深さの呼び名を出す（SideChildChat と同じ並び）。
  * 最初の文を送ると、このチャットの会話を引き継いだ（入力欄の上の切り替えで「新しく始める」も選べる）子チャットを作り、このタブをその子チャットのタブに置き換える（新しいチャットのタブと同じ流れ）
  */
 export function NewChildPane({ parentId, onCreated }: Props) {
@@ -49,40 +50,44 @@ function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: 
     onCreated(child);
   };
   return (
-    <DraftChatPage
-      className="new-child-chat"
-      // チャットの見出しと同じバッジ（子チャットは親と同じグループ・作業場所で作るので、親の札をそのまま出す）
-      badges={
-        <>
-          {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
-          {shows("group") && <GroupChip chat={parent} />}
-          {shows("worktree") && <WorktreeChip chat={parent} />}
-        </>
-      }
-      hero={
-        <div className="new-chat-hero">
-          <div className="new-chat-icon">
-            <MessageSquarePlus size={22} />
-          </div>
-          <h1>新しい子チャット</h1>
-          <p className="muted">「{chatTitle(parent.title)}」の作業を止めずに、横で聞く・頼むことを書いて始めます</p>
-        </div>
-      }
-    >
-      {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く。「子チャットで聞く」の画面と同じ形） */}
-      <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" />
-      <Composer
-        chatContext={{ projectId: parent.project_id }}
-        options={options}
-        autoFocus
-        handleRef={composer}
-        suggestTarget={parent.worktree_path ? { projectId: parent.project_id, worktree: parent.worktree_path } : parent.project_id}
-        placeholder={`${inherit ? "親の会話の続きで聞きたいこと" : "新しく頼みたいこと"}（Enter で送信、Shift+Enter で改行）`}
-        // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
-        header={<SnippetBar projectId={parent.project_id} composer={composer} onSend={(text) => start(text, [])} />}
-        menuItems={<SnippetBarToggleItem />}
-        onSend={start}
-      />
-    </DraftChatPage>
+    <div className="side-child-chat">
+      <NewChildBar parentId={parent.id} />
+      <div className="side-child-chat-body">
+        <DraftChatPage
+          className="new-child-chat"
+          // 作ったあとの子チャットの見出しと同じバッジ（子チャットは親と同じ作業場所で作り、グループには入らないので、グループの札は出さない）
+          badges={
+            <>
+              {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
+              {shows("worktree") && <WorktreeChip chat={parent} />}
+            </>
+          }
+          hero={
+            <div className="new-chat-hero">
+              <div className="new-chat-icon">
+                <MessageSquarePlus size={22} />
+              </div>
+              <h1>新しい子チャット</h1>
+              <p className="muted">「{chatTitle(parent.title)}」の作業を止めずに、横で聞く・頼むことを書いて始めます</p>
+            </div>
+          }
+        >
+          {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く。「子チャットで聞く」の画面と同じ形） */}
+          <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" />
+          <Composer
+            chatContext={{ projectId: parent.project_id }}
+            options={options}
+            autoFocus
+            handleRef={composer}
+            suggestTarget={parent.worktree_path ? { projectId: parent.project_id, worktree: parent.worktree_path } : parent.project_id}
+            placeholder={`${inherit ? "親の会話の続きで聞きたいこと" : "新しく頼みたいこと"}（Enter で送信、Shift+Enter で改行）`}
+            // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
+            header={<SnippetBar projectId={parent.project_id} composer={composer} onSend={(text) => start(text, [])} />}
+            menuItems={<SnippetBarToggleItem />}
+            onSend={start}
+          />
+        </DraftChatPage>
+      </div>
+    </div>
   );
 }
