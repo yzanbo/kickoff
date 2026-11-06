@@ -45,6 +45,8 @@ interface Props {
   onQueue?: (text: string, attachments: Attachment[], mode?: QueueSendMode) => Promise<void>;
   /** 作業していなくても、送るときに onQueue と busyControls（すぐ送る / ためておく）を使う（止めている送信待ちがあるとき） */
   queueWhileIdle?: boolean;
+  /** 作業中でも、右下をふだんの見た目（送信ボタンの左のもの・送信・▾）にする（会話の圧縮中。送り方の切り替えと中断のボタンを出さない） */
+  plainActions?: boolean;
   /** 送信ボタンの名前（送り方で変わるとき。省けば既定の文） */
   sendLabel?: string;
   /** 書いている文が変わったとき（少し待ってから知らせる。新しいチャットの下書きのカードに出すため） */
@@ -74,7 +76,7 @@ const ignoreStop = () => {};
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
  * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext, sendTo }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext, sendTo }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
@@ -246,6 +248,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
           sendLabel={sendLabel}
           onSubmit={() => submit()}
           // 録音中は、文字起こしが済むまでほかの送り先には送らない
+          plain={plainActions}
           sendTargets={sendTo?.map((to) => ({ label: to.label, title: to.title, disabled: !sender.viaReady || dictation.recording, onSelect: () => void sender.sendVia(to.onSend) }))}
         />
       </div>
