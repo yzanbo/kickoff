@@ -82,8 +82,9 @@ export function MemoView({
   const pageHandle = useRef<HtmlMemoPageHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
   // 足す先のチャット（メインのチャット・メモのチャット）。本文の右クリック・見出しの添付のボタンから
-  const targets = memoChatTargets({ file: `${dir}/${path}`, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
-  const editMenu = useMemoEditMenu(editor, targets);
+  const file = `${dir}/${path}`;
+  const targets = memoChatTargets({ file, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
+  const editMenu = useMemoEditMenu(editor, targets, file);
   // チャットの欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）。
   // 欄は閉じても描いたまま置き（書きかけの文も残る）、開け閉めは幅（狭いときは高さ）をスライドさせる
   const body = useRef<HTMLDivElement>(null);
@@ -203,7 +204,7 @@ export function MemoView({
             onClick={() => setChatOpen(!chatOpen)}
           />
         )}
-        {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(`${dir}/${path}`)} />}
+        {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(file)} />}
         {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
         <PopOutTabButton />
       </header>
@@ -247,7 +248,7 @@ export function MemoView({
               />
             </Suspense>
             {editMenu.element}
-            {attachTo !== null && <MemoSelectionAttach chatId={attachTo} file={`${dir}/${path}`} path={path} editor={editor} page={page ? pageHandle : null} />}
+            {attachTo !== null && <MemoSelectionAttach chatId={attachTo} file={file} path={path} editor={editor} page={page ? pageHandle : null} />}
             {chatOpen && <div className="pane-resizer memo-chat-resizer" aria-label="メモのチャットの欄の幅を変える" {...chatWidth.handle} />}
             <div ref={chatPane} className="memo-chat-slot" aria-hidden={!chatOpen} inert={!chatOpen}>
               <MemoChat projectId={projectId} path={path} visible={chatOpen} beforeSend={saveBeforeSend} handleRef={chat} onClose={() => setChatOpen(false)} />

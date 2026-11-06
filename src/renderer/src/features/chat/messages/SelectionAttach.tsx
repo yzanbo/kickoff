@@ -14,6 +14,8 @@ export interface Picked {
   rect: { left: number; top: number; width: number };
   quote: string;
   markdown?: string;
+  /** コードの行を選んだとき: 選んだ行のコード（行番号・+- を除いたもの）と行（パスを含めてコピー） */
+  code?: { text: string; lines: { from: number; to: number } };
 }
 
 /** 足す先のボタンの横に置くもの（「メモ ▾」）に渡す操作: hold = メニューを開いている間は消さない / done = 済んだので選択ごと消す */
@@ -80,15 +82,15 @@ export function pickedInCode(root: Element | null): Picked | undefined {
   const numbers = picked.map((c) => Number(c.dataset.no));
   const code = picked.map(codeOf).join("\n");
   const range = { path: section.dataset.quotePath ?? "", from: Math.min(...numbers), to: Math.max(...numbers), side };
-  return { rect: at.range.getBoundingClientRect(), quote: quoteCode({ ...range, code, comment: "" }) };
+  return { rect: at.range.getBoundingClientRect(), quote: quoteCode({ ...range, code, comment: "" }), code: { text: code, lines: { from: range.from, to: range.to } } };
 }
 
 /** メインの会話の中で選んだときのボタン */
-const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追加", title: "選んだ部分を引用して、チャットの入力欄に足します（送るのは自分で）" };
+const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追加", title: "選択部分を引用して、チャットの入力欄に足します（送るのは自分で）" };
 
 /**
  * メインの会話の AI の返答の一部を選ぶと、その上に「チャットに追加」のボタンを出し、押すと選んだ文の引用を、すぐこのチャットの入力欄の文の後ろに足す
- * （何件か足してから、まとめて送れる。送るのは自分で）。横に「メモ ▾」（SelectionMemoButton。選んだ部分をメモにする）。
+ * （何件か足してから、まとめて送れる。送るのは自分で）。横に「メモ ▾」（SelectionMemoButton。選択部分をメモにする）。
  * 右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach がメインのチャットと両方に足せるボタンを出す）
  */
 export function SelectionAttach() {
@@ -130,11 +132,11 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
         const inner = innerChat();
         const main: AddTarget = {
           label: inner ? "メインに追加" : "チャットに追加",
-          title: "選んだ部分を引用して、メインのチャットの入力欄に足します（送るのは自分で）",
+          title: "選択部分を引用して、メインのチャットの入力欄に足します（送るのは自分で）",
           onAdd: (text) => addToChat(mainChatId, text),
         };
         if (!inner) return [main];
-        return [main, { label: inner.label, title: "選んだ部分を引用して、このチャットの入力欄に足します（送るのは自分で）", onAdd: (text) => addToChat(inner.chatId, text) }];
+        return [main, { label: inner.label, title: "選択部分を引用して、このチャットの入力欄に足します（送るのは自分で）", onAdd: (text) => addToChat(inner.chatId, text) }];
       }}
     />
   );

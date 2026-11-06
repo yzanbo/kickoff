@@ -63,7 +63,7 @@ export async function startChildChat(
     if (point?.session_id && point.message_id && provider.fork) {
       sessionId = await provider.fork(point.session_id, point.message_id, workdirOf(parent, project)).catch(asInvalid);
     } else {
-      notice = `親のチャット「${parentName}」には引き継げる会話がまだないので、選んだ文だけで始めました`;
+      notice = `親のチャット「${parentName}」には引き継げる会話がまだないので、選択部分だけで始めました`;
     }
   }
   const prompt = input.quote?.trim() ? `${quoteBlock(input.quote)}\n\n${input.text}` : input.text;

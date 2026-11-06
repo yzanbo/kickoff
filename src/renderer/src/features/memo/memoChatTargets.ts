@@ -1,8 +1,9 @@
 // メモの本文の右クリック・見出しのボタンから、メモを足す先のチャット（メインのチャット・メモのチャット）
 import type { MutableRefObject } from "react";
+import { lineLocation } from "@/lib/pathCopy";
 import { alertDialog } from "@/ui/dialogs";
 import { attachMemoToChat } from "./attachMemo";
-import { memoAttachment, memoLocation, memoQuote } from "./memoAttachment";
+import { memoAttachment, memoQuote } from "./memoAttachment";
 import type { MemoChatHandle } from "./MemoChat";
 import type { MemoChatTarget } from "./useMemoEditMenu";
 
@@ -33,7 +34,7 @@ export function memoChatTargets({
     void alertDialog("添付できませんでした", "メモを保存できなかったので、添付しませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから添付してください）。");
     return false;
   };
-  const quoteOf = (selection: string, lines: Parameters<typeof memoLocation>[1]) => memoQuote(memoLocation(file, lines), selection);
+  const quoteOf = (selection: string, lines: Parameters<typeof lineLocation>[1]) => memoQuote(lineLocation(file, lines), selection);
   const toMemoChat = (text: string, attachments?: ReturnType<typeof memoAttachment>[]) => {
     openMemoChat();
     memoChat.current?.add(text, attachments);
