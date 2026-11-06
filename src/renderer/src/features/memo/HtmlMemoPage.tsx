@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, type MutableRefObject } from "react";
 import { memoAssetBase, memoLinkPath, withBaseHref } from "./htmlPage";
 import { parentOf } from "./memoPaths";
 
@@ -7,8 +7,15 @@ import { parentOf } from "./memoPaths";
  * 相対パスの CSS・画像はメモのフォルダから読む（<base> をコアのファイルの口へ向ける）。
  * sandbox は allow-same-origin だけ: 中の JavaScript・フォーム・ポップアップは動かさず、外（この画面）からは中の文書に触れる。
  * リンクは中で開かない（ページ内の # は飛ぶ、メモのフォルダの中は onOpenLink（開く側がメモを開く）、外のサイトはブラウザで開く）。右クリックは選んだ文を添えてメモのメニューを開き、⌘S は保存。
+ * 選んだ文とその位置は handleRef の selected で読む（選び終えた mouseup とスクロールは、親の画面へ伝え直す。「チャットに添付」のボタン）。
  * 読み直しても（AI が書き換えたときなど）スクロールの位置は保つ。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない
  */
+/** 外からページを読む口 */
+export interface HtmlMemoPageHandle {
+  /** ページの中で選んでいる文と、その画面の位置（選んでいなければ null） */
+  selected: () => { text: string; rect: { left: number; top: number; width: number } } | null;
+}
+
 export function HtmlMemoPage({
   projectId,
   path,
@@ -16,6 +23,7 @@ export function HtmlMemoPage({
   onContextMenu,
   onSave,
   onOpenLink,
+  handleRef,
 }: {
   projectId: number;
   path: string;
@@ -24,6 +32,7 @@ export function HtmlMemoPage({
   onSave: () => void;
   /** メモのフォルダの中へのリンクを押した（メモのフォルダからの相対パス） */
   onOpenLink: (path: string) => void;
+  handleRef?: MutableRefObject<HtmlMemoPageHandle | null>;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const scroll = useRef({ x: 0, y: 0 });
@@ -41,6 +50,8 @@ export function HtmlMemoPage({
     win.scrollTo(scroll.current.x, scroll.current.y);
     win.addEventListener("scroll", () => {
       scroll.current = { x: win.scrollX, y: win.scrollY };
+      // 選んだ文の上のボタンを消す（親の画面のスクロールとして見せる）
+      el.dispatchEvent(new Event("scroll"));
     });
     doc.addEventListener("click", (e) => {
       // iframe の中の要素は別の世界のものなので instanceof で見分けない
@@ -61,13 +72,15 @@ export function HtmlMemoPage({
     });
     // ページの中の押下は親の画面に届かないので、iframe の要素から伝え直す
     // （開いているメニュー・ポップオーバーが外側のクリックとして閉じ（useDismiss）、マウスを乗せたときの説明も消える）
+    // 選び終えた mouseup も伝え直す（選んだ文の上に「チャットに添付」を出す）
     const forward = (e: MouseEvent) => {
       const rect = el.getBoundingClientRect();
       const init = { bubbles: true, cancelable: true, button: e.button, buttons: e.buttons, clientX: rect.left + e.clientX, clientY: rect.top + e.clientY };
-      el.dispatchEvent(e.type === "pointerdown" ? new PointerEvent("pointerdown", init) : new MouseEvent("mousedown", init));
+      el.dispatchEvent(e.type === "pointerdown" ? new PointerEvent("pointerdown", init) : new MouseEvent(e.type, init));
     };
     doc.addEventListener("pointerdown", forward);
     doc.addEventListener("mousedown", forward);
+    doc.addEventListener("mouseup", forward);
     doc.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       const rect = el.getBoundingClientRect();
@@ -80,6 +93,21 @@ export function HtmlMemoPage({
       }
     });
   };
+
+  if (handleRef) {
+    handleRef.current = {
+      selected: () => {
+        const el = frame.current;
+        const selection = el?.contentWindow?.getSelection();
+        const text = selection?.toString().trim();
+        // ページにピントがあるときだけ（ほかの所で選び直したあとに、ページに残った選択で出さない）
+        if (!el || document.activeElement !== el || !selection || !text || selection.rangeCount === 0) return null;
+        const box = selection.getRangeAt(0).getBoundingClientRect();
+        const offset = el.getBoundingClientRect();
+        return { text, rect: { left: offset.left + box.left, top: offset.top + box.top, width: box.width } };
+      },
+    };
+  }
 
   return <iframe ref={frame} className="memo-html-page" title="メモのページ" sandbox="allow-same-origin" srcDoc={srcDoc} onLoad={attach} />;
 }

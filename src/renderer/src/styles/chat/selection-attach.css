@@ -1,0 +1,20 @@
+/* ==== 選んだ範囲をチャットに添付（SelectionAttach）: 返答・差分・メモの一部を選ぶと上に出るボタン ==== */
+
+.selection-attach {
+  position: fixed;
+  z-index: 40;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+}
+
+.selection-attach-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 0;
+  font-size: 12px;
+  white-space: nowrap;
+}
