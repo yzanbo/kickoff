@@ -35,6 +35,10 @@
   --sec-implementation: #d95926;
   --sec-testing: #199e70;
   --sec-deployment: #d55181;
+  /* 子チャットの深さの色（子 = 青・孫 = 桃・ひ孫より深い = 黄緑）。右の欄のタブの札と下線・子チャットの上の帯の呼び名で同じ */
+  --child-depth-1: hsl(200 70% 62%);
+  --child-depth-2: hsl(330 65% 72%);
+  --child-depth-3: hsl(95 45% 58%);
   --radius-sm: 6px;
   --radius: 8px;
   --radius-lg: 12px;
@@ -89,6 +93,9 @@
   --sec-implementation: #eb6834;
   --sec-testing: #1baf7a;
   --sec-deployment: #e87ba4;
+  --child-depth-1: hsl(205 70% 40%);
+  --child-depth-2: hsl(330 55% 45%);
+  --child-depth-3: hsl(100 50% 30%);
 }
 
 * {

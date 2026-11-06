@@ -16,7 +16,16 @@
 
 .panel-tab.tab-kind-child,
 .panel-tab.tab-kind-newChild {
-  --tab-color: hsl(200 70% 62%);
+  --tab-color: var(--child-depth-1);
+}
+
+/* 孫より深い子チャットのタブは、札（「孫」「ひ孫」。ChildTabBadge）と下線を深さの色にする（同じ欄に子と並ぶので見分ける） */
+.panel-tab.tab-kind-child:has(.child-depth-mark-2) {
+  --tab-color: var(--child-depth-2);
+}
+
+.panel-tab.tab-kind-child:has(.child-depth-mark-3) {
+  --tab-color: var(--child-depth-3);
 }
 
 :root[data-theme="light"] .panel-tab.tab-kind-memo {
@@ -27,10 +36,6 @@
   --tab-color: hsl(265 50% 48%);
 }
 
-:root[data-theme="light"] .panel-tab.tab-kind-child,
-:root[data-theme="light"] .panel-tab.tab-kind-newChild {
-  --tab-color: hsl(205 70% 40%);
-}
 
 /* 名前の前の種類の札（まとまりの頭の札と同じ、薄い地に色の文字の丸い札。名前より先に省かない） */
 .panel-tab-label .panel-tab-kind {

@@ -32,7 +32,7 @@ export function PanelTab({
   icon: LucideIcon;
   iconClass?: string;
   /** 名前の前に置く種類の札（メモ・サブ・子）。タブの枠もその種類の色にする（kind で色を分ける。CSS の .tab-kind-<kind>） */
-  badge?: { text: string; kind: string };
+  badge?: { text: ReactNode; kind: string };
   label: string;
   /** チャットのグループ（名前の後ろに、グループの色の札で添える。グループなしなら出さない） */
   group?: TabGroupBadge;

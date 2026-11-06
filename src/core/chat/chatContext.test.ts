@@ -64,10 +64,13 @@ test("添える文: 親のないチャットは null、子チャットは自分�
     ],
     askedFrom: "設計はこうします",
   })!;
-  assert.ok(note.includes("- このチャット: 「（名前なし）」（Kickoff のチャット ID: 9）"));
-  assert.ok(note.includes("- 親チャット: 「子」（Kickoff のチャット ID: 4、Claude Code のセッション ID: s-4）"));
+  // 孫は孫チャットと呼び、親も子チャットだと添える（子と孫を見分ける）
+  assert.ok(note.includes("- このチャット: 「（名前なし）」（Kickoff のチャット ID: 9）。親チャットから寄り道の質問をするために作った孫チャットです。"));
+  assert.ok(note.includes("- 親チャット: 「子」（Kickoff のチャット ID: 4、Claude Code のセッション ID: s-4。親チャットも子チャットです）"));
   assert.ok(note.includes("「メイン」（ID: 1） › 「子」（ID: 4） › このチャット"));
   assert.ok(note.includes("この発言から聞きました: 「設計はこうします」"));
   // 親だけなら系譜の行は出さない
-  assert.ok(!chatContextNote({ id: 9, title: "x", ancestors: [{ id: 4, title: "子", sessionId: null }], askedFrom: null })!.includes("系譜"));
+  const child = chatContextNote({ id: 9, title: "x", ancestors: [{ id: 4, title: "子", sessionId: null }], askedFrom: null })!;
+  assert.ok(!child.includes("系譜"));
+  assert.ok(child.includes("作った子チャットです。"));
 });

@@ -45,15 +45,22 @@ export function handBackText(child: Pick<Chat, "title">, answer: string): string
   return `子チャット「${chatTitle(child.title)}」の答え:\n${quoted}\n\n`;
 }
 
+/** 親から根までの祖先（根 → 親の順。親のないチャットは空）。読み込んだ一覧になければ、たどれたところまで（輪になっていても止まる） */
+export function ancestorsOf<T extends Pick<Chat, "id" | "parent_chat_id">>(chat: T, lookup: (id: number) => T | undefined): T[] {
+  const ancestors: T[] = [];
+  const seen = new Set([chat.id]);
+  let parentId = chat.parent_chat_id;
+  while (parentId !== null && !seen.has(parentId)) {
+    const parent = lookup(parentId);
+    if (!parent) break;
+    seen.add(parent.id);
+    ancestors.unshift(parent);
+    parentId = parent.parent_chat_id;
+  }
+  return ancestors;
+}
+
 /** いちばん上の親（子チャットでないチャット）。親が読み込んだ一覧になければ、たどれたところまで（輪になっていても止まる） */
 export function rootChatOf<T extends Pick<Chat, "id" | "parent_chat_id">>(chat: T, lookup: (id: number) => T | undefined): T {
-  let current = chat;
-  const seen = new Set<number>();
-  while (current.parent_chat_id !== null && !seen.has(current.id)) {
-    seen.add(current.id);
-    const parent = lookup(current.parent_chat_id);
-    if (!parent) break;
-    current = parent;
-  }
-  return current;
+  return ancestorsOf(chat, lookup)[0] ?? chat;
 }
