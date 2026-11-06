@@ -56,7 +56,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.tree-item > .file-tree {
+.tree-item > .file-tree,
+.tree-item > .collapse {
   grid-column: 1 / -1;
 }
 

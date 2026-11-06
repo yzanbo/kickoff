@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type M
 import { memoExtensionOf } from "@shared/memo/kinds";
 import { cx } from "@/lib/cx";
 import { Chevron } from "@/ui/Chevron";
+import { Collapse } from "@/ui/Collapse";
 import { InlineName } from "@/ui/InlineName";
 import { FileIcon } from "@/features/editor/FileIcon";
 import type { TreeNode } from "@/features/editor/treeModel";
@@ -47,7 +48,7 @@ interface Props {
 }
 
 /**
- * メモのフォルダの木（エディタの木と同じ見た目。開いているフォルダの中だけ描く）。行をドラッグしてフォルダへ落とすと動かす
+ * メモのフォルダの木（エディタの木と同じ見た目。開いているフォルダの中だけ描き、開閉は高さをなめらかに変える `Collapse`）。行をドラッグしてフォルダへ落とすと動かす
  * （ファイルの行に落とすと、そのファイルのあるフォルダへ。閉じたフォルダに重ねて待つと開く）。右クリックで行のメニュー。
  * ダブルクリック（と右クリックの「名前を変更」・新しく作ったとき）で、行の名前の所がそのまま入力欄になる（メモは拡張子を除いた部分を書く）
  */
@@ -141,7 +142,12 @@ export function MemoTree(props: Props) {
                 <span className="tree-name">{node.name}</span>
               </button>
             )}
-            {isOpen && node.children.length > 0 && <MemoTree {...props} nodes={node.children} depth={depth + 1} />}
+            {/* 開閉で高さをなめらかに変える（サイドバーのまとまりと同じ動き。閉じきったら中身を外す） */}
+            {node.dir && node.children.length > 0 && (
+              <Collapse open={isOpen}>
+                <MemoTree {...props} nodes={node.children} depth={depth + 1} />
+              </Collapse>
+            )}
           </li>
         );
       })}
