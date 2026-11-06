@@ -15,6 +15,7 @@ import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 import { HtmlMemoPage, type HtmlMemoPageHandle } from "./HtmlMemoPage";
 import type { MemoEditorHandle } from "./MemoEditor";
 import { MemoChat, type MemoChatHandle } from "./MemoChat";
+import { MemoQuickChat } from "./MemoQuickChat";
 import { memoChatTargets } from "./memoChatTargets";
 import { MemoSelectionAttach } from "./MemoSelectionAttach";
 import { memoTitle, parentOf } from "./memoPaths";
@@ -57,7 +58,8 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  * 本文を保存してからファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）。Esc で元の題名に戻す。
  * HTML のメモのページのリンクがメモのフォルダの中を指すとき、メモなら onOpenMemo（開いている側が同じ場所で開く）、フォルダ・メモでないファイルは Finder で表示する。
  * attachTo（チャットの右の欄・別ウィンドウで開いたとき、開いたチャット）があれば、見出しのボタン・本文の右クリックで、
- * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する。本文で文を選ぶと、上の「チャットに追加」ですぐ引用を足せる
+ * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する。本文で文を選ぶと、上の「チャットに追加」ですぐ引用を足せる。
+ * メモのチャットの欄を閉じている間は、下にこのメモを AI に直してもらう入力欄（MemoQuickChat）を出す
  */
 export function MemoView({
   projectId,
@@ -256,6 +258,8 @@ export function MemoView({
           </>
         )}
       </div>
+      {/* メモのチャットの欄を閉じている間は、ページの下にこのメモを AI に直してもらう入力欄（会話は出さず、様子の 1 行だけ） */}
+      {doc.initial !== null && !unreadable && !chatOpen && <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} />}
     </div>
   );
 }
