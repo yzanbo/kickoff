@@ -59,7 +59,7 @@ test("groupEvents: 連続するツールの実行を 1 つにまとめ、結果�
   );
 });
 
-test("groupEvents: parent を渡すとそのサブエージェントの分だけ、渡さなければ親のエージェントの分だけ", () => {
+test("groupEvents: parent を渡すとそのサブエージェントの分だけ、渡さなければメインエージェントの分だけ", () => {
   const events = [makeEvent(1, "text", { text: "親" }), makeEvent(2, "text", { text: "子", parent: "sub1" }), makeEvent(3, "tool_use", { id: "x", name: "Read", input: {}, parent: "sub1" })];
   assert.deepEqual(
     groupEvents(events).map((i) => i.key),

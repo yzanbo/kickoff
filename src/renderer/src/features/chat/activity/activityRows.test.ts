@@ -62,7 +62,7 @@ test("activityRows: サブエージェントの動きは起動の行のあとに
     ["a1", "launch", "サブエージェント「洗い出し」を起動"],
     ["main", "tools", "ファイル検索: *.ts"],
     ["b1", "end", "報告 → 調査"],
-    ["a1", "end", "報告 → メイン"],
+    ["a1", "end", "報告 → メインエージェント"],
   ]);
   assert.equal(rows.find((r) => r.kind === "launch")?.child, "a1");
   assert.equal(rows.find((r) => r.key === "end-a1")?.durationMs, 19_000);

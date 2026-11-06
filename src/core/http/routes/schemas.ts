@@ -120,7 +120,7 @@ export const childChatSchema = z
   })
   .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<ChildChatBody, unknown>;
 
-/** サブエージェントに子チャットで直接聞く（文か添付が要る） */
+/** サブエージェントに子チャットで聞く（文か添付が要る） */
 export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SubagentChildBody, unknown>;
 
 /** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する） */

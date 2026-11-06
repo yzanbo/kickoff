@@ -48,7 +48,7 @@ export function promptListOf(events: readonly ChatEvent[]): PromptList {
     .filter((e): e is ChatEventOf<"user"> => e.type === "user")
     .map((e): PromptEntry => {
       const data = e.data;
-      // サブエージェントに子チャットで直接聞いた発言は、前置きを除いた聞いた文だけ
+      // サブエージェントに子チャットで聞いた発言は、前置きを除いた聞いた文だけ
       const text = (subagentAskOf(data.text)?.text ?? data.text).trim();
       const attachments = data.attachments ?? NO_ATTACHMENTS;
       return { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments, compactKind: compactKindOf(data) };

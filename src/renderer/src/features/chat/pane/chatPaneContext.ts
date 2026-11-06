@@ -92,7 +92,7 @@ export interface ChatPaneActions {
    */
   revealInConversation: (eventId: number | undefined, agent: string | null) => void;
   /**
-   * そのサブエージェントのカードのいちばん下に「伝える」の入力欄を開く（送るとメインのエージェントから SendMessage で伝える）。
+   * そのサブエージェントのカードのいちばん下に「伝える」の入力欄を開く（送るとメインエージェントから SendMessage で伝える）。
    * 書いている欄が流れていかないよう、流れの一番下への付いていきを止める
    */
   tellSubagent: (key: string) => void;

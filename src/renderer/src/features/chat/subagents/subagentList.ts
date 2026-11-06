@@ -13,21 +13,21 @@ export const SUBAGENT_STATUS_LABELS: Record<SubagentEntry["status"], string> = {
  * 完了は、報告が親に届いたかで分ける（受け取った = 完了 / まだ親が動いていない = 受け取り待ち / 親が動かずに作業が終わった = 届いていない）
  */
 export function subagentStatusLabel(entry: SubagentEntry): string {
-  // 止まったあと、親が新しいサブエージェントでやり直したもの（もう手を打たなくてよい。止まった理由は subagentStatusTitle）
+  // 止まったあと、起動したエージェントが新しいサブエージェントでやり直したもの（もう手を打たなくてよい。止まった理由は subagentStatusTitle）
   if (entry.supersededBy) return "やり直し済み";
   return haltedLabel(entry);
 }
 
 /** 状態の文に乗せたときの説明（やり直し済みは、止まった理由とやり直した回の名前） */
 export function subagentStatusTitle(entry: SubagentEntry): string | undefined {
-  return entry.supersededBy ? `${haltedLabel(entry)}のあと、親のエージェントが「${entry.supersededBy.description}」としてやり直しています` : undefined;
+  return entry.supersededBy ? `${haltedLabel(entry)}のあと、起動したエージェントが「${entry.supersededBy.description}」としてやり直しています` : undefined;
 }
 
 function haltedLabel(entry: SubagentEntry): string {
   if (entry.network) return "通信の切断で中断";
   if (entry.status === "failed" && entry.outputLimit) return "失敗（出力の上限）";
-  if (entry.status === "completed" && entry.delivery === "pending") return "報告済み（親の受け取り待ち）";
-  if (entry.status === "completed" && entry.delivery === "lost") return "報告が親に届いていません";
+  if (entry.status === "completed" && entry.delivery === "pending") return "報告済み（受け取り待ち）";
+  if (entry.status === "completed" && entry.delivery === "lost") return "報告が届いていません";
   return SUBAGENT_STATUS_LABELS[entry.status];
 }
 

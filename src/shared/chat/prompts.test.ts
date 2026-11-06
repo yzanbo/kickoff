@@ -81,9 +81,10 @@ test("圧縮前指示: 自動のときだけ合図の一文を頼み、その一
   assert.ok(!isPreCompactDone("メモを残しました"));
 });
 
-test("サブエージェントに直接聞く文: 宛先と添付の名前を前に置き、本文は区切りの後ろにそのまま。見分けると名前と本文が取れる", () => {
+test("サブエージェントについて聞く文: 宛先と添付の名前を前に置き、本文は区切りの後ろにそのまま。見分けると名前と本文が取れる（前の頭のものも）", () => {
   const message = subagentAskMessage("a1", "調査", "サブエージェントの記録-調査.md", "core には？\n2 行目");
   assert.ok(message.includes("「サブエージェントの記録-調査.md」"));
   assert.deepEqual(subagentAskOf(message), { name: "調査", text: "core には？\n2 行目" });
   assert.equal(subagentAskOf("ふつうの指示"), undefined);
+  assert.deepEqual(subagentAskOf("【サブエージェントに直接聞く】「調査」（ID: a1）\n前置き\n---\n本文"), { name: "調査", text: "本文" });
 });

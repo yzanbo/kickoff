@@ -25,7 +25,7 @@ const COLLAPSE_PX = 240;
  * 「もう一度送る」は、同じ文と添付を新しい指示として送る（前のやり取りは消さない。途中で圧縮が入って依頼が薄れたときに、すぐ頼み直せるように）。作業中でも送れる。
  * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない。
  * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact）は、上に「圧縮前指示」「圧縮後指示」と添えて、自分で書いた指示と見分けられるようにする。
- * サブエージェントに子チャットで直接聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』に直接聞く」と添える（コピー・書き直しは書いた文で）
+ * サブエージェントについて子チャットで聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』について聞く」と添える（コピー・書き直しは書いた文で）
  */
 export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
   const data = event.data;
@@ -69,7 +69,7 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
         {subagentAsk && (
           <div className="message-kind-label" title="親のチャットのサブエージェントの会話の記録（添付）を読んでから答えるよう、AI に頼んで始めました">
             <MessageSquarePlus size={12} aria-hidden />
-            サブエージェント「{subagentAsk.name}」に直接聞く
+            サブエージェント「{subagentAsk.name}」について聞く
           </div>
         )}
         {attachments.length > 0 && (

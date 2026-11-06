@@ -5,13 +5,13 @@ import type { SubagentEntry } from "@shared/chat/subagents";
 /** サブエージェントの木（行のキーで引く・子を引く。子は起動した順） */
 export interface SubagentTree {
   byKey: ReadonlyMap<string, SubagentEntry>;
-  /** 子の一覧（キーが undefined ならメインのエージェントが起動したもの） */
+  /** 子の一覧（キーが undefined ならメインエージェントが起動したもの） */
   children: ReadonlyMap<string | undefined, readonly SubagentEntry[]>;
 }
 
 const NO_CHILDREN: readonly SubagentEntry[] = [];
 
-/** 一覧から木を作る（親が一覧にないもの（巻き戻したなど）は、メインのエージェントが起動したものとして扱う） */
+/** 一覧から木を作る（親が一覧にないもの（巻き戻したなど）は、メインエージェントが起動したものとして扱う） */
 export function subagentTree(entries: readonly SubagentEntry[]): SubagentTree {
   const byKey = new Map(entries.map((s) => [s.key, s]));
   const children = new Map<string | undefined, SubagentEntry[]>();

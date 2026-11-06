@@ -31,11 +31,11 @@ import { childrenOf, pathOf } from "./subagentTree";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 
 /**
- * 右の欄（サブエージェントの欄）のタブの中身: 1 つのサブエージェントを、メインの会話と同じような画面で見る。
- * 上から、階層（メイン › 調査 › 洗い出し。押すとその階層へ）・見出し（状態・時刻・いまの動き・操作）→ 親からの依頼 → 手順（メインと同じ部品で、
- * 発言・時刻付きのツール・入れ子のカード）→ 親への報告 → そのサブエージェントに伝える入力欄。
+ * 右の欄（サブエージェントの欄）のタブの中身: 1 つのサブエージェントを、チャットの画面と同じような画面で見る。
+ * 上から、階層（メインエージェント › 調査 › 洗い出し。押すとその階層へ）・見出し（状態・時刻・いまの動き・操作）→ 起動したエージェントからの依頼 → 手順（チャットの流れと同じ部品で、
+ * 発言・時刻付きのツール・入れ子のカード）→ 起動したエージェントへの報告 → そのサブエージェントに伝える入力欄。
  * 手順は画面いっぱいにスクロールし、実行中は最新に付いていく（中で上へ戻したら止まる。useFollowScroll）。
- * 入力欄から送ると、Kickoff から直接は送れないので、メインのエージェントに SendMessage でそのまま渡してもらう（カードの「伝える」と同じ）
+ * 入力欄から送ると、Kickoff から直接は送れないので、メインエージェントに SendMessage でそのまま渡してもらう（カードの「伝える」と同じ）
  */
 export function SubagentScreen({ agentKey }: { agentKey: string }) {
   const view = useSubagentsView();
@@ -95,10 +95,10 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
         <button
           type="button"
           className="link-button"
-          title="メインの会話の、このサブエージェントを起動したカードへ移ります"
+          title="チャットの流れの中の、このサブエージェントを起動したカードへ移ります"
           onClick={() => pane.revealSubagent(path[0]?.key ?? entry.key)}
         >
-          メイン
+          メインエージェント
         </button>
         {path.slice(0, -1).map((s) => (
           <Fragment key={s.key}>
@@ -147,7 +147,7 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
           <button
             type="button"
             className="link-button subagent-tell"
-            title="メインの会話の流れの中の、このサブエージェントのカードへ移って開きます"
+            title="チャットの流れの中の、このサブエージェントのカードへ移って開きます"
             onClick={() => pane.revealSubagent(entry.key)}
           >
             <MessageSquare size={12} aria-hidden />

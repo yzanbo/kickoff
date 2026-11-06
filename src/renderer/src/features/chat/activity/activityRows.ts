@@ -14,7 +14,7 @@ export type ActivityKind = "prompt" | "reply" | "tools" | "launch" | "end" | "no
 export interface ActivityRow {
   key: string;
   kind: ActivityKind;
-  /** 誰の動きか（メインのエージェント = null、サブエージェント = 一覧の行のキー） */
+  /** 誰の動きか（メインエージェント = null、サブエージェント = 一覧の行のキー） */
   agent: string | null;
   /** 始めた時刻（並べる順） */
   at: string;
@@ -63,7 +63,7 @@ export function activityRows(events: ChatEvent[], tree: SubagentTree, busy: bool
   const lastResult = events.findLast((e) => e.type === "result");
   const mainFloor = lastResult ? Date.parse(lastResult.created_at) : -Infinity;
   const relays = [...tree.byKey.values()].filter((s) => s.agentId !== undefined);
-  const name = (key: string | undefined) => (key === undefined ? "メイン" : (tree.byKey.get(key)?.description ?? "サブエージェント"));
+  const name = (key: string | undefined) => (key === undefined ? "メインエージェント" : (tree.byKey.get(key)?.description ?? "サブエージェント"));
 
   const push = (items: TimelineItem[], owner: SubagentEntry | undefined) => {
     const agent = owner?.key ?? null;

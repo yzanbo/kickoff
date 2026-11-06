@@ -19,8 +19,8 @@ import { childrenOf, latestActivity, scopeOf } from "./subagentTree";
 
 /*
  * サブエージェントの見せ方の部品（流れの中のカード SubagentCard と、右の欄のサブエージェントの画面 SubagentScreen で共通）:
- * 「サブエージェント」の札・中で起動したサブエージェントの札・開始〜終了の時刻・いまの動き・終わったもののまとめ・親からの依頼・
- * 手順（発言・ツール・入れ子のカード・作業中の行）・親への報告
+ * 「サブエージェント」の札・中で起動したサブエージェントの札・開始〜終了の時刻・いまの動き・終わったもののまとめ・起動したエージェントからの依頼・
+ * 手順（発言・ツール・入れ子のカード・作業中の行）・起動したエージェントへの報告
  */
 
 /** 中で起動したサブエージェントの札に並べる点の数（多ければ「+n」） */
@@ -30,12 +30,12 @@ const MAX_CHILD_ROWS = 3;
 
 /**
  * 名前の前の「サブエージェント」の札（そのサブエージェントの色）。サブエージェントの中で起動したもの（入れ子）は頭に「↳」を付け、
- * 乗せると、どのサブエージェントの中で起動したかを出す（何段目かの数ではなく親の名前で。深さは右の欄の階層・乗せたときの道筋で見る）
+ * 乗せると、どのサブエージェントの中で起動したかを出す（何段目かの数ではなく、起動したサブエージェントの名前で。深さは右の欄の階層・乗せたときの道筋で見る）
  */
 export function SubagentKind({ entry, view }: { entry: SubagentEntry; view: SubagentsView }) {
   const parent = entry.parentKey === undefined ? undefined : view.tree.byKey.get(entry.parentKey);
   return (
-    <span className={cx("subagent-kind", parent && "nested")} title={parent ? `「${parent.description}」の中で起動したサブエージェント` : "メインのエージェントが起動したサブエージェント"}>
+    <span className={cx("subagent-kind", parent && "nested")} title={parent ? `「${parent.description}」の中で起動したサブエージェント` : "メインエージェントが起動したサブエージェント"}>
       {parent && <CornerDownRight size={11} aria-hidden />}
       <span className="subagent-kind-text">サブエージェント</span>
     </span>
@@ -220,13 +220,13 @@ export function SubagentSteps({ entry, view, items, renderItems }: { entry: Suba
   );
 }
 
-/** 親のエージェントへの報告（まだなければ出さない） */
+/** 起動したエージェントへの報告（まだなければ出さない） */
 export function SubagentReport({ entry, view }: { entry: SubagentEntry; view: SubagentsView }) {
   const report = subagentReport(entry, view.events);
   if (!report) return null;
   return (
     <div className="subagent-result">
-      <div className="subagent-label">親のエージェントへの報告</div>
+      <div className="subagent-label">起動したエージェントへの報告</div>
       <Markdown>{report}</Markdown>
     </div>
   );
@@ -249,14 +249,14 @@ function workingText(entry: SubagentEntry): string {
   return tool ? `${tool} を実行中` : "作業中";
 }
 
-/** 親のエージェントからの依頼（初めは 1 行にたたみ、開くと全文） */
+/** 起動したエージェントからの依頼（初めは 1 行にたたみ、開くと全文） */
 export function SubagentPrompt({ text }: { text: string }) {
   const first = text.split("\n").find((line) => line.trim()) ?? "";
   return (
     <details className="subagent-prompt">
       <summary>
         <ChevronRight size={13} className="tool-chevron" />
-        <span className="subagent-label">親のエージェントからの依頼</span>
+        <span className="subagent-label">起動したエージェントからの依頼</span>
         <span className="subagent-prompt-first">{first}</span>
       </summary>
       <div className="subagent-prompt-body">

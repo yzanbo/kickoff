@@ -100,7 +100,7 @@ type AgentEvent = Exclude<ChatEventData, { type: "user" | "approval" | "approval
 
 /** 作業中のチャットへの操作（ストリーミング入力が開いている間だけ） */
 export interface TurnControl {
-  /** 作業を止めずに発言を足す（いまの手順の切れ目でメインのエージェントが読む）。入力が閉じていれば false */
+  /** 作業を止めずに発言を足す（いまの手順の切れ目でメインエージェントが読む）。入力が閉じていれば false */
   tell(text: string, uuid?: string): boolean;
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */
   stopTask(taskId: string): Promise<void>;

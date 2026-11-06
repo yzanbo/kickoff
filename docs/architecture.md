@@ -35,12 +35,30 @@
 | 権限モード | `PermissionMode` | `PermissionChoice` |
 | 未読 / 既読 | `unread` / `read` | `attention`・列の `review` / `done` |
 | タブの入れ物（右のパネル・チャット欄・下のパネル・右の欄） | `Panel`（`usePanel`） | `SidePanel`（3 か所で使うのに「横」） |
-| 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインとのつながりが見えないのでやめた） |
+| 右の欄（チャットの画面の右に、サブエージェントの画面を並べる欄。チャットのタブの中に入れ子にしたタブの入れ物） | 欄 `agents`（`SURFACES.agents`・`AgentSplit`）・タブの種類 `subagent`・画面 `SubagentScreen` | パネルのタブで開くサブエージェント（`SubagentPane`。メインエージェントとのつながりが見えないのでやめた） |
 | チャットタブ（チャットをボードと分けて横幅いっぱいに開くプロジェクトのタブ。設定でボードの右のパネルにも戻せる） | タブ `chats`（`#/projects/:id/chats`）・`ChatsTab`・置き方の設定 `CHAT_PLACEMENT`（`separate` / `together`）。中身はボードの右のパネルと同じ `kanban:<プロジェクト>` のパネル | ボードの右のパネルだけ |
 | メモ（プロジェクトの「メモ」タブ。プロジェクトの外のフォルダの Markdown か HTML（HTML のメモ = HTML と CSS で書くページ。描いた見た目で見る）） | メモのフォルダ（設定 `memos_dir` の下の、プロジェクトの `memo_folder`。別の場所なら `memo_path`）・`MemoService`（`core/memos/`）・`MemoTab`（`features/memo/`） | なし |
 | メモのチャット（メモの右の欄で話す、メモごとに 1 つのふつうのチャット。一覧には並べず、そのメモの右の欄から開く。AI はメモのファイルを直接読み書きする） | `Chat` の `memo_path`・`POST /api/projects/:id/memo/chat`・`MemoChat`（`features/memo/`） | なし |
-| 子チャット（チャットの発言から「子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「子チャットで直接聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
-| 会話 / 動き（チャットの画面の見え方。動き = メインとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
+| 子チャット（チャットの発言から「子チャットで聞く」・右の欄の「＋」の「新しい子チャット」で始める横道の質問。親の中にだけ置き、いちばん上の親の右の欄か別ウィンドウで開く（設定 `CHILD_CHAT_OPEN_IN`。作ったときは `CHILD_CHAT_OPEN_ON_CREATE` で、開かないも選べる）。孫・ひ孫も作れる。サブエージェントの「伝える」で「子チャットで聞く」を選ぶと、そのサブエージェントの会話の記録を添えた子チャットになる） | `Chat` の `parent_chat_id`（親）・`parent_event_id`（聞いた発言）・`startChildChat`（`core/chat/children.ts`）・`startSubagentChildChat`（`core/chat/subagentChild.ts`）・`features/chat/children/` | なし |
+| 会話 / 動き（チャットの画面の見え方。動き = メインエージェントとすべてのサブエージェントの動きを 1 本の時系列に） | `ChatShowing`（`conversation` / `activity`）・`ActivityRow`（`features/chat/activity/`） | なし（サブエージェントは別のタブ） |
+
+### チャットの軸とエージェントの軸
+
+「親・子」と「メイン・サブ」は別の軸なので、画面の言葉で混ぜない（以前は単独の「メイン」が、メインエージェント・親チャット・右の欄を持つチャットの 3 つを指していた）。
+
+| 軸 | 画面の言葉 | コード |
+|---|---|---|
+| チャット（利用者が作る会話。木） | 親チャット / 子チャット / 孫チャット / ひ孫チャット（関係で呼ぶ。`@shared/chat/childDepth` の `childDepthLabel`）。右の欄・別ウィンドウで文を足す先のチャット（右の欄を持つチャット・別ウィンドウを開いたチャット）は「メイン」と呼ばず、名前で出す（「「機能開発」に追加」。`features/chat/chatTitle` の `chatTargetName`） | `Chat.parent_chat_id`・足す先 `MainChatContext`（コードの名前は残す） |
+| エージェント（1 つのチャットの中で動く AI。木） | メインエージェント / サブエージェント。サブエージェントから見た上は「起動したエージェント」（入れ子なら外のサブエージェント）で、「親」と呼ばない | `SubagentEntry.parentKey`・`subagentTree` |
+| ウィンドウ | メインウィンドウ / 別ウィンドウ | `features/popout/` |
+
+単独の「メイン」は画面に出さない（メインエージェント・メインウィンドウとだけ使う）。向きで動詞を分ける:
+
+| 動詞 | 向き | 例 |
+|---|---|---|
+| 伝える | 下へ。動いている作業に届き、作業を変える | 「サブエージェントに伝える」（メインエージェント経由で届く）・作業中のチャットに伝える |
+| 聞く | 横へ。だれの作業にも影響しない子チャットで聞く | 「子チャットで聞く」・サブエージェント「…」について聞く |
+| 渡す | 上へ。答え・報告を返す | 「親チャットに渡す」・サブエージェントの「報告をいま渡す」 |
 
 ## 2. 名前の決まり
 

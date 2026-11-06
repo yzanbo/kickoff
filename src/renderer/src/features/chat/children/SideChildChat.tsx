@@ -5,7 +5,7 @@ import { PanelHostContext } from "@/features/panel/panelHost";
 import { ChildChatBar } from "./ChildChatBar";
 
 /**
- * チャットの画面の右の欄に開いた子チャット: 上の帯（親を見る・メインチャットに渡す）と、ふつうのチャットの画面（ChatView）。
+ * チャットの画面の右の欄に開いた子チャット: 上の帯（親を見る・親チャットに渡す）と、ふつうのチャットの画面（ChatView）。
  * 子チャットの画面の中には右の欄を置かない（右の欄の中に右の欄を重ねない。子のサブエージェントは流れの中、ファイルはファイルタブで開く）
  */
 export function SideChildChat({ chatId, visible, onTitle }: { chatId: number; visible: boolean; onTitle: (title: string) => void }) {
