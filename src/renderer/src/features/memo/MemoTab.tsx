@@ -17,7 +17,7 @@ import type { TreeNode } from "@/features/editor/treeModel";
 import { FileIcon } from "@/features/editor/FileIcon";
 import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf, remapPath } from "./memoPaths";
 import { MemoListHead } from "./MemoListHead";
-import { isMemoDrag, MEMO_DRAG_TYPE, MemoTree, type MemoRenaming } from "./MemoTree";
+import { canDropInto, isMemoDrag, MEMO_DRAG_TYPE, MemoTree, type MemoRenaming } from "./MemoTree";
 import { confirmLeaveMemo } from "./memoGuards";
 import { MemoView } from "./MemoView";
 import { MemoPlanDialog } from "./MemoPlanDialog";
@@ -37,7 +37,8 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   // 左の一覧の幅（エディタ・履歴タブと同じ幅を覚える）
   const width = useDragSize({ setting: CHANGES_LIST_WIDTH, min: 200, keep: 320 });
   const [listHidden, setListHidden] = useSetting(MEMO_LIST_HIDDEN);
-  const [rootDrop, setRootDrop] = useState(false);
+  // ドラッグを重ねている落とす先のフォルダ（"" は直下 = 一覧ごと示す。null は重ねていない）
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
   // 一覧の行で名前を変えているメモ・フォルダ（新しく作ったとき・ダブルクリック・右クリックの「名前を変更」）
   const [renaming, setRenaming] = useState<MemoRenaming | null>(null);
   const startRename = (path: string) => setRenaming({ path, round: 0 });
@@ -122,19 +123,27 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
         <>
         <aside
           ref={width.paneRef}
-          className={cx("changes-list", "memo-list", rootDrop && "drop-target")}
+          className={cx("changes-list", "memo-list", dropTarget === "" && "drop-target")}
           style={{ width: width.size }}
           aria-label="メモ"
           onContextMenu={(e) => menu.open(e, null)}
           // 一覧の空いている所へ落とすと、いちばん上（直下）へ動かす
           onDragOver={(e) => {
             if (!isMemoDrag(e)) return;
+            if (!canDropInto("")) {
+              e.dataTransfer.dropEffect = "none";
+              setDropTarget(null);
+              return;
+            }
             e.preventDefault();
-            setRootDrop(true);
+            setDropTarget("");
           }}
-          onDragLeave={() => setRootDrop(false)}
+          onDragLeave={(e) => {
+            // 一覧の中の行へ移っただけなら、行が付け直す
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropTarget(null);
+          }}
           onDrop={(e) => {
-            setRootDrop(false);
+            setDropTarget(null);
             const path = e.dataTransfer.getData(MEMO_DRAG_TYPE);
             if (path) void actions.moveInto(path, "");
           }}
@@ -183,6 +192,8 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
               onMenu={(e, node) => menu.open(e, node)}
               onExpand={(path) => openFolders([path])}
               onDropInto={(path, folder) => void actions.moveInto(path, folder)}
+              dropTarget={dropTarget}
+              onDropTarget={setDropTarget}
               renaming={renaming}
               onStartRename={(node) => startRename(node.path)}
               onRename={(node, name) => void rename(node, name)}
