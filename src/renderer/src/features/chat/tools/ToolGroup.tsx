@@ -11,6 +11,7 @@ import { BackgroundCallsContext } from "./backgroundCalls";
 import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
 import { ToolStatusIcon } from "./ToolStatusIcon";
 import { HighlightedCode } from "@/ui/HighlightedCode";
+import { ReadResult, SearchResult, SearchTitle, ToolPath } from "./ToolResultCode";
 import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
 
 /**
@@ -80,12 +81,19 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
   let detail: ReactNode = null;
   // コマンドは、コマンドと出力（失敗の知らせも）を 1 つの枠で出すので、下の結果の欄は使わない
   const isCommand = name === "Bash" && typeof input.command === "string";
+  const isSearch = (name === "Grep" || name === "Glob") && typeof input.pattern === "string";
+  // 見出しの行の色付けは、まとまりを開いて一覧が見えてから（コマンドと同じ）
+  const highlightTitle = listed || opened;
   if (isCommand) {
     detail = <BashOutput command={String(input.command)} result={r} rel={rel} highlight={opened} />;
   } else if ((name === "Edit" || name === "MultiEdit") && typeof input.old_string === "string") {
     detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
   } else if (name === "Write" && typeof input.content === "string") {
     detail = <Diff before="" after={input.content} maxLines={40} />;
+  } else if (content && !r?.is_error && name === "Read" && typeof input.file_path === "string") {
+    detail = <ReadResult content={rel(content)} path={input.file_path} highlight={opened} />;
+  } else if (content && !r?.is_error && isSearch) {
+    detail = <SearchResult content={rel(content)} mode={name === "Grep" ? strOf(input.output_mode) ?? "files_with_matches" : undefined} path={strOf(input.path)} highlight={opened} />;
   }
   return (
     <details className={cx("tool-call", r?.is_error && "error")} onToggle={(e) => e.currentTarget.open && setOpened(true)}>
@@ -95,9 +103,13 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
         <span className="tool-arg">
           {/* コマンドは 1 行に収めた表示にも色を付ける（改行は空白に見える。色付けの結果は開いた欄と共有） */}
           {isCommand ? (
-            <HighlightedCode code={rel(String(input.command))} lang={listed || opened ? "shellscript" : undefined} />
+            <HighlightedCode code={rel(String(input.command))} lang={highlightTitle ? "shellscript" : undefined} />
+          ) : isSearch ? (
+            <SearchTitle glob={name === "Glob"} pattern={String(input.pattern)} path={rel(strOf(input.path) ?? "")} highlight={highlightTitle} />
           ) : FILE_TOOLS.has(name) && typeof input.file_path === "string" ? (
             <ToolFileArg path={input.file_path} label={rel(describeToolInput(name, input))} />
+          ) : name === "Read" && typeof input.file_path === "string" ? (
+            <ToolPath path={rel(input.file_path)} />
           ) : (
             rel(describeToolInput(name, input))
           )}
@@ -114,6 +126,9 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
   );
 }
 
+/** 文字列の入力（なければ undefined） */
+const strOf = (v: unknown) => (typeof v === "string" && v !== "" ? v : undefined);
+
 /** ファイルを変えるツール（行のファイル名を押して開ける） */
 const FILE_TOOLS = new Set(["Edit", "MultiEdit", "Write"]);
 
@@ -124,7 +139,7 @@ const FILE_TOOLS = new Set(["Edit", "MultiEdit", "Write"]);
 function ToolFileArg({ path, label }: { path: string; label: string }) {
   const links = useContext(FileLinkContext);
   const root = links ? `${links.index.root}/` : undefined;
-  if (!links || !root || !path.startsWith(root)) return <>{label}</>;
+  if (!links || !root || !path.startsWith(root)) return <ToolPath path={label} />;
   const ref = { path: path.slice(root.length) };
   return (
     <button
@@ -140,7 +155,7 @@ function ToolFileArg({ path, label }: { path: string; label: string }) {
         links.showMenu(e, ref);
       }}
     >
-      {label}
+      <ToolPath path={label} />
     </button>
   );
 }

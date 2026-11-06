@@ -1,0 +1,46 @@
+/*
+ * ツールの行と結果の色付け（ToolResultCode）: 行の見出しのパス（フォルダは薄く・ファイル名は本文の色）と、
+ * 読む・検索の結果（左に行番号、中身はファイルの言語で色付け）。枠と等幅の文字・スクロールは chat-tools.css の .tool-output
+ */
+.tool-path-dir {
+  color: var(--extra-muted);
+}
+
+.tool-path-name {
+  color: var(--text);
+}
+
+/* 検索の見出しの、探した場所（「（src/）」） */
+.tool-search-where {
+  margin-left: 2px;
+}
+
+/* 行番号（選んでコピーしても入らない） */
+.tool-code-no {
+  display: inline-block;
+  min-width: 3ch;
+  margin-right: 1.5ch;
+  color: var(--extra-muted);
+  text-align: right;
+  user-select: none;
+}
+
+/* 検索で見つかった行の頭のファイルのパス */
+.tool-code-path {
+  margin-right: 0.5ch;
+}
+
+/* 検索の「Found 3 files」・文脈の区切りの「--」 */
+.tool-code-note {
+  color: var(--extra-muted);
+}
+
+/* 検索の前後の文脈の行（-A / -B / -C）。見つかった行より少し薄く */
+.tool-code-context {
+  opacity: 0.65;
+}
+
+/* 結果の欄の下の「… ほか n 行」は、欄の中に続けて置く */
+.tool-code-block .bash-more {
+  padding-top: 4px;
+}

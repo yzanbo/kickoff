@@ -44,6 +44,10 @@ const LANGUAGES: Record<string, Loader> = {
   php: () => import("shiki/langs/php.mjs"),
   sql: () => import("shiki/langs/sql.mjs"),
   dockerfile: () => import("shiki/langs/dockerfile.mjs"),
+  // ツールの行と結果（検索の正規表現・コマンドの出力の差分とログ）
+  regexp: () => import("shiki/langs/regexp.mjs"),
+  diff: () => import("shiki/langs/diff.mjs"),
+  log: () => import("shiki/langs/log.mjs"),
 };
 
 // 色付けのライブラリは大きいので、使うときに初めて読み込む。配色は VS Code の Dark+ / Light+
