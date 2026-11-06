@@ -58,8 +58,9 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
                 <SideMemo
                   projectId={route.projectId}
                   path={route.path}
+                  chatId={route.chatId ?? null}
                   // 名前を変えたら、ウィンドウの URL も新しい名前に（読み込み直しても同じメモを開く）
-                  onRenamed={(to) => history.replaceState(null, "", `#${popoutPath({ kind: "memo", projectId: route.projectId, path: to })}`)}
+                  onRenamed={(to) => history.replaceState(null, "", `#${popoutPath({ ...route, path: to })}`)}
                 />
               </div>
             ) : (

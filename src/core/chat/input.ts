@@ -3,9 +3,12 @@ import { randomUUID } from "node:crypto";
 import { undeliveredReports, withUndeliveredReports } from "./reportHandover.js";
 import { resolveChatOptions } from "@shared/chat/chatOptions";
 import type { ExecutionDeps } from "./turn.js";
-import type { Attachment, ChatOptionsPatch } from "@shared/types";
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { Attachment, ChatOptionsPatch, Project } from "@shared/types";
 import { withAttachmentNote } from "./uploads.js";
 import { Invalid, NotFound } from "../http/errors.js";
+import { isInside } from "../system/paths.js";
 
 export interface StartChatInput {
   projectId: number;
@@ -62,7 +65,7 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
   const messageUuid = randomUUID();
   store.events.add(chat.id, { type: "user", text: input.prompt, ...(attachments.length ? { attachments } : {}), message_uuid: messageUuid });
   if (!input.title) void autoTitle(deps, chat.id, titleText || attachments.map((a) => a.name).join("、"));
-  return { chat, prompt: await promptWithAttachments(deps, input.prompt, attachments), messageUuid };
+  return { chat, prompt: await promptWithAttachments(deps, project, input.prompt, attachments), messageUuid };
 }
 
 /**
@@ -71,7 +74,9 @@ export async function createChat(deps: ExecutionDeps, input: StartChatInput) {
  */
 export async function followupPrompt(deps: ExecutionDeps, chatId: number, text: string, attachments: Attachment[]) {
   const lost = undeliveredReports(deps.store.events.list(chatId));
-  const prompt = withUndeliveredReports(await promptWithAttachments(deps, text, attachments), lost);
+  const chat = deps.store.chats.get(chatId);
+  const project = (chat && deps.store.projects.get(chat.project_id)) ?? null;
+  const prompt = withUndeliveredReports(await promptWithAttachments(deps, project, text, attachments), lost);
   return { prompt, handover: lost.length ? { handover: lost.map((s) => s.key) } : {} };
 }
 
@@ -95,13 +100,34 @@ async function autoTitle({ store, providers }: ExecutionDeps, chatId: number, te
   }
 }
 
-/** 添付ファイルのパスをメッセージに書き添える（エージェントは Read ツールで読む） */
-async function promptWithAttachments({ uploads }: ExecutionDeps, text: string, attachments: Attachment[]): Promise<string> {
-  if (attachments.length === 0 || !uploads) return text;
+/** 添付したメモの見出し（メモはメモのフォルダのファイルそのもの。頼まれたら AI が続きを書けるように） */
+const MEMO_ATTACHMENT_HEADING = "添付したメモ（メモのフォルダのファイルそのものです。Read ツールで読めます。頼まれたら、このファイルを直接書き換えてかまいません）";
+
+/**
+ * 添付ファイルのパスをメッセージに書き添える（エージェントは Read ツールで読む）。メモの添付は、チャットのプロジェクトのメモのフォルダの
+ * ファイルのパスを書く（見つからない添付・メモは書かない）
+ */
+async function promptWithAttachments({ uploads, memoDirOf }: ExecutionDeps, project: Project | null, text: string, attachments: Attachment[]): Promise<string> {
   const files = [];
+  const memos = [];
   for (const attachment of attachments) {
-    const resolved = await uploads.resolve(attachment.id);
+    if (attachment.memo !== undefined) {
+      const file = project && memoDirOf ? await memoFile(memoDirOf(project), attachment.memo) : null;
+      if (file) memos.push(file);
+      continue;
+    }
+    const resolved = await uploads?.resolve(attachment.id);
     if (resolved) files.push({ path: resolved.path, attachment });
   }
-  return withAttachmentNote(text, files);
+  const withFiles = withAttachmentNote(text, files);
+  if (memos.length === 0) return withFiles;
+  const note = `${MEMO_ATTACHMENT_HEADING}:\n${memos.map((m) => `- ${m}`).join("\n")}`;
+  return withFiles.trim() ? `${withFiles}\n\n${note}` : note;
+}
+
+/** メモのフォルダの中のファイルの絶対パス（外を指す・ないなら null） */
+async function memoFile(dir: string, memo: string): Promise<string | null> {
+  const file = path.join(dir, memo);
+  if (!isInside(dir, file) || file === dir) return null;
+  return (await fs.stat(file).then((s) => s.isFile(), () => false)) ? file : null;
 }

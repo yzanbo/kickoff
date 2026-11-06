@@ -11,8 +11,11 @@ export type PopoutRoute =
   | { kind: "subagent"; chatId: number; agentKey: string }
   /** 子チャット（チャットの画面そのもの。chatId は子チャット） */
   | { kind: "chat"; chatId: number }
-  /** プロジェクトのメモ（path はメモのフォルダからの相対。どのチャットから開いても同じウィンドウ） */
-  | { kind: "memo"; projectId: number; path: string };
+  /**
+   * プロジェクトのメモ（path はメモのフォルダからの相対）。chatId は開いたチャット（メモをそのチャットの入力欄に添付する先。
+   * チャットごとに別のウィンドウ）。メモのタブなど、チャットの外から開いたものはなし
+   */
+  | { kind: "memo"; projectId: number; path: string; chatId?: number };
 
 const PREFIX = "/popout/";
 
@@ -22,6 +25,7 @@ export function popoutPath(route: PopoutRoute): string {
   if (route.kind === "memo") {
     params.set("project", String(route.projectId));
     params.set("path", route.path);
+    if (route.chatId !== undefined) params.set("chat", String(route.chatId));
     return `${PREFIX}${route.kind}?${params.toString()}`;
   }
   params.set("chat", String(route.chatId));
@@ -53,7 +57,8 @@ export function parsePopout(hash: string): PopoutRoute | undefined {
   if (kind === "memo") {
     const projectId = positive(params.get("project"));
     const memoPath = params.get("path");
-    return projectId !== undefined && memoPath ? { kind, projectId, path: memoPath } : undefined;
+    const chatId = positive(params.get("chat"));
+    return projectId !== undefined && memoPath ? { kind, projectId, path: memoPath, ...(chatId !== undefined ? { chatId } : {}) } : undefined;
   }
   const chatId = positive(params.get("chat"));
   if (chatId === undefined) return undefined;

@@ -18,9 +18,9 @@
   margin-left: 0;
 }
 
-/* メモの行: フォルダの名前があれば、そのすぐ右 */
-.memo-chip-folder + .open-place-buttons {
-  margin-left: 4px;
+/* メモの行: 「このチャットに添付」は開く場所のボタンの組のすぐ左（組は右へ寄せず、添付のボタンから右に並べる） */
+.memo-chip-attach + .open-place-buttons {
+  margin-left: 0;
 }
 
 .open-place-default {

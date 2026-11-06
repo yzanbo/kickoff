@@ -8,7 +8,7 @@ export function PendingFileChips({ files, onRemove }: { files: PendingFile[]; on
       <AttachmentChip
         // 保存できたら保存した大きさ（チャットの記録は中身をあとから作るので、選んだ時点では 0）。
         // ID は、アップロード済みの添付を入れたとき（送信待ちから新しいチャットへ）に、画像のサムネイルを保存先から出すため
-        attachment={{ id: f.attachment?.id, name: f.file.name, mime: f.file.type, size: f.attachment?.size ?? f.file.size }}
+        attachment={{ id: f.attachment?.id, name: f.file.name, mime: f.file.type, size: f.attachment?.size ?? f.file.size, memo: f.attachment?.memo }}
         previewUrl={f.previewUrl}
         uploading={!f.attachment && !f.error}
         onRemove={() => onRemove(f.key)}

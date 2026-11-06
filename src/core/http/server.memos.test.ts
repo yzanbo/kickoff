@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import type { BusEvent, MemoList } from "@shared/types";
 import { tempDir } from "../testing/tempDir.js";
@@ -179,6 +180,31 @@ test("メモのチャット: メモごとに 1 つのふつうのチャット。
   const html = await call("POST", `${base}/memo/chat`, { path: "資料.html", text: "見た目を整えて" });
   await until(() => store.chats.get(html.body.id)?.status === "completed");
   assert.match(provider.lastSystemPrompt, /メモは HTML のファイルです/);
+});
+
+test("メモの添付: 入力欄に添付したメモは、メモのフォルダのファイルのパスを AI に伝え、メモのフォルダを読み書きできる場所に足す（外・隠しファイルは 400）", async () => {
+  const { call, project, provider, store } = setup();
+  const base = `/api/projects/${project.id}`;
+  await call("POST", `${base}/memos`, { path: "設計/DB.md", content: "# DB\n" });
+  const memoDir = ((await call("GET", `${base}/memos`)).body as MemoList).dir;
+  const memo = (p: string) => ({ id: randomUUID(), name: path.basename(p), mime: "text/markdown", size: 0, memo: p });
+  assert.equal((await call("POST", `${base}/chats`, { text: "x", attachments: [memo("../外.md")] })).status, 400);
+  assert.equal((await call("POST", `${base}/chats`, { text: "x", attachments: [memo(".隠し.md")] })).status, 400);
+  // 文がなくても、メモの添付だけで送れる
+  const created = await call("POST", `${base}/chats`, { text: "", attachments: [memo("設計/DB.md")] });
+  assert.equal(created.status, 201);
+  await until(() => store.chats.get(created.body.id)?.status === "completed");
+  assert.match(provider.prompts.at(-1)!, /^添付したメモ（[^\n]*）:\n- .*設計\/DB\.md$/);
+  assert.ok(provider.prompts.at(-1)!.includes(path.join(memoDir, "設計/DB.md")));
+  assert.ok(provider.lastDirs.includes(memoDir));
+  // 記録には添付のまま残す（画面がメモの札で出す）
+  const user = store.events.list(created.body.id).find((e) => e.type === "user");
+  assert.equal(user?.type === "user" && user.data.attachments?.[0].memo, "設計/DB.md");
+  // 続きの指示でも。見つからないメモは書かない
+  await call("POST", `/api/chats/${created.body.id}/messages`, { text: "続きを書いて", attachments: [memo("設計/DB.md"), memo("ない.md")] });
+  await until(() => provider.prompts.length === 2 && store.chats.get(created.body.id)?.status === "completed");
+  assert.equal(provider.prompts[1].split("\n- ").length, 2);
+  assert.ok(provider.prompts[1].startsWith("続きを書いて\n\n添付したメモ"));
 });
 
 test("メモの AI: フォルダの整理案は使える案だけを返し、動かさない（メモがなければ AI に聞かない）", async () => {

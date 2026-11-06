@@ -30,7 +30,7 @@ function handle(message: WindowMessage) {
   if (message.type !== "fillComposer" && message.type !== "reveal" && message.type !== "showActivity") return;
   const pane = paneFor(message.chatId);
   if (!pane) return;
-  if (message.type === "fillComposer") pane.fillComposer(message.text, { append: true });
+  if (message.type === "fillComposer") pane.fillComposer(message.text, { append: true, attachments: message.attachments });
   else if (message.type === "reveal") pane.revealInConversation(message.eventId, message.agent);
   else pane.show("activity", { kind: "agent", key: message.agent });
 }

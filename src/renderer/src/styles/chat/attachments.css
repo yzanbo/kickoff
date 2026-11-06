@@ -224,3 +224,12 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* メモの添付: 押すとメモを開く（画像の拡大ではないので、ふつうの指のカーソル）。アイコンはメモの一覧と同じ */
+.memo-attachment .attachment-link {
+  cursor: pointer;
+}
+
+.memo-attachment .attachment-icon {
+  color: var(--muted);
+}

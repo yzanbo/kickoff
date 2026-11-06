@@ -12,11 +12,16 @@ interface MenuSource {
 }
 
 /**
- * メモの本文の右クリックのメニュー: チャットに追加（選んだ文を引用にして、メモのチャットの入力欄の後ろに足す。送るのは自分で）・
+ * メモの本文の右クリックのメニュー: メモのチャットに追加（選んだ文を引用にして、メモのチャットの入力欄の後ろに足す。送るのは自分で）・
+ * メインのチャットに添付（attachToMain を渡したとき。チャットの右の欄・別ウィンドウのメモ。選んでいればその部分の引用、なければメモ全体）・
  * 切り取り・コピー・貼り付け。文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
- * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに追加・コピーだけ）
+ * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに追加・添付・コピーだけ）
  */
-export function useMemoEditMenu(editor: MutableRefObject<MemoEditorHandle | null>, addToChat: (quote: string) => void): {
+export function useMemoEditMenu(
+  editor: MutableRefObject<MemoEditorHandle | null>,
+  addToChat: (quote: string) => void,
+  attachToMain?: (selection: string) => void,
+): {
   open: (at: { x: number; y: number }, pageSelection?: string) => void;
   element: ReactNode;
 } {
@@ -32,8 +37,13 @@ export function useMemoEditMenu(editor: MutableRefObject<MemoEditorHandle | null
     element: shown && (
       <PopupMenu at={shown.at} label="メモの本文の操作" onClose={menu.close}>
         <MenuItem disabled={!selected.trim()} title={selected.trim() ? "選んだ文を引用にして、メモのチャットの入力欄に足します" : "本文で文を選んでから使えます"} onSelect={() => addToChat(quoteComment(selected, ""))}>
-          チャットに追加
+          メモのチャットに追加
         </MenuItem>
+        {attachToMain && (
+          <MenuItem title={selected.trim() ? "選んだ文を引用にして、開いたチャットの入力欄に足します" : "このメモを、開いたチャットの入力欄に添付します"} onSelect={() => attachToMain(selected)}>
+            {selected.trim() ? "選んだ部分をメインのチャットに添付" : "メモをメインのチャットに添付"}
+          </MenuItem>
+        )}
         <div className="menu-separator" role="separator" />
         {editable && (
           <MenuItem
