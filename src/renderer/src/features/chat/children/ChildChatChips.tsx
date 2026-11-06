@@ -10,6 +10,7 @@ import { useModels } from "@/stores/providers";
 import { ArchivedFold } from "@/ui/ArchivedFold";
 import { IconButton } from "@/ui/IconButton";
 import { StatusSlot } from "@/features/chat/StatusSlot";
+import { summaryState } from "@/features/chat/chatState";
 import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/chatActions";
 import { modelDisplayName } from "@/features/chat/options/models";
 import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/composer/OpenPlaceControls";
@@ -152,6 +153,8 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
       chip={
         visible.length > 0 ? (
           <>
+            {/* 左の印: 回答待ち > 作業中（ほかに答えありがあれば緑の点を重ねる）> 失敗 > 答えあり（未読）> 既読 */}
+            <StatusSlot {...summaryState(visible.map(stateOf))} />
             子チャット {visible.length} 件{waiting > 0 && <span className="child-chats-waiting"> · {waiting} 件答えあり</span>}
           </>
         ) : (

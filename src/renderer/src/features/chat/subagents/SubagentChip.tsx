@@ -1,6 +1,6 @@
 import { Archive, ArchiveRestore } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
-import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
+import { EFFORT_LABELS, type AgentState, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { confirmDialog } from "@/ui/dialogs";
 import { formatTokens } from "@/lib/format";
@@ -21,12 +21,21 @@ import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { flattenTree, subagentTree } from "./subagentTree";
 import { agentHues } from "./agentHues";
+import { StatusSlot } from "@/features/chat/StatusSlot";
+import { summaryState } from "@/features/chat/chatState";
 
 /**
  * チャット欄の上の「サブエージェント N 件」（流れの中のカードの目次）。押すと一覧が開き（入れ子は親のすぐ下に字下げして並べる）、
  * 行を押すと、そのサブエージェントを設定の開き方で開く（流れの中 = カードへ移って開く。入れ子なら外側のカードも開く / 右の欄 = 右の欄にその画面を開く /
  * 別ウィンドウ）。行の右のボタンで、設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられる
  */
+/** ピルの左の印に使う、サブエージェント 1 つの状態（作業中 / 手を打つもの = 失敗・通信で中断・報告が届かず（親がやり直したものは除く）/ ほかは既読） */
+function subagentAgentState(s: SubagentEntry): AgentState {
+  if (s.status === "running") return "running";
+  if (s.supersededBy) return "read";
+  return s.status === "failed" || s.network || s.delivery === "lost" ? "failed" : "read";
+}
+
 export function SubagentChip({ entries, chat, busy, models }: { entries: SubagentEntry[]; chat: Chat; busy: boolean; models: ModelOption[] }) {
   const popover = usePopover();
   const { open, setOpen } = popover;
@@ -160,11 +169,8 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
       popover={popover}
       chip={
         <>
-          {running > 0 && (
-            <span className="chip-mark">
-              <ClaudeMark size={13} />
-            </span>
-          )}
+          {/* 左の印: 作業中のものがあれば回るリング、手を打つもの（失敗・通信で中断・届かず）があれば赤の点、ほかは薄い点（すべてアーカイブ済みなら出さない） */}
+          {visible.length > 0 && <StatusSlot {...summaryState(visible.map(subagentAgentState))} />}
           {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
           {running > 0 && <span className="chip-running"> · {running} 件実行中</span>}
           {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}
