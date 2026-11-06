@@ -92,8 +92,6 @@ export function ChatComposerArea({
         {/* 上を読んでいる間の一番下へ戻るボタンの置き場所（右端。入る幅があるときだけ流れの側から置く） */}
         <span ref={onDock} className="composer-chips-dock" />
       </div>
-      {/* よく送る指示（このプロジェクトで使う定型文）。押すと入力欄に入れる */}
-      <SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
       <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} />
       <Composer
@@ -109,6 +107,8 @@ export function ChatComposerArea({
         stopping={live.stopping}
         onStop={send.onStop}
         trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedCompact(live.queue)} />}
+        // よく送る指示（このプロジェクトで使う定型文）。入力欄の枠の中の上（送信待ちとの区切り線の下）に置き、押すと入力欄に入れる
+        header={<SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
         handleRef={composer}
         history={prompts.recalls}

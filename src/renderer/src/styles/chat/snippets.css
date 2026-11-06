@@ -1,5 +1,5 @@
 /*
- * 入力欄の上の定型文の帯（SnippetBar）と、帯の「一覧」（SnippetPicker）。
+ * 入力欄の枠の中のいちばん上（送信待ちとの区切り線の下・文を書く欄の上）の定型文の帯（SnippetBar）と、帯の「一覧」（SnippetPicker）。
  * 帯は 1 行で、ピルが入りきらなければ横にスクロールする（スクロールバーは出さず、端の先に続きがあればその側を薄くぼかす）
  */
 .snippet-bar {
@@ -7,7 +7,21 @@
   align-items: center;
   gap: 4px;
   min-width: 0;
-  padding: 0 0 6px;
+  /* 左右は文を書く欄の文字の位置にそろえる（右はボタンの余白のぶん詰める） */
+  padding: 8px 8px 0 12px;
+}
+
+/* 帯の下の文を書く欄: 帯との間を詰める（帯がないときは入力欄の既定の余白のまま） */
+.composer > .snippet-bar ~ textarea {
+  padding-top: 6px;
+}
+
+.composer.compact > .snippet-bar {
+  padding: 5px 6px 0 10px;
+}
+
+.composer.compact > .snippet-bar ~ textarea {
+  padding-top: 4px;
 }
 
 .snippet-bar-scroll {
