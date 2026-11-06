@@ -14,7 +14,7 @@
 
 ## 欄の決まり（`SURFACES`）
 
-欄ごとの違いは作る側・描く側で分岐させず `SURFACES` に集める（覚える名前の頭 `memoryPrefix`・初めに見せるタブの種類 `defaultKinds`・Esc で閉じるか・最後のタブを閉じたら欄も閉じるか・タブがないまま開いたときに始めるもの・開閉を覚える設定・閉じるボタン（タブの列の左の道具の先頭か最後か、右上のペインのタブの列の右端 `right`）・分けるボタンを右だけにするか `splitRightOnly`・大きくする切り替えとその名前 `maximizeLabels`・タブがないときの案内・出す種類が決まっているか `fixedKinds`・新しい子チャットを開けるか `newChild`・クラス・根のクラス `rootClass`）。
+欄ごとの違いは作る側・描く側で分岐させず `SURFACES` に集める（覚える名前の頭 `memoryPrefix`・初めに見せるタブの種類 `defaultKinds`・Esc で閉じるか・最後のタブを閉じたら欄も閉じるか・タブがないまま開いたときに始めるもの・開閉を覚える設定・閉じるボタン（タブの列の左の道具の先頭か最後か、右上のペインのタブの列の右端 `right`）・分けるボタンを置かないか `noSplitButtons`・大きくする切り替えとその名前 `maximizeLabels`・タブがないときの案内・出す種類が決まっているか `fixedKinds`・新しい子チャットを開けるか `newChild`・クラス・根のクラス `rootClass`）。
 
 | | ボードの右のパネル `board` | チャット欄 `side` | 下のパネル `bottom` | 右の欄 `agents` |
 |---|---|---|---|---|
@@ -66,7 +66,7 @@
 - 変え方は純粋関数（`paneLayout.ts` の `placeTab` / `moveTab` / `returnToHome` / `splitPane` / `closeLayoutTabs` / `closePane` / `renameTab` / `reconcileLayout`、割合は `paneSizes.ts` の `setSplitSizes` / `equalizeSplit`）。移した結果空になったペインは消し、同じ向きの入れ子は `normalize` で 1 段にまとめる。分けた元・空のペインとして作ったペインは残し、最後の 1 つは消さない。ペインを閉じたときは、中のサイドバーと連動したチャットは一覧のペインへ戻し（`closePane` の `keep`）、ほかのタブは閉じる。
 - 位置・落とす場所・境目の割合は `paneGeometry.ts`（`layoutRects` / `dropZoneAt` / `resizeAt` / `insertIndexAt`）。
 - 表示: 分けていなければタブの列 → 中身。分けているときは中身（`.split-view`）の中に、ペイン（`PaneTabBar` ＋ タブがないときの `PanelEmpty`）・境目のつまみ `PaneSash`（ドラッグで割合、ダブルクリックで等分）を割合の位置で重ねる。タブの中身はいつも中身の直下に置いて style でペインの位置に重ね、分けても作り直さない（webview・ターミナル・入力中の文を保つ）。
-- 分ける操作: 各ペインのタブの列の右端の「右に分ける」「下に分ける」（表示中のタブを新しいペインへ。タブが 1 つ以下なら空のペイン。右の欄は「右に分ける」だけ `splitRightOnly`。下に分けるのはタブのドラッグ・右クリックでできる）・「ペインを閉じる」（分けているときだけ。`.panel-pane-tools`）、タブの右クリック、⌘\（パネルにピントがあるとき右に分ける）、タブのドラッグ（`useTabDrag`。独自の MIME 型 `application/x-kickoff-panel-tab`。タブの列に落とすと移す・並べ替え、中身の端（1/4）に落とすとその側に分け、真ん中ならそのペインへ。ドラッグ中だけ中身の上に透明の覆い `.split-drop-cover` を置き、webview の上でも落とす場所を出す）。
+- 分ける操作: 各ペインのタブの列の右端の「右に分ける」「下に分ける」（表示中のタブを新しいペインへ。タブが 1 つ以下なら空のペイン。右の欄は分けるボタンを置かない `noSplitButtons`。タブのドラッグ・右クリック・⌘\ で分ける）・「ペインを閉じる」（分けているときだけ。`.panel-pane-tools`）、タブの右クリック、⌘\（パネルにピントがあるとき右に分ける）、タブのドラッグ（`useTabDrag`。独自の MIME 型 `application/x-kickoff-panel-tab`。タブの列に落とすと移す・並べ替え、中身の端（1/4）に落とすとその側に分け、真ん中ならそのペインへ。ドラッグ中だけ中身の上に透明の覆い `.split-drop-cover` を置き、webview の上でも落とす場所を出す）。
 - ピントのあるペインは、分けているときだけ、そのペインのチャット欄の枠の色で示す（`PanelTabPage` の `split` と `.pane-focused`）。新しく開くタブ・新しいチャットはピントのあるペインに入る。
 
 ## タブの列（`tabs/PaneTabBar`）
