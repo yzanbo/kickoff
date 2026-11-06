@@ -58,12 +58,12 @@ export function PreCompactPromptEditor({ projectId }: { projectId: number }) {
             placeholder="例: いまの作業の進捗・決めたこと・次にやることを memo.md に書き残してください"
             onChange={(e) => current.setDraft(e.target.value)}
           />
-          <p className="context-sub">圧縮の前（手で圧縮・自動の圧縮）に送ります。空にすると送りません。</p>
           <div className="context-pre-compact-actions">
+            <p className="context-sub">圧縮の前（手で・自動）に送ります。空なら送りません。</p>
+            <ResultMessage result={current.save.message} />
             <button type="button" className="btn btn-sm btn-primary" disabled={!current.dirty || current.save.saving} onClick={() => void current.save.run(current.submit)}>
               {current.save.saving ? "保存中…" : "保存"}
             </button>
-            <ResultMessage result={current.save.message} />
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from "react";
+import { useCallback, useState } from "react";
 import type { PlanUsage, UsageWindow } from "@shared/types";
 import { api } from "@/api";
 import { useTicker } from "@/hooks/useTicker";
@@ -23,10 +23,6 @@ export function usePlanUsage() {
 
   return { usage, refresh, refreshing };
 }
-
-/** アプリ全体で 1 つの使用枠を共有する（チャット欄のコンテキストの表示などから使う） */
-export const PlanUsageContext = createContext<ReturnType<typeof usePlanUsage> | null>(null);
-export const useSharedPlanUsage = () => useContext(PlanUsageContext);
 
 /** 契約プランの表示名（"max" → "Max"） */
 export function planLabel(plan: string): string {

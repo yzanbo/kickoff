@@ -39,7 +39,7 @@ import { useBoardColumns } from "@/features/board/BoardColumnsToggle";
 import { useChatPlacement } from "@/features/project/page/chatPlacement";
 import { useChatHistory } from "./useChatHistory";
 import { useAppShortcuts } from "./shortcuts";
-import { PlanUsageContext, usePlanUsage } from "@/features/usage/usage";
+import { usePlanUsage } from "@/features/usage/usage";
 import { setProjectHues } from "@/features/project/projectColor";
 import { forgetDraftsOfMissingProjects } from "@/features/panel/state/panelDrafts";
 import { useApplyChatFontSize } from "@/features/chat/pane/chatFontSize";
@@ -123,8 +123,7 @@ export function App() {
   useEffect(() => subscribeWindowMessages(handleMainWindowMessage), []);
 
   return (
-    <PlanUsageContext.Provider value={planUsage}>
-      <RouteContext.Provider value={route}>
+    <RouteContext.Provider value={route}>
       <ChatStatesContext.Provider value={chatStates}>
       <div {...sidebar.layout}>
         <Sidebar
@@ -197,7 +196,6 @@ export function App() {
         )}
       </div>
       </ChatStatesContext.Provider>
-      </RouteContext.Provider>
-    </PlanUsageContext.Provider>
+    </RouteContext.Provider>
   );
 }
