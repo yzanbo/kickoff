@@ -28,6 +28,25 @@
   background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
+/* 一覧の行で名前を変えている間（行は押せる見た目にせず、入力欄を行の高さに収める） */
+.tree-row.renaming {
+  padding-block: 1px;
+  cursor: default;
+}
+
+.tree-row.renaming:hover {
+  background: transparent;
+}
+
+/* 一覧は狭いので、決定・取り消しのボタンは出さず（Enter・ピントを外すで決め、Esc でやめる。Finder と同じ）、名前の欄を広く取る */
+.tree-row.renaming .inline-name-wrap .icon-button {
+  display: none;
+}
+
+.tree-row.renaming input[type="text"].inline-name {
+  padding-inline: 4px;
+}
+
 .memo-main {
   overflow: hidden;
 }

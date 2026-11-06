@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { MemoEntry } from "@shared/types";
-import { ancestorsOf, buildMemoTree, filterMemos, isUnder, memoTitle, pathTaken, recentMemos, remapPath, renamedPath } from "./memoPaths";
+import { ancestorsOf, buildMemoTree, filterMemos, isUnder, memoTitle, pathTaken, recentMemos, remapPath, renamedPath, untitledPath } from "./memoPaths";
 
 const entry = (path: string, dir = false, modified_at = "2026-11-05T00:00:00.000Z"): MemoEntry => ({ path, dir, modified_at });
 
@@ -49,4 +49,19 @@ test("pathTaken: 同じフォルダの同じ名前（拡張子まで。大文字
   assert.ok(!pathTaken(entries, "計画"));
   // 名前を変える元は数えない（大文字・小文字だけの変更）
   assert.ok(!pathTaken(entries, "設計/db.md", "設計/DB.md"));
+});
+
+test("untitledPath: 同じフォルダの同じ名前（拡張子まで）と重ならない仮の名前", () => {
+  const entries: MemoEntry[] = [
+    { path: "無題のメモ.md", dir: false, modified_at: "2026-11-06T00:00:00Z" },
+    { path: "無題のメモ-2.MD", dir: false, modified_at: "2026-11-06T00:00:00Z" },
+    { path: "無題のメモ.html", dir: false, modified_at: "2026-11-06T00:00:00Z" },
+    { path: "a", dir: true, modified_at: "2026-11-06T00:00:00Z" },
+    { path: "a/名称未設定フォルダ", dir: true, modified_at: "2026-11-06T00:00:00Z" },
+  ];
+  assert.equal(untitledPath(entries, "", "無題のメモ", ".md"), "無題のメモ-3.md");
+  assert.equal(untitledPath(entries, "", "無題のメモ", ".html"), "無題のメモ-2.html");
+  assert.equal(untitledPath(entries, "a", "無題のメモ", ".md"), "a/無題のメモ.md");
+  assert.equal(untitledPath(entries, "a", "名称未設定フォルダ"), "a/名称未設定フォルダ-2");
+  assert.equal(untitledPath(entries, "", "名称未設定フォルダ"), "名称未設定フォルダ");
 });

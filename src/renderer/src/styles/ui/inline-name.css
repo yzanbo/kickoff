@@ -26,3 +26,11 @@ input[type="text"].inline-name {
   padding: 0 6px;
   font-size: 13px;
 }
+
+/* 入力欄のすぐ右に添える文（メモの拡張子など。名前には含めない） */
+.inline-name-suffix {
+  flex: none;
+  margin-right: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
