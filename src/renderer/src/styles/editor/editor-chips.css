@@ -90,6 +90,33 @@
   white-space: nowrap;
 }
 
+/*
+ * 選べる札（ChipPicker。新しいチャットの見出しの作成先のグループ・作業場所）: 形と色はグループの札・ブランチの印のまま、名前の右に ▾。
+ * 乗せた・開いているときは札の色で薄く塗る。グループなし（is-empty）は色を付けず控えめに
+ */
+.chip-picker {
+  margin: 0;
+  padding: 0 4px 0 6px;
+  font-family: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chip-picker:hover,
+.chip-picker[aria-expanded="true"] {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* （札の枠は色相から作るので、色相のない札は枠ごと書き直す） */
+.chip-picker.is-empty {
+  border: 1px solid var(--border-strong);
+  color: var(--muted);
+}
+
+.chip-picker-caret {
+  opacity: 0.8;
+}
+
 /* 注意の文（同じ作業場所で、ほかのチャットが作業中など） */
 .warn-text {
   color: var(--warn);

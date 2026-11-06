@@ -1,6 +1,6 @@
-import { Folder, SquarePen } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Chat } from "@shared/types";
+import type { Attachment, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useProjects } from "@/stores/projects";
 import { Composer } from "@/features/chat/composer/Composer";
@@ -16,7 +16,10 @@ import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { currentChats, useChats } from "@/stores/chats";
 import { groupNameIn, useGroups } from "@/stores/groups";
 import { worktreesStore } from "@/stores/worktrees";
-import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
+import { GroupPicker } from "@/features/group/GroupPicker";
+import { DraftChatPage } from "@/features/chat/pane/DraftChatPage";
+import { useChatHeaderItems, useChatHeaderRowHidden } from "@/features/chat/pane/ChatDisplayMenu";
+import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 
 interface Props {
   projectId: number;
@@ -82,6 +85,10 @@ export function NewChatPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupName]);
 
+  // 見出しに出す項目（チャットの見出しと同じ設定）
+  const shows = useChatHeaderItems();
+  const rowHidden = useChatHeaderRowHidden();
+
   const ready = projectsLoaded && (chats.loaded || chats.error !== undefined);
   // 入力欄ができたら 1 回だけ、書きかけていた文（なければ送信待ちの指示から始めたときの文）と添付を入れる（送るのは自分で）。
   // 書きかけの文は打つたびに変わるので、最初の値だけを使う。隠れているタブ（閉じたパネル・ほかのタブの裏）ではピントを移さない
@@ -98,42 +105,47 @@ export function NewChatPane({
     composer.current?.fill(text ?? "", { attachments: seed?.attachments, focus: visibleRef.current });
   }, [ready, seed]);
 
+  // 最初の指示を送ってチャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）
+  const start = async (prompt: string, attachments: Attachment[]) => {
+    // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい。既定を決めていればそのとおりに）。
+    // チャットの一覧はサーバーの知らせで直っているので、送るときのいまの一覧で確かめる
+    let target = place;
+    const path = workplacePath(place);
+    if (path !== undefined && countBusyAt(currentChats({ projectId }), path) > 0) {
+      // 既定（設定の「チャット」）を決めていれば聞かない
+      const choice = await chooseBusyWorkplaceAction();
+      if (!choice) throw new SendCancelled();
+      if (choice === "worktree") {
+        const branch = await askNewWorktreeBranch();
+        if (!branch) throw new SendCancelled();
+        target = { kind: "new", branch };
+        setPlace(target);
+      }
+    }
+    const chat = await api.startChat(projectId, {
+      text: prompt,
+      options: options.options,
+      attachments,
+      group_id: group,
+      ...(target.kind === "existing" ? { worktree_path: target.path } : target.kind === "new" ? { new_worktree_branch: target.branch } : {}),
+    });
+    // 新しいワークツリーを作ったときは、ブランチの一覧をすぐ取り直す
+    if (target.kind === "new") worktreesStore.invalidate(projectId);
+    onCreated(chat);
+  };
+
+  const groupBadge = groups.length > 0 && onGroupChange && shows("group");
   return (
-    <div className="chat-page chat-panel new-chat">
-      <header className="chat-header">
-        {/* 名前と閉じるはタブに出すので、見出しには出さない（いまのチャットの見出し ChatHeader と同じ） */}
-        <div className="chat-title-row">
-        <div className="chat-sub muted small">
-          {/* どのプロジェクトで始めるかを、チャットの見出しと同じバッジで出す */}
-          {project && <ProjectChip id={project.id} name={project.name} linked />}
-          {/* 作成先のグループ（グループがあるプロジェクトだけ。ここで変えられる） */}
-          {groups.length > 0 && onGroupChange && (
-            <label className={`new-chat-group ${group ? "has-group" : ""}`} title="作成先のグループ">
-              <Folder size={12} aria-hidden />
-              <select
-                className="pill-select"
-                aria-label="作成先のグループ"
-                value={group ?? ""}
-                onChange={(e) => {
-                  const next = e.target.value ? Number(e.target.value) : undefined;
-                  onGroupChange(next, groupNameIn(groups, next));
-                }}
-              >
-                <option value="">{NO_GROUP_LABEL}</option>
-                {groups.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {/* 作業場所（グループ → 作業場所の順は、チャットの見出しのバッジと同じ） */}
-          <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />
-        </div>
-        </div>
-      </header>
-      <div className="timeline">
+    <DraftChatPage
+      badges={
+        <>
+          {/* チャットの見出しと同じバッジ・同じ順（プロジェクト → グループ → 作業場所）。グループと作業場所は、押すと選び直せる */}
+          {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
+          {groupBadge && <GroupPicker groups={groups} value={group} onChange={(next) => onGroupChange(next, groupNameIn(groups, next))} />}
+          {shows("worktree") && <WorkplacePicker projectId={projectId} value={place} onChange={changePlace} />}
+        </>
+      }
+      hero={
         <div className="new-chat-hero">
           <div className="new-chat-icon">
             <SquarePen size={22} />
@@ -141,53 +153,29 @@ export function NewChatPane({
           <h1>{project?.name ?? ""}</h1>
           <p className="muted">調べもの・設計・実装・テストなど、AI に頼みたいことを書いて始めます</p>
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
-          {seed && <p className="muted small">聞くことを入力欄に入れました。直して送れます（作成先のグループは上で選べます）</p>}
+          {seed && <p className="muted small">聞くことを入力欄に入れました。直して送れます{groupBadge && !rowHidden ? "（作成先のグループは上で選べます）" : ""}</p>}
           {place.kind === "new" && <p className="muted small">新しいワークツリー「{place.branch}」を作り、その中で作業します</p>}
           {busyHere && <p className="small warn-text">この作業場所では、ほかのチャットが作業中です。同じファイルを触ると作業がぶつかることがあります。</p>}
         </div>
-      </div>
-      <div className="chat-composer">
-        {ready && (
-          <Composer
-            key={projectId}
-            chatContext={{ projectId }}
-            options={options}
-            autoFocus
-            onTextChange={onDraftChange}
-            handleRef={composer}
-            // 新しいワークツリーはまだないので、本体から探す
-            suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
-            placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"
-            onSend={async (prompt, attachments) => {
-              // 作業中のチャットがある作業場所に送るときは、送る前に選んでもらう（質問だけなら、このままでよい。既定を決めていればそのとおりに）。
-              // チャットの一覧はサーバーの知らせで直っているので、送るときのいまの一覧で確かめる
-              let target = place;
-              const path = workplacePath(place);
-              if (path !== undefined && countBusyAt(currentChats({ projectId }), path) > 0) {
-                // 既定（設定の「チャット」）を決めていれば聞かない
-                const choice = await chooseBusyWorkplaceAction();
-                if (!choice) throw new SendCancelled();
-                if (choice === "worktree") {
-                  const branch = await askNewWorktreeBranch();
-                  if (!branch) throw new SendCancelled();
-                  target = { kind: "new", branch };
-                  setPlace(target);
-                }
-              }
-              const chat = await api.startChat(projectId, {
-                text: prompt,
-                options: options.options,
-                attachments,
-                group_id: group,
-                ...(target.kind === "existing" ? { worktree_path: target.path } : target.kind === "new" ? { new_worktree_branch: target.branch } : {}),
-              });
-              // 新しいワークツリーを作ったときは、ブランチの一覧をすぐ取り直す
-              if (target.kind === "new") worktreesStore.invalidate(projectId);
-              onCreated(chat);
-            }}
-          />
-        )}
-      </div>
-    </div>
+      }
+    >
+      {ready && (
+        <Composer
+          key={projectId}
+          chatContext={{ projectId }}
+          options={options}
+          autoFocus
+          onTextChange={onDraftChange}
+          handleRef={composer}
+          // 新しいワークツリーはまだないので、本体から探す
+          suggestTarget={place.kind === "existing" ? { projectId, worktree: place.path } : projectId}
+          placeholder="例: ログイン画面を作って（Enter で送信、Shift+Enter で改行）"
+          // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
+          header={<SnippetBar projectId={projectId} composer={composer} onSend={(text) => start(text, [])} />}
+          menuItems={<SnippetBarToggleItem />}
+          onSend={start}
+        />
+      )}
+    </DraftChatPage>
   );
 }
