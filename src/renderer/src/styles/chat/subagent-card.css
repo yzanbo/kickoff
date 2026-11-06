@@ -274,22 +274,3 @@
 .subagent-end .event-time {
   margin-left: 0;
 }
-
-/* 動きの行などから移ったツールのまとまりを、少しのあいだ枠で強調する（ほかの .flash と同じく、薄れて消える） */
-.tool-group.flash {
-  border-radius: var(--radius);
-  animation: tool-flash 1.8s ease-out;
-}
-
-@keyframes tool-flash {
-  0%,
-  30% {
-    outline: 2px solid var(--accent-bright);
-    outline-offset: 2px;
-  }
-
-  100% {
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-  }
-}

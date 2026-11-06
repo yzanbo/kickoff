@@ -1,0 +1,66 @@
+/*
+ * 移った先を一瞬強調する（jumpToEvent の .flash。検索結果・指示の履歴・⌘⌥↑ / ↓・上に貼り付けた指示・動きの行から移ったとき）。
+ * 中身は塗らず（吹き出しの地を濁らせない）、少し外側から輪が寄ってきて発言の形（角の丸み）にぴったり合い、まわりがふわっと光ってから消える。
+ * 色は「ここを見て」の印にそろえてアクセントの緑（ピントの枠・グループを開いたときの光り方と同じ）。
+ * 黄は検索で見つかった文字（mark・チャットの中の検索）と注意に使うので、ここでは使わない
+ */
+.flash {
+  /* 輪と発言のあいだ（地のない発言・行は、文に輪が近づきすぎないよう広げる） */
+  --flash-gap: 4px;
+  animation: jump-flash 1.6s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* 地も角の丸みもない発言・行・ツールのまとまりは、輪の角を丸める */
+.assistant.flash,
+.event-note.flash,
+.context-cleared-divider.flash,
+.tool-group.flash {
+  --flash-gap: 6px;
+  border-radius: var(--radius);
+}
+
+@keyframes jump-flash {
+  0% {
+    outline: 2px solid transparent;
+    outline-offset: calc(var(--flash-gap) + 10px);
+    box-shadow: 0 0 0 0 transparent;
+  }
+
+  22% {
+    outline: 2px solid color-mix(in srgb, var(--accent-bright) 90%, transparent);
+    outline-offset: var(--flash-gap);
+    box-shadow: 0 0 28px 6px color-mix(in srgb, var(--accent-bright) 22%, transparent);
+  }
+
+  60% {
+    outline: 2px solid color-mix(in srgb, var(--accent-bright) 75%, transparent);
+    outline-offset: var(--flash-gap);
+    box-shadow: 0 0 20px 4px color-mix(in srgb, var(--accent-bright) 10%, transparent);
+  }
+
+  100% {
+    outline: 2px solid transparent;
+    outline-offset: var(--flash-gap);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* 動きを減らす設定では、輪を寄せずにその場で出して消す */
+@media (prefers-reduced-motion: reduce) {
+  .flash {
+    animation-name: jump-flash-still;
+  }
+}
+
+@keyframes jump-flash-still {
+  0%,
+  60% {
+    outline: 2px solid color-mix(in srgb, var(--accent-bright) 85%, transparent);
+    outline-offset: var(--flash-gap);
+  }
+
+  100% {
+    outline: 2px solid transparent;
+    outline-offset: var(--flash-gap);
+  }
+}

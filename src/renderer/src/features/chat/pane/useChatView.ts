@@ -113,7 +113,7 @@ export function useChatView(
   const [jumpTarget, setJumpTarget] = useState<number | null>(null);
   useEffect(() => {
     const el = scroll.ref.current;
-    if (jumpTarget !== null && el && jumpToEvent(el, jumpTarget)) setJumpTarget(null);
+    if (jumpTarget !== null && el && jumpToEvent(el, jumpTarget, { smooth: true })) setJumpTarget(null);
   }, [jumpTarget, timeline.visible, scroll]);
   // 失敗した作業の直し方（変わる様子として配り、失敗した作業の終わりの行だけが描き直る）
   const retry = useRetryChoices(events, busy, options);
@@ -263,7 +263,7 @@ export function useChatView(
         // 移ったら流れにピントを置く（続けて ⌘⌥↑ / ↓・↑↓ のスクロールが効くように。一覧を閉じてピントが外れたままにしない）
         el?.focus({ preventScroll: true });
         if (!now().timeline.reveal(eventId)) setJumpTarget(eventId);
-        else if (el) jumpToEvent(el, eventId);
+        else if (el) jumpToEvent(el, eventId, { smooth: true });
       },
       reveal: (eventId) => {
         scroll.release();

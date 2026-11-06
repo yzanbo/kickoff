@@ -68,26 +68,6 @@ mark {
   background: color-mix(in srgb, var(--warn) 40%, transparent);
 }
 
-/*
- * 移った先の発言を一瞬強調する（検索結果・指示の履歴・⌘⌥↑ / ↓・上に貼り付けた指示から移ったとき）。
- * 色は「ここを見て」の印にそろえてアクセントの緑（ピントの枠・グループを開いたときの光り方・ツールのまとまりへ移ったときの枠と同じ）。
- * 黄は検索で見つかった文字（mark・チャットの中の検索）と注意に使うので、ここでは使わない
- */
-.flash {
-  animation: flash 1.8s ease-out;
-}
-
-@keyframes flash {
-  0%,
-  30% {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-bright) 70%, transparent);
-    background-color: color-mix(in srgb, var(--accent) 22%, var(--bg-active));
-  }
-  100% {
-    box-shadow: 0 0 0 2px transparent;
-  }
-}
-
 /* 検索の条件の切り替え（「Aa」= 大文字・小文字を区別する。VS Code と同じ）。入れているときは枠とアクセントの色で示す */
 .icon-button.find-option.on {
   color: var(--accent-bright);
