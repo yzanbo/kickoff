@@ -18,7 +18,7 @@ type Below = Pick<Chat, "id" | "parent_chat_id" | "parent_event_id">;
 
 /**
  * 子チャットの上の帯（別ウィンドウ・右の欄で共通）: 左に親チャットまでの系譜（根 › … › 親 › この子チャット。親は状態の印と名前の札で、
- * 押すとその親の、聞いた発言へ）と、深さの呼び名（子・孫・ひ孫チャット）・右にメインに渡す（いちばん新しい答えを引用にして親の入力欄へ。送るのは自分で）。
+ * 押すとその親の、聞いた発言へ）と、深さの呼び名（子・孫・ひ孫チャット）・右にメインチャットに渡す（いちばん新しい答えを引用にして親の入力欄へ。送るのは自分で）。
  * 閉じるのは、右の欄はタブの ×、別ウィンドウは ✕・最小化（子チャットは残り、親の会話の札から開き直せる）
  */
 export function ChildChatBar({
@@ -48,7 +48,7 @@ export function ChildChatBar({
 
 /**
  * 送る前の新しい子チャット（右の欄の「新しい子チャット」のタブ）の上の帯。作ったあとの子チャットと同じ形で、親までの系譜・深さの呼び名を出す
- * （親とのつながりは作る前から決まっているので、送る前から見せる）。メインに渡すは、答えがまだないので押せない
+ * （親とのつながりは作る前から決まっているので、送る前から見せる）。メインチャットに渡すは、答えがまだないので押せない
  */
 export function NewChildBar({ parentId }: { parentId: number }) {
   return <ChildBarFrame parentId={parentId} self={null} title="新しい子チャット" handBack={{ disabled: true, run: () => {} }} />;
@@ -133,7 +133,7 @@ function ChildBarFrame({
           onClick={handBack.run}
         >
           <Inbox size={13} aria-hidden />
-          <span className="child-chat-hand-back-text">メインに渡す</span>
+          <span className="child-chat-hand-back-text">メインチャットに渡す</span>
         </button>
       )}
       {extra}
