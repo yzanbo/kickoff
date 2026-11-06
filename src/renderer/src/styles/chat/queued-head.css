@@ -8,23 +8,31 @@
 }
 
 /*
- * 右の操作のまとまりの入れ物。件数の側に幅が足りなければ、まるごと 2 行目へ回り（右に寄せる）、
- * それでも入らなければまとまりごとに折り返す（まとまりの中は折り返さない）
+ * 右の操作のまとまりの入れ物。件数の側と同じ行に入るなら右に寄せて詰める（余りの幅は件数の側が取る）。
+ * 入らなければまるごと 2 行目へ回って横幅いっぱいに広がり、最初のまとまり（挟む・並べ替え）を左端、残りを右端に置く。
+ * 2 行目にも 1 行で入らない狭い欄では、まとまりを 1 行に 1 つずつ左寄せで縦に並べる（下の @container。ボタンの文字は隠さない）
  */
 .queued-head-tools {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
-  justify-content: flex-end;
   align-items: center;
   gap: 4px 14px;
-  margin-left: auto;
+  min-width: 0;
 }
 
+.queued-head-tools > :first-child {
+  margin-right: auto;
+}
+
+/* まとまりの中は折り返さない（1 つのまとまりだけでも欄に入らないときに限り、まとまりの中で折り返す） */
 .queued-head-group {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
+  min-width: 0;
 }
 
 /* 「挟む」のまとまりの見出し（押すと列に 1 行足す物だと分かるように。ボタンではない） */
@@ -116,11 +124,12 @@
 
 /*
  * 左の件数の側（件数・案内・次: の見出しと「すべて表示」）。操作と同じ行に並ぶかを 240px として決め
- * （それより狭くなるなら操作が 2 行目へ回る）、余りの幅まで伸びる（長い「次: …」で操作を押し出さない）
+ * （それより狭くなるなら操作が 2 行目へ回る）、余りの幅まで伸びる（長い「次: …」で操作を押し出さない）。
+ * 伸びる割合を大きくして、同じ行にあるときの余りの幅をほぼすべて取る（操作は右に詰めたまま）
  */
 .queued-head-main {
   display: flex;
-  flex: 1 1 0;
+  flex: 9999 1 0;
   align-items: center;
   gap: 6px;
   min-width: min(100%, 240px);
@@ -217,31 +226,23 @@
 }
 
 /*
- * 狭い欄: 見出しが 2 行（件数 / 操作）に収まるよう、ボタンの文字を隠してアイコンだけにする（読み上げは aria-label）。
- * 先にアイコンで分かる送り方（自動で送る・すべて送る）とすべて消すを、もっと狭ければ挟むものも。いちばん狭いときは案内も隠す
+ * 操作のまとまりが 1 行に入らない欄（挟む・送り方・すべて消すを並べた幅 約 670px。止めていますの長い方でも入るよう少し広めに）:
+ * 途中で折り返して右端と左端に散らばらないよう、まとまりを 1 行に 1 つずつ左寄せで並べる（挟む / 送り方 / すべて消す の 3 行）
  */
-@container queued (max-width: 640px) {
-  .queued-head-send .queued-head-label,
-  .queued-head-tools > .queued-remove .queued-head-label {
-    display: none;
+@container queued (max-width: 690px) {
+  /* 縦に並べると幅が細くなり件数の横に入ってしまうので、いつも件数の下の行に回す */
+  .queued-head-tools {
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .queued-head-send .queued-head-btn,
-  .queued-head-tools > .queued-remove {
-    padding-inline: 6px;
-  }
-}
-
-@container queued (max-width: 520px) {
-  .queued-head-label {
-    display: none;
-  }
-
-  .queued-head-btn {
-    padding-inline: 6px;
+  .queued-head-tools > :first-child {
+    margin-right: 0;
   }
 }
 
+/* いちばん狭い欄: 案内を隠す（件数を残す） */
 @container queued (max-width: 440px) {
   .queued-messages:not(.collapsed) .queued-hint {
     display: none;
