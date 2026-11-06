@@ -94,7 +94,7 @@ export function ChatComposerArea({
       {/* よく送る指示（このプロジェクトで使う定型文）。押すと入力欄に入れる */}
       <SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-      <QueuedMessages queue={live.queue} busy={busy} />
+      <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} />
       <Composer
         chatContext={{ projectId: chat.project_id, exclude: chat.id }}
         options={options}

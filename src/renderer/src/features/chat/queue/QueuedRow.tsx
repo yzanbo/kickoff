@@ -10,6 +10,12 @@ import { QUEUE_ACTION_LOOKS } from "./queueActionLooks";
 import { cx } from "@/lib/cx";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
 
+/** 送信待ちの指示を別のチャットで聞く操作（remove なら送信待ちから外す = 移す）。どちらも出せないところでは undefined */
+export interface AskHandlers {
+  newChat?: (remove: boolean) => void;
+  child?: (remove: boolean) => void;
+}
+
 /** 送信待ちの 1 行への操作（行のボタンと右クリックのメニューで共通） */
 export interface QueuedRowActions {
   edit: () => void;
@@ -29,7 +35,7 @@ export interface QueuedRowActions {
  * 文は選んでコピーでき、ダブルクリックで書き直す。右クリックでも同じ操作（狭いときに隠す ↑↓ もここに残す）。
  * ⌘ / Ctrl ＋クリックで 1 件ずつ、Shift ＋クリックで範囲を選び、選んでいる行の右クリックは選んだもの全体への操作になる。
  * 挟む行（会話の圧縮 message.compact・コンテキストの消去 message.clear）は「会話を圧縮」「コンテキストを消去」と出し、
- * 書き直す・新しいチャットで聞くを出さない（送ると圧縮・消去する）
+ * 書き直す・新しいチャット / 子チャットで聞くを出さない（送ると圧縮・消去する）
  */
 export function QueuedRow({
   message: m,
@@ -62,8 +68,11 @@ export function QueuedRow({
   isStop: boolean;
   /** この指示のすぐ前に一時停止があるか */
   isStopBefore: boolean;
-  /** 新しいチャットで聞く（文と添付を新しいチャットのタブに入れて開く。remove なら送信待ちから外す = 移す。選んでいれば選んだものすべて） */
-  onAsk?: (remove: boolean) => void;
+  /**
+   * 新しいチャット（文と添付を新しいチャットのタブに入れて開く）/ 子チャット（会話を引き継いだ子チャットを作って送り、開く）で聞く。
+   * remove なら送信待ちから外す = 移す。選んでいれば選んだものすべて。出せないところでは undefined
+   */
+  onAsk?: AskHandlers;
   /** 行のクリック（⌘ / Ctrl で 1 件ずつ、Shift で範囲を選ぶ） */
   onSelect: (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => void;
   /** 選んだもの全体への操作（右クリックのメニュー） */
@@ -163,7 +172,7 @@ export function QueuedRow({
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="送信待ちの指示の操作" onClose={menu.close}>
           {selectedCount > 1 ? (
-            // 選んだもの全体への操作（書き直す → 送る → 並べ替え → 新しいチャットへ → 消す）
+            // 選んだもの全体への操作（書き直す → 送る → 並べ替え → 新しいチャット・子チャットへ → 消す）
             <>
               <MenuItem onSelect={groupActions.edit} title="選んだ指示の書き直す欄をまとめて開きます（1 件ずつ保存・やめるができます）">
                 選んだ {selectedCount} 件を書き直す
@@ -183,7 +192,7 @@ export function QueuedRow({
               </MenuItem>
             </>
           ) : (
-            // 1 件への操作（書き直す → 送る → 止める（前・あと）→ 並べ替え → 新しいチャットへ → 消す）
+            // 1 件への操作（書き直す → 送る → 止める（前・あと）→ このあとで挟む（圧縮・消去）→ 並べ替え → 新しいチャット・子チャットへ → 消す）
             <>
               {!action && <MenuItem onSelect={actions.edit}>文を書き直す</MenuItem>}
               {!action && <div className="menu-separator" role="separator" />}
@@ -206,6 +215,7 @@ export function QueuedRow({
                 {isStop ? "この指示のあとの一時停止を外す" : "この指示のあとに一時停止を挟む"}
               </MenuItem>
               {/* 挟む行のすぐあとにさらに挟むことはしない（指示のあとにだけ） */}
+              {!action && <div className="menu-separator" role="separator" />}
               {!action &&
                 QUEUE_ACTIONS.map((a) => (
                   <MenuItem key={a} onSelect={() => actions.actionAfter(a)} title={QUEUE_ACTION_LOOKS[a].afterTitle}>
@@ -217,7 +227,6 @@ export function QueuedRow({
               {i > 0 && <MenuItem onSelect={() => actions.move(i - 1)}>1 つ上へ移動</MenuItem>}
               {i < count - 1 && <MenuItem onSelect={() => actions.move(i + 1)}>1 つ下へ移動</MenuItem>}
               {i < count - 1 && <MenuItem onSelect={() => actions.move(count - 1)}>いちばん下へ移動</MenuItem>}
-              {onAsk && !action && <div className="menu-separator" role="separator" />}
               {onAsk && !action && <AskMenuItems onAsk={onAsk} what="この指示" />}
               <div className="menu-separator" role="separator" />
               <MenuItem danger onSelect={actions.remove}>
@@ -231,16 +240,35 @@ export function QueuedRow({
   );
 }
 
-/** 新しいチャットで聞く（送信待ちに残す）・新しいチャットに移す（送信待ちから外す）。文と添付（画像も）を新しいチャットのタブに入れて開く */
-function AskMenuItems({ onAsk, what }: { onAsk: (remove: boolean) => void; what: string }) {
+/**
+ * 別のチャットで聞く項目のまとまり（前に区切り線を置く）: 新しいチャットで聞く・移す（文と添付（画像も）を新しいチャットのタブに入れて開く）と、
+ * 子チャットで開く・移す（このチャットの会話を引き継いだ子チャットを作ってすぐ送り、設定の開き方で開く）。残す = 送信待ちに残し、このチャットでもあとで送る
+ */
+function AskMenuItems({ onAsk, what }: { onAsk: AskHandlers; what: string }) {
+  const { newChat, child } = onAsk;
   return (
     <>
-      <MenuItem onSelect={() => onAsk(false)} title={`${what}を新しいチャットのタブに入れて開きます。送信待ちには残り、このチャットでもあとで送られます`}>
-        新しいチャットで聞く（送信待ちに残す）
-      </MenuItem>
-      <MenuItem onSelect={() => onAsk(true)} title={`${what}を新しいチャットのタブに入れて開き、送信待ちから外します（このチャットでは送りません）`}>
-        新しいチャットに移す（送信待ちから外す）
-      </MenuItem>
+      <div className="menu-separator" role="separator" />
+      {newChat && (
+        <MenuItem onSelect={() => newChat(false)} title={`${what}を新しいチャットのタブに入れて開きます。送信待ちには残り、このチャットでもあとで送られます`}>
+          新しいチャットで聞く（送信待ちに残す）
+        </MenuItem>
+      )}
+      {newChat && (
+        <MenuItem onSelect={() => newChat(true)} title={`${what}を新しいチャットのタブに入れて開き、送信待ちから外します（このチャットでは送りません）`}>
+          新しいチャットに移す（送信待ちから外す）
+        </MenuItem>
+      )}
+      {child && (
+        <MenuItem onSelect={() => child(false)} title={`このチャットの会話を引き継いだ子チャットで${what}をすぐ送り、開きます。送信待ちには残り、このチャットでもあとで送られます`}>
+          子チャットで開く（送信待ちに残す）
+        </MenuItem>
+      )}
+      {child && (
+        <MenuItem onSelect={() => child(true)} title={`このチャットの会話を引き継いだ子チャットで${what}をすぐ送って開き、送信待ちから外します（このチャットでは送りません）`}>
+          子チャットに移す（送信待ちから外す）
+        </MenuItem>
+      )}
     </>
   );
 }
