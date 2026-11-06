@@ -175,7 +175,7 @@ function UnifiedDiff({ lines, tokensOf }: { lines: DiffLine[]; tokensOf: TokensO
             <tr key={i} className={`line-${line.type}`}>
               <td className="diff-no">{line.oldNo}</td>
               <td className="diff-no">{line.newNo}</td>
-              {/* 行の番号と変更前・変更後のどちらか（チャットの画面の右の欄で、選んだ行へのコメントに使う） */}
+              {/* 行の番号と変更前・変更後のどちらか（チャットの画面の右の欄で、選んだ行の「チャットに添付」に使う） */}
               <td className="diff-code" data-no={line.newNo ?? line.oldNo} data-side={line.newNo !== undefined ? "new" : "old"}>
                 <span className="diff-sign">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
                 <CodeLine tokens={tokensOf.get(line)} text={line.text} />

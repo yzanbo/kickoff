@@ -4,7 +4,7 @@ import { cx } from "@/lib/cx";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import type { NewChatTarget } from "@/features/panel/tabs/panelTypes";
 import type { NewChatSeed } from "@/features/chat/queue/askInNewChat";
-import { SelectionComment } from "@/features/chat/messages/SelectionComment";
+import { SelectionAttach } from "@/features/chat/messages/SelectionAttach";
 import { ChatTimeline } from "@/features/chat/timeline/ChatTimeline";
 import { ActivityView } from "@/features/chat/activity/ActivityView";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
@@ -85,8 +85,8 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
         <AgentSplit chatId={chat.id} handleRef={view.side}>
         <div ref={pane.root} className={cx("chat-page chat-panel", wide && "wide")}>
           <ChatHeader chat={chat} project={project} items={view.items} version={view.timeline.visible} />
-          {/* 返答の一部を選んでコメントし、チャット欄に添える */}
-          <SelectionComment />
+          {/* 返答の一部・差分の行を選んで、チャット欄に引用を足す */}
+          <SelectionAttach />
           <ChatBody
             activity={<ActivityView rel={view.rel} />}
             conversation={(shown) => (

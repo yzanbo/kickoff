@@ -4,7 +4,7 @@ import { postToMainWindow } from "@/app/windowBus";
 import { ChatPaneContext, type ChatPaneActions } from "@/features/chat/pane/chatPaneContext";
 import { useChatDetail } from "@/features/chat/pane/useChatDetail";
 import { useChatView, type ChatViewInput } from "@/features/chat/pane/useChatView";
-import { pickedInReply, SelectionCommentBox } from "@/features/chat/messages/SelectionComment";
+import { pickedInReply, SelectionAttachBox } from "@/features/chat/messages/SelectionAttach";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { SubagentsContext } from "@/features/chat/subagents/subagentsContext";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
@@ -55,7 +55,7 @@ function PopoutSubagentView({ agentKey, ...input }: ChatViewInput & { agentKey: 
           <div className="popout-body">
             <SubagentScreen agentKey={agentKey} />
           </div>
-          <SelectionCommentBox pick={() => pickedInReply(document.body)} onAdd={(text) => postToMainWindow({ type: "fillComposer", chatId: chat.id, text })} />
+          <SelectionAttachBox pick={() => pickedInReply(document.body)} onAdd={(text) => postToMainWindow({ type: "fillComposer", chatId: chat.id, text })} />
         </SubagentsContext.Provider>
       </ChatPaneContext.Provider>
     </FileLinksProvider>

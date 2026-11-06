@@ -8,7 +8,7 @@ import { SideFileView } from "@/features/editor/SideFileView";
 import { FileLinksProvider } from "@/features/fileLinks/FileLinksProvider";
 import type { FileRef } from "@/features/fileLinks/fileRefs";
 import { openFileRef, useFileLinks, type ChatFileLinks } from "@/features/fileLinks/useFileLinks";
-import { pickedInDiff, SelectionCommentBox } from "@/features/chat/messages/SelectionComment";
+import { pickedInDiff, SelectionAttachBox } from "@/features/chat/messages/SelectionAttach";
 
 type FilesRoute = Extract<PopoutRoute, { kind: "changes" | "file" }>;
 
@@ -34,7 +34,7 @@ export function usePopoutFileLinks(base: ChatFileLinks | undefined, place: { cha
 }
 
 /**
- * 別ウィンドウの「変更」「ファイル」（チャットの画面の右の欄と同じ中身）。差分の行へのコメントは、メインのウィンドウのそのチャットのチャット欄に足す。
+ * 別ウィンドウの「変更」「ファイル」（チャットの画面の右の欄と同じ中身）。差分の行の「チャットに添付」は、メインのウィンドウのそのチャットのチャット欄に足す。
  * 変更は、もう開いているウィンドウへの「このファイルの位置へ」の知らせ（popoutFocus）でも移る
  */
 export function PopoutFiles({ route }: { route: FilesRoute }) {
@@ -60,7 +60,7 @@ export function PopoutFiles({ route }: { route: FilesRoute }) {
           <SideFileView projectId={projectId} worktree={worktree} path={route.path} line={route.line} />
         )}
       </div>
-      <SelectionCommentBox pick={() => pickedInDiff(document.body)} onAdd={(text) => postToMainWindow({ type: "fillComposer", chatId, text })} />
+      <SelectionAttachBox pick={() => pickedInDiff(document.body)} onAdd={(text) => postToMainWindow({ type: "fillComposer", chatId, text })} />
     </FileLinksProvider>
   );
 }

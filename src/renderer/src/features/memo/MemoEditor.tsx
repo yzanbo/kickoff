@@ -37,6 +37,8 @@ export interface MemoEditorHandle {
   selectedText: () => string;
   /** 選んでいる行（何も選んでいなければ null） */
   selectedLines: () => MemoLines | null;
+  /** 選んでいる範囲の画面の位置（本文にピントがあって選んでいるときだけ。上に「チャットに添付」を出す） */
+  selectionRect: () => { left: number; top: number; width: number } | null;
   /** 選んでいる所を text に置き換える（選んでいなければカーソルの位置に入れる。⌘Z で戻せる） */
   insert: (text: string) => void;
 }
@@ -153,6 +155,15 @@ export default function MemoEditor({ initialValue, kind, live, hidden = false, o
           if (from === to) return null;
           // 次の行の頭で終わる選び方なら、その行は数えない
           return { from: v.state.doc.lineAt(from).number, to: v.state.doc.lineAt(to - 1).number };
+        },
+        selectionRect: () => {
+          const { from, to } = v.state.selection.main;
+          if (from === to || !v.hasFocus) return null;
+          const start = v.coordsAtPos(from, 1);
+          const end = v.coordsAtPos(to, -1);
+          if (!start) return null;
+          // 1 行の中なら選んだ幅の真ん中、行をまたげば選び始めの上
+          return { left: start.left, top: start.top, width: end && end.top === start.top ? end.left - start.left : 0 };
         },
         insert: (text) => {
           v.dispatch(v.state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.paste" });

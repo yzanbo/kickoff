@@ -12,10 +12,11 @@ import { IconButton } from "@/ui/IconButton";
 import { alertDialog, reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
-import { HtmlMemoPage } from "./HtmlMemoPage";
+import { HtmlMemoPage, type HtmlMemoPageHandle } from "./HtmlMemoPage";
 import type { MemoEditorHandle } from "./MemoEditor";
 import { MemoChat, type MemoChatHandle } from "./MemoChat";
 import { memoChatTargets } from "./memoChatTargets";
+import { MemoSelectionAttach } from "./MemoSelectionAttach";
 import { memoTitle, parentOf } from "./memoPaths";
 import { useMemoDocument, type MemoSaveState } from "./useMemoDocument";
 import { useMemoEditMenu } from "./useMemoEditMenu";
@@ -56,7 +57,7 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  * 本文を保存してからファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）。Esc で元の題名に戻す。
  * HTML のメモのページのリンクがメモのフォルダの中を指すとき、メモなら onOpenMemo（開いている側が同じ場所で開く）、フォルダ・メモでないファイルは Finder で表示する。
  * attachTo（チャットの右の欄・別ウィンドウで開いたとき、開いたチャット）があれば、見出しのボタン・本文の右クリックで、
- * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する
+ * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する。本文で文を選ぶと、上の「チャットに添付」ですぐ引用を足せる
  */
 export function MemoView({
   projectId,
@@ -78,6 +79,7 @@ export function MemoView({
   // 編集の部品を外から動かす口（右クリックのメニュー）と、メモのチャットの欄を動かす口（チャットに追加）
   const editor = useRef<MemoEditorHandle | null>(null);
   const chat = useRef<MemoChatHandle | null>(null);
+  const pageHandle = useRef<HtmlMemoPageHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
   // 足す先のチャット（メインのチャット・メモのチャット）。本文の右クリック・見出しの添付のボタンから
   const targets = memoChatTargets({ file: `${dir}/${path}`, path, attachTo, save: doc.save, memoChat: chat, openMemoChat: () => setChatOpen(true) });
@@ -230,7 +232,7 @@ export function MemoView({
           <p className="muted small memo-message">{doc.file?.binary ? "文字のファイルではないので、ここでは開けません。Finder から開いてください。" : "大きすぎるので、ここでは開けません。"}</p>
         ) : (
           <>
-            {page && <HtmlMemoPage projectId={projectId} path={path} html={doc.text() ?? doc.initial} onContextMenu={editMenu.open} onSave={saveNow} onOpenLink={openLink} />}
+            {page && <HtmlMemoPage projectId={projectId} path={path} html={doc.text() ?? doc.initial} onContextMenu={editMenu.open} onSave={saveNow} onOpenLink={openLink} handleRef={pageHandle} />}
             <Suspense fallback={<p className="muted small memo-message">編集の準備中…</p>}>
               <MemoEditor
                 key={`${path}:${doc.revision}`}
@@ -245,6 +247,7 @@ export function MemoView({
               />
             </Suspense>
             {editMenu.element}
+            {attachTo !== null && <MemoSelectionAttach chatId={attachTo} file={`${dir}/${path}`} path={path} editor={editor} page={page ? pageHandle : null} />}
             {chatOpen && <div className="pane-resizer memo-chat-resizer" aria-label="メモのチャットの欄の幅を変える" {...chatWidth.handle} />}
             <div ref={chatPane} className="memo-chat-slot" aria-hidden={!chatOpen} inert={!chatOpen}>
               <MemoChat projectId={projectId} path={path} visible={chatOpen} beforeSend={saveBeforeSend} handleRef={chat} onClose={() => setChatOpen(false)} />
