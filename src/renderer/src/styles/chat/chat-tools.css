@@ -140,17 +140,13 @@
   color: var(--muted);
 }
 
-/* ファイルを変えるツールの行のファイル名（押すと右の欄で開く。乗せると下線） */
+/* ファイルを変えるツールの行のファイル名（押すと右の欄で開く。乗せると地の色 .hover-bg） */
 .tool-file-link {
   max-width: 100%;
   overflow: hidden;
   text-align: left;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.tool-file-link:hover {
-  text-decoration: underline;
 }
 
 .tool-output,

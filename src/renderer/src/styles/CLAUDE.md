@@ -23,6 +23,7 @@
 - 使わなくなったクラスの CSS は消す。消すときは、名前を組み立てて付けるクラスに気をつける（いまの頭: `state-` `status-` `tone-` `meter-` `conn-` `drop-` `line-` `dock-` `held-` `todo-` `inspection-` `provider-` `head-menu-` `head-count-`、PR の状態の `open` / `merged` / `closed`（`.pr-chip`）、一番下へ戻るボタンの状態 `waiting` / `arrived` / `working` / `idle` / `failed` / `offline`）。
 - 新しいクラス名は、既存のものと重ならないか `styles/` 全体と、組み立てて付けるクラス（サイドバーの並べ方 `stack` / `slide` / `rail` など）を検索してから付ける。1 語の名前は避け、領域の頭を付ける（動きの線を `.rail` にして、サイドバーの縦スライドの `.workspaces.rail` に当たり、一覧がつぶれた）（タイムラインの `.diff-add` / `.diff-del`、全文検索の `.search-hit` は別の見た目なので、差分の表では `line-add`、ファイルの検索では `code-search-` を使う）。
 - アクセントの色の文字（オンになっている切り替えなど）は `--accent-fg`（ダークは `--accent-bright`、ライトは地に負けない `--accent`）。
+- 下線は使わない（押せることを下線で示さない。文の中の押せる名前に乗せたときは背景のハイライト `.link-button.hover-bg`（`ui/buttons-forms.css`）、行・カードの見出しは地の色 `--bg-hover`。リンクは色だけ）。打ち消し線（完了した ToDo・消したファイル）は下線ではないので使ってよい。コードの色付けのテーマが付ける下線（`CodeLine`）はそのまま。
 - 回る印（`.spinner`・`.status-ring`・サブエージェントの印・圧縮中のメーターの弧）と作業中の跳ねる点（`.dots`）は、どこでも作業中の色 `--dot-running` にする（場所ごとに色を変えない）。押せるボタンの中の印（止めている途中の送信ボタン・更新のアイコン）だけは、ボタンの文字の色に合わせる。
 - 定義していない CSS 変数を使わない。画面のコードが与える変数は `base/tokens.css` の末尾の一覧に書き、使う側は必要なら `var(--x, 既定値)` で受ける。`getComputedStyle` で読まれている変数（Mermaid の配色・ターミナル・エディタ）は、名前を変えるときに読む側も直す。
 - プロジェクトの名前の札の地と枠の色は `project/project-mark.css` に 1 か所で持つ（`features/project/CLAUDE.md`）。
