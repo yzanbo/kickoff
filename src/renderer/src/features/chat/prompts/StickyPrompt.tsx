@@ -116,7 +116,7 @@ export function StickyPrompt({
           </span>
         )}
         {preCompact && (
-          <span className="sticky-prompt-kind">
+          <span className="sticky-prompt-kind pre-compact-kind">
             <Shrink size={12} aria-hidden />
             圧縮前指示
           </span>

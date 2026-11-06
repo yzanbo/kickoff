@@ -16,6 +16,8 @@ export interface PromptEntry {
   label: string;
   at: string;
   attachments: Attachment[];
+  /** 圧縮の前に送った圧縮前指示か（記録の pre_compact。一覧で札を付けて、自分で書いた指示と見分ける） */
+  preCompact: boolean;
 }
 
 /** 記録から作った自分の指示の一覧 */
@@ -45,7 +47,7 @@ export function promptListOf(events: readonly ChatEvent[]): PromptList {
       const data = e.data;
       const text = data.text.trim();
       const attachments = data.attachments ?? NO_ATTACHMENTS;
-      return { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments };
+      return { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments, preCompact: data.pre_compact === true };
     });
   const recalls: string[] = [];
   for (const p of entries) if (p.text && recalls[recalls.length - 1] !== p.text) recalls.push(p.text);

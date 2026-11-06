@@ -58,7 +58,7 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
     <div className={cx("user-message", draft !== undefined && "editing", data.pre_compact && "pre-compact")}>
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
         {data.pre_compact && (
-          <div className="message-kind-label" title="会話を圧縮する前に、設定の「圧縮前指示」を送りました">
+          <div className="message-kind-label pre-compact-kind" title="会話を圧縮する前に、設定の「圧縮前指示」を送りました">
             <Shrink size={12} aria-hidden />
             圧縮前指示
           </div>
