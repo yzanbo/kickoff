@@ -107,7 +107,7 @@
  *   --tone       状態ごとのチャット数の色（サイドバー HeadCounts.tsx・画面の見出し StateStats.tsx）
  *   --ws-hue     プロジェクトの色相（ProjectMark.tsx・WorkspacePage.tsx（固定のピンの色）・WorkspaceDots.tsx・BasicInfo.tsx）
  *   --diagram-w  Mermaid の図の幅（MermaidDiagram.tsx）
- *   --group-hue  右のパネルのタブのまとまりの色相・--cluster-tabs そのまとまりで見せているタブの数（PaneTabBar.tsx）
+ *   --group-hue  右のパネルのタブのまとまりの色相・--cluster-tabs そのまとまりで見せているタブの数（PaneTabBar.tsx）。グループの札（PanelTab.tsx・ChatHeader.tsx）・ブランチの印（WorktreeChip.tsx）の色相にも使う
  *   --img-w --img-h --img-x --img-y  画像を大きく見るときの画像の大きさと、中央からのずれ（imageViewer/useImageZoom.ts）
  *   --agent-hue  サブエージェントの色相（起動した順。subagents/agentHues.ts の agentHueStyle・SubagentChip.tsx）
  *   --timeline-h チャットの流れの見えている高さ（ChatTimeline.tsx。サブエージェントのカードの窓の高さに使う）

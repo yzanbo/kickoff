@@ -57,6 +57,8 @@ export interface BucketHead {
   group?: ChatGroup;
   /** worktree のときの作業場所 */
   place?: ChatWorkplace;
+  /** worktree のときの作業場所の色（色相。ブランチの印と同じ workplaceHue。タブのまとまりの色に使う） */
+  hue?: number;
   /** status のときの列 */
   column?: BoardColumn;
 }
