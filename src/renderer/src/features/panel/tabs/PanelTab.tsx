@@ -3,12 +3,13 @@ import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { CloseButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
+import { projectHueStyle } from "@/features/project/projectColor";
 import type { TabGroupBadge } from "./tabKinds";
 
 /**
  * パネルのタブ 1 つ（右のパネル・下のパネルで共通）。タブのどこを押しても表示し（名前のボタンの押せる範囲を CSS でタブ全体に広げる）、× で閉じる。
  * onRename があれば名前のダブルクリックで名前を変え始め、editor がある間は名前の代わりに入力欄を出す（チャットのタブ）。
- * pinned ならいちばん左にピンを出す（ピン留めしたチャット）。extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など
+ * pinnedIn があればいちばん左にピンを出す（ピン留めしたチャット。サイドバーの「固定」と同じく、まっすぐのピンをそのプロジェクトの色で塗る）。extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など
  */
 export function PanelTab({
   active,
@@ -26,7 +27,7 @@ export function PanelTab({
   onRename,
   editor,
   lead,
-  pinned = false,
+  pinnedIn = null,
 }: {
   active: boolean;
   icon: LucideIcon;
@@ -46,14 +47,14 @@ export function PanelTab({
   closeLabel?: string;
   /** アイコンの代わりに名前の前に置くもの（チャットのタブの状態の印） */
   lead?: ReactNode;
-  /** ピン留めしたチャットのタブか（いちばん左にピンを出す） */
-  pinned?: boolean;
+  /** ピン留めしたチャットのタブなら、そのチャットのプロジェクトの ID（いちばん左にピンをその色で出す）。ピン留めでなければ null */
+  pinnedIn?: number | null;
   /** 名前のダブルクリックで名前を変え始める */
   onRename?: () => void;
   /** 名前を変えている途中なら、入力欄の初めの値・上限・決定・取り消し */
   editor?: { initial: string; maxLength: number; onSubmit: (name: string) => void; onCancel: () => void };
 }) {
-  const pin = pinned && <Pin size={11} className="panel-tab-pin" aria-label="ピン留め" />;
+  const pin = pinnedIn !== null && <Pin size={12} className="panel-tab-pin" style={projectHueStyle(pinnedIn)} aria-label="ピン留め" />;
   return (
     <div className={cx("panel-tab", active && "active", badge && `panel-tab-typed tab-kind-${badge.kind}`, className)} role="tab" aria-selected={active} {...extra}>
       {editor ? (

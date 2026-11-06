@@ -76,12 +76,15 @@
   flex: none;
 }
 
-/* ピン留めしたチャットのタブの、いちばん左のピン（サイドバーの「固定」と同じく塗る。少し傾けて状態の印と見分ける） */
+/* ピン留めしたチャットのタブの、いちばん左のピン（サイドバーの「固定」・プロジェクトの見出しのピンとそろえ、まっすぐのピンをプロジェクトの色で塗る。色は要素の --ws-hue） */
 .panel-tab-label > .panel-tab-pin {
   margin-right: -1px;
-  color: var(--muted);
+  color: hsl(var(--ws-hue, 150) 60% 65%);
   fill: currentColor;
-  transform: rotate(45deg);
+}
+
+:root[data-theme="light"] .panel-tab-label > .panel-tab-pin {
+  color: hsl(var(--ws-hue, 150) 55% 38%);
 }
 
 /* キーボードのピントは外の枠ではなくタブの地で示す（枠の上下が切り取られ、両側に縦線だけが出ていた） */
