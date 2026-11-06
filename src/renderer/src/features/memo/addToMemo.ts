@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 import { api } from "@/api";
 import { memosStore } from "@/stores/memos";
 import { reportFailure } from "@/ui/dialogs";
-import { memoTitle } from "./memoPaths";
+import { baseName } from "./memoPaths";
 import { openMemoFromChat } from "./openMemoFrom";
 
 /** 終わった知らせを出しておく時間（ミリ秒） */
@@ -56,7 +56,7 @@ export async function addToMemo({ projectId, chatId, text, summarize, appendTo }
     memosStore.invalidate(projectId);
     setProgress({
       kind: "done",
-      text: appendTo ? `「${memoTitle(ref.path)}」に追記しました` : `「${memoTitle(ref.path)}」を作りました`,
+      text: appendTo ? `「${baseName(ref.path)}」に追記しました` : `「${baseName(ref.path)}」を作りました`,
       open: () => {
         setProgress(null);
         openMemoFromChat({ projectId, path: ref.path, chatId });

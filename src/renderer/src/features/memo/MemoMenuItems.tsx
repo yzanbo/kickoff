@@ -4,7 +4,7 @@ import { useMemoList } from "@/stores/memos";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem } from "@/ui/PopupMenu";
 import { addToMemo } from "./addToMemo";
-import { memoTitle, parentOf, recentMemos } from "./memoPaths";
+import { baseName, parentOf, recentMemos } from "./memoPaths";
 
 /** 「既存のメモに追記」・入力欄の上のメモの一覧に並べる数（最近変えた順） */
 export const RECENT_MEMOS = 12;
@@ -41,7 +41,7 @@ export function MemoMenuItems({ projectId, chatId, text }: { projectId: number; 
           ) : (
             recent.map((e) => (
               <MenuItem key={e.path} title={e.path} onSelect={() => add(false, e.path)}>
-                <span className="memo-menu-title">{memoTitle(e.path)}</span>
+                <span className="memo-menu-title">{baseName(e.path)}</span>
                 {parentOf(e.path) && <span className="memo-menu-folder">{parentOf(e.path)}</span>}
               </MenuItem>
             ))

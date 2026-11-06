@@ -52,6 +52,15 @@ export function memoTitle(path: string): string {
   return ext ? name.slice(0, -ext.length) : name;
 }
 
+/**
+ * path と同じ名前のメモ・フォルダが、同じフォルダにもうあるか（作る・名前を変える前の確かめ。ファイル名は拡張子まで比べるので、
+ * 拡張子が違えば同じ題名でも別の名前。大文字・小文字の違いは同じ名前とみなす（macOS のファイル名）。except は名前を変える元（大文字・小文字だけ変えるのは許す））
+ */
+export function pathTaken(entries: readonly MemoEntry[], path: string, except?: string): boolean {
+  const target = path.toLowerCase();
+  return entries.some((e) => e.path !== except && e.path.toLowerCase() === target);
+}
+
 /** 名前を変えたあとのパス（メモは元の拡張子 .md・.html などを付け直す。ほかのファイルは書いた名前のまま） */
 export function renamedPath(path: string, dir: boolean, name: string): string {
   const ext = dir ? null : memoExtensionOf(path);

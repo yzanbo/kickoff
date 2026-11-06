@@ -44,7 +44,7 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
 };
 
 /**
- * 開いているメモ（見出しに題名とフォルダ・保存の様子・保存・表示の切り替え・Finder で表示）。
+ * 開いているメモ（見出しに題名（すぐ後ろに拡張子を続け、ファイル名と同じに見せる）とフォルダ・保存の様子・保存・表示の切り替え・Finder で表示）。
  * 表示は Markdown（Obsidian のライブプレビューと同じ。カーソルの行だけ記号を見せる）/ そのまま（記号もそのまま）。
  * HTML のメモ（.html）は、ページ（描いた見た目。書けない）/ ソース（HTML をそのまま書く）。ソースの編集の部品はページの間も隠して置く（元に戻す履歴を残す）。
  * 書いた所で ⌘S で保存する（書いている間は保存しない。まだ保存していない書きかけは残り、離れるときに聞く）。
@@ -114,6 +114,8 @@ export function MemoView({
   // HTML のメモをページで見ているか（ページの中身は、いま書いてあるもの。表示を切り替えた・読み直したときに描き直す）
   const page = kind === "html" && view === "preview";
   const folder = parentOf(path);
+  // 題名の後ろに続ける拡張子（題名 ＋ 拡張子 ＝ ファイル名）
+  const extension = memoExtensionOf(path);
   const unreadable = doc.file && (doc.file.binary || doc.file.truncated);
   const unsaved = doc.state === "dirty" || doc.state === "conflict" || doc.state === "error" || titleChanged;
 
@@ -142,6 +144,7 @@ export function MemoView({
               }
             }}
           />
+          {extension && <span className="memo-title-ext">{extension}</span>}
           {folder && <span className="memo-head-folder">{folder}</span>}
         </div>
         <span className={cx("memo-save-state", unsaved && "warn")} role="status">

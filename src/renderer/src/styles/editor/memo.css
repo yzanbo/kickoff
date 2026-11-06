@@ -68,11 +68,13 @@
 
 /*
  * 題名（いつでも書き換えられる欄。ふだんは見出しの文字に見せ、乗せる・ピントが入ると地を付ける。⌘S で名前を変える）。
- * type を付けないので、入力欄の共通の形（input[type="text"] の枠・余白）は当たらない
+ * type を付けないので、入力欄の共通の形（input[type="text"] の枠・余白）は当たらない。
+ * 幅は書いた文字の幅（field-sizing）にして、すぐ後ろに拡張子 .memo-title-ext を続け、題名とファイル名を同じに見せる（長ければ縮めて … で切る）
  */
 .memo-title {
-  flex: 1;
-  min-width: 0;
+  flex: 0 1 auto;
+  min-width: 1em;
+  field-sizing: content;
   padding: 2px 4px;
   border: 0;
   border-radius: 4px;
@@ -88,6 +90,15 @@
 .memo-title:focus {
   outline: none;
   background: var(--bg-hover);
+}
+
+/* 題名の後ろの拡張子（書き換えられない。名前を変えても同じ拡張子を付け直す）。並びの間（8px）と題名の右の余白（4px）を打ち消して、題名の文字に続ける */
+.memo-title-ext {
+  flex: none;
+  margin-left: -12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .memo-head-folder {
@@ -194,7 +205,7 @@
   min-height: 0;
 }
 
-/* 入力欄の上の「メモ」の一覧（最近変えたメモ。題名と、入っているフォルダ） */
+/* 入力欄の上の「メモ」の一覧（最近変えたメモ。ファイル名と、入っているフォルダ） */
 .memo-chip-popover {
   display: grid;
   min-width: 260px;
@@ -227,20 +238,22 @@
   color: var(--muted);
 }
 
-.memo-chip-title {
+/* ファイル名（拡張子まで）と、その下に入っているフォルダ（同じ題名で拡張子・フォルダの違うメモを見分ける） */
+.memo-chip-name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.memo-chip-title,
+.memo-chip-folder {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .memo-chip-folder {
-  flex: none;
-  max-width: 120px;
-  margin-left: auto;
-  overflow: hidden;
   font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--extra-muted);
 }
 

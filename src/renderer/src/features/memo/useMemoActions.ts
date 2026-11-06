@@ -1,13 +1,14 @@
-import { MEMO_KIND_EXTENSIONS, newHtmlMemo, type MemoKind } from "@shared/memo/kinds";
-import { safeMemoName, uniqueMemoName } from "@shared/memo/names";
+import { MEMO_KIND_EXTENSIONS, memoExtensionOf, newHtmlMemo, type MemoKind } from "@shared/memo/kinds";
+import { safeMemoName } from "@shared/memo/names";
 import { api } from "@/api";
 import { errorMessage } from "@shared/errors";
 import { memosStore } from "@/stores/memos";
-import { confirmDialog, promptDialog, reportFailure } from "@/ui/dialogs";
-import { baseName, joinMemoPath, memoTitle, parentOf, remapPath, renamedPath } from "./memoPaths";
+import { alertDialog, confirmDialog, promptDialog, reportFailure } from "@/ui/dialogs";
+import { baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath } from "./memoPaths";
 
 /**
  * メモのタブの操作（新しいメモ・フォルダ・名前の変更・動かす・ゴミ箱）。名前はダイアログで聞き、ファイル名に使えない文字はそろえる。
+ * 書いた名前がそのままファイル名になる（同じフォルダに同じ名前があれば、番号を付けずに知らせて聞き直す。拡張子が違えば同じ題名でも作れる）。
  * 終わったら一覧を取り直し（知らせを待たない）、開いているメモ・フォルダを付いていかせる（onMoved）。失敗はお知らせで出す
  */
 export function useMemoActions(
@@ -28,25 +29,46 @@ export function useMemoActions(
   },
 ) {
   const refresh = () => memosStore.invalidate(projectId);
-  /** folder の中で重ならない名前（同じ名前があれば「名前 2」。メモは .md を除いて比べる） */
-  const freeName = (folder: string, name: string) => {
-    const taken = (memosStore.get(projectId).data?.entries ?? []).filter((e) => parentOf(e.path) === folder).map((e) => (e.dir ? baseName(e.path) : memoTitle(e.path)));
-    return uniqueMemoName(safeMemoName(name), taken);
+  /**
+   * 名前を聞く（toPath で、そろえた名前からパスを作る）。同じフォルダに同じ名前（拡張子まで同じ）があれば知らせて、書いた名前のまま聞き直す。
+   * except は名前を変える元。やめたら null（allowEmpty でなければ、空のときもやめる）
+   */
+  const askName = async (
+    options: Parameters<typeof promptDialog>[0],
+    toPath: (name: string) => string,
+    { except, allowEmpty = false }: { except?: string; allowEmpty?: boolean } = {},
+  ): Promise<{ name: string; path: string } | null> => {
+    let initial = options.initial;
+    for (;;) {
+      const typed = await promptDialog({ ...options, initial });
+      if (typed === null || (!allowEmpty && !typed.trim())) return null;
+      const name = safeMemoName(typed);
+      const path = toPath(name);
+      if (!pathTaken(memosStore.get(projectId).data?.entries ?? [], path, except)) return { name, path };
+      const where = parentOf(path) ? `「${parentOf(path)}」に` : "";
+      const hint = memoExtensionOf(path) ? "拡張子が違うメモ（Markdown と HTML）なら、同じ名前でも作れます。" : "";
+      await alertDialog("同じ名前があります", `${where}「${baseName(path)}」がもうあります。別の名前にしてください。${hint}`);
+      initial = typed;
+    }
   };
 
   /** 新しいメモ（HTML なら、題名の見出しと <style> の入ったひな形から始める） */
   const createMemo = async (folder: string, kind: MemoKind = "markdown") => {
     const html = kind === "html";
-    const name = await promptDialog({
-      title: html ? "新しい HTML メモ" : "新しいメモ",
-      label: "名前",
-      placeholder: "無題のメモ",
-      confirmLabel: "作る",
-      message: [folder ? `「${folder}」の中に作ります。` : "", html ? "HTML と CSS で書くページのメモです（.html）。メモのチャットに頼んで作ってもらうこともできます。" : ""].filter(Boolean).join("") || undefined,
-    });
-    if (name === null) return;
-    const title = freeName(folder, name);
-    const path = joinMemoPath(folder, `${title}${MEMO_KIND_EXTENSIONS[kind]}`);
+    const ext = MEMO_KIND_EXTENSIONS[kind];
+    const asked = await askName(
+      {
+        title: html ? "新しい HTML メモ" : "新しいメモ",
+        label: `名前（ファイル名。${ext} を付けて保存します）`,
+        placeholder: "無題のメモ",
+        confirmLabel: "作る",
+        message: [folder ? `「${folder}」の中に作ります。` : "", html ? "HTML と CSS で書くページのメモです（.html）。メモのチャットに頼んで作ってもらうこともできます。" : ""].filter(Boolean).join("") || undefined,
+      },
+      (name) => joinMemoPath(folder, `${name}${ext}`),
+      { allowEmpty: true },
+    );
+    if (!asked) return;
+    const { name: title, path } = asked;
     await api.createMemo(projectId, path, html ? { content: newHtmlMemo(title) } : {}).then(() => {
       refresh();
       onCreated(path, false);
@@ -54,9 +76,11 @@ export function useMemoActions(
   };
 
   const createFolder = async (folder: string) => {
-    const name = await promptDialog({ title: "新しいフォルダ", label: "名前", confirmLabel: "作る", message: folder ? `「${folder}」の中に作ります。` : undefined });
-    if (name === null || !name.trim()) return;
-    const path = joinMemoPath(folder, freeName(folder, name));
+    const asked = await askName({ title: "新しいフォルダ", label: "名前", confirmLabel: "作る", message: folder ? `「${folder}」の中に作ります。` : undefined }, (name) =>
+      joinMemoPath(folder, name),
+    );
+    if (!asked) return;
+    const { path } = asked;
     await api.createMemo(projectId, path, { dir: true }).then(() => {
       refresh();
       onCreated(path, true);
@@ -72,9 +96,13 @@ export function useMemoActions(
   };
 
   const rename = async (path: string, dir: boolean) => {
-    const name = await promptDialog({ title: dir ? "フォルダの名前を変更" : "メモの名前を変更", label: "名前", initial: dir ? baseName(path) : memoTitle(path), confirmLabel: "変更" });
-    if (name === null || !name.trim()) return;
-    await move(path, renamedPath(path, dir, safeMemoName(name)));
+    const ext = dir ? null : memoExtensionOf(path);
+    const asked = await askName(
+      { title: dir ? "フォルダの名前を変更" : "メモの名前を変更", label: ext ? `名前（${ext} はそのまま）` : "名前", initial: dir ? baseName(path) : memoTitle(path), confirmLabel: "変更" },
+      (name) => renamedPath(path, dir, name),
+      { except: path },
+    );
+    if (asked) await move(path, asked.path);
   };
 
   /** フォルダ（folder。"" は直下）へ動かす（同じ場所・自分の中へは動かさない） */
@@ -85,7 +113,7 @@ export function useMemoActions(
 
   const trash = async (path: string, dir: boolean) => {
     const ok = await confirmDialog({
-      title: dir ? `フォルダ「${baseName(path)}」をゴミ箱に入れますか？` : `「${memoTitle(path)}」をゴミ箱に入れますか？`,
+      title: dir ? `フォルダ「${baseName(path)}」をゴミ箱に入れますか？` : `「${baseName(path)}」をゴミ箱に入れますか？`,
       message: dir ? "中のメモもすべてゴミ箱に入ります。Finder のゴミ箱から戻せます。" : "Finder のゴミ箱から戻せます。",
       confirmLabel: "ゴミ箱に入れる",
       danger: true,
