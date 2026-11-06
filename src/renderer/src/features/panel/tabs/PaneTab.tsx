@@ -17,7 +17,7 @@ import { useChatTabHint } from "./useChatTabHint";
 
 /**
  * ペインのタブの列のタブ 1 つ。アイコン・名前・説明・グループ名は種類の表（tabKinds）から引き、チャットのタブはサイドバーの行と同じ状態の印を出す
- * （未読・失敗のタブは名前も太字）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
+ * （未読・失敗のタブは名前も太字。ピン留めしたチャットはいちばん左にピン）。チャットのタブは名前のダブルクリックでその場で名前を変え（見出しには名前を出さない）、
  * × は表示だけ消す・アーカイブ・削除を選んでから閉じる（ほかのタブはそのまま閉じる）。分けたペイン（home でない）のサイドバーと連動したチャットは、
  * × で聞かずに一覧のペインへ戻す（ペインを閉じたときと同じ。アーカイブ・削除は右クリックから）
  */
@@ -80,6 +80,7 @@ export function PaneTab({
       className={cx(className, (state === "unread" || state === "failed" || busyUnread) && "unread")}
       extra={extra}
       onSelect={() => panel.showTab(t.key)}
+      pinned={Boolean(chat?.pinned)}
       lead={spec.Lead ? <spec.Lead tab={t} /> : state && <StatusSlot state={state} unread={busyUnread} />}
       onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Chat) : undefined}
       // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前）

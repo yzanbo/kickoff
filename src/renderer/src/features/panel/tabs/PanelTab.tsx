@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import { Pin, type LucideIcon } from "lucide-react";
 import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { CloseButton } from "@/ui/IconButton";
@@ -8,7 +8,7 @@ import type { TabGroupBadge } from "./tabKinds";
 /**
  * パネルのタブ 1 つ（右のパネル・下のパネルで共通）。タブのどこを押しても表示し（名前のボタンの押せる範囲を CSS でタブ全体に広げる）、× で閉じる。
  * onRename があれば名前のダブルクリックで名前を変え始め、editor がある間は名前の代わりに入力欄を出す（チャットのタブ）。
- * extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など
+ * pinned ならいちばん左にピンを出す（ピン留めしたチャット）。extra は右のパネルで足す属性（ドラッグ・右クリックのメニュー）、className はドラッグで落とす位置の印など
  */
 export function PanelTab({
   active,
@@ -26,6 +26,7 @@ export function PanelTab({
   onRename,
   editor,
   lead,
+  pinned = false,
 }: {
   active: boolean;
   icon: LucideIcon;
@@ -45,20 +46,25 @@ export function PanelTab({
   closeLabel?: string;
   /** アイコンの代わりに名前の前に置くもの（チャットのタブの状態の印） */
   lead?: ReactNode;
+  /** ピン留めしたチャットのタブか（いちばん左にピンを出す） */
+  pinned?: boolean;
   /** 名前のダブルクリックで名前を変え始める */
   onRename?: () => void;
   /** 名前を変えている途中なら、入力欄の初めの値・上限・決定・取り消し */
   editor?: { initial: string; maxLength: number; onSubmit: (name: string) => void; onCancel: () => void };
 }) {
+  const pin = pinned && <Pin size={11} className="panel-tab-pin" aria-label="ピン留め" />;
   return (
     <div className={cx("panel-tab", active && "active", badge && `panel-tab-typed tab-kind-${badge.kind}`, className)} role="tab" aria-selected={active} {...extra}>
       {editor ? (
         <span className="panel-tab-label editing">
+          {pin}
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           <InlineName initial={editor.initial} maxLength={editor.maxLength} className="panel-tab-input" onSubmit={editor.onSubmit} onCancel={editor.onCancel} />
         </span>
       ) : (
         <button className="panel-tab-label" onClick={onSelect} onDoubleClick={onRename} title={onRename ? `${title ?? label}（ダブルクリックで名前を変更）` : (title ?? label)}>
+          {pin}
           {lead ?? <Icon size={12} className={iconClass} aria-hidden />}
           {badge && <span className="panel-tab-kind">{badge.text}</span>}
           <span>{label}</span>
