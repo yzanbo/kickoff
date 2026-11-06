@@ -76,6 +76,14 @@
   flex: none;
 }
 
+/* ピン留めしたチャットのタブの、いちばん左のピン（サイドバーの「固定」と同じく塗る。少し傾けて状態の印と見分ける） */
+.panel-tab-label > .panel-tab-pin {
+  margin-right: -1px;
+  color: var(--muted);
+  fill: currentColor;
+  transform: rotate(45deg);
+}
+
 /* キーボードのピントは外の枠ではなくタブの地で示す（枠の上下が切り取られ、両側に縦線だけが出ていた） */
 .panel-tab-label:focus-visible {
   outline: none;
@@ -188,7 +196,8 @@
 
 /* とても細いタブ: 名前を隠してアイコン（状態の印）だけを真ん中に。表示中・マウスを乗せたタブは閉じるだけにする */
 @container panel-tab (max-width: 60px) {
-  .panel-tab-label > span:not(.status-slot) {
+  .panel-tab-label > span:not(.status-slot),
+  .panel-tab-label > .panel-tab-pin {
     display: none;
   }
 
