@@ -15,7 +15,7 @@ const MORE_SELECTOR = ".selection-memo-more";
 const MAIN_SELECTOR = ".selection-memo-main";
 
 /**
- * 文を選んだときの上のボタンの「メモ ▾」（「チャットに追加」の横）。text は選んだ部分（返答は Markdown に戻したもの）。
+ * 文を選んだときの上のボタンの「メモ ▾」（「チャットに追加」の横）。text は選択部分（返答は Markdown に戻したもの）。
  * - 「メモ」: 既定の入れ方（MEMO_ADD_DEFAULT。初めは新しいメモを作成）ですぐメモにする。既定が既存のメモに追記・AI で組み込む なら、足すメモを選ぶ一覧を出す
  * - ▾: ほかの入れ方（発言の右クリックと同じ 4 項目 MemoModeItems）と、その下に「メモ」で行う入れ方（既定）の選択
  * メニューを開いている間は onHold(true)（選んだ範囲の上のボタンを、外側のクリック・選び直しで消さない）。メモにしたら onDone

@@ -64,7 +64,7 @@ function AskChildDialog({ request }: { request: AskChildRequest }) {
         <h2 className="app-dialog-title">子チャットで聞く</h2>
         <p className="app-dialog-message">
           このチャットの作業を止めずに、横で聞きます。答えが来たら、聞いた位置と入力欄の上の札に印が付きます。
-          {request.quote.trim() && "選んだ文は引用として入れてあります。書き換えたり、消したりできます。"}
+          {request.quote.trim() && "選択部分は引用として入れてあります。書き換えたり、消したりできます。"}
         </p>
         <textarea
           ref={inputRef}

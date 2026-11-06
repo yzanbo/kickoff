@@ -1,5 +1,5 @@
 import { Fragment, type MutableRefObject, type ReactNode } from "react";
-import { reportFailure } from "@/ui/dialogs";
+import { ClipboardItems } from "@/ui/ClipboardItems";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import type { MemoLines } from "./memoAttachment";
@@ -27,14 +27,16 @@ const TARGET_NAMES = { main: "メインのチャット", memo: "メモのチャ�
 
 /**
  * メモの本文の右クリックのメニュー。足す先ごとに見出しを付けて組に分ける: メインのチャット（main を渡したとき。チャットの右の欄・別ウィンドウのメモ）・メモのチャット。
- * それぞれ「選んだ部分を追加」（選んでいなければ「メモを添付」）と「パスを追加」。送るのは自分で。
- * その下に、切り取り・コピー・貼り付け。文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
- * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに足す項目とコピーだけ）。
- * 見出しの題名の欄からも同じメニューを開く（openFor。切り取り・貼り付けは題名の欄に効き、何も選んでいなければコピーは題名の全体）
+ * それぞれ「選択部分を追加」（選んでいなければ「メモを添付」）と「パスを追加」。送るのは自分で。
+ * その下に「クリップボード」の組（ClipboardItems: 切り取り・コピー・パスを含めてコピー・パスをコピー・貼り付け。file = メモのファイルのフルパス）。
+ * 文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
+ * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに足す項目と、切り取り・貼り付けのないクリップボードの組）。
+ * 見出しの題名の欄からも同じメニューを開く（openFor。切り取り・貼り付けは題名の欄に効き、何も選んでいなければコピーは題名の全体。パスを含めてコピーは選んだ文だけ）
  */
 export function useMemoEditMenu(
   editor: MutableRefObject<MemoEditorHandle | null>,
   targets: { main?: MemoChatTarget; memo: MemoChatTarget },
+  file: string,
 ): {
   open: (at: { x: number; y: number }, pageSelection?: string) => void;
   openFor: (at: { x: number; y: number }, source: MemoMenuSource) => void;
@@ -45,7 +47,6 @@ export function useMemoEditMenu(
   const selected = shown?.value.text ?? "";
   const insert = shown?.value.insert ?? null;
   const copyText = selected || shown?.value.copyAll || "";
-  const copy = (text: string) => navigator.clipboard.writeText(text);
   return {
     // 開いたときに選んでいた文を覚える（メニューを押すまでに選択が変わっても、開いたときの文を使う）
     open: (at, pageSelection) =>
@@ -66,10 +67,10 @@ export function useMemoEditMenu(
             <Fragment key={key}>
               <div className="menu-label">{name}</div>
               <MenuItem
-                title={selected.trim() ? `選んだ文を、ファイルのパスと行番号付きの引用にして、${name}の入力欄に足します` : `このメモを、${name}の入力欄に添付します`}
+                title={selected.trim() ? `選択部分を、ファイルのパスと行番号付きの引用にして、${name}の入力欄に足します` : `このメモを、${name}の入力欄に添付します`}
                 onSelect={() => target.add(selected, shown.value.lines ?? null)}
               >
-                {selected.trim() ? "選んだ部分を追加" : "メモを添付"}
+                {selected.trim() ? "選択部分を追加" : "メモを添付"}
               </MenuItem>
               <MenuItem title={`このメモのファイルのフルパスを、${name}の入力欄に足します`} onSelect={target.addPath}>
                 パスを追加
@@ -78,34 +79,14 @@ export function useMemoEditMenu(
             </Fragment>
           );
         })}
-        {insert && (
-          <MenuItem
-            disabled={!selected}
-            onSelect={() =>
-              void copy(selected).then(
-                () => insert(""),
-                reportFailure("切り取れませんでした"),
-              )
-            }
-          >
-            切り取り
-          </MenuItem>
-        )}
-        <MenuItem disabled={!copyText} onSelect={() => void copy(copyText).catch(reportFailure("コピーできませんでした"))}>
-          コピー
-        </MenuItem>
-        {insert && (
-          <MenuItem
-            onSelect={() =>
-              void navigator.clipboard.readText().then(
-                (text) => insert(text),
-                reportFailure("貼り付けられませんでした"),
-              )
-            }
-          >
-            貼り付け
-          </MenuItem>
-        )}
+        <ClipboardItems
+          text={copyText}
+          selection={selected}
+          path={file}
+          lines={shown.value.lines ?? null}
+          onCut={insert ? () => insert("") : undefined}
+          onPaste={insert ?? undefined}
+        />
       </PopupMenu>
     ),
   };

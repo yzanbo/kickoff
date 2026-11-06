@@ -21,12 +21,12 @@ interface Selected {
 }
 
 /**
- * 発言の右クリックのメニュー。文を選んでいれば「選んだ部分をコピー」、いつも「メッセージ全体をコピー」。
+ * 発言の右クリックのメニュー。文を選んでいれば「選択部分をコピー」、いつも「メッセージ全体をコピー」。
  * rich（AI の返答）ならコピーは書式付き（ほかのアプリに貼っても見出し・表が崩れない。書式を受け取れない所には Markdown の文）で、
- * 選んだ部分は描いた表示を Markdown に戻してから（`selectionToMarkdown`）。
+ * 選択部分は描いた表示を Markdown に戻してから（`selectionToMarkdown`）。
  * チャットの画面の中なら「子チャットで聞く」「メモ」の項目（どちらも選んでいる部分、なければ発言の全体を使う）も並べる。
  * 右の欄・別ウィンドウ（サブエージェント・子チャット・メモのチャット）では、いちばん上に「メインのチャット」（子チャット・メモのチャットの中なら、そのチャットも）に
- * 選んだ部分（なければ発言の全体）を引用して足す組（AddToChatItems）。
+ * 選択部分（なければ発言の全体）を引用して足す組（AddToChatItems）。
  * リンク・入力欄・コードブロックの上などでは、Electron の既定のメニューに任せず、この 1 つにそろえる
  */
 export function useMessageMenu(
@@ -57,9 +57,9 @@ export function useMessageMenu(
     },
     element: at && (
       <PopupMenu at={at.at} label="発言の操作" onClose={menu.close}>
-        <AddToChatItems quote={quoteComment(selected?.markdown || text, "")} quoteLabel={selected ? "選んだ部分を追加" : "メッセージを追加"} />
+        <AddToChatItems quote={quoteComment(selected?.markdown || text, "")} quoteLabel={selected ? "選択部分を追加" : "メッセージを追加"} />
         {/* 返答は書式付き（貼る先が書式を受け取れれば見出し・表・コードのまま。受け取れなければ Markdown の文） */}
-        {selected && <MenuItem onSelect={() => (rich ? copyFormatted(selected.markdown) : copy(selected.text))}>選んだ部分をコピー</MenuItem>}
+        {selected && <MenuItem onSelect={() => (rich ? copyFormatted(selected.markdown) : copy(selected.text))}>選択部分をコピー</MenuItem>}
         <MenuItem onSelect={() => (rich ? copyFormatted(text) : copy(text))}>メッセージ全体をコピー</MenuItem>
         {extra}
         {pane && (

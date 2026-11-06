@@ -107,7 +107,7 @@ function MemoChatStart({
         <div className="memo-chat-hero">
           <MessagesSquare size={22} aria-hidden />
           <p>このメモについて AI と話しながら、中身を一緒に作ります。AI はメモを読み、頼むと直接書き換えます（書き換えると本文もすぐ変わります）。</p>
-          <p className="muted small">本文で文を選んで右クリックの「メモのチャット」の「選んだ部分を追加」で、その部分を引用して入力欄に足せます。</p>
+          <p className="muted small">本文で文を選んで右クリックの「メモのチャット」の「選択部分を追加」で、その部分を引用して入力欄に足せます。</p>
         </div>
       </div>
       <div className="chat-composer">

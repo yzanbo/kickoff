@@ -1,4 +1,4 @@
-// メモをメインのチャットの入力欄に添付するときの形（純粋関数）: メモ全体はメモの添付（Attachment の memo）、選んだ部分は出どころ付きの引用
+// メモをメインのチャットの入力欄に添付するときの形（純粋関数）: メモ全体はメモの添付（Attachment の memo）、選択部分は出どころ付きの引用
 import { memoKindOf } from "@shared/memo/kinds";
 import type { Attachment } from "@shared/types";
 import { quoteComment } from "@/features/chat/messages/quoteComment";
@@ -15,13 +15,7 @@ export interface MemoLines {
   to: number;
 }
 
-/** メモのファイルの場所: フルパスと行番号（AI がファイルを開いて前後も読めるように。行が分からなければパスだけ） */
-export function memoLocation(file: string, lines: MemoLines | null): string {
-  if (!lines) return file;
-  return lines.from === lines.to ? `${file}:${lines.from}` : `${file}:${lines.from}-${lines.to}`;
-}
-
-/** メモの選んだ部分の引用（どこから引いたか（memoLocation）を 1 行目に書く） */
+/** メモの選択部分の引用（どこから引いたか（`@/lib/pathCopy` の lineLocation。AI がファイルを開いて前後も読めるように）を 1 行目に書く） */
 export function memoQuote(location: string, selection: string): string {
   return `メモ「${location}」から:\n${quoteComment(selection, "")}`;
 }

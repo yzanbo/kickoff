@@ -9,7 +9,7 @@ const INNER_NAMES: Record<string, string> = { child: "子チャット", memo: "�
 
 /**
  * 右の欄・別ウィンドウ（サブエージェント・変更・ファイル・子チャット・メモのチャット）の右クリックのメニューの、チャットに足す組。
- * 見出し「メインのチャット」の下に「選んだ部分を追加」など（quote。引用にしたもの）と「パスを追加」（path）。子チャット・メモのチャットの中なら、
+ * 見出し「メインのチャット」の下に「選択部分を追加」など（quote。引用にしたもの）と「パスを追加」（path）。子チャット・メモのチャットの中なら、
  * そのチャットの組も続ける（メモの本文のメニューと同じ形）。どの組も最後に区切り線。右の欄・別ウィンドウの外では何も出さない（送るのは自分で）
  */
 export function AddToChatItems({ quote, quoteLabel, path }: { quote: string | null; quoteLabel: string; path?: string | null }) {

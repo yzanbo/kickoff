@@ -1,4 +1,4 @@
-// 返答（Markdown の表示）の中で選んだ範囲を、Markdown の文に戻す（選んだ部分のコピー・引用で、見出し・表・コードを崩さないため）。
+// 返答（Markdown の表示）の中で選んだ範囲を、Markdown の文に戻す（選択部分のコピー・引用で、見出し・表・コードを崩さないため）。
 // 描いた DOM を構文木（hast）にして、Markdown の木（mdast）を経て文にする。チャットの表示と同じ GitHub の書き方（表・取り消し線など）で書く
 import type { Element as HastElement, Nodes as HastNodes, Root as HastRoot } from "hast";
 import { fromDom } from "hast-util-from-dom";
