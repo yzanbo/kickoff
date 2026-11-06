@@ -1,6 +1,6 @@
 import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -88,6 +88,7 @@ function DisplaySettings() {
   const [fontSize, setFontSize] = useChatFontSize();
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
+  const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [childChatOpenIn, setChildChatOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
   const [memoOpenIn, setMemoOpenIn] = useSetting(MEMO_OPEN_IN);
@@ -141,6 +142,21 @@ function DisplaySettings() {
             options={[
               { value: "normal", label: "標準" },
               { value: "wide", label: "広げる" },
+            ]}
+          />
+        </Field>
+        <Field
+          label="チャットのタブの列"
+          help="チャットのパネルの上の、開いているチャットのタブと、表示・新しいタブ・分けるボタンが並ぶ行です。隠すと、その分チャットの縦の幅が広がります（チャットは左のサイドバー・ボードから切り替えます）。会話の何もないところ・チャットの見出しの右クリックでも切り替えられます。"
+        >
+          <Segmented<"show" | "hide">
+            className="segmented theme-switch"
+            label="チャットのタブの列"
+            value={tabRowHidden ? "hide" : "show"}
+            onChange={(v) => setTabRowHidden(v === "hide")}
+            options={[
+              { value: "show", label: "表示する" },
+              { value: "hide", label: "隠す" },
             ]}
           />
         </Field>

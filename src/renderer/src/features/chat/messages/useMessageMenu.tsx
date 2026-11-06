@@ -40,7 +40,7 @@ interface Selected {
  * 並べる（どれも選んでいる部分、なければ項目の全体を使う）。リンク・コードブロックの上などでも、Electron の既定のメニューに任せず、この 1 つにそろえる。
  * - openFor(e, source): 発言など、項目が自分で開く（その項目の中で選んでいれば選択部分、なければ項目の全体）
  * - openInRegion(e): 流れ全体（`data-quotable` の入れ物）で受ける。項目が自分のメニューを開いていなければ、選んでいる部分か、
- *   右クリックした所の丸ごと足せるまとまり（`data-quote-text`）で開く。どちらもなければ開かない
+ *   右クリックした所の丸ごと足せるまとまり（`data-quote-text`）で開く。どちらもなければ開かない（開いたかを返す。開かなければ、呼ぶ側がほかのメニューを開ける）
  */
 export function useQuoteMenu(extra?: ReactNode) {
   const menu = useContextMenu<{ source: QuoteSource; selected: Selected | null }>();
@@ -94,14 +94,15 @@ export function useQuoteMenu(extra?: ReactNode) {
   }
   return {
     openFor: (e: MouseEvent, source: QuoteSource) => menu.open(e, { source, selected: selectedIn(e.currentTarget as Element, false) }),
-    openInRegion: (e: MouseEvent) => {
+    openInRegion: (e: MouseEvent): boolean => {
       // 発言・ファイルのリンクなど、自分のメニューを開いた所と、書く欄の上は任せる
-      if (e.defaultPrevented || onEditable(e.target)) return;
+      if (e.defaultPrevented || onEditable(e.target)) return false;
       const region = e.currentTarget as Element;
       const selected = selectedIn(region, true);
       const block = quoteBlockAt(e.target, region);
-      if (!selected && !block) return;
+      if (!selected && !block) return false;
       menu.open(e, { source: { text: block?.text ?? "", noun: block?.noun ?? "", rich: false, eventId: null }, selected });
+      return true;
     },
     element,
   };

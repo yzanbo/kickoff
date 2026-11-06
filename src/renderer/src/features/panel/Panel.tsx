@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { cx } from "@/lib/cx";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { useSetting } from "@/hooks/useSetting";
+import { CHAT_TAB_ROW_HIDDEN } from "@/lib/storageKeys";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { PaneSash, fracStyle } from "@/features/panel/layout/PaneSash";
 import { PaneTabBar } from "@/features/panel/tabs/PaneTabBar";
@@ -26,11 +28,14 @@ import { useNewChild } from "@/features/panel/agents/useNewChild";
  * 分けているときは、中身の中にペインごとのタブの列と境目のつまみを、割合の位置で重ねる（タブの中身はいつも中身の直下に置き、作り直さない）。
  * 各ペインのタブの列の右端に、新しいチャット・ブラウザ・ターミナルと、右・下に分けるボタンを並べる。
  * 「新しいチャット」の作成先・開けるターミナル（Mac のアプリでだけ）は欄の hook が usePanel に渡す。チャットを開いているペインでは、ターミナルはそのチャットの作業場所で開く。
- * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）
+ * 表示するタブの種類（panel.kinds）で隠している種類のタブは、タブの列にも中身にも出さない（閉じずに残す）。
+ * タブの列を隠せる欄（チャットのパネル）で隠しているときは、どのペインのタブの列（と左の道具）も出さない
  */
 export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelFrame }) {
   const { tabs, layout, panelOpen, terminals } = panel;
   const rules = SURFACES[panel.surface];
+  const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
+  const tabsHidden = !!rules.hideableTabs && tabRowHidden;
   // パネルそのもの（ピントがパネルの中にあるか・殻が大きさを測る）
   const ownRef = useRef<HTMLElement>(null);
   const asideRef = frame?.paneRef ?? ownRef;
@@ -129,9 +134,9 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
 
   return (
     <PanelHostContext.Provider value={Panel}>
-    <aside ref={asideRef} className={cx(rules.rootClass ?? "board-panel", rules.className)} aria-hidden={!panelOpen} data-panel-key={panel.key}>
+    <aside ref={asideRef} className={cx(rules.rootClass ?? "board-panel", rules.className, tabsHidden && "tabs-hidden")} aria-hidden={!panelOpen} data-panel-key={panel.key}>
       {frame?.resizeHandle && <div inert={!panelOpen} className="panel-resizer" aria-label="パネルの幅を変える" {...frame.resizeHandle} />}
-      {!split && bar(leaves[0])}
+      {!split && !tabsHidden && bar(leaves[0])}
       <div ref={contentRef} className={cx("panel-content", split && "split-view", resizing && "resizing")} inert={!panelOpen}>
         {!split && !anyShown(leaves[0].tabs) && empty(leaves[0])}
         {split &&
@@ -144,7 +149,7 @@ export function Panel({ panel, frame }: { panel: PanelController; frame?: PanelF
                 style={fracStyle(rect)}
                 onPointerDown={() => panel.focusPane(id)}
               >
-                {bar(pane)}
+                {!tabsHidden && bar(pane)}
                 {!anyShown(pane.tabs) && empty(pane)}
               </div>
             );

@@ -49,6 +49,8 @@ export interface SurfaceRules {
    * （中身は外から開くタブと、newChild の新しい子チャットだけ）
    */
   fixedKinds?: boolean;
+  /** タブの列を隠せる欄か（チャットのパネル。設定の CHAT_TAB_ROW_HIDDEN で隠す。隠すとタブの列の道具も出ない） */
+  hideableTabs?: boolean;
   /**
    * 新しい子チャットを開けるか（サブエージェントの欄。タブの列の「＋」と空の欄のボタンで、この欄のチャットの子チャットを入力欄だけのタブで始める。
    * メモのチャット・アーカイブ済みのチャットでは出さない）
@@ -75,6 +77,7 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     // 横から出てきたパネルを、横へしまう（タブはそのまま残る）
     closeButton: { icon: PanelRightClose, label: "パネルを閉じる", keys: "Esc", at: "start" },
     maximize: "width",
+    hideableTabs: true,
     emptyHint: "カードを押すと、ここにチャットが開きます。",
   },
   side: {

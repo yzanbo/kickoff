@@ -6,8 +6,11 @@ import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
 import { useStickyPrompt } from "@/features/chat/prompts/useStickyPrompt";
 import { useWorkingStatus } from "@/features/chat/status/useWorkingStatus";
-import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
+import { keepSelectionOnClick, onEditable, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
 import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
+import { ChatDisplayItems } from "@/features/chat/pane/ChatDisplayMenu";
+import { PopupMenu } from "@/ui/PopupMenu";
+import { useContextMenu } from "@/ui/useContextMenu";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { TimelineItems } from "./Timeline";
 import { TimelineEnd } from "./TimelineEnd";
@@ -99,6 +102,8 @@ export function ChatTimeline({
   const pinned = sticky.pinned;
   // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
   const quoteMenu = useQuoteMenu();
+  // 何もないところ（発言・まとまりの外）の右クリックは、チャットの画面の表示のメニュー（タブの列・見出しの行など。隠したものをここから戻せる）
+  const displayMenu = useContextMenu();
 
   return (
     <div className="timeline-wrap" hidden={hidden}>
@@ -108,7 +113,11 @@ export function ChatTimeline({
         ref={scroll.ref}
         tabIndex={-1}
         {...{ [QUOTABLE_ATTR]: "" }}
-        onContextMenu={quoteMenu.openInRegion}
+        onContextMenu={(e) => {
+          if (quoteMenu.openInRegion(e) || e.defaultPrevented || onEditable(e.target)) return;
+          if ((e.target as Element).closest("a, button, summary, input, textarea")) return;
+          displayMenu.open(e);
+        }}
         onClickCapture={keepSelectionOnClick}
         onScroll={(e) => {
           s.onScroll(e);
@@ -145,6 +154,11 @@ export function ChatTimeline({
       )}
       {/* 一番下へ戻るボタン: いまの状態を添えて出す（入る幅があればチャット欄の上のピルの列の右端に置く） */}
       {quoteMenu.element}
+      {displayMenu.menu && (
+        <PopupMenu at={displayMenu.menu.at} label="チャットの画面" onClose={displayMenu.close}>
+          <ChatDisplayItems />
+        </PopupMenu>
+      )}
       {s.away && <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />}
     </div>
   );
