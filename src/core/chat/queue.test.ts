@@ -55,20 +55,41 @@ test("送信待ち: 「ここまで送ったら止めます」の印は、動か
   queue.moveMany([b.id], { before: b.id, belowStop: false });
   assert.deepEqual(restarted(store, chat.id).stopPositions(), [3]);
 
-  // すべて送ったあとの印（次に来た指示の前で止める）も、列が空のまま残す
+  // すべて送ったあとの印（次に来た指示の前で止める）は、列が空のまま残す
   queue.setStops([3]);
   for (let i = 0; i < 3; i++) queue.take();
   assert.deepEqual(queue.stopPositions(), [0]);
+  // 作業のあいだに次の指示が来れば、その前で止まる
+  queue.add("d", {}, []);
+  assert.equal(queue.takeNext(), undefined);
+  assert.equal(queue.isPaused(), true);
+  // 再起動で読み戻しても、止めたまま・印もそのまま
   const reloaded = restarted(store, chat.id);
   assert.deepEqual(reloaded.stopPositions(), [0]);
-  // 止めておく指示はないので、止めておくにはしない。次に来た指示の前で止まる
-  assert.equal(reloaded.isPaused(), false);
-  reloaded.add("d", {}, []);
-  assert.equal(reloaded.takeNext(), undefined);
   assert.equal(reloaded.isPaused(), true);
   // すべて消したら、保存からも消える
   reloaded.clear();
   assert.deepEqual(store.queues.list(), []);
+});
+
+test("送信待ち: すべて送ったあとの印は、次の指示が来ないまま作業が終わったら外す（あとで自分で送った作業の送信待ちで止めない）", () => {
+  const { store, chat } = setup();
+  const queue = new ChatQueue(chat.id, () => {}, store.queues);
+  const a = queue.add("a", {}, []);
+  queue.setStopAfter(a.id);
+  queue.take();
+  assert.deepEqual(queue.stopPositions(), [0]);
+  // 「a」の作業が終わった: 列は空なので送らず、印も外す
+  assert.equal(queue.takeNext(), undefined);
+  assert.deepEqual(queue.stopPositions(), []);
+  assert.deepEqual(store.queues.list(), []);
+  // 次の作業のあいだに来た指示は、いつもどおり自動で送る
+  queue.add("b", {}, []);
+  assert.equal(queue.takeNext()?.text, "b");
+
+  // 作業の途中でアプリを終えた: 空の列の印は読み戻さない
+  queue.setStops([0]);
+  assert.deepEqual(restarted(store, chat.id).stopPositions(), []);
 });
 
 test("送信待ち: 印は指示とは別の位置で持ち、線をまたがない並べ替えでは動かない。先頭の上の印で止まり、自動に戻すとその印を越える", () => {

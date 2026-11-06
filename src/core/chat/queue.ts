@@ -30,12 +30,14 @@ export class ChatQueue {
     private readonly persistence?: QueuePersistence,
   ) {}
 
-  /** 保存した列を読み戻す（起動したとき。知らせない）。指示があれば止めておく（止めたことも保存する） */
+  /**
+   * 保存した列を読み戻す（起動したとき。知らせない）。指示があれば止めておく（止めたことも保存する）。
+   * すべて送ったあとの印だけが残った空の列は、印も読み戻さない（その印が待っていた作業は、アプリの終了で終わっている）
+   */
   restore(saved: SavedQueue) {
     this.messages = saved.messages;
-    // すべて送ったあとの印だけが残った空の列は、印だけを読み戻す（止めておく指示がないので、止めておくにはしない）
     this.paused = saved.messages.length > 0;
-    this.stops = normalizeStops(saved.stops, saved.messages.length);
+    this.stops = saved.messages.length > 0 ? normalizeStops(saved.stops, saved.messages.length) : [];
     this.save();
   }
 
@@ -82,11 +84,17 @@ export class ChatQueue {
   }
 
   /**
-   * 自動で送る次の指示を取り出す。止めておくとき・列が空なら undefined。
-   * 先頭の上に印があれば（印のところまで送った）、送らずに止めておく（印は残し、自動で送るに戻したときに越える）
+   * 自動で送る次の指示を取り出す（作業が終わったとき）。止めておくとき・列が空なら undefined。
+   * 先頭の上に印があれば（印のところまで送った）、送らずに止めておく（印は残し、自動で送るに戻したときに越える）。
+   * 列が空なら、すべて送ったあとの印も外す（その作業のあいだに次の指示は来なかったので、印の役目は済んだ。
+   * 残すと、あとで自分ですぐ送った作業の送信待ちの前で、思いがけず止まる）
    */
   takeNext(): QueuedMessage | undefined {
-    if (this.paused || this.messages.length === 0) return undefined;
+    if (this.messages.length === 0) {
+      if (this.stops.length > 0) this.setStops([]);
+      return undefined;
+    }
+    if (this.paused) return undefined;
     if (this.stops[0] === 0) {
       this.paused = true;
       this.notify();
