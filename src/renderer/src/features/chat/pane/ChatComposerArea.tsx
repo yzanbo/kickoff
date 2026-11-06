@@ -99,6 +99,8 @@ export function ChatComposerArea({
         options={options}
         busy={busy}
         queueWhileIdle={!busy && queued}
+        // 会話の圧縮中は、右下をふだんの見た目にする（送った文は圧縮が終わってから伝わる）
+        plainActions={live.compacting !== null}
         placeholder={send.placeholder}
         sendLabel={send.sendLabel}
         onSend={send.onSend}

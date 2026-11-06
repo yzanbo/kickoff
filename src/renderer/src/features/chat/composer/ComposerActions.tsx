@@ -20,7 +20,9 @@ interface SendTarget {
  * 止めている間は「停止中…」で押せない）・送信（作業中も、書いていれば・録音中なら出す。録音中は文字起こしして送る）。
  * ほかの送り方・送り先を選べるとき（sendTargets。質問として送る・子チャットに送るなど）は、送信ボタンの右クリックでそれらを選ぶメニューを開く
  * （ふだんの送り方（「あとで送る」など）は送信ボタンそのものなので、メニューには並べない）。
- * 同じメニューは丸いボタンの右の ▾ でも開く（右クリックに気づかなくても選べるように。作業中で中断のボタンだけのときも出す）
+ * 同じメニューは丸いボタンの右の ▾ でも開く（右クリックに気づかなくても選べるように。作業中で中断のボタンだけのときも出す）。
+ * plain のとき（会話の圧縮中）は、作業中でもふだんの見た目（送信ボタンの左のもの・送信・▾）にし、送り方の切り替えと中断のボタンを出さない
+ * （圧縮の間は返答もツールも動かず、送った文は圧縮が終わってから伝わるので、選ぶものがない。Esc を 2 回押す中断は効く）
  */
 export function ComposerActions({
   busy,
@@ -37,6 +39,7 @@ export function ComposerActions({
   sendLabel,
   onSubmit,
   sendTargets,
+  plain,
 }: {
   busy?: boolean;
   stopping?: boolean;
@@ -55,6 +58,8 @@ export function ComposerActions({
   sendLabel?: string;
   onSubmit: () => void;
   sendTargets?: SendTarget[];
+  /** 作業中でも、ふだんの見た目にする（会話の圧縮中） */
+  plain?: boolean;
 }) {
   // ▾ で開くときはボタンの上・右端そろえ（右クリックはその位置）
   const menu = useContextMenu({ side: "above", align: "end" });
@@ -62,13 +67,13 @@ export function ComposerActions({
   return (
     <div className="composer-actions">
       {trailing}
-      {queueing && busyControls && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
+      {queueing && busyControls && !plain && <span className={cx("busy-controls", heldMode && `held-${heldMode}`)}>{busyControls}</span>}
       {/* 作業中は中断。書いていれば（録音中も）、その横に待ちの列に入れるボタン */}
       {busy && onStop && !stopping && stopArmed && <span className="composer-stop-hint">もう一度 Esc で中断</span>}
       {busy && onStop && stopping && <span className="composer-stop-hint stopping">停止中…</span>}
       {/* 丸いボタン（中断・送信）と ▾ は詰めて 1 組に並べる */}
       <span className="send-group">
-        {busy && onStop && (
+        {busy && onStop && !plain && (
           <button
             className={cx("send-button stop", stopping && "stopping")}
             title={stopping ? "停止中…（サブエージェント・裏のコマンドが終わるのを待っています）" : "中断（チャット欄で Esc を 2 回）"}
@@ -80,7 +85,7 @@ export function ComposerActions({
             {stopping ? <span className="spinner" aria-hidden /> : <Square size={12} fill="currentColor" />}
           </button>
         )}
-        {(!busy || !onStop || (queueing && (hasContent || recording))) && (
+        {(plain || !busy || !onStop || (queueing && (hasContent || recording))) && (
           <button
             className="send-button"
             title={
