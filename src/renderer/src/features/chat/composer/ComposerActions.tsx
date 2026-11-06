@@ -113,7 +113,7 @@ export function ComposerActions({
           <IconButton
             icon={ChevronDown}
             label="送り方を選ぶ"
-            title="送り方を選ぶ（質問として送る・子チャットに送るなど。送信ボタンの右クリックと同じ）"
+            title="送り方を選ぶ（質問として送る・新規の子チャットに送るなど。送信ボタンの右クリックと同じ）"
             className="send-more"
             aria-haspopup="menu"
             aria-expanded={menu.isOpen}
