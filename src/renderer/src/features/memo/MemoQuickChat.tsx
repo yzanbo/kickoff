@@ -90,7 +90,7 @@ function MemoQuickComposer({ projectId, path, chat, beforeSend }: { projectId: n
     busy,
     // 送信待ち・裏の作業・圧縮中の様子は読まない（会話の欄を開けば分かる。作業していなければ、送るとすぐ送る）
     queued: false,
-    compacting: false,
+    compactHold: null,
     options,
     scroll: NO_SCROLL,
     background: null,

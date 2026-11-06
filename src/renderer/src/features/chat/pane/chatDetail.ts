@@ -18,6 +18,7 @@ const IDLE_LIVE: ChatLive = {
   compacting: null,
   stopping: false,
   after_compact: [],
+  awaiting_compact: false,
 };
 
 /** 読み込む前の中身 */
@@ -37,6 +38,7 @@ export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
     compacting: next.compacting,
     stopping: next.stopping,
     after_compact: keep(prev.after_compact, next.after_compact),
+    awaiting_compact: next.awaiting_compact,
   };
 }
 

@@ -38,6 +38,11 @@ export interface TurnRequest {
   compact?: boolean;
   /** 手で圧縮する前の圧縮前指示。最後まで終わったら、続けて会話を圧縮する（Runner） */
   thenCompact?: boolean;
+  /**
+   * 圧縮のきっかけ（compact のとき。省けば手で圧縮した manual）。自動の圧縮の前の圧縮前指示の作業が、圧縮しないまま終わったときに
+   * Runner が続けて圧縮する実行は auto（上限に近づいて Claude Code が始めようとした圧縮を、作業の終わりで済ませる）
+   */
+  compactTrigger?: CompactTrigger;
 }
 
 /** 1 回の実行の終わり方（Runner が次に何をするかを決める） */
@@ -62,7 +67,7 @@ export interface StoppedAgent {
  * 作業中の様子（裏の作業・再試行・圧縮中・作業中のチャットへの操作）はチャットの runtime に書く（画面には runtime が配る）。
  * 失敗はチャットの失敗として記録する（投げない）。中断は signal で伝わる
  */
-export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
+export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { chatId, prompt, promptId, compact = false, compactTrigger }: TurnRequest, signal: AbortSignal): Promise<TurnOutcome> {
   const { store, providers } = deps;
   try {
     const chat = store.chats.get(chatId)!;
@@ -82,7 +87,7 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
       ? { status: "cancelled", sessionId: chat.session_id }
       : await providers[chat.provider].run(
           { ...buildTurnParams(deps, chat, project, cwd, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent) },
-          callbacksFor(deps, runtime, chat, signal, compact, compactTriggerOf(prompt, compact), preCompactText),
+          callbacksFor(deps, runtime, chat, signal, compact, compactTrigger ?? compactTriggerOf(prompt, compact), preCompactText),
           signal,
         );
     const network = result.status === "failed" && Boolean(result.network);
@@ -194,6 +199,8 @@ function callbacksFor(
     preCompactSent: (uuid) => {
       if (!preCompactText) return;
       runtime.preCompactSent = true;
+      // 圧縮が終わるまで、「いま」は預かる（圧縮前指示の作業に混ぜない）
+      runtime.update({ awaitingCompact: true });
       store.events.add(chatId, { type: "user", text: preCompactText, pre_compact: true, message_uuid: uuid });
     },
     emit: (event) => {
@@ -201,8 +208,13 @@ function callbacksFor(
         store.chats.update(chatId, { session_id: event.session_id });
       }
       // 圧縮した: 次に上限に近づいたら、また圧縮前指示を送る
-      if (event.type === "compact") runtime.preCompactSent = false;
-      const saved = store.events.add(chatId, event);
+      // 手で圧縮する実行（compact）の終わりまでは預かったままにする（Runner が実行の終わりで外す）
+      if (event.type === "compact") {
+        runtime.preCompactSent = false;
+        if (!compact) runtime.update({ awaitingCompact: false });
+      }
+      // 手で圧縮する実行の圧縮は、頼んだきっかけで残す（自動の圧縮の前の指示のあとに Runner が続けた圧縮は auto）
+      const saved = store.events.add(chatId, event.type === "compact" && compact ? { ...event, trigger: compactTrigger } : event);
       if (chat.memo_path && event.type === "tool_result") bus?.publish({ type: "memos", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）
       if (!compact && isUnreadEvent(saved) && !store.chats.get(chatId)?.unread) store.chats.setUnread(chatId, true);

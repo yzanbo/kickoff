@@ -14,8 +14,10 @@ interface LiveFields {
   stopping: boolean;
   /** 次の指示を書き直していたので、送らずに書き直しが終わるのを待っている（QueueState の waiting_edit） */
   waitingEdit: boolean;
-  /** 圧縮中に「いま」で送った指示（圧縮が終わったら伝える。ChatLive の after_compact） */
+  /** 圧縮中・圧縮前指示から圧縮が終わるまでに「いま」で送った指示（圧縮が終わったら伝える。ChatLive の after_compact） */
   afterCompact: QueuedMessage[];
+  /** 圧縮前指示を送ってから、圧縮が終わるまで（手で頼んだ圧縮の実行の間も。ChatLive の awaiting_compact） */
+  awaitingCompact: boolean;
 }
 
 /**
@@ -40,8 +42,8 @@ export class ChatRuntime {
   readonly edits: QueueEdits;
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り（動かすのは recovery/recovery.ts の ChatRecovery） */
   readonly recovery: RecoveryState = createRecoveryState();
-  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [] };
-  /** 圧縮が終わった（圧縮中に「いま」で送った指示を伝える） */
+  private fields: LiveFields = { background: null, retry: null, compacting: null, stopping: false, waitingEdit: false, afterCompact: [], awaitingCompact: false };
+  /** 圧縮が終わった（預かった「いま」を伝える。holdsTells が外れたとき） */
   private readonly onCompactEnded: () => void;
 
   constructor(
@@ -64,6 +66,19 @@ export class ChatRuntime {
     return this.fields.compacting;
   }
 
+  /**
+   * 「いま」を預かるか: 圧縮中か、圧縮前指示を送ってから圧縮が終わるまで（awaitingCompact）。
+   * この間に足すと、圧縮前指示の作業に混ざり、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため
+   */
+  get holdsTells(): boolean {
+    return this.fields.compacting !== null || this.fields.awaitingCompact;
+  }
+
+  /** 圧縮前指示を送ってから、圧縮が終わるまでか */
+  get awaitingCompact(): boolean {
+    return this.fields.awaitingCompact;
+  }
+
   /** 圧縮中に「いま」で送り、圧縮が終わるのを待っている指示 */
   get afterCompact(): QueuedMessage[] {
     return this.fields.afterCompact;
@@ -78,10 +93,10 @@ export class ChatRuntime {
   update(patch: Partial<LiveFields>) {
     const changed = (Object.keys(patch) as (keyof LiveFields)[]).some((key) => patch[key] !== this.fields[key]);
     if (!changed) return;
-    const compactEnded = this.fields.compacting !== null && patch.compacting === null;
+    const held = this.holdsTells;
     this.fields = { ...this.fields, ...patch };
     this.onChange();
-    if (compactEnded) this.onCompactEnded();
+    if (held && !this.holdsTells) this.onCompactEnded();
   }
 
   /** 送信待ちの様子（チャットの詳細・SSE・送信待ちを変える API の応答で同じ形） */
@@ -91,8 +106,17 @@ export class ChatRuntime {
 
   /** 画面に配る形（チャットの詳細の live。SSE の chat_live と同じ形） */
   live(): ChatLive {
-    const { background, retry, compacting, stopping, afterCompact } = this.fields;
-    return { queue: this.queueState(), background, retry, reconnect: reconnectStateOf(this.recovery), compacting, stopping, after_compact: afterCompact };
+    const { background, retry, compacting, stopping, afterCompact, awaitingCompact } = this.fields;
+    return {
+      queue: this.queueState(),
+      background,
+      retry,
+      reconnect: reconnectStateOf(this.recovery),
+      compacting,
+      stopping,
+      after_compact: afterCompact,
+      awaiting_compact: awaitingCompact,
+    };
   }
 
   /** チャットを消したとき（書き直しの持ち時間の待ちを止める） */
@@ -116,7 +140,7 @@ export class ChatRuntimes {
       editTtlMs?: number;
       /** 書き直している送信待ちの指示が変わった・外れた */
       onEditsChanged: (chatId: number) => void;
-      /** 圧縮が終わった */
+      /** 圧縮が終わった（圧縮中・圧縮前指示から圧縮が終わるまでの「いま」を預かる間が終わった） */
       onCompactEnded?: (chatId: number) => void;
     },
   ) {
