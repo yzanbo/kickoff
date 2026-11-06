@@ -209,29 +209,6 @@
   color: var(--accent-fg);
 }
 
-/* 作業中に圧縮を予約しているときの行（作業中の行の下。CompactNextRow）: 圧縮中の行と同じ色の点線の枠で、まだ始まっていないと分かるように */
-.compact-next {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  margin-top: 6px;
-  padding: 6px 10px;
-  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
-  border-radius: var(--radius);
-  font-size: calc(12px * var(--chat-scale, 1));
-  color: var(--accent-fg);
-}
-
-.compact-next-icon {
-  flex: none;
-}
-
-.compact-next-text {
-  flex: 1;
-  min-width: 0;
-}
-
 .send-button {
   display: grid;
   flex: none;

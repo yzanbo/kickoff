@@ -147,13 +147,17 @@ export interface SearchHit {
   created_at: string;
 }
 
-/** 作業中のチャットに送った、次の指示の待ちの列（送信待ち）の 1 件（いまの作業が終わったら順に送る。chat_queues に保存する） */
+/**
+ * 作業中のチャットに送った、次の指示の待ちの列（送信待ち）の 1 件（いまの作業が終わったら順に送る。chat_queues に保存する）。
+ * compact なら、指示の代わりに会話を圧縮する行（そこまで送ったら会話を要約してコンテキストを空け、終わったら続きを送る。文・添付・選択は空）
+ */
 export interface QueuedMessage {
   id: string;
   text: string;
   attachments: Attachment[];
   options: ChatOptionsPatch;
   created_at: string;
+  compact?: boolean;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowUpToLine, Merge, OctagonPause, Pause, Pencil, Play, SendHorizontal, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, Merge, OctagonPause, Pause, Pencil, Play, SendHorizontal, Shrink, Trash2, X } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { api } from "@/api";
 import { confirmDialog } from "@/ui/dialogs";
@@ -52,6 +52,26 @@ export function QueuedStopButton({ stops, onAdded }: { stops: number[]; onAdded:
     >
       <OctagonPause size={12} aria-hidden />
       <span className="queued-head-label">一時停止</span>
+    </button>
+  );
+}
+
+/**
+ * 「圧縮」: 会話を圧縮する行を、列のいちばん下に足す（ここまで送ったら、会話を要約してコンテキストを空ける）。
+ * 置いたあとは、行のつまみのドラッグ・↑↓ で圧縮したい位置へ動かす。onAdded は置いたあと（たたんでいれば一覧を開いて行を見せる）
+ */
+export function QueuedCompactButton({ onAdded }: { onAdded: () => void }) {
+  const { chatId } = useChatPane();
+  return (
+    <button
+      type="button"
+      className="btn btn-sm queued-head-btn queued-add-compact"
+      aria-label="会話の圧縮をいちばん下に足す"
+      title="「会話を圧縮」を送信待ちのいちばん下に足します。そこまで送ったら、これまでの会話を要約してコンテキストを空けます。行をドラッグ・↑↓ で、圧縮したい位置へ動かせます（行の右クリックの「このあとで会話を圧縮」でも足せます）"
+      onClick={() => void api.queueCompact(chatId).then(onAdded, failed)}
+    >
+      <Shrink size={12} aria-hidden />
+      <span className="queued-head-label">圧縮</span>
     </button>
   );
 }

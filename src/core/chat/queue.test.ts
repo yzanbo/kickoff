@@ -175,6 +175,43 @@ test("送信待ち: 指示を動かすと、動かした指示だけが印の線
   assert.equal(view(), "b d | a c");
 });
 
+test("送信待ち: 圧縮の行は、いちばん下・指示のすぐあと（線の上）に足せ、まとめるときは残る。予約はいちばん上に 1 つだけ入れ、止めていれば 1 件目の上の線に置き換える", () => {
+  const { store, chat } = setup();
+  const queue = new ChatQueue(chat.id, () => {}, store.queues);
+  const a = queue.add("a", {}, []);
+  queue.add("b", {}, []);
+  const label = () => queue.list().map((m) => (m.compact ? "圧縮" : m.text));
+  // a のあとに線がある: すぐあとに足すと線の上（止まる前に圧縮する）
+  queue.setStopAfter(a.id);
+  const afterA = queue.addCompact(a.id);
+  assert.equal(afterA?.compact, true);
+  assert.deepEqual(label(), ["a", "圧縮", "b"]);
+  assert.deepEqual(queue.stopPositions(), [2]);
+  assert.equal(queue.addCompact("nope"), undefined);
+  // いちばん下に足す
+  queue.addCompact();
+  assert.deepEqual(label(), ["a", "圧縮", "b", "圧縮"]);
+  // まとめても圧縮の行は残る（まとめた指示は 1 件目の位置）
+  queue.merge({ ids: queue.list().map((m) => m.id) });
+  assert.deepEqual(label(), ["a\n\nb", "圧縮", "圧縮"]);
+  assert.equal(restarted(store, chat.id).list()[1].compact, true);
+
+  // 予約: いちばん上に入れ、2 回頼んでも 1 つ
+  queue.clear();
+  queue.add("c", {}, []);
+  const reserved = queue.reserveCompact();
+  assert.equal(queue.reserveCompact().id, reserved.id);
+  assert.deepEqual(label(), ["圧縮", "c"]);
+  // 止めてから頼み直すと、止めるのは 1 件目の上の線（圧縮の行の下）に置き換わる
+  queue.setPaused(true);
+  assert.equal(queue.reserveCompact().id, reserved.id);
+  assert.equal(queue.isPaused(), false);
+  assert.deepEqual(queue.stopPositions(), [1]);
+  assert.equal(queue.takeNext()?.id, reserved.id);
+  assert.equal(queue.takeNext(), undefined);
+  assert.equal(queue.isPaused(), true);
+});
+
 test("送信待ち: 空になった・チャットを消したら保存からも消える", () => {
   const { store, chat } = setup();
   const queue = new ChatQueue(chat.id, () => {}, store.queues);

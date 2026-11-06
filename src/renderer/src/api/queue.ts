@@ -28,6 +28,11 @@ export const queueApi = {
   setQueueStops: (chatId: number, stops: number[]) => request<QueueState>("PUT", queuePath(chatId, "/stops"), { stops }),
   /** 画面でいま書き直している待ちの指示（丸ごと置き換え。空なら外す）。次に送る指示なら、書き直しが終わるまで送らない */
   setQueueEditing: (chatId: number, ids: string[]) => request<QueueState>("PUT", queuePath(chatId, "/editing"), { ids }),
+  /**
+   * 会話を圧縮する行を足す（after を渡せばその指示のすぐあと（すぐあとに一時停止の線があれば線の上）、省けばいちばん下）。
+   * 作業中にすぐ圧縮を予約するのは turnsApi.compactChat（いちばん上に入る）
+   */
+  queueCompact: (chatId: number, after: string | null = null) => request<QueueState>("POST", queuePath(chatId, "/compact"), { after }),
   /** 待ちの指示をすべて消す */
   clearQueued: (chatId: number) => request<QueueState>("DELETE", queuePath(chatId)),
   /** 待ちの指示をすべて（ids を渡せば選んだものだけ）1 つにまとめて、すぐ送る（作業中なら止めずに、いまのやり取りに伝える） */

@@ -1,5 +1,5 @@
 import { Shrink, X } from "lucide-react";
-import type { Chat, CompactingState, UsageWindow } from "@shared/types";
+import type { Chat, CompactingState, QueuedMessage, UsageWindow } from "@shared/types";
 import { api } from "@/api";
 import { useProviders } from "@/stores/providers";
 import { useAppSettings } from "@/stores/settings";
@@ -26,9 +26,19 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
  * 会話を圧縮している間（手で圧縮した・上限に近づいて自動で）は、弧を回して知らせる（終わるとコンテキストの大きさが届き、弧が縮む）。
  * 設定で自動圧縮を始める使用率を決めていれば、円の外にそこを指す矢印を、詳細の棒に縦線を出す（Claude Code の既定のままなら出さない）。
  * 使用率は詳細の「自動圧縮」でも選べる（AutoCompactSelect。設定の「チャット」と同じ値）。
- * 作業中の「会話を圧縮」は「このやり取りのあとで圧縮」（予約。終わったら送信待ちより先にすぐ圧縮する）になり、予約中は「取り消す」を出す。
+ * 作業中の「会話を圧縮」は「このやり取りのあとで圧縮」（予約。送信待ちのいちばん上に「会話を圧縮」の行を入れ、終わったら送信待ちより先にすぐ圧縮する）になり、
+ * 予約中は「取り消す」（その行を送信待ちから消す）を出す。
  */
-export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; compacting: CompactingState | null; compactNext: boolean }) {
+export function ContextMeter({
+  chat,
+  compacting,
+  reserved,
+}: {
+  chat: Chat;
+  compacting: CompactingState | null;
+  /** 作業中に予約した圧縮（送信待ちのいちばん上の「会話を圧縮」の行。queuedHint の reservedCompact。なければ null） */
+  reserved: QueuedMessage | null;
+}) {
   const compactingText = compacting ? compactingLabel(compacting.trigger) : null;
   const planUsage = useSharedPlanUsage();
   // 押すとメーターの上に開く詳細（もう一度押す・外を押す・Esc で閉じる。右端をメーターにそろえる）
@@ -52,21 +62,21 @@ export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; co
     ? [usage.five_hour, usage.seven_day, ...usage.model_weekly].filter((w) => w.utilization !== null)
     : [];
 
-  // 手で圧縮する。作業中なら予約（このやり取りが終わったら、送信待ちより先にすぐ圧縮する）。まだ会話がない・圧縮中はできない。
+  // 手で圧縮する。作業中なら予約（送信待ちのいちばん上に圧縮の行を入れ、このやり取りが終わったら、送信待ちより先にすぐ圧縮する）。まだ会話がない・圧縮中はできない。
   // 終わると compact イベントとコンテキストの大きさが届く
   const running = chat.status === "running";
   const canCompact = (Boolean(chat.session_id) || running) && !compacting;
-  // 押したらポップオーバーを閉じ、圧縮中の弧（作業中なら流れの予約の行）で知らせる（できなかったときは開き直して失敗の文を見せる）
+  // 押したらポップオーバーを閉じ、圧縮中の弧（作業中なら送信待ちのいちばん上の圧縮の行）で知らせる（できなかったときは開き直して失敗の文を見せる）
   const compactAction = useAction<"compact" | "cancel">();
   const compact = async () => {
     popover.close();
     if (!(await compactAction.run("compact", () => api.compactChat(chat.id)))) popover.setOpen(true);
   };
-  const cancelReserved = () => void compactAction.run("cancel", () => api.cancelCompact(chat.id));
+  const cancelReserved = (id: string) => void compactAction.run("cancel", () => api.removeQueued(chat.id, id));
   const compactButton = compacting
     ? { label: "圧縮中…", title: "これまでの会話を要約して、コンテキストを空けています" }
     : running
-      ? { label: "このやり取りのあとで圧縮", title: "いまのやり取りが終わったら、送信待ちの指示より先にすぐ会話を圧縮します" }
+      ? { label: "このやり取りのあとで圧縮", title: "送信待ちのいちばん上に「会話を圧縮」を入れ、いまのやり取りが終わったら、送信待ちの指示より先にすぐ会話を圧縮します" }
       : { label: "会話を圧縮", title: "これまでの会話を要約して、コンテキストを空けます" };
 
   return (
@@ -74,7 +84,7 @@ export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; co
       <button
         type="button"
         className="context-ring-button"
-        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${markText ? `・${markText}` : ""}${compactNext ? "・このやり取りのあとで圧縮します" : ""}`}
+        aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${markText ? `・${markText}` : ""}${reserved ? "・このやり取りのあとで圧縮します" : ""}`}
         aria-busy={compacting ? true : undefined}
         aria-expanded={open}
         title={open ? "閉じる" : compactingText ? `${compactingText}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストと使用枠の詳細を表示"}
@@ -104,13 +114,13 @@ export function ContextMeter({ chat, compacting, compactNext }: { chat: Chat; co
             </div>
             {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
             <div className="context-compact">
-              {compactNext && running && !compacting ? (
-                // 予約している: このやり取りが終わったら圧縮が始まる。取り消せる
+              {reserved && running && !compacting ? (
+                // 予約している: このやり取りが終わったら圧縮が始まる。取り消せる（送信待ちの圧縮の行を消す）
                 <>
                   <span className="context-compact-note">
                     <Shrink size={13} aria-hidden /> このやり取りが終わったら圧縮します
                   </span>
-                  <button type="button" className="btn btn-sm" title="圧縮の予約を取り消します" onClick={cancelReserved}>
+                  <button type="button" className="btn btn-sm" title="圧縮の予約を取り消します（送信待ちの「会話を圧縮」の行を消します）" onClick={() => cancelReserved(reserved.id)}>
                     <X size={13} /> 取り消す
                   </button>
                 </>

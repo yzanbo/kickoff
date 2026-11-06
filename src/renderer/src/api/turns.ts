@@ -13,11 +13,11 @@ export const turnsApi = {
   tellChat: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], pauseAfter = false) =>
     request<TellResult>("POST", `/api/chats/${chatId}/tell`, { text, options, attachments, ...(pauseAfter ? { pause_after: true } : {}) } satisfies SendMessageBody),
   cancelChat: (chatId: number) => request<void>("POST", `/api/chats/${chatId}/cancel`),
-  /** 会話を要約して、コンテキストを空ける */
-  /** 会話を圧縮する（作業中なら、いまのやり取りが終わったら圧縮するよう予約する） */
+  /**
+   * 会話を要約して、コンテキストを空ける（作業中なら予約: 送信待ちのいちばん上に「会話を圧縮」の行を入れ、
+   * いまのやり取りが終わったらすぐ圧縮する。予約をやめるのは、その行を送信待ちから消す）
+   */
   compactChat: (chatId: number) => request<Chat>("POST", `/api/chats/${chatId}/compact`),
-  /** 作業中に予約した圧縮をやめる */
-  cancelCompact: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/compact`),
   /** 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる */
   stopReconnect: (chatId: number) => request<void>("DELETE", `/api/chats/${chatId}/reconnect`),
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド） */

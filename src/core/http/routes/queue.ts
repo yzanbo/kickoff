@@ -24,6 +24,14 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
     return c.json(result);
   });
 
+  // 会話を圧縮する行を足す（after: その指示のすぐあと。なければいちばん下。作業していなくても、すぐには圧縮しない）
+  app.post("/api/chats/:id/queue/compact", withChat, async (c) => {
+    const chat = c.var.chat;
+    const { after } = z.object({ after: queueId.nullable().default(null) }).parse(await jsonBody(c));
+    runner.queueCompact(chat.id, after);
+    return c.json(runner.queueState(chat.id));
+  });
+
   // 待ちの指示をすべて消す
   app.delete("/api/chats/:id/queue", withChat, (c) => {
     const { chat } = c.var;
