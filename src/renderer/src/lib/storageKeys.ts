@@ -62,7 +62,7 @@ export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archive
 export const FOLDS = defineSettingFamily("kickoff:fold:", optionalFlag(), { ids: true });
 
 // パレット
-/** ⌘K で探す対象（project / chat / message。空ならプロジェクトとチャット） */
+/** ⌘K で探す対象（project / chat / memo / message。空ならプロジェクト・チャット・メモ） */
 export const COMMAND_PALETTE_TARGETS = defineSetting("kickoff:command-palette-targets", list());
 /** ⌘⇧A（作業中・待ちのチャットの一覧）に、アーカイブ済みのプロジェクトのチャットも出すか */
 export const ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:active-chats-show-archived-projects", flag());
