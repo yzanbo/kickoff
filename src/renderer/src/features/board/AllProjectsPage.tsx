@@ -1,4 +1,4 @@
-import { Tags } from "lucide-react";
+import { Tag } from "lucide-react";
 import { ProjectSwitcher } from "@/features/project/page/ProjectSwitcher";
 import { GitHubStatusCard, StatusCard } from "@/ui/StatusCard";
 import { AllProjectsKanban } from "./KanbanBoard";
@@ -50,7 +50,7 @@ export function AllProjectsPage() {
       {shown.length === 0 && all.length > 0 ? (
         // タグで絞り込んで、合うプロジェクトがないとき
         <EmptyState
-          icon={Tags}
+          icon={Tag}
           title="合うプロジェクトがありません"
           actions={
             <button type="button" className="btn" onClick={tagFilter.clear}>

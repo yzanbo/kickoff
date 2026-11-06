@@ -1,4 +1,4 @@
-import { Plus, SquareKanban } from "lucide-react";
+import { SquareKanban, SquarePen } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Chat } from "@shared/types";
 import { useChatRename } from "@/features/chat/useChatRename";
@@ -181,7 +181,7 @@ function KanbanView({ projectId, title, menu, rightPanel, onOpen, newChat, draft
       }
       primary={
         <button className="btn btn-sm" onClick={newChat.onClick} title={newChat.title}>
-          <Plus size={13} /> <span className="btn-label">新規</span>
+          <SquarePen size={13} /> <span className="btn-label">新規</span>
         </button>
       }
       view={view}

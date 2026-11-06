@@ -1,4 +1,4 @@
-import { FolderPlus, Plus } from "lucide-react";
+import { FolderPlus, SquarePen } from "lucide-react";
 import { useEffect } from "react";
 import type { ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -98,7 +98,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
       }
       primary={
         <button className="btn btn-sm" onClick={chats.startNewChat} title={chats.newChatTitle}>
-          <Plus size={13} /> <span className="btn-label">新規</span>
+          <SquarePen size={13} /> <span className="btn-label">新規</span>
         </button>
       }
       view={view}

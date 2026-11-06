@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import type { MouseEvent } from "react";
 import type { ChatGroup } from "@shared/types";
 import { IconButton } from "@/ui/IconButton";
@@ -22,7 +22,7 @@ export function useGroupMenu({ onRename, onDelete }: { onRename: (group: ChatGro
   /** 見出しに置く「…」ボタン */
   const button = (group: ChatGroup) => (
     <IconButton
-      icon={MoreHorizontal}
+      icon={Ellipsis}
       label={`${group.name} のメニュー`}
       title="メニュー（名前を変更・削除）"
       className="group-menu-button"

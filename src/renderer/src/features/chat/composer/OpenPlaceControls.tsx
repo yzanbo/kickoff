@@ -1,4 +1,4 @@
-import { AppWindow, MessageSquareText, PanelRight, type LucideIcon } from "lucide-react";
+import { AppWindow, type LucideIcon, MessageSquare, PanelRight } from "lucide-react";
 import { IconButton } from "@/ui/IconButton";
 import { Segmented } from "@/ui/Segmented";
 
@@ -7,7 +7,7 @@ export type OpenPlace = "inline" | "side" | "window";
 
 /** 開く場所の名前とアイコン（入力欄の上の一覧の行のボタン・「押したとき」の切り替えで共通） */
 const OPEN_PLACES: Record<OpenPlace, { label: string; short: string; icon: LucideIcon }> = {
-  inline: { label: "会話内で開く", short: "会話内", icon: MessageSquareText },
+  inline: { label: "会話内で開く", short: "会話内", icon: MessageSquare },
   side: { label: "右で開く", short: "右", icon: PanelRight },
   window: { label: "新規ウィンドウで開く", short: "新規ウィンドウ", icon: AppWindow },
 };

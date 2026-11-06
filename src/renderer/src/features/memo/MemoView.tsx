@@ -1,4 +1,4 @@
-import { CodeXml, Eye, FolderSearch, MessagesSquare, Paperclip, Save } from "lucide-react";
+import { CodeXml, Eye, FolderSearch, MessageSquare, Paperclip, Save } from "lucide-react";
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
@@ -203,7 +203,7 @@ export function MemoView({
         )}
         {doc.initial !== null && !unreadable && (
           <IconButton
-            icon={MessagesSquare}
+            icon={MessageSquare}
             label={chatOpen ? "メモのチャットを閉じる" : "メモのチャットを開く（AI と話しながらメモを作る）"}
             aria-pressed={chatOpen}
             className={cx("memo-chat-toggle", chatOpen && "on")}

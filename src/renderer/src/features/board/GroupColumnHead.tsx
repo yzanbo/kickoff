@@ -1,4 +1,4 @@
-import { Folder, Plus } from "lucide-react";
+import { Folder, SquarePen } from "lucide-react";
 import type { ChatGroup } from "@shared/types";
 import { IconButton } from "@/ui/IconButton";
 import { InlineName } from "@/ui/InlineName";
@@ -17,7 +17,7 @@ export function GroupColumnHead({ group, count, board, onNewChat }: { group: Cha
         <span className="column-title muted">{NO_GROUP_LABEL}</span>
         <span className="column-count">{count}</span>
         <span className="spacer" />
-        <IconButton icon={Plus} label={`${NO_GROUP_LABEL} で新しいチャット`} title="新しいチャット" onClick={onNewChat} />
+        <IconButton icon={SquarePen} label={`${NO_GROUP_LABEL} で新しいチャット`} title="新しいチャット" onClick={onNewChat} />
       </header>
     );
   }
@@ -42,7 +42,7 @@ export function GroupColumnHead({ group, count, board, onNewChat }: { group: Cha
       {!renaming && (
         <>
           <span className="column-count">{count}</span>
-          <IconButton icon={Plus} label={`${group.name} に新しいチャット`} title={`「${group.name}」に新しいチャット`} className="group-add-chat" onClick={onNewChat} />
+          <IconButton icon={SquarePen} label={`${group.name} に新しいチャット`} title={`「${group.name}」に新しいチャット`} className="group-add-chat" onClick={onNewChat} />
           {board.groupMenu.button(group)}
         </>
       )}

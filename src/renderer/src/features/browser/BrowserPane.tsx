@@ -1,5 +1,5 @@
 import type { WebviewTag } from "electron";
-import { ArrowLeft, ArrowRight, ChevronDown, ExternalLink, Globe, RotateCw, Wrench, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ExternalLink, Globe, RefreshCw, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cx } from "@/lib/cx";
 import { useExternalBrowser } from "@/features/openWith/externalApps";
@@ -101,7 +101,7 @@ export function BrowserPane({ url: initialUrl, onChange }: Props) {
         <IconButton icon={ArrowRight} label="進む" size={15} type="button" disabled={!nav.forward} onClick={() => ref.current?.goForward()} />
         <IconButton
           type="button"
-          icon={loading ? X : RotateCw}
+          icon={loading ? X : RefreshCw}
           size={loading ? 15 : 14}
           label={loading ? "読み込みを止める" : "再読み込み"}
           onClick={() => (loading ? ref.current?.stop() : ref.current?.reload())}

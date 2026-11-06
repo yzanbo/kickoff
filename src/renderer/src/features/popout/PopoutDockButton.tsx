@@ -1,4 +1,4 @@
-import { PanelRightOpen } from "lucide-react";
+import { PanelRight } from "lucide-react";
 import type { PopoutRoute } from "@/app/popout";
 import { postToMainWindow } from "@/app/windowBus";
 import { flushMemoDrafts } from "@/features/memo/memoGuards";
@@ -19,7 +19,7 @@ export function PopoutDockButton({ route }: { route: PopoutRoute }) {
         void (window.kickoff ? window.kickoff.windows.closeSelf() : window.close());
       }}
     >
-      <PanelRightOpen size={13} aria-hidden /> 右の欄に戻す
+      <PanelRight size={13} aria-hidden /> 右の欄に戻す
     </button>
   );
 }

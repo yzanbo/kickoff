@@ -1,4 +1,4 @@
-import { ChevronRight, MessagesSquare, PanelRight } from "lucide-react";
+import { ChevronRight, MessageSquare, PanelRight } from "lucide-react";
 import { memo, type MouseEvent } from "react";
 import { cx } from "@/lib/cx";
 import { formatElapsed, formatFullStamp, formatStamp } from "@/lib/time";
@@ -72,7 +72,7 @@ function ActivityLineView({ row, rail, width, name, hues, rel, expanded, highlig
           </button>
           {pickable && (
             <span className="activity-open-actions">
-              <IconButton icon={MessagesSquare} size={13} label="会話の流れの中で見る" onClick={() => onPick(row, "inline")} />
+              <IconButton icon={MessageSquare} size={13} label="会話の流れの中で見る" onClick={() => onPick(row, "inline")} />
               <IconButton icon={PanelRight} size={13} label="右の欄で開く" onClick={() => onPick(row, "side")} />
             </span>
           )}

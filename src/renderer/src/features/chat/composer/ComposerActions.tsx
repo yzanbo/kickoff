@@ -1,4 +1,4 @@
-import { ArrowUp, ChevronDown, Square } from "lucide-react";
+import { ChevronDown, SendHorizontal, Square } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -106,7 +106,7 @@ export function ComposerActions({
             onClick={onSubmit}
             onContextMenu={hasTargets ? (e) => menu.open(e) : undefined}
           >
-            <ArrowUp size={17} strokeWidth={2.5} />
+            <SendHorizontal size={17} strokeWidth={2.5} />
           </button>
         )}
         {hasTargets && (

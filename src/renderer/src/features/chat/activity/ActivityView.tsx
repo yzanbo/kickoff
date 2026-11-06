@@ -1,4 +1,4 @@
-import { MessagesSquare, PanelRight } from "lucide-react";
+import { MessageSquare, PanelRight } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type UIEvent } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/lib/cx";
@@ -131,7 +131,7 @@ export function ActivityView({ rel }: { rel: (s: string) => string }) {
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="サブエージェントの開き方" onClose={menu.close}>
           <MenuItem onSelect={() => pane.revealSubagent(menu.menu!.value.key, menu.menu!.value.eventId)}>
-            <MessagesSquare size={14} /> 会話の流れの中で見る
+            <MessageSquare size={14} /> 会話の流れの中で見る
           </MenuItem>
           <MenuItem onSelect={() => pane.openSubagentSide(menu.menu!.value.key, menu.menu!.value.eventId)}>
             <PanelRight size={14} /> 右の欄で開く

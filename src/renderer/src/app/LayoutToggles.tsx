@@ -1,4 +1,4 @@
-import { PanelBottom, PanelLeft, PanelRight } from "lucide-react";
+import { PanelBottomClose, PanelBottomOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { IconButton } from "@/ui/IconButton";
 
 interface Toggle {
@@ -8,13 +8,14 @@ interface Toggle {
 
 /**
  * 画面の右上の、レイアウトの開閉（VS Code の右上と同じ）: 左のサイドバー（⌘B）・下のパネル（ターミナル。⌃` / ⌘J）・
- * 右のチャット欄（⌥⌘B。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの。プロジェクトが 1 つもなければ出さない）。出せないものは渡さない
+ * 右のチャット欄（⌥⌘B。全プロジェクトの画面では、サイドバーで選んでいるプロジェクトのもの。プロジェクトが 1 つもなければ出さない）。出せないものは渡さない。
+ * アイコンは、サイドバー・フッター・右の欄の閉じる / 開くボタンと同じ向きのもの（開いていれば閉じる向き、閉じていれば開く向き）
  */
 export function LayoutToggles({ sidebar, bottom, chat }: { sidebar: Toggle; bottom?: Toggle; chat?: Toggle }) {
   return (
     <div className="layout-toggles" role="group" aria-label="レイアウト">
       <IconButton
-        icon={PanelLeft}
+        icon={sidebar.open ? PanelLeftClose : PanelLeftOpen}
         size={15}
         label={sidebar.open ? "サイドバーを閉じる" : "サイドバーを開く"}
         title={`${sidebar.open ? "サイドバーを閉じる" : "サイドバーを開く"}（⌘B）`}
@@ -24,7 +25,7 @@ export function LayoutToggles({ sidebar, bottom, chat }: { sidebar: Toggle; bott
       />
       {bottom && (
         <IconButton
-          icon={PanelBottom}
+          icon={bottom.open ? PanelBottomClose : PanelBottomOpen}
           size={15}
           label={bottom.open ? "ターミナルを閉じる" : "ターミナルを開く"}
           title={`${bottom.open ? "ターミナルを閉じる" : "ターミナルを開く"}（⌃\` / ⌘J）`}
@@ -35,7 +36,7 @@ export function LayoutToggles({ sidebar, bottom, chat }: { sidebar: Toggle; bott
       )}
       {chat && (
         <IconButton
-          icon={PanelRight}
+          icon={chat.open ? PanelRightClose : PanelRightOpen}
           size={15}
           label={chat.open ? "チャット欄を閉じる" : "チャット欄を開く"}
           title={`${chat.open ? "チャット欄を閉じる" : "チャット欄を開く"}（⌥⌘B）`}

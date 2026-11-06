@@ -1,4 +1,4 @@
-import { CornerDownRight } from "lucide-react";
+import { MessagesSquare } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
@@ -40,7 +40,7 @@ export function ChildChatRows({
   return (
     <div className="chat-children">
       <button type="button" className={cx("chat-children-toggle", attention && "attention", onlyArchived && "archived")} aria-expanded={fold.open} onClick={fold.toggle}>
-        <CornerDownRight size={12} aria-hidden />
+        <MessagesSquare size={12} aria-hidden />
         <span>{onlyArchived ? "アーカイブ済みの子チャット" : "子チャット"}</span>
         <span className="chat-children-count">{active.length}</span>
         {attention && <span className="chat-children-dot" aria-label="回答待ち・未読あり" />}

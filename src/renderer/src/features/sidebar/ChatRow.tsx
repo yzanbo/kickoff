@@ -1,4 +1,4 @@
-import { MoreHorizontal } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import type { ReactNode } from "react";
 import { busyWithUnread } from "@shared/chat/state";
 import { AGENT_STATE_LABELS, type AgentState, type Chat } from "@shared/types";
@@ -134,7 +134,7 @@ export function ChatRow({
       {/* 乗せたとき・メニューを開いている間だけ出す「…」（時刻の上に重ねる）。行の中のリンクと分けて置く */}
       <span className={cx("chat-row-actions", menuOpen && "open")}>
         <IconButton
-          icon={MoreHorizontal}
+          icon={Ellipsis}
           size={14}
           label="メニュー"
           title="メニュー（右クリックでも開く）"

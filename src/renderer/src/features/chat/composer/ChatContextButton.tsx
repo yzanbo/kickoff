@@ -1,4 +1,4 @@
-import { MessagesSquare } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Chat } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -47,7 +47,7 @@ export function ChatContextButton({ projectId, exclude, onPick }: { projectId?: 
     <span className="chip-wrap">
       <IconButton
         ref={popover.anchor}
-        icon={MessagesSquare}
+        icon={MessageSquare}
         label="ほかのチャットを参照"
         title="ほかのチャットを参照（そのやり取りを AI に読ませて、前の話の続きや参考にします）"
         aria-expanded={open}

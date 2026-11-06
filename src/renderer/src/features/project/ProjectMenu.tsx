@@ -6,12 +6,11 @@ import {
   ChevronsUpDown,
   FolderOpen,
   FolderPlus,
-  Pencil,
   Pin,
-  PinOff,
+  Plus,
+  Settings,
   SquarePen,
   Tag,
-  Tags,
   Trash2,
 } from "lucide-react";
 import { useState, type MouseEvent, type ReactNode } from "react";
@@ -117,7 +116,7 @@ function ProjectMenu({
       <div className="menu-separator" role="separator" />
       <div className="menu-label">整理</div>
       {!archived &&
-        item("pin", project.pinned ? <PinOff size={14} /> : <Pin size={14} />, project.pinned ? "固定をやめる" : "上に固定", () =>
+        item("pin", <Pin size={14} />, project.pinned ? "固定をやめる" : "上に固定", () =>
           changeProject(project.id, { pinned: !project.pinned }),
         )}
       {extras?.collapse &&
@@ -148,10 +147,10 @@ function ProjectMenu({
           </MenuItem>
         );
       })}
-      {item("new-tag", <Tags size={14} />, "新しいタグ…", () => void addNewTag(project))}
+      {item("new-tag", <Plus size={14} />, "新しいタグ…", () => void addNewTag(project))}
 
       <div className="menu-separator" role="separator" />
-      {item("edit", <Pencil size={14} />, "編集…", () => onEdit())}
+      {item("edit", <Settings size={14} />, "編集…", () => onEdit())}
       {item("delete", <Trash2 size={14} />, "削除…", () => onEdit("danger"), { danger: true })}
     </PopupMenu>
   );

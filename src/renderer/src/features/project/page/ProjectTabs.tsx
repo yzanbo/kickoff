@@ -1,4 +1,4 @@
-import { Files, GitBranch, History, MessagesSquare, Search, SquareKanban, StickyNote, type LucideIcon } from "lucide-react";
+import { FileDiff, Files, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -50,7 +50,7 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
     label: "チャット",
     tabs: [
       { tab: "board", label: "ボード", icon: SquareKanban },
-      { tab: "chats", label: "チャット", icon: MessagesSquare },
+      { tab: "chats", label: "チャット", icon: MessageSquare },
     ],
   },
   {
@@ -59,7 +59,7 @@ const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
     tabs: [
       { tab: "files", label: "ファイル", icon: Files },
       { tab: "search", label: "検索", icon: Search },
-      { tab: "changes", label: "変更", icon: GitBranch },
+      { tab: "changes", label: "変更", icon: FileDiff },
       { tab: "history", label: "履歴", icon: History },
     ],
   },
