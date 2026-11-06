@@ -82,6 +82,14 @@
   opacity: 0.75;
 }
 
+/* ブランチの印・グループの札の名前（札が狭いときは「…」で省く。札は inline-flex なので、文字を包んだ要素で省く） */
+:is(.worktree-chip, .chat-group-chip) .chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 注意の文（同じ作業場所で、ほかのチャットが作業中など） */
 .warn-text {
   color: var(--warn);
@@ -120,8 +128,10 @@
   color: var(--ng);
 }
 
-/* サイドバーのチャットの行では、作業場所の印を小さく */
-.chat-row-meta .worktree-chip {
+/* サイドバーのチャットの行では、作業場所の印とグループの札を小さく（狭ければ、それぞれ名前を省いて 1 行に収める） */
+.chat-row-meta :is(.worktree-chip, .chat-group-chip) {
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 110px;
   font-size: 10px;
   line-height: 14px;

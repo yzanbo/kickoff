@@ -17,6 +17,7 @@ import { ChatTitleInput } from "@/features/chat/ChatTitleInput";
 import { IconButton } from "@/ui/IconButton";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { WorktreeChip } from "@/features/worktree/WorktreeChip";
+import { GroupChip } from "@/features/group/GroupChip";
 import { ProjectMark } from "@/features/project/ProjectMark";
 
 /**
@@ -123,8 +124,10 @@ export function ChatRow({
               </span>
             )}
           </span>
+          {/* 2 行目: 作業場所（ブランチ）とグループ（1 行で出すときは隠す） */}
           <span className="chat-row-meta">
             <WorktreeChip chat={chat} />
+            <GroupChip chat={chat} />
           </span>
         </span>
       </a>
