@@ -88,12 +88,14 @@ export interface MemoMoveBody {
 
 /**
  * チャットの文からメモを作る・足す（POST /api/projects/:id/memos/from-chat）。summarize なら AI で要約してから。
- * append_to があればそのメモに足し、なければ folder（null なら直下）に「<チャット名> チャットメモ<n>」を作る
+ * append_to があればそのメモに足し、なければ folder（null なら直下）に「<チャット名> チャットメモ<n>」を作る。
+ * merge なら append_to のメモと AI でまとめ直し、メモ全体を書き換える（summarize は見ない）
  */
 export interface MemoFromChatBody {
   chat_id: number;
   text: string;
   summarize: boolean;
+  merge?: boolean;
   append_to: string | null;
   folder: string | null;
 }

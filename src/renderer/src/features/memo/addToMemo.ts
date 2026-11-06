@@ -1,4 +1,4 @@
-// チャットの文をメモに追加する（新しいメモ・既存のメモへの追記。AI で要約してからも）。
+// チャットの文をメモにする（新しいメモを作る・AI で要約して新しいメモを作る・既存のメモに追記・既存のメモと AI でまとめる）。
 // 画面は移らず（続けてほかの文もメモできるように）、画面の下に様子を出す（MemoProgress。要約は数秒かかる）。
 // 終わったら「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのメモを開ける（openMemoFromChat）
 import { useSyncExternalStore } from "react";
@@ -38,25 +38,47 @@ export function useMemoProgress(): MemoProgressState | null {
 /** 知らせを閉じる */
 export const dismissMemoProgress = () => setProgress(null);
 
+/**
+ * メモへの入れ方: new = 新しいメモを作る / summarize = AI で要約して新しいメモを作る /
+ * append = 既存のメモの最後に足す / merge = 既存のメモと AI でまとめ直す（メモ全体を書き換える）
+ */
+export type MemoAddMode = "new" | "summarize" | "append" | "merge";
+
+/** 入れ方ごとの、している間と終わったあとの文 */
+const MODE_TEXTS: Record<MemoAddMode, { busy: string; done: (name: string) => string; failed: string }> = {
+  new: { busy: "新しいメモを作っています…", done: (name) => `「${name}」を作りました`, failed: "メモを作れませんでした" },
+  summarize: { busy: "AI で要約して、新しいメモを作っています…", done: (name) => `「${name}」を作りました`, failed: "メモを作れませんでした" },
+  append: { busy: "メモに追記しています…", done: (name) => `「${name}」に追記しました`, failed: "メモに追記できませんでした" },
+  merge: { busy: "AI でメモとまとめています…", done: (name) => `「${name}」を AI でまとめ直しました`, failed: "メモをまとめられませんでした" },
+};
+
 interface AddToMemoInput {
   projectId: number;
   chatId: number;
   text: string;
-  /** AI で要約してから */
-  summarize: boolean;
-  /** 足す先のメモ（null なら新しいメモ「<チャット名> チャットメモ<n>」） */
-  appendTo: string | null;
+  mode: MemoAddMode;
+  /** 足す・まとめる先のメモ（append / merge のとき。new / summarize は新しいメモ「<チャット名> チャットメモ<n>」） */
+  target: string | null;
 }
 
-/** チャットの文をメモに追加する（失敗はお知らせで出す） */
-export async function addToMemo({ projectId, chatId, text, summarize, appendTo }: AddToMemoInput): Promise<void> {
-  setProgress({ kind: "busy", text: summarize ? "AI で要約して、メモに追加しています…" : "メモに追加しています…" });
+/** チャットの文をメモにする（失敗はお知らせで出す） */
+export async function addToMemo({ projectId, chatId, text, mode, target }: AddToMemoInput): Promise<void> {
+  const texts = MODE_TEXTS[mode];
+  const existing = mode === "append" || mode === "merge";
+  setProgress({ kind: "busy", text: texts.busy });
   try {
-    const ref = await api.memoFromChat(projectId, { chat_id: chatId, text, summarize, append_to: appendTo, folder: null });
+    const ref = await api.memoFromChat(projectId, {
+      chat_id: chatId,
+      text,
+      summarize: mode === "summarize",
+      merge: mode === "merge",
+      append_to: existing ? target : null,
+      folder: null,
+    });
     memosStore.invalidate(projectId);
     setProgress({
       kind: "done",
-      text: appendTo ? `「${baseName(ref.path)}」に追記しました` : `「${baseName(ref.path)}」を作りました`,
+      text: texts.done(baseName(ref.path)),
       open: () => {
         setProgress(null);
         openMemoFromChat({ projectId, path: ref.path, chatId });
@@ -64,6 +86,6 @@ export async function addToMemo({ projectId, chatId, text, summarize, appendTo }
     });
   } catch (e) {
     setProgress(null);
-    void reportFailure("メモに追加できませんでした")(e);
+    void reportFailure(texts.failed)(e);
   }
 }
