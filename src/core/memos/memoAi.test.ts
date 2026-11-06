@@ -10,10 +10,10 @@ const entries = [
   { path: "readme.md", dir: false },
 ];
 
-test("memoPlanPrompt: メモの書き出しを 1 行にし、頼みがなければおまかせの頼みにする", () => {
-  const prompt = memoPlanPrompt([{ path: "a.md", head: "一行目\n\n二行目" }], ["設計"], null);
-  assert.match(prompt, /- a\.md: 一行目 二行目/);
-  assert.match(prompt, /いまのフォルダ: 設計/);
+test("memoPlanPrompt: メモの書き出しを 1 行にし、頼みがなければおまかせの頼みにする。パスは \"\" で囲む（空白を含む名前でも区切りが分かる）", () => {
+  const prompt = memoPlanPrompt([{ path: "a b.md", head: "一行目\n\n二行目" }], ["設計 資料", "x"], null);
+  assert.match(prompt, /- "a b\.md": 一行目 二行目/);
+  assert.match(prompt, /いまのフォルダ: "設計 資料", "x"/);
   assert.match(prompt, /頼み: 内容の近いメモ/);
 });
 
@@ -59,7 +59,7 @@ test("parseMergedMemo: 全体を囲む ``` を外し、最後に改行を 1 つ�
   assert.equal(parseMergedMemo("  \n"), null);
 });
 
-test("parseMemoPlan: 行き先の名前の空白は「-」にする", () => {
-  const plan = parseMemoPlan('{"moves":[{"from":"a.md","to":"設計 資料/画面 一覧.md","reason":""}]}', [{ path: "a.md", dir: false }]);
-  assert.deepEqual(plan.moves, [{ from: "a.md", to: "設計-資料/画面-一覧.md", reason: "" }]);
+test("parseMemoPlan: 行き先の名前の空白はそのまま使い、各段の前後の空白だけ外す", () => {
+  const plan = parseMemoPlan('{"moves":[{"from":"a b.md","to":" 設計 資料 / 画面 一覧.md","reason":""}]}', [{ path: "a b.md", dir: false }]);
+  assert.deepEqual(plan.moves, [{ from: "a b.md", to: "設計 資料/画面 一覧.md", reason: "" }]);
 });

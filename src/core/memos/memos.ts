@@ -185,7 +185,7 @@ export class MemoService {
   /**
    * チャットの文からメモを作る・足す。summarize なら AI（プロジェクトのプロバイダー）で要約してから。
    * appendTo があれば、そのメモの最後に区切り線を挟んで足す（merge なら、AI がそのメモと合わせてメモ全体をまとめ直して書き換える）。
-   * なければ folder（メモのフォルダからの相対。null なら直下）に「<チャット名>-チャットメモ<n>.md」を作る
+   * なければ folder（メモのフォルダからの相対。null なら直下）に「<チャット名> チャットメモ<n>.md」を作る
    */
   async fromChat(
     project: Project,
