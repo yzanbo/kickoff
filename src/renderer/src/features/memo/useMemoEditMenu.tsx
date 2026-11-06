@@ -22,12 +22,12 @@ export interface MemoChatTarget {
   addPath: () => void;
 }
 
-/** 足す先ごとの項目の名前 */
+/** 足す先ごとの見出し */
 const TARGET_NAMES = { main: "メインのチャット", memo: "メモのチャット" } as const;
 
 /**
- * メモの本文の右クリックのメニュー。足す先ごとに組に分ける: メインのチャット（main を渡したとき。チャットの右の欄・別ウィンドウのメモ）・メモのチャット。
- * それぞれ「選んだ部分を〜に追加」（選んでいなければ「メモを〜に添付」）と「メモのパスを〜に追加」。送るのは自分で。
+ * メモの本文の右クリックのメニュー。足す先ごとに見出しを付けて組に分ける: メインのチャット（main を渡したとき。チャットの右の欄・別ウィンドウのメモ）・メモのチャット。
+ * それぞれ「選んだ部分を追加」（選んでいなければ「メモを添付」）と「パスを追加」。送るのは自分で。
  * その下に、切り取り・コピー・貼り付け。文を選んだだけではチャットに足さない（右クリックで選んだときだけ）。
  * HTML のメモのページの表示からは、選んだ文を渡して開く（チャットに足す項目とコピーだけ）。
  * 見出しの題名の欄からも同じメニューを開く（openFor。切り取り・貼り付けは題名の欄に効き、何も選んでいなければコピーは題名の全体）
@@ -64,14 +64,15 @@ export function useMemoEditMenu(
           const name = TARGET_NAMES[key];
           return (
             <Fragment key={key}>
+              <div className="menu-label">{name}</div>
               <MenuItem
                 title={selected.trim() ? `選んだ文を、ファイルのパスと行番号付きの引用にして、${name}の入力欄に足します` : `このメモを、${name}の入力欄に添付します`}
                 onSelect={() => target.add(selected, shown.value.lines ?? null)}
               >
-                {selected.trim() ? `選んだ部分を${name}に追加` : `メモを${name}に添付`}
+                {selected.trim() ? "選んだ部分を追加" : "メモを添付"}
               </MenuItem>
               <MenuItem title={`このメモのファイルのフルパスを、${name}の入力欄に足します`} onSelect={target.addPath}>
-                メモのパスを{name}に追加
+                パスを追加
               </MenuItem>
               <div className="menu-separator" role="separator" />
             </Fragment>
