@@ -56,6 +56,18 @@
   opacity: 0.45;
 }
 
+/* 会話の圧縮の行を足す: 圧縮の行・圧縮中の行と同じアクセントの色 */
+.queued-head-btn.queued-add-compact {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-fg);
+  background: transparent;
+}
+
+.queued-head-btn.queued-add-compact:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
 .queued-head-btn.queued-clear {
   border-color: color-mix(in srgb, var(--ng) 55%, transparent);
   color: var(--ng);

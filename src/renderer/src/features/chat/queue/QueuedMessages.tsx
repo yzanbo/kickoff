@@ -2,7 +2,7 @@ import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause, SendHorizon
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import type { QueueState } from "@shared/types";
 import { api } from "@/api";
-import { QueuedHeadActions, QueuedModeButton, QueuedMoveActions, QueuedStopButton } from "./QueuedHeadActions";
+import { QueuedCompactButton, QueuedHeadActions, QueuedModeButton, QueuedMoveActions, QueuedStopButton } from "./QueuedHeadActions";
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
 import { QueuedStopLine } from "./QueuedStopLine";
@@ -29,6 +29,7 @@ const MIN_LIST_HEIGHT = 36;
  * ⌘ / Shift ＋クリックで行を選ぶと、選んだものだけをまとめて送る・消す・いちばん上か下へ移せる（見出しと右クリック。Esc でやめる）。
  * 行は左のつまみのドラッグでも並べ替えられる（↑↓ のボタンと同じ。文は選んでコピーできる）。行のダブルクリックで書き直す。見出しの右の「n 件をまとめて送る」は、すべてを 1 つにまとめてすぐ送り、「n 件すべて消す」はすべて消す（確かめてから）。どちらも 2 件以上のときだけ出す。
  * 一時停止の線（指示とは別の行。ドラッグで動かせ、1 件目の上にも置ける）まで自動で送ったら、残りは止めておく。
+ * 「会話を圧縮」の行（見出しの「圧縮」でいちばん下に、行の右クリックの「このあとで会話を圧縮」でその指示のすぐあとに足す）まで来たら、会話を圧縮してから次を送る。
  * 列が空でも、いまの作業が終わったら止める印があれば（質問として送った）、その予定の 1 行（QueuedPauseNotice）を出す。
  * 行の右クリックの「この指示のあとで止める」でも付けられる。
  * 見出しの「自動で送る / 止めておく」で、いまの作業が終わったときに先頭を自動で送るか、送らずに止めておくかを切り替える
@@ -167,6 +168,7 @@ export function QueuedMessages({
         {/* 終わったら自動で送るか、送らずに止めておくか（列全体の設定。ここから右が操作） */}
         <QueuedModeButton paused={paused} busy={busy} />
         <QueuedStopButton stops={stops} onAdded={() => setCollapsed(false)} />
+        <QueuedCompactButton onAdded={() => setCollapsed(false)} />
         {/* 選んでいるときは、行と同じ 2 つのまとまり: 並べ替え（いちばん上へ・下へ）｜ 選んだものへの操作（まとめて送る・消す・選ぶのをやめる） */}
         {selected.length > 0 && <QueuedMoveActions selected={selected} />}
         <QueuedHeadActions count={messages.length} selected={selected} busy={busy} holds={paused || stops.length > 0} onClearSelection={clearSelection} onEditSelected={editSelected} />
@@ -206,7 +208,10 @@ export function QueuedMessages({
                 onAsk={
                   ask &&
                   ((remove) => {
-                    ask(selected.includes(m.id) && selected.length > 1 ? selected : [m.id], remove);
+                    // 会話の圧縮の行は新しいチャットへ持っていかない（送信待ちに残す）
+                    const ids = selected.includes(m.id) && selected.length > 1 ? selected : [m.id];
+                    const asked = ids.filter((id) => !messages.find((q) => q.id === id)?.compact);
+                    if (asked.length > 0) ask(asked, remove);
                     clearSelection();
                   })
                 }
@@ -229,6 +234,7 @@ export function QueuedMessages({
                   edit: () => edit.start([m]),
                   toggleStop: () => toggleStop(m.id, i),
                   toggleStopBefore: () => toggleStopBefore(i),
+                  compactAfter: () => void api.queueCompact(chatId, m.id).then(() => setCollapsed(false), failed),
                   move: (to) => void api.moveQueued(chatId, m.id, to).catch(failed),
                   sendNow: () => void api.sendQueuedNow(chatId, m.id).catch(failed),
                   remove: () => void api.removeQueued(chatId, m.id).catch(failed),

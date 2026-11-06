@@ -256,6 +256,19 @@
   white-space: nowrap;
 }
 
+/* 会話の圧縮の行（QueuedRow の message.compact）: 文ではなく列に挟む物なので、圧縮中の行と同じアクセントの色とアイコンで見分ける */
+.queued-text.queued-compact {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+  color: var(--accent-fg);
+}
+
+.queued-text.queued-compact svg {
+  flex: none;
+}
+
 .queued-row.editing {
   align-items: flex-start;
 }

@@ -213,34 +213,19 @@ export class Runner extends RunnerQueue {
   /**
    * 会話を要約して、コンテキストを空ける（Claude Code の /compact を手で実行する）。
    * 会話の記録には発言として残さず、要約したこと（compact イベント）だけが残る。終わっても未読にしない。
-   * 作業中なら予約する（ChatLive の compact_next）: いまのやり取りが終わったら、送信待ちより先にすぐ圧縮を始める
+   * 作業中なら予約する: 送信待ちのいちばん上に圧縮の行を入れ、いまのやり取りが終わったらすぐ圧縮を始める（行を消せばやめられる）
    */
   async compact(chatId: number): Promise<Chat> {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
     if (this.isBusy(chatId)) {
-      this.runtimes.get(chatId).update({ compactNext: true });
+      this.runtimes.get(chatId).queue.reserveCompact();
       return chat;
     }
     if (!chat.session_id) throw new Conflict("まだ会話がないので、圧縮できません");
     store.chats.update(chat.id, { status: "running", error: null });
     void this.execute({ chatId: chat.id, prompt: "/compact", compact: true });
     return store.chats.get(chat.id)!;
-  }
-
-  /** 作業中に予約した圧縮をやめる（予約していなければ何もしない） */
-  cancelCompact(chatId: number) {
-    this.requireChat(chatId);
-    this.runtimes.get(chatId).update({ compactNext: false });
-  }
-
-  /** 予約していた圧縮を始める（作業の終わり。会話がなければ予約を外して、送信待ちの次へ） */
-  private startReservedCompact(chatId: number) {
-    this.runtimes.get(chatId).update({ compactNext: false });
-    this.compact(chatId).catch((e: unknown) => {
-      this.reportError(chatId, `予約していた会話の圧縮を始められませんでした: ${errorMessage(e)}`);
-      void this.sendNextQueued(chatId);
-    });
   }
 
   /**
@@ -301,11 +286,8 @@ export class Runner extends RunnerQueue {
       void this.deps.usage.refresh();
       // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）。
       // 通信が切れた・使用枠の上限で止まったときは送らず、つながる・枠が戻るのを待つ（送っても失敗して消えるため）
-      // 作業中に圧縮を予約していたら、送信待ちより先にすぐ圧縮する（圧縮が終わったら、その終わりで送信待ちの次を送る）
-      if (this.recovery.finished(item.chatId, outcome) && !this.shuttingDown) {
-        if (runtime.compactNext) this.startReservedCompact(item.chatId);
-        else void this.sendNextQueued(item.chatId);
-      }
+      // 次が圧縮の行（作業中に予約した圧縮も）なら圧縮し、圧縮が終わったら、その終わりで送信待ちの次を送る
+      if (this.recovery.finished(item.chatId, outcome) && !this.shuttingDown) void this.sendNextQueued(item.chatId);
     }
   }
 }

@@ -69,9 +69,12 @@ export function useQueuedEdits(chatId: number, queue: QueuedMessage[], listRef: 
     edits,
     editHeight,
     /** 書き直す欄を開く（もう開いているものは、書いている途中の文のまま） */
+    /** 書き直す欄を開く（会話の圧縮の行は書き直せないので除く） */
     start: (messages: QueuedMessage[]) => {
-      setEdits((prev) => ({ ...prev, ...Object.fromEntries(messages.filter((m) => !prev[m.id]).map((m) => [m.id, { text: m.text, attachments: m.attachments }])) }));
-      setLast(messages.at(-1)?.id);
+      const editable = messages.filter((m) => !m.compact);
+      if (editable.length === 0) return;
+      setEdits((prev) => ({ ...prev, ...Object.fromEntries(editable.filter((m) => !prev[m.id]).map((m) => [m.id, { text: m.text, attachments: m.attachments }])) }));
+      setLast(editable.at(-1)?.id);
     },
     update: (id: string, patch: Partial<QueuedDraft>) => setEdits((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], ...patch } } : prev)),
     cancel: close,

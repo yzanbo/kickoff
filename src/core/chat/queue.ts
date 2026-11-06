@@ -125,6 +125,43 @@ export class ChatQueue {
     return message;
   }
 
+  /**
+   * 会話を圧縮する行を足す。after を渡すとその指示のすぐあと（すぐあとに一時停止の線があれば線の上 = 止まる前に圧縮する）、
+   * 省けばいちばん下（指示を足したときと同じく、すべて送ったあとの線の下）。after が列になければ undefined
+   */
+  addCompact(after?: string): QueuedMessage | undefined {
+    const message = compactItem();
+    if (after === undefined) {
+      this.set([...this.messages, message]);
+      return message;
+    }
+    const index = this.messages.findIndex((m) => m.id === after);
+    if (index < 0) return undefined;
+    this.insert(message, { at: index + 1, belowStop: false });
+    return message;
+  }
+
+  /**
+   * いまのやり取りが終わったら、すぐ会話を圧縮する（作業中の「会話を圧縮」）。圧縮の行をいちばん上（1 件目の上の線よりも上）に入れる。
+   * 止めているときは、止めるのを 1 件目の上の線に置き換える（圧縮だけは送り、そのあとで止まる）。もう予約していれば、その行を返す
+   */
+  reserveCompact(): QueuedMessage {
+    const head = this.messages[0];
+    if (head?.compact && !this.paused && this.stops[0] !== 0) return head;
+    if (this.paused) {
+      this.paused = false;
+      this.stops = normalizeStops([0, ...this.stops], this.messages.length);
+    }
+    // いちばん上がもう圧縮の行なら、足さずにその行を線の上へ出す
+    if (head?.compact) {
+      this.moveTo([head.id], { at: 0, belowStop: false });
+      return head;
+    }
+    const message = compactItem();
+    this.insert(message, { at: 0, belowStop: false });
+    return message;
+  }
+
   /** 消す（なければ false） */
   remove(id: string): boolean {
     if (!this.has(id)) return false;
@@ -164,7 +201,8 @@ export class ChatQueue {
    */
   merge({ silent = false, ids }: { silent?: boolean; ids?: string[] } = {}): QueuedMessage | undefined {
     const list = this.messages;
-    const picked = ids ? list.filter((m) => ids.includes(m.id)) : list;
+    // 圧縮の行はまとめない（列に残す）
+    const picked = (ids ? list.filter((m) => ids.includes(m.id)) : list).filter((m) => !m.compact);
     if (picked.length === 0) return undefined;
     const merged: QueuedMessage = {
       ...picked[picked.length - 1],
@@ -225,6 +263,12 @@ export class ChatQueue {
     return count;
   }
 
+  /** 1 件を見た目の並びのすき間へ入れる（いちばん下に足してから、そのすき間へ動かす） */
+  private insert(message: QueuedMessage, slot: QueueSlot) {
+    this.messages = [...this.messages, message];
+    this.moveTo([message.id], slot);
+  }
+
   /** 指示を見た目の並びのすき間へ動かし、印の線もそれに合わせる（queueStops.ts の moveToSlot） */
   private moveTo(ids: string[], slot: QueueSlot) {
     const moved = moveToSlot(this.messages, this.stops, ids, slot);
@@ -255,4 +299,9 @@ export class ChatQueue {
   private save() {
     this.persistence?.save({ chatId: this.chatId, messages: this.messages, paused: this.paused, stops: this.stops });
   }
+}
+
+/** 会話を圧縮する行（文・添付・選択は空） */
+function compactItem(): QueuedMessage {
+  return { id: randomUUID(), text: "", options: {}, attachments: [], created_at: new Date().toISOString(), compact: true };
 }

@@ -38,14 +38,8 @@ export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) 
     return c.body(null, 204);
   });
 
-  // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中なら、いまのやり取りが終わったら圧縮するよう予約する。まだ会話がなければ 409）
+  // 会話を要約して、コンテキストを空ける（手で圧縮する。作業中なら、送信待ちのいちばん上に圧縮の行を入れて予約する。まだ会話がなければ 409）
   app.post("/api/chats/:id/compact", withChat, async (c) => c.json(await runner.compact(c.var.chat.id)));
-
-  // 作業中に予約した圧縮をやめる（予約していなければ何もしない）
-  app.delete("/api/chats/:id/compact", withChat, (c) => {
-    runner.cancelCompact(c.var.chat.id);
-    return c.body(null, 204);
-  });
 
   // 通信が切れて止まったチャットを、つながったら自動で再開するのをやめる（待っていなければ 409）
   app.delete("/api/chats/:id/reconnect", withChat, (c) => {

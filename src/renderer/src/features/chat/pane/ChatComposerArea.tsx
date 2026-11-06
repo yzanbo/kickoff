@@ -8,6 +8,7 @@ import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
+import { reservedCompact } from "@/features/chat/queue/queuedHint";
 import { QueueModeToggle } from "@/features/chat/composer/QueueModeToggle";
 import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import type { PromptList } from "@/features/chat/prompts/promptHistory";
@@ -101,7 +102,7 @@ export function ChatComposerArea({
         busyControls={<QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={live.stopping}
         onStop={send.onStop}
-        trailing={<ContextMeter chat={chat} compacting={live.compacting} compactNext={live.compact_next} />}
+        trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedCompact(live.queue)} />}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
         handleRef={composer}
         history={prompts.recalls}

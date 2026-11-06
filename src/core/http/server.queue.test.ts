@@ -362,3 +362,45 @@ test("質問として送る（pause_after）: その指示の作業が終わっ�
   await until(() => !runner.isBusy(chatId) && runner.live(chatId).queue.paused);
   assert.equal(provider.prompts.length, 6);
 });
+
+test("送信待ちの圧縮の行（POST /queue/compact）: いちばん下・指示のすぐあとに足す。書き直せず、まとめない。すぐ送ると圧縮する", async () => {
+  const { call, project, runner, provider } = setup();
+  const release = provider.hold();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
+  await until(() => provider.prompts.length === 1);
+  const two = (await call("POST", `/api/chats/${chatId}/queue`, { text: "2" })).body.id as string;
+  await call("POST", `/api/chats/${chatId}/queue`, { text: "3" });
+  const labels = (body: { messages: { text: string; compact?: boolean }[] }) => body.messages.map((m) => (m.compact ? "圧縮" : m.text));
+  assert.deepEqual(labels((await call("POST", `/api/chats/${chatId}/queue/compact`, {})).body), ["2", "3", "圧縮"]);
+  // 2 のすぐあと（2 のあとの一時停止の線より上）
+  await call("PUT", `/api/chats/${chatId}/queue/stop-after`, { id: two });
+  const after = (await call("POST", `/api/chats/${chatId}/queue/compact`, { after: two })).body;
+  assert.deepEqual(labels(after), ["2", "圧縮", "3", "圧縮"]);
+  assert.deepEqual(after.stops, [2]);
+  assert.equal((await call("POST", `/api/chats/${chatId}/queue/compact`, { after: "nope" })).status, 404);
+  const compactId = after.messages[1].id as string;
+  // 書き直せない。まとめるときは圧縮の行を数えず、列に残す
+  assert.equal((await call("PATCH", `/api/chats/${chatId}/queue/${compactId}`, { text: "x" })).status, 400);
+  assert.equal((await call("POST", `/api/chats/${chatId}/queue/merge`, { ids: [two, compactId] })).status, 400);
+  const ids = after.messages.map((m: { id: string }) => m.id) as string[];
+  const merged = (await call("POST", `/api/chats/${chatId}/queue/merge`, { ids })).body;
+  assert.deepEqual(labels(merged), ["2\n\n3", "圧縮", "圧縮"]);
+  // 止めているときに、作業中の圧縮の行を「すぐ送る」と、いちばん上へ移る（いまのやり取りが終わったらすぐ圧縮する）。
+  // 止めるのは 1 件目の上の線に置き換わり、圧縮だけは送ってから止まる
+  await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [] });
+  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
+  const moved = (await call("POST", `/api/chats/${chatId}/queue/${merged.messages[2].id}/send`)).body;
+  assert.deepEqual(labels(moved), ["圧縮", "2\n\n3", "圧縮"]);
+  assert.equal(moved.paused, false);
+  assert.deepEqual(moved.stops, [1]);
+  release();
+  await until(() => provider.prompts.length === 2 && !runner.isBusy(chatId));
+  assert.equal(provider.prompts[1], "/compact");
+  // 作業していないときに「すぐ送る」と、すぐ圧縮する
+  const rest = (await call("GET", `/api/chats/${chatId}`)).body.live.queue;
+  assert.equal(rest.paused, true);
+  await call("POST", `/api/chats/${chatId}/queue/${rest.messages[1].id}/send`);
+  await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId));
+  assert.equal(provider.prompts[2], "/compact");
+  assert.deepEqual(labels((await call("GET", `/api/chats/${chatId}`)).body.live.queue), ["2\n\n3"]);
+});

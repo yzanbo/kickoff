@@ -1,4 +1,4 @@
-import type { QueuedMessage } from "@shared/types";
+import type { QueuedMessage, QueueState } from "@shared/types";
 
 /**
  * 送信待ちの見出しの短い案内（実行中はいつも 1 件なので数えない。件数は見出しだけに出し、ボタンでくり返さない）。
@@ -29,7 +29,20 @@ export function queuedHint({
 /** 畳んだ 1 行に出す「次に送る指示」（初めの行。文がなく添付だけなら、その数） */
 export function nextQueuedText(message: QueuedMessage | undefined): string {
   if (!message) return "";
+  if (message.compact) return COMPACT_ROW_TEXT;
   const line = message.text.trim().split("\n")[0]?.trim() ?? "";
   if (line) return line;
   return message.attachments.length > 0 ? `添付 ${message.attachments.length} 件` : "";
+}
+
+/** 送信待ちの「会話を圧縮」の行の文 */
+export const COMPACT_ROW_TEXT = "会話を圧縮";
+
+/**
+ * 作業中に予約した圧縮（いまのやり取りが終わったら、送信待ちより先にすぐ圧縮する）: 送信待ちのいちばん上の圧縮の行で、
+ * その上で止めていないもの。なければ null（止めているときは、上の圧縮の行も送らないので予約ではない）
+ */
+export function reservedCompact(queue: QueueState): QueuedMessage | null {
+  const head = queue.messages[0];
+  return head?.compact && !queue.paused && queue.stops[0] !== 0 ? head : null;
 }

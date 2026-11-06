@@ -129,23 +129,24 @@ test("作業が終わるのと同時に「いま」で送って待ちの列に�
   assert.equal(store.chats.get(chat.id)?.status, "completed");
 });
 
-test("圧縮の予約: 作業中に圧縮を頼むと予約し、やり取りが終わったら送信待ちより先に圧縮する。予約はやめられる", async () => {
+test("圧縮の予約: 作業中に圧縮を頼むと送信待ちのいちばん上に圧縮の行を入れ、やり取りが終わったら送信待ちより先に圧縮する", async () => {
   const { gates, script } = gatedScript();
   const { runner, provider, project } = setup(script);
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => gates.length === 1);
   await runner.queueMessage(chat.id, "2");
-  // 作業中に頼むと予約になる（409 にしない）。やめる → また頼む
+  // 作業中に頼むと予約になる（409 にしない）。2 回頼んでも行は 1 つ
   await runner.compact(chat.id);
-  assert.equal(runner.live(chat.id).compact_next, true);
-  runner.cancelCompact(chat.id);
-  assert.equal(runner.live(chat.id).compact_next, false);
   await runner.compact(chat.id);
-  // 終わったら、送信待ちの「2」より先に圧縮する（始めたら予約は外れる）
+  assert.deepEqual(
+    runner.live(chat.id).queue.messages.map((m) => (m.compact ? "圧縮" : m.text)),
+    ["圧縮", "2"],
+  );
+  // 終わったら、送信待ちの「2」より先に圧縮する（始めたら行は列から外れる）
   gates[0]();
   await until(() => gates.length === 2);
   assert.equal(provider.calls[1].prompt, "/compact");
-  assert.equal(runner.live(chat.id).compact_next, false);
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["2"]);
   // 圧縮が終わったら、送信待ちの次を送る
   gates[1]();
   await until(() => gates.length === 3);
@@ -154,17 +155,48 @@ test("圧縮の予約: 作業中に圧縮を頼むと予約し、やり取りが
   await until(() => !runner.isBusy(chat.id));
 });
 
-test("圧縮の予約: やめたら、終わっても圧縮せずに送信待ちの次を送る", async () => {
+test("圧縮の予約: 圧縮の行を消したら、終わっても圧縮せずに送信待ちの次を送る", async () => {
   const { gates, script } = gatedScript();
   const { runner, provider, project } = setup(script);
   const chat = await runner.start({ projectId: project.id, prompt: "1" });
   await until(() => gates.length === 1);
   await runner.queueMessage(chat.id, "2");
   await runner.compact(chat.id);
-  runner.cancelCompact(chat.id);
+  runner.removeQueued(chat.id, runner.live(chat.id).queue.messages[0].id);
   gates[0]();
   await until(() => gates.length === 2);
   assert.equal(provider.calls[1].prompt, "2");
   gates[1]();
   await until(() => !runner.isBusy(chat.id));
+});
+
+test("送信待ちの圧縮の行: 指示のあいだに挟むと、その順で圧縮してから次を送る。止めていても予約した圧縮は送り、そのあとで止まる", async () => {
+  const { gates, script } = gatedScript();
+  const { runner, provider, project } = setup(script);
+  const chat = await runner.start({ projectId: project.id, prompt: "1" });
+  await until(() => gates.length === 1);
+  const two = await runner.queueMessage(chat.id, "2");
+  await runner.queueMessage(chat.id, "3");
+  runner.queueCompact(chat.id, two.id);
+  assert.deepEqual(
+    runner.live(chat.id).queue.messages.map((m) => (m.compact ? "圧縮" : m.text)),
+    ["2", "圧縮", "3"],
+  );
+  gates[0]();
+  await until(() => gates.length === 2);
+  assert.equal(provider.calls[1].prompt, "2");
+  gates[1]();
+  await until(() => gates.length === 3);
+  assert.equal(provider.calls[2].prompt, "/compact");
+  // 圧縮の最中に止めてから予約する: 止めるのは 1 件目の上の線に置き換わり、予約した圧縮だけは送る
+  await runner.setQueuePaused(chat.id, true);
+  await runner.compact(chat.id);
+  assert.equal(runner.live(chat.id).queue.paused, false);
+  assert.deepEqual(runner.live(chat.id).queue.stops, [1]);
+  gates[2]();
+  await until(() => gates.length === 4);
+  assert.equal(provider.calls[3].prompt, "/compact");
+  gates[3]();
+  await until(() => !runner.isBusy(chat.id) && runner.live(chat.id).queue.paused);
+  assert.deepEqual(runner.live(chat.id).queue.messages.map((m) => m.text), ["3"]);
 });
