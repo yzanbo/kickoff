@@ -182,8 +182,13 @@ UPDATE chats SET archived_with_parent = 1
     AND archived_at = (SELECT parent.archived_at FROM chats AS parent WHERE parent.id = chats.parent_chat_id);
 `;
 
+/** v8: プロジェクトの圧縮後指示（会話を圧縮したあとに AI に送る指示。設定の共通の指示のあとにつなぐ） */
+const SCHEMA_V8 = `
+ALTER TABLE projects ADD COLUMN post_compact_prompt TEXT CHECK (post_compact_prompt <> '');
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7, SCHEMA_V8];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

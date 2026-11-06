@@ -168,6 +168,8 @@ export interface QueuedMessage {
   created_at: string;
   compact?: boolean;
   clear?: boolean;
+  /** 圧縮後指示（圧縮のあとに送る設定・プロジェクトの指示。送ると「圧縮後指示」の札付きの発言になり、AI には前置きを付けて送る） */
+  post_compact?: boolean;
 }
 
 /**

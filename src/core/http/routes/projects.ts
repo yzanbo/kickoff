@@ -9,7 +9,7 @@ import { createWorkspace, inspectWorkspace, prepareImportedWorkspace } from "../
 import { Conflict, Invalid } from "../errors.js";
 import { jsonBody } from "../input.js";
 import { lookups } from "../lookups.js";
-import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, preCompactPrompt, projectDescription, projectName } from "./schemas.js";
+import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, compactPrompt, projectDescription, projectName } from "./schemas.js";
 import { PROJECT_HUES } from "@shared/project/colors";
 import { MAX_TAG_LENGTH, MAX_TAGS, normalizeTags } from "@shared/project/tags";
 
@@ -53,7 +53,8 @@ const projectPatchSchema = z
     // メモのフォルダを、このプロジェクトだけ別の場所にする（null なら親フォルダの下）
     memo_path: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // このプロジェクトの圧縮前指示（null ならなし）
-    pre_compact_prompt: preCompactPrompt,
+    pre_compact_prompt: compactPrompt,
+    post_compact_prompt: compactPrompt,
   })
   .partial() satisfies z.ZodType<ProjectPatch>;
 

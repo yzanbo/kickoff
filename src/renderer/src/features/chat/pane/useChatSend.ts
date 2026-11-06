@@ -21,11 +21,11 @@ export function compactHoldOf(live: ChatLive): CompactHold {
 /** 「いま」を預かる間のチャット欄の案内と送信ボタンの名前（送ると、コアが預かって圧縮が終わってから伝える） */
 const HOLD_TEXTS = {
   compacting: {
-    placeholder: "会話を圧縮しています。Enter で送ると、圧縮が終わってから伝えます（⌘⇧Enter であとで送る）",
+    placeholder: "会話を圧縮しています。Enter で送ると、圧縮が終わってから（圧縮後指示があればそのあとに）伝えます（⌘⇧Enter であとで送る）",
     sendLabel: "圧縮が終わったら伝える",
   },
   awaiting: {
-    placeholder: "圧縮前指示の作業中です。Enter で送ると、このあとの会話の圧縮が終わってから伝えます（⌘⇧Enter であとで送る）",
+    placeholder: "圧縮前指示の作業中です。Enter で送ると、このあとの会話の圧縮が終わってから（圧縮後指示があればそのあとに）伝えます（⌘⇧Enter であとで送る）",
     sendLabel: "圧縮が終わったら伝える",
   },
 };

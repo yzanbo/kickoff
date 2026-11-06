@@ -1,4 +1,5 @@
 import type { Attachment, ChatEvent, ChatEventOf } from "@shared/types";
+import { compactKindOf, type CompactPromptKind } from "@/features/snippet/compactPromptKinds";
 
 /**
  * 自分の指示（発言）の一覧と、チャット欄の ↑↓ で前に送った発言を呼び出す決まり。
@@ -16,8 +17,8 @@ export interface PromptEntry {
   label: string;
   at: string;
   attachments: Attachment[];
-  /** 圧縮の前に送った圧縮前指示か（記録の pre_compact。一覧で札を付けて、自分で書いた指示と見分ける） */
-  preCompact: boolean;
+  /** 圧縮の前後に送った圧縮前指示・圧縮後指示か（記録の pre_compact / post_compact。一覧で札を付けて、自分で書いた指示と見分ける。どちらでもなければ null） */
+  compactKind: CompactPromptKind | null;
 }
 
 /** 記録から作った自分の指示の一覧 */
@@ -47,7 +48,7 @@ export function promptListOf(events: readonly ChatEvent[]): PromptList {
       const data = e.data;
       const text = data.text.trim();
       const attachments = data.attachments ?? NO_ATTACHMENTS;
-      return { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments, preCompact: data.pre_compact === true };
+      return { id: e.id, text, label: text || attachments.map((a) => a.name).join("、"), at: e.created_at, attachments, compactKind: compactKindOf(data) };
     });
   const recalls: string[] = [];
   for (const p of entries) if (p.text && recalls[recalls.length - 1] !== p.text) recalls.push(p.text);

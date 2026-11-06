@@ -28,6 +28,8 @@ export interface Project {
   memo_path: string | null;
   /** このプロジェクトの圧縮前指示（会話を圧縮する前に AI に送る指示。設定の共通の指示のあとにつなぐ。null ならなし） */
   pre_compact_prompt: string | null;
+  /** このプロジェクトの圧縮後指示（会話を圧縮したあとに AI に送る指示。設定の共通の指示のあとにつなぐ。null ならなし） */
+  post_compact_prompt: string | null;
   created_at: string;
 }
 

@@ -76,23 +76,28 @@
 }
 
 /*
- * 圧縮の前に送った圧縮前指示（記録の pre_compact）: 圧縮の行（.compacted）と同じアクセントの色で、自分で書いた指示と見分ける。
- * 吹き出しは枠をその色に、上の札（.message-kind-label）・上に貼り付ける帯の札（.sticky-prompt-kind）の文字もその色にする
+ * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact。.compact-prompt）: 圧縮の行（.compacted）と同じアクセントの色で、自分で書いた指示と見分ける。
+ * どちらかは札の名前とアイコン（CompactPromptMark）で見分ける。吹き出しは枠をその色に、上の札（.message-kind-label）・上に貼り付ける帯の札（.sticky-prompt-kind）の文字もその色にする
  */
-.user-message.pre-compact .bubble.user {
+.user-message.compact-prompt .bubble.user {
   outline: 1px solid color-mix(in srgb, var(--accent-fg) 55%, transparent);
   outline-offset: -1px;
 }
 
+/* 圧縮が終わるのを待っている圧縮後指示（AfterCompactMessages）は、色の枠のまま点線にして送る前と分かるように */
+.user-message.after-compact.compact-prompt .bubble.user {
+  outline-style: dashed;
+}
+
 /* 札のもとの色（.message-kind-label は question-card.css、.sticky-prompt-kind は sticky-prompt.css。どちらも後ろにある）に勝つよう 2 つのクラスで書く */
-.message-kind-label.pre-compact-kind,
-.sticky-prompt-kind.pre-compact-kind {
+.message-kind-label.compact-prompt-kind,
+.sticky-prompt-kind.compact-prompt-kind {
   font-weight: 600;
   color: var(--accent-fg);
 }
 
-/* 指示の履歴の行の「圧縮前指示」の札（薄い地に色の文字の丸い札） */
-.pre-compact-tag {
+/* 指示の履歴の行の「圧縮前指示」「圧縮後指示」の札（薄い地に色の文字の丸い札） */
+.compact-prompt-tag {
   display: inline-flex;
   flex: none;
   align-self: center;

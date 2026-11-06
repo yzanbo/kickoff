@@ -10,9 +10,9 @@ export type ChatEventData =
   /**
    * message_uuid: Claude Code に渡した発言の ID（ファイルをこの発言を送る前の状態に戻すときの目印）。
    * handover: この発言に添えて渡した、届いていなかったサブエージェントの報告（一覧の行のキー）。
-   * pre_compact: 圧縮の前に送った圧縮前指示（text は設定・プロジェクトの指示そのもの。AI には前置きを付けて送る）
+   * pre_compact: 圧縮の前に送った圧縮前指示 / post_compact: 圧縮のあとに送った圧縮後指示（text は設定・プロジェクトの指示そのもの。AI には前置きを付けて送る）
    */
-  | { type: "user"; text: string; message_uuid: string; attachments?: Attachment[]; handover?: string[]; pre_compact?: true }
+  | { type: "user"; text: string; message_uuid: string; attachments?: Attachment[]; handover?: string[]; pre_compact?: true; post_compact?: true }
   /** effort: 実際に使った推論の深さ（Claude Code が知らせたときだけ。null は深さを送らないモデル） */
   | { type: "init"; session_id: string; model?: string; permission_mode?: string; effort?: string | null }
   /** parent: サブエージェントの発言なら、そのサブエージェントを起動した Task / Agent ツールの呼び出し ID（メインの発言にはない） */

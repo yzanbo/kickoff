@@ -120,8 +120,8 @@ export class ChatQueue {
     return next;
   }
 
-  add(text: string, options: ChatOptionsPatch, attachments: Attachment[]): QueuedMessage {
-    const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString() };
+  add(text: string, options: ChatOptionsPatch, attachments: Attachment[], { postCompact = false }: { postCompact?: boolean } = {}): QueuedMessage {
+    const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString(), ...(postCompact ? { post_compact: true } : {}) };
     this.set([...this.messages, message]);
     return message;
   }

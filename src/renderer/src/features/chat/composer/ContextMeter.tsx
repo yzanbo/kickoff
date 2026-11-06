@@ -11,7 +11,7 @@ import { UsageBar } from "@/features/usage/UsageMeter";
 import { ErrorText } from "@/ui/ErrorText";
 import { Popover, usePopover } from "@/ui/Popover";
 import { compactingLabel } from "@/features/chat/status/workingLabel";
-import { PreCompactPromptEditor } from "@/features/snippet/PreCompactPromptEditor";
+import { CompactPromptEditor } from "@/features/snippet/CompactPromptEditor";
 import { AutoCompactSelect } from "./AutoCompactSelect";
 
 /** 丸いメーターの色（70% から注意、90% から警告） */
@@ -23,7 +23,7 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
  * 押すと、コンテキストの詳細を出す（使用率・ターン数と API 換算・自動圧縮・圧縮前指示・会話を圧縮。プランの使用枠は下の帯で見る。もう一度押す・ポップオーバーの外を押す・Esc で閉じる。マウスを乗せただけでは出さない）。
  * 会話を圧縮している間（手で圧縮した・上限に近づいて自動で）は、弧を回して知らせる（終わるとコンテキストの大きさが届き、弧が縮む）。
  * 設定で自動圧縮を始める使用率を決めていれば、円の外にそこを指す矢印を、詳細の棒に縦線を出す（Claude Code の既定のままなら出さない）。
- * 使用率は詳細の「自動圧縮」でも選べる（AutoCompactSelect。設定の「チャット」と同じ値）。その下の「圧縮前指示」で、圧縮の前に送る指示も書ける（PreCompactPromptEditor）。
+ * 使用率は詳細の「自動圧縮」でも選べる（AutoCompactSelect。設定の「チャット」と同じ値）。その下の「圧縮前指示」「圧縮後指示」で、圧縮の前・後に送る指示も書ける（CompactPromptEditor）。
  * 作業中の「会話を圧縮」は「このやり取りのあとで圧縮」（予約。送信待ちのいちばん上に「会話を圧縮」の行を入れ、終わったら送信待ちより先にすぐ圧縮する）になり、
  * 予約中は「取り消す」（その行を送信待ちから消す）を出す。
  */
@@ -116,7 +116,8 @@ export function ContextMeter({
           {/* 圧縮の設定: 自動圧縮を始める量（設定の「チャット」と同じ値）と、圧縮の前に AI に送る指示（設定の「定型文」と同じ値） */}
           <section className="context-section">
             <AutoCompactSelect windowSize={windowSize} />
-            <PreCompactPromptEditor projectId={chat.project_id} />
+            <CompactPromptEditor kind="pre" projectId={chat.project_id} />
+            <CompactPromptEditor kind="post" projectId={chat.project_id} />
           </section>
 
           {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
