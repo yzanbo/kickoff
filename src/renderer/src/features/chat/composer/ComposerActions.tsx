@@ -18,7 +18,8 @@ interface SendTarget {
  * チャット欄の右下の操作: 送信ボタンの左に置くもの（コンテキストのメーターなど）・送り方の切り替え（作業中・送信待ちがあるとき。
  * ⌘ / ⌘⇧ を押している間は、Enter で使われる方を光らせる）・中断（作業中。Esc を 1 回押したら「もう一度 Esc で中断」、
  * 止めている間は「停止中…」で押せない）・送信（作業中も、書いていれば・録音中なら出す。録音中は文字起こしして送る）。
- * ほかの送り方・送り先を選べるとき（sendTargets。質問として送る・子チャットに送るなど）は、送信ボタンの右クリックで「このまま送る」とそれらを選ぶメニューを開く。
+ * ほかの送り方・送り先を選べるとき（sendTargets。質問として送る・子チャットに送るなど）は、送信ボタンの右クリックでそれらを選ぶメニューを開く
+ * （ふだんの送り方（「あとで送る」など）は送信ボタンそのものなので、メニューには並べない）。
  * 同じメニューは丸いボタンの右の ▾ でも開く（右クリックに気づかなくても選べるように。作業中で中断のボタンだけのときも出す）
  */
 export function ComposerActions({
@@ -115,9 +116,6 @@ export function ComposerActions({
       </span>
       {menu.menu && sendTargets && (
         <PopupMenu at={menu.menu.at} label="送り方" ignore=".send-more" onClose={menu.close}>
-          <MenuItem disabled={!canSend} onSelect={onSubmit}>
-            {sendLabel ?? "このまま送る"}
-          </MenuItem>
           {sendTargets.map((target) => (
             <MenuItem key={target.label} title={target.title} disabled={target.disabled} onSelect={target.onSelect}>
               {target.label}
