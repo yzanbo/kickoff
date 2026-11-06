@@ -4,7 +4,7 @@ import type { ChatBucket } from "@/features/chatList/buckets";
 import { bucketTone } from "@/features/chatList/StateChatsPopover";
 import { DRAFT_TONE } from "@/features/chat/tones";
 import { ArchiveAllButton } from "./ArchiveAllButton";
-import { ArchivedFold, splitArchived } from "./ArchivedFold";
+import { ArchivedFold, splitArchived } from "@/ui/ArchivedFold";
 import { ColumnHead } from "./ColumnHead";
 import { DraftCards } from "./DraftCards";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
@@ -38,7 +38,7 @@ export function StateColumn({
       {active.length === 0 && <p className="column-empty">なし</p>}
       {active.map(render)}
       {foldArchived && foldPlace && (
-        <ArchivedFold place={foldPlace} foldKey={`${column.key}/archived`} count={archived.length}>
+        <ArchivedFold place={foldPlace} foldKey={`${column.key}/archived`} count={archived.length} bodyClassName="archived-fold">
           {archived.map(render)}
         </ArchivedFold>
       )}
@@ -139,7 +139,7 @@ function ArchivedListSection({ columns, foldPlace, foldKey, render }: { columns:
   if (count === 0) return null;
   return (
     <section className="list-group archived-list">
-      <ArchivedFold place={foldPlace} foldKey={foldKey} count={count}>
+      <ArchivedFold place={foldPlace} foldKey={foldKey} count={count} bodyClassName="archived-fold">
         {columns.map((c) => {
           const list = archivedOf(c);
           return (

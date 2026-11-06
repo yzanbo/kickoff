@@ -3,7 +3,7 @@ import type { Chat } from "@shared/types";
 import { cx } from "@/lib/cx";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import type { NewChatTarget } from "@/features/panel/usePanel";
-import { ArchivedFold, splitArchived } from "./ArchivedFold";
+import { ArchivedFold, splitArchived } from "@/ui/ArchivedFold";
 import { DraftCards } from "./DraftCards";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { GroupColumnHead } from "./GroupColumnHead";
@@ -55,7 +55,7 @@ export function GroupSections({
         <DraftCards drafts={bucket.drafts} />
         {members.length === 0 && <p className="column-empty">{g ? "チャットをここへドラッグ" : "なし"}</p>}
         {members.map(render)}
-        <ArchivedFold place={foldPlace} foldKey={`${bucket.key}/archived`} count={archived.length}>
+        <ArchivedFold place={foldPlace} foldKey={`${bucket.key}/archived`} count={archived.length} bodyClassName="archived-fold">
           {archived.map(render)}
         </ArchivedFold>
       </>

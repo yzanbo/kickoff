@@ -1,5 +1,5 @@
 import { Archive, ArchiveRestore } from "lucide-react";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { confirmDialog } from "@/ui/dialogs";
@@ -14,6 +14,7 @@ import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagent
 import { activityOf, activityText } from "@/features/chat/status/stall";
 import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "@/ui/ClaudeMark";
+import { ArchivedFold } from "@/ui/ArchivedFold";
 import { IconButton } from "@/ui/IconButton";
 import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
@@ -47,7 +48,6 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   };
   // 最後の動きの表示を進める（開いている間だけ）
   useTicker(open ? 15_000 : 3_600_000);
-  const [showArchived, setShowArchived] = useState(false);
   // アーカイブしたサブエージェント（チャットごとに覚える。一覧と件数から外す）
   const [archivedKeys, saveArchived] = useSetting(subagentsArchived(chat.id));
   const archived = useMemo(() => new Set(archivedKeys), [archivedKeys]);
@@ -75,7 +75,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   const archive = async (keys: string[]) => {
     const ok = await confirmDialog({
       title: keys.length === 1 ? "このサブエージェントをアーカイブしますか？" : `完了した ${keys.length} 件のサブエージェントをアーカイブしますか？`,
-      message: "一覧から隠れます。「アーカイブ済みを表示」で出し、戻せます。",
+      message: "一覧から隠れます。いちばん下の「アーカイブ済み」を開くと出し、戻せます。",
       confirmLabel: "アーカイブ",
     });
     if (ok) saveArchived([...new Set([...archived, ...keys])]);
@@ -185,14 +185,9 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
       </button>
       {visible.length === 0 && <p className="muted small subagent-empty">表示中のサブエージェントはありません</p>}
       {rows.map((r) => renderRow(r.entry, false, r.depth))}
-      {hidden.length > 0 && (
-        <>
-          <button type="button" className="subagent-archived-toggle" onClick={() => setShowArchived(!showArchived)}>
-            {showArchived ? "アーカイブ済みを隠す" : `アーカイブ済み ${hidden.length} 件を表示`}
-          </button>
-          {showArchived && hidden.map((s) => renderRow(s, true))}
-        </>
-      )}
+      <ArchivedFold place="composer" foldKey="subagents" count={hidden.length} className="composer-archived">
+        {hidden.map((s) => renderRow(s, true))}
+      </ArchivedFold>
     </ComposerChip>
   );
 }

@@ -136,7 +136,7 @@ export const WorkspacePage = memo(function WorkspacePage({
       onRename={() => rename.start(chat)}
       rename={rename.editorFor(chat)}
       // 子チャットは親の行の中にだけ置く（開閉と数。孫・ひ孫も同じ形で）。子チャットは別ウィンドウで開く
-      after={<ChildChatRows parentId={chat.id} childrenOf={childChats} renderRow={renderRow} />}
+      after={<ChildChatRows parentId={chat.id} parentArchived={chat.archived_at !== null} childrenOf={childChats} renderRow={renderRow} />}
       onOpen={chat.parent_chat_id !== null ? () => openChildChat(chat) : undefined}
     />
   );

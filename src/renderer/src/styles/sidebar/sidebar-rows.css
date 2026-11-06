@@ -227,6 +227,17 @@ button.chat-row {
   background: var(--accent-bright);
 }
 
+/* 子がすべてアーカイブ済みなら、開閉の行もアーカイブしたチャットの行と同じく薄くする */
+.chat-children-toggle.archived {
+  opacity: 0.55;
+}
+
+/* 子チャットの中のアーカイブ済みのまとまり（ArchivedFold）の見出しは、開閉の行と同じ小ささに */
+.chat-children-archived > .custom-group-head {
+  height: 22px;
+  font-size: 11px;
+}
+
 .chat-children .chat-children .chat-children .chat-children {
   margin-left: 0;
 }

@@ -1,5 +1,4 @@
 import { Archive, ArchiveRestore, MessagesSquare, Trash2 } from "lucide-react";
-import { useState } from "react";
 import type { AgentState, Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -8,6 +7,7 @@ import { CHILD_CHAT_OPEN_IN } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { canPopout } from "@/app/popout";
 import { useModels } from "@/stores/providers";
+import { ArchivedFold } from "@/ui/ArchivedFold";
 import { IconButton } from "@/ui/IconButton";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { confirmDeleteChat, toggleArchiveChat } from "@/features/chat/chatActions";
@@ -61,7 +61,7 @@ export function ChildChatMarks({ chatId, eventId }: { chatId: number; eventId: n
  * 入力欄の上の「子チャット 2 件 · 1 件答えあり」（指示の履歴・サブエージェントと同じピルの列）。押すと子チャットの一覧（サブエージェントの一覧と同じ形の行:
  * 状態の印・名前・様子 · モデル · 最後に動いた時刻、右に「右で開く」「新規ウィンドウで開く」とアーカイブ・削除）を開く。行を押すと設定の開き方で開き、
  * 一覧の上で行を押したときの開き方（設定）を変えられる。会話を遡らなくても、答えが来たこととどこにあるかが分かる。
- * アーカイブした子チャットは一覧と件数から外し、下の「アーカイブ済み n 件を表示」で出して戻せる（サブエージェントの一覧と同じ。すべてアーカイブしていれば
+ * アーカイブした子チャットは一覧と件数から外し、いちばん下の閉じたまとまり「アーカイブ済み n」（ArchivedFold。サイドバー・サブエージェントの一覧と同じ）を開いて戻せる（すべてアーカイブしていれば
  * ピルは「アーカイブ済みの子チャット n 件」）
  */
 export function ChildChatsChip({ chatId }: { chatId: number }) {
@@ -71,7 +71,6 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   const models = useModels();
   const popover = usePopover();
   const [openIn, setOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
-  const [showArchived, setShowArchived] = useState(false);
   if (!children?.length) return null;
   const visible = children.filter((c) => !c.archived_at);
   const hidden = children.filter((c) => c.archived_at);
@@ -163,14 +162,9 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
       {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
       {visible.length === 0 && <p className="muted small subagent-empty">表示中の子チャットはありません</p>}
       {visible.map(renderRow)}
-      {hidden.length > 0 && (
-        <>
-          <button type="button" className="subagent-archived-toggle" onClick={() => setShowArchived(!showArchived)}>
-            {showArchived ? "アーカイブ済みを隠す" : `アーカイブ済み ${hidden.length} 件を表示`}
-          </button>
-          {showArchived && hidden.map(renderRow)}
-        </>
-      )}
+      <ArchivedFold place="composer" foldKey="children" count={hidden.length} className="composer-archived">
+        {hidden.map(renderRow)}
+      </ArchivedFold>
     </ComposerChip>
   );
 }
