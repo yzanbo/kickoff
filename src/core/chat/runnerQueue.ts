@@ -3,6 +3,11 @@ import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { ChatRuntimes } from "./runtime.js";
 import type { Attachment, QueuedMessage, Chat, ChatOptionsPatch, QueueState, TellResult } from "@shared/types";
 
+/** 送る・伝えるときの指定。pauseAfter: 質問として送る（この指示の作業が終わったら、送信待ちを自動で送らずに一時停止する） */
+export interface SendOpts {
+  pauseAfter?: boolean;
+}
+
 /** 列にない指示を指したとき（消した・送ったあと） */
 const missing = () => new NotFound("待ちの指示が見つかりません");
 
@@ -16,8 +21,8 @@ export abstract class RunnerQueue {
   /** チャットごとの作業中の状態（送信待ちの列・書き直している指示・書き直しを待っているか） */
   protected abstract readonly runtimes: ChatRuntimes;
   abstract isBusy(chatId: number): boolean;
-  abstract send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[]): Promise<Chat>;
-  abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: { at?: number }): Promise<TellResult["result"]>;
+  abstract send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts): Promise<Chat>;
+  abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: SendOpts & { at?: number }): Promise<TellResult["result"]>;
   /** チャット（なければ 404） */
   protected abstract requireChat(chatId: number): Chat;
   /** 送れなかった理由をチャットに残す */
@@ -35,6 +40,7 @@ export abstract class RunnerQueue {
 
   /**
    * 次の指示を送る。作業中なら待ちの列に入れ（終わったら順に送る）、作業中でなければすぐ送る。
+   * pauseAfter なら、列に入れたその指示のすぐあとに一時停止の印を付ける（すぐ送ったら、その作業が終わったら一時停止する）。
    * queued: 列に入れたか、id: 列に入れたその指示の ID（すぐ送ったら null）
    */
   async queueMessage(
@@ -42,16 +48,26 @@ export abstract class RunnerQueue {
     text: string,
     options: ChatOptionsPatch = {},
     attachments: Attachment[] = [],
-    { hold = false }: { hold?: boolean } = {},
+    { hold = false, pauseAfter = false }: { hold?: boolean } & SendOpts = {},
   ): Promise<{ queued: boolean; id: string | null }> {
     this.requireChat(chatId);
     // hold: 作業していなくても送らずに、待ちの列の最後に足す（止めている送信待ちがあるときの「ためておく」）
     if (!hold && !this.isBusy(chatId)) {
-      await this.send(chatId, text, options, attachments);
+      await this.send(chatId, text, options, attachments, { pauseAfter });
       return { queued: false, id: null };
     }
-    const { id } = this.queueOf(chatId).add(text, options, attachments);
+    const queue = this.queueOf(chatId);
+    const { id } = queue.add(text, options, attachments);
+    if (pauseAfter) queue.setStopAfter(id);
     return { queued: true, id };
+  }
+
+  /**
+   * いま動いている作業が終わったら、送信待ちを自動で送らずに一時停止する（質問として送った指示が、いまの作業に入ったとき）。
+   * 1 件目の上の印にする: 作業のあいだに来た指示の前で止まり、来なければ作業の終わりに外れる（ChatQueue.takeNext）
+   */
+  protected pauseAfterTurn(chatId: number) {
+    this.queueOf(chatId).addStop(0);
   }
 
   /** 待ちの列から消す */

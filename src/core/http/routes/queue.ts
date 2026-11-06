@@ -14,11 +14,12 @@ import type { QueueAddResult, QueueMergeResult } from "@shared/types";
 export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   const { withChat } = lookups(store);
 
-  // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す）
+  // 次の指示を送る。作業中なら待ちの列に入れ、終わったら順に送る（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。
+  // pause_after なら、列に入れたその指示のすぐあとに一時停止の印を付ける（すぐ送ったら、その作業が終わったら一時停止する））
   app.post("/api/chats/:id/queue", withChat, async (c) => {
     const { chat } = c.var;
-    const { text, options, attachments, hold } = queueMessageSchema.parse(await jsonBody(c));
-    const added = await runner.queueMessage(chat.id, text, options, attachments, { hold });
+    const { text, options, attachments, hold, pause_after } = queueMessageSchema.parse(await jsonBody(c));
+    const added = await runner.queueMessage(chat.id, text, options, attachments, { hold, pauseAfter: pause_after });
     const result: QueueAddResult = { ...runner.queueState(chat.id), ...added };
     return c.json(result);
   });

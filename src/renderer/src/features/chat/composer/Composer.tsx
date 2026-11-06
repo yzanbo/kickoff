@@ -55,7 +55,7 @@ interface Props {
   draft?: Setting<string>;
   /** 外からチャット欄を動かす口（文を入れる・ピントを移す。発言の一覧の「入力欄に入れる」など） */
   handleRef?: MutableRefObject<ComposerHandle | null>;
-  /** このチャットの代わりに送れるほかの送り先（送信ボタンの右クリックで選ぶ。子チャットに送るなど）。作業中でも送れる */
+  /** ほかの送り方・送り先（送信ボタンの右クリックで選ぶ。質問として送る・子チャットに送るなど）。作業中でも送れる（作業中にどう送るかは onSend が決める） */
   sendTo?: { label: string; title?: string; onSend: (text: string, attachments: Attachment[]) => Promise<void> }[];
   /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
   chatContext?: { projectId?: number; exclude?: number };

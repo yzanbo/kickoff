@@ -5,7 +5,7 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import type { QueueSendMode } from "./composerKeys";
 
-/** 送信ボタンの右クリックで選べる、ほかの送り先 */
+/** 送信ボタンの右クリックで選べる、ほかの送り方・送り先（質問として送る・子チャットに送るなど） */
 interface SendTarget {
   label: string;
   title?: string;
@@ -17,7 +17,7 @@ interface SendTarget {
  * チャット欄の右下の操作: 送信ボタンの左に置くもの（コンテキストのメーターなど）・送り方の切り替え（作業中・送信待ちがあるとき。
  * ⌘ / ⌘⇧ を押している間は、Enter で使われる方を光らせる）・中断（作業中。Esc を 1 回押したら「もう一度 Esc で中断」、
  * 止めている間は「停止中…」で押せない）・送信（作業中も、書いていれば・録音中なら出す。録音中は文字起こしして送る）。
- * 送り先を選べるとき（sendTargets。子チャットに送るなど）は、送信ボタンの右クリックで「このまま送る」とほかの送り先を選ぶメニューを開く
+ * ほかの送り方・送り先を選べるとき（sendTargets。質問として送る・子チャットに送るなど）は、送信ボタンの右クリックで「このまま送る」とそれらを選ぶメニューを開く
  */
 export function ComposerActions({
   busy,
@@ -86,7 +86,7 @@ export function ComposerActions({
                     : queueing
                       ? "待ちの列に入れる（Enter）。いまの作業が終わったら送ります"
                       : "送信（Enter）"
-                }${hasTargets ? "。右クリックで送り先を選ぶ（子チャットに送るなど）" : ""}`
+                }${hasTargets ? "。右クリックで送り方を選ぶ（質問として送るなど）" : ""}`
           }
           aria-label={recording ? "文字起こしして送信" : (sendLabel ?? (queueing ? "待ちの列に入れる" : "送信"))}
           disabled={!canSend}
@@ -97,7 +97,7 @@ export function ComposerActions({
         </button>
       )}
       {menu.menu && sendTargets && (
-        <PopupMenu at={menu.menu.at} label="送り先" onClose={menu.close}>
+        <PopupMenu at={menu.menu.at} label="送り方" onClose={menu.close}>
           <MenuItem disabled={!canSend} onSelect={onSubmit}>
             {sendLabel ?? "このまま送る"}
           </MenuItem>

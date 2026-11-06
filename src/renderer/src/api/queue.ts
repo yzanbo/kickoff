@@ -8,9 +8,12 @@ const queuePath = (chatId: number, path = "") => `/api/chats/${chatId}/queue${pa
  * id は送信待ちの指示の ID
  */
 export const queueApi = {
-  /** 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す） */
-  queueMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], hold = false) =>
-    request<QueueAddResult>("POST", queuePath(chatId), { text, options, attachments, ...(hold ? { hold } : {}) } satisfies QueueMessageBody),
+  /**
+   * 作業中なら送信待ちに入れる（作業中でなければすぐ送る。hold なら作業していなくても列の最後に足す。
+   * pauseAfter なら、入れたその指示のすぐあとに一時停止の印を付ける = 質問として送る）
+   */
+  queueMessage: (chatId: number, text: string, options: ChatOptionsPatch, attachments: Attachment[] = [], { hold = false, pauseAfter = false }: { hold?: boolean; pauseAfter?: boolean } = {}) =>
+    request<QueueAddResult>("POST", queuePath(chatId), { text, options, attachments, ...(hold ? { hold } : {}), ...(pauseAfter ? { pause_after: true } : {}) } satisfies QueueMessageBody),
   /** attachments: 添付を置き換える（省けば今のまま） */
   editQueued: (chatId: number, id: string, text: string, attachments?: Attachment[]) =>
     request<QueueState>("PATCH", queuePath(chatId, `/${id}`), attachments ? { text, attachments } : { text }),

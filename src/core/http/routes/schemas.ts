@@ -1,7 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
-import type { ChatOptionsPatch, ChildChatBody, MemoChatBody, MessageBody, NewChatBody, QueueMessageBody } from "@shared/types";
+import type { ChatOptionsPatch, ChildChatBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
@@ -90,8 +90,8 @@ const messageShape = { text: messageText.default(""), options: chatOptionsSchema
 const hasContent = (v: { text: string; attachments: unknown[] }) => Boolean(v.text) || v.attachments.length > 0;
 const CONTENT_REQUIRED = { message: "メッセージか添付ファイルが必要です" };
 
-/** 続けて送る・止めずに伝える指示 */
-export const messageInputSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<MessageBody>;
+/** 続けて送る・止めずに伝える指示（pause_after なら、この指示の作業が終わったら送信待ちを一時停止する） */
+export const messageInputSchema = z.object({ ...messageShape, pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SendMessageBody>;
 
 /** 新しいチャットの最初の指示。作業場所は、いまあるワークツリーのフォルダか、新しく作るワークツリーのブランチ名（どちらもなければ本体） */
 export const newChatSchema = z
@@ -116,5 +116,5 @@ export const childChatSchema = z
   })
   .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<ChildChatBody, unknown>;
 
-/** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す） */
-export const queueMessageSchema = z.object({ ...messageShape, hold: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;
+/** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する） */
+export const queueMessageSchema = z.object({ ...messageShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;

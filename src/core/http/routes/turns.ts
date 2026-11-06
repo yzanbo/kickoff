@@ -19,16 +19,17 @@ export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) 
   /** 分岐・巻き戻しで使う（ファイルの記録を、チャットが動いた作業場所で探す） */
   const deps = { store, runner, providers };
 
+  // 続きを送る（pause_after なら、この作業が終わったら送信待ちを一時停止する = 質問として送る）
   app.post("/api/chats/:id/messages", withChat, async (c) => {
-    const { text, options, attachments } = messageInputSchema.parse(await jsonBody(c));
+    const { text, options, attachments, pause_after } = messageInputSchema.parse(await jsonBody(c));
     // 作業中のチャットには送れない（409）
-    return c.json(await runner.send(c.var.chat.id, text, options, attachments));
+    return c.json(await runner.send(c.var.chat.id, text, options, attachments, { pauseAfter: pause_after }));
   });
 
-  // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る）
+  // 止めずに伝える（作業中なら、いまのやり取りに発言を足す。足せなければ待ちの列へ。作業中でなければすぐ送る。pause_after は続きを送ると同じ）
   app.post("/api/chats/:id/tell", withChat, async (c) => {
-    const { text, options, attachments } = messageInputSchema.parse(await jsonBody(c));
-    const told: TellResult = { result: await runner.tell(c.var.chat.id, text, options, attachments) };
+    const { text, options, attachments, pause_after } = messageInputSchema.parse(await jsonBody(c));
+    const told: TellResult = { result: await runner.tell(c.var.chat.id, text, options, attachments, { pauseAfter: pause_after }) };
     return c.json(told);
   });
 

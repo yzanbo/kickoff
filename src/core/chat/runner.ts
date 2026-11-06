@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { executeTurn, type ExecutionDeps, type TurnRequest, type TurnOutcome } from "./turn.js";
-import { RunnerQueue } from "./runnerQueue.js";
+import { RunnerQueue, type SendOpts } from "./runnerQueue.js";
 import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, type StartChatInput } from "./input.js";
@@ -74,8 +74,8 @@ export class Runner extends RunnerQueue {
     return this.deps.store.chats.get(chat.id)!;
   }
 
-  /** 終了した会話に追加の指示を送り、続きから再開する */
-  async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = []): Promise<Chat> {
+  /** 終了した会話に追加の指示を送り、続きから再開する（pauseAfter なら、この作業が終わったら送信待ちを一時停止する） */
+  async send(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { pauseAfter = false }: SendOpts = {}): Promise<Chat> {
     const chat = this.requireChat(chatId);
     this.requireIdle(chatId, "送信");
     const { store } = this.deps;
@@ -105,6 +105,8 @@ export class Runner extends RunnerQueue {
     });
     // 動かし始めたら作業中（runtime.turn）として数えられるので、準備の印は外す
     runtime.preparing = false;
+    // 質問として送った: 動かし始める前に印を付ける（すぐ終わる作業でも、終わりの自動送信より先に付いている）
+    if (pauseAfter) this.pauseAfterTurn(chatId);
     void this.execute({ chatId: chat.id, prompt, promptId: messageUuid });
     return store.chats.get(chat.id)!;
   }
@@ -113,31 +115,44 @@ export class Runner extends RunnerQueue {
    * 止めずに伝える: 作業中なら、いまのやり取りに発言を足す（メインのエージェントが、いまの手順の切れ目で読む。
    * 裏のサブエージェント・コマンドは動き続ける）。圧縮中なら預かり、圧縮が終わったら伝える（deliverAfterCompact）。
    * 足せないとき（始まる前など）は待ちの列に入れ（at があればその位置）、作業中でなければすぐ送る。
+   * pauseAfter（質問として送る）なら、伝えた・預かったときはいまの作業が終わったら、列に入れたときはその指示のあとで一時停止する。
    * モデルなどの選択は、作業の途中では変えられないので次に送るときから効く
    */
-  async tell(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { at }: { at?: number } = {}): Promise<TellResult["result"]> {
+  async tell(
+    chatId: number,
+    text: string,
+    options: ChatOptionsPatch = {},
+    attachments: Attachment[] = [],
+    { at, pauseAfter = false }: SendOpts & { at?: number } = {},
+  ): Promise<TellResult["result"]> {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
     if (!this.isBusy(chatId)) {
-      await this.send(chatId, text, options, attachments);
+      await this.send(chatId, text, options, attachments, { pauseAfter });
       return "sent";
     }
     const runtime = this.runtimes.get(chatId);
-    if (runtime.compacting) return this.holdUntilCompacted(runtime, text, options, attachments);
+    const hold = (): "held" => {
+      if (pauseAfter) this.pauseAfterTurn(chatId);
+      return this.holdUntilCompacted(runtime, text, options, attachments);
+    };
+    if (runtime.compacting) return hold();
     const { prompt, handover } = await followupPrompt(this.deps, chatId, text, attachments);
     const messageUuid = randomUUID();
     // 組み立てている間に圧縮が始まったら、預かる（届いた報告の添え書きは、伝えるときに組み立て直す）
-    if (runtime.compacting) return this.holdUntilCompacted(runtime, text, options, attachments);
+    if (runtime.compacting) return hold();
     // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す
     if (runtime.control?.tell(prompt, messageUuid)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
       this.forgetRecovery(chatId);
       store.events.add(chatId, { type: "user", text, ...(attachments.length ? { attachments } : {}), ...handover, message_uuid: messageUuid });
       if (chat.unread) store.chats.setUnread(chatId, false);
+      if (pauseAfter) this.pauseAfterTurn(chatId);
       return "told";
     }
     const { id } = runtime.queue.add(text, options, attachments);
     if (at !== undefined) runtime.queue.move(id, at);
+    if (pauseAfter) runtime.queue.setStopAfter(id);
     // 組み立てている間に作業が終わっていたら、終わったときの自動送信はもう済んでいるので、ここで送る（列に取り残さない）
     if (!this.isBusy(chatId)) void this.sendNextQueued(chatId);
     return "queued";
