@@ -38,7 +38,7 @@ export function useCodeQuoteMenu(dir: string | undefined): { onContextMenu?: (e:
       : undefined,
     element: shown && (
       <PopupMenu at={shown.at} label="コードの操作" onClose={menu.close}>
-        <AddToChatItems quote={shown.value.quote} quoteLabel="選択部分を追加" path={shown.value.path} />
+        <AddToChatItems quote={shown.value.quote} what="選択部分" path={shown.value.path} />
         <ClipboardItems text={shown.value.copy} selection={shown.value.code?.text ?? shown.value.copy} path={shown.value.path} lines={shown.value.code?.lines ?? null} />
       </PopupMenu>
     ),

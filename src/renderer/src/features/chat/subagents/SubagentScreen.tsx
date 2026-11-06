@@ -8,6 +8,8 @@ import { ClaudeMark } from "@/ui/ClaudeMark";
 import { EmptyState } from "@/ui/EmptyState";
 import { useOptionalChatPane, type ChatPaneActions } from "@/features/chat/pane/chatPaneContext";
 import { TimelineItems } from "@/features/chat/timeline/Timeline";
+import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
+import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellComposer } from "./SubagentTell";
 import { agentHueStyle } from "./agentHues";
@@ -58,6 +60,8 @@ function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
   const items = useSubagentItems(entry, view);
   const { scrollRef, contentRef, onScroll } = useFollowScroll(running);
   const renderItems: RenderItems = (inner, active) => <TimelineItems items={inner} rel={view.rel} active={active} />;
+  // 手順・頼んだ内容・報告の文の右クリック（会話の流れと同じメニュー）
+  const quoteMenu = useQuoteMenu();
   return (
     // chat-panel: 発言・入力欄の見た目を、パネルの中のチャットと同じにする（side-panel.css・messages.css の .chat-panel の規則）
     <div
@@ -67,13 +71,14 @@ function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
     >
       <ScreenHead entry={entry} view={view} pane={pane} />
       <div ref={scrollRef} className="subagent-screen-scroll" onScroll={onScroll} tabIndex={-1}>
-        <div ref={contentRef} className="subagent-screen-content">
+        <div ref={contentRef} className="subagent-screen-content" {...{ [QUOTABLE_ATTR]: "" }} onContextMenu={quoteMenu.openInRegion} onClickCapture={keepSelectionOnClick}>
           {entry.prompt && <SubagentPrompt text={entry.prompt} />}
           <SubagentSteps entry={entry} view={view} items={items} renderItems={renderItems} />
           <SubagentReport entry={entry} view={view} />
         </div>
       </div>
       <RelayComposer entry={entry} view={view} />
+      {quoteMenu.element}
     </div>
   );
 }
