@@ -112,7 +112,7 @@
  *   --memo-chat-w メモの会話の欄の幅（MemoView.tsx）
  *   --depth      ファイルの木の段の深さ（FileTree.tsx）
  *   --tone       状態ごとのチャット数の色（サイドバー HeadCounts.tsx・画面の見出し StateStats.tsx）
- *   --ws-hue     プロジェクトの色相（ProjectMark.tsx・WorkspacePage.tsx（固定のピンの色）・WorkspaceDots.tsx・BasicInfo.tsx）
+ *   --ws-hue     プロジェクトの色相（ProjectMark.tsx・WorkspacePage.tsx（固定のピンの色）・PanelTab.tsx（ピン留めしたチャットのタブのピンの色）・WorkspaceDots.tsx・BasicInfo.tsx）
  *   --diagram-w  Mermaid の図の幅（MermaidDiagram.tsx）
  *   --group-hue  右のパネルのタブのまとまりの色相・--cluster-tabs そのまとまりで見せているタブの数（PaneTabBar.tsx）。グループの札（PanelTab.tsx・ChatHeader.tsx）・ブランチの印（WorktreeChip.tsx）の色相にも使う
  *   --img-w --img-h --img-x --img-y  画像を大きく見るときの画像の大きさと、中央からのずれ（imageViewer/useImageZoom.ts）

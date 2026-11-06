@@ -80,7 +80,7 @@ export function PaneTab({
       className={cx(className, (state === "unread" || state === "failed" || busyUnread) && "unread")}
       extra={extra}
       onSelect={() => panel.showTab(t.key)}
-      pinned={Boolean(chat?.pinned)}
+      pinnedIn={chat?.pinned ? chat.project_id : null}
       lead={spec.Lead ? <spec.Lead tab={t} /> : state && <StatusSlot state={state} unread={busyUnread} />}
       onRename={t.kind === "chat" ? () => rename.start({ id: t.id } as Chat) : undefined}
       // 名前を変えている途中なら、タブの入力欄に渡す形にする（初めの値はタブの名前）
