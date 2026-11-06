@@ -72,6 +72,21 @@ test("メモ: 作る・一覧・読む・保存（ほかで変わっていれば
   assert.ok(memoEvents.every((e) => e.project_id === project.id));
 });
 
+test("メモ: Kickoff の外（Finder・ほかのアプリ）での変更も、一覧を読んだあとは知らせる（隠しファイルは知らせない）", async () => {
+  const { call, project, bus } = setup();
+  const base = `/api/projects/${project.id}`;
+  await call("POST", `${base}/memos`, { path: "初め.md" });
+  const list = (await call("GET", `${base}/memos`)).body as MemoList;
+  // 作ったときの変更の知らせが遅れて届いても混ざらないよう、少し待ってから見る
+  await new Promise((r) => setTimeout(r, 300));
+  const events: BusEvent[] = [];
+  bus.subscribe((e) => events.push(e));
+  fs.writeFileSync(path.join(list.dir, ".隠し.md"), "x");
+  fs.writeFileSync(path.join(list.dir, "外から.md"), "# 外から\n");
+  await until(() => events.some((e) => e.type === "memos" && e.project_id === project.id && e.path === "外から.md"));
+  assert.ok(!events.some((e) => e.type === "memos" && e.path === ".隠し.md"));
+});
+
 test("チャットの文からメモ: 「<チャット名> チャットメモ<n>」で作り、追記・要約もできる", async () => {
   const { call, project, store, provider } = setup();
   const base = `/api/projects/${project.id}`;

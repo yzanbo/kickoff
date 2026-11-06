@@ -12,6 +12,7 @@ import type { AgentProvider } from "../providers/types.js";
 import { runCommand } from "../system/exec.js";
 import { expandHome } from "../system/paths.js";
 import { memoPlanPrompt, parseMemoPlan, type PlanFile } from "./memoAi.js";
+import { MemoWatcher } from "./memoWatcher.js";
 
 /** 一覧に出す数の上限（大きなフォルダを指しても重くならないように） */
 const MAX_ENTRIES = 5000;
@@ -46,8 +47,18 @@ export function memoSourceLine(chat: Chat, at: Date): string {
 
 export class MemoService {
   readonly defaultDir: string;
+  // Kickoff の外（Finder・ほかのアプリ）での変更も知らせる見張り（消したプロジェクトのものは、次に変わったときにやめる）
+  private readonly watcher = new MemoWatcher((projectId, file) => {
+    if (!this.opts.store.projects.get(projectId)) this.watcher.stop(projectId);
+    else this.opts.publish({ type: "memos", project_id: projectId, path: file });
+  });
   constructor(private readonly opts: MemoServiceOptions) {
     this.defaultDir = opts.defaultDir;
+  }
+
+  /** 見張りをすべてやめる（コアを止めるとき） */
+  close(): void {
+    this.watcher.close();
   }
 
   /** メモの親フォルダ（設定。なければ既定） */
@@ -77,6 +88,8 @@ export class MemoService {
   async list(project: Project): Promise<MemoList> {
     const dir = this.dirOf(project);
     const exists = await isDirectory(dir);
+    // 一覧を見ている間は、外での変更も知らせる（フォルダが変わったら見張り直す）
+    if (exists) this.watcher.watch(project.id, dir);
     const entries: MemoEntry[] = [];
     let truncated = false;
     const walk = async (rel: string) => {
@@ -100,7 +113,9 @@ export class MemoService {
 
   /** メモの中身（なければ 404） */
   async read(project: Project, file: string): Promise<FileContent> {
-    return readProjectFile(await this.existingDir(project), file);
+    const dir = await this.existingDir(project);
+    this.watcher.watch(project.id, dir);
+    return readProjectFile(dir, file);
   }
 
   /** メモのフォルダのファイルの中身そのもの（HTML のメモが相対パスで読む CSS・画像など。なければ 404・大きすぎれば 400） */

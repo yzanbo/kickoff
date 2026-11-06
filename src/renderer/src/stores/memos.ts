@@ -1,11 +1,11 @@
 // プロジェクトごとのメモの一覧（フォルダとファイル）。メモのタブ・「メモに追加」の追記先で共通に読む。
-// Kickoff の中で変えたら知らせ（memos）で取り直し、Finder・ほかのアプリで変えたものは、ウィンドウに戻ったとき・30 秒たって使ったときに取り直す
+// 変わったら知らせ（memos）で取り直す（Finder・ほかのアプリでの変更も、コアがフォルダを見張って知らせる）。見張れなかったときのために、ウィンドウに戻ったとき・30 秒たって使ったときにも取り直す
 import type { MemoList } from "@shared/types";
 import { api } from "@/api";
 import { createKeyedStore } from "./keyedStore";
 import { useKeyedStore } from "./useStore";
 
-/** 取り直すまでの間隔（Kickoff の外での変更を拾う） */
+/** 取り直すまでの間隔（見張りで拾えなかった、Kickoff の外での変更を拾う） */
 const MAX_AGE_MS = 30_000;
 
 export const memosStore = createKeyedStore<number, MemoList>({
