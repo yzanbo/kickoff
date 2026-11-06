@@ -172,6 +172,10 @@ function callbacksFor(
       runtime.update({ compacting: active ? (runtime.compacting ?? { since: new Date().toISOString(), trigger: compactTrigger }) : null }),
     // 失敗は、手で圧縮したときだけお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない too_few_groups なども含み、
     // Claude Code も知らせない。本当にあふれたら、作業そのものが失敗として残る）
+    // 圧縮の直後のコンテキストの大きさは、作業の終わりを待たずにチャットへ書く（入力欄のメーターがすぐ縮む。作業の終わりには最後の応答の大きさで書き直す）
+    context: (tokens) => {
+      if (store.chats.get(chatId)?.context_tokens !== tokens) store.chats.update(chatId, { context_tokens: tokens });
+    },
     compactFailed: (reason) => {
       if (compactTrigger === "manual") store.events.add(chatId, { type: "notice", message: `会話の圧縮に失敗しました${reason ? `（${reason}）` : ""}` });
     },

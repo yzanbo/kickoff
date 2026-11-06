@@ -104,6 +104,11 @@ export interface ProviderCallbacks {
    * 自動の圧縮の失敗は、要約するものがない（too_few_groups）なども含むので Claude Code も知らせない）
    */
   compactFailed?(reason: string | null): void;
+  /**
+   * 作業の途中でコンテキストの大きさが変わった（圧縮の直後。要約したあとの大きさが分からなければ、次のメインの応答のトークン数）。
+   * 作業の終わりを待たずに画面のメーターへ反映するため（保存はコアが）
+   */
+  context?(tokens: number): void;
   /** 作業中のチャットへの操作を渡す（終わったら null） */
   control?(control: TurnControl | null): void;
 }

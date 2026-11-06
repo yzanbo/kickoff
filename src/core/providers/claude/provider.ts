@@ -142,6 +142,8 @@ export class ClaudeProvider implements AgentProvider {
     let final: SDKResultMessage | undefined;
     // メインのエージェントの最後の応答で、コンテキストに入っていたトークン数
     let contextTokens: number | undefined;
+    // 要約したあとの大きさが分からず、次のメインの応答で知らせるところか
+    let contextAfterCompact = false;
     // メインの会話の最後のメッセージの ID（分岐の位置。結果に残す）
     let lastMessageId: string | undefined;
     // 通信を再試行しているところか（返答が届き始めたら終わり）と、応答のないまま再試行したことがあるか（通信の切断の目印）
@@ -224,10 +226,19 @@ export class ClaudeProvider implements AgentProvider {
           const u = msg.message.usage;
           contextTokens =
             u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + u.output_tokens;
+          // 要約したあとの大きさが分からなかったときは、要約のあとの最初の応答で知らせる
+          if (contextAfterCompact) {
+            contextAfterCompact = false;
+            cb.context?.(contextTokens);
+          }
         }
-        // 要約したあとのコンテキストの大きさ（分かるときだけ）
-        if (msg.type === "system" && msg.subtype === "compact_boundary" && msg.compact_metadata.post_tokens !== undefined) {
-          contextTokens = msg.compact_metadata.post_tokens;
+        // 要約したあとのコンテキストの大きさ。作業の終わりを待たずに知らせる（自動の圧縮は作業の途中で起き、そのあとも作業が続くため）
+        if (msg.type === "system" && msg.subtype === "compact_boundary") {
+          const post = msg.compact_metadata.post_tokens;
+          if (post !== undefined) {
+            contextTokens = post;
+            cb.context?.(post);
+          } else contextAfterCompact = true;
         }
       }
     } catch (e) {
