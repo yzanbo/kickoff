@@ -37,3 +37,13 @@ export function adjacentPrompt(ids: number[], tops: Map<number, number>, dir: -1
     return top !== undefined && top > SLACK;
   });
 }
+
+/**
+ * from の前（dir = -1）・次（dir = 1）の指示（なければ undefined）。from が指示でない吹き出し（質問への回答）なら、
+ * 記録の順でその前・後ろにあるいちばん近い指示（ids は記録の順 = ID の昇順）
+ */
+export function promptAround(ids: number[], from: number, dir: -1 | 1): number | undefined {
+  const at = ids.indexOf(from);
+  if (at >= 0) return ids[at + dir];
+  return dir < 0 ? ids.findLast((id) => id < from) : ids.find((id) => id > from);
+}

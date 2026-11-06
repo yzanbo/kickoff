@@ -3,7 +3,8 @@ import type { Attachment } from "@shared/types";
 import { useSetting } from "@/hooks/useSetting";
 import { STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 import type { PromptList } from "./promptHistory";
-import { readingPrompt } from "./StickyPrompt";
+import { promptAround } from "./promptNav";
+import { readingPrompt, samePinned, type PinnedPrompt } from "./StickyPrompt";
 
 const NO_ATTACHMENTS: Attachment[] = [];
 
@@ -15,22 +16,21 @@ const NO_ATTACHMENTS: Attachment[] = [];
  */
 export function useStickyPrompt(timeline: RefObject<HTMLElement | null>, prompts: PromptList, firstKey: string | undefined, lastKey: string | undefined) {
   const [hidden] = useSetting(STICKY_PROMPT_HIDDEN);
-  const [pinned, setPinned] = useState<{ id: number; text: string }>();
+  const [pinned, setPinned] = useState<PinnedPrompt>();
   const update = () => {
     const el = timeline.current;
     const next = !el || hidden ? undefined : readingPrompt(el);
-    setPinned((prev) => (prev?.id === next?.id && prev?.text === next?.text ? prev : next));
+    setPinned((prev) => (samePinned(prev, next) ? prev : next));
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(update, [firstKey, lastKey, hidden]);
-  // 自分の指示の並びの中の位置（帯の ↑ / ↓ を押せるか）と、貼り付けた指示の添付
-  const at = pinned ? prompts.ids.indexOf(pinned.id) : -1;
+  // 帯の ↑ / ↓ を押せるか（貼り付けたのが質問への回答なら、その前後に指示があるか）と、貼り付けた指示の添付
   return {
     /** 帯に出す指示（出さない・まだ流れていないときは undefined） */
     pinned: hidden ? undefined : pinned,
     attachments: (pinned && prompts.byId.get(pinned.id)?.attachments) || NO_ATTACHMENTS,
-    hasPrev: at > 0,
-    hasNext: at >= 0 && at < prompts.ids.length - 1,
+    hasPrev: pinned !== undefined && promptAround(prompts.ids, pinned.id, -1) !== undefined,
+    hasNext: pinned !== undefined && promptAround(prompts.ids, pinned.id, 1) !== undefined,
     update,
   };
 }
