@@ -1,7 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
-import type { ChatOptionsPatch, ChildChatBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody } from "@shared/types";
+import type { ChatOptionsPatch, ChildChatBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody, SubagentChildBody } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
 import { COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 
@@ -119,6 +119,9 @@ export const childChatSchema = z
     event_id: z.number().int().positive().nullable().default(null),
   })
   .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<ChildChatBody, unknown>;
+
+/** サブエージェントに子チャットで直接聞く（文か添付が要る） */
+export const subagentChildSchema = z.object(messageShape).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<SubagentChildBody, unknown>;
 
 /** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す。pause_after なら、その指示のあとで一時停止する） */
 export const queueMessageSchema = z.object({ ...messageShape, hold: z.boolean().optional(), pause_after: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;

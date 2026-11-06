@@ -33,11 +33,22 @@ export interface AgentProvider {
   ask?(prompt: string, options?: { model?: AskModel }): Promise<string>;
   /** 会話を messageId の位置までで分けた、新しいセッションを作る（ここから分岐。対応していなければ未実装） */
   fork?(sessionId: string, messageId: string, cwd: string): Promise<string>;
+  /**
+   * サブエージェントの会話（依頼・発言・ツールと結果）を、記録から読む（「サブエージェントに子チャットで聞く」で添える。読めなければ空）。
+   * sessionId はサブエージェントを動かした親のセッション、cwd はそのセッションを動かした作業フォルダ
+   */
+  subagentLog?(sessionId: string, agentId: string, cwd: string): Promise<SubagentLogItem[]>;
   /** ファイルを、その会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに、変わる量だけを返す）。作業中でないときに呼ぶ */
   rewindFiles?(sessionId: string, messageId: string, cwd: string, dryRun: boolean): Promise<FileRewindResult>;
   /** 1 ターン分（ユーザーの 1 メッセージに対する応答完了まで）を実行する */
   run(params: ProviderTurnParams, callbacks: ProviderCallbacks, signal: AbortSignal): Promise<ProviderTurnResult>;
 }
+
+/** サブエージェントの会話の 1 つ分（プロバイダーによらない形。user は依頼と、あとから伝えた指示） */
+export type SubagentLogItem =
+  | { kind: "user"; text: string }
+  | { kind: "assistant"; text: string }
+  | { kind: "tool"; name: string; input: unknown; result: string | null; isError: boolean };
 
 export interface ProviderTurnParams {
   cwd: string;

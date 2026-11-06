@@ -1,6 +1,7 @@
 import os from "node:os";
 import {
   forkSession,
+  getSubagentMessages,
   query,
   type Options,
   type Query,
@@ -20,10 +21,11 @@ import { EFFORT_LEVELS, type EffortLevel, type FileRewindResult, type ModelOptio
 import { createCanUseTool } from "./approvals.js";
 import { agentEnv, resolveClaudeExecutable } from "./env.js";
 import { createMessageState, emitSdkMessage } from "./messages.js";
+import { subagentLogOf } from "./subagentLog.js";
 import { turnContextHook, turnHooks, toAllowedTools } from "./policy.js";
 import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
-import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../types.js";
+import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../types.js";
 import { runCommand } from "../../system/exec.js";
 
 /** 要約に渡す文の上限（文字。haiku のコンテキストと時間に収める） */
@@ -299,6 +301,13 @@ export class ClaudeProvider implements AgentProvider {
     } catch {
       return (await forkSession(sessionId, { upToMessageId: messageId })).sessionId;
     }
+  }
+
+  /** サブエージェントの会話を記録から読む（cwd のプロジェクトで見つからなければ、すべてのプロジェクトから探す。なければ空） */
+  async subagentLog(sessionId: string, agentId: string, cwd: string): Promise<SubagentLogItem[]> {
+    let messages = await getSubagentMessages(sessionId, agentId, { dir: cwd }).catch(() => []);
+    if (messages.length === 0) messages = await getSubagentMessages(sessionId, agentId).catch(() => []);
+    return subagentLogOf(messages);
   }
 
   /** ファイルを、会話の自分の発言（messageId）を送る前の状態に戻す（dryRun なら戻さずに量だけ）。発言は送らずにセッションを開いて頼む */

@@ -1,4 +1,4 @@
-import type { Chat, ChatOptionsPatch, Attachment, ChildChatBody, FileRewindResult, SendMessageBody, TellResult } from "@shared/types";
+import type { Chat, ChatOptionsPatch, Attachment, ChildChatBody, FileRewindResult, SendMessageBody, SubagentChildBody, TellResult } from "@shared/types";
 import { request } from "./http";
 
 /** チャットの実行（続きを送る・止めずに伝える・止める・圧縮・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し。コアの routes/turns.ts） */
@@ -26,6 +26,9 @@ export const turnsApi = {
   forkChat: (chatId: number, eventId: number) => request<Chat>("POST", `/api/chats/${chatId}/fork`, { event_id: eventId }),
   /** 子チャットで聞く（親の作業中でも始められる。inherit なら親の会話を引き継ぐ） */
   createChildChat: (chatId: number, body: ChildChatBody) => request<Chat>("POST", `/api/chats/${chatId}/children`, body),
+  /** サブエージェントに子チャットで直接聞く（サブエージェントの会話の記録を添付にして、このチャットの子チャットを作って送る） */
+  askSubagentInChild: (chatId: number, agentId: string, body: SubagentChildBody) =>
+    request<Chat>("POST", `/api/chats/${chatId}/subagents/${encodeURIComponent(agentId)}/children`, body),
   /** 自分の発言（user イベント）の手前まで巻き戻して、書き直した文で送り直す（添付は元の発言のもの。restoreFiles ならファイルも戻す） */
   rewindChat: (chatId: number, eventId: number, text: string, options: ChatOptionsPatch = {}, restoreFiles = false) =>
     request<Chat>("POST", `/api/chats/${chatId}/rewind`, { event_id: eventId, text, options, restore_files: restoreFiles }),

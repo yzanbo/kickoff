@@ -1,5 +1,6 @@
 // API のテスト: 子チャット（作る・親の会話を引き継ぐ / 引き継がない・子孫ごとのアーカイブ・移動・削除。共通の準備は testing/testServer.ts）
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { test } from "node:test";
 import { tempDir } from "../testing/tempDir.js";
 import { setup, until } from "../testing/testServer.js";
@@ -120,4 +121,70 @@ test("子チャット: 親をアーカイブ・移動・削除すると、子孫
 
   assert.equal((await call("DELETE", `/api/chats/${parentId}`)).status, 204);
   assert.deepEqual([parentId, child.id, grandchild.id].map((id) => store.chats.get(id)), [undefined, undefined, undefined]);
+});
+
+/** 裏で動かしたサブエージェント（ID a1・依頼つき・報告済み）がいる、終わったチャットを作る */
+async function chatWithSubagent(ctx: ReturnType<typeof setup>) {
+  ctx.provider.emits = [
+    { type: "tool_use", id: "tu1", name: "Agent", input: { description: "調査", prompt: "src の構成を調べて", subagent_type: "Explore" } },
+    { type: "subagent", task_id: "a1", tool_use_id: "tu1", description: "調査", status: "running" },
+    { type: "subagent", task_id: "a1", tool_use_id: "tu1", description: "", status: "completed", summary: "見つけたのは 3 件" },
+    { type: "tool_result", tool_use_id: "tu1", content: "見つけたのは 3 件", is_error: false },
+  ];
+  const id = await finishedChat(ctx);
+  ctx.provider.emits = [];
+  return id;
+}
+
+/** 子チャットの最初の発言と、添付したサブエージェントの記録の中身 */
+async function firstMessage(ctx: ReturnType<typeof setup>, childId: number) {
+  const user = ctx.store.events.list(childId).find((e) => e.type === "user");
+  assert.ok(user?.type === "user");
+  const file = await ctx.uploads.resolve(user.data.attachments![0].id);
+  return { text: user.data.text, attachments: user.data.attachments!, markdown: fs.readFileSync(file!.path, "utf8") };
+}
+
+test("サブエージェントに子チャットで聞く: 会話の記録を Claude Code から読んで添付にし、起動した呼び出しから子チャットを始める（会話は引き継がない）", async () => {
+  const ctx = setup();
+  const parentId = await chatWithSubagent(ctx);
+  ctx.provider.subagentLogs.a1 = [
+    { kind: "user", text: "src の構成を調べて" },
+    { kind: "assistant", text: "見ていきます。" },
+    { kind: "tool", name: "Bash", input: { command: "ls src" }, result: "core\nrenderer", isError: false },
+    { kind: "user", text: "テストも見て" },
+  ];
+  const created = await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "core には何がある？" });
+  assert.equal(created.status, 201);
+  const child = created.body;
+  const call = ctx.store.events.list(parentId).find((e) => e.type === "tool_use" && e.data.id === "tu1")!;
+  assert.equal(child.parent_chat_id, parentId);
+  assert.equal(child.parent_event_id, call.id);
+  assert.equal(child.title, "core には何がある？");
+  assert.deepEqual(ctx.provider.subagentLogCalls, [["s1", "a1", ctx.project.repo_path]]);
+  assert.deepEqual(ctx.provider.forks, []);
+  const { text, attachments, markdown } = await firstMessage(ctx, child.id);
+  assert.equal(attachments[0].name, "サブエージェントの記録-調査.md");
+  assert.ok(text.startsWith("【サブエージェントに直接聞く】「調査」（ID: a1）"));
+  assert.ok(text.endsWith("\n---\ncore には何がある？"));
+  for (const part of ["## 依頼（メインのエージェントから）\n\nsrc の構成を調べて", "## サブエージェント\n\n見ていきます。", "### ツール Bash", "ls src", "core\nrenderer", "## 追加の指示（メインのエージェントから）\n\nテストも見て", "## 親への報告\n\n見つけたのは 3 件", "種類 Explore"]) {
+    assert.ok(markdown.includes(part), part);
+  }
+  const notice = ctx.store.events.list(child.id).find((e) => e.type === "notice");
+  assert.ok(notice?.type === "notice" && notice.data.message.includes("会話の記録を添えて始めました"));
+  await until(() => !ctx.runner.isBusy(child.id));
+  assert.equal(ctx.provider.resumes.at(-1), null);
+});
+
+test("サブエージェントに子チャットで聞く: Claude Code から記録が読めなければ Kickoff に残っている分（依頼・報告）を添える。知らないサブエージェントは 400", async () => {
+  const ctx = setup();
+  const parentId = await chatWithSubagent(ctx);
+  const child = (await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "どうだった？" })).body;
+  const { markdown } = await firstMessage(ctx, child.id);
+  assert.ok(markdown.includes("## 依頼（メインのエージェントから）\n\nsrc の構成を調べて"));
+  assert.ok(markdown.includes("## 親への報告\n\n見つけたのは 3 件"));
+  const notice = ctx.store.events.list(child.id).find((e) => e.type === "notice");
+  assert.ok(notice?.type === "notice" && notice.data.message.includes("読めなかったので"));
+  await until(() => !ctx.runner.isBusy(child.id));
+  assert.equal((await ctx.call("POST", `/api/chats/${parentId}/subagents/zz/children`, { text: "?" })).status, 400);
+  assert.equal((await ctx.call("POST", `/api/chats/${parentId}/subagents/a1/children`, { text: "" })).status, 400);
 });

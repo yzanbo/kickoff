@@ -123,6 +123,11 @@ export const chatDraft = defineSettingFamily("kickoff:chat-draft:", text(), { id
 /** サブエージェントに伝える入力欄の書きかけの文（キーは「チャット:サブエージェントの行のキー」。カードの「伝える」と右の欄の画面で共通。送った・空にしたら消す） */
 export const subagentTellDraft = defineSettingFamily("kickoff:subagent-tell-draft:", text(), { ids: true });
 /**
+ * サブエージェントへの入力欄の送り先（relay = メインのエージェントから SendMessage で伝える / child = 会話の記録を添えた子チャットで直接聞く。
+ * カードの「伝える」と右の欄の画面で共通。最後に選んだ方を覚える）
+ */
+export const SUBAGENT_ASK_MODE = defineSetting("kickoff:subagent-ask-mode", choice(["relay", "child"], "relay"));
+/**
  * サブエージェントを押したときに開く場所（inline = メインの流れの中のカードを開く / side = チャットの画面の右の欄にサブエージェントの画面を開く /
  * window = 別ウィンドウ。初めは右の欄。カードの見出し・動きの行・ピルの一覧・裏の作業の一覧で共通。ほかはピルの一覧の行のボタン・カードのボタンで選べる。
  * 設定の「表示」と、ピルの一覧の上でも変えられる）
