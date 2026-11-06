@@ -53,11 +53,16 @@ test("通信が戻って自動で再開する指示: 止まったサブエージ
   assert.match(prompt, /- 「調査」（ID: a1）/);
 });
 
-test("圧縮前指示・圧縮後指示: 共通 → プロジェクトの順に空行でつなぎ、空のものは除く", () => {
-  assert.equal(compactPromptFor("メモを残す", "TODO を書く"), "メモを残す\n\nTODO を書く");
-  assert.equal(compactPromptFor(null, " TODO を書く "), "TODO を書く");
-  assert.equal(compactPromptFor("  ", null), null);
-  assert.equal(compactPromptFor(null, null), null);
+test("圧縮前指示・圧縮後指示: オンの分を共通 → プロジェクトの順に空行でつなぎ、空・オフのものは除く", () => {
+  const source = (pre: string | null, enabled = true) => ({ pre_compact_prompt: pre, post_compact_prompt: "あと", pre_compact_enabled: enabled, post_compact_enabled: true });
+  assert.equal(compactPromptFor("pre", source("メモを残す"), source("TODO を書く")), "メモを残す\n\nTODO を書く");
+  assert.equal(compactPromptFor("pre", source(null), source(" TODO を書く ")), "TODO を書く");
+  assert.equal(compactPromptFor("pre", source("  "), undefined), null);
+  assert.equal(compactPromptFor("pre", undefined, undefined), null);
+  // オフにした分は、文が残っていても送らない（種類ごとに別）
+  assert.equal(compactPromptFor("pre", source("メモを残す", false), source("TODO を書く")), "TODO を書く");
+  assert.equal(compactPromptFor("pre", source("メモを残す", false), source("TODO を書く", false)), null);
+  assert.equal(compactPromptFor("post", source("メモを残す", false), undefined), "あと");
 });
 
 test("圧縮後指示: 圧縮したことを前置きにして、指示の文をそのまま添える", () => {

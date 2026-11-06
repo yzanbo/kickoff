@@ -1,6 +1,7 @@
 import type { Attachment, ChatEvent, ChatEventOf } from "@shared/types";
 import { subagentAskOf } from "@shared/chat/prompts";
-import { compactKindOf, type CompactPromptKind } from "@/features/snippet/compactPromptKinds";
+import { compactKindOf } from "@/features/snippet/compactPromptKinds";
+import type { CompactPromptKind } from "@shared/chat/prompts";
 
 /**
  * 自分の指示（発言）の一覧と、チャット欄の ↑↓ で前に送った発言を呼び出す決まり。

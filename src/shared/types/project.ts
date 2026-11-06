@@ -30,6 +30,10 @@ export interface Project {
   pre_compact_prompt: string | null;
   /** このプロジェクトの圧縮後指示（会話を圧縮したあとに AI に送る指示。設定の共通の指示のあとにつなぐ。null ならなし） */
   post_compact_prompt: string | null;
+  /** このプロジェクトの圧縮前指示を送るか（false なら文を残したまま送らない） */
+  pre_compact_enabled: boolean;
+  /** このプロジェクトの圧縮後指示を送るか（false なら文を残したまま送らない） */
+  post_compact_enabled: boolean;
   created_at: string;
 }
 

@@ -55,6 +55,9 @@ const projectPatchSchema = z
     // このプロジェクトの圧縮前指示（null ならなし）
     pre_compact_prompt: compactPrompt,
     post_compact_prompt: compactPrompt,
+    // このプロジェクトの圧縮前指示・圧縮後指示を送るか（オフでも文は残す）
+    pre_compact_enabled: z.boolean(),
+    post_compact_enabled: z.boolean(),
   })
   .partial() satisfies z.ZodType<ProjectPatch>;
 

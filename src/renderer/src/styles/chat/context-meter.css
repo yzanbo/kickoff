@@ -272,9 +272,27 @@
   border-radius: 8px;
 }
 
-.context-pre-compact-scope {
-  justify-self: start;
+/* 範囲（共通 / プロジェクト）を左、選んでいる方のオン / オフを右端に */
+.context-pre-compact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.context-pre-compact-scope,
+.context-pre-compact-switch {
   padding: 2px;
+}
+
+.context-pre-compact-switch {
+  flex: none;
+}
+
+.context-pre-compact-switch button {
+  padding: 2px 10px;
+  font-size: 12px;
 }
 
 /*

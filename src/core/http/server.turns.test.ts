@@ -140,12 +140,26 @@ test("圧縮前指示: 手で圧縮すると、先に共通 → プロジェク�
   release2();
   assert.equal(provider.prompts.length, 4);
 
-  // 指示がなければすぐ /compact
-  await call("PUT", "/api/settings", { pre_compact_prompt: null });
-  await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: null });
+  // オフにした分は、文が残っていても送らない（残りのオンの分だけ）
+  await call("PUT", "/api/settings", { pre_compact_enabled: false });
+  const release3 = provider.hold();
   await call("POST", `/api/chats/${chatId}/compact`);
-  await until(() => provider.prompts.length === 5 && !runner.isBusy(chatId));
-  assert.equal(provider.prompts[4], "/compact");
+  await until(() => provider.prompts.length === 5);
+  assert.equal(provider.prompts[4], manualPreCompactMessage("プロジェクトの指示"));
+  release3();
+  await until(() => provider.prompts.length === 6 && !runner.isBusy(chatId));
+  assert.equal(provider.prompts[5], "/compact");
+
+  // すべてオフ・指示がなければすぐ /compact
+  await call("PATCH", `/api/projects/${project.id}`, { pre_compact_enabled: false });
+  await call("POST", `/api/chats/${chatId}/compact`);
+  await until(() => provider.prompts.length === 7 && !runner.isBusy(chatId));
+  assert.equal(provider.prompts[6], "/compact");
+  await call("PUT", "/api/settings", { pre_compact_prompt: null, pre_compact_enabled: true });
+  await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: null, pre_compact_enabled: true });
+  await call("POST", `/api/chats/${chatId}/compact`);
+  await until(() => provider.prompts.length === 8 && !runner.isBusy(chatId));
+  assert.equal(provider.prompts[7], "/compact");
 });
 
 test("圧縮前指示: 自動の圧縮の前に足す指示は、コンテキストウィンドウが分かってから渡し、足したら記録して、圧縮するまで渡さない", async () => {

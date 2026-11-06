@@ -4,14 +4,14 @@ import type { Chat, Project, QueuedMessage } from "@shared/types";
 import type { Store } from "../db/store.js";
 import type { ProviderTurnParams } from "../providers/types.js";
 
-/** そのプロジェクトで送る圧縮前指示（設定の共通の指示 → プロジェクトの指示の順につなぐ。どちらもなければ null） */
+/** そのプロジェクトで送る圧縮前指示（オンの分を、設定の共通の指示 → プロジェクトの指示の順につなぐ。どちらもなければ null） */
 export function preCompactPromptOf(store: Store, project: Project): string | null {
-  return compactPromptFor(store.settings.get().pre_compact_prompt, project.pre_compact_prompt);
+  return compactPromptFor("pre", store.settings.get(), project);
 }
 
-/** そのプロジェクトで送る圧縮後指示（設定の共通の指示 → プロジェクトの指示の順につなぐ。どちらもなければ null） */
+/** そのプロジェクトで送る圧縮後指示（オンの分を、設定の共通の指示 → プロジェクトの指示の順につなぐ。どちらもなければ null） */
 export function postCompactPromptOf(store: Store, project: Project): string | null {
-  return compactPromptFor(store.settings.get().post_compact_prompt, project.post_compact_prompt);
+  return compactPromptFor("post", store.settings.get(), project);
 }
 
 /**

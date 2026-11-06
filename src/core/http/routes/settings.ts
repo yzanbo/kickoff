@@ -31,6 +31,9 @@ const settingsSchema = z
     // 共通の圧縮前指示（null ならなし）
     pre_compact_prompt: compactPrompt,
     post_compact_prompt: compactPrompt,
+    // 共通の圧縮前指示・圧縮後指示を送るか（オフでも文は残す）
+    pre_compact_enabled: z.boolean(),
+    post_compact_enabled: z.boolean(),
   })
   .partial()
   .strict() satisfies z.ZodType<Partial<AppSettings>>;
