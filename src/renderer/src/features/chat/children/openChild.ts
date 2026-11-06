@@ -4,9 +4,9 @@ import type { Chat } from "@shared/types";
 import { canPopout, openPopout, parsePopout } from "@/app/popout";
 import { openChat } from "@/app/router";
 import { postToMainWindow } from "@/app/windowBus";
-import { CHILD_CHAT_OPEN_IN, chatDraft } from "@/lib/storageKeys";
+import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE, chatDraft } from "@/lib/storageKeys";
 import { readSetting, writeSetting } from "@/lib/storage";
-import { knownChat } from "@/stores/chats";
+import { addChat, knownChat } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { chatPaneOf, isChatPaneShown } from "@/features/chat/pane/windowMessages";
 import { panelActions } from "@/features/panel/state/panelActions";
@@ -52,6 +52,16 @@ export function openChildChat(chat: Pick<Chat, "id" | "project_id" | "title">, p
   if ((place ?? readSetting(CHILD_CHAT_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "chat", chatId: chat.id }, `${chatTitle(chat.title)} — 子チャット`);
   if (inPopout()) return postToMainWindow({ type: "openChild", chatId: chat.id });
   openChildSide(chat);
+}
+
+/**
+ * 作ったばかりの子チャットを、設定の「子チャットを作ったとき」（CHILD_CHAT_OPEN_ON_CREATE）で開く（右の欄 / 別ウィンドウ / 開かない）。
+ * 作った知らせより先に一覧へ入れる（入っていないと親をたどれず、右の欄でなくふつうのチャットのタブで開いてしまう。入力欄の上の札にもすぐ並ぶ）
+ */
+export function openCreatedChild(child: Chat) {
+  addChat(child);
+  const on = readSetting(CHILD_CHAT_OPEN_ON_CREATE);
+  if (on !== "none") openChildChat(child, on);
 }
 
 /** そのチャットの画面を見せる（子チャットなら右の欄のタブ、いちばん上のチャットならチャットのパネル） */

@@ -18,6 +18,7 @@ import { chatTitle } from "@/features/chat/chatTitle";
 import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { openChildChat } from "./openChild";
+import { useNewChildFlash } from "./useNewChildFlash";
 
 /** 子チャットの様子の文（札に添える。作業中・回答待ち・答えあり（未読）・失敗・見た） */
 const CHILD_STATE_LABELS: Record<AgentState, string> = {
@@ -62,7 +63,7 @@ export function ChildChatMarks({ chatId, eventId }: { chatId: number; eventId: n
  * 状態の印・名前・様子 · モデル · 最後に動いた時刻、右に「右で開く」「新規ウィンドウで開く」とアーカイブ・削除）を開く。行を押すと設定の開き方で開き、
  * 一覧の上で行を押したときの開き方（設定）を変えられる。会話を遡らなくても、答えが来たこととどこにあるかが分かる。
  * アーカイブした子チャットは一覧と件数から外し、いちばん下の閉じたまとまり「アーカイブ済み n」（ArchivedFold。サイドバー・サブエージェントの一覧と同じ）を開いて戻せる（すべてアーカイブしていれば
- * ピルは「アーカイブ済みの子チャット n 件」）
+ * ピルは「アーカイブ済みの子チャット n 件」）。子チャットが新しくできたら、少しの間ピルを光らせる（useNewChildFlash）
  */
 export function ChildChatsChip({ chatId }: { chatId: number }) {
   // アーカイブ済みも数えるので、アーカイブ済みの一覧も読む（全プロジェクトで 1 回だけ読み、知らせで直す）
@@ -71,6 +72,8 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   const models = useModels();
   const popover = usePopover();
   const [openIn, setOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
+  // 子チャットが新しくできたら、少しの間ピルを光らせる（開かない設定でも、作ったことと置き場所が分かる）
+  const flashing = useNewChildFlash(children);
   if (!children?.length) return null;
   const visible = children.filter((c) => !c.archived_at);
   const hidden = children.filter((c) => c.archived_at);
@@ -156,6 +159,7 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
         )
       }
       label="子チャット"
+      chipClassName={flashing ? "child-chats-new" : undefined}
       // アーカイブ・戻す・削除の確かめのダイアログを押しても、一覧は閉じない
       ignore="dialog"
     >

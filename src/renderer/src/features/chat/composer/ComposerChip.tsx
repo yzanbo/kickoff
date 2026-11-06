@@ -13,6 +13,7 @@ export function ComposerChip({
   title,
   label,
   className,
+  chipClassName,
   ignore,
   onToggle,
   onClose,
@@ -28,6 +29,8 @@ export function ComposerChip({
   label: string;
   /** 一覧に足す class（chip-popover に足す） */
   className?: string;
+  /** ピルに足す class（新しい子チャットができたときに光らせるなど） */
+  chipClassName?: string;
   /** 外側のクリックとして閉じない要素のセレクタ（一覧から開く確かめのダイアログなど） */
   ignore?: string;
   /** ピルを押したとき（省けば開閉） */
@@ -40,7 +43,7 @@ export function ComposerChip({
 }) {
   return (
     <div ref={ref} className="chip-wrap">
-      <button ref={popover.anchor} type="button" className={cx("composer-chip", popover.open && "open")} aria-expanded={popover.open} title={title} onClick={onToggle ?? popover.toggle}>
+      <button ref={popover.anchor} type="button" className={cx("composer-chip", popover.open && "open", chipClassName)} aria-expanded={popover.open} title={title} onClick={onToggle ?? popover.toggle}>
         {chip}
         <ChevronUp size={13} className="chip-chevron" aria-hidden />
       </button>

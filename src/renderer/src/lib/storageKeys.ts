@@ -136,6 +136,11 @@ export const SUBAGENT_OPEN_IN = defineSetting("kickoff:subagent-open-in", choice
  */
 export const CHILD_CHAT_OPEN_IN = defineSetting("kickoff:child-chat-open-in", choice(["side", "window"], "side"));
 /**
+ * 子チャットを作ったときの開き方（side = 右の欄で開く / window = 別ウィンドウで開く / none = 開かない。初めは右の欄。設定の「表示」）。
+ * チャット欄の「子チャットに送る」・「子チャットで聞く」の画面・送信待ちの「子チャットで開く / 移す」で共通（別ウィンドウを開けないブラウザでは右の欄）
+ */
+export const CHILD_CHAT_OPEN_ON_CREATE = defineSetting("kickoff:child-chat-open-on-create", choice(["side", "window", "none"], "side"));
+/**
  * チャットからメモを開く場所（side = チャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」）。
  * 「メモに追加」のあとの「開く」・入力欄の上のメモの札で共通（メモのタブから開くのは、メモのタブの中）
  */

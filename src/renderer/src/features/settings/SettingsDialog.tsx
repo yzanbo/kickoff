@@ -15,6 +15,7 @@ import { UsagePanel } from "@/features/usage/UsagePanel";
 import { SnippetSettings } from "@/features/snippet/SnippetSettings";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
+import { ChildChatCreateField } from "./ChildChatCreateField";
 import { ConnectionSettings } from "./ConnectionSettings";
 import { DiagnosticsSettings } from "./DiagnosticsSettings";
 import { MemoSettings } from "./MemoSettings";
@@ -206,6 +207,7 @@ function DisplaySettings() {
           value={childChatOpenIn}
           onChange={setChildChatOpenIn}
         />
+        <ChildChatCreateField />
         <OpenPlaceField
           label="チャットからメモを開く場所"
           help="「メモに追加」のあとの「開く」と、入力欄の上の「メモ」の一覧から開くときの開き方です。右の欄は、チャットの画面の右にタブで開き、会話を見ながら書けます。別ウィンドウは、メモごとに新しいウィンドウで開きます。入力欄の上の「メモ」の一覧の上でも変えられ、一覧の行のボタンで、ここによらずどちらでも開けます。"

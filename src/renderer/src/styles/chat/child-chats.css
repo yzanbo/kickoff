@@ -92,6 +92,44 @@
   color: var(--ok);
 }
 
+/*
+ * 子チャットが新しくできたときに、入力欄の上の「子チャット n 件」のピルを少しのあいだ光らせる（useNewChildFlash。長さは FLASH_MS と合わせる）。
+ * アクセントの色の枠と地で 2 回明滅させ、そのあと元の見た目に戻す（開かない設定でも、作ったことと置き場所が分かるように）
+ */
+.composer-chip.child-chats-new {
+  animation: child-chats-new 2.4s ease-out;
+}
+
+@keyframes child-chats-new {
+  0%,
+  50% {
+    border-color: var(--accent-bright);
+    background: color-mix(in srgb, var(--accent) 22%, var(--bg-elev));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-bright) 35%, transparent);
+  }
+
+  25% {
+    border-color: var(--accent-bright);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-elev));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-bright) 20%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 動きを減らす設定では明滅させず、色だけ付けて戻す */
+  .composer-chip.child-chats-new {
+    animation-name: child-chats-new-still;
+  }
+
+  @keyframes child-chats-new-still {
+    0%,
+    75% {
+      border-color: var(--accent-bright);
+      background: color-mix(in srgb, var(--accent) 16%, var(--bg-elev));
+    }
+  }
+}
+
 /* 右の欄に開いた子チャット（上の帯と、その下にチャットの画面） */
 .side-child-chat {
   display: flex;
