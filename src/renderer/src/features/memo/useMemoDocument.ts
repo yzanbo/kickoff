@@ -34,7 +34,7 @@ export type MemoSaveState = "saved" | "dirty" | "saving" | "conflict" | "error";
  * まだ保存していない書きかけは、メモを離れても・アプリを閉じても失わないよう memoDraft に残し、開き直したら「未保存」のまま戻す。
  * 別のメモへ移る・右の欄のタブを閉じるときは、memoGuards で保存するかを聞く。
  * 保存は開いたときの指紋と比べ、ほかで（チャットからの追記・Finder・ほかのアプリで）変わっていれば保存せずに conflict にする。
- * Kickoff の中でこのメモが変わった知らせが届いたら、書きかけでなければ読み直す（書きかけなら conflict にして選んでもらう）
+ * このメモが変わった知らせ（Kickoff の中でも、Finder・ほかのアプリでも）が届いたら、書きかけでなければ読み直す（書きかけなら conflict にして選んでもらう）
  */
 export function useMemoDocument(projectId: number, path: string) {
   const key = `${projectId}:${path}`;
@@ -194,7 +194,7 @@ export function useMemoDocument(projectId: number, path: string) {
     [key, save, writeDraft],
   );
 
-  // Kickoff の中でこのメモが変わった（チャットからの追記など）。自分の保存の知らせなら、指紋が同じなので何もしない
+  // このメモが変わった（チャットからの追記・Finder・ほかのアプリなど）。自分の保存の知らせなら、指紋が同じなので何もしない
   useServerEvent((e) => {
     if (e.type !== "memos" || e.project_id !== projectId || (e.path !== null && e.path !== path)) return;
     const b = current.current.base;

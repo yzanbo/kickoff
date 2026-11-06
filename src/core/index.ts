@@ -104,6 +104,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
       voice.downloads.stopAll();
       usage.stop();
       stopAutoArchive();
+      memos.close();
       await stopHttpServer(server);
       store.close();
     },
