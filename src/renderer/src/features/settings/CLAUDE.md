@@ -20,7 +20,7 @@
 
 ## 使用状況（`features/usage`）
 
-- プランの使用枠（5 時間・週）は店（`usageStore`）をアプリ全体で 1 つ共有する（`usePlanUsage` を App が持ち、`PlanUsageContext` / `useSharedPlanUsage` で配る）。名前の付け方・段階などは `usage.ts`（`usageWindowLabel`（モデル別の週枠は「週 · Fable」、下の帯の 1 行表示ではモデル名だけ）・`usageLevel`（70% から注意、90% から警告）・`planName` / `planLabel` / `accountLine` / `weeklyModel` / `usageUnavailableText`）。
+- プランの使用枠（5 時間・週）は店（`usageStore`）をアプリ全体で 1 つ共有する（`usePlanUsage` を App が持ち、下の帯 `AppFooter` に渡す。チャット欄のメーターの詳細には出さない）。名前の付け方・段階などは `usage.ts`（`usageWindowLabel`（モデル別の週枠は「週 · Fable」、下の帯の 1 行表示ではモデル名だけ）・`usageLevel`（70% から注意、90% から警告）・`planName` / `planLabel` / `accountLine` / `weeklyModel` / `usageUnavailableText`）。
 - 使用率のバーは `UsageBar`（使用枠のメーター・チャット欄のコンテキストウィンドウで共通。数値のない枠は灰色）、使用枠のメーターは `UsageMeter`、何時時点かと最新の取得の失敗は `UsageFetchedNote`。
 - 設定の「使用状況」（`UsagePanel`）はサービスごと（Claude Code・Codex・GitHub Copilot・Cursor・Gemini）の枠。各サービスのログイン情報を読むだけなので、見られないサービスは理由と見る方法を出す（取るのはコア）。
 

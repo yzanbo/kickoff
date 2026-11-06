@@ -1,17 +1,14 @@
 import { Shrink, X } from "lucide-react";
-import type { Chat, CompactingState, QueuedMessage, UsageWindow } from "@shared/types";
+import type { Chat, CompactingState, QueuedMessage } from "@shared/types";
 import { api } from "@/api";
-import { useProviders } from "@/stores/providers";
 import { useAppSettings } from "@/stores/settings";
 import { autoCompactThreshold } from "@shared/chat/autoCompact";
 import { cx } from "@/lib/cx";
 import { useAction } from "@/hooks/useAction";
 import { formatTokens } from "@/lib/format";
-import { planLabel, usageLevel, usageUnavailableText, useSharedPlanUsage } from "@/features/usage/usage";
-import { UsageBar, UsageMeter } from "@/features/usage/UsageMeter";
-import { ClaudeMark } from "@/ui/ClaudeMark";
+import { usageLevel } from "@/features/usage/usage";
+import { UsageBar } from "@/features/usage/UsageMeter";
 import { ErrorText } from "@/ui/ErrorText";
-import { RefreshButton } from "@/ui/IconButton";
 import { Popover, usePopover } from "@/ui/Popover";
 import { compactingLabel } from "@/features/chat/status/workingLabel";
 import { PreCompactPromptEditor } from "@/features/snippet/PreCompactPromptEditor";
@@ -23,7 +20,7 @@ const tone = (pct: number) => TONES[usageLevel(pct)];
 
 /**
  * チャット欄の右下の丸いメーター: コンテキストウィンドウの使用率。
- * 押すと、コンテキストの詳細とプランの使用枠を出す（もう一度押す・ポップオーバーの外を押す・Esc で閉じる。マウスを乗せただけでは出さない）。
+ * 押すと、コンテキストの詳細を出す（使用率・ターン数と API 換算・自動圧縮・圧縮前指示・会話を圧縮。プランの使用枠は下の帯で見る。もう一度押す・ポップオーバーの外を押す・Esc で閉じる。マウスを乗せただけでは出さない）。
  * 会話を圧縮している間（手で圧縮した・上限に近づいて自動で）は、弧を回して知らせる（終わるとコンテキストの大きさが届き、弧が縮む）。
  * 設定で自動圧縮を始める使用率を決めていれば、円の外にそこを指す矢印を、詳細の棒に縦線を出す（Claude Code の既定のままなら出さない）。
  * 使用率は詳細の「自動圧縮」でも選べる（AutoCompactSelect。設定の「チャット」と同じ値）。その下の「圧縮前指示」で、圧縮の前に送る指示も書ける（PreCompactPromptEditor）。
@@ -41,12 +38,9 @@ export function ContextMeter({
   reserved: QueuedMessage | null;
 }) {
   const compactingText = compacting ? compactingLabel(compacting.trigger) : null;
-  const planUsage = useSharedPlanUsage();
   // 押すとメーターの上に開く詳細（もう一度押す・外を押す・Esc で閉じる。右端をメーターにそろえる）
   const popover = usePopover<HTMLDivElement>();
   const open = popover.open;
-  // ログイン中のアカウント（開いたときに取り直す。届くまでは前に取ったもの）
-  const account = useProviders({ active: open }).data?.find((p) => p.id === "claude")?.account;
 
   // まだ数値が届いていないとき（新しいチャット・要約の直後など）は 0% として出す
   const tokens = chat.context_tokens ?? 0;
@@ -57,11 +51,6 @@ export function ContextMeter({
   const compactAt = compactPct === null ? null : autoCompactThreshold(windowSize, compactPct);
   const markPct = compactAt !== null && windowSize ? (compactAt / windowSize) * 100 : null;
   const markText = compactAt !== null && markPct !== null ? `${Math.round(markPct)}%（${formatTokens(compactAt)} トークン）で自動圧縮` : null;
-
-  const usage = planUsage?.usage;
-  const windows: UsageWindow[] = usage?.available
-    ? [usage.five_hour, usage.seven_day, ...usage.model_weekly].filter((w) => w.utilization !== null)
-    : [];
 
   // 手で圧縮する。作業中なら予約（送信待ちのいちばん上に圧縮の行を入れ、このやり取りが終わったら、送信待ちより先にすぐ圧縮する）。まだ会話がない・圧縮中はできない。
   // 終わると compact イベントとコンテキストの大きさが届く
@@ -88,82 +77,66 @@ export function ContextMeter({
         aria-label={compactingText ? `${compactingText}（コンテキストウィンドウ ${pct}% 使用）` : `コンテキストウィンドウ ${pct}% 使用${markText ? `・${markText}` : ""}${reserved ? "・このやり取りのあとで圧縮します" : ""}`}
         aria-busy={compacting ? true : undefined}
         aria-expanded={open}
-        title={open ? "閉じる" : compactingText ? `${compactingText}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストと使用枠の詳細を表示"}
+        title={open ? "閉じる" : compactingText ? `${compactingText}（これまでの会話を要約して、コンテキストを空けています）` : "コンテキストの詳細を表示"}
         onClick={popover.toggle}
       >
         <Ring pct={pct} mark={markPct} compacting={compacting !== null} />
       </button>
       {open && (
-        <Popover anchor={popover.anchor} side="above" align="end" gap={8} label="コンテキストウィンドウと使用枠" className="context-popover" onClose={popover.close}>
+        <Popover anchor={popover.anchor} side="above" align="end" gap={8} label="コンテキストウィンドウ" className="context-popover" onClose={popover.close}>
+          {/* 使っている量: 大きな % と トークン数、棒（自動圧縮が始まる位置に縦線）、ターン数と API 換算 */}
           <section className="context-section">
             <div className="context-title">コンテキストウィンドウ</div>
-            <div className="context-row">
-              <span className="context-pct">{pct}%使用</span>
+            <div className="context-amount">
+              <span className="context-pct">
+                {pct}
+                <small>%</small>
+              </span>
+              <span className="context-pct-label">使用</span>
               {windowSize && (
-                <span className="context-sub">
-                  {formatTokens(tokens)} / {formatTokens(windowSize)}トークン
+                <span className="context-tokens">
+                  {formatTokens(tokens)} / {formatTokens(windowSize)} トークン
                 </span>
               )}
             </div>
-            {/* どれだけ使っているかを、数字だけでなく棒でも見せる（使用枠と同じバー） */}
             <UsageBar percent={pct} mark={markPct} label="コンテキストウィンドウの使用率" valueText={`${pct}% 使用`} />
-            {/* 自動圧縮を始める量（ここで選べる。設定の「チャット」と同じ値） */}
-            <AutoCompactSelect windowSize={windowSize} />
-            {/* 圧縮の前に AI に送る指示（ここで書ける。設定の「定型文」と同じ値） */}
-            <PreCompactPromptEditor projectId={chat.project_id} />
             {/* チャットの見出しの行を隠していても見られるよう、見出しのターン数と API 換算をここにも出す */}
-            <div className="context-sub">
-              {chat.num_turns > 0 && `${chat.num_turns} ターン · `}セッションコスト: ${chat.cost_usd.toFixed(2)}（API 換算）
-            </div>
-            {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
-            <div className="context-compact">
-              {reserved && running && !compacting ? (
-                // 予約している: このやり取りが終わったら圧縮が始まる。取り消せる（送信待ちの圧縮の行を消す）
-                <>
-                  <span className="context-compact-note">
-                    <Shrink size={13} aria-hidden /> このやり取りが終わったら圧縮します
-                  </span>
-                  <button type="button" className="btn btn-sm" title="圧縮の予約を取り消します（送信待ちの「会話を圧縮」の行を消します）" onClick={() => cancelReserved(reserved.id)}>
-                    <X size={13} /> 取り消す
-                  </button>
-                </>
-              ) : (
-                <button type="button" className="btn btn-sm" title={compactButton.title} disabled={!canCompact} onClick={() => void compact()}>
-                  <Shrink size={13} /> {compactButton.label}
-                </button>
-              )}
-            </div>
-            <ErrorText message={compactAction.error} />
+            <dl className="context-stats">
+              <div>
+                <dt>ターン</dt>
+                <dd>{chat.num_turns.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>セッションコスト（API 換算）</dt>
+                <dd>${chat.cost_usd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+              </div>
+            </dl>
           </section>
 
+          {/* 圧縮の設定: 自動圧縮を始める量（設定の「チャット」と同じ値）と、圧縮の前に AI に送る指示（設定の「定型文」と同じ値） */}
           <section className="context-section">
-            <div className="context-plan-head">
-              <ClaudeMark size={18} />
-              <span className="context-plan-name">{usage?.provider_label ?? "Claude"}</span>
-              {usage?.plan && <span className="context-plan-chip">{planLabel(usage.plan)}</span>}
-              <span className="spacer" />
-              <RefreshButton
-                label="使用枠を更新"
-                busy={Boolean(planUsage?.refreshing)}
-                type="button"
-                onClick={() => void planUsage?.refresh()}
-              />
-            </div>
-            {!usage ? (
-              <p className="context-sub">取得中…</p>
-            ) : !usage.available ? (
-              <p className="context-sub">{usageUnavailableText(usage)}</p>
+            <AutoCompactSelect windowSize={windowSize} />
+            <PreCompactPromptEditor projectId={chat.project_id} />
+          </section>
+
+          {/* 会話を要約して、コンテキストを空ける（Claude Code の /compact） */}
+          <section className="context-section context-compact">
+            {reserved && running && !compacting ? (
+              // 予約している: このやり取りが終わったら圧縮が始まる。取り消せる（送信待ちの圧縮の行を消す）
+              <>
+                <span className="context-compact-note">
+                  <Shrink size={13} aria-hidden /> このやり取りが終わったら圧縮します
+                </span>
+                <button type="button" className="btn btn-sm" title="圧縮の予約を取り消します（送信待ちの「会話を圧縮」の行を消します）" onClick={() => cancelReserved(reserved.id)}>
+                  <X size={13} /> 取り消す
+                </button>
+              </>
             ) : (
-              // 使用枠は、下の帯の使用状況の詳細と同じメーター
-              windows.map((w) => <UsageMeter key={w.key} window={w} />)
+              <button type="button" className="btn context-compact-button" title={compactButton.title} disabled={!canCompact} onClick={() => void compact()}>
+                <Shrink size={14} /> {compactButton.label}
+              </button>
             )}
-            {usage?.extra_usage !== undefined && usage.extra_usage !== null && (
-              <div className="context-row">
-                <span className="context-sub">Extra usage</span>
-                <span>{usage.extra_usage.enabled ? "Enabled" : "Disabled"}</span>
-              </div>
-            )}
-            {account && <div className="context-sub">{account}</div>}
+            <ErrorText message={compactAction.error} />
           </section>
         </Popover>
       )}

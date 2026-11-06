@@ -111,18 +111,21 @@
   color: var(--muted);
 }
 
-/* メーターの上に開く詳細（右端をメーターにそろえる。枠と地は .popover） */
+/*
+ * メーターの上に開く詳細（右端をメーターにそろえる。枠と地は .popover）。
+ * 使っている量 → 圧縮の設定 → 会話を圧縮 の 3 つのまとまりを区切り線で分ける
+ */
 .context-popover {
   width: 300px;
-  padding: 4px 16px;
-  font-size: calc(13px * var(--chat-scale, 1));
+  padding: 0 16px;
+  font-size: 13px;
   color: var(--text);
 }
 
 .context-section {
   display: grid;
   gap: 8px;
-  padding: 12px 0;
+  padding: 14px 0;
 }
 
 .context-section + .context-section {
@@ -130,12 +133,42 @@
 }
 
 .context-title {
-  font-size: calc(14px * var(--chat-scale, 1));
+  font-size: 12px;
   font-weight: 600;
+  color: var(--muted);
+}
+
+/* 大きな % と「使用」、右にトークン数（下の線をそろえる） */
+.context-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: -4px;
 }
 
 .context-pct {
-  font-size: calc(15px * var(--chat-scale, 1));
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.context-pct small {
+  margin-left: 1px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.context-pct-label {
+  color: var(--muted);
+}
+
+.context-tokens {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .context-sub {
@@ -143,49 +176,52 @@
   color: var(--muted);
 }
 
-.context-plan-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* ターン数と API 換算（名前を上・値を下にして 2 つ横に並べる） */
+.context-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px;
+  margin: 2px 0 0;
 }
 
-.context-plan-name {
-  font-size: calc(15px * var(--chat-scale, 1));
+.context-stats div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
-.context-plan-chip {
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: calc(12px * var(--chat-scale, 1));
+.context-stats dt {
+  font-size: 11px;
   color: var(--muted);
-  background: var(--bg-hover);
+  white-space: nowrap;
 }
 
-.context-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.context-row strong {
-  font-weight: 600;
+.context-stats dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 自動圧縮を始める量の選択（見出しの文字と小さな選択欄を 1 行に） */
 .context-auto-compact {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
 }
 
 .context-auto-compact label {
   flex: none;
   color: var(--muted);
+  cursor: default;
 }
 
 .context-auto-compact select {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 190px;
   padding-top: 4px;
   padding-bottom: 4px;
   font-size: 12px;
@@ -202,6 +238,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
+  min-height: 22px;
   margin: 0 -6px;
   padding: 3px 6px;
   box-sizing: content-box;
@@ -235,7 +272,10 @@
 
 .context-pre-compact-body {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
 .context-pre-compact-scope {
@@ -262,19 +302,35 @@
   white-space: nowrap;
 }
 
-.context-pre-compact-body textarea {
+/*
+ * 書く欄。詳細はチャット欄（.composer）の中に描かれるので、チャット欄の書く欄の決まり（枠なし・透明・伸びる）を
+ * 打ち消して、ふつうの入力欄の見た目に戻す（詳細度で勝たせる）
+ */
+.context-popover .context-pre-compact-body textarea {
+  display: block;
   width: 100%;
   box-sizing: border-box;
+  min-height: 64px;
   max-height: 160px;
   padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   font-size: 12px;
+  background: var(--bg);
   resize: vertical;
 }
 
-.context-pre-compact-body .context-sub {
-  font-size: 12px;
+.context-popover .context-pre-compact-body textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -1px;
 }
 
+.context-pre-compact-body .context-sub {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* 説明を左、保存を右端に */
 .context-pre-compact-actions {
   display: flex;
   align-items: center;
@@ -282,13 +338,36 @@
   font-size: 12px;
 }
 
-/* 手で圧縮するボタン（上の文字のすぐ下に置く） */
+.context-pre-compact-actions .context-sub {
+  flex: 1;
+  min-width: 0;
+}
+
+.context-pre-compact-actions .btn {
+  flex: none;
+}
+
+/* 手で圧縮するボタン（いちばん下のまとまりに、幅いっぱいで置く。予約中は文と「取り消す」を横に） */
 .context-compact {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 6px 10px;
-  margin-top: -4px;
+  padding-top: 12px;
+}
+
+.context-compact > .error {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.context-compact-button {
+  display: inline-flex;
+  flex: 1 1 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 /* 圧縮を予約しているときの文（取り消すの左） */
