@@ -60,7 +60,7 @@ interface Props {
   /** 外からチャット欄を動かす口（文を入れる・ピントを移す。発言の一覧の「入力欄に入れる」など） */
   handleRef?: MutableRefObject<ComposerHandle | null>;
   /** ほかの送り方・送り先（送信ボタンの右クリックで選ぶ。質問として送る・子チャットに送るなど）。作業中でも送れる（作業中にどう送るかは onSend が決める） */
-  sendTo?: { label: string; title?: string; onSend: (text: string, attachments: Attachment[]) => Promise<void> }[];
+  sendTo?: { label: string; title?: string; separated?: boolean; onSend: (text: string, attachments: Attachment[]) => Promise<void> }[];
   /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
   chatContext?: { projectId?: number; exclude?: number };
 }
@@ -249,7 +249,7 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
           onSubmit={() => submit()}
           // 録音中は、文字起こしが済むまでほかの送り先には送らない
           plain={plainActions}
-          sendTargets={sendTo?.map((to) => ({ label: to.label, title: to.title, disabled: !sender.viaReady || dictation.recording, onSelect: () => void sender.sendVia(to.onSend) }))}
+          sendTargets={sendTo?.map((to) => ({ label: to.label, title: to.title, separated: to.separated, disabled: !sender.viaReady || dictation.recording, onSelect: () => void sender.sendVia(to.onSend) }))}
         />
       </div>
       {attach.dragging && <div className="drop-hint">ここにドロップして添付</div>}

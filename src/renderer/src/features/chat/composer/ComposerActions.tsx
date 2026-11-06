@@ -1,5 +1,5 @@
 import { ArrowUp, ChevronDown, Square } from "lucide-react";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
@@ -10,6 +10,8 @@ import type { QueueSendMode } from "./composerKeys";
 interface SendTarget {
   label: string;
   title?: string;
+  /** 前に区切り線を置く（送り先の組の初め） */
+  separated?: boolean;
   disabled?: boolean;
   onSelect: () => void;
 }
@@ -121,10 +123,13 @@ export function ComposerActions({
       </span>
       {menu.menu && sendTargets && (
         <PopupMenu at={menu.menu.at} label="送り方" ignore=".send-more" onClose={menu.close}>
-          {sendTargets.map((target) => (
-            <MenuItem key={target.label} title={target.title} disabled={target.disabled} onSelect={target.onSelect}>
-              {target.label}
-            </MenuItem>
+          {sendTargets.map((target, i) => (
+            <Fragment key={target.label}>
+              {target.separated && i > 0 && <div className="menu-separator" role="separator" />}
+              <MenuItem title={target.title} disabled={target.disabled} onSelect={target.onSelect}>
+                {target.label}
+              </MenuItem>
+            </Fragment>
           ))}
         </PopupMenu>
       )}
