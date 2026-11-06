@@ -175,9 +175,8 @@ export class MemoService {
     if (!(await exists(target))) throw new NotFound(`メモが見つかりません: ${file}`);
     await (this.opts.trash ?? moveToTrash)(target);
     // メモのチャットはアーカイブする（作業中のものはそのまま。Finder のゴミ箱から戻しても、アーカイブ済みから戻せる）
-    const now = new Date().toISOString();
     for (const chat of this.opts.store.chats.memoChats(project.id, file)) {
-      if (!chat.archived_at && chat.status !== "running") this.opts.store.chats.update(chat.id, { archived_at: now });
+      if (!chat.archived_at && chat.status !== "running") this.opts.store.chats.archive(chat.id, true);
     }
     this.changed(project, null);
   }

@@ -15,7 +15,7 @@ test("チャットの一覧: 件数で黙って切らず、最後に動いた順
   // いちばん古いチャットが動いた（状態が変わると、最後に動いた時刻が進んで並びの先頭へ）。アーカイブ済みは別に読む
   await new Promise((resolve) => setTimeout(resolve, 5));
   store.chats.update(ids[0], { status: "running" });
-  store.chats.update(ids[1], { archived_at: new Date().toISOString() });
+  store.chats.archive(ids[1], true);
 
   const all = (await call("GET", "/api/chats")).body as { id: number }[];
   assert.equal(all.length, 304);

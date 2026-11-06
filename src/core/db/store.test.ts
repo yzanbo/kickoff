@@ -143,7 +143,7 @@ test("チャットの一覧: アーカイブ済みを含める・だけ・状態
   const b = mkChat(store, project.id, "b", { status: "running" });
   const c = mkChat(store, project.id, "c", { status: "failed" });
   const d = mkChat(store, other.id, "d");
-  store.chats.update(c.id, { archived_at: new Date().toISOString() });
+  store.chats.archive(c.id, true);
   const ids = (chats: { id: number }[]) => chats.map((r) => r.id);
 
   // 既定はアーカイブしていないものだけ。新しい順
@@ -287,4 +287,51 @@ test("診断の集計: チャットと記録の数、記録の多いチャット
       { id: quiet.id, events: 1, title: "静か", status: "completed" },
     ],
   });
+});
+
+test("子チャットのアーカイブ: 親をしまうと子孫も一緒に、戻すと一緒にしまったものだけ戻す。子だけをしまう・戻すときは親に触らない", () => {
+  const { store, project } = setup();
+  const parent = mkChat(store, project.id, "親");
+  const a = mkChat(store, project.id, "子 A", { parent_chat_id: parent.id });
+  const b = mkChat(store, project.id, "子 B", { parent_chat_id: parent.id });
+  const aChild = mkChat(store, project.id, "A の子", { parent_chat_id: a.id });
+  const bChild = mkChat(store, project.id, "B の子", { parent_chat_id: b.id });
+  const archived = (id: number) => store.chats.get(id)!.archived_at !== null;
+  const state = () => [parent, a, b, aChild, bChild].map((c) => archived(c.id));
+
+  // 子だけをしまう: その子と、その下だけ。親・兄弟はそのまま
+  store.chats.archive(b.id, true);
+  assert.deepEqual(state(), [false, false, true, false, true]);
+  const bArchivedAt = store.chats.get(b.id)!.archived_at;
+
+  // 親をしまう: まだしまっていない子孫も一緒に。先にしまっていた子の日時は変えない
+  store.chats.archive(parent.id, true);
+  assert.deepEqual(state(), [true, true, true, true, true]);
+  assert.equal(store.chats.get(b.id)!.archived_at, bArchivedAt);
+
+  // 親を戻す: 一緒にしまった子孫（A と A の子）だけ戻り、子だけでしまっていた B とその下はしまったまま
+  store.chats.archive(parent.id, false);
+  assert.deepEqual(state(), [false, false, true, false, true]);
+
+  // B を戻すと、B と一緒にしまった B の子も戻る
+  store.chats.archive(b.id, false);
+  assert.deepEqual(state(), [false, false, false, false, false]);
+  // Chat には内部の印を出さない
+  assert.equal("archived_with_parent" in store.chats.get(a.id)!, false);
+});
+
+test("自動のアーカイブ: 親のないチャットだけを見て、子孫も一緒にしまう。しまっていない子孫が最近動いた・未読ならしまわない", () => {
+  const { store, project } = setup();
+  const parent = mkChat(store, project.id, "親");
+  const child = mkChat(store, project.id, "子", { parent_chat_id: parent.id });
+  const busyParent = mkChat(store, project.id, "親 2");
+  const unreadChild = mkChat(store, project.id, "子 2", { parent_chat_id: busyParent.id });
+  store.chats.setUnread(unreadChild.id, true);
+  const later = new Date(Date.now() + 8 * 86_400_000);
+  // 数えるのは親だけ（子孫は親と一緒）
+  assert.equal(store.chats.archiveStale(7, later), 1);
+  assert.deepEqual([parent, child, busyParent, unreadChild].map((c) => store.chats.get(c.id)!.archived_at !== null), [true, true, false, false]);
+  // 一緒にしまった子は、親を戻すと戻る
+  store.chats.archive(parent.id, false);
+  assert.equal(store.chats.get(child.id)!.archived_at, null);
 });

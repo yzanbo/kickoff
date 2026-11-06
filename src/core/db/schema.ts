@@ -171,8 +171,19 @@ const SCHEMA_V6 = `
 ALTER TABLE projects ADD COLUMN pre_compact_prompt TEXT CHECK (pre_compact_prompt <> '');
 `;
 
+/**
+ * v7: 親と一緒にアーカイブした子チャットの印（archived_with_parent）。親を戻すときは、この印のある子孫だけを戻し、
+ * 子チャットだけで先にアーカイブしていたもの（印なし）はアーカイブしたままにする。前の版で親と一緒にしまった子（親としまった日時が同じ）にも付ける
+ */
+const SCHEMA_V7 = `
+ALTER TABLE chats ADD COLUMN archived_with_parent INTEGER NOT NULL DEFAULT 0 CHECK (archived_with_parent IN (0, 1));
+UPDATE chats SET archived_with_parent = 1
+  WHERE parent_chat_id IS NOT NULL AND archived_at IS NOT NULL
+    AND archived_at = (SELECT parent.archived_at FROM chats AS parent WHERE parent.id = chats.parent_chat_id);
+`;
+
 /** MIGRATIONS[n] でいまの系統の版 n → n+1 に上げる（変更は末尾に追記し、既存の要素は書き換えない） */
-const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6];
+const MIGRATIONS = [SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_V4, SCHEMA_V5, SCHEMA_V6, SCHEMA_V7];
 
 /** いまのコードのスキーマの版（いまの系統の何段目か。v1 から） */
 export const SCHEMA_VERSION = MIGRATIONS.length;

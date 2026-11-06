@@ -118,7 +118,9 @@ CREATE TABLE chats (
   parent_chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
   parent_event_id INTEGER CHECK (parent_event_id > 0),
   -- v4: メモのチャット（memo_path = どのメモについてのチャットか。メモのフォルダからの相対パス。NULL = ふつうのチャット）
-  memo_path TEXT CHECK (memo_path <> '')
+  memo_path TEXT CHECK (memo_path <> ''),
+  -- v7: 親と一緒にアーカイブした子チャットの印（親を戻すとき、この印のある子孫だけを戻す。店の中だけで使い、Chat には出さない）
+  archived_with_parent INTEGER NOT NULL DEFAULT 0 CHECK (archived_with_parent IN (0, 1))
 ) STRICT;
 -- v3: CREATE INDEX idx_chats_parent ON chats(parent_chat_id) WHERE parent_chat_id IS NOT NULL;
 -- v4: CREATE INDEX idx_chats_memo ON chats(project_id, memo_path) WHERE memo_path IS NOT NULL;

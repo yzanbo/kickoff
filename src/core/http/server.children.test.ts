@@ -106,6 +106,13 @@ test("子チャット: 親をアーカイブ・移動・削除すると、子孫
   assert.ok(store.chats.get(child.id)!.archived_at && store.chats.get(grandchild.id)!.archived_at);
   await call("PATCH", `/api/chats/${parentId}`, { archived: false });
   assert.equal(store.chats.get(grandchild.id)!.archived_at, null);
+  // 子だけをしまっても親はそのまま。親をしまって戻しても、子だけでしまっていた子（とその下）はしまったまま
+  await call("PATCH", `/api/chats/${child.id}`, { archived: true });
+  assert.equal(store.chats.get(parentId)!.archived_at, null);
+  await call("PATCH", `/api/chats/${parentId}`, { archived: true });
+  await call("PATCH", `/api/chats/${parentId}`, { archived: false });
+  assert.deepEqual([parentId, child.id, grandchild.id].map((id) => store.chats.get(id)!.archived_at !== null), [false, true, true]);
+  await call("PATCH", `/api/chats/${child.id}`, { archived: false });
 
   const other = store.projects.create({ name: "別", repo_path: tempDir(), provider: "claude" });
   await call("POST", `/api/chats/${parentId}/move`, { project_id: other.id });

@@ -5,6 +5,20 @@ import { alertDialog, confirmDialog } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
 import { writeSetting } from "@/lib/storage";
 import { chatDraft } from "@/lib/storageKeys";
+import { knownDescendantCount } from "@/stores/chats";
+
+/** 子チャットがあれば、アーカイブ・戻す・削除の確かめに添える文（子孫も一緒に扱う） */
+function childNote(chat: Pick<Chat, "id">, action: "archive" | "restore" | "delete"): string {
+  if (action === "archive") {
+    const count = knownDescendantCount(chat.id);
+    return count > 0 ? `子チャット ${count} 件（孫も）も一緒にアーカイブします。` : "";
+  }
+  const count = knownDescendantCount(chat.id, { archived: true });
+  if (count === 0) return "";
+  return action === "restore"
+    ? "一緒にアーカイブした子チャットも戻ります（子チャットだけを先にアーカイブしていたものは、アーカイブしたままです）。"
+    : `子チャット ${count} 件（孫も）も一緒に削除します。`;
+}
 
 /**
  * 確かめてから、チャットをアーカイブする（アーカイブ済みなら戻す。どちらも確かめる。やめたら false）。
@@ -14,10 +28,10 @@ export async function toggleArchiveChat(chat: Pick<Chat, "id" | "title" | "archi
   const name = chatTitle(chat.title);
   const ok = await confirmDialog(
     chat.archived_at
-      ? { title: `チャット「${name}」をアーカイブから戻しますか？`, message: "一覧に、また出るようになります。", confirmLabel: "戻す" }
+      ? { title: `チャット「${name}」をアーカイブから戻しますか？`, message: `一覧に、また出るようになります。${childNote(chat, "restore")}`, confirmLabel: "戻す" }
       : {
           title: `チャット「${name}」をアーカイブしますか？`,
-          message: "一覧から隠れます。会話の記録は残ります。サイドバーの「チャット」の行の「アーカイブ」を「表示」にすると出せ、右クリックのメニューから戻せます。",
+          message: `一覧から隠れます。会話の記録は残ります。${childNote(chat, "archive")}サイドバーの「チャット」の行の「アーカイブ」を「表示」にすると出せ、右クリックのメニューから戻せます。`,
           confirmLabel: "アーカイブ",
         },
   );
@@ -38,7 +52,7 @@ export async function deleteChat(chatId: number) {
 export async function confirmDeleteChat(chat: Pick<Chat, "id" | "title">): Promise<boolean> {
   const ok = await confirmDialog({
     title: `チャット「${chatTitle(chat.title)}」を削除しますか？`,
-    message: "会話の記録も消えます。残しておきたいときはアーカイブを使ってください。",
+    message: `会話の記録も消えます。${childNote(chat, "delete")}残しておきたいときはアーカイブを使ってください。`,
     confirmLabel: "削除",
     danger: true,
   });
@@ -65,10 +79,14 @@ export async function confirmArchiveChats(chats: Chat[]): Promise<boolean> {
   const targets = restore ? chats : chats.filter((r) => !r.archived_at);
   const ok = await confirmDialog(
     restore
-      ? { title: `${targets.length} 件のチャットをアーカイブから戻しますか？`, message: "一覧に、また出るようになります。", confirmLabel: "戻す" }
+      ? {
+          title: `${targets.length} 件のチャットをアーカイブから戻しますか？`,
+          message: "一覧に、また出るようになります。一緒にアーカイブした子チャットも戻ります（子チャットだけを先にアーカイブしていたものは、アーカイブしたままです）。",
+          confirmLabel: "戻す",
+        }
       : {
           title: `${targets.length} 件のチャットをアーカイブしますか？`,
-          message: "一覧から隠れます。会話の記録は残ります。作業中のチャットはアーカイブできません。",
+          message: "一覧から隠れます。会話の記録は残ります。子チャット（孫も）も一緒にアーカイブします。作業中のチャットはアーカイブできません。",
           confirmLabel: "アーカイブ",
         },
   );
@@ -80,7 +98,7 @@ export async function confirmArchiveChats(chats: Chat[]): Promise<boolean> {
 export async function confirmDeleteChats(chats: Chat[]): Promise<boolean> {
   const ok = await confirmDialog({
     title: `${chats.length} 件のチャットを削除しますか？`,
-    message: "会話の記録も消えます。残しておきたいときはアーカイブを使ってください。作業中のチャットは削除できません。",
+    message: "会話の記録も消えます。子チャット（孫も）も一緒に削除します。残しておきたいときはアーカイブを使ってください。作業中のチャットは削除できません。",
     confirmLabel: "削除",
     danger: true,
   });

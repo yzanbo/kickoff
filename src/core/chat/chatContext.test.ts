@@ -84,7 +84,7 @@ test("子のあるチャット: 子孫を作った順に、子のすぐ下にそ
   const first = chat("子1", { id: root.id, eventId: asked.id });
   store.chats.update(first.id, { session_id: "s-1", status: "running" });
   const second = chat("子2", { id: root.id });
-  store.chats.update(second.id, { archived_at: new Date().toISOString() });
+  store.chats.archive(second.id, true);
   const grandchild = chat("孫", { id: first.id });
   const context = chatContextOf(store, root);
   assert.deepEqual(
