@@ -279,3 +279,24 @@
   align-items: center;
   gap: 8px;
 }
+
+/* 丸いボタン（中断・送信）と、その右の ▾（送り方を選ぶメニュー。右クリックと同じ）。▾ は丸に寄せた細いボタン */
+.send-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.composer-actions .icon-button.send-more {
+  width: 18px;
+  height: 28px;
+}
+
+.composer.compact .composer-actions .icon-button.send-more {
+  height: 24px;
+}
+
+.composer-actions .icon-button.send-more[aria-expanded="true"] {
+  color: var(--text);
+  background: var(--bg-hover);
+}
