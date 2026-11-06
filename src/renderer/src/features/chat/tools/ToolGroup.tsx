@@ -12,6 +12,8 @@ import { callStatus, groupStatus, isCallRunning } from "./toolStatus";
 import { ToolStatusIcon } from "./ToolStatusIcon";
 import { HighlightedCode } from "@/ui/HighlightedCode";
 import { ReadResult, SearchResult, SearchTitle, ToolPath } from "./ToolResultCode";
+import { ReadImage } from "./ReadImage";
+import { toolImageType } from "@shared/chat/toolImage";
 import { FileLinkContext, openByClick } from "@/features/fileLinks/fileLinkContext";
 
 /**
@@ -90,6 +92,9 @@ function ToolItem({ call, rel, running, listed }: { call: ToolCall; rel: (s: str
     detail = <Diff before={input.old_string} after={String(input.new_string ?? "")} />;
   } else if (name === "Write" && typeof input.content === "string") {
     detail = <Diff before="" after={input.content} maxLines={40} />;
+  } else if (r && !r.is_error && name === "Read" && typeof input.file_path === "string" && toolImageType(input.file_path)) {
+    // 読んだ画像は記録に残らない（結果は「[image]」の文字だけ）ので、開いてから入力のパスで、いまのファイルを読んで出す
+    detail = opened ? <ReadImage chatId={call.use.chat_id} path={input.file_path} readAt={call.result?.created_at} /> : <></>;
   } else if (content && !r?.is_error && name === "Read" && typeof input.file_path === "string") {
     detail = <ReadResult content={rel(content)} path={input.file_path} highlight={opened} />;
   } else if (content && !r?.is_error && isSearch) {

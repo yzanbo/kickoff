@@ -302,3 +302,27 @@ test("既定の推論の深さの API: 作業フォルダの Claude Code の設�
   if (!process.env.CLAUDE_CODE_EFFORT_LEVEL) assert.deepEqual(body, { effort: "high", source: "local" });
   assert.equal((await call("GET", "/api/projects/999/effort-default")).status, 404);
 });
+
+test("ツールの結果の画像: 作業場所などの中の画像だけを、いまの中身と最後に変えた時刻で返す", async () => {
+  const { app, project, store } = setup();
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "画像", status: "completed" });
+  const file = path.join(project.repo_path, "画面.png");
+  fs.writeFileSync(file, new Uint8Array([137, 80, 78, 71]));
+  const outside = path.join(tempDir(), "外.png");
+  fs.writeFileSync(outside, new Uint8Array([1]));
+  const get = (p: string, id = chat.id) => app.request(`/api/chats/${id}/tool-image?path=${encodeURIComponent(p)}`, { headers: AUTH });
+
+  const ok = await get(file);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get("content-type"), "image/png");
+  assert.equal(ok.headers.get("content-security-policy"), "sandbox");
+  assert.equal(Number(ok.headers.get("x-file-mtime")), Math.floor(fs.statSync(file).mtimeMs));
+  assert.deepEqual([...new Uint8Array(await ok.arrayBuffer())], [137, 80, 78, 71]);
+  // 外・画像でない・パスなしは 400、ないファイル・ないチャットは 404、トークンなしは 401
+  assert.equal((await get(outside)).status, 400);
+  assert.equal((await get(path.join(project.repo_path, "a.txt"))).status, 400);
+  assert.equal((await app.request(`/api/chats/${chat.id}/tool-image`, { headers: AUTH })).status, 400);
+  assert.equal((await get(path.join(project.repo_path, "ない.png"))).status, 404);
+  assert.equal((await get(file, 9999)).status, 404);
+  assert.equal((await app.request(`/api/chats/${chat.id}/tool-image?path=${encodeURIComponent(file)}`)).status, 401);
+});

@@ -1,7 +1,8 @@
+import { TOOL_IMAGE_MTIME_HEADER } from "@shared/chat/toolImage";
 import type { Attachment } from "@shared/types";
-import { postForm, request, withQuery } from "./http";
+import { postForm, request, requestBlob, withQuery } from "./http";
 
-/** 添付ファイル（アップロード・画面での表示・ほかのチャットのやり取りの記録。コアの routes/uploads.ts） */
+/** 添付ファイル（アップロード・画面での表示・ほかのチャットのやり取りの記録）とツールの結果の画像。コアの routes/uploads.ts */
 export const uploadsApi = {
   /** 添付ファイルをアップロードする */
   upload: async (file: File): Promise<Attachment> => {
@@ -12,6 +13,15 @@ export const uploadsApi = {
   },
   /** 別のチャットのやり取りを Markdown の記録にして、添付ファイルとして保存する（いまのチャットに添えて AI に読ませる） */
   chatTranscript: (chatId: number) => request<Attachment>("POST", `/api/chats/${chatId}/transcript`),
+  /**
+   * ツールの結果の画像（読むで読んだ画像）を、呼び出しの入力のパスから読む（いまのファイル。最後に変えた時刻 mtime も）。
+   * 作業場所・添付・メモのフォルダの外・ないファイルは ApiError（文はそのまま画面に出せる）
+   */
+  toolImage: async (chatId: number, path: string): Promise<{ blob: Blob; mtime: number | null }> => {
+    const { blob, headers } = await requestBlob(withQuery(`/api/chats/${chatId}/tool-image`, { path }));
+    const mtime = Number(headers.get(TOOL_IMAGE_MTIME_HEADER));
+    return { blob, mtime: Number.isFinite(mtime) && mtime > 0 ? mtime : null };
+  },
 };
 
 /** 添付ファイルを画面で開く・表示するための URL */

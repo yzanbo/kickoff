@@ -44,3 +44,42 @@
 .tool-code-block .bash-more {
   padding-top: 4px;
 }
+
+/*
+ * 読むで読んだ画像（ReadImage）: 結果の欄と同じ区切り線の下に、縮小した画像（押すと大きく見る）と、縦横・ファイルの大きさ。
+ * 画像は欄の幅と 320px の高さに収め、縦横の比は変えない
+ */
+.tool-image {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.tool-image-thumb {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elev);
+  cursor: zoom-in;
+}
+
+.tool-image-thumb img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+}
+
+.tool-image-meta,
+.tool-image-note {
+  margin: 6px 0 0;
+}
+
+/* 読み込み中・出せない理由だけのとき（画像の枠がない）は、結果の欄と同じ区切りと余白で */
+.tool-call > .tool-image-note {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
