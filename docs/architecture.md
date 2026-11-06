@@ -24,7 +24,7 @@
 | 1 回の実行（送ってから終わるまで） | `Turn`（`executeTurn` / `TurnOutcome` / `TurnControl`） | `executeRun` / `RunOutcome` / `RunControl` |
 | チャットの記録 | `ChatEvent` / 表 `chat_events` | `RunEvent` / `run_events` |
 | グループ | `ChatGroup` / 表 `chat_groups` | `RunGroup` / `run_groups` |
-| 定型文（チャット欄の上の帯から入れる・送る、よく使う指示。共通かプロジェクトだけ） | `Snippet` / 表 `snippets`（`project_id` が NULL = 共通）・`features/snippet/` | なし |
+| 定型文（チャット欄の中の上の帯から入れる・送る、よく使う指示。共通かプロジェクトだけ） | `Snippet` / 表 `snippets`（`project_id` が NULL = 共通）・`features/snippet/` | なし |
 | 圧縮前指示（会話を圧縮する前に AI に送る指示。メモを残してもらうなど。設定の共通の指示 → プロジェクトの指示の順につなぐ） | 設定・プロジェクトの `pre_compact_prompt`・`@shared/chat/prompts` の `preCompactPromptFor`・記録の `user.pre_compact`・`core/chat/preCompact.ts`・PreCompact フック `core/providers/claude/preCompact.ts` | なし |
 | 送信待ち | `Queue`（`chat_queues`） | `followups` / `run_queues` |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
