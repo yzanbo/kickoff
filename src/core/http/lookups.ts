@@ -1,8 +1,8 @@
-// URL の :id が指すもの（プロジェクト・チャット・グループ）を DB から引き当てる。ルートでは app.get(path, withProject, handler) のようにミドルウェアとして置き、
+// URL の :id が指すもの（プロジェクト・チャット・グループ・定型文）を DB から引き当てる。ルートでは app.get(path, withProject, handler) のようにミドルウェアとして置き、
 // ハンドラーは c.var.project などで受け取る（番号でなければ 400、なければ 404。ルートごとに引き当てと検証を書かない）
 import { createMiddleware } from "hono/factory";
 import type { Store } from "../db/store.js";
-import type { Chat, ChatGroup, Project } from "@shared/types";
+import type { Chat, ChatGroup, Project, Snippet } from "@shared/types";
 import { Invalid, NotFound } from "./errors.js";
 import { idParam, queryOf } from "./input.js";
 import { requireWorktree } from "./workdir.js";
@@ -25,6 +25,12 @@ function requireGroup(store: Store, id: number): ChatGroup {
   return group;
 }
 
+function requireSnippet(store: Store, id: number): Snippet {
+  const snippet = store.snippets.get(id);
+  if (!snippet) throw new NotFound("定型文が見つかりません");
+  return snippet;
+}
+
 /** グループ。ほかのプロジェクトのものなら 400（チャットを入れられるのは同じプロジェクトのグループだけ） */
 export function requireGroupOf(store: Store, groupId: number, projectId: number): ChatGroup {
   const group = requireGroup(store, groupId);
@@ -32,7 +38,7 @@ export function requireGroupOf(store: Store, groupId: number, projectId: number)
   return group;
 }
 
-/** :id のプロジェクト・チャット・グループを c.var に入れるミドルウェア */
+/** :id のプロジェクト・チャット・グループ・定型文を c.var に入れるミドルウェア */
 export function lookups(store: Store) {
   return {
     withProject: createMiddleware<{ Variables: { project: Project } }>(async (c, next) => {
@@ -55,6 +61,10 @@ export function lookups(store: Store) {
     }),
     withGroup: createMiddleware<{ Variables: { group: ChatGroup } }>(async (c, next) => {
       c.set("group", requireGroup(store, idParam(c)));
+      await next();
+    }),
+    withSnippet: createMiddleware<{ Variables: { snippet: Snippet } }>(async (c, next) => {
+      c.set("snippet", requireSnippet(store, idParam(c)));
       await next();
     }),
   };

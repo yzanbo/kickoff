@@ -99,6 +99,13 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
         // 添付も入れる（送信待ちの指示を新しいチャットで聞くとき。アップロード済みのものをそのまま使う）
         if (opts?.attachments) attach.addAttachments(opts.attachments);
       },
+      insert: (value) => {
+        const el = textareaRef.current;
+        const current = el?.value ?? text;
+        const start = el?.selectionStart ?? current.length;
+        const end = el?.selectionEnd ?? current.length;
+        fill(current.slice(0, start) + value + current.slice(end), start + value.length);
+      },
       focus: () => textareaRef.current?.focus(),
     };
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）

@@ -1,6 +1,6 @@
 import { Check, ChevronRight } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
-import { CHAT_HEADER_HIDDEN, CHAT_HEADER_ROW_HIDDEN, COMPOSER_COMPACT, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
+import { CHAT_HEADER_HIDDEN, CHAT_HEADER_ROW_HIDDEN, COMPOSER_COMPACT, SNIPPET_BAR_HIDDEN, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem } from "@/ui/PopupMenu";
@@ -33,7 +33,8 @@ export function useChatDisplayHides(): boolean {
   const [rowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [saved] = useSetting(CHAT_HEADER_HIDDEN);
   const [stickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
-  return rowHidden || stickyHidden || hiddenHeaderItems(saved).size > 0;
+  const [snippetBarHidden] = useSetting(SNIPPET_BAR_HIDDEN);
+  return rowHidden || stickyHidden || snippetBarHidden || hiddenHeaderItems(saved).size > 0;
 }
 
 /** チェックの付く項目（keepOpen: 押してもメニューを閉じない） */
@@ -55,6 +56,7 @@ export function ChatDisplayItems() {
   const [rowHidden, setRowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [saved, setSaved] = useSetting(CHAT_HEADER_HIDDEN);
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
+  const [snippetBarHidden, setSnippetBarHidden] = useSetting(SNIPPET_BAR_HIDDEN);
   const [wide, setWide] = useWideText();
   const [compact, setCompact] = useSetting(COMPOSER_COMPACT);
   const items = useSubmenu();
@@ -109,6 +111,13 @@ export function ChatDisplayItems() {
         onToggle={() => setStickyHidden(!stickyHidden)}
       >
         指示の帯
+      </CheckItem>
+      <CheckItem
+        on={!snippetBarHidden}
+        title="チャット欄の上に、このプロジェクトで使う定型文を横に並べます（帯の右クリックでも隠せます）"
+        onToggle={() => setSnippetBarHidden(!snippetBarHidden)}
+      >
+        定型文の帯
       </CheckItem>
       {/* 乗せる・押す・→ で横に 5 段階を開く */}
       <button {...fontSizes.trigger} title="会話の文字だけを大きく・小さくします（見出し・入力欄はそのまま）">

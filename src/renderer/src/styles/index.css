@@ -40,6 +40,8 @@
 @import "./chat/composer.css";
 @import "./chat/queue-mode.css";
 @import "./chat/dictation.css";
+@import "./chat/snippets.css";
+@import "./chat/snippet-manager.css";
 @import "./chat/queued.css";
 @import "./chat/queued-head.css";
 @import "./chat/queued-attachments.css";
