@@ -192,7 +192,7 @@ export class MemoService {
     chat: Chat,
     input: { text: string; summarize: boolean; merge: boolean; appendTo: string | null; folder: string | null },
   ): Promise<MemoRef> {
-    if (input.merge && !input.appendTo) throw new Invalid("まとめるメモを選んでください");
+    if (input.merge && !input.appendTo) throw new Invalid("組み込むメモを選んでください");
     const source = memoSourceLine(chat, new Date());
     const body = input.summarize && !input.merge ? await this.summarize(project, input.text) : input.text.trim();
     const block = `${source}\n\n${body}\n`;

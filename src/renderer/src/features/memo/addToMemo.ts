@@ -1,4 +1,4 @@
-// チャットの文をメモにする（新しいメモを作る・AI で要約して新しいメモを作る・既存のメモに追記・既存のメモと AI でまとめる）。
+// チャットの文をメモにする（新しいメモを作る・AI で要約して新しいメモを作る・既存のメモに追記・既存のメモに AI で組み込んで書き直す）。
 // 画面は移らず（続けてほかの文もメモできるように）、画面の下に様子を出す（MemoProgress。要約は数秒かかる）。
 // 終わったら「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのメモを開ける（openMemoFromChat）
 import { useSyncExternalStore } from "react";
@@ -40,7 +40,7 @@ export const dismissMemoProgress = () => setProgress(null);
 
 /**
  * メモへの入れ方: new = 新しいメモを作る / summarize = AI で要約して新しいメモを作る /
- * append = 既存のメモの最後に足す / merge = 既存のメモと AI でまとめ直す（メモ全体を書き換える）
+ * append = 既存のメモの最後に足す / merge = 既存のメモに AI で組み込んで書き直す（メモ全体を書き換える）
  */
 export type MemoAddMode = "new" | "summarize" | "append" | "merge";
 
@@ -49,7 +49,7 @@ const MODE_TEXTS: Record<MemoAddMode, { busy: string; done: (name: string) => st
   new: { busy: "新しいメモを作っています…", done: (name) => `「${name}」を作りました`, failed: "メモを作れませんでした" },
   summarize: { busy: "AI で要約して、新しいメモを作っています…", done: (name) => `「${name}」を作りました`, failed: "メモを作れませんでした" },
   append: { busy: "メモに追記しています…", done: (name) => `「${name}」に追記しました`, failed: "メモに追記できませんでした" },
-  merge: { busy: "AI でメモとまとめています…", done: (name) => `「${name}」を AI でまとめ直しました`, failed: "メモをまとめられませんでした" },
+  merge: { busy: "AI がメモに組み込んで書き直しています…", done: (name) => `「${name}」に AI で組み込んで書き直しました`, failed: "メモに組み込めませんでした" },
 };
 
 interface AddToMemoInput {
