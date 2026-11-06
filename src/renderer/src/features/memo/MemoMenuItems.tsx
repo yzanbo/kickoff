@@ -41,7 +41,7 @@ export function MemoMenuItems({ projectId, chatId, text }: { projectId: number; 
   return (
     <>
       <div className="menu-separator" role="separator" />
-      <MenuItem title="この文で、新しいメモ「<チャット名> チャットメモ<番号>」を作ります" onSelect={() => add("new")}>
+      <MenuItem title="この文で、新しいメモ「<チャット名>-チャットメモ<番号>」を作ります" onSelect={() => add("new")}>
         <FilePlus size={14} /> 新しいメモを作成
       </MenuItem>
       <MenuItem title="AI で要約した文で、新しいメモを作ります" onSelect={() => add("summarize")}>

@@ -1,6 +1,7 @@
 // メモの AI の、AI に送る文と答えの読み方（純粋関数）: フォルダの整理案（案を返すだけで、メモは動かさない。動かすかは画面で決める）と、
 // 既存のメモにチャットの文を取り込んだまとめ直し
 import path from "node:path";
+import { withoutSpaces } from "@shared/memo/names";
 import type { MemoEntry, MemoPlan, MemoPlanMove } from "@shared/types";
 
 /** 整理案を作るときに見せるメモの数・1 つのメモの書き出しの長さ・整理案の数の上限 */
@@ -25,7 +26,7 @@ export function memoPlanPrompt(files: readonly PlanFile[], dirs: readonly string
     "守ること:",
     "- from は下の一覧にあるメモのパスをそのまま書く。to はメモのフォルダからの相対パスで、拡張子は元のまま。",
     "- 消す・中身を書き換える案は出さない。いまのままでよいメモは出さない。",
-    "- 名前とフォルダ名は内容の言語で、短く分かりやすく。",
+    "- 名前とフォルダ名は内容の言語で、短く分かりやすく。空白は入れず、言葉の区切りは「-」でつなぐ。",
     `- 案は ${MAX_PLAN_MOVES} 件まで。整理する必要がなければ moves は空にする。`,
     '- 答えは次の形の JSON だけ（前置き・説明・``` は書かない）: {"moves":[{"from":"いまのパス","to":"新しいパス","reason":"短い理由"}]}',
     "",
@@ -35,9 +36,9 @@ export function memoPlanPrompt(files: readonly PlanFile[], dirs: readonly string
   ].join("\n");
 }
 
-/** 行き先のパスを整える（区切りをそろえ、頭の「./」「/」を外す）。使えない形（空・「.」で始まる部分・「..」）なら null */
+/** 行き先のパスを整える（区切りをそろえ、頭の「./」「/」を外し、名前の空白は「-」に）。使えない形（空・「.」で始まる部分・「..」）なら null */
 function cleanTarget(to: string): string | null {
-  const parts = to.trim().replace(/\\/g, "/").replace(/^\.?\/+/, "").split("/");
+  const parts = to.trim().replace(/\\/g, "/").replace(/^\.?\/+/, "").split("/").map((p) => withoutSpaces(p.trim()));
   if (parts.some((p) => p === "" || p.startsWith("."))) return null;
   return parts.join("/");
 }
