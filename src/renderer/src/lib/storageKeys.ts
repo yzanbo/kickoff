@@ -25,10 +25,10 @@ export const CURRENT_PROJECT = defineSetting("kickoff:current-project", number(0
 /** サイドバーを開いているか（"open" / "closed"） */
 export const SIDEBAR_OPEN = defineSetting("kickoff:sidebar", flag(true, ["open", "closed"]));
 export const SIDEBAR_WIDTH = defineSetting("kickoff:sidebar-width", number(294));
-/** プロジェクトの並べ方（stack = 縦並び / slide = 横スライド / rail = 縦スライド） */
-export const SIDEBAR_LAYOUT = defineSetting("kickoff:sidebar-layout", choice(["slide", "stack", "rail"], "slide"));
-/** プロジェクトの並び順（manual = 手動 / recent = 最近動いた順） */
-export const SIDEBAR_PROJECT_ORDER = defineSetting("kickoff:sidebar-project-order", choice(["manual", "recent"], "manual"));
+/** プロジェクトの並べ方（stack = 縦並び / slide = 横スライド / rail = 縦スライド。初めは縦スライド） */
+export const SIDEBAR_LAYOUT = defineSetting("kickoff:sidebar-layout", choice(["slide", "stack", "rail"], "rail"));
+/** プロジェクトの並び順（manual = 手動 / recent = 最近動いた順。初めは最近動いた順） */
+export const SIDEBAR_PROJECT_ORDER = defineSetting("kickoff:sidebar-project-order", choice(["manual", "recent"], "recent"));
 /** しまった（アーカイブした）プロジェクトもサイドバーの下に出すか */
 export const SIDEBAR_SHOW_ARCHIVED_PROJECTS = defineSetting("kickoff:sidebar-show-archived-projects", flag());
 /** プロジェクトのカードを 1 行で出すか（名前だけにして、チャット数の行を隠す） */
@@ -39,18 +39,18 @@ export const SIDEBAR_LAST_HASHES = defineSetting("kickoff:last-hash-by-project",
 export const PROJECT_TAG_FILTER = defineSetting("kickoff:project-tag-filter", list());
 
 // サイドバーのチャットの並べ方（どのプロジェクトでも同じ）
-/** チャットのまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別） */
-export const SIDEBAR_CHAT_SECTIONS = defineSetting("kickoff:sidebar-chat-sections", choice(["none", "group", "worktree"], "group"));
+/** チャットのまとめ方（none = まとめない / group = グループ別 / worktree = 作業場所別。初めはまとめない） */
+export const SIDEBAR_CHAT_SECTIONS = defineSetting("kickoff:sidebar-chat-sections", choice(["none", "group", "worktree"], "none"));
 /** チャットの並び順（recent = 最近動いた順 / status = 状態順） */
 export const SIDEBAR_CHAT_ORDER = defineSetting("kickoff:sidebar-chat-order", choice(["recent", "status"], "recent"));
-/** 自分待ち（回答待ち・未読）のチャットだけを出すか */
-export const SIDEBAR_WAITING_ONLY = defineSetting("kickoff:sidebar-waiting-only", flag());
-/** 自分待ちがオンのときの表示（出し方 × 並べ方。filter = 自分待ちだけ × プロジェクト別 / list = 自分待ちだけ × 状態順 / inbox = 一覧の上に × 状態順 / inbox-project = 一覧の上に × プロジェクト別 / in-project = プロジェクト内の上に。sidebar/waitingAxes.ts） */
-export const SIDEBAR_WAITING_VIEW = defineSetting("kickoff:sidebar-waiting-view", choice(["filter", "inbox", "list", "inbox-project", "in-project"], "filter"));
+/** 自分待ち（回答待ち・未読）のチャットに目を向けるか（初めはオン = 一覧の上に × プロジェクト別） */
+export const SIDEBAR_WAITING_ONLY = defineSetting("kickoff:sidebar-waiting-only", flag(true));
+/** 自分待ちがオンのときの表示（出し方 × 並べ方。filter = 自分待ちだけ × プロジェクト別 / list = 自分待ちだけ × 状態順 / inbox = 一覧の上に × 状態順 / inbox-project = 一覧の上に × プロジェクト別 / in-project = プロジェクト内の上に。sidebar/waitingAxes.ts。初めは inbox-project） */
+export const SIDEBAR_WAITING_VIEW = defineSetting("kickoff:sidebar-waiting-view", choice(["filter", "inbox", "list", "inbox-project", "in-project"], "inbox-project"));
 /** チャットを 1 行で出すか（2 行目のブランチを隠す） */
 export const SIDEBAR_COMPACT = defineSetting("kickoff:sidebar-compact", flag(true));
-/** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブ・ボードの絞り込みで共通） */
-export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archived", flag(true));
+/** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブ・ボードの絞り込みで共通。初めは隠す） */
+export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archived", flag(false));
 
 // まとまりの開閉（ここだけで覚える）
 /**
@@ -157,22 +157,22 @@ export const QUEUE_EXPANDED = defineSetting("kickoff:queue-expanded", flag());
 export const QUEUE_HEIGHT = defineSetting("kickoff:queue-height", number(150));
 /** 上に貼り付ける自分の指示を、1 行にたたまず全文で出すか（どのチャットでも同じ） */
 export const STICKY_PROMPT_EXPANDED = defineSetting("kickoff:sticky-prompt-expanded", flag());
-/** 上に貼り付ける自分の指示の帯を出さないか（設定の「表示」。どのチャットでも同じ） */
-export const STICKY_PROMPT_HIDDEN = defineSetting("kickoff:sticky-prompt-hidden", flag());
+/** 上に貼り付ける自分の指示の帯を出さないか（設定の「表示」。どのチャットでも同じ。初めは隠す） */
+export const STICKY_PROMPT_HIDDEN = defineSetting("kickoff:sticky-prompt-hidden", flag(true));
 /** 入力欄の上の定型文の帯を出さないか（設定の「表示」・タブの列の「表示」・帯の右クリック。どのチャットでも同じ） */
 export const SNIPPET_BAR_HIDDEN = defineSetting("kickoff:snippet-bar-hidden", flag());
 /** チャットのパネルのタブの列を隠すか（タブの列の「表示」・見出しと会話の何もないところの右クリック・設定の「表示」。どのプロジェクトでも同じ） */
 export const CHAT_TAB_ROW_HIDDEN = defineSetting("kickoff:chat-tab-row-hidden", flag());
 /** チャットの見出しの行を隠すか（タブの列の「表示」・設定の「表示」・⌥⌘T。どのチャットでも同じ） */
 export const CHAT_HEADER_ROW_HIDDEN = defineSetting("kickoff:chat-header-row-hidden", flag());
-/** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。タブの列の「表示」→「見出しの項目」。初めはすべて出す。どのチャットでも同じ） */
-export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list());
-/** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く） */
-export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag());
-/** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・タブの列の「表示」・設定の「表示」。どのチャットでも同じ） */
-export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "md"));
-/** チャットの文の幅を広げるか（どのチャットでも同じ） */
-export const CHAT_WIDE = defineSetting("kickoff:chat-wide", flag());
+/** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。タブの列の「表示」→「見出しの項目」。初めは会話 / 動きの切り替え・文字の大きさ・ターン数・API 換算を隠す。どのチャットでも同じ） */
+export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list(["showing", "fontSize", "turns", "cost"]));
+/** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く。初めはコンパクト） */
+export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(true));
+/** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・タブの列の「表示」・設定の「表示」。どのチャットでも同じ。初めは小） */
+export const CHAT_FONT_SIZE = defineSetting("kickoff:chat-font-size", choice(["xs", "sm", "md", "lg", "xl"], "sm"));
+/** チャットの文の幅を広げるか（どのチャットでも同じ。初めは広げる） */
+export const CHAT_WIDE = defineSetting("kickoff:chat-wide", flag(true));
 /** チャットの中の検索で、大文字・小文字を区別するか（どのチャットでも同じ） */
 export const CHAT_FIND_CASE = defineSetting("kickoff:chat-find-case-sensitive", flag());
 /** AI からの質問が複数あるときの出し方（steps = 1 問ずつ / all = すべて並べる） */
