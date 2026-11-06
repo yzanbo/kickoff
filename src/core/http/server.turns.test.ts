@@ -75,6 +75,26 @@ test("圧縮: 圧縮している間はチャットの詳細で始めた時刻と
   assert.deepEqual(seen, [compacting, null]);
 });
 
+test("圧縮の直後: 作業の終わりを待たずに、要約したあとのコンテキストの大きさをチャットに書いて SSE で知らせる", async () => {
+  const { call, project, store, runner, provider, bus } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  store.chats.update(chatId, { context_tokens: 180_000, context_window: 200_000 });
+  const seen: (number | null)[] = [];
+  bus.subscribe((e) => {
+    if (e.type === "chat" && e.chat.id === chatId) seen.push(e.chat.context_tokens);
+  });
+  provider.contextTokens = 30_000;
+  const release = provider.hold();
+  assert.equal((await call("POST", `/api/chats/${chatId}/messages`, { text: "続けて" })).status, 200);
+  // 作業中のまま、メーターの値が要約したあとの大きさになる
+  await until(() => store.chats.get(chatId)?.context_tokens === 30_000);
+  assert.equal(store.chats.get(chatId)?.status, "running");
+  assert.ok(seen.includes(30_000));
+  release();
+  await until(() => !runner.isBusy(chatId));
+});
+
 test("圧縮の予約: 作業中の POST /compact は予約（compact_next）にし、DELETE /compact でやめる", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();

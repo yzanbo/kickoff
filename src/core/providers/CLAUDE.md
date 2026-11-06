@@ -6,7 +6,7 @@
 
 - `AgentProvider`: `id`・`label`・`implemented`（false なら画面は「未対応」と出し、実行を受け付けない）・CLI の状態 `status()`・1 回の実行 `run(params, callbacks, signal)`。任意の機能（`usage` / `models` / `commands` / `title` / `summarize` / `ask`（ツールを使わず 1 回だけ聞く。メモの AI の整理。`AskModel` で haiku（既定）/ sonnet）/ `fork` / `rewindFiles`）は対応しなければ持たない（ないときコアは、一覧なら空・名前は付けない・分岐と巻き戻しは 400 にする）。
 - 渡すもの `ProviderTurnParams`: 作業場所・指示と、その ID `promptId`（記録の `message_uuid`）・既定のシステムプロンプトに足す文 `systemPrompt`・許可 `policy`（`ChatPolicy`）・続きのセッション `resumeSessionId`・選択（`model` / `effort` / `permissionMode` / `fastMode`。null は指定しない）・自動圧縮を始める使用率 `autoCompactPct`（設定の `auto_compact_pct`。決めていれば Claude Code に `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` で渡す。`@shared/chat/autoCompact`）・読めるフォルダ `additionalDirectories`・読むだけのパス `readOnlyPaths`。
-- 知らせ `ProviderCallbacks`: `emit`（記録になる形。`user` / `approval` / `approval_resolved` / `result` はコアが作るので含めない）・途中経過 `stream` / `subagentProgress` / `commandOutput`（実行中のコマンドの出力の終わりの部分。保存しない）・承認 `requestApproval`（回答まで待つ）・作業中の様子 `retry` / `background` / `compacting`・圧縮の失敗 `compactFailed`（理由を渡すだけで、お知らせに残すかはコアが決める）・作業中の操作 `control`（`TurnControl` の `tell` = 止めずに発言を足す / `stopTask` = 裏の作業を 1 つ止める。終わったら null）。
+- 知らせ `ProviderCallbacks`: `emit`（記録になる形。`user` / `approval` / `approval_resolved` / `result` はコアが作るので含めない）・途中経過 `stream` / `subagentProgress` / `commandOutput`（実行中のコマンドの出力の終わりの部分。保存しない）・承認 `requestApproval`（回答まで待つ）・作業中の様子 `retry` / `background` / `compacting`・圧縮の直後のコンテキストの大きさ `context`（作業の終わりを待たずに入力欄のメーターへ反映するため）・圧縮の失敗 `compactFailed`（理由を渡すだけで、お知らせに残すかはコアが決める）・作業中の操作 `control`（`TurnControl` の `tell` = 止めずに発言を足す / `stopTask` = 裏の作業を 1 つ止める。終わったら null）。
 - 結果 `ProviderTurnResult`: 状態（`completed` / `failed` / `cancelled`）・セッション・費用・回数・コンテキストの大きさと上限・メインの会話の最後のメッセージの ID `lastMessageId`（分岐の起点）・通信の切断か `network`・使用枠の上限 `usageLimit`（枠が戻る時刻）。失敗は投げずに結果で返し、止められたら `cancelled`。
 - 足すときは `index.ts` の `createProviders` に足す。Codex・Gemini はまだ使えない `planned.ts` の `PlannedProvider`（CLI が入っているかだけ確かめ、実行は断る）。認証は各 CLI のログインをそのまま使い、アプリは資格情報を持たない。
 
@@ -33,5 +33,5 @@
 - `enableFileCheckpointing` で編集の前のファイルを取っておき、指示には `promptId` を `uuid` として渡す（巻き戻しでその発言の時点に戻すため）。
 - 通信の再試行（`api_retry`）は `retry` で知らせ、返答が届き始めたら null。応答のないまま（`error_status` が null）の再試行があった・失敗の文が `isNetworkError` なら、失敗は通信の切断（`network`）。
 - 使用枠: `rate_limit_event` の `rejected`（戻る時刻は `resetTimeOf`）・返答のエラー `rate_limit`・失敗の文の `isUsageLimitError` で `usageLimit` を付ける。
-- コンテキストの大きさは、メインのエージェントの最後の応答のトークン数（要約のあとは `compact_boundary` の `post_tokens`）と、使ったモデルのうちいちばん大きいコンテキストウィンドウ（サブエージェントの小さいモデルを除くため）。
+- コンテキストの大きさは、メインのエージェントの最後の応答のトークン数（要約のあとは `compact_boundary` の `post_tokens`）と、使ったモデルのうちいちばん大きいコンテキストウィンドウ（サブエージェントの小さいモデルを除くため）。自動の圧縮は作業の途中で起きるので、要約したら作業の終わりを待たずに `context` で知らせる（`post_tokens` があればその値、なければ要約のあとの最初のメインの応答のトークン数）。
 - 使用枠・モデル・/ のコマンド・ファイルを戻すは、メッセージを送らないセッションを一瞬開いて、制御用の API だけを呼ぶ（`withIdleSession`。モデルへのリクエストがないので枠を使わない）。モデル（1 時間）と / のコマンド（作業場所ごとに 5 分）の一覧は、ルート（`http/routes/providers.ts`）で `ttlCache` に覚える（空の結果は覚えない）。

@@ -37,6 +37,8 @@ class FakeProvider extends FakeProviderBase {
   background: BackgroundState | null = null;
   /** true なら実行の初めに、会話を圧縮し始めたと知らせる（終わりは知らせない。作業の終わりで消えるかの確かめに使う） */
   compacting = false;
+  /** これがあれば実行の初めに、作業の途中のコンテキストの大きさ（圧縮の直後）として知らせる */
+  contextTokens: number | null = null;
   /** これがあれば実行の初めに、AI の API への通信を再試行していると知らせる（終わりは知らせない。作業の終わりで消えるかの確かめに使う） */
   retry: ApiRetryInfo | null = null;
   /** 作業中に足された発言（止めずに伝える）と、止めた裏の作業。acceptTell が false なら足せない（入力が閉じている） */
@@ -50,7 +52,7 @@ class FakeProvider extends FakeProviderBase {
   /** 最後に読めるようにしたフォルダと、足したシステムプロンプト（メモのチャットの確かめに使う） */
   lastDirs: string[] = [];
   lastSystemPrompt = "";
-  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "control" | "retry">, signal: AbortSignal): Promise<ProviderTurnResult> {
+  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry">, signal: AbortSignal): Promise<ProviderTurnResult> {
     this.lastCwd = params.cwd;
     this.lastDirs = params.additionalDirectories;
     this.lastSystemPrompt = params.systemPrompt;
@@ -60,6 +62,7 @@ class FakeProvider extends FakeProviderBase {
     this.emits.forEach((event) => cb.emit(event));
     if (this.background) cb.background?.(this.background);
     if (this.compacting) cb.compacting?.(true);
+    if (this.contextTokens !== null) cb.context?.(this.contextTokens);
     if (this.retry) cb.retry?.(this.retry);
     cb.control?.({
       tell: (text) => this.acceptTell && Boolean(this.told.push(text)),
