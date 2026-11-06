@@ -1,4 +1,4 @@
-import { Bot, FileDiff, FileText, Globe, MessageSquare, MessagesSquare, SquarePen, SquareTerminal, StickyNote, type LucideIcon } from "lucide-react";
+import { Bot, FileDiff, FileText, Globe, MessageSquare, MessageSquarePlus, MessagesSquare, SquarePen, SquareTerminal, StickyNote, type LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { Chat } from "@shared/types";
 import { NEW_CHAT_TITLE, chatTitle } from "@/features/chat/chatTitle";
@@ -15,7 +15,7 @@ import type { PopoutRoute } from "@/app/popout";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "./panelTypes";
 
 /**
- * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・ファイル・メモ・子チャット・ブラウザ・ターミナル）ごとの違いを集めた表。
+ * パネルのタブの種類（チャット・新しいチャット（下書き）・サブエージェント・変更・ファイル・メモ・子チャット・新しい子チャット・ブラウザ・ターミナル）ごとの違いを集めた表。
  * タブを作る（キーの決め方）・欄の「表示するタブ」のどれに入るか・アイコンと名前・どのプロジェクトのものか・中身を作る時・閉じたときの後始末・
  * どのまとまりに入るかを、種類で分岐させずにここから引く。中身（どの部品を描き、中身からの知らせでタブをどう変えるか）は PanelTabPage の PAGES
  */
@@ -24,7 +24,7 @@ type TabKind = PanelTab["kind"];
 type TabOf<K extends TabKind> = Extract<PanelTab, { kind: K }>;
 
 /** 新しいタブ・ペインのキー（"<頭>:<時刻>:<乱数>"。ターミナルのキーは裏のシェルのキーにも使うので、同じ瞬間に 2 つ作っても重ならないよう乱数を添える） */
-export const newTabKey = (prefix: "new" | "browser" | "terminal" | "pane") => `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+export const newTabKey = (prefix: "new" | "newChild" | "browser" | "terminal" | "pane") => `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
 
 /** チャットのタブのキー（同じチャットは 1 つのタブ。サイドバーとの連動・カードの選択中もこれで引く） */
 export const chatKey = (id: number) => `chat:${id}`;
@@ -110,6 +110,14 @@ export const childTab = ({ chatId, childId, projectId, title }: Omit<TabOf<"chil
   childId,
   projectId,
   title,
+});
+
+/** 右の欄の「＋」で開く、新しい子チャットのタブ（押すたびに新しいキー。最初の文を送ると childTab に置き換える） */
+export const newChildTab = ({ chatId, projectId }: { chatId: number; projectId: number }): TabOf<"newChild"> => ({
+  key: newTabKey("newChild"),
+  kind: "newChild",
+  chatId,
+  projectId,
 });
 
 /** ブラウザのタブ（url がなければ空のページで、アドレス欄に入力して開く。押すたびに新しいキー） */
@@ -279,6 +287,18 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     chatIdOf: (t) => t.childId,
     cluster: () => OTHER_CLUSTER,
     popout: (t) => ({ route: { kind: "chat", chatId: t.childId }, title: `${chatTitle(t.title)} — 子チャット` }),
+  },
+  newChild: {
+    // 子チャットのタブと同じく、右の欄の決まった種類の中に出す
+    shows: "subagent",
+    icon: MessageSquarePlus,
+    badge: "子",
+    label: () => "新しい子チャット",
+    hint: () => "新しい子チャット（このチャットの会話を引き継ぎ、最初の文を送ると始まります）",
+    projectOf: (t) => t.projectId,
+    // 親のチャットを消したら閉じる
+    chatIdOf: (t) => t.chatId,
+    cluster: () => OTHER_CLUSTER,
   },
   browser: {
     shows: "browser",

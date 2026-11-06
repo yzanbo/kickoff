@@ -1,4 +1,4 @@
-import { Columns2, Rows2, X } from "lucide-react";
+import { Columns2, Plus, Rows2, X } from "lucide-react";
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -36,6 +36,7 @@ export function PaneTabBar({
   terminals,
   terminalMenuOpen,
   onNewChat,
+  onNewChild,
   onTerminal,
   onMenu,
   onBarMenu,
@@ -59,6 +60,8 @@ export function PaneTabBar({
   terminals: number;
   terminalMenuOpen: boolean;
   onNewChat: () => void;
+  /** 新しい子チャットを開く（サブエージェントの欄で、欄のチャットが子チャットを作れるときだけ。新しいタブのボタンの代わりに「＋」を出す） */
+  onNewChild: (() => void) | null;
   onTerminal: (e: React.MouseEvent<HTMLButtonElement>, pane: PaneLeaf) => void;
   /** タブの右クリック */
   onMenu: (tabKey: string, e: React.MouseEvent) => void;
@@ -183,6 +186,12 @@ export function PaneTabBar({
         onOpenWith={onOpenWith}
         openWithShown={openWithShown}
       />
+      )}
+      {/* 新しい子チャット: 出す種類が決まっている欄（サブエージェントの欄）の新しいタブのボタン（項目は 1 つなので、メニューを挟まずに開く） */}
+      {onNewChild && (
+        <span className="panel-bar-buttons panel-tab-adds">
+          <IconButton icon={Plus} label="新しい子チャット" size={14} onClick={onNewChild} />
+        </span>
       )}
       {/* ペインを分ける・閉じる（右端） */}
       <span className="panel-bar-buttons panel-pane-tools">

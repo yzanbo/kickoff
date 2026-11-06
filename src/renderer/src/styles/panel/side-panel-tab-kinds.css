@@ -1,5 +1,5 @@
 /*
- * 色のあるタブ: グループ別にまとめたときのまとまりの中のタブ（まとまりの色）と、右の欄のメモ・サブエージェント・子チャットのタブ（種類の色）。
+ * 色のあるタブ: グループ別にまとめたときのまとまりの中のタブ（まとまりの色）と、右の欄のメモ・サブエージェント・子チャット（新しい子チャットも同じ色）のタブ（種類の色）。
  * どちらも色は --tab-color 1 つで、表示中のタブの下線に使う（side-panel-tabs.css の .panel-tab.active::before）。
  * まとまりの頭の札と種類の札は、同じ「薄い地に色の文字」の丸い札
  * （side-panel-tab-groups.css の .panel-tab-cluster-pill と、下の .panel-tab-kind）
@@ -14,7 +14,8 @@
   --tab-color: hsl(265 65% 72%);
 }
 
-.panel-tab.tab-kind-child {
+.panel-tab.tab-kind-child,
+.panel-tab.tab-kind-newChild {
   --tab-color: hsl(200 70% 62%);
 }
 
@@ -26,7 +27,8 @@
   --tab-color: hsl(265 50% 48%);
 }
 
-:root[data-theme="light"] .panel-tab.tab-kind-child {
+:root[data-theme="light"] .panel-tab.tab-kind-child,
+:root[data-theme="light"] .panel-tab.tab-kind-newChild {
   --tab-color: hsl(205 70% 40%);
 }
 

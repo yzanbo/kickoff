@@ -6,9 +6,10 @@ import { chatPaneSlot } from "@/features/chat/pane/chatPaneContext";
 import { SubagentScreen } from "@/features/chat/subagents/SubagentScreen";
 import { SideChanges } from "@/features/editor/SideChanges";
 import { SideChildChat } from "@/features/chat/children/SideChildChat";
+import { NewChildPane } from "@/features/chat/children/NewChildPane";
 import { SideMemo } from "@/features/memo/SideMemo";
 import { SideFileView } from "@/features/editor/SideFileView";
-import { memoTab } from "./tabKinds";
+import { childTab, memoTab } from "./tabKinds";
 import { canPopOut, popOutTab } from "./popOutTab";
 import { TabPageContext } from "./tabPageContext";
 import { NewChatPane } from "./NewChatPane";
@@ -30,7 +31,7 @@ interface PageProps<T extends PanelTab> {
 
 /**
  * タブの種類ごとの中身（どの部品を描き、中身からの知らせでタブをどう変えるか）。中身からタブへの知らせは、どれも patchTab（その種類のタブの中身だけを変える）か、
- * 送った新しいチャットを置き換える replaceWithChat。種類の決まりのほか（アイコン・名前・後始末・まとまり）は tabKinds.ts の表
+ * 送った新しいチャットを置き換える replaceWithChat・replaceTab（新しい子チャット・名前を変えたメモ）。種類の決まりのほか（アイコン・名前・後始末・まとまり）は tabKinds.ts の表
  */
 const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>) => ReactNode } = {
   chat: ({ tab: t, panel, visible }) => (
@@ -74,6 +75,13 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       chatId={t.childId}
       visible={visible}
       onTitle={(title) => panel.patchTab(t.key, { kind: "child", fields: { title } })}
+    />
+  ),
+  // 右の欄の「＋」で開く新しい子チャット。最初の文を送ったら、できた子チャットのタブに置き換える（同じ位置のまま）
+  newChild: ({ tab: t, panel }) => (
+    <NewChildPane
+      parentId={t.chatId}
+      onCreated={(child) => panel.replaceTab(t.key, childTab({ chatId: t.chatId, childId: child.id, projectId: child.project_id, title: child.title }))}
     />
   ),
   terminal: ({ tab: t, panel, visible, focused }) => (

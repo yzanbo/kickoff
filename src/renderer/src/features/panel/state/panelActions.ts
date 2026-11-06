@@ -5,7 +5,7 @@ import { focusPane, moveTab, returnToHome, splitPane } from "@/features/panel/la
 import { equalizeSplit, setSplitSizes } from "@/features/panel/layout/paneSizes";
 import { parsePanelKey, SURFACES } from "@/features/panel/surfaces";
 import type { NewChatTarget, PanelTab, TerminalTarget } from "@/features/panel/tabs/panelTypes";
-import { browserTab, changesTab, chatTab, childTab, fileTab, kindOfTab, memoTab, newChatTab, newTabKey, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
+import { browserTab, changesTab, chatTab, childTab, fileTab, kindOfTab, memoTab, newChatTab, newChildTab, newTabKey, subagentTab, terminalTab } from "@/features/panel/tabs/tabKinds";
 import { readKinds, showKind } from "./panelKinds";
 import type { PanelAction, TabPatch } from "./panelState";
 import { dispatchPanel, panelStateOf } from "./panelStore";
@@ -72,6 +72,8 @@ export function panelActions(key: string) {
     openMemo: (target: { chatId: number; projectId: number; path: string }) => openTab(memoTab(target)),
     /** 子チャットをタブで開く（いちばん上の親のチャットの画面の右の欄。同じ子チャットのタブがあればそのペインで表示する） */
     openChild: (target: { chatId: number; childId: number; projectId: number; title: string }) => openTab(childTab(target)),
+    /** 新しい子チャットのタブを開く（チャットの画面の右の欄の「＋」。押すたびに新しいタブ。最初の文を送ると、できた子チャットのタブになる） */
+    openNewChild: (target: { chatId: number; projectId: number }) => openTab(newChildTab(target)),
     /** ブラウザの新しいタブを開く（url がなければ空のページで、アドレス欄に入力して開く） */
     openBrowser: (url = "") => openTab(browserTab(url)),
     openTerminal,
