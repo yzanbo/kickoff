@@ -36,6 +36,11 @@ test("指示の一覧: 自分の発言を会話の順に（添付だけならフ
   assert.equal(promptBefore(list, events[0].id), undefined);
 });
 
+test("指示の一覧: 圧縮の前に送った圧縮前指示には印を付ける（自分で書いた指示は付けない）", () => {
+  const events = [event("user", { text: "調べて" }), event("user", { text: "メモにまとめて", pre_compact: true })];
+  assert.deepEqual(promptListOf(events).entries.map((p) => p.preCompact), [false, true]);
+});
+
 const prompts = ["新しい", "1行目\n2行目", "古い"];
 const move = (input: Partial<HistoryInput> & Pick<HistoryInput, "key">) => {
   const text = input.text ?? "";

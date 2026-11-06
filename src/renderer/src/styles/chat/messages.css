@@ -75,6 +75,38 @@
   outline-offset: -1px;
 }
 
+/*
+ * 圧縮の前に送った圧縮前指示（記録の pre_compact）: 圧縮の行（.compacted）と同じアクセントの色で、自分で書いた指示と見分ける。
+ * 吹き出しは枠をその色に、上の札（.message-kind-label）・上に貼り付ける帯の札（.sticky-prompt-kind）の文字もその色にする
+ */
+.user-message.pre-compact .bubble.user {
+  outline: 1px solid color-mix(in srgb, var(--accent-fg) 55%, transparent);
+  outline-offset: -1px;
+}
+
+/* 札のもとの色（.message-kind-label は question-card.css、.sticky-prompt-kind は sticky-prompt.css。どちらも後ろにある）に勝つよう 2 つのクラスで書く */
+.message-kind-label.pre-compact-kind,
+.sticky-prompt-kind.pre-compact-kind {
+  font-weight: 600;
+  color: var(--accent-fg);
+}
+
+/* 指示の履歴の行の「圧縮前指示」の札（薄い地に色の文字の丸い札） */
+.pre-compact-tag {
+  display: inline-flex;
+  flex: none;
+  align-self: center;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: calc(10px * var(--chat-scale, 1));
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--accent-fg);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
 /* 吹き出しの中の書き直しの欄 */
 .user-message.editing {
   width: 80%;
