@@ -6,6 +6,8 @@ import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { StickyPrompt } from "@/features/chat/prompts/StickyPrompt";
 import { useStickyPrompt } from "@/features/chat/prompts/useStickyPrompt";
 import { useWorkingStatus } from "@/features/chat/status/useWorkingStatus";
+import { keepSelectionOnClick, QUOTABLE_ATTR } from "@/features/chat/messages/quotable";
+import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
 import { ScrollBottomPill, useScrollPill } from "./ScrollBottomPill";
 import { TimelineItems } from "./Timeline";
 import { TimelineEnd } from "./TimelineEnd";
@@ -95,6 +97,8 @@ export function ChatTimeline({
   // 最新の結果を一番下まで見たら既読にする（新しい発言に合わせたスクロールの後で確かめる）
   useMarkSeen({ timelineRef: scroll.ref, chat, events, visible, away: s.away, slackPx: BOTTOM_SLACK_PX });
   const pinned = sticky.pinned;
+  // 流れの中の文（質問のカード・ツールの行・サブエージェントのカードなど）の右クリック。発言など自分のメニューを持つ所は、そちらが先に開く
+  const quoteMenu = useQuoteMenu();
 
   return (
     <div className="timeline-wrap" hidden={hidden}>
@@ -103,6 +107,9 @@ export function ChatTimeline({
         className="timeline"
         ref={scroll.ref}
         tabIndex={-1}
+        {...{ [QUOTABLE_ATTR]: "" }}
+        onContextMenu={quoteMenu.openInRegion}
+        onClickCapture={keepSelectionOnClick}
         onScroll={(e) => {
           s.onScroll(e);
           sticky.update();
@@ -137,6 +144,7 @@ export function ChatTimeline({
         />
       )}
       {/* 一番下へ戻るボタン: いまの状態を添えて出す（入る幅があればチャット欄の上のピルの列の右端に置く） */}
+      {quoteMenu.element}
       {s.away && <ScrollBottomPill tone={pill.tone} label={pill.label} dock={pillDock ?? null} onClick={s.scrollToBottom} />}
     </div>
   );

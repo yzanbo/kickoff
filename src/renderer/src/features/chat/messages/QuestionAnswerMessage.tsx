@@ -11,7 +11,13 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
   const entries = Object.entries(data.answers);
   return (
     <div className="user-message question-answer">
-      <div className="bubble user" id={`ev-${event.id}`}>
+      <div
+        className="bubble user"
+        id={`ev-${event.id}`}
+        // 選ばずに右クリックしたときに、質問と答えを丸ごと「チャットに追加」・コピーできるようにする（useQuoteMenu）
+        data-quote-text={entries.map(([question, answer]) => `${question}\n→ ${Array.isArray(answer) ? answer.join("、") : answer}`).join("\n\n")}
+        data-quote-noun="回答"
+      >
         <div className="message-kind-label">
           <MessageCircleQuestion size={12} aria-hidden />
           質問への回答

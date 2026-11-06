@@ -8,14 +8,28 @@ import { useMainChat } from "@/features/chat/pane/mainChatContext";
 const INNER_NAMES: Record<string, string> = { child: "子チャット", memo: "メモのチャット" };
 
 /**
- * 右の欄・別ウィンドウ（サブエージェント・変更・ファイル・子チャット・メモのチャット）の右クリックのメニューの、チャットに足す組。
- * 見出し「メインのチャット」の下に「選択部分を追加」など（quote。引用にしたもの）と「パスを追加」（path）。子チャット・メモのチャットの中なら、
- * そのチャットの組も続ける（メモの本文のメニューと同じ形）。どの組も最後に区切り線。右の欄・別ウィンドウの外では何も出さない（送るのは自分で）
+ * 右クリックのメニューの、チャットに足す組。
+ * - 右の欄・別ウィンドウ（サブエージェント・変更・ファイル・子チャット・メモのチャット）: 見出し「メインのチャット」の下に「選択部分を追加」など
+ *   （quote。引用にしたもの。what は「選択部分」「メッセージ」など足すものの呼び名）と「パスを追加」（path）。子チャット・メモのチャットの中なら、
+ *   そのチャットの組も続ける（メモの本文のメニューと同じ形）
+ * - メインのチャットの画面の中: 見出しなしで「選択部分をチャットに追加」など（選んだときの「チャットに追加」のボタンと同じ）
+ * どれも最後に区切り線。チャットの外では何も出さない（送るのは自分で）
  */
-export function AddToChatItems({ quote, quoteLabel, path }: { quote: string | null; quoteLabel: string; path?: string | null }) {
+export function AddToChatItems({ quote, what, path }: { quote: string | null; what: string; path?: string | null }) {
   const main = useMainChat();
   const pane = useOptionalChatPane();
-  if (main === null || (!quote && !path)) return null;
+  if (!quote && !path) return null;
+  if (main === null) {
+    if (!pane || !quote) return null;
+    return (
+      <>
+        <MenuItem title="引用にして、このチャットの入力欄に足します（送るのは自分で）" onSelect={() => pane.fillComposer(quote, { append: true })}>
+          {what}をチャットに追加
+        </MenuItem>
+        <div className="menu-separator" role="separator" />
+      </>
+    );
+  }
   const inner = pane && pane.chatId !== main ? pane : null;
   const groups = [
     { key: "main", name: "メインのチャット", add: (text: string) => addToChat(main, text) },
@@ -28,7 +42,7 @@ export function AddToChatItems({ quote, quoteLabel, path }: { quote: string | nu
       <div className="menu-label">{group.name}</div>
       {quote && (
         <MenuItem title={`引用にして、${group.name}の入力欄に足します（送るのは自分で）`} onSelect={() => group.add(quote)}>
-          {quoteLabel}
+          {what}を追加
         </MenuItem>
       )}
       {path && (

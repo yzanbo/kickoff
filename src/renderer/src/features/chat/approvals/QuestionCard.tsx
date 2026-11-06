@@ -136,7 +136,16 @@ export function QuestionCard({ approval }: { approval: Approval }) {
       {questions.map((q, index) => {
         const picked = selected[q.question] ?? [];
         return (
-          <div key={q.question} className="question" role="group" aria-labelledby={`${approval.id}-q${index}`} hidden={folded || (stepped && index !== current)}>
+          <div
+            key={q.question}
+            className="question"
+            role="group"
+            aria-labelledby={`${approval.id}-q${index}`}
+            hidden={folded || (stepped && index !== current)}
+            // 選ばずに右クリックしたときに、質問と選択肢を丸ごと「チャットに追加」・コピーできるようにする（useQuoteMenu）
+            data-quote-text={questionQuoteText(q)}
+            data-quote-noun="質問"
+          >
             <div className="question-title" id={`${approval.id}-q${index}`}>
               {!stepped && questions.length > 1 && <span className="question-number">{index + 1}</span>}
               {/* 見出し（短い名前）は質問が 1 つのときだけ。1 問ずつは上の並び、すべては番号で足りる */}
@@ -216,4 +225,10 @@ export function QuestionCard({ approval }: { approval: Approval }) {
       <ErrorText message={error} />
     </div>
   );
+}
+
+/** 質問の丸ごとの文（質問と、番号付きの選択肢と説明）。右クリックの「質問をチャットに追加」「質問全体をコピー」に使う */
+function questionQuoteText(q: Question): string {
+  const options = q.options.map((o, i) => `${i + 1}. ${o.label}${o.description ? ` — ${o.description}` : ""}`);
+  return [q.question, ...options].join("\n");
 }

@@ -6,7 +6,7 @@ import { addToChat } from "@/features/chat/pane/addToChat";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { SelectionMemoButton } from "@/features/memo/SelectionMemoButton";
-import { selectionToMarkdown } from "@/ui/markdown/selectionMarkdown";
+import { selectionWithin } from "./quotable";
 import { quoteCode, quoteComment } from "./quoteComment";
 
 /** 選んだ範囲（画面の位置と、チャット欄に足す引用。返答なら、描いた表示を Markdown に戻した文も（メモにするとき）） */
@@ -51,17 +51,12 @@ function currentRange(): { selection: Selection; range: Range; element: Element 
   return { selection, range, element: common instanceof Element ? common : common.parentElement };
 }
 
-/** 選んでいる文が、root の中の 1 つの AI の返答（.assistant）の中にあれば、その引用と位置 */
-function pickedInReply(root: Element | null): Picked | undefined {
-  const at = currentRange();
-  const message = at?.element?.closest(".assistant");
-  if (!at || !root || !message || !root.contains(message)) return undefined;
-  const text = at.selection.toString().trim();
-  if (!text) return undefined;
-  // 返答の Markdown の表示の中なら Markdown に戻す（メモには書式のまま残す。発言の右クリックの「メモ」と同じ）
-  const markdownRoot = at.element?.closest(".markdown");
-  const markdown = markdownRoot && markdownRoot.contains(at.range.commonAncestorContainer) ? selectionToMarkdown(at.range, markdownRoot) : text;
-  return { rect: at.range.getBoundingClientRect(), quote: quoteComment(text, ""), markdown };
+/** 選んでいる文が、root の中の「チャットに追加できる所」（会話の流れ・サブエージェントの画面の手順。`data-quotable`）にあれば、その引用と位置 */
+function pickedInQuotable(root: Element | null): Picked | undefined {
+  const selected = selectionWithin(root, { quotable: true });
+  if (!selected) return undefined;
+  // 返答の Markdown の表示の中なら Markdown に戻したものも持つ（メモには書式のまま残す。右クリックの「メモ」と同じ）
+  return { rect: selected.range.getBoundingClientRect(), quote: quoteComment(selected.text.trim(), ""), markdown: selected.markdown };
 }
 
 /**
@@ -89,7 +84,7 @@ export function pickedInCode(root: Element | null): Picked | undefined {
 const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追加", title: "選択部分を引用して、チャットの入力欄に足します（送るのは自分で）" };
 
 /**
- * メインの会話の AI の返答の一部を選ぶと、その上に「チャットに追加」のボタンを出し、押すと選んだ文の引用を、すぐこのチャットの入力欄の文の後ろに足す
+ * メインの会話の中の文（発言・質問のカード・ツールの行・サブエージェントのカードなど。`data-quotable` の中）を選ぶと、その上に「チャットに追加」のボタンを出し、押すと選んだ文の引用を、すぐこのチャットの入力欄の文の後ろに足す
  * （何件か足してから、まとめて送れる。送るのは自分で）。横に「メモ ▾」（SelectionMemoButton。選択部分をメモにする）。
  * 右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach がメインのチャットと両方に足せるボタンを出す）
  */
@@ -99,7 +94,7 @@ export function SelectionAttach() {
   if (inSide) return null;
   return (
     <SelectionAttachBox
-      pick={() => pickedInReply(root.current)}
+      pick={() => pickedInQuotable(root.current)}
       targets={() => [{ ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }) }]}
       extra={(picked, controls) => (
         <SelectionMemoButton projectId={projectId()} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
@@ -112,7 +107,7 @@ export function SelectionAttach() {
 const INNER_LABELS: Record<string, string> = { child: "子チャットに追加", memo: "メモのチャットに追加" };
 
 /**
- * 右の欄・別ウィンドウ（container の中）で、AI の返答・差分・ファイルの中身の行を選ぶと、その上に「チャットに追加」を出し、押すとメインのチャット（mainChatId）の入力欄に足す。
+ * 右の欄・別ウィンドウ（container の中）で、会話の文（子チャットの流れ・サブエージェントの画面の手順）・差分・ファイルの中身の行を選ぶと、その上に「チャットに追加」を出し、押すとメインのチャット（mainChatId）の入力欄に足す。
  * 子チャット・メモのチャットの中で選んだときは「メインに追加」と、そのチャットに足すボタン（「子チャットに追加」「メモのチャットに追加」）の 2 つ。
  * メモの本文は MemoSelectionAttach が出す
  */
@@ -127,7 +122,7 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
   };
   return (
     <SelectionAttachBox
-      pick={() => pickedInReply(container()) ?? pickedInCode(container())}
+      pick={() => pickedInCode(container()) ?? pickedInQuotable(container())}
       targets={() => {
         const inner = innerChat();
         const main: AddTarget = {
