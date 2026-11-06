@@ -13,7 +13,8 @@
 
 - `start`: チャットを作って最初の発言を記録し、すぐ動かす。選択は `resolveChatOptions`（送るときの指定 → プロジェクトの `chat_defaults` → 設定の `chat_defaults`）で決めてチャットに保存する。名前は 1 行目で始め、AI に付けてもらう（`provider.title`。その間に利用者が変えていれば置き換えない）。
 - `send`（`POST /api/chats/:id/messages`）: 作業中なら 409。作業中かを確かめてから動かし始めるまで（指示を組み立てる `await` の間も）`preparing` で作業中として数える（その間に送信待ちの自動送信と「いま」が重なると、同じチャットを 2 つ同時に動かし、片方の指示が会話から消えるため）。送るときの選択はチャットに反映する。
-- `tell`（`POST /api/chats/:id/tell`）: 止めずに伝える。作業中なら `TurnControl.tell` でいまのやり取りに発言を足す（メインのエージェントが手順の切れ目で読む。裏のサブエージェント・コマンドは動き続ける）。足し先は指示を組み立てたあとに取り直し、足せないとき（始まる前・圧縮中など）は送信待ちに入れる（入れたときにもう作業が終わっていれば、その場で送る）。作業中でなければ `send`。結果は `told` / `queued` / `sent`。選択は次に送るときから効く。
+- `tell`（`POST /api/chats/:id/tell`）: 止めずに伝える。作業中なら `TurnControl.tell` でいまのやり取りに発言を足す（メインのエージェントが手順の切れ目で読む。裏のサブエージェント・コマンドは動き続ける）。足し先は指示を組み立てたあとに取り直し、足せないとき（始まる前など）は送信待ちに入れる（入れたときにもう作業が終わっていれば、その場で送る）。作業中でなければ `send`。結果は `told` / `queued` / `sent` / `held`。選択は次に送るときから効く。
+- 圧縮中の `tell` は足さずに預かる（`held`。`ChatRuntime.afterCompact` → `ChatLive.after_compact`。圧縮中に足すと、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため）。圧縮が終わったら（`ChatRuntime` が圧縮中が外れたときに `onCompactEnded` → `Runner.deliverAfterCompact`）、送った順に伝え直す（報告の添え書きもそのときに組み立てる）。作業ごと終わっていたら（止めた・失敗した。作業の終わりは作業中の操作を外してから圧縮中を外す）送信待ちの先頭に入れ、終わりの自動送信でほかより先に送る。手で圧縮する実行（圧縮のボタン）には作業中の操作を渡さない（足すと返答が圧縮の実行に入り、未読・作業の終わりが残らない）ので、圧縮のあとの指示は送信待ちの先頭から、圧縮の実行のあとに送る。
 - 自分の発言の記録（`user`）には `message_uuid`（Claude Code にも同じ ID で渡し、ファイルを戻す目印）を残す。自分で送ったら、再開の段取りをやめる（`forgetRecovery`）。
 
 ## 1 回の実行（turn.ts）
@@ -27,7 +28,7 @@
 
 ## 作業中の様子（ChatLive）
 
-- 画面に配る作業中の様子は `@shared/types` の `ChatLive`（送信待ち `queue`・裏の作業 `background`・通信の再試行 `retry`・つながるのを待っている `reconnect`・圧縮中の様子 `compacting`（始めた時刻ときっかけ）・停止中 `stopping`・圧縮の予約 `compact_next`）。チャットの詳細（`GET /api/chats/:id`）の `live` と SSE の `chat_live` で同じ形にし、どれかが変わるたびに丸ごと配る。保存しない。
+- 画面に配る作業中の様子は `@shared/types` の `ChatLive`（送信待ち `queue`・裏の作業 `background`・通信の再試行 `retry`・つながるのを待っている `reconnect`・圧縮中の様子 `compacting`（始めた時刻ときっかけ）・停止中 `stopping`・圧縮の予約 `compact_next`・圧縮中に預かった「いま」`after_compact`）。チャットの詳細（`GET /api/chats/:id`）の `live` と SSE の `chat_live` で同じ形にし、どれかが変わるたびに丸ごと配る。保存しない。
 - 再試行（Claude Code の `api_retry`）は返答が届き始めたら消す。裏の作業は Claude Code の `background_tasks_changed`（いま動いているものの一覧）と、メインの返答が終わったか（`replied`）。1 件ずつ止めるのは `POST /api/chats/:id/background/:taskId/stop`（`TurnControl.stopTask`。作業中でなければ 409）。
 - 圧縮: Claude Code の `status`（`compacting` → null）を `ProviderCallbacks.compacting` で受け（終わりは null・`compact_boundary`・作業の終わりだけで見る。API に問い合わせるたびの `requesting` は圧縮の途中にも挟まりうるので、それでは外さない）、始めた時刻ときっかけ（`CompactingState`）を終わるまで変えずに持つ（Claude Code は待っている間も 30 秒ごとに知らせ直す）。きっかけは、手で圧縮した実行（圧縮のボタン・`/compact` で始まる指示）なら `manual`、ほかの指示の途中で起きたものは上限に近づいた自動の `auto`（`compactTriggerOf`。画面は自動のとき、なぜ作業が止まって見えるかを添える）。失敗（`compactFailed`）は、手で圧縮したときだけ理由をお知らせに残す（自動の圧縮の失敗は、会話が短くて要約するものがない `too_few_groups` なども含み、Claude Code も知らせない）。要約したら記録に `compact`（前後のトークン数と、Claude Code が知らせたときはかかった時間 `duration_ms`）が残る。手で圧縮する（`POST /api/chats/:id/compact` → `/compact` を送る）ときは、発言・結果を残さず、回数に数えず、未読にもしない（まだ会話がなければ 409）。作業中に頼むと予約にする（`ChatRuntime` の `compactNext` → `ChatLive.compact_next`）: いまのやり取りが終わったら（通信の切断・使用枠の上限で止まったときは除く）、送信待ちより先にすぐ圧縮を始め（`startReservedCompact`。始めたら予約は外れる）、圧縮が終わったらその終わりで送信待ちの次を送る。予約をやめるのは `DELETE /api/chats/:id/compact`（予約していなければ何もしない）。テストは `runner.queue.test.ts`・`server.turns.test.ts`。
 - 停止: `cancel`（`POST /api/chats/:id/cancel`）は `stopping` を立てて実行を止める。Claude Code のプロセスがサブエージェント・裏のコマンドごと終わるまで（ふつうは 2 秒ほど、応じなければ SDK が 5 秒後に強制終了する）立てたままにし、終わったら消す。

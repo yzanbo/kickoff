@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { executeTurn, type ExecutionDeps, type TurnRequest, type TurnOutcome } from "./turn.js";
 import { RunnerQueue } from "./runnerQueue.js";
-import { ChatRuntimes } from "./runtime.js";
+import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, type StartChatInput } from "./input.js";
-import type { Attachment, Chat, ChatLive, ChatOptionsPatch } from "@shared/types";
+import type { Attachment, Chat, ChatLive, ChatOptionsPatch, QueuedMessage, TellResult } from "@shared/types";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { Conflict, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
@@ -44,6 +44,7 @@ export class Runner extends RunnerQueue {
       bus: deps.bus,
       editTtlMs: deps.editHoldTtlMs,
       onEditsChanged: (chatId) => this.editsChanged(chatId),
+      onCompactEnded: (chatId) => this.deliverAfterCompact(chatId),
     });
     this.recovery = new ChatRecovery({
       store: deps.store,
@@ -110,19 +111,23 @@ export class Runner extends RunnerQueue {
 
   /**
    * 止めずに伝える: 作業中なら、いまのやり取りに発言を足す（メインのエージェントが、いまの手順の切れ目で読む。
-   * 裏のサブエージェント・コマンドは動き続ける）。足せないとき（始まる前・要約中など）は待ちの列に入れ（front なら先頭）、
-   * 作業中でなければすぐ送る。モデルなどの選択は、作業の途中では変えられないので次に送るときから効く
+   * 裏のサブエージェント・コマンドは動き続ける）。圧縮中なら預かり、圧縮が終わったら伝える（deliverAfterCompact）。
+   * 足せないとき（始まる前など）は待ちの列に入れ（at があればその位置）、作業中でなければすぐ送る。
+   * モデルなどの選択は、作業の途中では変えられないので次に送るときから効く
    */
-  async tell(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { front = false } = {}): Promise<"told" | "sent" | "queued"> {
+  async tell(chatId: number, text: string, options: ChatOptionsPatch = {}, attachments: Attachment[] = [], { at }: { at?: number } = {}): Promise<TellResult["result"]> {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
     if (!this.isBusy(chatId)) {
       await this.send(chatId, text, options, attachments);
       return "sent";
     }
+    const runtime = this.runtimes.get(chatId);
+    if (runtime.compacting) return this.holdUntilCompacted(runtime, text, options, attachments);
     const { prompt, handover } = await followupPrompt(this.deps, chatId, text, attachments);
     const messageUuid = randomUUID();
-    const runtime = this.runtimes.get(chatId);
+    // 組み立てている間に圧縮が始まったら、預かる（届いた報告の添え書きは、伝えるときに組み立て直す）
+    if (runtime.compacting) return this.holdUntilCompacted(runtime, text, options, attachments);
     // 組み立てている間に始まった・終わった実行もあるので、足し先は組み立てたあとに取り直す
     if (runtime.control?.tell(prompt, messageUuid)) {
       // 自分で送った: つながったら再開する・再開するかを聞くのをやめる
@@ -132,10 +137,44 @@ export class Runner extends RunnerQueue {
       return "told";
     }
     const { id } = runtime.queue.add(text, options, attachments);
-    if (front) runtime.queue.move(id, 0);
+    if (at !== undefined) runtime.queue.move(id, at);
     // 組み立てている間に作業が終わっていたら、終わったときの自動送信はもう済んでいるので、ここで送る（列に取り残さない）
     if (!this.isBusy(chatId)) void this.sendNextQueued(chatId);
     return "queued";
+  }
+
+  /**
+   * 圧縮中の「いま」を預かる（ChatLive の after_compact。圧縮の行の下に出す）。圧縮中に足すと、画面では圧縮より上に出て、
+   * 要約したあとの会話に入ったかも分からないため、圧縮が終わってから伝える
+   */
+  private holdUntilCompacted(runtime: ChatRuntime, text: string, options: ChatOptionsPatch, attachments: Attachment[]): "held" {
+    const message: QueuedMessage = { id: randomUUID(), text, options, attachments, created_at: new Date().toISOString() };
+    runtime.update({ afterCompact: [...runtime.afterCompact, message] });
+    return "held";
+  }
+
+  /**
+   * 圧縮が終わったら、預かった「いま」を送った順に伝える。作業ごと終わっていたら（止めた・失敗した。作業の終わりは
+   * 作業中の操作を外してから圧縮中を外す）、送信待ちの先頭に入れ、作業の終わりの自動送信でほかの送信待ちより先に送る
+   */
+  private deliverAfterCompact(chatId: number) {
+    const runtime = this.runtimes.get(chatId);
+    const held = runtime.afterCompact;
+    if (held.length === 0) return;
+    runtime.update({ afterCompact: [] });
+    if (!runtime.control) {
+      held.forEach((m, i) => runtime.queue.move(runtime.queue.add(m.text, m.options, m.attachments).id, i));
+      return;
+    }
+    void (async () => {
+      for (const [i, m] of held.entries()) {
+        try {
+          await this.tell(chatId, m.text, m.options, m.attachments, { at: i });
+        } catch (e) {
+          this.reportError(chatId, `圧縮のあとに指示を伝えられませんでした: ${errorMessage(e)}`);
+        }
+      }
+    })();
   }
 
   /** 裏で動いている作業を 1 つ止める（サブエージェント・コマンド。作業中でなければ 409） */

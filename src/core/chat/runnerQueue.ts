@@ -1,7 +1,7 @@
 import { errorMessage } from "@shared/errors";
 import { Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { ChatRuntimes } from "./runtime.js";
-import type { Attachment, QueuedMessage, Chat, ChatOptionsPatch, QueueState } from "@shared/types";
+import type { Attachment, QueuedMessage, Chat, ChatOptionsPatch, QueueState, TellResult } from "@shared/types";
 
 /** 列にない指示を指したとき（消した・送ったあと） */
 const missing = () => new NotFound("待ちの指示が見つかりません");
@@ -17,7 +17,7 @@ export abstract class RunnerQueue {
   protected abstract readonly runtimes: ChatRuntimes;
   abstract isBusy(chatId: number): boolean;
   abstract send(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[]): Promise<Chat>;
-  abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: { front?: boolean }): Promise<"told" | "sent" | "queued">;
+  abstract tell(chatId: number, text: string, options?: ChatOptionsPatch, attachments?: Attachment[], opts?: { at?: number }): Promise<TellResult["result"]>;
   /** チャット（なければ 404） */
   protected abstract requireChat(chatId: number): Chat;
   /** 送れなかった理由をチャットに残す */
@@ -94,7 +94,7 @@ export abstract class RunnerQueue {
   async sendQueuedNow(chatId: number, id: string): Promise<void> {
     const message = this.queueOf(chatId).take(id);
     if (!message) throw missing();
-    await this.tell(chatId, message.text, message.options, message.attachments, { front: true });
+    await this.tell(chatId, message.text, message.options, message.attachments, { at: 0 });
   }
 
   /**

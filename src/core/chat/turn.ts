@@ -163,8 +163,10 @@ function callbacksFor(
       bus?.publish({ type: "chat_command_output", project_id: projectId, chat_id: chatId, output });
     },
     retry: (retry) => runtime.update({ retry }),
+    // 手で圧縮する実行（圧縮のボタン）には発言を足さない（足すと、その返答が圧縮の実行の中に入り、未読・作業の終わりが残らない）。
+    // 圧縮中の「いま」は、送信待ちの先頭から圧縮の実行のあとに送る
     control: (control) => {
-      runtime.control = control;
+      runtime.control = compact ? null : control;
     },
     background: (background) => runtime.update({ background }),
     // 圧縮を始めた時刻は、終わるまで変えない（続けて始まったと知らされても、最初の時刻のまま。Claude Code は待っている間も 30 秒ごとに知らせ直す）
