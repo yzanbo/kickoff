@@ -10,12 +10,13 @@
   }
 }
 
+/* 回る印はどこでも作業中の色（状態の点 --dot-running。チャットの状態の丸 .status-ring・サブエージェントの印・圧縮中のメーターと同じ） */
 .spinner {
   display: inline-block;
   width: 12px;
   height: 12px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
+  border: 2px solid color-mix(in srgb, var(--dot-running) 25%, transparent);
+  border-top-color: var(--dot-running);
   border-radius: 50%;
 }
 

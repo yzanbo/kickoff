@@ -49,15 +49,14 @@
 }
 
 /*
- * 会話を圧縮している間: 短い弧をアクセントの色で回す（使用率の色より後ろに置いて勝たせる。弧の長さの変化はなめらかにしない）。
- * 色は文字のアクセント --accent-fg（ダークの --accent は暗い緑で、暗い地の上では回っているのが見えなかった）
+ * 会話を圧縮している間: 短い弧を作業中の色（--dot-running。ほかの回る印と同じ）で回す（使用率の色より後ろに置いて勝たせる。弧の長さの変化はなめらかにしない）
  */
 .context-ring.compacting {
   animation: spin 0.9s linear infinite;
 }
 
 .context-ring.compacting .context-ring-fill {
-  stroke: var(--accent-fg);
+  stroke: var(--dot-running);
   transition: none;
 }
 
@@ -91,11 +90,6 @@
   gap: 4px 10px;
   font-weight: 600;
   color: var(--accent-fg);
-}
-
-/* 動いている印の点も見出しと同じ明るさに（ふだんの --accent は、薄い緑の地の上では沈んで見えた） */
-.compacting-title .dots span {
-  background: var(--accent-fg);
 }
 
 .compacting-time {
