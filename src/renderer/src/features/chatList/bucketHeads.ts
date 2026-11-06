@@ -4,6 +4,7 @@ import { boardColumnOf } from "@shared/chat/state";
 import { BOARD_COLUMN_LABELS, BOARD_COLUMNS, type BoardColumn, type Chat } from "@shared/types";
 import { chatStateOf } from "@/features/chat/chatState";
 import { workplaceOf } from "@/features/worktree/workplace";
+import { workplaceHue } from "@/features/worktree/workplaceHue";
 import type { BucketBy, BucketContext, BucketHead, BucketOptions, DraftTarget } from "./buckets";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 
@@ -38,8 +39,17 @@ function groupHead(projectId: number, groupId: number | null | undefined, ctx: B
 
 /** 作業場所のまとまり（見出しはサイドバー・ボードと同じ workplaceOf） */
 export function workplaceHead(projectId: number, chat: Pick<Chat, "worktree_path" | "branch">, ctx: BucketContext, parent?: string): BucketHead {
-  const place = workplaceOf(chat, ctx.worktreesOf?.(projectId));
-  return { key: keyAt(`w:${place.key || "main"}`, projectId, parent), kind: "worktree", label: place.name || "本体", title: place.title, projectId, place };
+  const list = ctx.worktreesOf?.(projectId);
+  const place = workplaceOf(chat, list);
+  return {
+    key: keyAt(`w:${place.key || "main"}`, projectId, parent),
+    kind: "worktree",
+    label: place.name || "本体",
+    title: place.title,
+    projectId,
+    place,
+    hue: workplaceHue(projectId, place, list),
+  };
 }
 
 const statusHead = (column: BoardColumn, scope: number | undefined, parent: string | undefined): BucketHead => ({

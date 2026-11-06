@@ -13,21 +13,31 @@
   display: none;
 }
 
-/* チャットが作業しているブランチの印（チャットの見出し・ボードのカード・サイドバーの行） */
+/*
+ * チャットが作業しているブランチの印（チャットの見出し・ボードのカード・サイドバーの行）。色は作業場所の色（--group-hue。workplaceHue）で、
+ * タブを作業場所別にまとめたときのまとまりの札・タブの線と同じ色（明るさも side-panel-tab-groups.css の --group-color と同じ）。
+ * 以前はワークツリーは青、本体は灰色で、タブのまとまりの色と合っていなかった
+ */
 .worktree-chip {
+  --chip-color: hsl(var(--group-hue) 60% 68%);
+
   display: inline-flex;
   align-items: center;
   gap: 3px;
   max-width: 160px;
   padding: 0 6px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--info) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip-color) 50%, transparent);
   border-radius: 999px;
   font-size: 11px;
   line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--info);
+  color: var(--chip-color);
+}
+
+:root[data-theme="light"] .worktree-chip {
+  --chip-color: hsl(var(--group-hue) 55% 38%);
 }
 
 .worktree-chip svg {
@@ -66,17 +76,10 @@
   flex: none;
 }
 
-/* 本体で作業しているチャットのブランチは控えめに（ワークツリーのものと見分ける） */
-.worktree-chip.on-main {
-  border-color: var(--border-strong);
-  color: var(--muted);
-}
-
-/* フォルダの見つからないワークツリー・片付けて本体に戻ったチャットの、最後に作業したブランチ（点線で薄く。説明に理由） */
+/* フォルダの見つからないワークツリー・片付けて本体に戻ったチャットの、最後に作業したブランチ（色はそのまま、点線の枠で少し薄く。説明に理由） */
 .worktree-chip.is-gone {
   border-style: dashed;
-  border-color: var(--border-strong);
-  color: var(--extra-muted);
+  opacity: 0.75;
 }
 
 /* 注意の文（同じ作業場所で、ほかのチャットが作業中など） */

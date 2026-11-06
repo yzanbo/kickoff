@@ -70,6 +70,15 @@ test("タブのまとめ方: まとまりの色は、グループなら覚えた
   assert.equal(typeof clusterHue(head("p5/w:main", "worktree")), "number");
   assert.equal(clusterHue(head("p5/g7", "group", { group: group(7, 0, 262) })), 262);
   assert.equal(clusterHue(OTHER_CLUSTER), null);
+  // 作業場所はブランチの印と同じ色（workplaceHead が決めた hue）を使う
+  assert.equal(clusterHue(head("p5/w:main", "worktree", { hue: 135 })), 135);
+});
+
+test("タブのまとめ方: 作業場所の色（ブランチの印と同じ）は、ほかのまとまりより先に取る", () => {
+  const pinned = clusterHue(head("p5/pinned", "pinned"))!;
+  const hues = clusterHues([head("p5/pinned", "pinned"), head("p5/w:main", "worktree", { hue: pinned })]);
+  assert.equal(hues.get("p5/w:main"), pinned);
+  assert.notEqual(hues.get("p5/pinned"), pinned);
 });
 
 test("タブのまとめ方: 同じ列のまとまりの色は被らない（グループの覚えた色を先に取り、被ったものは空いている色へ）", () => {
