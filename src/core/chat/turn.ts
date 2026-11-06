@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { ApprovalCenter } from "./approvals.js";
@@ -116,8 +117,10 @@ async function resolveWorkdir(chat: Chat, project: Project): Promise<string> {
 
 /** プロバイダーに渡すもの（作業場所・指示・権限） */
 function buildTurnParams(deps: ExecutionDeps, chat: Chat, project: Project, cwd: string, prompt: string, promptId?: string): ProviderTurnParams {
-  // メモのチャット: メモのフォルダも読み書きできる場所に足し、どのメモについての会話かを伝える（作業場所はプロジェクトのまま。コードも読める）
-  const memoDir = chat.memo_path && deps.memoDirOf ? deps.memoDirOf(project) : null;
+  // メモのフォルダも読み書きできる場所に足す（入力欄にメモを添付して、続きを頼めるように。フォルダがまだなければ足さない）。
+  // メモのチャットは、どのメモについての会話かも伝える（作業場所はプロジェクトのまま。コードも読める）
+  const projectMemoDir = deps.memoDirOf ? deps.memoDirOf(project) : null;
+  const memoDir = projectMemoDir && (chat.memo_path || existsSync(projectMemoDir)) ? projectMemoDir : null;
   return {
     cwd,
     prompt,

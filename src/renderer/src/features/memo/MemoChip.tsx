@@ -1,13 +1,15 @@
-import { StickyNote } from "lucide-react";
+import { Paperclip, StickyNote } from "lucide-react";
 import { useMemo } from "react";
 import { canPopout } from "@/app/popout";
 import { openMemo } from "@/app/router";
 import { useSetting } from "@/hooks/useSetting";
 import { MEMO_OPEN_IN } from "@/lib/storageKeys";
 import { useMemoList } from "@/stores/memos";
+import { IconButton } from "@/ui/IconButton";
 import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/composer/OpenPlaceControls";
+import { attachMemoToChat } from "./attachMemo";
 import { RECENT_MEMOS } from "./MemoMenuItems";
 import { baseName, parentOf, recentMemos } from "./memoPaths";
 import { openMemoFromChat } from "./openMemoFrom";
@@ -15,7 +17,8 @@ import { openMemoFromChat } from "./openMemoFrom";
 /**
  * 入力欄の上の「メモ」（指示の履歴・子チャットと同じピルの列）。押すと最近変えたメモの一覧（ファイル名（拡張子まで）と、その下に入っているフォルダ）を出し、
  * 行を押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。
- * 行の右のボタンで、設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられる。プロジェクトにメモがなければ出さない
+ * 行の右のボタンで、メモを開かずにこのチャットの入力欄に添付する・設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられる。
+ * プロジェクトにメモがなければ出さない
  */
 export function MemoChip({ projectId, chatId }: { projectId: number; chatId: number }) {
   const list = useMemoList(projectId);
@@ -58,6 +61,19 @@ export function MemoChip({ projectId, chatId }: { projectId: number; chatId: num
             <span className="memo-chip-title">{baseName(e.path)}</span>
             <span className="memo-chip-folder">{parentOf(e.path) || "（メモのフォルダの直下）"}</span>
           </span>
+          <IconButton
+            type="button"
+            icon={Paperclip}
+            size={13}
+            label="このチャットに添付"
+            title="メモを開かずに、このチャットの入力欄に添付します"
+            className="open-place-button memo-chip-attach"
+            onClick={(ev) => {
+              ev.stopPropagation();
+              popover.close();
+              attachMemoToChat(chatId, e.path);
+            }}
+          />
           <OpenPlaceButtons places={places} onOpen={(place) => open(e.path, place === "window" ? "window" : "side")} />
         </div>
       ))}

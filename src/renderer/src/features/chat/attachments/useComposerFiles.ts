@@ -45,10 +45,10 @@ export function useComposerFiles() {
       .catch((e: unknown) => setFiles((prev) => prev.map((f) => (f.key === key ? { ...f, error: errorMessage(e) } : f))));
   }
 
-  /** アップロード済みの添付を足す（送信待ちの指示を新しいチャットで聞くとき。アップロードし直さない） */
+  /** アップロード済みの添付・メモの添付を足す（送信待ちの指示を新しいチャットで聞くとき・メモを添付したとき。アップロードし直さない。同じメモは重ねない） */
   function addAttachments(list: Attachment[]) {
     const added = list.map((attachment) => ({ key: `${Date.now()}-${Math.random()}`, file: new File([], attachment.name, { type: attachment.mime }), attachment }));
-    setFiles((prev) => [...prev, ...added]);
+    setFiles((prev) => [...prev, ...added.filter((a) => a.attachment.memo === undefined || !prev.some((f) => f.attachment?.memo === a.attachment.memo))]);
   }
 
   function removeFile(key: string) {

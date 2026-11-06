@@ -1,6 +1,6 @@
 // 別ウィンドウの「右の欄に戻す」: 別ウィンドウの中身を、メインのウィンドウのチャットの画面の右の欄で開き直す（メインのウィンドウで呼ぶ）。
 // 子チャット・変更・ファイルは結びついたチャット（子チャットなら、いちばん上の親）の右の欄、サブエージェントはそのチャットの右の欄、
-// メモはいま見えているチャット（いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）
+// メモは開いたチャット（なければ、いま見えているチャット。いちばん上の親）の右の欄（チャットが見えていなければメモのタブ）
 import type { PopoutRoute } from "@/app/popout";
 import { openMemo } from "@/app/router";
 import { knownChat } from "@/stores/chats";
@@ -38,10 +38,12 @@ export function dockPopout(route: PopoutRoute) {
       return;
     }
     case "memo": {
-      // いま見えているチャットのうち、そのプロジェクトのもの（子チャットなら、いちばん上の親）
-      const shown = shownChatIds()
-        .map((id) => knownChat(id))
-        .find((c) => c?.project_id === route.projectId);
+      // 開いたチャット（なければ、いま見えているチャットのうち、そのプロジェクトのもの。子チャットなら、いちばん上の親）
+      const shown =
+        (route.chatId !== undefined ? knownChat(route.chatId) : undefined) ??
+        shownChatIds()
+          .map((id) => knownChat(id))
+          .find((c) => c?.project_id === route.projectId);
       const root = shown && rootChatOf(shown, knownChat);
       if (!root || !openInRootSide(root.id, (rootId, side) => side.openMemo({ chatId: rootId, projectId: route.projectId, path: route.path }))) openMemo(route.projectId, route.path);
       return;

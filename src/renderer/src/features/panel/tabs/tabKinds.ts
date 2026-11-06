@@ -264,7 +264,7 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
-    popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path }, title: `${baseName(t.path)} — メモ` }),
+    popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path, chatId: t.chatId }, title: `${baseName(t.path)} — メモ` }),
   },
   child: {
     shows: "subagent",

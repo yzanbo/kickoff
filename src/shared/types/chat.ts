@@ -156,10 +156,14 @@ export interface QueuedMessage {
   created_at: string;
 }
 
-/** チャットの添付ファイル */
+/**
+ * チャットの添付ファイル。memo があればメモの添付（チャットのプロジェクトのメモ。メモのフォルダからの相対パス）で、
+ * アップロードせず、送るときにコアがメモのファイルのパスを AI に伝える（中身は送るときのもの。size は 0）
+ */
 export interface Attachment {
   id: string;
   name: string;
   mime: string;
   size: number;
+  memo?: string;
 }

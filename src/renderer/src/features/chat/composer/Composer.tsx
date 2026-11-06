@@ -90,7 +90,10 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
   if (handleRef)
     handleRef.current = {
       fill: (value, opts) => {
-        fill(opts?.append ? appendBlock(text, value) : value, undefined, opts?.focus);
+        // 添付だけを足すとき（文が空で append）は、書いている文をそのままにする
+        if (opts?.append && !value) {
+          if (opts.focus !== false) textareaRef.current?.focus();
+        } else fill(opts?.append ? appendBlock(text, value) : value, undefined, opts?.focus);
         // 添付も入れる（送信待ちの指示を新しいチャットで聞くとき。アップロード済みのものをそのまま使う）
         if (opts?.attachments) attach.addAttachments(opts.attachments);
       },

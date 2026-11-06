@@ -11,6 +11,7 @@ test("popoutPath / parsePopout: 変更・ファイル・サブエージェント
     { kind: "subagent", chatId: 3, agentKey: "toolu_01" },
     { kind: "chat", chatId: 7 },
     { kind: "memo", projectId: 2, path: "設計/メモ 1.md" },
+    { kind: "memo", projectId: 2, path: "設計/メモ 1.md", chatId: 5 },
   ];
   for (const route of routes) assert.deepEqual(parsePopout(`#${popoutPath(route)}`), route);
 });

@@ -1,10 +1,11 @@
 // ウィンドウの間の知らせ（メインのウィンドウと別ウィンドウ。同じ出どころなので BroadcastChannel で届く）
+import type { Attachment } from "@shared/types";
 import type { PopoutRoute } from "./popout";
 import type { FileTarget } from "./router";
 
 export type WindowMessage =
-  /** メインのウィンドウのそのチャットのチャット欄の後ろに足す（別ウィンドウの差分の行・返答へのコメント） */
-  | { type: "fillComposer"; chatId: number; text: string }
+  /** メインのウィンドウのそのチャットのチャット欄の後ろに足す（別ウィンドウの差分の行・返答へのコメント・メモの添付） */
+  | { type: "fillComposer"; chatId: number; text: string; attachments?: Attachment[] }
   /** メインのウィンドウのそのチャットの会話のその場所へ移る（agent があれば、そのサブエージェントを設定の開き方で開いてその中へ） */
   | { type: "reveal"; chatId: number; eventId?: number; agent: string | null }
   /** メインのウィンドウのそのチャットの「動き」を、そのサブエージェントに絞って開く */

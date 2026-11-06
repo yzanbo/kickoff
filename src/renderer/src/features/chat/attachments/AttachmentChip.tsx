@@ -1,5 +1,9 @@
+import { StickyNote } from "lucide-react";
 import type { Attachment } from "@shared/types";
 import { attachmentUrl } from "@/api";
+import { knownChat } from "@/stores/chats";
+import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
+import { openMemoFromChat } from "@/features/memo/openMemoFrom";
 import type { ViewerImage } from "@/ui/imageViewer/ImageViewer";
 import { useAttachmentViewer } from "./useAttachmentViewer";
 
@@ -30,8 +34,26 @@ export function AttachmentChip({
   onRemove,
   siblings,
 }: {
-  attachment: Pick<Attachment, "name" | "mime" | "size"> & { id?: string };
+  attachment: Pick<Attachment, "name" | "mime" | "size" | "memo"> & { id?: string };
   /** 同じ発言の添付（大きく見るときに、この中の画像を前後に移って見られる） */
+  siblings?: Attachment[];
+  previewUrl?: string;
+  uploading?: boolean;
+  onRemove?: () => void;
+}) {
+  if (attachment.memo !== undefined) return <MemoAttachmentChip memo={attachment.memo} onRemove={onRemove} />;
+  return <FileAttachmentChip attachment={attachment} previewUrl={previewUrl} uploading={uploading} onRemove={onRemove} siblings={siblings} />;
+}
+
+/** ファイルの添付（画像はサムネイル、それ以外はファイル名とサイズ） */
+function FileAttachmentChip({
+  attachment,
+  previewUrl,
+  uploading,
+  onRemove,
+  siblings,
+}: {
+  attachment: Pick<Attachment, "name" | "mime" | "size"> & { id?: string };
   siblings?: Attachment[];
   previewUrl?: string;
   uploading?: boolean;
@@ -92,5 +114,41 @@ export function AttachmentChips({ attachments, onRemove }: { attachments: Attach
     ) : (
       <AttachmentChip key={a.id} attachment={a} siblings={attachments} />
     ),
+  );
+}
+
+/**
+ * メモの添付（メモのフォルダからの相対パス。中身は送るときにコアが AI に伝える）。
+ * 送った発言の中では押すとそのメモを開く（設定の開き方。チャットの画面の中だけ）
+ */
+function MemoAttachmentChip({ memo, onRemove }: { memo: string; onRemove?: () => void }) {
+  const pane = useOptionalChatPane();
+  const chat = pane && !onRemove ? knownChat(pane.chatId) : undefined;
+  const body = (
+    <>
+      <span className="attachment-icon">
+        <StickyNote size={16} aria-hidden />
+      </span>
+      <span className="attachment-meta">
+        <span className="attachment-name">{memo}</span>
+        <span className="muted small">メモ</span>
+      </span>
+    </>
+  );
+  return (
+    <span className="attachment memo-attachment" title={`メモ: ${memo}`}>
+      {chat ? (
+        <button type="button" className="attachment-link" aria-label={`メモ「${memo}」を開く`} onClick={() => openMemoFromChat({ projectId: chat.project_id, path: memo, chatId: chat.id })}>
+          {body}
+        </button>
+      ) : (
+        body
+      )}
+      {onRemove && (
+        <button type="button" className="chip-remove" aria-label={`メモ「${memo}」を外す`} onClick={onRemove}>
+          ×
+        </button>
+      )}
+    </span>
   );
 }

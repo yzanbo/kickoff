@@ -10,7 +10,7 @@ import { baseName } from "./memoPaths";
 
 export function openMemoFromChat({ projectId, path, chatId, place }: { projectId: number; path: string; chatId: number | null; place?: "side" | "window" }) {
   // place を渡すと設定によらずその場所に（入力欄の上のメモの一覧の行のボタン）
-  if ((place ?? readSetting(MEMO_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "memo", projectId, path }, `${baseName(path)} — メモ`);
+  if ((place ?? readSetting(MEMO_OPEN_IN)) === "window" && canPopout()) return openPopout({ kind: "memo", projectId, path, ...(chatId !== null ? { chatId } : {}) }, `${baseName(path)} — メモ`);
   if (parsePopout(location.hash)) return postToMainWindow({ type: "openMemo", projectId, path, chatId });
   if (chatId !== null && openInRootSide(chatId, (rootId, side) => side.openMemo({ chatId: rootId, projectId, path }))) return;
   openMemo(projectId, path);

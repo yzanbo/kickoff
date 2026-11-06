@@ -72,6 +72,13 @@ export const attachmentSchema = z.object({
   name: z.string().max(300),
   mime: z.string().max(200),
   size: z.number().int().nonnegative(),
+  // メモの添付（メモのフォルダからの相対パス。外・隠しファイルは指せない）
+  memo: z
+    .string()
+    .min(1)
+    .max(1000)
+    .refine((p) => !p.startsWith("/") && p.split("/").every((part) => part !== "" && !part.startsWith(".")), "メモのパスが正しくありません")
+    .optional(),
 });
 export const attachmentsSchema = z.array(attachmentSchema).max(MAX_ATTACHMENTS);
 

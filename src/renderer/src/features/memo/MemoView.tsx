@@ -1,4 +1,4 @@
-import { CodeXml, Eye, FolderSearch, MessagesSquare, Save } from "lucide-react";
+import { CodeXml, Eye, FolderSearch, MessagesSquare, Paperclip, Save } from "lucide-react";
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
@@ -12,6 +12,7 @@ import { IconButton } from "@/ui/IconButton";
 import { alertDialog, reportFailure } from "@/ui/dialogs";
 import { Segmented } from "@/ui/Segmented";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
+import { attachMemoToChat } from "./attachMemo";
 import { HtmlMemoPage } from "./HtmlMemoPage";
 import type { MemoEditorHandle } from "./MemoEditor";
 import { MemoChat, type MemoChatHandle } from "./MemoChat";
@@ -50,7 +51,9 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  * 書いた所で ⌘S で保存する（書いている間は保存しない。まだ保存していない書きかけは残り、離れるときに聞く）。
  * 題名はいつでも書き換えられる欄（押せばそのままキャレットが入る。入力の画面に切り替えない）で、本文と同じく ⌘S（題名の欄では Enter も）で
  * 本文を保存してからファイルの名前を変える（onRenamed に変えたあとのパス。開いている側がパスを付け替える）。Esc で元の題名に戻す。
- * HTML のメモのページのリンクがメモのフォルダの中を指すとき、メモなら onOpenMemo（開いている側が同じ場所で開く）、フォルダ・メモでないファイルは Finder で表示する
+ * HTML のメモのページのリンクがメモのフォルダの中を指すとき、メモなら onOpenMemo（開いている側が同じ場所で開く）、フォルダ・メモでないファイルは Finder で表示する。
+ * attachTo（チャットの右の欄・別ウィンドウで開いたとき、開いたチャット）があれば、見出しのボタン・本文の右クリックで、
+ * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する
  */
 export function MemoView({
   projectId,
@@ -58,12 +61,14 @@ export function MemoView({
   dir,
   onRenamed,
   onOpenMemo,
+  attachTo = null,
 }: {
   projectId: number;
   path: string;
   dir: string;
   onRenamed: (path: string) => void;
   onOpenMemo: (path: string) => void;
+  attachTo?: number | null;
 }) {
   const doc = useMemoDocument(projectId, path);
   const list = useMemoList(projectId);
@@ -71,11 +76,26 @@ export function MemoView({
   const editor = useRef<MemoEditorHandle | null>(null);
   const chat = useRef<MemoChatHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
-  // 本文の右クリック: 「チャットに追加」は欄を開いて、選んだ文の引用を入力欄に足す
-  const editMenu = useMemoEditMenu(editor, (quote) => {
-    setChatOpen(true);
-    chat.current?.add(quote);
-  });
+  // メインのチャットに添付: 選んだ部分は引用、なければメモ全体（AI は保存したファイルを読むので、書きかけは先に保存する）
+  const attachToMain =
+    attachTo === null
+      ? undefined
+      : async (selection: string) => {
+          if (!selection.trim() && !(await doc.save())) {
+            void alertDialog("添付できませんでした", "メモを保存できなかったので、添付しませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから添付してください）。");
+            return;
+          }
+          attachMemoToChat(attachTo, path, selection);
+        };
+  // 本文の右クリック: 「メモのチャットに追加」は欄を開いて、選んだ文の引用を入力欄に足す。「メインのチャットに添付」は上
+  const editMenu = useMemoEditMenu(
+    editor,
+    (quote) => {
+      setChatOpen(true);
+      chat.current?.add(quote);
+    },
+    attachToMain,
+  );
   // チャットの欄の幅（境目のつまみで変える。本文を 280px は残す。ドラッグ中は本文と会話を並べる要素の --memo-chat-w を書き換える）。
   // 欄は閉じても描いたまま置き（書きかけの文も残る）、開け閉めは幅（狭いときは高さ）をスライドさせる
   const body = useRef<HTMLDivElement>(null);
@@ -164,6 +184,9 @@ export function MemoView({
             { value: "edit", label: VIEW_LABELS[kind].edit, icon: CodeXml, iconOnly: true },
           ]}
         />
+        {attachToMain && doc.initial !== null && !unreadable && (
+          <IconButton icon={Paperclip} label="メインのチャットに添付" title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => void attachToMain("")} />
+        )}
         {doc.initial !== null && !unreadable && (
           <IconButton
             icon={MessagesSquare}
