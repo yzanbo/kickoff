@@ -90,7 +90,7 @@ export function MemoView({
           }
           attachMemoToChat(attachTo, path, selection);
         };
-  // 本文の右クリック: 「メモのチャットに追加」は欄を開いて、選んだ文の引用を入力欄に足す。「メインのチャットに添付」は上
+  // 本文の右クリック: 「選んだ部分をメモのチャットに追加」は欄を開いて、選んだ文の引用を入力欄に足す。「メインのチャットに添付」は上
   const editMenu = useMemoEditMenu(
     editor,
     (quote) => {
