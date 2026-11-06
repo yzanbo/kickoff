@@ -67,9 +67,8 @@
   display: none;
 }
 
-/* 見出しの行の、指示の帯の表示・非表示と、右端の右の欄の開閉（出している・開いているときはアクセントの色） */
-.chat-sticky-toggle.on,
-.chat-agents-toggle.on {
+/* 見出しの行の、指示の帯の表示・非表示（出しているときはアクセントの色。右端の右の欄の開閉はアイコンの向きで分かるので色を変えない） */
+.chat-sticky-toggle.on {
   color: var(--accent-bright);
 }
 

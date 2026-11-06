@@ -33,8 +33,13 @@ export interface SurfaceRules {
   openWhenEmpty: "newChat" | "terminal" | null;
   /** 開いているかを覚える設定（プロジェクトごと）。なければアプリを閉じるまで覚える */
   openSetting?: SettingFamily<boolean>;
-  /** 閉じるボタン（タブの列の左の道具の先頭か最後。なければ出さない: チャット欄は右上のレイアウトの開閉で閉じる） */
-  closeButton?: { icon: LucideIcon; label: string; keys: string; at: "start" | "end" };
+  /**
+   * 閉じるボタン（start / end = タブの列の左の道具の先頭か最後、right = 右上のペインのタブの列の右端（分けるボタンの後ろ）。
+   * なければ出さない: チャット欄は右上のレイアウトの開閉で閉じる）
+   */
+  closeButton?: { icon: LucideIcon; label: string; keys: string; at: "start" | "end" | "right" };
+  /** タブの列の右端の分けるボタンを「右に分ける」だけにする（サブエージェントの欄。下に分けるのはタブのドラッグでできる） */
+  splitRightOnly?: boolean;
   /** 大きくする切り替え（width = 横幅いっぱい ⇔ 元の幅 / height = 最大化 ⇔ 元の高さ。大きさは欄の殻が持ち、Panel の frame で渡す） */
   maximize?: "width" | "height";
   /** 大きくする切り替えの名前（なければ「横幅いっぱいに広げる / 元の幅に戻す」など。on = 大きくしているときの名前） */
@@ -97,7 +102,8 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeOnEsc: "focused",
     closeWhenEmpty: true,
     openWhenEmpty: null,
-    closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "start" },
+    closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "right" },
+    splitRightOnly: true,
     emptyHint:
       "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。「＋」で新しい子チャットを始められます。タブをドラッグすると、上下・左右に分けて並べられます。",
     fixedKinds: true,

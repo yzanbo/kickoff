@@ -49,6 +49,12 @@ export function leavesOf(node: PaneNode): PaneLeaf[] {
   return node.type === "pane" ? [node] : node.children.flatMap(leavesOf);
 }
 
+/** 右上のペイン（横に並べた分割ではいちばん右、縦に並べた分割ではいちばん上をたどる。タブの列の右端に欄の閉じるボタンを置くペイン） */
+export function topRightPane(node: PaneNode): PaneLeaf {
+  if (node.type === "pane") return node;
+  return topRightPane(node.dir === "row" ? node.children[node.children.length - 1] : node.children[0]);
+}
+
 export const findPane = (layout: PaneLayout, id: string): PaneLeaf | undefined => leavesOf(layout.root).find((p) => p.id === id);
 
 /** タブが入っているペイン */

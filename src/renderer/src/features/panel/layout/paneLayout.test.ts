@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { activeTabOf, FIRST_PANE, homePane, isTabVisible, leavesOf, nextActiveTab, normalize, paneOfTab, singlePane, type PaneLayout, type PaneNode } from "./paneTree";
+import { activeTabOf, FIRST_PANE, homePane, isTabVisible, leavesOf, nextActiveTab, normalize, paneOfTab, singlePane, topRightPane, type PaneLayout, type PaneNode } from "./paneTree";
 import { closeLayoutTabs, closePane, focusPane, moveTab, placeTab, reconcileLayout, renameTab, returnToHome, splitPane } from "./paneLayout";
 import { equalizeSplit, setSplitSizes } from "./paneSizes";
 
@@ -240,4 +240,15 @@ test("nextActiveTab: ほかのタブを閉じたなら表示中のまま。最�
   assert.equal(nextActiveTab(["a"], "a", "a"), null);
   // 一覧にないキーでも落ちない
   assert.equal(nextActiveTab(tabs, "zzz", "zzz"), null);
+});
+
+test("topRightPane: 横の分割はいちばん右、縦の分割はいちばん上をたどる", () => {
+  const leaf = (id: string): PaneNode => ({ type: "pane", id, tabs: [], active: null });
+  assert.equal(topRightPane(leaf("a")).id, "a");
+  // 左 a ｜ 右（上 b / 下 c）→ b
+  const root: PaneNode = { type: "split", dir: "row", sizes: [0.5, 0.5], children: [leaf("a"), { type: "split", dir: "column", sizes: [0.5, 0.5], children: [leaf("b"), leaf("c")] }] };
+  assert.equal(topRightPane(root).id, "b");
+  // 上（左 a ｜ 右 b）/ 下 c → b
+  const root2: PaneNode = { type: "split", dir: "column", sizes: [0.5, 0.5], children: [{ type: "split", dir: "row", sizes: [0.5, 0.5], children: [leaf("a"), leaf("b")] }, leaf("c")] };
+  assert.equal(topRightPane(root2).id, "b");
 });

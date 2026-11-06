@@ -264,6 +264,11 @@
   margin: 2px 4px 0 0;
 }
 
+/* 置くものがない欄（閉じるを右端に置くサブエージェントの欄）では、空の入れ物の余白を残さない */
+.panel-controls:empty {
+  display: none;
+}
+
 .panel-control {
   display: inline-flex;
   align-items: center;
