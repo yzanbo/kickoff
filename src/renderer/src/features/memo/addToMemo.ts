@@ -72,7 +72,7 @@ interface AddToMemoInput {
   chatId: number;
   text: string;
   mode: MemoAddMode;
-  /** 足す・まとめる先のメモ（append / merge のとき。new / summarize は新しいメモ「<チャット名>-チャットメモ<n>」） */
+  /** 足す・まとめる先のメモ（append / merge のとき。new / summarize は新しいメモ「<チャット名> チャットメモ<n>」） */
   target: string | null;
 }
 

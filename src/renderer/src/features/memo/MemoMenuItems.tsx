@@ -14,7 +14,7 @@ export const MEMO_ADD_MODE_ICONS: Record<MemoAddMode, LucideIcon> = { new: FileP
 
 /** 入れ方ごとの説明（項目に乗せたとき） */
 const MODE_TITLES: Record<MemoAddMode, string> = {
-  new: "この文で、新しいメモ「<チャット名>-チャットメモ<番号>」を作ります",
+  new: "この文で、新しいメモ「<チャット名> チャットメモ<番号>」を作ります",
   summarize: "AI で要約した文で、新しいメモを作ります",
   append: "選んだメモの最後に、区切り線を挟んでこの文を足します",
   merge: "選んだメモにこの文を AI が組み込み、重なりを整理しながらメモ全体を書き直します（すぐ書き換えます）",

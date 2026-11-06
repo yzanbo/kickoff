@@ -1,7 +1,6 @@
 // メモの AI の、AI に送る文と答えの読み方（純粋関数）: フォルダの整理案（案を返すだけで、メモは動かさない。動かすかは画面で決める）と、
 // 既存のメモにチャットの文を取り込んだまとめ直し
 import path from "node:path";
-import { withoutSpaces } from "@shared/memo/names";
 import type { MemoEntry, MemoPlan, MemoPlanMove } from "@shared/types";
 
 /** 整理案を作るときに見せるメモの数・1 つのメモの書き出しの長さ・整理案の数の上限 */
@@ -17,28 +16,29 @@ export interface PlanFile {
 
 /** メモのフォルダの整理案を作ってもらう文（JSON で答えてもらう） */
 export function memoPlanPrompt(files: readonly PlanFile[], dirs: readonly string[], instruction: string | null): string {
-  const listed = files.slice(0, MAX_PLAN_FILES).map((f) => `- ${f.path}: ${f.head.replace(/\s+/g, " ").slice(0, PLAN_HEAD_CHARS)}`);
+  // パスは JSON の文字列で示す（空白・「:」・「,」を含む名前でも、どこまでがパスか分かるように）
+  const listed = files.slice(0, MAX_PLAN_FILES).map((f) => `- ${JSON.stringify(f.path)}: ${f.head.replace(/\s+/g, " ").slice(0, PLAN_HEAD_CHARS)}`);
   return [
     "次のメモのフォルダを、あとで探しやすいように整理する案を作ってください。できるのは、メモの名前の変更と、ほかのフォルダへの移動だけです（新しいフォルダは行き先に書けば作られます）。",
     "",
     `頼み: ${instruction?.trim() || "内容の近いメモを同じフォルダにまとめ、分かりにくい名前は内容の分かる名前にする"}`,
     "",
     "守ること:",
-    "- from は下の一覧にあるメモのパスをそのまま書く。to はメモのフォルダからの相対パスで、拡張子は元のまま。",
+    "- パスは下の一覧のように \"\" で囲んで示す（空白も名前のうち）。from は一覧にあるメモのパスをそのまま書く。to はメモのフォルダからの相対パスで、拡張子は元のまま。",
     "- 消す・中身を書き換える案は出さない。いまのままでよいメモは出さない。",
-    "- 名前とフォルダ名は内容の言語で、短く分かりやすく。空白は入れず、言葉の区切りは「-」でつなぐ。",
+    "- 名前とフォルダ名は内容の言語で、短く分かりやすく。",
     `- 案は ${MAX_PLAN_MOVES} 件まで。整理する必要がなければ moves は空にする。`,
     '- 答えは次の形の JSON だけ（前置き・説明・``` は書かない）: {"moves":[{"from":"いまのパス","to":"新しいパス","reason":"短い理由"}]}',
     "",
-    `いまのフォルダ: ${dirs.length > 0 ? dirs.join(", ") : "（なし）"}`,
+    `いまのフォルダ: ${dirs.length > 0 ? dirs.map((d) => JSON.stringify(d)).join(", ") : "（なし）"}`,
     "メモ（パス: 書き出し）:",
     ...listed,
   ].join("\n");
 }
 
-/** 行き先のパスを整える（区切りをそろえ、頭の「./」「/」を外し、名前の空白は「-」に）。使えない形（空・「.」で始まる部分・「..」）なら null */
+/** 行き先のパスを整える（区切りをそろえ、頭の「./」「/」と各段の前後の空白を外す）。使えない形（空・「.」で始まる部分・「..」）なら null */
 function cleanTarget(to: string): string | null {
-  const parts = to.trim().replace(/\\/g, "/").replace(/^\.?\/+/, "").split("/").map((p) => withoutSpaces(p.trim()));
+  const parts = to.trim().replace(/\\/g, "/").replace(/^\.?\/+/, "").split("/").map((p) => p.trim());
   if (parts.some((p) => p === "" || p.startsWith("."))) return null;
   return parts.join("/");
 }
