@@ -17,6 +17,7 @@ import { UploadStore } from "./chat/uploads.js";
 import { startAutoArchive } from "./chat/autoArchive.js";
 import { VoiceService } from "./voice/service.js";
 import { MemoService } from "./memos/memos.js";
+import { adoptLegacyMemosDir, defaultMemosDir, legacyMemosDir, movedPath } from "./memos/defaultDir.js";
 import type { DatabaseStats } from "./db/stats.js";
 
 interface CoreOptions {
@@ -56,10 +57,22 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   const serviceUsage = new ServiceUsageMonitor(usage);
   const approvals = new ApprovalCenter(bus);
   const uploads = new UploadStore(path.join(opts.dataDir, "uploads"));
-  // メモの親フォルダの既定は ~/Documents/<アプリ名> メモ（保存先のフォルダ名がアプリ名。開発版は「Kickoff Dev メモ」で、製品版のメモに触らない）
+  // メモの親フォルダの既定は ~/Documents/kickoff（保存先のフォルダ名のアプリ名を空白のない小文字に。開発版は kickoff-dev で、製品版のメモに触らない）。
+  // 既定のまま使っていて、前の既定（~/Documents/<アプリ名> メモ）にメモがあれば、そのフォルダを新しい名前にして引き継ぐ
+  const documentsDir = path.join(os.homedir(), "Documents");
+  const memosDefaultDir = defaultMemosDir(opts.dataDir, documentsDir);
+  const legacyDir = legacyMemosDir(opts.dataDir, documentsDir);
+  if (store.settings.get().memos_dir === null && adoptLegacyMemosDir(legacyDir, memosDefaultDir)) {
+    // そのプロジェクトだけの場所（memo_path）で前のフォルダの中を指していたものも付け替える
+    for (const project of store.projects.list()) {
+      const moved = project.memo_path ? movedPath(project.memo_path, legacyDir, memosDefaultDir) : null;
+      if (moved) store.projects.update(project.id, { memo_path: moved });
+    }
+    console.log(`[core] メモのフォルダを ${memosDefaultDir} に移しました`);
+  }
   const memos = new MemoService({
     store,
-    defaultDir: path.join(os.homedir(), "Documents", `${path.basename(opts.dataDir)} メモ`),
+    defaultDir: memosDefaultDir,
     providers,
     publish: (e) => bus.publish(e),
   });

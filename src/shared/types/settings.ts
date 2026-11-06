@@ -56,7 +56,7 @@ export interface AppSettings {
   voice_openai_base_url: string;
   /** OpenAI の文字起こしのモデル */
   voice_openai_model: string;
-  /** メモの親フォルダ（この下にプロジェクトごとのフォルダを作る。null なら既定の ~/Documents/<アプリ名> メモ） */
+  /** メモの親フォルダ（この下にプロジェクトごとのフォルダを作る。null なら既定の ~/Documents/kickoff。開発版は kickoff-dev） */
   memos_dir: string | null;
   /** 自動圧縮を始めるコンテキストの使用率（%。null なら Claude Code の既定。Claude Code の CLAUDE_AUTOCOMPACT_PCT_OVERRIDE で渡す） */
   auto_compact_pct: number | null;

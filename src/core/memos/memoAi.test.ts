@@ -58,3 +58,8 @@ test("parseMergedMemo: 全体を囲む ``` を外し、最後に改行を 1 つ�
   assert.equal(parseMergedMemo("  # 設計\n\n```ts\nx\n```\n\n"), "# 設計\n\n```ts\nx\n```\n");
   assert.equal(parseMergedMemo("  \n"), null);
 });
+
+test("parseMemoPlan: 行き先の名前の空白は「-」にする", () => {
+  const plan = parseMemoPlan('{"moves":[{"from":"a.md","to":"設計 資料/画面 一覧.md","reason":""}]}', [{ path: "a.md", dir: false }]);
+  assert.deepEqual(plan.moves, [{ from: "a.md", to: "設計-資料/画面-一覧.md", reason: "" }]);
+});
