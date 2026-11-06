@@ -20,7 +20,12 @@ export function setupEnvironment(): { port: number; devUrl: string | undefined }
   const env = APP_ENVS[app.isPackaged ? "production" : "development"];
   app.setName(env.name);
   app.setPath("userData", path.join(app.getPath("appData"), env.name));
-  if (process.env.KICKOFF_REMOTE_DEBUG && !app.isPackaged) app.commandLine.appendSwitch("remote-debugging-port", process.env.KICKOFF_REMOTE_DEBUG);
+  if (process.env.KICKOFF_REMOTE_DEBUG && !app.isPackaged) {
+    app.commandLine.appendSwitch("remote-debugging-port", process.env.KICKOFF_REMOTE_DEBUG);
+    // 確かめるときは開発版の窓を前に出さない（利用者の入力が入る）ので、隠れた窓でもタイマー・描画・アニメーションを止めない
+    // （止まると、なめらかなスクロールや「スクロールし終えたら」の動きを外から確かめられない）
+    for (const flag of ["disable-background-timer-throttling", "disable-backgrounding-occluded-windows", "disable-renderer-backgrounding"]) app.commandLine.appendSwitch(flag);
+  }
   return { port: Number(process.env.KICKOFF_PORT ?? env.port), devUrl: process.env.ELECTRON_RENDERER_URL };
 }
 
