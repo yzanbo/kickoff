@@ -184,7 +184,8 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
         ) : current.file?.binary ? (
           <p className="muted small diff-message">バイナリのファイルなので、中身は表示できません。</p>
         ) : (
-          <table className="diff-table">
+          // data-quote-path・data-no: 右の欄・別ウィンドウで行を選んでチャットに足すとき（useCodeQuoteMenu・SideSelectionAttach）に読む
+          <table className="diff-table" data-quote-path={path}>
             <colgroup>
               <col className="diff-col-no" />
               <col />
@@ -193,7 +194,7 @@ export function FileView({ projectId, repoPath, path, line, changed = false, ini
               {lines.map((text, i) => (
                 <tr key={i} ref={i + 1 === line ? focusRef : undefined} className={cx(i + 1 === line && "line-focus")}>
                   <td className="diff-no">{i + 1}</td>
-                  <td className="diff-code">
+                  <td className="diff-code" data-no={i + 1}>
                     <CodeLine tokens={tokens?.[i]} text={text} />
                   </td>
                 </tr>

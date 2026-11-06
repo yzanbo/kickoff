@@ -83,9 +83,15 @@ export function ChatView({ visible, slot, ...input }: ChatViewInput & { visible:
       <ChatPaneContext.Provider value={pane}>
         <SubagentsContext.Provider value={view.subagentsView}>
         <AgentSplit chatId={chat.id} handleRef={view.side}>
-        <div ref={pane.root} className={cx("chat-page chat-panel", wide && "wide")}>
+        {/* data-chat-id・data-chat-role: 右の欄・別ウィンドウで、選んだ所・右クリックした所のチャット（子チャット・メモのチャット）を見分ける */}
+        <div
+          ref={pane.root}
+          className={cx("chat-page chat-panel", wide && "wide")}
+          data-chat-id={chat.id}
+          data-chat-role={chat.memo_path ? "memo" : chat.parent_chat_id !== null ? "child" : "chat"}
+        >
           <ChatHeader chat={chat} project={project} items={view.items} version={view.timeline.visible} />
-          {/* 返答の一部・差分の行を選んで、チャット欄に引用を足す */}
+          {/* 返答の一部を選んで、チャット欄に引用を足す（右の欄・別ウィンドウの中では SideSelectionAttach が出す） */}
           <SelectionAttach />
           <ChatBody
             activity={<ActivityView rel={view.rel} />}

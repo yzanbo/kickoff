@@ -7,7 +7,7 @@ import { parentOf } from "./memoPaths";
  * 相対パスの CSS・画像はメモのフォルダから読む（<base> をコアのファイルの口へ向ける）。
  * sandbox は allow-same-origin だけ: 中の JavaScript・フォーム・ポップアップは動かさず、外（この画面）からは中の文書に触れる。
  * リンクは中で開かない（ページ内の # は飛ぶ、メモのフォルダの中は onOpenLink（開く側がメモを開く）、外のサイトはブラウザで開く）。右クリックは選んだ文を添えてメモのメニューを開き、⌘S は保存。
- * 選んだ文とその位置は handleRef の selected で読む（選び終えた mouseup とスクロールは、親の画面へ伝え直す。「チャットに添付」のボタン）。
+ * 選んだ文とその位置は handleRef の selected で読む（選び終えた mouseup とスクロールは、親の画面へ伝え直す。「チャットに追加」のボタン）。
  * 読み直しても（AI が書き換えたときなど）スクロールの位置は保つ。画面の CSP をそのまま受け継ぐので、インターネット上の画像・フォントは読まない
  */
 /** 外からページを読む口 */
@@ -72,7 +72,7 @@ export function HtmlMemoPage({
     });
     // ページの中の押下は親の画面に届かないので、iframe の要素から伝え直す
     // （開いているメニュー・ポップオーバーが外側のクリックとして閉じ（useDismiss）、マウスを乗せたときの説明も消える）
-    // 選び終えた mouseup も伝え直す（選んだ文の上に「チャットに添付」を出す）
+    // 選び終えた mouseup も伝え直す（選んだ文の上に「チャットに追加」を出す）
     const forward = (e: MouseEvent) => {
       const rect = el.getBoundingClientRect();
       const init = { bubbles: true, cancelable: true, button: e.button, buttons: e.buttons, clientX: rect.left + e.clientX, clientY: rect.top + e.clientY };

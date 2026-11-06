@@ -1,25 +1,32 @@
-import { Paperclip } from "lucide-react";
+import { MessageSquarePlus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { addToChat } from "@/features/chat/pane/addToChat";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
-import { panelKey } from "@/features/panel/surfaces";
+import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { quoteCode, quoteComment } from "./quoteComment";
 
-/** 選んだ範囲（ボタンを出す位置と、チャット欄に足す引用） */
+/** 選んだ範囲（画面の位置と、チャット欄に足す引用） */
 export interface Picked {
-  x: number;
-  y: number;
+  rect: { left: number; top: number; width: number };
   quote: string;
 }
 
-/** ボタンを画面の端からはみ出さないように寄せるときの幅 */
+/** 選んだ範囲の上のボタン 1 つ（押すと onAdd に引用を渡す） */
+export interface AddTarget {
+  label: string;
+  title: string;
+  onAdd: (text: string) => void;
+}
+
+/** ボタンを画面の端からはみ出さないように寄せるときの、ボタン 1 つの幅 */
 const BUTTON_WIDTH = 140;
 
-/** 選んだ範囲（画面の位置）の上にボタンを出す位置 */
-export function placeAbove(rect: { left: number; top: number; width: number }): { x: number; y: number } {
+/** 選んだ範囲（画面の位置）の上に、幅 width のボタンを出す位置 */
+function placeAbove(rect: Picked["rect"], width: number): { x: number; y: number } {
   return {
-    x: Math.max(8, Math.min(rect.left + rect.width / 2 - BUTTON_WIDTH / 2, window.innerWidth - BUTTON_WIDTH - 8)),
+    x: Math.max(8, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 8)),
     y: Math.max(8, rect.top - 38),
   };
 }
@@ -34,86 +41,128 @@ function currentRange(): { selection: Selection; range: Range; element: Element 
 }
 
 /** 選んでいる文が、root の中の 1 つの AI の返答（.assistant）の中にあれば、その引用と位置 */
-export function pickedInReply(root: Element | null): Picked | undefined {
+function pickedInReply(root: Element | null): Picked | undefined {
   const at = currentRange();
   const message = at?.element?.closest(".assistant");
   if (!at || !root || !message || !root.contains(message)) return undefined;
   const text = at.selection.toString().trim();
   if (!text) return undefined;
-  return { ...placeAbove(at.range.getBoundingClientRect()), quote: quoteComment(text, "") };
+  return { rect: at.range.getBoundingClientRect(), quote: quoteComment(text, "") };
 }
 
 /**
- * 選んでいる範囲が、side（このチャットの右の欄）の「変更」の 1 つのファイルの差分の中にあれば、その行と位置（パスと行番号付きでコードを引用する）。
- * 変更後の行を選んでいれば変更後の行だけ、なければ変更前の行を使う（左右に並べた表では、行ごと選ばれて両側が入るため）
+ * 選んでいる範囲が、root の中の 1 つのファイルのコードの行（右の欄・別ウィンドウの「変更」の差分・「ファイル」の中身。`[data-quote-path]` の中の
+ * `.diff-code[data-no]`）にあれば、その行と位置（パスと行番号付きでコードを引用する）。差分は、変更後の行を選んでいれば変更後の行だけ、なければ変更前の行を使う
+ * （左右に並べた表では、行ごと選ばれて両側が入るため）。ファイルの中身の行には側がない
  */
-export function pickedInDiff(side: Element | null): Picked | undefined {
+export function pickedInCode(root: Element | null): Picked | undefined {
   const at = currentRange();
-  const section = at?.element?.closest<HTMLElement>(".side-change[data-change-path]");
-  if (!at || !side || !section || !side.contains(section)) return undefined;
+  const section = at?.element?.closest<HTMLElement>("[data-quote-path]");
+  if (!at || !root || !section || !root.contains(section)) return undefined;
   const cells = [...section.querySelectorAll<HTMLElement>(".diff-code[data-no]")].filter((cell) => at.range.intersectsNode(cell));
-  const changed = cells.some((c) => c.dataset.side === "new") ? "new" : "old";
-  const picked = cells.filter((c) => c.dataset.side === changed);
+  const side: "new" | "old" | null = cells.some((c) => c.dataset.side === "new") ? "new" : cells.some((c) => c.dataset.side === "old") ? "old" : null;
+  const picked = cells.filter((c) => (c.dataset.side ?? null) === side);
   if (picked.length === 0) return undefined;
   // 1 列の表の行の頭の +・- は、コードに入れない
   const codeOf = (cell: HTMLElement) => (cell.textContent ?? "").slice(cell.querySelector(".diff-sign")?.textContent?.length ?? 0);
   const numbers = picked.map((c) => Number(c.dataset.no));
   const code = picked.map(codeOf).join("\n");
-  const range = { path: section.dataset.changePath ?? "", from: Math.min(...numbers), to: Math.max(...numbers), side: changed } as const;
-  return { ...placeAbove(at.range.getBoundingClientRect()), quote: quoteCode({ ...range, code, comment: "" }) };
+  const range = { path: section.dataset.quotePath ?? "", from: Math.min(...numbers), to: Math.max(...numbers), side };
+  return { rect: at.range.getBoundingClientRect(), quote: quoteCode({ ...range, code, comment: "" }) };
 }
 
+/** メインの会話の中で選んだときのボタン */
+const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追加", title: "選んだ部分を引用して、チャットの入力欄に足します（送るのは自分で）" };
+
 /**
- * 選んだ範囲をチャットに添付する: AI の返答の一部・右の欄の「変更」の差分の行を選ぶと、その上に「チャットに添付」のボタンを出し、
- * 押すと選んだ文の引用（差分はパスと行番号付きのコードのブロック）を、すぐチャット欄の文の後ろに足す（何件か足してから、まとめて送れる。送るのは自分で）
+ * メインの会話の AI の返答の一部を選ぶと、その上に「チャットに追加」のボタンを出し、押すと選んだ文の引用を、すぐこのチャットの入力欄の文の後ろに足す
+ * （何件か足してから、まとめて送れる。送るのは自分で）。右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach がメインのチャットと両方に足せるボタンを出す）
  */
 export function SelectionAttach() {
-  const { root, chatId, fillComposer } = useChatPane();
+  const { root, fillComposer } = useChatPane();
+  const inSide = useMainChat() !== null;
+  if (inSide) return null;
+  return <SelectionAttachBox pick={() => pickedInReply(root.current)} targets={() => [{ ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }) }]} />;
+}
+
+/** 右の欄・別ウィンドウの中のチャットの画面の種類ごとの、そのチャットに足すボタンの名前 */
+const INNER_LABELS: Record<string, string> = { child: "子チャットに追加", memo: "メモのチャットに追加" };
+
+/**
+ * 右の欄・別ウィンドウ（container の中）で、AI の返答・差分・ファイルの中身の行を選ぶと、その上に「チャットに追加」を出し、押すとメインのチャット（mainChatId）の入力欄に足す。
+ * 子チャット・メモのチャットの中で選んだときは「メインに追加」と、そのチャットに足すボタン（「子チャットに追加」「メモのチャットに追加」）の 2 つ。
+ * メモの本文は MemoSelectionAttach が出す
+ */
+export function SideSelectionAttach({ mainChatId, container }: { mainChatId: number; container: () => Element | null }) {
+  // 選んだ所の中のチャットの画面（メインと別のチャットなら、その ID と種類）
+  const innerChat = () => {
+    const root = container();
+    const page = currentRange()?.element?.closest<HTMLElement>(".chat-page[data-chat-id]");
+    const chatId = Number(page?.dataset.chatId);
+    if (!page || !root?.contains(page) || chatId === mainChatId) return undefined;
+    return { chatId, label: INNER_LABELS[page.dataset.chatRole ?? ""] ?? "このチャットに追加" };
+  };
   return (
     <SelectionAttachBox
-      pick={() => pickedInReply(root.current) ?? pickedInDiff(document.querySelector(`[data-panel-key="${panelKey("agents", chatId)}"]`))}
-      onAdd={(text) => fillComposer(text, { append: true })}
+      pick={() => pickedInReply(container()) ?? pickedInCode(container())}
+      targets={() => {
+        const inner = innerChat();
+        const main: AddTarget = {
+          label: inner ? "メインに追加" : "チャットに追加",
+          title: "選んだ部分を引用して、メインのチャットの入力欄に足します（送るのは自分で）",
+          onAdd: (text) => addToChat(mainChatId, text),
+        };
+        if (!inner) return [main];
+        return [main, { label: inner.label, title: "選んだ部分を引用して、このチャットの入力欄に足します（送るのは自分で）", onAdd: (text) => addToChat(inner.chatId, text) }];
+      }}
     />
   );
 }
 
 /**
- * 選んだ範囲の上の「チャットに添付」（pick が、いま選んでいる範囲が添付できる所かを決める）。押すと onAdd に引用を渡す。
- * 別ウィンドウ（変更・サブエージェント）・右の欄のメモでは、足す先（メインのウィンドウのチャット欄など）を onAdd で渡す
+ * 選んだ範囲の上のボタン（pick が、いま選んでいる範囲が足せる所かを決め、targets が足す先のボタンを決める）。押すとその onAdd に引用を渡す。
+ * 別ウィンドウ・右の欄のメモでは、足す先（メインのウィンドウのチャット欄など）を targets で渡す
  */
-export function SelectionAttachBox({ pick, onAdd }: { pick: () => Picked | undefined; onAdd: (text: string) => void }) {
-  const [picked, setPicked] = useState<Picked>();
+export function SelectionAttachBox({ pick, targets }: { pick: () => Picked | undefined; targets: () => AddTarget[] }) {
+  const [shown, setShown] = useState<{ picked: Picked; targets: AddTarget[] }>();
   const boxRef = useRef<HTMLDivElement>(null);
-  const close = () => setPicked(undefined);
+  const close = () => setShown(undefined);
   // 選び終えたとき（マウスを離した・Shift と矢印で選んだ）に見る
   const check = (e: Event) => {
     if (boxRef.current?.contains(e.target as Node)) return;
-    requestAnimationFrame(() => setPicked(pick()));
+    requestAnimationFrame(() => {
+      const picked = pick();
+      setShown(picked ? { picked, targets: targets() } : undefined);
+    });
   };
   useWindowEvent("mouseup", check);
   useWindowEvent("keyup", (e) => e.shiftKey && check(e));
   // スクロールしたら位置がずれるので消す
   useWindowEvent("scroll", close, true, true);
-  useDismiss(boxRef, close, { enabled: Boolean(picked) });
+  useDismiss(boxRef, close, { enabled: Boolean(shown) });
 
-  if (!picked) return null;
+  if (!shown) return null;
+  const at = placeAbove(shown.picked.rect, BUTTON_WIDTH * shown.targets.length);
   return (
-    <div ref={boxRef} className="selection-attach" style={{ left: picked.x, top: picked.y }}>
-      <button
-        type="button"
-        className="btn selection-attach-button"
-        title="選んだ部分を引用して、チャットの入力欄に足します（送るのは自分で）"
-        // 押してもピントが移って選択が消えないように
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => {
-          onAdd(picked.quote);
-          window.getSelection()?.removeAllRanges();
-          close();
-        }}
-      >
-        <Paperclip size={13} aria-hidden />
-        チャットに添付
-      </button>
+    <div ref={boxRef} className="selection-attach" style={{ left: at.x, top: at.y }}>
+      {shown.targets.map((target) => (
+        <button
+          key={target.label}
+          type="button"
+          className="btn selection-attach-button"
+          title={target.title}
+          // 押してもピントが移って選択が消えないように
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            target.onAdd(shown.picked.quote);
+            window.getSelection()?.removeAllRanges();
+            close();
+          }}
+        >
+          <MessageSquarePlus size={13} aria-hidden />
+          {target.label}
+        </button>
+      ))}
     </div>
   );
 }

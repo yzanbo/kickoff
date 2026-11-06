@@ -13,6 +13,7 @@ import { PopoutFiles } from "@/features/popout/PopoutFiles";
 import { PopoutSubagent } from "@/features/popout/PopoutSubagent";
 import { PopoutChildChat } from "@/features/popout/PopoutChildChat";
 import { SideMemo } from "@/features/memo/SideMemo";
+import { SideScope } from "@/features/popout/SideScope";
 import { PopoutDockButton } from "@/features/popout/PopoutDockButton";
 import { AskChildHost } from "@/features/chat/children/AskChildHost";
 import { ChatStatesContext, indexApprovals } from "./chatStatesContext";
@@ -49,22 +50,28 @@ export function PopoutApp({ route }: { route: PopoutRoute }) {
                 <PopoutDockButton route={route} />
               </div>
             )}
-            {route.kind === "subagent" ? (
-              <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} />
-            ) : route.kind === "chat" ? (
+            {route.kind === "chat" ? (
+              // 子チャットは、いちばん上の親を「メインのチャット」にする（自分で SideScope を置く）
               <PopoutChildChat chatId={route.chatId} />
-            ) : route.kind === "memo" ? (
-              <div className="popout-body">
-                <SideMemo
-                  projectId={route.projectId}
-                  path={route.path}
-                  chatId={route.chatId ?? null}
-                  // 名前を変えたら、ウィンドウの URL も新しい名前に（読み込み直しても同じメモを開く）
-                  onRenamed={(to) => history.replaceState(null, "", `#${popoutPath({ ...route, path: to })}`)}
-                />
-              </div>
             ) : (
-              <PopoutFiles route={route} />
+              // 右の欄と同じく、開いたチャットを「メインのチャット」に（右クリックの組・選んだときの「チャットに追加」）
+              <SideScope mainChatId={route.chatId ?? null}>
+                {route.kind === "subagent" ? (
+                  <PopoutSubagent chatId={route.chatId} agentKey={route.agentKey} />
+                ) : route.kind === "memo" ? (
+                  <div className="popout-body">
+                    <SideMemo
+                      projectId={route.projectId}
+                      path={route.path}
+                      chatId={route.chatId ?? null}
+                      // 名前を変えたら、ウィンドウの URL も新しい名前に（読み込み直しても同じメモを開く）
+                      onRenamed={(to) => history.replaceState(null, "", `#${popoutPath({ ...route, path: to })}`)}
+                    />
+                  </div>
+                ) : (
+                  <PopoutFiles route={route} />
+                )}
+              </SideScope>
             )}
           </div>
           <HoverTip />

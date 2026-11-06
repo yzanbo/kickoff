@@ -37,7 +37,7 @@ export interface MemoEditorHandle {
   selectedText: () => string;
   /** 選んでいる行（何も選んでいなければ null） */
   selectedLines: () => MemoLines | null;
-  /** 選んでいる範囲の画面の位置（本文にピントがあって選んでいるときだけ。上に「チャットに添付」を出す） */
+  /** 選んでいる範囲の画面の位置（本文にピントがあって選んでいるときだけ。上に「チャットに追加」を出す） */
   selectionRect: () => { left: number; top: number; width: number } | null;
   /** 選んでいる所を text に置き換える（選んでいなければカーソルの位置に入れる。⌘Z で戻せる） */
   insert: (text: string) => void;

@@ -6,6 +6,7 @@ import { FileLinkContext } from "@/features/fileLinks/fileLinkContext";
 import { WorktreeContext } from "@/features/worktree/worktreeContext";
 import { FileView } from "./FileView";
 import { changeOf } from "./sideFile";
+import { useCodeQuoteMenu } from "./useCodeQuoteMenu";
 import { useGitStatus } from "./useGitStatus";
 import { PopOutTabButton } from "@/features/panel/tabs/PopOutTabButton";
 
@@ -21,7 +22,8 @@ interface Props {
 
 /**
  * チャットの画面の右の欄の「ファイル」: 作業場所のファイルの中身（ファイルタブと同じ FileView。編集・保存もできる）。行の番号があればその行を目立たせる。
- * 上の帯に、コミットしていない変更があれば「差分を見る」（右の欄の変更のタブのそのファイルの位置へ）と、「ファイルタブで開く」
+ * 上の帯に、コミットしていない変更があれば「差分を見る」（右の欄の変更のタブのそのファイルの位置へ）と、「ファイルタブで開く」。
+ * 中身の行の右クリックは「メインのチャット」に足すメニュー（useCodeQuoteMenu）
  */
 export function SideFileView(props: Props) {
   return (
@@ -37,8 +39,10 @@ function SideFileBody({ projectId, worktree, path, line }: Props) {
   const links = useContext(FileLinkContext);
   const changed = changeOf(git.status, path) !== undefined;
   const ref = { path, ...(line ? { line } : {}) };
+  const repoPath = projectsById.get(projectId)?.repo_path ?? "";
+  const codeMenu = useCodeQuoteMenu(worktree ?? (repoPath || undefined));
   return (
-    <div className="side-file">
+    <div className="side-file" onContextMenu={codeMenu.onContextMenu}>
       <div className="side-file-bar">
         {changed && (
           <button type="button" className="btn btn-sm" title="このファイルのコミットしていない変更を、右の欄の「変更」で見ます" onClick={() => links?.openChanges(path)}>
@@ -58,13 +62,14 @@ function SideFileBody({ projectId, worktree, path, line }: Props) {
       <FileView
         key={`${path}:${line ?? ""}`}
         projectId={projectId}
-        repoPath={projectsById.get(projectId)?.repo_path ?? ""}
+        repoPath={repoPath}
         path={path}
         line={line}
         changed={changed}
         version={git.version}
         onSaved={() => void git.refresh()}
       />
+      {codeMenu.element}
     </div>
   );
 }
