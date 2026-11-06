@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { MemoEntry } from "@shared/types";
-import { ancestorsOf, buildMemoTree, filterMemos, isUnder, memoTitle, recentMemos, remapPath, renamedPath } from "./memoPaths";
+import { ancestorsOf, buildMemoTree, filterMemos, isUnder, memoTitle, pathTaken, recentMemos, remapPath, renamedPath } from "./memoPaths";
 
 const entry = (path: string, dir = false, modified_at = "2026-11-05T00:00:00.000Z"): MemoEntry => ({ path, dir, modified_at });
 
@@ -38,4 +38,15 @@ test("recentMemos: メモのファイルだけを、新しく変えた順に lim
 test("filterMemos: ファイルだけを名前で絞り、新しく変えた順", () => {
   const list = filterMemos([entry("設計", true), entry("設計/DB.md", false, "2026-11-01T00:00:00Z"), entry("db2.md", false, "2026-11-03T00:00:00Z"), entry("ほか.md")], "DB");
   assert.deepEqual(list.map((e) => e.path), ["db2.md", "設計/DB.md"]);
+});
+
+test("pathTaken: 同じフォルダの同じ名前（拡張子まで。大文字・小文字は区別しない）だけを重なりとみなす", () => {
+  const entries = [entry("設計", true), entry("設計/DB.md"), entry("計画.md")];
+  assert.ok(pathTaken(entries, "設計/db.md"));
+  assert.ok(pathTaken(entries, "設計"));
+  assert.ok(!pathTaken(entries, "設計/DB.html"));
+  assert.ok(!pathTaken(entries, "DB.md"));
+  assert.ok(!pathTaken(entries, "計画"));
+  // 名前を変える元は数えない（大文字・小文字だけの変更）
+  assert.ok(!pathTaken(entries, "設計/db.md", "設計/DB.md"));
 });

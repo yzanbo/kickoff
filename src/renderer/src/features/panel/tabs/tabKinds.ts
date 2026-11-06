@@ -9,7 +9,6 @@ import { normalizeUrl } from "@/lib/url";
 import { SubagentTabLead } from "@/features/chat/subagents/SubagentTabLead";
 import { ChildTabLead } from "@/features/chat/children/ChildTabLead";
 import { FileTabLead } from "@/features/editor/FileTabLead";
-import { memoTitle } from "@/features/memo/memoPaths";
 import { OTHER_CLUSTER } from "@/features/panel/clusters/tabClusters";
 import type { PanelKind } from "@/features/panel/state/panelKinds";
 import type { PopoutRoute } from "@/app/popout";
@@ -259,13 +258,13 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     shows: "file",
     icon: StickyNote,
     badge: "メモ",
-    label: (t) => memoTitle(t.path),
+    label: (t) => baseName(t.path),
     hint: (t) => `メモ: ${t.path}`,
     projectOf: (t) => t.projectId,
     // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
-    popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path }, title: `${memoTitle(t.path)} — メモ` }),
+    popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path }, title: `${baseName(t.path)} — メモ` }),
   },
   child: {
     shows: "subagent",

@@ -1,7 +1,7 @@
 // まだ保存していないメモを離れるときの確かめ（別のメモへ移る・右の欄のメモのタブを閉じる）。
 // 開いているメモ（useMemoDocument）が自分の様子と操作をここに知らせ、離れる側が confirmLeaveMemo で聞く
 import { choiceDialog } from "@/ui/dialogs";
-import { memoTitle } from "./memoPaths";
+import { baseName } from "./memoPaths";
 
 interface MemoGuard {
   /** まだ保存していない書きかけがあるか */
@@ -36,7 +36,7 @@ export async function confirmLeaveMemo(projectId: number, path: string | null | 
   const dirty = [...(guards.get(`${projectId}:${path}`) ?? [])].filter((g) => g.dirty());
   if (dirty.length === 0) return true;
   const picked = await choiceDialog({
-    title: `メモ「${memoTitle(path)}」はまだ保存していません`,
+    title: `メモ「${baseName(path)}」はまだ保存していません`,
     message: "保存してから移りますか？　保存しないと、書いたものは消えます。",
     choices: [
       { value: "discard", label: "保存しない" },

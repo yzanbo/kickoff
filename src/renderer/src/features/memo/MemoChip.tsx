@@ -9,11 +9,12 @@ import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { DefaultOpenPlace, OpenPlaceButtons } from "@/features/chat/composer/OpenPlaceControls";
 import { RECENT_MEMOS } from "./MemoMenuItems";
-import { memoTitle, parentOf, recentMemos } from "./memoPaths";
+import { baseName, parentOf, recentMemos } from "./memoPaths";
 import { openMemoFromChat } from "./openMemoFrom";
 
 /**
- * 入力欄の上の「メモ」（指示の履歴・子チャットと同じピルの列）。押すと最近変えたメモの一覧を出し、行を押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。
+ * 入力欄の上の「メモ」（指示の履歴・子チャットと同じピルの列）。押すと最近変えたメモの一覧（ファイル名（拡張子まで）と、その下に入っているフォルダ）を出し、
+ * 行を押すと設定の開き方（右の欄 / 別ウィンドウ）で開く。
  * 行の右のボタンで、設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられる。プロジェクトにメモがなければ出さない
  */
 export function MemoChip({ projectId, chatId }: { projectId: number; chatId: number }) {
@@ -53,8 +54,10 @@ export function MemoChip({ projectId, chatId }: { projectId: number; chatId: num
           onKeyDown={(k) => k.key === "Enter" && open(e.path)}
         >
           <StickyNote size={12} aria-hidden />
-          <span className="memo-chip-title">{memoTitle(e.path)}</span>
-          {parentOf(e.path) && <span className="memo-chip-folder">{parentOf(e.path)}</span>}
+          <span className="memo-chip-name">
+            <span className="memo-chip-title">{baseName(e.path)}</span>
+            <span className="memo-chip-folder">{parentOf(e.path) || "（メモのフォルダの直下）"}</span>
+          </span>
           <OpenPlaceButtons places={places} onOpen={(place) => open(e.path, place === "window" ? "window" : "side")} />
         </div>
       ))}
