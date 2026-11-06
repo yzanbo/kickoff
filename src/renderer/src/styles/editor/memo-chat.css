@@ -1,4 +1,4 @@
-/* ==== メモの会話の欄（本文の右。狭いときは本文の下。MemoChat） ==== */
+/* ==== メモの会話の欄（本文の右か下を見出しで選ぶ。右でも狭いときは本文の下。MemoChat） ==== */
 
 /* 本文と会話を左右に並べる（メモの見出しの幅で、狭ければ上下） */
 .memo-view {
@@ -84,6 +84,43 @@
   .memo-chat-resizer {
     display: none;
   }
+}
+
+/*
+ * 本文の下に置く（欄の見出しで選ぶ。MEMO_CHAT_PLACE）。高さは --memo-chat-h（本文と欄を合わせた高さの %。上下のつまみで変える）。
+ * 狭いときの右の置き方（上の @container）より詳細度を上げて、選んだ高さのままにする
+ */
+.memo-body.with-chat.chat-bottom {
+  flex-direction: column;
+}
+
+.memo-body.with-chat.chat-bottom.chat-open .memo-chat-slot {
+  flex-basis: var(--memo-chat-h);
+}
+
+.memo-body.chat-bottom .memo-chat {
+  width: 100%;
+  border-top: 1px solid var(--border);
+  border-left: none;
+}
+
+/* 上下の境目のつまみ（つかめる高さは広いまま、乗せると 2px の線） */
+.memo-chat-resizer-y {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  height: 5px;
+  margin: -3px 0 -2px;
+  cursor: row-resize;
+}
+
+.memo-chat-resizer-y:hover,
+.memo-body.resizing > .memo-chat-resizer-y {
+  background: linear-gradient(var(--info), var(--info)) center / 100% 2px no-repeat;
+}
+
+.memo-body.chat-bottom.resizing {
+  cursor: row-resize;
 }
 
 .memo-chat-head {
