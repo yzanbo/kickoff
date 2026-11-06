@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { memoPlanPrompt, parseMemoPlan } from "./memoAi.js";
+import { memoMergePrompt, memoPlanPrompt, parseMergedMemo, parseMemoPlan } from "./memoAi.js";
 
 const entries = [
   { path: "設計", dir: true },
@@ -44,4 +44,17 @@ test("parseMemoPlan: JSON でない答え・形の違う答えは空の案", () 
   assert.deepEqual(parseMemoPlan("整理の必要はありません", entries), { moves: [], skipped: 0 });
   assert.deepEqual(parseMemoPlan('{"moves": "なし"}', entries), { moves: [], skipped: 0 });
   assert.deepEqual(parseMemoPlan("{壊れた", entries), { moves: [], skipped: 0 });
+});
+
+test("memoMergePrompt: いまのメモと足す文（出どころ付き）を見せ、全体の Markdown で答えてもらう", () => {
+  const prompt = memoMergePrompt("# 設計\n\n認証は Cookie\n", "セッションは 30 日", "> チャット「ログイン」から（2026-11-06 10:00）");
+  assert.match(prompt, /<いまのメモ>\n# 設計\n\n認証は Cookie\n<\/いまのメモ>/);
+  assert.match(prompt, /<足す文 出どころ="チャット「ログイン」から（2026-11-06 10:00）">\nセッションは 30 日\n<\/足す文>$/);
+  assert.match(prompt, /題名）は変えない/);
+});
+
+test("parseMergedMemo: 全体を囲む ``` を外し、最後に改行を 1 つ付ける。空なら null", () => {
+  assert.equal(parseMergedMemo("```markdown\n# 設計\n\n本文\n```"), "# 設計\n\n本文\n");
+  assert.equal(parseMergedMemo("  # 設計\n\n```ts\nx\n```\n\n"), "# 設計\n\n```ts\nx\n```\n");
+  assert.equal(parseMergedMemo("  \n"), null);
 });

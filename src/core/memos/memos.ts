@@ -11,7 +11,7 @@ import { asInvalid, Conflict, Invalid, NotFound } from "../http/errors.js";
 import type { AgentProvider } from "../providers/types.js";
 import { runCommand } from "../system/exec.js";
 import { expandHome } from "../system/paths.js";
-import { memoPlanPrompt, parseMemoPlan, type PlanFile } from "./memoAi.js";
+import { memoMergePrompt, memoPlanPrompt, parseMergedMemo, parseMemoPlan, type PlanFile } from "./memoAi.js";
 import { MemoWatcher } from "./memoWatcher.js";
 
 /** 一覧に出す数の上限（大きなフォルダを指しても重くならないように） */
@@ -184,18 +184,26 @@ export class MemoService {
 
   /**
    * チャットの文からメモを作る・足す。summarize なら AI（プロジェクトのプロバイダー）で要約してから。
-   * appendTo があれば、そのメモの最後に区切り線を挟んで足す。なければ folder（メモのフォルダからの相対。null なら直下）に
-   * 「<チャット名> チャットメモ<n>.md」を作る
+   * appendTo があれば、そのメモの最後に区切り線を挟んで足す（merge なら、AI がそのメモと合わせてメモ全体をまとめ直して書き換える）。
+   * なければ folder（メモのフォルダからの相対。null なら直下）に「<チャット名> チャットメモ<n>.md」を作る
    */
-  async fromChat(project: Project, chat: Chat, input: { text: string; summarize: boolean; appendTo: string | null; folder: string | null }): Promise<MemoRef> {
-    const body = input.summarize ? await this.summarize(project, input.text) : input.text.trim();
-    const block = `${memoSourceLine(chat, new Date())}\n\n${body}\n`;
+  async fromChat(
+    project: Project,
+    chat: Chat,
+    input: { text: string; summarize: boolean; merge: boolean; appendTo: string | null; folder: string | null },
+  ): Promise<MemoRef> {
+    if (input.merge && !input.appendTo) throw new Invalid("まとめるメモを選んでください");
+    const source = memoSourceLine(chat, new Date());
+    const body = input.summarize && !input.merge ? await this.summarize(project, input.text) : input.text.trim();
+    const block = `${source}\n\n${body}\n`;
     if (input.appendTo) {
       // HTML のメモの最後に Markdown の文を足すと、ページの外（</html> のあと）に出てしまうので足さない
       if (memoKindOf(input.appendTo) !== "markdown") throw new Invalid("HTML のメモには追記できません（Markdown のメモを選んでください）");
       const current = await this.read(project, input.appendTo);
       if (current.binary || current.truncated) throw new Invalid("このメモには足せません（大きすぎるか、文字のファイルではありません）");
-      const content = `${current.content.replace(/\s+$/, "")}\n\n---\n\n${block}`;
+      const merged = input.merge ? parseMergedMemo(await this.ask(project, memoMergePrompt(current.content, body, source))) : null;
+      if (input.merge && !merged) throw new Invalid("AI がメモをまとめられませんでした");
+      const content = merged ?? `${current.content.replace(/\s+$/, "")}\n\n---\n\n${block}`;
       await this.write(project, input.appendTo, content, current.hash);
       return { path: input.appendTo };
     }
@@ -224,7 +232,7 @@ export class MemoService {
   /** プロジェクトのプロバイダーに 1 回だけ聞く（質が要るので sonnet。対応していない・答えがなければ 400） */
   private async ask(project: Project, prompt: string): Promise<string> {
     const provider = this.opts.providers[project.provider];
-    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、メモの整理に対応していません");
+    if (!provider?.ask) throw new Invalid("このプロジェクトの AI は、メモの整理・まとめに対応していません");
     const answer = await provider.ask(prompt, { model: "sonnet" }).catch(asInvalid);
     if (!answer.trim()) throw new Invalid("AI から答えがありませんでした");
     return answer;

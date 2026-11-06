@@ -120,6 +120,31 @@ test("チャットの文からメモ: 「<チャット名> チャットメモ<n>
   assert.equal((await call("POST", `${base}/memos/from-chat`, { chat_id: chat.id, text: "x", summarize: false, append_to: "資料.html", folder: null })).status, 400);
 });
 
+test("チャットの文を既存のメモと AI でまとめる: メモ全体を AI の答えで書き換える（まとめる先がない・答えが空なら 400 で変えない）", async () => {
+  const { call, project, store, provider } = setup();
+  const base = `/api/projects/${project.id}`;
+  const chat = store.chats.create({ project_id: project.id, title: "ログイン画面", provider: "claude", status: "completed" });
+  await call("POST", `${base}/memos`, { path: "設計.md", content: "# 設計\n\n認証は Cookie\n" });
+  provider.askReply = "```markdown\n# 設計\n\n- 認証は Cookie\n- セッションは 30 日\n```";
+  const merged = await call("POST", `${base}/memos/from-chat`, { chat_id: chat.id, text: "セッションは 30 日", summarize: true, merge: true, append_to: "設計.md", folder: null });
+  assert.equal(merged.status, 200);
+  assert.equal(merged.body.path, "設計.md");
+  const memo = (path: string) => call("GET", `${base}/memo?path=${encodeURIComponent(path)}`).then((r) => r.body.content as string);
+  assert.equal(await memo("設計.md"), "# 設計\n\n- 認証は Cookie\n- セッションは 30 日\n");
+  // AI にはいまのメモと足す文（要約しないそのままの文）を、sonnet で聞く
+  const asked = provider.asked.at(-1);
+  assert.equal(asked?.model, "sonnet");
+  assert.match(asked?.prompt ?? "", /<いまのメモ>\n# 設計\n\n認証は Cookie\n<\/いまのメモ>/);
+  assert.match(asked?.prompt ?? "", /<足す文 出どころ="チャット「ログイン画面」から（.+）">\nセッションは 30 日\n<\/足す文>$/);
+  assert.deepEqual(provider.summarized, []);
+
+  // まとめる先がない・答えが空なら 400（メモは変えない）
+  assert.equal((await call("POST", `${base}/memos/from-chat`, { chat_id: chat.id, text: "x", summarize: false, merge: true, append_to: null, folder: null })).status, 400);
+  provider.askReply = " \n";
+  assert.equal((await call("POST", `${base}/memos/from-chat`, { chat_id: chat.id, text: "x", summarize: false, merge: true, append_to: "設計.md", folder: null })).status, 400);
+  assert.equal(await memo("設計.md"), "# 設計\n\n- 認証は Cookie\n- セッションは 30 日\n");
+});
+
 test("HTML のメモが読むファイル: メモのフォルダのファイルをそのまま返し（種類と sandbox の CSP 付き）、フォルダの外は読ませない", async () => {
   const { app, call, project } = setup();
   const base = `/api/projects/${project.id}`;

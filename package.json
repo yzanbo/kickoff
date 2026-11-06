@@ -20,7 +20,11 @@
     "@hono/node-server": "^2.1.5",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/headless": "^6.0.0",
+    "hast-util-from-dom": "^5.0.1",
+    "hast-util-to-mdast": "^10.1.2",
     "hono": "^4.13.14",
+    "mdast-util-gfm": "^3.1.0",
+    "mdast-util-to-markdown": "^2.2.2",
     "node-pty": "^1.1.0",
     "zod": "^4.6.7"
   },

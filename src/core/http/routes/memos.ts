@@ -55,6 +55,7 @@ const fromChatSchema = z.object({
   chat_id: z.number().int().positive(),
   text: z.string().trim().min(1).max(MAX_MEMO_SOURCE_CHARS),
   summarize: z.boolean(),
+  merge: z.boolean().optional(),
   append_to: repoPath.nullable(),
   folder: repoPath.nullable(),
 }) satisfies z.ZodType<MemoFromChatBody>;
@@ -138,7 +139,7 @@ export function memoRoutes(app: Hono, { store, memos, runner }: ServerDeps) {
     const chat = store.chats.get(body.chat_id);
     if (!chat) throw new NotFound("チャットが見つかりません");
     if (chat.project_id !== c.var.project.id) throw new Invalid("ほかのプロジェクトのチャットです");
-    const ref = await memos.fromChat(c.var.project, chat, { text: body.text, summarize: body.summarize, appendTo: body.append_to, folder: body.folder });
+    const ref = await memos.fromChat(c.var.project, chat, { text: body.text, summarize: body.summarize, merge: body.merge ?? false, appendTo: body.append_to, folder: body.folder });
     return c.json(ref, body.append_to ? 200 : 201);
   });
 }

@@ -1,4 +1,5 @@
-// メモの AI のフォルダの整理案の、AI に送る文と、答えの読み方（純粋関数）。案を返すだけで、メモは動かさない（動かすかは画面で決める）
+// メモの AI の、AI に送る文と答えの読み方（純粋関数）: フォルダの整理案（案を返すだけで、メモは動かさない。動かすかは画面で決める）と、
+// 既存のメモにチャットの文を取り込んだまとめ直し
 import path from "node:path";
 import type { MemoEntry, MemoPlan, MemoPlanMove } from "@shared/types";
 
@@ -80,4 +81,36 @@ export function parseMemoPlan(answer: string, entries: readonly Pick<MemoEntry, 
     moves.push({ from, to: target, reason: typeof reason === "string" ? reason.trim().slice(0, 200) : "" });
   }
   return { moves, skipped };
+}
+
+/**
+ * 既存のメモと、チャットから持ってきた文を 1 つのメモにまとめ直してもらう文（答えはメモの全体の Markdown）。
+ * source はどのチャットの、いつの文か（`memoSourceLine`）
+ */
+export function memoMergePrompt(current: string, addition: string, source: string): string {
+  return [
+    "次の「いまのメモ」に「足す文」の内容を取り込み、1 つのメモとしてまとめ直してください。",
+    "",
+    "守ること:",
+    "- いまのメモにある情報は落とさない。重なる内容は 1 か所にまとめ、足す文の新しい内容は関係する見出しの下に入れる（合う見出しがなければ足す）。",
+    "- いちばん上の見出し（題名）は変えない。言語・書き方（Markdown）・調子はいまのメモにそろえる。",
+    "- 長い説明は要点に縮めてよいが、コード・コマンド・パス・数値・URL はそのまま残す。",
+    "- 答えはまとめ直したメモの全体の Markdown だけ（前置き・説明・メモ全体を囲む ``` は書かない）。",
+    "",
+    "<いまのメモ>",
+    current.trim(),
+    "</いまのメモ>",
+    "",
+    `<足す文 出どころ="${source.replace(/^>\s*/, "").replace(/"/g, "'")}">`,
+    addition.trim(),
+    "</足す文>",
+  ].join("\n");
+}
+
+/** まとめ直したメモの答えを読む（全体を ``` で囲んでいれば外す。前後の空白を削り、最後に改行を 1 つ。空なら null） */
+export function parseMergedMemo(answer: string): string | null {
+  const trimmed = answer.trim();
+  const fenced = /^```(?:markdown|md)?\n([\s\S]*?)\n```$/.exec(trimmed);
+  const body = (fenced ? fenced[1] : trimmed).trim();
+  return body ? `${body}\n` : null;
 }
