@@ -4,12 +4,11 @@ import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
-import { ChatDisplayItems, useChatDisplayHides } from "@/features/chat/pane/ChatDisplayMenu";
+import { ChatDisplayItems } from "@/features/chat/pane/ChatDisplayMenu";
 import { CHAT_GROUPING_LABELS, CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import { useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { useTabGrouping } from "@/features/panel/clusters/useTabClusters";
 import { HiddenGroupItems } from "@/features/panel/clusters/HiddenGroupItems";
-import { useHiddenTabGroups } from "@/features/panel/clusters/useHiddenTabGroups";
 import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
@@ -21,7 +20,7 @@ import type { PanelController } from "@/features/panel/usePanel";
  * を 1 つにまとめる（以前はそれぞれのアイコンが並び、タブの列の道具が多かった）。
  * チャットの画面の切り替えは、見出しを隠しても戻せるよう、見出しの外のここに置く。
  * 欄に関係のない項目は出さない（サブエージェントの欄は項目がないので、ボタンも右クリックも出さない）。
- * 既定と違う選び方をしていれば changed（ボタンに点を付けて、隠れた状態に気づけるように）
+ * 既定と違う選び方をしていても、ボタンに印は付けない（自分で選んだ好みなので、ずっと印を出すと何か問題があるように見えるため。以前は点を付けていた）
  */
 export function usePanelViewMenu(panel: PanelController) {
   const rules = SURFACES[panel.surface];
@@ -32,11 +31,6 @@ export function usePanelViewMenu(panel: PanelController) {
   const showKinds = !rules.fixedKinds;
   const showChat = kinds.has("chat");
   const has = showKinds || showChat;
-  const defaultKinds = rules.defaultKinds.join(",") === kinds.kinds.join(",");
-  const chatHides = useChatDisplayHides();
-  const hiddenGroups = useHiddenTabGroups();
-  const groupsHidden = grouping === "group" && (hiddenGroups.hidden.size > 0 || hiddenGroups.hideEmpty);
-  const changed = (showKinds && !defaultKinds) || (showChat && (grouping !== "none" || archived || chatHides || groupsHidden));
   // 欄ごとにボタンを分ける（ほかの欄のボタンを押したときは、こちらのメニューを外側のクリックとして閉じる）
   const buttonClass = `panel-view-${panel.surface}`;
 
@@ -99,7 +93,6 @@ export function usePanelViewMenu(panel: PanelController) {
   }
   return {
     has,
-    changed,
     isOpen: menu.isOpen,
     buttonClass,
     /** 道具のボタンを押したとき（開いていれば閉じる） */
@@ -124,16 +117,16 @@ export function usePanelViewMenu(panel: PanelController) {
 
 export type PanelViewMenu = ReturnType<typeof usePanelViewMenu>;
 
-/** タブの列の左の道具の「表示」ボタン（既定と違う選び方をしていれば点を付ける） */
+/** タブの列の左の道具の「表示」ボタン */
 export function PanelViewButton({ view }: { view: PanelViewMenu }) {
   if (!view.has) return null;
-  const label = view.changed ? "表示（既定から変えています）" : "表示";
+  const label = "表示";
   return (
     <IconButton
       type="button"
       icon={SlidersHorizontal}
       size={15}
-      className={cx("panel-control panel-view-button", view.buttonClass, view.changed && "changed")}
+      className={cx("panel-control", view.buttonClass)}
       label={label}
       title={`${label}: 表示するタブ・チャットのまとめ方・アーカイブ済み・チャットの見出しや指示の帯など（タブの列の何もないところの右クリックでも開きます）`}
       aria-haspopup="menu"

@@ -297,21 +297,3 @@
   cursor: default;
 }
 
-/*
- * 「表示」のボタン（PanelViewButton）。既定と違う選び方をしているときは右上に点
- * （まとめ方・アーカイブ済み・隠したチャットの見出しなどが隠れた状態に気づけるように）
- */
-.panel-view-button {
-  position: relative;
-}
-
-.panel-view-button.changed::after {
-  position: absolute;
-  top: 4px;
-  right: 5px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent-bright);
-  content: "";
-}
