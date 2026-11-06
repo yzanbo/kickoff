@@ -1,7 +1,7 @@
 // まだ保存していないメモを離れるときの確かめ（別のメモへ移る・右の欄のメモのタブを閉じる）。
 // 開いているメモ（useMemoDocument）が自分の様子と操作をここに知らせ、離れる側が confirmLeaveMemo で聞く
 import { choiceDialog } from "@/ui/dialogs";
-import { baseName } from "./memoPaths";
+import { baseName, isUnder } from "./memoPaths";
 
 interface MemoGuard {
   /** まだ保存していない書きかけがあるか */
@@ -49,6 +49,17 @@ export async function confirmLeaveMemo(projectId: number, path: string | null | 
     return true;
   }
   for (const g of dirty) if (!(await g.save())) return false;
+  return true;
+}
+
+/**
+ * folder（メモ・フォルダ。"" はすべて）の中の、開いているメモを離れてよいか（名前を変える・動かす・ゴミ箱に入れる前。メモのタブ・右の欄・別ウィンドウの
+ * どこで開いていても。まだ保存していないものがあれば 1 つずつ confirmLeaveMemo で聞き、やめたら false）
+ */
+export async function confirmLeaveMemosUnder(projectId: number, folder: string): Promise<boolean> {
+  const prefix = `${projectId}:`;
+  const paths = [...guards.keys()].filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length));
+  for (const path of paths) if (isUnder(path, folder) && !(await confirmLeaveMemo(projectId, path))) return false;
   return true;
 }
 
