@@ -46,7 +46,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.put("/api/chats/:id/queue/stop-after", withChat, async (c) => {
     const { chat } = c.var;
     const { id, stop } = z.object({ id: queueId.nullable(), stop: z.boolean().default(true) }).parse(await jsonBody(c));
-    runner.setQueueStopAfter(chat.id, id, stop);
+    await runner.setQueueStopAfter(chat.id, id, stop);
     return c.json(runner.queueState(chat.id));
   });
 
@@ -54,7 +54,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.put("/api/chats/:id/queue/stops", withChat, async (c) => {
     const { chat } = c.var;
     const { stops } = z.object({ stops: z.array(z.number().int().min(0)).max(200) }).parse(await jsonBody(c));
-    runner.setQueueStops(chat.id, stops);
+    await runner.setQueueStops(chat.id, stops);
     return c.json(runner.queueState(chat.id));
   });
 
@@ -95,7 +95,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
   app.post("/api/chats/:id/queue/:queueId/move", withChat, async (c) => {
     const { chat } = c.var;
     const { index } = z.object({ index: z.number().int().min(0) }).parse(await jsonBody(c));
-    runner.moveQueued(chat.id, c.req.param("queueId"), index);
+    await runner.moveQueued(chat.id, c.req.param("queueId"), index);
     return c.json(runner.queueState(chat.id));
   });
 
@@ -140,7 +140,7 @@ export function queueRoutes(app: Hono, { store, runner }: ServerDeps) {
       .refine((b) => (b.to === undefined) !== (b.before === undefined), "to か before のどちらか一方を指定してください")
       .parse(await jsonBody(c));
     const to = body.to ?? { before: body.before ?? null, belowStop: body.below_stop };
-    runner.moveQueuedMany(chat.id, body.ids, to);
+    await runner.moveQueuedMany(chat.id, body.ids, to);
     return c.json(runner.queueState(chat.id));
   });
 

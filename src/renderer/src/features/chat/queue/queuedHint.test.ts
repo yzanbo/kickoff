@@ -12,6 +12,13 @@ test("queuedHint: 次の指示の書き直しが終わるのを待っている�
   assert.equal(queuedHint({ ...base, busy: false }), "自動で送れませんでした。行の「すぐ送る」で送れます");
 });
 
+test("queuedHint: 作業が終わって 1 件目の上の線で待っているときは、止めているでも送れなかったでもなく、線を消すと続くと伝える", () => {
+  assert.equal(queuedHint({ ...base, busy: false, stopIndex: 0 }), "一時停止の線まで送りました。線を消すと続きを送ります");
+  assert.equal(queuedHint({ ...base, busy: false, stopIndex: 0, collapsed: true }), "一時停止中");
+  // 止めておくにしているときは、そちらを伝える
+  assert.equal(queuedHint({ ...base, busy: false, stopIndex: 0, paused: true }), "止めています。行の「すぐ送る」で 1 件ずつ送れます");
+});
+
 test("reservedCompact: いちばん上の圧縮の行で、その上で止めていないときだけ予約とみなす。畳んだ 1 行の「次:」は「会話を圧縮」", () => {
   const row = (text: string, compact = false): QueuedMessage => ({ id: text, text, options: {}, attachments: [], created_at: "", ...(compact ? { compact } : {}) });
   const compact = row("", true);

@@ -59,11 +59,11 @@ test("送信待ち: 「ここまで送ったら止めます」の印は、動か
   queue.setStops([3]);
   for (let i = 0; i < 3; i++) queue.take();
   assert.deepEqual(queue.stopPositions(), [0]);
-  // 作業のあいだに次の指示が来れば、その前で止まる
+  // 作業のあいだに次の指示が来れば、その前の印で待つ（止めておくには切り替えない）
   queue.add("d", {}, []);
   assert.equal(queue.takeNext(), undefined);
-  assert.equal(queue.isPaused(), true);
-  // 再起動で読み戻しても、止めたまま・印もそのまま
+  assert.equal(queue.isPaused(), false);
+  // 再起動で読み戻すと止めておき（前回の作業は中断している）、印もそのまま
   const reloaded = restarted(store, chat.id);
   assert.deepEqual(reloaded.stopPositions(), [0]);
   assert.equal(reloaded.isPaused(), true);
@@ -92,7 +92,7 @@ test("送信待ち: すべて送ったあとの印は、次の指示が来ない
   assert.deepEqual(restarted(store, chat.id).stopPositions(), []);
 });
 
-test("送信待ち: 印は指示とは別の位置で持ち、線をまたがない並べ替えでは動かない。先頭の上の印で止まり、自動に戻すとその印を越える", () => {
+test("送信待ち: 印は指示とは別の位置で持ち、線をまたがない並べ替えでは動かない。先頭の上の印で待ち（止めておくには切り替えない）、その印を消すと次の印まで送る", () => {
   const { store, chat } = setup();
   const queue = new ChatQueue(chat.id, () => {}, store.queues);
   const [a, b, c] = ["a", "b", "c"].map((t) => queue.add(t, {}, []));
@@ -104,18 +104,24 @@ test("送信待ち: 印は指示とは別の位置で持ち、線をまたがな
   queue.move(b.id, 0);
   assert.deepEqual(queue.stopPositions(), [0, 2]);
 
-  // 先頭の上に印があるので、自動では送らずに止めておく（印は残る）
+  // 先頭の上に印があるので、自動では送らずにその印で待つ（印は残り、止めておくにはしない）
   assert.equal(queue.takeNext(), undefined);
-  assert.equal(queue.isPaused(), true);
+  assert.equal(queue.isPaused(), false);
+  assert.equal(queue.stopsAtHead(), true);
   assert.deepEqual(queue.stopPositions(), [0, 2]);
-  // 自動に戻すと先頭の上の印を越え、次の印まで送る
-  queue.setPaused(false);
-  assert.deepEqual(queue.stopPositions(), [2]);
+  // 先頭の上の印を消すと、次の印まで送る
+  queue.setStops([2]);
+  assert.equal(queue.stopsAtHead(), false);
   assert.equal(queue.takeNext()?.id, b.id);
   assert.equal(queue.takeNext()?.id, a.id);
   assert.deepEqual(queue.stopPositions(), [0]);
   assert.equal(queue.takeNext(), undefined);
-  assert.equal(queue.isPaused(), true);
+  assert.equal(queue.isPaused(), false);
+  // 止めておいてから自動に戻したときも、先頭の上の印を越える
+  queue.setPaused(true);
+  queue.setPaused(false);
+  assert.deepEqual(queue.stopPositions(), []);
+  queue.setStops([0]);
 
   // 右クリックの「この指示のあとで止める」: その指示のすぐあと
   queue.setStopAfter(c.id);
@@ -209,7 +215,7 @@ test("送信待ち: 圧縮の行は、いちばん下・指示のすぐあと（
   assert.deepEqual(queue.stopPositions(), [1]);
   assert.equal(queue.takeNext()?.id, reserved.id);
   assert.equal(queue.takeNext(), undefined);
-  assert.equal(queue.isPaused(), true);
+  assert.equal(queue.stopsAtHead(), true);
 });
 
 test("送信待ち: 空になった・チャットを消したら保存からも消える", () => {

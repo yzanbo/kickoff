@@ -202,7 +202,7 @@ test("待ちの列を 1 件ずつ順に送る API: まとめずに別々の発�
   assert.deepEqual(provider.prompts.slice(1), ["2", "3", "4"]);
 });
 
-test("「ここまで送ったら止めます」: 印は列の中の位置で持ち、いくつでも・1 件目の上にも置ける。印まで送って止め、自動に戻すと次の印まで送る", async () => {
+test("「ここまで送ったら止めます」: 印は列の中の位置で持ち、いくつでも・1 件目の上にも置ける。印まで送ったら線の所で待ち（止めておくにはしない）、その線を消すと次の印まで送る", async () => {
   const { call, project, runner, provider } = setup();
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
@@ -219,21 +219,30 @@ test("「ここまで送ったら止めます」: 印は列の中の位置で持
   assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [2, 3] })).body.stops, [2, 3]);
   assert.deepEqual((await call("GET", `/api/chats/${chatId}`)).body.live.queue.stops, [2, 3]);
 
-  // 「3」まで送ったら、残りは送らずに止めておく（止まった印は「4」の上に残る）
+  // 「3」まで送ったら、残りは送らずに線の所で待つ（印は「4」の上に残り、止めておくにはしない）
   release();
-  await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId) && runner.live(chatId).queue.paused);
+  await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
+  assert.equal(runner.live(chatId).queue.paused, false);
   assert.deepEqual(provider.prompts, ["1", "2", "3"]);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["4", "5"]);
   assert.deepEqual(runner.live(chatId).queue.stops, [0, 1]);
 
-  // 自動で送るに戻すと、止まった印を越えて次の印（「4」のあと）まで送って、また止める
-  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: false });
-  await until(() => provider.prompts.length === 4 && !runner.isBusy(chatId) && runner.live(chatId).queue.paused);
+  // 待っている線を × で消すと、そのまま次の印（「4」のあと）まで送って、また線の所で待つ
+  // 応答は「4」を送り出したあとの列（「5」の上に印）
+  assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [1] })).body.stops, [0]);
+  await until(() => provider.prompts.length === 4 && !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
+  assert.equal(runner.live(chatId).queue.paused, false);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["5"]);
   assert.deepEqual(runner.live(chatId).queue.stops, [0]);
 
-  // × で外す（位置の置き換え）
+  // 止めておくにしてから線を消しても送らない。自動に戻すと送る
+  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
   assert.deepEqual((await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [] })).body.stops, []);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(provider.prompts.length, 4);
+  await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: false });
+  await until(() => provider.prompts.length === 5 && !runner.isBusy(chatId));
+  assert.deepEqual(runner.live(chatId).queue.messages, []);
 });
 
 test("待ちの列の API: すべて消す・まとめて送る（文は空行でつなぎ、添付も合わせる。作業中なら止めずに伝える）", async () => {
@@ -325,8 +334,9 @@ test("質問として送る（pause_after）: その指示の作業が終わっ�
   assert.deepEqual(asked.stops, [2]);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "4" });
   release();
-  // 「質問?」まで送ったら、残りは送らずに止めておく
-  await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId) && runner.live(chatId).queue.paused);
+  // 「質問?」まで送ったら、残りは送らずに線の所で待つ（止めておくにはしない）
+  await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
+  assert.equal(runner.live(chatId).queue.paused, false);
   assert.deepEqual(provider.prompts.slice(1), ["2", "質問?"]);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["4"]);
   await call("DELETE", `/api/chats/${chatId}/queue`);
@@ -339,7 +349,7 @@ test("質問として送る（pause_after）: その指示の作業が終わっ�
   assert.deepEqual(runner.live(chatId).queue.stops, [0]);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "6" });
   release();
-  await until(() => !runner.isBusy(chatId) && runner.live(chatId).queue.paused);
+  await until(() => !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
   assert.equal(provider.prompts.length, 4);
   assert.deepEqual(runner.live(chatId).queue.messages.map((m) => m.text), ["6"]);
   await call("DELETE", `/api/chats/${chatId}/queue`);
@@ -359,7 +369,7 @@ test("質問として送る（pause_after）: その指示の作業が終わっ�
   assert.deepEqual(runner.live(chatId).queue.stops, [0]);
   await call("POST", `/api/chats/${chatId}/queue`, { text: "7" });
   release();
-  await until(() => !runner.isBusy(chatId) && runner.live(chatId).queue.paused);
+  await until(() => !runner.isBusy(chatId) && runner.live(chatId).queue.stops[0] === 0);
   assert.equal(provider.prompts.length, 6);
 });
 
@@ -386,7 +396,7 @@ test("送信待ちの圧縮の行（POST /queue/compact）: いちばん下・�
   const merged = (await call("POST", `/api/chats/${chatId}/queue/merge`, { ids })).body;
   assert.deepEqual(labels(merged), ["2\n\n3", "圧縮", "圧縮"]);
   // 止めているときに、作業中の圧縮の行を「すぐ送る」と、いちばん上へ移る（いまのやり取りが終わったらすぐ圧縮する）。
-  // 止めるのは 1 件目の上の線に置き換わり、圧縮だけは送ってから止まる
+  // 止めるのは 1 件目の上の線に置き換わり、圧縮だけは送ってからその線で待つ
   await call("PUT", `/api/chats/${chatId}/queue/stops`, { stops: [] });
   await call("PUT", `/api/chats/${chatId}/queue/paused`, { paused: true });
   const moved = (await call("POST", `/api/chats/${chatId}/queue/${merged.messages[2].id}/send`)).body;
@@ -398,7 +408,8 @@ test("送信待ちの圧縮の行（POST /queue/compact）: いちばん下・�
   assert.equal(provider.prompts[1], "/compact");
   // 作業していないときに「すぐ送る」と、すぐ圧縮する
   const rest = (await call("GET", `/api/chats/${chatId}`)).body.live.queue;
-  assert.equal(rest.paused, true);
+  assert.equal(rest.paused, false);
+  assert.deepEqual(rest.stops, [0]);
   await call("POST", `/api/chats/${chatId}/queue/${rest.messages[1].id}/send`);
   await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId));
   assert.equal(provider.prompts[2], "/compact");

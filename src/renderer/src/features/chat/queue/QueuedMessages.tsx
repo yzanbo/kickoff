@@ -136,9 +136,9 @@ export function QueuedMessages({
   // 案内は見出しに 1 か所だけ出す（送れなかったなど、ほかの理由で止まっているとき・作業中は出さない）
   const readyForEdit = !collapsed && Boolean(edit.edits[messages[0].id]) && waitingEdit && !busy && !paused;
   const hint = queuedHint({ paused, busy, collapsed, stopIndex, readyForEdit });
-  // 一時停止の印があって、案内がその止める位置を伝えているとき（queuedHint の印の分かれ道と同じ条件）。
-  // 止める印と同じ色・同じアイコンで、畳んでいてもひと目で止める予定があると分かるようにする
-  const stopHint = !paused && busy && stopIndex >= 0;
+  // 一時停止の印があって、案内がその止める位置（作業中）か、線で待っていること（作業が終わって 1 件目の上の線）を伝えているとき
+  // （queuedHint の印の分かれ道と同じ条件）。止める印と同じ色・同じアイコンで、畳んでいてもひと目で分かるようにする
+  const stopHint = !paused && (busy ? stopIndex >= 0 : stopIndex === 0) && !readyForEdit;
   // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
   const next = collapsed ? nextQueuedText(messages[0]) : "";
 
