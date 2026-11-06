@@ -1,8 +1,40 @@
 /* ==== メモのページの下の、AI に直してもらう入力欄（MemoQuickChat。メモのチャットの欄を閉じている間だけ） ==== */
 
+/*
+ * 入れ物。メモのチャットの欄を開いても描いたまま置き、欄の開け閉めと同じ動きで高さを畳む・戻す（欄が伸びるのと入れ替わりに縮むので、
+ * 間に空きができない）。畳み終えたら見えなくする（ピントも入らない。MemoView が inert を付ける）
+ */
+.memo-quick-slot {
+  display: grid;
+  flex: none;
+  grid-template-rows: 1fr;
+  min-height: 0;
+  transition: grid-template-rows var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.memo-quick-slot.folded {
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--panel-motion-duration) var(--panel-motion-ease),
+    visibility 0s linear var(--panel-motion-duration);
+}
+
+/* 畳むときに切り取る段（入力欄の余白・枠ごと 0 まで縮める） */
+.memo-quick-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memo-quick-slot,
+  .memo-quick-slot.folded {
+    transition: none;
+  }
+}
+
 .memo-quick-chat {
   display: flex;
-  flex: none;
   flex-direction: column;
   gap: 2px;
   padding-top: 6px;

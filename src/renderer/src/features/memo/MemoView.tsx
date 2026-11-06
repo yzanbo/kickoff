@@ -283,8 +283,17 @@ export function MemoView({
           </>
         )}
       </div>
-      {/* メモのチャットの欄を閉じている間は、ページの下にこのメモを AI に直してもらう入力欄（会話は出さず、様子の 1 行だけ） */}
-      {doc.initial !== null && !unreadable && !chatOpen && <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} />}
+      {/*
+        メモのチャットの欄を閉じている間は、ページの下にこのメモを AI に直してもらう入力欄（会話は出さず、様子の 1 行だけ）。
+        欄を開いても描いたまま置き、欄が開くのと同じ動きで高さを畳む（すぐ消すと、欄が開ききるまでの間、入力欄のあった所が空いて見えた）
+      */}
+      {doc.initial !== null && !unreadable && (
+        <div className={cx("memo-quick-slot", chatOpen && "folded")} aria-hidden={chatOpen} inert={chatOpen}>
+          <div className="memo-quick-clip">
+            <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
