@@ -70,6 +70,18 @@ test("子チャット: 引き継がない・引き継げる会話がないとき
   assert.equal((await call("POST", `/api/chats/${parentId}/children`, { text: "" })).status, 400);
 });
 
+test("子チャット: チャット欄から送るときは添付も渡せ（文が空でも添付があれば作れる）、指示に添付のパスが添えられる", async () => {
+  const ctx = setup();
+  const { call, store, provider } = ctx;
+  const parentId = await finishedChat(ctx);
+  const file = (await call("POST", `/api/chats/${parentId}/transcript`)).body;
+  const child = (await call("POST", `/api/chats/${parentId}/children`, { text: "", attachments: [file], inherit: false })).body;
+  await until(() => !ctx.runner.isBusy(child.id));
+  const user = store.events.list(child.id).find((e) => e.type === "user");
+  assert.deepEqual(user?.type === "user" ? user.data.attachments?.map((a) => a.id) : null, [file.id]);
+  assert.match(provider.prompts.at(-1)!, /チャット履歴-.+\.md/);
+});
+
 test("子チャット: 親をアーカイブ・移動・削除すると、子孫（子・孫）も一緒に扱う", async () => {
   const ctx = setup();
   const { call, store, runner } = ctx;

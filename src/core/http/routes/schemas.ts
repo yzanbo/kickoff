@@ -1,7 +1,7 @@
 import path from "node:path";
 import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
-import type { ChatOptionsPatch, MemoChatBody, MessageBody, NewChatBody, QueueMessageBody } from "@shared/types";
+import type { ChatOptionsPatch, ChildChatBody, MemoChatBody, MessageBody, NewChatBody, QueueMessageBody } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
@@ -105,6 +105,16 @@ export const newChatSchema = z
 
 /** メモのチャットの最初の指示（どのメモについてのチャットか） */
 export const memoChatSchema = z.object({ ...messageShape, path: repoPath }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<MemoChatBody>;
+
+/** 子チャットで聞く（文か添付が要る。選んだ文の引用は任意。inherit なら親の会話を引き継ぐ） */
+export const childChatSchema = z
+  .object({
+    ...messageShape,
+    quote: z.string().max(20_000).nullable().default(null),
+    inherit: z.boolean().default(true),
+    event_id: z.number().int().positive().nullable().default(null),
+  })
+  .refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<ChildChatBody, unknown>;
 
 /** 送信待ちに送る指示（hold なら、作業していなくても送らずに列の最後に足す） */
 export const queueMessageSchema = z.object({ ...messageShape, hold: z.boolean().optional() }).refine(hasContent, CONTENT_REQUIRED) satisfies z.ZodType<QueueMessageBody>;

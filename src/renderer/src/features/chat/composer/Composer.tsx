@@ -55,6 +55,8 @@ interface Props {
   draft?: Setting<string>;
   /** 外からチャット欄を動かす口（文を入れる・ピントを移す。発言の一覧の「入力欄に入れる」など） */
   handleRef?: MutableRefObject<ComposerHandle | null>;
+  /** このチャットの代わりに送れるほかの送り先（送信ボタンの右クリックで選ぶ。子チャットに送るなど）。作業中でも送れる */
+  sendTo?: { label: string; title?: string; onSend: (text: string, attachments: Attachment[]) => Promise<void> }[];
   /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
   chatContext?: { projectId?: number; exclude?: number };
 }
@@ -70,7 +72,7 @@ const ignoreStop = () => {};
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
  * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, onSend, onStop, stopping, onQueue, queueWhileIdle, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext, sendTo }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
@@ -233,6 +235,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, onSe
           hasContent={sender.hasContent}
           sendLabel={sendLabel}
           onSubmit={() => submit()}
+          // 録音中は、文字起こしが済むまでほかの送り先には送らない
+          sendTargets={sendTo?.map((to) => ({ label: to.label, title: to.title, disabled: !sender.viaReady || dictation.recording, onSelect: () => void sender.sendVia(to.onSend) }))}
         />
       </div>
       {attach.dragging && <div className="drop-hint">ここにドロップして添付</div>}

@@ -3,21 +3,12 @@ import { z } from "zod";
 import type { ServerDeps } from "../server.js";
 import { jsonBody } from "../input.js";
 import { lookups, requireProject } from "../lookups.js";
-import { chatOptionsSchema, messageInputSchema, messageText } from "./schemas.js";
+import { chatOptionsSchema, childChatSchema, messageInputSchema, messageText } from "./schemas.js";
 import { forkChat } from "../../chat/fork.js";
 import { startChildChat } from "../../chat/children.js";
 import { rewindFiles, rewindChat } from "../../chat/rewind.js";
 import { workdirOf } from "../../chat/workdir.js";
-import type { ChildChatBody, TellResult } from "@shared/types";
-
-/** 子チャットで聞く（文は必須。選んだ文の引用は任意） */
-const childChatSchema = z.object({
-  text: messageText.pipe(z.string().min(1)),
-  quote: z.string().max(20_000).nullable().default(null),
-  inherit: z.boolean().default(true),
-  event_id: z.number().int().positive().nullable().default(null),
-  options: chatOptionsSchema,
-}) satisfies z.ZodType<ChildChatBody, unknown>;
+import type { TellResult } from "@shared/types";
 
 /**
  * チャットの実行（Turn）: 続きを送る・止めずに伝える・止める・圧縮する・自動の再開をやめる・裏の作業を止める・分岐・巻き戻し・ファイルを戻す。
@@ -79,7 +70,7 @@ export function turnRoutes(app: Hono, { store, runner, providers }: ServerDeps) 
   // 子チャットで聞く（親の作業中でも始められる。inherit なら親の最後まで終わった作業の時点から会話を引き継ぐ）
   app.post("/api/chats/:id/children", withChat, async (c) => {
     const body = childChatSchema.parse(await jsonBody(c));
-    const child = await startChildChat(deps, c.var.chat, { text: body.text, quote: body.quote, inherit: body.inherit, eventId: body.event_id, options: body.options });
+    const child = await startChildChat(deps, c.var.chat, { text: body.text, quote: body.quote, inherit: body.inherit, eventId: body.event_id, options: body.options, attachments: body.attachments });
     return c.json(child, 201);
   });
 

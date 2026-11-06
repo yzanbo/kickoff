@@ -1,7 +1,8 @@
 import { TriangleAlert } from "lucide-react";
 import type { MutableRefObject } from "react";
-import type { Chat, ChatEvent, ChatLive } from "@shared/types";
+import type { Attachment, Chat, ChatEvent, ChatLive } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
+import { api } from "@/api";
 import { chatDraft } from "@/lib/storageKeys";
 import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { Composer } from "@/features/chat/composer/Composer";
@@ -17,6 +18,9 @@ import { ChildChatsChip } from "@/features/chat/children/ChildChatChips";
 import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import type { useChatSend } from "./useChatSend";
+
+/** 「子チャットに送る」の説明 */
+const CHILD_SEND_TITLE = "この文を、このチャットの会話を引き継いだ子チャットで送ります（このチャットの作業は止めません。画面は移らず、上のピルの子チャットに並びます）";
 
 /**
  * チャット欄の場所（流れの下）: 同じ作業場所で作業中のほかのチャットの知らせ → チャットの情報のピル（指示の履歴・ToDo・サブエージェント・一番下へ戻るボタンの置き場所）→
@@ -49,6 +53,12 @@ export function ChatComposerArea({
 }) {
   const busyNeighbors = useBusyNeighbors(chat.project_id, chat.worktree_path, chat.id);
   const queued = live.queue.messages.length > 0;
+  // 送信ボタンの右クリックの「子チャットに送る」: この文と添付で、このチャットの会話を引き継いだ子チャットを作って送る（このチャットの作業は止めない。
+  // 「子チャットで聞く」と同じく画面は移らない。上のピルの子チャットに並ぶ）。メモのチャット・アーカイブ済みでは出さない
+  const memoOrArchived = Boolean(chat.memo_path) || chat.archived_at !== null;
+  const sendToChild = async (text: string, attachments: Attachment[]) => {
+    await api.createChildChat(chat.id, { text, attachments, quote: null, inherit: true, event_id: null, options: options.options });
+  };
   return (
     <div className="chat-composer">
       {/*
@@ -90,6 +100,7 @@ export function ChatComposerArea({
         handleRef={composer}
         history={prompts.recalls}
         draft={chatDraft(chat.id)}
+        sendTo={memoOrArchived ? undefined : [{ label: "子チャットに送る", title: CHILD_SEND_TITLE, onSend: sendToChild }]}
       />
     </div>
   );
