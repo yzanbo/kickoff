@@ -6,14 +6,16 @@ import { bit, updateRow, type Notify, type Row } from "./common.js";
 import type { NewProject } from "./types.js";
 
 /** プロジェクトの変えられる列（型と UPDATE の対象をここ 1 つで決める） */
-const PROJECT_COLUMNS = ["name", "description", "repo_path", "provider", "hue", "pinned", "archived_at", "tags", "chat_defaults", "reference_paths", "memo_folder", "memo_path", "pre_compact_prompt", "post_compact_prompt"] as const satisfies readonly (keyof Project)[];
+const PROJECT_COLUMNS = ["name", "description", "repo_path", "provider", "hue", "pinned", "archived_at", "tags", "chat_defaults", "reference_paths", "memo_folder", "memo_path", "pre_compact_prompt", "post_compact_prompt", "pre_compact_enabled", "post_compact_enabled"] as const satisfies readonly (keyof Project)[];
 
 /** プロジェクトの変えられる項目 */
 export type ProjectPatch = Partial<Pick<Project, (typeof PROJECT_COLUMNS)[number]>>;
 
-/** DB の行（JSON の列は文字列、pinned は 0 / 1） */
-type ProjectRow = Omit<Project, "pinned" | "tags" | "chat_defaults" | "reference_paths"> & {
+/** DB の行（JSON の列は文字列、真偽値は 0 / 1） */
+type ProjectRow = Omit<Project, "pinned" | "tags" | "chat_defaults" | "reference_paths" | "pre_compact_enabled" | "post_compact_enabled"> & {
   pinned: number;
+  pre_compact_enabled: number;
+  post_compact_enabled: number;
   tags: string;
   chat_defaults: string;
   reference_paths: string;
@@ -22,14 +24,24 @@ type ProjectRow = Omit<Project, "pinned" | "tags" | "chat_defaults" | "reference
 /** DB の行をアプリの型にする（JSON の列の形は CHECK で守ってある） */
 function toProject(row: unknown): Project {
   const r = row as ProjectRow;
-  return { ...r, pinned: r.pinned === 1, tags: JSON.parse(r.tags), chat_defaults: JSON.parse(r.chat_defaults), reference_paths: JSON.parse(r.reference_paths) };
+  return {
+    ...r,
+    pinned: r.pinned === 1,
+    pre_compact_enabled: r.pre_compact_enabled === 1,
+    post_compact_enabled: r.post_compact_enabled === 1,
+    tags: JSON.parse(r.tags),
+    chat_defaults: JSON.parse(r.chat_defaults),
+    reference_paths: JSON.parse(r.reference_paths),
+  };
 }
 
 /** 変える項目を DB の列の値にする */
-function toProjectRow({ pinned, tags, chat_defaults, reference_paths, ...rest }: ProjectPatch): Row {
+function toProjectRow({ pinned, pre_compact_enabled, post_compact_enabled, tags, chat_defaults, reference_paths, ...rest }: ProjectPatch): Row {
   return {
     ...rest,
     pinned: bit(pinned),
+    pre_compact_enabled: bit(pre_compact_enabled),
+    post_compact_enabled: bit(post_compact_enabled),
     tags: tags === undefined ? undefined : JSON.stringify(normalizeTags(tags)),
     chat_defaults: chat_defaults === undefined ? undefined : JSON.stringify(chat_defaults),
     reference_paths: reference_paths === undefined ? undefined : JSON.stringify(reference_paths),

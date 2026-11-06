@@ -8,7 +8,8 @@ import { IconButton } from "@/ui/IconButton";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
-import { COMPACT_PROMPT_KINDS, type CompactPromptKind } from "@/features/snippet/compactPromptKinds";
+import { COMPACT_PROMPT_KINDS } from "@/features/snippet/compactPromptKinds";
+import type { CompactPromptKind } from "@shared/chat/prompts";
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 
 /** AI からの質問への回答の 1 問（質問の文と選んだ答え） */

@@ -1,4 +1,5 @@
 // AI へ送る定型文（送るとチャットに自分の発言として残る）。コアの再開の段取りと、画面の操作（再試行・サブエージェントへの指示）で共有する。Node 依存なし
+import type { AppSettings } from "@shared/types";
 
 // ---- 止まったあとの再開（コアの chat/recovery/rules.ts が送る） ----
 
@@ -120,9 +121,26 @@ export const HAND_OVER_NOW = "届いていなかったサブエージェント�
 /** 圧縮前指示・圧縮後指示の長さの上限（文字。共通・プロジェクトのそれぞれ） */
 export const COMPACT_PROMPT_MAX = 4000;
 
-/** そのプロジェクトで送る圧縮前指示・圧縮後指示（共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null） */
-export function compactPromptFor(common: string | null, project: string | null): string | null {
-  const parts = [common, project].map((p) => p?.trim()).filter((p): p is string => Boolean(p));
+/** 圧縮の前・後のどちらの指示か（圧縮前指示 / 圧縮後指示） */
+export type CompactPromptKind = "pre" | "post";
+
+/** 種類ごとの保存する項目（設定・プロジェクトで同じ名前。文と、送るか（オン / オフ。オフでも文は残す）） */
+export const COMPACT_PROMPT_FIELDS = {
+  pre: { text: "pre_compact_prompt", enabled: "pre_compact_enabled" },
+  post: { text: "post_compact_prompt", enabled: "post_compact_enabled" },
+} as const;
+
+type CompactPromptSource = Pick<AppSettings, "pre_compact_prompt" | "post_compact_prompt" | "pre_compact_enabled" | "post_compact_enabled">;
+
+/** 設定またはプロジェクトの、送る指示（オフ・空なら null） */
+export function activeCompactPrompt(kind: CompactPromptKind, source: CompactPromptSource | undefined): string | null {
+  const { text, enabled } = COMPACT_PROMPT_FIELDS[kind];
+  return source?.[enabled] ? (source[text]?.trim() ?? null) || null : null;
+}
+
+/** そのプロジェクトで送る圧縮前指示・圧縮後指示（オンの分を共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null） */
+export function compactPromptFor(kind: CompactPromptKind, settings: CompactPromptSource | undefined, project: CompactPromptSource | undefined): string | null {
+  const parts = [activeCompactPrompt(kind, settings), activeCompactPrompt(kind, project)].filter((p): p is string => p !== null);
   return parts.length > 0 ? parts.join("\n\n") : null;
 }
 

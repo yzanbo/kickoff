@@ -24,6 +24,17 @@ test("設定・プロジェクトの API", async () => {
   assert.equal((await call("PUT", "/api/settings", { pre_compact_prompt: null })).body.pre_compact_prompt, null);
   assert.equal((await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: "書き残す" })).body.pre_compact_prompt, "書き残す");
   assert.equal((await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: null })).body.pre_compact_prompt, null);
+  // 送るか（オン / オフ）: 初めはオンで、文と別に変えられる（オフでも文は残す）
+  assert.equal(project.pre_compact_enabled, true);
+  await call("PUT", "/api/settings", { post_compact_prompt: "読み直す" });
+  const off = (await call("PUT", "/api/settings", { post_compact_enabled: false })).body;
+  assert.deepEqual([off.post_compact_prompt, off.post_compact_enabled, off.pre_compact_enabled], ["読み直す", false, true]);
+  const projectOff = (await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: "書き残す", pre_compact_enabled: false })).body;
+  assert.deepEqual([projectOff.pre_compact_prompt, projectOff.pre_compact_enabled, projectOff.post_compact_enabled], ["書き残す", false, true]);
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { pre_compact_enabled: true })).body.pre_compact_enabled, true);
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { pre_compact_enabled: "no" })).status, 400);
+  await call("PUT", "/api/settings", { post_compact_prompt: null, post_compact_enabled: true });
+  await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: null });
 
   assert.deepEqual(
     (await call("GET", "/api/projects")).body.map((p: { id: number }) => p.id),

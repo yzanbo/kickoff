@@ -64,6 +64,10 @@ export interface AppSettings {
   pre_compact_prompt: string | null;
   /** 共通の圧縮後指示（会話を圧縮したあと、預かっていた指示より先に AI に送る指示。プロジェクトの指示があれば、そのあとにつなぐ。null ならなし） */
   post_compact_prompt: string | null;
+  /** 共通の圧縮前指示を送るか（false なら文を残したまま送らない） */
+  pre_compact_enabled: boolean;
+  /** 共通の圧縮後指示を送るか（false なら文を残したまま送らない） */
+  post_compact_enabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -85,4 +89,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   auto_compact_pct: null,
   pre_compact_prompt: null,
   post_compact_prompt: null,
+  pre_compact_enabled: true,
+  post_compact_enabled: true,
 };

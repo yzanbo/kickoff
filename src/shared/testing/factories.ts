@@ -58,6 +58,8 @@ export function makeProject(id: number, patch: Partial<Project> = {}): Project {
     memo_path: null,
     pre_compact_prompt: null,
     post_compact_prompt: null,
+    pre_compact_enabled: true,
+    post_compact_enabled: true,
     created_at: TEST_TIME,
     ...patch,
   };
