@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { relayedText, relayMessage, RESUME_PROMPT, resumePrompt, resumeRequest, retryRequest } from "./prompts";
+import {
+  autoPreCompactMessage,
+  isPreCompactDone,
+  manualPreCompactMessage,
+  PRE_COMPACT_DONE,
+  preCompactPromptFor,
+  relayedText,
+  relayMessage,
+  RESUME_PROMPT,
+  resumePrompt,
+  resumeRequest,
+  retryRequest,
+} from "./prompts";
 
 test("サブエージェントへの追加の指示: 宛先の ID が合うときだけ、本文を取り出す", () => {
   const message = relayMessage("a1b2", "調べもの", "ついでに README も見て\n2 行目");
@@ -36,4 +48,21 @@ test("通信が戻って自動で再開する指示: 止まったサブエージ
   assert.ok(prompt.startsWith(RESUME_PROMPT));
   assert.match(prompt, /SendMessage/);
   assert.match(prompt, /- 「調査」（ID: a1）/);
+});
+
+test("圧縮前指示: 共通 → プロジェクトの順に空行でつなぎ、空のものは除く", () => {
+  assert.equal(preCompactPromptFor("メモを残す", "TODO を書く"), "メモを残す\n\nTODO を書く");
+  assert.equal(preCompactPromptFor(null, " TODO を書く "), "TODO を書く");
+  assert.equal(preCompactPromptFor("  ", null), null);
+  assert.equal(preCompactPromptFor(null, null), null);
+});
+
+test("圧縮前指示: 自動のときだけ合図の一文を頼み、その一文で済んだと分かる", () => {
+  const auto = autoPreCompactMessage("メモを残す");
+  assert.ok(auto.startsWith("【圧縮前指示】"));
+  assert.ok(auto.endsWith("---\nメモを残す"));
+  assert.match(auto, new RegExp(PRE_COMPACT_DONE));
+  assert.doesNotMatch(manualPreCompactMessage("メモを残す"), new RegExp(PRE_COMPACT_DONE));
+  assert.ok(isPreCompactDone(`${PRE_COMPACT_DONE}。`));
+  assert.ok(!isPreCompactDone("メモを残しました"));
 });

@@ -10,6 +10,7 @@ import {
 import { createBackgroundTracker } from "./background.js";
 import { createCommandOutputWatcher } from "./commandOutput.js";
 import { createInputChannel } from "./input.js";
+import { createPreCompactGate, preCompactHook, replyText } from "./preCompact.js";
 import { errorMessage } from "@shared/errors";
 import { isNetworkError } from "@shared/chat/networkErrors";
 import { isUsageLimitError, resetTimeOf } from "@shared/chat/usageLimit";
@@ -161,6 +162,10 @@ export class ClaudeProvider implements AgentProvider {
     const input = createInputChannel(params.prompt, params.promptId);
     // 実行中のコマンドの出力（Claude Code が書いているファイルを読み続け、終わる前から画面に届ける）
     const commandOutput = createCommandOutputWatcher((output) => cb.commandOutput?.(output));
+    // 上限に近づいて自動で圧縮する前に、圧縮前指示を足して済ませてもらう（PreCompact フックで圧縮を止める）
+    const preCompact = params.preCompact
+      ? createPreCompactGate({ ...params.preCompact, push: (text, uuid) => input.push(text, uuid), onSent: (uuid) => cb.preCompactSent?.(uuid) })
+      : null;
     try {
       const q = query({
         prompt: input.messages,
@@ -181,7 +186,7 @@ export class ClaudeProvider implements AgentProvider {
           // 自動圧縮を始める使用率を決めていれば渡す（決めていなければ Claude Code の既定）
           env: { ...agentEnv(), ...autoCompactEnv(params.autoCompactPct) },
           pathToClaudeCodeExecutable: this.executable,
-          hooks: turnHooks(params, this.self),
+          hooks: { ...turnHooks(params, this.self), ...(preCompact ? { PreCompact: [preCompactHook(preCompact)] } : {}) },
           includePartialMessages: true,
           // 編集の前のファイルを取っておく（巻き戻しで、自分の発言の時点のファイルに戻せるように）
           enableFileCheckpointing: true,
@@ -226,6 +231,7 @@ export class ClaudeProvider implements AgentProvider {
           const u = msg.message.usage;
           contextTokens =
             u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + u.output_tokens;
+          preCompact?.noteReply(contextTokens, replyText(msg.message.content));
           // 要約したあとの大きさが分からなかったときは、要約のあとの最初の応答で知らせる
           if (contextAfterCompact) {
             contextAfterCompact = false;
@@ -235,6 +241,7 @@ export class ClaudeProvider implements AgentProvider {
         // 要約したあとのコンテキストの大きさ。作業の終わりを待たずに知らせる（自動の圧縮は作業の途中で起き、そのあとも作業が続くため）
         if (msg.type === "system" && msg.subtype === "compact_boundary") {
           const post = msg.compact_metadata.post_tokens;
+          preCompact?.noteCompacted(post ?? null);
           if (post !== undefined) {
             contextTokens = post;
             cb.context?.(post);

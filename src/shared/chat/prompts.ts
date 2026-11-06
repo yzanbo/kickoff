@@ -88,3 +88,41 @@ export function retryRequest(entry: { description: string; subagentType?: string
  * 親に届かなかった報告を、次の指示を待たずにいま渡す（報告の本文はコアが送るときに添える。chat/reportHandover.ts）
  */
 export const HAND_OVER_NOW = "届いていなかったサブエージェントの報告を渡します。読んで、必要なら作業を続けてください。";
+
+// ---- 圧縮前指示（会話を圧縮する前に AI に送る指示。設定の共通の指示と、プロジェクトの指示） ----
+// 要約するといまの会話の細かい内容が失われるので、その前にメモを残すなどを頼む。送ったものはチャットに「圧縮前指示」の札付きの自分の発言として残る
+
+/** 圧縮前指示の長さの上限（文字。共通・プロジェクトのそれぞれ） */
+export const PRE_COMPACT_PROMPT_MAX = 4000;
+
+/** そのプロジェクトで送る圧縮前指示（共通 → プロジェクトの順に空行でつなぐ。どちらもなければ null） */
+export function preCompactPromptFor(common: string | null, project: string | null): string | null {
+  const parts = [common, project].map((p) => p?.trim()).filter((p): p is string => Boolean(p));
+  return parts.length > 0 ? parts.join("\n\n") : null;
+}
+
+const PRE_COMPACT_HEAD = "【圧縮前指示】";
+const PRE_COMPACT_LOSS = "（要約すると、いまの会話の細かい内容は失われます）";
+
+/** 自動の圧縮の前の指示が済んだ合図（AI がこの一文を書いたら、止めていた圧縮を通す） */
+export const PRE_COMPACT_DONE = "圧縮前指示を済ませました";
+
+/** 手で圧縮する前に送る文（この指示の作業が終わってから圧縮する） */
+export function manualPreCompactMessage(text: string): string {
+  return [`${PRE_COMPACT_HEAD}このあと会話を圧縮します${PRE_COMPACT_LOSS}。圧縮の前に、次のことをしてください。`, "---", text].join("\n");
+}
+
+/** 上限に近づいて自動で圧縮する前に、作業の途中で足す文（済んだら合図の一文を書いてから、元の作業に戻ってもらう） */
+export function autoPreCompactMessage(text: string): string {
+  return [
+    `${PRE_COMPACT_HEAD}コンテキストが上限に近づいたので、まもなく会話を自動で圧縮します${PRE_COMPACT_LOSS}。圧縮の前に、次のことをしてください。` +
+      `済んだら「${PRE_COMPACT_DONE}」とだけ書いてから、元の作業に戻ってください（その一文を合図に圧縮します）。`,
+    "---",
+    text,
+  ].join("\n");
+}
+
+/** AI の返答が、自動の圧縮の前の指示が済んだ合図か */
+export function isPreCompactDone(text: string): boolean {
+  return text.includes(PRE_COMPACT_DONE);
+}

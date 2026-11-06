@@ -3,6 +3,7 @@ import { z } from "zod";
 import { expandHome } from "../../system/paths.js";
 import type { ChatOptionsPatch, ChildChatBody, MemoChatBody, NewChatBody, QueueMessageBody, SendMessageBody } from "@shared/types";
 import { EFFORT_LEVELS, PERMISSION_MODES } from "@shared/types";
+import { PRE_COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
 
 // ルートで共通に使う zod の形と上限（入力の検証に失敗したときの 400 は server.ts の onError が返す。本文・クエリの読み取りは http/input.ts）
 
@@ -25,6 +26,9 @@ export const folderPath = z.string().min(1).max(2000);
 /** 絶対パス（~ で始めてもよい）のフォルダの指定か（メモの親フォルダ・プロジェクトのメモのフォルダ） */
 export const isAbsoluteFolder = (p: string) => path.isAbsolute(expandHome(p));
 export const ABSOLUTE_FOLDER = "フォルダは / か ~ から始まる場所で指定してください";
+
+/** 圧縮前指示（設定の共通の指示・プロジェクトの指示。空にするのは null） */
+export const preCompactPrompt = z.string().trim().min(1).max(PRE_COMPACT_PROMPT_MAX).nullable();
 
 /** ?staged=1 などの切り替え（"0" / "1"） */
 export const flag = z.enum(["0", "1"]);

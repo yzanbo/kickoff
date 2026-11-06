@@ -1,6 +1,6 @@
 // API のテスト（server.*.test.ts）の共通の準備: 偽のプロバイダーでアプリを組み立て、トークン付きで呼ぶ補助を返す。テストからだけ使う
 import fs from "node:fs/promises";
-import type { ProviderCallbacks, ProviderTurnResult } from "../providers/types.js";
+import type { ProviderCallbacks, ProviderTurnParams, ProviderTurnResult } from "../providers/types.js";
 import { createApp } from "../http/server.js";
 import type { ApiRetryInfo, BackgroundState, FileRewindResult, SlashCommandOption } from "@shared/types";
 import { UploadStore } from "../chat/uploads.js";
@@ -54,8 +54,18 @@ class FakeProvider extends FakeProviderBase {
   /** 最後に読めるようにしたフォルダと、足したシステムプロンプト（メモのチャットの確かめに使う） */
   lastDirs: string[] = [];
   lastSystemPrompt = "";
-  async run(params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string }, cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry">, signal: AbortSignal): Promise<ProviderTurnResult> {
+  /** 実行ごとに渡された、自動の圧縮の前に足す圧縮前指示（順に） */
+  preCompacts: ProviderTurnParams["preCompact"][] = [];
+  /** これがあれば実行の初めに、自動の圧縮の前に圧縮前指示を足したと知らせる（値は足した発言の ID） */
+  preCompactSentId: string | null = null;
+  async run(
+    params: { cwd: string; prompt: string; promptId?: string; resumeSessionId: string | null; additionalDirectories: string[]; systemPrompt: string; preCompact?: ProviderTurnParams["preCompact"] },
+    cb: Pick<ProviderCallbacks, "emit" | "background" | "compacting" | "context" | "control" | "retry" | "preCompactSent">,
+    signal: AbortSignal,
+  ): Promise<ProviderTurnResult> {
     this.lastCwd = params.cwd;
+    this.preCompacts.push(params.preCompact ?? null);
+    if (params.preCompact && this.preCompactSentId) cb.preCompactSent?.(this.preCompactSentId);
     this.lastDirs = params.additionalDirectories;
     this.lastSystemPrompt = params.systemPrompt;
     this.prompts.push(params.prompt);

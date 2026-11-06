@@ -5,7 +5,7 @@ import { WHISPER_MODEL_IDS } from "../../voice/models.js";
 import { PROVIDER_IDS, VOICE_PROVIDERS, type AppSettings } from "@shared/types";
 import { AUTO_COMPACT_PCT_MAX, AUTO_COMPACT_PCT_MIN } from "@shared/chat/autoCompact";
 import { jsonBody } from "../input.js";
-import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, voiceLanguage } from "./schemas.js";
+import { ABSOLUTE_FOLDER, chatDefaultsSchema, isAbsoluteFolder, preCompactPrompt, voiceLanguage } from "./schemas.js";
 
 const settingsSchema = z
   .object({
@@ -28,6 +28,8 @@ const settingsSchema = z
     memos_dir: z.string().trim().min(1).max(1000).refine(isAbsoluteFolder, ABSOLUTE_FOLDER).nullable(),
     // 自動圧縮を始める使用率（null なら Claude Code の既定）
     auto_compact_pct: z.number().int().min(AUTO_COMPACT_PCT_MIN).max(AUTO_COMPACT_PCT_MAX).nullable(),
+    // 共通の圧縮前指示（null ならなし）
+    pre_compact_prompt: preCompactPrompt,
   })
   .partial()
   .strict() satisfies z.ZodType<Partial<AppSettings>>;

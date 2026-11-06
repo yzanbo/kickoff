@@ -263,7 +263,8 @@
   white-space: normal;
 }
 
-.question-answer-label {
+/* 自分の吹き出しの上の札（「質問への回答」・「圧縮前指示」。自分で書いた指示と見分ける） */
+.message-kind-label {
   display: flex;
   gap: 5px;
   align-items: center;

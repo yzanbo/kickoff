@@ -60,6 +60,8 @@ export interface AppSettings {
   memos_dir: string | null;
   /** 自動圧縮を始めるコンテキストの使用率（%。null なら Claude Code の既定。Claude Code の CLAUDE_AUTOCOMPACT_PCT_OVERRIDE で渡す） */
   auto_compact_pct: number | null;
+  /** 共通の圧縮前指示（会話を圧縮する前に AI に送る指示。プロジェクトの指示があれば、そのあとにつなぐ。null ならなし。@shared/chat/prompts） */
+  pre_compact_prompt: string | null;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -79,4 +81,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   voice_openai_model: "gpt-4o-transcribe",
   memos_dir: null,
   auto_compact_pct: null,
+  pre_compact_prompt: null,
 };

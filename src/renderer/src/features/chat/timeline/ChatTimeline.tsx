@@ -130,6 +130,7 @@ export function ChatTimeline({
         <StickyPrompt
           text={pinned.text}
           answers={pinned.answers}
+          preCompact={pinned.preCompact}
           attachments={sticky.attachments}
           onPrev={sticky.hasPrev ? () => pane.stepPrompt(-1, pinned.id) : undefined}
           onNext={sticky.hasNext ? () => pane.stepPrompt(1, pinned.id) : undefined}

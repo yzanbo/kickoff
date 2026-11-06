@@ -1,4 +1,4 @@
-import { History, Inbox, Pencil, RotateCw } from "lucide-react";
+import { History, Inbox, Pencil, RotateCw, Shrink } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -20,7 +20,8 @@ const COLLAPSE_PX = 240;
  * 吹き出しの下に、時刻（今日は時刻・7 日以内は曜日・それより前は日付）・コピー・書き直しのボタンを出す。右クリックでも同じ操作。
  * 書き直すと、吹き出しの中で文を直して送り直す（その発言から後ろのやり取りを消して巻き戻す）。
  * 「もう一度送る」は、同じ文と添付を新しい指示として送る（前のやり取りは消さない。途中で圧縮が入って依頼が薄れたときに、すぐ頼み直せるように）。作業中でも送れる。
- * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない
+ * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない。
+ * 圧縮の前に送った圧縮前指示（記録の pre_compact）は、上に「圧縮前指示」と添えて、自分で書いた指示と見分けられるようにする
  */
 export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
   const data = event.data;
@@ -54,8 +55,14 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
     { eventId: event.id },
   );
   return (
-    <div className={cx("user-message", draft !== undefined && "editing")}>
+    <div className={cx("user-message", draft !== undefined && "editing", data.pre_compact && "pre-compact")}>
       <div className="bubble user" id={`ev-${event.id}`} onContextMenu={menu.open}>
+        {data.pre_compact && (
+          <div className="message-kind-label" title="会話を圧縮する前に、設定の「圧縮前指示」を送りました">
+            <Shrink size={12} aria-hidden />
+            圧縮前指示
+          </div>
+        )}
         {attachments.length > 0 && (
           <div className="bubble-attachments">
             <AttachmentChips attachments={attachments} />

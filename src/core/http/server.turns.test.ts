@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setup, until } from "../testing/testServer.js";
 import type { ChatLive, CompactingState } from "@shared/types";
+import { autoPreCompactMessage, manualPreCompactMessage } from "@shared/chat/prompts";
 
 test("未読: 作業中も AI の文章の返答で未読にし、一番下まで見た記録より新しい結果があれば既読にしない", async () => {
   const { call, project, store, runner, provider } = setup();
@@ -108,6 +109,65 @@ test("圧縮の予約: 作業中の POST /compact は送信待ちのいちばん
   release();
   await until(() => !runner.isBusy(chatId));
   assert.equal(provider.prompts.length, 1);
+});
+
+test("圧縮前指示: 手で圧縮すると、先に共通 → プロジェクトの指示を札付きの発言として送り、その作業が終わってから /compact を送る", async () => {
+  const { call, project, store, runner, provider } = setup();
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  await call("PUT", "/api/settings", { pre_compact_prompt: " 共通の指示 " });
+  await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: "プロジェクトの指示" });
+  const release = provider.hold();
+  assert.equal((await call("POST", `/api/chats/${chatId}/compact`)).status, 200);
+  await until(() => provider.prompts.length === 2);
+  const text = "共通の指示\n\nプロジェクトの指示";
+  assert.equal(provider.prompts[1], manualPreCompactMessage(text));
+  const user = store.events.list(chatId).findLast((e) => e.type === "user")!;
+  assert.ok(user.type === "user");
+  assert.deepEqual([user.data.text, user.data.pre_compact, user.data.message_uuid], [text, true, provider.promptIds[1]]);
+  // 指示の作業の途中で自動の圧縮が来ても、もう足さない
+  assert.equal(provider.preCompacts[1], null);
+  release();
+  await until(() => provider.prompts.length === 3 && !runner.isBusy(chatId));
+  assert.equal(provider.prompts[2], "/compact");
+
+  // 指示の作業を止めたら圧縮しない
+  const release2 = provider.hold();
+  await call("POST", `/api/chats/${chatId}/compact`);
+  await until(() => provider.prompts.length === 4);
+  await call("POST", `/api/chats/${chatId}/cancel`);
+  await until(() => !runner.isBusy(chatId));
+  release2();
+  assert.equal(provider.prompts.length, 4);
+
+  // 指示がなければすぐ /compact
+  await call("PUT", "/api/settings", { pre_compact_prompt: null });
+  await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: null });
+  await call("POST", `/api/chats/${chatId}/compact`);
+  await until(() => provider.prompts.length === 5 && !runner.isBusy(chatId));
+  assert.equal(provider.prompts[4], "/compact");
+});
+
+test("圧縮前指示: 自動の圧縮の前に足す指示は、コンテキストウィンドウが分かってから渡し、足したら記録して、圧縮するまで渡さない", async () => {
+  const { call, project, store, runner, provider } = setup();
+  await call("PUT", "/api/settings", { pre_compact_prompt: "メモを書いて" });
+  const chatId: number = (await call("POST", `/api/projects/${project.id}/chats`, { text: "はじめ" })).body.id;
+  await until(() => !runner.isBusy(chatId));
+  // 最初の作業はウィンドウが分からない
+  assert.equal(provider.preCompacts[0], null);
+  store.chats.update(chatId, { context_window: 200_000, context_tokens: 120_000 });
+  provider.preCompactSentId = "pc-1";
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "続けて" });
+  await until(() => !runner.isBusy(chatId));
+  assert.deepEqual(provider.preCompacts[1], { message: autoPreCompactMessage("メモを書いて"), contextWindow: 200_000, contextTokens: 120_000 });
+  const user = store.events.list(chatId).find((e) => e.type === "user" && e.data.pre_compact)!;
+  assert.ok(user.type === "user");
+  assert.deepEqual([user.data.text, user.data.message_uuid], ["メモを書いて", "pc-1"]);
+  // 送ったあとは、圧縮するまで渡さない
+  store.chats.update(chatId, { context_window: 200_000, context_tokens: 120_000 });
+  await call("POST", `/api/chats/${chatId}/messages`, { text: "まだ" });
+  await until(() => !runner.isBusy(chatId));
+  assert.equal(provider.preCompacts[2], null);
 });
 
 test("作業中の様子: チャットの詳細の live と SSE の chat_live は同じ形で、どれかが変わったときだけ丸ごと届く", async () => {
