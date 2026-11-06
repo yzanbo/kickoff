@@ -144,22 +144,16 @@
   cursor: default;
 }
 
-.subagent-archived-toggle {
-  width: 100%;
+/* 一覧のいちばん下の閉じたまとまり「アーカイブ済み n」（ArchivedFold。サイドバーと同じ見出しを、一覧の行の左右の余白にそろえて置く。中の行は一覧の行と同じ幅） */
+.composer-archived {
   margin-top: 4px;
-  padding: 8px 12px;
-  border: none;
+  padding-top: 4px;
   border-top: 1px solid var(--border);
-  font: inherit;
-  font-size: calc(12px * var(--chat-scale, 1));
-  text-align: left;
-  color: var(--muted);
-  background: transparent;
-  cursor: pointer;
 }
 
-.subagent-archived-toggle:hover {
-  color: var(--text);
+.composer-archived > .custom-group-head {
+  margin: 0 8px;
+  font-size: calc(12px * var(--chat-scale, 1));
 }
 
 .subagent-empty {
