@@ -1,0 +1,57 @@
+// メモの本文の右クリック・見出しのボタンから、メモを足す先のチャット（メインのチャット・メモのチャット）
+import type { MutableRefObject } from "react";
+import { alertDialog } from "@/ui/dialogs";
+import { attachMemoToChat } from "./attachMemo";
+import { memoAttachment, memoLocation, memoQuote } from "./memoAttachment";
+import type { MemoChatHandle } from "./MemoChat";
+import type { MemoChatTarget } from "./useMemoEditMenu";
+
+/**
+ * 足す先ごとの口: 選んでいれば、ファイルのフルパスと行番号付きの引用を足し、なければメモ全体を添付する（AI は保存したファイルを読むので、
+ * 書きかけは先に保存する）。addPath はメモのファイルのフルパスを足す。main は attachTo（開いたチャット）があるときだけ。
+ * メモのチャットに足すときは、その欄を開く（openMemoChat）
+ */
+export function memoChatTargets({
+  file,
+  path,
+  attachTo,
+  save,
+  memoChat,
+  openMemoChat,
+}: {
+  /** メモのファイルのフルパス */
+  file: string;
+  /** メモのフォルダからのパス（メモの添付） */
+  path: string;
+  attachTo: number | null;
+  save: () => Promise<boolean>;
+  memoChat: MutableRefObject<MemoChatHandle | null>;
+  openMemoChat: () => void;
+}): { main?: MemoChatTarget; memo: MemoChatTarget } {
+  const savedForAttach = async () => {
+    if (await save()) return true;
+    void alertDialog("添付できませんでした", "メモを保存できなかったので、添付しませんでした（ほかで変わっていれば、上の案内で読み直すか上書きしてから添付してください）。");
+    return false;
+  };
+  const quoteOf = (selection: string, lines: Parameters<typeof memoLocation>[1]) => memoQuote(memoLocation(file, lines), selection);
+  const toMemoChat = (text: string, attachments?: ReturnType<typeof memoAttachment>[]) => {
+    openMemoChat();
+    memoChat.current?.add(text, attachments);
+  };
+  const memo: MemoChatTarget = {
+    add: async (selection, lines) => {
+      if (selection.trim()) toMemoChat(quoteOf(selection, lines));
+      else if (await savedForAttach()) toMemoChat("", [memoAttachment(path)]);
+    },
+    addPath: () => toMemoChat(file),
+  };
+  if (attachTo === null) return { memo };
+  const main: MemoChatTarget = {
+    add: async (selection, lines) => {
+      if (selection.trim()) attachMemoToChat(attachTo, path, quoteOf(selection, lines));
+      else if (await savedForAttach()) attachMemoToChat(attachTo, path);
+    },
+    addPath: () => attachMemoToChat(attachTo, path, file),
+  };
+  return { main, memo };
+}

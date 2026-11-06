@@ -4,13 +4,12 @@ import { parsePopout } from "@/app/popout";
 import { postToMainWindow } from "@/app/windowBus";
 import { alertDialog } from "@/ui/dialogs";
 import { chatPaneOf } from "@/features/chat/pane/windowMessages";
-import { memoAttachment, memoQuote } from "./memoAttachment";
+import { memoAttachment } from "./memoAttachment";
 
-/** メモ全体（selection がなければ）か、選んだ部分の引用を、チャットの入力欄の後ろに足す（送るのは自分で） */
-export function attachMemoToChat(chatId: number, path: string, selection?: string) {
-  const quote = selection?.trim() ? memoQuote(path, selection) : null;
-  const text = quote ?? "";
-  const attachments = quote ? undefined : [memoAttachment(path)];
+/** メモ全体（text がなければ）か、文（選んだ部分の引用・パス）を、チャットの入力欄の後ろに足す（送るのは自分で） */
+export function attachMemoToChat(chatId: number, path: string, text: string | null = null) {
+  const attachments = text ? undefined : [memoAttachment(path)];
+  text ??= "";
   if (parsePopout(location.hash)) return postToMainWindow({ type: "fillComposer", chatId, text, attachments });
   const pane = chatPaneOf(chatId);
   if (!pane) return void alertDialog("チャットが開いていません", "添付するチャットの画面を開いてから、もう一度試してください。");

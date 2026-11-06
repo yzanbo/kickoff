@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import type { MemoKind } from "@shared/memo/kinds";
 import { cx } from "@/lib/cx";
 import { livePreview } from "./livePreviewExtension";
+import type { MemoLines } from "./memoAttachment";
 
 /** 検索の欄の文言（CodeMirror の英語を、アプリの言い方にそろえる） */
 const SEARCH_PHRASES: Record<string, string> = {
@@ -34,6 +35,8 @@ const SEARCH_PHRASES: Record<string, string> = {
 export interface MemoEditorHandle {
   /** 選んでいる文（何も選んでいなければ空） */
   selectedText: () => string;
+  /** 選んでいる行（何も選んでいなければ null） */
+  selectedLines: () => MemoLines | null;
   /** 選んでいる所を text に置き換える（選んでいなければカーソルの位置に入れる。⌘Z で戻せる） */
   insert: (text: string) => void;
 }
@@ -144,6 +147,12 @@ export default function MemoEditor({ initialValue, kind, live, hidden = false, o
         selectedText: () => {
           const { from, to } = v.state.selection.main;
           return v.state.sliceDoc(from, to);
+        },
+        selectedLines: () => {
+          const { from, to } = v.state.selection.main;
+          if (from === to) return null;
+          // 次の行の頭で終わる選び方なら、その行は数えない
+          return { from: v.state.doc.lineAt(from).number, to: v.state.doc.lineAt(to - 1).number };
         },
         insert: (text) => {
           v.dispatch(v.state.replaceSelection(text), { scrollIntoView: true, userEvent: "input.paste" });

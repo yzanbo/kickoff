@@ -12,10 +12,10 @@ import { useChatDetail } from "@/features/chat/pane/useChatDetail";
 import { chatPaneOf } from "@/features/chat/pane/windowMessages";
 import { PanelHostContext } from "@/features/panel/panelHost";
 
-/** 外からメモのチャットの欄を動かす口（本文の右クリックの「チャットに追加」） */
+/** 外からメモのチャットの欄を動かす口（本文の右クリックの「〜をメモのチャットに追加 / 添付」） */
 export interface MemoChatHandle {
-  /** 入力欄の文の後ろに足す（まだチャットがなければ、最初の指示の入力欄に） */
-  add: (text: string) => void;
+  /** 入力欄の文の後ろに足す（attachments は添付。まだチャットがなければ、最初の指示の入力欄に） */
+  add: (text: string, attachments?: Attachment[]) => void;
 }
 
 /**
@@ -45,9 +45,9 @@ export function MemoChat({
   const chatId = stored?.id ?? (created?.path === path ? created.id : undefined);
   const composer = useRef<ComposerHandle | null>(null);
   handleRef.current = {
-    add: (text) => {
-      if (chatId === undefined) composer.current?.fill(text, { append: true });
-      else chatPaneOf(chatId)?.fillComposer(text, { append: true });
+    add: (text, attachments) => {
+      if (chatId === undefined) composer.current?.fill(text, { append: true, attachments });
+      else chatPaneOf(chatId)?.fillComposer(text, { append: true, attachments });
     },
   };
   return (
@@ -107,7 +107,7 @@ function MemoChatStart({
         <div className="memo-chat-hero">
           <MessagesSquare size={22} aria-hidden />
           <p>このメモについて AI と話しながら、中身を一緒に作ります。AI はメモを読み、頼むと直接書き換えます（書き換えると本文もすぐ変わります）。</p>
-          <p className="muted small">本文で文を選んで右クリックの「チャットに追加」で、その部分を引用して入力欄に足せます。</p>
+          <p className="muted small">本文で文を選んで右クリックの「選んだ部分をメモのチャットに追加」で、その部分を引用して入力欄に足せます。</p>
         </div>
       </div>
       <div className="chat-composer">
