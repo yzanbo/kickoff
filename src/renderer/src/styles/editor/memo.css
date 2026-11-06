@@ -224,7 +224,7 @@
   min-height: 0;
 }
 
-/* 入力欄の上の「メモ」の一覧（最近変えたメモ。ファイル名と、入っているフォルダ） */
+/* 入力欄の上の「メモ」の一覧（メモのタブと同じフォルダの木。MemoChipTree） */
 .memo-chip-popover {
   display: grid;
   min-width: 260px;
@@ -257,23 +257,33 @@
   color: var(--muted);
 }
 
-/* ファイル名（拡張子まで）と、その下に入っているフォルダ（同じ題名で拡張子・フォルダの違うメモを見分ける） */
-.memo-chip-name {
+/* 木の段ごとに字下げする（--depth は MemoChipTree の段） */
+.memo-chip-tree {
   display: grid;
-  flex: 1;
-  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.memo-chip-title,
-.memo-chip-folder {
+.memo-chip-tree .memo-chip-row {
+  gap: 4px;
+  width: 100%;
+  min-height: 28px;
+  padding: 2px 8px 2px calc(6px + var(--depth, 0) * 14px);
+}
+
+/* メモの行の、フォルダの開閉の矢印の分の空き（名前の頭をフォルダの行とそろえる） */
+.memo-chip-indent {
+  flex: none;
+  width: 12px;
+}
+
+.memo-chip-title {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.memo-chip-folder {
-  font-size: 11px;
-  color: var(--extra-muted);
 }
 
 .memo-chip-row.more {

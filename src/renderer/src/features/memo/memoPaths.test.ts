@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { MemoEntry } from "@shared/types";
-import { ancestorsOf, buildMemoTree, filterMemos, isUnder, memoTitle, pathTaken, recentMemos, remapPath, renamedPath, untitledPath } from "./memoPaths";
+import { ancestorsOf, buildMemoFileTree, buildMemoTree, filterMemos, isUnder, memoTitle, pathTaken, recentMemos, remapPath, renamedPath, untitledPath } from "./memoPaths";
 
 const entry = (path: string, dir = false, modified_at = "2026-11-05T00:00:00.000Z"): MemoEntry => ({ path, dir, modified_at });
 
@@ -12,6 +12,13 @@ test("buildMemoTree: フォルダを先に名前の順。中身のないフォ�
     [["空", true], ["設計", true], ["A.md", false], ["b.md", false], ["メモ2.md", false], ["メモ10.md", false]],
   );
   assert.deepEqual(tree[1].children.map((n) => n.path), ["設計/DB.md"]);
+});
+
+test("buildMemoFileTree: メモのファイルだけで木を作り、メモの入っていないフォルダは出さない", () => {
+  const tree = buildMemoFileTree([entry("空", true), entry("画像", true), entry("画像/図.png"), entry("設計", true), entry("設計/古い", true), entry("設計/古い/DB.md"), entry("計画.html"), entry("メモ.txt")]);
+  assert.deepEqual(tree.map((n) => n.path), ["設計", "計画.html"]);
+  assert.deepEqual(tree[0].children.map((n) => [n.path, n.dir]), [["設計/古い", true]]);
+  assert.deepEqual(tree[0].children[0].children.map((n) => n.path), ["設計/古い/DB.md"]);
 });
 
 test("名前の変更・移動のパス", () => {

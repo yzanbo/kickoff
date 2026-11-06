@@ -30,6 +30,14 @@ export function buildMemoTree(entries: readonly MemoEntry[]): TreeNode[] {
   return root.children;
 }
 
+/**
+ * メモのファイル（.md・.html など）だけの木（入力欄の上の「メモ」の一覧）。フォルダはメモのタブと同じ並びで、
+ * メモの入っていないフォルダ（空・画像だけなど）は出さない
+ */
+export function buildMemoFileTree(entries: readonly MemoEntry[]): TreeNode[] {
+  return buildMemoTree(entries.filter((e) => !e.dir && memoExtensionOf(e.path) !== null));
+}
+
 /** 親フォルダ（直下なら ""） */
 export function parentOf(path: string): string {
   const i = path.lastIndexOf("/");
