@@ -185,8 +185,9 @@
   color: var(--muted);
 }
 
+/* 動いている間は作業中の色で回す（ほかの回る印と同じ色） */
 .subagent-icon.spinning {
-  color: #d97757;
+  color: var(--dot-running);
   animation: spin 2.4s linear infinite;
 }
 
