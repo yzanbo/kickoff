@@ -1,0 +1,85 @@
+/* ==== 上に貼り付ける指示（読んでいる返答の元の指示。StickyPrompt） ==== */
+
+/*
+ * 上に置いておく自分の発言（読んでいる返答の元の発言。押すとその発言へ）。いつも出すので、流れに重ねずに流れの上の段に置く
+ * （重ねると、いちばん上を見ているときに最初の発言が帯の下に隠れる。段は chat.css の .timeline-wrap）
+ */
+.sticky-prompt {
+  z-index: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  /* 中身は発言の流れ（.timeline-inner）と同じ幅にそろえる。縦は詰めて、流れに場所を回す */
+  padding: 3px max(var(--gutter), calc((100% - 820px) / 2 + var(--gutter)));
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+/* 指示の文（押しても何もしない）。たたんでいる間は 1 行に並べて省く */
+.sticky-prompt-body {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 1px 0;
+  color: var(--text);
+}
+
+.sticky-prompt-label {
+  flex: none;
+  /* 文の 1 行目の並びにそろえる（文の枠の 1px ＋ 文 13px と見出し 11px の行の高さの差） */
+  padding-top: 3px;
+  margin-right: 4px;
+  font-size: calc(11px * var(--chat-scale, 1));
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sticky-prompt-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(13px * var(--chat-scale, 1));
+  line-height: 1.5;
+}
+
+/* 全文: 改行を生かして折り返し、長ければ中でスクロールする */
+.sticky-prompt.expanded .sticky-prompt-text {
+  max-height: 40vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* 前・次の指示へ・全文の開閉（見出し「指示」のすぐ右。文・添付の前に置き、位置を動かさない） */
+.sticky-prompt-nav {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  margin-right: 4px;
+}
+
+/* 帯の高さを抑えるよう、ボタンは文の 1 行ぶんの高さにする（幅はそのまま） */
+.sticky-prompt-nav .icon-button {
+  height: 22px;
+}
+
+/* 指示の添付（1 つ目だけ）。帯の高さを変えないよう、文の 1 行目の高さに収める */
+.sticky-prompt .attach-peek {
+  margin-top: 1px;
+  /* 右下に重ねた数（+n）が文にかからないように */
+  margin-right: 6px;
+}
+
+.sticky-prompt .attach-peek-thumb {
+  width: 20px;
+  height: 20px;
+}
+
+/* 横幅いっぱいに広げたチャット（チャットの見出しの ↔・設定の「表示」）では、流れと同じく幅の上限を外す */
+.chat-page.wide .sticky-prompt {
+  padding-inline: var(--gutter);
+}
