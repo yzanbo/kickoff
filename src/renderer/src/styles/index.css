@@ -13,6 +13,7 @@
 @import "./sidebar/sidebar-counts.css";
 @import "./ui/status.css";
 @import "./chatList/state-chats.css";
+@import "./ui/inline-name.css";
 @import "./ui/buttons-forms.css";
 @import "./project/project-tags.css";
 @import "./project/project-mark.css";
