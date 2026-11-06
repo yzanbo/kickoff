@@ -8,6 +8,8 @@ import type { Attachment, Chat, ChatLive, ChatOptionsPatch, QueuedMessage, TellR
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { Conflict, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
+import { manualPreCompactMessage } from "@shared/chat/prompts";
+import { preCompactPromptOf } from "./preCompact.js";
 
 /**
  * エージェントの実行を管理する。
@@ -213,19 +215,36 @@ export class Runner extends RunnerQueue {
   /**
    * 会話を要約して、コンテキストを空ける（Claude Code の /compact を手で実行する）。
    * 会話の記録には発言として残さず、要約したこと（compact イベント）だけが残る。終わっても未読にしない。
-   * 作業中なら予約する: 送信待ちのいちばん上に圧縮の行を入れ、いまのやり取りが終わったらすぐ圧縮を始める（行を消せばやめられる）
+   * 作業中なら予約する: 送信待ちのいちばん上に圧縮の行を入れ、いまのやり取りが終わったらすぐ圧縮を始める（行を消せばやめられる）。
+   * 圧縮前指示（設定・プロジェクト）があれば、先にその指示を送り（札付きの自分の発言として残る）、その作業が最後まで終わってから圧縮する
    */
   async compact(chatId: number): Promise<Chat> {
     const { store } = this.deps;
     const chat = this.requireChat(chatId);
+    const runtime = this.runtimes.get(chatId);
     if (this.isBusy(chatId)) {
-      this.runtimes.get(chatId).queue.reserve("compact");
+      runtime.queue.reserve("compact");
       return chat;
     }
     if (!chat.session_id) throw new Conflict("まだ会話がないので、圧縮できません");
     store.chats.update(chat.id, { status: "running", error: null });
-    void this.execute({ chatId: chat.id, prompt: "/compact", compact: true });
+    const text = preCompactPromptOf(store, store.projects.get(chat.project_id)!);
+    if (!text) {
+      void this.execute({ chatId: chat.id, prompt: "/compact", compact: true });
+      return store.chats.get(chat.id)!;
+    }
+    const messageUuid = randomUUID();
+    store.events.add(chat.id, { type: "user", text, pre_compact: true, message_uuid: messageUuid });
+    // この指示の作業の途中で自動の圧縮が来ても、もう足さない
+    runtime.preCompactSent = true;
+    void this.execute({ chatId: chat.id, prompt: manualPreCompactMessage(text), promptId: messageUuid, thenCompact: true });
     return store.chats.get(chat.id)!;
+  }
+
+  /** 圧縮前指示のあとに圧縮する（終わったら、その終わりで送信待ちの次を送る） */
+  private compactNow(chatId: number) {
+    this.deps.store.chats.update(chatId, { status: "running", error: null });
+    void this.execute({ chatId, prompt: "/compact", compact: true });
   }
 
   /**
@@ -241,6 +260,8 @@ export class Runner extends RunnerQueue {
     this.forgetRecovery(chatId);
     // コンテキストの大きさは、次の応答まで分からない
     const cleared = store.chats.update(chat.id, { session_id: null, context_tokens: null });
+    // 新しい会話: 次に上限に近づいたら、また圧縮前指示を送る
+    this.runtimes.get(chatId).preCompactSent = false;
     store.events.add(chat.id, { type: "context_cleared" });
     return cleared;
   }
@@ -304,7 +325,11 @@ export class Runner extends RunnerQueue {
       // 終わったら、待ちの列の次の指示を送る（完了でも、止めた・失敗したときでも送る。アプリを終えるときは送らない）。
       // 通信が切れた・使用枠の上限で止まったときは送らず、つながる・枠が戻るのを待つ（送っても失敗して消えるため）
       // 次が圧縮の行（作業中に予約した圧縮も）なら圧縮し、圧縮が終わったら、その終わりで送信待ちの次を送る
-      if (this.recovery.finished(item.chatId, outcome) && !this.shuttingDown) void this.sendNextQueued(item.chatId);
+      // 手で圧縮する前の圧縮前指示が最後まで終わったら、送信待ちより先に圧縮する（止めた・失敗したときは圧縮しない）
+      if (this.recovery.finished(item.chatId, outcome) && !this.shuttingDown) {
+        if (item.thenCompact && outcome.status === "completed") this.compactNow(item.chatId);
+        else void this.sendNextQueued(item.chatId);
+      }
     }
   }
 }

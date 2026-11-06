@@ -25,6 +25,7 @@
 | チャットの記録 | `ChatEvent` / 表 `chat_events` | `RunEvent` / `run_events` |
 | グループ | `ChatGroup` / 表 `chat_groups` | `RunGroup` / `run_groups` |
 | 定型文（チャット欄の上の帯から入れる・送る、よく使う指示。共通かプロジェクトだけ） | `Snippet` / 表 `snippets`（`project_id` が NULL = 共通）・`features/snippet/` | なし |
+| 圧縮前指示（会話を圧縮する前に AI に送る指示。メモを残してもらうなど。設定の共通の指示 → プロジェクトの指示の順につなぐ） | 設定・プロジェクトの `pre_compact_prompt`・`@shared/chat/prompts` の `preCompactPromptFor`・記録の `user.pre_compact`・`core/chat/preCompact.ts`・PreCompact フック `core/providers/claude/preCompact.ts` | なし |
 | 送信待ち | `Queue`（`chat_queues`） | `followups` / `run_queues` |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |
@@ -76,7 +77,9 @@ CREATE TABLE projects (
   -- v2: メモのフォルダ（memo_folder = 設定の親フォルダの下のフォルダ名。初めてメモを使ったときに決めて覚える /
   -- memo_path = このプロジェクトだけ別の場所にするときの絶対パス）。ALTER TABLE で末尾に足す
   memo_folder TEXT CHECK (memo_folder <> ''),
-  memo_path TEXT CHECK (memo_path <> '')
+  memo_path TEXT CHECK (memo_path <> ''),
+  -- v6: 圧縮前指示（このプロジェクトだけの分。設定の共通の指示のあとにつなぐ）
+  pre_compact_prompt TEXT CHECK (pre_compact_prompt <> '')
 ) STRICT;
 -- 以前の active_at（画面は使っていなかった。最近動いた順はチャットの active_at で決める）と、一覧の集計（費用・動いている数。未使用）はなくす
 
@@ -158,7 +161,7 @@ CREATE TABLE snippets (
 
 | type | data | 以前からの変更 |
 |---|---|---|
-| `user` | `text` `attachments` `message_uuid` `handover?` | `message_uuid` を必須に |
+| `user` | `text` `attachments` `message_uuid` `handover?` `pre_compact?`（圧縮前指示。text は指示の文だけで、AI には前置きを付けて渡す） | `message_uuid` を必須に |
 | `init` | `session_id` `model?` `permission_mode?` `effort?` | |
 | `text` / `thinking` / `tool_use` / `tool_result` | 以前どおり＋`parent?`（サブエージェントのもの） | `sub` をなくす（`parent` があればサブエージェント） |
 | `approval` | `approval_id` `kind` `tool_name` `title?` | |
@@ -170,7 +173,7 @@ CREATE TABLE snippets (
 
 ### 設定（AppSettings）
 
-snake_case にし、チャットの選択の既定を `ChatOptions` 1 つにまとめる: `default_provider` / `chat_defaults`（`ChatOptions`）/ `remote_enabled` / `ntfy_url` / `desktop_notifications` / `projects_dir` / `auto_resume_on_reconnect` / `auto_archive_days` / `voice_enabled` / `voice_provider` / `voice_language` / `voice_model` / `voice_openai_base_url` / `voice_openai_model`。選択はチャット → プロジェクトの `chat_defaults` → 設定の `chat_defaults` の順に、同じ形を重ねて決める（`resolveChatOptions`）。
+snake_case にし、チャットの選択の既定を `ChatOptions` 1 つにまとめる: `default_provider` / `chat_defaults`（`ChatOptions`）/ `remote_enabled` / `ntfy_url` / `desktop_notifications` / `projects_dir` / `auto_resume_on_reconnect` / `auto_archive_days` / `voice_enabled` / `voice_provider` / `voice_language` / `voice_model` / `voice_openai_base_url` / `voice_openai_model` / `pre_compact_prompt`（圧縮前指示の共通の分）。選択はチャット → プロジェクトの `chat_defaults` → 設定の `chat_defaults` の順に、同じ形を重ねて決める（`resolveChatOptions`）。
 
 ### DB を作り直したときの画面の状態
 

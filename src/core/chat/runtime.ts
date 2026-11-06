@@ -32,6 +32,8 @@ export class ChatRuntime {
   preparing = false;
   /** 作業中のチャットへの操作（止めずに発言を足す・裏の作業を止める。プロバイダーが渡し、終わったら null） */
   control: TurnControl | null = null;
+  /** 前の圧縮（またはコンテキストの消去）のあとで、もう圧縮前指示を送った（次の圧縮まで、自動の圧縮の前にもう足さない。保存しない） */
+  preCompactSent = false;
   /** 作業中に送った次の指示の待ちの列（送信待ち） */
   readonly queue: ChatQueue;
   /** 画面で書き直している送信待ちの指示（自動で送る次の指示なら、書き直しが終わるまで送らない） */

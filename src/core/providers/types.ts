@@ -58,6 +58,11 @@ export interface ProviderTurnParams {
   fastMode: boolean;
   /** 自動圧縮を始めるコンテキストの使用率（%。null なら指定しない＝ Claude Code の既定） */
   autoCompactPct: number | null;
+  /**
+   * 上限に近づいて自動で圧縮する前に足す圧縮前指示（null なら足さない）。message: AI に送る文（前置き付き）・
+   * contextWindow: コンテキストウィンドウ（前の作業で分かったもの）・contextTokens: いまのコンテキストの大きさ（前の作業の終わりの値。分からなければ null）
+   */
+  preCompact?: { message: string; contextWindow: number; contextTokens: number | null } | null;
   /** 作業フォルダ以外に読み取りを許すフォルダ（添付ファイルの保存先・参照資料など） */
   additionalDirectories: string[];
   /** 読むだけで書き込ませないパス（リポジトリの外の参照資料） */
@@ -111,6 +116,8 @@ export interface ProviderCallbacks {
   context?(tokens: number): void;
   /** 作業中のチャットへの操作を渡す（終わったら null） */
   control?(control: TurnControl | null): void;
+  /** 自動の圧縮の前に、圧縮前指示（ProviderTurnParams.preCompact）を足した（uuid: 足した発言の ID。記録はコアが残す） */
+  preCompactSent?(uuid: string): void;
 }
 
 export interface ProviderTurnResult {

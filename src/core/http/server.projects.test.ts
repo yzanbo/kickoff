@@ -18,6 +18,12 @@ test("設定・プロジェクトの API", async () => {
   assert.deepEqual(status.body.agents, { running: 0 });
   // しないは null で保存する
   assert.equal((await call("PUT", "/api/settings", { auto_archive_days: null })).body.auto_archive_days, null);
+  // 圧縮前指示: 前後の空白を除き、空は 400（なしは null）
+  assert.equal((await call("PUT", "/api/settings", { pre_compact_prompt: " メモ " })).body.pre_compact_prompt, "メモ");
+  assert.equal((await call("PUT", "/api/settings", { pre_compact_prompt: "  " })).status, 400);
+  assert.equal((await call("PUT", "/api/settings", { pre_compact_prompt: null })).body.pre_compact_prompt, null);
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: "書き残す" })).body.pre_compact_prompt, "書き残す");
+  assert.equal((await call("PATCH", `/api/projects/${project.id}`, { pre_compact_prompt: null })).body.pre_compact_prompt, null);
 
   assert.deepEqual(
     (await call("GET", "/api/projects")).body.map((p: { id: number }) => p.id),

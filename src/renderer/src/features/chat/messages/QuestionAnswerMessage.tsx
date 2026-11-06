@@ -12,7 +12,7 @@ export function QuestionAnswerMessage({ event, data }: { event: ChatEventOf<"app
   return (
     <div className="user-message question-answer">
       <div className="bubble user" id={`ev-${event.id}`}>
-        <div className="question-answer-label">
+        <div className="message-kind-label">
           <MessageCircleQuestion size={12} aria-hidden />
           質問への回答
         </div>

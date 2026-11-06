@@ -15,6 +15,7 @@ import type { Project, ProviderId, Chat, CompactTrigger } from "@shared/types";
 import type { UploadStore } from "./uploads.js";
 import type { ChatRuntime } from "./runtime.js";
 import { workdirOf } from "./workdir.js";
+import { autoPreCompactParams, preCompactPromptOf } from "./preCompact.js";
 
 /** 実行に使うもの（Runner から受け取る） */
 export interface ExecutionDeps {
@@ -35,6 +36,8 @@ export interface TurnRequest {
   promptId?: string;
   /** 会話の要約（/compact）。発言・結果としては残さず、未読にもしない */
   compact?: boolean;
+  /** 手で圧縮する前の圧縮前指示。最後まで終わったら、続けて会話を圧縮する（Runner） */
+  thenCompact?: boolean;
 }
 
 /** 1 回の実行の終わり方（Runner が次に何をするかを決める） */
@@ -70,14 +73,16 @@ export async function executeTurn(deps: ExecutionDeps, runtime: ChatRuntime, { c
     store.chats.update(chatId, { status: "running", turn_started_at: new Date().toISOString(), ...(branch ? { branch } : {}) });
     // この実行より前の記録（止まったサブエージェントを、この実行の分だけ数えるため）
     const since = store.events.list(chatId).at(-1)?.id ?? 0;
+    // 上限に近づいて自動で圧縮する前に足す圧縮前指示（手で圧縮する実行には足さない）
+    const preCompactText = compact ? null : preCompactPromptOf(store, project);
 
     // 動かし始める前（作業場所・ブランチを調べている間）に止められたら、プロバイダーを動かさずに中断で終える
     // （中断済みの signal には abort の知らせがもう来ないので、渡すと最後まで動いてしまう）
     const result: ProviderTurnResult = signal.aborted
       ? { status: "cancelled", sessionId: chat.session_id }
       : await providers[chat.provider].run(
-          buildTurnParams(deps, chat, project, cwd, prompt, promptId),
-          callbacksFor(deps, runtime, chat, signal, compact, compactTriggerOf(prompt, compact)),
+          { ...buildTurnParams(deps, chat, project, cwd, prompt, promptId), preCompact: autoPreCompactParams(preCompactText, chat, runtime.preCompactSent) },
+          callbacksFor(deps, runtime, chat, signal, compact, compactTriggerOf(prompt, compact), preCompactText),
           signal,
         );
     const network = result.status === "failed" && Boolean(result.network);
@@ -151,6 +156,7 @@ function callbacksFor(
   signal: AbortSignal,
   compact: boolean,
   compactTrigger: CompactTrigger,
+  preCompactText: string | null,
 ): ProviderCallbacks {
   const chatId = chat.id;
   const projectId = chat.project_id;
@@ -184,10 +190,18 @@ function callbacksFor(
     stream: (text) => {
       bus?.publish({ type: "chat_delta", project_id: projectId, chat_id: chatId, text });
     },
+    // 自動の圧縮の前に圧縮前指示を足した: 札付きの自分の発言として残す（AI には前置きを付けて送っている）
+    preCompactSent: (uuid) => {
+      if (!preCompactText) return;
+      runtime.preCompactSent = true;
+      store.events.add(chatId, { type: "user", text: preCompactText, pre_compact: true, message_uuid: uuid });
+    },
     emit: (event) => {
       if (event.type === "init" && event.session_id !== store.chats.get(chatId)?.session_id) {
         store.chats.update(chatId, { session_id: event.session_id });
       }
+      // 圧縮した: 次に上限に近づいたら、また圧縮前指示を送る
+      if (event.type === "compact") runtime.preCompactSent = false;
       const saved = store.events.add(chatId, event);
       if (chat.memo_path && event.type === "tool_result") bus?.publish({ type: "memos", project_id: projectId, path: null });
       // 作業中でも、AI の文章の返答が届いたら未読にする（一番下まで見ると既読。要約の途中経過では付けない）

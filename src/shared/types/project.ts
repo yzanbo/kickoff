@@ -26,6 +26,8 @@ export interface Project {
   memo_folder: string | null;
   /** メモのフォルダを、このプロジェクトだけ別の場所にする（絶対パス。null なら親フォルダ / memo_folder） */
   memo_path: string | null;
+  /** このプロジェクトの圧縮前指示（会話を圧縮する前に AI に送る指示。設定の共通の指示のあとにつなぐ。null ならなし） */
+  pre_compact_prompt: string | null;
   created_at: string;
 }
 
