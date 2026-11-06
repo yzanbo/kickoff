@@ -30,16 +30,13 @@ interface Props {
 export function NewChildPane({ parentId, onCreated }: Props) {
   const parent = useKnownChat(parentId);
   if (!parent) return <div className="page muted">読み込み中…</div>;
-  // 親が分かってから作る（選択（モデルなど）を親のいまの選択から始める）
+  // 親が分かってから作る（プロジェクト・作業場所・グループは親のもの）
   return <NewChildForm parent={parent} onCreated={onCreated} />;
 }
 
 function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: Chat) => void }) {
-  const options = useChatOptions(
-    { model: parent.model, effort: parent.effort, permission_mode: parent.permission_mode, fast_mode: parent.fast_mode },
-    parent.project_id,
-    parent.worktree_path ?? undefined,
-  );
+  // 選択（モデルなど）は親から引き継がず、新しいチャットと同じく設定どおり（プロジェクトの既定 → 設定の既定）から始める。このタブで変えたものだけ効かせる
+  const options = useChatOptions(undefined, parent.project_id, parent.worktree_path ?? undefined);
   const [inherit, setInherit] = useState(true);
   const project = useProjects().projectsById.get(parent.project_id);
   const shows = useChatHeaderItems();

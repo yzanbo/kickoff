@@ -65,10 +65,11 @@ export function ChatComposerArea({
   // 送信ボタンの右クリック:
   // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
   // 「子チャットに送る（会話を引き継ぐ / 新しく始める）」: この文と添付で子チャットを作って送る（このチャットの作業は止めない。
-  // 作った子チャットは設定の「子チャットを作ったとき」で開く。上のピルの子チャットにも並ぶ）。メモのチャット・アーカイブ済みでは出さない
+  // 作った子チャットは設定の「子チャットを作ったとき」で開く。上のピルの子チャットにも並ぶ。選択（モデルなど）は渡さず、設定どおりの既定）。
+  // メモのチャット・アーカイブ済みでは出さない
   const memoOrArchived = Boolean(chat.memo_path) || chat.archived_at !== null;
   const sendToChild = (inherit: boolean) => async (text: string, attachments: Attachment[]) => {
-    openCreatedChild(await api.createChildChat(chat.id, { text, attachments, quote: null, inherit, event_id: null, options: options.options }));
+    openCreatedChild(await api.createChildChat(chat.id, { text, attachments, quote: null, inherit, event_id: null }));
   };
   // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
   const sendSnippet = (text: string) => (busy || queued ? send.onQueue(text, []) : send.onSend(text, []));
