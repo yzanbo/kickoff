@@ -31,6 +31,7 @@
 @import "./chat/streaming.css";
 @import "./chat/chat-tools.css";
 @import "./chat/bash-output.css";
+@import "./chat/tool-code.css";
 @import "./chat/tool-status.css";
 @import "./chat/command-live.css";
 @import "./chat/messages.css";
