@@ -46,13 +46,16 @@ test("子チャット: 文の頭に引用を入れて送ると、引用はその
   const user = ctx.store.events.list(child.id).find((e) => e.type === "user");
   assert.equal(user?.type === "user" && user.data.text, "> 選んだ文\n>\n> 2 行目\n\nここを直したい");
   await until(() => !ctx.runner.isBusy(child.id));
-  // AI からは Kickoff のチャットが見えないので、自分と親チャットの名前と ID を指示に添える（親のないチャットには添えない）
+  // AI からは Kickoff のチャットが見えないので、自分と親チャットの名前と ID を指示に添える
   const parent = ctx.store.chats.get(parentId)!;
   assert.ok(ctx.provider.lastTurnContext?.includes(`Kickoff のチャット ID: ${child.id}`));
   assert.ok(ctx.provider.lastTurnContext?.includes(`- 親チャット: 「${parent.title}」（Kickoff のチャット ID: ${parentId}、Claude Code のセッション ID: ${parent.session_id}）`));
   await ctx.call("POST", `/api/chats/${parentId}/messages`, { text: "親の続き" });
   await until(() => !ctx.runner.isBusy(parentId));
-  assert.equal(ctx.provider.lastTurnContext, null);
+  // 親チャットには、親の行はなく、子チャットの名前・ID・セッション ID を添える（「子チャットはどれ？」に答えられるように）
+  const sent = ctx.store.chats.get(child.id)!;
+  assert.ok(!ctx.provider.lastTurnContext?.includes("- 親チャット: "));
+  assert.ok(ctx.provider.lastTurnContext?.includes(`  - 子チャット「ここを直したい」（Kickoff のチャット ID: ${child.id}、Claude Code のセッション ID: ${sent.session_id}、状態: 終わった）`));
 });
 
 test("子チャット: 引き継がない・引き継げる会話がないときは、選んだ文と質問だけで始める", async () => {
