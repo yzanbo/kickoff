@@ -1,32 +1,5 @@
 /* ==== ボタン・フォーム ==== */
 
-/* 名前をその場で変える（InlineName）。OK のボタンの色は .icon-button.inline-name-ok で .icon-button に勝たせ、乗せたときの色はあとの .icon-button:hover に任せる（この順を変えない） */
-.inline-name-wrap {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-}
-
-.inline-name-wrap .icon-button {
-  flex: none;
-  width: 22px;
-  height: 22px;
-}
-
-.icon-button.inline-name-ok {
-  color: var(--accent-bright);
-}
-
-input[type="text"].inline-name {
-  flex: 1;
-  min-width: 0;
-  height: 22px;
-  padding: 0 6px;
-  font-size: 13px;
-}
-
 /* アイコンだけのボタン（IconButton / CloseButton / RefreshButton。label が aria-label と title になる）。余白 0 はブラウザの既定（左右 6px）を消すため（狭めたボタンでアイコンが右へずれていた） */
 .icon-button {
   display: inline-grid;
