@@ -1,0 +1,85 @@
+/* ==== メモのページの下の、AI に直してもらう入力欄（MemoQuickChat。メモのチャットの欄を閉じている間だけ） ==== */
+
+.memo-quick-chat {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px var(--gutter);
+  border-top: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+/* 作業中・回答待ちなどの様子の 1 行と「会話を開く」 */
+.memo-quick-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.memo-quick-status-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memo-quick-status .link-button {
+  flex: none;
+  font-size: 12px;
+  color: var(--accent-fg);
+}
+
+/* 書く欄と右のボタン（チャット欄と同じく、書いた分だけ 4 行ほどまで伸びる） */
+.memo-quick-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.memo-quick-box:focus-within {
+  border-color: var(--accent);
+}
+
+.memo-quick-input {
+  flex: 1;
+  min-width: 0;
+  field-sizing: content;
+  min-height: 28px;
+  max-height: 96px;
+  padding: 5px 0;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+  border: none;
+  background: transparent;
+  resize: none;
+}
+
+.memo-quick-input:focus {
+  outline: none;
+}
+
+.memo-quick-box .icon-button {
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+
+/* 送るボタンはチャット欄の送信と同じ丸い緑 */
+.memo-quick-box .memo-quick-send {
+  border-radius: 50%;
+  color: #fff;
+  background: var(--accent);
+}
+
+.memo-quick-box .memo-quick-send:disabled {
+  opacity: 0.3;
+}

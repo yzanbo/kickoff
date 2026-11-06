@@ -93,6 +93,7 @@
 @import "./editor/memo-editor.css";
 @import "./editor/memo-ai.css";
 @import "./editor/memo-chat.css";
+@import "./editor/memo-quick-chat.css";
 @import "./chat/open-place.css";
 @import "./terminal/terminal.css";
 @import "./panel/bottom-panel.css";
