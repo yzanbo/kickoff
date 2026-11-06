@@ -28,16 +28,6 @@ export function useChatHeaderRowHidden(): boolean {
   return useSetting(CHAT_HEADER_ROW_HIDDEN)[0];
 }
 
-/** チャットの画面で、既定より多く隠しているものがあるか（タブの列の「表示」のボタンに点を付け、隠れた状態に気づけるように） */
-export function useChatDisplayHides(): boolean {
-  const [tabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
-  const [rowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
-  const [saved] = useSetting(CHAT_HEADER_HIDDEN);
-  const [stickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
-  const [snippetBarHidden] = useSetting(SNIPPET_BAR_HIDDEN);
-  return tabRowHidden || rowHidden || stickyHidden || snippetBarHidden || hiddenHeaderItems(saved).size > 0;
-}
-
 /** チェックの付く項目（keepOpen: 押してもメニューを閉じない） */
 function CheckItem({ on, title, keepOpen, onToggle, children }: { on: boolean; title?: string; keepOpen?: boolean; onToggle: () => void; children: ReactNode }) {
   return (
