@@ -12,7 +12,7 @@ import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { useChatSend } from "@/features/chat/pane/useChatSend";
 import type { TimelineScroll } from "@/features/chat/timeline/timelineScroll";
 import { StatusSlot } from "@/features/chat/StatusSlot";
-import { SnippetBar } from "@/features/snippet/SnippetBar";
+import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 
 /** メモのチャットの様子の文（既読は出さない） */
 const STATUS_TEXTS: Record<Exclude<AgentState, "read">, string> = {
@@ -120,6 +120,8 @@ function MemoQuickComposer({ projectId, path, chat, beforeSend }: { projectId: n
         onStop={chat ? send.onStop : undefined}
         trailing={chat && <ContextMeter chat={chat} compacting={null} reserved={null} />}
         header={<SnippetBar projectId={projectId} composer={composer} onSend={(text) => (busy ? send.onQueue(text, []) : onSend(text, []))} />}
+        // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
+        menuItems={<SnippetBarToggleItem />}
         suggestTarget={{ projectId, worktree: chat?.worktree_path ?? undefined }}
         handleRef={composer}
         draft={chat ? chatDraft(chat.id) : undefined}

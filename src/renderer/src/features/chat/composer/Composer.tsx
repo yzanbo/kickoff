@@ -24,6 +24,7 @@ import type { ComposerHandle } from "./composerHandle";
 import { ComposerActions } from "./ComposerActions";
 import { useComposerSend } from "./useComposerSend";
 import { ChatContextButton } from "./ChatContextButton";
+import { useComposerTextMenu } from "./useComposerTextMenu";
 
 interface Props {
   /** モデル・推論の深さ・権限モードの選択（なければ出さない。サブエージェントのタブなど） */
@@ -63,6 +64,8 @@ interface Props {
   sendTo?: { label: string; title?: string; separated?: boolean; onSend: (text: string, attachments: Attachment[]) => Promise<void> }[];
   /** 「ほかのチャットを参照」（ほかのチャットのやり取りを AI に読ませる）を出すとき: 先に並べるプロジェクトと、出さないいまのチャット */
   chatContext?: { projectId?: number; exclude?: number };
+  /** 文を書く欄の右クリックのメニューで、クリップボードの組の下に並べる項目（定型文の帯の表示の切り替えなど） */
+  menuItems?: ReactNode;
 }
 
 /** 書いている文を知らせるまで待つ時間（打つたびに知らせない） */
@@ -76,7 +79,7 @@ const ignoreStop = () => {};
  * マイクで音声入力（⌘⇧Space でも始め・止める。録音中に送ると、起こした文を入れてそのまま送る。Esc でやめる））。
  * 送る処理は useComposerSend、右下の操作（中断・送信・送り方の切り替え）は ComposerActions
  */
-export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext, sendTo }: Props) {
+export function Composer({ options, placeholder, autoFocus, busy, trailing, header, onSend, onStop, stopping, onQueue, queueWhileIdle, plainActions, sendLabel, busyControls, onTextChange, suggestTarget, history, draft, handleRef, chatContext, sendTo, menuItems }: Props) {
   // 新しいチャットも含め、入力欄は空から始める（あらかじめ文を入れない）。
   // 既存のチャットだけは、自分が書きかけていた文を戻す（送った・空にしたら消える）
   const [text, setText] = useOptionalSetting(draft, "");
@@ -112,6 +115,8 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
       },
       focus: () => textareaRef.current?.focus(),
     };
+  // 文を書く欄の右クリック（切り取り・コピー・貼り付けと、呼ぶ側の項目）
+  const textMenu = useComposerTextMenu({ textareaRef, setText, items: menuItems });
   // コンパクト表示（文字・余白・下の道具を小さくする。設定の「表示」で切り替え、どのチャット欄にもすぐ効く）
   const [compact] = useSetting(COMPOSER_COMPACT);
   // ↑↓ で前の発言を呼び出す
@@ -225,7 +230,9 @@ export function Composer({ options, placeholder, autoFocus, busy, trailing, head
         }}
         onKeyDown={onKeyDown}
         onPaste={attach.onPaste}
+        onContextMenu={textMenu.onContextMenu}
       />
+      {textMenu.element}
       <div className="composer-bar">
         <div className="composer-tools">
           <AttachButton size={16} className="attach-button" onFiles={attach.addFiles} />

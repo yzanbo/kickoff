@@ -20,7 +20,7 @@ import { INHERIT_LABELS, inheritHelp } from "@/features/chat/children/InheritCho
 import { openCreatedChild } from "@/features/chat/children/openChild";
 import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
-import { SnippetBar } from "@/features/snippet/SnippetBar";
+import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import type { useChatSend } from "./useChatSend";
 
 /** 「質問として送る」の説明 */
@@ -113,6 +113,8 @@ export function ChatComposerArea({
         trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedCompact(live.queue)} />}
         // よく送る指示（このプロジェクトで使う定型文）。入力欄の枠の中の上（送信待ちとの区切り線の下）に置き、押すと入力欄に入れる
         header={<SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />}
+        // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
+        menuItems={<SnippetBarToggleItem />}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}
         handleRef={composer}
         history={prompts.recalls}

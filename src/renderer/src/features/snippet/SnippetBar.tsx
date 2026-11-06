@@ -137,6 +137,18 @@ export function SnippetBar({
   );
 }
 
+/**
+ * 入力欄の右クリックの「定型文の帯を表示 / 隠す」（帯を隠していても、入力欄から戻せるように。帯の右クリック・タブの列の「表示」と同じ設定）
+ */
+export function SnippetBarToggleItem() {
+  const [hidden, setHidden] = useSetting(SNIPPET_BAR_HIDDEN);
+  return (
+    <MenuItem title="どのチャットでも同じです（設定の「表示」・タブの列の「表示」でも切り替えられます）" onSelect={() => setHidden(!hidden)}>
+      {hidden ? "定型文の帯を表示" : "定型文の帯を隠す"}
+    </MenuItem>
+  );
+}
+
 /** ピルの右クリックの、その定型文の操作 */
 function SnippetMenuItems({
   snippet,
