@@ -1,4 +1,4 @@
-import { Bot, GitBranch, MessagesSquare } from "lucide-react";
+import { Bot, GitBranch, MessageSquare } from "lucide-react";
 import { Fragment } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/lib/cx";
@@ -150,7 +150,7 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
             title="メインの会話の流れの中の、このサブエージェントのカードへ移って開きます"
             onClick={() => pane.revealSubagent(entry.key)}
           >
-            <MessagesSquare size={12} aria-hidden />
+            <MessageSquare size={12} aria-hidden />
             流れで見る
           </button>
           <button

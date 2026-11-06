@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, GripVertical, OctagonPause, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, OctagonPause, X } from "lucide-react";
 import type { DragEvent } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -76,7 +76,7 @@ export function QueuedStopLine({
         <span className="queued-row-actions">
           <span className="queued-stop-space" aria-hidden />
           <span className="queued-stop-space" aria-hidden />
-          <IconButton icon={Trash2} label="この一時停止を外す" size={13} onClick={onRemove} />
+          <IconButton icon={X} label="この一時停止を外す" size={13} onClick={onRemove} />
         </span>
       </div>
       {menu.menu && (

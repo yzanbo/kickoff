@@ -1,4 +1,4 @@
-import { MessagesSquare, SquarePen } from "lucide-react";
+import { MessageSquarePlus, SquarePen } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
@@ -105,7 +105,7 @@ export function SelectionAttach() {
           done();
         }}
       >
-        <MessagesSquare size={14} aria-hidden /> 子チャットで聞く
+        <MessageSquarePlus size={14} aria-hidden /> 子チャットで聞く
       </MenuItem>
       {/* チャットのタブが入っているパネルの中だけ（送信待ちの「新しいチャットで聞く」と同じ口） */}
       {askInNewChat && (

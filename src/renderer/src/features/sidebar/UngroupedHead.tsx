@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { cx } from "@/lib/cx";
 import { openNewChat } from "@/app/router";
 import { IconButton } from "@/ui/IconButton";
@@ -34,7 +34,7 @@ export function UngroupedHead({
       count={count}
       actions={
         <>
-          <IconButton icon={Plus} label={`${NO_GROUP_LABEL} で新しいチャット`} size={13} className="custom-group-add" onClick={() => openNewChat(projectId)} />
+          <IconButton icon={SquarePen} label={`${NO_GROUP_LABEL} で新しいチャット`} size={13} className="custom-group-add" onClick={() => openNewChat(projectId)} />
           {/* グループの見出しと＋の位置をそろえるため、右端の「…」の分を空けておく */}
           <span className="group-menu-spacer" aria-hidden />
         </>

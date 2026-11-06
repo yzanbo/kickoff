@@ -1,4 +1,4 @@
-import { Columns2, Plus, Rows2, X } from "lucide-react";
+import { Columns2, MessageSquarePlus, Rows2, X } from "lucide-react";
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { IconButton } from "@/ui/IconButton";
@@ -195,7 +195,7 @@ export function PaneTabBar({
       {/* 新しい子チャット: 出す種類が決まっている欄（サブエージェントの欄）の新しいタブのボタン（項目は 1 つなので、メニューを挟まずに開く） */}
       {onNewChild && (
         <span className="panel-bar-buttons panel-tab-adds">
-          <IconButton icon={Plus} label="新しい子チャット" size={14} onClick={onNewChild} />
+          <IconButton icon={MessageSquarePlus} label="新しい子チャット" size={14} onClick={onNewChild} />
         </span>
       )}
       {/* ペインを分ける・閉じる（右端。右の欄は分けるボタンを置かない noSplitButtons） */}

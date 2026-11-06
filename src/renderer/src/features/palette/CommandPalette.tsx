@@ -1,4 +1,4 @@
-import { Bot, FolderGit2, MessageSquare, Plus, Search, User } from "lucide-react";
+import { Bot, FolderGit2, MessageSquare, Search, SquarePen, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { SearchHit } from "@shared/types";
 import { api } from "@/api";
@@ -98,7 +98,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
       if (q) {
         for (const p of projects) {
           const label = `${p.name} で新しいチャット`;
-          named.push({ key: `new-${p.id}`, label, text: label, hint: "新規", icon: <Plus size={15} />, route: { name: "newChat", projectId: p.id } });
+          named.push({ key: `new-${p.id}`, label, text: label, hint: "新規", icon: <SquarePen size={15} />, route: { name: "newChat", projectId: p.id } });
         }
       }
       for (const p of projects) {

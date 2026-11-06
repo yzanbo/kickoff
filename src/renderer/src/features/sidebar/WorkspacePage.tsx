@@ -1,4 +1,4 @@
-import { Archive, Folder, Inbox, Pin, Plus } from "lucide-react";
+import { Archive, Folder, Inbox, Pin, SquarePen } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { BOARD_COLUMN_LABELS, type Project, type Chat, type ChatGroup } from "@shared/types";
 import { api } from "@/api";
@@ -221,7 +221,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         (visibleCount === 0 && ungroupedDrafts.length === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
           ungroupedDrafts.length === 0 ? (
           <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
-            <Plus size={13} /> 最初のチャットを始める
+            <SquarePen size={13} /> 最初のチャットを始める
           </button>
         ) : mainRows.length === 0 && ungroupedDrafts.length === 0 ? null : (
           // グループの見出しがあるときは「No Group」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする

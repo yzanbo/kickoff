@@ -1,4 +1,4 @@
-import { Download, FolderOpen, Puzzle, Trash2 } from "lucide-react";
+import { Download, FolderOpen, Puzzle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { KNOWN_EXTENSIONS, type BrowserExtensionInfo, type KnownExtensionKey } from "@shared/ipc";
 import { useAction } from "@/hooks/useAction";
@@ -52,7 +52,7 @@ export function BrowserExtensions() {
               </span>
               <span className="badge">{SOURCE_LABELS[e.source]}</span>
               <IconButton
-                icon={Trash2}
+                icon={X}
                 label={`${e.name} を外す`}
                 title="外す"
                 size={13}

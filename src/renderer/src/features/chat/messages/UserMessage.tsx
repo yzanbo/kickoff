@@ -1,4 +1,4 @@
-import { History, Inbox, Pencil, RotateCw, Shrink } from "lucide-react";
+import { History, Inbox, Pencil, RotateCcw, Shrink } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { ChatEventOf } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -99,7 +99,7 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
         {text && <CopyButton text={text} label="メッセージをコピー" className="message-action" />}
         {resend && (
           <IconButton
-            icon={RotateCw}
+            icon={RotateCcw}
             size={13}
             label="もう一度送る"
             title={

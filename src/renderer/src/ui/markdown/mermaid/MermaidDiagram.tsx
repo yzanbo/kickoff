@@ -1,4 +1,4 @@
-import { Code, Eye, Maximize2, SquareDashed, ZoomIn, ZoomOut } from "lucide-react";
+import { CodeXml, Eye, Maximize2, SquareDashed, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { useAppliedTheme } from "@/hooks/useAppliedTheme";
 import { IconButton } from "@/ui/IconButton";
@@ -96,7 +96,7 @@ export function MermaidDiagram({ code }: { code: string }) {
       {/* 図の上の行に右寄せで並べる（拡大・縮小・元の大きさ・ソース・全画面） */}
       <div className="mermaid-tools">
         {!showSource && <ZoomButtons zoom={zoom} />}
-        <IconButton icon={showSource ? Eye : Code} label={showSource ? "図を表示" : "ソースを表示"} size={14} onClick={() => setShowSource(!showSource)} />
+        <IconButton icon={showSource ? Eye : CodeXml} label={showSource ? "図を表示" : "ソースを表示"} size={14} onClick={() => setShowSource(!showSource)} />
         {!showSource && <IconButton icon={Maximize2} label="全画面で表示" size={14} onClick={() => setFullscreen(true)} />}
       </div>
       {showSource ? (

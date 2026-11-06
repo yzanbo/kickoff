@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Archive, Check, Cloud, Code2, FolderGit2, FolderOpen, GitBranch, History, Plus, Tag, Trash2 } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp, Check, Cloud, ExternalLink, FolderOpen, GitBranch, History, Plus, Tag, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ErrorText } from "@/ui/ErrorText";
 import { IconButton, RefreshButton } from "@/ui/IconButton";
@@ -93,7 +93,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
         {worktrees.map((w) => (
           <RefItem
             key={w.path}
-            icon={<FolderGit2 size={14} aria-hidden />}
+            icon={<GitBranch size={14} aria-hidden />}
             name={w.branch ?? "（ブランチなし）"}
             title={w.path}
             note={w.main ? "本体" : w.prunable ? "なくなっています" : undefined}
@@ -101,7 +101,7 @@ export function HistorySidebar({ projectId, log, onPick }: { projectId: number; 
             actions={
               <>
                 {window.kickoff && <IconButton icon={FolderOpen} label="Finder で開く" size={14} onClick={() => void window.kickoff?.externalApps.openPath(w.path)} />}
-                {window.kickoff && <IconButton icon={Code2} label="VS Code で開く" size={14} onClick={() => void window.kickoff?.externalApps.openInVSCode(w.path)} />}
+                {window.kickoff && <IconButton icon={ExternalLink} label="VS Code で開く" size={14} onClick={() => void window.kickoff?.externalApps.openInVSCode(w.path)} />}
                 {!w.main && <IconButton icon={Trash2} label="ワークツリーを消す" size={14} onClick={() => void worktreeActions.removeWorktree(w)} />}
               </>
             }

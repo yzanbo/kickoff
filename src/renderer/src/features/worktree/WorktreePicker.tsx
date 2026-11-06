@@ -1,4 +1,4 @@
-import { FolderGit2 } from "lucide-react";
+import { GitBranch } from "lucide-react";
 import { useEffect } from "react";
 import type { GitWorktree } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -32,7 +32,7 @@ export function WorktreePicker({
   if (!worktrees || worktrees.length <= 1) return null;
   return (
     <label className={cx("new-chat-group worktree-picker", value && "has-group")} title="作業場所（ワークツリー）を選ぶ">
-      <FolderGit2 size={12} aria-hidden />
+      <GitBranch size={12} aria-hidden />
       <select className="pill-select" aria-label="作業場所" value={value ?? ""} onChange={(e) => onChange(e.target.value || undefined)}>
         {worktrees.map((w) => (
           <option key={w.path} value={w.main ? "" : w.path}>

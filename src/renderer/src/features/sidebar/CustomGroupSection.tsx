@@ -1,4 +1,4 @@
-import { Folder, Plus } from "lucide-react";
+import { Folder, SquarePen } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat, ChatGroup } from "@shared/types";
 import { api } from "@/api";
@@ -109,7 +109,7 @@ export function CustomGroupSection({
           !renaming && (
             <>
               <IconButton
-                icon={Plus}
+                icon={SquarePen}
                 label={`${group.name} に新しいチャット`}
                 title={`「${group.name}」に新しいチャット`}
                 size={13}

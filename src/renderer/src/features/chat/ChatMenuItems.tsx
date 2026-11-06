@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, ChevronRight, Copy, FolderInput, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronRight, Copy, FolderInput, Mail, MailOpen, MessageSquarePlus, PanelRight, Pencil, Pin, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
@@ -82,7 +82,7 @@ export function ChatMenuItems({
       {/* 固定はサイドバーの、プロジェクトのいちばん上のまとまりに出す（アーカイブしたものは固定しない） */}
       {!chat.archived_at && (
         <MenuItem onSelect={() => act(() => togglePinChat(chat))}>
-          {chat.pinned ? <PinOff size={14} /> : <Pin size={14} />} {chat.pinned ? "ピン留めを外す" : "ピン留め"}
+          <Pin size={14} /> {chat.pinned ? "ピン留めを外す" : "ピン留め"}
         </MenuItem>
       )}
       {/* Claude Code で同じ会話を続けるとき（claude --resume <ID>）などに使う */}

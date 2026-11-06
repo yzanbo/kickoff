@@ -1,4 +1,4 @@
-import { ArrowUpLeft, Send } from "lucide-react";
+import { ArrowUpLeft, Inbox } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Chat, ChatEvent } from "@shared/types";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -40,7 +40,7 @@ export function ChildChatBar({
             title="いちばん新しい答えを、引用として親のチャットの入力欄に入れる（送るのは自分で）"
             onClick={() => handBackToParent(chat, handBackText(chat, answerText))}
           >
-            <Send size={13} aria-hidden /> メインに渡す
+            <Inbox size={13} aria-hidden /> メインに渡す
           </button>
         </>
       )}

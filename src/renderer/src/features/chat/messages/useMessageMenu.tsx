@@ -6,7 +6,7 @@ import { useContextMenu } from "@/ui/useContextMenu";
 import { copyRich } from "@/lib/richCopy";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { MemoMenuItems } from "@/features/memo/MemoMenuItems";
-import { MessagesSquare } from "lucide-react";
+import { MessageSquarePlus } from "lucide-react";
 import { MAX_ASK_CHILD_QUOTE, openAskChild } from "@/features/chat/children/childChats";
 import { AddToChatItems } from "./AddToChatItems";
 import { onEditable, quoteBlockAt, selectionWithin } from "./quotable";
@@ -84,7 +84,7 @@ export function useQuoteMenu(extra?: ReactNode) {
             <div className="menu-separator" role="separator" />
             {/* 選んだ文（なければ項目の全体）を引用して、このチャットの作業を止めずに横で聞く */}
             <MenuItem onSelect={() => openAskChild({ parentId: pane.chatId, eventId: source.eventId, quote: quoted.slice(0, MAX_ASK_CHILD_QUOTE) })}>
-              <MessagesSquare size={14} /> 子チャットで聞く
+              <MessageSquarePlus size={14} /> 子チャットで聞く
             </MenuItem>
           </>
         )}

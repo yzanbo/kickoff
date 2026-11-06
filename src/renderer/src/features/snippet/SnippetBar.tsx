@@ -1,4 +1,4 @@
-import { List, Plus, Settings2 } from "lucide-react";
+import { List, Plus, Settings } from "lucide-react";
 import { useState, type MouseEvent, type MutableRefObject } from "react";
 import type { Snippet } from "@shared/types";
 import { snippetLabel } from "@shared/snippet/snippets";
@@ -99,7 +99,7 @@ export function SnippetBar({
             onClick={picker.toggle}
           />
           <IconButton
-            icon={Settings2}
+            icon={Settings}
             size={14}
             label="定型文を管理"
             title="定型文を管理（足す・直す・並べ替える）"

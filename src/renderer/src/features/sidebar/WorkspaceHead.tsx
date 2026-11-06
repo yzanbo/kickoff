@@ -1,4 +1,4 @@
-import { ArchiveRestore, ChevronDown, ChevronRight, Pin, Plus } from "lucide-react";
+import { ArchiveRestore, ChevronDown, ChevronRight, Pin, SquarePen } from "lucide-react";
 import type { DragEvent } from "react";
 import type { Project, ChatGroup } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -129,7 +129,7 @@ export function WorkspaceHead({
         )}
         <HeadCounts counts={counts} filter={stateFilter} onFilter={onStateFilter} />
         <IconButton
-          icon={Plus}
+          icon={SquarePen}
           label={`${project.name} の新しいチャット`}
           title={groups.length > 0 ? "新しいチャット（作成先のグループを選ぶ）" : "新しいチャット（⌘N）"}
           size={15}

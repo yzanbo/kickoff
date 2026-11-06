@@ -1,4 +1,4 @@
-import { Activity, Archive, Bell, Bot, Gauge, MessageSquareQuote, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
+import { Activity, Bell, Bot, Gauge, MessageSquare, MessageSquareQuote, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
 import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
@@ -30,7 +30,7 @@ const SETTINGS_SECTIONS: DialogSection<SettingsSection>[] = [
   { key: "display", label: "表示", icon: Palette },
   { key: "connection", label: "接続", icon: PlugZap },
   { key: "ai", label: "AI の既定", icon: Bot },
-  { key: "chats", label: "チャット", icon: Archive },
+  { key: "chats", label: "チャット", icon: MessageSquare },
   { key: "snippets", label: "定型文", icon: MessageSquareQuote },
   { key: "memos", label: "メモ", icon: StickyNote },
   { key: "voice", label: "音声入力", icon: Mic },

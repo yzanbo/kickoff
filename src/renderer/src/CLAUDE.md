@@ -83,6 +83,16 @@
 - 閉じるボタンのアイコンの大きさ: ポップオーバー 14、パネル 15、ダイアログ 16。
 - アーカイブする・アーカイブから戻すは、どこから押しても必ず確認ダイアログを出す（チャットは `features/chat/chatActions.ts` の `toggleArchiveChat` / `confirmArchiveChats`、プロジェクトは `features/project/projectOrder.ts` の `confirmArchiveProject` / `confirmRestoreProject`）。確かめずにアーカイブするボタンは置かない。
 - 操作は、いつも出すか右クリックのメニューに入れる。マウスを乗せたときだけ出すのは、たくさん並ぶ一覧の行の操作で、いつも出すと一覧が埋まるときに限る（いまはサイドバーのチャットの行の「…」）。そのときも同じ操作を右クリックのメニューに置く。状態（固定しているかなど）は、出す・隠すで分けず、見た目（色・塗り）で分ける。
+- 同じ意味には、どこでも同じアイコン（lucide）を使う。場所ごとに似たアイコンを選び直さない。新しく置くときは、同じ意味のものがすでにないか探してから合わせる。いまの決まり:
+  - **作る・開く**: 新しいチャット = `SquarePen`（小さな＋のボタンも）。子チャットを作る・子チャットで聞く・新しい子チャット = `MessageSquarePlus`。
+  - **チャット**: チャット・会話・会話の流れで見る = `MessageSquare`。子チャット = `MessagesSquare`。
+  - **送る・渡す**: 送る = `SendHorizontal`（チャット欄の送信ボタンも送信待ちの「すぐ送る」も）。親・メインに渡す = `Inbox`。
+  - **整理**: ピン留め・固定 = `Pin`（外すときも `Pin`。固定しているかは塗りで示す）。「…」のメニュー = `Ellipsis`。
+  - **取り直す・やり直す**: 取り直す・再読み込み = `RefreshCw`（`RefreshButton`）。もう一度・やり直す = `RotateCcw`。
+  - **場所**: 作業場所・ワークツリー = `GitBranch`（`FolderGit2` はプロジェクト）。変更 = `FileDiff`。
+  - **外で開く・表示を切り替える**: VS Code で開く = `ExternalLink`。ソースを表示 = `CodeXml`。
+  - **設定・タグ**: 設定・管理 = `Settings`。タグ = `Tag`（新しいタグは `Plus`）。
+  - **外す・欄の開閉**: 外す = `X`（消すのは `Trash2`）。欄の開閉 = 向きのあるアイコン（`PanelLeftClose` / `PanelLeftOpen` など。開いていれば閉じる向き）。
 - アイコンだけの操作には必ず名前を付ける（`IconButton` の `label`）。選択肢の組は radiogroup / radio と aria-checked（`Segmented`）、開閉は aria-expanded。
 - 送る前の確かめでやめたら、`Composer` の `onSend` で `SendCancelled` を投げる（書いた文を残し、失敗の文も出さない）。
 
