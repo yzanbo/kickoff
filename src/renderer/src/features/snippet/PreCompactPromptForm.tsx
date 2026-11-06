@@ -1,31 +1,14 @@
-import { useEffect, useState } from "react";
 import { PRE_COMPACT_PROMPT_MAX } from "@shared/chat/prompts";
-import { api } from "@/api";
-import { useSave } from "@/hooks/useSave";
-import { useProjects } from "@/stores/projects";
-import { settingsStore, useAppSettings } from "@/stores/settings";
 import { Field } from "@/ui/Field";
 import { SaveActions } from "@/ui/SaveActions";
+import { usePreCompactPrompt } from "./usePreCompactPrompt";
 
 /**
  * 圧縮前指示（会話を圧縮する前に AI に送る指示。圧縮で細かい内容が失われる前に、メモを残してもらうなど）。
  * projectId なしならアプリの設定の共通の指示、番号ならそのプロジェクトの指示（送るときは共通 → プロジェクトの順につなぐ）
  */
 export function PreCompactPromptForm({ projectId }: { projectId: number | null }) {
-  const settings = useAppSettings().data;
-  const { projectsById } = useProjects();
-  const saved = projectId === null ? settings?.pre_compact_prompt : projectsById.get(projectId)?.pre_compact_prompt;
-  const [draft, setDraft] = useState(saved ?? "");
-  const save = useSave();
-  // 保存した・ほかで変わったときは追従する
-  useEffect(() => setDraft(saved ?? ""), [saved]);
-  const next = draft.trim() || null;
-  const dirty = next !== (saved ?? null);
-
-  const submit = async () => {
-    if (projectId !== null) return api.updateProject(projectId, { pre_compact_prompt: next });
-    settingsStore.set(await api.updateSettings({ pre_compact_prompt: next }));
-  };
+  const { draft, setDraft, dirty, save, submit } = usePreCompactPrompt(projectId);
 
   return (
     <section className="section">

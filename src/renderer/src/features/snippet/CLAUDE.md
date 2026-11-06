@@ -28,6 +28,6 @@
 - フォームは 1 つずつ開く（`SnippetEditing`: 直す行の ID / `"new"` / `null`）。⌘Enter で保存、Esc はまずフォームだけをやめる（ダイアログは閉じない）。範囲の選択肢（共通 ＋ 選べるプロジェクト。チャットとプロジェクトの設定ではそのプロジェクトだけ、アプリの設定ではすべて）が 3 つまでなら `Segmented`、それより多ければ select。
 - ダイアログは背景を押しても閉じない（書きかけを消さないため）。下の「すべての定型文を設定で見る」で設定の「定型文」を開く（`openSettings("snippets")`）。
 
-## 圧縮前指示（`PreCompactPromptForm`）
+## 圧縮前指示（`PreCompactPromptForm`・`PreCompactPromptEditor`）
 
-設定の「定型文」とプロジェクトの設定の「定型文」で、定型文の一覧の下に置く欄（帯のダイアログには出さない）。会話を圧縮する前に AI に送る指示で、設定は共通の分（`AppSettings.pre_compact_prompt`）、プロジェクトはそのプロジェクトの分（`Project.pre_compact_prompt`）。送るときは共通 → プロジェクトの順につなぐ。空にすると null で保存して送らない。手で圧縮するときは先に送ってから圧縮し、自動の圧縮でも圧縮を待たせて済ませてもらう（コア。`src/core/chat/CLAUDE.md`）。送った指示は会話に「圧縮前指示」の札付きの自分の発言として残る（`features/chat/CLAUDE.md` の「発言」）。
+設定の「定型文」とプロジェクトの設定の「定型文」で、定型文の一覧の下に置く欄（帯のダイアログには出さない）。同じ値をチャット欄のメーターの詳細（`features/chat/composer/ContextMeter.tsx`）の「圧縮前指示」（`PreCompactPromptEditor`）でも書ける: 開閉の行（初めは閉じる。開いているかは `useFold("composer", "pre-compact")` で覚える）に、いま送る指示の範囲（共通 ＋ このプロジェクト / 共通 / このプロジェクト / なし）を添え、開くと共通 / このプロジェクトを `Segmented` で切り替えて書く（両方の書きかけを持ち、切り替えても消さない）。書きかけと保存はどちらも `usePreCompactPrompt(projectId | null)`（保存した・ほかで変わったら書きかけを合わせる）。会話を圧縮する前に AI に送る指示で、設定は共通の分（`AppSettings.pre_compact_prompt`）、プロジェクトはそのプロジェクトの分（`Project.pre_compact_prompt`）。送るときは共通 → プロジェクトの順につなぐ。空にすると null で保存して送らない。手で圧縮するときは先に送ってから圧縮し、自動の圧縮でも圧縮を待たせて済ませてもらう（コア。`src/core/chat/CLAUDE.md`）。送った指示は会話に「圧縮前指示」の札付きの自分の発言として残る（`features/chat/CLAUDE.md` の「発言」）。

@@ -191,6 +191,83 @@
   font-size: 12px;
 }
 
+/* 圧縮前指示（開閉の行に、いま送る指示の範囲を添える。開くと範囲の切り替え・書く欄・保存） */
+.context-pre-compact {
+  display: grid;
+  gap: 6px;
+}
+
+.context-pre-compact-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 -6px;
+  padding: 3px 6px;
+  box-sizing: content-box;
+  border: none;
+  border-radius: 6px;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.context-pre-compact-toggle:hover {
+  background: var(--bg-hover);
+}
+
+.context-pre-compact-label {
+  flex: none;
+  color: var(--muted);
+}
+
+.context-pre-compact-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-pre-compact-body {
+  display: grid;
+  gap: 6px;
+}
+
+.context-pre-compact-scope {
+  justify-self: start;
+  padding: 2px;
+}
+
+.context-pre-compact-scope button {
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+.context-pre-compact-body textarea {
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 160px;
+  padding: 6px 8px;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.context-pre-compact-body .context-sub {
+  font-size: 12px;
+}
+
+.context-pre-compact-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
 /* 手で圧縮するボタン（上の文字のすぐ下に置く） */
 .context-compact {
   display: flex;
