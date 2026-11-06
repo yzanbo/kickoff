@@ -238,7 +238,7 @@ export function QueuedMessages({
             )}
             </Fragment>
           ))}
-          {/* すべて送ったあとで止める印（あとから来た指示の前で止める） */}
+          {/* すべて送ったあとで止める印（その作業のあいだに来た指示の前で止める） */}
           {stopLine(messages.length)}
         </div>
       )}
