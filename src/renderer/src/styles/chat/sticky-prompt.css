@@ -54,6 +54,35 @@
   white-space: pre-wrap;
 }
 
+/* AI からの質問への回答の札（文の前。見出しと同じ薄さと大きさで、1 行目の並びにそろえる） */
+.sticky-prompt-kind {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  padding-top: 3px;
+  font-size: calc(11px * var(--chat-scale, 1));
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+/* 回答の全文: 質問ごとに、質問の文（薄く小さく）と答え（吹き出しの「質問への回答」と同じ並び） */
+.sticky-answer-list {
+  display: grid;
+  gap: 6px;
+}
+
+.sticky-answer-question {
+  display: block;
+  font-size: calc(12px * var(--chat-scale, 1));
+  color: var(--muted);
+}
+
+.sticky-answer-text {
+  display: block;
+}
+
 /* 前・次の指示へ・全文の開閉（見出し「指示」のすぐ右。文・添付の前に置き、位置を動かさない） */
 .sticky-prompt-nav {
   display: flex;

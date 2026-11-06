@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, EyeOff } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, EyeOff, MessageCircleQuestion } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Attachment } from "@shared/types";
 import { cx } from "@/lib/cx";
@@ -9,20 +9,46 @@ import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
 
+/** AI からの質問への回答の 1 問（質問の文と選んだ答え） */
+export interface PinnedAnswer {
+  question: string;
+  answer: string;
+}
+
+/** 帯に出すもの: 自分の指示か、AI からの質問への回答（answers があれば回答。text は答えだけを並べた 1 行） */
+export interface PinnedPrompt {
+  id: number;
+  text: string;
+  answers?: PinnedAnswer[];
+}
+
+/** 同じものを貼り付けたままか（スクロールのたびに描き直さないため） */
+export function samePinned(a: PinnedPrompt | undefined, b: PinnedPrompt | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.id !== b.id || a.text !== b.text) return false;
+  const qa = a.answers?.map((x) => x.question).join("\n");
+  const qb = b.answers?.map((x) => x.question).join("\n");
+  return qa === qb;
+}
+
 /**
  * チャットの上に置く、いま読んでいる返答の元の自分の指示。いつも出し、流れに重ねずに流れの上の段に置く（スクロールに合わせて中身を変える）。
  * 初めは 1 行にたたみ（長い指示で縦をとらないように）、見出しの右の ↑ / ↓ の隣の矢印で全文を出す（長ければ中でスクロール。開閉はどのチャットでも同じに覚える）。
  * 押して何かが起きるのは、見出しのすぐ右の ↑ / ↓（前・次の指示へ。⌘⌥↑ / ↓ と同じ）とその右の開閉の矢印・添付だけ（見出しと文は押しても何もしない。以前は押すとその発言へ移っていた）。
  * 添付があれば、送信待ちの行と同じく 1 つ目だけを小さく出す（帯の高さは変えない。押すと大きく表示）。
- * 右クリックで、全文の開閉と「指示の帯を隠す」（戻すのはタブの列の「表示」・設定の「表示」）
+ * 右クリックで、全文の開閉と「指示の帯を隠す」（戻すのはタブの列の「表示」・設定の「表示」）。
+ * 読んでいるのが AI からの質問への回答なら、「質問への回答」と添えて、たたんでいる間は答えだけを 1 行に、全文では質問ごとに質問の文と答えを出す
  */
 export function StickyPrompt({
   text,
+  answers,
   attachments,
   onPrev,
   onNext,
 }: {
   text: string;
+  /** 質問への回答なら、その問いと答え */
+  answers?: PinnedAnswer[];
   attachments: Attachment[];
   /** 前・次の指示へ移る（ないときは押せない。⌘⌥↑ / ↓ と同じ） */
   onPrev?: () => void;
@@ -43,6 +69,8 @@ export function StickyPrompt({
     observer.observe(el);
     return () => observer.disconnect();
   }, [text, expanded]);
+  // 回答は、たたんでいる間は質問の文を隠しているので、いつも全文を開ける
+  const canExpand = overflowing || (answers?.length ?? 0) > 0;
   return (
     <div
       className={cx("sticky-prompt", expanded && "expanded")}
@@ -66,22 +94,28 @@ export function StickyPrompt({
         <IconButton
           icon={expanded ? ChevronUp : ChevronDown}
           label={expanded ? "1 行にたたむ" : "指示の全文を表示"}
-          title={expanded || overflowing ? undefined : "指示は 1 行に収まっています"}
+          title={expanded || canExpand ? undefined : "指示は 1 行に収まっています"}
           aria-expanded={expanded}
           size={14}
-          disabled={!expanded && !overflowing}
+          disabled={!expanded && !canExpand}
           onClick={() => setExpanded(!expanded)}
         />
       </span>
       <AttachmentPeek attachments={attachments} />
-      <span className="sticky-prompt-body" aria-label={`指示: ${text}`}>
+      <span className="sticky-prompt-body" aria-label={answers ? `質問への回答: ${text}` : `指示: ${text}`}>
+        {answers && (
+          <span className="sticky-prompt-kind">
+            <MessageCircleQuestion size={12} aria-hidden />
+            質問への回答
+          </span>
+        )}
         <span ref={textRef} className="sticky-prompt-text">
-          {text}
+          {answers && expanded ? <AnswerList answers={answers} /> : text}
         </span>
       </span>
       {menu.menu && (
         <PopupMenu at={menu.menu.at} label="指示の帯" onClose={menu.close}>
-          {(expanded || overflowing) && (
+          {(expanded || canExpand) && (
             <MenuItem onSelect={() => setExpanded(!expanded)}>
               {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />} {expanded ? "1 行にたたむ" : "指示の全文を表示"}
             </MenuItem>
@@ -95,12 +129,35 @@ export function StickyPrompt({
   );
 }
 
+/** 全文で出す、質問ごとの質問の文と答え（吹き出しの「質問への回答」と同じ並び） */
+function AnswerList({ answers }: { answers: PinnedAnswer[] }) {
+  return (
+    <span className="sticky-answer-list">
+      {answers.map((a, i) => (
+        <span key={i} className="sticky-answer-item">
+          <span className="sticky-answer-question">{a.question}</span>
+          <span className="sticky-answer-text">{a.answer}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** 質問への回答の吹き出し（`QuestionAnswerMessage`）から、質問ごとの問いと答えを読む */
+function answersOf(bubble: HTMLElement): PinnedAnswer[] {
+  return [...bubble.querySelectorAll<HTMLElement>(".question-answer-item")].map((item) => ({
+    question: item.querySelector("dt")?.textContent?.trim() ?? "",
+    answer: item.querySelector("dd:not(.bubble-attachments)")?.textContent?.trim() ?? "",
+  }));
+}
+
 /**
  * いま読んでいる返答の元の自分の発言（帯に出す指示）: 流れの上端まで流れた（上端より上から始まる）いちばん下の吹き出し。
  * どれも流れていなければ（いちばん上を見ている）、最初の吹き出し。吹き出しがなければ undefined。
+ * AI からの質問への回答も同じ吹き出しなので数え、問いと答えを添える（文は答えだけを並べた 1 行）。
  * 帯は流れの上に置き、流れに重ねないので、流れの上端をそのまま線にする
  */
-export function readingPrompt(timeline: HTMLElement): { id: number; text: string } | undefined {
+export function readingPrompt(timeline: HTMLElement): PinnedPrompt | undefined {
   const line = timeline.getBoundingClientRect().top + 1;
   const bubbles = timeline.querySelectorAll<HTMLElement>(".bubble.user");
   let found: HTMLElement | undefined = bubbles[0];
@@ -111,6 +168,10 @@ export function readingPrompt(timeline: HTMLElement): { id: number; text: string
   if (!found) return undefined;
   const id = Number(found.id.replace("ev-", ""));
   if (!Number.isFinite(id)) return undefined;
+  if (found.closest(".question-answer")) {
+    const answers = answersOf(found);
+    return { id, text: answers.map((a) => a.answer).join(" / "), answers };
+  }
   // 添付だけの発言は文が空（帯には添付だけを出す）
   const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
   return { id, text };
