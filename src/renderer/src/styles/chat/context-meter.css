@@ -243,9 +243,23 @@
   padding: 2px;
 }
 
+/*
+ * プロジェクトのボタンはプロジェクト名なので、長ければ省略する（名前の全体はマウスを乗せたときの説明に出る）。
+ * ボタンは同じ幅にせず中身の幅にし（.segmented の 1fr を上書き）、「共通」の余りを名前に回す
+ */
+.context-pre-compact-scope {
+  max-width: 100%;
+  box-sizing: border-box;
+  grid-auto-columns: minmax(0, auto);
+}
+
 .context-pre-compact-scope button {
+  min-width: 0;
   padding: 2px 10px;
+  overflow: hidden;
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .context-pre-compact-body textarea {
