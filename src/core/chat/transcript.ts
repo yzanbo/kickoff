@@ -1,4 +1,4 @@
-// 別のチャットの内容を、いまのチャットに読み込ませるための記録（Markdown。添付ファイルとして渡し、AI が Read で読む。Node 依存なし）
+// チャットのやり取りの記録（Markdown。別のチャットに添付ファイルとして渡して AI が Read で読む・右クリックの「全部のやり取りをコピー」。Node 依存なし）
 import { UNTITLED_CHAT_TITLE, type Project, type Chat, type ChatEvent } from "@shared/types";
 import { workdirOf } from "./workdir.js";
 
@@ -17,18 +17,23 @@ const relative = (file: string, root: string) => (file.startsWith(`${root}/`) ? 
 
 /**
  * チャットのやり取りを Markdown にする（自分の発言・AI の返答（メインのエージェントのもの）を古い順に。作業ごとに、
- * 変えたファイルと、失敗・中断したことを添える）。ツールの細かい出力・考えている途中・サブエージェントの中の発言は入れない
+ * 変えたファイルと、失敗・中断したことを添える）。ツールの細かい出力・考えている途中・サブエージェントの中の発言は入れない。
+ * note: 別のチャットに読ませるための断り書き（参照のために書き出したもの）を入れるか（コピーするときは入れない）
  */
-export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[]): string {
+export function chatTranscript(chat: Chat, project: Project, events: ChatEvent[], { note = true }: { note?: boolean } = {}): string {
   const root = workdirOf(chat, project);
   const lines = [
     `# チャット「${chat.title || UNTITLED_CHAT_TITLE}」の記録`,
     "",
     `- プロジェクト: ${project.name}（${root}${chat.branch ? `・ブランチ ${chat.branch}` : ""}）`,
     `- 作成: ${stamp(chat.created_at)}`,
-    "",
-    "このファイルは、別のチャットのやり取りを参照のために書き出したものです。自分（利用者）の発言と AI の返答を古い順に並べ、作業ごとに変えたファイルを添えています。ツールの細かい出力は入れていません。",
   ];
+  if (note) {
+    lines.push(
+      "",
+      "このファイルは、別のチャットのやり取りを参照のために書き出したものです。自分（利用者）の発言と AI の返答を古い順に並べ、作業ごとに変えたファイルを添えています。ツールの細かい出力は入れていません。",
+    );
+  }
   let edited = new Set<string>();
   for (const e of events) {
     if (e.type === "user") {

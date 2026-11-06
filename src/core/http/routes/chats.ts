@@ -6,7 +6,8 @@ import { jsonBody, queryOf } from "../input.js";
 import { lookups, requireGroupOf, requireProject } from "../lookups.js";
 import { requireWorktree } from "../workdir.js";
 import { flag, newChatSchema, optionalId } from "./schemas.js";
-import type { ChatDetail, ChatPatch } from "@shared/types";
+import { chatTranscript } from "../../chat/transcript.js";
+import type { ChatDetail, ChatPatch, ChatTranscript } from "@shared/types";
 
 /**
  * チャットの一覧の絞り込み（並びは最後に動いた順）: ?archived=1 でアーカイブ済みだけ（なければアーカイブしていないものだけ）。
@@ -71,6 +72,13 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     const { chat } = c.var;
     const detail: ChatDetail = { chat, events: store.events.list(chat.id), approvals: approvals.list({ chatId: chat.id }), live: runner.live(chat.id) };
     return c.json(detail);
+  });
+
+  // チャットのやり取りの記録（Markdown。右クリックの「全部のやり取りをコピー」。画面が描いている範囲に関係なく、初めからすべて）
+  app.get("/api/chats/:id/transcript", withChat, (c) => {
+    const { chat } = c.var;
+    const transcript: ChatTranscript = { markdown: chatTranscript(chat, requireProject(store, chat.project_id), store.events.list(chat.id), { note: false }) };
+    return c.json(transcript);
   });
 
   // チャットの名前・グループ・固定・アーカイブを変える（カンバンの列は AI の状態で決まるので変えない）。

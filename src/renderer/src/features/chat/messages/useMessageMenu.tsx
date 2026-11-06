@@ -1,4 +1,5 @@
 import type { MouseEvent, ReactNode } from "react";
+import { api } from "@/api";
 import { reportFailure } from "@/ui/dialogs";
 import { MenuItem, PopupMenu } from "@/ui/PopupMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -34,8 +35,10 @@ interface Selected {
 
 /**
  * チャットの中の文の右クリックのメニュー（発言・質問のカード・ツールの行・サブエージェントの画面など、どこでも同じ形）。
- * 文を選んでいれば「選択部分をコピー」、項目の丸ごとの文があれば「〜全体をコピー」。書式付き（ほかのアプリに貼っても見出し・表が崩れない。
- * 書式を受け取れない所には Markdown の文）でコピーするのは、AI の返答とその選択部分（描いた表示を Markdown に戻してから `selectionToMarkdown`）。
+ * コピーは 3 つ: 「コピー」（選んでいる部分だけ。選んでいなければ押せない）・「〜全体をコピー」（項目の丸ごとの文があるとき）・
+ * 「全部のやり取りをコピー」（チャットの画面の中。このチャットの自分の発言と AI の返答を初めからすべて。コアの記録 `GET /api/chats/:id/transcript`）。
+ * 書式付き（ほかのアプリに貼っても見出し・表が崩れない。書式を受け取れない所には Markdown の文）でコピーするのは、AI の返答とその選択部分
+ * （描いた表示を Markdown に戻してから `selectionToMarkdown`）と、全部のやり取り。
  * いちばん上に「チャットに追加」（AddToChatItems。右の欄・別ウィンドウでは「メインのチャット」の組）、チャットの画面の中なら「子チャットで聞く」「メモ」も
  * 並べる（どれも選んでいる部分、なければ項目の全体を使う）。リンク・コードブロックの上などでも、Electron の既定のメニューに任せず、この 1 つにそろえる。
  * - openFor(e, source): 発言など、項目が自分で開く（その項目の中で選んでいれば選択部分、なければ項目の全体）
@@ -48,6 +51,11 @@ export function useQuoteMenu(extra?: ReactNode) {
   const pane = useOptionalChatPane();
   const copy = (value: string) => void navigator.clipboard.writeText(value).catch(reportFailure("コピーできませんでした"));
   const copyFormatted = (value: string) => void copyRich(value).catch(reportFailure("コピーできませんでした"));
+  const copyTranscript = (chatId: number) =>
+    void api
+      .chatTranscriptMarkdown(chatId)
+      .then((transcript) => copyRich(transcript.markdown))
+      .catch(reportFailure("やり取りをコピーできませんでした"));
   const selectedIn = (container: Element, quotable: boolean): Selected | null => {
     // 開いたときの部分を覚える（メニューを開いている間に選択が変わっても、開いたときの部分を使う）
     const selection = selectionWithin(container, { quotable });
@@ -60,8 +68,19 @@ export function useQuoteMenu(extra?: ReactNode) {
     element = (
       <PopupMenu at={at.at} label="文の操作" onClose={menu.close}>
         <AddToChatItems quote={quoteComment(quoted, "")} what={selected ? "選択部分" : source.noun} />
-        {selected && <MenuItem onSelect={() => (selected.rich ? copyFormatted(selected.markdown) : copy(selected.text))}>選択部分をコピー</MenuItem>}
+        <MenuItem
+          disabled={!selected}
+          title={selected ? undefined : "文を選ぶと、選んだ部分だけをコピーできます"}
+          onSelect={() => selected && (selected.rich ? copyFormatted(selected.markdown) : copy(selected.text))}
+        >
+          コピー
+        </MenuItem>
         {source.text && <MenuItem onSelect={() => (source.rich ? copyFormatted(source.text) : copy(source.text))}>{source.noun}全体をコピー</MenuItem>}
+        {pane && (
+          <MenuItem title="このチャットの自分の発言と AI の返答を、初めからすべて Markdown でコピーします" onSelect={() => copyTranscript(pane.chatId)}>
+            全部のやり取りをコピー
+          </MenuItem>
+        )}
         {extra}
         {pane && (
           <>

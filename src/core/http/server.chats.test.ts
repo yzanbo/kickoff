@@ -281,6 +281,18 @@ test("チャットの記録の API: ほかのチャットのやり取りを Mark
   assert.equal((await call("POST", "/api/chats/99999/transcript")).status, 404);
 });
 
+test("チャットのやり取りの記録の API: 全部のやり取りを Markdown で返す（コピー用。断り書きは入れない）", async () => {
+  const { call, project, store } = setup();
+  const id = (await call("POST", `/api/projects/${project.id}/chats`, { text: "前の話" })).body.id;
+  await until(() => store.chats.get(id)?.status === "completed");
+  const res = await call("GET", `/api/chats/${id}/transcript`);
+  assert.equal(res.status, 200);
+  assert.match(res.body.markdown, /^# チャット「.*」の記録/);
+  assert.match(res.body.markdown, /## 自分（.+）\n\n前の話/);
+  assert.doesNotMatch(res.body.markdown, /参照のために書き出したもの/);
+  assert.equal((await call("GET", "/api/chats/99999/transcript")).status, 404);
+});
+
 test("既定の推論の深さの API: 作業フォルダの Claude Code の設定から求める", async () => {
   const { call, project } = setup();
   fs.mkdirSync(path.join(project.repo_path, ".claude"), { recursive: true });

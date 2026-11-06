@@ -27,6 +27,11 @@ test("チャットの記録: 自分の発言・AI の返答を順に並べ、作
   // 変えたファイルは作業ごとに数え直す（2 回目の作業には添えない）
   assert.equal(md.match(/この作業で変えたファイル/g)?.length, 1);
   assert.equal(transcriptFileName({ ...chat, title: "a/b:c" }), "チャット履歴-a b c.md");
+  // 添付にするときは断り書きを入れ、コピーするときは入れない
+  assert.match(md, /参照のために書き出したもの/);
+  const copied = chatTranscript(chat, project, [makeEvent(1, "user", { text: "ボタンを直して" })], { note: false });
+  assert.doesNotMatch(copied, /参照のために書き出したもの/);
+  assert.match(copied, /- 作成: .+\n\n## 自分（.+）\n\nボタンを直して\n$/);
 });
 
 test("チャットの記録: AI からの質問に答えた内容を、質問ごとに入れる（スキップは入れない）", () => {
