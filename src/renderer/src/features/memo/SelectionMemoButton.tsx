@@ -46,10 +46,10 @@ export function SelectionMemoButton({
   const pickMode = needsTargetMemo(defaultMode) ? (defaultMode as "append" | "merge") : null;
 
   return (
-    <span className="selection-memo">
+    <span className="selection-split">
       <button
         type="button"
-        className="btn selection-attach-button selection-memo-main"
+        className="btn selection-attach-button selection-split-main selection-memo-main"
         title={`${MEMO_ADD_MODE_LABELS[defaultMode]}（▾ でほかの追加のしかた・「メモ」で行う追加の変更）`}
         aria-haspopup={pickMode ? "menu" : undefined}
         aria-expanded={pickMode ? open?.value === "pick" : undefined}
@@ -62,7 +62,7 @@ export function SelectionMemoButton({
       </button>
       <button
         type="button"
-        className="btn selection-attach-button selection-memo-more"
+        className="btn selection-attach-button selection-split-more selection-memo-more"
         aria-label="メモへの追加のしかたを選ぶ"
         title="メモへの追加のしかたを選ぶ（「メモ」で行う追加も変えられます）"
         aria-haspopup="menu"

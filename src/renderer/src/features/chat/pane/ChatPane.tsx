@@ -26,7 +26,7 @@ interface ChatPaneProps {
   onChatChange?: (chat: Chat) => void;
   /** パネルで表示しているか（裏のタブ・閉じたパネルでは false） */
   visible?: boolean;
-  /** 新しいチャットのタブを開く（送信待ちの指示を新しいチャットで聞くとき。パネルの外では渡さない） */
+  /** 新しいチャットのタブを開く（送信待ちの指示・選んだ文を新しいチャットで聞くとき。パネルの外では渡さない） */
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
   /** パネルのタブの置き場所（chatPaneSlot。タブの右クリックから会話 / 動きを切り替える） */
   slot?: string;

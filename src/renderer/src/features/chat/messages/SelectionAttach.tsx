@@ -1,13 +1,16 @@
-import { MessageSquarePlus } from "lucide-react";
+import { MessagesSquare, SquarePen } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
+import { MenuItem } from "@/ui/PopupMenu";
+import { MAX_ASK_CHILD_QUOTE, openAskChild } from "@/features/chat/children/childChats";
 import { addToChat } from "@/features/chat/pane/addToChat";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { SelectionMemoButton } from "@/features/memo/SelectionMemoButton";
 import { selectionWithin } from "./quotable";
 import { quoteCode, quoteComment } from "./quoteComment";
+import { SelectionTargetButton } from "./SelectionTargetButton";
 
 /** 選んだ範囲（画面の位置と、チャット欄に足す引用。返答なら、描いた表示を Markdown に戻した文も（メモにするとき）） */
 export interface Picked {
@@ -24,11 +27,12 @@ export interface ExtraControls {
   done: () => void;
 }
 
-/** 選んだ範囲の上のボタン 1 つ（押すと onAdd に引用を渡す） */
+/** 選んだ範囲の上のボタン 1 つ（押すと onAdd に引用を渡す。more があれば横の ▾ で、そのチャットに関わるほかの操作のメニューの項目を出す。done = 済んだので選択ごと消す） */
 export interface AddTarget {
   label: string;
   title: string;
   onAdd: (text: string) => void;
+  more?: (picked: Picked, done: () => void) => ReactNode;
 }
 
 /** ボタンを画面の端からはみ出さないように寄せるときの、ボタン 1 つの幅 */
@@ -84,18 +88,43 @@ export function pickedInCode(root: Element | null): Picked | undefined {
 const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追加", title: "選択部分を引用して、チャットの入力欄に足します（送るのは自分で）" };
 
 /**
- * メインの会話の中の文（発言・質問のカード・ツールの行・サブエージェントのカードなど。`data-quotable` の中）を選ぶと、その上に「チャットに追加」のボタンを出し、押すと選んだ文の引用を、すぐこのチャットの入力欄の文の後ろに足す
- * （何件か足してから、まとめて送れる。送るのは自分で）。横に「メモ ▾」（SelectionMemoButton。選択部分をメモにする）。
+ * メインの会話の中の文（発言・質問のカード・ツールの行・サブエージェントのカードなど。`data-quotable` の中）を選ぶと、その上に「チャットに追加 ▾」のボタンを出し、押すと選んだ文の引用を、すぐこのチャットの入力欄の文の後ろに足す
+ * （何件か足してから、まとめて送れる。送るのは自分で）。▾ はチャットの操作だけ（子チャットで聞く・新しいチャットで聞く）。横に「メモ ▾」（SelectionMemoButton。メモの操作だけ）。
  * 右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach がメインのチャットと両方に足せるボタンを出す）
  */
 export function SelectionAttach() {
-  const { root, fillComposer, chatId, projectId } = useChatPane();
+  const { root, fillComposer, chatId, projectId, askInNewChat } = useChatPane();
   const inSide = useMainChat() !== null;
   if (inSide) return null;
+  const more = (picked: Picked, done: () => void) => (
+    <>
+      {/* 選んだ文を引用して、このチャットの作業を止めずに横で聞く（発言の右クリックの「子チャットで聞く」と同じ） */}
+      <MenuItem
+        onSelect={() => {
+          openAskChild({ parentId: chatId, eventId: null, quote: (picked.markdown ?? picked.quote).slice(0, MAX_ASK_CHILD_QUOTE) });
+          done();
+        }}
+      >
+        <MessagesSquare size={14} aria-hidden /> 子チャットで聞く
+      </MenuItem>
+      {/* チャットのタブが入っているパネルの中だけ（送信待ちの「新しいチャットで聞く」と同じ口） */}
+      {askInNewChat && (
+        <MenuItem
+          title="選択部分の引用を入力欄に入れた新しいチャットを開きます（送るのは自分で）"
+          onSelect={() => {
+            askInNewChat({ text: picked.quote, attachments: [] });
+            done();
+          }}
+        >
+          <SquarePen size={14} aria-hidden /> 新しいチャットで聞く
+        </MenuItem>
+      )}
+    </>
+  );
   return (
     <SelectionAttachBox
       pick={() => pickedInQuotable(root.current)}
-      targets={() => [{ ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }) }]}
+      targets={() => [{ ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }), more }]}
       extra={(picked, controls) => (
         <SelectionMemoButton projectId={projectId()} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
       )}
@@ -140,7 +169,7 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
 /**
  * 選んだ範囲の上のボタン（pick が、いま選んでいる範囲が足せる所かを決め、targets が足す先のボタンを決める）。押すとその onAdd に引用を渡す。
  * 別ウィンドウ・右の欄のメモでは、足す先（メインのウィンドウのチャット欄など）を targets で渡す。
- * extra はボタンの横に置くもの（メインの会話の「メモ ▾」）。そのメニューを開いている間（hold）は、外側のクリック・選び直し・スクロールで消さない
+ * extra はボタンの横に置くもの（メインの会話の「メモ ▾」）。足す先の ▾（more）・extra のメニューを開いている間（hold）は、外側のクリック・選び直し・スクロールで消さない
  */
 export function SelectionAttachBox({
   pick,
@@ -181,21 +210,7 @@ export function SelectionAttachBox({
   return (
     <div ref={boxRef} className="selection-attach" style={{ left: at.x, top: at.y }}>
       {shown.targets.map((target) => (
-        <button
-          key={target.label}
-          type="button"
-          className="btn selection-attach-button"
-          title={target.title}
-          // 押してもピントが移って選択が消えないように
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            target.onAdd(shown.picked.quote);
-            finish();
-          }}
-        >
-          <MessageSquarePlus size={13} aria-hidden />
-          {target.label}
-        </button>
+        <SelectionTargetButton key={target.label} target={target} picked={shown.picked} controls={{ hold: setHeld, done: finish }} />
       ))}
       {extra?.(shown.picked, { hold: setHeld, done: finish })}
     </div>
