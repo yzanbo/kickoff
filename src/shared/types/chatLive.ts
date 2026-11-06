@@ -78,4 +78,9 @@ export interface ChatLive {
    * 圧縮中に足すと、画面では圧縮より上に出て、要約したあとの会話に入ったかも分からないため
    */
   after_compact: QueuedMessage[];
+  /**
+   * 圧縮前指示を送ってから、会話の圧縮が終わるまで（圧縮前指示の作業中も含む）。この間の「いま」は after_compact に預かり、
+   * 圧縮が終わってから伝える（圧縮前指示の作業に混ざる・圧縮より前の会話に入るのを防ぐため）
+   */
+  awaiting_compact: boolean;
 }

@@ -27,7 +27,7 @@ import { groupEvents, relativize } from "@/features/chat/timeline/timelineItems"
 import { useTimelineScrollHandle } from "@/features/chat/timeline/timelineScroll";
 import { useTimelineWindow } from "@/features/chat/timeline/useTimelineWindow";
 import type { ChatPaneActions, ChatPaneState } from "./chatPaneContext";
-import { useChatSend } from "./useChatSend";
+import { compactHoldOf, useChatSend } from "./useChatSend";
 
 export interface ChatViewInput {
   chat: Chat;
@@ -77,9 +77,14 @@ export function useChatView(
   useEffect(() => {
     if (!busy) setStopClicked(false);
   }, [busy]);
-  // 画面に出す作業中の様子: 停止中は押した直後から、会話の圧縮中は作業中だけ（作業中の行・チャット欄のメーターで知らせる）
+  // 画面に出す作業中の様子: 停止中は押した直後から、会話の圧縮中・圧縮前指示から圧縮が終わるまでは作業中だけ（作業中の行・チャット欄のメーターで知らせる）
   const live = useMemo<ChatLive>(
-    () => ({ ...coreLive, stopping: busy && (stopClicked || coreLive.stopping), compacting: busy ? coreLive.compacting : null }),
+    () => ({
+      ...coreLive,
+      stopping: busy && (stopClicked || coreLive.stopping),
+      compacting: busy ? coreLive.compacting : null,
+      awaiting_compact: busy && coreLive.awaiting_compact,
+    }),
     [coreLive, busy, stopClicked],
   );
   const subagents = useSubagents(chat.id, events, busy, live.background);
@@ -117,7 +122,7 @@ export function useChatView(
   }, [jumpTarget, timeline.visible, scroll]);
   // 失敗した作業の直し方（変わる様子として配り、失敗した作業の終わりの行だけが描き直る）
   const retry = useRetryChoices(events, busy, options);
-  const send = useChatSend({ chatId: chat.id, busy, queued: live.queue.messages.length > 0, compacting: live.compacting !== null, options, scroll, background: live.background, runningAgents, onStopping: setStopClicked, beforeSend });
+  const send = useChatSend({ chatId: chat.id, busy, queued: live.queue.messages.length > 0, compactHold: compactHoldOf(live), options, scroll, background: live.background, runningAgents, onStopping: setStopClicked, beforeSend });
 
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
   const promptKeys = usePromptKeys({ root: rootRef, timeline: scroll.ref, promptIds: prompts.ids, onJump: (id) => pane.jumpTo(id) });

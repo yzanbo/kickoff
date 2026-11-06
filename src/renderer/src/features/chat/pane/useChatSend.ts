@@ -1,4 +1,4 @@
-import type { Attachment, BackgroundState } from "@shared/types";
+import type { Attachment, BackgroundState, ChatLive } from "@shared/types";
 import { api } from "@/api";
 import { queueModeTexts, useQueueMode } from "@/features/chat/composer/QueueModeToggle";
 import type { QueueSendMode } from "@/features/chat/composer/composerKeys";
@@ -6,10 +6,28 @@ import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import { confirmStopAgents } from "@/features/chat/status/backgroundLabel";
 import type { TimelineScroll } from "@/features/chat/timeline/timelineScroll";
 
-/** 会話の圧縮中のチャット欄の案内と送信ボタンの名前（送ると、コアが預かって圧縮が終わってから伝える） */
-const COMPACTING_TEXTS = {
-  placeholder: "会話を圧縮しています。Enter で送ると、圧縮が終わってから伝えます（⌘⇧Enter であとで送る）",
-  sendLabel: "圧縮が終わったら伝える",
+/**
+ * 「いま」をコアが預かる間（compacting = 会話の圧縮中 / awaiting = 圧縮前指示を送ってから圧縮が始まるまで。圧縮前指示の作業中）。
+ * この間に送った「いま」は、圧縮が終わってから伝わる（ChatLive の after_compact）
+ */
+export type CompactHold = "compacting" | "awaiting" | null;
+
+/** 作業中の様子から、「いま」を預かる間か */
+export function compactHoldOf(live: ChatLive): CompactHold {
+  if (live.compacting !== null) return "compacting";
+  return live.awaiting_compact ? "awaiting" : null;
+}
+
+/** 「いま」を預かる間のチャット欄の案内と送信ボタンの名前（送ると、コアが預かって圧縮が終わってから伝える） */
+const HOLD_TEXTS = {
+  compacting: {
+    placeholder: "会話を圧縮しています。Enter で送ると、圧縮が終わってから伝えます（⌘⇧Enter であとで送る）",
+    sendLabel: "圧縮が終わったら伝える",
+  },
+  awaiting: {
+    placeholder: "圧縮前指示の作業中です。Enter で送ると、このあとの会話の圧縮が終わってから伝えます（⌘⇧Enter であとで送る）",
+    sendLabel: "圧縮が終わったら伝える",
+  },
 };
 
 /**
@@ -18,13 +36,14 @@ const COMPACTING_TEXTS = {
  * 「質問として送る」（onAsk。送信ボタンの右クリック）は、同じ送り方で送り、その指示の作業が終わったら送信待ちを自動で送らずに一時停止する
  * （答えを見て次を決める。あとで = 入れた指示のすぐあとに一時停止の印、いま・すぐ送る = その作業が終わったら止める）。
  * 中断は、裏で動いているサブエージェント・コマンドも止まることを確かめてから（onStopping: 押してから止まるまでの「停止中」）。
- * 会話の圧縮中（compacting）は、チャット欄に送り方の切り替えを出さないので、Enter はいつも「いま」（コアが預かり、圧縮が終わってから伝える。⌘⇧Enter はあとで）
+ * 会話の圧縮中・圧縮前指示から圧縮が終わるまで（compactHold）は、チャット欄に送り方の切り替えを出さないので、Enter はいつも「いま」
+ * （コアが預かり、圧縮が終わってから伝える。⌘⇧Enter はあとで）
  */
 export function useChatSend({
   chatId,
   busy,
   queued,
-  compacting,
+  compactHold,
   options,
   scroll,
   background,
@@ -36,8 +55,8 @@ export function useChatSend({
   busy: boolean;
   /** 送信待ちがあるか（作業していなくても、送り方を選ぶ） */
   queued: boolean;
-  /** 会話の圧縮中か */
-  compacting: boolean;
+  /** 「いま」をコアが預かる間か（会話の圧縮中・圧縮前指示から圧縮が始まるまで） */
+  compactHold: CompactHold;
   options: ChatOptionsState;
   scroll: TimelineScroll;
   background: BackgroundState | null;
@@ -48,9 +67,10 @@ export function useChatSend({
   beforeSend?: () => Promise<void>;
 }) {
   const [queueMode, setQueueMode] = useQueueMode();
-  // 圧縮中は切り替えを出さないので、選んでいる方によらず「いま」で送る
-  const defaultMode: QueueSendMode = busy && compacting ? "tell" : queueMode;
-  const texts = busy && compacting ? COMPACTING_TEXTS : queueModeTexts(busy, queued, queueMode);
+  // 預かる間は切り替えを出さないので、選んでいる方によらず「いま」で送る
+  const hold = busy ? compactHold : null;
+  const defaultMode: QueueSendMode = hold ? "tell" : queueMode;
+  const texts = hold ? HOLD_TEXTS[hold] : queueModeTexts(busy, queued, queueMode);
   const send = async (text: string, attachments: Attachment[], pauseAfter = false) => {
     await beforeSend?.();
     scroll.follow();

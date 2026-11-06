@@ -108,7 +108,8 @@ export function ChatComposerArea({
         sendLabel={send.sendLabel}
         onSend={send.onSend}
         onQueue={send.onQueue}
-        busyControls={<QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
+        // 圧縮前指示から圧縮が終わるまでは「いま」を預かるので、いま / あとでの切り替えは出さない（停止のボタンは出す）
+        busyControls={live.awaiting_compact ? undefined : <QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={live.stopping}
         onStop={send.onStop}
         trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedCompact(live.queue)} />}
