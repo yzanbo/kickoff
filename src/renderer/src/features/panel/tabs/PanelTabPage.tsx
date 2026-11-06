@@ -39,7 +39,7 @@ const PAGES: { [K in TabKind]: (props: PageProps<Extract<PanelTab, { kind: K }>>
       chatId={t.id}
       focus={t.focus}
       visible={visible}
-      // 送信待ちの指示を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
+      // 送信待ちの指示・選んだ文を新しいチャットで聞くときは、このパネルに新しいチャットのタブを開く
       onOpenNew={panel.openNew}
       // 移したチャットは、移した先のプロジェクトのものとして扱う（projectId も合わせる）
       onChatChange={(chat) => panel.patchTab(t.key, { kind: "chat", fields: { title: chat.title, projectId: chat.project_id, chat } })}

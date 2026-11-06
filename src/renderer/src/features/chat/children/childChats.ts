@@ -17,6 +17,9 @@ const set = (next: AskChildRequest | null) => {
   listeners.forEach((l) => l());
 };
 
+/** 子チャットに引用として渡す文の上限（文字。発言の全体を渡すときに長すぎないように） */
+export const MAX_ASK_CHILD_QUOTE = 4000;
+
 /** 「子チャットで聞く」の画面を開く（AskChildHost が出す） */
 export const openAskChild = (next: AskChildRequest) => set(next);
 export const closeAskChild = () => set(null);

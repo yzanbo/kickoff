@@ -7,13 +7,10 @@ import { copyRich } from "@/lib/richCopy";
 import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { MemoMenuItems } from "@/features/memo/MemoMenuItems";
 import { MessagesSquare } from "lucide-react";
-import { openAskChild } from "@/features/chat/children/childChats";
+import { MAX_ASK_CHILD_QUOTE, openAskChild } from "@/features/chat/children/childChats";
 import { AddToChatItems } from "./AddToChatItems";
 import { onEditable, quoteBlockAt, selectionWithin } from "./quotable";
 import { quoteComment } from "./quoteComment";
-
-/** 子チャットに引用として渡す文の上限（文字。発言の全体を渡すときに長すぎないように） */
-const MAX_QUOTE_CHARS = 4000;
 
 /** 右クリックした項目の丸ごとの文（選んでいなければ、これを使う。text が空なら、選んだ部分だけを扱う） */
 interface QuoteSource {
@@ -86,7 +83,7 @@ export function useQuoteMenu(extra?: ReactNode) {
           <>
             <div className="menu-separator" role="separator" />
             {/* 選んだ文（なければ項目の全体）を引用して、このチャットの作業を止めずに横で聞く */}
-            <MenuItem onSelect={() => openAskChild({ parentId: pane.chatId, eventId: source.eventId, quote: quoted.slice(0, MAX_QUOTE_CHARS) })}>
+            <MenuItem onSelect={() => openAskChild({ parentId: pane.chatId, eventId: source.eventId, quote: quoted.slice(0, MAX_ASK_CHILD_QUOTE) })}>
               <MessagesSquare size={14} /> 子チャットで聞く
             </MenuItem>
           </>

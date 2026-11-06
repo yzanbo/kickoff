@@ -24,7 +24,7 @@ interface Props {
   group?: number;
   /** 作業場所別のまとまりの「新しいチャット」から始めたときのワークツリーのフォルダ（なければ本体） */
   worktree?: string;
-  /** 初めに入力欄に入れるもの（送信待ちの指示を新しいチャットで聞くとき。文と添付） */
+  /** 初めに入力欄に入れるもの（送信待ちの指示・選んだ文を新しいチャットで聞くとき。文と添付） */
   seed?: NewChatSeed;
   /** 書きかけていた文（ボードを開き直した・アプリを再起動したときに入力欄へ戻す） */
   draftText?: string;
@@ -140,7 +140,7 @@ export function NewChatPane({
           <h1>{project?.name ?? ""}</h1>
           <p className="muted">調べもの・設計・実装・テストなど、AI に頼みたいことを書いて始めます</p>
           {groupName && <p className="muted small">グループ「{groupName}」に追加されます</p>}
-          {seed && <p className="muted small">送信待ちの指示を入力欄に入れました。直して送れます（作成先のグループは上で選べます）</p>}
+          {seed && <p className="muted small">聞くことを入力欄に入れました。直して送れます（作成先のグループは上で選べます）</p>}
           {place.kind === "new" && <p className="muted small">新しいワークツリー「{place.branch}」を作り、その中で作業します</p>}
           {busyHere && <p className="small warn-text">この作業場所では、ほかのチャットが作業中です。同じファイルを触ると作業がぶつかることがあります。</p>}
         </div>

@@ -40,7 +40,7 @@ export interface ChatViewInput {
   streaming: string;
   /** 検索結果から開いたとき、スクロールして強調する発言（イベント ID） */
   focus?: number;
-  /** 新しいチャットのタブを開く（送信待ちの指示を新しいチャットで聞くとき。パネルの外では渡さない） */
+  /** 新しいチャットのタブを開く（送信待ちの指示・選んだ文を新しいチャットで聞くとき。パネルの外では渡さない） */
   onOpenNew?: (target: NewChatTarget, seed?: NewChatSeed) => void;
   /** 送る前にすること（メモのチャットで、書きかけのメモを保存してから送る） */
   beforeSend?: () => Promise<void>;
