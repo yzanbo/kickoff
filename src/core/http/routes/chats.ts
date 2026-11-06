@@ -87,15 +87,12 @@ export function chatRoutes(app: Hono, { store, runner, approvals }: ServerDeps) 
     const { chat } = c.var;
     const { title, group_id, pinned, archived } = chatPatchSchema.parse(await jsonBody(c));
     if (group_id !== undefined && group_id !== null) requireGroupOf(store, group_id, chat.project_id);
-    // 子チャット（子・孫…）も一緒にしまう・戻す（作業中のものがあればしまえない）
-    const family = archived === undefined ? [] : store.chats.descendants(chat.id);
-    if (archived) for (const c of [chat, ...family]) runner.requireIdle(c.id, "アーカイブ");
+    // 子チャット（子・孫…）も一緒にしまう（作業中のものがあればしまえない）。戻すときは、一緒にしまった子孫だけを戻す（store.chats.archive）
+    if (archived) for (const c of [chat, ...store.chats.descendants(chat.id)]) if (c.archived_at === null) runner.requireIdle(c.id, "アーカイブ");
     if (group_id !== undefined) store.chats.setGroup(chat.id, group_id);
     if (pinned !== undefined) store.chats.setPinned(chat.id, pinned);
-    // しまったままもう一度しまっても、しまった日時は変えない（プロジェクトと同じ）
-    const archivedAt = archived === undefined ? undefined : archived ? (chat.archived_at ?? new Date().toISOString()) : null;
-    if (title !== undefined || archivedAt !== undefined) store.chats.update(chat.id, { title, archived_at: archivedAt });
-    for (const c of family) if (Boolean(c.archived_at) !== Boolean(archivedAt)) store.chats.update(c.id, { archived_at: archivedAt ?? null });
+    if (title !== undefined) store.chats.update(chat.id, { title });
+    if (archived !== undefined) store.chats.archive(chat.id, archived);
     return c.json(store.chats.get(chat.id));
   });
 

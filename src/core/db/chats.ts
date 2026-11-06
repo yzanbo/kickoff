@@ -12,7 +12,7 @@ export interface ChatFilter {
   onlyArchived?: boolean;
 }
 
-/** update で変えられる列（型と UPDATE の対象をここ 1 つで決める。固定・グループ・プロジェクトは専用の操作で変える） */
+/** update で変えられる列（型と UPDATE の対象をここ 1 つで決める。固定・グループ・プロジェクト・アーカイブは専用の操作で変える） */
 const CHAT_COLUMNS = [
   "title",
   "status",
@@ -29,18 +29,17 @@ const CHAT_COLUMNS = [
   "context_window",
   "branch",
   "unread",
-  "archived_at",
 ] as const satisfies readonly (keyof Chat)[];
 
 /** チャットの変えられる項目 */
 export type ChatPatch = Partial<Pick<Chat, (typeof CHAT_COLUMNS)[number]>>;
 
-/** DB の行（真偽値は 0 / 1） */
-type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned"> & { fast_mode: number; unread: number; pinned: number };
+/** DB の行（真偽値は 0 / 1。archived_with_parent は店の中だけで使い、Chat には出さない） */
+type ChatRow = Omit<Chat, "fast_mode" | "unread" | "pinned"> & { fast_mode: number; unread: number; pinned: number; archived_with_parent: number };
 
 /** DB の行をアプリの型にする（真偽値の列を boolean に） */
 function toChat(row: unknown): Chat {
-  const r = row as ChatRow;
+  const { archived_with_parent: _withParent, ...r } = row as ChatRow;
   return { ...r, fast_mode: r.fast_mode === 1, unread: r.unread === 1, pinned: r.pinned === 1 };
 }
 
@@ -73,6 +72,38 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       )
       .all(id)
       .map(toChat);
+
+  /** アーカイブの列を書いて、変更を知らせる（最後に動いた時刻は進めない） */
+  const setArchived = (id: number, archivedAt: string | null, withParent: boolean) => {
+    db.prepare("UPDATE chats SET archived_at = ?, archived_with_parent = ? WHERE id = ?").run(archivedAt, bit(withParent), id);
+    onChange({ type: "chat", chat: get(id)! });
+  };
+  const childRows = (id: number): ChatRow[] => db.prepare("SELECT * FROM chats WHERE parent_chat_id = ? ORDER BY id").all(id) as ChatRow[];
+
+  /**
+   * アーカイブする・戻す（子孫も）。しまうときは、まだしまっていない子孫に「親と一緒にしまった」印を付けて一緒にしまう
+   * （子チャットだけで先にしまっていたものは、そのまま）。戻すときは、印のある子孫だけを戻し、子チャットだけでしまっていたもの（とその下）はしまったまま。
+   * 子チャットだけをしまう・戻すときは、親には触らない。しまったままもう一度しまっても、しまった日時は変えない
+   */
+  const archive = (id: number, archived: boolean, now = new Date()): Chat => {
+    const chat = get(id)!;
+    if (archived) {
+      const at = chat.archived_at ?? now.toISOString();
+      setArchived(id, at, false);
+      for (const c of descendants(id)) if (c.archived_at === null) setArchived(c.id, at, true);
+    } else {
+      setArchived(id, null, false);
+      const restore = (parentId: number, depth: number) => {
+        for (const c of childRows(parentId)) {
+          if (c.archived_at !== null && c.archived_with_parent !== 1) continue;
+          if (c.archived_at !== null) setArchived(c.id, null, false);
+          if (depth < 50) restore(c.id, depth + 1);
+        }
+      };
+      restore(id, 1);
+    }
+    return get(id)!;
+  };
 
   const memoChats = (projectId: number, memoPath: string): Chat[] =>
     db
@@ -133,6 +164,7 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
     },
     /** 子孫の子チャット（子・孫・ひ孫…。深い方から順に。自分は含まない） */
     descendants,
+    archive,
     /** メモのチャット（そのメモ、フォルダならその中のメモのもの。アーカイブ済みも含む。新しい順） */
     memoChats,
     /** メモの名前を変えた・動かしたとき、メモのチャットの memo_path を付け替える（フォルダなら中のメモのものも。並び順は変えない） */
@@ -168,20 +200,23 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       return chat;
     },
     /**
-     * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数を返す。
-     * 完了 = 終わっていて（完了・中断）、未読の印がなく、固定していないもの（失敗・作業中・固定したものはしない）
+     * 完了したまま days 日たったチャットをアーカイブする（自動のアーカイブ）。アーカイブした数（子孫は数えない）を返す。
+     * 完了 = 終わっていて（完了・中断）、未読の印がなく、固定していないもの（失敗・作業中・固定したものはしない）。
+     * 子チャットは親と一緒にしまうので、見るのは親のないチャットだけ。しまっていない子孫も、どれも同じく完了したまま days 日たっていなければしまわない
      */
     archiveStale(days: number, now = new Date()): number {
       const before = new Date(now.getTime() - days * 86_400_000).toISOString();
+      const stale = (c: Pick<Chat, "status" | "unread" | "active_at">) => (c.status === "completed" || c.status === "cancelled") && !c.unread && c.active_at < before;
       const rows = db
-        .prepare("SELECT id FROM chats WHERE archived_at IS NULL AND status IN ('completed', 'cancelled') AND unread = 0 AND pinned = 0 AND active_at < ?")
+        .prepare("SELECT id FROM chats WHERE archived_at IS NULL AND parent_chat_id IS NULL AND status IN ('completed', 'cancelled') AND unread = 0 AND pinned = 0 AND active_at < ?")
         .all(before) as { id: number }[];
-      const at = now.toISOString();
+      let count = 0;
       for (const { id } of rows) {
-        db.prepare("UPDATE chats SET archived_at = ? WHERE id = ?").run(at, id);
-        onChange({ type: "chat", chat: get(id)! });
+        if (!descendants(id).every((c) => c.archived_at !== null || stale(c))) continue;
+        archive(id, true, now);
+        count++;
       }
-      return rows.length;
+      return count;
     },
     /** その作業場所（ワークツリー）を使っているチャット */
     inWorktree,

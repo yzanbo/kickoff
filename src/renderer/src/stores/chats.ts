@@ -192,6 +192,20 @@ function childView(archived: boolean): ReadonlyMap<number, Chat[]> {
   return map;
 }
 
+/** 読み込んだ一覧にある子孫（子・孫…）の数（archived: アーカイブ済みの一覧も数える。読み込んでいなければ数えない）。アーカイブ・削除の確かめの文に使う */
+export function knownDescendantCount(id: number, { archived = false }: { archived?: boolean } = {}): number {
+  const map = childView(archived);
+  let count = 0;
+  const walk = (parentId: number, depth: number) => {
+    for (const c of map.get(parentId) ?? []) {
+      count++;
+      if (depth < 50) walk(c.id, depth + 1);
+    }
+  };
+  walk(id, 1);
+  return count;
+}
+
 /** 子チャットを親ごとに（サイドバーの親の行の開閉・数、チャットの画面の札。archived: アーカイブ済みも含める） */
 export function useChildChats({ archived = false }: { archived?: boolean } = {}): ReadonlyMap<number, Chat[]> {
   useStoreStatus(activeChats);

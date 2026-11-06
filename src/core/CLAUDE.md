@@ -26,6 +26,7 @@ Electron に依存しないサーバー（HTTP API・SQLite・エージェント
 - `openDatabase` は WAL と外部キーを有効にしてから `migrate` する。
 - `Store`（`db/store.ts`）は表ごとの店をまとめて持つだけ: `store.settings` / `secrets` / `projects` / `groups` / `chats` / `events` / `queues` / `snippets`（定型文）。各店は `db/<表>.ts` の `createXxxStore(db, onChange)` で、変える操作は `onChange` で知らせる（SSE の起点。秘密の値は知らせず、送信待ちの知らせは `ChatRuntime` が出す）。ルートなどから SQL を書かず、店を直接使う。作るときの入力の形は `db/types.ts`（`NewProject` / `NewChat`）。
 - 行と型の変換は各店の `toChat` / `toProject` などに集める（真偽値は `db/common.ts` の `bit()` で 0 / 1、JSON の列は読み書きのときに変換）。型と API は boolean で返す。変えられる列の一覧（`CHAT_COLUMNS` / `PROJECT_COLUMNS`）を型と UPDATE の両方に使い、`updateRow` で書いた項目だけを変える。
+- チャットのアーカイブは `store.chats.archive`（子孫も一緒。決まりは `chat/CLAUDE.md` の「子チャット」）。
 - `chats.active_at`（最後に動いた時刻。一覧の並び順）を進めるのは、状態（`status`）を変える更新だけ（`chats.update` に `status` があるとき = 送った・終わった）。未読・固定・グループ（`setUnread` / `setPinned` / `setGroup`）・名前・アーカイブ・移動・作業場所の片付け・起動のときの復旧では進めない。
 - チャットを入れられるのは同じプロジェクトのグループだけ（トリガーで守る）。色（`hue`）はプロジェクトもグループも、作ったときに `@shared/project/colors` の `pickProjectHue` でほかと被らない色を選ぶ（グループは同じプロジェクトの中で）。
 - 全文検索: `chat_events` の生成列 `text`（自分の発言とメインの AI の返答。サブエージェントの文は除く）を、ビュー `chat_event_texts` を中身にした FTS5（trigram）の `chat_event_search` にし、トリガーで追従させる。`store.events.search` は 3 文字以上を MATCH、2 文字以下を生成列の LIKE で探す。
