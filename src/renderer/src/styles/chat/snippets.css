@@ -118,8 +118,17 @@
   overflow: hidden;
 }
 
+/*
+ * 枠は余白なし（一覧と下の行を端まで広げるため）なので、見出しと下の行に余白を持たせ、左端を一覧の行の文字（一覧 6px ＋ 行 8px）にそろえる。
+ * 閉じるボタンは右の余白を詰めて、ボタンの地の分だけ内に置く
+ */
+.snippet-picker .popover-head {
+  margin-bottom: 4px;
+  padding: 8px 8px 0 14px;
+}
+
 .snippet-picker .chat-search {
-  margin: 8px 8px 4px;
+  margin: 0 8px 4px;
 }
 
 .snippet-picker-list {
@@ -187,7 +196,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px;
+  padding: 8px 8px 8px 14px;
   border-top: 1px solid var(--border);
 }
 
