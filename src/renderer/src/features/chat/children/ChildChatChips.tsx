@@ -1,4 +1,5 @@
-import { Archive, MessagesSquare } from "lucide-react";
+import { Archive, ArchiveRestore, MessagesSquare } from "lucide-react";
+import { useState } from "react";
 import type { AgentState, Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -59,75 +60,107 @@ export function ChildChatMarks({ chatId, eventId }: { chatId: number; eventId: n
 /**
  * 入力欄の上の「子チャット 2 件 · 1 件答えあり」（指示の履歴・サブエージェントと同じピルの列）。押すと子チャットの一覧（サブエージェントの一覧と同じ形の行:
  * 状態の印・名前・様子 · モデル · 最後に動いた時刻、右に「右で開く」「新規ウィンドウで開く」とアーカイブ）を開く。行を押すと設定の開き方で開き、
- * 一覧の上で行を押したときの開き方（設定）を変えられる。会話を遡らなくても、答えが来たこととどこにあるかが分かる
+ * 一覧の上で行を押したときの開き方（設定）を変えられる。会話を遡らなくても、答えが来たこととどこにあるかが分かる。
+ * アーカイブした子チャットは一覧と件数から外し、下の「アーカイブ済み n 件を表示」で出して戻せる（サブエージェントの一覧と同じ。すべてアーカイブしていれば
+ * ピルは「アーカイブ済みの子チャット n 件」）
  */
 export function ChildChatsChip({ chatId }: { chatId: number }) {
-  const children = useChildChats().get(chatId);
+  // アーカイブ済みも数えるので、アーカイブ済みの一覧も読む（全プロジェクトで 1 回だけ読み、知らせで直す）
+  const children = useChildChats({ archived: true }).get(chatId);
   const { stateOf } = useChatStates();
   const models = useModels();
   const popover = usePopover();
   const [openIn, setOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
+  const [showArchived, setShowArchived] = useState(false);
   if (!children?.length) return null;
-  const waiting = children.filter((c) => ["needs_input", "unread", "failed"].includes(stateOf(c))).length;
+  const visible = children.filter((c) => !c.archived_at);
+  const hidden = children.filter((c) => c.archived_at);
+  const waiting = visible.filter((c) => ["needs_input", "unread", "failed"].includes(stateOf(c))).length;
   // 別ウィンドウは Mac のアプリだけ
   const places = canPopout() ? (["side", "window"] as const) : (["side"] as const);
   const open = (chat: Chat, place?: "side" | "window") => {
     popover.close();
     openChildChat(chat, place);
   };
+  const renderRow = (c: Chat) => {
+    const state = stateOf(c);
+    const meta = [modelDisplayName(models, c.model), relativeTime(c.active_at)].filter(Boolean);
+    return (
+      <div
+        key={c.id}
+        role="button"
+        tabIndex={0}
+        className={cx("subagent-row child-chat-row", c.archived_at && "archived")}
+        title={`子チャット「${chatTitle(c.title)}」を開く`}
+        onClick={() => open(c)}
+        onKeyDown={(e) => e.key === "Enter" && open(c)}
+      >
+        <span className="subagent-icon">
+          <MessagesSquare size={16} aria-hidden />
+        </span>
+        <span className="subagent-text">
+          <span className="subagent-title">
+            <StatusSlot state={state} />
+            {chatTitle(c.title)}
+          </span>
+          <span className="subagent-meta">
+            <span className={cx("child-chat-row-state", `child-${state}`)}>{CHILD_STATE_LABELS[state]}</span>
+            {meta.map((m) => ` · ${m}`).join("")}
+          </span>
+        </span>
+        <OpenPlaceButtons places={places} onOpen={(place) => open(c, place === "window" ? "window" : "side")} />
+        {/* アーカイブ・戻すはチャットと同じ（確かめてから。戻すと、その子チャットの子も戻る） */}
+        {c.archived_at ? (
+          <IconButton
+            icon={ArchiveRestore}
+            label={`${chatTitle(c.title)} を一覧に戻す`}
+            title="一覧に戻す"
+            className="subagent-row-action"
+            type="button"
+            onClick={(e) => (e.stopPropagation(), void toggleArchiveChat(c))}
+          />
+        ) : (
+          state !== "running" && (
+            <IconButton
+              icon={Archive}
+              label={`${chatTitle(c.title)} をアーカイブ`}
+              title="アーカイブ"
+              className="subagent-row-action"
+              type="button"
+              onClick={(e) => (e.stopPropagation(), void toggleArchiveChat(c))}
+            />
+          )
+        )}
+      </div>
+    );
+  };
   return (
     <ComposerChip
       popover={popover}
       chip={
-        <>
-          子チャット {children.length} 件{waiting > 0 && <span className="child-chats-waiting"> · {waiting} 件答えあり</span>}
-        </>
+        visible.length > 0 ? (
+          <>
+            子チャット {visible.length} 件{waiting > 0 && <span className="child-chats-waiting"> · {waiting} 件答えあり</span>}
+          </>
+        ) : (
+          `アーカイブ済みの子チャット ${hidden.length} 件`
+        )
       }
       label="子チャット"
-      // アーカイブの確かめのダイアログを押しても、一覧は閉じない
+      // アーカイブ・戻すの確かめのダイアログを押しても、一覧は閉じない
       ignore="dialog"
     >
       {places.length > 1 && <DefaultOpenPlace places={places} value={openIn} onChange={setOpenIn} />}
-      {children.map((c) => {
-        const state = stateOf(c);
-        const meta = [modelDisplayName(models, c.model), relativeTime(c.active_at)].filter(Boolean);
-        return (
-          <div
-            key={c.id}
-            role="button"
-            tabIndex={0}
-            className="subagent-row child-chat-row"
-            title={`子チャット「${chatTitle(c.title)}」を開く`}
-            onClick={() => open(c)}
-            onKeyDown={(e) => e.key === "Enter" && open(c)}
-          >
-            <span className="subagent-icon">
-              <MessagesSquare size={16} aria-hidden />
-            </span>
-            <span className="subagent-text">
-              <span className="subagent-title">
-                <StatusSlot state={state} />
-                {chatTitle(c.title)}
-              </span>
-              <span className="subagent-meta">
-                <span className={cx("child-chat-row-state", `child-${state}`)}>{CHILD_STATE_LABELS[state]}</span>
-                {meta.map((m) => ` · ${m}`).join("")}
-              </span>
-            </span>
-            <OpenPlaceButtons places={places} onOpen={(place) => open(c, place === "window" ? "window" : "side")} />
-            {state !== "running" && (
-              <IconButton
-                icon={Archive}
-                label={`${chatTitle(c.title)} をアーカイブ`}
-                title="アーカイブ"
-                className="subagent-row-action"
-                type="button"
-                onClick={(e) => (e.stopPropagation(), void toggleArchiveChat(c))}
-              />
-            )}
-          </div>
-        );
-      })}
+      {visible.length === 0 && <p className="muted small subagent-empty">表示中の子チャットはありません</p>}
+      {visible.map(renderRow)}
+      {hidden.length > 0 && (
+        <>
+          <button type="button" className="subagent-archived-toggle" onClick={() => setShowArchived(!showArchived)}>
+            {showArchived ? "アーカイブ済みを隠す" : `アーカイブ済み ${hidden.length} 件を表示`}
+          </button>
+          {showArchived && hidden.map(renderRow)}
+        </>
+      )}
     </ComposerChip>
   );
 }
