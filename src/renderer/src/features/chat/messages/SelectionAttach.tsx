@@ -1,16 +1,25 @@
 import { MessageSquarePlus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useDismiss } from "@/hooks/useDismiss";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { addToChat } from "@/features/chat/pane/addToChat";
 import { useChatPane } from "@/features/chat/pane/chatPaneContext";
 import { useMainChat } from "@/features/chat/pane/mainChatContext";
+import { SelectionMemoButton } from "@/features/memo/SelectionMemoButton";
+import { selectionToMarkdown } from "@/ui/markdown/selectionMarkdown";
 import { quoteCode, quoteComment } from "./quoteComment";
 
-/** 選んだ範囲（画面の位置と、チャット欄に足す引用） */
+/** 選んだ範囲（画面の位置と、チャット欄に足す引用。返答なら、描いた表示を Markdown に戻した文も（メモにするとき）） */
 export interface Picked {
   rect: { left: number; top: number; width: number };
   quote: string;
+  markdown?: string;
+}
+
+/** 足す先のボタンの横に置くもの（「メモ ▾」）に渡す操作: hold = メニューを開いている間は消さない / done = 済んだので選択ごと消す */
+export interface ExtraControls {
+  hold: (hold: boolean) => void;
+  done: () => void;
 }
 
 /** 選んだ範囲の上のボタン 1 つ（押すと onAdd に引用を渡す） */
@@ -47,7 +56,10 @@ function pickedInReply(root: Element | null): Picked | undefined {
   if (!at || !root || !message || !root.contains(message)) return undefined;
   const text = at.selection.toString().trim();
   if (!text) return undefined;
-  return { rect: at.range.getBoundingClientRect(), quote: quoteComment(text, "") };
+  // 返答の Markdown の表示の中なら Markdown に戻す（メモには書式のまま残す。発言の右クリックの「メモ」と同じ）
+  const markdownRoot = at.element?.closest(".markdown");
+  const markdown = markdownRoot && markdownRoot.contains(at.range.commonAncestorContainer) ? selectionToMarkdown(at.range, markdownRoot) : text;
+  return { rect: at.range.getBoundingClientRect(), quote: quoteComment(text, ""), markdown };
 }
 
 /**
@@ -76,13 +88,22 @@ const ADD_TO_THIS_CHAT: Omit<AddTarget, "onAdd"> = { label: "チャットに追�
 
 /**
  * メインの会話の AI の返答の一部を選ぶと、その上に「チャットに追加」のボタンを出し、押すと選んだ文の引用を、すぐこのチャットの入力欄の文の後ろに足す
- * （何件か足してから、まとめて送れる。送るのは自分で）。右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach がメインのチャットと両方に足せるボタンを出す）
+ * （何件か足してから、まとめて送れる。送るのは自分で）。横に「メモ ▾」（SelectionMemoButton。選んだ部分をメモにする）。
+ * 右の欄・別ウィンドウの中のチャット（子チャット・メモのチャット）では出さない（SideSelectionAttach がメインのチャットと両方に足せるボタンを出す）
  */
 export function SelectionAttach() {
-  const { root, fillComposer } = useChatPane();
+  const { root, fillComposer, chatId, projectId } = useChatPane();
   const inSide = useMainChat() !== null;
   if (inSide) return null;
-  return <SelectionAttachBox pick={() => pickedInReply(root.current)} targets={() => [{ ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }) }]} />;
+  return (
+    <SelectionAttachBox
+      pick={() => pickedInReply(root.current)}
+      targets={() => [{ ...ADD_TO_THIS_CHAT, onAdd: (text) => fillComposer(text, { append: true }) }]}
+      extra={(picked, controls) => (
+        <SelectionMemoButton projectId={projectId()} chatId={chatId} text={picked.markdown ?? picked.quote} onHold={controls.hold} onDone={controls.done} />
+      )}
+    />
+  );
 }
 
 /** 右の欄・別ウィンドウの中のチャットの画面の種類ごとの、そのチャットに足すボタンの名前 */
@@ -121,15 +142,32 @@ export function SideSelectionAttach({ mainChatId, container }: { mainChatId: num
 
 /**
  * 選んだ範囲の上のボタン（pick が、いま選んでいる範囲が足せる所かを決め、targets が足す先のボタンを決める）。押すとその onAdd に引用を渡す。
- * 別ウィンドウ・右の欄のメモでは、足す先（メインのウィンドウのチャット欄など）を targets で渡す
+ * 別ウィンドウ・右の欄のメモでは、足す先（メインのウィンドウのチャット欄など）を targets で渡す。
+ * extra はボタンの横に置くもの（メインの会話の「メモ ▾」）。そのメニューを開いている間（hold）は、外側のクリック・選び直し・スクロールで消さない
  */
-export function SelectionAttachBox({ pick, targets }: { pick: () => Picked | undefined; targets: () => AddTarget[] }) {
+export function SelectionAttachBox({
+  pick,
+  targets,
+  extra,
+}: {
+  pick: () => Picked | undefined;
+  targets: () => AddTarget[];
+  extra?: (picked: Picked, controls: ExtraControls) => ReactNode;
+}) {
   const [shown, setShown] = useState<{ picked: Picked; targets: AddTarget[] }>();
+  const [held, setHeld] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
-  const close = () => setShown(undefined);
+  const close = () => {
+    setShown(undefined);
+    setHeld(false);
+  };
+  const finish = () => {
+    window.getSelection()?.removeAllRanges();
+    close();
+  };
   // 選び終えたとき（マウスを離した・Shift と矢印で選んだ）に見る
   const check = (e: Event) => {
-    if (boxRef.current?.contains(e.target as Node)) return;
+    if (held || boxRef.current?.contains(e.target as Node)) return;
     requestAnimationFrame(() => {
       const picked = pick();
       setShown(picked ? { picked, targets: targets() } : undefined);
@@ -138,11 +176,11 @@ export function SelectionAttachBox({ pick, targets }: { pick: () => Picked | und
   useWindowEvent("mouseup", check);
   useWindowEvent("keyup", (e) => e.shiftKey && check(e));
   // スクロールしたら位置がずれるので消す
-  useWindowEvent("scroll", close, true, true);
-  useDismiss(boxRef, close, { enabled: Boolean(shown) });
+  useWindowEvent("scroll", () => !held && close(), true, true);
+  useDismiss(boxRef, close, { enabled: Boolean(shown) && !held });
 
   if (!shown) return null;
-  const at = placeAbove(shown.picked.rect, BUTTON_WIDTH * shown.targets.length);
+  const at = placeAbove(shown.picked.rect, BUTTON_WIDTH * (shown.targets.length + (extra ? 1 : 0)));
   return (
     <div ref={boxRef} className="selection-attach" style={{ left: at.x, top: at.y }}>
       {shown.targets.map((target) => (
@@ -155,14 +193,14 @@ export function SelectionAttachBox({ pick, targets }: { pick: () => Picked | und
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
             target.onAdd(shown.picked.quote);
-            window.getSelection()?.removeAllRanges();
-            close();
+            finish();
           }}
         >
           <MessageSquarePlus size={13} aria-hidden />
           {target.label}
         </button>
       ))}
+      {extra?.(shown.picked, { hold: setHeld, done: finish })}
     </div>
   );
 }
