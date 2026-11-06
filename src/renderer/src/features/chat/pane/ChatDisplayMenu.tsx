@@ -114,7 +114,7 @@ export function ChatDisplayItems() {
       </CheckItem>
       <CheckItem
         on={!snippetBarHidden}
-        title="チャット欄の上に、このプロジェクトで使う定型文を横に並べます（帯の右クリックでも隠せます）"
+        title="チャット欄の枠の中のいちばん上に、このプロジェクトで使う定型文を横に並べます（帯の右クリック・設定の「定型文」でも切り替えられます）"
         onToggle={() => setSnippetBarHidden(!snippetBarHidden)}
       >
         定型文の帯
