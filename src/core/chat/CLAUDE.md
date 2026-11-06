@@ -100,6 +100,7 @@
 ## 添付・ほかのチャットの記録・移動・自動のアーカイブ
 
 - 添付は `uploads.ts` の `UploadStore`（保存先の `uploads/<id>/<ファイル名>`、1 つ 30MB まで）。パスを指示に書き添えて（`withAttachmentNote`）AI に Read で読ませる。画面での表示（`GET /api/uploads/:id`）は画像と PDF だけ inline、ほかはダウンロードさせる（画面の権限でスクリプトを開かせない）。
+- ツールの結果の画像（`toolImage.ts` の `readToolImage`、`GET /api/chats/:id/tool-image?path=`）: プロバイダーは結果の画像を記録に残さず「[image]」の文字にするので（記録を重くしない）、画面は読むの呼び出しを開いたときに、入力のパスから、いまのファイルを読む。読めるのはチャットの作業場所・本体・添付の保存先・メモのフォルダの中の画像（拡張子は `@shared/chat/toolImage` の `toolImageType`、`MAX_TOOL_IMAGE_BYTES` まで）だけで、リンクを解決してから確かめる（どこでも読めると、API から任意のファイルを取れてしまうため）。外・画像でない・大きすぎるは 400、ないは 404。応答は画像そのもの（`Content-Security-Policy: sandbox`・`nosniff`）と、最後に変えた時刻のヘッダー `x-file-mtime`（読んだあとに変わったかを画面が見分ける）。
 - ほかのチャットを参照: `POST /api/chats/:id/transcript` がそのチャットのやり取りを Markdown（`チャット履歴-<名前>.md`）にし、添付として保存して返す（`transcript.ts` の `chatTranscript` / `transcriptFileName`。自分の発言（質問への回答も）・メインの AI の返答と、作業ごとに変えたファイル・失敗・中断だけ。ツールの出力・サブエージェントの発言は入れない）。
 - 別のプロジェクトへの移動（`POST /api/chats/:id/move`、`store.chats.move`）: グループ・作業場所・ブランチを外し、作業場所は移った先の本体にする。並び順は変えない。作業中は 409。Claude Code の会話は作業フォルダが変わっても続く。
 - 自動のアーカイブ（`autoArchive.ts` の `startAutoArchive`）: 設定の `auto_archive_days` があれば、起動したとき・1 時間ごと・設定を変えたときに、完了・中断のまま日数がたったチャット（未読・固定は除く）をしまう（`store.chats.archiveStale`）。

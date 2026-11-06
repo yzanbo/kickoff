@@ -56,3 +56,10 @@ export async function postForm<T>(url: string, form: FormData): Promise<T> {
   const res = await fetch(url, { method: "POST", body: form, credentials: "same-origin" });
   return bodyOf<T>(res);
 }
+
+/** ファイルの中身（画像など）を読む（本文と応答のヘッダー。失敗は ApiError） */
+export async function requestBlob(url: string): Promise<{ blob: Blob; headers: Headers }> {
+  const res = await fetch(url, { credentials: "same-origin" });
+  if (!res.ok) throw await failure(res);
+  return { blob: await res.blob(), headers: res.headers };
+}
