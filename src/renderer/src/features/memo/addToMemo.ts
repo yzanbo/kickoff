@@ -3,6 +3,8 @@
 // 終わったら「開く」で、設定の開き方（右の欄 / 別ウィンドウ）でそのメモを開ける（openMemoFromChat）
 import { useSyncExternalStore } from "react";
 import { api } from "@/api";
+import type { SettingValue } from "@/lib/storage";
+import { MEMO_ADD_DEFAULT } from "@/lib/storageKeys";
 import { memosStore } from "@/stores/memos";
 import { reportFailure } from "@/ui/dialogs";
 import { baseName } from "./memoPaths";
@@ -40,9 +42,22 @@ export const dismissMemoProgress = () => setProgress(null);
 
 /**
  * メモへの入れ方: new = 新しいメモを作る / summarize = AI で要約して新しいメモを作る /
- * append = 既存のメモの最後に足す / merge = 既存のメモに AI で組み込んで書き直す（メモ全体を書き換える）
+ * append = 既存のメモの最後に足す / merge = 既存のメモに AI で組み込んで書き直す（メモ全体を書き換える）。
+ * 一覧は、文を選んだときの「メモ」の既定の設定（MEMO_ADD_DEFAULT）の選択肢
  */
-export type MemoAddMode = "new" | "summarize" | "append" | "merge";
+export type MemoAddMode = SettingValue<typeof MEMO_ADD_DEFAULT>;
+export const MEMO_ADD_MODES: readonly MemoAddMode[] = MEMO_ADD_DEFAULT.choices;
+
+/** 入れ方の名前（メニューの項目） */
+export const MEMO_ADD_MODE_LABELS: Record<MemoAddMode, string> = {
+  new: "新しいメモを作成",
+  summarize: "AI で要約して新しいメモを作成",
+  append: "既存のメモに追記",
+  merge: "既存のメモに AI で組み込んで書き直す",
+};
+
+/** 既存のメモを選んでから足す入れ方か */
+export const needsTargetMemo = (mode: MemoAddMode) => mode === "append" || mode === "merge";
 
 /** 入れ方ごとの、している間と終わったあとの文 */
 const MODE_TEXTS: Record<MemoAddMode, { busy: string; done: (name: string) => string; failed: string }> = {
@@ -64,7 +79,7 @@ interface AddToMemoInput {
 /** チャットの文をメモにする（失敗はお知らせで出す） */
 export async function addToMemo({ projectId, chatId, text, mode, target }: AddToMemoInput): Promise<void> {
   const texts = MODE_TEXTS[mode];
-  const existing = mode === "append" || mode === "merge";
+  const existing = needsTargetMemo(mode);
   setProgress({ kind: "busy", text: texts.busy });
   try {
     const ref = await api.memoFromChat(projectId, {
