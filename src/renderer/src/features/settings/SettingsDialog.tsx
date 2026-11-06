@@ -1,6 +1,6 @@
 import { Activity, Archive, Bell, Bot, Gauge, MessageSquareQuote, Mic, Palette, PlugZap, Puzzle, Smartphone, SquareTerminal, StickyNote } from "lucide-react";
 import { useSetting } from "@/hooks/useSetting";
-import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, SNIPPET_BAR_HIDDEN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
+import { CHAT_HEADER_ROW_HIDDEN, CHAT_WIDE, CHILD_CHAT_OPEN_IN, COMPOSER_COMPACT, MEMO_OPEN_IN, STICKY_PROMPT_HIDDEN, SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useTheme, type Theme } from "@/app/theme";
 import { Field } from "@/ui/Field";
 import { BrowserExtensions } from "@/features/browser/BrowserExtensions";
@@ -12,6 +12,7 @@ import { PROJECT_TABS_LAYOUT_LABELS, useProjectTabsLayout, type ProjectTabsLayou
 import { CHAT_PLACEMENT_LABELS, useChatPlacement, type ChatPlacement } from "@/features/project/page/chatPlacement";
 import { TabbedDialog, type DialogSection } from "@/ui/TabbedDialog";
 import { UsagePanel } from "@/features/usage/UsagePanel";
+import { SnippetBarField } from "@/features/snippet/SnippetBarField";
 import { SnippetSettings } from "@/features/snippet/SnippetSettings";
 import { AiDefaultsSettings } from "./AiDefaultsSettings";
 import { ChatSettings } from "./ChatSettings";
@@ -87,7 +88,6 @@ function DisplaySettings() {
   const [wideChat, setWideChat] = useSetting(CHAT_WIDE);
   const [fontSize, setFontSize] = useChatFontSize();
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
-  const [snippetBarHidden, setSnippetBarHidden] = useSetting(SNIPPET_BAR_HIDDEN);
   const [headerHidden, setHeaderHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [subagentOpenIn, setSubagentOpenIn] = useSetting(SUBAGENT_OPEN_IN);
   const [childChatOpenIn, setChildChatOpenIn] = useSetting(CHILD_CHAT_OPEN_IN);
@@ -173,18 +173,7 @@ function DisplaySettings() {
             ]}
           />
         </Field>
-        <Field label="定型文の帯" help="チャット欄の上に、このプロジェクトで使う定型文を横に並べます。定型文そのものは「定型文」の項目で足せます。">
-          <Segmented<"show" | "hide">
-            className="segmented theme-switch"
-            label="定型文の帯"
-            value={snippetBarHidden ? "hide" : "show"}
-            onChange={(v) => setSnippetBarHidden(v === "hide")}
-            options={[
-              { value: "show", label: "表示する" },
-              { value: "hide", label: "表示しない" },
-            ]}
-          />
-        </Field>
+        <SnippetBarField />
         <Field
           label="サブエージェントを開く場所"
           help="サブエージェントのカードの見出し・動きの行・「サブエージェント N 件」の一覧・裏の作業の一覧を押したときの開き方です。流れの中は、メインの会話の流れの中でカードを開きます。右の欄は、チャットの画面の右に、メインと同じような画面で開きます（右の欄の中で上下・左右に分けて並べられ、幅はつまみのドラッグで変えられます）。別ウィンドウは、サブエージェントごとに新しいウィンドウで開きます。ほかの開き方は、一覧の行のボタンやカードのボタンでいつでも選べます。「サブエージェント N 件」の一覧の上でも変えられます。"

@@ -80,7 +80,7 @@ export function SnippetManager({ projectId, initialEditing = null }: { projectId
             </button>
           }
         >
-          よく送る指示を定型文にしておくと、チャット欄の上の帯から押すだけで入力欄に入れられます。共通にしたものは、すべてのプロジェクトで使えます。
+          よく送る指示を定型文にしておくと、チャット欄の中の帯から押すだけで入力欄に入れられます。共通にしたものは、すべてのプロジェクトで使えます。
         </EmptyState>
       ) : (
         <ul className="snippet-manager-list">
