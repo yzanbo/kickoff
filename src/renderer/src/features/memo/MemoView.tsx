@@ -23,6 +23,9 @@ import { useMemoEditMenu } from "./useMemoEditMenu";
 // 編集の部品（CodeMirror）は大きいので、メモを開いたときに初めて読み込む
 const MemoEditor = lazy(() => import("./MemoEditor"));
 
+/** 題名の欄に書ける長さ（文字） */
+const TITLE_MAX = 120;
+
 /** 表示の切り替えの説明（種類ごと。preview = 整えて見せる / edit = 中身をそのまま） */
 const VIEW_LABELS: Record<MemoKind, { preview: string; edit: string }> = {
   markdown: {
@@ -146,11 +149,30 @@ export function MemoView({
           <input
             className="memo-title"
             value={title}
-            maxLength={120}
+            maxLength={TITLE_MAX}
             spellCheck={false}
             aria-label="メモの名前（⌘S で保存）"
             title={`${path}（書き換えて ⌘S で名前を変える）`}
             onChange={(e) => setTitle(e.target.value)}
+            // 本文と同じメニュー（切り取り・貼り付けはこの欄に効く。何も選んでいなければ、コピーは題名の全体）
+            onContextMenu={(e) => {
+              e.preventDefault();
+              const input = e.currentTarget;
+              const start = input.selectionStart ?? input.value.length;
+              const end = input.selectionEnd ?? start;
+              const value = input.value;
+              editMenu.openFor(
+                { x: e.clientX, y: e.clientY },
+                {
+                  text: value.slice(start, end),
+                  copyAll: value,
+                  insert: (text) => {
+                    setTitle((value.slice(0, start) + text.replace(/\s*\n\s*/g, " ") + value.slice(end)).slice(0, TITLE_MAX));
+                    input.focus();
+                  },
+                },
+              );
+            }}
             onKeyDown={(e) => {
               if (isComposing(e)) return;
               if (isKey(e, "s", { meta: true }) || isKey(e, "s", { ctrl: true }) || isKey(e, "Enter")) {
