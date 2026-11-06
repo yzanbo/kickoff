@@ -1,7 +1,8 @@
 import { GitBranch } from "lucide-react";
-import { cx } from "@/lib/cx";
+import { ChipPicker } from "@/ui/ChipPicker";
 import { promptDialog } from "@/ui/dialogs";
 import { useWorktrees } from "@/stores/worktrees";
+import { workplaceHue } from "./workplaceHue";
 import { worktreeLabel } from "./WorktreePicker";
 
 /** 新しいチャットの作業場所（本体・いまあるワークツリー・新しく作るワークツリー） */
@@ -25,13 +26,14 @@ export function askNewWorktreeBranch(): Promise<string | null> {
 
 /**
  * 新しいチャットの作業場所とブランチを選ぶ（並行開発のため、チャットごとに別のワークツリーで作業させられる）。
- * 見た目は VS Code の左下と同じく、ブランチの印とブランチ名（「main（本体）」）。
+ * 見た目はチャットの見出しのブランチの印（WorktreeChip）と同じ札（作業場所の色・ブランチ名）に ▾ を付けたもの。
  * 「新しいワークツリー…」を選ぶとブランチ名を聞き、チャットを始めるときに作る
  */
 export function WorkplacePicker({ projectId, value, onChange }: { projectId: number; value: Workplace; onChange: (place: Workplace) => void }) {
   const worktrees = useWorktrees(projectId);
   if (!worktrees || worktrees.length === 0) return null;
   const current = value.kind === "existing" ? value.path : value.kind === "new" ? NEW : "";
+  const listed = worktrees.find((w) => (w.main ? "" : w.path) === current);
 
   const choose = async (next: string) => {
     if (next !== NEW) return onChange(next ? { kind: "existing", path: next } : { kind: "main" });
@@ -39,19 +41,23 @@ export function WorkplacePicker({ projectId, value, onChange }: { projectId: num
     if (branch) onChange({ kind: "new", branch });
   };
 
+  // 選択肢（ブランチを先に出し、作業場所（本体・ワークツリー）を添える）と、いちばん下に新しいワークツリー
+  const values = [...worktrees.map((w) => (w.main ? "" : w.path)), NEW];
+  const labels: Record<string, string> = Object.fromEntries(worktrees.map((w) => [w.main ? "" : w.path, `${worktreeLabel(w)}（${w.main ? "本体" : "ワークツリー"}）`]));
+  labels[NEW] = value.kind === "new" ? `${value.branch}（新しいワークツリー）` : "＋ 新しいワークツリー…";
+  const name = value.kind === "new" ? value.branch : listed ? worktreeLabel(listed) : "本体";
   return (
-    <label className={cx("new-chat-group", value.kind !== "main" && "has-group")} title="作業場所とブランチ（本体・ワークツリー）">
-      <GitBranch size={12} aria-hidden />
-      <select className="pill-select" aria-label="作業場所" value={current} onChange={(e) => void choose(e.target.value)}>
-        {worktrees.map((w) => (
-          <option key={w.path} value={w.main ? "" : w.path}>
-            {/* VS Code の左下と同じく、どのブランチで作業するかを先に出し、作業場所（本体・ワークツリー）を添える */}
-            {`${worktreeLabel(w)}（${w.main ? "本体" : "ワークツリー"}）`}
-          </option>
-        ))}
-        {value.kind === "new" && <option value={NEW}>{value.branch}（新しいワークツリー）</option>}
-        {value.kind !== "new" && <option value={NEW}>＋ 新しいワークツリー…</option>}
-      </select>
-    </label>
+    <ChipPicker
+      className="worktree-chip"
+      hue={workplaceHue(projectId, { key: value.kind === "new" ? `new:${value.branch}` : current }, worktrees)}
+      icon={GitBranch}
+      name={name}
+      tip={`作業場所: ${labels[current] ?? name}（押すと選び直す）`}
+      menuTitle="作業場所とブランチ"
+      values={values}
+      labels={labels}
+      value={current}
+      onPick={(next) => void choose(next)}
+    />
   );
 }

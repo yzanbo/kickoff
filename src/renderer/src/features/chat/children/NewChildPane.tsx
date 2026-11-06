@@ -1,6 +1,6 @@
 import { MessageSquarePlus } from "lucide-react";
-import { useState } from "react";
-import type { Chat } from "@shared/types";
+import { useRef, useState } from "react";
+import type { Attachment, Chat } from "@shared/types";
 import { api } from "@/api";
 import { useKnownChat, addChat } from "@/stores/chats";
 import { Composer } from "@/features/chat/composer/Composer";
@@ -8,6 +8,12 @@ import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { chatTitle } from "@/features/chat/chatTitle";
 import { ProjectChip } from "@/features/project/ProjectChip";
 import { useProjects } from "@/stores/projects";
+import { GroupChip } from "@/features/group/GroupChip";
+import { WorktreeChip } from "@/features/worktree/WorktreeChip";
+import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
+import { DraftChatPage } from "@/features/chat/pane/DraftChatPage";
+import { useChatHeaderItems } from "@/features/chat/pane/ChatDisplayMenu";
+import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { InheritChoice } from "./InheritChoice";
 
 interface Props {
@@ -36,17 +42,27 @@ function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: 
   );
   const [inherit, setInherit] = useState(true);
   const project = useProjects().projectsById.get(parent.project_id);
+  const shows = useChatHeaderItems();
+  const composer = useRef<ComposerHandle | null>(null);
+  // 最初の文を送って子チャットを作る（チャット欄の送信と、定型文の帯の ⌘クリック・「すぐ送る」で共通）
+  const start = async (prompt: string, attachments: Attachment[]) => {
+    const child = await api.createChildChat(parent.id, { text: prompt, attachments, quote: null, inherit, event_id: null, options: options.options });
+    // 作った知らせより先に一覧へ入れる（入力欄の上の札・タブの状態の印にすぐ出す）
+    addChat(child);
+    onCreated(child);
+  };
   return (
-    <div className="chat-page chat-panel new-chat new-child-chat">
-      <header className="chat-header">
-        {/* 名前と閉じるはタブに出すので、見出しには出さない（新しいチャットのタブと同じ） */}
-        <div className="chat-title-row">
-          <div className="chat-sub muted small">
-            {project && <ProjectChip id={project.id} name={project.name} linked />}
-          </div>
-        </div>
-      </header>
-      <div className="timeline">
+    <DraftChatPage
+      className="new-child-chat"
+      // チャットの見出しと同じバッジ（子チャットは親と同じグループ・作業場所で作るので、親の札をそのまま出す）
+      badges={
+        <>
+          {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
+          {shows("group") && <GroupChip chat={parent} />}
+          {shows("worktree") && <WorktreeChip chat={parent} />}
+        </>
+      }
+      hero={
         <div className="new-chat-hero">
           <div className="new-chat-icon">
             <MessageSquarePlus size={22} />
@@ -54,24 +70,22 @@ function NewChildForm({ parent, onCreated }: { parent: Chat; onCreated: (child: 
           <h1>新しい子チャット</h1>
           <p className="muted">「{chatTitle(parent.title)}」の作業を止めずに、横で聞く・頼むことを書いて始めます</p>
         </div>
-      </div>
-      <div className="chat-composer">
-        {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く。「子チャットで聞く」の画面と同じ形） */}
-        <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" />
-        <Composer
-          chatContext={{ projectId: parent.project_id }}
-          options={options}
-          autoFocus
-          suggestTarget={parent.worktree_path ? { projectId: parent.project_id, worktree: parent.worktree_path } : parent.project_id}
-          placeholder={`${inherit ? "親の会話の続きで聞きたいこと" : "新しく頼みたいこと"}（Enter で送信、Shift+Enter で改行）`}
-          onSend={async (prompt, attachments) => {
-            const child = await api.createChildChat(parent.id, { text: prompt, attachments, quote: null, inherit, event_id: null, options: options.options });
-            // 作った知らせより先に一覧へ入れる（入力欄の上の札・タブの状態の印にすぐ出す）
-            addChat(child);
-            onCreated(child);
-          }}
-        />
-      </div>
-    </div>
+      }
+    >
+      {/* 会話を引き継ぐか（初めは引き継ぐ。書きながら目に入るよう、入力欄のすぐ上に置く。「子チャットで聞く」の画面と同じ形） */}
+      <InheritChoice inherit={inherit} onChange={setInherit} parentLabel="親のチャット" />
+      <Composer
+        chatContext={{ projectId: parent.project_id }}
+        options={options}
+        autoFocus
+        handleRef={composer}
+        suggestTarget={parent.worktree_path ? { projectId: parent.project_id, worktree: parent.worktree_path } : parent.project_id}
+        placeholder={`${inherit ? "親の会話の続きで聞きたいこと" : "新しく頼みたいこと"}（Enter で送信、Shift+Enter で改行）`}
+        // 定型文の帯と、入力欄の右クリックの帯の表示・非表示（チャットの画面のチャット欄と同じ）
+        header={<SnippetBar projectId={parent.project_id} composer={composer} onSend={(text) => start(text, [])} />}
+        menuItems={<SnippetBarToggleItem />}
+        onSend={start}
+      />
+    </DraftChatPage>
   );
 }
