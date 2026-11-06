@@ -171,6 +171,7 @@ export function PaneTabBar({
                   hidden={strip.isHidden(c)}
                   onToggleHidden={strip.toggleHidden && c.group ? () => strip.toggleHidden?.(c) : undefined}
                   menuExtra={strip.grouping === "group" ? <HiddenGroupItems panel={panel} /> : undefined}
+                  canCreateGroup={strip.grouping === "group"}
                 />
                 {shown.map((key) => tab(key, display.indexOf(key)))}
               </div>
