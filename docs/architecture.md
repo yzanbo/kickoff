@@ -28,7 +28,7 @@
 | 圧縮前指示（会話を圧縮する前に AI に送る指示。メモを残してもらうなど。設定の共通の指示 → プロジェクトの指示の順につなぐ。それぞれオン / オフを切り替えられ、オフなら文を残したまま送らない） | 設定・プロジェクトの `pre_compact_prompt` / `pre_compact_enabled`・`@shared/chat/prompts` の `compactPromptFor`・記録の `user.pre_compact`・`core/chat/preCompact.ts`・PreCompact フック `core/providers/claude/preCompact.ts` | なし |
 | 圧縮後指示（会話を圧縮したあと、圧縮の間に預かった指示より先に AI に送る指示。メモを読み直してもらうなど。つなぎ方は圧縮前指示と同じ） | 設定・プロジェクトの `post_compact_prompt` / `post_compact_enabled`・`@shared/chat/prompts` の `postCompactMessage`・記録の `user.post_compact`・送信待ちの `QueuedMessage.post_compact`・`core/chat/preCompact.ts` の `postCompactItem` | なし |
 | 送信待ち | `Queue`（`chat_queues`） | `followups` / `run_queues` |
-| 起動したときの送信待ちの確かめ（前回の終了で、自動で送るまま残った送信待ちを、起動してから送るか聞く。送る / 続けてから送る / 止めておく） | `QueueResume` / `QueueResumeAction`（`GET\|POST /api/queue-resumes`・`Runner.queueResumes`・画面の `QueueResumeDialog`） | なし |
+| 起動したときの送信待ちの確かめ（前回の終了で、自動で送るまま残った送信待ちを、起動してから送るか聞く。送る / 続けてから送る / 止めておく） | `QueueResume` / `QueueResumeAction`（確かめを待つ印は `ChatLive.queue_resume`。`GET\|POST /api/queue-resumes`・`Runner.queueResumes`・画面の `QueueResumeDialog` / `QueueResumeBanner`・店 `stores/queueResumes.ts`） | なし |
 | 送信待ちに挟む行（会話の圧縮・コンテキストの消去） | `QueueAction`（`compact` / `clear`。`QueuedMessage.compact` / `clear`・`@shared/chat/queueActions`） | 圧縮の予約だけ |
 | コンテキストの消去（これまでの会話を AI に引き継がず、次から新しい会話で始める。記録は残す） | `Runner.clearContext`・記録 `context_cleared`（巻き戻し・子チャットの引き継ぎはこの境目を越えない `core/chat/sessionPoints.ts`） | なし |
 | 作業中の様子（保存しない） | `ChatLive` | 詳細と SSE で別々の形 |

@@ -35,3 +35,8 @@ test("reservedCompact: いちばん上がコンテキストの消去の行なら
   assert.equal(reservedCompact({ messages: [clear], paused: false, stops: [], waiting_edit: false }), null);
   assert.equal(nextQueuedText(clear), "コンテキストを消去");
 });
+
+test("送信待ちの案内: 起動したときの確かめを待っている間は、決めるまで送らないことをほかより先に、短く伝える（詳しくは上の帯）", () => {
+  assert.equal(queuedHint({ paused: false, busy: false, collapsed: true, stopIndex: -1, held: true }), "決めるまで送りません");
+  assert.equal(queuedHint({ paused: false, busy: false, collapsed: false, stopIndex: 0, held: true }), "決めるまで送りません");
+});

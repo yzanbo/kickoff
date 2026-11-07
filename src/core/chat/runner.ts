@@ -4,8 +4,8 @@ import { RunnerQueue, type SendOpts } from "./runnerQueue.js";
 import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, type StartChatInput } from "./input.js";
-import { QUEUE_ACTION_LABELS, type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult } from "@shared/types";
-import { queueActionOf } from "@shared/chat/queueActions";
+import { type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult } from "@shared/types";
+import { resumeMomentsOf } from "./queueResume.js";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { Conflict, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
@@ -21,6 +21,9 @@ import { postCompactItem, preCompactPromptOf } from "./preCompact.js";
  * 1 回の実行の中身（作業場所・プロバイダーの呼び出し・結果の反映）は turn.ts、
  * 通信の切断・使用枠の上限で止まったときの再開の段取り（送信待ちを止める・待つ・聞く・再開する）は recovery/
  */
+/** 起動したときの送信待ちの確かめで、止まったところを探す記録の数（新しいほうから） */
+const RESUME_EVENTS = 300;
+
 export class Runner extends RunnerQueue {
   protected readonly runtimes: ChatRuntimes;
   /** アプリを終えるところ（待ちの列を送らない） */
@@ -29,8 +32,6 @@ export class Runner extends RunnerQueue {
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り */
   private readonly recovery: ChatRecovery;
 
-  /** 起動したときの送信待ちの確かめを待っているチャット（値は、前回の終了で作業の途中で止まったか） */
-  private readonly resumes = new Map<number, boolean>();
 
   constructor(
     private readonly deps: ExecutionDeps & {
@@ -57,7 +58,7 @@ export class Runner extends RunnerQueue {
     // 自動で送るまま送信待ちが残ったチャットは、起動しただけでは送らず、利用者に聞く（queueResumes / resolveQueueResumes）
     const interrupted = new Set(deps.interrupted ?? []);
     for (const saved of deps.store.queues.list()) {
-      if (this.waitsForResume(saved.chatId)) this.resumes.set(saved.chatId, interrupted.has(saved.chatId));
+      if (this.waitsForResume(saved.chatId)) this.runtimes.get(saved.chatId).update({ resume: { interrupted: interrupted.has(saved.chatId) } });
     }
     this.recovery = new ChatRecovery({
       store: deps.store,
@@ -79,44 +80,48 @@ export class Runner extends RunnerQueue {
 
   /**
    * 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）。
-   * 自分で送った・止めた・消したなどで、もう起動すると送り始める形でなくなったものは外す
+   * 選ぶ前に中身を見られるよう、送信待ちのすべてと、止まったところを添える。送信待ちが空になったものは外す
    */
   queueResumes(): QueueResume[] {
     const out: QueueResume[] = [];
-    for (const [chatId, interrupted] of this.resumes) {
+    for (const { chatId } of this.deps.store.queues.list()) {
+      const runtime = this.runtimes.get(chatId);
       const chat = this.deps.store.chats.get(chatId);
-      if (!chat || !this.waitsForResume(chatId)) {
-        this.resumes.delete(chatId);
+      if (!runtime.resume || !chat) continue;
+      const { messages, stops } = runtime.queue.snapshot();
+      if (messages.length === 0) {
+        runtime.update({ resume: null });
         continue;
       }
-      const messages = this.runtimes.get(chatId).queue.list();
-      const action = queueActionOf(messages[0]);
       out.push({
         chat_id: chatId,
         project_id: chat.project_id,
         title: chat.title,
-        count: messages.length,
-        next: action ? QUEUE_ACTION_LABELS[action] : messages[0].text,
-        interrupted,
+        interrupted: runtime.resume.interrupted,
+        messages,
+        stops,
+        ...resumeMomentsOf(this.deps.store.events.recent(chatId, RESUME_EVENTS)),
       });
     }
     return out;
   }
 
   /**
-   * 起動したときの送信待ちの確かめに答える（チャットごと）。送る: 自動で送るのまま先頭から送る /
+   * 起動したときの送信待ちの確かめに答える（チャットごと。答えなかったチャットは待ったまま）。送る: 自動で送るのまま先頭を送る /
    * 続けてから送る: 中断した作業を続けるよう頼み、その作業が終わってから送信待ちを送る（中断していなければ、送ると同じ）/ 止めておく: 止めています にする。
-   * 確かめを待っていないチャットは飛ばす
+   * 自分で送って作業中なら、送るも続けてから送るも、その作業が終わってから送信待ちを送る。確かめを待っていないチャットは飛ばす
    */
   async resolveQueueResumes(decisions: { chatId: number; action: QueueResumeAction }[]): Promise<void> {
     for (const { chatId, action } of decisions) {
-      const interrupted = this.resumes.get(chatId);
-      if (interrupted === undefined) continue;
-      this.resumes.delete(chatId);
-      if (!this.waitsForResume(chatId)) continue;
+      const runtime = this.runtimes.get(chatId);
+      const resume = runtime.resume;
+      if (!resume) continue;
+      runtime.update({ resume: null });
       if (action === "pause") {
-        this.runtimes.get(chatId).queue.setPaused(true);
-      } else if (action === "continue" && interrupted) {
+        runtime.queue.setPaused(true);
+      } else if (this.isBusy(chatId)) {
+        continue;
+      } else if (action === "continue" && resume.interrupted) {
         await this.send(chatId, RESTART_RESUME_PROMPT);
       } else {
         await this.sendNextQueued(chatId);

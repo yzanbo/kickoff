@@ -297,7 +297,7 @@ test("起動したときの送信待ちの確かめ: 止めておくか・線は
   assert.equal(restarted.live(pausedChat.id).queue.paused, true);
   assert.deepEqual([restarted.live(stoppedChat.id).queue.paused, restarted.live(stoppedChat.id).queue.stops], [false, [0]]);
   assert.deepEqual(
-    restarted.queueResumes().map((r) => [r.chat_id, r.count, r.next, r.interrupted]),
+    restarted.queueResumes().map((r) => [r.chat_id, r.messages.length, r.messages[0].text, r.interrupted]),
     [
       [sendChat.id, 2, "送る 1", false],
       [continueChat.id, 1, "続けてから 1", true],
@@ -326,5 +326,36 @@ test("起動したときの送信待ちの確かめ: 止めておくか・線は
   assert.equal(restarted.live(pauseChat.id).queue.paused, true);
   assert.ok(!prompts.includes("止める 1"));
   // 答えたものは、もう聞かない
+  assert.deepEqual(restarted.queueResumes(), []);
+});
+
+test("起動したときの送信待ちの確かめ: 答えるまでは、線を外す・並べ替えても送らず、自動で送る / 止めていますを押したら答えたことにする。止まったところを添える", async () => {
+  const { store, provider, project, approvals, providers, usage } = setup(async () => ({ status: "completed", sessionId: "s1" }));
+  const chat = store.chats.create({ project_id: project.id, provider: "claude", title: "見て決める", status: "running", model: null });
+  store.events.add(chat.id, { type: "user", text: "テストを直して", message_uuid: "u1" });
+  store.events.add(chat.id, { type: "text", text: "直しています。" });
+  store.events.add(chat.id, { type: "tool_use", id: "t1", name: "Bash", input: { command: "npm test" } });
+  const row = (id: string, text: string) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
+  store.queues.save({ chatId: chat.id, messages: [row("a", "次 1"), row("b", "次 2")], paused: false, stops: [1] });
+  const interrupted = store.chats.recoverInterrupted("中断しました");
+  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  const before = provider.calls.length;
+
+  // 画面に配る様子にも、確かめを待っていることが出る
+  assert.deepEqual(restarted.live(chat.id).queue_resume, { interrupted: true });
+  const [resume] = restarted.queueResumes();
+  assert.deepEqual(
+    [resume.messages.map((m) => m.id), resume.stops, resume.last_prompt?.text, resume.last_reply?.text, resume.last_tool?.text],
+    [["a", "b"], [1], "テストを直して", "直しています。", "Bash: npm test"],
+  );
+  // 線を外す・並べ替えても送らない（中身を見て直している途中に送り始めない）
+  await restarted.setQueueStops(chat.id, []);
+  await restarted.moveQueued(chat.id, "b", 0);
+  await tick();
+  assert.equal(provider.calls.length, before);
+  assert.deepEqual(restarted.live(chat.id).queue.messages.map((m) => m.id), ["b", "a"]);
+  // 見出しの「止めています」を押したら、答えたことにする
+  await restarted.setQueuePaused(chat.id, true);
+  assert.equal(restarted.live(chat.id).queue_resume, null);
   assert.deepEqual(restarted.queueResumes(), []);
 });

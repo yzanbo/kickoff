@@ -1,9 +1,10 @@
 import { ChevronRight, ChevronsDownUp, ChevronsUpDown, OctagonPause, SendHorizontal } from "lucide-react";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
-import type { QueueState } from "@shared/types";
+import type { ChatLive, QueueState } from "@shared/types";
 import { isQueueAction } from "@shared/chat/queueActions";
 import { api } from "@/api";
 import { QueuedHeadTools } from "./QueuedHeadActions";
+import { QueueResumeBanner } from "./QueueResumeBanner";
 import { QueuedSelectionActions } from "./QueuedSelectionActions";
 import { QueuedEditor } from "./QueuedEditor";
 import { QueuedRow } from "./QueuedRow";
@@ -46,6 +47,7 @@ export function QueuedMessages({
   queue,
   busy,
   childChats,
+  resume,
 }: {
   /**
    * 送信待ちの様子（作業中の様子の queue）。stops は一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも）、
@@ -55,6 +57,8 @@ export function QueuedMessages({
   busy: boolean;
   /** 右クリックの「子チャットで開く / 移す」を出すか（メモのチャット・アーカイブ済みでは子チャットを作れない） */
   childChats: boolean;
+  /** 起動したときの送信待ちの確かめを待っている（前回の終了で残った。決めるまでコアは送らない。上に帯を出す） */
+  resume: ChatLive["queue_resume"];
 }) {
   const { chatId } = useChatPane();
   const { messages, paused, stops, waiting_edit: waitingEdit } = queue;
@@ -135,10 +139,10 @@ export function QueuedMessages({
   // 次に送る指示（1 件目）を書き直していて、作業は終わり、コアが書き直しが終わる（保存・やめる・一覧をたたむ）のを待っている = 送信の準備ができている。
   // 案内は見出しに 1 か所だけ出す（送れなかったなど、ほかの理由で止まっているとき・作業中は出さない）
   const readyForEdit = !collapsed && Boolean(edit.edits[messages[0].id]) && waitingEdit && !busy && !paused;
-  const hint = queuedHint({ paused, busy, collapsed, stopIndex, readyForEdit });
+  const hint = queuedHint({ paused, busy, collapsed, stopIndex, readyForEdit, held: resume !== null });
   // 一時停止の印があって、案内がその止める位置（作業中）か、線で待っていること（作業が終わって 1 件目の上の線）を伝えているとき
   // （queuedHint の印の分かれ道と同じ条件）。止める印と同じ色・同じアイコンで、畳んでいてもひと目で分かるようにする
-  const stopHint = !paused && (busy ? stopIndex >= 0 : stopIndex === 0) && !readyForEdit;
+  const stopHint = !paused && (busy ? stopIndex >= 0 : stopIndex === 0) && !readyForEdit && resume === null;
   // 畳んだ 1 行には、次に送る指示の初めの行も出す（中を開かなくても、次に何が送られるか分かる）
   const next = collapsed ? nextQueuedText(messages[0]) : "";
 
@@ -147,6 +151,8 @@ export function QueuedMessages({
       {!collapsed && (
         <div className="queued-resizer" aria-label="送信待ちの一覧の高さ" {...resize.handle} />
       )}
+      {/* 起動したときの送信待ちの確かめを待っている間は、畳んでいても上に帯を出し、その場で決められるようにする */}
+      {resume && <QueueResumeBanner chatId={chatId} resume={resume} />}
       {/* 見出しの行にドラッグして落とすと、いちばん上へ（1 件目の上の一時停止よりも上） */}
       <div className="queued-head-row" onDragOver={dnd.overTop} onDrop={dnd.drop}>
         <div className="queued-head-main">

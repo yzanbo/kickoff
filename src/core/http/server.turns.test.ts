@@ -266,7 +266,7 @@ test("作業中の様子: チャットの詳細の live と SSE の chat_live �
   );
   assert.deepEqual(
     { ...last, queue: { ...last.queue, messages: [] } },
-    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, after_compact: [], awaiting_compact: false, compact_after_turn: false },
+    { queue: { messages: [], paused: true, stops: [], waiting_edit: false }, background: null, retry: null, reconnect: null, compacting: null, stopping: false, after_compact: [], awaiting_compact: false, compact_after_turn: false, queue_resume: null },
   );
   await call("DELETE", `/api/chats/${chatId}/queue`);
   release();

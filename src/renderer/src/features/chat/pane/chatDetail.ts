@@ -20,6 +20,7 @@ const IDLE_LIVE: ChatLive = {
   after_compact: [],
   awaiting_compact: false,
   compact_after_turn: false,
+  queue_resume: null,
 };
 
 /** 読み込む前の中身 */
@@ -41,6 +42,7 @@ export function keepUnchanged(prev: ChatLive, next: ChatLive): ChatLive {
     after_compact: keep(prev.after_compact, next.after_compact),
     awaiting_compact: next.awaiting_compact,
     compact_after_turn: next.compact_after_turn,
+    queue_resume: keep(prev.queue_resume, next.queue_resume),
   };
 }
 

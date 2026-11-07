@@ -11,6 +11,7 @@ export function queuedHint({
   collapsed,
   stopIndex,
   readyForEdit = false,
+  held = false,
 }: {
   paused: boolean;
   busy: boolean;
@@ -18,7 +19,11 @@ export function queuedHint({
   stopIndex: number;
   /** 次に送る指示（1 件目）を書き直していて、作業は終わり、コアが書き直しが終わるのを待っている（送信の準備ができている） */
   readyForEdit?: boolean;
+  /** 起動したときの送信待ちの確かめを待っている（前回の終了で残った。決めるまでコアは送らない） */
+  held?: boolean;
 }): string {
+  // 詳しくは上の帯（QueueResumeBanner）に出すので、見出しは短く
+  if (held) return "決めるまで送りません";
   if (readyForEdit) return "次の指示の送信準備ができています。書き直しを保存すると送ります";
   if (paused) return collapsed ? "止めています" : busy ? "終わっても送らずに止めておきます" : "止めています。行の「すぐ送る」で 1 件ずつ送れます";
   // 作業が終わり、1 件目の上の一時停止の線で待っている（止めておくにはしない。線を消す・動かすと続きを送る）

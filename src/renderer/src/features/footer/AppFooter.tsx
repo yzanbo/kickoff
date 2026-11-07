@@ -14,6 +14,7 @@ import { FOOTER_MODE_LABELS, FOOTER_MODES, useFooterMode } from "./footerMode";
 import { usePopover } from "@/ui/Popover";
 import { UsageMeter } from "@/features/usage/UsageMeter";
 import { UsagePopover } from "@/features/usage/UsagePopover";
+import { QueueResumeFooterButton } from "@/features/chat/queue/QueueResumeDialog";
 
 interface Props {
   onOpenSettings: (section: SettingsSection) => void;
@@ -67,6 +68,8 @@ export function AppFooter({ onOpenSettings, connection, planUsage, projectId }: 
         </span>
       )}
       {projectId !== undefined && <FooterBranch projectId={projectId} />}
+      {/* 起動したときの送信待ちの確かめで、まだ決めていないもの（押すとダイアログを開き直す） */}
+      <QueueResumeFooterButton />
       <span className="spacer" />
       {usage?.plan && (
         <span className="plan-chip" title={`${usage.provider_label} でログインしているアカウントの契約プラン`}>

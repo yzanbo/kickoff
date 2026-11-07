@@ -170,6 +170,8 @@ export abstract class RunnerQueue {
    */
   async sendAllQueued(chatId: number, ids?: string[]): Promise<void> {
     // 1 つにまとめた指示を列から取り出して送る（列に「まとめた 1 件」を一瞬出さない）
+    // まとめていま送るのは、起動したときの確かめにも答えたことにする（すべて送るとき。選んだものだけなら、残りはまだ決めていない）
+    if (!ids) this.runtimes.get(chatId).update({ resume: null });
     const merged = this.queueOf(chatId).merge({ silent: true, ids });
     if (!merged) throw ids ? missing() : new Conflict("送信待ちの指示がありません");
     await this.sendQueuedNow(chatId, merged.id);
@@ -226,6 +228,8 @@ export abstract class RunnerQueue {
    * 止めておくかを返す
    */
   async setQueuePaused(chatId: number, paused: boolean): Promise<boolean> {
+    // 送信待ちの「自動で送る / 止めています」を押したら、起動したときの確かめにも答えたことにする
+    this.runtimes.get(chatId).update({ resume: null });
     const next = this.queueOf(chatId).setPaused(paused);
     if (!next && !this.isBusy(chatId)) await this.sendNextQueued(chatId);
     return next;
@@ -251,6 +255,11 @@ export abstract class RunnerQueue {
     // 作業中（送る準備の途中も）なら送らない（取り出すと送れずに消える。いまの作業が終わったときに、もう一度呼ばれる）
     if (this.isBusy(chatId)) return;
     const runtime = this.runtimes.get(chatId);
+    // 起動したときの送信待ちの確かめを待っている間は送らない（中身を見て直している途中に、線を外す・書き直しを終えるなどで送り始めないように）
+    if (runtime.resume) {
+      if (runtime.queue.list().length > 0) return;
+      runtime.update({ resume: null });
+    }
     const { queue } = runtime;
     // 自動で送る次の指示を画面で書き直している間は送らず、書き直しが終わる（保存・やめる・欄を閉じる）のを待つ
     const head = queue.list()[0];

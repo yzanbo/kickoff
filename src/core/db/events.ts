@@ -60,6 +60,10 @@ export function createEventStore(db: DatabaseSync, onChange: Notify, getChat: (i
       const row = db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE id = ?`).get(eventId) as unknown as EventRow | undefined;
       return row ? toEvent(row) : null;
     },
+    /** 新しいほうから limit 件（新しい順） */
+    recent(chatId: number, limit: number): ChatEvent[] {
+      return (db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? ORDER BY id DESC LIMIT ?`).all(chatId, limit) as unknown as EventRow[]).map(toEvent);
+    },
     list(chatId: number): ChatEvent[] {
       return (db.prepare(`SELECT ${EVENT_COLUMNS} FROM chat_events WHERE chat_id = ? ORDER BY id`).all(chatId) as unknown as EventRow[]).map(toEvent);
     },
