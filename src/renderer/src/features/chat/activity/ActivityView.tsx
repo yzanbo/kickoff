@@ -189,7 +189,7 @@ function Filters({
           title: `${path}${entry.description}（このサブエージェントと、その中で起動したものの動き）`,
         }),
       )}
-      {running > 0 && <span className="activity-running">{running} 件動作中</span>}
+      {running > 0 && <span className="activity-running">{running} 件作業中</span>}
     </div>
   );
 }

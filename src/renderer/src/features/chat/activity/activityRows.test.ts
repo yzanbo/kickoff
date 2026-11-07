@@ -68,6 +68,28 @@ test("activityRows: サブエージェントの動きは起動の行のあとに
   assert.equal(rows.find((r) => r.key === "end-a1")?.durationMs, 19_000);
 });
 
+test("activityRows: 終わりの行の文はカード・一覧と同じ状態の文（受け取り待ち・届いていない・通信で中断・中断を見分ける）", () => {
+  const ended = (key: string, extra: Partial<SubagentEntry>) => agent(key, { startedAt: at(1), endedAt: at(9), ...extra });
+  const tree = subagentTree([
+    ended("p", { status: "completed", delivery: "pending" }),
+    ended("l", { status: "completed", delivery: "lost" }),
+    ended("n", { status: "stopped", network: true }),
+    ended("s", { status: "stopped" }),
+    ended("f", { status: "failed", outputLimit: true }),
+  ]);
+  const ends = activityRows([], tree, false).filter((r) => r.kind === "end");
+  assert.deepEqual(
+    ends.map((r) => [r.agent, r.text, r.failed]),
+    [
+      ["p", "報告 → メインエージェント（受け取り待ち）", false],
+      ["l", "報告が届いていません", true],
+      ["n", "通信の切断で中断", true],
+      ["s", "中断", false],
+      ["f", "失敗（出力の上限）", true],
+    ],
+  );
+});
+
 test("activityRows: 結果の届いていないツールは、持ち主が動いているときだけ実行中（前の作業で止まったものは実行中にしない）", () => {
   const ev = eventSequence();
   const events = [

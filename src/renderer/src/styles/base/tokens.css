@@ -29,6 +29,14 @@
   --dot-failed: #f7796d;
   --dot-running: #5caaf6;
   --dot-unread: #35c264;
+  /*
+   * 状態の文字の色（チャット・子チャット・サブエージェントの「失敗」「回答待ち」などの文。印の色と同じ色合いで、文字として読める濃さ）。
+   * 印の色に文字の色を少し混ぜる（ライトでは暗く、ダークでは明るくなる）ので、テーマごとに書き直さない
+   */
+  --state-needs-input: color-mix(in srgb, var(--dot-needs-input) 78%, var(--text));
+  --state-failed: color-mix(in srgb, var(--dot-failed) 78%, var(--text));
+  --state-running: color-mix(in srgb, var(--dot-running) 78%, var(--text));
+  --state-unread: color-mix(in srgb, var(--dot-unread) 78%, var(--text));
   /* 色分けの色（以前のセクションの色。Mermaid の図・コミットの線・ワークツリーの印などで使う） */
   --sec-requirements: #3987e5;
   --sec-schedule: #9085e9;

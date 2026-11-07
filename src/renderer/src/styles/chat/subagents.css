@@ -69,7 +69,7 @@
 }
 
 .chip-failed {
-  color: var(--ng);
+  color: var(--state-failed);
 }
 
 .chip-network {
@@ -213,11 +213,11 @@
 }
 
 .subagent-status.status-failed {
-  color: var(--ng);
+  color: var(--state-failed);
 }
 
 .subagent-status.status-running {
-  color: var(--accent-bright);
+  color: var(--state-running);
 }
 
 /* 通信の切断で中断・報告が親に届いていない（作業の失敗ではないので、赤でなく注意の色） */

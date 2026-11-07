@@ -169,7 +169,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
           {/* 左の印: 作業中のものがあれば回るリング、手を打つもの（失敗・通信で中断・届かず）があれば赤の点、ほかは薄い点（すべてアーカイブ済みなら出さない） */}
           {visible.length > 0 && <StatusSlot {...summaryState(states.map((st) => st.state))} />}
           {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
-          {running > 0 && <span className="chip-running"> · {running} 件実行中</span>}
+          {running > 0 && <span className="chip-running"> · {running} 件作業中</span>}
           {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}
           {failed > 0 && <span className="chip-failed"> · {failed} 件失敗</span>}
           {network > 0 && <span className="chip-network"> · {network} 件通信で中断</span>}

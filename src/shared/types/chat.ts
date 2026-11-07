@@ -63,7 +63,7 @@ export type AgentState = (typeof AGENT_STATES)[number];
 
 export const AGENT_STATE_LABELS: Record<AgentState, string> = {
   needs_input: "回答待ち",
-  failed: "エラー",
+  failed: "失敗",
   unread: "未読",
   running: "作業中",
   read: "既読",
