@@ -13,7 +13,7 @@ export const huedHeadProps = (hue: number | null): { className?: string; style?:
   hue === null ? {} : { className: "bucket-hued", style: { "--group-hue": hue } as CSSProperties };
 
 /**
- * サイドバーの 1 つのプロジェクトのまとまりの色（SIDEBAR_BUCKET_COLORS。初めは付けない）。色はタブの列のまとまりと同じ（bucketHues.ts）。
+ * サイドバーの 1 つのプロジェクトのまとまりの色（SIDEBAR_BUCKET_COLORS。初めは付ける）。色はタブの列のまとまりと同じ（bucketHues.ts）。
  * - hueOf: 見出しの色（色を付けない・まとめないなら null）
  * - onContextMenu: 色を付けない見出し（No Group・固定・アーカイブ済み・作業場所）の右クリックで「まとまりを色付きで表示」だけのメニューを開く
  *   （まとめないときは undefined。自分で作ったグループの見出しは、グループのメニューの下に同じ項目を足す menuItem）

@@ -60,8 +60,8 @@ export const SIDEBAR_WAITING_VIEW = defineSetting("kickoff:sidebar-waiting-view"
 export const SIDEBAR_COMPACT = defineSetting("kickoff:sidebar-compact", flag(true));
 /** アーカイブ済みのチャットを出すか（サイドバー・右のパネルのタブ・ボードの絞り込みで共通。初めは隠す） */
 export const SIDEBAR_SHOW_ARCHIVED = defineSetting("kickoff:sidebar-show-archived", flag(false));
-/** グループ別・作業場所別のまとまりの見出しに色を付けるか（パネルのタブのまとまりと同じ色。初めは付けない。features/chatList/bucketHues.ts） */
-export const SIDEBAR_BUCKET_COLORS = defineSetting("kickoff:sidebar-bucket-colors", flag(false));
+/** グループ別・作業場所別のまとまりの見出しに色を付けるか（パネルのタブのまとまりと同じ色。初めは付ける。features/chatList/bucketHues.ts） */
+export const SIDEBAR_BUCKET_COLORS = defineSetting("kickoff:sidebar-bucket-colors", flag(true));
 
 // まとまりの開閉（ここだけで覚える）
 /**
