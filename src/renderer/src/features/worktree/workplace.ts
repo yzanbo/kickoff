@@ -18,6 +18,17 @@ export const WORKPLACE_KIND_LABELS: Record<WorkplaceKind, string> = {
   past: "以前のブランチ",
 };
 
+/**
+ * ブランチの印の先頭に出す、作業場所の短い名前（印は作業場所が主で、ブランチ名はその後ろの補足）。
+ * フォルダなしは消えたワークツリー、以前のブランチは本体なので、それぞれ WT・本体（点線の枠で見分け、理由は説明に出す）
+ */
+export const WORKPLACE_SHORT_LABELS: Record<WorkplaceKind, string> = {
+  main: "本体",
+  worktree: "WT",
+  missing: "WT",
+  past: "本体",
+};
+
 export interface ChatWorkplace {
   /** まとめるときのキー（同じ作業場所なら同じ） */
   key: string;

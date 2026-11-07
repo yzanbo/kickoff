@@ -91,6 +91,37 @@
 }
 
 /*
+ * 作業場所の印（WorktreeChip・WorkplacePicker）の「本体｜main」: 先頭の作業場所の名前（本体・WT）は省かずに出し、ブランチ名は細い区切りの後ろに
+ * 少し薄く出す補足（狭いときはブランチ名だけを「…」で省く）。区切りは札の色を薄くした線
+ */
+.chip-kind {
+  flex: none;
+  font-weight: 600;
+}
+
+/* （区切りは名前の側に付けると、名前を省くときに一緒に隠れるので、作業場所の名前の後ろに付ける。ブランチ名がなければ付けない） */
+.chip-kind::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 10px;
+  margin-left: 4px;
+  vertical-align: -1px;
+  background: currentColor;
+  opacity: 0.4;
+}
+
+.chip-kind:has(+ .chip-name:empty)::after,
+.chip-kind + .chip-name:empty {
+  display: none;
+}
+
+.chip-kind + .chip-name {
+  margin-left: 1px;
+  opacity: 0.8;
+}
+
+/*
  * 選べる札（ChipPicker。新しいチャットの見出しの作成先のグループ・作業場所）: 形と色はグループの札・ブランチの印のまま、名前の右に ▾。
  * 乗せた・開いているときは札の色で薄く塗る。グループなし（is-empty）は色を付けず控えめに
  */
