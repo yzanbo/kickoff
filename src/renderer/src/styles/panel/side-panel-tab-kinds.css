@@ -1,6 +1,6 @@
 /*
  * 色のあるタブ: グループ別にまとめたときのまとまりの中のタブ（まとまりの色）と、右の欄のメモ・サブエージェント・子チャット（新しい子チャットも同じ色）のタブ（種類の色）。
- * どちらも色は --tab-color 1 つで、表示中のタブの下線に使う（side-panel-tabs.css の .panel-tab.active::before）。
+ * どちらも色は --tab-color 1 つで、表示中のタブの上の端の線に使う（side-panel-tabs.css の .panel-tab.active::before。上の端へは side-panel-tab-sheet.css）。
  * まとまりの頭の札と種類の札は、同じ「薄い地に色の文字」の丸い札
  * （side-panel-tab-groups.css の .panel-tab-cluster-pill と、下の .panel-tab-kind）
  */
@@ -19,7 +19,7 @@
   --tab-color: var(--child-depth-1);
 }
 
-/* 孫より深い子チャットのタブは、札（「孫」「ひ孫」。ChildTabBadge）と下線を深さの色にする（同じ欄に子と並ぶので見分ける） */
+/* 孫より深い子チャットのタブは、札（「孫」「ひ孫」。ChildTabBadge）と上の端の線を深さの色にする（同じ欄に子と並ぶので見分ける） */
 .panel-tab.tab-kind-child:has(.child-depth-mark-2) {
   --tab-color: var(--child-depth-2);
 }
