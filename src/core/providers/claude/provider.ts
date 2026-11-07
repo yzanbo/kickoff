@@ -27,6 +27,7 @@ import type { SelfInfo } from "../../chat/guard/selfProtection.js";
 import { normalizeUsage, readPlanDisplayName } from "./usage.js";
 import type { AgentProvider, AskModel, ProviderCallbacks, ProviderTurnParams, ProviderTurnResult, SubagentLogItem } from "../types.js";
 import { runCommand } from "../../system/exec.js";
+import { CLEAR_COMMAND_DESCRIPTION } from "@shared/chat/queueActions";
 
 /** 要約に渡す文の上限（文字。haiku のコンテキストと時間に収める） */
 const MAX_SUMMARIZE_CHARS = 60_000;
@@ -104,7 +105,8 @@ export class ClaudeProvider implements AgentProvider {
         (await q.supportedCommands())
           // __ で始まるものは Claude Code の内部用
           .filter((c) => !TERMINAL_ONLY_COMMANDS.has(c.name) && !c.name.startsWith("_"))
-          .map((c) => ({ name: c.name, description: c.description, argument_hint: c.argumentHint ?? "" }))
+          // /clear は Kickoff が受け取ってコンテキスト消去にするので、説明もその動きにする
+          .map((c) => ({ name: c.name, description: c.name === "clear" ? CLEAR_COMMAND_DESCRIPTION : c.description, argument_hint: c.argumentHint ?? "" }))
           .sort((a, b) => a.name.localeCompare(b.name)),
       { cwd, settingSources: ["user", "project", "local"] },
     );
