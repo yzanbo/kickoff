@@ -19,7 +19,7 @@ export function useStickyPrompt(timeline: RefObject<HTMLElement | null>, prompts
   const [pinned, setPinned] = useState<PinnedPrompt>();
   const update = () => {
     const el = timeline.current;
-    const next = !el || hidden ? undefined : readingPrompt(el);
+    const next = !el || hidden ? undefined : readingPrompt(el, prompts);
     setPinned((prev) => (samePinned(prev, next) ? prev : next));
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -11,6 +11,7 @@ import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
 import { COMPACT_PROMPT_KINDS } from "@/features/snippet/compactPromptKinds";
 import type { CompactPromptKind } from "@shared/chat/prompts";
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
+import { promptBefore, type PromptList } from "./promptHistory";
 
 /** AI からの質問への回答の 1 問（質問の文と選んだ答え） */
 export interface PinnedAnswer {
@@ -163,17 +164,26 @@ function answersOf(bubble: HTMLElement): PinnedAnswer[] {
 
 /**
  * いま読んでいる返答の元の自分の発言（帯に出す指示）: 流れの上端まで流れた（上端より上から始まる）いちばん下の吹き出し。
- * どれも流れていなければ（いちばん上を見ている）、最初の吹き出し。吹き出しがなければ undefined。
+ * 読んでいる位置より上に描いている吹き出しがなければ、見えている最初の項目より前のいちばん新しい指示を記録の一覧（prompts）から出す
+ * （流れは最近の項目だけを描く窓なので、1 回の作業でツール・返答が多いと、窓の中に自分の吹き出しが 1 つも入らず、帯が消えていた）。
+ * それもなければ（いちばん上を見ている）、最初の吹き出し。吹き出しも指示もなければ undefined。
  * AI からの質問への回答も同じ吹き出しなので数え、問いと答えを添える（文は答えだけを並べた 1 行）。圧縮前指示・圧縮後指示（`.pre-compact` / `.post-compact`）はその印を添える。
  * 帯は流れの上に置き、流れに重ねないので、流れの上端をそのまま線にする
  */
-export function readingPrompt(timeline: HTMLElement): PinnedPrompt | undefined {
+export function readingPrompt(timeline: HTMLElement, prompts?: PromptList): PinnedPrompt | undefined {
   const line = timeline.getBoundingClientRect().top + 1;
   const bubbles = timeline.querySelectorAll<HTMLElement>(".bubble.user");
-  let found: HTMLElement | undefined = bubbles[0];
+  let found: HTMLElement | undefined;
   for (const bubble of bubbles) {
     if (bubble.getBoundingClientRect().top >= line) break;
     found = bubble;
+  }
+  if (!found) {
+    // 読んでいる位置より上に描いている吹き出しがない（窓の外にある・最初の吹き出しより上を見ている）: 見えている最初の項目より前の指示を記録から
+    const first = firstVisibleEventId(timeline, line);
+    const before = first !== undefined && prompts ? promptBefore(prompts, first) : undefined;
+    if (before) return before.compactKind ? { id: before.id, text: before.text, compactKind: before.compactKind } : { id: before.id, text: before.text };
+    found = bubbles[0];
   }
   if (!found) return undefined;
   const id = Number(found.id.replace("ev-", ""));
@@ -186,4 +196,14 @@ export function readingPrompt(timeline: HTMLElement): PinnedPrompt | undefined {
   const text = found.querySelector(".bubble-text")?.textContent?.trim() ?? "";
   const compactKind = found.closest(".pre-compact") ? "pre" : found.closest(".post-compact") ? "post" : undefined;
   return compactKind ? { id, text, compactKind } : { id, text };
+}
+
+/** 流れの上端の線より下に掛かっている、いちばん上の項目の記録の ID（項目の要素の id は `ev-<記録の ID>`。なければ undefined） */
+function firstVisibleEventId(timeline: HTMLElement, line: number): number | undefined {
+  for (const el of timeline.querySelectorAll<HTMLElement>('[id^="ev-"]')) {
+    if (el.getBoundingClientRect().bottom <= line) continue;
+    const id = Number(el.id.slice(3));
+    if (Number.isFinite(id) && id > 0) return id;
+  }
+  return undefined;
 }
