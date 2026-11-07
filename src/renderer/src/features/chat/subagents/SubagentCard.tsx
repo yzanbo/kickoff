@@ -1,5 +1,5 @@
-import { ChevronRight, ChevronsUpDown, GitBranch, PanelRight, Reply } from "lucide-react";
-import { memo, type KeyboardEvent } from "react";
+import { ChevronRight, GitBranch, PanelRight, Reply } from "lucide-react";
+import { memo, type KeyboardEvent, type MouseEvent } from "react";
 import type { SubagentEntry } from "@shared/chat/subagents";
 import { cx } from "@/lib/cx";
 import { useTicker } from "@/hooks/useTicker";
@@ -8,6 +8,7 @@ import { canPopout } from "@/app/popout";
 import { SUBAGENT_OPEN_IN } from "@/lib/storageKeys";
 import { useShownInAgentPanel } from "@/features/panel/agents/agentTabs";
 import { ClaudeMark } from "@/ui/ClaudeMark";
+import { IconButton } from "@/ui/IconButton";
 import { useChatPaneState, useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import type { ToolCall } from "@/features/chat/timeline/timelineItems";
 import { SubagentActions } from "./SubagentActions";
@@ -44,8 +45,10 @@ interface CardProps {
  * 流れの中のサブエージェントのカード（Agent / Task の呼び出し 1 つ）。閉じた状態でも、状態・名前・開始〜終了（実行中は開始〜最後の動き）・
  * いまの動き（中で起動したサブエージェントのものも）・操作を出す。開くと、そのサブエージェントの流れ（依頼 → 発言・ツール（時刻付き）→ 報告）を
  * 字下げして出し、中で起動したサブエージェントも同じカードとして入れ子で出す。開閉はチャットの画面の状態（ピルから移ったときも開く）。
- * 見出しを押したときの開き方は設定（SUBAGENT_OPEN_IN）で、流れの中で開く・チャットの画面の右の欄に開く・別ウィンドウで開く。
- * もう一方は操作の「右の欄で開く」/「流れの中で開く」でいつでも選べる。右の欄で表示しているカードには「右の欄で表示中」と添える
+ * カードの上の 2 行（見出しといまの動き / まとめ）のどこを押しても、設定（SUBAGENT_OPEN_IN）の開き方で開く: 流れの中で開く・チャットの画面の右の欄に開く・別ウィンドウで開く
+ * （中のボタンを押したとき・文を選んだときは除く）。左の ＞ はいつも流れの中での開閉（設定が右の欄でも、流れの中で中身を見られる。前は ＞ も見出しと同じく右の欄に開き、
+ * 流れの中で開くには 2 行目の「流れの中で開く」を押すしかなかった）。設定が右の欄でないときは、操作の「右の欄で開く」で右の欄にも開ける。
+ * 右の欄で表示しているカードには「右の欄で表示中」と添える
  */
 function SubagentCardView({ call, rel, renderItems }: CardProps) {
   const view = useSubagentsView();
@@ -69,8 +72,15 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
   const depth = path.length - 1;
   const toggle = () => (windowFirst ? pane?.openSubagentWindow(key) : sideFirst ? pane?.openSubagentSide(key) : pane?.toggleSubagent(key));
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== "Enter" && e.key !== " ") return;
+    if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
     e.preventDefault();
+    toggle();
+  };
+  // 上の 2 行のどこを押しても開く（中のボタン・リンク・入力欄を押したとき、文を選び終えたときは、それぞれに任せる）
+  const onTopClick = (e: MouseEvent<HTMLDivElement>) => {
+    if ((e.target as Element).closest("button, a, input, textarea, select, label")) return;
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && selection.anchorNode && e.currentTarget.contains(selection.anchorNode)) return;
     toggle();
   };
   return (
@@ -80,46 +90,48 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
       data-depth={depth}
       style={agentHueStyle(view.hues.get(key))}
     >
-      <div className="subagent-card-head" role="button" tabIndex={0} aria-expanded={open} onClick={toggle} onKeyDown={onKeyDown}>
-        <ChevronRight size={14} className="tool-chevron" />
-        <span className={cx("subagent-icon", running && "spinning")}>
-          <ClaudeMark size={14} />
-        </span>
-        <span className="subagent-card-title">
-          {depth >= FLAT_DEPTH && (
-            <span className="subagent-card-path">
-              {path
-                .slice(0, -1)
-                .map((s) => s.description)
-                .join(" › ")}{" "}
-              ›{" "}
-            </span>
+      {/* 上の 2 行（見出し・いまの動き / まとめ）。どこを押しても設定の開き方で開く（onTopClick） */}
+      <div className="subagent-card-top" onClick={onTopClick}>
+        <div className="subagent-card-head" role="button" tabIndex={0} aria-expanded={open} onKeyDown={onKeyDown}>
+          {pane ? (
+            <IconButton
+              icon={ChevronRight}
+              label={open ? "流れの中で閉じる" : "流れの中で開く"}
+              className="subagent-card-chevron"
+              iconClassName="tool-chevron"
+              aria-expanded={open}
+              onClick={() => pane.toggleSubagent(key)}
+            />
+          ) : (
+            <ChevronRight size={14} className="tool-chevron" />
           )}
-          <SubagentKind entry={entry} view={view} />
-          <span className="subagent-card-name">{entry.description}</span>
-          <span className="subagent-card-type">{entry.subagentType ?? "general-purpose"}</span>
-          <SubagentStatusText entry={entry} />
-          {inSide && <span className="subagent-card-side">右の欄で表示中</span>}
-        </span>
-        <SubagentTime entry={entry} />
-      </div>
-      <div className="subagent-card-now">
-        {running ? <NowLine entry={entry} view={view} rel={rel} /> : <Summary entry={entry} childCount={childrenOf(view.tree, key).length} />}
-        <span className="subagent-card-actions">
-          <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => pane?.openSubagent(k)} />
-          {pane?.canOpenSide &&
-            (sideFirst ? (
-              <button
-                type="button"
-                className="link-button subagent-tell"
-                title="右の欄ではなく、この流れの中でカードの中身を開く・閉じる"
-                aria-expanded={open}
-                onClick={() => pane.toggleSubagent(key)}
-              >
-                <ChevronsUpDown size={12} aria-hidden />
-                {open ? "流れの中で閉じる" : "流れの中で開く"}
-              </button>
-            ) : (
+          <span className={cx("subagent-icon", running && "spinning")}>
+            <ClaudeMark size={14} />
+          </span>
+          <span className="subagent-card-title">
+            {depth >= FLAT_DEPTH && (
+              <span className="subagent-card-path">
+                {path
+                  .slice(0, -1)
+                  .map((s) => s.description)
+                  .join(" › ")}{" "}
+                ›{" "}
+              </span>
+            )}
+            <SubagentKind entry={entry} view={view} />
+            <span className="subagent-card-name">{entry.description}</span>
+            <span className="subagent-card-type">{entry.subagentType ?? "general-purpose"}</span>
+            <SubagentStatusText entry={entry} />
+            {inSide && <span className="subagent-card-side">右の欄で表示中</span>}
+          </span>
+          <SubagentTime entry={entry} />
+        </div>
+        <div className="subagent-card-now">
+          {running ? <NowLine entry={entry} view={view} rel={rel} /> : <Summary entry={entry} childCount={childrenOf(view.tree, key).length} />}
+          <span className="subagent-card-actions">
+            <SubagentActions chatId={view.chatId} entry={entry} busy={view.busy} onOpen={(k) => pane?.openSubagent(k)} />
+            {/* 流れの中での開閉は左の ＞。設定が右の欄のときは、上の 2 行を押せば右の欄に開くので出さない */}
+            {pane?.canOpenSide && !sideFirst && (
               <button
                 type="button"
                 className="link-button subagent-tell"
@@ -129,31 +141,32 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
                 <PanelRight size={12} aria-hidden />
                 右の欄で開く
               </button>
-            ))}
-          {pane && (
-            <button
-              type="button"
-              className="link-button subagent-tell"
-              title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（↑↓ で順に移る）"
-              onClick={() => pane.focusActivity(key)}
-            >
-              <GitBranch size={12} aria-hidden />
-              動きで見る
-            </button>
-          )}
-          {pane && entry.agentId && (
-            <button
-              type="button"
-              className="link-button subagent-tell"
-              title="メインエージェント経由で、このサブエージェントに追加の指示を伝える（直接は送れないので、メインエージェントが SendMessage で渡します。カードの下に入力欄を開きます）"
-              aria-expanded={telling}
-              onClick={() => (telling ? pane.closeTell(key) : pane.tellSubagent(key))}
-            >
-              <Reply size={12} aria-hidden />
-              伝える
-            </button>
-          )}
-        </span>
+            )}
+            {pane && (
+              <button
+                type="button"
+                className="link-button subagent-tell"
+                title="見出しの「動き」を開き、このサブエージェントと、その中で起動したものの行をすべて強調して、初めの行へ移ります（↑↓ で順に移る）"
+                onClick={() => pane.focusActivity(key)}
+              >
+                <GitBranch size={12} aria-hidden />
+                動きで見る
+              </button>
+            )}
+            {pane && entry.agentId && (
+              <button
+                type="button"
+                className="link-button subagent-tell"
+                title="メインエージェント経由で、このサブエージェントに追加の指示を伝える（直接は送れないので、メインエージェントが SendMessage で渡します。カードの下に入力欄を開きます）"
+                aria-expanded={telling}
+                onClick={() => (telling ? pane.closeTell(key) : pane.tellSubagent(key))}
+              >
+                <Reply size={12} aria-hidden />
+                伝える
+              </button>
+            )}
+          </span>
+        </div>
       </div>
       {/* 閉じているときは、中で起動したサブエージェントを木の枝の形で並べる（開くと中にカードが並ぶので出さない） */}
       {!open && pane && (
