@@ -15,6 +15,7 @@ import { FoldHead } from "@/ui/FoldHead";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { DraftRows } from "./DraftRows";
 import type { GroupSectionProps } from "./useGroupSections";
+import { huedHeadProps } from "./bucketColor";
 
 /**
  * サイドバーの、自分で作ったグループ 1 つ（見出しと、開閉する中身。bucket は bucketChats のグループのまとまりで、中の段があれば状態ごとに分ける）。
@@ -29,6 +30,7 @@ export function CustomGroupSection({
   onSetClosed,
   filtering,
   renderRow,
+  hue = null,
   section: { menu, renaming, onRenameStart, onRenameEnd, dropClass, dropProps, dragProps },
 }: {
   projectId: number;
@@ -40,6 +42,8 @@ export function CustomGroupSection({
   /** 検索・絞り込みの間（並べ方のまとまりを開いて見せる） */
   filtering: boolean;
   renderRow: (chat: Chat) => ReactNode;
+  /** 見出しの色（「まとまりを色付きで表示」のとき。タブの列のまとまりと同じ色。null なら付けない） */
+  hue?: number | null;
   /** 見出しの操作の束（useGroupSections の sectionProps） */
   section: GroupSectionProps;
 }) {
@@ -63,7 +67,8 @@ export function CustomGroupSection({
       {/* 開閉の矢印（ほかのまとまりと同じ）とフォルダのアイコン。押すと開閉する。名前の編集中は、ほかの操作を隠す（押し直して編集が始まり直さないように） */}
       <FoldHead
         look="group"
-        className={cx(selected && "active")}
+        className={cx(selected && "active", huedHeadProps(hue).className)}
+        style={huedHeadProps(hue).style}
         draggable={!renaming}
         title="ドラッグでグループを並べ替える（右クリックでメニュー・名前をダブルクリックで名前を変更）"
         onContextMenu={(e) => menu.openFor(group, e)}

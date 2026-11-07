@@ -1,4 +1,3 @@
-import { PROJECT_HUES, pickProjectHue } from "@shared/project/colors";
 import { sortBuckets, type BucketHead } from "@/features/chatList/buckets";
 
 /** ブラウザなど、どのグループ・作業場所にも入らないタブのまとまり（いちばん後ろに置く） */
@@ -65,42 +64,4 @@ export function visibleClusterTabs(cluster: TabCluster, collapsed: boolean, acti
 export function paneIndexOf(displayIndex: number, display: readonly string[], paneTabs: readonly string[]): number {
   const key = display[displayIndex];
   return key === undefined ? paneTabs.length : paneTabs.indexOf(key);
-}
-
-/**
- * まとまりの好みの色（色相）。自分で作ったグループは覚えた色（ChatGroup.hue。作ったときに同じプロジェクトのほかのグループと被らない色を選んである）、
- * 作業場所はブランチの印と同じ色（hue。workplaceHue。同じプロジェクトのいまある作業場所どうしは被らない）、
- * ほか（固定・グループなし・アーカイブ済み）はキーから決める（並びが変わっても同じ色。プロジェクトの色と同じ 10 色から）。
- * 「その他」は色を付けない（null）
- */
-export function clusterHue(cluster: Pick<BucketHead, "key" | "kind" | "group" | "hue">): number | null {
-  if (cluster.kind === "other") return null;
-  if (cluster.group) return cluster.group.hue;
-  if (cluster.hue !== undefined) return cluster.hue;
-  let hash = 0;
-  for (const ch of cluster.key) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return PROJECT_HUES[hash % PROJECT_HUES.length];
-}
-
-/**
- * タブの列に並ぶまとまりの色を、互いに被らないように決める（プロジェクトの色と同じ 10 色から）。決まった色のあるまとまり（グループ・作業場所）を先に、
- * 並びの順にそれぞれの好みの色（clusterHue）を取り、もう使われていれば、まだ使われていない色からプロジェクトと同じ選び方で選ぶ
- * （10 色を使い切ったら被ってもよい）。以前はキーから決めるだけで、同じ列のまとまりの色が被っていた
- */
-export function clusterHues(clusters: readonly Pick<BucketHead, "key" | "kind" | "group" | "hue">[]): Map<string, number | null> {
-  const hues = new Map<string, number | null>();
-  const used: number[] = [];
-  const fixed = (c: Pick<BucketHead, "group" | "hue">) => c.group !== undefined || c.hue !== undefined;
-  const fixedFirst = [...clusters.filter(fixed), ...clusters.filter((c) => !fixed(c))];
-  for (const c of fixedFirst) {
-    const wanted = clusterHue(c);
-    if (wanted === null) {
-      hues.set(c.key, null);
-      continue;
-    }
-    const hue = used.includes(wanted) && used.length < PROJECT_HUES.length ? pickProjectHue(used) : wanted;
-    used.push(hue);
-    hues.set(c.key, hue);
-  }
-  return hues;
 }

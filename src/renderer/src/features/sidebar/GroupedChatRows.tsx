@@ -7,6 +7,8 @@ import { useFold } from "@/hooks/useFold";
 import { cx } from "@/lib/cx";
 import { WORKPLACE_KIND_LABELS } from "@/features/worktree/workplace";
 import { FoldSection } from "@/ui/FoldHead";
+import type { MouseEvent } from "react";
+import { huedHeadProps } from "./bucketColor";
 
 /** まとまりの見出しの印（状態 = 列の色の点 / 作業場所 = ブランチ。ワークツリーは色付き、フォルダなし・以前のブランチは薄く） */
 function BucketMark({ bucket }: { bucket: ChatBucket }) {
@@ -20,7 +22,7 @@ function BucketMark({ bucket }: { bucket: ChatBucket }) {
  * 見出しつきのまとまり 1 つ（見出しは 開閉・印・名前・件数。ボードの列の見出しと同じ形）。見出しを押すと開閉する。
  * 中の段があれば（作業場所の中を状態順に分けるとき）、その見出しのまとまりを並べる。開閉はまとまりのキーで覚え、forceOpen（検索中）は開いて見せる
  */
-function Section({ bucket, renderRow, forceOpen }: { bucket: ChatBucket; renderRow: (chat: Chat) => ReactNode; forceOpen: boolean }) {
+function Section({ bucket, renderRow, forceOpen, hue, onContextMenu }: SectionProps & { bucket: ChatBucket; hue: number | null }) {
   // 開閉はまとまりのキーで覚える（見出しの行の「すべて閉じる / 開く」にも従う）
   const fold = useFold("sidebar", bucket.key, { forceOpen });
   const label = (
@@ -31,7 +33,16 @@ function Section({ bucket, renderRow, forceOpen }: { bucket: ChatBucket; renderR
     </>
   );
   return (
-    <FoldSection look="section" title={bucket.title} open={fold.open} onToggle={fold.toggle} label={label} count={bucket.chats.length}>
+    <FoldSection
+      look="section"
+      title={bucket.title}
+      open={fold.open}
+      onToggle={fold.toggle}
+      label={label}
+      count={bucket.chats.length}
+      {...huedHeadProps(hue)}
+      onContextMenu={onContextMenu}
+    >
       {bucket.children ? (
         <div className="custom-group-grouped">
           <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={forceOpen} />
@@ -49,6 +60,26 @@ function Section({ bucket, renderRow, forceOpen }: { bucket: ChatBucket; renderR
  * アーカイブ済みの中のどこかが入る）で覚える。forceOpen（検索中）のときはすべて開く。グループなしだけでなく、自分で作ったグループの中・
  * アーカイブ済みの中でも同じように使う
  */
-export function GroupedChatRows({ buckets, renderRow, forceOpen = false }: { buckets: readonly ChatBucket[]; renderRow: (chat: Chat) => ReactNode; forceOpen?: boolean }) {
-  return buckets.map((bucket) => <Section key={bucket.key} bucket={bucket} renderRow={renderRow} forceOpen={forceOpen} />);
+export function GroupedChatRows({
+  buckets,
+  renderRow,
+  forceOpen = false,
+  hueOf,
+  onContextMenu,
+}: Omit<SectionProps, "forceOpen"> & {
+  buckets: readonly ChatBucket[];
+  forceOpen?: boolean;
+  /** 見出しの色（作業場所別で「まとまりを色付きで表示」のとき。タブの列のまとまりと同じ色）。中の段（状態）には付けない */
+  hueOf?: (bucket: ChatBucket) => number | null;
+}) {
+  return buckets.map((bucket) => (
+    <Section key={bucket.key} bucket={bucket} renderRow={renderRow} forceOpen={forceOpen} hue={hueOf?.(bucket) ?? null} onContextMenu={onContextMenu} />
+  ));
+}
+
+interface SectionProps {
+  renderRow: (chat: Chat) => ReactNode;
+  forceOpen: boolean;
+  /** 見出しの右クリック（「まとまりを色付きで表示」のメニュー。まとめないときは undefined） */
+  onContextMenu?: (e: MouseEvent) => void;
 }

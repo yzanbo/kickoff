@@ -13,6 +13,8 @@ import { PANEL_KIND_LABELS } from "@/features/panel/state/panelKinds";
 import { SURFACES } from "@/features/panel/surfaces";
 import type { PanelController } from "@/features/panel/usePanel";
 import { usePanelViewReset } from "./usePanelViewReset";
+import { BucketColorItem } from "@/features/chatList/BucketColorItem";
+import { PANEL_TAB_GROUP_COLORS } from "@/lib/storageKeys";
 
 /**
  * タブの列の「表示」のメニュー（タブの列の左の道具のボタン・タブの列の何もないところの右クリックで、同じものを開く）。
@@ -71,12 +73,16 @@ export function usePanelViewMenu(panel: PanelController) {
     sections.push(
       section(
         "チャットのまとめ方",
-        CHAT_GROUPINGS.map((g) => (
-          <MenuItem key={g} role="menuitemradio" checked={g === grouping} onSelect={() => setGrouping(g)}>
-            <span className="project-switch-item">{CHAT_GROUPING_LABELS[g]}</span>
-            {g === grouping && <Check size={14} aria-hidden />}
-          </MenuItem>
-        )),
+        <>
+          {CHAT_GROUPINGS.map((g) => (
+            <MenuItem key={g} role="menuitemradio" checked={g === grouping} onSelect={() => setGrouping(g)}>
+              <span className="project-switch-item">{CHAT_GROUPING_LABELS[g]}</span>
+              {g === grouping && <Check size={14} aria-hidden />}
+            </MenuItem>
+          ))}
+          {/* まとめたまとまりの色（色付き / 色なし。まとまりの札の右クリックにも同じ項目）。まとめないときは効かないので出さない */}
+          {grouping !== "none" && <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} keepOpen />}
+        </>,
       ),
     );
     // グループ別のときだけ: タブの列に出すグループ（自分で作ったグループを隠す・チャットのないグループを隠す）

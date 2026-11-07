@@ -37,6 +37,7 @@ import { SIDEBAR_WAITING_ONLY } from "@/lib/storageKeys";
 import { inboxSections, waitingSince } from "./inboxOrder";
 import { waitingAxes } from "./waitingAxes";
 import { useWaitingView } from "./waitingView";
+import { huedHeadProps, useSidebarBucketColors } from "./bucketColor";
 
 // プロジェクトを切り替えても、中身の変わらないページは描き直さない
 export const WorkspacePage = memo(function WorkspacePage({
@@ -105,7 +106,9 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
-  const sections = useGroupSections({ projectId: project.id, groups, chats });
+  // まとまりの見出しの色（「まとまりを色付きで表示」のとき。タブの列のまとまりと同じ色）と、見出しの右クリックでの切り替え
+  const colors = useSidebarBucketColors(grouping, project.id);
+  const sections = useGroupSections({ projectId: project.id, groups, chats, menuExtra: colors.menuItem });
   // グループに入れた下書きがあれば、グループなしのチャットがなくても「No Group」の見出しを出す（下書きを戻すドロップ先）
   const groupedDrafts = list.groups.some((g) => g.drafts.length > 0);
   // グループの見出しを出しているときは、どのグループにも入っていない下書き（もうないグループのものも）を「No Group」の中（チャットの上）に並べる
@@ -193,7 +196,17 @@ export const WorkspacePage = memo(function WorkspacePage({
         {/* グループの見出しを出していないときの下書き（グループでまとめていないときは、グループに入れたものも含めていちばん上に） */}
         <DraftRows drafts={list.topDrafts} />
         {pinned && (
-          <FoldSection look="row" wrapClassName="pinned" icon={Pin} label="固定" count={pinned.chats.length} open={pinnedFold.open} onToggle={pinnedFold.toggle}>
+          <FoldSection
+            look="row"
+            wrapClassName="pinned"
+            icon={Pin}
+            label="固定"
+            count={pinned.chats.length}
+            open={pinnedFold.open}
+            onToggle={pinnedFold.toggle}
+            {...huedHeadProps(colors.hueOf(pinned))}
+            onContextMenu={colors.onContextMenu}
+          >
             <ul className="chat-rows">{pinned.chats.map(renderRow)}</ul>
           </FoldSection>
         )}
@@ -211,11 +224,20 @@ export const WorkspacePage = memo(function WorkspacePage({
               filtering={filtering}
               renderRow={renderRow}
               section={sections.sectionProps(group)}
+              hue={colors.hueOf(bucket)}
             />
           );
         })}
         {showGroups && ungrouped && (ungrouped.chats.length > 0 || ungroupedDrafts.length > 0 || groupedDrafts) && (
-          <UngroupedHead projectId={project.id} count={ungrouped.chats.length} open={ungroupedFold.open} onToggle={ungroupedFold.toggle} drop={sections.ungroupedDrop} />
+          <UngroupedHead
+            projectId={project.id}
+            count={ungrouped.chats.length}
+            open={ungroupedFold.open}
+            onToggle={ungroupedFold.toggle}
+            drop={sections.ungroupedDrop}
+            hue={colors.hueOf(ungrouped)}
+            onContextMenu={colors.onContextMenu}
+          />
         )}
         {(filtering && restCount === 0 && ungroupedDrafts.length === 0) ||
         (visibleCount === 0 && ungroupedDrafts.length === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
@@ -229,7 +251,7 @@ export const WorkspacePage = memo(function WorkspacePage({
             {/* グループなしの下書き（グループから戻すドロップ先にもする） */}
             <DraftRows drafts={ungroupedDrafts} drop={sections.ungroupedDrop.props} />
             {mainRows.length === 0 ? null : mainSections ? (
-              <GroupedChatRows buckets={mainSections} renderRow={renderRow} forceOpen={filtering} />
+              <GroupedChatRows buckets={mainSections} renderRow={renderRow} forceOpen={filtering} hueOf={colors.hueOf} onContextMenu={colors.onContextMenu} />
             ) : (
               <ul className="chat-rows" {...(showGroups ? sections.ungroupedDrop.props : {})}>
                 {mainRows.map(renderRow)}
@@ -240,7 +262,16 @@ export const WorkspacePage = memo(function WorkspacePage({
         {archived && (
           // チャットの行をここへドラッグすると、確かめてからアーカイブする（右クリックの「アーカイブ」と同じ確認のダイアログ）
           <div className={cx("archive-drop", archiveDrop.over && "drop-target")} {...archiveDrop.props}>
-          <FoldSection look="row" icon={Archive} label="アーカイブ済み" count={archived.chats.length} open={archivedFold.open} onToggle={archivedFold.toggle}>
+          <FoldSection
+            look="row"
+            icon={Archive}
+            label="アーカイブ済み"
+            count={archived.chats.length}
+            open={archivedFold.open}
+            onToggle={archivedFold.toggle}
+            {...huedHeadProps(colors.hueOf(archived))}
+            onContextMenu={colors.onContextMenu}
+          >
             {/* 中も、ほかのチャットと同じまとめ方で出す（グループには分けない。開閉はアーカイブ済みの中だけで覚える） */}
             {archived.children ? (
               <div className="custom-group-grouped">
@@ -260,6 +291,7 @@ export const WorkspacePage = memo(function WorkspacePage({
         )}
       </Collapse>
       {sections.menuElement}
+      {colors.menuElement}
       {rowMenu.menu && (
         <ChatMenu
           at={rowMenu.menu.at}

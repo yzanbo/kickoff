@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { cx } from "@/lib/cx";
 import { ChoiceMenu } from "@/ui/ChoiceMenu";
 import { useContextMenu } from "@/ui/useContextMenu";
@@ -17,6 +18,7 @@ export function HeadMenu<T extends string>({
   values,
   title,
   menu,
+  extra,
 }: {
   id: string;
   /** いまの値を表すアイコン（狭いときに出す） */
@@ -30,6 +32,8 @@ export function HeadMenu<T extends string>({
   title: string;
   /** 開くメニュー: 見出し・選択肢（その名前とアイコン）・いま選んでいるもの・選んだとき */
   menu: { title: string; choices: readonly T[]; meta: Record<T, { icon: LucideIcon; label: string }>; current: T; onPick: (choice: T) => void };
+  /** 選択肢の下に区切り線を挟んで足す項目（まとめ方の「まとまりを色付きで表示」） */
+  extra?: ReactNode;
 }) {
   const buttonClass = `head-menu-${id}`;
   const open = useContextMenu();
@@ -58,7 +62,9 @@ export function HeadMenu<T extends string>({
           ignore={`.${buttonClass}`}
           onPick={menu.onPick}
           onClose={open.close}
-        />
+        >
+          {extra}
+        </ChoiceMenu>
       )}
     </>
   );

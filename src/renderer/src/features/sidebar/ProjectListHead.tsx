@@ -1,12 +1,13 @@
 import { Archive, ArchiveX, ChevronsDownUp, ChevronsUpDown, Clock, GalleryHorizontal, GalleryVertical, GripVertical, Rows2, Rows3, Rows4, type LucideIcon } from "lucide-react";
 import type { ProjectOrder } from "@/features/project/projectOrder";
 import type { SettingValue } from "@/lib/storage";
-import type { SIDEBAR_LAYOUT } from "@/lib/storageKeys";
+import { SIDEBAR_BUCKET_COLORS, type SIDEBAR_LAYOUT } from "@/lib/storageKeys";
 import { CHAT_GROUPINGS } from "@/features/chatList/chatGrouping";
 import { GROUPING_META, ORDER_META, useChatLayout } from "./chatGroupings";
 import { cx } from "@/lib/cx";
 import { useOverflowCompact } from "@/hooks/useOverflowCompact";
 import { HeadMenu, HeadToggle } from "./HeadMenu";
+import { BucketColorItem } from "@/features/chatList/BucketColorItem";
 import { IconButton } from "@/ui/IconButton";
 import { useCompactProjects, useCompactRows, useShowArchivedChats } from "@/features/chatList/chatListFlags";
 import { TagFilterRow } from "./TagFilterRow";
@@ -122,6 +123,8 @@ export function ProjectListHead({ layout, onLayout, order, onOrder, fold, archiv
           values={CHAT_GROUPINGS.map((g) => GROUPING_META[g].short)}
           title={`チャットのまとめ方（すべてのプロジェクト。いまは「${GROUPING_META[grouping].label}」）`}
           menu={{ title: "チャットのまとめ方", choices: CHAT_GROUPINGS, meta: GROUPING_META, current: grouping, onPick: setGrouping }}
+          // グループ別・作業場所別の見出しの色（色付き / 色なし。見出しの右クリックにも同じ項目）。選んでもメニューは閉じない
+          extra={<BucketColorItem setting={SIDEBAR_BUCKET_COLORS} keepOpen />}
         />
         <HeadToggle
           id="chat-order"

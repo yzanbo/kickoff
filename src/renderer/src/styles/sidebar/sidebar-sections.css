@@ -89,6 +89,29 @@
   color: var(--info);
 }
 
+/*
+ * 「まとまりを色付きで表示」のときの見出し（グループ別 = 自分で作ったグループ・No Group・固定・アーカイブ済み、作業場所別 = 作業場所・固定・アーカイブ済み）:
+ * 見出しのアイコン（フォルダ・ブランチ・ピン・アーカイブ）と名前を、タブの列のまとまりと同じ色（--group-hue。bucketHues.ts）にする。濃さはタブのまとまりの札と同じ
+ */
+.bucket-hued {
+  --group-color: hsl(var(--group-hue) 60% 68%);
+}
+
+:root[data-theme="light"] .bucket-hued {
+  --group-color: hsl(var(--group-hue) 55% 38%);
+}
+
+.bucket-hued .custom-group-icon,
+.bucket-hued .custom-group-name,
+.bucket-hued .status-group-name > svg,
+.bucket-hued .status-group-label {
+  color: var(--group-color);
+}
+
+.custom-group-head.bucket-hued:hover .custom-group-name {
+  color: var(--group-color);
+}
+
 /* フォルダの見つからないワークツリー・片付けたあとの以前のブランチ（薄い灰） */
 .status-group-gone,
 .board-lane-gone {

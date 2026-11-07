@@ -9,6 +9,7 @@ import {
   COMPOSER_COMPACT,
   PANEL_HIDDEN_GROUPS,
   PANEL_HIDE_EMPTY_GROUPS,
+  PANEL_TAB_GROUP_COLORS,
   SIDEBAR_SHOW_ARCHIVED,
   SNIPPET_BAR_HIDDEN,
   STICKY_PROMPT_HIDDEN,
@@ -24,6 +25,7 @@ const CHAT_VIEW_SETTINGS: readonly Setting<unknown>[] = [
   SIDEBAR_SHOW_ARCHIVED,
   PANEL_HIDDEN_GROUPS,
   PANEL_HIDE_EMPTY_GROUPS,
+  PANEL_TAB_GROUP_COLORS,
   CHAT_TAB_ROW_HIDDEN,
   CHAT_HEADER_ROW_HIDDEN,
   CHAT_HEADER_HIDDEN,
@@ -39,7 +41,7 @@ const atInitial = <T>(setting: Setting<T>, value: T) => setting.encode(value) ==
 
 /**
  * タブの列の「表示」のメニューのいちばん下の「既定に戻す」: メニューに出ている選び方（表示するタブ・チャットのまとめ方・出すグループ・
- * アーカイブ済み・チャットの画面の項目）を初めの値に戻す。chat はチャットの項目を出している欄か（出していない欄では、表示するタブだけを戻す）。
+ * アーカイブ済み・まとまりの色・チャットの画面の項目）を初めの値に戻す。chat はチャットの項目を出している欄か（出していない欄では、表示するタブだけを戻す）。
  * changed は初めと違う選び方があるか（なければ押せない）
  */
 export function usePanelViewReset(surface: PanelSurface, chat: boolean) {
