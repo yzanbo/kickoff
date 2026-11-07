@@ -46,10 +46,18 @@
   gap: 4px;
 }
 
-.child-chat-chip .spinner {
-  width: 10px;
-  height: 10px;
-  border-width: 1.5px;
+/* 札の中の状態の印（サイドバーの行と同じ StatusSlot を、札の高さに収める。リングの右上の緑の点・回答待ちの！の縁は札の地の色） */
+.child-chat-chip .status-slot {
+  width: 12px;
+  height: 14px;
+}
+
+.child-chat-chip .status-unread-badge {
+  border-color: var(--bg-elev);
+}
+
+.child-chat-chip .status-slot svg {
+  stroke: var(--bg-elev);
 }
 
 .child-chat-chip.child-unread {

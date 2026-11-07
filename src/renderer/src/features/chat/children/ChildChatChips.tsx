@@ -1,5 +1,6 @@
 import { Archive, ArchiveRestore, MessagesSquare, Trash2 } from "lucide-react";
 import { AGENT_STATE_LABELS, type Chat } from "@shared/types";
+import { busyWithUnread } from "@shared/chat/state";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
 import { relativeTime } from "@/lib/time";
@@ -24,7 +25,6 @@ import { useNewChildFlash } from "./useNewChildFlash";
 /** ピルに数を添える様子（見てほしい順） */
 const NOTICE_STATES = ["needs_input", "failed", "unread"] as const;
 
-
 /** 子チャットの札 1 つ（押すと設定の開き方（右の欄 / 別ウィンドウ）で開く） */
 function ChildChip({ chat }: { chat: Chat }) {
   const { stateOf } = useChatStates();
@@ -34,7 +34,8 @@ function ChildChip({ chat }: { chat: Chat }) {
       <MessagesSquare size={12} aria-hidden />
       <span className="child-chat-chip-title">{chatTitle(chat.title)}</span>
       <span className="child-chat-chip-state">
-        {state === "running" && <span className="spinner" aria-hidden />}
+        {/* 状態の印はサイドバーの行・タブと同じ（作業中のリング・回答待ちの！・未読と失敗の点） */}
+        <StatusSlot state={state} unread={busyWithUnread(chat, state)} />
         {AGENT_STATE_LABELS[state]}
       </span>
     </button>
