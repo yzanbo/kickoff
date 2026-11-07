@@ -1,4 +1,4 @@
-import { FileDiff, Files, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote } from "lucide-react";
+import { FileDiff, Files, GripHorizontal, GripVertical, History, type LucideIcon, MessageSquare, Search, SquareKanban, StickyNote } from "lucide-react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { cx } from "@/lib/cx";
@@ -42,7 +42,8 @@ interface TabSpec {
  * タブの列に出すタブを、まとまりごとに（グループは「ボード」の中の列の切り替えにまとめたので出さない。チャットはボードと分ける置き方のときだけ）。
  * 同じまとまりのタブは薄い地でつなぎ、まとまりの間を空けて、どれが同じ仲間かを見て分かるようにする（タブが 1 つのまとまりは地を付けない）:
  * チャットの作業（ボード・チャット）/ コード（ファイル・検索・変更・履歴。どれも作業場所のコードと Git。以前の「エディタ」タブの中の切り替えと履歴）/ メモ。
- * ドラッグで並べ替えられる（ほかのまとまりへはまとまりごと、同じまとまりの中では 1 つずつ。useProjectTabOrder）
+ * ドラッグで並べ替えられる（ほかのまとまりへはまとまりごと、同じまとまりの中では 1 つずつ。useProjectTabOrder）。
+ * 2 つ以上のタブのまとまりは、端（縦並びは上・横並びは左）のつまみをつかむと、まとまりごと動かせる
  */
 const TAB_GROUPS: { key: string; label: string; tabs: TabSpec[] }[] = [
   {
@@ -115,6 +116,12 @@ export function ProjectTabs({
             aria-label={group.label}
             {...order.groupProps(group)}
           >
+            {/* まとまりごと動かすつまみ（地でつないだまとまりだけ。タブが 1 つのまとまりは、タブをつかめばまとまりごと動く） */}
+            {shown.length > 1 && (
+              <span className="project-tab-group-handle" title={`ドラッグで「${group.label}」のまとまりごと動かす`} {...order.groupHandleProps(group)}>
+                {vertical ? <GripHorizontal size={12} aria-hidden /> : <GripVertical size={12} aria-hidden />}
+              </span>
+            )}
             {shown.map(({ tab: t, label, icon: Icon }) => {
               // ボードのタブは、列が状態でもグループでも選んだ状態にし、押したら最後に見た列の分け方で開く
               const selected = tab === t || (t === "board" && tab === "groups");

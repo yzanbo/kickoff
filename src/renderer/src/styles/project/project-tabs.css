@@ -121,6 +121,37 @@
 }
 
 /*
+ * まとまりごと動かすつまみ（2 つ以上のタブのまとまりの端。縦並びは上・横並びは左）。いつも薄く見せ、まとまりに乗せると少し濃く、
+ * つまみに乗せると字の色と地で「ここをつかむ」と分かるようにする（送信待ちのつまみと同じ色の段階）
+ */
+.project-tab-group-handle {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  border-radius: var(--radius-sm);
+  color: var(--extra-muted);
+  cursor: grab;
+}
+
+.project-tab-group:hover > .project-tab-group-handle {
+  color: var(--muted);
+}
+
+.project-tab-group > .project-tab-group-handle:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.project-side-tabs .project-tab-group-handle {
+  width: auto;
+  height: 12px;
+  margin: -3px 0 -2px;
+  border-radius: 0 var(--radius) 0 0;
+}
+
+/*
  * タブの並べ替え（ドラッグ）: 落とす先のタブ・まとまりの前か後ろに線（横並びは左右、縦並びは上下）、動かしているものは薄く。
  * ほかのまとまりの上では、まとまりごと動かすので、まとまりに線を出す
  */
