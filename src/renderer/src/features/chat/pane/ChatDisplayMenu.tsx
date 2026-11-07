@@ -1,6 +1,6 @@
 import { Check, ChevronRight } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
-import { CHAT_HEADER_HIDDEN, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, COMPOSER_COMPACT, SNIPPET_BAR_HIDDEN, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
+import { CHAT_HEADER_BADGE_COLORS, CHAT_HEADER_HIDDEN, CHAT_HEADER_ROW_HIDDEN, CHAT_TAB_ROW_HIDDEN, COMPOSER_COMPACT, SNIPPET_BAR_HIDDEN, STICKY_PROMPT_HIDDEN } from "@/lib/storageKeys";
 import { useSetting } from "@/hooks/useSetting";
 import { MenuFlyout, useSubmenu } from "@/ui/MenuFlyout";
 import { MenuItem } from "@/ui/PopupMenu";
@@ -24,6 +24,11 @@ export function useChatHeaderItems() {
   return (item: ChatHeaderItem) => !hidden.has(item);
 }
 
+/** 見出しのグループ・作業場所のバッジを色付きで表示するか（どのチャットでも同じ。外すと灰色の枠と文字だけ） */
+export function useChatHeaderBadgeColors(): boolean {
+  return useSetting(CHAT_HEADER_BADGE_COLORS)[0];
+}
+
 /** 見出しの行を隠しているか（どのチャットでも同じ） */
 export function useChatHeaderRowHidden(): boolean {
   return useSetting(CHAT_HEADER_ROW_HIDDEN)[0];
@@ -41,7 +46,7 @@ function CheckItem({ on, title, keepOpen, onToggle, children }: { on: boolean; t
 
 /**
  * 「チャット画面表示」のメニューの項目（どのチャットでも共通の表示の設定）。画面の上から順に、効く場所ごとの組を区切り線で分ける:
- * 組は見出しの下を左の縦線で囲んで字下げし、組の間は短く薄い線にする（まとまりの間の線と見分ける）: タブの列 ｜ 見出しの行・見出しに出す項目（横に開く子のメニューで 1 つずつ）｜ 指示の帯 ｜ 会話の横幅・会話の文字の大きさ（横に開く子のメニューで 5 段階）｜
+ * 組は見出しの下を左の縦線で囲んで字下げし、組の間は短く薄い線にする（まとまりの間の線と見分ける）: タブの列 ｜ 見出しの行・見出しに出す項目（横に開く子のメニューで 1 つずつ）・バッジを色付きで表示 ｜ 指示の帯 ｜ 会話の横幅・会話の文字の大きさ（横に開く子のメニューで 5 段階）｜
  * 定型文の帯・チャット欄のコンパクト表示。タブの列の「表示」のメニュー（チャットを開ける欄）と、
  * 見出し・会話の何もないところの右クリックで同じものを出す。見出し・タブの列のどちらを隠しても、もう一方と会話の右クリックから戻せる。設定の「表示」と同じ値
  */
@@ -49,6 +54,7 @@ export function ChatDisplayItems() {
   const [tabRowHidden, setTabRowHidden] = useSetting(CHAT_TAB_ROW_HIDDEN);
   const [rowHidden, setRowHidden] = useSetting(CHAT_HEADER_ROW_HIDDEN);
   const [saved, setSaved] = useSetting(CHAT_HEADER_HIDDEN);
+  const [badgeColors, setBadgeColors] = useSetting(CHAT_HEADER_BADGE_COLORS);
   const [stickyHidden, setStickyHidden] = useSetting(STICKY_PROMPT_HIDDEN);
   const [snippetBarHidden, setSnippetBarHidden] = useSetting(SNIPPET_BAR_HIDDEN);
   const [wide, setWide] = useWideText();
@@ -119,6 +125,13 @@ export function ChatDisplayItems() {
             </MenuItem>
           </MenuFlyout>
         )}
+        <CheckItem
+          on={badgeColors}
+          title={badgeColors ? "グループ・作業場所のバッジの色を消して、灰色の枠と文字だけにします" : "グループ・作業場所のバッジを、それぞれの色（タブの列のまとまりと同じ色）で表示します"}
+          onToggle={() => setBadgeColors(!badgeColors)}
+        >
+          バッジを色付きで表示
+        </CheckItem>
         {separator}
         <CheckItem
           on={!stickyHidden}
