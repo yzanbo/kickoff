@@ -2,11 +2,8 @@ import { Archive, ArchiveRestore, ChevronRight, Copy, FolderInput, Mail, MailOpe
 import type { ReactNode } from "react";
 import type { Chat } from "@shared/types";
 import { api } from "@/api";
-import { chatTitle } from "./chatTitle";
-import { confirmDialog } from "@/ui/dialogs";
 import { errorMessage } from "@shared/errors";
-import { openChat, useRoute } from "@/app/router";
-import { confirmDeleteChat, toggleArchiveChat, togglePinChat } from "./chatActions";
+import { confirmDeleteChat, confirmMoveChatToProject, toggleArchiveChat, togglePinChat } from "./chatActions";
 import { openNewProject } from "@/features/project/new/openNewProject";
 import { MenuItem } from "@/ui/PopupMenu";
 import { useSubmenu } from "@/ui/MenuFlyout";
@@ -39,9 +36,6 @@ export function ChatMenuItems({
 }) {
   // 「プロジェクトを変更」の横に開く一覧
   const moving = useSubmenu();
-  const route = useRoute();
-  // いま開いているチャットを移したら、移した先のプロジェクトで開き直す（元のボードからは消えるため）
-  const viewing = route.name === "chat" && route.chatId === chat.id;
   // 失敗はお知らせで出す（メニューは閉じる）
   const act = (fn: () => Promise<unknown>) => {
     onClose();
@@ -100,11 +94,11 @@ export function ChatMenuItems({
         <ProjectPickFlyout
           anchor={moving.anchor}
           current={chat.project_id}
-          onPick={(project) => act(() => moveChat(chat, project, viewing))}
+          onPick={(project) => act(() => confirmMoveChatToProject(chat, project))}
           onCreate={(name) => {
             onClose();
             // 作ったら、そのプロジェクトへこのチャットを移す（確かめてから）
-            openNewProject({ name, onCreated: (project) => void moveChat(chat, project, viewing).catch((e: unknown) => onError(errorMessage(e))) });
+            openNewProject({ name, onCreated: (project) => void confirmMoveChatToProject(chat, project).catch((e: unknown) => onError(errorMessage(e))) });
           }}
           onBack={moving.back}
         />
@@ -119,17 +113,4 @@ export function ChatMenuItems({
       {after}
     </div>
   );
-}
-
-/** 移す前に確かめる（作業フォルダが変わる。グループ・作業場所（ワークツリー）は外れる）。follow: 移したあと、移した先でそのチャットを開く */
-async function moveChat(chat: Chat, project: { id: number; name: string }, follow: boolean): Promise<void> {
-  const lost = [chat.group_id !== null && "グループ", chat.worktree_path && "作業場所（ワークツリー）"].filter(Boolean).join("・");
-  const ok = await confirmDialog({
-    title: `チャット「${chatTitle(chat.title)}」を「${project.name}」へ移しますか？`,
-    message: `これからの作業は、移した先のプロジェクトのフォルダ（本体）で行います。会話はそのまま続けられます。${lost ? `いまの${lost}は外れます。` : ""}`,
-    confirmLabel: "移動する",
-  });
-  if (!ok) return;
-  await api.moveChat(chat.id, project.id);
-  if (follow) openChat(project.id, chat.id);
 }

@@ -5,6 +5,7 @@ import { confirmDialog } from "@/ui/dialogs";
 import type { DraftRef } from "@/features/panel/state/panelDrafts";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
 import { startDragGhost } from "@/ui/dragGhost";
+import { knownChat } from "@/stores/chats";
 
 /** チャットをグループへドラッグするときのデータの種類（ほかのドラッグと区別する） */
 /** サイドバーでグループ名を押したときの知らせ（すでに表示しているグループでも、もう一度ハイライトするため） */
@@ -96,34 +97,50 @@ export function useChatDragging(): boolean {
  * チャットを落とせる所（サイドバーの「アーカイブ済み」など、グループ以外のドロップ先）。チャットを重ねている間は over が true になり、
  * 落とすと onDrop にチャットの ID を渡す（下書き・グループ・プロジェクトのドラッグは受けない）。props をドロップ先の要素に渡す。
  * accepts を渡すと、ドラッグしているチャットのうち受けるものだけで over にし、落とせるようにする。受けないチャットも、
- * 外側の落とし先（グループのまとまりなど）へは渡さない（グループの中の「アーカイブ済み」に、そのアーカイブ済みのチャットを落としても戻さない）
+ * 外側の落とし先（グループのまとまりなど）へは渡さない（グループの中の「アーカイブ済み」に、そのアーカイブ済みのチャットを落としても戻さない）。
+ * ただし passThrough が true のチャット（ほかのプロジェクトのチャットなど）は、受けずに外側の落とし先（プロジェクトのまとまり）へ渡す
  */
-export function useChatDropTarget(onDrop: (chatId: number) => void, accepts?: (chatId: number) => boolean) {
-  const [over, setOver] = useState(false);
-  const ok = () => accepts === undefined || (draggingChatId !== undefined && accepts(draggingChatId));
+export function useChatDropTarget(onDrop: (chatId: number) => void, accepts?: (chatId: number) => boolean, passThrough?: (chatId: number) => boolean) {
+  const targets = useChatDropTargets<true>(
+    (chatId) => onDrop(chatId),
+    (chatId) => accepts === undefined || accepts(chatId),
+    passThrough && ((chatId) => passThrough(chatId)),
+  );
+  return { over: targets.over === true, props: targets.propsFor(true) };
+}
+
+/**
+ * useChatDropTarget の、いくつもの落とし先（key で見分ける。サイドバーの丸の列の、プロジェクトごとの丸など）を 1 つの hook で持つ形。
+ * over は、いまチャットを重ねている落とし先の key
+ */
+export function useChatDropTargets<K>(onDrop: (chatId: number, key: K) => void, accepts: (chatId: number, key: K) => boolean, passThrough?: (chatId: number, key: K) => boolean) {
+  const [over, setOver] = useState<K>();
   return {
     over,
-    props: {
+    propsFor: (key: K) => ({
       onDragOver: (e: DragEvent) => {
         if (!isChatDrag(e)) return;
+        const ok = draggingChatId !== undefined && accepts(draggingChatId, key);
+        if (!ok && draggingChatId !== undefined && passThrough?.(draggingChatId, key)) return;
         e.stopPropagation();
-        if (!ok()) return;
+        if (!ok) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
-        setOver(true);
+        if (over !== key) setOver(key);
       },
       onDragLeave: (e: DragEvent) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false);
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver((cur) => (cur === key ? undefined : cur));
       },
       onDrop: (e: DragEvent) => {
-        setOver(false);
+        setOver(undefined);
         const id = droppedChatId(e);
         if (id === undefined) return;
+        if (!accepts(id, key) && passThrough?.(id, key)) return;
         e.stopPropagation();
         e.preventDefault();
-        if (accepts === undefined || accepts(id)) onDrop(id);
+        if (accepts(id, key)) onDrop(id, key);
       },
-    },
+    }),
   };
 }
 
@@ -217,6 +234,7 @@ export function confirmDeleteGroup(group: Pick<ChatGroup, "name">): Promise<bool
  * onRestoreChat があれば、アーカイブ済みのチャットを落としたときは、移す代わりにそれを呼ぶ（サイドバー: 確かめて戻し、そのグループへ移す）
  */
 export function useGroupDrop({
+  projectId,
   groups,
   chats,
   ungroupedAt,
@@ -224,7 +242,9 @@ export function useGroupDrop({
   onMoveChat,
   onMoveDraft,
   onRestoreChat,
+  onForeignChat,
 }: {
+  projectId: number;
   groups: ChatGroup[];
   chats: Chat[];
   ungroupedAt?: number;
@@ -232,6 +252,8 @@ export function useGroupDrop({
   onMoveChat: (chat: Chat, groupId: number | null) => void;
   onRestoreChat?: (chat: Chat, groupId: number | null) => void;
   onMoveDraft?: (draft: DraftRef, groupId: number | null) => void;
+  /** ほかのプロジェクトのチャットを落としたとき（なければ受けず、外側の落とし先へ渡す） */
+  onForeignChat?: (chat: Chat, groupId: number | null) => void;
 }) {
   const sortable = ungroupedAt !== undefined;
   const ids = groups.map((g) => g.id);
@@ -244,10 +266,17 @@ export function useGroupDrop({
   /** ドラッグ中のチャットを重ねている先（グループの ID / "none" はグループなし） */
   const [over, setOver] = useState<number | "none">();
 
+  /** ほかのプロジェクトのチャットか（分からない = このプロジェクトの外の一覧にないものは、ほかのプロジェクトとみなさない） */
+  const foreign = (chat: Chat | undefined) => chat !== undefined && chat.project_id !== projectId;
   const dropProps = (groupId: number | null) => ({
     onDragOver: (e: DragEvent) => {
       if (reorder.over(e, sortId(groupId))) return;
       if (!isChatDrag(e) && !(onMoveDraft && e.dataTransfer.types.includes(DRAFT_DRAG_TYPE))) return;
+      // ほかのプロジェクトのチャットは、受ける（onForeignChat）ときだけ。受けなければ外側（プロジェクトのまとまり）へ渡す
+      if (isChatDrag(e) && draggingChatId !== undefined && foreign(knownChat(draggingChatId))) {
+        if (!onForeignChat) return;
+        e.stopPropagation();
+      }
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       setOver(groupId ?? "none");
@@ -263,7 +292,14 @@ export function useGroupDrop({
       e.preventDefault();
       const draft = onMoveDraft && droppedDraft(e);
       if (draft) return onMoveDraft(draft, groupId);
-      const chat = chats.find((r) => r.id === droppedChatId(e));
+      const id = droppedChatId(e);
+      const other = id === undefined ? undefined : knownChat(id);
+      if (foreign(other)) {
+        if (!onForeignChat) return;
+        e.stopPropagation();
+        return onForeignChat(other!, groupId);
+      }
+      const chat = chats.find((r) => r.id === id);
       if (chat?.archived_at && onRestoreChat) return onRestoreChat(chat, groupId);
       if (chat && chat.group_id !== groupId) onMoveChat(chat, groupId);
     },

@@ -236,3 +236,19 @@
   flex: none;
   align-self: center;
 }
+
+/*
+ * ほかのプロジェクトのチャットを、プロジェクトのまとまり・スライドの丸へドラッグしているとき（落とすと、確かめてからそのプロジェクトへ移す）。
+ * 色はほかのチャットの落とし先（.drop-target）と同じ。まとまりは見出しのカードも含めて囲む
+ */
+.workspace-page.chat-drop-over {
+  outline: 1px dashed var(--accent);
+  outline-offset: -1px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.workspace-dot.chat-drop-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
+}

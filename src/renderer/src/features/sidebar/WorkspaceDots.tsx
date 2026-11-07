@@ -1,14 +1,15 @@
 import { Plus } from "lucide-react";
-import { Fragment, useEffect, useRef, type CSSProperties, type MouseEvent } from "react";
+import { Fragment, useEffect, useRef, type CSSProperties, type DragEvent, type MouseEvent } from "react";
 import type { Project } from "@shared/types";
 import { cx } from "@/lib/cx";
 import { initialOf, projectHue } from "@/features/project/projectColor";
 import type { StateCounts } from "@/features/chat/chatState";
 import { StateCornerCounts, stateCountsSummary } from "@/features/chatList/StateCornerCounts";
 import type { ProjectReorder } from "./useProjectReorder";
+import { useProjectChatDrops } from "./projectChatDrop";
 
 /**
- * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・右クリックでメニュー）。
+ * 横スライドの下の行の、プロジェクトの丸の列（押すとそのプロジェクトへ・ドラッグで並べ替え・ほかのプロジェクトのチャットを落とすと確かめて移す・右クリックでメニュー）。
  * 丸の角に状態ごとの件数を出す（左上 = 作業中（青）・右上 = 未読（緑）・左下 = 回答待ち（オレンジ））。選んでいるプロジェクトの丸は、スクロールして見えるところに出す
  */
 export function WorkspaceDots({
@@ -36,6 +37,17 @@ export function WorkspaceDots({
   onNewProject: () => void;
 }) {
   const dotsRef = useRef<HTMLDivElement>(null);
+  // ほかのプロジェクトのチャットを丸へ落とすと、確かめてからそのプロジェクトへ移す（並べ替えのドラッグとは種類で分かれる）
+  const chatDrop = useProjectChatDrops((id) => projects.find((p) => p.id === id));
+  const dropProps = (id: number) => {
+    const chat = chatDrop.propsFor(id);
+    const order = reorder.dropProps(id);
+    return {
+      onDragOver: (e: DragEvent) => (chat.onDragOver(e), order.onDragOver?.(e)),
+      onDragLeave: (e: DragEvent) => (chat.onDragLeave(e), order.onDragLeave?.(e)),
+      onDrop: (e: DragEvent) => (chat.onDrop(e), order.onDrop?.(e)),
+    };
+  };
   useEffect(() => {
     dotsRef.current?.querySelector(".workspace-dot.active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [index]);
@@ -62,14 +74,14 @@ export function WorkspaceDots({
           <button
             role="tab"
             aria-selected={i === index}
-            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", isArchived(p.id) && "archived", reorder.classFor(p.id))}
+            className={cx("workspace-dot", i === index && "active", p.pinned && "pinned", isArchived(p.id) && "archived", reorder.classFor(p.id), chatDrop.over === p.id && "chat-drop-over")}
             style={{ "--ws-hue": `${projectHue(p.id)}` } as CSSProperties}
-            title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}右クリックで固定・アーカイブ）`}
+            title={`${p.name}${summary ? `（${summary}）` : ""}${p.pinned ? "（固定）" : ""}${isArchived(p.id) ? "（アーカイブ済み）" : ""}${i < 9 ? `（⌃${i + 1}）` : ""}（${draggable ? "ドラッグで並べ替え・" : ""}チャットを落とすとこのプロジェクトへ移す・右クリックで固定・アーカイブ）`}
             onClick={() => onGo(i)}
             onContextMenu={(e) => onMenu(e, p)}
             draggable={draggable}
             {...reorder.handle(p.id)}
-            {...reorder.dropProps(p.id)}
+            {...dropProps(p.id)}
           >
             {initialOf(p.name)}
             {/* 状態ごとの件数（色はカンバンの列と同じ）: 左上 = 作業中、右上 = 未読、左下 = 回答待ち */}

@@ -6,6 +6,7 @@ import { errorMessage } from "@shared/errors";
 import { writeSetting } from "@/lib/storage";
 import { chatDraft } from "@/lib/storageKeys";
 import { knownDescendantCount } from "@/stores/chats";
+import { openChat, parse } from "@/app/router";
 
 /** 子チャットがあれば、アーカイブ・戻す・削除の確かめに添える文（子孫も一緒に扱う） */
 function childNote(chat: Pick<Chat, "id">, action: "archive" | "restore" | "delete"): string {
@@ -112,3 +113,38 @@ export const markChatsSeen = (chats: Chat[]) => eachChat(chats.filter((r) => r.u
 /** まとめてグループへ移す（null はグループなし。同じプロジェクトのチャットだけ） */
 export const moveChatsToGroup = (chats: Chat[], groupId: number | null) => eachChat(chats, "移動", (r) => api.setChatGroup(r.id, groupId));
 
+
+/**
+ * 確かめてから、チャットを別のプロジェクトへ移す（右クリックの「プロジェクトを変更」・サイドバーのプロジェクトへのドラッグで共通。やめたら false）。
+ * 作業フォルダが変わり、グループ・作業場所（ワークツリー）は外れる（子チャットも一緒に移る）。group を渡すと、移したあとそのグループへ入れる
+ * （ほかのプロジェクトのグループへ落としたとき）。いま開いているチャットなら、移した先のプロジェクトで開き直す（元のボードからは消えるため）
+ */
+export async function confirmMoveChatToProject(
+  chat: Chat,
+  project: { id: number; name: string },
+  { group }: { group?: { id: number; name: string } } = {},
+): Promise<boolean> {
+  const lost = [chat.group_id !== null && "グループ", chat.worktree_path && "作業場所（ワークツリー）"].filter(Boolean).join("・");
+  const children = knownDescendantCount(chat.id);
+  const ok = await confirmDialog({
+    title: `チャット「${chatTitle(chat.title)}」を「${project.name}」へ移しますか？`,
+    message: [
+      "これからの作業は、移した先のプロジェクトのフォルダ（本体）で行います。会話はそのまま続けられます。",
+      lost && !group ? `いまの${lost}は外れます。` : "",
+      lost && group ? `いまの${lost}は外れ、グループ「${group.name}」に入れます。` : "",
+      !lost && group ? `グループ「${group.name}」に入れます。` : "",
+      children > 0 ? `子チャット ${children} 件（孫も）も一緒に移します。` : "",
+    ].join(""),
+    confirmLabel: "移動する",
+  });
+  if (!ok) return false;
+  await api.moveChat(chat.id, project.id);
+  if (group) await api.setChatGroup(chat.id, group.id);
+  const route = parse(window.location.hash);
+  if (route.name === "chat" && route.chatId === chat.id) openChat(project.id, chat.id);
+  return true;
+}
+
+/** confirmMoveChatToProject の、失敗をお知らせで出す形（ドラッグで落としたときなど、待つ人がいないとき） */
+export const moveDroppedChatToProject = (chat: Chat, project: { id: number; name: string }, group?: { id: number; name: string }) =>
+  void confirmMoveChatToProject(chat, project, { group }).catch((e: unknown) => alertDialog("チャットを移せませんでした", errorMessage(e)));

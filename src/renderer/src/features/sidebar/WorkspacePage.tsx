@@ -31,6 +31,7 @@ import { ArchivedBucketFold, useSidebarArchiveDrops } from "./ArchivedBucketFold
 import { splitAtUngrouped } from "@/features/group/groupOrder";
 import { useWorkspaceRows } from "./useWorkspaceRows";
 import { WorkspaceHead } from "./WorkspaceHead";
+import { useProjectChatDrops } from "./projectChatDrop";
 import { Collapse } from "@/ui/Collapse";
 import { useContextMenu } from "@/ui/useContextMenu";
 import { useSetting } from "@/hooks/useSetting";
@@ -102,13 +103,16 @@ export const WorkspacePage = memo(function WorkspacePage({
   const chatDragging = useChatDragging();
   // アーカイブ済みのチャットを一覧（グループの見出しを出していないときの、見出しの下の一覧）へ落とすと、確かめてから戻す
   // （グループの見出しを出しているときは、グループ・No Group の落とし先が戻す。useGroupSections）
-  const { archiveDrop, restoreDrop } = useSidebarArchiveDrops(chats);
+  const { archiveDrop, restoreDrop } = useSidebarArchiveDrops(project.id, chats);
+  // ほかのプロジェクトのチャットを、このプロジェクトのまとまり（見出しのカード・一覧のどこでも）へ落とすと、確かめてから移す
+  // （グループ・No Group へ落とせば、そのグループにも入れる。useGroupSections）
+  const projectDrop = useProjectChatDrops(() => project);
 
   // 自分で作ったグループ（作り始める入力欄と、グループごとの「…」メニュー・名前の変更・ドロップ先）
   const [creating, setCreating] = useState(false);
   // まとまりの見出しの色（「まとまりを色付きで表示」のとき。タブの列のまとまりと同じ色）と、見出しの右クリックでの切り替え
   const colors = useSidebarBucketColors(grouping, project.id);
-  const sections = useGroupSections({ projectId: project.id, groups, chats, menuExtra: colors.menuItem });
+  const sections = useGroupSections({ project, groups, chats, menuExtra: colors.menuItem });
   // グループに入れた下書きがあれば、グループなしのチャットがなくても「No Group」の見出しを出す（下書きを戻すドロップ先）
   const groupedDrafts = list.groups.some((g) => g.drafts.length > 0);
   // グループの見出しを出しているときは、どのグループにも入っていない下書き（もうないグループのものも）を「No Group」の中（チャットの上）に並べる
@@ -199,13 +203,13 @@ export const WorkspacePage = memo(function WorkspacePage({
               forceOpen={filtering}
               hueOf={colors.hueOf}
               onContextMenu={colors.onContextMenu}
-              renderArchived={(bucket) => <ArchivedBucketFold bucket={bucket} chats={chats} renderRow={renderRow} forceOpen={filtering} />}
+              renderArchived={(bucket) => <ArchivedBucketFold projectId={project.id} bucket={bucket} chats={chats} renderRow={renderRow} forceOpen={filtering} />}
             />
           ) : mainRows.length === 0 ? null : (
             <ul className="chat-rows">{mainRows.map(renderRow)}</ul>
           )}
           {/* グループなしのアーカイブ済み（グループ別のとき。落としたチャットはグループから外す） */}
-          {ungrouped?.archived && <ArchivedBucketFold bucket={ungrouped.archived} chats={chats} groupId={null} renderRow={renderRow} forceOpen={filtering} />}
+          {ungrouped?.archived && <ArchivedBucketFold projectId={project.id} bucket={ungrouped.archived} chats={chats} groupId={null} renderRow={renderRow} forceOpen={filtering} />}
         </Collapse>
       )}
     </>
@@ -213,8 +217,9 @@ export const WorkspacePage = memo(function WorkspacePage({
 
   return (
     <section
-      className="workspace-page"
+      className={cx("workspace-page", projectDrop.over === project.id && "chat-drop-over")}
       data-project-id={project.id}
+      {...projectDrop.propsFor(project.id)}
       aria-hidden={hidden}
       inert={hidden}
       style={{ "--ws-hue": `${projectHue(project.id)}` } as React.CSSProperties}

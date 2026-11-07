@@ -49,6 +49,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   // 列をドロップ先にする。チャットはその列のグループへ、グループ・「No Group」の列はその位置へ並べ替える
   // （グループの並びは DB、「No Group」の位置は画面に覚える。変わった方だけ書く）
   const { reorder, over, dropProps } = useGroupDrop({
+    projectId,
     groups,
     chats,
     ungroupedAt,
