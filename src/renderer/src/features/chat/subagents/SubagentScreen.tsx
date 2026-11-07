@@ -13,7 +13,7 @@ import { useQuoteMenu } from "@/features/chat/messages/useMessageMenu";
 import { SubagentActions } from "./SubagentActions";
 import { SubagentTellComposer } from "./SubagentTell";
 import { agentHueStyle } from "./agentHues";
-import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
+import { SubagentStatusText } from "./SubagentStatusText";
 import {
   NowLine,
   SubagentChildren,
@@ -65,7 +65,7 @@ function ScreenView({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
   return (
     // chat-panel: 発言・入力欄の見た目を、パネルの中のチャットと同じにする（side-panel.css・messages.css の .chat-panel の規則）
     <div
-      className={cx("subagent-screen chat-panel", running && "running")}
+      className="subagent-screen chat-panel"
       style={agentHueStyle(view.hues.get(entry.key))}
       data-agent-screen={`${view.chatId}:${entry.key}`}
     >
@@ -133,11 +133,7 @@ function ScreenHead({ entry, view, pane }: { entry: SubagentEntry; view: Subagen
             if (first !== undefined) pane.openSubagentSide(entry.key, first);
           }}
         />
-        {showsSubagentStatus(entry) && (
-          <span className={cx("subagent-status", subagentStatusClass(entry))} title={subagentStatusTitle(entry)}>
-            {subagentStatusLabel(entry)}
-          </span>
-        )}
+        <SubagentStatusText entry={entry} />
         <SubagentTime entry={entry} />
       </div>
       <div className="subagent-screen-now">
