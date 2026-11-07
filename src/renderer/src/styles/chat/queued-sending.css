@@ -1,10 +1,9 @@
 /* ==== 送信待ちの「送信中」の行（QueuedSendingRow） ==== */
 /*
- * 送った指示（QueuedSendingRow。チャット欄に出るまで、いちばん上に残す）: つまみの幅を空けて番号の列をほかの行にそろえ、
- * 番号の代わりに回る印、文は薄く、右に「送信中…」。押しても何もしない
+ * 送った指示（QueuedSendingRow。チャット欄に出るまで、いちばん上に残す）: つまみ・番号・文の列はほかの行と同じ
+ * （つまみがある一覧ではその幅を .queued-grip-space で空ける）。番号の代わりに回る印、文は薄く、右に「送信中…」。押しても何もしない
  */
 .queued-row.queued-sending {
-  padding-left: 17px;
   color: var(--muted);
 }
 
@@ -12,9 +11,10 @@
   background: none;
 }
 
+/* 回る印を番号と同じく右にそろえ、行の真ん中に置く */
 .queued-sending .queued-index {
-  display: grid;
-  place-items: center end;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .queued-sending .queued-text {

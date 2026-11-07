@@ -15,6 +15,7 @@ import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import type { PromptList } from "@/features/chat/prompts/promptHistory";
 import { PromptsChip } from "@/features/chat/prompts/PromptsChip";
 import { QueuedMessages } from "@/features/chat/queue/QueuedMessages";
+import { sentShownKey } from "@/features/chat/queue/useSendingQueued";
 import { TodoChip } from "@/features/chat/status/TodoChip";
 import { ChildChatsChip } from "@/features/chat/children/ChildChatChips";
 import { INHERIT_LABELS, inheritHelp } from "@/features/chat/children/InheritChoice";
@@ -69,11 +70,12 @@ export function ChatComposerArea({
   // 預かった指示を書き直している間は、チャット欄を書き直しの欄に入れ替える（ふつうの欄は隠して残す）
   const heldEdit = useHeldEdit(chat.id);
   const queued = live.queue.messages.length > 0;
-  // いちばん新しい自分の発言の記録の ID（送信待ちから送った指示を、流れに出るまで「送信中」で残すのに使う）
+  // 送った指示が出る所の印（流れのいちばん新しい自分の発言と預かった指示。送信待ちから送った指示を、どこかに出るまで「送信中」で残すのに使う）
   const lastUserEventId = useMemo(() => {
     for (let i = events.length - 1; i >= 0; i--) if (events[i].type === "user") return events[i].id;
     return 0;
   }, [events]);
+  const sentShown = sentShownKey(lastUserEventId, live.after_compact);
   // 送信ボタンの右クリック:
   // 「質問として送る」: いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する（答えを見て次を決める）
   // 「新規の子チャットに送る（会話を引き継ぐ / 新しく始める）」: この文と添付で新しい子チャットを作って送る（このチャットの作業は止めない。
@@ -113,7 +115,7 @@ export function ChatComposerArea({
       {/* チャット欄のすぐ上に、このチャットのサブエージェントなどをピルで並べる（外に描く先があればそこへ。一番下へ戻るボタンは流れの側に残す） */}
       {portal?.target ? createPortal(chips, portal.target) : chips}
       {/* 送信待ちの指示は入力欄のすぐ上（流れ → チャットの情報 → 次に送るもの → いま書いているもの の順） */}
-      <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={live.queue_resume} lastUserEventId={lastUserEventId} />
+      <QueuedMessages queue={live.queue} busy={busy} childChats={!memoOrArchived} resume={live.queue_resume} sentShown={sentShown} />
       {heldEdit && <HeldEditComposer chat={chat} edit={heldEdit} gone={!live.after_compact.some((m) => m.id === heldEdit.id)} composer={composer} />}
       {/* 預かった指示を書き直している間は、ふつうのチャット欄を隠して残す（書きかけの文・添付はそのまま。chat.css の .chat-composer:has(> .held-edit)） */}
       <Composer

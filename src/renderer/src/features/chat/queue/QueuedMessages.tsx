@@ -52,7 +52,7 @@ export function QueuedMessages({
   busy,
   childChats,
   resume,
-  lastUserEventId,
+  sentShown,
 }: {
   /**
    * 送信待ちの様子（作業中の様子の queue）。stops は一時停止の印の位置（0 = 1 件目の上、n = n 件目のあと。いくつでも）、
@@ -64,16 +64,16 @@ export function QueuedMessages({
   childChats: boolean;
   /** 起動したときの送信待ちの確かめを待っている（前回の終了で残った。決めるまでコアは送らない。上に帯を出す） */
   resume: ChatLive["queue_resume"];
-  /** 流れに出ている、いちばん新しい自分の発言の記録の ID（なければ 0）。送った指示を、チャット欄に出るまで「送信中」で残すのに使う */
-  lastUserEventId: number;
+  /** 送った指示が出る所（流れの自分の発言・預かりの吹き出し）の印（sentShownKey）。送った指示を、どこかに出るまで「送信中」で残すのに使う */
+  sentShown: string;
 }) {
   const { chatId } = useChatPane();
   const { paused, waiting_edit: waitingEdit } = queue;
   // 並べ替えは、落とした形をサーバーの応答より先に出す（出す並びは先回りのものになることがある）
   const view = useQueuePrediction(queue.messages, queue.stops);
   const { messages, stops } = view;
-  // 送った指示は、チャット欄にその発言が出るまで、いちばん上に「送信中」で残す（どこにもない間を作らない）
-  const sending = useSendingQueued(chatId, queue.messages, lastUserEventId);
+  // 送った指示は、チャット欄の発言か預かりの吹き出しに出るまで、いちばん上に「送信中」で残す（どこにもない間を作らない）
+  const sending = useSendingQueued(chatId, queue.messages, sentShown);
   const [collapsed, setCollapsed] = useSetting(QUEUE_COLLAPSED);
   // 中でスクロールさせずにすべて出すか（どのチャットでも同じに覚える）と、いま中でスクロールするほど溜まっているか
   const [expanded, setExpanded] = useSetting(QUEUE_EXPANDED);
@@ -227,7 +227,7 @@ export function QueuedMessages({
         <div ref={listRef} className="queued-list" style={{ maxHeight: expanded ? "none" : Math.max(height, edit.editHeight) }}>
           {/* 送った指示（チャット欄に出たら消える。操作はない） */}
           {sending.map((m) => (
-            <QueuedSendingRow key={`sending-${m.id}`} message={m} />
+            <QueuedSendingRow key={`sending-${m.id}`} message={m} withGrip={messages.length > 1} />
           ))}
           {messages.map((m, i) => (
             <Fragment key={m.id}>
