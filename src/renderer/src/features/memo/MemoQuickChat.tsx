@@ -1,4 +1,4 @@
-import { MessageSquare, OctagonPause } from "lucide-react";
+import { EyeOff, MessageSquare, OctagonPause } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { AgentState, Attachment, Chat } from "@shared/types";
 import { api } from "@/api";
@@ -16,6 +16,7 @@ import { StatusSlot } from "@/features/chat/StatusSlot";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
 import { useWideText } from "@/features/chat/pane/TextWidthToggle";
 import { cx } from "@/lib/cx";
+import { IconButton } from "@/ui/IconButton";
 
 /** メモのチャットの様子の文（既読は出さない） */
 const STATUS_TEXTS: Record<Exclude<AgentState, "read">, string> = {
@@ -38,7 +39,7 @@ const NO_SCROLL: TimelineScroll = { ref: { current: null }, following: () => fal
  * 入力欄のすぐ上には、メモのチャットを開いたときと同じピルの列（指示の履歴・ToDo・サブエージェント・子チャット・メモ）を出す
  * （閉じている欄の中のチャットの画面が chipsPortal でここに描く。指示へ移る・サブエージェントを開くなどは、欄を開いてから）。
  * 会話は出さず、上に名前「メモのチャット」（欄の見出しと同じアイコンと色。本文の右クリックの「メモのチャット」の組・
- * 選んだときの「メモのチャットに追加」の行き先がこの欄だと分かるように）・作業中・回答待ちなどの様子・「会話を開く」（メモのチャットの欄を開く）の 1 行だけ。
+ * 選んだときの「メモのチャットに追加」の行き先がこの欄だと分かるように）・作業中・回答待ちなどの様子・「会話を開く」（メモのチャットの欄を開く）・「入力欄を隠す」の 1 行だけ。
  * 書きかけの文はメモのチャットの入力欄と共有する（chatDraft）。送る前に書きかけの本文を保存する（beforeSend。保存できなければ送らない）
  */
 export function MemoQuickChat({
@@ -46,12 +47,15 @@ export function MemoQuickChat({
   path,
   beforeSend,
   onOpenChat,
+  onHide,
   chipsRef,
 }: {
   projectId: number;
   path: string;
   beforeSend: () => Promise<void>;
   onOpenChat: () => void;
+  /** この入力欄も隠す（メモだけを広く見る。見出しの吹き出しでいつでも開ける） */
+  onHide: () => void;
   /** 入力欄の上の、メモのチャットのピルの列を描いてもらう場所（メモのチャットの画面が chipsPortal で描く） */
   chipsRef: (el: HTMLDivElement | null) => void;
 }) {
@@ -78,6 +82,14 @@ export function MemoQuickChat({
         <button type="button" className="link-button" title="メモのチャットの欄を開く（これまでのやり取りを見る）" onClick={onOpenChat}>
           会話を開く
         </button>
+        <IconButton
+          icon={EyeOff}
+          label="入力欄を隠す"
+          title="メモの下のこの入力欄を隠し、メモだけを広く見る（見出しの吹き出しのボタンで開く・▾ で入力欄を戻せる）"
+          size={13}
+          className="memo-quick-hide"
+          onClick={onHide}
+        />
       </div>
       {/* チャットができたら選択（モデルなど）をそのチャットのものから始め直す */}
       <MemoQuickComposer key={chat?.id ?? "new"} projectId={projectId} path={path} chat={chat} beforeSend={beforeSend} chipsRef={chipsRef} />

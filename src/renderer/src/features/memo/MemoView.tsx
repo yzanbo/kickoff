@@ -1,9 +1,9 @@
-import { CodeXml, Eye, FolderSearch, MessageSquare, Paperclip, Save } from "lucide-react";
+import { CodeXml, Eye, FolderSearch, Paperclip, Save } from "lucide-react";
 import { memoExtensionOf, memoKindOf, type MemoKind } from "@shared/memo/kinds";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cx } from "@/lib/cx";
 import { isCancelKey, isComposing, isKey } from "@/lib/keys";
-import { MEMO_CHAT_HEIGHT, MEMO_CHAT_OPEN, MEMO_CHAT_PLACE, MEMO_CHAT_WIDTH, MEMO_VIEW } from "@/lib/storageKeys";
+import { MEMO_CHAT_HEIGHT, MEMO_CHAT_OPEN, MEMO_CHAT_PLACE, MEMO_CHAT_WIDTH, MEMO_QUICK_CHAT_HIDDEN, MEMO_VIEW } from "@/lib/storageKeys";
 import { useDragSize } from "@/hooks/useDragSize";
 import { useSetting } from "@/hooks/useSetting";
 import { useMemoList } from "@/stores/memos";
@@ -16,6 +16,7 @@ import { HtmlMemoPage, type HtmlMemoPageHandle } from "./HtmlMemoPage";
 import type { MemoEditorHandle } from "./MemoEditor";
 import { MemoChat, type MemoChatHandle } from "./MemoChat";
 import { MemoQuickChat } from "./MemoQuickChat";
+import { MemoChatToggle } from "./MemoChatToggle";
 import { memoChatTargets } from "./memoChatTargets";
 import { MemoSelectionAttach } from "./MemoSelectionAttach";
 import { memoTitle, parentOf } from "./memoPaths";
@@ -60,7 +61,7 @@ const SAVE_LABELS: Record<MemoSaveState, string> = {
  * HTML のメモのページのリンクがメモのフォルダの中を指すとき、メモなら onOpenMemo（開いている側が同じ場所で開く）、フォルダ・メモでないファイルは Finder で表示する。
  * attachTo（チャットの右の欄・別ウィンドウで開いたとき、開いたチャット）があれば、見出しのボタン・本文の右クリックで、
  * メモ全体（選んでいれば、その部分の引用）をそのチャットの入力欄に添付する。本文で文を選ぶと、上のボタン（開いたチャット・メモのチャット。メモのタブではメモのチャットだけ）ですぐ引用を足せる。
- * メモのチャットの欄を閉じている間は、下にこのメモを AI に直してもらう入力欄（MemoQuickChat）を出す
+ * メモのチャットの欄を閉じている間は、下にこのメモを AI に直してもらう入力欄（MemoQuickChat）を出す（隠すこともできる。MEMO_QUICK_CHAT_HIDDEN）
  */
 export function MemoView({
   projectId,
@@ -84,6 +85,9 @@ export function MemoView({
   const chat = useRef<MemoChatHandle | null>(null);
   const pageHandle = useRef<HtmlMemoPageHandle | null>(null);
   const [chatOpen, setChatOpen] = useSetting(MEMO_CHAT_OPEN);
+  // 欄を閉じている間、下の入力欄も隠す（メモだけを広く見る。見出しの吹き出しの ▾・入力欄の「隠す」）
+  const [quickHidden, setQuickHidden] = useSetting(MEMO_QUICK_CHAT_HIDDEN);
+  const quickFolded = chatOpen || quickHidden;
   // 欄を閉じている間は、メモのチャットの上のピルの列（指示の履歴・ToDo・サブエージェントなど）を下の入力欄の上に描く
   const [chipsHost, setChipsHost] = useState<HTMLDivElement | null>(null);
   const chipsPortal = useMemo(() => (chatOpen ? null : { target: chipsHost, reveal: () => setChatOpen(true) }), [chatOpen, chipsHost, setChatOpen]);
@@ -208,13 +212,7 @@ export function MemoView({
           <IconButton icon={Paperclip} label={`${targets.main.name}に添付`} title="このメモを、開いたチャットの入力欄に添付します（送ると AI がメモを読み、頼めば続きも書けます）" onClick={() => targets.main?.add("", null)} />
         )}
         {doc.initial !== null && !unreadable && (
-          <IconButton
-            icon={MessageSquare}
-            label={chatOpen ? "メモのチャットを閉じる" : "メモのチャットを開く（AI と話しながらメモを作る）"}
-            aria-pressed={chatOpen}
-            className={cx("memo-chat-toggle", chatOpen && "on")}
-            onClick={() => setChatOpen(!chatOpen)}
-          />
+          <MemoChatToggle open={chatOpen} quickHidden={quickHidden} onOpenChange={setChatOpen} onQuickHiddenChange={setQuickHidden} />
         )}
         {window.kickoff && <IconButton icon={FolderSearch} label="Finder で表示" onClick={() => void window.kickoff?.externalApps.revealPath(file)} />}
         {/* 右の欄のタブのときだけ、右端に「別ウィンドウで開く」 */}
@@ -242,7 +240,7 @@ export function MemoView({
           motion.moved && "chat-moved",
           chatSize.resizing && "resizing",
         )}
-        style={{ "--memo-chat-w": `${chatWidth.size}px`, "--memo-chat-h": `${chatHeight.size}%`, "--memo-chat-h-num": chatHeight.size, "--memo-quick-h": `${motion.quickHeight}px` } as CSSProperties}
+        style={{ "--memo-chat-w": `${chatWidth.size}px`, "--memo-chat-h": `${chatHeight.size}%`, "--memo-chat-h-num": chatHeight.size, "--memo-quick-h": `${quickHidden ? 0 : motion.quickHeight}px` } as CSSProperties}
       >
         {doc.loadError ? (
           <ErrorText message={doc.loadError} className="memo-message" />
@@ -297,10 +295,10 @@ export function MemoView({
         欄を下に置くときは、すぐ入れ替えて、欄をこの入力欄の高さから伸ばす（useBottomChatMotion）
       */}
       {doc.initial !== null && !unreadable && (
-        <div className={cx("memo-quick-slot", chatOpen && "folded", chatPlace === "bottom" && "chat-bottom", motion.moved && "chat-moved")} aria-hidden={chatOpen} inert={chatOpen}>
+        <div className={cx("memo-quick-slot", quickFolded && "folded", chatPlace === "bottom" && "chat-bottom", motion.moved && "chat-moved")} aria-hidden={quickFolded} inert={quickFolded}>
           <div className="memo-quick-clip">
             <div ref={motion.quickRef}>
-              <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} chipsRef={setChipsHost} />
+              <MemoQuickChat projectId={projectId} path={path} beforeSend={saveBeforeSend} onOpenChat={() => setChatOpen(true)} onHide={() => setQuickHidden(true)} chipsRef={setChipsHost} />
             </div>
           </div>
         </div>

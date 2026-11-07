@@ -254,6 +254,8 @@ export const memoDraft = defineSettingFamily("kickoff:memo-draft:", json(parseMe
 export const MEMO_LIST_HIDDEN = defineSetting("kickoff:memo-list-hidden", flag(false));
 /** メモのチャットの欄（本文の右）を開いているか（どのメモでも同じ。チャットそのものは DB の chats.memo_path） */
 export const MEMO_CHAT_OPEN = defineSetting("kickoff:memo-chat-open", flag(false));
+/** メモのチャットの欄を閉じている間、メモの下の入力欄（MemoQuickChat）も隠すか（どのメモでも同じ。見出しの吹き出しの ▾・入力欄の「隠す」で切り替える） */
+export const MEMO_QUICK_CHAT_HIDDEN = defineSetting("kickoff:memo-quick-chat-hidden", flag(false));
 /** メモのチャットの欄の幅（本文の右に並べたとき。境目のつまみで変える） */
 export const MEMO_CHAT_WIDTH = defineSetting("kickoff:memo-chat-width", number(380));
 /** メモのチャットの欄の置き場所（right = 本文の右 / bottom = 本文の下。欄の見出しで切り替える。right でも狭ければ下に並べる） */
