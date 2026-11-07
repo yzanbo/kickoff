@@ -300,3 +300,25 @@
   color: var(--text);
   background: var(--bg-hover);
 }
+
+/* 送信の ▾ のメニュー（ほかの送り方・送り先）: アイコン・名前・下に小さく何が起きるかの一言（ComposerActions の SendTarget） */
+.menu button.send-target {
+  align-items: flex-start;
+  min-width: 260px;
+}
+
+.send-target-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.send-target-text {
+  display: grid;
+  gap: 1px;
+}
+
+.send-target-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+}
