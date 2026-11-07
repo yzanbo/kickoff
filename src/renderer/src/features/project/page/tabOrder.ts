@@ -48,3 +48,28 @@ export function moveGroup(groups: readonly TabGroup<{ tab: string }>[], moved: s
   rest.splice(rest.findIndex((g) => g.key === target) + (side === "after" ? 1 : 0), 0, from);
   return flatTabOrder(rest);
 }
+
+/** 落とす先（同じまとまりのタブの前後 / ほかのまとまりの前後） */
+export interface TabDropTarget {
+  kind: "tab" | "group";
+  key: string;
+  side: DropSide;
+}
+
+/** 動かしているもの（tab が null なら、つまみでつかんだまとまり全体） */
+export interface TabDragging {
+  tab: string | null;
+  group: string;
+}
+
+/** 落としたあとの並び（同じまとまりのタブの上ならタブを 1 つ、ほかのまとまりの上ならまとまりごと動かす） */
+export function orderAfterDrop(groups: readonly TabGroup<{ tab: string }>[], moving: TabDragging, target: TabDropTarget): string[] {
+  return target.kind === "tab" && moving.tab ? moveTabInGroup(groups, moving.tab, target.key, target.side) : moveGroup(groups, moving.group, target.key, target.side);
+}
+
+/** 落としても並びが変わらないか（すぐ前の後ろ・すぐ後ろの前。線を出さない） */
+export function isNoopDrop(groups: readonly TabGroup<{ tab: string }>[], moving: TabDragging, target: TabDropTarget): boolean {
+  const before = flatTabOrder(groups);
+  const after = orderAfterDrop(groups, moving, target);
+  return after.length === before.length && after.every((tab, i) => tab === before[i]);
+}
