@@ -1,14 +1,15 @@
 /*
  * ドラッグの絵（ui/dragGhost.ts の startDragGhost）: つかんだ物の半透明の写しを画面のいちばん上に重ね、カーソルに付いて動かす
  * （位置は transform で与える。押せない・下の「入る位置の線」・落とし先の枠が透けて見える）。見た目は送信待ちで作ったものにそろえる:
- * 地のない行・タブは枠の地（線・角・余白）に載せ、カード（自分の地がある物 .bare）はそのまま。どちらも影を付け、全体を 60% の濃さにする
+ * 地のない行・タブは枠の地（線・角・余白）に載せ、カード（自分の地がある物 .bare）はそのまま。どちらも薄い影を付け、全体を --drag-ghost-opacity の濃さにする。
+ * 枠の地も半分ほど透かし、下の行・落とし先の枠が写しの上からも見えるようにする（前は 60% の濃さで不透明の地だったので、まだ濃かった）
  */
 .drag-ghost {
   position: fixed;
   top: 0;
   left: 0;
   z-index: 1000;
-  opacity: 0.6;
+  opacity: var(--drag-ghost-opacity);
   pointer-events: none;
 }
 
@@ -16,8 +17,8 @@
   padding: 4px 8px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  background: var(--bg-elev);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  background: color-mix(in srgb, var(--bg-elev) 55%, transparent);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 20%);
 }
 
 .drag-ghost-frame.bare {
