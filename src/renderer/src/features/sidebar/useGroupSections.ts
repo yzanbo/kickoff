@@ -1,5 +1,6 @@
 import { useState, type DragEvent, type MouseEvent, type ReactNode } from "react";
-import type { Chat, ChatGroup } from "@shared/types";
+import type { Chat, ChatGroup, Project } from "@shared/types";
+import { moveDroppedChatToProject } from "@/features/chat/chatActions";
 import { api } from "@/api";
 import { cx } from "@/lib/cx";
 import { confirmDeleteGroup, UNGROUPED_SORT_ID, useGroupDrop } from "@/features/group/groups";
@@ -24,12 +25,13 @@ export interface GroupSectionProps {
 
 /**
  * サイドバーの自分で作ったグループの操作（プロジェクトごとに 1 つ）: 「…」メニュー（名前を変更・削除）・名前の変更中のグループ・
- * ドロップ先（チャットはそのグループへ、アーカイブ済みのチャットは確かめて戻してそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る。
+ * ドロップ先（チャットはそのグループへ、アーカイブ済みのチャットは確かめて戻してそのグループへ、ほかのプロジェクトのチャットは確かめてこのプロジェクトへ移してそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る。
  * 「No Group」もグループと同じく見出しのドラッグでグループの間へ並べ替え、位置（ungroupedAt。前にあるグループの数）を
  * グループのボードと同じ設定（groupBoardUngroupedAt。プロジェクトごと）に覚える（覚えていなければいちばん下）。
  * menuExtra はメニューの下に足す項目（「まとまりを色付きで表示」）
  */
-export function useGroupSections({ projectId, groups, chats, menuExtra }: { projectId: number; groups: ChatGroup[]; chats: Chat[]; menuExtra?: ReactNode }) {
+export function useGroupSections({ project, groups, chats, menuExtra }: { project: Project; groups: ChatGroup[]; chats: Chat[]; menuExtra?: ReactNode }) {
+  const projectId = project.id;
   const [renaming, setRenaming] = useState<number>();
   const removeGroup = async (group: ChatGroup) => {
     if (await confirmDeleteGroup(group)) await api.deleteGroup(group.id);
@@ -40,6 +42,7 @@ export function useGroupSections({ projectId, groups, chats, menuExtra }: { proj
   const ungroupedAt = ungroupedPosition(savedUngroupedAt, groups.length, true);
   // グループの並びは DB、「No Group」の位置は画面に覚える（変わった方だけ書く）
   const { reorder, over, dropProps } = useGroupDrop({
+    projectId,
     groups,
     chats,
     ungroupedAt,
@@ -51,6 +54,11 @@ export function useGroupSections({ projectId, groups, chats, menuExtra }: { proj
     // アーカイブ済みのチャット（まとまりのいちばん下の「アーカイブ済み」の行）を落としたら、確かめて戻し、そのグループへ移す
     onRestoreChat: (chat, groupId) => void restoreDroppedChat(chat, groupId),
     // 送る前の新しいチャット（下書き）は、作成先のグループを変える（送ったときにそのグループに入る）
+    // ほかのプロジェクトのチャットは、確かめてからこのプロジェクトへ移し、落としたグループへ入れる（No Group ならグループなし）
+    onForeignChat: (chat, groupId) => {
+      const group = groups.find((g) => g.id === groupId);
+      moveDroppedChatToProject(chat, project, group && { id: group.id, name: group.name });
+    },
     onMoveDraft: (draft, groupId) => setDraftGroup(draft, groupId ?? undefined, groups.find((g) => g.id === groupId)?.name),
   });
   return {

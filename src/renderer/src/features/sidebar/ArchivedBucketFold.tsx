@@ -9,6 +9,7 @@ import { useChatDropTarget } from "@/features/group/groups";
 import { useFold } from "@/hooks/useFold";
 import { FoldSection } from "@/ui/FoldHead";
 import { reportFailure } from "@/ui/dialogs";
+import { isForeignChat } from "./projectChatDrop";
 
 /**
  * ドラッグで落としたチャットをアーカイブする（確かめてから。toggleArchiveChat）。groupId を渡すと、そのグループへも移す
@@ -38,14 +39,17 @@ export async function restoreDroppedChat(chat: Chat, groupId?: number | null) {
  * サイドバーのプロジェクトの、まとまりの外の落とし先: いちばん下の「アーカイブ済み」（・その代わりの「アーカイブ済みへ」）へ落とすとアーカイブ
  * （アーカイブしていないチャットだけ）、見出しの下の一覧へアーカイブ済みのチャットを落とすと戻す（どちらも確かめてから）
  */
-export function useSidebarArchiveDrops(chats: readonly Chat[]) {
+export function useSidebarArchiveDrops(projectId: number, chats: readonly Chat[]) {
   const find = (id: number) => chats.find((c) => c.id === id);
+  // ほかのプロジェクトのチャットは受けず、外側のプロジェクトのまとまり（確かめてから移す）へ渡す
+  const foreign = (id: number) => isForeignChat(id, projectId);
   const archiveDrop = useChatDropTarget(
     (id) => {
       const chat = find(id);
       if (chat) void archiveDroppedChat(chat);
     },
     (id) => find(id)?.archived_at === null,
+    foreign,
   );
   const restoreDrop = useChatDropTarget(
     (id) => {
@@ -53,6 +57,7 @@ export function useSidebarArchiveDrops(chats: readonly Chat[]) {
       if (chat) void restoreDroppedChat(chat);
     },
     (id) => Boolean(find(id)?.archived_at),
+    foreign,
   );
   return { archiveDrop, restoreDrop };
 }
@@ -64,12 +69,14 @@ export function useSidebarArchiveDrops(chats: readonly Chat[]) {
  * 中のアーカイブ済みの行は、まとまりの中身（グループ・No Group・一覧）へ落とすと、確かめてから戻す（落とし先の側）
  */
 export function ArchivedBucketFold({
+  projectId,
   bucket,
   chats,
   groupId,
   renderRow,
   forceOpen,
 }: {
+  projectId: number;
   bucket: ChatBucket;
   /** 落としたチャットを引く一覧（アーカイブ済みも含めたプロジェクトのチャット） */
   chats: readonly Chat[];
@@ -90,6 +97,7 @@ export function ArchivedBucketFold({
       const chat = find(id);
       return chat !== undefined && (!chat.archived_at || (groupId !== undefined && chat.group_id !== groupId));
     },
+    (id) => isForeignChat(id, projectId),
   );
   return (
     <div className={cx("archive-drop nested-archive", drop.over && "drop-target")} {...drop.props}>
