@@ -20,15 +20,16 @@ export interface GroupSectionProps {
 
 /**
  * サイドバーの自分で作ったグループの操作（プロジェクトごとに 1 つ）: 「…」メニュー（名前を変更・削除）・名前の変更中のグループ・
- * ドロップ先（チャットはそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る
+ * ドロップ先（チャットはそのグループへ、グループの見出しはその位置へ並べ替える）。グループごとの束は sectionProps(group) で取る。
+ * menuExtra はメニューの下に足す項目（「まとまりを色付きで表示」）
  */
-export function useGroupSections({ projectId, groups, chats }: { projectId: number; groups: ChatGroup[]; chats: Chat[] }) {
+export function useGroupSections({ projectId, groups, chats, menuExtra }: { projectId: number; groups: ChatGroup[]; chats: Chat[]; menuExtra?: ReactNode }) {
   const [renaming, setRenaming] = useState<number>();
   const removeGroup = async (group: ChatGroup) => {
     if (await confirmDeleteGroup(group)) await api.deleteGroup(group.id);
   };
   // グループの「…」メニュー（右クリックでも開く）
-  const menu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g) });
+  const menu = useGroupMenu({ onRename: (g) => setRenaming(g.id), onDelete: (g) => void removeGroup(g), extra: menuExtra });
   const { reorder, over, dropProps } = useGroupDrop({
     groups,
     chats,

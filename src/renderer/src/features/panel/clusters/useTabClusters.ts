@@ -1,11 +1,11 @@
 import type { Chat } from "@shared/types";
 import { useSetting } from "@/hooks/useSetting";
 import { useProjects } from "@/stores/projects";
-import { panelTabGrouping } from "@/lib/storageKeys";
+import { PANEL_TAB_GROUP_COLORS, panelTabGrouping } from "@/lib/storageKeys";
 import type { ChatGrouping } from "@/features/chatList/chatGrouping";
 import type { BucketHead } from "@/features/chatList/buckets";
 import { chatHead, draftHead, groupHeads, workplaceHead } from "@/features/chatList/bucketHeads";
-import { useBucketContext } from "@/features/chatList/useChatBuckets";
+import { useBucketContext, useBucketHueOf } from "@/features/chatList/useChatBuckets";
 import { OTHER_CLUSTER } from "./tabClusters";
 import type { PanelSurface } from "@/features/panel/surfaces";
 import { specOf, type ClusterResolver } from "@/features/panel/tabs/tabKinds";
@@ -35,7 +35,13 @@ const TITLES: Partial<Record<BucketHead["kind"], string>> = {
 export function useTabClusters(
   panel: PanelController,
   grouping: ChatGrouping,
-): { clusterOf: (key: string) => BucketHead; clusterOfChat: (chat: Chat) => BucketHead; seeds: BucketHead[]; projectOrder: number[] } {
+): {
+  clusterOf: (key: string) => BucketHead;
+  clusterOfChat: (chat: Chat) => BucketHead;
+  seeds: BucketHead[];
+  projectOrder: number[];
+  hueOf: (head: BucketHead) => number | null;
+} {
   const { projectsById, projectName } = useProjects();
   const projectIds = [...new Set(panel.tabs.flatMap((t) => specOf(t).projectOf(t) ?? []))];
   const by = grouping === "group" ? "group" : "worktree";
@@ -64,5 +70,8 @@ export function useTabClusters(
     return t ? specOf(t).cluster(t, resolve) : OTHER_CLUSTER;
   };
   const seeds = grouping === "group" ? projectIds.flatMap((id) => groupHeads(id, ctx).filter((h) => h.kind === "group").map(present)) : [];
-  return { clusterOf, clusterOfChat, seeds, projectOrder: projectIds };
+  // まとまりの色（サイドバーと同じ色。bucketHues.ts）。「まとまりを色付きで表示」を外していれば、どれも色なし
+  const [colors] = useSetting(PANEL_TAB_GROUP_COLORS);
+  const hueOf = useBucketHueOf(grouping, projectIds, colors);
+  return { clusterOf, clusterOfChat, seeds, projectOrder: projectIds, hueOf };
 }

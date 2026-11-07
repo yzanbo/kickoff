@@ -5,6 +5,7 @@ import { IconButton } from "@/ui/IconButton";
 import { FoldHead } from "@/ui/FoldHead";
 import type { useGroupSections } from "./useGroupSections";
 import { NO_GROUP_LABEL } from "@/features/chat/chatTitle";
+import { huedHeadProps } from "./bucketColor";
 
 /**
  * サイドバーの「No Group」の見出し（グループがあるときだけ出す）。開閉・件数・グループなしで新しいチャット。
@@ -16,17 +17,25 @@ export function UngroupedHead({
   open,
   onToggle,
   drop,
+  hue = null,
+  onContextMenu,
 }: {
   projectId: number;
   count: number;
   open: boolean;
   onToggle: () => void;
   drop: ReturnType<typeof useGroupSections>["ungroupedDrop"];
+  /** 見出しの色（「まとまりを色付きで表示」のとき。null なら付けない） */
+  hue?: number | null;
+  /** 右クリック（「まとまりを色付きで表示」のメニュー） */
+  onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   return (
     <FoldHead
       look="row"
-      className={cx(drop.over && "drop-target")}
+      className={cx(drop.over && "drop-target", huedHeadProps(hue).className)}
+      style={huedHeadProps(hue).style}
+      onContextMenu={onContextMenu}
       {...drop.props}
       open={open}
       onToggle={onToggle}

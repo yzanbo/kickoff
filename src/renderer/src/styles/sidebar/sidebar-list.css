@@ -101,7 +101,7 @@
   background: var(--border-strong);
 }
 
-/* チャットの「固定」のまとまり: ピンをプロジェクトの色で塗って、ほかのまとまりより目立たせる */
+/* チャットの「固定」のまとまり: ピンをプロジェクトの色で塗って、ほかのまとまりより目立たせる（「まとまりを色付きで表示」のときは、まとまりの色で塗る） */
 .row-section.pinned .custom-group-icon {
   color: hsl(var(--ws-hue, 150) 60% 65%);
   fill: currentColor;
@@ -109,6 +109,10 @@
 
 :root[data-theme="light"] .row-section.pinned .custom-group-icon {
   color: hsl(var(--ws-hue, 150) 55% 38%);
+}
+
+.row-section.pinned .bucket-hued .custom-group-icon {
+  color: var(--group-color);
 }
 
 /* 縦並びの上の、すべてのプロジェクトをまたぐ検索欄 */

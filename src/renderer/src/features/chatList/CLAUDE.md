@@ -16,6 +16,7 @@
 ## まとめ方の設定
 
 - チャットのまとめ方 `ChatGrouping`（`none` = まとめない / `group` = グループ別 / `worktree` = 作業場所別。`chatGrouping.ts` の `CHAT_GROUPINGS` / `CHAT_GROUPING_LABELS`）は、サイドバーと右のパネルのタブの列で同じ選択肢・同じ文言（どちらも「チャットのまとめ方」）。覚えるのは別々（サイドバーは `SIDEBAR_CHAT_SECTIONS`、タブは欄ごとの `panelTabGrouping`）。
+- まとまりの色（`bucketHues.ts`）: グループ別・作業場所別のまとまりの色は、サイドバーの見出しとパネルのタブのまとまりの札・タブの線で同じにする。画面に出ているまとまりではなく、プロジェクトのまとまりになりうるものすべてから決める（`projectBucketHues`。グループ別 = 自分で作ったグループの覚えた色 `ChatGroup.hue` をグループの並びで、作業場所別 = いまある作業場所のブランチの印と同じ色 `workplaceHue` を先に取り、そのあと固定 → グループなし → アーカイブ済みがキーから決まる色を取る。被れば空いている色へ `spreadHues`。10 色を使い切ったら被ってよい）。以前はタブの列に並んでいるまとまりだけで決めていたので、隠したグループ・開いていないタブで色が変わり、サイドバーと合わせられなかった。引くのは `bucketHueOf`（「その他」・状態・まとめないときは null）、画面からは `useBucketHueOf(まとめ方, プロジェクト, オンか)`。色を付けるかは場所ごとの設定（サイドバー `SIDEBAR_BUCKET_COLORS`（初めは付けない）・タブの列 `PANEL_TAB_GROUP_COLORS`（初めは付ける。すべての欄で共通））で、メニューの項目は `BucketColorItem`（「まとまりを色付きで表示」）。
 - サイドバーの表示の切り替え（すべてのプロジェクトに効く。`chatListFlags.ts`）: チャットを 1 行で出すか `useCompactRows`・プロジェクトのカードを 1 行で出すか `useCompactProjects`・アーカイブ済みのチャットを出すか `useShowArchivedChats`（`SIDEBAR_SHOW_ARCHIVED`。サイドバー・右のパネルのタブ・ボードの絞り込みで連動）。自分待ち（回答待ち・未読）は `isWaitingState` / `waitingChats`。
 
 ## 数え方

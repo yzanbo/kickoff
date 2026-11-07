@@ -17,6 +17,8 @@ import { PaneTab } from "./PaneTab";
 import { PanelTabAdds } from "./PanelTabAdds";
 import { specOf, type TabGroupLookup } from "./tabKinds";
 import { SURFACES } from "@/features/panel/surfaces";
+import { BucketColorItem } from "@/features/chatList/BucketColorItem";
+import { PANEL_TAB_GROUP_COLORS } from "@/lib/storageKeys";
 
 /**
  * パネルの 1 つのペインのタブの列。左にタブの列の道具（controls。左上のペインだけ）、タブ、
@@ -150,7 +152,7 @@ export function PaneTabBar({
       {clusters
         ? clusters.map((c) => {
             // まとまりごとに 1 つの枠に入れ、色の付いた名前の札・薄い地・下の線で、どこからどこまでが 1 つのまとまりかを見せる（ブラウザのタブのグループと同じ）
-            const hue = strip.hues.get(c.key) ?? null;
+            const hue = strip.hueOf(c);
             const collapsed = strip.isCollapsed(c);
             const shown = strip.shownTabs(c);
             return (
@@ -173,7 +175,13 @@ export function PaneTabBar({
                   tabCount={c.tabs.length}
                   hidden={strip.isHidden(c)}
                   onToggleHidden={strip.toggleHidden && c.group ? () => strip.toggleHidden?.(c) : undefined}
-                  menuExtra={strip.grouping === "group" ? <HiddenGroupItems panel={panel} /> : undefined}
+                  // 右クリックの下の項目: グループ別なら出すグループ（「表示」のメニューと同じ）、どちらのまとめ方でも「まとまりを色付きで表示」
+                  menuExtra={
+                    <>
+                      {strip.grouping === "group" && <HiddenGroupItems panel={panel} />}
+                      <BucketColorItem setting={PANEL_TAB_GROUP_COLORS} />
+                    </>
+                  }
                   canCreateGroup={strip.grouping === "group"}
                 />
                 {shown.map((key) => tab(key, display.indexOf(key)))}

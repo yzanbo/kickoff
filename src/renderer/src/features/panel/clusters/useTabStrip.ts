@@ -2,7 +2,7 @@ import type { Chat } from "@shared/types";
 import { useFolds } from "@/hooks/useFold";
 import type { PaneLeaf } from "@/features/panel/layout/paneTree";
 import type { PanelController } from "@/features/panel/usePanel";
-import { OTHER_CLUSTER, clusterHues, clusterTabs, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
+import { OTHER_CLUSTER, clusterTabs, shownClusters, visibleClusterTabs, type TabCluster } from "./tabClusters";
 import { useHiddenTabGroups } from "./useHiddenTabGroups";
 import { useClusterReorder } from "./useClusterReorder";
 import { useTabClusters, useTabGrouping } from "./useTabClusters";
@@ -16,7 +16,7 @@ import { useTabClusters, useTabGrouping } from "./useTabClusters";
 export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolean, active: string | null) {
   const showChat = panel.kinds.has("chat");
   const [grouping] = useTabGrouping(panel.surface);
-  const { clusterOf, clusterOfChat, seeds, projectOrder } = useTabClusters(panel, grouping);
+  const { clusterOf, clusterOfChat, seeds, projectOrder, hueOf } = useTabClusters(panel, grouping);
   // 欄で隠している種類のタブは並べない（閉じずに残す）。チャットを隠しているときは、タブのないグループの札も出さない
   const known = pane.tabs.filter(panel.isKindShown);
   // 分けたペイン（一覧のペインでない）は、タブのないまとまりの札を出さない
@@ -61,8 +61,8 @@ export function useTabStrip(panel: PanelController, pane: PaneLeaf, home: boolea
     /** 自分で作ったグループを、タブの列から隠す・出す（グループ別のときだけ） */
     toggleHidden: grouping === "group" ? (c: TabCluster) => c.group && hiddenGroups.toggle(c.group.id) : undefined,
     shownTabs,
-    /** まとまりの色（同じ列のまとまりどうしで被らないように決める。グループは覚えた色を先に取る） */
-    hues: clusterHues(clusters ?? []),
+    /** まとまりの色（null は色なし）。サイドバーのまとまりと同じ色（プロジェクトごとに被らないよう決める。bucketHues.ts）。色を付けない設定なら、どれも null */
+    hueOf,
     /** 自分で作ったグループの札のドラッグで、グループの並びを入れ替える（サイドバー・グループのボードも同じ並びになる） */
     reorder: useClusterReorder(clusters),
     /**

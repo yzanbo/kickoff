@@ -3,7 +3,9 @@ import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { useGroupsOf } from "@/stores/groups";
 import { useWorktreesOf } from "@/stores/worktrees";
-import { bucketChats, type BucketContext, type BucketOptions, type ChatBucket, type DraftTarget } from "./buckets";
+import { bucketChats, type BucketContext, type BucketHead, type BucketOptions, type ChatBucket, type DraftTarget } from "./buckets";
+import { bucketHueOf, bucketHuesOf } from "./bucketHues";
+import type { ChatGrouping } from "./chatGrouping";
 
 const NO_IDS: readonly number[] = Object.freeze([]);
 
@@ -42,4 +44,21 @@ export function useChatBuckets<D extends DraftTarget = DraftTarget>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chats, ctx, projects, levels, project, columns, pinned, archived, drafts, keepEmpty],
   );
+}
+
+/**
+ * まとまりの色を引く関数（サイドバーのまとまりの見出し・パネルのタブのまとまりで同じ色。bucketHues.ts）。まとめない・色を付けない（on が false）なら
+ * いつも null。グループ・ワークツリーの一覧は、渡したプロジェクトの分を読む
+ */
+export function useBucketHueOf(grouping: ChatGrouping, projectIds: readonly number[], on: boolean): (head: Pick<BucketHead, "key" | "kind" | "group" | "hue">) => number | null {
+  const by = on && grouping !== "none" ? grouping : null;
+  const ctx = useBucketContext(by ?? [], by ? projectIds : NO_IDS);
+  const ids = projectIds.join();
+  return useMemo(() => {
+    if (!by) return () => null;
+    const hues = bucketHuesOf(by, projectIds, ctx);
+    return (head: Pick<BucketHead, "key" | "kind" | "group" | "hue">) => bucketHueOf(head, hues);
+    // projectIds は中身（ids）が変わったときだけ決め直す
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [by, ids, ctx]);
 }

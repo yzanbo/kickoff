@@ -38,7 +38,7 @@ function groupHead(projectId: number, groupId: number | null | undefined, ctx: B
 }
 
 /** 作業場所のまとまり（見出しはサイドバー・ボードと同じ workplaceOf） */
-export function workplaceHead(projectId: number, chat: Pick<Chat, "worktree_path" | "branch">, ctx: BucketContext, parent?: string): BucketHead {
+export function workplaceHead(projectId: number, chat: Pick<Chat, "worktree_path" | "branch">, ctx: Pick<BucketContext, "worktreesOf">, parent?: string): BucketHead {
   const list = ctx.worktreesOf?.(projectId);
   const place = workplaceOf(chat, list);
   return {
