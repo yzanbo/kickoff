@@ -95,6 +95,15 @@ export const ALL_PROJECTS_BOARD_LANES = defineSetting("kickoff:board-lanes-all",
 export const BOARD_ARCHIVE_FILTER = defineSetting("kickoff:show-archived", choice(["all", "active", "archived"], "all"));
 /** グループのボードのアーカイブでの絞り込み（カンバンとは別に覚える） */
 export const GROUP_BOARD_ARCHIVE_FILTER = defineSetting("kickoff:group-show-archived", choice(BOARD_ARCHIVE_FILTER.choices, "all"));
+/**
+ * プロジェクトごとの、グループのボードの「No Group」の位置（グループの並びの中で、前にあるグループの数。ボードとリストで共通）。
+ * -1（覚えていない）なら、ボードは先頭・リストはいちばん下
+ */
+export const groupBoardUngroupedAt = defineSettingFamily(
+  "kickoff:group-board-ungrouped-at:",
+  json((v) => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : undefined), -1, (v) => v < 0),
+  { ids: true },
+);
 /** 下の帯（フッター）の出し方（show = 表示 / hover = 下端に寄せたときだけ表示 / hide = 非表示。features/footer/footerMode.ts） */
 export const FOOTER_MODE = defineSetting("kickoff:footer-mode", choice(["show", "hover", "hide"], "show"));
 /** プロジェクトの画面のタブの置き方（top = 見出しの下に横並び / side = 左に縦並び・アイコンだけ。設定の「表示」） */

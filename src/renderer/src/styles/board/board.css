@@ -13,26 +13,25 @@
   cursor: grab;
 }
 
-.group-column-head .column-count {
-  flex: none;
-}
-
-/* カンバンの列と同じく、件数は名前のすぐ横、＋と「…」は右端に寄せる */
-.group-column-head .column-title {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
+/* カンバンの列と同じく、件数は名前のすぐ横（列の色の札 .column-chip の中。board-columns.css）、＋と「…」は右端に寄せる */
 .group-column-head .group-add-chat {
   margin-left: auto;
 }
 
-.group-add-column {
-  border-style: dashed;
+/*
+ * 「グループを作成」（ボードの末尾の列・リストの行）は、リストと同じ点線の枠の、短い 1 つのボタンにする（枠の中のどこを押しても作る）。
+ * ボードの列は上に寄せて高さを持たない。名前を入れている間（見出しと同じ形の入力欄）だけ、ほかの列と同じ余白にする
+ * （.board-column の枠・余白は後ろの board-columns.css にあるので、詳細度で勝たせる。前は点線の指定が負けて実線になっていた）
+ */
+.board-column.group-add-column {
+  align-self: flex-start;
+  padding: 0;
+  border: 1px dashed var(--border-strong);
   background: transparent;
+}
+
+.board-column.group-add-column:has(> .column-head) {
+  padding: 10px 10px 2px;
 }
 
 .group-add {
@@ -41,7 +40,8 @@
   justify-content: center;
   gap: 6px;
   width: 100%;
-  height: 32px;
+  height: 38px;
+  padding: 0;
   border: none;
   border-radius: var(--radius);
   font: inherit;

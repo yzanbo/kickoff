@@ -155,8 +155,10 @@ export function useReorder(ids: number[], onReorder: (ids: number[]) => void, dr
     },
     /** drop。この並べ替えのドロップでなければ false */
     drop: (e: DragEvent, id: number | null): boolean => {
-      const moved = Number(e.dataTransfer.getData(dragType));
-      if (!Number.isInteger(moved) || moved <= 0) return false;
+      // 0 はグループのボードの「No Group」（UNGROUPED_SORT_ID）。この種類のデータがなければ並べ替えではない
+      const raw = e.dataTransfer.getData(dragType);
+      const moved = Number(raw);
+      if (raw === "" || !Number.isInteger(moved) || moved < 0) return false;
       e.preventDefault();
       end();
       if (id !== null) {
@@ -175,6 +177,9 @@ function useGroupReorder(ids: number[], onReorder: (ids: number[]) => void) {
   return useReorder(ids, onReorder, GROUP_DRAG_TYPE);
 }
 
+/** グループのボードで、並べ替えの並びの中の「No Group」の ID（グループの ID は 1 から） */
+export const UNGROUPED_SORT_ID = 0;
+
 /** グループの削除を確かめる（中のチャットは消えず、グループなしに戻る） */
 export function confirmDeleteGroup(group: Pick<ChatGroup, "name">): Promise<boolean> {
   return confirmDialog({
@@ -188,31 +193,39 @@ export function confirmDeleteGroup(group: Pick<ChatGroup, "name">): Promise<bool
 /**
  * グループ（とグループなし）をドロップ先にする（サイドバーとグループのボードで共通）。
  * チャットはそのグループへ移し（groupId が null ならグループから外す）、グループの見出しはその位置へ並べ替える。
- * onMoveDraft があれば、送る前の新しいチャット（下書き）も受け取り、作成先のグループを変える（サイドバー）
+ * onMoveDraft があれば、送る前の新しいチャット（下書き）も受け取り、作成先のグループを変える（サイドバー）。
+ * ungroupedAt（グループの並びの中の「No Group」の位置）を渡すと、「No Group」も並べ替えの並びに入れ（ID は UNGROUPED_SORT_ID）、
+ * onReorder にグループの並びと動かしたあとの「No Group」の位置を渡す（グループのボード）
  */
 export function useGroupDrop({
   groups,
   chats,
+  ungroupedAt,
   onReorder,
   onMoveChat,
   onMoveDraft,
 }: {
   groups: ChatGroup[];
   chats: Chat[];
-  onReorder: (ids: number[]) => void;
+  ungroupedAt?: number;
+  onReorder: (ids: number[], ungroupedAt?: number) => void;
   onMoveChat: (chat: Chat, groupId: number | null) => void;
   onMoveDraft?: (draft: DraftRef, groupId: number | null) => void;
 }) {
-  const reorder = useGroupReorder(
-    groups.map((g) => g.id),
-    onReorder,
+  const sortable = ungroupedAt !== undefined;
+  const ids = groups.map((g) => g.id);
+  if (sortable) ids.splice(Math.min(Math.max(ungroupedAt, 0), ids.length), 0, UNGROUPED_SORT_ID);
+  const reorder = useGroupReorder(ids, (next) =>
+    sortable ? onReorder(next.filter((id) => id !== UNGROUPED_SORT_ID), next.indexOf(UNGROUPED_SORT_ID)) : onReorder(next),
   );
+  /** 並べ替えの並びの中の ID（「No Group」は並べ替えるときだけ UNGROUPED_SORT_ID） */
+  const sortId = (groupId: number | null) => groupId ?? (sortable ? UNGROUPED_SORT_ID : null);
   /** ドラッグ中のチャットを重ねている先（グループの ID / "none" はグループなし） */
   const [over, setOver] = useState<number | "none">();
 
   const dropProps = (groupId: number | null) => ({
     onDragOver: (e: DragEvent) => {
-      if (reorder.over(e, groupId)) return;
+      if (reorder.over(e, sortId(groupId))) return;
       if (!isChatDrag(e) && !(onMoveDraft && e.dataTransfer.types.includes(DRAFT_DRAG_TYPE))) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
@@ -221,11 +234,11 @@ export function useGroupDrop({
     onDragLeave: (e: DragEvent) => {
       if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
       setOver(undefined);
-      reorder.leave(groupId);
+      reorder.leave(sortId(groupId));
     },
     onDrop: (e: DragEvent) => {
       setOver(undefined);
-      if (reorder.drop(e, groupId)) return;
+      if (reorder.drop(e, sortId(groupId))) return;
       e.preventDefault();
       const draft = onMoveDraft && droppedDraft(e);
       if (draft) return onMoveDraft(draft, groupId);

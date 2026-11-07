@@ -4,16 +4,19 @@ import { cx } from "@/lib/cx";
 import type { ChatBucket } from "@/features/chatList/buckets";
 import type { NewChatTarget } from "@/features/panel/usePanel";
 import { ArchivedFold, splitArchived } from "@/ui/ArchivedFold";
+import { UNGROUPED_SORT_ID } from "@/features/group/groups";
 import { DraftCards } from "./DraftCards";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { GroupColumnHead } from "./GroupColumnHead";
+import { orderGroupBuckets } from "./groupOrder";
 import type { GroupBoardState } from "./useGroupBoard";
 
 /**
  * グループのボードの、グループごとの列（ボード）・まとまり（リスト）。buckets は bucketChats のグループのまとまり（自分で作ったグループ → グループなし。
- * もうないグループのチャット・下書きはグループなしに入る）。ボードは「No Group」が先頭、
- * リストはスイムレーンと同じく、自分で作ったグループのあとのいちばん下（beforeUngrouped はその直前に置くもの。グループを作成）。
- * 列はドロップ先（チャットを移す・グループを並べ替える）で、サイドバーから来たグループはハイライトする。
+ * もうないグループのチャット・下書きはグループなしに入る）。「No Group」はグループの並びの board.ungroupedAt の位置
+ * （覚えていなければ、ボードは先頭・リストはスイムレーンと同じくいちばん下。見出しのドラッグで並べ替える）。
+ * afterGroups（グループを作成）は、いちばん後ろの自分で作ったグループのすぐ後ろ（グループがなければいちばん後ろ）に置く。
+ * 列はドロップ先（チャットを移す・グループ・「No Group」を並べ替える）で、サイドバーから来たグループはハイライトする。
  * アーカイブ済みは、グループのいちばん下の閉じたまとまりに分ける（件数はアーカイブしていないものだけ。開閉はボードとリストで共通）
  */
 export function GroupSections({
@@ -25,7 +28,7 @@ export function GroupSections({
   foldPlace,
   highlight,
   list = false,
-  beforeUngrouped,
+  afterGroups,
 }: {
   projectId: number;
   buckets: readonly ChatBucket<PanelDraft>[];
@@ -39,13 +42,14 @@ export function GroupSections({
   /** 目立たせるグループ（サイドバーのグループ名から来たとき） */
   highlight?: number;
   list?: boolean;
-  beforeUngrouped?: ReactNode;
+  afterGroups?: ReactNode;
 }) {
   const { over, reorder, dropProps } = board;
-  const ungrouped = buckets.filter((b) => b.kind === "ungrouped");
-  const groups = buckets.filter((b) => b.kind === "group");
-  const sections = list ? [...groups, ...ungrouped] : [...ungrouped, ...groups];
-  return sections.map((bucket) => {
+  const sections = orderGroupBuckets(buckets, board.ungroupedAt);
+  // 「グループを作成」を置く位置（いちばん後ろの自分で作ったグループの後ろ。なければいちばん後ろ）
+  const lastGroup = sections.findLastIndex((b) => b.kind === "group");
+  const addAfter = lastGroup >= 0 ? lastGroup : sections.length - 1;
+  return sections.map((bucket, i) => {
     const g = bucket.group ?? null;
     const key = g?.id ?? "none";
     const [members, archived] = splitArchived(bucket.chats);
@@ -62,15 +66,21 @@ export function GroupSections({
     );
     return (
       <Fragment key={key}>
-        {g === null && beforeUngrouped}
         <section
-          className={cx(list ? "list-group" : "board-column", over === key && "drop-target", g ? reorder.classFor(g.id) : "ungrouped", g !== null && g.id === highlight && "highlighted")}
+          className={cx(
+            list ? "list-group" : "board-column",
+            over === key && "drop-target",
+            reorder.classFor(g?.id ?? UNGROUPED_SORT_ID),
+            g === null && "ungrouped",
+            g !== null && g.id === highlight && "highlighted",
+          )}
           data-group-id={g?.id}
           {...dropProps(g?.id ?? null)}
         >
           <GroupColumnHead group={g} count={members.length} board={board} onNewChat={() => onNewChat(g ? { projectId, group: g.id } : { projectId })} />
           {list ? body : <div className="column-cards">{body}</div>}
         </section>
+        {i === addAfter && afterGroups}
       </Fragment>
     );
   });
