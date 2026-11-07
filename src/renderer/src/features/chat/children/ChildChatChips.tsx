@@ -21,6 +21,9 @@ import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { openChildChat } from "./openChild";
 import { useNewChildFlash } from "./useNewChildFlash";
 
+/** ピルに数を添える様子（見てほしい順） */
+const NOTICE_STATES = ["needs_input", "failed", "unread"] as const;
+
 /** 子チャットの様子の文（札に添える。作業中・回答待ち・答えあり（未読）・失敗・見た） */
 const CHILD_STATE_LABELS: Record<AgentState, string> = {
   running: "作業中…",
@@ -78,7 +81,8 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
   if (!children?.length) return null;
   const visible = children.filter((c) => !c.archived_at);
   const hidden = children.filter((c) => c.archived_at);
-  const waiting = visible.filter((c) => ["needs_input", "unread", "failed"].includes(stateOf(c))).length;
+  // 見てほしい子チャットの数を、様子ごとに分けて添える（回答待ち → 失敗 → 答えあり。前は 3 つをまとめて「答えあり」と数え、回答待ちも「答えあり」に見えた）
+  const notices = NOTICE_STATES.map((state) => ({ state, count: visible.filter((c) => stateOf(c) === state).length })).filter((n) => n.count > 0);
   // 別ウィンドウは Mac のアプリだけ
   const places = canPopout() ? (["side", "window"] as const) : (["side"] as const);
   const open = (chat: Chat, place?: "side" | "window") => {
@@ -155,7 +159,13 @@ export function ChildChatsChip({ chatId }: { chatId: number }) {
           <>
             {/* 左の印: 回答待ち > 作業中（ほかに答えありがあれば緑の点を重ねる）> 失敗 > 答えあり（未読）> 既読 */}
             <StatusSlot {...summaryState(visible.map(stateOf))} />
-            子チャット {visible.length} 件{waiting > 0 && <span className="child-chats-waiting"> · {waiting} 件答えあり</span>}
+            子チャット {visible.length} 件
+            {notices.map(({ state, count }) => (
+              <span key={state} className={cx("child-chats-waiting", `child-${state}`)}>
+                {" "}
+                · {count} 件{CHILD_STATE_LABELS[state]}
+              </span>
+            ))}
           </>
         ) : (
           `アーカイブ済みの子チャット ${hidden.length} 件`

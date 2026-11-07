@@ -88,8 +88,17 @@
   color: var(--ng);
 }
 
+/* ピルに添える様子ごとの数（答えあり = 緑・回答待ち = 黄・失敗 = 赤。左の印と同じ色） */
 .child-chats-waiting {
   color: var(--ok);
+}
+
+.child-chats-waiting.child-needs_input {
+  color: var(--warn);
+}
+
+.child-chats-waiting.child-failed {
+  color: var(--ng);
 }
 
 /*
