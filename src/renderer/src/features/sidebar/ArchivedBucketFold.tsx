@@ -10,6 +10,7 @@ import { useFold } from "@/hooks/useFold";
 import { FoldSection } from "@/ui/FoldHead";
 import { reportFailure } from "@/ui/dialogs";
 import { isForeignChat } from "./projectChatDrop";
+import { busyBlockReason } from "@/features/chat/chatBusy";
 
 /**
  * ドラッグで落としたチャットをアーカイブする（確かめてから。toggleArchiveChat）。groupId を渡すと、そのグループへも移す
@@ -48,16 +49,15 @@ export function useSidebarArchiveDrops(projectId: number, chats: readonly Chat[]
       const chat = find(id);
       if (chat) void archiveDroppedChat(chat);
     },
-    (id) => find(id)?.archived_at === null,
-    foreign,
+    // 作業中のチャット（子孫も）はアーカイブできないので、落とせないことを見せる
+    { accepts: (id) => find(id)?.archived_at === null, passThrough: foreign, blockedBy: (id) => busyBlockReason(id, "アーカイブ") },
   );
   const restoreDrop = useChatDropTarget(
     (id) => {
       const chat = find(id);
       if (chat) void restoreDroppedChat(chat);
     },
-    (id) => Boolean(find(id)?.archived_at),
-    foreign,
+    { accepts: (id) => Boolean(find(id)?.archived_at), passThrough: foreign },
   );
   return { archiveDrop, restoreDrop };
 }
@@ -93,14 +93,18 @@ export function ArchivedBucketFold({
       const chat = find(id);
       if (chat) void archiveDroppedChat(chat, groupId);
     },
-    (id) => {
-      const chat = find(id);
-      return chat !== undefined && (!chat.archived_at || (groupId !== undefined && chat.group_id !== groupId));
+    {
+      accepts: (id) => {
+        const chat = find(id);
+        return chat !== undefined && (!chat.archived_at || (groupId !== undefined && chat.group_id !== groupId));
+      },
+      passThrough: (id) => isForeignChat(id, projectId),
+      // アーカイブするもの（アーカイブしていないチャット）だけ、作業中なら落とせない
+      blockedBy: (id) => (find(id)?.archived_at ? null : busyBlockReason(id, "アーカイブ")),
     },
-    (id) => isForeignChat(id, projectId),
   );
   return (
-    <div className={cx("archive-drop nested-archive", drop.over && "drop-target")} {...drop.props}>
+    <div className={cx("archive-drop nested-archive", drop.over && (drop.blocked ? "drop-blocked" : "drop-target"))} {...drop.props}>
       <FoldSection look="row" icon={Archive} label="アーカイブ済み" count={bucket.chats.length} open={fold.open} onToggle={fold.toggle} title="ここへチャットをドラッグすると、確かめてからアーカイブします">
         <ul className="chat-rows archived-rows">{bucket.chats.map(renderRow)}</ul>
       </FoldSection>

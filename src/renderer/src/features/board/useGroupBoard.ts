@@ -13,17 +13,21 @@ import { useBoardView } from "./BoardHeader";
 import { ungroupedPosition } from "@/features/group/groupOrder";
 import { useCardMenu } from "./useBoardCards";
 import { useChats } from "@/stores/chats";
+import { useProjects } from "@/stores/projects";
+import { moveDroppedChatToProject } from "@/features/chat/chatActions";
+import { busyBlockReason } from "@/features/chat/chatBusy";
 
 export type GroupBoardState = ReturnType<typeof useGroupBoard>;
 
 /**
- * グループのボードの状態と操作: グループを作る・名前を変える・削除する（「…」メニュー）、列へのドロップ（チャットを移す・列を並べ替える）、
+ * グループのボードの状態と操作: グループを作る・名前を変える・削除する（「…」メニュー）、列へのドロップ（チャットを移す・ほかのプロジェクトのチャットは確かめてから移す・列を並べ替える）、
  * 名前の検索、アーカイブでの絞り込みとボード / リスト / スイムレーンの切り替え（どちらもカンバンとは別に覚える）、失敗の文。
  * 「No Group」もグループと同じく見出しのドラッグで並べ替え、位置（ungroupedAt）をプロジェクトごとに覚える（groupBoardUngroupedAt。ボードとリストで共通）。
  * チャットはカンバンと同じくチャットの店（useChats）から読み、アーカイブ済みを出すときはそれも読み込む
  * （chats は読み込んだすべて、shown はアーカイブと名前の検索で絞り込んだもの。グループの列・段への分け方は bucketChats）
  */
 export function useGroupBoard({ projectId, groups }: { projectId: number; groups: ChatGroup[] }) {
+  const { projectName } = useProjects();
   const [creating, setCreating] = useState(false);
   const [renaming, setRenaming] = useState<number>();
   const { error, setError, guard } = useAction();
@@ -48,7 +52,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
   const ungroupedAt = ungroupedPosition(savedUngroupedAt, groups.length, view === "list");
   // 列をドロップ先にする。チャットはその列のグループへ、グループ・「No Group」の列はその位置へ並べ替える
   // （グループの並びは DB、「No Group」の位置は画面に覚える。変わった方だけ書く）
-  const { reorder, over, dropProps } = useGroupDrop({
+  const { reorder, over, blocked, dropProps } = useGroupDrop({
     projectId,
     groups,
     chats,
@@ -58,7 +62,15 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
       if (ids.some((id, i) => id !== groups[i]?.id)) void guard(() => api.reorderGroups(projectId, ids));
     },
     onMoveChat: (chat, groupId) => void guard(() => api.setChatGroup(chat.id, groupId)),
+    // ほかのプロジェクトのチャット（サイドバーから）は、確かめてからこのプロジェクトへ移し、落とした列のグループへ入れる。作業中なら落とせない
+    onForeignChat: (chat, groupId) => {
+      const group = groups.find((g) => g.id === groupId);
+      moveDroppedChatToProject(chat, { id: projectId, name: projectName(projectId) }, group && { id: group.id, name: group.name });
+    },
+    foreignBlockedBy: (chat) => busyBlockReason(chat.id, "移動"),
   });
+  /** 列・段の落とし先の見た目（重ねている間。落とせないときは赤） */
+  const dropClass = (groupId: number | null) => (over === (groupId ?? "none") ? (blocked ? "drop-blocked" : "drop-target") : undefined);
 
   return {
     chats,
@@ -85,6 +97,7 @@ export function useGroupBoard({ projectId, groups }: { projectId: number; groups
     reorder,
     over,
     dropProps,
+    dropClass,
     /** グループの並びの中の「No Group」の位置（前にあるグループの数） */
     ungroupedAt,
     createGroup: (name: string) => {

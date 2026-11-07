@@ -41,7 +41,7 @@ export function GroupSections({
   highlight?: number;
   list?: boolean;
 }) {
-  const { over, reorder, dropProps } = board;
+  const { dropClass, reorder, dropProps } = board;
   return orderGroupBuckets(buckets, board.ungroupedAt).map((bucket) => {
     const g = bucket.group ?? null;
     const key = g?.id ?? "none";
@@ -62,7 +62,7 @@ export function GroupSections({
         key={key}
         className={cx(
           list ? "list-group" : "board-column",
-          over === key && "drop-target",
+          dropClass(g?.id ?? null),
           reorder.classFor(g?.id ?? UNGROUPED_SORT_ID),
           g === null && "ungrouped",
           g !== null && g.id === highlight && "highlighted",

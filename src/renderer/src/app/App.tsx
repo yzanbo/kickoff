@@ -29,6 +29,7 @@ import { useFallbackProject } from "@/features/sidebar/currentProject";
 import { useSidebar } from "@/features/sidebar/useSidebar";
 import { terminalTargets } from "@/features/panel/usePanel";
 import { DialogHost } from "@/ui/dialogs";
+import { DropHintHost } from "@/ui/DropHint";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import { useChatNotifications } from "./notifications";
 import { AllProjectsPage } from "@/features/board/AllProjectsPage";
@@ -188,6 +189,8 @@ export function App() {
           chat={chat.projectId !== undefined ? { open: chat.open, onToggle: chat.toggle } : undefined}
         />
         <DialogHost />
+        {/* ドラッグ中に、落とせない理由をカーソルの横に出す（作業中のチャットは移せない、など） */}
+        <DropHintHost />
         {palette && <CommandPalette onClose={() => setPalette(false)} />}
         {activeChats && <ActiveChatsPalette onClose={() => setActiveChats(false)} />}
         {searching && (

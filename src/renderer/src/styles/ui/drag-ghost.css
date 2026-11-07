@@ -47,3 +47,37 @@
 .group-dragging [data-drag-source] {
   opacity: 1;
 }
+
+/*
+ * 落とせない落とし先（作業中のチャットをほかのプロジェクト・「アーカイブ済み」へ重ねたときなど）: 赤い点線の枠と、
+ * カーソルの横の理由の札（ui/DropHint.tsx。ドラッグの絵より上に出す）
+ */
+.drop-blocked,
+.chat-drop-blocked {
+  outline: 1px dashed var(--ng);
+  outline-offset: -1px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--ng) 10%, transparent);
+}
+
+.workspace-dot.chat-drop-blocked {
+  outline: 2px dashed var(--ng);
+  outline-offset: 2px;
+}
+
+.drop-blocked-hint {
+  position: fixed;
+  z-index: 1001;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--ng);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
+  pointer-events: none;
+}

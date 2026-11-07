@@ -1,7 +1,6 @@
 import { FolderPlus, SquarePen } from "lucide-react";
 import { useEffect } from "react";
 import type { ChatGroup } from "@shared/types";
-import { cx } from "@/lib/cx";
 import { GROUP_FLASH_EVENT } from "@/features/group/groups";
 import { useWindowEvent } from "@/hooks/useWindowEvent";
 import type { ReopenRoute } from "@/app/router";
@@ -56,7 +55,7 @@ function GroupBoardWithPanel(props: Props & { board: ReturnType<typeof useGroupB
 }
 
 function GroupBoardView({ projectId, highlight, board, chats }: Props & { board: ReturnType<typeof useGroupBoard>; chats: BoardChats }) {
-  const { view, split, menu, rename, over, dropProps } = board;
+  const { view, split, menu, rename, dropClass, dropProps } = board;
   const { panel, drafts, open } = chats;
 
   // サイドバーで選んだグループが見えるところまでスクロールする
@@ -130,7 +129,7 @@ function GroupBoardView({ projectId, highlight, board, chats }: Props & { board:
           foldPlace={foldPlace}
           laneProps={(lane) => {
             const groupId = lane.group?.id ?? null;
-            return { ...dropProps(groupId), className: cx(over === (groupId ?? "none") && "drop-target") };
+            return { ...dropProps(groupId), className: dropClass(groupId) };
           }}
         >
           {(lane) => <StateColumns columns={lane.children ?? []} drafts={lane.drafts} foldPlace={foldPlace} render={cards.card} />}
