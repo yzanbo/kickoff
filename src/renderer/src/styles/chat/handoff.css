@@ -68,3 +68,91 @@
   color: var(--accent-text);
   background: color-mix(in srgb, var(--accent) 88%, black);
 }
+
+/* 渡したことの印（HandoffMarks。子チャットの作業の終わりの行の「渡しました · 入力欄へ · 5分前」）: 終わりの行の文字と同じ薄い色の小さな札 */
+.handoff-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: calc(11px * var(--chat-scale, 1));
+  line-height: 18px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/*
+ * 子チャットから渡した依頼の出どころの札（HandoffFromChip。「子チャット『…』から」）: 入力欄の上・送った発言の下・送信待ちの行で同じ形。
+ * 子チャットの帯の呼び名と同じ子の深さの色（--child-depth-1）で、押すとその子チャットを開く
+ */
+.handoff-from {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 999px;
+  color: var(--child-depth-1);
+  background: color-mix(in srgb, var(--child-depth-1) 14%, transparent);
+}
+
+.handoff-from-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 20px;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+}
+
+.handoff-from-open:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--child-depth-1) 14%, transparent);
+}
+
+.handoff-from-open:disabled {
+  cursor: default;
+}
+
+.handoff-from-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.handoff-from .handoff-from-remove {
+  width: 18px;
+  height: 18px;
+  margin-right: 2px;
+  color: inherit;
+}
+
+/* 入力欄の上（定型文の帯の上。左は文を書く欄の文字の位置にそろえる） */
+.composer-handoff {
+  display: flex;
+  padding: 8px 8px 0 12px;
+}
+
+/* 送った発言の下（吹き出しと同じ右寄せ） */
+.message-handoff-from {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 100%;
+  margin-top: 4px;
+}
+
+.message-handoff-from .handoff-from-open {
+  font-size: calc(11px * var(--chat-scale, 1));
+}
+
+/* 送信待ちの行（文の前。長い名前は詰める） */
+.queued-row .handoff-from {
+  max-width: 40%;
+}

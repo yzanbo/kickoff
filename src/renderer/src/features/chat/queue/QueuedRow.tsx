@@ -10,6 +10,7 @@ import { QUEUE_ACTION_LOOKS } from "./queueActionLooks";
 import { cx } from "@/lib/cx";
 import { AttachmentPeek } from "@/features/chat/attachments/AttachmentPeek";
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
+import { HandoffFromChip } from "@/features/chat/children/HandoffFromChip";
 import { INHERIT_LABELS, inheritHelp } from "@/features/chat/children/InheritChoice";
 
 /** 送信待ちの指示を別のチャットで聞く操作（remove なら送信待ちから外す = 移す）。どちらも出せないところでは undefined */
@@ -152,6 +153,8 @@ export function QueuedRow({
           <AttachmentPeek attachments={m.attachments} />
           {/* 作業が途中で終わって送信待ちの先頭に回った圧縮後指示（いちばん上のまま、ほかの指示より先に送る） */}
           {m.post_compact && <CompactPromptMark kind="post" className="compact-prompt-tag" size={11} />}
+          {/* 子チャットから渡した依頼（「親チャットに追加」の送信待ち）の出どころ */}
+          {m.handoff_from && <HandoffFromChip from={m.handoff_from} />}
           <span className="queued-text" title={m.text}>
             {m.text || m.attachments.map((a) => a.name).join("、")}
           </span>

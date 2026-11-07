@@ -1,10 +1,10 @@
 // 子チャット・メモを、設定の開き方（右の欄 / 別ウィンドウ）で開く。右の欄は、いちばん上の親のチャットの画面の右の欄（孫・ひ孫も同じ欄に並べる）。
 // 子チャットから親へ（聞いた位置を見る・答えを入力欄に入れる）もここ。別ウィンドウからは、メインのウィンドウに知らせてここを呼ぶ（App）
-import type { Chat } from "@shared/types";
+import type { Chat, HandoffFrom } from "@shared/types";
 import { canPopout, openPopout, parsePopout } from "@/app/popout";
 import { openChat } from "@/app/router";
 import { postToMainWindow } from "@/app/windowBus";
-import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE, chatDraft } from "@/lib/storageKeys";
+import { CHILD_CHAT_OPEN_IN, CHILD_CHAT_OPEN_ON_CREATE, chatDraft, composerHandoff } from "@/lib/storageKeys";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { addChat, knownChat } from "@/stores/chats";
 import { chatTitle } from "@/features/chat/chatTitle";
@@ -83,9 +83,13 @@ export function revealInParent(child: Pick<Chat, "id" | "parent_chat_id" | "pare
   requestAnimationFrame(() => chatPaneOf(parent.id)?.revealInConversation(eventId, null));
 }
 
-/** 子チャットの答え（handBackText で作った引用・依頼文）を、親の入力欄の後ろに空行を挟んで足す（送るのは自分で。別ウィンドウからはメインに頼む） */
-export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, text: string) {
+/**
+ * 子チャットの答え（handBackText で作った引用・依頼文）を、親の入力欄の後ろに空行を挟んで足す（送るのは自分で。別ウィンドウからはメインに頼む）。
+ * from を渡すと、親の入力欄の上に出どころの札（「子チャット『…』から」）を出し、送った発言に付ける（composerHandoff。保存はウィンドウで共有）
+ */
+export function handBackToParent(child: Pick<Chat, "id" | "parent_chat_id">, text: string, from?: HandoffFrom) {
   if (child.parent_chat_id === null) return;
+  if (from) writeSetting(composerHandoff(child.parent_chat_id), from);
   if (inPopout()) return postToMainWindow({ type: "childToParent", childId: child.id, action: "handBack", text });
   const parent = knownChat(child.parent_chat_id);
   if (!parent) return;

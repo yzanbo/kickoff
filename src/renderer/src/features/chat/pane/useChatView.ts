@@ -131,7 +131,7 @@ export function useChatView(
   // ⌘⌥↑ / ↓ で前後の指示へ（上に貼り付けた指示の帯の ↑ / ↓ も）
   const promptKeys = usePromptKeys({ root: rootRef, timeline: scroll.ref, promptIds: prompts.ids, onJump: (id) => pane.jumpTo(id) });
   // 操作がいつも最新の値で動くよう、描くたびに入れ直す（操作そのものは作り直さない）
-  const fresh = { chat, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go, send, queueing: busy || live.queue.messages.length > 0 };
+  const fresh = { chat, options, tree, timeline, onOpenNew, stepPrompt: promptKeys.go, send };
   const latest = useRef(fresh);
   latest.current = fresh;
 
@@ -256,9 +256,10 @@ export function useChatView(
         return true;
       },
       resend: async (text, attachments) => {
-        const { send, queueing } = now();
+        const { send } = now();
         try {
-          await (queueing ? send.onQueue(text, attachments) : send.onSend(text, attachments));
+          // 入力欄の文ではないので、入力欄の子チャットからの依頼の出どころは付けない
+          await send.onSendOther(text, attachments);
         } catch (e) {
           // 送る前の確かめでやめたときは、何も出さない
           if (!(e instanceof SendCancelled)) void reportFailure("もう一度送れませんでした")(e);

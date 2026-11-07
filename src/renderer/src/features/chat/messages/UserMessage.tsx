@@ -12,6 +12,7 @@ import { useOptionalChatPane } from "@/features/chat/pane/chatPaneContext";
 import { BubbleEditor } from "./BubbleEditor";
 import { useMessageMenu } from "./useMessageMenu";
 import { ChildChatMarks } from "@/features/chat/children/ChildChatChips";
+import { HandoffFromChip } from "@/features/chat/children/HandoffFromChip";
 import { COMPACT_PROMPT_KINDS, compactKindOf } from "@/features/snippet/compactPromptKinds";
 import { CompactPromptMark } from "@/features/snippet/CompactPromptMark";
 
@@ -26,7 +27,8 @@ const COLLAPSE_PX = 240;
  * 書き直し・ファイルを戻すのは、チャットの画面の中だけ（サブエージェントのタブではできない）。busy（作業中）の間はできない。
  * 圧縮の前後に送った圧縮前指示・圧縮後指示（記録の pre_compact / post_compact）は、上に「圧縮前指示」「圧縮後指示」と添えて、自分で書いた指示と見分けられるようにする。
  * サブエージェントについて子チャットで聞いた最初の発言は、AI への前置き（記録の読み方）を隠して、上に「サブエージェント『…』について聞く」と添える（コピー・書き直しは書いた文で）。
- * 子チャットに親への依頼文を頼んだ発言（記録の handoff_request。頼み方の文は決まった長い文なので）は、1 行「親への依頼文を頼みました」にたたみ、押すと全文を出す
+ * 子チャットに親への依頼文を頼んだ発言（記録の handoff_request。頼み方の文は決まった長い文なので）は、1 行「親への依頼文を頼みました」にたたみ、押すと全文を出す。
+ * 子チャットから渡した依頼（記録の handoff_from）は、吹き出しの下に出どころの札「子チャット『…』から」
  */
 export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy: boolean }) {
   const data = event.data;
@@ -172,6 +174,12 @@ export function UserMessage({ event, busy }: { event: ChatEventOf<"user">; busy:
           />
         )}
       </div>
+      {/* 子チャットから渡した依頼（「親チャットに追加」）の出どころ。押すとその子チャットを開く */}
+      {data.handoff_from && (
+        <div className="message-handoff-from">
+          <HandoffFromChip from={data.handoff_from} />
+        </div>
+      )}
       {/* この発言から聞いた子チャットの札 */}
       {pane && <ChildChatMarks chatId={pane.chatId} eventId={event.id} />}
       {menu.element}

@@ -85,6 +85,8 @@ export type HandoffVia = (typeof HANDOFF_VIAS)[number];
 export const HANDOFF_VIA_LABELS: Record<HandoffVia, string> = { composer: "親の入力欄に入れる", send: "今すぐ送る", queue: "送信待ちに入れる" };
 /** 渡し方の短い名前（設定の切り替え・渡したことの印） */
 export const HANDOFF_VIA_SHORT: Record<HandoffVia, string> = { composer: "入力欄", send: "今すぐ送る", queue: "送信待ち" };
+/** 渡したことの印の渡し方（子チャットの作業の終わりの行の「渡しました · 入力欄へ · 5分前」） */
+export const HANDOFF_VIA_MARKS: Record<HandoffVia, string> = { composer: "入力欄へ", send: "送信", queue: "送信待ちへ" };
 
 /**
  * 発言に付ける印（送る・伝える・送信待ち・圧縮が終わるまでの預かりのどの道でも同じ形で通し、発言の記録 user に残す）:

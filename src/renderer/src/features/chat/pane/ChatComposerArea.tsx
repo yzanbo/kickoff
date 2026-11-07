@@ -18,6 +18,7 @@ import { TodoChip } from "@/features/chat/status/TodoChip";
 import { ChildChatsChip } from "@/features/chat/children/ChildChatChips";
 import { INHERIT_LABELS, inheritHelp } from "@/features/chat/children/InheritChoice";
 import { openCreatedChild } from "@/features/chat/children/openChild";
+import { ComposerHandoffChip } from "@/features/chat/children/HandoffFromChip";
 import { MemoChip } from "@/features/memo/MemoChip";
 import { SubagentChip } from "@/features/chat/subagents/SubagentChip";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
@@ -72,7 +73,7 @@ export function ChatComposerArea({
     openCreatedChild(await api.createChildChat(chat.id, { text, attachments, quote: null, inherit, event_id: null }));
   };
   // 定型文の帯の「すぐ送る」: 入力欄の文はそのままにして、定型文だけを送る（作業中・送信待ちがあれば、入力欄から送るのと同じく送信待ちの送り方に従う）
-  const sendSnippet = (text: string) => (busy || queued ? send.onQueue(text, []) : send.onSend(text, []));
+  const sendSnippet = (text: string) => send.onSendOther(text, []);
   return (
     <div className="chat-composer">
       {/*
@@ -113,8 +114,14 @@ export function ChatComposerArea({
         stopping={live.stopping}
         onStop={send.onStop}
         trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedCompact(live.queue)} afterTurn={live.compact_after_turn} />}
-        // よく送る指示（このプロジェクトで使う定型文）。入力欄の枠の中の上（送信待ちとの区切り線の下）に置き、押すと入力欄に入れる
-        header={<SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />}
+        // よく送る指示（このプロジェクトで使う定型文）。入力欄の枠の中の上（送信待ちとの区切り線の下）に置き、押すと入力欄に入れる。
+        // その上に、入力欄に入れた子チャットからの依頼の出どころの札（送ると発言の札になる）
+        header={
+          <>
+            <ComposerHandoffChip chatId={chat.id} />
+            <SnippetBar projectId={chat.project_id} composer={composer} onSend={sendSnippet} />
+          </>
+        }
         // 入力欄の右クリックで帯を出す・隠す（隠していても入力欄から戻せる）
         menuItems={<SnippetBarToggleItem />}
         suggestTarget={{ projectId: chat.project_id, worktree: chat.worktree_path ?? undefined }}

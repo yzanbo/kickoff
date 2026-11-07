@@ -24,6 +24,7 @@ import { SubagentEndNote } from "@/features/chat/subagents/SubagentEndNote";
 import { CompactedRow } from "@/features/chat/status/CompactingRow";
 import { requestHandoff } from "@/features/chat/children/handoff";
 import { AddToParentButton } from "@/features/chat/children/AddToParentButton";
+import { HandoffMarks } from "@/features/chat/children/HandoffMarks";
 
 /**
  * タイムライン（発言とツールのまとまり）。rel はリポジトリの絶対パスを相対パスにする。
@@ -53,6 +54,7 @@ export function TimelineItems({ items, rel, active }: { items: TimelineItem[]; r
             turnText={item.turnText}
             turnChanges={item.turnChanges}
             turnHandoff={item.turnHandoff}
+            turnHandoffs={item.turnHandoffs}
             busy={active}
           />
         );
@@ -113,7 +115,14 @@ function TurnEnd(props: TurnFooterProps & { turnChanges?: FileChange[] }) {
   );
 }
 
-type TurnFooterProps = { event: ChatEventOf<"result">; turnStart?: string; turnText?: string; turnHandoff?: TurnHandoff; busy: boolean };
+type TurnFooterProps = {
+  event: ChatEventOf<"result">;
+  turnStart?: string;
+  turnText?: string;
+  turnHandoff?: TurnHandoff;
+  turnHandoffs?: ChatEventOf<"handoff">[];
+  busy: boolean;
+};
 
 /**
  * 作業の終わりの行: 中断・失敗の知らせ、作業時間、その作業での返答のコピー、ここから分岐。
@@ -121,7 +130,7 @@ type TurnFooterProps = { event: ChatEventOf<"result">; turnStart?: string; turnT
  * 子チャットでは「親チャットに追加 ▾」（最後まで終わった作業の最後の返答を、そのまま親に渡す。依頼文の頼みに答えた作業では文字のボタンで目立たせる）と
  * 「親への依頼文を作ってもらう」（作業中なら、いまの作業に伝える）
  */
-function TurnFooter({ event, turnStart, turnText, turnHandoff, busy }: TurnFooterProps) {
+function TurnFooter({ event, turnStart, turnText, turnHandoff, turnHandoffs, busy }: TurnFooterProps) {
   const data = event.data;
   const chat = useKnownChat(event.chat_id);
   const child = chat && chat.parent_chat_id !== null && !chat.archived_at ? chat : undefined;
@@ -133,6 +142,7 @@ function TurnFooter({ event, turnStart, turnText, turnHandoff, busy }: TurnFoote
       {status && <span>{status}</span>}
       {worked && <span title={`${formatClock(event.created_at)} に終了`}>作業時間 {worked}</span>}
       {child && turnHandoff && data.status === "completed" && <AddToParentButton chat={child} turnEventId={event.id} prominent={turnHandoff.requested} />}
+      {turnHandoffs && <HandoffMarks handoffs={turnHandoffs} />}
       {/* 書式付き（見出し・表がほかのアプリでも崩れない）と Markdown の文の両方でコピーする */}
       {turnText && <CopyButton copy={() => copyRich(turnText)} label="返答をコピー" className="turn-action" />}
       {/* 止めた・失敗した作業の終わりからは分岐できない（以前の記録には message_id が付いている） */}
@@ -187,6 +197,7 @@ function EventItem({
   turnText,
   turnChanges,
   turnHandoff,
+  turnHandoffs,
   busy,
 }: {
   event: ChatEvent;
@@ -194,6 +205,7 @@ function EventItem({
   turnText?: string;
   turnChanges?: FileChange[];
   turnHandoff?: TurnHandoff;
+  turnHandoffs?: ChatEventOf<"handoff">[];
   busy: boolean;
 }) {
   switch (event.type) {
@@ -211,7 +223,7 @@ function EventItem({
       return <div className="event-note">{RESOLVED_LABELS[data.action] ?? "回答済み"}</div>;
     }
     case "result":
-      return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} turnHandoff={turnHandoff} busy={busy} />;
+      return <TurnEnd event={event} turnStart={turnStart} turnText={turnText} turnChanges={turnChanges} turnHandoff={turnHandoff} turnHandoffs={turnHandoffs} busy={busy} />;
     case "error":
       return (
         <div className="event-note error" id={`ev-${event.id}`}>

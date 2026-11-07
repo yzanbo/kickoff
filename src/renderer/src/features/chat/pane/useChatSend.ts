@@ -1,5 +1,7 @@
-import type { Attachment, BackgroundState, ChatLive } from "@shared/types";
+import type { Attachment, BackgroundState, ChatLive, MessageMarks } from "@shared/types";
 import { api } from "@/api";
+import { readSetting, writeSetting } from "@/lib/storage";
+import { composerHandoff } from "@/lib/storageKeys";
 import { queueModeTexts, useQueueMode } from "@/features/chat/composer/QueueModeToggle";
 import type { QueueSendMode } from "@/features/chat/composer/composerKeys";
 import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
@@ -37,7 +39,9 @@ const HOLD_TEXTS = {
  * （答えを見て次を決める。あとで = 入れた指示のすぐあとに一時停止の印、いま・すぐ送る = その作業が終わったら止める）。
  * 中断は、裏で動いているサブエージェント・コマンドも止まることを確かめてから（onStopping: 押してから止まるまでの「停止中」）。
  * 会話の圧縮中・圧縮前指示から圧縮が終わるまで（compactHold）は、チャット欄に送り方の切り替えを出さないので、Enter はいつも「いま」
- * （コアが預かり、圧縮が終わってから伝える。⌘⇧Enter はあとで）
+ * （コアが預かり、圧縮が終わってから伝える。⌘⇧Enter はあとで）。
+ * 入力欄に子チャットからの依頼を入れていれば（composerHandoff）、入力欄から送る発言に出どころ handoff_from を付け、送れたら消す
+ * （定型文の帯の「すぐ送る」・「もう一度送る」は入力欄の文ではないので付けない = onSendOther）
  */
 export function useChatSend({
   chatId,
@@ -71,34 +75,43 @@ export function useChatSend({
   const hold = busy ? compactHold : null;
   const defaultMode: QueueSendMode = hold ? "tell" : queueMode;
   const texts = hold ? HOLD_TEXTS[hold] : queueModeTexts(busy, queued, queueMode);
-  const send = async (text: string, attachments: Attachment[], pauseAfter = false) => {
+  const send = async (text: string, attachments: Attachment[], pauseAfter = false, marks: MessageMarks = {}) => {
     await beforeSend?.();
     scroll.follow();
-    await api.sendMessage(chatId, text, options.options, attachments, pauseAfter);
+    await api.sendMessage(chatId, text, options.options, attachments, pauseAfter, marks);
   };
-  const queue = async (text: string, attachments: Attachment[], mode: QueueSendMode = defaultMode, pauseAfter = false) => {
+  const queue = async (text: string, attachments: Attachment[], mode: QueueSendMode = defaultMode, pauseAfter = false, marks: MessageMarks = {}) => {
     // 伝える: 止めずに、いまのやり取りに足す（裏のサブエージェント・コマンドも動き続ける。足せなければ待ちの列へ）。
     // ⌘Enter / ⌘⇧Enter で送ったときは、切り替えに関係なくそのキーの送り方にする
     // 作業していない（送信待ちを止めている）とき: すぐ送る = 送信待ちより先にいま送る / ためておく = 送信待ちの最後に足す
     if (!busy) {
-      if (mode !== "queue") return send(text, attachments, pauseAfter);
+      if (mode !== "queue") return send(text, attachments, pauseAfter, marks);
       await beforeSend?.();
-      return void (await api.queueMessage(chatId, text, options.options, attachments, { hold: true, pauseAfter }));
+      return void (await api.queueMessage(chatId, text, options.options, attachments, { hold: true, pauseAfter, marks }));
     }
     await beforeSend?.();
     scroll.follow();
-    if (mode === "tell") await api.tellChat(chatId, text, options.options, attachments, pauseAfter);
-    else await api.queueMessage(chatId, text, options.options, attachments, { pauseAfter });
+    if (mode === "tell") await api.tellChat(chatId, text, options.options, attachments, pauseAfter, marks);
+    else await api.queueMessage(chatId, text, options.options, attachments, { pauseAfter, marks });
+  };
+  // 入力欄から送る: 子チャットからの依頼の出どころを付け、送れたら入力欄の札を消す
+  const fromComposer = async (run: (marks: MessageMarks) => Promise<void>) => {
+    const from = readSetting(composerHandoff(chatId));
+    await run(from ? { handoff_from: from } : {});
+    if (from) writeSetting(composerHandoff(chatId), null);
   };
   return {
     queueMode,
     setQueueMode,
     placeholder: texts.placeholder,
     sendLabel: texts.sendLabel,
-    onSend: (text: string, attachments: Attachment[]) => send(text, attachments),
-    onQueue: (text: string, attachments: Attachment[], mode?: QueueSendMode) => queue(text, attachments, mode),
+    onSend: (text: string, attachments: Attachment[]) => fromComposer((marks) => send(text, attachments, false, marks)),
+    onQueue: (text: string, attachments: Attachment[], mode?: QueueSendMode) => fromComposer((marks) => queue(text, attachments, mode, false, marks)),
     /** 質問として送る（いまの送り方で送り、その指示の作業が終わったら送信待ちを一時停止する） */
-    onAsk: (text: string, attachments: Attachment[]) => (busy || queued ? queue(text, attachments, undefined, true) : send(text, attachments, true)),
+    onAsk: (text: string, attachments: Attachment[]) =>
+      fromComposer((marks) => (busy || queued ? queue(text, attachments, undefined, true, marks) : send(text, attachments, true, marks))),
+    /** 入力欄の文ではないものを送る（定型文の帯の「すぐ送る」・「もう一度送る」。作業中・送信待ちがあれば入力欄と同じ送り方。出どころは付けない） */
+    onSendOther: (text: string, attachments: Attachment[]) => (busy || queued ? queue(text, attachments) : send(text, attachments)),
     onStop: () =>
       void confirmStopAgents(background, runningAgents, "中断する").then((ok) => {
         if (!ok) return;

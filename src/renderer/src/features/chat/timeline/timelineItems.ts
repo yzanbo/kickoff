@@ -13,10 +13,19 @@ export interface ToolCall {
 /**
  * 作業の終わり（result）に付けるもの。turnStart: その作業を始めた時刻（直前の自分の発言の時刻。作業時間を出すため）、
  * turnText: その作業での AI の返答をつないだ文（コピーのボタンに使う）、turnChanges: その作業で変えたファイル（ターンの変更カード）、
- * turnHandoff: 親チャットに渡すもの（子チャットの「親チャットに追加」）
+ * turnHandoff: 親チャットに渡すもの（子チャットの「親チャットに追加」）、turnHandoffs: その作業の返答を親チャットに渡した記録（渡した順。渡したことの印）
  */
 export type TimelineItem =
-  | { kind: "event"; key: string; event: ChatEvent; turnStart?: string; turnText?: string; turnChanges?: FileChange[]; turnHandoff?: TurnHandoff }
+  | {
+      kind: "event";
+      key: string;
+      event: ChatEvent;
+      turnStart?: string;
+      turnText?: string;
+      turnChanges?: FileChange[];
+      turnHandoff?: TurnHandoff;
+      turnHandoffs?: ChatEventOf<"handoff">[];
+    }
   | { kind: "tools"; key: string; tools: ToolCall[] }
   /** サブエージェントの起動（Agent / Task の呼び出し。ツールのまとまりに入れず、流れの中のカードにする） */
   | { kind: "subagent"; key: string; call: ToolCall }
@@ -40,6 +49,30 @@ export interface TurnHandoff {
 
 /** 作業の終わりごとの渡すもの（終わった作業はもう変わらないので覚え、memo した終わりの行に同じものを渡す。返答がなければ null） */
 const turnHandoffCache = new WeakMap<ChatEvent, TurnHandoff | null>();
+
+/** 作業の終わりごとの渡した記録（新しく渡すまでは同じ配列を渡し、memo した終わりの行を描き直させない） */
+const turnHandoffsCache = new WeakMap<ChatEvent, ChatEventOf<"handoff">[]>();
+
+/** 渡した記録を作業の終わりの記録の ID ごとに（渡した記録は作業の終わりより後ろに付くので、先にまとめる） */
+function handoffsByTurn(events: readonly ChatEvent[]): Map<number, ChatEventOf<"handoff">[]> {
+  const byTurn = new Map<number, ChatEventOf<"handoff">[]>();
+  for (const e of events) {
+    if (e.type !== "handoff") continue;
+    const list = byTurn.get(e.data.turn_event_id);
+    if (list) list.push(e);
+    else byTurn.set(e.data.turn_event_id, [e]);
+  }
+  return byTurn;
+}
+
+/** 前に渡した配列と同じ中身なら前のものを使う */
+function cachedHandoffs(end: ChatEvent, list: ChatEventOf<"handoff">[] | undefined): ChatEventOf<"handoff">[] | undefined {
+  if (!list) return undefined;
+  const prev = turnHandoffsCache.get(end);
+  if (prev && prev.length === list.length && prev.at(-1) === list.at(-1)) return prev;
+  turnHandoffsCache.set(end, list);
+  return list;
+}
 
 /** サブエージェントの中の記録なら、そのサブエージェントを起動した呼び出し ID（メインの記録・parent のない種類は undefined） */
 const parentOf = (e: ChatEvent): string | undefined => ("parent" in e.data ? e.data.parent : undefined);
@@ -66,6 +99,8 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
   let turnRequested = false;
   // その作業の編集のツール（サブエージェントのものも含める。親の流れのときだけ数える）
   let turnEdits = new Map<string, EditCall>();
+  // 親チャットに渡した記録（メインの流れのときだけ。作業の終わりの行に印を出す）
+  const handoffs = scope === undefined ? handoffsByTurn(events) : new Map<number, ChatEventOf<"handoff">[]>();
   for (const [index, e] of events.entries()) {
     if (scope === undefined) {
       if (e.type === "tool_use" && EDIT_TOOLS.has(e.data.name)) turnEdits.set(e.data.id, { use: e });
@@ -112,6 +147,7 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
         turnChanges = changesOf([...turnEdits.values()]);
         turnChangesCache.set(e, turnChanges);
       }
+      const turnHandoffs = cachedHandoffs(e, handoffs.get(e.id));
       let turnHandoff = turnHandoffCache.get(e);
       if (turnHandoff === undefined) {
         const reply = lastReplyBefore(events, index);
@@ -126,7 +162,9 @@ export function groupEvents(events: ChatEvent[], scope?: readonly string[]): Tim
         ...(turnText ? { turnText } : {}),
         ...(turnChanges.length ? { turnChanges } : {}),
         ...(turnHandoff ? { turnHandoff } : {}),
+        ...(turnHandoffs ? { turnHandoffs } : {}),
       });
+
       turnStart = undefined;
       turnTexts = [];
       turnRequested = false;
