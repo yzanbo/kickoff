@@ -41,7 +41,7 @@ export const CHAT_POLICY: ChatPolicy = { allowedCommands: [...GIT_READ, ...CHECK
  * workdir: チャットの作業場所（ワークツリーで作業するチャットはそのフォルダ。「作業フォルダ」として伝え、本体の場所は添えるだけにする。
  * git で管理していないフォルダ・git のリポジトリの中のフォルダもあるので「リポジトリ」とは呼ばない）
  */
-export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string }): string {
+export function buildSystemPrompt(project: Project, workdir = project.repo_path, memo?: { dir: string; file: string | null }): string {
   const lines = [
     `# Kickoff からの指示`,
     `あなたはローカルの開発アプリ「Kickoff」から起動されたエージェントです。ユーザーへの返答は日本語で書いてください。`,
@@ -65,7 +65,17 @@ export function buildSystemPrompt(project: Project, workdir = project.repo_path,
     `- ただし、サブエージェントが 1 回の返答で書ける量の上限（終わりの知らせに max_output_tokens・output token maximum とある）で止まったときは、通信のエラーではありません。同じやり方で続けると同じところでまた止まるので、「報告は短くまとめる」「大きなファイルは何回かに分けて書く」と添えて、SendMessage で 1 回だけ続きを頼んでください。それでも止まったら、利用者に伝えてください。`,
   );
 
-  if (memo) {
+  if (memo && !memo.file) {
+    lines.push(
+      ``,
+      `## メモ`,
+      `利用者が「メモ」と言ったら、Kickoff の「メモ」タブのメモのことです。このプロジェクトのメモは \`${memo.dir}\` にある Markdown（.md）と HTML（.html）のファイルで、読み書きできます。`,
+      `- 「メモに書いて」「メモを見て」などと頼まれたら、このフォルダのメモを Read / Edit / Write で読み書きしてください。どのメモか分からなければ、Glob で一覧を見てから、名前の近いものを選ぶか利用者に聞いてください。新しく作るときは、このフォルダの中に内容の分かる名前で作ってください（利用者の画面の「メモ」タブにすぐ出ます）。`,
+      `- 「.」で始まる名前（隠しファイル）は作らないでください（メモのタブに出ません）。メモのパス（\` \` の中）には空白が入ることがあります。シェルのコマンドで使うときは引用符で囲んでください。`,
+    );
+  }
+
+  if (memo?.file) {
     lines.push(
       ``,
       `## メモ`,
