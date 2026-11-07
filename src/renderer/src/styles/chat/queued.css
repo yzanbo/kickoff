@@ -259,15 +259,44 @@
 }
 
 .queued-editor-body {
+  /* 1 行の入力欄の高さ（ボタンの列の高さに使う） */
+  --queued-editor-line-height: 30px;
   display: flex;
   flex: 1;
   flex-direction: column;
   min-width: 0;
 }
 
+/* 入力欄とその右のボタン（添付があっても入力欄の横）。入力欄が縦に伸びたら、ボタンは入力欄の上にそろえる */
+.queued-editor-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* ボタンの列の高さを 1 行の入力欄と同じにして、1 行のときは入力欄の真ん中に並べる */
+.queued-editor-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: var(--queued-editor-line-height);
+}
+
+/*
+ * 保存・保存していま送るは、名前の変更（.inline-name-ok）・チャット欄の送るボタンと同じ緑。
+ * このファイルは buttons-forms.css よりあとに読むので、乗せたとき（.icon-button:hover）は外して灰の地に任せる。
+ * :where で詳細度を上げず、⌘ を押している間の青（queue-mode.css の .queued-editor-send.held）を勝たせる
+ */
+.icon-button.queued-editor-ok:where(:not(:hover)),
+.icon-button.queued-editor-send:where(:not(:hover)) {
+  color: var(--accent-bright);
+}
+
 /* 書き直す欄は、折り返した行も含めて文の終わりまで見せる（中でスクロールさせない。ごく長い文だけ画面の 4 割で止める） */
 .queued-editor {
-  width: 100%;
+  flex: 1;
   min-width: 0;
   max-height: 40vh;
   padding: 4px 6px;
