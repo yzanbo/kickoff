@@ -8,9 +8,9 @@ import { TextWidthToggle, useWideText } from "./TextWidthToggle";
 
 /**
  * 送る前のチャット（新しいチャット・新しい子チャットのタブ）の画面の枠。チャットの画面（ChatPane・ChatHeader）と同じ決まりで描く:
- * 見出しの行（隠していれば出さない）・左にバッジ（badges。どれを出すかは呼ぶ側が useChatHeaderItems で決める）・右に道具・文の幅（.wide）・
+ * 見出しの行（隠していれば出さない）・左にバッジ（badges。どれを出すかは呼ぶ側が useChatHeaderItems で決める）・右に道具・会話の横幅（.wide）・
  * 見出しと流れの何もないところの右クリックで「チャットの画面」のメニュー。
- * 道具は会話がなくても効くもの（文の幅・会話の文字の大きさ）だけを出す（会話 / 動き・指示の帯・検索・ターン数・右の欄の開閉は、会話ができてから）
+ * 道具は会話がなくても効くもの（会話の横幅・会話の文字の大きさ）だけを出す（会話 / 動き・指示の帯・検索・ターン数・右の欄の開閉は、会話ができてから）
  */
 export function DraftChatPage({ className, badges, hero, children }: { className?: string; badges: ReactNode; hero: ReactNode; children: ReactNode }) {
   const page = useRef<HTMLDivElement>(null);

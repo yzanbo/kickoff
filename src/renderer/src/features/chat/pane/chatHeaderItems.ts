@@ -1,5 +1,5 @@
 /**
- * チャットの見出しの行に出す項目（タブの列の「表示」→「見出しの項目」で、項目ごとに表示・非表示を選ぶ）。
+ * チャットの見出しの行に出す項目（タブの列の「表示」→「見出しに出す項目」で、項目ごとに表示・非表示を選ぶ）。
  * 覚えるのは隠した項目だけ（CHAT_HEADER_HIDDEN）なので、項目を増やしても初めは表示になる
  */
 export const CHAT_HEADER_ITEMS = ["project", "group", "worktree", "showing", "textWidth", "fontSize", "sticky", "find", "turns", "cost", "agents"] as const;
@@ -10,9 +10,9 @@ export const CHAT_HEADER_ITEM_LABELS: Record<ChatHeaderItem, string> = {
   worktree: "作業場所（ブランチ）",
   group: "グループ",
   showing: "会話 / 動きの切り替え",
-  textWidth: "文の幅",
+  textWidth: "会話の横幅",
   fontSize: "会話の文字の大きさ",
-  sticky: "指示の帯の表示",
+  sticky: "指示の帯の切り替え",
   find: "検索欄",
   turns: "ターン数",
   cost: "API 換算",

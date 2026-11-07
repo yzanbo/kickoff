@@ -8,7 +8,7 @@ const BUTTON_CLASS = "chat-font-size-button";
 
 /**
  * 見出しの行の「会話の文字の大きさ」: 押すと下に 5 段階のメニュー（極小・小・標準・大・特大）。会話の文字だけを変える（どのチャットでも同じ。
- * タブの列の「表示」・設定の「表示」と同じ値）。見出しの項目「会話の文字の大きさ」で隠せる
+ * タブの列の「表示」・設定の「表示」と同じ値）。見出しに出す項目「会話の文字の大きさ」で隠せる
  */
 export function ChatFontSizeButton() {
   const [size] = useChatFontSize();
