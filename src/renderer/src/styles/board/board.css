@@ -13,7 +13,7 @@
   cursor: grab;
 }
 
-/* カンバンの列と同じく、件数は名前のすぐ横（列の色の札 .column-chip の中。board-columns.css）、＋と「…」は右端に寄せる */
+/* カンバンの列と同じく、件数は名前のすぐ横（列の色の札 ToneChip の中。ui/tone-chip.css）、＋と「…」は右端に寄せる */
 .group-column-head .group-add-chat {
   margin-left: auto;
 }

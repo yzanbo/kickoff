@@ -1,13 +1,13 @@
-import type { CSSProperties } from "react";
 import type { Chat } from "@shared/types";
 import { useChatStates } from "@/app/chatStatesContext";
 import { openChat } from "@/app/router";
 import { StateChatsPopover, bucketTone, chatsByState } from "@/features/chatList/StateChatsPopover";
 import { usePopover } from "@/ui/Popover";
+import { ToneChip } from "@/ui/ToneChip";
 
 /**
  * 画面の見出しの、状態ごとのチャット数（作業中・回答待ち・未読。0 のものは出さない）。
- * 数え方・並び・色はサイドバーのプロジェクトの数（HeadCounts）とカンバンの列にそろえる。
+ * 数え方・並び・色はサイドバーのプロジェクトの数（HeadCounts）とカンバンの列にそろえ、見た目はボードの列の見出しと同じ札（ToneChip）にする。
  * 押すと、状態ごとにまとめたチャットの一覧（StateChatsPopover）を開き、行を押すとそのチャットを開く。showProject なら行にプロジェクト名も出す（全プロジェクトの画面）
  */
 export function StateStats({ chats, showProject = false }: { chats: Chat[]; showProject?: boolean }) {
@@ -21,9 +21,7 @@ export function StateStats({ chats, showProject = false }: { chats: Chat[]; show
     <div ref={popover.anchor} className="state-stats">
       <button type="button" className="state-stats-button" aria-expanded={popover.open} title="状態ごとのチャットを一覧する" onClick={popover.toggle}>
         {sections.map((section) => (
-          <span key={section.key} className="stat stat-state" style={{ "--tone": bucketTone(section) } as CSSProperties}>
-            {section.label} {section.chats.length}
-          </span>
+          <ToneChip key={section.key} tone={bucketTone(section)} dot label={section.label} count={section.chats.length} />
         ))}
       </button>
       {popover.open && (

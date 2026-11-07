@@ -10,7 +10,7 @@ import { COUNTED_COLUMNS, type ApprovalIndex } from "@/features/chat/chatState";
 import { shortRelativeTime } from "@/lib/time";
 import { COLUMN_TONE } from "@/features/chat/tones";
 import { Popover } from "@/ui/Popover";
-import { StatusDot } from "@/ui/StatusDot";
+import { ToneChip } from "@/ui/ToneChip";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { bucketChats, type BucketHead, type ChatBucket } from "./buckets";
 
@@ -66,9 +66,7 @@ export function StateChatsPopover({
       {sections.map((section) => (
         <section key={section.key} className="state-chats-section">
           <h3 className="state-chats-head">
-            <StatusDot color={bucketTone(section)} />
-            {section.label}
-            <span className="muted">{section.chats.length}</span>
+            <ToneChip tone={bucketTone(section)} dot label={section.label} count={section.chats.length} />
           </h3>
           {section.chats.map((chat) => (
             <button

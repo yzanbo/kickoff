@@ -1,0 +1,48 @@
+/*
+ * 状態・まとまりの札（ui/ToneChip.tsx）: 色の点・名前・件数を、その色（--head-color。状態は COLUMN_TONE / STATE_TONE、下書きと「No Group」は灰、
+ * グループはグループの色 .group-hued）の文字・枠・薄い地にする。文字は状態の文と同じく、色に本文の色を混ぜて読める濃さにする。
+ * ボードの列の見出しで作り（利用者の依頼）、画面の見出しの状態ごとの数・状態ごとのチャットの一覧・⌘⇧A の一覧の見出しもこの札にそろえた
+ */
+.tone-chip {
+  --head-color: var(--extra-muted);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 1px 9px;
+  border: 1px solid color-mix(in srgb, var(--head-color) 45%, transparent);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--head-color) 78%, var(--text));
+  background: color-mix(in srgb, var(--head-color) 12%, transparent);
+}
+
+.tone-chip.group-hued {
+  --head-color: hsl(var(--group-hue) 60% 68%);
+}
+
+:root[data-theme="light"] .tone-chip.group-hued {
+  --head-color: hsl(var(--group-hue) 55% 42%);
+}
+
+.tone-chip .status-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.tone-chip > svg {
+  flex: none;
+}
+
+.tone-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tone-chip-count {
+  flex: none;
+  opacity: 0.75;
+}

@@ -15,7 +15,7 @@ import { shortRelativeTime } from "@/lib/time";
 import { DRAFT_TONE } from "@/features/chat/tones";
 import { bucketTone, chatsByState } from "@/features/chatList/StateChatsPopover";
 import { openDraft, useAllDrafts, type PanelDraft } from "@/features/panel/state/panelDrafts";
-import { StatusDot } from "@/ui/StatusDot";
+import { ToneChip } from "@/ui/ToneChip";
 import { ACTIVE_CHATS_SHOW_ARCHIVED_PROJECTS } from "@/lib/storageKeys";
 import { cycleProjectFilter, PaletteProjectFilter, type ProjectFilterOption, type ProjectFilterValue } from "./PaletteProjectFilter";
 
@@ -138,9 +138,7 @@ export function ActiveChatsPalette({ onClose }: { onClose: () => void }) {
         {groups.map((g) => (
           <Fragment key={g.key}>
             <li className="palette-group" role="presentation">
-              <StatusDot color={g.tone} />
-              {g.label}
-              <span className="muted">{g.items.length}</span>
+              <ToneChip tone={g.tone} dot label={g.label} count={g.items.length} />
             </li>
             {g.items.map((item) => {
               const i = items.indexOf(item);

@@ -26,6 +26,7 @@
 @import "./project/project-page.css";
 @import "./project/project-tabs.css";
 @import "./ui/cards.css";
+@import "./ui/tone-chip.css";
 @import "./ui/empty-state.css";
 @import "./chat/chat.css";
 @import "./chat/streaming.css";
