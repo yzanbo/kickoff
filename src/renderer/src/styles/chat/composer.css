@@ -287,6 +287,11 @@
   gap: 2px;
 }
 
+/* 中断と送信の丸どうしは、ほかの操作と同じだけ離す（▾ だけを丸に寄せる） */
+.send-group > .send-button + .send-button {
+  margin-left: 6px;
+}
+
 .composer-actions .icon-button.send-more {
   width: 18px;
   height: 28px;
