@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Store } from "../db/store.js";
 import { chatContextNote, chatContextOf } from "./chatContext.js";
+import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 
 function setup() {
   const store = new Store(":memory:");
@@ -75,6 +76,8 @@ test("添える文: 親も子もないチャットは null、子チャットは�
   const child = chatContextNote({ id: 9, title: "x", ancestors: [{ id: 4, title: "子", sessionId: null }], askedFrom: null, children: [], moreChildren: 0 })!;
   assert.ok(!child.includes("系譜"));
   assert.ok(child.includes("作った子チャットです。"));
+  // 親に渡す依頼文を頼まれたら、依頼文の全文だけを書く（利用者が自分の言葉で頼み直しても同じ形に）
+  assert.ok(child.includes(`- ${HANDOFF_CONTEXT_RULE}`));
 });
 
 test("子のあるチャット: 子孫を作った順に、子のすぐ下にその子を並べ、聞いた位置・状態・アーカイブを持つ", () => {

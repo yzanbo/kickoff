@@ -3,6 +3,7 @@
 import { childDepthLabel } from "@shared/chat/childDepth";
 import type { Chat, ChatEvent, ChatStatus } from "@shared/types";
 import type { Store } from "../db/store.js";
+import { HANDOFF_CONTEXT_RULE } from "@shared/chat/handoff";
 
 /** 系譜の 1 つ（親・祖先のチャット） */
 export interface ChatLineageEntry {
@@ -133,6 +134,7 @@ export function chatContextNote(chat: ChatContext): string | null {
     lines.push(
       `- 親チャットの会話を引き継いで始めたときは、このセッションの初めのほうは親チャットの会話を写したものです（このチャットは親チャットそのものではありません）。利用者が「親」「親チャット」と言ったら、上の親チャットのことです。`,
       `- 作業場所は親チャットと同じです。答えは、利用者が自分で選んで親チャットに渡します（画面の「親チャットに渡す」）。`,
+      `- ${HANDOFF_CONTEXT_RULE}`,
     );
   } else {
     lines.push(`- このチャット: 「${chatName(chat.title)}」（Kickoff のチャット ID: ${chat.id}）。親のないチャットです。`);

@@ -10,9 +10,21 @@ export type ChatEventData =
   /**
    * message_uuid: Claude Code に渡した発言の ID（ファイルをこの発言を送る前の状態に戻すときの目印）。
    * handover: この発言に添えて渡した、届いていなかったサブエージェントの報告（一覧の行のキー）。
-   * pre_compact: 圧縮の前に送った圧縮前指示 / post_compact: 圧縮のあとに送った圧縮後指示（text は設定・プロジェクトの指示そのもの。AI には前置きを付けて送る）
+   * pre_compact: 圧縮の前に送った圧縮前指示 / post_compact: 圧縮のあとに送った圧縮後指示（text は設定・プロジェクトの指示そのもの。AI には前置きを付けて送る）。
+   * handoff_request: 子チャットに親への依頼文を頼んだ発言（画面は長い頼み方の文の代わりに 1 行で出す）。
+   * handoff_from: 子チャットから親チャットに渡した依頼（親チャットの発言。どの子チャットからか）
    */
-  | { type: "user"; text: string; message_uuid: string; attachments?: Attachment[]; handover?: string[]; pre_compact?: true; post_compact?: true }
+  | {
+      type: "user";
+      text: string;
+      message_uuid: string;
+      attachments?: Attachment[];
+      handover?: string[];
+      pre_compact?: true;
+      post_compact?: true;
+      handoff_request?: true;
+      handoff_from?: HandoffFrom;
+    }
   /** effort: 実際に使った推論の深さ（Claude Code が知らせたときだけ。null は深さを送らないモデル） */
   | { type: "init"; session_id: string; model?: string; permission_mode?: string; effort?: string | null }
   /** parent: サブエージェントの発言なら、そのサブエージェントを起動した Task / Agent ツールの呼び出し ID（メインの発言にはない） */
@@ -62,7 +74,19 @@ export type ChatEventData =
    */
   | { type: "context_cleared" }
   /** サブエージェントの開始・終了（途中経過は保存せず、chat_subagent で届く） */
-  | ({ type: "subagent" } & SubagentInfo);
+  | ({ type: "subagent" } & SubagentInfo)
+  /** 子チャットの答えを親チャットに渡した（子チャットの記録。turn_event_id: どの作業の終わりの答えか。via: 渡し方。parent_chat_id: 渡した先） */
+  | { type: "handoff"; via: HandoffVia; parent_chat_id: number; turn_event_id: number };
+
+/** 子チャットから親チャットへの渡し方: 親の入力欄に入れる（送るのは自分で）/ 今すぐ送る（作業中ならいまの作業に伝える）/ 親の送信待ちの最後に足す */
+export const HANDOFF_VIAS = ["composer", "send", "queue"] as const;
+export type HandoffVia = (typeof HANDOFF_VIAS)[number];
+
+/** 親チャットでの出どころ（どの子チャットから渡した依頼か。名前は渡したときのもの） */
+export interface HandoffFrom {
+  chat_id: number;
+  title: string;
+}
 
 /** 会話の圧縮のきっかけ（manual: 手で圧縮した（圧縮のボタン・/compact）/ auto: コンテキストが上限に近づいて Claude Code が自動で） */
 export type CompactTrigger = "manual" | "auto";
