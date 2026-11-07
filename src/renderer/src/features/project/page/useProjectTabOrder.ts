@@ -12,13 +12,15 @@ type DropTarget = { kind: "tab" | "group"; key: string; side: DropSide };
 
 /**
  * プロジェクトのタブの並べ替え（ドラッグ）。まとまりの外（ほかのまとまりの上）へ動かすと、まとまりごと動かす（ボード・チャット /
- * ファイル・検索・変更はいつも一緒）。同じまとまりの中では 1 つずつ並べ替える。並びは PROJECT_TAB_ORDER に覚える。
+ * ファイル・検索・変更はいつも一緒）。同じまとまりの中では 1 つずつ並べ替える。まとまりの端のつまみ（groupHandleProps）をつかむと、
+ * はじめからまとまりごと動かす（写しもまとまり全体）。並びは PROJECT_TAB_ORDER に覚える。
  * vertical なら上下の半分、横並びなら左右の半分で、前に入るか後ろに入るかを決める
  */
 export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup<T>>(defs: readonly G[], vertical: boolean) {
   const [saved, setSaved] = useSetting(PROJECT_TAB_ORDER);
   const groups = useMemo(() => applyTabOrder(defs, saved), [defs, saved]);
-  const [dragging, setDragging] = useState<{ tab: string; group: string } | null>(null);
+  // 動かしているもの（tab が null なら、つまみでつかんだまとまり全体）
+  const [dragging, setDragging] = useState<{ tab: string | null; group: string } | null>(null);
   const [drop, setDrop] = useState<DropTarget | null>(null);
   const end = () => {
     setDragging(null);
@@ -33,6 +35,7 @@ export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup
   const targetOf = (e: DragEvent<HTMLElement>, group: G): DropTarget | null => {
     if (!dragging) return null;
     if (dragging.group !== group.key) return { kind: "group", key: group.key, side: sideOf(e, e.currentTarget) };
+    if (dragging.tab === null) return null;
     const el = (e.target as Element).closest<HTMLElement>("[data-tab]");
     const tab = el?.dataset.tab;
     return el && tab && tab !== dragging.tab ? { kind: "tab", key: tab, side: sideOf(e, el) } : null;
@@ -55,6 +58,16 @@ export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup
       },
       onDragEnd: end,
     }),
+    /** まとまりのつまみに付ける（つかむと、まとまりごと動かす。写しはまとまり全体） */
+    groupHandleProps: (group: G) => ({
+      draggable: true,
+      onDragStart: (e: DragEvent<HTMLElement>) => {
+        e.dataTransfer.setData(TAB_DRAG_TYPE, group.key);
+        e.dataTransfer.effectAllowed = "move";
+        startDragGhost(e, { source: e.currentTarget.parentElement, after: () => setDragging({ tab: null, group: group.key }) });
+      },
+      onDragEnd: end,
+    }),
     /** まとまりの要素に付ける（落とす先） */
     groupProps: (group: G) => ({
       onDragOver: (e: DragEvent<HTMLElement>) => {
@@ -72,7 +85,7 @@ export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup
         const target = targetOf(e, group);
         if (target && dragging) {
           e.preventDefault();
-          setSaved(target.kind === "tab" ? moveTabInGroup(groups, dragging.tab, target.key, target.side) : moveGroup(groups, dragging.group, target.key, target.side));
+          setSaved(target.kind === "tab" && dragging.tab ? moveTabInGroup(groups, dragging.tab, target.key, target.side) : moveGroup(groups, dragging.group, target.key, target.side));
         }
         end();
       },
@@ -84,7 +97,7 @@ export function useProjectTabOrder<T extends { tab: string }, G extends TabGroup
     groupClass: (group: G) =>
       drop?.kind === "group" && drop.key === group.key
         ? `tab-drop-${drop.side}`
-        : dragging?.group === group.key && (drop?.kind === "group" || group.tabs.length === 1)
+        : dragging?.group === group.key && (drop?.kind === "group" || dragging.tab === null || group.tabs.length === 1)
           ? "tab-dragging"
           : undefined,
   };
