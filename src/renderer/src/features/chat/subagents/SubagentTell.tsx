@@ -23,7 +23,7 @@ type AskMode = "relay" | "child";
 /** 送り先の名前（切り替え・案内で同じ言葉にする。伝えるはサブエージェントに直接届かず、メインエージェントが渡すので、経由することを名前に出す） */
 const ASK_MODE_LABELS: Record<AskMode, string> = { relay: "メインエージェント経由で伝える", child: "子チャットで聞く" };
 
-/** 選んだ送り先の説明 1 行（子チャットの「会話を引き継ぐ / 新しく始める」と同じく、切り替えのすぐ横に短く） */
+/** 送り先の説明（切り替えに乗せたときだけ出す。いつも出すと右の欄で 2〜3 行を取るため） */
 const ASK_MODE_HELP: Record<AskMode, string> = {
   relay: "Kickoff からサブエージェントへ直接は送れないので、メインエージェントが SendMessage で渡します（作業に反映されます）",
   child: "会話の記録を読んだ別の AI が答えます（サブエージェントとメインエージェントには届きません）",
@@ -85,7 +85,6 @@ export function SubagentTellComposer({ entry, view, autoFocus, onSent }: { entry
           ]}
           onChange={setMode}
         />
-        <span className="inherit-choice-help muted small">{ASK_MODE_HELP[mode]}</span>
       </div>
       <Composer
         // 子チャットで聞くときは、メインエージェントが作業中でもいま / あとでを聞かずにすぐ送る（メインエージェントの作業には関わらない）
