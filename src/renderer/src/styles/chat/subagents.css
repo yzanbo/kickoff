@@ -220,6 +220,12 @@
   color: var(--state-running);
 }
 
+/* 回答待ちの依頼（承認・質問）を出している（チャットの回答待ちと同じ色） */
+.subagent-status.status-needs-input,
+.chip-needs-input {
+  color: var(--state-needs-input);
+}
+
 /* 通信の切断で中断・報告が親に届いていない（作業の失敗ではないので、赤でなく注意の色） */
 .subagent-status.status-network,
 .subagent-status.status-undelivered {

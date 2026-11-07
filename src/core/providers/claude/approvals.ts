@@ -3,11 +3,15 @@ import type { ApprovalDecision } from "@shared/types";
 import type { ApprovalRequest, ProviderCallbacks } from "../types.js";
 
 /** canUseTool に渡される指定のうち、承認依頼の組み立てに使うもの */
-type ToolOptions = Pick<Parameters<CanUseTool>[2], "title" | "description" | "decisionReason" | "suggestions" | "suppressAlwaysAllowRule">;
+type ToolOptions = Pick<Parameters<CanUseTool>[2], "title" | "description" | "decisionReason" | "suggestions" | "suppressAlwaysAllowRule" | "toolUseID" | "agentID">;
 
-/** ツールの呼び出しを、ユーザーへの承認依頼にする（AskUserQuestion は質問、それ以外は許可） */
+/**
+ * ツールの呼び出しを、ユーザーへの承認依頼にする（AskUserQuestion は質問、それ以外は許可）。
+ * どの呼び出し・どのサブエージェントのものか（toolUseID・agentID）も添え、画面がサブエージェントごとに回答待ちを見せられるようにする
+ */
 function approvalRequestFor(toolName: string, input: Record<string, unknown>, opts: ToolOptions): ApprovalRequest {
-  if (toolName === "AskUserQuestion") return { kind: "question", toolName, input, title: opts.title, canRemember: false };
+  const origin = { toolUseId: opts.toolUseID, ...(opts.agentID ? { agentId: opts.agentID } : {}) };
+  if (toolName === "AskUserQuestion") return { kind: "question", toolName, input, title: opts.title, canRemember: false, ...origin };
   return {
     kind: "permission",
     toolName,
@@ -15,6 +19,7 @@ function approvalRequestFor(toolName: string, input: Record<string, unknown>, op
     title: opts.title,
     description: opts.description ?? opts.decisionReason,
     canRemember: !opts.suppressAlwaysAllowRule && (opts.suggestions?.length ?? 0) > 0,
+    ...origin,
   };
 }
 

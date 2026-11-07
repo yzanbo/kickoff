@@ -93,6 +93,10 @@ export interface ApprovalRequest {
   title?: string;
   description?: string;
   canRemember: boolean;
+  /** 承認を求めているツールの呼び出し ID（Claude Code の toolUseID） */
+  toolUseId?: string;
+  /** サブエージェントの中で動いているときの、そのサブエージェントの ID（Claude Code の agentID。メインエージェントなら undefined） */
+  agentId?: string;
 }
 
 /** プロバイダーから Kickoff へ通知する実行中イベント（DB にはこの形のまま保存される） */

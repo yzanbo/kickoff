@@ -30,6 +30,10 @@ export interface Approval {
   title?: string;
   description?: string;
   can_remember: boolean;
+  /** 承認を求めているツールの呼び出し ID（記録の tool_use の id。サブエージェントの中の呼び出しなら、その記録の parent でどのサブエージェントか分かる） */
+  tool_use_id?: string;
+  /** サブエージェントの中で動いているときの、そのサブエージェントの ID（Claude Code の agentID。中の手順が届かない深い入れ子でも分かるように） */
+  agent_id?: string;
   created_at: string;
 }
 

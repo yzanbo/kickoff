@@ -201,9 +201,12 @@ test("添付・承認依頼・プロバイダー・使用枠の API", async () =
   // AI からの質問の「その他」に添えた添付は、回答の文にパスを書き添えて渡す（見つからない添付は書かない）
   const question = approvals.request(
     { chatId: 1, projectId: project.id },
-    { kind: "question", toolName: "AskUserQuestion", input: { questions: [] }, canRemember: false },
+    { kind: "question", toolName: "AskUserQuestion", input: { questions: [] }, canRemember: false, toolUseId: "tq", agentId: "a1b2" },
     new AbortController().signal,
   );
+  // どの呼び出し・どのサブエージェントの依頼か（画面がサブエージェントごとに回答待ちを見せる）を一覧に出す
+  const listed = (await call("GET", "/api/approvals")).body as { tool_use_id?: string; agent_id?: string }[];
+  assert.deepEqual([listed[0]?.tool_use_id, listed[0]?.agent_id], ["tq", "a1b2"]);
   const answered = await call("POST", `/api/approvals/${question.approval.id}`, {
     action: "answer",
     answers: { Q: "この画像のように" },

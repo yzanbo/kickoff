@@ -75,7 +75,9 @@ export function useChatNotifications({ enabled, projectName, route }: { enabled:
           ? "通信が切れて止まりました。再開するか選んでください"
           : a.kind === "usage_limit"
             ? "使用枠が戻りました。続きから再開するか選んでください"
-            : "AI が確認を待っています";
+            : a.agent_id
+              ? "サブエージェントが確認を待っています"
+              : "AI が確認を待っています";
       notify({ id: a.chat_id, project_id: a.project_id }, `回答待ち: ${name}`, `${project} ・ ${body}`);
     }
   });

@@ -20,6 +20,7 @@ import { confirmRewindSend, restoreFilesBefore } from "@/features/chat/rewind/re
 import { retryTurn, useRetryChoices } from "@/features/chat/rewind/useRetryChoices";
 import { useSubagents } from "@/features/chat/subagents/useSubagents";
 import type { SubagentsView } from "@/features/chat/subagents/subagentsContext";
+import { waitingSubagentKeys } from "@shared/chat/subagentState";
 import { pathOf, subagentTree } from "@/features/chat/subagents/subagentTree";
 import { agentHues } from "@/features/chat/subagents/agentHues";
 import { jumpToEvent } from "@/features/chat/timeline/jumpToEvent";
@@ -96,9 +97,11 @@ export function useChatView(
   const repoPath = project?.repo_path;
   const rel = useCallback((s: string) => (repoPath ? relativize(s, repoPath) : s), [repoPath]);
   const worktree = chat.worktree_path;
+  // 回答待ちの依頼を出しているサブエージェント（依頼の呼び出しの記録から引く。カード・ピル・タブの「回答待ち」）
+  const waiting = useMemo(() => waitingSubagentKeys(approvals, events, subagents), [approvals, events, subagents]);
   const subagentsView = useMemo<SubagentsView>(
-    () => ({ chatId: chat.id, projectId: chat.project_id, worktree, rel, busy, events, tree, hues }),
-    [chat.id, chat.project_id, worktree, rel, busy, events, tree, hues],
+    () => ({ chatId: chat.id, projectId: chat.project_id, worktree, rel, busy, events, tree, hues, waiting }),
+    [chat.id, chat.project_id, worktree, rel, busy, events, tree, hues, waiting],
   );
   // 裏で動いているサブエージェント（作業を止めると一緒に止まる。古い Claude Code では一覧の知らせがないので、一覧の行から数える）
   const runningAgents = subagents.filter((s) => s.status === "running").length;
