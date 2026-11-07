@@ -194,8 +194,8 @@ export const SNIPPET_BAR_HIDDEN = defineSetting("kickoff:snippet-bar-hidden", fl
 export const CHAT_TAB_ROW_HIDDEN = defineSetting("kickoff:chat-tab-row-hidden", flag());
 /** チャットの見出しの行を隠すか（タブの列の「表示」・設定の「表示」・⌥⌘T。どのチャットでも同じ） */
 export const CHAT_HEADER_ROW_HIDDEN = defineSetting("kickoff:chat-header-row-hidden", flag());
-/** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。タブの列の「表示」→「見出しの項目」。初めは会話 / 動きの切り替え・文字の大きさ・ターン数・API 換算を隠す。どのチャットでも同じ） */
-export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list(["showing", "fontSize", "turns", "cost"]));
+/** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。タブの列の「表示」→「見出しの項目」。初めはプロジェクト・会話 / 動きの切り替え・文字の大きさ・ターン数・API 換算を隠す（メニューの「既定に戻す」でこの値に戻す）。どのチャットでも同じ） */
+export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list(["project", "showing", "fontSize", "turns", "cost"]));
 /** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く。初めはコンパクト） */
 export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(true));
 /** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・タブの列の「表示」・設定の「表示」。どのチャットでも同じ。初めは小） */
