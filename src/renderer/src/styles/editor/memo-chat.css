@@ -82,6 +82,79 @@
   border-left: none;
 }
 
+/*
+ * 下に置いたときの開け閉め（useBottomChatMotion が開け閉めしたあとに .chat-moved を付ける）: 欄の入力欄は下に止めたまま、上の会話の部分だけを
+ * 伸び縮みさせる。欄はメモの下の入力欄の高さ（--memo-quick-h）から伸び、閉じるときはその高さまで縮んでから入れ替わる（memo-quick-chat.css）。
+ * 動いている間だけ、中身を開き終えたときの高さ（本文と欄を合わせた高さ × --memo-chat-h-num %。cqh は .chat-bottom の .memo-body）のまま
+ * 欄の下にそろえて置き、入りきらない上の分（見出しと会話）を切る（動いている間に中身を並べ直さない）
+ */
+.memo-body.with-chat.chat-bottom {
+  container-type: size;
+}
+
+.memo-body.chat-bottom.chat-moved .memo-chat-slot {
+  transition: none;
+}
+
+.memo-body.chat-bottom.chat-moved.chat-open .memo-chat-slot {
+  animation: memo-chat-open-y var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+.memo-body.chat-bottom.chat-moved:not(.chat-open) .memo-chat-slot {
+  animation: memo-chat-close-y var(--panel-motion-duration) var(--panel-motion-ease);
+}
+
+/* 開くときと閉じるときで名前を変える（同じ名前だと、切り替えても動きがやり直されない） */
+.memo-body.chat-bottom.chat-moved.chat-open .memo-chat {
+  animation: memo-chat-hold-open var(--panel-motion-duration) linear;
+}
+
+.memo-body.chat-bottom.chat-moved:not(.chat-open) .memo-chat {
+  animation: memo-chat-hold-close var(--panel-motion-duration) linear;
+}
+
+@keyframes memo-chat-open-y {
+  from {
+    flex-basis: var(--memo-quick-h);
+  }
+}
+
+/* 閉じ終えるまでは見せたまま、メモの下の入力欄の高さまで縮める（終わると 0・見えなくなり、メモの下の入力欄が同じ所に出る） */
+@keyframes memo-chat-close-y {
+  from {
+    flex-basis: var(--memo-chat-h);
+    visibility: visible;
+  }
+
+  to {
+    flex-basis: var(--memo-quick-h);
+    visibility: visible;
+  }
+}
+
+@keyframes memo-chat-hold-open {
+  from,
+  to {
+    align-self: flex-end;
+    height: calc(var(--memo-chat-h-num) * 1cqh);
+  }
+}
+
+@keyframes memo-chat-hold-close {
+  from,
+  to {
+    align-self: flex-end;
+    height: calc(var(--memo-chat-h-num) * 1cqh);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memo-body.chat-bottom.chat-moved .memo-chat-slot,
+  .memo-body.chat-bottom.chat-moved .memo-chat {
+    animation: none;
+  }
+}
+
 /* 上下の境目のつまみ（つかめる高さは広いまま、乗せると 2px の線） */
 .memo-chat-resizer-y {
   position: relative;
