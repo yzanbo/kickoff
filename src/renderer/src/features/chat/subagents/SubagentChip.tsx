@@ -1,8 +1,10 @@
 import { Archive, ArchiveRestore } from "lucide-react";
 import { useMemo, type CSSProperties } from "react";
-import { EFFORT_LABELS, type AgentState, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
+import { EFFORT_LABELS, type EffortLevel, type ModelOption, type Chat } from "@shared/types";
 import type { SubagentEntry } from "@shared/chat/subagents";
+import { subagentState, type SubagentState } from "@shared/chat/subagentState";
 import { confirmDialog } from "@/ui/dialogs";
+import { cx } from "@/lib/cx";
 import { formatTokens } from "@/lib/format";
 import { useSetting } from "@/hooks/useSetting";
 import { useTicker } from "@/hooks/useTicker";
@@ -10,8 +12,8 @@ import { SUBAGENT_OPEN_IN, subagentsArchived } from "@/lib/storageKeys";
 import { canPopout } from "@/app/popout";
 import { DefaultOpenPlace, OpenPlaceButtons, type OpenPlace } from "@/features/chat/composer/OpenPlaceControls";
 import { modelDisplayName } from "@/features/chat/options/models";
-import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
-import { activityOf, activityText } from "@/features/chat/status/stall";
+import { SubagentStatusText } from "./SubagentStatusText";
+import { activityOf, activityText, stalledAgents } from "@/features/chat/status/stall";
 import { SubagentActions } from "./SubagentActions";
 import { ClaudeMark } from "@/ui/ClaudeMark";
 import { ArchivedFold } from "@/ui/ArchivedFold";
@@ -29,13 +31,6 @@ import { summaryState } from "@/features/chat/chatState";
  * 行を押すと、そのサブエージェントを設定の開き方で開く（流れの中 = カードへ移って開く。入れ子なら外側のカードも開く / 右の欄 = 右の欄にその画面を開く /
  * 別ウィンドウ）。行の右のボタンで、設定によらずその場所に開ける。一覧の上で、行を押したときの開き方（設定）を変えられる
  */
-/** ピルの左の印に使う、サブエージェント 1 つの状態（作業中 / 手を打つもの = 失敗・通信で中断・報告が届かず（親がやり直したものは除く）/ ほかは既読） */
-function subagentAgentState(s: SubagentEntry): AgentState {
-  if (s.status === "running") return "running";
-  if (s.supersededBy) return "read";
-  return s.status === "failed" || s.network || s.delivery === "lost" ? "failed" : "read";
-}
-
 export function SubagentChip({ entries, chat, busy, models }: { entries: SubagentEntry[]; chat: Chat; busy: boolean; models: ModelOption[] }) {
   const popover = usePopover();
   const { open, setOpen } = popover;
@@ -68,16 +63,18 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
   const visible = entries.filter((s) => !archived.has(s.key)).reverse();
   const rows = flattenTree(subagentTree(entries.filter((s) => !archived.has(s.key))));
   const hidden = entries.filter((s) => archived.has(s.key)).reverse();
-  const running = visible.filter((s) => s.status === "running").length;
+  // 状態（チャットと同じ 5 つと細かい様子。印・数はすべてこれから決める）
+  const states = visible.map((s) => subagentState(s));
+  const count = (match: (st: SubagentState) => boolean) => states.filter(match).length;
+  const running = count((st) => st.state === "running");
   // 実行中なのに長く動きがないもの（ピルにも出して、開かなくても気づけるようにする）
-  const stalled = visible.filter((s) => s.status === "running" && activityOf(s.lastActivityAt).level === "stalled").length;
-  // 通信の切断で止まったものは、作業の失敗と分けて数える（「再開」で続きから戻せる）
-  // 親がもうやり直したものは、手を打たなくてよいので数えない
-  const failed = visible.filter((s) => s.status === "failed" && !s.network && !s.supersededBy).length;
-  const network = visible.filter((s) => s.network && !s.supersededBy).length;
+  const stalled = stalledAgents(visible).length;
+  // 通信の切断で止まったものは、作業の失敗と分けて数える（「再開」で続きから戻せる）。親がもうやり直したものは既読なので数えない
+  const failed = count((st) => st.state === "failed" && (st.detail === null || st.detail === "output_limit"));
+  const network = count((st) => st.detail === "network");
   // 報告が親に届いたか（受け取り待ち・届いていない）。届いていないものは「報告を親に渡す」で渡し直せる
-  const awaiting = visible.filter((s) => s.status === "completed" && s.delivery === "pending").length;
-  const undelivered = visible.filter((s) => s.status === "completed" && s.delivery === "lost").length;
+  const awaiting = count((st) => st.detail === "awaiting");
+  const undelivered = count((st) => st.detail === "undelivered");
   const finished = visible.filter((s) => s.status !== "running");
 
   // アーカイブ・戻すは、どこから押しても必ず確かめる（チャットのアーカイブと同じ）
@@ -107,7 +104,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
         key={s.key}
         role="button"
         tabIndex={0}
-        className={`subagent-row status-${s.status} ${isArchived ? "archived" : ""}`}
+        className={cx("subagent-row", isArchived && "archived")}
         style={{ ...(depth > 0 ? { "--depth": Math.min(depth, 4) } : {}), "--agent-hue": `${hues.get(s.key) ?? 0}` } as CSSProperties}
         onClick={() => openRow(s.key)}
         onKeyDown={(e) => e.key === "Enter" && openRow(s.key)}
@@ -122,7 +119,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
           </span>
           <span className="subagent-meta">
             {meta.join(" · ")}
-            {showsSubagentStatus(s) && <span className={`subagent-status ${subagentStatusClass(s)}`} title={subagentStatusTitle(s)}> · {subagentStatusLabel(s)}</span>}
+            <SubagentStatusText entry={s} prefix=" · " />
             {s.status === "running" && s.lastTool && <span> · {s.lastTool}</span>}
             {s.status === "running" && <ActivityNote entry={s} />}
           </span>
@@ -170,7 +167,7 @@ export function SubagentChip({ entries, chat, busy, models }: { entries: Subagen
       chip={
         <>
           {/* 左の印: 作業中のものがあれば回るリング、手を打つもの（失敗・通信で中断・届かず）があれば赤の点、ほかは薄い点（すべてアーカイブ済みなら出さない） */}
-          {visible.length > 0 && <StatusSlot {...summaryState(visible.map(subagentAgentState))} />}
+          {visible.length > 0 && <StatusSlot {...summaryState(states.map((st) => st.state))} />}
           {visible.length > 0 ? `サブエージェント ${visible.length} 件` : `アーカイブ済みのサブエージェント ${hidden.length} 件`}
           {running > 0 && <span className="chip-running"> · {running} 件実行中</span>}
           {stalled > 0 && <span className="chip-network"> · {stalled} 件動きなし</span>}

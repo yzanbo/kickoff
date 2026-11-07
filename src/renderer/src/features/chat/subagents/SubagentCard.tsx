@@ -15,7 +15,7 @@ import { SubagentTellBox } from "./SubagentTell";
 import { ChildChatMarks } from "@/features/chat/children/ChildChatChips";
 import { SubagentWindow } from "./SubagentWindow";
 import { agentHueStyle } from "./agentHues";
-import { showsSubagentStatus, subagentStatusClass, subagentStatusLabel, subagentStatusTitle } from "./subagentList";
+import { SubagentStatusText } from "./SubagentStatusText";
 import { useSubagentsView, type SubagentsView } from "./subagentsContext";
 import { childrenOf, pathOf } from "./subagentTree";
 import {
@@ -98,11 +98,7 @@ function SubagentCardView({ call, rel, renderItems }: CardProps) {
           <SubagentKind entry={entry} view={view} />
           <span className="subagent-card-name">{entry.description}</span>
           <span className="subagent-card-type">{entry.subagentType ?? "general-purpose"}</span>
-          {showsSubagentStatus(entry) && (
-            <span className={cx("subagent-status", subagentStatusClass(entry))} title={subagentStatusTitle(entry)}>
-              {subagentStatusLabel(entry)}
-            </span>
-          )}
+          <SubagentStatusText entry={entry} />
           {inSide && <span className="subagent-card-side">右の欄で表示中</span>}
         </span>
         <SubagentTime entry={entry} />

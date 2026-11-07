@@ -127,7 +127,7 @@ function childStateText(child: SubagentEntry, grandchildren: number): string {
   const duration = child.durationMs ?? (child.startedAt && end ? Date.parse(end) - Date.parse(child.startedAt) : undefined);
   const parts =
     child.status === "running"
-      ? ["実行中", child.lastTool ? `いま: ${child.lastTool}` : null]
+      ? [subagentStatusLabel(child), child.lastTool ? `いま: ${child.lastTool}` : null]
       : [subagentStatusLabel(child), duration !== undefined ? formatElapsed(duration) : null];
   return [...parts, grandchildren > 0 ? `中に ${grandchildren} 件` : null].filter(Boolean).join(" · ");
 }
