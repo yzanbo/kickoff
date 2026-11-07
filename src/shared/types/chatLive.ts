@@ -89,3 +89,29 @@ export interface ChatLive {
    */
   awaiting_compact: boolean;
 }
+
+/**
+ * 起動したときの送信待ちの確かめの答え（自動で送るまま残った送信待ちを、起動してからどうするか）: 送る / 中断した作業を続けてから送る / 止めておく。
+ * 画面の文言は QUEUE_RESUME_ACTION_LABELS
+ */
+export const QUEUE_RESUME_ACTIONS = ["send", "continue", "pause"] as const;
+export type QueueResumeAction = (typeof QUEUE_RESUME_ACTIONS)[number];
+export const QUEUE_RESUME_ACTION_LABELS: Record<QueueResumeAction, string> = {
+  send: "送る",
+  continue: "続けてから送る",
+  pause: "止めておく",
+};
+
+/** 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない） */
+export interface QueueResume {
+  chat_id: number;
+  project_id: number;
+  /** チャットの名前（なければ null） */
+  title: string | null;
+  /** 送信待ちの件数 */
+  count: number;
+  /** 次に送る指示の書き出し（挟む行なら、その名前） */
+  next: string;
+  /** 前回の終了で、作業の途中で止まったか（「中断した作業を続けてから送る」を選べる） */
+  interrupted: boolean;
+}

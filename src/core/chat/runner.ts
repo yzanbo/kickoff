@@ -4,11 +4,12 @@ import { RunnerQueue, type SendOpts } from "./runnerQueue.js";
 import { ChatRuntimes, type ChatRuntime } from "./runtime.js";
 import { ChatRecovery } from "./recovery/recovery.js";
 import { createChat, followupPrompt, type StartChatInput } from "./input.js";
-import type { Attachment, Chat, ChatLive, ChatOptionsPatch, CompactTrigger, QueuedMessage, TellResult } from "@shared/types";
+import { QUEUE_ACTION_LABELS, type Attachment, type Chat, type ChatLive, type ChatOptionsPatch, type CompactTrigger, type QueuedMessage, type QueueResume, type QueueResumeAction, type TellResult } from "@shared/types";
+import { queueActionOf } from "@shared/chat/queueActions";
 import type { UsageMonitor } from "../usage/planUsage.js";
 import { Conflict, NotFound } from "../http/errors.js";
 import { errorMessage } from "@shared/errors";
-import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage } from "@shared/chat/prompts";
+import { busyPreCompactMessage, manualPreCompactMessage, postCompactMessage, RESTART_RESUME_PROMPT } from "@shared/chat/prompts";
 import { postCompactItem, preCompactPromptOf } from "./preCompact.js";
 
 /**
@@ -28,6 +29,9 @@ export class Runner extends RunnerQueue {
   /** 通信の切断・使用枠の上限で止まったあとの再開の段取り */
   private readonly recovery: ChatRecovery;
 
+  /** 起動したときの送信待ちの確かめを待っているチャット（値は、前回の終了で作業の途中で止まったか） */
+  private readonly resumes = new Map<number, boolean>();
+
   constructor(
     private readonly deps: ExecutionDeps & {
       usage: UsageMonitor;
@@ -37,6 +41,8 @@ export class Runner extends RunnerQueue {
       usageLimit?: { now?: () => number; checkMs?: number };
       /** 書き直している印の持ち時間（テストで差し替える） */
       editHoldTtlMs?: number;
+      /** 前回の終了で作業の途中で止まったチャット（起動したときの確かめで「中断した作業を続けてから送る」を選べる） */
+      interrupted?: number[];
     },
   ) {
     super();
@@ -48,6 +54,11 @@ export class Runner extends RunnerQueue {
       onEditsChanged: (chatId) => this.editsChanged(chatId),
       onCompactEnded: (chatId) => this.deliverAfterCompact(chatId),
     });
+    // 自動で送るまま送信待ちが残ったチャットは、起動しただけでは送らず、利用者に聞く（queueResumes / resolveQueueResumes）
+    const interrupted = new Set(deps.interrupted ?? []);
+    for (const saved of deps.store.queues.list()) {
+      if (this.waitsForResume(saved.chatId)) this.resumes.set(saved.chatId, interrupted.has(saved.chatId));
+    }
     this.recovery = new ChatRecovery({
       store: deps.store,
       approvals: deps.approvals,
@@ -58,6 +69,59 @@ export class Runner extends RunnerQueue {
       reconnect: deps.reconnect,
       usageLimit: deps.usageLimit,
     });
+  }
+
+  /** 起動すると送り始める送信待ちか（指示があり、自動で送るで、先頭の上に一時停止の線がなく、作業していない） */
+  private waitsForResume(chatId: number): boolean {
+    const { queue } = this.runtimes.get(chatId);
+    return queue.list().length > 0 && !queue.isPaused() && !queue.stopsAtHead() && !this.isBusy(chatId);
+  }
+
+  /**
+   * 起動したときの送信待ちの確かめ: 前回の終了で、自動で送るまま送信待ちが残ったチャット（答えるまで送らない）。
+   * 自分で送った・止めた・消したなどで、もう起動すると送り始める形でなくなったものは外す
+   */
+  queueResumes(): QueueResume[] {
+    const out: QueueResume[] = [];
+    for (const [chatId, interrupted] of this.resumes) {
+      const chat = this.deps.store.chats.get(chatId);
+      if (!chat || !this.waitsForResume(chatId)) {
+        this.resumes.delete(chatId);
+        continue;
+      }
+      const messages = this.runtimes.get(chatId).queue.list();
+      const action = queueActionOf(messages[0]);
+      out.push({
+        chat_id: chatId,
+        project_id: chat.project_id,
+        title: chat.title,
+        count: messages.length,
+        next: action ? QUEUE_ACTION_LABELS[action] : messages[0].text,
+        interrupted,
+      });
+    }
+    return out;
+  }
+
+  /**
+   * 起動したときの送信待ちの確かめに答える（チャットごと）。送る: 自動で送るのまま先頭から送る /
+   * 続けてから送る: 中断した作業を続けるよう頼み、その作業が終わってから送信待ちを送る（中断していなければ、送ると同じ）/ 止めておく: 止めています にする。
+   * 確かめを待っていないチャットは飛ばす
+   */
+  async resolveQueueResumes(decisions: { chatId: number; action: QueueResumeAction }[]): Promise<void> {
+    for (const { chatId, action } of decisions) {
+      const interrupted = this.resumes.get(chatId);
+      if (interrupted === undefined) continue;
+      this.resumes.delete(chatId);
+      if (!this.waitsForResume(chatId)) continue;
+      if (action === "pause") {
+        this.runtimes.get(chatId).queue.setPaused(true);
+      } else if (action === "continue" && interrupted) {
+        await this.send(chatId, RESTART_RESUME_PROMPT);
+      } else {
+        await this.sendNextQueued(chatId);
+      }
+    }
   }
 
   /** 作業中の様子（チャットの詳細の live。SSE の chat_live と同じ形） */

@@ -19,7 +19,7 @@ function restarted(store: Store, chatId: number): ChatQueue {
   return queue;
 }
 
-test("送信待ち: 変わるたびに保存し、作り直す（再起動する）と読み戻して止めておく。「ここまで」の印も残す", () => {
+test("送信待ち: 変わるたびに保存し、作り直す（再起動する）と、止めておくか・「ここまで」の印も終えたときのまま読み戻す", () => {
   const { store, chat } = setup();
   const queue = new ChatQueue(chat.id, () => {}, store.queues);
   const first = queue.add("1 つ目", { model: "opus" }, [{ id: "u1", name: "a.png", mime: "image/png", size: 10 }]);
@@ -36,12 +36,13 @@ test("送信待ち: 変わるたびに保存し、作り直す（再起動する
     ["2 つ目", "1 つ目", "3 つ目"],
   );
   assert.deepEqual(reloaded.list()[1], first);
-  // 前回の作業は中断しているので、勝手に送らず止めておく
-  assert.equal(reloaded.isPaused(), true);
+  // 自動で送るのまま戻す（起動してから送るかは、Runner が利用者に聞く）
+  assert.equal(reloaded.isPaused(), false);
   // 「1 つ目」（2 件目）のあとの印は、位置で残る
   assert.deepEqual(reloaded.stopPositions(), [2]);
-  // 止めたことも保存する（もう一度再起動しても止めたまま）
-  assert.equal(store.queues.list()[0].paused, true);
+  // 止めていた列は、止めたまま戻す
+  reloaded.setPaused(true);
+  assert.equal(restarted(store, chat.id).isPaused(), true);
 });
 
 test("送信待ち: 「ここまで送ったら止めます」の印は、動かした・すべて送ったあとも再起動で読み戻す", () => {
@@ -64,10 +65,10 @@ test("送信待ち: 「ここまで送ったら止めます」の印は、動か
   queue.add("d", {}, []);
   assert.equal(queue.takeNext(), undefined);
   assert.equal(queue.isPaused(), false);
-  // 再起動で読み戻すと止めておき（前回の作業は中断している）、印もそのまま
+  // 再起動で読み戻しても、線で待つ形（自動で送る・1 件目の上の印）のまま
   const reloaded = restarted(store, chat.id);
   assert.deepEqual(reloaded.stopPositions(), [0]);
-  assert.equal(reloaded.isPaused(), true);
+  assert.equal(reloaded.isPaused(), false);
   // すべて消したら、保存からも消える
   reloaded.clear();
   assert.deepEqual(store.queues.list(), []);

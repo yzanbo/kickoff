@@ -227,9 +227,10 @@ export function createChatStore(db: DatabaseSync, onChange: Notify) {
       for (const chat of chats) onChange({ type: "chat", chat: get(chat.id)! });
     },
     /** 起動時の復旧: 前回終了時に作業中だったチャットを、未読の失敗にする（最後に動いた時刻は変えない）。直した数を返す */
-    recoverInterrupted(error: string): number {
-      const { changes } = db.prepare("UPDATE chats SET status = 'failed', error = ?, unread = 1 WHERE status = 'running'").run(error);
-      return Number(changes);
+    /** 前回の終了で作業中のまま残ったチャットを未読の失敗にする（そのチャットの ID を返す） */
+    recoverInterrupted(error: string): number[] {
+      const rows = db.prepare("UPDATE chats SET status = 'failed', error = ?, unread = 1 WHERE status = 'running' RETURNING id").all(error) as { id: number }[];
+      return rows.map((r) => r.id);
     },
   };
 }

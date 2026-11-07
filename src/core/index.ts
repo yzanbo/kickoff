@@ -46,7 +46,7 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
   if (discardPrereleaseData(opts.dataDir)) console.log("[core] リリース前の版の保存データ（データベース・backups・uploads）を消し、新しく作り直しました");
   const store = new Store(path.join(opts.dataDir, DB_FILE), (e) => bus.publish(e));
   const recovered = store.chats.recoverInterrupted("アプリの終了により中断しました。メッセージを送ると続きから再開できます。");
-  if (recovered > 0) console.log(`[core] 中断された実行を ${recovered} 件復旧しました`);
+  if (recovered.length > 0) console.log(`[core] 中断された実行を ${recovered.length} 件復旧しました`);
 
   const token = loadOrCreateToken(opts.dataDir);
   // エージェントが自分（このプロセス・保存先・API）を壊さないよう、自分の情報を渡す
@@ -77,7 +77,8 @@ export async function startCore(opts: CoreOptions): Promise<Core> {
     publish: (e) => bus.publish(e),
   });
   // メモのチャットの実行では、AI にメモのフォルダも読み書きさせる
-  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project) });
+  // 作業の途中で止まったチャットは、起動したときの送信待ちの確かめで「中断した作業を続けてから送る」を選べる
+  const runner = new Runner({ store, approvals, providers, usage, uploads, bus, memoDirOf: (project) => memos.dirOf(project), interrupted: recovered });
   // 音声入力の文字起こし（モデルは保存先の models/ に置く。開発版と製品版で別）
   const voice = new VoiceService({ store, modelsDir: path.join(opts.dataDir, "models"), publish: (e) => bus.publish(e) });
   const host = opts.host ?? "127.0.0.1";

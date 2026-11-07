@@ -67,7 +67,7 @@ test("待ちの列の API: 作業中は列に入れ、並べ替え・消す・�
   assert.equal(provider.prompts.length, 2);
 });
 
-test("待ちの列は再起動しても残る: 読み戻した列は止めておき、作業が終わっても送らない", async () => {
+test("待ちの列は再起動しても残る: 自動で送るのまま読み戻し、起動したときの確かめに並べる（答えるまで送らない）", async () => {
   const { call, project, runner, provider, store } = setup();
   const release = provider.hold();
   const chatId = (await call("POST", `/api/projects/${project.id}/chats`, { text: "1" })).body.id;
@@ -77,7 +77,11 @@ test("待ちの列は再起動しても残る: 読み戻した列は止めてお
   // アプリを終えて起動し直したことにして、同じデータベースで作り直す
   const restarted = new Runner({ store, approvals: new ApprovalCenter(new Bus()), providers: { claude: provider } as never, usage: {} as never });
   assert.deepEqual(restarted.live(chatId).queue.messages.map((m) => m.text), ["2", "3"]);
-  assert.equal(restarted.live(chatId).queue.paused, true);
+  assert.equal(restarted.live(chatId).queue.paused, false);
+  assert.deepEqual(
+    restarted.queueResumes().map((r) => [r.chat_id, r.count, r.next]),
+    [[chatId, 2, "2"]],
+  );
   release();
   await until(() => !runner.isBusy(chatId));
 });
@@ -441,4 +445,14 @@ test("送信待ちのコンテキスト消去の行（POST /queue/clear）: 足�
   // 会話がないので、もう一度足して「すぐ送る」と 409
   const again = (await call("POST", `/api/chats/${chatId}/queue/clear`, {})).body.messages[1].id as string;
   assert.equal((await call("POST", `/api/chats/${chatId}/queue/${again}/send`)).status, 409);
+});
+
+test("起動したときの送信待ちの確かめの API: 一覧と答え（チャットごと。答えたあとの残りを返す）", async () => {
+  const { call } = setup();
+  assert.deepEqual((await call("GET", "/api/queue-resumes")).body, []);
+  assert.equal((await call("POST", "/api/queue-resumes", {})).status, 400);
+  assert.equal((await call("POST", "/api/queue-resumes", { decisions: [{ chat_id: 1, action: "later" }] })).status, 400);
+  // 確かめを待っていないチャットへの答えは飛ばす
+  const answered = await call("POST", "/api/queue-resumes", { decisions: [{ chat_id: 999, action: "send" }] });
+  assert.deepEqual([answered.status, answered.body], [200, []]);
 });

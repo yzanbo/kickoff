@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { NotFound } from "../http/errors.js";
+import { Runner } from "./runner.js";
 import { gatedScript, ScriptedProvider, type Script } from "../testing/fakeProvider.js";
 import { setupCore, tick, until } from "../testing/testCore.js";
 
@@ -273,4 +274,57 @@ test("送信待ちのコンテキスト消去の行: 作業中の「すぐ送る
   gates[1]();
   await until(() => !runner.isBusy(chat.id) && runner.live(chat.id).queue.messages.length === 0);
   assert.equal(store.chats.get(chat.id)?.session_id, null);
+});
+
+test("起動したときの送信待ちの確かめ: 止めておくか・線は保ち、自動で送るまま残った列だけを、答えるまで送らずに聞く（送る / 続けてから送る / 止めておく）", async () => {
+  const { store, provider, project, approvals, providers, usage } = setup(async () => ({ status: "completed", sessionId: "s1" }));
+  const make = (title: string) => store.chats.create({ project_id: project.id, provider: "claude", title, status: "running", model: null });
+  const row = (id: string, text: string) => ({ id, text, options: {}, attachments: [], created_at: "2026-11-07T00:00:00.000Z" });
+  const [sendChat, continueChat, pauseChat, pausedChat, stoppedChat] = ["送る", "続ける", "止める", "止めていた", "線で待つ"].map(make);
+  store.queues.save({ chatId: sendChat.id, messages: [row("s1", "送る 1"), row("s2", "送る 2")], paused: false, stops: [1] });
+  store.queues.save({ chatId: continueChat.id, messages: [row("c1", "続けてから 1")], paused: false, stops: [] });
+  store.queues.save({ chatId: pauseChat.id, messages: [row("p1", "止める 1")], paused: false, stops: [] });
+  store.queues.save({ chatId: pausedChat.id, messages: [row("q1", "止めていた 1")], paused: true, stops: [] });
+  store.queues.save({ chatId: stoppedChat.id, messages: [row("t1", "線で待つ 1")], paused: false, stops: [0] });
+  // アプリを終えて起動し直した: 作業中だったチャットは中断（送る・止めるのチャットは作業していなかったことにする）
+  store.chats.update(sendChat.id, { status: "completed" });
+  store.chats.update(pauseChat.id, { status: "completed" });
+  const interrupted = store.chats.recoverInterrupted("中断しました");
+  const restarted = new Runner({ store, approvals, providers, usage, interrupted });
+  const before = provider.calls.length;
+
+  // 止めていた列・先頭の上の線で待つ列は、終えたときのまま戻して聞かない
+  assert.equal(restarted.live(pausedChat.id).queue.paused, true);
+  assert.deepEqual([restarted.live(stoppedChat.id).queue.paused, restarted.live(stoppedChat.id).queue.stops], [false, [0]]);
+  assert.deepEqual(
+    restarted.queueResumes().map((r) => [r.chat_id, r.count, r.next, r.interrupted]),
+    [
+      [sendChat.id, 2, "送る 1", false],
+      [continueChat.id, 1, "続けてから 1", true],
+      [pauseChat.id, 1, "止める 1", false],
+    ],
+  );
+  // 答えるまでは送らない
+  await tick();
+  assert.equal(provider.calls.length, before);
+
+  await restarted.resolveQueueResumes([
+    { chatId: sendChat.id, action: "send" },
+    { chatId: continueChat.id, action: "continue" },
+    { chatId: pauseChat.id, action: "pause" },
+  ]);
+  // 送る: 先頭から送り、一時停止の線（1 件目のあと）で止まる
+  await until(() => restarted.live(sendChat.id).queue.messages.length === 1 && !restarted.isBusy(sendChat.id));
+  // 続けてから送る: 先に続きを頼み、その作業が終わってから送信待ちを送る
+  await until(() => restarted.live(continueChat.id).queue.messages.length === 0 && !restarted.isBusy(continueChat.id));
+  const prompts = provider.calls.slice(before).map((c) => c.prompt);
+  assert.ok(prompts.includes("送る 1"));
+  assert.ok(!prompts.includes("送る 2"));
+  const resumeAt = prompts.findIndex((p) => p.includes("アプリの終了で止まったところから"));
+  assert.ok(resumeAt >= 0 && prompts.indexOf("続けてから 1") > resumeAt);
+  // 止めておく: 止めています にして送らない
+  assert.equal(restarted.live(pauseChat.id).queue.paused, true);
+  assert.ok(!prompts.includes("止める 1"));
+  // 答えたものは、もう聞かない
+  assert.deepEqual(restarted.queueResumes(), []);
 });
