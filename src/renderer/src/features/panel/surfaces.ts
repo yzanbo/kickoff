@@ -58,6 +58,8 @@ export interface SurfaceRules {
   newChild?: boolean;
   /** タブがないときに、新しいチャットのボタンの代わりに出す案内（分けていない欄だけ。ボードの右のパネル: 新しいチャットは見出しの「新規」から） */
   emptyHint?: string;
+  /** 新しい子チャットを開けるときだけ、案内の後ろに足す文（メモのチャット・アーカイブ済みでは「＋」を出さないので、案内でも言わない） */
+  newChildHint?: string;
   /** パネルに付けるクラス（欄ごとの見た目。as-sidebar = 欄いっぱいに置く（枠・影なし）/ in-footer = フッター） */
   className?: string;
   /**
@@ -108,7 +110,8 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     closeButton: { icon: PanelRightClose, label: "右の欄を閉じる", keys: "Esc", at: "right" },
     noSplitButtons: true,
     emptyHint:
-      "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。「＋」で新しい子チャットを始められます。タブをドラッグすると、上下・左右に分けて並べられます。",
+      "サブエージェントのカードの「右の欄で開く」・変更したファイル・返答のファイルのチップ・子チャットとメモの札を押すと、ここに開きます。タブをドラッグすると、上下・左右に分けて並べられます。",
+    newChildHint: "「＋」で新しい子チャットを始められます。",
     fixedKinds: true,
     newChild: true,
     rootClass: "agent-panel",
@@ -121,6 +124,12 @@ const SURFACE_NAMES = Object.keys(SURFACES) as PanelSurface[];
  * 欄の状態を覚える名前（ボード = kanban:<プロジェクト>（列を状態で分けても・グループで分けても同じパネル。全プロジェクトのボードはパネルを持たず、
  * 以前の kanban:all に残っていた下書きは起動したときに作成先のプロジェクトへ移す）/ チャット欄 = side:<プロジェクト> / フッター = bottom:<プロジェクト | all>）
  */
+/** タブがないときの案内（新しい子チャットを開けるときだけ、その文を足す） */
+export function emptyHintOf(rules: SurfaceRules, canNewChild: boolean): string | undefined {
+  if (!rules.emptyHint) return undefined;
+  return canNewChild && rules.newChildHint ? `${rules.emptyHint}${rules.newChildHint}` : rules.emptyHint;
+}
+
 export const panelKey = (surface: PanelSurface, scope: PanelScope) => `${SURFACES[surface].memoryPrefix}:${scope}`;
 
 /** 覚える名前から、どの欄・どの画面のものか（知らない形なら undefined） */
