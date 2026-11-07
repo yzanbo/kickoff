@@ -6,6 +6,8 @@ import { UNTITLED_CHAT_TITLE } from "@shared/types";
 /** 渡したあとの子チャット: そのまま / アーカイブ / 削除（削除は今すぐ送る・送信待ちで渡したときだけ。入力欄ならアーカイブにする） */
 export const HANDOFF_AFTERS = ["keep", "archive", "delete"] as const;
 export type HandoffAfter = (typeof HANDOFF_AFTERS)[number];
+/** 渡したあとの名前（「親チャットに追加 ▾」のメニュー・設定） */
+export const HANDOFF_AFTER_LABELS: Record<HandoffAfter, string> = { keep: "そのまま", archive: "アーカイブ", delete: "削除" };
 
 /** 渡したあとに実際に行うこと（入力欄に入れたときは、入力欄で消すと依頼文がどこにも残らなくなるので、削除の代わりにアーカイブ） */
 export function handoffAfterFor(after: HandoffAfter, via: HandoffVia): HandoffAfter {

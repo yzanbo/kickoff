@@ -8,6 +8,7 @@
  */
 import { EXTERNAL_BROWSERS, EXTERNAL_TERMINALS } from "@shared/ipc";
 import { HANDOFF_VIAS } from "@shared/types";
+import { HANDOFF_AFTERS } from "@shared/chat/handoff";
 import { choice, defineSetting, defineSettingFamily, flag, json, list, number, optionalFlag, record, text } from "./storage";
 
 const isString = (value: unknown): value is string => typeof value === "string";
@@ -149,6 +150,11 @@ export const CHILD_CHAT_OPEN_ON_CREATE = defineSetting("kickoff:child-chat-open-
  * ▾ のメニューで、今回だけ別の渡し方を選べる
  */
 export const HANDOFF_VIA = defineSetting("kickoff:handoff-via", choice(HANDOFF_VIAS, "composer"));
+/**
+ * 「親チャットに追加」で渡したあとの子チャット（keep = そのまま / archive = アーカイブ / delete = 削除。初めはそのまま。設定の「表示」）。
+ * 渡せて、子が作業中でないときだけ。削除は今すぐ送る・送信待ちのときだけで、入力欄に入れたときはアーカイブにする（handoffAfterFor）。▾ で今回だけ選べる
+ */
+export const HANDOFF_AFTER = defineSetting("kickoff:handoff-after", choice(HANDOFF_AFTERS, "keep"));
 /**
  * チャットからメモを開く場所（side = チャットの画面の右の欄のタブ / window = 別ウィンドウ。設定の「表示」）。
  * 「メモに追加」のあとの「開く」・入力欄の上のメモの札で共通（メモのタブから開くのは、メモのタブの中）
