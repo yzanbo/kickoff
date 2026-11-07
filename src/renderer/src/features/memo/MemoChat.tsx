@@ -9,6 +9,8 @@ import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { useChatOptions } from "@/features/chat/options/ChatOptionsBar";
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
+import { useWideText } from "@/features/chat/pane/TextWidthToggle";
+import { cx } from "@/lib/cx";
 import { ChatView } from "@/features/chat/pane/ChatPane";
 import { useChatDetail } from "@/features/chat/pane/useChatDetail";
 import { chatPaneOf } from "@/features/chat/pane/windowMessages";
@@ -121,8 +123,10 @@ function MemoChatStart({
   onStart: (text: string, attachments: Attachment[], options: ChatOptions) => Promise<void>;
 }) {
   const options = useChatOptions(undefined, projectId);
+  // 文の幅はチャットの画面と同じ（標準なら上限で真ん中、広げるなら幅いっぱい。メモの下の入力欄とも同じ）
+  const [wide] = useWideText();
   return (
-    <div className="chat-page chat-panel memo-chat-start">
+    <div className={cx("chat-page chat-panel memo-chat-start", wide && "wide")}>
       <div className="timeline">
         <div className="memo-chat-hero">
           <MessageSquare size={22} aria-hidden />

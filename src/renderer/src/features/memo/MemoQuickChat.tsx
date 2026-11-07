@@ -14,6 +14,8 @@ import { useChatSend } from "@/features/chat/pane/useChatSend";
 import type { TimelineScroll } from "@/features/chat/timeline/timelineScroll";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import { SnippetBar, SnippetBarToggleItem } from "@/features/snippet/SnippetBar";
+import { useWideText } from "@/features/chat/pane/TextWidthToggle";
+import { cx } from "@/lib/cx";
 
 /** メモのチャットの様子の文（既読は出さない） */
 const STATUS_TEXTS: Record<Exclude<AgentState, "read">, string> = {
@@ -51,8 +53,10 @@ export function MemoQuickChat({
   const chat = useMemoChatOf(projectId, path);
   const { stateOf } = useChatStates();
   const state = chat ? stateOf(chat) : "read";
+  // 幅はメモのチャットの欄（チャットの画面）と同じ「文の幅」に従う（標準なら上限 820px で真ん中、広げるなら幅いっぱい。開け閉めで幅が変わらないように）
+  const [wide] = useWideText();
   return (
-    <div className="memo-quick-chat">
+    <div className={cx("memo-quick-chat", wide && "wide")}>
       <div className="memo-quick-status">
         <span className="memo-quick-name">
           <MessageSquare size={13} aria-hidden />
