@@ -133,11 +133,8 @@ export function CustomGroupSection({
       />
       <Collapse open={!closed} indent>
         <DraftRows drafts={drafts} />
-        {members.length === 0 ? (
-          drafts.length > 0 || bucket.archived ? null : (
-          <p className="custom-group-empty">チャットをここへドラッグ</p>
-          )
-        ) : bucket.children ? (
+        {/* チャットのないグループは、開いていても何も出さない（落とし先は見出しを含むまとまり全体。前は「チャットをここへドラッグ」を出していた） */}
+        {members.length === 0 ? null : bucket.children ? (
           // 状態順のときは、グループの中を状態ごとの見出しに分ける
           <div className="custom-group-grouped">
             <GroupedChatRows buckets={bucket.children} renderRow={renderRow} forceOpen={filtering} />
