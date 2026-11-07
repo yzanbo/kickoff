@@ -8,7 +8,7 @@ import { useBusyNeighbors } from "@/features/worktree/useBusyNeighbors";
 import { Composer } from "@/features/chat/composer/Composer";
 import type { ComposerHandle } from "@/features/chat/composer/composerHandle";
 import { ContextMeter } from "@/features/chat/composer/ContextMeter";
-import { reservedCompact } from "@/features/chat/queue/queuedHint";
+import { reservedAction } from "@/features/chat/queue/queuedHint";
 import { QueueModeToggle } from "@/features/chat/composer/QueueModeToggle";
 import type { ChatOptionsState } from "@/features/chat/options/ChatOptionsBar";
 import type { PromptList } from "@/features/chat/prompts/promptHistory";
@@ -113,7 +113,7 @@ export function ChatComposerArea({
         busyControls={live.awaiting_compact ? undefined : <QueueModeToggle busy={busy} value={send.queueMode} onChange={send.setQueueMode} />}
         stopping={live.stopping}
         onStop={send.onStop}
-        trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedCompact(live.queue)} afterTurn={live.compact_after_turn} />}
+        trailing={<ContextMeter chat={chat} compacting={live.compacting} reserved={reservedAction(live.queue)} afterTurn={live.compact_after_turn} />}
         // よく送る指示（このプロジェクトで使う定型文）。入力欄の枠の中の上（送信待ちとの区切り線の下）に置き、押すと入力欄に入れる。
         // その上に、入力欄に入れた子チャットからの依頼の出どころの札（送ると発言の札になる）
         header={

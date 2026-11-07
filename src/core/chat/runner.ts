@@ -456,6 +456,18 @@ export class Runner extends RunnerQueue {
    * コンテキストを消去する（送信待ちのコンテキスト消去の行）: チャットのセッションを外し、次の指示から新しい会話で始める。
    * 会話の記録は残し、消去したこと（context_cleared イベント）を残す。作業中なら 409、まだ会話がなければ 409
    */
+  /**
+   * 手でコンテキストを消去する（チャット欄のメーターの詳細の「コンテキストを消去」）: 作業していなければその場で消去し、送信待ちがあれば次を送る。
+   * 作業中なら、いまのやり取りが終わったらすぐ消去する予約（送信待ちのいちばん上に消去の行。作業中の「会話を圧縮」と同じ）。まだ会話がなければ 409
+   */
+  clear(chatId: number): Chat {
+    if (this.isBusy(chatId)) {
+      this.runtimes.get(chatId).queue.reserve("clear");
+      return this.requireChat(chatId);
+    }
+    return this.clearByCommand(chatId);
+  }
+
   /** チャット欄の /clear（作業していないとき）: コンテキストを消去し、送信待ちがあれば次を送る（消去の行と同じく、次の指示は新しい会話で始まる） */
   private clearByCommand(chatId: number): Chat {
     const cleared = this.clearContext(chatId);
