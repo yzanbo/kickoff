@@ -9,6 +9,7 @@ import { useMemoList } from "@/stores/memos";
 import { usePopover } from "@/ui/Popover";
 import { ComposerChip } from "@/features/chat/composer/ComposerChip";
 import { DefaultOpenPlace } from "@/features/chat/composer/OpenPlaceControls";
+import { useMainChat } from "@/features/chat/pane/mainChatContext";
 import { attachMemoToChat } from "./attachMemo";
 import { memoListDropProps } from "./memoDrag";
 import { confirmLeaveMemosUnder } from "./memoGuards";
@@ -28,6 +29,7 @@ import { followMovedMemo, useMemoActions } from "./useMemoActions";
 export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; chatId: number | null; onAttach?: (path: string) => void }) {
   const list = useMemoList(projectId);
   const popover = usePopover();
+  const mainChat = useMainChat();
   const [openIn, setOpenIn] = useSetting(MEMO_OPEN_IN);
   const tree = useMemo(() => buildMemoFileTree(list.data?.entries ?? []), [list.data]);
   // 開いているフォルダは、メモのタブの木と同じものを覚える（どちらで開け閉めしても、もう一方も同じになる）
@@ -47,7 +49,9 @@ export function MemoChip({ projectId, chatId, onAttach }: { projectId: number; c
   const places = canPopout() ? (["side", "window"] as const) : (["side"] as const);
   const open = (path: string, place?: "side" | "window") => {
     popover.close();
-    openMemoFromChat({ projectId, path, chatId, place });
+    // 右の欄・別ウィンドウの中（メモのタブの中のメモのチャットなど）では、その右の欄を持つチャットの右の欄に新しいタブで開く
+    // （前はメモのチャット自身の右の欄を探し、メモのチャットをチャットのパネルに開いていた）
+    openMemoFromChat({ projectId, path, chatId: mainChat ?? chatId, place });
   };
   return (
     <ComposerChip
