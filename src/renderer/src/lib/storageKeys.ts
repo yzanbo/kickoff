@@ -211,6 +211,8 @@ export const CHAT_HEADER_ROW_HIDDEN = defineSetting("kickoff:chat-header-row-hid
 export const CHAT_HEADER_BADGE_COLORS = defineSetting("kickoff:chat-header-badge-colors", flag(true));
 /** チャットの見出しの行で隠している項目（chatHeaderItems.ts の CHAT_HEADER_ITEMS。タブの列の「表示」→「見出しに出す項目」。初めはプロジェクト・会話 / 動きの切り替え・文字の大きさ・ターン数・API 換算を隠す（メニューの「既定に戻す」でこの値に戻す）。どのチャットでも同じ） */
 export const CHAT_HEADER_HIDDEN = defineSetting("kickoff:chat-header-hidden", list(["project", "showing", "fontSize", "turns", "cost"]));
+/** 見出しの行の項目の並び（タブの列の「表示」→「見出しに出す項目」で、まとまりの中をドラッグで並べ替える。chat/pane/chatHeaderItems.ts。空なら初めの並び） */
+export const CHAT_HEADER_ORDER = defineSetting("kickoff:chat-header-order", list());
 /** チャット欄をコンパクトに表示するか（設定の「表示」。どのチャット欄にも効く。初めはコンパクトにしない） */
 export const COMPOSER_COMPACT = defineSetting("kickoff:composer-compact", flag(false));
 /** 会話の文字の大きさ（5 段階。chat/pane/chatFontSize.ts。見出しの行のボタン・タブの列の「表示」・設定の「表示」。どのチャットでも同じ。初めは標準） */

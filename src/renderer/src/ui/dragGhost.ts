@@ -56,7 +56,8 @@ export function startDragGhost(e: DragEvent<Element>, { source, count = 1, after
     badge.textContent = `${count} 件`;
     ghost.appendChild(badge);
   }
-  document.body.appendChild(ghost);
+  // メニュー（popover）・ダイアログの中の物は、その中に置く（画面のいちばん上の層に出ているので、body に置くと写しがその下に隠れる）
+  (el.closest(":popover-open, dialog:modal") ?? document.body).appendChild(ghost);
   // 自分の地がある物（カード）は、写しの枠の地・余白を付けず、物の角に合わせる（地のない行・タブは、送信待ちと同じ枠の地に載せる）
   const style = getComputedStyle(clone);
   if (style.backgroundColor !== "rgba(0, 0, 0, 0)" && style.backgroundColor !== "transparent") {

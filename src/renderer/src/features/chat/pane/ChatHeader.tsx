@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from "react";
 import type { Project, Chat } from "@shared/types";
 import { GroupChip } from "@/features/group/GroupChip";
 import { PopupMenu } from "@/ui/PopupMenu";
@@ -8,7 +9,7 @@ import { ChatFind } from "@/features/chat/find/ChatFind";
 import { AgentPanelToggle } from "@/features/panel/agents/AgentPanelToggle";
 import type { TimelineItem } from "@/features/chat/timeline/timelineItems";
 import { cx } from "@/lib/cx";
-import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderRowHidden } from "./ChatDisplayMenu";
+import { ChatDisplayItems, useChatHeaderBadgeColors, useChatHeaderItems, useChatHeaderOrder, useChatHeaderRowHidden } from "./ChatDisplayMenu";
 import { ChatHeaderTools } from "./ChatHeaderTools";
 import { useChatPane, useChatPaneState } from "./chatPaneContext";
 
@@ -34,6 +35,7 @@ export function ChatHeader({
   version: unknown;
 }) {
   const shows = useChatHeaderItems();
+  const ordered = useChatHeaderOrder();
   const { canOpenSide } = useChatPane();
   const rowHidden = useChatHeaderRowHidden();
   const badgeColors = useChatHeaderBadgeColors();
@@ -47,6 +49,16 @@ export function ChatHeader({
 
   const turns = shows("turns") && chat.num_turns > 0;
   const cost = shows("cost") && chat.cost_usd > 0;
+  // バッジ・数は、「見出しに出す項目」で並べ替えた順に出す
+  const badges: Record<"project" | "group" | "worktree", ReactNode> = {
+    project: project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />,
+    group: shows("group") && <GroupChip chat={chat} />,
+    worktree: shows("worktree") && <WorktreeChip chat={chat} />,
+  };
+  const meta: Record<"turns" | "cost", ReactNode> = {
+    turns: turns && <span>{chat.num_turns} ターン</span>,
+    cost: cost && <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${chat.cost_usd.toFixed(2)}</span>,
+  };
   return (
     <header
       className="chat-header"
@@ -59,9 +71,9 @@ export function ChatHeader({
       <div className="chat-title-row">
         {/* どのプロジェクト・作業場所のチャットか（サイドバーと同じ色のバッジ。押すとそのプロジェクトのカンバン） */}
         <span className={cx("chat-sub muted small", !badgeColors && "plain-badges")}>
-          {project && shows("project") && <ProjectChip id={project.id} name={project.name} linked />}
-          {shows("group") && <GroupChip chat={chat} />}
-          {shows("worktree") && <WorktreeChip chat={chat} />}
+          {ordered(["project", "group", "worktree"] as const).map((k) => (
+            <Fragment key={k}>{badges[k]}</Fragment>
+          ))}
         </span>
         {chat.archived_at && <span className="archived-chip">アーカイブ済み</span>}
         <span className="spacer" />
@@ -72,8 +84,9 @@ export function ChatHeader({
         {/* ターン数と費用（狭いときは隠す） */}
         {(turns || cost) && (
           <span className="chat-meta muted small">
-            {turns && <span>{chat.num_turns} ターン</span>}
-            {cost && <span title="サブスクリプション利用時も API 料金に換算した参考値">API 換算 ${chat.cost_usd.toFixed(2)}</span>}
+            {ordered(["turns", "cost"] as const).map((k) => (
+              <Fragment key={k}>{meta[k]}</Fragment>
+            ))}
           </span>
         )}
         {canOpenSide && shows("agents") && <AgentPanelToggle chatId={chat.id} />}
