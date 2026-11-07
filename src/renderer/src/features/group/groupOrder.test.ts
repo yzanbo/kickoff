@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { orderGroupBuckets, ungroupedPosition } from "./groupOrder";
+import { orderGroupBuckets, splitAtUngrouped, ungroupedPosition } from "./groupOrder";
 
 test("ungroupedPosition: 覚えていなければボードは先頭・リストはいちばん下", () => {
   assert.equal(ungroupedPosition(-1, 3, false), 0);
@@ -29,4 +29,14 @@ test("orderGroupBuckets: グループなしを指定の位置に入れ、グル�
 
 test("orderGroupBuckets: グループがなければグループなしだけ", () => {
   assert.deepEqual(orderGroupBuckets([{ kind: "ungrouped" }], 0), [{ kind: "ungrouped" }]);
+});
+
+test("splitAtUngrouped: すべてのグループの並びの中の位置で、出しているグループを前と後ろに分ける", () => {
+  const all = [1, 2, 3, 4];
+  const ids = (r: { before: number[]; after: number[] }) => [r.before, r.after];
+  assert.deepEqual(ids(splitAtUngrouped(all, (g) => g, all, 2)), [[1, 2], [3, 4]]);
+  assert.deepEqual(ids(splitAtUngrouped(all, (g) => g, all, 0)), [[], [1, 2, 3, 4]]);
+  assert.deepEqual(ids(splitAtUngrouped(all, (g) => g, all, 4)), [[1, 2, 3, 4], []]);
+  // 絞り込みで 2 を出していなくても、3 は「No Group」（位置 2）の後ろのまま
+  assert.deepEqual(ids(splitAtUngrouped([1, 3], (g) => g, all, 2)), [[1], [3]]);
 });

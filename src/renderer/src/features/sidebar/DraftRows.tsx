@@ -16,12 +16,12 @@ export function useProjectDrafts(projectId: number): PanelDraft[] {
 /**
  * サイドバーのプロジェクトの、送る前の新しいチャット（ボードの右のパネル・プロジェクトのチャット欄で書いている途中）。
  * ボードの「下書き」の列と同じもの。押すとそのパネルで開き（別の画面のものは、その画面へ移ってから）、右クリックで開く・削除。
- * ドラッグしてグループ（・グループなし）へ落とすと、作成先のグループを変える（送ったときにそのグループに入る）
+ * ドラッグしてグループ（・グループなし）へ落とすと、作成先のグループを変える（送ったときにそのグループに入る。落とし先はまとまりを包む要素）
  */
-export function DraftRows({ drafts, drop }: { drafts: PanelDraft[]; drop?: Record<string, unknown> }) {
+export function DraftRows({ drafts }: { drafts: PanelDraft[] }) {
   if (drafts.length === 0) return null;
   return (
-    <ul className="chat-rows draft-rows" {...drop}>
+    <ul className="chat-rows draft-rows">
       {drafts.map((d) => (
         <DraftRow key={`${d.panel}:${d.key}`} draft={d} />
       ))}

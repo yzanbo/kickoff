@@ -10,7 +10,7 @@ import { useSetting } from "@/hooks/useSetting";
 import { useGroupMenu } from "@/features/group/GroupMenu";
 import { archiveMatches, useArchiveFilter } from "./archiveFilter";
 import { useBoardView } from "./BoardHeader";
-import { ungroupedPosition } from "./groupOrder";
+import { ungroupedPosition } from "@/features/group/groupOrder";
 import { useCardMenu } from "./useBoardCards";
 import { useChats } from "@/stores/chats";
 

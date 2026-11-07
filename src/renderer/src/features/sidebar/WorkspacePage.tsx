@@ -28,6 +28,7 @@ import { DraftRows } from "./DraftRows";
 import { FoldSection } from "@/ui/FoldHead";
 import { stateCounts } from "@/features/chat/chatState";
 import { UngroupedHead } from "./UngroupedHead";
+import { splitAtUngrouped } from "@/features/group/groupOrder";
 import { useWorkspaceRows } from "./useWorkspaceRows";
 import { WorkspaceHead } from "./WorkspaceHead";
 import { Collapse } from "@/ui/Collapse";
@@ -144,6 +145,62 @@ export const WorkspacePage = memo(function WorkspacePage({
     />
   );
 
+  const renderGroup = (bucket: (typeof list.groups)[number]) => {
+    const group = bucket.group!;
+    return (
+      <CustomGroupSection
+        key={group.id}
+        projectId={project.id}
+        group={group}
+        bucket={bucket}
+        closed={!filtering && !groupFolds.isOpen(bucket.key)}
+        onSetClosed={(closed) => groupFolds.set(bucket.key, !closed)}
+        filtering={filtering}
+        renderRow={renderRow}
+        section={sections.sectionProps(group)}
+        hue={colors.hueOf(bucket)}
+      />
+    );
+  };
+  // 「No Group」より前と後ろのグループ（グループの並びの中の位置で分ける。グループの見出しを出していなければすべて前）
+  const { before: groupsBeforeUngrouped, after: groupsAfterUngrouped } = showGroups
+    ? splitAtUngrouped(list.groups, (b) => b.group!.id, groups.map((g) => g.id), sections.ungroupedAt)
+    : { before: list.groups, after: [] };
+  // 「No Group」の見出しと中身（グループなしの下書き・チャット。グループの見出しがなければ、ふつうの一覧）
+  const ungroupedBlock = (
+    <>
+      {showGroups && ungrouped && (ungrouped.chats.length > 0 || ungroupedDrafts.length > 0 || groupedDrafts) && (
+        <UngroupedHead
+          projectId={project.id}
+          count={ungrouped.chats.length}
+          open={ungroupedFold.open}
+          onToggle={ungroupedFold.toggle}
+          dragProps={sections.ungrouped.dragProps}
+          hue={colors.hueOf(ungrouped)}
+          onContextMenu={colors.onContextMenu}
+        />
+      )}
+      {(filtering && restCount === 0 && ungroupedDrafts.length === 0) ||
+      (visibleCount === 0 && ungroupedDrafts.length === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
+        ungroupedDrafts.length === 0 ? (
+        <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
+          <SquarePen size={13} /> 最初のチャットを始める
+        </button>
+      ) : mainRows.length === 0 && ungroupedDrafts.length === 0 ? null : (
+        // グループの見出しがあるときは「No Group」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする
+        <Collapse open={!ungroupedHidden} indent={showGroups}>
+          {/* グループなしの下書き（グループから戻すドロップ先は、包む要素の「No Group」のまとまり） */}
+          <DraftRows drafts={ungroupedDrafts} />
+          {mainRows.length === 0 ? null : mainSections ? (
+            <GroupedChatRows buckets={mainSections} renderRow={renderRow} forceOpen={filtering} hueOf={colors.hueOf} onContextMenu={colors.onContextMenu} />
+          ) : (
+            <ul className="chat-rows">{mainRows.map(renderRow)}</ul>
+          )}
+        </Collapse>
+      )}
+    </>
+  );
+
   return (
     <section
       className="workspace-page"
@@ -210,55 +267,17 @@ export const WorkspacePage = memo(function WorkspacePage({
             <ul className="chat-rows">{pinned.chats.map(renderRow)}</ul>
           </FoldSection>
         )}
-        {/* 自分で作ったグループ（検索・自分待ちなどで絞り込んでいる間は、一致するチャットか下書きのあるものだけ） */}
-        {list.groups.map((bucket) => {
-          const group = bucket.group!;
-          return (
-            <CustomGroupSection
-              key={group.id}
-              projectId={project.id}
-              group={group}
-              bucket={bucket}
-              closed={!filtering && !groupFolds.isOpen(bucket.key)}
-              onSetClosed={(closed) => groupFolds.set(bucket.key, !closed)}
-              filtering={filtering}
-              renderRow={renderRow}
-              section={sections.sectionProps(group)}
-              hue={colors.hueOf(bucket)}
-            />
-          );
-        })}
-        {showGroups && ungrouped && (ungrouped.chats.length > 0 || ungroupedDrafts.length > 0 || groupedDrafts) && (
-          <UngroupedHead
-            projectId={project.id}
-            count={ungrouped.chats.length}
-            open={ungroupedFold.open}
-            onToggle={ungroupedFold.toggle}
-            drop={sections.ungroupedDrop}
-            hue={colors.hueOf(ungrouped)}
-            onContextMenu={colors.onContextMenu}
-          />
+        {/* 自分で作ったグループ（検索・自分待ちなどで絞り込んでいる間は、一致するチャットか下書きのあるものだけ）と、
+            その間の覚えた位置（ungroupedAt）に「No Group」（見出しのドラッグで並べ替える） */}
+        {groupsBeforeUngrouped.map(renderGroup)}
+        {showGroups ? (
+          <div className={sections.ungrouped.className} {...sections.ungrouped.dropProps}>
+            {ungroupedBlock}
+          </div>
+        ) : (
+          ungroupedBlock
         )}
-        {(filtering && restCount === 0 && ungroupedDrafts.length === 0) ||
-        (visibleCount === 0 && ungroupedDrafts.length === 0 && ungroupedHidden) ? null : visibleCount === 0 &&
-          ungroupedDrafts.length === 0 ? (
-          <button className="chat-row ghost" onClick={() => openNewChat(project.id)}>
-            <SquarePen size={13} /> 最初のチャットを始める
-          </button>
-        ) : mainRows.length === 0 && ungroupedDrafts.length === 0 ? null : (
-          // グループの見出しがあるときは「No Group」の見出しで開閉し、中身（グループなしの下書き・チャット）を段下げする
-          <Collapse open={!ungroupedHidden} indent={showGroups}>
-            {/* グループなしの下書き（グループから戻すドロップ先にもする） */}
-            <DraftRows drafts={ungroupedDrafts} drop={sections.ungroupedDrop.props} />
-            {mainRows.length === 0 ? null : mainSections ? (
-              <GroupedChatRows buckets={mainSections} renderRow={renderRow} forceOpen={filtering} hueOf={colors.hueOf} onContextMenu={colors.onContextMenu} />
-            ) : (
-              <ul className="chat-rows" {...(showGroups ? sections.ungroupedDrop.props : {})}>
-                {mainRows.map(renderRow)}
-              </ul>
-            )}
-          </Collapse>
-        )}
+        {groupsAfterUngrouped.map(renderGroup)}
         {archived && (
           // チャットの行をここへドラッグすると、確かめてからアーカイブする（右クリックの「アーカイブ」と同じ確認のダイアログ）
           <div className={cx("archive-drop", archiveDrop.over && "drop-target")} {...archiveDrop.props}>
