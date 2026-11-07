@@ -8,7 +8,7 @@ import { UNGROUPED_SORT_ID } from "@/features/group/groups";
 import { DraftCards } from "./DraftCards";
 import type { PanelDraft } from "@/features/panel/state/panelDrafts";
 import { GroupColumnHead } from "./GroupColumnHead";
-import { orderGroupBuckets } from "./groupOrder";
+import { orderGroupBuckets } from "@/features/group/groupOrder";
 import type { GroupBoardState } from "./useGroupBoard";
 
 /**

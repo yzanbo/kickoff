@@ -16,7 +16,7 @@ import { BoardShell } from "./BoardShell";
 import { useChatBuckets } from "@/features/chatList/useChatBuckets";
 import { GroupCreateForm } from "./GroupCreateForm";
 import { GroupSections } from "./GroupSections";
-import { orderGroupBuckets } from "./groupOrder";
+import { orderGroupBuckets } from "@/features/group/groupOrder";
 import { StateColumns } from "./StateColumn";
 import { useBoardCards } from "./useBoardCards";
 import { useGroupBoard } from "./useGroupBoard";

@@ -1,5 +1,4 @@
 import { SquarePen } from "lucide-react";
-import { cx } from "@/lib/cx";
 import { openNewChat } from "@/app/router";
 import { IconButton } from "@/ui/IconButton";
 import { FoldHead } from "@/ui/FoldHead";
@@ -9,14 +8,15 @@ import { huedHeadProps } from "./bucketColor";
 
 /**
  * サイドバーの「No Group」の見出し（グループがあるときだけ出す）。開閉・件数・グループなしで新しいチャット。
- * チャットをドロップするとグループから外す（drop は useGroupSections の ungroupedDrop）
+ * グループの見出しと同じく、ドラッグでグループの間へ並べ替える（dragProps は useGroupSections の ungrouped。
+ * チャットを落とすとグループから外すドロップ先は、見出しと中身を包む要素に付ける）
  */
 export function UngroupedHead({
   projectId,
   count,
   open,
   onToggle,
-  drop,
+  dragProps,
   hue = null,
   onContextMenu,
 }: {
@@ -24,7 +24,7 @@ export function UngroupedHead({
   count: number;
   open: boolean;
   onToggle: () => void;
-  drop: ReturnType<typeof useGroupSections>["ungroupedDrop"];
+  dragProps: ReturnType<typeof useGroupSections>["ungrouped"]["dragProps"];
   /** 見出しの色（「まとまりを色付きで表示」のとき。null なら付けない） */
   hue?: number | null;
   /** 右クリック（「まとまりを色付きで表示」のメニュー） */
@@ -33,10 +33,12 @@ export function UngroupedHead({
   return (
     <FoldHead
       look="row"
-      className={cx(drop.over && "drop-target", huedHeadProps(hue).className)}
+      className={huedHeadProps(hue).className}
       style={huedHeadProps(hue).style}
+      draggable
+      title="ドラッグでグループの間へ並べ替える"
       onContextMenu={onContextMenu}
-      {...drop.props}
+      {...dragProps}
       open={open}
       onToggle={onToggle}
       label={NO_GROUP_LABEL}
