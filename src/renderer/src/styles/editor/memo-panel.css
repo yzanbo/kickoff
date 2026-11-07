@@ -1,0 +1,17 @@
+/* ==== プロジェクトの「メモ」タブの右の、開いたメモをタブで並べるパネル ==== */
+
+/*
+ * 開いたメモをタブで並べるパネル（SURFACES の memos。チャットのパネルと同じタブ・分割）。チャットタブ（chats-tab.css）と同じく、
+ * ボードの右のパネルの開閉の動き（幅 0 から滑り込む・閉じたら透明）を使わず、いつも見せて右いっぱいに広げる
+ */
+.memo-main > .board-panel.memo-panel {
+  flex: 1;
+  min-width: 0;
+  border-left: 0;
+  opacity: 1;
+}
+
+.memo-main > .board-panel.memo-panel > .panel-tabs,
+.memo-main > .board-panel.memo-panel > .panel-content {
+  width: auto;
+}

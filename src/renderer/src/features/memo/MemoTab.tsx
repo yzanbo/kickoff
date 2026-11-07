@@ -1,5 +1,6 @@
 import { FileCode2, FilePlus, FolderOpen, PanelLeftOpen, StickyNote } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { TerminalTarget } from "@/features/panel/tabs/panelTypes";
 import { navigate } from "@/app/router";
 import { cx } from "@/lib/cx";
 import { CHANGES_LIST_WIDTH, MEMO_LIST_HIDDEN, memoOpenFolders, memoSelected } from "@/lib/storageKeys";
@@ -14,22 +15,41 @@ import { SearchField } from "@/ui/SearchField";
 import { useContextMenu } from "@/ui/useContextMenu";
 import type { TreeNode } from "@/features/editor/treeModel";
 import { FileIcon } from "@/features/editor/FileIcon";
+import { focusedPane } from "@/features/panel/layout/paneTree";
+import { Panel } from "@/features/panel/Panel";
+import type { PanelFrame } from "@/features/panel/PanelTools";
+import { usePanel } from "@/features/panel/usePanel";
 import { ancestorsOf, baseName, buildMemoTree, filterMemos, isUnder, parentOf } from "./memoPaths";
 import { MemoListHead } from "./MemoListHead";
 import { memoListDropProps } from "./memoDrag";
 import { MemoTree, type MemoRenaming } from "./MemoTree";
-import { confirmLeaveMemo, confirmLeaveMemosUnder } from "./memoGuards";
-import { MemoView } from "./MemoView";
+import { confirmLeaveMemosUnder } from "./memoGuards";
+import { closeMemoTabsUnder, openMemoInPanel } from "./memoPanel";
 import { MemoPlanDialog } from "./MemoPlanDialog";
 import { followMovedMemo, useMemoActions } from "./useMemoActions";
 
+/** 右の欄は画面そのものなので、閉じる・幅を変えるなどの道具を出さない */
+const FIXED_FRAME: PanelFrame = { fixed: true };
+const NO_TERMINALS: readonly TerminalTarget[] = [];
+
 /**
  * プロジェクトの「メモ」タブ（左にメモのフォルダの木、右に開いたメモ）。左の一覧は隠せる（MEMO_LIST_HIDDEN。隠している間は左端の細い帯に「一覧を表示」）。メモはプロジェクトの外（設定の親フォルダの下の、
- * プロジェクトごとのフォルダ）の Markdown。openMemo は URL の ?memo= で来たメモ（チャットの「メモに追加」から。開いたら URL から外す）
+ * プロジェクトごとのフォルダ）の Markdown。openMemo は URL の ?memo= で来たメモ（チャットの「メモに追加」から。開いたら URL から外す）。
+ * 右は開いたメモをタブで並べるパネル（memos。チャットのパネルと同じく、タブのドラッグで上下・左右に分けられる）。一覧のメモを押すと、ピントのあるペインで表示中のメモを入れ替え、
+ * ⌘クリックで新しいタブに開く（openMemoInPanel）。一覧の選んでいる行は、ピントのあるペインで表示中のメモ。最後に表示したメモは memoSelected に覚え、次に開いたときに開き直す
  */
 export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?: string }) {
   const list = useMemoList(projectId);
-  const [selected, setSelected] = useSetting(memoSelected(projectId));
+  const panel = usePanel({ surface: "memos", scope: projectId, newChat: undefined, terminals: NO_TERMINALS });
+  const { panelOpen, setOpen } = panel;
+  // 右の欄はいつも開いておく（タブがなければ案内）
+  useEffect(() => {
+    if (!panelOpen) setOpen(true);
+  }, [panelOpen, setOpen]);
+  // 一覧の選んでいる行 = ピントのあるペインで表示中のメモ
+  const focusedTab = panel.tabs.find((t) => t.key === focusedPane(panel.layout).active);
+  const selected = focusedTab?.kind === "memo" ? focusedTab.path : "";
+  const [remembered, setRemembered] = useSetting(memoSelected(projectId));
   const [openList, setOpenList] = useSetting(memoOpenFolders(projectId));
   const open = useMemo(() => new Set(openList), [openList]);
   const [query, setQuery] = useState("");
@@ -49,17 +69,28 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   const dir = list.data?.dir ?? "";
 
   const openFolders = (paths: string[]) => setOpenList([...new Set([...openList, ...paths])]);
-  // 別のメモへ移るときは、まだ保存していない書きかけをどうするか聞く（保存 / 保存しない / キャンセル）
-  const select = async (path: string) => {
-    if (path !== selected && !(await confirmLeaveMemo(projectId, selected))) return;
-    setSelected(path);
+  // メモを開く（newTab = 新しいタブ。ふだんはピントのあるペインで表示中のメモを入れ替える。そのときは書きかけをどうするか聞く）
+  const select = async (path: string, newTab = false) => {
+    await openMemoInPanel(projectId, path, newTab);
     openFolders(ancestorsOf(path));
   };
 
-  // URL で来たメモを開いて、URL から外す（チャットの「メモに追加」のあと）
+  // 最後に表示したメモを覚え、タブがないまま開いたら（アプリを開き直したとき）そのメモを開き直す
+  useEffect(() => {
+    if (selected && selected !== remembered) setRemembered(selected);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+  const entriesLoaded = list.data !== undefined;
+  useEffect(() => {
+    if (!entriesLoaded || openMemo || panel.tabs.length > 0 || !remembered) return;
+    if (list.data?.entries.some((e) => e.path === remembered && !e.dir)) void openMemoInPanel(projectId, remembered, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entriesLoaded]);
+
+  // URL で来たメモを新しいタブで開いて（開いていればそのタブ）、URL から外す（チャットの「メモに追加」のあと）
   useEffect(() => {
     if (!openMemo) return;
-    void select(openMemo);
+    void select(openMemo, true);
     memosStore.invalidate(projectId);
     navigate({ name: "project", id: projectId, tab: "memos" }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,14 +105,14 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
       setQuery("");
       setListHidden(false);
       if (isDir) openFolders(ancestorsOf(path));
-      else void select(path);
+      else void select(path, true);
       startRename(path);
     },
     // 開いているメモ（とその入ったフォルダ）の名前を変える・動かす・ゴミ箱に入れる前も聞く（右の欄・別ウィンドウで開いているものも）
     beforeChange: (path) => confirmLeaveMemosUnder(projectId, path),
     onMoved: (from, to) => moved(from, to),
     onTrashed: (path) => {
-      if (selected && isUnder(selected, path)) setSelected("");
+      closeMemoTabsUnder(projectId, path);
       setOpenList(openList.filter((p) => !isUnder(p, path)));
     },
   });
@@ -96,8 +127,6 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
   const [planning, setPlanning] = useState(false);
   const hasMemos = Boolean(entries?.some((e) => !e.dir));
 
-  // 開いていたメモがもうない（Finder で消した・名前を変えた）なら、右は案内に戻す
-  const selectedExists = Boolean(selected && entries?.some((e) => e.path === selected && !e.dir));
   const toggle = (path: string) => setOpenList(open.has(path) ? openList.filter((p) => p !== path) : [...openList, path]);
   const folderForNew = (node: TreeNode | null) => (node ? (node.dir ? node.path : parentOf(node.path)) : selected ? parentOf(selected) : "");
   const reveal = (path: string) => window.kickoff?.externalApps.revealPath(path ? `${dir}/${path}` : dir);
@@ -143,7 +172,12 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
               <ul className="memo-found" role="listbox" aria-label="見つかったメモ">
                 {found.map((e) => (
                   <li key={e.path}>
-                    <button role="option" aria-selected={selected === e.path} className={cx("tree-row", selected === e.path && "selected")} onClick={() => select(e.path)}>
+                    <button
+                      role="option"
+                      aria-selected={selected === e.path}
+                      className={cx("tree-row", selected === e.path && "selected")}
+                      onClick={(ev) => void select(e.path, ev.metaKey || ev.ctrlKey)}
+                    >
                       <FileIcon name={baseName(e.path)} dir={false} />
                       <span className="tree-name">{baseName(e.path)}</span>
                       {parentOf(e.path) && <span className="memo-found-folder">{parentOf(e.path)}</span>}
@@ -160,7 +194,7 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
               open={open}
               onToggle={toggle}
               selected={selected || undefined}
-              onSelect={select}
+              onSelect={(path, newTab) => void select(path, newTab)}
               onMenu={(e, node) => menu.open(e, node)}
               onExpand={(path) => openFolders([path])}
               onDropInto={(path, folder) => void actions.moveInto(path, folder)}
@@ -178,8 +212,8 @@ export function MemoTab({ projectId, openMemo }: { projectId: number; openMemo?:
         </>
       )}
       <div className="changes-diff memo-main">
-        {selected && selectedExists ? (
-          <MemoView key={selected} projectId={projectId} path={selected} dir={dir} onRenamed={(to) => moved(selected, to)} onOpenMemo={(to) => void select(to)} />
+        {panel.tabs.length > 0 ? (
+          <Panel panel={panel} frame={FIXED_FRAME} />
         ) : (
           list.data && (
             <EmptyState

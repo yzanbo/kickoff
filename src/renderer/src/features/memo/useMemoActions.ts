@@ -7,6 +7,7 @@ import { alertDialog, confirmDialog, reportFailure } from "@/ui/dialogs";
 import { readSetting, writeSetting } from "@/lib/storage";
 import { memoOpenFolders, memoSelected } from "@/lib/storageKeys";
 import { ancestorsOf, baseName, joinMemoPath, memoTitle, parentOf, pathTaken, remapPath, renamedPath, untitledPath } from "./memoPaths";
+import { remapMemoTabs } from "./memoPanel";
 
 /** 新しく作るメモ・フォルダの仮の名前（作ったらすぐ一覧で名前を変えてもらう。Finder の「名称未設定フォルダ」と同じ） */
 const UNTITLED_MEMO = "無題のメモ";
@@ -149,6 +150,8 @@ export function followMovedMemo(projectId: number, from: string, to: string) {
   const selected = readSetting(memoSelected(projectId));
   if (selected) writeSetting(memoSelected(projectId), remapPath(selected, from, to));
   writeSetting(memoOpenFolders(projectId), [...new Set([...remapPaths(readSetting(memoOpenFolders(projectId)), from, to), ...ancestorsOf(to)])]);
+  // メモのタブの右で開いているタブも付け替える
+  remapMemoTabs(projectId, from, to);
 }
 
 /** 動かしたあとに、覚えているパスの組を付け替える（開いているフォルダ） */

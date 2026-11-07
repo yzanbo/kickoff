@@ -8,6 +8,7 @@ import { closeChatWithChoice } from "@/features/chat/closeChat";
 import { StatusSlot } from "@/features/chat/StatusSlot";
 import type { useChatRename } from "@/features/chat/useChatRename";
 import type { PanelController } from "@/features/panel/usePanel";
+import { SURFACES } from "@/features/panel/surfaces";
 import { PanelTab } from "./PanelTab";
 import type { PanelTab as Tab } from "./panelTypes";
 import { specOf, type TabGroupLookup } from "./tabKinds";
@@ -70,7 +71,7 @@ export function PaneTab({
       active={active}
       icon={spec.icon}
       iconClass={spec.iconClass}
-      badge={spec.badge ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
+      badge={spec.badge && !SURFACES[panel.surface].noKindBadges ? { text: spec.BadgeText ? <spec.BadgeText tab={t} /> : spec.badge, kind: t.kind } : undefined}
       label={label}
       group={showGroup ? group : undefined}
       title={spec.hint?.(t) ?? chatHint ?? (group ? `${label}（グループ: ${group.name}）` : label)}

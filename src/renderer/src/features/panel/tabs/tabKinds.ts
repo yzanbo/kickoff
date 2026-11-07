@@ -179,7 +179,7 @@ interface TabKindSpec<T extends PanelTab> {
   /** どのプロジェクトのタブか（まとまり・グループ名を引くのに使う。ブラウザはどれにも入らない） */
   projectOf: (tab: T) => number | undefined;
   /** どのチャットのタブか（そのチャットを消したら閉じる。チャット・サブエージェント） */
-  chatIdOf?: (tab: T) => number;
+  chatIdOf?: (tab: T) => number | null;
   /** 中身を初めて表示したときに作るか（チャットのタブはサイドバーと連動して自動で増えるので、見ていないチャットまで読み込まない） */
   lazy?: boolean;
   /** 閉じたときの後始末（ターミナルはシェルも止める。ブラウザの開発者ツールは webview がなくなるときに BrowserPane が閉じる） */
@@ -269,10 +269,10 @@ export const TAB_KINDS: { [K in TabKind]: TabKindSpec<TabOf<K>> } = {
     label: (t) => baseName(t.path),
     hint: (t) => `メモ: ${t.path}`,
     projectOf: (t) => t.projectId,
-    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）
+    // 開いたチャットを消したら閉じる（チャットごとの欄なので、欄ごと使われなくなる）。メモのタブの右（memos）で開いたものはチャットなし
     chatIdOf: (t) => t.chatId,
     cluster: () => OTHER_CLUSTER,
-    popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path, chatId: t.chatId }, title: `${baseName(t.path)} — メモ` }),
+    popout: (t) => ({ route: { kind: "memo", projectId: t.projectId, path: t.path, ...(t.chatId !== null ? { chatId: t.chatId } : {}) }, title: `${baseName(t.path)} — メモ` }),
   },
   child: {
     shows: "subagent",

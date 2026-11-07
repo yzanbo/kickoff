@@ -6,9 +6,10 @@ import type { PanelKind } from "./state/panelKinds";
 
 /**
  * タブの欄（board = ボードの右のパネル / side = 画面の右端のチャット欄 / bottom = フッター（下のパネル） /
- * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く））
+ * agents = チャットの画面の右の欄（そのチャットのサブエージェントの画面と、変更したファイル・返答に出てきたファイルを並べる。チャットのタブの中に入れ子で置く） /
+ * memos = プロジェクトの「メモ」タブの右（開いたメモをタブで並べる。左の一覧から開く））
  */
-export type PanelSurface = "board" | "side" | "bottom" | "agents";
+export type PanelSurface = "board" | "side" | "bottom" | "agents" | "memos";
 
 /**
  * どの画面の欄か（プロジェクトの ID・全プロジェクトの画面 "all"。サブエージェントの欄はチャットの ID）。
@@ -58,6 +59,8 @@ export interface SurfaceRules {
   newChild?: boolean;
   /** タブがないときに、新しいチャットのボタンの代わりに出す案内（分けていない欄だけ。ボードの右のパネル: 新しいチャットは見出しの「新規」から） */
   emptyHint?: string;
+  /** タブの種類の札（「メモ」「サブ」「子」）を付けない（1 つの種類しか並ばない欄。メモのタブの右） */
+  noKindBadges?: boolean;
   /** 新しい子チャットを開けるときだけ、案内の後ろに足す文（メモのチャット・アーカイブ済みでは「＋」を出さないので、案内でも言わない） */
   newChildHint?: string;
   /** パネルに付けるクラス（欄ごとの見た目。as-sidebar = 欄いっぱいに置く（枠・影なし）/ in-footer = フッター） */
@@ -116,6 +119,18 @@ export const SURFACES: Record<PanelSurface, SurfaceRules> = {
     newChild: true,
     rootClass: "agent-panel",
   },
+  memos: {
+    memoryPrefix: "memos",
+    // メモのタブは「ファイル」の種類に入る（出す種類は決まっている）
+    defaultKinds: ["file"],
+    closeOnEsc: false,
+    closeWhenEmpty: false,
+    openWhenEmpty: null,
+    emptyHint: "左の一覧でメモを押すと、ここに開きます（⌘クリックで新しいタブ）。タブをドラッグすると、上下・左右に分けて並べられます。",
+    fixedKinds: true,
+    noKindBadges: true,
+    className: "memo-panel",
+  },
 };
 
 const SURFACE_NAMES = Object.keys(SURFACES) as PanelSurface[];
@@ -153,6 +168,7 @@ export function panelScreen(key: string): Route | undefined {
   // サブエージェントの欄はチャットの中にあり、下書きを持たないので移る先はない
   if (!at || at.surface === "agents") return undefined;
   if (at.scope === "all") return { name: "allProjects" };
+  if (at.surface === "memos") return { name: "project", id: at.scope, tab: "memos" };
   const chats = at.surface === "board" && readSetting(CHAT_PLACEMENT) === "separate";
   return { name: "project", id: at.scope, tab: chats ? "chats" : "board" };
 }
